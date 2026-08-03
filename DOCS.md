@@ -6089,7 +6089,42 @@ needed no changes.)
      leading separator; `closeMap`/`closeSeq` unchanged — B.4 completes mid-entry before closing).
      Colon semantics verified empirically: `{a:b}`/`{a :b}` are single plain scalars (→ bareKey), not
      mappings; genuine colon only before space/`}`/`,` or adjacent to a JSON key. Additive-green.
-   - **B.4 — THE ATOMIC SWAP** (the entangled red core). Replace the invariant's flow component
+   - **B.4 — THE ATOMIC SWAP — staged into 4a / α / β (2026-08-03).** Rather than one monolithic
+     red window, the swap is staged with two green, committed checkpoints before the entangled core:
+     - **B.4a — corrected FlowOpenStack foundation — ✅ DONE (commit `0314a58a`; green at 199 jobs,
+       additive/unused by the invariant).** Rebuilt `FlowOpenStack` on the corrected design: new
+       per-frame `SeqFrame`/`MapFrame := between (PartialFlow*: empty/entries/held) | mid
+       (PendingFlow*Entry)` (between carries the FULL `PartialFlow*` — `entries` is a genuine rest
+       position after a nested value closes, e.g. `[b]` in `{a: [b], c}`), and closure-injection
+       nesting (`seqNest`/`mapNest` carry `inject : ∀ sp_ne, SFlowNode 0 .flowIn sp_par sp_ne →
+       FlowOpenStack sp_start d sp_before0 sp_ne` built at push time, replacing explicit `below`;
+       positivity holds — FlowOpenStack occurs only in the closure codomain). `FlowStackB`/
+       `absorb_stacksB`/`FlowOpenStack_depth_pos`/`topLevelFlowResume` unchanged; `openSeqBase`/
+       `openMapBase` rewired to the new `st`. The sep-sensitive base-close + nested-push helpers are
+       deferred to β (their separator signatures are only pinned by how the accum step threads scan
+       positions — pre-committing risked a third foundation revision).
+     - **B.4α — mechanical invariant type swap — ✅ DONE (commit `32b45ef8`; green at 199 jobs).**
+       `FlowStack sp_block sp_flow` → `FlowStackB sp_start 0 sp_block sp_flow` at all ~48 in-file
+       sites (8 hyps, ~20 conclusions, 19 nil witnesses, 5 `absorb_stacks`→`absorb_stacksB`). Depth
+       fixed at 0 = isomorphic to nil-only, so `pendingFlow`/`scannerDrop` are untouched and it
+       stays green. Isolates the tedious type swap (done) from the hard coupling logic (β).
+     - **B.4β — the coupling + real accumulation (REMAINING RED CORE, multi-session, commit only
+       when green).** Flip depth `0` → `s'.flowLevel` in the conclusions/hyps. This is where it goes
+       (and stays) red: the moment the flow index is `s'.flowLevel`, a `[`/`{` dispatch (which
+       increments the scanner's `flowLevel`) can no longer be witnessed by `FlowStackB.nil` — it MUST
+       produce a real depth-≥1 `FlowOpenStack`. So β is monolithic-red across the flow path. Steps:
+       (β.1) flip the index and prove `s'.flowLevel = 0` at non-flow sites (facts available:
+       `advance_flowLevel`, `scanFlowSequence/MappingEnd_flowLevel`, `emit_flowLevel`,
+       `saveSimpleKey_preserves_flowLevel` — all for the NON-indexed scanner); (β.2) rewrite
+       `accum_flow_pending` into the real `c`×`flowLevel` push/pop/hold, rebuilding the sep-threaded
+       base-close + nested-push helpers against the actual scanner positions (trace
+       `scanFlowSequenceStart`/`End`/`scanFlowEntry` — `Scanner.lean:127/153/179/204/242`); (β.3)
+       `accum_step_content`/`accum_step_block` flow branches; (β.4) thread `flowLevel` through
+       `scanNextToken_accum_step`/`scanLoop_grammar_prod`/`scan_content_gives_stream`; (β.5) retire
+       `pendingFlow`, delete the now-unused old `FlowStack`/`absorb_stacks`. The original monolithic
+       write-up is retained below for the per-transition detail.
+
+     Replace the invariant's flow component
      `FlowStack sp_block sp_flow` → `FlowStackB sp_start sc.flowLevel sp_block sp_flow` across the
      ~20 lemmas that state it; replace `absorb_stacks` → `absorb_stacksB` (valid only at depth 0 —
      establish `flowLevel = 0` from the branch first); rewrite `accum_step_flow` (open on `[`/`{` →
