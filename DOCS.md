@@ -5606,7 +5606,7 @@ Both directions:
 | 0. Scanner audit for directive handling | ✅ done 2026-08-01 | findings under Fix B: mid-stream leniency **confirmed reachable** |
 | Fix B: eliminate `directiveDrop` (orphaned directive resolution) | ✅ **done 2026-08-02** | option (c) executed; see the progress record below |
 | 1a. Remove `directiveDrop` from `SLYamlStream` | ✅ **done 2026-08-02** | constructor deleted; `SLYamlStream` = 3 spec constructors + `scannerDrop` |
-| Fix A: eliminate `scannerDrop` (flow collection grammar evidence) | 🚧 in progress (v0.7.0) | **grammar completion + flow-accumulation rewire** (2026-08-03: `scannerDrop` masks real grammar incompleteness — audit found 3 bounded gaps G1–G3, e.g. bare-key `{a}`). Stage B.1 foundation `FlowStackB` green (`a2f4aefb`); remaining B.2 grammar surgery → B.3 production → B.4 atomic swap → B.5 delete. See the Fix A section. |
+| Fix A: eliminate `scannerDrop` (flow collection grammar evidence) | 🚧 in progress (v0.7.0) | **grammar completion + flow-accumulation rewire** (2026-08-03: `scannerDrop` masks real grammar incompleteness — audit found 3 bounded gaps G1–G3, e.g. bare-key `{a}`). Stage B.1 foundation `FlowStackB` green (`a2f4aefb`); **B.2 grammar surgery ✅ done** (G1 `71f03125`, G2/G3 `c215e597`; ripple empirically zero); remaining B.3 production → B.4 atomic swap → B.5 delete. See the Fix A section. |
 | 1b. Remove `scannerDrop` from `SLYamlStream` | 🚧 in progress | part of the atomic Fix A |
 | 5. Prove the converse `grammar_completeness` | ❌ open | depends on Fix A |
 | 6. Assemble `parse_iff_grammar` biconditional | ❌ open | depends on Step 5 |
@@ -6052,10 +6052,19 @@ needed no changes.)
    explicitEmpty}`. The rewire must *produce* every form (covered + G1–G3).
 
    **Stage B — REVISED remaining build (multi-session, red-throughout; commit only when green).**
-   - **B.2 — grammar completion (bounded surgery).** Add G1–G3 to `Surface/Node.lean` + `@[yaml_spec]`
-     tags; reconcile the SSOT's dependents (emitter round-trippability, `RoundTrip` proofs, any
-     exhaustive match / inversion over `SFlow*Entry`). Do G1 first as a complete vertical slice
-     (grammar + emitter + roundtrip green) to de-risk the SSOT ripple. Independently committable green.
+   - **B.2 — grammar completion (bounded surgery) — ✅ DONE (2026-08-03).** Added the 5 new
+     constructors to `Surface/Node.lean`: G1 `SFlowMapEntry.bareKey` (`SFlowNode → SFlowMapEntry`,
+     colonless `{a}`, commit `71f03125`); G2 `SFlowMapEntry.explicitKeyOnly` (`? key`, `{? a}`) and
+     G3 `SFlowSeqEntry.{explicitPairValue,explicitPairEmpty,explicitPairKeyOnly}` (`[? a : b]`,
+     `[? a :]`, `[? a]`) in commit `c215e597`. **The anticipated SSOT ripple was empirically ZERO**:
+     repo-wide only `Surface/Node.lean` (def) and `Proofs/Production/NodeProduction.lean` (producer
+     lemmas that *consume* an entry) reference `SFlow{Map,Seq}Entry` — **no** case-analysis, inversion,
+     emitter, or `RoundTrip` site enumerates their constructors, so new alternatives break nothing.
+     `@[yaml_spec]` is per-inductive ([142]/[139]), so no tag change; the bare-key value maps to the
+     already-`✓` `e-node` [105], so no `YAML_PRODUCTIONS.md` row. Both commits green at 199 jobs incl.
+     `L4YAML.Capstones` → no capstone axiom-profile or `#guard_msgs` pin drift. (The earlier "de-risk
+     via a G1 emitter/roundtrip vertical slice" caution is moot — that ripple does not exist. Producer
+     wiring is deferred to B.3/B.4, where these constructors are *built*, not merely declared.)
    - **B.3 — flow-entry production machinery.** Extend `PartialFlowMap` with multi-token entry states
      (`keyPending` after a key, `colonPending` after `:` + mandatory sep, and a `bareKey`/G1 branch
      that completes at a scalar with NO following value token) + `PartialFlowSeq` pair states; add the
