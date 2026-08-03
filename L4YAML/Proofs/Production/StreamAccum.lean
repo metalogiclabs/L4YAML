@@ -1005,13 +1005,13 @@ lemma preprocessing_eof_extends_stream (sc : ScannerState)
     (sp_start sp_gram sp_block sp_flow sp_scan : SurfPos)
     (h_stream : SLYamlStream sp_start sp_gram)
     (h_stack : BlockStack sp_gram sp_block)
-    (h_flow : FlowStack sp_block sp_flow)
+    (h_flow : FlowStackB sp_start 0 sp_block sp_flow)
     (h_pending : PendingNode false sp_start sp_flow sp_scan)
     (h_corr : ScannerSurfCorr sc sp_scan)
     (h_preprocess : scanNextToken_preprocess sc = .ok none) :
     ∃ sp_final, SLYamlStream sp_start sp_final ∧ sp_final.chars = [] := by
   exact eof_pending sc sp_start sp_flow sp_scan
-    (absorb_stacks sp_start sp_gram sp_block sp_flow h_stream h_stack h_flow)
+    (absorb_stacksB sp_start sp_gram sp_block sp_flow h_stream h_stack h_flow)
     h_pending h_corr h_preprocess
 
 -- Helper: `ScannerSurfCorr` is preserved by the `allowDirectives` flag update
@@ -1448,7 +1448,7 @@ lemma accum_structural_pending (sc : ScannerState)
     ∃ sp_gram' sp_block' sp_flow' sp_scan' b',
       SLYamlStream sp_start sp_gram' ∧
       BlockStack sp_gram' sp_block' ∧
-      FlowStack sp_block' sp_flow' ∧
+      FlowStackB sp_start 0 sp_block' sp_flow' ∧
       PendingNode b' sp_start sp_flow' sp_scan' ∧
       (b' = true → s'.directivesPresent = true) ∧
       ScannerSurfCorr s' sp_scan' := by
@@ -1468,7 +1468,7 @@ lemma accum_structural_pending (sc : ScannerState)
         ∃ sp_gram' sp_block' sp_flow' sp_scan' b',
           SLYamlStream sp_start sp_gram' ∧
           BlockStack sp_gram' sp_block' ∧
-          FlowStack sp_block' sp_flow' ∧
+          FlowStackB sp_start 0 sp_block' sp_flow' ∧
           PendingNode b' sp_start sp_flow' sp_scan' ∧
           (b' = true → s'.directivesPresent = true) ∧
           ScannerSurfCorr s' sp_scan' := by
@@ -1481,7 +1481,7 @@ lemma accum_structural_pending (sc : ScannerState)
           dispatch_new_pending s_prep s' c sp_start sp_mid sp_ws sp_gap sp_prep sp_scan'
             hcorr_prep hcorr_gap hcorr_result hcol_mid hws hcmt h_stream_mid hpeek h_dispatch
         exact ⟨sp_mid, sp_mid, sp_mid, sp_scan', b', h_stream_mid, BlockStack.nil sp_mid,
-               FlowStack.nil sp_mid, h_pend_new, h_flag, hcorr_result⟩
+               FlowStackB.nil sp_mid, h_pend_new, h_flag, hcorr_result⟩
       · -- col≠0: structural dispatch requires col=0, so SSLComments must exist.
         obtain ⟨sp_mid, sp_ws, sp_gap, h_disj, hws, hcmt, hcorr_gap, _⟩ :=
           preprocess_some_ssl_comments_anyCol sc sp_scan s_prep c h_corr h_preprocess
@@ -1503,7 +1503,7 @@ lemma accum_structural_pending (sc : ScannerState)
           dispatch_new_pending s_prep s' c sp_start sp_mid sp_ws sp_gap sp_prep sp_scan'
             hcorr_prep hcorr_gap hcorr_result hcol_mid hws hcmt h_stream_mid hpeek h_dispatch
         exact ⟨sp_mid, sp_mid, sp_mid, sp_scan', b', h_stream_mid, BlockStack.nil sp_mid,
-               FlowStack.nil sp_mid, h_pend_new, h_flag, hcorr_result⟩
+               FlowStackB.nil sp_mid, h_pend_new, h_flag, hcorr_result⟩
     exact main h_close_pending
   | true =>
     cases h_pending with
@@ -1518,7 +1518,7 @@ lemma accum_structural_pending (sc : ScannerState)
           ∃ sp_gram' sp_block' sp_flow' sp_scan' b',
             SLYamlStream sp_start sp_gram' ∧
             BlockStack sp_gram' sp_block' ∧
-            FlowStack sp_block' sp_flow' ∧
+            FlowStackB sp_start 0 sp_block' sp_flow' ∧
             PendingNode b' sp_start sp_flow' sp_scan' ∧
             (b' = true → s'.directivesPresent = true) ∧
             ScannerSurfCorr s' sp_scan') := by
@@ -1533,7 +1533,7 @@ lemma accum_structural_pending (sc : ScannerState)
             hcorr_prep hpeek h_stream_old h_dirs h_dp_prep h_dispatch
         have h_sp_eq : sp' = sp_scan' := ScannerSurfCorr_unique hcorr' hcorr_result
         exact ⟨sp_block, sp_block, sp_block, sp_scan', b', h_stream_old,
-               BlockStack.nil sp_block, FlowStack.nil sp_block, h_sp_eq ▸ h_pend', h_flag',
+               BlockStack.nil sp_block, FlowStackB.nil sp_block, h_sp_eq ▸ h_pend', h_flag',
                hcorr_result⟩
       by_cases hcol : sp_scan.col = 0
       · obtain ⟨sp_mid, sp_ws, sp_gap, h_ssl, hcol_mid, hws, hcmt, hcorr_gap, _⟩ :=
@@ -1561,7 +1561,7 @@ lemma accum_step_structural (sc : ScannerState)
     (s_prep s' : ScannerState) (c : Char) {b : Bool}
     (h_stream : SLYamlStream sp_start sp_gram)
     (h_stack : BlockStack sp_gram sp_block)
-    (h_flow : FlowStack sp_block sp_flow)
+    (h_flow : FlowStackB sp_start 0 sp_block sp_flow)
     (h_pending : PendingNode b sp_start sp_flow sp_scan)
     (h_dir_flag : b = true → sc.directivesPresent = true)
     (h_corr : ScannerSurfCorr sc sp_scan)
@@ -1570,12 +1570,12 @@ lemma accum_step_structural (sc : ScannerState)
     ∃ sp_gram' sp_block' sp_flow' sp_scan' b',
       SLYamlStream sp_start sp_gram' ∧
       BlockStack sp_gram' sp_block' ∧
-      FlowStack sp_block' sp_flow' ∧
+      FlowStackB sp_start 0 sp_block' sp_flow' ∧
       PendingNode b' sp_start sp_flow' sp_scan' ∧
       (b' = true → s'.directivesPresent = true) ∧
       ScannerSurfCorr s' sp_scan' := by
   exact accum_structural_pending sc sp_start sp_flow sp_scan s_prep s' c
-    (absorb_stacks sp_start sp_gram sp_block sp_flow h_stream h_stack h_flow)
+    (absorb_stacksB sp_start sp_gram sp_block sp_flow h_stream h_stack h_flow)
     h_pending h_dir_flag h_corr h_preprocess h_dispatch
 
 /-! ### §1c Preprocessing + Flow Indicator Dispatch
@@ -1650,7 +1650,7 @@ lemma accum_flow_pending (sc : ScannerState)
     ∃ sp_gram' sp_block' sp_flow' sp_scan',
       SLYamlStream sp_start sp_gram' ∧
       BlockStack sp_gram' sp_block' ∧
-      FlowStack sp_block' sp_flow' ∧
+      FlowStackB sp_start 0 sp_block' sp_flow' ∧
       PendingNode false sp_start sp_flow' sp_scan' ∧
       ScannerSurfCorr s' sp_scan' := by
   obtain ⟨sp_prep, hcorr_prep⟩ :=
@@ -1660,9 +1660,9 @@ lemma accum_flow_pending (sc : ScannerState)
   -- All flow indicators produce FlowStack.nil + PendingNode.pendingFlow (4z.1).
   -- GLit bracket evidence is not stored; deferred to close_with_ssl.
   have new_flow_state : ∀ (sp_mid : SurfPos) (h_str_mid : SLYamlStream sp_start sp_mid),
-      ∃ sp_flow', FlowStack sp_mid sp_flow' ∧ PendingNode false sp_start sp_flow' sp_scan' := by
+      ∃ sp_flow', FlowStackB sp_start 0 sp_mid sp_flow' ∧ PendingNode false sp_start sp_flow' sp_scan' := by
     intro sp_mid h_str_mid
-    exact ⟨sp_mid, FlowStack.nil sp_mid,
+    exact ⟨sp_mid, FlowStackB.nil sp_mid,
            PendingNode.pendingFlow sp_start sp_mid sp_scan' h_str_mid⟩
   -- Capture closing strategy before case-split (Pattern 6: parametric closing)
   have h_close_pending : ∀ sp_mid, SSLComments sp_scan sp_mid → SLYamlStream sp_start sp_mid :=
@@ -1700,7 +1700,7 @@ lemma accum_flow_pending (sc : ScannerState)
                  BlockStack.nil sp_mid, h_flow', h_pend', hcorr_result⟩
         | inr h_mid_eq =>
           exact ⟨sp_block, sp_block, sp_block, sp_scan', h_stream_block,
-                 BlockStack.nil sp_block, FlowStack.nil sp_block,
+                 BlockStack.nil sp_block, FlowStackB.nil sp_block,
                  PendingNode.pendingFlow sp_start sp_block sp_scan' h_stream_block,
                  hcorr_result⟩)
 
@@ -1709,7 +1709,7 @@ lemma accum_step_flow (sc : ScannerState)
     (s_prep s' : ScannerState) (c : Char)
     (h_stream : SLYamlStream sp_start sp_gram)
     (h_stack : BlockStack sp_gram sp_block)
-    (h_flow : FlowStack sp_block sp_flow)
+    (h_flow : FlowStackB sp_start 0 sp_block sp_flow)
     (h_pending : PendingNode false sp_start sp_flow sp_scan)
     (h_corr : ScannerSurfCorr sc sp_scan)
     (h_preprocess : scanNextToken_preprocess sc = .ok (some (s_prep, c)))
@@ -1720,11 +1720,11 @@ lemma accum_step_flow (sc : ScannerState)
     ∃ sp_gram' sp_block' sp_flow' sp_scan',
       SLYamlStream sp_start sp_gram' ∧
       BlockStack sp_gram' sp_block' ∧
-      FlowStack sp_block' sp_flow' ∧
+      FlowStackB sp_start 0 sp_block' sp_flow' ∧
       PendingNode false sp_start sp_flow' sp_scan' ∧
       ScannerSurfCorr s' sp_scan' := by
   exact accum_flow_pending sc sp_start sp_flow sp_scan s_prep s' c
-    (absorb_stacks sp_start sp_gram sp_block sp_flow h_stream h_stack h_flow)
+    (absorb_stacksB sp_start sp_gram sp_block sp_flow h_stream h_stack h_flow)
     h_pending h_corr h_preprocess h_dispatch
 
 /-! ### §1d Preprocessing + Block Indicator Dispatch
@@ -1832,11 +1832,11 @@ lemma block_dispatch_deferred
     ∃ sp_gram' sp_block' sp_flow' sp_scan',
       SLYamlStream sp_start sp_gram' ∧
       BlockStack sp_gram' sp_block' ∧
-      FlowStack sp_block' sp_flow' ∧
+      FlowStackB sp_start 0 sp_block' sp_flow' ∧
       PendingNode false sp_start sp_flow' sp_scan' ∧
       ScannerSurfCorr s' sp_scan' :=
   ⟨sp_X, sp_X, sp_X, sp_scan', h_stream,
-   BlockStack.nil sp_X, FlowStack.nil sp_X,
+   BlockStack.nil sp_X, FlowStackB.nil sp_X,
    PendingNode.pendingFlow sp_start sp_X sp_scan' h_stream,
    hcorr⟩
 
@@ -1858,7 +1858,7 @@ lemma accum_block_on_noPending
     ∃ sp_gram' sp_block' sp_flow' sp_scan',
       SLYamlStream sp_start sp_gram' ∧
       BlockStack sp_gram' sp_block' ∧
-      FlowStack sp_block' sp_flow' ∧
+      FlowStackB sp_start 0 sp_block' sp_flow' ∧
       PendingNode false sp_start sp_flow' sp_scan' ∧
       ScannerSurfCorr s' sp_scan' := by
   by_cases hcol : sp_block.col = 0
@@ -1885,7 +1885,7 @@ lemma accum_block_on_noPending
         cases hcmt with
         | none =>
           exact ⟨sp_block, sp_block, sp_block, sp_scan', h_stream_block,
-                 BlockStack.nil sp_block, FlowStack.nil sp_block,
+                 BlockStack.nil sp_block, FlowStackB.nil sp_block,
                  PendingNode.pendingBlock sp_start sp_block sp_scan' 0
                    (fun sp_final (h_node : SBlockNode 0 .blockIn sp_scan' sp_final) =>
                      have h_indented :=
@@ -1946,7 +1946,7 @@ lemma accum_block_on_closeThenBlock
     ∃ sp_gram' sp_block' sp_flow' sp_scan',
       SLYamlStream sp_start sp_gram' ∧
       BlockStack sp_gram' sp_block' ∧
-      FlowStack sp_block' sp_flow' ∧
+      FlowStackB sp_start 0 sp_block' sp_flow' ∧
       PendingNode false sp_start sp_flow' sp_scan' ∧
       ScannerSurfCorr s' sp_scan' := by
   by_cases hcol : sp_scan.col = 0
@@ -1979,7 +1979,7 @@ lemma accum_block_on_closeThenBlock
             hcol_eq ▸ SSLComments.startOfLine sp_mid.chars ⟨sp_mid.chars, 0⟩
               (GStar.nil ⟨sp_mid.chars, 0⟩)
           exact ⟨sp_mid, sp_mid, sp_mid, sp_scan', h_stream_new,
-                 BlockStack.nil sp_mid, FlowStack.nil sp_mid,
+                 BlockStack.nil sp_mid, FlowStackB.nil sp_mid,
                  PendingNode.pendingBlock sp_start sp_mid sp_scan' 0
                    (fun sp_final (h_node : SBlockNode 0 .blockIn sp_scan' sp_final) =>
                      have h_indented :=
@@ -2057,7 +2057,7 @@ lemma accum_block_on_pendingBlockContent
     ∃ sp_gram' sp_block' sp_flow' sp_scan',
       SLYamlStream sp_start sp_gram' ∧
       BlockStack sp_gram' sp_block' ∧
-      FlowStack sp_block' sp_flow' ∧
+      FlowStackB sp_start 0 sp_block' sp_flow' ∧
       PendingNode false sp_start sp_flow' sp_scan' ∧
       ScannerSurfCorr s' sp_scan' := by
   by_cases hcol : sp_scan.col = 0
@@ -2086,7 +2086,7 @@ lemma accum_block_on_pendingBlockContent
           obtain ⟨sp_first, h_entries_old, h_cont⟩ :=
             h_entry_old sp_mid h_ssl
           exact ⟨sp_block, sp_block, sp_block, sp_scan', h_stream_block,
-                 BlockStack.nil sp_block, FlowStack.nil sp_block,
+                 BlockStack.nil sp_block, FlowStackB.nil sp_block,
                  PendingNode.pendingBlock sp_start sp_block sp_scan' 0
                    (fun sp_final (h_node : SBlockNode 0 .blockIn sp_scan' sp_final) =>
                      have h_indented :=
@@ -2144,7 +2144,7 @@ lemma accum_block_on_pendingBlock
     ∃ sp_gram' sp_block' sp_flow' sp_scan',
       SLYamlStream sp_start sp_gram' ∧
       BlockStack sp_gram' sp_block' ∧
-      FlowStack sp_block' sp_flow' ∧
+      FlowStackB sp_start 0 sp_block' sp_flow' ∧
       PendingNode false sp_start sp_flow' sp_scan' ∧
       ScannerSurfCorr s' sp_scan' := by
   by_cases hcol : sp_scan.col = 0
@@ -2175,7 +2175,7 @@ lemma accum_block_on_pendingBlock
           obtain ⟨sp_first, h_entries_old, h_cont⟩ :=
             h_close_entry_old sp_mid h_node_old
           exact ⟨sp_block, sp_block, sp_block, sp_scan', h_stream_block,
-                 BlockStack.nil sp_block, FlowStack.nil sp_block,
+                 BlockStack.nil sp_block, FlowStackB.nil sp_block,
                  PendingNode.pendingBlock sp_start sp_block sp_scan' 0
                    (fun sp_final (h_node : SBlockNode 0 .blockIn sp_scan' sp_final) =>
                      have h_indented :=
@@ -2225,7 +2225,7 @@ lemma accum_block_pending (sc : ScannerState)
     ∃ sp_gram' sp_block' sp_flow' sp_scan',
       SLYamlStream sp_start sp_gram' ∧
       BlockStack sp_gram' sp_block' ∧
-      FlowStack sp_block' sp_flow' ∧
+      FlowStackB sp_start 0 sp_block' sp_flow' ∧
       PendingNode false sp_start sp_flow' sp_scan' ∧
       ScannerSurfCorr s' sp_scan' := by
   obtain ⟨sp_prep, hcorr_prep⟩ :=
@@ -2271,7 +2271,7 @@ lemma accum_step_block (sc : ScannerState)
     (s_prep s' : ScannerState) (c : Char)
     (h_stream : SLYamlStream sp_start sp_gram)
     (h_stack : BlockStack sp_gram sp_block)
-    (h_flow : FlowStack sp_block sp_flow)
+    (h_flow : FlowStackB sp_start 0 sp_block sp_flow)
     (h_pending : PendingNode false sp_start sp_flow sp_scan)
     (h_corr : ScannerSurfCorr sc sp_scan)
     (h_preprocess : scanNextToken_preprocess sc = .ok (some (s_prep, c)))
@@ -2282,11 +2282,11 @@ lemma accum_step_block (sc : ScannerState)
     ∃ sp_gram' sp_block' sp_flow' sp_scan',
       SLYamlStream sp_start sp_gram' ∧
       BlockStack sp_gram' sp_block' ∧
-      FlowStack sp_block' sp_flow' ∧
+      FlowStackB sp_start 0 sp_block' sp_flow' ∧
       PendingNode false sp_start sp_flow' sp_scan' ∧
       ScannerSurfCorr s' sp_scan' := by
   exact accum_block_pending sc sp_start sp_flow sp_scan s_prep s' c
-    (absorb_stacks sp_start sp_gram sp_block sp_flow h_stream h_stack h_flow)
+    (absorb_stacksB sp_start sp_gram sp_block sp_flow h_stream h_stack h_flow)
     h_pending h_corr h_preprocess h_dispatch
 
 /-! ### §1e Preprocessing + Content Dispatch
@@ -2744,7 +2744,7 @@ lemma content_dispatch_after_close
     ∃ sp_gram' sp_block' sp_flow' sp_scan',
       SLYamlStream sp_start sp_gram' ∧
       BlockStack sp_gram' sp_block' ∧
-      FlowStack sp_block' sp_flow' ∧
+      FlowStackB sp_start 0 sp_block' sp_flow' ∧
       PendingNode false sp_start sp_flow' sp_scan' ∧
       ScannerSurfCorr s' sp_scan' := by
   have hpeek_disp : (if s_prep.allowDirectives then
@@ -2761,7 +2761,7 @@ lemma content_dispatch_after_close
   cases h_ev with
   | inl h_flow =>
     exact ⟨sp_block, sp_block, sp_block, sp_scan', h_stream_block,
-           BlockStack.nil sp_block, FlowStack.nil sp_block,
+           BlockStack.nil sp_block, FlowStackB.nil sp_block,
            PendingNode.pendingContent sp_start sp_block sp_scan'
              (fun sp_mid h_ssl =>
                have h_ssl_ext := white_prepend_SSLComments h_trailing_ws h_ssl
@@ -2776,7 +2776,7 @@ lemma content_dispatch_after_close
            hcorr_result⟩
   | inr h_block =>
     exact ⟨sp_block, sp_block, sp_block, sp_scan', h_stream_block,
-           BlockStack.nil sp_block, FlowStack.nil sp_block,
+           BlockStack.nil sp_block, FlowStackB.nil sp_block,
            PendingNode.pendingContent sp_start sp_block sp_scan'
              (fun sp_mid h_ssl =>
                have h_ssl_ext := white_prepend_SSLComments h_trailing_ws h_ssl
@@ -2816,7 +2816,7 @@ lemma accum_content_on_noPending
     ∃ sp_gram' sp_block' sp_flow' sp_scan',
       SLYamlStream sp_start sp_gram' ∧
       BlockStack sp_gram' sp_block' ∧
-      FlowStack sp_block' sp_flow' ∧
+      FlowStackB sp_start 0 sp_block' sp_flow' ∧
       PendingNode false sp_start sp_flow' sp_scan' ∧
       ScannerSurfCorr s' sp_scan' := by
   by_cases hcol : sp_block.col = 0
@@ -2838,7 +2838,7 @@ lemma accum_content_on_noPending
     cases h_ev with
     | inl h_flow =>
       exact ⟨sp_block, sp_block, sp_block, sp_scan', h_stream_block,
-             BlockStack.nil sp_block, FlowStack.nil sp_block,
+             BlockStack.nil sp_block, FlowStackB.nil sp_block,
              PendingNode.pendingContent sp_start sp_block sp_scan'
                (fun sp_mid h_ssl =>
                  have h_ssl_ext := white_prepend_SSLComments h_trailing_ws h_ssl
@@ -2853,7 +2853,7 @@ lemma accum_content_on_noPending
              hcorr_result⟩
     | inr h_block =>
       exact ⟨sp_block, sp_block, sp_block, sp_scan', h_stream_block,
-             BlockStack.nil sp_block, FlowStack.nil sp_block,
+             BlockStack.nil sp_block, FlowStackB.nil sp_block,
              PendingNode.pendingContent sp_start sp_block sp_scan'
                (fun sp_mid h_ssl =>
                  have h_ssl_ext := white_prepend_SSLComments h_trailing_ws h_ssl
@@ -2889,7 +2889,7 @@ lemma accum_content_on_noPending
     cases h_ev with
     | inl h_flow =>
       exact ⟨sp_block, sp_block, sp_block, sp_scan', h_stream_block,
-             BlockStack.nil sp_block, FlowStack.nil sp_block,
+             BlockStack.nil sp_block, FlowStackB.nil sp_block,
              PendingNode.pendingContent sp_start sp_block sp_scan'
                (fun sp_mid h_ssl =>
                  have h_ssl_ext := white_prepend_SSLComments h_trailing_ws h_ssl
@@ -2904,7 +2904,7 @@ lemma accum_content_on_noPending
              hcorr_result⟩
     | inr h_block =>
       exact ⟨sp_block, sp_block, sp_block, sp_scan', h_stream_block,
-             BlockStack.nil sp_block, FlowStack.nil sp_block,
+             BlockStack.nil sp_block, FlowStackB.nil sp_block,
              PendingNode.pendingContent sp_start sp_block sp_scan'
                (fun sp_mid h_ssl =>
                  have h_ssl_ext := white_prepend_SSLComments h_trailing_ws h_ssl
@@ -2949,7 +2949,7 @@ lemma accum_content_on_pendingBlock
     ∃ sp_gram' sp_block' sp_flow' sp_scan',
       SLYamlStream sp_start sp_gram' ∧
       BlockStack sp_gram' sp_block' ∧
-      FlowStack sp_block' sp_flow' ∧
+      FlowStackB sp_start 0 sp_block' sp_flow' ∧
       PendingNode false sp_start sp_flow' sp_scan' ∧
       ScannerSurfCorr s' sp_scan' := by
   obtain ⟨sp_prep', h_sep, hcorr_sep⟩ :=
@@ -2970,7 +2970,7 @@ lemma accum_content_on_pendingBlock
   cases h_ev with
   | inl h_flow =>
     exact ⟨sp_block, sp_block, sp_block, sp_scan', h_stream_block,
-           BlockStack.nil sp_block, FlowStack.nil sp_block,
+           BlockStack.nil sp_block, FlowStackB.nil sp_block,
            PendingNode.pendingBlockContent sp_start sp_block sp_scan' 0
              (fun sp_final h_ssl =>
                have h_ssl_ext := white_prepend_SSLComments h_trailing_ws h_ssl
@@ -2991,7 +2991,7 @@ lemma accum_content_on_pendingBlock
     have h_stream' : SLYamlStream sp_start sp_gram :=
       h_close_old sp_gram h_blockNode
     exact ⟨sp_gram, sp_gram, sp_gram, sp_scan', h_stream',
-           BlockStack.nil sp_gram, FlowStack.nil sp_gram,
+           BlockStack.nil sp_gram, FlowStackB.nil sp_gram,
            PendingNode.pendingContent sp_start sp_gram sp_scan'
              (fun sp_final h_ssl =>
                have h_ssl_ext := white_prepend_SSLComments h_trailing_ws h_ssl
@@ -3019,7 +3019,7 @@ lemma accum_content_pending (sc : ScannerState)
     ∃ sp_gram' sp_block' sp_flow' sp_scan',
       SLYamlStream sp_start sp_gram' ∧
       BlockStack sp_gram' sp_block' ∧
-      FlowStack sp_block' sp_flow' ∧
+      FlowStackB sp_start 0 sp_block' sp_flow' ∧
       PendingNode false sp_start sp_flow' sp_scan' ∧
       ScannerSurfCorr s' sp_scan' := by
   obtain ⟨sp_prep, hcorr_prep⟩ :=
@@ -3090,7 +3090,7 @@ lemma accum_step_content (sc : ScannerState)
     (s_prep s' : ScannerState) (c : Char)
     (h_stream : SLYamlStream sp_start sp_gram)
     (h_stack : BlockStack sp_gram sp_block)
-    (h_flow : FlowStack sp_block sp_flow)
+    (h_flow : FlowStackB sp_start 0 sp_block sp_flow)
     (h_pending : PendingNode false sp_start sp_flow sp_scan)
     (h_corr : ScannerSurfCorr sc sp_scan)
     (h_preprocess : scanNextToken_preprocess sc = .ok (some (s_prep, c)))
@@ -3107,11 +3107,11 @@ lemma accum_step_content (sc : ScannerState)
     ∃ sp_gram' sp_block' sp_flow' sp_scan',
       SLYamlStream sp_start sp_gram' ∧
       BlockStack sp_gram' sp_block' ∧
-      FlowStack sp_block' sp_flow' ∧
+      FlowStackB sp_start 0 sp_block' sp_flow' ∧
       PendingNode false sp_start sp_flow' sp_scan' ∧
       ScannerSurfCorr s' sp_scan' := by
   exact accum_content_pending sc sp_start sp_flow sp_scan s_prep s' c
-    (absorb_stacks sp_start sp_gram sp_block sp_flow h_stream h_stack h_flow)
+    (absorb_stacksB sp_start sp_gram sp_block sp_flow h_stream h_stack h_flow)
     h_pending h_corr h_preprocess h_not_doc h_dispatch
 
 /-! ### §1f Composition: Per-Dispatch → Full accum_step
@@ -3124,7 +3124,7 @@ lemma scanNextToken_accum_step (sc : ScannerState)
     (s' : ScannerState) {b : Bool}
     (h_stream : SLYamlStream sp_start sp_gram)
     (h_stack : BlockStack sp_gram sp_block)
-    (h_flow : FlowStack sp_block sp_flow)
+    (h_flow : FlowStackB sp_start 0 sp_block sp_flow)
     (h_pending : PendingNode b sp_start sp_flow sp_scan)
     (h_dir_flag : b = true → sc.directivesPresent = true)
     (h_corr : ScannerSurfCorr sc sp_scan)
@@ -3132,7 +3132,7 @@ lemma scanNextToken_accum_step (sc : ScannerState)
     ∃ sp_gram' sp_block' sp_flow' sp_scan' b',
       SLYamlStream sp_start sp_gram' ∧
       BlockStack sp_gram' sp_block' ∧
-      FlowStack sp_block' sp_flow' ∧
+      FlowStackB sp_start 0 sp_block' sp_flow' ∧
       PendingNode b' sp_start sp_flow' sp_scan' ∧
       (b' = true → s'.directivesPresent = true) ∧
       ScannerSurfCorr s' sp_scan' := by
@@ -3230,7 +3230,7 @@ lemma scanNextToken_none_stream (sc : ScannerState)
     (sp_start sp_gram sp_block sp_flow sp_scan : SurfPos)
     (h_stream : SLYamlStream sp_start sp_gram)
     (h_stack : BlockStack sp_gram sp_block)
-    (h_flow : FlowStack sp_block sp_flow)
+    (h_flow : FlowStackB sp_start 0 sp_block sp_flow)
     (h_pending : PendingNode false sp_start sp_flow sp_scan)
     (h_corr : ScannerSurfCorr sc sp_scan)
     (h_ok : scanNextToken sc = .ok none) :
@@ -3274,7 +3274,7 @@ lemma scanLoop_grammar_prod (sc : ScannerState)
     (fuel : Nat) (tokens : Array (Positioned YamlToken)) {b : Bool}
     (h_stream : SLYamlStream sp_start sp_gram)
     (h_stack : BlockStack sp_gram sp_block)
-    (h_flow : FlowStack sp_block sp_flow)
+    (h_flow : FlowStackB sp_start 0 sp_block sp_flow)
     (h_pending : PendingNode b sp_start sp_flow sp_scan)
     (h_dir_flag : b = true → sc.directivesPresent = true)
     (h_corr : ScannerSurfCorr sc sp_scan)
@@ -3385,7 +3385,7 @@ lemma scan_content_gives_stream_v2
   simp only [] at h
   obtain ⟨sp, h_stream, h_corr⟩ := initial_stream_and_prefix input
   exact scanLoop_grammar_prod _ ⟨input.toList, 0⟩ sp sp sp sp _ tokens
-    h_stream (BlockStack.nil sp) (FlowStack.nil sp) (PendingNode.noPending ⟨input.toList, 0⟩ sp)
+    h_stream (BlockStack.nil sp) (FlowStackB.nil sp) (PendingNode.noPending ⟨input.toList, 0⟩ sp)
     (fun hb => Bool.noConfusion hb) h_corr h
 
 /-! ## §6 Gap Analysis (historical — file is sorry-free)
