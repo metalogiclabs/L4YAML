@@ -5606,7 +5606,7 @@ Both directions:
 | 0. Scanner audit for directive handling | ✅ done 2026-08-01 | findings under Fix B: mid-stream leniency **confirmed reachable** |
 | Fix B: eliminate `directiveDrop` (orphaned directive resolution) | ✅ **done 2026-08-02** | option (c) executed; see the progress record below |
 | 1a. Remove `directiveDrop` from `SLYamlStream` | ✅ **done 2026-08-02** | constructor deleted; `SLYamlStream` = 3 spec constructors + `scannerDrop` |
-| Fix A: eliminate `scannerDrop` (flow collection grammar evidence) | 🚧 in progress (v0.7.0) | **grammar completion + flow-accumulation rewire** (2026-08-03: `scannerDrop` masks real grammar incompleteness — audit found 3 bounded gaps G1–G3, e.g. bare-key `{a}`). Stage B.1 foundation `FlowStackB` green (`a2f4aefb`); **B.2 grammar surgery ✅ done** (G1 `71f03125`, G2/G3 `c215e597`; ripple empirically zero); remaining B.3 production → B.4 atomic swap → B.5 delete. See the Fix A section. |
+| Fix A: eliminate `scannerDrop` (flow collection grammar evidence) | 🚧 in progress (v0.7.0) | **grammar completion + flow-accumulation rewire** (2026-08-03: `scannerDrop` masks real grammar incompleteness — audit found 3 bounded gaps G1–G3, e.g. bare-key `{a}`). Stage B.1 foundation `FlowStackB` green (`a2f4aefb`); **B.2 grammar surgery ✅ done** (G1 `71f03125`, G2/G3 `c215e597`; ripple empirically zero); **B.3 flow-entry production machinery ✅ done** (§4f `ede0ef1e` + §4g `a8cae0d6`; all forms, additive-green); remaining B.4 atomic swap → B.5 delete. See the Fix A section. |
 | 1b. Remove `scannerDrop` from `SLYamlStream` | 🚧 in progress | part of the atomic Fix A |
 | 5. Prove the converse `grammar_completeness` | ❌ open | depends on Fix A |
 | 6. Assemble `parse_iff_grammar` biconditional | ❌ open | depends on Step 5 |
@@ -6065,12 +6065,23 @@ needed no changes.)
      `L4YAML.Capstones` → no capstone axiom-profile or `#guard_msgs` pin drift. (The earlier "de-risk
      via a G1 emitter/roundtrip vertical slice" caution is moot — that ripple does not exist. Producer
      wiring is deferred to B.3/B.4, where these constructors are *built*, not merely declared.)
-   - **B.3 — flow-entry production machinery.** Extend `PartialFlowMap` with multi-token entry states
-     (`keyPending` after a key, `colonPending` after `:` + mandatory sep, and a `bareKey`/G1 branch
-     that completes at a scalar with NO following value token) + `PartialFlowSeq` pair states; add the
-     `SFlow*Entry` assembly lemmas (`implicitValue`/`implicitEmpty`/G1/…). Additive green in
-     `NodeProduction`. (The current `empty`/`entries`/`held` `PartialFlowMap` is insufficient — map
-     entries span 3 scan steps: key, `:`, value.)
+   - **B.3 — flow-entry production machinery — ✅ DONE (2026-08-03).** `NodeProduction` §4f (`ede0ef1e`,
+     implicit forms) + §4g (`a8cae0d6`, explicit-`?`/empty-key). The `empty`/`entries`/`held`
+     `PartialFlowMap` only captured *between-entries* positions; a map entry `{a: b}` spans 3 scan
+     steps (key, `:`, value). So mid-entry evidence now lives in a **separate** type (chosen precisely
+     to keep `closeMap`/`closeSeq`/`FlowOpenStack` ripple-free): `PendingFlowMapEntry`
+     (`keyPending`/`colonPending`/`explicitKeyPending`/`explicitColonPending`/`emptyColonPending`) and
+     `PendingFlowSeqEntry` (`nodePending`/`colonPending`/`explicitPending`/`explicitColonPending`),
+     with `finish*` completions that snoc a finished entry (of every form: bareKey/G1, implicitValue,
+     implicitEmpty, explicitKeyOnly/G2, explicitValue, explicitEmpty, emptyKeyValue, emptyKeyEmpty;
+     seq node, pairValue, pairEmpty, explicit trio/G3) onto a `FlowMapPrefix`/`FlowSeqPrefix`
+     (`init`=first entry / `cons`=after-comma, unifying the single-vs-snoc branch) via `appendEntry`,
+     landing in the closeable `entries` state. **Design pinned to the scanner-whitespace model** (plain
+     scalars are right-trimmed → every separator is consumed by the *following* step's preprocessing,
+     so each mid-entry state ends exactly at its last token and each transition supplies its own
+     leading separator; `closeMap`/`closeSeq` unchanged — B.4 completes mid-entry before closing).
+     Colon semantics verified empirically: `{a:b}`/`{a :b}` are single plain scalars (→ bareKey), not
+     mappings; genuine colon only before space/`}`/`,` or adjacent to a JSON key. Additive-green.
    - **B.4 — THE ATOMIC SWAP** (the entangled red core). Replace the invariant's flow component
      `FlowStack sp_block sp_flow` → `FlowStackB sp_start sc.flowLevel sp_block sp_flow` across the
      ~20 lemmas that state it; replace `absorb_stacks` → `absorb_stacksB` (valid only at depth 0 —
