@@ -5978,14 +5978,59 @@ needed no changes.)
 
 **The two remaining pieces (next session, in order):**
 2. **Piece 2 — scan→grammar flow accumulation (novel).** Build `SFlowSequence`/`SFlowMapping`
-   grammar evidence from a successful scan (nothing does this today). `GLit ','` upgrade of
-   `scanFlowEntry_prod` (`StructureProduction.lean:119`); term-mode `SFlowSeqEntries`/
-   `SFlowMapEntries` snoc lemmas (mirror `SBlockSeqEntries_snoc`, `NodeProduction.lean:415`);
-   native-`.flowIn` producer siblings (delete the 3 `_to_flowOut` lifts in
-   `scanPlainScalar_to_flowNode`); **revive `FlowStack`** (currently always `nil` post-4z.1) to
-   carry per-level entry-snoc closures (mirroring `BlockStack`), OR enrich `pendingFlow`'s payload;
-   restructure `pendingFlow` (`StreamAccum.lean:140`) to carry `h_closable` like `pendingContent`;
-   col≠0 `SSeparateLines` preprocessing evidence.
+   grammar evidence from a successful scan (nothing does this today).
+
+   **Stage A — reusable leaf building blocks — ✅ DONE (2026-08-03, commit `00fd20c5`; full
+   library green, Capstones axiom pins unchanged).** All the leaf pieces the accumulation needs,
+   each proven standalone against the green library:
+   - **A1** `scanFlowEntry_glit` (`StructureProduction.lean`): the `,` separator now carries
+     `GLit ','` (the surface witness for entries).
+   - **A2** `SFlowSeqEntries_snoc` / `SFlowMapEntries_snoc` (`NodeProduction.lean` §4b): append one
+     comma-separated entry, mirroring `SBlockSeqEntries_snoc`, guarded by **inductive**
+     `FlowSeqEntriesCloseable` / `FlowMapEntriesCloseable` predicates (spine over `single`/`consMore`
+     only — cleanly excludes the trailing-comma `consEnd` that can't take another `,entry`), plus
+     `_closeable` preservation companions. (The inductive guard is what makes the term-mode match
+     total; a `def`-valued guard trips the dependent pattern matcher → `sorry`.)
+   - **A3 — resolves the historical 4i blocker.** Native `.flowIn` plain-scalar producer. Extracted
+     `scanPlainScalar_to_multiLine_native` (builds `SNsPlainMultiLine 0 (ctxOfInFlow inFlow)` with NO
+     context lift) + whole-scalar lift `SNsPlainMultiLine_ctxOfInFlow_to_flowOut`; rewired
+     `scanPlainScalar_to_flowNode` through it (identical signature) and added
+     `scanPlainScalar_to_flowNode_flowIn` for flow-collection entries. (The v0.4.9 flow-accumulation
+     attempt was abandoned to `scannerDrop` precisely because `_prod` gave `.blockIn`/`.flowOut` but
+     flow entries need `.flowIn` — now unblocked.)
+   - **A4** flow separation primitives (`NodeProduction.lean` §4c): `SSeparate_flow_refl` /
+     `_of_whites` / `GOpt_SSeparate_none`, col-agnostic via the deliberately-weakened
+     `SSeparateInLine.startOfLine`.
+   - **A5** flow-collection assembly (`NodeProduction.lean` §4d): `flowSeq`/`flowMap`
+     `_nonempty`/`_empty` → `SFlowSequence`/`SFlowMapping` → `SFlowNode`; single-entry seeds +
+     closeable.
+
+   **Top-level grammatical close — ✅ DONE (2026-08-03, commit `b9e8aef0`).**
+   `flowSeq_extends_stream` / `flowMap_extends_stream` (`StreamAccum.lean`): a completed top-level
+   `[...]`/`{...}` extends `SLYamlStream` grammatically (`flowInBlock` bare-document node +
+   `implicitContinue`) with NO opaque gap. **Proves `scannerDrop`'s job is grammatically achievable**
+   for the top-level case.
+
+   **Stage B — accumulation-invariant threading — ⏳ REMAINING (the atomic core-chain rewire).**
+   The hard, structural part. The invariant is a quint (`SLYamlStream sp_start sp_gram → BlockStack
+   → FlowStack → PendingNode false sp_start sp_flow sp_scan → ScannerSurfCorr`), and every
+   `accum_step_*` calls `absorb_stacks` to flatten to `SLYamlStream sp_start sp_flow` FIRST — which
+   is impossible for an *open* flow collection (it isn't a complete grammar object until the
+   outermost `]`/`}`). That impossibility is *why* the project fell back to `scannerDrop`. Making it
+   grammatical requires: (i) enrich `FlowStack` (`StreamAccum.lean:260`) with `flowSeqLevel`/
+   `flowMapLevel` constructors carrying the open bracket + accumulated `SFlowSeqEntries`/closeable +
+   a parent closure (mirroring `BlockStack.seqLevel`); (ii) a NEW invariant coupling
+   `FlowStack non-nil ↔ sc.flowLevel > 0` (analogous to the `directivesPresent` Bool index on
+   `pendingDirective`) so the accum steps can branch flow-interior vs flatten; (iii) rewrite
+   `accum_step_flow` (push on `[`/`{`, snoc entries on content/`,`, pop+assemble on `]`/`}`, and at
+   `flowLevel→0` close into the stream via `flowSeq_extends_stream` or into a block entry) +
+   `accum_step_content` (route content to the current FlowStack level when `inFlow`) +
+   `accum_content_pending` + `block_dispatch_deferred`; (iv) the fuel induction
+   `scanLoop_grammar_prod` keeps its shape (FlowStack just enriched). Covers top-level flow,
+   flow-as-block-value (`key: [1,2]`), flow-as-seq-entry (`- [1,2]`), and nested flow (`[[a],[b]]`).
+   This is coupled with Piece 3 (removing `scannerDrop` makes any gap a build error, so no
+   incremental green midway — it lands atomically). All leaf dependencies are now proven; the
+   remaining risk is the invariant surgery itself.
 3. **Piece 3 — remove `scannerDrop` + Phase 2.** Grammatical `close_with_ssl` (`StreamAccum.lean:~485`)
    using the accumulated evidence; delete `scannerDrop` from `Surface/Document.lean` (`SLYamlStream`
    → 3 spec constructors); full rebuild + `run-all-tests` + both gates + 0 sorry/axiom, commit as
