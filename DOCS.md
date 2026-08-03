@@ -5960,17 +5960,23 @@ continue from next session, not a shippable state.
   Archetypes: `dispatchFlowIndicators_bracket/brace/none`, `scanNextToken_flow_open_nested`,
   `scanNextToken_flow_scanDoubleQuoted`.
 
-**The three remaining pieces (next session, in order):**
-1. **Piece 1 — emit→scan tower sweep + induction crux.** Apply the recipe across the
-   ~13 remaining tower files (FilteredGrowth, ScanChainGrowth, WellBracketed, Pipeline,
-   ScanChain, EmitScans, FirstFiltered, Endpoint, FlowScalar, FlowSeqOpen, EmitScansStrong,
-   Invariant, Basic) — mechanical. **Crux (semi-novel):** the `h_last` hypotheses converge at
-   the `emit_scans_in_flow(Ix)` induction, which must PROVE "after scanning a separator
-   `[`/`,`/`{`, the last real token is that separator (⇒ `completesFlowValue = false`)". Needs
-   `scanFlowSequenceStart_lastRealTokenVal = flowSequenceStart` (+ Entry/MappingStart analogs,
-   mirroring the existing `scanFlowSequenceEnd_lastRealTokenVal`) and an induction-invariant
-   strengthening. Also finish `ScanSteps.lean`: `scanNextToken_flow_open_mapping_nested` (brace
-   nested), remaining content lemmas (single-quoted/plain/alias in flow), top-level brace caller.
+**Piece 1 — emit→scan tower sweep + induction crux — ✅ DONE (2026-08-03, commits
+`fac3b99a`/`615b8e80`/`4440dfb7`).** The full library builds green (`lake build L4YAML`,
+199 jobs, no sorry) with the flow-adjacency-strictened scanner; `universal_roundtrip`'s
+axiom profile is UNCHANGED (`native`, verified by the `Capstones.lean`
+`#assert_capstone_axioms` pin). The semi-novel crux was solved as designed: `emit_scans_in_flow`
+(+ all SavedKey/SKDR/keyshape/RecEntry/Block/indexed variants) now carries an `h_last`
+precondition (`∀ t, lastRealTokenVal? s.tokens = some t → t.completesFlowValue = false`) that is
+re-established after every separator (`[`→`flowSequenceStart`, `{`→`flowMappingStart`,
+`,`→`flowEntry`, `:`→`.value`, all `completesFlowValue = false`), so the next value-starter's
+folded `checkFlowAdjacency` discharges. Reusable helpers built: `scanFlow{Sequence,Mapping}Start_
+lastRealTokenVal`, `checkFlowAdjacency_ok_of_scanNextToken_ok` (inversion from a successful scan),
+`lastRealTokenVal_of_last_nonph`, + completesFalse OUTPUT conjuncts on the open/comma/init step
+lemmas; indexed twins (`…Ix`) in FlowAdjacencyIx/FlowDispatch/Sync.Invariant. Recipe archived in
+`scratchpad/fixA_piece1_recipe.md`. (The small tower files never invoked the value-starters, so
+needed no changes.)
+
+**The two remaining pieces (next session, in order):**
 2. **Piece 2 — scan→grammar flow accumulation (novel).** Build `SFlowSequence`/`SFlowMapping`
    grammar evidence from a successful scan (nothing does this today). `GLit ','` upgrade of
    `scanFlowEntry_prod` (`StructureProduction.lean:119`); term-mode `SFlowSeqEntries`/
