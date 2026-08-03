@@ -3,6 +3,7 @@ Copyright (c) 2026. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 -/
 import L4YAML.Proofs.Output.IndexedEmitterScannability.Basic
+import L4YAML.Proofs.Scanner.FlowAdjacencyIx
 import L4YAML.Proofs.Scanner.IndexedScannerCorrectness
 import L4YAML.Proofs.Scanner.IndexedScannerProgress
 import L4YAML.Proofs.Coupling.CouplingBridge
@@ -86,6 +87,7 @@ open L4YAML.Scanner.Indexed
 open L4YAML.Scanner.Indexed.ScannerStateIx
 open L4YAML.Surface
 open L4YAML.Proofs.CouplingBridge
+open L4YAML.Proofs.FlowAdjacencyIx
 
 variable {input : String}
 
@@ -352,7 +354,8 @@ lemma dispatchContentIx_quote (s : ScannerStateIx input) (c : Char) (hc : c = '"
     simp [ScannerStateIx.inFlow, h_notFlow, h_indent]
   · -- dispatchFlowIndicators: '"' doesn't match [, ], {, }, ,
     unfold scanNextTokenIx_dispatchFlowIndicators
-    simp [pure, Except.pure]
+    rw [checkFlowAdjacencyIx_ok_of_notInFlow (by simp [ScannerStateIx.inFlow, h_notFlow])]
+    simp [bind, Except.bind, pure, Except.pure]
   · -- dispatchBlockIndicators: '"' doesn't match -, ?, :
     unfold scanNextTokenIx_dispatchBlockIndicators
     simp [pure, Except.pure]

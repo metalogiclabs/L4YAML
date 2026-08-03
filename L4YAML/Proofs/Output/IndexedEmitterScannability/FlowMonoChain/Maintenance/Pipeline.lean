@@ -3,6 +3,7 @@ Copyright (c) 2026. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 -/
 import L4YAML.Proofs.Output.IndexedEmitterScannability.FlowMonoChain.Maintenance.FlowDispatch
+import L4YAML.Proofs.Scanner.FlowAdjacencyIx
 
 /-! # `FlowMonoChain.Maintenance.Pipeline` — Phase 3 Step 6f.3b3.flowmono.maintenance.pipeline
 
@@ -89,6 +90,7 @@ open L4YAML
 open L4YAML.Indexed
 open L4YAML.Scanner.Indexed
 open L4YAML.Scanner.Indexed.ScannerStateIx
+open L4YAML.Proofs.FlowAdjacencyIx
 
 variable {input : String}
 
@@ -206,27 +208,33 @@ lemma checkBlockFlowIndent_ok_close_brace (s : ScannerStateIx input) :
     dispatch returns `none`. Indexed twin of
     `dispatchFlowIndicators_none` (legacy 3759). -/
 lemma dispatchFlowIndicators_none (s : ScannerStateIx input) (c : Char)
-    (h1 : c ≠ '[') (h2 : c ≠ ']') (h3 : c ≠ '{') (h4 : c ≠ '}') (h5 : c ≠ ',') :
+    (h1 : c ≠ '[') (h2 : c ≠ ']') (h3 : c ≠ '{') (h4 : c ≠ '}') (h5 : c ≠ ',')
+    (h_adj : scanNextTokenIx_checkFlowAdjacency s c = .ok ()) :
     scanNextTokenIx_dispatchFlowIndicators s c = .ok none := by
   unfold scanNextTokenIx_dispatchFlowIndicators
-  simp [pure, Pure.pure, Except.pure, beq_eq_false_iff_ne.mpr h1, beq_eq_false_iff_ne.mpr h2, beq_eq_false_iff_ne.mpr h3, beq_eq_false_iff_ne.mpr h4, beq_eq_false_iff_ne.mpr h5]
+  rw [h_adj]
+  simp [bind, Except.bind, pure, Pure.pure, Except.pure, beq_eq_false_iff_ne.mpr h1, beq_eq_false_iff_ne.mpr h2, beq_eq_false_iff_ne.mpr h3, beq_eq_false_iff_ne.mpr h4, beq_eq_false_iff_ne.mpr h5]
 
 /-- Flow dispatch for `'['` always returns
     `some (scanFlowSequenceStartIx s)`. -/
-lemma dispatchFlowIndicators_bracket (s : ScannerStateIx input) :
+lemma dispatchFlowIndicators_bracket (s : ScannerStateIx input)
+    (h_adj : scanNextTokenIx_checkFlowAdjacency s '[' = .ok ()) :
     scanNextTokenIx_dispatchFlowIndicators s '[' =
       .ok (some (scanFlowSequenceStartIx s)) := by
   unfold scanNextTokenIx_dispatchFlowIndicators
-  simp only [pure, Pure.pure, Except.pure,
+  rw [h_adj]
+  simp only [bind, Except.bind, pure, Pure.pure, Except.pure,
     show ('[' == '[') = true from by decide, ↓reduceIte]
 
 /-- Flow dispatch for `'{'` always returns
     `some (scanFlowMappingStartIx s)`. -/
-lemma dispatchFlowIndicators_brace (s : ScannerStateIx input) :
+lemma dispatchFlowIndicators_brace (s : ScannerStateIx input)
+    (h_adj : scanNextTokenIx_checkFlowAdjacency s '{' = .ok ()) :
     scanNextTokenIx_dispatchFlowIndicators s '{' =
       .ok (some (scanFlowMappingStartIx s)) := by
   unfold scanNextTokenIx_dispatchFlowIndicators
-  simp only [pure, Pure.pure, Except.pure, show ('{' == '[') = false from by decide,     show ('{' == ']') = false from by decide, show ('{' == '{') = true from by decide, ↓reduceIte, Bool.false_eq_true]
+  rw [h_adj]
+  simp only [bind, Except.bind, pure, Pure.pure, Except.pure, show ('{' == '[') = false from by decide,     show ('{' == ']') = false from by decide, show ('{' == '{') = true from by decide, ↓reduceIte, Bool.false_eq_true]
 
 /-- Flow dispatch for `']'` with `flowLevel > 0` returns
     `some (scanFlowSequenceEndIx s)`. The legacy split between
@@ -239,9 +247,10 @@ lemma dispatchFlowIndicators_close_bracket (s : ScannerStateIx input)
     scanNextTokenIx_dispatchFlowIndicators s ']' =
       .ok (some (scanFlowSequenceEndIx s)) := by
   unfold scanNextTokenIx_dispatchFlowIndicators
+  rw [checkFlowAdjacencyIx_ok_of_sepChar (by decide)]
   have h_ne : (s.flowLevel == 0) = false :=
     beq_eq_false_iff_ne.mpr (by omega)
-  simp only [pure, Pure.pure, Except.pure, show (']' == '[') = false from by decide,
+  simp only [bind, Except.bind, pure, Pure.pure, Except.pure, show (']' == '[') = false from by decide,
     show (']' == ']') = true from by decide,
     h_ne, ↓reduceIte, Bool.false_eq_true]
 
@@ -252,9 +261,10 @@ lemma dispatchFlowIndicators_close_brace (s : ScannerStateIx input)
     scanNextTokenIx_dispatchFlowIndicators s '}' =
       .ok (some (scanFlowMappingEndIx s)) := by
   unfold scanNextTokenIx_dispatchFlowIndicators
+  rw [checkFlowAdjacencyIx_ok_of_sepChar (by decide)]
   have h_ne : (s.flowLevel == 0) = false :=
     beq_eq_false_iff_ne.mpr (by omega)
-  simp only [pure, Pure.pure, Except.pure, show ('}' == '[') = false from by decide,     show ('}' == ']') = false from by decide, show ('}' == '{') = false from by decide, show ('}' == '}') = true from by decide, h_ne, ↓reduceIte, Bool.false_eq_true]
+  simp only [bind, Except.bind, pure, Pure.pure, Except.pure, show ('}' == '[') = false from by decide,     show ('}' == ']') = false from by decide, show ('}' == '{') = false from by decide, show ('}' == '}') = true from by decide, h_ne, ↓reduceIte, Bool.false_eq_true]
 
 /-! ## §5  `scanFlowEntryIx_ok` (used by `_comma`) -/
 
@@ -291,6 +301,7 @@ lemma dispatchFlowIndicators_comma (s : ScannerStateIx input)
       .ok (some { (s.emit YamlToken.flowEntry).advance with
                   simpleKeyAllowed := true }) := by
   unfold scanNextTokenIx_dispatchFlowIndicators
+  rw [checkFlowAdjacencyIx_ok_of_sepChar (by decide)]
   have h_ne : (s.flowLevel == 0) = false :=
     beq_eq_false_iff_ne.mpr (by omega)
   simp only [bind, Except.bind, pure, Pure.pure, Except.pure,
