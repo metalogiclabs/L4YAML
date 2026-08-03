@@ -507,20 +507,49 @@ lemma flowMap_extends_stream
 /-! ## §0c' FlowOpenStack — open flow-collection accumulation (Fix A, Piece 2 / Stage B)
 
     The invariant component carrying the state of ≥1 OPEN flow collections
-    (`sc.flowLevel > 0`). Each level holds a `PartialFlowSeq`/`PartialFlowMap`
-    accumulator (`NodeProduction` §4e), the open bracket, and the post-`[`
-    separation. Indexed by depth (= `sc.flowLevel`, for the coupling) and by the
-    outer boundary `sp_before` (where the outermost flow started — the enclosing
-    context's stream/block ends here) through `sp_cur` (current scan position).
+    (`sc.flowLevel > 0`). Indexed by depth (= `sc.flowLevel`, for the coupling)
+    and by the outer boundary `sp_before` (where the outermost flow started — the
+    enclosing context's stream/block ends here) through `sp_cur` (current scan
+    position).
+
+    **Per-frame state (B.4 corrected design).** Each open frame carries a full
+    `SeqFrame`/`MapFrame` — `between` (a `PartialFlow*`: empty / closeable entries /
+    held-after-comma) or `mid` (a `PendingFlow*Entry`: a key/node scanned, entry not
+    yet committed). B.1 carried only a between-entries `PartialFlow*` per frame,
+    which cannot represent a colon-pending parent hosting a nested value (`{a: [b]}`)
+    — every frame, not just the innermost, needs the full state. (The `entries`
+    between-state is a genuine rest position: after a nested value closes, e.g. the
+    `[b]` in `{a: [b], c}`, the parent rests in `entries` before the next `,`/`}`.)
+
+    **Closure-injection nesting.** A nested frame does NOT store its parent stack
+    explicitly; it carries `inject`, a closure built at push time from the parent's
+    then-known state, that folds THIS frame's completed node into the parent
+    (mirrors `BlockStack.seqLevel`'s `h_close`). The pop is then uniform: close the
+    top frame to an `SFlowNode`, then apply `resume` (base, depth 1 → `SLYamlStream`)
+    or `inject` (nest, depth d+1 → parent stack). Contexts line up:
+    `inFlowCtx .flowOut = inFlowCtx .flowIn = .flowIn`, so every interior node is
+    `.flowIn` and only the outermost is `.flowOut` (what `resume` expects).
 
     The **base** carries a generic `resume` closure that connects the completed
     outermost flow node to `SLYamlStream`. This is what makes the flow↔context
     interaction uniform:
-    - top-level flow (`[1,2,3]` as a document): `resume` = `flowSeq_extends_stream`;
+    - top-level flow (`[1,2,3]` as a document): `resume` = `topLevelFlowResume`;
     - block-nested flow (`key: [1,2]`): `resume node ssl = pendingBlock.h_close
       (SBlockNode.flowInBlock … node ssl)`.
     (`resume` takes the outer flow node at `.flowOut`, which both `flowInBlock`
     and the bare-document node use.) -/
+
+/-- The state of one open flow SEQUENCE frame: `between` entries (a `PartialFlowSeq`
+    — empty / closeable entries / held-after-comma) or `mid`-entry (a
+    `PendingFlowSeqEntry` — a node scanned, awaiting `:`, `,`, or close). -/
+inductive SeqFrame (n : Nat) (c : YamlContext) : SurfPos → SurfPos → Prop where
+  | between (sp sp' : SurfPos) (p : PartialFlowSeq n c sp sp') : SeqFrame n c sp sp'
+  | mid (sp sp' : SurfPos) (pe : PendingFlowSeqEntry n c sp sp') : SeqFrame n c sp sp'
+
+/-- The state of one open flow MAPPING frame (see `SeqFrame`). -/
+inductive MapFrame (n : Nat) (c : YamlContext) : SurfPos → SurfPos → Prop where
+  | between (sp sp' : SurfPos) (p : PartialFlowMap n c sp sp') : MapFrame n c sp sp'
+  | mid (sp sp' : SurfPos) (pe : PendingFlowMapEntry n c sp sp') : MapFrame n c sp sp'
 
 inductive FlowOpenStack (sp_start : SurfPos) : Nat → SurfPos → SurfPos → Prop where
   /-- Outermost open flow sequence (depth 1). -/
@@ -529,7 +558,7 @@ inductive FlowOpenStack (sp_start : SurfPos) : Nat → SurfPos → SurfPos → P
                 SSLComments sp_ne sp_mid → SLYamlStream sp_start sp_mid)
       (h_open : GLit '[' sp_before sp_open)
       (h_sep : GOpt (SSeparate 0 .flowOut) sp_open sp_es)
-      (p : PartialFlowSeq 0 (inFlowCtx .flowOut) sp_es sp_cur) :
+      (st : SeqFrame 0 (inFlowCtx .flowOut) sp_es sp_cur) :
       FlowOpenStack sp_start 1 sp_before sp_cur
   /-- Outermost open flow mapping (depth 1). -/
   | mapBase (sp_before sp_open sp_es sp_cur : SurfPos)
@@ -537,48 +566,33 @@ inductive FlowOpenStack (sp_start : SurfPos) : Nat → SurfPos → SurfPos → P
                 SSLComments sp_ne sp_mid → SLYamlStream sp_start sp_mid)
       (h_open : GLit '{' sp_before sp_open)
       (h_sep : GOpt (SSeparate 0 .flowOut) sp_open sp_es)
-      (p : PartialFlowMap 0 (inFlowCtx .flowOut) sp_es sp_cur) :
+      (st : MapFrame 0 (inFlowCtx .flowOut) sp_es sp_cur) :
       FlowOpenStack sp_start 1 sp_before sp_cur
-  /-- A nested open flow sequence (depth d+1) inside a receptive parent. -/
+  /-- A nested open flow sequence (depth d+1) inside a receptive parent. The
+      `inject` closure folds this frame's completed `.flowIn` node into the parent
+      stack (built at push time from the parent's then-known state). -/
   | seqNest (d : Nat) (sp_before0 sp_par sp_open sp_es sp_cur : SurfPos)
-      (below : FlowOpenStack sp_start d sp_before0 sp_par)
+      (inject : ∀ sp_ne, SFlowNode 0 .flowIn sp_par sp_ne →
+                FlowOpenStack sp_start d sp_before0 sp_ne)
       (h_open : GLit '[' sp_par sp_open)
       (h_sep : GOpt (SSeparate 0 .flowIn) sp_open sp_es)
-      (p : PartialFlowSeq 0 (inFlowCtx .flowIn) sp_es sp_cur) :
+      (st : SeqFrame 0 (inFlowCtx .flowIn) sp_es sp_cur) :
       FlowOpenStack sp_start (d + 1) sp_before0 sp_cur
   /-- A nested open flow mapping (depth d+1). -/
   | mapNest (d : Nat) (sp_before0 sp_par sp_open sp_es sp_cur : SurfPos)
-      (below : FlowOpenStack sp_start d sp_before0 sp_par)
+      (inject : ∀ sp_ne, SFlowNode 0 .flowIn sp_par sp_ne →
+                FlowOpenStack sp_start d sp_before0 sp_ne)
       (h_open : GLit '{' sp_par sp_open)
       (h_sep : GOpt (SSeparate 0 .flowIn) sp_open sp_es)
-      (p : PartialFlowMap 0 (inFlowCtx .flowIn) sp_es sp_cur) :
+      (st : MapFrame 0 (inFlowCtx .flowIn) sp_es sp_cur) :
       FlowOpenStack sp_start (d + 1) sp_before0 sp_cur
 
-/-- Close the OUTERMOST flow SEQUENCE (depth 1) into the stream: assemble the
-    `SFlowSequence`, wrap as a `.flowOut` flow node, and apply the base `resume`
-    closure with the trailing comments. The grammatical replacement for
-    `scannerDrop` when the outermost `]` closes. (Takes the extracted `seqBase`
-    fields, which the accum step provides after `cases`-ing the `FlowOpenStack`.) -/
-lemma flowSeqBase_closeToStream {sp_start sp_before sp_open sp_es sp_cur sp' sp_mid : SurfPos}
-    (resume : ∀ sp_ne sp_m, SFlowNode 0 .flowOut sp_before sp_ne →
-              SSLComments sp_ne sp_m → SLYamlStream sp_start sp_m)
-    (h_open : GLit '[' sp_before sp_open)
-    (h_sep : GOpt (SSeparate 0 .flowOut) sp_open sp_es)
-    (p : PartialFlowSeq 0 (inFlowCtx .flowOut) sp_es sp_cur)
-    (h_close : GLit ']' sp_cur sp') (h_ssl : SSLComments sp' sp_mid) :
-    SLYamlStream sp_start sp_mid :=
-  resume sp' sp_mid (flowSeq_flowNode (p.closeSeq h_open h_sep h_close)) h_ssl
-
-/-- Close the outermost flow MAPPING (depth 1) into the stream (the `}` analogue). -/
-lemma flowMapBase_closeToStream {sp_start sp_before sp_open sp_es sp_cur sp' sp_mid : SurfPos}
-    (resume : ∀ sp_ne sp_m, SFlowNode 0 .flowOut sp_before sp_ne →
-              SSLComments sp_ne sp_m → SLYamlStream sp_start sp_m)
-    (h_open : GLit '{' sp_before sp_open)
-    (h_sep : GOpt (SSeparate 0 .flowOut) sp_open sp_es)
-    (p : PartialFlowMap 0 (inFlowCtx .flowOut) sp_es sp_cur)
-    (h_close : GLit '}' sp_cur sp') (h_ssl : SSLComments sp' sp_mid) :
-    SLYamlStream sp_start sp_mid :=
-  resume sp' sp_mid (flowMap_flowNode (p.closeMap h_open h_sep h_close)) h_ssl
+-- NB (B.4): the base-close helpers `flowSeqBase_closeToStream` /
+-- `flowMapBase_closeToStream` (B.1) took a between-entries `p : PartialFlow*` and
+-- closed it directly. With the corrected per-frame `SeqFrame`/`MapFrame` state, the
+-- close must first complete any `mid` entry (sep-sensitive; its exact separator
+-- signature is only pinned by how the accum step threads scan positions). Rebuilt
+-- in B.4b alongside `accum_flow_pending`.
 
 /-- The base `resume` for a TOP-LEVEL flow document node: the completed flow node
     is a bare document that extends the stream (via `implicitContinue`). -/
@@ -610,21 +624,12 @@ lemma FlowOpenStack_depth_pos {sp_start : SurfPos} {d : Nat} {a b : SurfPos}
     (h : FlowOpenStack sp_start d a b) : d ≥ 1 := by
   cases h <;> omega
 
-/-- Push a nested open flow SEQUENCE `[` onto an existing open stack (empty entries). -/
-lemma FlowOpenStack.pushSeq {sp_start sp_before0 sp_par sp_open sp_es : SurfPos} {d : Nat}
-    (below : FlowOpenStack sp_start d sp_before0 sp_par)
-    (h_open : GLit '[' sp_par sp_open)
-    (h_sep : GOpt (SSeparate 0 .flowIn) sp_open sp_es) :
-    FlowOpenStack sp_start (d + 1) sp_before0 sp_es :=
-  .seqNest d sp_before0 sp_par sp_open sp_es sp_es below h_open h_sep (.empty sp_es)
-
-/-- Push a nested open flow MAPPING `{` onto an existing open stack (empty entries). -/
-lemma FlowOpenStack.pushMap {sp_start sp_before0 sp_par sp_open sp_es : SurfPos} {d : Nat}
-    (below : FlowOpenStack sp_start d sp_before0 sp_par)
-    (h_open : GLit '{' sp_par sp_open)
-    (h_sep : GOpt (SSeparate 0 .flowIn) sp_open sp_es) :
-    FlowOpenStack sp_start (d + 1) sp_before0 sp_es :=
-  .mapNest d sp_before0 sp_par sp_open sp_es sp_es below h_open h_sep (.empty sp_es)
+-- NB (B.4): the nested-push helpers `pushSeq`/`pushMap` (B.1) attached a child
+-- frame onto an explicit `below : FlowOpenStack`. With closure-injection nesting the
+-- child instead carries an `inject` closure built from the parent's then-known state
+-- (between → child becomes key/entry ⇒ `keyPending`/`nodePending`; `colonPending` →
+-- child becomes value ⇒ `finishValue`/`finishPairValue`). That closure is
+-- state-dependent, so the push is rebuilt in B.4b where the parent state is in hand.
 
 /-- Depth-indexed flow stack carrying the open-flow accumulator (Stage B).
     Replaces the trivial nil-only `FlowStack`. `nil` (depth 0) means no flow
@@ -658,7 +663,8 @@ lemma FlowStackB.openSeqBase {sp_start sp_before sp_open sp_es : SurfPos}
     (h_sep : GOpt (SSeparate 0 .flowOut) sp_open sp_es) :
     FlowStackB sp_start 1 sp_before sp_es :=
   .open 1 sp_before sp_es
-    (.seqBase sp_before sp_open sp_es sp_es resume h_open h_sep (.empty sp_es))
+    (.seqBase sp_before sp_open sp_es sp_es resume h_open h_sep
+      (.between sp_es sp_es (.empty sp_es)))
 
 /-- Open the outermost flow MAPPING `{` (nil → depth-1 open). -/
 lemma FlowStackB.openMapBase {sp_start sp_before sp_open sp_es : SurfPos}
@@ -668,7 +674,8 @@ lemma FlowStackB.openMapBase {sp_start sp_before sp_open sp_es : SurfPos}
     (h_sep : GOpt (SSeparate 0 .flowOut) sp_open sp_es) :
     FlowStackB sp_start 1 sp_before sp_es :=
   .open 1 sp_before sp_es
-    (.mapBase sp_before sp_open sp_es sp_es resume h_open h_sep (.empty sp_es))
+    (.mapBase sp_before sp_open sp_es sp_es resume h_open h_sep
+      (.between sp_es sp_es (.empty sp_es)))
 
 /-- Close any PendingNode to SLYamlStream using SSLComments evidence.
 
