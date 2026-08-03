@@ -789,4 +789,161 @@ lemma PartialFlowMap.closeMap {n : Nat} {c_out : YamlContext}
     exact flowMap_nonempty h_open h_sep
       (SFlowMapEntries_addTrailingComma hcl hcomma hsep) h_close
 
+/-! ## §4f Flow-entry completion + mid-entry states (Fix A, Stage B.3)
+
+    A flow-collection entry can span several `scanNextToken` steps: `{a: b}` is
+    scanned as key `a`, then `:`, then value `b`. The `empty`/`entries`/`held`
+    `PartialFlow*` states capture only the *between-entries* positions; the
+    *mid-entry* positions (key seen, `:` not yet; or `:` seen, value not yet) get
+    their own evidence here, carried by `PendingFlowMapEntry`/`PendingFlowSeqEntry`.
+
+    Because plain scalars are right-trimmed, every separator (key→`:`, `:`→value,
+    and the trailing one before `,`/`]`/`}`) is consumed by the *following* scan
+    step's preprocessing. So a mid-entry state ends exactly at its last token
+    (key-end or colon-end) and each transition supplies its own leading separator.
+    Completing a mid-entry snocs a finished entry onto the entries so far — first
+    (`FlowMapPrefix.init`, accumulator was `empty`) or subsequent
+    (`FlowMapPrefix.cons`, accumulator was `held`) — via `appendEntry`, landing
+    back in the closeable `entries` state. `closeMap`/`closeSeq` are therefore
+    unchanged: B.4 completes any mid-entry state before closing. This section is
+    additive; wiring `PendingFlow*Entry` into the accumulation invariant is B.4.
+
+    Scope: the *implicit* forms (`{a}` bareKey/G1, `{a: b}` implicitValue,
+    `{a:}` implicitEmpty; `[a]` node, `[a: b]` pairValue, `[a:]` pairEmpty). The
+    explicit-`?` and empty-key mid-entry states are a follow-on. -/
+
+/-- The committed map entries a fresh entry extends: none yet (`init`; the
+    accumulator was `empty`) or a closeable run then `,` + separator (`cons`; the
+    accumulator was `held`). Unifies the first-vs-subsequent entry snoc. -/
+inductive FlowMapPrefix (n : Nat) (c : YamlContext) : SurfPos → SurfPos → Prop where
+  | init (sp : SurfPos) : FlowMapPrefix n c sp sp
+  | cons (sp sp_e sp_c sp' : SurfPos) (h : SFlowMapEntries n c sp sp_e)
+      (hcl : FlowMapEntriesCloseable h) (hcomma : GLit ',' sp_e sp_c)
+      (hsep : GOpt (SSeparate n c) sp_c sp') : FlowMapPrefix n c sp sp'
+
+/-- The committed seq entries a fresh entry extends (see `FlowMapPrefix`). -/
+inductive FlowSeqPrefix (n : Nat) (c : YamlContext) : SurfPos → SurfPos → Prop where
+  | init (sp : SurfPos) : FlowSeqPrefix n c sp sp
+  | cons (sp sp_e sp_c sp' : SurfPos) (h : SFlowSeqEntries n c sp sp_e)
+      (hcl : FlowSeqEntriesCloseable h) (hcomma : GLit ',' sp_e sp_c)
+      (hsep : GOpt (SSeparate n c) sp_c sp') : FlowSeqPrefix n c sp sp'
+
+/-- Snoc a completed map entry (+ trailing separator) onto a prefix, landing in
+    the closeable `entries` state. `init` → single; `cons` → snoc-from-held. -/
+lemma FlowMapPrefix.appendEntry {n : Nat} {c : YamlContext} {sp sp_d sp_e sp' : SurfPos}
+    (pre : FlowMapPrefix n c sp sp_d)
+    (h_entry : SFlowMapEntry n c sp_d sp_e) (h_sep : GOpt (SSeparate n c) sp_e sp') :
+    PartialFlowMap n c sp sp' := by
+  cases pre with
+  | init =>
+      exact .entries _ _ (SFlowMapEntries_single h_entry h_sep)
+        (SFlowMapEntries_single_closeable h_entry h_sep)
+  | cons _ _ _ h hcl hcomma hsep =>
+      exact PartialFlowMap_snocFromHeld h hcl hcomma hsep h_entry h_sep
+
+/-- Snoc a completed seq entry (+ trailing separator) onto a prefix. -/
+lemma FlowSeqPrefix.appendEntry {n : Nat} {c : YamlContext} {sp sp_d sp_e sp' : SurfPos}
+    (pre : FlowSeqPrefix n c sp sp_d)
+    (h_entry : SFlowSeqEntry n c sp_d sp_e) (h_sep : GOpt (SSeparate n c) sp_e sp') :
+    PartialFlowSeq n c sp sp' := by
+  cases pre with
+  | init =>
+      exact .entries _ _ (SFlowSeqEntries_single h_entry h_sep)
+        (SFlowSeqEntries_single_closeable h_entry h_sep)
+  | cons _ _ _ h hcl hcomma hsep =>
+      exact PartialFlowSeq_snocFromHeld h hcl hcomma hsep h_entry h_sep
+
+/-- A flow-map entry under construction (see §4f). `keyPending`: a YAML key node
+    has been scanned, awaiting `:` or a bare close (`{a}`, G1). `colonPending`:
+    the mapping `:` has been scanned, awaiting a value (`{a: b}`) or empty close
+    (`{a:}`). -/
+inductive PendingFlowMapEntry (n : Nat) (c : YamlContext) : SurfPos → SurfPos → Prop where
+  | keyPending (sp sp_d sp' : SurfPos) (pre : FlowMapPrefix n c sp sp_d)
+      (hkey : SFlowNode n c sp_d sp') : PendingFlowMapEntry n c sp sp'
+  | colonPending (sp sp_d sp_k sp_s sp' : SurfPos) (pre : FlowMapPrefix n c sp sp_d)
+      (hkey : SFlowNode n c sp_d sp_k) (hsep : GOpt (SSeparate n c) sp_k sp_s)
+      (hcolon : GLit ':' sp_s sp') : PendingFlowMapEntry n c sp sp'
+
+/-- `keyPending` + (key→`:` separator) + `:` → `colonPending`. -/
+lemma PendingFlowMapEntry.toColon {n : Nat} {c : YamlContext} {sp sp_d sp_k sp_s sp' : SurfPos}
+    (pre : FlowMapPrefix n c sp sp_d) (hkey : SFlowNode n c sp_d sp_k)
+    (hsep : GOpt (SSeparate n c) sp_k sp_s) (hcolon : GLit ':' sp_s sp') :
+    PendingFlowMapEntry n c sp sp' :=
+  .colonPending sp sp_d sp_k sp_s sp' pre hkey hsep hcolon
+
+/-- Close a `keyPending` as a bare-key entry (G1): `{a}`. The trailing separator
+    is the closing step's preprocessing whitespace. -/
+lemma PendingFlowMapEntry.finishBareKey {n : Nat} {c : YamlContext} {sp sp_d sp_k sp' : SurfPos}
+    (pre : FlowMapPrefix n c sp sp_d) (hkey : SFlowNode n c sp_d sp_k)
+    (h_sep_tr : GOpt (SSeparate n c) sp_k sp') :
+    PartialFlowMap n c sp sp' :=
+  pre.appendEntry (SFlowMapEntry.bareKey n c sp_d sp_k hkey) h_sep_tr
+
+/-- Complete a `colonPending` with a value (`implicitValue`): `{a: b}`. The
+    mandatory `:`→value separator + value come from the value step. -/
+lemma PendingFlowMapEntry.finishValue {n : Nat} {c : YamlContext}
+    {sp sp_d sp_k sp_s sp_c sp_v sp_e sp' : SurfPos}
+    (pre : FlowMapPrefix n c sp sp_d) (hkey : SFlowNode n c sp_d sp_k)
+    (hsep : GOpt (SSeparate n c) sp_k sp_s) (hcolon : GLit ':' sp_s sp_c)
+    (hsep2 : SSeparate n c sp_c sp_v) (hval : SFlowNode n c sp_v sp_e)
+    (h_sep_tr : GOpt (SSeparate n c) sp_e sp') :
+    PartialFlowMap n c sp sp' :=
+  pre.appendEntry
+    (SFlowMapEntry.implicitValue n c sp_d sp_k sp_s sp_c sp_v sp_e hkey hsep hcolon hsep2 hval)
+    h_sep_tr
+
+/-- Close a `colonPending` with an empty value (`implicitEmpty`): `{a:}`. -/
+lemma PendingFlowMapEntry.finishEmpty {n : Nat} {c : YamlContext} {sp sp_d sp_k sp_s sp_c sp' : SurfPos}
+    (pre : FlowMapPrefix n c sp sp_d) (hkey : SFlowNode n c sp_d sp_k)
+    (hsep : GOpt (SSeparate n c) sp_k sp_s) (hcolon : GLit ':' sp_s sp_c)
+    (h_sep_tr : GOpt (SSeparate n c) sp_c sp') :
+    PartialFlowMap n c sp sp' :=
+  pre.appendEntry (SFlowMapEntry.implicitEmpty n c sp_d sp_k sp_s sp_c hkey hsep hcolon) h_sep_tr
+
+/-- A flow-seq entry under construction. `nodePending`: a flow node has been
+    scanned; it closes as a plain entry (`[a]`) or, if `:` follows, is a pair key.
+    `colonPending`: the pair `:` has been scanned (`[a: b]`, `[a:]`). -/
+inductive PendingFlowSeqEntry (n : Nat) (c : YamlContext) : SurfPos → SurfPos → Prop where
+  | nodePending (sp sp_d sp' : SurfPos) (pre : FlowSeqPrefix n c sp sp_d)
+      (hnode : SFlowNode n c sp_d sp') : PendingFlowSeqEntry n c sp sp'
+  | colonPending (sp sp_d sp_k sp_s sp' : SurfPos) (pre : FlowSeqPrefix n c sp sp_d)
+      (hkey : SFlowNode n c sp_d sp_k) (hsep : GOpt (SSeparate n c) sp_k sp_s)
+      (hcolon : GLit ':' sp_s sp') : PendingFlowSeqEntry n c sp sp'
+
+/-- `nodePending` + (node→`:` separator) + `:` → `colonPending` (the node was a
+    pair key after all). -/
+lemma PendingFlowSeqEntry.toColon {n : Nat} {c : YamlContext} {sp sp_d sp_k sp_s sp' : SurfPos}
+    (pre : FlowSeqPrefix n c sp sp_d) (hkey : SFlowNode n c sp_d sp_k)
+    (hsep : GOpt (SSeparate n c) sp_k sp_s) (hcolon : GLit ':' sp_s sp') :
+    PendingFlowSeqEntry n c sp sp' :=
+  .colonPending sp sp_d sp_k sp_s sp' pre hkey hsep hcolon
+
+/-- Close a `nodePending` as a plain node entry: `[a]`, `[[x], y]`. -/
+lemma PendingFlowSeqEntry.finishNode {n : Nat} {c : YamlContext} {sp sp_d sp_n sp' : SurfPos}
+    (pre : FlowSeqPrefix n c sp sp_d) (hnode : SFlowNode n c sp_d sp_n)
+    (h_sep_tr : GOpt (SSeparate n c) sp_n sp') :
+    PartialFlowSeq n c sp sp' :=
+  pre.appendEntry (SFlowSeqEntry.node n c sp_d sp_n hnode) h_sep_tr
+
+/-- Complete a `colonPending` seq pair with a value (`pairValue`): `[a: b]`. -/
+lemma PendingFlowSeqEntry.finishPairValue {n : Nat} {c : YamlContext}
+    {sp sp_d sp_k sp_s sp_c sp_v sp_e sp' : SurfPos}
+    (pre : FlowSeqPrefix n c sp sp_d) (hkey : SFlowNode n c sp_d sp_k)
+    (hsep : GOpt (SSeparate n c) sp_k sp_s) (hcolon : GLit ':' sp_s sp_c)
+    (hsep2 : SSeparate n c sp_c sp_v) (hval : SFlowNode n c sp_v sp_e)
+    (h_sep_tr : GOpt (SSeparate n c) sp_e sp') :
+    PartialFlowSeq n c sp sp' :=
+  pre.appendEntry
+    (SFlowSeqEntry.pairValue n c sp_d sp_k sp_s sp_c sp_v sp_e hkey hsep hcolon hsep2 hval)
+    h_sep_tr
+
+/-- Close a `colonPending` seq pair with an empty value (`pairEmpty`): `[a:]`. -/
+lemma PendingFlowSeqEntry.finishPairEmpty {n : Nat} {c : YamlContext}
+    {sp sp_d sp_k sp_s sp_c sp' : SurfPos}
+    (pre : FlowSeqPrefix n c sp sp_d) (hkey : SFlowNode n c sp_d sp_k)
+    (hsep : GOpt (SSeparate n c) sp_k sp_s) (hcolon : GLit ':' sp_s sp_c)
+    (h_sep_tr : GOpt (SSeparate n c) sp_c sp') :
+    PartialFlowSeq n c sp sp' :=
+  pre.appendEntry (SFlowSeqEntry.pairEmpty n c sp_d sp_k sp_s sp_c hkey hsep hcolon) h_sep_tr
+
 end L4YAML.Proofs.NodeProduction
