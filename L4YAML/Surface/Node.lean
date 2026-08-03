@@ -415,6 +415,12 @@ mutual
         GOpt (SSeparate n c) s₁ s₂ →
         GLit ':' s₂ s' →
         SFlowMapEntry n c s s'
+    /-- Bare YAML key with no value indicator: `{a}` — the `e-node` (empty value,
+        no `':'`) branch of `ns-flow-map-yaml-key-entry(n,c)` [145]. Trailing
+        separation is absorbed by the enclosing `SFlowMapEntries` GOpt. -/
+    | bareKey (n : Nat) (c : YamlContext) (s s' : SurfPos) :
+        SFlowNode n c s s' →
+        SFlowMapEntry n c s s'
     /-- Empty key + ':' + separator + value. -/
     | emptyKeyValue (n : Nat) (c : YamlContext) (s s₁ s₂ s' : SurfPos) :
         GLit ':' s s₁ →
