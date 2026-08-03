@@ -597,6 +597,79 @@ lemma topLevelFlowResume {sp_start sp_before : SurfPos}
               h_node h_ssl))))
       (GStar.nil _)
 
+/-! ### §0c'' FlowOpenStack push operations + depth-indexed FlowStackB (Stage B)
+
+    The Stage-B accumulation invariant replaces the trivial nil-only `FlowStack`
+    with `FlowStackB`, indexed by *depth*. The depth index is coupled to the
+    scanner's `flowLevel` (nil ↔ flowLevel 0; open at depth d ↔ flowLevel d),
+    so the accum steps can branch on flow-interior vs. document handling without
+    a separate coupling conjunct. `absorb_stacksB` fires only at depth 0. -/
+
+/-- `FlowOpenStack` always has positive depth (the base constructors are depth 1). -/
+lemma FlowOpenStack_depth_pos {sp_start : SurfPos} {d : Nat} {a b : SurfPos}
+    (h : FlowOpenStack sp_start d a b) : d ≥ 1 := by
+  cases h <;> omega
+
+/-- Push a nested open flow SEQUENCE `[` onto an existing open stack (empty entries). -/
+lemma FlowOpenStack.pushSeq {sp_start sp_before0 sp_par sp_open sp_es : SurfPos} {d : Nat}
+    (below : FlowOpenStack sp_start d sp_before0 sp_par)
+    (h_open : GLit '[' sp_par sp_open)
+    (h_sep : GOpt (SSeparate 0 .flowIn) sp_open sp_es) :
+    FlowOpenStack sp_start (d + 1) sp_before0 sp_es :=
+  .seqNest d sp_before0 sp_par sp_open sp_es sp_es below h_open h_sep (.empty sp_es)
+
+/-- Push a nested open flow MAPPING `{` onto an existing open stack (empty entries). -/
+lemma FlowOpenStack.pushMap {sp_start sp_before0 sp_par sp_open sp_es : SurfPos} {d : Nat}
+    (below : FlowOpenStack sp_start d sp_before0 sp_par)
+    (h_open : GLit '{' sp_par sp_open)
+    (h_sep : GOpt (SSeparate 0 .flowIn) sp_open sp_es) :
+    FlowOpenStack sp_start (d + 1) sp_before0 sp_es :=
+  .mapNest d sp_before0 sp_par sp_open sp_es sp_es below h_open h_sep (.empty sp_es)
+
+/-- Depth-indexed flow stack carrying the open-flow accumulator (Stage B).
+    Replaces the trivial nil-only `FlowStack`. `nil` (depth 0) means no flow
+    is open; `open` (depth d ≥ 1) carries a `FlowOpenStack`. -/
+inductive FlowStackB (sp_start : SurfPos) : Nat → SurfPos → SurfPos → Prop where
+  | nil (sp : SurfPos) : FlowStackB sp_start 0 sp sp
+  | open (d : Nat) (sp_block sp_cur : SurfPos)
+      (h : FlowOpenStack sp_start d sp_block sp_cur) :
+      FlowStackB sp_start d sp_block sp_cur
+
+/-- Absorb BlockStack + a CLOSED (`nil`, depth 0) `FlowStackB` into the stream.
+    The `open` case is vacuous at depth 0 (`FlowOpenStack` has positive depth). -/
+lemma absorb_stacksB (sp_start sp_gram sp_block sp_flow : SurfPos)
+    (h_stream : SLYamlStream sp_start sp_gram)
+    (h_stack : BlockStack sp_gram sp_block)
+    (h_flow : FlowStackB sp_start 0 sp_block sp_flow) : SLYamlStream sp_start sp_flow := by
+  cases h_flow with
+  | nil =>
+    cases h_stack with
+    | nil => exact h_stream
+    | seqLevel _ _ _ _ _ h_cl_b => exact h_cl_b sp_start h_stream
+    | mapLevel _ _ _ _ _ h_cl_b => exact h_cl_b sp_start h_stream
+  | «open» _ _ _ h => exact absurd (FlowOpenStack_depth_pos h) (by omega)
+
+/-- Open the OUTERMOST flow SEQUENCE `[` (nil → depth-1 open), given the base
+    `resume` closure for the enclosing context (top-level or block-nested). -/
+lemma FlowStackB.openSeqBase {sp_start sp_before sp_open sp_es : SurfPos}
+    (resume : ∀ sp_ne sp_m, SFlowNode 0 .flowOut sp_before sp_ne →
+              SSLComments sp_ne sp_m → SLYamlStream sp_start sp_m)
+    (h_open : GLit '[' sp_before sp_open)
+    (h_sep : GOpt (SSeparate 0 .flowOut) sp_open sp_es) :
+    FlowStackB sp_start 1 sp_before sp_es :=
+  .open 1 sp_before sp_es
+    (.seqBase sp_before sp_open sp_es sp_es resume h_open h_sep (.empty sp_es))
+
+/-- Open the outermost flow MAPPING `{` (nil → depth-1 open). -/
+lemma FlowStackB.openMapBase {sp_start sp_before sp_open sp_es : SurfPos}
+    (resume : ∀ sp_ne sp_m, SFlowNode 0 .flowOut sp_before sp_ne →
+              SSLComments sp_ne sp_m → SLYamlStream sp_start sp_m)
+    (h_open : GLit '{' sp_before sp_open)
+    (h_sep : GOpt (SSeparate 0 .flowOut) sp_open sp_es) :
+    FlowStackB sp_start 1 sp_before sp_es :=
+  .open 1 sp_before sp_es
+    (.mapBase sp_before sp_open sp_es sp_es resume h_open h_sep (.empty sp_es))
+
 /-- Close any PendingNode to SLYamlStream using SSLComments evidence.
 
     Centralizes the per-constructor closing strategies that were previously
