@@ -560,6 +560,37 @@ theorem SFlowMapEntries_snoc_closeable {n : Nat} {c : YamlContext}
     .consMore he hsep hcomma hsep' _
       (SFlowMapEntries_snoc_closeable h_tail_cl h_comma h_sep h_entry h_sep2)
 
+set_option linter.defProp false in
+/-- Convert a closeable `SFlowSeqEntries` to trailing-comma form (`[a, b,]`):
+    the innermost `single` terminal becomes a `consEnd`. Recurses through
+    `consMore` like `SFlowSeqEntries_snoc`; the result is NOT closeable
+    (a trailing comma is terminal — it may only precede the closing bracket). -/
+def SFlowSeqEntries_addTrailingComma {n : Nat} {c : YamlContext}
+    {s s_mid s_c s' : SurfPos} {h_entries : SFlowSeqEntries n c s s_mid}
+    (h_cl : FlowSeqEntriesCloseable h_entries)
+    (h_comma : GLit ',' s_mid s_c) (h_sep : GOpt (SSeparate n c) s_c s') :
+    SFlowSeqEntries n c s s' :=
+  match h_cl with
+  | .single (s₁ := s₁) he hsep =>
+    .consEnd _ _ _ s₁ s_mid s_c s' he hsep h_comma h_sep
+  | .consMore (s₁ := s₁) (s₂ := s₂) (s₃ := s₃) (s₄ := s₄) he hsep hcomma hsep' _ h_tail_cl =>
+    .consMore _ _ _ s₁ s₂ s₃ s₄ _ he hsep hcomma hsep'
+      (SFlowSeqEntries_addTrailingComma h_tail_cl h_comma h_sep)
+
+set_option linter.defProp false in
+/-- Convert a closeable `SFlowMapEntries` to trailing-comma form. -/
+def SFlowMapEntries_addTrailingComma {n : Nat} {c : YamlContext}
+    {s s_mid s_c s' : SurfPos} {h_entries : SFlowMapEntries n c s s_mid}
+    (h_cl : FlowMapEntriesCloseable h_entries)
+    (h_comma : GLit ',' s_mid s_c) (h_sep : GOpt (SSeparate n c) s_c s') :
+    SFlowMapEntries n c s s' :=
+  match h_cl with
+  | .single (s₁ := s₁) he hsep =>
+    .consEnd _ _ _ s₁ s_mid s_c s' he hsep h_comma h_sep
+  | .consMore (s₁ := s₁) (s₂ := s₂) (s₃ := s₃) (s₄ := s₄) he hsep hcomma hsep' _ h_tail_cl =>
+    .consMore _ _ _ s₁ s₂ s₃ s₄ _ he hsep hcomma hsep'
+      (SFlowMapEntries_addTrailingComma h_tail_cl h_comma h_sep)
+
 /-! ## §4c Flow separation primitives (Fix A, Piece 2)
 
     In flow contexts (`.flowOut`/`.flowIn`) `s-separate(n,c)` [69] unfolds to
@@ -586,6 +617,17 @@ lemma SSeparate_flow_of_whites (n : Nat) {c : YamlContext} {sp sp' : SurfPos}
     zero-width (`e` / `s-separate?` absent). -/
 lemma GOpt_SSeparate_none {n : Nat} {c : YamlContext} (sp : SurfPos) :
     GOpt (SSeparate n c) sp sp := GOpt.none sp
+
+/-- A run of trailing whitespace (`GStar SSWhite`, as emitted by content
+    producers like `scanPlainScalar_to_flowNode_flowIn`) is an optional flow
+    separator: empty run → `GOpt.none`, non-empty → `GOpt.some` via `whites`. -/
+lemma GOpt_SSeparate_of_GStar_SSWhite {n : Nat} {c : YamlContext} {sp sp' : SurfPos}
+    (hc : c = .flowOut ∨ c = .flowIn) (h : GStar SSWhite sp sp') :
+    GOpt (SSeparate n c) sp sp' := by
+  cases h with
+  | nil => exact GOpt.none _
+  | cons _ s₂ _ hd tl =>
+    exact GOpt.some sp sp' (SSeparate_flow_of_whites n hc (GPlus.mk sp s₂ sp' hd tl))
 
 /-! ## §4d Flow collection assembly (Fix A, Piece 2)
 
@@ -658,5 +700,93 @@ lemma SFlowMapEntries_single_closeable {n : Nat} {c : YamlContext} {s s₁ s' : 
 lemma flowNode_seqEntry {n : Nat} {c : YamlContext} {s s' : SurfPos}
     (h : SFlowNode n c s s') : SFlowSeqEntry n c s s' :=
   SFlowSeqEntry.node n c s s' h
+
+/-! ## §4e Flow accumulator state machine (Fix A, Piece 2 / Stage B)
+
+    A `PartialFlowSeq`/`PartialFlowMap` is the entries of a flow collection
+    being built across `scanNextToken` calls. Three states mirror the scanner's
+    per-token progress inside `[…]`/`{…}`:
+    - `empty`: just opened (`[`), no entries yet;
+    - `entries`: ≥1 entry accumulated, closeable (last token was an entry) — a
+      `,` may follow (→ `held`) or the bracket may close (→ non-empty collection);
+    - `held`: a `,` was just scanned after an entry — the next token must be an
+      entry (→ back to `entries` via snoc) or the bracket closes (→ trailing-comma
+      collection).
+    The entries live at the entry context `c = inFlowCtx c_out`. `closeSeq`/
+    `closeMap` finalize any state into a complete `SFlowSequence`/`SFlowMapping`
+    at the outer context `c_out`, given the bracket literals and post-`[`
+    separation. The invalid transitions (leading/consecutive comma, adjacent
+    entries) are exactly the scanner errors (`invalidFlowEntry`, the Piece-1
+    flow-adjacency check), so they never arise. -/
+
+/-- Entries of a flow sequence under construction (see §4e). -/
+inductive PartialFlowSeq (n : Nat) (c : YamlContext) : SurfPos → SurfPos → Prop where
+  | empty (sp : SurfPos) : PartialFlowSeq n c sp sp
+  | entries (sp sp' : SurfPos) (h : SFlowSeqEntries n c sp sp')
+      (hcl : FlowSeqEntriesCloseable h) : PartialFlowSeq n c sp sp'
+  | held (sp sp_e sp_c sp' : SurfPos) (h : SFlowSeqEntries n c sp sp_e)
+      (hcl : FlowSeqEntriesCloseable h) (hcomma : GLit ',' sp_e sp_c)
+      (hsep : GOpt (SSeparate n c) sp_c sp') : PartialFlowSeq n c sp sp'
+
+/-- Entries of a flow mapping under construction (see §4e). -/
+inductive PartialFlowMap (n : Nat) (c : YamlContext) : SurfPos → SurfPos → Prop where
+  | empty (sp : SurfPos) : PartialFlowMap n c sp sp
+  | entries (sp sp' : SurfPos) (h : SFlowMapEntries n c sp sp')
+      (hcl : FlowMapEntriesCloseable h) : PartialFlowMap n c sp sp'
+  | held (sp sp_e sp_c sp' : SurfPos) (h : SFlowMapEntries n c sp sp_e)
+      (hcl : FlowMapEntriesCloseable h) (hcomma : GLit ',' sp_e sp_c)
+      (hsep : GOpt (SSeparate n c) sp_c sp') : PartialFlowMap n c sp sp'
+
+/-- Snoc an entry onto a `held` partial (the `,` then entry transition):
+    `held … → entries`. -/
+lemma PartialFlowSeq_snocFromHeld {n : Nat} {c : YamlContext}
+    {sp sp_e sp_c sp_d sp_f sp' : SurfPos}
+    (h : SFlowSeqEntries n c sp sp_e) (hcl : FlowSeqEntriesCloseable h)
+    (hcomma : GLit ',' sp_e sp_c) (hsep : GOpt (SSeparate n c) sp_c sp_d)
+    (h_entry : SFlowSeqEntry n c sp_d sp_f) (h_sep2 : GOpt (SSeparate n c) sp_f sp') :
+    PartialFlowSeq n c sp sp' :=
+  .entries sp sp' (SFlowSeqEntries_snoc hcl hcomma hsep h_entry h_sep2)
+    (SFlowSeqEntries_snoc_closeable hcl hcomma hsep h_entry h_sep2)
+
+/-- Snoc an entry onto a `held` partial map: `held … → entries`. -/
+lemma PartialFlowMap_snocFromHeld {n : Nat} {c : YamlContext}
+    {sp sp_e sp_c sp_d sp_f sp' : SurfPos}
+    (h : SFlowMapEntries n c sp sp_e) (hcl : FlowMapEntriesCloseable h)
+    (hcomma : GLit ',' sp_e sp_c) (hsep : GOpt (SSeparate n c) sp_c sp_d)
+    (h_entry : SFlowMapEntry n c sp_d sp_f) (h_sep2 : GOpt (SSeparate n c) sp_f sp') :
+    PartialFlowMap n c sp sp' :=
+  .entries sp sp' (SFlowMapEntries_snoc hcl hcomma hsep h_entry h_sep2)
+    (SFlowMapEntries_snoc_closeable hcl hcomma hsep h_entry h_sep2)
+
+/-- Finalize a partial flow sequence into a complete `SFlowSequence` at the
+    outer context, given the bracket literals and post-`[` separation. -/
+lemma PartialFlowSeq.closeSeq {n : Nat} {c_out : YamlContext}
+    {sp_before sp_open sp_es sp_cur sp' : SurfPos}
+    (h_open : GLit '[' sp_before sp_open)
+    (h_sep : GOpt (SSeparate n c_out) sp_open sp_es)
+    (p : PartialFlowSeq n (inFlowCtx c_out) sp_es sp_cur)
+    (h_close : GLit ']' sp_cur sp') :
+    SFlowSequence n c_out sp_before sp' := by
+  cases p with
+  | empty => exact flowSeq_empty h_open h_sep h_close
+  | entries _ h _ => exact flowSeq_nonempty h_open h_sep h h_close
+  | held _ _ _ h hcl hcomma hsep =>
+    exact flowSeq_nonempty h_open h_sep
+      (SFlowSeqEntries_addTrailingComma hcl hcomma hsep) h_close
+
+/-- Finalize a partial flow mapping into a complete `SFlowMapping`. -/
+lemma PartialFlowMap.closeMap {n : Nat} {c_out : YamlContext}
+    {sp_before sp_open sp_es sp_cur sp' : SurfPos}
+    (h_open : GLit '{' sp_before sp_open)
+    (h_sep : GOpt (SSeparate n c_out) sp_open sp_es)
+    (p : PartialFlowMap n (inFlowCtx c_out) sp_es sp_cur)
+    (h_close : GLit '}' sp_cur sp') :
+    SFlowMapping n c_out sp_before sp' := by
+  cases p with
+  | empty => exact flowMap_empty h_open h_sep h_close
+  | entries _ h _ => exact flowMap_nonempty h_open h_sep h h_close
+  | held _ _ _ h hcl hcomma hsep =>
+    exact flowMap_nonempty h_open h_sep
+      (SFlowMapEntries_addTrailingComma hcl hcomma hsep) h_close
 
 end L4YAML.Proofs.NodeProduction

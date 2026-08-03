@@ -5,6 +5,7 @@ Released under Apache 2.0 license as described in the file LICENSE.
 import L4YAML.Proofs.Production.PreprocessProduction
 import L4YAML.Proofs.Scanner.ScanStrictCoupling
 import L4YAML.Proofs.Production.StructureProduction
+import L4YAML.Proofs.Production.NodeProduction
 import L4YAML.Proofs.Scanner.FlowAdjacency
 
 /-! # Stream Grammar Accumulator (Layer 4d + 4e: Lagging Grammar with Block Stack)
@@ -58,6 +59,7 @@ open L4YAML.Proofs.ScalarCoupling
 open L4YAML.Proofs.StructureCoupling
 open L4YAML.Proofs.PreprocessProduction
 open L4YAML.Proofs.StructureProduction
+open L4YAML.Proofs.NodeProduction
 open L4YAML.Proofs.ScalarProduction
 open L4YAML.Proofs.NodeProduction
 open L4YAML.CharPredicates
