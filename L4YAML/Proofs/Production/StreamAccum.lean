@@ -456,6 +456,52 @@ lemma ssl_comments_extend_stream
     (GOpt.none _)
     (GStar.nil _)
 
+/-- Extend `SLYamlStream` with a top-level flow sequence node + trailing comments.
+
+    The grammatical replacement for `scannerDrop`'s job (Fix A, Piece 2/3): a
+    completed `[...]` scanned at document level is a bare-document flow node —
+    `s-l+flow-in-block` [195] with zero-width leading separation (`.flowOut`,
+    start-of-line) and the trailing `s-l-comments` — hence an `SLBareDocument`
+    that extends the stream via `implicitContinue`. No opaque gap; the flow
+    content `sp_block → sp_flow` is a real `SFlowSequence` derivation. -/
+lemma flowSeq_extends_stream
+    (sp_start sp_block sp_flow sp_final : SurfPos)
+    (h_stream : SLYamlStream sp_start sp_block)
+    (h_flow : SFlowSequence 0 .flowOut sp_block sp_flow)
+    (h_ssl : SSLComments sp_flow sp_final) :
+    SLYamlStream sp_start sp_final :=
+  SLYamlStream.implicitContinue sp_start sp_block sp_block sp_final sp_final
+    h_stream (GStar.nil _)
+    (GOpt.some sp_block sp_final
+      (SLAnyDocument.bare sp_block sp_final
+        (SLBareDocument.mk sp_block sp_final
+          (SBlockNode.flowInBlock 0 .blockIn sp_block sp_block sp_flow sp_final
+            (SSeparateLines.inline 0 sp_block sp_block (SSeparateInLine.startOfLine sp_block))
+            (SFlowNode.content 0 .flowOut sp_block sp_flow
+              (SFlowContent.flowSeq 0 .flowOut sp_block sp_flow h_flow))
+            h_ssl))))
+    (GStar.nil _)
+
+/-- Extend `SLYamlStream` with a top-level flow mapping node + trailing comments.
+    The `{...}` analogue of `flowSeq_extends_stream`. -/
+lemma flowMap_extends_stream
+    (sp_start sp_block sp_flow sp_final : SurfPos)
+    (h_stream : SLYamlStream sp_start sp_block)
+    (h_flow : SFlowMapping 0 .flowOut sp_block sp_flow)
+    (h_ssl : SSLComments sp_flow sp_final) :
+    SLYamlStream sp_start sp_final :=
+  SLYamlStream.implicitContinue sp_start sp_block sp_block sp_final sp_final
+    h_stream (GStar.nil _)
+    (GOpt.some sp_block sp_final
+      (SLAnyDocument.bare sp_block sp_final
+        (SLBareDocument.mk sp_block sp_final
+          (SBlockNode.flowInBlock 0 .blockIn sp_block sp_block sp_flow sp_final
+            (SSeparateLines.inline 0 sp_block sp_block (SSeparateInLine.startOfLine sp_block))
+            (SFlowNode.content 0 .flowOut sp_block sp_flow
+              (SFlowContent.flowMap 0 .flowOut sp_block sp_flow h_flow))
+            h_ssl))))
+    (GStar.nil _)
+
 /-- Close any PendingNode to SLYamlStream using SSLComments evidence.
 
     Centralizes the per-constructor closing strategies that were previously
