@@ -1808,6 +1808,22 @@ lemma GStar_SSNsPlainNextLine_ctxOfInFlow_to_flowOut
   | cons _ _ _ hfirst _ ih =>
     exact GStar.cons _ _ _ (SSNsPlainNextLine_ctxOfInFlow_to_flowOut hfirst) ih
 
+-- Whole-scalar context lift: SNsPlainMultiLine n (ctxOfInFlow inFlow) → n .flowOut.
+-- Composes the three component lifts (first char, in-line entries, next lines),
+-- so a native-context plain-scalar producer can be reused for both `.flowOut`
+-- (top-level flow node) via this lift and `.flowIn` (flow-collection entry)
+-- directly. Used by `scanPlainScalar_to_flowNode`.
+lemma SNsPlainMultiLine_ctxOfInFlow_to_flowOut {n : Nat} {s s' : SurfPos} {inFlow : Bool}
+    (h : SNsPlainMultiLine n (ctxOfInFlow inFlow) s s') :
+    SNsPlainMultiLine n .flowOut s s' := by
+  obtain ⟨s₁, _, h_one, h_next⟩ := h
+  obtain ⟨s₂, _, h_first, h_entries⟩ := h_one
+  exact SNsPlainMultiLine.mk n .flowOut _ _ _
+    (SNsPlainOneLine.mk .flowOut _ _ _
+      (SNsPlainFirst_ctxOfInFlow_to_flowOut h_first)
+      (GStar_entries_ctxOfInFlow_to_flowOut h_entries))
+    (GStar_SSNsPlainNextLine_ctxOfInFlow_to_flowOut h_next)
+
 -- canStartPlainScalar → isPlainSafeBool (first char is plain safe)
 lemma canStartPlain_implies_safe {c : Char} {next : Option Char} {inFlow : Bool}
     (h : canStartPlainScalarBool c next inFlow = true) :
@@ -1938,20 +1954,23 @@ lemma collectPlainScalarLoop_content_first_step
           · simp [h_safe] at *
           · exact hok
 
--- Full production: scanPlainScalar → SFlowNode 0 .flowOut + trailing WS + corr.
--- Composes: canStartPlainScalar → SNsPlainFirst, loop → entries + trailing WS,
--- entry decomposition → SNsPlainOneLine, context lift → SFlowNode .flowOut.
+-- Native-context core: scanPlainScalar → SNsPlainMultiLine 0 (ctxOfInFlow inFlow)
+-- + trailing WS + corr. Composes: canStartPlainScalar → SNsPlainFirst, loop →
+-- entries + trailing WS, entry decomposition → SNsPlainOneLine. Builds the
+-- scalar in its NATIVE context (`.blockIn` when block, `.flowIn` when in a flow
+-- collection) with NO context lift, so it can be reused for both `.flowOut`
+-- (top-level flow node, via `SNsPlainMultiLine_ctxOfInFlow_to_flowOut`) and
+-- `.flowIn` (flow-collection entry, directly under `inFlow = true`).
 -- Requires: not at document boundary at column 0 (callers check this via
 -- scanNextToken_dispatchStructural before reaching content dispatch).
--- Parameterized over inFlow: works for both block and flow contexts.
-lemma scanPlainScalar_to_flowNode (sc : ScannerState) (sp : SurfPos)
+lemma scanPlainScalar_to_multiLine_native (sc : ScannerState) (sp : SurfPos)
     {s' : ScannerState} {c : Char}
     (hcorr : ScannerSurfCorr sc sp)
     (hpeek : sc.peek? = some c)
     (hstart : canStartPlainScalarBool c (sc.peekAt? 1) sc.inFlow = true)
     (h_not_doc : sc.col = 0 → atDocumentBoundary sc = false)
     (hok : scanPlainScalar sc = .ok s') :
-    ∃ sp_gram sp', SFlowNode 0 .flowOut sp sp_gram ∧
+    ∃ sp_gram sp', SNsPlainMultiLine 0 (ctxOfInFlow sc.inFlow) sp sp_gram ∧
                    GStar SSWhite sp_gram sp' ∧
                    ScannerSurfCorr s' sp' := by
   obtain ⟨rest, hsp_eq⟩ := peek_some_sp hcorr hpeek
@@ -1999,18 +2018,57 @@ lemma scanPlainScalar_to_flowNode (sc : ScannerState) (sp : SurfPos)
           have h : sc.col + 1 = sc.advance.col := hcorr_adv.col_eq
           omega)
         hloop'
-    -- Step 3: Build grammar from first char + entries + next-lines
-    have h_plain : SNsPlain 0 .flowOut ⟨c :: rest, sc.col⟩ sp_next :=
-      SNsPlainMultiLine.mk 0 .flowOut _ _ sp_next
-        (SNsPlainOneLine.mk .flowOut _ ⟨rest, sc.col + 1⟩ sp_entries
-          (SNsPlainFirst_ctxOfInFlow_to_flowOut h_first)
-          (GStar_entries_ctxOfInFlow_to_flowOut h_entries))
-        (GStar_SSNsPlainNextLine_ctxOfInFlow_to_flowOut _h_next_lines)
+    -- Step 3: Build the native-context scalar (no lift)
     exact ⟨sp_next, sp_trail,
-      SFlowNode.content 0 .flowOut _ sp_next
-        (SFlowContent.plain 0 .flowOut _ sp_next h_plain),
+      SNsPlainMultiLine.mk 0 (ctxOfInFlow sc.inFlow) _ _ sp_next
+        (SNsPlainOneLine.mk (ctxOfInFlow sc.inFlow) _ ⟨rest, sc.col + 1⟩ sp_entries
+          h_first h_entries)
+        _h_next_lines,
       h_trail,
       corr_of_simpleKeyAllowed_update false (corr_of_emitAt _ _ hcorr_result)⟩
+
+-- Full production: scanPlainScalar → SFlowNode 0 .flowOut + trailing WS + corr.
+-- Lifts the native-context core to `.flowOut` (top-level flow node context).
+-- Parameterized over inFlow: works for both block and flow contexts.
+lemma scanPlainScalar_to_flowNode (sc : ScannerState) (sp : SurfPos)
+    {s' : ScannerState} {c : Char}
+    (hcorr : ScannerSurfCorr sc sp)
+    (hpeek : sc.peek? = some c)
+    (hstart : canStartPlainScalarBool c (sc.peekAt? 1) sc.inFlow = true)
+    (h_not_doc : sc.col = 0 → atDocumentBoundary sc = false)
+    (hok : scanPlainScalar sc = .ok s') :
+    ∃ sp_gram sp', SFlowNode 0 .flowOut sp sp_gram ∧
+                   GStar SSWhite sp_gram sp' ∧
+                   ScannerSurfCorr s' sp' := by
+  obtain ⟨sp_gram, sp', h_ml, h_trail, hcorr'⟩ :=
+    scanPlainScalar_to_multiLine_native sc sp hcorr hpeek hstart h_not_doc hok
+  exact ⟨sp_gram, sp',
+    SFlowNode.content 0 .flowOut _ _
+      (SFlowContent.plain 0 .flowOut _ _ (SNsPlainMultiLine_ctxOfInFlow_to_flowOut h_ml)),
+    h_trail, hcorr'⟩
+
+-- Flow-interior production: scanPlainScalar → SFlowNode 0 .flowIn + trailing WS
+-- + corr, for a plain scalar scanned INSIDE a flow collection (`inFlow = true`).
+-- Uses the native-context core directly (its context is already `.flowIn`), with
+-- no lift — the `.flowIn` sibling of `scanPlainScalar_to_flowNode`. Feeds flow
+-- sequence/mapping entries (`ns-flow-node(n, in-flow(c))`).
+lemma scanPlainScalar_to_flowNode_flowIn (sc : ScannerState) (sp : SurfPos)
+    {s' : ScannerState} {c : Char}
+    (hcorr : ScannerSurfCorr sc sp)
+    (hpeek : sc.peek? = some c)
+    (hstart : canStartPlainScalarBool c (sc.peekAt? 1) sc.inFlow = true)
+    (hInFlow : sc.inFlow = true)
+    (h_not_doc : sc.col = 0 → atDocumentBoundary sc = false)
+    (hok : scanPlainScalar sc = .ok s') :
+    ∃ sp_gram sp', SFlowNode 0 .flowIn sp sp_gram ∧
+                   GStar SSWhite sp_gram sp' ∧
+                   ScannerSurfCorr s' sp' := by
+  obtain ⟨sp_gram, sp', h_ml, h_trail, hcorr'⟩ :=
+    scanPlainScalar_to_multiLine_native sc sp hcorr hpeek hstart h_not_doc hok
+  rw [hInFlow] at h_ml
+  exact ⟨sp_gram, sp',
+    SFlowNode.content 0 .flowIn _ _ (SFlowContent.plain 0 .flowIn _ _ h_ml),
+    h_trail, hcorr'⟩
 
 lemma scanPlainScalar_prod (sc : ScannerState) (sp : SurfPos)
     {s' : ScannerState} {c : Char}

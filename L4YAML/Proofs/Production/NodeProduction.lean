@@ -430,4 +430,233 @@ lemma SBlockSeqEntries_snoc {n : Nat} {s s_mid s₁ s₂ s' : SurfPos}
       h_indent' h_dash' h_gnot' h_body
       (SBlockSeqEntries_snoc h_tail h_indent h_dash h_gnot h_indented)
 
+/-! ## §4b Flow entry snoc (`SFlowSeqEntries` / `SFlowMapEntries`)
+
+    Flow analogues of `SBlockSeqEntries_snoc` (Fix A, Piece 2). Unlike block
+    sequences — whose entries are self-delimiting `- content` units — flow
+    entries are comma-separated (`ns-s-flow-seq-entries` [138]): the list is
+    right-nested with a `consMore` cons (`entry sep , sep <tail>`) and TWO
+    terminal forms, `single` (`entry sep`) and `consEnd` (`entry sep , sep`,
+    the trailing-comma case `[a,]`).
+
+    Snoc appends one more comma-separated entry at the end (recursing to the
+    innermost entry, exactly like the block version). The trailing-comma
+    `consEnd` form cannot validly receive another `, entry` (that would be a
+    double comma `a,,b`, which is ungrammatical), so snoc is stated for
+    *closeable* entries only — a total, structurally-preserved predicate that
+    a flow accumulator maintains: a fresh `single` is closeable, and snoc
+    yields a closeable result, so the trailing comma is only ever formed at
+    the final close (never fed back into snoc). -/
+
+/-- A flow-seq-entries list is *closeable* iff its innermost terminal is a
+    `single` (an entry) rather than a `consEnd` (a trailing comma). Encoded as
+    an inductive over exactly the `single`/`consMore` spine — so it has no
+    `consEnd` constructor, and matching on the evidence is exhaustive without
+    touching the excluded trailing-comma case. Preserved by
+    `SFlowSeqEntries_snoc`; discharged for freshly-opened accumulators. -/
+inductive FlowSeqEntriesCloseable :
+    {n : Nat} → {c : YamlContext} → {s s' : SurfPos} → SFlowSeqEntries n c s s' → Prop where
+  | single {n : Nat} {c : YamlContext} {s s₁ s' : SurfPos}
+      (he : SFlowSeqEntry n c s s₁) (hsep : GOpt (SSeparate n c) s₁ s') :
+      FlowSeqEntriesCloseable (SFlowSeqEntries.single n c s s₁ s' he hsep)
+  | consMore {n : Nat} {c : YamlContext} {s s₁ s₂ s₃ s₄ s' : SurfPos}
+      (he : SFlowSeqEntry n c s s₁) (hsep : GOpt (SSeparate n c) s₁ s₂)
+      (hcomma : GLit ',' s₂ s₃) (hsep' : GOpt (SSeparate n c) s₃ s₄)
+      (tail : SFlowSeqEntries n c s₄ s') :
+      FlowSeqEntriesCloseable tail →
+      FlowSeqEntriesCloseable
+        (SFlowSeqEntries.consMore n c s s₁ s₂ s₃ s₄ s' he hsep hcomma hsep' tail)
+
+/-- A flow-map-entries list is *closeable* (see `FlowSeqEntriesCloseable`). -/
+inductive FlowMapEntriesCloseable :
+    {n : Nat} → {c : YamlContext} → {s s' : SurfPos} → SFlowMapEntries n c s s' → Prop where
+  | single {n : Nat} {c : YamlContext} {s s₁ s' : SurfPos}
+      (he : SFlowMapEntry n c s s₁) (hsep : GOpt (SSeparate n c) s₁ s') :
+      FlowMapEntriesCloseable (SFlowMapEntries.single n c s s₁ s' he hsep)
+  | consMore {n : Nat} {c : YamlContext} {s s₁ s₂ s₃ s₄ s' : SurfPos}
+      (he : SFlowMapEntry n c s s₁) (hsep : GOpt (SSeparate n c) s₁ s₂)
+      (hcomma : GLit ',' s₂ s₃) (hsep' : GOpt (SSeparate n c) s₃ s₄)
+      (tail : SFlowMapEntries n c s₄ s') :
+      FlowMapEntriesCloseable tail →
+      FlowMapEntriesCloseable
+        (SFlowMapEntries.consMore n c s s₁ s₂ s₃ s₄ s' he hsep hcomma hsep' tail)
+
+set_option linter.defProp false in
+/-- Append one comma-separated entry to a closeable `SFlowSeqEntries`.
+    Mirrors `SBlockSeqEntries_snoc`, recursing on the closeable spine: the
+    `single` terminal becomes a `consMore` (its trailing separator becomes the
+    pre-comma separator), `consMore` keeps its head and recurses on the tail.
+    The trailing-comma `consEnd` is unreachable — it is not part of the
+    `FlowSeqEntriesCloseable` spine. -/
+def SFlowSeqEntries_snoc {n : Nat} {c : YamlContext} {s s_mid s_c s_d s_e s' : SurfPos}
+    {h_entries : SFlowSeqEntries n c s s_mid}
+    (h_cl : FlowSeqEntriesCloseable h_entries)
+    (h_comma : GLit ',' s_mid s_c)
+    (h_sep : GOpt (SSeparate n c) s_c s_d)
+    (h_entry : SFlowSeqEntry n c s_d s_e)
+    (h_sep2 : GOpt (SSeparate n c) s_e s') :
+    SFlowSeqEntries n c s s' :=
+  match h_cl with
+  | .single (s₁ := s₁) he hsep =>
+    .consMore _ _ _ s₁ s_mid s_c s_d s' he hsep h_comma h_sep
+      (.single _ _ s_d s_e s' h_entry h_sep2)
+  | .consMore (s₁ := s₁) (s₂ := s₂) (s₃ := s₃) (s₄ := s₄) he hsep hcomma hsep' _ h_tail_cl =>
+    .consMore _ _ _ s₁ s₂ s₃ s₄ s' he hsep hcomma hsep'
+      (SFlowSeqEntries_snoc h_tail_cl h_comma h_sep h_entry h_sep2)
+
+/-- `SFlowSeqEntries_snoc` yields a closeable result (its innermost terminal is
+    the freshly-appended `single`). Lets an accumulator snoc repeatedly. -/
+theorem SFlowSeqEntries_snoc_closeable {n : Nat} {c : YamlContext}
+    {s s_mid s_c s_d s_e s' : SurfPos}
+    {h_entries : SFlowSeqEntries n c s s_mid}
+    (h_cl : FlowSeqEntriesCloseable h_entries)
+    (h_comma : GLit ',' s_mid s_c)
+    (h_sep : GOpt (SSeparate n c) s_c s_d)
+    (h_entry : SFlowSeqEntry n c s_d s_e)
+    (h_sep2 : GOpt (SSeparate n c) s_e s') :
+    FlowSeqEntriesCloseable
+      (SFlowSeqEntries_snoc h_cl h_comma h_sep h_entry h_sep2) :=
+  match h_cl with
+  | .single he hsep =>
+    .consMore he hsep h_comma h_sep _ (.single h_entry h_sep2)
+  | .consMore he hsep hcomma hsep' _ h_tail_cl =>
+    .consMore he hsep hcomma hsep' _
+      (SFlowSeqEntries_snoc_closeable h_tail_cl h_comma h_sep h_entry h_sep2)
+
+set_option linter.defProp false in
+/-- Append one comma-separated entry to a closeable `SFlowMapEntries`.
+    Structurally identical to `SFlowSeqEntries_snoc`. -/
+def SFlowMapEntries_snoc {n : Nat} {c : YamlContext} {s s_mid s_c s_d s_e s' : SurfPos}
+    {h_entries : SFlowMapEntries n c s s_mid}
+    (h_cl : FlowMapEntriesCloseable h_entries)
+    (h_comma : GLit ',' s_mid s_c)
+    (h_sep : GOpt (SSeparate n c) s_c s_d)
+    (h_entry : SFlowMapEntry n c s_d s_e)
+    (h_sep2 : GOpt (SSeparate n c) s_e s') :
+    SFlowMapEntries n c s s' :=
+  match h_cl with
+  | .single (s₁ := s₁) he hsep =>
+    .consMore _ _ _ s₁ s_mid s_c s_d s' he hsep h_comma h_sep
+      (.single _ _ s_d s_e s' h_entry h_sep2)
+  | .consMore (s₁ := s₁) (s₂ := s₂) (s₃ := s₃) (s₄ := s₄) he hsep hcomma hsep' _ h_tail_cl =>
+    .consMore _ _ _ s₁ s₂ s₃ s₄ s' he hsep hcomma hsep'
+      (SFlowMapEntries_snoc h_tail_cl h_comma h_sep h_entry h_sep2)
+
+/-- `SFlowMapEntries_snoc` yields a closeable result. -/
+theorem SFlowMapEntries_snoc_closeable {n : Nat} {c : YamlContext}
+    {s s_mid s_c s_d s_e s' : SurfPos}
+    {h_entries : SFlowMapEntries n c s s_mid}
+    (h_cl : FlowMapEntriesCloseable h_entries)
+    (h_comma : GLit ',' s_mid s_c)
+    (h_sep : GOpt (SSeparate n c) s_c s_d)
+    (h_entry : SFlowMapEntry n c s_d s_e)
+    (h_sep2 : GOpt (SSeparate n c) s_e s') :
+    FlowMapEntriesCloseable
+      (SFlowMapEntries_snoc h_cl h_comma h_sep h_entry h_sep2) :=
+  match h_cl with
+  | .single he hsep =>
+    .consMore he hsep h_comma h_sep _ (.single h_entry h_sep2)
+  | .consMore he hsep hcomma hsep' _ h_tail_cl =>
+    .consMore he hsep hcomma hsep' _
+      (SFlowMapEntries_snoc_closeable h_tail_cl h_comma h_sep h_entry h_sep2)
+
+/-! ## §4c Flow separation primitives (Fix A, Piece 2)
+
+    In flow contexts (`.flowOut`/`.flowIn`) `s-separate(n,c)` [69] unfolds to
+    `s-separate-lines(n)` [70], whose `inline` case wraps `s-separate-in-line`
+    [66]. Because `SSeparateInLine.startOfLine` was deliberately weakened to
+    hold at ANY column (dodging the BOM col≠0 proof gap — see `SSeparateInLine`),
+    a zero-width flow separation is available at every position, and a run of
+    whitespace gives a non-empty one. These are the separators threaded between
+    flow-collection tokens (`[`, entries, `,`, `]`). -/
+
+/-- Zero-width flow separation at any position (spec start-of-line, weakened). -/
+lemma SSeparate_flow_refl (n : Nat) {c : YamlContext}
+    (hc : c = .flowOut ∨ c = .flowIn) (sp : SurfPos) : SSeparate n c sp sp := by
+  rcases hc with rfl | rfl <;>
+    exact SSeparateLines.inline n sp sp (SSeparateInLine.startOfLine sp)
+
+/-- A run of whitespace is a flow separation. -/
+lemma SSeparate_flow_of_whites (n : Nat) {c : YamlContext} {sp sp' : SurfPos}
+    (hc : c = .flowOut ∨ c = .flowIn) (h : GPlus SSWhite sp sp') : SSeparate n c sp sp' := by
+  rcases hc with rfl | rfl <;>
+    exact SSeparateLines.inline n sp sp' (SSeparateInLine.whites sp sp' h)
+
+/-- The optional separator `GOpt (SSeparate n c)` is always dischargeable
+    zero-width (`e` / `s-separate?` absent). -/
+lemma GOpt_SSeparate_none {n : Nat} {c : YamlContext} (sp : SurfPos) :
+    GOpt (SSeparate n c) sp sp := GOpt.none sp
+
+/-! ## §4d Flow collection assembly (Fix A, Piece 2)
+
+    Assemble a completed `SFlowSequence`/`SFlowMapping` [137]/[140] from the
+    bracket literals, the optional post-`[` separation, and the accumulated
+    entries (at `in-flow(c)` context), then lift to `SFlowContent`/`SFlowNode`.
+    These are the "close a flow level" operations for the accumulator. -/
+
+/-- Assemble a non-empty flow sequence: `[` sep entries `]`. -/
+lemma flowSeq_nonempty {n : Nat} {c : YamlContext} {s s₁ s₂ s₃ s' : SurfPos}
+    (hopen : GLit '[' s s₁) (hsep : GOpt (SSeparate n c) s₁ s₂)
+    (hentries : SFlowSeqEntries n (inFlowCtx c) s₂ s₃) (hclose : GLit ']' s₃ s') :
+    SFlowSequence n c s s' :=
+  SFlowSequence.nonempty n c s s₁ s₂ s₃ s' hopen hsep hentries hclose
+
+/-- Assemble an empty flow sequence: `[` sep `]`. -/
+lemma flowSeq_empty {n : Nat} {c : YamlContext} {s s₁ s₂ s' : SurfPos}
+    (hopen : GLit '[' s s₁) (hsep : GOpt (SSeparate n c) s₁ s₂) (hclose : GLit ']' s₂ s') :
+    SFlowSequence n c s s' :=
+  SFlowSequence.empty n c s s₁ s₂ s' hopen hsep hclose
+
+/-- Assemble a non-empty flow mapping: `{` sep entries `}`. -/
+lemma flowMap_nonempty {n : Nat} {c : YamlContext} {s s₁ s₂ s₃ s' : SurfPos}
+    (hopen : GLit '{' s s₁) (hsep : GOpt (SSeparate n c) s₁ s₂)
+    (hentries : SFlowMapEntries n (inFlowCtx c) s₂ s₃) (hclose : GLit '}' s₃ s') :
+    SFlowMapping n c s s' :=
+  SFlowMapping.nonempty n c s s₁ s₂ s₃ s' hopen hsep hentries hclose
+
+/-- Assemble an empty flow mapping: `{` sep `}`. -/
+lemma flowMap_empty {n : Nat} {c : YamlContext} {s s₁ s₂ s' : SurfPos}
+    (hopen : GLit '{' s s₁) (hsep : GOpt (SSeparate n c) s₁ s₂) (hclose : GLit '}' s₂ s') :
+    SFlowMapping n c s s' :=
+  SFlowMapping.empty n c s s₁ s₂ s' hopen hsep hclose
+
+/-- A completed flow sequence is a flow node. -/
+lemma flowSeq_flowNode {n : Nat} {c : YamlContext} {s s' : SurfPos}
+    (h : SFlowSequence n c s s') : SFlowNode n c s s' :=
+  flowContent_flowNode (flowSeq_flowContent h)
+
+/-- A completed flow mapping is a flow node. -/
+lemma flowMap_flowNode {n : Nat} {c : YamlContext} {s s' : SurfPos}
+    (h : SFlowMapping n c s s') : SFlowNode n c s s' :=
+  flowContent_flowNode (flowMap_flowContent h)
+
+/-- A single-entry flow sequence from one entry (+ trailing separator). -/
+lemma SFlowSeqEntries_single {n : Nat} {c : YamlContext} {s s₁ s' : SurfPos}
+    (h_entry : SFlowSeqEntry n c s s₁) (h_sep : GOpt (SSeparate n c) s₁ s') :
+    SFlowSeqEntries n c s s' :=
+  SFlowSeqEntries.single n c s s₁ s' h_entry h_sep
+
+/-- The single-entry flow sequence is closeable (seeds a snoc accumulator). -/
+lemma SFlowSeqEntries_single_closeable {n : Nat} {c : YamlContext} {s s₁ s' : SurfPos}
+    (h_entry : SFlowSeqEntry n c s s₁) (h_sep : GOpt (SSeparate n c) s₁ s') :
+    FlowSeqEntriesCloseable (SFlowSeqEntries_single h_entry h_sep) :=
+  .single h_entry h_sep
+
+/-- A single-entry flow mapping from one entry (+ trailing separator). -/
+lemma SFlowMapEntries_single {n : Nat} {c : YamlContext} {s s₁ s' : SurfPos}
+    (h_entry : SFlowMapEntry n c s s₁) (h_sep : GOpt (SSeparate n c) s₁ s') :
+    SFlowMapEntries n c s s' :=
+  SFlowMapEntries.single n c s s₁ s' h_entry h_sep
+
+/-- The single-entry flow mapping is closeable (seeds a snoc accumulator). -/
+lemma SFlowMapEntries_single_closeable {n : Nat} {c : YamlContext} {s s₁ s' : SurfPos}
+    (h_entry : SFlowMapEntry n c s s₁) (h_sep : GOpt (SSeparate n c) s₁ s') :
+    FlowMapEntriesCloseable (SFlowMapEntries_single h_entry h_sep) :=
+  .single h_entry h_sep
+
+/-- A flow node is a flow-sequence entry. -/
+lemma flowNode_seqEntry {n : Nat} {c : YamlContext} {s s' : SurfPos}
+    (h : SFlowNode n c s s') : SFlowSeqEntry n c s s' :=
+  SFlowSeqEntry.node n c s s' h
+
 end L4YAML.Proofs.NodeProduction

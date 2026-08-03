@@ -122,6 +122,37 @@ lemma scanFlowEntry_prod (sc : ScannerState) (sp : SurfPos)
     ∃ sp', ScannerSurfCorr s' sp' :=
   scanFlowEntry_corr sc sp hcorr s' hok
 
+-- `scanFlowEntry` produces `GLit ','` when the head character is `,`.
+-- Strengthens `scanFlowEntry_prod`: the entry separator carries the
+-- `GLit ','` surface witness needed for `SFlowSeqEntries`/`SFlowMapEntries`
+-- accumulation (Fix A, Piece 2). Both the guard-throw and the clean paths
+-- are handled; on `.ok` the state is `(sc.emit .flowEntry).advance` (with the
+-- untracked `simpleKeyAllowed` field flipped), so the tracked correspondence
+-- fields transfer from `advance_non_newline_corr`.
+lemma scanFlowEntry_glit (sc : ScannerState) (sp : SurfPos)
+    (hcorr : ScannerSurfCorr sc sp) (hpeek : sc.peek? = some ',')
+    (s' : ScannerState) (hok : scanFlowEntry sc = .ok s') :
+    ∃ sp', GLit ',' sp sp' ∧ ScannerSurfCorr s' sp' := by
+  obtain ⟨rest, hsp_eq⟩ := peek_some_sp hcorr hpeek
+  subst hsp_eq
+  have hmore := peek_some_has_more hpeek
+  refine ⟨⟨rest, sc.col + 1⟩, GLit.mk rest sc.col, ?_⟩
+  unfold scanFlowEntry at hok
+  simp only [bind, Except.bind] at hok
+  have hcorr_emit : ScannerSurfCorr (sc.emit .flowEntry) ⟨',' :: rest, sc.col⟩ :=
+    ⟨hcorr.chars_from, hcorr.col_eq, hcorr.end_eq, hcorr.input_prefix, hcorr.indent_cols_nonneg⟩
+  have hcorr_adv := advance_non_newline_corr (sc.emit .flowEntry) ',' rest hcorr_emit hmore
+    (by decide) (by decide)
+  split at hok
+  · split at hok
+    · exact absurd hok (by simp)
+    · have h := Except.ok.inj hok; subst h
+      exact ⟨hcorr_adv.chars_from, hcorr_adv.col_eq, hcorr_adv.end_eq, hcorr_adv.input_prefix,
+             hcorr_adv.indent_cols_nonneg⟩
+  · have h := Except.ok.inj hok; subst h
+    exact ⟨hcorr_adv.chars_from, hcorr_adv.col_eq, hcorr_adv.end_eq, hcorr_adv.input_prefix,
+           hcorr_adv.indent_cols_nonneg⟩
+
 /-! ## §2 Block Indicator Productions
 
 Block indicators (`-`, `?`, `:`) each advance past a single character.
