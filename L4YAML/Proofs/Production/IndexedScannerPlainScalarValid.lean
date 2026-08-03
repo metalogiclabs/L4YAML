@@ -4,6 +4,7 @@ Released under Apache 2.0 license as described in the file LICENSE.
 -/
 import L4YAML.Proofs.Parser.IndexedWellBehaved
 import L4YAML.Proofs.Scanner.IndexedDispatch
+import L4YAML.Proofs.Scanner.FlowAdjacencyIx
 
 /-! # `IndexedScannerPlainScalarValid` — Phase 3 Step 6d.1e foundation (staging)
 
@@ -158,6 +159,7 @@ open L4YAML.Scanner.Indexed
 open L4YAML.Scanner.Indexed.ScannerStateIx
 open L4YAML.Proofs.ScannerPlainScalarValid
 open L4YAML.Proofs.Indexed.WellBehaved
+open L4YAML.Proofs.FlowAdjacencyIx
 
 variable {input : String}
 
@@ -3029,6 +3031,7 @@ lemma scanNextTokenIx_dispatchFlowIndicators_preserves_PlainScalarsValidIx
     (h_old : PlainScalarsValidIx s.tokens) :
     PlainScalarsValidIx s'.tokens := by
   unfold scanNextTokenIx_dispatchFlowIndicators at h_ok
+  replace h_ok := peel_flowAdjIx h_ok
   simp only [bind, Except.bind, pure, Except.pure] at h_ok
   split at h_ok
   · -- c == '['
@@ -3068,6 +3071,7 @@ lemma scanNextTokenIx_dispatchFlowIndicators_preserves_FlowContextPSVIx
     (h_old : FlowContextPSVIx s.tokens) (h_pl : SimpleKeyPlaceholderInvIx s) :
     FlowContextPSVIx s'.tokens := by
   unfold scanNextTokenIx_dispatchFlowIndicators at h_ok
+  replace h_ok := peel_flowAdjIx h_ok
   simp only [bind, Except.bind, pure, Except.pure] at h_ok
   split at h_ok
   · simp only [Except.ok.injEq, Option.some.injEq] at h_ok; subst h_ok
@@ -3102,6 +3106,7 @@ lemma scanNextTokenIx_dispatchFlowIndicators_preserves_FlowNestingInvIx
     (h_fni : FlowNestingInvIx s) (h_pl : SimpleKeyPlaceholderInvIx s) :
     FlowNestingInvIx s' := by
   unfold scanNextTokenIx_dispatchFlowIndicators at h_ok
+  replace h_ok := peel_flowAdjIx h_ok
   simp only [bind, Except.bind, pure, Except.pure] at h_ok
   split at h_ok
   · simp only [Except.ok.injEq, Option.some.injEq] at h_ok; subst h_ok

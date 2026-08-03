@@ -5606,8 +5606,8 @@ Both directions:
 | 0. Scanner audit for directive handling | ✅ done 2026-08-01 | findings under Fix B: mid-stream leniency **confirmed reachable** |
 | Fix B: eliminate `directiveDrop` (orphaned directive resolution) | ✅ **done 2026-08-02** | option (c) executed; see the progress record below |
 | 1a. Remove `directiveDrop` from `SLYamlStream` | ✅ **done 2026-08-02** | constructor deleted; `SLYamlStream` = 3 spec constructors + `scannerDrop` |
-| Fix A: eliminate `scannerDrop` (flow collection grammar evidence) | ❌ open | plan revised — see the 2026-08-02 findings under Fix A: the planned `SFlowNode_context_lift` is false-and-unneeded; real work = whole-flow-collection accumulation **plus a flow-adjacency scanner strictening** |
-| 1b. Remove `scannerDrop` from `SLYamlStream` | ❌ open | blocked on Fix A |
+| Fix A: eliminate `scannerDrop` (flow collection grammar evidence) | 🚧 in progress (v0.7.0) | **atomic (a)+(b)+(c)** — see the 2026-08-02 findings; scanner strictening + tower repair + flow accumulation + `scannerDrop` removal must land together |
+| 1b. Remove `scannerDrop` from `SLYamlStream` | 🚧 in progress | part of the atomic Fix A |
 | 5. Prove the converse `grammar_completeness` | ❌ open | depends on Fix A |
 | 6. Assemble `parse_iff_grammar` biconditional | ❌ open | depends on Step 5 |
 
@@ -5889,6 +5889,32 @@ The Fix-B campaign's understand pass invalidated the sketch above:
    separators at scan time; no `parseYaml`-level behavior change), with
    its own proof-repair sweep across the emitter-scannability towers.
 
+4. **Fix A is atomic — (a)+(b)+(c) must land together** (found
+   2026-08-02, mid-execution). The scanner strictening (a) delivers
+   *no standalone value*: with `scannerDrop` still present,
+   `scan_strict` already held (scannerDrop absorbs adjacency), so (a)
+   only matters as part of removing `scannerDrop` (c). Moreover the
+   emit→scan tower repair for the strictening's content-in-flow path
+   (`"…"`/scalar entries: prove the folded `checkFlowAdjacency` passes)
+   requires a **last-token invariant** (`t.completesFlowValue = false`
+   for the token preceding a flow entry) threaded through the
+   `EmitScansInFlow(Ix)` predicates + opener/comma scenarios + ~18
+   `scanNextToken_flow_scanDoubleQuoted` sites — the *same* last-token
+   discipline that step (b)'s accumulation needs. So the "tower repair"
+   is the front half of (b), not a separable mechanical sweep. The
+   scan→grammar side (StreamAccum inversions via a `peel_flowAdj`
+   helper) *is* mechanical and is done. Implementation helpers live in
+   `Proofs/Scanner/FlowAdjacency.lean` (+ `FlowAdjacencyIx.lean`):
+   `peel_flowAdj` (strip the folded check at inversion sites) and
+   `checkFlowAdjacency_ok_of_{notInFlow,notCompletes,sepChar}`
+   (discharge it at construction sites). The check itself
+   (`scanNextToken_checkFlowAdjacency`, folded into the *entry* of
+   `dispatchFlowIndicators` to minimise blast radius) rejects
+   value-after-value without a `,`/`:`/close separator. FlowStack is
+   currently always `nil` (post-4z.1); the accumulation will revive it
+   to carry per-level entry-snoc closures (mirroring `BlockStack`) or
+   enrich `pendingFlow`'s payload.
+
 #### Estimated scope (revised)
 
 - Flow-adjacency scanner strictening + proof repair: ~300–800 lines
@@ -5897,6 +5923,69 @@ The Fix-B campaign's understand pass invalidated the sketch above:
   `block_dispatch_deferred`'s 16 call sites + `close_with_ssl`: ~500–1,000 lines
 - **Total: ~1,100–2,300 lines** (the original ~300–500 estimate assumed
   the context-lift sketch and no runtime work)
+
+#### Progress record — Fix A (2026-08-02, v0.7.0 WIP on branch `fix-a-grammar-completeness`)
+
+**The build on this branch is intentionally RED** — Fix A is atomic (a)+(b)+(c)
+and lands green only when `scannerDrop` is removed. This is a checkpoint to
+continue from next session, not a shippable state.
+
+**DONE (green):**
+- Scanner strictening: `scanNextToken_checkFlowAdjacency` (legacy) +
+  `scanNextTokenIx_checkFlowAdjacency` (indexed), each folded into the *entry* of
+  `dispatchFlowIndicators` (minimises blast radius: proofs treating that dispatcher
+  as an opaque `Except` are unaffected). Rejects a node-start after a completed
+  value (`YamlToken.completesFlowValue`) without a `,`/`:`/close separator.
+  Behaviour-verified by probe: rejects `[[a][b]]`, `[[a]b]`, `["a""b"]`, `[a[b]]`,
+  `[{a}b]`, `["a" "b"]`; accepts all valid flow + block inputs unchanged.
+- Helper modules `Proofs/Scanner/FlowAdjacency.lean` (legacy, imports only
+  `Scanner.Scanner`) + `FlowAdjacencyIx.lean` (indexed): `peel_flowAdj(Ix)` (strip
+  the folded check at inversion sites); `checkFlowAdjacency(Ix)_ok_of_{notInFlow,
+  notCompletes,sepChar}` (discharge at construction sites); `lastRealTokenVal_push_two_ph`
+  + `saveSimpleKey_preserves_completesFalse` (last-token preservation through
+  `saveSimpleKey`). (`FlowAdjacency` kept legacy-only to avoid an import cycle —
+  `Scanner.IndexedDispatch` transitively imports `ScannerCorrectness`.)
+- Scan→grammar inversions repaired: ScannerCorrectness, ScannerBound,
+  ScanStrictCoupling, ScannerPlainScalarValid, StreamAccum, proof-IndexedDispatch,
+  IndexedScannerPlainScalarValid, ScannerAcceptance.
+
+**Repair recipe (validated; archetypes in `ScanSteps.lean`):**
+- *Inversion* (`unfold … at H`): insert `replace H := peel_flowAdj(Ix) H`.
+- *Construction, sep-char* (`]`/`}`/`,`): `rw [checkFlowAdjacency(Ix)_ok_of_sepChar (by decide)]` after unfold.
+- *Construction, value-starter* (`[`/`{`/content `none`): add hypothesis
+  `(h_adj : …checkFlowAdjacency s <c> = .ok ())` + `rw [h_adj]`. Callers discharge via
+  `_ok_of_notInFlow` (top-level, `flowLevel = 0`) or `_ok_of_notCompletes` (nested — thread
+  a `h_last : ∀ t, lastRealTokenVal? s.tokens = some t → t.completesFlowValue = false` hypothesis;
+  `s_ad.tokens = (saveSimpleKey s).tokens` by `simp only [s_ad]; split <;> rfl`).
+  Archetypes: `dispatchFlowIndicators_bracket/brace/none`, `scanNextToken_flow_open_nested`,
+  `scanNextToken_flow_scanDoubleQuoted`.
+
+**The three remaining pieces (next session, in order):**
+1. **Piece 1 — emit→scan tower sweep + induction crux.** Apply the recipe across the
+   ~13 remaining tower files (FilteredGrowth, ScanChainGrowth, WellBracketed, Pipeline,
+   ScanChain, EmitScans, FirstFiltered, Endpoint, FlowScalar, FlowSeqOpen, EmitScansStrong,
+   Invariant, Basic) — mechanical. **Crux (semi-novel):** the `h_last` hypotheses converge at
+   the `emit_scans_in_flow(Ix)` induction, which must PROVE "after scanning a separator
+   `[`/`,`/`{`, the last real token is that separator (⇒ `completesFlowValue = false`)". Needs
+   `scanFlowSequenceStart_lastRealTokenVal = flowSequenceStart` (+ Entry/MappingStart analogs,
+   mirroring the existing `scanFlowSequenceEnd_lastRealTokenVal`) and an induction-invariant
+   strengthening. Also finish `ScanSteps.lean`: `scanNextToken_flow_open_mapping_nested` (brace
+   nested), remaining content lemmas (single-quoted/plain/alias in flow), top-level brace caller.
+2. **Piece 2 — scan→grammar flow accumulation (novel).** Build `SFlowSequence`/`SFlowMapping`
+   grammar evidence from a successful scan (nothing does this today). `GLit ','` upgrade of
+   `scanFlowEntry_prod` (`StructureProduction.lean:119`); term-mode `SFlowSeqEntries`/
+   `SFlowMapEntries` snoc lemmas (mirror `SBlockSeqEntries_snoc`, `NodeProduction.lean:415`);
+   native-`.flowIn` producer siblings (delete the 3 `_to_flowOut` lifts in
+   `scanPlainScalar_to_flowNode`); **revive `FlowStack`** (currently always `nil` post-4z.1) to
+   carry per-level entry-snoc closures (mirroring `BlockStack`), OR enrich `pendingFlow`'s payload;
+   restructure `pendingFlow` (`StreamAccum.lean:140`) to carry `h_closable` like `pendingContent`;
+   col≠0 `SSeparateLines` preprocessing evidence.
+3. **Piece 3 — remove `scannerDrop` + Phase 2.** Grammatical `close_with_ssl` (`StreamAccum.lean:~485`)
+   using the accumulated evidence; delete `scannerDrop` from `Surface/Document.lean` (`SLYamlStream`
+   → 3 spec constructors); full rebuild + `run-all-tests` + both gates + 0 sorry/axiom, commit as
+   v0.7.0. Then prove `grammar_completeness` (converse; first rule inversion on the 3-constructor
+   `SLYamlStream`) + assemble `parse_iff_grammar` (capstone 7.7); add to `scripts/capstones.txt`
+   reserved slot + `@[capstone]` + `Capstones.lean` pins.
 
 ---
 

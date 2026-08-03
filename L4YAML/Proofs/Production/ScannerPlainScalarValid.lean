@@ -6,6 +6,7 @@ import L4YAML.Spec.Grammar
 import L4YAML.Proofs.Scanner.ScannerPlainScalar
 import L4YAML.Proofs.Scanner.ScannerCorrectness
 import L4YAML.Proofs.Scanner.ScannerFlowCollection
+import L4YAML.Proofs.Scanner.FlowAdjacency
 
 /-!
 # Plain Scalar Validity for the Full Scan Chain (B3.5)
@@ -49,6 +50,7 @@ open L4YAML.Proofs.ScannerPlainScalar
 open L4YAML.Proofs.ScannerCorrectness
 open L4YAML.Proofs.ScannerCorrectness.ScanHelpers
 open L4YAML.Proofs.ScannerProofs
+open L4YAML.Proofs.FlowAdjacency
 
 /-! ## Definition -/
 
@@ -977,6 +979,7 @@ lemma dispatchFlowIndicators_preserves_PlainScalarsValid
   · intro i hi; exact dispatchFlowIndicators_preserves_prefix s c s' h_ok i (by omega)
   · intro j hj hge
     unfold scanNextToken_dispatchFlowIndicators at h_ok
+    replace h_ok := peel_flowAdj h_ok
     simp only [bind, pure, Pure.pure, Except.pure] at h_ok
     simp only [Except.bind] at h_ok
     repeat (any_goals (split at h_ok))
@@ -2245,6 +2248,7 @@ lemma dispatchFlowIndicators_preserves_FlowInv
   -- Flow indicators: `[`, `]`, `{`, `}`, `,`
   -- These change flowLevel and emit flow tokens
   unfold scanNextToken_dispatchFlowIndicators at h_ok
+  replace h_ok := peel_flowAdj h_ok
   simp only [bind, Except.bind, pure, Except.pure] at h_ok
   -- Split on each character check
   split at h_ok
@@ -4729,6 +4733,7 @@ lemma dispatchFlowIndicators_preserves_AllKeysPlaceholderInv
     (h_ok : scanNextToken_dispatchFlowIndicators s c = .ok (some s')) :
     AllKeysPlaceholderInv s' := by
   unfold scanNextToken_dispatchFlowIndicators at h_ok
+  replace h_ok := peel_flowAdj h_ok
   simp only [bind, Except.bind, pure, Except.pure] at h_ok
   split at h_ok
   · simp only [Except.ok.injEq, Option.some.injEq] at h_ok; subst h_ok

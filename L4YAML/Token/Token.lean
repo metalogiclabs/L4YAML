@@ -258,6 +258,28 @@ def YamlToken.canStartNode : YamlToken → Bool
   | _ => false
 
 /--
+Whether a token completes a value node inside a flow collection.
+
+A completed value is a scalar, an alias, or a closed flow collection
+(`]` / `}`).  Inside a flow collection the only tokens that may follow a
+completed value are an entry separator (`,`), a value indicator (`:`), or
+the matching close (`]` / `}`).  Any other node-starting character
+immediately after a completed value is separator-less adjacency
+(e.g. `[[a][b]]`, `[[a]b]`, `["a""b"]`) — invalid YAML that the parser
+rejects; the scanner rejects it via `scanNextToken_checkFlowAdjacency`.
+
+Node *properties* (`&anchor`, `!tag`) and the structural markers
+(`[`, `{`, `,`, `:`, `?`) are deliberately excluded — they precede or
+separate values rather than completing one.
+-/
+def YamlToken.completesFlowValue : YamlToken → Bool
+  | .scalar .. => true
+  | .alias .. => true
+  | .flowSequenceEnd => true
+  | .flowMappingEnd => true
+  | _ => false
+
+/--
 Whether a token is a flow indicator.
 
 Used to determine flow/block context boundaries.

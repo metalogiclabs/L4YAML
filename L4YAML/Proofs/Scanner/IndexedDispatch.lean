@@ -3,6 +3,7 @@ Copyright (c) 2026. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 -/
 import L4YAML.Scanner.IndexedDispatch
+import L4YAML.Proofs.Scanner.FlowAdjacencyIx
 
 /-! # `IndexedDispatch` — Phase 3 dispatcher-layer proofs (staging)
 
@@ -83,6 +84,7 @@ end L4YAML.Indexed.IxCursor
 namespace L4YAML.Scanner.Indexed
 
 open L4YAML L4YAML.Indexed L4YAML.CharPredicates
+open L4YAML.Proofs.FlowAdjacencyIx
 
 /-! ## `ScannerStateIx` — cursor-preservation lemmas
 
@@ -1273,6 +1275,7 @@ lemma scanNextTokenIx_dispatchFlowIndicators_ok_some_cases {input : String}
     s' = scanFlowMappingEndIx s ∨
     scanFlowEntryIx s = .ok s' := by
   unfold scanNextTokenIx_dispatchFlowIndicators at h
+  replace h := peel_flowAdjIx h
   by_cases hg1 : (c == '[') = true
   · rw [if_pos hg1] at h
     left

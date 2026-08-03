@@ -5,6 +5,7 @@ Released under Apache 2.0 license as described in the file LICENSE.
 import L4YAML.Scanner.Scanner
 import L4YAML.Proofs.Scanner.ScannerLoopInvariant
 import L4YAML.Proofs.Scanner.ScannerProgress
+import L4YAML.Proofs.Scanner.FlowAdjacency
 
 /-!
 # Scanner Bound Preservation (Phase 4.2.A)
@@ -29,6 +30,7 @@ namespace L4YAML.Proofs.ScannerBound
 open L4YAML.Scanner
 open L4YAML.Proofs.ScannerLoopInvariant
 open L4YAML.Proofs.ScannerProgress
+open L4YAML.Proofs.FlowAdjacency
 
 /-! ## §1  Bound Invariant Bundle
 
@@ -279,6 +281,7 @@ lemma dispatchFlowIndicators_preserves_bound (s s' : ScannerState) (c : Char)
     (hok : scanNextToken_dispatchFlowIndicators s c = .ok (some s')) :
     BoundInv s s' := by
   unfold scanNextToken_dispatchFlowIndicators at hok
+  replace hok := peel_flowAdj hok
   simp only [bind, Except.bind, pure, Except.pure, Bind.bind, Pure.pure] at hok
   split at hok  -- c == '['
   · simp only [Except.ok.injEq, Option.some.injEq] at hok; subst hok

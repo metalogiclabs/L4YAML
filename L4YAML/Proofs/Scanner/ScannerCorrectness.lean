@@ -6,6 +6,7 @@ import L4YAML.Scanner.Scanner
 import L4YAML.Spec.Grammar
 import L4YAML.Proofs.Scanner.ScannerProofs
 import L4YAML.Proofs.Scanner.ScannerProgress
+import L4YAML.Proofs.Scanner.FlowAdjacency
 
 /-!
 # Scanner Correctness (P10.11a)
@@ -74,6 +75,7 @@ open L4YAML.CharPredicates
 open L4YAML.Grammar
 open L4YAML.Proofs.ScannerProgress
 open L4YAML.Proofs.ScannerProofs
+open L4YAML.Proofs.FlowAdjacency
 
 /-- Simple key invariant: all simple keys (current and stacked) have
     `tokenIndex ≥ n`. This is threaded through `scanLoop` to ensure that
@@ -1924,6 +1926,7 @@ lemma dispatchFlowIndicators_tokens_mono (s : ScannerState) (c : Char) (s' : Sca
     (h : scanNextToken_dispatchFlowIndicators s c = .ok (some s')) :
     s'.tokens.size ≥ s.tokens.size := by
   unfold scanNextToken_dispatchFlowIndicators at h
+  replace h := peel_flowAdj h
   simp only [bind, pure, Pure.pure, Except.pure] at h
   simp only [Except.bind] at h
   repeat (any_goals (split at h))
@@ -2513,6 +2516,7 @@ lemma dispatchFlowIndicators_preserves_prefix (s : ScannerState) (c : Char) (s' 
     (i : Nat) (h_i : i < s.tokens.size) :
     s'.tokens[i]'(by have := dispatchFlowIndicators_tokens_mono s c s' h; omega) = s.tokens[i] := by
   unfold scanNextToken_dispatchFlowIndicators at h
+  replace h := peel_flowAdj h
   simp only [bind, pure, Pure.pure, Except.pure] at h
   simp only [Except.bind] at h
   repeat (any_goals (split at h))
@@ -5884,6 +5888,7 @@ lemma dispatchFlowIndicators_maintains_simpleKeyAbove (s : ScannerState) (c : Ch
     (n : Nat) (_h_n : n ≤ s.tokens.size) (h_inv : SimpleKeyAbove s n) :
     SimpleKeyAbove s' n := by
   unfold scanNextToken_dispatchFlowIndicators at h
+  replace h := peel_flowAdj h
   simp only [bind, pure, Pure.pure, Except.pure] at h
   simp only [Except.bind] at h
   repeat (any_goals (split at h))
@@ -6975,6 +6980,7 @@ lemma dispatchFlowIndicators_preserves_ScanInv (s : ScannerState) (c : Char)
     (h : ScanInv s) (s' : ScannerState)
     (h_ok : scanNextToken_dispatchFlowIndicators s c = .ok (some s')) : ScanInv s' := by
   unfold scanNextToken_dispatchFlowIndicators at h_ok
+  replace h_ok := peel_flowAdj h_ok
   simp only [bind, Except.bind, pure, Except.pure] at h_ok
   -- c == '['
   split at h_ok
@@ -8991,6 +8997,7 @@ lemma dispatchFlowIndicators_preserves_AllKeysValid (s : ScannerState) (c : Char
     (s' : ScannerState) (h : scanNextToken_dispatchFlowIndicators s c = .ok (some s'))
     (h_akv : AllKeysValid s) : AllKeysValid s' := by
   unfold scanNextToken_dispatchFlowIndicators at h
+  replace h := peel_flowAdj h
   simp only [bind, Except.bind, pure, Except.pure] at h
   split at h
   · simp only [Except.ok.injEq, Option.some.injEq] at h; subst h
@@ -10284,6 +10291,7 @@ lemma dispatchFlowIndicators_offset_gt (s s' : ScannerState) (c : Char)
     (h : scanNextToken_dispatchFlowIndicators s c = .ok (some s')) :
     s'.offset > s.offset := by
   unfold scanNextToken_dispatchFlowIndicators at h
+  replace h := peel_flowAdj h
   simp only [bind, Except.bind, pure, Except.pure, Bind.bind, Pure.pure] at h
   split at h
   · simp only [Except.ok.injEq, Option.some.injEq] at h; subst h

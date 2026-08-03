@@ -3,6 +3,7 @@ Copyright (c) 2026. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 -/
 import L4YAML.Proofs.Output.EmitterScannability.ScannerAcceptance
+import L4YAML.Proofs.Scanner.FlowAdjacency
 
 /-!
 # Emitter Scannability — Chain Wrappers + Scanning Steps
@@ -28,6 +29,7 @@ open L4YAML.Proofs.CouplingBridge
 open L4YAML.Proofs.ParserGrammable
 open L4YAML.Proofs.ParserWellBehaved
 open L4YAML.Proofs.ScalarCoupling
+open L4YAML.Proofs.FlowAdjacency
 
 /-! ### §G.4  Chain wrapper: position preservation at arbitrary `m` -/
 
@@ -1829,9 +1831,11 @@ lemma checkBlockFlowIndent_ok_flow (s : ScannerState) (c : Char)
 
 /-- `dispatchFlowIndicators` returns `none` for non-flow-indicator characters. -/
 lemma dispatchFlowIndicators_none (s : ScannerState) (c : Char)
-    (h1 : c ≠ '[') (h2 : c ≠ ']') (h3 : c ≠ '{') (h4 : c ≠ '}') (h5 : c ≠ ',') :
+    (h1 : c ≠ '[') (h2 : c ≠ ']') (h3 : c ≠ '{') (h4 : c ≠ '}') (h5 : c ≠ ',')
+    (h_adj : scanNextToken_checkFlowAdjacency s c = .ok ()) :
     scanNextToken_dispatchFlowIndicators s c = .ok none := by
   unfold scanNextToken_dispatchFlowIndicators
+  rw [h_adj]
   simp only [bind, Except.bind, pure, Except.pure]
   split
   · rename_i h; exact absurd (beq_iff_eq.mp h) h1
@@ -1997,7 +2001,8 @@ lemma scanNextToken_flow_scanDoubleQuoted (s : ScannerState)
     (h_col_pos : s.col > 0)
     (h_atol : AllTokensOnLine s s.line)
     (h_endline : EndLineOnLine s)
-    (h_dp : s.directivesPresent = false) :
+    (h_dp : s.directivesPresent = false)
+    (h_last : ∀ t, lastRealTokenVal? s.tokens = some t → t.completesFlowValue = false) :
     ∃ s', scanNextToken s = .ok (some s')
       ∧ ScannerSurfCorr s' ⟨rest, s'.col⟩
       ∧ s'.flowLevel = s.flowLevel
@@ -2035,8 +2040,12 @@ lemma scanNextToken_flow_scanDoubleQuoted (s : ScannerState)
   have h_check : scanNextToken_checkBlockFlowIndent s_ad '"' = .ok () :=
     checkBlockFlowIndent_ok_flow _ _ (h_ad_flow ▸ h_flow)
   -- Step 5: flow dispatch returns none
+  have h_ad_tokens : s_ad.tokens = (saveSimpleKey s).tokens := by
+    simp only [s_ad]; split <;> rfl
   have h_flow_none : scanNextToken_dispatchFlowIndicators s_ad '"' = .ok none :=
     dispatchFlowIndicators_none _ _ (by decide) (by decide) (by decide) (by decide) (by decide)
+      (checkFlowAdjacency_ok_of_notCompletes (fun t ht =>
+        saveSimpleKey_preserves_completesFalse s h_last t (h_ad_tokens ▸ ht)))
   -- Step 6: block dispatch returns none
   have h_block_none : scanNextToken_dispatchBlockIndicators s_ad '"' = .ok none :=
     dispatchBlockIndicators_none_quote _
@@ -2166,10 +2175,12 @@ lemma checkBlockFlowIndent_bracket_init (s : ScannerState)
   simp [ScannerState.inFlow, h_fl, h_indent]
 
 /-- Flow dispatch for `[` returns `some (scanFlowSequenceStart s)`. -/
-lemma dispatchFlowIndicators_bracket (s : ScannerState) :
+lemma dispatchFlowIndicators_bracket (s : ScannerState)
+    (h_adj : scanNextToken_checkFlowAdjacency s '[' = .ok ()) :
     scanNextToken_dispatchFlowIndicators s '[' = .ok (some (scanFlowSequenceStart s)) := by
   unfold scanNextToken_dispatchFlowIndicators
-  simp [pure, Except.pure]
+  rw [h_adj]
+  simp [pure, Except.pure, bind, Except.bind]
 
 /-- `scanNextToken` on the initial scanner state at `[` dispatches to
     `scanFlowSequenceStart`, entering flow context.
@@ -2241,6 +2252,7 @@ lemma scanNextToken_flow_open_init (input : String) (rest : List Char)
   have h_check := checkBlockFlowIndent_bracket_init s_ad h_ad_fl h_ad_ci
   -- Step 7: flow dispatch → some (scanFlowSequenceStart s_ad)
   have h_flow := dispatchFlowIndicators_bracket s_ad
+    (checkFlowAdjacency_ok_of_notInFlow (by simp [ScannerState.inFlow, h_ad_fl]))
   -- Step 8: compose through scanNextToken
   have h_snt : scanNextToken s₀ = .ok (some (scanFlowSequenceStart s_ad)) :=
     scanNextToken_via_flow_dispatch _ _ _ _ _ h_pp_eq h_struct rfl h_check h_flow h_dp_pp
@@ -2358,7 +2370,8 @@ lemma scanNextToken_flow_open_nested (s : ScannerState) (rest : List Char)
     (h_col_pos : s.col > 0)
     (h_atol : AllTokensOnLine s s.line)
     (h_endline : EndLineOnLine s)
-    (h_dp : s.directivesPresent = false) :
+    (h_dp : s.directivesPresent = false)
+    (h_last : ∀ t, lastRealTokenVal? s.tokens = some t → t.completesFlowValue = false) :
     ∃ s', scanNextToken s = .ok (some s')
       ∧ ScannerSurfCorr s' ⟨rest, s'.col⟩
       ∧ s'.flowLevel = s.flowLevel + 1
@@ -2394,7 +2407,11 @@ lemma scanNextToken_flow_open_nested (s : ScannerState) (rest : List Char)
     simp only [s_ad]; split <;> exact h_sk_flow
   have h_check := checkBlockFlowIndent_ok_flow s_ad '[' (h_ad_flow ▸ h_flow)
   -- Step 5: flow dispatch → some (scanFlowSequenceStart s_ad)
+  have h_ad_tokens : s_ad.tokens = (saveSimpleKey s).tokens := by
+    simp only [s_ad]; split <;> rfl
   have h_flow_disp := dispatchFlowIndicators_bracket s_ad
+    (checkFlowAdjacency_ok_of_notCompletes (fun t ht =>
+      saveSimpleKey_preserves_completesFalse s h_last t (h_ad_tokens ▸ ht)))
   -- Step 6: compose through scanNextToken
   have h_snt := scanNextToken_via_flow_dispatch _ _ _ _ _ h_pp h_struct rfl h_check h_flow_disp
     ((saveSimpleKey_preserves_directivesPresent s).trans h_dp)
@@ -2598,54 +2615,6 @@ lemma lastRealTokenVal_push_non_ph
 -- saveSimpleKey either leaves tokens unchanged or pushes exactly 2 .placeholder tokens.
 -- lastRealTokenVal? skips up to 2 trailing placeholders, so either reaches the same original
 -- token (which h_last covers) or returns .placeholder (which is trivially ≠ flow delimiters).
-lemma lastRealTokenVal_push_two_ph
-    (tokens : Array (Positioned YamlToken))
-    (ph1 ph2 : Positioned YamlToken) (h1 : ph1.val = .placeholder) (h2 : ph2.val = .placeholder)
-    (t : YamlToken)
-    (ht : lastRealTokenVal? ((tokens.push ph1).push ph2) = some t) :
-    lastRealTokenVal? tokens = some t ∨ t = .placeholder := by
-  unfold lastRealTokenVal? at ht
-  dsimp only [] at ht  -- inline have/let bindings
-  simp only [Array.size_push] at ht
-  -- First if: tokens.size + 2 > 0 → true
-  simp only [show tokens.size + 2 > 0 from by omega, ↓reduceIte,
-    show tokens.size + 2 - 1 = tokens.size + 1 from by omega] at ht
-  -- tok1 = arr[tokens.size + 1]!.val = ph2.val = .placeholder
-  have h_elem1 : ((tokens.push ph1).push ph2)[tokens.size + 1]!.val = .placeholder := by
-    rw [getElem!_pos _ _ (by simp [Array.size_push])]
-    simp [Array.getElem_push, Array.size_push, h2]
-  simp only [h_elem1, show (YamlToken.placeholder == YamlToken.placeholder) = true from by decide,
-    Bool.true_and, show tokens.size + 1 > 0 from by omega,
-    show tokens.size + 1 - 1 = tokens.size from by omega] at ht
-  -- ht now has tok2 part remaining (with decide True/False for conditions)
-  -- and possibly the tokens.size > 0 branch
-  -- Try: further simp to resolve decides, then case split
-  have h_elem2 : ((tokens.push ph1).push ph2)[tokens.size]!.val = .placeholder := by
-    rw [getElem!_pos _ _ (by simp [Array.size_push]; omega)]
-    simp [Array.getElem_push, Array.size_push, h1]
-  by_cases h_gt : tokens.size > 0
-  · have h_elem3 : ((tokens.push ph1).push ph2)[tokens.size - 1]!.val =
-        tokens[tokens.size - 1]!.val := by
-      rw [getElem!_pos _ _ (by simp [Array.size_push]; omega),
-          getElem!_pos _ _ (by omega)]
-      simp only [Array.getElem_push,
-        show tokens.size - 1 < (tokens.push ph1).size from by simp [Array.size_push]; omega,
-        show tokens.size - 1 < tokens.size from by omega, dite_true]
-    simp only [h_elem2, show (YamlToken.placeholder == YamlToken.placeholder) = true from by decide,
-      Bool.true_and, show tokens.size + 1 > 1 from by omega, ↓reduceIte,
-      show tokens.size + 1 - 2 = tokens.size - 1 from by omega,
-      h_elem3, decide_true] at ht
-    injection ht with ht_val
-    by_cases h_ne : t = .placeholder
-    · exact .inr h_ne
-    · left; unfold lastRealTokenVal?; dsimp only []
-      simp [h_gt, ht_val,
-        show (t == YamlToken.placeholder) = false from beq_eq_false_iff_ne.mpr h_ne]
-  · simp only [h_elem2, show (YamlToken.placeholder == YamlToken.placeholder) = true from by decide,
-      Bool.true_and, show ¬(tokens.size + 1 > 1) from by omega, ↓reduceIte,
-      decide_true, decide_false] at ht
-    injection ht with ht_val; exact .inr ht_val.symm
-
 lemma saveSimpleKey_preserves_lastRealTokenVal_ne_flow (s : ScannerState)
     (h_last : ∀ t, lastRealTokenVal? s.tokens = some t →
       t ≠ .flowSequenceStart ∧ t ≠ .flowMappingStart ∧ t ≠ .flowEntry)
@@ -2679,6 +2648,7 @@ lemma dispatchFlowIndicators_comma (s : ScannerState)
     scanNextToken_dispatchFlowIndicators s ',' =
       .ok (some { (s.emit .flowEntry).advance with simpleKeyAllowed := true }) := by
   unfold scanNextToken_dispatchFlowIndicators
+  rw [checkFlowAdjacency_ok_of_sepChar (by decide)]
   simp only [bind, Except.bind, pure, Except.pure,
     show (',' == '[') = false from by decide,
     show (',' == ']') = false from by decide,
@@ -2901,6 +2871,7 @@ lemma dispatchFlowIndicators_close_bracket_nested (s : ScannerState)
     (h_fl : s.flowLevel ≥ 2) :
     scanNextToken_dispatchFlowIndicators s ']' = .ok (some (scanFlowSequenceEnd s)) := by
   unfold scanNextToken_dispatchFlowIndicators
+  rw [checkFlowAdjacency_ok_of_sepChar (by decide)]
   simp only [bind, Except.bind, pure, Except.pure,
     show (']' == '[') = false from by decide,
     show (']' == ']') = true from by decide]
@@ -3062,6 +3033,7 @@ lemma dispatchFlowIndicators_close_bracket_outermost (s : ScannerState)
     (hcorr : ScannerSurfCorr s ⟨[']'], s.col⟩) :
     scanNextToken_dispatchFlowIndicators s ']' = .ok (some (scanFlowSequenceEnd s)) := by
   unfold scanNextToken_dispatchFlowIndicators
+  rw [checkFlowAdjacency_ok_of_sepChar (by decide)]
   simp only [bind, Except.bind, pure, Except.pure,
     show (']' == '[') = false from by decide,
     show (']' == ']') = true from by decide]
@@ -3199,9 +3171,10 @@ lemma scanFlowMappingStart_detail (s : ScannerState) (rest : List Char)
          scanFlowMappingStart_preserves_indents s,
          h_corr_final.col_eq.symm ▸ rfl⟩
 
-lemma dispatchFlowIndicators_brace (s : ScannerState) :
+lemma dispatchFlowIndicators_brace (s : ScannerState)
+    (h_adj : scanNextToken_checkFlowAdjacency s '{' = .ok ()) :
     scanNextToken_dispatchFlowIndicators s '{' = .ok (some (scanFlowMappingStart s)) := by
-  unfold scanNextToken_dispatchFlowIndicators; dsimp only []
+  unfold scanNextToken_dispatchFlowIndicators; rw [h_adj]; dsimp only []
   simp only [pure, Except.pure, bind, Except.bind,
     show ('{' == '[') = false from by decide,
     show ('{' == ']') = false from by decide,
@@ -3271,6 +3244,7 @@ lemma dispatchFlowIndicators_close_brace_nested (s : ScannerState)
     (h_fl : s.flowLevel ≥ 2) :
     scanNextToken_dispatchFlowIndicators s '}' = .ok (some (scanFlowMappingEnd s)) := by
   unfold scanNextToken_dispatchFlowIndicators
+  rw [checkFlowAdjacency_ok_of_sepChar (by decide)]
   simp only [bind, Except.bind, pure, Except.pure,
     show ('}' == '[') = false from by decide,
     show ('}' == ']') = false from by decide,
@@ -3413,6 +3387,7 @@ lemma dispatchFlowIndicators_close_brace_outermost (s : ScannerState)
     (hcorr : ScannerSurfCorr s ⟨['}'], s.col⟩) :
     scanNextToken_dispatchFlowIndicators s '}' = .ok (some (scanFlowMappingEnd s)) := by
   unfold scanNextToken_dispatchFlowIndicators
+  rw [checkFlowAdjacency_ok_of_sepChar (by decide)]
   simp only [bind, Except.bind, pure, Except.pure,
     show ('}' == '[') = false from by decide,
     show ('}' == ']') = false from by decide,

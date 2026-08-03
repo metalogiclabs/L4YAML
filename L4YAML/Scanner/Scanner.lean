@@ -257,6 +257,35 @@ def scanFlowEntry (s : ScannerState) : Except ScanError ScannerState := do
   let s_after_advance := s_with_token.advance
   .ok { s_after_advance with simpleKeyAllowed := true }
 
+/-- §7.4 [137]/[140]: inside a flow collection every value must be
+    separated from the next by `,` (entry separator) or `:` (value
+    indicator).  If the previous real token completed a value
+    (`YamlToken.completesFlowValue`) and the next character starts a new
+    node rather than a separator or the matching close (`]`/`}`), the
+    entries are adjacent with no separator — invalid YAML (`[[a][b]]`,
+    `[[a]b]`, `["a""b"]`).  Fires only on spec-invalid input (the emitter
+    never produces separator-less flow entries), so it does not change
+    `parseYaml` behaviour on any input the parser accepts.
+
+    Called at the entry of `scanNextToken_dispatchFlowIndicators` — the
+    first per-character dispatcher, which runs for *every* character
+    before falling through to block/content dispatch — so the guard
+    uniformly covers flow-indicator starts (`[`, `{`) and content starts
+    (scalars, quotes, `*`, `&`, `!`) alike. -/
+@[yaml_spec "7.4" 137 "c-flow-sequence",
+  yaml_spec "7.4" 140 "c-flow-mapping"]
+def scanNextToken_checkFlowAdjacency (s : ScannerState) (c : Char) :
+    Except ScanError Unit :=
+  if s.inFlow then
+    match lastRealTokenVal? s.tokens with
+    | some lastTok =>
+      if lastTok.completesFlowValue
+          && c != ',' && c != ':' && c != ']' && c != '}' then
+        .error (.invalidFlowEntry s.line s.col)
+      else .ok ()
+    | none => .ok ()
+  else .ok ()
+
 /-! ## Main Scanner Loop -/
 
 /-- Preprocessing phase of `scanNextToken`.
@@ -318,6 +347,8 @@ def scanNextToken_dispatchStructural (s : ScannerState) (c : Char) :
   yaml_spec "7.4" 7 "c-collect-entry"]
 def scanNextToken_dispatchFlowIndicators (s : ScannerState) (c : Char) :
     Except ScanError (Option ScannerState) := do
+  -- §7.4 [137]/[140]: reject separator-less adjacent flow entries.
+  scanNextToken_checkFlowAdjacency s c
   if c == '[' then return some (scanFlowSequenceStart s)
   if c == ']' then
     if s.flowLevel == 0 then return ← .error (.flowEndOutsideFlow ']' s.line s.col)

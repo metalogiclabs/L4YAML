@@ -1055,10 +1055,30 @@ def scanNextTokenIx_dispatchStructural {input : String} (s : ScannerStateIx inpu
     return some s'
   return none
 
+/-- §7.4 [137]/[140]: flow-entry adjacency guard.  Indexed twin of
+    `scanNextToken_checkFlowAdjacency`.  Inside a flow collection, a new
+    node may not immediately follow a completed value
+    (`YamlToken.completesFlowValue`) without a `,`/`:` separator or the
+    matching close (`]`/`}`).  Called at the entry of
+    `scanNextTokenIx_dispatchFlowIndicators`. -/
+def scanNextTokenIx_checkFlowAdjacency {input : String}
+    (s : ScannerStateIx input) (c : Char) : Except ScanError Unit :=
+  if s.inFlow then
+    match lastRealTokenValIx? s.tokens with
+    | some lastTok =>
+      if lastTok.completesFlowValue
+          && c != ',' && c != ':' && c != ']' && c != '}' then
+        .error (.invalidFlowEntry s.cursor.pos.line s.cursor.pos.col)
+      else .ok ()
+    | none => .ok ()
+  else .ok ()
+
 /-- Flow indicator dispatch: `[`, `]`, `{`, `}`, `,`. -/
 def scanNextTokenIx_dispatchFlowIndicators {input : String}
     (s : ScannerStateIx input) (c : Char) :
     Except ScanError (Option (ScannerStateIx input)) := do
+  -- §7.4 [137]/[140]: reject separator-less adjacent flow entries.
+  scanNextTokenIx_checkFlowAdjacency s c
   if c == '[' then return some (scanFlowSequenceStartIx s)
   if c == ']' then
     if s.flowLevel == 0 then

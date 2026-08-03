@@ -5,6 +5,7 @@ Released under Apache 2.0 license as described in the file LICENSE.
 import L4YAML.Proofs.Production.PreprocessProduction
 import L4YAML.Proofs.Scanner.ScanStrictCoupling
 import L4YAML.Proofs.Production.StructureProduction
+import L4YAML.Proofs.Scanner.FlowAdjacency
 
 /-! # Stream Grammar Accumulator (Layer 4d + 4e: Lagging Grammar with Block Stack)
 
@@ -60,6 +61,7 @@ open L4YAML.Proofs.StructureProduction
 open L4YAML.Proofs.ScalarProduction
 open L4YAML.Proofs.NodeProduction
 open L4YAML.CharPredicates
+open L4YAML.Proofs.FlowAdjacency
 
 /-! ## §0a PendingNode — Immediate Pending State
 
@@ -1373,6 +1375,7 @@ lemma dispatchFlowIndicators_corr (sc : ScannerState) (sp : SurfPos) (c : Char)
     (hok : scanNextToken_dispatchFlowIndicators sc c = .ok (some s')) :
     ∃ sp', ScannerSurfCorr s' sp' := by
   unfold scanNextToken_dispatchFlowIndicators at hok
+  replace hok := peel_flowAdj hok
   simp only [bind, Except.bind, pure, Except.pure] at hok
   -- c == '['
   split at hok

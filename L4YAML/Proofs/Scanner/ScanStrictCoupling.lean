@@ -3,6 +3,7 @@ Copyright (c) 2026. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 -/
 import L4YAML.Proofs.Coupling.StructureCoupling
+import L4YAML.Proofs.Scanner.FlowAdjacency
 
 /-!
 # Scan-Strict Coupling: Full-Consumption Infrastructure
@@ -45,6 +46,7 @@ open L4YAML.Proofs.CouplingBridge
 open L4YAML.Proofs.ScannerCoupling
 open L4YAML.Proofs.ScalarCoupling
 open L4YAML.Proofs.StructureCoupling
+open L4YAML.Proofs.FlowAdjacency
 
 /-! ## §1 CharsFromOffset–toList Bridge -/
 
@@ -163,6 +165,7 @@ lemma scanNextToken_dispatchFlowIndicators_corr (sc : ScannerState) (sp : SurfPo
     (hok : scanNextToken_dispatchFlowIndicators sc c = .ok (some s')) :
     ∃ sp', ScannerSurfCorr s' sp' := by
   unfold scanNextToken_dispatchFlowIndicators at hok
+  replace hok := peel_flowAdj hok
   simp only [bind, Except.bind, pure, Except.pure] at hok
   split at hok
   · have h := Except.ok.inj hok; injection h with h; subst h

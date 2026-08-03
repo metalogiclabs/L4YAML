@@ -15,6 +15,7 @@ import L4YAML.Proofs.Parser.ParserGrammable
 import L4YAML.Proofs.Scanner.ScannerPlainContent
 import L4YAML.Proofs.Scanner.ScannerBound
 import L4YAML.Proofs.Output.EmitterScannability.EscapeProperties
+import L4YAML.Proofs.Scanner.FlowAdjacency
 
 /-!
 # Emitter Scannability — §3 Scanner Acceptance + Substrate Predicates
@@ -42,6 +43,7 @@ open L4YAML.Grammar
 open L4YAML.TokenParser
 open L4YAML.CharPredicates
 open L4YAML.Proofs.CouplingBridge
+open L4YAML.Proofs.FlowAdjacency
 open L4YAML.Proofs.ParserGrammable
 open L4YAML.Proofs.ParserWellBehaved
 open L4YAML.Proofs.ScalarCoupling
@@ -235,7 +237,8 @@ lemma dispatchContent_quote (s : ScannerState) (c : Char) (hc : c = '"')
     simp [ScannerState.inFlow, h_notFlow, h_indent]
   · -- dispatchFlowIndicators: '"' doesn't match [, ], {, }, ,
     unfold scanNextToken_dispatchFlowIndicators
-    simp [pure, Except.pure]
+    rw [checkFlowAdjacency_ok_of_notInFlow (by simp [ScannerState.inFlow, h_notFlow])]
+    simp [pure, Except.pure, bind, Except.bind]
   · -- dispatchBlockIndicators: '"' doesn't match -, ?, :
     unfold scanNextToken_dispatchBlockIndicators
     simp [pure, Except.pure]
@@ -772,6 +775,7 @@ lemma dispatchFlowIndicators_maintains_SimpleKeyAboveFloor (s : ScannerState) (c
     (h_fl_post : s'.flowLevel ≥ fl₀) :
     SimpleKeyAboveFloor s' n₀ fl₀ := by
   unfold scanNextToken_dispatchFlowIndicators at h
+  replace h := peel_flowAdj h
   simp only [bind, pure, Pure.pure, Except.pure] at h
   simp only [Except.bind] at h
   repeat (any_goals (split at h))
@@ -1091,6 +1095,7 @@ lemma dispatchFlowIndicators_preserves_sync (s s' : ScannerState) (c : Char)
     (h_sync : s.simpleKeyStack.size ≥ s.flowLevel) :
     s'.simpleKeyStack.size ≥ s'.flowLevel := by
   unfold scanNextToken_dispatchFlowIndicators at h
+  replace h := peel_flowAdj h
   simp only [bind, Except.bind, pure, Except.pure] at h
   -- c == '['
   split at h
@@ -1499,6 +1504,7 @@ lemma dispatchFlowIndicators_maintains_NoOverwriteAt (s : ScannerState) (c : Cha
     (m : Nat) (_h_m : m < s.tokens.size) (h_inv : NoOverwriteAt s m) :
     NoOverwriteAt s' m := by
   unfold scanNextToken_dispatchFlowIndicators at h
+  replace h := peel_flowAdj h
   simp only [bind, pure, Pure.pure, Except.pure] at h
   simp only [Except.bind] at h
   repeat (any_goals (split at h))
@@ -2146,6 +2152,7 @@ lemma dispatchFlowIndicators_maintains_FlowNoOverwriteAt (s : ScannerState) (c :
     (m : Nat) (_h_m : m < s.tokens.size) (h_inv : FlowNoOverwriteAt s m) :
     FlowNoOverwriteAt s' m := by
   unfold scanNextToken_dispatchFlowIndicators at h
+  replace h := peel_flowAdj h
   simp only [bind, pure, Pure.pure, Except.pure] at h
   simp only [Except.bind] at h
   repeat (any_goals (split at h))
