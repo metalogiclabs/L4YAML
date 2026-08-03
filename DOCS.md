@@ -6094,6 +6094,20 @@ needed no changes.)
      **Key insight:** inside flow, `PendingNode` = `noPending` and `sp_flow = sp_scan` (the open state
      is fully in `FlowStackB.open`), which bounds the swap. **Kind coupling** (seq vs map innermost):
      discharge wrong-kind cases inline via `sc.flowStack.back?` / `validateFlowClose` success.
+     **Concrete swap surface (all in `StreamAccum.lean`, 2026-08-03 recon):** the flow component
+     appears at ~50 sites, ALL confined to this file (no external ripple). 8 lemma *hypotheses*
+     `(h_flow : FlowStack sp_block sp_flow)` at lines ≈1001, 1557, 1705, 2267, 3086, 3120, 3226, 3270;
+     ~20 invariant *conclusions* `∃ … FlowStack sp_block' sp_flow' ∧ …`; ~19 `FlowStack.nil` witnesses
+     in the `⟨…⟩` tuples. The heart is `accum_flow_pending` (≈1632): its `new_flow_state` helper (≈1655)
+     currently returns `FlowStack.nil` + `PendingNode.pendingFlow` for EVERY flow char (the 4z.1 deferral
+     `scannerDrop` then absorbs). The swap replaces it with a `c`×`sc.flowLevel` branch: `[`/`{` →
+     `FlowStackB.openSeqBase`/`openMapBase` (depth 0→1) or `pushSeq`/`pushMap` (depth d→d+1) + `noPending`;
+     `]`/`}` → pop (depth 1 → `pendingContent` via base `resume`; depth>1 → snoc nested node into parent
+     partial); `,` → hold. The invariant's flow index becomes `s'.flowLevel` (the NEW scanner state's
+     level) — so every conclusion re-threads `FlowStackB sp_start s'.flowLevel …` and `absorb_stacksB`
+     fires only where the branch forces `flowLevel = 0`. B.3's `PendingFlowMapEntry`/`PendingFlowSeqEntry`
+     supply the mid-entry evidence the push/pop/hold transitions consume. Retire `pendingFlow` once no
+     dispatch produces it.
    - **Block-nested flow via a generic `resume` closure** (unchanged design): each `FlowOpenStack`
      base carries `resume : SFlowNode 0 .flowOut sp_before sp_ne → SSLComments → SLYamlStream sp_start`.
      Top-level supplies `topLevelFlowResume`; block-nested supplies `pendingBlock.h_close ∘ flowInBlock`.
