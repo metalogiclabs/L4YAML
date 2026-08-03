@@ -5606,7 +5606,7 @@ Both directions:
 | 0. Scanner audit for directive handling | ✅ done 2026-08-01 | findings under Fix B: mid-stream leniency **confirmed reachable** |
 | Fix B: eliminate `directiveDrop` (orphaned directive resolution) | ✅ **done 2026-08-02** | option (c) executed; see the progress record below |
 | 1a. Remove `directiveDrop` from `SLYamlStream` | ✅ **done 2026-08-02** | constructor deleted; `SLYamlStream` = 3 spec constructors + `scannerDrop` |
-| Fix A: eliminate `scannerDrop` (flow collection grammar evidence) | 🚧 in progress (v0.7.0) | **atomic (a)+(b)+(c)** — see the 2026-08-02 findings; scanner strictening + tower repair + flow accumulation + `scannerDrop` removal must land together |
+| Fix A: eliminate `scannerDrop` (flow collection grammar evidence) | 🚧 in progress (v0.7.0) | **grammar completion + flow-accumulation rewire** (2026-08-03: `scannerDrop` masks real grammar incompleteness — audit found 3 bounded gaps G1–G3, e.g. bare-key `{a}`). Stage B.1 foundation `FlowStackB` green (`a2f4aefb`); remaining B.2 grammar surgery → B.3 production → B.4 atomic swap → B.5 delete. See the Fix A section. |
 | 1b. Remove `scannerDrop` from `SLYamlStream` | 🚧 in progress | part of the atomic Fix A |
 | 5. Prove the converse `grammar_completeness` | ❌ open | depends on Fix A |
 | 6. Assemble `parse_iff_grammar` biconditional | ❌ open | depends on Step 5 |
@@ -6021,43 +6021,71 @@ needed no changes.)
    `consEnd`) and `GOpt_SSeparate_of_GStar_SSWhite` (content producers emit trailing `GStar SSWhite`
    → the entry's optional separator). `StreamAccum` now imports/opens `NodeProduction` (no cycle).
 
-   **Stage B — accumulation-invariant WIRING — ⏳ REMAINING (the atomic core-chain rewrite).**
-   The only remaining part. The invariant is a quint (`SLYamlStream sp_start sp_gram → BlockStack
-   → FlowStack → PendingNode false sp_start sp_flow sp_scan → ScannerSurfCorr`), and every
-   `accum_step_*` calls `absorb_stacks` to flatten to `SLYamlStream sp_start sp_flow` FIRST — which
-   is impossible for an *open* flow collection (not a complete grammar object until the outermost
-   `]`/`}`). That impossibility is *why* the project fell back to `scannerDrop`. The wiring:
-   - **Recommended shape: revive `FlowStack`** (`StreamAccum.lean:260`) to carry the open-flow
-     state (a `FlowOpenStack` of `PartialFlowSeq`/`PartialFlowMap` levels, each with the open
-     bracket + post-`[` sep + a parent/stream connection), keeping `absorb_stacks` untouched but
-     GUARDED — only called when `FlowStack` is nil. (Alternative: a `pendingFlowOpen` PendingNode
-     kind; rejected because `close_with_ssl` would then need an unreachable-mid-flow arm — reviving
-     FlowStack keeps `close_with_ssl` clean since the open state never reaches it.)
-   - **NEW coupling `FlowStack depth = sc.flowLevel`** (analogous to the `directivesPresent` Bool
-     index on `pendingDirective`), threaded through `scanNextToken_accum_step` + `scanLoop_grammar_prod`,
-     so the accum steps branch flow-interior (extend FlowStack) vs document (flatten), and can
-     discharge the scanner's `flowEndOutsideFlow`/`invalidFlowEntry` guards.
-   - **Rewrite** `accum_step_flow` (push on `[`/`{`, `PartialFlow*_snocFromHeld`/hold on content/`,`,
-     `closeSeq`/`closeMap` on `]`/`}`; at `flowLevel→0` the completed collection becomes a
-     `pendingContent` whose grammatical `h_closable` is `flowSeq_extends_stream`) + `accum_step_content`
-     (route content to the innermost FlowStack level when in flow, via the native `.flowIn` producers).
-   - **Block-nested flow is tractable via a generic resume closure.** Each `FlowOpenStack` base
-     carries `resume : ∀ sp_ne sp_mid, SFlowNode 0 .flowOut sp_before sp_ne → SSLComments sp_ne sp_mid
-     → SLYamlStream sp_start sp_mid`. Top-level flow (`[1,2]` as a document) supplies
-     `flowSeq_extends_stream`; block-nested flow (`key: [1,2]`, `- [1,2]`) supplies
-     `fun node ssl => pendingBlock.h_close (SBlockNode.flowInBlock … h_sep_value node ssl)` — the
-     value flow node becomes the block entry's `SBlockNode` value via `flowInBlock_blockNode` (Stage A).
-     So the flow↔block interaction reduces to CHOOSING the right `resume` when `[`/`{` opens (based on
-     the pending block state), not a new design. `:` inside flow mappings (`{a: b}`) is handled by the
-     flow-map-entry grammar (`SFlowMapEntry.implicitValue`), within the flow accumulation.
-   All leaf + accumulator dependencies are proven green; the wiring is atomic with `scannerDrop`
-   removal (no incremental green once `scannerDrop` is deleted). Est. ~300–500 lines.
-3. **Piece 3 — remove `scannerDrop` + Phase 2.** Grammatical `close_with_ssl` (`StreamAccum.lean:~485`)
-   using the accumulated evidence; delete `scannerDrop` from `Surface/Document.lean` (`SLYamlStream`
-   → 3 spec constructors); full rebuild + `run-all-tests` + both gates + 0 sorry/axiom, commit as
-   v0.7.0. Then prove `grammar_completeness` (converse; first rule inversion on the 3-constructor
-   `SLYamlStream`) + assemble `parse_iff_grammar` (capstone 7.7); add to `scripts/capstones.txt`
-   reserved slot + `@[capstone]` + `Capstones.lean` pins.
+   **Stage B.1 — FlowStackB foundation — ✅ DONE (2026-08-03, commit `a2f4aefb`; full library
+   green at 199 jobs, additive above the invariant).** The depth-indexed open-flow accumulator,
+   validating the invariant redesign compiles before the atomic swap: `FlowStackB sp_start (d : Nat)
+   sp_block sp_cur` (`nil` = depth 0 / no open flow; `open` = depth d ≥ 1 carrying a `FlowOpenStack`);
+   `FlowOpenStack.pushSeq`/`pushMap` (kind-agnostic nested-bracket push); `FlowStackB.openSeqBase`/
+   `openMapBase` (token-determined outermost open); `absorb_stacksB` (absorbs BlockStack + a depth-0
+   FlowStackB; the open case is vacuous via `FlowOpenStack_depth_pos`). The depth index will be
+   **structurally coupled** to `sc.flowLevel` in the swapped invariant (no separate conjunct).
+
+   **⚠ PIVOTAL FINDING (2026-08-03) — `scannerDrop` masks real GRAMMAR INCOMPLETENESS, not just
+   deferred reconstruction.** Empirically (tryparse + tryscan): `{a}` is ACCEPTED and tokenizes as
+   `flowMappingStart · scalar "a" · flowMappingEnd` — a bare key with **no `:` token anywhere** — yet
+   every one of `SFlowMapEntry`'s six constructors contains a `GLit ':'`. So `{a}` (valid YAML 1.2.2
+   `ns-flow-map-yaml-key-entry` with the `e-node` empty-value branch) has **no precise `SLYamlStream`
+   derivation** today; its soundness runs entirely through `scannerDrop`. Deleting `scannerDrop`
+   therefore requires **completing the flow grammar**, not only wiring the accumulation.
+
+   **Flow-grammar completeness audit — ✅ DONE (2026-08-03).** Drove a matrix of flow inputs through
+   tryparse/tryscan and classified each accepted form against the `SFlow*` inventory. Result: the
+   grammar surgery is **bounded to ~3 new constructors**:
+   - **G1 — bare-key flow-map entry** (`SFlowNode` + `e-node`, no `:`): covers `{a}`, `{a, b}`, bare
+     entries in mixed maps (`{a: b, c}`). *Common / load-bearing.*
+   - **G2 — explicit key, no colon** (`? key`, no `:`): covers `{? a}`.
+   - **G3 — explicit `?` seq entry**: covers `[? a : b]`, `[? a]` (`SFlowSeqEntry` has no `?` form).
+
+   All other accepted forms already have a grammar constructor but are **never produced** (100% of
+   flow-entry reconstruction is `scannerDrop` today): `SFlowSeqEntry.{pairValue,pairEmpty}`,
+   `SFlowMapEntry.{implicitValue,implicitEmpty,emptyKeyValue,emptyKeyEmpty,explicitValue,
+   explicitEmpty}`. The rewire must *produce* every form (covered + G1–G3).
+
+   **Stage B — REVISED remaining build (multi-session, red-throughout; commit only when green).**
+   - **B.2 — grammar completion (bounded surgery).** Add G1–G3 to `Surface/Node.lean` + `@[yaml_spec]`
+     tags; reconcile the SSOT's dependents (emitter round-trippability, `RoundTrip` proofs, any
+     exhaustive match / inversion over `SFlow*Entry`). Do G1 first as a complete vertical slice
+     (grammar + emitter + roundtrip green) to de-risk the SSOT ripple. Independently committable green.
+   - **B.3 — flow-entry production machinery.** Extend `PartialFlowMap` with multi-token entry states
+     (`keyPending` after a key, `colonPending` after `:` + mandatory sep, and a `bareKey`/G1 branch
+     that completes at a scalar with NO following value token) + `PartialFlowSeq` pair states; add the
+     `SFlow*Entry` assembly lemmas (`implicitValue`/`implicitEmpty`/G1/…). Additive green in
+     `NodeProduction`. (The current `empty`/`entries`/`held` `PartialFlowMap` is insufficient — map
+     entries span 3 scan steps: key, `:`, value.)
+   - **B.4 — THE ATOMIC SWAP** (the entangled red core). Replace the invariant's flow component
+     `FlowStack sp_block sp_flow` → `FlowStackB sp_start sc.flowLevel sp_block sp_flow` across the
+     ~20 lemmas that state it; replace `absorb_stacks` → `absorb_stacksB` (valid only at depth 0 —
+     establish `flowLevel = 0` from the branch first); rewrite `accum_step_flow` (open on `[`/`{` →
+     `openSeqBase`/`openMapBase`; push nested → `pushSeq`/`pushMap`; hold on `,`; pop-close on `]`/`}`
+     — at depth 1 → `pendingContent` via `flowSeqBase_closeToStream`, at depth > 1 → snoc nested node
+     into parent) + `accum_step_content` (route to innermost flow level when `flowLevel > 0`) +
+     `accum_step_block` (flow-map `:` dispatch). Thread the `flowLevel` coupling through
+     `scanNextToken_accum_step` + `scanLoop_grammar_prod` + `scan_content_gives_stream`.
+     **Key insight:** inside flow, `PendingNode` = `noPending` and `sp_flow = sp_scan` (the open state
+     is fully in `FlowStackB.open`), which bounds the swap. **Kind coupling** (seq vs map innermost):
+     discharge wrong-kind cases inline via `sc.flowStack.back?` / `validateFlowClose` success.
+   - **Block-nested flow via a generic `resume` closure** (unchanged design): each `FlowOpenStack`
+     base carries `resume : SFlowNode 0 .flowOut sp_before sp_ne → SSLComments → SLYamlStream sp_start`.
+     Top-level supplies `topLevelFlowResume`; block-nested supplies `pendingBlock.h_close ∘ flowInBlock`.
+     So flow↔block reduces to CHOOSING `resume` at open, not a new design.
+   - **B.5 — delete `scannerDrop`.** Grammatical `close_with_ssl` / retire `pendingFlow`; delete
+     `scannerDrop` from `Surface/Document.lean`.
+   Session scratchpad blueprints (ephemeral): `stageB_integration_blueprint.md`,
+   `flowaudit_results.md` — fold durable content here before session end.
+3. **Piece 3 — after `scannerDrop` is gone + Phase 2.** Full rebuild + `run-all-tests` + both gates
+   + 0 sorry/axiom, commit as v0.7.0. Then prove `grammar_completeness` (converse; first-rule
+   inversion on the 3-constructor `SLYamlStream`) + assemble `parse_iff_grammar` (capstone 7.7); add
+   to `scripts/capstones.txt` reserved slot + `@[capstone]` + `Capstones.lean` pins.
 
 ---
 
