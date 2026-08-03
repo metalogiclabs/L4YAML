@@ -26,6 +26,7 @@ open L4YAML.Scanner
 open L4YAML.Grammar
 open L4YAML.CharPredicates
 open L4YAML.Proofs.CouplingBridge
+open L4YAML.Proofs.FlowAdjacency
 
 abbrev filt : Positioned YamlToken → Bool := fun t => t.val != .placeholder
 
@@ -50,6 +51,7 @@ lemma emitList_allScalar_body_content_at :
     s.explicitKeyLine = none → AllTokensOnLine s s.line → EndLineOnLine s →
     s.simpleKeyStack.size = s.flowLevel →
     s.directivesPresent = false →
+    (∀ t, lastRealTokenVal? s.tokens = some t → t.completesFlowValue = false) →
     ∃ (n : Nat) (s' : ScannerState) (block : List (Positioned YamlToken)),
       ScanChainGrew filt s n s' ∧
       ScannerSurfCorr s' ⟨rest, s'.col⟩ ∧
@@ -74,7 +76,7 @@ lemma emitList_allScalar_body_content_at :
   induction items with
   | nil => intro h; exact absurd rfl h
   | cons v tail ih =>
-    intro h_ne h_all s rest hcorr h_flow h_fl h_indent h_col h_ek h_atol h_endline h_sync h_dp
+    intro h_ne h_all s rest hcorr h_flow h_fl h_indent h_col h_ek h_atol h_endline h_sync h_dp h_last
     obtain ⟨sc, rfl⟩ : ∃ sc : Scalar, v = .scalar sc := h_all v (.head _)
     cases tail with
     | nil =>
@@ -86,7 +88,7 @@ lemma emitList_allScalar_body_content_at :
       obtain ⟨s', h_snt, h_corr', h_fl', h_dp', h_ids', h_ek', h_col', h_last', _,
               h_line', h_atol', h_endline', h_stack'⟩ :=
         scanNextToken_flow_scanDoubleQuoted s sc.content rest hcorr h_flow h_indent h_col
-          h_atol h_endline h_dp
+          h_atol h_endline h_dp h_last
       obtain ⟨tok, h_tok_val, h_push⟩ :=
         scanNextToken_flow_scalar_filtered_push_content s sc.content rest hcorr h_flow h_indent
           h_col h_snt
@@ -122,7 +124,7 @@ lemma emitList_allScalar_body_content_at :
       obtain ⟨s₁, h_snt₁, h_corr₁, h_fl₁, h_dp₁, h_ids₁, h_ek₁, h_col₁, h_last₁, _,
               h_line₁, h_atol₁, h_endline₁, h_stack₁⟩ :=
         scanNextToken_flow_scanDoubleQuoted s sc.content rest₁ hcorr_h h_flow h_indent h_col
-          h_atol h_endline h_dp
+          h_atol h_endline h_dp h_last
       obtain ⟨tok₁, h_tok₁_val, h_push₁⟩ :=
         scanNextToken_flow_scalar_filtered_push_content s sc.content rest₁ hcorr_h h_flow
           h_indent h_col h_snt₁
@@ -134,7 +136,7 @@ lemma emitList_allScalar_body_content_at :
       have h_s1_indent : s₁.currentIndent < 0 :=
         by unfold ScannerState.currentIndent; rw [h_ids₁]; exact h_indent
       obtain ⟨s₂, h_snt₂, h_corr₂, h_fl₂, h_dp₂, h_ids₂, h_ek₂, h_col₂, h_line₂,
-              h_atol₂, h_endline₂, h_stack₂⟩ :=
+              h_atol₂, h_endline₂, h_stack₂, h_last₂⟩ :=
         scanNextToken_flow_comma s₁ (' ' :: (emit.emitList (.scalar sc' :: vs)).toList ++ rest)
           h_corr₁ h_s1_flow h_s1_indent (by omega) h_last₁ h_atol₁ h_endline₁
           (h_dp₁.trans h_dp)
@@ -179,6 +181,7 @@ lemma emitList_allScalar_body_content_at :
           (h_endline_tr₃ h_endline₂)
           (by rw [h_stack₃, h_stack₂, h_stack₁, h_fl₃, h_fl₂, h_fl₁]; exact h_sync)
           (by rw [h_dp₃, h_dp₂, h_dp₁]; exact h_dp)
+          (fun t ht => h_last₂ t (h_toks₃ ▸ ht))
       -- Lift IH chain through the preprocessing equality
       have h_snt_eq : scanNextToken s₂ = scanNextToken s₃ :=
         scanNextToken_eq_of_preprocess s₂ s₃ h_pp_eq
@@ -306,7 +309,7 @@ lemma scanFiltered_emitSeq_allScalar_token_at
   -- ═══ Step 1: open bracket → s₁ ═══
   obtain ⟨s₁, h_snt₁, h_corr₁, h_fl₁, h_dp₁, h_ids₁, h_col₁,
           h_inflow₁, h_indent₁, h_ek₁, h_line₁, h_atol₁, h_endline₁, _h_sk₁, h_filt₁,
-          h_sync₁, _h_ska₁, _h_ssv₁⟩ :=
+          h_sync₁, _h_ska₁, _h_ssv₁, h_last_s₁⟩ :=
     scanNextToken_flow_open_init input ((emit.emitList items).toList ++ [']']) h_toList
   -- ═══ Step 2: body scan via R596 → s₂ and body block ═══
   obtain ⟨_n₂, s₂, block, h_chain₂, h_corr₂, h_fl₂, h_dp₂, h_ids₂, h_ek₂, h_col₂, h_inflow₂,
@@ -314,7 +317,7 @@ lemma scanFiltered_emitSeq_allScalar_token_at
           h_block_content, h_block_fe_content⟩ :=
     emitList_allScalar_body_content_at items h_ne h_all s₁ [']']
       h_corr₁ h_inflow₁ (by rw [h_fl₁]; omega) h_indent₁ (by rw [h_col₁]; omega)
-      h_ek₁ (h_line₁ ▸ h_atol₁) h_endline₁ h_sync₁ h_dp₁
+      h_ek₁ (h_line₁ ▸ h_atol₁) h_endline₁ h_sync₁ h_dp₁ h_last_s₁
   -- ═══ Step 3: close bracket → s₃ ═══
   obtain ⟨s₃, h_snt₃, h_fl₃, h_dp₃, h_peek₃, h_ids₃, ⟨tok_fse, h_tok_fse_val, h_filt₃⟩⟩ :=
     scanNextToken_flow_close_seq_outermost_ext s₂ h_corr₂ h_inflow₂ h_indent₂ h_col₂
@@ -483,6 +486,7 @@ lemma emitPairList_allScalar_body_content_at :
     s.simpleKeyAllowed = true →
     s.simpleKeyStack.size = s.flowLevel →
     s.directivesPresent = false →
+    (∀ t, lastRealTokenVal? s.tokens = some t → t.completesFlowValue = false) →
     ∃ (n : Nat) (s' : ScannerState) (block : List (Positioned YamlToken)),
       ScanChainGrew filt s n s' ∧
       ScannerSurfCorr s' ⟨rest, s'.col⟩ ∧
@@ -512,7 +516,7 @@ lemma emitPairList_allScalar_body_content_at :
   induction pairs with
   | nil => intro h; exact absurd rfl h
   | cons p tail ih =>
-    intro _h_ne h_all s rest hcorr h_flow h_fl h_indent h_col h_ek h_atol h_endline h_ska h_sync h_dp
+    intro _h_ne h_all s rest hcorr h_flow h_fl h_indent h_col h_ek h_atol h_endline h_ska h_sync h_dp h_last
     obtain ⟨sk, sv, hsk, hsv⟩ : ∃ sk sv : Scalar, p.1 = .scalar sk ∧ p.2 = .scalar sv :=
       h_all p (.head _)
     cases tail with
@@ -540,10 +544,10 @@ lemma emitPairList_allScalar_body_content_at :
       obtain ⟨s₁, h_snt₁, h_corr₁, h_fl₁, h_dp₁, h_ids₁, h_ek₁, h_col₁, h_last₁, h_ska₁,
               h_line₁, h_atol₁, h_endline₁, h_stack₁⟩ :=
         scanNextToken_flow_scanDoubleQuoted s sk.content rest_k hcorr_k' h_flow h_indent h_col
-          h_atol h_endline h_dp
+          h_atol h_endline h_dp h_last
       obtain ⟨s₁', h_snt₁', h_poss₁, h_tidx₁, h_szlt₁, h_ph0₁, h_ph1₁⟩ :=
         scanNextToken_flow_scalar_savedKey s sk.content rest_k hcorr_k' h_flow h_indent h_col
-          h_ek h_ska h_dp
+          h_ek h_ska h_dp h_last
       have h_s1_eq : s₁' = s₁ := Option.some.inj (Except.ok.inj (h_snt₁'.symm.trans h_snt₁))
       rw [h_s1_eq] at h_poss₁ h_tidx₁ h_szlt₁ h_ph0₁ h_ph1₁
       clear h_snt₁' s₁' h_s1_eq
@@ -581,7 +585,7 @@ lemma emitPairList_allScalar_body_content_at :
           ⟨':' :: ' ' :: (['"'] ++ (escapeString sv.content).toList ++ ['"'] ++ rest), s₁.col⟩ :=
         h_corr₁
       obtain ⟨s₂, h_snt₂, h_corr₂, h_fl₂, h_dp₂, h_ids₂, h_col₂,
-              h_flow₂, h_indent₂, h_ek₂, _h_line₂, h_atol₂, h_endline₂, h_stack₂, _, _, _⟩ :=
+              h_flow₂, h_indent₂, h_ek₂, _h_line₂, h_atol₂, h_endline₂, h_stack₂, _, _, h_val_push⟩ :=
         scanNextToken_flow_value s₁
           (['"'] ++ (escapeString sv.content).toList ++ ['"'] ++ rest)
           h_corr₁_col h_flow₁ h_indent₁ h_col₁ (by rw [h_ek₁]; exact h_ek) h_sv_ok
@@ -638,12 +642,18 @@ lemma emitPairList_allScalar_body_content_at :
       have hcorr₃_q : ScannerSurfCorr s₃
           ⟨'"' :: ((escapeString sv.content).toList ++ ['"'] ++ rest), s₃.col⟩ :=
         h_corr₃
+      have h_last_s₃ : ∀ t, lastRealTokenVal? s₃.tokens = some t → t.completesFlowValue = false := by
+        obtain ⟨h_sz, pos, h_get⟩ := h_val_push h_ska₁
+        have h_lrt : lastRealTokenVal? s₂.tokens = some .value :=
+          lastRealTokenVal_of_last_nonph s₂.tokens s₁.tokens.size ⟨pos, .value, pos⟩ h_sz h_get nofun
+        intro t ht; rw [h_toks₃, h_lrt] at ht
+        simp only [Option.some.injEq] at ht; subst ht; rfl
       obtain ⟨s_v, h_snt_v, h_corr_v, h_fl_v, h_dp_v, h_ids_v, h_ek_v, h_col_v, h_last_v,
               _h_ska_v, h_line_v, h_atol_v, h_endline_v, h_stack_v⟩ :=
         scanNextToken_flow_scanDoubleQuoted s₃ sv.content rest hcorr₃'
           h_s3_flow (by unfold ScannerState.currentIndent; rw [h_ids₃]; exact h_indent₂)
           (by omega) (h_atol_tr₃ h_atol₂) (h_endline_tr₃ h_endline₂)
-          (by rw [h_dp₃, h_dp₂, h_dp₁]; exact h_dp)
+          (by rw [h_dp₃, h_dp₂, h_dp₁]; exact h_dp) h_last_s₃
       obtain ⟨tok_v, h_tok_v_val, h_push_v⟩ :=
         scanNextToken_flow_scalar_filtered_push_content s₃ sv.content rest hcorr₃_q
           h_s3_flow (by unfold ScannerState.currentIndent; rw [h_ids₃]; exact h_indent₂)
@@ -729,10 +739,10 @@ lemma emitPairList_allScalar_body_content_at :
       obtain ⟨s₁, h_snt₁, h_corr₁, h_fl₁, h_dp₁, h_ids₁, h_ek₁, h_col₁, h_last₁, h_ska₁,
               h_line₁, h_atol₁, h_endline₁, h_stack₁⟩ :=
         scanNextToken_flow_scanDoubleQuoted s sk.content rest_k hcorr_k' h_flow h_indent h_col
-          h_atol h_endline h_dp
+          h_atol h_endline h_dp h_last
       obtain ⟨s₁', h_snt₁', h_poss₁, h_tidx₁, h_szlt₁, h_ph0₁, h_ph1₁⟩ :=
         scanNextToken_flow_scalar_savedKey s sk.content rest_k hcorr_k' h_flow h_indent h_col
-          h_ek h_ska h_dp
+          h_ek h_ska h_dp h_last
       have h_s1_eq : s₁' = s₁ := Option.some.inj (Except.ok.inj (h_snt₁'.symm.trans h_snt₁))
       rw [h_s1_eq] at h_poss₁ h_tidx₁ h_szlt₁ h_ph0₁ h_ph1₁
       clear h_snt₁' s₁' h_s1_eq
@@ -770,7 +780,7 @@ lemma emitPairList_allScalar_body_content_at :
           ⟨':' :: ' ' :: (['"'] ++ (escapeString sv.content).toList ++ ['"'] ++ rest_inner), s₁.col⟩ :=
         h_corr₁
       obtain ⟨s₂, h_snt₂, h_corr₂, h_fl₂, h_dp₂, h_ids₂, h_col₂,
-              h_flow₂, h_indent₂, h_ek₂, _h_line₂, h_atol₂, h_endline₂, h_stack₂, _, _, _⟩ :=
+              h_flow₂, h_indent₂, h_ek₂, _h_line₂, h_atol₂, h_endline₂, h_stack₂, _, _, h_val_push⟩ :=
         scanNextToken_flow_value s₁
           (['"'] ++ (escapeString sv.content).toList ++ ['"'] ++ rest_inner)
           h_corr₁_col h_flow₁ h_indent₁ h_col₁ (by rw [h_ek₁]; exact h_ek) h_sv_ok
@@ -828,12 +838,18 @@ lemma emitPairList_allScalar_body_content_at :
           ⟨'"' :: ((escapeString sv.content).toList ++ ['"'] ++ rest_inner), s₃.col⟩ :=
         h_corr₃
       -- rest for value scan = rest_inner = ',' :: ' ' :: ...
+      have h_last_s₃ : ∀ t, lastRealTokenVal? s₃.tokens = some t → t.completesFlowValue = false := by
+        obtain ⟨h_sz, pos, h_get⟩ := h_val_push h_ska₁
+        have h_lrt : lastRealTokenVal? s₂.tokens = some .value :=
+          lastRealTokenVal_of_last_nonph s₂.tokens s₁.tokens.size ⟨pos, .value, pos⟩ h_sz h_get nofun
+        intro t ht; rw [h_toks₃, h_lrt] at ht
+        simp only [Option.some.injEq] at ht; subst ht; rfl
       obtain ⟨s_v, h_snt_v, h_corr_v, h_fl_v, h_dp_v, h_ids_v, h_ek_v, h_col_v, h_last_v,
               _h_ska_v, h_line_v, h_atol_v, h_endline_v, h_stack_v⟩ :=
         scanNextToken_flow_scanDoubleQuoted s₃ sv.content rest_inner hcorr₃'
           h_s3_flow (by unfold ScannerState.currentIndent; rw [h_ids₃]; exact h_indent₂)
           (by omega) (h_atol_tr₃ h_atol₂) (h_endline_tr₃ h_endline₂)
-          (by rw [h_dp₃, h_dp₂, h_dp₁]; exact h_dp)
+          (by rw [h_dp₃, h_dp₂, h_dp₁]; exact h_dp) h_last_s₃
       obtain ⟨tok_v, h_tok_v_val, h_push_v⟩ :=
         scanNextToken_flow_scalar_filtered_push_content s₃ sv.content rest_inner hcorr₃_q
           h_s3_flow (by unfold ScannerState.currentIndent; rw [h_ids₃]; exact h_indent₂)
@@ -861,7 +877,7 @@ lemma emitPairList_allScalar_body_content_at :
           ⟨',' :: ' ' :: (emit.emitPairList (p' :: tail')).toList ++ rest, s_v.col⟩ :=
         h_corr_v
       obtain ⟨s_c, h_snt_c, h_corr_c, h_fl_c, h_dp_c, h_ids_c, h_ek_c, h_col_c,
-              h_line_c, h_atol_c, h_endline_c, h_stack_c⟩ :=
+              h_line_c, h_atol_c, h_endline_c, h_stack_c, h_last_c⟩ :=
         scanNextToken_flow_comma s_v
           (' ' :: (emit.emitPairList (p' :: tail')).toList ++ rest)
           h_corr_v_comma h_flow_v h_indent_v (by omega) h_last_v h_atol_v h_endline_v
@@ -920,6 +936,7 @@ lemma emitPairList_allScalar_body_content_at :
           (h_endline_tr_pp h_endline_c)
           h_ska_pp_true h_sync_pp
           (by rw [h_dp_pp, h_dp_c, h_dp_v, h_dp₃, h_dp₂, h_dp₁]; exact h_dp)
+          (fun t ht => h_last_c t (h_toks_pp ▸ ht))
       -- ── LIFT IH CHAIN THROUGH PREPROCESSING ─────────────────────────────────
       have h_n_pp_pos : n_pp ≥ 1 := by
         obtain ⟨sk_h, sv_h, hsk_h, hsv_h⟩ := h_tail_all p' (.head _)
@@ -1114,7 +1131,7 @@ lemma scanFiltered_emitMap_allScalar_pair_at
   -- ═══ Step 1: open brace → s₁ ═══
   obtain ⟨s₁, h_snt₁, h_corr₁, h_fl₁, h_dp₁, h_ids₁, h_col₁,
           h_inflow₁, h_indent₁, h_ek₁, h_line₁, h_atol₁, h_endline₁, _h_sk₁, h_filt₁,
-          h_sync₁, h_ska₁, _h_ssv₁⟩ :=
+          h_sync₁, h_ska₁, _h_ssv₁, h_last_s₁⟩ :=
     scanNextToken_flow_open_mapping_init input ((emit.emitPairList pairs).toList ++ ['}']) h_toList
   -- ═══ Step 2: body scan via R606 → s₂ and body block ═══
   obtain ⟨_n₂, s₂, block, h_chain₂, h_corr₂, h_fl₂, h_dp₂, h_ids₂, h_ek₂, h_col₂, h_inflow₂,
@@ -1122,7 +1139,7 @@ lemma scanFiltered_emitMap_allScalar_pair_at
           h_block_content, h_block_fe_content, h_block_key_struct, h_block_mv_struct⟩ :=
     emitPairList_allScalar_body_content_at pairs h_ne h_all s₁ ['}']
       h_corr₁ h_inflow₁ (by rw [h_fl₁]; omega) h_indent₁ (by rw [h_col₁]; omega)
-      h_ek₁ (h_line₁ ▸ h_atol₁) h_endline₁ h_ska₁ h_sync₁ h_dp₁
+      h_ek₁ (h_line₁ ▸ h_atol₁) h_endline₁ h_ska₁ h_sync₁ h_dp₁ h_last_s₁
   -- ═══ Step 3: close brace → s₃ ═══
   obtain ⟨s₃, h_snt₃, h_fl₃, h_dp₃, h_peek₃, h_ids₃, ⟨tok_fme, h_tok_fme_val, h_filt₃⟩⟩ :=
     scanNextToken_flow_close_mapping_outermost_ext s₂ h_corr₂ h_inflow₂ h_indent₂ h_col₂

@@ -128,6 +128,25 @@ theorem lastRealTokenVal_push_two_ph
       decide_true, decide_false] at ht
     injection ht with ht_val; exact .inr ht_val.symm
 
+/-- If the final array slot holds a non-placeholder token, `lastRealTokenVal?`
+    returns exactly that token's value (no placeholder-skipping needed).  Used to
+    read off the last real token from the `scanNextToken_flow_value` `.value`-push
+    exposure (which is stated as an index fact, not a `.push` shape). -/
+theorem lastRealTokenVal_of_last_nonph
+    (tokens : Array (Positioned YamlToken)) (N : Nat) (tok : Positioned YamlToken)
+    (h_size : tokens.size = N + 1) (h_get : tokens[N]? = some tok)
+    (h_np : tok.val ≠ .placeholder) :
+    lastRealTokenVal? tokens = some tok.val := by
+  have hN : N < tokens.size := by omega
+  have h_eq : tokens[N] = tok := by
+    rw [Array.getElem?_eq_getElem hN] at h_get; exact Option.some.inj h_get
+  have h_bang : tokens[tokens.size - 1]!.val = tok.val := by
+    rw [show tokens.size - 1 = N from by omega, getElem!_pos tokens N hN, h_eq]
+  have h_np' : (tok.val == YamlToken.placeholder) = false := beq_eq_false_iff_ne.mpr h_np
+  unfold lastRealTokenVal?
+  simp only [show tokens.size > 0 from by omega, ↓reduceIte, h_bang, h_np',
+    Bool.false_and, Bool.false_eq_true, ↓reduceIte]
+
 /-- `saveSimpleKey` preserves "last real token does not complete a flow
     value" (the placeholders it may push are not value-completers). -/
 theorem saveSimpleKey_preserves_completesFalse (s : ScannerState)

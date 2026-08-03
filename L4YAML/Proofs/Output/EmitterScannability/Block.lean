@@ -36,6 +36,7 @@ open L4YAML.Proofs.CouplingBridge
 open L4YAML.Proofs.ParserGrammable
 open L4YAML.Proofs.ParserWellBehaved
 open L4YAML.Proofs.ScalarCoupling
+open L4YAML.Proofs.FlowAdjacency
 
 open L4YAML.Proofs.ParserGrammable (flowBracketDelta flowBracketBalance
   flowBracketBalance_compose flowBracketBalance_push)
@@ -85,6 +86,7 @@ def EmitScansInFlowBlock (v : YamlValue) : Prop :=
     EndLineOnLine s →
     s.simpleKeyStack.size = s.flowLevel →
     s.directivesPresent = false →
+    (∀ t, lastRealTokenVal? s.tokens = some t → t.completesFlowValue = false) →
     ∃ n s' block,
       ScanChainGrew (fun t => t.val != .placeholder) s n s'
       ∧ ScannerSurfCorr s' ⟨rest, s'.col⟩
@@ -273,6 +275,7 @@ def EmitListScansInFlowBlock (items : List YamlValue) : Prop :=
     EndLineOnLine s →
     s.simpleKeyStack.size = s.flowLevel →
     s.directivesPresent = false →
+    (∀ t, lastRealTokenVal? s.tokens = some t → t.completesFlowValue = false) →
     ∃ n s' block,
       ScanChainGrew (fun t => t.val != .placeholder) s n s'
       ∧ ScannerSurfCorr s' ⟨rest, s'.col⟩
@@ -305,7 +308,7 @@ def EmitListScansInFlowBlock (items : List YamlValue) : Prop :=
 
 /-- Empty list body: 0-step chain, empty (`WellBracketed`) block. -/
 lemma emitList_scans_block_empty : EmitListScansInFlowBlock [] := by
-  intro s rest hcorr h_flow h_fl h_indent h_col h_ek h_atol h_endline _h_sync _h_dp
+  intro s rest hcorr h_flow h_fl h_indent h_col h_ek h_atol h_endline _h_sync _h_dp _h_last
   have h_eq : (emit.emitList ([] : List YamlValue)).toList ++ rest = rest := by
     simp only [emit.emitList]; rfl
   rw [h_eq] at hcorr
@@ -347,7 +350,7 @@ lemma emitList_scans_block_nonempty (items : List YamlValue) (h_ne : items ≠ [
   induction items with
   | nil => contradiction
   | cons v tail ih =>
-    intro s rest_chars hcorr h_flow h_fl h_indent h_col h_ek h_atol h_endline h_sync h_dp
+    intro s rest_chars hcorr h_flow h_fl h_indent h_col h_ek h_atol h_endline h_sync h_dp h_last
     match tail, ih with
     | [], _ =>
       have h_eq : (emit.emitList [v]).toList = (emit v).toList := by
@@ -355,11 +358,11 @@ lemma emitList_scans_block_nonempty (items : List YamlValue) (h_ne : items ≠ [
       rw [h_eq] at hcorr
       obtain ⟨n, s', block, h_chain, h_corr, h_fl', h_dp', h_ids, h_ek', h_col', h_flow',
               h_indent', h_line_v, _h_ska, _h_last, h_atol', h_endline', h_stack', h_fmc',
-              h_block_eq, h_wb, h_wt, _h_es, _h_eu, h_cs, h_last, h_oa, h_lns, h_sa_v⟩ :=
-        h_all v (.head _) s rest_chars hcorr h_flow h_fl h_indent h_col h_ek h_atol h_endline h_sync h_dp
+              h_block_eq, h_wb, h_wt, _h_es, _h_eu, h_cs, h_last', h_oa, h_lns, h_sa_v⟩ :=
+        h_all v (.head _) s rest_chars hcorr h_flow h_fl h_indent h_col h_ek h_atol h_endline h_sync h_dp h_last
       exact ⟨n, s', block, h_chain, h_corr, h_fl', h_dp', h_ids, h_ek', h_col', h_flow',
         h_indent', h_line_v, h_atol', h_endline', h_stack', h_fmc', h_block_eq, h_wb, h_wt,
-        openerAdj_head_of_block_contentStart block h_cs, h_last, h_oa, h_lns,
+        openerAdj_head_of_block_contentStart block h_cs, h_last', h_oa, h_lns,
         sepAdj_head_of_block_contentStart block h_cs, h_sa_v⟩
     | v' :: vs, ih =>
       have h_eq : (emit.emitList (v :: v' :: vs)).toList ++ rest_chars =
@@ -372,9 +375,9 @@ lemma emitList_scans_block_nonempty (items : List YamlValue) (h_ne : items ≠ [
               h_indent₁, _h_line₁, _h_ska₁, h_last₁, h_atol₁, h_endline₁, h_stack₁, h_fmc₁,
               h_block_eq₁, h_wb₁, h_wt₁, _h_es₁, _h_eu₁, h_cs₁, h_tail₁, h_oa₁, h_lns₁, h_sa₁⟩ :=
         h_ev s ([',', ' '] ++ (emit.emitList (v' :: vs)).toList ++ rest_chars)
-          hcorr h_flow h_fl h_indent h_col h_ek h_atol h_endline h_sync h_dp
+          hcorr h_flow h_fl h_indent h_col h_ek h_atol h_endline h_sync h_dp h_last
       -- Step 2: Scan ',' via scanNextToken_flow_comma (state) + push lemma (block)
-      obtain ⟨s₂, h_snt₂, h_corr₂, h_fl₂, h_dp₂, h_ids₂, h_ek₂, h_col₂, _h_line₂, h_atol₂, h_endline₂, h_stack₂⟩ :=
+      obtain ⟨s₂, h_snt₂, h_corr₂, h_fl₂, h_dp₂, h_ids₂, h_ek₂, h_col₂, _h_line₂, h_atol₂, h_endline₂, h_stack₂, h_last₂⟩ :=
         scanNextToken_flow_comma s₁
           (' ' :: (emit.emitList (v' :: vs)).toList ++ rest_chars)
           h_corr₁ h_flow₁ h_indent₁ h_col₁
@@ -420,6 +423,7 @@ lemma emitList_scans_block_nonempty (items : List YamlValue) (h_ne : items ≠ [
           (h_endline_transfer₃ h_endline₂)
           (by rw [h_stack_pp₃, h_stack₂, h_stack₁, h_fl₃, h_fl₂, h_fl₁]; exact h_sync)
           (by rw [h_dp₃, h_dp₂, h_dp₁]; exact h_dp)
+          (fun t ht => h_last₂ t (h_toks_pp₃ ▸ ht))
       -- Step 5: Lift chain for s₂ via preprocessing equality
       have h_snt_eq : scanNextToken s₂ = scanNextToken s₃ :=
         scanNextToken_eq_of_preprocess s₂ s₃ h_pp_eq
@@ -546,6 +550,7 @@ def EmitScansInFlowSavedKeyBlock (v : YamlValue) : Prop :=
     s.simpleKeyAllowed = true →
     s.simpleKeyStack.size = s.flowLevel →
     s.directivesPresent = false →
+    (∀ t, lastRealTokenVal? s.tokens = some t → t.completesFlowValue = false) →
     ∃ n s' block,
       ScanChainGrew (fun t => t.val != .placeholder) s n s'
       ∧ ScannerSurfCorr s' ⟨rest, s'.col⟩
@@ -612,6 +617,7 @@ def EmitPairListScansInFlowBlock (pairs : List (YamlValue × YamlValue)) : Prop 
     s.simpleKeyAllowed = true →
     s.simpleKeyStack.size = s.flowLevel →
     s.directivesPresent = false →
+    (∀ t, lastRealTokenVal? s.tokens = some t → t.completesFlowValue = false) →
     ∃ n s' block,
       ScanChainGrew (fun t => t.val != .placeholder) s n s'
       ∧ ScannerSurfCorr s' ⟨rest, s'.col⟩
@@ -642,7 +648,7 @@ def EmitPairListScansInFlowBlock (pairs : List (YamlValue × YamlValue)) : Prop 
 
 /-- Empty pair-list body: 0-step chain, empty (`WellBracketed`) block. -/
 lemma emitPairList_scans_block_empty : EmitPairListScansInFlowBlock [] := by
-  intro s rest hcorr h_flow h_fl h_indent h_col h_ek h_atol h_endline h_ska h_sync _h_dp
+  intro s rest hcorr h_flow h_fl h_indent h_col h_ek h_atol h_endline h_ska h_sync _h_dp _h_last
   have h_eq : (emit.emitPairList ([] : List (YamlValue × YamlValue))).toList ++ rest = rest := by
     simp [emit.emitPairList]
   rw [h_eq] at hcorr
@@ -671,7 +677,7 @@ lemma emitPairList_scans_block_nonempty (pairs : List (YamlValue × YamlValue))
   induction pairs with
   | nil => contradiction
   | cons p tail ih =>
-    intro s rest_chars hcorr h_flow h_fl h_indent h_col h_ek h_atol h_endline h_ska h_sync h_dp
+    intro s rest_chars hcorr h_flow h_fl h_indent h_col h_ek h_atol h_endline h_ska h_sync h_dp h_last
     match tail, ih with
     | [], _ =>
       -- ══ Singleton [(k,v)]: emitPairList [(k,v)] = emit k ++ ": " ++ emit v ══
@@ -685,7 +691,7 @@ lemma emitPairList_scans_block_nonempty (pairs : List (YamlValue × YamlValue))
               h_flow₁, h_indent₁, _h_line₁, h_atol₁, h_endline₁, h_stack₁, h_fmc₁,
               h_ska₁, h_poss₁, h_tidx₁, h_szlt₁, _h_ph0₁, h_ph1₁, h_blockeq_k, h_take_k, h_wb_k, h_wt_k, _h_es_k, h_tail_k, h_oa_k, h_lns_k, h_sa_k⟩ :=
         h_ek_key s ([':', ' '] ++ (emit p.2).toList ++ rest_chars)
-          hcorr h_flow h_fl h_indent h_col h_ek h_atol h_endline h_ska h_sync h_dp
+          hcorr h_flow h_fl h_indent h_col h_ek h_atol h_endline h_ska h_sync h_dp h_last
       -- Step 2: scanValueValidate for the colon (saveSimpleKey identity, ska₁ = false)
       have h_sk_id := saveSimpleKey_id_of_flow_ska_false_ek_none s₁ h_flow₁ h_ska₁
           (by rw [h_ek₁]; exact h_ek)
@@ -695,7 +701,7 @@ lemma emitPairList_scans_block_nonempty (pairs : List (YamlValue × YamlValue))
           (by rw [h_ek₁]; exact h_ek) h_atol₁ h_endline₁
       -- Step 3: Scan ':' — state via scanNextToken_flow_value
       obtain ⟨s₂, h_snt₂, h_corr₂, h_fl₂, h_dp₂, h_ids₂, h_col₂,
-              h_flow₂, h_indent₂, h_ek₂, _h_line₂, h_atol₂, h_endline₂, h_stack_v₂, _, _, _⟩ :=
+              h_flow₂, h_indent₂, h_ek₂, _h_line₂, h_atol₂, h_endline₂, h_stack_v₂, _, _, h_val_push⟩ :=
         scanNextToken_flow_value s₁ ((emit p.2).toList ++ rest_chars)
           h_corr₁ h_flow₁ h_indent₁ h_col₁ (by rw [h_ek₁]; exact h_ek) h_sv
           h_atol₁ h_endline₁ (h_dp₁.trans h_dp)
@@ -749,6 +755,14 @@ lemma emitPairList_scans_block_nonempty (pairs : List (YamlValue × YamlValue))
         exact h_eq_chars ▸ h_corr₃
       -- Step 5: Scan value via EmitScansInFlowBlock (value block block_v)
       have h_ev : EmitScansInFlowBlock p.2 := h_all_v p (.head _)
+      -- After ':' (s₂), the last real token is `.value` (⇒ completesFlowValue false),
+      -- carried through the leading-space preprocessing to s₃ (tokens preserved).
+      have h_last_s₃ : ∀ t, lastRealTokenVal? s₃.tokens = some t → t.completesFlowValue = false := by
+        obtain ⟨h_sz, pos, h_get⟩ := h_val_push h_ska₁
+        have h_lrt : lastRealTokenVal? s₂.tokens = some .value :=
+          lastRealTokenVal_of_last_nonph s₂.tokens s₁.tokens.size ⟨pos, .value, pos⟩ h_sz h_get nofun
+        intro t ht; rw [h_toks_pp₃, h_lrt] at ht
+        simp only [Option.some.injEq] at ht; subst ht; rfl
       obtain ⟨n_v, s_end, block_v, h_chain_v, h_corr_end, h_fl_end, h_dp_end, h_ids_end,
               h_ek_end, h_col_end, h_flow_end, h_indent_end, h_line_end, _h_ska_v, _h_last_v,
               h_atol_end, h_endline_end, h_stack_end, h_fmc_v, h_blockeq_v, h_wb_v, h_wt_v, _h_es_v, _h_eu_v, h_cs_v, h_last_v, h_oa_v, h_lns_v, h_sa_v⟩ :=
@@ -761,6 +775,7 @@ lemma emitPairList_scans_block_nonempty (pairs : List (YamlValue × YamlValue))
           (h_endline_transfer₃ h_endline₂)
           (by rw [h_stack_pp₃, h_stack_v₂, h_stack₁, h_fl₃, h_fl₂, h_fl₁]; exact h_sync)
           (by rw [h_dp₃, h_dp₂, h_dp₁]; exact h_dp)
+          h_last_s₃
       -- Step 6: Lift chain for s₂ via preprocessing equality
       have h_snt_eq : scanNextToken s₂ = scanNextToken s₃ :=
         scanNextToken_eq_of_preprocess s₂ s₃ h_pp_eq
@@ -871,7 +886,7 @@ lemma emitPairList_scans_block_nonempty (pairs : List (YamlValue × YamlValue))
               h_ska₁, h_poss₁, h_tidx₁, h_szlt₁, _h_ph0₁, h_ph1₁, h_blockeq_k, h_take_k, h_wb_k, h_wt_k, _h_es_k, h_tail_k, h_oa_k, h_lns_k, h_sa_k⟩ :=
         h_ek_key s ([':', ' '] ++ (emit p.2).toList ++
             [',', ' '] ++ (emit.emitPairList (p' :: ps)).toList ++ rest_chars)
-          hcorr h_flow h_fl h_indent h_col h_ek h_atol h_endline h_ska h_sync h_dp
+          hcorr h_flow h_fl h_indent h_col h_ek h_atol h_endline h_ska h_sync h_dp h_last
       -- Step 2: scanValueValidate for the colon
       have h_sk_id := saveSimpleKey_id_of_flow_ska_false_ek_none s₁ h_flow₁ h_ska₁
           (by rw [h_ek₁]; exact h_ek)
@@ -881,7 +896,7 @@ lemma emitPairList_scans_block_nonempty (pairs : List (YamlValue × YamlValue))
           (by rw [h_ek₁]; exact h_ek) h_atol₁ h_endline₁
       -- Step 3: Scan ':' — state
       obtain ⟨s₂, h_snt₂, h_corr₂, h_fl₂, h_dp₂, h_ids₂, h_col₂,
-              h_flow₂, h_indent₂, h_ek₂, _h_line₂, h_atol₂, h_endline₂, h_stack_v₂, _, _, _⟩ :=
+              h_flow₂, h_indent₂, h_ek₂, _h_line₂, h_atol₂, h_endline₂, h_stack_v₂, _, _, h_val_push⟩ :=
         scanNextToken_flow_value s₁
           ((emit p.2).toList ++ [',', ' '] ++ (emit.emitPairList (p' :: ps)).toList ++ rest_chars)
           h_corr₁ h_flow₁ h_indent₁ h_col₁ (by rw [h_ek₁]; exact h_ek) h_sv
@@ -942,6 +957,14 @@ lemma emitPairList_scans_block_nonempty (pairs : List (YamlValue × YamlValue))
         exact h_eq_chars ▸ h_corr₃
       -- Step 5: Scan value via EmitScansInFlowBlock
       have h_ev : EmitScansInFlowBlock p.2 := h_all_v p (.head _)
+      -- After ':' (s₂), the last real token is `.value` (⇒ completesFlowValue false),
+      -- carried through the leading-space preprocessing to s₃ (tokens preserved).
+      have h_last_s₃ : ∀ t, lastRealTokenVal? s₃.tokens = some t → t.completesFlowValue = false := by
+        obtain ⟨h_sz, pos, h_get⟩ := h_val_push h_ska₁
+        have h_lrt : lastRealTokenVal? s₂.tokens = some .value :=
+          lastRealTokenVal_of_last_nonph s₂.tokens s₁.tokens.size ⟨pos, .value, pos⟩ h_sz h_get nofun
+        intro t ht; rw [h_toks_pp₃, h_lrt] at ht
+        simp only [Option.some.injEq] at ht; subst ht; rfl
       have h_corr₃_assoc : ScannerSurfCorr s₃
           ⟨(emit p.2).toList ++ ([',', ' '] ++ (emit.emitPairList (p' :: ps)).toList ++ rest_chars), s₃.col⟩ := by
         simp only [List.append_assoc] at h_corr₃' ⊢; exact h_corr₃'
@@ -958,6 +981,7 @@ lemma emitPairList_scans_block_nonempty (pairs : List (YamlValue × YamlValue))
           (h_endline_transfer₃ h_endline₂)
           (by rw [h_stack_pp₃, h_stack_v₂, h_stack₁, h_fl₃, h_fl₂, h_fl₁]; exact h_sync)
           (by rw [h_dp₃, h_dp₂, h_dp₁]; exact h_dp)
+          h_last_s₃
       have h_snt_eq_v : scanNextToken s₂ = scanNextToken s₃ :=
         scanNextToken_eq_of_preprocess s₂ s₃ h_pp_eq
       have h_n_v_pos : n_v ≥ 1 := by
@@ -998,7 +1022,7 @@ lemma emitPairList_scans_block_nonempty (pairs : List (YamlValue × YamlValue))
           h_corr₁_cons h_flow₁ h_indent₁ h_col₁
           (by decide) (by decide) (by decide) h_snt₂
       -- Step 6: Scan ',' via scanNextToken_flow_comma (state) + companions (block, simpleKey)
-      obtain ⟨s_c, h_snt_c, h_corr_c, h_fl_c, h_dp_c, h_ids_c, h_ek_c, h_col_c, _h_line_c, h_atol_c, h_endline_c, h_stack_c⟩ :=
+      obtain ⟨s_c, h_snt_c, h_corr_c, h_fl_c, h_dp_c, h_ids_c, h_ek_c, h_col_c, _h_line_c, h_atol_c, h_endline_c, h_stack_c, h_last_c⟩ :=
         scanNextToken_flow_comma s_v
           (' ' :: (emit.emitPairList (p' :: ps)).toList ++ rest_chars)
           h_corr_v h_flow_v h_indent_v h_col_v h_last_v h_atol_v h_endline_v
@@ -1055,6 +1079,7 @@ lemma emitPairList_scans_block_nonempty (pairs : List (YamlValue × YamlValue))
           (by rw [h_stack_pp, h_stack_c, h_stack_v, h_stack_pp₃, h_stack_v₂, h_stack₁,
               h_sync, h_fl_pp, h_fl_c, h_fl_v, h_fl₃, h_fl₂, h_fl₁])
           (by rw [h_dp_pp, h_dp_c, h_dp_v, h_dp₃, h_dp₂, h_dp₁]; exact h_dp)
+          (fun t ht => h_last_c t (h_toks_pp ▸ ht))
       -- Lift chains through the two preprocessing equalities
       have h_snt_eq_r : scanNextToken s_c = scanNextToken s_pp :=
         scanNextToken_eq_of_preprocess s_c s_pp h_pp_eq_r

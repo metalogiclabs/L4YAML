@@ -28,6 +28,7 @@ open L4YAML.Proofs.CouplingBridge
 open L4YAML.Proofs.ParserGrammable
 open L4YAML.Proofs.ParserWellBehaved
 open L4YAML.Proofs.ScalarCoupling
+open L4YAML.Proofs.FlowAdjacency
 
 /-! ### First-filtered-token lemmas for flow-content scanners (Tier 2 Turn 1)
 
@@ -45,6 +46,7 @@ lemma scanFlowSequenceStart_first_filtered_token (s : ScannerState) (rest : List
     (h_flow : s.inFlow = true)
     (h_indent : s.currentIndent < 0)
     (h_col : s.col > 0)
+    (h_last : ∀ t, lastRealTokenVal? s.tokens = some t → t.completesFlowValue = false)
     {s' : ScannerState} (h_snt : scanNextToken s = .ok (some s')) :
     (s.tokens.filter (fun t => t.val != .placeholder)).size <
       (s'.tokens.filter (fun t => t.val != .placeholder)).size ∧
@@ -70,7 +72,11 @@ lemma scanFlowSequenceStart_first_filtered_token (s : ScannerState) (rest : List
   have h_ad_flow : s_ad.inFlow = s.inFlow := by
     simp only [s_ad]; split <;> exact h_sk_flow
   have h_check := checkBlockFlowIndent_ok_flow s_ad '[' (h_ad_flow ▸ h_flow)
+  have h_ad_tokens : s_ad.tokens = (saveSimpleKey s).tokens := by
+    simp only [s_ad]; split <;> rfl
   have h_flow_disp := dispatchFlowIndicators_bracket s_ad
+    (checkFlowAdjacency_ok_of_notCompletes (fun t ht =>
+      saveSimpleKey_preserves_completesFalse s h_last t (h_ad_tokens ▸ ht)))
   have h_snt_eq : scanNextToken s = .ok (some (scanFlowSequenceStart s_ad)) :=
     scanNextToken_via_flow_dispatch _ _ _ _ _ h_pp h_struct rfl h_check h_flow_disp
       (scanNextToken_ok_directivesPresent_false h_pp h_struct h_snt)
@@ -105,6 +111,7 @@ lemma scanFlowMappingStart_first_filtered_token (s : ScannerState) (rest : List 
     (h_flow : s.inFlow = true)
     (h_indent : s.currentIndent < 0)
     (h_col : s.col > 0)
+    (h_last : ∀ t, lastRealTokenVal? s.tokens = some t → t.completesFlowValue = false)
     {s' : ScannerState} (h_snt : scanNextToken s = .ok (some s')) :
     (s.tokens.filter (fun t => t.val != .placeholder)).size <
       (s'.tokens.filter (fun t => t.val != .placeholder)).size ∧
@@ -129,7 +136,11 @@ lemma scanFlowMappingStart_first_filtered_token (s : ScannerState) (rest : List 
   have h_ad_flow : s_ad.inFlow = s.inFlow := by
     simp only [s_ad]; split <;> exact h_sk_flow
   have h_check := checkBlockFlowIndent_ok_flow s_ad '{' (h_ad_flow ▸ h_flow)
+  have h_ad_tokens : s_ad.tokens = (saveSimpleKey s).tokens := by
+    simp only [s_ad]; split <;> rfl
   have h_flow_disp := dispatchFlowIndicators_brace s_ad
+    (checkFlowAdjacency_ok_of_notCompletes (fun t ht =>
+      saveSimpleKey_preserves_completesFalse s h_last t (h_ad_tokens ▸ ht)))
   have h_snt_eq : scanNextToken s = .ok (some (scanFlowMappingStart s_ad)) :=
     scanNextToken_via_flow_dispatch _ _ _ _ _ h_pp h_struct rfl h_check h_flow_disp
       (scanNextToken_ok_directivesPresent_false h_pp h_struct h_snt)
@@ -219,6 +230,7 @@ lemma scanDoubleQuoted_first_filtered_token (s : ScannerState) (rest : List Char
     (h_flow : s.inFlow = true)
     (h_indent : s.currentIndent < 0)
     (h_col : s.col > 0)
+    (h_last : ∀ t, lastRealTokenVal? s.tokens = some t → t.completesFlowValue = false)
     {s' : ScannerState} (h_snt : scanNextToken s = .ok (some s')) :
     (s.tokens.filter (fun t => t.val != .placeholder)).size <
       (s'.tokens.filter (fun t => t.val != .placeholder)).size ∧
@@ -244,8 +256,12 @@ lemma scanDoubleQuoted_first_filtered_token (s : ScannerState) (rest : List Char
     simp only [s_ad]; split <;> exact h_sk_flow
   have h_ad_flow_true : s_ad.inFlow = true := h_ad_flow ▸ h_flow
   have h_check := checkBlockFlowIndent_ok_flow s_ad '"' h_ad_flow_true
+  have h_ad_tokens : s_ad.tokens = (saveSimpleKey s).tokens := by
+    simp only [s_ad]; split <;> rfl
   have h_flow_none : scanNextToken_dispatchFlowIndicators s_ad '"' = .ok none :=
     dispatchFlowIndicators_none _ _ (by decide) (by decide) (by decide) (by decide) (by decide)
+      (checkFlowAdjacency_ok_of_notCompletes (fun t ht =>
+        saveSimpleKey_preserves_completesFalse s h_last t (h_ad_tokens ▸ ht)))
   have h_block_none : scanNextToken_dispatchBlockIndicators s_ad '"' = .ok none :=
     dispatchBlockIndicators_none_quote _
   -- From h_snt + dispatch composition, dispatchContent must succeed and yield s'
@@ -348,6 +364,7 @@ lemma emitList_head_step_noOverwrite (s s' : ScannerState) (c : Char) (rest : Li
     (h_ek : s.explicitKeyLine = none) (h_ska : s.simpleKeyAllowed = true)
     (h_ssv : ScannerCorrectness.SimpleKeyStackValid s)
     (h_c : c = '[' ∨ c = '{' ∨ c = '"')
+    (h_last : ∀ t, lastRealTokenVal? s.tokens = some t → t.completesFlowValue = false)
     (h_snt : scanNextToken s = .ok (some s')) :
     s'.tokens.size = s.tokens.size + 3 ∧
     NoOverwriteAt s' (s.tokens.size + 2) ∧
@@ -366,6 +383,8 @@ lemma emitList_head_step_noOverwrite (s s' : ScannerState) (c : Char) (rest : Li
     simp only [s_ad]; split <;> rfl
   have h_ad_tokens : s_ad.tokens = (saveSimpleKey s).tokens := by
     simp only [s_ad]; split <;> rfl
+  have h_nc : ∀ t, lastRealTokenVal? s_ad.tokens = some t → t.completesFlowValue = false :=
+    fun t ht => saveSimpleKey_preserves_completesFalse s h_last t (h_ad_tokens ▸ ht)
   have h_ad_flow : s_ad.inFlow = s.inFlow := by simp only [s_ad]; split <;> exact h_sk_flow
   rcases h_c with rfl | rfl | rfl
   · -- '[' : s' = scanFlowSequenceStart s_ad
@@ -375,6 +394,7 @@ lemma emitList_head_step_noOverwrite (s s' : ScannerState) (c : Char) (rest : Li
       dispatchStructural_none_flow _ _ (h_sk_flow ▸ h_flow) (h_sk_indent ▸ h_indent) (h_sk_col ▸ h_col)
     have h_check := checkBlockFlowIndent_ok_flow s_ad '[' (h_ad_flow ▸ h_flow)
     have h_flow_disp := dispatchFlowIndicators_bracket s_ad
+      (checkFlowAdjacency_ok_of_notCompletes h_nc)
     have h_snt_eq : scanNextToken s = .ok (some (scanFlowSequenceStart s_ad)) :=
       scanNextToken_via_flow_dispatch _ _ _ _ _ h_pp h_struct rfl h_check h_flow_disp
         (scanNextToken_ok_directivesPresent_false h_pp h_struct h_snt)
@@ -403,6 +423,7 @@ lemma emitList_head_step_noOverwrite (s s' : ScannerState) (c : Char) (rest : Li
       dispatchStructural_none_flow _ _ (h_sk_flow ▸ h_flow) (h_sk_indent ▸ h_indent) (h_sk_col ▸ h_col)
     have h_check := checkBlockFlowIndent_ok_flow s_ad '{' (h_ad_flow ▸ h_flow)
     have h_flow_disp := dispatchFlowIndicators_brace s_ad
+      (checkFlowAdjacency_ok_of_notCompletes h_nc)
     have h_snt_eq : scanNextToken s = .ok (some (scanFlowMappingStart s_ad)) :=
       scanNextToken_via_flow_dispatch _ _ _ _ _ h_pp h_struct rfl h_check h_flow_disp
         (scanNextToken_ok_directivesPresent_false h_pp h_struct h_snt)
@@ -433,6 +454,7 @@ lemma emitList_head_step_noOverwrite (s s' : ScannerState) (c : Char) (rest : Li
     have h_check := checkBlockFlowIndent_ok_flow s_ad '"' h_ad_flow_true
     have h_flow_none : scanNextToken_dispatchFlowIndicators s_ad '"' = .ok none :=
       dispatchFlowIndicators_none _ _ (by decide) (by decide) (by decide) (by decide) (by decide)
+        (checkFlowAdjacency_ok_of_notCompletes h_nc)
     have h_block_none : scanNextToken_dispatchBlockIndicators s_ad '"' = .ok none :=
       dispatchBlockIndicators_none_quote _
     -- identify s' = dispatchContent output
