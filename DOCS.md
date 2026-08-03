@@ -5606,7 +5606,7 @@ Both directions:
 | 0. Scanner audit for directive handling | ✅ done 2026-08-01 | findings under Fix B: mid-stream leniency **confirmed reachable** |
 | Fix B: eliminate `directiveDrop` (orphaned directive resolution) | ✅ **done 2026-08-02** | option (c) executed; see the progress record below |
 | 1a. Remove `directiveDrop` from `SLYamlStream` | ✅ **done 2026-08-02** | constructor deleted; `SLYamlStream` = 3 spec constructors + `scannerDrop` |
-| Fix A: eliminate `scannerDrop` (flow collection grammar evidence) | 🚧 in progress (v0.7.0) | **grammar completion + flow-accumulation rewire** (2026-08-03: `scannerDrop` masks real grammar incompleteness — audit found 3 bounded gaps G1–G3, e.g. bare-key `{a}`). Stage B.1 foundation `FlowStackB` green (`a2f4aefb`); **B.2 grammar surgery ✅ done** (G1 `71f03125`, G2/G3 `c215e597`; ripple empirically zero); **B.3 flow-entry production machinery ✅ done** (§4f `ede0ef1e` + §4g `a8cae0d6`; all forms, additive-green); remaining B.4 atomic swap → B.5 delete. See the Fix A section. |
+| Fix A: eliminate `scannerDrop` (flow collection grammar evidence) | 🚧 in progress (v0.7.0) | **grammar completion + flow-accumulation rewire** (2026-08-03: `scannerDrop` masks real grammar incompleteness — audit found 3 bounded gaps G1–G3, e.g. bare-key `{a}`). Stage B.1 foundation `FlowStackB` green (`a2f4aefb`); **B.2 grammar surgery ✅ done** (G1 `71f03125`, G2/G3 `c215e597`; ripple empirically zero); **B.3 flow-entry production machinery ✅ done** (§4f `ede0ef1e` + §4g `a8cae0d6`; all forms, additive-green); **B.4 deep design done 2026-08-03** — found B.1's `FlowOpenStack` INSUFFICIENT for nested values (`{a: [b]}` ⇒ colon-pending parent); corrected to per-frame `SeqFrame`/`MapFrame` (between|mid) + closure-injection nesting (positivity validated); remaining B.4 atomic red swap → B.5 delete. See the Fix A section. |
 | 1b. Remove `scannerDrop` from `SLYamlStream` | 🚧 in progress | part of the atomic Fix A |
 | 5. Prove the converse `grammar_completeness` | ❌ open | depends on Fix A |
 | 6. Assemble `parse_iff_grammar` biconditional | ❌ open | depends on Step 5 |
@@ -6029,6 +6029,13 @@ needed no changes.)
    `openMapBase` (token-determined outermost open); `absorb_stacksB` (absorbs BlockStack + a depth-0
    FlowStackB; the open case is vacuous via `FlowOpenStack_depth_pos`). The depth index will be
    **structurally coupled** to `sc.flowLevel` in the swapped invariant (no separate conjunct).
+   **⚠ SUPERSEDED IN PART (2026-08-03 B.4 deep design):** B.1's `FlowOpenStack` (`p : PartialFlow*` per
+   frame + explicit `below` nesting) is INSUFFICIENT for nested values — it cannot represent a
+   colon-pending parent hosting a nested collection (`{a: [b]}`). The corrected foundation carries a
+   full per-frame state `SeqFrame`/`MapFrame` (between|mid) and uses closure-injection nesting; see the
+   B.4 architecture-refinement bullet below. `FlowStackB`/`absorb_stacksB` themselves are unaffected;
+   `FlowOpenStack` + its `pushSeq`/`pushMap`/`openSeqBase`/`openMapBase`/base-close helpers get rebuilt
+   in the swap.
 
    **⚠ PIVOTAL FINDING (2026-08-03) — `scannerDrop` masks real GRAMMAR INCOMPLETENESS, not just
    deferred reconstruction.** Empirically (tryparse + tryscan): `{a}` is ACCEPTED and tokenizes as
@@ -6108,10 +6115,48 @@ needed no changes.)
      fires only where the branch forces `flowLevel = 0`. B.3's `PendingFlowMapEntry`/`PendingFlowSeqEntry`
      supply the mid-entry evidence the push/pop/hold transitions consume. Retire `pendingFlow` once no
      dispatch produces it.
-   - **Block-nested flow via a generic `resume` closure** (unchanged design): each `FlowOpenStack`
-     base carries `resume : SFlowNode 0 .flowOut sp_before sp_ne → SSLComments → SLYamlStream sp_start`.
+   - **B.4 architecture refinement — deep design (2026-08-03, before starting the swap).**
+     Empirical scanner probes (`tryscan` on `{a: [b, c]}`, `{[a]: b}`, `[[a], b]`, `[a: b]`, `{? a : b}`)
+     + reading the whole flow production surface surfaced a **PLAN-CORRECTING FINDING: B.1's
+     `FlowOpenStack` is INSUFFICIENT** — the recorded "additive foundation complete" note was wrong.
+     Two structural gaps:
+     1. **Nested values.** `{a: [b]}` puts the parent map in `colonPending` (the `value` token fires)
+        *before* the nested `[` opens, so a parent frame can be mid-entry while a child frame is open.
+        B.1's `mapNest`/`seqNest` carry only `p : PartialFlow*` (a *between-entries* accumulator) and
+        **cannot represent a colon-pending parent** hosting a nested value. Every frame — not just the
+        top — needs a full state.
+     2. **Frame resting states are exactly `empty | held | mid`.** A flow collection is never at a bare
+        closeable `entries` state at a step boundary: an entry commits only at `,`/`]`/`}`, and a scanned
+        node immediately becomes *mid-entry* (`:` may still follow, e.g. `[a: b]`). So the per-frame state
+        is precisely **`FlowSeqPrefix` (between: `init`=empty / `cons`=held) | `PendingFlowSeqEntry` (mid)**
+        — mapping directly onto B.3's types (`SeqFrame`/`MapFrame := between (pre) | mid (pe)`).
+     **Corrected foundation (validated at the type level — positivity confirmed in a scratch probe):**
+     redesign `FlowOpenStack` so each ctor carries `st : SeqFrame`/`MapFrame` (between|mid) instead of
+     `p : PartialFlow*`, and replace explicit `below` nesting with a **closure-injection** idiom
+     (mirrors `BlockStack.seqLevel`'s proven `h_close`): a nested ctor carries
+     `inject : ∀ sp_ne, SFlowNode 0 .flowIn sp_par sp_ne → FlowOpenStack sp_start d sp_before0 sp_ne`,
+     built at *push* time from the parent's then-known state (between → child becomes key/entry ⇒
+     `keyPending`/`nodePending`; `colonPending` → child becomes value ⇒ `finishValue`/`finishPairValue`).
+     The pop is then **uniform**: `cases FlowOpenStack` → close top frame to a node → apply `resume`
+     (base, depth 1 → `SLYamlStream`) or `inject` (nest, depth d+1 → parent stack). Contexts are
+     consistent: `inFlowCtx .flowOut = inFlowCtx .flowIn = .flowIn`, so every interior node is `.flowIn`
+     and only the outermost is `.flowOut` (what `resume` expects). *(Fallback if `inject` closures prove
+     awkward in the accum steps: keep explicit `below` + enrich the frame to `SeqFrame`/`MapFrame`, and
+     `cases below` at pop — more case-work but closer to B.1.)*
+   - **Separator threading (the real red-swap difficulty).** Plain scalars are right-trimmed, so each
+     scan step consumes *its own leading* separator (the `[`/`{` step leaves `sp_es` right after the
+     bracket with `h_sep = none`; the first-entry step reprocesses the post-bracket sep and sets it; the
+     close step supplies the pre-`]` sep). The grammar wants seps *consolidated* into single slots
+     (`flowSeq_empty`/`_nonempty` have one post-`[` sep; each entry carries one trailing sep). So the
+     accum steps must **rebuild the frame** each transition to place the sep the scanner just consumed
+     into the right grammar slot. This is why the frame-close/push lemmas are **not** cleanly
+     pre-buildable green ahead of the swap — their exact sep signatures are only pinned by how the
+     scanner threads positions. (Attempting to pre-commit them would risk a *third* foundation revision
+     after B.1; deferred into the red swap deliberately.)
+   - **Block-nested flow via a generic `resume` closure** (kept from B.1): each `FlowOpenStack` base
+     carries `resume : SFlowNode 0 .flowOut sp_before sp_ne → SSLComments → SLYamlStream sp_start`.
      Top-level supplies `topLevelFlowResume`; block-nested supplies `pendingBlock.h_close ∘ flowInBlock`.
-     So flow↔block reduces to CHOOSING `resume` at open, not a new design.
+     So flow↔block reduces to CHOOSING `resume` at open. (The nested frames now use `inject`, above.)
    - **B.5 — delete `scannerDrop`.** Grammatical `close_with_ssl` / retire `pendingFlow`; delete
      `scannerDrop` from `Surface/Document.lean`.
    Session scratchpad blueprints (ephemeral): `stageB_integration_blueprint.md`,
