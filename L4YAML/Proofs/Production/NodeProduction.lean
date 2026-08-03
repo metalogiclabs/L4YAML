@@ -863,6 +863,16 @@ inductive PendingFlowMapEntry (n : Nat) (c : YamlContext) : SurfPos → SurfPos 
   | colonPending (sp sp_d sp_k sp_s sp' : SurfPos) (pre : FlowMapPrefix n c sp sp_d)
       (hkey : SFlowNode n c sp_d sp_k) (hsep : GOpt (SSeparate n c) sp_k sp_s)
       (hcolon : GLit ':' sp_s sp') : PendingFlowMapEntry n c sp sp'
+  | explicitKeyPending (sp sp_q sp_qe sp_k0 sp' : SurfPos) (pre : FlowMapPrefix n c sp sp_q)
+      (hq : GLit '?' sp_q sp_qe) (hqsep : SSeparate n c sp_qe sp_k0)
+      (hkey : SFlowNode n c sp_k0 sp') : PendingFlowMapEntry n c sp sp'
+  | explicitColonPending (sp sp_q sp_qe sp_k0 sp_k sp_s sp' : SurfPos)
+      (pre : FlowMapPrefix n c sp sp_q) (hq : GLit '?' sp_q sp_qe)
+      (hqsep : SSeparate n c sp_qe sp_k0) (hkey : SFlowNode n c sp_k0 sp_k)
+      (hsep : GOpt (SSeparate n c) sp_k sp_s) (hcolon : GLit ':' sp_s sp') :
+      PendingFlowMapEntry n c sp sp'
+  | emptyColonPending (sp sp_s sp' : SurfPos) (pre : FlowMapPrefix n c sp sp_s)
+      (hcolon : GLit ':' sp_s sp') : PendingFlowMapEntry n c sp sp'
 
 /-- `keyPending` + (key→`:` separator) + `:` → `colonPending`. -/
 lemma PendingFlowMapEntry.toColon {n : Nat} {c : YamlContext} {sp sp_d sp_k sp_s sp' : SurfPos}
@@ -909,6 +919,14 @@ inductive PendingFlowSeqEntry (n : Nat) (c : YamlContext) : SurfPos → SurfPos 
   | colonPending (sp sp_d sp_k sp_s sp' : SurfPos) (pre : FlowSeqPrefix n c sp sp_d)
       (hkey : SFlowNode n c sp_d sp_k) (hsep : GOpt (SSeparate n c) sp_k sp_s)
       (hcolon : GLit ':' sp_s sp') : PendingFlowSeqEntry n c sp sp'
+  | explicitPending (sp sp_q sp_qe sp_k0 sp' : SurfPos) (pre : FlowSeqPrefix n c sp sp_q)
+      (hq : GLit '?' sp_q sp_qe) (hqsep : SSeparate n c sp_qe sp_k0)
+      (hkey : SFlowNode n c sp_k0 sp') : PendingFlowSeqEntry n c sp sp'
+  | explicitColonPending (sp sp_q sp_qe sp_k0 sp_k sp_s sp' : SurfPos)
+      (pre : FlowSeqPrefix n c sp sp_q) (hq : GLit '?' sp_q sp_qe)
+      (hqsep : SSeparate n c sp_qe sp_k0) (hkey : SFlowNode n c sp_k0 sp_k)
+      (hsep : GOpt (SSeparate n c) sp_k sp_s) (hcolon : GLit ':' sp_s sp') :
+      PendingFlowSeqEntry n c sp sp'
 
 /-- `nodePending` + (node→`:` separator) + `:` → `colonPending` (the node was a
     pair key after all). -/
@@ -945,5 +963,100 @@ lemma PendingFlowSeqEntry.finishPairEmpty {n : Nat} {c : YamlContext}
     (h_sep_tr : GOpt (SSeparate n c) sp_c sp') :
     PartialFlowSeq n c sp sp' :=
   pre.appendEntry (SFlowSeqEntry.pairEmpty n c sp_d sp_k sp_s sp_c hkey hsep hcolon) h_sep_tr
+
+/-! ## §4g Explicit-`?` and empty-key flow-entry completions (Fix A, Stage B.3b)
+
+    The remaining flow-entry forms behind `scannerDrop`: explicit `?`-marked
+    entries (`{? a}`, `{? a : b}`, `{? a :}` and their `[ ]` pair analogs) and
+    empty-key map entries (`{: b}`, `{:}`). Same completion discipline as §4f: a
+    mid-entry state (extended `PendingFlow*Entry`) ends at its last token; each
+    completion snocs the finished entry via `appendEntry` with the closing/comma
+    step's trailing separator. The `?` and the leading `:` are literal surface
+    characters, so each carries a `GLit '?'`/`GLit ':'` derivation. -/
+
+/-- Close an `explicitKeyPending` as `explicitKeyOnly` (G2): `{? a}`. -/
+lemma PendingFlowMapEntry.finishExplicitKeyOnly {n : Nat} {c : YamlContext}
+    {sp sp_q sp_qe sp_k0 sp_k sp' : SurfPos}
+    (pre : FlowMapPrefix n c sp sp_q) (hq : GLit '?' sp_q sp_qe)
+    (hqsep : SSeparate n c sp_qe sp_k0) (hkey : SFlowNode n c sp_k0 sp_k)
+    (h_sep_tr : GOpt (SSeparate n c) sp_k sp') :
+    PartialFlowMap n c sp sp' :=
+  pre.appendEntry (SFlowMapEntry.explicitKeyOnly n c sp_q sp_qe sp_k0 sp_k hq hqsep hkey) h_sep_tr
+
+/-- Complete an `explicitColonPending` with a value (`explicitValue`): `{? a : b}`. -/
+lemma PendingFlowMapEntry.finishExplicitValue {n : Nat} {c : YamlContext}
+    {sp sp_q sp_qe sp_k0 sp_k sp_s sp_col sp_v sp_e sp' : SurfPos}
+    (pre : FlowMapPrefix n c sp sp_q) (hq : GLit '?' sp_q sp_qe)
+    (hqsep : SSeparate n c sp_qe sp_k0) (hkey : SFlowNode n c sp_k0 sp_k)
+    (hsep : GOpt (SSeparate n c) sp_k sp_s) (hcolon : GLit ':' sp_s sp_col)
+    (hsep2 : SSeparate n c sp_col sp_v) (hval : SFlowNode n c sp_v sp_e)
+    (h_sep_tr : GOpt (SSeparate n c) sp_e sp') :
+    PartialFlowMap n c sp sp' :=
+  pre.appendEntry
+    (SFlowMapEntry.explicitValue n c sp_q sp_qe sp_k0 sp_k sp_s sp_col sp_v sp_e
+      hq hqsep hkey hsep hcolon hsep2 hval) h_sep_tr
+
+/-- Close an `explicitColonPending` with an empty value (`explicitEmpty`): `{? a :}`. -/
+lemma PendingFlowMapEntry.finishExplicitEmpty {n : Nat} {c : YamlContext}
+    {sp sp_q sp_qe sp_k0 sp_k sp_s sp_col sp' : SurfPos}
+    (pre : FlowMapPrefix n c sp sp_q) (hq : GLit '?' sp_q sp_qe)
+    (hqsep : SSeparate n c sp_qe sp_k0) (hkey : SFlowNode n c sp_k0 sp_k)
+    (hsep : GOpt (SSeparate n c) sp_k sp_s) (hcolon : GLit ':' sp_s sp_col)
+    (h_sep_tr : GOpt (SSeparate n c) sp_col sp') :
+    PartialFlowMap n c sp sp' :=
+  pre.appendEntry
+    (SFlowMapEntry.explicitEmpty n c sp_q sp_qe sp_k0 sp_k sp_s sp_col hq hqsep hkey hsep hcolon)
+    h_sep_tr
+
+/-- Complete an `emptyColonPending` with a value (`emptyKeyValue`): `{: b}`. -/
+lemma PendingFlowMapEntry.finishEmptyKeyValue {n : Nat} {c : YamlContext}
+    {sp sp_s sp_col sp_v sp_e sp' : SurfPos}
+    (pre : FlowMapPrefix n c sp sp_s) (hcolon : GLit ':' sp_s sp_col)
+    (hsep2 : SSeparate n c sp_col sp_v) (hval : SFlowNode n c sp_v sp_e)
+    (h_sep_tr : GOpt (SSeparate n c) sp_e sp') :
+    PartialFlowMap n c sp sp' :=
+  pre.appendEntry (SFlowMapEntry.emptyKeyValue n c sp_s sp_col sp_v sp_e hcolon hsep2 hval) h_sep_tr
+
+/-- Close an `emptyColonPending` with an empty value (`emptyKeyEmpty`): `{:}`. -/
+lemma PendingFlowMapEntry.finishEmptyKeyEmpty {n : Nat} {c : YamlContext}
+    {sp sp_s sp_col sp' : SurfPos}
+    (pre : FlowMapPrefix n c sp sp_s) (hcolon : GLit ':' sp_s sp_col)
+    (h_sep_tr : GOpt (SSeparate n c) sp_col sp') :
+    PartialFlowMap n c sp sp' :=
+  pre.appendEntry (SFlowMapEntry.emptyKeyEmpty n c sp_s sp_col hcolon) h_sep_tr
+
+/-- Close an `explicitPending` seq entry as `explicitPairKeyOnly`: `[? a]`. -/
+lemma PendingFlowSeqEntry.finishExplicitKeyOnly {n : Nat} {c : YamlContext}
+    {sp sp_q sp_qe sp_k0 sp_k sp' : SurfPos}
+    (pre : FlowSeqPrefix n c sp sp_q) (hq : GLit '?' sp_q sp_qe)
+    (hqsep : SSeparate n c sp_qe sp_k0) (hkey : SFlowNode n c sp_k0 sp_k)
+    (h_sep_tr : GOpt (SSeparate n c) sp_k sp') :
+    PartialFlowSeq n c sp sp' :=
+  pre.appendEntry (SFlowSeqEntry.explicitPairKeyOnly n c sp_q sp_qe sp_k0 sp_k hq hqsep hkey) h_sep_tr
+
+/-- Complete an `explicitColonPending` seq pair with a value (`explicitPairValue`): `[? a : b]`. -/
+lemma PendingFlowSeqEntry.finishExplicitPairValue {n : Nat} {c : YamlContext}
+    {sp sp_q sp_qe sp_k0 sp_k sp_s sp_col sp_v sp_e sp' : SurfPos}
+    (pre : FlowSeqPrefix n c sp sp_q) (hq : GLit '?' sp_q sp_qe)
+    (hqsep : SSeparate n c sp_qe sp_k0) (hkey : SFlowNode n c sp_k0 sp_k)
+    (hsep : GOpt (SSeparate n c) sp_k sp_s) (hcolon : GLit ':' sp_s sp_col)
+    (hsep2 : SSeparate n c sp_col sp_v) (hval : SFlowNode n c sp_v sp_e)
+    (h_sep_tr : GOpt (SSeparate n c) sp_e sp') :
+    PartialFlowSeq n c sp sp' :=
+  pre.appendEntry
+    (SFlowSeqEntry.explicitPairValue n c sp_q sp_qe sp_k0 sp_k sp_s sp_col sp_v sp_e
+      hq hqsep hkey hsep hcolon hsep2 hval) h_sep_tr
+
+/-- Close an `explicitColonPending` seq pair with an empty value (`explicitPairEmpty`): `[? a :]`. -/
+lemma PendingFlowSeqEntry.finishExplicitPairEmpty {n : Nat} {c : YamlContext}
+    {sp sp_q sp_qe sp_k0 sp_k sp_s sp_col sp' : SurfPos}
+    (pre : FlowSeqPrefix n c sp sp_q) (hq : GLit '?' sp_q sp_qe)
+    (hqsep : SSeparate n c sp_qe sp_k0) (hkey : SFlowNode n c sp_k0 sp_k)
+    (hsep : GOpt (SSeparate n c) sp_k sp_s) (hcolon : GLit ':' sp_s sp_col)
+    (h_sep_tr : GOpt (SSeparate n c) sp_col sp') :
+    PartialFlowSeq n c sp sp' :=
+  pre.appendEntry
+    (SFlowSeqEntry.explicitPairEmpty n c sp_q sp_qe sp_k0 sp_k sp_s sp_col hq hqsep hkey hsep hcolon)
+    h_sep_tr
 
 end L4YAML.Proofs.NodeProduction
