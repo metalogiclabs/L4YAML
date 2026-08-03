@@ -42,6 +42,7 @@ open L4YAML.Scanner.Indexed.ScannerStateIx
 open L4YAML.Proofs.Indexed.EmitterScannability.Basic
 open L4YAML.Proofs.Indexed.EmitterScannability.ScanChain
 open L4YAML.Proofs.Indexed.ScannerPlainScalarValid
+open L4YAML.Proofs.FlowAdjacencyIx
 open L4YAML.Surface
 
 variable {input : String}
@@ -63,7 +64,8 @@ lemma scanNextTokenIx_flow_open_seq_nested (s : ScannerStateIx input)
     (h_col_pos : s.cursor.pos.col > 0)
     (h_atol : AllTokensOnLineIx s s.cursor.pos.line)
     (h_endline : EndLineOnLineIx s)
-    (h_dp : s.directivesPresent = false) :
+    (h_dp : s.directivesPresent = false)
+    (h_last : ∀ t, lastRealTokenValIx? s.tokens = some t → t.completesFlowValue = false) :
     ∃ s', scanNextTokenIx s = .ok (some s')
       ∧ ScannerSurfCorrIx s' ⟨rest, s'.cursor.pos.col⟩
       ∧ s'.flowLevel = s.flowLevel + 1
@@ -75,7 +77,8 @@ lemma scanNextTokenIx_flow_open_seq_nested (s : ScannerStateIx input)
       ∧ AllTokensOnLineIx s' s'.cursor.pos.line
       ∧ EndLineOnLineIx s'
       ∧ StackEndLineOnLineIx s' s'.cursor.pos.line
-      ∧ s'.simpleKeyStack.pop = s.simpleKeyStack := by
+      ∧ s'.simpleKeyStack.pop = s.simpleKeyStack
+      ∧ (∀ t, lastRealTokenValIx? s'.tokens = some t → t.completesFlowValue = false) := by
   have h_pp : scanNextTokenIx_preprocess s = .ok (some (saveSimpleKeyIx s, '[')) :=
     scanNextTokenIx_preprocess_flow s '[' rest s.cursor.pos.col hcorr h_flow
       (by decide) (by decide) (by decide)
@@ -116,6 +119,8 @@ lemma scanNextTokenIx_flow_open_seq_nested (s : ScannerStateIx input)
   have h_flow_disp : scanNextTokenIx_dispatchFlowIndicators s_ad '[' =
       .ok (some (scanFlowSequenceStartIx s_ad)) :=
     dispatchFlowIndicators_bracket s_ad
+      (checkFlowAdjacencyIx_ok_of_notCompletes (fun t ht =>
+        saveSimpleKeyIx_preserves_completesFalse s h_last t (h_ad_tokens ▸ ht)))
   have h_snt := scanNextTokenIx_via_flow_dispatch s (saveSimpleKeyIx s) s_ad
     (scanFlowSequenceStartIx s_ad) '['
     h_pp h_struct h_s_ad_def h_check h_flow_disp
@@ -190,7 +195,12 @@ lemma scanNextTokenIx_flow_open_seq_nested (s : ScannerStateIx input)
     exact h2.trans h_ad_line
   have h_s'_stackpop : (scanFlowSequenceStartIx s_ad).simpleKeyStack.pop = s.simpleKeyStack := by
     rw [scanFlowSequenceStartIx_stack_pushed, Array.pop_push]; exact h_ad_stack
+  have h_s'_last : ∀ t, lastRealTokenValIx? (scanFlowSequenceStartIx s_ad).tokens = some t →
+      t.completesFlowValue = false := by
+    intro t ht
+    rw [scanFlowSequenceStartIx_lastRealTokenVal s_ad] at ht
+    simp only [Option.some.injEq] at ht; subst ht; rfl
   refine ⟨_, h_snt, h_s'_corr, h_s'_fl, h_s'_dp, h_s'_ids, h_s'_ek, h_s'_col,
-         h_s'_line, h_s'_atol, h_s'_endline, h_s'_stackend, h_s'_stackpop⟩
+         h_s'_line, h_s'_atol, h_s'_endline, h_s'_stackend, h_s'_stackpop, h_s'_last⟩
 
 end L4YAML.Proofs.Indexed.EmitterScannability.FlowMonoChain

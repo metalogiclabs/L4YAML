@@ -144,6 +144,7 @@ def EmitPairListScansInFlowIx_strong (pairs : List (YamlValue × YamlValue)) : P
     AllTokensOnLineIx s s.cursor.pos.line →
     EndLineOnLineIx s →
     s.directivesPresent = false →
+    (∀ t, lastRealTokenValIx? s.tokens = some t → t.completesFlowValue = false) →
     ∃ n s', ScanChainGrewIx (fun t => t.token != .placeholder) s n s'
       ∧ ScannerSurfCorrIx s' ⟨rest, s'.cursor.pos.col⟩
       ∧ s'.flowLevel = s.flowLevel
@@ -166,10 +167,10 @@ def EmitPairListScansInFlowIx_strong (pairs : List (YamlValue × YamlValue)) : P
 lemma EmitPairListScansInFlowIx_strong.toWeak {pairs : List (YamlValue × YamlValue)}
     (h_strong : EmitPairListScansInFlowIx_strong (input := input) pairs) :
     EmitPairListScansInFlowIx (input := input) pairs := by
-  intro s rest hcorr h_flow h_fl h_indent h_col h_ek h_atol h_endline h_dp
+  intro s rest hcorr h_flow h_fl h_indent h_col h_ek h_atol h_endline h_dp h_last
   obtain ⟨n, s', h_chain, h_corr', h_fl', h_dp', h_ids', h_ek', h_col', h_inflow',
           h_indent', h_line', h_atol', h_endline', h_stack', h_fmc, _h_n_ge_3⟩ :=
-    h_strong s rest hcorr h_flow h_fl h_indent h_col h_ek h_atol h_endline h_dp
+    h_strong s rest hcorr h_flow h_fl h_indent h_col h_ek h_atol h_endline h_dp h_last
   exact ⟨n, s', h_chain, h_corr', h_fl', h_dp', h_ids', h_ek', h_col', h_inflow',
          h_indent', h_line', h_atol', h_endline', h_stack', h_fmc⟩
 
@@ -196,7 +197,7 @@ lemma emitPairList_scans_nonemptyIx_strong (pairs : List (YamlValue × YamlValue
   induction pairs with
   | nil => contradiction
   | cons p tail ih =>
-    intro s rest_chars hcorr h_flow h_fl h_indent h_col h_ek h_atol h_endline h_dp
+    intro s rest_chars hcorr h_flow h_fl h_indent h_col h_ek h_atol h_endline h_dp h_last
     match tail, ih with
     | [], _ =>
       -- ══ Singleton [(k,v)]: emit k ++ ": " ++ emit v ══
@@ -210,7 +211,7 @@ lemma emitPairList_scans_nonemptyIx_strong (pairs : List (YamlValue × YamlValue
       obtain ⟨n₁, s₁, h_chain₁, h_corr₁, h_fl₁, h_dp₁, h_ids₁, h_ek₁, h_col₁,
               h_flow₁, h_indent₁, _h_line₁, _ska₁, _h_last₁, h_atol₁, h_endline₁, h_stack₁, h_fmc₁⟩ :=
         h_ek_key s ([':', ' '] ++ (L4YAML.Emit.emit p.2).toList ++ rest_chars)
-          hcorr h_flow h_fl h_indent h_col h_ek h_atol h_endline h_dp
+          hcorr h_flow h_fl h_indent h_col h_ek h_atol h_endline h_dp h_last
       -- NEW: extract n₁ ≥ 1 from non-empty `emit p.1`.
       have h_n₁_pos : n₁ ≥ 1 := by
         match n₁, h_chain₁ with
@@ -229,7 +230,7 @@ lemma emitPairList_scans_nonemptyIx_strong (pairs : List (YamlValue × YamlValue
         | _ + 1, _ => omega
       -- Step 2: scan ':' via scanNextToken_flow_valueIx
       obtain ⟨s₂, h_snt₂, h_corr₂, h_fl₂, h_dp₂, h_ids₂, h_col₂,
-              h_flow₂, h_indent₂, h_ek₂, _h_line₂, h_atol₂, h_endline₂, h_stack_v₂⟩ :=
+              h_flow₂, h_indent₂, h_ek₂, _h_line₂, h_atol₂, h_endline₂, h_stack_v₂, h_last_val₂⟩ :=
         scanNextToken_flow_valueIx s₁ ((L4YAML.Emit.emit p.2).toList ++ rest_chars)
           h_corr₁ h_flow₁ h_indent₁ h_col₁ (by rw [h_ek₁]; exact h_ek) h_atol₁ h_endline₁
           (h_dp₁.trans h_dp)
@@ -269,6 +270,7 @@ lemma emitPairList_scans_nonemptyIx_strong (pairs : List (YamlValue × YamlValue
           (h_atol_transfer₃ h_atol₂)
           (h_endline_transfer₃ h_endline₂)
           (by rw [h_dp₃, h_dp₂, h_dp₁]; exact h_dp)
+          (fun t ht => h_last_val₂ t (h_toks_pp₃ ▸ ht))
       -- Step 5: lift chain for s₂ via the preprocessing equality
       have h_snt_eq : scanNextTokenIx s₂ = scanNextTokenIx s₃ :=
         scanNextTokenIx_eq_of_preprocess s₂ s₃ h_pp_eq
@@ -341,10 +343,10 @@ lemma emitPairList_scans_nonemptyIx_strong (pairs : List (YamlValue × YamlValue
               h_flow₁, h_indent₁, _h_line₁, _ska₁, _h_last₁, h_atol₁, h_endline₁, h_stack₁, h_fmc₁⟩ :=
         h_ek_key s ([':', ' '] ++ (L4YAML.Emit.emit p.2).toList ++
             [',', ' '] ++ (L4YAML.Emit.emit.emitPairList (p' :: ps)).toList ++ rest_chars)
-          hcorr h_flow h_fl h_indent h_col h_ek h_atol h_endline h_dp
+          hcorr h_flow h_fl h_indent h_col h_ek h_atol h_endline h_dp h_last
       -- Step 2: scan ':' via scanNextToken_flow_valueIx
       obtain ⟨s₂, h_snt₂, h_corr₂, h_fl₂, h_dp₂, h_ids₂, h_col₂,
-              h_flow₂, h_indent₂, h_ek₂, _h_line₂, h_atol₂, h_endline₂, h_stack_v₂⟩ :=
+              h_flow₂, h_indent₂, h_ek₂, _h_line₂, h_atol₂, h_endline₂, h_stack_v₂, h_last_val₂⟩ :=
         scanNextToken_flow_valueIx s₁
           ((L4YAML.Emit.emit p.2).toList ++
             [',', ' '] ++ (L4YAML.Emit.emit.emitPairList (p' :: ps)).toList ++ rest_chars)
@@ -401,6 +403,7 @@ lemma emitPairList_scans_nonemptyIx_strong (pairs : List (YamlValue × YamlValue
           (h_atol_transfer₃ h_atol₂)
           (h_endline_transfer₃ h_endline₂)
           (by rw [h_dp₃, h_dp₂, h_dp₁]; exact h_dp)
+          (fun t ht => h_last_val₂ t (h_toks_pp₃ ▸ ht))
       have h_snt_eq_v : scanNextTokenIx s₂ = scanNextTokenIx s₃ :=
         scanNextTokenIx_eq_of_preprocess s₂ s₃ h_pp_eq
       have h_n_v_pos : n_v ≥ 1 := by
@@ -446,7 +449,7 @@ lemma emitPairList_scans_nonemptyIx_strong (pairs : List (YamlValue × YamlValue
           (by decide) (by decide) (by decide) h_snt₂
       -- Step 6: scan ',' via scanNextTokenIx_flow_comma
       obtain ⟨s_c, h_snt_c, h_corr_c, h_fl_c, h_dp_c, h_ids_c, h_ek_c, h_col_c, _h_line_c,
-              h_atol_c, h_endline_c, h_stack_c⟩ :=
+              h_atol_c, h_endline_c, h_stack_c, h_last_c⟩ :=
         scanNextTokenIx_flow_comma s_v
           (' ' :: (L4YAML.Emit.emit.emitPairList (p' :: ps)).toList ++ rest_chars)
           h_corr_v h_flow_v h_indent_v h_col_v h_last_v h_atol_v h_endline_v
@@ -495,6 +498,7 @@ lemma emitPairList_scans_nonemptyIx_strong (pairs : List (YamlValue × YamlValue
           (h_atol_transfer_pp h_atol_c)
           (h_endline_transfer_pp h_endline_c)
           (by rw [h_dp_pp, h_dp_c, h_dp_v, h_dp₃, h_dp₂, h_dp₁]; exact h_dp)
+          (fun t ht => h_last_c t (h_toks_pp ▸ ht))
       have h_snt_eq_r : scanNextTokenIx s_c = scanNextTokenIx s_pp :=
         scanNextTokenIx_eq_of_preprocess s_c s_pp h_pp_eq_r
       have h_n_r_pos : n_r ≥ 1 := by

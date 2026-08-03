@@ -15,7 +15,8 @@ that scanner module transitively depends on, do not form an import cycle.
 
 namespace L4YAML.Proofs.FlowAdjacencyIx
 
-open L4YAML L4YAML.Scanner L4YAML.Scanner.Indexed L4YAML.Scanner.Indexed.ScannerStateIx
+open L4YAML L4YAML.Indexed L4YAML.Scanner L4YAML.Scanner.Indexed
+  L4YAML.Scanner.Indexed.ScannerStateIx
 
 /-- Peel the folded flow-adjacency check off the front of
     `scanNextTokenIx_dispatchFlowIndicators` (inversion sites). -/
@@ -59,5 +60,131 @@ theorem checkFlowAdjacencyIx_ok_of_sepChar {input : String}
     · rcases h with rfl | rfl | rfl | rfl <;> simp
     · rfl
   · rfl
+
+/-! ## Last-token preservation through `saveSimpleKeyIx`
+
+Indexed twins of the `FlowAdjacency.lean` helpers used to thread the
+`checkFlowAdjacencyIx_ok_of_notCompletes` discharge from a scanner state
+into its `saveSimpleKeyIx`-preprocessed successor. -/
+
+/-- After pushing two `.placeholder` tokens onto a token stream,
+    `lastRealTokenValIx?` either reports the pre-push last real token or
+    reports `.placeholder`.  Indexed twin of legacy
+    `lastRealTokenVal_push_two_ph`. -/
+theorem lastRealTokenValIx_push_two_ph {input : String}
+    (ts : Indexed.TokenStream input)
+    (ph1 ph2 : Indexed.IxToken input)
+    (h1 : ph1.token = YamlToken.placeholder)
+    (h2 : ph2.token = YamlToken.placeholder)
+    (t : YamlToken)
+    (ht : lastRealTokenValIx? ((ts.push ph1).push ph2) = some t) :
+    lastRealTokenValIx? ts = some t ∨ t = YamlToken.placeholder := by
+  unfold lastRealTokenValIx? at ht
+  simp only [Indexed.TokenStream.push, Array.size_push] at ht
+  simp only [show ts.tokens.size + 1 + 1 > 0 from by omega, ↓reduceIte,
+    show ts.tokens.size + 1 + 1 - 1 = ts.tokens.size + 1 from by omega] at ht
+  have h_elem1 : ((ts.tokens.push ph1).push ph2)[ts.tokens.size + 1]!.token
+      = YamlToken.placeholder := by
+    rw [getElem!_pos _ _ (by simp [Array.size_push])]
+    simp [Array.getElem_push, Array.size_push, h2]
+  simp only [h_elem1,
+    show (YamlToken.placeholder == YamlToken.placeholder) = true from by decide,
+    Bool.true_and, show ts.tokens.size + 1 > 0 from by omega,
+    show ts.tokens.size + 1 - 1 = ts.tokens.size from by omega] at ht
+  have h_elem2 : ((ts.tokens.push ph1).push ph2)[ts.tokens.size]!.token
+      = YamlToken.placeholder := by
+    rw [getElem!_pos _ _ (by simp [Array.size_push]; omega)]
+    simp [Array.getElem_push, Array.size_push, h1]
+  by_cases h_gt : ts.tokens.size > 0
+  · have h_elem3 : ((ts.tokens.push ph1).push ph2)[ts.tokens.size - 1]!.token
+        = ts.tokens[ts.tokens.size - 1]!.token := by
+      rw [getElem!_pos _ _ (by simp [Array.size_push]; omega),
+          getElem!_pos _ _ (by omega)]
+      simp only [Array.getElem_push,
+        show ts.tokens.size - 1 < (ts.tokens.push ph1).size from by
+          simp [Array.size_push]; omega,
+        show ts.tokens.size - 1 < ts.tokens.size from by omega, dite_true]
+    simp only [h_elem2,
+      show (YamlToken.placeholder == YamlToken.placeholder) = true from by decide,
+      Bool.true_and, show ts.tokens.size + 1 > 1 from by omega,
+      show ts.tokens.size + 1 - 2 = ts.tokens.size - 1 from by omega,
+      h_elem3] at ht
+    injection ht with ht_val
+    by_cases h_ne : t = YamlToken.placeholder
+    · exact .inr h_ne
+    · left; unfold lastRealTokenValIx?
+      show (let arr := ts.tokens
+        if arr.size > 0 then
+          let lastIdx := arr.size - 1
+          let tok1 := arr[lastIdx]!.token
+          if tok1 == YamlToken.placeholder && lastIdx > 0 then
+            let tok2 := arr[lastIdx - 1]!.token
+            if tok2 == YamlToken.placeholder && lastIdx > 1 then
+              some arr[lastIdx - 2]!.token
+            else some tok2
+          else some tok1
+        else none) = some t
+      simp only [h_gt, ↓reduceIte, ht_val,
+        show (t == YamlToken.placeholder) = false from
+          beq_eq_false_iff_ne.mpr h_ne, Bool.false_and, Bool.false_eq_true]
+  · simp only [h_elem2,
+      show (YamlToken.placeholder == YamlToken.placeholder) = true from by decide,
+      Bool.true_and, show ¬(ts.tokens.size + 1 > 1) from by omega] at ht
+    injection ht with ht_val; exact .inr ht_val.symm
+
+/-- If the final array slot holds a non-placeholder token,
+    `lastRealTokenValIx?` returns exactly that token's value.  Indexed
+    twin of legacy `lastRealTokenVal_of_last_nonph`. -/
+theorem lastRealTokenValIx_of_last_nonph {input : String}
+    (ts : Indexed.TokenStream input) (N : Nat) (tok : Indexed.IxToken input)
+    (h_size : ts.tokens.size = N + 1) (h_get : ts.tokens[N]? = some tok)
+    (h_np : tok.token ≠ YamlToken.placeholder) :
+    lastRealTokenValIx? ts = some tok.token := by
+  have hN : N < ts.tokens.size := by omega
+  have h_eq : ts.tokens[N] = tok := by
+    rw [Array.getElem?_eq_getElem hN] at h_get; exact Option.some.inj h_get
+  have h_bang : ts.tokens[ts.tokens.size - 1]!.token = tok.token := by
+    rw [show ts.tokens.size - 1 = N from by omega, getElem!_pos ts.tokens N hN, h_eq]
+  have h_np' : (tok.token == YamlToken.placeholder) = false := beq_eq_false_iff_ne.mpr h_np
+  unfold lastRealTokenValIx?
+  simp only [show ts.tokens.size > 0 from by omega, ↓reduceIte, h_bang, h_np',
+    Bool.false_and, Bool.false_eq_true, ↓reduceIte]
+
+/-- `saveSimpleKeyIx` preserves "last real token does not complete a flow
+    value" (the placeholders it may push are not value-completers).
+    Indexed twin of legacy `saveSimpleKey_preserves_completesFalse`. -/
+theorem saveSimpleKeyIx_preserves_completesFalse {input : String}
+    (s : ScannerStateIx input)
+    (h_last : ∀ t, lastRealTokenValIx? s.tokens = some t → t.completesFlowValue = false)
+    (t : YamlToken)
+    (ht : lastRealTokenValIx? (saveSimpleKeyIx s).tokens = some t) :
+    t.completesFlowValue = false := by
+  have h_cases : (saveSimpleKeyIx s).tokens = s.tokens ∨
+      (saveSimpleKeyIx s).tokens =
+        ((s.tokens.push
+            (Indexed.IxToken.mk' (input := input) s.cursor.pos YamlToken.placeholder
+              s.cursor.pos (Nat.le_refl _) s.cursor.posBound)).push
+          (Indexed.IxToken.mk' (input := input) s.cursor.pos YamlToken.placeholder
+            s.cursor.pos (Nat.le_refl _) s.cursor.posBound)) := by
+    unfold saveSimpleKeyIx
+    split
+    · exact .inl rfl
+    · split
+      · right
+        show ((s.emit YamlToken.placeholder).emit YamlToken.placeholder).tokens = _
+        rfl
+      · exact .inl rfl
+  rcases h_cases with h_eq | h_eq
+  · rw [h_eq] at ht; exact h_last t ht
+  · rw [h_eq] at ht
+    have h_or := lastRealTokenValIx_push_two_ph s.tokens
+      (Indexed.IxToken.mk' (input := input) s.cursor.pos YamlToken.placeholder
+        s.cursor.pos (Nat.le_refl _) s.cursor.posBound)
+      (Indexed.IxToken.mk' (input := input) s.cursor.pos YamlToken.placeholder
+        s.cursor.pos (Nat.le_refl _) s.cursor.posBound)
+      rfl rfl t ht
+    cases h_or with
+    | inl h => exact h_last t h
+    | inr h => subst h; rfl
 
 end L4YAML.Proofs.FlowAdjacencyIx

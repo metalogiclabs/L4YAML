@@ -299,7 +299,8 @@ lemma scanNextTokenIx_flow_comma (s : ScannerStateIx input)
       ∧ s'.cursor.pos.line = s.cursor.pos.line
       ∧ AllTokensOnLineIx s' s'.cursor.pos.line
       ∧ EndLineOnLineIx s'
-      ∧ s'.simpleKeyStack = s.simpleKeyStack := by
+      ∧ s'.simpleKeyStack = s.simpleKeyStack
+      ∧ (∀ t, lastRealTokenValIx? s'.tokens = some t → t.completesFlowValue = false) := by
   -- Step 1: preprocessing
   have h_pp : scanNextTokenIx_preprocess s = .ok (some (saveSimpleKeyIx s, ',')) :=
     scanNextTokenIx_preprocess_flow s ',' rest s.cursor.pos.col hcorr h_flow
@@ -460,9 +461,22 @@ lemma scanNextTokenIx_flow_comma (s : ScannerStateIx input)
     have h_sk_line : (saveSimpleKeyIx s).cursor.pos.line = s.cursor.pos.line := by
       rw [saveSimpleKeyIx_cursor]
     exact ⟨h1.trans h_sk_line, h2.trans h_sk_line⟩
+  -- completesFlowValue: the comma emits `.flowEntry`, which does not complete a flow value
+  have h_s'_last : ∀ t, lastRealTokenValIx?
+      ({ (s_ad.emit YamlToken.flowEntry).advance with simpleKeyAllowed := true }
+        : ScannerStateIx input).tokens = some t → t.completesFlowValue = false := by
+    intro t ht
+    rw [show lastRealTokenValIx?
+        ({ (s_ad.emit YamlToken.flowEntry).advance with simpleKeyAllowed := true }
+          : ScannerStateIx input).tokens = some YamlToken.flowEntry from
+      lastRealTokenValIx_push_non_ph s_ad.tokens
+        (IxToken.mk' (input := input) s_ad.cursor.pos YamlToken.flowEntry s_ad.cursor.pos
+          (Nat.le_refl _) s_ad.cursor.posBound)
+        (show YamlToken.flowEntry ≠ YamlToken.placeholder by decide)] at ht
+    simp only [Option.some.injEq] at ht; subst ht; rfl
   -- Combine
   refine ⟨_, h_snt, ?_, h_s'_fl, h_s'_dp, h_s'_indents, h_s'_ek, h_s'_col, h_s'_line,
-         h_s'_atol, h_s'_endline, h_s'_stack⟩
+         h_s'_atol, h_s'_endline, h_s'_stack, h_s'_last⟩
   rw [h_s'_col]; exact h_s'_corr
 
 end L4YAML.Proofs.Indexed.EmitterScannability.FlowMonoChain

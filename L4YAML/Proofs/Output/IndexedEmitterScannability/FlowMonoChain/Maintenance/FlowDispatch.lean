@@ -424,4 +424,40 @@ lemma saveSimpleKeyIx_preserves_lastRealTokenValIx_ne_flow
     | inl h => exact h_last t h
     | inr h => subst h; exact ⟨by decide, by decide, by decide⟩
 
+/-! ## §8  `scanFlow{Sequence,Mapping}StartIx` last-real-token facts
+
+Used by the flow-opener step lemmas (Fix A) to re-establish the
+`completesFlowValue = false` invariant after opening a flow collection:
+the newly-emitted `.flow{Sequence,Mapping}Start` is the last real token,
+and it does not complete a flow value.  Indexed twins of
+`scanFlow{Sequence,Mapping}Start_lastRealTokenVal` (ScanSteps). -/
+
+/-- After `scanFlowSequenceStartIx`, the last real token is
+    `.flowSequenceStart`. -/
+lemma scanFlowSequenceStartIx_lastRealTokenVal (s : ScannerStateIx input) :
+    lastRealTokenValIx? (scanFlowSequenceStartIx s).tokens
+      = some YamlToken.flowSequenceStart := by
+  have h : (scanFlowSequenceStartIx s).tokens = s.tokens.push
+      (IxToken.mk' (input := input) s.cursor.pos YamlToken.flowSequenceStart
+        s.cursor.pos (Nat.le_refl _) s.cursor.posBound) := rfl
+  rw [h]
+  exact lastRealTokenValIx_push_non_ph s.tokens
+    (IxToken.mk' (input := input) s.cursor.pos YamlToken.flowSequenceStart
+      s.cursor.pos (Nat.le_refl _) s.cursor.posBound)
+    (show YamlToken.flowSequenceStart ≠ YamlToken.placeholder by decide)
+
+/-- After `scanFlowMappingStartIx`, the last real token is
+    `.flowMappingStart`. -/
+lemma scanFlowMappingStartIx_lastRealTokenVal (s : ScannerStateIx input) :
+    lastRealTokenValIx? (scanFlowMappingStartIx s).tokens
+      = some YamlToken.flowMappingStart := by
+  have h : (scanFlowMappingStartIx s).tokens = s.tokens.push
+      (IxToken.mk' (input := input) s.cursor.pos YamlToken.flowMappingStart
+        s.cursor.pos (Nat.le_refl _) s.cursor.posBound) := rfl
+  rw [h]
+  exact lastRealTokenValIx_push_non_ph s.tokens
+    (IxToken.mk' (input := input) s.cursor.pos YamlToken.flowMappingStart
+      s.cursor.pos (Nat.le_refl _) s.cursor.posBound)
+    (show YamlToken.flowMappingStart ≠ YamlToken.placeholder by decide)
+
 end L4YAML.Proofs.Indexed.EmitterScannability.FlowMonoChain

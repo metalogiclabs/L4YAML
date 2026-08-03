@@ -598,4 +598,38 @@ lemma scanNextTokenIx_via_flow_dispatch
   dsimp only []
   rw [h_flow]
 
+/-- Inversion of the flow-adjacency check (Fix A): a *successful*
+    `scanNextTokenIx` forces the folded `scanNextTokenIx_checkFlowAdjacency`
+    guard to have passed.  Lets value-starter head-fact lemmas that already
+    carry `h_snt` discharge the folded check without an extra last-token
+    precondition.  Indexed twin of `checkFlowAdjacency_ok_of_scanNextToken_ok`
+    (ScanSteps). -/
+theorem checkFlowAdjacencyIx_ok_of_scanNextTokenIx_ok
+    {s s_pp s_ad : ScannerStateIx input} {c : Char} {s' : ScannerStateIx input}
+    (h_pp : scanNextTokenIx_preprocess s = .ok (some (s_pp, c)))
+    (h_struct : scanNextTokenIx_dispatchStructural s_pp c = .ok none)
+    (h_ad_eq : s_ad = if s_pp.allowDirectives then
+      { s_pp with allowDirectives := false, documentEverStarted := true } else s_pp)
+    (h_check : scanNextTokenIx_checkBlockFlowIndent s_ad c = .ok ())
+    (h_ndp : s_pp.directivesPresent = false)
+    (h_snt : scanNextTokenIx s = .ok (some s')) :
+    scanNextTokenIx_checkFlowAdjacency s_ad c = .ok () := by
+  cases hc : scanNextTokenIx_checkFlowAdjacency s_ad c with
+  | ok u => rfl
+  | error e =>
+    exfalso
+    have h_disp_err : scanNextTokenIx_dispatchFlowIndicators s_ad c = .error e := by
+      unfold scanNextTokenIx_dispatchFlowIndicators
+      rw [hc]; simp only [bind, Except.bind]
+    have h_snt_err : scanNextTokenIx s = .error e := by
+      unfold scanNextTokenIx
+      simp only [bind, Except.bind, pure, Pure.pure, Except.pure]
+      rw [h_pp]; dsimp only []
+      rw [h_struct]; dsimp only []
+      rw [scanNextTokenIx_checkNoPendingDirectives_ok _ h_ndp]; dsimp only []
+      rw [← h_ad_eq]
+      rw [h_check]; dsimp only []
+      rw [h_disp_err]
+    rw [h_snt_err] at h_snt; exact absurd h_snt (by simp)
+
 end L4YAML.Proofs.Indexed.EmitterScannability.FlowMonoChain

@@ -81,6 +81,7 @@ open L4YAML.Proofs.Indexed.EmitterScannability.ScanChain
 open L4YAML.Proofs.Indexed.ScannerPlainScalarValid
 open L4YAML.Surface
 open L4YAML.Proofs.CouplingBridge
+open L4YAML.Proofs.FlowAdjacencyIx
 
 variable {input : String}
 
@@ -450,7 +451,8 @@ lemma scanNextTokenIx_flow_open_mapping_init (input : String) (rest : List Char)
       ∧ AllTokensOnLineIx s' 0
       ∧ EndLineOnLineIx s'
       ∧ s'.simpleKey.possible = false
-      ∧ s'.simpleKeyStack.size = s'.flowLevel := by
+      ∧ s'.simpleKeyStack.size = s'.flowLevel
+      ∧ (∀ t, lastRealTokenValIx? s'.tokens = some t → t.completesFlowValue = false) := by
   intro s₀
   -- Step 1: preprocessing (uses §2)
   have h_pp := scanNextTokenIx_preprocess_init_state input '{' rest h_toList
@@ -543,6 +545,8 @@ lemma scanNextTokenIx_flow_open_mapping_init (input : String) (rest : List Char)
   have h_flow_disp : scanNextTokenIx_dispatchFlowIndicators s_ad '{' =
       .ok (some (scanFlowMappingStartIx s_ad)) :=
     dispatchFlowIndicators_brace s_ad
+      (checkFlowAdjacencyIx_ok_of_notInFlow
+        (by unfold ScannerStateIx.inFlow; simp [h_ad_fl]))
   -- Step 9: compose via scanNextTokenIx_via_flow_dispatch
   have h_snt := scanNextTokenIx_via_flow_dispatch s₀ s_pp s_ad
     (scanFlowMappingStartIx s_ad) '{'
@@ -633,10 +637,16 @@ lemma scanNextTokenIx_flow_open_mapping_init (input : String) (rest : List Char)
     -- s₀.simpleKeyStack = ((ScannerStateIx.mk' input).emit YamlToken.streamStart).simpleKeyStack = #[]
     have h_s0_stack_sz : s₀.simpleKeyStack.size = 0 := rfl
     rw [h_s0_stack_sz]
+  -- completesFlowValue: last token is `.flowMappingStart`, which does not complete a flow value
+  have h_s'_last : ∀ t, lastRealTokenValIx? (scanFlowMappingStartIx s_ad).tokens = some t →
+      t.completesFlowValue = false := by
+    intro t ht
+    rw [scanFlowMappingStartIx_lastRealTokenVal s_ad] at ht
+    simp only [Option.some.injEq] at ht; subst ht; rfl
   -- Combine
   refine ⟨scanFlowMappingStartIx s_ad, h_snt, h_s'_corr, h_s'_fl, h_s'_dp, h_s'_ids,
           h_s'_col, h_s'_inflow, h_s'_ci, h_s'_ek, h_s'_line, h_s'_atol, h_s'_endline,
-          h_s'_sk_poss, h_s'_stack_sz⟩
+          h_s'_sk_poss, h_s'_stack_sz, h_s'_last⟩
 
 /-! ## §6  `scanNextTokenIx_flow_open_seq_init`
 
@@ -668,7 +678,8 @@ lemma scanNextTokenIx_flow_open_seq_init (input : String) (rest : List Char)
       ∧ AllTokensOnLineIx s' 0
       ∧ EndLineOnLineIx s'
       ∧ s'.simpleKey.possible = false
-      ∧ s'.simpleKeyStack.size = s'.flowLevel := by
+      ∧ s'.simpleKeyStack.size = s'.flowLevel
+      ∧ (∀ t, lastRealTokenValIx? s'.tokens = some t → t.completesFlowValue = false) := by
   intro s₀
   -- Step 1: preprocessing (uses §2)
   have h_pp := scanNextTokenIx_preprocess_init_state input '[' rest h_toList
@@ -756,6 +767,8 @@ lemma scanNextTokenIx_flow_open_seq_init (input : String) (rest : List Char)
   have h_flow_disp : scanNextTokenIx_dispatchFlowIndicators s_ad '[' =
       .ok (some (scanFlowSequenceStartIx s_ad)) :=
     dispatchFlowIndicators_bracket s_ad
+      (checkFlowAdjacencyIx_ok_of_notInFlow
+        (by unfold ScannerStateIx.inFlow; simp [h_ad_fl]))
   -- Step 9: compose via scanNextTokenIx_via_flow_dispatch
   have h_snt := scanNextTokenIx_via_flow_dispatch s₀ s_pp s_ad
     (scanFlowSequenceStartIx s_ad) '['
@@ -844,9 +857,15 @@ lemma scanNextTokenIx_flow_open_seq_init (input : String) (rest : List Char)
     rw [h_pre]
     have h_s0_stack_sz : s₀.simpleKeyStack.size = 0 := rfl
     rw [h_s0_stack_sz]
+  -- completesFlowValue: last token is `.flowSequenceStart`, which does not complete a flow value
+  have h_s'_last : ∀ t, lastRealTokenValIx? (scanFlowSequenceStartIx s_ad).tokens = some t →
+      t.completesFlowValue = false := by
+    intro t ht
+    rw [scanFlowSequenceStartIx_lastRealTokenVal s_ad] at ht
+    simp only [Option.some.injEq] at ht; subst ht; rfl
   -- Combine
   refine ⟨scanFlowSequenceStartIx s_ad, h_snt, h_s'_corr, h_s'_fl, h_s'_dp, h_s'_ids,
           h_s'_col, h_s'_inflow, h_s'_ci, h_s'_ek, h_s'_line, h_s'_atol, h_s'_endline,
-          h_s'_sk_poss, h_s'_stack_sz⟩
+          h_s'_sk_poss, h_s'_stack_sz, h_s'_last⟩
 
 end L4YAML.Proofs.Indexed.EmitterScannability.FlowMonoChain

@@ -111,6 +111,8 @@ lemma scanFlowSequenceStartIx_first_filtered_token (s : ScannerStateIx input)
   have h_flow_disp : scanNextTokenIx_dispatchFlowIndicators s_ad '[' =
       .ok (some (scanFlowSequenceStartIx s_ad)) :=
     dispatchFlowIndicators_bracket s_ad
+      (checkFlowAdjacencyIx_ok_of_scanNextTokenIx_ok h_pp h_struct h_s_ad_def h_check
+        (scanNextTokenIx_ok_directivesPresent_false h_pp h_struct h_snt) h_snt)
   have h_snt_eq := scanNextTokenIx_via_flow_dispatch s (saveSimpleKeyIx s) s_ad
     (scanFlowSequenceStartIx s_ad) '['
     h_pp h_struct h_s_ad_def h_check h_flow_disp
@@ -184,6 +186,8 @@ lemma scanFlowMappingStartIx_first_filtered_token (s : ScannerStateIx input)
   have h_flow_disp : scanNextTokenIx_dispatchFlowIndicators s_ad '{' =
       .ok (some (scanFlowMappingStartIx s_ad)) :=
     dispatchFlowIndicators_brace s_ad
+      (checkFlowAdjacencyIx_ok_of_scanNextTokenIx_ok h_pp h_struct h_s_ad_def h_check
+        (scanNextTokenIx_ok_directivesPresent_false h_pp h_struct h_snt) h_snt)
   have h_snt_eq := scanNextTokenIx_via_flow_dispatch s (saveSimpleKeyIx s) s_ad
     (scanFlowMappingStartIx s_ad) '{'
     h_pp h_struct h_s_ad_def h_check h_flow_disp
@@ -262,6 +266,8 @@ lemma scanDoubleQuotedIx_first_filtered_token (s : ScannerStateIx input)
   have h_flow_none : scanNextTokenIx_dispatchFlowIndicators s_ad '"' = .ok none :=
     dispatchFlowIndicators_none _ _
       (by decide) (by decide) (by decide) (by decide) (by decide)
+      (checkFlowAdjacencyIx_ok_of_scanNextTokenIx_ok h_pp h_struct h_s_ad_def h_check
+        (scanNextTokenIx_ok_directivesPresent_false h_pp h_struct h_snt) h_snt)
   have h_block_none : scanNextTokenIx_dispatchBlockIndicators s_ad '"' = .ok none :=
     dispatchBlockIndicators_none_quote _
   -- From h_snt + dispatch composition, dispatchContent succeeds and yields s'

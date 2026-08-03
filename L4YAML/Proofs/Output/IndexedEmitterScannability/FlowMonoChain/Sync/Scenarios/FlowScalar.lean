@@ -67,6 +67,7 @@ open L4YAML.Proofs.Indexed.EmitterScannability.Basic
 open L4YAML.Proofs.Indexed.EmitterScannability.ScanChain
 open L4YAML.Proofs.Indexed.ScannerPlainScalarValid
 open L4YAML.Proofs.CouplingBridge
+open L4YAML.Proofs.FlowAdjacencyIx
 open L4YAML.Surface
 
 variable {input : String}
@@ -165,7 +166,8 @@ lemma scanNextTokenIx_flow_scanDoubleQuoted (s : ScannerStateIx input)
     (h_col_pos : s.cursor.pos.col > 0)
     (h_atol : AllTokensOnLineIx s s.cursor.pos.line)
     (h_endline : EndLineOnLineIx s)
-    (h_dp : s.directivesPresent = false) :
+    (h_dp : s.directivesPresent = false)
+    (h_last : ∀ t, lastRealTokenValIx? s.tokens = some t → t.completesFlowValue = false) :
     ∃ s', scanNextTokenIx s = .ok (some s')
       ∧ ScannerSurfCorrIx s' ⟨rest, s'.cursor.pos.col⟩
       ∧ s'.flowLevel = s.flowLevel
@@ -203,9 +205,13 @@ lemma scanNextTokenIx_flow_scanDoubleQuoted (s : ScannerStateIx input)
   have h_ad_flow_true : s_ad.inFlow = true := h_ad_flow ▸ h_flow
   have h_check : scanNextTokenIx_checkBlockFlowIndent s_ad '"' = .ok () :=
     checkBlockFlowIndent_ok_flow s_ad '"' h_ad_flow_true
+  have h_ad_tokens' : s_ad.tokens = (saveSimpleKeyIx s).tokens := by
+    rw [h_s_ad_def]; split <;> rfl
   have h_flow_none : scanNextTokenIx_dispatchFlowIndicators s_ad '"' = .ok none :=
     dispatchFlowIndicators_none _ _
       (by decide) (by decide) (by decide) (by decide) (by decide)
+      (checkFlowAdjacencyIx_ok_of_notCompletes (fun t ht =>
+        saveSimpleKeyIx_preserves_completesFalse s h_last t (h_ad_tokens' ▸ ht)))
   have h_block_none : scanNextTokenIx_dispatchBlockIndicators s_ad '"' = .ok none :=
     dispatchBlockIndicators_none_quote _
   -- ── s_ad field equalities
