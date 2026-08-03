@@ -343,6 +343,31 @@ mutual
         GOpt (SSeparate n c) s₁ s₂ →
         GLit ':' s₂ s' →
         SFlowSeqEntry n c s s'
+    /-- Explicit '?' flow pair with value: `? key : value`. Covers `[? a : b]`
+        (ns-flow-pair explicit case [149], reusing `'?' s-separate` + key/value). -/
+    | explicitPairValue (n : Nat) (c : YamlContext) (s s₁ s₂ s₃ s₄ s₅ s₆ s' : SurfPos) :
+        GLit '?' s s₁ →
+        SSeparate n c s₁ s₂ →
+        SFlowNode n c s₂ s₃ →
+        GOpt (SSeparate n c) s₃ s₄ →
+        GLit ':' s₄ s₅ →
+        SSeparate n c s₅ s₆ →
+        SFlowNode n c s₆ s' →
+        SFlowSeqEntry n c s s'
+    /-- Explicit '?' flow pair, empty value: `? key :`. Covers `[? a :]`. -/
+    | explicitPairEmpty (n : Nat) (c : YamlContext) (s s₁ s₂ s₃ s₄ s' : SurfPos) :
+        GLit '?' s s₁ →
+        SSeparate n c s₁ s₂ →
+        SFlowNode n c s₂ s₃ →
+        GOpt (SSeparate n c) s₃ s₄ →
+        GLit ':' s₄ s' →
+        SFlowSeqEntry n c s s'
+    /-- Explicit '?' key, no value indicator: `? key`. Covers `[? a]`. -/
+    | explicitPairKeyOnly (n : Nat) (c : YamlContext) (s s₁ s₂ s' : SurfPos) :
+        GLit '?' s s₁ →
+        SSeparate n c s₁ s₂ →
+        SFlowNode n c s₂ s' →
+        SFlowSeqEntry n c s s'
 
   /-- [140] c-flow-mapping(n,c): '{' + entries + '}'. -/
   @[yaml_spec "7.4.2" 140 "c-flow-mapping(n,c)"]
@@ -400,6 +425,13 @@ mutual
         SFlowNode n c s₂ s₃ →
         GOpt (SSeparate n c) s₃ s₄ →
         GLit ':' s₄ s' →
+        SFlowMapEntry n c s s'
+    /-- Explicit '?' + key with no value indicator: `{? a}` — the `e-node` (empty
+        value, no `':'`) branch after `'?' s-separate ns-flow-yaml-node`. -/
+    | explicitKeyOnly (n : Nat) (c : YamlContext) (s s₁ s₂ s' : SurfPos) :
+        GLit '?' s s₁ →
+        SSeparate n c s₁ s₂ →
+        SFlowNode n c s₂ s' →
         SFlowMapEntry n c s s'
     /-- Implicit key + ':' + separator + value. -/
     | implicitValue (n : Nat) (c : YamlContext) (s s₁ s₂ s₃ s₄ s' : SurfPos) :
