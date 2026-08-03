@@ -504,6 +504,99 @@ lemma flowMap_extends_stream
             h_ssl))))
     (GStar.nil _)
 
+/-! ## §0c' FlowOpenStack — open flow-collection accumulation (Fix A, Piece 2 / Stage B)
+
+    The invariant component carrying the state of ≥1 OPEN flow collections
+    (`sc.flowLevel > 0`). Each level holds a `PartialFlowSeq`/`PartialFlowMap`
+    accumulator (`NodeProduction` §4e), the open bracket, and the post-`[`
+    separation. Indexed by depth (= `sc.flowLevel`, for the coupling) and by the
+    outer boundary `sp_before` (where the outermost flow started — the enclosing
+    context's stream/block ends here) through `sp_cur` (current scan position).
+
+    The **base** carries a generic `resume` closure that connects the completed
+    outermost flow node to `SLYamlStream`. This is what makes the flow↔context
+    interaction uniform:
+    - top-level flow (`[1,2,3]` as a document): `resume` = `flowSeq_extends_stream`;
+    - block-nested flow (`key: [1,2]`): `resume node ssl = pendingBlock.h_close
+      (SBlockNode.flowInBlock … node ssl)`.
+    (`resume` takes the outer flow node at `.flowOut`, which both `flowInBlock`
+    and the bare-document node use.) -/
+
+inductive FlowOpenStack (sp_start : SurfPos) : Nat → SurfPos → SurfPos → Prop where
+  /-- Outermost open flow sequence (depth 1). -/
+  | seqBase (sp_before sp_open sp_es sp_cur : SurfPos)
+      (resume : ∀ sp_ne sp_mid, SFlowNode 0 .flowOut sp_before sp_ne →
+                SSLComments sp_ne sp_mid → SLYamlStream sp_start sp_mid)
+      (h_open : GLit '[' sp_before sp_open)
+      (h_sep : GOpt (SSeparate 0 .flowOut) sp_open sp_es)
+      (p : PartialFlowSeq 0 (inFlowCtx .flowOut) sp_es sp_cur) :
+      FlowOpenStack sp_start 1 sp_before sp_cur
+  /-- Outermost open flow mapping (depth 1). -/
+  | mapBase (sp_before sp_open sp_es sp_cur : SurfPos)
+      (resume : ∀ sp_ne sp_mid, SFlowNode 0 .flowOut sp_before sp_ne →
+                SSLComments sp_ne sp_mid → SLYamlStream sp_start sp_mid)
+      (h_open : GLit '{' sp_before sp_open)
+      (h_sep : GOpt (SSeparate 0 .flowOut) sp_open sp_es)
+      (p : PartialFlowMap 0 (inFlowCtx .flowOut) sp_es sp_cur) :
+      FlowOpenStack sp_start 1 sp_before sp_cur
+  /-- A nested open flow sequence (depth d+1) inside a receptive parent. -/
+  | seqNest (d : Nat) (sp_before0 sp_par sp_open sp_es sp_cur : SurfPos)
+      (below : FlowOpenStack sp_start d sp_before0 sp_par)
+      (h_open : GLit '[' sp_par sp_open)
+      (h_sep : GOpt (SSeparate 0 .flowIn) sp_open sp_es)
+      (p : PartialFlowSeq 0 (inFlowCtx .flowIn) sp_es sp_cur) :
+      FlowOpenStack sp_start (d + 1) sp_before0 sp_cur
+  /-- A nested open flow mapping (depth d+1). -/
+  | mapNest (d : Nat) (sp_before0 sp_par sp_open sp_es sp_cur : SurfPos)
+      (below : FlowOpenStack sp_start d sp_before0 sp_par)
+      (h_open : GLit '{' sp_par sp_open)
+      (h_sep : GOpt (SSeparate 0 .flowIn) sp_open sp_es)
+      (p : PartialFlowMap 0 (inFlowCtx .flowIn) sp_es sp_cur) :
+      FlowOpenStack sp_start (d + 1) sp_before0 sp_cur
+
+/-- Close the OUTERMOST flow SEQUENCE (depth 1) into the stream: assemble the
+    `SFlowSequence`, wrap as a `.flowOut` flow node, and apply the base `resume`
+    closure with the trailing comments. The grammatical replacement for
+    `scannerDrop` when the outermost `]` closes. (Takes the extracted `seqBase`
+    fields, which the accum step provides after `cases`-ing the `FlowOpenStack`.) -/
+lemma flowSeqBase_closeToStream {sp_start sp_before sp_open sp_es sp_cur sp' sp_mid : SurfPos}
+    (resume : ∀ sp_ne sp_m, SFlowNode 0 .flowOut sp_before sp_ne →
+              SSLComments sp_ne sp_m → SLYamlStream sp_start sp_m)
+    (h_open : GLit '[' sp_before sp_open)
+    (h_sep : GOpt (SSeparate 0 .flowOut) sp_open sp_es)
+    (p : PartialFlowSeq 0 (inFlowCtx .flowOut) sp_es sp_cur)
+    (h_close : GLit ']' sp_cur sp') (h_ssl : SSLComments sp' sp_mid) :
+    SLYamlStream sp_start sp_mid :=
+  resume sp' sp_mid (flowSeq_flowNode (p.closeSeq h_open h_sep h_close)) h_ssl
+
+/-- Close the outermost flow MAPPING (depth 1) into the stream (the `}` analogue). -/
+lemma flowMapBase_closeToStream {sp_start sp_before sp_open sp_es sp_cur sp' sp_mid : SurfPos}
+    (resume : ∀ sp_ne sp_m, SFlowNode 0 .flowOut sp_before sp_ne →
+              SSLComments sp_ne sp_m → SLYamlStream sp_start sp_m)
+    (h_open : GLit '{' sp_before sp_open)
+    (h_sep : GOpt (SSeparate 0 .flowOut) sp_open sp_es)
+    (p : PartialFlowMap 0 (inFlowCtx .flowOut) sp_es sp_cur)
+    (h_close : GLit '}' sp_cur sp') (h_ssl : SSLComments sp' sp_mid) :
+    SLYamlStream sp_start sp_mid :=
+  resume sp' sp_mid (flowMap_flowNode (p.closeMap h_open h_sep h_close)) h_ssl
+
+/-- The base `resume` for a TOP-LEVEL flow document node: the completed flow node
+    is a bare document that extends the stream (via `implicitContinue`). -/
+lemma topLevelFlowResume {sp_start sp_before : SurfPos}
+    (h_stream : SLYamlStream sp_start sp_before) :
+    ∀ sp_ne sp_mid, SFlowNode 0 .flowOut sp_before sp_ne →
+      SSLComments sp_ne sp_mid → SLYamlStream sp_start sp_mid :=
+  fun _ sp_mid h_node h_ssl =>
+    SLYamlStream.implicitContinue sp_start sp_before sp_before sp_mid sp_mid
+      h_stream (GStar.nil _)
+      (GOpt.some sp_before sp_mid
+        (SLAnyDocument.bare sp_before sp_mid
+          (SLBareDocument.mk sp_before sp_mid
+            (SBlockNode.flowInBlock 0 .blockIn sp_before sp_before _ sp_mid
+              (SSeparateLines.inline 0 sp_before sp_before (SSeparateInLine.startOfLine sp_before))
+              h_node h_ssl))))
+      (GStar.nil _)
+
 /-- Close any PendingNode to SLYamlStream using SSLComments evidence.
 
     Centralizes the per-constructor closing strategies that were previously
