@@ -6124,6 +6124,30 @@ needed no changes.)
        `pendingFlow`, delete the now-unused old `FlowStack`/`absorb_stacks`. The original monolithic
        write-up is retained below for the per-transition detail.
 
+       **β.1 — ✅ DONE (compiling with 5 marked sorries; UNCOMMITTED — β is not yet axiom-clean).**
+       The invariant's flow index is now coupled to the scanner `flowLevel`: hypothesis
+       `FlowStackB sp_start sc.flowLevel …`, conclusion `FlowStackB sp_start s'.flowLevel …`, flipped
+       across all 8 step/loop/EOF lemmas (`accum_step_{structural,flow,block,content}`,
+       `scanNextToken_accum_step`, `scanNextToken_none_stream`, `scanLoop_grammar_prod`, and the
+       kickoff in `scan_content_gives_stream_v2`). The **depth-0 (`nil`) paths are FULLY PROVEN**:
+       each non-flow step lemma does `rcases Nat.eq_zero_or_pos sc.flowLevel with h0 | hpos`, and in
+       the `h0` branch `rw [h0] at h_flow` recovers the literal-`0` stack so the pre-existing
+       depth-0 proof (`absorb_stacksB` + `accum_*_pending`) applies verbatim, after a
+       `have h_lvl : s'.flowLevel = 0` rewrite of the goal. That rewrite chains three reachable
+       facts (all found in-closure): `ScannerCorrectness.dispatch{Structural,BlockIndicators,Content}_preserves_flowLevel`,
+       a new local `allowDirectives_update_flowLevel` (record update leaves `flowLevel`), and a new
+       local `preprocess_preserves_flowLevel` (replicated from `EmitterScannability`'s version — that
+       module is out of closure — via `ScannerCorrectness.{skipToContent,unwindIndents,saveSimpleKey}_preserves_flowLevel`).
+       The kickoff proves the initial scanner's `flowLevel = 0` by `split` + `advance_flowLevel`
+       (`emit`/`mk'` give it definitionally). `scanNextToken_accum_step` and `scanLoop_grammar_prod`
+       needed **only** the signature flip — their bodies thread the coupling generically (no casing).
+       **The 5 remaining sorries ARE the red core, precisely localized:** (1) `accum_step_flow` whole
+       body = β.2 (`[`/`{`/`]`/`}`/`,` → real `FlowOpenStack` push/pop/hold + sep-threading); (2–5)
+       the `hpos` (depth ≥ 1) branches of `accum_step_{structural,block,content}` + `scanNextToken_none_stream`
+       = β.3 (flow-interior content/block/structural dispatch + open-flow-at-EOF). Both `StreamAccum`
+       and its sole importer `DocumentProduction` build green-with-sorries; no external ripple.
+       NEXT = β.2 (the monolithic accumulation rewrite in `accum_step_flow`).
+
      Replace the invariant's flow component
      `FlowStack sp_block sp_flow` → `FlowStackB sp_start sc.flowLevel sp_block sp_flow` across the
      ~20 lemmas that state it; replace `absorb_stacks` → `absorb_stacksB` (valid only at depth 0 —

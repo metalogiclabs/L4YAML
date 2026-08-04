@@ -1026,6 +1026,48 @@ lemma corr_of_allowDirectives_update {sc : ScannerState} {sp : SurfPos}
   · exact ⟨hcorr.chars_from, hcorr.col_eq, hcorr.end_eq, hcorr.input_prefix, hcorr.indent_cols_nonneg⟩
   · exact hcorr
 
+-- Helper (B.4β): the `allowDirectives` flag update between structural dispatch
+-- and block/flow/content dispatch touches neither `flowLevel` nor `tokens`.
+lemma allowDirectives_update_flowLevel (s : ScannerState) :
+    (if s.allowDirectives then
+      { s with allowDirectives := false, documentEverStarted := true }
+    else s).flowLevel = s.flowLevel := by
+  split <;> rfl
+
+-- Helper (B.4β): `scanNextToken_preprocess` preserves `flowLevel`. Replicated
+-- from `EmitterScannability.preprocess_preserves_flowLevel` (that module is not
+-- in this file's import closure) via the reachable `ScannerCorrectness.*`
+-- primitives (skipToContent / unwindIndents / saveSimpleKey).
+lemma preprocess_preserves_flowLevel (s s1 : ScannerState) (c : Char)
+    (h : scanNextToken_preprocess s = .ok (some (s1, c))) :
+    s1.flowLevel = s.flowLevel := by
+  unfold scanNextToken_preprocess at h
+  simp only [bind, pure, Pure.pure, Except.pure] at h
+  simp only [Except.bind] at h
+  split at h
+  · contradiction
+  · rename_i s_skip h_skip
+    have h_fl_skip := ScannerCorrectness.skipToContent_preserves_flowLevel s s_skip h_skip
+    split at h
+    · simp at h
+    · split at h
+      · split at h
+        · contradiction
+        · split at h
+          · simp at h
+          · simp only [Except.ok.injEq, Option.some.injEq, Prod.mk.injEq] at h
+            obtain ⟨rfl, _⟩ := h
+            rw [ScannerCorrectness.saveSimpleKey_preserves_flowLevel]
+            show (unwindIndents s_skip s_skip.col).flowLevel = s.flowLevel
+            rw [ScannerCorrectness.unwindIndents_preserves_flowLevel]; exact h_fl_skip
+      · split at h
+        · contradiction
+        · split at h
+          · simp at h
+          · simp only [Except.ok.injEq, Option.some.injEq, Prod.mk.injEq] at h
+            obtain ⟨rfl, _⟩ := h
+            rw [ScannerCorrectness.saveSimpleKey_preserves_flowLevel]; exact h_fl_skip
+
 /-! ### §1b Preprocessing + Structural Dispatch
 
     `scanNextToken_dispatchStructural` handles `---`, `...`, `%`-directives.
@@ -1561,7 +1603,7 @@ lemma accum_step_structural (sc : ScannerState)
     (s_prep s' : ScannerState) (c : Char) {b : Bool}
     (h_stream : SLYamlStream sp_start sp_gram)
     (h_stack : BlockStack sp_gram sp_block)
-    (h_flow : FlowStackB sp_start 0 sp_block sp_flow)
+    (h_flow : FlowStackB sp_start sc.flowLevel sp_block sp_flow)
     (h_pending : PendingNode b sp_start sp_flow sp_scan)
     (h_dir_flag : b = true → sc.directivesPresent = true)
     (h_corr : ScannerSurfCorr sc sp_scan)
@@ -1570,13 +1612,24 @@ lemma accum_step_structural (sc : ScannerState)
     ∃ sp_gram' sp_block' sp_flow' sp_scan' b',
       SLYamlStream sp_start sp_gram' ∧
       BlockStack sp_gram' sp_block' ∧
-      FlowStackB sp_start 0 sp_block' sp_flow' ∧
+      FlowStackB sp_start s'.flowLevel sp_block' sp_flow' ∧
       PendingNode b' sp_start sp_flow' sp_scan' ∧
       (b' = true → s'.directivesPresent = true) ∧
       ScannerSurfCorr s' sp_scan' := by
-  exact accum_structural_pending sc sp_start sp_flow sp_scan s_prep s' c
-    (absorb_stacksB sp_start sp_gram sp_block sp_flow h_stream h_stack h_flow)
-    h_pending h_dir_flag h_corr h_preprocess h_dispatch
+  -- B.4β: the flow stack is indexed by the scanner's `flowLevel`.
+  rcases Nat.eq_zero_or_pos sc.flowLevel with h0 | hpos
+  · -- depth 0 (no open flow collection): the existing depth-0 proof.
+    rw [h0] at h_flow
+    have h_lvl : s'.flowLevel = 0 := by
+      rw [ScannerCorrectness.dispatchStructural_preserves_flowLevel s_prep c s' h_dispatch,
+          preprocess_preserves_flowLevel sc s_prep c h_preprocess, h0]
+    rw [h_lvl]
+    exact accum_structural_pending sc sp_start sp_flow sp_scan s_prep s' c
+      (absorb_stacksB sp_start sp_gram sp_block sp_flow h_stream h_stack h_flow)
+      h_pending h_dir_flag h_corr h_preprocess h_dispatch
+  · -- depth ≥ 1 (inside an open flow collection): a flow-interior structural
+    -- dispatch — deferred to β.3.
+    sorry
 
 /-! ### §1c Preprocessing + Flow Indicator Dispatch
 
@@ -1709,7 +1762,7 @@ lemma accum_step_flow (sc : ScannerState)
     (s_prep s' : ScannerState) (c : Char)
     (h_stream : SLYamlStream sp_start sp_gram)
     (h_stack : BlockStack sp_gram sp_block)
-    (h_flow : FlowStackB sp_start 0 sp_block sp_flow)
+    (h_flow : FlowStackB sp_start sc.flowLevel sp_block sp_flow)
     (h_pending : PendingNode false sp_start sp_flow sp_scan)
     (h_corr : ScannerSurfCorr sc sp_scan)
     (h_preprocess : scanNextToken_preprocess sc = .ok (some (s_prep, c)))
@@ -1720,12 +1773,15 @@ lemma accum_step_flow (sc : ScannerState)
     ∃ sp_gram' sp_block' sp_flow' sp_scan',
       SLYamlStream sp_start sp_gram' ∧
       BlockStack sp_gram' sp_block' ∧
-      FlowStackB sp_start 0 sp_block' sp_flow' ∧
+      FlowStackB sp_start s'.flowLevel sp_block' sp_flow' ∧
       PendingNode false sp_start sp_flow' sp_scan' ∧
       ScannerSurfCorr s' sp_scan' := by
-  exact accum_flow_pending sc sp_start sp_flow sp_scan s_prep s' c
-    (absorb_stacksB sp_start sp_gram sp_block sp_flow h_stream h_stack h_flow)
-    h_pending h_corr h_preprocess h_dispatch
+  -- B.4β.2 (RED CORE): flow dispatch changes `flowLevel` — `[`/`{` push a real
+  -- depth-≥1 `FlowOpenStack` (openSeqBase/openMapBase or nested pushSeq/pushMap),
+  -- `]`/`}` pop, `,` holds. This is the monolithic-red accumulation rewrite
+  -- (rebuild `accum_flow_pending` / `new_flow_state` with sep-threading against
+  -- the actual scanner positions). Deferred.
+  sorry
 
 /-! ### §1d Preprocessing + Block Indicator Dispatch
 
@@ -2271,7 +2327,7 @@ lemma accum_step_block (sc : ScannerState)
     (s_prep s' : ScannerState) (c : Char)
     (h_stream : SLYamlStream sp_start sp_gram)
     (h_stack : BlockStack sp_gram sp_block)
-    (h_flow : FlowStackB sp_start 0 sp_block sp_flow)
+    (h_flow : FlowStackB sp_start sc.flowLevel sp_block sp_flow)
     (h_pending : PendingNode false sp_start sp_flow sp_scan)
     (h_corr : ScannerSurfCorr sc sp_scan)
     (h_preprocess : scanNextToken_preprocess sc = .ok (some (s_prep, c)))
@@ -2282,12 +2338,24 @@ lemma accum_step_block (sc : ScannerState)
     ∃ sp_gram' sp_block' sp_flow' sp_scan',
       SLYamlStream sp_start sp_gram' ∧
       BlockStack sp_gram' sp_block' ∧
-      FlowStackB sp_start 0 sp_block' sp_flow' ∧
+      FlowStackB sp_start s'.flowLevel sp_block' sp_flow' ∧
       PendingNode false sp_start sp_flow' sp_scan' ∧
       ScannerSurfCorr s' sp_scan' := by
-  exact accum_block_pending sc sp_start sp_flow sp_scan s_prep s' c
-    (absorb_stacksB sp_start sp_gram sp_block sp_flow h_stream h_stack h_flow)
-    h_pending h_corr h_preprocess h_dispatch
+  -- B.4β: the flow stack is indexed by the scanner's `flowLevel`.
+  rcases Nat.eq_zero_or_pos sc.flowLevel with h0 | hpos
+  · -- depth 0 (no open flow collection): the existing depth-0 proof.
+    rw [h0] at h_flow
+    have h_lvl : s'.flowLevel = 0 := by
+      rw [ScannerCorrectness.dispatchBlockIndicators_preserves_flowLevel _ c s' h_dispatch,
+          allowDirectives_update_flowLevel s_prep,
+          preprocess_preserves_flowLevel sc s_prep c h_preprocess, h0]
+    rw [h_lvl]
+    exact accum_block_pending sc sp_start sp_flow sp_scan s_prep s' c
+      (absorb_stacksB sp_start sp_gram sp_block sp_flow h_stream h_stack h_flow)
+      h_pending h_corr h_preprocess h_dispatch
+  · -- depth ≥ 1 (inside an open flow collection): block indicators inside flow
+    -- are a flow-interior case — deferred to β.3.
+    sorry
 
 /-! ### §1e Preprocessing + Content Dispatch
 
@@ -3090,7 +3158,7 @@ lemma accum_step_content (sc : ScannerState)
     (s_prep s' : ScannerState) (c : Char)
     (h_stream : SLYamlStream sp_start sp_gram)
     (h_stack : BlockStack sp_gram sp_block)
-    (h_flow : FlowStackB sp_start 0 sp_block sp_flow)
+    (h_flow : FlowStackB sp_start sc.flowLevel sp_block sp_flow)
     (h_pending : PendingNode false sp_start sp_flow sp_scan)
     (h_corr : ScannerSurfCorr sc sp_scan)
     (h_preprocess : scanNextToken_preprocess sc = .ok (some (s_prep, c)))
@@ -3107,12 +3175,25 @@ lemma accum_step_content (sc : ScannerState)
     ∃ sp_gram' sp_block' sp_flow' sp_scan',
       SLYamlStream sp_start sp_gram' ∧
       BlockStack sp_gram' sp_block' ∧
-      FlowStackB sp_start 0 sp_block' sp_flow' ∧
+      FlowStackB sp_start s'.flowLevel sp_block' sp_flow' ∧
       PendingNode false sp_start sp_flow' sp_scan' ∧
       ScannerSurfCorr s' sp_scan' := by
-  exact accum_content_pending sc sp_start sp_flow sp_scan s_prep s' c
-    (absorb_stacksB sp_start sp_gram sp_block sp_flow h_stream h_stack h_flow)
-    h_pending h_corr h_preprocess h_not_doc h_dispatch
+  -- B.4β: the flow stack is indexed by the scanner's `flowLevel`.
+  rcases Nat.eq_zero_or_pos sc.flowLevel with h0 | hpos
+  · -- depth 0 (no open flow collection): the existing depth-0 proof.
+    rw [h0] at h_flow
+    have h_lvl : s'.flowLevel = 0 := by
+      rw [ScannerCorrectness.dispatchContent_preserves_flowLevel _ c s' h_dispatch,
+          allowDirectives_update_flowLevel s_prep,
+          preprocess_preserves_flowLevel sc s_prep c h_preprocess, h0]
+    rw [h_lvl]
+    exact accum_content_pending sc sp_start sp_flow sp_scan s_prep s' c
+      (absorb_stacksB sp_start sp_gram sp_block sp_flow h_stream h_stack h_flow)
+      h_pending h_corr h_preprocess h_not_doc h_dispatch
+  · -- depth ≥ 1 (inside an open flow collection): flow-interior content
+    -- (scalars / nested collections inside `[`/`{`) — the real content-routing
+    -- work, deferred to β.3.
+    sorry
 
 /-! ### §1f Composition: Per-Dispatch → Full accum_step
 
@@ -3124,7 +3205,7 @@ lemma scanNextToken_accum_step (sc : ScannerState)
     (s' : ScannerState) {b : Bool}
     (h_stream : SLYamlStream sp_start sp_gram)
     (h_stack : BlockStack sp_gram sp_block)
-    (h_flow : FlowStackB sp_start 0 sp_block sp_flow)
+    (h_flow : FlowStackB sp_start sc.flowLevel sp_block sp_flow)
     (h_pending : PendingNode b sp_start sp_flow sp_scan)
     (h_dir_flag : b = true → sc.directivesPresent = true)
     (h_corr : ScannerSurfCorr sc sp_scan)
@@ -3132,7 +3213,7 @@ lemma scanNextToken_accum_step (sc : ScannerState)
     ∃ sp_gram' sp_block' sp_flow' sp_scan' b',
       SLYamlStream sp_start sp_gram' ∧
       BlockStack sp_gram' sp_block' ∧
-      FlowStackB sp_start 0 sp_block' sp_flow' ∧
+      FlowStackB sp_start s'.flowLevel sp_block' sp_flow' ∧
       PendingNode b' sp_start sp_flow' sp_scan' ∧
       (b' = true → s'.directivesPresent = true) ∧
       ScannerSurfCorr s' sp_scan' := by
@@ -3230,39 +3311,45 @@ lemma scanNextToken_none_stream (sc : ScannerState)
     (sp_start sp_gram sp_block sp_flow sp_scan : SurfPos)
     (h_stream : SLYamlStream sp_start sp_gram)
     (h_stack : BlockStack sp_gram sp_block)
-    (h_flow : FlowStackB sp_start 0 sp_block sp_flow)
+    (h_flow : FlowStackB sp_start sc.flowLevel sp_block sp_flow)
     (h_pending : PendingNode false sp_start sp_flow sp_scan)
     (h_corr : ScannerSurfCorr sc sp_scan)
     (h_ok : scanNextToken sc = .ok none) :
     ∃ sp_final : SurfPos, SLYamlStream sp_start sp_final ∧ sp_final.chars = [] := by
-  unfold scanNextToken at h_ok
-  simp only [bind, Except.bind, pure, Except.pure] at h_ok
-  split at h_ok
-  · simp at h_ok
-  · split at h_ok
-    · rename_i h_pre
-      exact preprocessing_eof_extends_stream sc sp_start sp_gram sp_block sp_flow sp_scan
-        h_stream h_stack h_flow h_pending h_corr h_pre
+  -- B.4β: an open flow at EOF (depth ≥ 1) is a flow-interior EOF case → β.3;
+  -- the depth-0 path is the existing proof.
+  rcases Nat.eq_zero_or_pos sc.flowLevel with h0 | hpos
+  · rw [h0] at h_flow
+    unfold scanNextToken at h_ok
+    simp only [bind, Except.bind, pure, Except.pure] at h_ok
+    split at h_ok
+    · simp at h_ok
     · split at h_ok
-      · simp at h_ok
+      · rename_i h_pre
+        exact preprocessing_eof_extends_stream sc sp_start sp_gram sp_block sp_flow sp_scan
+          h_stream h_stack h_flow h_pending h_corr h_pre
       · split at h_ok
-        · exact absurd (Except.ok.inj h_ok) nofun
-        · -- pending-directives check (Fix B)
-          split at h_ok
-          · simp at h_ok
-          · split at h_ok
+        · simp at h_ok
+        · split at h_ok
+          · exact absurd (Except.ok.inj h_ok) nofun
+          · -- pending-directives check (Fix B)
+            split at h_ok
             · simp at h_ok
             · split at h_ok
               · simp at h_ok
               · split at h_ok
-                · exact absurd (Except.ok.inj h_ok) nofun
+                · simp at h_ok
                 · split at h_ok
-                  · simp at h_ok
+                  · exact absurd (Except.ok.inj h_ok) nofun
                   · split at h_ok
-                    · exact absurd (Except.ok.inj h_ok) nofun
+                    · simp at h_ok
                     · split at h_ok
-                      · simp at h_ok
                       · exact absurd (Except.ok.inj h_ok) nofun
+                      · split at h_ok
+                        · simp at h_ok
+                        · exact absurd (Except.ok.inj h_ok) nofun
+  · -- depth ≥ 1: open flow at EOF — deferred to β.3.
+    sorry
 
 /-! ## §3 scanLoop with Grammar Accumulation
 
@@ -3274,7 +3361,7 @@ lemma scanLoop_grammar_prod (sc : ScannerState)
     (fuel : Nat) (tokens : Array (Positioned YamlToken)) {b : Bool}
     (h_stream : SLYamlStream sp_start sp_gram)
     (h_stack : BlockStack sp_gram sp_block)
-    (h_flow : FlowStackB sp_start 0 sp_block sp_flow)
+    (h_flow : FlowStackB sp_start sc.flowLevel sp_block sp_flow)
     (h_pending : PendingNode b sp_start sp_flow sp_scan)
     (h_dir_flag : b = true → sc.directivesPresent = true)
     (h_corr : ScannerSurfCorr sc sp_scan)
@@ -3384,9 +3471,14 @@ lemma scan_content_gives_stream_v2
   unfold scan at h
   simp only [] at h
   obtain ⟨sp, h_stream, h_corr⟩ := initial_stream_and_prefix input
-  exact scanLoop_grammar_prod _ ⟨input.toList, 0⟩ sp sp sp sp _ tokens
-    h_stream (BlockStack.nil sp) (FlowStackB.nil sp) (PendingNode.noPending ⟨input.toList, 0⟩ sp)
+  refine scanLoop_grammar_prod _ ⟨input.toList, 0⟩ sp sp sp sp _ tokens
+    h_stream (BlockStack.nil sp) ?_ (PendingNode.noPending ⟨input.toList, 0⟩ sp)
     (fun hb => Bool.noConfusion hb) h_corr h
+  -- B.4β: the initial scanner has `flowLevel = 0` (fresh `mk'`, `emit`/`advance`
+  -- preserve it), so the empty flow stack is `nil` (depth 0).
+  split
+  · rw [advance_flowLevel]; exact FlowStackB.nil sp
+  · exact FlowStackB.nil sp
 
 /-! ## §6 Gap Analysis (historical — file is sorry-free)
 
