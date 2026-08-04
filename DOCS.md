@@ -6203,6 +6203,35 @@ needed no changes.)
        NEXT = discharge `SLYamlStream sp_start sp_prep` for the non-`pendingBlock` cases (case-split
        `h_pending`; reconcile `sp_mid = sp_prep` at col 0), then the `pendingBlock` flowInBlock-resume.
 
+       **UPDATE (2026-08-04, cont.) — stream-threading algebra banked GREEN (2 more helpers):**
+       Two reusable helpers landed (compile clean, NOT sorry-bearing), isolating the
+       `SLYamlStream sp_start sp_prep` obligation as standalone algebra ("algebra before threading"),
+       WITHOUT touching `accum_step_flow`'s 3 sorries (deliberately deferred wiring — see below).
+       (5) `flow_gap_collapse (s_prep) (sp_mid sp_ws sp_gap sp_prep) (hcorr_prep hcorr_gap)
+       (hcol_mid hcol_prep) (hws : GStar SSWhite sp_mid sp_ws) (hcmt : GOpt SCNbCommentText sp_ws sp_gap)
+       : sp_mid = sp_prep` — the FLOW analog of `structural_gap_collapse`. Crucial difference: a flow
+       `[`/`{` is NOT column-forced (structural dispatch *derives* `sp_prep.col = 0` via
+       `dispatchStructural_col0`; flow can't), so col-0 on the bracket is a HYPOTHESIS. Proof = the
+       structural version verbatim minus that derivation (`ScannerSurfCorr_unique` for `sp_gap = sp_prep`;
+       `cases hcmt` none → `gstar_sswhite_col_eq_nil` collapses whitespace, some → `scnb_comment_col_gt`
+       + omega). (6) `accum_flow_openStream_col0 (sc sp_start sp_flow sp_scan sp_prep) (s_prep c)
+       (h_stream_flow) (h_pending : PendingNode false …) (h_corr) (hcol_scan) (hcorr_prep) (hcol_prep)
+       (h_preprocess) : SLYamlStream sp_start sp_prep` — the full threading: `preprocess_some_ssl_comments_col0`
+       → `close_with_ssl h_stream_flow h_ssl` (lands at sp_mid) → `flow_gap_collapse` (sp_mid = sp_prep).
+       Discharges EXACTLY the two `[`/`{` stream sorries, modulo supplying `sp_scan.col = 0` +
+       `sp_prep.col = 0`. **Correction to the prior (b) note:** `SSeparateInLine.startOfLine s :
+       SSeparateInLine s s` (Basic.lean:136) carries NO col-0 proof, so `topLevelFlowResume` (and helpers 2)
+       typecheck at ANY `sp_prep` — the col-0 need lives ENTIRELY in the whitespace-collapse of the
+       stream threading, not the resume. So the fresh-doc route for `pendingBlock` also *typechecks*; it's
+       merely UNFAITHFUL (`key: [..]` as two docs), so the faithful derivation still wants the block-value
+       resume — but "cannot use topLevelFlowResume" was imprecise (it can; it just shouldn't).
+       **Wiring deferred (NEXT slice):** each depth-0 `[`/`{` → `cases h_pending` + `by_cases` col-0×2 +
+       the RIGHT resume per constructor (helper 6 + `accum_flow_open…_toplevel` for
+       noPending/pendingContent/pendingDocEnd/pendingBlockContent; a distinct `flowInBlock`-resume helper
+       for pendingBlock; doc-builder resume for pendingDocStart; pendingFlow vanishes with the
+       `accum_flow_pending` rewrite). Deferred so the sorry-count doesn't balloon 1→8 before the
+       per-resume design is in hand — that design IS the real content of the next slice.
+
      Replace the invariant's flow component
      `FlowStack sp_block sp_flow` → `FlowStackB sp_start sc.flowLevel sp_block sp_flow` across the
      ~20 lemmas that state it; replace `absorb_stacks` → `absorb_stacksB` (valid only at depth 0 —

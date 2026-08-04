@@ -1864,6 +1864,83 @@ lemma accum_flow_openMap_toplevel
          PendingNode.noPending sp_start sp_open,
          hcorr_open⟩
 
+/-! ### §1c''' Depth-0 flow-open stream threading (B.4β.2)
+
+    The open-algebra helpers above take the stream *at the bracket* `sp_prep` as a
+    hypothesis. This section discharges that hypothesis: from the incoming lagging
+    quint (stream at `sp_flow`, an incoming `PendingNode`) plus the leading
+    separation `sp_scan → sp_prep` consumed by `scanNextToken_preprocess`, thread
+    the stream forward to `sp_prep`.
+
+    Two facts do the work:
+    * `flow_gap_collapse` — the flow analog of `structural_gap_collapse`. It proves
+      the SSLComments endpoint `sp_mid` coincides with the corr position `sp_prep`.
+      Unlike the structural version (which *derives* `sp_prep.col = 0` from
+      `dispatchStructural_col0`), a flow `[`/`{` is NOT column-forced, so this takes
+      `sp_prep.col = 0` as a hypothesis — supplied by the caller's col-0 branch.
+    * `accum_flow_openStream_col0` — closes the incoming pending across the leading
+      SSLComments (`PendingNode.close_with_ssl`), landing at `sp_mid`, then rewrites
+      by `flow_gap_collapse` to reach `sp_prep`.
+
+    NB (resume interpretation): `close_with_ssl` commits to the "close the prior
+    pending, treat the flow as a *fresh* bare document" derivation. That is the
+    intended derivation for `noPending`/`pendingContent`/`pendingDocEnd`/
+    `pendingBlockContent`. For `pendingBlock` (block-value flow) and `pendingDocStart`
+    (`---`-node flow) the flow is the pending's OWN node, so those want a different
+    `resume` (`flowInBlock`- / doc-builder-based) threaded through the FlowOpenStack,
+    NOT this fresh-doc closer — handled at the `accum_step_flow` wiring site. -/
+
+/-- Flow analog of `structural_gap_collapse`: the SSLComments midpoint `sp_mid`
+    coincides with the corr position `sp_prep`, given `sp_prep.col = 0` (a flow
+    indicator is not column-forced, so col-0 is a hypothesis, not derived). -/
+lemma flow_gap_collapse
+    (s_prep : ScannerState)
+    (sp_mid sp_ws sp_gap sp_prep : SurfPos)
+    (hcorr_prep : ScannerSurfCorr s_prep sp_prep)
+    (hcorr_gap : ScannerSurfCorr s_prep sp_gap)
+    (hcol_mid : sp_mid.col = 0)
+    (hcol_prep : sp_prep.col = 0)
+    (hws : GStar SSWhite sp_mid sp_ws)
+    (hcmt : GOpt SCNbCommentText sp_ws sp_gap) :
+    sp_mid = sp_prep := by
+  have h_gap_eq : sp_gap = sp_prep := ScannerSurfCorr_unique hcorr_gap hcorr_prep
+  have hcol_gap : sp_gap.col = 0 := h_gap_eq ▸ hcol_prep
+  cases hcmt with
+  | none =>
+    have h1 : sp_ws = sp_mid := gstar_sswhite_col_eq_nil sp_mid sp_ws (by omega) hws
+    exact h1.symm.trans h_gap_eq
+  | some =>
+    rename_i hc
+    exfalso; have := scnb_comment_col_gt sp_ws sp_gap hc; omega
+
+/-- Thread the stream to the bracket position `sp_prep` for a depth-0 flow open:
+    close the incoming (false-indexed) pending across the leading SSLComments, then
+    collapse the residual whitespace gap via `flow_gap_collapse` (needs the incoming
+    position `sp_scan` and the bracket `sp_prep` both at col 0). Produces the
+    `SLYamlStream sp_start sp_prep` required by `accum_flow_open{Seq,Map}_toplevel`.
+
+    See the §-note above on the fresh-bare-doc interpretation baked into
+    `close_with_ssl` (correct for `noPending` and the closeable-content pendings;
+    the `pendingBlock`/`pendingDocStart` node-value cases need a distinct route). -/
+lemma accum_flow_openStream_col0
+    (sc : ScannerState) (sp_start sp_flow sp_scan sp_prep : SurfPos)
+    (s_prep : ScannerState) (c : Char)
+    (h_stream_flow : SLYamlStream sp_start sp_flow)
+    (h_pending : PendingNode false sp_start sp_flow sp_scan)
+    (h_corr : ScannerSurfCorr sc sp_scan)
+    (hcol_scan : sp_scan.col = 0)
+    (hcorr_prep : ScannerSurfCorr s_prep sp_prep)
+    (hcol_prep : sp_prep.col = 0)
+    (h_preprocess : scanNextToken_preprocess sc = .ok (some (s_prep, c))) :
+    SLYamlStream sp_start sp_prep := by
+  obtain ⟨sp_mid, sp_ws, sp_gap, h_ssl, hcol_mid, hws, hcmt, hcorr_gap, _⟩ :=
+    preprocess_some_ssl_comments_col0 sc sp_scan s_prep c h_corr hcol_scan h_preprocess
+  have h_stream_mid : SLYamlStream sp_start sp_mid := h_pending.close_with_ssl h_stream_flow h_ssl
+  have h_mid_prep : sp_mid = sp_prep :=
+    flow_gap_collapse s_prep sp_mid sp_ws sp_gap sp_prep
+      hcorr_prep hcorr_gap hcol_mid hcol_prep hws hcmt
+  exact h_mid_prep ▸ h_stream_mid
+
 lemma accum_step_flow (sc : ScannerState)
     (sp_start sp_gram sp_block sp_flow sp_scan : SurfPos)
     (s_prep s' : ScannerState) (c : Char)
