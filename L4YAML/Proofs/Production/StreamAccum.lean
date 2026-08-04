@@ -1757,6 +1757,113 @@ lemma accum_flow_pending (sc : ScannerState)
                  PendingNode.pendingFlow sp_start sp_block sp_scan' h_stream_block,
                  hcorr_result⟩)
 
+/-! ### §1c' Flow-open GLit production (B.4β.2)
+
+    `scanFlowSequenceStart`/`scanFlowMappingStart` emit the bracket token and
+    advance one char. These `_prod` helpers recover the literal-bracket grammar
+    evidence (`GLit '[' sp sp'` / `GLit '{' sp sp'`) at the *specific* post-bracket
+    position, plus the corr and the `flowLevel + 1` fact — the analog of
+    `scanBlockEntry_prod` for the flow-open indicators. Used by `accum_step_flow`
+    to build the `FlowOpenStack` `h_open` field when opening/pushing a flow. -/
+
+lemma scanFlowSequenceStart_prod (sc : ScannerState) (sp : SurfPos)
+    (hcorr : ScannerSurfCorr sc sp) (hpeek : sc.peek? = some '[') :
+    ∃ sp', GLit '[' sp sp' ∧ ScannerSurfCorr (scanFlowSequenceStart sc) sp'
+           ∧ (scanFlowSequenceStart sc).flowLevel = sc.flowLevel + 1 := by
+  obtain ⟨rest, hsp_eq⟩ := peek_some_sp hcorr hpeek
+  subst hsp_eq
+  refine ⟨⟨rest, sc.col + 1⟩, GLit.mk rest sc.col, ?_, ?_⟩
+  · unfold scanFlowSequenceStart
+    have hmore := peek_some_has_more hpeek
+    have hcorr_emit : ScannerSurfCorr
+        (({ sc with simpleKey := { possible := false } }).emit .flowSequenceStart)
+        ⟨'[' :: rest, sc.col⟩ :=
+      ⟨hcorr.chars_from, hcorr.col_eq, hcorr.end_eq, hcorr.input_prefix, hcorr.indent_cols_nonneg⟩
+    have hcorr_adv := advance_non_newline_corr
+      (({ sc with simpleKey := { possible := false } }).emit .flowSequenceStart)
+      '[' rest hcorr_emit hmore (by decide) (by decide)
+    exact ⟨hcorr_adv.chars_from, hcorr_adv.col_eq, hcorr_adv.end_eq,
+           hcorr_adv.input_prefix, hcorr_adv.indent_cols_nonneg⟩
+  · unfold scanFlowSequenceStart
+    simp only [ScannerCorrectness.advance_preserves_flowLevel,
+               ScannerCorrectness.emit_preserves_flowLevel]
+
+lemma scanFlowMappingStart_prod (sc : ScannerState) (sp : SurfPos)
+    (hcorr : ScannerSurfCorr sc sp) (hpeek : sc.peek? = some '{') :
+    ∃ sp', GLit '{' sp sp' ∧ ScannerSurfCorr (scanFlowMappingStart sc) sp'
+           ∧ (scanFlowMappingStart sc).flowLevel = sc.flowLevel + 1 := by
+  obtain ⟨rest, hsp_eq⟩ := peek_some_sp hcorr hpeek
+  subst hsp_eq
+  refine ⟨⟨rest, sc.col + 1⟩, GLit.mk rest sc.col, ?_, ?_⟩
+  · unfold scanFlowMappingStart
+    have hmore := peek_some_has_more hpeek
+    have hcorr_emit : ScannerSurfCorr
+        (({ sc with simpleKey := { possible := false } }).emit .flowMappingStart)
+        ⟨'{' :: rest, sc.col⟩ :=
+      ⟨hcorr.chars_from, hcorr.col_eq, hcorr.end_eq, hcorr.input_prefix, hcorr.indent_cols_nonneg⟩
+    have hcorr_adv := advance_non_newline_corr
+      (({ sc with simpleKey := { possible := false } }).emit .flowMappingStart)
+      '{' rest hcorr_emit hmore (by decide) (by decide)
+    exact ⟨hcorr_adv.chars_from, hcorr_adv.col_eq, hcorr_adv.end_eq,
+           hcorr_adv.input_prefix, hcorr_adv.indent_cols_nonneg⟩
+  · unfold scanFlowMappingStart
+    simp only [ScannerCorrectness.advance_preserves_flowLevel,
+               ScannerCorrectness.emit_preserves_flowLevel]
+
+/-! ### §1c'' Depth-0 flow-open transition (B.4β.2)
+
+    The core algebra for opening the OUTERMOST flow collection from a closed
+    (depth-0) state: given a stream at the bracket position `sp_prep`, the
+    literal-bracket evidence, and the scanner corr after the bracket, assemble
+    the full lagging-quint goal with a depth-1 `FlowOpenStack` (via
+    `openSeqBase`/`openMapBase`) whose base `resume` is `topLevelFlowResume`
+    (top-level flow document). The new interior `PendingNode` is `noPending` at
+    `sp_open` (interior invariant: inside a flow the pending gap is empty; the
+    frame's `st` carries all mid-entry state). `h_sep := GOpt.none` — the
+    post-bracket separation is deferred to the first entry step.
+
+    This isolates the open algebra (proven green here) from the pending-case
+    threading in `accum_step_flow`. The `pendingBlock` incoming case needs a
+    different `resume` (`flowInBlock`-based block value) and is handled there. -/
+
+lemma accum_flow_openSeq_toplevel
+    {sp_start sp_prep sp_open : SurfPos} {s' : ScannerState}
+    (h_stream_prep : SLYamlStream sp_start sp_prep)
+    (h_open : GLit '[' sp_prep sp_open)
+    (h_fl : s'.flowLevel = 1)
+    (hcorr_open : ScannerSurfCorr s' sp_open) :
+    ∃ sp_gram' sp_block' sp_flow' sp_scan',
+      SLYamlStream sp_start sp_gram' ∧
+      BlockStack sp_gram' sp_block' ∧
+      FlowStackB sp_start s'.flowLevel sp_block' sp_flow' ∧
+      PendingNode false sp_start sp_flow' sp_scan' ∧
+      ScannerSurfCorr s' sp_scan' := by
+  rw [h_fl]
+  exact ⟨sp_prep, sp_prep, sp_open, sp_open, h_stream_prep,
+         BlockStack.nil sp_prep,
+         FlowStackB.openSeqBase (topLevelFlowResume h_stream_prep) h_open (GOpt.none sp_open),
+         PendingNode.noPending sp_start sp_open,
+         hcorr_open⟩
+
+lemma accum_flow_openMap_toplevel
+    {sp_start sp_prep sp_open : SurfPos} {s' : ScannerState}
+    (h_stream_prep : SLYamlStream sp_start sp_prep)
+    (h_open : GLit '{' sp_prep sp_open)
+    (h_fl : s'.flowLevel = 1)
+    (hcorr_open : ScannerSurfCorr s' sp_open) :
+    ∃ sp_gram' sp_block' sp_flow' sp_scan',
+      SLYamlStream sp_start sp_gram' ∧
+      BlockStack sp_gram' sp_block' ∧
+      FlowStackB sp_start s'.flowLevel sp_block' sp_flow' ∧
+      PendingNode false sp_start sp_flow' sp_scan' ∧
+      ScannerSurfCorr s' sp_scan' := by
+  rw [h_fl]
+  exact ⟨sp_prep, sp_prep, sp_open, sp_open, h_stream_prep,
+         BlockStack.nil sp_prep,
+         FlowStackB.openMapBase (topLevelFlowResume h_stream_prep) h_open (GOpt.none sp_open),
+         PendingNode.noPending sp_start sp_open,
+         hcorr_open⟩
+
 lemma accum_step_flow (sc : ScannerState)
     (sp_start sp_gram sp_block sp_flow sp_scan : SurfPos)
     (s_prep s' : ScannerState) (c : Char)
@@ -1776,12 +1883,107 @@ lemma accum_step_flow (sc : ScannerState)
       FlowStackB sp_start s'.flowLevel sp_block' sp_flow' ∧
       PendingNode false sp_start sp_flow' sp_scan' ∧
       ScannerSurfCorr s' sp_scan' := by
-  -- B.4β.2 (RED CORE): flow dispatch changes `flowLevel` — `[`/`{` push a real
-  -- depth-≥1 `FlowOpenStack` (openSeqBase/openMapBase or nested pushSeq/pushMap),
-  -- `]`/`}` pop, `,` holds. This is the monolithic-red accumulation rewrite
-  -- (rebuild `accum_flow_pending` / `new_flow_state` with sep-threading against
-  -- the actual scanner positions). Deferred.
-  sorry
+  -- B.4β.2 (RED CORE): flow dispatch changes `flowLevel`. `[`/`{` push a real
+  -- depth-≥1 `FlowOpenStack`, `]`/`}` pop, `,` holds. This skeleton pins the
+  -- dispatch case structure (validated against the scanner error semantics); each
+  -- production case is a precisely-typed hole. Full design: DOCS § Fix A B.4β.2.
+  --
+  -- The dispatch runs on `s_ad` = the allowDirectives-updated preprocessed state,
+  -- whose `flowLevel` equals `sc.flowLevel`.
+  rcases Nat.eq_zero_or_pos sc.flowLevel with h0 | hpos
+  · -- ═══ DEPTH 0 (no flow open): only `[`/`{` reach `.ok (some s')`; the closing
+    -- and separator indicators error at `flowLevel = 0`. ═══
+    rw [h0] at h_flow  -- `FlowStackB sp_start 0 …` = nil
+    have h_ad0 : (if s_prep.allowDirectives then
+        { s_prep with allowDirectives := false, documentEverStarted := true }
+      else s_prep).flowLevel = 0 :=
+      ((allowDirectives_update_flowLevel s_prep).trans
+        (preprocess_preserves_flowLevel sc s_prep c h_preprocess)).trans h0
+    unfold scanNextToken_dispatchFlowIndicators at h_dispatch
+    replace h_dispatch := peel_flowAdj h_dispatch
+    simp only [bind, Except.bind, pure, Except.pure] at h_dispatch
+    split at h_dispatch
+    · -- c == '[' : OPEN flow SEQUENCE, depth 0 → 1 (s'.flowLevel = sc.flowLevel + 1 = 1).
+      -- Open algebra fully assembled by `accum_flow_openSeq_toplevel` (openSeqBase +
+      -- topLevelFlowResume + noPending). The `_prod` helper recovers the `GLit '['`,
+      -- the post-bracket corr, and `flowLevel + 1`. The ONE remaining hole is the
+      -- position-threaded stream `SLYamlStream sp_start sp_prep` at the bracket — got
+      -- by closing the incoming pending across the leading separation `sp_scan → sp_prep`
+      -- (`preprocess_some_ssl_comments_*` + `close_with_ssl`), EXCEPT the `pendingBlock`
+      -- case (block-value flow) which needs a `flowInBlock`-based `resume` instead of
+      -- `topLevelFlowResume` — the case that rides on scannerDrop.
+      rename_i heq
+      have hc : c = '[' := by simpa using heq
+      subst hc
+      obtain ⟨sp_prep, hcorr_prep⟩ :=
+        scanNextToken_preprocess_corr sc sp_scan h_corr s_prep '[' h_preprocess
+      have hpeek_disp : (if s_prep.allowDirectives then
+          { s_prep with allowDirectives := false, documentEverStarted := true }
+        else s_prep).peek? = some '[' := by
+        have hpk := preprocess_some_peek h_preprocess
+        split
+        · show s_prep.peek? = some '['; exact hpk
+        · exact hpk
+      obtain ⟨sp_open, h_open, hcorr_open, h_fl⟩ :=
+        scanFlowSequenceStart_prod _ sp_prep (corr_of_allowDirectives_update hcorr_prep) hpeek_disp
+      have hs := Option.some.inj (Except.ok.inj h_dispatch)
+      subst hs
+      exact accum_flow_openSeq_toplevel
+        (by sorry : SLYamlStream sp_start sp_prep)
+        h_open (by rw [h_fl, h_ad0]) hcorr_open
+    · split at h_dispatch
+      · -- c == ']' at depth 0: `if flowLevel == 0 then .error` — flowLevel = 0 ⇒ error.
+        rw [h_ad0] at h_dispatch; simp at h_dispatch
+      · split at h_dispatch
+        · -- c == '{' : OPEN flow MAPPING, depth 0 → 1 (mirror of `[` with openMapBase).
+          rename_i heq
+          have hc : c = '{' := by simpa using heq
+          subst hc
+          obtain ⟨sp_prep, hcorr_prep⟩ :=
+            scanNextToken_preprocess_corr sc sp_scan h_corr s_prep '{' h_preprocess
+          have hpeek_disp : (if s_prep.allowDirectives then
+              { s_prep with allowDirectives := false, documentEverStarted := true }
+            else s_prep).peek? = some '{' := by
+            have hpk := preprocess_some_peek h_preprocess
+            split
+            · show s_prep.peek? = some '{'; exact hpk
+            · exact hpk
+          obtain ⟨sp_open, h_open, hcorr_open, h_fl⟩ :=
+            scanFlowMappingStart_prod _ sp_prep (corr_of_allowDirectives_update hcorr_prep) hpeek_disp
+          have hs := Option.some.inj (Except.ok.inj h_dispatch)
+          subst hs
+          exact accum_flow_openMap_toplevel
+            (by sorry : SLYamlStream sp_start sp_prep)
+            h_open (by rw [h_fl, h_ad0]) hcorr_open
+        · split at h_dispatch
+          · -- c == '}' at depth 0: error (flowLevel == 0).
+            rw [h_ad0] at h_dispatch; simp at h_dispatch
+          · split at h_dispatch
+            · -- c == ',' at depth 0: error (flowLevel == 0).
+              rw [h_ad0] at h_dispatch; simp at h_dispatch
+            · -- fallthrough: dispatch returns `.ok none`, not `.ok (some s')`.
+              simp at h_dispatch
+  · -- ═══ DEPTH ≥ 1 (inside ≥1 open flow collections). ═══
+    -- All five chars valid. Interior PendingNode is `noPending` (sp_scan = sp_flow);
+    -- every mid-entry state lives in the top `FlowOpenStack` frame's `st`.
+    --   obtain ⟨d, hd⟩ : ∃ d, sc.flowLevel = d + 1 := ⟨sc.flowLevel - 1, by omega⟩
+    --   rw [hd] at h_flow; cases h_flow → `.open _ _ _ h_fos`; cases h_pending → noPending;
+    --   cases h_fos → seqBase / mapBase / seqNest / mapNest; split on c:
+    --   • `[`/`{` NESTED PUSH (d→d+1): child carries `inject` built from parent `st`
+    --       (between → key/entry via nodePending/keyPending; mid-colonPending → value
+    --        via finishValue/finishPairValue), placing this step's leading sep in the
+    --        parent's entry-sep slot; then `.seqNest`/`.mapNest` with `.between (.empty)`.
+    --   • `]`/`}` POP (d→d−1): finish top frame (mid → SFlowSeqEntry/SFlowMapEntry with
+    --       trailing sep = this step's leading sep; or retro-fit leading sep onto the
+    --       between-entries' last trailing GOpt), `closeSeq`/`closeMap`, wrap SFlowNode;
+    --       d=1 → base: `pendingContent … (fun _ h_ssl => resume … flownode h_ssl)`,
+    --       FlowStackB nil (depth 0); d>1 → nest: `inject sp_scan' flownode`, FlowStackB
+    --       open (d−1).
+    --   • `,` HOLD (d unchanged): finish top mid frame (trailing sep = leading sep) →
+    --       `entries` (closeable), place comma → `held`; rebuild frame in place.
+    -- See DOCS § Fix A B.4β.2 for the per-(char × frame) transitions + the SEP-THREADING
+    -- rule (each step consumes its own leading sep, placed into the prior construct's slot).
+    sorry
 
 /-! ### §1d Preprocessing + Block Indicator Dispatch
 

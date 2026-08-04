@@ -6146,7 +6146,62 @@ needed no changes.)
        the `hpos` (depth ≥ 1) branches of `accum_step_{structural,block,content}` + `scanNextToken_none_stream`
        = β.3 (flow-interior content/block/structural dispatch + open-flow-at-EOF). Both `StreamAccum`
        and its sole importer `DocumentProduction` build green-with-sorries; no external ripple.
-       NEXT = β.2 (the monolithic accumulation rewrite in `accum_step_flow`).
+
+       **β.2 — IN PROGRESS: design pinned + validated dispatch skeleton landed (compiling, UNCOMMITTED,
+       still red — accum_step_flow retains 3 structured sorries).** Scanner semantics PINNED from
+       `Scanner.lean` (134/160/185/211/250): every flow char = *emit token + advance (1 char) [+ flowLevel
+       delta]*; NO separation consumed by the flow char itself — leading separation is eaten by the
+       *next* token's `scanNextToken_preprocess`. Deltas: `[`/`{` → `flowLevel + 1`; `]`/`}` → `− 1`
+       (error if `flowLevel = 0`); `,` → unchanged (error if `flowLevel = 0`). The dispatch runs on
+       `s_ad` (allowDirectives-updated `s_prep`), and `s_ad.flowLevel = sc.flowLevel`. **Skeleton proof
+       of `accum_step_flow`:** `rcases Nat.eq_zero_or_pos sc.flowLevel`; unfold dispatch +
+       `peel_flowAdj` + `simp only [bind,Except.bind,pure,Except.pure]` + the nested `split` cascade
+       (mirroring `dispatchFlowIndicators_corr`). **At depth 0 all four closing/separator cases
+       (`]`/`}`/`,`/fallthrough) are proven GREEN** — they error at `flowLevel = 0` (`rw [h_ad0]; simp`),
+       kernel-confirming the scanner semantics; only `[`/`{` (the two opens, depth 0→1) remain as
+       precisely-typed holes. The depth-≥1 branch is one hole carrying the full per-(char × frame)
+       transition plan in-comment. **Interior invariant DECIDED (pinned this session):** inside a flow
+       (`d ≥ 1`) the `PendingNode` is ALWAYS `noPending sp_start sp_flow` (sp_scan = sp_flow); every
+       mid-entry state lives in the top `FlowOpenStack` frame's `st : SeqFrame/MapFrame`. **SEP-THREADING
+       rule (the crux, now pinned):** each interior step consumes its OWN leading sep and places it into
+       the PRIOR construct's grammar slot (post-`[`→flow `h_sep`; post-entry→entry trailing `GOpt`;
+       post-`,`→next entry's leading), so the frame is REBUILT each transition — which is exactly why the
+       close/push helpers cannot be pre-committed green (their sep signatures are only pinned here).
+       **GLit-from-scan is tractable:** `preprocess_some_peek` (StreamAccum:792) → `s_prep.peek? = some c`,
+       then `peek_some_sp` (ScalarProduction:47) → `∃ rest, sp_prep = ⟨c :: rest, s_prep.col⟩`, then
+       `GLit.mk` (template: `dispatchBlockEntry_full_prod`, StreamAccum:1849).
+       **UPDATE (2026-08-04) — depth-0 open composed; 4 reusable helpers landed GREEN:**
+       (1) `scanFlowSequenceStart_prod` / `scanFlowMappingStart_prod` (StreamAccum, right before
+       `accum_step_flow`): the flow-open analog of `scanBlockEntry_prod` — from `peek? = some '['`/`'{'`
+       recover `GLit '['/'{' sp sp'` at the SPECIFIC post-bracket position + `ScannerSurfCorr` +
+       `flowLevel + 1`; proof mirrors `scanBlockEntry_prod`'s inFlow branch (emit + `advance_non_newline_corr`;
+       flowLevel via `ScannerCorrectness.{advance,emit}_preserves_flowLevel`). (2) `accum_flow_openSeq_toplevel`
+       / `accum_flow_openMap_toplevel`: the OPEN ALGEBRA — given `SLYamlStream sp_start sp_prep` + `GLit`
+       + `s'.flowLevel = 1` + post-bracket corr, assemble the full lagging-quint goal via
+       `FlowStackB.openSeqBase`/`openMapBase` with `resume := topLevelFlowResume`, `h_sep := GOpt.none`,
+       new `PendingNode := noPending sp_start sp_open` (⇒ `sp_gram'=sp_block'=sp_prep`, `sp_flow'=sp_scan'=sp_open`).
+       **Both depth-0 `[`/`{` cases of `accum_step_flow` are now WIRED** (`rename_i` the split cond →
+       `simpa` c=bracket → `preprocess_corr` sp_prep → `hpeek_disp` (`peek?` of allowDirectives-update =
+       `s_prep.peek?`) → `_prod` for GLit/corr/flowLevel → `Option.some.inj (Except.ok.inj h_dispatch)`
+       subst `s'` → `accum_flow_openMap/Seq_toplevel`), so the whole open composition kernel-typechecks.
+       The two opaque open sorries are now narrowed to a SINGLE precisely-typed hole each:
+       `SLYamlStream sp_start sp_prep` (StreamAccum ~1932/1956) — the position-threaded stream at the
+       bracket. `accum_step_flow` = exactly 3 sorries now (`[` stream, `{` stream, depth-≥1 interior).
+       **Remaining β.2 (multi-session):** (a) discharge `SLYamlStream sp_start sp_prep` — for the
+       topLevelFlowResume family this is `absorb_stacksB` + `close_with_ssl` across the leading sep
+       `sp_scan → sp_prep`, but note `preprocess_some_ssl_comments_col0` yields `SSLComments sp_scan sp_mid`
+       + `GStar SSWhite sp_mid sp_ws` + `GOpt SCNbCommentText sp_ws sp_prep` — so `sp_mid = sp_prep` needs
+       reconciling (for a col-0 top-level `[`, no current-line whitespace/comment ⇒ `sp_ws = sp_mid`,
+       `GOpt = none`, provable from `peek? = some '['` ≠ none + col-preservation); (b) the `pendingBlock`
+       incoming case CANNOT use topLevelFlowResume (closing `key:` via `emptyNode` then `[…]`-as-doc is an
+       INVALID derivation of the actual input — no doc boundary mid-line) — it needs
+       `resume node ssl = pendingBlock.h_close (SBlockNode.flowInBlock … node ssl)`, i.e. case-split
+       `h_pending` and route pendingBlock through a distinct open helper (THIS is the scannerDrop case);
+       (c) depth-≥1 nested-push / pop-to-base-or-nest / comma-hold. Then extract the sep-threaded
+       close/push helpers with their now-pinned signatures. Blueprint (durable): scratchpad
+       `beta2_blueprint.md`.
+       NEXT = discharge `SLYamlStream sp_start sp_prep` for the non-`pendingBlock` cases (case-split
+       `h_pending`; reconcile `sp_mid = sp_prep` at col 0), then the `pendingBlock` flowInBlock-resume.
 
      Replace the invariant's flow component
      `FlowStack sp_block sp_flow` → `FlowStackB sp_start sc.flowLevel sp_block sp_flow` across the
