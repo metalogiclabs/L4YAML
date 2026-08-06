@@ -531,6 +531,12 @@ Two emitters produce the matrix's comparison formats directly from the
   (test-suite event notation; runs on the *raw* parse so anchors/aliases survive).
 * [`L4YAML/Output/Json.lean`](L4YAML/Output/Json.lean) → `l4yaml-json`
   (Core-Schema JSON; runs on the composed parse so aliases resolve).
+* [`L4YAML/Output/EventsIx.lean`](L4YAML/Output/EventsIx.lean) /
+  [`L4YAML/Output/JsonIx.lean`](L4YAML/Output/JsonIx.lean) → `l4yaml-event-ix` /
+  `l4yaml-json-ix` (2026-08-05): the same two emitters over the **indexed**
+  pipeline, so the matrix can score it too — see
+  [Indexed-pipeline parity gap](#indexed-pipeline-parity-gap). Emission is
+  shared; only the scan/parse differs.
 
 Both are pure functions over the existing AST — no parser changes were needed
 to *observe* the output (the fixes above were parser/scanner changes, each
@@ -5462,7 +5468,7 @@ lives in [README.md](README.md) and is not duplicated here.)
 | Item | Status | Section |
 |---|---|---|
 | `ns-char` predicate spec-loose body | **Fixed 2026-08-01** (predicates tightened; scanner + emitter conformant; regression-tested) | [The ns-char gap](#the-ns-char-gap) |
-| **Indexed-pipeline parity** (the twin consumers actually call) | **Open — 3 confirmed divergences, parity harness never built** (found 2026-08-05) | [Indexed-pipeline parity gap](#indexed-pipeline-parity-gap) |
+| **Indexed-pipeline parity** (the twin consumers actually call) | **Open — D1–D4 fixed, harness built, matrix-scored 2026-08-05: event 365/402 · JSON 262/282 vs legacy 100%/100%; 37 failing tests of cutover debt remain, classified** | [Indexed-pipeline parity gap](#indexed-pipeline-parity-gap) |
 | Grammar completeness (`parse_iff_grammar`, capstone 7.7) | **Open** (unblocked; Step-0 audit done) | [Grammar completeness plan](#grammar-completeness-plan) |
 | Merge semantics (`DuplicateKeyPolicy.merge`) | **Open** (design ready; re-base on `LawfulBEq`) | [Merge semantics plan](#merge-semantics-plan) |
 | Security limits: open questions + future work | **Open** (design questions; 3 unimplemented features) | [Security hardening backlog](#security-hardening-backlog) |
@@ -5481,14 +5487,17 @@ theorem nobody's build depends on yet.
 | 2 | ✅ **done** — D3, the divergence that turned valid YAML into a scan **error** | consumers of `parseYaml*Ix` | ditto |
 | 3 | ✅ **done** — D1/D2 (`foldBlockContentGo` end-of-input and tab classification) | folded-scalar content fidelity | ditto |
 | 4 | ✅ **done** — block-scalar parity coverage 2 → 35 guards; **the new coverage found D4**, explicit indentation indicators failing outright | recurrence of D1–D4 | ditto |
-| 5 | ⬜ **open** — run the yaml-test-suite matrix through the **indexed** pipeline and record its score beside the legacy 402/402 · 279/279 | knowing whether D1–D4 were the whole story | ditto |
-| 6 | ⬜ **open** — resume Fix A B.4β.2: wire the depth-0 `[`/`{` opens (`SLYamlStream sp_start sp_prep` holes) | `scannerDrop` deletion → converse → `parse_iff_grammar` | [Fix A](#fix-a-eliminating-scannerdrop--flow-indicator-grammar-evidence) |
+| 5 | ✅ **done 2026-08-05** — matrix scored through the **indexed** pipeline (`l4yaml-event-ix`/`l4yaml-json-ix`): **event 365/402, JSON 262/282** vs legacy 402/402 · 282/282. D1–D4 were **not** the whole story: 37 failing tests, classified in [The matrix score](#the-matrix-score) | knowing whether D1–D4 were the whole story | [Indexed-pipeline parity gap](#indexed-pipeline-parity-gap) |
+| 6 | ⬜ **open** — port the seven legacy matrix fixes the twin lags (B1/B2/B3/C1/C2/C3/E — 16 of the 18 event diffs), then fix the newly found D5 and the two reject-side scanner bugs | closing the diff/reject classes; consumers of `parseYaml*Ix` on valid YAML | ditto |
+| 7 | ⬜ **open** — mirror the legacy scanner's error strictness (15 invalid inputs the twin accepts: tab indentation, block-scalar indent checks, doc-markers in quoted scalars, comment-without-space) | the twin's accept/reject axis (383/402 vs legacy's 402/402) | ditto |
+| 8 | ⬜ **open** — resume Fix A B.4β.2: wire the depth-0 `[`/`{` opens (`SLYamlStream sp_start sp_prep` holes) | `scannerDrop` deletion → converse → `parse_iff_grammar` | [Fix A](#fix-a-eliminating-scannerdrop--flow-indicator-grammar-evidence) |
 
-Item 5 is the one that decides whether this section can be closed: the
-four divergences were found by hand-picking shapes, and item 4's own
-result — new coverage immediately surfacing a fifth failure mode — is the
-argument for measuring rather than sampling. It is small, green-able, and
-independent of the Fix A red window. Item 6 is the multi-session red core.
+Item 5's answer decides the shape of the rest: the score is a measured
+enumeration of every remaining divergence, so items 6–7 are no longer
+open-ended parity work but a finite, named work-list (37 tests, three
+classes, most mapping onto fixes the legacy pipeline already contains).
+Items 6–7 outrank item 8 by this section's own priority rule:
+shipped-behaviour correctness first. Item 8 is the multi-session red core.
 
 ## The ns-char gap
 
@@ -5609,10 +5618,12 @@ parses its DPS configs with `parseYamlWithCommentsIx` and its `notes: >`
 blocks came back one byte short of what PyYAML — and of what our own
 legacy pipeline — produces.)*
 
-**Status (2026-08-05):** **Four divergences found, all four fixed, the
-harness is now built.** What remains open is coverage, not these four:
-the twin has still never been scored on the yaml-test-suite matrix, so
-the honest claim is "agrees on the 82 guarded inputs", not "agrees".
+**Status (2026-08-05, updated same day):** **Four divergences found and
+fixed, harness built, and the twin is now matrix-scored: event 365/402,
+JSON 262/282, accept/reject 383/402** — against the legacy pipeline's
+100% on all three axes. D1–D4 were not the whole story: 37 tests still
+fail, but the score converts the open question into a finite classified
+work-list — see [The matrix score](#the-matrix-score).
 
 **Why this outranks the proof work.** The indexed pipeline is not a
 staging area: `parseYamlWithCommentsIx` is the entry point consumers call
@@ -5632,6 +5643,7 @@ currently gated tells us whether the twin agrees.
 | D3 | block-scalar arm clears the pending simple key and re-allows one | `Scanner/IndexedDispatch.lean` |
 | D4 | digit value computed against `'0'`, not `nsEscNullChar` | `Scanner/IndexedScanner.lean` |
 | — | block-scalar parity coverage 2 → 35 guards (chomp × style × context × position) | `Tests/Guards/Parity/IndexedScanAndParse.lean` |
+| — | indexed matrix instruments: the two emitters re-based on the indexed pipeline (`l4yaml-event-ix`, `l4yaml-json-ix`, both `@[default_target]`), emission shared with legacy so score deltas isolate scan/parse | `L4YAML/Output/EventsIx.lean`, `L4YAML/Output/JsonIx.lean`, `Tests/EmitEventsIx.lean`, `Tests/EmitJsonIx.lean` |
 
 Five proofs pinned the old post-state and were repaired, all by swapping
 a `_preserved`/`_mono` transport for the `_cleared` one that already
@@ -5742,9 +5754,89 @@ The lesson generalizes past this call site: a selector/result pair under
 one name is a trap that type-checking cannot catch, because both sides
 are `Char`. Both spellings should not be one word apart.
 
+### The matrix score
+
+*(2026-08-05, plan item 5. Instruments: `l4yaml-event-ix` / `l4yaml-json-ix`
+— the legacy emitters with the parse swapped to `scanFilteredIx` +
+`TokenParser.Indexed`. The event harness's marked-document loop mirrors the
+**indexed** `parseStreamLoop` arm-for-arm, not the legacy one, so a
+stream-loop divergence shows up in the score instead of being papered over
+by the measurement. Emission and JSON serialization are byte-shared with
+the legacy binaries, so every delta below is scan/parse.)*
+
+```bash
+lake build l4yaml-event-ix l4yaml-json-ix
+python3 scripts/matrix_score.py --data <suite-data> --axis both --only L4YAML \
+    --l4yaml-event .lake/build/bin/l4yaml-event-ix \
+    --l4yaml-json  .lake/build/bin/l4yaml-json-ix
+```
+
+| axis | legacy | indexed |
+|---|---|---|
+| event (of 402) | **402 (100%)** | **365 (91%)** — 18 diff, 15 err-miss, 4 reject |
+| JSON (of 282) | **282 (100%)** | **262 (93%)** — 14 diff, 2 err-miss, 4 reject |
+| accept/reject (of 402) | **402 (100%)** | **383 (95%)** — 4 valid rejected, 15 invalid accepted |
+
+(The legacy numbers were re-measured in the same run as a baseline, same
+binaries' build, same data form — not quoted from July.)
+
+37 unique tests fail (every JSON failure is also an event failure). They
+fall into three classes:
+
+**Class 1 — the seven legacy matrix fixes the twin never received** (16 of
+the 18 event diffs). The July matrix campaign fixed the *legacy* runtime
+only and recorded the twin's lag as Phase-3 cutover debt; this run measures
+that debt test-by-test, using the July fix letters:
+
+| legacy fix | what it does | failing tests |
+|---|---|---|
+| B1 | double-quoted blank-line fold uses `skipWhitespace` | 5GBF |
+| B2 | escaped trailing tab protected from fold-trim (`protectedLen`) | DE56/00–03 |
+| B3 | plain-scalar tab strip + blank-line handling | HS5T, NB6Z, UV7Q |
+| C1 | bare `...` is a §9.2 [205] document *suffix*, not an empty document | HWV9, QT73 |
+| C2 | empty tagged/anchored node as sequence entry (BLOCK-IN vs BLOCK-OUT) | FH7J, PW8X |
+| C3 | explicit `? <collection-key>` is one entry, not two empty halves | KK5P, V9D5 |
+| E | block-scalar EOF implicit `b-break` on whitespace-only trailing lines | JEF9/02, L24T/01 |
+| A′/E residue | folded scalar over blank/tab-led lines | R4YG |
+
+**Class 2 — accept-side strictness lag** (the 15 `err-miss`: invalid inputs
+the twin accepts). The legacy scanner's error checks were never
+transcribed. By family: tab indentation (4EJS, Y79Y/000, Y79Y/003),
+block-scalar indentation validation (5LLU, S98Z, W9L4), document markers
+inside multiline quoted scalars (5TRB, RXY3), comment without preceding
+whitespace (9JBA, CVW2, SU5Z, X4QW), wrong-indented multiline quoted
+scalar (QB6E), plus the two stale-`in.json` error tests (9MQT/01,
+DK95/01) which the twin wrongly parses.
+
+**Class 3 — divergences with no legacy-fix counterpart** (the 4 rejects of
+valid input, plus one structural diff):
+
+* **D5 — block scalar ending a sequence-entry mapping swallows the next
+  sibling** (RZT7, the 18th event diff). Minimal repro:
+  `"- k: 1\n  c: |\n    x\n- k: 2\n"` — legacy parses two seq-entry
+  mappings; the twin emits the second entry as an empty scalar and then a
+  spurious second document. The retroactive `blockMappingStart`/`key`
+  insertion across the dedent after a block scalar is lost. The 35-guard
+  cross-product missed this shape (its seq cases were `- |`-style: the
+  scalar directly under the entry, not under a mapping *inside* the
+  entry); add the repro to the parity guards with the fix.
+* **Zero-indented block scalar rejected** (DK3J, FP8R): `--- >` with
+  content at column 0 errors `invalidBareDocument` in the twin.
+* **`%` content misread as a directive** (M7A3, W4TN): `%!PS-Adobe-2.0`
+  as the body of `--- |` (W4TN) errors "directive after document content"
+  — block-scalar content is being re-inspected as a potential directive.
+  M7A3 (bare document + `...` + comment + `...`) fails the same way.
+
+The class boundaries matter for the fix plan: class 1 is porting work with
+known-good legacy implementations to transcribe (and the July memory of
+each fix's proof blast radius), class 2 is systematic strictness porting
+best done as one sweep with the error-test list as its checklist, and
+class 3 needs the same find-minimize-fix treatment D1–D4 got.
+
 ### Plan
 
-*(1–4 done 2026-08-05, see "What landed"; 5 remains open.)*
+*(1–5 done 2026-08-05, see "What landed" and "The matrix score"; the
+residue is items 6–7 of [Next actions](#next-actions-in-order).)*
 
 1. **Index the harness.** Add `import Tests.Guards.Parity.IndexedScanAndParse`
    to `Tests/Guards.lean`. Expect the `>` guard to fail — that failure is
@@ -5761,10 +5853,11 @@ are `Char`. Both spellings should not be one word apart.
    in document, followed by another entry}, plus explicit-indent headers
    and tab-led folded lines. The current file's block-scalar coverage is
    two root-level cases.
-5. **Score the twin on the matrix.** The suite runner
-   (`Tests/SuiteRunner/Main.lean`) calls `TokenParser.parseYaml`; add an
-   indexed mode and record both scores. Until that runs, "the twin
-   agrees" is an assumption about ~500 test cases, not a measurement.
+5. **Score the twin on the matrix.** ✅ Done via indexed twins of the two
+   matrix emitters (`l4yaml-event-ix`, `l4yaml-json-ix`) rather than a
+   suite-runner mode: the matrix's event/JSON axes measure output
+   fidelity and subsume the runner's accept/reject check. Scores and the
+   37-test residue classification in [The matrix score](#the-matrix-score).
 
 **Guardrail for the future:** every indexed twin lands with a parity
 guard *in the built target*, and the twin's docstring claim

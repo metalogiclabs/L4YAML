@@ -94,6 +94,14 @@ lean_exe «l4yaml-json» where
   root := `Tests.EmitJson
 
 @[default_target]
+lean_exe «l4yaml-event-ix» where
+  root := `Tests.EmitEventsIx
+
+@[default_target]
+lean_exe «l4yaml-json-ix» where
+  root := `Tests.EmitJsonIx
+
+@[default_target]
 lean_exe eventscore where
   root := `Tests.SuiteRunner.EventScore
 
