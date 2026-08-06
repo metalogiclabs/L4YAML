@@ -804,14 +804,25 @@ def appendNewlines (acc : String) : Nat → String
     see legacy `Scanner/Scalar.lean::foldBlockContent` for the
     long-form table. -/
 def foldBlockContentGo : List Char → String → FoldState → Nat → String
-  | [],            acc, _,   _       => acc
+  -- End of input. The fold pass runs *after* chomping, so `pending` here IS the
+  -- chomp result (strip → 0, clip → 1, keep → N) and must be re-emitted: a
+  -- trailing run is never folded to a space, which would need a following
+  -- content char. `.start` means no content char was ever seen (an all-blank
+  -- body), so `acc` is empty and a clip/strip scalar over blanks stays empty.
+  -- Dropping `pending` unconditionally made every folded scalar behave as `>-`
+  -- (DOCS.md § Indexed-pipeline parity gap, D1).
+  | [],            acc, .start, _       => acc
+  | [],            acc, _,      pending => appendNewlines acc pending
   | c :: rest,     acc, st,  pending =>
     if isLineFeedBool c then
       foldBlockContentGo rest acc st (pending + 1)
     else
       match pending with
       | pending' + 1 =>
-        let isMore := isSpaceBool c
+        -- More-indented [173] is `s-white`, not just `s-space`: a tab-led line
+        -- keeps the breaks around it literally rather than folding them to a
+        -- space (MJS9, R4YG). D2 of the same parity gap.
+        let isMore := isWhiteSpaceBool c
         let newSt  := if isMore then FoldState.more else .content
         let acc'   := match st with
           | .start => appendNewlines acc (pending' + 1)
@@ -971,8 +982,14 @@ def parseBlockHeaderLoopIx {input : String} (c : IxCursor input)
       else if isChompKeepBool ch then
         parseBlockHeaderLoopIx c.advance .keep explicitOffset fuel
       else if ch.isDigit && !isNsEscNullBool ch then
+        -- Digit value = `ch - '0'`. NOT `nsEscNullChar`, which is `'\x00'` — the
+        -- *result* of the `\0` escape [42], where `isNsEscNullBool` on the line
+        -- above is its *selector* `'0'`. Subtracting the result instead of the
+        -- selector made `|2` mean an indentation indicator of 50, so the body
+        -- collected nothing and the content line was re-scanned as a bare
+        -- document (DOCS.md § Indexed-pipeline parity gap, D4).
         parseBlockHeaderLoopIx c.advance chomp
-          (some (ch.toNat - nsEscNullChar.toNat)) fuel
+          (some (ch.toNat - '0'.toNat)) fuel
       else
         (chomp, explicitOffset, c)
     | none => (chomp, explicitOffset, c)

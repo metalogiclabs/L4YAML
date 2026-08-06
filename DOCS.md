@@ -5462,10 +5462,33 @@ lives in [README.md](README.md) and is not duplicated here.)
 | Item | Status | Section |
 |---|---|---|
 | `ns-char` predicate spec-loose body | **Fixed 2026-08-01** (predicates tightened; scanner + emitter conformant; regression-tested) | [The ns-char gap](#the-ns-char-gap) |
+| **Indexed-pipeline parity** (the twin consumers actually call) | **Open — 3 confirmed divergences, parity harness never built** (found 2026-08-05) | [Indexed-pipeline parity gap](#indexed-pipeline-parity-gap) |
 | Grammar completeness (`parse_iff_grammar`, capstone 7.7) | **Open** (unblocked; Step-0 audit done) | [Grammar completeness plan](#grammar-completeness-plan) |
 | Merge semantics (`DuplicateKeyPolicy.merge`) | **Open** (design ready; re-base on `LawfulBEq`) | [Merge semantics plan](#merge-semantics-plan) |
 | Security limits: open questions + future work | **Open** (design questions; 3 unimplemented features) | [Security hardening backlog](#security-hardening-backlog) |
 | Limit-enforcement verification, and the rest | **Open** (varied) | [Other open items](#other-open-items) |
+
+### Next actions, in order
+
+Priority is **shipped-behaviour correctness first, proof completeness
+second**: a divergence in the indexed pipeline is wrong output in a
+consumer's hands today, while `scannerDrop` is an over-approximation in a
+theorem nobody's build depends on yet.
+
+| # | Action | Blocks | Where |
+|---|---|---|---|
+| 1 | ✅ **done 2026-08-05** — index `Tests/Guards/Parity/IndexedScanAndParse.lean` into `Tests.Guards` (and repair the harness itself: it compared `Except`s with `==`) | everything below — without it a fix cannot be shown to hold | [Indexed-pipeline parity gap](#indexed-pipeline-parity-gap) |
+| 2 | ✅ **done** — D3, the divergence that turned valid YAML into a scan **error** | consumers of `parseYaml*Ix` | ditto |
+| 3 | ✅ **done** — D1/D2 (`foldBlockContentGo` end-of-input and tab classification) | folded-scalar content fidelity | ditto |
+| 4 | ✅ **done** — block-scalar parity coverage 2 → 35 guards; **the new coverage found D4**, explicit indentation indicators failing outright | recurrence of D1–D4 | ditto |
+| 5 | ⬜ **open** — run the yaml-test-suite matrix through the **indexed** pipeline and record its score beside the legacy 402/402 · 279/279 | knowing whether D1–D4 were the whole story | ditto |
+| 6 | ⬜ **open** — resume Fix A B.4β.2: wire the depth-0 `[`/`{` opens (`SLYamlStream sp_start sp_prep` holes) | `scannerDrop` deletion → converse → `parse_iff_grammar` | [Fix A](#fix-a-eliminating-scannerdrop--flow-indicator-grammar-evidence) |
+
+Item 5 is the one that decides whether this section can be closed: the
+four divergences were found by hand-picking shapes, and item 4's own
+result — new coverage immediately surfacing a fifth failure mode — is the
+argument for measuring rather than sampling. It is small, green-able, and
+independent of the Fix A red window. Item 6 is the multi-session red core.
 
 ## The ns-char gap
 
@@ -5576,6 +5599,179 @@ The cleanup that found this gap also corrected:
   how the `inFlow : Bool` parameter encodes the 4→2 partition
   (`FLOW-OUT/BLOCK-KEY ↦ false`, `FLOW-IN/FLOW-KEY ↦ true`); notes that
   `BLOCK-OUT/BLOCK-IN` are out-of-spec for [127].
+
+---
+
+## Indexed-pipeline parity gap
+
+*(found 2026-08-05, from downstream: `algctl` in `soil-moisture-workflows`
+parses its DPS configs with `parseYamlWithCommentsIx` and its `notes: >`
+blocks came back one byte short of what PyYAML — and of what our own
+legacy pipeline — produces.)*
+
+**Status (2026-08-05):** **Four divergences found, all four fixed, the
+harness is now built.** What remains open is coverage, not these four:
+the twin has still never been scored on the yaml-test-suite matrix, so
+the honest claim is "agrees on the 82 guarded inputs", not "agrees".
+
+**Why this outranks the proof work.** The indexed pipeline is not a
+staging area: `parseYamlWithCommentsIx` is the entry point consumers call
+(it is the only one carrying `nodePositions`, so anything that edits YAML
+in place must use it). The proofs, the yaml-test-suite matrix scores
+(402/402 event, 279/279 JSON) and the round-trip corpus all run through
+`TokenParser.parseYaml` — the **legacy** pipeline. Nothing that is
+currently gated tells us whether the twin agrees.
+
+### What landed
+
+| | fix | file |
+|---|---|---|
+| P0 | harness imported into `Tests.Guards` (a `@[default_target]`), and its `agree` comparison rewritten — it used `==` on an `Except`, for which core has no `BEq`, so the file could not have compiled even if it had been imported | `Tests/Guards.lean`, `Tests/Guards/Parity/IndexedScanAndParse.lean` |
+| D1 | `foldBlockContentGo` end-of-input split in two, re-emitting the chomped tail | `Scanner/IndexedScanner.lean` |
+| D2 | more-indented test widened from `s-space` to `s-white` | same |
+| D3 | block-scalar arm clears the pending simple key and re-allows one | `Scanner/IndexedDispatch.lean` |
+| D4 | digit value computed against `'0'`, not `nsEscNullChar` | `Scanner/IndexedScanner.lean` |
+| — | block-scalar parity coverage 2 → 35 guards (chomp × style × context × position) | `Tests/Guards/Parity/IndexedScanAndParse.lean` |
+
+Five proofs pinned the old post-state and were repaired, all by swapping
+a `_preserved`/`_mono` transport for the `_cleared` one that already
+existed beside it (`AllKeysPlaceholderInvIx`, `SimpleKeyAboveIx`,
+`AllKeysValidIx`, `SimpleKeyAboveFloorIx`, `NoOverwriteAtIx`) — the
+corpus had the right lemma for a key-clearing transition in every case,
+which is a good sign the invariant set is the right one. Build is at the
+pre-existing baseline: `Tests.Guards` green (187 jobs), the only failures
+left are the two `Tests.Reflections` files and the `L4YAML.Capstones`
+axiom gate, all three red before this work from the open Fix A sorries.
+
+### P0 — the parity harness was dead code
+
+`Tests/Guards/Parity/IndexedScanAndParse.lean` (54 `#guard`s, written at
+Step 6f.0 precisely to gate the cutover) is **not imported by
+`Tests/Guards.lean`**, and `Tests.Guards` is what the `@[default_target]`
+build elaborates. The file has therefore never been built. It is not
+merely idle — one of its guards is **false today**:
+
+```lean
+#guard single ">\n  line1\n  line2\n"   -- legacy "line1 line2\n" vs indexed "line1 line2"
+```
+
+An unindexed probe never runs and rots; the fix is one `import` line, and
+it must land *before* the divergence fixes so that each fix is witnessed.
+
+### The four divergences
+
+Repro at the parse level (`parseYamlSingle` vs `parseYamlSingleIx`), as
+they were before the fix:
+
+| | input | legacy | indexed |
+|---|---|---|---|
+| **D1** | `">\n  x\n"` | `"x\n"` | `"x"` |
+| **D2** | folded body whose next line starts with a **tab** | break kept (`\n`) | break folded to a space |
+| **D3** | `"a: \|\n  x\nb: 1\n"` | mapping of two pairs | `.error (invalidImplicitKey 2)` |
+| **D4** | `"a: \|2\n    x\n"` (any explicit indent indicator) | `"  x\n"` | `.error (invalidBareDocument 1 4)` |
+
+Note the shape of the set: every one is in the block-scalar path, and
+none of them is in the *shared* code — D1/D2/D4 are in hand-written
+indexed re-implementations of legacy string logic, D3 is in the dispatch
+that wraps them. The twin was written by transcription, and transcription
+errors do not distribute evenly.
+
+**D1 — `foldBlockContentGo` drops the chomped trailing break.**
+`L4YAML/Scanner/IndexedScanner.lean` has a single end-of-input case
+
+```lean
+| [], acc, _, _ => acc
+```
+
+where the legacy `foldBlockContent.go` (`L4YAML/Scanner/Scalar.lean`)
+splits it in two, and the split is load-bearing:
+
+```lean
+| [], acc, .start, _       => acc              -- all-blank body: stays empty
+| [], acc, _,      pending => appendNewlines acc pending
+```
+
+Folding runs *after* chomping, so `pending` at end-of-input **is** the
+chomp result (strip → 0, clip → 1, keep → N). Dropping it makes every
+folded scalar behave as if it were `>-`: `clip` and `keep` become
+unreachable through the indexed pipeline. Literal `|` is unaffected — it
+skips the fold pass — which is why the one shape the (dead) guards cover
+and the one shape that survives is `|`.
+
+**D2 — more-indented classification is space-only.** Indexed uses
+`isMore := isSpaceBool c` (`#x20`); legacy uses `c == ' ' || c == '\t'`.
+A tab-led line is more-indented [173], so the breaks around it are kept
+literally rather than folded — the behaviour MJS9 and R4YG pin. The
+indexed twin folds them to spaces.
+
+**D3 — the block-scalar branch loses the simple-key reset.** Legacy
+`scanBlockScalarBody` finishes with
+
+```lean
+{ s_with_token with simpleKeyAllowed := true, simpleKey := { possible := false } }
+```
+
+and the legacy dispatcher returns that state untouched. The indexed
+dispatcher (`L4YAML/Scanner/IndexedDispatch.lean`, the `'|' | '>'` branch)
+instead returns `{ sEmit with simpleKeyAllowed := false }`: the opposite
+value for `simpleKeyAllowed`, and no clearing of `simpleKey`. A block
+scalar always ends at a line start, so a following key is legal — the
+stale pending key then fails the implicit-key check and the whole
+document is rejected. This is why the divergence went unnoticed
+downstream too: it only fires when a block scalar is *followed* by
+another entry, and the configs that exercised it had `notes: >` last.
+
+**D4 — the indentation indicator is decoded against the wrong `'0'`.**
+`parseBlockHeaderLoopIx` read an explicit indicator (`|2`, `>1`, …) as
+
+```lean
+some (ch.toNat - nsEscNullChar.toNat)      -- nsEscNullChar = '\x00'
+```
+
+against legacy's `c.toNat - '0'.toNat`. Two different characters wear the
+name "esc null" in `Spec/CharPredicates.lean`: `isNsEscNullBool c := c == '0'`
+is the **selector** (the character after the backslash in `\0`) and
+`nsEscNullChar := '\x00'` is the **result** (what the escape denotes). The
+line above the bug uses the selector correctly, then the digit arithmetic
+subtracts the *result*: `|2` became an indentation indicator of **50**,
+no body line was ever indented that far, the scalar came back empty, and
+the content line was re-scanned as a bare document. Every explicit
+indicator, in every context, failed to parse.
+
+The lesson generalizes past this call site: a selector/result pair under
+one name is a trap that type-checking cannot catch, because both sides
+are `Char`. Both spellings should not be one word apart.
+
+### Plan
+
+*(1–4 done 2026-08-05, see "What landed"; 5 remains open.)*
+
+1. **Index the harness.** Add `import Tests.Guards.Parity.IndexedScanAndParse`
+   to `Tests/Guards.lean`. Expect the `>` guard to fail — that failure is
+   the point, and it is the regression test for D1.
+2. **Fix D3** (`IndexedDispatch.lean`): mirror the legacy post-state.
+   Check the indexed scanner proof corpus for lemmas that pin
+   `simpleKeyAllowed` across this branch.
+3. **Fix D1/D2** (`IndexedScanner.lean`): split the `foldBlockContentGo`
+   end-of-input case and widen `isMore` to `s-white`. `FoldNewlines`
+   guards exist for the legacy fold — extend them to the twin rather than
+   writing a parallel set.
+4. **Extend the guards** to the uncovered cross-product: `|`/`>` × chomp
+   `strip`/`clip`/`keep` × {root, mapping value, sequence entry} × {last
+   in document, followed by another entry}, plus explicit-indent headers
+   and tab-led folded lines. The current file's block-scalar coverage is
+   two root-level cases.
+5. **Score the twin on the matrix.** The suite runner
+   (`Tests/SuiteRunner/Main.lean`) calls `TokenParser.parseYaml`; add an
+   indexed mode and record both scores. Until that runs, "the twin
+   agrees" is an assumption about ~500 test cases, not a measurement.
+
+**Guardrail for the future:** every indexed twin lands with a parity
+guard *in the built target*, and the twin's docstring claim
+("behaviourally identical to …") is only as good as a guard that
+elaborates. See also the general lesson recorded under
+[Proof-breaking code patterns](#proof-breaking-code-patterns): a probe
+that is not indexed into a default target is not a probe.
 
 ---
 

@@ -384,12 +384,14 @@ lemma scanNextTokenIx_dispatchContent_maintains_SimpleKeyAboveIx {input : String
             (scanTagIx_preserves_simpleKeyStack s v hT)
       · rw [if_neg hg3] at h_ok
         by_cases hg4 : (c == '|' || c == '>') = true
-        · -- c == '|' || c == '>': block scalar (inline)
+        · -- c == '|' || c == '>': block scalar (inline). The post-state clears
+          -- the pending simple key (a block scalar ends at a line start), so
+          -- this is the `_of_cleared_mono` transition, not `_mono`.
           rw [if_pos hg4] at h_ok
           split at h_ok
           · simp only [Except.ok.injEq] at h_ok
             subst h_ok
-            exact SimpleKeyAboveIx_mono s _ n h_inv (by simp) (by simp)
+            exact SimpleKeyAboveIx_of_cleared_mono s _ n h_inv rfl (by simp)
           · cases h_ok
         · rw [if_neg hg4] at h_ok
           by_cases hg5 : (c == '"') = true

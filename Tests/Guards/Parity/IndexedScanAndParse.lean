@@ -45,15 +45,26 @@ open L4YAML
 open L4YAML.TokenParser
 open L4YAML.TokenParser.Indexed
 
+/-- Both pipelines succeeded with the same value, or both failed with the
+    same error. Matched by hand rather than compared with `==` on the
+    `Except`: `BEq YamlValue`, `BEq YamlDocument` and `BEq ScanError` all
+    exist, but core provides no `BEq (Except ε α)`, and an orphan instance
+    for it does not belong in a test file. -/
+@[inline] def agree {α : Type} [BEq α] (a b : Except ScanError α) : Bool :=
+  match a, b with
+  | .ok x, .ok y => x == y
+  | .error e₁, .error e₂ => e₁ == e₂
+  | _, _ => false
+
 /-- Single-document parity: legacy and indexed must agree on the
     composed `YamlValue` (or the same `ScanError`). -/
 @[inline] def single (s : String) : Bool :=
-  parseYamlSingle s == parseYamlSingleIx s
+  agree (parseYamlSingle s) (parseYamlSingleIx s)
 
 /-- Multi-document parity: legacy and indexed must agree on the
     `Array YamlDocument` (or the same `ScanError`). -/
 @[inline] def docs (s : String) : Bool :=
-  parseYaml s == parseYamlIx s
+  agree (parseYaml s) (parseYamlIx s)
 
 /-! ### Empty + primitives -/
 #guard single ""
@@ -105,9 +116,54 @@ open L4YAML.TokenParser.Indexed
 /-! ### Tags -/
 #guard single "!!str 42"
 
-/-! ### Block scalars -/
+/-! ### Block scalars
+
+The two root-level cases below were the whole of this section until
+2026-08-05, and between them they missed all three divergences recorded
+in DOCS.md § Indexed-pipeline parity gap: `|` skips the fold pass (so D1
+and D2 could not fire) and a scalar that ends the document never exposes
+the simple-key reset (D3). The cross-product below is the regression
+set: `|`/`>` × chomp × context × {last, followed by another entry}. -/
 #guard single "|\n  line1\n  line2\n"
 #guard single ">\n  line1\n  line2\n"
+
+/-! #### Chomping (D1: the folded pass must re-emit the chomped tail) -/
+#guard single "a: |\n  x\n"
+#guard single "a: |-\n  x\n"
+#guard single "a: |+\n  x\n\n"
+#guard single "a: >\n  x\n"
+#guard single "a: >-\n  x\n"
+#guard single "a: >+\n  x\n\n"
+#guard single ">\n  x\n\n\n"
+#guard single ">-\n  x\n\n\n"
+#guard single ">+\n  x\n\n\n"
+#guard single ">\n"
+#guard single ">\n\n"
+#guard single "|\n"
+
+/-! #### Folding: more-indented lines keep their breaks (D2 — `s-white`,
+    so a **tab**-led line counts, not only a space-led one) -/
+#guard single ">\n  a\n   b\n  c\n"
+#guard single ">\n  a\n  \tb\n  c\n"
+#guard single ">\n  a\n  b\n\n  c\n"
+#guard single ">\n  a\n\n\n  b\n"
+
+/-! #### Followed by another entry (D3 — the scalar's post-state must
+    clear the pending simple key and re-allow one) -/
+#guard single "a: |\n  x\nb: 1\n"
+#guard single "a: >\n  x\nb: 1\n"
+#guard single "a: |\n  x\n\nb: 1\n"
+#guard single "- |\n  x\n- 2\n"
+#guard single "- >\n  x\n- 2\n"
+#guard single "a:\n  b: |\n    x\n  c: 2\n"
+#guard single "a: |\n  x\nb: |\n  y\n"
+#guard single "a: |\n  x\n# comment\nb: 1\n"
+
+/-! #### Explicit indentation indicator + document boundaries -/
+#guard single "a: |2\n    x\n"
+#guard single "a: >2\n    x\n"
+#guard docs "|\n  x\n---\n|\n  y\n"
+#guard docs "a: |\n  x\n---\nb: 2\n"
 
 /-! ### Comments + whitespace -/
 #guard single "# leading\nabc"

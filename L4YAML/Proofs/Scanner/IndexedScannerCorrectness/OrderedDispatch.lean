@@ -1009,6 +1009,28 @@ lemma _scalar_emitAt_preserves_AllKeysValidIx {input : String}
     show (s.tokens.tokens.push _)[i]'_ = s.tokens.tokens[i]'hi
     exact Array.getElem_push_lt hi
 
+/-- Block-scalar twin of `_scalar_emitAt_preserves_AllKeysValidIx`. The
+    block-scalar arm's post-state *clears* the pending simple key and re-allows
+    one (a block scalar ends at the start of a line — the legacy post-state from
+    `scanBlockScalarBody`), so `simpleKey` is not preserved and the `_mono` route
+    does not apply. A cleared key makes `SimpleKeyValidIx` vacuous, and the
+    stack side still goes through `SimpleKeyStackValidIx_mono` unchanged.
+
+    Stated over an arbitrary `s'` with the three facts the conclusion needs
+    rather than over the literal record update: the arm's post-state reaches the
+    goal as a fully-expanded field-by-field literal, which unifies with the
+    hypotheses below but not with a `with`-update written here. -/
+lemma _blockScalar_preserves_AllKeysValidIx {input : String}
+    (s s' : ScannerStateIx input) (h_akv : AllKeysValidIx s)
+    (h_clear : s'.simpleKey.possible = false)
+    (h_stack : s'.simpleKeyStack = s.simpleKeyStack)
+    (h_size : s.tokens.tokens.size ≤ s'.tokens.tokens.size)
+    (h_pref : ∀ i (h : i < s.tokens.tokens.size),
+      s'.tokens.tokens[i]'(by omega) = s.tokens.tokens[i]) :
+    AllKeysValidIx s' :=
+  AllKeysValidIx_of_cleared s' h_clear
+    (SimpleKeyStackValidIx_mono s s' h_akv.2 h_stack h_size h_pref)
+
 /-! #### §8.8.1  `scanNextTokenIx_preprocess` preservation.
 
 `preprocess` chains: `skipToContentS` (cursor-only) → optional
@@ -1274,13 +1296,17 @@ lemma scanNextTokenIx_dispatchContent_preserves_AllKeysValidIx {input : String}
           exact scanTagIx_preserves_AllKeysValidIx s v h_akv hT
       · rw [if_neg hg3] at h_ok
         by_cases hg4 : (c == '|' || c == '>') = true
-        · -- block scalar
+        · -- block scalar (clears the pending simple key, unlike the inline arms)
           rw [if_pos hg4] at h_ok
           split at h_ok
           · rename_i r hBS
             simp only [Except.ok.injEq] at h_ok; subst h_ok
-            exact _scalar_emitAt_preserves_AllKeysValidIx s _ _
-              (scanBlockScalarIx_offset_monotonic s.cursor _ hBS) h_akv
+            refine _blockScalar_preserves_AllKeysValidIx s _ h_akv rfl rfl ?_ ?_
+            · show s.tokens.tokens.size ≤ (s.tokens.tokens.push _).size
+              rw [Array.size_push]; omega
+            · intro i hi
+              show (s.tokens.tokens.push _)[i]'_ = s.tokens.tokens[i]'hi
+              exact Array.getElem_push_lt hi
           · cases h_ok
         · rw [if_neg hg4] at h_ok
           by_cases hg5 : (c == '"') = true

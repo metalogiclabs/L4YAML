@@ -871,9 +871,25 @@ lemma applyChomp_clip_of_not_endsWith {raw : String}
     applyChomp .clip raw = stripTrailingNewlines raw := by
   simp [applyChomp, h]
 
-lemma foldBlockContentGo_nil (acc : String) (st : FoldState) (pending : Nat) :
-    foldBlockContentGo [] acc st pending = acc :=
+/-- End of input in `.start`: no content char was ever seen, so the accumulator
+    is returned as-is (an all-blank `>` / `>-` body folds to `""`). -/
+lemma foldBlockContentGo_nil_start (acc : String) (pending : Nat) :
+    foldBlockContentGo [] acc .start pending = acc :=
   rfl
+
+/-- End of input after content: the pending run of line breaks is re-emitted.
+    Folding runs after chomping, so that run *is* the chomped tail — `.strip`
+    already reduced it to none, `.clip` to one, `.keep` left it whole — and
+    dropping it would collapse every chomp style onto `.strip` (§8.1.1 [165]
+    `b-chomped-last(t)` / [166] `l-chomped-empty(n,t)`). -/
+lemma foldBlockContentGo_nil_of_ne_start {st : FoldState} (h : st ≠ .start)
+    (acc : String) (pending : Nat) :
+    foldBlockContentGo [] acc st pending = appendNewlines acc pending := by
+  cases st with
+  | start => exact absurd rfl h
+  | content => rfl
+  | empty => rfl
+  | more => rfl
 
 lemma foldBlockContent_empty :
     foldBlockContent "" = "" :=

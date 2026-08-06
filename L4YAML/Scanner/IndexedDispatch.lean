@@ -1142,7 +1142,15 @@ def scanNextTokenIx_dispatchContent {input : String} (s : ScannerStateIx input)
         show s.cursor.pos.offset ≤ r.2.2.pos.offset
         exact scanBlockScalarIx_offset_monotonic s.cursor parentIndent hBS
       let sEmit := sAfter.emitAt startPos (YamlToken.scalar content style) hBound
-      return { sEmit with simpleKeyAllowed := false }
+      -- A block scalar always ends at the start of a line, so the next line may
+      -- open a fresh simple key, and any key pending from before this scalar is
+      -- finished. Mirrors the legacy post-state, which `scanBlockScalarBody`
+      -- (Scanner/Scalar.lean) sets and the legacy dispatcher returns untouched.
+      -- `simpleKeyAllowed := false` — right for every *inline* scalar branch
+      -- below — left the pending key live here, so `a: |⏎  x⏎b: 1` was rejected
+      -- with `invalidImplicitKey` (DOCS.md § Indexed-pipeline parity gap, D3).
+      return { sEmit with simpleKeyAllowed := true,
+                          simpleKey := { cursor := IxCursor.start input } }
     | none =>
       throw (.unexpectedChar c s.cursor.pos.line s.cursor.pos.col)
   if c == '"' then

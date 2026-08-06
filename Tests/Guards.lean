@@ -1,4 +1,5 @@
 import Tests.Guards.Dump
+import Tests.Guards.Parity.IndexedScanAndParse
 import Tests.Guards.Proofs.BodySuccSeqDiscriminator
 import Tests.Guards.Proofs.CommentRoundTrip
 import Tests.Guards.Proofs.DescendIHProjectionProbe

@@ -5833,6 +5833,57 @@ lemma _inline_scalar_preserves_AllKeysPlaceholderInvIx {input : String}
       startPos tok hBound i hi
   exact AllKeysPlaceholderInvIx_mono s _ h_akpi h_sk h_stack h_mono h_pref
 
+/-- Helper for the **block-scalar** arm of `scanNextTokenIx_dispatchContent`.
+
+    Its post-state differs from the inline-scalar arms in more than the flag:
+    a block scalar ends at the start of a line, so it *clears* the pending
+    simple key (`simpleKey := { cursor := … }`, i.e. `possible = false`) and
+    re-allows one, exactly as the legacy `scanBlockScalarBody` does. `simpleKey`
+    is therefore not preserved and `_inline_scalar_preserves_AllKeysPlaceholderInvIx`
+    does not apply — but a *cleared* key satisfies the current-key conjuncts
+    vacuously, and `simpleKeyStack` plus the token prefix are untouched, which is
+    what `AllKeysPlaceholderInvIx_of_cleared_mono` asks for. -/
+lemma _block_scalar_preserves_AllKeysPlaceholderInvIx {input : String}
+    (s : ScannerStateIx input) (cAfter : IxCursor input)
+    (startPos : YamlPos) (tok : YamlToken)
+    (hBound : startPos.offset ≤ cAfter.pos.offset)
+    (h_akpi : AllKeysPlaceholderInvIx s) :
+    AllKeysPlaceholderInvIx
+      { ({ s with cursor := cAfter } : ScannerStateIx input).emitAt startPos tok hBound with
+          simpleKeyAllowed := true,
+          simpleKey := { cursor := IxCursor.start input } } := by
+  have h_clears :
+      ({ ({ s with cursor := cAfter } : ScannerStateIx input).emitAt startPos tok hBound with
+          simpleKeyAllowed := true,
+          simpleKey := { cursor := IxCursor.start input } }
+        : ScannerStateIx input).simpleKey.possible = false := rfl
+  have h_stack :
+      ({ ({ s with cursor := cAfter } : ScannerStateIx input).emitAt startPos tok hBound with
+          simpleKeyAllowed := true,
+          simpleKey := { cursor := IxCursor.start input } }
+        : ScannerStateIx input).simpleKeyStack = s.simpleKeyStack := by simp
+  have h_mono : s.tokens.size ≤
+      ({ ({ s with cursor := cAfter } : ScannerStateIx input).emitAt startPos tok hBound with
+          simpleKeyAllowed := true,
+          simpleKey := { cursor := IxCursor.start input } }
+        : ScannerStateIx input).tokens.size := by
+    show s.tokens.size ≤
+      (({ s with cursor := cAfter } : ScannerStateIx input).emitAt startPos tok hBound).tokens.size
+    rw [emitAt_tokens_size]
+    have h_eq : ({ s with cursor := cAfter } : ScannerStateIx input).tokens.size = s.tokens.size := rfl
+    omega
+  have h_pref : ∀ i (h : i < s.tokens.size),
+      ({ ({ s with cursor := cAfter } : ScannerStateIx input).emitAt startPos tok hBound with
+          simpleKeyAllowed := true,
+          simpleKey := { cursor := IxCursor.start input } }
+        : ScannerStateIx input).tokens[i]'(by omega) = s.tokens[i] := by
+    intro i hi
+    show (({ s with cursor := cAfter } : ScannerStateIx input).emitAt startPos tok hBound).tokens[i]'_ =
+      s.tokens[i]'hi
+    exact emitAt_preserves_tokens_at ({ s with cursor := cAfter } : ScannerStateIx input)
+      startPos tok hBound i hi
+  exact AllKeysPlaceholderInvIx_of_cleared_mono s _ h_akpi h_clears h_stack h_mono h_pref
+
 /-- `scanNextTokenIx_dispatchContent` preserves `AllKeysPlaceholderInvIx`.
     7 productions: `&`/`*` (anchor/alias via `scanAnchorOrAliasIx`),
     `!` (tag), `|`/`>` (block scalar), `"` (double-quoted),
@@ -5896,12 +5947,13 @@ lemma scanNextTokenIx_dispatchContent_preserves_AllKeysPlaceholderInvIx {input :
             (fun i hi => scanTagIx_preserves_prefix s v hT i hi)
       · rw [if_neg hg3] at h_ok
         by_cases hg4 : (c == '|' || c == '>') = true
-        · -- c == '|' || c == '>': block scalar (inline match)
+        · -- c == '|' || c == '>': block scalar (inline match). Unlike the
+          -- inline-scalar arms this one clears the pending simple key.
           rw [if_pos hg4] at h_ok
           split at h_ok
           · simp only [Except.ok.injEq] at h_ok
             subst h_ok
-            exact _inline_scalar_preserves_AllKeysPlaceholderInvIx s _ _ _ _ h_akpi
+            exact _block_scalar_preserves_AllKeysPlaceholderInvIx s _ _ _ _ h_akpi
           · cases h_ok
         · rw [if_neg hg4] at h_ok
           by_cases hg5 : (c == '"') = true
