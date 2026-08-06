@@ -3,6 +3,7 @@ Copyright (c) 2026. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 -/
 import L4YAML.Proofs.Output.IndexedEmitterScannability.FlowMonoChain.Sync.Scenarios.Preflow
+import L4YAML.Proofs.Output.IndexedEmitterScannability.FlowMonoChain.FlowStackChainIx
 
 /-! # `FlowMonoChain.Sync.Scenarios.FlowSeqOpen` — Phase 3 Step
 `6f.3b3.emitscans.flowpair` (SS2, `[`-opener track)
@@ -78,7 +79,8 @@ lemma scanNextTokenIx_flow_open_seq_nested (s : ScannerStateIx input)
       ∧ EndLineOnLineIx s'
       ∧ StackEndLineOnLineIx s' s'.cursor.pos.line
       ∧ s'.simpleKeyStack.pop = s.simpleKeyStack
-      ∧ (∀ t, lastRealTokenValIx? s'.tokens = some t → t.completesFlowValue = false) := by
+      ∧ (∀ t, lastRealTokenValIx? s'.tokens = some t → t.completesFlowValue = false)
+      ∧ s'.flowStack = s.flowStack.push true := by
   have h_pp : scanNextTokenIx_preprocess s = .ok (some (saveSimpleKeyIx s, '[')) :=
     scanNextTokenIx_preprocess_flow s '[' rest s.cursor.pos.col hcorr h_flow
       (by decide) (by decide) (by decide)
@@ -200,7 +202,12 @@ lemma scanNextTokenIx_flow_open_seq_nested (s : ScannerStateIx input)
     intro t ht
     rw [scanFlowSequenceStartIx_lastRealTokenVal s_ad] at ht
     simp only [Option.some.injEq] at ht; subst ht; rfl
+  have h_s'_push : (scanFlowSequenceStartIx s_ad).flowStack = s.flowStack.push true := by
+    rw [scanFlowSequenceStartIx_flowStack]
+    congr 1
+    rw [h_s_ad_def]; split <;> exact saveSimpleKeyIx_flowStack s
   refine ⟨_, h_snt, h_s'_corr, h_s'_fl, h_s'_dp, h_s'_ids, h_s'_ek, h_s'_col,
-         h_s'_line, h_s'_atol, h_s'_endline, h_s'_stackend, h_s'_stackpop, h_s'_last⟩
+         h_s'_line, h_s'_atol, h_s'_endline, h_s'_stackend, h_s'_stackpop, h_s'_last,
+         h_s'_push⟩
 
 end L4YAML.Proofs.Indexed.EmitterScannability.FlowMonoChain

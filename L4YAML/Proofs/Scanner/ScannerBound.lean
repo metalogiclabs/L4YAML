@@ -289,10 +289,12 @@ lemma dispatchFlowIndicators_preserves_bound (s s' : ScannerState) (c : Char)
   · split at hok  -- c == ']'
     · split at hok  -- flowLevel == 0
       · cases hok
-      · split at hok  -- validateFlowClose
+      · split at hok  -- flowStack kind check
         · cases hok
-        · simp only [Except.ok.injEq, Option.some.injEq] at hok; subst hok
-          exact scanFlowSequenceEnd_BoundInv s h_bi hend
+        · split at hok  -- validateFlowClose
+          · cases hok
+          · simp only [Except.ok.injEq, Option.some.injEq] at hok; subst hok
+            exact scanFlowSequenceEnd_BoundInv s h_bi hend
     · split at hok  -- c == '{'
       · simp only [Except.ok.injEq, Option.some.injEq] at hok; subst hok
         exact scanFlowMappingStart_BoundInv s h_bi hend
@@ -301,8 +303,10 @@ lemma dispatchFlowIndicators_preserves_bound (s s' : ScannerState) (c : Char)
           · cases hok
           · split at hok
             · cases hok
-            · simp only [Except.ok.injEq, Option.some.injEq] at hok; subst hok
-              exact scanFlowMappingEnd_BoundInv s h_bi hend
+            · split at hok
+              · cases hok
+              · simp only [Except.ok.injEq, Option.some.injEq] at hok; subst hok
+                exact scanFlowMappingEnd_BoundInv s h_bi hend
         · split at hok  -- c == ','
           · split at hok
             · cases hok

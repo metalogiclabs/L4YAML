@@ -298,7 +298,8 @@ lemma scanNextTokenIx_flow_close_seq_outermost (s : ScannerStateIx input)
     (h_indent : s.currentIndent < 0)
     (h_col_pos : s.cursor.pos.col > 0)
     (h_fl : s.flowLevel = 1)
-    (h_dp : s.directivesPresent = false) :
+    (h_dp : s.directivesPresent = false)
+    (h_kind : s.flowStack.back? = some true) :
     ∃ s', scanNextTokenIx s = .ok (some s')
       ∧ s'.flowLevel = 0
       ∧ s'.directivesPresent = false
@@ -335,9 +336,13 @@ lemma scanNextTokenIx_flow_close_seq_outermost (s : ScannerStateIx input)
     rw [h_s_ad_def]; split <;> exact saveSimpleKeyIx_cursor s
   -- Step 6: flow dispatch (shared with nested; no validateFlowClose)
   have h_fl_pos : s_ad.flowLevel > 0 := by rw [h_ad_fl, h_fl]; omega
+  have h_ad_kind : s_ad.flowStack.back? = some true := by
+    have h_ad_fs : s_ad.flowStack = s.flowStack := by
+      rw [h_s_ad_def]; split <;> exact saveSimpleKeyIx_flowStack s
+    rw [h_ad_fs]; exact h_kind
   have h_flow_disp : scanNextTokenIx_dispatchFlowIndicators s_ad ']' =
       .ok (some (scanFlowSequenceEndIx s_ad)) :=
-    dispatchFlowIndicators_close_bracket s_ad h_fl_pos
+    dispatchFlowIndicators_close_bracket s_ad h_fl_pos h_ad_kind
   have h_snt := scanNextTokenIx_via_flow_dispatch s (saveSimpleKeyIx s) s_ad
     (scanFlowSequenceEndIx s_ad) ']'
     h_pp h_struct h_s_ad_def h_check h_flow_disp
@@ -376,7 +381,8 @@ lemma scanNextTokenIx_flow_close_mapping_outermost (s : ScannerStateIx input)
     (h_indent : s.currentIndent < 0)
     (h_col_pos : s.cursor.pos.col > 0)
     (h_fl : s.flowLevel = 1)
-    (h_dp : s.directivesPresent = false) :
+    (h_dp : s.directivesPresent = false)
+    (h_kind : s.flowStack.back? = some false) :
     ∃ s', scanNextTokenIx s = .ok (some s')
       ∧ s'.flowLevel = 0
       ∧ s'.directivesPresent = false
@@ -407,9 +413,13 @@ lemma scanNextTokenIx_flow_close_mapping_outermost (s : ScannerStateIx input)
   have h_ad_cursor : s_ad.cursor = s.cursor := by
     rw [h_s_ad_def]; split <;> exact saveSimpleKeyIx_cursor s
   have h_fl_pos : s_ad.flowLevel > 0 := by rw [h_ad_fl, h_fl]; omega
+  have h_ad_kind : s_ad.flowStack.back? = some false := by
+    have h_ad_fs : s_ad.flowStack = s.flowStack := by
+      rw [h_s_ad_def]; split <;> exact saveSimpleKeyIx_flowStack s
+    rw [h_ad_fs]; exact h_kind
   have h_flow_disp : scanNextTokenIx_dispatchFlowIndicators s_ad '}' =
       .ok (some (scanFlowMappingEndIx s_ad)) :=
-    dispatchFlowIndicators_close_brace s_ad h_fl_pos
+    dispatchFlowIndicators_close_brace s_ad h_fl_pos h_ad_kind
   have h_snt := scanNextTokenIx_via_flow_dispatch s (saveSimpleKeyIx s) s_ad
     (scanFlowMappingEndIx s_ad) '}'
     h_pp h_struct h_s_ad_def h_check h_flow_disp
@@ -460,7 +470,8 @@ lemma scanNextTokenIx_flow_open_mapping_init (input : String) (rest : List Char)
       ∧ EndLineOnLineIx s'
       ∧ s'.simpleKey.possible = false
       ∧ s'.simpleKeyStack.size = s'.flowLevel
-      ∧ (∀ t, lastRealTokenValIx? s'.tokens = some t → t.completesFlowValue = false) := by
+      ∧ (∀ t, lastRealTokenValIx? s'.tokens = some t → t.completesFlowValue = false)
+      ∧ s'.flowStack.back? = some false := by
   intro s₀
   -- Step 1: preprocessing (uses §2)
   have h_pp := scanNextTokenIx_preprocess_init_state input '{' rest h_toList
@@ -651,10 +662,14 @@ lemma scanNextTokenIx_flow_open_mapping_init (input : String) (rest : List Char)
     intro t ht
     rw [scanFlowMappingStartIx_lastRealTokenVal s_ad] at ht
     simp only [Option.some.injEq] at ht; subst ht; rfl
+  -- flowStack top: '{' pushes `false` (9a kind tracking)
+  have h_s'_push : (scanFlowMappingStartIx s_ad).flowStack.back? = some false := by
+    rw [scanFlowMappingStartIx_flowStack]
+    exact Array.back?_push
   -- Combine
   refine ⟨scanFlowMappingStartIx s_ad, h_snt, h_s'_corr, h_s'_fl, h_s'_dp, h_s'_ids,
           h_s'_col, h_s'_inflow, h_s'_ci, h_s'_ek, h_s'_line, h_s'_atol, h_s'_endline,
-          h_s'_sk_poss, h_s'_stack_sz, h_s'_last⟩
+          h_s'_sk_poss, h_s'_stack_sz, h_s'_last, h_s'_push⟩
 
 /-! ## §6  `scanNextTokenIx_flow_open_seq_init`
 
@@ -687,7 +702,8 @@ lemma scanNextTokenIx_flow_open_seq_init (input : String) (rest : List Char)
       ∧ EndLineOnLineIx s'
       ∧ s'.simpleKey.possible = false
       ∧ s'.simpleKeyStack.size = s'.flowLevel
-      ∧ (∀ t, lastRealTokenValIx? s'.tokens = some t → t.completesFlowValue = false) := by
+      ∧ (∀ t, lastRealTokenValIx? s'.tokens = some t → t.completesFlowValue = false)
+      ∧ s'.flowStack.back? = some true := by
   intro s₀
   -- Step 1: preprocessing (uses §2)
   have h_pp := scanNextTokenIx_preprocess_init_state input '[' rest h_toList
@@ -871,9 +887,13 @@ lemma scanNextTokenIx_flow_open_seq_init (input : String) (rest : List Char)
     intro t ht
     rw [scanFlowSequenceStartIx_lastRealTokenVal s_ad] at ht
     simp only [Option.some.injEq] at ht; subst ht; rfl
+  -- flowStack top: '[' pushes `true` (9a kind tracking)
+  have h_s'_push : (scanFlowSequenceStartIx s_ad).flowStack.back? = some true := by
+    rw [scanFlowSequenceStartIx_flowStack]
+    exact Array.back?_push
   -- Combine
   refine ⟨scanFlowSequenceStartIx s_ad, h_snt, h_s'_corr, h_s'_fl, h_s'_dp, h_s'_ids,
           h_s'_col, h_s'_inflow, h_s'_ci, h_s'_ek, h_s'_line, h_s'_atol, h_s'_endline,
-          h_s'_sk_poss, h_s'_stack_sz, h_s'_last⟩
+          h_s'_sk_poss, h_s'_stack_sz, h_s'_last, h_s'_push⟩
 
 end L4YAML.Proofs.Indexed.EmitterScannability.FlowMonoChain

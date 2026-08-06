@@ -620,38 +620,38 @@ lemma scanNextTokenIx_dispatchFlowIndicators_maintains_SKAFIx {input : String}
     (h_sync : s.simpleKeyStack.size ≥ s.flowLevel)
     (h_fl_post : s'.flowLevel ≥ fl₀) :
     SimpleKeyAboveFloorIx s' n₀ fl₀ := by
-  unfold scanNextTokenIx_dispatchFlowIndicators at h
-  simp only [bind, Except.bind, pure, Pure.pure, Except.pure] at h
-  repeat (any_goals (split at h))
-  any_goals contradiction
-  all_goals (try simp only [Except.ok.injEq, Option.some.injEq] at h)
-  any_goals contradiction
-  all_goals (try subst_vars)
-  all_goals first
-    | exact SimpleKeyAboveFloorIx_of_flow_open _ s n₀ fl₀
-        (scanFlowSequenceStartIx_simpleKey_cleared s)
-        (scanFlowSequenceStartIx_stack_pushed s) h_inv
-    | exact SimpleKeyAboveFloorIx_of_flow_open _ s n₀ fl₀
-        (scanFlowMappingStartIx_simpleKey_cleared s)
-        (scanFlowMappingStartIx_stack_pushed s) h_inv
-    | (rename_i h_eq; exact SimpleKeyAboveFloorIx_of_preserved _ s n₀ fl₀
-        (scanFlowEntryIx_preserves_simpleKey s _ h_eq)
-        (scanFlowEntryIx_preserves_simpleKeyStack s _ h_eq) h_inv)
-    | (simp_all; done)
-    | -- Flow close (sequence end): derive size>fl₀ ∨ fl₀=0 from h_fl_post + h_sync
-      (have h_fl_eq : (scanFlowSequenceEndIx s).flowLevel = s.flowLevel - 1 :=
-        scanFlowSequenceEndIx_flowLevel_eq s
-       have h_gt : s.simpleKeyStack.size > fl₀ ∨ fl₀ = 0 := by omega
-       exact SimpleKeyAboveFloorIx_of_flow_close _ s n₀ fl₀
-         (scanFlowSequenceEndIx_simpleKey_restored s)
-         (scanFlowSequenceEndIx_stack_popped s) h_inv h_gt)
-    | -- Flow close (mapping end)
-      (have h_fl_eq : (scanFlowMappingEndIx s).flowLevel = s.flowLevel - 1 :=
-        scanFlowMappingEndIx_flowLevel_eq s
-       have h_gt : s.simpleKeyStack.size > fl₀ ∨ fl₀ = 0 := by omega
-       exact SimpleKeyAboveFloorIx_of_flow_close _ s n₀ fl₀
-         (scanFlowMappingEndIx_simpleKey_restored s)
-         (scanFlowMappingEndIx_stack_popped s) h_inv h_gt)
+  -- The 9a flow-close kind check adds a throw arm per close indicator; the
+  -- pre-9a robust split script leaves the enlarged `do`-tree unsplit, so walk
+  -- the dispatcher through the validated `_ok_some_cases` enumerator instead.
+  rcases scanNextTokenIx_dispatchFlowIndicators_ok_some_cases h with
+    heq | heq | heq | heq | hOk
+  · subst heq
+    exact SimpleKeyAboveFloorIx_of_flow_open _ s n₀ fl₀
+      (scanFlowSequenceStartIx_simpleKey_cleared s)
+      (scanFlowSequenceStartIx_stack_pushed s) h_inv
+  · -- Flow close (sequence end): derive size>fl₀ ∨ fl₀=0 from h_fl_post + h_sync
+    subst heq
+    have h_fl_eq : (scanFlowSequenceEndIx s).flowLevel = s.flowLevel - 1 :=
+      scanFlowSequenceEndIx_flowLevel_eq s
+    have h_gt : s.simpleKeyStack.size > fl₀ ∨ fl₀ = 0 := by omega
+    exact SimpleKeyAboveFloorIx_of_flow_close _ s n₀ fl₀
+      (scanFlowSequenceEndIx_simpleKey_restored s)
+      (scanFlowSequenceEndIx_stack_popped s) h_inv h_gt
+  · subst heq
+    exact SimpleKeyAboveFloorIx_of_flow_open _ s n₀ fl₀
+      (scanFlowMappingStartIx_simpleKey_cleared s)
+      (scanFlowMappingStartIx_stack_pushed s) h_inv
+  · -- Flow close (mapping end)
+    subst heq
+    have h_fl_eq : (scanFlowMappingEndIx s).flowLevel = s.flowLevel - 1 :=
+      scanFlowMappingEndIx_flowLevel_eq s
+    have h_gt : s.simpleKeyStack.size > fl₀ ∨ fl₀ = 0 := by omega
+    exact SimpleKeyAboveFloorIx_of_flow_close _ s n₀ fl₀
+      (scanFlowMappingEndIx_simpleKey_restored s)
+      (scanFlowMappingEndIx_stack_popped s) h_inv h_gt
+  · exact SimpleKeyAboveFloorIx_of_preserved _ s n₀ fl₀
+      (scanFlowEntryIx_preserves_simpleKey s _ hOk)
+      (scanFlowEntryIx_preserves_simpleKeyStack s _ hOk) h_inv
 
 /-- `scanNextTokenIx_dispatchBlockIndicators` maintains `SimpleKeyAboveFloorIx`.
     Indexed twin of legacy `dispatchBlockIndicators_maintains_SimpleKeyAboveFloor`

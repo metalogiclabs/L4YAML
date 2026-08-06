@@ -1021,30 +1021,30 @@ lemma scanNextTokenIx_dispatchFlowIndicators_maintains_NoOverwriteAtIx {input : 
     (m : Nat) (_h_m : m < s.tokens.size)
     (h_inv : NoOverwriteAtIx s m) :
     NoOverwriteAtIx s' m := by
-  unfold scanNextTokenIx_dispatchFlowIndicators at h
-  simp only [bind, Except.bind, pure, Pure.pure, Except.pure] at h
-  repeat (any_goals (split at h))
-  any_goals contradiction
-  all_goals (try simp only [Except.ok.injEq, Option.some.injEq] at h)
-  any_goals contradiction
-  all_goals (try subst_vars)
-  all_goals first
-    | exact NoOverwriteAtIx_of_flow_open _ s m
-        (scanFlowSequenceStartIx_simpleKey_cleared s)
-        (scanFlowSequenceStartIx_stack_pushed s) h_inv
-    | exact NoOverwriteAtIx_of_flow_open _ s m
-        (scanFlowMappingStartIx_simpleKey_cleared s)
-        (scanFlowMappingStartIx_stack_pushed s) h_inv
-    | exact NoOverwriteAtIx_of_flow_close _ s m
-        (scanFlowSequenceEndIx_simpleKey_restored s)
-        (scanFlowSequenceEndIx_stack_popped s) h_inv
-    | exact NoOverwriteAtIx_of_flow_close _ s m
-        (scanFlowMappingEndIx_simpleKey_restored s)
-        (scanFlowMappingEndIx_stack_popped s) h_inv
-    | (rename_i h_eq; exact NoOverwriteAtIx_of_preserved _ s m
-        (scanFlowEntryIx_preserves_simpleKey s _ h_eq)
-        (scanFlowEntryIx_preserves_simpleKeyStack s _ h_eq) h_inv)
-    | (simp_all; done)
+  -- The 9a flow-close kind check adds a throw arm per close indicator; the
+  -- pre-9a robust split script leaves the enlarged `do`-tree unsplit, so walk
+  -- the dispatcher through the validated `_ok_some_cases` enumerator instead.
+  rcases scanNextTokenIx_dispatchFlowIndicators_ok_some_cases h with
+    heq | heq | heq | heq | hOk
+  · subst heq
+    exact NoOverwriteAtIx_of_flow_open _ s m
+      (scanFlowSequenceStartIx_simpleKey_cleared s)
+      (scanFlowSequenceStartIx_stack_pushed s) h_inv
+  · subst heq
+    exact NoOverwriteAtIx_of_flow_close _ s m
+      (scanFlowSequenceEndIx_simpleKey_restored s)
+      (scanFlowSequenceEndIx_stack_popped s) h_inv
+  · subst heq
+    exact NoOverwriteAtIx_of_flow_open _ s m
+      (scanFlowMappingStartIx_simpleKey_cleared s)
+      (scanFlowMappingStartIx_stack_pushed s) h_inv
+  · subst heq
+    exact NoOverwriteAtIx_of_flow_close _ s m
+      (scanFlowMappingEndIx_simpleKey_restored s)
+      (scanFlowMappingEndIx_stack_popped s) h_inv
+  · exact NoOverwriteAtIx_of_preserved _ s m
+      (scanFlowEntryIx_preserves_simpleKey s _ hOk)
+      (scanFlowEntryIx_preserves_simpleKeyStack s _ hOk) h_inv
 
 /-- `scanNextTokenIx_dispatchBlockIndicators` maintains `NoOverwriteAtIx`.
     Parallel to `scanNextTokenIx_dispatchBlockIndicators_maintains_SKAFIx`. -/

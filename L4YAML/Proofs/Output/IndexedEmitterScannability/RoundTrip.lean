@@ -371,7 +371,8 @@ lemma scanNextToken_flow_close_seq_outermost_extIx {input : String}
     (h_indent : s.currentIndent < 0)
     (h_col_pos : s.cursor.pos.col > 0)
     (h_fl : s.flowLevel = 1)
-    (h_dp : s.directivesPresent = false) :
+    (h_dp : s.directivesPresent = false)
+    (h_kind : s.flowStack.back? = some true) :
     ∃ s' : ScannerStateIx input,
       scanNextTokenIx s = .ok (some s')
       ∧ s'.flowLevel = 0
@@ -423,9 +424,13 @@ lemma scanNextToken_flow_close_seq_outermost_extIx {input : String}
   -- §3: flow dispatch on `']'` with flowLevel = 1 > 0 returns `scanFlowSequenceEndIx s_ad`.
   have h_ad_fl_pos : s_ad.flowLevel > 0 := by
     rw [h_ad_fl, h_fl]; decide
+  have h_ad_kind : s_ad.flowStack.back? = some true := by
+    have h_ad_fs : s_ad.flowStack = s.flowStack := by
+      simp only [s_ad]; split <;> exact FlowMonoChain.saveSimpleKeyIx_flowStack s
+    rw [h_ad_fs]; exact h_kind
   have h_flow_disp : scanNextTokenIx_dispatchFlowIndicators s_ad ']' =
       .ok (some (scanFlowSequenceEndIx s_ad)) :=
-    dispatchFlowIndicators_close_bracket s_ad h_ad_fl_pos
+    dispatchFlowIndicators_close_bracket s_ad h_ad_fl_pos h_ad_kind
   -- §4: factoring lemma assembles the full `scanNextTokenIx s`.
   have h_snt : scanNextTokenIx s = .ok (some (scanFlowSequenceEndIx s_ad)) :=
     scanNextTokenIx_via_flow_dispatch s (saveSimpleKeyIx s) s_ad
@@ -479,7 +484,8 @@ lemma scanNextToken_flow_close_mapping_outermost_extIx {input : String}
     (h_indent : s.currentIndent < 0)
     (h_col_pos : s.cursor.pos.col > 0)
     (h_fl : s.flowLevel = 1)
-    (h_dp : s.directivesPresent = false) :
+    (h_dp : s.directivesPresent = false)
+    (h_kind : s.flowStack.back? = some false) :
     ∃ s' : ScannerStateIx input,
       scanNextTokenIx s = .ok (some s')
       ∧ s'.flowLevel = 0
@@ -524,9 +530,13 @@ lemma scanNextToken_flow_close_mapping_outermost_extIx {input : String}
     rw [h_ad_cur]
   have h_ad_fl_pos : s_ad.flowLevel > 0 := by
     rw [h_ad_fl, h_fl]; decide
+  have h_ad_kind : s_ad.flowStack.back? = some false := by
+    have h_ad_fs : s_ad.flowStack = s.flowStack := by
+      simp only [s_ad]; split <;> exact FlowMonoChain.saveSimpleKeyIx_flowStack s
+    rw [h_ad_fs]; exact h_kind
   have h_flow_disp : scanNextTokenIx_dispatchFlowIndicators s_ad '}' =
       .ok (some (scanFlowMappingEndIx s_ad)) :=
-    dispatchFlowIndicators_close_brace s_ad h_ad_fl_pos
+    dispatchFlowIndicators_close_brace s_ad h_ad_fl_pos h_ad_kind
   have h_snt : scanNextTokenIx s = .ok (some (scanFlowMappingEndIx s_ad)) :=
     scanNextTokenIx_via_flow_dispatch s (saveSimpleKeyIx s) s_ad
       (scanFlowMappingEndIx s_ad) '}' h_pp h_struct rfl h_check h_flow_disp

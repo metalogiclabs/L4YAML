@@ -898,7 +898,7 @@ lemma seqRoot_recseqbodyDeep
   -- Open bracket → s₁
   obtain ⟨s₁, h_snt₁, h_corr₁, h_fl₁, h_dp₁, h_ids₁, h_col₁,
           h_inflow₁, h_indent₁, h_ek₁, h_line₁, h_atol₁, h_endline₁, h_sk₁, h_filt₁,
-          h_sync₁, _h_ska₁, _h_ssv₁, h_last_s₁⟩ :=
+          h_sync₁, _h_ska₁, _h_ssv₁, h_last_s₁, h_push₁⟩ :=
     scanNextToken_flow_open_init input
       ((emit.emitList items.toList).toList ++ [']']) h_toList
   -- Body scanning → s₂ via the DEEP producer (delivers `RecSeqBodyDeep` of the body block)
@@ -911,6 +911,7 @@ lemma seqRoot_recseqbodyDeep
   obtain ⟨s₃, h_snt₃, h_fl₃, h_dp₃, h_peek₃, h_ids₃, ⟨tok_fse, h_tok_fse_val, h_filt₃⟩⟩ :=
     scanNextToken_flow_close_seq_outermost_ext s₂ h_corr₂ h_inflow₂ h_indent₂ h_col₂
       (by rw [h_fl₂, h_fl₁]) (by rw [h_dp₂, h_dp₁])
+      (by rw [h_fmc₂.flowStack_eq rfl h_fl₂]; exact h_push₁)
   -- EOF + chain composition
   have h_eof : scanNextToken s₃ = .ok none := scanNextToken_eof s₃ h_peek₃
   have h_chain_all := (ScanChain.single h_snt₁).trans
@@ -1659,7 +1660,7 @@ lemma mapRoot_recmapbodydeep
   -- Open brace → s₁
   obtain ⟨s₁, h_snt₁, h_corr₁, h_fl₁, h_dp₁, h_ids₁, h_col₁,
           h_inflow₁, h_indent₁, h_ek₁, h_line₁, h_atol₁, h_endline₁, h_sk₁, h_filt₁,
-          h_sync₁, h_ska₁, _h_ssv₁, h_last_s₁⟩ :=
+          h_sync₁, h_ska₁, _h_ssv₁, h_last_s₁, h_push₁⟩ :=
     scanNextToken_flow_open_mapping_init input
       ((emit.emitPairList pairs.toList).toList ++ ['}']) h_toList
   -- Pair body → s₂ via the DEEP producer
@@ -1672,6 +1673,7 @@ lemma mapRoot_recmapbodydeep
   obtain ⟨s₃, h_snt₃, h_fl₃, h_dp₃, h_peek₃, h_ids₃, ⟨tok_fme, h_tok_fme_val, h_filt₃⟩⟩ :=
     scanNextToken_flow_close_mapping_outermost_ext s₂ h_corr₂ h_inflow₂ h_indent₂ h_col₂
       (by rw [h_fl₂, h_fl₁]) (by rw [h_dp₂, h_dp₁])
+      (by rw [h_fmc₂.flowStack_eq rfl h_fl₂]; exact h_push₁)
   -- EOF + chain composition
   have h_eof : scanNextToken s₃ = .ok none := scanNextToken_eof s₃ h_peek₃
   have h_chain_all := (ScanChain.single h_snt₁).trans

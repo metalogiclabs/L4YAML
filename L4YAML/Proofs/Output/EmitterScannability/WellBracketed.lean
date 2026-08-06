@@ -2892,6 +2892,7 @@ lemma scanNextToken_flow_close_seq_filtered_push (s : ScannerState) (rest : List
     (hcorr : ScannerSurfCorr s ⟨']' :: rest, s.col⟩)
     (h_flow : s.inFlow = true) (h_indent : s.currentIndent < 0) (h_col : s.col > 0)
     (h_fl_ge2 : s.flowLevel ≥ 2)
+    (h_kind : s.flowStack.back? = some true)
     {s' : ScannerState} (h_snt : scanNextToken s = .ok (some s')) :
     ∃ tok : Positioned YamlToken, tok.val = .flowSequenceEnd ∧
       s'.tokens.filter (fun t => t.val != .placeholder)
@@ -2911,7 +2912,11 @@ lemma scanNextToken_flow_close_seq_filtered_push (s : ScannerState) (rest : List
   have h_ad_fl : s_ad.flowLevel = s.flowLevel := by
     simp only [s_ad]; split <;> exact saveSimpleKey_preserves_flowLevel s
   have h_ad_fl_ge2 : s_ad.flowLevel ≥ 2 := by rw [h_ad_fl]; exact h_fl_ge2
-  have h_flow_disp := dispatchFlowIndicators_close_bracket_nested s_ad h_ad_fl_ge2
+  have h_ad_kind : s_ad.flowStack.back? = some true := by
+    have h_ad_fs : s_ad.flowStack = s.flowStack := by
+      simp only [s_ad]; split <;> exact saveSimpleKey_preserves_flowStack s
+    rw [h_ad_fs]; exact h_kind
+  have h_flow_disp := dispatchFlowIndicators_close_bracket_nested s_ad h_ad_fl_ge2 h_ad_kind
   have h_snt_eq : scanNextToken s = .ok (some (scanFlowSequenceEnd s_ad)) :=
     scanNextToken_via_flow_dispatch _ _ _ _ _ h_pp h_struct rfl h_check h_flow_disp
       (scanNextToken_ok_directivesPresent_false h_pp h_struct h_snt)
@@ -2930,6 +2935,7 @@ lemma scanNextToken_flow_close_map_filtered_push (s : ScannerState) (rest : List
     (hcorr : ScannerSurfCorr s ⟨'}' :: rest, s.col⟩)
     (h_flow : s.inFlow = true) (h_indent : s.currentIndent < 0) (h_col : s.col > 0)
     (h_fl_ge2 : s.flowLevel ≥ 2)
+    (h_kind : s.flowStack.back? = some false)
     {s' : ScannerState} (h_snt : scanNextToken s = .ok (some s')) :
     ∃ tok : Positioned YamlToken, tok.val = .flowMappingEnd ∧
       s'.tokens.filter (fun t => t.val != .placeholder)
@@ -2949,7 +2955,11 @@ lemma scanNextToken_flow_close_map_filtered_push (s : ScannerState) (rest : List
   have h_ad_fl : s_ad.flowLevel = s.flowLevel := by
     simp only [s_ad]; split <;> exact saveSimpleKey_preserves_flowLevel s
   have h_ad_fl_ge2 : s_ad.flowLevel ≥ 2 := by rw [h_ad_fl]; exact h_fl_ge2
-  have h_flow_disp := dispatchFlowIndicators_close_brace_nested s_ad h_ad_fl_ge2
+  have h_ad_kind : s_ad.flowStack.back? = some false := by
+    have h_ad_fs : s_ad.flowStack = s.flowStack := by
+      simp only [s_ad]; split <;> exact saveSimpleKey_preserves_flowStack s
+    rw [h_ad_fs]; exact h_kind
+  have h_flow_disp := dispatchFlowIndicators_close_brace_nested s_ad h_ad_fl_ge2 h_ad_kind
   have h_snt_eq : scanNextToken s = .ok (some (scanFlowMappingEnd s_ad)) :=
     scanNextToken_via_flow_dispatch _ _ _ _ _ h_pp h_struct rfl h_check h_flow_disp
       (scanNextToken_ok_directivesPresent_false h_pp h_struct h_snt)

@@ -6992,8 +6992,10 @@ lemma dispatchFlowIndicators_preserves_ScanInv (s : ScannerState) (c : Char)
       · simp at h_ok
       · split at h_ok
         · simp at h_ok
-        · simp only [Except.ok.injEq, Option.some.injEq] at h_ok; subst h_ok
-          exact scanFlowSequenceEnd_preserves_ScanInv s h
+        · split at h_ok
+          · simp at h_ok
+          · simp only [Except.ok.injEq, Option.some.injEq] at h_ok; subst h_ok
+            exact scanFlowSequenceEnd_preserves_ScanInv s h
     -- c == '{'
     · split at h_ok
       · simp only [Except.ok.injEq, Option.some.injEq] at h_ok; subst h_ok
@@ -7004,8 +7006,10 @@ lemma dispatchFlowIndicators_preserves_ScanInv (s : ScannerState) (c : Char)
           · simp at h_ok
           · split at h_ok
             · simp at h_ok
-            · simp only [Except.ok.injEq, Option.some.injEq] at h_ok; subst h_ok
-              exact scanFlowMappingEnd_preserves_ScanInv s h
+            · split at h_ok
+              · simp at h_ok
+              · simp only [Except.ok.injEq, Option.some.injEq] at h_ok; subst h_ok
+                exact scanFlowMappingEnd_preserves_ScanInv s h
         -- c == ','
         · split at h_ok
           · split at h_ok
@@ -9011,12 +9015,14 @@ lemma dispatchFlowIndicators_preserves_AllKeysValid (s : ScannerState) (c : Char
       · simp at h
       · split at h
         · simp at h
-        · simp only [Except.ok.injEq, Option.some.injEq] at h; subst h
-          exact flowEnd_preserves_AllKeysValid s _ h_akv
-            (scanFlowSequenceEnd_simpleKey_restored s)
-            (scanFlowSequenceEnd_stack_popped s)
-            (by have := scanFlowSequenceEnd_adds_one_token s; omega)
-            (fun i hi => ScanHelpers.scanFlowSequenceEnd_preserves_prefix s i hi)
+        · split at h
+          · simp at h
+          · simp only [Except.ok.injEq, Option.some.injEq] at h; subst h
+            exact flowEnd_preserves_AllKeysValid s _ h_akv
+              (scanFlowSequenceEnd_simpleKey_restored s)
+              (scanFlowSequenceEnd_stack_popped s)
+              (by have := scanFlowSequenceEnd_adds_one_token s; omega)
+              (fun i hi => ScanHelpers.scanFlowSequenceEnd_preserves_prefix s i hi)
     · split at h
       · simp only [Except.ok.injEq, Option.some.injEq] at h; subst h
         exact flowStart_preserves_AllKeysValid s _ h_akv
@@ -9029,12 +9035,14 @@ lemma dispatchFlowIndicators_preserves_AllKeysValid (s : ScannerState) (c : Char
           · simp at h
           · split at h
             · simp at h
-            · simp only [Except.ok.injEq, Option.some.injEq] at h; subst h
-              exact flowEnd_preserves_AllKeysValid s _ h_akv
-                (scanFlowMappingEnd_simpleKey_restored s)
-                (scanFlowMappingEnd_stack_popped s)
-                (by have := scanFlowMappingEnd_adds_one_token s; omega)
-                (fun i hi => ScanHelpers.scanFlowMappingEnd_preserves_prefix s i hi)
+            · split at h
+              · simp at h
+              · simp only [Except.ok.injEq, Option.some.injEq] at h; subst h
+                exact flowEnd_preserves_AllKeysValid s _ h_akv
+                  (scanFlowMappingEnd_simpleKey_restored s)
+                  (scanFlowMappingEnd_stack_popped s)
+                  (by have := scanFlowMappingEnd_adds_one_token s; omega)
+                  (fun i hi => ScanHelpers.scanFlowMappingEnd_preserves_prefix s i hi)
         · split at h
           · split at h
             · simp at h
@@ -10301,8 +10309,10 @@ lemma dispatchFlowIndicators_offset_gt (s s' : ScannerState) (c : Char)
       · cases h
       · split at h
         · cases h
-        · simp only [Except.ok.injEq, Option.some.injEq] at h; subst h
-          exact ScannerProgress.scanFlowSequenceEnd_offset_lt s h_hm
+        · split at h
+          · cases h
+          · simp only [Except.ok.injEq, Option.some.injEq] at h; subst h
+            exact ScannerProgress.scanFlowSequenceEnd_offset_lt s h_hm
     · split at h
       · simp only [Except.ok.injEq, Option.some.injEq] at h; subst h
         exact ScannerProgress.scanFlowMappingStart_offset_lt s h_hm
@@ -10311,8 +10321,10 @@ lemma dispatchFlowIndicators_offset_gt (s s' : ScannerState) (c : Char)
           · cases h
           · split at h
             · cases h
-            · simp only [Except.ok.injEq, Option.some.injEq] at h; subst h
-              exact ScannerProgress.scanFlowMappingEnd_offset_lt s h_hm
+            · split at h
+              · cases h
+              · simp only [Except.ok.injEq, Option.some.injEq] at h; subst h
+                exact ScannerProgress.scanFlowMappingEnd_offset_lt s h_hm
         · split at h
           · split at h
             · cases h

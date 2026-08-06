@@ -3030,39 +3030,16 @@ lemma scanNextTokenIx_dispatchFlowIndicators_preserves_PlainScalarsValidIx
     (h_ok : scanNextTokenIx_dispatchFlowIndicators s c = .ok (some s'))
     (h_old : PlainScalarsValidIx s.tokens) :
     PlainScalarsValidIx s'.tokens := by
-  unfold scanNextTokenIx_dispatchFlowIndicators at h_ok
-  replace h_ok := peel_flowAdjIx h_ok
-  simp only [bind, Except.bind, pure, Except.pure] at h_ok
-  split at h_ok
-  · -- c == '['
-    simp only [Except.ok.injEq, Option.some.injEq] at h_ok; subst h_ok
-    exact scanFlowSequenceStartIx_preserves_PlainScalarsValidIx s h_old
-  · split at h_ok
-    · -- c == ']'
-      split at h_ok
-      · cases h_ok                       -- flowLevel == 0 error
-      · simp only [Except.ok.injEq, Option.some.injEq] at h_ok; subst h_ok
-        exact scanFlowSequenceEndIx_preserves_PlainScalarsValidIx s h_old
-    · split at h_ok
-      · -- c == '{'
-        simp only [Except.ok.injEq, Option.some.injEq] at h_ok; subst h_ok
-        exact scanFlowMappingStartIx_preserves_PlainScalarsValidIx s h_old
-      · split at h_ok
-        · -- c == '}'
-          split at h_ok
-          · cases h_ok
-          · simp only [Except.ok.injEq, Option.some.injEq] at h_ok; subst h_ok
-            exact scanFlowMappingEndIx_preserves_PlainScalarsValidIx s h_old
-        · split at h_ok
-          · -- c == ','
-            split at h_ok
-            · cases h_ok
-            · split at h_ok
-              · cases h_ok               -- scanFlowEntryIx error (cannot happen)
-              · simp only [Except.ok.injEq, Option.some.injEq] at h_ok; subst h_ok
-                exact scanFlowEntryIx_preserves_PlainScalarsValidIx s _
-                  (by assumption) h_old
-          · cases h_ok                   -- fall-through .ok none
+  -- Invert via the enumeration lemma (robust to dispatcher-shape changes —
+  -- the direct `split` walk exceeded simp's step budget after the 9a
+  -- flow-close kind check grew the `]`/`}` arms).
+  rcases scanNextTokenIx_dispatchFlowIndicators_ok_some_cases h_ok with
+    heq | heq | heq | heq | hOk
+  · subst heq; exact scanFlowSequenceStartIx_preserves_PlainScalarsValidIx s h_old
+  · subst heq; exact scanFlowSequenceEndIx_preserves_PlainScalarsValidIx s h_old
+  · subst heq; exact scanFlowMappingStartIx_preserves_PlainScalarsValidIx s h_old
+  · subst heq; exact scanFlowMappingEndIx_preserves_PlainScalarsValidIx s h_old
+  · exact scanFlowEntryIx_preserves_PlainScalarsValidIx s _ hOk h_old
 
 lemma scanNextTokenIx_dispatchFlowIndicators_preserves_FlowContextPSVIx
     {input : String} (s : ScannerStateIx input) (c : Char)
@@ -3070,34 +3047,13 @@ lemma scanNextTokenIx_dispatchFlowIndicators_preserves_FlowContextPSVIx
     (h_ok : scanNextTokenIx_dispatchFlowIndicators s c = .ok (some s'))
     (h_old : FlowContextPSVIx s.tokens) (h_pl : SimpleKeyPlaceholderInvIx s) :
     FlowContextPSVIx s'.tokens := by
-  unfold scanNextTokenIx_dispatchFlowIndicators at h_ok
-  replace h_ok := peel_flowAdjIx h_ok
-  simp only [bind, Except.bind, pure, Except.pure] at h_ok
-  split at h_ok
-  · simp only [Except.ok.injEq, Option.some.injEq] at h_ok; subst h_ok
-    exact scanFlowSequenceStartIx_preserves_FlowContextPSVIx s h_old
-  · split at h_ok
-    · split at h_ok
-      · cases h_ok
-      · simp only [Except.ok.injEq, Option.some.injEq] at h_ok; subst h_ok
-        exact scanFlowSequenceEndIx_preserves_FlowContextPSVIx s h_old
-    · split at h_ok
-      · simp only [Except.ok.injEq, Option.some.injEq] at h_ok; subst h_ok
-        exact scanFlowMappingStartIx_preserves_FlowContextPSVIx s h_old
-      · split at h_ok
-        · split at h_ok
-          · cases h_ok
-          · simp only [Except.ok.injEq, Option.some.injEq] at h_ok; subst h_ok
-            exact scanFlowMappingEndIx_preserves_FlowContextPSVIx s h_old
-        · split at h_ok
-          · split at h_ok
-            · cases h_ok
-            · split at h_ok
-              · cases h_ok
-              · simp only [Except.ok.injEq, Option.some.injEq] at h_ok; subst h_ok
-                exact scanFlowEntryIx_preserves_FlowContextPSVIx s _
-                  (by assumption) h_old h_pl
-          · cases h_ok
+  rcases scanNextTokenIx_dispatchFlowIndicators_ok_some_cases h_ok with
+    heq | heq | heq | heq | hOk
+  · subst heq; exact scanFlowSequenceStartIx_preserves_FlowContextPSVIx s h_old
+  · subst heq; exact scanFlowSequenceEndIx_preserves_FlowContextPSVIx s h_old
+  · subst heq; exact scanFlowMappingStartIx_preserves_FlowContextPSVIx s h_old
+  · subst heq; exact scanFlowMappingEndIx_preserves_FlowContextPSVIx s h_old
+  · exact scanFlowEntryIx_preserves_FlowContextPSVIx s _ hOk h_old h_pl
 
 lemma scanNextTokenIx_dispatchFlowIndicators_preserves_FlowNestingInvIx
     {input : String} (s : ScannerStateIx input) (c : Char)
@@ -3105,34 +3061,13 @@ lemma scanNextTokenIx_dispatchFlowIndicators_preserves_FlowNestingInvIx
     (h_ok : scanNextTokenIx_dispatchFlowIndicators s c = .ok (some s'))
     (h_fni : FlowNestingInvIx s) (h_pl : SimpleKeyPlaceholderInvIx s) :
     FlowNestingInvIx s' := by
-  unfold scanNextTokenIx_dispatchFlowIndicators at h_ok
-  replace h_ok := peel_flowAdjIx h_ok
-  simp only [bind, Except.bind, pure, Except.pure] at h_ok
-  split at h_ok
-  · simp only [Except.ok.injEq, Option.some.injEq] at h_ok; subst h_ok
-    exact scanFlowSequenceStartIx_preserves_FlowNestingInvIx s h_fni
-  · split at h_ok
-    · split at h_ok
-      · cases h_ok
-      · simp only [Except.ok.injEq, Option.some.injEq] at h_ok; subst h_ok
-        exact scanFlowSequenceEndIx_preserves_FlowNestingInvIx s h_fni
-    · split at h_ok
-      · simp only [Except.ok.injEq, Option.some.injEq] at h_ok; subst h_ok
-        exact scanFlowMappingStartIx_preserves_FlowNestingInvIx s h_fni
-      · split at h_ok
-        · split at h_ok
-          · cases h_ok
-          · simp only [Except.ok.injEq, Option.some.injEq] at h_ok; subst h_ok
-            exact scanFlowMappingEndIx_preserves_FlowNestingInvIx s h_fni
-        · split at h_ok
-          · split at h_ok
-            · cases h_ok
-            · split at h_ok
-              · cases h_ok
-              · simp only [Except.ok.injEq, Option.some.injEq] at h_ok; subst h_ok
-                exact scanFlowEntryIx_preserves_FlowNestingInvIx s _
-                  (by assumption) h_fni h_pl
-          · cases h_ok
+  rcases scanNextTokenIx_dispatchFlowIndicators_ok_some_cases h_ok with
+    heq | heq | heq | heq | hOk
+  · subst heq; exact scanFlowSequenceStartIx_preserves_FlowNestingInvIx s h_fni
+  · subst heq; exact scanFlowSequenceEndIx_preserves_FlowNestingInvIx s h_fni
+  · subst heq; exact scanFlowMappingStartIx_preserves_FlowNestingInvIx s h_fni
+  · subst heq; exact scanFlowMappingEndIx_preserves_FlowNestingInvIx s h_fni
+  · exact scanFlowEntryIx_preserves_FlowNestingInvIx s _ hOk h_fni h_pl
 
 
 /-! ## §11  Document/directive + top-level dispatch composition (Step 6d.1e.6)

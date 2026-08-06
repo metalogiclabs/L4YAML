@@ -5492,7 +5492,7 @@ theorem nobody's build depends on yet.
 | 7 | ✅ **done 2026-08-06** — all six missing legacy strictness checks transcribed as read-only validator walkers + dispatcher/preprocess throws (tab-as-indentation ×2 contexts, §8.1.3 auto-detect validation, doc-markers + under-indent + tab in quoted continuations, §6.6 comment-needs-whitespace, §6.7 header `#` glue). Re-scored: **event 402/402, JSON 282/282, accept/reject 402/402 — full parity, all 15 err-miss gone, zero new rejects**; 15 reject-parity + 8 accept-boundary guard rows; full build at the same pre-existing baseline | — | [The matrix score](#the-matrix-score) |
 | 8 | ✅ **done 2026-08-06** — both depth-0 `[`/`{` opens wired via per-pending resume dispatch (`accum_flow_open_depth0`): faithful `flowInBlock` block-value resume for `pendingBlock` (THE scannerDrop case — `key: [a]` stays one document), doc-builder resume for `pendingDocStart` (`--- [a]`), fresh-bare-document resume for the closeable pendings at ANY column. Enabled by decoupling `seqBase`/`mapBase`'s outer boundary from the bracket position. `accum_step_flow` down to the single depth-≥1 hole; two narrowed residues (inline-adjacency vacuity, `pendingBlock n≥1`). Full build at the same pre-existing baseline | `scannerDrop` deletion → converse → `parse_iff_grammar` | [Fix A](#fix-a-eliminating-scannerdrop--flow-indicator-grammar-evidence) |
 | 9 | 🟡 **structurally done 2026-08-06** — B.4β.2 depth-≥1 flow interior FULLY WIRED: all five dispatch arms (`[`/`{` nested push via `receiveNode`-built `inject`, `]`/`}` pop-to-base (`resume`→`pendingContent`) and pop-to-nest (`inject`), `,` hold via `holdComma`) with total sep-threading on the new §9 separator-composition algebra (`SSeparate_trans` + retrofits). Residues = 3 pinned coupling families (see 9a/9b) | `scannerDrop` deletion → converse → `parse_iff_grammar` | [Fix A](#fix-a-eliminating-scannerdrop--flow-indicator-grammar-evidence) |
-| 9a | ⬜ **open — flow-close KIND strictening**: the scanner accepts mismatched closes (`[a}`, `{a]`, `[{a]]`, `{a: [b}}` all scan-OK, probe-verified 2026-08-06 — `scanFlow*End` pops `flowStack` without checking the popped kind; `validateFlowClose` is only a trailing-content check). No grammar derivation exists ⇒ scan-strictness is FALSE without `scannerDrop`. Fix = kind check (`flowStack.back?`) in the `]`/`}` dispatch arms, legacy + BOTH indexed twins + parity guards; constructive-proof repair rides the `simpleKeyStack` restoration groove (~25 emitted-scan files thread `s'.simpleKeyStack = s.simpleKeyStack` — add the `flowStack` twin conjunct at the same sites) | unblocks the 4 kind-mismatch residues in `accum_step_flow` | [Fix A](#fix-a-eliminating-scannerdrop--flow-indicator-grammar-evidence) |
+| 9a | ✅ **done 2026-08-06 — flow-close KIND strictening**: new `ScanError.mismatchedFlowClose`; the `]`/`}` arms of both dispatchers now reject a close whose kind does not match the innermost open (`flowStack.back? = some true`/`some false`), written as full `if/else if/else` **expression** chains (statement-style `if` desugars to `__do_jp` join points that defeat both `split`- and `rw [if_pos/if_neg]`-style proofs). Probe: `[a}`/`{a]`/`[{a]]`/`{a: [b}}` now scan-ERR with **identical legacy/indexed errors**, every valid input unaffected. Proof repair did **not** need the `simpleKeyStack`-groove conjunct sweep: the emitted-scan chains already carry `FlowMonoChain`, so a per-step flowLevel↔flowStack lockstep trichotomy + one chain induction supplies the kind fact — new `FlowStackChain.lean` (77 lemmas) + `FlowMonoChain/FlowStackChainIx.lean`, both sorry-free | 4 kind-mismatch residues in `accum_step_flow` now carry the scanner-side kind fact in context; refuting them awaits 9b(i) | [Fix A](#fix-a-eliminating-scannerdrop--flow-indicator-grammar-evidence) |
 | 9b | ⬜ **open — scanner-state ↔ frame couplings**: (i) kinds index on `FlowOpenStack`/`FlowStackB` coupled to `sc.flowStack` (refutes kind-mismatch arms, with 9a); (ii) token-history coupling (`lastRealTokenVal?` ↔ top-frame shape) refuting the comma-degenerate (`[,`/`,,` — 4 sites in `holdComma`) and adjacency (node-after-completed-entry — 12 sites in `receiveNode`) shapes the scanner already rejects; (iii) `pendingBlock n = 0` pin. Then β.3 interior content/block/EOF `hpos` branches (consumers of `receiveNode`), β.4 chain-threading, β.5 retire `pendingFlow` + delete `scannerDrop` | ditto | ditto |
 
 Items 1–8 are done: the indexed pipeline scores identically to legacy on
@@ -6769,7 +6769,9 @@ needed no changes.)
        **Sorry ledger after the slice: 27 sites / 9 declarations, in THREE pinned residue
        families** (every scanner-real transition is green with a faithful derivation):
        (a) **kind coupling + 9a strictening** — 4 mismatch arms in `accum_step_flow` (`]` on
-       map frames, `}` on seq frames; scan-accepted today, so locally unrefutable);
+       map frames, `}` on seq frames; scan-accepted today, so locally unrefutable)
+       — *9a landed in the third session below, so these arms now carry the scanner-side kind
+       fact; only the 9b frame-kind coupling is still missing*;
        (b) **token-history coupling** (`lastRealTokenVal?` ↔ top-frame shape) — 12 adjacency arms
        in `receiveNode` (node directly after a completed entry/key — `checkFlowAdjacency`-rejected)
        + 4 comma-degenerate arms in `holdComma` (`[,`/`,,` — `invalidFlowEntry`-rejected);
@@ -6780,6 +6782,46 @@ needed no changes.)
        baseline (Capstones gate + the 2 Reflections files). NEXT = 9a (kind strictening, own
        session — the `simpleKeyStack`-groove sweep), 9b (kinds index + token-history coupling),
        then β.3.
+
+       **UPDATE (2026-08-06, third session) — item 9a DONE (flow-close kind strictening).**
+       `ScanError.mismatchedFlowClose` added; the `]`/`}` arms of `scanNextToken_dispatchFlowIndicators`
+       and `scanNextTokenIx_dispatchFlowIndicators` now check `flowStack.back?` against the close kind.
+       Probe: `[a}`, `{a]`, `[{a]]`, `{a: [b}}` scan-ERR with **identical legacy/indexed errors**;
+       trailing commas, JSON-key pairs, `[]`/`{}` and deep nesting unaffected.
+
+       **Gotcha (cost me one full repair cycle):** write the guard as a full `if/else if/else`
+       **expression** chain. Statement-style early-exit `if`s inside `do` desugar to `__do_jp` join
+       points, which make `rw [if_pos/if_neg]` fail with an application-type mismatch and leave
+       `split` unable to reach the arm — visible via `#print` on the elaborated definition.
+
+       **The load-bearing architectural find.** The planned repair — thread a `flowStack` conjunct
+       through ~25 emitted-scan files riding the `simpleKeyStack` groove — was NOT needed and would
+       have rippled every chain-predicate tuple. The emitted-scan chains already carry `FlowMonoChain`
+       (a `ScanChain` with a flow-level floor), so the kind fact is derivable instead:
+       per-step `flowLevel`↔`flowStack` lockstep (`scanNextToken_flowStack_step`, a 4-way
+       trichotomy: preserve / push true / push false / pop) + one chain induction
+       (`FlowMonoChain.flowStack_eq`: a chain returning to its starting flow level restores
+       `flowStack`). Two new sorry-free files: `Output/EmitterScannability/FlowStackChain.lean`
+       (77 lemmas — the per-leaf preservation suite was cloned from the existing `simpleKeyStack`
+       suite in `ScannerCorrectness.lean`, valid because both fields are written *only* by the four
+       flow open/close functions) and `IndexedEmitterScannability/FlowMonoChain/FlowStackChainIx.lean`.
+       Callers then need only: open lemmas expose `s'.flowStack = s.flowStack.push true/false`,
+       close lemmas take `h_kind`, and each close site derives it by
+       `rw [h_fmc.flowStack_eq rfl h_fl, h_push]; exact Array.back?_push`.
+
+       Three indexed robust-script dispatcher walkers (`_maintains_SKAFIx`, `_preserves_sync`,
+       `_maintains_NoOverwriteAtIx`) could not absorb the extra arm (`split` silently fails on the
+       enlarged do-tree) and were rewritten over the `_ok_some_cases` enumerator — the more robust
+       form anyway. `ScannerSpanLocality`'s R596/R606 producers carried no `FlowMonoChain`, so one was
+       appended and constructed.
+
+       Verified: full build at the exact 3-failure baseline (both Reflections failures confirmed
+       *pre-existing* — the committed producer already required an `h_last` the test never supplied);
+       sorry ledger byte-identical to HEAD in every modified file (27/9 unchanged, none removed);
+       new files sorry-free with clean axiom profiles `[propext, Classical.choice, Quot.sound]`;
+       zero `sorryAx` in any rewired consumer. NEXT = 9b (kinds index on `FlowOpenStack`/`FlowStackB`
+       coupled to `sc.flowStack` — the 4 mismatch arms now have the scanner-side kind fact in
+       context; then token-history coupling), then β.3.
 
      Replace the invariant's flow component
      `FlowStack sp_block sp_flow` → `FlowStackB sp_start sc.flowLevel sp_block sp_flow` across the

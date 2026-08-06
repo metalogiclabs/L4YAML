@@ -175,8 +175,10 @@ lemma scanNextToken_dispatchFlowIndicators_corr (sc : ScannerState) (sp : SurfPo
       · simp at hok
       · split at hok
         · simp at hok
-        · have h := Except.ok.inj hok; injection h with h; subst h
-          exact scanFlowSequenceEnd_corr sc sp hcorr
+        · split at hok
+          · simp at hok
+          · have h := Except.ok.inj hok; injection h with h; subst h
+            exact scanFlowSequenceEnd_corr sc sp hcorr
     · split at hok
       · have h := Except.ok.inj hok; injection h with h; subst h
         exact scanFlowMappingStart_corr sc sp hcorr
@@ -185,8 +187,10 @@ lemma scanNextToken_dispatchFlowIndicators_corr (sc : ScannerState) (sp : SurfPo
           · simp at hok
           · split at hok
             · simp at hok
-            · have h := Except.ok.inj hok; injection h with h; subst h
-              exact scanFlowMappingEnd_corr sc sp hcorr
+            · split at hok
+              · simp at hok
+              · have h := Except.ok.inj hok; injection h with h; subst h
+                exact scanFlowMappingEnd_corr sc sp hcorr
         · split at hok
           · split at hok
             · simp at hok

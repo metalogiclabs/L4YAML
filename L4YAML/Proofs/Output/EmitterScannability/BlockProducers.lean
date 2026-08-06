@@ -248,7 +248,7 @@ lemma emit_scans_block_combined (v : YamlValue) {inFlow : Bool}
             '[' :: ((emit.emitList items.toList).toList ++ [']'] ++ rest) := by
           simp only [List.cons_append, List.nil_append, List.append_assoc]
         rwa [this] at hcorr₀
-      obtain ⟨s₁, h_snt₁, h_corr₁, h_fl₁, h_dp₁, h_ids₁, h_ek₁, h_col₁, _h_line₁, h_atol₁, h_endline₁, h_stack_endline₁, h_stack_pop₁, _h_sk_poss₁, _h_toks_gt₁, h_stack_push₁, h_last_s₁⟩ :=
+      obtain ⟨s₁, h_snt₁, h_corr₁, h_fl₁, h_dp₁, h_ids₁, h_ek₁, h_col₁, _h_line₁, h_atol₁, h_endline₁, h_stack_endline₁, h_stack_pop₁, _h_sk_poss₁, _h_toks_gt₁, h_stack_push₁, h_last_s₁, h_push₁⟩ :=
         scanNextToken_flow_open_nested s_state
           ((emit.emitList items.toList).toList ++ [']'] ++ rest) hcorr₀ h_flow h_indent h_col
           h_atol h_endline h_dp h_last
@@ -283,15 +283,18 @@ lemma emit_scans_block_combined (v : YamlValue) {inFlow : Bool}
       have h_stack_endline₂ : StackEndLineOnLine s₂ s₂.line := by
         unfold StackEndLineOnLine at h_stack_endline₁ ⊢
         rw [h_stack₂, _h_line₂]; exact h_stack_endline₁
+      have h_kind₂ : s₂.flowStack.back? = some true := by
+        rw [h_fmc₂.flowStack_eq rfl h_fl₂, h_push₁]
+        exact Array.back?_push
       obtain ⟨s₃, h_snt₃, h_corr₃, h_fl₃, h_dp₃, h_ids₃, h_ek₃, h_col₃, h_tok₃, h_ska₃, _h_line₃, h_atol₃, h_endline₃, h_stack₃, _, _⟩ :=
         scanNextToken_flow_close_seq_nested s₂ rest h_corr₂ h_s2_inflow h_s2_indent h_col₂ h_fl₂_ge2
-          h_atol₂ h_stack_endline₂ (by rw [h_dp₂, h_dp₁]; exact h_dp)
+          h_atol₂ h_stack_endline₂ (by rw [h_dp₂, h_dp₁]; exact h_dp) h_kind₂
       have h_corr₂_cons : ScannerSurfCorr s₂ ⟨']' :: rest, s₂.col⟩ := by
         have : [']'] ++ rest = ']' :: rest := by simp
         rwa [this] at h_corr₂
       obtain ⟨fseTok, h_fse_val, h_close_push⟩ :=
         scanNextToken_flow_close_seq_filtered_push s₂ rest h_corr₂_cons h_s2_inflow h_s2_indent h_col₂
-          h_fl₂_ge2 h_snt₃
+          h_fl₂_ge2 h_kind₂ h_snt₃
       have h_fmc₂' : FlowMonoChain s_state.flowLevel s₁ n₂ s₂ := h_fmc₂.weaken (by omega)
       have h_fmc_all :=
         (FlowMonoChain.single h_snt₁ (Nat.le.refl) (by omega)).trans
@@ -352,7 +355,7 @@ lemma emit_scans_block_combined (v : YamlValue) {inFlow : Bool}
             '[' :: ((emit.emitList items.toList).toList ++ [']'] ++ rest) := by
           simp only [List.cons_append, List.nil_append, List.append_assoc]
         rwa [this] at hcorr₀
-      obtain ⟨s₁, h_snt₁, h_corr₁, h_fl₁, h_dp₁, h_ids₁, h_ek₁, h_col₁, _h_line₁, h_atol₁, h_endline₁, h_stack_endline₁, h_stack_pop₁, h_sk_poss₁, _h_toks_gt₁, h_stack_push₁, h_last_s₁⟩ :=
+      obtain ⟨s₁, h_snt₁, h_corr₁, h_fl₁, h_dp₁, h_ids₁, h_ek₁, h_col₁, _h_line₁, h_atol₁, h_endline₁, h_stack_endline₁, h_stack_pop₁, h_sk_poss₁, _h_toks_gt₁, h_stack_push₁, h_last_s₁, h_push₁⟩ :=
         scanNextToken_flow_open_nested s_state
           ((emit.emitList items.toList).toList ++ [']'] ++ rest) hcorr₀ h_flow h_indent h_col
           h_atol h_endline h_dp h_last
@@ -409,15 +412,18 @@ lemma emit_scans_block_combined (v : YamlValue) {inFlow : Bool}
       have h_stack_endline₂ : StackEndLineOnLine s₂ s₂.line := by
         unfold StackEndLineOnLine at h_stack_endline₁ ⊢
         rw [h_stack₂, _h_line₂]; exact h_stack_endline₁
+      have h_kind₂ : s₂.flowStack.back? = some true := by
+        rw [h_fmc₂.flowStack_eq rfl h_fl₂, h_push₁]
+        exact Array.back?_push
       obtain ⟨s₃, h_snt₃, h_corr₃, h_fl₃, h_dp₃, h_ids₃, h_ek₃, h_col₃, h_tok₃, h_ska₃, _h_line₃, h_atol₃, h_endline₃, h_stack₃, h_skrestore₃, h_prefix₃⟩ :=
         scanNextToken_flow_close_seq_nested s₂ rest h_corr₂ h_s2_inflow h_s2_indent h_col₂ h_fl₂_ge2
-          h_atol₂ h_stack_endline₂ (by rw [h_dp₂, h_dp₁]; exact h_dp)
+          h_atol₂ h_stack_endline₂ (by rw [h_dp₂, h_dp₁]; exact h_dp) h_kind₂
       have h_corr₂_cons : ScannerSurfCorr s₂ ⟨']' :: rest, s₂.col⟩ := by
         have : [']'] ++ rest = ']' :: rest := by simp
         rwa [this] at h_corr₂
       obtain ⟨fseTok, h_fse_val, h_close_push⟩ :=
         scanNextToken_flow_close_seq_filtered_push s₂ rest h_corr₂_cons h_s2_inflow h_s2_indent h_col₂
-          h_fl₂_ge2 h_snt₃
+          h_fl₂_ge2 h_kind₂ h_snt₃
       have h_fmc₂' : FlowMonoChain s_state.flowLevel s₁ n₂ s₂ := h_fmc₂.weaken (by omega)
       have h_fmc_all :=
         (FlowMonoChain.single h_snt₁ (Nat.le.refl) (by omega)).trans
@@ -519,7 +525,7 @@ lemma emit_scans_block_combined (v : YamlValue) {inFlow : Bool}
             '{' :: ((emit.emitPairList pairs.toList).toList ++ ['}'] ++ rest) := by
           simp only [List.cons_append, List.nil_append, List.append_assoc]
         rwa [this] at hcorr₀
-      obtain ⟨s₁, h_snt₁, h_corr₁, h_fl₁, h_dp₁, h_ids₁, h_ek₁, h_col₁, _h_line₁, h_atol₁, h_endline₁, h_stack_endline₁, h_stack_pop₁, _h_sk_poss₁, _h_toks_gt₁, h_stack_push₁, h_last_s₁⟩ :=
+      obtain ⟨s₁, h_snt₁, h_corr₁, h_fl₁, h_dp₁, h_ids₁, h_ek₁, h_col₁, _h_line₁, h_atol₁, h_endline₁, h_stack_endline₁, h_stack_pop₁, _h_sk_poss₁, _h_toks_gt₁, h_stack_push₁, h_last_s₁, h_push₁⟩ :=
         scanNextToken_flow_open_mapping_nested s_state
           ((emit.emitPairList pairs.toList).toList ++ ['}'] ++ rest) hcorr₀ h_flow h_indent h_col
           h_atol h_endline h_dp h_last
@@ -562,15 +568,18 @@ lemma emit_scans_block_combined (v : YamlValue) {inFlow : Bool}
       have h_stack_endline₂ : StackEndLineOnLine s₂ s₂.line := by
         unfold StackEndLineOnLine at h_stack_endline₁ ⊢
         rw [h_stack₂, _h_line₂]; exact h_stack_endline₁
+      have h_kind₂ : s₂.flowStack.back? = some false := by
+        rw [h_fmc₂.flowStack_eq rfl h_fl₂, h_push₁]
+        exact Array.back?_push
       obtain ⟨s₃, h_snt₃, h_corr₃, h_fl₃, h_dp₃, h_ids₃, h_ek₃, h_col₃, h_tok₃, h_ska₃, _h_line₃, h_atol₃, h_endline₃, h_stack₃, _, _⟩ :=
         scanNextToken_flow_close_mapping_nested s₂ rest h_corr₂ h_s2_inflow h_s2_indent h_col₂ h_fl₂_ge2
-          h_atol₂ h_stack_endline₂ (by rw [h_dp₂, h_dp₁]; exact h_dp)
+          h_atol₂ h_stack_endline₂ (by rw [h_dp₂, h_dp₁]; exact h_dp) h_kind₂
       have h_corr₂_cons : ScannerSurfCorr s₂ ⟨'}' :: rest, s₂.col⟩ := by
         have : ['}'] ++ rest = '}' :: rest := by simp
         rwa [this] at h_corr₂
       obtain ⟨fmeTok, h_fme_val, h_close_push⟩ :=
         scanNextToken_flow_close_map_filtered_push s₂ rest h_corr₂_cons h_s2_inflow h_s2_indent h_col₂
-          h_fl₂_ge2 h_snt₃
+          h_fl₂_ge2 h_kind₂ h_snt₃
       have h_fmc₂' : FlowMonoChain s_state.flowLevel s₁ n₂ s₂ := h_fmc₂.weaken (by omega)
       have h_fmc_all :=
         (FlowMonoChain.single h_snt₁ (Nat.le.refl) (by omega)).trans
@@ -631,7 +640,7 @@ lemma emit_scans_block_combined (v : YamlValue) {inFlow : Bool}
             '{' :: ((emit.emitPairList pairs.toList).toList ++ ['}'] ++ rest) := by
           simp only [List.cons_append, List.nil_append, List.append_assoc]
         rwa [this] at hcorr₀
-      obtain ⟨s₁, h_snt₁, h_corr₁, h_fl₁, h_dp₁, h_ids₁, h_ek₁, h_col₁, _h_line₁, h_atol₁, h_endline₁, h_stack_endline₁, h_stack_pop₁, h_sk_poss₁, _h_toks_gt₁, h_stack_push₁, h_last_s₁⟩ :=
+      obtain ⟨s₁, h_snt₁, h_corr₁, h_fl₁, h_dp₁, h_ids₁, h_ek₁, h_col₁, _h_line₁, h_atol₁, h_endline₁, h_stack_endline₁, h_stack_pop₁, h_sk_poss₁, _h_toks_gt₁, h_stack_push₁, h_last_s₁, h_push₁⟩ :=
         scanNextToken_flow_open_mapping_nested s_state
           ((emit.emitPairList pairs.toList).toList ++ ['}'] ++ rest) hcorr₀ h_flow h_indent h_col
           h_atol h_endline h_dp h_last
@@ -696,15 +705,18 @@ lemma emit_scans_block_combined (v : YamlValue) {inFlow : Bool}
       have h_stack_endline₂ : StackEndLineOnLine s₂ s₂.line := by
         unfold StackEndLineOnLine at h_stack_endline₁ ⊢
         rw [h_stack₂, _h_line₂]; exact h_stack_endline₁
+      have h_kind₂ : s₂.flowStack.back? = some false := by
+        rw [h_fmc₂.flowStack_eq rfl h_fl₂, h_push₁]
+        exact Array.back?_push
       obtain ⟨s₃, h_snt₃, h_corr₃, h_fl₃, h_dp₃, h_ids₃, h_ek₃, h_col₃, h_tok₃, h_ska₃, _h_line₃, h_atol₃, h_endline₃, h_stack₃, h_skrestore₃, h_prefix₃⟩ :=
         scanNextToken_flow_close_mapping_nested s₂ rest h_corr₂ h_s2_inflow h_s2_indent h_col₂ h_fl₂_ge2
-          h_atol₂ h_stack_endline₂ (by rw [h_dp₂, h_dp₁]; exact h_dp)
+          h_atol₂ h_stack_endline₂ (by rw [h_dp₂, h_dp₁]; exact h_dp) h_kind₂
       have h_corr₂_cons : ScannerSurfCorr s₂ ⟨'}' :: rest, s₂.col⟩ := by
         have : ['}'] ++ rest = '}' :: rest := by simp
         rwa [this] at h_corr₂
       obtain ⟨fmeTok, h_fme_val, h_close_push⟩ :=
         scanNextToken_flow_close_map_filtered_push s₂ rest h_corr₂_cons h_s2_inflow h_s2_indent h_col₂
-          h_fl₂_ge2 h_snt₃
+          h_fl₂_ge2 h_kind₂ h_snt₃
       have h_fmc₂' : FlowMonoChain s_state.flowLevel s₁ n₂ s₂ := h_fmc₂.weaken (by omega)
       have h_fmc_all :=
         (FlowMonoChain.single h_snt₁ (Nat.le.refl) (by omega)).trans

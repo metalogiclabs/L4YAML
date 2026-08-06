@@ -1112,13 +1112,15 @@ lemma dispatchFlowIndicators_preserves_sync (s s' : ScannerState) (c : Char)
       · simp at h
       · split at h
         · simp at h
-        · simp only [Except.ok.injEq, Option.some.injEq] at h; subst h
-          dsimp only [scanFlowSequenceEnd]
-          simp only [ScannerCorrectness.advance_preserves_simpleKeyStack,
-            ScannerCorrectness.advance_preserves_flowLevel,
-            ScannerCorrectness.emit_preserves_simpleKeyStack,
-            ScannerCorrectness.emit_preserves_flowLevel,
-            Array.size_pop]; split <;> omega
+        · split at h
+          · simp at h
+          · simp only [Except.ok.injEq, Option.some.injEq] at h; subst h
+            dsimp only [scanFlowSequenceEnd]
+            simp only [ScannerCorrectness.advance_preserves_simpleKeyStack,
+              ScannerCorrectness.advance_preserves_flowLevel,
+              ScannerCorrectness.emit_preserves_simpleKeyStack,
+              ScannerCorrectness.emit_preserves_flowLevel,
+              Array.size_pop]; split <;> omega
     -- c == '{'
     · split at h
       · simp only [Except.ok.injEq, Option.some.injEq] at h; subst h
@@ -1134,13 +1136,15 @@ lemma dispatchFlowIndicators_preserves_sync (s s' : ScannerState) (c : Char)
           · simp at h
           · split at h
             · simp at h
-            · simp only [Except.ok.injEq, Option.some.injEq] at h; subst h
-              dsimp only [scanFlowMappingEnd]
-              simp only [ScannerCorrectness.advance_preserves_simpleKeyStack,
-                ScannerCorrectness.advance_preserves_flowLevel,
-                ScannerCorrectness.emit_preserves_simpleKeyStack,
-                ScannerCorrectness.emit_preserves_flowLevel,
-                Array.size_pop]; split <;> omega
+            · split at h
+              · simp at h
+              · simp only [Except.ok.injEq, Option.some.injEq] at h; subst h
+                dsimp only [scanFlowMappingEnd]
+                simp only [ScannerCorrectness.advance_preserves_simpleKeyStack,
+                  ScannerCorrectness.advance_preserves_flowLevel,
+                  ScannerCorrectness.emit_preserves_simpleKeyStack,
+                  ScannerCorrectness.emit_preserves_flowLevel,
+                  Array.size_pop]; split <;> omega
         -- c == ','
         · split at h
           · split at h

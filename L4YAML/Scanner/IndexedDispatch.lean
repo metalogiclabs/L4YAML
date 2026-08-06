@@ -1089,14 +1089,28 @@ def scanNextTokenIx_dispatchFlowIndicators {input : String}
   scanNextTokenIx_checkFlowAdjacency s c
   if c == '[' then return some (scanFlowSequenceStartIx s)
   if c == ']' then
+    -- Full `else`-chain (not early-exit statements) so the desugaring is a
+    -- plain nested `ite` with closed branches — no `__do_jp` join points,
+    -- keeping both `split`- and `rw [if_pos/if_neg]`-style proofs workable.
     if s.flowLevel == 0 then
       throw (.flowEndOutsideFlow ']' s.cursor.pos.line s.cursor.pos.col)
-    return some (scanFlowSequenceEndIx s)
+    -- §7.4 [137]: `]` must close the innermost open, which must be a
+    -- sequence (`flowStack` top pushed `true` by `[`) — rejects `{a]`.
+    else if s.flowStack.back? != some true then
+      throw (.mismatchedFlowClose ']' s.cursor.pos.line s.cursor.pos.col)
+    else
+      return some (scanFlowSequenceEndIx s)
   if c == '{' then return some (scanFlowMappingStartIx s)
   if c == '}' then
+    -- Full `else`-chain for the same join-point-free desugaring as `]`.
     if s.flowLevel == 0 then
       throw (.flowEndOutsideFlow '}' s.cursor.pos.line s.cursor.pos.col)
-    return some (scanFlowMappingEndIx s)
+    -- §7.4 [140]: `}` must close the innermost open, which must be a
+    -- mapping (`flowStack` top pushed `false` by `{`) — rejects `[a}`.
+    else if s.flowStack.back? != some false then
+      throw (.mismatchedFlowClose '}' s.cursor.pos.line s.cursor.pos.col)
+    else
+      return some (scanFlowMappingEndIx s)
   if c == ',' then
     if s.flowLevel == 0 then
       throw (.flowEndOutsideFlow ',' s.cursor.pos.line s.cursor.pos.col)

@@ -342,6 +342,10 @@ inductive ScanError where
   | trailingContentAfterDocEnd (line col : Nat)
   /-- `]` or `}` encountered outside any flow collection — §7.4 violation. -/
   | flowEndOutsideFlow (bracket : Char) (line col : Nat)
+  /-- Flow close indicator does not match the innermost open — §7.4 violation:
+      `]` closing a `{`-opened mapping or `}` closing a `[`-opened sequence
+      (`[a}`, `{a]`). `bracket` is the mismatched close found. -/
+  | mismatchedFlowClose (bracket : Char) (line col : Nat)
   /-- Continuation line of quoted scalar is under-indented — §8.1 violation. -/
   | underIndentedScalar (style : ScalarStyle) (line : Nat)
   /-- Document marker (`---`/`...`) inside flow collection — §5.4 violation. -/
@@ -428,6 +432,7 @@ def ScanError.toString : ScanError → String
   | .documentMarkerInScalar style l => s!"document marker inside {repr style} scalar at line {l}"
   | .trailingContentAfterDocEnd l c => s!"unexpected content after document-end marker at line {l}, column {c}"
   | .flowEndOutsideFlow b l c => s!"unexpected '{b}' outside flow collection at line {l}, column {c}"
+  | .mismatchedFlowClose b l c => s!"mismatched flow close '{b}' at line {l}, column {c}"
   | .underIndentedScalar .doubleQuoted l => s!"under-indented continuation line in double-quoted scalar at line {l}"
   | .underIndentedScalar .singleQuoted l => s!"under-indented continuation line in single-quoted scalar at line {l}"
   | .underIndentedScalar style l => s!"under-indented continuation line in {repr style} scalar at line {l}"

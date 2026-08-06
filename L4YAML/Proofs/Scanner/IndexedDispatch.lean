@@ -1296,10 +1296,14 @@ lemma scanNextTokenIx_dispatchFlowIndicators_ok_some_cases {input : String}
       · rw [if_pos hg2'] at h
         simp [Bind.bind, Except.bind, Pure.pure, Except.pure] at h
       · rw [if_neg hg2'] at h
-        right; left
-        show s' = _
-        have hi := (Except.ok.injEq _ _).mp h
-        exact ((Option.some.injEq _ _).mp hi).symm
+        by_cases hg2'' : (s.flowStack.back? != some true) = true
+        · rw [if_pos hg2''] at h
+          simp [Bind.bind, Except.bind, Pure.pure, Except.pure] at h
+        · rw [if_neg hg2''] at h
+          right; left
+          show s' = _
+          have hi := (Except.ok.injEq _ _).mp h
+          exact ((Option.some.injEq _ _).mp hi).symm
     · rw [if_neg hg2] at h
       by_cases hg3 : (c == '{') = true
       · rw [if_pos hg3] at h
@@ -1314,10 +1318,14 @@ lemma scanNextTokenIx_dispatchFlowIndicators_ok_some_cases {input : String}
           · rw [if_pos hg4'] at h
             simp [Bind.bind, Except.bind, Pure.pure, Except.pure] at h
           · rw [if_neg hg4'] at h
-            right; right; right; left
-            show s' = _
-            have hi := (Except.ok.injEq _ _).mp h
-            exact ((Option.some.injEq _ _).mp hi).symm
+            by_cases hg4'' : (s.flowStack.back? != some false) = true
+            · rw [if_pos hg4''] at h
+              simp [Bind.bind, Except.bind, Pure.pure, Except.pure] at h
+            · rw [if_neg hg4''] at h
+              right; right; right; left
+              show s' = _
+              have hi := (Except.ok.injEq _ _).mp h
+              exact ((Option.some.injEq _ _).mp hi).symm
         · rw [if_neg hg4] at h
           by_cases hg5 : (c == ',') = true
           · rw [if_pos hg5] at h

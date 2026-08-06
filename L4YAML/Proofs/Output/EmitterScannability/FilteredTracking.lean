@@ -200,7 +200,8 @@ lemma scanNextToken_flow_close_seq_outermost_ext (s : ScannerState)
     (h_indent : s.currentIndent < 0)
     (h_col_pos : s.col > 0)
     (h_fl : s.flowLevel = 1)
-    (h_dp : s.directivesPresent = false) :
+    (h_dp : s.directivesPresent = false)
+    (h_kind : s.flowStack.back? = some true) :
     let p := fun (t : Positioned YamlToken) => t.val != .placeholder
     ∃ s', scanNextToken s = .ok (some s')
       ∧ s'.flowLevel = 0
@@ -235,8 +236,12 @@ lemma scanNextToken_flow_close_seq_outermost_ext (s : ScannerState)
       (by simp only [s_ad]; split <;> exact saveSimpleKey_preserves_inputEnd s)
       h_ad_col
       (by simp only [s_ad]; split <;> exact saveSimpleKey_preserves_indents s)
+  have h_ad_kind : s_ad.flowStack.back? = some true := by
+    have h_ad_fs : s_ad.flowStack = s.flowStack := by
+      simp only [s_ad]; split <;> exact saveSimpleKey_preserves_flowStack s
+    rw [h_ad_fs]; exact h_kind
   have h_flow_disp := dispatchFlowIndicators_close_bracket_outermost s_ad
-    (h_ad_fl ▸ h_fl) h_ad_corr
+    (h_ad_fl ▸ h_fl) h_ad_corr h_ad_kind
   have h_snt := scanNextToken_via_flow_dispatch _ _ _ _ _ h_pp h_struct rfl h_check h_flow_disp
     ((saveSimpleKey_preserves_directivesPresent s).trans h_dp)
   -- s' = scanFlowSequenceEnd s_ad
@@ -291,7 +296,8 @@ lemma scanNextToken_flow_close_mapping_outermost_ext (s : ScannerState)
     (h_indent : s.currentIndent < 0)
     (h_col_pos : s.col > 0)
     (h_fl : s.flowLevel = 1)
-    (h_dp : s.directivesPresent = false) :
+    (h_dp : s.directivesPresent = false)
+    (h_kind : s.flowStack.back? = some false) :
     let p := fun (t : Positioned YamlToken) => t.val != .placeholder
     ∃ s', scanNextToken s = .ok (some s')
       ∧ s'.flowLevel = 0
@@ -326,8 +332,12 @@ lemma scanNextToken_flow_close_mapping_outermost_ext (s : ScannerState)
       (by simp only [s_ad]; split <;> exact saveSimpleKey_preserves_inputEnd s)
       h_ad_col
       (by simp only [s_ad]; split <;> exact saveSimpleKey_preserves_indents s)
+  have h_ad_kind : s_ad.flowStack.back? = some false := by
+    have h_ad_fs : s_ad.flowStack = s.flowStack := by
+      simp only [s_ad]; split <;> exact saveSimpleKey_preserves_flowStack s
+    rw [h_ad_fs]; exact h_kind
   have h_flow_disp := dispatchFlowIndicators_close_brace_outermost s_ad
-    (h_ad_fl ▸ h_fl) h_ad_corr
+    (h_ad_fl ▸ h_fl) h_ad_corr h_ad_kind
   have h_snt := scanNextToken_via_flow_dispatch _ _ _ _ _ h_pp h_struct rfl h_check h_flow_disp
     ((saveSimpleKey_preserves_directivesPresent s).trans h_dp)
   -- s' = scanFlowMappingEnd s_ad

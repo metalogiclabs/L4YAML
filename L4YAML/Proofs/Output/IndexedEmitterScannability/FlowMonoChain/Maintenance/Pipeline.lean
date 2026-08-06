@@ -243,28 +243,32 @@ lemma dispatchFlowIndicators_brace (s : ScannerStateIx input)
     because the indexed pipeline has no `validateFlowClose`
     tail-validation. -/
 lemma dispatchFlowIndicators_close_bracket (s : ScannerStateIx input)
-    (h_fl : s.flowLevel > 0) :
+    (h_fl : s.flowLevel > 0)
+    (h_kind : s.flowStack.back? = some true) :
     scanNextTokenIx_dispatchFlowIndicators s ']' =
       .ok (some (scanFlowSequenceEndIx s)) := by
   unfold scanNextTokenIx_dispatchFlowIndicators
   rw [checkFlowAdjacencyIx_ok_of_sepChar (by decide)]
   have h_ne : (s.flowLevel == 0) = false :=
     beq_eq_false_iff_ne.mpr (by omega)
+  have h_kind_ne : (s.flowStack.back? != some true) = false := by rw [h_kind]; rfl
   simp only [bind, Except.bind, pure, Pure.pure, Except.pure, show (']' == '[') = false from by decide,
     show (']' == ']') = true from by decide,
-    h_ne, ↓reduceIte, Bool.false_eq_true]
+    h_ne, h_kind_ne, ↓reduceIte, Bool.false_eq_true]
 
 /-- Flow dispatch for `'}'` with `flowLevel > 0` returns
     `some (scanFlowMappingEndIx s)`. -/
 lemma dispatchFlowIndicators_close_brace (s : ScannerStateIx input)
-    (h_fl : s.flowLevel > 0) :
+    (h_fl : s.flowLevel > 0)
+    (h_kind : s.flowStack.back? = some false) :
     scanNextTokenIx_dispatchFlowIndicators s '}' =
       .ok (some (scanFlowMappingEndIx s)) := by
   unfold scanNextTokenIx_dispatchFlowIndicators
   rw [checkFlowAdjacencyIx_ok_of_sepChar (by decide)]
   have h_ne : (s.flowLevel == 0) = false :=
     beq_eq_false_iff_ne.mpr (by omega)
-  simp only [bind, Except.bind, pure, Pure.pure, Except.pure, show ('}' == '[') = false from by decide,     show ('}' == ']') = false from by decide, show ('}' == '{') = false from by decide, show ('}' == '}') = true from by decide, h_ne, ↓reduceIte, Bool.false_eq_true]
+  have h_kind_ne : (s.flowStack.back? != some false) = false := by rw [h_kind]; rfl
+  simp only [bind, Except.bind, pure, Pure.pure, Except.pure, show ('}' == '[') = false from by decide,     show ('}' == ']') = false from by decide, show ('}' == '{') = false from by decide, show ('}' == '}') = true from by decide, h_ne, h_kind_ne, ↓reduceIte, Bool.false_eq_true]
 
 /-! ## §5  `scanFlowEntryIx_ok` (used by `_comma`) -/
 

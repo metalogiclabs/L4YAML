@@ -1711,11 +1711,13 @@ lemma dispatchFlowIndicators_corr (sc : ScannerState) (sp : SurfPos) (c : Char)
   · split at hok
     · split at hok
       · simp at hok  -- flowEndOutsideFlow
-      · -- validateFlowClose is Except Unit, split on it
-        split at hok
-        · simp at hok
-        · have h := Except.ok.inj hok; injection h with h; subst h
-          exact scanFlowSequenceEnd_corr sc sp hcorr
+      · split at hok
+        · simp at hok  -- flowStack kind-check mismatch
+        · -- validateFlowClose is Except Unit, split on it
+          split at hok
+          · simp at hok
+          · have h := Except.ok.inj hok; injection h with h; subst h
+            exact scanFlowSequenceEnd_corr sc sp hcorr
     -- c == '{'
     · split at hok
       · have h := Except.ok.inj hok; injection h with h; subst h
@@ -1725,9 +1727,11 @@ lemma dispatchFlowIndicators_corr (sc : ScannerState) (sp : SurfPos) (c : Char)
         · split at hok
           · simp at hok  -- flowEndOutsideFlow
           · split at hok
-            · simp at hok
-            · have h := Except.ok.inj hok; injection h with h; subst h
-              exact scanFlowMappingEnd_corr sc sp hcorr
+            · simp at hok  -- flowStack kind-check mismatch
+            · split at hok
+              · simp at hok
+              · have h := Except.ok.inj hok; injection h with h; subst h
+                exact scanFlowMappingEnd_corr sc sp hcorr
         -- c == ','
         · split at hok
           · split at hok
@@ -2557,42 +2561,47 @@ lemma accum_step_flow (sc : ScannerState)
         · -- flowLevel == 0 arm: h_dispatch is an error.
           simp at h_dispatch
         · split at h_dispatch
-          · -- validateFlowClose errored: h_dispatch is an error.
+          · -- flowStack kind-check mismatch (9a strictening): error.
             simp at h_dispatch
-          · have h_ad_pos : s_ad.flowLevel > 0 := by rw [h_ad_fl, hd]; omega
-            obtain ⟨sp_tok, h_close_lit, hcorr_tok, h_fl⟩ :=
-              scanFlowSequenceEnd_prod s_ad sp_prep hcorr_ad
-                (hpeek_ad.trans (preprocess_some_peek h_preprocess)) h_ad_pos
-            have hs := Option.some.inj (Except.ok.inj h_dispatch)
-            subst hs
-            have h_fl' : (scanFlowSequenceEnd s_ad).flowLevel = d := by
-              rw [h_fl, h_ad_fl, hd]; omega
-            rw [h_fl']
-            cases h_fos
-            · -- seqBase (d = 0): close the outermost seq; the completed node
-              -- re-enters the stream via `resume`, parked as `pendingContent`
-              -- until the next step's SSLComments.
-              rename_i resume h_open h_sep st
-              have h_seq := SeqFrame.closeWithSep h_open h_sep st h_lead h_lead h_close_lit
-              exact ⟨sp_gram, sp_block, sp_block, sp_tok, h_stream, h_stack,
-                FlowStackB.nil sp_block,
-                PendingNode.pendingContent sp_start sp_block sp_tok
-                  (fun sp_m h_ssl => resume sp_tok sp_m
-                    (SFlowNode.content _ _ _ _ (SFlowContent.flowSeq _ _ _ _ h_seq)) h_ssl),
-                hcorr_tok, fun h => absurd h (by omega)⟩
-            · -- mapBase + ']': kind-mismatched close (`{a]`) — scan-accepted
-              -- today; item-9a residue (kind strictening + flowStack coupling).
-              sorry
-            · -- seqNest (d ≥ 1): close the nested seq and fold it into the
-              -- parent via `inject`.
-              rename_i h_open h_sep inject st
-              have h_seq := SeqFrame.closeWithSep h_open h_sep st h_lead h_lead h_close_lit
-              exact ⟨sp_gram, sp_block, sp_tok, sp_tok, h_stream, h_stack,
-                .open _ sp_block sp_tok (inject sp_tok
-                  (SFlowNode.content _ _ _ _ (SFlowContent.flowSeq _ _ _ _ h_seq))),
-                PendingNode.noPending sp_start sp_tok, hcorr_tok, fun _ => rfl⟩
-            · -- mapNest + ']': kind-mismatched close — item-9a residue.
-              sorry
+          · split at h_dispatch
+            · -- validateFlowClose errored: h_dispatch is an error.
+              simp at h_dispatch
+            · have h_ad_pos : s_ad.flowLevel > 0 := by rw [h_ad_fl, hd]; omega
+              obtain ⟨sp_tok, h_close_lit, hcorr_tok, h_fl⟩ :=
+                scanFlowSequenceEnd_prod s_ad sp_prep hcorr_ad
+                  (hpeek_ad.trans (preprocess_some_peek h_preprocess)) h_ad_pos
+              have hs := Option.some.inj (Except.ok.inj h_dispatch)
+              subst hs
+              have h_fl' : (scanFlowSequenceEnd s_ad).flowLevel = d := by
+                rw [h_fl, h_ad_fl, hd]; omega
+              rw [h_fl']
+              cases h_fos
+              · -- seqBase (d = 0): close the outermost seq; the completed node
+                -- re-enters the stream via `resume`, parked as `pendingContent`
+                -- until the next step's SSLComments.
+                rename_i resume h_open h_sep st
+                have h_seq := SeqFrame.closeWithSep h_open h_sep st h_lead h_lead h_close_lit
+                exact ⟨sp_gram, sp_block, sp_block, sp_tok, h_stream, h_stack,
+                  FlowStackB.nil sp_block,
+                  PendingNode.pendingContent sp_start sp_block sp_tok
+                    (fun sp_m h_ssl => resume sp_tok sp_m
+                      (SFlowNode.content _ _ _ _ (SFlowContent.flowSeq _ _ _ _ h_seq)) h_ssl),
+                  hcorr_tok, fun h => absurd h (by omega)⟩
+              · -- mapBase + ']': kind-mismatched close (`{a]`) — now scan-REJECTED
+                -- (9a kind check gives `s_ad.flowStack.back? = some true` in
+                -- context); refutation still needs the 9b `sc.flowStack` ↔
+                -- frame-kind coupling.
+                sorry
+              · -- seqNest (d ≥ 1): close the nested seq and fold it into the
+                -- parent via `inject`.
+                rename_i h_open h_sep inject st
+                have h_seq := SeqFrame.closeWithSep h_open h_sep st h_lead h_lead h_close_lit
+                exact ⟨sp_gram, sp_block, sp_tok, sp_tok, h_stream, h_stack,
+                  .open _ sp_block sp_tok (inject sp_tok
+                    (SFlowNode.content _ _ _ _ (SFlowContent.flowSeq _ _ _ _ h_seq))),
+                  PendingNode.noPending sp_start sp_tok, hcorr_tok, fun _ => rfl⟩
+              · -- mapNest + ']': kind-mismatched close — 9b coupling residue.
+                sorry
       · split at h_dispatch
         · -- '{': NESTED PUSH, depth d+1 → d+2 (mirror of '[').
           rename_i heq
@@ -2618,37 +2627,41 @@ lemma accum_step_flow (sc : ScannerState)
             split at h_dispatch
             · simp at h_dispatch
             · split at h_dispatch
-              · simp at h_dispatch
-              · have h_ad_pos : s_ad.flowLevel > 0 := by rw [h_ad_fl, hd]; omega
-                obtain ⟨sp_tok, h_close_lit, hcorr_tok, h_fl⟩ :=
-                  scanFlowMappingEnd_prod s_ad sp_prep hcorr_ad
-                    (hpeek_ad.trans (preprocess_some_peek h_preprocess)) h_ad_pos
-                have hs := Option.some.inj (Except.ok.inj h_dispatch)
-                subst hs
-                have h_fl' : (scanFlowMappingEnd s_ad).flowLevel = d := by
-                  rw [h_fl, h_ad_fl, hd]; omega
-                rw [h_fl']
-                cases h_fos
-                · -- seqBase + '}': kind-mismatched close (`[a}`) — item-9a residue.
-                  sorry
-                · -- mapBase (d = 0): close the outermost map via `resume`.
-                  rename_i resume h_open h_sep st
-                  have h_map := MapFrame.closeWithSep h_open h_sep st h_lead h_lead h_close_lit
-                  exact ⟨sp_gram, sp_block, sp_block, sp_tok, h_stream, h_stack,
-                    FlowStackB.nil sp_block,
-                    PendingNode.pendingContent sp_start sp_block sp_tok
-                      (fun sp_m h_ssl => resume sp_tok sp_m
-                        (SFlowNode.content _ _ _ _ (SFlowContent.flowMap _ _ _ _ h_map)) h_ssl),
-                    hcorr_tok, fun h => absurd h (by omega)⟩
-                · -- seqNest + '}': kind-mismatched close — item-9a residue.
-                  sorry
-                · -- mapNest (d ≥ 1): close the nested map, fold via `inject`.
-                  rename_i h_open h_sep inject st
-                  have h_map := MapFrame.closeWithSep h_open h_sep st h_lead h_lead h_close_lit
-                  exact ⟨sp_gram, sp_block, sp_tok, sp_tok, h_stream, h_stack,
-                    .open _ sp_block sp_tok (inject sp_tok
-                      (SFlowNode.content _ _ _ _ (SFlowContent.flowMap _ _ _ _ h_map))),
-                    PendingNode.noPending sp_start sp_tok, hcorr_tok, fun _ => rfl⟩
+              · -- flowStack kind-check mismatch (9a strictening): error.
+                simp at h_dispatch
+              · split at h_dispatch
+                · simp at h_dispatch
+                · have h_ad_pos : s_ad.flowLevel > 0 := by rw [h_ad_fl, hd]; omega
+                  obtain ⟨sp_tok, h_close_lit, hcorr_tok, h_fl⟩ :=
+                    scanFlowMappingEnd_prod s_ad sp_prep hcorr_ad
+                      (hpeek_ad.trans (preprocess_some_peek h_preprocess)) h_ad_pos
+                  have hs := Option.some.inj (Except.ok.inj h_dispatch)
+                  subst hs
+                  have h_fl' : (scanFlowMappingEnd s_ad).flowLevel = d := by
+                    rw [h_fl, h_ad_fl, hd]; omega
+                  rw [h_fl']
+                  cases h_fos
+                  · -- seqBase + '}': kind-mismatched close (`[a}`) — now
+                    -- scan-REJECTED (9a); refutation awaits the 9b coupling.
+                    sorry
+                  · -- mapBase (d = 0): close the outermost map via `resume`.
+                    rename_i resume h_open h_sep st
+                    have h_map := MapFrame.closeWithSep h_open h_sep st h_lead h_lead h_close_lit
+                    exact ⟨sp_gram, sp_block, sp_block, sp_tok, h_stream, h_stack,
+                      FlowStackB.nil sp_block,
+                      PendingNode.pendingContent sp_start sp_block sp_tok
+                        (fun sp_m h_ssl => resume sp_tok sp_m
+                          (SFlowNode.content _ _ _ _ (SFlowContent.flowMap _ _ _ _ h_map)) h_ssl),
+                      hcorr_tok, fun h => absurd h (by omega)⟩
+                  · -- seqNest + '}': kind-mismatched close — 9b coupling residue.
+                    sorry
+                  · -- mapNest (d ≥ 1): close the nested map, fold via `inject`.
+                    rename_i h_open h_sep inject st
+                    have h_map := MapFrame.closeWithSep h_open h_sep st h_lead h_lead h_close_lit
+                    exact ⟨sp_gram, sp_block, sp_tok, sp_tok, h_stream, h_stack,
+                      .open _ sp_block sp_tok (inject sp_tok
+                        (SFlowNode.content _ _ _ _ (SFlowContent.flowMap _ _ _ _ h_map))),
+                      PendingNode.noPending sp_start sp_tok, hcorr_tok, fun _ => rfl⟩
           · split at h_dispatch
             · -- ',': HOLD, depth unchanged — finish any mid entry (trailing
               -- sep = this step's leading sep), land the frame in `held`.

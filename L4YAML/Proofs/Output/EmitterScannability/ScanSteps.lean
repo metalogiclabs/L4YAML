@@ -4,6 +4,7 @@ Released under Apache 2.0 license as described in the file LICENSE.
 -/
 import L4YAML.Proofs.Output.EmitterScannability.ScannerAcceptance
 import L4YAML.Proofs.Scanner.FlowAdjacency
+import L4YAML.Proofs.Scanner.ScannerFlowCollection
 
 /-!
 # Emitter Scannability — Chain Wrappers + Scanning Steps
@@ -2265,7 +2266,8 @@ lemma scanNextToken_flow_open_init (input : String) (rest : List Char)
       ∧ s'.simpleKeyStack.size = s'.flowLevel
       ∧ s'.simpleKeyAllowed = true
       ∧ ScannerCorrectness.SimpleKeyStackValid s'
-      ∧ (∀ t, lastRealTokenVal? s'.tokens = some t → t.completesFlowValue = false) := by
+      ∧ (∀ t, lastRealTokenVal? s'.tokens = some t → t.completesFlowValue = false)
+      ∧ s'.flowStack.back? = some true := by
   intro s₀
   -- Step 1: preprocessing
   have h_pp := scanNextToken_preprocess_init_state input '[' rest h_toList
@@ -2410,7 +2412,10 @@ lemma scanNextToken_flow_open_init (input : String) (rest : List Char)
          h_ska_final, h_ssv_final,
          fun t ht => by
            rw [scanFlowSequenceStart_lastRealTokenVal s_ad] at ht
-           simp only [Option.some.injEq] at ht; subst ht; rfl⟩
+           simp only [Option.some.injEq] at ht; subst ht; rfl,
+         by -- flowStack top: '[' pushes `true` (9a kind tracking)
+           rw [L4YAML.Proofs.ScannerFlowCollection.scanFlowSequenceStart_pushes_true]
+           exact Array.back?_push⟩
 
 -- Helper: Nat BEq with 0
 lemma nat_beq_zero_false (n : Nat) (h : n > 0) : (n == 0) = false := by
@@ -2448,7 +2453,8 @@ lemma scanNextToken_flow_open_nested (s : ScannerState) (rest : List Char)
       ∧ s'.simpleKey.possible = false
       ∧ s.tokens.size < s'.tokens.size
       ∧ s'.simpleKeyStack = s.simpleKeyStack.push (saveSimpleKey s).simpleKey
-      ∧ (∀ t, lastRealTokenVal? s'.tokens = some t → t.completesFlowValue = false) := by
+      ∧ (∀ t, lastRealTokenVal? s'.tokens = some t → t.completesFlowValue = false)
+      ∧ s'.flowStack = s.flowStack.push true := by
   have h_pp : scanNextToken_preprocess s = .ok (some (saveSimpleKey s, '[')) :=
     scanNextToken_preprocess_flow s '[' rest s.col hcorr h_flow
       (by decide) (by decide) (by decide)
@@ -2510,7 +2516,7 @@ lemma scanNextToken_flow_open_nested (s : ScannerState) (rest : List Char)
     exact (advance_line_of_peek s_ad '[' h_lt_ad h_peek_ad (by decide) (by decide)).trans h_ad_line
   refine ⟨_, h_snt, ?_, h_fl_f.trans (congrArg (· + 1) h_ad_fl),
     h_dp_f.trans h_ad_dp, h_ids_f.trans h_ad_ids, h_ek_f.trans h_ad_ek, ?_, h_line_f, ?_, ?_, ?_, ?_,
-    ScannerCorrectness.scanFlowSequenceStart_simpleKey_cleared s_ad, ?_, ?_, ?_⟩
+    ScannerCorrectness.scanFlowSequenceStart_simpleKey_cleared s_ad, ?_, ?_, ?_, ?_⟩
   · rw [h_col_f]; exact h_corr_f
   · rw [h_col_f, h_ad_col]
   · rw [h_line_f]
@@ -2551,6 +2557,10 @@ lemma scanNextToken_flow_open_nested (s : ScannerState) (rest : List Char)
     intro t ht
     rw [scanFlowSequenceStart_lastRealTokenVal s_ad] at ht
     simp only [Option.some.injEq] at ht; subst ht; rfl
+  · -- flowStack: '[' pushes `true` (9a kind tracking)
+    rw [L4YAML.Proofs.ScannerFlowCollection.scanFlowSequenceStart_pushes_true]
+    congr 1
+    simp only [s_ad]; split <;> exact saveSimpleKey_preserves_flowStack s
 
 -- ═══ Block indicators: concrete none lemmas ═══
 
@@ -2945,7 +2955,8 @@ lemma validateFlowClose_pass_eof (s : ScannerState)
 /-- Flow dispatch for `]` returns `some (scanFlowSequenceEnd s)` when
     flowLevel ≥ 2 (nested case — validateFlowClose is no-op). -/
 lemma dispatchFlowIndicators_close_bracket_nested (s : ScannerState)
-    (h_fl : s.flowLevel ≥ 2) :
+    (h_fl : s.flowLevel ≥ 2)
+    (h_kind : s.flowStack.back? = some true) :
     scanNextToken_dispatchFlowIndicators s ']' = .ok (some (scanFlowSequenceEnd s)) := by
   unfold scanNextToken_dispatchFlowIndicators
   rw [checkFlowAdjacency_ok_of_sepChar (by decide)]
@@ -2953,7 +2964,7 @@ lemma dispatchFlowIndicators_close_bracket_nested (s : ScannerState)
     show (']' == '[') = false from by decide,
     show (']' == ']') = true from by decide]
   have h_ne := nat_beq_zero_false s.flowLevel (by omega : s.flowLevel > 0)
-  simp only [h_ne]
+  simp only [h_ne, h_kind]
   have h_fl_after : (scanFlowSequenceEnd s).flowLevel > 0 := by
     rw [scanFlowSequenceEnd_flowLevel]; split <;> omega
   rw [validateFlowClose_pass_nested _ h_fl_after]
@@ -2970,7 +2981,8 @@ lemma scanNextToken_flow_close_seq_nested (s : ScannerState)
     (h_fl_ge2 : s.flowLevel ≥ 2)
     (h_atol : AllTokensOnLine s s.line)
     (h_stack_endline : StackEndLineOnLine s s.line)
-    (h_dp : s.directivesPresent = false) :
+    (h_dp : s.directivesPresent = false)
+    (h_kind : s.flowStack.back? = some true) :
     ∃ s', scanNextToken s = .ok (some s')
       ∧ ScannerSurfCorr s' ⟨rest, s'.col⟩
       ∧ s'.flowLevel = s.flowLevel - 1
@@ -3019,7 +3031,11 @@ lemma scanNextToken_flow_close_seq_nested (s : ScannerState)
       (by simp only [s_ad]; split <;> exact saveSimpleKey_preserves_indents s)
   -- Flow dispatch: nested close, flowLevel ≥ 2 so validateFlowClose is no-op
   have h_ad_fl_ge2 : s_ad.flowLevel ≥ 2 := by rw [h_ad_fl]; exact h_fl_ge2
-  have h_flow_disp := dispatchFlowIndicators_close_bracket_nested s_ad h_ad_fl_ge2
+  have h_ad_kind : s_ad.flowStack.back? = some true := by
+    have h_ad_fs : s_ad.flowStack = s.flowStack := by
+      simp only [s_ad]; split <;> exact saveSimpleKey_preserves_flowStack s
+    rw [h_ad_fs]; exact h_kind
+  have h_flow_disp := dispatchFlowIndicators_close_bracket_nested s_ad h_ad_fl_ge2 h_ad_kind
   -- Step 6: compose
   have h_snt := scanNextToken_via_flow_dispatch _ _ _ _ _ h_pp h_struct rfl h_check h_flow_disp
     ((saveSimpleKey_preserves_directivesPresent s).trans h_dp)
@@ -3107,7 +3123,8 @@ lemma scanFlowSequenceEnd_peek (s : ScannerState) :
     After scanFlowSequenceEnd, flowLevel = 0 and validateFlowClose passes. -/
 lemma dispatchFlowIndicators_close_bracket_outermost (s : ScannerState)
     (h_fl : s.flowLevel = 1)
-    (hcorr : ScannerSurfCorr s ⟨[']'], s.col⟩) :
+    (hcorr : ScannerSurfCorr s ⟨[']'], s.col⟩)
+    (h_kind : s.flowStack.back? = some true) :
     scanNextToken_dispatchFlowIndicators s ']' = .ok (some (scanFlowSequenceEnd s)) := by
   unfold scanNextToken_dispatchFlowIndicators
   rw [checkFlowAdjacency_ok_of_sepChar (by decide)]
@@ -3115,7 +3132,7 @@ lemma dispatchFlowIndicators_close_bracket_outermost (s : ScannerState)
     show (']' == '[') = false from by decide,
     show (']' == ']') = true from by decide]
   have h_ne := nat_beq_zero_false s.flowLevel (by omega : s.flowLevel > 0)
-  simp only [h_ne]
+  simp only [h_ne, h_kind]
   -- After scanFlowSequenceEnd: flowLevel = 0
   have h_fl_after : (scanFlowSequenceEnd s).flowLevel = 0 := by
     rw [scanFlowSequenceEnd_flowLevel, h_fl]
@@ -3141,7 +3158,8 @@ lemma scanNextToken_flow_close_seq_outermost (s : ScannerState)
     (h_indent : s.currentIndent < 0)
     (h_col_pos : s.col > 0)
     (h_fl : s.flowLevel = 1)
-    (h_dp : s.directivesPresent = false) :
+    (h_dp : s.directivesPresent = false)
+    (h_kind : s.flowStack.back? = some true) :
     ∃ s', scanNextToken s = .ok (some s')
       ∧ s'.flowLevel = 0
       ∧ s'.directivesPresent = false
@@ -3176,8 +3194,12 @@ lemma scanNextToken_flow_close_seq_outermost (s : ScannerState)
       (by simp only [s_ad]; split <;> exact saveSimpleKey_preserves_inputEnd s)
       h_ad_col
       (by simp only [s_ad]; split <;> exact saveSimpleKey_preserves_indents s)
+  have h_ad_kind : s_ad.flowStack.back? = some true := by
+    have h_ad_fs : s_ad.flowStack = s.flowStack := by
+      simp only [s_ad]; split <;> exact saveSimpleKey_preserves_flowStack s
+    rw [h_ad_fs]; exact h_kind
   have h_flow_disp := dispatchFlowIndicators_close_bracket_outermost s_ad
-    (h_ad_fl ▸ h_fl) h_ad_corr
+    (h_ad_fl ▸ h_fl) h_ad_corr h_ad_kind
   have h_snt := scanNextToken_via_flow_dispatch _ _ _ _ _ h_pp h_struct rfl h_check h_flow_disp
     ((saveSimpleKey_preserves_directivesPresent s).trans h_dp)
   -- Extract properties
@@ -3318,7 +3340,8 @@ lemma checkBlockFlowIndent_ok_close_brace (s : ScannerState) :
   · rfl
 
 lemma dispatchFlowIndicators_close_brace_nested (s : ScannerState)
-    (h_fl : s.flowLevel ≥ 2) :
+    (h_fl : s.flowLevel ≥ 2)
+    (h_kind : s.flowStack.back? = some false) :
     scanNextToken_dispatchFlowIndicators s '}' = .ok (some (scanFlowMappingEnd s)) := by
   unfold scanNextToken_dispatchFlowIndicators
   rw [checkFlowAdjacency_ok_of_sepChar (by decide)]
@@ -3328,7 +3351,7 @@ lemma dispatchFlowIndicators_close_brace_nested (s : ScannerState)
     show ('}' == '{') = false from by decide,
     show ('}' == '}') = true from by decide]
   have h_ne := nat_beq_zero_false s.flowLevel (by omega : s.flowLevel > 0)
-  simp only [h_ne]
+  simp only [h_ne, h_kind]
   have h_fl_after : (scanFlowMappingEnd s).flowLevel > 0 := by
     rw [scanFlowMappingEnd_flowLevel]; split <;> omega
   rw [validateFlowClose_pass_nested _ h_fl_after]
@@ -3343,7 +3366,8 @@ lemma scanNextToken_flow_close_mapping_nested (s : ScannerState)
     (h_fl_ge2 : s.flowLevel ≥ 2)
     (h_atol : AllTokensOnLine s s.line)
     (h_stack_endline : StackEndLineOnLine s s.line)
-    (h_dp : s.directivesPresent = false) :
+    (h_dp : s.directivesPresent = false)
+    (h_kind : s.flowStack.back? = some false) :
     ∃ s', scanNextToken s = .ok (some s')
       ∧ ScannerSurfCorr s' ⟨rest, s'.col⟩
       ∧ s'.flowLevel = s.flowLevel - 1
@@ -3385,7 +3409,11 @@ lemma scanNextToken_flow_close_mapping_nested (s : ScannerState)
       h_ad_col
       (by simp only [s_ad]; split <;> exact saveSimpleKey_preserves_indents s)
   have h_ad_fl_ge2 : s_ad.flowLevel ≥ 2 := by rw [h_ad_fl]; exact h_fl_ge2
-  have h_flow_disp := dispatchFlowIndicators_close_brace_nested s_ad h_ad_fl_ge2
+  have h_ad_kind : s_ad.flowStack.back? = some false := by
+    have h_ad_fs : s_ad.flowStack = s.flowStack := by
+      simp only [s_ad]; split <;> exact saveSimpleKey_preserves_flowStack s
+    rw [h_ad_fs]; exact h_kind
+  have h_flow_disp := dispatchFlowIndicators_close_brace_nested s_ad h_ad_fl_ge2 h_ad_kind
   have h_snt := scanNextToken_via_flow_dispatch _ _ _ _ _ h_pp h_struct rfl h_check h_flow_disp
     ((saveSimpleKey_preserves_directivesPresent s).trans h_dp)
   have h_ad_dp : s_ad.directivesPresent = s.directivesPresent := by
@@ -3461,7 +3489,8 @@ lemma scanNextToken_flow_close_mapping_nested (s : ScannerState)
 
 lemma dispatchFlowIndicators_close_brace_outermost (s : ScannerState)
     (h_fl : s.flowLevel = 1)
-    (hcorr : ScannerSurfCorr s ⟨['}'], s.col⟩) :
+    (hcorr : ScannerSurfCorr s ⟨['}'], s.col⟩)
+    (h_kind : s.flowStack.back? = some false) :
     scanNextToken_dispatchFlowIndicators s '}' = .ok (some (scanFlowMappingEnd s)) := by
   unfold scanNextToken_dispatchFlowIndicators
   rw [checkFlowAdjacency_ok_of_sepChar (by decide)]
@@ -3471,7 +3500,7 @@ lemma dispatchFlowIndicators_close_brace_outermost (s : ScannerState)
     show ('}' == '{') = false from by decide,
     show ('}' == '}') = true from by decide]
   have h_ne := nat_beq_zero_false s.flowLevel (by omega : s.flowLevel > 0)
-  simp only [h_ne]
+  simp only [h_ne, h_kind]
   have h_fl_after : (scanFlowMappingEnd s).flowLevel = 0 := by
     rw [scanFlowMappingEnd_flowLevel, h_fl]
     simp (config := { decide := true })
@@ -3493,7 +3522,8 @@ lemma scanNextToken_flow_close_mapping_outermost (s : ScannerState)
     (h_indent : s.currentIndent < 0)
     (h_col_pos : s.col > 0)
     (h_fl : s.flowLevel = 1)
-    (h_dp : s.directivesPresent = false) :
+    (h_dp : s.directivesPresent = false)
+    (h_kind : s.flowStack.back? = some false) :
     ∃ s', scanNextToken s = .ok (some s')
       ∧ s'.flowLevel = 0
       ∧ s'.directivesPresent = false
@@ -3523,8 +3553,12 @@ lemma scanNextToken_flow_close_mapping_outermost (s : ScannerState)
       (by simp only [s_ad]; split <;> exact saveSimpleKey_preserves_inputEnd s)
       h_ad_col
       (by simp only [s_ad]; split <;> exact saveSimpleKey_preserves_indents s)
+  have h_ad_kind : s_ad.flowStack.back? = some false := by
+    have h_ad_fs : s_ad.flowStack = s.flowStack := by
+      simp only [s_ad]; split <;> exact saveSimpleKey_preserves_flowStack s
+    rw [h_ad_fs]; exact h_kind
   have h_flow_disp := dispatchFlowIndicators_close_brace_outermost s_ad
-    (h_ad_fl ▸ h_fl) h_ad_corr
+    (h_ad_fl ▸ h_fl) h_ad_corr h_ad_kind
   have h_snt := scanNextToken_via_flow_dispatch _ _ _ _ _ h_pp h_struct rfl h_check h_flow_disp
     ((saveSimpleKey_preserves_directivesPresent s).trans h_dp)
   have h_result_fl : (scanFlowMappingEnd s_ad).flowLevel = 0 := by
@@ -3567,7 +3601,8 @@ lemma scanNextToken_flow_open_mapping_nested (s : ScannerState) (rest : List Cha
       ∧ s'.simpleKey.possible = false
       ∧ s.tokens.size < s'.tokens.size
       ∧ s'.simpleKeyStack = s.simpleKeyStack.push (saveSimpleKey s).simpleKey
-      ∧ (∀ t, lastRealTokenVal? s'.tokens = some t → t.completesFlowValue = false) := by
+      ∧ (∀ t, lastRealTokenVal? s'.tokens = some t → t.completesFlowValue = false)
+      ∧ s'.flowStack = s.flowStack.push false := by
   have h_pp : scanNextToken_preprocess s = .ok (some (saveSimpleKey s, '{')) :=
     scanNextToken_preprocess_flow s '{' rest s.col hcorr h_flow
       (by decide) (by decide) (by decide)
@@ -3622,7 +3657,7 @@ lemma scanNextToken_flow_open_mapping_nested (s : ScannerState) (rest : List Cha
     exact (advance_line_of_peek s_ad '{' h_lt_ad h_peek_ad (by decide) (by decide)).trans h_ad_line
   refine ⟨_, h_snt, ?_, h_fl_f.trans (congrArg (· + 1) h_ad_fl),
     h_dp_f.trans h_ad_dp, h_ids_f.trans h_ad_ids, h_ek_f.trans h_ad_ek, ?_, h_line_f, ?_, ?_, ?_, ?_,
-    ScannerCorrectness.scanFlowMappingStart_simpleKey_cleared s_ad, ?_, ?_, ?_⟩
+    ScannerCorrectness.scanFlowMappingStart_simpleKey_cleared s_ad, ?_, ?_, ?_, ?_⟩
   · rw [h_col_f]; exact h_corr_f
   · rw [h_col_f, h_ad_col]
   · rw [h_line_f]
@@ -3663,6 +3698,10 @@ lemma scanNextToken_flow_open_mapping_nested (s : ScannerState) (rest : List Cha
     intro t ht
     rw [scanFlowMappingStart_lastRealTokenVal s_ad] at ht
     simp only [Option.some.injEq] at ht; subst ht; rfl
+  · -- flowStack: '{' pushes `false` (9a kind tracking)
+    rw [L4YAML.Proofs.ScannerFlowCollection.scanFlowMappingStart_pushes_false]
+    congr 1
+    simp only [s_ad]; split <;> exact saveSimpleKey_preserves_flowStack s
 
 -- ═══ Init flow open: `{` — mapping at top level ═══
 
@@ -3707,7 +3746,8 @@ lemma scanNextToken_flow_open_mapping_init (input : String) (rest : List Char)
       ∧ s'.simpleKeyStack.size = s'.flowLevel
       ∧ s'.simpleKeyAllowed = true
       ∧ ScannerCorrectness.SimpleKeyStackValid s'
-      ∧ (∀ t, lastRealTokenVal? s'.tokens = some t → t.completesFlowValue = false) := by
+      ∧ (∀ t, lastRealTokenVal? s'.tokens = some t → t.completesFlowValue = false)
+      ∧ s'.flowStack.back? = some false := by
   intro s₀
   -- Step 1: preprocessing
   have h_pp := scanNextToken_preprocess_init_state input '{' rest h_toList
@@ -3849,7 +3889,10 @@ lemma scanNextToken_flow_open_mapping_init (input : String) (rest : List Char)
               (scanFlowMappingStart s_ad) h_akv₀ h_snt).2,
          fun t ht => by
            rw [scanFlowMappingStart_lastRealTokenVal s_ad] at ht
-           simp only [Option.some.injEq] at ht; subst ht; rfl⟩
+           simp only [Option.some.injEq] at ht; subst ht; rfl,
+         by -- flowStack top: '{' pushes `false` (9a kind tracking)
+           rw [L4YAML.Proofs.ScannerFlowCollection.scanFlowMappingStart_pushes_false]
+           exact Array.back?_push⟩
 
 
 end L4YAML.Proofs.EmitterScannability

@@ -99,44 +99,41 @@ lemma scanNextTokenIx_dispatchFlowIndicators_preserves_sync
     (h : scanNextTokenIx_dispatchFlowIndicators s c = .ok (some s'))
     (h_sync : s.simpleKeyStack.size ≥ s.flowLevel) :
     s'.simpleKeyStack.size ≥ s'.flowLevel := by
-  unfold scanNextTokenIx_dispatchFlowIndicators at h
-  simp only [bind, Except.bind, pure, Pure.pure, Except.pure] at h
-  repeat (any_goals (split at h))
-  any_goals contradiction
-  all_goals (try simp only [Except.ok.injEq, Option.some.injEq] at h)
-  any_goals contradiction
-  all_goals (try subst_vars)
-  -- The remaining branches: flow open (Seq/Map), flow close (Seq/Map),
-  -- flow entry.
-  all_goals first
-    | -- Flow sequence start: push + flowLevel + 1
-      (have h_stack := scanFlowSequenceStartIx_stack_pushed s
-       unfold scanFlowSequenceStartIx
-       simp only [advance_preserves_simpleKeyStack, emit_preserves_simpleKeyStack,
-         advance_flowLevel, emit_flowLevel, Array.size_push]
-       omega)
-    | -- Flow mapping start: push + flowLevel + 1
-      (have h_stack := scanFlowMappingStartIx_stack_pushed s
-       unfold scanFlowMappingStartIx
-       simp only [advance_preserves_simpleKeyStack, emit_preserves_simpleKeyStack,
-         advance_flowLevel, emit_flowLevel, Array.size_push]
-       omega)
-    | -- Flow sequence end: pop + flowLevel - 1 (truncating Nat sub)
-      (unfold scanFlowSequenceEndIx
-       simp only [advance_preserves_simpleKeyStack, emit_preserves_simpleKeyStack,
-         advance_flowLevel, emit_flowLevel, Array.size_pop]
-       omega)
-    | -- Flow mapping end: pop + flowLevel - 1
-      (unfold scanFlowMappingEndIx
-       simp only [advance_preserves_simpleKeyStack, emit_preserves_simpleKeyStack,
-         advance_flowLevel, emit_flowLevel, Array.size_pop]
-       omega)
-    | -- Flow entry: preserves both
-      (rename_i h_eq
-       have h_stack := scanFlowEntryIx_preserves_simpleKeyStack s _ h_eq
-       have h_fl := scanFlowEntryIx_preserves_flowLevel s _ h_eq
-       rw [h_stack, h_fl]; exact h_sync)
-    | (simp_all; done)
+  -- The 9a flow-close kind check adds a throw arm per close indicator; the
+  -- pre-9a robust split script leaves the enlarged `do`-tree unsplit, so walk
+  -- the dispatcher through the validated `_ok_some_cases` enumerator instead.
+  rcases scanNextTokenIx_dispatchFlowIndicators_ok_some_cases h with
+    heq | heq | heq | heq | hOk
+  · -- Flow sequence start: push + flowLevel + 1
+    subst heq
+    have h_stack := scanFlowSequenceStartIx_stack_pushed s
+    unfold scanFlowSequenceStartIx
+    simp only [advance_preserves_simpleKeyStack, emit_preserves_simpleKeyStack,
+      advance_flowLevel, emit_flowLevel, Array.size_push]
+    omega
+  · -- Flow sequence end: pop + flowLevel - 1 (truncating Nat sub)
+    subst heq
+    unfold scanFlowSequenceEndIx
+    simp only [advance_preserves_simpleKeyStack, emit_preserves_simpleKeyStack,
+      advance_flowLevel, emit_flowLevel, Array.size_pop]
+    omega
+  · -- Flow mapping start: push + flowLevel + 1
+    subst heq
+    have h_stack := scanFlowMappingStartIx_stack_pushed s
+    unfold scanFlowMappingStartIx
+    simp only [advance_preserves_simpleKeyStack, emit_preserves_simpleKeyStack,
+      advance_flowLevel, emit_flowLevel, Array.size_push]
+    omega
+  · -- Flow mapping end: pop + flowLevel - 1
+    subst heq
+    unfold scanFlowMappingEndIx
+    simp only [advance_preserves_simpleKeyStack, emit_preserves_simpleKeyStack,
+      advance_flowLevel, emit_flowLevel, Array.size_pop]
+    omega
+  · -- Flow entry: preserves both
+    have h_stack := scanFlowEntryIx_preserves_simpleKeyStack s _ hOk
+    have h_fl := scanFlowEntryIx_preserves_flowLevel s _ hOk
+    rw [h_stack, h_fl]; exact h_sync
 
 /-! ## §2  `scanNextTokenIx_preserves_sync` — full chain
 

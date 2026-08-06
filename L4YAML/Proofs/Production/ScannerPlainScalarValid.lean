@@ -2281,30 +2281,32 @@ lemma dispatchFlowIndicators_preserves_FlowInv
     · split at h_ok
       · contradiction  -- flowLevel == 0 error
       · split at h_ok
-        · contradiction  -- validateFlowClose error
-        · -- c == ']', s' = scanFlowSequenceEnd s
-          injection h_ok with h_ok2; injection h_ok2 with h_eq; subst h_eq
-          constructor
-          · -- FlowContextPSV: new token is flowSequenceEnd (not plain scalar)
-            refine FlowContextPSV_of_prefix_and_new s.tokens (scanFlowSequenceEnd s).tokens h_fpsv ?_ ?_ ?_
-            · have : (scanFlowSequenceEnd s).tokens.size ≥ s.tokens.size + 1 := by
-                simp [scanFlowSequenceEnd_adds_one_token]
-              omega
-            · intro i hi
-              exact scanFlowSequenceEnd_preserves_prefix s i hi
-            · intro j hj hge _
-              apply fpsv_of_not_plain
-              have : j = s.tokens.size := by
-                have : (scanFlowSequenceEnd s).tokens.size = s.tokens.size + 1 := scanFlowSequenceEnd_adds_one_token s
+        · contradiction  -- flowStack kind-check error
+        · split at h_ok
+          · contradiction  -- validateFlowClose error
+          · -- c == ']', s' = scanFlowSequenceEnd s
+            injection h_ok with h_ok2; injection h_ok2 with h_eq; subst h_eq
+            constructor
+            · -- FlowContextPSV: new token is flowSequenceEnd (not plain scalar)
+              refine FlowContextPSV_of_prefix_and_new s.tokens (scanFlowSequenceEnd s).tokens h_fpsv ?_ ?_ ?_
+              · have : (scanFlowSequenceEnd s).tokens.size ≥ s.tokens.size + 1 := by
+                  simp [scanFlowSequenceEnd_adds_one_token]
                 omega
-              subst this
+              · intro i hi
+                exact scanFlowSequenceEnd_preserves_prefix s i hi
+              · intro j hj hge _
+                apply fpsv_of_not_plain
+                have : j = s.tokens.size := by
+                  have : (scanFlowSequenceEnd s).tokens.size = s.tokens.size + 1 := scanFlowSequenceEnd_adds_one_token s
+                  omega
+                subst this
+                unfold scanFlowSequenceEnd
+                simp [ScannerState.emit, advance_preserves_tokens, Array.getElem_push_eq]
+            · -- FlowNestingInv: flowLevel decreases by 1, flowNesting decreases by 1
+              unfold FlowNestingInv at *
               unfold scanFlowSequenceEnd
-              simp [ScannerState.emit, advance_preserves_tokens, Array.getElem_push_eq]
-          · -- FlowNestingInv: flowLevel decreases by 1, flowNesting decreases by 1
-            unfold FlowNestingInv at *
-            unfold scanFlowSequenceEnd
-            simp [ScannerState.emit, advance_preserves_tokens, advance_preserves_flowLevel, Array.size_push]
-            rw [flowNesting_push, h_fni]
+              simp [ScannerState.emit, advance_preserves_tokens, advance_preserves_flowLevel, Array.size_push]
+              rw [flowNesting_push, h_fni]
     · split at h_ok
       · -- c == '{'
         injection h_ok with h_ok2; injection h_ok2 with h_eq; subst h_eq
@@ -2333,30 +2335,32 @@ lemma dispatchFlowIndicators_preserves_FlowInv
         · split at h_ok
           · contradiction  -- flowLevel == 0 error
           · split at h_ok
-            · contradiction  -- validateFlowClose error
-            · -- c == '}'
-              injection h_ok with h_ok2; injection h_ok2 with h_eq; subst h_eq
-              constructor
-              · -- FlowContextPSV
-                refine FlowContextPSV_of_prefix_and_new s.tokens (scanFlowMappingEnd s).tokens h_fpsv ?_ ?_ ?_
-                · have : (scanFlowMappingEnd s).tokens.size ≥ s.tokens.size + 1 := by
-                    simp [scanFlowMappingEnd_adds_one_token]
-                  omega
-                · intro i hi
-                  exact scanFlowMappingEnd_preserves_prefix s i hi
-                · intro j hj hge _
-                  apply fpsv_of_not_plain
-                  have : j = s.tokens.size := by
-                    have : (scanFlowMappingEnd s).tokens.size = s.tokens.size + 1 := scanFlowMappingEnd_adds_one_token s
+            · contradiction  -- flowStack kind-check error
+            · split at h_ok
+              · contradiction  -- validateFlowClose error
+              · -- c == '}'
+                injection h_ok with h_ok2; injection h_ok2 with h_eq; subst h_eq
+                constructor
+                · -- FlowContextPSV
+                  refine FlowContextPSV_of_prefix_and_new s.tokens (scanFlowMappingEnd s).tokens h_fpsv ?_ ?_ ?_
+                  · have : (scanFlowMappingEnd s).tokens.size ≥ s.tokens.size + 1 := by
+                      simp [scanFlowMappingEnd_adds_one_token]
                     omega
-                  subst this
+                  · intro i hi
+                    exact scanFlowMappingEnd_preserves_prefix s i hi
+                  · intro j hj hge _
+                    apply fpsv_of_not_plain
+                    have : j = s.tokens.size := by
+                      have : (scanFlowMappingEnd s).tokens.size = s.tokens.size + 1 := scanFlowMappingEnd_adds_one_token s
+                      omega
+                    subst this
+                    unfold scanFlowMappingEnd
+                    simp [ScannerState.emit, advance_preserves_tokens, Array.getElem_push_eq]
+                · -- FlowNestingInv
+                  unfold FlowNestingInv at *
                   unfold scanFlowMappingEnd
-                  simp [ScannerState.emit, advance_preserves_tokens, Array.getElem_push_eq]
-              · -- FlowNestingInv
-                unfold FlowNestingInv at *
-                unfold scanFlowMappingEnd
-                simp [ScannerState.emit, advance_preserves_tokens, advance_preserves_flowLevel, Array.size_push]
-                rw [flowNesting_push, h_fni]
+                  simp [ScannerState.emit, advance_preserves_tokens, advance_preserves_flowLevel, Array.size_push]
+                  rw [flowNesting_push, h_fni]
         · split at h_ok
           · -- c == ','
             split at h_ok
@@ -4747,12 +4751,14 @@ lemma dispatchFlowIndicators_preserves_AllKeysPlaceholderInv
       · simp at h_ok
       · split at h_ok
         · simp at h_ok
-        · simp only [Except.ok.injEq, Option.some.injEq] at h_ok; subst h_ok
-          exact flowEnd_preserves_AllKeysPlaceholderInv s _ h_akpi
-            (scanFlowSequenceEnd_simpleKey_restored s)
-            (scanFlowSequenceEnd_stack_popped s)
-            (by have := scanFlowSequenceEnd_adds_one_token s; omega)
-            (fun i hi => ScanHelpers.scanFlowSequenceEnd_preserves_prefix s i hi)
+        · split at h_ok
+          · simp at h_ok
+          · simp only [Except.ok.injEq, Option.some.injEq] at h_ok; subst h_ok
+            exact flowEnd_preserves_AllKeysPlaceholderInv s _ h_akpi
+              (scanFlowSequenceEnd_simpleKey_restored s)
+              (scanFlowSequenceEnd_stack_popped s)
+              (by have := scanFlowSequenceEnd_adds_one_token s; omega)
+              (fun i hi => ScanHelpers.scanFlowSequenceEnd_preserves_prefix s i hi)
     · split at h_ok
       · simp only [Except.ok.injEq, Option.some.injEq] at h_ok; subst h_ok
         exact flowStart_preserves_AllKeysPlaceholderInv s _ h_akpi
@@ -4765,12 +4771,14 @@ lemma dispatchFlowIndicators_preserves_AllKeysPlaceholderInv
           · simp at h_ok
           · split at h_ok
             · simp at h_ok
-            · simp only [Except.ok.injEq, Option.some.injEq] at h_ok; subst h_ok
-              exact flowEnd_preserves_AllKeysPlaceholderInv s _ h_akpi
-                (scanFlowMappingEnd_simpleKey_restored s)
-                (scanFlowMappingEnd_stack_popped s)
-                (by have := scanFlowMappingEnd_adds_one_token s; omega)
-                (fun i hi => ScanHelpers.scanFlowMappingEnd_preserves_prefix s i hi)
+            · split at h_ok
+              · simp at h_ok
+              · simp only [Except.ok.injEq, Option.some.injEq] at h_ok; subst h_ok
+                exact flowEnd_preserves_AllKeysPlaceholderInv s _ h_akpi
+                  (scanFlowMappingEnd_simpleKey_restored s)
+                  (scanFlowMappingEnd_stack_popped s)
+                  (by have := scanFlowMappingEnd_adds_one_token s; omega)
+                  (fun i hi => ScanHelpers.scanFlowMappingEnd_preserves_prefix s i hi)
         · split at h_ok
           · split at h_ok
             · simp at h_ok

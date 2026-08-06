@@ -351,16 +351,32 @@ def scanNextToken_dispatchFlowIndicators (s : ScannerState) (c : Char) :
   scanNextToken_checkFlowAdjacency s c
   if c == '[' then return some (scanFlowSequenceStart s)
   if c == ']' then
-    if s.flowLevel == 0 then return ← .error (.flowEndOutsideFlow ']' s.line s.col)
-    let s' := scanFlowSequenceEnd s
-    validateFlowClose s'
-    return some s'
+    -- Full `else`-chain (not early-exit statements) so the desugaring is a
+    -- plain nested `ite` with closed branches — no `__do_jp` join points,
+    -- keeping both `split`- and `rw [if_pos/if_neg]`-style proofs workable.
+    if s.flowLevel == 0 then
+      .error (.flowEndOutsideFlow ']' s.line s.col)
+    -- §7.4 [137]: `]` must close the innermost open, which must be a
+    -- sequence (`flowStack` top pushed `true` by `[`) — rejects `{a]`.
+    else if s.flowStack.back? != some true then
+      .error (.mismatchedFlowClose ']' s.line s.col)
+    else do
+      let s' := scanFlowSequenceEnd s
+      validateFlowClose s'
+      return some s'
   if c == '{' then return some (scanFlowMappingStart s)
   if c == '}' then
-    if s.flowLevel == 0 then return ← .error (.flowEndOutsideFlow '}' s.line s.col)
-    let s' := scanFlowMappingEnd s
-    validateFlowClose s'
-    return some s'
+    -- Full `else`-chain for the same join-point-free desugaring as `]`.
+    if s.flowLevel == 0 then
+      .error (.flowEndOutsideFlow '}' s.line s.col)
+    -- §7.4 [140]: `}` must close the innermost open, which must be a
+    -- mapping (`flowStack` top pushed `false` by `{`) — rejects `[a}`.
+    else if s.flowStack.back? != some false then
+      .error (.mismatchedFlowClose '}' s.line s.col)
+    else do
+      let s' := scanFlowMappingEnd s
+      validateFlowClose s'
+      return some s'
   if c == ',' then
     if s.flowLevel == 0 then return ← .error (.flowEndOutsideFlow ',' s.line s.col)
     let s' ← scanFlowEntry s
