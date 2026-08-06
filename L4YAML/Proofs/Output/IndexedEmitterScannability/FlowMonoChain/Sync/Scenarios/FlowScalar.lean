@@ -152,6 +152,37 @@ lemma scanDoubleQuotedIx_escapeString_corr (c : IxCursor input)
   · rw [h_line_c']
     exact advance_line_of_peekIx c '"' h_lt h_peek (by decide) (by decide)
 
+/-- The dispatcher-level strictness walker `quotedScalarErrIx` (item 7)
+    returns `none` on a full emitted double-quoted scalar
+    `'"' :: escapeString content ++ ['"'] ++ rest` — the emitted
+    surface has no raw line break, so no fold-time check can fire.
+    Wraps `quotedScalarErrLoopIx_escapeString_none` (Basic §3.5) with
+    the opening-quote advance and the fuel discharge. -/
+lemma quotedScalarErrIx_escapeString_none (c : IxCursor input)
+    (content : String) (rest : List Char) (inFlow : Bool) (ci : Int)
+    (hcorr : CursorSurfCorrIx c
+      ⟨'"' :: ((escapeString content).toList ++ ['"'] ++ rest), c.pos.col⟩) :
+    L4YAML.Scanner.Indexed.quotedScalarErrIx c true inFlow ci = none := by
+  have ⟨h_peek, h_lt⟩ := peek_of_chars_consIx c '"'
+    ((escapeString content).toList ++ ['"'] ++ rest) c.pos.col hcorr
+  have hcorr_adv := advance_non_newline_corrIx c '"'
+    ((escapeString content).toList ++ ['"'] ++ rest) hcorr h_lt (by decide) (by decide)
+  have h_col_adv : (c.pos.col + 1 : Nat) = c.advance.pos.col := hcorr_adv.col_eq
+  rw [h_col_adv] at hcorr_adv
+  have h_len := CharsFromOffset_length_le hcorr.chars_from
+  have h_corr_loop : CursorSurfCorrIx c.advance
+      ⟨(escapeString (String.ofList content.toList)).toList ++ ['"'] ++ rest,
+        c.advance.pos.col⟩ := by
+    rw [String.ofList_toList]; exact hcorr_adv
+  have h_fuel : input.utf8ByteSize + 1 ≥
+      (escapeString (String.ofList content.toList)).toList.length + 1 := by
+    rw [String.ofList_toList]
+    simp only [List.length_cons, List.length_append] at h_len
+    omega
+  unfold L4YAML.Scanner.Indexed.quotedScalarErrIx
+  exact Basic.quotedScalarErrLoopIx_escapeString_none content.toList rest c.pos.line
+    inFlow ci c.advance (input.utf8ByteSize + 1) h_corr_loop h_fuel
+
 /-! ## §3  `scanNextTokenIx_flow_scanDoubleQuoted` -/
 
 /-- Full `scanNextTokenIx` for a double-quoted scalar `"…"` in flow
@@ -279,7 +310,11 @@ lemma scanNextTokenIx_flow_scanDoubleQuoted (s : ScannerStateIx input)
       show ('"' == '|') = false from by decide,
       show ('"' == '>') = false from by decide,
       show ('"' == '"') = true from by decide,
-      Bool.or_self, Bool.false_eq_true, ↓reduceIte]
+      Bool.or_self, Bool.false_eq_true, ↓reduceIte,
+      -- Item 7 strictness walker: `none` on the emitted surface (no raw
+      -- line break), so the guard falls through.
+      quotedScalarErrIx_escapeString_none s_ad.cursor content rest
+        s_ad.inFlow s_ad.currentIndent h_ad_cursor_corr]
     split
     · rename_i r heq
       rw [h_dq] at heq

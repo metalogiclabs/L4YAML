@@ -1762,7 +1762,11 @@ lemma scanNextTokenIx_emitScalar_init (content : String) :
       show ('"' == '|') = false from by decide,
       show ('"' == '>') = false from by decide,
       show ('"' == '"') = true from by decide,
-      Bool.or_self, Bool.false_eq_true, ↓reduceIte]
+      Bool.or_self, Bool.false_eq_true, ↓reduceIte,
+      -- Item 7 strictness walker: `none` on the emitted surface (no raw
+      -- line break), so the guard falls through.
+      L4YAML.Proofs.Indexed.EmitterScannability.FlowMonoChain.quotedScalarErrIx_escapeString_none
+        s_ad.cursor content [] s_ad.inFlow s_ad.currentIndent h_corr_reshape]
     split
     · rename_i r heq
       rw [h_dq] at heq

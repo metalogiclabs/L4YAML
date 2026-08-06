@@ -1019,6 +1019,14 @@ remain tractable (≤ 7 branch points each). -/
     simple key, peek next character. Returns `none` at EOF. -/
 def scanNextTokenIx_preprocess {input : String} (s : ScannerStateIx input) :
     Except ScanError (Option (ScannerStateIx input × Char)) :=
+  -- §6.1 / §6.6 strictness: the cursor-level `skipToContent` has no
+  -- error channel, so the legacy skip-time rejections (tab as
+  -- indentation; `#` without preceding `s-separate-in-line`) are
+  -- reproduced by a read-only walker over the same region (4EJS,
+  -- Y79Y/003, 9JBA, CVW2, SU5Z).
+  match skipToContentErrIx s.cursor s.inFlow s.currentIndent s.needIndentCheck with
+  | some e => .error e
+  | none =>
   let s := s.skipToContentS
   if !s.hasMore then .ok none
   else
@@ -1139,6 +1147,13 @@ def scanNextTokenIx_dispatchContent {input : String} (s : ScannerStateIx input)
     -- `currentIndent = -1` and zero-indented content is legal (DK3J, FP8R).
     -- See `scanBlockScalarIx`'s docstring.
     let indentFloor := (max 0 (s.currentIndent + 1)).toNat
+    -- §6.1 / §8.1.3 strictness: the auto-detect probe's legacy error
+    -- channel (tab in the indentation zone — Y79Y/000; whitespace-only
+    -- line wider than the detected content indent — 5LLU, S98Z, W9L4)
+    -- is reproduced by `blockScalarBodyErrIx`; the cursor-level
+    -- recogniser cannot throw.
+    if let some e := blockScalarBodyErrIx s.cursor indentFloor then
+      throw e
     let startPos := s.cursor.pos
     match hBS : scanBlockScalarIx s.cursor indentFloor with
     | some r =>
@@ -1170,6 +1185,13 @@ def scanNextTokenIx_dispatchContent {input : String} (s : ScannerStateIx input)
     | none =>
       throw (.unexpectedChar c s.cursor.pos.line s.cursor.pos.col)
   if c == '"' then
+    -- §6.1 / §8.1 / §9.1.2 strictness: legacy fold-time checks
+    -- (document marker at col 0 — 5TRB, 9MQT/01; under-indented
+    -- continuation — QB6E; tab-indented continuation — DK95/01) are
+    -- reproduced by `quotedScalarErrIx`; the cursor-level recogniser
+    -- cannot throw.
+    if let some e := quotedScalarErrIx s.cursor true s.inFlow s.currentIndent then
+      throw e
     let startPos := s.cursor.pos
     match hDQ : scanDoubleQuotedIx s.cursor with
     | some r =>
@@ -1185,6 +1207,10 @@ def scanNextTokenIx_dispatchContent {input : String} (s : ScannerStateIx input)
     | none =>
       throw (.unterminatedScalar ScalarStyle.doubleQuoted s.cursor.pos.line)
   if c == '\'' then
+    -- Same strictness walker as the `"` arm (single-quoted rules:
+    -- document marker — RXY3; under-indent; tab-indented continuation).
+    if let some e := quotedScalarErrIx s.cursor false s.inFlow s.currentIndent then
+      throw e
     let startPos := s.cursor.pos
     match hSQ : scanSingleQuotedIx s.cursor with
     | some r =>
@@ -1328,6 +1354,11 @@ unchanged; existing proofs about it remain valid. -/
     appended to `s.comments`. -/
 def scanNextTokenIx_preprocessWC {input : String} (s : ScannerStateIx input) :
     Except ScanError (Option (ScannerStateIx input × Char)) :=
+  -- Same §6.1/§6.6 strictness walker as `scanNextTokenIx_preprocess`
+  -- (the comment-preserving pipeline must reject identically).
+  match skipToContentErrIx s.cursor s.inFlow s.currentIndent s.needIndentCheck with
+  | some e => .error e
+  | none =>
   let s := s.skipToContentSWithComments
   if !s.hasMore then .ok none
   else

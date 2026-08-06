@@ -1088,6 +1088,10 @@ lemma scanNextTokenIx_preprocess_offset_monotonic {input : String}
     s.cursor.pos.offset ≤ s'.cursor.pos.offset := by
   unfold scanNextTokenIx_preprocess at h
   simp only at h
+  -- Peel the §6.1/§6.6 strictness-walker guard (item 7): its error arm
+  -- cannot be `.ok`.
+  split at h
+  · simp at h
   split at h
   · simp at h
   · split at h
@@ -1109,6 +1113,9 @@ lemma scanNextTokenIx_preprocess_tokens_size_le {input : String}
     s.tokens.size ≤ s'.tokens.size := by
   unfold scanNextTokenIx_preprocess at h
   simp only at h
+  -- Peel the §6.1/§6.6 strictness-walker guard (item 7).
+  split at h
+  · simp at h
   split at h
   · simp at h
   · split at h
@@ -1475,7 +1482,10 @@ lemma scanNextTokenIx_dispatchContent_ok_monotonic {input : String}
           -- Peel the §6.7 header-newline guard: its throw arm cannot be `.ok`.
           split at h
           · cases h
-          · -- Use split at h to handle the dependent match's hBS witness.
+          · -- Peel the §6.1/§8.1.3 body-validator guard (item 7 strictness).
+            split at h
+            · cases h
+            -- Use split at h to handle the dependent match's hBS witness.
             split at h
             · rename_i r hBS
               cases h
@@ -1490,6 +1500,9 @@ lemma scanNextTokenIx_dispatchContent_ok_monotonic {input : String}
         · rw [if_neg hg4] at h
           by_cases hg5 : (c == '"') = true
           · rw [if_pos hg5] at h
+            -- Peel the quoted-scalar strictness guard (item 7).
+            split at h
+            · cases h
             split at h
             · rename_i r hDQ
               cases h
@@ -1504,6 +1517,9 @@ lemma scanNextTokenIx_dispatchContent_ok_monotonic {input : String}
           · rw [if_neg hg5] at h
             by_cases hg6 : (c == '\'') = true
             · rw [if_pos hg6] at h
+              -- Peel the quoted-scalar strictness guard (item 7).
+              split at h
+              · cases h
               split at h
               · rename_i r hSQ
                 cases h

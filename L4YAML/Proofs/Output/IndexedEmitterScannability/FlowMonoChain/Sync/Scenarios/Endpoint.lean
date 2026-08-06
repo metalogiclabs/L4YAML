@@ -194,6 +194,14 @@ lemma scanNextTokenIx_preprocess_init_state (input : String) (c : Char)
           ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
   · -- scanNextTokenIx_preprocess = .ok (some (witness, c))
     unfold scanNextTokenIx_preprocess
+    -- Item 7 strictness walker: `none` at a content character, so the
+    -- gate falls through.
+    rw [L4YAML.Scanner.Indexed.skipToContentErrIx_none_of_content
+          ((ScannerStateIx.mk' input).emit YamlToken.streamStart).cursor
+          ((ScannerStateIx.mk' input).emit YamlToken.streamStart).inFlow
+          ((ScannerStateIx.mk' input).emit YamlToken.streamStart).currentIndent
+          ((ScannerStateIx.mk' input).emit YamlToken.streamStart).needIndentCheck
+          h_pk₀ h_nws h_nlb h_nc]
     -- skipToContentS = self; hasMore = true
     simp only [h_stc, h_hm, Bool.not_true, Bool.false_eq_true, ↓reduceIte]
     -- !inFlow ∧ needIndentCheck = true, so the unwindIndentsIx branch fires

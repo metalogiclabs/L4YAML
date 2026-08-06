@@ -123,6 +123,9 @@ lemma scanNextTokenIx_preprocess_eof (s : ScannerStateIx input)
     (h : s.peek? = none) :
     scanNextTokenIx_preprocess s = .ok none := by
   unfold scanNextTokenIx_preprocess
+  -- Item 7 strictness walker: `none` at EOF, so the gate falls through.
+  rw [L4YAML.Scanner.Indexed.skipToContentErrIx_none_atEnd s.cursor
+        s.inFlow s.currentIndent s.needIndentCheck h]
   rw [skipToContentS_atEnd s h]
   have h_not : ¬ s.cursor.pos.offset < input.utf8ByteSize := by
     have h_le : input.utf8ByteSize ≤ s.cursor.pos.offset :=

@@ -364,6 +364,9 @@ lemma scanNextTokenIx_dispatchContent_preserves_flowLevel
           -- Peel the §6.7 header-newline guard: its throw arm cannot be `.ok`.
           split at h
           · cases h
+          -- Peel the §6.1/§8.1.3 body-validator guard (item 7 strictness).
+          split at h
+          · cases h
           split at h
           · simp only [Except.ok.injEq] at h; subst h; rfl
           · cases h
@@ -371,6 +374,9 @@ lemma scanNextTokenIx_dispatchContent_preserves_flowLevel
           by_cases hg5 : (c == '"') = true
           · -- double-quoted
             rw [if_pos hg5] at h
+            -- Peel the quoted-scalar strictness guard (item 7).
+            split at h
+            · cases h
             split at h
             · simp only [Except.ok.injEq] at h; subst h; rfl
             · cases h
@@ -378,6 +384,9 @@ lemma scanNextTokenIx_dispatchContent_preserves_flowLevel
             by_cases hg6 : (c == '\'') = true
             · -- single-quoted
               rw [if_pos hg6] at h
+              -- Peel the quoted-scalar strictness guard (item 7).
+              split at h
+              · cases h
               split at h
               · simp only [Except.ok.injEq] at h; subst h; rfl
               · cases h
@@ -433,6 +442,9 @@ lemma scanNextTokenIx_dispatchContent_preserves_simpleKeyStack
           -- Peel the §6.7 header-newline guard: its throw arm cannot be `.ok`.
           split at h
           · cases h
+          -- Peel the §6.1/§8.1.3 body-validator guard (item 7 strictness).
+          split at h
+          · cases h
           split at h
           · simp only [Except.ok.injEq] at h; subst h; rfl
           · cases h
@@ -440,6 +452,9 @@ lemma scanNextTokenIx_dispatchContent_preserves_simpleKeyStack
           by_cases hg5 : (c == '"') = true
           · -- double-quoted
             rw [if_pos hg5] at h
+            -- Peel the quoted-scalar strictness guard (item 7).
+            split at h
+            · cases h
             split at h
             · simp only [Except.ok.injEq] at h; subst h; rfl
             · cases h
@@ -447,6 +462,9 @@ lemma scanNextTokenIx_dispatchContent_preserves_simpleKeyStack
             by_cases hg6 : (c == '\'') = true
             · -- single-quoted
               rw [if_pos hg6] at h
+              -- Peel the quoted-scalar strictness guard (item 7).
+              split at h
+              · cases h
               split at h
               · simp only [Except.ok.injEq] at h; subst h; rfl
               · cases h

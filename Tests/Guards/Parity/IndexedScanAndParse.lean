@@ -187,6 +187,44 @@ dispatcher must set `needIndentCheck` itself (RZT7, KK5P complex4). -/
 #guard docs "--- |\n%PERCENT\n"
 #guard single "a: |1\n x\n"
 
+/-! #### Scanner strictness (plan item 7): the 15 invalid inputs the
+    twin accepted until the legacy error checks were transcribed.
+    `agree` requires the *same* `ScanError` from both pipelines.
+
+    Families: tab as indentation (4EJS, Y79Y/000, Y79Y/003, DK95/01),
+    block-scalar auto-detect validation (5LLU, S98Z, W9L4 — §8.1.3),
+    document marker inside a multiline quoted scalar (5TRB, RXY3,
+    9MQT/01 — §9.1.2), comment without preceding whitespace (9JBA,
+    CVW2, SU5Z — §6.6 [75]), `#` glued to a block-scalar header
+    (X4QW — §6.7 [76]), under-indented quoted continuation (QB6E). -/
+#guard docs "---\na:\n\tb:\n\t\tc: value\n"
+#guard single "foo: |\n\t\nbar: 1\n"
+#guard single "- [\n\tfoo,\n foo\n ]\n"
+#guard single "foo: \"bar\n\tbaz\"\n"
+#guard single "block scalar: >\n \n  \n   \n invalid\n"
+#guard single "empty block scalar: >\n \n  \n   \n # comment\n"
+#guard docs "---\nblock scalar: |\n     \n  more spaces at the beginning\n  are invalid\n"
+#guard docs "---\n\"\n---\n\"\n"
+#guard docs "---\n'\n...\n'\n"
+#guard docs "--- \"a\n... x\nb\"\n"
+#guard docs "---\n[ a, b, c, ]#invalid\n"
+#guard docs "---\n[ a, b, c,#invalid\n]\n"
+#guard single "key: \"value\"# invalid comment\n"
+#guard single "block: ># comment\n  scalar\n"
+#guard docs "---\nquoted: \"a\nb\nc\"\n"
+
+/-! #### Strictness must not over-reach: legal shapes at the same
+    boundaries (tabs as separation, comments with proper whitespace,
+    properly indented continuations) stay accepted by both. -/
+#guard single "a:\tb\n"
+#guard single "a: b\t# c\n"
+#guard single "key: \"value\" # comment\n"
+#guard single "- [\n foo,\n foo\n ]\n"
+#guard single "quoted: \"a\n  b\"\n"
+#guard single "a: \"x\n \ty\"\n"
+#guard single "block: > # comment\n  scalar\n"
+#guard single "a: |\n \n  x\n"
+
 /-! ### Comments + whitespace -/
 #guard single "# leading\nabc"
 #guard single "a: b  # trailing"

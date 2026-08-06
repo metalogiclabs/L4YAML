@@ -288,6 +288,27 @@ lemma scanDoubleQuotedIx_first_filtered_token (s : ScannerStateIx input)
       have h_eq2 : s' = s_dc :=
         Option.some.inj (Except.ok.inj (h_snt.symm.trans h_snt_eq))
       subst h_eq2; rfl
+  -- Item 7 strictness walker: `.ok` forces the guard to have fallen
+  -- through — a `some e` walker result would make dispatchContent throw.
+  have h_walk : L4YAML.Scanner.Indexed.quotedScalarErrIx s_ad.cursor true
+      s_ad.inFlow s_ad.currentIndent = none := by
+    cases h_w : L4YAML.Scanner.Indexed.quotedScalarErrIx s_ad.cursor true
+        s_ad.inFlow s_ad.currentIndent with
+    | none => rfl
+    | some e =>
+      exfalso
+      have h_thrown : scanNextTokenIx_dispatchContent s_ad '"' = .error e := by
+        unfold scanNextTokenIx_dispatchContent
+        simp only [bind, Except.bind, pure, Pure.pure, Except.pure,
+          throw, throwThe, MonadExceptOf.throw,
+          show ('"' == '&') = false from by decide,
+          show ('"' == '*') = false from by decide,
+          show ('"' == '!') = false from by decide,
+          show ('"' == '|') = false from by decide,
+          show ('"' == '>') = false from by decide,
+          show ('"' == '"') = true from by decide,
+          Bool.or_self, Bool.false_eq_true, ↓reduceIte, h_w]
+      rw [h_thrown] at h_dc; exact absurd h_dc (by simp)
   -- Reduce dispatchContent body to identify s' precisely. Case-split on
   -- scanDoubleQuotedIx; the `none` branch contradicts h_dc; the `some` branch
   -- yields s' as the record-update-then-emitAt-then-record-update structure.
@@ -304,7 +325,7 @@ lemma scanDoubleQuotedIx_first_filtered_token (s : ScannerStateIx input)
         show ('"' == '|') = false from by decide,
         show ('"' == '>') = false from by decide,
         show ('"' == '"') = true from by decide,
-        Bool.or_self, Bool.false_eq_true, ↓reduceIte]
+        Bool.or_self, Bool.false_eq_true, ↓reduceIte, h_walk]
       split
       · rename_i r heq; rw [h_dq] at heq; exact absurd heq (by simp)
       · rfl
@@ -324,7 +345,7 @@ lemma scanDoubleQuotedIx_first_filtered_token (s : ScannerStateIx input)
         show ('"' == '|') = false from by decide,
         show ('"' == '>') = false from by decide,
         show ('"' == '"') = true from by decide,
-        Bool.or_self, Bool.false_eq_true, ↓reduceIte]
+        Bool.or_self, Bool.false_eq_true, ↓reduceIte, h_walk]
       split
       · rename_i r heq
         rw [h_dq] at heq

@@ -5468,7 +5468,7 @@ lives in [README.md](README.md) and is not duplicated here.)
 | Item | Status | Section |
 |---|---|---|
 | `ns-char` predicate spec-loose body | **Fixed 2026-08-01** (predicates tightened; scanner + emitter conformant; regression-tested) | [The ns-char gap](#the-ns-char-gap) |
-| **Indexed-pipeline parity** (the twin consumers actually call) | **Open — content parity CLOSED 2026-08-06 (event 387/402 · JSON 280/282; all 308 valid tests pass both axes, zero diffs, zero rejects); residue = 15 accepted-invalid strictness gaps (item 7)** | [Indexed-pipeline parity gap](#indexed-pipeline-parity-gap) |
+| **Indexed-pipeline parity** (the twin consumers actually call) | **CLOSED 2026-08-06 — full parity: event 402/402 · JSON 282/282 · accept/reject 402/402, same run as an identically-scoring legacy baseline; all 94 invalid inputs rejected with the identical `ScanError` (items 6+7)** | [Indexed-pipeline parity gap](#indexed-pipeline-parity-gap) |
 | Grammar completeness (`parse_iff_grammar`, capstone 7.7) | **Open** (unblocked; Step-0 audit done) | [Grammar completeness plan](#grammar-completeness-plan) |
 | Merge semantics (`DuplicateKeyPolicy.merge`) | **Open** (design ready; re-base on `LawfulBEq`) | [Merge semantics plan](#merge-semantics-plan) |
 | Security limits: open questions + future work | **Open** (design questions; 3 unimplemented features) | [Security hardening backlog](#security-hardening-backlog) |
@@ -5489,15 +5489,12 @@ theorem nobody's build depends on yet.
 | 4 | ✅ **done** — block-scalar parity coverage 2 → 35 guards; **the new coverage found D4**, explicit indentation indicators failing outright | recurrence of D1–D4 | ditto |
 | 5 | ✅ **done 2026-08-05** — matrix scored through the **indexed** pipeline (`l4yaml-event-ix`/`l4yaml-json-ix`): **event 365/402, JSON 262/282** vs legacy 402/402 · 282/282. D1–D4 were **not** the whole story: 37 failing tests, classified in [The matrix score](#the-matrix-score) | knowing whether D1–D4 were the whole story | [Indexed-pipeline parity gap](#indexed-pipeline-parity-gap) |
 | 6 | ✅ **done 2026-08-06** — all seven legacy fixes ported (B1/B2/B3/C1/C2/C3/E + the R4YG first-line-tab residue), D5 root-caused (`needIndentCheck` after a block scalar) and fixed, zero-indent block scalars (`indentFloor`, DK3J/FP8R — which also cured the M7A3/W4TN `%`-as-directive misreads) and the missing §6.7 header-newline guard (2G84/01) fixed. Re-scored: **event 387/402, JSON 280/282 — every diff and every reject gone; 308/308 valid tests pass both axes**. 12 new parity-guard rows; full build at the same pre-existing baseline | — | [The matrix score](#the-matrix-score) |
-| 7 | ⬜ **open** — mirror the legacy scanner's error strictness (15 invalid inputs the twin accepts: tab indentation, block-scalar indent checks, doc-markers in quoted scalars, comment-without-space; the only residue left — err-miss is now the *entire* gap to 402/402) | the twin's accept/reject axis (387/402 vs legacy's 402/402) | ditto |
+| 7 | ✅ **done 2026-08-06** — all six missing legacy strictness checks transcribed as read-only validator walkers + dispatcher/preprocess throws (tab-as-indentation ×2 contexts, §8.1.3 auto-detect validation, doc-markers + under-indent + tab in quoted continuations, §6.6 comment-needs-whitespace, §6.7 header `#` glue). Re-scored: **event 402/402, JSON 282/282, accept/reject 402/402 — full parity, all 15 err-miss gone, zero new rejects**; 15 reject-parity + 8 accept-boundary guard rows; full build at the same pre-existing baseline | — | [The matrix score](#the-matrix-score) |
 | 8 | ⬜ **open** — resume Fix A B.4β.2: wire the depth-0 `[`/`{` opens (`SLYamlStream sp_start sp_prep` holes) | `scannerDrop` deletion → converse → `parse_iff_grammar` | [Fix A](#fix-a-eliminating-scannerdrop--flow-indicator-grammar-evidence) |
 
-Item 5's answer decides the shape of the rest: the score is a measured
-enumeration of every remaining divergence, so items 6–7 are no longer
-open-ended parity work but a finite, named work-list (37 tests, three
-classes, most mapping onto fixes the legacy pipeline already contains).
-Items 6–7 outrank item 8 by this section's own priority rule:
-shipped-behaviour correctness first. Item 8 is the multi-session red core.
+Items 1–7 are done: the indexed pipeline now scores identically to
+legacy on all three axes (item 5's classified work-list was executed as
+items 6 and 7). Item 8 is the remaining multi-session red core.
 
 ## The ns-char gap
 
@@ -5618,15 +5615,17 @@ parses its DPS configs with `parseYamlWithCommentsIx` and its `notes: >`
 blocks came back one byte short of what PyYAML — and of what our own
 legacy pipeline — produces.)*
 
-**Status (2026-08-06): content parity CLOSED.** The 2026-08-05 score
+**Status (2026-08-06): CLOSED — full parity.** The 2026-08-05 score
 (event 365/402, JSON 262/282, accept/reject 383/402) converted the gap
-into a finite classified work-list; plan item 6 then ported the seven
+into a finite classified work-list; plan item 6 ported the seven
 legacy fixes the twin lagged (B1/B2/B3/C1/C2/C3/E), fixed the newly
 found bugs (D5, zero-indent block scalars, the §6.7 header-newline
-guard), and re-scored: **event 387/402, JSON 280/282 — zero diffs, zero
-wrong rejects; all 308 valid tests pass both axes byte-for-byte.** The
-only residue is 15 invalid inputs the twin still *accepts* (scanner
-strictness never transcribed — plan item 7). See
+guard) — closing content parity at event 387/402, JSON 280/282 with
+zero diffs and zero wrong rejects — and plan item 7 transcribed the six
+legacy strictness checks behind the remaining 15 accepted-invalid
+inputs. Final score: **event 402/402, JSON 282/282, accept/reject
+402/402 — identical to the legacy baseline re-measured in the same
+run, with the identical `ScanError` on every rejected input.** See
 [The matrix score](#the-matrix-score).
 
 **Why this outranks the proof work.** The indexed pipeline is not a
@@ -5775,11 +5774,11 @@ python3 scripts/matrix_score.py --data <suite-data> --axis both --only L4YAML \
     --l4yaml-json  .lake/build/bin/l4yaml-json-ix
 ```
 
-| axis | legacy | indexed (2026-08-05) | indexed (2026-08-06, item 6 closed) |
-|---|---|---|---|
-| event (of 402) | **402 (100%)** | 365 (91%) — 18 diff, 15 err-miss, 4 reject | **387 (96%)** — 0 diff, 15 err-miss, 0 reject |
-| JSON (of 282) | **282 (100%)** | 262 (93%) — 14 diff, 2 err-miss, 4 reject | **280 (99%)** — 0 diff, 2 err-miss, 0 reject |
-| accept/reject (of 402) | **402 (100%)** | 383 (95%) — 4 valid rejected, 15 invalid accepted | **387 (96%)** — 0 valid rejected, 15 invalid accepted |
+| axis | legacy | indexed (2026-08-05) | indexed (item 6 closed) | indexed (2026-08-06, item 7 closed) |
+|---|---|---|---|---|
+| event (of 402) | **402 (100%)** | 365 (91%) — 18 diff, 15 err-miss, 4 reject | 387 (96%) — 0 diff, 15 err-miss, 0 reject | **402 (100%)** |
+| JSON (of 282) | **282 (100%)** | 262 (93%) — 14 diff, 2 err-miss, 4 reject | 280 (99%) — 0 diff, 2 err-miss, 0 reject | **282 (100%)** |
+| accept/reject (of 402) | **402 (100%)** | 383 (95%) — 4 valid rejected, 15 invalid accepted | 387 (96%) — 0 valid rejected, 15 invalid accepted | **402 (100%)** |
 
 (The legacy numbers were re-measured in the same run as a baseline, same
 binaries' build, same data form — not quoted from July.)
@@ -5896,6 +5895,82 @@ the eleven proof sites that case on the dispatcher's block-scalar arm.
 12 new parity-guard rows pin D5/zero-indent/`%`-content/2G84 shapes.
 Full build afterwards: same pre-existing baseline (Capstones axiom gate +
 two Reflections files, all from the open Fix A sorries).
+
+### Closing item 7 (2026-08-06)
+
+**All 15 accepted-invalid inputs traced to six legacy checks, every one
+scan-level** (established by running the legacy scanner on each input
+and recording the exact error):
+
+| legacy check | thrown from (legacy) | tests |
+|---|---|---|
+| `tabInIndentation` — line-start skip (§6.1) | `Whitespace.lean` `skipToContentWs` | 4EJS, Y79Y/003 |
+| `tabInIndentation` — quoted continuation (§6.1) | `Scalar.lean` `foldQuotedNewlines` | DK95/01 |
+| `tabInIndentation` + `blockScalarIndentMismatch` — auto-detect probe (§6.1, §8.1.3) | `Scalar.lean` `autoDetectBlockScalarIndentLoop` | Y79Y/000; 5LLU, S98Z, W9L4 |
+| `documentMarkerInScalar` (§9.1.2) + `underIndentedScalar` (§8.1) | quoted-loop fold branches | 5TRB, RXY3, 9MQT/01; QB6E |
+| `unexpectedChar '#'` — comment needs preceding `s-white`/line-start (§6.6 [75]) | `skipToContentComment` leaves the `#`; dispatcher fallback throws | 9JBA, CVW2, SU5Z |
+| `expectedNewline` — `#` glued to a block-scalar header (§6.7 [76]) | `scanBlockScalarConsumeNewline` | X4QW |
+
+**The transcription runs on the D5 lesson**: cursor-level recognisers
+(`skipToContent`, `scanDoubleQuotedIx`, …) have no error channel and no
+`currentIndent`/`inFlow`, so each missing check landed as a **read-only
+validator walker** in `IndexedScanner.lean` plus a throw at the
+dispatch layer — no recogniser type changed, which is why the proof
+blast radius stayed at one file:
+
+* `skipToContentErrIx` — mirror of legacy `skipToContentWs` +
+  `skipToContentComment` + loop: §6.1 tab-as-indentation (with the
+  comment/blank/EOF/stream-level-flow-indicator exemptions) and the
+  §6.6 comment-start rule, reported as the same `unexpectedChar '#'`
+  the legacy dispatcher fallback raises. Gated at the top of **both**
+  `scanNextTokenIx_preprocess` and `_preprocessWC` (the
+  comment-preserving pipeline `algctl` uses must reject identically).
+* `quotedScalarErrIx` — walks the quoted span with the recogniser's
+  own stepping (`skipBlankLinesLoopIx`, escaped-break skip) and
+  reproduces the legacy fold-time checks in legacy order: tab →
+  document marker → under-indent. Gated in the dispatcher's `"`/`'`
+  arms before the recogniser.
+* `blockScalarBodyErrIx` — reruns the auto-detect probe from
+  `blockHeaderToBodyIx` with legacy's error channel (tab in the
+  indentation zone; whitespace-only line wider than the detected
+  content indent). Explicit-indicator headers skip it, as legacy skips
+  auto-detection. Gated in the `|`/`>` arm after the §6.7 header check.
+* `blockScalarHeaderEndsLineIx` tightened: the trailing comment branch
+  now requires whitespace before the `#` (legacy `peekBack?` rule), so
+  `block: ># comment` fails the predicate and the existing
+  `expectedNewline` throw fires — X4QW needed no new throw site.
+
+**Proof repair: 17 files, two shapes.** (1) *Given-success peels* —
+the standard `split at h · cases h` for each new guard, at every
+lemma that unfolds `preprocess` (one extra leading peel) or cases the
+dispatcher's `|`/`>`/`"`/`'` arms (one extra peel per arm): the
+Scanner/Production proof files, `FlowMonoChain/{Basic,Preserve/Step}`,
+`FilteredGrowth/PerDispatch/BlockContent`, `EmitScansStrong` — all
+mechanical, same insertion as item 6's §6.7 peel. (2) *Forward
+walker-`none` facts* — lemmas that **construct** a successful
+preprocess/dispatch on emitted text must now show the walkers pass:
+four new lemmas in `Proofs/Scanner/IndexedIndent.lean`
+(`skipToContentErrIx_none_{atEnd, of_content, of_ws1}` +
+`skipSpaces_no_space`) discharge every preprocess site (EOF, cursor
+at content, one space then content); for the `"` arm,
+`quotedScalarErrLoopIx_escapeString_none` (Basic §3.5) reruns the
+`collectDoubleQuotedLoopIx_escapeString_succeeds` induction skeleton
+to show the walker is `none` on `escapeString content ++ ['"']` — the
+emitted surface has no raw line break, and every fold-time check sits
+under `isLineBreakBool`. `FirstFiltered`, which has no
+surface-correspondence in scope, instead *derives* walker-`none` from
+its `dispatchContent = .ok` hypothesis (a `some` walker result would
+have thrown).
+
+**Scores (same run, same binaries' build):** indexed **event 402/402,
+JSON 282/282, accept/reject 402/402** — identical to the legacy
+baseline, with the identical `ScanError` (constructor + position) on
+each of the 15 inputs, including the two stale-`in.json` tests
+(9MQT/01 = doc-marker in scalar, DK95/01 = tab in dq continuation).
+15 reject-parity guard rows (the `agree` harness requires the *same*
+error from both pipelines) plus 8 accept-boundary rows (tabs as legal
+separation, comments with proper whitespace, properly indented
+continuations) pin the sweep.
 
 ### Plan
 

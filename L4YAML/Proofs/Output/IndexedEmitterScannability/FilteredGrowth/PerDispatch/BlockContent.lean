@@ -407,6 +407,9 @@ lemma dispatchContent_new_not_placeholderIx {s s' : ScannerStateIx input} {c : C
           -- Peel the §6.7 header-newline guard: its throw arm cannot be `.ok`.
           split at h
           · cases h
+          -- Peel the §6.1/§8.1.3 body-validator guard (item 7 strictness).
+          split at h
+          · cases h
           split at h
           · rename_i r hBS
             cases h
@@ -418,6 +421,9 @@ lemma dispatchContent_new_not_placeholderIx {s s' : ScannerStateIx input} {c : C
         · rw [if_neg hg4] at h
           by_cases hg5 : (c == '"') = true
           · rw [if_pos hg5] at h
+            -- Peel the quoted-scalar strictness guard (item 7).
+            split at h
+            · cases h
             split at h
             · rename_i r hDQ
               cases h
@@ -429,6 +435,9 @@ lemma dispatchContent_new_not_placeholderIx {s s' : ScannerStateIx input} {c : C
           · rw [if_neg hg5] at h
             by_cases hg6 : (c == '\'') = true
             · rw [if_pos hg6] at h
+              -- Peel the quoted-scalar strictness guard (item 7).
+              split at h
+              · cases h
               split at h
               · rename_i r hSQ
                 cases h
@@ -491,18 +500,27 @@ lemma dispatchContent_adds_one_tokenIx {s s' : ScannerStateIx input} {c : Char}
           -- Peel the §6.7 header-newline guard: its throw arm cannot be `.ok`.
           split at h
           · cases h
+          -- Peel the §6.1/§8.1.3 body-validator guard (item 7 strictness).
+          split at h
+          · cases h
           split at h
           · rename_i r hBS; cases h; simp only [emitAt_tokens_size]
           · cases h
         · rw [if_neg hg4] at h
           by_cases hg5 : (c == '"') = true
           · rw [if_pos hg5] at h
+            -- Peel the quoted-scalar strictness guard (item 7).
+            split at h
+            · cases h
             split at h
             · rename_i r hDQ; cases h; simp only [emitAt_tokens_size]
             · cases h
           · rw [if_neg hg5] at h
             by_cases hg6 : (c == '\'') = true
             · rw [if_pos hg6] at h
+              -- Peel the quoted-scalar strictness guard (item 7).
+              split at h
+              · cases h
               split at h
               · rename_i r hSQ; cases h; simp only [emitAt_tokens_size]
               · cases h

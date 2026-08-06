@@ -319,6 +319,110 @@ def skipToContentLoopWithComments {input : String} (c : IxCursor input)
     IxCursor input × Array (YamlPos × String) :=
   skipToContentLoopWithComments c acc (input.utf8ByteSize + 1)
 
+/-! ### Skip-to-content strictness walker (§6.1, §6.6)
+
+`skipToContent` is a *neutral* consumer with no error channel (see the
+layer note above), so the legacy `skipToContentWs` §6.1
+tab-as-indentation check and the legacy `skipToContentComment`
+"comment requires preceding `s-separate-in-line`" rule were silently
+dropped at the cutover: the twin accepted tab-indented block content
+(4EJS, Y79Y/003) and glued comments (`]#c` — 9JBA, CVW2, SU5Z).
+
+`skipToContentErrIx` is a read-only walker over the same region the
+real `skipToContent` consumes, reproducing exactly the errors the
+legacy skip loop (plus its dispatcher `unexpectedChar '#'` fallback)
+would raise. `scanNextTokenIx_preprocess` runs it on the pre-skip
+cursor and throws; on `none` the real skip is behaviourally identical
+to legacy. -/
+
+/-- Is the character *before* byte offset `pos` `s-white`, a line
+    break, or a BOM (all legal comment/tab context)? `true` at input
+    start, mirroring legacy `peekBack? = none`. -/
+def prevCharIsWhiteOrBomIx (input : String) (pos : Nat) : Bool :=
+  if pos == 0 then true
+  else
+    isWhiteSpaceBool (String.Pos.Raw.get input (String.Pos.Raw.prev input ⟨pos⟩))
+    || isLineBreakBool (String.Pos.Raw.get input (String.Pos.Raw.prev input ⟨pos⟩))
+    || String.Pos.Raw.get input (String.Pos.Raw.prev input ⟨pos⟩) == '﻿'
+
+/-- §6.6 [75]: may a comment start at cursor `c`?  `c-nb-comment-text`
+    requires preceding `s-separate-in-line` = `s-white+` |
+    start-of-line; a BOM is transparent (§5.2). Mirror of legacy
+    `skipToContentComment`'s `commentOk`. -/
+@[inline] def commentStartOkIx {input : String} (c : IxCursor input) : Bool :=
+  c.pos.col == 0 || prevCharIsWhiteOrBomIx input c.pos.offset
+
+/-- Phase-1 mirror of legacy `skipToContentWs` (§6.1): skip `s-space*`
+    indentation, then reject a tab still inside indentation territory
+    (at or below `currentIndent`, or at stream level outside flow)
+    unless it precedes a comment, a blank rest-of-line, EOF, or — at
+    stream level — an unambiguous flow indicator. Returns the cursor
+    at which the comment phase continues. -/
+@[yaml_spec "6.1", yaml_spec "6.3" 67 "s-line-prefix(n,c)"]
+def skipToContentErrWsIx {input : String} (c : IxCursor input) (inFlow : Bool)
+    (currentIndent : Int) (needIndentCheck : Bool) :
+    Except ScanError (IxCursor input) :=
+  if needIndentCheck then
+    if (!inFlow && currentIndent < 0)
+        || ((skipSpaces c).1.pos.col : Int) ≤ currentIndent then
+      match (skipSpaces c).1.peek? with
+      | some '\t' =>
+        match (skipWhitespace (skipSpaces c).1).peek? with
+        | some pc =>
+          if isCommentBool pc then .ok (skipWhitespace (skipSpaces c).1)
+          else if isLineBreakBool pc then .ok (skipWhitespace (skipSpaces c).1)
+          else if currentIndent < 0 &&
+              (pc == '{' || pc == '[' || pc == '}' || pc == ']' ||
+               pc == '"' || pc == '\'' || pc == '!' || pc == '&' || pc == '*') then
+            .ok (skipWhitespace (skipSpaces c).1)
+          else
+            .error (.tabInIndentation (skipSpaces c).1.pos.line (skipSpaces c).1.pos.col)
+        | none => .ok (skipWhitespace (skipSpaces c).1)
+      | _ => .ok (skipSpaces c).1
+    else .ok (skipWhitespace c)
+  else .ok (skipWhitespace c)
+
+/-- Per-line strictness walker: phase 1 (`skipToContentErrWsIx`), then
+    the §6.6 comment-start rule — a `#` *not* preceded by
+    `s-separate-in-line`/line-start/BOM is exactly where the legacy
+    dispatcher's `unexpectedChar` fallback fires (the legacy skip
+    leaves the `#` unconsumed; no token can start with it). Recurses
+    across line breaks with `needIndentCheck := true`, as legacy
+    `consumeNewline` would set. Returns the first error, or `none`
+    when the real `skipToContent` consumes the same region legally. -/
+@[yaml_spec "6.6" 75 "c-nb-comment-text", yaml_spec "6.6" 79 "s-l-comments"]
+def skipToContentErrLoopIx {input : String} (c : IxCursor input) (inFlow : Bool)
+    (currentIndent : Int) (needIndentCheck : Bool) : Nat → Option ScanError
+  | 0 => none
+  | fuel + 1 =>
+    match skipToContentErrWsIx c inFlow currentIndent needIndentCheck with
+    | .error e => some e
+    | .ok cw =>
+      match cw.peek? with
+      | some ch =>
+        if isCommentBool ch then
+          if commentStartOkIx cw then
+            match (skipCommentText cw.advance).peek? with
+            | some lb =>
+              if isLineBreakBool lb then
+                skipToContentErrLoopIx (consumeLineBreak (skipCommentText cw.advance))
+                  inFlow currentIndent true fuel
+              else none
+            | none => none
+          else some (.unexpectedChar '#' cw.pos.line cw.pos.col)
+        else if isLineBreakBool ch then
+          skipToContentErrLoopIx (consumeLineBreak cw) inFlow currentIndent true fuel
+        else none
+      | none => none
+
+/-- Strictness walker over the inter-token skip region. See
+    `skipToContentErrLoopIx`. -/
+@[inline] def skipToContentErrIx {input : String} (c : IxCursor input)
+    (inFlow : Bool) (currentIndent : Int) (needIndentCheck : Bool) :
+    Option ScanError :=
+  skipToContentErrLoopIx c inFlow currentIndent needIndentCheck
+    (input.utf8ByteSize + 1)
+
 /-! ## Layer E — scalar recognisers (§7.3, single-line subset)
 
 Phase 3 Step 4a scope: quoted scalars (single- and double-) on a
@@ -696,6 +800,106 @@ or `...` marker (followed by blank or EOF). -/
 /-- True iff cursor is at a document boundary (start or end marker). -/
 @[inline] def atDocumentBoundaryIx {input : String} (c : IxCursor input) : Bool :=
   atDocumentStartIx c || atDocumentEndIx c
+
+/-! ### Quoted-scalar strictness walker (§6.1, §8.1, §9.1.2)
+
+The quoted recognisers above are cursor-level `Option` functions with
+no error channel and no knowledge of `currentIndent`/`inFlow`, so the
+legacy `collectDoubleQuotedLoop`/`collectSingleQuotedLoop` fold-time
+checks were silently dropped at the cutover: document markers inside a
+multiline quoted scalar (5TRB, RXY3, 9MQT/01), under-indented
+continuation lines (QB6E), and tab-indented continuation lines
+(DK95/01) were all accepted.
+
+`quotedScalarErrIx` walks the same span the recogniser consumes —
+identical escape/fold/blank-line stepping — and reproduces exactly the
+legacy fold-time errors in legacy order (tab, then document marker,
+then indent). The dispatcher's `"`/`'` arms run it before the
+recogniser and throw; on `none` the recogniser proceeds unchanged. -/
+
+/-- Walk a quoted-scalar body from *after* the opening quote,
+    reporting the first legacy fold-time error. `isDouble` selects the
+    `"`/`'` termination and escape rules; `startLine` is the opening
+    quote's line (legacy `documentMarkerInScalar` reports it). -/
+@[yaml_spec "6.5" 74 "s-flow-folded", yaml_spec "9.1.2", yaml_spec "6.1"]
+def quotedScalarErrLoopIx {input : String} (c : IxCursor input)
+    (isDouble : Bool) (startLine : Nat) (inFlow : Bool)
+    (currentIndent : Int) : Nat → Option ScanError
+  | 0 => none
+  | fuel + 1 =>
+    match c.peek? with
+    | none => none
+    | some ch =>
+      if isDouble && isDoubleQuoteBool ch then none
+      else if !isDouble && isSingleQuoteBool ch then
+        match c.advance.peek? with
+        | some next =>
+          if isSingleQuoteBool next then
+            quotedScalarErrLoopIx c.advance.advance isDouble startLine
+              inFlow currentIndent fuel
+          else none
+        | none => none
+      else if isDouble && isEscapeBool ch then
+        match c.advance.peek? with
+        | some next =>
+          if isLineBreakBool next then
+            -- `\<b-break>` line continuation: legacy consumes the break +
+            -- `s-white*` with *no* checks (Scalar.lean:260-264).
+            quotedScalarErrLoopIx (skipWhitespace (consumeLineBreak c.advance))
+              isDouble startLine inFlow currentIndent fuel
+          else
+            -- Ordinary escape: the escaped character is never a line break,
+            -- a quote terminator, or layout — skip both characters.
+            quotedScalarErrLoopIx c.advance.advance isDouble startLine
+              inFlow currentIndent fuel
+        | none => none
+      else if isLineBreakBool ch then
+        -- Fold event: mirror `foldQuotedNewlines`'s checks in legacy order.
+        -- 1. §6.1: tab in the indentation zone of the continuation line
+        --    (checked at the post-`s-space*` cursor, before `s-white*`).
+        if !inFlow
+            && (((skipSpaces (skipBlankLinesLoopIx (consumeLineBreak c) 0
+                  input.utf8ByteSize).1).1.pos.col : Int) ≤ currentIndent)
+            && (match (skipSpaces (skipBlankLinesLoopIx (consumeLineBreak c) 0
+                  input.utf8ByteSize).1).1.peek? with
+                | some '\t' => true
+                | _ => false) then
+          some (.tabInIndentation
+            (skipSpaces (skipBlankLinesLoopIx (consumeLineBreak c) 0
+              input.utf8ByteSize).1).1.pos.line
+            (skipSpaces (skipBlankLinesLoopIx (consumeLineBreak c) 0
+              input.utf8ByteSize).1).1.pos.col)
+        -- 2. §9.1.2: document marker at column 0 terminates the scalar.
+        else if atDocumentStartIx (skipWhitespace
+                  (skipBlankLinesLoopIx (consumeLineBreak c) 0
+                    input.utf8ByteSize).1)
+              || atDocumentEndIx (skipWhitespace
+                  (skipBlankLinesLoopIx (consumeLineBreak c) 0
+                    input.utf8ByteSize).1) then
+          some (.documentMarkerInScalar
+            (if isDouble then ScalarStyle.doubleQuoted else ScalarStyle.singleQuoted)
+            startLine)
+        -- 3. §8.1: continuation line must be indented past the block level.
+        else if ((skipWhitespace (skipBlankLinesLoopIx (consumeLineBreak c) 0
+                  input.utf8ByteSize).1).pos.col : Int) ≤ currentIndent then
+          some (.underIndentedScalar
+            (if isDouble then ScalarStyle.doubleQuoted else ScalarStyle.singleQuoted)
+            (skipWhitespace (skipBlankLinesLoopIx (consumeLineBreak c) 0
+              input.utf8ByteSize).1).pos.line)
+        else
+          quotedScalarErrLoopIx (skipWhitespace
+              (skipBlankLinesLoopIx (consumeLineBreak c) 0 input.utf8ByteSize).1)
+            isDouble startLine inFlow currentIndent fuel
+      else
+        quotedScalarErrLoopIx c.advance isDouble startLine inFlow currentIndent fuel
+
+/-- Strictness walker for a quoted scalar. Cursor must be at the
+    opening quote (as in `scanDoubleQuotedIx`/`scanSingleQuotedIx`). -/
+@[inline] def quotedScalarErrIx {input : String} (c : IxCursor input)
+    (isDouble : Bool) (inFlow : Bool) (currentIndent : Int) :
+    Option ScanError :=
+  quotedScalarErrLoopIx c.advance isDouble c.pos.line inFlow currentIndent
+    (input.utf8ByteSize + 1)
 
 /-- Block-context line-break handler for plain scalars. Returns
     `none` if the continuation line is under-indented or hits a
@@ -1094,14 +1298,75 @@ def blockHeaderToBodyIx {input : String} (c : IxCursor input) : IxCursor input :
     dispatcher checks this predicate and throws.  Without it,
     `--- |10`'s dangling `0` scans as content (2G84/01). -/
 def blockScalarHeaderEndsLineIx {input : String} (c : IxCursor input) : Bool :=
+  -- §6.6 [75]: the trailing comment needs preceding `s-white` — a `#`
+  -- glued to the header (`>#c`, X4QW) is not a comment, so the header
+  -- does not end in `b-comment` and the dispatcher must throw. The
+  -- whitespace-consumed test (col moved) mirrors legacy
+  -- `skipHeaderComment`'s `peekBack?` whitespace requirement.
   match (if (match (skipWhitespace (parseBlockHeaderLoopIx c.advance .clip none 2).2.2).peek?
-              with | some d => isCommentBool d | none => false) then
+              with | some d => isCommentBool d | none => false)
+            && (skipWhitespace (parseBlockHeaderLoopIx c.advance .clip none 2).2.2).pos.col
+               != (parseBlockHeaderLoopIx c.advance .clip none 2).2.2.pos.col then
            skipCommentText
              (skipWhitespace (parseBlockHeaderLoopIx c.advance .clip none 2).2.2).advance
          else
            skipWhitespace (parseBlockHeaderLoopIx c.advance .clip none 2).2.2).peek? with
   | some d => isLineBreakBool d
   | none   => true
+
+/-! ### Block-scalar auto-detect strictness walker (§6.1, §8.1.3)
+
+Legacy `autoDetectBlockScalarIndentLoop` threads an `Option ScanError`
+alongside the detected indent: a tab inside the indentation zone of
+the probe (`\t` before content indent is known — Y79Y/000) is a §6.1
+violation, and a whitespace-only line wider than the eventually
+detected content indent (5LLU, S98Z, W9L4) violates §8.1.3.
+`autoDetectBlockScalarIndentLoopIx` above returns only the indent, so
+these were silently dropped at the cutover.
+
+`blockScalarBodyErrIx` reruns the probe from the post-header cursor
+and reproduces exactly the legacy error outputs; the dispatcher's
+`|`/`>` arm runs it after the §6.7 header check and throws. Explicit
+indentation indicators skip auto-detection in legacy, so the walker
+returns `none` for them too. -/
+
+/-- Probe mirror of legacy `autoDetectBlockScalarIndentLoop`'s error
+    channel: reports a tab in the indentation zone, or a
+    whitespace-only line wider than the detected content indent. -/
+@[yaml_spec "8.1" 163 "c-indentation-indicator", yaml_spec "6.1"]
+def blockScalarAutoIndentErrLoopIx {input : String} (probe : IxCursor input)
+    (maxWSCol maxWSLine : Nat) (minContentIndent : Nat) :
+    Nat → Option ScanError
+  | 0 => none
+  | fuel + 1 =>
+    match (skipSpaces probe).1.peek? with
+    | some ch =>
+      if ch == '\t' && (skipSpaces probe).1.pos.col < minContentIndent then
+        some (.tabInIndentation (skipSpaces probe).1.pos.line
+          (skipSpaces probe).1.pos.col)
+      else if isLineBreakBool ch then
+        blockScalarAutoIndentErrLoopIx (consumeLineBreak (skipSpaces probe).1)
+          (if (skipSpaces probe).1.pos.col > maxWSCol
+           then (skipSpaces probe).1.pos.col else maxWSCol)
+          (if (skipSpaces probe).1.pos.col > maxWSCol
+           then (skipSpaces probe).1.pos.line else maxWSLine)
+          minContentIndent fuel
+      else
+        if maxWSCol > max minContentIndent (skipSpaces probe).1.pos.col then
+          some (.blockScalarIndentMismatch maxWSLine maxWSCol)
+        else none
+    | none => none
+
+/-- Strictness walker for a block-scalar body. Cursor must be at the
+    introducer `|`/`>` (as in `scanBlockScalarIx`); `indentFloor` is
+    the same minimum content indent the dispatcher passes there. -/
+def blockScalarBodyErrIx {input : String} (c : IxCursor input)
+    (indentFloor : Nat) : Option ScanError :=
+  match (parseBlockHeaderLoopIx c.advance .clip none 2).2.1 with
+  | some _ => none
+  | none   =>
+    blockScalarAutoIndentErrLoopIx (blockHeaderToBodyIx c) 0 0 indentFloor
+      (input.utf8ByteSize + 1)
 
 /-- Scan a block scalar. The cursor must be at the introducer `|`
     (literal) or `>` (folded). Returns `(content, style, c')`

@@ -3844,7 +3844,10 @@ lemma scanNextTokenIx_dispatchContent_preserves_PlainScalarsValidIx
           -- Peel the §6.7 header-newline guard: its throw arm cannot be `.ok`.
           split at h_ok
           · cases h_ok
-          · split at h_ok
+          · -- Peel the §6.1/§8.1.3 body-validator guard (item 7 strictness).
+            split at h_ok
+            · cases h_ok
+            split at h_ok
             · rename_i r hBS
               simp only [Except.ok.injEq] at h_ok
               subst h_ok
@@ -3862,6 +3865,9 @@ lemma scanNextTokenIx_dispatchContent_preserves_PlainScalarsValidIx
         · rw [if_neg hg4] at h_ok
           by_cases hg5 : (c == '"') = true
           · rw [if_pos hg5] at h_ok
+            -- Peel the quoted-scalar strictness guard (item 7).
+            split at h_ok
+            · cases h_ok
             split at h_ok
             · rename_i r hDQ
               simp only [Except.ok.injEq] at h_ok
@@ -3871,6 +3877,9 @@ lemma scanNextTokenIx_dispatchContent_preserves_PlainScalarsValidIx
           · rw [if_neg hg5] at h_ok
             by_cases hg6 : (c == '\'') = true
             · rw [if_pos hg6] at h_ok
+              -- Peel the quoted-scalar strictness guard (item 7).
+              split at h_ok
+              · cases h_ok
               split at h_ok
               · rename_i r hSQ
                 simp only [Except.ok.injEq] at h_ok
@@ -3958,7 +3967,10 @@ lemma scanNextTokenIx_dispatchContent_preserves_FlowContextPSVIx
           -- Peel the §6.7 header-newline guard: its throw arm cannot be `.ok`.
           split at h_ok
           · cases h_ok
-          · split at h_ok
+          · -- Peel the §6.1/§8.1.3 body-validator guard (item 7 strictness).
+            split at h_ok
+            · cases h_ok
+            split at h_ok
             · rename_i r hBS
               simp only [Except.ok.injEq] at h_ok
               subst h_ok
@@ -3975,6 +3987,9 @@ lemma scanNextTokenIx_dispatchContent_preserves_FlowContextPSVIx
         · rw [if_neg hg4] at h_ok
           by_cases hg5 : (c == '"') = true
           · rw [if_pos hg5] at h_ok
+            -- Peel the quoted-scalar strictness guard (item 7).
+            split at h_ok
+            · cases h_ok
             split at h_ok
             · rename_i r hDQ
               simp only [Except.ok.injEq] at h_ok
@@ -3984,6 +3999,9 @@ lemma scanNextTokenIx_dispatchContent_preserves_FlowContextPSVIx
           · rw [if_neg hg5] at h_ok
             by_cases hg6 : (c == '\'') = true
             · rw [if_pos hg6] at h_ok
+              -- Peel the quoted-scalar strictness guard (item 7).
+              split at h_ok
+              · cases h_ok
               split at h_ok
               · rename_i r hSQ
                 simp only [Except.ok.injEq] at h_ok
@@ -4073,7 +4091,10 @@ lemma scanNextTokenIx_dispatchContent_preserves_FlowNestingInvIx
           -- Peel the §6.7 header-newline guard: its throw arm cannot be `.ok`.
           split at h_ok
           · cases h_ok
-          · split at h_ok
+          · -- Peel the §6.1/§8.1.3 body-validator guard (item 7 strictness).
+            split at h_ok
+            · cases h_ok
+            split at h_ok
             · rename_i r hBS
               simp only [Except.ok.injEq] at h_ok
               subst h_ok
@@ -4086,6 +4107,9 @@ lemma scanNextTokenIx_dispatchContent_preserves_FlowNestingInvIx
         · rw [if_neg hg4] at h_ok
           by_cases hg5 : (c == '"') = true
           · rw [if_pos hg5] at h_ok
+            -- Peel the quoted-scalar strictness guard (item 7).
+            split at h_ok
+            · cases h_ok
             split at h_ok
             · rename_i r hDQ
               simp only [Except.ok.injEq] at h_ok
@@ -4097,6 +4121,9 @@ lemma scanNextTokenIx_dispatchContent_preserves_FlowNestingInvIx
           · rw [if_neg hg5] at h_ok
             by_cases hg6 : (c == '\'') = true
             · rw [if_pos hg6] at h_ok
+              -- Peel the quoted-scalar strictness guard (item 7).
+              split at h_ok
+              · cases h_ok
               split at h_ok
               · rename_i r hSQ
                 simp only [Except.ok.injEq] at h_ok
@@ -5505,6 +5532,9 @@ lemma scanNextTokenIx_preprocess_preserves_AllKeysPlaceholderInvIx {input : Stri
       h_skip_sk h_skip_stack h_skip_mono h_skip_pref
   unfold scanNextTokenIx_preprocess at h_pre
   simp only at h_pre
+  -- Peel the §6.1/§6.6 strictness-walker guard (item 7).
+  split at h_pre
+  · simp at h_pre
   split at h_pre
   · simp at h_pre
   · split at h_pre
@@ -5962,7 +5992,10 @@ lemma scanNextTokenIx_dispatchContent_preserves_AllKeysPlaceholderInvIx {input :
           -- Peel the §6.7 header-newline guard: its throw arm cannot be `.ok`.
           split at h_ok
           · cases h_ok
-          · split at h_ok
+          · -- Peel the §6.1/§8.1.3 body-validator guard (item 7 strictness).
+            split at h_ok
+            · cases h_ok
+            split at h_ok
             · simp only [Except.ok.injEq] at h_ok
               subst h_ok
               exact _block_scalar_preserves_AllKeysPlaceholderInvIx s _ _ _ _ h_akpi
@@ -5971,6 +6004,9 @@ lemma scanNextTokenIx_dispatchContent_preserves_AllKeysPlaceholderInvIx {input :
           by_cases hg5 : (c == '"') = true
           · -- c == '"': double quoted
             rw [if_pos hg5] at h_ok
+            -- Peel the quoted-scalar strictness guard (item 7).
+            split at h_ok
+            · cases h_ok
             split at h_ok
             · simp only [Except.ok.injEq] at h_ok
               subst h_ok
@@ -5980,6 +6016,9 @@ lemma scanNextTokenIx_dispatchContent_preserves_AllKeysPlaceholderInvIx {input :
             by_cases hg6 : (c == '\'') = true
             · -- c == '\'': single quoted
               rw [if_pos hg6] at h_ok
+              -- Peel the quoted-scalar strictness guard (item 7).
+              split at h_ok
+              · cases h_ok
               split at h_ok
               · simp only [Except.ok.injEq] at h_ok
                 subst h_ok

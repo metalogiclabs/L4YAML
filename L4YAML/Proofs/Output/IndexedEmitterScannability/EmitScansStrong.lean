@@ -924,6 +924,9 @@ lemma scanNextTokenIx_preprocess_simpleKey_pointwise_inv {input : String}
     skipToContentS_preserves_simpleKey s
   have h_tok_skip : s.skipToContentS.tokens.size = s.tokens.size := by
     rw [skipToContentS_tokens]
+  -- Peel the §6.1/§6.6 strictness-walker guard (item 7).
+  split at h
+  · simp at h
   split at h
   · simp at h
   · split at h
@@ -1128,6 +1131,9 @@ lemma scanNextTokenIx_dispatchContent_maintains_NoOverwriteAtIx {input : String}
           -- Peel the §6.7 header-newline guard: its throw arm cannot be `.ok`.
           split at h
           · cases h
+          -- Peel the §6.1/§8.1.3 body-validator guard (item 7 strictness).
+          split at h
+          · cases h
           split at h
           · simp only [Except.ok.injEq] at h; subst h
             exact NoOverwriteAtIx_of_cleared_preserved _ s m rfl rfl h_inv
@@ -1136,6 +1142,9 @@ lemma scanNextTokenIx_dispatchContent_maintains_NoOverwriteAtIx {input : String}
           by_cases hg5 : (c == '"') = true
           · -- double-quoted
             rw [if_pos hg5] at h
+            -- Peel the quoted-scalar strictness guard (item 7).
+            split at h
+            · cases h
             split at h
             · simp only [Except.ok.injEq] at h; subst h
               exact NoOverwriteAtIx_of_preserved _ s m rfl rfl h_inv
@@ -1144,6 +1153,9 @@ lemma scanNextTokenIx_dispatchContent_maintains_NoOverwriteAtIx {input : String}
             by_cases hg6 : (c == '\'') = true
             · -- single-quoted
               rw [if_pos hg6] at h
+              -- Peel the quoted-scalar strictness guard (item 7).
+              split at h
+              · cases h
               split at h
               · simp only [Except.ok.injEq] at h; subst h
                 exact NoOverwriteAtIx_of_preserved _ s m rfl rfl h_inv

@@ -119,6 +119,10 @@ lemma scanNextTokenIx_preprocess_flow (s : ScannerStateIx input) (c : Char)
     exact decide_eq_true h_lt
   -- Step 4: Reduce the preprocess function
   unfold scanNextTokenIx_preprocess
+  -- Item 7 strictness walker: `none` at a content character, so the
+  -- gate falls through.
+  rw [L4YAML.Scanner.Indexed.skipToContentErrIx_none_of_content s.cursor
+        s.inFlow s.currentIndent s.needIndentCheck h_pk h_nws h_nlb h_nc]
   -- skipToContentS s = s
   simp only [h_stc, h_hm, Bool.not_true, Bool.false_eq_true, ↓reduceIte]
   -- !s.inFlow = false → skip unwindIndents branch
@@ -251,6 +255,10 @@ lemma scanNextTokenIx_preprocess_flow_ws1 (s : ScannerStateIx input) (c : Char)
   -- Both preprocess paths reduce to `.ok (some (saveSimpleKeyIx s.advance, c))`.
   have h_pp_s : scanNextTokenIx_preprocess s = .ok (some (saveSimpleKeyIx s.advance, c)) := by
     unfold scanNextTokenIx_preprocess
+    -- Item 7 strictness walker: `none` on the one-space-then-content
+    -- shape, so the gate falls through.
+    rw [L4YAML.Scanner.Indexed.skipToContentErrIx_none_of_ws1 s.cursor
+          s.inFlow s.currentIndent s.needIndentCheck h_sp h_next h_nws h_nlb h_nc]
     simp only [h_stc_ws, h_hm_adv, Bool.not_true, Bool.false_eq_true, ↓reduceIte]
     simp only [h_flow_adv, Bool.not_true, Bool.false_and, Bool.false_eq_true, ↓reduceIte]
     simp only [show ¬(s.advance.indents.size < s.advance.indents.size) from by omega,

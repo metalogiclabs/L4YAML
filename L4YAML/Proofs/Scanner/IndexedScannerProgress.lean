@@ -788,7 +788,10 @@ lemma scanNextTokenIx_dispatchContent_offset_gt {s s' : ScannerStateIx input} {c
           -- Peel the §6.7 header-newline guard: its throw arm cannot be `.ok`.
           split at h
           · cases h
-          · split at h
+          · -- Peel the §6.1/§8.1.3 body-validator guard (item 7 strictness).
+            split at h
+            · cases h
+            split at h
             · rename_i r hBS
               cases h
               show s.cursor.pos.offset < _
@@ -798,6 +801,9 @@ lemma scanNextTokenIx_dispatchContent_offset_gt {s s' : ScannerStateIx input} {c
         · rw [if_neg hg4] at h
           by_cases hg5 : (c == '"') = true
           · rw [if_pos hg5] at h
+            -- Peel the quoted-scalar strictness guard (item 7).
+            split at h
+            · cases h
             split at h
             · rename_i r hDQ
               cases h
@@ -808,6 +814,9 @@ lemma scanNextTokenIx_dispatchContent_offset_gt {s s' : ScannerStateIx input} {c
           · rw [if_neg hg5] at h
             by_cases hg6 : (c == '\'') = true
             · rw [if_pos hg6] at h
+              -- Peel the quoted-scalar strictness guard (item 7).
+              split at h
+              · cases h
               split at h
               · rename_i r hSQ
                 cases h
@@ -849,6 +858,9 @@ lemma scanNextTokenIx_preprocess_peek_eq {input : String}
     s'.peek? = some c := by
   unfold scanNextTokenIx_preprocess at h
   simp only at h
+  -- Peel the §6.1/§6.6 strictness-walker guard (item 7).
+  split at h
+  · simp at h
   split at h
   · simp at h                                                -- !hasMore arm
   · split at h
