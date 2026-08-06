@@ -165,6 +165,28 @@ set: `|`/`>` × chomp × context × {last, followed by another entry}. -/
 #guard docs "|\n  x\n---\n|\n  y\n"
 #guard docs "a: |\n  x\n---\nb: 2\n"
 
+/-! #### Block scalar ending a *nested* collection, sibling follows (D5)
+
+The D3 row above (`- |\n  x\n- 2`) has the scalar directly under the
+sequence entry, so no indent pops between the scalar and the sibling
+`-`. When the scalar instead ends a mapping nested *inside* the entry,
+the next `-` needs a `blockEnd` first — the block scalar consumes its
+terminating line breaks inside the cursor-level recogniser, so the
+dispatcher must set `needIndentCheck` itself (RZT7, KK5P complex4). -/
+#guard docs "- k: 1\n  c: |\n    x\n- k: 2\n"
+#guard docs "- k: 1\n  c: >\n    x\n- k: 2\n"
+#guard single "a:\n  b: |\n    x\nc: 2\n"
+#guard single "? >\n  a\n:\n"
+
+/-! #### Zero-indented block scalar at top level (`currentIndent = -1`;
+    the indent floor is 0, not 1 — DK3J, FP8R) and `%` as block-scalar
+    content on a zero-indented line (M7A3, W4TN: must not be scanned
+    as a directive) -/
+#guard docs "--- >\nline1\nline2\n"
+#guard docs "--- |\nline1\n# not a comment\nline3\n"
+#guard docs "--- |\n%PERCENT\n"
+#guard single "a: |1\n x\n"
+
 /-! ### Comments + whitespace -/
 #guard single "# leading\nabc"
 #guard single "a: b  # trailing"

@@ -140,6 +140,8 @@ lemma parseStreamLoop_aliases_resolve_ix
     split at h_ok
     · simp only [Except.ok.injEq] at h_ok; subst h_ok; exact h_acc
     · simp only [Except.ok.injEq] at h_ok; subst h_ok; exact h_acc
+    · -- documentEnd (bare `...` suffix, C1) → skip it, recurse with same accumulator
+      exact ih _ _ _ h_acc h_ok
     · -- some tok → validation + parseDocument + recurse
       split at h_ok
       · simp at h_ok

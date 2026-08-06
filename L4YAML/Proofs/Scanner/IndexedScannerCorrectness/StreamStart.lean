@@ -388,6 +388,9 @@ lemma scanNextTokenIx_dispatchContent_maintains_SimpleKeyAboveIx {input : String
           -- the pending simple key (a block scalar ends at a line start), so
           -- this is the `_of_cleared_mono` transition, not `_mono`.
           rw [if_pos hg4] at h_ok
+          -- Peel the §6.7 header-newline guard: its throw arm cannot be `.ok`.
+          split at h_ok
+          · cases h_ok
           split at h_ok
           · simp only [Except.ok.injEq] at h_ok
             subst h_ok
@@ -596,6 +599,9 @@ lemma scanNextTokenIx_dispatchContent_preserves_prefix {input : String}
         by_cases hg4 : (c == '|' || c == '>') = true
         · -- block scalar
           rw [if_pos hg4] at h_ok
+          -- Peel the §6.7 header-newline guard: its throw arm cannot be `.ok`.
+          split at h_ok
+          · cases h_ok
           split at h_ok
           · simp only [Except.ok.injEq] at h_ok
             subst h_ok

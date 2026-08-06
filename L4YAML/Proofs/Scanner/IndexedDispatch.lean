@@ -1472,18 +1472,21 @@ lemma scanNextTokenIx_dispatchContent_ok_monotonic {input : String}
       · rw [if_neg hg3] at h
         by_cases hg4 : (c == '|' || c == '>') = true
         · rw [if_pos hg4] at h
-          -- Use split at h to handle the dependent match's hBS witness.
+          -- Peel the §6.7 header-newline guard: its throw arm cannot be `.ok`.
           split at h
-          · rename_i r hBS
-            cases h
-            refine ⟨?_, ?_⟩
-            · show s.cursor.pos.offset ≤ _
-              simp only [emitAt_cursor]
-              exact scanBlockScalarIx_offset_monotonic s.cursor _ hBS
-            · show s.tokens.size ≤ _
-              simp only [emitAt_tokens_size]
-              exact Nat.le_succ _
           · cases h
+          · -- Use split at h to handle the dependent match's hBS witness.
+            split at h
+            · rename_i r hBS
+              cases h
+              refine ⟨?_, ?_⟩
+              · show s.cursor.pos.offset ≤ _
+                simp only [emitAt_cursor]
+                exact scanBlockScalarIx_offset_monotonic s.cursor _ hBS
+              · show s.tokens.size ≤ _
+                simp only [emitAt_tokens_size]
+                exact Nat.le_succ _
+            · cases h
         · rw [if_neg hg4] at h
           by_cases hg5 : (c == '"') = true
           · rw [if_pos hg5] at h

@@ -440,9 +440,9 @@ strict progress at the cursor level; the dispatcher composes through
     (consumes at least the leading `|`/`>`). Indexed twin of
     `ScannerCorrectness.scanBlockScalar_offset_lt`. -/
 lemma scanBlockScalarIx_offset_lt {input : String} (c : IxCursor input)
-    (parentIndent : Nat) {result : String × ScalarStyle × IxCursor input}
+    (indentFloor : Nat) {result : String × ScalarStyle × IxCursor input}
     (h_hm : c.pos.offset < input.utf8ByteSize)
-    (h : scanBlockScalarIx c parentIndent = some result) :
+    (h : scanBlockScalarIx c indentFloor = some result) :
     c.pos.offset < result.2.2.pos.offset := by
   unfold scanBlockScalarIx at h
   split at h
@@ -491,9 +491,9 @@ lemma scanBlockScalarIx_offset_lt {input : String} (c : IxCursor input)
       have hBody : (blockHeaderToBodyIx c).pos.offset ≤
         (collectBlockScalarLoopIx (blockHeaderToBodyIx c) ""
           (match (parseBlockHeaderLoopIx c.advance .clip none 2).2.1 with
-            | some m => parentIndent + m
+            | some m => indentFloor + m - 1
             | none   =>
-              autoDetectBlockScalarIndentIx (blockHeaderToBodyIx c) (parentIndent + 1))
+              autoDetectBlockScalarIndentIx (blockHeaderToBodyIx c) indentFloor)
           input.utf8ByteSize).2.pos.offset :=
         collectBlockScalarLoopIx_offset_monotonic _ _ _ _
       simp only [Option.some.injEq] at h
@@ -785,13 +785,16 @@ lemma scanNextTokenIx_dispatchContent_offset_gt {s s' : ScannerStateIx input} {c
       · rw [if_neg hg3] at h
         by_cases hg4 : (c == '|' || c == '>') = true
         · rw [if_pos hg4] at h
+          -- Peel the §6.7 header-newline guard: its throw arm cannot be `.ok`.
           split at h
-          · rename_i r hBS
-            cases h
-            show s.cursor.pos.offset < _
-            simp only [emitAt_cursor]
-            exact scanBlockScalarIx_offset_lt s.cursor _ h_hm hBS
           · cases h
+          · split at h
+            · rename_i r hBS
+              cases h
+              show s.cursor.pos.offset < _
+              simp only [emitAt_cursor]
+              exact scanBlockScalarIx_offset_lt s.cursor _ h_hm hBS
+            · cases h
         · rw [if_neg hg4] at h
           by_cases hg5 : (c == '"') = true
           · rw [if_pos hg5] at h

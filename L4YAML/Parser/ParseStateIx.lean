@@ -120,6 +120,15 @@ def ParseStateIx.peekPos? {input : String} (ps : ParseStateIx input) :
     Option YamlPos :=
   ps.peekIx?.map (·.start)
 
+/-- Peek at the token one past the current one, without consuming.
+    Indexed twin of `ParseState.peekNext?` — used for the two-token
+    lookahead that distinguishes a scanner-inserted retroactive `key`
+    marker (`key` immediately followed by `value`) from a genuine next
+    map entry. -/
+def ParseStateIx.peekNext? {input : String} (ps : ParseStateIx input) :
+    Option YamlToken :=
+  (ps.tokens.get? (ps.pos + 1)).map (·.token)
+
 /-- Advance past the current token. -/
 def ParseStateIx.advance {input : String} (ps : ParseStateIx input) :
     ParseStateIx input :=

@@ -361,6 +361,9 @@ lemma scanNextTokenIx_dispatchContent_preserves_flowLevel
         by_cases hg4 : (c == '|' || c == '>') = true
         · -- block scalar
           rw [if_pos hg4] at h
+          -- Peel the §6.7 header-newline guard: its throw arm cannot be `.ok`.
+          split at h
+          · cases h
           split at h
           · simp only [Except.ok.injEq] at h; subst h; rfl
           · cases h
@@ -427,6 +430,9 @@ lemma scanNextTokenIx_dispatchContent_preserves_simpleKeyStack
         by_cases hg4 : (c == '|' || c == '>') = true
         · -- block scalar
           rw [if_pos hg4] at h
+          -- Peel the §6.7 header-newline guard: its throw arm cannot be `.ok`.
+          split at h
+          · cases h
           split at h
           · simp only [Except.ok.injEq] at h; subst h; rfl
           · cases h

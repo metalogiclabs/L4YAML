@@ -738,6 +738,9 @@ lemma scanNextTokenIx_dispatchContent_maintains_SKAFIx {input : String}
         · -- block scalar: clears the pending simple key (it ends at a line
           -- start), so this is the `_of_cleared_preserved` transport.
           rw [if_pos hg4] at h
+          -- Peel the §6.7 header-newline guard: its throw arm cannot be `.ok`.
+          split at h
+          · cases h
           split at h
           · simp only [Except.ok.injEq] at h; subst h
             exact SimpleKeyAboveFloorIx_of_cleared_preserved _ s n₀ fl₀ rfl rfl h_inv

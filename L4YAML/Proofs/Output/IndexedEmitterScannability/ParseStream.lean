@@ -84,6 +84,7 @@ that `parseStreamIx` also succeeds on those tokens. The key argument:
 lemma parseStreamLoop_single_docIx {input : String}
     (ps : ParseStateIx input) (fuel : Nat) (h_fuel : fuel ≥ 2)
     (tok : YamlToken) (h_peek : ps.peek? = some tok) (h_not_se : tok ≠ .streamEnd)
+    (h_not_de : tok ≠ .documentEnd)
     (doc : YamlDocument) (ps' : ParseStateIx input)
     (h_doc : parseDocument ps = .ok (doc, ps'))
     (h_peek' : ps'.peek? = some .streamEnd) :
@@ -98,9 +99,11 @@ lemma parseStreamLoop_single_docIx {input : String}
       unfold parseStreamLoop; dsimp only []
       rw [h_peek]
       -- Case-split by YamlToken constructor to resolve the compiled match.
-      -- .streamEnd is impossible (contradicts h_not_se); all others take catch-all.
+      -- .streamEnd / .documentEnd are impossible (contradict h_not_se / h_not_de,
+      -- and the C1 fix routes `.documentEnd` to a distinct suffix-skip arm anyway);
+      -- all others take the content catch-all.
       cases tok
-      <;> first | exact absurd rfl h_not_se | skip
+      <;> first | exact absurd rfl h_not_se | exact absurd rfl h_not_de | skip
       -- All remaining content goals: identical proof structure.
       all_goals (
         dsimp only []
@@ -469,6 +472,7 @@ lemma parseStream_three_tokens_scalarIx {input : String} (content : String)
   have h_fuel_ge : tokens.size ≥ 2 := by omega
   have h_loop := parseStreamLoop_single_docIx ps1 tokens.size h_fuel_ge
     (YamlToken.scalar content .doubleQuoted) h_peek1 (by intro h; cases h)
+    (by intro h; cases h)
     { value := YamlValue.scalar
         { content, style := .doubleQuoted, tag := none, anchor := none },
       directives := #[], anchors := ps1.advance.anchors,

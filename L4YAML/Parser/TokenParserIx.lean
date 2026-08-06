@@ -82,7 +82,7 @@ mutual
   yaml_spec "7.5" 158 "ns-flow-content(n,c)",
   yaml_spec "7.5" 159 "ns-flow-yaml-node(n,c)"]
 def parseNodeContent {input : String} (ps : ParseStateIx input) (fuel : Nat)
-    (props : NodeProperties) :
+    (props : NodeProperties) (isSeqEntry : Bool) :
     Except ScanError (YamlValue × ParseStateIx input) :=
   match ps.peek? with
   | some (YamlToken.scalar content style) =>
@@ -90,9 +90,17 @@ def parseNodeContent {input : String} (ps : ParseStateIx input) (fuel : Nat)
   | some .blockSequenceStart => parseBlockSequence ps fuel
   | some .blockMappingStart => parseBlockMapping ps fuel
   | some .blockEntry =>
-    -- Implicit block sequence: libyaml/our scanner omits BLOCK-SEQUENCE-START
-    -- when block entries sit at the same indent as the containing mapping key.
-    parseImplicitBlockSequence ps fuel
+    if isSeqEntry then
+      -- §8.2.1 (BLOCK-IN context): this node was reached directly from a block
+      -- sequence entry (`-`).  Its properties are followed by a sibling `-` at
+      -- the same indent, so the node is an *empty scalar* carrying the
+      -- properties; the `blockEntry` belongs to the parent sequence and must
+      -- NOT open a nested implicit sequence (FH7J, PW8X).
+      .ok (YamlValue.scalar { content := "", style := .plain, tag := props.tag, anchor := props.anchor }, ps)
+    else
+      -- Implicit block sequence: libyaml/our scanner omits BLOCK-SEQUENCE-START
+      -- when block entries sit at the same indent as the containing mapping key.
+      parseImplicitBlockSequence ps fuel
   | some .flowSequenceStart => parseFlowSequence ps fuel
   | some .flowMappingStart => parseFlowMapping ps fuel
   | _ =>
@@ -127,9 +135,23 @@ def parseNode {input : String} (ps : ParseStateIx input) (fuel : Nat) :
     return (YamlValue.alias name, ps)
   | _ => pure ()
   let prePropPos := ps.pos
+  -- §8.2.1 BLOCK-IN vs BLOCK-OUT: a node reached directly from a block sequence
+  -- entry is preceded by a `blockEntry` token.  In that context a `blockEntry`
+  -- following the node's properties is a *sibling* entry (empty scalar), not the
+  -- start of a nested implicit sequence — see `parseNodeContent` (FH7J, PW8X).
+  -- Random access via `get?` (not `[·]!`): `IxToken input` has no `Inhabited`.
+  let isSeqEntry : Bool :=
+    if prePropPos > 0 then
+      match ps.tokens.get? (prePropPos - 1) with
+      | some t =>
+        match t.token with
+        | .blockEntry => true
+        | _           => false
+      | none => false
+    else false
   let (props, ps) ← parseNodeProperties ps
   validateNodeProps ps prePropPos props
-  let (val, ps) ← parseNodeContent ps fuel props
+  let (val, ps) ← parseNodeContent ps fuel props isSeqEntry
   .ok (applyNodeFinalization val ps props nodeStartPos)
 
 /-- Parse a block sequence.
@@ -261,7 +283,25 @@ def parseBlockMappingEntryValue {input : String} (ps : ParseStateIx input) (fuel
         parseNode ps fuel
     | _ => parseNode ps fuel
   else
-    .ok (emptyNode, ps)
+    -- §8.2.2 [191] `l-block-map-explicit-value`: an explicit `? key` whose key is
+    -- a *block collection* is followed by a scanner-inserted retroactive `key`
+    -- marker right before the `:` value marker (which opens a new line at the
+    -- key's own indentation).  `tryConsume .value` above missed it (peek was
+    -- `.key`), so skip the retroactive `key`, consume the real `:`, and parse the
+    -- value — keeping the explicit entry a single `? key : value` pair instead of
+    -- splitting into two empty-half entries (V9D5).  Guarded on the *following*
+    -- token being `.value`, so a genuine next entry (`? a` / `? b`, where the
+    -- second `key` is followed by content) is untouched.  Mirrors the flow
+    -- retroactive-key handling in `parseFlowMappingValue`.  Kept in this branch
+    -- so the `consumed = true` path (and its proofs) stay structurally unchanged.
+    match ps.peek?, ps.peekNext? with
+    | some .key, some .value =>
+      let (_, ps) := ps.tryConsume .key    -- skip the retroactive `key`
+      let (_, ps) := ps.tryConsume .value  -- consume the real `:`
+      match ps.peek? with
+      | some .key | some .blockEnd | none => .ok (emptyNode, ps)
+      | _ => parseNode ps fuel
+    | _, _ => .ok (emptyNode, ps)
 
 /-- Handle the `.key` branch of a block mapping iteration.
     Indexed twin of `L4YAML.TokenParser.handleBlockMappingKeyEntry`. -/
@@ -611,6 +651,14 @@ def parseStreamLoop {input : String} (ps : ParseStateIx input) (docs : Array Yam
     match ps.peek? with
     | some .streamEnd => .ok docs
     | none => .ok docs
+    | some .documentEnd =>
+      -- A bare `...` with no preceding document content is a document *suffix*
+      -- (§9.2 [205] `l-document-suffix`), not an empty document.  Consume it and
+      -- continue without emitting a spurious empty document.  Explicit empty
+      -- documents (`--- ...`) are unaffected: their loop peek is `.documentStart`,
+      -- so they still route through `parseDocument` and emit an empty node.
+      let (_, ps) := ps.tryConsume .documentEnd
+      parseStreamLoop ps docs .afterDocumentEnd fuel
     | some tok =>
       if !streamState.validNextToken tok then
         let pos := ps.peekPos?.getD { offset := 0, line := 0, col := 0 }

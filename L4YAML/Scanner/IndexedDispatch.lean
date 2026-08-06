@@ -1130,9 +1130,17 @@ def scanNextTokenIx_dispatchContent {input : String} (s : ScannerStateIx input)
     let s' ← scanTagIx s
     return s'
   if c == '|' || c == '>' then
-    let parentIndent := (max 0 s.currentIndent).toNat
+    -- §6.7 [76] `b-comment`: the header line must end in a line break or
+    -- EOF — see `blockScalarHeaderEndsLineIx` (mirrors legacy
+    -- `scanBlockScalarConsumeNewline`'s `expectedNewline` throw).
+    if !blockScalarHeaderEndsLineIx s.cursor then
+      throw (.expectedNewline s.cursor.pos.line)
+    -- The *indent floor*, not the clamped parent column: at top level
+    -- `currentIndent = -1` and zero-indented content is legal (DK3J, FP8R).
+    -- See `scanBlockScalarIx`'s docstring.
+    let indentFloor := (max 0 (s.currentIndent + 1)).toNat
     let startPos := s.cursor.pos
-    match hBS : scanBlockScalarIx s.cursor parentIndent with
+    match hBS : scanBlockScalarIx s.cursor indentFloor with
     | some r =>
       let content := r.1
       let style := r.2.1
@@ -1140,7 +1148,7 @@ def scanNextTokenIx_dispatchContent {input : String} (s : ScannerStateIx input)
       let sAfter : ScannerStateIx input := { s with cursor := cAfter }
       let hBound : startPos.offset ≤ sAfter.cursor.pos.offset := by
         show s.cursor.pos.offset ≤ r.2.2.pos.offset
-        exact scanBlockScalarIx_offset_monotonic s.cursor parentIndent hBS
+        exact scanBlockScalarIx_offset_monotonic s.cursor indentFloor hBS
       let sEmit := sAfter.emitAt startPos (YamlToken.scalar content style) hBound
       -- A block scalar always ends at the start of a line, so the next line may
       -- open a fresh simple key, and any key pending from before this scalar is
@@ -1149,8 +1157,16 @@ def scanNextTokenIx_dispatchContent {input : String} (s : ScannerStateIx input)
       -- `simpleKeyAllowed := false` — right for every *inline* scalar branch
       -- below — left the pending key live here, so `a: |⏎  x⏎b: 1` was rejected
       -- with `invalidImplicitKey` (DOCS.md § Indexed-pipeline parity gap, D3).
+      -- `needIndentCheck := true` — the block scalar is the one scalar that
+      -- consumes its terminating line breaks *inside* the cursor-level
+      -- recogniser (legacy sets the flag in `consumeNewline`, but `IxCursor`
+      -- carries no flags), so the next `scanNextTokenIx_preprocess` must
+      -- re-run the indent unwind.  Without it, a sibling after a block scalar
+      -- ending a nested mapping got no `blockEnd`/`blockMappingStart` and was
+      -- swallowed (D5: RZT7, KK5P; `- k: 1⏎  c: |⏎    x⏎- k: 2`).
       return { sEmit with simpleKeyAllowed := true,
-                          simpleKey := { cursor := IxCursor.start input } }
+                          simpleKey := { cursor := IxCursor.start input },
+                          needIndentCheck := true }
     | none =>
       throw (.unexpectedChar c s.cursor.pos.line s.cursor.pos.col)
   if c == '"' then

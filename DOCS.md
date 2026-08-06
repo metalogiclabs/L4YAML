@@ -5468,7 +5468,7 @@ lives in [README.md](README.md) and is not duplicated here.)
 | Item | Status | Section |
 |---|---|---|
 | `ns-char` predicate spec-loose body | **Fixed 2026-08-01** (predicates tightened; scanner + emitter conformant; regression-tested) | [The ns-char gap](#the-ns-char-gap) |
-| **Indexed-pipeline parity** (the twin consumers actually call) | **Open — D1–D4 fixed, harness built, matrix-scored 2026-08-05: event 365/402 · JSON 262/282 vs legacy 100%/100%; 37 failing tests of cutover debt remain, classified** | [Indexed-pipeline parity gap](#indexed-pipeline-parity-gap) |
+| **Indexed-pipeline parity** (the twin consumers actually call) | **Open — content parity CLOSED 2026-08-06 (event 387/402 · JSON 280/282; all 308 valid tests pass both axes, zero diffs, zero rejects); residue = 15 accepted-invalid strictness gaps (item 7)** | [Indexed-pipeline parity gap](#indexed-pipeline-parity-gap) |
 | Grammar completeness (`parse_iff_grammar`, capstone 7.7) | **Open** (unblocked; Step-0 audit done) | [Grammar completeness plan](#grammar-completeness-plan) |
 | Merge semantics (`DuplicateKeyPolicy.merge`) | **Open** (design ready; re-base on `LawfulBEq`) | [Merge semantics plan](#merge-semantics-plan) |
 | Security limits: open questions + future work | **Open** (design questions; 3 unimplemented features) | [Security hardening backlog](#security-hardening-backlog) |
@@ -5488,8 +5488,8 @@ theorem nobody's build depends on yet.
 | 3 | ✅ **done** — D1/D2 (`foldBlockContentGo` end-of-input and tab classification) | folded-scalar content fidelity | ditto |
 | 4 | ✅ **done** — block-scalar parity coverage 2 → 35 guards; **the new coverage found D4**, explicit indentation indicators failing outright | recurrence of D1–D4 | ditto |
 | 5 | ✅ **done 2026-08-05** — matrix scored through the **indexed** pipeline (`l4yaml-event-ix`/`l4yaml-json-ix`): **event 365/402, JSON 262/282** vs legacy 402/402 · 282/282. D1–D4 were **not** the whole story: 37 failing tests, classified in [The matrix score](#the-matrix-score) | knowing whether D1–D4 were the whole story | [Indexed-pipeline parity gap](#indexed-pipeline-parity-gap) |
-| 6 | ⬜ **open** — port the seven legacy matrix fixes the twin lags (B1/B2/B3/C1/C2/C3/E — 16 of the 18 event diffs), then fix the newly found D5 and the two reject-side scanner bugs | closing the diff/reject classes; consumers of `parseYaml*Ix` on valid YAML | ditto |
-| 7 | ⬜ **open** — mirror the legacy scanner's error strictness (15 invalid inputs the twin accepts: tab indentation, block-scalar indent checks, doc-markers in quoted scalars, comment-without-space) | the twin's accept/reject axis (383/402 vs legacy's 402/402) | ditto |
+| 6 | ✅ **done 2026-08-06** — all seven legacy fixes ported (B1/B2/B3/C1/C2/C3/E + the R4YG first-line-tab residue), D5 root-caused (`needIndentCheck` after a block scalar) and fixed, zero-indent block scalars (`indentFloor`, DK3J/FP8R — which also cured the M7A3/W4TN `%`-as-directive misreads) and the missing §6.7 header-newline guard (2G84/01) fixed. Re-scored: **event 387/402, JSON 280/282 — every diff and every reject gone; 308/308 valid tests pass both axes**. 12 new parity-guard rows; full build at the same pre-existing baseline | — | [The matrix score](#the-matrix-score) |
+| 7 | ⬜ **open** — mirror the legacy scanner's error strictness (15 invalid inputs the twin accepts: tab indentation, block-scalar indent checks, doc-markers in quoted scalars, comment-without-space; the only residue left — err-miss is now the *entire* gap to 402/402) | the twin's accept/reject axis (387/402 vs legacy's 402/402) | ditto |
 | 8 | ⬜ **open** — resume Fix A B.4β.2: wire the depth-0 `[`/`{` opens (`SLYamlStream sp_start sp_prep` holes) | `scannerDrop` deletion → converse → `parse_iff_grammar` | [Fix A](#fix-a-eliminating-scannerdrop--flow-indicator-grammar-evidence) |
 
 Item 5's answer decides the shape of the rest: the score is a measured
@@ -5618,12 +5618,16 @@ parses its DPS configs with `parseYamlWithCommentsIx` and its `notes: >`
 blocks came back one byte short of what PyYAML — and of what our own
 legacy pipeline — produces.)*
 
-**Status (2026-08-05, updated same day):** **Four divergences found and
-fixed, harness built, and the twin is now matrix-scored: event 365/402,
-JSON 262/282, accept/reject 383/402** — against the legacy pipeline's
-100% on all three axes. D1–D4 were not the whole story: 37 tests still
-fail, but the score converts the open question into a finite classified
-work-list — see [The matrix score](#the-matrix-score).
+**Status (2026-08-06): content parity CLOSED.** The 2026-08-05 score
+(event 365/402, JSON 262/282, accept/reject 383/402) converted the gap
+into a finite classified work-list; plan item 6 then ported the seven
+legacy fixes the twin lagged (B1/B2/B3/C1/C2/C3/E), fixed the newly
+found bugs (D5, zero-indent block scalars, the §6.7 header-newline
+guard), and re-scored: **event 387/402, JSON 280/282 — zero diffs, zero
+wrong rejects; all 308 valid tests pass both axes byte-for-byte.** The
+only residue is 15 invalid inputs the twin still *accepts* (scanner
+strictness never transcribed — plan item 7). See
+[The matrix score](#the-matrix-score).
 
 **Why this outranks the proof work.** The indexed pipeline is not a
 staging area: `parseYamlWithCommentsIx` is the entry point consumers call
@@ -5771,11 +5775,11 @@ python3 scripts/matrix_score.py --data <suite-data> --axis both --only L4YAML \
     --l4yaml-json  .lake/build/bin/l4yaml-json-ix
 ```
 
-| axis | legacy | indexed |
-|---|---|---|
-| event (of 402) | **402 (100%)** | **365 (91%)** — 18 diff, 15 err-miss, 4 reject |
-| JSON (of 282) | **282 (100%)** | **262 (93%)** — 14 diff, 2 err-miss, 4 reject |
-| accept/reject (of 402) | **402 (100%)** | **383 (95%)** — 4 valid rejected, 15 invalid accepted |
+| axis | legacy | indexed (2026-08-05) | indexed (2026-08-06, item 6 closed) |
+|---|---|---|---|
+| event (of 402) | **402 (100%)** | 365 (91%) — 18 diff, 15 err-miss, 4 reject | **387 (96%)** — 0 diff, 15 err-miss, 0 reject |
+| JSON (of 282) | **282 (100%)** | 262 (93%) — 14 diff, 2 err-miss, 4 reject | **280 (99%)** — 0 diff, 2 err-miss, 0 reject |
+| accept/reject (of 402) | **402 (100%)** | 383 (95%) — 4 valid rejected, 15 invalid accepted | **387 (96%)** — 0 valid rejected, 15 invalid accepted |
 
 (The legacy numbers were re-measured in the same run as a baseline, same
 binaries' build, same data form — not quoted from July.)
@@ -5832,6 +5836,66 @@ known-good legacy implementations to transcribe (and the July memory of
 each fix's proof blast radius), class 2 is systematic strictness porting
 best done as one sweep with the error-test list as its checklist, and
 class 3 needs the same find-minimize-fix treatment D1–D4 got.
+
+### Closing item 6 (2026-08-06)
+
+**Class 1 — all seven fixes ported.** Parser side (`TokenParserIx.lean`):
+C1 (bare-`...` suffix arm, mirrored into `EventsIx`'s marked loop in the
+same commit so the measurement stays arm-for-arm honest), C2 (`isSeqEntry`
+derived inside `parseNode` via `tokens.get?`, gating the `blockEntry`
+content arm), C3 (retroactive-`key` skip in
+`parseBlockMappingEntryValue`'s `consumed = false` tail, over a new
+`ParseStateIx.peekNext?`). Scanner side (`IndexedScanner.lean`): B1+B3
+collapse to one edit — the twin shares `skipBlankLinesLoopIx` between the
+quoted and plain paths where legacy has two loops, so `skipSpaces` →
+`skipWhitespace` there fixes 5GBF *and* NB6Z; B3's second half adds the
+`skipWhitespace` continuation strip to `handleBlockLineBreakIx`; B2
+threads `protectedLen` through `collectDoubleQuotedLoopIx`; E lands in
+three EOF spots (indent auto-detect folds in the last blank line's
+column, blank-final-line push, whitespace-only-line push); the R4YG
+residue was the fold's `pending = 0` first-line classification still
+using `s-space` — the one `isMore` site D2 missed.
+
+**Class 3 — three root causes, all in the block-scalar path.**
+
+* **D5** = one missing flag: the block scalar is the *only* scalar whose
+  terminating line breaks are consumed inside the cursor-level recogniser
+  (legacy sets `needIndentCheck := true` in `consumeNewline`, but
+  `IxCursor` carries no flags), so the dispatcher's `'|' | '>'` arm must
+  set `needIndentCheck := true` itself or the next line's indent unwind
+  never runs — no `blockEnd`, sibling swallowed (RZT7; also KK5P's
+  `? >` explicit-key case, which looked like C3 in the classification but
+  was D5).
+* **Zero-indent rejects** (DK3J, FP8R): the dispatcher passed
+  `(max 0 currentIndent).toNat` — clamping *before* the `+1` loses
+  `currentIndent = -1`, making the content floor 1 at top level where
+  legacy computes `max 0 (-1 + 1) = 0`. `scanBlockScalarIx`'s parameter is
+  now the **indent floor** (`indentFloor`, auto-detect uses it directly,
+  explicit `m` uses `indentFloor + m - 1`). This also cured **M7A3/W4TN**
+  without a separate fix: their `%` lines are *content of zero-indented
+  block scalars* that the twin was ending prematurely — the "directive
+  misread" was downstream fallout, not a scanner bug of its own.
+* **2G84/01 regression caught and closed**: with the floor fixed, `--- |10`'s
+  dangling `0` (previously an accidental reject) scanned as content. The
+  twin had no analog of legacy's `scanBlockScalarConsumeNewline`; the new
+  `blockScalarHeaderEndsLineIx` predicate + `expectedNewline` throw in the
+  dispatch arm restores §6.7 [76].
+
+**Proof repairs ran exactly on the July playbook.** C1: the documentEnd
+bullet is one line in accumulator-style loop lemmas; the entry-shape
+lemma (`parseStreamLoop_single_docIx`) takes the `tok ≠ .documentEnd`
+guard threaded from its caller. C2/C3: each `unfold`ing lemma gained the
+`Bool`/else-tail sub-case, ported verbatim from the already-repaired
+legacy lemma bodies (`IndexedNodeProofs`, `IndexedWellBehaved`,
+`IndexedWfa`, `IndexedGrammable`; `parseNode_emitter_advances_ix` uses
+the folded-form `parseNodeContent_pos_mono_ix` before the unfold, per the
+July `split`-on-inlined-if lesson). B2: the `∀ p` wrapper on
+`collectDoubleQuotedLoopIx_escapeString_succeeds` (generalized `p` binds
+first in the IH). The §6.7 guard added one `split at h · cases h` peel to
+the eleven proof sites that case on the dispatcher's block-scalar arm.
+12 new parity-guard rows pin D5/zero-indent/`%`-content/2G84 shapes.
+Full build afterwards: same pre-existing baseline (Capstones axiom gate +
+two Reflections files, all from the open Fix A sorries).
 
 ### Plan
 

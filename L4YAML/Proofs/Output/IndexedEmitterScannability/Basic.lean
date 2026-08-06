@@ -745,12 +745,28 @@ lemma collectDoubleQuotedLoopIx_escapeString_succeeds {input : String}
       ⟨(escapeString (String.ofList content_rest)).toList ++ ['"'] ++ rest, c.pos.col⟩)
     (h_fuel : fuel ≥ content_rest.length + 1) :
     ∃ c',
-      collectDoubleQuotedLoopIx c acc fuel =
+      collectDoubleQuotedLoopIx c acc 0 fuel =
         some (acc ++ String.ofList content_rest, c') ∧
       CursorSurfCorrIx c' ⟨rest, c'.pos.col⟩ ∧
       c'.pos.col > 0 ∧
       c'.pos.line = c.pos.line := by
-  induction content_rest generalizing c acc fuel with
+  -- protectedLen (0 at every real entry) generalised so the IH covers the
+  -- escape branch's shifted boundary (B2); `escapeString` output has no line
+  -- folds, so the returned content is protectedLen-independent.
+  suffices H : ∀ (p : Nat) (c : IxCursor input) (acc : String) (fuel : Nat),
+      CursorSurfCorrIx c
+        ⟨(escapeString (String.ofList content_rest)).toList ++ ['"'] ++ rest, c.pos.col⟩ →
+      fuel ≥ content_rest.length + 1 →
+      ∃ c',
+        collectDoubleQuotedLoopIx c acc p fuel =
+          some (acc ++ String.ofList content_rest, c') ∧
+        CursorSurfCorrIx c' ⟨rest, c'.pos.col⟩ ∧
+        c'.pos.col > 0 ∧
+        c'.pos.line = c.pos.line by
+    exact H 0 c acc fuel hcorr h_fuel
+  clear hcorr h_fuel
+  intro p c acc fuel hcorr h_fuel
+  induction content_rest generalizing c acc fuel p with
   | nil =>
     -- Closing quote: escapeString "" = "" → chars start with '"'.
     have h_ofnil : (String.ofList ([] : List Char)) = "" := rfl
@@ -814,7 +830,7 @@ lemma collectDoubleQuotedLoopIx_escapeString_succeeds {input : String}
           rw [show acc ++ String.ofList (ch :: cs) = acc.push ch ++ String.ofList cs
               from (push_append_ofList_eq acc ch cs).symm]
           obtain ⟨c', h_loop, hcorr_c', h_col_c', h_line_c'⟩ :=
-            ih c.advance.advance (acc.push ch) fuel'
+            ih _ c.advance.advance (acc.push ch) fuel'
             hcorr_tag (by simp [List.length_cons] at h_f; omega)
           refine ⟨c', h_loop, hcorr_c', h_col_c', ?_⟩
           have l_bs := advance_line_of_peekIx c '\\' h_lt_bs h_peek_bs (by decide) (by decide)
@@ -944,7 +960,7 @@ lemma collectDoubleQuotedLoopIx_escapeString_succeeds {input : String}
           rw [show acc ++ String.ofList (ch :: cs) = acc.push ch ++ String.ofList cs
               from (push_append_ofList_eq acc ch cs).symm]
           obtain ⟨c', h_loop, hcorr_c', h_col_c', h_line_c'⟩ :=
-            ih c_after (acc.push ch) fuel' hcorr_after
+            ih _ c_after (acc.push ch) fuel' hcorr_after
             (by simp [List.length_cons] at h_f; omega)
           refine ⟨c', h_loop, hcorr_c', h_col_c', ?_⟩
           have l_bs := advance_line_of_peekIx c '\\' h_lt_bs h_peek_bs (by decide) (by decide)
@@ -982,7 +998,7 @@ lemma collectDoubleQuotedLoopIx_escapeString_succeeds {input : String}
         rw [show acc ++ String.ofList (ch :: cs) = acc.push ch ++ String.ofList cs
             from (push_append_ofList_eq acc ch cs).symm]
         obtain ⟨c', h_loop, hcorr_c', h_col_c', h_line_c'⟩ :=
-          ih c.advance (acc.push ch) fuel' hcorr_c
+          ih _ c.advance (acc.push ch) fuel' hcorr_c
           (by simp [List.length_cons] at h_f; omega)
         refine ⟨c', h_loop, hcorr_c', h_col_c', ?_⟩
         have l_c := advance_line_of_peekIx c ch h_lt_c h_peek_c h_ne_nl h_ne_cr

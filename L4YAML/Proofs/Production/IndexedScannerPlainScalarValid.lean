@@ -3841,21 +3841,24 @@ lemma scanNextTokenIx_dispatchContent_preserves_PlainScalarsValidIx
       · rw [if_neg hg3] at h_ok
         by_cases hg4 : (c == '|' || c == '>') = true
         · rw [if_pos hg4] at h_ok
+          -- Peel the §6.7 header-newline guard: its throw arm cannot be `.ok`.
           split at h_ok
-          · rename_i r hBS
-            simp only [Except.ok.injEq] at h_ok
-            subst h_ok
-            -- Block scalar — style is .literal or .folded (non-plain)
-            have h_style_ne_plain : r.2.1 ≠ .plain := scanBlockScalarIx_style_not_plain hBS
-            exact emitAt_non_plain_preserves_PlainScalarsValidIx _ _ _ _ h_old (by
-              cases r with
-              | mk content rest => cases rest with
-                | mk style _ =>
-                  simp at h_style_ne_plain
-                  show match (YamlToken.scalar content style) with
-                    | .scalar _ .plain => False | _ => True
-                  cases style <;> first | trivial | exact absurd rfl h_style_ne_plain)
           · cases h_ok
+          · split at h_ok
+            · rename_i r hBS
+              simp only [Except.ok.injEq] at h_ok
+              subst h_ok
+              -- Block scalar — style is .literal or .folded (non-plain)
+              have h_style_ne_plain : r.2.1 ≠ .plain := scanBlockScalarIx_style_not_plain hBS
+              exact emitAt_non_plain_preserves_PlainScalarsValidIx _ _ _ _ h_old (by
+                cases r with
+                | mk content rest => cases rest with
+                  | mk style _ =>
+                    simp at h_style_ne_plain
+                    show match (YamlToken.scalar content style) with
+                      | .scalar _ .plain => False | _ => True
+                    cases style <;> first | trivial | exact absurd rfl h_style_ne_plain)
+            · cases h_ok
         · rw [if_neg hg4] at h_ok
           by_cases hg5 : (c == '"') = true
           · rw [if_pos hg5] at h_ok
@@ -3952,20 +3955,23 @@ lemma scanNextTokenIx_dispatchContent_preserves_FlowContextPSVIx
       · rw [if_neg hg3] at h_ok
         by_cases hg4 : (c == '|' || c == '>') = true
         · rw [if_pos hg4] at h_ok
+          -- Peel the §6.7 header-newline guard: its throw arm cannot be `.ok`.
           split at h_ok
-          · rename_i r hBS
-            simp only [Except.ok.injEq] at h_ok
-            subst h_ok
-            have h_style_ne_plain : r.2.1 ≠ .plain := scanBlockScalarIx_style_not_plain hBS
-            exact emitAt_non_flow_non_plain_preserves_FlowContextPSVIx _ _ _ _ h_old (by
-              cases r with
-              | mk content rest => cases rest with
-                | mk style _ =>
-                  simp at h_style_ne_plain
-                  show match (YamlToken.scalar content style) with
-                    | .scalar _ .plain => False | _ => True
-                  cases style <;> first | trivial | exact absurd rfl h_style_ne_plain)
           · cases h_ok
+          · split at h_ok
+            · rename_i r hBS
+              simp only [Except.ok.injEq] at h_ok
+              subst h_ok
+              have h_style_ne_plain : r.2.1 ≠ .plain := scanBlockScalarIx_style_not_plain hBS
+              exact emitAt_non_flow_non_plain_preserves_FlowContextPSVIx _ _ _ _ h_old (by
+                cases r with
+                | mk content rest => cases rest with
+                  | mk style _ =>
+                    simp at h_style_ne_plain
+                    show match (YamlToken.scalar content style) with
+                      | .scalar _ .plain => False | _ => True
+                    cases style <;> first | trivial | exact absurd rfl h_style_ne_plain)
+            · cases h_ok
         · rw [if_neg hg4] at h_ok
           by_cases hg5 : (c == '"') = true
           · rw [if_pos hg5] at h_ok
@@ -4064,16 +4070,19 @@ lemma scanNextTokenIx_dispatchContent_preserves_FlowNestingInvIx
       · rw [if_neg hg3] at h_ok
         by_cases hg4 : (c == '|' || c == '>') = true
         · rw [if_pos hg4] at h_ok
+          -- Peel the §6.7 header-newline guard: its throw arm cannot be `.ok`.
           split at h_ok
-          · rename_i r hBS
-            simp only [Except.ok.injEq] at h_ok
-            subst h_ok
-            -- s' = { sAfter.emitAt startPos (.scalar content style) hBound with simpleKeyAllowed := false }
-            -- where sAfter = { s with cursor := r.2.2 } — cursor-only update preserves FNI.
-            exact emitAt_non_flow_preserves_FlowNestingInvIx _ _ _ _ h_fni
-              (by intro h; cases h) (by intro h; cases h)
-              (by intro h; cases h) (by intro h; cases h)
           · cases h_ok
+          · split at h_ok
+            · rename_i r hBS
+              simp only [Except.ok.injEq] at h_ok
+              subst h_ok
+              -- s' = { sAfter.emitAt startPos (.scalar content style) hBound with simpleKeyAllowed := false }
+              -- where sAfter = { s with cursor := r.2.2 } — cursor-only update preserves FNI.
+              exact emitAt_non_flow_preserves_FlowNestingInvIx _ _ _ _ h_fni
+                (by intro h; cases h) (by intro h; cases h)
+                (by intro h; cases h) (by intro h; cases h)
+            · cases h_ok
         · rw [if_neg hg4] at h_ok
           by_cases hg5 : (c == '"') = true
           · rw [if_pos hg5] at h_ok
@@ -5950,11 +5959,14 @@ lemma scanNextTokenIx_dispatchContent_preserves_AllKeysPlaceholderInvIx {input :
         · -- c == '|' || c == '>': block scalar (inline match). Unlike the
           -- inline-scalar arms this one clears the pending simple key.
           rw [if_pos hg4] at h_ok
+          -- Peel the §6.7 header-newline guard: its throw arm cannot be `.ok`.
           split at h_ok
-          · simp only [Except.ok.injEq] at h_ok
-            subst h_ok
-            exact _block_scalar_preserves_AllKeysPlaceholderInvIx s _ _ _ _ h_akpi
           · cases h_ok
+          · split at h_ok
+            · simp only [Except.ok.injEq] at h_ok
+              subst h_ok
+              exact _block_scalar_preserves_AllKeysPlaceholderInvIx s _ _ _ _ h_akpi
+            · cases h_ok
         · rw [if_neg hg4] at h_ok
           by_cases hg5 : (c == '"') = true
           · -- c == '"': double quoted

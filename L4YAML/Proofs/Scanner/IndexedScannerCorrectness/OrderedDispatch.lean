@@ -1222,6 +1222,9 @@ lemma scanNextTokenIx_dispatchContent_preserves_ScanInvIx {input : String}
         by_cases hg4 : (c == '|' || c == '>') = true
         · -- block scalar
           rw [if_pos hg4] at h_ok
+          -- Peel the §6.7 header-newline guard: its throw arm cannot be `.ok`.
+          split at h_ok
+          · cases h_ok
           split at h_ok
           · rename_i r hBS
             simp only [Except.ok.injEq] at h_ok; subst h_ok
@@ -1298,6 +1301,9 @@ lemma scanNextTokenIx_dispatchContent_preserves_AllKeysValidIx {input : String}
         by_cases hg4 : (c == '|' || c == '>') = true
         · -- block scalar (clears the pending simple key, unlike the inline arms)
           rw [if_pos hg4] at h_ok
+          -- Peel the §6.7 header-newline guard: its throw arm cannot be `.ok`.
+          split at h_ok
+          · cases h_ok
           split at h_ok
           · rename_i r hBS
             simp only [Except.ok.injEq] at h_ok; subst h_ok

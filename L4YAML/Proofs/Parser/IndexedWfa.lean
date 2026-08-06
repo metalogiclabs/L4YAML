@@ -419,8 +419,19 @@ lemma parseBlockMappingEntryValue_wfa
     all_goals (try (obtain ⟨rfl, rfl⟩ := h_ok; exact h_tc_wfa))
     -- parseNode goals
     all_goals exact h_ih _ fuel _ _ h_fuel h_tc_tok h_ok h_tc_wfa
-  · -- consumed = false
-    obtain ⟨rfl, rfl⟩ := h_ok; exact h_tc_wfa
+  · -- consumed = false: retroactive-key skip (V9D5) or empty value.
+    -- Anchors/tokens are preserved through the skipped `key` and consumed `:`.
+    have h_C_wfa : WellFormedAnchors
+        (((ps.tryConsume .value).2.tryConsume .key).2.tryConsume .value).2.anchors := by
+      rw [tc_anchors_ix, tc_anchors_ix]; exact h_tc_wfa
+    have h_C_tok : (((ps.tryConsume .value).2.tryConsume .key).2.tryConsume .value).2.tokens
+        = tokens := by rw [tc_tokens_wfa_ix, tc_tokens_wfa_ix]; exact h_tc_tok
+    split at h_ok                    -- outer: peek?, peekNext?
+    all_goals (try (split at h_ok))  -- inner: peek? dispatch in the retroactive arm
+    all_goals (first
+      | (obtain ⟨rfl, rfl⟩ := h_ok; exact h_tc_wfa)
+      | (obtain ⟨rfl, rfl⟩ := h_ok; exact h_C_wfa)
+      | exact h_ih _ fuel _ _ h_fuel h_C_tok h_ok h_C_wfa)
 
 -- handleBlockMappingValueEntry
 lemma handleBlockMappingValueEntry_wfa
@@ -502,7 +513,15 @@ lemma parseBlockMappingEntryValue_tok
     all_goals (first | (split at h_ok <;> first | contradiction | skip) | skip)
     all_goals (try (obtain ⟨rfl, rfl⟩ := h_ok; exact h_tc_tok))
     all_goals exact parseNode_tokens_of_wb_ix h_wb _ fuel h_fuel h_tc_tok _ _ h_ok
-  · obtain ⟨rfl, rfl⟩ := h_ok; exact h_tc_tok
+  · -- consumed = false: retroactive-key skip (V9D5) or empty value.
+    have h_C_tok : (((ps.tryConsume .value).2.tryConsume .key).2.tryConsume .value).2.tokens
+        = tokens := (tc_tokens_wfa_ix _ _).trans ((tc_tokens_wfa_ix _ _).trans h_tc_tok)
+    split at h_ok                    -- outer: peek?, peekNext?
+    all_goals (try (split at h_ok))  -- inner: peek? dispatch in the retroactive arm
+    all_goals (first
+      | (obtain ⟨rfl, rfl⟩ := h_ok; exact h_tc_tok)
+      | (obtain ⟨rfl, rfl⟩ := h_ok; exact h_C_tok)
+      | exact parseNode_tokens_of_wb_ix h_wb _ fuel h_fuel h_C_tok _ _ h_ok)
 
 lemma handleBlockMappingValueEntry_tok
     {tokens : Indexed.TokenStream input} {n : Nat}
@@ -1213,8 +1232,8 @@ lemma parseNodeContent_wfa
     (h_wb : ParseNodeWBIx tokens n)
     (ps : ParseStateIx input) (fuel : Nat) (h_fuel : fuel ≤ n)
     (h_tok : ps.tokens = tokens)
-    (props : NodeProperties) (val : YamlValue) (ps' : ParseStateIx input)
-    (h_ok : parseNodeContent ps fuel props = .ok (val, ps'))
+    (props : NodeProperties) (isSeqEntry : Bool) (val : YamlValue) (ps' : ParseStateIx input)
+    (h_ok : parseNodeContent ps fuel props isSeqEntry = .ok (val, ps'))
     (h_wfa : WellFormedAnchors ps.anchors) :
     WellFormedAnchors ps'.anchors := by
   unfold parseNodeContent at h_ok
@@ -1224,7 +1243,13 @@ lemma parseNodeContent_wfa
     rw [advance_anchors_ix]; exact h_wfa
   · exact parseBlockSequence_wfa h_ih h_wb ps fuel (by omega) h_tok _ _ h_ok h_wfa
   · exact parseBlockMapping_wfa h_ih h_wb ps fuel (by omega) h_tok _ _ h_ok h_wfa
-  · exact parseImplicitBlockSequence_wfa h_ih h_wb ps fuel (by omega) h_tok _ _ h_ok h_wfa
+  · -- blockEntry: empty scalar (seq-entry context, C2) or implicit block sequence
+    split at h_ok
+    · -- isSeqEntry: empty scalar, ps' = ps (C2)
+      simp only [Except.ok.injEq] at h_ok; obtain ⟨_, rfl⟩ := Prod.mk.inj h_ok
+      exact h_wfa
+    · -- otherwise: implicit block sequence
+      exact parseImplicitBlockSequence_wfa h_ih h_wb ps fuel (by omega) h_tok _ _ h_ok h_wfa
   · exact parseFlowSequence_wfa h_ih h_wb ps fuel (by omega) h_tok _ _ h_ok h_wfa
   · exact parseFlowMapping_wfa h_ih h_wb ps fuel (by omega) h_tok _ _ h_ok h_wfa
   · -- empty scalar: ps' = ps
@@ -1382,14 +1407,14 @@ lemma parseNode_wfa_all
             dsimp only [] at h_ok
             -- WFA propagation through content
             have h_wfa_c := parseNodeContent_wfa ih h_pnwb ps_props k h_k_le
-              h_tok_props props val_c ps_c heq_content h_wfa_props
+              h_tok_props props _ val_c ps_c heq_content h_wfa_props
             -- Scannable from WB
             have h_cwb := parseNodeContent_wb_ix tokens n k h_k_le h_fpsv h_pnwb h_matched
-              ps_props props (val_c, ps_c) h_tok_props heq_content
+              ps_props props _ (val_c, ps_c) h_tok_props heq_content
             -- AAR from content_aar
             have h_aar_c := parseNodeContent_aar
               (parseNode_aar_all n) (parseNode_ag_all n)
-              ps_props k (by omega) props val_c ps_c heq_content
+              ps_props k (by omega) props _ val_c ps_c heq_content
             -- h_ok: applyNodeFinalization val_c ps_c props nodeStartPos = (val, ps')
             -- (after Except.ok injection)
             simp only [Except.ok.injEq] at h_ok
@@ -1594,6 +1619,13 @@ lemma parseStreamLoop_wfa
     split at h_ok
     · simp only [Except.ok.injEq] at h_ok; subst h_ok; exact h_acc
     · simp only [Except.ok.injEq] at h_ok; subst h_ok; exact h_acc
+    · -- documentEnd (bare `...` suffix, C1) → skip it, recurse with same accumulator
+      apply ih
+      · exact (tc_tokens_wfa_ix ps .documentEnd).trans h_tok
+      · have h_eq := tc_anchors_ix ps .documentEnd
+        simp only [h_eq]; exact h_wfa_ps
+      · exact h_acc
+      · exact h_ok
     · -- some tok
       split at h_ok
       · simp at h_ok -- invalid token → error

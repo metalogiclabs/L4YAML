@@ -17,10 +17,11 @@ the one consumers of `parseYaml*Ix` actually run — against the same
 § Indexed-pipeline parity gap, plan item 5).
 
 `parseStreamMarkedLoopIx` mirrors `TokenParser.Indexed.parseStreamLoop`
-arm-for-arm, **not** the legacy `parseStreamMarkedLoop`: where the two
-stream loops differ (e.g. legacy's bare-`...` document-suffix arm, fix C1,
-has no indexed counterpart yet), the divergence must show up in the matrix
-score rather than be papered over by the measurement harness.  All event
+arm-for-arm, **not** the legacy `parseStreamMarkedLoop`: if the two
+stream loops ever differ, the divergence must show up in the matrix
+score rather than be papered over by the measurement harness.  (The
+bare-`...` document-suffix arm, fix C1, was ported to the indexed loop
+on 2026-08-05 — this mirror gained it in the same commit.)  All event
 *emission* (`emitStream`, `emitValue`, tag percent-decoding) is shared with
 the legacy emitter, so any score difference is attributable to scan/parse
 alone.
@@ -52,8 +53,8 @@ def explicitStartAtIx {input : String} (ps : ParseStateIx input) : Bool :=
 
 /-- Mirror of `TokenParser.Indexed.parseStreamLoop` that additionally records
     explicit `---` / `...` markers for each document.  Arm-for-arm with the
-    *indexed* loop (see module docstring): in particular it has no bare-`...`
-    suffix arm, because the indexed loop has none. -/
+    *indexed* loop (see module docstring), including its bare-`...`
+    document-suffix arm (fix C1). -/
 def parseStreamMarkedLoopIx {input : String} (ps : ParseStateIx input)
     (acc : Array MarkedDoc) (streamState : StreamState) (fuel : Nat) :
     Except ScanError (Array MarkedDoc) :=
@@ -63,6 +64,12 @@ def parseStreamMarkedLoopIx {input : String} (ps : ParseStateIx input)
     match ps.peek? with
     | some .streamEnd => .ok acc
     | none => .ok acc
+    | some .documentEnd =>
+      -- Mirror of the indexed `parseStreamLoop`'s suffix handling: a bare
+      -- `...` is a document *suffix* (§9.2 [205]), not an empty document.
+      -- Consume and continue without recording a spurious empty `MarkedDoc`.
+      let (_, ps) := ps.tryConsume .documentEnd
+      parseStreamMarkedLoopIx ps acc .afterDocumentEnd fuel
     | some tok =>
       if !streamState.validNextToken tok then
         let pos := ps.peekPos?.getD { offset := 0, line := 0, col := 0 }

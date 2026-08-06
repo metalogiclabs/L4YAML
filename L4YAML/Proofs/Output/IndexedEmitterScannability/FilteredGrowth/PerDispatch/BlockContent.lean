@@ -404,6 +404,9 @@ lemma dispatchContent_new_not_placeholderIx {s s' : ScannerStateIx input} {c : C
       · rw [if_neg hg3] at h
         by_cases hg4 : (c == '|' || c == '>') = true
         · rw [if_pos hg4] at h
+          -- Peel the §6.7 header-newline guard: its throw arm cannot be `.ok`.
+          split at h
+          · cases h
           split at h
           · rename_i r hBS
             cases h
@@ -485,6 +488,9 @@ lemma dispatchContent_adds_one_tokenIx {s s' : ScannerStateIx input} {c : Char}
       · rw [if_neg hg3] at h
         by_cases hg4 : (c == '|' || c == '>') = true
         · rw [if_pos hg4] at h
+          -- Peel the §6.7 header-newline guard: its throw arm cannot be `.ok`.
+          split at h
+          · cases h
           split at h
           · rename_i r hBS; cases h; simp only [emitAt_tokens_size]
           · cases h
