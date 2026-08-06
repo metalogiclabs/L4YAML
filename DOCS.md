@@ -5491,13 +5491,16 @@ theorem nobody's build depends on yet.
 | 6 | ✅ **done 2026-08-06** — all seven legacy fixes ported (B1/B2/B3/C1/C2/C3/E + the R4YG first-line-tab residue), D5 root-caused (`needIndentCheck` after a block scalar) and fixed, zero-indent block scalars (`indentFloor`, DK3J/FP8R — which also cured the M7A3/W4TN `%`-as-directive misreads) and the missing §6.7 header-newline guard (2G84/01) fixed. Re-scored: **event 387/402, JSON 280/282 — every diff and every reject gone; 308/308 valid tests pass both axes**. 12 new parity-guard rows; full build at the same pre-existing baseline | — | [The matrix score](#the-matrix-score) |
 | 7 | ✅ **done 2026-08-06** — all six missing legacy strictness checks transcribed as read-only validator walkers + dispatcher/preprocess throws (tab-as-indentation ×2 contexts, §8.1.3 auto-detect validation, doc-markers + under-indent + tab in quoted continuations, §6.6 comment-needs-whitespace, §6.7 header `#` glue). Re-scored: **event 402/402, JSON 282/282, accept/reject 402/402 — full parity, all 15 err-miss gone, zero new rejects**; 15 reject-parity + 8 accept-boundary guard rows; full build at the same pre-existing baseline | — | [The matrix score](#the-matrix-score) |
 | 8 | ✅ **done 2026-08-06** — both depth-0 `[`/`{` opens wired via per-pending resume dispatch (`accum_flow_open_depth0`): faithful `flowInBlock` block-value resume for `pendingBlock` (THE scannerDrop case — `key: [a]` stays one document), doc-builder resume for `pendingDocStart` (`--- [a]`), fresh-bare-document resume for the closeable pendings at ANY column. Enabled by decoupling `seqBase`/`mapBase`'s outer boundary from the bracket position. `accum_step_flow` down to the single depth-≥1 hole; two narrowed residues (inline-adjacency vacuity, `pendingBlock n≥1`). Full build at the same pre-existing baseline | `scannerDrop` deletion → converse → `parse_iff_grammar` | [Fix A](#fix-a-eliminating-scannerdrop--flow-indicator-grammar-evidence) |
-| 9 | ⬜ **open** — B.4β.2 depth-≥1 flow interior (nested push / pop-to-base-or-nest / comma-hold, sep-threading), then β.3 `hpos` branches, β.4 chain-threading, β.5 retire `pendingFlow` + delete `scannerDrop` | `scannerDrop` deletion → converse → `parse_iff_grammar` | [Fix A](#fix-a-eliminating-scannerdrop--flow-indicator-grammar-evidence) |
+| 9 | 🟡 **structurally done 2026-08-06** — B.4β.2 depth-≥1 flow interior FULLY WIRED: all five dispatch arms (`[`/`{` nested push via `receiveNode`-built `inject`, `]`/`}` pop-to-base (`resume`→`pendingContent`) and pop-to-nest (`inject`), `,` hold via `holdComma`) with total sep-threading on the new §9 separator-composition algebra (`SSeparate_trans` + retrofits). Residues = 3 pinned coupling families (see 9a/9b) | `scannerDrop` deletion → converse → `parse_iff_grammar` | [Fix A](#fix-a-eliminating-scannerdrop--flow-indicator-grammar-evidence) |
+| 9a | ⬜ **open — flow-close KIND strictening**: the scanner accepts mismatched closes (`[a}`, `{a]`, `[{a]]`, `{a: [b}}` all scan-OK, probe-verified 2026-08-06 — `scanFlow*End` pops `flowStack` without checking the popped kind; `validateFlowClose` is only a trailing-content check). No grammar derivation exists ⇒ scan-strictness is FALSE without `scannerDrop`. Fix = kind check (`flowStack.back?`) in the `]`/`}` dispatch arms, legacy + BOTH indexed twins + parity guards; constructive-proof repair rides the `simpleKeyStack` restoration groove (~25 emitted-scan files thread `s'.simpleKeyStack = s.simpleKeyStack` — add the `flowStack` twin conjunct at the same sites) | unblocks the 4 kind-mismatch residues in `accum_step_flow` | [Fix A](#fix-a-eliminating-scannerdrop--flow-indicator-grammar-evidence) |
+| 9b | ⬜ **open — scanner-state ↔ frame couplings**: (i) kinds index on `FlowOpenStack`/`FlowStackB` coupled to `sc.flowStack` (refutes kind-mismatch arms, with 9a); (ii) token-history coupling (`lastRealTokenVal?` ↔ top-frame shape) refuting the comma-degenerate (`[,`/`,,` — 4 sites in `holdComma`) and adjacency (node-after-completed-entry — 12 sites in `receiveNode`) shapes the scanner already rejects; (iii) `pendingBlock n = 0` pin. Then β.3 interior content/block/EOF `hpos` branches (consumers of `receiveNode`), β.4 chain-threading, β.5 retire `pendingFlow` + delete `scannerDrop` | ditto | ditto |
 
 Items 1–8 are done: the indexed pipeline scores identically to legacy on
 all three axes (item 5's classified work-list was executed as items 6
 and 7), and the depth-0 flow opens produce real `FlowOpenStack` evidence
-with the faithful per-pending resumes. Item 9 is the remaining
-multi-session red core.
+with the faithful per-pending resumes. Item 9's interior dispatch is
+structurally complete (every scanner-real transition derives real
+evidence); items 9a/9b are the remaining coupling work, then β.3–β.5.
 
 ## The ns-char gap
 
@@ -6706,6 +6709,77 @@ needed no changes.)
        `StreamAccum` + `DocumentProduction` green (46 jobs); full build at the same pre-existing
        baseline (Capstones gate + 2 Reflections). NEXT = the depth-≥1 interior (nested push /
        pop-to-base-or-nest / comma-hold with the sep-threading rule), then β.3.
+
+       **UPDATE (2026-08-06, second session) — depth-≥1 interior FULLY WIRED (item 9 structural
+       core; green at baseline).** Four layers landed:
+
+       1. **Probe finding (item 9a, NEW plan item): the scanner accepts kind-mismatched flow
+          closes.** `[a}`, `{a]`, `[{a]]`, `{a: [b}}` all scan-OK (parse rejects with
+          `expectedToken`): `scanFlowSequenceEnd`/`scanFlowMappingEnd` pop `flowStack` without
+          comparing the popped kind, and `validateFlowClose` only checks trailing content at
+          `flowLevel = 0`. No grammar derivation exists for these ⇒ scan-strictness would be FALSE
+          without `scannerDrop` — the same class of gap as the flow-adjacency family, missed by the
+          original flowaudit (it probed entry shapes, not close kinds). Commas are already strict
+          (`invalidFlowEntry` via `lastRealTokenVal?` for `[,`/`,,`; trailing commas legal). The 9a
+          fix: `flowStack.back?` kind check in the `]`/`}` dispatch arms (legacy + both indexed
+          twins + parity guards); the constructive (emitter-side) repair threads
+          `s'.flowStack = s.flowStack` restoration through the emitted-scan tuples — riding the
+          EXISTING `simpleKeyStack` restoration groove (~25 files, same push/pop events, mechanical
+          twin conjunct).
+       2. **§9 separator-composition algebra (`PreprocessProduction`, GREEN, sorry-free):**
+          `SSeparateInLine_trans`, `SSLComments_prepend_inline`/`_append_gstar`/`_trans_prefix`,
+          `SFlowLinePrefix_extend_inline`, `SSeparateLines_trans`, **`SSeparate_trans`**,
+          `GOpt_SSeparate_extend[_opt]`, and the retrofits `SFlow{Seq,Map}Entries_extendSep`
+          (closeable-spine induction folding a trailing separation into the innermost entry's
+          `GOpt` slot). Derivability rests on the col-agnostic `SSeparateInLine.startOfLine`
+          weakening; the only refutations are column-arithmetic (a nonempty whitespace run cannot
+          end at a real start of line). This makes ALL sep-threading retrofits total algebra — no
+          reachability reasoning about slot shapes.
+       3. **Interior position coupling:** the lagging quint gained a 6th conjunct
+          `s'.flowLevel ≥ 1 → sp_flow' = sp_scan'` (hyp `h_interior` + conclusion), threaded
+          through all 8 step/loop lemmas + kickoff (`fun _ => rfl` at the interior witnesses,
+          vacuous-by-`omega` at depth-0 exits, trivial at the kickoff since all positions
+          coincide). This is what lets the depth-≥1 branch discard `PendingNode` (`subst` the
+          equality) and work purely on the frame.
+       4. **The depth-≥1 dispatch (`accum_step_flow`), all five arms:** after
+          `generalize`-abstracting the allowDirectives-updated state to `s_ad` (so `split` lands on
+          the flowLevel/validate/`scanFlowEntry` decision points), each arm derives its leading
+          separation via `preprocess_some_separate_0_anyCol` and its `GLit`+corr+flowLevel facts
+          via the new `scanFlow{SequenceEnd,MappingEnd,Entry}_prod` (mirrors of the Start `_prod`s;
+          the Entry one peels the `invalidFlowEntry` guard). Transitions consumed from the new
+          §1c''a frame algebra: **`FlowOpenStack.receiveNode`** (THE central receiver — folds a
+          completed `.flowIn` node + leading sep into the same-depth stack: `between empty/held →
+          mid nodePending/keyPending` with the sep in the post-bracket or post-comma slot;
+          `mid colonPending → between` via `finishValue`/`finishPairValue`/`finishExplicit*`/
+          `finishEmptyKeyValue` with the sep as the mandatory `:`→value separation) — the nested
+          push (`[`/`{`, depth +1) builds the child `seqNest`/`mapNest` with
+          `inject := receiveNode h_fos h_lead` and β.3's content steps will consume it directly;
+          **`SeqFrame.closeWithSep`/`MapFrame.closeWithSep`** (`]`/`}` — TOTAL over every frame
+          state: mid entries complete with an empty tail — `[a:]`, `[? a]`, `{a}`, `{a:}`, `{:}` —
+          via the §4f/§4g finishers with the sep as `h_sep_tr`; `between` shapes retrofit via
+          `extendSep`/`GOpt_SSeparate_extend`) feeding pop-to-base (d+1=1: `resume` +
+          `PendingNode.pendingContent`, `FlowStackB.nil`) and pop-to-nest (`inject sp_tok node`,
+          depth d); **`SeqFrame.holdComma`/`MapFrame.holdComma`** (`,` — finish any mid entry with
+          the sep as trailing, land in `held` via the new `FlowSeqPrefix.appendEntryHeld`/
+          `FlowMapPrefix.appendEntryHeld` (NodeProduction); `between entries` retrofits then
+          holds). **Gotcha:** `cases` on `FlowOpenStack` floats the RECURSIVE `inject` field to
+          second-to-last — nest-arm context order is `h_open, h_sep, inject, st` (probe-verified
+          with a mock; base arms keep declaration order).
+
+       **Sorry ledger after the slice: 27 sites / 9 declarations, in THREE pinned residue
+       families** (every scanner-real transition is green with a faithful derivation):
+       (a) **kind coupling + 9a strictening** — 4 mismatch arms in `accum_step_flow` (`]` on
+       map frames, `}` on seq frames; scan-accepted today, so locally unrefutable);
+       (b) **token-history coupling** (`lastRealTokenVal?` ↔ top-frame shape) — 12 adjacency arms
+       in `receiveNode` (node directly after a completed entry/key — `checkFlowAdjacency`-rejected)
+       + 4 comma-degenerate arms in `holdComma` (`[,`/`,,` — `invalidFlowEntry`-rejected);
+       (c) the pre-existing pair in `accum_flow_open_depth0` (col≠0-no-break vacuity;
+       `pendingBlock n ≥ 1` pin) + the 4 β.3 `hpos` branches
+       (structural/block/content/none_stream — the content one now has `receiveNode` waiting).
+       `StreamAccum` + `DocumentProduction` green (46 jobs); full build at the same pre-existing
+       baseline (Capstones gate + the 2 Reflections files). NEXT = 9a (kind strictening, own
+       session — the `simpleKeyStack`-groove sweep), 9b (kinds index + token-history coupling),
+       then β.3.
 
      Replace the invariant's flow component
      `FlowStack sp_block sp_flow` → `FlowStackB sp_start sc.flowLevel sp_block sp_flow` across the

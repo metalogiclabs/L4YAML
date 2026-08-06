@@ -935,4 +935,207 @@ lemma skipToContent_peek_not_break
     needed here — this layer provides the preprocessing coupling that
     feeds into those existing results. -/
 
+/-! ## §9 Separator composition algebra (Fix A B.4β.2, sep-threading)
+
+    Transitivity of the separation productions: two adjacent separations
+    compose into one. This is the enabling primitive for the flow-interior
+    sep-threading rule (each accumulation step consumes its OWN leading
+    separation, which must be folded into the trailing separator slot of the
+    grammar construct built by the PREVIOUS step — an entry's trailing
+    `GOpt (SSeparate n c)`, a `held` frame's post-comma slot, or the
+    collection's post-bracket slot). With composition, those retrofits are
+    total algebra: no reachability reasoning about which slot shapes occur.
+
+    Derivability rests on the deliberate col-agnostic weakening of
+    `SSeparateInLine.startOfLine` (any zero-width match, §5.2 BOM note): the
+    only refutations needed are column-arithmetic (whitespace runs strictly
+    increase the column, so none can end at an actual start of line). -/
+
+/-- An inline separation is a whitespace run (`startOfLine` is the empty run). -/
+lemma SSeparateInLine_to_GStar_SSWhite {a b : SurfPos}
+    (h : SSeparateInLine a b) : GStar SSWhite a b := by
+  cases h with
+  | whites _ hp =>
+    cases hp
+    rename_i hw hrest
+    exact .cons _ _ _ hw hrest
+  | startOfLine => exact .nil _
+
+/-- Inline separations compose. -/
+lemma SSeparateInLine_trans {a b c : SurfPos}
+    (h₁ : SSeparateInLine a b) (h₂ : SSeparateInLine b c) : SSeparateInLine a c :=
+  GStar_SSWhite_to_SSeparateInLine a c
+    (GStar_trans (SSeparateInLine_to_GStar_SSWhite h₁)
+      (SSeparateInLine_to_GStar_SSWhite h₂))
+
+/-- A nonempty whitespace run strictly increases the column. -/
+lemma gplus_sswhite_col_gt {a b : SurfPos} (h : GPlus SSWhite a b) :
+    b.col ≥ a.col + 1 := by
+  cases h
+  rename_i hw hrest
+  have h1 := sswhite_col_succ _ _ hw
+  have h2 := gstar_sswhite_col_ge _ _ hrest
+  omega
+
+/-- Indentation is a whitespace run. -/
+lemma SIndent_to_GStar_SSWhite {n : Nat} {a b : SurfPos}
+    (h : SIndent n a b) : GStar SSWhite a b := by
+  induction h with
+  | zero => exact .nil _
+  | succ n rest col s' _ ih => exact .cons _ ⟨rest, col + 1⟩ _ (.space rest col) ih
+
+/-- A flow line prefix (indent + optional inline separation) is a whitespace run. -/
+lemma SFlowLinePrefix_to_GStar_SSWhite {n : Nat} {a b : SurfPos}
+    (h : SFlowLinePrefix n a b) : GStar SSWhite a b := by
+  cases h
+  rename_i hind hopt
+  refine GStar_trans (SIndent_to_GStar_SSWhite hind) ?_
+  cases hopt with
+  | none => exact .nil _
+  | some _ hil => exact SSeparateInLine_to_GStar_SSWhite hil
+
+/-- Prepend an inline separation to an `SSBComment` (folds into its leading
+    `s-separate-in-line` slot). -/
+lemma SSBComment_prepend {a b c : SurfPos}
+    (h_il : SSeparateInLine a b) (h : SSBComment b c) : SSBComment a c := by
+  cases h with
+  | withSep s₁ s₂ _ hsep hopt hbc =>
+    exact .withSep _ s₁ s₂ _ (SSeparateInLine_trans h_il hsep) hopt hbc
+  | noSep _ hbc => exact .withSep _ b b _ h_il (GOpt.none b) hbc
+
+/-- A whitespace run followed by an `s-b-comment` is a full `l-comment` line. -/
+lemma SLComment_of_ws_SSBComment {a b c : SurfPos}
+    (h_ws : GStar SSWhite a b) (h : SSBComment b c) : SLComment a c := by
+  cases h with
+  | withSep s₁ s₂ _ hsep hopt hbc =>
+    exact .mk _ s₁ s₂ _
+      (SSeparateInLine_trans (GStar_SSWhite_to_SSeparateInLine a b h_ws) hsep) hopt hbc
+  | noSep _ hbc =>
+    exact .mk _ b b _ (GStar_SSWhite_to_SSeparateInLine a b h_ws) (GOpt.none b) hbc
+
+/-- Append a run of `l-comment` lines to an `SSLComments` (generalizes
+    `SSLComments_snoc`). -/
+lemma SSLComments_append_gstar {a b c : SurfPos}
+    (h_ssl : SSLComments a b) (h_lcs : GStar SLComment b c) : SSLComments a c := by
+  cases h_ssl
+  · rename_i mid hsbc hgstar
+    exact .withComment _ mid _ hsbc (GStar_trans hgstar h_lcs)
+  · rename_i chars hgstar
+    exact .startOfLine chars _ (GStar_trans hgstar h_lcs)
+
+/-- Prepend an inline separation to an `SSLComments`. The `startOfLine` head is
+    reachable only by the empty run (a nonempty whitespace run cannot end at
+    column 0). -/
+lemma SSLComments_prepend_inline {a b c : SurfPos}
+    (h_il : SSeparateInLine a b) (h : SSLComments b c) : SSLComments a c := by
+  cases h
+  · rename_i mid hsbc hgstar
+    exact .withComment _ mid _ (SSBComment_prepend h_il hsbc) hgstar
+  · rename_i chars hgstar
+    cases h_il with
+    | startOfLine => exact .startOfLine chars _ hgstar
+    | whites _ hp =>
+      exact absurd (gplus_sswhite_col_gt hp) (by simp)
+
+/-- Splice `SSLComments + flow-line-prefix + SSLComments` into one
+    `SSLComments` (the prefix + the second block's head comment fold into one
+    additional `l-comment` line). -/
+lemma SSLComments_trans_prefix {n : Nat} {a s₁ b c : SurfPos}
+    (h₁ : SSLComments a s₁) (h_pre : SFlowLinePrefix n s₁ b)
+    (h₂ : SSLComments b c) : SSLComments a c := by
+  have h_ws := SFlowLinePrefix_to_GStar_SSWhite h_pre
+  cases h₂
+  · rename_i mid hsbc hgstar
+    exact SSLComments_append_gstar
+      (SSLComments_snoc h₁ (SLComment_of_ws_SSBComment h_ws hsbc)) hgstar
+  · rename_i chars hgstar
+    have h_eq : (⟨chars, 0⟩ : SurfPos) = s₁ :=
+      gstar_sswhite_col_eq_nil s₁ ⟨chars, 0⟩
+        (by have := gstar_sswhite_col_ge _ _ h_ws; simp at this ⊢; omega) h_ws
+    exact SSLComments_append_gstar h₁ (h_eq ▸ hgstar)
+
+/-- Extend a flow line prefix by an inline separation (folds into its optional
+    trailing `s-separate-in-line` slot). -/
+lemma SFlowLinePrefix_extend_inline {n : Nat} {a b c : SurfPos}
+    (h : SFlowLinePrefix n a b) (h_il : SSeparateInLine b c) :
+    SFlowLinePrefix n a c := by
+  cases h
+  rename_i hind hopt
+  cases hopt with
+  | none => exact .mk n _ _ _ hind (GOpt.some _ _ h_il)
+  | some _ hil => exact .mk n _ _ _ hind (GOpt.some _ _ (SSeparateInLine_trans hil h_il))
+
+/-- `s-separate-lines(n)` composes. -/
+lemma SSeparateLines_trans {n : Nat} {a b c : SurfPos}
+    (h₁ : SSeparateLines n a b) (h₂ : SSeparateLines n b c) :
+    SSeparateLines n a c := by
+  cases h₁ with
+  | inline _ hil₁ =>
+    cases h₂ with
+    | inline _ hil₂ => exact .inline n _ _ (SSeparateInLine_trans hil₁ hil₂)
+    | commented s₁ _ hssl hpre =>
+      exact .commented n _ s₁ _ (SSLComments_prepend_inline hil₁ hssl) hpre
+  | commented s₁ _ hssl₁ hpre₁ =>
+    cases h₂ with
+    | inline _ hil₂ =>
+      exact .commented n _ s₁ _ hssl₁ (SFlowLinePrefix_extend_inline hpre₁ hil₂)
+    | commented s₂ _ hssl₂ hpre₂ =>
+      exact .commented n _ s₂ _ (SSLComments_trans_prefix hssl₁ hpre₁ hssl₂) hpre₂
+
+/-- `s-separate(n,c)` composes (context-generic). -/
+lemma SSeparate_trans {n : Nat} {c : YamlContext} {a b c' : SurfPos}
+    (h₁ : SSeparate n c a b) (h₂ : SSeparate n c b c') : SSeparate n c a c' := by
+  cases c with
+  | blockOut | blockIn | flowOut | flowIn => exact SSeparateLines_trans h₁ h₂
+  | blockKey | flowKey => exact SSeparateInLine_trans h₁ h₂
+
+/-- Extend an optional separation by a further separation (retrofit primitive:
+    fold a step's leading separation into the previous construct's trailing
+    `GOpt` slot). -/
+lemma GOpt_SSeparate_extend {n : Nat} {c : YamlContext} {a b c' : SurfPos}
+    (h : GOpt (SSeparate n c) a b) (h_sep : SSeparate n c b c') :
+    GOpt (SSeparate n c) a c' := by
+  cases h with
+  | none => exact .some _ _ h_sep
+  | some _ hs => exact .some _ _ (SSeparate_trans hs h_sep)
+
+/-- Extend an optional separation by an optional separation. -/
+lemma GOpt_SSeparate_extend_opt {n : Nat} {c : YamlContext} {a b c' : SurfPos}
+    (h : GOpt (SSeparate n c) a b) (h' : GOpt (SSeparate n c) b c') :
+    GOpt (SSeparate n c) a c' := by
+  cases h' with
+  | none => exact h
+  | some _ hs => exact GOpt_SSeparate_extend h hs
+
+/-- Retrofit a trailing separation onto closeable flow-seq entries: the
+    separation folds into the innermost entry's trailing `GOpt` slot. -/
+lemma SFlowSeqEntries_extendSep {n : Nat} {c : YamlContext} {s s_e s' : SurfPos}
+    {h_entries : SFlowSeqEntries n c s s_e}
+    (h_cl : FlowSeqEntriesCloseable h_entries)
+    (h_sep : SSeparate n c s_e s') :
+    ∃ h' : SFlowSeqEntries n c s s', FlowSeqEntriesCloseable h' := by
+  induction h_cl with
+  | single he hsep =>
+    have hsep2 := GOpt_SSeparate_extend hsep h_sep
+    exact ⟨.single _ _ _ _ _ he hsep2, .single he hsep2⟩
+  | consMore he hsep hcomma hsep' tail _ ih =>
+    obtain ⟨tail', h_cl'⟩ := ih h_sep
+    exact ⟨.consMore _ _ _ _ _ _ _ _ he hsep hcomma hsep' tail',
+           .consMore he hsep hcomma hsep' tail' h_cl'⟩
+
+/-- Retrofit a trailing separation onto closeable flow-map entries. -/
+lemma SFlowMapEntries_extendSep {n : Nat} {c : YamlContext} {s s_e s' : SurfPos}
+    {h_entries : SFlowMapEntries n c s s_e}
+    (h_cl : FlowMapEntriesCloseable h_entries)
+    (h_sep : SSeparate n c s_e s') :
+    ∃ h' : SFlowMapEntries n c s s', FlowMapEntriesCloseable h' := by
+  induction h_cl with
+  | single he hsep =>
+    have hsep2 := GOpt_SSeparate_extend hsep h_sep
+    exact ⟨.single _ _ _ _ _ he hsep2, .single he hsep2⟩
+  | consMore he hsep hcomma hsep' tail _ ih =>
+    obtain ⟨tail', h_cl'⟩ := ih h_sep
+    exact ⟨.consMore _ _ _ _ _ _ _ _ he hsep hcomma hsep' tail',
+           .consMore he hsep hcomma hsep' tail' h_cl'⟩
+
 end L4YAML.Proofs.PreprocessProduction

@@ -853,6 +853,39 @@ lemma FlowSeqPrefix.appendEntry {n : Nat} {c : YamlContext} {sp sp_d sp_e sp' : 
   | cons _ _ _ h hcl hcomma hsep =>
       exact PartialFlowSeq_snocFromHeld h hcl hcomma hsep h_entry h_sep
 
+/-- Snoc a completed map entry, its trailing separator, and an immediately
+    following `,` onto a prefix, landing in the `held` state (the
+    comma-transition analog of `appendEntry`; B.4β.2 `,`-hold). -/
+lemma FlowMapPrefix.appendEntryHeld {n : Nat} {c : YamlContext}
+    {sp sp_d sp_e sp_x sp_c sp' : SurfPos}
+    (pre : FlowMapPrefix n c sp sp_d)
+    (h_entry : SFlowMapEntry n c sp_d sp_e) (h_sep_tr : GOpt (SSeparate n c) sp_e sp_x)
+    (hcomma : GLit ',' sp_x sp_c) (h_sep_post : GOpt (SSeparate n c) sp_c sp') :
+    PartialFlowMap n c sp sp' := by
+  cases pre with
+  | init =>
+      exact .held _ _ _ _ (SFlowMapEntries_single h_entry h_sep_tr)
+        (SFlowMapEntries_single_closeable h_entry h_sep_tr) hcomma h_sep_post
+  | cons _ _ _ h hcl hcomma₀ hsep₀ =>
+      exact .held _ _ _ _ (SFlowMapEntries_snoc hcl hcomma₀ hsep₀ h_entry h_sep_tr)
+        (SFlowMapEntries_snoc_closeable hcl hcomma₀ hsep₀ h_entry h_sep_tr) hcomma h_sep_post
+
+/-- Snoc a completed seq entry + `,` onto a prefix, landing in `held`
+    (see `FlowMapPrefix.appendEntryHeld`). -/
+lemma FlowSeqPrefix.appendEntryHeld {n : Nat} {c : YamlContext}
+    {sp sp_d sp_e sp_x sp_c sp' : SurfPos}
+    (pre : FlowSeqPrefix n c sp sp_d)
+    (h_entry : SFlowSeqEntry n c sp_d sp_e) (h_sep_tr : GOpt (SSeparate n c) sp_e sp_x)
+    (hcomma : GLit ',' sp_x sp_c) (h_sep_post : GOpt (SSeparate n c) sp_c sp') :
+    PartialFlowSeq n c sp sp' := by
+  cases pre with
+  | init =>
+      exact .held _ _ _ _ (SFlowSeqEntries_single h_entry h_sep_tr)
+        (SFlowSeqEntries_single_closeable h_entry h_sep_tr) hcomma h_sep_post
+  | cons _ _ _ h hcl hcomma₀ hsep₀ =>
+      exact .held _ _ _ _ (SFlowSeqEntries_snoc hcl hcomma₀ hsep₀ h_entry h_sep_tr)
+        (SFlowSeqEntries_snoc_closeable hcl hcomma₀ hsep₀ h_entry h_sep_tr) hcomma h_sep_post
+
 /-- A flow-map entry under construction (see §4f). `keyPending`: a YAML key node
     has been scanned, awaiting `:` or a bare close (`{a}`, G1). `colonPending`:
     the mapping `:` has been scanned, awaiting a value (`{a: b}`) or empty close
