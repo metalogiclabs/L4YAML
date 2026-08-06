@@ -299,7 +299,7 @@ lemma scanDoubleQuotedIx_first_filtered_token (s : ScannerStateIx input)
       exfalso
       have h_thrown : scanNextTokenIx_dispatchContent s_ad '"' = .error e := by
         unfold scanNextTokenIx_dispatchContent
-        simp only [bind, Except.bind, pure, Pure.pure, Except.pure,
+        simp only [bind, Except.bind,
           throw, throwThe, MonadExceptOf.throw,
           show ('"' == '&') = false from by decide,
           show ('"' == '*') = false from by decide,

@@ -1162,7 +1162,7 @@ lemma quotedScalarErrLoopIx_escapeString_none {input : String}
             unfold L4YAML.Scanner.Indexed.quotedScalarErrLoopIx
             rw [h_peek_d1]
             simp only [h_d1_ndq, h_d1_nes, h_d1_nlb,
-              Bool.true_and, Bool.not_true, Bool.false_and,
+              Bool.not_true, Bool.false_and,
               Bool.and_false, Bool.false_eq_true, if_false]
             have hcorr_d1_raw := advance_non_newline_corrIx c.advance.advance d1 _
               hcorr_x h_lt_d1 h_d1_nn h_d1_cr
@@ -1178,7 +1178,7 @@ lemma quotedScalarErrLoopIx_escapeString_none {input : String}
               unfold L4YAML.Scanner.Indexed.quotedScalarErrLoopIx
               rw [h_peek_d2]
               simp only [h_d2_ndq, h_d2_nes, h_d2_nlb,
-                Bool.true_and, Bool.not_true, Bool.false_and,
+                Bool.not_true, Bool.false_and,
                 Bool.and_false, Bool.false_eq_true, if_false]
               have hcorr_d2_raw := advance_non_newline_corrIx c.advance.advance.advance
                 d2 _ hcorr_d1 h_lt_d2 h_d2_nn h_d2_cr
@@ -1213,7 +1213,7 @@ lemma quotedScalarErrLoopIx_escapeString_none {input : String}
           rw [Bool.or_eq_false_iff]
           exact ⟨beq_eq_false_iff_ne.mpr h_ne_nl, beq_eq_false_iff_ne.mpr h_ne_cr⟩
         simp only [h_dq, h_es, h_nlb,
-          Bool.true_and, Bool.not_true, Bool.false_and,
+          Bool.not_true, Bool.false_and,
           Bool.and_false, Bool.false_eq_true, if_false]
         have hcorr_c := advance_non_newline_corrIx c ch _ hcorr h_lt_c h_ne_nl h_ne_cr
         have h_col_c : (c.pos.col + 1 : Nat) = c.advance.pos.col := hcorr_c.col_eq
