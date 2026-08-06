@@ -5490,11 +5490,14 @@ theorem nobody's build depends on yet.
 | 5 | ✅ **done 2026-08-05** — matrix scored through the **indexed** pipeline (`l4yaml-event-ix`/`l4yaml-json-ix`): **event 365/402, JSON 262/282** vs legacy 402/402 · 282/282. D1–D4 were **not** the whole story: 37 failing tests, classified in [The matrix score](#the-matrix-score) | knowing whether D1–D4 were the whole story | [Indexed-pipeline parity gap](#indexed-pipeline-parity-gap) |
 | 6 | ✅ **done 2026-08-06** — all seven legacy fixes ported (B1/B2/B3/C1/C2/C3/E + the R4YG first-line-tab residue), D5 root-caused (`needIndentCheck` after a block scalar) and fixed, zero-indent block scalars (`indentFloor`, DK3J/FP8R — which also cured the M7A3/W4TN `%`-as-directive misreads) and the missing §6.7 header-newline guard (2G84/01) fixed. Re-scored: **event 387/402, JSON 280/282 — every diff and every reject gone; 308/308 valid tests pass both axes**. 12 new parity-guard rows; full build at the same pre-existing baseline | — | [The matrix score](#the-matrix-score) |
 | 7 | ✅ **done 2026-08-06** — all six missing legacy strictness checks transcribed as read-only validator walkers + dispatcher/preprocess throws (tab-as-indentation ×2 contexts, §8.1.3 auto-detect validation, doc-markers + under-indent + tab in quoted continuations, §6.6 comment-needs-whitespace, §6.7 header `#` glue). Re-scored: **event 402/402, JSON 282/282, accept/reject 402/402 — full parity, all 15 err-miss gone, zero new rejects**; 15 reject-parity + 8 accept-boundary guard rows; full build at the same pre-existing baseline | — | [The matrix score](#the-matrix-score) |
-| 8 | ⬜ **open** — resume Fix A B.4β.2: wire the depth-0 `[`/`{` opens (`SLYamlStream sp_start sp_prep` holes) | `scannerDrop` deletion → converse → `parse_iff_grammar` | [Fix A](#fix-a-eliminating-scannerdrop--flow-indicator-grammar-evidence) |
+| 8 | ✅ **done 2026-08-06** — both depth-0 `[`/`{` opens wired via per-pending resume dispatch (`accum_flow_open_depth0`): faithful `flowInBlock` block-value resume for `pendingBlock` (THE scannerDrop case — `key: [a]` stays one document), doc-builder resume for `pendingDocStart` (`--- [a]`), fresh-bare-document resume for the closeable pendings at ANY column. Enabled by decoupling `seqBase`/`mapBase`'s outer boundary from the bracket position. `accum_step_flow` down to the single depth-≥1 hole; two narrowed residues (inline-adjacency vacuity, `pendingBlock n≥1`). Full build at the same pre-existing baseline | `scannerDrop` deletion → converse → `parse_iff_grammar` | [Fix A](#fix-a-eliminating-scannerdrop--flow-indicator-grammar-evidence) |
+| 9 | ⬜ **open** — B.4β.2 depth-≥1 flow interior (nested push / pop-to-base-or-nest / comma-hold, sep-threading), then β.3 `hpos` branches, β.4 chain-threading, β.5 retire `pendingFlow` + delete `scannerDrop` | `scannerDrop` deletion → converse → `parse_iff_grammar` | [Fix A](#fix-a-eliminating-scannerdrop--flow-indicator-grammar-evidence) |
 
-Items 1–7 are done: the indexed pipeline now scores identically to
-legacy on all three axes (item 5's classified work-list was executed as
-items 6 and 7). Item 8 is the remaining multi-session red core.
+Items 1–8 are done: the indexed pipeline scores identically to legacy on
+all three axes (item 5's classified work-list was executed as items 6
+and 7), and the depth-0 flow opens produce real `FlowOpenStack` evidence
+with the faithful per-pending resumes. Item 9 is the remaining
+multi-session red core.
 
 ## The ns-char gap
 
@@ -6659,6 +6662,50 @@ needed no changes.)
        for pendingBlock; doc-builder resume for pendingDocStart; pendingFlow vanishes with the
        `accum_flow_pending` rewrite). Deferred so the sorry-count doesn't balloon 1→8 before the
        per-resume design is in hand — that design IS the real content of the next slice.
+
+       **UPDATE (2026-08-06) — depth-0 opens FULLY WIRED: per-pending resume dispatch landed
+       (green, both stream holes discharged).** The enabling structural finding: the base ctors
+       `FlowOpenStack.seqBase`/`mapBase` CONFLATED the outer boundary index with the bracket
+       position (`h_open : GLit '[' sp_before …` on the same `sp_before` the invariant sandwich
+       must reach) — which only works when the stream can be closed exactly AT the bracket, and is
+       impossible for `pendingBlock` (the block entry is still open; its resolution needs the flow
+       node) and for any whitespace-gap open. FIX: a new `sp_br` field decouples them (exactly
+       mirroring `seqNest`'s existing `sp_before0` vs `sp_par` shape); `resume` consumes the node
+       at `sp_br`, and any gap `sp_before → sp_br` lives INSIDE `resume`'s captured evidence. With
+       that, the pop restores the pre-open sandwich unchanged. Cast changes: (1)
+       `topLevelFlowResume` → **`topLevelFlowResumeSep`** — captures `SSeparateLines 0 sp_mid sp_br`;
+       the leading separation rides in the bare document's `flowInBlock` SEPARATOR SLOT (the old
+       stream-at-bracket case = zero-width `inline ∘ startOfLine`). (2) New §0d
+       **`preprocess_flow_thread`**: from `preprocess_some_ssl_comments_anyCol`, either a CLOSE POINT
+       exists (`SSLComments sp_scan sp_mid` — break crossed, or col-0 zero-width start-of-line —
+       plus residual `GStar SSWhite sp_mid sp_prep`) or `col ≠ 0 ∧ no-break` (with full whitespace
+       evidence). No comment-refutation needed (the comment span is zero-width between two positions
+       we never separate). (3) Helpers 2/5/6 (`accum_flow_open{Seq,Map}_toplevel`,
+       `flow_gap_collapse`, `accum_flow_openStream_col0`) DELETED — superseded by ONE lemma
+       **`accum_flow_open_depth0`** taking `mk : ∀ sp_before, resume → FlowStackB sp_start 1
+       sp_before sp_open` (the call sites close `openSeqBase`/`openMapBase` over their `GLit`), so
+       the per-pending dispatch is written once for both brackets. Routes: **noPending** — nothing
+       to close; `preprocess_some_separate_0_anyCol` feeds the sep slot directly (ANY column, break
+       or not). **pendingContent/pendingDocEnd/pendingBlockContent/pendingFlow** — shared Pattern-6
+       `main`: close via `close_with_ssl` at the thread lemma's close point, residual whitespace in
+       the sep slot. **pendingDocStart** — FAITHFUL explicit document: `h_doc_builder ∘ GAlt.left ∘
+       SLBareDocument.mk ∘ flowInBlock` (`--- [a]` stays ONE document, inline or next-line node).
+       **pendingBlock (n = 0)** — FAITHFUL block value: `h_close ∘ flowInBlock`, keeping the incoming
+       stream AND `BlockStack` (the entry stays open; `key: [a]` stays ONE document) — THE case that
+       rode on `scannerDrop`, now green. Wiring at both bracket sites: `cases h_flow` (nil unifies
+       `sp_block = sp_flow`; `open` refuted by `FlowOpenStack_depth_pos`) then one
+       `accum_flow_open_depth0` call. **Sorry ledger:** `accum_step_flow` = 1 (the depth-≥1
+       interior); `accum_flow_open_depth0` = 2 narrowed residues — (i) `col ≠ 0 ∧ no-break` for the
+       closeable pendings (an inline flow open directly after an unclosed same-line construct, e.g.
+       `"foo" [a]`; expected vacuous under the scanner's adjacency/simple-key discipline — needs
+       that vacuity coupling) and (ii) `pendingBlock` with `n ≥ 1` (every producer in the file pins
+       `n = 0`, but the invariant doesn't carry the pin, and `flowInBlock (n+1)` would need an
+       `SFlowNode (n+1)` where the resume supplies `SFlowNode 0`). File total: 7 sorries in 6
+       declarations (4 β.3 `hpos` + depth-≥1 + the 2 residues) — same count as before the slice,
+       but every scanner-real depth-0 open shape is green with a faithful derivation.
+       `StreamAccum` + `DocumentProduction` green (46 jobs); full build at the same pre-existing
+       baseline (Capstones gate + 2 Reflections). NEXT = the depth-≥1 interior (nested push /
+       pop-to-base-or-nest / comma-hold with the sep-threading rule), then β.3.
 
      Replace the invariant's flow component
      `FlowStack sp_block sp_flow` → `FlowStackB sp_start sc.flowLevel sp_block sp_flow` across the

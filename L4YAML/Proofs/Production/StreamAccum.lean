@@ -533,9 +533,11 @@ lemma flowMap_extends_stream
     The **base** carries a generic `resume` closure that connects the completed
     outermost flow node to `SLYamlStream`. This is what makes the flow↔context
     interaction uniform:
-    - top-level flow (`[1,2,3]` as a document): `resume` = `topLevelFlowResume`;
+    - top-level flow (`[1,2,3]` as a document): `resume` = `topLevelFlowResumeSep`;
     - block-nested flow (`key: [1,2]`): `resume node ssl = pendingBlock.h_close
-      (SBlockNode.flowInBlock … node ssl)`.
+      (SBlockNode.flowInBlock … node ssl)`;
+    - explicit-document flow (`--- [1,2]`): `resume` routes through
+      `pendingDocStart.h_doc_builder` (`GAlt.left ∘ SLBareDocument.mk`).
     (`resume` takes the outer flow node at `.flowOut`, which both `flowInBlock`
     and the bare-document node use.) -/
 
@@ -552,19 +554,24 @@ inductive MapFrame (n : Nat) (c : YamlContext) : SurfPos → SurfPos → Prop wh
   | mid (sp sp' : SurfPos) (pe : PendingFlowMapEntry n c sp sp') : MapFrame n c sp sp'
 
 inductive FlowOpenStack (sp_start : SurfPos) : Nat → SurfPos → SurfPos → Prop where
-  /-- Outermost open flow sequence (depth 1). -/
-  | seqBase (sp_before sp_open sp_es sp_cur : SurfPos)
-      (resume : ∀ sp_ne sp_mid, SFlowNode 0 .flowOut sp_before sp_ne →
+  /-- Outermost open flow sequence (depth 1). The outer boundary `sp_before`
+      (where the enclosing context's derivation ends) is DECOUPLED from the
+      bracket position `sp_br` — mirroring `seqNest`'s `sp_before0` vs `sp_par`.
+      Any leading separation `sp_before → sp_br` is captured inside `resume`
+      (its grammar slot depends on the enclosing context: bare document /
+      block value / explicit document). -/
+  | seqBase (sp_before sp_br sp_open sp_es sp_cur : SurfPos)
+      (resume : ∀ sp_ne sp_mid, SFlowNode 0 .flowOut sp_br sp_ne →
                 SSLComments sp_ne sp_mid → SLYamlStream sp_start sp_mid)
-      (h_open : GLit '[' sp_before sp_open)
+      (h_open : GLit '[' sp_br sp_open)
       (h_sep : GOpt (SSeparate 0 .flowOut) sp_open sp_es)
       (st : SeqFrame 0 (inFlowCtx .flowOut) sp_es sp_cur) :
       FlowOpenStack sp_start 1 sp_before sp_cur
-  /-- Outermost open flow mapping (depth 1). -/
-  | mapBase (sp_before sp_open sp_es sp_cur : SurfPos)
-      (resume : ∀ sp_ne sp_mid, SFlowNode 0 .flowOut sp_before sp_ne →
+  /-- Outermost open flow mapping (depth 1; see `seqBase` on `sp_before`/`sp_br`). -/
+  | mapBase (sp_before sp_br sp_open sp_es sp_cur : SurfPos)
+      (resume : ∀ sp_ne sp_mid, SFlowNode 0 .flowOut sp_br sp_ne →
                 SSLComments sp_ne sp_mid → SLYamlStream sp_start sp_mid)
-      (h_open : GLit '{' sp_before sp_open)
+      (h_open : GLit '{' sp_br sp_open)
       (h_sep : GOpt (SSeparate 0 .flowOut) sp_open sp_es)
       (st : MapFrame 0 (inFlowCtx .flowOut) sp_es sp_cur) :
       FlowOpenStack sp_start 1 sp_before sp_cur
@@ -595,20 +602,24 @@ inductive FlowOpenStack (sp_start : SurfPos) : Nat → SurfPos → SurfPos → P
 -- in B.4b alongside `accum_flow_pending`.
 
 /-- The base `resume` for a TOP-LEVEL flow document node: the completed flow node
-    is a bare document that extends the stream (via `implicitContinue`). -/
-lemma topLevelFlowResume {sp_start sp_before : SurfPos}
-    (h_stream : SLYamlStream sp_start sp_before) :
-    ∀ sp_ne sp_mid, SFlowNode 0 .flowOut sp_before sp_ne →
-      SSLComments sp_ne sp_mid → SLYamlStream sp_start sp_mid :=
-  fun _ sp_mid h_node h_ssl =>
-    SLYamlStream.implicitContinue sp_start sp_before sp_before sp_mid sp_mid
+    is a bare document that extends the stream (via `implicitContinue`). The
+    leading separation `sp_mid → sp_br` (from the stream's endpoint to the
+    bracket) rides in the bare document's `flowInBlock` separator slot — the
+    zero-width `SSeparateLines.inline ∘ startOfLine` recovers the old
+    stream-at-the-bracket special case. -/
+lemma topLevelFlowResumeSep {sp_start sp_mid sp_br : SurfPos}
+    (h_stream : SLYamlStream sp_start sp_mid)
+    (h_sep : SSeparateLines 0 sp_mid sp_br) :
+    ∀ sp_ne sp_m, SFlowNode 0 .flowOut sp_br sp_ne →
+      SSLComments sp_ne sp_m → SLYamlStream sp_start sp_m :=
+  fun sp_ne sp_m h_node h_ssl =>
+    SLYamlStream.implicitContinue sp_start sp_mid sp_mid sp_m sp_m
       h_stream (GStar.nil _)
-      (GOpt.some sp_before sp_mid
-        (SLAnyDocument.bare sp_before sp_mid
-          (SLBareDocument.mk sp_before sp_mid
-            (SBlockNode.flowInBlock 0 .blockIn sp_before sp_before _ sp_mid
-              (SSeparateLines.inline 0 sp_before sp_before (SSeparateInLine.startOfLine sp_before))
-              h_node h_ssl))))
+      (GOpt.some sp_mid sp_m
+        (SLAnyDocument.bare sp_mid sp_m
+          (SLBareDocument.mk sp_mid sp_m
+            (SBlockNode.flowInBlock 0 .blockIn sp_mid sp_br sp_ne sp_m
+              h_sep h_node h_ssl))))
       (GStar.nil _)
 
 /-! ### §0c'' FlowOpenStack push operations + depth-indexed FlowStackB (Stage B)
@@ -655,26 +666,29 @@ lemma absorb_stacksB (sp_start sp_gram sp_block sp_flow : SurfPos)
   | «open» _ _ _ h => exact absurd (FlowOpenStack_depth_pos h) (by omega)
 
 /-- Open the OUTERMOST flow SEQUENCE `[` (nil → depth-1 open), given the base
-    `resume` closure for the enclosing context (top-level or block-nested). -/
-lemma FlowStackB.openSeqBase {sp_start sp_before sp_open sp_es : SurfPos}
-    (resume : ∀ sp_ne sp_m, SFlowNode 0 .flowOut sp_before sp_ne →
+    `resume` closure for the enclosing context (top-level / block value /
+    explicit document). The bracket sits at `sp_br`; the outer boundary
+    `sp_before` (where the enclosing derivation ends) is free — any gap
+    `sp_before → sp_br` lives inside `resume`. -/
+lemma FlowStackB.openSeqBase {sp_start sp_before sp_br sp_open sp_es : SurfPos}
+    (resume : ∀ sp_ne sp_m, SFlowNode 0 .flowOut sp_br sp_ne →
               SSLComments sp_ne sp_m → SLYamlStream sp_start sp_m)
-    (h_open : GLit '[' sp_before sp_open)
+    (h_open : GLit '[' sp_br sp_open)
     (h_sep : GOpt (SSeparate 0 .flowOut) sp_open sp_es) :
     FlowStackB sp_start 1 sp_before sp_es :=
   .open 1 sp_before sp_es
-    (.seqBase sp_before sp_open sp_es sp_es resume h_open h_sep
+    (.seqBase sp_before sp_br sp_open sp_es sp_es resume h_open h_sep
       (.between sp_es sp_es (.empty sp_es)))
 
 /-- Open the outermost flow MAPPING `{` (nil → depth-1 open). -/
-lemma FlowStackB.openMapBase {sp_start sp_before sp_open sp_es : SurfPos}
-    (resume : ∀ sp_ne sp_m, SFlowNode 0 .flowOut sp_before sp_ne →
+lemma FlowStackB.openMapBase {sp_start sp_before sp_br sp_open sp_es : SurfPos}
+    (resume : ∀ sp_ne sp_m, SFlowNode 0 .flowOut sp_br sp_ne →
               SSLComments sp_ne sp_m → SLYamlStream sp_start sp_m)
-    (h_open : GLit '{' sp_before sp_open)
+    (h_open : GLit '{' sp_br sp_open)
     (h_sep : GOpt (SSeparate 0 .flowOut) sp_open sp_es) :
     FlowStackB sp_start 1 sp_before sp_es :=
   .open 1 sp_before sp_es
-    (.mapBase sp_before sp_open sp_es sp_es resume h_open h_sep
+    (.mapBase sp_before sp_br sp_open sp_es sp_es resume h_open h_sep
       (.between sp_es sp_es (.empty sp_es)))
 
 /-- Close any PendingNode to SLYamlStream using SSLComments evidence.
@@ -967,6 +981,40 @@ lemma preprocess_some_separate_0_anyCol (sc : ScannerState) (sp : SurfPos)
     -- GOpt.some: unreachable — SCNbCommentText sp_ws sp_ws is impossible
     have : SCNbCommentText sp_ws sp_ws := h_eq ▸ h
     exact absurd this (scNbCommentText_irrefl sp_ws)
+
+/-- Flow-open threading: when preprocessing returns `some`, either a CLOSE POINT
+    exists — `SSLComments sp_scan sp_mid` (a line break was crossed, or col-0
+    zero-width start-of-line) followed by residual whitespace to the content
+    char — or no break was crossed at col ≠ 0 (the prior construct cannot be
+    closed here; the whitespace evidence still covers the full gap).
+    Used by `accum_flow_open_depth0` to close the incoming pending before a
+    depth-0 `[`/`{` and to place the residual separation in the fresh bare
+    document's separator slot. -/
+lemma preprocess_flow_thread (sc : ScannerState) (sp_scan sp_prep : SurfPos)
+    (s_prep : ScannerState) (c : Char)
+    (h_corr : ScannerSurfCorr sc sp_scan)
+    (hcorr_prep : ScannerSurfCorr s_prep sp_prep)
+    (h_preprocess : scanNextToken_preprocess sc = .ok (some (s_prep, c))) :
+    (∃ sp_mid, SSLComments sp_scan sp_mid ∧ GStar SSWhite sp_mid sp_prep) ∨
+    (sp_scan.col ≠ 0 ∧ GStar SSWhite sp_scan sp_prep) := by
+  obtain ⟨sp_mid, sp_ws, sp_gap, h_disj, hws, _, hcorr_gap, h_pk⟩ :=
+    preprocess_some_ssl_comments_anyCol sc sp_scan s_prep c h_corr h_preprocess
+  have h_gap_eq : sp_gap = sp_prep := ScannerSurfCorr_unique hcorr_gap hcorr_prep
+  have h_ws_eq : sp_ws = sp_prep := by
+    cases h_pk with
+    | inl h => exact h.symm.trans h_gap_eq
+    | inr h => rw [preprocess_some_peek h_preprocess] at h; cases h
+  rw [h_ws_eq] at hws
+  cases h_disj with
+  | inl h => exact Or.inl ⟨sp_mid, h.1, hws⟩
+  | inr h_eq =>
+    rw [h_eq] at hws
+    by_cases hcol : sp_scan.col = 0
+    · obtain ⟨chars, colv⟩ := sp_scan
+      have hc0 : colv = 0 := hcol
+      subst hc0
+      exact Or.inl ⟨⟨chars, 0⟩, SSLComments.startOfLine chars ⟨chars, 0⟩ (GStar.nil _), hws⟩
+    · exact Or.inr ⟨hcol, hws⟩
 
 /-! ## §1 Per-Dispatch Grammar Accumulator Lemmas
 
@@ -1810,136 +1858,142 @@ lemma scanFlowMappingStart_prod (sc : ScannerState) (sp : SurfPos)
     simp only [ScannerCorrectness.advance_preserves_flowLevel,
                ScannerCorrectness.emit_preserves_flowLevel]
 
-/-! ### §1c'' Depth-0 flow-open transition (B.4β.2)
+/-! ### §1c'' Depth-0 flow OPEN — per-pending resume dispatch (B.4β.2)
 
-    The core algebra for opening the OUTERMOST flow collection from a closed
-    (depth-0) state: given a stream at the bracket position `sp_prep`, the
-    literal-bracket evidence, and the scanner corr after the bracket, assemble
-    the full lagging-quint goal with a depth-1 `FlowOpenStack` (via
-    `openSeqBase`/`openMapBase`) whose base `resume` is `topLevelFlowResume`
-    (top-level flow document). The new interior `PendingNode` is `noPending` at
-    `sp_open` (interior invariant: inside a flow the pending gap is empty; the
-    frame's `st` carries all mid-entry state). `h_sep := GOpt.none` — the
-    post-bracket separation is deferred to the first entry step.
+    A depth-0 `[`/`{` turns the closed flow stack into a depth-1 `FlowOpenStack`.
+    The base frame's `resume` closure decides how the eventually-completed flow
+    node re-enters the stream derivation, and the right closure depends on the
+    incoming `PendingNode`:
 
-    This isolates the open algebra (proven green here) from the pending-case
-    threading in `accum_step_flow`. The `pendingBlock` incoming case needs a
-    different `resume` (`flowInBlock`-based block value) and is handled there. -/
+    * `noPending` — the flow is a fresh bare document; the leading separation
+      `sp_scan → sp_prep` rides in the bare document's `flowInBlock` separator
+      slot (`preprocess_some_separate_0_anyCol`, any column, break or not).
+    * `pendingContent`/`pendingDocEnd`/`pendingBlockContent`/`pendingFlow` —
+      close the prior pending across the leading `SSLComments`
+      (`preprocess_flow_thread`), then open a fresh bare document as above,
+      the residual whitespace in the separator slot. When NO break was crossed
+      at col ≠ 0 the prior construct cannot be closed (`SSLComments` needs a
+      break or col 0) — deferred residue (expected vacuous: an inline flow open
+      directly after an unclosed same-line construct, e.g. `"foo" [a]`).
+    * `pendingDocStart` — the flow is the explicit document's OWN node: route
+      the completed node through `h_doc_builder` (`GAlt.left ∘ SLBareDocument.mk
+      ∘ flowInBlock`), keeping ONE document. Faithful for `--- [a]`.
+    * `pendingBlock` — the flow is the block entry's value: route through
+      `h_close ∘ flowInBlock`; the derivation keeps the block entry open, so
+      `key: [a]` stays ONE document — THE case that previously rode on
+      `scannerDrop`. (Green for `n = 0`, which is what every producer pins.)
 
-lemma accum_flow_openSeq_toplevel
-    {sp_start sp_prep sp_open : SurfPos} {s' : ScannerState}
-    (h_stream_prep : SLYamlStream sp_start sp_prep)
-    (h_open : GLit '[' sp_prep sp_open)
-    (h_fl : s'.flowLevel = 1)
-    (hcorr_open : ScannerSurfCorr s' sp_open) :
-    ∃ sp_gram' sp_block' sp_flow' sp_scan',
-      SLYamlStream sp_start sp_gram' ∧
-      BlockStack sp_gram' sp_block' ∧
-      FlowStackB sp_start s'.flowLevel sp_block' sp_flow' ∧
-      PendingNode false sp_start sp_flow' sp_scan' ∧
-      ScannerSurfCorr s' sp_scan' := by
-  rw [h_fl]
-  exact ⟨sp_prep, sp_prep, sp_open, sp_open, h_stream_prep,
-         BlockStack.nil sp_prep,
-         FlowStackB.openSeqBase (topLevelFlowResume h_stream_prep) h_open (GOpt.none sp_open),
-         PendingNode.noPending sp_start sp_open,
-         hcorr_open⟩
+    The open itself is uniform (`mk` abstracts `openSeqBase`/`openMapBase`,
+    closing over the bracket's `GLit`): the new interior `PendingNode` is
+    `noPending sp_open` (interior invariant: inside a flow the pending gap is
+    empty — the frame's `st` carries all mid-entry state), and the frame's
+    `h_sep := GOpt.none` (post-bracket separation is deferred to the first
+    entry step). The stream/stack witnesses vary per route: the fresh-document
+    routes re-anchor at the close point with nil stacks; the `pendingBlock`
+    route KEEPS the incoming stream and `BlockStack` (the entry stays open,
+    its resolution captured in `resume`). -/
 
-lemma accum_flow_openMap_toplevel
-    {sp_start sp_prep sp_open : SurfPos} {s' : ScannerState}
-    (h_stream_prep : SLYamlStream sp_start sp_prep)
-    (h_open : GLit '{' sp_prep sp_open)
-    (h_fl : s'.flowLevel = 1)
-    (hcorr_open : ScannerSurfCorr s' sp_open) :
-    ∃ sp_gram' sp_block' sp_flow' sp_scan',
-      SLYamlStream sp_start sp_gram' ∧
-      BlockStack sp_gram' sp_block' ∧
-      FlowStackB sp_start s'.flowLevel sp_block' sp_flow' ∧
-      PendingNode false sp_start sp_flow' sp_scan' ∧
-      ScannerSurfCorr s' sp_scan' := by
-  rw [h_fl]
-  exact ⟨sp_prep, sp_prep, sp_open, sp_open, h_stream_prep,
-         BlockStack.nil sp_prep,
-         FlowStackB.openMapBase (topLevelFlowResume h_stream_prep) h_open (GOpt.none sp_open),
-         PendingNode.noPending sp_start sp_open,
-         hcorr_open⟩
-
-/-! ### §1c''' Depth-0 flow-open stream threading (B.4β.2)
-
-    The open-algebra helpers above take the stream *at the bracket* `sp_prep` as a
-    hypothesis. This section discharges that hypothesis: from the incoming lagging
-    quint (stream at `sp_flow`, an incoming `PendingNode`) plus the leading
-    separation `sp_scan → sp_prep` consumed by `scanNextToken_preprocess`, thread
-    the stream forward to `sp_prep`.
-
-    Two facts do the work:
-    * `flow_gap_collapse` — the flow analog of `structural_gap_collapse`. It proves
-      the SSLComments endpoint `sp_mid` coincides with the corr position `sp_prep`.
-      Unlike the structural version (which *derives* `sp_prep.col = 0` from
-      `dispatchStructural_col0`), a flow `[`/`{` is NOT column-forced, so this takes
-      `sp_prep.col = 0` as a hypothesis — supplied by the caller's col-0 branch.
-    * `accum_flow_openStream_col0` — closes the incoming pending across the leading
-      SSLComments (`PendingNode.close_with_ssl`), landing at `sp_mid`, then rewrites
-      by `flow_gap_collapse` to reach `sp_prep`.
-
-    NB (resume interpretation): `close_with_ssl` commits to the "close the prior
-    pending, treat the flow as a *fresh* bare document" derivation. That is the
-    intended derivation for `noPending`/`pendingContent`/`pendingDocEnd`/
-    `pendingBlockContent`. For `pendingBlock` (block-value flow) and `pendingDocStart`
-    (`---`-node flow) the flow is the pending's OWN node, so those want a different
-    `resume` (`flowInBlock`- / doc-builder-based) threaded through the FlowOpenStack,
-    NOT this fresh-doc closer — handled at the `accum_step_flow` wiring site. -/
-
-/-- Flow analog of `structural_gap_collapse`: the SSLComments midpoint `sp_mid`
-    coincides with the corr position `sp_prep`, given `sp_prep.col = 0` (a flow
-    indicator is not column-forced, so col-0 is a hypothesis, not derived). -/
-lemma flow_gap_collapse
-    (s_prep : ScannerState)
-    (sp_mid sp_ws sp_gap sp_prep : SurfPos)
-    (hcorr_prep : ScannerSurfCorr s_prep sp_prep)
-    (hcorr_gap : ScannerSurfCorr s_prep sp_gap)
-    (hcol_mid : sp_mid.col = 0)
-    (hcol_prep : sp_prep.col = 0)
-    (hws : GStar SSWhite sp_mid sp_ws)
-    (hcmt : GOpt SCNbCommentText sp_ws sp_gap) :
-    sp_mid = sp_prep := by
-  have h_gap_eq : sp_gap = sp_prep := ScannerSurfCorr_unique hcorr_gap hcorr_prep
-  have hcol_gap : sp_gap.col = 0 := h_gap_eq ▸ hcol_prep
-  cases hcmt with
-  | none =>
-    have h1 : sp_ws = sp_mid := gstar_sswhite_col_eq_nil sp_mid sp_ws (by omega) hws
-    exact h1.symm.trans h_gap_eq
-  | some =>
-    rename_i hc
-    exfalso; have := scnb_comment_col_gt sp_ws sp_gap hc; omega
-
-/-- Thread the stream to the bracket position `sp_prep` for a depth-0 flow open:
-    close the incoming (false-indexed) pending across the leading SSLComments, then
-    collapse the residual whitespace gap via `flow_gap_collapse` (needs the incoming
-    position `sp_scan` and the bracket `sp_prep` both at col 0). Produces the
-    `SLYamlStream sp_start sp_prep` required by `accum_flow_open{Seq,Map}_toplevel`.
-
-    See the §-note above on the fresh-bare-doc interpretation baked into
-    `close_with_ssl` (correct for `noPending` and the closeable-content pendings;
-    the `pendingBlock`/`pendingDocStart` node-value cases need a distinct route). -/
-lemma accum_flow_openStream_col0
-    (sc : ScannerState) (sp_start sp_flow sp_scan sp_prep : SurfPos)
-    (s_prep : ScannerState) (c : Char)
-    (h_stream_flow : SLYamlStream sp_start sp_flow)
-    (h_pending : PendingNode false sp_start sp_flow sp_scan)
+lemma accum_flow_open_depth0 (sc : ScannerState)
+    (sp_start sp_gram sp_block sp_scan sp_prep sp_open : SurfPos)
+    (s_prep s' : ScannerState) (c : Char)
+    (h_stream : SLYamlStream sp_start sp_gram)
+    (h_stack : BlockStack sp_gram sp_block)
+    (h_pending : PendingNode false sp_start sp_block sp_scan)
     (h_corr : ScannerSurfCorr sc sp_scan)
-    (hcol_scan : sp_scan.col = 0)
+    (h_preprocess : scanNextToken_preprocess sc = .ok (some (s_prep, c)))
     (hcorr_prep : ScannerSurfCorr s_prep sp_prep)
-    (hcol_prep : sp_prep.col = 0)
-    (h_preprocess : scanNextToken_preprocess sc = .ok (some (s_prep, c))) :
-    SLYamlStream sp_start sp_prep := by
-  obtain ⟨sp_mid, sp_ws, sp_gap, h_ssl, hcol_mid, hws, hcmt, hcorr_gap, _⟩ :=
-    preprocess_some_ssl_comments_col0 sc sp_scan s_prep c h_corr hcol_scan h_preprocess
-  have h_stream_mid : SLYamlStream sp_start sp_mid := h_pending.close_with_ssl h_stream_flow h_ssl
-  have h_mid_prep : sp_mid = sp_prep :=
-    flow_gap_collapse s_prep sp_mid sp_ws sp_gap sp_prep
-      hcorr_prep hcorr_gap hcol_mid hcol_prep hws hcmt
-  exact h_mid_prep ▸ h_stream_mid
+    (hcorr_open : ScannerSurfCorr s' sp_open)
+    (h_fl1 : s'.flowLevel = 1)
+    (mk : ∀ (sp_before : SurfPos),
+        (∀ sp_ne sp_m, SFlowNode 0 .flowOut sp_prep sp_ne →
+         SSLComments sp_ne sp_m → SLYamlStream sp_start sp_m) →
+        FlowStackB sp_start 1 sp_before sp_open) :
+    ∃ sp_gram' sp_block' sp_flow' sp_scan',
+      SLYamlStream sp_start sp_gram' ∧
+      BlockStack sp_gram' sp_block' ∧
+      FlowStackB sp_start s'.flowLevel sp_block' sp_flow' ∧
+      PendingNode false sp_start sp_flow' sp_scan' ∧
+      ScannerSurfCorr s' sp_scan' := by
+  rw [h_fl1]
+  have h_stream_block : SLYamlStream sp_start sp_block :=
+    absorb_stacksB sp_start sp_gram sp_block sp_block h_stream h_stack (FlowStackB.nil sp_block)
+  have h_close_pending : ∀ sp_mid, SSLComments sp_scan sp_mid → SLYamlStream sp_start sp_mid :=
+    fun sp_mid h_ssl => h_pending.close_with_ssl h_stream_block h_ssl
+  -- Shared fresh-bare-document route for the closeable pendings (Pattern 6).
+  have main : (∀ sp_mid, SSLComments sp_scan sp_mid → SLYamlStream sp_start sp_mid) →
+      ∃ sp_gram' sp_block' sp_flow' sp_scan',
+        SLYamlStream sp_start sp_gram' ∧
+        BlockStack sp_gram' sp_block' ∧
+        FlowStackB sp_start 1 sp_block' sp_flow' ∧
+        PendingNode false sp_start sp_flow' sp_scan' ∧
+        ScannerSurfCorr s' sp_scan' := by
+    intro h_close
+    rcases preprocess_flow_thread sc sp_scan sp_prep s_prep c h_corr hcorr_prep h_preprocess with
+      ⟨sp_mid, h_ssl, hws⟩ | ⟨hcol, hws⟩
+    · have h_stream_mid : SLYamlStream sp_start sp_mid := h_close sp_mid h_ssl
+      exact ⟨sp_mid, sp_mid, sp_open, sp_open, h_stream_mid, BlockStack.nil sp_mid,
+             mk sp_mid (topLevelFlowResumeSep h_stream_mid
+               (SSeparateLines.inline 0 sp_mid sp_prep
+                 (GStar_SSWhite_to_SSeparateInLine sp_mid sp_prep hws))),
+             PendingNode.noPending sp_start sp_open, hcorr_open⟩
+    · -- col ≠ 0 AND no line break before the bracket: the prior construct
+      -- cannot be closed here (`SSLComments` needs a break or col 0). Reachable
+      -- only by an inline flow open directly after an unclosed same-line
+      -- construct (e.g. `"foo" [a]`) — expected vacuous under the scanner's
+      -- adjacency/simple-key discipline; needs that vacuity coupling. Deferred.
+      sorry
+  cases h_pending with
+  | noPending =>
+    -- Nothing to close: the leading separation rides in the fresh bare
+    -- document's separator slot directly (any column, break or not).
+    obtain ⟨sp_gap, h_sep, hcorr_gap⟩ :=
+      preprocess_some_separate_0_anyCol sc _ s_prep c h_corr h_preprocess
+    have h_pe : sp_gap = sp_prep := ScannerSurfCorr_unique hcorr_gap hcorr_prep
+    subst h_pe
+    exact ⟨_, _, sp_open, sp_open, h_stream_block, BlockStack.nil _,
+           mk _ (topLevelFlowResumeSep h_stream_block h_sep),
+           PendingNode.noPending sp_start sp_open, hcorr_open⟩
+  | pendingContent => exact main h_close_pending
+  | pendingDocEnd => exact main h_close_pending
+  | pendingFlow => exact main h_close_pending
+  | pendingBlockContent => exact main h_close_pending
+  | pendingDocStart =>
+    rename_i h_doc_builder
+    obtain ⟨sp_gap, h_sep0, hcorr_gap⟩ :=
+      preprocess_some_separate_0_anyCol sc sp_scan s_prep c h_corr h_preprocess
+    have h_pe : sp_gap = sp_prep := ScannerSurfCorr_unique hcorr_gap hcorr_prep
+    have h_sep : SSeparateLines 0 sp_scan sp_prep := h_pe ▸ h_sep0
+    exact ⟨sp_block, sp_block, sp_open, sp_open, h_stream_block, BlockStack.nil sp_block,
+           mk sp_block (fun sp_ne sp_m h_node h_ssl =>
+             SLYamlStream.implicitContinue sp_start sp_block sp_block sp_m sp_m
+               h_stream_block (GStar.nil _)
+               (GOpt.some sp_block sp_m
+                 (h_doc_builder sp_m (GAlt.left sp_scan sp_m
+                   (SLBareDocument.mk sp_scan sp_m
+                     (SBlockNode.flowInBlock 0 .blockIn sp_scan sp_prep sp_ne sp_m
+                       h_sep h_node h_ssl)))))
+               (GStar.nil _)),
+           PendingNode.noPending sp_start sp_open, hcorr_open⟩
+  | pendingBlock =>
+    rename_i n h_close _
+    cases n with
+    | zero =>
+      obtain ⟨sp_gap, h_sep0, hcorr_gap⟩ :=
+        preprocess_some_separate_0_anyCol sc sp_scan s_prep c h_corr h_preprocess
+      have h_pe : sp_gap = sp_prep := ScannerSurfCorr_unique hcorr_gap hcorr_prep
+      have h_sep : SSeparateLines 0 sp_scan sp_prep := h_pe ▸ h_sep0
+      exact ⟨sp_gram, sp_block, sp_open, sp_open, h_stream, h_stack,
+             mk sp_block (fun sp_ne sp_m h_node h_ssl =>
+               h_close sp_m (SBlockNode.flowInBlock 0 .blockIn sp_scan sp_prep sp_ne sp_m
+                 h_sep h_node h_ssl)),
+             PendingNode.noPending sp_start sp_open, hcorr_open⟩
+    | succ n' =>
+      -- Every `pendingBlock` producer in this file pins `n = 0` (the pipeline is
+      -- zero-indent-normalized), but the invariant does not yet carry that
+      -- coupling, and `flowInBlock (n+1)` would need an `SFlowNode (n+1)` where
+      -- the open stack's resume supplies `SFlowNode 0`. Deferred until the n=0
+      -- pin is threaded through `PendingNode.pendingBlock`.
+      sorry
 
 lemma accum_step_flow (sc : ScannerState)
     (sp_start sp_gram sp_block sp_flow sp_scan : SurfPos)
@@ -1981,14 +2035,9 @@ lemma accum_step_flow (sc : ScannerState)
     simp only [bind, Except.bind, pure, Except.pure] at h_dispatch
     split at h_dispatch
     · -- c == '[' : OPEN flow SEQUENCE, depth 0 → 1 (s'.flowLevel = sc.flowLevel + 1 = 1).
-      -- Open algebra fully assembled by `accum_flow_openSeq_toplevel` (openSeqBase +
-      -- topLevelFlowResume + noPending). The `_prod` helper recovers the `GLit '['`,
-      -- the post-bracket corr, and `flowLevel + 1`. The ONE remaining hole is the
-      -- position-threaded stream `SLYamlStream sp_start sp_prep` at the bracket — got
-      -- by closing the incoming pending across the leading separation `sp_scan → sp_prep`
-      -- (`preprocess_some_ssl_comments_*` + `close_with_ssl`), EXCEPT the `pendingBlock`
-      -- case (block-value flow) which needs a `flowInBlock`-based `resume` instead of
-      -- `topLevelFlowResume` — the case that rides on scannerDrop.
+      -- The `_prod` helper recovers the `GLit '['`, the post-bracket corr, and
+      -- `flowLevel + 1`; `accum_flow_open_depth0` dispatches the per-pending
+      -- `resume` (fresh bare document / block value / explicit document).
       rename_i heq
       have hc : c = '[' := by simpa using heq
       subst hc
@@ -2005,9 +2054,13 @@ lemma accum_step_flow (sc : ScannerState)
         scanFlowSequenceStart_prod _ sp_prep (corr_of_allowDirectives_update hcorr_prep) hpeek_disp
       have hs := Option.some.inj (Except.ok.inj h_dispatch)
       subst hs
-      exact accum_flow_openSeq_toplevel
-        (by sorry : SLYamlStream sp_start sp_prep)
-        h_open (by rw [h_fl, h_ad0]) hcorr_open
+      cases h_flow with
+      | «open» _ _ _ hfo => exact absurd (FlowOpenStack_depth_pos hfo) (by omega)
+      | nil =>
+        exact accum_flow_open_depth0 sc sp_start sp_gram _ sp_scan sp_prep sp_open
+          s_prep _ '[' h_stream h_stack h_pending h_corr h_preprocess hcorr_prep
+          hcorr_open (by rw [h_fl, h_ad0])
+          (fun _ resume => FlowStackB.openSeqBase resume h_open (GOpt.none sp_open))
     · split at h_dispatch
       · -- c == ']' at depth 0: `if flowLevel == 0 then .error` — flowLevel = 0 ⇒ error.
         rw [h_ad0] at h_dispatch; simp at h_dispatch
@@ -2029,9 +2082,13 @@ lemma accum_step_flow (sc : ScannerState)
             scanFlowMappingStart_prod _ sp_prep (corr_of_allowDirectives_update hcorr_prep) hpeek_disp
           have hs := Option.some.inj (Except.ok.inj h_dispatch)
           subst hs
-          exact accum_flow_openMap_toplevel
-            (by sorry : SLYamlStream sp_start sp_prep)
-            h_open (by rw [h_fl, h_ad0]) hcorr_open
+          cases h_flow with
+          | «open» _ _ _ hfo => exact absurd (FlowOpenStack_depth_pos hfo) (by omega)
+          | nil =>
+            exact accum_flow_open_depth0 sc sp_start sp_gram _ sp_scan sp_prep sp_open
+              s_prep _ '{' h_stream h_stack h_pending h_corr h_preprocess hcorr_prep
+              hcorr_open (by rw [h_fl, h_ad0])
+              (fun _ resume => FlowStackB.openMapBase resume h_open (GOpt.none sp_open))
         · split at h_dispatch
           · -- c == '}' at depth 0: error (flowLevel == 0).
             rw [h_ad0] at h_dispatch; simp at h_dispatch
