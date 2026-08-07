@@ -53,7 +53,9 @@ What intentionally lives **elsewhere**:
 
 **[The Plan (open work)](#the-plan-open-work)**
 
-- [The ns-char gap](#the-ns-char-gap) — **fixed 2026-08-01**; closure record
+- [The ns-char gap](#the-ns-char-gap) — **closed 2026-08-01**; closure record
+- [Indexed-pipeline parity gap](#indexed-pipeline-parity-gap) — **closed
+  2026-08-06**; closure record + the final matrix score
 - [Grammar completeness plan](#grammar-completeness-plan) — capstone 7.7,
   the only open proof frontier
 - [Merge semantics plan](#merge-semantics-plan) — `DuplicateKeyPolicy.merge`
@@ -5469,7 +5471,7 @@ lives in [README.md](README.md) and is not duplicated here.)
 |---|---|---|
 | `ns-char` predicate spec-loose body | **Fixed 2026-08-01** (predicates tightened; scanner + emitter conformant; regression-tested) | [The ns-char gap](#the-ns-char-gap) |
 | **Indexed-pipeline parity** (the twin consumers actually call) | **CLOSED 2026-08-06 — full parity: event 402/402 · JSON 282/282 · accept/reject 402/402, same run as an identically-scoring legacy baseline; all 94 invalid inputs rejected with the identical `ScanError` (items 6+7)** | [Indexed-pipeline parity gap](#indexed-pipeline-parity-gap) |
-| Grammar completeness (`parse_iff_grammar`, capstone 7.7) | **Open** (unblocked; Step-0 audit done) | [Grammar completeness plan](#grammar-completeness-plan) |
+| Grammar completeness (`parse_iff_grammar`, capstone 7.7) | **Open** — Fix B done; Fix A at 5 `sorry` sites (β.3), then β.4/β.5 delete `scannerDrop`, then the converse | [Grammar completeness plan](#grammar-completeness-plan) |
 | Merge semantics (`DuplicateKeyPolicy.merge`) | **Open** (design ready; re-base on `LawfulBEq`) | [Merge semantics plan](#merge-semantics-plan) |
 | Security limits: open questions + future work | **Open** (design questions; 3 unimplemented features) | [Security hardening backlog](#security-hardening-backlog) |
 | Limit-enforcement verification, and the rest | **Open** (varied) | [Other open items](#other-open-items) |
@@ -5477,301 +5479,77 @@ lives in [README.md](README.md) and is not duplicated here.)
 ### Next actions, in order
 
 Priority is **shipped-behaviour correctness first, proof completeness
-second**: a divergence in the indexed pipeline is wrong output in a
-consumer's hands today, while `scannerDrop` is an over-approximation in a
-theorem nobody's build depends on yet.
+second**. The behaviour half is done: the indexed pipeline — the one
+consumers actually call — now scores identically to legacy on all three
+matrix axes (items 1–7, closed 2026-08-06). What is left is proof
+completeness.
 
 | # | Action | Blocks | Where |
 |---|---|---|---|
-| 1 | ✅ **done 2026-08-05** — index `Tests/Guards/Parity/IndexedScanAndParse.lean` into `Tests.Guards` (and repair the harness itself: it compared `Except`s with `==`) | everything below — without it a fix cannot be shown to hold | [Indexed-pipeline parity gap](#indexed-pipeline-parity-gap) |
-| 2 | ✅ **done** — D3, the divergence that turned valid YAML into a scan **error** | consumers of `parseYaml*Ix` | ditto |
-| 3 | ✅ **done** — D1/D2 (`foldBlockContentGo` end-of-input and tab classification) | folded-scalar content fidelity | ditto |
-| 4 | ✅ **done** — block-scalar parity coverage 2 → 35 guards; **the new coverage found D4**, explicit indentation indicators failing outright | recurrence of D1–D4 | ditto |
-| 5 | ✅ **done 2026-08-05** — matrix scored through the **indexed** pipeline (`l4yaml-event-ix`/`l4yaml-json-ix`): **event 365/402, JSON 262/282** vs legacy 402/402 · 282/282. D1–D4 were **not** the whole story: 37 failing tests, classified in [The matrix score](#the-matrix-score) | knowing whether D1–D4 were the whole story | [Indexed-pipeline parity gap](#indexed-pipeline-parity-gap) |
-| 6 | ✅ **done 2026-08-06** — all seven legacy fixes ported (B1/B2/B3/C1/C2/C3/E + the R4YG first-line-tab residue), D5 root-caused (`needIndentCheck` after a block scalar) and fixed, zero-indent block scalars (`indentFloor`, DK3J/FP8R — which also cured the M7A3/W4TN `%`-as-directive misreads) and the missing §6.7 header-newline guard (2G84/01) fixed. Re-scored: **event 387/402, JSON 280/282 — every diff and every reject gone; 308/308 valid tests pass both axes**. 12 new parity-guard rows; full build at the same pre-existing baseline | — | [The matrix score](#the-matrix-score) |
-| 7 | ✅ **done 2026-08-06** — all six missing legacy strictness checks transcribed as read-only validator walkers + dispatcher/preprocess throws (tab-as-indentation ×2 contexts, §8.1.3 auto-detect validation, doc-markers + under-indent + tab in quoted continuations, §6.6 comment-needs-whitespace, §6.7 header `#` glue). Re-scored: **event 402/402, JSON 282/282, accept/reject 402/402 — full parity, all 15 err-miss gone, zero new rejects**; 15 reject-parity + 8 accept-boundary guard rows; full build at the same pre-existing baseline | — | [The matrix score](#the-matrix-score) |
-| 8 | ✅ **done 2026-08-06** — both depth-0 `[`/`{` opens wired via per-pending resume dispatch (`accum_flow_open_depth0`): faithful `flowInBlock` block-value resume for `pendingBlock` (THE scannerDrop case — `key: [a]` stays one document), doc-builder resume for `pendingDocStart` (`--- [a]`), fresh-bare-document resume for the closeable pendings at ANY column. Enabled by decoupling `seqBase`/`mapBase`'s outer boundary from the bracket position. `accum_step_flow` down to the single depth-≥1 hole; two narrowed residues (inline-adjacency vacuity, `pendingBlock n≥1`). Full build at the same pre-existing baseline | `scannerDrop` deletion → converse → `parse_iff_grammar` | [Fix A](#fix-a-eliminating-scannerdrop--flow-indicator-grammar-evidence) |
-| 9 | 🟡 **structurally done 2026-08-06** — B.4β.2 depth-≥1 flow interior FULLY WIRED: all five dispatch arms (`[`/`{` nested push via `receiveNode`-built `inject`, `]`/`}` pop-to-base (`resume`→`pendingContent`) and pop-to-nest (`inject`), `,` hold via `holdComma`) with total sep-threading on the new §9 separator-composition algebra (`SSeparate_trans` + retrofits). Residues = 3 pinned coupling families (see 9a/9b) | `scannerDrop` deletion → converse → `parse_iff_grammar` | [Fix A](#fix-a-eliminating-scannerdrop--flow-indicator-grammar-evidence) |
-| 9a | ✅ **done 2026-08-06 — flow-close KIND strictening**: new `ScanError.mismatchedFlowClose`; the `]`/`}` arms of both dispatchers now reject a close whose kind does not match the innermost open (`flowStack.back? = some true`/`some false`), written as full `if/else if/else` **expression** chains (statement-style `if` desugars to `__do_jp` join points that defeat both `split`- and `rw [if_pos/if_neg]`-style proofs). Probe: `[a}`/`{a]`/`[{a]]`/`{a: [b}}` now scan-ERR with **identical legacy/indexed errors**, every valid input unaffected. Proof repair did **not** need the `simpleKeyStack`-groove conjunct sweep: the emitted-scan chains already carry `FlowMonoChain`, so a per-step flowLevel↔flowStack lockstep trichotomy + one chain induction supplies the kind fact — new `FlowStackChain.lean` (77 lemmas) + `FlowMonoChain/FlowStackChainIx.lean`, both sorry-free | 4 kind-mismatch residues in `accum_step_flow` now carry the scanner-side kind fact in context; refuting them awaits 9b(i) | [Fix A](#fix-a-eliminating-scannerdrop--flow-indicator-grammar-evidence) |
-| 9b | ⬜ **open — scanner-state ↔ frame couplings**: (i) kinds index on `FlowOpenStack`/`FlowStackB` coupled to `sc.flowStack` (refutes kind-mismatch arms, with 9a); (ii) token-history coupling (`lastRealTokenVal?` ↔ top-frame shape) refuting the comma-degenerate (`[,`/`,,` — 4 sites in `holdComma`) and adjacency (node-after-completed-entry — 12 sites in `receiveNode`) shapes the scanner already rejects; (iii) `pendingBlock n = 0` pin. Then β.3 interior content/block/EOF `hpos` branches (consumers of `receiveNode`), β.4 chain-threading, β.5 retire `pendingFlow` + delete `scannerDrop` | ditto | ditto |
+| 10 | **β.3 — the flow-interior branches.** Five `sorry` sites in `StreamAccum.lean`, all the depth-≥1 arm of a dispatcher (structural / block / content / EOF) plus the depth-0 `col ≠ 0`-no-break vacuity. The substantial one is content: it consumes the already-proven `FlowOpenStack.receiveNode` | β.4 | [Fix A](#fix-a-eliminating-scannerdrop--flow-indicator-grammar-evidence) |
+| 11 | **β.4 — chain-threading.** Thread the completed accumulation through `scanNextToken_accum_step`, `scanLoop_grammar_prod`, `scan_content_gives_stream` | β.5 | ditto |
+| 12 | **β.5 — retire `pendingFlow`, delete `scannerDrop`.** Once no dispatch produces `pendingFlow`, the `close_with_ssl` arm that calls `scannerDrop` is unreachable; delete the constructor from `Surface/Document.lean`. This turns the `L4YAML.Capstones` gate green (its only failure is `parse_strict_proof depends on sorryAx`) | Step 5, the converse | ditto |
+| 13 | **Two Reflections call sites.** `Tests/Reflections/ScannerSpanLocality.lean` and `Tests/Reflections/PairListBodyContentAt.lean` call `emitList_allScalar_body_content_at`, which gained an adjacency premise (`∀ t, lastRealTokenVal? s.tokens = some t → t.completesFlowValue = false`) that the four call sites do not supply. Add it as a test parameter and pass it through — the last two of the three currently-failing build targets | a fully green `lake build` | — |
+| 14 | **Step 5 — the converse** `grammar_completeness`, then **Step 6** the `parse_iff_grammar` biconditional | capstone 7.7 | [Grammar completeness plan](#grammar-completeness-plan) |
 
-Items 1–8 are done: the indexed pipeline scores identically to legacy on
-all three axes (item 5's classified work-list was executed as items 6
-and 7), and the depth-0 flow opens produce real `FlowOpenStack` evidence
-with the faithful per-pending resumes. Item 9's interior dispatch is
-structurally complete (every scanner-real transition derives real
-evidence); items 9a/9b are the remaining coupling work, then β.3–β.5.
+Everything above item 10 is closed; the closure records live in the
+sections below, the blow-by-blow history in git.
+
 
 ## The ns-char gap
 
-*(was `NS-CHAR-PREDICATE-GAP.md` — "ns-char Predicate — Spec-Loose Body";
-consolidated into this file 2026-08-01; **closed 2026-08-01** — the fix
-landed the same day; closure record below, full plan history in git)*
-
-**Status:** Fixed. The predicates now implement
-`[34] ns-char ::= c-printable - b-char - c-byte-order-mark - s-white`
-exactly; scanner, emitter, and proofs updated; regression-tested.
-
-### What was wrong
-
-`isNsChar` (`Surface/Basic.lean`), `isPlainSafeBool/Prop`, and
-`canStartPlainScalarBool/Prop` (`Spec/CharPredicates.lean`) approximated
-ns-char as `¬whitespace ∧ ¬linebreak`, admitting BOM (`U+FEFF`) and
-non-printable control characters in plain scalars and anchor names
-(latent since 2026-04-28; no valid YAML was affected).
-
-### The fix
-
-Every predicate gained `isPrintableProp c ∧ c ≠ '﻿'` (Bool mirrors:
-`isPrintableBool c && c != '﻿'`). Note BOM sits inside c-printable's
-`[E000, FFFD]` range, so the printability conjunct alone does **not**
-exclude it — the explicit BOM conjunct is load-bearing.
-
-The real fix surface was wider than the predicates (the original
-blast-radius estimate missed all of these):
-
-- **`canStartPlainScalarBool/Prop`** had to tighten with `isPlainSafe*`,
-  or the scanner would dispatch a BOM-first plain scalar whose grammar
-  derivation no longer exists (soundness would break, and the collect
-  loop would stall on an empty token).
-- **Scanner runtime, legacy + indexed twins**: the `':'`-adjacency check
-  (`collectPlainScalar_terminates?` in `Scanner/Scalar.lean`,
-  `colonTerminatesPlain` in `Scanner/IndexedScanner.lean`) gained
-  `|| !isPrintableBool n || n == '﻿'` — without it, `a:<BOM>` would emit
-  a trailing-`:` plain token with no `[130]` derivation. The anchor-name
-  loops (`Scanner/NodeProperties.lean`, `Scanner/IndexedDispatch.lean`)
-  tightened to match `[102] ns-anchor-char`. Mid-stream BOM/controls now
-  fail dispatch with `unexpectedChar`; leading BOM (`[202]` document
-  prefix) and BOM inside quoted scalars (`[2]` nb-json) remain valid.
-- **Emitter**: `Dump.isPlainSafe` rejects non-printables/BOM (style
-  falls back to double-quoted), and `Dump.escapeChar` now hex-escapes
-  all non-printables (`\xXX`/`\uXXXX`/`\UXXXXXXXX`). Previously it
-  emitted raw control bytes inside double quotes — invalid per nb-json
-  and rejected by the scanner (`invalidControlChar`); the loose plain
-  path had masked that latent emitter bug.
-- **Proof sweep** (~15 files, mechanical): the scanner→grammar bridges
-  (`not_blank_to_nsChar`, `colon_not_terminated_next`,
-  `colonTerminatesPlain_false_iff`, `isNsAnchorChar_of_scanner_cond`,
-  the `canStartPlainScalar_*` helper families in ScannerCorrectness /
-  IndexedScannerProgress / ScannerPlainScalar / CharClass) gained
-  printability/BOM hypotheses, fed exactly by the tightened runtime
-  checks. Conjunction-arity updates rippled through ScalarProduction,
-  StructureProduction, ScannerPlainContent, IndexedScalar,
-  ParserGrammableBase, ScannerPlainScalarValid.
-
-Verification: all 197 library modules + full targets green, 4391/4391
-test checks, 0 sorries, 0 custom axioms, capstone pins unchanged, both
-CI gates green.
-
-Regression tests: `Tests/ScannerTests.lean` ("ns-char tightening"
-category, 8 checks incl. the leading-BOM and quoted-BOM acceptance
-cases) and `Tests/Guards/Dump.lean` (emitter `#guard`s incl. the
-`\x01` escape round-trip).
-
-### Companion nb-char fix (2026-08-01, same day)
-
-`[27] nb-char` (`isNbChar`, `Surface/Basic.lean`) was tightened the
-same way immediately after. Where it landed:
-
-- **Block-scalar bodies** ([171] `l-nb-literal-text` uses
-  `GPlus SNbChar`): `collectLineContentLoop`(+`Ix`) stops at
-  non-printables/BOM and the block-scalar loop then *ends the scalar
-  there* (the previously dead no-break recursion in
-  `collectBlockScalarLoop`(+`Ix`) became a direct stop), so dispatch
-  rejects the offending char with `unexpectedChar`.
-- **Directive names, version digits, tag handles/prefixes**: the
-  name loop tightened; digit/word/URI classes were already
-  printable-ASCII subsets (bridged by the `*_ascii` helpers in
-  `StructureProduction.lean`).
-- **Emitter**: `Dump.blockScalarRepresentable` guards literal/folded
-  emission (controls/BOM/CR force double-quoted, escaped), and the
-  explicit `.singleQuoted` config now falls back to double-quoted for
-  `singleQuotedRepresentable`-failing content.
-- **Comments and directive trailing text are deliberately loose**:
-  `SCNbCommentText` [75] and the simplified `SLDirective` [82] use the
-  named predicate `isCommentTextChar` (`¬linebreak` only,
-  `Surface/Basic.lean`) — comment text is stripped with no semantic
-  effect, and tightening it would have forced a weakened
-  stopped-at-garbage postcondition through the `skipToContent`
-  identity-lemma family that scanner correctness uses before every
-  token. The deviation is documented at the predicate and is **not**
-  open work.
-
-### Related spec-fidelity corrections (2026-04, unchanged)
-
-The cleanup that found this gap also corrected:
-
-- [110] `nb-double-text`, [119] `nb-single-text`, [131] `ns-plain` — body
-  dispatch on `YamlContext` now enumerates all four spec contexts explicitly
-  (key vs. non-key partition), with `blockOut`/`blockIn` grouped for totality.
-- [109] `c-double-quoted` / [120] `c-single-quoted` `_ctx_lift` theorems —
-  preconditions strengthened from `c ≠ .flowKey` to
-  `c ≠ .blockKey ∧ c ≠ .flowKey` to match the corrected body productions.
-- `isPlainSafe*` docstring — documents the spec's 4-context dispatch and
-  how the `inFlow : Bool` parameter encodes the 4→2 partition
-  (`FLOW-OUT/BLOCK-KEY ↦ false`, `FLOW-IN/FLOW-KEY ↦ true`); notes that
-  `BLOCK-OUT/BLOCK-IN` are out-of-spec for [127].
+**CLOSED 2026-08-01.** `isNsChar` (`Surface/Basic.lean`) and
+`isPlainSafeBool/Prop` / `canStartPlainScalarBool/Prop`
+(`Spec/CharPredicates.lean`) approximated
+`[34] ns-char ::= c-printable - b-char - c-byte-order-mark - s-white` as
+`¬whitespace ∧ ¬linebreak`, admitting the BOM and non-printable control
+characters in plain scalars and anchor names (latent since 2026-04-28; no
+valid YAML was affected). Every predicate gained
+`isPrintableProp c ∧ c ≠ '\uFEFF'` (Bool mirror
+`isPrintableBool c && c != '\uFEFF'`), the companion `[27] nb-char` fix landed
+the same day, scanner + emitter + proofs were updated, and the fix is
+regression-tested. Full plan history, the four-context `nb-double-text` /
+`nb-single-text` / `ns-plain` dispatch corrections and the `_ctx_lift`
+precondition strengthening are in git (this section was
+`NS-CHAR-PREDICATE-GAP.md` before the 2026-08-01 consolidation).
 
 ---
 
 ## Indexed-pipeline parity gap
 
-*(found 2026-08-05, from downstream: `algctl` in `soil-moisture-workflows`
-parses its DPS configs with `parseYamlWithCommentsIx` and its `notes: >`
-blocks came back one byte short of what PyYAML — and of what our own
-legacy pipeline — produces.)*
+**CLOSED 2026-08-06 — full parity.** Found 2026-08-05 from downstream
+(`algctl` in `soil-moisture-workflows` parses its DPS configs with
+`parseYamlWithCommentsIx`, and its `notes: >` blocks came back one byte short
+of both PyYAML and our own legacy pipeline). This outranked the proof work
+because `parseYamlWithCommentsIx` is the entry point consumers actually call —
+it is the only one carrying `nodePositions`, so anything editing YAML in place
+must use it — while every gate we had (matrix scores, round-trip corpus, the
+proofs) ran through the **legacy** `TokenParser.parseYaml`.
 
-**Status (2026-08-06): CLOSED — full parity.** The 2026-08-05 score
-(event 365/402, JSON 262/282, accept/reject 383/402) converted the gap
-into a finite classified work-list; plan item 6 ported the seven
-legacy fixes the twin lagged (B1/B2/B3/C1/C2/C3/E), fixed the newly
-found bugs (D5, zero-indent block scalars, the §6.7 header-newline
-guard) — closing content parity at event 387/402, JSON 280/282 with
-zero diffs and zero wrong rejects — and plan item 7 transcribed the six
-legacy strictness checks behind the remaining 15 accepted-invalid
-inputs. Final score: **event 402/402, JSON 282/282, accept/reject
-402/402 — identical to the legacy baseline re-measured in the same
-run, with the identical `ScanError` on every rejected input.** See
-[The matrix score](#the-matrix-score).
+The fix ran in three plan items: **P0** indexed the dead parity harness into
+`Tests.Guards` and repaired its `agree` comparison (it compared `Except`s with
+`==`, for which core has no `BEq`, so the file could not have compiled even if
+it had been imported); **item 6** ported the seven legacy fixes the twin lagged
+(B1/B2/B3/C1/C2/C3/E) and fixed what the new coverage found (D5 —
+`needIndentCheck` after a block scalar; zero-indent block scalars via
+`indentFloor`; the missing §6.7 header-newline guard); **item 7** transcribed
+the six missing legacy strictness checks as read-only validator walkers plus
+dispatcher/preprocess throws (tab-as-indentation in two contexts, §8.1.3
+auto-detect validation, doc-markers + under-indent + tab in quoted
+continuations, §6.6 comment-needs-whitespace, §6.7 header `#` glue).
 
-**Why this outranks the proof work.** The indexed pipeline is not a
-staging area: `parseYamlWithCommentsIx` is the entry point consumers call
-(it is the only one carrying `nodePositions`, so anything that edits YAML
-in place must use it). The proofs, the yaml-test-suite matrix scores
-(402/402 event, 279/279 JSON) and the round-trip corpus all run through
-`TokenParser.parseYaml` — the **legacy** pipeline. Nothing that is
-currently gated tells us whether the twin agrees.
-
-### What landed
-
-| | fix | file |
-|---|---|---|
-| P0 | harness imported into `Tests.Guards` (a `@[default_target]`), and its `agree` comparison rewritten — it used `==` on an `Except`, for which core has no `BEq`, so the file could not have compiled even if it had been imported | `Tests/Guards.lean`, `Tests/Guards/Parity/IndexedScanAndParse.lean` |
-| D1 | `foldBlockContentGo` end-of-input split in two, re-emitting the chomped tail | `Scanner/IndexedScanner.lean` |
-| D2 | more-indented test widened from `s-space` to `s-white` | same |
-| D3 | block-scalar arm clears the pending simple key and re-allows one | `Scanner/IndexedDispatch.lean` |
-| D4 | digit value computed against `'0'`, not `nsEscNullChar` | `Scanner/IndexedScanner.lean` |
-| — | block-scalar parity coverage 2 → 35 guards (chomp × style × context × position) | `Tests/Guards/Parity/IndexedScanAndParse.lean` |
-| — | indexed matrix instruments: the two emitters re-based on the indexed pipeline (`l4yaml-event-ix`, `l4yaml-json-ix`, both `@[default_target]`), emission shared with legacy so score deltas isolate scan/parse | `L4YAML/Output/EventsIx.lean`, `L4YAML/Output/JsonIx.lean`, `Tests/EmitEventsIx.lean`, `Tests/EmitJsonIx.lean` |
-
-Five proofs pinned the old post-state and were repaired, all by swapping
-a `_preserved`/`_mono` transport for the `_cleared` one that already
-existed beside it (`AllKeysPlaceholderInvIx`, `SimpleKeyAboveIx`,
-`AllKeysValidIx`, `SimpleKeyAboveFloorIx`, `NoOverwriteAtIx`) — the
-corpus had the right lemma for a key-clearing transition in every case,
-which is a good sign the invariant set is the right one. Build is at the
-pre-existing baseline: `Tests.Guards` green (187 jobs), the only failures
-left are the two `Tests.Reflections` files and the `L4YAML.Capstones`
-axiom gate, all three red before this work from the open Fix A sorries.
-
-### P0 — the parity harness was dead code
-
-`Tests/Guards/Parity/IndexedScanAndParse.lean` (54 `#guard`s, written at
-Step 6f.0 precisely to gate the cutover) is **not imported by
-`Tests/Guards.lean`**, and `Tests.Guards` is what the `@[default_target]`
-build elaborates. The file has therefore never been built. It is not
-merely idle — one of its guards is **false today**:
-
-```lean
-#guard single ">\n  line1\n  line2\n"   -- legacy "line1 line2\n" vs indexed "line1 line2"
-```
-
-An unindexed probe never runs and rots; the fix is one `import` line, and
-it must land *before* the divergence fixes so that each fix is witnessed.
-
-### The four divergences
-
-Repro at the parse level (`parseYamlSingle` vs `parseYamlSingleIx`), as
-they were before the fix:
-
-| | input | legacy | indexed |
-|---|---|---|---|
-| **D1** | `">\n  x\n"` | `"x\n"` | `"x"` |
-| **D2** | folded body whose next line starts with a **tab** | break kept (`\n`) | break folded to a space |
-| **D3** | `"a: \|\n  x\nb: 1\n"` | mapping of two pairs | `.error (invalidImplicitKey 2)` |
-| **D4** | `"a: \|2\n    x\n"` (any explicit indent indicator) | `"  x\n"` | `.error (invalidBareDocument 1 4)` |
-
-Note the shape of the set: every one is in the block-scalar path, and
-none of them is in the *shared* code — D1/D2/D4 are in hand-written
-indexed re-implementations of legacy string logic, D3 is in the dispatch
-that wraps them. The twin was written by transcription, and transcription
-errors do not distribute evenly.
-
-**D1 — `foldBlockContentGo` drops the chomped trailing break.**
-`L4YAML/Scanner/IndexedScanner.lean` has a single end-of-input case
-
-```lean
-| [], acc, _, _ => acc
-```
-
-where the legacy `foldBlockContent.go` (`L4YAML/Scanner/Scalar.lean`)
-splits it in two, and the split is load-bearing:
-
-```lean
-| [], acc, .start, _       => acc              -- all-blank body: stays empty
-| [], acc, _,      pending => appendNewlines acc pending
-```
-
-Folding runs *after* chomping, so `pending` at end-of-input **is** the
-chomp result (strip → 0, clip → 1, keep → N). Dropping it makes every
-folded scalar behave as if it were `>-`: `clip` and `keep` become
-unreachable through the indexed pipeline. Literal `|` is unaffected — it
-skips the fold pass — which is why the one shape the (dead) guards cover
-and the one shape that survives is `|`.
-
-**D2 — more-indented classification is space-only.** Indexed uses
-`isMore := isSpaceBool c` (`#x20`); legacy uses `c == ' ' || c == '\t'`.
-A tab-led line is more-indented [173], so the breaks around it are kept
-literally rather than folded — the behaviour MJS9 and R4YG pin. The
-indexed twin folds them to spaces.
-
-**D3 — the block-scalar branch loses the simple-key reset.** Legacy
-`scanBlockScalarBody` finishes with
-
-```lean
-{ s_with_token with simpleKeyAllowed := true, simpleKey := { possible := false } }
-```
-
-and the legacy dispatcher returns that state untouched. The indexed
-dispatcher (`L4YAML/Scanner/IndexedDispatch.lean`, the `'|' | '>'` branch)
-instead returns `{ sEmit with simpleKeyAllowed := false }`: the opposite
-value for `simpleKeyAllowed`, and no clearing of `simpleKey`. A block
-scalar always ends at a line start, so a following key is legal — the
-stale pending key then fails the implicit-key check and the whole
-document is rejected. This is why the divergence went unnoticed
-downstream too: it only fires when a block scalar is *followed* by
-another entry, and the configs that exercised it had `notes: >` last.
-
-**D4 — the indentation indicator is decoded against the wrong `'0'`.**
-`parseBlockHeaderLoopIx` read an explicit indicator (`|2`, `>1`, …) as
-
-```lean
-some (ch.toNat - nsEscNullChar.toNat)      -- nsEscNullChar = '\x00'
-```
-
-against legacy's `c.toNat - '0'.toNat`. Two different characters wear the
-name "esc null" in `Spec/CharPredicates.lean`: `isNsEscNullBool c := c == '0'`
-is the **selector** (the character after the backslash in `\0`) and
-`nsEscNullChar := '\x00'` is the **result** (what the escape denotes). The
-line above the bug uses the selector correctly, then the digit arithmetic
-subtracts the *result*: `|2` became an indentation indicator of **50**,
-no body line was ever indented that far, the scalar came back empty, and
-the content line was re-scanned as a bare document. Every explicit
-indicator, in every context, failed to parse.
-
-The lesson generalizes past this call site: a selector/result pair under
-one name is a trap that type-checking cannot catch, because both sides
-are `Char`. Both spellings should not be one word apart.
+The standing lesson is recorded in
+[Proof-breaking code patterns](#proof-breaking-code-patterns): a probe that is
+not indexed into a default target is not a probe. Full divergence analysis
+(D1–D5), the per-item work-lists and the 35 block-scalar parity guards are in
+git.
 
 ### The matrix score
 
-*(2026-08-05, plan item 5. Instruments: `l4yaml-event-ix` / `l4yaml-json-ix`
-— the legacy emitters with the parse swapped to `scanFilteredIx` +
-`TokenParser.Indexed`. The event harness's marked-document loop mirrors the
-**indexed** `parseStreamLoop` arm-for-arm, not the legacy one, so a
-stream-loop divergence shows up in the score instead of being papered over
-by the measurement. Emission and JSON serialization are byte-shared with
-the legacy binaries, so every delta below is scan/parse.)*
+Instruments: `l4yaml-event-ix` / `l4yaml-json-ix` — the legacy emitters with
+the parse swapped to `scanFilteredIx` + `TokenParser.Indexed`. Emission and
+JSON serialization are byte-shared with the legacy binaries, so every delta is
+scan/parse.
 
 ```bash
 lake build l4yaml-event-ix l4yaml-json-ix
@@ -5780,1227 +5558,194 @@ python3 scripts/matrix_score.py --data <suite-data> --axis both --only L4YAML \
     --l4yaml-json  .lake/build/bin/l4yaml-json-ix
 ```
 
-| axis | legacy | indexed (2026-08-05) | indexed (item 6 closed) | indexed (2026-08-06, item 7 closed) |
+| axis | legacy | indexed (2026-08-05) | indexed (item 6) | indexed (item 7 — final) |
 |---|---|---|---|---|
 | event (of 402) | **402 (100%)** | 365 (91%) — 18 diff, 15 err-miss, 4 reject | 387 (96%) — 0 diff, 15 err-miss, 0 reject | **402 (100%)** |
 | JSON (of 282) | **282 (100%)** | 262 (93%) — 14 diff, 2 err-miss, 4 reject | 280 (99%) — 0 diff, 2 err-miss, 0 reject | **282 (100%)** |
 | accept/reject (of 402) | **402 (100%)** | 383 (95%) — 4 valid rejected, 15 invalid accepted | 387 (96%) — 0 valid rejected, 15 invalid accepted | **402 (100%)** |
 
-(The legacy numbers were re-measured in the same run as a baseline, same
-binaries' build, same data form — not quoted from July.)
-
-37 unique tests fail (every JSON failure is also an event failure). They
-fall into three classes:
-
-**Class 1 — the seven legacy matrix fixes the twin never received** (16 of
-the 18 event diffs). The July matrix campaign fixed the *legacy* runtime
-only and recorded the twin's lag as Phase-3 cutover debt; this run measures
-that debt test-by-test, using the July fix letters:
-
-| legacy fix | what it does | failing tests |
-|---|---|---|
-| B1 | double-quoted blank-line fold uses `skipWhitespace` | 5GBF |
-| B2 | escaped trailing tab protected from fold-trim (`protectedLen`) | DE56/00–03 |
-| B3 | plain-scalar tab strip + blank-line handling | HS5T, NB6Z, UV7Q |
-| C1 | bare `...` is a §9.2 [205] document *suffix*, not an empty document | HWV9, QT73 |
-| C2 | empty tagged/anchored node as sequence entry (BLOCK-IN vs BLOCK-OUT) | FH7J, PW8X |
-| C3 | explicit `? <collection-key>` is one entry, not two empty halves | KK5P, V9D5 |
-| E | block-scalar EOF implicit `b-break` on whitespace-only trailing lines | JEF9/02, L24T/01 |
-| A′/E residue | folded scalar over blank/tab-led lines | R4YG |
-
-**Class 2 — accept-side strictness lag** (the 15 `err-miss`: invalid inputs
-the twin accepts). The legacy scanner's error checks were never
-transcribed. By family: tab indentation (4EJS, Y79Y/000, Y79Y/003),
-block-scalar indentation validation (5LLU, S98Z, W9L4), document markers
-inside multiline quoted scalars (5TRB, RXY3), comment without preceding
-whitespace (9JBA, CVW2, SU5Z, X4QW), wrong-indented multiline quoted
-scalar (QB6E), plus the two stale-`in.json` error tests (9MQT/01,
-DK95/01) which the twin wrongly parses.
-
-**Class 3 — divergences with no legacy-fix counterpart** (the 4 rejects of
-valid input, plus one structural diff):
-
-* **D5 — block scalar ending a sequence-entry mapping swallows the next
-  sibling** (RZT7, the 18th event diff). Minimal repro:
-  `"- k: 1\n  c: |\n    x\n- k: 2\n"` — legacy parses two seq-entry
-  mappings; the twin emits the second entry as an empty scalar and then a
-  spurious second document. The retroactive `blockMappingStart`/`key`
-  insertion across the dedent after a block scalar is lost. The 35-guard
-  cross-product missed this shape (its seq cases were `- |`-style: the
-  scalar directly under the entry, not under a mapping *inside* the
-  entry); add the repro to the parity guards with the fix.
-* **Zero-indented block scalar rejected** (DK3J, FP8R): `--- >` with
-  content at column 0 errors `invalidBareDocument` in the twin.
-* **`%` content misread as a directive** (M7A3, W4TN): `%!PS-Adobe-2.0`
-  as the body of `--- |` (W4TN) errors "directive after document content"
-  — block-scalar content is being re-inspected as a potential directive.
-  M7A3 (bare document + `...` + comment + `...`) fails the same way.
-
-The class boundaries matter for the fix plan: class 1 is porting work with
-known-good legacy implementations to transcribe (and the July memory of
-each fix's proof blast radius), class 2 is systematic strictness porting
-best done as one sweep with the error-test list as its checklist, and
-class 3 needs the same find-minimize-fix treatment D1–D4 got.
-
-### Closing item 6 (2026-08-06)
-
-**Class 1 — all seven fixes ported.** Parser side (`TokenParserIx.lean`):
-C1 (bare-`...` suffix arm, mirrored into `EventsIx`'s marked loop in the
-same commit so the measurement stays arm-for-arm honest), C2 (`isSeqEntry`
-derived inside `parseNode` via `tokens.get?`, gating the `blockEntry`
-content arm), C3 (retroactive-`key` skip in
-`parseBlockMappingEntryValue`'s `consumed = false` tail, over a new
-`ParseStateIx.peekNext?`). Scanner side (`IndexedScanner.lean`): B1+B3
-collapse to one edit — the twin shares `skipBlankLinesLoopIx` between the
-quoted and plain paths where legacy has two loops, so `skipSpaces` →
-`skipWhitespace` there fixes 5GBF *and* NB6Z; B3's second half adds the
-`skipWhitespace` continuation strip to `handleBlockLineBreakIx`; B2
-threads `protectedLen` through `collectDoubleQuotedLoopIx`; E lands in
-three EOF spots (indent auto-detect folds in the last blank line's
-column, blank-final-line push, whitespace-only-line push); the R4YG
-residue was the fold's `pending = 0` first-line classification still
-using `s-space` — the one `isMore` site D2 missed.
-
-**Class 3 — three root causes, all in the block-scalar path.**
-
-* **D5** = one missing flag: the block scalar is the *only* scalar whose
-  terminating line breaks are consumed inside the cursor-level recogniser
-  (legacy sets `needIndentCheck := true` in `consumeNewline`, but
-  `IxCursor` carries no flags), so the dispatcher's `'|' | '>'` arm must
-  set `needIndentCheck := true` itself or the next line's indent unwind
-  never runs — no `blockEnd`, sibling swallowed (RZT7; also KK5P's
-  `? >` explicit-key case, which looked like C3 in the classification but
-  was D5).
-* **Zero-indent rejects** (DK3J, FP8R): the dispatcher passed
-  `(max 0 currentIndent).toNat` — clamping *before* the `+1` loses
-  `currentIndent = -1`, making the content floor 1 at top level where
-  legacy computes `max 0 (-1 + 1) = 0`. `scanBlockScalarIx`'s parameter is
-  now the **indent floor** (`indentFloor`, auto-detect uses it directly,
-  explicit `m` uses `indentFloor + m - 1`). This also cured **M7A3/W4TN**
-  without a separate fix: their `%` lines are *content of zero-indented
-  block scalars* that the twin was ending prematurely — the "directive
-  misread" was downstream fallout, not a scanner bug of its own.
-* **2G84/01 regression caught and closed**: with the floor fixed, `--- |10`'s
-  dangling `0` (previously an accidental reject) scanned as content. The
-  twin had no analog of legacy's `scanBlockScalarConsumeNewline`; the new
-  `blockScalarHeaderEndsLineIx` predicate + `expectedNewline` throw in the
-  dispatch arm restores §6.7 [76].
-
-**Proof repairs ran exactly on the July playbook.** C1: the documentEnd
-bullet is one line in accumulator-style loop lemmas; the entry-shape
-lemma (`parseStreamLoop_single_docIx`) takes the `tok ≠ .documentEnd`
-guard threaded from its caller. C2/C3: each `unfold`ing lemma gained the
-`Bool`/else-tail sub-case, ported verbatim from the already-repaired
-legacy lemma bodies (`IndexedNodeProofs`, `IndexedWellBehaved`,
-`IndexedWfa`, `IndexedGrammable`; `parseNode_emitter_advances_ix` uses
-the folded-form `parseNodeContent_pos_mono_ix` before the unfold, per the
-July `split`-on-inlined-if lesson). B2: the `∀ p` wrapper on
-`collectDoubleQuotedLoopIx_escapeString_succeeds` (generalized `p` binds
-first in the IH). The §6.7 guard added one `split at h · cases h` peel to
-the eleven proof sites that case on the dispatcher's block-scalar arm.
-12 new parity-guard rows pin D5/zero-indent/`%`-content/2G84 shapes.
-Full build afterwards: same pre-existing baseline (Capstones axiom gate +
-two Reflections files, all from the open Fix A sorries).
-
-### Closing item 7 (2026-08-06)
-
-**All 15 accepted-invalid inputs traced to six legacy checks, every one
-scan-level** (established by running the legacy scanner on each input
-and recording the exact error):
-
-| legacy check | thrown from (legacy) | tests |
-|---|---|---|
-| `tabInIndentation` — line-start skip (§6.1) | `Whitespace.lean` `skipToContentWs` | 4EJS, Y79Y/003 |
-| `tabInIndentation` — quoted continuation (§6.1) | `Scalar.lean` `foldQuotedNewlines` | DK95/01 |
-| `tabInIndentation` + `blockScalarIndentMismatch` — auto-detect probe (§6.1, §8.1.3) | `Scalar.lean` `autoDetectBlockScalarIndentLoop` | Y79Y/000; 5LLU, S98Z, W9L4 |
-| `documentMarkerInScalar` (§9.1.2) + `underIndentedScalar` (§8.1) | quoted-loop fold branches | 5TRB, RXY3, 9MQT/01; QB6E |
-| `unexpectedChar '#'` — comment needs preceding `s-white`/line-start (§6.6 [75]) | `skipToContentComment` leaves the `#`; dispatcher fallback throws | 9JBA, CVW2, SU5Z |
-| `expectedNewline` — `#` glued to a block-scalar header (§6.7 [76]) | `scanBlockScalarConsumeNewline` | X4QW |
-
-**The transcription runs on the D5 lesson**: cursor-level recognisers
-(`skipToContent`, `scanDoubleQuotedIx`, …) have no error channel and no
-`currentIndent`/`inFlow`, so each missing check landed as a **read-only
-validator walker** in `IndexedScanner.lean` plus a throw at the
-dispatch layer — no recogniser type changed, which is why the proof
-blast radius stayed at one file:
-
-* `skipToContentErrIx` — mirror of legacy `skipToContentWs` +
-  `skipToContentComment` + loop: §6.1 tab-as-indentation (with the
-  comment/blank/EOF/stream-level-flow-indicator exemptions) and the
-  §6.6 comment-start rule, reported as the same `unexpectedChar '#'`
-  the legacy dispatcher fallback raises. Gated at the top of **both**
-  `scanNextTokenIx_preprocess` and `_preprocessWC` (the
-  comment-preserving pipeline `algctl` uses must reject identically).
-* `quotedScalarErrIx` — walks the quoted span with the recogniser's
-  own stepping (`skipBlankLinesLoopIx`, escaped-break skip) and
-  reproduces the legacy fold-time checks in legacy order: tab →
-  document marker → under-indent. Gated in the dispatcher's `"`/`'`
-  arms before the recogniser.
-* `blockScalarBodyErrIx` — reruns the auto-detect probe from
-  `blockHeaderToBodyIx` with legacy's error channel (tab in the
-  indentation zone; whitespace-only line wider than the detected
-  content indent). Explicit-indicator headers skip it, as legacy skips
-  auto-detection. Gated in the `|`/`>` arm after the §6.7 header check.
-* `blockScalarHeaderEndsLineIx` tightened: the trailing comment branch
-  now requires whitespace before the `#` (legacy `peekBack?` rule), so
-  `block: ># comment` fails the predicate and the existing
-  `expectedNewline` throw fires — X4QW needed no new throw site.
-
-**Proof repair: 17 files, two shapes.** (1) *Given-success peels* —
-the standard `split at h · cases h` for each new guard, at every
-lemma that unfolds `preprocess` (one extra leading peel) or cases the
-dispatcher's `|`/`>`/`"`/`'` arms (one extra peel per arm): the
-Scanner/Production proof files, `FlowMonoChain/{Basic,Preserve/Step}`,
-`FilteredGrowth/PerDispatch/BlockContent`, `EmitScansStrong` — all
-mechanical, same insertion as item 6's §6.7 peel. (2) *Forward
-walker-`none` facts* — lemmas that **construct** a successful
-preprocess/dispatch on emitted text must now show the walkers pass:
-four new lemmas in `Proofs/Scanner/IndexedIndent.lean`
-(`skipToContentErrIx_none_{atEnd, of_content, of_ws1}` +
-`skipSpaces_no_space`) discharge every preprocess site (EOF, cursor
-at content, one space then content); for the `"` arm,
-`quotedScalarErrLoopIx_escapeString_none` (Basic §3.5) reruns the
-`collectDoubleQuotedLoopIx_escapeString_succeeds` induction skeleton
-to show the walker is `none` on `escapeString content ++ ['"']` — the
-emitted surface has no raw line break, and every fold-time check sits
-under `isLineBreakBool`. `FirstFiltered`, which has no
-surface-correspondence in scope, instead *derives* walker-`none` from
-its `dispatchContent = .ok` hypothesis (a `some` walker result would
-have thrown).
-
-**Scores (same run, same binaries' build):** indexed **event 402/402,
-JSON 282/282, accept/reject 402/402** — identical to the legacy
-baseline, with the identical `ScanError` (constructor + position) on
-each of the 15 inputs, including the two stale-`in.json` tests
-(9MQT/01 = doc-marker in scalar, DK95/01 = tab in dq continuation).
-15 reject-parity guard rows (the `agree` harness requires the *same*
-error from both pipelines) plus 8 accept-boundary rows (tabs as legal
-separation, comments with proper whitespace, properly indented
-continuations) pin the sweep.
-
-### Plan
-
-*(1–5 done 2026-08-05, see "What landed" and "The matrix score"; the
-residue is items 6–7 of [Next actions](#next-actions-in-order).)*
-
-1. **Index the harness.** Add `import Tests.Guards.Parity.IndexedScanAndParse`
-   to `Tests/Guards.lean`. Expect the `>` guard to fail — that failure is
-   the point, and it is the regression test for D1.
-2. **Fix D3** (`IndexedDispatch.lean`): mirror the legacy post-state.
-   Check the indexed scanner proof corpus for lemmas that pin
-   `simpleKeyAllowed` across this branch.
-3. **Fix D1/D2** (`IndexedScanner.lean`): split the `foldBlockContentGo`
-   end-of-input case and widen `isMore` to `s-white`. `FoldNewlines`
-   guards exist for the legacy fold — extend them to the twin rather than
-   writing a parallel set.
-4. **Extend the guards** to the uncovered cross-product: `|`/`>` × chomp
-   `strip`/`clip`/`keep` × {root, mapping value, sequence entry} × {last
-   in document, followed by another entry}, plus explicit-indent headers
-   and tab-led folded lines. The current file's block-scalar coverage is
-   two root-level cases.
-5. **Score the twin on the matrix.** ✅ Done via indexed twins of the two
-   matrix emitters (`l4yaml-event-ix`, `l4yaml-json-ix`) rather than a
-   suite-runner mode: the matrix's event/JSON axes measure output
-   fidelity and subsume the runner's accept/reject check. Scores and the
-   37-test residue classification in [The matrix score](#the-matrix-score).
-
-**Guardrail for the future:** every indexed twin lands with a parity
-guard *in the built target*, and the twin's docstring claim
-("behaviourally identical to …") is only as good as a guard that
-elaborates. See also the general lesson recorded under
-[Proof-breaking code patterns](#proof-breaking-code-patterns): a probe
-that is not indexed into a default target is not a probe.
+The legacy numbers were re-measured in the same run as a baseline: the final
+row is identical to legacy on all three axes, with the identical `ScanError` on
+every one of the 94 rejected inputs.
 
 ---
 
 ## Grammar completeness plan
 
-*(was `GRAMMAR_COMPLETENESS_PLAN.md` — "Grammar Completeness Plan — parse_iff_grammar (capstone 7.7)"; consolidated into this file 2026-08-01, file-level history in git)*
+*(was `GRAMMAR_COMPLETENESS_PLAN.md`, itself formerly `VERSION-0.4.8.md`;
+consolidated into this file 2026-08-01. Completed steps are recorded here as
+closure records only — the blow-by-blow progress history is in git.)*
 
-> Formerly `VERSION-0.4.8.md`; renamed 2026-08-01 (VERSION-named docs
-> are retired release-campaign records — this is the **open** plan).
-> The campaign, when executed, ships as release v0.4.8. All line pins
-> below re-verified against the code on 2026-08-01.
-
-**Goal:** Prove the grammar completeness theorem — that every string in the YAML 1.2.2 formal language parses successfully — and close the biconditional.
+**Goal:** prove the grammar completeness theorem — every string in the YAML
+1.2.2 formal language parses successfully — and close the biconditional.
 
 ```lean
 theorem parse_iff_grammar (input : String) :
     (∃ docs, parseYaml input = .ok docs) ↔ InYamlLanguage input
 ```
 
-Both directions:
 - **Forward** (v0.4.6, proven): `parseYaml input = .ok docs → InYamlLanguage input`
-- **Converse** (this plan, target): `InYamlLanguage input → ∃ docs, parseYaml input = .ok docs`
+- **Converse** (this plan): `InYamlLanguage input → ∃ docs, parseYaml input = .ok docs`
 
-### Status (as of 2026-08-02): Fix B DONE — `directiveDrop` REMOVED
+### Status
 
-| Step | Status | Notes |
-|---|---|---|
-| 0. Scanner audit for directive handling | ✅ done 2026-08-01 | findings under Fix B: mid-stream leniency **confirmed reachable** |
-| Fix B: eliminate `directiveDrop` (orphaned directive resolution) | ✅ **done 2026-08-02** | option (c) executed; see the progress record below |
-| 1a. Remove `directiveDrop` from `SLYamlStream` | ✅ **done 2026-08-02** | constructor deleted; `SLYamlStream` = 3 spec constructors + `scannerDrop` |
-| Fix A: eliminate `scannerDrop` (flow collection grammar evidence) | 🚧 in progress (v0.7.0) | **grammar completion + flow-accumulation rewire** (2026-08-03: `scannerDrop` masks real grammar incompleteness — audit found 3 bounded gaps G1–G3, e.g. bare-key `{a}`). Stage B.1 foundation `FlowStackB` green (`a2f4aefb`); **B.2 grammar surgery ✅ done** (G1 `71f03125`, G2/G3 `c215e597`; ripple empirically zero); **B.3 flow-entry production machinery ✅ done** (§4f `ede0ef1e` + §4g `a8cae0d6`; all forms, additive-green); **B.4 deep design done 2026-08-03** — found B.1's `FlowOpenStack` INSUFFICIENT for nested values (`{a: [b]}` ⇒ colon-pending parent); corrected to per-frame `SeqFrame`/`MapFrame` (between|mid) + closure-injection nesting (positivity validated); remaining B.4 atomic red swap → B.5 delete. See the Fix A section. |
-| 1b. Remove `scannerDrop` from `SLYamlStream` | 🚧 in progress | part of the atomic Fix A |
-| 5. Prove the converse `grammar_completeness` | ❌ open | depends on Fix A |
-| 6. Assemble `parse_iff_grammar` biconditional | ❌ open | depends on Step 5 |
+| Step | Status |
+|---|---|
+| 0. Scanner audit for directive handling | ✅ done 2026-08-01 |
+| Fix B: eliminate `directiveDrop` | ✅ **done 2026-08-02** (option (c): the scanner rejects orphaned directives, so the `pendingDirective` close path is provably unreachable; constructor deleted, 7 construction sites rewritten) |
+| Fix A: eliminate `scannerDrop` | 🟡 **nearly done** — see below. `StreamAccum.lean` is at **5 sorry sites / 5 declarations**, all in β.3; `scannerDrop` has exactly **one** live use left |
+| 1b. Remove `scannerDrop` from `SLYamlStream` | ⬜ open — β.5, once that last use is gone |
+| 5. Prove the converse `grammar_completeness` | ⬜ open — depends on Fix A |
+| 6. Assemble the `parse_iff_grammar` biconditional | ⬜ open — depends on Step 5 |
 
-#### Progress record — Fix B (2026-08-02)
-
-Scanner (legacy + both indexed twins in lockstep):
-
-- New `scanNextToken_checkNoPendingDirectives` (and `…Ix` twin) between
-  structural dispatch and the `allowDirectives` update: content arriving
-  while `directivesPresent` is set is now
-  `ScanError.directiveWithoutDocument` ([209] mid-stream enforcement).
-- The EOF checks (`scanLoop`, `scanLoopFull`, `scanLoopIx`, `scanLoopIxWC`)
-  and the `scanDocumentEnd(Ix)` guard dropped the `&& !documentEverStarted`
-  conjunct — that flag is sticky across documents, so orphan directives in
-  *second* documents (`a\n...\n%YAML 1.2\n<eof|...|content>`) previously
-  slipped through all three checks. `documentEverStarted` is now write-only
-  (kept to minimize statement churn).
-- Reserved directives (`%FOO …`) now set `directivesPresent` ([82]/[209]:
-  they too require `---`).
-- `scanYamlDirective` rejects empty version parts (`%YAML .2`) instead of
-  feeding `String.toNat!` an empty string.
-- Indexed parity repairs (pre-existing bugs exposed by the campaign):
-  `scanTagDirectiveIx` mis-parsed the handle (treated the *leading* `!` as
-  its terminator, then re-scanned the directive line as content) and, like
-  `scanYamlDirectiveIx` and the reserved arm, never validated trailing
-  content nor skipped to end of line. All three now mirror the legacy
-  scanners (new `collectTagHandleDirectiveLoopIx`, `collectTagPrefixLoopIx`
-  — URI chars, not tag chars — and `skipToEndOfLineIx`).
-
-Proofs:
-
-- `PendingNode` gained a `Bool` index — `pendingDirective` is the sole
-  `true`-indexed constructor (its vestigial `h_at_line_end` field dropped),
-  and the accumulation invariant carries the coupling
-  `b = true → sc.directivesPresent = true` (`Prop`-sorted `PendingNode`
-  admits no discriminator function, so the kind must be data).
-- `close_with_ssl` takes `PendingNode false` — the `directiveDrop` arm is
-  type-impossible. The flow/block/content `pendingDirective` cases are
-  deleted (the mid-stream check makes them unreachable), and the EOF path
-  derives `b = false` from the strengthened `scanLoop` check.
-- The structural path got the real semantics `directiveDrop` was masking:
-  `structural_dispatch_after_directives` resolves an open directive run
-  against the incoming token — `---` now builds a genuine
-  **`SLDirectiveDocument`** ([209]) via the `pendingDocStart` builder
-  (previously even *valid* directive documents had their directives
-  dropped from the derivation), `%` extends the run via `GPlus_snoc`, and
-  `...` is refuted by `scanDocumentEnd_ok_directivesPresent`.
-- New helper family in `ScanStrictCoupling`: `preprocess_some_directivesPresent`
-  (dp-preservation through the skipToContent pipeline),
-  `scanDirective_directivesPresent`, `scanDocumentEnd_ok/result_dp`,
-  `scanDocumentStart_dp`, `GPlus_snoc`.
-- Behavioral flips: none in any test suite (verified by exhaustive sweep);
-  `examples/6/example-6.17.yaml` moves from lenient-accept to
-  expected-error (still ✓ in SpecExamples scoring). New regression
-  coverage: Tests/ScannerTests "Directive strictness (Fix B)" + parity
-  guards for the flip set in Tests/Guards/Parity/IndexedScanAndParse.lean.
-
-**Blocker cleared (2026-07-04):** v0.4.7 is complete — `universal_roundtrip` is
-fully proven (proof-status SSOT:
-[Blueprint/04-capstones.md](Blueprint/04-capstones.md)). This plan is now the
-only open proof frontier (capstone slot 7.7, `parse_iff_grammar`).
-
-**Where the obligations live:** `StreamAccum.lean` is **sorry-free** — 0
-`sorry` tactics; its ~28 `sorry` mentions are docstring narrative, mostly
-inside the §6 Gap Analysis block now explicitly marked *historical*
-(`StreamAccum.lean:3201–3320`). The obligations this plan addresses
-(`SFlowNode_context_lift`, `h_closable` construction for `pendingFlow`,
-orphaned-directive resolution) are real but live only as prose: in v0.4.6
-they were "discharged" **via the over-approximation constructors this plan
-removes**, so eliminating the constructors reopens exactly those
-obligations, minus the escape hatch. (The BOM col≠0 edge case formerly
-listed alongside them is genuinely closed:
-`bom_noWhitespace_ssbcomment` at
-[L4YAML/Proofs/Production/PreprocessProduction.lean:262](L4YAML/Proofs/Production/PreprocessProduction.lean)
-builds `SSBComment.withSep` from the column-independent
-`SSeparateInLine.startOfLine`.)
-
-**Estimated effort:** ~150–600 LoC for Phase 1; the bulk lands in
-[Production/StreamAccum.lean](L4YAML/Proofs/Production/StreamAccum.lean) (currently 3,322 lines).
-
----
-
-### Motivation
-
-Version 0.4.6 proved **acceptance strictness** — if the parser accepts an input, the input is in the YAML language:
-
-```lean
-theorem parse_strict_proof : parseYaml input = .ok docs → InYamlLanguage input
-theorem scan_strict_proof  : scan input = .ok tokens   → InYamlLanguage input
-```
-
-The converse — that every YAML-language string is accepted — is missing. Together these would establish a **biconditional**: the parser accepts **exactly** the YAML 1.2.2 language — no more, no less. This is the strongest correctness statement possible for a parser: soundness (forward), completeness (converse), and their conjunction.
-
-1. **Spec-conformance is bidirectional.** Without the converse, the parser could silently reject valid YAML inputs. v0.4.6 proves it doesn't accept *invalid* inputs; this plan proves it doesn't reject *valid* ones.
-
-2. **Closes the formal verification story.** The biconditional `parse ↔ grammar` is the gold standard for parser correctness in the formal-methods literature. Combined with v0.4.7's round-trip theorem: the parser accepts exactly the right inputs, and for the emitter's output subset, the parsed result matches the original.
-
-3. **Enables refactoring confidence.** Any scanner/parser refactor that preserves the biconditional is provably behaviour-preserving. Without completeness, a refactor could accidentally narrow the accepted language.
-
----
-
-### The Over-Approximation Problem
+### The over-approximation problem
 
 `InYamlLanguage` is defined via `SLYamlStream`
 ([Surface/Document.lean:136](L4YAML/Surface/Document.lean); `InYamlLanguage`
-at :186), which originally had **5 constructors** (4 since Fix B removed
-`directiveDrop` on 2026-08-02):
+at :186). Three of its constructors (`single`, `suffixContinue`,
+`implicitContinue`) correspond directly to YAML 1.2.2 §9.1 production [211].
+Two more were **over-approximations** added during the v0.4.6 `scan_strict`
+proof to absorb scanner behaviour that did not map cleanly onto a spec
+production:
 
-```lean
-inductive SLYamlStream : SurfPos → SurfPos → Prop where
-  | single           : GStar SLDocumentPrefix → GOpt SLAnyDocument → GStar SLDocumentSuffix → ...
-  | suffixContinue   : SLYamlStream s s₁ → GPlus SLDocumentSuffix → ...
-  | implicitContinue : SLYamlStream s s₁ → GStar SLDocumentPrefix → GOpt SLAnyDocument → ...
-  | directiveDrop    : SLYamlStream s s₁ → GPlus SLDirective s₁ s' → SLYamlStream s s'
-  | scannerDrop      : SLYamlStream s s₁ → SSLComments s₂ s' → SLYamlStream s s'
-```
+- **`directiveDrop`** — absorbed orphaned directives (`%YAML 1.2` with no
+  following document). **Removed 2026-08-02.**
+- **`scannerDrop`** — an opaque gap matcher for characters the scanner
+  consumed but the grammar could not account for (flow indicators). **Still
+  present**, with one live use: the `pendingFlow` arm of
+  `PendingNode.close_with_ssl` (`StreamAccum.lean`).
 
-The first three correspond directly to YAML 1.2.2 §9.1 production [211]. The last two — `directiveDrop` (**removed 2026-08-02**) and `scannerDrop` (still present) — were **over-approximations** added during the v0.4.6 `scan_strict` proof to accommodate scanner behaviour that doesn't map cleanly to spec productions:
+They make `InYamlLanguage` strictly **weaker** than "parseable YAML"
+(`parseable ⊂ InYamlLanguage`): an unclosed `[1, 2` can satisfy
+`InYamlLanguage` through `scannerDrop` while `parseYaml` rejects it. **The
+converse theorem is therefore false as long as `scannerDrop` exists** — which
+is why Fix A comes before Step 5.
 
-- **`directiveDrop`** (removed): absorbed orphaned directives (e.g., `%YAML 1.2` without a following document).
-- **`scannerDrop`**: opaque gap matcher for characters consumed by the scanner (e.g., incomplete flow indicators) that don't fit a clean grammar production.
-
-#### Consequence for the converse
-
-The over-approximation constructors make `InYamlLanguage` **weaker** than "parseable YAML":
-
-```
-parseable inputs ⊂ InYamlLanguage inputs
-```
-
-A string can satisfy `InYamlLanguage` (via `scannerDrop`) without being parseable — e.g., an unclosed flow sequence `[1, 2` may be accepted by `InYamlLanguage` through `scannerDrop` but rejected by `parseYaml` with an unmatched-bracket error.
-
-**The converse theorem is therefore false under the current definition.** The fix: remove the over-approximation constructors, making `InYamlLanguage` exactly characterize the parseable YAML language.
-
----
-
-### Approach: Eliminate Over-Approximation Constructors
-
-Rather than creating a parallel `StrictInYamlLanguage` definition, we **remove `directiveDrop` and `scannerDrop` directly from `SLYamlStream`**, reducing it to its 3 spec-conforming constructors:
-
-- No duplication of grammar definitions
-- The existing `InYamlLanguage` becomes the biconditional target
-- Every existing theorem using `InYamlLanguage` is automatically strengthened
-- `scan_strict_proof` is *harder* to prove (no escape hatches), but the theorem itself is *stronger*
-
-#### Impact analysis (verified 2026-08-01)
-
-- **Definition site (must change):** `L4YAML/Surface/Document.lean` — remove the two constructors from the `SLYamlStream` inductive.
-- **Construction sites (must fix):** all 8 are in `Proofs/Production/StreamAccum.lean` — 1 `scannerDrop` (line 481) + 7 `directiveDrop` (lines 505, 1138, 1162, 1334, 1346, 2794, 2814).
-- **Nothing else breaks:** a library-wide sweep found **no case analysis on `SLYamlStream` anywhere** — not even in `StreamAccum.lean`, which only *constructs* it. `DocumentProduction.lean` applies the three spec constructors in helper lemmas and threads values opaquely; every other file threads existentials. Removing constructors therefore breaks exactly the 8 construction sites.
-- Corollary for Step 5: the converse proof will introduce the library's **first** case analysis (rule inversion) of `SLYamlStream`.
-
----
-
-### Dependency Map
-
-#### Usage site 1: `PendingNode.close_with_ssl` — `scannerDrop` (line 481)
-
-The `pendingFlow` arm uses `scannerDrop`:
-
-```lean
-| pendingFlow =>
-    exact SLYamlStream.scannerDrop sp_start sp_block sp_scan sp_mid h_stream h_ssl
-```
-
-**Root cause**: `PendingNode.pendingFlow` (`StreamAccum.lean:134–136`) stores only `h_stream : SLYamlStream sp_start sp_block` — there is an opaque gap `sp_block → sp_scan` where flow indicators (`[`, `{`, `]`, `}`, `,`) were scanned, with no grammar evidence retained.
-
-**Fix required**: `pendingFlow` must carry grammar evidence for the gap — see Fix A.
-
-#### Usage site 2: `PendingNode.close_with_ssl` — `directiveDrop` (line 505)
-
-The `pendingDirective` arm uses `directiveDrop`:
-
-```lean
-| @pendingDirective _ h_dir_acc _ _ =>
-    exact SLYamlStream.directiveDrop sp_start sp_block sp_mid
-      h_stream (h_dir_acc sp_mid h_ssl)
-```
-
-**Root cause**: when directives are encountered without a following `---`, the scanner accumulates them but they never form a document; `directiveDrop` absorbs them. (`pendingDirective`'s own docstring, `StreamAccum.lean:120–122`: "Does NOT carry h_closable — cannot close directives without `---`".)
-
-**Fix required**: see Fix B.
-
-#### Usage sites 3–8: `accum_structural_pending` / `accum_step_structural` / `accum_step_block`
-
-All `pendingDirective` transition cases use `directiveDrop`, in the same pattern, **6 times** across 3 lemmas (`accum_structural_pending` lines 1138/1162, `accum_step_structural` lines 1334/1346, `accum_step_block` lines 2794/2814) — always the `pendingDirective` case, in both col=0 and col≠0 sub-cases.
-
-Note: these sites construct `directiveDrop` **directly**, not via `close_with_ssl` — but the fix is shared: once the directive-without-`---` case is resolved, the same construction replaces `directiveDrop` at all 7 sites.
-
-#### Summary: two independent fixes
-
-| Fix | Constructor | Usage sites | Root cause |
-|-----|-------------|-------------|------------|
-| **A** | `scannerDrop` | 1 (line 481) | `pendingFlow` lacks grammar evidence for flow indicators |
-| **B** | `directiveDrop` | 7 (lines 505, 1138, 1162, 1334, 1346, 2794, 2814) | orphaned directives not mapped to grammar productions |
-
----
+The chosen approach removes the constructors from `SLYamlStream` directly
+rather than defining a parallel strict language: no duplicated grammar, the
+existing `InYamlLanguage` becomes the biconditional target, and every theorem
+mentioning it is automatically strengthened. A library-wide sweep (2026-08-01)
+confirmed there is **no case analysis on `SLYamlStream` anywhere** — only
+construction sites — so removing a constructor breaks exactly those sites. The
+converse proof will introduce the library's first rule inversion on it.
 
 ### Fix A: Eliminating `scannerDrop` — Flow Indicator Grammar Evidence
 
-#### Current state
+The premise, found 2026-08-03: `scannerDrop` was not merely an inconvenient
+escape hatch, it was **masking real grammar incompleteness**. Three bounded
+gaps (bare-key flow-map entry `{a}`; explicit key with no colon `{? a}`;
+explicit `?` seq entry `[? a]`) had no production at all. Grammar surgery
+closed them (empirically zero ripple), and the flow-entry production machinery
+they need was built out in `NodeProduction` §4f/§4g.
 
-`PendingNode.pendingFlow` (`StreamAccum.lean:134–136`) is used when the scanner processes flow indicators. It carries only the stream at block level:
+#### The accumulation architecture
 
-```lean
-| pendingFlow (sp_start sp_block sp_scan : SurfPos)
-    (h_stream : SLYamlStream sp_start sp_block) :
-    PendingNode sp_start sp_block sp_scan
-```
+This is the part that stays load-bearing for β.3–β.5.
 
-The gap `sp_block → sp_scan` is opaque; at close time, `scannerDrop` absorbs it.
+`StreamAccum.lean` threads a **lagging quad** through the scan loop —
+`SLYamlStream sp_start sp_gram`, `BlockStack sp_gram sp_block`,
+`PendingNode false sp_start sp_flow sp_scan`, `ScannerSurfCorr sc sp_scan` —
+because scanner token boundaries do not align with grammar production
+boundaries (a production's trailing `SSLComments` is consumed during the *next*
+token's preprocessing). The flow component is `FlowStackB`, carrying three
+indices pinned to scanner state:
 
-#### Required change
+| index | pinned to | why |
+|---|---|---|
+| depth `Nat` | `sc.flowLevel` | lets each accum step branch flow-interior vs. document without a separate conjunct |
+| kinds `Array Bool` | `sc.flowStack` | makes the scanner's flow-close kind check (`]` must close a `[`) visible to the grammar side — item 9b(i) |
+| `FrameTail` | `tailOf sc.tokens` | makes the scanner's two flow guards (`invalidFlowEntry`, `checkFlowAdjacency`) visible as frame-shape facts — item 9b(ii) |
 
-Add an `h_closable` field, matching the pattern of `pendingContent` (`StreamAccum.lean:93–97`):
+plus one guarded conjunct `sc.flowLevel ≥ 1 → sp_flow = sp_scan ∧ LastTokenReal sc.tokens`
+(inside a flow the pending gap is empty — all mid-entry state lives in the top
+frame — and the token array ends in a real token, which is what lets the
+`FrameTail` reading survive `saveSimpleKey`'s two reservation placeholders).
 
-```lean
-| pendingFlow (sp_start sp_block sp_scan : SurfPos)
-    (h_closable : ∀ sp_mid,
-      SSLComments sp_scan sp_mid →
-      SLYamlStream sp_start sp_mid) :
-    PendingNode sp_start sp_block sp_scan
-```
+Four design decisions worth not re-deriving:
 
-Then at dispatch time (in `accum_step_flow`, §1c, `StreamAccum.lean:1451`), construct the closure by composing:
-1. `SFlowSequence` / `SFlowMapping` evidence from `_prod` theorems
-2. `SBlockNode.flowInBlock` wrapping (`Surface/Node.lean:89`)
-3. Stream extension via `implicitContinue`
+- **Per-frame state, not a flat partial.** Each open frame is a
+  `SeqFrame`/`MapFrame` — a `between`-entries or `mid`-entry shape — because
+  after a nested value closes (`{a: [b], c}`) the parent rests in a genuine
+  intermediate position. The shapes are **inlined** as 7 (resp. 8)
+  constructors rather than wrapping a `PartialFlowSeq`/`PendingFlowSeqEntry`,
+  so each can carry its own `FrameTail`: a packaged `Prop` payload hides which
+  constructor built it, and that is exactly the tail.
+- **Closure-injection nesting.** A nested frame does not store its parent
+  stack; it carries an `inject` closure built at push time from the parent's
+  then-known state (via `FlowOpenStack.receiveNode`). The pop is then uniform:
+  close the top frame to an `SFlowNode`, then apply `resume` (depth 1 →
+  `SLYamlStream`) or `inject` (depth d+1 → parent stack).
+- **A generic `resume` closure on the base frame** connects the completed
+  outermost flow node back to the stream, which is what makes the
+  flow-in-block interaction uniform: top-level (`[1,2,3]` as a document) →
+  `topLevelFlowResumeSep`; block-nested (`key: [1,2]`) → the `pendingBlock`
+  entry's `h_close ∘ SBlockNode.flowInBlock`, keeping the entry open (**this
+  is THE `scannerDrop` case** — `key: [a]` must stay one document);
+  explicit-document (`--- [1,2]`) → the `pendingDocStart` doc-builder.
+- **Separator threading.** Each step consumes its OWN leading separation
+  `sp_flow → sp_prep` and folds it into the construct built by the PREVIOUS
+  step (the innermost entry's trailing `GOpt`, a `held` frame's post-comma
+  slot, the collection's post-bracket slot, or a `colonPending`'s mandatory
+  `:`→value separation). All folds are total via the separator-composition
+  algebra in `PreprocessProduction` §9 (`SSeparate_trans` + `extendSep`
+  retrofits).
 
-#### Blocking issue
+#### What remains: β.3, β.4, β.5
 
-Recorded as root cause 1 in `StreamAccum.lean`'s §6 Gap Analysis
-(`:3264–3272` — the block is marked *historical* because the file's sorries
-were discharged, but they were discharged **via** `scannerDrop`; this
-obligation is what remains once the escape hatch is removed):
+`StreamAccum.lean` carries exactly five `sorry` sites, all in β.3:
 
-> Blocked on 4i: `_prod` theorems give `SFlowNode 0 .blockIn` but `flowInBlock` needs `SFlowNode (n+1) .flowOut`.
+| # | Declaration | What it needs |
+|---|---|---|
+| 1 | `accum_step_structural` | depth-≥1 branch — a structural token (`---`, `...`, `%`) dispatched inside an open flow |
+| 2 | `accum_step_block` | depth-≥1 branch — a block indicator (`-`, `?`, `:`) inside an open flow; the `:` case is the flow-map value transition |
+| 3 | `accum_step_content` | depth-≥1 branch — **the substantial one**: flow-interior content (scalars, anchors, aliases, tags) routed through `FlowOpenStack.receiveNode`, which already exists and is sorry-free |
+| 4 | `scanNextToken_none_stream` | depth-≥1 branch — EOF with a flow still open |
+| 5 | `accum_flow_open_depth0` | the depth-0 open at `col ≠ 0` with no preceding line break (e.g. `"foo" [a]`): expected vacuous under the scanner's adjacency/simple-key discipline, but that vacuity is not yet coupled |
 
-The existing `_prod` theorems (Phase B/C coupling proofs) produce grammar evidence with context parameter `n=0, ctx=blockIn`. But `SBlockNode.flowInBlock` requires `SFlowNode (n+1) .flowOut`. A **context parameter lifting lemma** is needed:
+Then:
 
-```lean
-theorem SFlowNode_context_lift (n : Nat) (ctx : Context) :
-    SFlowNode 0 .blockIn sp sp' → SFlowNode (n+1) .flowOut sp sp'
-```
+- **β.4** — thread the completed accumulation through `scanNextToken_accum_step`,
+  `scanLoop_grammar_prod` and `scan_content_gives_stream`.
+- **β.5** — retire `PendingNode.pendingFlow` (once no dispatch produces it, the
+  `close_with_ssl` arm that calls `scannerDrop` becomes unreachable), then
+  delete `scannerDrop` from `Surface/Document.lean`. `scan_strict_proof` and
+  `parse_strict_proof` are automatically strengthened; the `L4YAML.Capstones`
+  gate, whose only current failure is
+  `DocumentProduction.parse_strict_proof depends on sorryAx`, goes green.
 
-This is provable because flow content parsing doesn't depend on block indent level — the grammar rules for `SFlowSequence`, `SFlowMapping`, and `SFlowNode` (`Surface/Node.lean:291/349/245`) are insensitive to `n` and `ctx` at the character level.
+### Implementation Plan (remaining)
 
-#### Revised findings (2026-08-02) — plan correction
-
-The Fix-B campaign's understand pass invalidated the sketch above:
-
-1. **`SFlowNode_context_lift` is FALSE as stated** — the indent bump
-   `0 → n+1` fails on any multi-line witness (`SIndent n` demands
-   *exactly* n spaces; indent is only downward-monotone), **and it is
-   unnecessary**: `SBlockNode.flowInBlock` already takes `SFlowNode n
-   .flowOut` at the *same* n (the spec's `+1` is absorbed by the
-   `n_lean = n_spec + 1` offset), the whole StreamAccum pipeline runs at
-   `n = 0`, and `dispatchContent_evidence` already emits
-   `SFlowNode 0 .flowOut`.
-2. **No whole-flow-collection producer exists** — nothing in the library
-   concludes `SFlowSequence`/`SFlowMapping` from scanner evidence; flow
-   evidence exists only at single-token granularity, and `pendingFlow`
-   persists an opaque, growing gap. The real Fix-A work is an
-   entry-accumulation machine mirroring the block machinery: an
-   `SFlowSeqEntries`/`SFlowMapEntries` snoc, native-`.flowIn` producers
-   (do NOT lift `.flowOut → .flowIn` — false for plain scalars; delete
-   the lift calls from `scanPlainScalar_to_flowNode` instead), a
-   `GLit ','` upgrade of `scanFlowEntry_prod`, structured `pendingFlow`,
-   and col≠0 `SSeparateLines` preprocessing evidence. Context assignment
-   needs **zero lift lemmas**: `inFlowCtx` is a fixed point (`.flowIn`)
-   below the top level.
-3. **A flow-adjacency scanner strictening is a prerequisite** (found
-   2026-08-02 by probing): the scanner accepts adjacent flow entries
-   with no separator — `[[a][b]]`, `[[a]b]`, `["a""b"]`, `{a: b: c}`
-   all `scan`-ok (the parser rejects them) — and none of those spans
-   have `SFlowSequence` derivations, so `scan_strict_proof` would be
-   **false** without `scannerDrop`. Fix A therefore needs a Fix-B-style
-   runtime strengthening first (reject entry-adjacency without `,`/`:`
-   separators at scan time; no `parseYaml`-level behavior change), with
-   its own proof-repair sweep across the emitter-scannability towers.
-
-4. **Fix A is atomic — (a)+(b)+(c) must land together** (found
-   2026-08-02, mid-execution). The scanner strictening (a) delivers
-   *no standalone value*: with `scannerDrop` still present,
-   `scan_strict` already held (scannerDrop absorbs adjacency), so (a)
-   only matters as part of removing `scannerDrop` (c). Moreover the
-   emit→scan tower repair for the strictening's content-in-flow path
-   (`"…"`/scalar entries: prove the folded `checkFlowAdjacency` passes)
-   requires a **last-token invariant** (`t.completesFlowValue = false`
-   for the token preceding a flow entry) threaded through the
-   `EmitScansInFlow(Ix)` predicates + opener/comma scenarios + ~18
-   `scanNextToken_flow_scanDoubleQuoted` sites — the *same* last-token
-   discipline that step (b)'s accumulation needs. So the "tower repair"
-   is the front half of (b), not a separable mechanical sweep. The
-   scan→grammar side (StreamAccum inversions via a `peel_flowAdj`
-   helper) *is* mechanical and is done. Implementation helpers live in
-   `Proofs/Scanner/FlowAdjacency.lean` (+ `FlowAdjacencyIx.lean`):
-   `peel_flowAdj` (strip the folded check at inversion sites) and
-   `checkFlowAdjacency_ok_of_{notInFlow,notCompletes,sepChar}`
-   (discharge it at construction sites). The check itself
-   (`scanNextToken_checkFlowAdjacency`, folded into the *entry* of
-   `dispatchFlowIndicators` to minimise blast radius) rejects
-   value-after-value without a `,`/`:`/close separator. FlowStack is
-   currently always `nil` (post-4z.1); the accumulation will revive it
-   to carry per-level entry-snoc closures (mirroring `BlockStack`) or
-   enrich `pendingFlow`'s payload.
-
-#### Estimated scope (revised)
-
-- Flow-adjacency scanner strictening + proof repair: ~300–800 lines
-- Entry snoc + native-`.flowIn` producers + `,` upgrade: ~300–500 lines
-- Flow accumulation through the four dispatch families +
-  `block_dispatch_deferred`'s 16 call sites + `close_with_ssl`: ~500–1,000 lines
-- **Total: ~1,100–2,300 lines** (the original ~300–500 estimate assumed
-  the context-lift sketch and no runtime work)
-
-#### Progress record — Fix A (2026-08-02, v0.7.0 WIP on branch `fix-a-grammar-completeness`)
-
-**The build on this branch is intentionally RED** — Fix A is atomic (a)+(b)+(c)
-and lands green only when `scannerDrop` is removed. This is a checkpoint to
-continue from next session, not a shippable state.
-
-**DONE (green):**
-- Scanner strictening: `scanNextToken_checkFlowAdjacency` (legacy) +
-  `scanNextTokenIx_checkFlowAdjacency` (indexed), each folded into the *entry* of
-  `dispatchFlowIndicators` (minimises blast radius: proofs treating that dispatcher
-  as an opaque `Except` are unaffected). Rejects a node-start after a completed
-  value (`YamlToken.completesFlowValue`) without a `,`/`:`/close separator.
-  Behaviour-verified by probe: rejects `[[a][b]]`, `[[a]b]`, `["a""b"]`, `[a[b]]`,
-  `[{a}b]`, `["a" "b"]`; accepts all valid flow + block inputs unchanged.
-- Helper modules `Proofs/Scanner/FlowAdjacency.lean` (legacy, imports only
-  `Scanner.Scanner`) + `FlowAdjacencyIx.lean` (indexed): `peel_flowAdj(Ix)` (strip
-  the folded check at inversion sites); `checkFlowAdjacency(Ix)_ok_of_{notInFlow,
-  notCompletes,sepChar}` (discharge at construction sites); `lastRealTokenVal_push_two_ph`
-  + `saveSimpleKey_preserves_completesFalse` (last-token preservation through
-  `saveSimpleKey`). (`FlowAdjacency` kept legacy-only to avoid an import cycle —
-  `Scanner.IndexedDispatch` transitively imports `ScannerCorrectness`.)
-- Scan→grammar inversions repaired: ScannerCorrectness, ScannerBound,
-  ScanStrictCoupling, ScannerPlainScalarValid, StreamAccum, proof-IndexedDispatch,
-  IndexedScannerPlainScalarValid, ScannerAcceptance.
-
-**Repair recipe (validated; archetypes in `ScanSteps.lean`):**
-- *Inversion* (`unfold … at H`): insert `replace H := peel_flowAdj(Ix) H`.
-- *Construction, sep-char* (`]`/`}`/`,`): `rw [checkFlowAdjacency(Ix)_ok_of_sepChar (by decide)]` after unfold.
-- *Construction, value-starter* (`[`/`{`/content `none`): add hypothesis
-  `(h_adj : …checkFlowAdjacency s <c> = .ok ())` + `rw [h_adj]`. Callers discharge via
-  `_ok_of_notInFlow` (top-level, `flowLevel = 0`) or `_ok_of_notCompletes` (nested — thread
-  a `h_last : ∀ t, lastRealTokenVal? s.tokens = some t → t.completesFlowValue = false` hypothesis;
-  `s_ad.tokens = (saveSimpleKey s).tokens` by `simp only [s_ad]; split <;> rfl`).
-  Archetypes: `dispatchFlowIndicators_bracket/brace/none`, `scanNextToken_flow_open_nested`,
-  `scanNextToken_flow_scanDoubleQuoted`.
-
-**Piece 1 — emit→scan tower sweep + induction crux — ✅ DONE (2026-08-03, commits
-`fac3b99a`/`615b8e80`/`4440dfb7`).** The full library builds green (`lake build L4YAML`,
-199 jobs, no sorry) with the flow-adjacency-strictened scanner; `universal_roundtrip`'s
-axiom profile is UNCHANGED (`native`, verified by the `Capstones.lean`
-`#assert_capstone_axioms` pin). The semi-novel crux was solved as designed: `emit_scans_in_flow`
-(+ all SavedKey/SKDR/keyshape/RecEntry/Block/indexed variants) now carries an `h_last`
-precondition (`∀ t, lastRealTokenVal? s.tokens = some t → t.completesFlowValue = false`) that is
-re-established after every separator (`[`→`flowSequenceStart`, `{`→`flowMappingStart`,
-`,`→`flowEntry`, `:`→`.value`, all `completesFlowValue = false`), so the next value-starter's
-folded `checkFlowAdjacency` discharges. Reusable helpers built: `scanFlow{Sequence,Mapping}Start_
-lastRealTokenVal`, `checkFlowAdjacency_ok_of_scanNextToken_ok` (inversion from a successful scan),
-`lastRealTokenVal_of_last_nonph`, + completesFalse OUTPUT conjuncts on the open/comma/init step
-lemmas; indexed twins (`…Ix`) in FlowAdjacencyIx/FlowDispatch/Sync.Invariant. Recipe archived in
-`scratchpad/fixA_piece1_recipe.md`. (The small tower files never invoked the value-starters, so
-needed no changes.)
-
-**The two remaining pieces (next session, in order):**
-2. **Piece 2 — scan→grammar flow accumulation (novel).** Build `SFlowSequence`/`SFlowMapping`
-   grammar evidence from a successful scan (nothing does this today).
-
-   **Stage A — reusable leaf building blocks — ✅ DONE (2026-08-03, commit `00fd20c5`; full
-   library green, Capstones axiom pins unchanged).** All the leaf pieces the accumulation needs,
-   each proven standalone against the green library:
-   - **A1** `scanFlowEntry_glit` (`StructureProduction.lean`): the `,` separator now carries
-     `GLit ','` (the surface witness for entries).
-   - **A2** `SFlowSeqEntries_snoc` / `SFlowMapEntries_snoc` (`NodeProduction.lean` §4b): append one
-     comma-separated entry, mirroring `SBlockSeqEntries_snoc`, guarded by **inductive**
-     `FlowSeqEntriesCloseable` / `FlowMapEntriesCloseable` predicates (spine over `single`/`consMore`
-     only — cleanly excludes the trailing-comma `consEnd` that can't take another `,entry`), plus
-     `_closeable` preservation companions. (The inductive guard is what makes the term-mode match
-     total; a `def`-valued guard trips the dependent pattern matcher → `sorry`.)
-   - **A3 — resolves the historical 4i blocker.** Native `.flowIn` plain-scalar producer. Extracted
-     `scanPlainScalar_to_multiLine_native` (builds `SNsPlainMultiLine 0 (ctxOfInFlow inFlow)` with NO
-     context lift) + whole-scalar lift `SNsPlainMultiLine_ctxOfInFlow_to_flowOut`; rewired
-     `scanPlainScalar_to_flowNode` through it (identical signature) and added
-     `scanPlainScalar_to_flowNode_flowIn` for flow-collection entries. (The v0.4.9 flow-accumulation
-     attempt was abandoned to `scannerDrop` precisely because `_prod` gave `.blockIn`/`.flowOut` but
-     flow entries need `.flowIn` — now unblocked.)
-   - **A4** flow separation primitives (`NodeProduction.lean` §4c): `SSeparate_flow_refl` /
-     `_of_whites` / `GOpt_SSeparate_none`, col-agnostic via the deliberately-weakened
-     `SSeparateInLine.startOfLine`.
-   - **A5** flow-collection assembly (`NodeProduction.lean` §4d): `flowSeq`/`flowMap`
-     `_nonempty`/`_empty` → `SFlowSequence`/`SFlowMapping` → `SFlowNode`; single-entry seeds +
-     closeable.
-
-   **Top-level grammatical close — ✅ DONE (2026-08-03, commit `b9e8aef0`).**
-   `flowSeq_extends_stream` / `flowMap_extends_stream` (`StreamAccum.lean`): a completed top-level
-   `[...]`/`{...}` extends `SLYamlStream` grammatically (`flowInBlock` bare-document node +
-   `implicitContinue`) with NO opaque gap. **Proves `scannerDrop`'s job is grammatically achievable**
-   for the top-level case.
-
-   **Flow accumulator state machine — ✅ DONE (2026-08-03, commit `e8177b88`; green).** The
-   reusable grammar-side core of the accumulation, all proven standalone:
-   `PartialFlowSeq`/`PartialFlowMap` (`NodeProduction.lean` §4e) — the per-level accumulator with
-   three states (`empty`/`entries`/`held`) mirroring the scanner's per-token progress inside
-   `[…]`/`{…}` — plus `_snocFromHeld` (the `,`-then-entry transition) and `closeSeq`/`closeMap`
-   (finalize ANY state into a complete `SFlowSequence`/`SFlowMapping`). Supporting:
-   `SFlow{Seq,Map}Entries_addTrailingComma` (the `[a,]` case the strictened scanner still accepts →
-   `consEnd`) and `GOpt_SSeparate_of_GStar_SSWhite` (content producers emit trailing `GStar SSWhite`
-   → the entry's optional separator). `StreamAccum` now imports/opens `NodeProduction` (no cycle).
-
-   **Stage B.1 — FlowStackB foundation — ✅ DONE (2026-08-03, commit `a2f4aefb`; full library
-   green at 199 jobs, additive above the invariant).** The depth-indexed open-flow accumulator,
-   validating the invariant redesign compiles before the atomic swap: `FlowStackB sp_start (d : Nat)
-   sp_block sp_cur` (`nil` = depth 0 / no open flow; `open` = depth d ≥ 1 carrying a `FlowOpenStack`);
-   `FlowOpenStack.pushSeq`/`pushMap` (kind-agnostic nested-bracket push); `FlowStackB.openSeqBase`/
-   `openMapBase` (token-determined outermost open); `absorb_stacksB` (absorbs BlockStack + a depth-0
-   FlowStackB; the open case is vacuous via `FlowOpenStack_depth_pos`). The depth index will be
-   **structurally coupled** to `sc.flowLevel` in the swapped invariant (no separate conjunct).
-   **⚠ SUPERSEDED IN PART (2026-08-03 B.4 deep design):** B.1's `FlowOpenStack` (`p : PartialFlow*` per
-   frame + explicit `below` nesting) is INSUFFICIENT for nested values — it cannot represent a
-   colon-pending parent hosting a nested collection (`{a: [b]}`). The corrected foundation carries a
-   full per-frame state `SeqFrame`/`MapFrame` (between|mid) and uses closure-injection nesting; see the
-   B.4 architecture-refinement bullet below. `FlowStackB`/`absorb_stacksB` themselves are unaffected;
-   `FlowOpenStack` + its `pushSeq`/`pushMap`/`openSeqBase`/`openMapBase`/base-close helpers get rebuilt
-   in the swap.
-
-   **⚠ PIVOTAL FINDING (2026-08-03) — `scannerDrop` masks real GRAMMAR INCOMPLETENESS, not just
-   deferred reconstruction.** Empirically (tryparse + tryscan): `{a}` is ACCEPTED and tokenizes as
-   `flowMappingStart · scalar "a" · flowMappingEnd` — a bare key with **no `:` token anywhere** — yet
-   every one of `SFlowMapEntry`'s six constructors contains a `GLit ':'`. So `{a}` (valid YAML 1.2.2
-   `ns-flow-map-yaml-key-entry` with the `e-node` empty-value branch) has **no precise `SLYamlStream`
-   derivation** today; its soundness runs entirely through `scannerDrop`. Deleting `scannerDrop`
-   therefore requires **completing the flow grammar**, not only wiring the accumulation.
-
-   **Flow-grammar completeness audit — ✅ DONE (2026-08-03).** Drove a matrix of flow inputs through
-   tryparse/tryscan and classified each accepted form against the `SFlow*` inventory. Result: the
-   grammar surgery is **bounded to ~3 new constructors**:
-   - **G1 — bare-key flow-map entry** (`SFlowNode` + `e-node`, no `:`): covers `{a}`, `{a, b}`, bare
-     entries in mixed maps (`{a: b, c}`). *Common / load-bearing.*
-   - **G2 — explicit key, no colon** (`? key`, no `:`): covers `{? a}`.
-   - **G3 — explicit `?` seq entry**: covers `[? a : b]`, `[? a]` (`SFlowSeqEntry` has no `?` form).
-
-   All other accepted forms already have a grammar constructor but are **never produced** (100% of
-   flow-entry reconstruction is `scannerDrop` today): `SFlowSeqEntry.{pairValue,pairEmpty}`,
-   `SFlowMapEntry.{implicitValue,implicitEmpty,emptyKeyValue,emptyKeyEmpty,explicitValue,
-   explicitEmpty}`. The rewire must *produce* every form (covered + G1–G3).
-
-   **Stage B — REVISED remaining build (multi-session, red-throughout; commit only when green).**
-   - **B.2 — grammar completion (bounded surgery) — ✅ DONE (2026-08-03).** Added the 5 new
-     constructors to `Surface/Node.lean`: G1 `SFlowMapEntry.bareKey` (`SFlowNode → SFlowMapEntry`,
-     colonless `{a}`, commit `71f03125`); G2 `SFlowMapEntry.explicitKeyOnly` (`? key`, `{? a}`) and
-     G3 `SFlowSeqEntry.{explicitPairValue,explicitPairEmpty,explicitPairKeyOnly}` (`[? a : b]`,
-     `[? a :]`, `[? a]`) in commit `c215e597`. **The anticipated SSOT ripple was empirically ZERO**:
-     repo-wide only `Surface/Node.lean` (def) and `Proofs/Production/NodeProduction.lean` (producer
-     lemmas that *consume* an entry) reference `SFlow{Map,Seq}Entry` — **no** case-analysis, inversion,
-     emitter, or `RoundTrip` site enumerates their constructors, so new alternatives break nothing.
-     `@[yaml_spec]` is per-inductive ([142]/[139]), so no tag change; the bare-key value maps to the
-     already-`✓` `e-node` [105], so no `YAML_PRODUCTIONS.md` row. Both commits green at 199 jobs incl.
-     `L4YAML.Capstones` → no capstone axiom-profile or `#guard_msgs` pin drift. (The earlier "de-risk
-     via a G1 emitter/roundtrip vertical slice" caution is moot — that ripple does not exist. Producer
-     wiring is deferred to B.3/B.4, where these constructors are *built*, not merely declared.)
-   - **B.3 — flow-entry production machinery — ✅ DONE (2026-08-03).** `NodeProduction` §4f (`ede0ef1e`,
-     implicit forms) + §4g (`a8cae0d6`, explicit-`?`/empty-key). The `empty`/`entries`/`held`
-     `PartialFlowMap` only captured *between-entries* positions; a map entry `{a: b}` spans 3 scan
-     steps (key, `:`, value). So mid-entry evidence now lives in a **separate** type (chosen precisely
-     to keep `closeMap`/`closeSeq`/`FlowOpenStack` ripple-free): `PendingFlowMapEntry`
-     (`keyPending`/`colonPending`/`explicitKeyPending`/`explicitColonPending`/`emptyColonPending`) and
-     `PendingFlowSeqEntry` (`nodePending`/`colonPending`/`explicitPending`/`explicitColonPending`),
-     with `finish*` completions that snoc a finished entry (of every form: bareKey/G1, implicitValue,
-     implicitEmpty, explicitKeyOnly/G2, explicitValue, explicitEmpty, emptyKeyValue, emptyKeyEmpty;
-     seq node, pairValue, pairEmpty, explicit trio/G3) onto a `FlowMapPrefix`/`FlowSeqPrefix`
-     (`init`=first entry / `cons`=after-comma, unifying the single-vs-snoc branch) via `appendEntry`,
-     landing in the closeable `entries` state. **Design pinned to the scanner-whitespace model** (plain
-     scalars are right-trimmed → every separator is consumed by the *following* step's preprocessing,
-     so each mid-entry state ends exactly at its last token and each transition supplies its own
-     leading separator; `closeMap`/`closeSeq` unchanged — B.4 completes mid-entry before closing).
-     Colon semantics verified empirically: `{a:b}`/`{a :b}` are single plain scalars (→ bareKey), not
-     mappings; genuine colon only before space/`}`/`,` or adjacent to a JSON key. Additive-green.
-   - **B.4 — THE ATOMIC SWAP — staged into 4a / α / β (2026-08-03).** Rather than one monolithic
-     red window, the swap is staged with two green, committed checkpoints before the entangled core:
-     - **B.4a — corrected FlowOpenStack foundation — ✅ DONE (commit `0314a58a`; green at 199 jobs,
-       additive/unused by the invariant).** Rebuilt `FlowOpenStack` on the corrected design: new
-       per-frame `SeqFrame`/`MapFrame := between (PartialFlow*: empty/entries/held) | mid
-       (PendingFlow*Entry)` (between carries the FULL `PartialFlow*` — `entries` is a genuine rest
-       position after a nested value closes, e.g. `[b]` in `{a: [b], c}`), and closure-injection
-       nesting (`seqNest`/`mapNest` carry `inject : ∀ sp_ne, SFlowNode 0 .flowIn sp_par sp_ne →
-       FlowOpenStack sp_start d sp_before0 sp_ne` built at push time, replacing explicit `below`;
-       positivity holds — FlowOpenStack occurs only in the closure codomain). `FlowStackB`/
-       `absorb_stacksB`/`FlowOpenStack_depth_pos`/`topLevelFlowResume` unchanged; `openSeqBase`/
-       `openMapBase` rewired to the new `st`. The sep-sensitive base-close + nested-push helpers are
-       deferred to β (their separator signatures are only pinned by how the accum step threads scan
-       positions — pre-committing risked a third foundation revision).
-     - **B.4α — mechanical invariant type swap — ✅ DONE (commit `32b45ef8`; green at 199 jobs).**
-       `FlowStack sp_block sp_flow` → `FlowStackB sp_start 0 sp_block sp_flow` at all ~48 in-file
-       sites (8 hyps, ~20 conclusions, 19 nil witnesses, 5 `absorb_stacks`→`absorb_stacksB`). Depth
-       fixed at 0 = isomorphic to nil-only, so `pendingFlow`/`scannerDrop` are untouched and it
-       stays green. Isolates the tedious type swap (done) from the hard coupling logic (β).
-     - **B.4β — the coupling + real accumulation (REMAINING RED CORE, multi-session, commit only
-       when green).** Flip depth `0` → `s'.flowLevel` in the conclusions/hyps. This is where it goes
-       (and stays) red: the moment the flow index is `s'.flowLevel`, a `[`/`{` dispatch (which
-       increments the scanner's `flowLevel`) can no longer be witnessed by `FlowStackB.nil` — it MUST
-       produce a real depth-≥1 `FlowOpenStack`. So β is monolithic-red across the flow path. Steps:
-       (β.1) flip the index and prove `s'.flowLevel = 0` at non-flow sites (facts available:
-       `advance_flowLevel`, `scanFlowSequence/MappingEnd_flowLevel`, `emit_flowLevel`,
-       `saveSimpleKey_preserves_flowLevel` — all for the NON-indexed scanner); (β.2) rewrite
-       `accum_flow_pending` into the real `c`×`flowLevel` push/pop/hold, rebuilding the sep-threaded
-       base-close + nested-push helpers against the actual scanner positions (trace
-       `scanFlowSequenceStart`/`End`/`scanFlowEntry` — `Scanner.lean:127/153/179/204/242`); (β.3)
-       `accum_step_content`/`accum_step_block` flow branches; (β.4) thread `flowLevel` through
-       `scanNextToken_accum_step`/`scanLoop_grammar_prod`/`scan_content_gives_stream`; (β.5) retire
-       `pendingFlow`, delete the now-unused old `FlowStack`/`absorb_stacks`. The original monolithic
-       write-up is retained below for the per-transition detail.
-
-       **β.1 — ✅ DONE (compiling with 5 marked sorries; UNCOMMITTED — β is not yet axiom-clean).**
-       The invariant's flow index is now coupled to the scanner `flowLevel`: hypothesis
-       `FlowStackB sp_start sc.flowLevel …`, conclusion `FlowStackB sp_start s'.flowLevel …`, flipped
-       across all 8 step/loop/EOF lemmas (`accum_step_{structural,flow,block,content}`,
-       `scanNextToken_accum_step`, `scanNextToken_none_stream`, `scanLoop_grammar_prod`, and the
-       kickoff in `scan_content_gives_stream_v2`). The **depth-0 (`nil`) paths are FULLY PROVEN**:
-       each non-flow step lemma does `rcases Nat.eq_zero_or_pos sc.flowLevel with h0 | hpos`, and in
-       the `h0` branch `rw [h0] at h_flow` recovers the literal-`0` stack so the pre-existing
-       depth-0 proof (`absorb_stacksB` + `accum_*_pending`) applies verbatim, after a
-       `have h_lvl : s'.flowLevel = 0` rewrite of the goal. That rewrite chains three reachable
-       facts (all found in-closure): `ScannerCorrectness.dispatch{Structural,BlockIndicators,Content}_preserves_flowLevel`,
-       a new local `allowDirectives_update_flowLevel` (record update leaves `flowLevel`), and a new
-       local `preprocess_preserves_flowLevel` (replicated from `EmitterScannability`'s version — that
-       module is out of closure — via `ScannerCorrectness.{skipToContent,unwindIndents,saveSimpleKey}_preserves_flowLevel`).
-       The kickoff proves the initial scanner's `flowLevel = 0` by `split` + `advance_flowLevel`
-       (`emit`/`mk'` give it definitionally). `scanNextToken_accum_step` and `scanLoop_grammar_prod`
-       needed **only** the signature flip — their bodies thread the coupling generically (no casing).
-       **The 5 remaining sorries ARE the red core, precisely localized:** (1) `accum_step_flow` whole
-       body = β.2 (`[`/`{`/`]`/`}`/`,` → real `FlowOpenStack` push/pop/hold + sep-threading); (2–5)
-       the `hpos` (depth ≥ 1) branches of `accum_step_{structural,block,content}` + `scanNextToken_none_stream`
-       = β.3 (flow-interior content/block/structural dispatch + open-flow-at-EOF). Both `StreamAccum`
-       and its sole importer `DocumentProduction` build green-with-sorries; no external ripple.
-
-       **β.2 — IN PROGRESS: design pinned + validated dispatch skeleton landed (compiling, UNCOMMITTED,
-       still red — accum_step_flow retains 3 structured sorries).** Scanner semantics PINNED from
-       `Scanner.lean` (134/160/185/211/250): every flow char = *emit token + advance (1 char) [+ flowLevel
-       delta]*; NO separation consumed by the flow char itself — leading separation is eaten by the
-       *next* token's `scanNextToken_preprocess`. Deltas: `[`/`{` → `flowLevel + 1`; `]`/`}` → `− 1`
-       (error if `flowLevel = 0`); `,` → unchanged (error if `flowLevel = 0`). The dispatch runs on
-       `s_ad` (allowDirectives-updated `s_prep`), and `s_ad.flowLevel = sc.flowLevel`. **Skeleton proof
-       of `accum_step_flow`:** `rcases Nat.eq_zero_or_pos sc.flowLevel`; unfold dispatch +
-       `peel_flowAdj` + `simp only [bind,Except.bind,pure,Except.pure]` + the nested `split` cascade
-       (mirroring `dispatchFlowIndicators_corr`). **At depth 0 all four closing/separator cases
-       (`]`/`}`/`,`/fallthrough) are proven GREEN** — they error at `flowLevel = 0` (`rw [h_ad0]; simp`),
-       kernel-confirming the scanner semantics; only `[`/`{` (the two opens, depth 0→1) remain as
-       precisely-typed holes. The depth-≥1 branch is one hole carrying the full per-(char × frame)
-       transition plan in-comment. **Interior invariant DECIDED (pinned this session):** inside a flow
-       (`d ≥ 1`) the `PendingNode` is ALWAYS `noPending sp_start sp_flow` (sp_scan = sp_flow); every
-       mid-entry state lives in the top `FlowOpenStack` frame's `st : SeqFrame/MapFrame`. **SEP-THREADING
-       rule (the crux, now pinned):** each interior step consumes its OWN leading sep and places it into
-       the PRIOR construct's grammar slot (post-`[`→flow `h_sep`; post-entry→entry trailing `GOpt`;
-       post-`,`→next entry's leading), so the frame is REBUILT each transition — which is exactly why the
-       close/push helpers cannot be pre-committed green (their sep signatures are only pinned here).
-       **GLit-from-scan is tractable:** `preprocess_some_peek` (StreamAccum:792) → `s_prep.peek? = some c`,
-       then `peek_some_sp` (ScalarProduction:47) → `∃ rest, sp_prep = ⟨c :: rest, s_prep.col⟩`, then
-       `GLit.mk` (template: `dispatchBlockEntry_full_prod`, StreamAccum:1849).
-       **UPDATE (2026-08-04) — depth-0 open composed; 4 reusable helpers landed GREEN:**
-       (1) `scanFlowSequenceStart_prod` / `scanFlowMappingStart_prod` (StreamAccum, right before
-       `accum_step_flow`): the flow-open analog of `scanBlockEntry_prod` — from `peek? = some '['`/`'{'`
-       recover `GLit '['/'{' sp sp'` at the SPECIFIC post-bracket position + `ScannerSurfCorr` +
-       `flowLevel + 1`; proof mirrors `scanBlockEntry_prod`'s inFlow branch (emit + `advance_non_newline_corr`;
-       flowLevel via `ScannerCorrectness.{advance,emit}_preserves_flowLevel`). (2) `accum_flow_openSeq_toplevel`
-       / `accum_flow_openMap_toplevel`: the OPEN ALGEBRA — given `SLYamlStream sp_start sp_prep` + `GLit`
-       + `s'.flowLevel = 1` + post-bracket corr, assemble the full lagging-quint goal via
-       `FlowStackB.openSeqBase`/`openMapBase` with `resume := topLevelFlowResume`, `h_sep := GOpt.none`,
-       new `PendingNode := noPending sp_start sp_open` (⇒ `sp_gram'=sp_block'=sp_prep`, `sp_flow'=sp_scan'=sp_open`).
-       **Both depth-0 `[`/`{` cases of `accum_step_flow` are now WIRED** (`rename_i` the split cond →
-       `simpa` c=bracket → `preprocess_corr` sp_prep → `hpeek_disp` (`peek?` of allowDirectives-update =
-       `s_prep.peek?`) → `_prod` for GLit/corr/flowLevel → `Option.some.inj (Except.ok.inj h_dispatch)`
-       subst `s'` → `accum_flow_openMap/Seq_toplevel`), so the whole open composition kernel-typechecks.
-       The two opaque open sorries are now narrowed to a SINGLE precisely-typed hole each:
-       `SLYamlStream sp_start sp_prep` (StreamAccum ~1932/1956) — the position-threaded stream at the
-       bracket. `accum_step_flow` = exactly 3 sorries now (`[` stream, `{` stream, depth-≥1 interior).
-       **Remaining β.2 (multi-session):** (a) discharge `SLYamlStream sp_start sp_prep` — for the
-       topLevelFlowResume family this is `absorb_stacksB` + `close_with_ssl` across the leading sep
-       `sp_scan → sp_prep`, but note `preprocess_some_ssl_comments_col0` yields `SSLComments sp_scan sp_mid`
-       + `GStar SSWhite sp_mid sp_ws` + `GOpt SCNbCommentText sp_ws sp_prep` — so `sp_mid = sp_prep` needs
-       reconciling (for a col-0 top-level `[`, no current-line whitespace/comment ⇒ `sp_ws = sp_mid`,
-       `GOpt = none`, provable from `peek? = some '['` ≠ none + col-preservation); (b) the `pendingBlock`
-       incoming case CANNOT use topLevelFlowResume (closing `key:` via `emptyNode` then `[…]`-as-doc is an
-       INVALID derivation of the actual input — no doc boundary mid-line) — it needs
-       `resume node ssl = pendingBlock.h_close (SBlockNode.flowInBlock … node ssl)`, i.e. case-split
-       `h_pending` and route pendingBlock through a distinct open helper (THIS is the scannerDrop case);
-       (c) depth-≥1 nested-push / pop-to-base-or-nest / comma-hold. Then extract the sep-threaded
-       close/push helpers with their now-pinned signatures. Blueprint (durable): scratchpad
-       `beta2_blueprint.md`.
-       NEXT = discharge `SLYamlStream sp_start sp_prep` for the non-`pendingBlock` cases (case-split
-       `h_pending`; reconcile `sp_mid = sp_prep` at col 0), then the `pendingBlock` flowInBlock-resume.
-
-       **UPDATE (2026-08-04, cont.) — stream-threading algebra banked GREEN (2 more helpers):**
-       Two reusable helpers landed (compile clean, NOT sorry-bearing), isolating the
-       `SLYamlStream sp_start sp_prep` obligation as standalone algebra ("algebra before threading"),
-       WITHOUT touching `accum_step_flow`'s 3 sorries (deliberately deferred wiring — see below).
-       (5) `flow_gap_collapse (s_prep) (sp_mid sp_ws sp_gap sp_prep) (hcorr_prep hcorr_gap)
-       (hcol_mid hcol_prep) (hws : GStar SSWhite sp_mid sp_ws) (hcmt : GOpt SCNbCommentText sp_ws sp_gap)
-       : sp_mid = sp_prep` — the FLOW analog of `structural_gap_collapse`. Crucial difference: a flow
-       `[`/`{` is NOT column-forced (structural dispatch *derives* `sp_prep.col = 0` via
-       `dispatchStructural_col0`; flow can't), so col-0 on the bracket is a HYPOTHESIS. Proof = the
-       structural version verbatim minus that derivation (`ScannerSurfCorr_unique` for `sp_gap = sp_prep`;
-       `cases hcmt` none → `gstar_sswhite_col_eq_nil` collapses whitespace, some → `scnb_comment_col_gt`
-       + omega). (6) `accum_flow_openStream_col0 (sc sp_start sp_flow sp_scan sp_prep) (s_prep c)
-       (h_stream_flow) (h_pending : PendingNode false …) (h_corr) (hcol_scan) (hcorr_prep) (hcol_prep)
-       (h_preprocess) : SLYamlStream sp_start sp_prep` — the full threading: `preprocess_some_ssl_comments_col0`
-       → `close_with_ssl h_stream_flow h_ssl` (lands at sp_mid) → `flow_gap_collapse` (sp_mid = sp_prep).
-       Discharges EXACTLY the two `[`/`{` stream sorries, modulo supplying `sp_scan.col = 0` +
-       `sp_prep.col = 0`. **Correction to the prior (b) note:** `SSeparateInLine.startOfLine s :
-       SSeparateInLine s s` (Basic.lean:136) carries NO col-0 proof, so `topLevelFlowResume` (and helpers 2)
-       typecheck at ANY `sp_prep` — the col-0 need lives ENTIRELY in the whitespace-collapse of the
-       stream threading, not the resume. So the fresh-doc route for `pendingBlock` also *typechecks*; it's
-       merely UNFAITHFUL (`key: [..]` as two docs), so the faithful derivation still wants the block-value
-       resume — but "cannot use topLevelFlowResume" was imprecise (it can; it just shouldn't).
-       **Wiring deferred (NEXT slice):** each depth-0 `[`/`{` → `cases h_pending` + `by_cases` col-0×2 +
-       the RIGHT resume per constructor (helper 6 + `accum_flow_open…_toplevel` for
-       noPending/pendingContent/pendingDocEnd/pendingBlockContent; a distinct `flowInBlock`-resume helper
-       for pendingBlock; doc-builder resume for pendingDocStart; pendingFlow vanishes with the
-       `accum_flow_pending` rewrite). Deferred so the sorry-count doesn't balloon 1→8 before the
-       per-resume design is in hand — that design IS the real content of the next slice.
-
-       **UPDATE (2026-08-06) — depth-0 opens FULLY WIRED: per-pending resume dispatch landed
-       (green, both stream holes discharged).** The enabling structural finding: the base ctors
-       `FlowOpenStack.seqBase`/`mapBase` CONFLATED the outer boundary index with the bracket
-       position (`h_open : GLit '[' sp_before …` on the same `sp_before` the invariant sandwich
-       must reach) — which only works when the stream can be closed exactly AT the bracket, and is
-       impossible for `pendingBlock` (the block entry is still open; its resolution needs the flow
-       node) and for any whitespace-gap open. FIX: a new `sp_br` field decouples them (exactly
-       mirroring `seqNest`'s existing `sp_before0` vs `sp_par` shape); `resume` consumes the node
-       at `sp_br`, and any gap `sp_before → sp_br` lives INSIDE `resume`'s captured evidence. With
-       that, the pop restores the pre-open sandwich unchanged. Cast changes: (1)
-       `topLevelFlowResume` → **`topLevelFlowResumeSep`** — captures `SSeparateLines 0 sp_mid sp_br`;
-       the leading separation rides in the bare document's `flowInBlock` SEPARATOR SLOT (the old
-       stream-at-bracket case = zero-width `inline ∘ startOfLine`). (2) New §0d
-       **`preprocess_flow_thread`**: from `preprocess_some_ssl_comments_anyCol`, either a CLOSE POINT
-       exists (`SSLComments sp_scan sp_mid` — break crossed, or col-0 zero-width start-of-line —
-       plus residual `GStar SSWhite sp_mid sp_prep`) or `col ≠ 0 ∧ no-break` (with full whitespace
-       evidence). No comment-refutation needed (the comment span is zero-width between two positions
-       we never separate). (3) Helpers 2/5/6 (`accum_flow_open{Seq,Map}_toplevel`,
-       `flow_gap_collapse`, `accum_flow_openStream_col0`) DELETED — superseded by ONE lemma
-       **`accum_flow_open_depth0`** taking `mk : ∀ sp_before, resume → FlowStackB sp_start 1
-       sp_before sp_open` (the call sites close `openSeqBase`/`openMapBase` over their `GLit`), so
-       the per-pending dispatch is written once for both brackets. Routes: **noPending** — nothing
-       to close; `preprocess_some_separate_0_anyCol` feeds the sep slot directly (ANY column, break
-       or not). **pendingContent/pendingDocEnd/pendingBlockContent/pendingFlow** — shared Pattern-6
-       `main`: close via `close_with_ssl` at the thread lemma's close point, residual whitespace in
-       the sep slot. **pendingDocStart** — FAITHFUL explicit document: `h_doc_builder ∘ GAlt.left ∘
-       SLBareDocument.mk ∘ flowInBlock` (`--- [a]` stays ONE document, inline or next-line node).
-       **pendingBlock (n = 0)** — FAITHFUL block value: `h_close ∘ flowInBlock`, keeping the incoming
-       stream AND `BlockStack` (the entry stays open; `key: [a]` stays ONE document) — THE case that
-       rode on `scannerDrop`, now green. Wiring at both bracket sites: `cases h_flow` (nil unifies
-       `sp_block = sp_flow`; `open` refuted by `FlowOpenStack_depth_pos`) then one
-       `accum_flow_open_depth0` call. **Sorry ledger:** `accum_step_flow` = 1 (the depth-≥1
-       interior); `accum_flow_open_depth0` = 2 narrowed residues — (i) `col ≠ 0 ∧ no-break` for the
-       closeable pendings (an inline flow open directly after an unclosed same-line construct, e.g.
-       `"foo" [a]`; expected vacuous under the scanner's adjacency/simple-key discipline — needs
-       that vacuity coupling) and (ii) `pendingBlock` with `n ≥ 1` (every producer in the file pins
-       `n = 0`, but the invariant doesn't carry the pin, and `flowInBlock (n+1)` would need an
-       `SFlowNode (n+1)` where the resume supplies `SFlowNode 0`). File total: 7 sorries in 6
-       declarations (4 β.3 `hpos` + depth-≥1 + the 2 residues) — same count as before the slice,
-       but every scanner-real depth-0 open shape is green with a faithful derivation.
-       `StreamAccum` + `DocumentProduction` green (46 jobs); full build at the same pre-existing
-       baseline (Capstones gate + 2 Reflections). NEXT = the depth-≥1 interior (nested push /
-       pop-to-base-or-nest / comma-hold with the sep-threading rule), then β.3.
-
-       **UPDATE (2026-08-06, second session) — depth-≥1 interior FULLY WIRED (item 9 structural
-       core; green at baseline).** Four layers landed:
-
-       1. **Probe finding (item 9a, NEW plan item): the scanner accepts kind-mismatched flow
-          closes.** `[a}`, `{a]`, `[{a]]`, `{a: [b}}` all scan-OK (parse rejects with
-          `expectedToken`): `scanFlowSequenceEnd`/`scanFlowMappingEnd` pop `flowStack` without
-          comparing the popped kind, and `validateFlowClose` only checks trailing content at
-          `flowLevel = 0`. No grammar derivation exists for these ⇒ scan-strictness would be FALSE
-          without `scannerDrop` — the same class of gap as the flow-adjacency family, missed by the
-          original flowaudit (it probed entry shapes, not close kinds). Commas are already strict
-          (`invalidFlowEntry` via `lastRealTokenVal?` for `[,`/`,,`; trailing commas legal). The 9a
-          fix: `flowStack.back?` kind check in the `]`/`}` dispatch arms (legacy + both indexed
-          twins + parity guards); the constructive (emitter-side) repair threads
-          `s'.flowStack = s.flowStack` restoration through the emitted-scan tuples — riding the
-          EXISTING `simpleKeyStack` restoration groove (~25 files, same push/pop events, mechanical
-          twin conjunct).
-       2. **§9 separator-composition algebra (`PreprocessProduction`, GREEN, sorry-free):**
-          `SSeparateInLine_trans`, `SSLComments_prepend_inline`/`_append_gstar`/`_trans_prefix`,
-          `SFlowLinePrefix_extend_inline`, `SSeparateLines_trans`, **`SSeparate_trans`**,
-          `GOpt_SSeparate_extend[_opt]`, and the retrofits `SFlow{Seq,Map}Entries_extendSep`
-          (closeable-spine induction folding a trailing separation into the innermost entry's
-          `GOpt` slot). Derivability rests on the col-agnostic `SSeparateInLine.startOfLine`
-          weakening; the only refutations are column-arithmetic (a nonempty whitespace run cannot
-          end at a real start of line). This makes ALL sep-threading retrofits total algebra — no
-          reachability reasoning about slot shapes.
-       3. **Interior position coupling:** the lagging quint gained a 6th conjunct
-          `s'.flowLevel ≥ 1 → sp_flow' = sp_scan'` (hyp `h_interior` + conclusion), threaded
-          through all 8 step/loop lemmas + kickoff (`fun _ => rfl` at the interior witnesses,
-          vacuous-by-`omega` at depth-0 exits, trivial at the kickoff since all positions
-          coincide). This is what lets the depth-≥1 branch discard `PendingNode` (`subst` the
-          equality) and work purely on the frame.
-       4. **The depth-≥1 dispatch (`accum_step_flow`), all five arms:** after
-          `generalize`-abstracting the allowDirectives-updated state to `s_ad` (so `split` lands on
-          the flowLevel/validate/`scanFlowEntry` decision points), each arm derives its leading
-          separation via `preprocess_some_separate_0_anyCol` and its `GLit`+corr+flowLevel facts
-          via the new `scanFlow{SequenceEnd,MappingEnd,Entry}_prod` (mirrors of the Start `_prod`s;
-          the Entry one peels the `invalidFlowEntry` guard). Transitions consumed from the new
-          §1c''a frame algebra: **`FlowOpenStack.receiveNode`** (THE central receiver — folds a
-          completed `.flowIn` node + leading sep into the same-depth stack: `between empty/held →
-          mid nodePending/keyPending` with the sep in the post-bracket or post-comma slot;
-          `mid colonPending → between` via `finishValue`/`finishPairValue`/`finishExplicit*`/
-          `finishEmptyKeyValue` with the sep as the mandatory `:`→value separation) — the nested
-          push (`[`/`{`, depth +1) builds the child `seqNest`/`mapNest` with
-          `inject := receiveNode h_fos h_lead` and β.3's content steps will consume it directly;
-          **`SeqFrame.closeWithSep`/`MapFrame.closeWithSep`** (`]`/`}` — TOTAL over every frame
-          state: mid entries complete with an empty tail — `[a:]`, `[? a]`, `{a}`, `{a:}`, `{:}` —
-          via the §4f/§4g finishers with the sep as `h_sep_tr`; `between` shapes retrofit via
-          `extendSep`/`GOpt_SSeparate_extend`) feeding pop-to-base (d+1=1: `resume` +
-          `PendingNode.pendingContent`, `FlowStackB.nil`) and pop-to-nest (`inject sp_tok node`,
-          depth d); **`SeqFrame.holdComma`/`MapFrame.holdComma`** (`,` — finish any mid entry with
-          the sep as trailing, land in `held` via the new `FlowSeqPrefix.appendEntryHeld`/
-          `FlowMapPrefix.appendEntryHeld` (NodeProduction); `between entries` retrofits then
-          holds). **Gotcha:** `cases` on `FlowOpenStack` floats the RECURSIVE `inject` field to
-          second-to-last — nest-arm context order is `h_open, h_sep, inject, st` (probe-verified
-          with a mock; base arms keep declaration order).
-
-       **Sorry ledger after the slice: 27 sites / 9 declarations, in THREE pinned residue
-       families** (every scanner-real transition is green with a faithful derivation):
-       (a) **kind coupling + 9a strictening** — 4 mismatch arms in `accum_step_flow` (`]` on
-       map frames, `}` on seq frames; scan-accepted today, so locally unrefutable)
-       — *9a landed in the third session below, so these arms now carry the scanner-side kind
-       fact; only the 9b frame-kind coupling is still missing*;
-       (b) **token-history coupling** (`lastRealTokenVal?` ↔ top-frame shape) — 12 adjacency arms
-       in `receiveNode` (node directly after a completed entry/key — `checkFlowAdjacency`-rejected)
-       + 4 comma-degenerate arms in `holdComma` (`[,`/`,,` — `invalidFlowEntry`-rejected);
-       (c) the pre-existing pair in `accum_flow_open_depth0` (col≠0-no-break vacuity;
-       `pendingBlock n ≥ 1` pin) + the 4 β.3 `hpos` branches
-       (structural/block/content/none_stream — the content one now has `receiveNode` waiting).
-       `StreamAccum` + `DocumentProduction` green (46 jobs); full build at the same pre-existing
-       baseline (Capstones gate + the 2 Reflections files). NEXT = 9a (kind strictening, own
-       session — the `simpleKeyStack`-groove sweep), 9b (kinds index + token-history coupling),
-       then β.3.
-
-       **UPDATE (2026-08-06, third session) — item 9a DONE (flow-close kind strictening).**
-       `ScanError.mismatchedFlowClose` added; the `]`/`}` arms of `scanNextToken_dispatchFlowIndicators`
-       and `scanNextTokenIx_dispatchFlowIndicators` now check `flowStack.back?` against the close kind.
-       Probe: `[a}`, `{a]`, `[{a]]`, `{a: [b}}` scan-ERR with **identical legacy/indexed errors**;
-       trailing commas, JSON-key pairs, `[]`/`{}` and deep nesting unaffected.
-
-       **Gotcha (cost me one full repair cycle):** write the guard as a full `if/else if/else`
-       **expression** chain. Statement-style early-exit `if`s inside `do` desugar to `__do_jp` join
-       points, which make `rw [if_pos/if_neg]` fail with an application-type mismatch and leave
-       `split` unable to reach the arm — visible via `#print` on the elaborated definition.
-
-       **The load-bearing architectural find.** The planned repair — thread a `flowStack` conjunct
-       through ~25 emitted-scan files riding the `simpleKeyStack` groove — was NOT needed and would
-       have rippled every chain-predicate tuple. The emitted-scan chains already carry `FlowMonoChain`
-       (a `ScanChain` with a flow-level floor), so the kind fact is derivable instead:
-       per-step `flowLevel`↔`flowStack` lockstep (`scanNextToken_flowStack_step`, a 4-way
-       trichotomy: preserve / push true / push false / pop) + one chain induction
-       (`FlowMonoChain.flowStack_eq`: a chain returning to its starting flow level restores
-       `flowStack`). Two new sorry-free files: `Output/EmitterScannability/FlowStackChain.lean`
-       (77 lemmas — the per-leaf preservation suite was cloned from the existing `simpleKeyStack`
-       suite in `ScannerCorrectness.lean`, valid because both fields are written *only* by the four
-       flow open/close functions) and `IndexedEmitterScannability/FlowMonoChain/FlowStackChainIx.lean`.
-       Callers then need only: open lemmas expose `s'.flowStack = s.flowStack.push true/false`,
-       close lemmas take `h_kind`, and each close site derives it by
-       `rw [h_fmc.flowStack_eq rfl h_fl, h_push]; exact Array.back?_push`.
-
-       Three indexed robust-script dispatcher walkers (`_maintains_SKAFIx`, `_preserves_sync`,
-       `_maintains_NoOverwriteAtIx`) could not absorb the extra arm (`split` silently fails on the
-       enlarged do-tree) and were rewritten over the `_ok_some_cases` enumerator — the more robust
-       form anyway. `ScannerSpanLocality`'s R596/R606 producers carried no `FlowMonoChain`, so one was
-       appended and constructed.
-
-       Verified: full build at the exact 3-failure baseline (both Reflections failures confirmed
-       *pre-existing* — the committed producer already required an `h_last` the test never supplied);
-       sorry ledger byte-identical to HEAD in every modified file (27/9 unchanged, none removed);
-       new files sorry-free with clean axiom profiles `[propext, Classical.choice, Quot.sound]`;
-       zero `sorryAx` in any rewired consumer. NEXT = 9b (kinds index on `FlowOpenStack`/`FlowStackB`
-       coupled to `sc.flowStack` — the 4 mismatch arms now have the scanner-side kind fact in
-       context; then token-history coupling), then β.3.
-
-     Replace the invariant's flow component
-     `FlowStack sp_block sp_flow` → `FlowStackB sp_start sc.flowLevel sp_block sp_flow` across the
-     ~20 lemmas that state it; replace `absorb_stacks` → `absorb_stacksB` (valid only at depth 0 —
-     establish `flowLevel = 0` from the branch first); rewrite `accum_step_flow` (open on `[`/`{` →
-     `openSeqBase`/`openMapBase`; push nested → `pushSeq`/`pushMap`; hold on `,`; pop-close on `]`/`}`
-     — at depth 1 → `pendingContent` via `flowSeqBase_closeToStream`, at depth > 1 → snoc nested node
-     into parent) + `accum_step_content` (route to innermost flow level when `flowLevel > 0`) +
-     `accum_step_block` (flow-map `:` dispatch). Thread the `flowLevel` coupling through
-     `scanNextToken_accum_step` + `scanLoop_grammar_prod` + `scan_content_gives_stream`.
-     **Key insight:** inside flow, `PendingNode` = `noPending` and `sp_flow = sp_scan` (the open state
-     is fully in `FlowStackB.open`), which bounds the swap. **Kind coupling** (seq vs map innermost):
-     discharge wrong-kind cases inline via `sc.flowStack.back?` / `validateFlowClose` success.
-     **Concrete swap surface (all in `StreamAccum.lean`, 2026-08-03 recon):** the flow component
-     appears at ~50 sites, ALL confined to this file (no external ripple). 8 lemma *hypotheses*
-     `(h_flow : FlowStack sp_block sp_flow)` at lines ≈1001, 1557, 1705, 2267, 3086, 3120, 3226, 3270;
-     ~20 invariant *conclusions* `∃ … FlowStack sp_block' sp_flow' ∧ …`; ~19 `FlowStack.nil` witnesses
-     in the `⟨…⟩` tuples. The heart is `accum_flow_pending` (≈1632): its `new_flow_state` helper (≈1655)
-     currently returns `FlowStack.nil` + `PendingNode.pendingFlow` for EVERY flow char (the 4z.1 deferral
-     `scannerDrop` then absorbs). The swap replaces it with a `c`×`sc.flowLevel` branch: `[`/`{` →
-     `FlowStackB.openSeqBase`/`openMapBase` (depth 0→1) or `pushSeq`/`pushMap` (depth d→d+1) + `noPending`;
-     `]`/`}` → pop (depth 1 → `pendingContent` via base `resume`; depth>1 → snoc nested node into parent
-     partial); `,` → hold. The invariant's flow index becomes `s'.flowLevel` (the NEW scanner state's
-     level) — so every conclusion re-threads `FlowStackB sp_start s'.flowLevel …` and `absorb_stacksB`
-     fires only where the branch forces `flowLevel = 0`. B.3's `PendingFlowMapEntry`/`PendingFlowSeqEntry`
-     supply the mid-entry evidence the push/pop/hold transitions consume. Retire `pendingFlow` once no
-     dispatch produces it.
-   - **B.4 architecture refinement — deep design (2026-08-03, before starting the swap).**
-     Empirical scanner probes (`tryscan` on `{a: [b, c]}`, `{[a]: b}`, `[[a], b]`, `[a: b]`, `{? a : b}`)
-     + reading the whole flow production surface surfaced a **PLAN-CORRECTING FINDING: B.1's
-     `FlowOpenStack` is INSUFFICIENT** — the recorded "additive foundation complete" note was wrong.
-     Two structural gaps:
-     1. **Nested values.** `{a: [b]}` puts the parent map in `colonPending` (the `value` token fires)
-        *before* the nested `[` opens, so a parent frame can be mid-entry while a child frame is open.
-        B.1's `mapNest`/`seqNest` carry only `p : PartialFlow*` (a *between-entries* accumulator) and
-        **cannot represent a colon-pending parent** hosting a nested value. Every frame — not just the
-        top — needs a full state.
-     2. **Frame resting states are exactly `empty | held | mid`.** A flow collection is never at a bare
-        closeable `entries` state at a step boundary: an entry commits only at `,`/`]`/`}`, and a scanned
-        node immediately becomes *mid-entry* (`:` may still follow, e.g. `[a: b]`). So the per-frame state
-        is precisely **`FlowSeqPrefix` (between: `init`=empty / `cons`=held) | `PendingFlowSeqEntry` (mid)**
-        — mapping directly onto B.3's types (`SeqFrame`/`MapFrame := between (pre) | mid (pe)`).
-     **Corrected foundation (validated at the type level — positivity confirmed in a scratch probe):**
-     redesign `FlowOpenStack` so each ctor carries `st : SeqFrame`/`MapFrame` (between|mid) instead of
-     `p : PartialFlow*`, and replace explicit `below` nesting with a **closure-injection** idiom
-     (mirrors `BlockStack.seqLevel`'s proven `h_close`): a nested ctor carries
-     `inject : ∀ sp_ne, SFlowNode 0 .flowIn sp_par sp_ne → FlowOpenStack sp_start d sp_before0 sp_ne`,
-     built at *push* time from the parent's then-known state (between → child becomes key/entry ⇒
-     `keyPending`/`nodePending`; `colonPending` → child becomes value ⇒ `finishValue`/`finishPairValue`).
-     The pop is then **uniform**: `cases FlowOpenStack` → close top frame to a node → apply `resume`
-     (base, depth 1 → `SLYamlStream`) or `inject` (nest, depth d+1 → parent stack). Contexts are
-     consistent: `inFlowCtx .flowOut = inFlowCtx .flowIn = .flowIn`, so every interior node is `.flowIn`
-     and only the outermost is `.flowOut` (what `resume` expects). *(Fallback if `inject` closures prove
-     awkward in the accum steps: keep explicit `below` + enrich the frame to `SeqFrame`/`MapFrame`, and
-     `cases below` at pop — more case-work but closer to B.1.)*
-   - **Separator threading (the real red-swap difficulty).** Plain scalars are right-trimmed, so each
-     scan step consumes *its own leading* separator (the `[`/`{` step leaves `sp_es` right after the
-     bracket with `h_sep = none`; the first-entry step reprocesses the post-bracket sep and sets it; the
-     close step supplies the pre-`]` sep). The grammar wants seps *consolidated* into single slots
-     (`flowSeq_empty`/`_nonempty` have one post-`[` sep; each entry carries one trailing sep). So the
-     accum steps must **rebuild the frame** each transition to place the sep the scanner just consumed
-     into the right grammar slot. This is why the frame-close/push lemmas are **not** cleanly
-     pre-buildable green ahead of the swap — their exact sep signatures are only pinned by how the
-     scanner threads positions. (Attempting to pre-commit them would risk a *third* foundation revision
-     after B.1; deferred into the red swap deliberately.)
-   - **Block-nested flow via a generic `resume` closure** (kept from B.1): each `FlowOpenStack` base
-     carries `resume : SFlowNode 0 .flowOut sp_before sp_ne → SSLComments → SLYamlStream sp_start`.
-     Top-level supplies `topLevelFlowResume`; block-nested supplies `pendingBlock.h_close ∘ flowInBlock`.
-     So flow↔block reduces to CHOOSING `resume` at open. (The nested frames now use `inject`, above.)
-   - **B.5 — delete `scannerDrop`.** Grammatical `close_with_ssl` / retire `pendingFlow`; delete
-     `scannerDrop` from `Surface/Document.lean`.
-   Session scratchpad blueprints (ephemeral): `stageB_integration_blueprint.md`,
-   `flowaudit_results.md` — fold durable content here before session end.
-3. **Piece 3 — after `scannerDrop` is gone + Phase 2.** Full rebuild + `run-all-tests` + both gates
-   + 0 sorry/axiom, commit as v0.7.0. Then prove `grammar_completeness` (converse; first-rule
-   inversion on the 3-constructor `SLYamlStream`) + assemble `parse_iff_grammar` (capstone 7.7); add
-   to `scripts/capstones.txt` reserved slot + `@[capstone]` + `Capstones.lean` pins.
-
----
-
-### Fix B: Eliminating `directiveDrop` — Orphaned Directive Resolution
-
-#### Scanner behaviour — audit result (2026-08-01, Step 0 done)
-
-Post-reorg locations: the scan pipeline lives in
-`L4YAML/Scanner/Scanner.lean` (dispatchers
-`scanNextToken_dispatchStructural` at :293,
-`scanNextToken_dispatchContent` at :366) and directives are scanned by
-`scanDirective` in `L4YAML/Scanner/Document.lean:243` (guard
-`c == '%' && s.col == 0` at `Scanner/Scanner.lean:307–309`).
-
-The "directives require `---`" rule is enforced only **partially**. The
-error constructor exists — `ScanError.directiveWithoutDocument`
-(`Token/Token.lean:316`) — and fires in two situations:
-
-1. **EOF after directives**: `scanLoop` (`Scanner/Scanner.lean:495–497`)
-   and `scanLoopFull` (`:555–556`) error when
-   `directivesPresent && !documentEverStarted`.
-2. **`...` after directives**: `scanDocumentEnd`
-   (`Scanner/Document.lean:318–319`).
-
-But the **mid-stream path is lenient**: if a directive is followed by
-ordinary content (e.g. `%YAML 1.2\nfoo: bar`), `scanNextToken`
-(`Scanner/Scanner.lean:444–449`) sets `documentEverStarted := true`
-("Any non-directive, non-document-marker content means we're in a
-document"), which suppresses check 1. No error fires; the directives are
-orphaned. **This is exactly the path `directiveDrop` absorbs — it is
-reachable, not dead code.**
-
-#### What the YAML spec says
-
-YAML 1.2.2 §9.1.4 (production [205]): a directive document REQUIRES
-`c-directives-end` (`---`). Orphaned directives are not valid YAML; the
-lenient path is scanner leniency beyond the spec.
-
-#### Resolution options
-
-- **(c) Strengthen the scanner — recommended.** Raise
-  `directiveWithoutDocument` in the directive-then-content branch, making
-  the lenient path an error like the EOF and `...` cases already are. The
-  "close `pendingDirective` without `---`" path becomes unreachable, and
-  `directiveDrop` is eliminated by an impossibility proof. Runtime
-  behaviour changes only on spec-invalid inputs. ~100 lines of proof
-  (plus the scanner change and its `_prod`/strictness lemma updates).
-- **(b) Keep the leniency**: prove the parser also accepts
-  directive-then-content inputs and extend grammar evidence
-  (`SLDocumentPrefix` with directive absorption). ~500 lines, and the
-  grammar then over-approximates the spec by design.
-
-#### Estimated scope
-
-**Total: ~100–500 lines** depending on the option chosen.
-
----
-
-### Implementation Plan
-
-- **Step 0 (✅ done 2026-08-01)**: scanner directive audit — findings
-  above; decision needed between options (b)/(c), recommendation (c).
-- **Step 1**: delete `directiveDrop` and `scannerDrop` from
-  `Surface/Document.lean`. The build breaks **only** at the 8
-  construction sites in `StreamAccum.lean` (verified — no case analysis
-  on `SLYamlStream` exists anywhere).
-- **Step 2 (Fix A)**: prove `SFlowNode_context_lift`; change
-  `pendingFlow` to carry `h_closable`; construct it at the
-  `accum_step_flow` dispatch sites; update `close_with_ssl`.
-- **Step 3 (Fix B)**: per the Step 0 decision — strengthen the scanner
-  and prove the `pendingDirective` close path unreachable (option c), or
-  construct directive-absorbing grammar evidence (option b).
-- **Step 4**: full rebuild. `scan_strict_proof` / `parse_strict_proof`
-  are automatically strengthened.
-- **Step 5**: prove the converse:
+- **Step 2 (Fix A, remaining)**: β.3 → β.4 → β.5 as above.
+- **Step 4**: full rebuild; refresh the `#guard_msgs` axiom pins in
+  `L4YAML/Capstones.lean`.
+- **Step 5**: prove the converse
   ```lean
   theorem grammar_completeness (input : String) (h : InYamlLanguage input) :
       ∃ docs, parseYaml input = .ok docs
   ```
-  This inverts the 3-constructor `SLYamlStream` into scanner+parser
-  success — the library's first rule inversion on this inductive.
+  inverting the 3-constructor `SLYamlStream` into scanner + parser success —
+  the library's first rule inversion on this inductive.
 - **Step 6**: assemble the biconditional from `parse_strict_proof` +
   `grammar_completeness`.
-
----
 
 ### Existing Infrastructure
 
 #### Forward direction (parse → grammar): v0.4.6
 
-| Module | Role | LOC (2026-08-01) |
+| Module | Role | LOC (2026-08-06) |
 |--------|------|-----|
-| `Proofs/Production/StreamAccum.lean` | Threads `SLYamlStream` through the scan loop (26 sub-layers) | 3,322 |
+| `Proofs/Production/StreamAccum.lean` | Threads `SLYamlStream` through the scan loop | 5,018 |
+| `Proofs/Production/StructureProduction.lean` | Node-level grammar composition | 1,419 |
+| `Proofs/Production/PreprocessProduction.lean` | Preprocessing → separators/comments; §9 separator algebra | 1,141 |
+| `Proofs/Production/NodeProduction.lean` | Flow-entry production machinery (§4b–§4g) | 1,002 |
+| `Proofs/Scanner/ScanStrictCoupling.lean` | Bridges scanner state to surface positions | 795 |
+| `Proofs/Coupling/ScalarCoupling.lean` | Scalar `_prod` theorems (double/single/plain/block) | 766 |
+| `Proofs/Coupling/StructureCoupling.lean` | Flow/block indicator productions | 658 |
 | `Proofs/Production/DocumentProduction.lean` | Composes stream/document-level productions | 261 |
-| `Proofs/Scanner/ScanStrictCoupling.lean` | Bridges scanner state to surface positions | 497 |
-| `Proofs/Coupling/ScalarCoupling.lean` | Scalar `_prod` theorems (double/single/plain/block) | 765 |
-| `Proofs/Coupling/StructureCoupling.lean` | Flow/block indicator productions | 652 |
-| `Proofs/Production/StructureProduction.lean` | Node-level grammar composition | 1,315 |
 
 Further coupling material is spread across `Proofs/Coupling/`
-(`ScannerCoupling.lean`, `SurfaceCoupling.lean`, `CouplingBridge.lean`)
-and `Proofs/Scanner/`.
+(`ScannerCoupling.lean`, `SurfaceCoupling.lean`, `CouplingBridge.lean`) and
+`Proofs/Scanner/`.
 
 #### Surface grammar: 77 inductive rules (counts verified 2026-08-01)
 
@@ -7012,56 +5757,38 @@ and `Proofs/Scanner/`.
 | `Node.lean` | 18 | Mutual block/flow collection types (one mutual block) |
 | `Document.lean` | 10 | Document markers, types, stream-level rules |
 
----
-
 ### Risk Assessment
 
 | Risk | Likelihood | Impact | Mitigation |
 |------|-----------|--------|------------|
-| Context parameter lifting is harder than expected | Medium | HIGH | The grammar rules are structurally insensitive to `n`/`ctx`; mutual induction over the flow types should work |
-| Orphaned directives reachable in the scanner | **Confirmed** (mid-stream leniency) | Medium | Option (c) strengthens the scanner; runtime change on spec-invalid inputs only |
-| Removing constructors breaks downstream files | None (verified) | — | No case analysis on `SLYamlStream` exists anywhere; only the 8 construction sites break |
+| β.3's flow-interior content step is larger than the flow-indicator step was | Medium | Medium | `receiveNode` already exists and is sorry-free; the content step consumes it directly, and the three `FlowStackB` indices are already threaded |
+| The depth-0 `col ≠ 0`, no-break vacuity is not actually vacuous | Low | Medium | The scanner's simple-key/adjacency discipline should rule it out; if not, it is a real scanner-strictness item like 9a |
 | Converse proof (Step 5) is very large | High | Medium | Grammar inversion touches ~77 rules; many lemmas are mechanical |
-
----
 
 ### Success Criteria
 
-- `directiveDrop` and `scannerDrop` removed from `SLYamlStream`
+- `scannerDrop` removed from `SLYamlStream` (`directiveDrop` already is)
 - `scan_strict_proof` and `parse_strict_proof` still compile with 0 sorry (stronger)
 - `grammar_completeness` and `parse_iff_grammar` compile with 0 sorry
 - All existing v0.4.6/v0.4.7 proof files maintain 0 sorry
-- `parse_iff_grammar` (and `grammar_completeness`, if it stays a
-  top-level declaration) added to the `theorem` whitelist in
-  `scripts/capstones.txt` (a commented slot for capstone 7.7 is already
-  reserved there) and `@[capstone]`-tagged with its axiom profile pinned
-  in `L4YAML/Capstones.lean` — every non-whitelisted declaration must use
-  `lemma` (`Blueprint/06-discipline.md` Rule 7; enforced by
+- `parse_iff_grammar` (and `grammar_completeness`, if it stays a top-level
+  declaration) added to the `theorem` whitelist in `scripts/capstones.txt` (a
+  commented slot for capstone 7.7 is already reserved there) and
+  `@[capstone]`-tagged with its axiom profile pinned in
+  `L4YAML/Capstones.lean` — every non-whitelisted declaration must use `lemma`
+  (`Blueprint/06-discipline.md` Rule 7; enforced by
   `scripts/check-theorem-keyword.sh`)
 
----
-
-### Estimated Scope
-
-#### Phase 1: eliminate over-approximation constructors (Steps 1–4)
+### Estimated Scope (remaining)
 
 | Component | LOC estimate |
 |-----------|-------------|
-| Remove constructors from `Document.lean` | ~10 |
-| Fix A: context lifting + `pendingFlow` `h_closable` | 300–500 |
-| Fix B: orphaned directive resolution | 100–500 |
-| **Phase 1 subtotal** | **400–1,000** |
-
-#### Phase 2: prove the converse (Steps 5–6)
-
-| Component | LOC estimate |
-|-----------|-------------|
+| β.3 flow-interior content / block / structural / EOF steps | 600–1,200 |
+| β.4 chain-threading + β.5 retire `pendingFlow`, delete `scannerDrop` | 100–300 |
 | Grammar inversion lemmas (77 rules) | 2,000–3,500 |
 | `parseStream` acceptance from extracted tokens | 500–1,000 |
 | Biconditional assembly | ~100 |
-| **Phase 2 subtotal** | **2,500–4,500** |
-
-#### Total: **3,000–5,500 lines**
+| **Total remaining** | **3,300–6,100** |
 
 ---
 
@@ -7617,8 +6344,7 @@ context):
   evidence-extraction duplication (~200 lines, confirmed in the pattern
   analysis) has no recorded refactoring outcome.
 - ~~**`nb-char` [27] still spec-loose**~~ — **Fixed 2026-08-01** with
-  the ns-char fix (see the
-  [companion nb-char record](#companion-nb-char-fix-2026-08-01-same-day)):
+  the ns-char fix (see [The ns-char gap](#the-ns-char-gap)):
   `isNbChar` is now `[27]`-exact and block-scalar bodies reject raw
   controls/BOM. Comment/directive-trailing text intentionally remains
   loose via the named `isCommentTextChar` predicate (documented

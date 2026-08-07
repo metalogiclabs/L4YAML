@@ -853,39 +853,6 @@ lemma FlowSeqPrefix.appendEntry {n : Nat} {c : YamlContext} {sp sp_d sp_e sp' : 
   | cons _ _ _ h hcl hcomma hsep =>
       exact PartialFlowSeq_snocFromHeld h hcl hcomma hsep h_entry h_sep
 
-/-- Snoc a completed map entry, its trailing separator, and an immediately
-    following `,` onto a prefix, landing in the `held` state (the
-    comma-transition analog of `appendEntry`; B.4β.2 `,`-hold). -/
-lemma FlowMapPrefix.appendEntryHeld {n : Nat} {c : YamlContext}
-    {sp sp_d sp_e sp_x sp_c sp' : SurfPos}
-    (pre : FlowMapPrefix n c sp sp_d)
-    (h_entry : SFlowMapEntry n c sp_d sp_e) (h_sep_tr : GOpt (SSeparate n c) sp_e sp_x)
-    (hcomma : GLit ',' sp_x sp_c) (h_sep_post : GOpt (SSeparate n c) sp_c sp') :
-    PartialFlowMap n c sp sp' := by
-  cases pre with
-  | init =>
-      exact .held _ _ _ _ (SFlowMapEntries_single h_entry h_sep_tr)
-        (SFlowMapEntries_single_closeable h_entry h_sep_tr) hcomma h_sep_post
-  | cons _ _ _ h hcl hcomma₀ hsep₀ =>
-      exact .held _ _ _ _ (SFlowMapEntries_snoc hcl hcomma₀ hsep₀ h_entry h_sep_tr)
-        (SFlowMapEntries_snoc_closeable hcl hcomma₀ hsep₀ h_entry h_sep_tr) hcomma h_sep_post
-
-/-- Snoc a completed seq entry + `,` onto a prefix, landing in `held`
-    (see `FlowMapPrefix.appendEntryHeld`). -/
-lemma FlowSeqPrefix.appendEntryHeld {n : Nat} {c : YamlContext}
-    {sp sp_d sp_e sp_x sp_c sp' : SurfPos}
-    (pre : FlowSeqPrefix n c sp sp_d)
-    (h_entry : SFlowSeqEntry n c sp_d sp_e) (h_sep_tr : GOpt (SSeparate n c) sp_e sp_x)
-    (hcomma : GLit ',' sp_x sp_c) (h_sep_post : GOpt (SSeparate n c) sp_c sp') :
-    PartialFlowSeq n c sp sp' := by
-  cases pre with
-  | init =>
-      exact .held _ _ _ _ (SFlowSeqEntries_single h_entry h_sep_tr)
-        (SFlowSeqEntries_single_closeable h_entry h_sep_tr) hcomma h_sep_post
-  | cons _ _ _ h hcl hcomma₀ hsep₀ =>
-      exact .held _ _ _ _ (SFlowSeqEntries_snoc hcl hcomma₀ hsep₀ h_entry h_sep_tr)
-        (SFlowSeqEntries_snoc_closeable hcl hcomma₀ hsep₀ h_entry h_sep_tr) hcomma h_sep_post
-
 /-- A flow-map entry under construction (see §4f). `keyPending`: a YAML key node
     has been scanned, awaiting `:` or a bare close (`{a}`, G1). `colonPending`:
     the mapping `:` has been scanned, awaiting a value (`{a: b}`) or empty close
@@ -921,19 +888,6 @@ lemma PendingFlowMapEntry.finishBareKey {n : Nat} {c : YamlContext} {sp sp_d sp_
     (h_sep_tr : GOpt (SSeparate n c) sp_k sp') :
     PartialFlowMap n c sp sp' :=
   pre.appendEntry (SFlowMapEntry.bareKey n c sp_d sp_k hkey) h_sep_tr
-
-/-- Complete a `colonPending` with a value (`implicitValue`): `{a: b}`. The
-    mandatory `:`→value separator + value come from the value step. -/
-lemma PendingFlowMapEntry.finishValue {n : Nat} {c : YamlContext}
-    {sp sp_d sp_k sp_s sp_c sp_v sp_e sp' : SurfPos}
-    (pre : FlowMapPrefix n c sp sp_d) (hkey : SFlowNode n c sp_d sp_k)
-    (hsep : GOpt (SSeparate n c) sp_k sp_s) (hcolon : GLit ':' sp_s sp_c)
-    (hsep2 : SSeparate n c sp_c sp_v) (hval : SFlowNode n c sp_v sp_e)
-    (h_sep_tr : GOpt (SSeparate n c) sp_e sp') :
-    PartialFlowMap n c sp sp' :=
-  pre.appendEntry
-    (SFlowMapEntry.implicitValue n c sp_d sp_k sp_s sp_c sp_v sp_e hkey hsep hcolon hsep2 hval)
-    h_sep_tr
 
 /-- Close a `colonPending` with an empty value (`implicitEmpty`): `{a:}`. -/
 lemma PendingFlowMapEntry.finishEmpty {n : Nat} {c : YamlContext} {sp sp_d sp_k sp_s sp_c sp' : SurfPos}
@@ -976,18 +930,6 @@ lemma PendingFlowSeqEntry.finishNode {n : Nat} {c : YamlContext} {sp sp_d sp_n s
     PartialFlowSeq n c sp sp' :=
   pre.appendEntry (SFlowSeqEntry.node n c sp_d sp_n hnode) h_sep_tr
 
-/-- Complete a `colonPending` seq pair with a value (`pairValue`): `[a: b]`. -/
-lemma PendingFlowSeqEntry.finishPairValue {n : Nat} {c : YamlContext}
-    {sp sp_d sp_k sp_s sp_c sp_v sp_e sp' : SurfPos}
-    (pre : FlowSeqPrefix n c sp sp_d) (hkey : SFlowNode n c sp_d sp_k)
-    (hsep : GOpt (SSeparate n c) sp_k sp_s) (hcolon : GLit ':' sp_s sp_c)
-    (hsep2 : SSeparate n c sp_c sp_v) (hval : SFlowNode n c sp_v sp_e)
-    (h_sep_tr : GOpt (SSeparate n c) sp_e sp') :
-    PartialFlowSeq n c sp sp' :=
-  pre.appendEntry
-    (SFlowSeqEntry.pairValue n c sp_d sp_k sp_s sp_c sp_v sp_e hkey hsep hcolon hsep2 hval)
-    h_sep_tr
-
 /-- Close a `colonPending` seq pair with an empty value (`pairEmpty`): `[a:]`. -/
 lemma PendingFlowSeqEntry.finishPairEmpty {n : Nat} {c : YamlContext}
     {sp sp_d sp_k sp_s sp_c sp' : SurfPos}
@@ -1016,19 +958,6 @@ lemma PendingFlowMapEntry.finishExplicitKeyOnly {n : Nat} {c : YamlContext}
     PartialFlowMap n c sp sp' :=
   pre.appendEntry (SFlowMapEntry.explicitKeyOnly n c sp_q sp_qe sp_k0 sp_k hq hqsep hkey) h_sep_tr
 
-/-- Complete an `explicitColonPending` with a value (`explicitValue`): `{? a : b}`. -/
-lemma PendingFlowMapEntry.finishExplicitValue {n : Nat} {c : YamlContext}
-    {sp sp_q sp_qe sp_k0 sp_k sp_s sp_col sp_v sp_e sp' : SurfPos}
-    (pre : FlowMapPrefix n c sp sp_q) (hq : GLit '?' sp_q sp_qe)
-    (hqsep : SSeparate n c sp_qe sp_k0) (hkey : SFlowNode n c sp_k0 sp_k)
-    (hsep : GOpt (SSeparate n c) sp_k sp_s) (hcolon : GLit ':' sp_s sp_col)
-    (hsep2 : SSeparate n c sp_col sp_v) (hval : SFlowNode n c sp_v sp_e)
-    (h_sep_tr : GOpt (SSeparate n c) sp_e sp') :
-    PartialFlowMap n c sp sp' :=
-  pre.appendEntry
-    (SFlowMapEntry.explicitValue n c sp_q sp_qe sp_k0 sp_k sp_s sp_col sp_v sp_e
-      hq hqsep hkey hsep hcolon hsep2 hval) h_sep_tr
-
 /-- Close an `explicitColonPending` with an empty value (`explicitEmpty`): `{? a :}`. -/
 lemma PendingFlowMapEntry.finishExplicitEmpty {n : Nat} {c : YamlContext}
     {sp sp_q sp_qe sp_k0 sp_k sp_s sp_col sp' : SurfPos}
@@ -1040,15 +969,6 @@ lemma PendingFlowMapEntry.finishExplicitEmpty {n : Nat} {c : YamlContext}
   pre.appendEntry
     (SFlowMapEntry.explicitEmpty n c sp_q sp_qe sp_k0 sp_k sp_s sp_col hq hqsep hkey hsep hcolon)
     h_sep_tr
-
-/-- Complete an `emptyColonPending` with a value (`emptyKeyValue`): `{: b}`. -/
-lemma PendingFlowMapEntry.finishEmptyKeyValue {n : Nat} {c : YamlContext}
-    {sp sp_s sp_col sp_v sp_e sp' : SurfPos}
-    (pre : FlowMapPrefix n c sp sp_s) (hcolon : GLit ':' sp_s sp_col)
-    (hsep2 : SSeparate n c sp_col sp_v) (hval : SFlowNode n c sp_v sp_e)
-    (h_sep_tr : GOpt (SSeparate n c) sp_e sp') :
-    PartialFlowMap n c sp sp' :=
-  pre.appendEntry (SFlowMapEntry.emptyKeyValue n c sp_s sp_col sp_v sp_e hcolon hsep2 hval) h_sep_tr
 
 /-- Close an `emptyColonPending` with an empty value (`emptyKeyEmpty`): `{:}`. -/
 lemma PendingFlowMapEntry.finishEmptyKeyEmpty {n : Nat} {c : YamlContext}
@@ -1066,19 +986,6 @@ lemma PendingFlowSeqEntry.finishExplicitKeyOnly {n : Nat} {c : YamlContext}
     (h_sep_tr : GOpt (SSeparate n c) sp_k sp') :
     PartialFlowSeq n c sp sp' :=
   pre.appendEntry (SFlowSeqEntry.explicitPairKeyOnly n c sp_q sp_qe sp_k0 sp_k hq hqsep hkey) h_sep_tr
-
-/-- Complete an `explicitColonPending` seq pair with a value (`explicitPairValue`): `[? a : b]`. -/
-lemma PendingFlowSeqEntry.finishExplicitPairValue {n : Nat} {c : YamlContext}
-    {sp sp_q sp_qe sp_k0 sp_k sp_s sp_col sp_v sp_e sp' : SurfPos}
-    (pre : FlowSeqPrefix n c sp sp_q) (hq : GLit '?' sp_q sp_qe)
-    (hqsep : SSeparate n c sp_qe sp_k0) (hkey : SFlowNode n c sp_k0 sp_k)
-    (hsep : GOpt (SSeparate n c) sp_k sp_s) (hcolon : GLit ':' sp_s sp_col)
-    (hsep2 : SSeparate n c sp_col sp_v) (hval : SFlowNode n c sp_v sp_e)
-    (h_sep_tr : GOpt (SSeparate n c) sp_e sp') :
-    PartialFlowSeq n c sp sp' :=
-  pre.appendEntry
-    (SFlowSeqEntry.explicitPairValue n c sp_q sp_qe sp_k0 sp_k sp_s sp_col sp_v sp_e
-      hq hqsep hkey hsep hcolon hsep2 hval) h_sep_tr
 
 /-- Close an `explicitColonPending` seq pair with an empty value (`explicitPairEmpty`): `[? a :]`. -/
 lemma PendingFlowSeqEntry.finishExplicitPairEmpty {n : Nat} {c : YamlContext}

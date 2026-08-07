@@ -235,6 +235,18 @@ lemma scanFlowMappingStart_pushes_false (s : ScannerState) :
   unfold scanFlowMappingStart
   simp only [emit_preserves_flowStack, advance_preserves_flowStack]
 
+/-- `scanFlowSequenceEnd` pops the innermost `flowStack` marker. -/
+lemma scanFlowSequenceEnd_pops (s : ScannerState) :
+    (scanFlowSequenceEnd s).flowStack = s.flowStack.pop := by
+  unfold scanFlowSequenceEnd
+  simp only [emit_preserves_flowStack, advance_preserves_flowStack]
+
+/-- `scanFlowMappingEnd` pops the innermost `flowStack` marker. -/
+lemma scanFlowMappingEnd_pops (s : ScannerState) :
+    (scanFlowMappingEnd s).flowStack = s.flowStack.pop := by
+  unfold scanFlowMappingEnd
+  simp only [emit_preserves_flowStack, advance_preserves_flowStack]
+
 /-! ## scanFlowEntry correctness -/
 
 /-- A successful `scanFlowEntry` preserves `flowLevel`. -/
@@ -260,6 +272,21 @@ lemma scanFlowEntry_tokens_size (s : ScannerState) (s' : ScannerState)
     · exact absurd h (by simp)
     · injection h with h; rw [← h]; simp [ScannerState.emit, advance_tokens, Array.size_push]
   · injection h with h; rw [← h]; simp [ScannerState.emit, advance_tokens, Array.size_push]
+
+/-- A successful `scanFlowEntry` preserves `flowStack`: a `,` neither opens nor
+    closes a flow collection. -/
+lemma scanFlowEntry_preserves_flowStack (s : ScannerState) (s' : ScannerState)
+    (h : scanFlowEntry s = .ok s') :
+    s'.flowStack = s.flowStack := by
+  unfold scanFlowEntry at h
+  simp only [Bind.bind, Except.bind] at h
+  split at h
+  · split at h
+    · exact absurd h (by simp)
+    · injection h with h; rw [← h]
+      simp [ScannerState.emit, advance_preserves_flowStack]
+  · injection h with h; rw [← h]
+    simp [ScannerState.emit, advance_preserves_flowStack]
 
 /-! ## Concrete token type `#guard` checks -/
 

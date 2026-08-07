@@ -44,6 +44,42 @@ theorem peel_flowAdj {α : Type} {s : ScannerState} {c : Char}
   | ok u => rw [hc] at h; simp only [bind, Except.bind] at h; exact h
   | error e => rw [hc] at h; simp [bind, Except.bind] at h
 
+/-- The folded check itself succeeded (companion to `peel_flowAdj`, which keeps
+    the continuation and drops this half). -/
+theorem flowAdj_ok_of_dispatch_ok {α : Type} {s : ScannerState} {c : Char}
+    {k : Unit → Except ScanError α} {r : α}
+    (h : (scanNextToken_checkFlowAdjacency s c >>= k) = .ok r) :
+    scanNextToken_checkFlowAdjacency s c = .ok () := by
+  cases hc : scanNextToken_checkFlowAdjacency s c with
+  | ok u => cases u; rfl
+  | error e => rw [hc] at h; simp [bind, Except.bind] at h
+
+/-- Inversion of the adjacency check at a node-starting character: inside a flow,
+    a successful check means the previous real token did NOT complete a value. -/
+theorem notCompletes_of_checkFlowAdjacency_ok {s : ScannerState} {c : Char}
+    (h : scanNextToken_checkFlowAdjacency s c = .ok ())
+    (hf : s.inFlow = true)
+    (hc : c ≠ ',' ∧ c ≠ ':' ∧ c ≠ ']' ∧ c ≠ '}') :
+    ∀ t, lastRealTokenVal? s.tokens = some t → t.completesFlowValue = false := by
+  intro t ht
+  unfold scanNextToken_checkFlowAdjacency at h
+  rw [hf] at h
+  simp only [ht] at h
+  by_cases hcv : t.completesFlowValue = true
+  · obtain ⟨h1, h2, h3, h4⟩ := hc
+    simp [hcv, h1, h2, h3, h4] at h
+  · simpa using hcv
+
+/-- Inversion of the comma guard: a successful `scanFlowEntry` means the previous
+    real token was not a flow-open indicator or another `,`. -/
+theorem notSepTok_of_scanFlowEntry_ok {s s' : ScannerState} (h : scanFlowEntry s = .ok s') :
+    ∀ t, lastRealTokenVal? s.tokens = some t →
+      ¬(t = .flowSequenceStart ∨ t = .flowMappingStart ∨ t = .flowEntry) := by
+  intro t ht hbad
+  unfold scanFlowEntry at h
+  simp only [Bind.bind, Except.bind, ht] at h
+  rcases hbad with rfl | rfl | rfl <;> simp at h
+
 /-! ## Construction helpers (discharge the check to `.ok ()`) -/
 
 /-- Outside a flow collection the adjacency check is vacuously `.ok ()`. -/
@@ -172,5 +208,101 @@ theorem saveSimpleKey_preserves_completesFalse (s : ScannerState)
     cases h_or with
     | inl h => exact h_last t h
     | inr h => subst h; rfl
+
+/-! ## Last-slot realness
+
+`saveSimpleKey`'s reservation slots are the only way a placeholder can end the
+token array, and `lastRealTokenVal?` skips exactly two of them. So a state whose
+array already ends in a REAL token reads the same last real token before and
+after preprocessing — which is what lets a production-side invariant state a
+token-history coupling about the *pre*-preprocessing state and still use it
+against a guard the scanner evaluates *after* preprocessing. -/
+
+/-- The token array is non-empty and its final slot holds a real (non-placeholder)
+    token. Every emitting dispatch re-establishes this; only `saveSimpleKey` can
+    break it. -/
+def LastTokenReal (tokens : Array (Positioned YamlToken)) : Prop :=
+  0 < tokens.size ∧ tokens[tokens.size - 1]!.val ≠ .placeholder
+
+/-- With a real final slot there is no placeholder-skipping to do. -/
+theorem LastTokenReal.lastRealTokenVal {tokens : Array (Positioned YamlToken)}
+    (h : LastTokenReal tokens) :
+    lastRealTokenVal? tokens = some tokens[tokens.size - 1]!.val := by
+  obtain ⟨hsz, hne⟩ := h
+  unfold lastRealTokenVal?
+  simp only [hsz, ↓reduceIte, beq_eq_false_iff_ne.mpr hne, Bool.false_and,
+    Bool.false_eq_true, ↓reduceIte]
+
+/-- Pushing a real token makes it the final slot. -/
+theorem lastTokenReal_push {tokens : Array (Positioned YamlToken)}
+    {p : Positioned YamlToken} (h : p.val ≠ .placeholder) :
+    LastTokenReal (tokens.push p) := by
+  refine ⟨by simp [Array.size_push], ?_⟩
+  have hp : (tokens.push p)[(tokens.push p).size - 1]! = p := by
+    rw [getElem!_pos _ _ (by simp [Array.size_push])]
+    simp [Array.size_push, Array.getElem_push]
+  rw [hp]; exact h
+
+/-- …and it is then the last real token. -/
+theorem lastRealTokenVal_push {tokens : Array (Positioned YamlToken)}
+    {p : Positioned YamlToken} (h : p.val ≠ .placeholder) :
+    lastRealTokenVal? (tokens.push p) = some p.val := by
+  have hp : (tokens.push p)[(tokens.push p).size - 1]! = p := by
+    rw [getElem!_pos _ _ (by simp [Array.size_push])]
+    simp [Array.size_push, Array.getElem_push]
+  rw [(lastTokenReal_push (tokens := tokens) h).lastRealTokenVal, hp]
+
+/-- Converse of `lastRealTokenVal_push_two_ph` under a real final slot: the two
+    reservation placeholders are skipped and land exactly on it, so the reading
+    is unchanged. -/
+theorem lastRealTokenVal_push_two_ph_of_real
+    {tokens : Array (Positioned YamlToken)} {ph1 ph2 : Positioned YamlToken}
+    (h1 : ph1.val = .placeholder) (h2 : ph2.val = .placeholder)
+    (hr : LastTokenReal tokens) :
+    lastRealTokenVal? ((tokens.push ph1).push ph2) = lastRealTokenVal? tokens := by
+  obtain ⟨hsz, hne⟩ := hr
+  rw [LastTokenReal.lastRealTokenVal ⟨hsz, hne⟩]
+  unfold lastRealTokenVal?
+  dsimp only []
+  simp only [Array.size_push]
+  simp only [show tokens.size + 1 + 1 > 0 from by omega, ↓reduceIte,
+    show tokens.size + 1 + 1 - 1 = tokens.size + 1 from by omega]
+  have h_elem1 : ((tokens.push ph1).push ph2)[tokens.size + 1]!.val = .placeholder := by
+    rw [getElem!_pos _ _ (by simp [Array.size_push])]
+    simp [Array.getElem_push, Array.size_push, h2]
+  simp only [h_elem1, show (YamlToken.placeholder == YamlToken.placeholder) = true from by decide,
+    Bool.true_and, show tokens.size + 1 > 0 from by omega,
+    show tokens.size + 1 - 1 = tokens.size from by omega]
+  have h_elem2 : ((tokens.push ph1).push ph2)[tokens.size]!.val = .placeholder := by
+    rw [getElem!_pos _ _ (by simp [Array.size_push]; omega)]
+    simp [Array.getElem_push, Array.size_push, h1]
+  have h_elem3 : ((tokens.push ph1).push ph2)[tokens.size - 1]!.val =
+      tokens[tokens.size - 1]!.val := by
+    rw [getElem!_pos _ _ (by simp [Array.size_push]; omega),
+        getElem!_pos _ _ (by omega)]
+    simp only [Array.getElem_push,
+      show tokens.size - 1 < (tokens.push ph1).size from by simp [Array.size_push]; omega,
+      show tokens.size - 1 < tokens.size from by omega, dite_true]
+  simp only [h_elem2, show (YamlToken.placeholder == YamlToken.placeholder) = true from by decide,
+    Bool.true_and, show tokens.size + 1 > 1 from by omega,
+    show tokens.size + 1 - 2 = tokens.size - 1 from by omega, h_elem3]
+  simp
+
+/-- `saveSimpleKey` leaves the last real token alone when the array ends real. -/
+theorem saveSimpleKey_preserves_lastRealTokenVal (s : ScannerState)
+    (hr : LastTokenReal s.tokens) :
+    lastRealTokenVal? (saveSimpleKey s).tokens = lastRealTokenVal? s.tokens := by
+  have h_cases : (saveSimpleKey s).tokens = s.tokens ∨
+      (saveSimpleKey s).tokens = ((s.tokens.push ⟨s.currentPos, .placeholder, s.currentPos⟩).push
+        ⟨s.currentPos, .placeholder, s.currentPos⟩) := by
+    unfold saveSimpleKey
+    split
+    · exact .inl rfl
+    · split
+      · right; dsimp only []
+      · exact .inl rfl
+  rcases h_cases with h_eq | h_eq
+  · rw [h_eq]
+  · rw [h_eq]; exact lastRealTokenVal_push_two_ph_of_real rfl rfl hr
 
 end L4YAML.Proofs.FlowAdjacency
