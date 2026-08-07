@@ -7,6 +7,7 @@ import L4YAML.Spec.Grammar
 import L4YAML.Proofs.Scanner.ScannerProofs
 import L4YAML.Proofs.Scanner.ScannerProgress
 import L4YAML.Proofs.Scanner.FlowAdjacency
+import L4YAML.Proofs.Scanner.BlockScalarFlowGuard
 
 /-!
 # Scanner Correctness (P10.11a)
@@ -71,6 +72,7 @@ namespace L4YAML.Proofs.ScannerCorrectness
 
 open L4YAML
 open L4YAML.Scanner
+open L4YAML.Proofs.BlockScalarFlowGuard
 open L4YAML.CharPredicates
 open L4YAML.Grammar
 open L4YAML.Proofs.ScannerProgress
@@ -8521,8 +8523,9 @@ lemma dispatchContent_preserves_ScanInv (s : ScannerState) (c : Char)
           exact scanTag_preserves_ScanInv s h s_t h_tag
       · -- c == '|' || c == '>'
         split at h_ok
-        · -- scanBlockScalar result is returned directly
-          exact scanBlockScalar_preserves_ScanInv s _ h h_ok
+        · -- scanBlockScalar result is returned directly, under the item-9c
+          -- `!inFlow` guard (peeled: `.error` cannot equal `.ok`)
+          exact scanBlockScalar_preserves_ScanInv s _ h (peel_blockScalarGuard h_ok)
         · -- c == '"'
           split at h_ok
           · split at h_ok <;> try contradiction
@@ -9134,7 +9137,9 @@ lemma dispatchContent_preserves_AllKeysValid (s : ScannerState) (c : Char)
           (by have := ScanHelpers.scanTag_adds_one_token s _ h; omega)
           (fun i hi => ScanHelpers.scanTag_preserves_prefix s _ h i hi)
       · split at h
-        · -- c == '|' || c == '>': block scalar returns directly (clears key)
+        · -- c == '|' || c == '>': block scalar returns directly (clears key),
+          -- under the item-9c `!inFlow` guard
+          replace h := peel_blockScalarGuard h
           exact AllKeysValid_of_cleared_current s _ (scanBlockScalar_clears_simpleKey s _ h)
             (SimpleKeyStackValid_mono s _ h_akv.2
               (scanBlockScalar_preserves_simpleKeyStack s _ h)
@@ -10380,8 +10385,8 @@ lemma dispatchContent_offset_gt (s s' : ScannerState) (c : Char)
       · -- scanTag result returned directly
         exact scanTag_offset_lt s _ h_hm h
       · split at h  -- c == '|' || c == '>'
-        · -- scanBlockScalar result returned directly
-          exact scanBlockScalar_offset_lt s _ h_hm h
+        · -- scanBlockScalar result returned directly, under the item-9c guard
+          exact scanBlockScalar_offset_lt s _ h_hm (peel_blockScalarGuard h)
         · split at h  -- c == '"'
           · split at h
             · cases h

@@ -4,6 +4,7 @@ Released under Apache 2.0 license as described in the file LICENSE.
 -/
 import L4YAML.Proofs.Coupling.StructureCoupling
 import L4YAML.Proofs.Scanner.FlowAdjacency
+import L4YAML.Proofs.Scanner.BlockScalarFlowGuard
 
 /-!
 # Scan-Strict Coupling: Full-Consumption Infrastructure
@@ -42,6 +43,7 @@ namespace L4YAML.Proofs.ScanStrictCoupling
 
 open L4YAML.Surface
 open L4YAML.Scanner
+open L4YAML.Proofs.BlockScalarFlowGuard
 open L4YAML.Proofs.CouplingBridge
 open L4YAML.Proofs.ScannerCoupling
 open L4YAML.Proofs.ScalarCoupling
@@ -259,8 +261,9 @@ lemma scanNextToken_dispatchContent_corr (sc : ScannerState) (sp : SurfPos) (c :
           have h := Except.ok.inj hok; subst h
           exact scanTag_corr sc sp hcorr s_t h_tag
       · split at hok
-        · -- '|' or '>': scanBlockScalar returns directly
-          exact scanBlockScalar_corr sc sp hcorr hok
+        · -- '|' or '>': scanBlockScalar returns directly, under the item-9c
+          -- `!inFlow` guard (peeled: `.error` cannot equal `.ok`)
+          exact scanBlockScalar_corr sc sp hcorr (peel_blockScalarGuard hok)
         · split at hok
           · split at hok
             · simp at hok

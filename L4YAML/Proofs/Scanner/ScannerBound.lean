@@ -6,6 +6,7 @@ import L4YAML.Scanner.Scanner
 import L4YAML.Proofs.Scanner.ScannerLoopInvariant
 import L4YAML.Proofs.Scanner.ScannerProgress
 import L4YAML.Proofs.Scanner.FlowAdjacency
+import L4YAML.Proofs.Scanner.BlockScalarFlowGuard
 
 /-!
 # Scanner Bound Preservation (Phase 4.2.A)
@@ -31,6 +32,7 @@ open L4YAML.Scanner
 open L4YAML.Proofs.ScannerLoopInvariant
 open L4YAML.Proofs.ScannerProgress
 open L4YAML.Proofs.FlowAdjacency
+open L4YAML.Proofs.BlockScalarFlowGuard
 
 /-! ## §1  Bound Invariant Bundle
 
@@ -1703,8 +1705,10 @@ lemma dispatchContent_preserves_bound (s sp s' : ScannerState) (c : Char)
         exact BoundInv.trans h_bi (scanTag_BoundInv sp _ h_refl h_hend hok)
       -- 4. c == '|' || c == '>' (block scalar)
       · split at hok
-        · -- scanBlockScalar result is returned directly
-          exact BoundInv.trans h_bi (scanBlockScalar_BoundInv sp _ h_refl h_hend hok)
+        · -- scanBlockScalar result is returned directly, under the item-9c
+          -- `!inFlow` guard (peeled: `.error` cannot equal `.ok`)
+          exact BoundInv.trans h_bi
+            (scanBlockScalar_BoundInv sp _ h_refl h_hend (peel_blockScalarGuard hok))
         -- 5. c == '"' (double quoted)
         · split at hok
           · split at hok  -- bind on scanDoubleQuoted

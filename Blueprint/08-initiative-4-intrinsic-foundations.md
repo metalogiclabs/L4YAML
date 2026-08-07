@@ -20520,7 +20520,7 @@ reflection that acted on it, which may live under a different theme.
 number can be located by scanning this table.
 
 * **Lean 4 mechanics & build hygiene**
-  * *Tactics & elaboration* — 74–77, 82–85, 87, 88, 92, 93, 114, 125, 126, 210, 372, 378, 592, 593, 596, 597, 600, 603, 607, 608, 611
+  * *Tactics & elaboration* — 74–77, 82–85, 87, 88, 92, 93, 114, 125, 126, 210, 372, 378, 592, 593, 596, 597, 600, 603, 607, 608, 611, 613
   * *Core API, types & attributes* — 59–63, 65, 66, 69–73, 79, 115, 590
   * *Build, cache & axiom hygiene* — 68, 102, 104
 * **Porting, modularization & increment economics**
@@ -21080,7 +21080,7 @@ foundation" (Phase 6) are two different things, on two different substrates.
 
 ## Lean 4 mechanics & build hygiene
 
-### Tactics & elaboration (Reflections 74–77, 82–85, 87, 88, 92, 93, 114, 125, 126, 210, 372, 378, 592, 593, 596, 597, 600, 603, 607, 608, 611)
+### Tactics & elaboration (Reflections 74–77, 82–85, 87, 88, 92, 93, 114, 125, 126, 210, 372, 378, 592, 593, 596, 597, 600, 603, 607, 608, 611, 613)
 
 #### Reflection 74 — *`have x := e; body` in term position desugars to `letFun e (fun x => body)` — a `letFun` application, not a `let`-binding — and Lean's `dsimp only []` / `simp only []` do not unfold `letFun` without explicit `[letFun]` in the simp set; even with `[letFun]`, the unfolding fires only at the syntactic outermost `letFun`, not at nested ones inside `if`/`match` branches. `scanNextTokenIx_preprocess`'s body has multiple `have savedIndentSize := ...; have s := ...; have s := s.saveSimpleKeyIx; match s.peek? with ...` chains that `split at h_ok` cannot peel because the `have`s wrap each branch's expression. **Workaround: `match h_prep : f x with` pattern** — let Lean evaluate `f x` and bind both the discriminant and the equation `h_prep : f x = <branch>` in one tactic, avoiding `unfold` + nested `split` entirely.*
 
@@ -21805,6 +21805,18 @@ BRICK D's carve confirmed two things at once. **(a) The re-bracketing reuse.** T
 **The probe (`Tests/Reflections/`).** `CasesReordersTelescope.lean` -- `order_probe` IS the method: a `trace_state` in the arm whose output is PINNED by `#guard_msgs`, so a future reshuffle fails this file rather than some consumer's `rename_i`. Three arms on one goal: `via_cases_with` (stable), `via_rename_i_context_order` (the correct list, read off the probe) and `rename_i_declaration_order_binds_swapped` (THE TRAP -- it still elaborates, but `hcl` is what carries `Entries a b`, so the term that type-checks reads as nonsense). `same_names_different_order` + `dependency_block_stays_adjacent` (`by decide`) make the permutation a decidable fact. All three arms axiom-FREE. Paired memory `ref-cases-reorders-constructor-telescope`.
 
 **Next step.** With the frames inlined and the `rename_i` sites repaired, Fix A β.3 could proceed to the flow-interior sorry sites in `StreamAccum.lean`. *[Acted on by Reflection 612.]*
+
+#### Reflection 613 -- a `do`-block guard costs a join-point LAYER, so count guards, not logic. **A statement-style early-exit `if cond then throw e` inside a `do` block does not elaborate to an `ite` over the rest of the block: Lean wraps the continuation in a JOIN POINT, `have __do_jp := fun __r => <rest>`, and branches to it from both sides. One guard, one layer -- and a SECOND consecutive guard nests a second layer AROUND the first. That nesting is what the proofs are coupled to, and it is invisible in the source.**
+
+**Key craft lessons.** Three consequences, none of which announces itself. (1) `split at h` on the two-layer shape descends into the join point and splits the INNER guard first, leaving `h` textually unchanged -- it does not error, it silently produces goals the script did not anticipate. (2) `simp` normalizing the hypothesis zeta-expands a layer and inlines `<rest>` at BOTH branch references, so *k* layers give 2^*k* copies; with a real dispatcher arm that is how `split`'s internal `simp` reaches *maximum number of steps exceeded* -- a **size** failure, distinct from the **opacity** failure the same construct causes when `rw [if_pos]` / `split` cannot see the arm at all (item 9a). Which error you get tells you which problem you have. (3) The fix is NOT "convert to an `else` chain": that re-shapes the arm, so every downstream script written against the old shape breaks too, and the failure merely moves. The fix is to add **ZERO** new guards -- fold the new rejection into the existing one via a helper returning `Option Err`, checked with the `if let some e := … then throw e` form. **Before adding a guard to a `do`-block dispatcher that proofs case-split on, count the `if`s in the arm: that count, not the guard's logic, is the interface.**
+
+**What specified (source).** DOCS item 9c: rejecting block scalars inside flow collections. The indexed block-scalar arm of `scanNextTokenIx_dispatchContent` already carried two early-exit guards; adding item 9c's `inFlow` rejection as a third blew the step limit at `Proofs/Scanner/IndexedDispatch.lean:1481`, and the `else do` rewrite moved the failure rather than removing it. Folding 9c's check into the existing §6.7 header check as `blockScalarPreErrIx` -- one `Option ScanError` returning 9c's error then §6.7's, in legacy's order -- kept the arm at its original guard count and needed **zero** proof edits in that file. The legacy dispatcher, whose arm had no other guard, took the plain expression chain without trouble; the cost is entirely in the *second* guard.
+
+**The probe (`Tests/Reflections/`).** `DoEarlyExitDuplicatesContinuation.lean` -- a baseline arm (`oneGuard`, one rejection), the THREE ways to add a second rejection to it (`twoGuards`, `elseDo`, `merged`), and a growth probe (`threeGuards`, a genuinely different function). §2's `#guard` sweep proves the three spellings behaviourally identical, so the choice is visibly *only* about elaborated shape -- and states what is NOT claimed, since the baseline and the growth probe each agree only away from the input their own guard decides. `invert_merged` is `invert_one`'s script VERBATIM, which is the payoff; `invert_two` cannot use it and enumerates with `by_cases` instead. Axioms `[propext]`.
+
+**Doubles as a toolchain canary.** These are elaborator facts, not theorems -- true of Lean 4.32.0 and free to change. Every `unfold scanNextToken_dispatch* at h; split at h` walk in L4YAML depends on them, so a silent change would surface as wide, confusing breakage far from its cause. §4 therefore pins the elaborated term of every shape in §1 with `#guard_msgs in #print`, and §3 pins the tactic behaviour with `fail_if_success` inside `invert_two`. On a toolchain bump a diff here localises the change immediately: §4 says the desugaring moved, §3 says `split`'s reach into join points moved. Both are load-bearing, so both are worth a build failure rather than a surprise.
+
+**Next step.** With item 9c closed, all three remaining Fix A β.3 sorry sites in `StreamAccum.lean` are unblocked; `accum_step_content` can now refute `SCLLiteral ∨ SCLFolded` with `BlockScalarFlowGuard.dispatchContent_not_blockScalar_of_inFlow`.
 
 ### Core API, types & attributes (Reflections 59–63, 65, 66, 69–73, 79, 115, 590)
 

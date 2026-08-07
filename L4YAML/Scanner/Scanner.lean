@@ -427,8 +427,19 @@ def scanNextToken_dispatchContent (s : ScannerState) (c : Char) :
     let s' ← scanTag s
     return s'
   if c == '|' || c == '>' then
-    let s' ← scanBlockScalar s
-    return s'
+    -- §8.1 [170]/[174]: `c-l+literal` and `c-l+folded` are reachable only
+    -- through `s-l+block-node` [196]; `ns-flow-content` [158] offers plain,
+    -- flow-seq, flow-map, single- and double-quoted only.  So a block-scalar
+    -- header inside a flow collection (`[a, |⏎ x⏎]`, `{k: |⏎ x⏎}`) has no
+    -- derivation and must be rejected here.  Full `else`-chain (not an
+    -- early-exit statement) so the desugaring is a plain `ite` with closed
+    -- branches — no `__do_jp` join points, keeping both `split`- and
+    -- `rw [if_pos/if_neg]`-style proofs workable.
+    if s.inFlow then
+      .error (.blockScalarInFlow c s.line s.col)
+    else do
+      let s' ← scanBlockScalar s
+      return s'
   if c == '"' then
     let s' ← scanDoubleQuoted s
     -- §7.4: Quoted scalars can span lines; update simpleKey.endLine

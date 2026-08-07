@@ -1487,7 +1487,7 @@ lemma scanNextTokenIx_dispatchContent_ok_monotonic {input : String}
       · rw [if_neg hg3] at h
         by_cases hg4 : (c == '|' || c == '>') = true
         · rw [if_pos hg4] at h
-          -- Peel the §6.7 header-newline guard: its throw arm cannot be `.ok`.
+          -- Peel the merged §8.1 (item 9c) / §6.7 pre-guard: it cannot be `.ok`.
           split at h
           · cases h
           · -- Peel the §6.1/§8.1.3 body-validator guard (item 7 strictness).

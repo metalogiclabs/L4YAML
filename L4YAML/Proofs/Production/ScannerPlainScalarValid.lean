@@ -7,6 +7,7 @@ import L4YAML.Proofs.Scanner.ScannerPlainScalar
 import L4YAML.Proofs.Scanner.ScannerCorrectness
 import L4YAML.Proofs.Scanner.ScannerFlowCollection
 import L4YAML.Proofs.Scanner.FlowAdjacency
+import L4YAML.Proofs.Scanner.BlockScalarFlowGuard
 
 /-!
 # Plain Scalar Validity for the Full Scan Chain (B3.5)
@@ -44,6 +45,7 @@ namespace L4YAML.Proofs.ScannerPlainScalarValid
 
 open L4YAML
 open L4YAML.Scanner
+open L4YAML.Proofs.BlockScalarFlowGuard
 open L4YAML.CharPredicates
 open L4YAML.Grammar
 open L4YAML.Proofs.ScannerPlainScalar
@@ -482,7 +484,9 @@ lemma dispatchContent_preserves_PlainScalarsValid
             subst hj_eq
             exact scanTag_psv_match s s_tag h_tag hj
         · split at h_ok
-          · -- c == '|' || '>': scanBlockScalar returns directly (not .plain)
+          · -- c == '|' || '>': scanBlockScalar returns directly (not .plain),
+            -- under the item-9c `!inFlow` guard
+            replace h_ok := peel_blockScalarGuard h_ok
             intro j hj hge
             have : j = s.tokens.size := by
               have := scanBlockScalar_adds_one_token s _ h_ok; omega
@@ -3600,8 +3604,9 @@ lemma dispatchContent_preserves_FlowInv
           simp only [Except.ok.injEq] at h_ok; subst h_ok
           exact scanTag_preserves_FlowInv s s_tag h_tag h_fpsv h_fni
       · split at h_ok
-        · -- c == '|' or c == '>': scanBlockScalar returns directly
-          exact scanBlockScalar_preserves_FlowInv s _ h_ok h_fpsv h_fni
+        · -- c == '|' or c == '>': scanBlockScalar returns directly, under the
+          -- item-9c `!inFlow` guard
+          exact scanBlockScalar_preserves_FlowInv s _ (peel_blockScalarGuard h_ok) h_fpsv h_fni
         · split at h_ok
           · -- c == '"'
             split at h_ok
@@ -4925,7 +4930,9 @@ lemma dispatchContent_preserves_AllKeysPlaceholderInv
             (by have := ScanHelpers.scanTag_adds_one_token s s_tag h_tag; omega)
             (fun i hi => ScanHelpers.scanTag_preserves_prefix s s_tag h_tag i hi)
       · split at h_ok
-        · -- c == '|' || c == '>': block scalar returns directly (clears key)
+        · -- c == '|' || c == '>': block scalar returns directly (clears key),
+          -- under the item-9c `!inFlow` guard
+          replace h_ok := peel_blockScalarGuard h_ok
           exact AllKeysPlaceholderInv_of_cleared_mono s _ h_akpi
             (scanBlockScalar_clears_simpleKey s _ h_ok)
             (scanBlockScalar_preserves_simpleKeyStack s _ h_ok)

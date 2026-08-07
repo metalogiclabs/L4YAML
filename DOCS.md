@@ -5471,7 +5471,7 @@ lives in [README.md](README.md) and is not duplicated here.)
 |---|---|---|
 | `ns-char` predicate spec-loose body | **Fixed 2026-08-01** (predicates tightened; scanner + emitter conformant; regression-tested) | [The ns-char gap](#the-ns-char-gap) |
 | **Indexed-pipeline parity** (the twin consumers actually call) | **CLOSED 2026-08-06 — full parity: event 402/402 · JSON 282/282 · accept/reject 402/402, same run as an identically-scoring legacy baseline; all 94 invalid inputs rejected with the identical `ScanError` (items 6+7)** | [Indexed-pipeline parity gap](#indexed-pipeline-parity-gap) |
-| Grammar completeness (`parse_iff_grammar`, capstone 7.7) | **Open** — Fix B done; Fix A at 3 `sorry` sites (β.3, one blocked on item 9c), then β.4/β.5 delete `scannerDrop`, then the converse | [Grammar completeness plan](#grammar-completeness-plan) |
+| Grammar completeness (`parse_iff_grammar`, capstone 7.7) | **Open** — Fix B done; Fix A at 3 `sorry` sites (β.3, all unblocked), then β.4/β.5 delete `scannerDrop`, then the converse | [Grammar completeness plan](#grammar-completeness-plan) |
 | Merge semantics (`DuplicateKeyPolicy.merge`) | **Open** (design ready; re-base on `LawfulBEq`) | [Merge semantics plan](#merge-semantics-plan) |
 | Security limits: open questions + future work | **Open** (design questions; 3 unimplemented features) | [Security hardening backlog](#security-hardening-backlog) |
 | Limit-enforcement verification, and the rest | **Open** (varied) | [Other open items](#other-open-items) |
@@ -5486,7 +5486,6 @@ completeness.
 
 | # | Action | Blocks | Where |
 |---|---|---|---|
-| 9c | **Reject block scalars inside flow collections.** `scanNextToken_dispatchContent` runs `scanBlockScalar` with no `inFlow` guard, so `[a, \|\n  x\n]` and `{k: \|\n  x\n}` scan clean — but `SFlowContent` has no literal/folded case (block scalars are `s-l+block-node`-only, [170]/[174]), so this is invalid YAML the scanner admits. An item-9a-class strictening; **blocks β.3's content step**, which cannot refute the arm otherwise. Needs the same probe-matrix validation 9a had | β.3 content | [Fix A](#fix-a-eliminating-scannerdrop--flow-indicator-grammar-evidence) |
 | 10 | **β.3 — the flow-interior branches.** 2 of 5 sites closed 2026-08-06 (structural, EOF); 3 left. See the β.3 table below for the per-site decomposition | β.4 | [Fix A](#fix-a-eliminating-scannerdrop--flow-indicator-grammar-evidence) |
 | 11 | **β.4 — chain-threading.** Thread the completed accumulation through `scanNextToken_accum_step`, `scanLoop_grammar_prod`, `scan_content_gives_stream` | β.5 | ditto |
 | 12 | **β.5 — retire `pendingFlow`, delete `scannerDrop`.** Once no dispatch produces `pendingFlow`, the `close_with_ssl` arm that calls `scannerDrop` is unreachable; delete the constructor from `Surface/Document.lean`. This turns the `L4YAML.Capstones` gate green (its only failure is `parse_strict_proof depends on sorryAx`) | Step 5, the converse | ditto |
@@ -5600,7 +5599,7 @@ Step 0 (the scanner audit for directive handling) and Fix B (eliminating
 
 | Step | Status |
 |---|---|
-| Fix A: eliminate `scannerDrop` | 🟡 **nearly done** — see below. `StreamAccum.lean` is at **3 sorry sites / 3 declarations**, all in β.3; `scannerDrop` has exactly **one** live use left. One of the three is blocked on item 9c (block scalars in flow) |
+| Fix A: eliminate `scannerDrop` | 🟡 **nearly done** — see below. `StreamAccum.lean` is at **3 sorry sites / 3 declarations**, all in β.3; `scannerDrop` has exactly **one** live use left. All three are now unblocked — item 9c (block scalars in flow) closed 2026-08-07 |
 | 1b. Remove `scannerDrop` from `SLYamlStream` | ⬜ open — β.5, once that last use is gone |
 | 5. Prove the converse `grammar_completeness` | ⬜ open — depends on Fix A |
 | 6. Assemble the `parse_iff_grammar` biconditional | ⬜ open — depends on Step 5 |
@@ -5697,6 +5696,63 @@ Four design decisions worth not re-deriving:
   algebra in `PreprocessProduction` §9 (`SSeparate_trans` + `extendSep`
   retrofits).
 
+#### Item 9c — block scalars inside flow collections (closed 2026-08-07)
+
+**The gap.** `scanNextToken_dispatchContent` ran `scanBlockScalar` with no
+`inFlow` guard, so `[a, |⏎  x⏎]` and `{k: |⏎  x⏎}` scanned clean at 15 tokens in
+**both** pipelines.  `c-l+literal` [170] and `c-l+folded` [174] are reachable
+only through `s-l+block-node` [196]; `ns-flow-content` [158] offers plain,
+flow-seq, flow-map, single- and double-quoted only.  So the scanner admitted
+input with no derivation — the same class of gap as 9a (mismatched flow closes)
+and the flow-adjacency family.
+
+**Why β.3 needed it.** `accum_step_content`'s evidence
+(`dispatchContent_evidence`) offers `SCLLiteral ∨ SCLFolded` alongside the flow
+cases.  Inside a flow collection those disjuncts have no derivation, but while
+the scanner *accepted* the input there was nothing to refute them with: the arm
+was unclosable not for want of a frame invariant but because the implementation
+was wrong.  That is destination 3 of Reflection 612, and it is why the rule
+there is *probe the scanner on an arm's input before building frame vocabulary
+for it*.
+
+**The fix.**
+
+- New `ScanError.blockScalarInFlow (indicator) (line col)` + `toString` arm.
+- Legacy `scanNextToken_dispatchContent`: the `|`/`>` arm becomes a full
+  `if s.inFlow then .error … else scanBlockScalar s` **expression** chain (9a's
+  join-point discipline).
+- Indexed `scanNextTokenIx_dispatchContent`: the guard is folded into the
+  existing header check as `blockScalarPreErrIx`, a single `Option ScanError`
+  returning item 9c's error then §6.7's, in legacy's order.  Two *consecutive*
+  early-exit `if … then throw` statements would have been the natural writing
+  and are wrong here: each one duplicates the block's continuation into both
+  branches, so a second put four copies of the block-scalar body in the
+  elaborated term and `split`'s `simp` exceeded its step limit in every
+  downstream inversion proof.  One guard keeps the arm's `split` sequence
+  byte-identical to what it was before 9c.
+- New `Proofs/Scanner/BlockScalarFlowGuard.lean`: `blockScalarGuard_elim`
+  (inversion — a successful arm yields *both* `s.inFlow = false` and the
+  pre-guard `scanBlockScalar s = .ok s'`), its two projections, the
+  construction direction, and the load-bearing
+  **`dispatchContent_not_blockScalar_of_inFlow`** — at `inFlow`, a successful
+  content dispatch was not on a `|`/`>` header.  That is the fact β.3's content
+  step consumes.
+
+**Proof repair.** Nine inversion sites across six files, each one line: the
+`|`/`>` branch's `h` is now the guarded arm, so `peel_blockScalarGuard h`
+restores the shape the existing lemma wanted.  No conjunct threading.
+
+**Validation.** All ten block-scalar-in-flow shapes now reject with *identical*
+legacy/indexed errors, position included; sixteen control rows (block context,
+quoted `|`/`>`, plain scalars containing them, flow basics) scan to the same
+token counts as before.  A sweep of all 406 `yaml-test-suite` cases moved
+**zero** — the suite has no input of this shape, so the matrix scores are
+unchanged by construction and cannot serve as the regression net.
+`Tests/Guards/Proofs/ScannerBlockScalarInFlow.lean` is that net instead: 26
+dual-pipeline `#guard`s plus axiom pins on the two proof-side facts.  Full
+suite: 4407/4407; event score 347/358 with 0 valid inputs rejected; build back
+to its single known failure (`parse_strict_proof depends on sorryAx`).
+
 #### What remains: β.3, β.4, β.5
 
 `StreamAccum.lean` carries **three** `sorry` sites, all in β.3 (down from five;
@@ -5707,7 +5763,7 @@ Four design decisions worth not re-deriving:
 | 1 | `accum_step_structural` | ✅ **closed** — vacuous at depth ≥ 1. `dispatchStructural`'s only in-flow success arm is `%`, and `scanDirective` rejects on `!allowDirectives`; inside a flow the flag is always false, because the `[`/`{` that opened the collection was dispatched *after* `scanNextToken` cleared it. Carried as a third component of the guarded interior conjunct and transported by the new `Proofs/Scanner/ScannerAllowDirectives.lean`. The `---`/`...` accept arms sit below the §5.4 `documentMarkerInFlow` guard, so they are dead too |
 | 4 | `scanNextToken_none_stream` | ✅ **closed** — the lemma's own hypotheses never refuted an open flow at EOF (`[a, b` reaches EOF happily); it is `scanLoop`'s post-check that errors with `unterminatedFlowCollection`. Hoisted to an `sc.flowLevel = 0` hypothesis discharged at the call site |
 | 2 | `accum_step_block` | ⬜ open. `-` is free (guarded by `!s.inFlow`). `:` needs a `receiveColon` transition `.value → .colon` on both frames, lifted over the four `FlowOpenStack` arms like `holdComma`. `?` needs a **fourth `FrameTail` value** (`?` seen, key awaited) plus one constructor per frame — `midExplicitKey` already carries the key node, but `scanKey` emits only the `?` |
-| 3 | `accum_step_content` | 🔴 **blocked on item 9c.** The route (`FlowOpenStack.receiveNode`, sorry-free, premise already discharged by `checkFlowAdjacency`) is fine, and the `.flowOut → .flowIn` re-aim of `dispatchContent_evidence` is mechanical. But that evidence also offers `SCLLiteral ∨ SCLFolded`, and there is nothing to refute it with while the scanner accepts block scalars in flow |
+| 3 | `accum_step_content` | ⬜ open, **unblocked 2026-08-07** (item 9c). The route (`FlowOpenStack.receiveNode`, sorry-free, premise already discharged by `checkFlowAdjacency`) is fine, and the `.flowOut → .flowIn` re-aim of `dispatchContent_evidence` is mechanical. The `SCLLiteral ∨ SCLFolded` disjuncts that evidence also offers are now refutable: `BlockScalarFlowGuard.dispatchContent_not_blockScalar_of_inFlow` says a successful content dispatch at `inFlow` was not on a `\|`/`>` header |
 | 5 | `accum_flow_open_depth0` | ⬜ open — the depth-0 open at `col ≠ 0` with no preceding line break (`"foo" [a]`). **Not** refutable by `checkFlowAdjacency`, which is gated on `s.inFlow` and is a no-op at the depth-0 open. The vacuity must come from a `PendingNode`-shape ↔ `sc.simpleKey` coupling — the depth-0 analogue of 9b(ii)'s `FrameTail` ↔ `tailOf sc.tokens` |
 
 Then:
@@ -5769,7 +5825,7 @@ Further coupling material is spread across `Proofs/Coupling/`
 
 | Risk | Likelihood | Impact | Mitigation |
 |------|-----------|--------|------------|
-| More item-9a-class scanner gaps hide behind the remaining β.3 arms | **Materialized 2026-08-06** (item 9c) | Medium | The content arm turned out to need one; expect the `?`/`:` arms to be audited the same way — probe the scanner on the arm's input BEFORE building frame vocabulary for it |
+| More item-9a-class scanner gaps hide behind the remaining β.3 arms | **Materialized 2026-08-06** (item 9c), **fixed 2026-08-07** | Medium | The content arm turned out to need one; expect the `?`/`:` arms to be audited the same way — probe the scanner on the arm's input BEFORE building frame vocabulary for it |
 | The depth-0 `col ≠ 0`, no-break vacuity is not actually vacuous | Low | Medium | Ruled out `checkFlowAdjacency` as the source (gated on `inFlow`, no-op at the depth-0 open); the simple-key coupling is the remaining candidate |
 | Converse proof (Step 5) is very large | High | Medium | Grammar inversion touches ~77 rules; many lemmas are mechanical |
 

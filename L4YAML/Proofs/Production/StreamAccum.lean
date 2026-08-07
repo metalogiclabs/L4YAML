@@ -7,6 +7,7 @@ import L4YAML.Proofs.Scanner.ScanStrictCoupling
 import L4YAML.Proofs.Production.StructureProduction
 import L4YAML.Proofs.Production.NodeProduction
 import L4YAML.Proofs.Scanner.FlowAdjacency
+import L4YAML.Proofs.Scanner.BlockScalarFlowGuard
 import L4YAML.Proofs.Scanner.ScannerFlowCollection
 import L4YAML.Proofs.Scanner.ScannerFlowStackPreservation
 import L4YAML.Proofs.Scanner.ScannerAllowDirectives
@@ -55,6 +56,7 @@ namespace L4YAML.Proofs.StreamAccum
 
 open L4YAML.Surface
 open L4YAML.Scanner
+open L4YAML.Proofs.BlockScalarFlowGuard
 open L4YAML.Proofs.CouplingBridge
 open L4YAML.Proofs.ScanStrictCoupling
 open L4YAML.Proofs.ScannerCoupling
@@ -3919,8 +3921,8 @@ lemma dispatchContent_corr (sc : ScannerState) (sp : SurfPos) (c : Char)
           exact scanTag_corr sc sp hcorr s_val h_tag
       -- c == '|' || c == '>' (block scalar)
       · split at hok
-        · -- scanBlockScalar returns directly
-          exact scanBlockScalar_corr sc sp hcorr hok
+        · -- scanBlockScalar returns directly, under the item-9c `!inFlow` guard
+          exact scanBlockScalar_corr sc sp hcorr (peel_blockScalarGuard hok)
         -- c == '"' (double-quoted)
         · split at hok
           · split at hok
@@ -4077,8 +4079,8 @@ lemma dispatchContent_blockScalar_prod (sc : ScannerState) (sp : SurfPos)
         · rename_i h_eq; exact absurd h_eq (by decide)
         · -- '|' == '|' || '|' == '>' = true
           split at hok
-          · -- scanBlockScalar returns directly
-            exact scanBlockScalar_prod sc sp hcorr (Or.inl hpeek) hok
+          · -- scanBlockScalar returns directly, under the item-9c `!inFlow` guard
+            exact scanBlockScalar_prod sc sp hcorr (Or.inl hpeek) (peel_blockScalarGuard hok)
           · rename_i h_neq; exact absurd rfl h_neq
   | inr h_fld =>
     subst h_fld
@@ -4091,8 +4093,8 @@ lemma dispatchContent_blockScalar_prod (sc : ScannerState) (sp : SurfPos)
       · split at hok
         · rename_i h_eq; exact absurd h_eq (by decide)
         · split at hok
-          · -- scanBlockScalar returns directly
-            exact scanBlockScalar_prod sc sp hcorr (Or.inr hpeek) hok
+          · -- scanBlockScalar returns directly, under the item-9c `!inFlow` guard
+            exact scanBlockScalar_prod sc sp hcorr (Or.inr hpeek) (peel_blockScalarGuard hok)
           · rename_i h_neq; exact absurd rfl h_neq
 
 -- If structural dispatch returns .ok none, the scanner is not at a document boundary

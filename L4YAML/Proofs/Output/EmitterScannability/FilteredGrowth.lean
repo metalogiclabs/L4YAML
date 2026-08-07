@@ -3,6 +3,7 @@ Copyright (c) 2026. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 -/
 import L4YAML.Proofs.Output.EmitterScannability.ScanSteps
+import L4YAML.Proofs.Scanner.BlockScalarFlowGuard
 
 /-!
 # Emitter Scannability — Filtered Token Growth Infrastructure
@@ -1414,7 +1415,8 @@ lemma dispatchContent_new_not_placeholder (s s' : ScannerState) (c : Char)
       · -- remaining: block scalar, double/single quoted, plain
         -- Further case-split per character
         split at h
-        · -- '|' or '>' → scanBlockScalar
+        · -- '|' or '>' → scanBlockScalar, under the item-9c `!inFlow` guard
+          replace h := Proofs.BlockScalarFlowGuard.peel_blockScalarGuard h
           generalize h_sc : scanBlockScalar s = result at h
           cases result with
           | error => simp at h

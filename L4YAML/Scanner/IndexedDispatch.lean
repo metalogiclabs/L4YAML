@@ -1133,6 +1133,32 @@ def scanNextTokenIx_dispatchBlockIndicators {input : String}
     return some s'
   return none
 
+/-- Pre-`scanBlockScalarIx` rejections for a `|`/`>` header, in the order
+    legacy `scanNextToken_dispatchContent` applies them:
+
+* **§8.1 [170]/[174] — DOCS item 9c.**  `c-l+literal` and `c-l+folded` are
+  reachable only through `s-l+block-node` [196]; `ns-flow-content` [158] offers
+  plain, flow-seq, flow-map, single- and double-quoted only.  A block-scalar
+  header inside a flow collection therefore has no derivation.
+* **§6.7 [76] `b-comment`.**  The header line must end in a line break or EOF —
+  see `blockScalarHeaderEndsLineIx` (mirrors legacy
+  `scanBlockScalarConsumeNewline`'s `expectedNewline` throw).
+
+Folded into **one** guard rather than two consecutive `if … then throw`
+statements.  Each early-exit statement in a `do` block duplicates the block's
+continuation into both branches; a second one puts four copies of the
+block-scalar body in the elaborated term, and `split`'s `simp` then exceeds its
+step limit in every downstream inversion proof.  One guard keeps the arm's
+`split` sequence exactly as it was before item 9c. -/
+def blockScalarPreErrIx {input : String} (s : ScannerStateIx input) (c : Char) :
+    Option ScanError :=
+  if s.inFlow then
+    some (.blockScalarInFlow c s.cursor.pos.line s.cursor.pos.col)
+  else if !blockScalarHeaderEndsLineIx s.cursor then
+    some (.expectedNewline s.cursor.pos.line)
+  else
+    none
+
 /-- Content dispatch: scalars + anchors + tags.
 
     Wires scalars to the per-rule recognisers in
@@ -1152,11 +1178,10 @@ def scanNextTokenIx_dispatchContent {input : String} (s : ScannerStateIx input)
     let s' ← scanTagIx s
     return s'
   if c == '|' || c == '>' then
-    -- §6.7 [76] `b-comment`: the header line must end in a line break or
-    -- EOF — see `blockScalarHeaderEndsLineIx` (mirrors legacy
-    -- `scanBlockScalarConsumeNewline`'s `expectedNewline` throw).
-    if !blockScalarHeaderEndsLineIx s.cursor then
-      throw (.expectedNewline s.cursor.pos.line)
+    -- Item 9c (§8.1) then §6.7 [76], in legacy's order — see
+    -- `blockScalarPreErrIx`.  ONE guard, not two consecutive ones.
+    if let some e := blockScalarPreErrIx s c then
+      throw e
     -- The *indent floor*, not the clamped parent column: at top level
     -- `currentIndent = -1` and zero-indented content is legal (DK3J, FP8R).
     -- See `scanBlockScalarIx`'s docstring.

@@ -346,6 +346,12 @@ inductive ScanError where
       `]` closing a `{`-opened mapping or `}` closing a `[`-opened sequence
       (`[a}`, `{a]`). `bracket` is the mismatched close found. -/
   | mismatchedFlowClose (bracket : Char) (line col : Nat)
+  /-- Block scalar header (`|` or `>`) opened inside a flow collection —
+      §8.1 violation.  `c-l+literal` [170] and `c-l+folded` [174] are reachable
+      only through `s-l+block-node` [196]; `ns-flow-content` [158] offers plain,
+      flow-seq, flow-map, single- and double-quoted only.  So `[a, |⏎ x⏎]` and
+      `{k: |⏎ x⏎}` have no derivation.  `indicator` is the header found. -/
+  | blockScalarInFlow (indicator : Char) (line col : Nat)
   /-- Continuation line of quoted scalar is under-indented — §8.1 violation. -/
   | underIndentedScalar (style : ScalarStyle) (line : Nat)
   /-- Document marker (`---`/`...`) inside flow collection — §5.4 violation. -/
@@ -433,6 +439,7 @@ def ScanError.toString : ScanError → String
   | .trailingContentAfterDocEnd l c => s!"unexpected content after document-end marker at line {l}, column {c}"
   | .flowEndOutsideFlow b l c => s!"unexpected '{b}' outside flow collection at line {l}, column {c}"
   | .mismatchedFlowClose b l c => s!"mismatched flow close '{b}' at line {l}, column {c}"
+  | .blockScalarInFlow i l c => s!"block scalar '{i}' inside flow collection at line {l}, column {c}"
   | .underIndentedScalar .doubleQuoted l => s!"under-indented continuation line in double-quoted scalar at line {l}"
   | .underIndentedScalar .singleQuoted l => s!"under-indented continuation line in single-quoted scalar at line {l}"
   | .underIndentedScalar style l => s!"under-indented continuation line in {repr style} scalar at line {l}"
