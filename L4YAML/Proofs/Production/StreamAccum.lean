@@ -9,6 +9,7 @@ import L4YAML.Proofs.Production.NodeProduction
 import L4YAML.Proofs.Scanner.FlowAdjacency
 import L4YAML.Proofs.Scanner.ScannerFlowCollection
 import L4YAML.Proofs.Scanner.ScannerFlowStackPreservation
+import L4YAML.Proofs.Scanner.ScannerAllowDirectives
 
 /-! # Stream Grammar Accumulator (Layer 4d + 4e: Lagging Grammar with Block Stack)
 
@@ -1280,6 +1281,20 @@ lemma allowDirectives_update_flowStack (s : ScannerState) :
     else s).flowStack = s.flowStack := by
   split <;> rfl
 
+/-- Helper (β.3): the same update always LANDS on `allowDirectives = false` —
+    the `then` branch sets it, the `else` branch is taken only when it is already
+    false. This is what makes "a directive cannot appear inside an open flow"
+    provable: every flow indicator, block indicator and content token is
+    dispatched AFTER this update, so any state that opened a flow has the flag
+    cleared, and `scanDirective` rejects on `!allowDirectives`. -/
+lemma allowDirectives_update_false (s : ScannerState) :
+    (if s.allowDirectives then
+      { s with allowDirectives := false, documentEverStarted := true }
+    else s).allowDirectives = false := by
+  split
+  · rfl
+  · rename_i h; simpa using h
+
 -- Helper (B.4β): `scanNextToken_preprocess` preserves `flowLevel`. Replicated
 -- from `EmitterScannability.preprocess_preserves_flowLevel` (that module is not
 -- in this file's import closure) via the reachable `ScannerCorrectness.*`
@@ -1853,7 +1868,8 @@ lemma accum_step_structural (sc : ScannerState)
     (h_pending : PendingNode b sp_start sp_flow sp_scan)
     (h_dir_flag : b = true → sc.directivesPresent = true)
     (h_corr : ScannerSurfCorr sc sp_scan)
-    (h_interior : sc.flowLevel ≥ 1 → sp_flow = sp_scan ∧ LastTokenReal sc.tokens)
+    (h_interior : sc.flowLevel ≥ 1 →
+      sp_flow = sp_scan ∧ LastTokenReal sc.tokens ∧ sc.allowDirectives = false)
     (h_preprocess : scanNextToken_preprocess sc = .ok (some (s_prep, c)))
     (h_dispatch : scanNextToken_dispatchStructural s_prep c = .ok (some s')) :
     ∃ sp_gram' sp_block' sp_flow' sp_scan' b',
@@ -1863,7 +1879,8 @@ lemma accum_step_structural (sc : ScannerState)
       PendingNode b' sp_start sp_flow' sp_scan' ∧
       (b' = true → s'.directivesPresent = true) ∧
       ScannerSurfCorr s' sp_scan' ∧
-      (s'.flowLevel ≥ 1 → sp_flow' = sp_scan' ∧ LastTokenReal s'.tokens) := by
+      (s'.flowLevel ≥ 1 →
+        sp_flow' = sp_scan' ∧ LastTokenReal s'.tokens ∧ s'.allowDirectives = false) := by
   -- B.4β: the flow stack is indexed by the scanner's `flowLevel`.
   rcases Nat.eq_zero_or_pos sc.flowLevel with h0 | hpos
   · -- depth 0 (no open flow collection): the existing depth-0 proof.
@@ -1881,9 +1898,17 @@ lemma accum_step_structural (sc : ScannerState)
         (absorb_stacksB sp_start sp_gram sp_block sp_flow h_stream h_stack h_flow)
         h_pending h_dir_flag h_corr h_preprocess h_dispatch
     exact ⟨g', bl', fl', sn', b', q1, q2, q3.retail, q4, q5, q6, fun h => absurd h (by omega)⟩
-  · -- depth ≥ 1 (inside an open flow collection): a flow-interior structural
-    -- dispatch — deferred to β.3.
-    sorry
+  · -- ═══ DEPTH ≥ 1: VACUOUS. ═══
+    -- `scanNextToken_dispatchStructural` has no success arm inside a flow; see
+    -- `ScannerAllowDirectives.dispatchStructural_inFlow_no_success`. The
+    -- `allowDirectives = false` it needs is the invariant's third component,
+    -- transported across preprocessing.
+    exact absurd h_dispatch
+      (ScannerAllowDirectives.dispatchStructural_inFlow_no_success s_prep s' c
+        (by unfold ScannerState.inFlow; simp
+            rw [preprocess_preserves_flowLevel sc s_prep c h_preprocess]; omega)
+        (by rw [ScannerAllowDirectives.preprocess_preserves_allowDirectives sc s_prep c h_preprocess]
+            exact (h_interior hpos).2.2))
 
 /-! ### §1c Preprocessing + Flow Indicator Dispatch
 
@@ -2562,6 +2587,7 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
     (hcorr_open : ScannerSurfCorr s' sp_open)
     (h_fl1 : s'.flowLevel = 1)
     (h_real : LastTokenReal s'.tokens)
+    (h_ad : s'.allowDirectives = false)
     (mk : ∀ (sp_before : SurfPos),
         (∀ sp_ne sp_m, SFlowNode 0 .flowOut sp_prep sp_ne →
          SSLComments sp_ne sp_m → SLYamlStream sp_start sp_m) →
@@ -2572,7 +2598,8 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
       FlowStackB sp_start s'.flowLevel s'.flowStack (tailOf s'.tokens) sp_block' sp_flow' ∧
       PendingNode false sp_start sp_flow' sp_scan' ∧
       ScannerSurfCorr s' sp_scan' ∧
-      (s'.flowLevel ≥ 1 → sp_flow' = sp_scan' ∧ LastTokenReal s'.tokens) := by
+      (s'.flowLevel ≥ 1 →
+        sp_flow' = sp_scan' ∧ LastTokenReal s'.tokens ∧ s'.allowDirectives = false) := by
   rw [h_fl1]
   have h_stream_block : SLYamlStream sp_start sp_block :=
     absorb_stacksB sp_start sp_gram sp_block sp_block h_stream h_stack (FlowStackB.nil sp_block .sep)
@@ -2586,7 +2613,8 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
         FlowStackB sp_start 1 s'.flowStack (tailOf s'.tokens) sp_block' sp_flow' ∧
         PendingNode false sp_start sp_flow' sp_scan' ∧
         ScannerSurfCorr s' sp_scan' ∧
-        ((1 : Nat) ≥ 1 → sp_flow' = sp_scan' ∧ LastTokenReal s'.tokens) := by
+        ((1 : Nat) ≥ 1 →
+          sp_flow' = sp_scan' ∧ LastTokenReal s'.tokens ∧ s'.allowDirectives = false) := by
     intro h_close
     rcases preprocess_flow_thread sc sp_scan sp_prep s_prep c h_corr hcorr_prep h_preprocess with
       ⟨sp_mid, h_ssl, hws⟩ | ⟨hcol, hws⟩
@@ -2595,12 +2623,19 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
              mk sp_mid (topLevelFlowResumeSep h_stream_mid
                (SSeparateLines.inline 0 sp_mid sp_prep
                  (GStar_SSWhite_to_SSeparateInLine sp_mid sp_prep hws))),
-             PendingNode.noPending sp_start sp_open, hcorr_open, fun _ => ⟨rfl, h_real⟩⟩
+             PendingNode.noPending sp_start sp_open, hcorr_open, fun _ => ⟨rfl, h_real, h_ad⟩⟩
     · -- col ≠ 0 AND no line break before the bracket: the prior construct
       -- cannot be closed here (`SSLComments` needs a break or col 0). Reachable
       -- only by an inline flow open directly after an unclosed same-line
-      -- construct (e.g. `"foo" [a]`) — expected vacuous under the scanner's
-      -- adjacency/simple-key discipline; needs that vacuity coupling. Deferred.
+      -- construct (e.g. `"foo" [a]`), which is invalid YAML — two nodes in one
+      -- document.
+      --
+      -- NOT refutable by `checkFlowAdjacency`: that guard is gated on
+      -- `s.inFlow`, and this is the depth-0 open, where it is a no-op. The
+      -- vacuity has to come from the depth-0 side — the pending node that is
+      -- still open at `col ≠ 0` with no break is precisely `simpleKey.possible`,
+      -- so the coupling wanted is `PendingNode`-shape ↔ `sc.simpleKey`, the
+      -- depth-0 analogue of 9b(ii)'s `FrameTail` ↔ `tailOf sc.tokens`.
       sorry
   cases h_pending with
   | noPending =>
@@ -2612,7 +2647,7 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
     subst h_pe
     exact ⟨_, _, sp_open, sp_open, h_stream_block, BlockStack.nil _,
            mk _ (topLevelFlowResumeSep h_stream_block h_sep),
-           PendingNode.noPending sp_start sp_open, hcorr_open, fun _ => ⟨rfl, h_real⟩⟩
+           PendingNode.noPending sp_start sp_open, hcorr_open, fun _ => ⟨rfl, h_real, h_ad⟩⟩
   | pendingContent => exact main h_close_pending
   | pendingDocEnd => exact main h_close_pending
   | pendingFlow => exact main h_close_pending
@@ -2633,7 +2668,7 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
                      (SBlockNode.flowInBlock 0 .blockIn sp_scan sp_prep sp_ne sp_m
                        h_sep h_node h_ssl)))))
                (GStar.nil _)),
-           PendingNode.noPending sp_start sp_open, hcorr_open, fun _ => ⟨rfl, h_real⟩⟩
+           PendingNode.noPending sp_start sp_open, hcorr_open, fun _ => ⟨rfl, h_real, h_ad⟩⟩
   | pendingBlock =>
     -- 9b(iii): `pendingBlock` now pins its indent to 0 (every producer in this
     -- file builds the zero-indent-normalized entry), so the flow node the open
@@ -2647,7 +2682,7 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
            mk sp_block (fun sp_ne sp_m h_node h_ssl =>
              h_close sp_m (SBlockNode.flowInBlock 0 .blockIn sp_scan sp_prep sp_ne sp_m
                h_sep h_node h_ssl)),
-           PendingNode.noPending sp_start sp_open, hcorr_open, fun _ => ⟨rfl, h_real⟩⟩
+           PendingNode.noPending sp_start sp_open, hcorr_open, fun _ => ⟨rfl, h_real, h_ad⟩⟩
 
 /-! ### §1c''b Token-history readings of the flow dispatch (9b(ii))
 
@@ -2725,6 +2760,47 @@ lemma tailOf_scanFlowEntry {s s' : ScannerState} (h : scanFlowEntry s = .ok s') 
     tailOf s'.tokens = .sep ∧ LastTokenReal s'.tokens := by
   rw [scanFlowEntry_tokens h]; exact tailOf_push (by simp)
 
+/-! ### §1c''c `allowDirectives` survives the flow dispatch (β.3)
+
+    None of the five indicators touches the flag, so `allowDirectives = false` —
+    established once by `allowDirectives_update_false` before the dispatch —
+    reaches the post-state unchanged. That is what carries the "no directive
+    inside an open flow" half of the interior invariant across a step. -/
+
+open L4YAML.Proofs.ScannerAllowDirectives (advance_preserves_allowDirectives)
+
+lemma scanFlowSequenceStart_allowDirectives (s : ScannerState) :
+    (scanFlowSequenceStart s).allowDirectives = s.allowDirectives := by
+  unfold scanFlowSequenceStart
+  simp only [advance_preserves_allowDirectives, ScannerState.emit]
+
+lemma scanFlowMappingStart_allowDirectives (s : ScannerState) :
+    (scanFlowMappingStart s).allowDirectives = s.allowDirectives := by
+  unfold scanFlowMappingStart
+  simp only [advance_preserves_allowDirectives, ScannerState.emit]
+
+lemma scanFlowSequenceEnd_allowDirectives (s : ScannerState) :
+    (scanFlowSequenceEnd s).allowDirectives = s.allowDirectives := by
+  unfold scanFlowSequenceEnd
+  simp only [advance_preserves_allowDirectives, ScannerState.emit]
+
+lemma scanFlowMappingEnd_allowDirectives (s : ScannerState) :
+    (scanFlowMappingEnd s).allowDirectives = s.allowDirectives := by
+  unfold scanFlowMappingEnd
+  simp only [advance_preserves_allowDirectives, ScannerState.emit]
+
+lemma scanFlowEntry_allowDirectives {s s' : ScannerState} (h : scanFlowEntry s = .ok s') :
+    s'.allowDirectives = s.allowDirectives := by
+  unfold scanFlowEntry at h
+  simp only [Bind.bind, Except.bind] at h
+  split at h
+  · split at h
+    · exact absurd h (by simp)
+    · injection h with h; rw [← h]
+      simp only [advance_preserves_allowDirectives, ScannerState.emit]
+  · injection h with h; rw [← h]
+    simp only [advance_preserves_allowDirectives, ScannerState.emit]
+
 /-- Post-dispatch reading, uniform over the five indicators. -/
 lemma tailOf_of_emitted {tokens : Array (Positioned YamlToken)} {p : Positioned YamlToken}
     {tokens' : Array (Positioned YamlToken)} {tok : YamlToken}
@@ -2781,7 +2857,8 @@ lemma accum_step_flow (sc : ScannerState)
     (h_flow : FlowStackB sp_start sc.flowLevel sc.flowStack (tailOf sc.tokens) sp_block sp_flow)
     (h_pending : PendingNode false sp_start sp_flow sp_scan)
     (h_corr : ScannerSurfCorr sc sp_scan)
-    (h_interior : sc.flowLevel ≥ 1 → sp_flow = sp_scan ∧ LastTokenReal sc.tokens)
+    (h_interior : sc.flowLevel ≥ 1 →
+      sp_flow = sp_scan ∧ LastTokenReal sc.tokens ∧ sc.allowDirectives = false)
     (h_preprocess : scanNextToken_preprocess sc = .ok (some (s_prep, c)))
     (h_dispatch : scanNextToken_dispatchFlowIndicators
         (if s_prep.allowDirectives then
@@ -2793,7 +2870,8 @@ lemma accum_step_flow (sc : ScannerState)
       FlowStackB sp_start s'.flowLevel s'.flowStack (tailOf s'.tokens) sp_block' sp_flow' ∧
       PendingNode false sp_start sp_flow' sp_scan' ∧
       ScannerSurfCorr s' sp_scan' ∧
-      (s'.flowLevel ≥ 1 → sp_flow' = sp_scan' ∧ LastTokenReal s'.tokens) := by
+      (s'.flowLevel ≥ 1 →
+        sp_flow' = sp_scan' ∧ LastTokenReal s'.tokens ∧ s'.allowDirectives = false) := by
   -- B.4β.2 (RED CORE): flow dispatch changes `flowLevel`. `[`/`{` push a real
   -- depth-≥1 `FlowOpenStack`, `]`/`}` pop, `,` holds. This skeleton pins the
   -- dispatch case structure (validated against the scanner error semantics); each
@@ -2847,6 +2925,7 @@ lemma accum_step_flow (sc : ScannerState)
       exact accum_flow_open_depth0 sc sp_start sp_gram _ sp_scan sp_prep sp_open
         s_prep _ '[' h_stream h_stack h_pending h_corr h_preprocess hcorr_prep
         hcorr_open (by rw [h_fl, h_ad0]) (tailOf_scanFlowSequenceStart _).2
+        ((scanFlowSequenceStart_allowDirectives _).trans (allowDirectives_update_false s_prep))
         (fun _ resume => by
           rw [ScannerFlowCollection.scanFlowSequenceStart_pushes_true, h_ad_ks0,
               (tailOf_scanFlowSequenceStart _).1,
@@ -2878,6 +2957,7 @@ lemma accum_step_flow (sc : ScannerState)
           exact accum_flow_open_depth0 sc sp_start sp_gram _ sp_scan sp_prep sp_open
             s_prep _ '{' h_stream h_stack h_pending h_corr h_preprocess hcorr_prep
             hcorr_open (by rw [h_fl, h_ad0]) (tailOf_scanFlowMappingStart _).2
+            ((scanFlowMappingStart_allowDirectives _).trans (allowDirectives_update_false s_prep))
             (fun _ resume => by
               rw [ScannerFlowCollection.scanFlowMappingStart_pushes_false, h_ad_ks0,
                   (tailOf_scanFlowMappingStart _).1,
@@ -2901,7 +2981,7 @@ lemma accum_step_flow (sc : ScannerState)
     -- those arms are the item-9a residues (flow-close kind strictening + the
     -- `sc.flowStack` kind coupling).
     obtain ⟨d, hd⟩ : ∃ d, sc.flowLevel = d + 1 := ⟨sc.flowLevel - 1, by omega⟩
-    have h_real_sc : LastTokenReal sc.tokens := (h_interior hpos).2
+    have h_real_sc : LastTokenReal sc.tokens := (h_interior hpos).2.1
     have h_eq : sp_flow = sp_scan := (h_interior hpos).1
     subst h_eq
     obtain ⟨sp_prep, h_lead, hcorr_prep⟩ :=
@@ -2953,6 +3033,11 @@ lemma accum_step_flow (sc : ScannerState)
         { s_prep with allowDirectives := false, documentEverStarted := true }
       else s_prep) = s_ad at h_dispatch h_adj
     rw [h_ad_def] at h_ad_fl h_ad_ks h_ad_tl h_ad_inflow hcorr_ad hpeek_ad
+    -- β.3: the dispatch runs AFTER the `allowDirectives` update, so the flag is
+    -- already cleared here; none of the five indicators touches it, which is how
+    -- the interior invariant's "no directive inside an open flow" half survives.
+    have h_ad_false : s_ad.allowDirectives = false := by
+      rw [← h_ad_def]; exact allowDirectives_update_false s_prep
     split at h_dispatch
     · -- '[': NESTED PUSH, depth d+1 → d+2. The child seq frame's `inject` is
       -- `receiveNode` on the parent (folding the eventual child node + this
@@ -2982,7 +3067,8 @@ lemma accum_step_flow (sc : ScannerState)
             (FlowOpenStack.receiveNode h_fos h_tail h_lead) h_open_lit (GOpt.none sp_tok)
             (.betweenEmpty sp_tok)),
         PendingNode.noPending sp_start sp_tok, hcorr_tok,
-        fun _ => ⟨rfl, (tailOf_scanFlowSequenceStart _).2⟩⟩
+        fun _ => ⟨rfl, (tailOf_scanFlowSequenceStart _).2,
+          (scanFlowSequenceStart_allowDirectives _).trans h_ad_false⟩⟩
     · split at h_dispatch
       · -- ']': POP, depth d+1 → d.
         rename_i heq
@@ -3039,7 +3125,8 @@ lemma accum_step_flow (sc : ScannerState)
                   .open _ _ _ sp_block sp_tok (inject sp_tok
                     (SFlowNode.content _ _ _ _ (SFlowContent.flowSeq _ _ _ _ h_seq))),
                   PendingNode.noPending sp_start sp_tok, hcorr_tok,
-                  fun _ => ⟨rfl, (tailOf_scanFlowSequenceEnd _).2⟩⟩
+                  fun _ => ⟨rfl, (tailOf_scanFlowSequenceEnd _).2,
+                    (scanFlowSequenceEnd_allowDirectives _).trans h_ad_false⟩⟩
               · -- mapNest + ']': kind-mismatched close (`{a]` nested). REFUTED.
                 simp at h_back
       · split at h_dispatch
@@ -3066,7 +3153,8 @@ lemma accum_step_flow (sc : ScannerState)
                 (FlowOpenStack.receiveNode h_fos h_tail h_lead) h_open_lit (GOpt.none sp_tok)
                 (.betweenEmpty sp_tok)),
             PendingNode.noPending sp_start sp_tok, hcorr_tok,
-            fun _ => ⟨rfl, (tailOf_scanFlowMappingStart _).2⟩⟩
+            fun _ => ⟨rfl, (tailOf_scanFlowMappingStart _).2,
+              (scanFlowMappingStart_allowDirectives _).trans h_ad_false⟩⟩
         · split at h_dispatch
           · -- '}': POP, depth d+1 → d (mirror of ']').
             rename_i heq
@@ -3117,7 +3205,8 @@ lemma accum_step_flow (sc : ScannerState)
                       .open _ _ _ sp_block sp_tok (inject sp_tok
                         (SFlowNode.content _ _ _ _ (SFlowContent.flowMap _ _ _ _ h_map))),
                       PendingNode.noPending sp_start sp_tok, hcorr_tok,
-                      fun _ => ⟨rfl, (tailOf_scanFlowMappingEnd _).2⟩⟩
+                      fun _ => ⟨rfl, (tailOf_scanFlowMappingEnd _).2,
+                        (scanFlowMappingEnd_allowDirectives _).trans h_ad_false⟩⟩
           · split at h_dispatch
             · -- ',': HOLD, depth unchanged — finish any mid entry (trailing
               -- sep = this step's leading sep), land the frame in `held`.
@@ -3150,25 +3239,29 @@ lemma accum_step_flow (sc : ScannerState)
                       .open _ _ _ sp_block sp_tok (.seqBase _ _ _ _ _ _ resume h_open h_sep
                         (st.holdComma h_tail h_lead h_comma_lit)),
                       PendingNode.noPending sp_start sp_tok, hcorr_tok,
-                      fun _ => ⟨rfl, (tailOf_scanFlowEntry hfe).2⟩⟩
+                      fun _ => ⟨rfl, (tailOf_scanFlowEntry hfe).2,
+                        (scanFlowEntry_allowDirectives hfe).trans h_ad_false⟩⟩
                   · rename_i resume h_open h_sep st
                     exact ⟨sp_gram, sp_block, sp_tok, sp_tok, h_stream, h_stack,
                       .open _ _ _ sp_block sp_tok (.mapBase _ _ _ _ _ _ resume h_open h_sep
                         (st.holdComma h_tail h_lead h_comma_lit)),
                       PendingNode.noPending sp_start sp_tok, hcorr_tok,
-                      fun _ => ⟨rfl, (tailOf_scanFlowEntry hfe).2⟩⟩
+                      fun _ => ⟨rfl, (tailOf_scanFlowEntry hfe).2,
+                        (scanFlowEntry_allowDirectives hfe).trans h_ad_false⟩⟩
                   · rename_i h_open h_sep inject st
                     exact ⟨sp_gram, sp_block, sp_tok, sp_tok, h_stream, h_stack,
                       .open _ _ _ sp_block sp_tok (.seqNest _ _ _ _ _ _ _ _ inject h_open h_sep
                         (st.holdComma h_tail h_lead h_comma_lit)),
                       PendingNode.noPending sp_start sp_tok, hcorr_tok,
-                      fun _ => ⟨rfl, (tailOf_scanFlowEntry hfe).2⟩⟩
+                      fun _ => ⟨rfl, (tailOf_scanFlowEntry hfe).2,
+                        (scanFlowEntry_allowDirectives hfe).trans h_ad_false⟩⟩
                   · rename_i h_open h_sep inject st
                     exact ⟨sp_gram, sp_block, sp_tok, sp_tok, h_stream, h_stack,
                       .open _ _ _ sp_block sp_tok (.mapNest _ _ _ _ _ _ _ _ inject h_open h_sep
                         (st.holdComma h_tail h_lead h_comma_lit)),
                       PendingNode.noPending sp_start sp_tok, hcorr_tok,
-                      fun _ => ⟨rfl, (tailOf_scanFlowEntry hfe).2⟩⟩
+                      fun _ => ⟨rfl, (tailOf_scanFlowEntry hfe).2,
+                        (scanFlowEntry_allowDirectives hfe).trans h_ad_false⟩⟩
             · -- fallthrough: dispatch returns `.ok none`, not `.ok (some s')`.
               simp at h_dispatch
 
@@ -3716,7 +3809,8 @@ lemma accum_step_block (sc : ScannerState)
     (h_flow : FlowStackB sp_start sc.flowLevel sc.flowStack (tailOf sc.tokens) sp_block sp_flow)
     (h_pending : PendingNode false sp_start sp_flow sp_scan)
     (h_corr : ScannerSurfCorr sc sp_scan)
-    (h_interior : sc.flowLevel ≥ 1 → sp_flow = sp_scan ∧ LastTokenReal sc.tokens)
+    (h_interior : sc.flowLevel ≥ 1 →
+      sp_flow = sp_scan ∧ LastTokenReal sc.tokens ∧ sc.allowDirectives = false)
     (h_preprocess : scanNextToken_preprocess sc = .ok (some (s_prep, c)))
     (h_dispatch : scanNextToken_dispatchBlockIndicators
         (if s_prep.allowDirectives then
@@ -3728,7 +3822,8 @@ lemma accum_step_block (sc : ScannerState)
       FlowStackB sp_start s'.flowLevel s'.flowStack (tailOf s'.tokens) sp_block' sp_flow' ∧
       PendingNode false sp_start sp_flow' sp_scan' ∧
       ScannerSurfCorr s' sp_scan' ∧
-      (s'.flowLevel ≥ 1 → sp_flow' = sp_scan' ∧ LastTokenReal s'.tokens) := by
+      (s'.flowLevel ≥ 1 →
+        sp_flow' = sp_scan' ∧ LastTokenReal s'.tokens ∧ s'.allowDirectives = false) := by
   -- B.4β: the flow stack is indexed by the scanner's `flowLevel`.
   rcases Nat.eq_zero_or_pos sc.flowLevel with h0 | hpos
   · -- depth 0 (no open flow collection): the existing depth-0 proof.
@@ -3748,8 +3843,19 @@ lemma accum_step_block (sc : ScannerState)
         (absorb_stacksB sp_start sp_gram sp_block sp_flow h_stream h_stack h_flow)
         h_pending h_corr h_preprocess h_dispatch
     exact ⟨g', bl', fl', sn', q1, q2, q3.retail, q4, q5, fun h => absurd h (by omega)⟩
-  · -- depth ≥ 1 (inside an open flow collection): block indicators inside flow
-    -- are a flow-interior case — deferred to β.3.
+  · -- ═══ DEPTH ≥ 1: three arms, one free and two needing frame vocabulary. ═══
+    --  * `-` is REFUTED for free: `dispatchBlockIndicators` guards it with
+    --    `!s.inFlow`, and `s_ad.inFlow = true` here.
+    --  * `:` (`isValueCandidate`) is the flow-map/flow-pair value transition. It
+    --    needs a `receiveColon` frame transition `.value → .colon` on both
+    --    `SeqFrame` and `MapFrame` (landing in `midColon`), lifted over the four
+    --    `FlowOpenStack` arms exactly as `holdComma`/`receiveNode` are. The
+    --    scanner side is already visible: `tl = .value` is what `midNode`/`midKey`
+    --    record, and `isValueCandidate` fires only after a saved simple key.
+    --  * `?` (`isKeyCandidate`) has NO frame shape yet: `midExplicitKey` already
+    --    carries the key node, but `scanKey` emits only the `?`. This needs a
+    --    FOURTH `FrameTail` value (`?` seen, key awaited) plus one constructor
+    --    per frame — the same inline-the-shape move as 9b(ii).
     sorry
 
 /-! ### §1e Preprocessing + Content Dispatch
@@ -4552,7 +4658,8 @@ lemma accum_step_content (sc : ScannerState)
     (h_flow : FlowStackB sp_start sc.flowLevel sc.flowStack (tailOf sc.tokens) sp_block sp_flow)
     (h_pending : PendingNode false sp_start sp_flow sp_scan)
     (h_corr : ScannerSurfCorr sc sp_scan)
-    (h_interior : sc.flowLevel ≥ 1 → sp_flow = sp_scan ∧ LastTokenReal sc.tokens)
+    (h_interior : sc.flowLevel ≥ 1 →
+      sp_flow = sp_scan ∧ LastTokenReal sc.tokens ∧ sc.allowDirectives = false)
     (h_preprocess : scanNextToken_preprocess sc = .ok (some (s_prep, c)))
     (h_dispatch : scanNextToken_dispatchContent
         (if s_prep.allowDirectives then
@@ -4570,7 +4677,8 @@ lemma accum_step_content (sc : ScannerState)
       FlowStackB sp_start s'.flowLevel s'.flowStack (tailOf s'.tokens) sp_block' sp_flow' ∧
       PendingNode false sp_start sp_flow' sp_scan' ∧
       ScannerSurfCorr s' sp_scan' ∧
-      (s'.flowLevel ≥ 1 → sp_flow' = sp_scan' ∧ LastTokenReal s'.tokens) := by
+      (s'.flowLevel ≥ 1 →
+        sp_flow' = sp_scan' ∧ LastTokenReal s'.tokens ∧ s'.allowDirectives = false) := by
   -- B.4β: the flow stack is indexed by the scanner's `flowLevel`.
   rcases Nat.eq_zero_or_pos sc.flowLevel with h0 | hpos
   · -- depth 0 (no open flow collection): the existing depth-0 proof.
@@ -4590,9 +4698,28 @@ lemma accum_step_content (sc : ScannerState)
         (absorb_stacksB sp_start sp_gram sp_block sp_flow h_stream h_stack h_flow)
         h_pending h_corr h_preprocess h_not_doc h_dispatch
     exact ⟨g', bl', fl', sn', q1, q2, q3.retail, q4, q5, fun h => absurd h (by omega)⟩
-  · -- depth ≥ 1 (inside an open flow collection): flow-interior content
-    -- (scalars / nested collections inside `[`/`{`) — the real content-routing
-    -- work, deferred to β.3.
+  · -- ═══ DEPTH ≥ 1: BLOCKED on a scanner-strictness gap, not on proof work. ═══
+    -- The route is `FlowOpenStack.receiveNode` (sorry-free, and its `tl ≠ .value`
+    -- premise is already discharged by `checkFlowAdjacency`), fed by a `.flowIn`
+    -- twin of `dispatchContent_evidence`. Two obstructions, in order:
+    --
+    --  1. `dispatchContent_evidence` produces `SFlowNode 0 .flowOut`, and the
+    --     containment runs the WRONG way for plain scalars: `flowIn` forbids the
+    --     `,[]{}` that `flowOut` admits, so a `flowOut` production does not lift.
+    --     The scanner already collects with `s.inFlow` rules, so the twin is a
+    --     re-aim of the same walk, not new analysis.
+    --
+    --  2. **The blocker.** That evidence also offers `SCLLiteral ∨ SCLFolded`,
+    --     and inside a flow there is nothing to refute it with: the scanner
+    --     ACCEPTS `[a, |\n  x\n]` and `{k: |\n  x\n}` (probed 2026-08-06, both
+    --     scan clean at 15 tokens), while `SFlowContent` has no literal/folded
+    --     constructor — flow content is plain / flowSeq / flowMap / singleQ /
+    --     doubleQ only. Block scalars are block-context productions ([170]/[174],
+    --     reachable only from `s-l+block-node`), so this input is invalid YAML
+    --     that the scanner lets through. This arm is therefore UNPROVABLE as the
+    --     scanner stands; it is an item-9a-class strictening (reject `|`/`>` when
+    --     `s.inFlow` in `scanNextToken_dispatchContent`), and needs the same
+    --     probe-matrix validation 9a had before the proof can consume it.
     sorry
 
 /-! ### §1f Composition: Per-Dispatch → Full accum_step
@@ -4609,7 +4736,8 @@ lemma scanNextToken_accum_step (sc : ScannerState)
     (h_pending : PendingNode b sp_start sp_flow sp_scan)
     (h_dir_flag : b = true → sc.directivesPresent = true)
     (h_corr : ScannerSurfCorr sc sp_scan)
-    (h_interior : sc.flowLevel ≥ 1 → sp_flow = sp_scan ∧ LastTokenReal sc.tokens)
+    (h_interior : sc.flowLevel ≥ 1 →
+      sp_flow = sp_scan ∧ LastTokenReal sc.tokens ∧ sc.allowDirectives = false)
     (h_ok : scanNextToken sc = .ok (some s')) :
     ∃ sp_gram' sp_block' sp_flow' sp_scan' b',
       SLYamlStream sp_start sp_gram' ∧
@@ -4618,7 +4746,8 @@ lemma scanNextToken_accum_step (sc : ScannerState)
       PendingNode b' sp_start sp_flow' sp_scan' ∧
       (b' = true → s'.directivesPresent = true) ∧
       ScannerSurfCorr s' sp_scan' ∧
-      (s'.flowLevel ≥ 1 → sp_flow' = sp_scan' ∧ LastTokenReal s'.tokens) := by
+      (s'.flowLevel ≥ 1 →
+        sp_flow' = sp_scan' ∧ LastTokenReal s'.tokens ∧ s'.allowDirectives = false) := by
   unfold scanNextToken at h_ok
   simp only [bind, Except.bind, pure, Except.pure] at h_ok
   split at h_ok
@@ -4716,43 +4845,42 @@ lemma scanNextToken_none_stream (sc : ScannerState)
     (h_flow : FlowStackB sp_start sc.flowLevel sc.flowStack (tailOf sc.tokens) sp_block sp_flow)
     (h_pending : PendingNode false sp_start sp_flow sp_scan)
     (h_corr : ScannerSurfCorr sc sp_scan)
-    (h_interior : sc.flowLevel ≥ 1 → sp_flow = sp_scan ∧ LastTokenReal sc.tokens)
+    (h_fl0 : sc.flowLevel = 0)
     (h_ok : scanNextToken sc = .ok none) :
     ∃ sp_final : SurfPos, SLYamlStream sp_start sp_final ∧ sp_final.chars = [] := by
-  -- B.4β: an open flow at EOF (depth ≥ 1) is a flow-interior EOF case → β.3;
-  -- the depth-0 path is the existing proof.
-  rcases Nat.eq_zero_or_pos sc.flowLevel with h0 | hpos
-  · rw [h0] at h_flow
-    unfold scanNextToken at h_ok
-    simp only [bind, Except.bind, pure, Except.pure] at h_ok
-    split at h_ok
-    · simp at h_ok
+  -- An open flow at EOF is not this lemma's case: `scanLoop` rejects it with
+  -- `unterminatedFlowCollection` BEFORE reaching here, so the caller supplies
+  -- `h_fl0`. (`scanNextToken sc = .ok none` on its own does NOT rule the case
+  -- out — `[a, b` reaches EOF happily; it is the loop's post-check that fails.)
+  rw [h_fl0] at h_flow
+  unfold scanNextToken at h_ok
+  simp only [bind, Except.bind, pure, Except.pure] at h_ok
+  split at h_ok
+  · simp at h_ok
+  · split at h_ok
+    · rename_i h_pre
+      exact preprocessing_eof_extends_stream sc sp_start sp_gram sp_block sp_flow sp_scan
+        h_stream h_stack h_flow h_pending h_corr h_pre
     · split at h_ok
-      · rename_i h_pre
-        exact preprocessing_eof_extends_stream sc sp_start sp_gram sp_block sp_flow sp_scan
-          h_stream h_stack h_flow h_pending h_corr h_pre
+      · simp at h_ok
       · split at h_ok
-        · simp at h_ok
-        · split at h_ok
-          · exact absurd (Except.ok.inj h_ok) nofun
-          · -- pending-directives check (Fix B)
-            split at h_ok
+        · exact absurd (Except.ok.inj h_ok) nofun
+        · -- pending-directives check (Fix B)
+          split at h_ok
+          · simp at h_ok
+          · split at h_ok
             · simp at h_ok
             · split at h_ok
               · simp at h_ok
               · split at h_ok
-                · simp at h_ok
+                · exact absurd (Except.ok.inj h_ok) nofun
                 · split at h_ok
-                  · exact absurd (Except.ok.inj h_ok) nofun
+                  · simp at h_ok
                   · split at h_ok
-                    · simp at h_ok
+                    · exact absurd (Except.ok.inj h_ok) nofun
                     · split at h_ok
+                      · simp at h_ok
                       · exact absurd (Except.ok.inj h_ok) nofun
-                      · split at h_ok
-                        · simp at h_ok
-                        · exact absurd (Except.ok.inj h_ok) nofun
-  · -- depth ≥ 1: open flow at EOF — deferred to β.3.
-    sorry
 
 /-! ## §3 scanLoop with Grammar Accumulation
 
@@ -4768,7 +4896,8 @@ lemma scanLoop_grammar_prod (sc : ScannerState)
     (h_pending : PendingNode b sp_start sp_flow sp_scan)
     (h_dir_flag : b = true → sc.directivesPresent = true)
     (h_corr : ScannerSurfCorr sc sp_scan)
-    (h_interior : sc.flowLevel ≥ 1 → sp_flow = sp_scan ∧ LastTokenReal sc.tokens)
+    (h_interior : sc.flowLevel ≥ 1 →
+      sp_flow = sp_scan ∧ LastTokenReal sc.tokens ∧ sc.allowDirectives = false)
     (h_ok : scanLoop sc fuel = .ok tokens) :
     ∃ sp_final : SurfPos, SLYamlStream sp_start sp_final ∧ sp_final.chars = [] := by
   induction fuel generalizing sc sp_gram sp_block sp_flow sp_scan tokens b with
@@ -4780,8 +4909,13 @@ lemma scanLoop_grammar_prod (sc : ScannerState)
       simp at h_ok
     · -- scanNextToken = .ok none → EOF
       rename_i h_none
-      -- Flow-level check (doesn't affect grammar)
-      split at h_ok <;> try (simp at h_ok; done)
+      -- §7.4 unterminated-flow check: `.ok tokens` means it did NOT fire, which
+      -- is exactly the `sc.flowLevel = 0` the EOF lemma needs. An open flow at
+      -- EOF (`[a, b`) is rejected HERE, not inside `scanNextToken`.
+      split at h_ok
+      · simp at h_ok
+      rename_i h_fl_not_pos
+      have h_fl0 : sc.flowLevel = 0 := by omega
       -- Directive check (Fix B): its passing forces b = false via the coupling
       split at h_ok
       · simp at h_ok
@@ -4793,7 +4927,7 @@ lemma scanLoop_grammar_prod (sc : ScannerState)
         subst hb
         -- Scanner reached EOF — unwind BlockStack, close PendingNode, finalize stream
         exact scanNextToken_none_stream sc sp_start sp_gram sp_block sp_flow sp_scan
-          h_stream h_stack h_flow h_pending h_corr h_interior h_none
+          h_stream h_stack h_flow h_pending h_corr h_fl0 h_none
     · -- scanNextToken = .ok (some s') → one step + recurse
       rename_i s_next h_next
       obtain ⟨sp_gram', sp_block', sp_flow', sp_scan', b', h_stream', h_stack', h_flow',

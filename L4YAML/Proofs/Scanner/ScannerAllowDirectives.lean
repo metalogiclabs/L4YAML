@@ -1,0 +1,278 @@
+/-
+Copyright (c) 2026. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+-/
+import L4YAML.Proofs.Scanner.ScannerCorrectness
+
+/-! # `allowDirectives` across preprocessing (β.3)
+
+    `scanNextToken_preprocess` runs `skipToContent`, `unwindIndents` and
+    `saveSimpleKey`, none of which touches `allowDirectives`.  This file walks
+    that chain so `preprocess_preserves_allowDirectives` is available to the
+    accumulation.
+
+    **Why it is needed.**  `scanNextToken` clears `allowDirectives` on the first
+    non-structural token, and every flow indicator is dispatched *after* that
+    clear — so an open flow collection implies the flag is already false.  The
+    accumulation carries that as part of its flow-interior invariant, and
+    `accum_step_structural` consumes it: `scanNextToken_dispatchStructural`'s
+    only success arm inside a flow is the `%` directive, and `scanDirective`
+    rejects outright when `allowDirectives` is false.  Without this transport the
+    invariant would be stated on `sc` and needed on `s_prep`.
+
+    Structurally these are the `_preserves_flowStack` walks of
+    `Proofs/Scanner/ScannerFlowStackPreservation.lean` with the field renamed:
+    the proofs are field-agnostic (unfold + split + fuel induction bottoming out
+    in `emit`/`advance`), so they transfer verbatim.  Only the preprocessing
+    prefix is cloned — the scan-body collectors are not on this path. -/
+
+namespace L4YAML.Proofs.ScannerAllowDirectives
+
+open L4YAML.Scanner
+
+lemma advance_preserves_allowDirectives (s : ScannerState) :
+    s.advance.allowDirectives = s.allowDirectives := by
+  unfold ScannerState.advance; dsimp only []; split <;> (try split) <;> (try split) <;> rfl
+
+lemma emit_preserves_allowDirectives (s : ScannerState) (tok : YamlToken) :
+    (s.emit tok).allowDirectives = s.allowDirectives := by
+  unfold ScannerState.emit; rfl
+
+lemma skipSpacesLoop_preserves_allowDirectives (s : ScannerState) (fuel : Nat) :
+    (skipSpacesLoop s fuel).allowDirectives = s.allowDirectives := by
+  induction fuel generalizing s with
+  | zero => unfold skipSpacesLoop; rfl
+  | succ _ ih =>
+    unfold skipSpacesLoop; split
+    · exact (ih _).trans (advance_preserves_allowDirectives _)
+    · rfl
+
+lemma skipWhitespaceLoop_preserves_allowDirectives (s : ScannerState) (fuel : Nat) :
+    (skipWhitespaceLoop s fuel).allowDirectives = s.allowDirectives := by
+  induction fuel generalizing s with
+  | zero => unfold skipWhitespaceLoop; rfl
+  | succ _ ih =>
+    unfold skipWhitespaceLoop; split
+    · split
+      · exact (ih _).trans (advance_preserves_allowDirectives _)
+      · rfl
+    · rfl
+
+lemma skipToEndOfLineLoop_preserves_allowDirectives (s : ScannerState) (fuel : Nat) :
+    (skipToEndOfLineLoop s fuel).allowDirectives = s.allowDirectives := by
+  induction fuel generalizing s with
+  | zero => unfold skipToEndOfLineLoop; rfl
+  | succ _ ih =>
+    unfold skipToEndOfLineLoop; split
+    · split
+      · rfl
+      · exact (ih _).trans (advance_preserves_allowDirectives _)
+    · rfl
+
+lemma skipSpaces_preserves_allowDirectives (s : ScannerState) :
+    (skipSpaces s).allowDirectives = s.allowDirectives := by
+  unfold skipSpaces; exact skipSpacesLoop_preserves_allowDirectives s _
+
+lemma skipWhitespace_preserves_allowDirectives (s : ScannerState) :
+    (skipWhitespace s).allowDirectives = s.allowDirectives := by
+  unfold skipWhitespace; exact skipWhitespaceLoop_preserves_allowDirectives s _
+
+lemma skipToEndOfLine_preserves_allowDirectives (s : ScannerState) :
+    (skipToEndOfLine s).allowDirectives = s.allowDirectives := by
+  unfold skipToEndOfLine; exact skipToEndOfLineLoop_preserves_allowDirectives s _
+
+lemma collectCommentTextLoop_preserves_allowDirectives (s : ScannerState)
+    (text : String) (fuel : Nat) :
+    (collectCommentTextLoop s text fuel).2.allowDirectives = s.allowDirectives := by
+  induction fuel generalizing s text with
+  | zero => unfold collectCommentTextLoop; rfl
+  | succ fuel' IH =>
+    unfold collectCommentTextLoop; split
+    · split
+      · rfl
+      · rw [IH, advance_preserves_allowDirectives]
+    · rfl
+
+lemma skipToContentWs_preserves_allowDirectives (s : ScannerState) (s' : ScannerState)
+    (h : skipToContentWs s = .ok s') : s'.allowDirectives = s.allowDirectives := by
+  unfold skipToContentWs at h
+  split at h
+  · simp only [] at h
+    split at h
+    · split at h
+      · split at h
+        · simp at h; rw [← h, skipWhitespace_preserves_allowDirectives, skipSpaces_preserves_allowDirectives]
+        · split at h
+          · simp at h; rw [← h, skipWhitespace_preserves_allowDirectives, skipSpaces_preserves_allowDirectives]
+          · split at h
+            · simp at h; rw [← h, skipWhitespace_preserves_allowDirectives, skipSpaces_preserves_allowDirectives]
+            · simp at h
+        · simp at h; rw [← h, skipWhitespace_preserves_allowDirectives, skipSpaces_preserves_allowDirectives]
+      · simp at h; rw [← h, skipSpaces_preserves_allowDirectives]
+    · simp at h; rw [← h, skipWhitespace_preserves_allowDirectives, skipSpaces_preserves_allowDirectives]
+  · simp at h; rw [← h, skipWhitespace_preserves_allowDirectives]
+
+lemma skipToContentComment_preserves_allowDirectives (s : ScannerState) :
+    (skipToContentComment s).allowDirectives = s.allowDirectives := by
+  unfold skipToContentComment
+  split
+  · -- peek? = some '#'
+    simp only []
+    split  -- peekBack?
+    · -- peekBack? = some c
+      split  -- if commentOk
+      · simp only []
+        rw [collectCommentTextLoop_preserves_allowDirectives, advance_preserves_allowDirectives]
+      · rfl
+    · -- peekBack? = none
+      split  -- if commentOk
+      · simp only []
+        rw [collectCommentTextLoop_preserves_allowDirectives, advance_preserves_allowDirectives]
+      · rfl
+  · rfl
+
+lemma consumeNewline_preserves_allowDirectives (s : ScannerState) :
+    (consumeNewline s).allowDirectives = s.allowDirectives := by
+  unfold consumeNewline
+  split
+  · exact advance_preserves_allowDirectives s
+  · simp only []; split
+    · exact advance_preserves_allowDirectives _
+    · exact advance_preserves_allowDirectives _
+  · rfl
+
+lemma skipToContentLoop_preserves_allowDirectives (s s' : ScannerState) (fuel : Nat)
+    (h : skipToContentLoop s fuel = .ok s') : s'.allowDirectives = s.allowDirectives := by
+  induction fuel generalizing s with
+  | zero => unfold skipToContentLoop at h; simp at h; rw [← h]
+  | succ _ ih =>
+    unfold skipToContentLoop at h
+    split at h
+    · simp at h
+    · rename_i s1 hws
+      simp only [] at h
+      split at h
+      · split at h
+        · split at h
+          · have := ih _ h; rw [this, consumeNewline_preserves_allowDirectives,
+              skipToContentComment_preserves_allowDirectives]; exact skipToContentWs_preserves_allowDirectives s s1 hws
+          · have := ih _ h; rw [this, consumeNewline_preserves_allowDirectives,
+              skipToContentComment_preserves_allowDirectives]; exact skipToContentWs_preserves_allowDirectives s s1 hws
+        · simp at h; rw [← h, skipToContentComment_preserves_allowDirectives]
+          exact skipToContentWs_preserves_allowDirectives s s1 hws
+      · simp at h; rw [← h, skipToContentComment_preserves_allowDirectives]
+        exact skipToContentWs_preserves_allowDirectives s s1 hws
+
+lemma skipToContent_preserves_allowDirectives (s s' : ScannerState)
+    (h : skipToContent s = .ok s') : s'.allowDirectives = s.allowDirectives := by
+  unfold skipToContent at h; exact skipToContentLoop_preserves_allowDirectives s s' _ h
+
+lemma unwindIndentsLoop_preserves_allowDirectives (s : ScannerState) (col : Int) (fuel : Nat) :
+    (unwindIndentsLoop s col fuel).allowDirectives = s.allowDirectives := by
+  induction fuel generalizing s with
+  | zero => unfold unwindIndentsLoop; rfl
+  | succ _ ih =>
+    unfold unwindIndentsLoop; split
+    · have := ih { s.emit .blockEnd with indents := (s.emit .blockEnd).indents.pop }
+      simp [emit_preserves_allowDirectives] at this; exact this
+    · rfl
+
+lemma unwindIndents_preserves_allowDirectives (s : ScannerState) (col : Int) :
+    (unwindIndents s col).allowDirectives = s.allowDirectives := by
+  unfold unwindIndents; exact unwindIndentsLoop_preserves_allowDirectives s col _
+
+lemma saveSimpleKey_preserves_allowDirectives (st : ScannerState) :
+    (saveSimpleKey st).allowDirectives = st.allowDirectives := by
+  unfold saveSimpleKey
+  split
+  · rfl
+  · split <;> rfl
+
+/-- `scanNextToken_preprocess` preserves `allowDirectives`: it is
+    `skipToContent` → optional `unwindIndents` → `saveSimpleKey`, and none of
+    the three touches the flag. -/
+lemma preprocess_preserves_allowDirectives (s : ScannerState) (s1 : ScannerState) (c : Char)
+    (h : scanNextToken_preprocess s = .ok (some (s1, c))) :
+    s1.allowDirectives = s.allowDirectives := by
+  unfold scanNextToken_preprocess at h
+  simp only [bind, pure, Pure.pure, Except.pure] at h
+  simp only [Except.bind] at h
+  split at h
+  · contradiction
+  · rename_i s_skip h_skip
+    have h_ad_skip := skipToContent_preserves_allowDirectives s s_skip h_skip
+    split at h
+    · simp at h
+    · split at h
+      · split at h
+        · contradiction
+        · split at h
+          · simp at h
+          · simp only [Except.ok.injEq, Option.some.injEq, Prod.mk.injEq] at h
+            obtain ⟨rfl, _⟩ := h
+            rw [saveSimpleKey_preserves_allowDirectives]
+            show (unwindIndents s_skip s_skip.col).allowDirectives = s.allowDirectives
+            rw [unwindIndents_preserves_allowDirectives]; exact h_ad_skip
+      · split at h
+        · contradiction
+        · split at h
+          · simp at h
+          · simp only [Except.ok.injEq, Option.some.injEq, Prod.mk.injEq] at h
+            obtain ⟨rfl, _⟩ := h
+            rw [saveSimpleKey_preserves_allowDirectives]; exact h_ad_skip
+
+/-! ## No structural token succeeds inside an open flow (β.3)
+
+    `scanNextToken_dispatchStructural` returns `.ok (some _)` from exactly three
+    arms, and inside a flow collection all three are dead:
+
+    * the `---` and `...` accept arms sit BELOW the §5.4 `documentMarkerInFlow`
+      guard, which fires on precisely their trigger once `inFlow` holds;
+    * the `%` arm reaches `scanDirective`, which rejects on `!allowDirectives`.
+
+    The flag is false inside a flow because `scanNextToken` clears it before any
+    flow indicator is dispatched, so the `[`/`{` that opened the collection
+    cleared it. The accumulation carries that fact; this lemma consumes it. -/
+
+lemma dispatchStructural_inFlow_no_success (s s' : ScannerState) (c : Char)
+    (h_inflow : s.inFlow = true) (h_ad : s.allowDirectives = false) :
+    scanNextToken_dispatchStructural s c ≠ .ok (some s') := by
+  intro h
+  unfold scanNextToken_dispatchStructural at h
+  simp only [bind, Except.bind, pure, Except.pure, h_inflow, Bool.and_true, Bool.true_and] at h
+  -- The under-indent guard either errors (non-bracket `c`) or falls through;
+  -- both continuations are the same document-marker/directive chain.
+  have chain : ∀ r : Except ScanError (Option ScannerState),
+      r = (if (s.col == 0 && (atDocumentStart s || atDocumentEnd s)) = true then
+              Except.error (ScanError.documentMarkerInFlow s.line)
+            else if (s.col == 0 && atDocumentStart s) = true then
+              Except.ok (some (scanDocumentStart s))
+            else if (s.col == 0 && atDocumentEnd s) = true then
+              (scanDocumentEnd s).map some
+            else if (c == '%' && s.col == 0) = true then
+              (scanDirective s).map some
+            else Except.ok none) →
+      r ≠ .ok (some s') := by
+    intro r hr hok
+    subst hr
+    split at hok
+    · simp at hok
+    · rename_i h_no_marker
+      split at hok
+      · rename_i h_ds; simp_all
+      · split at hok
+        · rename_i h_de; simp_all
+        · split at hok
+          · -- `%` at col 0 → `scanDirective`, which needs `allowDirectives`.
+            unfold scanDirective at hok
+            rw [if_pos (by simp [h_ad])] at hok
+            simp [Except.map] at hok
+          · simp at hok
+  split at h
+  · -- under-indent guard fired: non-bracket `c` errors, `]`/`}` fall through.
+    split at h
+    · simp at h
+    · exact chain _ rfl h
+  · exact chain _ rfl h
+
+end L4YAML.Proofs.ScannerAllowDirectives
