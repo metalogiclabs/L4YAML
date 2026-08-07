@@ -1,5 +1,5 @@
 /-!
-# Reflection 606 — inline the payload to index it
+# Reflection 610 — inline the payload to index it
 
 A state type that *packages* a payload (`state := wrap (p : Payload l)`) cannot be
 indexed by "which payload constructor built it": the payload is a `Prop`, so no

@@ -5489,11 +5489,16 @@ completeness.
 | 10 | **β.3 — the flow-interior branches.** Five `sorry` sites in `StreamAccum.lean`, all the depth-≥1 arm of a dispatcher (structural / block / content / EOF) plus the depth-0 `col ≠ 0`-no-break vacuity. The substantial one is content: it consumes the already-proven `FlowOpenStack.receiveNode` | β.4 | [Fix A](#fix-a-eliminating-scannerdrop--flow-indicator-grammar-evidence) |
 | 11 | **β.4 — chain-threading.** Thread the completed accumulation through `scanNextToken_accum_step`, `scanLoop_grammar_prod`, `scan_content_gives_stream` | β.5 | ditto |
 | 12 | **β.5 — retire `pendingFlow`, delete `scannerDrop`.** Once no dispatch produces `pendingFlow`, the `close_with_ssl` arm that calls `scannerDrop` is unreachable; delete the constructor from `Surface/Document.lean`. This turns the `L4YAML.Capstones` gate green (its only failure is `parse_strict_proof depends on sorryAx`) | Step 5, the converse | ditto |
-| 13 | **Two Reflections call sites.** `Tests/Reflections/ScannerSpanLocality.lean` and `Tests/Reflections/PairListBodyContentAt.lean` call `emitList_allScalar_body_content_at`, which gained an adjacency premise (`∀ t, lastRealTokenVal? s.tokens = some t → t.completesFlowValue = false`) that the four call sites do not supply. Add it as a test parameter and pass it through — the last two of the three currently-failing build targets | a fully green `lake build` | — |
-| 14 | **Step 5 — the converse** `grammar_completeness`, then **Step 6** the `parse_iff_grammar` biconditional | capstone 7.7 | [Grammar completeness plan](#grammar-completeness-plan) |
+| 13 | **Step 5 — the converse** `grammar_completeness`, then **Step 6** the `parse_iff_grammar` biconditional | capstone 7.7 | [Grammar completeness plan](#grammar-completeness-plan) |
 
 Everything above item 10 is closed; the closure records live in the
 sections below, the blow-by-blow history in git.
+
+`L4YAML.Capstones` is now the **only** failing build target, and its only
+failure is the single `parse_strict_proof depends on sorryAx` that β.5 removes
+— so items 10–12 are exactly what stands between here and a fully green
+`lake build`. (The two `Tests/Reflections` targets that trailed 9b's adjacency
+premise were fixed 2026-08-06; `Tests.Reflections` builds green at 382 jobs.)
 
 
 ## The ns-char gap
@@ -5589,10 +5594,11 @@ theorem parse_iff_grammar (input : String) :
 
 ### Status
 
+Step 0 (the scanner audit for directive handling) and Fix B (eliminating
+`directiveDrop`) are done; their closure records are in git.
+
 | Step | Status |
 |---|---|
-| 0. Scanner audit for directive handling | ✅ done 2026-08-01 |
-| Fix B: eliminate `directiveDrop` | ✅ **done 2026-08-02** (option (c): the scanner rejects orphaned directives, so the `pendingDirective` close path is provably unreachable; constructor deleted, 7 construction sites rewritten) |
 | Fix A: eliminate `scannerDrop` | 🟡 **nearly done** — see below. `StreamAccum.lean` is at **5 sorry sites / 5 declarations**, all in β.3; `scannerDrop` has exactly **one** live use left |
 | 1b. Remove `scannerDrop` from `SLYamlStream` | ⬜ open — β.5, once that last use is gone |
 | 5. Prove the converse `grammar_completeness` | ⬜ open — depends on Fix A |
