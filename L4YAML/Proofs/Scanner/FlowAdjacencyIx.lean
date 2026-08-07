@@ -48,18 +48,53 @@ theorem checkFlowAdjacencyIx_ok_of_notCompletes {input : String}
     · rfl
   · rfl
 
-/-- If `c` is a valid post-value character (`,` `:` `]` `}`), the
-    adjacency check is `.ok ()` regardless of the previous token. -/
+/-- If `c` is an unconditional post-value character (`,` `]` `}`), the
+    adjacency check is `.ok ()` regardless of the previous token.  Item 9d
+    dropped `:`; see `checkFlowAdjacencyIx_ok_of_valueIndicator`. -/
 theorem checkFlowAdjacencyIx_ok_of_sepChar {input : String}
     {s : ScannerStateIx input} {c : Char}
-    (h : c = ',' ∨ c = ':' ∨ c = ']' ∨ c = '}') :
+    (h : c = ',' ∨ c = ']' ∨ c = '}') :
     scanNextTokenIx_checkFlowAdjacency s c = .ok () := by
   unfold scanNextTokenIx_checkFlowAdjacency
   split
   · split
-    · rcases h with rfl | rfl | rfl | rfl <;> simp
+    · rcases h with rfl | rfl | rfl <;> simp
     · rfl
   · rfl
+
+/-- A `:` that *is* a value indicator is exempt (item 9d).  Indexed twin of
+    `checkFlowAdjacency_ok_of_valueIndicator`. -/
+lemma checkFlowAdjacencyIx_ok_of_valueIndicator {input : String}
+    {s : ScannerStateIx input} {c : Char}
+    (hc : c = ':') (hv : isValueCandidateIx s = true) :
+    scanNextTokenIx_checkFlowAdjacency s c = .ok () := by
+  subst hc
+  unfold scanNextTokenIx_checkFlowAdjacency
+  split
+  · split
+    · simp [hv]
+    · rfl
+  · rfl
+
+/-- Inversion at a node-starting character (item 9d): indexed twin of
+    `notCompletes_of_checkFlowAdjacency_ok_nodeStart`. -/
+lemma notCompletes_of_checkFlowAdjacencyIx_ok_nodeStart {input : String}
+    {s : ScannerStateIx input} {c : Char}
+    (h : scanNextTokenIx_checkFlowAdjacency s c = .ok ())
+    (hf : s.inFlow = true)
+    (hc : c ≠ ',' ∧ c ≠ ']' ∧ c ≠ '}')
+    (hcolon : c = ':' → isValueCandidateIx s = false) :
+    ∀ t, lastRealTokenValIx? s.tokens = some t → t.completesFlowValue = false := by
+  intro t ht
+  unfold scanNextTokenIx_checkFlowAdjacency at h
+  rw [hf] at h
+  simp only [ht] at h
+  by_cases hcv : t.completesFlowValue = true
+  · obtain ⟨h1, h3, h4⟩ := hc
+    by_cases hcol : c = ':'
+    · simp [hcv, hcol, hcolon hcol] at h
+    · simp [hcv, h1, h3, h4, hcol] at h
+  · simpa using hcv
 
 /-! ## Last-token preservation through `saveSimpleKeyIx`
 

@@ -55,20 +55,38 @@ theorem flowAdj_ok_of_dispatch_ok {α : Type} {s : ScannerState} {c : Char}
   | error e => rw [hc] at h; simp [bind, Except.bind] at h
 
 /-- Inversion of the adjacency check at a node-starting character: inside a flow,
-    a successful check means the previous real token did NOT complete a value. -/
-theorem notCompletes_of_checkFlowAdjacency_ok {s : ScannerState} {c : Char}
+    a successful check means the previous real token did NOT complete a value.
+
+    **Item 9d.** The `:` premise is the weak one: `:` is exempt only while it is
+    a *value indicator*, so a `:` that failed `isValueCandidate` — the one that
+    falls through to content dispatch and starts a plain scalar — is a node start
+    like any other and this inversion applies to it too. -/
+lemma notCompletes_of_checkFlowAdjacency_ok_nodeStart {s : ScannerState} {c : Char}
     (h : scanNextToken_checkFlowAdjacency s c = .ok ())
     (hf : s.inFlow = true)
-    (hc : c ≠ ',' ∧ c ≠ ':' ∧ c ≠ ']' ∧ c ≠ '}') :
+    (hc : c ≠ ',' ∧ c ≠ ']' ∧ c ≠ '}')
+    (hcolon : c = ':' → isValueCandidate s = false) :
     ∀ t, lastRealTokenVal? s.tokens = some t → t.completesFlowValue = false := by
   intro t ht
   unfold scanNextToken_checkFlowAdjacency at h
   rw [hf] at h
   simp only [ht] at h
   by_cases hcv : t.completesFlowValue = true
-  · obtain ⟨h1, h2, h3, h4⟩ := hc
-    simp [hcv, h1, h2, h3, h4] at h
+  · obtain ⟨h1, h3, h4⟩ := hc
+    by_cases hcol : c = ':'
+    · simp [hcv, hcol, hcolon hcol] at h
+    · simp [hcv, h1, h3, h4, hcol] at h
   · simpa using hcv
+
+/-- The `c ∉ {',', ':', ']', '}'}` corollary — the shape every pre-9d call site
+    uses, and still the right one wherever `c` is a literal node-start. -/
+theorem notCompletes_of_checkFlowAdjacency_ok {s : ScannerState} {c : Char}
+    (h : scanNextToken_checkFlowAdjacency s c = .ok ())
+    (hf : s.inFlow = true)
+    (hc : c ≠ ',' ∧ c ≠ ':' ∧ c ≠ ']' ∧ c ≠ '}') :
+    ∀ t, lastRealTokenVal? s.tokens = some t → t.completesFlowValue = false :=
+  notCompletes_of_checkFlowAdjacency_ok_nodeStart h hf ⟨hc.1, hc.2.2.1, hc.2.2.2⟩
+    (fun hcol => absurd hcol hc.2.1)
 
 /-- Inversion of the comma guard: a successful `scanFlowEntry` means the previous
     real token was not a flow-open indicator or another `,`. -/
@@ -100,15 +118,32 @@ theorem checkFlowAdjacency_ok_of_notCompletes {s : ScannerState} {c : Char}
     · rfl
   · rfl
 
-/-- If `c` is a valid post-value character (`,` `:` `]` `}`), the
-    adjacency check is `.ok ()` regardless of the previous token. -/
+/-- If `c` is an unconditional post-value character (`,` `]` `}`), the
+    adjacency check is `.ok ()` regardless of the previous token.
+
+    Item 9d dropped `:` from this list: a `:` is exempt only when it is a value
+    indicator, so it needs `checkFlowAdjacency_ok_of_valueIndicator` instead. -/
 theorem checkFlowAdjacency_ok_of_sepChar {s : ScannerState} {c : Char}
-    (h : c = ',' ∨ c = ':' ∨ c = ']' ∨ c = '}') :
+    (h : c = ',' ∨ c = ']' ∨ c = '}') :
     scanNextToken_checkFlowAdjacency s c = .ok () := by
   unfold scanNextToken_checkFlowAdjacency
   split
   · split
-    · rcases h with rfl | rfl | rfl | rfl <;> simp
+    · rcases h with rfl | rfl | rfl <;> simp
+    · rfl
+  · rfl
+
+/-- A `:` that *is* a value indicator is exempt (item 9d).  The emitter always
+    writes `: ` with a following blank, so `isValueCandidate` holds at every `:`
+    it produces — this is the form the emit→scan towers discharge. -/
+lemma checkFlowAdjacency_ok_of_valueIndicator {s : ScannerState} {c : Char}
+    (hc : c = ':') (hv : isValueCandidate s = true) :
+    scanNextToken_checkFlowAdjacency s c = .ok () := by
+  subst hc
+  unfold scanNextToken_checkFlowAdjacency
+  split
+  · split
+    · simp [hv]
     · rfl
   · rfl
 

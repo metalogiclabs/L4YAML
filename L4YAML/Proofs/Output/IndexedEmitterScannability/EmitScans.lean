@@ -648,16 +648,18 @@ lemma scanNextToken_flow_valueIx (s : ScannerStateIx input)
   -- Step 4: checkBlockFlowIndent (vacuous in flow) + flow dispatch → none.
   have h_check : scanNextTokenIx_checkBlockFlowIndent s_ad ':' = .ok () :=
     checkBlockFlowIndent_ok_flow s_ad ':' h_ad_flow
-  have h_flow_none : scanNextTokenIx_dispatchFlowIndicators s_ad ':' = .ok none :=
-    dispatchFlowIndicators_none s_ad ':'
-      (by decide) (by decide) (by decide) (by decide) (by decide)
-      (L4YAML.Proofs.FlowAdjacencyIx.checkFlowAdjacencyIx_ok_of_sepChar (by decide))
-  -- Step 5: `isValueCandidateIx s_ad = true` via the `peekAt? 1 = ' '` fallback.
+  -- Step 5 (hoisted above the dispatch by item 9d — the adjacency check exempts
+  -- `:` only while it is a value indicator): `isValueCandidateIx s_ad = true` via
+  -- the `peekAt? 1 = ' '` fallback.
   have h_vc : isValueCandidateIx s_ad = true := by
     apply isValueCandidate_of_peekAt_blankIx
     show s_ad.cursor.peekAt? 1 = some ' '
     rw [h_ad_cursor, ← IxCursor.advance_peek_eq_peekAt_one s.cursor h_pk_colon']
     exact h_pk_space
+  have h_flow_none : scanNextTokenIx_dispatchFlowIndicators s_ad ':' = .ok none :=
+    dispatchFlowIndicators_none s_ad ':'
+      (by decide) (by decide) (by decide) (by decide) (by decide)
+      (L4YAML.Proofs.FlowAdjacencyIx.checkFlowAdjacencyIx_ok_of_valueIndicator rfl h_vc)
   -- Step 6: the scanValue pipeline reduces to a single result state.
   have h_clearKey : scanValueClearKeyIx s_ad = s_ad := by
     unfold scanValueClearKeyIx; rw [h_ad_ek_none]

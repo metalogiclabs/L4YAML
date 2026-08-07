@@ -461,11 +461,9 @@ lemma scanNextToken_flow_value (s : ScannerState)
     simp only [s_ad]; split <;> exact h_sk_flow
   have h_check : scanNextToken_checkBlockFlowIndent s_ad ':' = .ok () :=
     checkBlockFlowIndent_ok_flow _ _ (h_ad_flow ▸ h_flow)
-  -- Step 5: Flow dispatch returns none (`:` is not a flow indicator)
-  have h_flow_none : scanNextToken_dispatchFlowIndicators s_ad ':' = .ok none :=
-    dispatchFlowIndicators_none _ _ (by decide) (by decide) (by decide) (by decide) (by decide)
-      (checkFlowAdjacency_ok_of_sepChar (by decide))
-  -- Step 6: isValueCandidate via peekAt? 1 = space fallback
+  -- Step 5: isValueCandidate via peekAt? 1 = space fallback.  Item 9d moved this
+  -- ahead of the flow dispatch: the adjacency check exempts `:` only while it is
+  -- a value indicator, and `isValueCandidate` is exactly that side condition.
   have h_ad_offset : s_ad.offset = s.offset := by
     simp only [s_ad]; split <;> exact saveSimpleKey_preserves_offset s
   have h_ad_input : s_ad.input = s.input := by
@@ -486,6 +484,10 @@ lemma scanNextToken_flow_value (s : ScannerState)
     unfold ScannerState.peekAt? ScannerState.peekAt?Loop at h_peekAt1; exact h_peekAt1
   have h_vc : isValueCandidate s_ad = true :=
     isValueCandidate_of_peekAt_blank s_ad h_ad_peekAt1
+  -- Step 6: Flow dispatch returns none (`:` is not a flow indicator)
+  have h_flow_none : scanNextToken_dispatchFlowIndicators s_ad ':' = .ok none :=
+    dispatchFlowIndicators_none _ _ (by decide) (by decide) (by decide) (by decide) (by decide)
+      (checkFlowAdjacency_ok_of_valueIndicator rfl h_vc)
   -- Step 7: Block dispatch yields scanValue
   have h_block_eq : scanNextToken_dispatchBlockIndicators s_ad ':' =
       (scanValue s_ad >>= fun s' => .ok (some s')) := by

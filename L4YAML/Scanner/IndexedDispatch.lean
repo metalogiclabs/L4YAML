@@ -1068,14 +1068,19 @@ def scanNextTokenIx_dispatchStructural {input : String} (s : ScannerStateIx inpu
     node may not immediately follow a completed value
     (`YamlToken.completesFlowValue`) without a `,`/`:` separator or the
     matching close (`]`/`}`).  Called at the entry of
-    `scanNextTokenIx_dispatchFlowIndicators`. -/
+    `scanNextTokenIx_dispatchFlowIndicators`.
+
+    Item 9d: the `:` exemption is conditional on `isValueCandidateIx` — a
+    `:` that is not a value indicator falls through to content dispatch and
+    starts a plain scalar, so it is a node start.  See the legacy docstring
+    for the spec argument and the `[a #c⏎ :b]` counterexample. -/
 def scanNextTokenIx_checkFlowAdjacency {input : String}
     (s : ScannerStateIx input) (c : Char) : Except ScanError Unit :=
   if s.inFlow then
     match lastRealTokenValIx? s.tokens with
     | some lastTok =>
       if lastTok.completesFlowValue
-          && c != ',' && c != ':' && c != ']' && c != '}' then
+          && c != ',' && !(c == ':' && isValueCandidateIx s) && c != ']' && c != '}' then
         .error (.invalidFlowEntry s.cursor.pos.line s.cursor.pos.col)
       else .ok ()
     | none => .ok ()

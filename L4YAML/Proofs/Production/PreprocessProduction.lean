@@ -1037,6 +1037,24 @@ lemma SSLComments_prepend_inline {a b c : SurfPos}
     | whites _ hp =>
       exact absurd (gplus_sswhite_col_gt hp) (by simp)
 
+/-- Prepend a whitespace run to an `s-separate-lines(n)`.
+
+    **β.3's trailing-whitespace bridge.** A flow-interior plain scalar ends its
+    *grammar* production before the whitespace the scanner then consumes
+    (`trimTrailingWS` drops it from the token value, but `collectPlainScalarLoop`
+    has already advanced past it), so the accumulation's flow endpoint sits a
+    whitespace run behind the scanner cursor.  The next step's leading separation
+    is derived from the cursor; this lemma walks it back to the endpoint, which is
+    where the frame's pending `GOpt (SSeparate n c)` slot expects it. -/
+lemma SSeparateLines_prepend_white {n : Nat} {a b c : SurfPos}
+    (h_ws : GStar SSWhite a b) (h : SSeparateLines n b c) : SSeparateLines n a c := by
+  have h_il : SSeparateInLine a b := GStar_SSWhite_to_SSeparateInLine a b h_ws
+  cases h with
+  | commented _ _ h_ssl h_pre =>
+    exact .commented _ _ _ _ (SSLComments_prepend_inline h_il h_ssl) h_pre
+  | inline _ h_inl =>
+    exact .inline _ _ _ (SSeparateInLine_trans h_il h_inl)
+
 /-- Splice `SSLComments + flow-line-prefix + SSLComments` into one
     `SSLComments` (the prefix + the second block's head comment fold into one
     additional `l-comment` line). -/

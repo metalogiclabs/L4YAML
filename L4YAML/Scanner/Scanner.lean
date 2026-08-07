@@ -271,16 +271,32 @@ def scanFlowEntry (s : ScannerState) : Except ScanError ScannerState := do
     first per-character dispatcher, which runs for *every* character
     before falling through to block/content dispatch — so the guard
     uniformly covers flow-indicator starts (`[`, `{`) and content starts
-    (scalars, quotes, `*`, `&`, `!`) alike. -/
+    (scalars, quotes, `*`, `&`, `!`) alike.
+
+    **The `:` exemption is conditional (item 9d).**  `:` is exempt only
+    when it will actually be consumed as a value indicator, i.e. when
+    `isValueCandidate` holds — precisely the guard on the `:` arm of
+    `scanNextToken_dispatchBlockIndicators`, which runs on the same state
+    immediately after this dispatcher falls through.  A `:` that fails
+    that test is not a separator at all: it falls through to
+    `scanNextToken_dispatchContent` and starts a *plain scalar*
+    (`[126] ns-plain-first` admits `:` followed by `ns-plain-safe`), so it
+    is a node start and must be treated like one.  An unconditional
+    exemption admitted `[a #c⏎ :b]` and `{a #c⏎ :b}` — a comment ends the
+    plain scalar `a`, and `:b` then opens a second entry with no `,`
+    between them, which `[138] ns-s-flow-seq-entries` and
+    `[141] ns-s-flow-map-entries` require. -/
 @[yaml_spec "7.4" 137 "c-flow-sequence",
-  yaml_spec "7.4" 140 "c-flow-mapping"]
+  yaml_spec "7.4" 140 "c-flow-mapping",
+  yaml_spec "7.4.1" 138 "ns-s-flow-seq-entries",
+  yaml_spec "7.4.2" 141 "ns-s-flow-map-entries"]
 def scanNextToken_checkFlowAdjacency (s : ScannerState) (c : Char) :
     Except ScanError Unit :=
   if s.inFlow then
     match lastRealTokenVal? s.tokens with
     | some lastTok =>
       if lastTok.completesFlowValue
-          && c != ',' && c != ':' && c != ']' && c != '}' then
+          && c != ',' && !(c == ':' && isValueCandidate s) && c != ']' && c != '}' then
         .error (.invalidFlowEntry s.line s.col)
       else .ok ()
     | none => .ok ()
