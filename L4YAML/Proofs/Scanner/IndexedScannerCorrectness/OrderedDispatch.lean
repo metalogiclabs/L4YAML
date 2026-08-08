@@ -1197,6 +1197,8 @@ lemma scanNextTokenIx_dispatchContent_preserves_ScanInvIx {input : String}
   · -- '&' anchor
     rw [if_pos hg1] at h_ok
     try simp only [Bind.bind, Except.bind, Pure.pure, Except.pure] at h_ok
+    split at h_ok   -- item 9e: the property-run guard
+    · cases h_ok
     cases hA : scanAnchorOrAliasIx s true with
     | error e => rw [hA] at h_ok; cases h_ok
     | ok v =>
@@ -1208,6 +1210,8 @@ lemma scanNextTokenIx_dispatchContent_preserves_ScanInvIx {input : String}
     by_cases hg2 : (c == '*') = true
     · -- '*' alias
       rw [if_pos hg2] at h_ok
+      split at h_ok   -- item 9e: the property-run guard
+      · cases h_ok
       cases hA : scanAnchorOrAliasIx s false with
       | error e => rw [hA] at h_ok; cases h_ok
       | ok v =>
@@ -1218,6 +1222,8 @@ lemma scanNextTokenIx_dispatchContent_preserves_ScanInvIx {input : String}
       by_cases hg3 : (c == '!') = true
       · -- '!' tag
         rw [if_pos hg3] at h_ok
+        split at h_ok   -- item 9e: the property-run guard
+        · cases h_ok
         cases hT : scanTagIx s with
         | error e => rw [hT] at h_ok; cases h_ok
         | ok v =>
@@ -1285,6 +1291,8 @@ lemma scanNextTokenIx_dispatchContent_preserves_AllKeysValidIx {input : String}
   · -- '&' anchor
     rw [if_pos hg1] at h_ok
     try simp only [Bind.bind, Except.bind, Pure.pure, Except.pure] at h_ok
+    split at h_ok   -- item 9e: the property-run guard
+    · cases h_ok
     cases hA : scanAnchorOrAliasIx s true with
     | error e => rw [hA] at h_ok; cases h_ok
     | ok v =>
@@ -1296,6 +1304,8 @@ lemma scanNextTokenIx_dispatchContent_preserves_AllKeysValidIx {input : String}
     by_cases hg2 : (c == '*') = true
     · -- '*' alias
       rw [if_pos hg2] at h_ok
+      split at h_ok   -- item 9e: the property-run guard
+      · cases h_ok
       cases hA : scanAnchorOrAliasIx s false with
       | error e => rw [hA] at h_ok; cases h_ok
       | ok v =>
@@ -1306,6 +1316,8 @@ lemma scanNextTokenIx_dispatchContent_preserves_AllKeysValidIx {input : String}
       by_cases hg3 : (c == '!') = true
       · -- '!' tag
         rw [if_pos hg3] at h_ok
+        split at h_ok   -- item 9e: the property-run guard
+        · cases h_ok
         cases hT : scanTagIx s with
         | error e => rw [hT] at h_ok; cases h_ok
         | ok v =>

@@ -2758,6 +2758,8 @@ lemma dispatchContent_preserves_prefix (s : ScannerState) (c : Char) (s' : Scann
   -- Handle anchor/alias/tag with explicit generalize to keep ok-equation
   split at h
   · -- '&': scanAnchorOrAlias bind
+    split at h   -- item 9e: the property-run guard
+    · simp at h
     generalize h_anch : scanAnchorOrAlias s true = result at h
     cases result with
     | error e => simp at h
@@ -2766,6 +2768,8 @@ lemma dispatchContent_preserves_prefix (s : ScannerState) (c : Char) (s' : Scann
       exact scanAnchorOrAlias_preserves_prefix s true s_a h_anch i h_i
   · split at h
     · -- '*': alias
+      split at h   -- item 9e: the property-run guard
+      · simp at h
       split at h
       · simp at h
       · generalize h_anch : scanAnchorOrAlias s false = result at h
@@ -2776,6 +2780,8 @@ lemma dispatchContent_preserves_prefix (s : ScannerState) (c : Char) (s' : Scann
           exact scanAnchorOrAlias_preserves_prefix s false s_a h_anch i h_i
     · split at h
       · -- '!': tag
+        split at h   -- item 9e: the property-run guard
+        · simp at h
         generalize h_tag : scanTag s = result at h
         cases result with
         | error e => simp at h
@@ -5669,6 +5675,8 @@ lemma dispatchContent_preserves_flowLevel (s : ScannerState) (c : Char) (s' : Sc
   simp only [Except.bind] at h
   split at h
   · -- '&': scanAnchorOrAlias bind
+    split at h   -- item 9e: the property-run guard
+    · simp at h
     generalize h_fn : scanAnchorOrAlias s true = result at h
     cases result with
     | error e => simp at h
@@ -5677,6 +5685,8 @@ lemma dispatchContent_preserves_flowLevel (s : ScannerState) (c : Char) (s' : Sc
       exact scanAnchorOrAlias_preserves_flowLevel s true s_a h_fn
   · split at h
     · -- '*': alias
+      split at h   -- item 9e: the property-run guard
+      · simp at h
       split at h
       · simp at h
       · generalize h_fn : scanAnchorOrAlias s false = result at h
@@ -5687,6 +5697,8 @@ lemma dispatchContent_preserves_flowLevel (s : ScannerState) (c : Char) (s' : Sc
           exact scanAnchorOrAlias_preserves_flowLevel s false s_a h_fn
     · split at h
       · -- '!': tag
+        split at h   -- item 9e: the property-run guard
+        · simp at h
         generalize h_fn : scanTag s = result at h
         cases result with
         | error e => simp at h
@@ -5715,6 +5727,8 @@ lemma dispatchContent_preserves_simpleKeyStack (s : ScannerState) (c : Char) (s'
   simp only [Except.bind] at h
   split at h
   · -- '&': scanAnchorOrAlias bind
+    split at h   -- item 9e: the property-run guard
+    · simp at h
     generalize h_fn : scanAnchorOrAlias s true = result at h
     cases result with
     | error e => simp at h
@@ -5723,6 +5737,8 @@ lemma dispatchContent_preserves_simpleKeyStack (s : ScannerState) (c : Char) (s'
       exact scanAnchorOrAlias_preserves_simpleKeyStack s true s_a h_fn
   · split at h
     · -- '*': alias
+      split at h   -- item 9e: the property-run guard
+      · simp at h
       split at h
       · simp at h
       · generalize h_fn : scanAnchorOrAlias s false = result at h
@@ -5733,6 +5749,8 @@ lemma dispatchContent_preserves_simpleKeyStack (s : ScannerState) (c : Char) (s'
           exact scanAnchorOrAlias_preserves_simpleKeyStack s false s_a h_fn
     · split at h
       · -- '!': tag
+        split at h   -- item 9e: the property-run guard
+        · simp at h
         generalize h_fn : scanTag s = result at h
         cases result with
         | error e => simp at h
@@ -5978,6 +5996,8 @@ lemma dispatchContent_maintains_simpleKeyAbove (s : ScannerState) (c : Char) (s'
   -- Handle anchor/alias/tag explicitly (need generalize for ok-equation)
   split at h
   · -- '&': scanAnchorOrAlias bind
+    split at h   -- item 9e: the property-run guard
+    · simp at h
     generalize h_anch : scanAnchorOrAlias s true = result at h
     cases result with
     | error e => simp at h
@@ -5989,6 +6009,8 @@ lemma dispatchContent_maintains_simpleKeyAbove (s : ScannerState) (c : Char) (s'
           (scanAnchorOrAlias_preserves_simpleKeyStack s true s_a h_anch) h_inv)
   · split at h
     · -- '*': alias
+      split at h   -- item 9e: the property-run guard
+      · simp at h
       split at h
       · contradiction
       · generalize h_anch : scanAnchorOrAlias s false = result at h
@@ -6001,6 +6023,8 @@ lemma dispatchContent_maintains_simpleKeyAbove (s : ScannerState) (c : Char) (s'
             (scanAnchorOrAlias_preserves_simpleKeyStack s false s_a h_anch) h_inv
     · split at h
       · -- '!': tag
+        split at h   -- item 9e: the property-run guard
+        · simp at h
         generalize h_tag : scanTag s = result at h
         cases result with
         | error e => simp at h
@@ -8493,6 +8517,8 @@ lemma dispatchContent_preserves_ScanInv (s : ScannerState) (c : Char)
   -- c == '&'
   split at h_ok
   · -- scanAnchorOrAlias bind
+    split at h_ok   -- item 9e: the property-run guard
+    · simp at h_ok
     generalize h_anch : scanAnchorOrAlias s true = result at h_ok
     cases result with
     | error e => simp at h_ok
@@ -8502,7 +8528,9 @@ lemma dispatchContent_preserves_ScanInv (s : ScannerState) (c : Char)
         (scanAnchorOrAlias_preserves_ScanInv s true h s_a h_anch) rfl rfl
   · -- c == '*'
     split at h_ok
-    · -- inner split: alias validation check
+    · split at h_ok   -- item 9e: the property-run guard
+      · simp at h_ok
+      -- inner split: alias validation check
       split at h_ok
       · contradiction
       · -- scanAnchorOrAlias bind
@@ -8514,7 +8542,9 @@ lemma dispatchContent_preserves_ScanInv (s : ScannerState) (c : Char)
           exact scanAnchorOrAlias_preserves_ScanInv s false h s_a h_anch
     · -- c == '!'
       split at h_ok
-      · -- scanTag bind
+      · split at h_ok   -- item 9e: the property-run guard
+        · simp at h_ok
+        -- scanTag bind
         generalize h_tag : scanTag s = result at h_ok
         cases result with
         | error e => simp at h_ok
@@ -9109,6 +9139,8 @@ lemma dispatchContent_preserves_AllKeysValid (s : ScannerState) (c : Char)
   simp only [bind, Except.bind, pure, Except.pure] at h
   split at h
   · -- c == '&': anchor with definedAnchors update
+    split at h   -- item 9e: the property-run guard
+    · simp at h
     split at h
     · contradiction
     · simp only [Except.ok.injEq] at h; subst h
@@ -9121,6 +9153,8 @@ lemma dispatchContent_preserves_AllKeysValid (s : ScannerState) (c : Char)
         (Nat.le_refl _) (fun i hi => rfl)
   · split at h
     · -- c == '*': alias (with alias validation check)
+      split at h   -- item 9e: the property-run guard
+      · simp at h
       split at h
       · contradiction
       · -- scanAnchorOrAlias result returned directly
@@ -9130,7 +9164,9 @@ lemma dispatchContent_preserves_AllKeysValid (s : ScannerState) (c : Char)
           (by have := ScanHelpers.scanAnchorOrAlias_adds_one_token s false _ h; omega)
           (fun i hi => ScanHelpers.scanAnchorOrAlias_preserves_prefix s false _ h i hi)
     · split at h
-      · -- c == '!': tag result returned directly
+      · -- c == '!': tag result returned directly, under the item-9e guard
+        split at h   -- item 9e: the property-run guard
+        · simp at h
         exact AllKeysValid_mono s _ h_akv
           (scanTag_preserves_simpleKey s _ h)
           (scanTag_preserves_simpleKeyStack s _ h)
@@ -10372,17 +10408,23 @@ lemma dispatchContent_offset_gt (s s' : ScannerState) (c : Char)
   unfold scanNextToken_dispatchContent at h
   simp only [bind, Except.bind, pure, Except.pure, Bind.bind, Pure.pure] at h
   split at h  -- c == '&'
-  · split at h
+  · split at h   -- item 9e: the property-run guard
+    · simp at h
+    split at h
     · cases h
     · simp only [Except.ok.injEq] at h; subst h; dsimp only []
       exact scanAnchorOrAlias_offset_lt s _ true h_hm ‹_›
   · split at h  -- c == '*'
-    · split at h
+    · split at h   -- item 9e: the property-run guard
+      · simp at h
+      split at h
       · cases h
       · -- scanAnchorOrAlias result returned directly
         exact scanAnchorOrAlias_offset_lt s _ false h_hm h
     · split at h  -- c == '!'
-      · -- scanTag result returned directly
+      · split at h   -- item 9e: the property-run guard
+        · simp at h
+        -- scanTag result returned directly
         exact scanTag_offset_lt s _ h_hm h
       · split at h  -- c == '|' || c == '>'
         · -- scanBlockScalar result returned directly, under the item-9c guard

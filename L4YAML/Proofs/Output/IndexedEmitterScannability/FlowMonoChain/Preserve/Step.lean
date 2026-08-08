@@ -330,6 +330,8 @@ lemma scanNextTokenIx_dispatchContent_preserves_flowLevel
   · -- '&' anchor
     rw [if_pos hg1] at h
     try simp only [Bind.bind, Except.bind, Pure.pure, Except.pure] at h
+    split at h   -- item 9e: the property-run guard
+    · cases h
     cases hA : scanAnchorOrAliasIx s true with
     | error e => rw [hA] at h; cases h
     | ok v =>
@@ -341,6 +343,8 @@ lemma scanNextTokenIx_dispatchContent_preserves_flowLevel
     by_cases hg2 : (c == '*') = true
     · -- '*' alias
       rw [if_pos hg2] at h
+      split at h   -- item 9e: the property-run guard
+      · cases h
       cases hA : scanAnchorOrAliasIx s false with
       | error e => rw [hA] at h; cases h
       | ok v =>
@@ -351,6 +355,8 @@ lemma scanNextTokenIx_dispatchContent_preserves_flowLevel
       by_cases hg3 : (c == '!') = true
       · -- '!' tag
         rw [if_pos hg3] at h
+        split at h   -- item 9e: the property-run guard
+        · cases h
         cases hT : scanTagIx s with
         | error e => rw [hT] at h; cases h
         | ok v =>
@@ -408,6 +414,8 @@ lemma scanNextTokenIx_dispatchContent_preserves_simpleKeyStack
   · -- '&' anchor
     rw [if_pos hg1] at h
     try simp only [Bind.bind, Except.bind, Pure.pure, Except.pure] at h
+    split at h   -- item 9e: the property-run guard
+    · cases h
     cases hA : scanAnchorOrAliasIx s true with
     | error e => rw [hA] at h; cases h
     | ok v =>
@@ -419,6 +427,8 @@ lemma scanNextTokenIx_dispatchContent_preserves_simpleKeyStack
     by_cases hg2 : (c == '*') = true
     · -- '*' alias
       rw [if_pos hg2] at h
+      split at h   -- item 9e: the property-run guard
+      · cases h
       cases hA : scanAnchorOrAliasIx s false with
       | error e => rw [hA] at h; cases h
       | ok v =>
@@ -429,6 +439,8 @@ lemma scanNextTokenIx_dispatchContent_preserves_simpleKeyStack
       by_cases hg3 : (c == '!') = true
       · -- '!' tag
         rw [if_pos hg3] at h
+        split at h   -- item 9e: the property-run guard
+        · cases h
         cases hT : scanTagIx s with
         | error e => rw [hT] at h; cases h
         | ok v =>

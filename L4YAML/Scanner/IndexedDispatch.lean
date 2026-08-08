@@ -983,6 +983,62 @@ def lastRealTokenValIx? {input : String} (ts : Indexed.TokenStream input) :
     else some tok1
   else none
 
+/-- Index of the token `lastRealTokenValIx?` reads (indexed twin of
+    `L4YAML.Scanner.lastRealTokenIdx?`). -/
+def lastRealTokenIdxIx? {input : String} (ts : Indexed.TokenStream input) :
+    Option Nat :=
+  let arr := ts.tokens
+  if arr.size > 0 then
+    let lastIdx := arr.size - 1
+    if arr[lastIdx]!.token == YamlToken.placeholder && lastIdx > 0 then
+      if arr[lastIdx - 1]!.token == YamlToken.placeholder && lastIdx > 1 then
+        some (lastIdx - 2)
+      else some (lastIdx - 1)
+    else some lastIdx
+  else none
+
+/-- The real token *before* the one `lastRealTokenValIx?` reads (indexed twin of
+    `L4YAML.Scanner.penultRealTokenVal?`). -/
+def penultRealTokenValIx? {input : String} (ts : Indexed.TokenStream input) :
+    Option YamlToken :=
+  match lastRealTokenIdxIx? ts with
+  | some i => lastRealTokenValIx? { tokens := ts.tokens.extract 0 i }
+  | none => none
+
+/-- Trailing run of node-property tokens, most recent first (indexed twin of
+    `L4YAML.Scanner.trailingPropertyRun`). -/
+def trailingPropertyRunIx {input : String} (ts : Indexed.TokenStream input) :
+    List YamlToken :=
+  match lastRealTokenValIx? ts with
+  | some t1 =>
+    if t1.isNodeProperty then
+      match penultRealTokenValIx? ts with
+      | some t2 => if t2.isNodeProperty then [t1, t2] else [t1]
+      | none => [t1]
+    else []
+  | none => []
+
+/-- §6.9 [96], inside a flow collection: does the property run ending at the
+    cursor already carry an anchor?  (Indexed twin of
+    `L4YAML.Scanner.propertyRunHasAnchor`; see its docstring for why the test is
+    gated on `inFlow`.) -/
+def propertyRunHasAnchorIx {input : String} (s : ScannerStateIx input) : Bool :=
+  s.inFlow && (trailingPropertyRunIx s.tokens).any YamlToken.isAnchorProperty
+
+/-- §6.9 [96], inside a flow collection: does the property run ending at the
+    cursor already carry a tag?  (Indexed twin of
+    `L4YAML.Scanner.propertyRunHasTag`.) -/
+def propertyRunHasTagIx {input : String} (s : ScannerStateIx input) : Bool :=
+  s.inFlow && (trailingPropertyRunIx s.tokens).any YamlToken.isTagProperty
+
+/-- §6.9 [104], inside a flow collection: is the cursor directly after a node
+    property?  (Indexed twin of `L4YAML.Scanner.lastTokenIsNodeProperty`.) -/
+def lastTokenIsNodePropertyIx {input : String} (s : ScannerStateIx input) : Bool :=
+  s.inFlow &&
+    (match lastRealTokenValIx? s.tokens with
+     | some t => t.isNodeProperty
+     | none => false)
+
 /-- Scan `,` flow entry separator. Mirrors `L4YAML.Scanner.scanFlowEntry`:
     emits `.flowEntry` and sets `simpleKeyAllowed := true` so the next
     item can start a fresh implicit key.
@@ -1174,14 +1230,27 @@ def blockScalarPreErrIx {input : String} (s : ScannerStateIx input) (c : Char) :
 def scanNextTokenIx_dispatchContent {input : String} (s : ScannerStateIx input)
     (c : Char) : Except ScanError (ScannerStateIx input) := do
   if c == '&' then
-    let s' ← scanAnchorOrAliasIx s true
-    return s'
+    -- Item 9e (§6.9 [96]): one anchor per node.  Full `else`-chain, as for the
+    -- `|`/`>` guard below — no `__do_jp` join points.
+    if propertyRunHasAnchorIx s then
+      .error (.invalidNodeProperties c s.cursor.pos.line s.cursor.pos.col)
+    else do
+      let s' ← scanAnchorOrAliasIx s true
+      return s'
   if c == '*' then
-    let s' ← scanAnchorOrAliasIx s false
-    return s'
+    -- Item 9e (§6.9 [104]): an alias node carries no properties.
+    if lastTokenIsNodePropertyIx s then
+      .error (.invalidNodeProperties c s.cursor.pos.line s.cursor.pos.col)
+    else do
+      let s' ← scanAnchorOrAliasIx s false
+      return s'
   if c == '!' then
-    let s' ← scanTagIx s
-    return s'
+    -- Item 9e (§6.9 [96]): one tag per node.
+    if propertyRunHasTagIx s then
+      .error (.invalidNodeProperties c s.cursor.pos.line s.cursor.pos.col)
+    else do
+      let s' ← scanTagIx s
+      return s'
   if c == '|' || c == '>' then
     -- Item 9c (§8.1) then §6.7 [76], in legacy's order — see
     -- `blockScalarPreErrIx`.  ONE guard, not two consecutive ones.

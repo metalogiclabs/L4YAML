@@ -853,7 +853,9 @@ lemma dispatchContent_maintains_SimpleKeyAboveFloor (s : ScannerState) (c : Char
   unfold scanNextToken_dispatchContent at h
   simp only [bind, Except.bind, pure, Pure.pure, Except.pure] at h
   split at h
-  · -- '&': scanAnchorOrAlias bind
+  · -- '&': item-9e property-run guard, then the scanAnchorOrAlias bind
+    split at h
+    · simp at h
     generalize h_anch : scanAnchorOrAlias s true = result at h
     cases result with
     | error e => simp at h
@@ -864,7 +866,9 @@ lemma dispatchContent_maintains_SimpleKeyAboveFloor (s : ScannerState) (c : Char
           (ScannerCorrectness.scanAnchorOrAlias_preserves_simpleKey s true s_a h_anch)
           (ScannerCorrectness.scanAnchorOrAlias_preserves_simpleKeyStack s true s_a h_anch) h_inv)
   · split at h
-    · -- '*': alias
+    · -- '*': alias, under the item-9e property-run guard
+      split at h
+      · simp at h
       split at h
       · contradiction
       · generalize h_anch : scanAnchorOrAlias s false = result at h
@@ -877,7 +881,9 @@ lemma dispatchContent_maintains_SimpleKeyAboveFloor (s : ScannerState) (c : Char
             (ScannerCorrectness.scanAnchorOrAlias_preserves_simpleKeyStack s false s_a h_anch)
               h_inv
     · split at h
-      · -- '!': tag
+      · -- '!': item-9e property-run guard, then the scanTag bind
+        split at h
+        · simp at h
         generalize h_tag : scanTag s = result at h
         cases result with
         | error e => simp at h
@@ -1571,7 +1577,9 @@ lemma dispatchContent_maintains_NoOverwriteAt (s : ScannerState) (c : Char)
   unfold scanNextToken_dispatchContent at h
   simp only [bind, Except.bind, pure, Pure.pure, Except.pure] at h
   split at h
-  · -- '&': scanAnchorOrAlias bind
+  · -- '&': item-9e property-run guard, then the scanAnchorOrAlias bind
+    split at h
+    · simp at h
     generalize h_anch : scanAnchorOrAlias s true = result at h
     cases result with
     | error e => simp at h
@@ -1582,7 +1590,9 @@ lemma dispatchContent_maintains_NoOverwriteAt (s : ScannerState) (c : Char)
           (ScannerCorrectness.scanAnchorOrAlias_preserves_simpleKey s true s_a h_anch)
           (ScannerCorrectness.scanAnchorOrAlias_preserves_simpleKeyStack s true s_a h_anch) h_inv)
   · split at h
-    · -- '*': alias
+    · -- '*': alias, under the item-9e property-run guard
+      split at h
+      · simp at h
       split at h
       · contradiction
       · generalize h_anch : scanAnchorOrAlias s false = result at h
@@ -1595,7 +1605,9 @@ lemma dispatchContent_maintains_NoOverwriteAt (s : ScannerState) (c : Char)
             (ScannerCorrectness.scanAnchorOrAlias_preserves_simpleKeyStack s false s_a h_anch)
               h_inv
     · split at h
-      · -- '!': tag
+      · -- '!': item-9e property-run guard, then the scanTag bind
+        split at h
+        · simp at h
         generalize h_tag : scanTag s = result at h
         cases result with
         | error e => simp at h
@@ -2219,7 +2231,9 @@ lemma dispatchContent_maintains_FlowNoOverwriteAt (s : ScannerState) (c : Char)
   unfold scanNextToken_dispatchContent at h
   simp only [bind, Except.bind, pure, Pure.pure, Except.pure] at h
   split at h
-  · -- '&': scanAnchorOrAlias bind
+  · -- '&': item-9e property-run guard, then the scanAnchorOrAlias bind
+    split at h
+    · simp at h
     generalize h_anch : scanAnchorOrAlias s true = result at h
     cases result with
     | error e => simp at h
@@ -2230,7 +2244,9 @@ lemma dispatchContent_maintains_FlowNoOverwriteAt (s : ScannerState) (c : Char)
           (ScannerCorrectness.scanAnchorOrAlias_preserves_simpleKey s true s_a h_anch)
           (ScannerCorrectness.scanAnchorOrAlias_preserves_simpleKeyStack s true s_a h_anch) h_inv)
   · split at h
-    · -- '*': alias
+    · -- '*': alias, under the item-9e property-run guard
+      split at h
+      · simp at h
       split at h
       · contradiction
       · generalize h_anch : scanAnchorOrAlias s false = result at h
@@ -2243,7 +2259,9 @@ lemma dispatchContent_maintains_FlowNoOverwriteAt (s : ScannerState) (c : Char)
             (ScannerCorrectness.scanAnchorOrAlias_preserves_simpleKeyStack s false s_a h_anch)
               h_inv
     · split at h
-      · -- '!': tag
+      · -- '!': item-9e property-run guard, then the scanTag bind
+        split at h
+        · simp at h
         generalize h_tag : scanTag s = result at h
         cases result with
         | error e => simp at h

@@ -423,7 +423,9 @@ lemma dispatchContent_preserves_PlainScalarsValid
     unfold scanNextToken_dispatchContent at h_ok
     simp only [bind, Except.bind, pure, Except.pure] at h_ok
     split at h_ok
-    · -- c == '&': .anchor — not plain scalar
+    · -- c == '&': .anchor — not plain scalar, under the item-9e guard
+      split at h_ok
+      · simp at h_ok
       generalize h_anch : scanAnchorOrAlias s true = anch_result at h_ok
       cases anch_result with
       | error => simp at h_ok
@@ -447,7 +449,9 @@ lemma dispatchContent_preserves_PlainScalarsValid
             · omega
             · simp)
     · split at h_ok
-      · -- c == '*': .alias — not plain scalar
+      · -- c == '*': .alias — not plain scalar, under the item-9e guard
+        split at h_ok
+        · simp at h_ok
         split at h_ok
         · contradiction
         · generalize h_anch : scanAnchorOrAlias s false = anch_result at h_ok
@@ -471,7 +475,9 @@ lemma dispatchContent_preserves_PlainScalarsValid
                 · omega
                 · simp)
       · split at h_ok
-        · -- c == '!': .tag — not plain scalar
+        · -- c == '!': .tag — not plain scalar, under the item-9e guard
+          split at h_ok
+          · simp at h_ok
           generalize h_tag : scanTag s = tag_result at h_ok
           cases tag_result with
           | error => simp at h_ok
@@ -3574,7 +3580,9 @@ lemma dispatchContent_preserves_FlowInv
   unfold scanNextToken_dispatchContent at h_ok
   simp only [bind, Except.bind, pure, Except.pure] at h_ok
   split at h_ok
-  · -- c == '&'
+  · -- c == '&', under the item-9e property-run guard
+    split at h_ok
+    · simp at h_ok
     generalize h_anch : scanAnchorOrAlias s true = anch_result at h_ok
     cases anch_result with
     | error => simp at h_ok
@@ -3584,7 +3592,9 @@ lemma dispatchContent_preserves_FlowInv
       have h_eq := Except.ok.inj h_ok; subst h_eq
       exact scanAnchorOrAlias_preserves_FlowInv s true s_anch h_anch h_fpsv h_fni
   · split at h_ok
-    · -- c == '*'
+    · -- c == '*', under the item-9e property-run guard
+      split at h_ok
+      · simp at h_ok
       split at h_ok
       · contradiction
       · generalize h_anch : scanAnchorOrAlias s false = anch_result at h_ok
@@ -3595,7 +3605,9 @@ lemma dispatchContent_preserves_FlowInv
           simp only [Except.ok.injEq] at h_ok; subst h_ok
           exact scanAnchorOrAlias_preserves_FlowInv s false s_anch h_anch h_fpsv h_fni
     · split at h_ok
-      · -- c == '!'
+      · -- c == '!', under the item-9e property-run guard
+        split at h_ok
+        · simp at h_ok
         generalize h_tag : scanTag s = tag_result at h_ok
         cases tag_result with
         | error => simp at h_ok
@@ -4886,7 +4898,9 @@ lemma dispatchContent_preserves_AllKeysPlaceholderInv
   unfold scanNextToken_dispatchContent at h_ok
   simp only [bind, Except.bind, pure, Except.pure] at h_ok
   split at h_ok
-  · -- c == '&': anchor with definedAnchors update
+  · -- c == '&': anchor with definedAnchors update, under the item-9e guard
+    split at h_ok
+    · simp at h_ok
     generalize h_anch : scanAnchorOrAlias s true = anch_result at h_ok
     cases anch_result with
     | error => simp at h_ok
@@ -4902,7 +4916,9 @@ lemma dispatchContent_preserves_AllKeysPlaceholderInv
       exact AllKeysPlaceholderInv_mono s_anch _ h_base rfl rfl
         (Nat.le_refl _) (fun i hi => rfl)
   · split at h_ok
-    · -- c == '*': alias (with alias validation check)
+    · -- c == '*': alias (item-9e guard, then the alias validation check)
+      split at h_ok
+      · simp at h_ok
       split at h_ok
       · contradiction
       · generalize h_anch : scanAnchorOrAlias s false = anch_result at h_ok
@@ -4917,7 +4933,9 @@ lemma dispatchContent_preserves_AllKeysPlaceholderInv
             (by have := ScanHelpers.scanAnchorOrAlias_adds_one_token s false s_anch h_anch; omega)
             (fun i hi => ScanHelpers.scanAnchorOrAlias_preserves_prefix s false s_anch h_anch i hi)
     · split at h_ok
-      · -- c == '!': tag
+      · -- c == '!': tag, under the item-9e property-run guard
+        split at h_ok
+        · simp at h_ok
         generalize h_tag : scanTag s = tag_result at h_ok
         cases tag_result with
         | error => simp at h_ok

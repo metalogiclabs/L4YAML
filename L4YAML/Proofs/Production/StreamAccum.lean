@@ -3896,7 +3896,9 @@ lemma dispatchContent_corr (sc : ScannerState) (sp : SurfPos) (c : Char)
   simp only [bind, Except.bind, pure, Except.pure] at hok
   -- c == '&' (anchor)
   split at hok
-  · generalize h_anch : scanAnchorOrAlias sc true = anch_result at hok
+  · split at hok   -- item 9e: the property-run guard
+    · simp at hok
+    generalize h_anch : scanAnchorOrAlias sc true = anch_result at hok
     cases anch_result with
     | error => simp at hok
     | ok s_anch =>
@@ -3906,7 +3908,9 @@ lemma dispatchContent_corr (sc : ScannerState) (sp : SurfPos) (c : Char)
       exact ⟨sp', ⟨hcorr'.chars_from, hcorr'.col_eq, hcorr'.end_eq, hcorr'.input_prefix, hcorr'.indent_cols_nonneg⟩⟩
   -- c == '*' (alias)
   · split at hok
-    · split at hok
+    · split at hok   -- item 9e: the property-run guard
+      · simp at hok
+      split at hok
       · simp at hok  -- undefinedAlias error
       · -- hok has redundant match wrapper from Except.bind; reduce it
         generalize h_alias : scanAnchorOrAlias sc false = alias_result at hok
@@ -3918,7 +3922,9 @@ lemma dispatchContent_corr (sc : ScannerState) (sp : SurfPos) (c : Char)
           exact scanAnchorOrAlias_corr sc sp hcorr false s_val h_alias
     -- c == '!' (tag)
     · split at hok
-      · generalize h_tag : scanTag sc = tag_result at hok
+      · split at hok   -- item 9e: the property-run guard
+        · simp at hok
+        generalize h_tag : scanTag sc = tag_result at hok
         cases tag_result with
         | error => simp at hok
         | ok s_val =>
@@ -4048,7 +4054,10 @@ lemma dispatchContent_alias_prod (sc : ScannerState) (sp : SurfPos)
   · rename_i h_eq; exact absurd h_eq (by decide)
   · -- '*' == '*' = true: this branch
     split at hok
-    · -- Inside '*' branch: handle definedAnchors check
+    · -- Item 9e: the property-run guard (`&a *x` has no derivation)
+      split at hok
+      · simp at hok
+      -- Inside '*' branch: handle definedAnchors check
       split at hok
       · -- !(definedAnchors.any ...) = true → .error, but we have .ok
         simp at hok
@@ -4229,7 +4238,10 @@ lemma dispatchContent_anchor_prod (sc : ScannerState) (sp : SurfPos)
   simp only [bind, Except.bind, pure, Except.pure] at hok
   -- '&' == '&' = true: anchor branch
   split at hok
-  · generalize h_anch : scanAnchorOrAlias sc true = anch_result at hok
+  · -- Item 9e: the property-run guard (`&a &b` has no derivation)
+    split at hok
+    · simp at hok
+    generalize h_anch : scanAnchorOrAlias sc true = anch_result at hok
     cases anch_result with
     | error => simp at hok
     | ok s_anch =>
@@ -4262,7 +4274,10 @@ lemma dispatchContent_tag_prod (sc : ScannerState) (sp : SurfPos)
     · rename_i h_eq; exact absurd h_eq (by decide)
     · -- '!' == '!' = true: tag branch
       split at hok
-      · generalize h_tag : scanTag sc = tag_result at hok
+      · -- Item 9e: the property-run guard (`!t !u` has no derivation)
+        split at hok
+        · simp at hok
+        generalize h_tag : scanTag sc = tag_result at hok
         cases tag_result with
         | error => simp at hok
         | ok s_tag =>

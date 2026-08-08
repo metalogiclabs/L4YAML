@@ -1334,7 +1334,9 @@ lemma dispatchContent_new_not_placeholder (s s' : ScannerState) (c : Char)
   simp only [Except.bind] at h
   -- '&' anchor
   split at h
-  · generalize h_sc : scanAnchorOrAlias s true = result at h
+  · split at h   -- item 9e: the property-run guard
+    · simp at h
+    generalize h_sc : scanAnchorOrAlias s true = result at h
     cases result with
     | error => simp at h
     | ok s_a =>
@@ -1349,6 +1351,8 @@ lemma dispatchContent_new_not_placeholder (s s' : ScannerState) (c : Char)
         split <;> intro h <;> cases h
   · split at h
     · -- '*' alias
+      split at h   -- item 9e: the property-run guard
+      · simp at h
       split at h
       · simp at h
       · generalize h_sc : scanAnchorOrAlias s false = result at h
@@ -1366,6 +1370,8 @@ lemma dispatchContent_new_not_placeholder (s s' : ScannerState) (c : Char)
             intro h; cases h
     · split at h
       · -- '!' tag
+        split at h   -- item 9e: the property-run guard
+        · simp at h
         generalize h_sc : scanTag s = result at h
         cases result with
         | error => simp at h

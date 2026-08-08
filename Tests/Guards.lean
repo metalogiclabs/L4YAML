@@ -12,6 +12,7 @@ import Tests.Guards.Proofs.RoundTrip
 import Tests.Guards.Proofs.RoundTripComposition
 import Tests.Guards.Proofs.ScannerBlockScalarInFlow
 import Tests.Guards.Proofs.ScannerFlowColonAdjacency
+import Tests.Guards.Proofs.ScannerFlowPropertyRun
 import Tests.Guards.Proofs.ScannerContracts
 import Tests.Guards.Proofs.ScannerCorrectness
 import Tests.Guards.Proofs.ScannerDispatch

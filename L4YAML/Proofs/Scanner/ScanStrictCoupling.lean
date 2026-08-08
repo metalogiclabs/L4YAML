@@ -234,7 +234,9 @@ lemma scanNextToken_dispatchContent_corr (sc : ScannerState) (sp : SurfPos) (c :
   unfold scanNextToken_dispatchContent at hok
   simp only [bind, Except.bind, pure, Except.pure] at hok
   split at hok
-  · -- '&': scanAnchorOrAlias bind
+  · -- '&': item-9e property-run guard, then the scanAnchorOrAlias bind
+    split at hok
+    · simp at hok
     generalize h_anch : scanAnchorOrAlias sc true = result at hok
     cases result with
     | error e => simp at hok
@@ -243,7 +245,9 @@ lemma scanNextToken_dispatchContent_corr (sc : ScannerState) (sp : SurfPos) (c :
       obtain ⟨sp', hcorr'⟩ := scanAnchorOrAlias_corr sc sp hcorr true s_a h_anch
       exact ⟨sp', ⟨hcorr'.chars_from, hcorr'.col_eq, hcorr'.end_eq, hcorr'.input_prefix, hcorr'.indent_cols_nonneg⟩⟩
   · split at hok
-    · split at hok
+    · split at hok   -- item 9e: the property-run guard
+      · simp at hok
+      split at hok
       · simp at hok
       · -- '*': scanAnchorOrAlias bind
         generalize h_anch : scanAnchorOrAlias sc false = result at hok
@@ -253,7 +257,9 @@ lemma scanNextToken_dispatchContent_corr (sc : ScannerState) (sp : SurfPos) (c :
           have h := Except.ok.inj hok; subst h
           exact scanAnchorOrAlias_corr sc sp hcorr false s_a h_anch
     · split at hok
-      · -- '!': scanTag bind
+      · -- '!': item-9e property-run guard, then the scanTag bind
+        split at hok
+        · simp at hok
         generalize h_tag : scanTag sc = result at hok
         cases result with
         | error e => simp at hok

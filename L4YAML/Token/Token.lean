@@ -280,6 +280,41 @@ def YamlToken.completesFlowValue : YamlToken → Bool
   | _ => false
 
 /--
+Whether a token is a node *property*.
+
+`[96] c-ns-properties` is exactly one optional `[101] c-ns-anchor-property`
+and one optional `[97] c-ns-tag-property`, in either order — so a node
+carries **at most one of each**, and a property run is at most two tokens
+long (`&a !t`, `!t &a`).
+
+`alias` is deliberately NOT a property: `[104] c-ns-alias-node` is a whole
+node, offered by `[161] ns-flow-node` and `[196] s-l+block-node` as an
+*alternative* to the properties-bearing form, never as its content.  So a
+property may not be followed by an alias either.
+
+Both facts are enforced by `scanNextToken_dispatchContent`, **inside flow
+collections only** — see `propertyRunHasAnchor`, `propertyRunHasTag` and
+`lastTokenIsNodeProperty`, whose docstrings explain why token adjacency
+identifies a property run in flow context but not in block context.
+-/
+def YamlToken.isNodeProperty : YamlToken → Bool
+  | .anchor .. => true
+  | .tag .. => true
+  | _ => false
+
+/-- Whether a token is the anchor half of `[96] c-ns-properties`
+    (see `YamlToken.isNodeProperty`). -/
+def YamlToken.isAnchorProperty : YamlToken → Bool
+  | .anchor .. => true
+  | _ => false
+
+/-- Whether a token is the tag half of `[96] c-ns-properties`
+    (see `YamlToken.isNodeProperty`). -/
+def YamlToken.isTagProperty : YamlToken → Bool
+  | .tag .. => true
+  | _ => false
+
+/--
 Whether a token is a flow indicator.
 
 Used to determine flow/block context boundaries.
@@ -352,6 +387,16 @@ inductive ScanError where
       flow-seq, flow-map, single- and double-quoted only.  So `[a, |⏎ x⏎]` and
       `{k: |⏎ x⏎}` have no derivation.  `indicator` is the header found. -/
   | blockScalarInFlow (indicator : Char) (line col : Nat)
+  /-- A node's property run repeats a kind, or precedes an alias — §6.9
+      violation.  `[96] c-ns-properties` admits at most one
+      `[101] c-ns-anchor-property` and one `[97] c-ns-tag-property`, so
+      `&a &b`, `!t !u` and `&a !t &b` have no derivation; and
+      `[104] c-ns-alias-node` is a whole node, offered by `[161] ns-flow-node`
+      and `[196] s-l+block-node` as an alternative to the properties-bearing
+      form, so `&a *x` and `!t *x` have none either.  `indicator` is the
+      offending character (`&`, `!` or `*`).  Raised inside flow collections
+      only; see `L4YAML.Scanner.propertyRunHasAnchor`. -/
+  | invalidNodeProperties (indicator : Char) (line col : Nat)
   /-- Continuation line of quoted scalar is under-indented — §8.1 violation. -/
   | underIndentedScalar (style : ScalarStyle) (line : Nat)
   /-- Document marker (`---`/`...`) inside flow collection — §5.4 violation. -/
@@ -440,6 +485,7 @@ def ScanError.toString : ScanError → String
   | .flowEndOutsideFlow b l c => s!"unexpected '{b}' outside flow collection at line {l}, column {c}"
   | .mismatchedFlowClose b l c => s!"mismatched flow close '{b}' at line {l}, column {c}"
   | .blockScalarInFlow i l c => s!"block scalar '{i}' inside flow collection at line {l}, column {c}"
+  | .invalidNodeProperties i l c => s!"invalid node properties at '{i}', line {l}, column {c}"
   | .underIndentedScalar .doubleQuoted l => s!"under-indented continuation line in double-quoted scalar at line {l}"
   | .underIndentedScalar .singleQuoted l => s!"under-indented continuation line in single-quoted scalar at line {l}"
   | .underIndentedScalar style l => s!"under-indented continuation line in {repr style} scalar at line {l}"

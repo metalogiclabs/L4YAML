@@ -234,6 +234,88 @@ def lastRealTokenVal? (tokens : Array (Positioned YamlToken)) : Option YamlToken
     else some tok1
   else none
 
+/-- The index of the token `lastRealTokenVal?` reads, or `none` when there is no
+    real token.  Split out so `penultRealTokenVal?` can restart the same
+    placeholder skip from strictly before it. -/
+def lastRealTokenIdx? (tokens : Array (Positioned YamlToken)) : Option Nat :=
+  if tokens.size > 0 then
+    let lastIdx := tokens.size - 1
+    if tokens[lastIdx]!.val == .placeholder && lastIdx > 0 then
+      if tokens[lastIdx - 1]!.val == .placeholder && lastIdx > 1 then
+        some (lastIdx - 2)
+      else some (lastIdx - 1)
+    else some lastIdx
+  else none
+
+/-- The real token *before* the one `lastRealTokenVal?` reads, skipping
+    placeholder reservation slots the same way.  `none` if there is no second
+    real token. -/
+def penultRealTokenVal? (tokens : Array (Positioned YamlToken)) : Option YamlToken :=
+  match lastRealTokenIdx? tokens with
+  | some i => lastRealTokenVal? (tokens.extract 0 i)
+  | none => none
+
+/-- The trailing run of node-property tokens, most recent first.
+
+    §6.9 [96] `c-ns-properties` admits at most one anchor and one tag, so a
+    *legal* run is at most two tokens long; the run is therefore read with two
+    lookbacks and capped there.  A third property is rejected by the same test
+    applied at the second — `&a !t &b` fails because the run `[!t, &a]` visible
+    at `&b` already carries an anchor. -/
+def trailingPropertyRun (tokens : Array (Positioned YamlToken)) : List YamlToken :=
+  match lastRealTokenVal? tokens with
+  | some t1 =>
+    if t1.isNodeProperty then
+      match penultRealTokenVal? tokens with
+      | some t2 => if t2.isNodeProperty then [t1, t2] else [t1]
+      | none => [t1]
+    else []
+  | none => []
+
+/-! ### Why the three tests below are gated on `s.inFlow`
+
+    Token adjacency means "same property run" only when nothing that emits no
+    token can intervene.  Inside a flow collection that holds: `[137]`/`[140]`
+    admit `ns-flow-node` only, so no block collection can open between two
+    tokens, and two adjacent property tokens necessarily belong to one node.
+
+    In **block** context it fails.  A block collection opens without a token of
+    its own, so adjacent property tokens can belong to different nodes:
+
+    ```yaml
+    &mapping
+    &key [ &item a, b, c ]: value    # 26DV / suite: &mapping is on the MAPPING
+    top3: &node3
+      *alias1 : scalar3              # &node3 is on the nested mapping, not on *alias1
+    ```
+
+    Both are valid, and both put an `anchor` directly before an `anchor`/`alias`
+    in the token stream.  Separating them needs the indent machinery, so the
+    block-context half of §6.9 strictness is left open (DOCS, β.5) rather than
+    guessed at here. -/
+
+/-- Inside a flow collection, does the property run ending at the cursor already
+    carry an anchor?  A second `[101] c-ns-anchor-property` on the same node has
+    no derivation. -/
+def propertyRunHasAnchor (s : ScannerState) : Bool :=
+  s.inFlow && (trailingPropertyRun s.tokens).any YamlToken.isAnchorProperty
+
+/-- Inside a flow collection, does the property run ending at the cursor already
+    carry a tag?  A second `[97] c-ns-tag-property` on the same node has no
+    derivation. -/
+def propertyRunHasTag (s : ScannerState) : Bool :=
+  s.inFlow && (trailingPropertyRun s.tokens).any YamlToken.isTagProperty
+
+/-- Inside a flow collection, is the cursor directly after a node property?
+    `[104] c-ns-alias-node` is an *alternative* to the properties-bearing form of
+    `[161] ns-flow-node`, never its content, so `[&a *x]` and `[!t *x]` have no
+    derivation. -/
+def lastTokenIsNodeProperty (s : ScannerState) : Bool :=
+  s.inFlow &&
+    (match lastRealTokenVal? s.tokens with
+     | some t => t.isNodeProperty
+     | none => false)
+
 /-- Scan a flow entry separator `,`.
 
     **Implements** (YAML 1.2.2 §7.4):
@@ -429,19 +511,33 @@ def scanNextToken_dispatchBlockIndicators (s : ScannerState) (c : Char) :
 def scanNextToken_dispatchContent (s : ScannerState) (c : Char) :
     Except ScanError ScannerState := do
   if c == '&' then
-    let s' ← scanAnchorOrAlias s true
-    let name := (collectAnchorNameLoop s.advance "" (s.inputEnd - s.advance.offset)).fst
-    return { s' with definedAnchors := s'.definedAnchors.push name }
+    -- §6.9 [96]: one anchor per node.  Full `else`-chain (not an early-exit
+    -- statement) so the desugaring stays a plain `ite` with closed branches —
+    -- no `__do_jp` join points; same discipline as the `|`/`>` guard below.
+    if propertyRunHasAnchor s then
+      .error (.invalidNodeProperties c s.line s.col)
+    else do
+      let s' ← scanAnchorOrAlias s true
+      let name := (collectAnchorNameLoop s.advance "" (s.inputEnd - s.advance.offset)).fst
+      return { s' with definedAnchors := s'.definedAnchors.push name }
   if c == '*' then
-    let name := (collectAnchorNameLoop s.advance "" (s.inputEnd - s.advance.offset)).fst
-    if !(s.definedAnchors.any (· == name)) then
-      .error (.undefinedAlias name s.currentPos.line s.currentPos.col)
+    -- §6.9 [104]: an alias node carries no properties.
+    if lastTokenIsNodeProperty s then
+      .error (.invalidNodeProperties c s.line s.col)
     else
-      let s' ← scanAnchorOrAlias s false
-      return s'
+      let name := (collectAnchorNameLoop s.advance "" (s.inputEnd - s.advance.offset)).fst
+      if !(s.definedAnchors.any (· == name)) then
+        .error (.undefinedAlias name s.currentPos.line s.currentPos.col)
+      else
+        let s' ← scanAnchorOrAlias s false
+        return s'
   if c == '!' then
-    let s' ← scanTag s
-    return s'
+    -- §6.9 [96]: one tag per node.
+    if propertyRunHasTag s then
+      .error (.invalidNodeProperties c s.line s.col)
+    else do
+      let s' ← scanTag s
+      return s'
   if c == '|' || c == '>' then
     -- §8.1 [170]/[174]: `c-l+literal` and `c-l+folded` are reachable only
     -- through `s-l+block-node` [196]; `ns-flow-content` [158] offers plain,

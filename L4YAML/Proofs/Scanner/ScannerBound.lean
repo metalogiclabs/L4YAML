@@ -1687,7 +1687,9 @@ lemma dispatchContent_preserves_bound (s sp s' : ScannerState) (c : Char)
   -- Step through each if-branch for the character dispatch
   -- 1. c == '&' (anchor)
   split at hok
-  · split at hok  -- bind on scanAnchorOrAlias
+  · split at hok  -- item 9e: the property-run guard
+    · simp at hok
+    split at hok  -- bind on scanAnchorOrAlias
     · cases hok
     · rename_i s_a heq
       simp only [Except.ok.injEq] at hok; subst hok
@@ -1695,13 +1697,17 @@ lemma dispatchContent_preserves_bound (s sp s' : ScannerState) (c : Char)
       exact BoundInv.trans h_bi ⟨h_aa.offset_le, h_aa.inputEnd_eq, h_aa.input_eq, h_aa.isValid⟩
   -- 2. c == '*' (alias)
   · split at hok
-    · split at hok  -- !definedAnchors check
+    · split at hok  -- item 9e: the property-run guard
+      · simp at hok
+      split at hok  -- !definedAnchors check
       · cases hok  -- error: undefined alias
       · -- scanAnchorOrAlias result is returned directly
         exact BoundInv.trans h_bi (scanAnchorOrAlias_BoundInv sp _ false h_refl h_hend hok)
     -- 3. c == '!' (tag)
     · split at hok
-      · -- scanTag result is returned directly
+      · -- scanTag result is returned directly, under the item-9e guard
+        split at hok
+        · simp at hok
         exact BoundInv.trans h_bi (scanTag_BoundInv sp _ h_refl h_hend hok)
       -- 4. c == '|' || c == '>' (block scalar)
       · split at hok

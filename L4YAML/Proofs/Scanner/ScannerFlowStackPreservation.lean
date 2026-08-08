@@ -1105,7 +1105,9 @@ lemma dispatchContent_preserves_flowStack (s : ScannerState) (c : Char) (s' : Sc
   simp only [bind, pure, Pure.pure, Except.pure] at h
   simp only [Except.bind] at h
   split at h
-  · -- '&': scanAnchorOrAlias bind
+  · -- '&': item-9e property-run guard, then the scanAnchorOrAlias bind
+    split at h
+    · simp at h
     generalize h_fn : scanAnchorOrAlias s true = result at h
     cases result with
     | error e => simp at h
@@ -1113,7 +1115,9 @@ lemma dispatchContent_preserves_flowStack (s : ScannerState) (c : Char) (s' : Sc
       simp only [Except.ok.injEq] at h; subst h; dsimp only []
       exact scanAnchorOrAlias_preserves_flowStack s true s_a h_fn
   · split at h
-    · -- '*': alias
+    · -- '*': alias, under the item-9e property-run guard
+      split at h
+      · simp at h
       split at h
       · simp at h
       · generalize h_fn : scanAnchorOrAlias s false = result at h
@@ -1123,7 +1127,9 @@ lemma dispatchContent_preserves_flowStack (s : ScannerState) (c : Char) (s' : Sc
           simp only [Except.ok.injEq] at h; subst h
           exact scanAnchorOrAlias_preserves_flowStack s false s_a h_fn
     · split at h
-      · -- '!': tag
+      · -- '!': item-9e property-run guard, then the scanTag bind
+        split at h
+        · simp at h
         generalize h_fn : scanTag s = result at h
         cases result with
         | error e => simp at h
