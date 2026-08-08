@@ -689,6 +689,192 @@ lemma tailOf_ne_sep {tokens : Array (Positioned YamlToken)}
     split <;> (try simp_all)
     split <;> simp
 
+/-! ### §1c''b''' The trailing property run, read and pushed (β.3)
+
+    `frameTokenVal?` reads *past* a held `[96] c-ns-properties` run; the run
+    itself is what the scanner's own `propertyRunHasAnchor` / `propertyRunHasTag`
+    guards read, through `trailingPropertyRun`. The accumulation has to speak both
+    languages: it holds the run as grammar (`PropsRun`) and refutes a repeated
+    half by turning the guard's success into a fact about that hold.
+
+    `trailingPropertyRun` is a two-token lookback, so unlike `frameTokenVal?` this
+    tier does need the reservation-placeholder arithmetic — but only to *read*,
+    never to rebuild, which is what keeps it to the six lemmas below. -/
+
+/-- A pushed property leaves the FRAME token alone — the point of `frameTokenVal?`,
+    stated as the dual of `frameTokenVal_push_real`. -/
+lemma frameTokenVal_push_prop {tokens : Array (Positioned YamlToken)}
+    {p : Positioned YamlToken} (h : p.val ≠ .placeholder)
+    (hnp : p.val.isNodeProperty = true) :
+    frameTokenVal? (tokens.push p) = frameTokenVal? tokens := by
+  unfold frameTokenVal?
+  rw [realVals_push_real h]
+  simp [hnp]
+
+/-- …so the frame TAIL is unmoved too: `[a, &x` is still the frame `[a,`. -/
+lemma tailOf_push_prop {tokens : Array (Positioned YamlToken)}
+    {p : Positioned YamlToken} (h : p.val ≠ .placeholder)
+    (hnp : p.val.isNodeProperty = true) :
+    tailOf (tokens.push p) = tailOf tokens ∧ LastTokenReal (tokens.push p) :=
+  ⟨by unfold tailOf; rw [frameTokenVal_push_prop h hnp], lastTokenReal_push h⟩
+
+/-- The real token before a freshly pushed real one is the previous last real. -/
+lemma penultRealTokenVal_push {tokens : Array (Positioned YamlToken)}
+    {p : Positioned YamlToken} (h : p.val ≠ .placeholder) :
+    penultRealTokenVal? (tokens.push p) = lastRealTokenVal? tokens := by
+  have hidx : lastRealTokenIdx? (tokens.push p) = some tokens.size := by
+    unfold lastRealTokenIdx?; simp [h]
+  unfold penultRealTokenVal?
+  rw [hidx]
+  congr 1
+  simp
+
+/-- Two reservation placeholders on a real-ended array leave the PENULT reading
+    alone as well (the sibling of `lastRealTokenVal_push_two_ph_of_real`, which is
+    what makes the whole two-token lookback stable under `saveSimpleKey`). -/
+lemma penultRealTokenVal_push_two_ph_of_real
+    {tokens : Array (Positioned YamlToken)} {ph1 ph2 : Positioned YamlToken}
+    (h1 : ph1.val = .placeholder) (h2 : ph2.val = .placeholder)
+    (hr : LastTokenReal tokens) :
+    penultRealTokenVal? ((tokens.push ph1).push ph2) = penultRealTokenVal? tokens := by
+  obtain ⟨hsz, hne⟩ := hr
+  have h_elem1 : ((tokens.push ph1).push ph2)[tokens.size + 1]!.val = .placeholder := by
+    rw [getElem!_pos _ _ (by simp)]
+    simp [Array.getElem_push, h2]
+  have h_elem2 : ((tokens.push ph1).push ph2)[tokens.size]!.val = .placeholder := by
+    rw [getElem!_pos _ _ (by simp; omega)]
+    simp [Array.getElem_push, h1]
+  have hidx1 : lastRealTokenIdx? ((tokens.push ph1).push ph2) = some (tokens.size - 1) := by
+    unfold lastRealTokenIdx?
+    simp only [Array.size_push, show tokens.size + 1 + 1 > 0 from by omega, ↓reduceIte,
+      show tokens.size + 1 + 1 - 1 = tokens.size + 1 from by omega]
+    simp only [h_elem1, show (YamlToken.placeholder == YamlToken.placeholder) = true from by decide,
+      Bool.true_and, show tokens.size + 1 > 0 from by omega,
+      show tokens.size + 1 - 1 = tokens.size from by omega]
+    simp only [h_elem2, show (YamlToken.placeholder == YamlToken.placeholder) = true from by decide,
+      Bool.true_and, show tokens.size + 1 > 1 from by omega,
+      show tokens.size + 1 - 2 = tokens.size - 1 from by omega]
+    simp
+  have hidx2 : lastRealTokenIdx? tokens = some (tokens.size - 1) := by
+    unfold lastRealTokenIdx?
+    simp only [hsz, ↓reduceIte, beq_eq_false_iff_ne.mpr hne, Bool.false_and,
+      Bool.false_eq_true, ↓reduceIte]
+  unfold penultRealTokenVal?
+  rw [hidx1, hidx2]
+  show lastRealTokenVal? (((tokens.push ph1).push ph2).extract 0 (tokens.size - 1)) =
+    lastRealTokenVal? (tokens.extract 0 (tokens.size - 1))
+  congr 1
+  apply Array.ext
+  · simp; omega
+  · intro i h1' h2'
+    have hi : i < tokens.size := by
+      simp only [Array.size_extract] at h2'; omega
+    simp only [Array.getElem_extract, Array.getElem_push, Nat.zero_add,
+      show i < (tokens.push ph1).size from by simp; omega, hi, ↓reduceDIte]
+
+lemma saveSimpleKey_preserves_penultRealTokenVal (s : ScannerState)
+    (hr : LastTokenReal s.tokens) :
+    penultRealTokenVal? (saveSimpleKey s).tokens = penultRealTokenVal? s.tokens := by
+  have h_cases : (saveSimpleKey s).tokens = s.tokens ∨
+      (saveSimpleKey s).tokens = ((s.tokens.push ⟨s.currentPos, .placeholder, s.currentPos⟩).push
+        ⟨s.currentPos, .placeholder, s.currentPos⟩) := by
+    unfold saveSimpleKey
+    split
+    · exact .inl rfl
+    · split
+      · right; dsimp only []
+      · exact .inl rfl
+  rcases h_cases with h_eq | h_eq
+  · rw [h_eq]
+  · rw [h_eq]; exact penultRealTokenVal_push_two_ph_of_real rfl rfl hr
+
+/-- …hence the whole run survives `saveSimpleKey`, which is what lets the
+    accumulation state its coupling about the PRE-preprocessing state and still
+    fire it against a guard the scanner evaluates after. -/
+lemma saveSimpleKey_preserves_trailingPropertyRun (s : ScannerState)
+    (hr : LastTokenReal s.tokens) :
+    trailingPropertyRun (saveSimpleKey s).tokens = trailingPropertyRun s.tokens := by
+  unfold trailingPropertyRun
+  rw [saveSimpleKey_preserves_lastRealTokenVal s hr,
+      saveSimpleKey_preserves_penultRealTokenVal s hr]
+
+/-- A pushed property is the HEAD of the new run, whichever branch the penult
+    lookback takes — so a guard testing for its own half fires without any
+    lookback reasoning at all. -/
+lemma trailingPropertyRun_push_head {tokens : Array (Positioned YamlToken)}
+    {p : Positioned YamlToken} {f : YamlToken → Bool}
+    (h : p.val ≠ .placeholder) (hnp : p.val.isNodeProperty = true) (hf : f p.val = true) :
+    (trailingPropertyRun (tokens.push p)).any f = true := by
+  unfold trailingPropertyRun
+  rw [lastRealTokenVal_push h]
+  simp only [hnp, ↓reduceIte]
+  cases penultRealTokenVal? (tokens.push p) with
+  | none => simp [hf]
+  | some t2 =>
+    by_cases hn : t2.isNodeProperty = true
+    · simp only [hn, ↓reduceIte]; simp [hf]
+    · simp only [hn, ↓reduceIte, Bool.false_eq_true]; simp [hf]
+
+/-- …and the property it displaces stays in the run. This is the ONE place the
+    two-token lookback is load-bearing: `[&a !t &b]` is refused because the run
+    visible at `&b` still carries `&a`, which is no longer the last token. -/
+lemma trailingPropertyRun_push_penult {tokens : Array (Positioned YamlToken)}
+    {p : Positioned YamlToken} {t2 : YamlToken} {f : YamlToken → Bool}
+    (h : p.val ≠ .placeholder) (hnp : p.val.isNodeProperty = true)
+    (h2 : lastRealTokenVal? tokens = some t2) (hnp2 : t2.isNodeProperty = true)
+    (hf : f t2 = true) :
+    (trailingPropertyRun (tokens.push p)).any f = true := by
+  unfold trailingPropertyRun
+  rw [lastRealTokenVal_push h]
+  simp only [hnp, ↓reduceIte]
+  rw [penultRealTokenVal_push h, h2]
+  simp only [hnp2, ↓reduceIte]
+  simp [hf]
+
+/-- A non-empty run means the last real token is itself a property: the run is
+    read from that token, and it is empty otherwise. -/
+lemma lastReal_isProperty_of_run {tokens : Array (Positioned YamlToken)}
+    {f : YamlToken → Bool} (h : (trailingPropertyRun tokens).any f = true) :
+    ∃ t, lastRealTokenVal? tokens = some t ∧ t.isNodeProperty = true := by
+  unfold trailingPropertyRun at h
+  cases hl : lastRealTokenVal? tokens with
+  | none => rw [hl] at h; simp at h
+  | some t1 =>
+    rw [hl] at h
+    by_cases hnp : t1.isNodeProperty = true
+    · exact ⟨t1, rfl, hnp⟩
+    · simp only [hnp, Bool.false_eq_true, ↓reduceIte] at h; simp at h
+
+/-- The converse reading: a property last token IS in the run. -/
+lemma trailingPropertyRun_head {tokens : Array (Positioned YamlToken)}
+    {t1 : YamlToken} {f : YamlToken → Bool}
+    (hl : lastRealTokenVal? tokens = some t1) (hnp : t1.isNodeProperty = true)
+    (hf : f t1 = true) : (trailingPropertyRun tokens).any f = true := by
+  unfold trailingPropertyRun
+  rw [hl]
+  simp only [hnp, ↓reduceIte]
+  cases penultRealTokenVal? tokens with
+  | none => simp [hf]
+  | some t2 =>
+    by_cases hn : t2.isNodeProperty = true
+    · simp only [hn, ↓reduceIte]; simp [hf]
+    · simp only [hn, ↓reduceIte, Bool.false_eq_true]; simp [hf]
+
+/-- `[96]` has exactly two halves, so a property that is not the anchor one is
+    the tag one. -/
+lemma isTagProperty_of_isNodeProperty {t : YamlToken}
+    (h : t.isNodeProperty = true) (ha : t.isAnchorProperty = false) :
+    t.isTagProperty = true := by
+  cases t <;>
+    simp_all [YamlToken.isNodeProperty, YamlToken.isAnchorProperty, YamlToken.isTagProperty]
+
+/-- …and dually. -/
+lemma isAnchorProperty_of_isNodeProperty {t : YamlToken}
+    (h : t.isNodeProperty = true) (ht : t.isTagProperty = false) :
+    t.isAnchorProperty = true := by
+  cases t <;>
+    simp_all [YamlToken.isNodeProperty, YamlToken.isAnchorProperty, YamlToken.isTagProperty]
+
 /-! ### §1c''a' The flow-interior gap (β.3)
 
     Inside an open flow collection the accumulator's grammar endpoint may sit
@@ -747,36 +933,53 @@ lemma PropsRun.addAnchor {n : Nat} {c : YamlContext} {s s₁ s₂ s' : SurfPos}
     (ha : SCNsAnchorProperty s₂ s') : PropsRun n c true true s s' := by
   cases h with | tag _ _ ht => exact .tagThenAnchor _ _ _ _ ht hsep ha
 
+/-- `[96]` has no empty arm, so a held run always carries at least one half.
+    That is what says the last real token is a property — which is how a held run
+    refutes a following alias (`[&a *x]`, item 9e). -/
+lemma PropsRun.some_half {n : Nat} {c : YamlContext} {ha ht : Bool} {s s' : SurfPos}
+    (h : PropsRun n c ha ht s s') : ha = true ∨ ht = true := by cases h <;> simp
+
+/-- A run with no anchor is the tag-only one: `[96]` has no empty arm, so the
+    index cannot be `(false, false)`. This is what turns "the scanner let a `&`
+    through, so the held run carries no anchor" into a run `addAnchor` accepts. -/
+lemma PropsRun.tag_of_no_anchor {n : Nat} {c : YamlContext} {ht : Bool} {s s' : SurfPos}
+    (h : PropsRun n c false ht s s') : ht = true := by cases h <;> rfl
+
+/-- …and dually. -/
+lemma PropsRun.anchor_of_no_tag {n : Nat} {c : YamlContext} {ha : Bool} {s s' : SurfPos}
+    (h : PropsRun n c ha false s s') : ha = true := by cases h <;> rfl
+
 /-- The flow-interior conjunct of the accumulation invariant: what lies between
     the accumulator's endpoint `sp_flow` and the scanner's cursor `sp_scan`.
 
     `h_sync` — "the frame tail and the scanner's own guards read the same token" —
     is the form `tailOf_ne_value` and `tailOf_ne_sep` need, and it is false
-    exactly when a property run is being held. Carrying it here rather than
-    re-deriving it is what makes the second constructor purely additive: the
-    `props` case will simply not have it.
+    exactly when a property run is being held. Carrying it in `white` rather than
+    re-deriving it is what makes `props` purely additive: that case simply does
+    not have it.
 
-    **The second constructor is not written yet** (DOCS item 10, β.3). It reads
+    `props` must instead carry **`h_tail` explicitly**: the adjacency check that
+    permitted the property token to be scanned ran against the pre-props tail, and
+    no later step can re-derive it, because `checkFlowAdjacency` reads the *last
+    real* token, which is by then the property itself.
 
-    ```
-    | props (ha ht : Bool) (sp_p : SurfPos)
-        (h_tail : tl ≠ .value)
-        (h_lead : SSeparateLines 0 sp_flow sp_p)
-        (h_run : PropsRun 0 (inFlowCtx .flowOut) ha ht sp_p sp_scan)
-        (h_anchor : (trailingPropertyRun sc.tokens).any YamlToken.isAnchorProperty = ha)
-        (h_tag : (trailingPropertyRun sc.tokens).any YamlToken.isTagProperty = ht)
-    ```
-
-    and it must carry `h_tail` explicitly: the adjacency check that permitted the
-    property token to be scanned ran against the pre-props tail, and no later step
-    can re-derive it, because `checkFlowAdjacency` reads the *last real* token,
-    which is by then the property itself. Its two consumers are
-    `receivePropsEmpty` and `receivePropsContent` below, which are proven; what is
-    missing is the producer (`accum_step_content`'s `&`/`!` arm) and the props
-    branch of the two depth-≥1 consumers. -/
+    Its two index couplings run one way only — `ha`/`ht` ⇒ the scanner's guard
+    fires — because that is the direction a refutation needs (`[&a &b]` dies
+    because the guard `propertyRunHasAnchor` is true, so the dispatch never
+    returns `.ok`). The converse is never used and would cost the reverse
+    lookback reasoning for nothing. -/
 inductive InteriorGap (sc : ScannerState) (tl : FrameTail) (sp_flow sp_scan : SurfPos) : Prop where
   | white (h_ws : GStar SSWhite sp_flow sp_scan)
       (h_sync : frameTokenVal? sc.tokens = lastRealTokenVal? sc.tokens) :
+      InteriorGap sc tl sp_flow sp_scan
+  | props (ha ht : Bool) (sp_p : SurfPos)
+      (h_tail : tl ≠ .value)
+      (h_lead : SSeparateLines 0 sp_flow sp_p)
+      (h_run : PropsRun 0 (inFlowCtx .flowOut) ha ht sp_p sp_scan)
+      (h_anchor : ha = true →
+        (trailingPropertyRun sc.tokens).any YamlToken.isAnchorProperty = true)
+      (h_tag : ht = true →
+        (trailingPropertyRun sc.tokens).any YamlToken.isTagProperty = true) :
       InteriorGap sc tl sp_flow sp_scan
 
 /-- After a step that emitted exactly one real, non-property token — every flow
@@ -897,10 +1100,20 @@ inductive FlowOpenStack (sp_start : SurfPos) :
       FlowOpenStack sp_start 1 #[false] tl sp_before sp_cur
   /-- A nested open flow sequence (depth d+1) inside a receptive parent. The
       `inject` closure folds this frame's completed `.flowIn` node into the parent
-      stack (built at push time from the parent's then-known state). -/
+      stack (built at push time from the parent's then-known state).
+
+      **It takes `[158] ns-flow-content`, not `[161] ns-flow-node`** (β.3). A
+      closed `[`/`{` is *always* content, so every consumer already applied
+      `SFlowNode.content` to it before calling; taking the content directly costs
+      the producers one wrapper and buys the case the node-shaped closure cannot
+      express — a `[`/`{` opened while a `[96] c-ns-properties` run is held
+      (`[&a [b]]`), where the properties must WRAP this frame's eventual node
+      (`SFlowNode.propsContent`) rather than be flushed beside it. Properties
+      cannot decorate an alias, so `propsContent` demands the narrower type and a
+      whole `SFlowNode` could not be fed to it. -/
   | seqNest (d : Nat) (ks : Array Bool) (tl : FrameTail)
       (sp_before0 sp_par sp_open sp_es sp_cur : SurfPos)
-      (inject : ∀ sp_ne, SFlowNode 0 .flowIn sp_par sp_ne →
+      (inject : ∀ sp_ne, SFlowContent 0 .flowIn sp_par sp_ne →
                 FlowOpenStack sp_start d ks .value sp_before0 sp_ne)
       (h_open : GLit '[' sp_par sp_open)
       (h_sep : GOpt (SSeparate 0 .flowIn) sp_open sp_es)
@@ -909,7 +1122,7 @@ inductive FlowOpenStack (sp_start : SurfPos) :
   /-- A nested open flow mapping (depth d+1). -/
   | mapNest (d : Nat) (ks : Array Bool) (tl : FrameTail)
       (sp_before0 sp_par sp_open sp_es sp_cur : SurfPos)
-      (inject : ∀ sp_ne, SFlowNode 0 .flowIn sp_par sp_ne →
+      (inject : ∀ sp_ne, SFlowContent 0 .flowIn sp_par sp_ne →
                 FlowOpenStack sp_start d ks .value sp_before0 sp_ne)
       (h_open : GLit '{' sp_par sp_open)
       (h_sep : GOpt (SSeparate 0 .flowIn) sp_open sp_es)
@@ -3388,6 +3601,38 @@ lemma preprocess_preserves_frameTokenVal_inFlow (s s1 : ScannerState) (c : Char)
             obtain ⟨rfl, _⟩ := h
             rw [saveSimpleKey_preserves_frameTokenVal, h_tok_skip]
 
+/-- Inside a flow, preprocessing leaves the whole trailing property RUN alone —
+    the two-token sibling of `preprocess_preserves_lastRealTokenVal_inFlow`, and
+    what carries a `props` gap's index couplings from `sc` to the state the
+    dispatch's guards actually read. -/
+lemma preprocess_preserves_trailingPropertyRun_inFlow (s s1 : ScannerState) (c : Char)
+    (h_flow : 0 < s.flowLevel) (hr : LastTokenReal s.tokens)
+    (h : scanNextToken_preprocess s = .ok (some (s1, c))) :
+    trailingPropertyRun s1.tokens = trailingPropertyRun s.tokens := by
+  unfold scanNextToken_preprocess at h
+  simp only [bind, pure, Pure.pure, Except.pure] at h
+  simp only [Except.bind] at h
+  split at h
+  · contradiction
+  · rename_i s_skip h_skip
+    have h_tok_skip := ScannerCorrectness.skipToContent_preserves_tokens s s_skip h_skip
+    have h_fl_skip := ScannerCorrectness.skipToContent_preserves_flowLevel s s_skip h_skip
+    have h_inflow : s_skip.inFlow = true := by
+      unfold ScannerState.inFlow; rw [h_fl_skip]; simp; omega
+    split at h
+    · simp at h
+    · split at h
+      · rename_i hcond
+        exact absurd hcond (by simp [h_inflow])
+      · split at h
+        · contradiction
+        · split at h
+          · simp at h
+          · simp only [Except.ok.injEq, Option.some.injEq, Prod.mk.injEq] at h
+            obtain ⟨rfl, _⟩ := h
+            rw [saveSimpleKey_preserves_trailingPropertyRun _ (by rw [h_tok_skip]; exact hr),
+                h_tok_skip]
+
 /-- …so a `white` gap survives preprocessing: both readings move together. -/
 lemma preprocess_preserves_sync_inFlow {s s1 : ScannerState} {c : Char}
     (h_flow : 0 < s.flowLevel) (hr : LastTokenReal s.tokens)
@@ -3539,18 +3784,12 @@ lemma accum_step_flow (sc : ScannerState)
     -- `sc.flowStack` kind coupling).
     obtain ⟨d, hd⟩ : ∃ d, sc.flowLevel = d + 1 := ⟨sc.flowLevel - 1, by omega⟩
     have h_real_sc : LastTokenReal sc.tokens := (h_interior hpos).2.1
-    -- β.3: the accumulation's flow endpoint may sit a whitespace run BEHIND the
-    -- scanner cursor (a flow-interior plain scalar ends its production before the
-    -- whitespace `collectPlainScalarLoop` then consumes).  The step's leading
-    -- separation is derived at the cursor and walked back to the endpoint, which
-    -- is where the frame's pending `GOpt (SSeparate 0 c)` slot expects it.
-    obtain ⟨h_white, h_sync_sc⟩ : GStar SSWhite sp_flow sp_scan ∧
-        frameTokenVal? sc.tokens = lastRealTokenVal? sc.tokens := by
-      cases (h_interior hpos).1 with | white h_ws h_sync => exact ⟨h_ws, h_sync⟩
+    -- β.3: the accumulation's flow endpoint may sit BEHIND the scanner cursor —
+    -- a whitespace run (a flow-interior plain scalar ends its production before
+    -- the whitespace `collectPlainScalarLoop` then consumes) or a held property
+    -- run.  Which it is, is resolved once, below the index bookkeeping.
     obtain ⟨sp_prep, h_lead0, hcorr_prep⟩ :=
       preprocess_some_separate_0_anyCol sc sp_scan s_prep c h_corr h_preprocess
-    have h_lead : SSeparateLines 0 sp_flow sp_prep :=
-      SSeparateLines_prepend_white h_white h_lead0
     have h_ad_fl : (if s_prep.allowDirectives then
         { s_prep with allowDirectives := false, documentEverStarted := true }
       else s_prep).flowLevel = sc.flowLevel :=
@@ -3576,20 +3815,12 @@ lemma accum_step_flow (sc : ScannerState)
       rw [allowDirectives_update_tokens,
           preprocess_preserves_frameTokenVal_inFlow sc s_prep c (by omega) h_preprocess]
       rw [← htl]; rfl
-    -- The `white` half of the interior gap, transported to the dispatch's state:
-    -- with nothing held, the frame tail and the scanner's two guards read the
-    -- same token, which is what `tailOf_ne_value`/`tailOf_ne_sep` transport.
-    have h_ad_sync : frameTokenVal? (if s_prep.allowDirectives then
-        { s_prep with allowDirectives := false, documentEverStarted := true }
-      else s_prep).tokens = lastRealTokenVal? (if s_prep.allowDirectives then
-        { s_prep with allowDirectives := false, documentEverStarted := true }
-      else s_prep).tokens := by
-      rw [allowDirectives_update_tokens]
-      exact preprocess_preserves_sync_inFlow (by omega) h_real_sc h_preprocess h_sync_sc
     have h_ad_inflow : (if s_prep.allowDirectives then
         { s_prep with allowDirectives := false, documentEverStarted := true }
       else s_prep).inFlow = true := by
       unfold ScannerState.inFlow; rw [h_ad_fl]; simp; omega
+    have h_gap : InteriorGap sc tl sp_flow sp_scan := by
+      rw [← htl]; exact (h_interior hpos).1
     rw [hd, hks, htl] at h_flow
     have h_fos := h_flow.open_of_succ
     unfold scanNextToken_dispatchFlowIndicators at h_dispatch
@@ -3606,12 +3837,57 @@ lemma accum_step_flow (sc : ScannerState)
     generalize h_ad_def : (if s_prep.allowDirectives = true then
         { s_prep with allowDirectives := false, documentEverStarted := true }
       else s_prep) = s_ad at h_dispatch h_adj
-    rw [h_ad_def] at h_ad_fl h_ad_ks h_ad_tl h_ad_sync h_ad_inflow hcorr_ad hpeek_ad
+    rw [h_ad_def] at h_ad_fl h_ad_ks h_ad_tl h_ad_inflow hcorr_ad hpeek_ad
     -- β.3: the dispatch runs AFTER the `allowDirectives` update, so the flag is
     -- already cleared here; none of the five indicators touches it, which is how
     -- the interior invariant's "no directive inside an open flow" half survives.
     have h_ad_false : s_ad.allowDirectives = false := by
       rw [← h_ad_def]; exact allowDirectives_update_false s_prep
+    -- ═══ THE INTERIOR GAP, RESOLVED ONCE (β.3) ═══
+    -- Both cases hand the five arms the same five things, which is why no arm
+    -- below has to know whether a `[96] c-ns-properties` run was being held.
+    --
+    --  * `white` — nothing held. The frame, its tail and the leading separation
+    --    are as they were, and the two token readings coincide (`h_sync`), which
+    --    is what transports the scanner's two flow guards onto the frame index.
+    --  * `props` — a run held. It is FLUSHED as `SFlowNode.propsEmpty`, which is
+    --    what `,`, `]` and `}` decide (`[&a]`, `[&a, b]`, `{&a: v}`): the frame
+    --    advances to `.value` AT THE CURSOR and the gap empties.  The guard
+    --    transports are then not needed at all — `.value ≠ .sep` is immediate,
+    --    and `tl ≠ .value` came in with the gap, which is exactly why the gap has
+    --    to carry it (`checkFlowAdjacency` reads the property, not the frame).
+    --
+    -- `h_inj` is the one thing that does NOT flush: `[`/`{` after a held run must
+    -- WRAP it (`[&a [b]]` is ONE node whose content is the nested sequence), so
+    -- the child frame's `inject` closes over `receivePropsContent` instead.  That
+    -- is what `inject`'s `SFlowContent` argument buys.
+    obtain ⟨tl₂, sp_flow₂, h_fos₂, h_lead₂, h_inj, h_ne_value, h_ne_sep⟩ :
+        ∃ tl₂ sp_flow₂,
+          FlowOpenStack sp_start (d + 1) ks tl₂ sp_block sp_flow₂ ∧
+          SSeparateLines 0 sp_flow₂ sp_prep ∧
+          (tl ≠ .value → ∀ sp_ne, SFlowContent 0 .flowIn sp_prep sp_ne →
+            FlowOpenStack sp_start (d + 1) ks .value sp_block sp_ne) ∧
+          ((∀ t, lastRealTokenVal? s_ad.tokens = some t →
+              t.completesFlowValue = false) → tl ≠ .value) ∧
+          ((∀ t, lastRealTokenVal? s_ad.tokens = some t →
+              ¬(t = .flowSequenceStart ∨ t = .flowMappingStart ∨ t = .flowEntry)) →
+            tl₂ ≠ .sep) := by
+      cases h_gap with
+      | white h_ws h_sync =>
+        have h_lead : SSeparateLines 0 sp_flow sp_prep :=
+          SSeparateLines_prepend_white h_ws h_lead0
+        have h_ad_sync : frameTokenVal? s_ad.tokens = lastRealTokenVal? s_ad.tokens := by
+          rw [← h_ad_def, allowDirectives_update_tokens]
+          exact preprocess_preserves_sync_inFlow (by omega) h_real_sc h_preprocess h_sync
+        exact ⟨tl, sp_flow, h_fos, h_lead,
+          (fun h_tail sp_ne h_c =>
+            FlowOpenStack.receiveNode h_fos h_tail h_lead sp_ne (.content _ _ _ _ h_c)),
+          (fun h => by rw [← h_ad_tl]; exact tailOf_ne_value h_ad_sync h),
+          (fun h => by rw [← h_ad_tl]; exact tailOf_ne_sep h_ad_sync h)⟩
+      | props ha ht sp_p h_tail h_lead_p h_run _ _ =>
+        exact ⟨.value, sp_scan, h_fos.receivePropsEmpty h_tail h_lead_p h_run, h_lead0,
+          (fun _ sp_ne h_c => h_fos.receivePropsContent h_tail h_lead_p h_run h_lead0 h_c),
+          (fun _ => h_tail), (fun _ => by decide)⟩
     split at h_dispatch
     · -- '[': NESTED PUSH, depth d+1 → d+2. The child seq frame's `inject` is
       -- `receiveNode` on the parent (folding the eventual child node + this
@@ -3627,9 +3903,8 @@ lemma accum_step_flow (sc : ScannerState)
       -- 9b(ii): a `[` is a node start, so the adjacency check having passed says
       -- the previous real token did not complete a flow value — the parent frame
       -- is receptive.
-      have h_tail : tl ≠ .value := by
-        rw [← h_ad_tl]
-        exact tailOf_ne_value h_ad_sync
+      have h_tail : tl ≠ .value :=
+        h_ne_value
           (notCompletes_of_checkFlowAdjacency_ok h_adj h_ad_inflow ⟨by decide, by decide,
             by decide, by decide⟩)
       rw [h_fl, h_ad_fl, hd,
@@ -3638,7 +3913,8 @@ lemma accum_step_flow (sc : ScannerState)
       exact ⟨sp_gram, sp_block, sp_tok, sp_tok, h_stream, h_stack,
         .open (d + 1 + 1) (ks.push true) .sep sp_block sp_tok
           (.seqNest (d + 1) ks .sep sp_block sp_prep sp_tok sp_tok sp_tok
-            (FlowOpenStack.receiveNode h_fos h_tail h_lead) h_open_lit (GOpt.none sp_tok)
+            (h_inj h_tail)
+            h_open_lit (GOpt.none sp_tok)
             (.betweenEmpty sp_tok)),
         (fun _ => PendingNode.noPending sp_start sp_tok), hcorr_tok,
         fun _ => ⟨.white (GStar.nil _) (sync_scanFlowSequenceStart _), (tailOf_scanFlowSequenceStart _).2,
@@ -3672,12 +3948,12 @@ lemma accum_step_flow (sc : ScannerState)
                 rw [h_fl, h_ad_fl, hd]; omega
               rw [h_fl', ScannerFlowCollection.scanFlowSequenceEnd_pops, h_ad_ks,
                   (tailOf_scanFlowSequenceEnd _).1]
-              cases h_fos
+              cases h_fos₂
               · -- seqBase (d = 0): close the outermost seq; the completed node
                 -- re-enters the stream via `resume`, parked as `pendingContent`
                 -- until the next step's SSLComments.
                 rename_i resume h_open h_sep st
-                have h_seq := SeqFrame.closeWithSep h_open h_sep st h_lead h_lead h_close_lit
+                have h_seq := SeqFrame.closeWithSep h_open h_sep st h_lead₂ h_lead₂ h_close_lit
                 rw [show (#[true] : Array Bool).pop = #[] from rfl]
                 exact ⟨sp_gram, sp_block, sp_block, sp_tok, h_stream, h_stack,
                   FlowStackB.nil sp_block _,
@@ -3693,11 +3969,11 @@ lemma accum_step_flow (sc : ScannerState)
               · -- seqNest (d ≥ 1): close the nested seq and fold it into the
                 -- parent via `inject`.
                 rename_i h_open h_sep inject st
-                have h_seq := SeqFrame.closeWithSep h_open h_sep st h_lead h_lead h_close_lit
+                have h_seq := SeqFrame.closeWithSep h_open h_sep st h_lead₂ h_lead₂ h_close_lit
                 rw [Array.pop_push]
                 exact ⟨sp_gram, sp_block, sp_tok, sp_tok, h_stream, h_stack,
                   .open _ _ _ sp_block sp_tok (inject sp_tok
-                    (SFlowNode.content _ _ _ _ (SFlowContent.flowSeq _ _ _ _ h_seq))),
+                    (SFlowContent.flowSeq _ _ _ _ h_seq)),
                   (fun _ => PendingNode.noPending sp_start sp_tok), hcorr_tok,
                   fun _ => ⟨.white (GStar.nil _) (sync_scanFlowSequenceEnd _), (tailOf_scanFlowSequenceEnd _).2,
                     (scanFlowSequenceEnd_allowDirectives _).trans h_ad_false⟩⟩
@@ -3713,9 +3989,8 @@ lemma accum_step_flow (sc : ScannerState)
               (hpeek_ad.trans (preprocess_some_peek h_preprocess))
           have hs := Option.some.inj (Except.ok.inj h_dispatch)
           subst hs
-          have h_tail : tl ≠ .value := by
-            rw [← h_ad_tl]
-            exact tailOf_ne_value h_ad_sync
+          have h_tail : tl ≠ .value :=
+            h_ne_value
               (notCompletes_of_checkFlowAdjacency_ok h_adj h_ad_inflow ⟨by decide, by decide,
                 by decide, by decide⟩)
           rw [h_fl, h_ad_fl, hd,
@@ -3724,7 +3999,8 @@ lemma accum_step_flow (sc : ScannerState)
           exact ⟨sp_gram, sp_block, sp_tok, sp_tok, h_stream, h_stack,
             .open (d + 1 + 1) (ks.push false) .sep sp_block sp_tok
               (.mapNest (d + 1) ks .sep sp_block sp_prep sp_tok sp_tok sp_tok
-                (FlowOpenStack.receiveNode h_fos h_tail h_lead) h_open_lit (GOpt.none sp_tok)
+                (h_inj h_tail)
+                h_open_lit (GOpt.none sp_tok)
                 (.betweenEmpty sp_tok)),
             (fun _ => PendingNode.noPending sp_start sp_tok), hcorr_tok,
             fun _ => ⟨.white (GStar.nil _) (sync_scanFlowMappingStart _), (tailOf_scanFlowMappingStart _).2,
@@ -3755,13 +4031,13 @@ lemma accum_step_flow (sc : ScannerState)
                     rw [h_fl, h_ad_fl, hd]; omega
                   rw [h_fl', ScannerFlowCollection.scanFlowMappingEnd_pops, h_ad_ks,
                       (tailOf_scanFlowMappingEnd _).1]
-                  cases h_fos
+                  cases h_fos₂
                   · -- seqBase + '}': kind-mismatched close (`[a}`). REFUTED
                     -- (9a+9b(i)): a sequence base frame pins the index to `#[true]`.
                     simp at h_back
                   · -- mapBase (d = 0): close the outermost map via `resume`.
                     rename_i resume h_open h_sep st
-                    have h_map := MapFrame.closeWithSep h_open h_sep st h_lead h_lead h_close_lit
+                    have h_map := MapFrame.closeWithSep h_open h_sep st h_lead₂ h_lead₂ h_close_lit
                     rw [show (#[false] : Array Bool).pop = #[] from rfl]
                     exact ⟨sp_gram, sp_block, sp_block, sp_tok, h_stream, h_stack,
                       FlowStackB.nil sp_block _,
@@ -3773,11 +4049,11 @@ lemma accum_step_flow (sc : ScannerState)
                     simp at h_back
                   · -- mapNest (d ≥ 1): close the nested map, fold via `inject`.
                     rename_i h_open h_sep inject st
-                    have h_map := MapFrame.closeWithSep h_open h_sep st h_lead h_lead h_close_lit
+                    have h_map := MapFrame.closeWithSep h_open h_sep st h_lead₂ h_lead₂ h_close_lit
                     rw [Array.pop_push]
                     exact ⟨sp_gram, sp_block, sp_tok, sp_tok, h_stream, h_stack,
                       .open _ _ _ sp_block sp_tok (inject sp_tok
-                        (SFlowNode.content _ _ _ _ (SFlowContent.flowMap _ _ _ _ h_map))),
+                        (SFlowContent.flowMap _ _ _ _ h_map)),
                       (fun _ => PendingNode.noPending sp_start sp_tok), hcorr_tok,
                       fun _ => ⟨.white (GStar.nil _) (sync_scanFlowMappingEnd _), (tailOf_scanFlowMappingEnd _).2,
                         (scanFlowMappingEnd_allowDirectives _).trans h_ad_false⟩⟩
@@ -3804,35 +4080,34 @@ lemma accum_step_flow (sc : ScannerState)
                   -- 9b(ii): `scanFlowEntry` having succeeded says the previous real
                   -- token was neither a flow-open indicator nor another `,`, so the
                   -- frame is not in a `.sep` tail (`[,`, `,,` are the rejected shapes).
-                  have h_tail : tl ≠ .sep := by
-                    rw [← h_ad_tl]; exact tailOf_ne_sep h_ad_sync (notSepTok_of_scanFlowEntry_ok hfe)
+                  have h_tail : tl₂ ≠ .sep := h_ne_sep (notSepTok_of_scanFlowEntry_ok hfe)
                   rw [h_fl', h_ks', (tailOf_scanFlowEntry hfe).1]
-                  cases h_fos
+                  cases h_fos₂
                   · rename_i resume h_open h_sep st
                     exact ⟨sp_gram, sp_block, sp_tok, sp_tok, h_stream, h_stack,
                       .open _ _ _ sp_block sp_tok (.seqBase _ _ _ _ _ _ resume h_open h_sep
-                        (st.holdComma h_tail h_lead h_comma_lit)),
+                        (st.holdComma h_tail h_lead₂ h_comma_lit)),
                       (fun _ => PendingNode.noPending sp_start sp_tok), hcorr_tok,
                       fun _ => ⟨.white (GStar.nil _) (sync_scanFlowEntry hfe), (tailOf_scanFlowEntry hfe).2,
                         (scanFlowEntry_allowDirectives hfe).trans h_ad_false⟩⟩
                   · rename_i resume h_open h_sep st
                     exact ⟨sp_gram, sp_block, sp_tok, sp_tok, h_stream, h_stack,
                       .open _ _ _ sp_block sp_tok (.mapBase _ _ _ _ _ _ resume h_open h_sep
-                        (st.holdComma h_tail h_lead h_comma_lit)),
+                        (st.holdComma h_tail h_lead₂ h_comma_lit)),
                       (fun _ => PendingNode.noPending sp_start sp_tok), hcorr_tok,
                       fun _ => ⟨.white (GStar.nil _) (sync_scanFlowEntry hfe), (tailOf_scanFlowEntry hfe).2,
                         (scanFlowEntry_allowDirectives hfe).trans h_ad_false⟩⟩
                   · rename_i h_open h_sep inject st
                     exact ⟨sp_gram, sp_block, sp_tok, sp_tok, h_stream, h_stack,
                       .open _ _ _ sp_block sp_tok (.seqNest _ _ _ _ _ _ _ _ inject h_open h_sep
-                        (st.holdComma h_tail h_lead h_comma_lit)),
+                        (st.holdComma h_tail h_lead₂ h_comma_lit)),
                       (fun _ => PendingNode.noPending sp_start sp_tok), hcorr_tok,
                       fun _ => ⟨.white (GStar.nil _) (sync_scanFlowEntry hfe), (tailOf_scanFlowEntry hfe).2,
                         (scanFlowEntry_allowDirectives hfe).trans h_ad_false⟩⟩
                   · rename_i h_open h_sep inject st
                     exact ⟨sp_gram, sp_block, sp_tok, sp_tok, h_stream, h_stack,
                       .open _ _ _ sp_block sp_tok (.mapNest _ _ _ _ _ _ _ _ inject h_open h_sep
-                        (st.holdComma h_tail h_lead h_comma_lit)),
+                        (st.holdComma h_tail h_lead₂ h_comma_lit)),
                       (fun _ => PendingNode.noPending sp_start sp_tok), hcorr_tok,
                       fun _ => ⟨.white (GStar.nil _) (sync_scanFlowEntry hfe), (tailOf_scanFlowEntry hfe).2,
                         (scanFlowEntry_allowDirectives hfe).trans h_ad_false⟩⟩
@@ -4784,7 +5059,7 @@ lemma dispatchContent_plainScalar_flowIn_prod (sc : ScannerState) (sp : SurfPos)
     (hnotPipe : c ≠ '|') (hnotGt : c ≠ '>') (hnotDQ : c ≠ '"') (hnotSQ : c ≠ '\'')
     (h_not_doc : sc.col = 0 → atDocumentBoundary sc = false)
     (hok : scanNextToken_dispatchContent sc c = .ok s') :
-    ∃ sp_gram sp', SFlowNode 0 .flowIn sp sp_gram ∧
+    ∃ sp_gram sp', SFlowContent 0 .flowIn sp sp_gram ∧
                    GStar SSWhite sp_gram sp' ∧
                    ScannerSurfCorr s' sp' := by
   unfold scanNextToken_dispatchContent at hok
@@ -4806,21 +5081,27 @@ lemma dispatchContent_plainScalar_flowIn_prod (sc : ScannerState) (sp : SurfPos)
           · split at hok
             · rename_i h_eq; exact absurd (beq_iff_eq.mp h_eq) hnotSQ
             · split at hok
-              · exact scanPlainScalar_to_flowNode_flowIn sc sp hcorr hpeek
-                  (by assumption) h_inflow h_not_doc (by assumption)
+              · obtain ⟨sp_gram, sp'', h_pl, h_ws, hcorr'⟩ :=
+                  scanPlainScalar_to_multiLine_native sc sp hcorr hpeek
+                    (by assumption) h_not_doc (by assumption)
+                rw [h_inflow] at h_pl
+                exact ⟨sp_gram, sp'', SFlowContent.plain 0 .flowIn _ _ h_pl, h_ws, hcorr'⟩
               · simp at hok
 
--- Content dispatch for anchor: returns `SFlowNode 0 ctx` grammar evidence in ANY
--- context.  Anchor `&name` produces `SCNsAnchorProperty` → `SCNsProperties.anchorFirst`
--- → `SFlowNode.propsEmpty`; the property itself carries no context, and the
--- trailing separator is `GOpt.none`, so every context is equally derivable.
--- Since A10 Except conversion, `.ok` guarantees non-empty name unconditionally.
-lemma dispatchContent_anchor_prod (sc : ScannerState) (sp : SurfPos)
-    {s' : ScannerState} (ctx : YamlContext)
+/-- **Content dispatch for `&`, stopped at the PROPERTY** (β.3).  `[101]
+    c-ns-anchor-property` on its own, before anything wraps it into a node.
+
+    The wrapping is what the next step decides, and the two readings are not
+    interchangeable: `dispatchContent_anchor_prod` below closes it as
+    `propsEmpty` — a COMPLETE node — which is the right reading only for `[&a]`,
+    `[&a, b]` and `{&a: v}`.  For `[&a b]` the anchor decorates the node that
+    follows, and only the run survives to be wrapped later. -/
+lemma dispatchContent_anchorProp_prod (sc : ScannerState) (sp : SurfPos)
+    {s' : ScannerState}
     (hcorr : ScannerSurfCorr sc sp)
     (hpeek : sc.peek? = some '&')
     (hok : scanNextToken_dispatchContent sc '&' = .ok s') :
-    ∃ sp', SFlowNode 0 ctx sp sp' ∧ ScannerSurfCorr s' sp' := by
+    ∃ sp', SCNsAnchorProperty sp sp' ∧ ScannerSurfCorr s' sp' := by
   unfold scanNextToken_dispatchContent at hok
   simp only [bind, Except.bind, pure, Except.pure] at hok
   -- '&' == '&' = true: anchor branch
@@ -4836,21 +5117,35 @@ lemma dispatchContent_anchor_prod (sc : ScannerState) (sp : SurfPos)
       have h := Except.ok.inj hok; subst h
       obtain ⟨sp', h_anchor, hcorr'⟩ :=
         scanAnchorOrAlias_anchorProp_prod sc sp hcorr hpeek s_anch h_anch
-      exact ⟨sp', SFlowNode.propsEmpty 0 ctx sp sp'
-        (SCNsProperties.anchorFirst 0 ctx sp sp' sp' h_anchor (GOpt.none _)),
-        ⟨hcorr'.chars_from, hcorr'.col_eq, hcorr'.end_eq, hcorr'.input_prefix, hcorr'.indent_cols_nonneg⟩⟩
+      exact ⟨sp', h_anchor,
+        ⟨hcorr'.chars_from, hcorr'.col_eq, hcorr'.end_eq, hcorr'.input_prefix,
+          hcorr'.indent_cols_nonneg⟩⟩
   · rename_i h_neq; exact absurd rfl h_neq
 
--- Content dispatch for tag: returns `SFlowNode 0 ctx` grammar evidence in ANY
--- context (same context-freedom as the anchor case).
--- Tag `!` produces `SCNsTagProperty` → `SCNsProperties.tagFirst` → `SFlowNode.propsEmpty`.
--- Secondary tag `!!suffix` is fully proven. Verbatim and named tags are sorry'd.
-lemma dispatchContent_tag_prod (sc : ScannerState) (sp : SurfPos)
+-- Content dispatch for anchor: returns `SFlowNode 0 ctx` grammar evidence in ANY
+-- context.  Anchor `&name` produces `SCNsAnchorProperty` → `SCNsProperties.anchorFirst`
+-- → `SFlowNode.propsEmpty`; the property itself carries no context, and the
+-- trailing separator is `GOpt.none`, so every context is equally derivable.
+-- Since A10 Except conversion, `.ok` guarantees non-empty name unconditionally.
+lemma dispatchContent_anchor_prod (sc : ScannerState) (sp : SurfPos)
     {s' : ScannerState} (ctx : YamlContext)
+    (hcorr : ScannerSurfCorr sc sp)
+    (hpeek : sc.peek? = some '&')
+    (hok : scanNextToken_dispatchContent sc '&' = .ok s') :
+    ∃ sp', SFlowNode 0 ctx sp sp' ∧ ScannerSurfCorr s' sp' := by
+  obtain ⟨sp', h_anchor, hcorr'⟩ := dispatchContent_anchorProp_prod sc sp hcorr hpeek hok
+  exact ⟨sp', SFlowNode.propsEmpty 0 ctx sp sp'
+    (SCNsProperties.anchorFirst 0 ctx sp sp' sp' h_anchor (GOpt.none _)), hcorr'⟩
+
+/-- **Content dispatch for `!`, stopped at the PROPERTY** — the tag sibling of
+    `dispatchContent_anchorProp_prod`.  All four `[97]` forms are covered
+    (verbatim, secondary, named/primary). -/
+lemma dispatchContent_tagProp_prod (sc : ScannerState) (sp : SurfPos)
+    {s' : ScannerState}
     (hcorr : ScannerSurfCorr sc sp)
     (hpeek : sc.peek? = some '!')
     (hok : scanNextToken_dispatchContent sc '!' = .ok s') :
-    ∃ sp', SFlowNode 0 ctx sp sp' ∧ ScannerSurfCorr s' sp' := by
+    ∃ sp', SCNsTagProperty sp sp' ∧ ScannerSurfCorr s' sp' := by
   unfold scanNextToken_dispatchContent at hok
   simp only [bind, Except.bind, pure, Except.pure] at hok
   -- Skip '&' check
@@ -4870,17 +5165,32 @@ lemma dispatchContent_tag_prod (sc : ScannerState) (sp : SurfPos)
         | ok s_tag =>
           simp only [Except.ok.injEq] at hok; subst hok
           by_cases hpeek2 : sc.advance.peek? = some '!'
-          · -- Secondary tag `!!suffix`: fully proven
-            obtain ⟨sp', h_tag_prop, hcorr'⟩ := scanTag_secondary_prod sc sp hcorr hpeek hpeek2 s_tag h_tag
-            exact ⟨sp', SFlowNode.propsEmpty 0 ctx sp sp'
-              (SCNsProperties.tagFirst 0 ctx sp sp' sp' h_tag_prop (GOpt.none _)),
-              ⟨hcorr'.chars_from, hcorr'.col_eq, hcorr'.end_eq, hcorr'.input_prefix, hcorr'.indent_cols_nonneg⟩⟩
-          · -- Verbatim `!<uri>` or named `!handle!suffix` or non-specific `!`:
-            obtain ⟨sp', h_tag_prop, hcorr'⟩ := scanTag_nonSecondary_prod sc sp hcorr hpeek hpeek2 s_tag h_tag
-            exact ⟨sp', SFlowNode.propsEmpty 0 ctx sp sp'
-              (SCNsProperties.tagFirst 0 ctx sp sp' sp' h_tag_prop (GOpt.none _)),
-              ⟨hcorr'.chars_from, hcorr'.col_eq, hcorr'.end_eq, hcorr'.input_prefix, hcorr'.indent_cols_nonneg⟩⟩
+          · -- Secondary tag `!!suffix`
+            obtain ⟨sp', h_tag_prop, hcorr'⟩ :=
+              scanTag_secondary_prod sc sp hcorr hpeek hpeek2 s_tag h_tag
+            exact ⟨sp', h_tag_prop,
+              ⟨hcorr'.chars_from, hcorr'.col_eq, hcorr'.end_eq, hcorr'.input_prefix,
+                hcorr'.indent_cols_nonneg⟩⟩
+          · -- Verbatim `!<uri>` or named `!handle!suffix` or non-specific `!`
+            obtain ⟨sp', h_tag_prop, hcorr'⟩ :=
+              scanTag_nonSecondary_prod sc sp hcorr hpeek hpeek2 s_tag h_tag
+            exact ⟨sp', h_tag_prop,
+              ⟨hcorr'.chars_from, hcorr'.col_eq, hcorr'.end_eq, hcorr'.input_prefix,
+                hcorr'.indent_cols_nonneg⟩⟩
       · rename_i h_neq; exact absurd rfl h_neq
+
+-- Content dispatch for tag: returns `SFlowNode 0 ctx` grammar evidence in ANY
+-- context (same context-freedom as the anchor case).
+-- Tag `!` produces `SCNsTagProperty` → `SCNsProperties.tagFirst` → `SFlowNode.propsEmpty`.
+lemma dispatchContent_tag_prod (sc : ScannerState) (sp : SurfPos)
+    {s' : ScannerState} (ctx : YamlContext)
+    (hcorr : ScannerSurfCorr sc sp)
+    (hpeek : sc.peek? = some '!')
+    (hok : scanNextToken_dispatchContent sc '!' = .ok s') :
+    ∃ sp', SFlowNode 0 ctx sp sp' ∧ ScannerSurfCorr s' sp' := by
+  obtain ⟨sp', h_tag_prop, hcorr'⟩ := dispatchContent_tagProp_prod sc sp hcorr hpeek hok
+  exact ⟨sp', SFlowNode.propsEmpty 0 ctx sp sp'
+    (SCNsProperties.tagFirst 0 ctx sp sp' sp' h_tag_prop (GOpt.none _)), hcorr'⟩
 
 -- Unified content evidence extraction (Wadler-style "theorems for free").
 -- All content dispatch paths either produce `SFlowNode 0 .flowOut` (flow content:
@@ -4991,8 +5301,180 @@ lemma dispatchContent_evidence_flowIn (sc : ScannerState) (sp : SurfPos)
           · subst hc_bang
             obtain ⟨sp', h_gram, hcorr'⟩ := dispatchContent_tag_prod sc sp .flowIn hcorr hpeek hok
             exact ⟨sp', sp', h_gram, GStar.nil _, hcorr'⟩
-          · exact dispatchContent_plainScalar_flowIn_prod sc sp hcorr hpeek h_inflow
-              hc_amp hc_alias hc_bang hnotPipe hnotGt hc_dq hc_sq h_not_doc hok
+          · obtain ⟨sp_gram, sp'', h_c, h_ws, hcorr'⟩ :=
+              dispatchContent_plainScalar_flowIn_prod sc sp hcorr hpeek h_inflow
+                hc_amp hc_alias hc_bang hnotPipe hnotGt hc_dq hc_sq h_not_doc hok
+            exact ⟨sp_gram, sp'', SFlowNode.content 0 .flowIn _ _ h_c, h_ws, hcorr'⟩
+
+/-- **β.3's flow-interior CONTENT evidence.**  `dispatchContent_evidence_flowIn`
+    stopped at `[161] ns-flow-node`; the props gap needs `[158] ns-flow-content`,
+    because `SFlowNode.propsContent` wraps content, not a node.
+
+    Which is also why `*` has to be excluded rather than handled: `[104]
+    c-ns-alias-node` is a whole node with no content reading, so `[&a *x]` has no
+    derivation — and the scanner agrees, rejecting it at the `*` via
+    `lastTokenIsNodeProperty` (item 9e). -/
+lemma dispatchContent_evidence_flowIn_content (sc : ScannerState) (sp : SurfPos)
+    {s' : ScannerState} (c : Char)
+    (hcorr : ScannerSurfCorr sc sp)
+    (hpeek : sc.peek? = some c)
+    (h_inflow : sc.inFlow = true)
+    (h_not_doc : sc.col = 0 → atDocumentBoundary sc = false)
+    (h_amp : c ≠ '&') (h_star : c ≠ '*') (h_bang : c ≠ '!')
+    (hok : scanNextToken_dispatchContent sc c = .ok s') :
+    ∃ sp_gram sp',
+      SFlowContent 0 .flowIn sp sp_gram ∧
+      GStar SSWhite sp_gram sp' ∧
+      ScannerSurfCorr s' sp' := by
+  obtain ⟨hnotPipe, hnotGt⟩ :=
+    Proofs.BlockScalarFlowGuard.dispatchContent_not_blockScalar_of_inFlow h_inflow hok
+  by_cases hc_dq : c = '"'
+  · subst hc_dq
+    obtain ⟨sp'', h_gram, hcorr'⟩ := dispatchContent_doubleQuoted_prod sc sp hcorr hpeek hok
+    exact ⟨sp'', sp'', SFlowContent_doubleQ_ctx_lift h_gram (by decide) (by decide),
+           GStar.nil _, hcorr'⟩
+  · by_cases hc_sq : c = '\''
+    · subst hc_sq
+      obtain ⟨sp'', h_gram, hcorr'⟩ := dispatchContent_singleQuoted_prod sc sp hcorr hpeek hok
+      exact ⟨sp'', sp'', SFlowContent_singleQ_ctx_lift h_gram (by decide) (by decide),
+             GStar.nil _, hcorr'⟩
+    · exact dispatchContent_plainScalar_flowIn_prod sc sp hcorr hpeek h_inflow
+        h_amp h_star h_bang hnotPipe hnotGt hc_dq hc_sq h_not_doc hok
+
+/-! #### The content dispatch's three property guards, inverted (β.3)
+
+    Each is the same shape: the arm's `if` is a disjunction whose first disjunct
+    is the §6.9/§7.5 property test, so a dispatch that returned `.ok` says that
+    test was `false`.  That is how a held run refutes a repeat of its own half —
+    the accumulation never meets `[&a &b]`, because the scanner errored. -/
+
+lemma propertyRunHasAnchor_false_of_dispatch {s s' : ScannerState}
+    (hok : scanNextToken_dispatchContent s '&' = .ok s') :
+    propertyRunHasAnchor s = false := by
+  unfold scanNextToken_dispatchContent at hok
+  simp only [bind, Except.bind, pure, Except.pure] at hok
+  split at hok
+  · split at hok
+    · simp at hok
+    · rename_i hg; simp at hg; exact hg.1
+  · rename_i h_neq; exact absurd rfl h_neq
+
+lemma propertyRunHasTag_false_of_dispatch {s s' : ScannerState}
+    (hok : scanNextToken_dispatchContent s '!' = .ok s') :
+    propertyRunHasTag s = false := by
+  unfold scanNextToken_dispatchContent at hok
+  simp only [bind, Except.bind, pure, Except.pure] at hok
+  split at hok
+  · rename_i h_eq; exact absurd h_eq (by decide)
+  · split at hok
+    · rename_i h_eq; exact absurd h_eq (by decide)
+    · split at hok
+      · split at hok
+        · simp at hok
+        · rename_i hg; simp at hg; exact hg.1
+      · rename_i h_neq; exact absurd rfl h_neq
+
+/-- Item 9e's third test: `[104]` is an alternative to the properties-bearing
+    `[161]`, never its content, so a dispatched `*` says nothing was held. -/
+lemma lastTokenIsNodeProperty_false_of_dispatch {s s' : ScannerState}
+    (hok : scanNextToken_dispatchContent s '*' = .ok s') :
+    lastTokenIsNodeProperty s = false := by
+  unfold scanNextToken_dispatchContent at hok
+  simp only [bind, Except.bind, pure, Except.pure] at hok
+  split at hok
+  · rename_i h_eq; exact absurd h_eq (by decide)
+  · split at hok
+    · split at hok
+      · simp at hok
+      · rename_i hg; simp at hg; exact hg.1
+    · rename_i h_neq; exact absurd rfl h_neq
+
+/-- The token a dispatched `&` pushes. -/
+lemma dispatchContent_anchor_tokens {s s' : ScannerState}
+    (hok : scanNextToken_dispatchContent s '&' = .ok s') :
+    ∃ name, s'.tokens = s.tokens.push ⟨s.currentPos, .anchor name, s.currentPos⟩ := by
+  unfold scanNextToken_dispatchContent at hok
+  simp only [bind, Except.bind, pure, Except.pure] at hok
+  split at hok
+  · split at hok
+    · simp at hok
+    generalize h_anch : scanAnchorOrAlias s true = anch_result at hok
+    cases anch_result with
+    | error => simp at hok
+    | ok s_anch =>
+      change Except.ok _ = Except.ok s' at hok
+      have h := Except.ok.inj hok; subst h
+      obtain ⟨name, hname⟩ := scanAnchorOrAlias_tokens h_anch
+      exact ⟨name, by simpa using hname⟩
+  · rename_i h_neq; exact absurd rfl h_neq
+
+/-- Reading a token off an `emitAt`, with the pre-state's array named.  Stating
+    it this way is what lets the four `[97]` arms below supply their tag payload
+    by unification instead of by transcription. -/
+lemma emitAt_push_tokens {s : ScannerState} {tokens : Array (Positioned YamlToken)}
+    (h : s.tokens = tokens) (pos : YamlPos) (tok : YamlToken) :
+    (s.emitAt pos tok).tokens = tokens.push ⟨pos, tok, pos⟩ := by
+  show s.tokens.push _ = _
+  rw [h]
+
+/-- The token a dispatched `!` pushes — one per `[97]` form, all `.tag`. -/
+lemma dispatchContent_tag_tokens {s s' : ScannerState}
+    (hok : scanNextToken_dispatchContent s '!' = .ok s') :
+    ∃ handle suffix,
+      s'.tokens = s.tokens.push ⟨s.currentPos, .tag handle suffix, s.currentPos⟩ := by
+  unfold scanNextToken_dispatchContent at hok
+  simp only [bind, Except.bind, pure, Except.pure] at hok
+  split at hok
+  · rename_i h_eq; exact absurd h_eq (by decide)
+  · split at hok
+    · rename_i h_eq; exact absurd h_eq (by decide)
+    · split at hok
+      · split at hok
+        · simp at hok
+        generalize h_tag : scanTag s = tag_result at hok
+        cases tag_result with
+        | error => simp at hok
+        | ok s_tag =>
+          simp only [Except.ok.injEq] at hok; subst hok
+          unfold scanTag at h_tag; dsimp only [] at h_tag
+          split at h_tag
+          · -- `!<uri>`
+            simp only [bind, Except.bind, pure, Except.pure] at h_tag
+            generalize hv : scanVerbatimTag s.advance s.currentPos = vres at h_tag
+            cases vres with
+            | error => simp at h_tag
+            | ok s_verb =>
+              dsimp only [] at h_tag
+              have h_eq := Except.ok.inj h_tag; subst h_eq
+              unfold scanVerbatimTag at hv; dsimp only [] at hv
+              split at hv
+              · exact absurd hv (by simp)
+              · split at hv
+                · exact absurd hv (by simp)
+                · have h_eq := Except.ok.inj hv; subst h_eq
+                  exact ⟨_, _, emitAt_push_tokens (by
+                    rw [ScannerCorrectness.ScanHelpers.collectVerbatimTagLoop_preserves_tokens,
+                        ScannerCorrectness.advance_preserves_tokens,
+                        ScannerCorrectness.advance_preserves_tokens]) _ _⟩
+          · -- `!!suffix`
+            have h_eq := Except.ok.inj h_tag; subst h_eq
+            unfold scanSecondaryTag; dsimp only []
+            exact ⟨_, _, emitAt_push_tokens (by
+              rw [ScannerCorrectness.ScanHelpers.collectTagSuffixLoop_preserves_tokens,
+                  ScannerCorrectness.advance_preserves_tokens,
+                  ScannerCorrectness.advance_preserves_tokens]) _ _⟩
+          · -- `!handle!suffix`, `!suffix`, `!`
+            have h_eq := Except.ok.inj h_tag; subst h_eq
+            unfold scanNamedTag; dsimp only []
+            split
+            · exact ⟨_, _, emitAt_push_tokens (by
+                rw [ScannerCorrectness.ScanHelpers.collectTagSuffixLoop_preserves_tokens,
+                    ScannerCorrectness.ScanHelpers.collectTagHandleLoop_preserves_tokens,
+                    ScannerCorrectness.advance_preserves_tokens]) _ _⟩
+            · exact ⟨_, _, emitAt_push_tokens (by
+                rw [ScannerCorrectness.ScanHelpers.collectTagHandleLoop_preserves_tokens,
+                    ScannerCorrectness.advance_preserves_tokens]) _ _⟩
+      · rename_i h_neq; exact absurd rfl h_neq
 
 /-! #### Extracted content-dispatch per-constructor theorems
 
@@ -5442,17 +5924,8 @@ lemma accum_step_content (sc : ScannerState)
     --    `SSeparate 0 .flowIn` hypothesis available.
     obtain ⟨d, hd⟩ : ∃ d, sc.flowLevel = d + 1 := ⟨sc.flowLevel - 1, by omega⟩
     have h_real_sc : LastTokenReal sc.tokens := (h_interior hpos).2.1
-    -- The accumulation's flow endpoint may sit a whitespace run BEHIND the
-    -- scanner cursor — a flow-interior plain scalar ends its production before
-    -- the whitespace `collectPlainScalarLoop` then consumes.  The step's leading
-    -- separation is derived at the cursor and walked back to the endpoint.
-    obtain ⟨h_white, h_sync_sc⟩ : GStar SSWhite sp_flow sp_scan ∧
-        frameTokenVal? sc.tokens = lastRealTokenVal? sc.tokens := by
-      cases (h_interior hpos).1 with | white h_ws h_sync => exact ⟨h_ws, h_sync⟩
     obtain ⟨sp_prep, h_lead0, hcorr_prep⟩ :=
       preprocess_some_separate_0_anyCol sc sp_scan s_prep c h_corr h_preprocess
-    have h_lead : SSeparateLines 0 sp_flow sp_prep :=
-      SSeparateLines_prepend_white h_white h_lead0
     have h_ad_fl : (if s_prep.allowDirectives then
         { s_prep with allowDirectives := false, documentEverStarted := true }
       else s_prep).flowLevel = sc.flowLevel :=
@@ -5472,30 +5945,36 @@ lemma accum_step_content (sc : ScannerState)
       rw [allowDirectives_update_tokens,
           preprocess_preserves_frameTokenVal_inFlow sc s_prep c (by omega) h_preprocess]
       rw [← htl]; rfl
-    -- The `white` half of the interior gap, transported to the dispatch's state:
-    -- with nothing held, the frame tail and the scanner's two guards read the
-    -- same token, which is what `tailOf_ne_value`/`tailOf_ne_sep` transport.
-    have h_ad_sync : frameTokenVal? (if s_prep.allowDirectives then
-        { s_prep with allowDirectives := false, documentEverStarted := true }
-      else s_prep).tokens = lastRealTokenVal? (if s_prep.allowDirectives then
-        { s_prep with allowDirectives := false, documentEverStarted := true }
-      else s_prep).tokens := by
-      rw [allowDirectives_update_tokens]
-      exact preprocess_preserves_sync_inFlow (by omega) h_real_sc h_preprocess h_sync_sc
     have h_ad_inflow : (if s_prep.allowDirectives then
         { s_prep with allowDirectives := false, documentEverStarted := true }
       else s_prep).inFlow = true := by
       unfold ScannerState.inFlow; rw [h_ad_fl]; simp; omega
+    -- The two token READINGS a held property run is coupled to, transported to
+    -- the state the dispatch's own guards evaluate.
+    have h_ad_run : trailingPropertyRun (if s_prep.allowDirectives then
+        { s_prep with allowDirectives := false, documentEverStarted := true }
+      else s_prep).tokens = trailingPropertyRun sc.tokens := by
+      rw [allowDirectives_update_tokens]
+      exact preprocess_preserves_trailingPropertyRun_inFlow sc s_prep c (by omega)
+        h_real_sc h_preprocess
+    have h_ad_last : lastRealTokenVal? (if s_prep.allowDirectives then
+        { s_prep with allowDirectives := false, documentEverStarted := true }
+      else s_prep).tokens = lastRealTokenVal? sc.tokens := by
+      rw [allowDirectives_update_tokens]
+      exact preprocess_preserves_lastRealTokenVal_inFlow sc s_prep c (by omega)
+        h_real_sc h_preprocess
+    have h_gap : InteriorGap sc tl sp_flow sp_scan := by
+      rw [← htl]; exact (h_interior hpos).1
     rw [hd, hks, htl] at h_flow
     have h_fos := h_flow.open_of_succ
     have hcorr_ad := corr_of_allowDirectives_update hcorr_prep
     have hpeek_ad : (if s_prep.allowDirectives = true then
         { s_prep with allowDirectives := false, documentEverStarted := true }
       else s_prep).peek? = s_prep.peek? := by split <;> rfl
-    -- **9b(ii)/9d.** The frame is receptive.  Content dispatch is the last arm of
-    -- `scanNextToken`, so the adjacency check ran and passed; `c` is off the five
-    -- flow indicators (§1c''b''), and a `:` that got this far failed
-    -- `isValueCandidate`, which is exactly the case 9d's exemption does NOT cover.
+    -- **9b(ii)/9d.** Content dispatch is `scanNextToken`'s last arm, so the
+    -- adjacency check ran and passed; `c` is off the five flow indicators
+    -- (§1c''b''), and a `:` that got this far failed `isValueCandidate`, which is
+    -- exactly the case 9d's exemption does NOT cover.
     have h_adj : scanNextToken_checkFlowAdjacency (if s_prep.allowDirectives then
         { s_prep with allowDirectives := false, documentEverStarted := true }
       else s_prep) c = .ok () := by
@@ -5503,75 +5982,254 @@ lemma accum_step_content (sc : ScannerState)
       unfold scanNextToken_dispatchFlowIndicators at h'
       exact flowAdj_ok_of_dispatch_ok h'
     obtain ⟨-, hne_rb, -, hne_rc, hne_comma⟩ := not_flow_indicator_of_dispatch_none h_flow_none
-    have h_tail : tl ≠ .value := by
-      rw [← h_ad_tl]
-      exact tailOf_ne_value h_ad_sync
-        (notCompletes_of_checkFlowAdjacency_ok_nodeStart h_adj h_ad_inflow
-          ⟨hne_comma, hne_rb, hne_rc⟩ (not_valueCandidate_of_dispatch_none h_blk_none))
+    have h_notValue := not_valueCandidate_of_dispatch_none h_blk_none
+    -- Abstract the allowDirectives-updated state: every remaining step reads it.
+    generalize h_ad_def : (if s_prep.allowDirectives = true then
+        { s_prep with allowDirectives := false, documentEverStarted := true }
+      else s_prep) = s_ad at h_dispatch h_not_doc h_adj h_notValue
+    rw [h_ad_def] at h_ad_fl h_ad_ks h_ad_tl h_ad_inflow h_ad_run h_ad_last hcorr_ad hpeek_ad
+    have h_ad_false : s_ad.allowDirectives = false := by
+      rw [← h_ad_def]; exact allowDirectives_update_false s_prep
+    have hpeek : s_ad.peek? = some c := hpeek_ad.trans (preprocess_some_peek h_preprocess)
     -- **9c.** No block-scalar header reaches this dispatch inside a flow.
     obtain ⟨hnotPipe, hnotGt⟩ :=
       Proofs.BlockScalarFlowGuard.dispatchContent_not_blockScalar_of_inFlow h_ad_inflow h_dispatch
-    by_cases hprops : c = '&' ∨ c = '!'
-    · -- ═══ THE RESIDUE, AND IT IS EXACTLY `[96] c-ns-properties`. ═══
-      --
-      -- `&anchor` and `!tag` produce `SFlowNode.propsEmpty` — a COMPLETE node —
-      -- while the frame must not receive one, because `[&a b]` is ONE node with
-      -- properties and `[&a, b]` is an anchor on an EMPTY one.  Which it is is
-      -- not decided at this step, so `receiveNode` cannot be called here: the
-      -- token stream `[ &a` is consistent with both readings.
-      --
-      -- That is also what `tailOf` says, and the two agree by construction:
-      -- `.anchor`/`.tag` are not in `YamlToken.completesFlowValue`, so this arm
-      -- leaves the frame tail at `.colon`, not `.value` —
-      -- `tailOf_dispatchContent_value` is stated off exactly these two
-      -- characters (§1c''b').
-      --
-      -- WHAT IT NEEDS.  The properties must be HELD until the next step decides:
-      -- `receiveNode` with `propsEmpty` at `,`/`]`/`}`, `receiveNode` with
-      -- `propsContent` at a content character or `[`/`{`.  The place to hold
-      -- them is the flow-interior gap — the `GStar SSWhite sp_flow sp_scan`
-      -- conjunct of `h_interior`, widened to "whitespace, or a scanned but
-      -- unattached `[96] c-ns-properties`".  Holding them there rather than in a
-      -- new `SeqFrame`/`MapFrame` constructor is what keeps the eight `cases st`
-      -- sites of the frame transitions untouched; `tailOf` then has to skip a
-      -- trailing property run so the frame index still describes the frame.
-      --
-      -- That widening was DEAD until this commit: the invariant also carried
-      -- `PendingNode false sp_start sp_flow sp_scan`, and at depth ≥ 1 the only
-      -- derivable constructor is `noPending`, which forces `sp_flow = sp_scan`.
-      -- Guarding the pending on `flowLevel = 0` is what makes the gap able to
-      -- hold anything at all — the plain-scalar arm below is the first user, and
-      -- the props run is the second.  See DOCS item 10 and Reflection 619.
-      sorry
-    · -- The four value-completing arms: a double- or single-quoted scalar, an
-      -- alias, or a plain scalar.  Each is a whole `[161] ns-flow-node`, the
-      -- frame is receptive, so the node folds straight in and the frame tail
-      -- becomes `.value`.  The plain-scalar arm is the one that leaves a
-      -- non-empty gap (`h_ws`), and it is now expressible.
-      have h_amp : c ≠ '&' := fun h => hprops (Or.inl h)
-      have h_bang : c ≠ '!' := fun h => hprops (Or.inr h)
-      obtain ⟨sp_ne, sp_res, h_node, h_ws, hcorr_res⟩ :=
-        dispatchContent_evidence_flowIn _ sp_prep c hcorr_ad
-          (hpeek_ad.trans (preprocess_some_peek h_preprocess)) h_ad_inflow h_not_doc h_dispatch
-      obtain ⟨h_tl', h_real', h_sync'⟩ :=
-        tailOf_dispatchContent_value h_dispatch h_amp h_bang hnotPipe hnotGt
-      have h_fl' : s'.flowLevel = d + 1 := by
-        rw [ScannerCorrectness.dispatchContent_preserves_flowLevel _ c s' h_dispatch,
-            allowDirectives_update_flowLevel s_prep,
-            preprocess_preserves_flowLevel sc s_prep c h_preprocess, hd]
-      have h_ks' : s'.flowStack = ks := by
-        rw [ScannerFlowStack.dispatchContent_preserves_flowStack _ c s' h_dispatch,
-            allowDirectives_update_flowStack s_prep,
-            ScannerFlowStack.preprocess_preserves_flowStack sc s_prep c h_preprocess, hks]
-      have h_ad' : s'.allowDirectives = false := by
-        rw [ScannerAllowDirectives.dispatchContent_preserves_allowDirectives _ c s' h_dispatch]
-        exact allowDirectives_update_false s_prep
-      rw [h_fl', h_ks', h_tl']
-      exact ⟨sp_gram, sp_block, sp_ne, sp_res, h_stream, h_stack,
-        .open (d + 1) ks .value sp_block sp_ne
-          (FlowOpenStack.receiveNode h_fos h_tail h_lead sp_ne h_node),
-        (fun h => absurd h (by omega)), hcorr_res,
-        fun _ => ⟨.white h_ws h_sync', h_real', h_ad'⟩⟩
+    -- The three scanner-state readings the step's result needs, none of which
+    -- depends on what was in the gap.
+    have h_fl' : s'.flowLevel = d + 1 := by
+      rw [ScannerCorrectness.dispatchContent_preserves_flowLevel _ c s' h_dispatch, h_ad_fl, hd]
+    have h_ks' : s'.flowStack = ks := by
+      rw [ScannerFlowStack.dispatchContent_preserves_flowStack _ c s' h_dispatch, h_ad_ks]
+    have h_ad' : s'.allowDirectives = false := by
+      rw [ScannerAllowDirectives.dispatchContent_preserves_allowDirectives _ c s' h_dispatch]
+      exact h_ad_false
+    cases h_gap with
+    | white h_white h_sync_sc =>
+      -- ═══ NOTHING HELD ═══
+      -- The endpoint may still trail the cursor by whitespace (a flow-interior
+      -- plain scalar ends its production before the whitespace
+      -- `collectPlainScalarLoop` then consumes), so the step's leading separation
+      -- is derived at the cursor and walked back.
+      have h_lead : SSeparateLines 0 sp_flow sp_prep :=
+        SSeparateLines_prepend_white h_white h_lead0
+      have h_ad_sync : frameTokenVal? s_ad.tokens = lastRealTokenVal? s_ad.tokens := by
+        rw [← h_ad_def, allowDirectives_update_tokens]
+        exact preprocess_preserves_sync_inFlow (by omega) h_real_sc h_preprocess h_sync_sc
+      have h_tail : tl ≠ .value := by
+        rw [← h_ad_tl]
+        exact tailOf_ne_value h_ad_sync
+          (notCompletes_of_checkFlowAdjacency_ok_nodeStart h_adj h_ad_inflow
+            ⟨hne_comma, hne_rb, hne_rc⟩ h_notValue)
+      by_cases hamp : c = '&'
+      · -- ═══ `&`: OPEN a property run (`[a, &x` — the frame does not move) ═══
+        -- `&anchor` produces `SFlowNode.propsEmpty`, a COMPLETE node, but the
+        -- frame must not receive one: `[&a b]` is ONE node with properties while
+        -- `[&a, b]` is an anchor on an EMPTY one, and the token stream `[ &a` is
+        -- consistent with both.  The decision belongs to the step that reads the
+        -- NEXT character, so the run is held in the gap until then.
+        subst hamp
+        obtain ⟨sp_new, h_prop, hcorr_new⟩ :=
+          dispatchContent_anchorProp_prod s_ad sp_prep hcorr_ad hpeek h_dispatch
+        obtain ⟨name, hname⟩ := dispatchContent_anchor_tokens h_dispatch
+        have h_tl' : tailOf s'.tokens = tl := by
+          rw [hname,
+            (tailOf_push_prop (by simp) (by simp [YamlToken.isNodeProperty])).1, h_ad_tl]
+        have h_real' : LastTokenReal s'.tokens := by
+          rw [hname]; exact (tailOf_push_prop (by simp) (by simp [YamlToken.isNodeProperty])).2
+        rw [h_fl', h_ks', h_tl']
+        exact ⟨sp_gram, sp_block, sp_flow, sp_new, h_stream, h_stack,
+          .open (d + 1) ks tl sp_block sp_flow h_fos,
+          (fun h => absurd h (by omega)), hcorr_new,
+          fun _ => ⟨.props true false sp_prep h_tail h_lead (.anchor _ _ h_prop)
+            (fun _ => by
+              rw [hname]
+              exact trailingPropertyRun_push_head (by simp)
+                (by simp [YamlToken.isNodeProperty]) rfl)
+            (by simp), h_real', h_ad'⟩⟩
+      · by_cases hbang : c = '!'
+        · -- ═══ `!`: the tag half, same hold (`[a, !t`) ═══
+          subst hbang
+          obtain ⟨sp_new, h_prop, hcorr_new⟩ :=
+            dispatchContent_tagProp_prod s_ad sp_prep hcorr_ad hpeek h_dispatch
+          obtain ⟨handle, suffix, hname⟩ := dispatchContent_tag_tokens h_dispatch
+          have h_tl' : tailOf s'.tokens = tl := by
+            rw [hname,
+              (tailOf_push_prop (by simp) (by simp [YamlToken.isNodeProperty])).1, h_ad_tl]
+          have h_real' : LastTokenReal s'.tokens := by
+            rw [hname]; exact (tailOf_push_prop (by simp) (by simp [YamlToken.isNodeProperty])).2
+          rw [h_fl', h_ks', h_tl']
+          exact ⟨sp_gram, sp_block, sp_flow, sp_new, h_stream, h_stack,
+            .open (d + 1) ks tl sp_block sp_flow h_fos,
+            (fun h => absurd h (by omega)), hcorr_new,
+            fun _ => ⟨.props false true sp_prep h_tail h_lead (.tag _ _ h_prop)
+              (by simp)
+              (fun _ => by
+                rw [hname]
+                exact trailingPropertyRun_push_head (by simp)
+                  (by simp [YamlToken.isNodeProperty]) rfl),
+              h_real', h_ad'⟩⟩
+        · -- The four value-completing arms: a double- or single-quoted scalar, an
+          -- alias, or a plain scalar.  Each is a whole `[161] ns-flow-node`, the
+          -- frame is receptive, so the node folds straight in and the frame tail
+          -- becomes `.value`.  The plain-scalar arm is the one that leaves a
+          -- non-empty gap (`h_ws`).
+          obtain ⟨sp_ne, sp_res, h_node, h_ws, hcorr_res⟩ :=
+            dispatchContent_evidence_flowIn s_ad sp_prep c hcorr_ad hpeek h_ad_inflow
+              h_not_doc h_dispatch
+          obtain ⟨h_tl', h_real', h_sync'⟩ :=
+            tailOf_dispatchContent_value h_dispatch hamp hbang hnotPipe hnotGt
+          rw [h_fl', h_ks', h_tl']
+          exact ⟨sp_gram, sp_block, sp_ne, sp_res, h_stream, h_stack,
+            .open (d + 1) ks .value sp_block sp_ne
+              (FlowOpenStack.receiveNode h_fos h_tail h_lead sp_ne h_node),
+            (fun h => absurd h (by omega)), hcorr_res,
+            fun _ => ⟨.white h_ws h_sync', h_real', h_ad'⟩⟩
+    | props ha ht sp_p h_tail h_lead_p h_run h_anchor h_tag =>
+      -- ═══ A `[96] c-ns-properties` RUN IS HELD ═══
+      -- Every arm here is about what the character in hand DECIDES the run was
+      -- decorating.  Note that `h_tail` is read off the gap and not re-derived:
+      -- the adjacency check that let the property through ran against the
+      -- pre-props tail, and `checkFlowAdjacency` now reads the property itself.
+      have h_last_prop : ∃ t, lastRealTokenVal? s_ad.tokens = some t ∧
+          t.isNodeProperty = true := by
+        rcases h_run.some_half with h | h
+        · exact lastReal_isProperty_of_run (f := YamlToken.isAnchorProperty)
+            (by rw [h_ad_run]; exact h_anchor h)
+        · exact lastReal_isProperty_of_run (f := YamlToken.isTagProperty)
+            (by rw [h_ad_run]; exact h_tag h)
+      by_cases hamp : c = '&'
+      · -- ═══ `&` after a run: EXTEND it, or die on 9e ═══
+        subst hamp
+        -- The dispatch returned `.ok`, so `propertyRunHasAnchor` was false — the
+        -- held run carries no anchor.  (`[&a &b]` and `[!t &a &b]` never get
+        -- here: the scanner errored, the first on the run's head and the second
+        -- on its PENULT, which is the whole reason the run is a two-token
+        -- lookback.)
+        have h_no_anchor : (trailingPropertyRun sc.tokens).any YamlToken.isAnchorProperty
+            = false := by
+          have h_guard := propertyRunHasAnchor_false_of_dispatch h_dispatch
+          unfold propertyRunHasAnchor at h_guard
+          rw [h_ad_inflow] at h_guard
+          rw [← h_ad_run]; simpa using h_guard
+        have hha : ha = false := by
+          cases ha with
+          | false => rfl
+          | true => rw [h_anchor rfl] at h_no_anchor; exact absurd h_no_anchor (by simp)
+        subst hha
+        have hht : ht = true := h_run.tag_of_no_anchor
+        subst hht
+        -- …so what IS held is the tag, and it is the last real token: the run is
+        -- read from that token, and it is not the anchor half.
+        obtain ⟨t2, h_t2_last, h_t2_prop⟩ := h_last_prop
+        have h_t2_tag : t2.isTagProperty = true := by
+          apply isTagProperty_of_isNodeProperty h_t2_prop
+          cases hpa : t2.isAnchorProperty with
+          | false => rfl
+          | true =>
+            exfalso
+            have hcontra : (trailingPropertyRun sc.tokens).any YamlToken.isAnchorProperty
+                = true := by
+              rw [← h_ad_run]; exact trailingPropertyRun_head h_t2_last h_t2_prop hpa
+            rw [h_no_anchor] at hcontra; simp at hcontra
+        obtain ⟨sp_new, h_prop, hcorr_new⟩ :=
+          dispatchContent_anchorProp_prod s_ad sp_prep hcorr_ad hpeek h_dispatch
+        obtain ⟨name, hname⟩ := dispatchContent_anchor_tokens h_dispatch
+        have h_tl' : tailOf s'.tokens = tl := by
+          rw [hname,
+            (tailOf_push_prop (by simp) (by simp [YamlToken.isNodeProperty])).1, h_ad_tl]
+        have h_real' : LastTokenReal s'.tokens := by
+          rw [hname]; exact (tailOf_push_prop (by simp) (by simp [YamlToken.isNodeProperty])).2
+        rw [h_fl', h_ks', h_tl']
+        exact ⟨sp_gram, sp_block, sp_flow, sp_new, h_stream, h_stack,
+          .open (d + 1) ks tl sp_block sp_flow h_fos,
+          (fun h => absurd h (by omega)), hcorr_new,
+          fun _ => ⟨.props true true sp_p h_tail h_lead_p (h_run.addAnchor h_lead0 h_prop)
+            (fun _ => by
+              rw [hname]
+              exact trailingPropertyRun_push_head (by simp)
+                (by simp [YamlToken.isNodeProperty]) rfl)
+            (fun _ => by
+              rw [hname]
+              exact trailingPropertyRun_push_penult (by simp)
+                (by simp [YamlToken.isNodeProperty]) h_t2_last h_t2_prop h_t2_tag),
+            h_real', h_ad'⟩⟩
+      · by_cases hbang : c = '!'
+        · -- ═══ `!` after a run: the mirror ═══
+          subst hbang
+          have h_no_tag : (trailingPropertyRun sc.tokens).any YamlToken.isTagProperty
+              = false := by
+            have h_guard := propertyRunHasTag_false_of_dispatch h_dispatch
+            unfold propertyRunHasTag at h_guard
+            rw [h_ad_inflow] at h_guard
+            rw [← h_ad_run]; simpa using h_guard
+          have hht : ht = false := by
+            cases ht with
+            | false => rfl
+            | true => rw [h_tag rfl] at h_no_tag; exact absurd h_no_tag (by simp)
+          subst hht
+          have hha : ha = true := h_run.anchor_of_no_tag
+          subst hha
+          obtain ⟨t2, h_t2_last, h_t2_prop⟩ := h_last_prop
+          have h_t2_anchor : t2.isAnchorProperty = true := by
+            apply isAnchorProperty_of_isNodeProperty h_t2_prop
+            cases hpt : t2.isTagProperty with
+            | false => rfl
+            | true =>
+              exfalso
+              have hcontra : (trailingPropertyRun sc.tokens).any YamlToken.isTagProperty
+                  = true := by
+                rw [← h_ad_run]; exact trailingPropertyRun_head h_t2_last h_t2_prop hpt
+              rw [h_no_tag] at hcontra; simp at hcontra
+          obtain ⟨sp_new, h_prop, hcorr_new⟩ :=
+            dispatchContent_tagProp_prod s_ad sp_prep hcorr_ad hpeek h_dispatch
+          obtain ⟨handle, suffix, hname⟩ := dispatchContent_tag_tokens h_dispatch
+          have h_tl' : tailOf s'.tokens = tl := by
+            rw [hname,
+              (tailOf_push_prop (by simp) (by simp [YamlToken.isNodeProperty])).1, h_ad_tl]
+          have h_real' : LastTokenReal s'.tokens := by
+            rw [hname]; exact (tailOf_push_prop (by simp) (by simp [YamlToken.isNodeProperty])).2
+          rw [h_fl', h_ks', h_tl']
+          exact ⟨sp_gram, sp_block, sp_flow, sp_new, h_stream, h_stack,
+            .open (d + 1) ks tl sp_block sp_flow h_fos,
+            (fun h => absurd h (by omega)), hcorr_new,
+            fun _ => ⟨.props true true sp_p h_tail h_lead_p (h_run.addTag h_lead0 h_prop)
+              (fun _ => by
+                rw [hname]
+                exact trailingPropertyRun_push_penult (by simp)
+                  (by simp [YamlToken.isNodeProperty]) h_t2_last h_t2_prop h_t2_anchor)
+              (fun _ => by
+                rw [hname]
+                exact trailingPropertyRun_push_head (by simp)
+                  (by simp [YamlToken.isNodeProperty]) rfl),
+              h_real', h_ad'⟩⟩
+        · by_cases hstar : c = '*'
+          · -- ═══ `*` after a run: REFUTED (item 9e) ═══
+            -- `[104] c-ns-alias-node` is an alternative to the properties-bearing
+            -- form of `[161]`, never its content, so `[&a *x]` has no derivation —
+            -- and `lastTokenIsNodeProperty` is exactly the state we are in.
+            exfalso
+            subst hstar
+            have h_guard := lastTokenIsNodeProperty_false_of_dispatch h_dispatch
+            obtain ⟨t2, h_t2_last, h_t2_prop⟩ := h_last_prop
+            unfold lastTokenIsNodeProperty at h_guard
+            rw [h_ad_inflow, h_t2_last] at h_guard
+            simp [h_t2_prop] at h_guard
+          · -- ═══ A content character after a run: the run DECORATES it ═══
+            -- `[&a b]`, `[!t "x"]` — one `[161]` node, `propsContent`, whose
+            -- `s-separate` slot is exactly what item 9f bought: before it,
+            -- `[&a[b]]` scanned clean and this node could be defined but never
+            -- fed.
+            obtain ⟨sp_ne, sp_res, h_content, h_ws, hcorr_res⟩ :=
+              dispatchContent_evidence_flowIn_content s_ad sp_prep c hcorr_ad hpeek
+                h_ad_inflow h_not_doc hamp hstar hbang h_dispatch
+            obtain ⟨h_tl', h_real', h_sync'⟩ :=
+              tailOf_dispatchContent_value h_dispatch hamp hbang hnotPipe hnotGt
+            rw [h_fl', h_ks', h_tl']
+            exact ⟨sp_gram, sp_block, sp_ne, sp_res, h_stream, h_stack,
+              .open (d + 1) ks .value sp_block sp_ne
+                (h_fos.receivePropsContent h_tail h_lead_p h_run h_lead0 h_content),
+              (fun h => absurd h (by omega)), hcorr_res,
+              fun _ => ⟨.white h_ws h_sync', h_real', h_ad'⟩⟩
 
 /-! ### §1f Composition: Per-Dispatch → Full accum_step
 

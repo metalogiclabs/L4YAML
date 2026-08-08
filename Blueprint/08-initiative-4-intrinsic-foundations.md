@@ -20530,7 +20530,7 @@ number can be located by scanning this table.
 * **Consumer joints, producer duals & assembly folds**
   * *Consumer joints & producer duals* — 99, 119, 178, 191, 205, 209, 216, 217, 224, 231, 232, 237, 241, 243, 245–250, 255, 268, 272, 273, 279, 280, 283, 284, 301, 305, 308, 315–317, 384, 401, 441, 463, 487, 502, 503, 505, 510, 512, 522, 572, 573, 577, 578, 581, 582, 585, 586, 599, 601, 602, 604, 605, 609
   * *Folds, packaging & reduction by import* — 188, 202, 212, 215, 225, 227, 257, 281, 408, 409, 442, 491–498
-  * *Generalization, extraction & reuse* — 226, 228, 230, 446
+  * *Generalization, extraction & reuse* — 226, 228, 230, 446, 621
 * **Deliverable types: storage, projection & additive fields**
   * *Stored vs projected* — 120, 206, 251, 252, 293, 403–406, 422, 426, 427, 450, 453, 454, 456–462, 499, 500, 610
   * *Projection families* — 238–240, 244, 253, 254, 455, 464–467
@@ -28022,7 +28022,7 @@ The R441 next step's audit found the seq `FlowSubrangesOk := sorry` sitting insi
 
 **Next step.** The ENTIRE `_seq` carrier-from-recIH funnel is now twinned at both levels (window-parametric R498, root-instance R497), the producer (R489→R493) and consumer sub-chains MEET, and `seqRec_of_carrier_and_windowFacts_seq` (R432) is the landed seq side of `FlowSubrangesOk`. The single remaining seq residual is the carrier↔recursion CO-CONSTRUCTION discharging `recIH`: a strong induction on body window WIDTH (`windowWidth_strongRecOn`) producing the local carrier (via R498) and `RecSeqBody` JOINTLY over ONE width measure — the recursion half produces this window's `RecSeqBody` (consuming the carrier only at width-narrower sub-windows) and projects it to R498's `h_safe`; R498 returns the carrier. The per-step `h_widthEnc` ASSEMBLE is the landed `seqWidthEnc_of_enclosingLocate_and_recIH_seq` (R492) over the landed `lo ≤ p` / `hiE ≤ hi` containments + the body-width IH. The open piece is wiring the joint induction (supply `h_safe` from the recursion half + `recIH` from the width IH, pair the result with the window's `RecSeqBody`). *(R499 begins the recursion half: its per-window `FlowBodyContent` must be sourced carrier-free, and the descend edge of that thread needs the child's `SafeBody`, landed first.)* In parallel (independent): the MAP-side per-window producer + the recursive deep NAVIGATOR (R467 brick (b)).
 
-### Generalization, extraction & reuse (Reflections 226, 228, 230, 446)
+### Generalization, extraction & reuse (Reflections 226, 228, 230, 446, 621)
 
 #### Reflection 226 (new, 2026-06-02): a "for the fixed span" proof generalizes to "for any span" for free when its only span-specific inputs are hypotheses — extracting it as a parametric lemma splits the residual into an *assemble* half (done) and a *produce-the-primitives* half (the real recursion)
 
@@ -28068,6 +28068,67 @@ With `FlowSubrangesOk` guarded and provable (Reflection 229), the next step was 
 The R445 Next step queued the co-construction's part (a) as "a window-local analog of `seqRoot_carrier_of_widthEnc`." Before authoring a fresh window-local proof, R446 re-read `seqRoot_carrier_of_widthEnc` and found nearly all of it was ALREADY window-parametric. **A producer that descends into sub-windows it does not own threads a descent route whose lemmas all take the window bounds as arguments — only its BASE CASE bakes in the root span and the flat, recursion-free base supplier.** `seqRoot_carrier_of_widthEnc` drove `desc` through `seqRoot_seqInteriorSeparators` (literal `[2,size-2)` + `seqRoot_safeBodyUnit`); the chain it threads (`seqEnclosingOpener_of_gate` → `h_widthEnc` → `seqEnclosed_succ_of_located_opener` → `seqDescent_provider_of_located`) reads no literal. So the generalization isolated to ONE swap: replace the root assembler with the window-parametric `seqInteriorSeparators_of_safebody_and_descent`, LIFT the window `SafeBodyUnit` as a hypothesis, re-base `h_widthEnc`'s bounds — and the proof body is otherwise term-for-term, the root version recovered as the `lo:=2`, `hi:=size-2` instance fed the flat base (a `rfl`-level delegation, [[ref-additive-parallel-type-over-shared-edit]]). **The discipline: when generalizing a producer from a fixed span to an arbitrary window, measure the work by what the BASE CASE bakes in — span literals and the flat base supplier — and lift exactly those; do not re-prove the descent.** This is the consume-side dual of [[ref-root-seed-recursive-producer-swap]] (there: swap the recursive body INTO an existing flat-fact slice, keeping the slice; here: swap the flat base OUT of an existing window-parametric descent, keeping the descent). The measure that makes the next round's joint induction sound — every IH callee strictly narrower than `[lo,hi)`, even at the self-instantiation where the descent's enclosing window equals the whole window — was de-risked by `#guard` (`SeqLocalCarrierWidthProbe`, [[ref-probe-deferred-universal-before-producing]] / [[ref-minimal-pair-extracts-the-gate]]) before committing. New memory [[ref-root-to-window-base-assembler-swap]].
 
 ## Deliverable types: storage, projection & additive fields
+
+#### Reflection 621 -- a WIDER closure argument is a LOST INVARIANT. **A closure argument wider than the values that actually flow through it is not spare generality; it is a discarded invariant, and the consumer that needs the narrower guarantee cannot be written at all. The diagnostic is not in the closure but in the CALLERS: every one of them applies the same injection to reach the argument type, so the extra constructors are in the argument's range and never in its image. Narrowing then MOVES one wrapper from caller to callee rather than adding one.**
+
+*Where it bit.* A nested open flow frame does not store its parent stack; it
+carries `inject`, a closure built at push time that folds this frame's eventual
+result into the parent (`FlowOpenStack.seqNest` / `mapNest`,
+`Proofs/Production/StreamAccum.lean`). Its argument was
+`SFlowNode 0 .flowIn sp_par sp_ne` -- `[161] ns-flow-node`, the widest thing a
+flow position can hold. That is the obvious choice, and it is what B.4 shipped.
+
+It is also the reason one case of β.3 could not be written. `[&a [b]]` holds a
+`[96] c-ns-properties` run when a nested collection opens, so the properties
+DECORATE that collection: they have to wrap the child's eventual node, not be
+flushed beside it. Wrapping is `SFlowNode.propsContent`, whose third argument is
+`[158] ns-flow-content` -- because properties may not decorate an alias.
+`[104] c-ns-alias-node` is an ALTERNATIVE to the properties-bearing form of
+`[161]`, never its content, which is the same asymmetry item 9e enforces on the
+scanner side (`[&a *x]` is rejected). A closure promising only "a node" therefore
+cannot be wrapped, and no amount of work at the call site fixes that: the promise
+is too weak.
+
+*What the callers had been saying all along.* Both existing consumers of `inject`
+-- the `]` and `}` arms of `accum_step_flow` -- already read
+
+```lean
+inject sp_tok (SFlowNode.content _ _ _ _ (SFlowContent.flowSeq _ _ _ _ h_seq))
+```
+
+A closed `[`/`{` is *always* content; the alias constructor was in the argument's
+range and never in its image. Retyping `inject` to take `SFlowContent 0 .flowIn`
+deleted that wrapper from both consumers and added one to each of the two
+producers (`fun sp_ne h_c => receiveNode … (.content _ _ _ _ h_c)`) -- a move,
+not a cost -- and made the props case expressible:
+
+```lean
+fun sp_ne h_c => h_fos.receivePropsContent h_tail h_lead_p h_run h_lead0 h_c
+```
+
+*Why the mistake is easy.* Widening a closure's argument LOOKS like weakening a
+hypothesis, which is normally free. But the position is contravariant: widening
+it strengthens the obligation on whoever SUPPLIES the closure, and the supplier
+is the one holding the invariant. Nothing fails to typecheck when the argument is
+too wide -- both directions of the conversion are total -- so the symptom is not
+a type error but a consumer that simply cannot be written, arriving arbitrarily
+later.
+
+*The canary* (`Tests/Reflections/WiderClosureArgumentLosesInvariant.lean`).
+`Content` / `Node` (= content + alias) / `Decorated` (which has NO node
+constructor -- that absence is the invariant). §2 `alias_has_no_decorated_preimage`
+and `wide_wrap_cannot_round_trip` are axiom-free and are the gap itself: every
+decorated thing erases to `.content`, so `alias` has no preimage and the wide
+argument admits a value the target has no room for. §3 shows the narrowing costs
+nothing where it is used (`narrow_agrees_on_content` is `rfl`). §4 is the
+diagnostic computed rather than recalled -- a caller table plus
+`#guard wideArgs.all (· != alias)`. §5 pins the contravariance: `widen_narrow_id`
+is `rfl`, and `widen_invents_an_answer` names the information lost.
+
+*What it unblocked.* The `[`/`{` arms of `accum_step_flow` under a held property
+run, and with them site 3 of β.3 -- `accum_step_content` is now sorry-free.
+Successor to Reflections 619 and 620, which freed the slot and re-based the index
+it re-points.
 
 ### Stored vs projected (Reflections 120, 206, 251, 252, 293, 403–406, 422, 426, 427, 450, 453, 454, 456–462, 499, 500, 610)
 
