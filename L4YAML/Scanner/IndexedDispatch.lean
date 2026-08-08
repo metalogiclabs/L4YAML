@@ -1039,6 +1039,30 @@ def lastTokenIsNodePropertyIx {input : String} (s : ScannerStateIx input) : Bool
      | some t => t.isNodeProperty
      | none => false)
 
+/-- §7.5 [161] (item 9f): the characters that may directly follow a node property
+    or an alias.  (Indexed twin of `L4YAML.Scanner.propertyFollowerOk`; see it for
+    why this one needs no `s.inFlow` gate.) -/
+def propertyFollowerOkIx {input : String} (c : IxCursor input) : Bool :=
+  match c.peek? with
+  | none => true
+  | some ch =>
+    isWhiteSpaceBool ch || isLineBreakBool ch || ch == ',' || ch == ']' || ch == '}'
+
+/-- `propertyFollowerOkIx` read off the state a property scan produced; vacuous on
+    a failed scan.  (Twin of `L4YAML.Scanner.propertyScanFollowerOk`.) -/
+def propertyScanFollowerOkIx {input : String}
+    (r : Except ScanError (ScannerStateIx input)) : Bool :=
+  match r with
+  | .ok s' => propertyFollowerOkIx s'.cursor
+  | .error _ => true
+
+/-- Where an anchor or alias name ends, without emitting anything — the same
+    `collectAnchorNameLoopIx` walk `scanAnchorOrAliasIx` runs.  (Twin of
+    `L4YAML.Scanner.anchorNameEnd`.) -/
+def anchorNameEndIx {input : String} (s : ScannerStateIx input) : IxCursor input :=
+  (collectAnchorNameLoopIx s.advance.cursor ""
+    (input.utf8ByteSize - s.advance.cursor.pos.offset)).2
+
 /-- Scan `,` flow entry separator. Mirrors `L4YAML.Scanner.scanFlowEntry`:
     emits `.flowEntry` and sets `simpleKeyAllowed := true` so the next
     item can start a fresh implicit key.
@@ -1232,21 +1256,25 @@ def scanNextTokenIx_dispatchContent {input : String} (s : ScannerStateIx input)
   if c == '&' then
     -- Item 9e (§6.9 [96]): one anchor per node.  Full `else`-chain, as for the
     -- `|`/`>` guard below — no `__do_jp` join points.
-    if propertyRunHasAnchorIx s then
+    -- Item 9f (§7.5 [161]): and the anchor is delimited — `&a[b]`.  Same `if`,
+    -- so the dispatcher's shape is unchanged (Reflection 613).
+    if propertyRunHasAnchorIx s || !propertyFollowerOkIx (anchorNameEndIx s) then
       .error (.invalidNodeProperties c s.cursor.pos.line s.cursor.pos.col)
     else do
       let s' ← scanAnchorOrAliasIx s true
       return s'
   if c == '*' then
     -- Item 9e (§6.9 [104]): an alias node carries no properties.
-    if lastTokenIsNodePropertyIx s then
+    -- Item 9f (§7.5 [161]/[104]): and it is delimited — `*a[b]`.
+    if lastTokenIsNodePropertyIx s || !propertyFollowerOkIx (anchorNameEndIx s) then
       .error (.invalidNodeProperties c s.cursor.pos.line s.cursor.pos.col)
     else do
       let s' ← scanAnchorOrAliasIx s false
       return s'
   if c == '!' then
     -- Item 9e (§6.9 [96]): one tag per node.
-    if propertyRunHasTagIx s then
+    -- Item 9f (§7.5 [161]): and the tag is delimited — `!t"x"`, `!t[b]`.
+    if propertyRunHasTagIx s || !propertyScanFollowerOkIx (scanTagIx s) then
       .error (.invalidNodeProperties c s.cursor.pos.line s.cursor.pos.col)
     else do
       let s' ← scanTagIx s

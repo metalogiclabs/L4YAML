@@ -4823,28 +4823,37 @@ lemma accum_step_content (sc : ScannerState)
         (absorb_stacksB sp_start sp_gram sp_block sp_flow h_stream h_stack h_flow)
         h_pending h_corr h_preprocess h_not_doc h_dispatch
     exact ⟨g', bl', fl', sn', q1, q2, q3.retail, q4, q5, fun h => absurd h (by omega)⟩
-  · -- ═══ DEPTH ≥ 1: BLOCKED on a scanner-strictness gap, not on proof work. ═══
-    -- The route is `FlowOpenStack.receiveNode` (sorry-free, and its `tl ≠ .value`
-    -- premise is already discharged by `checkFlowAdjacency`), fed by a `.flowIn`
-    -- twin of `dispatchContent_evidence`. Two obstructions, in order:
+  · -- ═══ DEPTH ≥ 1: no scanner obstruction left — FRAME VOCABULARY only. ═══
+    -- The route is `FlowOpenStack.receiveNode` (sorry-free), fed by
+    -- `dispatchContent_evidence_flowIn`. Four scanner gaps were found and closed
+    -- from under this arm, and each of them is what makes one hypothesis of that
+    -- route available at all:
     --
-    --  1. `dispatchContent_evidence` produces `SFlowNode 0 .flowOut`, and the
-    --     containment runs the WRONG way for plain scalars: `flowIn` forbids the
-    --     `,[]{}` that `flowOut` admits, so a `flowOut` production does not lift.
-    --     The scanner already collects with `s.inFlow` rules, so the twin is a
-    --     re-aim of the same walk, not new analysis.
+    --  * **9c** — `|`/`>` inside a flow. `dispatchContent_evidence` also offered
+    --    `SCLLiteral ∨ SCLFolded`, which `SFlowContent` has no constructor for
+    --    ([170]/[174] are reachable only from `s-l+block-node`). Now rejected, so
+    --    `dispatchContent_evidence_flowIn` has no disjunct to discharge.
+    --  * **9d** — the conditional `:` exemption in `checkFlowAdjacency`, which is
+    --    what discharges `receiveNode`'s `tl ≠ .value` premise.
+    --  * **9e** — repeated properties and properties-before-alias (`[&a &b]`,
+    --    `[!t !u]`, `[&a *x]`), so a property run is at most one anchor + one tag.
+    --  * **9f** — a property with no separation before content (`[&a[b]]`,
+    --    `[!t"x"]`), which is what makes `SFlowNode.propsContent`'s
+    --    `SSeparate 0 .flowIn` hypothesis available.
     --
-    --  2. **The blocker.** That evidence also offers `SCLLiteral ∨ SCLFolded`,
-    --     and inside a flow there is nothing to refute it with: the scanner
-    --     ACCEPTS `[a, |\n  x\n]` and `{k: |\n  x\n}` (probed 2026-08-06, both
-    --     scan clean at 15 tokens), while `SFlowContent` has no literal/folded
-    --     constructor — flow content is plain / flowSeq / flowMap / singleQ /
-    --     doubleQ only. Block scalars are block-context productions ([170]/[174],
-    --     reachable only from `s-l+block-node`), so this input is invalid YAML
-    --     that the scanner lets through. This arm is therefore UNPROVABLE as the
-    --     scanner stands; it is an item-9a-class strictening (reject `|`/`>` when
-    --     `s.inFlow` in `scanNextToken_dispatchContent`), and needs the same
-    --     probe-matrix validation 9a had before the proof can consume it.
+    -- WHAT IS LEFT. `&anchor` and `!tag` reach this dispatch inside a flow and
+    -- produce `SFlowNode.propsEmpty` — a COMPLETE node — while the frame must not
+    -- receive one, because `[&a b]` is ONE node with properties and `[&a, b]` is
+    -- an anchor on an empty one. So the properties cannot be folded into the frame
+    -- at their own step; they have to be held in the flow-interior GAP (the
+    -- `GStar SSWhite sp_flow sp_scan` conjunct of `h_interior`, generalised to
+    -- "whitespace, or scanned-but-unattached `[96] c-ns-properties`") and consumed
+    -- by whichever step follows: `receiveNode` with `propsEmpty` at `,`/`]`/`}`,
+    -- `receiveNode` with `propsContent` here and at `[`/`{`. Holding them there
+    -- rather than in a new `SeqFrame`/`MapFrame` constructor is what keeps the
+    -- eight `cases st` sites of the frame transitions untouched; `tailOf` then has
+    -- to skip a trailing property run so the frame index still describes the
+    -- frame. See DOCS, the β.3 table.
     sorry
 
 /-! ### §1f Composition: Per-Dispatch → Full accum_step

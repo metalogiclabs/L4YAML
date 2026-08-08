@@ -5471,7 +5471,7 @@ lives in [README.md](README.md) and is not duplicated here.)
 |---|---|---|
 | `ns-char` predicate spec-loose body | **Fixed 2026-08-01** (predicates tightened; scanner + emitter conformant; regression-tested) | [The ns-char gap](#the-ns-char-gap) |
 | **Indexed-pipeline parity** (the twin consumers actually call) | **CLOSED 2026-08-06 — full parity: event 402/402 · JSON 282/282 · accept/reject 402/402, same run as an identically-scoring legacy baseline; all 94 invalid inputs rejected with the identical `ScanError` (items 6+7)** | [Indexed-pipeline parity gap](#indexed-pipeline-parity-gap) |
-| Grammar completeness (`parse_iff_grammar`, capstone 7.7) | **Open** — Fix B done; Fix A at 3 `sorry` sites (β.3), all now blocked only on frame vocabulary (three scanner gaps 9c/9d/9e closed out from under them), then β.4/β.5 delete `scannerDrop`, then the converse | [Grammar completeness plan](#grammar-completeness-plan) |
+| Grammar completeness (`parse_iff_grammar`, capstone 7.7) | **Open** — Fix B done; Fix A at 3 `sorry` sites (β.3). The content step's scanner obstructions are all closed (9c, 9d, 9e, **9f**) and it now needs frame vocabulary only; the block step's `?`/`:` arms turned out to have **three more** over-acceptances of their own (2026-08-08, open). Then β.4/β.5 delete `scannerDrop`, then the converse | [Grammar completeness plan](#grammar-completeness-plan) |
 | Merge semantics (`DuplicateKeyPolicy.merge`) | **Open** (design ready; re-base on `LawfulBEq`) | [Merge semantics plan](#merge-semantics-plan) |
 | Security limits: open questions + future work | **Open** (design questions; 3 unimplemented features) | [Security hardening backlog](#security-hardening-backlog) |
 | Limit-enforcement verification, and the rest | **Open** (varied) | [Other open items](#other-open-items) |
@@ -5486,7 +5486,7 @@ completeness.
 
 | # | Action | Blocks | Where |
 |---|---|---|---|
-| 10 | **β.3 — the flow-interior branches.** 2 of 5 sites closed 2026-08-06 (structural, EOF); 3 left. Every scanner-side and bookkeeping obstruction is now cleared (items 9c, 9d, **9e**, and the interior invariant's endpoint skew); what remains in sites 2 and 3 is one shared piece of **frame vocabulary** — a fourth `FrameTail` value for "awaiting content" (`?` on the block side, `&`/`!` properties on the content side) plus a `receiveColon` transition, and site 5 still wants the `PendingNode` ↔ `simpleKey` coupling. See the β.3 table below | β.4 | [Fix A](#fix-a-eliminating-scannerdrop--flow-indicator-grammar-evidence) |
+| 10 | **β.3 — the flow-interior branches.** 2 of 5 sites closed 2026-08-06 (structural, EOF); 3 left. The **content** step (site 3) is now scanner-clean — items 9c, 9d, 9e, **9f** and the interior invariant's endpoint skew — and needs only **frame vocabulary**: a "properties seen, content awaited" gap, which `receiveNode` can already consume once 9f guarantees the `SSeparate` it needs. The **block** step (site 2) is NOT: probing its `?`/`:` arms on 2026-08-08 found three more over-acceptances (`[? ? a]`, `[a: b: c]`, `{a: : b}`, `[&a ? b]`), which must be closed first. Site 5 still wants the `PendingNode` ↔ `simpleKey` coupling. See the β.3 table below | β.4 | [Fix A](#fix-a-eliminating-scannerdrop--flow-indicator-grammar-evidence) |
 | 11 | **β.4 — chain-threading.** Thread the completed accumulation through `scanNextToken_accum_step`, `scanLoop_grammar_prod`, `scan_content_gives_stream` | β.5 | ditto |
 | 12 | **β.5 — retire `pendingFlow`, delete `scannerDrop`.** Once no dispatch produces `pendingFlow`, the `close_with_ssl` arm that calls `scannerDrop` is unreachable; delete the constructor from `Surface/Document.lean`. This turns the `L4YAML.Capstones` gate green (its only failure is `parse_strict_proof depends on sorryAx`) | Step 5, the converse | ditto |
 | 13 | **Step 5 — the converse** `grammar_completeness`, then **Step 6** the `parse_iff_grammar` biconditional | capstone 7.7 | [Grammar completeness plan](#grammar-completeness-plan) |
@@ -5599,7 +5599,7 @@ Step 0 (the scanner audit for directive handling) and Fix B (eliminating
 
 | Step | Status |
 |---|---|
-| Fix A: eliminate `scannerDrop` | 🟡 **nearly done** — see below. `StreamAccum.lean` is at **3 sorry sites / 3 declarations**, all in β.3; `scannerDrop` has exactly **one** live use left. Three scanner gaps found and closed from those arms (items 9c, 9d, 9e — all 2026-08-07) and the interior invariant's endpoint skew fixed; all three sites now need only **frame vocabulary** — and two of them want the same extension, a fourth `FrameTail` value |
+| Fix A: eliminate `scannerDrop` | 🟡 **nearly done** — see below. `StreamAccum.lean` is at **3 sorry sites / 3 declarations**, all in β.3; `scannerDrop` has exactly **one** live use left. Four scanner gaps found and closed from the content arm (items 9c, 9d, 9e — 2026-08-07 — and 9f — 2026-08-08) and the interior invariant's endpoint skew fixed. Site 3 now needs **frame vocabulary** only; site 2's `?`/`:` arms need three more strictenings first |
 | 1b. Remove `scannerDrop` from `SLYamlStream` | ⬜ open — β.5, once that last use is gone |
 | 5. Prove the converse `grammar_completeness` | ⬜ open — depends on Fix A |
 | 6. Assemble the `parse_iff_grammar` biconditional | ⬜ open — depends on Step 5 |
@@ -5899,6 +5899,102 @@ inputs rejected** and **0 invalid accepted**.  Net:
 with indicator and position pinned, including a §4 that pins the block-context
 documents the gate protects.
 
+#### Item 9f — a node property must be delimited (closed 2026-08-08)
+
+`[161] ns-flow-node(n,c)` reads `c-ns-properties(n,c)` followed by **either**
+`s-separate(n,c)` and `ns-flow-content(n,c)` **or** nothing at all (`e-scalar`),
+and `[104] c-ns-alias-node` is likewise a whole node.  There is no third arm, so
+the character directly after a property or alias token is separation, an entry or
+collection boundary, or end of input — never the first character of content.
+
+The scanner enforced none of it:
+
+```
+[&a[b]]      [&a{b: c}]      [!t"x"]      [!t'x']      [!t[b]]      [*x[b]]
+```
+
+scanned clean in **both** pipelines.
+
+**Why β.3 needed it.** `SFlowNode.propsContent` takes an `SSeparate 0 .flowIn`
+between the properties and the content; without this strictening that hypothesis
+is simply unavailable, so the props-carrying frame β.3 wants could be *defined*
+but never *fed*.  Same shape as 9c/9d/9e (Reflection 612, destination 3), reached
+the same way — probing the arm before building vocabulary for it.
+
+**Why the two lookbacks already on this stream could not have found it.**  Items
+9b and 9e both read the token array (`checkFlowAdjacency`, `trailingPropertyRun`).
+That array records what each token *is* and where it *starts*, never its extent —
+and "there must be text between these two" is a statement about the extent.  Two
+runs can emit token-for-token identical arrays, recorded positions included, and
+differ on whether the tokens abut, so **no lookback can decide a separation rule
+at all** (proved in `Tests/Reflections/OrderVersusDistancePredicates.lean`).  The
+extent is live in exactly one place — inside the dispatch that produced the token —
+so the test has to be a *forward* one, there.  That also settles the question 9e
+had to answer by hand: a forward test needs **no `s.inFlow` gate**, because
+nothing token-less can slip between a token and the character it stopped at.
+
+**The fix.** One forward test, added to the guard item 9e already put on each of
+the three arms — the same `if`, so no dispatcher gained an `if` (Reflection 613's
+cost model) and **not one proof site changed**; the full build came back at the
+exact pre-change baseline.
+
+| char | how the token's end is found | rejects |
+|---|---|---|
+| `&` | `anchorNameEnd` — the arm's own `collectAnchorNameLoop` walk | `[&a[b]]`, `[&a{b: c}]`, `{k: &a[b]}` |
+| `*` | same walk | `[*x[b]]`, `[*x{a: b}]` |
+| `!` | `propertyScanFollowerOk (scanTag s)` | `[!t"x"]`, `[!t'x']`, `[!t[b]]`, `[!t{a: b}]` |
+
+The four `[97]` tag forms stop on four different character classes, so a tag's
+extent is only available from the scan itself; running it inside the guard keeps
+both tests on one `if`, and `propertyScanFollowerOk` is vacuous on `.error`, so a
+failing scan still reports its own error exactly as before — item 9e's error
+precedence is unchanged.
+
+**What does *not* reach the test, and why the reference disagrees.**  `[102]
+ns-anchor-char` is `ns-char - c-flow-indicator`, so an anchor name absorbs
+everything except `,[]{}`: `&a"x"` is **one** anchor named `a"x"`, `&a*x` one
+named `a*x`, `&a&b` one named `a&b`, `&a:b` one named `a:b`, `&a!t` one named
+`a!t`.  PyYAML rejects all five — it uses a much narrower anchor charset — which
+looks like agreement until one reads [102].  `[153] ns-tag-char` additionally
+subtracts everything outside `ns-uri-char`, so a tag really does stop at `"`,
+which is why `[!t"x"]` needed the test and `[&a"x"]` did not.  Reading the
+scanner's own token dump rather than the reference's verdict is what separated the
+four real gaps from the five look-alikes; recorded as Reflection 616.
+
+**Validation.** Full suite **4416/4416**; `suiterunner` 869 passed / 0 failed /
+151 skipped; matrix, both pipelines, unchanged and identical — event 402/402,
+JSON 282/282; `eventscore` 347/358 with **0 valid inputs rejected** and **0
+invalid accepted**; `Tests.Guards` (which carries the yaml-test-suite `#guard`s)
+green on the first run — the corpus check 9e's Reflection 615 says to run before
+reasoning further.  Net: `Tests/Guards/Proofs/ScannerNodePropertyDelimiter.lean`
+— 45 dual-pipeline `#guard`s, including a §3 that pins the *accepted* funny-name
+anchors, which is the mistake this guard is one character away from making.
+
+> **NB.** `suiterunner` and four other test executables are rooted at modules that
+> import `L4YAML`, hence `L4YAML.Capstones`, so they cannot be rebuilt while that
+> gate is red.  The numbers above were taken with the `#assert_capstone_axioms`
+> line locally stubbed out and then restored; nothing of that reaches the tree.
+> β.5 removes the condition.
+
+#### The `?` and `:` arms: three more over-acceptances (open, 2026-08-08)
+
+The same probe pass that found 9f swept the arms `accum_step_block` needs, and
+they are **not** clean either.  All of these scan clean in both pipelines and have
+no derivation:
+
+| input | tokens emitted | why it has no derivation |
+|---|---|---|
+| `[? ? a]` | `key key scalar` | `[150] ns-flow-pair` is `"?" s-separate ns-flow-map-explicit-entry`; the entry's key is an `ns-flow-yaml-node`, and `?` followed by a space is not `[126] ns-plain-first`, so the second `?` can start nothing |
+| `[a: b: c]` | `key a value key b value c` | two `value` tokens in one seq entry; a flow plain scalar stops at `: `, so the pair's value is `b` and `: c` has nowhere to go |
+| `{a: : b}` | `key a value key value b` | `[159] c-ns-flow-map-separate-value` needs `s-separate ns-flow-node` or `e-node`; `: b` is neither |
+| `[&a ? b]` | `anchor a` `key` `scalar b` | a `?` cannot follow properties — `? b` is not `ns-flow-content`, and `&a` + `e-scalar` would need a `,` before the next entry |
+
+These are the block step's analogue of 9c/9d/9e/9f and must be closed **before**
+the `?`/`:` frame vocabulary is worth building; the risk row below has predicted
+this outcome four times running now.  Two look-alikes that are **not** gaps and
+should not be "fixed": `[a ? b]` scans to a single plain scalar `"a ? b"` (`?` is
+`ns-plain-safe-in`) and `[??]` to `"??"` — PyYAML rejects both and is wrong.
+
 #### The interior invariant: endpoint skew (2026-08-07)
 
 β.3's accumulation carried `sp_flow = sp_scan` inside an open flow collection —
@@ -5927,8 +6023,8 @@ pending `GOpt (SSeparate 0 c)` slot expects it.  Cheaper than it looked: 13 site
 |---|---|---|
 | 1 | `accum_step_structural` | ✅ **closed** — vacuous at depth ≥ 1. `dispatchStructural`'s only in-flow success arm is `%`, and `scanDirective` rejects on `!allowDirectives`; inside a flow the flag is always false, because the `[`/`{` that opened the collection was dispatched *after* `scanNextToken` cleared it. Carried as a third component of the guarded interior conjunct and transported by the new `Proofs/Scanner/ScannerAllowDirectives.lean`. The `---`/`...` accept arms sit below the §5.4 `documentMarkerInFlow` guard, so they are dead too |
 | 4 | `scanNextToken_none_stream` | ✅ **closed** — the lemma's own hypotheses never refuted an open flow at EOF (`[a, b` reaches EOF happily); it is `scanLoop`'s post-check that errors with `unterminatedFlowCollection`. Hoisted to an `sc.flowLevel = 0` hypothesis discharged at the call site |
-| 2 | `accum_step_block` | ⬜ open. `-` is free (guarded by `!s.inFlow`). `:` needs a `receiveColon` transition `.value → .colon` on both frames, lifted over the four `FlowOpenStack` arms like `holdComma`. `?` needs a **fourth `FrameTail` value** (`?` seen, key awaited) plus one constructor per frame — `midExplicitKey` already carries the key node, but `scanKey` emits only the `?` |
-| 3 | `accum_step_content` | ⬜ open — **no scanner obstruction left; frame vocabulary only.** ✅ Block-scalar disjuncts refuted (item 9c). ✅ `.flowIn` evidence built — `dispatchContent_evidence_flowIn`, with `dispatchContent_plainScalar_flowIn_prod` (a native production, **not** a lift: `flowIn` forbids the `,[]{}` that `flowOut` admits, so containment runs the wrong way) and the alias/anchor/tag `_prod` lemmas parameterized over the context. ✅ `receiveNode`'s `tl ≠ .value` premise discharged for `:` too (item 9d), and the endpoint skew fixed. ✅ **Item 9e (2026-08-07)** removed the last class of inputs the arm could not have produced evidence for: `[&a &b]`, `[!t !u]`, `[&a !t &b c]`, `[&a *x]` are rejected at content dispatch. ⬜ What is left: `&anchor` and `!tag` reach content dispatch inside a flow and produce `SFlowNode.propsEmpty` — a *complete* node — while `tailOf` correctly reports them as **not** completing a flow value, because `[&a b]` is ONE node with properties and `[&a, b]` is an anchor on an empty one. `receiveNode` cannot consume them without claiming `[&a b]` is two entries, and no frame constructor expresses "properties seen, content awaited". Wants a **fourth `FrameTail` value** and one constructor per frame — the same extension site 2's `?` arm wants |
+| 2 | `accum_step_block` | ⬜ open, and **no longer the same distance from done as site 3**. `-` is free (guarded by `!s.inFlow`). Probing the `?`/`:` arms on 2026-08-08 found three scanner over-acceptances (`[? ? a]`, `[a: b: c]`, `{a: : b}`, `[&a ? b]` — see the section below); until they are rejected, both arms are unprovable for the same reason 9c/9d/9e/9f made site 3 unprovable. **After** that: `:` needs a `receiveColon` transition `.value → .colon` on both frames, lifted over the four `FlowOpenStack` arms like `holdComma`; `?` needs a "`?` seen, key awaited" frame shape — `midExplicitKey` already carries the key node, but `scanKey` emits only the `?` |
+| 3 | `accum_step_content` | ⬜ open — **no scanner obstruction left; frame vocabulary only.** ✅ Block-scalar disjuncts refuted (item 9c). ✅ `.flowIn` evidence built — `dispatchContent_evidence_flowIn`, with `dispatchContent_plainScalar_flowIn_prod` (a native production, **not** a lift: `flowIn` forbids the `,[]{}` that `flowOut` admits, so containment runs the wrong way) and the alias/anchor/tag `_prod` lemmas parameterized over the context. ✅ `receiveNode`'s `tl ≠ .value` premise discharged for `:` too (item 9d), and the endpoint skew fixed. ✅ **Item 9e (2026-08-07)** rejected repeated properties and properties-before-alias: `[&a &b]`, `[!t !u]`, `[&a !t &b c]`, `[&a *x]`. ✅ **Item 9f (2026-08-08)** rejected a property with no separation before content — `[&a[b]]`, `[&a{b: c}]`, `[!t"x"]`, `[!t[b]]`, `[*x[b]]` — which is what makes the `SSeparate 0 .flowIn` hypothesis of `SFlowNode.propsContent` available at all; **that was the last scanner obstruction.** ⬜ What is left: `&anchor` and `!tag` reach content dispatch inside a flow and produce `SFlowNode.propsEmpty` — a *complete* node — while `tailOf` correctly reports them as **not** completing a flow value, because `[&a b]` is ONE node with properties and `[&a, b]` is an anchor on an empty one. `receiveNode` cannot consume them without claiming `[&a b]` is two entries, and no frame constructor expresses "properties seen, content awaited". Wants a **fourth `FrameTail` value** and one constructor per frame — the same extension site 2's `?` arm wants |
 | 5 | `accum_flow_open_depth0` | ⬜ open — the depth-0 open at `col ≠ 0` with no preceding line break (`"foo" [a]`). **Not** refutable by `checkFlowAdjacency`, which is gated on `s.inFlow` and is a no-op at the depth-0 open. The vacuity must come from a `PendingNode`-shape ↔ `sc.simpleKey` coupling — the depth-0 analogue of 9b(ii)'s `FrameTail` ↔ `tailOf sc.tokens` |
 
 Then:
@@ -5990,7 +6086,7 @@ Further coupling material is spread across `Proofs/Coupling/`
 
 | Risk | Likelihood | Impact | Mitigation |
 |------|-----------|--------|------------|
-| More item-9a-class scanner gaps hide behind the remaining β.3 arms | **Materialized three times** — items 9c, 9d and 9e (all fixed 2026-08-07) | Medium | The content arm needed ALL THREE. Expect the `?`/`:` arms to be audited the same way — probe the scanner on the arm's input BEFORE building frame vocabulary for it, and seed the probe alphabet from what ENDS a token (9d's witness needed a comment; two 15-character alphabets without `#` scored 0 hits over ≈1.6M inputs). And when the strictening's soundness argument is "no legal document has X adjacent to Y", **run the suite guards before reasoning further** — 9e's first version was over-strict and only the corpus caught it, because a hand-built probe list inherits the guard's blind spot. Reflections 612 + 614 + 615 |
+| More item-9a-class scanner gaps hide behind the remaining β.3 arms | **Materialized four times** — items 9c, 9d, 9e (2026-08-07) and 9f (2026-08-08) — and a fifth batch is already sitting open on the `?`/`:` arms | High | The content arm needed ALL FOUR. Expect the `?`/`:` arms to be audited the same way — probe the scanner on the arm's input BEFORE building frame vocabulary for it, and seed the probe alphabet from what ENDS a token (9d's witness needed a comment; two 15-character alphabets without `#` scored 0 hits over ≈1.6M inputs). And when the strictening's soundness argument is "no legal document has X adjacent to Y", **run the suite guards before reasoning further** — 9e's first version was over-strict and only the corpus caught it, because a hand-built probe list inherits the guard's blind spot. 9f adds two more: a rule about the TEXT BETWEEN two tokens cannot be a lookback at all (the array keeps starts, not extents), and two sibling productions differing only in a character class do not fail on the same inputs — read the scanner's own token dump, not the reference's verdict. Reflections 612 + 614 + 615 + 616 |
 | The depth-0 `col ≠ 0`, no-break vacuity is not actually vacuous | Low | Medium | Ruled out `checkFlowAdjacency` as the source (gated on `inFlow`, no-op at the depth-0 open); the simple-key coupling is the remaining candidate |
 | Converse proof (Step 5) is very large | High | Medium | Grammar inversion touches ~77 rules; many lemmas are mechanical |
 

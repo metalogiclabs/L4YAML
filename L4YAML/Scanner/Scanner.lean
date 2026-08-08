@@ -316,6 +316,50 @@ def lastTokenIsNodeProperty (s : ScannerState) : Bool :=
      | some t => t.isNodeProperty
      | none => false)
 
+/-! ### §7.5 [161]: a node property is delimited (item 9f)
+
+    `[161] ns-flow-node(n,c)` reads `c-ns-properties` followed by EITHER
+    `s-separate(n,c)` and `ns-flow-content` OR nothing at all (`e-scalar`); [104]
+    `c-ns-alias-node` is likewise a whole node.  There is no third arm, so the
+    character directly after a property (or alias) token is separation, an entry
+    or collection boundary, or end of input — never the first character of
+    content.
+
+    Unlike the three tests above this one does NOT need the `s.inFlow` gate:
+    it looks only FORWARD, at the character the same token's own walk stopped on,
+    so no virtual block opening can sit between the two (Reflection 615).
+
+    The character classes differ sharply between the two property forms, which is
+    why so little reaches this test on the anchor side: `[102] ns-anchor-char` is
+    `ns-char - c-flow-indicator`, so `&a"x"`, `&a*x`, `&a&b` and `&a:b` are each
+    ONE anchor with a funny name, and only `,[]{}` end the token.  `[153]
+    ns-tag-char` also subtracts everything outside `ns-uri-char`, so a tag stops
+    at `"` — which is how `[!t"x"]` scanned clean before this. -/
+
+/-- The characters that may directly follow a node property or an alias:
+    separation (§6.1 `s-white`, §5.4 `b-break`), an entry or collection boundary
+    (the node ended with `e-scalar`), or end of input. -/
+def propertyFollowerOk (s : ScannerState) : Bool :=
+  match s.peek? with
+  | none => true
+  | some ch =>
+    isWhiteSpaceBool ch || isLineBreakBool ch || ch == ',' || ch == ']' || ch == '}'
+
+/-- `propertyFollowerOk` read off the state a property scan produced.  A failed
+    scan reports its own error, so the test is vacuous there — which is what
+    keeps item 9e's error precedence unchanged when the two guards share an
+    `if`. -/
+def propertyScanFollowerOk (r : Except ScanError ScannerState) : Bool :=
+  match r with
+  | .ok s' => propertyFollowerOk s'
+  | .error _ => true
+
+/-- Where an anchor or alias name ends, without emitting anything: the same
+    `collectAnchorNameLoop` walk `scanAnchorOrAlias` runs, so the follower this
+    reports is exactly the one the emitted token stops before. -/
+def anchorNameEnd (s : ScannerState) : ScannerState :=
+  (collectAnchorNameLoop s.advance "" (s.inputEnd - s.advance.offset)).snd
+
 /-- Scan a flow entry separator `,`.
 
     **Implements** (YAML 1.2.2 §7.4):
@@ -514,7 +558,10 @@ def scanNextToken_dispatchContent (s : ScannerState) (c : Char) :
     -- §6.9 [96]: one anchor per node.  Full `else`-chain (not an early-exit
     -- statement) so the desugaring stays a plain `ite` with closed branches —
     -- no `__do_jp` join points; same discipline as the `|`/`>` guard below.
-    if propertyRunHasAnchor s then
+    -- §7.5 [161] (item 9f): and the anchor is delimited — `&a[b]` has no
+    -- derivation.  Both tests share the SAME `if`, so the dispatcher gains no
+    -- `if` and no join point (Reflection 613).
+    if propertyRunHasAnchor s || !propertyFollowerOk (anchorNameEnd s) then
       .error (.invalidNodeProperties c s.line s.col)
     else do
       let s' ← scanAnchorOrAlias s true
@@ -522,7 +569,8 @@ def scanNextToken_dispatchContent (s : ScannerState) (c : Char) :
       return { s' with definedAnchors := s'.definedAnchors.push name }
   if c == '*' then
     -- §6.9 [104]: an alias node carries no properties.
-    if lastTokenIsNodeProperty s then
+    -- §7.5 [161]/[104] (item 9f): and the alias node is delimited — `*a[b]`.
+    if lastTokenIsNodeProperty s || !propertyFollowerOk (anchorNameEnd s) then
       .error (.invalidNodeProperties c s.line s.col)
     else
       let name := (collectAnchorNameLoop s.advance "" (s.inputEnd - s.advance.offset)).fst
@@ -533,7 +581,13 @@ def scanNextToken_dispatchContent (s : ScannerState) (c : Char) :
         return s'
   if c == '!' then
     -- §6.9 [96]: one tag per node.
-    if propertyRunHasTag s then
+    -- §7.5 [161] (item 9f): and the tag is delimited — `!t"x"`, `!t[b]`.  The
+    -- four `[97]` tag forms stop on four different character classes, so the
+    -- token's extent is only available from the scan itself; running it in the
+    -- guard keeps both tests on one `if` (and so the dispatcher's shape), and
+    -- `propertyScanFollowerOk` is vacuous on `.error`, so a failing scan still
+    -- reports its own error exactly as before.
+    if propertyRunHasTag s || !propertyScanFollowerOk (scanTag s) then
       .error (.invalidNodeProperties c s.line s.col)
     else do
       let s' ← scanTag s
