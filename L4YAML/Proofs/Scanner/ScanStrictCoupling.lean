@@ -5,6 +5,7 @@ Released under Apache 2.0 license as described in the file LICENSE.
 import L4YAML.Proofs.Coupling.StructureCoupling
 import L4YAML.Proofs.Scanner.FlowAdjacency
 import L4YAML.Proofs.Scanner.BlockScalarFlowGuard
+import L4YAML.Proofs.Scanner.AliasTrailingContent
 
 /-!
 # Scan-Strict Coupling: Full-Consumption Infrastructure
@@ -249,13 +250,8 @@ lemma scanNextToken_dispatchContent_corr (sc : ScannerState) (sp : SurfPos) (c :
       · simp at hok
       split at hok
       · simp at hok
-      · -- '*': scanAnchorOrAlias bind
-        generalize h_anch : scanAnchorOrAlias sc false = result at hok
-        cases result with
-        | error e => simp at hok
-        | ok s_a =>
-          have h := Except.ok.inj hok; subst h
-          exact scanAnchorOrAlias_corr sc sp hcorr false s_a h_anch
+      · -- '*': item 9h peels `validateAliasClose`, then the alias bind.
+        exact scanAnchorOrAlias_corr sc sp hcorr false _ (aliasArm_scan_ok hok)
     · split at hok
       · -- '!': item-9e property-run guard, then the scanTag bind
         split at hok

@@ -1120,7 +1120,9 @@ lemma dispatchContent_preserves_flowStack (s : ScannerState) (c : Char) (s' : Sc
       · simp at h
       split at h
       · simp at h
-      · generalize h_fn : scanAnchorOrAlias s false = result at h
+      · -- item 9h: peel `validateAliasClose`, then the alias bind.
+        replace h := aliasArm_scan_ok h
+        generalize h_fn : scanAnchorOrAlias s false = result at h
         cases result with
         | error e => simp at h
         | ok s_a =>

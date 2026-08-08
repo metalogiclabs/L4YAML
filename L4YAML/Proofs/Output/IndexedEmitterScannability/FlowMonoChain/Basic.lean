@@ -711,7 +711,7 @@ lemma scanNextTokenIx_dispatchContent_maintains_SKAFIx {input : String}
   · -- '&' anchor
     rw [if_pos hg1] at h
     -- 4.32.0 already reduces the anchor bind; the `cases`/`rw` below is robust either way
-    try simp only [Bind.bind, Except.bind, Pure.pure, Except.pure] at h
+    try simp only [Bind.bind, Except.bind] at h
     split at h   -- item 9e: the property-run guard
     · cases h
     cases hA : scanAnchorOrAliasIx s true with
@@ -733,6 +733,10 @@ lemma scanNextTokenIx_dispatchContent_maintains_SKAFIx {input : String}
       | error e => rw [hA] at h; cases h
       | ok v =>
         rw [hA] at h
+        -- item 9h: `aliasTrailingErrIx` is a CHECK — the state is untouched.
+        dsimp only [] at h
+        split at h
+        · cases h
         simp only [Except.ok.injEq] at h; subst h
         exact SimpleKeyAboveFloorIx_of_preserved _ s n₀ fl₀
           (scanAnchorOrAliasIx_preserves_simpleKey s false v hA)

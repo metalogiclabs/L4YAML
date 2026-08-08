@@ -590,6 +590,49 @@ def scanNextToken_dispatchBlockIndicators (s : ScannerState) (c : Char) :
     return some s'
   return none
 
+/-! ### §7.1 [104]: an alias node ends its node (item 9h)
+
+`[104] c-ns-alias-node ::= "*" ns-anchor-name` is a complete node — an
+`ns-flow-node` [161] and, through `s-l+block-node` [196], a complete block node.
+So in BLOCK context whatever follows it on the same line would have to be a
+SECOND node in a slot that admits exactly one, and there is no derivation.
+
+Every other block-context node terminator already says so, with one shared
+allow-list — a line break, a `#` comment, or the `:` that makes the node an
+implicit key:
+
+* quoted scalars ([109]/[120]) — `validateTrailingContent`, called inside
+  `scanDoubleQuoted` / `scanSingleQuoted`;
+* a `]`/`}` that returns to block context ([137]/[140]) — `validateFlowClose`.
+
+The alias arm had neither, and
+
+    k: *a [b]   k: *a {b: c}   k: *a "x"   k: *a 'x'
+    k: *a *a    k: *a plain    k: *a &b x  k: *a !t x   k: *a |
+
+all scanned clean in BOTH pipelines (the parser rejects them later, with
+`bareDocumentContent`, so this was never a shipped over-acceptance — but the
+accumulation step could not refute them).  `validateAliasClose` closes it by
+reusing the quoted-scalar sibling's own helper, so the allow-list is shared by
+construction rather than restated.
+
+**Why it is gated on `!inFlow`.**  Inside a flow collection the same job is
+already done one dispatcher earlier: `.alias` is in `YamlToken.completesFlowValue`,
+so `scanNextToken_checkFlowAdjacency` (item 9b) rejects `[*a *b]` before content
+dispatch is reached.
+
+**Why the plain, block-scalar, anchor and tag arms need nothing.**  A plain
+scalar in block context ABSORBS what follows (`ns-plain-safe-out` is `ns-char`,
+so `k: foo [a]` is the one scalar `foo [a]`); a block scalar runs to the end of
+its lines; and `&a`/`!t` are `c-ns-properties` [96], which are *supposed* to be
+followed by content on the same line (`&a [b]` is one anchored node). -/
+
+/-- §7.1 [104] (item 9h): validate what follows an alias node.  A no-op inside a
+    flow collection — see the section note above. -/
+@[yaml_spec "7.1" 104 "c-ns-alias-node"]
+def validateAliasClose (s : ScannerState) : Except ScanError Unit :=
+  if s.inFlow then .ok () else validateTrailingContent s s.inputEnd
+
 /-- Content token dispatch: anchors, tags, scalars, and error.
 
     Handles `&`, `*`, `!`, `|`/`>`, `"`, `'`, plain scalars.
@@ -621,8 +664,13 @@ def scanNextToken_dispatchContent (s : ScannerState) (c : Char) :
       let name := (collectAnchorNameLoop s.advance "" (s.inputEnd - s.advance.offset)).fst
       if !(s.definedAnchors.any (· == name)) then
         .error (.undefinedAlias name s.currentPos.line s.currentPos.col)
-      else
+      else do
         let s' ← scanAnchorOrAlias s false
+        -- §7.1 [104] (item 9h): the alias node is the whole node, so in block
+        -- context what follows it on the line must end that node.  One
+        -- statement, so the dispatcher gains no `if` and no join point
+        -- (Reflection 613).
+        validateAliasClose s'
         return s'
   if c == '!' then
     -- §6.9 [96]: one tag per node.

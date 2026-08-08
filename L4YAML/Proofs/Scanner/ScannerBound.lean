@@ -7,6 +7,7 @@ import L4YAML.Proofs.Scanner.ScannerLoopInvariant
 import L4YAML.Proofs.Scanner.ScannerProgress
 import L4YAML.Proofs.Scanner.FlowAdjacency
 import L4YAML.Proofs.Scanner.BlockScalarFlowGuard
+import L4YAML.Proofs.Scanner.AliasTrailingContent
 
 /-!
 # Scanner Bound Preservation (Phase 4.2.A)
@@ -1701,8 +1702,9 @@ lemma dispatchContent_preserves_bound (s sp s' : ScannerState) (c : Char)
       · simp at hok
       split at hok  -- !definedAnchors check
       · cases hok  -- error: undefined alias
-      · -- scanAnchorOrAlias result is returned directly
-        exact BoundInv.trans h_bi (scanAnchorOrAlias_BoundInv sp _ false h_refl h_hend hok)
+      · -- item 9h: peel `validateAliasClose`; the alias facts are unchanged.
+        exact BoundInv.trans h_bi
+          (scanAnchorOrAlias_BoundInv sp _ false h_refl h_hend (aliasArm_scan_ok hok))
     -- 3. c == '!' (tag)
     · split at hok
       · -- scanTag result is returned directly, under the item-9e guard

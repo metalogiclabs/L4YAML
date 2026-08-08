@@ -3744,7 +3744,7 @@ lemma scanNextTokenIx_dispatchContent_preserves_PlainScalarsValidIx
   unfold scanNextTokenIx_dispatchContent at h_ok
   by_cases hg1 : (c == '&') = true
   · rw [if_pos hg1] at h_ok
-    try simp only [Bind.bind, Except.bind, Pure.pure, Except.pure] at h_ok
+    try simp only [Bind.bind, Except.bind] at h_ok
     split at h_ok   -- item 9e: the property-run guard
     · cases h_ok
     cases hA : scanAnchorOrAliasIx s true with
@@ -3764,6 +3764,10 @@ lemma scanNextTokenIx_dispatchContent_preserves_PlainScalarsValidIx
       | error e => rw [hA] at h_ok; cases h_ok
       | ok v =>
         rw [hA] at h_ok
+        -- item 9h: `aliasTrailingErrIx` is a CHECK — the state is untouched.
+        dsimp only [] at h_ok
+        split at h_ok
+        · cases h_ok
         simp only [Except.ok.injEq] at h_ok
         subst h_ok
         exact scanAnchorOrAliasIx_preserves_PlainScalarsValidIx s false v hA h_old
@@ -3873,7 +3877,7 @@ lemma scanNextTokenIx_dispatchContent_preserves_FlowContextPSVIx
   unfold scanNextTokenIx_dispatchContent at h_ok
   by_cases hg1 : (c == '&') = true
   · rw [if_pos hg1] at h_ok
-    try simp only [Bind.bind, Except.bind, Pure.pure, Except.pure] at h_ok
+    try simp only [Bind.bind, Except.bind] at h_ok
     split at h_ok   -- item 9e: the property-run guard
     · cases h_ok
     cases hA : scanAnchorOrAliasIx s true with
@@ -3893,6 +3897,10 @@ lemma scanNextTokenIx_dispatchContent_preserves_FlowContextPSVIx
       | error e => rw [hA] at h_ok; cases h_ok
       | ok v =>
         rw [hA] at h_ok
+        -- item 9h: `aliasTrailingErrIx` is a CHECK — the state is untouched.
+        dsimp only [] at h_ok
+        split at h_ok
+        · cases h_ok
         simp only [Except.ok.injEq] at h_ok
         subst h_ok
         exact scanAnchorOrAliasIx_preserves_FlowContextPSVIx s false v hA h_old
@@ -4003,7 +4011,7 @@ lemma scanNextTokenIx_dispatchContent_preserves_FlowNestingInvIx
   unfold scanNextTokenIx_dispatchContent at h_ok
   by_cases hg1 : (c == '&') = true
   · rw [if_pos hg1] at h_ok
-    try simp only [Bind.bind, Except.bind, Pure.pure, Except.pure] at h_ok
+    try simp only [Bind.bind, Except.bind] at h_ok
     split at h_ok   -- item 9e: the property-run guard
     · cases h_ok
     cases hA : scanAnchorOrAliasIx s true with
@@ -4023,6 +4031,10 @@ lemma scanNextTokenIx_dispatchContent_preserves_FlowNestingInvIx
       | error e => rw [hA] at h_ok; cases h_ok
       | ok v =>
         rw [hA] at h_ok
+        -- item 9h: `aliasTrailingErrIx` is a CHECK — the state is untouched.
+        dsimp only [] at h_ok
+        split at h_ok
+        · cases h_ok
         simp only [Except.ok.injEq] at h_ok
         subst h_ok
         exact scanAnchorOrAliasIx_preserves_FlowNestingInvIx s false v hA h_fni
@@ -5894,7 +5906,7 @@ lemma scanNextTokenIx_dispatchContent_preserves_AllKeysPlaceholderInvIx {input :
   by_cases hg1 : (c == '&') = true
   · -- c == '&': anchor
     rw [if_pos hg1] at h_ok
-    try simp only [Bind.bind, Except.bind, Pure.pure, Except.pure] at h_ok
+    try simp only [Bind.bind, Except.bind] at h_ok
     split at h_ok   -- item 9e: the property-run guard
     · cases h_ok
     cases hA : scanAnchorOrAliasIx s true with
@@ -5919,6 +5931,10 @@ lemma scanNextTokenIx_dispatchContent_preserves_AllKeysPlaceholderInvIx {input :
       | error e => rw [hA] at h_ok; cases h_ok
       | ok v =>
         rw [hA] at h_ok
+        -- item 9h: `aliasTrailingErrIx` is a CHECK — the state is untouched.
+        dsimp only [] at h_ok
+        split at h_ok
+        · cases h_ok
         simp only [Except.ok.injEq] at h_ok
         subst h_ok
         exact AllKeysPlaceholderInvIx_mono s v h_akpi

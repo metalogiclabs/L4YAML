@@ -756,7 +756,7 @@ lemma scanNextTokenIx_dispatchContent_offset_gt {s s' : ScannerStateIx input} {c
   by_cases hg1 : (c == '&') = true
   · rw [if_pos hg1] at h
     -- 4.32.0 already reduces the anchor bind; the `cases`/`rw` below is robust either way
-    try simp only [Bind.bind, Except.bind, Pure.pure, Except.pure] at h
+    try simp only [Bind.bind, Except.bind] at h
     -- Item 9e: peel the property-run guard — it cannot be `.ok`.
     split at h
     · cases h
@@ -776,8 +776,12 @@ lemma scanNextTokenIx_dispatchContent_offset_gt {s s' : ScannerStateIx input} {c
       | error e => rw [hA] at h; cases h
       | ok v =>
         rw [hA] at h
-        cases h
-        exact scanAnchorOrAliasIx_offset_lt h_hm hA
+        -- item 9h: `aliasTrailingErrIx` is a CHECK — the state is untouched.
+        dsimp only [] at h
+        split at h
+        · cases h
+        · cases h
+          exact scanAnchorOrAliasIx_offset_lt h_hm hA
     · rw [if_neg hg2] at h
       by_cases hg3 : (c == '!') = true
       · rw [if_pos hg3] at h

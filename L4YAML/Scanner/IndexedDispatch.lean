@@ -1259,6 +1259,28 @@ def blockScalarPreErrIx {input : String} (s : ScannerStateIx input) (c : Char) :
   else
     none
 
+/-- §7.1 [104] (item 9h): cursor-level twin of legacy `validateAliasClose`.
+
+    `[104] c-ns-alias-node` is a complete node, so in BLOCK context what follows
+    it on the line must end that node: a line break, a `#` comment, or the `:`
+    that makes the alias an implicit key.  Same allow-list as legacy
+    `validateTrailingContent`, and `skipWhitespace` is the cursor twin of
+    `skipTrailingSpaces` (both are `s-white` [33] = space or tab).
+
+    Inside a flow collection this is a no-op — `.alias` completes a flow value,
+    so `scanNextTokenIx_checkFlowAdjacency` (item 9b) has already rejected
+    `[*a *b]`. -/
+def aliasTrailingErrIx {input : String} (s : ScannerStateIx input) :
+    Option ScanError :=
+  if s.inFlow then none
+  else
+    let probe := skipWhitespace s.cursor
+    match probe.peek? with
+    | none => none
+    | some ch =>
+      if isLineBreakBool ch || ch == '#' || ch == ':' then none
+      else some (.trailingContent probe.pos.line probe.pos.col)
+
 /-- Content dispatch: scalars + anchors + tags.
 
     Wires scalars to the per-rule recognisers in
@@ -1285,6 +1307,8 @@ def scanNextTokenIx_dispatchContent {input : String} (s : ScannerStateIx input)
       .error (.invalidNodeProperties c s.cursor.pos.line s.cursor.pos.col)
     else do
       let s' ← scanAnchorOrAliasIx s false
+      -- §7.1 [104] (item 9h) — see `aliasTrailingErrIx`.
+      if let some e := aliasTrailingErrIx s' then throw e
       return s'
   if c == '!' then
     -- Item 9e (§6.9 [96]): one tag per node.

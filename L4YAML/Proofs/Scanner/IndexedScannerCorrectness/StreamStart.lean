@@ -348,7 +348,7 @@ lemma scanNextTokenIx_dispatchContent_maintains_SimpleKeyAboveIx {input : String
   · -- c == '&': anchor
     rw [if_pos hg1] at h_ok
     -- 4.32.0 already reduces the anchor bind; the `cases`/`rw` below is robust either way
-    try simp only [Bind.bind, Except.bind, Pure.pure, Except.pure] at h_ok
+    try simp only [Bind.bind, Except.bind] at h_ok
     split at h_ok   -- item 9e: the property-run guard
     · cases h_ok
     cases hA : scanAnchorOrAliasIx s true with
@@ -371,6 +371,10 @@ lemma scanNextTokenIx_dispatchContent_maintains_SimpleKeyAboveIx {input : String
       | error e => rw [hA] at h_ok; cases h_ok
       | ok v =>
         rw [hA] at h_ok
+        -- item 9h: `aliasTrailingErrIx` is a CHECK — the state is untouched.
+        dsimp only [] at h_ok
+        split at h_ok
+        · cases h_ok
         simp only [Except.ok.injEq] at h_ok
         subst h_ok
         exact SimpleKeyAboveIx_mono s v n h_inv
@@ -582,7 +586,7 @@ lemma scanNextTokenIx_dispatchContent_preserves_prefix {input : String}
   · -- c == '&'
     rw [if_pos hg1] at h_ok
     -- 4.32.0 already reduces the anchor bind; the `cases`/`rw` below is robust either way
-    try simp only [Bind.bind, Except.bind, Pure.pure, Except.pure] at h_ok
+    try simp only [Bind.bind, Except.bind] at h_ok
     split at h_ok   -- item 9e: the property-run guard
     · cases h_ok
     cases hA : scanAnchorOrAliasIx s true with
@@ -603,6 +607,10 @@ lemma scanNextTokenIx_dispatchContent_preserves_prefix {input : String}
       | error e => rw [hA] at h_ok; cases h_ok
       | ok v =>
         rw [hA] at h_ok
+        -- item 9h: `aliasTrailingErrIx` is a CHECK — the state is untouched.
+        dsimp only [] at h_ok
+        split at h_ok
+        · cases h_ok
         simp only [Except.ok.injEq] at h_ok
         subst h_ok
         exact scanAnchorOrAliasIx_preserves_prefix s false v hA i h_bound

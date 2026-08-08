@@ -871,7 +871,13 @@ lemma dispatchContent_maintains_SimpleKeyAboveFloor (s : ScannerState) (c : Char
       · simp at h
       split at h
       · contradiction
-      · generalize h_anch : scanAnchorOrAlias s false = result at h
+      · -- item 9h: peel `validateAliasClose`, then the alias bind.  The
+        -- emitter never writes `*` (`emitTokVals` renders an alias as a
+        -- quoted scalar), so this arm carries no new obligation — but the
+        -- acceptance proof splits on the DISPATCHER's arms, not on the
+        -- emitted characters, so the peel is still needed here.
+        replace h := aliasArm_scan_ok h
+        generalize h_anch : scanAnchorOrAlias s false = result at h
         cases result with
         | error e => simp at h
         | ok s_a =>
@@ -1595,7 +1601,13 @@ lemma dispatchContent_maintains_NoOverwriteAt (s : ScannerState) (c : Char)
       · simp at h
       split at h
       · contradiction
-      · generalize h_anch : scanAnchorOrAlias s false = result at h
+      · -- item 9h: peel `validateAliasClose`, then the alias bind.  The
+        -- emitter never writes `*` (`emitTokVals` renders an alias as a
+        -- quoted scalar), so this arm carries no new obligation — but the
+        -- acceptance proof splits on the DISPATCHER's arms, not on the
+        -- emitted characters, so the peel is still needed here.
+        replace h := aliasArm_scan_ok h
+        generalize h_anch : scanAnchorOrAlias s false = result at h
         cases result with
         | error e => simp at h
         | ok s_a =>
@@ -2249,7 +2261,13 @@ lemma dispatchContent_maintains_FlowNoOverwriteAt (s : ScannerState) (c : Char)
       · simp at h
       split at h
       · contradiction
-      · generalize h_anch : scanAnchorOrAlias s false = result at h
+      · -- item 9h: peel `validateAliasClose`, then the alias bind.  The
+        -- emitter never writes `*` (`emitTokVals` renders an alias as a
+        -- quoted scalar), so this arm carries no new obligation — but the
+        -- acceptance proof splits on the DISPATCHER's arms, not on the
+        -- emitted characters, so the peel is still needed here.
+        replace h := aliasArm_scan_ok h
+        generalize h_anch : scanAnchorOrAlias s false = result at h
         cases result with
         | error e => simp at h
         | ok s_a =>

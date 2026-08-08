@@ -8,6 +8,7 @@ import L4YAML.Proofs.Scanner.ScannerProofs
 import L4YAML.Proofs.Scanner.ScannerProgress
 import L4YAML.Proofs.Scanner.FlowAdjacency
 import L4YAML.Proofs.Scanner.BlockScalarFlowGuard
+import L4YAML.Proofs.Scanner.AliasTrailingContent
 
 /-!
 # Scanner Correctness (P10.11a)
@@ -2772,12 +2773,8 @@ lemma dispatchContent_preserves_prefix (s : ScannerState) (c : Char) (s' : Scann
       · simp at h
       split at h
       · simp at h
-      · generalize h_anch : scanAnchorOrAlias s false = result at h
-        cases result with
-        | error e => simp at h
-        | ok s_a =>
-          simp only [Except.ok.injEq] at h; subst h
-          exact scanAnchorOrAlias_preserves_prefix s false s_a h_anch i h_i
+      · -- item 9h: peel `validateAliasClose`; the alias facts are unchanged.
+        exact scanAnchorOrAlias_preserves_prefix s false _ (aliasArm_scan_ok h) i h_i
     · split at h
       · -- '!': tag
         split at h   -- item 9e: the property-run guard
@@ -5689,12 +5686,8 @@ lemma dispatchContent_preserves_flowLevel (s : ScannerState) (c : Char) (s' : Sc
       · simp at h
       split at h
       · simp at h
-      · generalize h_fn : scanAnchorOrAlias s false = result at h
-        cases result with
-        | error e => simp at h
-        | ok s_a =>
-          simp only [Except.ok.injEq] at h; subst h
-          exact scanAnchorOrAlias_preserves_flowLevel s false s_a h_fn
+      · -- item 9h: peel `validateAliasClose`; the alias facts are unchanged.
+        exact scanAnchorOrAlias_preserves_flowLevel s false _ (aliasArm_scan_ok h)
     · split at h
       · -- '!': tag
         split at h   -- item 9e: the property-run guard
@@ -5741,12 +5734,8 @@ lemma dispatchContent_preserves_simpleKeyStack (s : ScannerState) (c : Char) (s'
       · simp at h
       split at h
       · simp at h
-      · generalize h_fn : scanAnchorOrAlias s false = result at h
-        cases result with
-        | error e => simp at h
-        | ok s_a =>
-          simp only [Except.ok.injEq] at h; subst h
-          exact scanAnchorOrAlias_preserves_simpleKeyStack s false s_a h_fn
+      · -- item 9h: peel `validateAliasClose`; the alias facts are unchanged.
+        exact scanAnchorOrAlias_preserves_simpleKeyStack s false _ (aliasArm_scan_ok h)
     · split at h
       · -- '!': tag
         split at h   -- item 9e: the property-run guard
@@ -6013,14 +6002,10 @@ lemma dispatchContent_maintains_simpleKeyAbove (s : ScannerState) (c : Char) (s'
       · simp at h
       split at h
       · contradiction
-      · generalize h_anch : scanAnchorOrAlias s false = result at h
-        cases result with
-        | error e => simp at h
-        | ok s_a =>
-          simp only [Except.ok.injEq] at h; subst h
-          exact SimpleKeyAbove_of_preserved _ s n
-            (scanAnchorOrAlias_preserves_simpleKey s false s_a h_anch)
-            (scanAnchorOrAlias_preserves_simpleKeyStack s false s_a h_anch) h_inv
+      · -- item 9h: peel `validateAliasClose`; the alias facts are unchanged.
+        exact SimpleKeyAbove_of_preserved _ s n
+          (scanAnchorOrAlias_preserves_simpleKey s false _ (aliasArm_scan_ok h))
+          (scanAnchorOrAlias_preserves_simpleKeyStack s false _ (aliasArm_scan_ok h)) h_inv
     · split at h
       · -- '!': tag
         split at h   -- item 9e: the property-run guard
@@ -8533,13 +8518,8 @@ lemma dispatchContent_preserves_ScanInv (s : ScannerState) (c : Char)
       -- inner split: alias validation check
       split at h_ok
       · contradiction
-      · -- scanAnchorOrAlias bind
-        generalize h_anch : scanAnchorOrAlias s false = result at h_ok
-        cases result with
-        | error e => simp at h_ok
-        | ok s_a =>
-          simp only [Except.ok.injEq] at h_ok; subst h_ok
-          exact scanAnchorOrAlias_preserves_ScanInv s false h s_a h_anch
+      · -- item 9h: peel `validateAliasClose`; the alias facts are unchanged.
+        exact scanAnchorOrAlias_preserves_ScanInv s false h _ (aliasArm_scan_ok h_ok)
     · -- c == '!'
       split at h_ok
       · split at h_ok   -- item 9e: the property-run guard
@@ -9157,7 +9137,8 @@ lemma dispatchContent_preserves_AllKeysValid (s : ScannerState) (c : Char)
       · simp at h
       split at h
       · contradiction
-      · -- scanAnchorOrAlias result returned directly
+      · -- item 9h: peel `validateAliasClose`; the alias facts are unchanged.
+        replace h := aliasArm_scan_ok h
         exact AllKeysValid_mono s _ h_akv
           (scanAnchorOrAlias_preserves_simpleKey s false _ h)
           (scanAnchorOrAlias_preserves_simpleKeyStack s false _ h)
@@ -10419,8 +10400,8 @@ lemma dispatchContent_offset_gt (s s' : ScannerState) (c : Char)
       · simp at h
       split at h
       · cases h
-      · -- scanAnchorOrAlias result returned directly
-        exact scanAnchorOrAlias_offset_lt s _ false h_hm h
+      · -- item 9h: peel `validateAliasClose`; the alias facts are unchanged.
+        exact scanAnchorOrAlias_offset_lt s _ false h_hm (aliasArm_scan_ok h)
     · split at h  -- c == '!'
       · split at h   -- item 9e: the property-run guard
         · simp at h

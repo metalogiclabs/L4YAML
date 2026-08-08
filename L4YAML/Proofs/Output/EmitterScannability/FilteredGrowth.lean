@@ -1355,7 +1355,9 @@ lemma dispatchContent_new_not_placeholder (s s' : ScannerState) (c : Char)
       · simp at h
       split at h
       · simp at h
-      · generalize h_sc : scanAnchorOrAlias s false = result at h
+      · -- item 9h: peel `validateAliasClose`, then the alias bind.
+        replace h := L4YAML.Scanner.aliasArm_scan_ok h
+        generalize h_sc : scanAnchorOrAlias s false = result at h
         cases result with
         | error => simp at h
         | ok s_a =>

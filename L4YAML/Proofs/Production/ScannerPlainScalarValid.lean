@@ -454,7 +454,9 @@ lemma dispatchContent_preserves_PlainScalarsValid
         · simp at h_ok
         split at h_ok
         · contradiction
-        · generalize h_anch : scanAnchorOrAlias s false = anch_result at h_ok
+        · -- item 9h: peel `validateAliasClose`, then the alias bind.
+          replace h_ok := aliasArm_scan_ok h_ok
+          generalize h_anch : scanAnchorOrAlias s false = anch_result at h_ok
           cases anch_result with
           | error => simp at h_ok
           | ok s_anch =>
@@ -3597,7 +3599,9 @@ lemma dispatchContent_preserves_FlowInv
       · simp at h_ok
       split at h_ok
       · contradiction
-      · generalize h_anch : scanAnchorOrAlias s false = anch_result at h_ok
+      · -- item 9h: peel `validateAliasClose`, then the alias bind.
+        replace h_ok := aliasArm_scan_ok h_ok
+        generalize h_anch : scanAnchorOrAlias s false = anch_result at h_ok
         cases anch_result with
         | error => simp at h_ok
         | ok s_anch =>
@@ -4921,7 +4925,9 @@ lemma dispatchContent_preserves_AllKeysPlaceholderInv
       · simp at h_ok
       split at h_ok
       · contradiction
-      · generalize h_anch : scanAnchorOrAlias s false = anch_result at h_ok
+      · -- item 9h: peel `validateAliasClose`, then the alias bind.
+        replace h_ok := aliasArm_scan_ok h_ok
+        generalize h_anch : scanAnchorOrAlias s false = anch_result at h_ok
         cases anch_result with
         | error => simp at h_ok
         | ok s_anch =>

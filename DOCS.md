@@ -5471,7 +5471,7 @@ lives in [README.md](README.md) and is not duplicated here.)
 |---|---|---|
 | `ns-char` predicate spec-loose body | **Fixed 2026-08-01** (predicates tightened; scanner + emitter conformant; regression-tested) | [The ns-char gap](#the-ns-char-gap) |
 | **Indexed-pipeline parity** (the twin consumers actually call) | **CLOSED 2026-08-06 — full parity: event 402/402 · JSON 282/282 · accept/reject 402/402, same run as an identically-scoring legacy baseline; all 94 invalid inputs rejected with the identical `ScanError` (items 6+7)** | [Indexed-pipeline parity gap](#indexed-pipeline-parity-gap) |
-| Grammar completeness (`parse_iff_grammar`, capstone 7.7) | **Open** — Fix B done; Fix A at 3 `sorry` sites (β.3). The content step's scanner obstructions are all closed (9c, 9d, 9e, **9f**) and it now needs frame vocabulary only; the block step's `?` arm is closed too (**9g**, 2026-08-08) and its `:` arm is blocked on one measured invariant strengthening. Then β.4/β.5 delete `scannerDrop`, then the converse | [Grammar completeness plan](#grammar-completeness-plan) |
+| Grammar completeness (`parse_iff_grammar`, capstone 7.7) | **Open** — Fix B done; Fix A at 3 `sorry` sites (β.3). The content step's scanner obstructions are all closed (9c, 9d, 9e, **9f**) and it now needs frame vocabulary only; the block step's `?` arm is closed too (**9g**) and its `:` arm is blocked on one measured invariant strengthening; the depth-0 open (**9h**, 2026-08-08) turned out **not** to be refutable at all — it is inhabited by legal input and wants the same props vocabulary as the content step. Then β.4/β.5 delete `scannerDrop`, then the converse | [Grammar completeness plan](#grammar-completeness-plan) |
 | Merge semantics (`DuplicateKeyPolicy.merge`) | **Open** (design ready; re-base on `LawfulBEq`) | [Merge semantics plan](#merge-semantics-plan) |
 | Security limits: open questions + future work | **Open** (design questions; 3 unimplemented features) | [Security hardening backlog](#security-hardening-backlog) |
 | Limit-enforcement verification, and the rest | **Open** (varied) | [Other open items](#other-open-items) |
@@ -5486,7 +5486,7 @@ completeness.
 
 | # | Action | Blocks | Where |
 |---|---|---|---|
-| 10 | **β.3 — the flow-interior branches.** 2 of 5 sites closed 2026-08-06 (structural, EOF); 3 left. The **content** step (site 3) is scanner-clean — items 9c, 9d, 9e, **9f** and the interior invariant's endpoint skew — and needs only **frame vocabulary**: a "properties seen, content awaited" gap held in the flow-interior GAP, which `receiveNode` can already consume once 9f guarantees the `SSeparate` it needs. The **block** step (site 2) is half-clean: its `?` arm was closed by **item 9g** (2026-08-08, one proof site) and can now have its "`?` seen, key awaited" frame shape built; its `:` arm still over-accepts `[a: b: c]`, `{a: : b}`, `[: :]`, and closing that is one line of scanner plus one measured invariant strengthening in the emit→scan towers (97 sites, 21 files — Reflection 617). Site 5 still wants the `PendingNode` ↔ `simpleKey` coupling. See the β.3 table below | β.4 | [Fix A](#fix-a-eliminating-scannerdrop--flow-indicator-grammar-evidence) |
+| 10 | **β.3 — the flow-interior branches.** 2 of 5 sites closed 2026-08-06 (structural, EOF); 3 left, and as of 2026-08-08 **two of the three want the same thing**. The **content** step (site 3) is scanner-clean — items 9c, 9d, 9e, **9f** and the interior invariant's endpoint skew — and needs only **frame vocabulary**: a "properties seen, content awaited" gap held in the flow-interior GAP. The **depth-0 open** (site 5) was re-diagnosed under **item 9h**: its arm is *not* vacuous — `&a [b]`, `!t {a: b}` are legal, parse correctly, and reach it — so the filed `PendingNode` ↔ `simpleKey` refutation could never work; 9h removed the arm's illegal inhabitants (the alias was the last block-context node kind with no trailing-content check) and what is left is the **depth-0 twin of site 3's props state**. The **block** step (site 2) is half-clean: its `?` arm was closed by **item 9g** and can now have its "`?` seen, key awaited" frame shape built; its `:` arm still over-accepts `[a: b: c]`, `{a: : b}`, `[: :]`, and closing that is one line of scanner plus one measured invariant strengthening in the emit→scan towers (97 sites, 21 files — Reflection 617). See the β.3 table below | β.4 | [Fix A](#fix-a-eliminating-scannerdrop--flow-indicator-grammar-evidence) |
 | 11 | **β.4 — chain-threading.** Thread the completed accumulation through `scanNextToken_accum_step`, `scanLoop_grammar_prod`, `scan_content_gives_stream` | β.5 | ditto |
 | 12 | **β.5 — retire `pendingFlow`, delete `scannerDrop`.** Once no dispatch produces `pendingFlow`, the `close_with_ssl` arm that calls `scannerDrop` is unreachable; delete the constructor from `Surface/Document.lean`. This turns the `L4YAML.Capstones` gate green (its only failure is `parse_strict_proof depends on sorryAx`) | Step 5, the converse | ditto |
 | 13 | **Step 5 — the converse** `grammar_completeness`, then **Step 6** the `parse_iff_grammar` biconditional | capstone 7.7 | [Grammar completeness plan](#grammar-completeness-plan) |
@@ -5599,7 +5599,7 @@ Step 0 (the scanner audit for directive handling) and Fix B (eliminating
 
 | Step | Status |
 |---|---|
-| Fix A: eliminate `scannerDrop` | 🟡 **nearly done** — see below. `StreamAccum.lean` is at **3 sorry sites / 3 declarations**, all in β.3; `scannerDrop` has exactly **one** live use left. Five scanner gaps found and closed (items 9c, 9d, 9e — 2026-08-07 — 9f and 9g — 2026-08-08) and the interior invariant's endpoint skew fixed. Sites 3 and site 2's `?` arm now need **frame vocabulary** only; site 2's `:` arm needs one more strictening, whose cost is the tower-invariant strengthening measured under item 9g |
+| Fix A: eliminate `scannerDrop` | 🟡 **nearly done** — see below. `StreamAccum.lean` is at **3 sorry sites / 3 declarations**, all in β.3; `scannerDrop` has exactly **one** live use left. Six scanner gaps found and closed (items 9c, 9d, 9e — 2026-08-07 — 9f, 9g and 9h — 2026-08-08) and the interior invariant's endpoint skew fixed. Sites 3, 5 and site 2's `?` arm now need **frame vocabulary** only — and sites 3 and 5 want the *same* "properties scanned, content awaited" state; site 2's `:` arm needs one more strictening, whose cost is the tower-invariant strengthening measured under item 9g |
 | 1b. Remove `scannerDrop` from `SLYamlStream` | ⬜ open — β.5, once that last use is gone |
 | 5. Prove the converse `grammar_completeness` | ⬜ open — depends on Fix A |
 | 6. Assemble the `parse_iff_grammar` biconditional | ⬜ open — depends on Step 5 |
@@ -6058,6 +6058,118 @@ the line; `[a , {b: c}]` does emit it.  Both parse correctly (`[{"null":null},{"
 so this is not a defect in the shipped behaviour, but β.3's accumulation will
 have to accept both shapes at a flow-map entry.
 
+#### Item 9h — an alias node ends its node (closed 2026-08-08); and site 5 is NOT vacuous
+
+Found by probing `accum_flow_open_depth0`'s open arm rather than trusting the
+comment on it, and it turned up two different things at once.
+
+**The scanner gap.**  `[104] c-ns-alias-node ::= "*" ns-anchor-name` is a whole
+node — an `ns-flow-node` [161] and, through `s-l+block-node` [196], a whole
+block node — so in BLOCK context whatever follows it on the same line would have
+to be a SECOND node in a slot that admits exactly one.  Every other
+block-context node terminator already said so, and they all share one
+allow-list — a line break, a `#` comment, or the `:` that makes the node an
+implicit key:
+
+| terminator | check | rejects |
+|---|---|---|
+| quoted scalar ([109]/[120]) | `validateTrailingContent`, inside `scanDoubleQuoted`/`scanSingleQuoted` | `k: "v" [b]` |
+| `]`/`}` back to block ([137]/[140]) | `validateFlowClose` | `[a] [b]` |
+| `...` | `trailingContentAfterDocEnd` | `... [a]` |
+| **alias ([104])** | **nothing** | — |
+
+So `k: *a [b]`, `*a {b: c}`, `*a "x"`, `*a 'x'`, `*a *a`, `*a plain`,
+`*a &b x`, `*a !t x` and `*a |` all scanned clean in **both** pipelines.  The
+parser rejected them a layer later (`bareDocumentContent`), so this was never a
+shipped over-acceptance — but the accumulation step could not refute them.
+`validateAliasClose` closes it by calling the quoted-scalar sibling's own
+helper, so the allow-list is shared by construction rather than restated; the
+indexed twin `aliasTrailingErrIx` is the cursor-level version (`skipWhitespace`
+is `skipTrailingSpaces` on a cursor — both are `s-white` [33]).  Gated on
+`!inFlow`: inside a flow collection `.alias` completes a flow value, so item
+9b's `scanNextToken_checkFlowAdjacency` already rejects `[*a *b]`.
+
+The plain, block-scalar, anchor and tag arms need nothing, for three different
+reasons: a plain scalar in block context ABSORBS its follower
+(`ns-plain-safe-out` is `ns-char`, so `k: foo [a]` is the ONE scalar `foo [a]`),
+a block scalar runs to the end of its lines, and `&a`/`!t` are
+`c-ns-properties` [96], which are *supposed* to be followed by content.
+
+**What it cost, and why.**  26 mechanical peel sites across 13 proof files, all
+of the form "the `*` arm's post-check leaves the scanned state alone", all
+behind one lemma (`Proofs/Scanner/AliasTrailingContent.lean`, `aliasArm_scan_ok`)
+or its four-line indexed inline.  Zero of them needed a new fact — the emitter
+never writes `*` (`emitTokVals` renders an alias as a quoted scalar), so by
+Reflection 617 there was no obligation to discharge, and three sites still
+landed in `ScannerAcceptance.lean` only because the acceptance proof splits on
+the DISPATCHER's arms rather than on the emitted characters.  Note the cost was
+avoidable and was paid on purpose: `anchorNameEnd s` already gives the post-name
+state, so the whole test is a function of `s` and could have ridden the arm's
+existing `if` for **zero** sites — at the price of reporting
+`invalidNodeProperties` for an input whose properties are perfectly well formed.
+The faithful error is `trailingContent` at the offending character, matching the
+quoted-scalar sibling. **The cost here was the diagnostic, not the test.**
+
+**The bigger finding: site 5's arm is not vacuous, and no guard can make it so.**
+The `sorry` in `accum_flow_open_depth0` carried the note *"reachable only by an
+inline flow open directly after an unclosed same-line construct (e.g.
+`"foo" [a]`), which is invalid YAML"*, and a plan to refute it with a
+`PendingNode`-shape ↔ `sc.simpleKey` coupling.  Enumerating what actually
+reaches the arm — a closeable pending, then a flow open, same line, col ≠ 0 —
+gives five predecessors, and the fifth is a **property run**:
+
+    &a [b]        !t {a: b}        &a !!seq [b]        --- &a [b]
+
+all valid YAML, all parsed correctly today (`&a [b]` → `["b"]`).  They land
+there because content dispatch turns a lone `&`/`!` into a COMPLETE node
+(`SFlowNode.propsEmpty`, via `dispatchContent_evidence`), so
+`accum_content_on_noPending` leaves `PendingNode.pendingContent` before the
+bracket.  A refutation would have to reject them, so **the coupling could never
+have worked** — what the arm needs is vocabulary, not a guard.
+
+Item 9h's real contribution is therefore that it **splits** the arm: its
+illegal inhabitants are gone (the alias was the last unguarded one), and every
+remaining inhabitant is a property run.  What that half needs is the depth-0
+twin of site 3's props-in-the-GAP design — the properties ride INTO the flow
+node so the completed node starts at the `&`
+(`SFlowNode.propsContent 0 .flowOut sp_props sp_ne`, handed to a `resume`
+anchored there) rather than being closed before the bracket.  One
+"properties scanned, content awaited" state serves site 3 and site 5, and β.5
+needs it too: the same shape one dispatch earlier (`&a b` at depth 0) is not a
+`sorry` only because `accum_content_pending` can escape through
+`block_dispatch_deferred`, which builds `PendingNode.pendingFlow` and so rides
+on `scannerDrop`.  Recorded as Reflection 618.
+
+**A pipeline difference 9h does not introduce.**  On an *undefined* alias the
+two pipelines now pick different errors — legacy reports `undefinedAlias` from
+its pre-scan `definedAnchors` check, indexed reaches the alias scan and then the
+new `trailingContent`.  Both still reject; the cause is the indexed `*` arm's
+missing definedness check, filed separately.  Pinned in the guard net so it is
+not later read as a 9h regression.
+
+**Validation.**  Every Lean suite green (`productioncoverage` 745/745,
+`adversarialtests` 154/154, `specexamples` 132/132, …); `suiterunner` 869 passed
+/ 0 failed / 151 skipped; matrix, both pipelines, unchanged and identical —
+event 402/402, JSON 282/282; `eventscore` 347/358 with **0 valid inputs
+rejected** and **0 invalid accepted**; `Tests.Guards` green.  The three checkers
+are at baseline (27 `theorem`-keyword violations, 211/211 spec rules covered
+with 14 pre-existing name mismatches, 2 import-closure orphans).  Net:
+`Tests/Guards/Proofs/ScannerAliasTrailingContent.lean` — 33 dual-pipeline
+`#guard`s, with a §4 that pins `&a [b]` as accepted, since it is the legal
+inhabitant the guard must not touch.
+
+> **NB (eventscore).**  There are two `yaml-test-suite` checkouts on this
+> machine and they differ by one line — `../yaml-test-suite` is missing a
+> `fail: true` on one ZYU8 entry, so it scores 346/358 with "1 valid rejected".
+> The tracked copy is `./yaml-test-suite`, which `eventscore` uses by default;
+> that is the 347/358 above.  Pass no `--suite`.
+
+**One cleanup in the same increment.**  The 34 `unusedSimpArgs` warnings —
+`Pure.pure` and `Except.pure` in a `try simp only [Bind.bind, Except.bind,
+Pure.pure, Except.pure]` at 17 sites — are gone.  Only the `try` variants were
+unused; the 17 non-`try` occurrences of the same list still need all four and
+were left alone.
+
 #### The interior invariant: endpoint skew (2026-08-07)
 
 β.3's accumulation carried `sp_flow = sp_scan` inside an open flow collection —
@@ -6080,15 +6192,17 @@ pending `GOpt (SSeparate 0 c)` slot expects it.  Cheaper than it looked: 13 site
 #### What remains: β.3, β.4, β.5
 
 `StreamAccum.lean` carries **three** `sorry` sites, all in β.3 (down from five;
-`accum_step_structural` and `scanNextToken_none_stream` closed 2026-08-06):
+`accum_step_structural` and `scanNextToken_none_stream` closed 2026-08-06).
+Two of the three — sites 3 and 5 — now want the *same* new state, "properties
+scanned, content awaited", one inside the flow-interior GAP and one at depth 0:
 
 | # | Declaration | Status |
 |---|---|---|
 | 1 | `accum_step_structural` | ✅ **closed** — vacuous at depth ≥ 1. `dispatchStructural`'s only in-flow success arm is `%`, and `scanDirective` rejects on `!allowDirectives`; inside a flow the flag is always false, because the `[`/`{` that opened the collection was dispatched *after* `scanNextToken` cleared it. Carried as a third component of the guarded interior conjunct and transported by the new `Proofs/Scanner/ScannerAllowDirectives.lean`. The `---`/`...` accept arms sit below the §5.4 `documentMarkerInFlow` guard, so they are dead too |
 | 4 | `scanNextToken_none_stream` | ✅ **closed** — the lemma's own hypotheses never refuted an open flow at EOF (`[a, b` reaches EOF happily); it is `scanLoop`'s post-check that errors with `unterminatedFlowCollection`. Hoisted to an `sc.flowLevel = 0` hypothesis discharged at the call site |
 | 2 | `accum_step_block` | ⬜ open, **half scanner-clean**. `-` is free (guarded by `!s.inFlow`). ✅ **Item 9g (2026-08-08)** closed the `?` arm: a flow `?` opens an entry, so it stands only after `[`, `{` or `,` — `[? ? a]`, `[: ?]`, `[&a ? b]`, `[!t ?]` rejected, at a cost of one proof site. That arm now needs only its frame shape, a "`?` seen, key awaited" state — `midExplicitKey` already carries the key node, but `scanKey` emits only the `?`. ⬜ The `:` arm is NOT clean: `[a: b: c]`, `{a: : b}` and `[: :]` put two values in one entry with no derivation. The scanner fix is one line (drop the same-line conjunct from `scanValueValidate`'s T833 check); the cost is entirely in the discharge — the emit→scan towers thread `completesFlowValue = false`, which `.value` satisfies, so the invariant must be strengthened at 97 statement sites across 21 files (Reflection 617). **After** that: `:` needs a `receiveColon` transition `.value → .colon` on both frames, lifted over the four `FlowOpenStack` arms like `holdComma` |
-| 3 | `accum_step_content` | ⬜ open — **no scanner obstruction left; frame vocabulary only.** ✅ Block-scalar disjuncts refuted (item 9c). ✅ `.flowIn` evidence built — `dispatchContent_evidence_flowIn`, with `dispatchContent_plainScalar_flowIn_prod` (a native production, **not** a lift: `flowIn` forbids the `,[]{}` that `flowOut` admits, so containment runs the wrong way) and the alias/anchor/tag `_prod` lemmas parameterized over the context. ✅ `receiveNode`'s `tl ≠ .value` premise discharged for `:` too (item 9d), and the endpoint skew fixed. ✅ **Item 9e (2026-08-07)** rejected repeated properties and properties-before-alias: `[&a &b]`, `[!t !u]`, `[&a !t &b c]`, `[&a *x]`. ✅ **Item 9f (2026-08-08)** rejected a property with no separation before content — `[&a[b]]`, `[&a{b: c}]`, `[!t"x"]`, `[!t[b]]`, `[*x[b]]` — which is what makes the `SSeparate 0 .flowIn` hypothesis of `SFlowNode.propsContent` available at all; **that was the last scanner obstruction.** ⬜ What is left: `&anchor` and `!tag` reach content dispatch inside a flow and produce `SFlowNode.propsEmpty` — a *complete* node — while `tailOf` correctly reports them as **not** completing a flow value, because `[&a b]` is ONE node with properties and `[&a, b]` is an anchor on an empty one. `receiveNode` cannot consume them without claiming `[&a b]` is two entries, and no frame constructor expresses "properties seen, content awaited". Wants a **fourth `FrameTail` value** and one constructor per frame — the same extension site 2's `?` arm wants |
-| 5 | `accum_flow_open_depth0` | ⬜ open — the depth-0 open at `col ≠ 0` with no preceding line break (`"foo" [a]`). **Not** refutable by `checkFlowAdjacency`, which is gated on `s.inFlow` and is a no-op at the depth-0 open. The vacuity must come from a `PendingNode`-shape ↔ `sc.simpleKey` coupling — the depth-0 analogue of 9b(ii)'s `FrameTail` ↔ `tailOf sc.tokens` |
+| 3 | `accum_step_content` | ⬜ open — **no scanner obstruction left; frame vocabulary only.** ✅ Block-scalar disjuncts refuted (item 9c). ✅ `.flowIn` evidence built — `dispatchContent_evidence_flowIn`, with `dispatchContent_plainScalar_flowIn_prod` (a native production, **not** a lift: `flowIn` forbids the `,[]{}` that `flowOut` admits, so containment runs the wrong way) and the alias/anchor/tag `_prod` lemmas parameterized over the context. ✅ `receiveNode`'s `tl ≠ .value` premise discharged for `:` too (item 9d), and the endpoint skew fixed. ✅ **Item 9e (2026-08-07)** rejected repeated properties and properties-before-alias: `[&a &b]`, `[!t !u]`, `[&a !t &b c]`, `[&a *x]`. ✅ **Item 9f (2026-08-08)** rejected a property with no separation before content — `[&a[b]]`, `[&a{b: c}]`, `[!t"x"]`, `[!t[b]]`, `[*x[b]]` — which is what makes the `SSeparate 0 .flowIn` hypothesis of `SFlowNode.propsContent` available at all; **that was the last scanner obstruction.** ⬜ What is left: `&anchor` and `!tag` reach content dispatch inside a flow and produce `SFlowNode.propsEmpty` — a *complete* node — while `tailOf` correctly reports them as **not** completing a flow value, because `[&a b]` is ONE node with properties and `[&a, b]` is an anchor on an empty one. `receiveNode` cannot consume them without claiming `[&a b]` is two entries, and no frame constructor expresses "properties seen, content awaited". Wants a **fourth `FrameTail` value** and one constructor per frame — the same extension site 2's `?` arm wants, and the same "properties scanned, content awaited" state site 5 needs at depth 0 (item 9h) |
+| 5 | `accum_flow_open_depth0` | ⬜ open — **and NOT refutable**, re-diagnosed under item 9h (2026-08-08). The `col ≠ 0`, no-break arm was filed as vacuous ("only `"foo" [a]`, which is invalid YAML") with a `PendingNode`-shape ↔ `sc.simpleKey` coupling as the fix. Enumerating what the arm's CONDITION admits gives five predecessors, and the fifth is a **property run**: `&a [b]`, `!t {a: b}`, `&a !!seq [b]` are valid YAML, parse correctly today, and reach it — because content dispatch turns a lone `&`/`!` into a COMPLETE node (`SFlowNode.propsEmpty`), leaving `pendingContent` before the bracket. A refutation would reject them, so no scanner fact can close this arm. ✅ **Item 9h** split it instead: the alias was the last block-context node kind with no trailing-content check, so `*a [b]` and eight siblings are now `trailingContent` in both pipelines, and every remaining inhabitant is legal. ⬜ What is left is the **depth-0 twin of site 3's props state** — the properties must ride into the flow node (`SFlowNode.propsContent 0 .flowOut sp_props sp_ne`, handed to a `resume` anchored at the `&`) instead of being closed before it. Also β.5's blocker: `&a b` one dispatch earlier escapes only through `block_dispatch_deferred` → `PendingNode.pendingFlow` → `scannerDrop` |
 
 Then:
 
@@ -6149,7 +6263,7 @@ Further coupling material is spread across `Proofs/Coupling/`
 
 | Risk | Likelihood | Impact | Mitigation |
 |------|-----------|--------|------------|
-| More item-9a-class scanner gaps hide behind the remaining β.3 arms | **Materialized five times** — items 9c, 9d, 9e (2026-08-07), 9f and 9g (2026-08-08) — and a sixth is open on the `:` arm | High | The content arm needed ALL FOUR of 9c–9f. Probe the scanner on an arm's input BEFORE building frame vocabulary for it, and seed the probe alphabet from what ENDS a token (9d's witness needed a comment; two 15-character alphabets without `#` scored 0 hits over ≈1.6M inputs). When the strictening's soundness argument is "no legal document has X adjacent to Y", **run the suite guards before reasoning further** — 9e's first version was over-strict and only the corpus caught it, because a hand-built probe list inherits the guard's blind spot. 9f adds two more: a rule about the TEXT BETWEEN two tokens cannot be a lookback at all (the array keeps starts, not extents), and two sibling productions differing only in a character class do not fail on the same inputs — read the scanner's own token dump, not the reference's verdict. 9g adds the cost rule: **price the PRODUCER before you choose a placement.** A guard on a character the emitter never writes (`?`) is free wherever it goes; a guard on one the emitter writes at every pair (`:`) costs the same everywhere, and that cost is the strengthening that makes the towers' threaded invariant imply the new test. Reflections 612 + 614 + 615 + 616 + 617 |
+| More item-9a-class scanner gaps hide behind the remaining β.3 arms | **Materialized six times** — items 9c, 9d, 9e (2026-08-07), 9f, 9g and 9h (2026-08-08) — and a seventh is open on the `:` arm | High | The content arm needed ALL FOUR of 9c–9f. Probe the scanner on an arm's input BEFORE building frame vocabulary for it, and seed the probe alphabet from what ENDS a token (9d's witness needed a comment; two 15-character alphabets without `#` scored 0 hits over ≈1.6M inputs). When the strictening's soundness argument is "no legal document has X adjacent to Y", **run the suite guards before reasoning further** — 9e's first version was over-strict and only the corpus caught it, because a hand-built probe list inherits the guard's blind spot. 9f adds two more: a rule about the TEXT BETWEEN two tokens cannot be a lookback at all (the array keeps starts, not extents), and two sibling productions differing only in a character class do not fail on the same inputs — read the scanner's own token dump, not the reference's verdict. 9g adds the cost rule: **price the PRODUCER before you choose a placement.** A guard on a character the emitter never writes (`?`) is free wherever it goes; a guard on one the emitter writes at every pair (`:`) costs the same everywhere, and that cost is the strengthening that makes the towers' threaded invariant imply the new test. 9h adds the one that comes BEFORE all of these: **ask whether the arm is mixed.** Its arm was filed as vacuous on the strength of a single illegal witness (`"foo" [a]`), and it also admits `&a [b]`, which is legal — so no guard could ever close it. Generate the arm's inhabitants from its CONDITION, then classify each by what the SHIPPED pipeline does with it: rejects ⟹ refutable, accepts-and-parses-correctly ⟹ build vocabulary, accepts-and-parses-wrongly ⟹ a defect. Reflections 612 + 614 + 615 + 616 + 617 + 618 |
 | The depth-0 `col ≠ 0`, no-break vacuity is not actually vacuous | Low | Medium | Ruled out `checkFlowAdjacency` as the source (gated on `inFlow`, no-op at the depth-0 open); the simple-key coupling is the remaining candidate |
 | Converse proof (Step 5) is very large | High | Medium | Grammar inversion touches ~77 rules; many lemmas are mechanical |
 

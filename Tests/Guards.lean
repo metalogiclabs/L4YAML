@@ -10,6 +10,7 @@ import Tests.Guards.Proofs.FoldNewlines
 import Tests.Guards.Proofs.ParserCorrectness
 import Tests.Guards.Proofs.RoundTrip
 import Tests.Guards.Proofs.RoundTripComposition
+import Tests.Guards.Proofs.ScannerAliasTrailingContent
 import Tests.Guards.Proofs.ScannerBlockScalarInFlow
 import Tests.Guards.Proofs.ScannerFlowColonAdjacency
 import Tests.Guards.Proofs.ScannerFlowKeyPredecessor

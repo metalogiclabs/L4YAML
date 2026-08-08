@@ -1089,7 +1089,7 @@ lemma scanNextTokenIx_dispatchContent_maintains_NoOverwriteAtIx {input : String}
   by_cases hg1 : (c == '&') = true
   · -- '&' anchor
     rw [if_pos hg1] at h
-    try simp only [Bind.bind, Except.bind, Pure.pure, Except.pure] at h
+    try simp only [Bind.bind, Except.bind] at h
     split at h   -- item 9e: the property-run guard
     · cases h
     cases hA : scanAnchorOrAliasIx s true with
@@ -1111,6 +1111,10 @@ lemma scanNextTokenIx_dispatchContent_maintains_NoOverwriteAtIx {input : String}
       | error e => rw [hA] at h; cases h
       | ok v =>
         rw [hA] at h
+        -- item 9h: `aliasTrailingErrIx` is a CHECK — the state is untouched.
+        dsimp only [] at h
+        split at h
+        · cases h
         simp only [Except.ok.injEq] at h; subst h
         exact NoOverwriteAtIx_of_preserved _ s m
           (scanAnchorOrAliasIx_preserves_simpleKey s false v hA)

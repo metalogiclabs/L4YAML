@@ -2627,17 +2627,49 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
                  (GStar_SSWhite_to_SSeparateInLine sp_mid sp_prep hws))),
              PendingNode.noPending sp_start sp_open, hcorr_open, fun _ => ⟨GStar.nil _, h_real, h_ad⟩⟩
     · -- col ≠ 0 AND no line break before the bracket: the prior construct
-      -- cannot be closed here (`SSLComments` needs a break or col 0). Reachable
-      -- only by an inline flow open directly after an unclosed same-line
-      -- construct (e.g. `"foo" [a]`), which is invalid YAML — two nodes in one
-      -- document.
+      -- cannot be closed here (`SSLComments` needs a break or col 0).
       --
-      -- NOT refutable by `checkFlowAdjacency`: that guard is gated on
-      -- `s.inFlow`, and this is the depth-0 open, where it is a no-op. The
-      -- vacuity has to come from the depth-0 side — the pending node that is
-      -- still open at `col ≠ 0` with no break is precisely `simpleKey.possible`,
-      -- so the coupling wanted is `PendingNode`-shape ↔ `sc.simpleKey`, the
-      -- depth-0 analogue of 9b(ii)'s `FrameTail` ↔ `tailOf sc.tokens`.
+      -- ═══ THIS ARM IS NOT VACUOUS, AND NO SCANNER FACT CAN MAKE IT SO. ═══
+      --
+      -- It was filed as "reachable only by an inline flow open after an
+      -- unclosed same-line construct (`"foo" [a]`), which is invalid YAML",
+      -- wanting a `PendingNode`-shape ↔ `sc.simpleKey` coupling to refute it.
+      -- Enumerating what actually reaches it refutes that plan instead:
+      --
+      --    &a [b]        !t {a: b}       &a !!seq [b]       --- &a [b]
+      --
+      -- are all VALID YAML, all scan clean, and all parse correctly today
+      -- (`&a [b]` → `["b"]`).  They land here because content dispatch turns a
+      -- lone `&`/`!` into a COMPLETE node (`SFlowNode.propsEmpty`, via
+      -- `dispatchContent_evidence`), so `accum_content_on_noPending` leaves
+      -- `PendingNode.pendingContent`, and the `[` then arrives at col ≠ 0 with
+      -- no break.  A refutation would have to reject them, so there is nothing
+      -- to refute: what is missing is VOCABULARY, not a guard.
+      --
+      -- What item 9h (2026-08-08) did was split the arm.  Its ILLEGAL
+      -- inhabitants are now gone: `*a [b]` (and `*a` before any other node)
+      -- scanned clean in BOTH pipelines and is `trailingContent` now — the
+      -- alias was the one block-context node kind with no trailing-content
+      -- check.  The other three predecessors were already rejected: a quoted
+      -- scalar by `validateTrailingContent` (`"foo" [a]`), a flow close by
+      -- `validateFlowClose` (`[a] [b]`), and `...` by
+      -- `trailingContentAfterDocEnd`.  So every remaining inhabitant is a
+      -- property run, and the arm is now homogeneous enough to be BUILT.
+      --
+      -- What it needs: the properties must ride INTO the flow node rather than
+      -- be closed before it — the completed node has to start at the `&`, i.e.
+      -- `SFlowNode.propsContent 0 .flowOut sp_props sp_ne` handed to a `resume`
+      -- anchored at `sp_props`.  That is the depth-0 twin of site 3's
+      -- props-in-the-GAP design (`accum_step_content`), and one "properties
+      -- scanned, content awaited" state serves both.
+      --
+      -- It is also on β.5's path: the same shape one dispatch earlier — `&a b`
+      -- at depth 0 — is not a `sorry` only because `accum_content_pending`
+      -- can escape through `block_dispatch_deferred`, which builds
+      -- `PendingNode.pendingFlow` and so rides on `scannerDrop`.  Retiring
+      -- `pendingFlow` needs this same state.
+      --
+      -- See DOCS item 9h and Reflection 618.
       sorry
   cases h_pending with
   | noPending =>
@@ -3927,7 +3959,8 @@ lemma dispatchContent_corr (sc : ScannerState) (sp : SurfPos) (c : Char)
       · simp at hok
       split at hok
       · simp at hok  -- undefinedAlias error
-      · -- hok has redundant match wrapper from Except.bind; reduce it
+      · -- item 9h: peel `validateAliasClose`, then the alias bind.
+        replace hok := aliasArm_scan_ok hok
         generalize h_alias : scanAnchorOrAlias sc false = alias_result at hok
         cases alias_result with
         | error => simp at hok
@@ -4076,7 +4109,9 @@ lemma dispatchContent_alias_prod (sc : ScannerState) (sp : SurfPos)
       split at hok
       · -- !(definedAnchors.any ...) = true → .error, but we have .ok
         simp at hok
-      · -- definedAnchors found → return scanAnchorOrAlias s false
+      · -- definedAnchors found → item 9h peels `validateAliasClose`, leaving
+        -- the alias bind.
+        replace hok := aliasArm_scan_ok hok
         generalize h_alias : scanAnchorOrAlias sc false = alias_result at hok
         cases alias_result with
         | error => simp at hok
