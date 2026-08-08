@@ -360,6 +360,49 @@ def propertyScanFollowerOk (r : Except ScanError ScannerState) : Bool :=
 def anchorNameEnd (s : ScannerState) : ScannerState :=
   (collectAnchorNameLoop s.advance "" (s.inputEnd - s.advance.offset)).snd
 
+/-! ### §7.4 [150]: a flow `?` opens an entry (item 9g)
+
+    `[150] ns-flow-pair(n,c)` is `"?" s-separate ns-flow-map-explicit-entry`, and
+    a `ns-flow-pair` is an *entry* of `[138] ns-s-flow-seq-entries` /
+    `[141] ns-s-flow-map-entries`.  So a `?` may only stand where the collection
+    is about to read a fresh entry: directly after its own `[`/`{`, or directly
+    after a `,`.
+
+    Every other predecessor has no derivation, and the scanner used to accept
+    all of them:
+
+    | input | tokens | why there is no derivation |
+    |---|---|---|
+    | `[? ? a]` | `key key …` | the explicit entry's key is an `ns-flow-yaml-node`, and `? ` starts no node |
+    | `[: ?]` | `key value key` | the empty-key entry's value is an `ns-flow-node`, and `? ` starts none |
+    | `[&a ? b]` | `anchor key …` | `[161]`'s properties are followed by `ns-flow-content`, and `? ` is not content |
+
+    The three predecessors that *do* complete a value (`scalar`, `alias`, `]`,
+    `}`) are already rejected one dispatcher earlier by
+    `scanNextToken_checkFlowAdjacency`, so what this adds is exactly the
+    `key` / `value` / property cases — the tokens that are neither an entry
+    boundary nor a completed value.
+
+    Placed as a third conjunct on the `?` arm's existing dispatch condition
+    rather than as a new `if`: a `?` that fails it falls through to
+    `scanNextToken_dispatchContent`, where `canStartPlainScalarBool` is false
+    for every character `isKeyCandidate` admits (blank, or a flow indicator —
+    neither is `ns-plain-safe`), so the fall-through is always
+    `.unexpectedChar`.  The dispatcher gains no `if` and no join point
+    (Reflection 613). -/
+
+/-- Inside a flow collection, is the cursor at an entry boundary, where a `?`
+    may open an `[150] ns-flow-pair`?  Vacuously true in block context, where
+    `[191] c-l-block-map-explicit-key` is governed by indentation instead. -/
+@[yaml_spec "7.4.1" 150 "ns-flow-pair(n,c)",
+  yaml_spec "7.4.1" 138 "ns-s-flow-seq-entries(n,c)",
+  yaml_spec "7.4.2" 141 "ns-s-flow-map-entries(n,c)"]
+def flowKeyPredecessorOk (s : ScannerState) : Bool :=
+  !s.inFlow ||
+    (match lastRealTokenVal? s.tokens with
+     | some t => t.opensFlowEntry
+     | none => false)
+
 /-- Scan a flow entry separator `,`.
 
     **Implements** (YAML 1.2.2 §7.4):
@@ -537,7 +580,9 @@ def scanNextToken_dispatchBlockIndicators (s : ScannerState) (c : Char) :
   if c == '-' && !s.inFlow && isBlockEntryCandidate s then
     let s' ← scanBlockEntry s
     return some s'
-  if c == '?' && isKeyCandidate s then
+  -- §7.4 [150] (item 9g): the `?` opens a flow entry, so it stands only after
+  -- `[`, `{` or `,` — see `flowKeyPredecessorOk`.
+  if c == '?' && isKeyCandidate s && flowKeyPredecessorOk s then
     let s' ← scanKey s
     return some s'
   if c == ':' && isValueCandidate s then

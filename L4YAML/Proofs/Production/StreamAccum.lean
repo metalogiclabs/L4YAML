@@ -3851,19 +3851,34 @@ lemma accum_step_block (sc : ScannerState)
         (absorb_stacksB sp_start sp_gram sp_block sp_flow h_stream h_stack h_flow)
         h_pending h_corr h_preprocess h_dispatch
     exact ⟨g', bl', fl', sn', q1, q2, q3.retail, q4, q5, fun h => absurd h (by omega)⟩
-  · -- ═══ DEPTH ≥ 1: three arms, one free and two needing frame vocabulary. ═══
+  · -- ═══ DEPTH ≥ 1: three arms — one free, one now scanner-clean, one NOT. ═══
     --  * `-` is REFUTED for free: `dispatchBlockIndicators` guards it with
     --    `!s.inFlow`, and `s_ad.inFlow = true` here.
-    --  * `:` (`isValueCandidate`) is the flow-map/flow-pair value transition. It
-    --    needs a `receiveColon` frame transition `.value → .colon` on both
+    --  * `?` (`isKeyCandidate`) is SCANNER-CLEAN as of DOCS item 9g: the arm's
+    --    dispatch condition now carries `flowKeyPredecessorOk`, so the `?` that
+    --    reaches here stands directly after `[`, `{` or `,` — `[? ? a]`,
+    --    `[: ?]`, `[&a ? b]` and `[!t ?]` are rejected. Inverting the dispatch
+    --    condition therefore pins the frame tail to `.open` or `.comma`, which
+    --    is exactly the precondition an explicit key needs. What is left is the
+    --    frame shape: `midExplicitKey` already carries the key NODE, but
+    --    `scanKey` emits only the `?`, so this wants a FOURTH `FrameTail` value
+    --    (`?` seen, key awaited) plus one constructor per frame — the same
+    --    inline-the-shape move as 9b(ii), and the same extension site 3's
+    --    props-in-the-gap design shares.
+    --  * `:` (`isValueCandidate`) is the flow-map/flow-pair value transition and
+    --    is NOT scanner-clean: `[a: b: c]`, `{a: : b}` and `[: :]` put two
+    --    values in ONE entry and scan clean in both pipelines, so this arm is
+    --    unprovable for the same reason 9c/9d/9e/9f made site 3 unprovable.
+    --    The scanner fix is one line — `scanValueValidate`'s T833 check already
+    --    rejects a pending simple key whose slots are directly preceded by a
+    --    `.value`, but only across lines; drop that conjunct. The COST is not
+    --    the placement (all four candidate placements are equivalent) but the
+    --    DISCHARGE: the emitter writes `:` at every pair, and the emit→scan
+    --    towers thread only "the last real token does not complete a flow
+    --    value", which `.value` satisfies. See DOCS item 9g and Reflection 617.
+    --    AFTER that: `receiveColon`, a `.value → .colon` transition on both
     --    `SeqFrame` and `MapFrame` (landing in `midColon`), lifted over the four
-    --    `FlowOpenStack` arms exactly as `holdComma`/`receiveNode` are. The
-    --    scanner side is already visible: `tl = .value` is what `midNode`/`midKey`
-    --    record, and `isValueCandidate` fires only after a saved simple key.
-    --  * `?` (`isKeyCandidate`) has NO frame shape yet: `midExplicitKey` already
-    --    carries the key node, but `scanKey` emits only the `?`. This needs a
-    --    FOURTH `FrameTail` value (`?` seen, key awaited) plus one constructor
-    --    per frame — the same inline-the-shape move as 9b(ii).
+    --    `FlowOpenStack` arms exactly as `holdComma`/`receiveNode` are.
     sorry
 
 /-! ### §1e Preprocessing + Content Dispatch

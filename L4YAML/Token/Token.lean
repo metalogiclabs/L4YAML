@@ -315,6 +315,27 @@ def YamlToken.isTagProperty : YamlToken → Bool
   | _ => false
 
 /--
+Whether a token leaves a flow collection *at an entry boundary* — i.e. the
+next thing the collection reads is a fresh `ns-flow-seq-entry` [138] or
+`ns-flow-map-entry` [141].
+
+Exactly three tokens do: the collection's own open (`[`, `{`) and the entry
+separator (`,`).  Everything else is inside an entry — a completed value, a
+`key`/`value` indicator, or a node property that some node is still waiting
+to be attached to.
+
+Used by `flowKeyPredecessorOk` for the `?` of `[150] ns-flow-pair`, which
+begins an entry and therefore may only appear at one of these three points.
+The dual, `YamlToken.completesFlowValue`, says the entry is *finished*; this
+one says no entry has been started.
+-/
+def YamlToken.opensFlowEntry : YamlToken → Bool
+  | .flowSequenceStart => true
+  | .flowMappingStart => true
+  | .flowEntry => true
+  | _ => false
+
+/--
 Whether a token is a flow indicator.
 
 Used to determine flow/block context boundaries.

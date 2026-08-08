@@ -1063,6 +1063,19 @@ def anchorNameEndIx {input : String} (s : ScannerStateIx input) : IxCursor input
   (collectAnchorNameLoopIx s.advance.cursor ""
     (input.utf8ByteSize - s.advance.cursor.pos.offset)).2
 
+/-- §7.4 [150] (item 9g): inside a flow collection, is the cursor at an entry
+    boundary, where a `?` may open an `ns-flow-pair`?  (Indexed twin of
+    `L4YAML.Scanner.flowKeyPredecessorOk`; see it for the derivation argument
+    and for why the test rides on the dispatch condition.) -/
+@[yaml_spec "7.4.1" 150 "ns-flow-pair(n,c)",
+  yaml_spec "7.4.1" 138 "ns-s-flow-seq-entries(n,c)",
+  yaml_spec "7.4.2" 141 "ns-s-flow-map-entries(n,c)"]
+def flowKeyPredecessorOkIx {input : String} (s : ScannerStateIx input) : Bool :=
+  !s.inFlow ||
+    (match lastRealTokenValIx? s.tokens with
+     | some t => t.opensFlowEntry
+     | none => false)
+
 /-- Scan `,` flow entry separator. Mirrors `L4YAML.Scanner.scanFlowEntry`:
     emits `.flowEntry` and sets `simpleKeyAllowed := true` so the next
     item can start a fresh implicit key.
@@ -1210,7 +1223,9 @@ def scanNextTokenIx_dispatchBlockIndicators {input : String}
   if c == '-' && !s.inFlow && isBlockEntryCandidateIx s then
     let s' ← scanBlockEntryIx s
     return some s'
-  if c == '?' && isKeyCandidateIx s then
+  -- §7.4 [150] (item 9g): the `?` opens a flow entry, so it stands only after
+  -- `[`, `{` or `,` — see `flowKeyPredecessorOkIx`.
+  if c == '?' && isKeyCandidateIx s && flowKeyPredecessorOkIx s then
     let s' ← scanKeyIx s
     return some s'
   if c == ':' && isValueCandidateIx s then
