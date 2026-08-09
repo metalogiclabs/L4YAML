@@ -699,6 +699,27 @@ lemma tailOf_ne_sep {tokens : Array (Positioned YamlToken)}
     split <;> (try simp_all)
     split <;> simp
 
+/-- **9g, the SAME coupling read forward (item 10).** `tailOf_ne_value` and
+    `tailOf_ne_sep` above both conclude a `≠`, because both were written for a
+    step that had to ELIMINATE a frame shape. This one concludes an `=`, and
+    nothing else in the file did until an arm had to CONSTRUCT one.
+
+    The two readings are not equally strong, and that is the whole point. "The
+    last real token is not `[`, `{` or `,`" leaves the tail in a set of three;
+    "the last real token IS one of them" pins it to exactly one, which is what a
+    frame constructor needs. `flowKeyPredecessorOk` is a *positive* predicate on
+    the last token (`YamlToken.opensFlowEntry`), so the guard item 9g added to
+    refute `[? ? a]`, `[: ?]` and `[&a ? b]` also names, for free, the one frame
+    class the `?` arm is left with. See Reflection 627. -/
+lemma tailOf_eq_sep {tokens : Array (Positioned YamlToken)} {t : YamlToken}
+    (h_sync : frameTokenVal? tokens = lastRealTokenVal? tokens)
+    (hl : lastRealTokenVal? tokens = some t) (h : t.opensFlowEntry = true) :
+    tailOf tokens = .sep := by
+  unfold tailOf
+  rw [h_sync, hl]
+  show FrameTail.ofToken t = .sep
+  cases t <;> simp_all [YamlToken.opensFlowEntry, FrameTail.ofToken]
+
 /-! ### §1c''b''' The trailing property run, read and pushed (β.3)
 
     `frameTokenVal?` reads *past* a held `[96] c-ns-properties` run; the run
@@ -884,6 +905,19 @@ lemma isAnchorProperty_of_isNodeProperty {t : YamlToken}
     t.isAnchorProperty = true := by
   cases t <;>
     simp_all [YamlToken.isNodeProperty, YamlToken.isAnchorProperty, YamlToken.isTagProperty]
+
+/-- A `[96]` property opens no entry — `[&a` is *inside* the first entry, waiting
+    to learn what node it decorates.
+
+    This is what makes the `?` arm the one flow-interior step that REFUTES a held
+    property run instead of resolving it (item 10). Every sibling handles one:
+    `,`, `]` and `}` flush the run as `SFlowNode.propsEmpty`, `[` and `{` wrap it
+    via `receivePropsContent`. A `?` does neither, and needs neither, because
+    item 9g's guard already rejected `[&a ? b]` — and the reason it rejected it is
+    exactly this table. -/
+lemma opensFlowEntry_false_of_isNodeProperty {t : YamlToken} (h : t.isNodeProperty = true) :
+    t.opensFlowEntry = false := by
+  cases t <;> simp_all [YamlToken.isNodeProperty, YamlToken.opensFlowEntry]
 
 /-! ### §1c''a' The flow-interior gap (β.3)
 
@@ -3659,6 +3693,86 @@ lemma scanFlowEntry_allowDirectives {s s' : ScannerState} (h : scanFlowEntry s =
   · injection h with h; rw [← h]
     simp only [advance_preserves_allowDirectives, ScannerState.emit]
 
+/-! ### §1c''c' The explicit-key dispatch, read like a flow indicator (item 10)
+
+    `scanKey` is a BLOCK-indicator dispatch (`scanNextToken_dispatchBlockIndicators`)
+    that, inside an open flow collection, does the job of a sixth flow indicator:
+    it opens `[150] ns-flow-pair`'s explicit alternative. So it wants the same
+    four readings §1c''b/§1c''c give `[`, `{`, `]`, `}` and `,`.
+
+    All of them are gated on `s.inFlow`, and the gate is load-bearing rather than
+    cosmetic: in BLOCK context `scanKey` first runs `pushMappingIndent`, which may
+    emit a `blockMappingStart` BEFORE the `key`, so the array does not end in the
+    single pushed token and `tailOf` would read the wrong one. Inside a flow
+    collection that branch is dead — `[190] c-l-block-map-explicit-key` is
+    governed by indentation, and a flow collection has none — and the
+    flow-interior accumulation is the only consumer. -/
+
+private lemma emitKey_advance_inFlow {s : ScannerState} (h_flow : s.inFlow = true) :
+    ((s.emit YamlToken.key).advance).inFlow = true := by
+  unfold ScannerState.inFlow at *
+  simpa [ScannerCorrectness.advance_preserves_flowLevel,
+         ScannerCorrectness.emit_preserves_flowLevel] using h_flow
+
+/-- In flow context `scanKey` is exactly "emit `key`, advance, invalidate the
+    pending simple key": both of its guarded steps — the indent push and the
+    post-`?` tab check — are `!inFlow`-gated. -/
+lemma scanKey_inFlow_eq {s s' : ScannerState} (h_flow : s.inFlow = true)
+    (h : scanKey s = .ok s') :
+    s' = { (s.emit YamlToken.key).advance with
+             simpleKeyAllowed := true, explicitKeyLine := some s.line,
+             simpleKey := { possible := false } } := by
+  have h_adv := emitKey_advance_inFlow h_flow
+  unfold scanKey at h
+  simp only [h_flow, Bool.not_true, Bool.false_eq_true, ↓reduceIte, h_adv] at h
+  exact (Except.ok.inj h).symm
+
+lemma scanKey_inFlow_tokens {s s' : ScannerState} (h_flow : s.inFlow = true)
+    (h : scanKey s = .ok s') :
+    s'.tokens = s.tokens.push { pos := s.currentPos, val := .key } := by
+  rw [scanKey_inFlow_eq h_flow h]
+  simp only [ScannerCorrectness.advance_preserves_tokens, ScannerState.emit]
+
+/-- After a flow `?` the frame's tail is `.question` — the fourth tail class item
+    9l added, and the only dispatch that produces it. -/
+lemma tailOf_scanKey {s s' : ScannerState} (h_flow : s.inFlow = true)
+    (h : scanKey s = .ok s') :
+    tailOf s'.tokens = .question ∧ LastTokenReal s'.tokens := by
+  rw [scanKey_inFlow_tokens h_flow h]
+  exact tailOf_push (by simp) (by simp [YamlToken.isNodeProperty])
+
+/-- `key` is no node property, so the `?` leaves the gap `white`. -/
+lemma sync_scanKey {s s' : ScannerState} (h_flow : s.inFlow = true)
+    (h : scanKey s = .ok s') :
+    frameTokenVal? s'.tokens = lastRealTokenVal? s'.tokens := by
+  rw [scanKey_inFlow_tokens h_flow h]
+  exact sync_of_push (by simp) (by simp [YamlToken.isNodeProperty])
+
+lemma scanKey_inFlow_flowLevel {s s' : ScannerState} (h_flow : s.inFlow = true)
+    (h : scanKey s = .ok s') : s'.flowLevel = s.flowLevel := by
+  rw [scanKey_inFlow_eq h_flow h]
+  simp only [ScannerCorrectness.advance_preserves_flowLevel,
+             ScannerCorrectness.emit_preserves_flowLevel]
+
+lemma scanKey_inFlow_allowDirectives {s s' : ScannerState} (h_flow : s.inFlow = true)
+    (h : scanKey s = .ok s') : s'.allowDirectives = s.allowDirectives := by
+  rw [scanKey_inFlow_eq h_flow h]
+  simp only [advance_preserves_allowDirectives, ScannerState.emit]
+
+/-- **Item 9g's guard, inverted (item 10).** The `?` arm's dispatch condition is
+    the only one in the scanner whose flow half is a POSITIVE statement about the
+    last real token, so inverting it hands the accumulation a token rather than a
+    denial — which is what `tailOf_eq_sep` then turns into a frame class. -/
+lemma opensFlowEntry_of_flowKeyPredecessorOk {s : ScannerState}
+    (h_flow : s.inFlow = true) (h : flowKeyPredecessorOk s = true) :
+    ∃ t, lastRealTokenVal? s.tokens = some t ∧ t.opensFlowEntry = true := by
+  unfold flowKeyPredecessorOk at h
+  rw [h_flow] at h
+  simp only [Bool.not_true, Bool.false_or] at h
+  cases hl : lastRealTokenVal? s.tokens with
+  | none => rw [hl] at h; simp at h
+  | some t => exact ⟨t, rfl, by rw [hl] at h; exact h⟩
+
 /-- Post-dispatch reading, uniform over the five indicators. -/
 lemma tailOf_of_emitted {tokens : Array (Positioned YamlToken)} {p : Positioned YamlToken}
     {tokens' : Array (Positioned YamlToken)} {tok : YamlToken}
@@ -4852,35 +4966,180 @@ lemma accum_step_block (sc : ScannerState)
         (h_pending h0) h_corr h_preprocess h_dispatch
     exact ⟨g', bl', fl', sn', q1, q2, q3.retail, fun _ => q4, q5,
            fun h => absurd h (by omega)⟩
-  · -- ═══ DEPTH ≥ 1: three arms — one free, one now scanner-clean, one NOT. ═══
-    --  * `-` is REFUTED for free: `dispatchBlockIndicators` guards it with
-    --    `!s.inFlow`, and `s_ad.inFlow = true` here.
-    --  * `?` (`isKeyCandidate`) is SCANNER-CLEAN as of DOCS item 9g: the arm's
-    --    dispatch condition now carries `flowKeyPredecessorOk`, so the `?` that
-    --    reaches here stands directly after `[`, `{` or `,` — `[? ? a]`,
-    --    `[: ?]`, `[&a ? b]` and `[!t ?]` are rejected. Inverting the dispatch
-    --    condition therefore pins the frame tail to `.open` or `.comma`, which
-    --    is exactly the precondition an explicit key needs. What is left is the
-    --    frame shape: `midExplicitKey` already carries the key NODE, but
-    --    `scanKey` emits only the `?`, so this wants a FOURTH `FrameTail` value
-    --    (`?` seen, key awaited) plus one constructor per frame — the same
-    --    inline-the-shape move as 9b(ii), and the same extension site 3's
-    --    props-in-the-gap design shares.
-    --  * `:` (`isValueCandidate`) is the flow-map/flow-pair value transition and
-    --    is NOT scanner-clean: `[a: b: c]`, `{a: : b}` and `[: :]` put two
-    --    values in ONE entry and scan clean in both pipelines, so this arm is
-    --    unprovable for the same reason 9c/9d/9e/9f made site 3 unprovable.
-    --    The scanner fix is one line — `scanValueValidate`'s T833 check already
-    --    rejects a pending simple key whose slots are directly preceded by a
-    --    `.value`, but only across lines; drop that conjunct. The COST is not
-    --    the placement (all four candidate placements are equivalent) but the
-    --    DISCHARGE: the emitter writes `:` at every pair, and the emit→scan
-    --    towers thread only "the last real token does not complete a flow
-    --    value", which `.value` satisfies. See DOCS item 9g and Reflection 617.
-    --    AFTER that: `receiveColon`, a `.value → .colon` transition on both
-    --    `SeqFrame` and `MapFrame` (landing in `midColon`), lifted over the four
-    --    `FlowOpenStack` arms exactly as `holdComma`/`receiveNode` are.
-    sorry
+  · -- ═══ DEPTH ≥ 1: three arms — one free, one BUILT here, one NOT. ═══
+    --
+    -- The preamble is `accum_step_flow`'s, minus the `checkFlowAdjacency` peel
+    -- (this dispatcher runs on the same preprocessed state but has no adjacency
+    -- guard of its own): name the depth, the kinds index and the frame tail,
+    -- transport all three plus the two token readings across the
+    -- `allowDirectives` update, and recover the open frame stack.
+    obtain ⟨d, hd⟩ : ∃ d, sc.flowLevel = d + 1 := ⟨sc.flowLevel - 1, by omega⟩
+    have h_real_sc : LastTokenReal sc.tokens := (h_interior hpos).2.1
+    obtain ⟨sp_prep, h_lead0, hcorr_prep⟩ :=
+      preprocess_some_separate_0_anyCol sc sp_scan s_prep c h_corr h_preprocess
+    have h_ad_fl : (if s_prep.allowDirectives then
+        { s_prep with allowDirectives := false, documentEverStarted := true }
+      else s_prep).flowLevel = sc.flowLevel :=
+      (allowDirectives_update_flowLevel s_prep).trans
+        (preprocess_preserves_flowLevel sc s_prep c h_preprocess)
+    obtain ⟨ks, hks⟩ : ∃ ks, sc.flowStack = ks := ⟨_, rfl⟩
+    obtain ⟨tl, htl⟩ : ∃ tl, tailOf sc.tokens = tl := ⟨_, rfl⟩
+    have h_ad_ks : (if s_prep.allowDirectives then
+        { s_prep with allowDirectives := false, documentEverStarted := true }
+      else s_prep).flowStack = ks :=
+      ((allowDirectives_update_flowStack s_prep).trans
+        (ScannerFlowStack.preprocess_preserves_flowStack sc s_prep c h_preprocess)).trans hks
+    have h_ad_tl : tailOf (if s_prep.allowDirectives then
+        { s_prep with allowDirectives := false, documentEverStarted := true }
+      else s_prep).tokens = tl := by
+      unfold tailOf
+      rw [allowDirectives_update_tokens,
+          preprocess_preserves_frameTokenVal_inFlow sc s_prep c (by omega) h_preprocess]
+      rw [← htl]; rfl
+    have h_ad_last : lastRealTokenVal? (if s_prep.allowDirectives then
+        { s_prep with allowDirectives := false, documentEverStarted := true }
+      else s_prep).tokens = lastRealTokenVal? sc.tokens := by
+      rw [allowDirectives_update_tokens]
+      exact preprocess_preserves_lastRealTokenVal_inFlow sc s_prep c (by omega) h_real_sc
+        h_preprocess
+    have h_ad_inflow : (if s_prep.allowDirectives then
+        { s_prep with allowDirectives := false, documentEverStarted := true }
+      else s_prep).inFlow = true := by
+      unfold ScannerState.inFlow; rw [h_ad_fl]; simp; omega
+    have h_gap : InteriorGap sc tl sp_flow sp_scan := by
+      rw [← htl]; exact (h_interior hpos).1
+    rw [hd, hks, htl] at h_flow
+    have h_fos := h_flow.open_of_succ
+    unfold scanNextToken_dispatchBlockIndicators at h_dispatch
+    simp only [bind, Except.bind, pure, Except.pure] at h_dispatch
+    have hcorr_ad := corr_of_allowDirectives_update hcorr_prep
+    have hpeek_ad : (if s_prep.allowDirectives = true then
+        { s_prep with allowDirectives := false, documentEverStarted := true }
+      else s_prep).peek? = s_prep.peek? := by split <;> rfl
+    generalize h_ad_def : (if s_prep.allowDirectives = true then
+        { s_prep with allowDirectives := false, documentEverStarted := true }
+      else s_prep) = s_ad at h_dispatch
+    rw [h_ad_def] at h_ad_fl h_ad_ks h_ad_tl h_ad_last h_ad_inflow hcorr_ad hpeek_ad
+    have h_ad_false : s_ad.allowDirectives = false := by
+      rw [← h_ad_def]; exact allowDirectives_update_false s_prep
+    split at h_dispatch
+    · -- ═══ `-` — REFUTED FOR FREE. ═══
+      -- `[184] c-l-block-seq-entry` is a BLOCK production and the arm says so:
+      -- its dispatch condition carries `!s.inFlow`, which a positive flow level
+      -- contradicts outright. `[a, -b]` never reaches `scanBlockEntry` (the `-`
+      -- is a plain scalar there, and `[- a]` is the plain scalar `- a`).
+      rename_i heq
+      simp [h_ad_inflow] at heq
+    · split at h_dispatch
+      · -- ═══ `?` — `[150] ns-flow-pair`'s explicit alternative (item 10). ═══
+        --
+        -- Item 9g made this arm scanner-clean by REFUTING the predecessors that
+        -- are not entry boundaries. Building it reads the same guard the other
+        -- way: `flowKeyPredecessorOk` is a POSITIVE statement about the last
+        -- real token (`YamlToken.opensFlowEntry`), so inverting the dispatch
+        -- condition yields a token, `tailOf_eq_sep` turns that into `tl = .sep`,
+        -- and `.sep` is precisely `receiveQuestion`'s hypothesis. Nothing new
+        -- had to be pinned; what was missing was the forward reading of a
+        -- coupling the file only ever stated as a `≠` (Reflection 627).
+        rename_i heq
+        split at h_dispatch
+        · simp at h_dispatch
+        · rename_i s_k hk
+          have hc : c = '?' := by
+            by_cases hcq : c = '?'
+            · exact hcq
+            · rw [show (c == '?') = false from by simp [hcq]] at heq; simp at heq
+          have hpred : flowKeyPredecessorOk s_ad = true := by
+            cases hp : flowKeyPredecessorOk s_ad
+            · rw [hp] at heq; simp at heq
+            · rfl
+          obtain ⟨t, hlast, hopen⟩ := opensFlowEntry_of_flowKeyPredecessorOk h_ad_inflow hpred
+          -- The interior gap resolves ONE way here, and the other way is
+          -- REFUTED rather than handled — the one flow-interior arm of which
+          -- that is true. `,`, `]` and `}` flush a held `[96]` run as
+          -- `propsEmpty`; `[` and `{` wrap it via `receivePropsContent`; a `?`
+          -- does neither, because a property opens no entry, so item 9g's guard
+          -- has already rejected `[&a ? b]`. That is why this arm does not want
+          -- `accum_step_flow`'s shared five-arm gap resolution.
+          have h_frame : tl = .sep ∧ SSeparateLines 0 sp_flow sp_prep := by
+            cases h_gap with
+            | white h_ws h_sync =>
+              refine ⟨?_, SSeparateLines_prepend_white h_ws h_lead0⟩
+              have h_ad_sync : frameTokenVal? s_ad.tokens = lastRealTokenVal? s_ad.tokens := by
+                rw [← h_ad_def, allowDirectives_update_tokens]
+                exact preprocess_preserves_sync_inFlow (by omega) h_real_sc h_preprocess h_sync
+              rw [← h_ad_tl]
+              exact tailOf_eq_sep h_ad_sync hlast hopen
+            | props ha ht sp_p h_tail h_lead_p h_run h_anchor h_tag =>
+              exfalso
+              rw [h_ad_last] at hlast
+              obtain ⟨f, hf⟩ : ∃ f : YamlToken → Bool,
+                  (trailingPropertyRun sc.tokens).any f = true := by
+                rcases h_run.some_half with h | h
+                · exact ⟨YamlToken.isAnchorProperty, h_anchor h⟩
+                · exact ⟨YamlToken.isTagProperty, h_tag h⟩
+              obtain ⟨t', hlast', hprop⟩ := lastReal_isProperty_of_run hf
+              rw [hlast] at hlast'
+              cases hlast'
+              rw [opensFlowEntry_false_of_isNodeProperty hprop] at hopen
+              exact absurd hopen (by simp)
+          obtain ⟨htl_sep, h_lead⟩ := h_frame
+          subst hc
+          obtain ⟨sp_tok, h_q_lit, hcorr_tok⟩ :=
+            scanKey_prod s_ad sp_prep hcorr_ad
+              (hpeek_ad.trans (preprocess_some_peek h_preprocess)) s_k hk
+          have hsd := Except.ok.inj h_dispatch
+          injection hsd with hsd
+          subst hsd
+          have h_fl' : s_k.flowLevel = d + 1 := by
+            rw [scanKey_inFlow_flowLevel h_ad_inflow hk, h_ad_fl, hd]
+          have h_ks' : s_k.flowStack = ks := by
+            rw [ScannerFlowStack.scanKey_preserves_flowStack s_ad s_k hk, h_ad_ks]
+          rw [h_fl', h_ks', (tailOf_scanKey h_ad_inflow hk).1]
+          exact ⟨sp_gram, sp_block, sp_tok, sp_tok, h_stream, h_stack,
+            .open _ _ _ sp_block sp_tok
+              (h_fos.receiveQuestion (htl_sep ▸ rfl) h_lead h_q_lit),
+            (fun _ => PendingNode.noPending sp_start sp_tok), hcorr_tok,
+            fun _ => ⟨.white (GStar.nil _) (sync_scanKey h_ad_inflow hk),
+              (tailOf_scanKey h_ad_inflow hk).2,
+              (scanKey_inFlow_allowDirectives h_ad_inflow hk).trans h_ad_false⟩⟩
+      · split at h_dispatch
+        · -- ═══ `:` — the flow-map/flow-pair value transition. NOT scanner-clean. ═══
+          split at h_dispatch
+          · simp at h_dispatch
+          · -- `[a: b: c]`, `{a: : b}` and `[: :]` put two values in ONE entry and
+            -- scan clean in both pipelines, so this arm is unprovable for the
+            -- same reason 9c/9d/9e/9f made site 3 unprovable: the state it
+            -- would have to construct is a `.colon`-tailed frame receiving a
+            -- SECOND `:`, and `[150]`/`[142]` derive no such thing.
+            --
+            -- The scanner fix is one line — `scanValueValidate`'s T833 check
+            -- already rejects a pending simple key whose slots are directly
+            -- preceded by a `.value`, but only across lines; drop that conjunct.
+            -- The COST is not the placement (all four candidate placements are
+            -- equivalent) but the DISCHARGE: the emitter writes `:` at every
+            -- pair, and the emit→scan towers thread only "the last real token
+            -- does not complete a flow value", which `.value` satisfies. See
+            -- DOCS item 9g and Reflection 617.
+            --
+            -- AFTER that, the arm splits by the same four tails the `?` arm was
+            -- pinned to, and each wants its own producer:
+            --   * `.value` — `[a: b]`, the key/value transition: `receiveColon`,
+            --     a `.value → .colon` step on both frames (landing in
+            --     `midColon`), lifted over the four `FlowOpenStack` arms exactly
+            --     as `holdComma`/`receiveNode` are.
+            --   * `.sep` — `[: a]`, `[146]`'s empty-key entry: item 9l already
+            --     landed the grammar (`SFlowSeqEntry.emptyKeyValue` /
+            --     `.emptyKeyEmpty`) and the frame (`SeqFrame.midEmptyColon`), so
+            --     this one needs only its producer.
+            --   * `.question` — `[? : a]`, `[? :]`: deliberately still WITHOUT
+            --     surface forms (item 9l), since their producer is this very
+            --     dispatch. Adding them earlier would have moved the
+            --     inhabitation debt from the grammar into a dead frame branch.
+            --   * `.colon` — the shape the strictening above removes.
+            sorry
+        · -- fallthrough: dispatch returns `.ok none`, not `.ok (some s')`.
+          simp at h_dispatch
 
 /-! ### §1e Preprocessing + Content Dispatch
 
