@@ -1393,7 +1393,8 @@ lemma scanNextTokenIx_dispatchBlockIndicators_ok_some_cases {input : String}
       simp [Bind.bind, Except.bind, Pure.pure, Except.pure] at h
       exact congrArg Except.ok h
   · rw [if_neg hg1] at h
-    by_cases hg2 : (c == '?' && isKeyCandidateIx s && flowKeyPredecessorOkIx s) = true
+    by_cases hg2 : (c == '?' && isKeyCandidateIx s && flowKeyPredecessorOkIx s &&
+        flowKeyFollowerOkIx s) = true
     · rw [if_pos hg2] at h
       right; left
       cases hK : scanKeyIx s with

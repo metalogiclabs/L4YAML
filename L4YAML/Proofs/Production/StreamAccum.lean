@@ -1082,17 +1082,27 @@ inductive FlowOpenStack (sp_start : SurfPos) :
       bracket position `sp_br` — mirroring `seqNest`'s `sp_before0` vs `sp_par`.
       Any leading separation `sp_before → sp_br` is captured inside `resume`
       (its grammar slot depends on the enclosing context: bare document /
-      block value / explicit document). -/
+      block value / explicit document).
+
+      **`resume` takes `[158] ns-flow-content`, not `[161] ns-flow-node`** — the
+      depth-0 twin of `seqNest`'s `inject` (β.3, Reflection 621). A closed `[` is
+      always content, so both consumers already applied `SFlowNode.content` to it
+      before calling; taking the content directly moves that wrapper to the three
+      `resume` producers and buys the case a node-shaped closure cannot express —
+      a depth-0 `[`/`{` opened while a `[96] c-ns-properties` run is held
+      (`&a [b]`), where the properties must WRAP this frame's eventual node
+      (`SFlowNode.propsContent`) rather than be closed before it. -/
   | seqBase (sp_before sp_br sp_open sp_es sp_cur : SurfPos) (tl : FrameTail)
-      (resume : ∀ sp_ne sp_mid, SFlowNode 0 .flowOut sp_br sp_ne →
+      (resume : ∀ sp_ne sp_mid, SFlowContent 0 .flowOut sp_br sp_ne →
                 SSLComments sp_ne sp_mid → SLYamlStream sp_start sp_mid)
       (h_open : GLit '[' sp_br sp_open)
       (h_sep : GOpt (SSeparate 0 .flowOut) sp_open sp_es)
       (st : SeqFrame 0 (inFlowCtx .flowOut) tl sp_es sp_cur) :
       FlowOpenStack sp_start 1 #[true] tl sp_before sp_cur
-  /-- Outermost open flow mapping (depth 1; see `seqBase` on `sp_before`/`sp_br`). -/
+  /-- Outermost open flow mapping (depth 1; see `seqBase` on `sp_before`/`sp_br`
+      and on why `resume` takes the CONTENT). -/
   | mapBase (sp_before sp_br sp_open sp_es sp_cur : SurfPos) (tl : FrameTail)
-      (resume : ∀ sp_ne sp_mid, SFlowNode 0 .flowOut sp_br sp_ne →
+      (resume : ∀ sp_ne sp_mid, SFlowContent 0 .flowOut sp_br sp_ne →
                 SSLComments sp_ne sp_mid → SLYamlStream sp_start sp_mid)
       (h_open : GLit '{' sp_br sp_open)
       (h_sep : GOpt (SSeparate 0 .flowOut) sp_open sp_es)
@@ -1141,20 +1151,23 @@ inductive FlowOpenStack (sp_start : SurfPos) :
     leading separation `sp_mid → sp_br` (from the stream's endpoint to the
     bracket) rides in the bare document's `flowInBlock` separator slot — the
     zero-width `SSeparateLines.inline ∘ startOfLine` recovers the old
-    stream-at-the-bracket special case. -/
+    stream-at-the-bracket special case.
+
+    The `SFlowNode.content` wrapper is the one `resume`'s narrowed argument moved
+    here from the close sites (Reflection 621). -/
 lemma topLevelFlowResumeSep {sp_start sp_mid sp_br : SurfPos}
     (h_stream : SLYamlStream sp_start sp_mid)
     (h_sep : SSeparateLines 0 sp_mid sp_br) :
-    ∀ sp_ne sp_m, SFlowNode 0 .flowOut sp_br sp_ne →
+    ∀ sp_ne sp_m, SFlowContent 0 .flowOut sp_br sp_ne →
       SSLComments sp_ne sp_m → SLYamlStream sp_start sp_m :=
-  fun sp_ne sp_m h_node h_ssl =>
+  fun sp_ne sp_m h_content h_ssl =>
     SLYamlStream.implicitContinue sp_start sp_mid sp_mid sp_m sp_m
       h_stream (GStar.nil _)
       (GOpt.some sp_mid sp_m
         (SLAnyDocument.bare sp_mid sp_m
           (SLBareDocument.mk sp_mid sp_m
             (SBlockNode.flowInBlock 0 .blockIn sp_mid sp_br sp_ne sp_m
-              h_sep h_node h_ssl))))
+              h_sep (SFlowNode.content _ _ _ _ h_content) h_ssl))))
       (GStar.nil _)
 
 /-! ### §0c'' FlowOpenStack push operations + depth-indexed FlowStackB (Stage B)
@@ -1245,7 +1258,7 @@ lemma absorb_stacksB (sp_start sp_gram sp_block sp_flow : SurfPos)
     `sp_before` (where the enclosing derivation ends) is free — any gap
     `sp_before → sp_br` lives inside `resume`. -/
 lemma FlowStackB.openSeqBase {sp_start sp_before sp_br sp_open sp_es : SurfPos}
-    (resume : ∀ sp_ne sp_m, SFlowNode 0 .flowOut sp_br sp_ne →
+    (resume : ∀ sp_ne sp_m, SFlowContent 0 .flowOut sp_br sp_ne →
               SSLComments sp_ne sp_m → SLYamlStream sp_start sp_m)
     (h_open : GLit '[' sp_br sp_open)
     (h_sep : GOpt (SSeparate 0 .flowOut) sp_open sp_es) :
@@ -1256,7 +1269,7 @@ lemma FlowStackB.openSeqBase {sp_start sp_before sp_br sp_open sp_es : SurfPos}
 
 /-- Open the outermost flow MAPPING `{` (nil → depth-1 open). -/
 lemma FlowStackB.openMapBase {sp_start sp_before sp_br sp_open sp_es : SurfPos}
-    (resume : ∀ sp_ne sp_m, SFlowNode 0 .flowOut sp_br sp_ne →
+    (resume : ∀ sp_ne sp_m, SFlowContent 0 .flowOut sp_br sp_ne →
               SSLComments sp_ne sp_m → SLYamlStream sp_start sp_m)
     (h_open : GLit '{' sp_br sp_open)
     (h_sep : GOpt (SSeparate 0 .flowOut) sp_open sp_es) :
@@ -3011,7 +3024,7 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
     (h_ad : s'.allowDirectives = false)
     (h_sync : frameTokenVal? s'.tokens = lastRealTokenVal? s'.tokens)
     (mk : ∀ (sp_before : SurfPos),
-        (∀ sp_ne sp_m, SFlowNode 0 .flowOut sp_prep sp_ne →
+        (∀ sp_ne sp_m, SFlowContent 0 .flowOut sp_prep sp_ne →
          SSLComments sp_ne sp_m → SLYamlStream sp_start sp_m) →
         FlowStackB sp_start 1 s'.flowStack (tailOf s'.tokens) sp_before sp_open) :
     ∃ sp_gram' sp_block' sp_flow' sp_scan',
@@ -3115,29 +3128,29 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
     have h_pe : sp_gap = sp_prep := ScannerSurfCorr_unique hcorr_gap hcorr_prep
     have h_sep : SSeparateLines 0 sp_scan sp_prep := h_pe ▸ h_sep0
     exact ⟨sp_block, sp_block, sp_open, sp_open, h_stream_block, BlockStack.nil sp_block,
-           mk sp_block (fun sp_ne sp_m h_node h_ssl =>
+           mk sp_block (fun sp_ne sp_m h_content h_ssl =>
              SLYamlStream.implicitContinue sp_start sp_block sp_block sp_m sp_m
                h_stream_block (GStar.nil _)
                (GOpt.some sp_block sp_m
                  (h_doc_builder sp_m (GAlt.left sp_scan sp_m
                    (SLBareDocument.mk sp_scan sp_m
                      (SBlockNode.flowInBlock 0 .blockIn sp_scan sp_prep sp_ne sp_m
-                       h_sep h_node h_ssl)))))
+                       h_sep (SFlowNode.content _ _ _ _ h_content) h_ssl)))))
                (GStar.nil _)),
            PendingNode.noPending sp_start sp_open, hcorr_open, fun _ => ⟨.white (GStar.nil _) h_sync, h_real, h_ad⟩⟩
   | pendingBlock =>
     -- 9b(iii): `pendingBlock` now pins its indent to 0 (every producer in this
-    -- file builds the zero-indent-normalized entry), so the flow node the open
-    -- stack's `resume` supplies — an `SFlowNode 0` — fits `flowInBlock` directly.
+    -- file builds the zero-indent-normalized entry), so the flow node built from
+    -- the content the open stack's `resume` supplies fits `flowInBlock` directly.
     rename_i h_close _
     obtain ⟨sp_gap, h_sep0, hcorr_gap⟩ :=
       preprocess_some_separate_0_anyCol sc sp_scan s_prep c h_corr h_preprocess
     have h_pe : sp_gap = sp_prep := ScannerSurfCorr_unique hcorr_gap hcorr_prep
     have h_sep : SSeparateLines 0 sp_scan sp_prep := h_pe ▸ h_sep0
     exact ⟨sp_gram, sp_block, sp_open, sp_open, h_stream, h_stack,
-           mk sp_block (fun sp_ne sp_m h_node h_ssl =>
+           mk sp_block (fun sp_ne sp_m h_content h_ssl =>
              h_close sp_m (SBlockNode.flowInBlock 0 .blockIn sp_scan sp_prep sp_ne sp_m
-               h_sep h_node h_ssl)),
+               h_sep (SFlowNode.content _ _ _ _ h_content) h_ssl)),
            PendingNode.noPending sp_start sp_open, hcorr_open, fun _ => ⟨.white (GStar.nil _) h_sync, h_real, h_ad⟩⟩
 
 /-! ### §1c''b Token-history readings of the flow dispatch (9b(ii))
@@ -3959,7 +3972,7 @@ lemma accum_step_flow (sc : ScannerState)
                   FlowStackB.nil sp_block _,
                   (fun _ => PendingNode.pendingContent sp_start sp_block sp_tok
                     (fun sp_m h_ssl => resume sp_tok sp_m
-                      (SFlowNode.content _ _ _ _ (SFlowContent.flowSeq _ _ _ _ h_seq)) h_ssl)),
+                      (SFlowContent.flowSeq _ _ _ _ h_seq) h_ssl)),
                   hcorr_tok, fun h => absurd h (by omega)⟩
               · -- mapBase + ']': kind-mismatched close (`{a]`). REFUTED (9a+9b(i)):
                 -- the scanner only reaches this dispatch with `flowStack.back? =
@@ -4043,7 +4056,7 @@ lemma accum_step_flow (sc : ScannerState)
                       FlowStackB.nil sp_block _,
                       (fun _ => PendingNode.pendingContent sp_start sp_block sp_tok
                         (fun sp_m h_ssl => resume sp_tok sp_m
-                          (SFlowNode.content _ _ _ _ (SFlowContent.flowMap _ _ _ _ h_map)) h_ssl)),
+                          (SFlowContent.flowMap _ _ _ _ h_map) h_ssl)),
                       hcorr_tok, fun h => absurd h (by omega)⟩
                   · -- seqNest + '}': kind-mismatched close (`[a}` nested). REFUTED.
                     simp at h_back

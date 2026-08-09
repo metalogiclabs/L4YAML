@@ -1076,6 +1076,17 @@ def flowKeyPredecessorOkIx {input : String} (s : ScannerStateIx input) : Bool :=
      | some t => t.opensFlowEntry
      | none => false)
 
+/-- §7.4.1 [150] (item 9j): inside a flow collection, is the `?` followed by the
+    `s-separate` its production requires?  (Indexed twin of
+    `L4YAML.Scanner.flowKeyFollowerOk`; see it for the derivation argument.) -/
+@[yaml_spec "7.4.1" 150 "ns-flow-pair(n,c)",
+  yaml_spec "6.7" 81 "s-separate-lines(n)"]
+def flowKeyFollowerOkIx {input : String} (s : ScannerStateIx input) : Bool :=
+  !s.inFlow ||
+    (match s.peekAt? 1 with
+     | some n => isBlankBool n
+     | none => true)
+
 /-- Scan `,` flow entry separator. Mirrors `L4YAML.Scanner.scanFlowEntry`:
     emits `.flowEntry` and sets `simpleKeyAllowed := true` so the next
     item can start a fresh implicit key.
@@ -1225,7 +1236,9 @@ def scanNextTokenIx_dispatchBlockIndicators {input : String}
     return some s'
   -- §7.4 [150] (item 9g): the `?` opens a flow entry, so it stands only after
   -- `[`, `{` or `,` — see `flowKeyPredecessorOkIx`.
-  if c == '?' && isKeyCandidateIx s && flowKeyPredecessorOkIx s then
+  -- §7.4.1 [150] (item 9j): …and its `s-separate` is mandatory — see
+  -- `flowKeyFollowerOkIx`.
+  if c == '?' && isKeyCandidateIx s && flowKeyPredecessorOkIx s && flowKeyFollowerOkIx s then
     let s' ← scanKeyIx s
     return some s'
   if c == ':' && isValueCandidateIx s then

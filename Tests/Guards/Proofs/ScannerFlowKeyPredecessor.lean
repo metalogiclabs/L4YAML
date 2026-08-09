@@ -86,6 +86,8 @@ that *does* open an entry. -/
 #guard bothAccept "[? , ? , a]\n"                 -- empty pairs, each after `,`
 #guard bothAccept "[? :]\n"                       -- empty key, empty value
 #guard bothAccept "[? ,]\n"
+-- (`[?]`, `[?,a]` — the same shapes with the `s-separate` missing — are item
+--  9j's, in `ScannerFlowKeyFollower`.)
 #guard bothAccept "[? &x]\n"                      -- key is `&x` + e-scalar
 #guard bothAccept "[? !t]\n"
 #guard bothAccept "[? [b]]\n"
@@ -108,7 +110,7 @@ here as accepted next to the pair it is easily mistaken for. -/
 #guard rejects9g "[a: ? b]\n" 0 4
 #guard bothAccept "[a:, ? b]\n"
 #guard rejects9g "[? ? a]\n" 0 3
-#guard bothAccept "[?, ? a]\n"
+#guard bothAccept "[? , ? a]\n"                   -- (the space is item 9j's rule)
 #guard bothAccept "[? a ? b]\n"                   -- the key is the scalar `a ? b`
 
 /-! ## §4  Block context is untouched

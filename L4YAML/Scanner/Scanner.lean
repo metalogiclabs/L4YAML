@@ -403,6 +403,50 @@ def flowKeyPredecessorOk (s : ScannerState) : Bool :=
      | some t => t.opensFlowEntry
      | none => false)
 
+/-! ### §7.4.1 [150]: a flow `?` is DELIMITED (item 9j)
+
+    Item 9g pinned the `?`'s *predecessor*; this pins its *successor*, and it is
+    the same production read left to right:
+
+        [150] ns-flow-pair(n,c) ::= ( "?" s-separate(n,c)
+                                       ns-flow-map-explicit-entry(n,c) )
+                                  | ns-flow-pair-entry(n,c)
+
+    The `s-separate` after the `?` is **mandatory** — inside a flow collection it
+    is `s-separate-lines(n)`, whose only zero-width arm is `/* Start of line */`,
+    which a `?` sitting mid-line cannot take.  So the character directly after
+    the indicator is blank or a break, never a flow indicator.
+
+    `isKeyCandidate` admits a flow indicator (`isBlankBool n || (s.inFlow &&
+    isFlowIndicatorBool n)`) — that second disjunct is what let
+
+        [?]        [?,a]       {?}       {?,a}
+
+    scan clean in BOTH pipelines.  None of the four has a derivation: `[142]
+    c-ns-flow-map-explicit-entry` can be `( e-node e-node )`, so an EMPTY explicit
+    entry is legal (`[? ]`, `[? , a]` are accepted and stay accepted), but the
+    `s-separate` before it is not optional.  Nor can the `?` be a plain scalar:
+    `[131] ns-plain-first` admits a leading `?` only when the next character is
+    `ns-plain-safe(c)`, and in flow context `ns-plain-safe-in` subtracts exactly
+    `c-flow-indicator`.
+
+    Like 9g this rides on the `?` arm's dispatch condition rather than adding an
+    `if` (Reflection 613), so a `?` that fails it falls through to
+    `scanNextToken_dispatchContent`; and by the same argument as 9g the
+    fall-through is always `.unexpectedChar`, since the follower that got it here
+    is a flow indicator and so not `ns-plain-safe`. -/
+
+/-- §7.4.1 [150] (item 9j): inside a flow collection, is the `?` followed by the
+    `s-separate` its production requires?  `none` (end of input) is left to the
+    later `unterminatedFlowCollection` check, which owns that error. -/
+@[yaml_spec "7.4.1" 150 "ns-flow-pair(n,c)",
+  yaml_spec "6.7" 81 "s-separate-lines(n)"]
+def flowKeyFollowerOk (s : ScannerState) : Bool :=
+  !s.inFlow ||
+    (match s.peekAt? 1 with
+     | some n => isBlankBool n
+     | none => true)
+
 /-- Scan a flow entry separator `,`.
 
     **Implements** (YAML 1.2.2 §7.4):
@@ -582,7 +626,10 @@ def scanNextToken_dispatchBlockIndicators (s : ScannerState) (c : Char) :
     return some s'
   -- §7.4 [150] (item 9g): the `?` opens a flow entry, so it stands only after
   -- `[`, `{` or `,` — see `flowKeyPredecessorOk`.
-  if c == '?' && isKeyCandidate s && flowKeyPredecessorOk s then
+  -- §7.4.1 [150] (item 9j): …and its `s-separate` is mandatory, so a flow
+  -- indicator may not follow it directly — see `flowKeyFollowerOk`.  Both ride
+  -- on this one `if`, so the dispatcher keeps its shape (Reflection 613).
+  if c == '?' && isKeyCandidate s && flowKeyPredecessorOk s && flowKeyFollowerOk s then
     let s' ← scanKey s
     return some s'
   if c == ':' && isValueCandidate s then
