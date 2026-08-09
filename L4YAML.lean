@@ -81,6 +81,7 @@ import L4YAML.Proofs.Output.ScannerEmitBridge
 import L4YAML.Proofs.Scanner.ScannerFlowCollection
 import L4YAML.Proofs.Scanner.ScannerIndent
 import L4YAML.Proofs.Scanner.ScannerIndentStack
+import L4YAML.Proofs.Scanner.ScannerLinePreservation
 import L4YAML.Proofs.Scanner.ScannerLoopInvariant
 import L4YAML.Proofs.Scanner.ScannerPlainContent
 import L4YAML.Proofs.Scanner.ScannerPlainScalar

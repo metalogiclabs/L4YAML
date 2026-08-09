@@ -1018,26 +1018,74 @@ def trailingPropertyRunIx {input : String} (ts : Indexed.TokenStream input) :
     else []
   | none => []
 
-/-- §6.9 [96], inside a flow collection: does the property run ending at the
-    cursor already carry an anchor?  (Indexed twin of
-    `L4YAML.Scanner.propertyRunHasAnchor`; see its docstring for why the test is
-    gated on `inFlow`.) -/
+/-- The last real token itself, not just its value (indexed twin of
+    `L4YAML.Scanner.lastRealToken?`). -/
+def lastRealTokenIx? {input : String} (ts : Indexed.TokenStream input) :
+    Option (Indexed.IxToken input) :=
+  let arr := ts.tokens
+  if arr.size > 0 then
+    let lastIdx := arr.size - 1
+    let tok1 := arr[lastIdx]!
+    if tok1.token == YamlToken.placeholder && lastIdx > 0 then
+      let tok2 := arr[lastIdx - 1]!
+      if tok2.token == YamlToken.placeholder && lastIdx > 1 then
+        some arr[lastIdx - 2]!
+      else some tok2
+    else some tok1
+  else none
+
+/-- Indexed twin of `L4YAML.Scanner.penultRealToken?`. -/
+def penultRealTokenIx? {input : String} (ts : Indexed.TokenStream input) :
+    Option (Indexed.IxToken input) :=
+  match lastRealTokenIdxIx? ts with
+  | some i => lastRealTokenIx? { tokens := ts.tokens.extract 0 i }
+  | none => none
+
+/-- The trailing property run truncated at a line change (indexed twin of
+    `L4YAML.Scanner.trailingPropertyRunOnLine`; see it for why a same-line run
+    is a sound reading in block context). -/
+def trailingPropertyRunOnLineIx {input : String} (ts : Indexed.TokenStream input)
+    (line : Nat) : List YamlToken :=
+  match lastRealTokenIx? ts with
+  | some t1 =>
+    if t1.token.isNodeProperty && t1.start.line == line then
+      match penultRealTokenIx? ts with
+      | some t2 =>
+        if t2.token.isNodeProperty && t2.start.line == line then [t1.token, t2.token]
+        else [t1.token]
+      | none => [t1.token]
+    else []
+  | none => []
+
+/-- Indexed twin of `L4YAML.Scanner.lastTokenIsNodePropertyOnLine`. -/
+def lastTokenIsNodePropertyOnLineIx {input : String} (ts : Indexed.TokenStream input)
+    (line : Nat) : Bool :=
+  match lastRealTokenIx? ts with
+  | some t => t.token.isNodeProperty && t.start.line == line
+  | none => false
+
+/-- §6.9 [96]: does the property run ending at the cursor already carry an
+    anchor?  (Indexed twin of `L4YAML.Scanner.propertyRunHasAnchor`; see its
+    docstring for the two contexts in which token adjacency means "same
+    node".) -/
 def propertyRunHasAnchorIx {input : String} (s : ScannerStateIx input) : Bool :=
-  s.inFlow && (trailingPropertyRunIx s.tokens).any YamlToken.isAnchorProperty
+  (s.inFlow && (trailingPropertyRunIx s.tokens).any YamlToken.isAnchorProperty) ||
+    (trailingPropertyRunOnLineIx s.tokens s.cursor.pos.line).any YamlToken.isAnchorProperty
 
-/-- §6.9 [96], inside a flow collection: does the property run ending at the
-    cursor already carry a tag?  (Indexed twin of
-    `L4YAML.Scanner.propertyRunHasTag`.) -/
+/-- §6.9 [96]: does the property run ending at the cursor already carry a tag?
+    (Indexed twin of `L4YAML.Scanner.propertyRunHasTag`.) -/
 def propertyRunHasTagIx {input : String} (s : ScannerStateIx input) : Bool :=
-  s.inFlow && (trailingPropertyRunIx s.tokens).any YamlToken.isTagProperty
+  (s.inFlow && (trailingPropertyRunIx s.tokens).any YamlToken.isTagProperty) ||
+    (trailingPropertyRunOnLineIx s.tokens s.cursor.pos.line).any YamlToken.isTagProperty
 
-/-- §6.9 [104], inside a flow collection: is the cursor directly after a node
-    property?  (Indexed twin of `L4YAML.Scanner.lastTokenIsNodeProperty`.) -/
+/-- §6.9 [104]: is the cursor directly after a node property?  (Indexed twin of
+    `L4YAML.Scanner.lastTokenIsNodeProperty`.) -/
 def lastTokenIsNodePropertyIx {input : String} (s : ScannerStateIx input) : Bool :=
-  s.inFlow &&
+  (s.inFlow &&
     (match lastRealTokenValIx? s.tokens with
      | some t => t.isNodeProperty
-     | none => false)
+     | none => false)) ||
+    lastTokenIsNodePropertyOnLineIx s.tokens s.cursor.pos.line
 
 /-- §7.5 [161] (item 9f): the characters that may directly follow a node property
     or an alias.  (Indexed twin of `L4YAML.Scanner.propertyFollowerOk`; see it for

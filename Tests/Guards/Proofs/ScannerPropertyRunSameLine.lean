@@ -1,0 +1,140 @@
+import L4YAML.Scanner.Scanner
+import L4YAML.Scanner.IndexedDispatch
+
+/-
+Copyright (c) 2026. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+-/
+
+/-! # A property run on ONE LINE is one node's (DOCS item 9k)
+
+Item 9e made three §6.9 tests — no second anchor, no second tag, no alias after a
+property — and gated all three on `s.inFlow`, because token adjacency means "same
+node" only when nothing that emits no token can intervene, and a *block*
+collection opens without a token:
+
+```yaml
+&mapping
+&key [ &item a, b, c ]: value    # 26DV: &mapping is on the MAPPING
+top3: &node3
+  *alias1 : scalar3              # &node3 is on the nested mapping
+```
+
+The gate was read as the premise.  It is not — it is one *sufficient context* for
+it, and there is a second, independent of it.  `[200] s-l+block-collection(n,c)`
+reads its properties and then `s-l-comments`, whose `[77] s-b-comment` is
+`b-non-content` or end of input: **a block collection's properties are always
+separated from its content by a break.**  So two property tokens on the SAME LINE
+cannot be split by a block opening, whatever the indent stack says — and that is
+exactly what separates the two counterexamples above (lines 0 and 1) from every
+illegal shape below (all single-line).
+
+So the three tests are now the disjunction `whole run, in flow` (9e) or
+`this line's run, anywhere` (9k), and the disjuncts are incomparable: §5 pins a
+run 9e still owns and 9k cannot see.
+
+**The residual.**  Same-line is *sufficient*, not necessary, so a run already
+broken across lines is not read: `&a⏎&b⏎c` has two anchors on one node, has no
+derivation, and is still accepted.  Telling that apart from 26DV needs the indent
+machinery (DOCS β.5).  It is deliberately **not** pinned below — pinning an
+over-acceptance is what Reflection 622 caught the last pass doing.
+-/
+
+namespace Tests.Guards.ScannerPropertyRunSameLine
+
+open L4YAML
+open L4YAML.Scanner
+
+/-- Legacy and indexed verdicts as a comparable pair: `none` on success,
+    `some e` on rejection.  Equal pairs mean the two pipelines agree. -/
+private def verdicts (input : String) : Option ScanError × Option ScanError :=
+  ( (match scan input with | .ok _ => none | .error e => some e)
+  , (match Indexed.ScannerStateIx.scanIx input with | .ok _ => none | .error e => some e) )
+
+/-- Both pipelines reject `input` at a repeated/misplaced property. -/
+private def rejects9k (input : String) (c : Char) (line col : Nat) : Bool :=
+  verdicts input == (some (.invalidNodeProperties c line col),
+                     some (.invalidNodeProperties c line col))
+
+/-- Both pipelines accept `input`. -/
+private def bothAccept (input : String) : Bool := verdicts input == (none, none)
+
+/-! ## §1  A second anchor on the line
+
+`[96] c-ns-properties` admits at most one `[101] c-ns-anchor-property`.  None of
+these derives; all of them scanned clean at depth 0 before this item. -/
+
+#guard rejects9k "&a &b c\n" '&' 0 3              -- before a plain scalar
+#guard rejects9k "&a &b [c]\n" '&' 0 3            -- before a flow open (site 5's arm)
+#guard rejects9k "&a &b\n" '&' 0 3                -- with no content at all
+#guard rejects9k "&a &b: v\n" '&' 0 3
+#guard rejects9k "- &a &b: v\n" '&' 0 5           -- inside a block sequence
+#guard rejects9k "? &a &b\n" '&' 0 5              -- on an explicit key's node
+
+-- A THIRD property dies on the run's PENULT — the two-token lookback earning
+-- its width in block context exactly as it does in flow.
+#guard rejects9k "&a !t &b: v\n" '&' 0 6
+#guard rejects9k "&a !!str &b c\n" '&' 0 9
+#guard rejects9k "&a !!str &b [c]\n" '&' 0 9
+
+/-! ## §2  A second tag on the line
+
+The mirror, for `[97] c-ns-tag-property`.  This is the half the *parser* never
+caught either: it accepted `!!str !!int c` and silently kept the last tag. -/
+
+#guard rejects9k "!t !u c\n" '!' 0 3
+#guard rejects9k "!!str !!int c\n" '!' 0 6
+#guard rejects9k "!!str !!int [c]\n" '!' 0 6
+#guard rejects9k "!!str &a !!int c\n" '!' 0 9     -- on the penult again
+#guard rejects9k "- !t !u c\n" '!' 0 5
+
+/-! ## §3  An alias after a property on the line
+
+`[104] c-ns-alias-node` is an *alternative* to the properties-bearing form of
+`[161] ns-flow-node`, never its content, so a property may not decorate it. -/
+
+#guard rejects9k "k: &b x\nj: &a *b\n" '*' 1 6
+#guard rejects9k "- &b x\n- &a *b\n" '*' 1 5
+#guard rejects9k "a: &x 1\nb: !t *x\n" '*' 1 6
+
+/-! ## §4  A break makes it two nodes again
+
+The counterexamples that forced 9e's gate, and their neighbours.  Every one puts
+the two property tokens on DIFFERENT lines, which is not a coincidence but
+`[200]`'s `s-l-comments`. -/
+
+#guard bothAccept "&mapping\n&key [ &item a, b, c ]: value\n"
+#guard bothAccept "alias1: &alias1 x\ntop3: &node3\n  *alias1 : scalar3\n"
+#guard bothAccept "&node3\n*node3 : scalar3\n"
+#guard bothAccept "&a\n- x\n"                     -- a block sequence under a property
+#guard bothAccept "&a\n&b: v\n"                   -- a block mapping under a property
+#guard bothAccept "- &a\n  &b: v\n"
+
+/-! ## §5  The two disjuncts are incomparable
+
+9e reads the whole run and needs the flow gate; 9k reads the line and needs no
+gate.  Inside a flow a run may legally span lines, so 9e still owns these — and
+9k, which truncates at the break, cannot see them. -/
+
+#guard rejects9k "[&a\n&b c]\n" '&' 1 0           -- 9e only: run split by a break
+#guard rejects9k "{!t\n!u c: v}\n" '!' 1 0
+#guard rejects9k "[\n&a\n&b c]\n" '&' 2 0
+#guard rejects9k "[&a &b c]\n" '&' 0 4            -- both disjuncts fire
+#guard bothAccept "[&a\n!t c]\n"                  -- anchor THEN tag: legal, either way
+
+/-! ## §6  What the rule does not touch
+
+One anchor and one tag on a line are `[96]`'s whole point; an alias that follows
+no property is an ordinary node; and the four shapes site 5's arm actually
+receives are all still legal. -/
+
+#guard bothAccept "&a !t c\n"
+#guard bothAccept "!t &a c\n"
+#guard bothAccept "&a c\n"
+#guard bothAccept "&a x\n*a\n"
+#guard bothAccept "&a [c]\n"
+#guard bothAccept "!t {a: b}\n"
+#guard bothAccept "&a !!seq [b]\n"
+#guard bothAccept "--- &a [b]\n"
+
+end Tests.Guards.ScannerPropertyRunSameLine

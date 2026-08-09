@@ -6123,7 +6123,10 @@ lemma accum_step_content (sc : ScannerState)
           have h_guard := propertyRunHasAnchor_false_of_dispatch h_dispatch
           unfold propertyRunHasAnchor at h_guard
           rw [h_ad_inflow] at h_guard
-          rw [← h_ad_run]; simpa using h_guard
+          -- Item 9k made the guard a disjunction (whole run in flow, same-line
+          -- run in block); this site is the in-flow disjunct.
+          simp only [Bool.true_and, Bool.or_eq_false_iff] at h_guard
+          rw [← h_ad_run]; exact h_guard.1
         have hha : ha = false := by
           cases ha with
           | false => rfl
@@ -6174,7 +6177,8 @@ lemma accum_step_content (sc : ScannerState)
             have h_guard := propertyRunHasTag_false_of_dispatch h_dispatch
             unfold propertyRunHasTag at h_guard
             rw [h_ad_inflow] at h_guard
-            rw [← h_ad_run]; simpa using h_guard
+            simp only [Bool.true_and, Bool.or_eq_false_iff] at h_guard
+            rw [← h_ad_run]; exact h_guard.1
           have hht : ht = false := by
             cases ht with
             | false => rfl

@@ -255,6 +255,28 @@ def penultRealTokenVal? (tokens : Array (Positioned YamlToken)) : Option YamlTok
   | some i => lastRealTokenVal? (tokens.extract 0 i)
   | none => none
 
+/-- `lastRealTokenVal?`'s positioned twin: the whole token, not just its value.
+    Added by item 9k, whose test is about *where* the token sits. -/
+def lastRealToken? (tokens : Array (Positioned YamlToken)) :
+    Option (Positioned YamlToken) :=
+  if tokens.size > 0 then
+    let lastIdx := tokens.size - 1
+    let tok1 := tokens[lastIdx]!
+    if tok1.val == .placeholder && lastIdx > 0 then
+      let tok2 := tokens[lastIdx - 1]!
+      if tok2.val == .placeholder && lastIdx > 1 then
+        some tokens[lastIdx - 2]!
+      else some tok2
+    else some tok1
+  else none
+
+/-- `penultRealTokenVal?`'s positioned twin. -/
+def penultRealToken? (tokens : Array (Positioned YamlToken)) :
+    Option (Positioned YamlToken) :=
+  match lastRealTokenIdx? tokens with
+  | some i => lastRealToken? (tokens.extract 0 i)
+  | none => none
+
 /-- The trailing run of node-property tokens, most recent first.
 
     §6.9 [96] `c-ns-properties` admits at most one anchor and one tag, so a
@@ -272,15 +294,20 @@ def trailingPropertyRun (tokens : Array (Positioned YamlToken)) : List YamlToken
     else []
   | none => []
 
-/-! ### Why the three tests below are gated on `s.inFlow`
+/-! ### When token adjacency means "same property run" (items 9e and 9k)
 
-    Token adjacency means "same property run" only when nothing that emits no
-    token can intervene.  Inside a flow collection that holds: `[137]`/`[140]`
-    admit `ns-flow-node` only, so no block collection can open between two
-    tokens, and two adjacent property tokens necessarily belong to one node.
+    Token adjacency means "same node" only when nothing that emits no token can
+    intervene.  Two contexts guarantee that, and the three tests below are the
+    disjunction of them.
 
-    In **block** context it fails.  A block collection opens without a token of
-    its own, so adjacent property tokens can belong to different nodes:
+    **Inside a flow collection** (item 9e).  `[137]`/`[140]` admit
+    `ns-flow-node` only, so no block collection can open between two tokens, and
+    two adjacent property tokens necessarily belong to one node — at any
+    distance, across as many lines as the collection spans.
+
+    **On one line** (item 9k).  In block context the flow argument fails: a
+    block collection opens without a token of its own, so adjacent property
+    tokens can belong to different nodes.
 
     ```yaml
     &mapping
@@ -290,31 +317,68 @@ def trailingPropertyRun (tokens : Array (Positioned YamlToken)) : List YamlToken
     ```
 
     Both are valid, and both put an `anchor` directly before an `anchor`/`alias`
-    in the token stream.  Separating them needs the indent machinery, so the
-    block-context half of §6.9 strictness is left open (DOCS, β.5) rather than
-    guessed at here. -/
+    in the token stream — so the tests may not be ungated.  But both also put
+    the two tokens on DIFFERENT lines, and that is not an accident: `[200]
+    s-l+block-collection(n,c)` reads its properties then `s-l-comments`, whose
+    `[77] s-b-comment` is `b-non-content` or end of input.  A block collection's
+    properties are therefore *always* separated from its content by a break, so
+    a property token and a property token on the SAME line cannot be split by a
+    block opening.
 
-/-- Inside a flow collection, does the property run ending at the cursor already
-    carry an anchor?  A second `[101] c-ns-anchor-property` on the same node has
-    no derivation. -/
+    Same-line adjacency is a sound approximation, not an exact one: a run
+    already broken across lines is not read (`&a⏎!t &b c` keeps only `!t`), so
+    the block-context tests under-reject rather than over-reject.  The flow
+    disjunct keeps the unrestricted run, which is why widening costs the
+    in-flow case nothing. -/
+
+/-- `trailingPropertyRun`, truncated at a line change: the same two-token
+    lookback, keeping only tokens that start on `line`.  This is the run the
+    BLOCK-context half of the three tests below reads. -/
+@[yaml_spec "6.9" 96 "c-ns-properties",
+  yaml_spec "8.2.3" 200 "s-l+block-collection(n,c)",
+  yaml_spec "6.6" 77 "s-b-comment"]
+def trailingPropertyRunOnLine (tokens : Array (Positioned YamlToken)) (line : Nat) :
+    List YamlToken :=
+  match lastRealToken? tokens with
+  | some t1 =>
+    if t1.val.isNodeProperty && t1.pos.line == line then
+      match penultRealToken? tokens with
+      | some t2 =>
+        if t2.val.isNodeProperty && t2.pos.line == line then [t1.val, t2.val] else [t1.val]
+      | none => [t1.val]
+    else []
+  | none => []
+
+/-- Is the last real token a node property that starts on `line`? -/
+def lastTokenIsNodePropertyOnLine (tokens : Array (Positioned YamlToken)) (line : Nat) :
+    Bool :=
+  match lastRealToken? tokens with
+  | some t => t.val.isNodeProperty && t.pos.line == line
+  | none => false
+
+/-- Does the property run ending at the cursor already carry an anchor?  A
+    second `[101] c-ns-anchor-property` on the same node has no derivation.
+    Read over the whole run inside a flow (item 9e), over the current line's
+    run outside one (item 9k). -/
 def propertyRunHasAnchor (s : ScannerState) : Bool :=
-  s.inFlow && (trailingPropertyRun s.tokens).any YamlToken.isAnchorProperty
+  (s.inFlow && (trailingPropertyRun s.tokens).any YamlToken.isAnchorProperty) ||
+    (trailingPropertyRunOnLine s.tokens s.line).any YamlToken.isAnchorProperty
 
-/-- Inside a flow collection, does the property run ending at the cursor already
-    carry a tag?  A second `[97] c-ns-tag-property` on the same node has no
-    derivation. -/
+/-- Does the property run ending at the cursor already carry a tag?  A second
+    `[97] c-ns-tag-property` on the same node has no derivation. -/
 def propertyRunHasTag (s : ScannerState) : Bool :=
-  s.inFlow && (trailingPropertyRun s.tokens).any YamlToken.isTagProperty
+  (s.inFlow && (trailingPropertyRun s.tokens).any YamlToken.isTagProperty) ||
+    (trailingPropertyRunOnLine s.tokens s.line).any YamlToken.isTagProperty
 
-/-- Inside a flow collection, is the cursor directly after a node property?
-    `[104] c-ns-alias-node` is an *alternative* to the properties-bearing form of
-    `[161] ns-flow-node`, never its content, so `[&a *x]` and `[!t *x]` have no
-    derivation. -/
+/-- Is the cursor directly after a node property?  `[104] c-ns-alias-node` is an
+    *alternative* to the properties-bearing form of `[161] ns-flow-node`, never
+    its content, so `[&a *x]` and `&a *x` have no derivation. -/
 def lastTokenIsNodeProperty (s : ScannerState) : Bool :=
-  s.inFlow &&
+  (s.inFlow &&
     (match lastRealTokenVal? s.tokens with
      | some t => t.isNodeProperty
-     | none => false)
+     | none => false)) ||
+    lastTokenIsNodePropertyOnLine s.tokens s.line
 
 /-! ### §7.5 [161]: a node property is delimited (item 9f)
 
