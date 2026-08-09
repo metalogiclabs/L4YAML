@@ -403,6 +403,30 @@ mutual
     | emptyKeyEmpty (n : Nat) (c : YamlContext) (s s' : SurfPos) :
         GLit ':' s s' →
         SFlowSeqEntry n c s s'
+    /-- Explicit `?`, EMPTY key, value: `[? : a]` — `[150] ns-flow-pair`'s
+        explicit arm reaching `[143]`'s implicit alternative at `[146]
+        c-ns-flow-map-empty-key-entry`.
+
+        Item 9l added the two halves separately — `[146]` on its own
+        (`emptyKeyValue`, `[: a]`) and `[143]`'s `( e-node e-node )`
+        (`explicitPairEmptyNodes`, `[? ]`) — and deliberately left the
+        COMPOSITION out, because its only producer is the `:` dispatch and an
+        unproducible constructor is inhabitation debt.  Item 9n supplies the
+        producer (`SeqFrame.receiveColonQuestion`), so it lands here now. -/
+    | explicitEmptyKeyValue (n : Nat) (c : YamlContext) (s s₁ s₂ s₃ s₄ s' : SurfPos) :
+        GLit '?' s s₁ →
+        SSeparate n c s₁ s₂ →
+        GLit ':' s₂ s₃ →
+        SSeparate n c s₃ s₄ →
+        SFlowNode n c s₄ s' →
+        SFlowSeqEntry n c s s'
+    /-- Explicit `?`, empty key, empty value: `[? :]` — `[146]` with an `e-node`
+        value, under `[150]`'s explicit arm (item 9n). -/
+    | explicitEmptyKeyEmpty (n : Nat) (c : YamlContext) (s s₁ s₂ s' : SurfPos) :
+        GLit '?' s s₁ →
+        SSeparate n c s₁ s₂ →
+        GLit ':' s₂ s' →
+        SFlowSeqEntry n c s s'
 
   /-- [140] c-flow-mapping(n,c): '{' + entries + '}'. -/
   @[yaml_spec "7.4.2" 140 "c-flow-mapping(n,c)"]
@@ -508,6 +532,21 @@ mutual
     | explicitEmptyNodes (n : Nat) (c : YamlContext) (s s₁ s' : SurfPos) :
         GLit '?' s s₁ →
         SSeparate n c s₁ s' →
+        SFlowMapEntry n c s s'
+    /-- Explicit `?`, EMPTY key, value: `{? : a}` — see
+        `SFlowSeqEntry.explicitEmptyKeyValue` (item 9n). -/
+    | explicitEmptyKeyValue (n : Nat) (c : YamlContext) (s s₁ s₂ s₃ s₄ s' : SurfPos) :
+        GLit '?' s s₁ →
+        SSeparate n c s₁ s₂ →
+        GLit ':' s₂ s₃ →
+        SSeparate n c s₃ s₄ →
+        SFlowNode n c s₄ s' →
+        SFlowMapEntry n c s s'
+    /-- Explicit `?`, empty key, empty value: `{? :}` (item 9n). -/
+    | explicitEmptyKeyEmpty (n : Nat) (c : YamlContext) (s s₁ s₂ s' : SurfPos) :
+        GLit '?' s s₁ →
+        SSeparate n c s₁ s₂ →
+        GLit ':' s₂ s' →
         SFlowMapEntry n c s s'
 
 end -- mutual

@@ -1087,6 +1087,13 @@ inductive SeqFrame (n : Nat) (c : YamlContext) : FrameTail → SurfPos → SurfP
       `( e-node e-node )`. -/
   | midQuestion (sp sp_q sp' : SurfPos) (pre : FlowSeqPrefix n c sp sp_q)
       (hq : GLit '?' sp_q sp') : SeqFrame n c .question sp sp'
+  /-- Explicit `?`, EMPTY key, `:` scanned, value awaited (`[? : `) — item 9n.
+      The `?`'s mandatory `s-separate` is held here because `midQuestion` defers
+      it to the next step, and the next step is this `:`. -/
+  | midQuestionEmptyColon (sp sp_q sp_qe sp_s sp' : SurfPos)
+      (pre : FlowSeqPrefix n c sp sp_q) (hq : GLit '?' sp_q sp_qe)
+      (hqsep : SSeparate n c sp_qe sp_s) (hcolon : GLit ':' sp_s sp') :
+      SeqFrame n c .colon sp sp'
 
 /-- The state of one open flow MAPPING frame (see `SeqFrame`; the extra shape is
     the empty-key pair `{: `). -/
@@ -1124,6 +1131,12 @@ inductive MapFrame (n : Nat) (c : YamlContext) : FrameTail → SurfPos → SurfP
       `SeqFrame.midQuestion`. -/
   | midQuestion (sp sp_q sp' : SurfPos) (pre : FlowMapPrefix n c sp sp_q)
       (hq : GLit '?' sp_q sp') : MapFrame n c .question sp sp'
+  /-- Explicit `?`, EMPTY key, `:` scanned, value awaited (`{? : `) — item 9n;
+      see `SeqFrame.midQuestionEmptyColon`. -/
+  | midQuestionEmptyColon (sp sp_q sp_qe sp_s sp' : SurfPos)
+      (pre : FlowMapPrefix n c sp sp_q) (hq : GLit '?' sp_q sp_qe)
+      (hqsep : SSeparate n c sp_qe sp_s) (hcolon : GLit ':' sp_s sp') :
+      MapFrame n c .colon sp sp'
 
 /-- **Kinds index (9b(i))**. Besides its depth, `FlowOpenStack` is indexed by the
     *kinds* of its open frames — exactly the scanner's `flowStack` (`true` = a
@@ -2704,6 +2717,12 @@ lemma SeqFrame.closeWithSep {c_out : YamlContext} {tl : FrameTail}
     exact PartialFlowSeq.closeSeq h_open h_sep
       (pre.appendEntry (.explicitPairEmptyNodes _ _ _ _ _ hq h_lead_in)
         (GOpt.none sp_prep)) h_close
+  · -- midQuestionEmptyColon: `[? :]` — `[146]`'s empty key with an `e-node`
+    -- value, under `[150]`'s explicit arm (item 9n).
+    rename_i hq hqsep pre hcolon
+    exact PartialFlowSeq.closeSeq h_open h_sep
+      (pre.appendEntry (.explicitEmptyKeyEmpty _ _ _ _ _ _ hq hqsep hcolon)
+        (.some _ _ h_lead_in)) h_close
 
 /-- Close a flow-MAPPING frame with `}` (see `SeqFrame.closeWithSep`; mid
     entries complete with an empty value: `{a}`, `{a:}`, `{? a}`, `{:}`, …). -/
@@ -2754,6 +2773,11 @@ lemma MapFrame.closeWithSep {c_out : YamlContext} {tl : FrameTail}
     exact PartialFlowMap.closeMap h_open h_sep
       (pre.appendEntry (.explicitEmptyNodes _ _ _ _ _ hq h_lead_in)
         (GOpt.none sp_prep)) h_close
+  · -- midQuestionEmptyColon: `{? :}` (item 9n).
+    rename_i hq hqsep pre hcolon
+    exact PartialFlowMap.closeMap h_open h_sep
+      (pre.appendEntry (.explicitEmptyKeyEmpty _ _ _ _ _ _ hq hqsep hcolon)
+        (.some _ _ h_lead_in)) h_close
 
 /-! ### Frame-valued entry snocs
 
@@ -2872,6 +2896,11 @@ lemma SeqFrame.holdComma {c : YamlContext} {tl : FrameTail}
     rename_i pre hq
     exact appendSeqEntryHeldFrame pre (.explicitPairEmptyNodes _ _ _ _ _ hq h_lead)
       (GOpt.none sp_prep) hcomma (GOpt.none sp_tok)
+  · -- midQuestionEmptyColon: `[? :,` (item 9n).
+    rename_i hq hqsep pre hcolon
+    exact appendSeqEntryHeldFrame pre
+      (.explicitEmptyKeyEmpty _ _ _ _ _ _ hq hqsep hcolon)
+      (.some _ _ h_lead) hcomma (GOpt.none sp_tok)
 
 /-- `,` transition on a flow-MAPPING frame (see `SeqFrame.holdComma`; mid
     entries finish with an empty value: `{a,`, `{a:,`, `{? a,`, `{:,`). -/
@@ -2912,6 +2941,11 @@ lemma MapFrame.holdComma {c : YamlContext} {tl : FrameTail}
     rename_i pre hq
     exact appendMapEntryHeldFrame pre (.explicitEmptyNodes _ _ _ _ _ hq h_lead)
       (GOpt.none sp_prep) hcomma (GOpt.none sp_tok)
+  · -- midQuestionEmptyColon: `{? :,` (item 9n).
+    rename_i hq hqsep pre hcolon
+    exact appendMapEntryHeldFrame pre
+      (.explicitEmptyKeyEmpty _ _ _ _ _ _ hq hqsep hcolon)
+      (.some _ _ h_lead) hcomma (GOpt.none sp_tok)
 
 /-- Fold a completed `.flowIn` node (starting after this step's leading
     separation) into the SAME-depth open stack: the top frame transitions
@@ -2965,6 +2999,13 @@ lemma FlowOpenStack.receiveNode {sp_start : SurfPos} {D : Nat} {ks : Array Bool}
       rename_i pre hq
       exact .seqBase _ _ _ _ _ _ resume h_open h_sep
         (.midExplicitKey _ _ _ _ _ pre hq h_lead h_node)
+    · -- midQuestionEmptyColon: `[? : a` — the node is the empty-key pair's
+      -- VALUE (item 9n).
+      rename_i hq hqsep pre hcolon
+      exact .seqBase _ _ _ _ _ _ resume h_open h_sep
+        (appendSeqEntryFrame pre
+          (.explicitEmptyKeyValue _ _ _ _ _ _ _ _ hq hqsep hcolon h_lead h_node)
+          (GOpt.none sp_ne))
   · -- mapBase
     rename_i resume h_open h_sep st
     cases st
@@ -2994,6 +3035,12 @@ lemma FlowOpenStack.receiveNode {sp_start : SurfPos} {D : Nat} {ks : Array Bool}
       rename_i pre hq
       exact .mapBase _ _ _ _ _ _ resume h_open h_sep
         (.midExplicitKey _ _ _ _ _ pre hq h_lead h_node)
+    · -- midQuestionEmptyColon: `{? : a` (item 9n).
+      rename_i hq hqsep pre hcolon
+      exact .mapBase _ _ _ _ _ _ resume h_open h_sep
+        (appendMapEntryFrame pre
+          (.explicitEmptyKeyValue _ _ _ _ _ _ _ _ hq hqsep hcolon h_lead h_node)
+          (GOpt.none sp_ne))
   · -- seqNest (NB: `cases` floats the recursive `inject` closure to
     -- second-to-last — the context order is h_open, h_sep, inject, st)
     rename_i h_open h_sep inject st
@@ -3025,6 +3072,12 @@ lemma FlowOpenStack.receiveNode {sp_start : SurfPos} {D : Nat} {ks : Array Bool}
       rename_i pre hq
       exact .seqNest _ _ _ _ _ _ _ _ inject h_open h_sep
         (.midExplicitKey _ _ _ _ _ pre hq h_lead h_node)
+    · -- midQuestionEmptyColon (item 9n)
+      rename_i hq hqsep pre hcolon
+      exact .seqNest _ _ _ _ _ _ _ _ inject h_open h_sep
+        (appendSeqEntryFrame pre
+          (.explicitEmptyKeyValue _ _ _ _ _ _ _ _ hq hqsep hcolon h_lead h_node)
+          (GOpt.none sp_ne))
   · -- mapNest (same field reorder as seqNest)
     rename_i h_open h_sep inject st
     cases st
@@ -3054,6 +3107,12 @@ lemma FlowOpenStack.receiveNode {sp_start : SurfPos} {D : Nat} {ks : Array Bool}
       rename_i pre hq
       exact .mapNest _ _ _ _ _ _ _ _ inject h_open h_sep
         (.midExplicitKey _ _ _ _ _ pre hq h_lead h_node)
+    · -- midQuestionEmptyColon (item 9n)
+      rename_i hq hqsep pre hcolon
+      exact .mapNest _ _ _ _ _ _ _ _ inject h_open h_sep
+        (appendMapEntryFrame pre
+          (.explicitEmptyKeyValue _ _ _ _ _ _ _ _ hq hqsep hcolon h_lead h_node)
+          (GOpt.none sp_ne))
 
 /-! The two receivers a HELD property run needs (β.3). Both are `receiveNode` with
     `[161] ns-flow-node`'s properties-bearing arm supplied — they are what makes
@@ -3151,6 +3210,111 @@ lemma FlowOpenStack.receiveQuestion {sp_start : SurfPos} {D : Nat} {ks : Array B
         (.midQuestion _ _ _
           (.cons _ _ _ _ h hcl hcomma₀ (GOpt_SSeparate_extend hsep₀ h_lead)) hq)
 
+
+
+/-- Receive a value indicator `:` into a `.sep`-tailed top frame (item 9n): the
+    entry has an EMPTY key, so the frame advances `between → midEmptyColon`.
+
+    Like `receiveQuestion`, the tail hypothesis is POSITIVE, and for the same
+    reason it is TOTAL: `.sep` is inhabited by exactly `betweenEmpty` and
+    `betweenHeld`, and `[146] c-ns-flow-map-empty-key-entry` derives a `:` after
+    both — `[: a]` and `[a, : b]`, whose grammar item 9l supplied.
+
+    Contrast the `.value` tail, which the `:` dispatch also reaches: `midNode`
+    and `betweenEntries` share that index, a `:` continues the first and has no
+    derivation after the second (`[a: b: c]`), and no reading of the token
+    history separates them — the entry's key node may be a whole collection, so
+    the discriminator is the SCANNER's pending simple key. That is the split the
+    `scanValueValidate` strictening exists to supply, and it is why only two of
+    the three colon-receptive tails can be closed here. -/
+lemma FlowOpenStack.receiveColonSep {sp_start : SurfPos} {D : Nat} {ks : Array Bool}
+    {tl : FrameTail} {sp_block sp_flow sp_prep sp_tok : SurfPos}
+    (h_fos : FlowOpenStack sp_start D ks tl sp_block sp_flow)
+    (h_tail : tl = .sep)
+    (h_lead : SSeparateLines 0 sp_flow sp_prep)
+    (hcolon : GLit ':' sp_prep sp_tok) :
+    FlowOpenStack sp_start D ks .colon sp_block sp_tok := by
+  subst h_tail
+  cases h_fos
+  · -- seqBase: `[: ` / `[a, : `
+    rename_i resume h_open h_sep st
+    cases st
+    · exact .seqBase _ _ _ _ _ _ resume h_open (GOpt_SSeparate_extend h_sep h_lead)
+        (.midEmptyColon _ _ _ (.init sp_prep) hcolon)
+    · rename_i hcomma₀ h hcl hsep₀
+      exact .seqBase _ _ _ _ _ _ resume h_open h_sep
+        (.midEmptyColon _ _ _
+          (.cons _ _ _ _ h hcl hcomma₀ (GOpt_SSeparate_extend hsep₀ h_lead)) hcolon)
+  · -- mapBase: `{: ` / `{a: b, : `
+    rename_i resume h_open h_sep st
+    cases st
+    · exact .mapBase _ _ _ _ _ _ resume h_open (GOpt_SSeparate_extend h_sep h_lead)
+        (.midEmptyColon _ _ _ (.init sp_prep) hcolon)
+    · rename_i hcomma₀ h hcl hsep₀
+      exact .mapBase _ _ _ _ _ _ resume h_open h_sep
+        (.midEmptyColon _ _ _
+          (.cons _ _ _ _ h hcl hcomma₀ (GOpt_SSeparate_extend hsep₀ h_lead)) hcolon)
+  · -- seqNest (field reorder as in `receiveNode`)
+    rename_i h_open h_sep inject st
+    cases st
+    · exact .seqNest _ _ _ _ _ _ _ _ inject h_open (GOpt_SSeparate_extend h_sep h_lead)
+        (.midEmptyColon _ _ _ (.init sp_prep) hcolon)
+    · rename_i hcomma₀ h hcl hsep₀
+      exact .seqNest _ _ _ _ _ _ _ _ inject h_open h_sep
+        (.midEmptyColon _ _ _
+          (.cons _ _ _ _ h hcl hcomma₀ (GOpt_SSeparate_extend hsep₀ h_lead)) hcolon)
+  · -- mapNest
+    rename_i h_open h_sep inject st
+    cases st
+    · exact .mapNest _ _ _ _ _ _ _ _ inject h_open (GOpt_SSeparate_extend h_sep h_lead)
+        (.midEmptyColon _ _ _ (.init sp_prep) hcolon)
+    · rename_i hcomma₀ h hcl hsep₀
+      exact .mapNest _ _ _ _ _ _ _ _ inject h_open h_sep
+        (.midEmptyColon _ _ _
+          (.cons _ _ _ _ h hcl hcomma₀ (GOpt_SSeparate_extend hsep₀ h_lead)) hcolon)
+
+/-- Receive a value indicator `:` into a `.question`-tailed top frame (item 9n):
+    `[? : a]`, `[? :]`.  Total for the sharper reason — `.question` is inhabited
+    by `midQuestion` ALONE, which is what made 9l give the `?` its own tail class
+    rather than folding it into `.colon`.
+
+    This step is where `[150]`'s mandatory `s-separate` after the `?` finally
+    lands in the frame: `midQuestion` holds only the indicator, deferring the
+    separation to whatever comes next, and here that is the `:` step's own
+    leading separation. -/
+lemma FlowOpenStack.receiveColonQuestion {sp_start : SurfPos} {D : Nat} {ks : Array Bool}
+    {tl : FrameTail} {sp_block sp_flow sp_prep sp_tok : SurfPos}
+    (h_fos : FlowOpenStack sp_start D ks tl sp_block sp_flow)
+    (h_tail : tl = .question)
+    (h_lead : SSeparateLines 0 sp_flow sp_prep)
+    (hcolon : GLit ':' sp_prep sp_tok) :
+    FlowOpenStack sp_start D ks .colon sp_block sp_tok := by
+  subst h_tail
+  cases h_fos
+  · -- seqBase: `[? : `
+    rename_i resume h_open h_sep st
+    cases st
+    · rename_i pre hq
+      exact .seqBase _ _ _ _ _ _ resume h_open h_sep
+        (.midQuestionEmptyColon _ _ _ _ _ pre hq h_lead hcolon)
+  · -- mapBase: `{? : `
+    rename_i resume h_open h_sep st
+    cases st
+    · rename_i pre hq
+      exact .mapBase _ _ _ _ _ _ resume h_open h_sep
+        (.midQuestionEmptyColon _ _ _ _ _ pre hq h_lead hcolon)
+  · -- seqNest
+    rename_i h_open h_sep inject st
+    cases st
+    · rename_i pre hq
+      exact .seqNest _ _ _ _ _ _ _ _ inject h_open h_sep
+        (.midQuestionEmptyColon _ _ _ _ _ pre hq h_lead hcolon)
+  · -- mapNest
+    rename_i h_open h_sep inject st
+    cases st
+    · rename_i pre hq
+      exact .mapNest _ _ _ _ _ _ _ _ inject h_open h_sep
+        (.midQuestionEmptyColon _ _ _ _ _ pre hq h_lead hcolon)
 
 /-! ### §1c'' Depth-0 flow OPEN — per-pending resume dispatch (B.4β.2)
 
