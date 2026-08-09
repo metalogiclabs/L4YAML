@@ -322,8 +322,14 @@ mutual
         GOpt (SSeparate n c) s₃ s' →
         SFlowSeqEntries n c s s'
 
-  /-- [139] ns-flow-seq-entry(n,c): flow sequence entry (flow node or pair). -/
-  @[yaml_spec "7.4.1" 139 "ns-flow-seq-entry(n,c)"]
+  /-- [139] ns-flow-seq-entry(n,c): flow sequence entry (flow node or pair).
+
+      The `?`-headed and `:`-headed constructors inline `[150] ns-flow-pair`'s
+      two alternatives; the last three inline the two arms that only item 9l
+      supplied — `[143]`'s `( e-node e-node )` and `[146]`'s empty key. -/
+  @[yaml_spec "7.4.1" 139 "ns-flow-seq-entry(n,c)",
+    yaml_spec "7.4.2" 143 "ns-flow-map-explicit-entry(n,c)",
+    yaml_spec "7.4.2" 146 "c-ns-flow-map-empty-key-entry(n,c)"]
   inductive SFlowSeqEntry : Nat → YamlContext → SurfPos → SurfPos → Prop where
     /-- Regular flow node. -/
     | node (n : Nat) (c : YamlContext) (s s' : SurfPos) :
@@ -368,6 +374,35 @@ mutual
         SSeparate n c s₁ s₂ →
         SFlowNode n c s₂ s' →
         SFlowSeqEntry n c s s'
+    /-- Explicit '?' with BOTH nodes empty: `[? ]`, `[? , a]` — `[143]
+        ns-flow-map-explicit-entry`'s `( e-node e-node )` alternative, reached
+        through `[150] ns-flow-pair`'s explicit arm.  The `s-separate` after the
+        `?` is mandatory (item 9j) and both `e-node`s are zero-width, so the
+        entry is exactly `'?' s-separate` — the ONE `?` shape whose key is not an
+        `ns-flow-node`, which is why the four constructors above cannot spell it.
+
+        Added by item 9l: the shipped pipeline accepts `[? ]` and emits the
+        null/null pair, and until now the grammar had no derivation for it. -/
+    | explicitPairEmptyNodes (n : Nat) (c : YamlContext) (s s₁ s' : SurfPos) :
+        GLit '?' s s₁ →
+        SSeparate n c s₁ s' →
+        SFlowSeqEntry n c s s'
+    /-- Empty key + ':' + separator + value: `[: a]` — `[151]
+        ns-flow-pair-entry`'s `c-ns-flow-map-empty-key-entry` alternative
+        [146], the sequence twin of `SFlowMapEntry.emptyKeyValue`.
+
+        Added by item 9l.  `SFlowMapEntry` has carried the empty-key pair since
+        the start; the sequence side, where it is just as legal, did not. -/
+    | emptyKeyValue (n : Nat) (c : YamlContext) (s s₁ s₂ s' : SurfPos) :
+        GLit ':' s s₁ →
+        SSeparate n c s₁ s₂ →
+        SFlowNode n c s₂ s' →
+        SFlowSeqEntry n c s s'
+    /-- Empty key + ':' + empty value: `[:]` — `[146]` with an `e-node` value
+        (item 9l; the sequence twin of `SFlowMapEntry.emptyKeyEmpty`). -/
+    | emptyKeyEmpty (n : Nat) (c : YamlContext) (s s' : SurfPos) :
+        GLit ':' s s' →
+        SFlowSeqEntry n c s s'
 
   /-- [140] c-flow-mapping(n,c): '{' + entries + '}'. -/
   @[yaml_spec "7.4.2" 140 "c-flow-mapping(n,c)"]
@@ -405,8 +440,12 @@ mutual
         GOpt (SSeparate n c) s₃ s' →
         SFlowMapEntries n c s s'
 
-  /-- [142] ns-flow-map-entry(n,c): explicit '?' entry or implicit entry. -/
-  @[yaml_spec "7.4.2" 142 "ns-flow-map-entry(n,c)"]
+  /-- [142] ns-flow-map-entry(n,c): explicit '?' entry or implicit entry.
+
+      The explicit constructors inline `[143] ns-flow-map-explicit-entry`,
+      whose `( e-node e-node )` alternative arrived with item 9l. -/
+  @[yaml_spec "7.4.2" 142 "ns-flow-map-entry(n,c)",
+    yaml_spec "7.4.2" 143 "ns-flow-map-explicit-entry(n,c)"]
   inductive SFlowMapEntry : Nat → YamlContext → SurfPos → SurfPos → Prop where
     /-- Explicit '?' + key + ':' + separator + value. -/
     | explicitValue (n : Nat) (c : YamlContext) (s s₁ s₂ s₃ s₄ s₅ s₆ s' : SurfPos) :
@@ -462,6 +501,13 @@ mutual
     /-- Empty key + ':' + empty value. -/
     | emptyKeyEmpty (n : Nat) (c : YamlContext) (s s' : SurfPos) :
         GLit ':' s s' →
+        SFlowMapEntry n c s s'
+    /-- Explicit '?' with BOTH nodes empty: `{? }`, `{? , a}` — `[143]
+        ns-flow-map-explicit-entry`'s `( e-node e-node )` alternative (item 9l;
+        see `SFlowSeqEntry.explicitPairEmptyNodes`). -/
+    | explicitEmptyNodes (n : Nat) (c : YamlContext) (s s₁ s' : SurfPos) :
+        GLit '?' s s₁ →
+        SSeparate n c s₁ s' →
         SFlowMapEntry n c s s'
 
 end -- mutual

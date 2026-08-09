@@ -142,6 +142,7 @@ lemma emitList_allScalar_body_content_at :
               h_atol₂, h_endline₂, h_stack₂, h_last₂⟩ :=
         scanNextToken_flow_comma s₁ (' ' :: (emit.emitList (.scalar sc' :: vs)).toList ++ rest)
           h_corr₁ h_s1_flow h_s1_indent (by omega) h_last₁ h_atol₁ h_endline₁
+          (by rw [h_ek₁]; exact h_ek)
           (h_dp₁.trans h_dp)
       obtain ⟨feTok, h_feTok_val, h_push₂⟩ :=
         scanNextToken_flow_comma_filtered_push s₁
@@ -901,6 +902,7 @@ lemma emitPairList_allScalar_body_content_at :
         scanNextToken_flow_comma s_v
           (' ' :: (emit.emitPairList (p' :: tail')).toList ++ rest)
           h_corr_v_comma h_flow_v h_indent_v (by omega) h_last_v h_atol_v h_endline_v
+          (by rw [h_ek_v, h_ek₃, h_ek₂])
           (by rw [h_dp_v, h_dp₃, h_dp₂, h_dp₁]; exact h_dp)
       obtain ⟨feTok, h_feTok_val, h_push_c⟩ :=
         scanNextToken_flow_comma_filtered_push s_v

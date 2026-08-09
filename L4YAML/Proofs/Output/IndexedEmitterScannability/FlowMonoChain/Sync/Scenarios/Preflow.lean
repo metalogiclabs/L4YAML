@@ -296,6 +296,7 @@ lemma scanNextTokenIx_flow_comma (s : ScannerStateIx input)
       ∧ t ≠ YamlToken.flowEntry)
     (h_atol : AllTokensOnLineIx s s.cursor.pos.line)
     (h_endline : EndLineOnLineIx s)
+    (h_ek : s.explicitKeyLine = none)
     (h_dp : s.directivesPresent = false) :
     ∃ s', scanNextTokenIx s = .ok (some s')
       ∧ ScannerSurfCorrIx s' ⟨rest, s'.cursor.pos.col⟩
@@ -362,15 +363,15 @@ lemma scanNextTokenIx_flow_comma (s : ScannerStateIx input)
     rw [h_ad_tokens] at ht
     exact saveSimpleKeyIx_preserves_lastRealTokenValIx_ne_flow s h_last t ht
   have h_flow_disp : scanNextTokenIx_dispatchFlowIndicators s_ad ',' =
-      .ok (some { (s_ad.emit YamlToken.flowEntry).advance with simpleKeyAllowed := true }) :=
+      .ok (some { (s_ad.emit YamlToken.flowEntry).advance with simpleKeyAllowed := true, explicitKeyLine := none }) :=
     dispatchFlowIndicators_comma s_ad h_fl_pos h_ad_last
   -- Step 7: compose via scanNextTokenIx_via_flow_dispatch
   have h_snt := scanNextTokenIx_via_flow_dispatch s (saveSimpleKeyIx s) s_ad
-    { (s_ad.emit YamlToken.flowEntry).advance with simpleKeyAllowed := true } ','
+    { (s_ad.emit YamlToken.flowEntry).advance with simpleKeyAllowed := true, explicitKeyLine := none } ','
     h_pp h_struct h_s_ad_def h_check h_flow_disp
     ((saveSimpleKeyIx_directivesPresent s).trans h_dp)
   -- Step 8: extract result properties using the field equalities for s_ad
-  -- For the result state s' := { (s_ad.emit .flowEntry).advance with simpleKeyAllowed := true }
+  -- For the result state s' := { (s_ad.emit .flowEntry).advance with simpleKeyAllowed := true, explicitKeyLine := none }
   -- Reach in via explicit `show` since s' is just a definitional sugar.
   -- (a) ScannerSurfCorrIx for s_ad at the precondition position
   have h_ad_corr : ScannerSurfCorrIx s_ad ⟨',' :: rest, s_ad.cursor.pos.col⟩ := by
@@ -385,12 +386,12 @@ lemma scanNextTokenIx_flow_comma (s : ScannerStateIx input)
   have ⟨h_peek_ad, h_lt_ad⟩ :=
     peek_of_chars_consIx_state s_ad ',' rest s_ad.cursor.pos.col h_ad_corr
   -- s'.cursor = (s_ad.emit .flowEntry).advance.cursor = s_ad.cursor.advance = s.cursor.advance
-  have h_s'_cursor : ({ (s_ad.emit YamlToken.flowEntry).advance with simpleKeyAllowed := true }
+  have h_s'_cursor : ({ (s_ad.emit YamlToken.flowEntry).advance with simpleKeyAllowed := true, explicitKeyLine := none }
         : ScannerStateIx input).cursor = s.cursor.advance := by
     show (s_ad.emit YamlToken.flowEntry).advance.cursor = s.cursor.advance
     rw [advance_cursor, emit_cursor, h_ad_cursor]
   -- s'.indents = s_ad.indents = s.indents
-  have h_s'_indents : ({ (s_ad.emit YamlToken.flowEntry).advance with simpleKeyAllowed := true }
+  have h_s'_indents : ({ (s_ad.emit YamlToken.flowEntry).advance with simpleKeyAllowed := true, explicitKeyLine := none }
         : ScannerStateIx input).indents = s.indents := by
     show (s_ad.emit YamlToken.flowEntry).advance.indents = s.indents
     rw [advance_indents, emit_indents]; exact h_ad_ids
@@ -401,47 +402,46 @@ lemma scanNextTokenIx_flow_comma (s : ScannerStateIx input)
     have ⟨_, h_lt_s⟩ := peek_of_chars_consIx_state s ',' rest s.cursor.pos.col hcorr
     exact h_lt_s
   have h_s'_corr : ScannerSurfCorrIx
-      ({ (s_ad.emit YamlToken.flowEntry).advance with simpleKeyAllowed := true }
+      ({ (s_ad.emit YamlToken.flowEntry).advance with simpleKeyAllowed := true, explicitKeyLine := none }
         : ScannerStateIx input) ⟨rest, s.cursor.pos.col + 1⟩ :=
     advance_non_newline_corrIx_state s _ ',' rest hcorr h_s'_cursor h_s'_indents
       h_offset_s (by decide) (by decide)
   -- s'.cursor.pos.col = s.cursor.pos.col + 1
-  have h_s'_col : ({ (s_ad.emit YamlToken.flowEntry).advance with simpleKeyAllowed := true }
+  have h_s'_col : ({ (s_ad.emit YamlToken.flowEntry).advance with simpleKeyAllowed := true, explicitKeyLine := none }
         : ScannerStateIx input).cursor.pos.col = s.cursor.pos.col + 1 :=
     h_s'_corr.col_eq.symm
   -- s'.flowLevel = s.flowLevel
-  have h_s'_fl : ({ (s_ad.emit YamlToken.flowEntry).advance with simpleKeyAllowed := true }
+  have h_s'_fl : ({ (s_ad.emit YamlToken.flowEntry).advance with simpleKeyAllowed := true, explicitKeyLine := none }
         : ScannerStateIx input).flowLevel = s.flowLevel := by
     show (s_ad.emit YamlToken.flowEntry).advance.flowLevel = s.flowLevel
     rw [show (s_ad.emit YamlToken.flowEntry).advance.flowLevel = s_ad.flowLevel from rfl]
     exact h_ad_fl
   -- s'.directivesPresent = s.directivesPresent
-  have h_s'_dp : ({ (s_ad.emit YamlToken.flowEntry).advance with simpleKeyAllowed := true }
+  have h_s'_dp : ({ (s_ad.emit YamlToken.flowEntry).advance with simpleKeyAllowed := true, explicitKeyLine := none }
         : ScannerStateIx input).directivesPresent = s.directivesPresent := by
     show (s_ad.emit YamlToken.flowEntry).advance.directivesPresent = s.directivesPresent
     rw [advance_directivesPresent, emit_directivesPresent]; exact h_ad_dp
-  -- s'.explicitKeyLine = s.explicitKeyLine
-  have h_s'_ek : ({ (s_ad.emit YamlToken.flowEntry).advance with simpleKeyAllowed := true }
-        : ScannerStateIx input).explicitKeyLine = s.explicitKeyLine := by
-    show (s_ad.emit YamlToken.flowEntry).advance.explicitKeyLine = s.explicitKeyLine
-    rw [advance_explicitKeyLine, emit_explicitKeyLine]; exact h_ad_ek
+  -- s'.explicitKeyLine = s.explicitKeyLine.  Item 9l CLEARS the field at the
+  -- `,`, so this is preservation only under the chain's standing `h_ek`.
+  have h_s'_ek : ({ (s_ad.emit YamlToken.flowEntry).advance with simpleKeyAllowed := true, explicitKeyLine := none }
+        : ScannerStateIx input).explicitKeyLine = s.explicitKeyLine := h_ek.symm
   -- s'.cursor.pos.line = s.cursor.pos.line via cursor-level advance_line_of_peekIx
   have ⟨h_pk_s, h_lt_s⟩ : s.peek? = some ',' ∧ s.cursor.pos.offset < input.utf8ByteSize :=
     peek_of_chars_consIx_state s ',' rest s.cursor.pos.col hcorr
-  have h_s'_line : ({ (s_ad.emit YamlToken.flowEntry).advance with simpleKeyAllowed := true }
+  have h_s'_line : ({ (s_ad.emit YamlToken.flowEntry).advance with simpleKeyAllowed := true, explicitKeyLine := none }
         : ScannerStateIx input).cursor.pos.line = s.cursor.pos.line := by
     rw [h_s'_cursor]
     exact advance_line_of_peekIx s.cursor ',' h_lt_s h_pk_s (by decide) (by decide)
   -- s'.simpleKeyStack = s.simpleKeyStack
-  have h_s'_stack : ({ (s_ad.emit YamlToken.flowEntry).advance with simpleKeyAllowed := true }
+  have h_s'_stack : ({ (s_ad.emit YamlToken.flowEntry).advance with simpleKeyAllowed := true, explicitKeyLine := none }
         : ScannerStateIx input).simpleKeyStack = s.simpleKeyStack := by
     show s_ad.simpleKeyStack = s.simpleKeyStack
     exact h_ad_stack
   -- AllTokensOnLineIx s' s'.cursor.pos.line
   have h_s'_atol : AllTokensOnLineIx
-      ({ (s_ad.emit YamlToken.flowEntry).advance with simpleKeyAllowed := true }
+      ({ (s_ad.emit YamlToken.flowEntry).advance with simpleKeyAllowed := true, explicitKeyLine := none }
         : ScannerStateIx input)
-      ({ (s_ad.emit YamlToken.flowEntry).advance with simpleKeyAllowed := true }
+      ({ (s_ad.emit YamlToken.flowEntry).advance with simpleKeyAllowed := true, explicitKeyLine := none }
         : ScannerStateIx input).cursor.pos.line := by
     rw [h_s'_line]
     have h_atol_sk : AllTokensOnLineIx (saveSimpleKeyIx s) s.cursor.pos.line :=
@@ -453,12 +453,12 @@ lemma scanNextTokenIx_flow_comma (s : ScannerStateIx input)
     exact AllTokensOnLineIx_scanFlowEntry_expr s_ad s.cursor.pos.line h_atol_ad h_ad_line
   -- EndLineOnLineIx s'
   have h_s'_endline : EndLineOnLineIx
-      ({ (s_ad.emit YamlToken.flowEntry).advance with simpleKeyAllowed := true }
+      ({ (s_ad.emit YamlToken.flowEntry).advance with simpleKeyAllowed := true, explicitKeyLine := none }
         : ScannerStateIx input) := by
     intro h_poss
     -- s'.simpleKey = (s_ad.emit .flowEntry).advance.simpleKey = s_ad.simpleKey
     --             = (saveSimpleKeyIx s).simpleKey   (via h_ad_simpleKey)
-    have h_s'_sk : ({ (s_ad.emit YamlToken.flowEntry).advance with simpleKeyAllowed := true }
+    have h_s'_sk : ({ (s_ad.emit YamlToken.flowEntry).advance with simpleKeyAllowed := true, explicitKeyLine := none }
           : ScannerStateIx input).simpleKey = (saveSimpleKeyIx s).simpleKey := by
       show s_ad.simpleKey = (saveSimpleKeyIx s).simpleKey; exact h_ad_simpleKey
     have h_sk_endline : EndLineOnLineIx (saveSimpleKeyIx s) :=
@@ -471,11 +471,11 @@ lemma scanNextTokenIx_flow_comma (s : ScannerStateIx input)
     exact ⟨h1.trans h_sk_line, h2.trans h_sk_line⟩
   -- completesFlowValue: the comma emits `.flowEntry`, which does not complete a flow value
   have h_s'_last : ∀ t, lastRealTokenValIx?
-      ({ (s_ad.emit YamlToken.flowEntry).advance with simpleKeyAllowed := true }
+      ({ (s_ad.emit YamlToken.flowEntry).advance with simpleKeyAllowed := true, explicitKeyLine := none }
         : ScannerStateIx input).tokens = some t → t.completesFlowValue = false := by
     intro t ht
     rw [show lastRealTokenValIx?
-        ({ (s_ad.emit YamlToken.flowEntry).advance with simpleKeyAllowed := true }
+        ({ (s_ad.emit YamlToken.flowEntry).advance with simpleKeyAllowed := true, explicitKeyLine := none }
           : ScannerStateIx input).tokens = some YamlToken.flowEntry from
       lastRealTokenValIx_push_non_ph s_ad.tokens
         (IxToken.mk' (input := input) s_ad.cursor.pos YamlToken.flowEntry s_ad.cursor.pos

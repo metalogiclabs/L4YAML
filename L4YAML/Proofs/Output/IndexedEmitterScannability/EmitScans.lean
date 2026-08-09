@@ -335,7 +335,8 @@ lemma emitList_scans_nonemptyIx (items : List YamlValue) (h_ne : items ≠ [])
               h_atol₂, h_endline₂, h_stack₂, h_last₂⟩ :=
         scanNextTokenIx_flow_comma s₁
           (' ' :: (L4YAML.Emit.emit.emitList (v' :: vs)).toList ++ rest_chars)
-          h_corr₁ h_flow₁ h_indent₁ h_col₁ h_last₁ h_atol₁ h_endline₁ (h_dp₁.trans h_dp)
+          h_corr₁ h_flow₁ h_indent₁ h_col₁ h_last₁ h_atol₁ h_endline₁
+          (by rw [h_ek₁]; exact h_ek) (h_dp₁.trans h_dp)
       -- Step 3: handle the leading space via the preprocessing-equality twin
       obtain ⟨c, rest', h_first, h_nws, h_nlb, h_nc⟩ := emitList_first_char v' vs
       have h_corr₂_ws : ScannerSurfCorrIx s₂
@@ -1138,6 +1139,7 @@ lemma emitPairList_scans_nonemptyIx (pairs : List (YamlValue × YamlValue))
         scanNextTokenIx_flow_comma s_v
           (' ' :: (L4YAML.Emit.emit.emitPairList (p' :: ps)).toList ++ rest_chars)
           h_corr_v h_flow_v h_indent_v h_col_v h_last_v h_atol_v h_endline_v
+          (by rw [h_ek_v, h_ek₃, h_ek₂])
           (by rw [h_dp_v, h_dp₃, h_dp₂, h_dp₁]; exact h_dp)
       -- Step 7: handle the leading space before the next pair
       obtain ⟨c_p, rest_p, h_first_p, h_nws_p, h_nlb_p, h_nc_p⟩ :=

@@ -1158,7 +1158,9 @@ def scanFlowEntryIx {input : String} (s : ScannerStateIx input) :
       throw (.invalidFlowEntry s.cursor.pos.line s.cursor.pos.col)
   let s_with_token := s.emit YamlToken.flowEntry
   let s_after_advance := s_with_token.advance
-  .ok { s_after_advance with simpleKeyAllowed := true }
+  -- §7.4.1 [150] (item 9l): the `,` ENDS the explicit-key entry, so the `?`'s
+  -- line no longer suppresses simple-key reservation — see `scanFlowEntry`.
+  .ok { s_after_advance with simpleKeyAllowed := true, explicitKeyLine := none }
 
 /-! ## Dispatcher
 

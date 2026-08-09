@@ -1275,7 +1275,7 @@ lemma AllTokensOnLine_scanFlowMappingEnd (s : ScannerState) (l : Nat)
     (emit .flowEntry → advance → set simpleKeyAllowed). -/
 lemma AllTokensOnLine_scanFlowEntry (s : ScannerState) (l : Nat)
     (h_atol : AllTokensOnLine s l) (h_line : s.line = l) :
-    AllTokensOnLine ({ (s.emit .flowEntry).advance with simpleKeyAllowed := true }) l := by
+    AllTokensOnLine ({ (s.emit .flowEntry).advance with simpleKeyAllowed := true, explicitKeyLine := none }) l := by
   exact AllTokensOnLine_advance _ l (AllTokensOnLine_emit _ _ l h_atol h_line)
 
 /-- allowDirectives struct update preserves AllTokensOnLine (no token changes). -/
@@ -2612,7 +2612,9 @@ lemma checkBlockFlowIndent_ok_close_bracket (s : ScannerState) :
 lemma scanFlowEntry_ok (s : ScannerState)
     (h_last : ∀ t, lastRealTokenVal? s.tokens = some t →
       t ≠ .flowSequenceStart ∧ t ≠ .flowMappingStart ∧ t ≠ .flowEntry) :
-    scanFlowEntry s = .ok { (s.emit .flowEntry).advance with simpleKeyAllowed := true } := by
+    scanFlowEntry s =
+      .ok { (s.emit .flowEntry).advance with
+              simpleKeyAllowed := true, explicitKeyLine := none } := by
   unfold scanFlowEntry; dsimp only [bind, Except.bind, pure, Except.pure]
   -- After unfold+dsimp, the goal has a match on lastRealTokenVal? and if-then-else
   cases h_lrt : lastRealTokenVal? s.tokens with
@@ -2639,7 +2641,7 @@ lemma scanFlowEntry_detail (s : ScannerState) (rest : List Char)
     (hcorr : ScannerSurfCorr s ⟨',' :: rest, s.col⟩)
     (h_last : ∀ t, lastRealTokenVal? s.tokens = some t →
       t ≠ .flowSequenceStart ∧ t ≠ .flowMappingStart ∧ t ≠ .flowEntry) :
-    let s' := { (s.emit .flowEntry).advance with simpleKeyAllowed := true }
+    let s' := { (s.emit .flowEntry).advance with simpleKeyAllowed := true, explicitKeyLine := none }
     scanFlowEntry s = .ok s'
     ∧ ScannerSurfCorr s' ⟨rest, s.col + 1⟩
     ∧ s'.flowLevel = s.flowLevel
@@ -2722,7 +2724,7 @@ lemma dispatchFlowIndicators_comma (s : ScannerState)
     (h_last : ∀ t, lastRealTokenVal? s.tokens = some t →
       t ≠ .flowSequenceStart ∧ t ≠ .flowMappingStart ∧ t ≠ .flowEntry) :
     scanNextToken_dispatchFlowIndicators s ',' =
-      .ok (some { (s.emit .flowEntry).advance with simpleKeyAllowed := true }) := by
+      .ok (some { (s.emit .flowEntry).advance with simpleKeyAllowed := true, explicitKeyLine := none }) := by
   unfold scanNextToken_dispatchFlowIndicators
   rw [checkFlowAdjacency_ok_of_sepChar (by decide)]
   simp only [bind, Except.bind, pure, Except.pure,
@@ -2749,6 +2751,7 @@ lemma scanNextToken_flow_comma (s : ScannerState)
       t ≠ .flowSequenceStart ∧ t ≠ .flowMappingStart ∧ t ≠ .flowEntry)
     (h_atol : AllTokensOnLine s s.line)
     (h_endline : EndLineOnLine s)
+    (h_ek : s.explicitKeyLine = none)
     (h_dp : s.directivesPresent = false) :
     ∃ s', scanNextToken s = .ok (some s')
       ∧ ScannerSurfCorr s' ⟨rest, s'.col⟩
@@ -2817,17 +2820,21 @@ lemma scanNextToken_flow_comma (s : ScannerState)
   have h_ad_col : s_ad.col = s.col := by
     simp only [s_ad]; split <;> exact h_sk_col
   have ⟨_, h_corr_f, h_fl_f, h_dp_f, h_ids_f, h_col_f⟩ := scanFlowEntry_detail s_ad rest h_ad_corr h_ad_last
-  have h_ek_f : ({ (s_ad.emit .flowEntry).advance with simpleKeyAllowed := true }).explicitKeyLine = s_ad.explicitKeyLine := by
-    dsimp only []; rw [advance_explicitKeyLine]; rfl
+  -- Item 9l: the `,` CLEARS the explicit-key line, so this is preservation only
+  -- under the chain's standing `h_ek` (which every caller carries).
+  have h_ek_f : ({ (s_ad.emit .flowEntry).advance with
+      simpleKeyAllowed := true, explicitKeyLine := none }).explicitKeyLine =
+      s.explicitKeyLine := by
+    dsimp only []; exact h_ek.symm
   have h_ad_line : s_ad.line = s.line := by
     simp only [s_ad]; split <;> exact saveSimpleKey_preserves_line s
   have ⟨h_peek_ad, h_lt_ad⟩ := peek_of_chars_cons s_ad ',' rest s_ad.col h_ad_corr
-  have h_line_f : ({ (s_ad.emit .flowEntry).advance with simpleKeyAllowed := true }).line = s.line := by
+  have h_line_f : ({ (s_ad.emit .flowEntry).advance with simpleKeyAllowed := true, explicitKeyLine := none }).line = s.line := by
     dsimp only []
     rw [advance_line_of_peek (s_ad.emit .flowEntry) ',' h_lt_ad h_peek_ad (by decide) (by decide)]
     exact h_ad_line
   refine ⟨_, h_snt, ?_, h_fl_f.trans h_ad_fl, h_dp_f.trans h_ad_dp, h_ids_f.trans h_ad_ids,
-    h_ek_f.trans h_ad_ek, ?_, h_line_f, ?_, ?_, ?_, ?_⟩
+    h_ek_f, ?_, h_line_f, ?_, ?_, ?_, ?_⟩
   · rw [h_col_f]; exact h_corr_f
   · rw [h_col_f, h_ad_col]
   · rw [h_line_f]
@@ -2836,7 +2843,7 @@ lemma scanNextToken_flow_comma (s : ScannerState)
         (AllTokensOnLine_saveSimpleKey _ _ h_atol rfl)) h_ad_line)
   · -- EndLineOnLine: simpleKey preserved through emit/advance, use saveSimpleKey lemma
     intro h_poss
-    have h_sk_eq : ({ (s_ad.emit .flowEntry).advance with simpleKeyAllowed := true }).simpleKey =
+    have h_sk_eq : ({ (s_ad.emit .flowEntry).advance with simpleKeyAllowed := true, explicitKeyLine := none }).simpleKey =
         (saveSimpleKey s).simpleKey := by
       dsimp only []
       rw [ScannerCorrectness.advance_preserves_simpleKey, ScannerCorrectness.emit_preserves_simpleKey]
@@ -2847,7 +2854,7 @@ lemma scanNextToken_flow_comma (s : ScannerState)
     have h_sk_line : (saveSimpleKey s).line = s.line := saveSimpleKey_preserves_line s
     exact ⟨h_line_f ▸ h_sk_line ▸ h1, h_line_f ▸ h_sk_line ▸ h2⟩
   · -- simpleKeyStack preserved: scanFlowEntry doesn't touch stack
-    show ({ (s_ad.emit .flowEntry).advance with simpleKeyAllowed := true }).simpleKeyStack = s.simpleKeyStack
+    show ({ (s_ad.emit .flowEntry).advance with simpleKeyAllowed := true, explicitKeyLine := none }).simpleKeyStack = s.simpleKeyStack
     dsimp only []
     rw [ScannerCorrectness.advance_preserves_simpleKeyStack, ScannerCorrectness.emit_preserves_simpleKeyStack]
     show s_ad.simpleKeyStack = s.simpleKeyStack
@@ -2855,7 +2862,7 @@ lemma scanNextToken_flow_comma (s : ScannerState)
   · -- last real token is .flowEntry ⇒ does not complete a flow value
     intro t ht
     have h_tok : lastRealTokenVal?
-        ({ (s_ad.emit .flowEntry).advance with simpleKeyAllowed := true }).tokens
+        ({ (s_ad.emit .flowEntry).advance with simpleKeyAllowed := true, explicitKeyLine := none }).tokens
           = some .flowEntry := by
       show lastRealTokenVal? ((s_ad.emit .flowEntry).advance).tokens = _
       rw [ScannerCorrectness.advance_preserves_tokens]

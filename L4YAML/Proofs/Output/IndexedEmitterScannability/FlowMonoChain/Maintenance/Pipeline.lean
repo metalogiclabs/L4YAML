@@ -279,7 +279,7 @@ lemma scanFlowEntryIx_ok (s : ScannerStateIx input)
       t ≠ YamlToken.flowSequenceStart ∧ t ≠ YamlToken.flowMappingStart
       ∧ t ≠ YamlToken.flowEntry) :
     scanFlowEntryIx s =
-      .ok { (s.emit YamlToken.flowEntry).advance with simpleKeyAllowed := true } := by
+      .ok { (s.emit YamlToken.flowEntry).advance with simpleKeyAllowed := true, explicitKeyLine := none } := by
   unfold scanFlowEntryIx
   simp only [bind, Except.bind]
   cases h_lrt : lastRealTokenValIx? s.tokens with
@@ -303,7 +303,7 @@ lemma dispatchFlowIndicators_comma (s : ScannerStateIx input)
       ∧ t ≠ YamlToken.flowEntry) :
     scanNextTokenIx_dispatchFlowIndicators s ',' =
       .ok (some { (s.emit YamlToken.flowEntry).advance with
-                  simpleKeyAllowed := true }) := by
+                  simpleKeyAllowed := true, explicitKeyLine := none }) := by
   unfold scanNextTokenIx_dispatchFlowIndicators
   rw [checkFlowAdjacencyIx_ok_of_sepChar (by decide)]
   have h_ne : (s.flowLevel == 0) = false :=

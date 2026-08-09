@@ -239,7 +239,7 @@ lemma emitList_scans_nonempty (items : List YamlValue) (h_ne : items ≠ [])
         scanNextToken_flow_comma s₁
           (' ' :: (emit.emitList (v' :: vs)).toList ++ rest_chars)
           h_corr₁ h_flow₁ h_indent₁ h_col₁
-          h_last₁ h_atol₁ h_endline₁ (h_dp₁.trans h_dp)
+          h_last₁ h_atol₁ h_endline₁ (by rw [h_ek₁]; exact h_ek) (h_dp₁.trans h_dp)
       -- s₂ at ' ' :: (emitList (v' :: vs)).toList ++ rest_chars
       -- Step 3: Handle leading space via preprocessing equality
       obtain ⟨c, rest', h_first, h_nws, h_nlb, h_nc⟩ := emitList_first_char v' vs
@@ -1300,6 +1300,7 @@ lemma emitPairList_scans_nonempty (pairs : List (YamlValue × YamlValue))
         scanNextToken_flow_comma s_v
           (' ' :: (emit.emitPairList (p' :: ps)).toList ++ rest_chars)
           h_corr_v h_flow_v h_indent_v h_col_v h_last_v h_atol_v h_endline_v
+          (by rw [h_ek_v, h_ek₃, h_ek₂])
           (by rw [h_dp_v, h_dp₃, h_dp₂, h_dp₁]; exact h_dp)
       -- Step 7: Handle leading space before next pair
       obtain ⟨c_p, rest_p, h_first_p, h_nws_p, h_nlb_p, h_nc_p⟩ :=
@@ -2716,6 +2717,7 @@ lemma emitPairList_scans_nonempty_keyshape
       scanNextToken_flow_comma s_v
         (' ' :: (emit.emitPairList (p' :: ps)).toList ++ rest)
         h_corr_v h_flow_v h_indent_v h_col_v h_last_v h_atol_v h_endline_v
+        (by rw [h_ek_v, h_ek₃, h_ek₂])
         (by rw [h_dp_v, h_dp₃, h_dp₂, h_dp₁]; exact h_dp)
     obtain ⟨c_p, rest_p, h_first_p, h_nws_p, h_nlb_p, h_nc_p⟩ :=
       emitPairList_first_char p' ps
@@ -3349,7 +3351,8 @@ lemma emitList_scans_nonempty_with_skdr (items : List YamlValue) (h_ne : items �
       obtain ⟨s₂, h_snt₂, h_corr₂, h_fl₂, h_dp₂, h_ids₂, h_ek₂, h_col₂, _h_line₂, h_atol₂, h_endline₂, h_stack₂, h_last₂⟩ :=
         scanNextToken_flow_comma s₁
           (' ' :: (emit.emitList (v' :: vs)).toList ++ rest_chars)
-          h_corr₁ h_flow₁ h_indent₁ h_col₁ h_last₁ h_atol₁ h_endline₁ (h_dp₁.trans h_dp)
+          h_corr₁ h_flow₁ h_indent₁ h_col₁ h_last₁ h_atol₁ h_endline₁
+          (by rw [h_ek₁]; exact h_ek) (h_dp₁.trans h_dp)
       obtain ⟨c, rest', h_first, h_nws, h_nlb, h_nc⟩ := emitList_first_char v' vs
       have h_corr₂_ws : ScannerSurfCorr s₂
           ⟨' ' :: c :: (rest' ++ rest_chars), s₂.col⟩ := by

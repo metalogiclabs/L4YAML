@@ -3172,10 +3172,10 @@ lemma scanNextToken_flow_comma_filtered_push (s : ScannerState) (rest : List Cha
     exact saveSimpleKey_preserves_lastRealTokenVal_ne_flow s h_last t ht
   have h_flow_disp := dispatchFlowIndicators_comma s_ad h_fl_pos h_ad_last
   have h_snt_eq : scanNextToken s =
-      .ok (some { (s_ad.emit .flowEntry).advance with simpleKeyAllowed := true }) :=
+      .ok (some { (s_ad.emit .flowEntry).advance with simpleKeyAllowed := true, explicitKeyLine := none }) :=
     scanNextToken_via_flow_dispatch _ _ _ _ _ h_pp h_struct rfl h_check h_flow_disp
       (scanNextToken_ok_directivesPresent_false h_pp h_struct h_snt)
-  have h_s' : s' = { (s_ad.emit .flowEntry).advance with simpleKeyAllowed := true } :=
+  have h_s' : s' = { (s_ad.emit .flowEntry).advance with simpleKeyAllowed := true, explicitKeyLine := none } :=
     Option.some.inj (Except.ok.inj (h_snt.symm.trans h_snt_eq))
   have h_ad_filter : s_ad.tokens.filter (fun t => t.val != .placeholder)
       = s.tokens.filter (fun t => t.val != .placeholder) := by
@@ -3226,10 +3226,10 @@ lemma scanNextToken_flow_comma_simpleKey (s : ScannerState) (rest : List Char)
     exact saveSimpleKey_preserves_lastRealTokenVal_ne_flow s h_last t ht
   have h_flow_disp := dispatchFlowIndicators_comma s_ad h_fl_pos h_ad_last
   have h_snt_eq : scanNextToken s =
-      .ok (some { (s_ad.emit .flowEntry).advance with simpleKeyAllowed := true }) :=
+      .ok (some { (s_ad.emit .flowEntry).advance with simpleKeyAllowed := true, explicitKeyLine := none }) :=
     scanNextToken_via_flow_dispatch _ _ _ _ _ h_pp h_struct rfl h_check h_flow_disp
       (scanNextToken_ok_directivesPresent_false h_pp h_struct h_snt)
-  have h_s' : s' = { (s_ad.emit .flowEntry).advance with simpleKeyAllowed := true } :=
+  have h_s' : s' = { (s_ad.emit .flowEntry).advance with simpleKeyAllowed := true, explicitKeyLine := none } :=
     Option.some.inj (Except.ok.inj (h_snt.symm.trans h_snt_eq))
   rw [h_s']
   refine ⟨rfl, ?_⟩

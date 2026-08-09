@@ -235,9 +235,11 @@ lemma scanFlowEntryIx_preserves_indents
   all_goals (simp only [Except.ok.injEq] at h; subst h)
   all_goals rfl
 
-lemma scanFlowEntryIx_preserves_explicitKeyLine
+/-- The `,` CLEARS the explicit-key line (item 9l): `[150] ns-flow-pair`'s
+    explicit alternative is one entry, and the `,` starts the next one. -/
+lemma scanFlowEntryIx_clears_explicitKeyLine
     (s s' : ScannerStateIx input) (h : scanFlowEntryIx s = .ok s') :
-    s'.explicitKeyLine = s.explicitKeyLine := by
+    s'.explicitKeyLine = none := by
   unfold scanFlowEntryIx at h
   simp only [bind, Except.bind] at h
   repeat (any_goals (split at h))

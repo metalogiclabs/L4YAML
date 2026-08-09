@@ -297,9 +297,9 @@ lemma scanFlowEntryIx_detail (s : ScannerStateIx input) (rest : List Char)
       t ≠ YamlToken.flowSequenceStart ∧ t ≠ YamlToken.flowMappingStart
       ∧ t ≠ YamlToken.flowEntry) :
     scanFlowEntryIx s =
-      .ok { (s.emit YamlToken.flowEntry).advance with simpleKeyAllowed := true }
+      .ok { (s.emit YamlToken.flowEntry).advance with simpleKeyAllowed := true, explicitKeyLine := none }
     ∧ ScannerSurfCorrIx
-        { (s.emit YamlToken.flowEntry).advance with simpleKeyAllowed := true }
+        { (s.emit YamlToken.flowEntry).advance with simpleKeyAllowed := true, explicitKeyLine := none }
         ⟨rest, s.cursor.pos.col + 1⟩
     ∧ ({ (s.emit YamlToken.flowEntry).advance with
             simpleKeyAllowed := true } : ScannerStateIx input).flowLevel = s.flowLevel
@@ -323,7 +323,7 @@ lemma scanFlowEntryIx_detail (s : ScannerStateIx input) (rest : List Char)
     show (s.emit YamlToken.flowEntry).advance.indents = s.indents
     rfl
   have h_corr_final := advance_non_newline_corrIx_state s
-    { (s.emit YamlToken.flowEntry).advance with simpleKeyAllowed := true }
+    { (s.emit YamlToken.flowEntry).advance with simpleKeyAllowed := true, explicitKeyLine := none }
     ',' rest hcorr h_cur_eq h_ind_eq h_lt (by decide) (by decide)
   refine ⟨h_ok, h_corr_final, ?_, ?_, h_ind_eq, ?_⟩
   · show (s.emit YamlToken.flowEntry).advance.flowLevel = s.flowLevel

@@ -517,13 +517,34 @@ def flowKeyFollowerOk (s : ScannerState) : Bool :=
     - `[7] c-collect-entry` = `","`
 
     **Pre**: Scanner at `,` inside a flow collection (`flowLevel > 0`).
-    **Post**: Emits `flowEntry`, advances past `,`, sets `simpleKeyAllowed := true`.
+    **Post**: Emits `flowEntry`, advances past `,`, sets `simpleKeyAllowed := true`
+    and clears `explicitKeyLine`.
     **Error**: `invalidFlowEntry` if comma immediately follows a flow-open indicator
     (`[`, `{`) or another comma — catching leading/consecutive commas.
 
+    **The `,` ENDS the explicit-key entry (item 9l).**  `scanKey` records
+    `explicitKeyLine := some line` so that content on the `?`'s line is read as
+    the explicit key's own node rather than as a fresh implicit key — the guard
+    in `saveSimpleKey` and branch (1) of `scanValueClearKey`.  That scope is the
+    ENTRY, not the line: `[150] ns-flow-pair`'s explicit alternative is one
+    `ns-flow-seq-entry`, and `[138]`/`[141]`'s `","` starts the next one.
+    Leaving the line set made every later entry on that line unable to reserve a
+    simple key, so
+
+        [? a, b: c]        [? a, : b]        [? a, : ]
+
+    — all valid, all handled correctly by the flow-MAPPING parser — were
+    REJECTED in a flow sequence (`expected ']' but reached end of tokens`): the
+    retroactive `.key` token was never written, and `parseFlowSequenceLoop`
+    dispatches on exactly that token.  Clearing here is safe for the BLOCK
+    explicit key whose node contains a flow collection (`? [a, b]⏎: v`), because
+    that `,` belongs to the nested collection and the block `:` resolves through
+    the indent stack, not through `explicitKeyLine`.
+
     **Refactored for verification**: Uses explicit variable names to make
     token tracking clearer for formal proofs. -/
-@[yaml_spec "7.4" 7 "c-collect-entry"]
+@[yaml_spec "7.4" 7 "c-collect-entry",
+  yaml_spec "7.4.1" 150 "ns-flow-pair(n,c)"]
 def scanFlowEntry (s : ScannerState) : Except ScanError ScannerState := do
   -- §7.4: Leading comma (after flow-open) or consecutive commas are invalid.
   if let some lastTok := lastRealTokenVal? s.tokens then
@@ -532,7 +553,8 @@ def scanFlowEntry (s : ScannerState) : Except ScanError ScannerState := do
       throw (.invalidFlowEntry s.line s.col)
   let s_with_token := s.emit .flowEntry
   let s_after_advance := s_with_token.advance
-  .ok { s_after_advance with simpleKeyAllowed := true }
+  -- §7.4.1 [150] (item 9l): the `,` ends the explicit-key entry.
+  .ok { s_after_advance with simpleKeyAllowed := true, explicitKeyLine := none }
 
 /-- §7.4 [137]/[140]: inside a flow collection every value must be
     separated from the next by `,` (entry separator) or `:` (value

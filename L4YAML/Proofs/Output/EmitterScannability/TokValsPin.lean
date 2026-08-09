@@ -220,7 +220,7 @@ lemma emitList_scans_tokvals (items : List YamlValue) (h_ne : items ≠ [])
         scanNextToken_flow_comma s₁
           (' ' :: (emit.emitList (v' :: vs)).toList ++ rest_chars)
           h_corr₁ h_flow₁ h_indent₁ h_col₁
-          h_last₁ h_atol₁ h_endline₁ (h_dp₁.trans h_dp)
+          h_last₁ h_atol₁ h_endline₁ (by rw [h_ek₁]; exact h_ek) (h_dp₁.trans h_dp)
       obtain ⟨feTok, h_feTok_val, h_comma_eq⟩ :=
         scanNextToken_flow_comma_filtered_push s₁
           (' ' :: (emit.emitList (v' :: vs)).toList ++ rest_chars)
@@ -672,6 +672,7 @@ lemma emitPairList_scans_tokvals (pairs : List (YamlValue × YamlValue))
         scanNextToken_flow_comma s_v
           (' ' :: (emit.emitPairList (p' :: ps)).toList ++ rest_chars)
           h_corr_v h_flow_v h_indent_v h_col_v h_last_v h_atol_v h_endline_v
+          (by rw [h_ek_v, h_ek₃, h_ek₂])
           (by rw [h_dp_v, h_dp₃, h_dp₂, h_dp₁]; exact h_dp)
       obtain ⟨feTok, h_feTok_val, h_comma_eq⟩ :=
         scanNextToken_flow_comma_filtered_push s_v

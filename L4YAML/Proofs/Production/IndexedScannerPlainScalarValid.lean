@@ -2937,7 +2937,7 @@ lemma scanFlowMappingEndIx_preserves_FlowNestingInvIx {input : String}
 After Step 6f.0, `scanFlowEntryIx s` is a `do`-block: it first checks
 `lastRealTokenValIx? s.tokens` and throws `invalidFlowEntry` on a
 leading or consecutive `,`; otherwise it succeeds with
-`s' = { (s.emit .flowEntry).advance with simpleKeyAllowed := true }`.
+`s' = { (s.emit .flowEntry).advance with simpleKeyAllowed := true, explicitKeyLine := none }`.
 The earlier accidental `scanValuePrepareIx s` call was removed (the
 `,` boundary does not retroactively confirm the pending simple key).
 
@@ -2960,13 +2960,13 @@ lemma scanFlowEntryIx_preserves_PlainScalarsValidIx {input : String}
     · injection h_ok with h_ok
       subst h_ok
       show PlainScalarsValidIx
-        { (s.emit YamlToken.flowEntry).advance with simpleKeyAllowed := true }.tokens
+        { (s.emit YamlToken.flowEntry).advance with simpleKeyAllowed := true, explicitKeyLine := none }.tokens
       simp only [advance_tokens]
       exact h_psv_emit
   · injection h_ok with h_ok
     subst h_ok
     show PlainScalarsValidIx
-      { (s.emit YamlToken.flowEntry).advance with simpleKeyAllowed := true }.tokens
+      { (s.emit YamlToken.flowEntry).advance with simpleKeyAllowed := true, explicitKeyLine := none }.tokens
     simp only [advance_tokens]
     exact h_psv_emit
 
@@ -2985,13 +2985,13 @@ lemma scanFlowEntryIx_preserves_FlowContextPSVIx {input : String}
     · injection h_ok with h_ok
       subst h_ok
       show FlowContextPSVIx
-        { (s.emit YamlToken.flowEntry).advance with simpleKeyAllowed := true }.tokens
+        { (s.emit YamlToken.flowEntry).advance with simpleKeyAllowed := true, explicitKeyLine := none }.tokens
       simp only [advance_tokens]
       exact h_fcpsv_emit
   · injection h_ok with h_ok
     subst h_ok
     show FlowContextPSVIx
-      { (s.emit YamlToken.flowEntry).advance with simpleKeyAllowed := true }.tokens
+      { (s.emit YamlToken.flowEntry).advance with simpleKeyAllowed := true, explicitKeyLine := none }.tokens
     simp only [advance_tokens]
     exact h_fcpsv_emit
 
@@ -5326,7 +5326,7 @@ lemma scanFlowEntryIx_preserves_prefix {input : String}
   all_goals (try contradiction)
   all_goals (simp only [Except.ok.injEq] at h_ok; subst h_ok)
   all_goals (
-    show ({ (s.emit YamlToken.flowEntry).advance with simpleKeyAllowed := true }).tokens[i]'_ =
+    show ({ (s.emit YamlToken.flowEntry).advance with simpleKeyAllowed := true, explicitKeyLine := none }).tokens[i]'_ =
       s.tokens[i]'h_bound
     simp only [advance_tokens]
     exact h_emit)
