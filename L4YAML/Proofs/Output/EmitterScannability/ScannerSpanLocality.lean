@@ -498,6 +498,8 @@ lemma emitPairList_allScalar_body_content_at :
     s.explicitKeyLine = none → AllTokensOnLine s s.line → EndLineOnLine s →
     s.simpleKeyAllowed = true →
     s.simpleKeyStack.size = s.flowLevel →
+    -- item 9r: the pair list starts at an entry boundary.
+    LastRawNotValue s →
     s.directivesPresent = false →
     (∀ t, lastRealTokenVal? s.tokens = some t → t.completesFlowValue = false) →
     ∃ (n : Nat) (s' : ScannerState) (block : List (Positioned YamlToken)),
@@ -530,7 +532,7 @@ lemma emitPairList_allScalar_body_content_at :
   induction pairs with
   | nil => intro h; exact absurd rfl h
   | cons p tail ih =>
-    intro _h_ne h_all s rest hcorr h_flow h_fl h_indent h_col h_ek h_atol h_endline h_ska h_sync h_dp h_last
+    intro _h_ne h_all s rest hcorr h_flow h_fl h_indent h_col h_ek h_atol h_endline h_ska h_sync h_lrv h_dp h_last
     obtain ⟨sk, sv, hsk, hsv⟩ : ∃ sk sv : Scalar, p.1 = .scalar sk ∧ p.2 = .scalar sv :=
       h_all p (.head _)
     cases tail with
@@ -589,12 +591,19 @@ lemma emitPairList_allScalar_body_content_at :
         unfold ScannerState.inFlow; exact decide_eq_true (by rw [h_fl₁]; omega)
       have h_indent₁ : s₁.currentIndent < 0 := by
         unfold ScannerState.currentIndent; rw [h_ids₁]; exact h_indent
+      -- Item 9r: the T833 guard is discharged on the ENTRY BOUNDARY.
+      have h_entry₁ : SavedKeyAtEntryBoundary s₁ :=
+        savedKeyAtEntryBoundary_of_raw_prefix h_tidx₁ (by omega)
+          (fun i hi => by
+            have h := h_pref_k i hi
+            rw [Array.getElem?_eq_getElem (by omega), Array.getElem?_eq_getElem hi] at h
+            exact Option.some.inj h) h_lrv
       have h_sk_id := saveSimpleKey_id_of_flow_ska_false_ek_none s₁ h_flow₁ h_ska₁
           (by rw [h_ek₁]; exact h_ek)
       have h_sv_ok : scanValueValidate (saveSimpleKey s₁) = .ok () := by
         rw [h_sk_id]
         exact scanValueValidate_ok_of_flow_allTokensOnLine s₁ h_flow₁
-          (by rw [h_ek₁]; exact h_ek) h_atol₁ h_endline₁
+          (by rw [h_ek₁]; exact h_ek) h_entry₁ h_endline₁
       have h_corr₁_col : ScannerSurfCorr s₁
           ⟨':' :: ' ' :: (['"'] ++ (escapeString sv.content).toList ++ ['"'] ++ rest), s₁.col⟩ :=
         h_corr₁
@@ -663,7 +672,7 @@ lemma emitPairList_allScalar_body_content_at :
         intro t ht; rw [h_toks₃, h_lrt] at ht
         simp only [Option.some.injEq] at ht; subst ht; rfl
       obtain ⟨s_v, h_snt_v, h_corr_v, h_fl_v, h_dp_v, h_ids_v, h_ek_v, h_col_v, h_last_v,
-              _h_ska_v, h_line_v, h_atol_v, h_endline_v, h_stack_v⟩ :=
+              h_ska_v, h_line_v, h_atol_v, h_endline_v, h_stack_v⟩ :=
         scanNextToken_flow_scanDoubleQuoted s₃ sv.content rest hcorr₃'
           h_s3_flow (by unfold ScannerState.currentIndent; rw [h_ids₃]; exact h_indent₂)
           (by omega) (h_atol_tr₃ h_atol₂) (h_endline_tr₃ h_endline₂)
@@ -791,12 +800,19 @@ lemma emitPairList_allScalar_body_content_at :
         unfold ScannerState.inFlow; exact decide_eq_true (by rw [h_fl₁]; omega)
       have h_indent₁ : s₁.currentIndent < 0 := by
         unfold ScannerState.currentIndent; rw [h_ids₁]; exact h_indent
+      -- Item 9r: the T833 guard is discharged on the ENTRY BOUNDARY.
+      have h_entry₁ : SavedKeyAtEntryBoundary s₁ :=
+        savedKeyAtEntryBoundary_of_raw_prefix h_tidx₁ (by omega)
+          (fun i hi => by
+            have h := h_pref_k i hi
+            rw [Array.getElem?_eq_getElem (by omega), Array.getElem?_eq_getElem hi] at h
+            exact Option.some.inj h) h_lrv
       have h_sk_id := saveSimpleKey_id_of_flow_ska_false_ek_none s₁ h_flow₁ h_ska₁
           (by rw [h_ek₁]; exact h_ek)
       have h_sv_ok : scanValueValidate (saveSimpleKey s₁) = .ok () := by
         rw [h_sk_id]
         exact scanValueValidate_ok_of_flow_allTokensOnLine s₁ h_flow₁
-          (by rw [h_ek₁]; exact h_ek) h_atol₁ h_endline₁
+          (by rw [h_ek₁]; exact h_ek) h_entry₁ h_endline₁
       have h_corr₁_col : ScannerSurfCorr s₁
           ⟨':' :: ' ' :: (['"'] ++ (escapeString sv.content).toList ++ ['"'] ++ rest_inner), s₁.col⟩ :=
         h_corr₁
@@ -866,7 +882,7 @@ lemma emitPairList_allScalar_body_content_at :
         intro t ht; rw [h_toks₃, h_lrt] at ht
         simp only [Option.some.injEq] at ht; subst ht; rfl
       obtain ⟨s_v, h_snt_v, h_corr_v, h_fl_v, h_dp_v, h_ids_v, h_ek_v, h_col_v, h_last_v,
-              _h_ska_v, h_line_v, h_atol_v, h_endline_v, h_stack_v⟩ :=
+              h_ska_v, h_line_v, h_atol_v, h_endline_v, h_stack_v⟩ :=
         scanNextToken_flow_scanDoubleQuoted s₃ sv.content rest_inner hcorr₃'
           h_s3_flow (by unfold ScannerState.currentIndent; rw [h_ids₃]; exact h_indent₂)
           (by omega) (h_atol_tr₃ h_atol₂) (h_endline_tr₃ h_endline₂)
@@ -914,6 +930,13 @@ lemma emitPairList_allScalar_body_content_at :
         scanNextToken_flow_comma_simpleKey s_v
           (' ' :: (emit.emitPairList (p' :: tail')).toList ++ rest)
           h_corr_v_comma h_flow_v h_indent_v (by omega) h_last_v h_snt_c
+      -- item 9r: the `,` re-opens the raw entry boundary
+      obtain ⟨⟨tok_rc, h_tok_rc_val, h_tok_rc_eq⟩, _, _⟩ :=
+        scanNextToken_flow_comma_raw_push s_v
+          (' ' :: (emit.emitPairList (p' :: tail')).toList ++ rest)
+          h_corr_v_comma h_flow_v h_indent_v (by omega) h_ska_v h_last_v h_snt_c
+      have h_lrv_c : LastRawNotValue s_c :=
+        lastRawNotValue_of_push (by rw [h_tok_rc_val]; exact nofun) h_tok_rc_eq
       -- ── SPACE PREPROCESS BEFORE NEXT PAIR ───────────────────────────────────
       obtain ⟨c_f, rest_f, h_first_f, h_nws_f, h_nlb_f, h_nc_f⟩ :=
         emitPairList_first_char p' tail'
@@ -957,6 +980,7 @@ lemma emitPairList_allScalar_body_content_at :
           (h_atol_tr_pp h_atol_c)
           (h_endline_tr_pp h_endline_c)
           h_ska_pp_true h_sync_pp
+          (LastRawNotValue.of_tokens_eq h_toks_pp h_lrv_c)
           (by rw [h_dp_pp, h_dp_c, h_dp_v, h_dp₃, h_dp₂, h_dp₁]; exact h_dp)
           (fun t ht => h_last_c t (h_toks_pp ▸ ht))
       -- ── LIFT IH CHAIN THROUGH PREPROCESSING ─────────────────────────────────
@@ -1172,12 +1196,12 @@ lemma scanFiltered_emitMap_allScalar_pair_at
           h_block_content, h_block_fe_content, h_block_key_struct, h_block_mv_struct, h_fmc₂⟩ :=
     emitPairList_allScalar_body_content_at pairs h_ne h_all s₁ ['}']
       h_corr₁ h_inflow₁ (by rw [h_fl₁]; omega) h_indent₁ (by rw [h_col₁]; omega)
-      h_ek₁ (h_line₁ ▸ h_atol₁) h_endline₁ h_ska₁ h_sync₁ h_dp₁ h_last_s₁
+      h_ek₁ (h_line₁ ▸ h_atol₁) h_endline₁ h_ska₁ h_sync₁ h_push₁.2.1 h_dp₁ h_last_s₁
   -- ═══ Step 3: close brace → s₃ ═══
   obtain ⟨s₃, h_snt₃, h_fl₃, h_dp₃, h_peek₃, h_ids₃, ⟨tok_fme, h_tok_fme_val, h_filt₃⟩⟩ :=
     scanNextToken_flow_close_mapping_outermost_ext s₂ h_corr₂ h_inflow₂ h_indent₂ h_col₂
       (by rw [h_fl₂, h_fl₁]) (by rw [h_dp₂, h_dp₁])
-      (by rw [h_fmc₂.flowStack_eq rfl h_fl₂]; exact h_push₁)
+      (by rw [h_fmc₂.flowStack_eq rfl h_fl₂]; exact h_push₁.1)
   -- ═══ Step 4: chain composition + token equation ═══
   have h_eof : scanNextToken s₃ = .ok none := scanNextToken_eof s₃ h_peek₃
   have h_chain_all := (ScanChain.single h_snt₁).trans

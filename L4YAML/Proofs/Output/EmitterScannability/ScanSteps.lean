@@ -1291,23 +1291,24 @@ lemma simpleKeyAboveFloor_of_scanFlowEntry (s s' : ScannerState)
   · simp only [h_st] at hj hp ⊢; exact h_stack j hfl hj hp
   · rw [h_st]; exact h_size
 
--- scanValueValidate succeeds in flow context when all tokens are on the same
--- line as the scanner and endLine = line (when possible).
+-- scanValueValidate succeeds in flow context when endLine = line (when
+-- possible) and the pending key's reservation sits at an entry boundary.
 --
--- The T833 missing-comma guard is what `AllTokensOnLine` discharges, and only
--- because that guard fires across LINES.  Items 9p and 9q measured what it
--- costs to make it fire on the ENTRY BOUNDARY instead: with `scanFlowEntry`
--- now normalizing the dead simple key (item 9q), the substrate above is
--- reachable at every pair start — including the recursion tail — and what
--- remains is threading `PairStartAtEntryBoundary` through the eight pair-list
--- assemblers.  See the item 9q section of `DOCS.md` for the measured budget.
+-- Item 9r replaced the `AllTokensOnLine` premise on the T833 arm with
+-- `SavedKeyAtEntryBoundary`.  The old guard fired only ACROSS LINES, which is
+-- why "every token is on the scanner's line" discharged it; the strictened
+-- guard fires on the boundary itself, so what has to be supplied is the
+-- boundary — see `savedKeyAtEntryBoundary_of_take` and
+-- `savedKeyAtEntryBoundary_of_raw_prefix` above, which produce it from the
+-- saved-key scans' layout exposures.  (The name keeps its historical
+-- `allTokensOnLine` suffix so the sixteen call sites read as one-token edits.)
 lemma scanValueValidate_ok_of_flow_allTokensOnLine (s : ScannerState)
     (h_flow : s.inFlow = true)
     (h_ek : s.explicitKeyLine = none)
-    (h_atol : AllTokensOnLine s s.line)
+    (h_entry : SavedKeyAtEntryBoundary s)
     (h_end : EndLineOnLine s) :
     scanValueValidate s = .ok () := by
-  unfold scanValueValidate EndLineOnLine at *
+  unfold scanValueValidate EndLineOnLine SavedKeyAtEntryBoundary at *
   cases h_poss : s.simpleKey.possible
   · -- possible = false: all checks short-circuit
     simp only [h_flow, Bool.false_and, Bool.not_true, Bool.and_false,
@@ -1317,19 +1318,17 @@ lemma scanValueValidate_ok_of_flow_allTokensOnLine (s : ScannerState)
     -- Checks 1,3: !inFlow = false.  Check 2: endLine = line.  Check 5: ek = none.
     simp only [h_flow, h_el, h_ek, Bool.not_true, Bool.and_false, Bool.false_and,
                Bool.true_and, bne_self_eq_false, ite_false, reduceCtorEq]
-    -- Check 4: possible && inFlow && tokenIndex > 0 && ...
+    -- Check 4: possible && inFlow && tokenIndex > 0 && slot below is `.value`
     by_cases h_ti : s.simpleKey.tokenIndex > 0
     · simp only [show (decide (s.simpleKey.tokenIndex > 0)) = true from decide_eq_true h_ti]
       -- Case analysis on `s.tokens[tokenIndex - 1]?`
       cases h_tok : s.tokens[s.simpleKey.tokenIndex - 1]? with
       | none => rfl -- no token at that index: check passes trivially
       | some tok =>
-        -- h_tok tells us getElem? returned some, so index is in bounds
-        have ⟨h_bound, h_eq⟩ := Array.getElem?_eq_some_iff.mp h_tok
-        have h_pos_line := h_atol (s.simpleKey.tokenIndex - 1) h_bound
-        -- h_eq : s.tokens[i] = tok, so tok.pos.line = s.line
-        have h_tok_line : tok.pos.line = s.line := h_eq ▸ h_pos_line
-        simp only [h_tok_line, bne_self_eq_false, Bool.and_false]; rfl
+        have h_ne : tok.val ≠ .value := h_entry h_ti tok h_tok
+        simp only [show (tok.val == YamlToken.value) = false from
+                     beq_eq_false_iff_ne.mpr h_ne]
+        rfl
     · simp only [show (decide (s.simpleKey.tokenIndex > 0)) = false from
                    decide_eq_false (by omega)]; rfl
 
@@ -3048,6 +3047,63 @@ lemma scanNextToken_flow_comma (s : ScannerState)
       exact lastRealTokenVal_push_non_ph' s_ad.tokens _ nofun
     rw [h_tok] at ht; simp only [Option.some.injEq] at ht; subst ht; rfl
 
+/-- **Comma raw-push add-on** (item 9r): from a state whose simple key is not
+    re-reservable (`simpleKeyAllowed = false` — every post-value state), the
+    flow `,` grows the RAW token array by exactly one `.flowEntry`:
+    preprocessing's `saveSimpleKey` is the identity, and `scanFlowEntry` is one
+    emit.  This is what re-opens `LastRawNotValue` at a pair-list's recursion
+    tail, the raw twin of `scanNextToken_flow_comma_filtered_push`. -/
+lemma scanNextToken_flow_comma_raw_push (s : ScannerState) (rest : List Char)
+    (hcorr : ScannerSurfCorr s ⟨',' :: rest, s.col⟩)
+    (h_flow : s.inFlow = true) (h_indent : s.currentIndent < 0) (h_col : s.col > 0)
+    (h_ska : s.simpleKeyAllowed = false)
+    (h_last : ∀ t, lastRealTokenVal? s.tokens = some t →
+      t ≠ .flowSequenceStart ∧ t ≠ .flowMappingStart ∧ t ≠ .flowEntry)
+    {s' : ScannerState} (h_snt : scanNextToken s = .ok (some s')) :
+    (∃ tok : Positioned YamlToken, tok.val = .flowEntry ∧ s'.tokens = s.tokens.push tok)
+      ∧ s'.simpleKeyAllowed = true ∧ s'.simpleKey.possible = false := by
+  have h_sk_id : saveSimpleKey s = s := by
+    unfold saveSimpleKey
+    split
+    · rfl
+    · simp [h_ska]
+  have h_pp : scanNextToken_preprocess s = .ok (some (saveSimpleKey s, ',')) :=
+    scanNextToken_preprocess_flow s ',' rest s.col hcorr h_flow (by decide) (by decide) (by decide)
+  have h_sk_flow : (saveSimpleKey s).inFlow = s.inFlow := saveSimpleKey_preserves_inFlow s
+  have h_sk_col : (saveSimpleKey s).col = s.col := saveSimpleKey_preserves_col s
+  have h_sk_indent : (saveSimpleKey s).currentIndent = s.currentIndent := by
+    unfold ScannerState.currentIndent; rw [saveSimpleKey_preserves_indents]
+  have h_struct : scanNextToken_dispatchStructural (saveSimpleKey s) ',' = .ok none :=
+    dispatchStructural_none_flow _ _ (h_sk_flow ▸ h_flow) (h_sk_indent ▸ h_indent) (h_sk_col ▸ h_col)
+  let s_ad := if (saveSimpleKey s).allowDirectives then
+    { saveSimpleKey s with allowDirectives := false, documentEverStarted := true }
+  else saveSimpleKey s
+  have h_check := checkBlockFlowIndent_ok_comma s_ad
+  have h_ad_fl : s_ad.flowLevel = s.flowLevel := by
+    simp only [s_ad]; split <;> exact saveSimpleKey_preserves_flowLevel s
+  have h_fl_pos : s_ad.flowLevel > 0 := by
+    rw [h_ad_fl]; unfold ScannerState.inFlow at h_flow; exact of_decide_eq_true h_flow
+  have h_ad_toks : s_ad.tokens = s.tokens := by
+    simp only [s_ad]; split <;> rw [h_sk_id]
+  have h_ad_last : ∀ t, lastRealTokenVal? s_ad.tokens = some t →
+      t ≠ .flowSequenceStart ∧ t ≠ .flowMappingStart ∧ t ≠ .flowEntry := by
+    intro t ht
+    rw [h_ad_toks] at ht
+    exact h_last t ht
+  have h_flow_disp := dispatchFlowIndicators_comma s_ad h_fl_pos h_ad_last
+  have h_snt_eq : scanNextToken s =
+      .ok (some { (s_ad.emit .flowEntry).advance with simpleKeyAllowed := true, explicitKeyLine := none, simpleKey := { possible := false } }) :=
+    scanNextToken_via_flow_dispatch _ _ _ _ _ h_pp h_struct rfl h_check h_flow_disp
+      (scanNextToken_ok_directivesPresent_false h_pp h_struct h_snt)
+  have h_s' : s' = { (s_ad.emit .flowEntry).advance with simpleKeyAllowed := true, explicitKeyLine := none, simpleKey := { possible := false } } :=
+    Option.some.inj (Except.ok.inj (h_snt.symm.trans h_snt_eq))
+  refine ⟨⟨{ pos := s_ad.currentPos, val := .flowEntry }, rfl, ?_⟩, by rw [h_s'], by rw [h_s']⟩
+  rw [h_s']
+  show ((s_ad.emit .flowEntry).advance).tokens = _
+  rw [ScannerCorrectness.advance_preserves_tokens]
+  show s_ad.tokens.push { pos := s_ad.currentPos, val := .flowEntry } = _
+  rw [h_ad_toks]
+
 -- ═══ Flow close bracket: scanFlowSequenceEnd dispatch ═══
 
 /-- Field preservation through scanFlowSequenceEnd: directivesPresent. -/
@@ -3787,7 +3843,12 @@ lemma scanNextToken_flow_open_mapping_nested (s : ScannerState) (rest : List Cha
       ∧ s.tokens.size < s'.tokens.size
       ∧ s'.simpleKeyStack = s.simpleKeyStack.push (saveSimpleKey s).simpleKey
       ∧ (∀ t, lastRealTokenVal? s'.tokens = some t → t.completesFlowValue = false)
-      ∧ s'.flowStack = s.flowStack.push false := by
+      ∧ s'.flowStack = s.flowStack.push false
+      -- item 9r: the two facts a pair-list body needs at its entry state —
+      -- the `{` re-enables simple-key reservation, and the `{` token itself
+      -- caps the raw array, so `LastRawNotValue` holds.
+      ∧ s'.simpleKeyAllowed = true
+      ∧ LastRawNotValue s' := by
   have h_pp : scanNextToken_preprocess s = .ok (some (saveSimpleKey s, '{')) :=
     scanNextToken_preprocess_flow s '{' rest s.col hcorr h_flow
       (by decide) (by decide) (by decide)
@@ -3842,7 +3903,7 @@ lemma scanNextToken_flow_open_mapping_nested (s : ScannerState) (rest : List Cha
     exact (advance_line_of_peek s_ad '{' h_lt_ad h_peek_ad (by decide) (by decide)).trans h_ad_line
   refine ⟨_, h_snt, ?_, h_fl_f.trans (congrArg (· + 1) h_ad_fl),
     h_dp_f.trans h_ad_dp, h_ids_f.trans h_ad_ids, h_ek_f.trans h_ad_ek, ?_, h_line_f, ?_, ?_, ?_, ?_,
-    ScannerCorrectness.scanFlowMappingStart_simpleKey_cleared s_ad, ?_, ?_, ?_, ?_⟩
+    ScannerCorrectness.scanFlowMappingStart_simpleKey_cleared s_ad, ?_, ?_, ?_, ?_, ?_, ?_⟩
   · rw [h_col_f]; exact h_corr_f
   · rw [h_col_f, h_ad_col]
   · rw [h_line_f]
@@ -3887,6 +3948,18 @@ lemma scanNextToken_flow_open_mapping_nested (s : ScannerState) (rest : List Cha
     rw [L4YAML.Proofs.ScannerFlowCollection.scanFlowMappingStart_pushes_false]
     congr 1
     simp only [s_ad]; split <;> exact saveSimpleKey_preserves_flowStack s
+  · -- simpleKeyAllowed: literally set by scanFlowMappingStart (item 9r)
+    show (scanFlowMappingStart s_ad).simpleKeyAllowed = true
+    unfold scanFlowMappingStart
+    rfl
+  · -- LastRawNotValue: the `{` token caps the raw array (item 9r)
+    have h_tok : (scanFlowMappingStart s_ad).tokens =
+        s_ad.tokens.push ⟨s_ad.currentPos, .flowMappingStart, s_ad.currentPos⟩ := by
+      show ({ ({ s_ad with simpleKey := _ }.emit .flowMappingStart).advance with
+          flowLevel := _, simpleKeyAllowed := _, flowStack := _, simpleKeyStack := _ }).tokens = _
+      simp only [ScannerCorrectness.advance_preserves_tokens, ScannerState.emit,
+                 ScannerState.currentPos]
+    exact lastRawNotValue_of_push (by simp) h_tok
 
 -- ═══ Init flow open: `{` — mapping at top level ═══
 
@@ -3932,7 +4005,11 @@ lemma scanNextToken_flow_open_mapping_init (input : String) (rest : List Char)
       ∧ s'.simpleKeyAllowed = true
       ∧ ScannerCorrectness.SimpleKeyStackValid s'
       ∧ (∀ t, lastRealTokenVal? s'.tokens = some t → t.completesFlowValue = false)
-      ∧ s'.flowStack.back? = some false := by
+      ∧ s'.flowStack.back? = some false
+      -- item 9r: the `{` token caps the raw array (and the filtered one), so
+      -- both entry-boundary readings hold at the pair-list body's entry state.
+      ∧ LastRawNotValue s'
+      ∧ PairStartAtEntryBoundary s' := by
   intro s₀
   -- Step 1: preprocessing
   have h_pp := scanNextToken_preprocess_init_state input '{' rest h_toList
@@ -4077,7 +4154,30 @@ lemma scanNextToken_flow_open_mapping_init (input : String) (rest : List Char)
            simp only [Option.some.injEq] at ht; subst ht; rfl,
          by -- flowStack top: '{' pushes `false` (9a kind tracking)
            rw [L4YAML.Proofs.ScannerFlowCollection.scanFlowMappingStart_pushes_false]
-           exact Array.back?_push⟩
+           exact Array.back?_push,
+         by -- LastRawNotValue (item 9r)
+           have h_tok : (scanFlowMappingStart s_ad).tokens =
+               s_ad.tokens.push ⟨s_ad.currentPos, .flowMappingStart, s_ad.currentPos⟩ := by
+             show ({ ({ s_ad with simpleKey := _ }.emit .flowMappingStart).advance with
+                 flowLevel := _, simpleKeyAllowed := _,
+                 flowStack := _, simpleKeyStack := _ }).tokens = _
+             simp only [ScannerCorrectness.advance_preserves_tokens,
+                        ScannerState.emit, ScannerState.currentPos]
+           exact lastRawNotValue_of_push (by simp) h_tok,
+         by -- PairStartAtEntryBoundary (item 9r)
+           have h_tok : (scanFlowMappingStart s_ad).tokens =
+               s_ad.tokens.push ⟨s_ad.currentPos, .flowMappingStart, s_ad.currentPos⟩ := by
+             show ({ ({ s_ad with simpleKey := _ }.emit .flowMappingStart).advance with
+                 flowLevel := _, simpleKeyAllowed := _,
+                 flowStack := _, simpleKeyStack := _ }).tokens = _
+             simp only [ScannerCorrectness.advance_preserves_tokens,
+                        ScannerState.emit, ScannerState.currentPos]
+           have h_feq : (scanFlowMappingStart s_ad).tokens.filter (fun t => t.val != .placeholder)
+               = (s_ad.tokens.filter (fun t => t.val != .placeholder)).push
+                   { pos := s_ad.currentPos, val := .flowMappingStart } := by
+             rw [h_tok, Array.filter_push]; simp
+           exact pairStartAtEntryBoundary_of_filtered_push
+             (show YamlToken.flowMappingStart ≠ YamlToken.value from by decide) h_feq⟩
 
 
 end L4YAML.Proofs.EmitterScannability

@@ -161,10 +161,21 @@ def scanValueValidate (s : ScannerState) : Except ScanError Unit := do
       if let some top := s.indents.back? then
         if top.isSequence && keyCol == top.column then
           throw (.trailingContent s.simpleKey.pos.line s.simpleKey.pos.col)
-  -- T833: missing comma in flow mapping
+  -- T833: missing comma in flow mapping (item 9r: line-independent).
+  -- The reservation at `simpleKey.tokenIndex` is the entry's start.  If the
+  -- slot immediately below it is a `.value`, the previous entry was already
+  -- complete (`k: v`) and this `:` continues it with no separator — invalid
+  -- whatever the line.  The guard used to fire only across a line break
+  -- (`prevTok.pos.line != s.line`), which left the same-line shapes
+  -- (`{a: b: c}`, `[a: b: c]`, `{a: b: }`, …) to be rejected downstream by the
+  -- parser rather than here; dropping the line test rejects them at the
+  -- scanner and makes `simpleKey.tokenIndex` a usable ENTRY BOUNDARY for the
+  -- accumulator (see `SavedKeyAtEntryBoundary` in `ScanSteps.lean`).  All 351
+  -- `yaml-test-suite` sources are byte-identical under the change in both
+  -- pipelines.
   if s.simpleKey.possible && s.inFlow && s.simpleKey.tokenIndex > 0 then
     if let some prevTok := s.tokens[s.simpleKey.tokenIndex - 1]? then
-      if prevTok.val == .value && prevTok.pos.line != s.line then
+      if prevTok.val == .value then
         throw (.invalidFlowEntry s.line s.col)
   -- §8.2.2 [197]: explicit value `:` must be at mapping indent level.
   -- l-block-map-explicit-value(n) = s-indent(n) ":" ...

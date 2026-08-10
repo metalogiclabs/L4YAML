@@ -158,27 +158,41 @@ one dispatcher before block-indicator dispatch is even reached. -/
 #guard rejectsInScanner "[[a] !t : b]\n" (.invalidFlowEntry 0 5)
 #guard rejectsInScanner "[{a: b} &x : c]\n" (.invalidFlowEntry 0 8)
 
-/-! ## §4  The cells that are still open — a SECOND `:` in one entry
+/-! ## §4  A SECOND `:` in one entry — rejected at the LEGACY scanner (item 9r)
 
-Three cells, one obligation.  All six shapes below scan clean in both pipelines
-and are refused only by the parser; the `scanValueValidate` strictening rejects
-all of them at once, because the pending simple key it reads was reserved at the
-`:` itself when the gap is empty and BEFORE the run when it is not.  Pinned as
-scanner-clean so the strictening's effect is measured against a record. -/
+Three cells, one obligation, now discharged on the legacy side: the
+`scanValueValidate` strictening rejects all seven shapes at the SCANNER, because
+the pending simple key it reads was reserved at the `:` itself when the gap is
+empty and BEFORE the run when it is not, and the slot below that reservation is
+a `.value` exactly in the illegal shapes.
+
+The INDEXED scanner still scans them clean — its strictening is blocked on an
+Ix saved-key substrate (no layout exposure exists on that side yet; see the
+item 9r section of `DOCS.md` for the measured budget), so on that pipeline the
+parser is still the refusing stage.  This DELIBERATE, DOCUMENTED divergence is
+pinned here exactly so the Ix landing is measured against a record, the same
+way this section once pinned the pre-strictening state for the legacy landing. -/
+
+/-- Item 9r's intermediate state: the LEGACY scanner rejects `input`, the
+    INDEXED scanner scans it clean, and neither pipeline emits events. -/
+private def rejectedByLegacyScannerOnly (input : String) : Bool :=
+  (match scanVerdicts input with
+   | (some _, none) => true
+   | _ => false) && bothEvents input == (none, none)
 
 -- White row, `.colon` cell.
-#guard scansCleanButRejected "[a: : b]\n"
-#guard scansCleanButRejected "[: :]\n"
-#guard scansCleanButRejected "{a: : b}\n"
-#guard scansCleanButRejected "[? : : a]\n"
+#guard rejectedByLegacyScannerOnly "[a: : b]\n"
+#guard rejectedByLegacyScannerOnly "[: :]\n"
+#guard rejectedByLegacyScannerOnly "{a: : b}\n"
+#guard rejectedByLegacyScannerOnly "[? : : a]\n"
 
 -- White row, `.value` cell (the mixed one): the entry is already complete.
-#guard scansCleanButRejected "[a: b: c]\n"
+#guard rejectedByLegacyScannerOnly "[a: b: c]\n"
 
 -- Props row, `.colon` cell: the run sits between the two `:`s and changes
 -- nothing, because the reservation slot is older than the run.
-#guard scansCleanButRejected "[a: &x : b]\n"
-#guard scansCleanButRejected "[a: !t : b]\n"
+#guard rejectedByLegacyScannerOnly "[a: &x : b]\n"
+#guard rejectedByLegacyScannerOnly "[a: !t : b]\n"
 
 /-! ## §5  The run's other decisions, unchanged
 
