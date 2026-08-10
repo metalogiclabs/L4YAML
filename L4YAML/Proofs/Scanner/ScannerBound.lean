@@ -200,7 +200,7 @@ lemma scanFlowEntry_BoundInv (s s' : ScannerState)
     BoundInv s s' := by
   unfold scanFlowEntry at hok
   simp only [bind, Except.bind] at hok
-  -- Both paths produce { (s.emit .flowEntry).advance with simpleKeyAllowed := true, explicitKeyLine := none }
+  -- Both paths produce { (s.emit .flowEntry).advance with simpleKeyAllowed := true, explicitKeyLine := none, simpleKey := { possible := false } }
   let s_em := s.emit .flowEntry
   let s_adv := s_em.advance
   have h_adv : BoundInv s s_adv := advance_BoundInv _ (emit_BoundInv _ _ h) hend

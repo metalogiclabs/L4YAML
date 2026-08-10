@@ -1043,8 +1043,9 @@ lemma scanNextTokenIx_dispatchFlowIndicators_maintains_NoOverwriteAtIx {input : 
     exact NoOverwriteAtIx_of_flow_close _ s m
       (scanFlowMappingEndIx_simpleKey_restored s)
       (scanFlowMappingEndIx_stack_popped s) h_inv
-  · exact NoOverwriteAtIx_of_preserved _ s m
-      (scanFlowEntryIx_preserves_simpleKey s _ hOk)
+  · -- item 9q: the `,` clears the current key, preserves the stack
+    exact NoOverwriteAtIx_of_cleared_preserved _ s m
+      (scanFlowEntryIx_clears_simpleKey s _ hOk)
       (scanFlowEntryIx_preserves_simpleKeyStack s _ hOk) h_inv
 
 /-- `scanNextTokenIx_dispatchBlockIndicators` maintains `NoOverwriteAtIx`.

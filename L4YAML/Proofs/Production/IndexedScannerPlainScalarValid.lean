@@ -2960,13 +2960,13 @@ lemma scanFlowEntryIx_preserves_PlainScalarsValidIx {input : String}
     · injection h_ok with h_ok
       subst h_ok
       show PlainScalarsValidIx
-        { (s.emit YamlToken.flowEntry).advance with simpleKeyAllowed := true, explicitKeyLine := none }.tokens
+        { (s.emit YamlToken.flowEntry).advance with simpleKeyAllowed := true, explicitKeyLine := none, simpleKey := { possible := false } }.tokens
       simp only [advance_tokens]
       exact h_psv_emit
   · injection h_ok with h_ok
     subst h_ok
     show PlainScalarsValidIx
-      { (s.emit YamlToken.flowEntry).advance with simpleKeyAllowed := true, explicitKeyLine := none }.tokens
+      { (s.emit YamlToken.flowEntry).advance with simpleKeyAllowed := true, explicitKeyLine := none, simpleKey := { possible := false } }.tokens
     simp only [advance_tokens]
     exact h_psv_emit
 
@@ -2985,13 +2985,13 @@ lemma scanFlowEntryIx_preserves_FlowContextPSVIx {input : String}
     · injection h_ok with h_ok
       subst h_ok
       show FlowContextPSVIx
-        { (s.emit YamlToken.flowEntry).advance with simpleKeyAllowed := true, explicitKeyLine := none }.tokens
+        { (s.emit YamlToken.flowEntry).advance with simpleKeyAllowed := true, explicitKeyLine := none, simpleKey := { possible := false } }.tokens
       simp only [advance_tokens]
       exact h_fcpsv_emit
   · injection h_ok with h_ok
     subst h_ok
     show FlowContextPSVIx
-      { (s.emit YamlToken.flowEntry).advance with simpleKeyAllowed := true, explicitKeyLine := none }.tokens
+      { (s.emit YamlToken.flowEntry).advance with simpleKeyAllowed := true, explicitKeyLine := none, simpleKey := { possible := false } }.tokens
     simp only [advance_tokens]
     exact h_fcpsv_emit
 
@@ -4861,19 +4861,20 @@ lemma scanFlowMappingEndIx_stack_popped {input : String}
     (scanFlowMappingEndIx s).simpleKeyStack = s.simpleKeyStack.pop := by
   unfold scanFlowMappingEndIx; rfl
 
-/-- After Step 6f.0, `scanFlowEntryIx` preserves (does NOT clear)
-    `simpleKey`: the `,` boundary doesn't retroactively confirm the
-    pending simple key. Indexed twin of legacy
-    `scanFlowEntry_preserves_simpleKey`. -/
-lemma scanFlowEntryIx_preserves_simpleKey {input : String}
+/-- Item 9q: `scanFlowEntryIx` CLEARS the pending simple key.  The `,` never
+    confirmed it — it re-enables reservation, so preprocessing overwrites the
+    field before any dispatcher reads it — but leaving it set pointed at the
+    previous entry's reservation, below the incoming array's end.  Indexed twin
+    of legacy `scanFlowEntry_clears_simpleKey`. -/
+lemma scanFlowEntryIx_clears_simpleKey {input : String}
     (s s' : ScannerStateIx input) (h : scanFlowEntryIx s = .ok s') :
-    s'.simpleKey = s.simpleKey := by
+    s'.simpleKey.possible = false := by
   unfold scanFlowEntryIx at h
   simp only [bind, Except.bind] at h
   repeat (any_goals (split at h))
   all_goals (try contradiction)
   all_goals (simp only [Except.ok.injEq] at h; subst h)
-  all_goals simp [advance_preserves_simpleKey, emit_preserves_simpleKey]
+  all_goals rfl
 
 lemma scanFlowEntryIx_preserves_simpleKeyStack {input : String}
     (s s' : ScannerStateIx input) (h : scanFlowEntryIx s = .ok s') :
@@ -5326,7 +5327,7 @@ lemma scanFlowEntryIx_preserves_prefix {input : String}
   all_goals (try contradiction)
   all_goals (simp only [Except.ok.injEq] at h_ok; subst h_ok)
   all_goals (
-    show ({ (s.emit YamlToken.flowEntry).advance with simpleKeyAllowed := true, explicitKeyLine := none }).tokens[i]'_ =
+    show ({ (s.emit YamlToken.flowEntry).advance with simpleKeyAllowed := true, explicitKeyLine := none, simpleKey := { possible := false } }).tokens[i]'_ =
       s.tokens[i]'h_bound
     simp only [advance_tokens]
     exact h_emit)
@@ -5733,12 +5734,12 @@ lemma scanNextTokenIx_dispatchFlowIndicators_preserves_AllKeysPlaceholderInvIx {
       (scanFlowMappingEndIx_stack_popped s)
       (scanFlowMappingEndIx_tokens_size_le s)
       (fun i hi => scanFlowMappingEndIx_preserves_prefix s i hi)
-  · -- scanFlowEntryIx (after Step 6f.0): mono — preserves simpleKey,
+  · -- scanFlowEntryIx: CLEARS the current key (item 9q), preserves
     -- simpleKeyStack, and adds one token (`.flowEntry`), so prefix is
     -- preserved by `emit_preserves_tokens_at`. The `,` boundary no
     -- longer calls `scanValuePrepareIx`, matching the legacy.
-    exact AllKeysPlaceholderInvIx_mono s s' h_akpi
-      (scanFlowEntryIx_preserves_simpleKey s s' hOk)
+    exact AllKeysPlaceholderInvIx_of_cleared_mono s s' h_akpi
+      (scanFlowEntryIx_clears_simpleKey s s' hOk)
       (scanFlowEntryIx_preserves_simpleKeyStack s s' hOk)
       (scanFlowEntryIx_tokens_size_le hOk)
       (fun i hi => scanFlowEntryIx_preserves_prefix s s' hOk i hi)

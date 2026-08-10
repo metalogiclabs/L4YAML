@@ -4813,14 +4813,22 @@ lemma scanDirective_preserves_flowLevel (s : ScannerState) (s' : ScannerState)
         simp [skipToEndOfLine_preserves_flowLevel, skipWhitespace_preserves_flowLevel,
               collectDirectiveNameLoop_preserves_flowLevel, advance_preserves_flowLevel]
 
-lemma scanFlowEntry_preserves_simpleKey (s : ScannerState) (s' : ScannerState)
-    (h : scanFlowEntry s = .ok s') : s'.simpleKey = s.simpleKey := by
+/-- §7.4 (item 9q): the `,` CLEARS the pending simple key.
+
+    It used to preserve it, which was unobservable — the `,` re-enables
+    simple-key reservation, so preprocessing overwrites the field before any
+    dispatcher reads it — but left `possible = true` pointing at the previous
+    entry's reservation, i.e. BELOW the incoming token array's end.  That is
+    exactly the shape `SimpleKeyAboveFloor` forbids, so every consumer of the
+    old preservation lemma now goes through `*_of_cleared_preserved` instead. -/
+lemma scanFlowEntry_clears_simpleKey (s : ScannerState) (s' : ScannerState)
+    (h : scanFlowEntry s = .ok s') : s'.simpleKey.possible = false := by
   unfold scanFlowEntry at h
   simp only [bind, Except.bind] at h
   repeat (any_goals (split at h))
   all_goals (try contradiction)
   all_goals (simp only [Except.ok.injEq] at h; subst h)
-  all_goals simp [advance_preserves_simpleKey, emit_preserves_simpleKey]
+  all_goals rfl
 
 lemma scanFlowEntry_preserves_simpleKeyStack (s : ScannerState) (s' : ScannerState)
     (h : scanFlowEntry s = .ok s') : s'.simpleKeyStack = s.simpleKeyStack := by
@@ -5941,9 +5949,9 @@ lemma dispatchFlowIndicators_maintains_simpleKeyAbove (s : ScannerState) (c : Ch
            simp [Array.back?, h_empty] at hp
          · intro j hj hp; rw [h_st] at hj
            simp [Array.size_pop, h_empty] at hj)
-    | -- scanFlowEntry: preserves both
-      (rename_i h_eq; exact SimpleKeyAbove_of_preserved _ s n
-        (scanFlowEntry_preserves_simpleKey s _ h_eq)
+    | -- scanFlowEntry: clears the current key, preserves the stack (item 9q)
+      (rename_i h_eq; exact SimpleKeyAbove_of_cleared_preserved _ s n
+        (scanFlowEntry_clears_simpleKey s _ h_eq)
         (scanFlowEntry_preserves_simpleKeyStack s _ h_eq) h_inv)
     | (simp_all; done)
 
@@ -9063,11 +9071,13 @@ lemma dispatchFlowIndicators_preserves_AllKeysValid (s : ScannerState) (c : Char
               · simp at h
               · rename_i _ _ _ h_entry
                 simp only [Except.ok.injEq, Option.some.injEq] at h; subst h
-                exact AllKeysValid_mono s _ h_akv
-                  (scanFlowEntry_preserves_simpleKey s _ h_entry)
-                  (scanFlowEntry_preserves_simpleKeyStack s _ h_entry)
-                  (by have := ScanHelpers.scanFlowEntry_adds_one_token s _ h_entry; omega)
-                  (fun i hi => ScanHelpers.scanFlowEntry_preserves_prefix s _ h_entry i hi)
+                -- item 9q: the `,` clears the current key; the stack is untouched
+                exact AllKeysValid_of_cleared_current s _
+                  (scanFlowEntry_clears_simpleKey s _ h_entry)
+                  (SimpleKeyStackValid_mono s _ h_akv.2
+                    (scanFlowEntry_preserves_simpleKeyStack s _ h_entry)
+                    (by have := ScanHelpers.scanFlowEntry_adds_one_token s _ h_entry; omega)
+                    (fun i hi => ScanHelpers.scanFlowEntry_preserves_prefix s _ h_entry i hi))
           · simp at h
 
 -- dispatchBlockIndicators: blockEntry preserves, key/value clear possible.

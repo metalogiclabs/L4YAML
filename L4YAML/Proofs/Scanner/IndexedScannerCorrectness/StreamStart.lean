@@ -312,9 +312,9 @@ lemma scanNextTokenIx_dispatchFlowIndicators_maintains_SimpleKeyAboveIx {input :
     exact SimpleKeyAboveIx_flowEnd s _ n h_inv
       (scanFlowMappingEndIx_simpleKey_restored s)
       (scanFlowMappingEndIx_stack_popped s)
-  · -- scanFlowEntryIx preserves simpleKey + simpleKeyStack (Step 6f.0)
-    exact SimpleKeyAboveIx_mono s _ n h_inv
-      (scanFlowEntryIx_preserves_simpleKey s s' hOk)
+  · -- scanFlowEntryIx clears simpleKey (item 9q), preserves simpleKeyStack
+    exact SimpleKeyAboveIx_of_cleared_mono s _ n h_inv
+      (scanFlowEntryIx_clears_simpleKey s s' hOk)
       (scanFlowEntryIx_preserves_simpleKeyStack s s' hOk)
 
 lemma scanNextTokenIx_dispatchBlockIndicators_maintains_SimpleKeyAboveIx {input : String}

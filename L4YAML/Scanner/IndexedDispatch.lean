@@ -1160,7 +1160,12 @@ def scanFlowEntryIx {input : String} (s : ScannerStateIx input) :
   let s_after_advance := s_with_token.advance
   -- §7.4.1 [150] (item 9l): the `,` ENDS the explicit-key entry, so the `?`'s
   -- line no longer suppresses simple-key reservation — see `scanFlowEntry`.
-  .ok { s_after_advance with simpleKeyAllowed := true, explicitKeyLine := none }
+  -- Item 9q: the pending simple key is dead here and clearing it is
+  -- behaviour-preserving — see `scanFlowEntry` for the argument.
+  .ok { s_after_advance with
+        simpleKeyAllowed := true
+        explicitKeyLine := none
+        simpleKey := { possible := false } }
 
 /-! ## Dispatcher
 

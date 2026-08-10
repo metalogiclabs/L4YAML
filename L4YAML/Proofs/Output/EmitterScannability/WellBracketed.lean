@@ -3172,10 +3172,10 @@ lemma scanNextToken_flow_comma_filtered_push (s : ScannerState) (rest : List Cha
     exact saveSimpleKey_preserves_lastRealTokenVal_ne_flow s h_last t ht
   have h_flow_disp := dispatchFlowIndicators_comma s_ad h_fl_pos h_ad_last
   have h_snt_eq : scanNextToken s =
-      .ok (some { (s_ad.emit .flowEntry).advance with simpleKeyAllowed := true, explicitKeyLine := none }) :=
+      .ok (some { (s_ad.emit .flowEntry).advance with simpleKeyAllowed := true, explicitKeyLine := none, simpleKey := { possible := false } }) :=
     scanNextToken_via_flow_dispatch _ _ _ _ _ h_pp h_struct rfl h_check h_flow_disp
       (scanNextToken_ok_directivesPresent_false h_pp h_struct h_snt)
-  have h_s' : s' = { (s_ad.emit .flowEntry).advance with simpleKeyAllowed := true, explicitKeyLine := none } :=
+  have h_s' : s' = { (s_ad.emit .flowEntry).advance with simpleKeyAllowed := true, explicitKeyLine := none, simpleKey := { possible := false } } :=
     Option.some.inj (Except.ok.inj (h_snt.symm.trans h_snt_eq))
   have h_ad_filter : s_ad.tokens.filter (fun t => t.val != .placeholder)
       = s.tokens.filter (fun t => t.val != .placeholder) := by
@@ -3186,21 +3186,26 @@ lemma scanNextToken_flow_comma_filtered_push (s : ScannerState) (rest : List Cha
   rw [hf, h_ad_filter]
 
 /-- **Comma simple-key add-on** (companion to `scanNextToken_flow_comma`): the flow
-    `,` separator leaves `simpleKeyAllowed = true` (literally set by `scanFlowEntry`)
-    and threads the simple key through unchanged from `saveSimpleKey s`.  Combined with
-    `saveSimpleKey_id_of_flow_ska_false_ek_none` (when the pre-comma `simpleKeyAllowed`
-    is `false`, as it is right after a value scan), the caller recovers
-    `s'.simpleKey = s.simpleKey` — hence `simpleKey.possible` preservation.  The
-    mapping-body producer needs both to re-establish the per-pair preconditions
-    (`simpleKeyAllowed = true`, `simpleKey.possible = false`) before the recursive
-    `EmitPairListScansInFlowBlock` call. -/
+    `,` separator leaves `simpleKeyAllowed = true` and `simpleKey.possible = false`,
+    both literally set by `scanFlowEntry` — exactly the per-pair preconditions the
+    mapping-body producer must re-establish before the recursive
+    `EmitPairListScansInFlowBlock` call.
+
+    Item 9q sharpened the second conjunct.  It used to read
+    `s'.simpleKey = (saveSimpleKey s).simpleKey` — the `,` threaded the pending key
+    through unchanged — and every caller then had to compose it with
+    `saveSimpleKey_id_of_flow_ska_false_ek_none` to recover `possible = false`
+    (which is why all six destructured the conjunct as `_`).  Now the `,` clears the
+    key outright, so the precondition is immediate, and — the reason for the
+    change — the state after the `,` no longer carries a reservation index BELOW
+    the incoming token array's end, which is what `SimpleKeyAboveFloor` forbids. -/
 lemma scanNextToken_flow_comma_simpleKey (s : ScannerState) (rest : List Char)
     (hcorr : ScannerSurfCorr s ⟨',' :: rest, s.col⟩)
     (h_flow : s.inFlow = true) (h_indent : s.currentIndent < 0) (h_col : s.col > 0)
     (h_last : ∀ t, lastRealTokenVal? s.tokens = some t →
       t ≠ .flowSequenceStart ∧ t ≠ .flowMappingStart ∧ t ≠ .flowEntry)
     {s' : ScannerState} (h_snt : scanNextToken s = .ok (some s')) :
-    s'.simpleKeyAllowed = true ∧ s'.simpleKey = (saveSimpleKey s).simpleKey := by
+    s'.simpleKeyAllowed = true ∧ s'.simpleKey.possible = false := by
   have h_pp : scanNextToken_preprocess s = .ok (some (saveSimpleKey s, ',')) :=
     scanNextToken_preprocess_flow s ',' rest s.col hcorr h_flow (by decide) (by decide) (by decide)
   have h_sk_flow : (saveSimpleKey s).inFlow = s.inFlow := saveSimpleKey_preserves_inFlow s
@@ -3226,16 +3231,13 @@ lemma scanNextToken_flow_comma_simpleKey (s : ScannerState) (rest : List Char)
     exact saveSimpleKey_preserves_lastRealTokenVal_ne_flow s h_last t ht
   have h_flow_disp := dispatchFlowIndicators_comma s_ad h_fl_pos h_ad_last
   have h_snt_eq : scanNextToken s =
-      .ok (some { (s_ad.emit .flowEntry).advance with simpleKeyAllowed := true, explicitKeyLine := none }) :=
+      .ok (some { (s_ad.emit .flowEntry).advance with simpleKeyAllowed := true, explicitKeyLine := none, simpleKey := { possible := false } }) :=
     scanNextToken_via_flow_dispatch _ _ _ _ _ h_pp h_struct rfl h_check h_flow_disp
       (scanNextToken_ok_directivesPresent_false h_pp h_struct h_snt)
-  have h_s' : s' = { (s_ad.emit .flowEntry).advance with simpleKeyAllowed := true, explicitKeyLine := none } :=
+  have h_s' : s' = { (s_ad.emit .flowEntry).advance with simpleKeyAllowed := true, explicitKeyLine := none, simpleKey := { possible := false } } :=
     Option.some.inj (Except.ok.inj (h_snt.symm.trans h_snt_eq))
   rw [h_s']
-  refine ⟨rfl, ?_⟩
-  dsimp only []
-  rw [ScannerCorrectness.advance_preserves_simpleKey, ScannerCorrectness.emit_preserves_simpleKey]
-  simp only [s_ad]; split <;> rfl
+  exact ⟨rfl, rfl⟩
 
 /-- `ScanChain_deterministic`: two chains with the same start state and step count
     reach the same final state (since `scanNextToken` is a function). -/

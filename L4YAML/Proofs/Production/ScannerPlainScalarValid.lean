@@ -4807,8 +4807,9 @@ lemma dispatchFlowIndicators_preserves_AllKeysPlaceholderInv
               · simp at h_ok
               · rename_i _ _ _ h_entry
                 simp only [Except.ok.injEq, Option.some.injEq] at h_ok; subst h_ok
-                exact AllKeysPlaceholderInv_mono s _ h_akpi
-                  (scanFlowEntry_preserves_simpleKey s _ h_entry)
+                -- item 9q: the `,` clears the current key; the stack is untouched
+                exact AllKeysPlaceholderInv_of_cleared_mono s _ h_akpi
+                  (scanFlowEntry_clears_simpleKey s _ h_entry)
                   (scanFlowEntry_preserves_simpleKeyStack s _ h_entry)
                   (by have := ScanHelpers.scanFlowEntry_adds_one_token s _ h_entry; omega)
                   (fun i hi => ScanHelpers.scanFlowEntry_preserves_prefix s _ h_entry i hi)

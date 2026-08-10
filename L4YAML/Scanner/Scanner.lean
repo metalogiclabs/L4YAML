@@ -554,7 +554,19 @@ def scanFlowEntry (s : ScannerState) : Except ScanError ScannerState := do
   let s_with_token := s.emit .flowEntry
   let s_after_advance := s_with_token.advance
   -- §7.4.1 [150] (item 9l): the `,` ends the explicit-key entry.
-  .ok { s_after_advance with simpleKeyAllowed := true, explicitKeyLine := none }
+  -- The pending simple key is DEAD here (item 9q): the `,` re-enables simple-key
+  -- reservation, so preprocessing's `saveSimpleKey` overwrites `simpleKey`
+  -- before any dispatcher can read it.  Leaving it set is therefore
+  -- unobservable, but it points at the PREVIOUS entry's reservation — below the
+  -- incoming token array's end — which falsifies `SimpleKeyAboveFloor`, the
+  -- premise every prefix-preservation lemma in the emitter-scannability tower
+  -- goes through.  Clearing it is behaviour-preserving (verified: all 351
+  -- `yaml-test-suite` sources byte-identical in both pipelines) and is what
+  -- lets a flow pair list carry its entry boundary across the `,`.
+  .ok { s_after_advance with
+        simpleKeyAllowed := true
+        explicitKeyLine := none
+        simpleKey := { possible := false } }
 
 /-- §7.4 [137]/[140]: inside a flow collection every value must be
     separated from the next by `,` (entry separator) or `:` (value

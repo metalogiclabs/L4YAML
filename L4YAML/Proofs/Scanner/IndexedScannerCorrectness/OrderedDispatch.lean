@@ -202,11 +202,13 @@ lemma scanFlowMappingEndIx_preserves_AllKeysValidIx {input : String}
 lemma scanFlowEntryIx_preserves_AllKeysValidIx {input : String}
     (s s' : ScannerStateIx input) (h_akv : AllKeysValidIx s)
     (h_ok : scanFlowEntryIx s = .ok s') : AllKeysValidIx s' := by
-  apply AllKeysValidIx_mono s s' h_akv
-    (scanFlowEntryIx_preserves_simpleKey s s' h_ok)
-    (scanFlowEntryIx_preserves_simpleKeyStack s s' h_ok)
-    (scanFlowEntryIx_tokens_size_le h_ok)
-    (fun i hi => scanFlowEntryIx_preserves_prefix s s' h_ok i hi)
+  -- item 9q: the `,` clears the current key; the stack is untouched
+  exact AllKeysValidIx_of_cleared s'
+    (scanFlowEntryIx_clears_simpleKey s s' h_ok)
+    (SimpleKeyStackValidIx_mono s s' h_akv.2
+      (scanFlowEntryIx_preserves_simpleKeyStack s s' h_ok)
+      (scanFlowEntryIx_tokens_size_le h_ok)
+      (fun i hi => scanFlowEntryIx_preserves_prefix s s' h_ok i hi))
 
 /-! #### §8.7.3  Block entry / key preservation. -/
 

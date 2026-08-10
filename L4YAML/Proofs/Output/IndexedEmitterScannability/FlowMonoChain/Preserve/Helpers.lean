@@ -445,7 +445,7 @@ lemma AllTokensOnLineIx_scanFlowMappingEndIx (s : ScannerStateIx input) (l : Nat
 lemma AllTokensOnLineIx_scanFlowEntry_expr (s : ScannerStateIx input) (l : Nat)
     (h_atol : AllTokensOnLineIx s l) (h_line : s.cursor.pos.line = l) :
     AllTokensOnLineIx
-      ({ (s.emit YamlToken.flowEntry).advance with simpleKeyAllowed := true, explicitKeyLine := none }) l := by
+      ({ (s.emit YamlToken.flowEntry).advance with simpleKeyAllowed := true, explicitKeyLine := none, simpleKey := { possible := false } }) l := by
   intro i h_bound
   have h_emit := AllTokensOnLineIx_emit s YamlToken.flowEntry l h_atol h_line
   have h_adv := AllTokensOnLineIx_advance _ l h_emit

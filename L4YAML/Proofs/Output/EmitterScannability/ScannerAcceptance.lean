@@ -791,8 +791,9 @@ lemma dispatchFlowIndicators_maintains_SimpleKeyAboveFloor (s : ScannerState) (c
     | exact SimpleKeyAboveFloor_of_flow_open _ s n₀ fl₀
         (ScannerCorrectness.scanFlowMappingStart_simpleKey_cleared s)
         (ScannerCorrectness.scanFlowMappingStart_stack_pushed s) h_inv
-    | (rename_i h_eq; exact SimpleKeyAboveFloor_of_preserved _ s n₀ fl₀
-        (ScannerCorrectness.scanFlowEntry_preserves_simpleKey s _ h_eq)
+    | -- item 9q: the `,` clears the current key, preserves the stack
+      (rename_i h_eq; exact SimpleKeyAboveFloor_of_cleared_preserved _ s n₀ fl₀
+        (ScannerCorrectness.scanFlowEntry_clears_simpleKey s _ h_eq)
         (ScannerCorrectness.scanFlowEntry_preserves_simpleKeyStack s _ h_eq) h_inv)
     | (simp_all; done)
     | -- Flow close (seq end or mapping end)
@@ -1541,8 +1542,9 @@ lemma dispatchFlowIndicators_maintains_NoOverwriteAt (s : ScannerState) (c : Cha
     | exact NoOverwriteAt_of_flow_close _ s m
         (ScannerCorrectness.scanFlowMappingEnd_simpleKey_restored s)
         (ScannerCorrectness.scanFlowMappingEnd_stack_popped s) h_inv
-    | (rename_i h_eq; exact NoOverwriteAt_of_preserved _ s m
-        (ScannerCorrectness.scanFlowEntry_preserves_simpleKey s _ h_eq)
+    | -- item 9q: the `,` clears the current key, preserves the stack
+      (rename_i h_eq; exact NoOverwriteAt_of_cleared_preserved _ s m
+        (ScannerCorrectness.scanFlowEntry_clears_simpleKey s _ h_eq)
         (ScannerCorrectness.scanFlowEntry_preserves_simpleKeyStack s _ h_eq) h_inv)
     | (simp_all; done)
 
@@ -2201,8 +2203,9 @@ lemma dispatchFlowIndicators_maintains_FlowNoOverwriteAt (s : ScannerState) (c :
     | exact FlowNoOverwriteAt_of_flow_close _ s m
         (ScannerCorrectness.scanFlowMappingEnd_simpleKey_restored s)
         (ScannerCorrectness.scanFlowMappingEnd_stack_popped s) h_inv
-    | (rename_i h_eq; exact FlowNoOverwriteAt_of_preserved _ s m
-        (ScannerCorrectness.scanFlowEntry_preserves_simpleKey s _ h_eq)
+    | -- item 9q: the `,` clears the current key, preserves the stack
+      (rename_i h_eq; exact FlowNoOverwriteAt_of_cleared_preserved _ s m
+        (ScannerCorrectness.scanFlowEntry_clears_simpleKey s _ h_eq)
         (ScannerCorrectness.scanFlowEntry_preserves_simpleKeyStack s _ h_eq) h_inv)
     | (simp_all; done)
 
