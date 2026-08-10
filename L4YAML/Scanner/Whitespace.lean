@@ -260,11 +260,21 @@ def skipToContentLoop (s : ScannerState) (fuel : Nat) : Except ScanError Scanner
       | some c =>
         if isLineBreakBool c then
           let s3 := consumeNewline s2
-          -- §7.4.2: In flow sequences, implicit keys are restricted to a
-          -- single line.  Don't re-enable simple keys on newline so that
-          -- `saveSimpleKey` preserves (rather than overwrites) the pending
-          -- key, allowing `scanValue` to detect the line mismatch.
-          if !s3.isInFlowSequence then
+          -- §7.4.2: Inside a flow collection, don't re-enable simple keys on a
+          -- newline, so that `saveSimpleKey` preserves (rather than overwrites)
+          -- the pending key and `scanValue`'s guards read the true entry state.
+          -- For flow SEQUENCES this lets the §7.4.2 multiline check detect the
+          -- line mismatch (the original scope of this gate).  For flow MAPPINGS
+          -- (item 10, 2026-08-10) it keeps the entry-boundary reservation alive
+          -- across the break, so T833 rejects `{a: b⏎: c}` at the scanner the
+          -- same way it rejects `{a: b: c}` — previously the newline re-enable
+          -- let `saveSimpleKey` mask the completed entry with a fresh key at
+          -- the `:` itself, and the shape scanned clean.  Legal multi-line keys
+          -- are unaffected: `{a⏎: b}` and `{"a"⏎: b}` resolve the ORIGINAL
+          -- reservation (saved before the key node, slot after `{`), which is
+          -- exactly what the same-line forms produce.  In block context a break
+          -- always re-enables, as before.
+          if !s3.inFlow then
             skipToContentLoop { s3 with simpleKeyAllowed := true } fuel'
           else
             skipToContentLoop s3 fuel'
