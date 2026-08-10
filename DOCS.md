@@ -5471,7 +5471,7 @@ lives in [README.md](README.md) and is not duplicated here.)
 |---|---|---|
 | `ns-char` predicate spec-loose body | **Fixed 2026-08-01** (predicates tightened; scanner + emitter conformant; regression-tested) | [The ns-char gap](#the-ns-char-gap) |
 | **Indexed-pipeline parity** (the twin consumers actually call) | **CLOSED 2026-08-06 — full parity: event 402/402 · JSON 282/282 · accept/reject 402/402, same run as an identically-scoring legacy baseline; all 94 invalid inputs rejected with the identical `ScanError` (items 6+7)** | [Indexed-pipeline parity gap](#indexed-pipeline-parity-gap) |
-| Grammar completeness (`parse_iff_grammar`, capstone 7.7) | **Open — forward direction DONE** (2026-08-10): Fix B done; Fix A's accumulation is **sorry-free** (`StreamAccum.lean`, all five β.3 sites closed — site 2 by item 9s, **site 5 by item 9t**) and the `L4YAML.Capstones` gate is **green**; what the forward theorems still concede is the `scannerDrop` constructor (β.5) and then the converse remains. The **content step (site 3) is CLOSED** as of 2026-08-08 — every flow-interior content character, including `&`/`!`, which now open and extend a held `[96] c-ns-properties` run in the interior gap. The block step's `?` arm is closed (**9g**) and its `:` arm is blocked on one measured invariant strengthening; the depth-0 open (**9h**) is **not** refutable at all — it is inhabited by legal input. Both were re-priced 2026-08-08: each needs a scanner strictening its earlier diagnosis had not seen, and both of those have now landed (**item 9j** the `?`'s mandatory separation, **item 9k** the depth-0 repeated-property tests plus the `needIndentCheck` transport they consume). **Item 9l** then closed the `?` arm's vocabulary — and found that its last piece was a gap in the SURFACE GRAMMAR, not the accumulator: `[143]`'s `( e-node e-node )` and `[146]`'s empty key had no representative, so `[? ]`, `[: a]` and four more parsed correctly with no derivation. The same enumeration found the mirror defect, a shipped over-REJECTION of `[? a, b: c]` and siblings, also fixed. **Item 10** then built that arm's producer out of 9g's guard read forward, closing the `?` arm entirely; site 2 is now the `:` arm alone, and **items 9n and 9o** split it into a 2×4 grid (frame tail × interior gap) of which five cells are settled. **Item 9p** then built the discharge that datum needs, landed its substrate sorry-free, and found the price was recorded against the wrong thing: seven of the eight pair-list assemblers already carry the reservation index, and the whole blockage is ONE state — the eighth's own recursion tail, where the `,` leaves a dead pending key that falsifies the tower's prefix-preservation premise. **Item 9q** then BUILT that normalization: the `,` now clears the dead key in both pipelines, corpus byte-identical, and the eleven invariant transports it rippled through needed zero new constructors — the change's real cost was forty statement sites quoting the step's result record. Items 9r/9s then landed the strengthening and its firing-direction transport (site 2 closed), and **item 9t closed site 5** — the pendings sorted by producer guarantee: three refuted via the `h_line` lookahead field, `pendingFlow` riding its own drop, the props run parked as `pendingProps`. What is left: β.5 deletes `scannerDrop`, the Ix substrate package, then the converse | [Grammar completeness plan](#grammar-completeness-plan) |
+| Grammar completeness (`parse_iff_grammar`, capstone 7.7) | **Open — forward direction DONE** (2026-08-10): Fix B done; Fix A's accumulation is **sorry-free** (`StreamAccum.lean`, all five β.3 sites closed — site 2 by item 9s, **site 5 by item 9t**) and the `L4YAML.Capstones` gate is **green**; what the forward theorems still concede is the `scannerDrop` constructor (β.5) and then the converse remains. The **content step (site 3) is CLOSED** as of 2026-08-08 — every flow-interior content character, including `&`/`!`, which now open and extend a held `[96] c-ns-properties` run in the interior gap. The block step's `?` arm is closed (**9g**) and its `:` arm is blocked on one measured invariant strengthening; the depth-0 open (**9h**) is **not** refutable at all — it is inhabited by legal input. Both were re-priced 2026-08-08: each needs a scanner strictening its earlier diagnosis had not seen, and both of those have now landed (**item 9j** the `?`'s mandatory separation, **item 9k** the depth-0 repeated-property tests plus the `needIndentCheck` transport they consume). **Item 9l** then closed the `?` arm's vocabulary — and found that its last piece was a gap in the SURFACE GRAMMAR, not the accumulator: `[143]`'s `( e-node e-node )` and `[146]`'s empty key had no representative, so `[? ]`, `[: a]` and four more parsed correctly with no derivation. The same enumeration found the mirror defect, a shipped over-REJECTION of `[? a, b: c]` and siblings, also fixed. **Item 10** then built that arm's producer out of 9g's guard read forward, closing the `?` arm entirely; site 2 is now the `:` arm alone, and **items 9n and 9o** split it into a 2×4 grid (frame tail × interior gap) of which five cells are settled. **Item 9p** then built the discharge that datum needs, landed its substrate sorry-free, and found the price was recorded against the wrong thing: seven of the eight pair-list assemblers already carry the reservation index, and the whole blockage is ONE state — the eighth's own recursion tail, where the `,` leaves a dead pending key that falsifies the tower's prefix-preservation premise. **Item 9q** then BUILT that normalization: the `,` now clears the dead key in both pipelines, corpus byte-identical, and the eleven invariant transports it rippled through needed zero new constructors — the change's real cost was forty statement sites quoting the step's result record. Items 9r/9s then landed the strengthening and its firing-direction transport (site 2 closed), and **item 9t closed site 5** — the pendings sorted by producer guarantee: three refuted via the `h_line` lookahead field, `pendingFlow` riding its own drop, the props run parked as `pendingProps`. **Item 11** then landed the INDEXED substrate package 9r measured — `scanValueValidateIx` strictened, both scanners rejecting the seven divergent shapes with the identical `ScanError`, the layout carried as ONE conditional conjunct on `EmitScansInFlowIx` where legacy needed a second tower (Reflection 635) — and deleted the dead `accum_flow_pending`. What is left: β.5 deletes `scannerDrop`, then the converse | [Grammar completeness plan](#grammar-completeness-plan) |
 | Merge semantics (`DuplicateKeyPolicy.merge`) | **Open** (design ready; re-base on `LawfulBEq`) | [Merge semantics plan](#merge-semantics-plan) |
 | Security limits: open questions + future work | **Open** (design questions; 3 unimplemented features) | [Security hardening backlog](#security-hardening-backlog) |
 | Limit-enforcement verification, and the rest | **Open** (varied) | [Other open items](#other-open-items) |
@@ -5486,17 +5486,17 @@ completeness.
 
 | # | Action | Blocks | Where |
 |---|---|---|---|
-| 12 | **β.5 — retire `pendingFlow`, delete `scannerDrop`.** Once no dispatch produces `pendingFlow`, the `close_with_ssl` arm that calls `scannerDrop` is unreachable; delete the constructor from `Surface/Document.lean`. β.3 and β.4 completed 2026-08-10 (items 9s/9t: `StreamAccum.lean` sorry-free, the chain threaded, the `L4YAML.Capstones` gate GREEN), so this now STRENGTHENS `scan_strict_proof`/`parse_strict_proof` — the drop constructor is the one remaining hole in what they assert — rather than unblocking the gate. Also outstanding on the way: the INDEXED substrate package 9r measured (five scenario-lemma exposures + one conditional layout conjunct on `EmitScansInFlowIx` + four call sites), and retiring `pendingProps`'s content-dispatch escape (`&a b`, `&a !t [b]` still ride the deferral) | Step 5, the converse | ditto |
+| 12 | **β.5 — retire `pendingFlow`, delete `scannerDrop`.** Once no dispatch produces `pendingFlow`, the `close_with_ssl` arm that calls `scannerDrop` is unreachable; delete the constructor from `Surface/Document.lean`. β.3 and β.4 completed 2026-08-10 (items 9s/9t: `StreamAccum.lean` sorry-free, the chain threaded, the `L4YAML.Capstones` gate GREEN), so this now STRENGTHENS `scan_strict_proof`/`parse_strict_proof` — the drop constructor is the one remaining hole in what they assert — rather than unblocking the gate. **Item 11 (2026-08-10) closed the on-the-way items**: the INDEXED substrate package landed (`scanValueValidateIx` strictened; five scenario exposures + the conditional layout conjunct on `EmitScansInFlowIx` + four call sites; §4 divergence CLOSED, both scanners identical `ScanError`; Reflection 635) and the dead `accum_flow_pending` was deleted, so `block_dispatch_deferred` is the ONLY `pendingFlow` producer left. Still open here: retiring `pendingProps`'s content-dispatch escape (`&a b`, `&a !t [b]` still ride the deferral — needs a depth-0 props↔scanner coupling for the repeated-property/alias refutations), then the block arms behind `block_dispatch_deferred` (`?`/`:` indicators, nested `-`, col≠0) | Step 5, the converse | ditto |
 | 13 | **Step 5 — the converse** `grammar_completeness`, then **Step 6** the `parse_iff_grammar` biconditional | capstone 7.7 | [Grammar completeness plan](#grammar-completeness-plan) |
 
-Everything above item 10 is closed; the closure records live in the
+Everything above item 12 is closed; the closure records live in the
 sections below, the blow-by-blow history in git.
 
-`L4YAML.Capstones` is now the **only** failing build target, and its only
-failure is the single `parse_strict_proof depends on sorryAx` that β.5 removes
-— so items 10–12 are exactly what stands between here and a fully green
-`lake build`. (The two `Tests/Reflections` targets that trailed 9b's adjacency
-premise were fixed 2026-08-06; `Tests.Reflections` builds green at 382 jobs.)
+The full `lake build` has been GREEN since item 9t (939 targets as of item
+11), `L4YAML.Capstones` included — what item 12 buys is STRENGTH: the
+`scannerDrop` constructor is the one remaining hole in what the capstones
+assert. `Tests.Guards` builds at 204 jobs, `Tests.Reflections` at 408
+(R635); matrix event 402/402 · JSON 282/282 on the indexed instruments.
 
 
 ## The ns-char gap
@@ -5597,7 +5597,7 @@ Step 0 (the scanner audit for directive handling) and Fix B (eliminating
 
 | Step | Status |
 |---|---|
-| Fix A: eliminate `scannerDrop` | 🟡 **β.3 and β.4 COMPLETE (2026-08-10)** — `StreamAccum.lean` is **sorry-free** and the `L4YAML.Capstones` gate is **GREEN** (full `lake build` passes). Site 2 closed by items 9l/10/9n–9s (the strictening plus its firing-direction companion mask); **site 5 closed by item 9t**: three pendings refuted through one dispatch of lookahead carried as the `h_line` field (fed by their producers' own trailing validations, `Proofs/Scanner/LineOpenGuard.lean`), the deferred `pendingFlow` riding its own `scannerDrop`, and the legal `[96]` run parked as `PendingNode.pendingProps` whose closures ride it INTO the flow node. What remains is **β.5** — retire `pendingFlow` and delete the `scannerDrop` constructor itself (a strengthening: it is the one remaining hole in what the capstones assert), the `pendingProps` content-dispatch composition (`&a b` still escapes through the deferral), and the indexed substrate package (measured: five exposures + one conditional conjunct + four sites).
+| Fix A: eliminate `scannerDrop` | 🟡 **β.3 and β.4 COMPLETE (2026-08-10)** — `StreamAccum.lean` is **sorry-free** and the `L4YAML.Capstones` gate is **GREEN** (full `lake build` passes). Site 2 closed by items 9l/10/9n–9s (the strictening plus its firing-direction companion mask); **site 5 closed by item 9t**: three pendings refuted through one dispatch of lookahead carried as the `h_line` field (fed by their producers' own trailing validations, `Proofs/Scanner/LineOpenGuard.lean`), the deferred `pendingFlow` riding its own `scannerDrop`, and the legal `[96]` run parked as `PendingNode.pendingProps` whose closures ride it INTO the flow node. **Item 11 (2026-08-10) landed the indexed substrate package** 9r measured — `scanValueValidateIx` is strictened, both scanners now reject the seven §4 shapes with the identical `ScanError` (divergence CLOSED), and the dead 4z.1 `accum_flow_pending` was deleted (two of the three `pendingFlow` construction sites; `block_dispatch_deferred` is the survivor). What remains is **β.5 proper** — retire `pendingFlow` and delete the `scannerDrop` constructor itself (a strengthening: it is the one remaining hole in what the capstones assert), and the `pendingProps` content-dispatch composition (`&a b` still escapes through the deferral).
 | 1b. Remove `scannerDrop` from `SLYamlStream` | ⬜ open — β.5, once that last use is gone |
 | 5. Prove the converse `grammar_completeness` | ⬜ open — depends on Fix A |
 | 6. Assemble the `parse_iff_grammar` biconditional | ⬜ open — depends on Step 5 |
@@ -7430,15 +7430,72 @@ assert.
 `PendingLookaheadField`, Reflection 634); corpus 351/351 byte-identical, both
 pipelines.
 
+#### Item 11 — the Ix saved-key substrate lands; the §4 divergence CLOSES (2026-08-10)
+
+The indexed strictening item 9r measured — and deliberately deferred — is
+built and green.  `scanValueValidateIx`'s T833 guard no longer reads lines:
+`[a: b: c]`, `{a: : b}`, `[: :]`, `[a: &x : b]` and their neighbours now fail
+at BOTH scanners with the IDENTICAL `ScanError`, and the seven-shape §4
+divergence pin in `Tests/Guards/Proofs/ScannerFlowPropsColon.lean` flipped
+from `rejectedByLegacyScannerOnly` to the same `rejectsInScanner` form §1–§3
+use.  The measured budget held exactly: five scenario-lemma exposures, one
+conditional layout conjunct, four assembler call sites.
+
+**One conditional conjunct where legacy needed a second tower.**  The legacy
+landing carried the reservation layout in a parallel substrate
+(`EmitScansInFlowSavedKey`) and then had to merge the towers.  The indexed
+landing added ONE conjunct to `EmitScansInFlowIx`'s conclusion —
+`simpleKeyAllowed = true → LastRawNotValueIx s → SavedKeyAtEntryBoundaryIx s'`
+— whose antecedents are state bits the machine itself flips, so they
+SELF-SELECT the positions that owe the layout: loaded exactly after `{`/`[`/`,`
+(key positions), vacuous exactly after `: ` (the just-emitted `.value` caps
+the raw array).  Scalars establish it by the save-then-push shape; a
+collection-valued KEY by the open's stack push, the body's
+`FlowMonoChainIx_preserves_raw_prefix` chain (whose `SimpleKeyAboveFloorIx`
+stack half goes vacuous under EXACT stack–flow sync — which therefore joined
+the predicates as a self-propagating hypothesis, mirroring the legacy sync),
+and the close's restore.  The substrate (`SavedKeyAtEntryBoundaryIx`,
+`LastRawNotValueIx`, the prefix-form bridge, the `saveSimpleKeyIx` layout
+lemmas) lives in `FlowMonoChain/Preserve/Helpers.lean` §3b; the gateway kept
+its historical name so the call sites read as one-argument edits.
+
+**Exposures come producer-shaped.**  The five scenario lemmas gained the same
+triple at every boundary token: the opens (nested `[`/`{` + the `{`-init)
+expose re-enable + raw-cap + the stack-push identity; the closes expose the
+restore identity + a `getElem?` prefix; the comma exposes re-enable + cleared
+key + raw-cap; the one-space skip and the scalar expose their preservations.
+`scanNextToken_flow_valueIx` consumes the boundary (its `saveSimpleKeyIx` is
+the identity under the key scan's `simpleKeyAllowed = false`), supplied at the
+four pair-list call sites from the key scan's conjunct + the pair-start facts
+`EmitPairListScansInFlowIx`(/`_strong`) now hypothesize.
+
+**β.5 hygiene on the way.**  The dead 4z.1 catch-all `accum_flow_pending`
+(every depth-0 flow indicator → `FlowStack.nil` + `pendingFlow`; no call site
+survived the β.3 campaign — `accum_flow_open_depth0` is the live path) was
+deleted from `StreamAccum.lean`, removing two of the three
+`PendingNode.pendingFlow` construction sites.  The survivor is
+`block_dispatch_deferred`, which is exactly what the rest of β.5 retires.
+
+**Validation.**  Full `lake build` green (939 targets, 0 failures);
+`Tests.Guards` 204 jobs; `Tests.Reflections` 408 jobs (new
+`ConditionalLayoutConjunct`, Reflection 635); all Lean test suites pass
+(suiterunner 869/869 non-skipped); matrix on the INDEXED instruments: event
+**402/402**, JSON **282/282** (94 err-ok rejections intact); the seven §4
+shapes spot-checked rejecting at both scanners with identical errors.
+
+Reflection **635** (a conditional conjunct replaces a parallel tower).
+
 #### What remains: β.5 (β.3 and β.4 completed 2026-08-10)
 
-> **Status (2026-08-10, item 9t):** `StreamAccum.lean` is **sorry-free**, the
+> **Status (2026-08-10, item 11):** `StreamAccum.lean` is **sorry-free**, the
 > chain is threaded, and the `L4YAML.Capstones` gate is **GREEN** — the full
 > `lake build` passes.  β.4's threading had landed incrementally with the β.3
-> passes; the paragraphs below record how the five sites fell.  What remains
-> is **β.5** (retire `pendingFlow`, delete `scannerDrop` — a STRENGTHENING of
-> the capstones, not a gate fix), the indexed substrate package 9r measured,
-> and then the converse.
+> passes; the paragraphs below record how the five sites fell.  The indexed
+> substrate package 9r measured has LANDED (item 11: `scanValueValidateIx`
+> strictened, §4 divergence closed) and the dead `accum_flow_pending` is
+> deleted.  What remains is **β.5 proper** (retire `pendingFlow`, delete
+> `scannerDrop` — a STRENGTHENING of the capstones, not a gate fix), and then
+> the converse.
 
 `StreamAccum.lean` carried **two** `sorry` sites, both in β.3 (down from five;
 `accum_step_structural` and `scanNextToken_none_stream` closed 2026-08-06,
@@ -7585,11 +7642,16 @@ Then:
   the `close_with_ssl` arm that calls `scannerDrop` becomes unreachable), then
   delete `scannerDrop` from `Surface/Document.lean`.  `scan_strict_proof` and
   `parse_strict_proof` are automatically STRENGTHENED — the gate is already
-  green as of item 9t, so this buys strength, not green.  On the way:
-  `pendingProps`'s content-dispatch composition (`&a b`, `&a !t [b]` still
-  escape through `block_dispatch_deferred`), which is where item 9k's
-  same-line residual finally gets its consumer, and the indexed substrate
-  package 9r measured.
+  green as of item 9t, so this buys strength, not green.  Item 11 landed the
+  two on-the-way items (the indexed substrate package; the dead
+  `accum_flow_pending` deleted, leaving `block_dispatch_deferred` as the ONLY
+  `pendingFlow` producer).  Still owed here: `pendingProps`'s
+  content-dispatch composition (`&a b`, `&a !t [b]` still escape through
+  `block_dispatch_deferred`), which is where item 9k's same-line residual
+  finally gets its consumer — it needs a depth-0 coupling from the held run
+  to the scanner's `trailingPropertyRun` guards for the repeated-property and
+  alias refutations — and then the block arms behind
+  `block_dispatch_deferred` itself (`?`/`:` indicators, nested `-`, col≠0).
 
 ### Implementation Plan (remaining)
 

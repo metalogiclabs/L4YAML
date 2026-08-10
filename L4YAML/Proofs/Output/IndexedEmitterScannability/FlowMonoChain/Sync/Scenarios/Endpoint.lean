@@ -471,7 +471,10 @@ lemma scanNextTokenIx_flow_open_mapping_init (input : String) (rest : List Char)
       ∧ s'.simpleKey.possible = false
       ∧ s'.simpleKeyStack.size = s'.flowLevel
       ∧ (∀ t, lastRealTokenValIx? s'.tokens = some t → t.completesFlowValue = false)
-      ∧ s'.flowStack.back? = some false := by
+      ∧ s'.flowStack.back? = some false
+      -- item 9r: the pair-start facts at the top-level `{`.
+      ∧ s'.simpleKeyAllowed = true
+      ∧ LastRawNotValueIx s' := by
   intro s₀
   -- Step 1: preprocessing (uses §2)
   have h_pp := scanNextTokenIx_preprocess_init_state input '{' rest h_toList
@@ -666,10 +669,19 @@ lemma scanNextTokenIx_flow_open_mapping_init (input : String) (rest : List Char)
   have h_s'_push : (scanFlowMappingStartIx s_ad).flowStack.back? = some false := by
     rw [scanFlowMappingStartIx_flowStack]
     exact Array.back?_push
+  -- item 9r exposures: the `{` re-enables saves and caps the raw array.
+  have h_s'_ska : (scanFlowMappingStartIx s_ad).simpleKeyAllowed = true := rfl
+  have h_s'_lrv : LastRawNotValueIx (scanFlowMappingStartIx s_ad) := by
+    refine lastRawNotValueIx_of_push ?_
+      (show (scanFlowMappingStartIx s_ad).tokens.tokens
+        = s_ad.tokens.tokens.push (IxToken.mk' (input := input) s_ad.cursor.pos
+            YamlToken.flowMappingStart s_ad.cursor.pos (Nat.le_refl _)
+            s_ad.cursor.posBound) from rfl)
+    nofun
   -- Combine
   refine ⟨scanFlowMappingStartIx s_ad, h_snt, h_s'_corr, h_s'_fl, h_s'_dp, h_s'_ids,
           h_s'_col, h_s'_inflow, h_s'_ci, h_s'_ek, h_s'_line, h_s'_atol, h_s'_endline,
-          h_s'_sk_poss, h_s'_stack_sz, h_s'_last, h_s'_push⟩
+          h_s'_sk_poss, h_s'_stack_sz, h_s'_last, h_s'_push, h_s'_ska, h_s'_lrv⟩
 
 /-! ## §6  `scanNextTokenIx_flow_open_seq_init`
 

@@ -1521,7 +1521,7 @@ inductive FlowOpenStack (sp_start : SurfPos) :
 -- closed it directly. With the corrected per-frame `SeqFrame`/`MapFrame` state, the
 -- close must first complete any `mid` entry (sep-sensitive; its exact separator
 -- signature is only pinned by how the accum step threads scan positions). Rebuilt
--- in B.4b alongside `accum_flow_pending`.
+-- in B.4b.
 
 /-- The base `resume` for a TOP-LEVEL flow document node: the completed flow node
     is a bare document that extends the stream (via `implicitContinue`). The
@@ -1693,7 +1693,7 @@ lemma FlowStackK.retail {sp_start : SurfPos} {sc : ScannerState} {ks : Array Boo
 
     Centralizes the per-constructor closing strategies that were previously
     duplicated across `eof_pending`, `accum_structural_pending`,
-    `accum_flow_pending`, `accum_block_pending`, and `accum_content_pending`
+    `accum_block_pending`, and `accum_content_pending`
     (Wadler-style Pattern 6: parametric closing).
 
     Each constructor contributes only its closing strategy:
@@ -2787,75 +2787,13 @@ lemma dispatchFlowIndicators_corr (sc : ScannerState) (sp : SurfPos) (c : Char)
           -- none (fallthrough)
           · simp at hok
 
--- Helper: handles all PendingNode cases for flow dispatch given stream at sp_block.
-lemma accum_flow_pending (sc : ScannerState)
-    (sp_start sp_block sp_scan : SurfPos)
-    (s_prep s' : ScannerState) (c : Char)
-    (h_stream_block : SLYamlStream sp_start sp_block)
-    (h_pending : PendingNode false sp_start sp_block sp_scan)
-    (h_corr : ScannerSurfCorr sc sp_scan)
-    (h_preprocess : scanNextToken_preprocess sc = .ok (some (s_prep, c)))
-    (h_dispatch : scanNextToken_dispatchFlowIndicators
-        (if s_prep.allowDirectives then
-          { s_prep with allowDirectives := false, documentEverStarted := true }
-        else s_prep) c = .ok (some s')) :
-    ∃ sp_gram' sp_block' sp_flow' sp_scan',
-      SLYamlStream sp_start sp_gram' ∧
-      BlockStack sp_gram' sp_block' ∧
-      FlowStackB sp_start 0 #[] #[] .sep sp_block' sp_flow' ∧
-      PendingNode false sp_start sp_flow' sp_scan' ∧
-      ScannerSurfCorr s' sp_scan' := by
-  obtain ⟨sp_prep, hcorr_prep⟩ :=
-    scanNextToken_preprocess_corr sc sp_scan h_corr s_prep c h_preprocess
-  obtain ⟨sp_scan', hcorr_result⟩ :=
-    dispatchFlowIndicators_corr _ sp_prep c (corr_of_allowDirectives_update hcorr_prep) h_dispatch
-  -- All flow indicators produce FlowStack.nil + PendingNode.pendingFlow (4z.1).
-  -- GLit bracket evidence is not stored; deferred to close_with_ssl.
-  have new_flow_state : ∀ (sp_mid : SurfPos) (h_str_mid : SLYamlStream sp_start sp_mid),
-      ∃ sp_flow', FlowStackB sp_start 0 #[] #[] .sep sp_mid sp_flow' ∧ PendingNode false sp_start sp_flow' sp_scan' := by
-    intro sp_mid h_str_mid
-    exact ⟨sp_mid, FlowStackB.nil sp_mid .sep,
-           PendingNode.pendingFlow sp_start sp_mid sp_scan' h_str_mid⟩
-  -- Capture closing strategy before case-split (Pattern 6: parametric closing)
-  have h_close_pending : ∀ sp_mid, SSLComments sp_scan sp_mid → SLYamlStream sp_start sp_mid :=
-    fun sp_mid h_ssl => h_pending.close_with_ssl h_stream_block h_ssl
-  cases h_pending with
-  | noPending =>
-    obtain ⟨sp_flow', h_flow', h_pend'⟩ := new_flow_state sp_block h_stream_block
-    exact ⟨sp_block, sp_block, sp_flow', sp_scan', h_stream_block,
-           BlockStack.nil sp_block, h_flow', h_pend', hcorr_result⟩
-  | pendingDocEnd _ _
-  | pendingDocStart _
-  | pendingContent _ _
-  | pendingProps _ _
-  | pendingFlow _
-  | pendingBlockContent _ _ _ _
-  | pendingBlock _ _ =>
-    all_goals (
-      by_cases hcol : sp_scan.col = 0
-      · obtain ⟨sp_mid, _, _, h_ssl, _, _, _, _, _⟩ :=
-          preprocess_some_ssl_comments_col0 sc sp_scan s_prep c h_corr hcol h_preprocess
-        have h_stream_mid := h_close_pending sp_mid h_ssl
-        obtain ⟨sp_flow', h_flow', h_pend'⟩ := new_flow_state sp_mid h_stream_mid
-        exact ⟨sp_mid, sp_mid, sp_flow', sp_scan',
-               h_stream_mid,
-               BlockStack.nil sp_mid, h_flow', h_pend', hcorr_result⟩
-      · -- col≠0: use anyCol, close pending if SSLComments available.
-        obtain ⟨sp_mid, _, _, h_disj, _, _, _, _⟩ :=
-          preprocess_some_ssl_comments_anyCol sc sp_scan s_prep c h_corr h_preprocess
-        cases h_disj with
-        | inl h_ssl_col =>
-          obtain ⟨h_ssl, _⟩ := h_ssl_col
-          have h_stream_mid := h_close_pending sp_mid h_ssl
-          obtain ⟨sp_flow', h_flow', h_pend'⟩ := new_flow_state sp_mid h_stream_mid
-          exact ⟨sp_mid, sp_mid, sp_flow', sp_scan',
-                 h_stream_mid,
-                 BlockStack.nil sp_mid, h_flow', h_pend', hcorr_result⟩
-        | inr h_mid_eq =>
-          exact ⟨sp_block, sp_block, sp_block, sp_scan', h_stream_block,
-                 BlockStack.nil sp_block, FlowStackB.nil sp_block .sep,
-                 PendingNode.pendingFlow sp_start sp_block sp_scan' h_stream_block,
-                 hcorr_result⟩)
+-- NB (β.5 hygiene, DOCS item 12): the old 4z.1 catch-all `accum_flow_pending`
+-- (every flow indicator at depth 0 → `FlowStack.nil` + `pendingFlow`) was DEAD
+-- CODE — no call site survived the β.3 campaign; `accum_flow_open_depth0` (§1e)
+-- is the live depth-0 flow-open path, with real `FlowOpenStack` evidence.
+-- Deleting it removed two of the three `PendingNode.pendingFlow` construction
+-- sites; the survivor is `block_dispatch_deferred` (§1d), which is what the
+-- rest of β.5 retires.
 
 /-! ### §1c' Flow-open GLit production (B.4β.2)
 

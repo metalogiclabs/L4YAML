@@ -36,11 +36,11 @@ not a state.  The shapes that would reach it are rejected by item 9b's
 may not stand directly after a completed flow value.  On the white row the same
 tail is the MIXED class, the one cell nothing closes for free.
 
-§4 pins the props × `.colon` cell as still open, alongside the white row's two:
-those three shapes are rejected today only by the PARSER, and one strictening of
-`scanValueValidate` (DOCS item 9n / Reflection 617) moves all of them to the
-scanner at once.  They are listed here so the eventual strictening lands against
-recorded behaviour rather than against a diff.
+§4 pins the T833 strictening (DOCS items 9r + 11): a `:` at an
+already-complete entry is rejected at BOTH scanners with the identical
+`ScanError`.  The section pinned each intermediate state on the way — first the
+parser-only rejection, then the legacy-only scanner rejection — so each landing
+was measured against recorded behaviour rather than against a diff.
 -/
 
 namespace Tests.Guards.ScannerFlowPropsColon
@@ -158,41 +158,36 @@ one dispatcher before block-indicator dispatch is even reached. -/
 #guard rejectsInScanner "[[a] !t : b]\n" (.invalidFlowEntry 0 5)
 #guard rejectsInScanner "[{a: b} &x : c]\n" (.invalidFlowEntry 0 8)
 
-/-! ## §4  A SECOND `:` in one entry — rejected at the LEGACY scanner (item 9r)
+/-! ## §4  A SECOND `:` in one entry — rejected at BOTH scanners (item 9r,
+Ix landing: DOCS item 11)
 
-Three cells, one obligation, now discharged on the legacy side: the
-`scanValueValidate` strictening rejects all seven shapes at the SCANNER, because
-the pending simple key it reads was reserved at the `:` itself when the gap is
-empty and BEFORE the run when it is not, and the slot below that reservation is
-a `.value` exactly in the illegal shapes.
+Three cells, one obligation, discharged on BOTH sides: the
+`scanValueValidate` / `scanValueValidateIx` strictening rejects all seven
+shapes at the SCANNER, because the pending simple key it reads was reserved at
+the `:` itself when the gap is empty and BEFORE the run when it is not, and the
+slot below that reservation is a `.value` exactly in the illegal shapes.
 
-The INDEXED scanner still scans them clean — its strictening is blocked on an
-Ix saved-key substrate (no layout exposure exists on that side yet; see the
-item 9r section of `DOCS.md` for the measured budget), so on that pipeline the
-parser is still the refusing stage.  This DELIBERATE, DOCUMENTED divergence is
-pinned here exactly so the Ix landing is measured against a record, the same
-way this section once pinned the pre-strictening state for the legacy landing. -/
-
-/-- Item 9r's intermediate state: the LEGACY scanner rejects `input`, the
-    INDEXED scanner scans it clean, and neither pipeline emits events. -/
-private def rejectedByLegacyScannerOnly (input : String) : Bool :=
-  (match scanVerdicts input with
-   | (some _, none) => true
-   | _ => false) && bothEvents input == (none, none)
+The legacy landing (item 9r) deliberately deferred the indexed twin — this
+section pinned the divergence (legacy scanner rejects, indexed scanner scans
+clean, parser refuses) until the Ix saved-key substrate landed: the five
+scenario-lemma layout exposures, the conditional layout conjunct on
+`EmitScansInFlowIx`, and the four assembler call sites (DOCS item 11).  With
+that in, the guards below assert BOTH scanners reject with the IDENTICAL
+`ScanError`, same as §1–§3. -/
 
 -- White row, `.colon` cell.
-#guard rejectedByLegacyScannerOnly "[a: : b]\n"
-#guard rejectedByLegacyScannerOnly "[: :]\n"
-#guard rejectedByLegacyScannerOnly "{a: : b}\n"
-#guard rejectedByLegacyScannerOnly "[? : : a]\n"
+#guard rejectsInScanner "[a: : b]\n" (.invalidFlowEntry 0 4)
+#guard rejectsInScanner "[: :]\n" (.invalidFlowEntry 0 3)
+#guard rejectsInScanner "{a: : b}\n" (.invalidFlowEntry 0 4)
+#guard rejectsInScanner "[? : : a]\n" (.invalidFlowEntry 0 5)
 
 -- White row, `.value` cell (the mixed one): the entry is already complete.
-#guard rejectedByLegacyScannerOnly "[a: b: c]\n"
+#guard rejectsInScanner "[a: b: c]\n" (.invalidFlowEntry 0 5)
 
 -- Props row, `.colon` cell: the run sits between the two `:`s and changes
 -- nothing, because the reservation slot is older than the run.
-#guard rejectedByLegacyScannerOnly "[a: &x : b]\n"
-#guard rejectedByLegacyScannerOnly "[a: !t : b]\n"
+#guard rejectsInScanner "[a: &x : b]\n" (.invalidFlowEntry 0 7)
+#guard rejectsInScanner "[a: !t : b]\n" (.invalidFlowEntry 0 7)
 
 /-! ## §5  The run's other decisions, unchanged
 

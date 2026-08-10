@@ -562,10 +562,18 @@ def scanValueValidateIx {input : String} (s : ScannerStateIx input) :
       if let some top := s.indents.back? then
         if top.isSequence && keyCol == top.column then
           throw (.trailingContent s.simpleKey.cursor.pos.line s.simpleKey.cursor.pos.col)
-  -- T833: missing comma in flow mapping
+  -- T833: missing comma in flow mapping (item 9r: line-independent).
+  -- Mirrors the legacy strictening (`Scanner/SimpleKey.lean`): the
+  -- reservation at `simpleKey.tokenIndex` is the entry's start, and a
+  -- `.value` in the slot directly below it means the previous entry was
+  -- already complete (`k: v`) — this `:` continues it with no separator,
+  -- invalid whatever the line. Rejects `[a: b: c]`, `{a: : b}`, `[: :]`,
+  -- `[a: &x : b]` and their neighbours at the scanner, closing the
+  -- deliberate legacy↔indexed divergence pinned in
+  -- `Tests/Guards/Proofs/ScannerFlowPropsColon.lean` §4.
   if s.simpleKey.possible && s.inFlow && s.simpleKey.tokenIndex > 0 then
     if let some prevTok := s.tokens.tokens[s.simpleKey.tokenIndex - 1]? then
-      if prevTok.token == .value && prevTok.start.line != s.cursor.pos.line then
+      if prevTok.token == .value then
         throw (.invalidFlowEntry s.cursor.pos.line s.cursor.pos.col)
   -- §8.2.2 [197]: explicit value `:` must be at mapping indent level
   if let some ekLine := s.explicitKeyLine then

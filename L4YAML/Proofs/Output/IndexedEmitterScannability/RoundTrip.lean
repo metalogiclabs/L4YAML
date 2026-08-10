@@ -958,6 +958,8 @@ lemma emitList_body_filtered_characterizationIx_part1
     (h_ek : s.explicitKeyLine = none)
     (h_atol : AllTokensOnLineIx s s.cursor.pos.line)
     (h_endline : EndLineOnLineIx s)
+    -- item 9r: see `EmitScansInFlowIx`.
+    (h_sync : s.simpleKeyStack.size = s.flowLevel)
     (h_dp : s.directivesPresent = false)
     (h_last : ∀ t, lastRealTokenValIx? s.tokens = some t → t.completesFlowValue = false) :
     let p := fun (t : Indexed.IxToken input) => t.token != YamlToken.placeholder
@@ -982,7 +984,7 @@ lemma emitList_body_filtered_characterizationIx_part1
   have h_scan := emitList_scans_nonemptyIx items h_ne h_all
   obtain ⟨n, s', h_chain, h_corr', h_fl', h_dp', h_ids', h_ek', h_col', h_inflow',
           h_indent', h_line', h_atol', h_endline', h_stack', h_fmc⟩ :=
-    h_scan s rest h_corr h_flow h_fl h_indent h_col h_ek h_atol h_endline h_dp h_last
+    h_scan s rest h_corr h_flow h_fl h_indent h_col h_ek h_atol h_endline h_sync h_dp h_last
   -- Strict chain growth: through n steps, filtered count grows by ≥ n.
   have h_grows := ScanChainGrewIx_filtered_grows h_chain
   -- n ≥ 1 because emitList of a non-empty list is non-empty.
@@ -1042,6 +1044,10 @@ lemma emitPairList_body_filtered_characterizationIx_part1
     (h_ek : s.explicitKeyLine = none)
     (h_atol : AllTokensOnLineIx s s.cursor.pos.line)
     (h_endline : EndLineOnLineIx s)
+    -- item 9r: the pair-start facts; see `EmitPairListScansInFlowIx`.
+    (h_ska : s.simpleKeyAllowed = true)
+    (h_lrv : LastRawNotValueIx s)
+    (h_sync : s.simpleKeyStack.size = s.flowLevel)
     (h_dp : s.directivesPresent = false)
     (h_last : ∀ t, lastRealTokenValIx? s.tokens = some t → t.completesFlowValue = false) :
     let p := fun (t : Indexed.IxToken input) => t.token != YamlToken.placeholder
@@ -1066,7 +1072,8 @@ lemma emitPairList_body_filtered_characterizationIx_part1
   have h_scan := emitPairList_scans_nonemptyIx pairs h_ne h_all_k h_all_v
   obtain ⟨n, s', h_chain, h_corr', h_fl', h_dp', h_ids', h_ek', h_col', h_inflow',
           h_indent', h_line', h_atol', h_endline', h_stack', h_fmc⟩ :=
-    h_scan s rest h_corr h_flow h_fl h_indent h_col h_ek h_atol h_endline h_dp h_last
+    h_scan s rest h_corr h_flow h_fl h_indent h_col h_ek h_atol h_endline h_ska h_lrv h_sync
+      h_dp h_last
   -- Strict chain growth: through n steps, filtered count grows by ≥ n.
   have h_grows := ScanChainGrewIx_filtered_grows h_chain
   -- n ≥ 1 because emitPairList of a non-empty list is non-empty.

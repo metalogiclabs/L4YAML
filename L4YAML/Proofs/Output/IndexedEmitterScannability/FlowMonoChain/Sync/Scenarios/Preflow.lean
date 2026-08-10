@@ -232,7 +232,10 @@ lemma scanNextTokenIx_preprocess_flow_ws1 (s : ScannerStateIx input) (c : Char)
           AllTokensOnLineIx s₁ s₁.cursor.pos.line)
       ∧ (EndLineOnLineIx s → EndLineOnLineIx s₁)
       ∧ s₁.simpleKeyStack = s.simpleKeyStack
-      ∧ s₁.tokens = s.tokens := by
+      ∧ s₁.tokens = s.tokens
+      -- item 9r: the one-space skip touches only the cursor.
+      ∧ s₁.simpleKeyAllowed = s.simpleKeyAllowed
+      ∧ s₁.simpleKey = s.simpleKey := by
   -- The post-space state is `s.advance` (advance only moves the cursor).
   have ⟨h_sp, h_lt⟩ := peek_of_chars_consIx_state s ' ' (c :: rest) _ hcorr
   -- Surface correspondence at `c :: rest` after the space.
@@ -269,7 +272,7 @@ lemma scanNextTokenIx_preprocess_flow_ws1 (s : ScannerStateIx input) (c : Char)
     scanNextTokenIx_preprocess_flow s.advance c rest (s.cursor.pos.col + 1)
       h_corr_adv h_flow_adv h_nws h_nlb h_nc
   refine ⟨s.advance, h_corr₁, h_flow_adv, rfl, rfl, h_col_adv, rfl, rfl, rfl, h_line_adv,
-    h_pp_s.trans h_pp_adv.symm, ?_, ?_, rfl, rfl⟩
+    h_pp_s.trans h_pp_adv.symm, ?_, ?_, rfl, rfl, rfl, rfl⟩
   · -- AllTokensOnLineIx transfers: same tokens (defeq), same line.
     intro h_a i hi
     rw [h_line_adv]; exact h_a i hi
@@ -309,7 +312,13 @@ lemma scanNextTokenIx_flow_comma (s : ScannerStateIx input)
       ∧ AllTokensOnLineIx s' s'.cursor.pos.line
       ∧ EndLineOnLineIx s'
       ∧ s'.simpleKeyStack = s.simpleKeyStack
-      ∧ (∀ t, lastRealTokenValIx? s'.tokens = some t → t.completesFlowValue = false) := by
+      ∧ (∀ t, lastRealTokenValIx? s'.tokens = some t → t.completesFlowValue = false)
+      -- item 9r exposures: the `,` re-opens the entry boundary — it
+      -- re-enables saves, clears the pending key (item 9q), and caps
+      -- the raw array with a `.flowEntry`.
+      ∧ s'.simpleKeyAllowed = true
+      ∧ s'.simpleKey.possible = false
+      ∧ LastRawNotValueIx s' := by
   -- Step 1: preprocessing
   have h_pp : scanNextTokenIx_preprocess s = .ok (some (saveSimpleKeyIx s, ',')) :=
     scanNextTokenIx_preprocess_flow s ',' rest s.cursor.pos.col hcorr h_flow
@@ -471,9 +480,17 @@ lemma scanNextTokenIx_flow_comma (s : ScannerStateIx input)
           (Nat.le_refl _) s_ad.cursor.posBound)
         (show YamlToken.flowEntry ≠ YamlToken.placeholder by decide)] at ht
     simp only [Option.some.injEq] at ht; subst ht; rfl
+  -- item 9r exposures
+  have h_s'_lrv : LastRawNotValueIx
+      ({ (s_ad.emit YamlToken.flowEntry).advance with simpleKeyAllowed := true, explicitKeyLine := none, simpleKey := { possible := false } }
+        : ScannerStateIx input) := by
+    refine lastRawNotValueIx_of_push ?_
+      (show _ = s_ad.tokens.tokens.push (IxToken.mk' (input := input) s_ad.cursor.pos
+          YamlToken.flowEntry s_ad.cursor.pos (Nat.le_refl _) s_ad.cursor.posBound) from rfl)
+    nofun
   -- Combine
   refine ⟨_, h_snt, ?_, h_s'_fl, h_s'_dp, h_s'_indents, h_s'_ek, h_s'_col, h_s'_line,
-         h_s'_atol, h_s'_endline, h_s'_stack, h_s'_last⟩
+         h_s'_atol, h_s'_endline, h_s'_stack, h_s'_last, rfl, rfl, h_s'_lrv⟩
   rw [h_s'_col]; exact h_s'_corr
 
 end L4YAML.Proofs.Indexed.EmitterScannability.FlowMonoChain

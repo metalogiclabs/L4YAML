@@ -80,7 +80,17 @@ lemma scanNextTokenIx_flow_open_seq_nested (s : ScannerStateIx input)
       ∧ StackEndLineOnLineIx s' s'.cursor.pos.line
       ∧ s'.simpleKeyStack.pop = s.simpleKeyStack
       ∧ (∀ t, lastRealTokenValIx? s'.tokens = some t → t.completesFlowValue = false)
-      ∧ s'.flowStack = s.flowStack.push true := by
+      ∧ s'.flowStack = s.flowStack.push true
+      -- item 9r exposures: the `[` re-enables saves, caps the raw array
+      -- with a non-`.value` token, pushes the (possibly just-saved)
+      -- pending key onto the stack, clears the current one, and only
+      -- ever pushes tokens (the incoming array is a `getElem?` prefix).
+      ∧ s'.simpleKeyAllowed = true
+      ∧ LastRawNotValueIx s'
+      ∧ s'.simpleKeyStack = s.simpleKeyStack.push (saveSimpleKeyIx s).simpleKey
+      ∧ s'.simpleKey.possible = false
+      ∧ s.tokens.tokens.size < s'.tokens.tokens.size
+      ∧ (∀ i, i < s.tokens.tokens.size → s'.tokens.tokens[i]? = s.tokens.tokens[i]?) := by
   have h_pp : scanNextTokenIx_preprocess s = .ok (some (saveSimpleKeyIx s, '[')) :=
     scanNextTokenIx_preprocess_flow s '[' rest s.cursor.pos.col hcorr h_flow
       (by decide) (by decide) (by decide)
@@ -206,8 +216,39 @@ lemma scanNextTokenIx_flow_open_seq_nested (s : ScannerStateIx input)
     rw [scanFlowSequenceStartIx_flowStack]
     congr 1
     rw [h_s_ad_def]; split <;> exact saveSimpleKeyIx_flowStack s
+  -- item 9r exposures
+  have h_s'_tokens_arr : (scanFlowSequenceStartIx s_ad).tokens.tokens
+      = s_ad.tokens.tokens.push (IxToken.mk' (input := input) s_ad.cursor.pos
+          YamlToken.flowSequenceStart s_ad.cursor.pos (Nat.le_refl _)
+          s_ad.cursor.posBound) := rfl
+  have h_sz_ad : s.tokens.tokens.size ≤ s_ad.tokens.tokens.size := by
+    rw [h_ad_tokens]
+    exact saveSimpleKeyIx_tokens_size_ge s
+  have h_s'_ska : (scanFlowSequenceStartIx s_ad).simpleKeyAllowed = true := rfl
+  have h_s'_lrv : LastRawNotValueIx (scanFlowSequenceStartIx s_ad) := by
+    refine lastRawNotValueIx_of_push ?_ h_s'_tokens_arr
+    nofun
+  have h_s'_stackpush : (scanFlowSequenceStartIx s_ad).simpleKeyStack
+      = s.simpleKeyStack.push (saveSimpleKeyIx s).simpleKey := by
+    rw [scanFlowSequenceStartIx_stack_pushed, h_ad_stack, h_ad_simpleKey]
+  have h_s'_size : s.tokens.tokens.size
+      < (scanFlowSequenceStartIx s_ad).tokens.tokens.size := by
+    rw [h_s'_tokens_arr]
+    simp only [Array.size_push]
+    omega
+  have h_s'_prefix : ∀ i, i < s.tokens.tokens.size →
+      (scanFlowSequenceStartIx s_ad).tokens.tokens[i]? = s.tokens.tokens[i]? := by
+    intro i hi
+    have hi_ad : i < s_ad.tokens.tokens.size := Nat.lt_of_lt_of_le hi h_sz_ad
+    have h1 : (scanFlowSequenceStartIx s_ad).tokens.tokens[i]?
+        = s_ad.tokens.tokens[i]? := by
+      rw [h_s'_tokens_arr, Array.getElem?_push_lt hi_ad,
+          Array.getElem?_eq_getElem hi_ad]
+    rw [h1, h_ad_tokens]
+    exact saveSimpleKeyIx_tokens_prefix s i hi
   refine ⟨_, h_snt, h_s'_corr, h_s'_fl, h_s'_dp, h_s'_ids, h_s'_ek, h_s'_col,
          h_s'_line, h_s'_atol, h_s'_endline, h_s'_stackend, h_s'_stackpop, h_s'_last,
-         h_s'_push⟩
+         h_s'_push, h_s'_ska, h_s'_lrv, h_s'_stackpush,
+         scanFlowSequenceStartIx_simpleKey_not_possible s_ad, h_s'_size, h_s'_prefix⟩
 
 end L4YAML.Proofs.Indexed.EmitterScannability.FlowMonoChain

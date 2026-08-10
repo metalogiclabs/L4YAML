@@ -213,7 +213,14 @@ lemma scanNextTokenIx_flow_scanDoubleQuoted (s : ScannerStateIx input)
       ∧ s'.cursor.pos.line = s.cursor.pos.line
       ∧ AllTokensOnLineIx s' s'.cursor.pos.line
       ∧ EndLineOnLineIx s'
-      ∧ s'.simpleKeyStack = s.simpleKeyStack := by
+      ∧ s'.simpleKeyStack = s.simpleKeyStack
+      -- item 9r: the reservation layout. From an entry boundary
+      -- (`simpleKeyAllowed`, raw array capped by a non-`.value`), the
+      -- save reserves at the incoming array's end and the scalar push
+      -- preserves every slot below it — so the pending key the `:` will
+      -- read sits at the boundary.
+      ∧ (s.simpleKeyAllowed = true → s.explicitKeyLine = none →
+          LastRawNotValueIx s → SavedKeyAtEntryBoundaryIx s') := by
   -- ── Dispatch composition prefix (mirror `scanDoubleQuotedIx_first_filtered_token`)
   have h_pp : scanNextTokenIx_preprocess s = .ok (some (saveSimpleKeyIx s, '"')) :=
     scanNextTokenIx_preprocess_flow s '"'
@@ -330,7 +337,7 @@ lemma scanNextTokenIx_flow_scanDoubleQuoted (s : ScannerStateIx input)
   have h_s'_line_eq : s'.cursor.pos.line = s.cursor.pos.line := by
     rw [h_s'_cursor, h_line_cAfter]; exact h_ad_line
   have h_ids_eq : s'.indents = s.indents := h_s'_ids.trans h_ad_ids
-  refine ⟨s', h_snt, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+  refine ⟨s', h_snt, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
   · -- ScannerSurfCorrIx s' ⟨rest, s'.cursor.pos.col⟩
     refine ⟨?_, rfl, ?_, ?_⟩
     · rw [h_s'_cursor]; exact hcorr_cAfter.chars_from
@@ -395,5 +402,20 @@ lemma scanNextTokenIx_flow_scanDoubleQuoted (s : ScannerStateIx input)
     · rw [h_s'_sk, h1, h_line']
     · rw [h_s'_sk, h2, h_line']
   · rw [h_s'_stack]; exact h_ad_stack
+  · -- item 9r: the entry-boundary layout of the saved key
+    intro h_ska h_ekn h_lrv
+    obtain ⟨-, h_tidx⟩ := saveSimpleKeyIx_simpleKey_of_saved s h_ska h_ekn
+    refine savedKeyAtEntryBoundaryIx_of_prefix ?_ ?_ h_lrv
+    · rw [h_s'_sk, h_ad_simpleKey, h_tidx]
+    · intro i hi
+      have hi_ad : i < s_ad.tokens.tokens.size := by
+        rw [h_ad_tokens]
+        exact Nat.lt_of_lt_of_le hi (saveSimpleKeyIx_tokens_size_ge s)
+      have h1 : s'.tokens.tokens[i]? = s_ad.tokens.tokens[i]? := by
+        rw [h_s'_tokens]
+        show (s_ad.tokens.tokens.push _)[i]? = s_ad.tokens.tokens[i]?
+        rw [Array.getElem?_push_lt hi_ad, Array.getElem?_eq_getElem hi_ad]
+      rw [h1, h_ad_tokens]
+      exact saveSimpleKeyIx_tokens_prefix s i hi
 
 end L4YAML.Proofs.Indexed.EmitterScannability.FlowMonoChain
