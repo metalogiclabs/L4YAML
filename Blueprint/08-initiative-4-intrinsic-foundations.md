@@ -20537,7 +20537,7 @@ number can be located by scanning this table.
   * *Additive types & fields* — 242, 370, 375, 394, 397, 411, 429, 437, 438
 * **Guards, gates & threading**
   * *Threading & re-scoping* — 220–223, 287, 289–291, 294, 295, 322, 343, 344, 367, 369, 415, 416, 436, 439, 440, 469, 488–490, 501, 521, 533, 570, 571, 624, 626
-  * *Gates, discriminators & coverage* — 371, 388, 393, 398–400, 412–414, 425, 430–432, 434, 447–449, 451, 452, 507, 524, 623, 627, 628, 629, 630, 631, 632, 633
+  * *Gates, discriminators & coverage* — 371, 388, 393, 398–400, 412–414, 425, 430–432, 434, 447–449, 451, 452, 507, 524, 623, 627, 628, 629, 630, 631, 632, 633, 634
 * **Recursion: root seeds, structural moves, navigators & drivers**
   * *Root seeds & co-construction cycles* — 258, 259, 302, 307, 318, 320, 342, 346–349, 395, 396, 504, 506, 508, 565–567, 569
   * *Structural moves & shape dispatch* — 234–236, 260–267, 269–271, 274–278, 361, 364, 373, 374, 381–383, 385–387, 389, 407, 410, 417–421, 423, 424, 428, 433, 445, 509, 523, 525–527, 588, 589, 591, 606
@@ -29016,7 +29016,7 @@ R439 (STEP C) installed the Dyck floor as a guard on the CONSUMER-facing contrac
 
 **Next step.** The break half is the residual and is deliberately NOT pinned (Reflection 622 is what pinning a defect costs): `{?`+break+` a: b}` and `[?`+break+` a: b]` are one entry across two lines and are still refused.  Repairing that one means giving the explicit key a real extent rather than a line, which is a state change rather than a one-field clear -- and unlike this half it has no caller-side hypothesis already in hand.
 
-### Gates, discriminators & coverage (Reflections 371, 388, 393, 398–400, 412–414, 425, 430–432, 434, 447–449, 451, 452, 507, 524, 623, 627, 628, 629, 630, 631, 632, 633)
+### Gates, discriminators & coverage (Reflections 371, 388, 393, 398–400, 412–414, 425, 430–432, 434, 447–449, 451, 452, 507, 524, 623, 627, 628, 629, 630, 631, 632, 633, 634)
 
 #### Reflection 371 — a single window-ABSOLUTE "real-bracket opener" discriminator pins BOTH walking edges of the target window: DESCEND's close-containment (`win_hi`) and ADVANCE's start-exclusion (`win_lo`) are the SAME `opener` field read at opposite ends
 
@@ -29300,7 +29300,19 @@ R451 de-risked the conjunction-motive merge on a TOY (no body bulk); R452 EXECUT
 
 **The probe.** `Tests/Reflections/FiringDirectionCompanionMask.lean` — §1 pins the grid resolution (4 + 3 + 1 = 8); §3 pins the armed floor's audience of one; §5 pins site 2's closure (2 → 1 sorry).
 
-**Next step.** Site 5 (`accum_flow_open_depth0`'s col≠0 arm): the depth-0 "properties scanned, content awaited" state (item 9h's design), plus the 9k residual and obligation (3). Then the indexed substrate package (the measured five-exposure budget), then β.4/β.5 delete `scannerDrop`.
+**Next step.** Site 5 (`accum_flow_open_depth0`'s col≠0 arm): the depth-0 "properties scanned, content awaited" state (item 9h's design), plus the 9k residual and obligation (3). Then the indexed substrate package (the measured five-exposure budget), then β.4/β.5 delete `scannerDrop`.  *(Done by item 9t, 2026-08-10 — see Reflection 634: the props state is `pendingProps`, the "9k residual and obligation (3)" re-priced as one dispatch of lookahead carried on the pending, and β.4 turned out already threaded — the capstone gate went green with the last sorry.)*
+
+#### Reflection 634 -- one dispatch of lookahead, carried as a field on the pending state. **633's depth-0 sequel: the no-break flow open refutes completed constructs through their producers' OWN trailing validations, packaged as a rest-of-line field; the deferred pending rides its own drop; the legal run becomes a state whose closures capture the route. β.3 completes and the campaign's gate flips green.**
+
+Three craft lessons.  **(1) The refutation fact is the producer's own validation window.**  A pending built right after `validateTrailingContent`/`validateAliasClose`/`validateFlowClose`/`scanDocumentEnd`'s suffix probe — or after a scan that cannot stop before a bracket (plain scalars absorb `[` in block context; block scalars end at column 0 or EOF) — carries one dispatch of lookahead for free.  Packaging it as a field (`h_line : col = 0 ∨ LineNoOpen chars`) turns "the guard ran one dispatch earlier and is invisible to the accumulation" into a hypothesis the flow-open arm consumes.  The predicate is the ¬-form (`s-white*` then never `[`/`{`), deliberately WEAKER than every allowlist — which is what lets SIX producer families with DIFFERENT allowlists share ONE consumer.  **(2) A validator behind a white-skip walk pays its own fuel.**  The walk lemmas need no fuel-adequacy hypothesis: if fuel died mid-whites, the landing peek would be a white no allowlist admits, so the validator's `.ok` refutes exhaustion itself.  Only the two loops with NO validator behind them (plain scalar, block scalar) pay genuine fuel inductions — and their final-state `hend` side conditions come free from the call sites' `ScannerSurfCorr.end_eq`, so the quoted-loop internals never open.  **(3) Sort pendings by producer GUARANTEE, not by "closeable".**  The plan said "refute the four non-props pendings"; the deferred catch-all (`pendingFlow`) is legally inhabited (`- - [a]`, `? [a]`) and cannot be refuted — it rides its own `scannerDrop` closing strategy, no new drop class.  The legal inhabitant became the STATE item 9h designed: `pendingProps`, two closures (`propsEmpty` close / `propsContent` ride) over the captured route, one constructor serving the bare document, the block entry (`- &a [b]`) and the explicit document alike; `&a [b]` and `&a⏎[b]` land in the same arm because the crossed separation is `s-separate-lines` either way.
+
+**What landed.**  New `Proofs/Scanner/LineOpenGuard.lean` (~1200 lines, sorry-free); `h_line` on three constructors, `pendingProps` + `pendingProps_of_props_route`; the content dispatch reroutes `&`/`!` to the run state; `accum_flow_open_depth0` takes `h_c : c = '[' ∨ c = '{'` and a per-pending no-break continuation.  A proof-only pass: zero scanner changes, corpus byte-identical by construction.  **`StreamAccum.lean` is SORRY-FREE — β.3 complete — and `L4YAML.Capstones` went GREEN with no edit**: β.4's threading had landed incrementally with the β.3 passes, so the last sorry was the only gap in `parse_strict_proof`'s cone.
+
+**Validation.**  Full `lake build` green (938 targets); `Tests.Guards` 204; `Tests.Reflections` 407 (new `PendingLookaheadField`); corpus 351/351 both pipelines.
+
+**How found.**  Enumerating the arm's producers per pending BEFORE designing (the R632/R633 walk-the-weakest-producer discipline): the enumeration killed the recorded four-pending refutation plan in minutes (`- - [a]` is legal and lands as `pendingFlow`) and re-priced the "9k residual" to zero — the residual's consumer is the props run's content-dispatch composition, which stays deferred to β.5.
+
+**Next step.**  β.5: retire `pendingFlow` (the `pendingProps` content-dispatch composition — where 9k's residual finally gets consumed — plus the map/seq deferral arms), delete `scannerDrop`, strengthening the capstones; and the indexed substrate package 9r measured.
 
 ## Recursion: root seeds, structural moves, navigators & drivers
 
