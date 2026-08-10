@@ -1114,8 +1114,106 @@ def StackEndLineOnLine (s : ScannerState) (l : Nat) : Prop :=
   | none => True
   | some sk => sk.possible → sk.endLine = l ∧ sk.pos.line = l
 
+/-- **The entry-boundary reading of a pending simple key (item 9p).**
+
+    `scanValueValidate`'s T833 guard rejects a `:` whose pending simple key was
+    reserved directly after a value indicator — `[a: b: c]`, `[a: : b]` and
+    `[a: &x : b]` all reach that state, and it is exactly "this flow entry is
+    already complete".  This is the hypothesis that says the reservation sits at
+    an ENTRY BOUNDARY instead, which is what the emitter always produces: the
+    slot before every key `{k: v, k: v}` saves is the `{` or the `,`.
+
+    Read as an INDEX, not as a token history (Reflection 628): the discriminator
+    is `simpleKey.tokenIndex`, because a flow entry's key may be a whole
+    bracketed collection and no bounded lookback can find where it started. -/
+def SavedKeyAtEntryBoundary (s : ScannerState) : Prop :=
+  0 < s.simpleKey.tokenIndex →
+    ∀ tok, s.tokens[s.simpleKey.tokenIndex - 1]? = some tok → tok.val ≠ .value
+
+/-- The pair-list side of `SavedKeyAtEntryBoundary`: the token a pair's key scan
+    is about to reserve *after*.  Stated on the FILTERED array because that is
+    the shape the saved-key scans re-anchor to (their take-side conjunct), and
+    because the two reservation placeholders a previous entry left behind are
+    not what the boundary is about. -/
+def PairStartAtEntryBoundary (s : ScannerState) : Prop :=
+  ∀ tok, (s.tokens.filter (fun t => t.val != .placeholder)).toList.getLast? = some tok →
+    tok.val ≠ .value
+
+/-- A step that pushes one real token re-opens the entry boundary, provided that
+    token is no value indicator: `{`, `[` and `,` all qualify, and they are
+    exactly the three places a flow pair list starts a pair. -/
+lemma pairStartAtEntryBoundary_of_filtered_push {s s' : ScannerState}
+    {tok : Positioned YamlToken} (h_val : tok.val ≠ .value)
+    (h_eq : s'.tokens.filter (fun t => t.val != .placeholder)
+      = (s.tokens.filter (fun t => t.val != .placeholder)).push tok) :
+    PairStartAtEntryBoundary s' := by
+  intro t ht
+  rw [h_eq] at ht
+  simp only [Array.toList_push, List.getLast?_concat, Option.some.injEq] at ht
+  exact ht ▸ h_val
+
+/-- Preprocessing leaves the tokens alone, so it leaves the boundary alone. -/
+lemma PairStartAtEntryBoundary.of_tokens_eq {s s' : ScannerState}
+    (h_toks : s'.tokens = s.tokens) (h : PairStartAtEntryBoundary s) :
+    PairStartAtEntryBoundary s' := by
+  intro t ht; exact h t (by rw [← h_toks]; exact ht)
+
+/-- **The entry-boundary bridge (item 9p).**  A saved-key scan reserves at the
+    incoming array's end (`h_tidx`) and re-anchors the real tokens below that
+    point to the incoming ones (`h_take`), so the slot the strictened T833 guard
+    reads is the incoming array's last REAL token — and "this pair starts at an
+    entry boundary" is exactly `PairStartAtEntryBoundary`.
+
+    The `s.tokens.size` slot is the first reservation placeholder (`h_ph`), which
+    is what lets the take-side equation, stated one past the reservation, be
+    read back one short of it. -/
+lemma savedKeyAtEntryBoundary_of_take {s s' : ScannerState}
+    (h_tidx : s'.simpleKey.tokenIndex = s.tokens.size)
+    (h_szlt : s.tokens.size + 1 < s'.tokens.size)
+    (h_ph : ∀ (h : s.tokens.size < s'.tokens.size),
+      (s'.tokens[s.tokens.size]'h).val = .placeholder)
+    (h_take : (s'.tokens.toList.take (s.tokens.size + 1)).filter
+        (fun t => t.val != .placeholder)
+      = (s.tokens.filter (fun t => t.val != .placeholder)).toList)
+    (h_pse : PairStartAtEntryBoundary s) :
+    SavedKeyAtEntryBoundary s' := by
+  intro hpos tok htok hval
+  rw [h_tidx] at htok hpos
+  -- The reservation slot itself is a placeholder, so the take-side equation
+  -- stated one PAST the reservation can be read back one SHORT of it.
+  have h_split : s'.tokens.toList.take (s.tokens.size + 1)
+      = s'.tokens.toList.take s.tokens.size ++ [s'.tokens[s.tokens.size]'(by omega)] := by
+    rw [List.take_add_one,
+        List.getElem?_eq_getElem (by rw [Array.length_toList]; omega)]
+    simp
+  have h_take0 : (s'.tokens.toList.take s.tokens.size).filter (fun t => t.val != .placeholder)
+      = (s.tokens.filter (fun t => t.val != .placeholder)).toList := by
+    rw [h_split, List.filter_append] at h_take
+    simpa [h_ph (by omega)] using h_take
+  -- The guard's slot is the LAST element of that take, and it is real.
+  have hsucc : s.tokens.size - 1 + 1 = s.tokens.size := by omega
+  have hget : s'.tokens.toList[s.tokens.size - 1]? = some tok := by
+    rw [List.getElem?_eq_getElem (by rw [Array.length_toList]; omega)]
+    rw [Array.getElem?_eq_getElem (by omega)] at htok
+    simpa using htok
+  have h_split0 : s'.tokens.toList.take s.tokens.size
+      = s'.tokens.toList.take (s.tokens.size - 1) ++ [tok] := by
+    have h := List.take_add_one (i := s.tokens.size - 1) (l := s'.tokens.toList)
+    rw [hsucc, hget] at h
+    simpa using h
+  have hfilt : List.filter (fun t : Positioned YamlToken => t.val != .placeholder) [tok] = [tok] := by
+    simp [hval]
+  rw [h_split0, List.filter_append, hfilt] at h_take0
+  exact h_pse tok (by rw [← h_take0]; simp) hval
+
 -- scanValueValidate succeeds in flow context when all tokens are on the same
 -- line as the scanner and endLine = line (when possible).
+--
+-- The T833 missing-comma guard is what `AllTokensOnLine` discharges, and only
+-- because that guard fires across LINES.  Item 9p measured what it costs to
+-- make it fire on the ENTRY BOUNDARY instead — see `SavedKeyAtEntryBoundary`
+-- and `savedKeyAtEntryBoundary_of_take` above, which are exactly the shape the
+-- strictened guard would want here.
 lemma scanValueValidate_ok_of_flow_allTokensOnLine (s : ScannerState)
     (h_flow : s.inFlow = true)
     (h_ek : s.explicitKeyLine = none)
