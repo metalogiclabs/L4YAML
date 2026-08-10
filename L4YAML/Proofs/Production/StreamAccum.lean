@@ -3316,6 +3316,145 @@ lemma FlowOpenStack.receiveColonQuestion {sp_start : SurfPos} {D : Nat} {ks : Ar
       exact .mapNest _ _ _ _ _ _ _ _ inject h_open h_sep
         (.midQuestionEmptyColon _ _ _ _ _ pre hq h_lead hcolon)
 
+/-! ### §1c''c'' The `:` step with a property run HELD in the gap (item 9o)
+
+    `InteriorGap` is a SECOND index on this step, orthogonal to the frame tail,
+    and crossing the two is what prices the `:` arm. The props row admits only
+    THREE of the four tail classes, because `InteriorGap.props` carries
+    `tl ≠ .value` as a *field* — item 9b's `scanNextToken_checkFlowAdjacency`,
+    transported at the point the run is opened. So `["a" &x : b]`, `[[a] &x : b]`
+    and `[{a: b} &x : c]` are not cases anybody has to write: they are not
+    states, and the shipped scanner already rejects all three.
+
+    That is the crossing's payoff and its lesson (Reflection 629). The `.value`
+    tail is MIXED on the white row — `midNode` continues, `betweenEntries` does
+    not — and TOTAL-REFUTABLE on this one, for a guard that shipped nine items
+    ago. A class's KIND is a property of the cell, not of the tail.
+
+    The two classes that were total on the white row are total here too, for the
+    same reasons, and the two lemmas below are `receiveColonSep` and
+    `receiveColonQuestion` with `[161] ns-flow-node`'s properties-bearing arm
+    supplied — exactly the relation `receivePropsEmpty` bears to `receiveNode`.
+    The remaining cell, props × `.colon` (`[a: &x : b]`), needs no guard of its
+    own: it is refuted by the same `scanValueValidate` strictening the white
+    row's `.colon` and `.value` cells need, because the pending simple key that
+    strictening reads was reserved BEFORE the run (`[a: &x : b]` scans as
+    `… value placeholder key anchor value …`). -/
+
+/-- `[&a : b]`, `[a, &x : b]`, `{&a : b}`, `[&a !t : b]`: a property run held at
+    an entry boundary turns out to decorate the entry's KEY, whose content is
+    empty (`[96] c-ns-properties` + `e-scalar`). The frame lands in `midColon`
+    with `SFlowNode.propsEmpty` as the key — the same node `receivePropsEmpty`
+    builds when a `,` or a close decides the run, read one dispatch later.
+
+    Total on `.sep` for `receiveColonSep`'s reason: `betweenEmpty` and
+    `betweenHeld` are the only frames that index admits, and a properties-only
+    key is an `ns-flow-node` after both. -/
+lemma FlowOpenStack.receiveColonPropsSep {sp_start : SurfPos} {D : Nat} {ks : Array Bool}
+    {tl : FrameTail} {sp_block sp_flow sp_p sp_end sp_prep sp_tok : SurfPos} {ha ht : Bool}
+    (h_fos : FlowOpenStack sp_start D ks tl sp_block sp_flow)
+    (h_tail : tl = .sep)
+    (h_lead : SSeparateLines 0 sp_flow sp_p)
+    (h_run : PropsRun 0 (inFlowCtx .flowOut) ha ht sp_p sp_end)
+    (h_gap : GOpt (SSeparate 0 (inFlowCtx .flowOut)) sp_end sp_prep)
+    (hcolon : GLit ':' sp_prep sp_tok) :
+    FlowOpenStack sp_start D ks .colon sp_block sp_tok := by
+  subst h_tail
+  cases h_fos
+  · -- seqBase: `[&a : ` / `[a, &x : `
+    rename_i resume h_open h_sep st
+    cases st
+    · exact .seqBase _ _ _ _ _ _ resume h_open (GOpt_SSeparate_extend h_sep h_lead)
+        (.midColon _ _ _ _ _ (.init sp_p) (.propsEmpty _ _ _ _ h_run.toProperties)
+          h_gap hcolon)
+    · rename_i hcomma₀ h hcl hsep₀
+      exact .seqBase _ _ _ _ _ _ resume h_open h_sep
+        (.midColon _ _ _ _ _
+          (.cons _ _ _ _ h hcl hcomma₀ (GOpt_SSeparate_extend hsep₀ h_lead))
+          (.propsEmpty _ _ _ _ h_run.toProperties) h_gap hcolon)
+  · -- mapBase: `{&a : ` / `{a: b, &x : `
+    rename_i resume h_open h_sep st
+    cases st
+    · exact .mapBase _ _ _ _ _ _ resume h_open (GOpt_SSeparate_extend h_sep h_lead)
+        (.midColon _ _ _ _ _ (.init sp_p) (.propsEmpty _ _ _ _ h_run.toProperties)
+          h_gap hcolon)
+    · rename_i hcomma₀ h hcl hsep₀
+      exact .mapBase _ _ _ _ _ _ resume h_open h_sep
+        (.midColon _ _ _ _ _
+          (.cons _ _ _ _ h hcl hcomma₀ (GOpt_SSeparate_extend hsep₀ h_lead))
+          (.propsEmpty _ _ _ _ h_run.toProperties) h_gap hcolon)
+  · -- seqNest (field reorder as in `receiveNode`)
+    rename_i h_open h_sep inject st
+    cases st
+    · exact .seqNest _ _ _ _ _ _ _ _ inject h_open (GOpt_SSeparate_extend h_sep h_lead)
+        (.midColon _ _ _ _ _ (.init sp_p) (.propsEmpty _ _ _ _ h_run.toProperties)
+          h_gap hcolon)
+    · rename_i hcomma₀ h hcl hsep₀
+      exact .seqNest _ _ _ _ _ _ _ _ inject h_open h_sep
+        (.midColon _ _ _ _ _
+          (.cons _ _ _ _ h hcl hcomma₀ (GOpt_SSeparate_extend hsep₀ h_lead))
+          (.propsEmpty _ _ _ _ h_run.toProperties) h_gap hcolon)
+  · -- mapNest
+    rename_i h_open h_sep inject st
+    cases st
+    · exact .mapNest _ _ _ _ _ _ _ _ inject h_open (GOpt_SSeparate_extend h_sep h_lead)
+        (.midColon _ _ _ _ _ (.init sp_p) (.propsEmpty _ _ _ _ h_run.toProperties)
+          h_gap hcolon)
+    · rename_i hcomma₀ h hcl hsep₀
+      exact .mapNest _ _ _ _ _ _ _ _ inject h_open h_sep
+        (.midColon _ _ _ _ _
+          (.cons _ _ _ _ h hcl hcomma₀ (GOpt_SSeparate_extend hsep₀ h_lead))
+          (.propsEmpty _ _ _ _ h_run.toProperties) h_gap hcolon)
+
+/-- `[? &a : b]`, `{? &a : b}`: the held run decorates the EXPLICIT key, so the
+    frame lands in `midExplicitColon` rather than `midQuestionEmptyColon` — the
+    `? ` shape whose key is a real `ns-flow-node` after all, just an empty one.
+
+    Total on `.question` for `receiveColonQuestion`'s sharper reason: that index
+    is inhabited by `midQuestion` alone. `[150]`'s mandatory `s-separate` after
+    the `?` is this step's leading separation, exactly as it is there; what
+    differs is only where the separation LANDS, because here the key is not an
+    `e-node` and the frame has a slot for it. -/
+lemma FlowOpenStack.receiveColonPropsQuestion {sp_start : SurfPos} {D : Nat} {ks : Array Bool}
+    {tl : FrameTail} {sp_block sp_flow sp_p sp_end sp_prep sp_tok : SurfPos} {ha ht : Bool}
+    (h_fos : FlowOpenStack sp_start D ks tl sp_block sp_flow)
+    (h_tail : tl = .question)
+    (h_lead : SSeparateLines 0 sp_flow sp_p)
+    (h_run : PropsRun 0 (inFlowCtx .flowOut) ha ht sp_p sp_end)
+    (h_gap : GOpt (SSeparate 0 (inFlowCtx .flowOut)) sp_end sp_prep)
+    (hcolon : GLit ':' sp_prep sp_tok) :
+    FlowOpenStack sp_start D ks .colon sp_block sp_tok := by
+  subst h_tail
+  cases h_fos
+  · -- seqBase: `[? &a : `
+    rename_i resume h_open h_sep st
+    cases st
+    · rename_i pre hq
+      exact .seqBase _ _ _ _ _ _ resume h_open h_sep
+        (.midExplicitColon _ _ _ _ _ _ _ pre hq h_lead
+          (.propsEmpty _ _ _ _ h_run.toProperties) h_gap hcolon)
+  · -- mapBase: `{? &a : `
+    rename_i resume h_open h_sep st
+    cases st
+    · rename_i pre hq
+      exact .mapBase _ _ _ _ _ _ resume h_open h_sep
+        (.midExplicitColon _ _ _ _ _ _ _ pre hq h_lead
+          (.propsEmpty _ _ _ _ h_run.toProperties) h_gap hcolon)
+  · -- seqNest
+    rename_i h_open h_sep inject st
+    cases st
+    · rename_i pre hq
+      exact .seqNest _ _ _ _ _ _ _ _ inject h_open h_sep
+        (.midExplicitColon _ _ _ _ _ _ _ pre hq h_lead
+          (.propsEmpty _ _ _ _ h_run.toProperties) h_gap hcolon)
+  · -- mapNest
+    rename_i h_open h_sep inject st
+    cases st
+    · rename_i pre hq
+      exact .mapNest _ _ _ _ _ _ _ _ inject h_open h_sep
+        (.midExplicitColon _ _ _ _ _ _ _ pre hq h_lead
+          (.propsEmpty _ _ _ _ h_run.toProperties) h_gap hcolon)
+
 /-! ### §1c'' Depth-0 flow OPEN — per-pending resume dispatch (B.4β.2)
 
     A depth-0 `[`/`{` turns the closed flow stack into a depth-1 `FlowOpenStack`.
@@ -5274,33 +5413,56 @@ lemma accum_step_block (sc : ScannerState)
           · -- `[a: b: c]`, `{a: : b}` and `[: :]` put two values in ONE entry and
             -- scan clean in both pipelines, so this arm is unprovable for the
             -- same reason 9c/9d/9e/9f made site 3 unprovable: the state it
-            -- would have to construct is a `.colon`-tailed frame receiving a
-            -- SECOND `:`, and `[150]`/`[142]` derive no such thing.
+            -- would have to construct is a frame whose entry is already
+            -- complete receiving a SECOND `:`, and `[150]`/`[142]` derive no
+            -- such thing.
             --
-            -- The scanner fix is one line — `scanValueValidate`'s T833 check
-            -- already rejects a pending simple key whose slots are directly
-            -- preceded by a `.value`, but only across lines; drop that conjunct.
+            -- THE STEP IS A GRID, NOT A LIST (items 9n, 9o). It is indexed by
+            -- the frame TAIL and, orthogonally, by the interior GAP, and every
+            -- cell has its own answer:
+            --
+            --              | .sep          .question     .colon     .value
+            --   -----------+--------------------------------------------------
+            --   gap white  | receiveColon  receiveColon  strict-    strict-
+            --              |   Sep (9n)      Question      ening      ening
+            --   gap props  | receiveColon  receiveColon  strict-    NOT A
+            --              |   PropsSep      PropsQues-    ening      STATE
+            --              |   (9o)          tion (9o)               (9b)
+            --
+            -- FIVE of the eight cells are settled, and not one of them cost a
+            -- scanner fact this work had to buy. The props row's `.value` cell
+            -- is not work at all: `InteriorGap.props` carries `tl ≠ .value` as
+            -- a field, so `["a" &x : b]` is refuted by item 9b's adjacency
+            -- guard, which shipped nine items ago (Reflection 629).
+            --
+            -- The two open cells share ONE obligation, not two. The scanner fix
+            -- is one line — `scanValueValidate`'s T833 check already rejects a
+            -- pending simple key whose slots are directly preceded by a
+            -- `.value`, but only across lines; drop that conjunct — and it
+            -- rejects `[a: b: c]` (the `.value` cell), `[a: : b]`, `[: :]`,
+            -- `{a: : b}`, `[? : : a]`, `[? a : : b]` (the white `.colon` cell)
+            -- AND `[a: &x : b]`, `[a: !t : b]` (the props `.colon` cell), in
+            -- both pipelines, leaving all 351 suite files byte-identical. It
+            -- reaches the `.colon` cells because `saveSimpleKey` runs in
+            -- PREPROCESSING, so a `:` arriving at a completed entry always has
+            -- a key reserved — at itself when nothing is held, before the run
+            -- when something is (`[a: &x : b]` scans as
+            -- `… value placeholder key anchor value …`).
+            --
             -- The COST is not the placement (all four candidate placements are
             -- equivalent) but the DISCHARGE: the emitter writes `:` at every
             -- pair, and the emit→scan towers thread only "the last real token
-            -- does not complete a flow value", which `.value` satisfies. See
-            -- DOCS item 9g and Reflection 617.
+            -- does not complete a flow value", which `.value` satisfies. What
+            -- is missing, re-measured by item 9n, is one bridge lemma, one take
+            -- conjunct on `EmitScansInFlowSavedKey`, and one entry-boundary
+            -- hypothesis on the five `EmitPairList*` definitions plus its
+            -- caller ripple. See DOCS items 9n/9o and Reflections 617, 628, 629.
             --
-            -- AFTER that, the arm splits by the same four tails the `?` arm was
-            -- pinned to, and each wants its own producer:
-            --   * `.value` — `[a: b]`, the key/value transition: `receiveColon`,
-            --     a `.value → .colon` step on both frames (landing in
-            --     `midColon`), lifted over the four `FlowOpenStack` arms exactly
-            --     as `holdComma`/`receiveNode` are.
-            --   * `.sep` — `[: a]`, `[146]`'s empty-key entry: item 9l already
-            --     landed the grammar (`SFlowSeqEntry.emptyKeyValue` /
-            --     `.emptyKeyEmpty`) and the frame (`SeqFrame.midEmptyColon`), so
-            --     this one needs only its producer.
-            --   * `.question` — `[? : a]`, `[? :]`: deliberately still WITHOUT
-            --     surface forms (item 9l), since their producer is this very
-            --     dispatch. Adding them earlier would have moved the
-            --     inhabitation debt from the grammar into a dead frame branch.
-            --   * `.colon` — the shape the strictening above removes.
+            -- What is then left to WRITE is one producer: `receiveColonValue`,
+            -- the `.value → .colon` step on `midNode`/`midExplicitKey` (landing
+            -- in `midColon`/`midExplicitColon`), which is `[a: b]` — the common
+            -- case, and the last one because it is the only one whose frame the
+            -- token history cannot name on its own.
             sorry
         · -- fallthrough: dispatch returns `.ok none`, not `.ok (some s')`.
           simp at h_dispatch

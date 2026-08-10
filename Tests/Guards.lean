@@ -16,6 +16,7 @@ import Tests.Guards.Proofs.ScannerFlowColonAdjacency
 import Tests.Guards.Proofs.ScannerFlowExplicitEmptyKey
 import Tests.Guards.Proofs.ScannerFlowExplicitEntryBoundary
 import Tests.Guards.Proofs.ScannerFlowKeyFollower
+import Tests.Guards.Proofs.ScannerFlowPropsColon
 import Tests.Guards.Proofs.ScannerFlowKeyPredecessor
 import Tests.Guards.Proofs.ScannerFlowPropertyRun
 import Tests.Guards.Proofs.ScannerNodePropertyDelimiter
