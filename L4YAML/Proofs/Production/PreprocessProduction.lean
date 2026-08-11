@@ -4,6 +4,7 @@ Released under Apache 2.0 license as described in the file LICENSE.
 -/
 import L4YAML.Proofs.Coupling.ScannerCoupling
 import L4YAML.Proofs.Production.NodeProduction
+import L4YAML.Proofs.Scanner.ScannerLinePreservation
 
 /-! # Preprocessing Production Coupling (Layer 4b)
 
@@ -430,14 +431,18 @@ lemma skipToContentLoop_after_break_prod
 
 /-- `skipToContentLoop` at any column → `SSLComments` OR flat whitespace.
     Returns a disjunction: if a break was consumed, produces full `SSLComments`
-    with `sp_mid.col = 0`; if not, `sp_mid = sp` (loop stopped on first iteration). -/
+    with `sp_mid.col = 0`; if not, `sp_mid = sp` (loop stopped on first
+    iteration) — and then `needIndentCheck` is untouched, because the no-break
+    stop paths run only the line-transparent whitespace/comment helpers (the
+    witness DOCS item 12's depth-0 props coupling reads). -/
 lemma skipToContentLoop_anyCol_prod
     (sc : ScannerState) (sp : SurfPos) (fuel : Nat) (s_result : ScannerState)
     (hcorr : ScannerSurfCorr sc sp)
     (hfuel : fuel ≥ sc.inputEnd - sc.offset + 1)
     (hok : skipToContentLoop sc fuel = .ok s_result) :
     ∃ sp_mid sp_ws sp',
-      (SSLComments sp sp_mid ∧ sp_mid.col = 0 ∨ sp_mid = sp) ∧
+      (SSLComments sp sp_mid ∧ sp_mid.col = 0 ∨
+        sp_mid = sp ∧ s_result.needIndentCheck = sc.needIndentCheck) ∧
       GStar SSWhite sp_mid sp_ws ∧ GOpt SCNbCommentText sp_ws sp' ∧
       ScannerSurfCorr s_result sp' ∧
       (sp' = sp_ws ∨ s_result.peek? = none) := by
@@ -454,7 +459,7 @@ lemma skipToContentLoop_anyCol_prod
     induction fuel generalizing sc sp s_result with
     | zero =>
       simp [skipToContentLoop] at hok; subst hok
-      exact ⟨sp, sp, sp, Or.inr rfl, GStar.nil _, GOpt.none _, hcorr, Or.inl rfl⟩
+      exact ⟨sp, sp, sp, Or.inr ⟨rfl, rfl⟩, GStar.nil _, GOpt.none _, hcorr, Or.inl rfl⟩
     | succ fuel' ih =>
       unfold skipToContentLoop at hok
       dsimp only [] at hok
@@ -533,13 +538,16 @@ lemma skipToContentLoop_anyCol_prod
             have hinj := Except.ok.inj hok; subst hinj
             have h_id := skipToContentComment_identity_of_content_peek s1 c hpeek hnlb
             rw [h_id]
-            exact ⟨sp, sp_ws, sp_ws, Or.inr rfl, hstar_ws, GOpt.none _, hcorr_ws,
-                   Or.inl rfl⟩
+            exact ⟨sp, sp_ws, sp_ws,
+                   Or.inr ⟨rfl, skipToContentWs_preserves_needIndentCheck sc s1 hok_ws⟩,
+                   hstar_ws, GOpt.none _, hcorr_ws, Or.inl rfl⟩
         · -- peek? = none: stop
           rename_i hpeek_none
           have hinj := Except.ok.inj hok; subst hinj
-          exact ⟨sp, sp_ws, sp_cmt, Or.inr rfl, hstar_ws, hopt_cmt, hcorr_cmt,
-                 Or.inr hpeek_none⟩
+          exact ⟨sp, sp_ws, sp_cmt,
+                 Or.inr ⟨rfl, (skipToContentComment_preserves_needIndentCheck s1).trans
+                   (skipToContentWs_preserves_needIndentCheck sc s1 hok_ws)⟩,
+                 hstar_ws, hopt_cmt, hcorr_cmt, Or.inr hpeek_none⟩
 
 /-- `skipToContentLoop` starting at col=0 produces `SSLComments`. -/
 lemma skipToContentLoop_startOfLine_prod
@@ -571,13 +579,15 @@ lemma skipToContent_startOfLine_comments_prod
   unfold skipToContent at hok
   exact skipToContentLoop_startOfLine_prod sc sp _ s_result hcorr hcol (by omega) hok
 
-/-- `skipToContent` at any column → `SSLComments` (with col=0) OR flat whitespace. -/
+/-- `skipToContent` at any column → `SSLComments` (with col=0) OR flat whitespace
+    (and then the loop crossed no break, so `needIndentCheck` is untouched). -/
 lemma skipToContent_anyCol_prod
     (sc : ScannerState) (sp : SurfPos) (s_result : ScannerState)
     (hcorr : ScannerSurfCorr sc sp)
     (hok : skipToContent sc = .ok s_result) :
     ∃ sp_mid sp_ws sp',
-      (SSLComments sp sp_mid ∧ sp_mid.col = 0 ∨ sp_mid = sp) ∧
+      (SSLComments sp sp_mid ∧ sp_mid.col = 0 ∨
+        sp_mid = sp ∧ s_result.needIndentCheck = sc.needIndentCheck) ∧
       GStar SSWhite sp_mid sp_ws ∧ GOpt SCNbCommentText sp_ws sp' ∧
       ScannerSurfCorr s_result sp' ∧
       (sp' = sp_ws ∨ s_result.peek? = none) := by
@@ -827,7 +837,7 @@ lemma skipToContent_eof_ssl_comments
         rfl⟩
     | inr h =>
       -- No break: sp_mid = sp, build SSLComments from whitespace + eof
-      rw [h] at hws
+      rw [h.1] at hws
       -- hws : GStar SSWhite sp sp_ws, hcmt : GOpt SCNbCommentText sp_ws sp'
       cases sp' with | mk chars' col' =>
       simp only [] at hchars; subst hchars

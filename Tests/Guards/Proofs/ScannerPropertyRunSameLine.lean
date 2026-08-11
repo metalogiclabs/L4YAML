@@ -1,5 +1,7 @@
 import L4YAML.Scanner.Scanner
 import L4YAML.Scanner.IndexedDispatch
+import L4YAML.Output.Events
+import L4YAML.Output.EventsIx
 
 /-
 Copyright (c) 2026. All rights reserved.
@@ -136,5 +138,43 @@ receives are all still legal. -/
 #guard bothAccept "!t {a: b}\n"
 #guard bothAccept "&a !!seq [b]\n"
 #guard bothAccept "--- &a [b]\n"
+
+/-! ## §7  The compositions the accumulation now DERIVES (DOCS item 12)
+
+Item 9t parked a depth-0 `[96]` run as `PendingNode.pendingProps` but let its
+same-line CONTENT dispatch escape into the `pendingFlow` deferral.  Item 12
+composes it instead — `[161]`'s `( c-ns-properties s-separate ns-flow-content )`
+for scalars and collections, `[198] s-l+block-scalar`'s own props slot for
+`|`/`>` — with the `&`/`!` arms EXTENDING the held run.  The event streams
+below are the shapes those derivations cover, pinned on BOTH pipelines (the
+pass itself is proof-only: no scanner or emitter changed). -/
+
+/-- Legacy and indexed event streams as a comparable pair; `none` on rejection. -/
+private def bothEvents (input : String) : Option String × Option String :=
+  ( (match Events.streamToEvents input with | .ok s => some s | .error _ => none)
+  , (match Events.streamToEventsIx input with | .ok s => some s | .error _ => none) )
+
+/-- Both pipelines accept `input` and emit exactly `expected`. -/
+private def emits (input : String) (expected : List String) : Bool :=
+  let e := some (String.intercalate "\n" expected ++ "\n")
+  bothEvents input == (e, e)
+
+-- The run decorates a plain or quoted scalar — `SFlowNode.propsContent`.
+#guard emits "&a b\n" ["+STR", "+DOC", "=VAL &a :b", "-DOC", "-STR"]
+#guard emits "&a \"b\"\n" ["+STR", "+DOC", "=VAL &a \"b", "-DOC", "-STR"]
+
+-- The run EXTENDS on the missing half, then decorates — `PropsRun.addTag` /
+-- `.addAnchor` feeding the same composition.
+#guard emits "&a !t b\n" ["+STR", "+DOC", "=VAL &a <!t> :b", "-DOC", "-STR"]
+#guard emits "!t &a b\n" ["+STR", "+DOC", "=VAL &a <!t> :b", "-DOC", "-STR"]
+
+-- …and the extended run rides a flow open (`&a !t [b]` was the recorded
+-- escape shape).
+#guard emits "&a !t [b]\n"
+  ["+STR", "+DOC", "+SEQ [] &a <!t>", "=VAL :b", "-SEQ", "-DOC", "-STR"]
+
+-- The run decorates a BLOCK scalar through `[198]`'s props slot.
+#guard emits "&a |\n text\n" ["+STR", "+DOC", "=VAL &a |text\\n", "-DOC", "-STR"]
+#guard emits "!t >\n text\n" ["+STR", "+DOC", "=VAL <!t> >text\\n", "-DOC", "-STR"]
 
 end Tests.Guards.ScannerPropertyRunSameLine

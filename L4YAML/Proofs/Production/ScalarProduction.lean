@@ -2047,6 +2047,26 @@ lemma scanPlainScalar_to_flowNode (sc : ScannerState) (sp : SurfPos)
       (SFlowContent.plain 0 .flowOut _ _ (SNsPlainMultiLine_ctxOfInFlow_to_flowOut h_ml)),
     h_trail, hcorr'⟩
 
+-- Content-level `.flowOut` sibling of `scanPlainScalar_to_flowNode` (item 12):
+-- exposes the `SFlowContent` before the `SFlowNode.content` wrap, which is what
+-- a held depth-0 props run decorates (`SFlowNode.propsContent` wraps content,
+-- not a node).
+lemma scanPlainScalar_to_flowContent (sc : ScannerState) (sp : SurfPos)
+    {s' : ScannerState} {c : Char}
+    (hcorr : ScannerSurfCorr sc sp)
+    (hpeek : sc.peek? = some c)
+    (hstart : canStartPlainScalarBool c (sc.peekAt? 1) sc.inFlow = true)
+    (h_not_doc : sc.col = 0 → atDocumentBoundary sc = false)
+    (hok : scanPlainScalar sc = .ok s') :
+    ∃ sp_gram sp', SFlowContent 0 .flowOut sp sp_gram ∧
+                   GStar SSWhite sp_gram sp' ∧
+                   ScannerSurfCorr s' sp' := by
+  obtain ⟨sp_gram, sp', h_ml, h_trail, hcorr'⟩ :=
+    scanPlainScalar_to_multiLine_native sc sp hcorr hpeek hstart h_not_doc hok
+  exact ⟨sp_gram, sp',
+    SFlowContent.plain 0 .flowOut _ _ (SNsPlainMultiLine_ctxOfInFlow_to_flowOut h_ml),
+    h_trail, hcorr'⟩
+
 -- Flow-interior production: scanPlainScalar → SFlowNode 0 .flowIn + trailing WS
 -- + corr, for a plain scalar scanned INSIDE a flow collection (`inFlow = true`).
 -- Uses the native-context core directly (its context is already `.flowIn`), with
