@@ -105,12 +105,13 @@ private def verdicts (input : String) : Option ScanError × Option ScanError :=
   ["+STR", "+DOC", "+MAP", "=VAL \"a", "=VAL :b", "=VAL :c", "=VAL :d",
    "-MAP", "-DOC", "-STR"]
 
-/-! ## §2  Still punted — accepted through the deferral, recorded in row 12 -/
+/-! ## §2  Neighbouring heads — the punted one, and the one item 17 packed -/
 
 -- col ≠ 0: the indent machinery's arm.
 #guard emits " \"a\": b\n"
   ["+STR", "+DOC", "+MAP", "=VAL \"a", "=VAL :b", "-MAP", "-DOC", "-STR"]
--- A property-prefixed key: the `pendingProps` content-ride still punts.
+-- A property-prefixed key: packed by item 17, through the same quoted
+-- reading (see `ScannerPropsAliasKeyCompose.lean`).
 #guard emits "&x \"a\": b\n"
   ["+STR", "+DOC", "+MAP", "=VAL &x \"a", "=VAL :b", "-MAP", "-DOC", "-STR"]
 

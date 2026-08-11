@@ -145,6 +145,25 @@ lemma PropsRun.addAnchor {n : Nat} {c : YamlContext} {s s₁ s₂ s' : SurfPos}
     (ha : SCNsAnchorProperty s₂ s') : PropsRun n c true true s s' := by
   cases h with | tag _ _ ht => exact .tagThenAnchor _ _ _ _ ht hsep ha
 
+/-- The BLOCK-KEY twins of `addTag`/`addAnchor` (item 17).  `[96]`'s optional
+    second half embeds `s-separate(n,c)`, and that is the ONLY place the run's
+    context can matter: a single-half run reads in any context, and a two-half
+    run reads at `block-key` exactly when its internal separation stayed on the
+    line — which is what the extension arm has in hand, since it built the
+    separator from the preprocessing's residual whites. -/
+lemma PropsRun.blockKey_addTag {s s₁ s₂ s' : SurfPos}
+    (h : PropsRun 0 .flowOut true false s s₁) (hsep : SSeparateInLine s₁ s₂)
+    (ht : SCNsTagProperty s₂ s') : SCNsProperties 0 .blockKey s s' := by
+  cases h with
+  | anchor _ _ ha => exact .anchorFirst _ _ _ _ _ ha (.some _ _ (.mk _ _ _ hsep ht))
+
+/-- …and dually. -/
+lemma PropsRun.blockKey_addAnchor {s s₁ s₂ s' : SurfPos}
+    (h : PropsRun 0 .flowOut false true s s₁) (hsep : SSeparateInLine s₁ s₂)
+    (ha : SCNsAnchorProperty s₂ s') : SCNsProperties 0 .blockKey s s' := by
+  cases h with
+  | tag _ _ ht => exact .tagFirst _ _ _ _ _ ht (.some _ _ (.mk _ _ _ hsep ha))
+
 /-- `[96]` has no empty arm, so a held run always carries at least one half.
     That is what says the last real token is a property — which is how a held run
     refutes a following alias (`[&a *x]`, item 9e). -/
@@ -175,14 +194,23 @@ lemma PropsRun.toPropertiesBlockIn {n : Nat} {ha ht : Bool} {s s' : SurfPos}
   | tagThenAnchor _ _ _ _ ht hsep ha =>
       exact .tagFirst _ _ _ _ _ ht (.some _ _ (.mk _ _ _ hsep ha))
 
-/-- The one-line key HEADS `[188] ns-s-block-map-implicit-key` admits: the
-    YAML arm's `[131] ns-plain(0, block-key)` (item 15) and the JSON arm's two
-    quoted readings (item 16).  Alias keys and property-prefixed keys are the
-    heads row 12 still punts, and they enter here when they land. -/
+/-- The key HEADS `[188] ns-s-block-map-implicit-key` admits — cut along the
+    PRODUCTION's seam, which is `[188]`'s own two alternatives, rather than
+    along the producer's cases (item 17; item 16 had this as three arms, one per
+    scanner branch).  `[193] ns-s-implicit-yaml-key` reads the plain scalar,
+    `[194] c-s-implicit-json-key` reads a flow node, and everything else about
+    the two is the shared `s-separate-in-line?` tail the pack carries as whites.
+
+    Cutting it here is what makes the remaining heads free: an alias key and a
+    property-prefixed key are `[161] ns-flow-node(0, block-key)`'s own `alias`
+    and `propsContent` arms, so item 17 added no arm at all.  (`SFlowNode` is
+    where this encoding merges `[159] ns-flow-yaml-node` and `[160]
+    c-flow-json-node` — the two are covered at the PARSER level only, and their
+    union is `ns-flow-node` alternative-for-alternative, so the JSON arm's
+    payload is exact in language and loose only in attribution.) -/
 inductive ImplicitKeyHead : SurfPos → SurfPos → Prop where
-  | plain {s s' : SurfPos} : SNsPlainOneLine .blockKey s s' → ImplicitKeyHead s s'
-  | doubleQ {s s' : SurfPos} : SCDoubleQuoted 0 .blockKey s s' → ImplicitKeyHead s s'
-  | singleQ {s s' : SurfPos} : SCSingleQuoted 0 .blockKey s s' → ImplicitKeyHead s s'
+  | yaml {s s' : SurfPos} : SNsPlainOneLine .blockKey s s' → ImplicitKeyHead s s'
+  | json {s s' : SurfPos} : SFlowNode 0 .blockKey s s' → ImplicitKeyHead s s'
 
 /-- The implicit-key pack (item 15): everything a same-line `:` needs to read
     the parked content back as `[193] ns-s-block-map-implicit-key` at column 0.
@@ -197,6 +225,29 @@ def ImplicitKeyPack (sp_start sp_scan : SurfPos) : Prop :=
     SLYamlStream sp_start sp_key ∧
     ImplicitKeyHead sp_key sp_gram ∧
     GStar SSWhite sp_gram sp_scan
+
+/-- The props-key pack (item 17): what a held `[96] c-ns-properties` run hands
+    to the content it is about to decorate, so that the pair can be read as
+    `[161]`'s `propsContent` arm — the head `[188]` takes for `&a x: v`.
+
+    Two of the three components are the run's own coordinates (a column-0 line
+    start, the stream closed there).  The third is the run RE-READ at
+    `block-key`: `[96]`'s optional second half embeds an `s-separate(n,c)`,
+    which is `s-separate-lines` in the context the run was built in and
+    `s-separate-in-line` here, so a two-half run only re-reads if its internal
+    separation crossed no break — and the extension arm builds it from the
+    residual whites, which is precisely that fact.
+
+    `h_sk_line` is the pending state's own §7.4 datum: the key saved when the
+    run OPENED still sits on the scanner's current line.  It is carried rather
+    than demanded because the consuming step can only observe the guard on its
+    OWN post-state, and needs this one to conclude the content scan crossed no
+    break. -/
+def PropsKeyPack (sc : ScannerState) (sp_start sp_p sp_scan : SurfPos) : Prop :=
+  sp_p.col = 0 ∧
+  SLYamlStream sp_start sp_p ∧
+  SCNsProperties 0 .blockKey sp_p sp_scan ∧
+  sc.simpleKey.pos.line = sc.line
 
 inductive PendingNode (sc : ScannerState) : Bool → SurfPos → SurfPos → SurfPos → Prop where
   /-- No pending gap. Block stack top and scanner at same position.
@@ -240,7 +291,11 @@ inductive PendingNode (sc : ScannerState) : Bool → SurfPos → SurfPos → Sur
       9k's same-line guards one-way (held ⇒ the guard fires), which is the
       direction a refutation needs (`&a &b` dies at the scanner); `h_nic` and
       `h_real` are the no-break witness and the real-tail fact those guards'
-      transport across the next preprocessing reads. -/
+      transport across the next preprocessing reads.  `h_key` (item 17, LAST so
+      that the patterns naming the older fields still bind them) is the
+      implicit-key coupling's props half: a run opened at a column-0 line start
+      re-reads at `block-key` and becomes the head of `&a x: v`; every other
+      run punts. -/
   | pendingProps (sp_start sp_block sp_scan : SurfPos) (ha ht : Bool)
       (sp_node sp_p : SurfPos)
       (h_sep : SSeparateLines 0 sp_node sp_p)
@@ -251,7 +306,8 @@ inductive PendingNode (sc : ScannerState) : Bool → SurfPos → SurfPos → Sur
         (trailingPropertyRunOnLine sc.tokens sc.line).any YamlToken.isAnchorProperty = true)
       (h_tag : ht = true →
         (trailingPropertyRunOnLine sc.tokens sc.line).any YamlToken.isTagProperty = true)
-      (h_route : ∀ sp_m, SBlockNode 0 .blockIn sp_node sp_m → SLYamlStream sp_start sp_m) :
+      (h_route : ∀ sp_m, SBlockNode 0 .blockIn sp_node sp_m → SLYamlStream sp_start sp_m)
+      (h_key : PropsKeyPack sc sp_start sp_p sp_scan ∨ True) :
       PendingNode sc false sp_start sp_block sp_scan
   /-- Document end `...` scanned. The gap contains SCDocumentEnd.
       Awaiting SSLComments to form SLDocumentSuffix.
@@ -2174,6 +2230,19 @@ lemma preprocess_some_savedKey_shape {sc s_prep : ScannerState} {c : Char}
             cases saveSimpleKey_shape s_content with
             | inl h => exact Or.inl h
             | inr h => exact Or.inr (h.trans h_ctokens)
+
+/-- …so a saved key that sits on the caller's line still sits on the line the
+    preprocessing left the scanner at, provided the step crossed no break (item
+    17).  Both shapes give it: a fresh save is at the current position by
+    definition, and an inherited key rides the caller's own datum across. -/
+lemma savedKey_line_of_preprocess {sc s_prep : ScannerState} {c : Char}
+    (hok : scanNextToken_preprocess sc = .ok (some (s_prep, c)))
+    (h_line_pp : s_prep.line = sc.line)
+    (h_sk_line : sc.simpleKey.pos.line = sc.line) :
+    s_prep.simpleKey.pos.line = s_prep.line := by
+  cases preprocess_some_savedKey_shape hok with
+  | inl h => rw [h.2]; rfl
+  | inr h => rw [h, h_sk_line, h_line_pp]
 
 /-- Flow-open threading: when preprocessing returns `some`, either a CLOSE POINT
     exists — `SSLComments sp_scan sp_mid` (a line break was crossed, or col-0
@@ -6451,24 +6520,17 @@ lemma colon_open_map (sp_start sp_mid : SurfPos)
                (GStar.nil _)),
          hcorr_result⟩
 
-/-- Both arms of `[188]` land in `[193] ns-s-block-map-implicit-key`: the
-    plain head is the YAML arm directly (`SNsPlain 0 .blockKey` IS
-    `SNsPlainOneLine .blockKey`), and a quoted head is `[159] c-flow-json-node`
-    at `block-key` — `[161]`'s content arm over `[154]`'s quoted alternatives —
-    i.e. the JSON arm.  The trailing `s-white*` is the shared
-    `s-separate-in-line?` slot. -/
+/-- The head IS `[188]`, arm for arm: the plain head is `[193]`'s YAML key
+    directly (`SNsPlain 0 .blockKey` IS `SNsPlainOneLine .blockKey`), a flow
+    head is `[194]`'s JSON key, and the trailing `s-white*` is the
+    `s-separate-in-line?` slot both alternatives end with. -/
 lemma implicitKeyHead_to_SImplicitKey {s s₁ s' : SurfPos}
     (h : ImplicitKeyHead s s₁) (hws : GStar SSWhite s₁ s') : SImplicitKey s s' := by
   have hsep : GOpt SSeparateInLine s₁ s' :=
     GOpt.some s₁ s' (GStar_SSWhite_to_SSeparateInLine s₁ s' hws)
   cases h with
-  | plain hp => exact SImplicitKey.yamlKey s s₁ s' hp hsep
-  | doubleQ hq =>
-      exact SImplicitKey.jsonKey s s₁ s'
-        (SFlowNode.content 0 .blockKey s s₁ (SFlowContent.doubleQ 0 .blockKey s s₁ hq)) hsep
-  | singleQ hq =>
-      exact SImplicitKey.jsonKey s s₁ s'
-        (SFlowNode.content 0 .blockKey s s₁ (SFlowContent.singleQ 0 .blockKey s s₁ hq)) hsep
+  | yaml hp => exact SImplicitKey.yamlKey s s₁ s' hp hsep
+  | json hn => exact SImplicitKey.jsonKey s s₁ s' hn hsep
 
 -- The same-line `:` producer (item 15): the parked scalar re-reads as
 -- `[193]`'s implicit key, and the value indicator opens the block mapping
@@ -6477,7 +6539,9 @@ lemma implicitKeyHead_to_SImplicitKey {s s₁ s' : SurfPos}
 -- trailing separation slot ([66], zero-width `startOfLine` when the `:` is
 -- adjacent) absorbs the pack's trailing whites plus whatever the `:` step's
 -- own preprocessing consumed.  Item 16 widened `h_ol` from the plain reading
--- to `ImplicitKeyHead`, so the quoted keys reuse this producer unchanged.
+-- to `ImplicitKeyHead`, and item 17 re-cut that carrier along `[188]`'s own
+-- two alternatives, so every head — plain, quoted, alias, property-prefixed —
+-- reuses this producer unchanged.
 lemma colon_open_map_implicit (sp_start sp_key sp_gram sp_ws : SurfPos)
     (s_prep s' : ScannerState) (sp_scan' : SurfPos)
     (hcol0 : sp_key.col = 0)
@@ -8771,6 +8835,29 @@ lemma content_dispatch_after_close
         (GOpt.some sp_block sp_m
           (SLAnyDocument.bare sp_block sp_m (SLBareDocument.mk sp_block sp_m h_bn)))
         (GStar.nil _)
+    -- Item 17: the run's own key coupling.  A property push is not a key save
+    -- (`dispatchContent_*_simpleKey`), so the key the `:` will validate is the
+    -- one the preprocessing saved AT the `&`/`!` — which is why the key of
+    -- `&a x: v` starts at the property, and why the same-line datum the
+    -- content step needs is available here, before any content exists.
+    have h_props_key : ∀ (sp_run : SurfPos),
+        SCNsProperties 0 .blockKey sp_prep sp_run →
+        s'.simpleKey = (if s_prep.allowDirectives then
+            { s_prep with allowDirectives := false, documentEverStarted := true }
+          else s_prep).simpleKey →
+        s'.line = (if s_prep.allowDirectives then
+            { s_prep with allowDirectives := false, documentEverStarted := true }
+          else s_prep).line →
+        PropsKeyPack s' sp_start sp_prep sp_run ∨ True := by
+      intro sp_run h_props h_sk h_line'
+      cases h_keyctx with
+      | inr _ => exact Or.inr trivial
+      | inl hctx =>
+        obtain ⟨hcol0, h_stream_prep, _h_sk_poss, h_sk_pos⟩ := hctx
+        refine Or.inl ⟨hcol0, h_stream_prep, h_props, ?_⟩
+        rw [h_sk, allowDirectives_update_simpleKey, h_sk_pos,
+            h_line', allowDirectives_update_line]
+        rfl
     cases hprops with
     | inl h =>
       subst h
@@ -8789,7 +8876,11 @@ lemma content_dispatch_after_close
                (fun _ => h_any YamlToken.isAnchorProperty
                  (by simp [YamlToken.isAnchorProperty]))
                (fun h => nomatch h)
-               h_route,
+               h_route
+               (h_props_key sp_scan'
+                 (SCNsProperties.anchorFirst 0 .blockKey sp_prep sp_scan' sp_scan'
+                   ha_ev (GOpt.none sp_scan'))
+                 (dispatchContent_anchor_simpleKey h_dispatch).1 h_line'),
              hcorr_result⟩
     | inr h =>
       subst h
@@ -8808,29 +8899,48 @@ lemma content_dispatch_after_close
                (fun h => nomatch h)
                (fun _ => h_any YamlToken.isTagProperty
                  (by simp [YamlToken.isTagProperty]))
-               h_route,
+               h_route
+               (h_props_key sp_scan'
+                 (SCNsProperties.tagFirst 0 .blockKey sp_prep sp_scan' sp_scan'
+                   ht_ev (GOpt.none sp_scan'))
+                 (dispatchContent_tag_simpleKey h_dispatch).1 h_line'),
              hcorr_result⟩
   · have hna : c ≠ '&' := fun h => hprops (Or.inl h)
     have hnt : c ≠ '!' := fun h => hprops (Or.inr h)
     have h_line := col0_or_lineNoOpen
       (dispatchContent_restNoOpen h_flow_disp hna hnt hcorr_result.end_eq h_dispatch)
       hcorr_result
-    -- Items 15/16: the implicit-key coupling.  Under the §7.4 guard (possible
-    -- key on the current line), a PLAIN or QUOTED scalar parked from a col-0
-    -- line start with a fresh at-position save re-reads as the `.blockKey`
-    -- one-line key; every other shape punts and rides the deferral.
+    -- Items 15/16/17: the implicit-key coupling.  Under the §7.4 guard
+    -- (possible key on the current line), a PLAIN or QUOTED scalar parked from
+    -- a col-0 line start with a fresh at-position save re-reads as the
+    -- `.blockKey` one-line key, and an ALIAS needs no re-reading at all; a
+    -- block-scalar header punts and rides the deferral.
     have h_key : s'.simpleKey.possible = true → s'.simpleKey.pos.line = s'.line →
         ImplicitKeyPack sp_start sp_scan' ∨ True := by
       intro _h_poss h_kline
-      by_cases hc5 : c = '*' ∨ c = '|' ∨ c = '>'
+      by_cases hc5 : c = '|' ∨ c = '>'
       · exact Or.inr trivial
       · cases h_keyctx with
         | inr _ => exact Or.inr trivial
         | inl hctx =>
           obtain ⟨hcol0, h_stream_prep, _h_sk_poss, h_sk_pos⟩ := hctx
-          have hnStar : c ≠ '*' := fun h => hc5 (Or.inl h)
-          have hnPipe : c ≠ '|' := fun h => hc5 (Or.inr (Or.inl h))
-          have hnGt : c ≠ '>' := fun h => hc5 (Or.inr (Or.inr h))
+          have hnPipe : c ≠ '|' := fun h => hc5 (Or.inl h)
+          have hnGt : c ≠ '>' := fun h => hc5 (Or.inr h)
+          by_cases hstar : c = '*'
+          · -- `[188]`'s alias head (item 17): `[104] c-ns-alias-node` is
+            -- `'*' ns-anchor-name`, and `ns-anchor-char` excludes `s-white` and
+            -- `b-char` — an alias CANNOT cross a break, so there is no one-line
+            -- reading to prove and no line hypothesis to discharge.  The
+            -- production is context-free, so it reads at `.blockKey` directly.
+            subst hstar
+            obtain ⟨sp_res2, h_al, hcorr2⟩ :=
+              dispatchContent_alias_prod _ sp_prep .blockKey
+                (corr_of_allowDirectives_update hcorr_prep) hpeek_disp h_dispatch
+            have hsp2 := ScannerSurfCorr_unique hcorr2 hcorr_result
+            rw [hsp2] at h_al
+            exact Or.inl ⟨sp_prep, sp_scan', hcol0, h_stream_prep,
+                          ImplicitKeyHead.json h_al, GStar.nil _⟩
+          have hnStar : c ≠ '*' := hstar
           -- The coupling chain: the key was saved AT the content start, so the
           -- guard's `pos.line = line` says the scan crossed no break.  Only the
           -- key's POSITION need survive the dispatch — §7.4's own `endLine`
@@ -8858,7 +8968,10 @@ lemma content_dispatch_after_close
             have hsp2 := ScannerSurfCorr_unique hcorr2 hcorr_result
             rw [hsp2] at h_dq
             exact Or.inl ⟨sp_prep, sp_scan', hcol0, h_stream_prep,
-                          ImplicitKeyHead.doubleQ h_dq, GStar.nil _⟩
+                          ImplicitKeyHead.json
+                            (SFlowNode.content 0 .blockKey sp_prep sp_scan'
+                              (SFlowContent.doubleQ 0 .blockKey sp_prep sp_scan' h_dq)),
+                          GStar.nil _⟩
           · by_cases hsq : c = '\''
             · -- `[188]`'s JSON arm, single-quoted.
               subst hsq
@@ -8869,7 +8982,10 @@ lemma content_dispatch_after_close
               have hsp2 := ScannerSurfCorr_unique hcorr2 hcorr_result
               rw [hsp2] at h_sq
               exact Or.inl ⟨sp_prep, sp_scan', hcol0, h_stream_prep,
-                            ImplicitKeyHead.singleQ h_sq, GStar.nil _⟩
+                            ImplicitKeyHead.json
+                              (SFlowNode.content 0 .blockKey sp_prep sp_scan'
+                                (SFlowContent.singleQ 0 .blockKey sp_prep sp_scan' h_sq)),
+                            GStar.nil _⟩
             · -- `[188]`'s YAML arm (item 15).
               obtain ⟨h_sk_pres, h_cond⟩ :=
                 dispatchContent_plainScalar_key_prod _ sp_prep
@@ -8880,7 +8996,7 @@ lemma content_dispatch_after_close
               have hsp2 := ScannerSurfCorr_unique hcorr2 hcorr_result
               rw [hsp2] at h_tws2
               exact Or.inl ⟨sp_prep, sp_gram2, hcol0, h_stream_prep,
-                            ImplicitKeyHead.plain h_ol, h_tws2⟩
+                            ImplicitKeyHead.yaml h_ol, h_tws2⟩
     obtain ⟨sp_gram, sp_ev, h_ev, h_trailing_ws, hcorr_ev⟩ :=
         dispatchContent_evidence _ sp_prep c
         (corr_of_allowDirectives_update hcorr_prep) hpeek_disp h_not_doc h_dispatch
@@ -9042,7 +9158,7 @@ lemma accum_content_on_pendingBlock
                (fun _ => h_any YamlToken.isAnchorProperty
                  (by simp [YamlToken.isAnchorProperty]))
                (fun h => nomatch h)
-               h_route,
+               h_route (Or.inr trivial),
              hcorr_result⟩
     | inr h =>
       subst h
@@ -9061,7 +9177,7 @@ lemma accum_content_on_pendingBlock
                (fun h => nomatch h)
                (fun _ => h_any YamlToken.isTagProperty
                  (by simp [YamlToken.isTagProperty]))
-               h_route,
+               h_route (Or.inr trivial),
              hcorr_result⟩
   · have hna : c ≠ '&' := fun h => hprops (Or.inl h)
     have hnt : c ≠ '!' := fun h => hprops (Or.inr h)
@@ -9177,7 +9293,7 @@ lemma accum_content_on_pendingMapValue
                (fun _ => h_any YamlToken.isAnchorProperty
                  (by simp [YamlToken.isAnchorProperty]))
                (fun h => nomatch h)
-               h_route,
+               h_route (Or.inr trivial),
              hcorr_result⟩
     | inr h =>
       subst h
@@ -9196,7 +9312,7 @@ lemma accum_content_on_pendingMapValue
                (fun h => nomatch h)
                (fun _ => h_any YamlToken.isTagProperty
                  (by simp [YamlToken.isTagProperty]))
-               h_route,
+               h_route (Or.inr trivial),
              hcorr_result⟩
   · have hna : c ≠ '&' := fun h => hprops (Or.inl h)
     have hnt : c ≠ '!' := fun h => hprops (Or.inr h)
@@ -9330,7 +9446,7 @@ lemma accum_content_pending (sc : ScannerState)
             (preprocess_some_peek h_preprocess) h_flow_disp h_dispatch h_keyctx
         | inr h_mid_eq =>
           exact block_dispatch_deferred sp_start sp_block sp_scan' s' h_stream_block hcorr_result)
-  | pendingProps _ _ _ ha ht sp_node sp_p h_sep_run h_run h_nic_p h_real_p h_anchor_p h_tag_p h_route =>
+  | pendingProps _ _ _ ha ht sp_node sp_p h_sep_run h_run h_nic_p h_real_p h_anchor_p h_tag_p h_route h_key_p =>
     -- ═══ Item 12: a held depth-0 run meets a CONTENT character — the
     -- content-dispatch escape RETIRES.  Across a break the run closes as
     -- `propsEmpty` (the parked couplings go stale with the line, and are not
@@ -9441,7 +9557,22 @@ lemma accum_content_pending (sc : ScannerState)
                  (fun _ => h_any YamlToken.isAnchorProperty
                    (by simp [YamlToken.isAnchorProperty]))
                  (fun _ => h_tag_new)
-                 h_route,
+                 h_route
+                 (by
+                   -- item 17: the run grows, the key does not move.  Its second
+                   -- half is separated by the residual whites, so the extended
+                   -- run still reads at `block-key`.
+                   cases h_key_p with
+                   | inr _ => exact Or.inr trivial
+                   | inl hpk =>
+                     obtain ⟨hcol0, h_stream_p, _h_props_old, h_sk_line⟩ := hpk
+                     refine Or.inl ⟨hcol0, h_stream_p,
+                       h_run.blockKey_addAnchor
+                         (GStar_SSWhite_to_SSeparateInLine sp_scan sp_prep h_ws) h_prop, ?_⟩
+                     rw [(dispatchContent_anchor_simpleKey h_dispatch).1,
+                         allowDirectives_update_simpleKey, h_line',
+                         allowDirectives_update_line]
+                     exact savedKey_line_of_preprocess h_preprocess h_line_pp h_sk_line),
                hcorr_result⟩
       · by_cases hbang : c = '!'
         · -- ═══ `!` on the run's line: the mirror ═══
@@ -9494,7 +9625,19 @@ lemma accum_content_pending (sc : ScannerState)
                    (fun _ => h_anchor_new)
                    (fun _ => h_any YamlToken.isTagProperty
                      (by simp [YamlToken.isTagProperty]))
-                   h_route,
+                   h_route
+                   (by
+                     cases h_key_p with
+                     | inr _ => exact Or.inr trivial
+                     | inl hpk =>
+                       obtain ⟨hcol0, h_stream_p, _h_props_old, h_sk_line⟩ := hpk
+                       refine Or.inl ⟨hcol0, h_stream_p,
+                         h_run.blockKey_addTag
+                           (GStar_SSWhite_to_SSeparateInLine sp_scan sp_prep h_ws) h_prop, ?_⟩
+                       rw [(dispatchContent_tag_simpleKey h_dispatch).1,
+                           allowDirectives_update_simpleKey, h_line',
+                           allowDirectives_update_line]
+                       exact savedKey_line_of_preprocess h_preprocess h_line_pp h_sk_line),
                  hcorr_result⟩
         · by_cases hstar : c = '*'
           · -- ═══ `*` on the run's line: REFUTED (items 9e/9k) ═══
@@ -9523,6 +9666,83 @@ lemma accum_content_pending (sc : ScannerState)
             have h_line := col0_or_lineNoOpen
               (dispatchContent_restNoOpen h_flow_disp hamp hbang hcorr_result.end_eq h_dispatch)
               hcorr_result
+            -- Item 17: …and when the run was opened at a column-0 line start,
+            -- the pair is also a KEY.  The head is `[161]`'s `propsContent`
+            -- arm read at `block-key`: the run itself (carried), the residual
+            -- whites as `[66] s-separate-in-line`, and the content's own
+            -- one-line reading (items 15/16, unchanged).  The line hypothesis
+            -- those readings want is the pack's carried §7.4 datum run
+            -- forward: the key saved when the run opened is still on the
+            -- scanner's line, so the guard's post-state equation says the
+            -- content scan crossed no break either.  A block-scalar header
+            -- punts — `&a |` is a node, never a key.
+            have h_key : s'.simpleKey.possible = true → s'.simpleKey.pos.line = s'.line →
+                ImplicitKeyPack sp_start sp_scan' ∨ True := by
+              intro _h_poss h_kline
+              cases h_key_p with
+              | inr _ => exact Or.inr trivial
+              | inl hpk =>
+                obtain ⟨hcol0, h_stream_p, h_props_bk, h_sk_line⟩ := hpk
+                by_cases hc5 : c = '|' ∨ c = '>'
+                · exact Or.inr trivial
+                · have hnPipe : c ≠ '|' := fun h => hc5 (Or.inl h)
+                  have hnGt : c ≠ '>' := fun h => hc5 (Or.inr h)
+                  have h_sep_bk : SSeparate 0 .blockKey sp_scan sp_prep :=
+                    GStar_SSWhite_to_SSeparateInLine sp_scan sp_prep h_ws
+                  have h_line_scan : s'.simpleKey.pos = (if s_prep.allowDirectives then
+                      { s_prep with allowDirectives := false, documentEverStarted := true }
+                    else s_prep).simpleKey.pos →
+                      s'.line = (if s_prep.allowDirectives then
+                      { s_prep with allowDirectives := false, documentEverStarted := true }
+                    else s_prep).line := by
+                    intro hpp
+                    have h1 : s'.simpleKey.pos.line = s_prep.simpleKey.pos.line := by
+                      rw [hpp, allowDirectives_update_simpleKey]
+                    rw [allowDirectives_update_line,
+                        ← savedKey_line_of_preprocess h_preprocess h_line_pp h_sk_line, ← h1]
+                    exact h_kline.symm
+                  by_cases hdq : c = '"'
+                  · subst hdq
+                    obtain ⟨h_pp, h_cond⟩ :=
+                      dispatchContent_doubleQuoted_key_prod _ sp_prep
+                        (corr_of_allowDirectives_update hcorr_prep) hpeek_disp h_dispatch
+                    obtain ⟨sp_res2, h_dq, hcorr2⟩ := h_cond (h_line_scan h_pp)
+                    have hsp2 := ScannerSurfCorr_unique hcorr2 hcorr_result
+                    rw [hsp2] at h_dq
+                    exact Or.inl ⟨sp_p, sp_scan', hcol0, h_stream_p,
+                      ImplicitKeyHead.json
+                        (SFlowNode.propsContent 0 .blockKey sp_p sp_scan sp_prep sp_scan'
+                          h_props_bk h_sep_bk
+                          (SFlowContent.doubleQ 0 .blockKey sp_prep sp_scan' h_dq)),
+                      GStar.nil _⟩
+                  · by_cases hsq : c = '\''
+                    · subst hsq
+                      obtain ⟨h_pp, h_cond⟩ :=
+                        dispatchContent_singleQuoted_key_prod _ sp_prep
+                          (corr_of_allowDirectives_update hcorr_prep) hpeek_disp h_dispatch
+                      obtain ⟨sp_res2, h_sq, hcorr2⟩ := h_cond (h_line_scan h_pp)
+                      have hsp2 := ScannerSurfCorr_unique hcorr2 hcorr_result
+                      rw [hsp2] at h_sq
+                      exact Or.inl ⟨sp_p, sp_scan', hcol0, h_stream_p,
+                        ImplicitKeyHead.json
+                          (SFlowNode.propsContent 0 .blockKey sp_p sp_scan sp_prep sp_scan'
+                            h_props_bk h_sep_bk
+                            (SFlowContent.singleQ 0 .blockKey sp_prep sp_scan' h_sq)),
+                        GStar.nil _⟩
+                    · obtain ⟨h_sk_pres, h_cond⟩ :=
+                        dispatchContent_plainScalar_key_prod _ sp_prep
+                          (corr_of_allowDirectives_update hcorr_prep) hpeek_disp h_flow_disp
+                          hamp hstar hbang hnPipe hnGt hdq hsq h_not_doc h_dispatch
+                      obtain ⟨sp_gram2, sp_res2, h_ol, h_tws2, hcorr2⟩ :=
+                        h_cond (h_line_scan (by rw [h_sk_pres]))
+                      have hsp2 := ScannerSurfCorr_unique hcorr2 hcorr_result
+                      rw [hsp2] at h_tws2
+                      exact Or.inl ⟨sp_p, sp_gram2, hcol0, h_stream_p,
+                        ImplicitKeyHead.json
+                          (SFlowNode.propsContent 0 .blockKey sp_p sp_scan sp_prep sp_gram2
+                            h_props_bk h_sep_bk
+                            (SFlowContent.plain 0 .blockKey sp_prep sp_gram2 h_ol)),
+                        h_tws2⟩
             obtain ⟨sp_ne, sp_res, h_ev, h_tws, hcorr_res⟩ :=
               dispatchContent_evidence_content _ sp_prep c
                 (corr_of_allowDirectives_update hcorr_prep) hpeek_disp h_not_doc
@@ -9539,7 +9759,7 @@ lemma accum_content_pending (sc : ScannerState)
                            (SFlowNode.propsContent 0 .flowOut sp_p sp_scan sp_prep sp_ne
                              h_run.toProperties h_sep2 h_content)
                            (white_prepend_SSLComments h_tws h_ssl)))
-                       (fun _ _ => Or.inr trivial),
+                       h_key,
                      hcorr_result⟩
             | inr h_block =>
               exact ⟨sp_block, sp_block, sp_block, sp_scan', h_stream_block,
@@ -9557,7 +9777,7 @@ lemma accum_content_pending (sc : ScannerState)
                                h_fld)
                          ssl_comments_extend_stream sp_start sp_ne sp_mid
                            (h_route sp_ne h_bn) h_ssl_ext)
-                       (fun _ _ => Or.inr trivial),
+                       h_key,
                      hcorr_result⟩
   | pendingBlock =>
     rename_i h_close_old h_close_entry_old

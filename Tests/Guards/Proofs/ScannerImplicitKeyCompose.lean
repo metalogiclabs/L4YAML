@@ -28,9 +28,10 @@ STRICTLY (`collectPlainScalarLoop_line_le` + the one-line conjunct of
 `collectPlainScalarLoop_prod`).
 
 The pins below fix the composed shapes and the neighbours that stay put:
-punted packs (quoted keys, indented keys) still accept through the
-deferral, and the multiline shapes the coupling refutes still reject at
-the same place in BOTH pipelines.
+the punted pack (indented keys) still accepts through the deferral, and the
+multiline shapes the coupling refutes still reject at the same place in
+BOTH pipelines.  (The other heads followed: quoted keys in item 16, alias
+and property-prefixed keys in item 17.)
 -/
 
 namespace Tests.Guards.ScannerImplicitKeyCompose
@@ -82,9 +83,11 @@ key production + `:` + value through `pendingMapValue`. -/
 
 /-! ## §2  Punted packs — accepted through the deferral, recorded in row 12
 
-This pass packs only PLAIN content at column 0; these accept unchanged and
-stay with the campaign's remaining arms.  (`[188]`'s JSON arm — the quoted
-keys — was packed by item 16; see `ScannerQuotedKeyCompose.lean`.) -/
+This pass packs only PLAIN content at column 0; the indented key accepts
+unchanged and stays with the campaign's remaining arms.  (`[188]`'s JSON
+arm followed: the quoted keys in item 16, `ScannerQuotedKeyCompose.lean`;
+the alias and property-prefixed keys in item 17,
+`ScannerPropsAliasKeyCompose.lean`.) -/
 
 -- Indented mapping: a col≠0 key punts (the indent machinery's arm).
 #guard emits " a: b\n"
