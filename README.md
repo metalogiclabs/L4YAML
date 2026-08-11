@@ -585,6 +585,21 @@ references [L4YAML/Output/Events.lean](L4YAML/Output/Events.lean), whose
 `parseStreamMarkedLoop` is an unverified mirror of the verified
 `TokenParser.parseStreamLoop` (~13 duplicated decision points, plus
 `explicitStartAt` re-implementing the directive skip of `parseDirectives`).
+
+The gap is wider than the event axis, and wider than the legacy pipeline. A
+scan of all 144 files under `L4YAML/Proofs/` (2026-08-11) finds **zero**
+references to any of the four emitters — Events.lean (16 defs), Json.lean (9),
+[EventsIx.lean](L4YAML/Output/EventsIx.lean) (4) and
+[JsonIx.lean](L4YAML/Output/JsonIx.lean) (1) — neither by module nor by
+declaration name. So both matrix axes and both pipelines are scored by
+unverified code, and the demonstration below (a commented-out arm leaving CI
+green while the event axis regressed 402→399) applies equally to the JSON axis
+and to the indexed twins. The steps below are written for the legacy event
+emitter because it is the largest and the one whose mirror structure is
+documented; the same three-step shape (pin, gate, then prove agreement with the
+verified loop) is what the other three need, and `JsonIx`'s 1 def and
+`EventsIx`'s 4 are thin enough that their agreement theorems reduce to the
+legacy ones plus the scan/parse swap.
 Demonstrated 2026-07-04: commenting out the `some .documentEnd` suffix arm
 (the C1 fix from commit `7d43fe61`) left `lake build` — and CI — green while
 the event axis silently regressed 402→399 (HWV9, QT73, M7A3). YAML 1.2.2

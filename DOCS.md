@@ -542,6 +542,15 @@ Two emitters produce the matrix's comparison formats directly from the
   [Indexed-pipeline parity gap](#indexed-pipeline-parity-gap). Emission is
   shared; only the scan/parse differs.
 
+All four are **opt-in modules**: `import L4YAML` does not pull them in, and the
+Quick Start in `L4YAML.lean`'s docstring imports them explicitly. They reach the
+build through the four `@[default_target]` exes that root at them, which is what
+`scripts/check_import_closure.py` roots its closure at — before 2026-08-11 that
+gate rooted only at `L4YAML` and reported two of the four as orphans, the other
+two being masked because the gate parsed the Quick Start's `import` lines out of
+a fenced code block. None of the four has any proof coverage; see the
+event-axis verification gap in [README.md](README.md).
+
 Both are pure functions over the existing AST — no parser changes were needed
 to *observe* the output (the fixes above were parser/scanner changes, each
 carried through the proof corpus).

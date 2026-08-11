@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
 """CI gate: no orphan modules.
 
-1. Every `L4YAML/**/*.lean` module must be transitively imported from the
-   library root `L4YAML.lean` (textual `import` parsing — deliberately NOT
-   importGraph env-loading: merging the full Proofs environment trips a
-   duplicate equation-lemma error, see .github/workflows/test-coverage.yml).
+1. Every `L4YAML/**/*.lean` module must be transitively imported from one of the
+   `@[default_target]` roots in `ROOTS` below — the library plus the four emitter
+   exes (textual `import` parsing — deliberately NOT importGraph env-loading:
+   merging the full Proofs environment trips a duplicate equation-lemma error,
+   see .github/workflows/test-coverage.yml). Fenced code blocks are stripped
+   before parsing, so a docstring example cannot satisfy the gate.
 2. Every `Tests/Reflections/*.lean` must be imported by the
    `Tests/Reflections.lean` index (a file missing from the index is never
    built by CI and can rot silently).
@@ -15,6 +17,16 @@ import sys
 from pathlib import Path
 
 IMPORT_RE = re.compile(r"^import\s+([A-Za-z0-9_.«»]+)", re.M)
+FENCE_RE = re.compile(r"^```.*?^```", re.M | re.S)
+
+# Closure roots: every `@[default_target]` whose root is a module, not just the
+# library. `L4YAML.lean` is the library; the four emitters are opt-in modules
+# reached through the exes that root at them (the Quick Start in L4YAML.lean's
+# docstring documents them as separate imports on purpose — they are how the
+# matrix observes the parser, not part of the umbrella API).  Rooting only at
+# `L4YAML` reported them as orphans; see lakefile.lean.
+ROOTS = ["L4YAML", "Tests.EmitEvents", "Tests.EmitJson",
+         "Tests.EmitEventsIx", "Tests.EmitJsonIx"]
 
 
 def module_of(path: Path) -> str:
@@ -22,19 +34,30 @@ def module_of(path: Path) -> str:
 
 
 def imports_of(path: Path):
-    return IMPORT_RE.findall(path.read_text())
+    """Imports of a module. Fenced code blocks are stripped first: a `​```lean`
+    example inside a module docstring is documentation, not an import. Reading
+    them as imports made `L4YAML.lean`'s Quick Start silently satisfy this gate
+    for `Output.Events` and `Output.Json` — so two of the four emitters were
+    reported as orphans and two were not (2026-08-11)."""
+    return IMPORT_RE.findall(FENCE_RE.sub("", path.read_text()))
 
 
 def main() -> int:
     repo = Path(__file__).resolve().parent.parent
     failures = []
 
-    # --- 1. library reachability from L4YAML.lean ---
+    # --- 1. library reachability from the default targets ---
     lib_files = sorted((repo / "L4YAML").rglob("*.lean"))
     on_disk = {module_of(f.relative_to(repo)): f for f in lib_files}
-    seen, frontier = set(), ["L4YAML"]
+    seen, frontier = set(), list(ROOTS)
     file_of = dict(on_disk)
-    file_of["L4YAML"] = repo / "L4YAML.lean"
+    for root in ROOTS:
+        file_of[root] = repo / Path(*root.split(".")).with_suffix(".lean")
+    missing = [r for r in ROOTS if not file_of[r].exists()]
+    if missing:
+        print(f"closure root(s) not on disk (stale ROOTS in {Path(__file__).name}?): "
+              f"{missing}", file=sys.stderr)
+        return 1
     while frontier:
         mod = frontier.pop()
         if mod in seen:
@@ -48,7 +71,8 @@ def main() -> int:
                 frontier.append(imp)
     orphans = sorted(set(on_disk) - seen)
     for mod in orphans:
-        failures.append(f"orphan library module (unreachable from L4YAML.lean): "
+        failures.append(f"orphan library module (unreachable from any default "
+                        f"target — {', '.join(ROOTS)}): "
                         f"{on_disk[mod].relative_to(repo)}")
 
     # --- 2. Tests/Reflections index completeness ---
@@ -64,8 +88,8 @@ def main() -> int:
         print("\n".join(failures))
         print(f"error: {len(failures)} import-closure violations", file=sys.stderr)
         return 1
-    print(f"OK: {len(on_disk)} library modules reachable from L4YAML.lean; "
-          f"Tests/Reflections index complete ({len(indexed)} imports)")
+    print(f"OK: {len(on_disk)} library modules reachable from {len(ROOTS)} default "
+          f"targets; Tests/Reflections index complete ({len(indexed)} imports)")
     return 0
 
 
