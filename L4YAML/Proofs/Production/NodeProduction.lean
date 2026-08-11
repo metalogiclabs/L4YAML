@@ -312,6 +312,63 @@ lemma SFlowNode_singleQ_ctx_lift {n : Nat} {c₁ c₂ : YamlContext} {s s' : Sur
     SFlowNode n c₂ s s' :=
   flowContent_flowNode (SFlowContent_singleQ_ctx_lift h hc₁ hc₂)
 
+-- [96] c-ns-properties context re-labelling between the two block contexts.
+-- The embedded separator is `SSeparate n c`, which reduces to
+-- `SSeparateLines n` at BOTH block contexts, so each constructor rebuilds
+-- with its fields transported by definitional equality.
+@[yaml_spec "6.9" 96 "c-ns-properties(n,c) blockIn → blockOut (same n)"]
+lemma SCNsProperties_blockIn_to_blockOut {n : Nat} {s s' : SurfPos}
+    (h : SCNsProperties n .blockIn s s') : SCNsProperties n .blockOut s s' :=
+  match h with
+  | .tagFirst _ _ _ s₁ _ h_tag h_opt =>
+    .tagFirst n .blockOut s s₁ s' h_tag h_opt
+  | .anchorFirst _ _ _ s₁ _ h_anchor h_opt =>
+    .anchorFirst n .blockOut s s₁ s' h_anchor h_opt
+
+private lemma props_sep_opt_blockIn_to_blockOut {n : Nat} {s s' : SurfPos}
+    (h : GOpt (GSeq (SCNsProperties n .blockIn) (SSeparate n .blockIn)) s s') :
+    GOpt (GSeq (SCNsProperties n .blockOut) (SSeparate n .blockOut)) s s' :=
+  match h with
+  | .none _ => .none _
+  | .some _ _ (.mk _ s₁ _ hp hs) =>
+    .some _ _ (.mk _ s₁ _ (SCNsProperties_blockIn_to_blockOut hp) hs)
+
+private lemma sep_props_opt_blockIn_to_blockOut {n : Nat} {s s' : SurfPos}
+    (h : GOpt (GSeq (SSeparate n .blockIn) (SCNsProperties n .blockIn)) s s') :
+    GOpt (GSeq (SSeparate n .blockOut) (SCNsProperties n .blockOut)) s s' :=
+  match h with
+  | .none _ => .none _
+  | .some _ _ (.mk _ s₁ _ hs hp) =>
+    .some _ _ (.mk _ s₁ _ hs (SCNsProperties_blockIn_to_blockOut hp))
+
+-- [196] s-l+block-node re-labelling blockIn → blockOut at n = 0.
+-- The context surfaces in three places, all inert at this indent: the
+-- separators (`SSeparate 0 c` reduces to `SSeparateLines 0` for both), the
+-- properties (re-labelled above), and `seqSpaces 0 c` (both reduce to 0 —
+-- the `n - 1` of BLOCK-OUT truncates).  This is what lets a mapping VALUE
+-- slot ([189] wants `.blockOut`) consume a node composed by the `.blockIn`
+-- machinery the accumulation already has (DOCS item 13).
+@[yaml_spec "8.2.3" 196 "s-l+block-node(0,c) blockIn → blockOut"]
+lemma SBlockNode_blockIn_to_blockOut {s s' : SurfPos}
+    (h : SBlockNode 0 .blockIn s s') : SBlockNode 0 .blockOut s s' :=
+  match h with
+  | .blockLiteral _ _ _ s₁ s₂ _ h_sep h_props h_lit =>
+    .blockLiteral 0 .blockOut s s₁ s₂ s' h_sep
+      (props_sep_opt_blockIn_to_blockOut h_props) h_lit
+  | .blockFolded _ _ _ s₁ s₂ _ h_sep h_props h_fld =>
+    .blockFolded 0 .blockOut s s₁ s₂ s' h_sep
+      (props_sep_opt_blockIn_to_blockOut h_props) h_fld
+  | .blockSeq _ _ _ s₁ s₂ _ h_props h_ssl h_entries =>
+    .blockSeq 0 .blockOut s s₁ s₂ s'
+      (sep_props_opt_blockIn_to_blockOut h_props) h_ssl h_entries
+  | .blockMap _ _ _ s₁ s₂ _ h_props h_ssl h_entries =>
+    .blockMap 0 .blockOut s s₁ s₂ s'
+      (sep_props_opt_blockIn_to_blockOut h_props) h_ssl h_entries
+  | .flowInBlock _ _ _ s₁ s₂ _ h_sep h_flow h_ssl =>
+    .flowInBlock 0 .blockOut s s₁ s₂ s' h_sep h_flow h_ssl
+  | .emptyNode _ _ _ _ h_ssl =>
+    .emptyNode 0 .blockOut s s' h_ssl
+
 /-! ## §6 GStar/GPlus Lifting and Alias/Anchor Conversion (Layer 4a) -/
 
 -- Alias node: GLit '*' + GPlus anchor chars → SCNsAliasNode.

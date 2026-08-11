@@ -524,11 +524,13 @@ def testFlowExplicitKeyEdgeCases (state : IO.Ref TestCollector) : IO Unit := do
     check state "{? : v1, ? : v2} pair count" (pairCount v ≥ 1)
   | .error e => checkM state "{? : v1, ? : v2} parses" false e.toString
 
-  -- {?, ?} — bare ? entries in flow (null:null)
+  -- {?, ?} — a `,` directly after `?` violates `[142]`'s mandatory
+  -- s-separate (item 9j: `flowKeyFollowerOk`); the spaced form below stays
+  -- legal.  This assertion certified the pre-9j gap until item 13 caught it
+  -- (the two guard-file pins were retracted with 9j; this one was missed).
   match parseSingle "{?, ?}" with
-  | .ok v =>
-    check state "{?, ?} parses" (v.isMapping)
-  | .error e => checkM state "{?, ?} parses" false e.toString
+  | .ok _ => checkM state "{?, ?} rejected" false "accepted a ? followed directly by ,"
+  | .error _ => check state "{?, ?} rejected" true
 
   -- {? , ? } — bare ? with spaces
   match parseSingle "{? , ? }" with

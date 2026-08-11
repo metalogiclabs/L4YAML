@@ -188,7 +188,7 @@ lemma head_of_peek {s : ScannerState} {sp : SurfPos} {c : Char}
 
 /-- `peek? = some c` exposes the `CharsFromOffset` head. -/
 private lemma peek_some_head {s : ScannerState} {c : Char}
-    (hend : s.inputEnd = s.input.utf8ByteSize)
+    (_hend : s.inputEnd = s.input.utf8ByteSize)
     (hpk : s.peek? = some c) :
     s.offset < s.inputEnd ∧ String.Pos.Raw.get s.input ⟨s.offset⟩ = c := by
   unfold ScannerState.peek? at hpk
@@ -436,7 +436,7 @@ lemma scanDocumentEnd_restNoOpen {s s' : ScannerState}
     (hok : scanDocumentEnd s = .ok s') :
     RestNoOpen s' := by
   unfold scanDocumentEnd at hok
-  simp only [bind, Except.bind, pure, Except.pure] at hok
+  simp only [bind, Except.bind] at hok
   split at hok
   · cases hok
   · -- the suffix-probe match; each surviving arm pins the landing peek
