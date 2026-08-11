@@ -844,7 +844,8 @@ structure AliasLimits where
   maxResolvedNodes : Nat := 100_000
 
   /-- Whether to detect and reject cyclic aliases (a: &a [*a]).
-      Cyclic aliases violate YAML 1.2.2 §3.2.1 (acyclic graph requirement).
+      Note: this is a policy of ours, not a spec requirement — YAML 1.2.2
+      §3.2.1 explicitly permits cycles in the representation graph.
       Default: true -/
   rejectCycles : Bool := true
 ```
@@ -2346,7 +2347,7 @@ landed. Where each planned item ended up:
 
 #### Standards & Specifications
 
-- [YAML 1.2.2 §3.2.1 – Node Representation](https://yaml.org/spec/1.2.2/#321-representation-graph): "The representation is acyclic" — cyclic aliases violate spec
+- [YAML 1.2.2 §3.2.1 – Representation Graph](https://yaml.org/spec/1.2.2/#321-representation-graph): "Note that the YAML graph **may** include cycles" — the spec does *not* require acyclicity (the word does not appear in 1.2.2), so cycle rejection is our policy, not spec conformance; §7.1's "most recent preceding node" rule is what makes a *presented* graph acyclic
 - [CWE-776: Improper Restriction of Recursive Entity References](https://cwe.mitre.org/data/definitions/776.html)
 - [CWE-400: Uncontrolled Resource Consumption](https://cwe.mitre.org/data/definitions/400.html)
 

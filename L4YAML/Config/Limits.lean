@@ -56,6 +56,12 @@ structure AliasLimits where
       Default: 100,000 -/
   maxResolvedNodes : Nat := 100_000
   /-- Detect and reject cyclic aliases (`a: &a [*a]`).
+      This is a policy of ours, not a spec requirement: YAML 1.2.2 §3.2.1
+      explicitly permits cycles in the representation graph ("Note that the
+      YAML graph may include cycles"). What forces a *presented* graph to be
+      acyclic is §7.1, which resolves an alias to the "most recent preceding
+      node" — so a cycle is unreachable from a stream, but not from the graph
+      a program builds and asks us to serialize.
       Default: true -/
   rejectCycles : Bool := true
   deriving Repr, BEq, Inhabited
