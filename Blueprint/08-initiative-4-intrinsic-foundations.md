@@ -9953,23 +9953,42 @@ scalar proofs and before `end L4YAML.Scanner.Indexed`):
   `parseHexEscapeIx c n = some (ch, c')`,
 
   ```
-  hexStringValue (collectHexDigitsLoopIx c "" n).1 < 0x110000
+  (hexStringValue (collectHexDigitsLoopIx c "" n).1).isValidChar
   ∧ ch = Char.ofNat (hexStringValue (collectHexDigitsLoopIx c "" n).1)
+  ∧ ch.toNat = hexStringValue (collectHexDigitsLoopIx c "" n).1
   ∧ c' = (collectHexDigitsLoopIx c "" n).2.
   ```
 
   Two `split at h` (one per nested `if`) plus
-  `Option.some.injEq` / `Prod.mk.injEq` and a `rename_i hLt` to
-  pick up the value-range hypothesis is the whole proof.
+  `Option.some.injEq` / `Prod.mk.injEq` and a `rename_i hValid` to
+  pick up the validity hypothesis is the whole proof; the third
+  conjunct is then one application of
+  `CharClass.toNat_ofNat_of_isValidChar`.
 
-The Unicode-range guard `< 0x110000` is load-bearing only for
-`n = 8` (`\U________`): for `n = 2` and `n = 4` the
+The value guard is load-bearing only for `n = 8` (`\U________`) in
+its *upper* half: for `n = 2` and `n = 4` the
 `hexStringValue_lt_pow` bound gives `< 16^4 = 65536`, comfortably
-below `0x110000`. The guard nevertheless stays in the parser for
-the `n = 8` case and survives surrogate hex escapes
-(`\ud800..\udfff`) as `Char.ofNat`'s `default` fallback rather
-than a parser error — that's an existing semantic issue, not a
-Step 5b.4 obligation.
+below `0x110000`.
+
+**Amended 2026-08-11.** As written at Step 5b.4 the guard was
+`< 0x110000`, and this passage recorded — correctly for its own
+scope, wrongly as a place to leave it — that the guard "survives
+surrogate hex escapes (`\ud800..\udfff`) as `Char.ofNat`'s
+`default` fallback rather than a parser error", calling that "an
+existing semantic issue, not a Step 5b.4 obligation". It was a
+live bug: `Char.ofNat`'s fallback *substitutes* `'\0'`, so
+`a: "\ud800"` was accepted and decoded to NUL in both pipelines.
+The guard is now `Nat.isValidChar`, which is `Char.ofNat`'s own
+precondition, so the fallback is unreachable and the surrogate
+half of the guard is load-bearing at `n = 4` too. See DOCS.md
+"Surrogate hex escapes decoded to NUL" (item 18) and
+**Reflection 642**.
+
+The scoping lesson is the reusable part: a defect correctly
+deferred out of a proof step is not deferred anywhere the *plan*
+can see. This note (commit `61838968`, 2026-05-15) was the only
+record of it for just under three months. Route such findings to
+the plan, not to the step that declined them.
 
 Sorry budget: **0 → 0** in the staging files. `lake build` passes
 all 385 targets. `L4YAML.lean` does not import any

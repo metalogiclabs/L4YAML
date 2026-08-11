@@ -692,8 +692,12 @@ Decomposed into four layers:
    `String.push_induction` chaining (1) and (2).
 4. **Escape spec** — `parseHexEscapeIx_decoded`: on success,
    `parseHexEscapeIx c n` returns `Char.ofNat
-   (hexStringValue digits)` with the value-range guard
-   `< 0x110000` already discharged. -/
+   (hexStringValue digits)` with the validity guard
+   `Nat.isValidChar` already discharged, and — the point of stating it —
+   the decoded character's code point *is* the digits' value. The guard
+   was `< 0x110000` until 2026-08-11, which admitted lone surrogates and
+   decoded them to NUL through `Char.ofNat`'s substituting else-branch;
+   the faithfulness conjunct is what now makes that unstatable. -/
 
 lemma hexDigitValue_lt_16 {ch : Char} (h : isHexDigitBool ch = true) :
     hexDigitValue ch < 16 := by
@@ -781,18 +785,21 @@ lemma hexStringValue_lt_pow {s : String}
 lemma parseHexEscapeIx_decoded {input : String} (c : IxCursor input) (n : Nat)
     {ch : Char} {c' : IxCursor input}
     (h : parseHexEscapeIx c n = some (ch, c')) :
-    hexStringValue (collectHexDigitsLoopIx c "" n).1 < 0x110000
+    (hexStringValue (collectHexDigitsLoopIx c "" n).1).isValidChar
     ∧ ch = Char.ofNat (hexStringValue (collectHexDigitsLoopIx c "" n).1)
+    ∧ ch.toNat = hexStringValue (collectHexDigitsLoopIx c "" n).1
     ∧ c' = (collectHexDigitsLoopIx c "" n).2 := by
   unfold parseHexEscapeIx at h
   split at h
   · contradiction                                        -- length ≠ n
   · split at h
-    · rename_i hLt
+    · rename_i hValid
       simp only [Option.some.injEq, Prod.mk.injEq] at h
       obtain ⟨hcEq, hc'Eq⟩ := h
-      exact ⟨hLt, hcEq.symm, hc'Eq.symm⟩
-    · contradiction                                      -- value ≥ 0x110000
+      refine ⟨hValid, hcEq.symm, ?_, hc'Eq.symm⟩
+      rw [← hcEq]
+      exact L4YAML.Proofs.CharClass.toNat_ofNat_of_isValidChar hValid
+    · contradiction                                      -- not a scalar value
 
 /-! ## Layer F.1 — Auto-detected block-scalar indent ≥ `minContentIndent` (Step 5b.5)
 

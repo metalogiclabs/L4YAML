@@ -361,14 +361,15 @@ lemma hexNibble_is_hex : ∀ n : Fin 16, scannerHexCheck (hexNibble n.val) = tru
 lemma hexNibble_lt128 : ∀ n : Fin 16, (hexNibble n.val).toNat < 128 := by
   native_decide
 
-/-- Two-character hex foldl is bounded by 0x110000. -/
+/-- Two-character hex foldl is a Unicode scalar value — `parseHexEscape`'s
+    guard verbatim (`< 0x110000` before 2026-08-11; see the surrogate fix). -/
 lemma hex_two_foldl_bound : ∀ (n1 n2 : Fin 128),
     scannerHexCheck (Char.ofNat n1.val) = true →
     scannerHexCheck (Char.ofNat n2.val) = true →
-    (("".push (Char.ofNat n1.val)).push (Char.ofNat n2.val)).foldl (fun acc c =>
+    Nat.isValidChar ((("".push (Char.ofNat n1.val)).push (Char.ofNat n2.val)).foldl (fun acc c =>
       acc * 16 + if c.isDigit then c.toNat - '0'.toNat
                  else if c >= 'a' then c.toNat - 'a'.toNat + 10
-                 else c.toNat - 'A'.toNat + 10) 0 < 0x110000 := by native_decide
+                 else c.toNat - 'A'.toNat + 10) 0) := by native_decide
 
 /-- Structural decomposition of `escapeChar c` for hex-escaped chars. -/
 lemma escapeChar_hex_structure (c : Char)
@@ -567,13 +568,15 @@ The indexed scanner uses `hexStringValue` (via `parseHexEscapeIx`) and
 from `scannerHexCheck` and the legacy explicit-foldl below, but agree
 on every ASCII hex digit by `native_decide`. -/
 
-/-- The 2-digit hex foldl bound, restated using the indexed scanner's
-    `hexStringValue`. -/
+/-- The 2-digit hex foldl guard, restated using the indexed scanner's
+    `hexStringValue`. Mirrors `parseHexEscapeIx`'s `Nat.isValidChar` test
+    (`< 0x110000` before the 2026-08-11 surrogate fix). -/
 lemma hex_two_foldl_boundIx : ∀ (n1 n2 : Fin 128),
     isHexDigitBool (Char.ofNat n1.val) = true →
     isHexDigitBool (Char.ofNat n2.val) = true →
-    hexStringValue (("".push (Char.ofNat n1.val)).push (Char.ofNat n2.val))
-      < 0x110000 := by native_decide
+    Nat.isValidChar
+      (hexStringValue (("".push (Char.ofNat n1.val)).push (Char.ofNat n2.val))) := by
+  native_decide
 
 /-- For C0-control chars (`c.val.toNat < 0x20`), the hex-foldl round-trip
     recovers the original code point. Indexed-scanner variant of

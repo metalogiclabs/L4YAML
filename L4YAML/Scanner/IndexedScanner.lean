@@ -493,13 +493,24 @@ def hexDigitValue (ch : Char) : Nat :=
   hex.foldl (fun acc ch => acc * 16 + hexDigitValue ch) 0
 
 /-- Parse `n` hex digits and decode to a `Char`. Returns `none` if
-    fewer than `n` digits are available or the value is ≥ 0x110000
-    (outside the Unicode scalar range). -/
+    fewer than `n` digits are available, or if the value is not a Unicode
+    scalar value — either ≥ 0x110000 or a lone surrogate (U+D800–U+DFFF).
+
+    The guard is `Nat.isValidChar`, which is *exactly* `Char.ofNat`'s own
+    validity condition, so its `'\0'` fallback is unreachable from here; the
+    legacy `parseHexEscape` carries the same guard for the same reason.
+    Guarding only `< 0x110000` decoded surrogates to NUL silently.
+
+    `none` carries no `ScanError`: the whole escape-error family
+    (`unknownEscape`, `invalidHexEscape`, `unicodeOutOfRange`) exists only in
+    the legacy scanner, and the indexed pipeline surfaces every one of them as
+    `unterminatedDoubleQuoted` from the caller. Verdict-equal, message-diverse;
+    see DOCS.md "Other open items". -/
 def parseHexEscapeIx {input : String} (c : IxCursor input) (n : Nat) :
     Option (Char × IxCursor input) :=
   if (collectHexDigitsLoopIx c "" n).1.length != n then
     none
-  else if hexStringValue (collectHexDigitsLoopIx c "" n).1 < 0x110000 then
+  else if (hexStringValue (collectHexDigitsLoopIx c "" n).1).isValidChar then
     some (Char.ofNat (hexStringValue (collectHexDigitsLoopIx c "" n).1),
           (collectHexDigitsLoopIx c "" n).2)
   else

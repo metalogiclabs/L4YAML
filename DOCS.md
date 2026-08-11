@@ -56,6 +56,8 @@ What intentionally lives **elsewhere**:
 - [The ns-char gap](#the-ns-char-gap) — **closed 2026-08-01**; closure record
 - [Indexed-pipeline parity gap](#indexed-pipeline-parity-gap) — **closed
   2026-08-06**; closure record + the final matrix score
+- [Surrogate hex escapes decoded to NUL](#surrogate-hex-escapes-decoded-to-nul)
+  — **closed 2026-08-11**; closure record + the vacuous-lemma post-mortem
 - [Grammar completeness plan](#grammar-completeness-plan) — capstone 7.7,
   the only open proof frontier
 - [Merge semantics plan](#merge-semantics-plan) — `DuplicateKeyPolicy.merge`
@@ -5472,6 +5474,7 @@ lives in [README.md](README.md) and is not duplicated here.)
 |---|---|---|
 | `ns-char` predicate spec-loose body | **Fixed 2026-08-01** (predicates tightened; scanner + emitter conformant; regression-tested) | [The ns-char gap](#the-ns-char-gap) |
 | **Indexed-pipeline parity** (the twin consumers actually call) | **CLOSED 2026-08-06 — full parity: event 402/402 · JSON 282/282 · accept/reject 402/402, same run as an identically-scoring legacy baseline; all 94 invalid inputs rejected with the identical `ScanError` (items 6+7)** | [Indexed-pipeline parity gap](#indexed-pipeline-parity-gap) |
+| Surrogate hex escapes decoded to NUL | **CLOSED 2026-08-11 (item 18)** — both guards are now `Nat.isValidChar`, `Char.ofNat`'s own precondition, so its substituting else-branch is unreachable; the false §4 proof claim and its vacuous `char_isValidChar` citation are corrected and replaced by `toNat_ofNat_of_isValidChar`. Matrix unchanged on both instrument sets, 4439/4439, Reflection 642. Residual (message-diverse escape errors) below. | [Surrogate hex escapes](#surrogate-hex-escapes-decoded-to-nul) |
 | Grammar completeness (`parse_iff_grammar`, capstone 7.7) | **Open — forward direction DONE** (2026-08-10): Fix B done; Fix A's accumulation is **sorry-free** (`StreamAccum.lean`, all five β.3 sites closed — site 2 by item 9s, **site 5 by item 9t**) and the `L4YAML.Capstones` gate is **green**; what the forward theorems still concede is the `scannerDrop` constructor (β.5) and then the converse remains. The **content step (site 3) is CLOSED** as of 2026-08-08 — every flow-interior content character, including `&`/`!`, which now open and extend a held `[96] c-ns-properties` run in the interior gap. The block step's `?` arm is closed (**9g**) and its `:` arm is blocked on one measured invariant strengthening; the depth-0 open (**9h**) is **not** refutable at all — it is inhabited by legal input. Both were re-priced 2026-08-08: each needs a scanner strictening its earlier diagnosis had not seen, and both of those have now landed (**item 9j** the `?`'s mandatory separation, **item 9k** the depth-0 repeated-property tests plus the `needIndentCheck` transport they consume). **Item 9l** then closed the `?` arm's vocabulary — and found that its last piece was a gap in the SURFACE GRAMMAR, not the accumulator: `[143]`'s `( e-node e-node )` and `[146]`'s empty key had no representative, so `[? ]`, `[: a]` and four more parsed correctly with no derivation. The same enumeration found the mirror defect, a shipped over-REJECTION of `[? a, b: c]` and siblings, also fixed. **Item 10** then built that arm's producer out of 9g's guard read forward, closing the `?` arm entirely; site 2 is now the `:` arm alone, and **items 9n and 9o** split it into a 2×4 grid (frame tail × interior gap) of which five cells are settled. **Item 9p** then built the discharge that datum needs, landed its substrate sorry-free, and found the price was recorded against the wrong thing: seven of the eight pair-list assemblers already carry the reservation index, and the whole blockage is ONE state — the eighth's own recursion tail, where the `,` leaves a dead pending key that falsifies the tower's prefix-preservation premise. **Item 9q** then BUILT that normalization: the `,` now clears the dead key in both pipelines, corpus byte-identical, and the eleven invariant transports it rippled through needed zero new constructors — the change's real cost was forty statement sites quoting the step's result record. Items 9r/9s then landed the strengthening and its firing-direction transport (site 2 closed), and **item 9t closed site 5** — the pendings sorted by producer guarantee: three refuted via the `h_line` lookahead field, `pendingFlow` riding its own drop, the props run parked as `pendingProps`. **Item 11** then landed the INDEXED substrate package 9r measured — `scanValueValidateIx` strictened, both scanners rejecting the seven divergent shapes with the identical `ScanError`, the layout carried as ONE conditional conjunct on `EmitScansInFlowIx` where legacy needed a second tower (Reflection 635) — and deleted the dead `accum_flow_pending`. **Item 12** then retired the `pendingProps` content-dispatch escape by parametrizing `PendingNode` by the scanner state it accompanies, so the held run's same-line guard couplings ride the constructor and the consuming arm splits three ways — `&`/`!` extend by contrapositive, `*` scanner-refutes, content rides `[161]`/`[198]` (Reflection 636). **Item 13** opened the block-mapping campaign at the one keyless arm — the col-0 `:` is `[189]`'s empty-key entry, parked as `PendingNode.pendingMapValue` with ONE `.blockIn`-typed closure converted at its single producer (Reflection 637) — so `: v`/`: [a]`/`: \|`/`: &a v` compose and `block_dispatch_deferred`'s survivors are the implicit key (`a: b`), the `?` explicit key and the indented/nested arms. **Item 14** closed the `x⏎: v` scan divergence 13 surfaced, in the reverse direction its note prescribed: the root was the INDEXED walk's dropped no-gain rewind (580 divergent inputs across two families, 226 of them content bugs on accepted inputs), restored by `backtrackIfNoGain` — sweep clean, the implicit-key arm's `x⏎y: v` refutation intact in both pipelines (Reflection 638). **Item 15** composed the col-0 plain IMPLICIT key: `pendingContent`'s new key coupling is guarded by the two decidable state facts §7.4 also reads and concludes pack-or-punt, so the same-line-`:` consumer is `by_cases` plus one field application with zero validator lemmas — `a: b` and its family leave the deferral through `colon_open_map_implicit` (Reflection 639). **Item 16** composed the QUOTED key, `[188]`'s JSON arm: the one-line quoted readings are self-contained sub-productions, so they landed as their OWN lemmas with zero arms of the wide quoted `_prod` lemmas edited, and the pack's payload widened through one carrier inductive so the `:` producer took two edits (Reflection 640) — `"a": b`, `'a': b` and their family compose. **Item 17** closed the two remaining key heads by re-cutting that carrier along `[188]`'s OWN two alternatives rather than the scanner's three branches (Reflection 641): an alias key and a property-prefixed key are `[161] ns-flow-node`'s own arms, so both landed with zero new carrier arms — the alias needing no line hypothesis at all, the props head one datum CARRIED by the run's pending because a post-state guard cannot recover a pre-state fact — and `&a x: v`, `!!str x: v`, `&a !t x: v`, `*a : b` compose. What is left: the break-crossed `:` shapes, the `?` and indent arms, then delete `scannerDrop`, then the converse | [Grammar completeness plan](#grammar-completeness-plan) |
 | Merge semantics (`DuplicateKeyPolicy.merge`) | **Open** (design ready; re-base on `LawfulBEq`) | [Merge semantics plan](#merge-semantics-plan) |
 | Security limits: open questions + future work | **Open** (design questions; 3 unimplemented features) | [Security hardening backlog](#security-hardening-backlog) |
@@ -5480,18 +5483,20 @@ lives in [README.md](README.md) and is not duplicated here.)
 ### Next actions, in order
 
 Priority is **shipped-behaviour correctness first, proof completeness
-second**. The behaviour half is done: the indexed pipeline — the one
-consumers actually call — now scores identically to legacy on all three
-matrix axes (items 1–7, closed 2026-08-06). What is left is proof
-completeness.
+second**. The behaviour half is done: the indexed pipeline — the one consumers
+actually call — scores identically to legacy on all three matrix axes (items
+1–7, closed 2026-08-06), and item 18 (closed 2026-08-11) took the top of this
+table ahead of the proof rows for the four days it was open, because silent
+corruption on *accepted* input outranks proof completeness even when it is
+invisible to every axis we score. What is left is proof completeness.
 
 | # | Action | Blocks | Where |
 |---|---|---|---|
 | 12 | **β.5 — retire `pendingFlow`, delete `scannerDrop`.** Once no dispatch produces `pendingFlow`, the `close_with_ssl` arm that calls `scannerDrop` is unreachable; delete the constructor from `Surface/Document.lean`. β.3 and β.4 completed 2026-08-10 (items 9s/9t), so this STRENGTHENS `scan_strict_proof`/`parse_strict_proof` — the drop constructor is the one remaining hole in what they assert — rather than unblocking the gate. **Item 11 (2026-08-10)** landed the INDEXED substrate package (§4 divergence CLOSED; Reflection 635) and deleted the dead `accum_flow_pending`. **Item 12 (2026-08-10)** retired `pendingProps`'s content-dispatch escape: `PendingNode` is scanner-state-PARAMETRIZED so the held run's same-line guard couplings ride the constructor (Reflection 636); `&a b`/`&a !t [b]`/`&a \|` compose, `&`/`!` extend the run, `*` is scanner-refuted — consuming item 9k's same-line residual. **Item 13 (2026-08-10)** opened the block-mapping campaign at its one keyless arm: a col-0 `:` is `[189]`'s empty-key entry, and `PendingNode.pendingMapValue` — `pendingBlock`'s mapping twin, ONE closure typed at `.blockIn` and converted to `[189]`'s `.blockOut` at its single producer (Reflection 637) — composes `: v`, `:`, `: [a]`, `: \|`, `: &a v`, `---⏎: v` and sibling chains; no entries-level snoc (siblings ride `[211]`'s admitted bare-document continuation). **Item 14 (2026-08-11)** closed the `x⏎: v` scan divergence item 13 surfaced — in the REVERSE direction its note prescribed: a 5,460-input differential sweep found the recorded shape was one of 580 divergent inputs in TWO families (354 verdict-equal error-stage differences; **226 content differences on ACCEPTED inputs** — `x⏎⏎` kept the fold's `\n` in the indexed scalar, invisible to matrix and suites) with ONE root, the indexed walk's dropped no-gain rewind; `backtrackIfNoGain` (`Scanner/IndexedScanner.lean`) restores it, both sweeps clean, and the `x⏎y: v` §7.4 scan rejection the implicit-key arm reads as its multiline refutation is intact in BOTH pipelines — no port owed (Reflection 638; `ScannerPlainNoGainRewind.lean`). **Item 15 (2026-08-11)** composed the col-0 plain IMPLICIT key: `pendingContent` gains a conditional key field guarded by the two DECIDABLE state facts §7.4 also reads (`simpleKey.possible`, `simpleKey.pos.line = line`) and concluding pack-or-punt, so the same-line-`:` consumer is three `by_cases` plus one field application — zero validator lemmas (Reflection 639); the pack's one-line witness is a conjunct inside `collectPlainScalarLoop_prod`'s existential conclusion over 7 new `_line_*` lemmas, the `.blockKey` re-read is 5 definitional lifts, and `colon_open_map_implicit` re-anchors item 13's mapping machinery at the key — `a: b`, `a : b`, `a:`, `a b: c`, `a: [x,y]`, `a: \|` and sibling chains all compose (`ScannerImplicitKeyCompose.lean`). **Item 16 (2026-08-11)** composed the col-0 QUOTED implicit key — `[188]`'s JSON arm: the one-line readings `[111] nb-double-one-line` / `[122] nb-single-one-line` are SELF-CONTAINED sub-productions, so they landed as two NEW lemmas over the same walks with ZERO arms of `collectDoubleQuotedLoop_prod`/`collectSingleQuotedLoop_prod` edited (Reflection 640's discriminator: ride the conclusion as a conjunct only when the narrow fact names ∃-bound witnesses, as item 15's did), the break arms refuted by item 15's `_line_*` facts verbatim plus three new escape-body line-transparency lemmas; the pack's payload widened via ONE carrier inductive (`ImplicitKeyHead` + `implicitKeyHead_to_SImplicitKey`), so `colon_open_map_implicit` took one hypothesis type and one body line — `"a": b`, `'a': b`, `"": b`, `'a''b': c`, `"a\tb": c`, `"a\u0041b": c`, mixed plain/quoted mappings all compose (`ScannerQuotedKeyCompose.lean`). **Item 17 (2026-08-11)** closed the punted key packs — the ALIAS and PROPERTY-prefixed heads — by re-cutting item 16's carrier along `[188]`'s own two alternatives instead of the scanner's three branches (Reflection 641): an alias key is `[161] ns-flow-node(0, block-key)`'s `alias` arm and `&a x: v` is its `propsContent` arm, so BOTH landed with ZERO new carrier arms; the alias head needs no line hypothesis at all (`ns-anchor-char` excludes `s-white` and `b-char`), and the props head needed one CARRIED datum — a post-state guard cannot recover a pre-state fact, so `pendingProps` holds the run's col-0 line start, the stream closed there, the run re-read at `block-key` and the saved key's line, which fires items 15/16's one-line readings verbatim; `&a x: v`, `!!str x: v`, `&a !t x: v`, `!t &a x: v`, `&a "x": v`, `*a : b` and their families compose (`ScannerPropsAliasKeyCompose.lean`), and one verdict-equal error-stage divergence is recorded (`*a: b`: legacy `undefinedAlias "a:"`, indexed `trailingContent 0 4`). Still open here: the break-crossed `:` shapes (`x⏎: v`-family col≠0→col-0 empty keys), the `?` explicit key (grammar gap: `? a` key-only entries have no `SBlockMapEntry` constructor), nested/indented `-` and col≠0 (the indent machinery, incl. indented implicit keys), then the `pendingFlow`/`scannerDrop` deletion itself | Step 5, the converse | ditto |
 | 13 | **Step 5 — the converse** `grammar_completeness`, then **Step 6** the `parse_iff_grammar` biconditional | capstone 7.7 | [Grammar completeness plan](#grammar-completeness-plan) |
 
-Everything above item 12 is closed; the closure records live in the
-sections below, the blow-by-blow history in git.
+Items 1–11 and 18 are closed; the closure records live in the sections below,
+the blow-by-blow history in git.
 
 The full `lake build` has been GREEN since item 9t (953 targets as of item
 17, warning-free), `L4YAML.Capstones` included — what the rest of row 12 buys
@@ -5578,6 +5583,81 @@ row is identical to legacy on all three axes, with the identical `ScanError` on
 every one of the 94 rejected inputs.
 
 ---
+
+## Surrogate hex escapes decoded to NUL
+
+**CLOSED 2026-08-11.** `\uD800`–`\uDFFF`, and the same code points written
+`\U0000D800`, decoded to **U+0000** instead of being rejected — silent data
+corruption on *accepted* input, in both pipelines, which survived a round-trip
+as `a: "\0"` and put a raw control byte in the event stream.
+
+The root cause was one guard. `parseHexEscape`
+([Scanner/Scalar.lean:80](L4YAML/Scanner/Scalar.lean)) and `parseHexEscapeIx`
+([Scanner/IndexedScanner.lean:512](L4YAML/Scanner/IndexedScanner.lean)) tested
+`val < 0x110000`, which is strictly weaker than the precondition of the function
+they then called: `Char.ofNat` is total —
+`dite n.isValidChar (Char.ofNatAux n) (fun _ => '\0')` — and its else-branch
+**substitutes** rather than fails. The two conditions disagree on exactly the
+2048 surrogates, so every one of them took the *success* branch and decoded to
+NUL with no diagnostic.
+
+Both guards are now `Nat.isValidChar` itself, so the substituting branch is
+unreachable from the scanners rather than merely unvisited. A lone surrogate is
+not a Unicode scalar value and has no UTF-8 encoding, so it cannot be a
+character of any scalar in the representation graph (§5.1); `[60]`/`[61]`
+constrain the decoded value not at all, which is the spec's gap, but §5.1
+settles it for a conforming processor. Measured after the fix: all five shapes
+(including the UTF-16 pair `\uD83D\uDE00`) reject in both pipelines, and
+U+D7FF / U+E000 / U+10FFFF / `\x41` still decode — the guard is a hole in the
+code-point line, not a ceiling.
+
+**The proof-side claim asserting this could not happen was also false**, and its
+shape is the reusable part.
+[Proofs/Errors/EscapeResolution.lean](L4YAML/Proofs/Errors/EscapeResolution.lean)
+§4 read: "Either the decoded code point is < 0x110000, in which case
+`Char.ofNat` produces a valid Unicode char by construction, or the scanner
+returns `.unicodeOutOfRange`." Both halves are true and the disjunction is still
+not a safety property. The citation "produces a valid Unicode char" was doing
+the work of a *faithfulness* claim while asserting only *inhabitation* — and the
+lemma behind it, `char_isValidChar`, quantifies over the codomain, so `'\0'`
+satisfies it. The same file simultaneously documented a U+FFFD "fallback" that
+no branch implements; prose asserting two incompatible fallbacks is the tell
+that neither was checked. What replaces it is checkable:
+`CharClass.toNat_ofNat_of_isValidChar` — under the guard, the decoded
+character's code point **is** the requested value — carried by the indexed twin
+as a conjunct of `parseHexEscapeIx_decoded`.
+
+Pins: `Tests/Reflections/SurrogateEscapeRejected.lean` (five rejections and four
+byte-exact boundary streams per pipeline, plus the `Char.ofNat 0xD800 =
+Char.ofNat 0xDFFF` counterexample) and nine `#guard`s in
+`Tests/Guards/Proofs/EscapeResolution.lean`. The principle is
+**Reflection 642**.
+
+**Cost, against the estimate.** The emitter was structurally immune as priced —
+`escapeChar` emits hex only as `\xHH` for values ≤ 0x1F, so the three 2-digit
+`native_decide` bounds re-proved verbatim under the stronger guard, restated
+from `< 0x110000` to `Nat.isValidChar`. Four `simp only [h_val_lt, ↓reduceIte]`
+lines in the two emitter-scannability files needed no change at all once their
+bound lemmas were restated. Matrix unchanged on both instrument sets;
+`run-all-tests.sh` 4439/4439; full build 954 targets, warning-free.
+
+Two things the estimate got wrong, both cheaper than expected. The duplicate-key
+question ("do collapsed surrogate keys make `duplicateKeyPolicy := .error` fire
+spuriously?") is **moot**, not untested: the inputs that would collapse are now
+rejected before a key is ever built. And the indexed twin needed no error
+channel, because the divergence is not specific to this member — see the
+residual item below.
+
+**Residual, recorded not fixed:** the *whole* escape-error family is
+message-diverse between the pipelines. `\q`, `\u12`, `\x4`, `\U0011` and
+`\U00110000` all surface as `unterminatedDoubleQuoted` from the indexed caller
+where legacy names the specific fault, because `parseHexEscapeIx` returns
+`Option` and `processEscapeIx` has no `ScanError` channel at all. Verdict-equal
+in every case, invisible to the matrix (no suite case carries a malformed
+escape). Filed under [Other open items](#other-open-items); giving the indexed
+escape path an error channel is a self-contained piece of work whose real cost
+is `parseHexEscapeIx`'s `Option` being load-bearing for
+`parseHexEscapeIx_offset_monotonic`.
 
 ## Grammar completeness plan
 
@@ -8722,6 +8802,21 @@ context):
   are legal documents with adjacent property tokens (Reflection 615).
   Separating them needs the indent machinery, so this belongs with β.5,
   where the depth-0 arms stop escaping through `pendingFlow`.
+- **Indexed escape errors are all one message** (opened 2026-08-11 by
+  [item 18](#surrogate-hex-escapes-decoded-to-nul)). `parseHexEscapeIx` returns
+  `Option` and `processEscapeIx` has no `ScanError` channel, so every malformed
+  escape surfaces from the caller as `unterminatedDoubleQuoted` where legacy
+  names the fault: `\q` → `unknownEscape`, `\u12`/`\x4`/`\U0011` →
+  `invalidHexEscape`, `\U00110000` and the surrogates → `unicodeOutOfRange`.
+  Verdict-equal in every case, so it is narrower than the "identical
+  `ScanError` on all 94 rejected inputs" claim in
+  [Indexed-pipeline parity gap](#indexed-pipeline-parity-gap) — which holds,
+  because no suite case carries a malformed escape. Item 18 found it while
+  measuring the surrogate fix and deliberately did not widen its scope: the
+  family is one piece of work, and `parseHexEscapeIx`'s `Option` is
+  load-bearing for `parseHexEscapeIx_offset_monotonic`
+  ([Proofs/Scanner/IndexedScalar.lean:71](L4YAML/Proofs/Scanner/IndexedScalar.lean)),
+  so an `Except` return is the larger half of it.
 - **Scanner-level §7.1 theorem never formalized** — from
   [Anchor and alias pipeline rationale](#anchor-and-alias-pipeline-rationale):
   `scan_aliases_have_prior_anchors` (every `.alias` token preceded by a

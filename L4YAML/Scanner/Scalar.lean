@@ -64,7 +64,8 @@ def collectHexDigitsLoop (s : ScannerState) (hex : String) (n : Nat) : String ×
     **Pre**: Scanner positioned after `\x`, `\u`, or `\U`.
     **Post**: Advances past `n` hex digits, returns the decoded character.
     **Error**: `invalidHexEscape` (fewer than `n` hex digits available),
-    `unicodeOutOfRange` (value ≥ U+110000). -/
+    `unicodeOutOfRange` (value not a Unicode scalar value — either
+    ≥ U+110000 or a lone surrogate U+D800–U+DFFF). -/
 @[yaml_spec "5.7" 59 "ns-esc-8-bit",
   yaml_spec "5.7" 60 "ns-esc-16-bit",
   yaml_spec "5.7" 61 "ns-esc-32-bit"]
@@ -77,7 +78,17 @@ def parseHexEscape (s : ScannerState) (n : Nat) : Except ScanError (Char × Scan
       acc * 16 + if c.isDigit then c.toNat - '0'.toNat
                  else if c >= 'a' then c.toNat - 'a'.toNat + 10
                  else c.toNat - 'A'.toNat + 10) 0
-    if val < 0x110000 then
+    -- The guard is *exactly* `Char.ofNat`'s own validity condition
+    -- (`Nat.isValidChar n = n < 0xD800 ∨ 0xDFFF < n < 0x110000`), so the
+    -- `'\0'` fallback in its `dite` is unreachable from here. Guarding only
+    -- `val < 0x110000` admitted lone surrogates, which fail `isValidChar`
+    -- and were therefore decoded to NUL with no diagnostic — silent
+    -- corruption on accepted input. A surrogate is not a Unicode scalar
+    -- value and has no UTF-8 encoding, so it cannot be a character of any
+    -- scalar in the representation graph (§5.1); rejecting is the only
+    -- option the surrounding requirements leave, even though `[60]`/`[61]`
+    -- themselves constrain the decoded value not at all.
+    if val.isValidChar then
       .ok (Char.ofNat val, s')
     else
       .error (.unicodeOutOfRange s'.line)
