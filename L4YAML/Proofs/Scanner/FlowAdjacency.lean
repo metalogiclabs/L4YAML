@@ -37,7 +37,7 @@ open L4YAML L4YAML.Scanner
     `scanNextToken_checkFlowAdjacency s c >>= k`; on a successful (`.ok`)
     result the check must itself have succeeded, so the continuation
     `k ()` carries the whole `.ok` equation. -/
-theorem peel_flowAdj {α : Type} {s : ScannerState} {c : Char}
+lemma peel_flowAdj {α : Type} {s : ScannerState} {c : Char}
     {k : Unit → Except ScanError α} {r : α}
     (h : (scanNextToken_checkFlowAdjacency s c >>= k) = .ok r) : k () = .ok r := by
   cases hc : scanNextToken_checkFlowAdjacency s c with
@@ -46,7 +46,7 @@ theorem peel_flowAdj {α : Type} {s : ScannerState} {c : Char}
 
 /-- The folded check itself succeeded (companion to `peel_flowAdj`, which keeps
     the continuation and drops this half). -/
-theorem flowAdj_ok_of_dispatch_ok {α : Type} {s : ScannerState} {c : Char}
+lemma flowAdj_ok_of_dispatch_ok {α : Type} {s : ScannerState} {c : Char}
     {k : Unit → Except ScanError α} {r : α}
     (h : (scanNextToken_checkFlowAdjacency s c >>= k) = .ok r) :
     scanNextToken_checkFlowAdjacency s c = .ok () := by
@@ -80,7 +80,7 @@ lemma notCompletes_of_checkFlowAdjacency_ok_nodeStart {s : ScannerState} {c : Ch
 
 /-- The `c ∉ {',', ':', ']', '}'}` corollary — the shape every pre-9d call site
     uses, and still the right one wherever `c` is a literal node-start. -/
-theorem notCompletes_of_checkFlowAdjacency_ok {s : ScannerState} {c : Char}
+lemma notCompletes_of_checkFlowAdjacency_ok {s : ScannerState} {c : Char}
     (h : scanNextToken_checkFlowAdjacency s c = .ok ())
     (hf : s.inFlow = true)
     (hc : c ≠ ',' ∧ c ≠ ':' ∧ c ≠ ']' ∧ c ≠ '}') :
@@ -90,7 +90,7 @@ theorem notCompletes_of_checkFlowAdjacency_ok {s : ScannerState} {c : Char}
 
 /-- Inversion of the comma guard: a successful `scanFlowEntry` means the previous
     real token was not a flow-open indicator or another `,`. -/
-theorem notSepTok_of_scanFlowEntry_ok {s s' : ScannerState} (h : scanFlowEntry s = .ok s') :
+lemma notSepTok_of_scanFlowEntry_ok {s s' : ScannerState} (h : scanFlowEntry s = .ok s') :
     ∀ t, lastRealTokenVal? s.tokens = some t →
       ¬(t = .flowSequenceStart ∨ t = .flowMappingStart ∨ t = .flowEntry) := by
   intro t ht hbad
@@ -101,14 +101,14 @@ theorem notSepTok_of_scanFlowEntry_ok {s s' : ScannerState} (h : scanFlowEntry s
 /-! ## Construction helpers (discharge the check to `.ok ()`) -/
 
 /-- Outside a flow collection the adjacency check is vacuously `.ok ()`. -/
-theorem checkFlowAdjacency_ok_of_notInFlow {s : ScannerState} {c : Char}
+lemma checkFlowAdjacency_ok_of_notInFlow {s : ScannerState} {c : Char}
     (h : s.inFlow = false) : scanNextToken_checkFlowAdjacency s c = .ok () := by
   unfold scanNextToken_checkFlowAdjacency
   simp [h]
 
 /-- If the previous real token does not complete a flow value, the
     adjacency check is `.ok ()` regardless of `c`. -/
-theorem checkFlowAdjacency_ok_of_notCompletes {s : ScannerState} {c : Char}
+lemma checkFlowAdjacency_ok_of_notCompletes {s : ScannerState} {c : Char}
     (h : ∀ t, lastRealTokenVal? s.tokens = some t → t.completesFlowValue = false) :
     scanNextToken_checkFlowAdjacency s c = .ok () := by
   unfold scanNextToken_checkFlowAdjacency
@@ -123,7 +123,7 @@ theorem checkFlowAdjacency_ok_of_notCompletes {s : ScannerState} {c : Char}
 
     Item 9d dropped `:` from this list: a `:` is exempt only when it is a value
     indicator, so it needs `checkFlowAdjacency_ok_of_valueIndicator` instead. -/
-theorem checkFlowAdjacency_ok_of_sepChar {s : ScannerState} {c : Char}
+lemma checkFlowAdjacency_ok_of_sepChar {s : ScannerState} {c : Char}
     (h : c = ',' ∨ c = ']' ∨ c = '}') :
     scanNextToken_checkFlowAdjacency s c = .ok () := by
   unfold scanNextToken_checkFlowAdjacency
@@ -156,7 +156,7 @@ towers scan each flow entry from a `saveSimpleKey`-advanced state). -/
 /-- Pushing two `.placeholder` slots does not change the last *real* token
     (it is skipped), so `lastRealTokenVal?` is either unchanged or the
     placeholder itself. -/
-theorem lastRealTokenVal_push_two_ph
+lemma lastRealTokenVal_push_two_ph
     (tokens : Array (Positioned YamlToken))
     (ph1 ph2 : Positioned YamlToken) (h1 : ph1.val = .placeholder) (h2 : ph2.val = .placeholder)
     (t : YamlToken)
@@ -203,7 +203,7 @@ theorem lastRealTokenVal_push_two_ph
     returns exactly that token's value (no placeholder-skipping needed).  Used to
     read off the last real token from the `scanNextToken_flow_value` `.value`-push
     exposure (which is stated as an index fact, not a `.push` shape). -/
-theorem lastRealTokenVal_of_last_nonph
+lemma lastRealTokenVal_of_last_nonph
     (tokens : Array (Positioned YamlToken)) (N : Nat) (tok : Positioned YamlToken)
     (h_size : tokens.size = N + 1) (h_get : tokens[N]? = some tok)
     (h_np : tok.val ≠ .placeholder) :
@@ -220,7 +220,7 @@ theorem lastRealTokenVal_of_last_nonph
 
 /-- `saveSimpleKey` preserves "last real token does not complete a flow
     value" (the placeholders it may push are not value-completers). -/
-theorem saveSimpleKey_preserves_completesFalse (s : ScannerState)
+lemma saveSimpleKey_preserves_completesFalse (s : ScannerState)
     (h_last : ∀ t, lastRealTokenVal? s.tokens = some t → t.completesFlowValue = false)
     (t : YamlToken)
     (ht : lastRealTokenVal? (saveSimpleKey s).tokens = some t) :
@@ -260,7 +260,7 @@ def LastTokenReal (tokens : Array (Positioned YamlToken)) : Prop :=
   0 < tokens.size ∧ tokens[tokens.size - 1]!.val ≠ .placeholder
 
 /-- With a real final slot there is no placeholder-skipping to do. -/
-theorem LastTokenReal.lastRealTokenVal {tokens : Array (Positioned YamlToken)}
+lemma LastTokenReal.lastRealTokenVal {tokens : Array (Positioned YamlToken)}
     (h : LastTokenReal tokens) :
     lastRealTokenVal? tokens = some tokens[tokens.size - 1]!.val := by
   obtain ⟨hsz, hne⟩ := h
@@ -269,7 +269,7 @@ theorem LastTokenReal.lastRealTokenVal {tokens : Array (Positioned YamlToken)}
     Bool.false_eq_true, ↓reduceIte]
 
 /-- Pushing a real token makes it the final slot. -/
-theorem lastTokenReal_push {tokens : Array (Positioned YamlToken)}
+lemma lastTokenReal_push {tokens : Array (Positioned YamlToken)}
     {p : Positioned YamlToken} (h : p.val ≠ .placeholder) :
     LastTokenReal (tokens.push p) := by
   refine ⟨by simp [Array.size_push], ?_⟩
@@ -279,7 +279,7 @@ theorem lastTokenReal_push {tokens : Array (Positioned YamlToken)}
   rw [hp]; exact h
 
 /-- …and it is then the last real token. -/
-theorem lastRealTokenVal_push {tokens : Array (Positioned YamlToken)}
+lemma lastRealTokenVal_push {tokens : Array (Positioned YamlToken)}
     {p : Positioned YamlToken} (h : p.val ≠ .placeholder) :
     lastRealTokenVal? (tokens.push p) = some p.val := by
   have hp : (tokens.push p)[(tokens.push p).size - 1]! = p := by
@@ -290,7 +290,7 @@ theorem lastRealTokenVal_push {tokens : Array (Positioned YamlToken)}
 /-- Converse of `lastRealTokenVal_push_two_ph` under a real final slot: the two
     reservation placeholders are skipped and land exactly on it, so the reading
     is unchanged. -/
-theorem lastRealTokenVal_push_two_ph_of_real
+lemma lastRealTokenVal_push_two_ph_of_real
     {tokens : Array (Positioned YamlToken)} {ph1 ph2 : Positioned YamlToken}
     (h1 : ph1.val = .placeholder) (h2 : ph2.val = .placeholder)
     (hr : LastTokenReal tokens) :
@@ -324,7 +324,7 @@ theorem lastRealTokenVal_push_two_ph_of_real
   simp
 
 /-- `saveSimpleKey` leaves the last real token alone when the array ends real. -/
-theorem saveSimpleKey_preserves_lastRealTokenVal (s : ScannerState)
+lemma saveSimpleKey_preserves_lastRealTokenVal (s : ScannerState)
     (hr : LastTokenReal s.tokens) :
     lastRealTokenVal? (saveSimpleKey s).tokens = lastRealTokenVal? s.tokens := by
   have h_cases : (saveSimpleKey s).tokens = s.tokens ∨

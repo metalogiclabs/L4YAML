@@ -563,7 +563,7 @@ def SFlowSeqEntries_snoc {n : Nat} {c : YamlContext} {s s_mid s_c s_d s_e s' : S
 
 /-- `SFlowSeqEntries_snoc` yields a closeable result (its innermost terminal is
     the freshly-appended `single`). Lets an accumulator snoc repeatedly. -/
-theorem SFlowSeqEntries_snoc_closeable {n : Nat} {c : YamlContext}
+lemma SFlowSeqEntries_snoc_closeable {n : Nat} {c : YamlContext}
     {s s_mid s_c s_d s_e s' : SurfPos}
     {h_entries : SFlowSeqEntries n c s s_mid}
     (h_cl : FlowSeqEntriesCloseable h_entries)
@@ -600,7 +600,7 @@ def SFlowMapEntries_snoc {n : Nat} {c : YamlContext} {s s_mid s_c s_d s_e s' : S
       (SFlowMapEntries_snoc h_tail_cl h_comma h_sep h_entry h_sep2)
 
 /-- `SFlowMapEntries_snoc` yields a closeable result. -/
-theorem SFlowMapEntries_snoc_closeable {n : Nat} {c : YamlContext}
+lemma SFlowMapEntries_snoc_closeable {n : Nat} {c : YamlContext}
     {s s_mid s_c s_d s_e s' : SurfPos}
     {h_entries : SFlowMapEntries n c s s_mid}
     (h_cl : FlowMapEntriesCloseable h_entries)

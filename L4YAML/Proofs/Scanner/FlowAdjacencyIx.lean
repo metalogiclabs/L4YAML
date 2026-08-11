@@ -20,7 +20,7 @@ open L4YAML L4YAML.Indexed L4YAML.Scanner L4YAML.Scanner.Indexed
 
 /-- Peel the folded flow-adjacency check off the front of
     `scanNextTokenIx_dispatchFlowIndicators` (inversion sites). -/
-theorem peel_flowAdjIx {input : String} {α : Type}
+lemma peel_flowAdjIx {input : String} {α : Type}
     {s : ScannerStateIx input} {c : Char}
     {k : Unit → Except ScanError α} {r : α}
     (h : (scanNextTokenIx_checkFlowAdjacency s c >>= k) = .ok r) : k () = .ok r := by
@@ -29,7 +29,7 @@ theorem peel_flowAdjIx {input : String} {α : Type}
   | error e => rw [hc] at h; simp [bind, Except.bind] at h
 
 /-- Outside a flow collection the adjacency check is vacuously `.ok ()`. -/
-theorem checkFlowAdjacencyIx_ok_of_notInFlow {input : String}
+lemma checkFlowAdjacencyIx_ok_of_notInFlow {input : String}
     {s : ScannerStateIx input} {c : Char}
     (h : s.inFlow = false) : scanNextTokenIx_checkFlowAdjacency s c = .ok () := by
   unfold scanNextTokenIx_checkFlowAdjacency
@@ -37,7 +37,7 @@ theorem checkFlowAdjacencyIx_ok_of_notInFlow {input : String}
 
 /-- If the previous real token does not complete a flow value, the
     adjacency check is `.ok ()` regardless of `c`. -/
-theorem checkFlowAdjacencyIx_ok_of_notCompletes {input : String}
+lemma checkFlowAdjacencyIx_ok_of_notCompletes {input : String}
     {s : ScannerStateIx input} {c : Char}
     (h : ∀ t, lastRealTokenValIx? s.tokens = some t → t.completesFlowValue = false) :
     scanNextTokenIx_checkFlowAdjacency s c = .ok () := by
@@ -51,7 +51,7 @@ theorem checkFlowAdjacencyIx_ok_of_notCompletes {input : String}
 /-- If `c` is an unconditional post-value character (`,` `]` `}`), the
     adjacency check is `.ok ()` regardless of the previous token.  Item 9d
     dropped `:`; see `checkFlowAdjacencyIx_ok_of_valueIndicator`. -/
-theorem checkFlowAdjacencyIx_ok_of_sepChar {input : String}
+lemma checkFlowAdjacencyIx_ok_of_sepChar {input : String}
     {s : ScannerStateIx input} {c : Char}
     (h : c = ',' ∨ c = ']' ∨ c = '}') :
     scanNextTokenIx_checkFlowAdjacency s c = .ok () := by
@@ -106,7 +106,7 @@ into its `saveSimpleKeyIx`-preprocessed successor. -/
     `lastRealTokenValIx?` either reports the pre-push last real token or
     reports `.placeholder`.  Indexed twin of legacy
     `lastRealTokenVal_push_two_ph`. -/
-theorem lastRealTokenValIx_push_two_ph {input : String}
+lemma lastRealTokenValIx_push_two_ph {input : String}
     (ts : Indexed.TokenStream input)
     (ph1 ph2 : Indexed.IxToken input)
     (h1 : ph1.token = YamlToken.placeholder)
@@ -170,7 +170,7 @@ theorem lastRealTokenValIx_push_two_ph {input : String}
 /-- If the final array slot holds a non-placeholder token,
     `lastRealTokenValIx?` returns exactly that token's value.  Indexed
     twin of legacy `lastRealTokenVal_of_last_nonph`. -/
-theorem lastRealTokenValIx_of_last_nonph {input : String}
+lemma lastRealTokenValIx_of_last_nonph {input : String}
     (ts : Indexed.TokenStream input) (N : Nat) (tok : Indexed.IxToken input)
     (h_size : ts.tokens.size = N + 1) (h_get : ts.tokens[N]? = some tok)
     (h_np : tok.token ≠ YamlToken.placeholder) :
@@ -188,7 +188,7 @@ theorem lastRealTokenValIx_of_last_nonph {input : String}
 /-- `saveSimpleKeyIx` preserves "last real token does not complete a flow
     value" (the placeholders it may push are not value-completers).
     Indexed twin of legacy `saveSimpleKey_preserves_completesFalse`. -/
-theorem saveSimpleKeyIx_preserves_completesFalse {input : String}
+lemma saveSimpleKeyIx_preserves_completesFalse {input : String}
     (s : ScannerStateIx input)
     (h_last : ∀ t, lastRealTokenValIx? s.tokens = some t → t.completesFlowValue = false)
     (t : YamlToken)

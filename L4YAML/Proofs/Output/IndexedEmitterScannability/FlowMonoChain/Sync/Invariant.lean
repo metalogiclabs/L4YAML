@@ -601,7 +601,7 @@ lemma scanNextTokenIx_via_flow_dispatch
     carry `h_snt` discharge the folded check without an extra last-token
     precondition.  Indexed twin of `checkFlowAdjacency_ok_of_scanNextToken_ok`
     (ScanSteps). -/
-theorem checkFlowAdjacencyIx_ok_of_scanNextTokenIx_ok
+lemma checkFlowAdjacencyIx_ok_of_scanNextTokenIx_ok
     {s s_pp s_ad : ScannerStateIx input} {c : Char} {s' : ScannerStateIx input}
     (h_pp : scanNextTokenIx_preprocess s = .ok (some (s_pp, c)))
     (h_struct : scanNextTokenIx_dispatchStructural s_pp c = .ok none)

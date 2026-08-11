@@ -219,7 +219,7 @@ lemma scanNextToken_via_flow_dispatch (s s_pp s_ad s_result : ScannerState) (c :
     Lets value-starter head-fact lemmas that already carry `h_snt`
     (`scanNextToken s = .ok (some s')`) discharge the folded check without an
     extra last-token precondition — the successful scan is the witness. -/
-theorem checkFlowAdjacency_ok_of_scanNextToken_ok
+lemma checkFlowAdjacency_ok_of_scanNextToken_ok
     {s s_pp s_ad : ScannerState} {c : Char} {s' : ScannerState}
     (h_pp : scanNextToken_preprocess s = .ok (some (s_pp, c)))
     (h_struct : scanNextToken_dispatchStructural s_pp c = .ok none)
