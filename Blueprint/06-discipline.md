@@ -208,7 +208,16 @@ the keyword itself carries Rule 1's traceability.
   fails CI on any non-whitelisted `theorem` in `L4YAML/`;
   [`scripts/check-import-closure.sh`](../scripts/check-import-closure.sh)
   ensures no module dodges the gates by dropping out of the import
-  closure.
+  closure; and
+  [`scripts/check-reflection-index.sh`](../scripts/check-reflection-index.sh)
+  holds the *narrative* half of `Tests/Reflections.lean` to its own
+  claims — every bullet listed by the sub-theme it sits under, every
+  listed number backed by a bullet, no number claimed twice, blocks
+  ascending. Added 2026-08-11: the import gate proves a demo *builds*,
+  which says nothing about whether a reader can find it, and twelve
+  reflections had drifted into a sub-theme whose list never mentioned
+  them while a thirteenth sat between two headings, belonging to
+  neither.
 - **Registry**: the `@[capstone]`-tagged set and each capstone's
   axiom profile (18 `pure`, 7 `native`) are pinned by `#guard_msgs`
   in [`L4YAML/Capstones.lean`](../L4YAML/Capstones.lean) — silently

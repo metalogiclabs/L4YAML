@@ -276,19 +276,27 @@ jobs:
           grep -q 'statsJson? : Option String := some' doc/Doc/L4YAML/StatsData.lean
 
       - name: Enforce proof-hygiene gates
-        # Three hard gates (Blueprint/06-discipline.md):
+        # Four hard gates (Blueprint/06-discipline.md):
         #   * keyword discipline — the `theorem` keyword is reserved for
         #     @[capstone] declarations (scripts/capstones.txt whitelist);
         #     everything else must use `lemma`. The tagged set itself is
         #     pinned at build time by L4YAML/Capstones.lean.
         #   * import closure — no orphan library modules; the
         #     Tests/Reflections index must cover every reflection file.
+        #   * reflection index — the index's narrative half (theme/sub-theme
+        #     headings and their number lists) must match its own bullets:
+        #     every bullet claimed by its sub-theme, every claim backed by a
+        #     bullet, no number claimed twice, blocks ascending. Added
+        #     2026-08-11 after Reflections 630-641 drifted into a sub-theme
+        #     that never listed them and R613's bullet stranded between two
+        #     headings.
         #   * sorry/axiom freedom — kernel-accurate (Lean.collectAxioms
         #     via collect-stats): zero theorems with (transitive) sorry,
         #     zero custom axioms in the compiled environment.
         run: |
           bash scripts/check-theorem-keyword.sh
           bash scripts/check-import-closure.sh
+          bash scripts/check-reflection-index.sh
           python3 - <<'EOF'
           import json, sys
           env = json.load(open('docs/reports/stats.json'))['env']
