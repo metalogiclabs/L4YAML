@@ -144,8 +144,9 @@ value indicator (§4). -/
 -- one item 15 packs, and the anchor decorates what follows.
 #guard emits "&a\nx: v\n"
   ["+STR", "+DOC", "+MAP &a", "=VAL :x", "=VAL :v", "-MAP", "-DOC", "-STR"]
--- The break-crossed `:` shape (row 12's remaining arm) still rejects at the
--- parser: the accumulation's bare-document over-approximation admits the scan.
+-- The break-crossed `:` shape: item 19 composes it as `[189]`'s EMPTY-key
+-- entry (the pack is spent — a one-line key cannot span the break), and the
+-- parser then refuses the bare document that results.
 #guard verdicts "&a x\n: v\n" ==
   (some (.invalidBareDocument 1 0), some (.invalidBareDocument 1 0))
 -- An alias key still resolves like any other alias.

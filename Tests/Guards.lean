@@ -25,6 +25,7 @@ import Tests.Guards.Proofs.ScannerCorrectness
 import Tests.Guards.Proofs.ScannerDispatch
 import Tests.Guards.Proofs.ScannerDocument
 import Tests.Guards.Proofs.ScannerDoubleQuoted
+import Tests.Guards.Proofs.ScannerBreakCrossedBlockCompose
 import Tests.Guards.Proofs.ScannerEmitBridge
 import Tests.Guards.Proofs.ScannerEmptyKeyMapping
 import Tests.Guards.Proofs.ScannerImplicitKeyCompose

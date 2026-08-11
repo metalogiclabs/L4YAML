@@ -31,7 +31,9 @@ The pins below fix the composed shapes and the neighbours that stay put:
 the punted pack (indented keys) still accepts through the deferral, and the
 multiline shapes the coupling refutes still reject at the same place in
 BOTH pipelines.  (The other heads followed: quoted keys in item 16, alias
-and property-prefixed keys in item 17.)
+and property-prefixed keys in item 17; and item 19 gave the break-crossed
+`:` its own arm — where the pack is spent, the landing composes `[189]`'s
+empty-key entry instead.)
 -/
 
 namespace Tests.Guards.ScannerImplicitKeyCompose

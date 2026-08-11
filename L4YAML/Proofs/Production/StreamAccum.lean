@@ -2136,6 +2136,50 @@ lemma preprocess_some_ssl_comments_anyCol (sc : ScannerState) (sp : SurfPos)
                    saveSimpleKey_corr _ sp_sc hcorr_sc,
                    h_pk.imp_right (fun h => by rw [saveSimpleKey_peek]; exact h)⟩
 
+/-- A position that already stands AT a line start closes an empty
+    `[79] s-l-comments`: `startOfLine` with no comment lines.  The degenerate
+    witness the landing join below needs when preprocessing crossed no break
+    because there was none left to cross. -/
+lemma sslComments_refl_of_col0 {sp : SurfPos} (hcol : sp.col = 0) :
+    SSLComments sp sp := by
+  have hcol_eq : sp = ⟨sp.chars, 0⟩ := by cases sp; simp at hcol; simp [hcol]
+  exact hcol_eq ▸ SSLComments.startOfLine sp.chars ⟨sp.chars, 0⟩
+    (GStar.nil ⟨sp.chars, 0⟩)
+
+/-- **Where the step LANDS, not where it started** (item 19).
+
+    `preprocess_some_ssl_comments_col0` proves "the skipped prefix is
+    `[79] s-l-comments` and the indicator sits at column 0" from a column-0
+    START; `..._anyCol` proves the same package from a CROSSED BREAK, at any
+    start.  Both conclusions are about `sp_mid` — the position preprocessing
+    landed on — and every block-dispatch arm downstream reads only that.  This
+    is their join: the left disjunct is the landing fact itself, and the right
+    is the genuine residue, an inline step from a mid-line park.
+
+    The consequence is the point: an arm gated on `sp.col = 0` was gated on the
+    wrong position, and a pending parked mid-line (`- a`, `x`, `- [1]`) reaches
+    the identical landing across the break that a column-0 park reaches
+    directly. -/
+lemma preprocess_some_ssl_comments_landing (sc : ScannerState) (sp : SurfPos)
+    (s_prep : ScannerState) (c : Char)
+    (hcorr : ScannerSurfCorr sc sp)
+    (hok : scanNextToken_preprocess sc = .ok (some (s_prep, c))) :
+    ∃ sp_mid sp_ws sp_prep,
+      (SSLComments sp sp_mid ∧ sp_mid.col = 0 ∨ sp_mid = sp ∧ sp.col ≠ 0) ∧
+      GStar SSWhite sp_mid sp_ws ∧ GOpt SCNbCommentText sp_ws sp_prep ∧
+      ScannerSurfCorr s_prep sp_prep ∧
+      (sp_prep = sp_ws ∨ s_prep.peek? = none) := by
+  obtain ⟨sp_mid, sp_ws, sp_p, h_disj, hws, hcmt, hcorr_p, h_pk⟩ :=
+    preprocess_some_ssl_comments_anyCol sc sp s_prep c hcorr hok
+  refine ⟨sp_mid, sp_ws, sp_p, ?_, hws, hcmt, hcorr_p, h_pk⟩
+  cases h_disj with
+  | inl h => exact Or.inl h
+  | inr h =>
+    by_cases hcol : sp.col = 0
+    · exact Or.inl ⟨by rw [h.1]; exact sslComments_refl_of_col0 hcol,
+                    by rw [h.1]; exact hcol⟩
+    · exact Or.inr ⟨h.1, hcol⟩
+
 /-- General-column `SSeparateLines 0` from preprocessing with content.
     Works at any starting column — uses nil `SSLComments` when no break consumed,
     and `SIndent 0` (zero-width) which has no column requirement. -/
@@ -6756,15 +6800,24 @@ lemma accum_block_on_closeThenBlock
       FlowStackB sp_start 0 #[] #[] .sep sp_block' sp_flow' ∧
       PendingNode s' false sp_start sp_flow' sp_scan' ∧
       ScannerSurfCorr s' sp_scan' := by
-  by_cases hcol : sp_scan.col = 0
-  · by_cases hc : c = '-'
-    · subst hc
-      obtain ⟨sp_mid, sp_ws, sp_sc, h_ssl, hcol_mid, hws, hcmt, hcorr_sc, h_pk⟩ :=
-        preprocess_some_ssl_comments_col0 sc sp_scan s_prep '-' h_corr hcol h_preprocess
-      have hsp_sc_eq := ScannerSurfCorr_unique hcorr_sc hcorr_prep
-      subst hsp_sc_eq
-      have h_stream_new := h_close_pending sp_mid h_ssl
-      cases hws with
+  -- Item 19: the arm is selected by where the step LANDS, not by the column
+  -- the pending was parked at.  A mid-line park that crosses a break lands at
+  -- the identical column-0 line start a column-0 park reaches directly, so
+  -- both feed one body; what still defers is the inline residue alone.
+  obtain ⟨sp_mid, sp_ws, sp_sc, h_land, hws, hcmt, hcorr_sc, h_pk⟩ :=
+    preprocess_some_ssl_comments_landing sc sp_scan s_prep c h_corr h_preprocess
+  have hsp_sc_eq := ScannerSurfCorr_unique hcorr_sc hcorr_prep
+  subst hsp_sc_eq
+  -- The inline residue — no break from a mid-line park — cannot close here
+  -- (`SSLComments` needs a break or column 0), and defers as before.
+  refine h_land.elim (fun h_landed => ?_) (fun _ =>
+    block_dispatch_deferred sp_start sp_block_ctx sp_scan' s'
+      h_stream_fallback hcorr_result)
+  obtain ⟨h_ssl, hcol_mid⟩ := h_landed
+  have h_stream_new := h_close_pending sp_mid h_ssl
+  by_cases hc : c = '-'
+  · subst hc
+    cases hws with
       | nil =>
         cases hcmt with
         | none =>
@@ -6780,11 +6833,7 @@ lemma accum_block_on_closeThenBlock
               (corr_of_allowDirectives_update hcorr_prep) hpeek_disp h_dispatch
           have hsp_dash_eq := ScannerSurfCorr_unique hcorr_dash hcorr_result
           rw [hsp_dash_eq] at h_dash h_gnot
-          have hcol_eq : sp_mid = ⟨sp_mid.chars, 0⟩ := by
-            cases sp_mid; simp at hcol_mid; simp [hcol_mid]
-          have h_ssl_zero : SSLComments sp_mid sp_mid :=
-            hcol_eq ▸ SSLComments.startOfLine sp_mid.chars ⟨sp_mid.chars, 0⟩
-              (GStar.nil ⟨sp_mid.chars, 0⟩)
+          have h_ssl_zero : SSLComments sp_mid sp_mid := sslComments_refl_of_col0 hcol_mid
           exact ⟨sp_mid, sp_mid, sp_mid, sp_scan', h_stream_new,
                  BlockStack.nil sp_mid, FlowStackB.nil sp_mid .sep,
                  PendingNode.pendingBlock sp_start sp_mid sp_scan'
@@ -6826,43 +6875,24 @@ lemma accum_block_on_closeThenBlock
           exact absurd (h_eq ▸ hc) (scNbCommentText_irrefl sp_mid)
       | cons =>
         exact block_dispatch_deferred sp_start sp_mid sp_scan' s' h_stream_new hcorr_result
-    · -- c ≠ '-' at col 0: close the pending at the line start, then a ':'
-      -- opens an empty-key block mapping there (item 13); '?' still defers.
-      by_cases hcv : c = ':'
-      · subst hcv
-        obtain ⟨sp_mid, sp_ws, sp_sc, h_ssl, hcol_mid, hws, hcmt, hcorr_sc, h_pk⟩ :=
-          preprocess_some_ssl_comments_col0 sc sp_scan s_prep ':' h_corr hcol h_preprocess
-        have hsp_sc_eq := ScannerSurfCorr_unique hcorr_sc hcorr_prep
-        subst hsp_sc_eq
-        cases hws with
-        | nil =>
-          cases hcmt with
-          | none =>
-            exact colon_open_map sp_start _ s_prep s' sp_scan'
-              (h_close_pending _ h_ssl) hcol_mid hcorr_prep hcorr_result
-              (preprocess_some_peek h_preprocess) h_dispatch
-          | some =>
-            rename_i hcnb
-            have h_eq := h_pk.resolve_right (by simp [preprocess_some_peek h_preprocess])
-            exact absurd (h_eq ▸ hcnb) (scNbCommentText_irrefl sp_mid)
-        | cons =>
-          exact block_dispatch_deferred sp_start sp_mid sp_scan' s'
-            (h_close_pending sp_mid h_ssl) hcorr_result
-      · obtain ⟨sp_mid, _, _, h_ssl, _, _, _, _, _⟩ :=
-          preprocess_some_ssl_comments_col0 sc sp_scan s_prep c h_corr hcol h_preprocess
-        exact block_dispatch_deferred sp_start sp_mid sp_scan' s'
-          (h_close_pending sp_mid h_ssl) hcorr_result
-  · obtain ⟨sp_mid, _, _, h_disj, _, _, _, _⟩ :=
-      preprocess_some_ssl_comments_anyCol sc sp_scan s_prep c h_corr h_preprocess
-    cases h_disj with
-    | inl h_ssl_col =>
-      exact block_dispatch_deferred sp_start sp_mid sp_scan' s'
-        (h_close_pending sp_mid h_ssl_col.1) hcorr_result
-    | inr h_mid_eq =>
-      obtain ⟨h_mid_eq, -⟩ := h_mid_eq
-      subst h_mid_eq
-      exact block_dispatch_deferred sp_start sp_block_ctx sp_scan' s'
-        h_stream_fallback hcorr_result
+  · -- c ≠ '-' at the landing: a ':' opens an empty-key block mapping there
+    -- (item 13); '?' still defers.
+    by_cases hcv : c = ':'
+    · subst hcv
+      cases hws with
+      | nil =>
+        cases hcmt with
+        | none =>
+          exact colon_open_map sp_start _ s_prep s' sp_scan'
+            h_stream_new hcol_mid hcorr_prep hcorr_result
+            (preprocess_some_peek h_preprocess) h_dispatch
+        | some =>
+          rename_i hcnb
+          have h_eq := h_pk.resolve_right (by simp [preprocess_some_peek h_preprocess])
+          exact absurd (h_eq ▸ hcnb) (scNbCommentText_irrefl sp_mid)
+      | cons =>
+        exact block_dispatch_deferred sp_start sp_mid sp_scan' s' h_stream_new hcorr_result
+    · exact block_dispatch_deferred sp_start sp_mid sp_scan' s' h_stream_new hcorr_result
 
 -- Block dispatch with pendingContent (item 15): the SAME-LINE `:` fires the
 -- implicit-key coupling.  The guard's two facts are decidable on the parking
@@ -6912,12 +6942,14 @@ lemma accum_block_on_pendingContent
             | inr h => rw [preprocess_some_peek h_preprocess] at h; cases h
           subst h_eq
           cases h_disj with
-          | inl h_ssl_col =>
-            -- A break intervened: the one-line key cannot span it — close the
-            -- pending at the break and ride the deferral (`x⏎: v` stays with
-            -- the col-0 campaign's remaining arms).
-            exact block_dispatch_deferred sp_start sp_mid sp_scan' s'
-              (h_close_pending sp_mid h_ssl_col.1) hcorr_result
+          | inl _ =>
+            -- A break intervened: the one-line key cannot span it, so the
+            -- pack is spent — but the break lands the step at a column-0 line
+            -- start, which is item 19's arm: close the parked scalar there and
+            -- let the `:` open the EMPTY-key entry (`x⏎: v`).
+            exact accum_block_on_closeThenBlock sc sp_start sp_block_ctx sp_scan s_prep s' ':'
+              sp_prep sp_scan' h_close_pending h_stream_fallback hcorr_prep hcorr_result
+              h_corr h_preprocess h_dispatch
           | inr h_mid =>
             -- Same line: chain the `:` step's own whites onto the pack's tail
             -- and open the mapping at the key.
@@ -6942,7 +6974,6 @@ lemma accum_block_on_pendingBlockContent
     (h_stream_block : SLYamlStream sp_start sp_block)
     (h_close_pending : ∀ sp_mid, SSLComments sp_scan sp_mid → SLYamlStream sp_start sp_mid)
     (h_stream_fallback : SLYamlStream sp_start sp_block_ctx)
-    (h_closable : ∀ (sp : SurfPos), SSLComments sp_scan sp → SLYamlStream sp_start sp)
     (h_entry_old : ∀ (sp : SurfPos), SSLComments sp_scan sp →
       ∃ sp_first, SBlockSeqEntries 0 sp_first sp ∧
         ∀ (sp_end : SurfPos), SBlockSeqEntries 0 sp_first sp_end →
@@ -6961,14 +6992,20 @@ lemma accum_block_on_pendingBlockContent
       FlowStackB sp_start 0 #[] #[] .sep sp_block' sp_flow' ∧
       PendingNode s' false sp_start sp_flow' sp_scan' ∧
       ScannerSurfCorr s' sp_scan' := by
-  by_cases hcol : sp_scan.col = 0
-  · by_cases hc : c = '-'
-    · subst hc
-      obtain ⟨sp_mid, sp_ws, sp_sc, h_ssl, hcol_mid, hws, hcmt, hcorr_sc, h_pk⟩ :=
-        preprocess_some_ssl_comments_col0 sc sp_scan s_prep '-' h_corr hcol h_preprocess
-      have hsp_sc_eq := ScannerSurfCorr_unique hcorr_sc hcorr_prep
-      subst hsp_sc_eq
-      cases hws with
+  -- Item 19: gate on the landing, not on the park — a sibling entry reached
+  -- across a break (`- a⏎- b`) snocs through the SAME `h_entry_old` route a
+  -- column-0 park uses.
+  obtain ⟨sp_mid, sp_ws, sp_sc, h_land, hws, hcmt, hcorr_sc, h_pk⟩ :=
+    preprocess_some_ssl_comments_landing sc sp_scan s_prep c h_corr h_preprocess
+  have hsp_sc_eq := ScannerSurfCorr_unique hcorr_sc hcorr_prep
+  subst hsp_sc_eq
+  refine h_land.elim (fun h_landed => ?_) (fun _ =>
+    block_dispatch_deferred sp_start sp_block_ctx sp_scan' s'
+      h_stream_fallback hcorr_result)
+  obtain ⟨h_ssl, hcol_mid⟩ := h_landed
+  by_cases hc : c = '-'
+  · subst hc
+    cases hws with
       | nil =>
         cases hcmt with
         | none =>
@@ -7007,43 +7044,26 @@ lemma accum_block_on_pendingBlockContent
       | cons =>
         exact block_dispatch_deferred sp_start sp_mid sp_scan' s'
           (h_close_pending sp_mid h_ssl) hcorr_result
-    · -- c ≠ '-' at col 0: close the pending at the line start, then a ':'
-      -- opens an empty-key block mapping there (item 13); '?' still defers.
-      by_cases hcv : c = ':'
-      · subst hcv
-        obtain ⟨sp_mid, sp_ws, sp_sc, h_ssl, hcol_mid, hws, hcmt, hcorr_sc, h_pk⟩ :=
-          preprocess_some_ssl_comments_col0 sc sp_scan s_prep ':' h_corr hcol h_preprocess
-        have hsp_sc_eq := ScannerSurfCorr_unique hcorr_sc hcorr_prep
-        subst hsp_sc_eq
-        cases hws with
-        | nil =>
-          cases hcmt with
-          | none =>
-            exact colon_open_map sp_start _ s_prep s' sp_scan'
-              (h_close_pending _ h_ssl) hcol_mid hcorr_prep hcorr_result
-              (preprocess_some_peek h_preprocess) h_dispatch
-          | some =>
-            rename_i hcnb
-            have h_eq := h_pk.resolve_right (by simp [preprocess_some_peek h_preprocess])
-            exact absurd (h_eq ▸ hcnb) (scNbCommentText_irrefl sp_mid)
-        | cons =>
-          exact block_dispatch_deferred sp_start sp_mid sp_scan' s'
-            (h_close_pending sp_mid h_ssl) hcorr_result
-      · obtain ⟨sp_mid, _, _, h_ssl, _, _, _, _, _⟩ :=
-          preprocess_some_ssl_comments_col0 sc sp_scan s_prep c h_corr hcol h_preprocess
+  · -- c ≠ '-' at the landing: a ':' opens an empty-key block mapping there
+    -- (item 13); '?' still defers.
+    by_cases hcv : c = ':'
+    · subst hcv
+      cases hws with
+      | nil =>
+        cases hcmt with
+        | none =>
+          exact colon_open_map sp_start _ s_prep s' sp_scan'
+            (h_close_pending _ h_ssl) hcol_mid hcorr_prep hcorr_result
+            (preprocess_some_peek h_preprocess) h_dispatch
+        | some =>
+          rename_i hcnb
+          have h_eq := h_pk.resolve_right (by simp [preprocess_some_peek h_preprocess])
+          exact absurd (h_eq ▸ hcnb) (scNbCommentText_irrefl sp_mid)
+      | cons =>
         exact block_dispatch_deferred sp_start sp_mid sp_scan' s'
           (h_close_pending sp_mid h_ssl) hcorr_result
-  · obtain ⟨sp_mid, _, _, h_disj, _, _, _, _⟩ :=
-      preprocess_some_ssl_comments_anyCol sc sp_scan s_prep c h_corr h_preprocess
-    cases h_disj with
-    | inl h_ssl_col =>
-      exact block_dispatch_deferred sp_start sp_mid sp_scan' s'
-        (h_close_pending sp_mid h_ssl_col.1) hcorr_result
-    | inr h_mid_eq =>
-      obtain ⟨h_mid_eq, -⟩ := h_mid_eq
-      subst h_mid_eq
-      exact block_dispatch_deferred sp_start sp_block_ctx sp_scan' s'
-        h_stream_fallback hcorr_result
+    · exact block_dispatch_deferred sp_start sp_mid sp_scan' s'
+        (h_close_pending sp_mid h_ssl) hcorr_result
 
 -- Block dispatch with pendingBlock: accumulate entries via h_close_entry_old.
 lemma accum_block_on_pendingBlock
@@ -7052,7 +7072,6 @@ lemma accum_block_on_pendingBlock
     (h_stream_block : SLYamlStream sp_start sp_block)
     (h_close_pending : ∀ sp_mid, SSLComments sp_scan sp_mid → SLYamlStream sp_start sp_mid)
     (h_stream_fallback : SLYamlStream sp_start sp_block_ctx)
-    (h_close_old : ∀ (sp : SurfPos), SBlockNode 0 .blockIn sp_scan sp → SLYamlStream sp_start sp)
     (h_close_entry_old : ∀ (sp : SurfPos), SBlockNode 0 .blockIn sp_scan sp →
       ∃ sp_first, SBlockSeqEntries 0 sp_first sp ∧
         ∀ (sp_end : SurfPos), SBlockSeqEntries 0 sp_first sp_end →
@@ -7071,16 +7090,22 @@ lemma accum_block_on_pendingBlock
       FlowStackB sp_start 0 #[] #[] .sep sp_block' sp_flow' ∧
       PendingNode s' false sp_start sp_flow' sp_scan' ∧
       ScannerSurfCorr s' sp_scan' := by
-  by_cases hcol : sp_scan.col = 0
-  · by_cases hc : c = '-'
-    · subst hc
-      obtain ⟨sp_mid, sp_ws, sp_sc, h_ssl, hcol_mid, hws, hcmt, hcorr_sc, h_pk⟩ :=
-        preprocess_some_ssl_comments_col0 sc sp_scan s_prep '-' h_corr hcol h_preprocess
-      have hsp_sc_eq := ScannerSurfCorr_unique hcorr_sc hcorr_prep
-      subst hsp_sc_eq
-      have h_node_old : SBlockNode 0 .blockIn sp_scan sp_mid :=
-        SBlockNode.emptyNode 0 .blockIn sp_scan sp_mid h_ssl
-      cases hws with
+  -- Item 19: gate on the landing, not on the park — the entry a bare `-`
+  -- opened is empty either way (`-⏎- b` as much as a column-0 park), and the
+  -- snoc route is the same.
+  obtain ⟨sp_mid, sp_ws, sp_sc, h_land, hws, hcmt, hcorr_sc, h_pk⟩ :=
+    preprocess_some_ssl_comments_landing sc sp_scan s_prep c h_corr h_preprocess
+  have hsp_sc_eq := ScannerSurfCorr_unique hcorr_sc hcorr_prep
+  subst hsp_sc_eq
+  refine h_land.elim (fun h_landed => ?_) (fun _ =>
+    block_dispatch_deferred sp_start sp_block_ctx sp_scan' s'
+      h_stream_fallback hcorr_result)
+  obtain ⟨h_ssl, hcol_mid⟩ := h_landed
+  by_cases hc : c = '-'
+  · subst hc
+    have h_node_old : SBlockNode 0 .blockIn sp_scan sp_mid :=
+      SBlockNode.emptyNode 0 .blockIn sp_scan sp_mid h_ssl
+    cases hws with
       | nil =>
         cases hcmt with
         | none =>
@@ -7119,43 +7144,26 @@ lemma accum_block_on_pendingBlock
       | cons =>
         exact block_dispatch_deferred sp_start sp_mid sp_scan' s'
           (h_close_pending sp_mid h_ssl) hcorr_result
-    · -- c ≠ '-' at col 0: close the pending at the line start, then a ':'
-      -- opens an empty-key block mapping there (item 13); '?' still defers.
-      by_cases hcv : c = ':'
-      · subst hcv
-        obtain ⟨sp_mid, sp_ws, sp_sc, h_ssl, hcol_mid, hws, hcmt, hcorr_sc, h_pk⟩ :=
-          preprocess_some_ssl_comments_col0 sc sp_scan s_prep ':' h_corr hcol h_preprocess
-        have hsp_sc_eq := ScannerSurfCorr_unique hcorr_sc hcorr_prep
-        subst hsp_sc_eq
-        cases hws with
-        | nil =>
-          cases hcmt with
-          | none =>
-            exact colon_open_map sp_start _ s_prep s' sp_scan'
-              (h_close_pending _ h_ssl) hcol_mid hcorr_prep hcorr_result
-              (preprocess_some_peek h_preprocess) h_dispatch
-          | some =>
-            rename_i hcnb
-            have h_eq := h_pk.resolve_right (by simp [preprocess_some_peek h_preprocess])
-            exact absurd (h_eq ▸ hcnb) (scNbCommentText_irrefl sp_mid)
-        | cons =>
-          exact block_dispatch_deferred sp_start sp_mid sp_scan' s'
-            (h_close_pending sp_mid h_ssl) hcorr_result
-      · obtain ⟨sp_mid, _, _, h_ssl, _, _, _, _, _⟩ :=
-          preprocess_some_ssl_comments_col0 sc sp_scan s_prep c h_corr hcol h_preprocess
+  · -- c ≠ '-' at the landing: a ':' opens an empty-key block mapping there
+    -- (item 13); '?' still defers.
+    by_cases hcv : c = ':'
+    · subst hcv
+      cases hws with
+      | nil =>
+        cases hcmt with
+        | none =>
+          exact colon_open_map sp_start _ s_prep s' sp_scan'
+            (h_close_pending _ h_ssl) hcol_mid hcorr_prep hcorr_result
+            (preprocess_some_peek h_preprocess) h_dispatch
+        | some =>
+          rename_i hcnb
+          have h_eq := h_pk.resolve_right (by simp [preprocess_some_peek h_preprocess])
+          exact absurd (h_eq ▸ hcnb) (scNbCommentText_irrefl sp_mid)
+      | cons =>
         exact block_dispatch_deferred sp_start sp_mid sp_scan' s'
           (h_close_pending sp_mid h_ssl) hcorr_result
-  · obtain ⟨sp_mid, _, _, h_disj, _, _, _, _⟩ :=
-      preprocess_some_ssl_comments_anyCol sc sp_scan s_prep c h_corr h_preprocess
-    cases h_disj with
-    | inl h_ssl_col =>
-      exact block_dispatch_deferred sp_start sp_mid sp_scan' s'
-        (h_close_pending sp_mid h_ssl_col.1) hcorr_result
-    | inr h_mid_eq =>
-      obtain ⟨h_mid_eq, -⟩ := h_mid_eq
-      subst h_mid_eq
-      exact block_dispatch_deferred sp_start sp_block_ctx sp_scan' s'
-        h_stream_fallback hcorr_result
+    · exact block_dispatch_deferred sp_start sp_mid sp_scan' s'
+        (h_close_pending sp_mid h_ssl) hcorr_result
 
 -- Helper: handles all PendingNode cases for block dispatch given stream at sp_block.
 lemma accum_block_pending (sc : ScannerState)
@@ -7202,17 +7210,17 @@ lemma accum_block_pending (sc : ScannerState)
       exact accum_block_on_closeThenBlock sc sp_start sp_block sp_scan s_prep s' c sp_prep sp_scan'
         h_close_pending h_stream_block hcorr_prep hcorr_result h_corr h_preprocess h_dispatch
   | pendingBlockContent =>
-    rename_i n_old _ h_closable h_entry_old
+    rename_i n_old _ _ h_entry_old
     by_cases hn : n_old = 0
     · subst hn
       exact accum_block_on_pendingBlockContent sc sp_start sp_block sp_block sp_scan s_prep s' c
-        sp_prep sp_scan' h_stream_block h_close_pending h_stream_block h_closable h_entry_old
+        sp_prep sp_scan' h_stream_block h_close_pending h_stream_block h_entry_old
         hcorr_prep hcorr_result h_corr h_preprocess h_dispatch
     · exact block_dispatch_deferred sp_start sp_block sp_scan' s' h_stream_block hcorr_result
   | pendingBlock =>
-    rename_i h_close_old h_close_entry_old
+    rename_i _ h_close_entry_old
     exact accum_block_on_pendingBlock sc sp_start sp_block sp_block sp_scan s_prep s' c sp_prep
-      sp_scan' h_stream_block h_close_pending h_stream_block h_close_old h_close_entry_old
+      sp_scan' h_stream_block h_close_pending h_stream_block h_close_entry_old
       hcorr_prep hcorr_result h_corr h_preprocess h_dispatch
 
 lemma accum_step_block (sc : ScannerState)
