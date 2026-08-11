@@ -937,12 +937,29 @@ def handleBlockLineBreakIx {input : String} (c : IxCursor input)
               (skipSpaces
                 (skipBlankLinesLoopIx (consumeLineBreak c) 0 input.utf8ByteSize).1).1)
 
+/-- The legacy no-gain rewind (`Scanner/Scalar.lean::collectPlainScalarLoop`):
+    a folded continuation that collected nothing beyond the fold itself
+    (`r.1.length ≤ prevLen`) is discarded and the plain scalar ends at the
+    PRE-fold result `pre` — cursor before the line break, content without the
+    fold — so the scalar's token span and content stop at its last real
+    character ([131] `ns-plain` has no trailing-break production).  Dropped
+    silently at the cursor cutover: without it the walk rested PAST the break
+    (`x⏎: v` diverged on simple-key staleness — the §7.4 verdict — and
+    `x⏎⏎` kept the fold's `\n` in content).  Taking the recursion's result
+    as an argument keeps the recursive call single-evaluation while leaving
+    an `if` that `split` can open. -/
+@[inline] def backtrackIfNoGain {input : String} (pre : String × IxCursor input)
+    (prevLen : Nat) (r : String × IxCursor input) : String × IxCursor input :=
+  if r.1.length ≤ prevLen then pre else r
+
 /-- Plain-scalar continuation loop. Adds a `contentIndent` parameter
     (continuation indent floor in block context) and folds line
     breaks into the content string. When folding in either context
     yields an empty continuation (no further non-terminator content),
     the loop terminates at the pre-fold cursor so the caller can
-    decide what to do with the partially-collected content.
+    decide what to do with the partially-collected content — the
+    `backtrackIfNoGain` wrapper on both fold arms, mirroring the legacy
+    `result.content.length ≤ prevLen` rewind.
 
     **`#`-after-fold termination** (YAML 1.2.2 §6.7 + §7.3.3): if the
     post-fold cursor sits at `#`, the continuation line is a comment,
@@ -975,8 +992,9 @@ def collectPlainScalarLoopIx {input : String} (c : IxCursor input)
           match (foldQuotedNewlinesIx c).2.peek? with
           | some '#' => (content, c)
           | _ =>
-            collectPlainScalarLoopIx (foldQuotedNewlinesIx c).2
-              (content ++ (foldQuotedNewlinesIx c).1) "" inFlow contentIndent fuel
+            backtrackIfNoGain (content, c) (content ++ (foldQuotedNewlinesIx c).1).length
+              (collectPlainScalarLoopIx (foldQuotedNewlinesIx c).2
+                (content ++ (foldQuotedNewlinesIx c).1) "" inFlow contentIndent fuel)
         else
           match handleBlockLineBreakIx c contentIndent with
           | none => (content, c)
@@ -984,7 +1002,8 @@ def collectPlainScalarLoopIx {input : String} (c : IxCursor input)
             match cAfterFold.peek? with
             | some '#' => (content, c)
             | _ =>
-              collectPlainScalarLoopIx cAfterFold (content ++ folded) "" inFlow contentIndent fuel
+              backtrackIfNoGain (content, c) (content ++ folded).length
+                (collectPlainScalarLoopIx cAfterFold (content ++ folded) "" inFlow contentIndent fuel)
       else if isWhiteSpaceBool ch then
         collectPlainScalarLoopIx c.advance content (spaces.push ch) inFlow contentIndent fuel
       else if !isPlainSafeBool ch inFlow then

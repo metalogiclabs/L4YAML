@@ -477,7 +477,10 @@ lemma collectPlainScalarLoopIx_offset_monotonic {input : String} (c : IxCursor i
         · -- inFlow: foldQuotedNewlinesIx + post-fold `#` check
           split
           · exact Nat.le_refl _                            -- post-fold peek = some '#'
-          · exact Nat.le_trans (foldQuotedNewlinesIx_offset_monotonic c) (ih _ _ _)
+          · unfold backtrackIfNoGain
+            split
+            · exact Nat.le_refl _                          -- no-gain rewind: cursor = c
+            · exact Nat.le_trans (foldQuotedNewlinesIx_offset_monotonic c) (ih _ _ _)
         · -- block: handleBlockLineBreakIx + post-fold `#` check
           split
           · exact Nat.le_refl _                            -- handleBlockLineBreakIx = none
@@ -486,7 +489,10 @@ lemma collectPlainScalarLoopIx_offset_monotonic {input : String} (c : IxCursor i
               handleBlockLineBreakIx_offset_monotonic c contentIndent hHandle
             split
             · exact Nat.le_refl _                          -- post-fold peek = some '#'
-            · exact Nat.le_trans hHandleMono (ih _ _ _)
+            · unfold backtrackIfNoGain
+              split
+              · exact Nat.le_refl _                        -- no-gain rewind: cursor = c
+              · exact Nat.le_trans hHandleMono (ih _ _ _)
       split
       · exact Nat.le_trans (IxCursor.advance_offset_monotonic c) (ih _ _ _)  -- whitespace
       split
@@ -1118,7 +1124,9 @@ lemma collectPlainScalarLoopIx_flow_indicator {input : String} (c : IxCursor inp
 /-- `_linebreak_flow_continue`: flow-context line break where the
     post-fold cursor does NOT peek `#` (continues into the next line).
     With the `#`-after-fold termination added in Phase 3 Step 6d.1e.11,
-    this requires the precondition `cAfterFold.peek? ≠ some '#'`. -/
+    this requires the precondition `cAfterFold.peek? ≠ some '#'`.
+    The continuation stands under the no-gain rewind (item 14): the arm
+    is the recursion wrapped in `backtrackIfNoGain`. -/
 lemma collectPlainScalarLoopIx_linebreak_flow_continue {input : String} (c : IxCursor input)
     (content spaces : String) (contentIndent : Nat) (fuel : Nat)
     {ch : Char} (hPeek : c.peek? = some ch)
@@ -1128,8 +1136,9 @@ lemma collectPlainScalarLoopIx_linebreak_flow_continue {input : String} (c : IxC
     (hLineBreak : isLineBreakBool ch = true)
     (hNotHash : (foldQuotedNewlinesIx c).2.peek? ≠ some '#') :
     collectPlainScalarLoopIx c content spaces true contentIndent (fuel + 1) =
-      collectPlainScalarLoopIx (foldQuotedNewlinesIx c).2
-        (content ++ (foldQuotedNewlinesIx c).1) "" true contentIndent fuel := by
+      backtrackIfNoGain (content, c) (content ++ (foldQuotedNewlinesIx c).1).length
+        (collectPlainScalarLoopIx (foldQuotedNewlinesIx c).2
+          (content ++ (foldQuotedNewlinesIx c).1) "" true contentIndent fuel) := by
   conv => lhs; unfold collectPlainScalarLoopIx
   rw [hPeek]
   cases hp : (foldQuotedNewlinesIx c).2.peek? with
@@ -1168,7 +1177,9 @@ lemma collectPlainScalarLoopIx_linebreak_block_none {input : String} (c : IxCurs
   simp [hNotComment, hNotMapVal, hLineBreak, hHandle]
 
 /-- `_linebreak_block_some_continue`: block-context line break where the
-    post-fold cursor does NOT peek `#`. -/
+    post-fold cursor does NOT peek `#`.
+    The continuation stands under the no-gain rewind (item 14): the arm
+    is the recursion wrapped in `backtrackIfNoGain`. -/
 lemma collectPlainScalarLoopIx_linebreak_block_some_continue {input : String} (c : IxCursor input)
     (content spaces : String) (contentIndent : Nat) (fuel : Nat)
     {ch : Char} (hPeek : c.peek? = some ch)
@@ -1179,7 +1190,8 @@ lemma collectPlainScalarLoopIx_linebreak_block_some_continue {input : String} (c
     (hHandle : handleBlockLineBreakIx c contentIndent = some (folded, cAfterFold))
     (hNotHash : cAfterFold.peek? ≠ some '#') :
     collectPlainScalarLoopIx c content spaces false contentIndent (fuel + 1) =
-      collectPlainScalarLoopIx cAfterFold (content ++ folded) "" false contentIndent fuel := by
+      backtrackIfNoGain (content, c) (content ++ folded).length
+        (collectPlainScalarLoopIx cAfterFold (content ++ folded) "" false contentIndent fuel) := by
   conv => lhs; unfold collectPlainScalarLoopIx
   rw [hPeek]
   cases hp : cAfterFold.peek? with
@@ -1673,20 +1685,26 @@ lemma collectPlainScalarLoopIx_content_isPrefix {input : String}
         · -- inFlow: flow line break
           split
           · exact List.prefix_rfl                          -- post-fold peek = some '#'
-          · -- recurse with content ++ folded
-            exact List.IsPrefix.trans
-              (prefix_of_append_string content (foldQuotedNewlinesIx c).1)
-              (ih _ _ _)
+          · -- recurse with content ++ folded (under the no-gain rewind)
+            unfold backtrackIfNoGain
+            split
+            · exact List.prefix_rfl                        -- no-gain rewind: content kept
+            · exact List.IsPrefix.trans
+                (prefix_of_append_string content (foldQuotedNewlinesIx c).1)
+                (ih _ _ _)
         · -- !inFlow: block line break
           split
           · exact List.prefix_rfl                          -- handleBlock = none
           · rename_i folded cAfterFold _
             split
             · exact List.prefix_rfl                        -- post-fold peek = some '#'
-            · -- recurse with content ++ folded
-              exact List.IsPrefix.trans
-                (prefix_of_append_string content folded)
-                (ih cAfterFold (content ++ folded) "")
+            · -- recurse with content ++ folded (under the no-gain rewind)
+              unfold backtrackIfNoGain
+              split
+              · exact List.prefix_rfl                      -- no-gain rewind: content kept
+              · exact List.IsPrefix.trans
+                  (prefix_of_append_string content folded)
+                  (ih cAfterFold (content ++ folded) "")
       split
       · exact ih c.advance content (spaces.push ch)        -- whitespace
       split
@@ -1837,8 +1855,11 @@ lemma collectPlainScalarLoopIx_preserves_contentInv {input : String}
           split
           · -- (T4) foldPeek = some '#' → terminate
             exact term inv
-          · -- (R2) recurse with content ++ folded
+          · -- (R2) recurse with content ++ folded (under the no-gain rewind)
             rename_i h_foldPeek
+            unfold backtrackIfNoGain
+            split
+            case isTrue => exact term inv
             have h_notHash : ∀ n, (foldQuotedNewlinesIx c).2.peek? = some n → n ≠ '#' := by
               intro n hn heq
               subst heq
@@ -1872,8 +1893,11 @@ lemma collectPlainScalarLoopIx_preserves_contentInv {input : String}
             split
             · -- (T6) cAfterFold.peek? = some '#' → terminate
               exact term inv
-            · -- (R3) recurse with content ++ folded
+            · -- (R3) recurse with content ++ folded (under the no-gain rewind)
               rename_i h_blockPeek
+              unfold backtrackIfNoGain
+              split
+              case isTrue => exact term inv
               have h_notHash : ∀ n, cAfterFold.peek? = some n → n ≠ '#' := by
                 intro n hn heq
                 subst heq
