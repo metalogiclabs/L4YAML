@@ -82,12 +82,10 @@ key production + `:` + value through `pendingMapValue`. -/
 
 /-! ## §2  Punted packs — accepted through the deferral, recorded in row 12
 
-The coupling only packs PLAIN content at column 0; these accept unchanged
-and stay with the campaign's remaining arms. -/
+This pass packs only PLAIN content at column 0; these accept unchanged and
+stay with the campaign's remaining arms.  (`[188]`'s JSON arm — the quoted
+keys — was packed by item 16; see `ScannerQuotedKeyCompose.lean`.) -/
 
--- JSON implicit key ([193]'s other arm): quoted content punts.
-#guard emits "\"a\": b\n"
-  ["+STR", "+DOC", "+MAP", "=VAL \"a", "=VAL :b", "-MAP", "-DOC", "-STR"]
 -- Indented mapping: a col≠0 key punts (the indent machinery's arm).
 #guard emits " a: b\n"
   ["+STR", "+DOC", "+MAP", "=VAL :a", "=VAL :b", "-MAP", "-DOC", "-STR"]
