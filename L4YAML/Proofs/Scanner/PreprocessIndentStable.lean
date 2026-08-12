@@ -1,0 +1,814 @@
+/-
+Copyright (c) 2026. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+-/
+import L4YAML.Proofs.Scanner.ScannerWhitespace
+import L4YAML.Proofs.Scanner.ScannerLoopInvariant
+import L4YAML.Proofs.Scanner.ScannerLinePreservation
+
+/-!
+# The indent stack across preprocessing (DOCS item 27)
+
+Item 26 left the indented block scalar one inequality short of composing:
+`[170] c-l+literal(n)` reads at every `n ≤ d`, where `d` is the indent the
+scanner collected the body at, and the scanner's own floor for `d` is
+`(max 0 (currentIndent + 1)).toNat` — so the accumulator owes
+`(n : Int) ≤ currentIndent + 1` for the entry index it parked.  That is true of
+every accepted input and was unstatable, because `currentIndent` occurred in the
+accumulation invariant exactly zero times.
+
+Carrying it on the pending is only half the job: the pending is parked at the
+INDICATOR's state and consumed at the VALUE's, one preprocessing step later, so
+the fact has to survive `scanNextToken_preprocess`.  It does not survive
+unconditionally — that is what `unwindIndents` is for — but it survives exactly
+when the step crossed no break, which is the same discriminant every other
+break-free reading in `StreamAccum` already splits on:
+
+    scanNextToken_preprocess s
+      = skipToContent s ⟩⟩ (if !inFlow && needIndentCheck then unwindIndents … else id)
+        ⟩⟩ saveSimpleKey
+
+`skipToContent` never touches `indents` (it only walks the cursor and raises
+`needIndentCheck`), and `saveSimpleKey` only pushes tokens — so the ONLY writer
+is the armed `unwindIndents`, and the arming flag is `s_content.needIndentCheck`.
+This module proves the walk half of that (`skipToContent_preserves_indents`, by
+the mechanical descent the `_preserves_flowLevel` family already makes over the
+same five functions) and then the preprocessing statement conditioned on the
+flag being down at the point of the test.
+
+Kept out of `ScannerCorrectness` deliberately: that module is imported by
+essentially everything, and this is a leaf the accumulator alone reads.
+-/
+
+namespace L4YAML.Proofs.PreprocessIndentStable
+
+open L4YAML.Scanner
+open L4YAML.Proofs.ScannerWhitespace
+open L4YAML.Proofs.ScannerLoopInvariant
+
+/-! ## §1  The walk never writes the indent stack
+
+Five functions, each mirroring its `_preserves_flowLevel` sibling in
+`ScannerCorrectness`.  `indents` and `flowLevel` are both plain fields of
+`ScannerState` and neither is read by any of these, so the proof scripts are the
+same descent. -/
+
+/-- `skipSpacesLoop` only advances. -/
+lemma skipSpacesLoop_preserves_indents (s : ScannerState) (fuel : Nat) :
+    (skipSpacesLoop s fuel).indents = s.indents := by
+  induction fuel generalizing s with
+  | zero => unfold skipSpacesLoop; rfl
+  | succ fuel' ih =>
+    unfold skipSpacesLoop
+    split
+    · rw [ih, advance_indents]
+    · rfl
+
+/-- `skipSpaces` — `s-space*`, `[63] s-indent(n)`'s consumer. -/
+lemma skipSpaces_preserves_indents (s : ScannerState) :
+    (skipSpaces s).indents = s.indents := skipSpacesLoop_preserves_indents s _
+
+/-- `skipWhitespaceLoop` only advances. -/
+lemma skipWhitespaceLoop_preserves_indents (s : ScannerState) (fuel : Nat) :
+    (skipWhitespaceLoop s fuel).indents = s.indents := by
+  induction fuel generalizing s with
+  | zero => unfold skipWhitespaceLoop; rfl
+  | succ fuel' ih =>
+    unfold skipWhitespaceLoop
+    split
+    · split
+      · rw [ih, advance_indents]
+      · rfl
+    · rfl
+
+/-- `skipWhitespace` — `s-white*`, `[66] s-separate-in-line`'s consumer. -/
+lemma skipWhitespace_preserves_indents (s : ScannerState) :
+    (skipWhitespace s).indents = s.indents := skipWhitespaceLoop_preserves_indents s _
+
+/-- `collectCommentTextLoop` advances and accumulates a string. -/
+lemma collectCommentTextLoop_preserves_indents (s : ScannerState) (text : String) (fuel : Nat) :
+    (collectCommentTextLoop s text fuel).2.indents = s.indents := by
+  induction fuel generalizing s text with
+  | zero => unfold collectCommentTextLoop; rfl
+  | succ fuel' ih =>
+    unfold collectCommentTextLoop
+    split
+    · split
+      · rfl
+      · rw [ih, advance_indents]
+    · rfl
+
+/-- `skipToContentComment` — `[75] c-nb-comment-text`; pushes a comment onto the
+    side channel and nothing else. -/
+lemma skipToContentComment_preserves_indents (s : ScannerState) :
+    (skipToContentComment s).indents = s.indents := by
+  unfold skipToContentComment
+  split
+  · simp only []
+    split
+    · split
+      · simp only []
+        rw [collectCommentTextLoop_preserves_indents, advance_indents]
+      · rfl
+    · split
+      · simp only []
+        rw [collectCommentTextLoop_preserves_indents, advance_indents]
+      · rfl
+  · rfl
+
+/-- `skipToContentWs` — the tab-as-indentation gate READS `currentIndent` but
+    never writes it; every successful exit is a `skipSpaces`/`skipWhitespace`
+    composite. -/
+lemma skipToContentWs_preserves_indents (s s' : ScannerState)
+    (h : skipToContentWs s = .ok s') :
+    s'.indents = s.indents := by
+  unfold skipToContentWs at h
+  split at h
+  · simp only [] at h
+    split at h
+    · split at h
+      · split at h
+        · simp at h
+          rw [← h, skipWhitespace_preserves_indents, skipSpaces_preserves_indents]
+        · split at h
+          · simp at h
+            rw [← h, skipWhitespace_preserves_indents, skipSpaces_preserves_indents]
+          · split at h
+            · simp at h
+              rw [← h, skipWhitespace_preserves_indents, skipSpaces_preserves_indents]
+            · simp at h
+        · simp at h
+          rw [← h, skipWhitespace_preserves_indents, skipSpaces_preserves_indents]
+      · simp at h
+        rw [← h, skipSpaces_preserves_indents]
+    · simp at h
+      rw [← h, skipWhitespace_preserves_indents, skipSpaces_preserves_indents]
+  · simp at h
+    rw [← h, skipWhitespace_preserves_indents]
+
+/-- `skipToContentLoop` — one `[79] s-l-comments` line per iteration. -/
+lemma skipToContentLoop_preserves_indents (s s' : ScannerState) (fuel : Nat)
+    (h : skipToContentLoop s fuel = .ok s') :
+    s'.indents = s.indents := by
+  induction fuel generalizing s with
+  | zero =>
+    unfold skipToContentLoop at h
+    simp at h; rw [← h]
+  | succ fuel' ih =>
+    unfold skipToContentLoop at h
+    split at h
+    · simp at h
+    · rename_i s1 hws
+      simp only [] at h
+      split at h
+      · split at h
+        · split at h
+          · rw [ih _ h, consumeNewline_preserves_indents,
+                skipToContentComment_preserves_indents]
+            exact skipToContentWs_preserves_indents s s1 hws
+          · rw [ih _ h, consumeNewline_preserves_indents,
+                skipToContentComment_preserves_indents]
+            exact skipToContentWs_preserves_indents s s1 hws
+        · simp at h
+          rw [← h, skipToContentComment_preserves_indents]
+          exact skipToContentWs_preserves_indents s s1 hws
+      · simp at h
+        rw [← h, skipToContentComment_preserves_indents]
+        exact skipToContentWs_preserves_indents s s1 hws
+
+/-- **The walk half**: reaching the next content character never changes the
+    indent stack.  Only `unwindIndents` does, and `skipToContent` does not call
+    it — it merely raises `needIndentCheck` so that the caller will. -/
+lemma skipToContent_preserves_indents (s s' : ScannerState)
+    (h : skipToContent s = .ok s') :
+    s'.indents = s.indents := by
+  unfold skipToContent at h
+  exact skipToContentLoop_preserves_indents s s' _ h
+
+/-! ## §2  `saveSimpleKey` pushes tokens, not indents -/
+
+/-- The last step of preprocessing touches `tokens` and `simpleKey` only. -/
+lemma saveSimpleKey_preserves_indents (s : ScannerState) :
+    (saveSimpleKey s).indents = s.indents := by
+  unfold saveSimpleKey
+  split
+  · rfl
+  · split <;> rfl
+
+/-! ## §3  Where the two halves meet
+
+The statement the accumulator actually reads is not here but in
+`preprocess_some_ssl_comments_anyCol` (`StreamAccum`), because the flag the
+unwind branch tests is `skipToContent`'s OWN result, not the caller's: the flag
+can go UP during the walk (a break sets it), and the fact that it did not is
+exactly the surface no-break disjunct that lemma already returns.  So the two
+travel together — §1's `skipToContent_preserves_indents` plus §2's key save
+discharge the payload's new conjunct there, and the armed branch is refuted by
+the same flag transparency item 12's payload already uses. -/
+
+/-! ## §4  From the stack to the floor
+
+`currentIndent` is the stack's top column, so an equal stack is an equal indent;
+and the scanner's block-scalar floor is `(max 0 (currentIndent + 1)).toNat`, so
+the accumulator's carried `(n : Int) ≤ currentIndent + 1` is exactly what says
+the entry's index is one the body's content indent admits. -/
+
+/-- Equal stacks, equal indent. -/
+lemma currentIndent_of_indents_eq {s t : ScannerState} (h : s.indents = t.indents) :
+    s.currentIndent = t.currentIndent := by
+  unfold ScannerState.currentIndent; rw [h]
+
+/-- The scanner's own floor for a block scalar's content indent, named: this is
+    `scanBlockScalarBody`'s `minContentIndent`, and `scanBlockScalar_prod_at`
+    concludes that the indent the body was actually collected at is at least
+    this.  So it is the largest index an entry can sit at and still have its
+    `[170]`/`[174]` body read at that index. -/
+def minContentIndentOf (s : ScannerState) : Nat := (max 0 (s.currentIndent + 1)).toNat
+
+/-- An equal stack is an equal floor — the transport, once the walk half above
+    has said the stack survived. -/
+lemma minContentIndentOf_congr {s t : ScannerState} (h : s.indents = t.indents) :
+    minContentIndentOf s = minContentIndentOf t := by
+  unfold minContentIndentOf; rw [currentIndent_of_indents_eq h]
+
+/-- The carried inequality, in the shape the floor wants. -/
+lemma le_minContentIndentOf_of_int_le {n : Nat} {s : ScannerState}
+    (h : (n : Int) ≤ s.currentIndent) : n ≤ minContentIndentOf s := by
+  unfold minContentIndentOf; omega
+
+/-- **What a pending owes if its index is to survive into a block scalar.**
+
+    Two decidable facts about the scanner state the pending is parked at: the
+    indent-check flag is down (so the next preprocessing step cannot unwind the
+    stack out from under the index — §3), and the index is at or below the
+    floor a block scalar's body would be collected against (§4).
+
+    It is carried as `IndentFloor sc n ∨ True`, exactly as items 15/17 carry
+    `ImplicitKeyPack` / `PropsKeyPack`: a producer that can measure it hands the
+    left side over, one that cannot hands `True`, and the CONSUMER's route to
+    the escape is unchanged either way.  So the escape's call-site count is
+    fixed by construction and what the item moves is the domain (R645/R646). -/
+def IndentFloor (sc : ScannerState) (n : Nat) : Prop :=
+  sc.needIndentCheck = false ∧ n ≤ minContentIndentOf sc
+
+/-- At index 0 the floor is free: `minContentIndentOf` is a `Nat`. -/
+lemma IndentFloor.zero {sc : ScannerState} (h : sc.needIndentCheck = false) :
+    IndentFloor sc 0 := ⟨h, Nat.zero_le _⟩
+
+/-- **The floor's transport** (item 27): a step that leaves the indent stack
+    alone carries the pending's measurement forward verbatim, and a pending
+    that never had one still has none.  Every re-park in the accumulator goes
+    through this. -/
+lemma IndentFloor.transport {sc s' : ScannerState} {n : Nat}
+    (h_floor : IndentFloor sc n ∨ True)
+    (h_nic_s : s'.needIndentCheck = false)
+    (h_ind : sc.needIndentCheck = false → s'.indents = sc.indents) :
+    IndentFloor s' n ∨ True := by
+  rcases h_floor with ⟨h_nic_sc, h_le⟩ | _
+  · exact Or.inl ⟨h_nic_s, by rw [minContentIndentOf_congr (h_ind h_nic_sc)]; exact h_le⟩
+  · exact Or.inr trivial
+
+/-! ## §5  The runtime's own pushes
+
+`[183] l+block-sequence(n)` and `[187] l+block-mapping(n)` are opened by the
+scanner's `pushSequenceIndent` / `pushMappingIndent`, both of which take the
+INDICATOR's column — which is exactly the index item 22 gave the pending.  So
+the pending's floor is discharged by the push it was created alongside. -/
+
+/-- `emit` writes tokens. -/
+@[simp] lemma emit_indents (s : ScannerState) (t : YamlToken) :
+    (s.emit t).indents = s.indents := rfl
+
+/-- `emitAt` writes tokens. -/
+@[simp] lemma emitAt_indents (s : ScannerState) (p : YamlPos) (t : YamlToken) :
+    (s.emitAt p t).indents = s.indents := rfl
+
+/-- After a sequence push the stack's top is at or below the pushed column —
+    either it IS that column, or the push was skipped because the top was
+    already at least that deep. -/
+lemma pushSequenceIndent_le (s : ScannerState) (col : Int) :
+    col ≤ (pushSequenceIndent s col).currentIndent := by
+  unfold pushSequenceIndent
+  split
+  · show col ≤ ScannerState.currentIndent _
+    unfold ScannerState.currentIndent
+    rw [show ({ (s.emit .blockSequenceStart) with
+          indents := (s.emit .blockSequenceStart).indents.push
+            { column := col, isSequence := true } } : ScannerState).indents
+        = (s.emit .blockSequenceStart).indents.push { column := col, isSequence := true } from rfl,
+      Array.back?_push]
+    simp
+  · omega
+
+/-- `[187]`'s twin. -/
+lemma pushMappingIndent_le (s : ScannerState) (col : Int) :
+    col ≤ (pushMappingIndent s col).currentIndent := by
+  unfold pushMappingIndent
+  split
+  · show col ≤ ScannerState.currentIndent _
+    unfold ScannerState.currentIndent
+    rw [show ({ (s.emit .blockMappingStart) with
+          indents := (s.emit .blockMappingStart).indents.push
+            { column := col, isSequence := false } } : ScannerState).indents
+        = (s.emit .blockMappingStart).indents.push { column := col, isSequence := false } from rfl,
+      Array.back?_push]
+    simp
+  · omega
+
+/-- Neither push touches the flag. -/
+lemma pushSequenceIndent_needIndentCheck (s : ScannerState) (col : Int) :
+    (pushSequenceIndent s col).needIndentCheck = s.needIndentCheck := by
+  unfold pushSequenceIndent; split <;> rfl
+
+/-- See `pushSequenceIndent_needIndentCheck`. -/
+lemma pushMappingIndent_needIndentCheck (s : ScannerState) (col : Int) :
+    (pushMappingIndent s col).needIndentCheck = s.needIndentCheck := by
+  unfold pushMappingIndent; split <;> rfl
+
+/-- The `-` scan's only write to the indent stack is `[183]`'s push. -/
+lemma scanBlockEntry_indents {s s' : ScannerState}
+    (h_noflow : s.inFlow = false) (hok : scanBlockEntry s = .ok s') :
+    s'.indents = (pushSequenceIndent s (s.col : Int)).indents := by
+  unfold scanBlockEntry at hok
+  simp only [bind, Except.bind, h_noflow, Bool.not_false, if_true] at hok
+  split at hok
+  · simp at hok
+  · simp only [Except.ok.injEq] at hok
+    subst hok
+    show (ScannerState.advance (ScannerState.emit _ _)).indents = _
+    rw [advance_indents]; rfl
+
+/-- **The `-` producer's floor** (`[183]`): a block entry pushes at its own
+    column, so the entry index the accumulator parks is at or below the stack
+    top the next step will measure a block scalar against. -/
+lemma scanBlockEntry_col_le_currentIndent {s s' : ScannerState}
+    (h_noflow : s.inFlow = false) (hok : scanBlockEntry s = .ok s') :
+    (s.col : Int) ≤ s'.currentIndent := by
+  rw [currentIndent_of_indents_eq (scanBlockEntry_indents h_noflow hok)]
+  exact pushSequenceIndent_le s _
+
+/-- The `-` scan leaves the indent-check flag where it found it. -/
+lemma scanBlockEntry_needIndentCheck {s s' : ScannerState}
+    (h_noflow : s.inFlow = false) (hok : scanBlockEntry s = .ok s') :
+    s'.needIndentCheck = s.needIndentCheck := by
+  unfold scanBlockEntry at hok
+  simp only [bind, Except.bind, h_noflow, Bool.not_false, if_true] at hok
+  split at hok
+  · simp at hok
+  · simp only [Except.ok.injEq] at hok
+    subst hok
+    show (ScannerState.advance (ScannerState.emit _ _)).needIndentCheck = _
+    rw [advance_preserves_needIndentCheck]
+    exact pushSequenceIndent_needIndentCheck s _
+
+/-- The `?` scan's only write to the indent stack is `[187]`'s push. -/
+lemma scanKey_indents {s s' : ScannerState}
+    (h_noflow : s.inFlow = false) (hok : scanKey s = .ok s') :
+    s'.indents = (pushMappingIndent s (s.col : Int)).indents := by
+  unfold scanKey at hok
+  simp only [bind, Except.bind, h_noflow, Bool.not_false, if_true] at hok
+  repeat' split at hok
+  all_goals first
+    | (simp only [Except.ok.injEq] at hok
+       subst hok
+       show (ScannerState.advance (ScannerState.emit _ _)).indents = _
+       rw [advance_indents]; rfl)
+    | simp_all
+
+/-- **The `?` producer's floor** (`[187]`): the explicit-key indicator pushes a
+    mapping indent at its own column, `scanBlockEntry`'s twin. -/
+lemma scanKey_col_le_currentIndent {s s' : ScannerState}
+    (h_noflow : s.inFlow = false) (hok : scanKey s = .ok s') :
+    (s.col : Int) ≤ s'.currentIndent := by
+  rw [currentIndent_of_indents_eq (scanKey_indents h_noflow hok)]
+  exact pushMappingIndent_le s _
+
+/-- The `?` scan leaves the indent-check flag where it found it. -/
+lemma scanKey_needIndentCheck {s s' : ScannerState}
+    (h_noflow : s.inFlow = false) (hok : scanKey s = .ok s') :
+    s'.needIndentCheck = s.needIndentCheck := by
+  unfold scanKey at hok
+  simp only [bind, Except.bind, h_noflow, Bool.not_false, if_true] at hok
+  repeat' split at hok
+  all_goals first
+    | (simp only [Except.ok.injEq] at hok
+       subst hok
+       show (ScannerState.advance (ScannerState.emit _ _)).needIndentCheck = _
+       rw [advance_preserves_needIndentCheck]
+       exact pushMappingIndent_needIndentCheck s _)
+    | simp_all
+
+/-! ## §6  Property scans do not touch the stack
+
+`[96] c-ns-properties` is a decoration, not a collection: `&`/`!` walk a name
+and emit a token.  So a run parked at an entry's route index keeps whatever
+floor the entry had — which is what lets `  - &a |` reuse `  - |`'s. -/
+
+/-- `collectAnchorNameLoop` advances. -/
+lemma collectAnchorNameLoop_preserves_indents (s : ScannerState) (name : String) (fuel : Nat) :
+    (collectAnchorNameLoop s name fuel).2.indents = s.indents := by
+  induction fuel generalizing s name with
+  | zero => unfold collectAnchorNameLoop; rfl
+  | succ fuel' ih =>
+    unfold collectAnchorNameLoop
+    split
+    · split
+      · rw [ih, advance_indents]
+      · rfl
+    · rfl
+
+/-- `collectVerbatimTagLoop` advances. -/
+lemma collectVerbatimTagLoop_preserves_indents (s : ScannerState) (uri : String) (fuel : Nat) :
+    (collectVerbatimTagLoop s uri fuel).2.2.indents = s.indents := by
+  induction fuel generalizing s uri with
+  | zero => unfold collectVerbatimTagLoop; rfl
+  | succ fuel' ih =>
+    unfold collectVerbatimTagLoop
+    split
+    · exact advance_indents s
+    · split
+      · rw [ih, advance_indents]
+      · rfl
+    · rfl
+
+/-- `collectTagSuffixLoop` advances. -/
+lemma collectTagSuffixLoop_preserves_indents (s : ScannerState) (suffix : String) (fuel : Nat) :
+    (collectTagSuffixLoop s suffix fuel).2.indents = s.indents := by
+  induction fuel generalizing s suffix with
+  | zero => unfold collectTagSuffixLoop; rfl
+  | succ fuel' ih =>
+    unfold collectTagSuffixLoop
+    split
+    · split
+      · rw [ih, advance_indents]
+      · rfl
+    · rfl
+
+/-- `collectTagHandleLoop` advances. -/
+lemma collectTagHandleLoop_preserves_indents (s : ScannerState) (chars : String) (fuel : Nat) :
+    (collectTagHandleLoop s chars fuel).2.2.indents = s.indents := by
+  induction fuel generalizing s chars with
+  | zero => unfold collectTagHandleLoop; rfl
+  | succ fuel' ih =>
+    unfold collectTagHandleLoop
+    split
+    · exact advance_indents s
+    · split
+      · rw [ih, advance_indents]
+      · rfl
+    · rfl
+
+/-- `&`/`*` — walk a name, emit at the marker. -/
+lemma scanAnchorOrAlias_preserves_indents {s s' : ScannerState} {isAnchor : Bool}
+    (hok : scanAnchorOrAlias s isAnchor = .ok s') : s'.indents = s.indents := by
+  unfold scanAnchorOrAlias at hok
+  simp only [] at hok
+  split at hok
+  · simp at hok
+  · simp only [Except.ok.injEq] at hok
+    subst hok
+    simp only [ScannerState.emitAt]
+    rw [collectAnchorNameLoop_preserves_indents, advance_indents]
+
+/-- `!<uri>`. -/
+lemma scanVerbatimTag_preserves_indents {s s' : ScannerState} {p : YamlPos}
+    (hok : scanVerbatimTag s p = .ok s') : s'.indents = s.indents := by
+  unfold scanVerbatimTag at hok
+  simp only [] at hok
+  split at hok
+  · simp at hok
+  · split at hok
+    · simp at hok
+    · simp only [Except.ok.injEq] at hok
+      subst hok
+      simp only [ScannerState.emitAt]
+      rw [collectVerbatimTagLoop_preserves_indents, advance_indents]
+
+/-- `!!suffix`. -/
+lemma scanSecondaryTag_preserves_indents (s : ScannerState) (p : YamlPos) :
+    (scanSecondaryTag s p).indents = s.indents := by
+  unfold scanSecondaryTag
+  simp only [ScannerState.emitAt]
+  rw [collectTagSuffixLoop_preserves_indents, advance_indents]
+
+/-- `!handle!suffix` / `!suffix`. -/
+lemma scanNamedTag_preserves_indents (s : ScannerState) (p : YamlPos) (inputEnd : Nat) :
+    (scanNamedTag s p inputEnd).indents = s.indents := by
+  unfold scanNamedTag
+  simp only []
+  split
+  · simp only [ScannerState.emitAt]
+    rw [collectTagSuffixLoop_preserves_indents, collectTagHandleLoop_preserves_indents]
+  · simp only [ScannerState.emitAt]
+    rw [collectTagHandleLoop_preserves_indents]
+
+/-- `[97] c-ns-tag-property` in all four shapes. -/
+lemma scanTag_preserves_indents {s s' : ScannerState}
+    (hok : scanTag s = .ok s') : s'.indents = s.indents := by
+  unfold scanTag at hok
+  simp only [bind, Except.bind, pure, Except.pure] at hok
+  split at hok
+  · split at hok
+    · simp at hok
+    · rename_i s_inner h_inner
+      simp only [Except.ok.injEq] at hok
+      subst hok
+      show s_inner.indents = _
+      rw [scanVerbatimTag_preserves_indents h_inner, advance_indents]
+  · simp only [Except.ok.injEq] at hok
+    subst hok
+    show (scanSecondaryTag s.advance s.currentPos).indents = _
+    rw [scanSecondaryTag_preserves_indents, advance_indents]
+  · simp only [Except.ok.injEq] at hok
+    subst hok
+    show (scanNamedTag s.advance s.currentPos s.inputEnd).indents = _
+    rw [scanNamedTag_preserves_indents, advance_indents]
+
+/-! ## §6b  The `:` producer
+
+`scanValue` is the one indicator whose entry column is not necessarily its own:
+it resolves a pending implicit key and pushes at the KEY's column.  When the
+save is FRESH — the `:` opens `[189]`'s empty-key entry, which is the shape
+`colon_open_map` parks — the key sits at the `:` itself and the push is at the
+indicator's column like the other two.  When it is inherited the key is an
+earlier column the accumulator does not carry, and this item leaves that case
+to the punt. -/
+
+/-- `scanValueClearKey` only ever CLEARS the saved key. -/
+lemma scanValueClearKey_simpleKey (s : ScannerState) :
+    (scanValueClearKey s).simpleKey = s.simpleKey ∨
+    (scanValueClearKey s).simpleKey.possible = false := by
+  unfold scanValueClearKey
+  split
+  · split
+    · exact Or.inr rfl
+    · split
+      · exact Or.inr rfl
+      · exact Or.inl rfl
+  · exact Or.inl rfl
+
+/-- …and touches nothing else. -/
+lemma scanValueClearKey_fields (s : ScannerState) :
+    (scanValueClearKey s).col = s.col ∧
+    (scanValueClearKey s).indents = s.indents ∧
+    (scanValueClearKey s).inFlow = s.inFlow ∧
+    (scanValueClearKey s).currentPos = s.currentPos ∧
+    (scanValueClearKey s).explicitKeyLine = s.explicitKeyLine ∧
+    (scanValueClearKey s).line = s.line ∧
+    (scanValueClearKey s).needIndentCheck = s.needIndentCheck := by
+  unfold scanValueClearKey
+  split
+  · split
+    · exact ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩
+    · split
+      · exact ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩
+      · exact ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩
+  · exact ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩
+
+/-- `scanValueValidate` pins an explicit `:` to the mapping's own indent
+    (`[197] l-block-map-explicit-value(n) = s-indent(n) ":" …`), which is what
+    makes the no-push arm safe. -/
+lemma scanValueValidate_explicit_col {s : ScannerState}
+    (h_poss : s.simpleKey.possible = false) (h_noflow : s.inFlow = false)
+    (h_ek : s.explicitKeyLine.isSome = true)
+    (h_valid : scanValueValidate s = .ok ()) :
+    (s.col : Int) = s.currentIndent := by
+  obtain ⟨ekLine, hek⟩ := Option.isSome_iff_exists.mp h_ek
+  unfold scanValueValidate at h_valid
+  simp only [bind, Except.bind, pure, Except.pure, h_poss, Bool.false_and,
+    if_neg Bool.false_ne_true, hek] at h_valid
+  repeat' split at h_valid
+  all_goals simp_all
+
+/-- `scanValuePrepare`'s three arms, measured against the indicator's column:
+    the resolved-key arm pushes at the KEY (equal to the `:`'s column exactly
+    when the save was fresh), the explicit-value arm pushes nothing but has
+    been validated to sit at the mapping's indent, and the fresh-mapping arm
+    pushes at the `:`. -/
+lemma scanValuePrepare_col_le {s : ScannerState}
+    (h_noflow : s.inFlow = false)
+    (h_fresh : s.simpleKey.possible = true → s.simpleKey.pos.col = s.col)
+    (h_valid : scanValueValidate s = .ok ()) :
+    (s.col : Int) ≤ (scanValuePrepare s).currentIndent := by
+  unfold scanValuePrepare
+  split
+  · rename_i h_poss
+    rw [if_pos (by simpa using h_noflow : (!s.inFlow) = true)]
+    split
+    · rename_i h_gt
+      show (s.col : Int) ≤ ScannerState.currentIndent _
+      unfold ScannerState.currentIndent
+      rw [show ({ s with
+            tokens := _,
+            indents := s.indents.push
+              { column := (s.simpleKey.pos.col : Int), isSequence := false },
+            simpleKey := { possible := false } } : ScannerState).indents
+          = s.indents.push { column := (s.simpleKey.pos.col : Int), isSequence := false } from rfl,
+        Array.back?_push]
+      simp [h_fresh h_poss]
+    · rename_i h_le
+      show (s.col : Int) ≤ s.currentIndent
+      rw [← h_fresh h_poss]
+      exact Int.not_lt.mp h_le
+  · split
+    · rename_i h_poss h_ek
+      show (s.col : Int) ≤ s.currentIndent
+      exact Int.le_of_eq
+        (scanValueValidate_explicit_col (by simpa using h_poss) h_noflow h_ek h_valid)
+    · rw [if_pos (by simpa using h_noflow : (!s.inFlow) = true)]
+      exact pushMappingIndent_le s _
+
+/-- **The `:` producer's floor**, when the saved key is the fresh one at the
+    indicator itself — which is exactly `[189]`'s empty-key entry. -/
+lemma scanValue_col_le_currentIndent {s s' : ScannerState}
+    (h_noflow : s.inFlow = false)
+    (h_fresh : s.simpleKey.possible = true → s.simpleKey.pos = s.currentPos)
+    (hok : scanValue s = .ok s') :
+    (s.col : Int) ≤ s'.currentIndent := by
+  unfold scanValue at hok
+  simp only [bind, Except.bind] at hok
+  split at hok
+  · simp at hok
+  · rename_i h_valid
+    split at hok
+    · simp at hok
+    · simp only [Except.ok.injEq] at hok
+      subst hok
+      obtain ⟨hcol, hind, hfl, hpos, _, _, _⟩ := scanValueClearKey_fields s
+      have h_kc_fresh : (scanValueClearKey s).simpleKey.possible = true →
+          (scanValueClearKey s).simpleKey.pos.col = (scanValueClearKey s).col := by
+        intro hp
+        rcases scanValueClearKey_simpleKey s with heq | hfalse
+        · rw [heq, hcol]
+          rw [heq] at hp
+          rw [h_fresh hp]; rfl
+        · rw [hfalse] at hp; exact absurd hp Bool.false_ne_true
+      have h_prep := scanValuePrepare_col_le
+        (s := scanValueClearKey s) (by rw [hfl]; exact h_noflow) h_kc_fresh h_valid
+      rw [hcol] at h_prep
+      show (s.col : Int) ≤ ScannerState.currentIndent _
+      rw [currentIndent_of_indents_eq
+        (show ({ (ScannerState.advance
+                  (ScannerState.emit (scanValuePrepare (scanValueClearKey s)) .value)) with
+                simpleKeyAllowed := true, explicitKeyLine := none } : ScannerState).indents
+            = (scanValuePrepare (scanValueClearKey s)).indents from by
+          show (ScannerState.advance _).indents = _
+          rw [advance_indents]; rfl)]
+      exact h_prep
+
+/-- `scanValuePrepare` writes tokens, indents and the saved key. -/
+lemma scanValuePrepare_needIndentCheck (s : ScannerState) :
+    (scanValuePrepare s).needIndentCheck = s.needIndentCheck := by
+  unfold scanValuePrepare
+  split
+  · split
+    · split <;> rfl
+    · rfl
+  · split
+    · rfl
+    · split
+      · exact pushMappingIndent_needIndentCheck s _
+      · rfl
+
+/-- The `:` scan leaves the indent-check flag where it found it. -/
+lemma scanValue_needIndentCheck {s s' : ScannerState}
+    (hok : scanValue s = .ok s') : s'.needIndentCheck = s.needIndentCheck := by
+  unfold scanValue at hok
+  simp only [bind, Except.bind] at hok
+  split at hok
+  · simp at hok
+  · split at hok
+    · simp at hok
+    · simp only [Except.ok.injEq] at hok
+      subst hok
+      show (ScannerState.advance _).needIndentCheck = _
+      rw [advance_preserves_needIndentCheck]
+      show (scanValuePrepare (scanValueClearKey s)).needIndentCheck = _
+      rw [scanValuePrepare_needIndentCheck, (scanValueClearKey_fields s).2.2.2.2.2.2]
+
+/-! ## §7  The dispatchers, in the shape the producers consume
+
+Each wrapper hands back the floor together with the flag, and punts the FLOW
+case rather than assuming it away: `scanKey` pushes only in block context, and
+`isKeyCandidate` does not exclude a flow `?`.  Punting here costs a field value,
+not a call site — which is the whole point of carrying the floor as
+`IndentFloor sc n ∨ True`. -/
+
+/-- The `-` arm names its own scan, and its guard carries `!inFlow`. -/
+lemma dispatchBlockIndicators_dash_scan {s s' : ScannerState}
+    (hok : scanNextToken_dispatchBlockIndicators s '-' = .ok (some s')) :
+    s.inFlow = false ∧ scanBlockEntry s = .ok s' := by
+  unfold scanNextToken_dispatchBlockIndicators at hok
+  simp only [bind, Except.bind, pure, Except.pure] at hok
+  split at hok
+  · rename_i hguard
+    refine ⟨by simpa using (Bool.and_eq_true_iff.mp (Bool.and_eq_true_iff.mp hguard).1).2, ?_⟩
+    split at hok
+    · simp at hok
+    · rename_i s_e he
+      simp only [Except.ok.injEq, Option.some.injEq] at hok
+      subst hok; exact he
+  · exfalso
+    have h2 : (('-' : Char) == '?' : Bool) = false := by decide
+    have h3 : (('-' : Char) == ':' : Bool) = false := by decide
+    simp only [h2, h3, Bool.false_and, if_neg Bool.false_ne_true] at hok
+    simp at hok
+
+/-- The `?` arm names its own scan — but NOT `!inFlow`. -/
+lemma dispatchBlockIndicators_key_scan {s s' : ScannerState}
+    (hok : scanNextToken_dispatchBlockIndicators s '?' = .ok (some s')) :
+    scanKey s = .ok s' := by
+  unfold scanNextToken_dispatchBlockIndicators at hok
+  have hdash : (('?' : Char) == '-' : Bool) = false := by decide
+  have hcolon : (('?' : Char) == ':' : Bool) = false := by decide
+  simp only [bind, Except.bind, pure, Except.pure, hdash, hcolon, Bool.false_and,
+    if_neg Bool.false_ne_true] at hok
+  split at hok
+  · split at hok
+    · simp at hok
+    · rename_i s_k hk
+      simp only [Except.ok.injEq, Option.some.injEq] at hok
+      subst hok; exact hk
+  · simp at hok
+
+/-- **The `-` producer's floor, packaged.** -/
+lemma dash_floor {s s' : ScannerState}
+    (hok : scanNextToken_dispatchBlockIndicators s '-' = .ok (some s')) :
+    (s.col : Int) ≤ s'.currentIndent ∧ s'.needIndentCheck = s.needIndentCheck :=
+  let ⟨h_noflow, h_scan⟩ := dispatchBlockIndicators_dash_scan hok
+  ⟨scanBlockEntry_col_le_currentIndent h_noflow h_scan,
+   scanBlockEntry_needIndentCheck h_noflow h_scan⟩
+
+/-- **The `?` producer's floor, packaged** — with the flow case punted. -/
+lemma key_floor_or {s s' : ScannerState}
+    (hok : scanNextToken_dispatchBlockIndicators s '?' = .ok (some s')) :
+    (s.inFlow = false ∧ (s.col : Int) ≤ s'.currentIndent ∧
+      s'.needIndentCheck = s.needIndentCheck) ∨ s.inFlow = true := by
+  by_cases h : s.inFlow = true
+  · exact Or.inr h
+  · have h_noflow : s.inFlow = false := by simpa using h
+    have h_scan := dispatchBlockIndicators_key_scan hok
+    exact Or.inl ⟨h_noflow, scanKey_col_le_currentIndent h_noflow h_scan,
+                  scanKey_needIndentCheck h_noflow h_scan⟩
+
+/-- The `:` arm names its own scan. -/
+lemma dispatchBlockIndicators_value_scan {s s' : ScannerState}
+    (hok : scanNextToken_dispatchBlockIndicators s ':' = .ok (some s')) :
+    scanValue s = .ok s' := by
+  unfold scanNextToken_dispatchBlockIndicators at hok
+  have hdash : ((':' : Char) == '-' : Bool) = false := by decide
+  have hkey : ((':' : Char) == '?' : Bool) = false := by decide
+  simp only [bind, Except.bind, pure, Except.pure, hdash, hkey, Bool.false_and,
+    if_neg Bool.false_ne_true] at hok
+  split at hok
+  · split at hok
+    · simp at hok
+    · rename_i s_v hv
+      simp only [Except.ok.injEq, Option.some.injEq] at hok
+      subst hok; exact hv
+  · simp at hok
+
+/-- **The `:` producer's floor, packaged** — with the flow case and the
+    inherited-key case both punted. -/
+lemma value_floor_or {s s' : ScannerState}
+    (h_fresh : s.simpleKey.possible = true → s.simpleKey.pos = s.currentPos)
+    (hok : scanNextToken_dispatchBlockIndicators s ':' = .ok (some s')) :
+    (s.inFlow = false ∧ (s.col : Int) ≤ s'.currentIndent ∧
+      s'.needIndentCheck = s.needIndentCheck) ∨ s.inFlow = true := by
+  by_cases h : s.inFlow = true
+  · exact Or.inr h
+  · have h_noflow : s.inFlow = false := by simpa using h
+    have h_scan := dispatchBlockIndicators_value_scan hok
+    exact Or.inl ⟨h_noflow, scanValue_col_le_currentIndent h_noflow h_fresh h_scan,
+                  scanValue_needIndentCheck h_scan⟩
+
+/-- A `[96]` property scan leaves the indent stack alone, so a run parked at an
+    entry's route index inherits the entry's floor unchanged. -/
+lemma dispatchContent_props_indents {s s' : ScannerState} {c : Char}
+    (hc : c = '&' ∨ c = '!') (hok : scanNextToken_dispatchContent s c = .ok s') :
+    s'.indents = s.indents := by
+  unfold scanNextToken_dispatchContent at hok
+  simp only [bind, Except.bind, pure, Except.pure] at hok
+  cases hc with
+  | inl h =>
+    subst h
+    simp only [beq_self_eq_true, if_true] at hok
+    split at hok
+    · simp at hok
+    · split at hok
+      · simp at hok
+      · rename_i s_a ha
+        simp only [Except.ok.injEq] at hok
+        subst hok
+        show s_a.indents = s.indents
+        exact scanAnchorOrAlias_preserves_indents ha
+  | inr h =>
+    subst h
+    have h1 : (('!' : Char) == '&' : Bool) = false := by decide
+    have h2 : (('!' : Char) == '*' : Bool) = false := by decide
+    simp only [h1, h2, if_neg Bool.false_ne_true, beq_self_eq_true, if_true] at hok
+    split at hok
+    · simp at hok
+    · exact scanTag_preserves_indents hok
+
+end L4YAML.Proofs.PreprocessIndentStable

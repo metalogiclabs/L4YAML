@@ -16,6 +16,7 @@ import L4YAML.Proofs.Scanner.EntryBoundaryLayout
 import L4YAML.Proofs.Scanner.LineOpenGuard
 import L4YAML.Proofs.Scanner.PropsRunLineCoupling
 import L4YAML.Proofs.Scanner.BlockScalarIndentFloor
+import L4YAML.Proofs.Scanner.PreprocessIndentStable
 
 /-! # Stream Grammar Accumulator (Layer 4d + 4e: Lagging Grammar with Block Stack)
 
@@ -63,6 +64,7 @@ open L4YAML.Surface
 open L4YAML.Scanner
 open L4YAML.Proofs.BlockScalarFlowGuard
 open L4YAML.Proofs.BlockScalarIndentFloor
+open L4YAML.Proofs.PreprocessIndentStable
 open L4YAML.Proofs.CouplingBridge
 open L4YAML.Proofs.ScanStrictCoupling
 open L4YAML.Proofs.ScannerCoupling
@@ -317,7 +319,14 @@ inductive PendingNode (sc : ScannerState) : Bool → SurfPos → SurfPos → Sur
       index too, but only nominally: a single-half run has no occurrence of it
       at all, and the two-half extension supplies its internal separator from
       residual whites, so nothing in this constructor ever has to lift a run
-      from one index to another. -/
+      from one index to another.
+
+      `h_floor` (item 27, LAST for the same reason `h_key` was) is the run's
+      inherited measurement of `n` against the scanner's indent stack: a `[96]`
+      scan writes tokens, not indents, so a run parked at an entry's route index
+      carries the ENTRY's floor unchanged, and `  - &a |` composes exactly where
+      `  - |` does.  Optional (`∨ True`) so that a route whose opener could not
+      measure costs domain rather than a call site (Reflection 653). -/
   | pendingProps (sp_start sp_block sp_scan : SurfPos) (ha ht : Bool)
       (sp_node sp_p : SurfPos) (n : Nat)
       (h_sep : SSeparateLines n sp_node sp_p)
@@ -329,7 +338,8 @@ inductive PendingNode (sc : ScannerState) : Bool → SurfPos → SurfPos → Sur
       (h_tag : ht = true →
         (trailingPropertyRunOnLine sc.tokens sc.line).any YamlToken.isTagProperty = true)
       (h_route : ∀ sp_m, SBlockNode n .blockIn sp_node sp_m → SLYamlStream sp_start sp_m)
-      (h_key : PropsKeyPack sc sp_start sp_p sp_scan ∨ True) :
+      (h_key : PropsKeyPack sc sp_start sp_p sp_scan ∨ True)
+      (h_floor : IndentFloor sc n ∨ True) :
       PendingNode sc false sp_start sp_block sp_scan
   /-- Document end `...` scanned. The gap contains SCDocumentEnd.
       Awaiting SSLComments to form SLDocumentSuffix.
@@ -412,7 +422,14 @@ inductive PendingNode (sc : ScannerState) : Bool → SurfPos → SurfPos → Sur
       snoc'd into all carry `n`.  Through item 21 this was pinned at 0 — the
       constructor said `SBlockNode 0 .blockIn` — which is exactly why no
       indented block sequence could be composed; `[183]`'s auto-detected `m`
-      now supplies it (Reflection 647). -/
+      now supplies it (Reflection 647).
+
+      `h_floor` (item 27) is what makes the entry's index usable one step later:
+      `[183]`'s push put the stack top at this very column, and
+      `scanBlockScalarBody`'s content-indent floor is measured against that
+      stack, so `  - |` can read its body at the entry's own index.  It is
+      OPTIONAL (`IndentFloor sc n ∨ True`) because not every producer of this
+      constructor can take the measurement locally — see Reflection 653. -/
   | pendingBlock (sp_start sp_block sp_scan : SurfPos) (n : Nat)
       (h_close : ∀ sp_mid,
         SBlockNode n .blockIn sp_scan sp_mid →
@@ -421,7 +438,8 @@ inductive PendingNode (sc : ScannerState) : Bool → SurfPos → SurfPos → Sur
         SBlockNode n .blockIn sp_scan sp_mid →
         ∃ sp_first,
           SBlockSeqEntries n sp_first sp_mid ∧
-          (∀ sp_end, SBlockSeqEntries n sp_first sp_end → SLYamlStream sp_start sp_end)) :
+          (∀ sp_end, SBlockSeqEntries n sp_first sp_end → SLYamlStream sp_start sp_end))
+      (h_floor : IndentFloor sc n ∨ True) :
       PendingNode sc false sp_start sp_block sp_scan
   /-- A KEYLESS block-mapping entry opened at column 0, depth 0, one node
       awaited — the mapping twin of `pendingBlock` (item 13).  The whole entry
@@ -448,11 +466,18 @@ inductive PendingNode (sc : ScannerState) : Bool → SurfPos → SurfPos → Sur
       producer's conversion into `[189]`/`[186]`'s `.blockOut` slot is no
       longer restricted to `n = 0` either: `seq-spaces`' one-step disagreement
       between the two block contexts is absorbed by `[183]`'s `m`, which is
-      what generalized `SBlockNode_blockIn_to_blockOut`. -/
+      what generalized `SBlockNode_blockIn_to_blockOut`.
+
+      `h_floor` is `pendingBlock`'s (item 27), and here the family stops being
+      symmetric: `?` pushes `[187]`'s indent at its own column, but `:` pushes at
+      the column of the key it RESOLVES — its own only when the save was fresh,
+      which is exactly `[189]`'s empty-key entry.  So `  ? |` and `  : |` carry
+      the measurement and item 15's `  a: |` hands `True` (Reflection 653 §3). -/
   | pendingMapValue (sp_start sp_block sp_scan : SurfPos) (n : Nat)
       (h_close : ∀ sp_mid,
         SBlockNode n .blockIn sp_scan sp_mid →
-        SLYamlStream sp_start sp_mid) :
+        SLYamlStream sp_start sp_mid)
+      (h_floor : IndentFloor sc n ∨ True) :
       PendingNode sc false sp_start sp_block sp_scan
 
 /-- The propsEmpty close of a held run: `[161]`'s `( c-ns-properties e-scalar )`
@@ -1933,10 +1958,10 @@ lemma PendingNode.close_with_ssl {sc : ScannerState}
   | pendingBlock =>
     -- Item 22: `[72] e-node` + `[79] s-l-comments` is indent-INERT, so the
     -- empty close serves the entry at whatever indent the pending carries.
-    rename_i n h_close _
+    rename_i n _ h_close _
     exact h_close sp_mid (SBlockNode.emptyNode n .blockIn sp_scan sp_mid h_ssl)
   | pendingMapValue =>
-    rename_i n h_close
+    rename_i n _ h_close
     -- `[189]`'s `( e-node s-l-comments )` value: the entry closes empty.
     exact h_close sp_mid (SBlockNode.emptyNode n .blockIn sp_scan sp_mid h_ssl)
 
@@ -2106,7 +2131,16 @@ lemma preprocess_some_separate_lines_0 (sc : ScannerState) (sp : SurfPos)
     being down and the token array ending real at entry, the line, the flag and
     the two positioned token readings all survive to the dispatch (the armed
     unwind branch is refuted by the flag's transparency, and `saveSimpleKey`
-    adds only reservation placeholders). -/
+    adds only reservation placeholders).
+
+    **Item 27 enrichment**: …and so does the INDENT STACK, under the flag
+    alone.  It is a separate conjunct rather than a fifth component of the one
+    above because it needs no `LastTokenReal`: `unwindIndents` is preprocessing's
+    only writer of `indents`, the walk and the key save are transparent to it
+    (`PreprocessIndentStable`), and the armed branch is refuted by the same
+    flag transparency the item-12 payload already uses.  It is the accumulation
+    invariant's first fact about `currentIndent`, and it is what carries an
+    entry's index across the step that reads its value. -/
 lemma preprocess_some_ssl_comments_anyCol (sc : ScannerState) (sp : SurfPos)
     (s_prep : ScannerState) (c : Char)
     (hcorr : ScannerSurfCorr sc sp)
@@ -2117,7 +2151,8 @@ lemma preprocess_some_ssl_comments_anyCol (sc : ScannerState) (sp : SurfPos)
           (sc.needIndentCheck = false → LastTokenReal sc.tokens →
             s_prep.line = sc.line ∧ s_prep.needIndentCheck = false ∧
             lastRealToken? s_prep.tokens = lastRealToken? sc.tokens ∧
-            penultRealToken? s_prep.tokens = penultRealToken? sc.tokens)) ∧
+            penultRealToken? s_prep.tokens = penultRealToken? sc.tokens) ∧
+          (sc.needIndentCheck = false → s_prep.indents = sc.indents)) ∧
       GStar SSWhite sp_mid sp_ws ∧ GOpt SCNbCommentText sp_ws sp_prep ∧
       ScannerSurfCorr s_prep sp_prep ∧
       (sp_prep = sp_ws ∨ s_prep.peek? = none) := by
@@ -2146,9 +2181,12 @@ lemma preprocess_some_ssl_comments_anyCol (sc : ScannerState) (sp : SurfPos)
                   needIndentCheck := false } sp_sc :=
               ⟨hcorr2.chars_from, hcorr2.col_eq, hcorr2.end_eq, hcorr2.input_prefix, hcorr2.indent_cols_nonneg⟩
             exact ⟨sp_mid, sp_ws, sp_sc,
-                   h_disj.imp_right (fun hmf => ⟨hmf.1, fun h_nic _ =>
+                   h_disj.imp_right (fun hmf => ⟨hmf.1, (fun h_nic _ =>
                      absurd (Bool.and_eq_true_iff.mp h_armed).2
-                       (by rw [hmf.2, h_nic]; exact Bool.false_ne_true)⟩),
+                       (by rw [hmf.2, h_nic]; exact Bool.false_ne_true)),
+                     (fun h_nic =>
+                     absurd (Bool.and_eq_true_iff.mp h_armed).2
+                       (by rw [hmf.2, h_nic]; exact Bool.false_ne_true))⟩),
                    hws, hcmt,
                    saveSimpleKey_corr _ sp_sc hcorr3,
                    h_pk.imp_right (fun h => by
@@ -2162,7 +2200,7 @@ lemma preprocess_some_ssl_comments_anyCol (sc : ScannerState) (sp : SurfPos)
           · have h := Except.ok.inj hok; injection h with h
             obtain ⟨h1, h2⟩ := Prod.mk.inj h; subst h1; subst h2
             exact ⟨sp_mid, sp_ws, sp_sc,
-                   h_disj.imp_right (fun hmf => ⟨hmf.1, fun h_nic h_real => by
+                   h_disj.imp_right (fun hmf => ⟨hmf.1, (fun h_nic h_real => by
                      have h_cflag : s_content.needIndentCheck = false := hmf.2.trans h_nic
                      have h_ctoks : s_content.tokens = sc.tokens :=
                        ScannerCorrectness.skipToContent_preserves_tokens sc s_content h_skip
@@ -2174,7 +2212,9 @@ lemma preprocess_some_ssl_comments_anyCol (sc : ScannerState) (sp : SurfPos)
                              (saveSimpleKey_needIndentCheck s_content).trans h_cflag,
                              ?_, ?_⟩
                      · rw [saveSimpleKey_preserves_lastRealToken s_content h_creal, h_ctoks]
-                     · rw [saveSimpleKey_preserves_penultRealToken s_content h_creal, h_ctoks]⟩),
+                     · rw [saveSimpleKey_preserves_penultRealToken s_content h_creal, h_ctoks]),
+                     (fun _ => (saveSimpleKey_preserves_indents s_content).trans
+                       (skipToContent_preserves_indents sc s_content h_skip))⟩),
                    hws, hcmt,
                    saveSimpleKey_corr _ sp_sc hcorr_sc,
                    h_pk.imp_right (fun h => by rw [saveSimpleKey_peek]; exact h)⟩
@@ -2300,13 +2340,20 @@ lemma preprocess_some_separate_0_anyCol (sc : ScannerState) (sp : SurfPos)
     context (`s-separate(n,c)` is `s-separate-in-line` at the key contexts and
     `s-separate-lines(n)`, via its own inline arm, at the other four); a step
     that landed on a fresh line does not, and the landing is returned so the
-    caller can defer on it by name. -/
+    caller can defer on it by name.
+
+    Item 27 adds the SCANNER half of the same split: a step that crossed no
+    break also left the indent stack alone, so an index the pending measured
+    against `currentIndent` still measures against it here.  It rides the
+    inline branch because that is exactly where it holds — the landing branch
+    is the one `unwindIndents` fires on. -/
 lemma preprocess_some_separate_inline_or_landing (sc : ScannerState) (sp : SurfPos)
     (s_prep : ScannerState) (c : Char)
     (hcorr : ScannerSurfCorr sc sp)
     (hok : scanNextToken_preprocess sc = .ok (some (s_prep, c))) :
     (∃ sp_prep, (∀ (n : Nat) (c' : YamlContext), SSeparate n c' sp sp_prep) ∧
-        ScannerSurfCorr s_prep sp_prep) ∨
+        ScannerSurfCorr s_prep sp_prep ∧
+        (sc.needIndentCheck = false → s_prep.indents = sc.indents)) ∨
     (∃ sp_mid, SSLComments sp sp_mid ∧ sp_mid.col = 0) := by
   obtain ⟨sp_mid, sp_ws, sp_prep, h_disj, h_ws, _, hcorr_out, h_pk⟩ :=
     preprocess_some_ssl_comments_anyCol sc sp s_prep c hcorr hok
@@ -2317,8 +2364,9 @@ lemma preprocess_some_separate_inline_or_landing (sc : ScannerState) (sp : SurfP
   cases h_disj with
   | inl h_ssl_col => exact Or.inr ⟨sp_mid, h_ssl_col.1, h_ssl_col.2⟩
   | inr h_mid_eq =>
+    have h_indents := h_mid_eq.2.2
     rw [h_mid_eq.1] at h_ws
-    refine Or.inl ⟨sp_ws, fun n c' => ?_, h_eq ▸ hcorr_out⟩
+    refine Or.inl ⟨sp_ws, fun n c' => ?_, h_eq ▸ hcorr_out, h_indents⟩
     have h_inline : SSeparateInLine sp sp_ws :=
       GStar_SSWhite_to_SSeparateInLine sp sp_ws h_ws
     cases c' <;>
@@ -2512,6 +2560,13 @@ lemma allowDirectives_update_simpleKey (s : ScannerState) :
     (if s.allowDirectives then
       { s with allowDirectives := false, documentEverStarted := true }
     else s).simpleKey = s.simpleKey := by
+  split <;> rfl
+
+/-- …and the indent stack (item 27). -/
+lemma allowDirectives_update_indents (s : ScannerState) :
+    (if s.allowDirectives then
+      { s with allowDirectives := false, documentEverStarted := true }
+    else s).indents = s.indents := by
   split <;> rfl
 
 lemma allowDirectives_update_line (s : ScannerState) :
@@ -4525,7 +4580,7 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
     -- content lift at all — the pinned 0 is in the OPEN STACK's resume type,
     -- supplied when the collection closes, so `  - [1]` rides `scannerDrop`
     -- until `FlowStackB` carries the index the way `PendingNode` now does.
-    rename_i n_old h_close _
+    rename_i n_old _ h_close _
     match n_old, h_close with
     | 0, h_close =>
       obtain ⟨sp_gap, h_sep0, hcorr_gap⟩ :=
@@ -4547,7 +4602,7 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
     -- Item 13: the flow collection IS the mapping's value (`: [a]`, `: {a: b}`)
     -- — same closure type as `pendingBlock`, so the arm is its verbatim clone,
     -- indent split included.
-    rename_i n_old h_close
+    rename_i n_old _ h_close
     match n_old, h_close with
     | 0, h_close =>
       obtain ⟨sp_gap, h_sep0, hcorr_gap⟩ :=
@@ -6736,6 +6791,103 @@ lemma rootBlockMap (k : Nat) {s s₂ s' : SurfPos}
   SBlockNode.blockMap 0 .blockIn k s s s₂ s' (GOpt.none s) h_ssl
     (by simpa using h_entries)
 
+/-- `[63] s-indent(k)` is `k` spaces, so it advances the column by exactly `k`
+    (item 27): the entry index the accumulator measures off the landing IS the
+    indicator's column, which is what the scanner pushed its indent at. -/
+lemma SIndent_col {k : Nat} {sp sp' : SurfPos} (h : SIndent k sp sp') :
+    sp'.col = sp.col + k := by
+  induction h with
+  | zero s => rfl
+  | succ n rest col s' _ ih => simp only [] at ih ⊢; omega
+
+/-- **The block indicator's own floor** (item 27).
+
+    The three indicators push their block-collection indent at their own
+    column — `[183]`'s `pushSequenceIndent` for `-`, `[187]`'s
+    `pushMappingIndent` for `?`, and for `:` the resolved key's column, which
+    is the indicator's own exactly when the save was FRESH (the shape
+    `colon_open_map` parks: `[189]`'s empty-key entry).  So the entry index the
+    accumulator reads off the landing is at or below the stack top a block
+    scalar's content indent will be measured against, and the pending can carry
+    it.
+
+    Everything that is not that shape — a flow `?`/`:`, or a `:` resolving a
+    key at an EARLIER column, which is item 15's implicit-key entry — hands
+    `True` back.  That is a smaller domain, not an extra escape: the field is
+    `IndentFloor sc n ∨ True` precisely so a producer that cannot measure costs
+    nothing (R645/R646). -/
+lemma indicator_floor {sc s_prep s' : ScannerState} {sp_land sp_prep : SurfPos}
+    {k : Nat} {c : Char}
+    (hcol_land : sp_land.col = 0)
+    (h_ind : SIndent k sp_land sp_prep)
+    (hcorr_prep : ScannerSurfCorr s_prep sp_prep)
+    (h_preprocess : scanNextToken_preprocess sc = .ok (some (s_prep, c)))
+    (h_dispatch : scanNextToken_dispatchBlockIndicators
+        (if s_prep.allowDirectives then
+          { s_prep with allowDirectives := false, documentEverStarted := true }
+        else s_prep) c = .ok (some s')) :
+    IndentFloor s' k ∨ True := by
+  have h_col : (((if s_prep.allowDirectives then
+        { s_prep with allowDirectives := false, documentEverStarted := true }
+      else s_prep).col : Int)) = (k : Int) := by
+    have h1 : sp_prep.col = k := by
+      have := SIndent_col h_ind; rw [hcol_land] at this; omega
+    have h2 : (if s_prep.allowDirectives then
+        { s_prep with allowDirectives := false, documentEverStarted := true }
+      else s_prep).col = s_prep.col := by split <;> rfl
+    rw [h2, ← hcorr_prep.col_eq, h1]
+  have h_nicd : (if s_prep.allowDirectives then
+      { s_prep with allowDirectives := false, documentEverStarted := true }
+    else s_prep).needIndentCheck = s_prep.needIndentCheck := by split <;> rfl
+  have h_fl : (if s_prep.allowDirectives then
+      { s_prep with allowDirectives := false, documentEverStarted := true }
+    else s_prep).flowLevel = s_prep.flowLevel := by split <;> rfl
+  have h_nic_of_noflow : (if s_prep.allowDirectives then
+        { s_prep with allowDirectives := false, documentEverStarted := true }
+      else s_prep).inFlow = false →
+      (if s_prep.allowDirectives then
+        { s_prep with allowDirectives := false, documentEverStarted := true }
+      else s_prep).needIndentCheck = false := by
+    intro h
+    have h_inflow : sc.inFlow = false := by
+      unfold ScannerState.inFlow at h ⊢
+      rw [h_fl, preprocess_preserves_flowLevel sc s_prep c h_preprocess] at h
+      exact h
+    rw [h_nicd]
+    exact preprocess_some_needIndentCheck_false h_inflow h_preprocess
+  rcases dispatchBlockIndicators_indicator_of_some h_dispatch with rfl | rfl | rfl
+  · obtain ⟨h_noflow, _⟩ := dispatchBlockIndicators_dash_scan h_dispatch
+    obtain ⟨h_le, h_nic⟩ := dash_floor h_dispatch
+    exact Or.inl ⟨by rw [h_nic]; exact h_nic_of_noflow h_noflow,
+                  le_minContentIndentOf_of_int_le (by omega)⟩
+  · rcases key_floor_or h_dispatch with ⟨h_noflow, h_le, h_nic⟩ | _
+    · exact Or.inl ⟨by rw [h_nic]; exact h_nic_of_noflow h_noflow,
+                    le_minContentIndentOf_of_int_le (by omega)⟩
+    · exact Or.inr trivial
+  · rcases preprocess_some_savedKey_shape h_preprocess with ⟨_, h_pos⟩ | _
+    · have h_fresh : (if s_prep.allowDirectives then
+            { s_prep with allowDirectives := false, documentEverStarted := true }
+          else s_prep).simpleKey.possible = true →
+          (if s_prep.allowDirectives then
+            { s_prep with allowDirectives := false, documentEverStarted := true }
+          else s_prep).simpleKey.pos =
+          (if s_prep.allowDirectives then
+            { s_prep with allowDirectives := false, documentEverStarted := true }
+          else s_prep).currentPos := by
+        intro _
+        have hk : (if s_prep.allowDirectives then
+            { s_prep with allowDirectives := false, documentEverStarted := true }
+          else s_prep).simpleKey = s_prep.simpleKey := by split <;> rfl
+        have hp : (if s_prep.allowDirectives then
+            { s_prep with allowDirectives := false, documentEverStarted := true }
+          else s_prep).currentPos = s_prep.currentPos := by split <;> rfl
+        rw [hk, hp]; exact h_pos
+      rcases value_floor_or h_fresh h_dispatch with ⟨h_noflow, h_le, h_nic⟩ | _
+      · exact Or.inl ⟨by rw [h_nic]; exact h_nic_of_noflow h_noflow,
+                      le_minContentIndentOf_of_int_le (by omega)⟩
+      · exact Or.inr trivial
+    · exact Or.inr trivial
+
 -- The col-0 `:` producer (item 13): from a stream already closed at the
 -- line start, the value indicator opens an EMPTY-KEY block mapping and
 -- parks `pendingMapValue`.  The entry frame — `s-indent(0)` +
@@ -6753,6 +6905,7 @@ lemma colon_open_map (sp_start sp_land sp_ind : SurfPos) (k : Nat)
     (h_ind : SIndent k sp_land sp_ind)
     (hcorr_prep : ScannerSurfCorr s_prep sp_ind)
     (hcorr_result : ScannerSurfCorr s' sp_scan')
+    (h_floor_in : IndentFloor s' k ∨ True)
     (hpeek : s_prep.peek? = some ':')
     (h_dispatch : scanNextToken_dispatchBlockIndicators
         (if s_prep.allowDirectives then
@@ -6792,7 +6945,8 @@ lemma colon_open_map (sp_start sp_land sp_ind : SurfPos) (k : Nat)
              SLYamlStream.implicitContinue sp_start sp_land sp_land sp_v sp_v
                h_stream_land (GStar.nil _)
                (GOpt.some sp_land sp_v (SLAnyDocument.bare sp_land sp_v h_bare))
-               (GStar.nil _)),
+               (GStar.nil _))
+           h_floor_in,
          hcorr_result⟩
 
 -- The col-0 `?` producer (item 20): the explicit-key twin of `colon_open_map`.
@@ -6817,6 +6971,7 @@ lemma question_open_map (sp_start sp_land sp_ind : SurfPos) (k : Nat)
     (h_ind : SIndent k sp_land sp_ind)
     (hcorr_prep : ScannerSurfCorr s_prep sp_ind)
     (hcorr_result : ScannerSurfCorr s' sp_scan')
+    (h_floor_in : IndentFloor s' k ∨ True)
     (hpeek : s_prep.peek? = some '?')
     (h_dispatch : scanNextToken_dispatchBlockIndicators
         (if s_prep.allowDirectives then
@@ -6858,7 +7013,8 @@ lemma question_open_map (sp_start sp_land sp_ind : SurfPos) (k : Nat)
              SLYamlStream.implicitContinue sp_start sp_land sp_land sp_k sp_k
                h_stream_land (GStar.nil _)
                (GOpt.some sp_land sp_k (SLAnyDocument.bare sp_land sp_k h_bare))
-               (GStar.nil _)),
+               (GStar.nil _))
+           h_floor_in,
          hcorr_result⟩
 
 -- The two KEYLESS block-mapping openers under one name (item 20).  They
@@ -6874,6 +7030,7 @@ lemma indicator_open_map (sp_start sp_land sp_ind : SurfPos) (k : Nat) (c : Char
     (h_ind : SIndent k sp_land sp_ind)
     (hcorr_prep : ScannerSurfCorr s_prep sp_ind)
     (hcorr_result : ScannerSurfCorr s' sp_scan')
+    (h_floor_in : IndentFloor s' k ∨ True)
     (hpeek : s_prep.peek? = some c)
     (h_dispatch : scanNextToken_dispatchBlockIndicators
         (if s_prep.allowDirectives then
@@ -6889,11 +7046,11 @@ lemma indicator_open_map (sp_start sp_land sp_ind : SurfPos) (k : Nat) (c : Char
   | inl h =>
     subst h
     exact colon_open_map sp_start sp_land sp_ind k s_prep s' sp_scan' h_stream_land
-      hcol_land h_ind hcorr_prep hcorr_result hpeek h_dispatch
+      hcol_land h_ind hcorr_prep hcorr_result h_floor_in hpeek h_dispatch
   | inr h =>
     subst h
     exact question_open_map sp_start sp_land sp_ind k s_prep s' sp_scan' h_stream_land
-      hcol_land h_ind hcorr_prep hcorr_result hpeek h_dispatch
+      hcol_land h_ind hcorr_prep hcorr_result h_floor_in hpeek h_dispatch
 
 /-- The head IS `[188]`, arm for arm: the plain head is `[193]`'s YAML key
     directly (`SNsPlain 0 .blockKey` IS `SNsPlainOneLine .blockKey`), a flow
@@ -6973,7 +7130,8 @@ lemma colon_open_map_implicit (sp_start sp_land sp_key sp_gram sp_ws : SurfPos) 
              SLYamlStream.implicitContinue sp_start sp_land sp_land sp_v sp_v
                h_stream_key (GStar.nil _)
                (GOpt.some sp_land sp_v (SLAnyDocument.bare sp_land sp_v h_bare))
-               (GStar.nil _)),
+               (GStar.nil _))
+           (Or.inr trivial),
          hcorr_result⟩
 
 /-! #### Wadler-style per-constructor theorems for block dispatch (Layer 4o/4x)
@@ -7143,7 +7301,8 @@ lemma accum_block_on_noPending
                    h_stream_block (GStar.nil _)
                    (GOpt.some sp_block sp_end
                      (SLAnyDocument.bare sp_block sp_end h_bare))
-                   (GStar.nil _)⟩),
+                   (GStar.nil _)⟩)
+             (indicator_floor hcol_mid h_ind hcorr_prep h_preprocess h_dispatch),
            hcorr_result⟩
   · -- c ≠ '-' at the landing: a ':' opens `[189]`'s empty-key entry (item 13)
     -- and a '?' opens `[186]`'s explicit-key one (item 20) — ONE arm, because
@@ -7152,6 +7311,7 @@ lemma accum_block_on_noPending
     · exact indicator_open_map sp_start sp_mid _ k c hcv s_prep s' sp_scan'
         (ssl_comments_extend_stream sp_start sp_block _ h_stream_block h_ssl_pre)
         hcol_mid h_ind hcorr_prep hcorr_result
+        (indicator_floor hcol_mid h_ind hcorr_prep h_preprocess h_dispatch)
         (preprocess_some_peek h_preprocess) h_dispatch
     · exact (block_indicator_exhausted h_dispatch hc hcv).elim
 
@@ -7242,13 +7402,15 @@ lemma accum_block_on_closeThenBlock
                    h_stream_new (GStar.nil _)
                    (GOpt.some sp_mid sp_end
                      (SLAnyDocument.bare sp_mid sp_end h_bare))
-                   (GStar.nil _)⟩),
+                   (GStar.nil _)⟩)
+             (indicator_floor hcol_mid h_ind hcorr_prep h_preprocess h_dispatch),
            hcorr_result⟩
   · -- c ≠ '-' at the landing: a ':' opens `[189]`'s empty-key entry there
     -- (item 13), a '?' opens `[186]`'s explicit-key one (item 20) — one arm.
     by_cases hcv : c = ':' ∨ c = '?'
     · exact indicator_open_map sp_start sp_mid _ k c hcv s_prep s' sp_scan'
         h_stream_new hcol_mid h_ind hcorr_prep hcorr_result
+        (indicator_floor hcol_mid h_ind hcorr_prep h_preprocess h_dispatch)
         (preprocess_some_peek h_preprocess) h_dispatch
     · exact (block_indicator_exhausted h_dispatch hc hcv).elim
 
@@ -7404,7 +7566,8 @@ lemma accum_block_on_pendingBlockContent
                  have h_indented :=
                    SBlockIndented.node k .blockIn sp_scan' sp_final h_node
                  ⟨sp_first, SBlockSeqEntries_snoc h_entries_old
-                   h_ind h_dash2 h_gnot2 h_indented, h_cont⟩),
+                   h_ind h_dash2 h_gnot2 h_indented, h_cont⟩)
+               (indicator_floor hcol_mid h_ind hcorr_prep h_preprocess h_dispatch),
              hcorr_result⟩
     · exact block_dispatch_deferred sp_start sp_mid sp_scan' s'
         (h_close_pending sp_mid h_ssl) hcorr_result
@@ -7413,6 +7576,7 @@ lemma accum_block_on_pendingBlockContent
     by_cases hcv : c = ':' ∨ c = '?'
     · exact indicator_open_map sp_start sp_mid _ k c hcv s_prep s' sp_scan'
         (h_close_pending _ h_ssl) hcol_mid h_ind hcorr_prep hcorr_result
+        (indicator_floor hcol_mid h_ind hcorr_prep h_preprocess h_dispatch)
         (preprocess_some_peek h_preprocess) h_dispatch
     · exact (block_indicator_exhausted h_dispatch hc hcv).elim
 
@@ -7492,7 +7656,8 @@ lemma accum_block_on_pendingBlock
                  have h_indented :=
                    SBlockIndented.node k .blockIn sp_scan' sp_final h_node
                  ⟨sp_first, SBlockSeqEntries_snoc h_entries_old
-                   h_ind h_dash2 h_gnot2 h_indented, h_cont⟩),
+                   h_ind h_dash2 h_gnot2 h_indented, h_cont⟩)
+               (indicator_floor hcol_mid h_ind hcorr_prep h_preprocess h_dispatch),
              hcorr_result⟩
     · exact block_dispatch_deferred sp_start sp_mid sp_scan' s'
         (h_close_pending sp_mid h_ssl) hcorr_result
@@ -7501,6 +7666,7 @@ lemma accum_block_on_pendingBlock
     by_cases hcv : c = ':' ∨ c = '?'
     · exact indicator_open_map sp_start sp_mid _ k c hcv s_prep s' sp_scan'
         (h_close_pending _ h_ssl) hcol_mid h_ind hcorr_prep hcorr_result
+        (indicator_floor hcol_mid h_ind hcorr_prep h_preprocess h_dispatch)
         (preprocess_some_peek h_preprocess) h_dispatch
     · exact (block_indicator_exhausted h_dispatch hc hcv).elim
 
@@ -7542,9 +7708,9 @@ lemma accum_block_pending (sc : ScannerState)
     -- Item 15: the same-line `:` may fire the implicit-key coupling.
     exact accum_block_on_pendingContent sc sp_start sp_block sp_scan s_prep s' c sp_prep sp_scan'
       h_close_pending h_key h_stream_block hcorr_prep hcorr_result h_corr h_preprocess h_dispatch
-  | pendingProps _ _
+  | pendingProps _ _ _
   | pendingFlow _
-  | pendingMapValue _ =>
+  | pendingMapValue _ _ =>
     all_goals
       exact accum_block_on_closeThenBlock sc sp_start sp_block sp_scan s_prep s' c sp_prep sp_scan'
         h_close_pending h_stream_block hcorr_prep hcorr_result h_corr h_preprocess h_dispatch
@@ -7556,7 +7722,7 @@ lemma accum_block_pending (sc : ScannerState)
       sp_prep sp_scan' n_old h_stream_block h_close_pending h_stream_block h_entry_old
       hcorr_prep hcorr_result h_corr h_preprocess h_dispatch
   | pendingBlock =>
-    rename_i n_old _ h_close_entry_old
+    rename_i n_old _ _ h_close_entry_old
     exact accum_block_on_pendingBlock sc sp_start sp_block sp_block sp_scan s_prep s' c sp_prep
       sp_scan' n_old h_stream_block h_close_pending h_stream_block h_close_entry_old
       hcorr_prep hcorr_result h_corr h_preprocess h_dispatch
@@ -9384,7 +9550,8 @@ lemma content_dispatch_after_close
                (h_props_key sp_scan'
                  (SCNsProperties.anchorFirst 0 .blockKey sp_prep sp_scan' sp_scan'
                    ha_ev (GOpt.none sp_scan'))
-                 (dispatchContent_anchor_simpleKey h_dispatch).1 h_line'),
+                 (dispatchContent_anchor_simpleKey h_dispatch).1 h_line')
+               (Or.inl (IndentFloor.zero h_nic_s)),
              hcorr_result⟩
     | inr h =>
       subst h
@@ -9407,7 +9574,8 @@ lemma content_dispatch_after_close
                (h_props_key sp_scan'
                  (SCNsProperties.tagFirst 0 .blockKey sp_prep sp_scan' sp_scan'
                    ht_ev (GOpt.none sp_scan'))
-                 (dispatchContent_tag_simpleKey h_dispatch).1 h_line'),
+                 (dispatchContent_tag_simpleKey h_dispatch).1 h_line')
+               (Or.inl (IndentFloor.zero h_nic_s)),
              hcorr_result⟩
   · have hna : c ≠ '&' := fun h => hprops (Or.inl h)
     have hnt : c ≠ '!' := fun h => hprops (Or.inr h)
@@ -9662,7 +9830,8 @@ lemma accum_content_on_pendingBlock
                (fun _ => h_any YamlToken.isAnchorProperty
                  (by simp [YamlToken.isAnchorProperty]))
                (fun h => nomatch h)
-               h_route (Or.inr trivial),
+               h_route (Or.inr trivial)
+               (Or.inl (IndentFloor.zero h_nic_s)),
              hcorr_result⟩
     | inr h =>
       subst h
@@ -9681,7 +9850,8 @@ lemma accum_content_on_pendingBlock
                (fun h => nomatch h)
                (fun _ => h_any YamlToken.isTagProperty
                  (by simp [YamlToken.isTagProperty]))
-               h_route (Or.inr trivial),
+               h_route (Or.inr trivial)
+               (Or.inl (IndentFloor.zero h_nic_s)),
              hcorr_result⟩
   · have hna : c ≠ '&' := fun h => hprops (Or.inl h)
     have hnt : c ≠ '!' := fun h => hprops (Or.inr h)
@@ -9757,15 +9927,19 @@ lemma accum_content_on_pendingBlock
     EXISTENTIALLY already — unlike `[183]`/`[187]`, which item 21 had to widen —
     so the reading holds at every `n` with `n + m` equal to the indent the body
     was collected at, and `scanBlockScalar_prod_at` keeps that indent instead of
-    instantiating it at 0.  What survives is one inequality, `n ≤ d`: the
-    scanner's own floor is `(max 0 (currentIndent + 1)).toNat`, and an entry sits
-    exactly at `currentIndent`, so the guard is TRUE of every input the scanner
-    accepts — but `currentIndent` appears nowhere in this file's invariant, so it
-    cannot yet be said.  Asking it here rather than at the three callers is what
-    keeps the count at one escape apiece (R645/R646, R649 §4). -/
+    instantiating it at 0.  What survives is one inequality, `n ≤ d`, and item 27
+    pays it: `h_floor` is the pending's own measurement against the scanner's
+    indent stack (`IndentFloor`), the break-free branch this arm sits in is
+    exactly the one on which that stack survives preprocessing, and the
+    `minContentIndentOf` floor `scanBlockScalar_prod_at` returns names the same
+    quantity.  A pending whose producer could NOT measure carries `True` and
+    lands on the same deferral the fold uses, so the escape's site count is fixed
+    by construction and what moves is the domain (R645/R646, R649 §4,
+    Reflection 653). -/
 lemma indentedValue_reads_at_any_indent
     (sc : ScannerState) (sp_scan : SurfPos) (n : Nat)
     (s_prep s' : ScannerState) (c : Char) (sp_prep sp_scan' : SurfPos)
+    (h_floor : IndentFloor sc n ∨ True)
     (hcorr_prep : ScannerSurfCorr s_prep sp_prep)
     (hcorr_result : ScannerSurfCorr s' sp_scan')
     (h_corr : ScannerSurfCorr sc sp_scan)
@@ -9795,7 +9969,8 @@ lemma indentedValue_reads_at_any_indent
       (ha = true →
         (trailingPropertyRunOnLine s'.tokens s'.line).any YamlToken.isAnchorProperty = true) ∧
       (ht = true →
-        (trailingPropertyRunOnLine s'.tokens s'.line).any YamlToken.isTagProperty = true)) ∨
+        (trailingPropertyRunOnLine s'.tokens s'.line).any YamlToken.isTagProperty = true) ∧
+      (sc.needIndentCheck = false → s'.indents = sc.indents)) ∨
     ((SCLLiteral n sp_prep sp_scan' ∨ SCLFolded n sp_prep sp_scan') ∧
       (∀ (n' : Nat) (c' : YamlContext), SSeparate n' c' sp_scan sp_prep) ∧
       (sp_scan'.col = 0 ∨ LineNoOpen sp_scan'.chars)) ∨
@@ -9811,7 +9986,7 @@ lemma indentedValue_reads_at_any_indent
   -- and its negative — preprocessing landed on a fresh line — is the same
   -- break the value reading fails on.
   rcases preprocess_some_separate_inline_or_landing sc sp_scan s_prep c
-      h_corr h_preprocess with ⟨sp_p, h_sep_all, hcorr_sep⟩ | _
+      h_corr h_preprocess with ⟨sp_p, h_sep_all, hcorr_sep, h_indents⟩ | _
   · have hsp_eq := ScannerSurfCorr_unique hcorr_prep hcorr_sep; subst hsp_eq
     by_cases hprops : c = '&' ∨ c = '!'
     · -- Item 24: a fresh `[96]` run is single-half, so it has no occurrence of
@@ -9836,7 +10011,11 @@ lemma indentedValue_reads_at_any_indent
         exact Or.inr (Or.inl ⟨true, false, fun n => h_sep_all n .flowOut,
           fun _ => PropsRun.anchor _ _ ha_ev, h_nic_s, h_real_s,
           (fun _ => h_any YamlToken.isAnchorProperty (by simp [YamlToken.isAnchorProperty])),
-          (fun h => nomatch h)⟩)
+          (fun h => nomatch h),
+          (fun h_nic_sc => by
+            rw [dispatchContent_props_indents (Or.inl rfl) h_dispatch,
+                allowDirectives_update_indents]
+            exact h_indents h_nic_sc)⟩)
       | inr h =>
         subst h
         obtain ⟨sp_t, ht_ev, hc⟩ := dispatchContent_tagProp_prod _ sp_prep
@@ -9849,14 +10028,18 @@ lemma indentedValue_reads_at_any_indent
           h_nic_ad (by simp) (by simp [YamlToken.isNodeProperty])
         exact Or.inr (Or.inl ⟨false, true, fun n => h_sep_all n .flowOut,
           fun _ => PropsRun.tag _ _ ht_ev, h_nic_s, h_real_s, (fun h => nomatch h),
-          (fun _ => h_any YamlToken.isTagProperty (by simp [YamlToken.isTagProperty]))⟩)
+          (fun _ => h_any YamlToken.isTagProperty (by simp [YamlToken.isTagProperty])),
+          (fun h_nic_sc => by
+            rw [dispatchContent_props_indents (Or.inr rfl) h_dispatch,
+                allowDirectives_update_indents]
+            exact h_indents h_nic_sc)⟩)
     · by_cases hbs : c = '|' ∨ c = '>'
       · -- Item 26: a block scalar is not a one-line reading and never will be,
         -- but it does not need to be — `[170]`/`[174]` bind their content indent
         -- existentially, so the reading holds at every index below the indent the
         -- body was collected at, and the scanner's own `minContentIndent` floor is
         -- what says which indices those are.
-        obtain ⟨sp_bs, d, h_floor, h_read, hcorr_bs⟩ :=
+        obtain ⟨sp_bs, d, h_floor', h_read, hcorr_bs⟩ :=
           dispatchContent_blockScalar_prod_at _ sp_prep
             (corr_of_allowDirectives_update hcorr_prep) hpeek_disp hbs h_dispatch
         have hsp_bs_eq := ScannerSurfCorr_unique hcorr_bs hcorr_result
@@ -9865,18 +10048,24 @@ lemma indentedValue_reads_at_any_indent
             { s_prep with allowDirectives := false, documentEverStarted := true }
           else s_prep).currentIndent = s_prep.currentIndent := by
           split <;> rfl
-        rw [h_ci] at h_floor
+        rw [h_ci] at h_floor'
         have hna : c ≠ '&' := fun h => hprops (Or.inl h)
         have hnt : c ≠ '!' := fun h => hprops (Or.inr h)
         have h_line := col0_or_lineNoOpen
           (dispatchContent_restNoOpen h_flow_disp hna hnt hcorr_result.end_eq h_dispatch)
           hcorr_result
-        -- The guard is asked HERE, not at the three callers: it is one question
-        -- with one negative answer, and splitting it across the consumers would
-        -- inflate the escape's call-site count while its domain stood still
-        -- (Reflection 649 §4).
-        by_cases hn : n ≤ d
-        · exact Or.inr (Or.inr (Or.inl
+        -- Item 27: the guard is DISCHARGED here rather than split on.  The
+        -- pending measured `n` against the indent stack when it parked, this
+        -- step crossed no break (that is the branch we are in), and a
+        -- break-free step leaves the stack alone — so the entry's index is
+        -- still one the body's floor admits.  A pending whose producer could
+        -- not measure it hands `True` and the case falls to the same single
+        -- deferral the fold already uses; no caller gains a route (R645/R646).
+        rcases h_floor with ⟨h_nic_sc, h_le⟩ | _
+        · have hn : n ≤ d :=
+            Nat.le_trans (Nat.le_trans h_le
+              (Nat.le_of_eq (minContentIndentOf_congr (h_indents h_nic_sc)).symm)) h_floor'
+          exact Or.inr (Or.inr (Or.inl
             ⟨h_read.elim (fun h => Or.inl (h n hn)) (fun h => Or.inr (h n hn)),
              h_sep_all, h_line⟩))
         · exact Or.inr (Or.inr (Or.inr trivial))
@@ -9918,6 +10107,7 @@ lemma accum_content_on_pendingBlock_indented
       ∃ sp_first, SBlockSeqEntries n sp_first sp ∧
         ∀ (sp_end : SurfPos), SBlockSeqEntries n sp_first sp_end →
           SLYamlStream sp_start sp_end)
+    (h_floor_old : IndentFloor sc n ∨ True)
     (hcorr_prep : ScannerSurfCorr s_prep sp_prep)
     (hcorr_result : ScannerSurfCorr s' sp_scan')
     (h_corr : ScannerSurfCorr sc sp_scan)
@@ -9942,9 +10132,9 @@ lemma accum_content_on_pendingBlock_indented
       PendingNode s' false sp_start sp_flow' sp_scan' ∧
       ScannerSurfCorr s' sp_scan' := by
   rcases indentedValue_reads_at_any_indent sc sp_scan n s_prep s' c sp_prep sp_scan'
-      hcorr_prep hcorr_result h_corr h_preprocess h_not_doc h_flow_disp h_dispatch with
+      h_floor_old hcorr_prep hcorr_result h_corr h_preprocess h_not_doc h_flow_disp h_dispatch with
     ⟨sp_gram, h_sep_all, h_flow_all, h_trailing_ws, h_line⟩ |
-    ⟨ha, ht, h_sep_all, h_run_all, h_nic_s, h_real_s, h_anchor_s, h_tag_s⟩ |
+    ⟨ha, ht, h_sep_all, h_run_all, h_nic_s, h_real_s, h_anchor_s, h_tag_s, h_ind_s⟩ |
     ⟨h_read, h_sep_all, h_line⟩ | _
   · exact ⟨sp_block, sp_block, sp_block, sp_scan', h_stream_block,
            BlockStack.nil sp_block, FlowStackB.nil sp_block .sep,
@@ -9966,7 +10156,8 @@ lemma accum_content_on_pendingBlock_indented
            BlockStack.nil sp_block, FlowStackB.nil sp_block .sep,
            PendingNode.pendingProps sp_start sp_block sp_scan' ha ht sp_scan sp_prep n
              (h_sep_all n) (h_run_all n) h_nic_s h_real_s h_anchor_s h_tag_s
-             h_close_old (Or.inr trivial),
+             h_close_old (Or.inr trivial)
+             (IndentFloor.transport h_floor_old h_nic_s h_ind_s),
            hcorr_result⟩
   · -- Item 26: `  - |` — `[198]`'s block scalar at the ENTRY's index.  The node
     -- is complete where the scanner stopped ([170]'s `l-chomped-empty` has
@@ -10060,7 +10251,8 @@ lemma accum_content_on_pendingMapValue
                (fun _ => h_any YamlToken.isAnchorProperty
                  (by simp [YamlToken.isAnchorProperty]))
                (fun h => nomatch h)
-               h_route (Or.inr trivial),
+               h_route (Or.inr trivial)
+               (Or.inl (IndentFloor.zero h_nic_s)),
              hcorr_result⟩
     | inr h =>
       subst h
@@ -10079,7 +10271,8 @@ lemma accum_content_on_pendingMapValue
                (fun h => nomatch h)
                (fun _ => h_any YamlToken.isTagProperty
                  (by simp [YamlToken.isTagProperty]))
-               h_route (Or.inr trivial),
+               h_route (Or.inr trivial)
+               (Or.inl (IndentFloor.zero h_nic_s)),
              hcorr_result⟩
   · have hna : c ≠ '&' := fun h => hprops (Or.inl h)
     have hnt : c ≠ '!' := fun h => hprops (Or.inr h)
@@ -10133,6 +10326,7 @@ lemma accum_content_on_pendingMapValue_indented
     (s_prep s' : ScannerState) (c : Char) (sp_prep sp_scan' : SurfPos)
     (h_stream_block : SLYamlStream sp_start sp_block)
     (h_close_old : ∀ (sp : SurfPos), SBlockNode n .blockIn sp_scan sp → SLYamlStream sp_start sp)
+    (h_floor_old : IndentFloor sc n ∨ True)
     (hcorr_prep : ScannerSurfCorr s_prep sp_prep)
     (hcorr_result : ScannerSurfCorr s' sp_scan')
     (h_corr : ScannerSurfCorr sc sp_scan)
@@ -10157,9 +10351,9 @@ lemma accum_content_on_pendingMapValue_indented
       PendingNode s' false sp_start sp_flow' sp_scan' ∧
       ScannerSurfCorr s' sp_scan' := by
   rcases indentedValue_reads_at_any_indent sc sp_scan n s_prep s' c sp_prep sp_scan'
-      hcorr_prep hcorr_result h_corr h_preprocess h_not_doc h_flow_disp h_dispatch with
+      h_floor_old hcorr_prep hcorr_result h_corr h_preprocess h_not_doc h_flow_disp h_dispatch with
     ⟨sp_gram, h_sep_all, h_flow_all, h_trailing_ws, h_line⟩ |
-    ⟨ha, ht, h_sep_all, h_run_all, h_nic_s, h_real_s, h_anchor_s, h_tag_s⟩ |
+    ⟨ha, ht, h_sep_all, h_run_all, h_nic_s, h_real_s, h_anchor_s, h_tag_s, h_ind_s⟩ |
     ⟨h_read, h_sep_all, h_line⟩ | _
   · exact ⟨sp_block, sp_block, sp_block, sp_scan', h_stream_block,
            BlockStack.nil sp_block, FlowStackB.nil sp_block .sep,
@@ -10177,7 +10371,8 @@ lemma accum_content_on_pendingMapValue_indented
            BlockStack.nil sp_block, FlowStackB.nil sp_block .sep,
            PendingNode.pendingProps sp_start sp_block sp_scan' ha ht sp_scan sp_prep n
              (h_sep_all n) (h_run_all n) h_nic_s h_real_s h_anchor_s h_tag_s
-             h_close_old (Or.inr trivial),
+             h_close_old (Or.inr trivial)
+             (IndentFloor.transport h_floor_old h_nic_s h_ind_s),
            hcorr_result⟩
   · -- Item 26: `  a: |`, `  : |`, `  ? |` — the mapping twin of the sequence
     -- entry's block-scalar value, closing at the entry's own index.
@@ -10286,7 +10481,7 @@ lemma accum_content_pending (sc : ScannerState)
             (preprocess_some_peek h_preprocess) h_flow_disp h_dispatch h_keyctx
         | inr h_mid_eq =>
           exact block_dispatch_deferred sp_start sp_block sp_scan' s' h_stream_block hcorr_result)
-  | pendingProps _ _ _ ha ht sp_node sp_p n h_sep_run h_run h_nic_p h_real_p h_anchor_p h_tag_p h_route h_key_p =>
+  | pendingProps _ _ _ ha ht sp_node sp_p n h_sep_run h_run h_nic_p h_real_p h_anchor_p h_tag_p h_route h_key_p h_floor_p =>
     -- ═══ Item 12: a held depth-0 run meets a CONTENT character — the
     -- content-dispatch escape RETIRES.  Across a break the run closes as
     -- `propsEmpty` (the parked couplings go stale with the line, and are not
@@ -10320,7 +10515,7 @@ lemma accum_content_pending (sc : ScannerState)
         hcorr_prep hcorr_result h_not_doc
         (preprocess_some_peek h_preprocess) h_flow_disp h_dispatch h_keyctx
     | inr h_mid =>
-      obtain ⟨h_mid_eq, h_facts0⟩ := h_mid
+      obtain ⟨h_mid_eq, h_facts0, h_indents0⟩ := h_mid
       obtain ⟨h_line_pp, h_nic_pp, h_lastr, h_penr⟩ := h_facts0 h_nic_p h_real_p
       rw [h_mid_eq] at h_ws
       -- Item 24: the run→content separator is the residual WHITES, so it is
@@ -10415,7 +10610,11 @@ lemma accum_content_pending (sc : ScannerState)
                      rw [(dispatchContent_anchor_simpleKey h_dispatch).1,
                          allowDirectives_update_simpleKey, h_line',
                          allowDirectives_update_line]
-                     exact savedKey_line_of_preprocess h_preprocess h_line_pp h_sk_line),
+                     exact savedKey_line_of_preprocess h_preprocess h_line_pp h_sk_line)
+                 (IndentFloor.transport h_floor_p h_nic_s (fun h_nic_sc => by
+                   rw [dispatchContent_props_indents (by simp) h_dispatch,
+                       allowDirectives_update_indents]
+                   exact h_indents0 h_nic_sc)),
                hcorr_result⟩
       · by_cases hbang : c = '!'
         · -- ═══ `!` on the run's line: the mirror ═══
@@ -10480,7 +10679,11 @@ lemma accum_content_pending (sc : ScannerState)
                        rw [(dispatchContent_tag_simpleKey h_dispatch).1,
                            allowDirectives_update_simpleKey, h_line',
                            allowDirectives_update_line]
-                       exact savedKey_line_of_preprocess h_preprocess h_line_pp h_sk_line),
+                       exact savedKey_line_of_preprocess h_preprocess h_line_pp h_sk_line)
+                   (IndentFloor.transport h_floor_p h_nic_s (fun h_nic_sc => by
+                     rw [dispatchContent_props_indents (by simp) h_dispatch,
+                         allowDirectives_update_indents]
+                     exact h_indents0 h_nic_sc)),
                  hcorr_result⟩
         · by_cases hstar : c = '*'
           · -- ═══ `*` on the run's line: REFUTED (items 9e/9k) ═══
@@ -10645,7 +10848,7 @@ lemma accum_content_pending (sc : ScannerState)
                   -- own route index rather than only at 0.  One question, one
                   -- negative answer, so the guard is asked here and the arm below
                   -- keeps its single route to the escape.
-                  obtain ⟨sp_bs, d, h_floor, h_read, hcorr_bs⟩ :=
+                  obtain ⟨sp_bs, d, h_floor', h_read, hcorr_bs⟩ :=
                     dispatchContent_blockScalar_prod_at _ sp_prep
                       (corr_of_allowDirectives_update hcorr_prep) hpeek_disp hbs h_dispatch
                   have hsp_bs_eq := ScannerSurfCorr_unique hcorr_bs hcorr_result
@@ -10654,9 +10857,16 @@ lemma accum_content_pending (sc : ScannerState)
                       { s_prep with allowDirectives := false, documentEverStarted := true }
                     else s_prep).currentIndent = s_prep.currentIndent := by
                     split <;> rfl
-                  rw [h_ci] at h_floor
-                  by_cases hn : k + 1 ≤ d
-                  · exact Or.inr (Or.inl
+                  rw [h_ci] at h_floor'
+                  -- Item 27: the run inherits the ENTRY's floor — a `[96]`
+                  -- scan writes tokens, not indents — so `  - &a |` discharges
+                  -- exactly where `  - |` does.
+                  rcases h_floor_p with ⟨h_nic_sc, h_le⟩ | _
+                  · have hn : k + 1 ≤ d :=
+                      Nat.le_trans (Nat.le_trans h_le
+                        (Nat.le_of_eq
+                          (minContentIndentOf_congr (h_indents0 h_nic_sc)).symm)) h_floor'
+                    exact Or.inr (Or.inl
                       (h_read.elim (fun h => Or.inl (h (k + 1) hn))
                                    (fun h => Or.inr (h (k + 1) hn))))
                   · exact Or.inr (Or.inr trivial)
@@ -10708,26 +10918,26 @@ lemma accum_content_pending (sc : ScannerState)
     -- reading was stated at 0; item 23 gives the nonzero side its own arm.
     -- The two are not nested: at column 0 a property run and a block scalar
     -- also compose, and the indented arm carries neither.
-    rename_i n_old h_close_old h_close_entry_old
-    match n_old, h_close_old, h_close_entry_old with
-    | 0, h_close_old, h_close_entry_old =>
+    rename_i n_old h_floor_old h_close_old h_close_entry_old
+    match n_old, h_close_old, h_close_entry_old, h_floor_old with
+    | 0, h_close_old, h_close_entry_old, _ =>
       exact accum_content_on_pendingBlock sc sp_start sp_block sp_scan s_prep s' c sp_prep sp_scan'
         h_stream_block h_close_old h_close_entry_old
         hcorr_prep hcorr_result h_corr h_preprocess h_not_doc h_flow_disp h_dispatch
-    | k + 1, h_close_old, h_close_entry_old =>
+    | k + 1, h_close_old, h_close_entry_old, h_floor_old =>
       exact accum_content_on_pendingBlock_indented sc sp_start sp_block sp_scan (k + 1)
-        s_prep s' c sp_prep sp_scan' h_stream_block h_close_old h_close_entry_old
+        s_prep s' c sp_prep sp_scan' h_stream_block h_close_old h_close_entry_old h_floor_old
         hcorr_prep hcorr_result h_corr h_preprocess h_not_doc h_flow_disp h_dispatch
   | pendingMapValue =>
-    rename_i n_old h_close_old
-    match n_old, h_close_old with
-    | 0, h_close_old =>
+    rename_i n_old h_floor_old h_close_old
+    match n_old, h_close_old, h_floor_old with
+    | 0, h_close_old, _ =>
       exact accum_content_on_pendingMapValue sc sp_start sp_block sp_scan s_prep s' c sp_prep
         sp_scan' h_stream_block h_close_old
         hcorr_prep hcorr_result h_corr h_preprocess h_not_doc h_flow_disp h_dispatch
-    | k + 1, h_close_old =>
+    | k + 1, h_close_old, h_floor_old =>
       exact accum_content_on_pendingMapValue_indented sc sp_start sp_block sp_scan (k + 1)
-        s_prep s' c sp_prep sp_scan' h_stream_block h_close_old
+        s_prep s' c sp_prep sp_scan' h_stream_block h_close_old h_floor_old
         hcorr_prep hcorr_result h_corr h_preprocess h_not_doc h_flow_disp h_dispatch
 
 /-- Fresh-save state off the four value-completing content arms (item 10):
