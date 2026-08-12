@@ -19,6 +19,7 @@ import Tests.Guards.Proofs.ScannerFlowKeyFollower
 import Tests.Guards.Proofs.ScannerFlowPropsColon
 import Tests.Guards.Proofs.ScannerFlowKeyPredecessor
 import Tests.Guards.Proofs.ScannerFlowPropertyRun
+import Tests.Guards.Proofs.ScannerIndentedBlockCompose
 import Tests.Guards.Proofs.ScannerNodePropertyDelimiter
 import Tests.Guards.Proofs.ScannerContracts
 import Tests.Guards.Proofs.ScannerCorrectness

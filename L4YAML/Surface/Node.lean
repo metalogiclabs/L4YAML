@@ -73,17 +73,30 @@ mutual
         GOpt (GSeq (SCNsProperties n c) (SSeparate n c)) s₁ s₂ →
         SCLFolded n s₂ s' →
         SBlockNode n c s s'
-    /-- [199] Block sequence: optional properties + comments + sequence. -/
-    | blockSeq (n : Nat) (c : YamlContext) (s s₁ s₂ s' : SurfPos) :
+    /-- [199] Block sequence: optional properties + comments + sequence.
+
+        `m` is `[183] l+block-sequence(n)`'s **auto-detected extra indentation**
+        — the production is `( s-indent(n+m) c-l-block-seq-entry(n+m) )+` for
+        some `m > 0` fixed once for the whole collection, so it is bound HERE,
+        on the constructor that opens the collection, and threaded into the
+        entries' shared index.  (Item 22.  Inlining it at its smallest legal
+        value, as this constructor did through item 21, makes every indented
+        block sequence — `  - a`, `a:⏎  - x` — underivable; binding it inside
+        `SBlockSeqEntries` instead would admit ragged indentation.  Reflection
+        647.) -/
+    | blockSeq (n : Nat) (c : YamlContext) (m : Nat) (s s₁ s₂ s' : SurfPos) :
         GOpt (GSeq (SSeparate n c) (SCNsProperties n c)) s s₁ →
         SSLComments s₁ s₂ →
-        SBlockSeqEntries (seqSpaces n c) s₂ s' →
+        SBlockSeqEntries (seqSpaces n c + m) s₂ s' →
         SBlockNode n c s s'
-    /-- [199] Block mapping: optional properties + comments + mapping. -/
-    | blockMap (n : Nat) (c : YamlContext) (s s₁ s₂ s' : SurfPos) :
+    /-- [199] Block mapping: optional properties + comments + mapping.
+
+        `m` is `[187] l+block-mapping(n)`'s auto-detected extra indentation,
+        bound exactly as `blockSeq`'s above. -/
+    | blockMap (n : Nat) (c : YamlContext) (m : Nat) (s s₁ s₂ s' : SurfPos) :
         GOpt (GSeq (SSeparate n c) (SCNsProperties n c)) s s₁ →
         SSLComments s₁ s₂ →
-        SBlockMapEntries n s₂ s' →
+        SBlockMapEntries (n + m) s₂ s' →
         SBlockNode n c s s'
     /-- [195] Flow-in-block: separator + flow node + comments. -/
     | flowInBlock (n : Nat) (c : YamlContext) (s s₁ s₂ s' : SurfPos) :
@@ -120,9 +133,11 @@ mutual
         SBlockIndented n c s s'
 
   /-- [183] l+block-sequence(n): one or more block sequence entries.
-      Each entry = s-indent(n+1) + '-' + s-l+block-indented(n+1,BLOCK-IN).
-      The '-' indicator must NOT be followed by ns-char (distinguishes
-      block entry from plain scalar starting with '-'). -/
+      Each entry = s-indent(N) + '-' + s-l+block-indented(N,BLOCK-IN), where
+      the index `N` is the production's ALREADY-DETECTED `n+m` — the whole
+      collection shares it, and `SBlockNode.blockSeq` is where `m` is chosen
+      (item 22).  The '-' indicator must NOT be followed by ns-char
+      (distinguishes block entry from plain scalar starting with '-'). -/
   @[yaml_spec "8.2.1" 183 "l+block-sequence(n)"]
   inductive SBlockSeqEntries : Nat → SurfPos → SurfPos → Prop where
     | single (n : Nat) (s s₁ s₂ s₃ s' : SurfPos) :
@@ -184,7 +199,9 @@ mutual
         SSLComments s₁ s' →
         SBlockMapEntry n s s'
 
-  /-- [187] l+block-mapping(n): one or more block mapping entries. -/
+  /-- [187] l+block-mapping(n): one or more block mapping entries.  As with
+      `SBlockSeqEntries`, the index is the production's already-detected
+      `n+m`; `SBlockNode.blockMap` chooses `m` (item 22). -/
   @[yaml_spec "8.2.2" 187 "l+block-mapping(n)"]
   inductive SBlockMapEntries : Nat → SurfPos → SurfPos → Prop where
     | single (n : Nat) (s s₁ s' : SurfPos) :

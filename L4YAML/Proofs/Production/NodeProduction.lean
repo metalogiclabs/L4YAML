@@ -341,33 +341,49 @@ private lemma sep_props_opt_blockIn_to_blockOut {n : Nat} {s s' : SurfPos}
   | .some _ _ (.mk _ s₁ _ hs hp) =>
     .some _ _ (.mk _ s₁ _ hs (SCNsProperties_blockIn_to_blockOut hp))
 
--- [196] s-l+block-node re-labelling blockIn → blockOut at n = 0.
--- The context surfaces in three places, all inert at this indent: the
--- separators (`SSeparate 0 c` reduces to `SSeparateLines 0` for both), the
--- properties (re-labelled above), and `seqSpaces 0 c` (both reduce to 0 —
--- the `n - 1` of BLOCK-OUT truncates).  This is what lets a mapping VALUE
--- slot ([189] wants `.blockOut`) consume a node composed by the `.blockIn`
--- machinery the accumulation already has (DOCS item 13).
-@[yaml_spec "8.2.3" 196 "s-l+block-node(0,c) blockIn → blockOut"]
-lemma SBlockNode_blockIn_to_blockOut {s s' : SurfPos}
-    (h : SBlockNode 0 .blockIn s s') : SBlockNode 0 .blockOut s s' :=
+-- The BLOCK-OUT sequence index is the BLOCK-IN one, re-detected.
+-- `seq-spaces(n,block-out)` is `n-1` where `seq-spaces(n,block-in)` is `n`,
+-- so the two contexts disagree about a sequence's entry indent by exactly
+-- one — which is precisely the offset `[183]`'s auto-detected `m` absorbs:
+-- take `m+1` where BLOCK-IN took `m`, and both name the same index.  (Item 22.
+-- Pinning `m` at its minimum is what forced this lemma to `n = 0`, where the
+-- truncating subtraction happens to hide the disagreement.)
+private lemma seqEntries_blockOut_shift {n m : Nat} {s s' : SurfPos}
+    (h : SBlockSeqEntries (seqSpaces n .blockIn + m) s s') :
+    SBlockSeqEntries (seqSpaces n .blockOut + (if n = 0 then m else m + 1)) s s' := by
+  have heq : seqSpaces n .blockOut + (if n = 0 then m else m + 1)
+      = seqSpaces n .blockIn + m := by
+    cases n <;> simp [seqSpaces] <;> omega
+  rw [heq]; exact h
+
+-- [196] s-l+block-node re-labelling blockIn → blockOut, at any indent.
+-- The context surfaces in three places: the separators (`SSeparate n c`
+-- reduces to `SSeparateLines n` for both block contexts), the properties
+-- (re-labelled above), and `seqSpaces n c` (re-detected as above).  This is
+-- what lets a mapping VALUE slot ([189] wants `.blockOut`) consume a node
+-- composed by the `.blockIn` machinery the accumulation already has (DOCS
+-- item 13; generalized off `n = 0` by item 22's widening).
+@[yaml_spec "8.2.3" 196 "s-l+block-node(n,c) blockIn → blockOut"]
+lemma SBlockNode_blockIn_to_blockOut {n : Nat} {s s' : SurfPos}
+    (h : SBlockNode n .blockIn s s') : SBlockNode n .blockOut s s' :=
   match h with
   | .blockLiteral _ _ _ s₁ s₂ _ h_sep h_props h_lit =>
-    .blockLiteral 0 .blockOut s s₁ s₂ s' h_sep
+    .blockLiteral n .blockOut s s₁ s₂ s' h_sep
       (props_sep_opt_blockIn_to_blockOut h_props) h_lit
   | .blockFolded _ _ _ s₁ s₂ _ h_sep h_props h_fld =>
-    .blockFolded 0 .blockOut s s₁ s₂ s' h_sep
+    .blockFolded n .blockOut s s₁ s₂ s' h_sep
       (props_sep_opt_blockIn_to_blockOut h_props) h_fld
-  | .blockSeq _ _ _ s₁ s₂ _ h_props h_ssl h_entries =>
-    .blockSeq 0 .blockOut s s₁ s₂ s'
-      (sep_props_opt_blockIn_to_blockOut h_props) h_ssl h_entries
-  | .blockMap _ _ _ s₁ s₂ _ h_props h_ssl h_entries =>
-    .blockMap 0 .blockOut s s₁ s₂ s'
+  | .blockSeq _ _ m _ s₁ s₂ _ h_props h_ssl h_entries =>
+    .blockSeq n .blockOut (if n = 0 then m else m + 1) s s₁ s₂ s'
+      (sep_props_opt_blockIn_to_blockOut h_props) h_ssl
+      (seqEntries_blockOut_shift h_entries)
+  | .blockMap _ _ m _ s₁ s₂ _ h_props h_ssl h_entries =>
+    .blockMap n .blockOut m s s₁ s₂ s'
       (sep_props_opt_blockIn_to_blockOut h_props) h_ssl h_entries
   | .flowInBlock _ _ _ s₁ s₂ _ h_sep h_flow h_ssl =>
-    .flowInBlock 0 .blockOut s s₁ s₂ s' h_sep h_flow h_ssl
+    .flowInBlock n .blockOut s s₁ s₂ s' h_sep h_flow h_ssl
   | .emptyNode _ _ _ _ h_ssl =>
-    .emptyNode 0 .blockOut s s' h_ssl
+    .emptyNode n .blockOut s s' h_ssl
 
 /-! ## §6 GStar/GPlus Lifting and Alias/Anchor Conversion (Layer 4a) -/
 
