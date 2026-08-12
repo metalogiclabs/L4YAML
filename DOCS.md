@@ -9151,11 +9151,11 @@ still at two `sorry`s.
 
 | # | Declaration | Status |
 |---|---|---|
-| 1 | `accum_step_structural` | ✅ **closed** — vacuous at depth ≥ 1. `dispatchStructural`'s only in-flow success arm is `%`, and `scanDirective` rejects on `!allowDirectives`; inside a flow the flag is always false, because the `[`/`{` that opened the collection was dispatched *after* `scanNextToken` cleared it. Carried as a third component of the guarded interior conjunct and transported by the new `Proofs/Scanner/ScannerAllowDirectives.lean`. The `---`/`...` accept arms sit below the §5.4 `documentMarkerInFlow` guard, so they are dead too |
-| 4 | `scanNextToken_none_stream` | ✅ **closed** — the lemma's own hypotheses never refuted an open flow at EOF (`[a, b` reaches EOF happily); it is `scanLoop`'s post-check that errors with `unterminatedFlowCollection`. Hoisted to an `sc.flowLevel = 0` hypothesis discharged at the call site |
-| 2 | `accum_step_block` | ✅ **CLOSED at every depth** (2026-08-10, item 9s). `-` is free (guarded by `!s.inFlow`). The `?` arm took **two** scanner passes, one per half of `[150] ns-flow-pair`: ✅ **item 9g** its PREDECESSOR (a flow `?` stands only after `[`, `{` or `,` — `[? ? a]`, `[: ?]`, `[&a ? b]`, `[!t ?]` rejected) and ✅ **item 9j** its mandatory `s-separate` (`[?]`, `[?,a]`, `{?}`, `{?,a}` rejected; `[? ]` and `[? , a]` stay legal via `[142]`'s `( e-node e-node )` arm). 9g's own guard suite had pinned `[?, ? a]` as accepted — **Reflection 622**. ✅ **Item 9l** landed the whole vocabulary (2026-08-08): a FOURTH `FrameTail` value `.question` (`?` seen, key awaited — its own class, because a `:` closes with an empty VALUE while a `?` closes with `[143]`'s `( e-node e-node )`, an entry with no key), `midQuestion` on each frame, `SeqFrame.midEmptyColon` (the map twin's missing sibling), the cases in `closeWithSep`/`holdComma`/`receiveNode` (the two props receivers delegate, so they needed none), and `FlowOpenStack.receiveQuestion`, whose `h_tail` runs the OPPOSITE way (`tl = .sep` — 9g's guard through the tail index). The last bullet was a GRAMMAR gap, not an accumulator one: `[143]`'s `( e-node e-node )` and `[146]`'s empty key were missing from `SFlowSeqEntry`/`SFlowMapEntry`, so `[? ]`, `{? }`, `[? , a]`, `[: a]`, `[:]` parsed correctly with no derivation — purely additive to fix, since nothing `cases` on either inductive (**Reflection 625**). The same enumeration found a shipped OVER-rejection — `[? a, b: c]`, `[? a, : b]`, `[? a, : ]` valid and refused, because `explicitKeyLine` is scoped by LINE where `[150]`'s explicit alternative spans one ENTRY; `scanFlowEntry` now clears it (**Reflection 626**). ✅ **Item 10** built the `?` arm's PRODUCER (2026-08-08) — no definition changed and no scanner changed. `flowKeyPredecessorOk` is the one guard whose flow half is a POSITIVE statement about the last real token, so inverting the dispatch condition yields a token; `tailOf_eq_sep` (the forward reading of the table `tailOf_ne_sep` already read backwards, six lines beneath it) turns that into `tl = .sep`, which is `receiveQuestion`'s hypothesis. The held-property-run gap is REFUTED rather than resolved — the one flow-interior arm of which that is true, since `,`/`]`/`}` flush a run and `[`/`{` wrap it — by `opensFlowEntry_false_of_isNodeProperty`, one `cases`; note that BOTH `≠` readings are blind to that case, since a property's tail is `.colon`. The `scanKey` production facts landed as a §1c''c' block reading it like a sixth flow indicator (`tailOf_scanKey = .question`, `sync_scanKey`, …), all gated on `inFlow` because in BLOCK context `pushMappingIndent` may emit *before* the `key` (**Reflection 627**). `-` is refuted in two lines against the same `h_ad_inflow`. ✅ **Item 9n** (2026-08-09) split the `:` arm by its tail index and closed the two classes that are TOTAL: `.sep` (2 of 2 frames receptive — `[: a]`, `[a, : b]`) and `.question` (1 of 1 — `[? : a]`, `[? :]`), as `FlowOpenStack.receiveColonSep`/`receiveColonQuestion`, each a plain `cases` for the same reason `receiveQuestion` was. The two surface forms 9l deliberately withheld arrived with their producer — `explicitEmptyKeyValue`/`explicitEmptyKeyEmpty` on both entry inductives, plus the `midQuestionEmptyColon` frame where `[150]`'s mandatory `s-separate` finally lands — still purely additive. The arm was then two tail classes, and 9n recorded them at two different prices (**Reflection 628**): `.colon` (4 frames, NONE receptive — `{a: : b}`, `[: :]`) separated by its LAST real token, `.value` MIXED (`midNode` continues, `betweenEntries` does not — `[a: b: c]`) and separable only by the scanner's `simpleKey.tokenIndex`. That discharge was re-priced by building it and reverting: Reflection 617's "97 statement sites" reads the LAST token, but all 16 gateway call sites are in the `emitPairList_scans_*` family and the four saved-key substrates already pin `simpleKey.tokenIndex = s.tokens.size` and the take-side filter equation — threaded for the `.key`-token characterization, not for a guard — so what is missing is one bridge lemma, one take conjunct on `EmitScansInFlowSavedKey`, and ONE entry-boundary hypothesis on the five `EmitPairList*` defs plus its caller ripple. ✅ **Item 9o** (2026-08-09) crossed the SECOND index — the interior gap — and both closed cells and corrected that pricing. `receiveColonPropsSep`/`receiveColonPropsQuestion` are the two total classes with a `[96]` run held (`[&a : b]`, `[a, &x : b]`, `{&a : b}`, `[? &a : b]`): the run decorates the entry's KEY, whose content is empty, so they reuse `SFlowNode.propsEmpty` and land in `midColon`/`midExplicitColon` with no new grammar and no new frame. The props × `.value` cell is **not a state** — `InteriorGap.props` carries `tl ≠ .value` as a field, so item 9b's adjacency guard already rejects `["a" &x : b]`, `[[a] &x : b]`, `[{a: b} &x : c]` — which makes the same tail MIXED on one row and empty on the other. ⬜ **The three open cells share ONE datum, not two** (**Reflection 629**): `saveSimpleKey` runs in PREPROCESSING, so a `:` at an already-complete entry always has a key reserved — at the `:` itself when the gap is empty, before the run when it is not (`[a: &x : b]` scans as `… value placeholder key anchor value …`) — and the slot before that reservation is a `.value` in every illegal shape and never in a legal one. Measured by building the strictening and reverting: it rejects all 13 illegal shapes at the scanner in both pipelines, leaves 22 legal neighbours and all 351 suite sources byte-identical, and breaks exactly the two gateway lemmas 9n named. ✅ **Item 9s** (2026-08-10) CLOSED the arm — and with it **all of site 2**: the strictening's FIRING direction transported as the one-directional companion mask `KmSound` (+ `promise` on the nests, two `InteriorGap` conditionals, the `FlowStackK` entry disjunct), the producer landed as `receiveNodeColon` stored as a closure where the frames are built, and one more scanner gate generalized (`skipToContentLoop`'s break re-enable now `!inFlow`-gated — `{a: b⏎: c}` rejects at the scanner). 4 cells receive, 3 scan-refute, the mixed cell splits on the stored disjunct (**Reflection 633**) |
-| 3 | `accum_step_content` | ✅ **CLOSED at every depth** (2026-08-08). ✅ Block-scalar disjuncts refuted (item 9c). ✅ `.flowIn` evidence built — `dispatchContent_evidence_flowIn`, with `dispatchContent_plainScalar_flowIn_prod` (a native production, **not** a lift: `flowIn` forbids the `,[]{}` that `flowOut` admits, so containment runs the wrong way). ✅ `receiveNode`'s `tl ≠ .value` premise discharged for `:` too (item 9d) — and at a content character by `not_flow_indicator_of_dispatch_none` + `not_valueCandidate_of_dispatch_none`. ✅ **Items 9e/9f** rejected repeated properties, properties-before-alias, and a property with no separation before content. ✅ The interior gap un-pinned (**R619**), which let the PLAIN-scalar arm land — its grammar ends before the whitespace `collectPlainScalarLoop` consumes, so it is the arm that needs a non-empty gap. ✅ The frame index re-based past a held run (**R620**). ✅ **Third pass:** `InteriorGap.props` and its producer. `&`/`!` no longer try to hand `receiveNode` an `SFlowNode.propsEmpty` — they OPEN a run in the gap (`PropsRun.anchor`/`.tag`) or EXTEND one (`addTag`/`addAnchor`), the frame untouched; the next character decides — `,`/`]`/`}` flush via `receivePropsEmpty`, a content character wraps via `receivePropsContent`, `[`/`{` wrap through the child's `inject`, and `*` is refuted by 9e's `lastTokenIsNodeProperty`. A third property of either half is refuted by `propertyRunHasAnchor`/`propertyRunHasTag`, which is where the run's two-token lookback is load-bearing exactly once: `[&a !t &b]` dies on the run's PENULT |
-| 5 | `accum_flow_open_depth0` | ✅ **CLOSED** (2026-08-10, item 9t). The `col ≠ 0`, no-break arm split by producer GUARANTEE: `pendingContent`/`pendingDocEnd`/`pendingBlockContent` are REFUTED through a new rest-of-line field (`h_line`) their producers' own trailing validations supply (`Proofs/Scanner/LineOpenGuard.lean`: one ¬-form predicate — `s-white*` then never `[`/`{` — serves validateTrailingContent, validateAliasClose, validateFlowClose, `scanDocumentEnd`'s probe, plain-scalar absorption and block-scalar column-0 endings at once); `pendingFlow` is legally inhabited (`- - [a]`, `? [a]`) and rides its own `scannerDrop` closing strategy; and the legal props run became the STATE item 9h asked for — `PendingNode.pendingProps`, whose `h_closable`/`h_flow` closures capture the enclosing route, so `&a [b]`, `- &a [b]` and `&a⏎[b]` all ride the run INTO the flow node (`SFlowNode.propsContent`) through the frame's `resume`. Item 9k's same-line residual turned out NOT to be owed here: the props state deferred its content-dispatch composition to β.5, so the run-extension arm that would consume Reflection 624's transport did not exist yet (**Reflection 634**; item 12 has since built it — the residual's consumer landed there) |
+| 1 | `accum_step_structural` | ✅ **closed** — vacuous at depth ≥ 1 |
+| 4 | `scanNextToken_none_stream` | ✅ **closed** — the post-check, not this lemma, errors on an open flow at EOF |
+| 2 | `accum_step_block` | ✅ **CLOSED at every depth** (2026-08-10, item 9s) — ten passes, one per `[150]` half and per tail class |
+| 3 | `accum_step_content` | ✅ **CLOSED at every depth** (2026-08-08, items 9c–9f + R619/R620) |
+| 5 | `accum_flow_open_depth0` | ✅ **CLOSED** (2026-08-10, item 9t) — three pendings refuted, one legally inhabited, one parked as `pendingProps` |
 
 A tenth pass built the discharge that datum needs — [item
 9p](#item-9p--price-the-threading-by-where-the-invariant-fails-measured-2026-08-09).
@@ -9249,7 +9249,153 @@ Then:
   nested/indented `-` (the indent machinery: `pendingBlock`/entries
   generalized from 0 to n with the indent-stack coupling).
 
-### Implementation Plan (remaining)
+#### Fix A site closures
+
+All five `sorry` sites of the Fix A accumulation are closed; the table above
+carries the verdicts and this section the record.  It lives here rather than
+in the table's Status column for the same reason the [β.3 probe
+log](#the-β3-probe-log--one-rule-per-arm) does — a status column is not a log.
+Wording is the Status cells' own.
+
+**Site 1 — `accum_step_structural`.** ✅ **closed** — vacuous at depth ≥ 1.
+`dispatchStructural`'s only in-flow success arm is `%`, and `scanDirective`
+rejects on `!allowDirectives`; inside a flow the flag is always false, because
+the `[`/`{` that opened the collection was dispatched *after* `scanNextToken`
+cleared it. Carried as a third component of the guarded interior conjunct and
+transported by the new `Proofs/Scanner/ScannerAllowDirectives.lean`. The
+`---`/`...` accept arms sit below the §5.4 `documentMarkerInFlow` guard, so
+they are dead too
+
+**Site 4 — `scanNextToken_none_stream`.** ✅ **closed** — the lemma's own
+hypotheses never refuted an open flow at EOF (`[a, b` reaches EOF happily); it
+is `scanLoop`'s post-check that errors with `unterminatedFlowCollection`.
+Hoisted to an `sc.flowLevel = 0` hypothesis discharged at the call site
+
+**Site 2 — `accum_step_block`.** ✅ **CLOSED at every depth** (2026-08-10, item
+9s). `-` is free (guarded by `!s.inFlow`). The `?` arm took **two** scanner
+passes, one per half of `[150] ns-flow-pair`: ✅ **item 9g** its PREDECESSOR (a
+flow `?` stands only after `[`, `{` or `,` — `[? ? a]`, `[: ?]`, `[&a ? b]`,
+`[!t ?]` rejected) and ✅ **item 9j** its mandatory `s-separate` (`[?]`,
+`[?,a]`, `{?}`, `{?,a}` rejected; `[? ]` and `[? , a]` stay legal via
+`[142]`'s `( e-node e-node )` arm). 9g's own guard suite had pinned `[?, ? a]`
+as accepted — **Reflection 622**. ✅ **Item 9l** landed the whole vocabulary
+(2026-08-08): a FOURTH `FrameTail` value `.question` (`?` seen, key awaited —
+its own class, because a `:` closes with an empty VALUE while a `?` closes
+with `[143]`'s `( e-node e-node )`, an entry with no key), `midQuestion` on
+each frame, `SeqFrame.midEmptyColon` (the map twin's missing sibling), the
+cases in `closeWithSep`/`holdComma`/`receiveNode` (the two props receivers
+delegate, so they needed none), and `FlowOpenStack.receiveQuestion`, whose
+`h_tail` runs the OPPOSITE way (`tl = .sep` — 9g's guard through the tail
+index). The last bullet was a GRAMMAR gap, not an accumulator one: `[143]`'s
+`( e-node e-node )` and `[146]`'s empty key were missing from
+`SFlowSeqEntry`/`SFlowMapEntry`, so `[? ]`, `{? }`, `[? , a]`, `[: a]`, `[:]`
+parsed correctly with no derivation — purely additive to fix, since nothing
+`cases` on either inductive (**Reflection 625**). The same enumeration found a
+shipped OVER-rejection — `[? a, b: c]`, `[? a, : b]`, `[? a, : ]` valid and
+refused, because `explicitKeyLine` is scoped by LINE where `[150]`'s explicit
+alternative spans one ENTRY; `scanFlowEntry` now clears it (**Reflection
+626**). ✅ **Item 10** built the `?` arm's PRODUCER (2026-08-08) — no
+definition changed and no scanner changed. `flowKeyPredecessorOk` is the one
+guard whose flow half is a POSITIVE statement about the last real token, so
+inverting the dispatch condition yields a token; `tailOf_eq_sep` (the forward
+reading of the table `tailOf_ne_sep` already read backwards, six lines beneath
+it) turns that into `tl = .sep`, which is `receiveQuestion`'s hypothesis. The
+held-property-run gap is REFUTED rather than resolved — the one flow-interior
+arm of which that is true, since `,`/`]`/`}` flush a run and `[`/`{` wrap it —
+by `opensFlowEntry_false_of_isNodeProperty`, one `cases`; note that BOTH `≠`
+readings are blind to that case, since a property's tail is `.colon`. The
+`scanKey` production facts landed as a §1c''c' block reading it like a sixth
+flow indicator (`tailOf_scanKey = .question`, `sync_scanKey`, …), all gated on
+`inFlow` because in BLOCK context `pushMappingIndent` may emit *before* the
+`key` (**Reflection 627**). `-` is refuted in two lines against the same
+`h_ad_inflow`. ✅ **Item 9n** (2026-08-09) split the `:` arm by its tail index
+and closed the two classes that are TOTAL: `.sep` (2 of 2 frames receptive —
+`[: a]`, `[a, : b]`) and `.question` (1 of 1 — `[? : a]`, `[? :]`), as
+`FlowOpenStack.receiveColonSep`/`receiveColonQuestion`, each a plain `cases`
+for the same reason `receiveQuestion` was. The two surface forms 9l
+deliberately withheld arrived with their producer —
+`explicitEmptyKeyValue`/`explicitEmptyKeyEmpty` on both entry inductives, plus
+the `midQuestionEmptyColon` frame where `[150]`'s mandatory `s-separate`
+finally lands — still purely additive. The arm was then two tail classes, and
+9n recorded them at two different prices (**Reflection 628**): `.colon` (4
+frames, NONE receptive — `{a: : b}`, `[: :]`) separated by its LAST real
+token, `.value` MIXED (`midNode` continues, `betweenEntries` does not — `[a:
+b: c]`) and separable only by the scanner's `simpleKey.tokenIndex`. That
+discharge was re-priced by building it and reverting: Reflection 617's "97
+statement sites" reads the LAST token, but all 16 gateway call sites are in
+the `emitPairList_scans_*` family and the four saved-key substrates already
+pin `simpleKey.tokenIndex = s.tokens.size` and the take-side filter equation —
+threaded for the `.key`-token characterization, not for a guard — so what is
+missing is one bridge lemma, one take conjunct on `EmitScansInFlowSavedKey`,
+and ONE entry-boundary hypothesis on the five `EmitPairList*` defs plus its
+caller ripple. ✅ **Item 9o** (2026-08-09) crossed the SECOND index — the
+interior gap — and both closed cells and corrected that pricing.
+`receiveColonPropsSep`/`receiveColonPropsQuestion` are the two total classes
+with a `[96]` run held (`[&a : b]`, `[a, &x : b]`, `{&a : b}`, `[? &a : b]`):
+the run decorates the entry's KEY, whose content is empty, so they reuse
+`SFlowNode.propsEmpty` and land in `midColon`/`midExplicitColon` with no new
+grammar and no new frame. The props × `.value` cell is **not a state** —
+`InteriorGap.props` carries `tl ≠ .value` as a field, so item 9b's adjacency
+guard already rejects `["a" &x : b]`, `[[a] &x : b]`, `[{a: b} &x : c]` —
+which makes the same tail MIXED on one row and empty on the other. ⬜ **The
+three open cells share ONE datum, not two** (**Reflection 629**):
+`saveSimpleKey` runs in PREPROCESSING, so a `:` at an already-complete entry
+always has a key reserved — at the `:` itself when the gap is empty, before
+the run when it is not (`[a: &x : b]` scans as `… value placeholder key anchor
+value …`) — and the slot before that reservation is a `.value` in every
+illegal shape and never in a legal one. Measured by building the strictening
+and reverting: it rejects all 13 illegal shapes at the scanner in both
+pipelines, leaves 22 legal neighbours and all 351 suite sources byte-
+identical, and breaks exactly the two gateway lemmas 9n named. ✅ **Item 9s**
+(2026-08-10) CLOSED the arm — and with it **all of site 2**: the strictening's
+FIRING direction transported as the one-directional companion mask `KmSound`
+(+ `promise` on the nests, two `InteriorGap` conditionals, the `FlowStackK`
+entry disjunct), the producer landed as `receiveNodeColon` stored as a closure
+where the frames are built, and one more scanner gate generalized
+(`skipToContentLoop`'s break re-enable now `!inFlow`-gated — `{a: b⏎: c}`
+rejects at the scanner). 4 cells receive, 3 scan-refute, the mixed cell splits
+on the stored disjunct (**Reflection 633**)
+
+**Site 3 — `accum_step_content`.** ✅ **CLOSED at every depth** (2026-08-08). ✅
+Block-scalar disjuncts refuted (item 9c). ✅ `.flowIn` evidence built —
+`dispatchContent_evidence_flowIn`, with
+`dispatchContent_plainScalar_flowIn_prod` (a native production, **not** a
+lift: `flowIn` forbids the `,[]{}` that `flowOut` admits, so containment runs
+the wrong way). ✅ `receiveNode`'s `tl ≠ .value` premise discharged for `:` too
+(item 9d) — and at a content character by
+`not_flow_indicator_of_dispatch_none` + `not_valueCandidate_of_dispatch_none`.
+✅ **Items 9e/9f** rejected repeated properties, properties-before-alias, and a
+property with no separation before content. ✅ The interior gap un-pinned
+(**R619**), which let the PLAIN-scalar arm land — its grammar ends before the
+whitespace `collectPlainScalarLoop` consumes, so it is the arm that needs a
+non-empty gap. ✅ The frame index re-based past a held run (**R620**). ✅
+**Third pass:** `InteriorGap.props` and its producer. `&`/`!` no longer try to
+hand `receiveNode` an `SFlowNode.propsEmpty` — they OPEN a run in the gap
+(`PropsRun.anchor`/`.tag`) or EXTEND one (`addTag`/`addAnchor`), the frame
+untouched; the next character decides — `,`/`]`/`}` flush via
+`receivePropsEmpty`, a content character wraps via `receivePropsContent`,
+`[`/`{` wrap through the child's `inject`, and `*` is refuted by 9e's
+`lastTokenIsNodeProperty`. A third property of either half is refuted by
+`propertyRunHasAnchor`/`propertyRunHasTag`, which is where the run's two-token
+lookback is load-bearing exactly once: `[&a !t &b]` dies on the run's PENULT
+
+**Site 5 — `accum_flow_open_depth0`.** ✅ **CLOSED** (2026-08-10, item 9t). The
+`col ≠ 0`, no-break arm split by producer GUARANTEE:
+`pendingContent`/`pendingDocEnd`/`pendingBlockContent` are REFUTED through a
+new rest-of-line field (`h_line`) their producers' own trailing validations
+supply (`Proofs/Scanner/LineOpenGuard.lean`: one ¬-form predicate — `s-white*`
+then never `[`/`{` — serves validateTrailingContent, validateAliasClose,
+validateFlowClose, `scanDocumentEnd`'s probe, plain-scalar absorption and
+block-scalar column-0 endings at once); `pendingFlow` is legally inhabited (`-
+- [a]`, `? [a]`) and rides its own `scannerDrop` closing strategy; and the
+legal props run became the STATE item 9h asked for —
+`PendingNode.pendingProps`, whose `h_closable`/`h_flow` closures capture the
+enclosing route, so `&a [b]`, `- &a [b]` and `&a⏎[b]` all ride the run INTO
+the flow node (`SFlowNode.propsContent`) through the frame's `resume`. Item
+9k's same-line residual turned out NOT to be owed here: the props state
+deferred its content-dispatch composition to β.5, so the run-extension arm
+that would consume Reflection 624's transport did not exist yet (**Reflection
+634**; item 12 has since built it — the residual's consumer landed there)### Implementation Plan (remaining)
 
 - **Step 2 (Fix A, remaining)**: β.3 → β.4 → β.5 as above.
 - **Step 4**: full rebuild; refresh the `#guard_msgs` axiom pins in
@@ -9297,9 +9443,157 @@ Further coupling material is spread across `Proofs/Coupling/`
 
 | Risk | Likelihood | Impact | Mitigation |
 |------|-----------|--------|------------|
-| More item-9a-class scanner gaps hide behind the remaining β.3 arms | **Materialized nine times** — items 9c, 9d, 9e (2026-08-07), 9f, 9g, 9h, 9j, 9k and 9l (2026-08-08) — and a tenth is open on the `:` arm | High | The content arm needed ALL FOUR of 9c–9f. Probe the scanner on an arm's input BEFORE building frame vocabulary for it, and seed the probe alphabet from what ENDS a token (9d's witness needed a comment; two 15-character alphabets without `#` scored 0 hits over ≈1.6M inputs). When the strictening's soundness argument is "no legal document has X adjacent to Y", **run the suite guards before reasoning further** — 9e's first version was over-strict and only the corpus caught it, because a hand-built probe list inherits the guard's blind spot. 9f adds two more: a rule about the TEXT BETWEEN two tokens cannot be a lookback at all (the array keeps starts, not extents), and two sibling productions differing only in a character class do not fail on the same inputs — read the scanner's own token dump, not the reference's verdict. 9g adds the cost rule: **price the PRODUCER before you choose a placement.** A guard on a character the emitter never writes (`?`) is free wherever it goes; a guard on one the emitter writes at every pair (`:`) costs the same everywhere, and that cost is the strengthening that makes the towers' threaded invariant imply the new test. 9h adds the one that comes BEFORE all of these: **ask whether the arm is mixed.** Its arm was filed as vacuous on the strength of a single illegal witness (`"foo" [a]`), and it also admits `&a [b]`, which is legal — so no guard could ever close it. Generate the arm's inhabitants from its CONDITION, then classify each by what the SHIPPED pipeline does with it: rejects ⟹ refutable, accepts-and-parses-correctly ⟹ build vocabulary, accepts-and-parses-wrongly ⟹ a defect. Reflections 612 + 614 + 615 + 616 + 617 + 618. And 619 adds the one that is not about the scanner at all: before believing an arm needs new VOCABULARY, check that the invariant slot it would live in can hold anything — a conjunct widened in isolation stays pinned by any sibling conjunct over the same positions, and the sibling here (`PendingNode`) was one that no depth-≥1 branch even reads. 620 adds its successor: once the slot CAN hold something, ask what else in the invariant is COMPUTED from the same token history — a held token re-points every such index, and here it made the invariant unsatisfiable before any vocabulary for the slot existed. Re-basing the index then breaks each transport that came from a guard reading the raw history, so carry the COINCIDENCE of the two readings as a conjunct, true exactly when the slot is empty; paying that first is what makes the slot's new constructor purely additive 621 adds the last of the trio, and it is not about the invariant at all: when a case still cannot be written after the invariant is right, look at the CLOSURE ARGUMENTS the region passes around. A closure argument wider than the values that actually flow through it is a discarded invariant, and the diagnostic is in the callers — every one of them applying the same injection to reach the type means the extra constructors are in the argument's range and never in its image, so narrowing MOVES a wrapper rather than adding one. 622 adds the one that made this row's count go up again, and it is about the SEARCH rather than the guard: a strictening derived from a production `X sep Y` names TWO obligations — where `X` may start (a lookback, over TOKENS) and what must follow it (a lookahead, over CHARACTERS) — and they read disjoint parts of the state in opposite directions, so finding one never surfaces the other. Item 9g shipped one half and recorded the arm as clean; `[?]` and `[?,a]` were still accepted, one of them PINNED as accepted by 9g's own guard file and another by `ScannerHardening`. An incomplete delimiter rule over-accepts and never over-rejects, so a suite of accepted inputs is structurally blind to it: write the production down, read it in both directions, and generate the rejections from the production rather than from the diff. 623 is the same lesson applied one level up, to the SOUNDNESS GATE instead of the production: a guard gated to keep it sound names ONE sufficient context for its premise, not the premise, so ungating stays unsound while disjoining a second sufficient context is free — the old disjunct is untouched, so every consumer reads it unchanged. And the second disjunct is in the counterexamples that justified the gate: they are the boundary of the premise, so whatever separates them from the shapes the guard should reject is another context in which it holds. Watch for the signal that stops the search — a guard that is EXACT inside its gate (zero over-acceptances in flow, here) reads as finished. 624 is the pricing rule for the consumption side: before threading a new invariant to carry a HISTORY fact ("no break was crossed", "nothing was emitted"), ask whether the machine already records it — a machine that must ACT on its history has to remember it, in an ordinary field, for its own operational reasons, and set-and-never-cleared makes that field a sound witness with one induction. The correspondence relation's silence is a statement about what it was built to project, not about the fact. 625 is the one that breaks the row's own pattern: after nine strictenings the question "what does the machine let through?" is automatic, and the tenth arm's answer was the opposite — its shapes were ACCEPTED and CORRECT, and the missing thing was a production ALTERNATIVE in the formalized grammar. 618's alphabet already says accepts-correct ⟹ vocabulary; the trap is reading "vocabulary" as the ACCUMULATOR's. Name the production alternative each shape lands in and check the inductive HAS it — a too-narrow grammar is a strict SUBSET, so every test of what it accepts passes and the gap only ever surfaces as a proof that will not go through. And 626 is what the same enumeration found going the other way: run the neighbours through the SHIPPED pipeline and some of them come back REJECTED. That direction is a shipped defect, it is an over-REJECTION rather than an over-acceptance, and nothing in the repo looks for it — a guard suite pins refusals, so every pin survives the repair untouched; only a corpus pins acceptance, and a corpus has no test for what nobody writes. Its cause is worth the name: a flag scoped along the WRONG AXIS (`explicitKeyLine` records a LINE; the construct it bounds spans one ENTRY), which is right exactly where the two coincide — all short input — and whose failure is silent because a flag that SUPPRESSES work refuses rather than mis-emits. 627 is the row read from the other end, and it is the payoff rather than a cost: the guards this row counts were all written to REFUTE, so the couplings they left behind are `≠`-shaped, and an arm that must CONSTRUCT needs the same table read forward. That reading is free when the guard's condition is POSITIVE (`opensFlowEntry`) and unavailable when it is a denial (`completesFlowValue = false`) — which is worth knowing while a guard is still being designed, since a positive predicate on the last token buys the producer as well as the rejection. It also settles the held-property-run case for free, and that case is invisible to the `≠` readings, which a property satisfies both of. 628 and 629 are the pricing pair, and they matter most where an arm has been carried as "blocked" for several passes. 628: a transition over an INDEXED state family is not one thing — split by the index and some values admit only receptive constructors (TOTAL there, free), some only refutable ones (also total, but wanting a guard), and typically exactly one is MIXED, which is the only class that is work; a mixed class is then a question about the index's SOURCE, and when the source cannot express the distinction, look for a POINTER the machine already keeps. 629 is its correction, and it is the one to apply first: **the residual's KIND is not its PRICE.** A refutable class asks for a refutation and a mixed one for a producer plus a discriminator, which reads like two obligations — but what a class costs is the DATUM that decides it, and classes of different kinds routinely read the SAME datum. Group the residual by datum before writing prices into the plan; the trap is that a refutable class always admits *some* plausible refuting guard, and finding one ends the search before "does a neighbour's datum already cover this?" is asked. 629's other half: when the step has a SECOND index, cross them — the crossing is cheap, a kind belongs to a CELL and never to an index value (here the same tail is MIXED on one row and NOT A STATE on the other), and cells handed back that way cost nothing because the refutation is a guard that already shipped, already carried as a field of the invariant |
+| More item-9a-class scanner gaps hide behind the remaining β.3 arms | **Materialized nine times** — items 9c, 9d, 9e (2026-08-07), 9f, 9g, 9h, 9j, 9k and 9l (2026-08-08) — and a tenth on the `:` arm, closed by item 9s | High | One rule per arm, listed in [The β.3 probe log](#the-β3-probe-log--one-rule-per-arm) below |
 | The depth-0 `col ≠ 0`, no-break vacuity is not actually vacuous | Low | Medium | Ruled out `checkFlowAdjacency` as the source (gated on `inFlow`, no-op at the depth-0 open); the simple-key coupling is the remaining candidate |
 | Converse proof (Step 5) is very large | High | Medium | Grammar inversion touches ~77 rules; many lemmas are mechanical |
+
+### The β.3 probe log — one rule per arm
+
+The risk above materialized nine times, and each arm left a rule.  They are
+listed here rather than in the table's Mitigation cell because a mitigation
+column is not a log — the same reason row 12's narratives live in [Row 12 —
+β.5 closure log](#row-12--β5-closure-log).  Wording is the Mitigation cell's
+own, split at the markers it already carried; each rule's demo is the same-
+numbered file in `Tests/Reflections/`.
+
+* The content arm needed ALL FOUR of 9c–9f. Probe the scanner on an arm's
+  input BEFORE building frame vocabulary for it, and seed the probe alphabet
+  from what ENDS a token (9d's witness needed a comment; two 15-character
+  alphabets without `#` scored 0 hits over ≈1.6M inputs). When the
+  strictening's soundness argument is "no legal document has X adjacent to Y",
+  **run the suite guards before reasoning further** — 9e's first version was
+  over-strict and only the corpus caught it, because a hand-built probe list
+  inherits the guard's blind spot.
+
+* 9f adds two more: a rule about the TEXT BETWEEN two tokens cannot be a
+  lookback at all (the array keeps starts, not extents), and two sibling
+  productions differing only in a character class do not fail on the same
+  inputs — read the scanner's own token dump, not the reference's verdict.
+
+* 9g adds the cost rule: **price the PRODUCER before you choose a placement.**
+  A guard on a character the emitter never writes (`?`) is free wherever it
+  goes; a guard on one the emitter writes at every pair (`:`) costs the same
+  everywhere, and that cost is the strengthening that makes the towers'
+  threaded invariant imply the new test.
+
+* 9h adds the one that comes BEFORE all of these: **ask whether the arm is
+  mixed.** Its arm was filed as vacuous on the strength of a single illegal
+  witness (`"foo" [a]`), and it also admits `&a [b]`, which is legal — so no
+  guard could ever close it. Generate the arm's inhabitants from its
+  CONDITION, then classify each by what the SHIPPED pipeline does with it:
+  rejects ⟹ refutable, accepts-and-parses-correctly ⟹ build vocabulary,
+  accepts-and-parses-wrongly ⟹ a defect. Reflections 612 + 614 + 615 + 616 +
+  617 + 618.
+
+* And 619 adds the one that is not about the scanner at all: before believing
+  an arm needs new VOCABULARY, check that the invariant slot it would live in
+  can hold anything — a conjunct widened in isolation stays pinned by any
+  sibling conjunct over the same positions, and the sibling here
+  (`PendingNode`) was one that no depth-≥1 branch even reads.
+
+* 620 adds its successor: once the slot CAN hold something, ask what else in
+  the invariant is COMPUTED from the same token history — a held token re-
+  points every such index, and here it made the invariant unsatisfiable before
+  any vocabulary for the slot existed. Re-basing the index then breaks each
+  transport that came from a guard reading the raw history, so carry the
+  COINCIDENCE of the two readings as a conjunct, true exactly when the slot is
+  empty; paying that first is what makes the slot's new constructor purely
+  additive.
+
+* 621 adds the last of the trio, and it is not about the invariant at all:
+  when a case still cannot be written after the invariant is right, look at
+  the CLOSURE ARGUMENTS the region passes around. A closure argument wider
+  than the values that actually flow through it is a discarded invariant, and
+  the diagnostic is in the callers — every one of them applying the same
+  injection to reach the type means the extra constructors are in the
+  argument's range and never in its image, so narrowing MOVES a wrapper rather
+  than adding one.
+
+* 622 adds the one that made this row's count go up again, and it is about the
+  SEARCH rather than the guard: a strictening derived from a production `X sep
+  Y` names TWO obligations — where `X` may start (a lookback, over TOKENS) and
+  what must follow it (a lookahead, over CHARACTERS) — and they read disjoint
+  parts of the state in opposite directions, so finding one never surfaces the
+  other. Item 9g shipped one half and recorded the arm as clean; `[?]` and
+  `[?,a]` were still accepted, one of them PINNED as accepted by 9g's own
+  guard file and another by `ScannerHardening`. An incomplete delimiter rule
+  over-accepts and never over-rejects, so a suite of accepted inputs is
+  structurally blind to it: write the production down, read it in both
+  directions, and generate the rejections from the production rather than from
+  the diff.
+
+* 623 is the same lesson applied one level up, to the SOUNDNESS GATE instead
+  of the production: a guard gated to keep it sound names ONE sufficient
+  context for its premise, not the premise, so ungating stays unsound while
+  disjoining a second sufficient context is free — the old disjunct is
+  untouched, so every consumer reads it unchanged. And the second disjunct is
+  in the counterexamples that justified the gate: they are the boundary of the
+  premise, so whatever separates them from the shapes the guard should reject
+  is another context in which it holds. Watch for the signal that stops the
+  search — a guard that is EXACT inside its gate (zero over-acceptances in
+  flow, here) reads as finished.
+
+* 624 is the pricing rule for the consumption side: before threading a new
+  invariant to carry a HISTORY fact ("no break was crossed", "nothing was
+  emitted"), ask whether the machine already records it — a machine that must
+  ACT on its history has to remember it, in an ordinary field, for its own
+  operational reasons, and set-and-never-cleared makes that field a sound
+  witness with one induction. The correspondence relation's silence is a
+  statement about what it was built to project, not about the fact.
+
+* 625 is the one that breaks the row's own pattern: after nine strictenings
+  the question "what does the machine let through?" is automatic, and the
+  tenth arm's answer was the opposite — its shapes were ACCEPTED and CORRECT,
+  and the missing thing was a production ALTERNATIVE in the formalized
+  grammar. 618's alphabet already says accepts-correct ⟹ vocabulary; the trap
+  is reading "vocabulary" as the ACCUMULATOR's. Name the production
+  alternative each shape lands in and check the inductive HAS it — a too-
+  narrow grammar is a strict SUBSET, so every test of what it accepts passes
+  and the gap only ever surfaces as a proof that will not go through.
+
+* And 626 is what the same enumeration found going the other way: run the
+  neighbours through the SHIPPED pipeline and some of them come back REJECTED.
+  That direction is a shipped defect, it is an over-REJECTION rather than an
+  over-acceptance, and nothing in the repo looks for it — a guard suite pins
+  refusals, so every pin survives the repair untouched; only a corpus pins
+  acceptance, and a corpus has no test for what nobody writes. Its cause is
+  worth the name: a flag scoped along the WRONG AXIS (`explicitKeyLine`
+  records a LINE; the construct it bounds spans one ENTRY), which is right
+  exactly where the two coincide — all short input — and whose failure is
+  silent because a flag that SUPPRESSES work refuses rather than mis-emits.
+
+* 627 is the row read from the other end, and it is the payoff rather than a
+  cost: the guards this row counts were all written to REFUTE, so the
+  couplings they left behind are `≠`-shaped, and an arm that must CONSTRUCT
+  needs the same table read forward. That reading is free when the guard's
+  condition is POSITIVE (`opensFlowEntry`) and unavailable when it is a denial
+  (`completesFlowValue = false`) — which is worth knowing while a guard is
+  still being designed, since a positive predicate on the last token buys the
+  producer as well as the rejection. It also settles the held-property-run
+  case for free, and that case is invisible to the `≠` readings, which a
+  property satisfies both of.
+
+* 628 and 629 are the pricing pair, and they matter most where an arm has been
+  carried as "blocked" for several passes. 628: a transition over an INDEXED
+  state family is not one thing — split by the index and some values admit
+  only receptive constructors (TOTAL there, free), some only refutable ones
+  (also total, but wanting a guard), and typically exactly one is MIXED, which
+  is the only class that is work; a mixed class is then a question about the
+  index's SOURCE, and when the source cannot express the distinction, look for
+  a POINTER the machine already keeps. 629 is its correction, and it is the
+  one to apply first: **the residual's KIND is not its PRICE.** A refutable
+  class asks for a refutation and a mixed one for a producer plus a
+  discriminator, which reads like two obligations — but what a class costs is
+  the DATUM that decides it, and classes of different kinds routinely read the
+  SAME datum. Group the residual by datum before writing prices into the plan;
+  the trap is that a refutable class always admits *some* plausible refuting
+  guard, and finding one ends the search before "does a neighbour's datum
+  already cover this?" is asked. 629's other half: when the step has a SECOND
+  index, cross them — the crossing is cheap, a kind belongs to a CELL and
+  never to an index value (here the same tail is MIXED on one row and NOT A
+  STATE on the other), and cells handed back that way cost nothing because the
+  refutation is a guard that already shipped, already carried as a field of
+  the invariant
 
 ### Success Criteria
 
