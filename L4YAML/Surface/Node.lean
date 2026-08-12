@@ -150,6 +150,17 @@ mutual
         GLit ':' s₃ s₄ →
         SBlockIndented n .blockOut s₄ s' →
         SBlockMapEntry n s s'
+    /-- [186] Explicit entry whose VALUE is empty — `? a` with no `:` line at
+        all.  The production's tail is `( l-block-map-explicit-value(n) |
+        e-node )`, so the value is optional and its `e-node` alternative is
+        zero-width: the entry ends exactly where its key does.  (Item 20; the
+        `explicit` arm above is the other alternative, and without this one
+        `? a`, `?`, `? [1]` and every key-only entry parsed correctly with no
+        derivation.) -/
+    | explicitEmpty (n : Nat) (s s₁ s' : SurfPos) :
+        GLit '?' s s₁ →
+        SBlockIndented n .blockOut s₁ s' →
+        SBlockMapEntry n s s'
     /-- [189] Implicit key + ':' + block node. -/
     | implicitKeyNode (n : Nat) (s s₁ s₂ s' : SurfPos) :
         SImplicitKey s s₁ →

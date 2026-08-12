@@ -393,21 +393,26 @@ inductive PendingNode (sc : ScannerState) : Bool → SurfPos → SurfPos → Sur
           SBlockSeqEntries 0 sp_first sp_mid ∧
           (∀ sp_end, SBlockSeqEntries 0 sp_first sp_end → SLYamlStream sp_start sp_end)) :
       PendingNode sc false sp_start sp_block sp_scan
-  /-- Mapping value indicator `:` scanned at column 0, depth 0, with an EMPTY
-      key (`[189]`'s `e-node` key: `: v`, `:`, `: [a]`, `: |`) — the mapping
-      twin of `pendingBlock` (item 13).  The whole entry frame is
-      pre-composed inside `h_close` by the producer (`GLit ':'` +
-      `SBlockMapEntry.emptyKeyNode` + `[187] l+block-mapping` + `[199]` +
-      bare document + implicit continuation), so consumption only ever
-      supplies the VALUE node.  The closure is typed at `.blockIn` — the
-      context every content/flow-open consumer in this file composes — and
-      the producer converts it to `[189]`'s `.blockOut` with
+  /-- A KEYLESS block-mapping entry opened at column 0, depth 0, one node
+      awaited — the mapping twin of `pendingBlock` (item 13).  The whole entry
+      frame is pre-composed inside `h_close` by the producer (`[187]
+      l+block-mapping` + `[199]` + bare document + implicit continuation), so
+      consumption only ever supplies the NODE.  The closure is typed at
+      `.blockIn` — the context every content/flow-open consumer in this file
+      composes — and the producer converts it to `.blockOut` with
       `SBlockNode_blockIn_to_blockOut` (inert at n = 0), which is what lets
       every consumer arm be `pendingBlock`'s verbatim.  No entry-level
       (snoc) closure: a following sibling (`: a⏎: b`) closes this map and
       opens the next as a bare-document continuation, which `[211]`'s
       over-approximate `implicitContinue` admits — the entries-level
-      fidelity is not load-bearing for language membership. -/
+      fidelity is not load-bearing for language membership.
+
+      **What the closure does NOT name is the indicator that opened it**, and
+      that is what makes it reusable: item 13 parked it for `[189]`'s `e-node`
+      key (`: v`, `:`, `: [a]`, `: |`, awaiting the VALUE), and item 20 parks
+      the same constructor for `[186]`'s explicit key (`? a`, `?`, `? [1]`,
+      awaiting the KEY, value `e-node`).  Two `[188]` alternatives, two
+      producers, one pending and one set of consumers. -/
   | pendingMapValue (sp_start sp_block sp_scan : SurfPos)
       (h_close : ∀ sp_mid,
         SBlockNode 0 .blockIn sp_scan sp_mid →
@@ -6500,6 +6505,29 @@ lemma dispatchBlockValue_full_prod (sc : ScannerState) (sp : SurfPos)
       exact scanValue_block_prod sc sp hcorr hpeek s_v hv
   · simp at hok
 
+-- Block key dispatch full production (item 20): the mirror of the `:` lemma
+-- above.  For c = '?' the `-` and `:` arms test their own literal, so a `some`
+-- result IS `scanKey`'s — and `scanKey_prod` already reads it as `GLit '?'`
+-- across the block branch's `pushMappingIndent`.
+lemma dispatchBlockKey_full_prod (sc : ScannerState) (sp : SurfPos)
+    {s' : ScannerState}
+    (hcorr : ScannerSurfCorr sc sp)
+    (hpeek : sc.peek? = some '?')
+    (hok : scanNextToken_dispatchBlockIndicators sc '?' = .ok (some s')) :
+    ∃ sp', GLit '?' sp sp' ∧ ScannerSurfCorr s' sp' := by
+  unfold scanNextToken_dispatchBlockIndicators at hok
+  simp only [bind, Except.bind, pure, Except.pure] at hok
+  have hdash : (('?' : Char) == '-' : Bool) = false := by native_decide
+  have hcolon : (('?' : Char) == ':' : Bool) = false := by native_decide
+  simp only [hdash, hcolon, Bool.false_and, if_neg Bool.false_ne_true] at hok
+  split at hok
+  · split at hok
+    · simp at hok
+    · rename_i s_k hk
+      have h := Except.ok.inj hok; injection h with h; subst h
+      exact scanKey_prod sc sp hcorr hpeek s_k hk
+  · simp at hok
+
 -- The col-0 `:` producer (item 13): from a stream already closed at the
 -- line start, the value indicator opens an EMPTY-KEY block mapping and
 -- parks `pendingMapValue`.  The entry frame — `s-indent(0)` +
@@ -6538,11 +6566,7 @@ lemma colon_open_map (sp_start sp_mid : SurfPos)
       (corr_of_allowDirectives_update hcorr_prep) hpeek_disp h_dispatch
   have hsp_eq := ScannerSurfCorr_unique hcorr_colon hcorr_result
   rw [hsp_eq] at h_lit
-  have hcol_eq : sp_mid = ⟨sp_mid.chars, 0⟩ := by
-    cases sp_mid; simp at hcol_mid; simp [hcol_mid]
-  have h_ssl_zero : SSLComments sp_mid sp_mid :=
-    hcol_eq ▸ SSLComments.startOfLine sp_mid.chars ⟨sp_mid.chars, 0⟩
-      (GStar.nil ⟨sp_mid.chars, 0⟩)
+  have h_ssl_zero : SSLComments sp_mid sp_mid := sslComments_refl_of_col0 hcol_mid
   exact ⟨sp_mid, sp_mid, sp_mid, sp_scan', h_stream_mid,
          BlockStack.nil sp_mid, FlowStackB.nil sp_mid .sep,
          PendingNode.pendingMapValue sp_start sp_mid sp_scan'
@@ -6563,6 +6587,106 @@ lemma colon_open_map (sp_start sp_mid : SurfPos)
                (GOpt.some sp_mid sp_v (SLAnyDocument.bare sp_mid sp_v h_bare))
                (GStar.nil _)),
          hcorr_result⟩
+
+-- The col-0 `?` producer (item 20): the explicit-key twin of `colon_open_map`.
+--
+-- Nothing about the pending changes.  `pendingMapValue`'s closure names only
+-- what it AWAITS — one `SBlockNode 0 .blockIn` starting at the indicator's
+-- right edge — and never the indicator that opened it, so a producer for a
+-- DIFFERENT `[188]` alternative reuses it verbatim: the awaited node is the
+-- explicit KEY rather than the value, and the frame composed here is
+-- `[186] c-l-block-map-explicit-entry` with its `e-node` value instead of
+-- `[189]`'s empty-key entry.  Every consumption arm (`accum_content_on_pendingMapValue`
+-- and siblings) is untouched, and the `? a⏎: v` continuation rides `[211]`
+-- exactly as `: a⏎: b`'s sibling does.
+--
+-- The `e-node` value alternative is what item 20 had to ADD to the surface
+-- grammar (`SBlockMapEntry.explicitEmpty`): `SBlockMapEntry.explicit` demanded
+-- the `:` line, so a key-only entry had no derivation at all.
+lemma question_open_map (sp_start sp_mid : SurfPos)
+    (s_prep s' : ScannerState) (sp_scan' : SurfPos)
+    (h_stream_mid : SLYamlStream sp_start sp_mid)
+    (hcol_mid : sp_mid.col = 0)
+    (hcorr_prep : ScannerSurfCorr s_prep sp_mid)
+    (hcorr_result : ScannerSurfCorr s' sp_scan')
+    (hpeek : s_prep.peek? = some '?')
+    (h_dispatch : scanNextToken_dispatchBlockIndicators
+        (if s_prep.allowDirectives then
+          { s_prep with allowDirectives := false, documentEverStarted := true }
+        else s_prep) '?' = .ok (some s')) :
+    ∃ sp_gram' sp_block' sp_flow' sp_scan',
+      SLYamlStream sp_start sp_gram' ∧
+      BlockStack sp_gram' sp_block' ∧
+      FlowStackB sp_start 0 #[] #[] .sep sp_block' sp_flow' ∧
+      PendingNode s' false sp_start sp_flow' sp_scan' ∧
+      ScannerSurfCorr s' sp_scan' := by
+  have hpeek_disp : (if s_prep.allowDirectives then
+      { s_prep with allowDirectives := false, documentEverStarted := true }
+    else s_prep).peek? = some '?' := by
+    split
+    · show s_prep.peek? = some '?'; exact hpeek
+    · exact hpeek
+  obtain ⟨sp_q, h_lit, hcorr_q⟩ :=
+    dispatchBlockKey_full_prod _ sp_mid
+      (corr_of_allowDirectives_update hcorr_prep) hpeek_disp h_dispatch
+  have hsp_eq := ScannerSurfCorr_unique hcorr_q hcorr_result
+  rw [hsp_eq] at h_lit
+  have h_ssl_zero : SSLComments sp_mid sp_mid := sslComments_refl_of_col0 hcol_mid
+  exact ⟨sp_mid, sp_mid, sp_mid, sp_scan', h_stream_mid,
+         BlockStack.nil sp_mid, FlowStackB.nil sp_mid .sep,
+         PendingNode.pendingMapValue sp_start sp_mid sp_scan'
+           (fun sp_k h_node =>
+             have h_key : SBlockIndented 0 .blockOut sp_scan' sp_k :=
+               SBlockIndented.node 0 .blockOut sp_scan' sp_k
+                 (SBlockNode_blockIn_to_blockOut h_node)
+             have h_entry : SBlockMapEntry 0 sp_mid sp_k :=
+               SBlockMapEntry.explicitEmpty 0 sp_mid sp_scan' sp_k h_lit h_key
+             have h_entries : SBlockMapEntries 0 sp_mid sp_k :=
+               SBlockMapEntries.single 0 sp_mid sp_mid sp_k
+                 (SIndent.zero sp_mid) h_entry
+             have h_map : SBlockNode 0 .blockIn sp_mid sp_k :=
+               SBlockNode.blockMap 0 .blockIn sp_mid sp_mid sp_mid sp_k
+                 (GOpt.none sp_mid) h_ssl_zero h_entries
+             have h_bare : SLBareDocument sp_mid sp_k :=
+               SLBareDocument.mk sp_mid sp_k h_map
+             SLYamlStream.implicitContinue sp_start sp_mid sp_mid sp_k sp_k
+               h_stream_mid (GStar.nil _)
+               (GOpt.some sp_mid sp_k (SLAnyDocument.bare sp_mid sp_k h_bare))
+               (GStar.nil _)),
+         hcorr_result⟩
+
+-- The two KEYLESS block-mapping openers under one name (item 20).  They
+-- compose different `[188]` alternatives, but the dispatch arm that reaches
+-- them is character-for-character the same — same landing, same `hws`/`hcmt`
+-- split, same pending — so the four block-dispatch producers take ONE branch
+-- for both indicators rather than a copy each.
+lemma indicator_open_map (sp_start sp_mid : SurfPos) (c : Char)
+    (hc : c = ':' ∨ c = '?')
+    (s_prep s' : ScannerState) (sp_scan' : SurfPos)
+    (h_stream_mid : SLYamlStream sp_start sp_mid)
+    (hcol_mid : sp_mid.col = 0)
+    (hcorr_prep : ScannerSurfCorr s_prep sp_mid)
+    (hcorr_result : ScannerSurfCorr s' sp_scan')
+    (hpeek : s_prep.peek? = some c)
+    (h_dispatch : scanNextToken_dispatchBlockIndicators
+        (if s_prep.allowDirectives then
+          { s_prep with allowDirectives := false, documentEverStarted := true }
+        else s_prep) c = .ok (some s')) :
+    ∃ sp_gram' sp_block' sp_flow' sp_scan',
+      SLYamlStream sp_start sp_gram' ∧
+      BlockStack sp_gram' sp_block' ∧
+      FlowStackB sp_start 0 #[] #[] .sep sp_block' sp_flow' ∧
+      PendingNode s' false sp_start sp_flow' sp_scan' ∧
+      ScannerSurfCorr s' sp_scan' := by
+  cases hc with
+  | inl h =>
+    subst h
+    exact colon_open_map sp_start sp_mid s_prep s' sp_scan' h_stream_mid hcol_mid
+      hcorr_prep hcorr_result hpeek h_dispatch
+  | inr h =>
+    subst h
+    exact question_open_map sp_start sp_mid s_prep s' sp_scan' h_stream_mid hcol_mid
+      hcorr_prep hcorr_result hpeek h_dispatch
 
 /-- The head IS `[188]`, arm for arm: the plain head is `[193]`'s YAML key
     directly (`SNsPlain 0 .blockKey` IS `SNsPlainOneLine .blockKey`), a flow
@@ -6616,11 +6740,7 @@ lemma colon_open_map_implicit (sp_start sp_key sp_gram sp_ws : SurfPos)
       (corr_of_allowDirectives_update hcorr_prep) hpeek_disp h_dispatch
   have hsp_eq := ScannerSurfCorr_unique hcorr_colon hcorr_result
   rw [hsp_eq] at h_lit
-  have hcol_eq : sp_key = ⟨sp_key.chars, 0⟩ := by
-    cases sp_key; simp at hcol0; simp [hcol0]
-  have h_ssl_zero : SSLComments sp_key sp_key :=
-    hcol_eq ▸ SSLComments.startOfLine sp_key.chars ⟨sp_key.chars, 0⟩
-      (GStar.nil ⟨sp_key.chars, 0⟩)
+  have h_ssl_zero : SSLComments sp_key sp_key := sslComments_refl_of_col0 hcol0
   have h_ik : SImplicitKey sp_key sp_ws := implicitKeyHead_to_SImplicitKey h_ol h_ws
   exact ⟨sp_key, sp_key, sp_key, sp_scan', h_stream_key,
          BlockStack.nil sp_key, FlowStackB.nil sp_key .sep,
@@ -6754,19 +6874,19 @@ lemma accum_block_on_noPending
           exact absurd (h_eq ▸ hc) (scNbCommentText_irrefl sp_mid)
       | cons =>
         exact block_dispatch_deferred sp_start sp_block sp_scan' s' h_stream_block hcorr_result
-    · -- c ≠ '-' at col 0: a ':' opens an empty-key block mapping (item 13);
-      -- '?' still rides the deferral.
-      by_cases hcv : c = ':'
-      · subst hcv
-        obtain ⟨sp_mid, sp_ws, sp_sc, h_ssl_pre, hcol_mid, hws, hcmt, hcorr_sc, h_pk⟩ :=
-          preprocess_some_ssl_comments_col0 sc sp_block s_prep ':' h_corr hcol h_preprocess
+    · -- c ≠ '-' at col 0: a ':' opens `[189]`'s empty-key entry (item 13) and
+      -- a '?' opens `[186]`'s explicit-key one (item 20) — ONE arm, because
+      -- the pending both park names only the node it awaits.
+      by_cases hcv : c = ':' ∨ c = '?'
+      · obtain ⟨sp_mid, sp_ws, sp_sc, h_ssl_pre, hcol_mid, hws, hcmt, hcorr_sc, h_pk⟩ :=
+          preprocess_some_ssl_comments_col0 sc sp_block s_prep c h_corr hcol h_preprocess
         have hsp_sc_eq := ScannerSurfCorr_unique hcorr_sc hcorr_prep
         subst hsp_sc_eq
         cases hws with
         | nil =>
           cases hcmt with
           | none =>
-            exact colon_open_map sp_start _ s_prep s' sp_scan'
+            exact indicator_open_map sp_start _ c hcv s_prep s' sp_scan'
               (ssl_comments_extend_stream sp_start sp_block _ h_stream_block h_ssl_pre)
               hcol_mid hcorr_prep hcorr_result
               (preprocess_some_peek h_preprocess) h_dispatch
@@ -6875,15 +6995,14 @@ lemma accum_block_on_closeThenBlock
           exact absurd (h_eq ▸ hc) (scNbCommentText_irrefl sp_mid)
       | cons =>
         exact block_dispatch_deferred sp_start sp_mid sp_scan' s' h_stream_new hcorr_result
-  · -- c ≠ '-' at the landing: a ':' opens an empty-key block mapping there
-    -- (item 13); '?' still defers.
-    by_cases hcv : c = ':'
-    · subst hcv
-      cases hws with
+  · -- c ≠ '-' at the landing: a ':' opens `[189]`'s empty-key entry there
+    -- (item 13), a '?' opens `[186]`'s explicit-key one (item 20) — one arm.
+    by_cases hcv : c = ':' ∨ c = '?'
+    · cases hws with
       | nil =>
         cases hcmt with
         | none =>
-          exact colon_open_map sp_start _ s_prep s' sp_scan'
+          exact indicator_open_map sp_start _ c hcv s_prep s' sp_scan'
             h_stream_new hcol_mid hcorr_prep hcorr_result
             (preprocess_some_peek h_preprocess) h_dispatch
         | some =>
@@ -7044,15 +7163,14 @@ lemma accum_block_on_pendingBlockContent
       | cons =>
         exact block_dispatch_deferred sp_start sp_mid sp_scan' s'
           (h_close_pending sp_mid h_ssl) hcorr_result
-  · -- c ≠ '-' at the landing: a ':' opens an empty-key block mapping there
-    -- (item 13); '?' still defers.
-    by_cases hcv : c = ':'
-    · subst hcv
-      cases hws with
+  · -- c ≠ '-' at the landing: a ':' opens `[189]`'s empty-key entry there
+    -- (item 13), a '?' opens `[186]`'s explicit-key one (item 20) — one arm.
+    by_cases hcv : c = ':' ∨ c = '?'
+    · cases hws with
       | nil =>
         cases hcmt with
         | none =>
-          exact colon_open_map sp_start _ s_prep s' sp_scan'
+          exact indicator_open_map sp_start _ c hcv s_prep s' sp_scan'
             (h_close_pending _ h_ssl) hcol_mid hcorr_prep hcorr_result
             (preprocess_some_peek h_preprocess) h_dispatch
         | some =>
@@ -7144,15 +7262,14 @@ lemma accum_block_on_pendingBlock
       | cons =>
         exact block_dispatch_deferred sp_start sp_mid sp_scan' s'
           (h_close_pending sp_mid h_ssl) hcorr_result
-  · -- c ≠ '-' at the landing: a ':' opens an empty-key block mapping there
-    -- (item 13); '?' still defers.
-    by_cases hcv : c = ':'
-    · subst hcv
-      cases hws with
+  · -- c ≠ '-' at the landing: a ':' opens `[189]`'s empty-key entry there
+    -- (item 13), a '?' opens `[186]`'s explicit-key one (item 20) — one arm.
+    by_cases hcv : c = ':' ∨ c = '?'
+    · cases hws with
       | nil =>
         cases hcmt with
         | none =>
-          exact colon_open_map sp_start _ s_prep s' sp_scan'
+          exact indicator_open_map sp_start _ c hcv s_prep s' sp_scan'
             (h_close_pending _ h_ssl) hcol_mid hcorr_prep hcorr_result
             (preprocess_some_peek h_preprocess) h_dispatch
         | some =>

@@ -28,6 +28,7 @@ import Tests.Guards.Proofs.ScannerDoubleQuoted
 import Tests.Guards.Proofs.ScannerBreakCrossedBlockCompose
 import Tests.Guards.Proofs.ScannerEmitBridge
 import Tests.Guards.Proofs.ScannerEmptyKeyMapping
+import Tests.Guards.Proofs.ScannerExplicitKeyCompose
 import Tests.Guards.Proofs.ScannerImplicitKeyCompose
 import Tests.Guards.Proofs.ScannerPlainNoGainRewind
 import Tests.Guards.Proofs.ScannerPropsAliasKeyCompose
