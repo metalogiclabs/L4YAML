@@ -6528,6 +6528,42 @@ lemma dispatchBlockKey_full_prod (sc : ScannerState) (sp : SurfPos)
       exact scanKey_prod sc sp hcorr hpeek s_k hk
   · simp at hok
 
+-- The three readers above are exhaustive (item 21).  Each of the dispatcher's
+-- arms opens with its own literal test, so a `some` result NAMES its character:
+-- there is no fourth block indicator, and the classical split on `c` that the
+-- four block-dispatch lemmas perform is strictly FINER than the dispatcher can
+-- branch.  The branches past `-`, `:` and `?` were being routed to
+-- `block_dispatch_deferred`, which stated them as deferred input; they are not
+-- input at all (Reflection 646).
+lemma dispatchBlockIndicators_indicator_of_some {s s' : ScannerState} {c : Char}
+    (h : scanNextToken_dispatchBlockIndicators s c = .ok (some s')) :
+    c = '-' ∨ c = '?' ∨ c = ':' := by
+  by_cases hd : c = '-'
+  · exact Or.inl hd
+  · by_cases hq : c = '?'
+    · exact Or.inr (Or.inl hq)
+    · by_cases hv : c = ':'
+      · exact Or.inr (Or.inr hv)
+      · exfalso
+        have h1 : (c == '-') = false := by simp [hd]
+        have h2 : (c == '?') = false := by simp [hq]
+        have h3 : (c == ':') = false := by simp [hv]
+        unfold scanNextToken_dispatchBlockIndicators at h
+        simp only [bind, Except.bind, pure, Except.pure, h1, h2, h3,
+          Bool.false_and, if_neg Bool.false_ne_true] at h
+        injection h with h
+        exact absurd h (by simp)
+
+/-- The three block-dispatch lemmas' shared refutation (item 21): with `-` and
+    the two mapping indicators already taken, no character is left. -/
+lemma block_indicator_exhausted {s s' : ScannerState} {c : Char}
+    (h : scanNextToken_dispatchBlockIndicators s c = .ok (some s'))
+    (hdash : ¬ c = '-') (hmap : ¬ (c = ':' ∨ c = '?')) : False := by
+  rcases dispatchBlockIndicators_indicator_of_some h with h | h | h
+  · exact hdash h
+  · exact hmap (Or.inr h)
+  · exact hmap (Or.inl h)
+
 -- The col-0 `:` producer (item 13): from a stream already closed at the
 -- line start, the value indicator opens an EMPTY-KEY block mapping and
 -- parks `pendingMapValue`.  The entry frame — `s-indent(0)` +
@@ -6768,12 +6804,30 @@ lemma colon_open_map_implicit (sp_start sp_key sp_gram sp_ws : SurfPos)
     Each theorem handles one substantial `PendingNode` constructor case for
     `accum_block_pending`. The main theorem delegates to these after the
     shared preamble (corr extraction + `h_close_pending`). Non-proven
-    branches (cons/c≠'-'/col≠0/n≠0) delegate to `block_dispatch_deferred`. -/
+    branches (cons/residue/n≠0) delegate to `block_dispatch_deferred`. -/
 
 -- Deferred sorry: constructs pendingFlow with stream evidence.
 -- Concentrates all block-dispatch catch-all sorry into close_with_ssl.
--- Called for: whitespace-before-dash (cons), non-dash indicators (c≠'-'),
--- col≠0 no-break, and n≠0 pending cases.
+--
+-- What still reaches it, after item 21 audited the branches against the
+-- dispatcher itself (14 call sites, three families — and the domain is what
+-- the claim is, not the count; Reflection 645):
+--
+--   * **whitespace before the indicator** (`hws = cons`, 8 sites) — an
+--     INDENTED block collection, blocked one level down in the surface
+--     grammar: `[183]`/`[187]` auto-detect their `m`, `SBlockSeqEntries n`
+--     hardcodes `SIndent n`, and `blockSeq`/`blockMap` pass `seqSpaces n c`
+--     exactly, so `  - a` and `a:⏎  - x` have no derivation at all (item 21's
+--     diagnosis; Reflection 647).  Composing them needs the production's
+--     existential back AND the pendings' awaited node re-indexed off 0.
+--   * **the inline residue** (5 sites) — a mid-line park that crosses no
+--     break, so nothing can close there (item 19's irreducible remainder).
+--   * **`pendingBlockContent` with n ≠ 0** (1 site) — no producer in this
+--     file supplies a nonzero entry indent, but the constructor admits one.
+--
+-- What no longer reaches it: a non-indicator character (refuted from the
+-- dispatcher — `block_indicator_exhausted`), and `noPending` parked at a
+-- column other than 0 (gated on the landing, like its three siblings).
 lemma block_dispatch_deferred
     (sp_start sp_X sp_scan' : SurfPos) (s' : ScannerState)
     (h_stream : SLYamlStream sp_start sp_X)
@@ -6790,8 +6844,8 @@ lemma block_dispatch_deferred
    hcorr⟩
 
 -- Block dispatch with noPending: fresh block entry.
--- Handles '-' at col=0 with full closures; non-proven branches delegate
--- to block_dispatch_deferred.
+-- Handles '-' at the LANDING with full closures; the remaining branches
+-- delegate to block_dispatch_deferred.
 lemma accum_block_on_noPending
     (sc : ScannerState) (sp_start sp_block : SurfPos)
     (s_prep s' : ScannerState) (c : Char) (sp_prep sp_scan' : SurfPos)
@@ -6810,29 +6864,39 @@ lemma accum_block_on_noPending
       FlowStackB sp_start 0 #[] #[] .sep sp_block' sp_flow' ∧
       PendingNode s' false sp_start sp_flow' sp_scan' ∧
       ScannerSurfCorr s' sp_scan' := by
-  by_cases hcol : sp_block.col = 0
-  · by_cases hc : c = '-'
-    · subst hc
-      have hpeek_disp : (if s_prep.allowDirectives then
-          { s_prep with allowDirectives := false, documentEverStarted := true }
-        else s_prep).peek? = some '-' := by
-        have := preprocess_some_peek h_preprocess
-        split
-        · show s_prep.peek? = some '-'; exact this
-        · exact this
-      obtain ⟨sp_dash, h_dash, h_gnot, hcorr_dash⟩ :=
-        dispatchBlockEntry_full_prod _ sp_prep
-          (corr_of_allowDirectives_update hcorr_prep) hpeek_disp h_dispatch
-      have hsp_dash_eq := ScannerSurfCorr_unique hcorr_dash hcorr_result
-      rw [hsp_dash_eq] at h_dash h_gnot
-      obtain ⟨sp_mid, sp_ws, sp_sc, h_ssl_pre, hcol_mid, hws, hcmt, hcorr_sc, h_pk⟩ :=
-        preprocess_some_ssl_comments_col0 sc sp_block s_prep '-' h_corr hcol h_preprocess
-      have hsp_sc_eq := ScannerSurfCorr_unique hcorr_sc hcorr_prep
-      subst hsp_sc_eq
-      cases hws with
+  -- Item 21: the last block-dispatch lemma that still gated on the PARK column
+  -- moves onto the landing (item 19's rule, R643).  Neither body ever reads
+  -- `sp_block.col`: the `-` arm anchors its document at `sp_block` and absorbs
+  -- the gap as the collection's own `[79] s-l-comments`, and the `:`/`?` arm
+  -- pushes the gap into the STREAM before `indicator_open_map` re-opens at the
+  -- landing.  Only `preprocess_some_ssl_comments_col0` wanted the column, and
+  -- the landing lemma supplies the same `SSLComments` without it.  What is left
+  -- is the inline residue — the same one the other three lemmas defer.
+  obtain ⟨sp_mid, sp_ws, sp_sc, h_land, hws, hcmt, hcorr_sc, h_pk⟩ :=
+    preprocess_some_ssl_comments_landing sc sp_block s_prep c h_corr h_preprocess
+  have hsp_sc_eq := ScannerSurfCorr_unique hcorr_sc hcorr_prep
+  subst hsp_sc_eq
+  refine h_land.elim (fun h_landed => ?_) (fun _ =>
+    block_dispatch_deferred sp_start sp_block sp_scan' s' h_stream_block hcorr_result)
+  obtain ⟨h_ssl_pre, hcol_mid⟩ := h_landed
+  by_cases hc : c = '-'
+  · subst hc
+    cases hws with
       | nil =>
         cases hcmt with
         | none =>
+          have hpeek_disp : (if s_prep.allowDirectives then
+              { s_prep with allowDirectives := false, documentEverStarted := true }
+            else s_prep).peek? = some '-' := by
+            have := preprocess_some_peek h_preprocess
+            split
+            · show s_prep.peek? = some '-'; exact this
+            · exact this
+          obtain ⟨sp_dash, h_dash, h_gnot, hcorr_dash⟩ :=
+            dispatchBlockEntry_full_prod _ sp_mid
+              (corr_of_allowDirectives_update hcorr_prep) hpeek_disp h_dispatch
+          have hsp_dash_eq := ScannerSurfCorr_unique hcorr_dash hcorr_result
+          rw [hsp_dash_eq] at h_dash h_gnot
           exact ⟨sp_block, sp_block, sp_block, sp_scan', h_stream_block,
                  BlockStack.nil sp_block, FlowStackB.nil sp_block .sep,
                  PendingNode.pendingBlock sp_start sp_block sp_scan'
@@ -6874,30 +6938,25 @@ lemma accum_block_on_noPending
           exact absurd (h_eq ▸ hc) (scNbCommentText_irrefl sp_mid)
       | cons =>
         exact block_dispatch_deferred sp_start sp_block sp_scan' s' h_stream_block hcorr_result
-    · -- c ≠ '-' at col 0: a ':' opens `[189]`'s empty-key entry (item 13) and
-      -- a '?' opens `[186]`'s explicit-key one (item 20) — ONE arm, because
-      -- the pending both park names only the node it awaits.
-      by_cases hcv : c = ':' ∨ c = '?'
-      · obtain ⟨sp_mid, sp_ws, sp_sc, h_ssl_pre, hcol_mid, hws, hcmt, hcorr_sc, h_pk⟩ :=
-          preprocess_some_ssl_comments_col0 sc sp_block s_prep c h_corr hcol h_preprocess
-        have hsp_sc_eq := ScannerSurfCorr_unique hcorr_sc hcorr_prep
-        subst hsp_sc_eq
-        cases hws with
-        | nil =>
-          cases hcmt with
-          | none =>
-            exact indicator_open_map sp_start _ c hcv s_prep s' sp_scan'
-              (ssl_comments_extend_stream sp_start sp_block _ h_stream_block h_ssl_pre)
-              hcol_mid hcorr_prep hcorr_result
-              (preprocess_some_peek h_preprocess) h_dispatch
-          | some =>
-            rename_i hcnb
-            have h_eq := h_pk.resolve_right (by simp [preprocess_some_peek h_preprocess])
-            exact absurd (h_eq ▸ hcnb) (scNbCommentText_irrefl sp_mid)
-        | cons =>
-          exact block_dispatch_deferred sp_start sp_block sp_scan' s' h_stream_block hcorr_result
-      · exact block_dispatch_deferred sp_start sp_block sp_scan' s' h_stream_block hcorr_result
-  · exact block_dispatch_deferred sp_start sp_block sp_scan' s' h_stream_block hcorr_result
+  · -- c ≠ '-' at the landing: a ':' opens `[189]`'s empty-key entry (item 13)
+    -- and a '?' opens `[186]`'s explicit-key one (item 20) — ONE arm, because
+    -- the pending both park names only the node it awaits.
+    by_cases hcv : c = ':' ∨ c = '?'
+    · cases hws with
+      | nil =>
+        cases hcmt with
+        | none =>
+          exact indicator_open_map sp_start _ c hcv s_prep s' sp_scan'
+            (ssl_comments_extend_stream sp_start sp_block _ h_stream_block h_ssl_pre)
+            hcol_mid hcorr_prep hcorr_result
+            (preprocess_some_peek h_preprocess) h_dispatch
+        | some =>
+          rename_i hcnb
+          have h_eq := h_pk.resolve_right (by simp [preprocess_some_peek h_preprocess])
+          exact absurd (h_eq ▸ hcnb) (scNbCommentText_irrefl sp_mid)
+      | cons =>
+        exact block_dispatch_deferred sp_start sp_block sp_scan' s' h_stream_block hcorr_result
+    · exact (block_indicator_exhausted h_dispatch hc hcv).elim
 
 -- Block dispatch after closing old pending: '-' at col=0 opens new block sequence.
 -- Shared by pendingContent and pendingFlow constructors.
@@ -7011,7 +7070,7 @@ lemma accum_block_on_closeThenBlock
           exact absurd (h_eq ▸ hcnb) (scNbCommentText_irrefl sp_mid)
       | cons =>
         exact block_dispatch_deferred sp_start sp_mid sp_scan' s' h_stream_new hcorr_result
-    · exact block_dispatch_deferred sp_start sp_mid sp_scan' s' h_stream_new hcorr_result
+    · exact (block_indicator_exhausted h_dispatch hc hcv).elim
 
 -- Block dispatch with pendingContent (item 15): the SAME-LINE `:` fires the
 -- implicit-key coupling.  The guard's two facts are decidable on the parking
@@ -7180,8 +7239,7 @@ lemma accum_block_on_pendingBlockContent
       | cons =>
         exact block_dispatch_deferred sp_start sp_mid sp_scan' s'
           (h_close_pending sp_mid h_ssl) hcorr_result
-    · exact block_dispatch_deferred sp_start sp_mid sp_scan' s'
-        (h_close_pending sp_mid h_ssl) hcorr_result
+    · exact (block_indicator_exhausted h_dispatch hc hcv).elim
 
 -- Block dispatch with pendingBlock: accumulate entries via h_close_entry_old.
 lemma accum_block_on_pendingBlock
@@ -7279,8 +7337,7 @@ lemma accum_block_on_pendingBlock
       | cons =>
         exact block_dispatch_deferred sp_start sp_mid sp_scan' s'
           (h_close_pending sp_mid h_ssl) hcorr_result
-    · exact block_dispatch_deferred sp_start sp_mid sp_scan' s'
-        (h_close_pending sp_mid h_ssl) hcorr_result
+    · exact (block_indicator_exhausted h_dispatch hc hcv).elim
 
 -- Helper: handles all PendingNode cases for block dispatch given stream at sp_block.
 lemma accum_block_pending (sc : ScannerState)
