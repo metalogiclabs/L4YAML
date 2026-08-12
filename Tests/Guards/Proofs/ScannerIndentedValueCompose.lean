@@ -141,22 +141,19 @@ entry index, so both take the same lift. -/
 /-! ## §6  What the one-line lift does NOT reach — accepted, derivation owed
 
 `indentedValue_reads_at_any_indent` asks the whole question once, and these are
-its negative answers.  They are pinned here because the reasons are now
-DIFFERENT from each other, where item 22 could record only one:
+its negative answers:
 
-* a property run — `pendingProps` routes the decorated node through a closure
-  still typed at `SBlockNode 0`, so the RUN wants re-indexing, not the content;
 * a block scalar — `[170]`/`[174]` auto-detect their own content indent, so the
   reading at 0 pins that existential exactly as inlining `m` pinned
   `[183]`/`[187]`'s: Reflection 647's shape, one level down;
 * a value that FOLDS onto a second line — precisely the case in which the index
-  DOES occur, so there is nothing to lift. -/
+  DOES occur, so there is nothing to lift.
 
-#guard emits "  - &a v\n"
-  ["+STR", "+DOC", "+SEQ", "=VAL &a :v", "-SEQ", "-DOC", "-STR"]
-#guard emits "  - !!str v\n"
-  ["+STR", "+DOC", "+SEQ", "=VAL <tag:yaml.org,2002:str> :v", "-SEQ", "-DOC",
-   "-STR"]
+The property run was a third answer here until item 24 showed it was never a
+question about the reading at all: `&`/`!` complete no value, they open a run
+that `pendingProps` PARKS, and re-indexing that pending's route composes
+`  - &a v` with no lift whatever (`ScannerIndentedPropsCompose`). -/
+
 #guard emits "  - |\n    text\n"
   ["+STR", "+DOC", "+SEQ", "=VAL |text\\n", "-SEQ", "-DOC", "-STR"]
 #guard emits "  - a\n    b\n"
@@ -164,11 +161,11 @@ DIFFERENT from each other, where item 22 could record only one:
 
 /-! ## §7  Not a content lift at all
 
-`  - [1]`'s pinned 0 is in `FlowStackB`'s resume type — the flow node is
+`  - [1]`'s pinned 0 is in `FlowOpenStack`'s resume type — the flow node is
 supplied when the COLLECTION closes, not by the dispatch step — so it rides
-`scannerDrop` rather than the block deferral, and no widening of the content
-evidence would reach it.  `  a: 1` is the indented IMPLICIT key, whose pack
-requires a column-0 line start (`ImplicitKeyPack`). -/
+`scannerDrop` rather than the block deferral, and neither a wider content
+reading nor item 24's wider props route reaches it.  `  a: 1` is the indented
+IMPLICIT key, whose pack requires a column-0 line start (`ImplicitKeyPack`). -/
 
 #guard emits "  - [1]\n"
   ["+STR", "+DOC", "+SEQ", "+SEQ []", "=VAL :1", "-SEQ", "-SEQ", "-DOC", "-STR"]

@@ -400,12 +400,18 @@ lemma SNsPlain_of_oneLine_flowOut (n : Nat) {s s' : SurfPos}
     (h : SNsPlainOneLine .flowOut s s') : SNsPlain n .flowOut s s' :=
   SNsPlainMultiLine.mk n .flowOut s s' s' h (GStar.nil _)
 
--- [161] ns-flow-node(n,flow-out) from item 15's `.blockKey` one-line plain
--- witness, at every index.
+-- [156] ns-flow-content(n,flow-out) from item 15's `.blockKey` one-line plain
+-- witness, at every index.  Item 24 wants the CONTENT rather than the node:
+-- `[161]`'s `propsContent` arm slots `ns-flow-content` under a property run,
+-- so a decorated value needs the reading one production lower down.
+lemma SFlowContent_plain_of_keyOneLine (n : Nat) {s s' : SurfPos}
+    (h : SNsPlainOneLine .blockKey s s') : SFlowContent n .flowOut s s' :=
+  plain_flowContent (SNsPlain_of_oneLine_flowOut n (SNsPlainOneLine_blockKey_to_flowOut h))
+
+-- [161] ns-flow-node(n,flow-out): the bare node is that content unwrapped.
 lemma SFlowNode_plain_of_keyOneLine (n : Nat) {s s' : SurfPos}
     (h : SNsPlainOneLine .blockKey s s') : SFlowNode n .flowOut s s' :=
-  flowContent_flowNode (plain_flowContent
-    (SNsPlain_of_oneLine_flowOut n (SNsPlainOneLine_blockKey_to_flowOut h)))
+  flowContent_flowNode (SFlowContent_plain_of_keyOneLine n h)
 
 -- [109] c-double-quoted(n,c) re-read at `.flowOut` and EVERY index from a KEY
 -- reading.  `[110] nb-double-text(n₀,block-key)` IS `[111] nb-double-one-line`,
@@ -438,15 +444,21 @@ lemma SCSingleQuoted_key_to_flowOut (n : Nat) {n₀ : Nat} {c₀ : YamlContext}
         (by rcases hc with hk | hk <;> subst hk <;> exact h_text))
       h_close
 
+lemma SFlowContent_doubleQ_of_key (n : Nat) {n₀ : Nat} {s s' : SurfPos}
+    (h : SCDoubleQuoted n₀ .blockKey s s') : SFlowContent n .flowOut s s' :=
+  doubleQuoted_flowContent (SCDoubleQuoted_key_to_flowOut n h (Or.inl rfl))
+
+lemma SFlowContent_singleQ_of_key (n : Nat) {n₀ : Nat} {s s' : SurfPos}
+    (h : SCSingleQuoted n₀ .blockKey s s') : SFlowContent n .flowOut s s' :=
+  singleQuoted_flowContent (SCSingleQuoted_key_to_flowOut n h (Or.inl rfl))
+
 lemma SFlowNode_doubleQ_of_key (n : Nat) {n₀ : Nat} {s s' : SurfPos}
     (h : SCDoubleQuoted n₀ .blockKey s s') : SFlowNode n .flowOut s s' :=
-  flowContent_flowNode
-    (doubleQuoted_flowContent (SCDoubleQuoted_key_to_flowOut n h (Or.inl rfl)))
+  flowContent_flowNode (SFlowContent_doubleQ_of_key n h)
 
 lemma SFlowNode_singleQ_of_key (n : Nat) {n₀ : Nat} {s s' : SurfPos}
     (h : SCSingleQuoted n₀ .blockKey s s') : SFlowNode n .flowOut s s' :=
-  flowContent_flowNode
-    (singleQuoted_flowContent (SCSingleQuoted_key_to_flowOut n h (Or.inl rfl)))
+  flowContent_flowNode (SFlowContent_singleQ_of_key n h)
 
 -- [96] c-ns-properties context re-labelling between the two block contexts.
 -- The embedded separator is `SSeparate n c`, which reduces to

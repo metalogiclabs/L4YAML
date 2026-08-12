@@ -150,16 +150,18 @@ lemma PropsRun.addAnchor {n : Nat} {c : YamlContext} {s s₁ s₂ s' : SurfPos}
     context can matter: a single-half run reads in any context, and a two-half
     run reads at `block-key` exactly when its internal separation stayed on the
     line — which is what the extension arm has in hand, since it built the
-    separator from the preprocessing's residual whites. -/
-lemma PropsRun.blockKey_addTag {s s₁ s₂ s' : SurfPos}
-    (h : PropsRun 0 .flowOut true false s s₁) (hsep : SSeparateInLine s₁ s₂)
+    separator from the preprocessing's residual whites.  The run being extended
+    is single-half, so its own index never occurs and the twins take it at any
+    value (item 24). -/
+lemma PropsRun.blockKey_addTag {n : Nat} {s s₁ s₂ s' : SurfPos}
+    (h : PropsRun n .flowOut true false s s₁) (hsep : SSeparateInLine s₁ s₂)
     (ht : SCNsTagProperty s₂ s') : SCNsProperties 0 .blockKey s s' := by
   cases h with
   | anchor _ _ ha => exact .anchorFirst _ _ _ _ _ ha (.some _ _ (.mk _ _ _ hsep ht))
 
 /-- …and dually. -/
-lemma PropsRun.blockKey_addAnchor {s s₁ s₂ s' : SurfPos}
-    (h : PropsRun 0 .flowOut false true s s₁) (hsep : SSeparateInLine s₁ s₂)
+lemma PropsRun.blockKey_addAnchor {n : Nat} {s s₁ s₂ s' : SurfPos}
+    (h : PropsRun n .flowOut false true s s₁) (hsep : SSeparateInLine s₁ s₂)
     (ha : SCNsAnchorProperty s₂ s') : SCNsProperties 0 .blockKey s s' := by
   cases h with
   | tag _ _ ht => exact .tagFirst _ _ _ _ _ ht (.some _ _ (.mk _ _ _ hsep ha))
@@ -295,18 +297,26 @@ inductive PendingNode (sc : ScannerState) : Bool → SurfPos → SurfPos → Sur
       that the patterns naming the older fields still bind them) is the
       implicit-key coupling's props half: a run opened at a column-0 line start
       re-reads at `block-key` and becomes the head of `&a x: v`; every other
-      run punts. -/
+      run punts.
+
+      `n` (item 24) is the index the ROUTE closes at — the indent of the block
+      node the enclosing context is waiting for, which is 0 at stream level and
+      the entry's own indent inside an indented collection.  It is the run's
+      index too, but only nominally: a single-half run has no occurrence of it
+      at all, and the two-half extension supplies its internal separator from
+      residual whites, so nothing in this constructor ever has to lift a run
+      from one index to another. -/
   | pendingProps (sp_start sp_block sp_scan : SurfPos) (ha ht : Bool)
-      (sp_node sp_p : SurfPos)
-      (h_sep : SSeparateLines 0 sp_node sp_p)
-      (h_run : PropsRun 0 .flowOut ha ht sp_p sp_scan)
+      (sp_node sp_p : SurfPos) (n : Nat)
+      (h_sep : SSeparateLines n sp_node sp_p)
+      (h_run : PropsRun n .flowOut ha ht sp_p sp_scan)
       (h_nic : sc.needIndentCheck = false)
       (h_real : LastTokenReal sc.tokens)
       (h_anchor : ha = true →
         (trailingPropertyRunOnLine sc.tokens sc.line).any YamlToken.isAnchorProperty = true)
       (h_tag : ht = true →
         (trailingPropertyRunOnLine sc.tokens sc.line).any YamlToken.isTagProperty = true)
-      (h_route : ∀ sp_m, SBlockNode 0 .blockIn sp_node sp_m → SLYamlStream sp_start sp_m)
+      (h_route : ∀ sp_m, SBlockNode n .blockIn sp_node sp_m → SLYamlStream sp_start sp_m)
       (h_key : PropsKeyPack sc sp_start sp_p sp_scan ∨ True) :
       PendingNode sc false sp_start sp_block sp_scan
   /-- Document end `...` scanned. The gap contains SCDocumentEnd.
@@ -436,14 +446,14 @@ inductive PendingNode (sc : ScannerState) : Bool → SurfPos → SurfPos → Sur
 /-- The propsEmpty close of a held run: `[161]`'s `( c-ns-properties e-scalar )`
     arm, composed through the block-node route (`[195] s-l+flow-in-block`). -/
 lemma PendingNode.propsClose
-    {sp_start sp_node sp_p sp_scan sp_mid : SurfPos} {ha ht : Bool}
-    (h_sep : SSeparateLines 0 sp_node sp_p)
-    (h_run : PropsRun 0 .flowOut ha ht sp_p sp_scan)
-    (h_route : ∀ sp_m, SBlockNode 0 .blockIn sp_node sp_m → SLYamlStream sp_start sp_m)
+    {n : Nat} {sp_start sp_node sp_p sp_scan sp_mid : SurfPos} {ha ht : Bool}
+    (h_sep : SSeparateLines n sp_node sp_p)
+    (h_run : PropsRun n .flowOut ha ht sp_p sp_scan)
+    (h_route : ∀ sp_m, SBlockNode n .blockIn sp_node sp_m → SLYamlStream sp_start sp_m)
     (h_ssl : SSLComments sp_scan sp_mid) :
     SLYamlStream sp_start sp_mid :=
   h_route sp_mid (flowInBlock_blockNode h_sep
-    (SFlowNode.propsEmpty 0 .flowOut sp_p sp_scan h_run.toProperties) h_ssl)
+    (SFlowNode.propsEmpty n .flowOut sp_p sp_scan h_run.toProperties) h_ssl)
 
 /-- The coupling pack a fresh `&`/`!` push provides (item 12): the pushed
     property token is the head of the post-state's same-line run, the array
@@ -1885,7 +1895,7 @@ lemma PendingNode.close_with_ssl {sc : ScannerState}
   | pendingContent =>
     rename_i h_closable _
     exact h_closable sp_mid h_ssl
-  | pendingProps _ _ _ ha ht sp_node sp_p h_sep h_run h_nic h_real h_anchor h_tag h_route =>
+  | pendingProps _ _ _ ha ht sp_node sp_p n h_sep h_run h_nic h_real h_anchor h_tag h_route =>
     exact PendingNode.propsClose h_sep h_run h_route h_ssl
   | pendingFlow =>
     -- Absorb opaque scanner content (flow/block indicators) via scannerDrop.
@@ -4403,6 +4413,29 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
           LastTokenReal s'.tokens ∧ s'.allowDirectives = false) :=
     fun h_line hcol hws =>
       (LineNoOpen.no_open_across_whites (h_line.resolve_left hcol) hws h_head h_c).elim
+  -- The OPAQUE resume: the collection re-enters the stream through
+  -- `scannerDrop`, which absorbs the whole gap when it eventually closes.
+  -- Two arms take it, and for the same reason — the resume's argument type is
+  -- `SFlowContent 0 .flowOut`, pinned inside `FlowOpenStack` — so nothing that
+  -- has to re-enter at another index can use the resume at all: the deferred
+  -- state, and (item 24) a property run whose route closes at a NONZERO index
+  -- (`  - &a [b]`).  That pin is the one β.5 has left after the route itself.
+  have opaque_resume : sp_scan.col ≠ 0 → GStar SSWhite sp_scan sp_prep →
+      ∃ sp_gram' sp_block' sp_flow' sp_scan',
+        SLYamlStream sp_start sp_gram' ∧
+        BlockStack sp_gram' sp_block' ∧
+        FlowStackK sp_start s' 1 s'.flowStack (tailOf s'.tokens) sp_block' sp_flow' ∧
+        PendingNode s' false sp_start sp_flow' sp_scan' ∧
+        ScannerSurfCorr s' sp_scan' ∧
+        ((1 : Nat) ≥ 1 →
+          InteriorGap s' (tailOf s'.tokens) sp_flow' sp_scan' ∧
+          LastTokenReal s'.tokens ∧ s'.allowDirectives = false) :=
+    fun _ _ =>
+      ⟨sp_block, sp_block, sp_open, sp_open, h_stream_block, BlockStack.nil _,
+       h_kpkg _ _ (mk sp_block (fun sp_ne sp_m _ h_ssl =>
+         SLYamlStream.scannerDrop sp_start sp_block sp_ne sp_m h_stream_block h_ssl)),
+       PendingNode.noPending sp_start sp_open, hcorr_open,
+       fun _ => ⟨.white (GStar.nil _) h_sync h_colon, h_real, h_ad⟩⟩
   cases h_pending with
   | noPending =>
     -- Nothing to close: the leading separation rides in the fresh bare
@@ -4427,29 +4460,34 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
     -- The deferred state: its own closing strategy is `scannerDrop`, and the
     -- flow node opened here keeps riding it — the resume absorbs the whole
     -- gap opaquely at the eventual close (β.5 retires this with pendingFlow).
-    exact main h_close_pending (fun hcol hws =>
-      ⟨sp_block, sp_block, sp_open, sp_open, h_stream_block, BlockStack.nil _,
-       h_kpkg _ _ (mk sp_block (fun sp_ne sp_m _ h_ssl =>
-         SLYamlStream.scannerDrop sp_start sp_block sp_ne sp_m h_stream_block h_ssl)),
-       PendingNode.noPending sp_start sp_open, hcorr_open,
-       fun _ => ⟨.white (GStar.nil _) h_sync h_colon, h_real, h_ad⟩⟩)
-  | pendingProps _ _ _ ha ht sp_node sp_p h_sep_run h_run h_nic_p h_real_p h_anchor_p h_tag_p h_route =>
+    exact main h_close_pending opaque_resume
+  | pendingProps _ _ _ ha ht sp_node sp_p n h_sep_run h_run h_nic_p h_real_p h_anchor_p h_tag_p
+      h_route =>
     -- Items 9h/10, site 5's legal inhabitant: the held `[96]` run rides INTO
     -- the flow node.  The separation preprocessing crossed (break or not —
     -- `&a [b]` and `&a⏎[b]` alike) becomes the run→content `s-separate`, and
     -- the completed collection re-enters through the pending's block-node
     -- route (item 12: `propsContent` + `[195] s-l+flow-in-block`).
-    obtain ⟨sp_gap, h_sep0, hcorr_gap⟩ :=
-      preprocess_some_separate_0_anyCol sc sp_scan s_prep c h_corr h_preprocess
-    have h_pe : sp_gap = sp_prep := ScannerSurfCorr_unique hcorr_gap hcorr_prep
-    have h_sep : SSeparateLines 0 sp_scan sp_prep := h_pe ▸ h_sep0
-    exact ⟨sp_gram, sp_block, sp_open, sp_open, h_stream, h_stack,
-           h_kpkg _ _ (mk sp_block (fun sp_ne sp_m h_content h_ssl =>
-             h_route sp_m (flowInBlock_blockNode h_sep_run
-               (SFlowNode.propsContent 0 .flowOut sp_p sp_scan sp_prep sp_ne
-                 h_run.toProperties h_sep h_content) h_ssl))),
-           PendingNode.noPending sp_start sp_open, hcorr_open,
-           fun _ => ⟨.white (GStar.nil _) h_sync h_colon, h_real, h_ad⟩⟩
+    --
+    -- Item 24: at a NONZERO route index the ride is unavailable, and the
+    -- obstruction is not the run — it is the resume, whose argument is
+    -- `SFlowContent 0 .flowOut` because `FlowOpenStack` fixed it there.  So
+    -- `  - &a [b]` takes the opaque resume, exactly as `  - [1]` does, and for
+    -- the same reason rather than a props-shaped one.
+    match n, h_sep_run, h_run, h_route with
+    | 0, h_sep_run, h_run, h_route =>
+      obtain ⟨sp_gap, h_sep0, hcorr_gap⟩ :=
+        preprocess_some_separate_0_anyCol sc sp_scan s_prep c h_corr h_preprocess
+      have h_pe : sp_gap = sp_prep := ScannerSurfCorr_unique hcorr_gap hcorr_prep
+      have h_sep : SSeparateLines 0 sp_scan sp_prep := h_pe ▸ h_sep0
+      exact ⟨sp_gram, sp_block, sp_open, sp_open, h_stream, h_stack,
+             h_kpkg _ _ (mk sp_block (fun sp_ne sp_m h_content h_ssl =>
+               h_route sp_m (flowInBlock_blockNode h_sep_run
+                 (SFlowNode.propsContent 0 .flowOut sp_p sp_scan sp_prep sp_ne
+                   h_run.toProperties h_sep h_content) h_ssl))),
+             PendingNode.noPending sp_start sp_open, hcorr_open,
+             fun _ => ⟨.white (GStar.nil _) h_sync h_colon, h_real, h_ad⟩⟩
+    | _ + 1, _, _, _ => exact main h_close_pending opaque_resume
   | pendingDocStart =>
     rename_i h_doc_builder
     obtain ⟨sp_gap, h_sep0, hcorr_gap⟩ :=
@@ -6931,8 +6969,8 @@ lemma colon_open_map_implicit (sp_start sp_key sp_gram sp_ws : SurfPos)
 -- Deferred sorry: constructs pendingFlow with stream evidence.
 -- Concentrates all block-dispatch catch-all sorry into close_with_ssl.
 --
--- What still reaches it, after item 23 gave the indented entry's inline value
--- a reading at its own index (13 call sites, four families — and the domain is
+-- What still reaches it, after item 24 gave the indented entry's property RUN
+-- a route at its own index (14 call sites, four families — and the domain is
 -- what the claim is, not the count; R645/R646):
 --
 --   * **the inline residue** (5 sites) — a mid-line park that crosses no
@@ -6945,26 +6983,28 @@ lemma colon_open_map_implicit (sp_start sp_key sp_gram sp_ws : SurfPos)
 --   * **an indicator at a width other than the collection's** (2 sites) — a
 --     NESTED or dedented collection, which needs `SBlockIndented`'s own
 --     `compactSeq`/`compactMap` arms rather than a snoc.
---   * **an indented value the one-line lift does not reach** (2 sites, one
---     per indented content arm) — `indentedValue_reads_at_any_indent` asks
---     the whole question once and these are its single negative answer: a
---     property run (`  - &a v`, whose `pendingProps` route is still typed at
---     0), a block scalar (`  - |`, whose content indent is auto-detected —
---     R647's shape one level down), a value that FOLDS, or a step that
---     landed on a fresh line.
+--   * **an indented value the one-line reading does not reach** (3 sites: one
+--     per indented content arm, plus the props consumer's nonzero side) — a
+--     block scalar, whose content indent `[170]`/`[174]` auto-detect exactly
+--     as `[183]`/`[187]` did (R647's shape one level down); a value that
+--     FOLDS; or a step that landed on a fresh line.  The question is asked
+--     ONCE per site and these are its negative answers.
 --
--- The flow-collection value (`  - [1]`) reaches `scannerDrop` rather than this
--- lemma, and for a different reason: its pinned 0 is in `FlowStackB`'s resume
--- type, not in a content reading.
+-- The flow-collection value (`  - [1]`, and `  - &a [b]` with it) reaches
+-- `scannerDrop` rather than this lemma, and for a third reason again: its
+-- pinned 0 is in `FlowOpenStack`'s RESUME type, which no widening of the
+-- content evidence or of the props route can reach.
 --
 -- What no longer reaches it: a non-indicator character (item 21, refuted from
 -- the dispatcher — `block_indicator_exhausted`), `noPending` parked at a
 -- column other than 0 (item 21, gated on the landing), whitespace before the
 -- indicator (item 22 — it is `s-indent(k)`, and the empty run is `k = 0`),
 -- `pendingBlockContent` at a nonzero entry index (item 22 — the pending
--- carries its own index now, so the arm never had to assume one), and an
+-- carries its own index now, so the arm never had to assume one), an
 -- indented entry's one-line scalar VALUE (item 23 — a break-free reading
--- mentions no indent, so it re-reads at the entry's).
+-- mentions no indent, so it re-reads at the entry's), and a PROPERTY-decorated
+-- indented value (item 24 — the run itself is what carries the route, and a
+-- fresh single-half run has no occurrence of the index to lift).
 lemma block_dispatch_deferred
     (sp_start sp_X sp_scan' : SurfPos) (s' : ScannerState)
     (h_stream : SLYamlStream sp_start sp_X)
@@ -8599,7 +8639,48 @@ lemma dispatchContent_evidence (sc : ScannerState) (sp : SurfPos)
       indent is auto-detected by the SAME kind of existential item 22 had to
       bind on `[183]`/`[187]`, one level down: `SCLLiteral 0` fixes `0 + m`, and
       `n + m' = 0 + m` needs `m ≥ n`, which the reading at 0 does not carry.
-      That one is a grammar-shaped gap, not a missing lift. -/
+      That one is a grammar-shaped gap, not a missing lift.
+
+    Item 24 splits the statement one production lower: `[156] ns-flow-content`
+    is what `[161]`'s `propsContent` arm slots under a property run, so a
+    DECORATED value needs the content and only the bare value needs the node.
+    The alias is the whole difference — `[104] c-ns-alias-node` is an arm of
+    `[161]`, not of `[156]`, and a run followed by an alias is scanner-refuted
+    anyway (`&a *b`, items 9e/9k), so the content lemma simply does not have
+    that case and the node lemma is it plus one arm. -/
+lemma dispatchContent_evidence_content_oneLine (sc : ScannerState) (sp : SurfPos)
+    {s' : ScannerState} (c : Char)
+    (hcorr : ScannerSurfCorr sc sp)
+    (hpeek : sc.peek? = some c)
+    (h_flow : sc.inFlow = false)
+    (h_not_doc : sc.col = 0 → atDocumentBoundary sc = false)
+    (h_amp : c ≠ '&') (h_star : c ≠ '*') (h_bang : c ≠ '!')
+    (h_pipe : c ≠ '|') (h_gt : c ≠ '>')
+    (h_line : s'.line = sc.line)
+    (hok : scanNextToken_dispatchContent sc c = .ok s') :
+    ∃ sp_gram sp',
+      (∀ n : Nat, SFlowContent n .flowOut sp sp_gram) ∧
+      GStar SSWhite sp_gram sp' ∧
+      ScannerSurfCorr s' sp' := by
+  by_cases hc_dq : c = '"'
+  · subst hc_dq
+    obtain ⟨_, h_cond⟩ := dispatchContent_doubleQuoted_key_prod sc sp hcorr hpeek hok
+    obtain ⟨sp', h_dq, hcorr'⟩ := h_cond h_line
+    exact ⟨sp', sp', fun n => SFlowContent_doubleQ_of_key n h_dq, GStar.nil _, hcorr'⟩
+  · by_cases hc_sq : c = '\''
+    · subst hc_sq
+      obtain ⟨_, h_cond⟩ := dispatchContent_singleQuoted_key_prod sc sp hcorr hpeek hok
+      obtain ⟨sp', h_sq, hcorr'⟩ := h_cond h_line
+      exact ⟨sp', sp', fun n => SFlowContent_singleQ_of_key n h_sq, GStar.nil _, hcorr'⟩
+    · obtain ⟨_, h_cond⟩ :=
+        dispatchContent_plainScalar_key_prod sc sp hcorr hpeek h_flow
+          h_amp h_star h_bang h_pipe h_gt hc_dq hc_sq h_not_doc hok
+      obtain ⟨sp_gram, sp', h_ol, h_ws, hcorr'⟩ := h_cond h_line
+      exact ⟨sp_gram, sp', fun n => SFlowContent_plain_of_keyOneLine n h_ol, h_ws, hcorr'⟩
+
+/-- `[161] ns-flow-node(n,flow-out)` at every index: the content reading above
+    plus `[104] c-ns-alias-node`, which carries neither an indent nor a
+    context and is therefore index-polymorphic with no side condition at all. -/
 lemma dispatchContent_evidence_oneLine (sc : ScannerState) (sp : SurfPos)
     {s' : ScannerState} (c : Char)
     (hcorr : ScannerSurfCorr sc sp)
@@ -8613,25 +8694,14 @@ lemma dispatchContent_evidence_oneLine (sc : ScannerState) (sp : SurfPos)
       (∀ n : Nat, SFlowNode n .flowOut sp sp_gram) ∧
       GStar SSWhite sp_gram sp' ∧
       ScannerSurfCorr s' sp' := by
-  by_cases hc_dq : c = '"'
-  · subst hc_dq
-    obtain ⟨_, h_cond⟩ := dispatchContent_doubleQuoted_key_prod sc sp hcorr hpeek hok
-    obtain ⟨sp', h_dq, hcorr'⟩ := h_cond h_line
-    exact ⟨sp', sp', fun n => SFlowNode_doubleQ_of_key n h_dq, GStar.nil _, hcorr'⟩
-  · by_cases hc_sq : c = '\''
-    · subst hc_sq
-      obtain ⟨_, h_cond⟩ := dispatchContent_singleQuoted_key_prod sc sp hcorr hpeek hok
-      obtain ⟨sp', h_sq, hcorr'⟩ := h_cond h_line
-      exact ⟨sp', sp', fun n => SFlowNode_singleQ_of_key n h_sq, GStar.nil _, hcorr'⟩
-    · by_cases hc_alias : c = '*'
-      · subst hc_alias
-        obtain ⟨sp', h_alias, hcorr'⟩ := dispatchContent_aliasNode_prod sc sp hcorr hpeek hok
-        exact ⟨sp', sp', fun n => alias_flowNode h_alias, GStar.nil _, hcorr'⟩
-      · obtain ⟨_, h_cond⟩ :=
-          dispatchContent_plainScalar_key_prod sc sp hcorr hpeek h_flow
-            h_amp hc_alias h_bang h_pipe h_gt hc_dq hc_sq h_not_doc hok
-        obtain ⟨sp_gram, sp', h_ol, h_ws, hcorr'⟩ := h_cond h_line
-        exact ⟨sp_gram, sp', fun n => SFlowNode_plain_of_keyOneLine n h_ol, h_ws, hcorr'⟩
+  by_cases hc_alias : c = '*'
+  · subst hc_alias
+    obtain ⟨sp', h_alias, hcorr'⟩ := dispatchContent_aliasNode_prod sc sp hcorr hpeek hok
+    exact ⟨sp', sp', fun n => alias_flowNode h_alias, GStar.nil _, hcorr'⟩
+  · obtain ⟨sp_gram, sp', h_all, h_ws, hcorr'⟩ :=
+      dispatchContent_evidence_content_oneLine sc sp c hcorr hpeek h_flow h_not_doc
+        h_amp hc_alias h_bang h_pipe h_gt h_line hok
+    exact ⟨sp_gram, sp', fun n => flowContent_flowNode (h_all n), h_ws, hcorr'⟩
 
 /-- **β.3's flow-interior content evidence.**  The `.flowIn` sibling of
     `dispatchContent_evidence`, for a content dispatch that ran with
@@ -9216,7 +9286,7 @@ lemma content_dispatch_after_close
         h_nic_ad (by simp) (by simp [YamlToken.isNodeProperty])
       exact ⟨sp_block, sp_block, sp_block, sp_scan', h_stream_block,
              BlockStack.nil sp_block, FlowStackB.nil sp_block .sep,
-             PendingNode.pendingProps sp_start sp_block sp_scan' true false sp_block sp_prep
+             PendingNode.pendingProps sp_start sp_block sp_scan' true false sp_block sp_prep 0
                h_sep (PropsRun.anchor _ _ ha_ev) h_nic_s h_real_s
                (fun _ => h_any YamlToken.isAnchorProperty
                  (by simp [YamlToken.isAnchorProperty]))
@@ -9239,7 +9309,7 @@ lemma content_dispatch_after_close
         h_nic_ad (by simp) (by simp [YamlToken.isNodeProperty])
       exact ⟨sp_block, sp_block, sp_block, sp_scan', h_stream_block,
              BlockStack.nil sp_block, FlowStackB.nil sp_block .sep,
-             PendingNode.pendingProps sp_start sp_block sp_scan' false true sp_block sp_prep
+             PendingNode.pendingProps sp_start sp_block sp_scan' false true sp_block sp_prep 0
                h_sep (PropsRun.tag _ _ ht_ev) h_nic_s h_real_s
                (fun h => nomatch h)
                (fun _ => h_any YamlToken.isTagProperty
@@ -9498,7 +9568,7 @@ lemma accum_content_on_pendingBlock
         h_nic_ad (by simp) (by simp [YamlToken.isNodeProperty])
       exact ⟨sp_block, sp_block, sp_block, sp_scan', h_stream_block,
              BlockStack.nil sp_block, FlowStackB.nil sp_block .sep,
-             PendingNode.pendingProps sp_start sp_block sp_scan' true false sp_scan sp_prep
+             PendingNode.pendingProps sp_start sp_block sp_scan' true false sp_scan sp_prep 0
                h_sep (PropsRun.anchor _ _ ha_ev) h_nic_s h_real_s
                (fun _ => h_any YamlToken.isAnchorProperty
                  (by simp [YamlToken.isAnchorProperty]))
@@ -9517,7 +9587,7 @@ lemma accum_content_on_pendingBlock
         h_nic_ad (by simp) (by simp [YamlToken.isNodeProperty])
       exact ⟨sp_block, sp_block, sp_block, sp_scan', h_stream_block,
              BlockStack.nil sp_block, FlowStackB.nil sp_block .sep,
-             PendingNode.pendingProps sp_start sp_block sp_scan' false true sp_scan sp_prep
+             PendingNode.pendingProps sp_start sp_block sp_scan' false true sp_scan sp_prep 0
                h_sep (PropsRun.tag _ _ ht_ev) h_nic_s h_real_s
                (fun h => nomatch h)
                (fun _ => h_any YamlToken.isTagProperty
@@ -9566,15 +9636,12 @@ lemma accum_content_on_pendingBlock
                (fun _ _ => Or.inr trivial),
              hcorr_result⟩
 
-/-- **Does this content step read at EVERY index?** (item 23)
+/-- **Does this content step read at EVERY index?** (item 23; item 24)
 
-    The four ways the answer comes back negative are not four families of the
-    accumulator — they are four ways for ONE question to fail, so it is asked
-    once here and each caller has a single deferral point:
+    The ways the answer comes back negative are not families of the
+    accumulator — they are ways for ONE question to fail, so it is asked once
+    here and each caller has a single deferral point:
 
-    * a property run (`  - &a v`) — `pendingProps` routes the decorated node
-      through a closure still typed at `SBlockNode 0`, so the RUN, not the
-      content, is what wants re-indexing;
     * a block scalar (`  - |`) — `[170]`/`[174]` auto-detect their content
       indent, so a reading at 0 pins that existential exactly as inlining `m`
       pinned `[183]`/`[187]`'s (item 21, one level down);
@@ -9583,10 +9650,21 @@ lemma accum_content_on_pendingBlock
       `preprocess_some_separate_inline_or_landing` hold only across a
       break-free span, because that is exactly where the index fails to occur.
 
-    The positive answer is the whole reading an indented entry needs: the
-    separator and the flow node at every index, the trailing whites, and the
-    `pendingBlockContent` line fact — `[196]`'s flow arm assembled from parts
-    none of which mention 0. -/
+    There are TWO positive answers, because `[196]`'s flow arm has two ways to
+    reach a value.  The first is the whole reading an indented entry needs
+    directly: the separator and the flow node at every index, the trailing
+    whites, and the `pendingBlockContent` line fact — parts none of which
+    mention 0.  The second (item 24) is a `[96] c-ns-properties` run, which is
+    not a value at all but a decoration awaiting one; a fresh run is
+    single-half, so `PropsRun`'s only occurrence of the index — the separator
+    inside `[96]`'s optional second half — is absent, and the run reads at
+    every index with no side condition beyond the one the separator already
+    needed.  What it hands back is exactly `pendingProps`' payload, so the
+    caller parks the run at its own route index and item 12's machinery
+    finishes the value on the next step.
+
+    Splitting the props answer OUT of the negative is what keeps the deferral
+    count where it was: three answers, one escape (R645/R646). -/
 lemma indentedValue_reads_at_any_indent
     (sc : ScannerState) (sp_scan : SurfPos)
     (s_prep s' : ScannerState) (c : Char) (sp_prep sp_scan' : SurfPos)
@@ -9611,7 +9689,16 @@ lemma indentedValue_reads_at_any_indent
       (∀ n : Nat, SSeparate n .flowOut sp_scan sp_prep) ∧
       (∀ n : Nat, SFlowNode n .flowOut sp_prep sp_gram) ∧
       GStar SSWhite sp_gram sp_scan' ∧
-      (sp_scan'.col = 0 ∨ LineNoOpen sp_scan'.chars)) ∨ True := by
+      (sp_scan'.col = 0 ∨ LineNoOpen sp_scan'.chars)) ∨
+    (∃ ha ht : Bool,
+      (∀ n : Nat, SSeparateLines n sp_scan sp_prep) ∧
+      (∀ n : Nat, PropsRun n .flowOut ha ht sp_prep sp_scan') ∧
+      s'.needIndentCheck = false ∧ LastTokenReal s'.tokens ∧
+      (ha = true →
+        (trailingPropertyRunOnLine s'.tokens s'.line).any YamlToken.isAnchorProperty = true) ∧
+      (ht = true →
+        (trailingPropertyRunOnLine s'.tokens s'.line).any YamlToken.isTagProperty = true)) ∨
+    True := by
   have hpeek : s_prep.peek? = some c := preprocess_some_peek h_preprocess
   have hpeek_disp : (if s_prep.allowDirectives then
       { s_prep with allowDirectives := false, documentEverStarted := true }
@@ -9619,21 +9706,59 @@ lemma indentedValue_reads_at_any_indent
     split
     · show s_prep.peek? = some c; exact hpeek
     · exact hpeek
-  by_cases hprops : c = '&' ∨ c = '!'
-  · exact Or.inr trivial
-  · by_cases hbs : c = '|' ∨ c = '>'
-    · exact Or.inr trivial
-    · have hna : c ≠ '&' := fun h => hprops (Or.inl h)
-      have hnt : c ≠ '!' := fun h => hprops (Or.inr h)
-      have hnp : c ≠ '|' := fun h => hbs (Or.inl h)
-      have hng : c ≠ '>' := fun h => hbs (Or.inr h)
-      by_cases hline_eq : s'.line = (if s_prep.allowDirectives then
+  -- The separator is asked for FIRST because both positive answers need it,
+  -- and its negative — preprocessing landed on a fresh line — is the same
+  -- break the value reading fails on.
+  rcases preprocess_some_separate_inline_or_landing sc sp_scan s_prep c
+      h_corr h_preprocess with ⟨sp_p, h_sep_all, hcorr_sep⟩ | _
+  · have hsp_eq := ScannerSurfCorr_unique hcorr_prep hcorr_sep; subst hsp_eq
+    by_cases hprops : c = '&' ∨ c = '!'
+    · -- Item 24: a fresh `[96]` run is single-half, so it has no occurrence of
+      -- the index to lift and the couplings item 12 needs are unchanged.
+      have h_nic_prep : s_prep.needIndentCheck = false :=
+        nic_false_of_flow_disp h_preprocess h_flow_disp
+      have h_nic_ad : (if s_prep.allowDirectives then
           { s_prep with allowDirectives := false, documentEverStarted := true }
-        else s_prep).line
-      · rcases preprocess_some_separate_inline_or_landing sc sp_scan s_prep c
-            h_corr h_preprocess with ⟨sp_p, h_sep_all, hcorr_sep⟩ | _
-        · have hsp_eq := ScannerSurfCorr_unique hcorr_prep hcorr_sep; subst hsp_eq
-          have h_line := col0_or_lineNoOpen
+        else s_prep).needIndentCheck = false := by
+        split <;> exact h_nic_prep
+      cases hprops with
+      | inl h =>
+        subst h
+        obtain ⟨sp_a, ha_ev, hc⟩ := dispatchContent_anchorProp_prod _ sp_prep
+          (corr_of_allowDirectives_update hcorr_prep) hpeek_disp h_dispatch
+        have hsp_eq2 := ScannerSurfCorr_unique hc hcorr_result
+        rw [hsp_eq2] at ha_ev
+        obtain ⟨name, h_tokens⟩ := dispatchContent_anchor_tokens h_dispatch
+        obtain ⟨h_line', h_nic'⟩ := dispatchContent_anchor_line_nic hpeek_disp h_dispatch
+        obtain ⟨h_nic_s, h_real_s, h_any⟩ := props_couplings_of_push h_tokens h_line' h_nic'
+          h_nic_ad (by simp) (by simp [YamlToken.isNodeProperty])
+        exact Or.inr (Or.inl ⟨true, false, fun n => h_sep_all n .flowOut,
+          fun _ => PropsRun.anchor _ _ ha_ev, h_nic_s, h_real_s,
+          (fun _ => h_any YamlToken.isAnchorProperty (by simp [YamlToken.isAnchorProperty])),
+          (fun h => nomatch h)⟩)
+      | inr h =>
+        subst h
+        obtain ⟨sp_t, ht_ev, hc⟩ := dispatchContent_tagProp_prod _ sp_prep
+          (corr_of_allowDirectives_update hcorr_prep) hpeek_disp h_dispatch
+        have hsp_eq2 := ScannerSurfCorr_unique hc hcorr_result
+        rw [hsp_eq2] at ht_ev
+        obtain ⟨handle, suffix, h_tokens⟩ := dispatchContent_tag_tokens h_dispatch
+        obtain ⟨h_line', h_nic'⟩ := dispatchContent_tag_line_nic hpeek_disp h_dispatch
+        obtain ⟨h_nic_s, h_real_s, h_any⟩ := props_couplings_of_push h_tokens h_line' h_nic'
+          h_nic_ad (by simp) (by simp [YamlToken.isNodeProperty])
+        exact Or.inr (Or.inl ⟨false, true, fun n => h_sep_all n .flowOut,
+          fun _ => PropsRun.tag _ _ ht_ev, h_nic_s, h_real_s, (fun h => nomatch h),
+          (fun _ => h_any YamlToken.isTagProperty (by simp [YamlToken.isTagProperty]))⟩)
+    · by_cases hbs : c = '|' ∨ c = '>'
+      · exact Or.inr (Or.inr trivial)
+      · have hna : c ≠ '&' := fun h => hprops (Or.inl h)
+        have hnt : c ≠ '!' := fun h => hprops (Or.inr h)
+        have hnp : c ≠ '|' := fun h => hbs (Or.inl h)
+        have hng : c ≠ '>' := fun h => hbs (Or.inr h)
+        by_cases hline_eq : s'.line = (if s_prep.allowDirectives then
+            { s_prep with allowDirectives := false, documentEverStarted := true }
+          else s_prep).line
+        · have h_line := col0_or_lineNoOpen
             (dispatchContent_restNoOpen h_flow_disp hna hnt hcorr_result.end_eq h_dispatch)
             hcorr_result
           obtain ⟨sp_gram, sp_ev, h_flow_all, h_trailing_ws, hcorr_ev⟩ :=
@@ -9644,8 +9769,8 @@ lemma indentedValue_reads_at_any_indent
           rw [hsp_ev_eq] at h_trailing_ws
           exact Or.inl ⟨sp_gram, fun n => h_sep_all n .flowOut, h_flow_all,
                         h_trailing_ws, h_line⟩
-        · exact Or.inr trivial
-      · exact Or.inr trivial
+        · exact Or.inr (Or.inr trivial)
+  · exact Or.inr (Or.inr trivial)
 
 /-- **The INDENTED entry's value** (item 23) — `accum_content_on_pendingBlock`
     at the entry index item 22 gave the pending.
@@ -9689,7 +9814,8 @@ lemma accum_content_on_pendingBlock_indented
       ScannerSurfCorr s' sp_scan' := by
   rcases indentedValue_reads_at_any_indent sc sp_scan s_prep s' c sp_prep sp_scan'
       hcorr_prep hcorr_result h_corr h_preprocess h_not_doc h_flow_disp h_dispatch with
-    ⟨sp_gram, h_sep_all, h_flow_all, h_trailing_ws, h_line⟩ | _
+    ⟨sp_gram, h_sep_all, h_flow_all, h_trailing_ws, h_line⟩ |
+    ⟨ha, ht, h_sep_all, h_run_all, h_nic_s, h_real_s, h_anchor_s, h_tag_s⟩ | _
   · exact ⟨sp_block, sp_block, sp_block, sp_scan', h_stream_block,
            BlockStack.nil sp_block, FlowStackB.nil sp_block .sep,
            PendingNode.pendingBlockContent sp_start sp_block sp_scan' n h_line
@@ -9703,6 +9829,14 @@ lemma accum_content_on_pendingBlock_indented
                  (SBlockNode.flowInBlock n .blockIn sp_scan sp_prep sp_gram sp_final
                    (h_sep_all n) (h_flow_all n)
                    (white_prepend_SSLComments h_trailing_ws h_ssl))),
+           hcorr_result⟩
+  · -- Item 24: the run parks at the ENTRY's index; the entry closure is not
+    -- carried, so a sibling after `  - &a v` re-opens rather than snocs.
+    exact ⟨sp_block, sp_block, sp_block, sp_scan', h_stream_block,
+           BlockStack.nil sp_block, FlowStackB.nil sp_block .sep,
+           PendingNode.pendingProps sp_start sp_block sp_scan' ha ht sp_scan sp_prep n
+             (h_sep_all n) (h_run_all n) h_nic_s h_real_s h_anchor_s h_tag_s
+             h_close_old (Or.inr trivial),
            hcorr_result⟩
   · exact block_dispatch_deferred sp_start sp_block sp_scan' s' h_stream_block hcorr_result
 
@@ -9773,7 +9907,7 @@ lemma accum_content_on_pendingMapValue
         h_nic_ad (by simp) (by simp [YamlToken.isNodeProperty])
       exact ⟨sp_block, sp_block, sp_block, sp_scan', h_stream_block,
              BlockStack.nil sp_block, FlowStackB.nil sp_block .sep,
-             PendingNode.pendingProps sp_start sp_block sp_scan' true false sp_scan sp_prep
+             PendingNode.pendingProps sp_start sp_block sp_scan' true false sp_scan sp_prep 0
                h_sep (PropsRun.anchor _ _ ha_ev) h_nic_s h_real_s
                (fun _ => h_any YamlToken.isAnchorProperty
                  (by simp [YamlToken.isAnchorProperty]))
@@ -9792,7 +9926,7 @@ lemma accum_content_on_pendingMapValue
         h_nic_ad (by simp) (by simp [YamlToken.isNodeProperty])
       exact ⟨sp_block, sp_block, sp_block, sp_scan', h_stream_block,
              BlockStack.nil sp_block, FlowStackB.nil sp_block .sep,
-             PendingNode.pendingProps sp_start sp_block sp_scan' false true sp_scan sp_prep
+             PendingNode.pendingProps sp_start sp_block sp_scan' false true sp_scan sp_prep 0
                h_sep (PropsRun.tag _ _ ht_ev) h_nic_s h_real_s
                (fun h => nomatch h)
                (fun _ => h_any YamlToken.isTagProperty
@@ -9876,7 +10010,8 @@ lemma accum_content_on_pendingMapValue_indented
       ScannerSurfCorr s' sp_scan' := by
   rcases indentedValue_reads_at_any_indent sc sp_scan s_prep s' c sp_prep sp_scan'
       hcorr_prep hcorr_result h_corr h_preprocess h_not_doc h_flow_disp h_dispatch with
-    ⟨sp_gram, h_sep_all, h_flow_all, h_trailing_ws, h_line⟩ | _
+    ⟨sp_gram, h_sep_all, h_flow_all, h_trailing_ws, h_line⟩ |
+    ⟨ha, ht, h_sep_all, h_run_all, h_nic_s, h_real_s, h_anchor_s, h_tag_s⟩ | _
   · exact ⟨sp_block, sp_block, sp_block, sp_scan', h_stream_block,
            BlockStack.nil sp_block, FlowStackB.nil sp_block .sep,
            PendingNode.pendingContent sp_start sp_block sp_scan' h_line
@@ -9886,6 +10021,14 @@ lemma accum_content_on_pendingMapValue_indented
                    (h_sep_all n) (h_flow_all n)
                    (white_prepend_SSLComments h_trailing_ws h_ssl)))
              (fun _ _ => Or.inr trivial),
+           hcorr_result⟩
+  · -- Item 24: `  : &a v` / `  ? &a v` — the mapping twin parks the same run
+    -- against the VALUE's route.
+    exact ⟨sp_block, sp_block, sp_block, sp_scan', h_stream_block,
+           BlockStack.nil sp_block, FlowStackB.nil sp_block .sep,
+           PendingNode.pendingProps sp_start sp_block sp_scan' ha ht sp_scan sp_prep n
+             (h_sep_all n) (h_run_all n) h_nic_s h_real_s h_anchor_s h_tag_s
+             h_close_old (Or.inr trivial),
            hcorr_result⟩
   · exact block_dispatch_deferred sp_start sp_block sp_scan' s' h_stream_block hcorr_result
 
@@ -9980,7 +10123,7 @@ lemma accum_content_pending (sc : ScannerState)
             (preprocess_some_peek h_preprocess) h_flow_disp h_dispatch h_keyctx
         | inr h_mid_eq =>
           exact block_dispatch_deferred sp_start sp_block sp_scan' s' h_stream_block hcorr_result)
-  | pendingProps _ _ _ ha ht sp_node sp_p h_sep_run h_run h_nic_p h_real_p h_anchor_p h_tag_p h_route h_key_p =>
+  | pendingProps _ _ _ ha ht sp_node sp_p n h_sep_run h_run h_nic_p h_real_p h_anchor_p h_tag_p h_route h_key_p =>
     -- ═══ Item 12: a held depth-0 run meets a CONTENT character — the
     -- content-dispatch escape RETIRES.  Across a break the run closes as
     -- `propsEmpty` (the parked couplings go stale with the line, and are not
@@ -10017,8 +10160,11 @@ lemma accum_content_pending (sc : ScannerState)
       obtain ⟨h_mid_eq, h_facts0⟩ := h_mid
       obtain ⟨h_line_pp, h_nic_pp, h_lastr, h_penr⟩ := h_facts0 h_nic_p h_real_p
       rw [h_mid_eq] at h_ws
-      have h_sep2 : SSeparateLines 0 sp_scan sp_prep :=
-        SSeparateLines.inline 0 sp_scan sp_prep
+      -- Item 24: the run→content separator is the residual WHITES, so it is
+      -- `[66] s-separate-in-line` and reads at the pending's own route index —
+      -- one more span whose derivation never mentions the parameter.
+      have h_sep2 : SSeparateLines n sp_scan sp_prep :=
+        SSeparateLines.inline n sp_scan sp_prep
           (GStar_SSWhite_to_SSeparateInLine sp_scan sp_prep h_ws)
       -- dispatch-state transports: the `allowDirectives` update touches
       -- neither the tokens, the line, nor the flag.
@@ -10086,7 +10232,7 @@ lemma accum_content_pending (sc : ScannerState)
             h_t2_tag
         exact ⟨sp_block, sp_block, sp_block, sp_scan', h_stream_block,
                BlockStack.nil sp_block, FlowStackB.nil sp_block .sep,
-               PendingNode.pendingProps sp_start sp_block sp_scan' true true sp_node sp_p
+               PendingNode.pendingProps sp_start sp_block sp_scan' true true sp_node sp_p n
                  h_sep_run (h_run.addAnchor h_sep2 h_prop) h_nic_s h_real_s
                  (fun _ => h_any YamlToken.isAnchorProperty
                    (by simp [YamlToken.isAnchorProperty]))
@@ -10154,7 +10300,7 @@ lemma accum_content_pending (sc : ScannerState)
               h_t2_anchor
           exact ⟨sp_block, sp_block, sp_block, sp_scan', h_stream_block,
                  BlockStack.nil sp_block, FlowStackB.nil sp_block .sep,
-                 PendingNode.pendingProps sp_start sp_block sp_scan' true true sp_node sp_p
+                 PendingNode.pendingProps sp_start sp_block sp_scan' true true sp_node sp_p n
                    h_sep_run (h_run.addTag h_sep2 h_prop) h_nic_s h_real_s
                    (fun _ => h_anchor_new)
                    (fun _ => h_any YamlToken.isTagProperty
@@ -10277,42 +10423,83 @@ lemma accum_content_pending (sc : ScannerState)
                             h_props_bk h_sep_bk
                             (SFlowContent.plain 0 .blockKey sp_prep sp_gram2 h_ol)),
                         h_tws2⟩
-            obtain ⟨sp_ne, sp_res, h_ev, h_tws, hcorr_res⟩ :=
-              dispatchContent_evidence_content _ sp_prep c
-                (corr_of_allowDirectives_update hcorr_prep) hpeek_disp h_not_doc
-                hamp hstar hbang h_dispatch
-            have hsp_eq4 := ScannerSurfCorr_unique hcorr_res hcorr_result
-            rw [hsp_eq4] at h_tws
-            cases h_ev with
-            | inl h_content =>
-              exact ⟨sp_block, sp_block, sp_block, sp_scan', h_stream_block,
-                     BlockStack.nil sp_block, FlowStackB.nil sp_block .sep,
-                     PendingNode.pendingContent sp_start sp_block sp_scan' h_line
-                       (fun sp_mid h_ssl =>
-                         h_route sp_mid (flowInBlock_blockNode h_sep_run
-                           (SFlowNode.propsContent 0 .flowOut sp_p sp_scan sp_prep sp_ne
-                             h_run.toProperties h_sep2 h_content)
-                           (white_prepend_SSLComments h_tws h_ssl)))
-                       h_key,
-                     hcorr_result⟩
-            | inr h_block =>
-              exact ⟨sp_block, sp_block, sp_block, sp_scan', h_stream_block,
-                     BlockStack.nil sp_block, FlowStackB.nil sp_block .sep,
-                     PendingNode.pendingContent sp_start sp_block sp_scan' h_line
-                       (fun sp_mid h_ssl =>
-                         have h_ssl_ext := white_prepend_SSLComments h_tws h_ssl
-                         have h_bn : SBlockNode 0 .blockIn sp_node sp_ne :=
-                           h_block.elim
-                             (fun h_lit => literal_blockNode h_sep_run
-                               (GOpt.some _ _ (GSeq.mk _ _ _ h_run.toPropertiesBlockIn h_sep2))
-                               h_lit)
-                             (fun h_fld => folded_blockNode h_sep_run
-                               (GOpt.some _ _ (GSeq.mk _ _ _ h_run.toPropertiesBlockIn h_sep2))
-                               h_fld)
-                         ssl_comments_extend_stream sp_start sp_ne sp_mid
-                           (h_route sp_ne h_bn) h_ssl_ext)
-                       h_key,
-                     hcorr_result⟩
+            -- Item 24: the run's route index decides which readings of the
+            -- decorated value are available.  At 0 the whole of
+            -- `dispatchContent_evidence_content` is — including `[198]`'s
+            -- props-slotted block scalar (`&a |`).  Above 0 only the
+            -- break-free CONTENT reading is: `[170]`/`[174]` auto-detect a
+            -- content indent that `SCLLiteral 0` has already pinned, which is
+            -- the same gap `  - |` has without a run (R647 one level down).
+            match n, h_sep_run, h_run, h_route, h_sep2 with
+            | 0, h_sep_run, h_run, h_route, h_sep2 =>
+              obtain ⟨sp_ne, sp_res, h_ev, h_tws, hcorr_res⟩ :=
+                dispatchContent_evidence_content _ sp_prep c
+                  (corr_of_allowDirectives_update hcorr_prep) hpeek_disp h_not_doc
+                  hamp hstar hbang h_dispatch
+              have hsp_eq4 := ScannerSurfCorr_unique hcorr_res hcorr_result
+              rw [hsp_eq4] at h_tws
+              cases h_ev with
+              | inl h_content =>
+                exact ⟨sp_block, sp_block, sp_block, sp_scan', h_stream_block,
+                       BlockStack.nil sp_block, FlowStackB.nil sp_block .sep,
+                       PendingNode.pendingContent sp_start sp_block sp_scan' h_line
+                         (fun sp_mid h_ssl =>
+                           h_route sp_mid (flowInBlock_blockNode h_sep_run
+                             (SFlowNode.propsContent 0 .flowOut sp_p sp_scan sp_prep sp_ne
+                               h_run.toProperties h_sep2 h_content)
+                             (white_prepend_SSLComments h_tws h_ssl)))
+                         h_key,
+                       hcorr_result⟩
+              | inr h_block =>
+                exact ⟨sp_block, sp_block, sp_block, sp_scan', h_stream_block,
+                       BlockStack.nil sp_block, FlowStackB.nil sp_block .sep,
+                       PendingNode.pendingContent sp_start sp_block sp_scan' h_line
+                         (fun sp_mid h_ssl =>
+                           have h_ssl_ext := white_prepend_SSLComments h_tws h_ssl
+                           have h_bn : SBlockNode 0 .blockIn sp_node sp_ne :=
+                             h_block.elim
+                               (fun h_lit => literal_blockNode h_sep_run
+                                 (GOpt.some _ _ (GSeq.mk _ _ _ h_run.toPropertiesBlockIn h_sep2))
+                                 h_lit)
+                               (fun h_fld => folded_blockNode h_sep_run
+                                 (GOpt.some _ _ (GSeq.mk _ _ _ h_run.toPropertiesBlockIn h_sep2))
+                                 h_fld)
+                           ssl_comments_extend_stream sp_start sp_ne sp_mid
+                             (h_route sp_ne h_bn) h_ssl_ext)
+                         h_key,
+                       hcorr_result⟩
+            | k + 1, h_sep_run, h_run, h_route, h_sep2 =>
+              -- One question, one deferral: is there a reading of this value at
+              -- EVERY index?  Both negative answers — a block-scalar header and
+              -- a step that crossed a break — are already-named families.
+              have h_one : (∃ sp_ne sp_res,
+                    (∀ m : Nat, SFlowContent m .flowOut sp_prep sp_ne) ∧
+                    GStar SSWhite sp_ne sp_res ∧ ScannerSurfCorr s' sp_res) ∨ True := by
+                by_cases hbs : c = '|' ∨ c = '>'
+                · exact Or.inr trivial
+                · by_cases hline_eq : s'.line = (if s_prep.allowDirectives then
+                      { s_prep with allowDirectives := false, documentEverStarted := true }
+                    else s_prep).line
+                  · exact Or.inl (dispatchContent_evidence_content_oneLine _ sp_prep c
+                      (corr_of_allowDirectives_update hcorr_prep) hpeek_disp h_flow_disp
+                      h_not_doc hamp hstar hbang (fun h => hbs (Or.inl h)) (fun h => hbs (Or.inr h))
+                      hline_eq h_dispatch)
+                  · exact Or.inr trivial
+              rcases h_one with ⟨sp_ne, sp_res, h_all, h_tws, hcorr_res⟩ | _
+              · have hsp_eq4 := ScannerSurfCorr_unique hcorr_res hcorr_result
+                rw [hsp_eq4] at h_tws
+                exact ⟨sp_block, sp_block, sp_block, sp_scan', h_stream_block,
+                       BlockStack.nil sp_block, FlowStackB.nil sp_block .sep,
+                       PendingNode.pendingContent sp_start sp_block sp_scan' h_line
+                         (fun sp_mid h_ssl =>
+                           h_route sp_mid (flowInBlock_blockNode h_sep_run
+                             (SFlowNode.propsContent (k + 1) .flowOut sp_p sp_scan sp_prep sp_ne
+                               h_run.toProperties h_sep2 (h_all (k + 1)))
+                             (white_prepend_SSLComments h_tws h_ssl)))
+                         h_key,
+                       hcorr_result⟩
+              · exact block_dispatch_deferred sp_start sp_block sp_scan' s'
+                  h_stream_block hcorr_result
   | pendingBlock =>
     -- Item 22 split this arm on the pending's own index because every content
     -- reading was stated at 0; item 23 gives the nonzero side its own arm.
