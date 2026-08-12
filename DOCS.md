@@ -5472,8 +5472,11 @@ addition and the subsequent simplification, strengthening the thesis.
 
 # The Plan (open work)
 
-Everything unfinished across the corpus, in one place. The three
-substantial items have full sections below; the remainder is collected
+Everything unfinished across the corpus, in one place — rows are DELETED when
+their item closes, and the closure record stays in the section it points to.
+(Closed this way so far: the `ns-char` predicate gap, 2026-08-01; indexed-pipeline
+parity, 2026-08-06; surrogate hex escapes decoded to NUL, 2026-08-11.)  The
+substantial open items have full sections below; the remainder is collected
 under [Other open items](#other-open-items). (The *active* engineering
 next-steps list — indexed-twin ports of the matrix fixes, the
 event-axis verification gap, the `adaptForFlowContext` inductive gap —
@@ -5481,10 +5484,7 @@ lives in [README.md](README.md) and is not duplicated here.)
 
 | Item | Status | Section |
 |---|---|---|
-| `ns-char` predicate spec-loose body | **Fixed 2026-08-01** (predicates tightened; scanner + emitter conformant; regression-tested) | [The ns-char gap](#the-ns-char-gap) |
-| **Indexed-pipeline parity** (the twin consumers actually call) | **CLOSED 2026-08-06 — full parity: event 402/402 · JSON 282/282 · accept/reject 402/402, same run as an identically-scoring legacy baseline; all 94 invalid inputs rejected with the identical `ScanError` (items 6+7)** | [Indexed-pipeline parity gap](#indexed-pipeline-parity-gap) |
-| Surrogate hex escapes decoded to NUL | **CLOSED 2026-08-11 (item 18)** — both guards are now `Nat.isValidChar`, `Char.ofNat`'s own precondition, so its substituting else-branch is unreachable; the false §4 proof claim and its vacuous `char_isValidChar` citation are corrected and replaced by `toNat_ofNat_of_isValidChar`. Matrix unchanged on both instrument sets, 4439/4439, Reflection 642. Residual (message-diverse escape errors) below. | [Surrogate hex escapes](#surrogate-hex-escapes-decoded-to-nul) |
-| Grammar completeness (`parse_iff_grammar`, capstone 7.7) | **Open — forward direction DONE** (2026-08-10): Fix B done; Fix A's accumulation is **sorry-free** (`StreamAccum.lean`, all five β.3 sites closed — site 2 by item 9s, **site 5 by item 9t**) and the `L4YAML.Capstones` gate is **green**; what the forward theorems still concede is the `scannerDrop` constructor (β.5) and then the converse remains. The **content step (site 3) is CLOSED** as of 2026-08-08 — every flow-interior content character, including `&`/`!`, which now open and extend a held `[96] c-ns-properties` run in the interior gap. The block step's `?` arm is closed (**9g**) and its `:` arm is blocked on one measured invariant strengthening; the depth-0 open (**9h**) is **not** refutable at all — it is inhabited by legal input. Both were re-priced 2026-08-08: each needs a scanner strictening its earlier diagnosis had not seen, and both of those have now landed (**item 9j** the `?`'s mandatory separation, **item 9k** the depth-0 repeated-property tests plus the `needIndentCheck` transport they consume). **Item 9l** then closed the `?` arm's vocabulary — and found that its last piece was a gap in the SURFACE GRAMMAR, not the accumulator: `[143]`'s `( e-node e-node )` and `[146]`'s empty key had no representative, so `[? ]`, `[: a]` and four more parsed correctly with no derivation. The same enumeration found the mirror defect, a shipped over-REJECTION of `[? a, b: c]` and siblings, also fixed. **Item 10** then built that arm's producer out of 9g's guard read forward, closing the `?` arm entirely; site 2 is now the `:` arm alone, and **items 9n and 9o** split it into a 2×4 grid (frame tail × interior gap) of which five cells are settled. **Item 9p** then built the discharge that datum needs, landed its substrate sorry-free, and found the price was recorded against the wrong thing: seven of the eight pair-list assemblers already carry the reservation index, and the whole blockage is ONE state — the eighth's own recursion tail, where the `,` leaves a dead pending key that falsifies the tower's prefix-preservation premise. **Item 9q** then BUILT that normalization: the `,` now clears the dead key in both pipelines, corpus byte-identical, and the eleven invariant transports it rippled through needed zero new constructors — the change's real cost was forty statement sites quoting the step's result record. Items 9r/9s then landed the strengthening and its firing-direction transport (site 2 closed), and **item 9t closed site 5** — the pendings sorted by producer guarantee: three refuted via the `h_line` lookahead field, `pendingFlow` riding its own drop, the props run parked as `pendingProps`. **Item 11** then landed the INDEXED substrate package 9r measured — `scanValueValidateIx` strictened, both scanners rejecting the seven divergent shapes with the identical `ScanError`, the layout carried as ONE conditional conjunct on `EmitScansInFlowIx` where legacy needed a second tower (Reflection 635) — and deleted the dead `accum_flow_pending`. **Item 12** then retired the `pendingProps` content-dispatch escape by parametrizing `PendingNode` by the scanner state it accompanies, so the held run's same-line guard couplings ride the constructor and the consuming arm splits three ways — `&`/`!` extend by contrapositive, `*` scanner-refutes, content rides `[161]`/`[198]` (Reflection 636). **Item 13** opened the block-mapping campaign at the one keyless arm — the col-0 `:` is `[189]`'s empty-key entry, parked as `PendingNode.pendingMapValue` with ONE `.blockIn`-typed closure converted at its single producer (Reflection 637) — so `: v`/`: [a]`/`: \|`/`: &a v` compose and `block_dispatch_deferred`'s survivors are the implicit key (`a: b`), the `?` explicit key and the indented/nested arms. **Item 14** closed the `x⏎: v` scan divergence 13 surfaced, in the reverse direction its note prescribed: the root was the INDEXED walk's dropped no-gain rewind (580 divergent inputs across two families, 226 of them content bugs on accepted inputs), restored by `backtrackIfNoGain` — sweep clean, the implicit-key arm's `x⏎y: v` refutation intact in both pipelines (Reflection 638). **Item 15** composed the col-0 plain IMPLICIT key: `pendingContent`'s new key coupling is guarded by the two decidable state facts §7.4 also reads and concludes pack-or-punt, so the same-line-`:` consumer is `by_cases` plus one field application with zero validator lemmas — `a: b` and its family leave the deferral through `colon_open_map_implicit` (Reflection 639). **Item 16** composed the QUOTED key, `[188]`'s JSON arm: the one-line quoted readings are self-contained sub-productions, so they landed as their OWN lemmas with zero arms of the wide quoted `_prod` lemmas edited, and the pack's payload widened through one carrier inductive so the `:` producer took two edits (Reflection 640) — `"a": b`, `'a': b` and their family compose. **Item 17** closed the two remaining key heads by re-cutting that carrier along `[188]`'s OWN two alternatives rather than the scanner's three branches (Reflection 641): an alias key and a property-prefixed key are `[161] ns-flow-node`'s own arms, so both landed with zero new carrier arms — the alias needing no line hypothesis at all, the props head one datum CARRIED by the run's pending because a post-state guard cannot recover a pre-state fact — and `&a x: v`, `!!str x: v`, `&a !t x: v`, `*a : b` compose. **Item 19** then closed the break-crossed arm for free, by fixing which position the gate reads: the arms tested the column the PENDING was parked at, while their bodies were anchored at the position preprocessing LANDED on — and a second producer of that landing (a crossed break, any starting column) was being routed to the deferral. Joining the two producers made the multi-line block sequence — `- a⏎- b` and its whole family — grammar, with zero new grammar lemmas and zero body rewrites (Reflection 643). **Item 20** then took the `?` explicit key and found the cost was in the GRAMMAR again, as at 9l: `[186]`'s value is optional (`| e-node`) and only the `:` alternative had a constructor, so every key-only entry parsed with no derivation; the accumulator arm came free, because item 13's pending names only the node it awaits and not the indicator that parked it (Reflection 644). **Item 21** then audited what was left rather than building the next arm: a non-indicator character was never input (refuted from the dispatcher itself — Reflection 646, which also sharpens the honest measure to the REACHABLE domain), `noPending` joined its three siblings on the landing gate, and the indent machinery resolved into a GRAMMAR gap — `[183]`/`[187]`'s auto-detected `m` is pinned at its minimum, so no indented block collection has a derivation, and no differential sweep can see it because both pipelines accept (Reflection 647). **Item 22** then took that whole forced order in one item, since a widening with no consumer is inhabitation debt: `blockSeq`/`blockMap` bind `m`, the two pendings carry the entry indent, and the eight `hws = cons` sites turn out not to be arms at all — the whites between the landing and the indicator ARE `[63] s-indent(k)`, so `nil` is `k = 0` and ONE body serves both, at a cost of zero new arm bodies. The indented block collection composes at its frame (`  -`, `  -⏎  -`, `  :`, `  ?`, `---⏎  - `), and `SBlockNode_blockIn_to_blockOut` generalized off `n = 0` for free — its side condition was an artifact of the pinning (`seq-spaces`' one-step context disagreement, which `m+1` absorbs) rather than a fact about the accumulation, which is Reflection 648. **Item 23** then lifted the content readings off indent 0, and the lift was an OCCURRENCE question rather than a monotonicity one: the index occurs only after a line break, the spec's own one-line productions (`[111]`, `[122]`, `[133]`, plus `[104]` which takes no parameters) ARE the index-free fragment exactly, and the guard separating them was already being decided — `s'.line = sc.line`, item 15's implicit-key measurement, read a second time to say at what indent a scan can be a VALUE (Reflection 649). `  - a`, `  - "x"`, `  - *a`, `  : v`, `  ? a` and their sibling chains compose at every width; the escape holds at 13 sites while the domain loses the family. **Item 24** then found the first of item 23's four negatives was never an instance of the question — `&`/`!` complete no value, they open a `[96]` run the accumulator PARKS, and the pinned 0 was in `pendingProps`' route, one step upstream (Reflection 650). A fresh run is single-half and `[96]`'s only occurrence of the index is the separator in its optional second half, so the re-index cost ZERO lift lemmas; the decorated value reads one production lower (`[156] ns-flow-content`), the helper grew a middle disjunct rather than a second deferral, and `  - &a v`, `  - !!str v`, `  - &a !t v`, `  - &a "x"`, `  - &a`, `  : &a v` and `  ? &a v` compose. The escape gained a site (13 → 14) and `scannerDrop` held at 4, so the result is RE-ATTRIBUTION: `  - &a |` belongs to `[170]`/`[174]`'s auto-detected content indent and `  - &a [b]` to `FlowOpenStack`'s resume pin, which `  - [1]` already had. **Item 25** then took the indented implicit KEY and found its column-0 demand was no fact about keys at all: `[193]`/`[194]` carry no indent (the spec writes `n/a`), and `sp_key.col = 0` was simply what `keyctx_of_preprocess` got by REFUSING to read the whites in front of the key — which are `[187] l+block-mapping(n)`'s auto-detected `s-indent(n+m)`, the same run item 22 read through the same splitter (Reflection 651: a constant in a precondition is often a quantity you declined to measure; the tell is a producer that cases on evidence it already holds, and the discriminator against a real side condition is whether the discarded arm has an answer at all — the TAB does not). ZERO lift lemmas and zero new lemmas: the index enters only one production up, in the entry's `s-indent(k)` and `rootBlockMap k`. `  a: 1`, `  "a": b`, `  &x a: 1`, `  a: &x v`, sibling chains and `---⏎  a: 1` compose; the escape holds at 14 sites and `scannerDrop` at 4 while the inline-residue family loses its largest inhabitant, and the producer's three punting arms hold at three — the gap arm was NARROWED (nonempty → contains a tab), not removed. What is left: `FlowOpenStack`'s resume type — priced by item 25 as THREE parts, since the resume's index and the frame's are the same one: couple the carried index to the scanner's indent state, derive the interior separators at `n` from the `underIndentedFlowContent` check the scanner already performs, and re-derive the multi-line scalar readings at `n` — then `[170]`/`[174]`'s content indent, the nested collection, the tab refutation and the inline residue, delete `scannerDrop`, then the converse | [Grammar completeness plan](#grammar-completeness-plan) |
+| Grammar completeness (`parse_iff_grammar`, capstone 7.7) | **Open — forward direction DONE** (2026-08-10): Fix B done, Fix A's accumulation sorry-free and the `L4YAML.Capstones` gate green. What is left is β.5 — retire `pendingFlow` and delete `scannerDrop` (14 escape sites, 4 drop sites as of item 27), then the converse and the biconditional. Per-item record and ordered remainder: [Row 12 — β.5 closure log](#row-12--β5-closure-log) | [Grammar completeness plan](#grammar-completeness-plan) |
 | Merge semantics (`DuplicateKeyPolicy.merge`) | **Open** (design ready; re-base on `LawfulBEq`) | [Merge semantics plan](#merge-semantics-plan) |
 | Security limits: open questions + future work | **Open** (design questions; 3 unimplemented features) | [Security hardening backlog](#security-hardening-backlog) |
 | Limit-enforcement verification, and the rest | **Open** (varied) | [Other open items](#other-open-items) |
@@ -5501,26 +5501,478 @@ invisible to every axis we score. What is left is proof completeness.
 
 | # | Action | Blocks | Where |
 |---|---|---|---|
-| 12 | **β.5 — retire `pendingFlow`, delete `scannerDrop`.** Once no dispatch produces `pendingFlow`, the `close_with_ssl` arm that calls `scannerDrop` is unreachable; delete the constructor from `Surface/Document.lean`. β.3 and β.4 completed 2026-08-10 (items 9s/9t), so this STRENGTHENS `scan_strict_proof`/`parse_strict_proof` — the drop constructor is the one remaining hole in what they assert — rather than unblocking the gate. **Item 11 (2026-08-10)** landed the INDEXED substrate package (§4 divergence CLOSED; Reflection 635) and deleted the dead `accum_flow_pending`. **Item 12 (2026-08-10)** retired `pendingProps`'s content-dispatch escape: `PendingNode` is scanner-state-PARAMETRIZED so the held run's same-line guard couplings ride the constructor (Reflection 636); `&a b`/`&a !t [b]`/`&a \|` compose, `&`/`!` extend the run, `*` is scanner-refuted — consuming item 9k's same-line residual. **Item 13 (2026-08-10)** opened the block-mapping campaign at its one keyless arm: a col-0 `:` is `[189]`'s empty-key entry, and `PendingNode.pendingMapValue` — `pendingBlock`'s mapping twin, ONE closure typed at `.blockIn` and converted to `[189]`'s `.blockOut` at its single producer (Reflection 637) — composes `: v`, `:`, `: [a]`, `: \|`, `: &a v`, `---⏎: v` and sibling chains; no entries-level snoc (siblings ride `[211]`'s admitted bare-document continuation). **Item 14 (2026-08-11)** closed the `x⏎: v` scan divergence item 13 surfaced — in the REVERSE direction its note prescribed: a 5,460-input differential sweep found the recorded shape was one of 580 divergent inputs in TWO families (354 verdict-equal error-stage differences; **226 content differences on ACCEPTED inputs** — `x⏎⏎` kept the fold's `\n` in the indexed scalar, invisible to matrix and suites) with ONE root, the indexed walk's dropped no-gain rewind; `backtrackIfNoGain` (`Scanner/IndexedScanner.lean`) restores it, both sweeps clean, and the `x⏎y: v` §7.4 scan rejection the implicit-key arm reads as its multiline refutation is intact in BOTH pipelines — no port owed (Reflection 638; `ScannerPlainNoGainRewind.lean`). **Item 15 (2026-08-11)** composed the col-0 plain IMPLICIT key: `pendingContent` gains a conditional key field guarded by the two DECIDABLE state facts §7.4 also reads (`simpleKey.possible`, `simpleKey.pos.line = line`) and concluding pack-or-punt, so the same-line-`:` consumer is three `by_cases` plus one field application — zero validator lemmas (Reflection 639); the pack's one-line witness is a conjunct inside `collectPlainScalarLoop_prod`'s existential conclusion over 7 new `_line_*` lemmas, the `.blockKey` re-read is 5 definitional lifts, and `colon_open_map_implicit` re-anchors item 13's mapping machinery at the key — `a: b`, `a : b`, `a:`, `a b: c`, `a: [x,y]`, `a: \|` and sibling chains all compose (`ScannerImplicitKeyCompose.lean`). **Item 16 (2026-08-11)** composed the col-0 QUOTED implicit key — `[188]`'s JSON arm: the one-line readings `[111] nb-double-one-line` / `[122] nb-single-one-line` are SELF-CONTAINED sub-productions, so they landed as two NEW lemmas over the same walks with ZERO arms of `collectDoubleQuotedLoop_prod`/`collectSingleQuotedLoop_prod` edited (Reflection 640's discriminator: ride the conclusion as a conjunct only when the narrow fact names ∃-bound witnesses, as item 15's did), the break arms refuted by item 15's `_line_*` facts verbatim plus three new escape-body line-transparency lemmas; the pack's payload widened via ONE carrier inductive (`ImplicitKeyHead` + `implicitKeyHead_to_SImplicitKey`), so `colon_open_map_implicit` took one hypothesis type and one body line — `"a": b`, `'a': b`, `"": b`, `'a''b': c`, `"a\tb": c`, `"a\u0041b": c`, mixed plain/quoted mappings all compose (`ScannerQuotedKeyCompose.lean`). **Item 17 (2026-08-11)** closed the punted key packs — the ALIAS and PROPERTY-prefixed heads — by re-cutting item 16's carrier along `[188]`'s own two alternatives instead of the scanner's three branches (Reflection 641): an alias key is `[161] ns-flow-node(0, block-key)`'s `alias` arm and `&a x: v` is its `propsContent` arm, so BOTH landed with ZERO new carrier arms; the alias head needs no line hypothesis at all (`ns-anchor-char` excludes `s-white` and `b-char`), and the props head needed one CARRIED datum — a post-state guard cannot recover a pre-state fact, so `pendingProps` holds the run's col-0 line start, the stream closed there, the run re-read at `block-key` and the saved key's line, which fires items 15/16's one-line readings verbatim; `&a x: v`, `!!str x: v`, `&a !t x: v`, `!t &a x: v`, `&a "x": v`, `*a : b` and their families compose (`ScannerPropsAliasKeyCompose.lean`), and one verdict-equal error-stage divergence is recorded (`*a: b`: legacy `undefinedAlias "a:"`, indexed `trailingContent 0 4`). **Item 19 (2026-08-11)** closed the break-crossed arm — and it needed no grammar at all: four block-dispatch arms gated on `sp_scan.col = 0`, the column the PENDING was parked at, while every body downstream was anchored at `sp_mid`, the position preprocessing LANDED on, and a second producer of that same package (`..._anyCol`'s crossed-break disjunct) was being routed to the deferral (Reflection 643). `preprocess_some_ssl_comments_landing` joins the two, the three closeable arms case on the landing, and the multi-line block sequence leaves `scannerDrop`: `- a⏎- b`, `-⏎- b`, `- a⏎-`, `- [1]⏎- b`, `- &a v⏎- b`, `- - a⏎- b`, blank-line- and comment-separated entries, `---⏎- a⏎- b`, `- a⏎...`, `- a⏎---⏎- b`, `: a⏎: b`, and the `x⏎: v`/`"a"⏎: b`/`&a x⏎: v` shapes (scanned as `[189]`'s empty-key entry, refused by the parser) — with ZERO new grammar lemmas, zero couplings, zero arm-body rewrites, no runtime edits, two dead hypotheses deleted, and `block_dispatch_deferred` down from 22 call sites to 18 (`ScannerBreakCrossedBlockCompose.lean`). **Item 20 (2026-08-11)** closed the `?` explicit key, and its cost was entirely in the SURFACE GRAMMAR: `[186] c-l-block-map-explicit-entry`'s tail is `( l-block-map-explicit-value(n) | e-node )` and `SBlockMapEntry.explicit` demanded the `:` line, so `? a` and every key-only entry parsed correctly with NO derivation and no arm could be stated — `SBlockMapEntry.explicitEmpty` is the missing alternative, safe to add because the inductive has three construction sites and ZERO elimination sites (Reflection 644 §3). The accumulator arm was free: item 13's `pendingMapValue` names only the node it AWAITS and never the `:` that parked it, so `?` — `[188]`'s other alternative, awaiting the KEY, composing a different entry — reuses it with zero new pending constructors and zero consumer arms edited; three new lemmas (`dispatchBlockKey_full_prod`, `question_open_map`, and `indicator_open_map`, the join that lets ONE dispatch branch serve both indicators, keeping `block_dispatch_deferred` at 18 sites rather than the 22 a copied branch cost — and that measurement is **Reflection 645**: an escape hatch's call-site count is not its coverage, the two are independent in BOTH directions, they agree only on a merge, and the actionable half is to widen a gate rather than copy an arm whose body the new case would share verbatim; across items 19 and 20 the count reads 22 → 18 → 18 with two whole input families gone). `? a`, `?`, `? [1]`, `? {a: 1}`, `? &a v`, `? "x"`, `? \|`, `? a⏎? b`, `? a⏎: b⏎? c⏎: d`, mixed explicit/implicit entries, blank-line- and comment-separated keys and document frames all compose (`ScannerExplicitKeyCompose.lean`); `? a⏎: b` is NOT the two-part `explicit` constructor but the key-only entry followed by item 13's col-0 `:` as a `[211]` continuation. All three block indicators (`-`, `:`, `?`) now compose. **Item 21 (2026-08-11)** audited the deferral instead of building the next arm, and two of its five families closed without composing anything: a character that is not a block indicator was NEVER input — `scanNextToken_dispatchBlockIndicators` opens each arm with its own literal test, so a `.ok (some s')` result names the character (`dispatchBlockIndicators_indicator_of_some` + `block_indicator_exhausted`, 4 sites at one term) — and `accum_block_on_noPending`, the last of the four still gating on the PARK column, moved onto the landing like its three siblings (item 19's rule), folding `noPending` at col ≠ 0 into the irreducible residue. That forces a sharper measure than Reflection 645's: refuting a phantom drops the stated domain AND the site count exactly as a merge does, while composing nothing, so the honest number is the REACHABLE domain (Reflection 646). The remaining lump then resolved into a GRAMMAR gap, not an arm: `[183] l+block-sequence(n)` and `[187] l+block-mapping(n)` are `( s-indent(n+m) … )+` for some fixed auto-detected `m > 0`, while `SBlockSeqEntries n` takes `SIndent n` per entry and `blockSeq` passes `seqSpaces n c` exactly — so `m` is pinned at its minimum and `  - a`, `  ? a`, `  a: 1`, `a:⏎  - x` (most of the language) scan and parse in BOTH pipelines with NO derivation at all; a differential sweep compares two acceptors and cannot see it, and binding `m` per entry instead of once per collection would make the language too big rather than too small (Reflection 647). The widening itself is free — `blockSeq`/`blockMap` have 7 construction sites and ZERO elimination sites — but its consumer is blocked one level up (`pendingBlock`/`pendingMapValue` pin the awaited node at `SBlockNode 0 .blockIn`), so item 21 records the gap rather than adding a constructor with no arm. `block_dispatch_deferred` 18 → 14 sites, three reachable families left. **Item 22 (2026-08-11)** took all three steps of that forced order as ONE item, because a widening with no consumer is inhabitation debt and a pending carrying an index nothing sets is the same debt one level up: `SBlockNode.blockSeq`/`.blockMap` gain the production's `m` (7 construction sites take `m = 0`, ZERO elimination sites — item 21's measurement met exactly), `PendingNode.pendingBlock`/`pendingMapValue` carry the entry indent and await `SBlockNode n .blockIn`, and the eight `hws = cons` sites turn out never to have been arms: `gstar_white_sIndent_or_tab` reads the run's width as `[63] s-indent(k)` and `nil` is `k = 0`, so one body serves both and the eight sites cost zero new arm bodies (Reflection 648 §3). The consumers sorted by whether what they build mentions the index — `close_with_ssl` and the sibling snoc are `[72] e-node` + `[79] s-l-comments` and transported verbatim; the flow-open and content arms split at 0 vs nonzero — and `accum_block_on_pendingBlockContent` lost item 21's `n ≠ 0` family by simply being told which `n` it had. The dividend was `SBlockNode_blockIn_to_blockOut`, whose `n = 0` was an artifact of the pinning and not a domain fact: `seq-spaces(n,block-out) = n-1` disagrees with `seq-spaces(n,block-in) = n` by one at every indent but 0, and `m+1` absorbs it, so the lemma now holds at every indent (Reflection 648). Composed: `  -`, `    -`, `  - `, `  -⏎  -⏎  -`, blank-line- and comment-separated indented entries, `  :`, `  ?`, `  :⏎  :`, `  ?⏎  ?`, `---⏎  - ` (`ScannerIndentedBlockCompose.lean`). Still open here: **the content indent-lift** — `  - a`, `  a: 1`, `  - [1]` are accepted identically by both pipelines but every content reading in the file is stated at 0 (`dispatchContent_evidence` → `SFlowNode 0 .flowOut`, `SCLLiteral 0`, `SCLFolded 0`), 2 sites plus 2 `scannerDrop` routes; the NESTED/dedented collection (an indicator at a width other than the pending's, 2 sites — wants `SBlockIndented.compactSeq`/`compactMap`); the tab branch (4 sites, expected vacuous — the scanner answers `tabInIndentation` before a block indicator); and the irreducible inline residue (5 sites, a mid-line park crossing nothing) **Item 23 (2026-08-11)** closed the largest of those four — the indented entry's VALUE — and the lift was an OCCURRENCE question, not a monotonicity one: `SFlowNode 0 .flowOut → SFlowNode n .flowOut` is false (the index sits in `[71] s-flow-line-prefix(n)` and `[134] s-ns-plain-next-line(n,c)`, both after a break), and the reading is monotone in the useless direction, so the lattice reasoning is available and irrelevant (Reflection 649). All of the index's occurrences sit under ONE guard, the spec already names the fragment below it — `[111] nb-double-one-line`, `[122] nb-single-one-line`, `[133] ns-plain-one-line(c)`, and `[104] c-ns-alias-node` which takes no parameters at all — and those are not an under-approximation of "reads at every index" but EQUAL to it, so the lift is five short lemmas over witnesses items 15–17 already extract, with ONE induction in total (the intra-line `GStar`, not the grammar). The guard's decision procedure was already being computed: `s'.line = sc.line` is item 15's implicit-key measurement, read here for a second purpose — §7.4 asks whether a scan can be a KEY, `dispatchContent_evidence_oneLine` asks at what indent it can be a VALUE, and both restrictions are stated over line boundaries, so one fact answers both. The four ways the answer comes back negative (a property run whose `pendingProps` route is still typed at 0, a block scalar whose content indent is auto-detected — R647's shape one level down, a value that folds, a step that landed on a fresh line) are ONE question, asked once by `indentedValue_reads_at_any_indent`, so the escape's call-site count holds at 13 while its domain loses the family. `  - a`, `    - a`, `  - "x"`, `  - 'x'`, `  - &a x⏎  - *a`, sibling chains with blank and comment lines, `  : v`, `  ? a`, `---⏎  - a` all compose (`ScannerIndentedValueCompose.lean`). **Item 24 (2026-08-12)** took the FIRST of those four negatives and found it was never an instance of the question: `&`/`!` complete no value, so there is no reading to widen — they open a `[96] c-ns-properties` run that item 12 PARKS, and the pinned 0 lived in `PendingNode.pendingProps`' route closure, one step upstream of the reading (Reflection 650: a case that lands in your escape may be a DIFFERENT question, not a harder instance of yours, and the wrong obstruction is what schedules the next item). Re-indexing that route cost ZERO lift lemmas, because a FRESH run is single-half and `[96]`'s only occurrence of the index is the `s-separate(n,c)` inside its optional SECOND half — `∀ n, PropsRun n .flowOut ha ht` is the constructor itself, the strongest answer R649's occurrence question can have — while the extension arm (`&a !t v`) builds that separator from the preprocessing's residual whites, `[66] s-separate-in-line`, which mentions no indent either. So the constructor gains `(n : Nat)`, 8 construction sites pass their index and the 4 elimination sites take it; `indentedValue_reads_at_any_indent` grows a MIDDLE disjunct rather than a second deferral, so each caller keeps one route to the escape; and the decorated value reads one production lower down — `[161]`'s `propsContent` arm slots `[156] ns-flow-content` UNDER the run, so `dispatchContent_evidence_content_oneLine` is the new lemma and `dispatchContent_evidence_oneLine` is now it plus one arm (the alias, an alternative of `[161]` and not of `[156]`, which a run cannot be followed by anyway). Composed: `  - &a v`, `    - &a v`, `  - !!str v`, `  - &a !t v`, `  - !t &a v`, `  - &a "x"`, `  - &a 'x'`, `  - &a` and `  - &a # c` (the `propsEmpty` close, now at every index), `  - &a v⏎  - b`, `  - &a v⏎  - &b w`, `  - &a x⏎  - *a`, `  : &a v`, `  ? &a v⏎  : &b w`, `---⏎  - &a v` (`ScannerIndentedPropsCompose.lean`). The escape gained a site (13 → 14) and `scannerDrop` held at 4 — the nonzero flow-open arm shares the deferred state's opaque resume rather than writing its own — so neither count is the result: the result is RE-ATTRIBUTION. Of the three shapes filed under the route, only `  - &a v` was the route's; `  - &a |` is `[198]`'s props slot over `[170]`/`[174]`'s auto-detected content indent, the same gap `  - |` has with no run at all, and `  - &a [b]` re-enters through `FlowOpenStack`'s RESUME closure, whose argument is `SFlowContent 0 .flowOut`, so it drops for exactly the reason `  - [1]` does. **Item 25 (2026-08-12)** took the indented IMPLICIT key, and its blocker was not in any key production: `ImplicitKeyPack` demanded `sp_key.col = 0`, and `keyctx_of_preprocess` supplied that by REFUSING the case where preprocessing crossed residual whites — so `a: 1` derived and `  a: 1` did not, which is most of the language. Those whites are `[187] l+block-mapping(n)`'s auto-detected `s-indent(n+m)`, the SAME run item 22 read in front of a block indicator through the SAME splitter (`gstar_white_sIndent_or_tab`), so the fix is a conversion where there had been a discard (Reflection 651: a constant in a precondition is often a quantity you declined to measure; the tell is a producer that cases on evidence it already holds and answers for one shape of it, and the discriminator against a real side condition is whether the discarded arm has an answer at all — the TAB does not, and still punts). It cost **ZERO lift lemmas and zero new lemmas of any kind**: `[193] ns-s-block-map-implicit-key` and `[194] c-s-implicit-json-key` take no indent (the spec writes `n/a`, which is why `SImplicitKey` has never been indexed), so the index enters only ONE production up — the `s-indent(k)` in front of the entry and `rootBlockMap k`, both of which `colon_open_map` has had since item 22. `ImplicitKeyPack` and `PropsKeyPack` trade `col = 0` for a `(k, sp_land, SIndent k)` triple, 13 sites thread it, and item 17's `propsContent` head is untouched because `s-separate(n,block-key)` is `[66] s-separate-in-line`. Composed: `  a: 1`, `    a: 1`, `  a b: c`, `  a:`, `  a: 1 # c`, `  "a": b`, `  'a': b`, `  &x a: 1`, `  !!str a: 1`, `  a: "x"`, `  a: &x v`, `  a: 1⏎  b: 2⏎  c: 3` with blank and comment lines, mixed property-prefixed siblings, `---⏎  a: 1` (`ScannerIndentedImplicitKeyCompose.lean`); not reached, and none of them the key — `  a: |` ([170]/[174]'s content indent), `  a: [1,2]` (`FlowOpenStack`'s resume), `  a:⏎  - x` (a nested collection), `  - a: 1` (a COMPACT mapping, which never reaches the pack). `block_dispatch_deferred` holds at 14 and `scannerDrop` at 4 — the key was an inline-residue inhabitant and leaves that family's DOMAIN without changing its shape — while the pack producer's three punting arms hold at three — the gap arm is NARROWED (any nonempty white run → a run containing a tab), not removed, which is the same sideways move R646 named. **Item 26 (2026-08-12)** took the indented BLOCK SCALAR, the largest of item 23's remaining negatives, and found that item 23's own diagnosis of it was wrong: it had been filed as `[183]`/`[187]`'s pinned auto-detected indent one level down (R647's shape), but `[170] c-l+literal(n)`'s constructor BINDS its `m` — `SCLLiteral n s s'` is `SCBBlockHeader` plus `SLLiteralContent (n + m)` with `m` a constructor argument — so there was never a production to widen. The pin was in the PRODUCTION LEMMA: `scanBlockScalar_prod` obtained the scanner's detected `contentIndent` as an existential from `scanBlockScalarBody_literal_prod` and threw it away by concluding `SCLLiteral 0`, which is R651's shape one file over. Keeping it is `scanBlockScalar_prod_at` (the reading at every `n ≤ d`, paying `m := d - n`, with ZERO sub-productions touched), and the scanner's own floor came free — `autoDetectBlockScalarIndent_ge_min` and `parseBlockHeaderLoop_offset_preserves` (which refuses the digit `0`, so an explicit `|2` also lands above `minContentIndent`) were **both already in the tree, unread by the lemma above them**, so `scanBlockScalarBody_contentIndent_floor` is their composition plus two `omega`s and needs no induction. The three lemmas live in a new satellite (`Proofs/Scanner/BlockScalarIndentFloor.lean`) rather than in `ScalarProduction`, which keeps `StructureProduction`/`NodeProduction` out of the rebuild; one vacuous lemma is deleted in passing (`scanBlockScalarBody_indent_ge_one`, concluding `∃ m, m ≥ 1`, true of everything and cited by nothing — the pre-item-26 attempt at the floor). What the widening returns is not the general statement but the general statement PLUS a side condition, `n ≤ d`, and **Reflection 652** is that a side condition is only as available as the quantity it names: `n ≤ d` is true of every accepted input (an entry sits at `currentIndent`; the body's floor is `currentIndent + 1`) and is underivable here, because `currentIndent` occurs in `StreamAccum.lean` three times and all three are PROSE. So the guard is asked once, inside `indentedValue_reads_at_any_indent` rather than at its three callers — which is what keeps three negative answers from becoming three extra call sites (R649 §4) — and the negative branch defers. Composed: `  - |`, `    - |`, `  - >`, multi-line literal and folded bodies, `  - |-`/`  - |+`/`  - |2`/`  - | # c` (`[162]` carries no index, so the header's indicators change nothing), `  a: |`, `  : |`, `  ? |`, `  - &a |`, `  - !!str |`, `  - &a !!str |` (`[198]`'s props slot at item 24's route index), sibling chains and `---⏎  - |` (`ScannerIndentedBlockScalarCompose.lean`). ZERO grammar edits, ZERO runtime edits, zero new scanner lemmas; `block_dispatch_deferred` holds at 14 and `scannerDrop` at 4, and the shared question's three negative answers are still three — but the third went from a CONSTRUCT ("a block scalar") to an INEQUALITY ("an entry deeper than the body's floor"), and the two places that recorded the old attribution (`ScannerIndentedValueCompose` §6, `ScannerIndentedPropsCompose` §5) are corrected. **The next item on this family is therefore not a grammar item at all**: it is `n ≤ sc.currentIndent + 1` carried on `pendingBlock`/`pendingMapValue`/`pendingProps` and transported across preprocessing, which needs the `skipToContent*_preserves_indents` family (the `_preserves_flowLevel` family already in `ScannerCorrectness.lean` is its template) — and that same coupling is part (i) of `FlowOpenStack`'s three-part re-index below. **REMAINING in row 12**: `FlowOpenStack`'s resume type — priced by item 25 as THREE parts, not one, because the resume's `SFlowContent 0 .flowOut` and the frame's `SeqFrame 0 (inFlowCtx .flowOut)` are the same index: (i) couple the carried index to the scanner's indent state, (ii) derive the interior separators at `n` from `underIndentedFlowContent`, which already enforces `s.col > s.currentIndent` inside a flow and so IS `s-indent(n)` for `n = currentIndent + 1` (`  - [1,⏎  2]` refused, `  - [1,⏎   2]` accepted), (iii) re-derive the multi-line plain and quoted scalar readings at `n`, which inside a flow genuinely mention the index — and none of the three has a consumer on its own; then the block scalar's remaining half — NOT a production but the inequality item 26 exposed, `n ≤ sc.currentIndent + 1` carried on `pendingBlock`/`pendingMapValue`/`pendingProps` and transported across preprocessing (the `skipToContent*_preserves_indents` family, templated on `_preserves_flowLevel`), which is also part (i) above; the nested/dedented collection via `SBlockIndented.compactSeq`/`compactMap` (2 sites); the TAB branch (4 sites, expected vacuous); the inline residue (5 sites) — then the `pendingFlow`/`scannerDrop` deletion itself | Step 5, the converse | ditto |
+| 12 | **β.5 — retire `pendingFlow`, delete `scannerDrop`.** Items 11–27 have closed it one arm at a time; `block_dispatch_deferred` stands at 14 call sites and `scannerDrop` at 4. The per-item record and the ordered list of what is left are in [Row 12 — β.5 closure log](#row-12--β5-closure-log). | Step 5, the converse | ditto |
 | 13 | **Step 5 — the converse** `grammar_completeness`, then **Step 6** the `parse_iff_grammar` biconditional | capstone 7.7 | [Grammar completeness plan](#grammar-completeness-plan) |
 
-Items 1–11 and 18 are closed; the closure records live in the sections below,
-the blow-by-blow history in git.
+Items 1–11 and 18 are closed and their rows deleted; the closure records live
+in the sections below, the blow-by-blow history in git.
 
-The full `lake build` has been GREEN since item 9t (973 targets as of item
-26, warning-free), `L4YAML.Capstones` included — what the rest of row 12 buys
-is STRENGTH: the `scannerDrop` constructor is the one remaining hole in what
-the capstones assert. `Tests.Guards` builds at 216 jobs, `Tests.Reflections`
-at 426 (R644, R645, R646, R647, R648, R649, R650, R651, R652); matrix event 402/402 · JSON
-282/282 on BOTH instrument sets (items 15, 16, 17, 19, 20, 21, 22, 23, 24, 25 and 26
-touched no runtime file — items 20 and 22's only non-proof edits are `Prop`-valued grammar
-constructors and one added constructor parameter, and items 21, 23, 24 and 25 edit
-no grammar at all — item 24's only structural edit is a parameter on
-`PendingNode.pendingProps`, item 25's is two `Prop`-valued pack definitions and item 26's is one new proof module, all of which live in the proof layer — so the matrix is unchanged by construction); `run-all-tests.sh` verifies 4442/4442 (item 13 retired the
-last stale pre-9j assertion, `{?, ?}` in `ExplicitKeyTests` — Reflection
-622's third missed pin; item 14 closed the legacy↔indexed plain-scalar walk
-divergence — a 5,460-input differential sweep is clean).
+The full `lake build` has been GREEN since item 9t (977 targets as of item 27,
+warning-free), `L4YAML.Capstones` included — what the rest of row 12 buys is
+STRENGTH: the `scannerDrop` constructor is the one remaining hole in what the
+capstones assert. `Tests.Guards` builds at 217 jobs, `Tests.Reflections` at
+427 (R644–R653); matrix event 402/402 · JSON 282/282 on BOTH instrument sets —
+items 15, 16, 17 and 19–27 touched no runtime file, so the matrix is unchanged
+by construction (items 20 and 22's only non-proof edits are `Prop`-valued
+grammar constructors and one added constructor parameter; items 21 and 23–27
+edit no grammar at all, their structural edits being a parameter on
+`PendingNode.pendingProps` (24), two `Prop`-valued pack definitions (25) and
+one new proof module each (26, 27), all in the proof layer).
+`run-all-tests.sh` verifies 4442/4442 (item 13 retired the last stale pre-9j
+assertion, `{?, ?}` in `ExplicitKeyTests` — Reflection 622's third missed pin;
+item 14 closed the legacy↔indexed plain-scalar walk divergence — a 5,460-input
+differential sweep is clean).
 
+
+## Row 12 — β.5 closure log
+
+**β.5 — retire `pendingFlow`, delete `scannerDrop`.** Once no dispatch
+produces `pendingFlow`, the `close_with_ssl` arm that calls `scannerDrop` is
+unreachable; delete the constructor from `Surface/Document.lean`. β.3 and β.4
+completed 2026-08-10 (items 9s/9t), so this STRENGTHENS
+`scan_strict_proof`/`parse_strict_proof` — the drop constructor is the one
+remaining hole in what they assert — rather than unblocking the gate.
+
+The campaign has closed the row one arm at a time since 2026-08-10. This
+section is the per-item record — it lives here rather than in the [Next
+actions](#next-actions-in-order) table because a table cell is not a log. The
+single authoritative statement of what is LEFT, and in what order to take it,
+is [REMAINING, in order](#remaining-in-order) at the end.
+
+### Item 11 (2026-08-10)
+
+landed the INDEXED substrate package (§4 divergence CLOSED; Reflection 635)
+and deleted the dead `accum_flow_pending`.
+
+### Item 12 (2026-08-10)
+
+retired `pendingProps`'s content-dispatch escape: `PendingNode` is
+scanner-state-PARAMETRIZED so the held run's same-line guard couplings ride
+the constructor (Reflection 636); `&a b`/`&a !t [b]`/`&a \|` compose, `&`/`!`
+extend the run, `*` is scanner-refuted — consuming item 9k's same-line
+residual.
+
+### Item 13 (2026-08-10)
+
+opened the block-mapping campaign at its one keyless arm: a col-0 `:` is
+`[189]`'s empty-key entry, and `PendingNode.pendingMapValue` —
+`pendingBlock`'s mapping twin, ONE closure typed at `.blockIn` and converted
+to `[189]`'s `.blockOut` at its single producer (Reflection 637) — composes `:
+v`, `:`, `: [a]`, `: \|`, `: &a v`, `---⏎: v` and sibling chains; no
+entries-level snoc (siblings ride `[211]`'s admitted bare-document
+continuation).
+
+### Item 14 (2026-08-11)
+
+closed the `x⏎: v` scan divergence item 13 surfaced — in the REVERSE direction
+its note prescribed: a 5,460-input differential sweep found the recorded shape
+was one of 580 divergent inputs in TWO families (354 verdict-equal error-stage
+differences; **226 content differences on ACCEPTED inputs** — `x⏎⏎` kept the
+fold's `\n` in the indexed scalar, invisible to matrix and suites) with ONE
+root, the indexed walk's dropped no-gain rewind; `backtrackIfNoGain`
+(`Scanner/IndexedScanner.lean`) restores it, both sweeps clean, and the `x⏎y:
+v` §7.4 scan rejection the implicit-key arm reads as its multiline refutation
+is intact in BOTH pipelines — no port owed (Reflection 638;
+`ScannerPlainNoGainRewind.lean`).
+
+### Item 15 (2026-08-11)
+
+composed the col-0 plain IMPLICIT key: `pendingContent` gains a conditional
+key field guarded by the two DECIDABLE state facts §7.4 also reads
+(`simpleKey.possible`, `simpleKey.pos.line = line`) and concluding
+pack-or-punt, so the same-line-`:` consumer is three `by_cases` plus one field
+application — zero validator lemmas (Reflection 639); the pack's one-line
+witness is a conjunct inside `collectPlainScalarLoop_prod`'s existential
+conclusion over 7 new `_line_*` lemmas, the `.blockKey` re-read is 5
+definitional lifts, and `colon_open_map_implicit` re-anchors item 13's mapping
+machinery at the key — `a: b`, `a : b`, `a:`, `a b: c`, `a: [x,y]`, `a: \|`
+and sibling chains all compose (`ScannerImplicitKeyCompose.lean`).
+
+### Item 16 (2026-08-11)
+
+composed the col-0 QUOTED implicit key — `[188]`'s JSON arm: the one-line
+readings `[111] nb-double-one-line` / `[122] nb-single-one-line` are
+SELF-CONTAINED sub-productions, so they landed as two NEW lemmas over the same
+walks with ZERO arms of
+`collectDoubleQuotedLoop_prod`/`collectSingleQuotedLoop_prod` edited
+(Reflection 640's discriminator: ride the conclusion as a conjunct only when
+the narrow fact names ∃-bound witnesses, as item 15's did), the break arms
+refuted by item 15's `_line_*` facts verbatim plus three new escape-body
+line-transparency lemmas; the pack's payload widened via ONE carrier inductive
+(`ImplicitKeyHead` + `implicitKeyHead_to_SImplicitKey`), so
+`colon_open_map_implicit` took one hypothesis type and one body line — `"a":
+b`, `'a': b`, `"": b`, `'a''b': c`, `"a\tb": c`, `"a\u0041b": c`, mixed
+plain/quoted mappings all compose (`ScannerQuotedKeyCompose.lean`).
+
+### Item 17 (2026-08-11)
+
+closed the punted key packs — the ALIAS and PROPERTY-prefixed heads — by
+re-cutting item 16's carrier along `[188]`'s own two alternatives instead of
+the scanner's three branches (Reflection 641): an alias key is `[161]
+ns-flow-node(0, block-key)`'s `alias` arm and `&a x: v` is its `propsContent`
+arm, so BOTH landed with ZERO new carrier arms; the alias head needs no line
+hypothesis at all (`ns-anchor-char` excludes `s-white` and `b-char`), and the
+props head needed one CARRIED datum — a post-state guard cannot recover a
+pre-state fact, so `pendingProps` holds the run's col-0 line start, the stream
+closed there, the run re-read at `block-key` and the saved key's line, which
+fires items 15/16's one-line readings verbatim; `&a x: v`, `!!str x: v`, `&a
+!t x: v`, `!t &a x: v`, `&a "x": v`, `*a : b` and their families compose
+(`ScannerPropsAliasKeyCompose.lean`), and one verdict-equal error-stage
+divergence is recorded (`*a: b`: legacy `undefinedAlias "a:"`, indexed
+`trailingContent 0 4`).
+
+### Item 19 (2026-08-11)
+
+closed the break-crossed arm — and it needed no grammar at all: four
+block-dispatch arms gated on `sp_scan.col = 0`, the column the PENDING was
+parked at, while every body downstream was anchored at `sp_mid`, the position
+preprocessing LANDED on, and a second producer of that same package
+(`..._anyCol`'s crossed-break disjunct) was being routed to the deferral
+(Reflection 643). `preprocess_some_ssl_comments_landing` joins the two, the
+three closeable arms case on the landing, and the multi-line block sequence
+leaves `scannerDrop`: `- a⏎- b`, `-⏎- b`, `- a⏎-`, `- [1]⏎- b`, `- &a v⏎- b`,
+`- - a⏎- b`, blank-line- and comment-separated entries, `---⏎- a⏎- b`, `-
+a⏎...`, `- a⏎---⏎- b`, `: a⏎: b`, and the `x⏎: v`/`"a"⏎: b`/`&a x⏎: v` shapes
+(scanned as `[189]`'s empty-key entry, refused by the parser) — with ZERO new
+grammar lemmas, zero couplings, zero arm-body rewrites, no runtime edits, two
+dead hypotheses deleted, and `block_dispatch_deferred` down from 22 call sites
+to 18 (`ScannerBreakCrossedBlockCompose.lean`).
+
+### Item 20 (2026-08-11)
+
+closed the `?` explicit key, and its cost was entirely in the SURFACE GRAMMAR:
+`[186] c-l-block-map-explicit-entry`'s tail is `(
+l-block-map-explicit-value(n) | e-node )` and `SBlockMapEntry.explicit`
+demanded the `:` line, so `? a` and every key-only entry parsed correctly with
+NO derivation and no arm could be stated — `SBlockMapEntry.explicitEmpty` is
+the missing alternative, safe to add because the inductive has three
+construction sites and ZERO elimination sites (Reflection 644 §3). The
+accumulator arm was free: item 13's `pendingMapValue` names only the node it
+AWAITS and never the `:` that parked it, so `?` — `[188]`'s other alternative,
+awaiting the KEY, composing a different entry — reuses it with zero new
+pending constructors and zero consumer arms edited; three new lemmas
+(`dispatchBlockKey_full_prod`, `question_open_map`, and `indicator_open_map`,
+the join that lets ONE dispatch branch serve both indicators, keeping
+`block_dispatch_deferred` at 18 sites rather than the 22 a copied branch cost
+— and that measurement is **Reflection 645**: an escape hatch's call-site
+count is not its coverage, the two are independent in BOTH directions, they
+agree only on a merge, and the actionable half is to widen a gate rather than
+copy an arm whose body the new case would share verbatim; across items 19 and
+20 the count reads 22 → 18 → 18 with two whole input families gone). `? a`,
+`?`, `? [1]`, `? {a: 1}`, `? &a v`, `? "x"`, `? \|`, `? a⏎? b`, `? a⏎: b⏎? c⏎:
+d`, mixed explicit/implicit entries, blank-line- and comment-separated keys
+and document frames all compose (`ScannerExplicitKeyCompose.lean`); `? a⏎: b`
+is NOT the two-part `explicit` constructor but the key-only entry followed by
+item 13's col-0 `:` as a `[211]` continuation. All three block indicators
+(`-`, `:`, `?`) now compose.
+
+### Item 21 (2026-08-11)
+
+audited the deferral instead of building the next arm, and two of its five
+families closed without composing anything: a character that is not a block
+indicator was NEVER input — `scanNextToken_dispatchBlockIndicators` opens each
+arm with its own literal test, so a `.ok (some s')` result names the character
+(`dispatchBlockIndicators_indicator_of_some` + `block_indicator_exhausted`, 4
+sites at one term) — and `accum_block_on_noPending`, the last of the four
+still gating on the PARK column, moved onto the landing like its three
+siblings (item 19's rule), folding `noPending` at col ≠ 0 into the irreducible
+residue. That forces a sharper measure than Reflection 645's: refuting a
+phantom drops the stated domain AND the site count exactly as a merge does,
+while composing nothing, so the honest number is the REACHABLE domain
+(Reflection 646). The remaining lump then resolved into a GRAMMAR gap, not an
+arm: `[183] l+block-sequence(n)` and `[187] l+block-mapping(n)` are `(
+s-indent(n+m) … )+` for some fixed auto-detected `m > 0`, while
+`SBlockSeqEntries n` takes `SIndent n` per entry and `blockSeq` passes
+`seqSpaces n c` exactly — so `m` is pinned at its minimum and `  - a`, `  ?
+a`, `  a: 1`, `a:⏎  - x` (most of the language) scan and parse in BOTH
+pipelines with NO derivation at all; a differential sweep compares two
+acceptors and cannot see it, and binding `m` per entry instead of once per
+collection would make the language too big rather than too small (Reflection
+647). The widening itself is free — `blockSeq`/`blockMap` have 7 construction
+sites and ZERO elimination sites — but its consumer is blocked one level up
+(`pendingBlock`/`pendingMapValue` pin the awaited node at `SBlockNode 0
+.blockIn`), so item 21 records the gap rather than adding a constructor with
+no arm. `block_dispatch_deferred` 18 → 14 sites, three reachable families
+left.
+
+### Item 22 (2026-08-11)
+
+took all three steps of that forced order as ONE item, because a widening with
+no consumer is inhabitation debt and a pending carrying an index nothing sets
+is the same debt one level up: `SBlockNode.blockSeq`/`.blockMap` gain the
+production's `m` (7 construction sites take `m = 0`, ZERO elimination sites —
+item 21's measurement met exactly),
+`PendingNode.pendingBlock`/`pendingMapValue` carry the entry indent and await
+`SBlockNode n .blockIn`, and the eight `hws = cons` sites turn out never to
+have been arms: `gstar_white_sIndent_or_tab` reads the run's width as `[63]
+s-indent(k)` and `nil` is `k = 0`, so one body serves both and the eight sites
+cost zero new arm bodies (Reflection 648 §3). The consumers sorted by whether
+what they build mentions the index — `close_with_ssl` and the sibling snoc are
+`[72] e-node` + `[79] s-l-comments` and transported verbatim; the flow-open
+and content arms split at 0 vs nonzero — and
+`accum_block_on_pendingBlockContent` lost item 21's `n ≠ 0` family by simply
+being told which `n` it had. The dividend was
+`SBlockNode_blockIn_to_blockOut`, whose `n = 0` was an artifact of the pinning
+and not a domain fact: `seq-spaces(n,block-out) = n-1` disagrees with
+`seq-spaces(n,block-in) = n` by one at every indent but 0, and `m+1` absorbs
+it, so the lemma now holds at every indent (Reflection 648). Composed: `  -`,
+`    -`, `  - `, `  -⏎  -⏎  -`, blank-line- and comment-separated indented
+entries, `  :`, `  ?`, `  :⏎  :`, `  ?⏎  ?`, `---⏎  - `
+(`ScannerIndentedBlockCompose.lean`). Still open here: **the content
+indent-lift** — `  - a`, `  a: 1`, `  - [1]` are accepted identically by both
+pipelines but every content reading in the file is stated at 0
+(`dispatchContent_evidence` → `SFlowNode 0 .flowOut`, `SCLLiteral 0`,
+`SCLFolded 0`), 2 sites plus 2 `scannerDrop` routes; the NESTED/dedented
+collection (an indicator at a width other than the pending's, 2 sites — wants
+`SBlockIndented.compactSeq`/`compactMap`); the tab branch (4 sites, expected
+vacuous — the scanner answers `tabInIndentation` before a block indicator);
+and the irreducible inline residue (5 sites, a mid-line park crossing nothing)
+
+### Item 23 (2026-08-11)
+
+closed the largest of those four — the indented entry's VALUE — and the lift
+was an OCCURRENCE question, not a monotonicity one: `SFlowNode 0 .flowOut →
+SFlowNode n .flowOut` is false (the index sits in `[71] s-flow-line-prefix(n)`
+and `[134] s-ns-plain-next-line(n,c)`, both after a break), and the reading is
+monotone in the useless direction, so the lattice reasoning is available and
+irrelevant (Reflection 649). All of the index's occurrences sit under ONE
+guard, the spec already names the fragment below it — `[111]
+nb-double-one-line`, `[122] nb-single-one-line`, `[133] ns-plain-one-line(c)`,
+and `[104] c-ns-alias-node` which takes no parameters at all — and those are
+not an under-approximation of "reads at every index" but EQUAL to it, so the
+lift is five short lemmas over witnesses items 15–17 already extract, with ONE
+induction in total (the intra-line `GStar`, not the grammar). The guard's
+decision procedure was already being computed: `s'.line = sc.line` is item
+15's implicit-key measurement, read here for a second purpose — §7.4 asks
+whether a scan can be a KEY, `dispatchContent_evidence_oneLine` asks at what
+indent it can be a VALUE, and both restrictions are stated over line
+boundaries, so one fact answers both. The four ways the answer comes back
+negative (a property run whose `pendingProps` route is still typed at 0, a
+block scalar whose content indent is auto-detected — R647's shape one level
+down, a value that folds, a step that landed on a fresh line) are ONE
+question, asked once by `indentedValue_reads_at_any_indent`, so the escape's
+call-site count holds at 13 while its domain loses the family. `  - a`, `    -
+a`, `  - "x"`, `  - 'x'`, `  - &a x⏎  - *a`, sibling chains with blank and
+comment lines, `  : v`, `  ? a`, `---⏎  - a` all compose
+(`ScannerIndentedValueCompose.lean`).
+
+### Item 24 (2026-08-12)
+
+took the FIRST of those four negatives and found it was never an instance of
+the question: `&`/`!` complete no value, so there is no reading to widen —
+they open a `[96] c-ns-properties` run that item 12 PARKS, and the pinned 0
+lived in `PendingNode.pendingProps`' route closure, one step upstream of the
+reading (Reflection 650: a case that lands in your escape may be a DIFFERENT
+question, not a harder instance of yours, and the wrong obstruction is what
+schedules the next item). Re-indexing that route cost ZERO lift lemmas,
+because a FRESH run is single-half and `[96]`'s only occurrence of the index
+is the `s-separate(n,c)` inside its optional SECOND half — `∀ n, PropsRun n
+.flowOut ha ht` is the constructor itself, the strongest answer R649's
+occurrence question can have — while the extension arm (`&a !t v`) builds that
+separator from the preprocessing's residual whites, `[66] s-separate-in-line`,
+which mentions no indent either. So the constructor gains `(n : Nat)`, 8
+construction sites pass their index and the 4 elimination sites take it;
+`indentedValue_reads_at_any_indent` grows a MIDDLE disjunct rather than a
+second deferral, so each caller keeps one route to the escape; and the
+decorated value reads one production lower down — `[161]`'s `propsContent` arm
+slots `[156] ns-flow-content` UNDER the run, so
+`dispatchContent_evidence_content_oneLine` is the new lemma and
+`dispatchContent_evidence_oneLine` is now it plus one arm (the alias, an
+alternative of `[161]` and not of `[156]`, which a run cannot be followed by
+anyway). Composed: `  - &a v`, `    - &a v`, `  - !!str v`, `  - &a !t v`, `
+- !t &a v`, `  - &a "x"`, `  - &a 'x'`, `  - &a` and `  - &a # c` (the
+`propsEmpty` close, now at every index), `  - &a v⏎  - b`, `  - &a v⏎  - &b
+w`, `  - &a x⏎  - *a`, `  : &a v`, `  ? &a v⏎  : &b w`, `---⏎  - &a v`
+(`ScannerIndentedPropsCompose.lean`). The escape gained a site (13 → 14) and
+`scannerDrop` held at 4 — the nonzero flow-open arm shares the deferred
+state's opaque resume rather than writing its own — so neither count is the
+result: the result is RE-ATTRIBUTION. Of the three shapes filed under the
+route, only `  - &a v` was the route's; `  - &a |` is `[198]`'s props slot
+over `[170]`/`[174]`'s auto-detected content indent, the same gap `  - |` has
+with no run at all, and `  - &a [b]` re-enters through `FlowOpenStack`'s
+RESUME closure, whose argument is `SFlowContent 0 .flowOut`, so it drops for
+exactly the reason `  - [1]` does.
+
+### Item 25 (2026-08-12)
+
+took the indented IMPLICIT key, and its blocker was not in any key production:
+`ImplicitKeyPack` demanded `sp_key.col = 0`, and `keyctx_of_preprocess`
+supplied that by REFUSING the case where preprocessing crossed residual whites
+— so `a: 1` derived and `  a: 1` did not, which is most of the language. Those
+whites are `[187] l+block-mapping(n)`'s auto-detected `s-indent(n+m)`, the
+SAME run item 22 read in front of a block indicator through the SAME splitter
+(`gstar_white_sIndent_or_tab`), so the fix is a conversion where there had
+been a discard (Reflection 651: a constant in a precondition is often a
+quantity you declined to measure; the tell is a producer that cases on
+evidence it already holds and answers for one shape of it, and the
+discriminator against a real side condition is whether the discarded arm has
+an answer at all — the TAB does not, and still punts). It cost **ZERO lift
+lemmas and zero new lemmas of any kind**: `[193] ns-s-block-map-implicit-key`
+and `[194] c-s-implicit-json-key` take no indent (the spec writes `n/a`, which
+is why `SImplicitKey` has never been indexed), so the index enters only ONE
+production up — the `s-indent(k)` in front of the entry and `rootBlockMap k`,
+both of which `colon_open_map` has had since item 22. `ImplicitKeyPack` and
+`PropsKeyPack` trade `col = 0` for a `(k, sp_land, SIndent k)` triple, 13
+sites thread it, and item 17's `propsContent` head is untouched because
+`s-separate(n,block-key)` is `[66] s-separate-in-line`. Composed: `  a: 1`, `
+a: 1`, `  a b: c`, `  a:`, `  a: 1 # c`, `  "a": b`, `  'a': b`, `  &x a: 1`,
+`  !!str a: 1`, `  a: "x"`, `  a: &x v`, `  a: 1⏎  b: 2⏎  c: 3` with blank and
+comment lines, mixed property-prefixed siblings, `---⏎  a: 1`
+(`ScannerIndentedImplicitKeyCompose.lean`); not reached, and none of them the
+key — `  a: |` ([170]/[174]'s content indent), `  a: [1,2]` (`FlowOpenStack`'s
+resume), `  a:⏎  - x` (a nested collection), `  - a: 1` (a COMPACT mapping,
+which never reaches the pack). `block_dispatch_deferred` holds at 14 and
+`scannerDrop` at 4 — the key was an inline-residue inhabitant and leaves that
+family's DOMAIN without changing its shape — while the pack producer's three
+punting arms hold at three — the gap arm is NARROWED (any nonempty white run →
+a run containing a tab), not removed, which is the same sideways move R646
+named.
+
+### Item 26 (2026-08-12)
+
+took the indented BLOCK SCALAR, the largest of item 23's remaining negatives,
+and found that item 23's own diagnosis of it was wrong: it had been filed as
+`[183]`/`[187]`'s pinned auto-detected indent one level down (R647's shape),
+but `[170] c-l+literal(n)`'s constructor BINDS its `m` — `SCLLiteral n s s'`
+is `SCBBlockHeader` plus `SLLiteralContent (n + m)` with `m` a constructor
+argument — so there was never a production to widen. The pin was in the
+PRODUCTION LEMMA: `scanBlockScalar_prod` obtained the scanner's detected
+`contentIndent` as an existential from `scanBlockScalarBody_literal_prod` and
+threw it away by concluding `SCLLiteral 0`, which is R651's shape one file
+over. Keeping it is `scanBlockScalar_prod_at` (the reading at every `n ≤ d`,
+paying `m := d - n`, with ZERO sub-productions touched), and the scanner's own
+floor came free — `autoDetectBlockScalarIndent_ge_min` and
+`parseBlockHeaderLoop_offset_preserves` (which refuses the digit `0`, so an
+explicit `|2` also lands above `minContentIndent`) were **both already in the
+tree, unread by the lemma above them**, so
+`scanBlockScalarBody_contentIndent_floor` is their composition plus two
+`omega`s and needs no induction. The three lemmas live in a new satellite
+(`Proofs/Scanner/BlockScalarIndentFloor.lean`) rather than in
+`ScalarProduction`, which keeps `StructureProduction`/`NodeProduction` out of
+the rebuild; one vacuous lemma is deleted in passing
+(`scanBlockScalarBody_indent_ge_one`, concluding `∃ m, m ≥ 1`, true of
+everything and cited by nothing — the pre-item-26 attempt at the floor). What
+the widening returns is not the general statement but the general statement
+PLUS a side condition, `n ≤ d`, and **Reflection 652** is that a side
+condition is only as available as the quantity it names: `n ≤ d` is true of
+every accepted input (an entry sits at `currentIndent`; the body's floor is
+`currentIndent + 1`) and is underivable here, because `currentIndent` occurs
+in `StreamAccum.lean` three times and all three are PROSE. So the guard is
+asked once, inside `indentedValue_reads_at_any_indent` rather than at its
+three callers — which is what keeps three negative answers from becoming three
+extra call sites (R649 §4) — and the negative branch defers. Composed: `  -
+|`, `    - |`, `  - >`, multi-line literal and folded bodies, `  - |-`/`  -
+|+`/`  - |2`/`  - | # c` (`[162]` carries no index, so the header's indicators
+change nothing), `  a: |`, `  : |`, `  ? |`, `  - &a |`, `  - !!str |`, `  -
+&a !!str |` (`[198]`'s props slot at item 24's route index), sibling chains
+and `---⏎  - |` (`ScannerIndentedBlockScalarCompose.lean`). ZERO grammar
+edits, ZERO runtime edits, zero new scanner lemmas; `block_dispatch_deferred`
+holds at 14 and `scannerDrop` at 4, and the shared question's three negative
+answers are still three — but the third went from a CONSTRUCT ("a block
+scalar") to an INEQUALITY ("an entry deeper than the body's floor"), and the
+two places that recorded the old attribution (`ScannerIndentedValueCompose`
+§6, `ScannerIndentedPropsCompose` §5) are corrected. **The next item on this
+family is therefore not a grammar item at all**: it is `n ≤ sc.currentIndent +
+1` carried on `pendingBlock`/`pendingMapValue`/`pendingProps` and transported
+across preprocessing, which needs the `skipToContent*_preserves_indents`
+family (the `_preserves_flowLevel` family already in `ScannerCorrectness.lean`
+is its template) — and that same coupling is part (i) of `FlowOpenStack`'s
+three-part re-index below.
+
+### Item 27 (2026-08-12)
+
+paid the inequality item 26 exposed, and the payment was a SCANNER coupling
+rather than anything about block scalars. `n ≤ d` is true of every accepted
+input because an entry sits at `currentIndent` and `scanBlockScalarBody`'s
+floor for the body's content indent is `(max 0 (currentIndent + 1)).toNat`;
+what made it unstatable is that `currentIndent` occurred in the accumulation
+invariant three times, all PROSE. Two halves make it statable. First,
+`skipToContent` never writes `indents` — the mechanical descent the
+`_preserves_flowLevel` family already makes over the same five functions
+(`skipSpaces`, `skipWhitespace`, `collectCommentTextLoop`,
+`skipToContentComment`, `skipToContentWs`) — so preprocessing's ONLY writer is
+the armed `unwindIndents`, and its arming flag is exactly what the break-free
+disjunct already excludes; `preprocess_some_ssl_comments_anyCol`'s no-break
+payload therefore gains the stack equation beside item 12's line/flag/token
+facts, under the flag alone (it needs no `LastTokenReal`). Second, the three
+block indicators push their block-collection indent at a column the
+accumulator already reads off the landing — `SIndent_col` says `[63]
+s-indent(k)` advances the column by exactly `k`, so the parked entry index IS
+the indicator's column. `IndentFloor sc n` (`needIndentCheck = false ∧ n ≤
+minContentIndentOf sc`) then rides `pendingBlock`, `pendingMapValue` and
+`pendingProps`, and `indentedValue_reads_at_any_indent` DISCHARGES item 26's
+`by_cases` instead of splitting on it. **Reflection 653** is the shape the
+field is carried in: `IndentFloor sc n ∨ True`, not a required field. A
+required field would have obliged every producer on the spot and sent the ones
+that cannot measure to the escape — a route authored by the edit itself, which
+is `WideningIsAnOccurrenceQuestion` §4's inflation one layer up (there several
+`by_cases` failed into one hatch, here several PRODUCERS would). Optional, the
+coverage is IDENTICAL — a producer that cannot measure could not have composed
+its case either way — and the escape's site count is fixed by construction.
+Which producers can measure is not what the grammar suggests: `-` pushes
+`[183]`'s indent at its own column and `?` pushes `[187]`'s at its own, but
+`:` pushes at the column of the key it RESOLVES, its own only when the save
+was fresh. So `  : |` (`[189]`'s empty-key entry) composes and item 15's `  a:
+|` hands `True` — a DIFFERENT coordinate, not a harder case. A `[96]` property
+scan writes tokens rather than indents, so a held run inherits the entry's
+floor and `  - &a |` composes wherever `  - |` does, fresh run and extension
+alike. Composed: `  - |`, `      - |`, `  - >`, `  -   |`, `  - |2`, sibling
+and blank-line chains, `  -⏎  - |`, `---⏎  - |`, `  ? |`, `    ? |`, `  : |`,
+`  - &a |`, `  - !!str |`, `  - &a !!str |`
+(`ScannerIndentFloorCompose.lean`). ZERO grammar edits, ZERO runtime edits;
+`block_dispatch_deferred` holds at 14 and `scannerDrop` at 4 BY CONSTRUCTION,
+and the shared question's third negative answer is now one producer's missing
+coupling rather than an inequality nothing could state. New satellite
+`Proofs/Scanner/PreprocessIndentStable.lean`; the new dispatcher lemmas use
+`decide` rather than `native_decide`, so `indicator_floor` adds no axioms.
+
+### REMAINING, in order
+
+Ordered by what is cheapest AND has a consumer today, not by what is listed
+first anywhere else. `FlowOpenStack` is deliberately NOT first: it is the most
+expensive piece and none of its three parts lands anything on its own.
+
+1. **The implicit-key `:`'s floor** — item 27 gave `pendingBlock`,
+`pendingMapValue` and `pendingProps` the `IndentFloor` field and discharged it
+for `-`, `?` and the empty-key `:`, all three of which push their block indent
+at their own column. `scanValuePrepare` pushes at the column of the key it
+RESOLVES, so item 15's `  a: |` still hands `True`. What it needs is one
+coupling: `ImplicitKeyPack`'s `sp_key` read as `sc.simpleKey.pos`, threaded
+through `keyctx_of_preprocess` (which already proves `s_prep.simpleKey.pos =
+s_prep.currentPos`) and across the content scan
+(`dispatchContent_value_key_facts` already preserves the saved key). One
+family, one consumer, no grammar.
+
+2. **The nested / dedented collection** (2 escape sites) — an indicator at a
+width other than the pending's, which wants `SBlockIndented.compactSeq` /
+`compactMap` rather than a snoc. Real language (`  - - a`, `  a:⏎  - x`), and
+the only remaining family that composes new SHAPES rather than widening a
+domain.
+
+3. **The TAB branch** (4 escape sites, expected VACUOUS) —
+`gstar_white_sIndent_or_tab`'s right disjunct. The scanner answers
+`tabInIndentation` before any block indicator, so refuting it needs the
+conditional tab check carried through preprocessing; it composes nothing new
+and is worth taking only for the count.
+
+4. **`FlowOpenStack`'s resume type** — three parts, priced by item 25, and the
+reason this row still has a `scannerDrop`: the resume's `SFlowContent 0
+.flowOut` and the frame's `SeqFrame 0 (inFlowCtx .flowOut)` are the same
+index, ≈86 literal pins across 31 substantive declarations. (i) couple the
+carried index to the scanner's indent state — item 27 built this machinery
+(`PreprocessIndentStable`, `IndentFloor`, and the break-free payload's stack
+equation), so this part is now largely paid; (ii) derive the interior
+separators at `n` from `underIndentedFlowContent`, which already enforces
+`s.col > s.currentIndent` inside a flow and so IS `s-indent(n)` for `n =
+currentIndent + 1` (`  - [1,⏎  2]` refused, `  - [1,⏎   2]` accepted); (iii)
+re-derive the multi-line plain and quoted scalar readings at `n`, which inside
+a flow genuinely mention the index. Closes 3 of the 4 `scannerDrop` sites and
+the `  - [1]` / `  - &a [b]` family with them.
+
+5. **The inline residue** (5 escape sites) — a mid-line park crossing no
+break, where `SSLComments` cannot exist — **and then the deletion itself**:
+the `close_with_ssl` arm that calls `scannerDrop` dies with `pendingFlow`, and
+the constructor leaves `Surface/Document.lean`.
 
 ## The ns-char gap
 
@@ -5695,7 +6147,7 @@ Step 0 (the scanner audit for directive handling) and Fix B (eliminating
 
 | Step | Status |
 |---|---|
-| Fix A: eliminate `scannerDrop` | 🟡 **β.3 and β.4 COMPLETE (2026-08-10)** — `StreamAccum.lean` is **sorry-free** and the `L4YAML.Capstones` gate is **GREEN** (full `lake build` passes). Site 2 closed by items 9l/10/9n–9s (the strictening plus its firing-direction companion mask); **site 5 closed by item 9t**: three pendings refuted through one dispatch of lookahead carried as the `h_line` field (fed by their producers' own trailing validations, `Proofs/Scanner/LineOpenGuard.lean`), the deferred `pendingFlow` riding its own `scannerDrop`, and the legal `[96]` run parked as `PendingNode.pendingProps` whose closures ride it INTO the flow node. **Item 11 (2026-08-10) landed the indexed substrate package** 9r measured — `scanValueValidateIx` is strictened, both scanners now reject the seven §4 shapes with the identical `ScanError` (divergence CLOSED), and the dead 4z.1 `accum_flow_pending` was deleted (two of the three `pendingFlow` construction sites; `block_dispatch_deferred` is the survivor). **Item 12 (2026-08-10) retired the `pendingProps` content-dispatch escape** — `PendingNode` is scanner-state-parametrized so the held run's same-line guard couplings ride the constructor; `&a b`, `&a !t [b]` and `&a \|` now compose, and `block_dispatch_deferred`'s remaining callers are its genuine BLOCK arms. **Item 13 (2026-08-10) landed the first of those** — the col-0 `:` (the empty-key entry, the one `:` shape needing NO held key) parks `PendingNode.pendingMapValue`, whose single `.blockIn`-typed closure makes every consumer arm `pendingBlock`'s clone and whose producer converts once to `[189]`'s `.blockOut` (Reflection 637). **Item 14 (2026-08-11) closed the `x⏎: v` scan divergence** — in the REVERSE direction item 13's note prescribed: a differential sweep traced all 580 divergent inputs (226 of them CONTENT bugs on accepted inputs, `x⏎⏎` keeping the fold's `\n`) to the indexed walk's dropped no-gain rewind, restored as `backtrackIfNoGain`; the `x⏎y: v` §7.4 refutation the implicit-key arm consumes is intact in BOTH pipelines, so no port is owed (Reflection 638). **Item 15 (2026-08-11) composed that arm at col 0** — `pendingContent` carries an `ImplicitKeyPack` coupling guarded by the two decidable state facts §7.4 reads (`simpleKey.possible`, `simpleKey.pos.line = line`); the pack's one-line `.blockKey` re-read rides a new conjunct in `collectPlainScalarLoop_prod` over seven line-arithmetic lemmas, and `colon_open_map_implicit` re-anchors item 13's mapping machinery at the key, so `a: b`/`a : b`/`a:`/`a b: c`/`a: [x,y]`/`a: \|` and sibling chains compose with zero validator lemmas and zero runtime edits (Reflection 639). **Item 16 (2026-08-11) added `[188]`'s JSON arm** — the quoted implicit keys: their one-line readings are SELF-CONTAINED sub-productions (`[111]`/`[122]`), so two new lemmas over the same walks replaced any edit to the wide quoted `_prod` lemmas (Reflection 640's discriminator against item 15's ∃-bound conjunct), and `ImplicitKeyPack`'s payload widened through the `ImplicitKeyHead` carrier so `colon_open_map_implicit` serves all three heads unchanged — `"a": b`, `'a': b`, `"": b`, `'a''b': c`, escaped and hex-escaped keys, and mixed plain/quoted mappings all compose. **Item 17 (2026-08-11) closed the punted key packs** — the alias and property-prefixed heads — by re-cutting that carrier along `[188]`'s own two ALTERNATIVES instead of the scanner's three branches (Reflection 641), so both heads are arms `[161] ns-flow-node(0, block-key)` already had and neither cost a carrier edit: the alias needs no line hypothesis at all (`ns-anchor-char` excludes `s-white` and `b-char`) and the props head one datum CARRIED by `pendingProps` (a post-state guard cannot recover the pre-state fact its content reading needs), with `[96]`'s two-half runs re-reading at `block-key` off the extension arm's own residual whites — `&a x: v`, `!!str x: v`, `&a !t x: v`, `!t &a x: v`, `&a "x": v` and `*a : b` compose. **Item 19 (2026-08-11) re-gated the block arms on where a step LANDS** rather than the column its pending parked at, joining two producers of one package so the multi-line block sequence (`- a⏎- b` and its whole family) and the break-crossed `:` shapes compose with zero new grammar (Reflection 643). **Item 20 (2026-08-11) added the `?` explicit key** — whose whole cost was `[186]`'s missing `e-node` value alternative (`SBlockMapEntry.explicitEmpty`), the accumulator arm being item 13's `pendingMapValue` verbatim because that pending names only the node it awaits (Reflection 644); all three block indicators now compose. **Item 21 (2026-08-11) audited the deferral** instead of building the next arm: the non-indicator branch was refuted from `scanNextToken_dispatchBlockIndicators` itself (4 sites at one term — a family that was never input, Reflection 646), `accum_block_on_noPending` moved onto the landing like its three siblings so the park column leaves the domain entirely, and the indent machinery turned out to be blocked one level down in the SURFACE GRAMMAR — `[183] l+block-sequence(n)`/`[187] l+block-mapping(n)` are `( s-indent(n+m) … )+` for a fixed auto-detected `m > 0`, but `SBlockSeqEntries n` hardcodes `SIndent n`, so `  - a`, `  a: 1` and `a:⏎  - x` parse in both pipelines with no derivation at all (Reflection 647); the widening is free (7 construction sites, 0 elimination sites) but its consumer is not, since `pendingBlock`/`pendingMapValue` pin the awaited node at `SBlockNode 0 .blockIn`. `block_dispatch_deferred` 18 → 14 sites, three reachable families. **Item 22 (2026-08-11) made that widening and spent it in the same commit** — `SBlockNode.blockSeq`/`.blockMap` take the production's `m`, `PendingNode.pendingBlock`/`pendingMapValue` carry the entry indent, and the eight `hws = cons` deferral sites collapse into the reading `gstar_white_sIndent_or_tab` (the whites from a column-0 landing ARE `s-indent(k)`; `nil` is `k = 0`), so ONE body composes the column-0 collection and the indented one alike: `  -`, `    -`, `  -⏎  -⏎  -`, `  :`, `  ?`, `---⏎  - ` and their comment- and blank-line-separated siblings. The consumers sorted by whether what they build MENTIONS the index — the empty close (`[72] e-node` + `[79] s-l-comments`) and the sibling snoc transported verbatim, the flow and scalar values split — and `SBlockNode_blockIn_to_blockOut` generalized off `n = 0` as a dividend, its old side condition having been an artifact of the pinning (Reflection 648). `block_dispatch_deferred` 14 → 13 sites, four reachable families. **Item 23 (2026-08-11)** then closed the largest of the four, the indented entry's VALUE: the index occurs only in `[71] s-flow-line-prefix(n)` and `[134] s-ns-plain-next-line(n,c)`, both after a break, so the fragment below that guard re-reads at every index — and the spec already names it (`[111]`, `[122]`, `[133]` drop the parameter; `[104]` never had one), exactly rather than approximately, which turns the lift into five constructor rebuilds with ONE induction (Reflection 649). The guard's decision procedure is item 15's implicit-key measurement `s'.line = sc.line`, read for a second purpose, and the four ways it comes back negative are asked as ONE question, so the escape holds at 13 sites while its domain loses the family. **Item 24 (2026-08-12)** then took the first of those four negatives and found it was not a reading at all: `&`/`!` open a `[96] c-ns-properties` run that item 12 PARKS, and the pinned 0 lived in `PendingNode.pendingProps`' route closure, one step upstream of the content (Reflection 650 — a case in your escape may be a DIFFERENT question, not a harder instance of yours). The re-index needed ZERO lift lemmas: a fresh run is single-half, and `[96]`'s only occurrence of the index is the `s-separate(n,c)` in its optional second half, which the extension arm builds from residual whites. The constructor gains `(n : Nat)` across 8 construction and 4 elimination sites, `indentedValue_reads_at_any_indent` grows a MIDDLE disjunct so each caller keeps one route to the escape, and the decorated value reads `[156] ns-flow-content` rather than `[161] ns-flow-node` — so `dispatchContent_evidence_oneLine` is now the new content lemma plus one arm (the alias, which a run cannot be followed by anyway). `  - &a v`, `    - &a v`, `  - !!str v`, `  - &a !t v`, `  - &a "x"`, `  - &a`, `  - &a v⏎  - b`, `  : &a v`, `  ? &a v` and `---⏎  - &a v` compose. `block_dispatch_deferred` 13 → 14 sites and `scannerDrop` holds at 4 (the nonzero flow-open arm shares the deferred state's opaque resume), so the result is RE-ATTRIBUTION rather than a count: of three shapes filed under the route only `  - &a v` was the route's, `  - &a |` is `[198]`'s props slot over `[170]`/`[174]`'s auto-detected content indent, and `  - &a [b]` drops for exactly the reason `  - [1]` does. What remains is the rest of **β.5 proper**: `FlowOpenStack`'s RESUME type, the obstruction those two now share; `[170]`/`[174]`'s auto-detected content indent; the indented implicit key off its column-0 pack; the nested collection through `SBlockIndented`'s `compactSeq`/`compactMap`; the tab branch (expected vacuous — the scanner answers `tabInIndentation` first) and the irreducible inline residue — then retire `pendingFlow` and delete the `scannerDrop` constructor itself (a strengthening: it is the one remaining hole in what the capstones assert).
+| Fix A: eliminate `scannerDrop` | 🟡 **β.3 and β.4 COMPLETE (2026-08-10)** — `StreamAccum.lean` is sorry-free and the `L4YAML.Capstones` gate is GREEN. β.5 is open: `block_dispatch_deferred` stands at 14 call sites and `scannerDrop` at 4. Per-item record and the ordered list of what is left: [Row 12 — β.5 closure log](#row-12--β5-closure-log) |
 | 1b. Remove `scannerDrop` from `SLYamlStream` | ⬜ open — β.5, once that last use is gone |
 | 5. Prove the converse `grammar_completeness` | ⬜ open — depends on Fix A |
 | 6. Assemble the `parse_iff_grammar` biconditional | ⬜ open — depends on Step 5 |
