@@ -164,13 +164,16 @@ that `pendingProps` PARKS, and re-indexing that pending's route composes
 `  - [1]`'s pinned 0 is in `FlowOpenStack`'s resume type — the flow node is
 supplied when the COLLECTION closes, not by the dispatch step — so it rides
 `scannerDrop` rather than the block deferral, and neither a wider content
-reading nor item 24's wider props route reaches it.  `  a: 1` is the indented
-IMPLICIT key, whose pack requires a column-0 line start (`ImplicitKeyPack`). -/
+reading nor item 24's wider props route reaches it.
+
+`  a: 1` was here too, as the indented IMPLICIT key whose pack demanded a
+column-0 line start.  Item 25 showed that demand was not a fact about keys at
+all — `[193]`/`[194]` take no indent — but the value the pack's producer got
+by declining to read the whites in front of the key, which are the entry's own
+`[63] s-indent(k)` (`ScannerIndentedImplicitKeyCompose`). -/
 
 #guard emits "  - [1]\n"
   ["+STR", "+DOC", "+SEQ", "+SEQ []", "=VAL :1", "-SEQ", "-SEQ", "-DOC", "-STR"]
-#guard emits "  a: 1\n"
-  ["+STR", "+DOC", "+MAP", "=VAL :a", "=VAL :1", "-MAP", "-DOC", "-STR"]
 #guard emits "  - a: 1\n"
   ["+STR", "+DOC", "+SEQ", "+MAP", "=VAL :a", "=VAL :1", "-MAP", "-SEQ", "-DOC",
    "-STR"]
