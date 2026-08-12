@@ -5484,7 +5484,7 @@ lives in [README.md](README.md) and is not duplicated here.)
 
 | Item | Status | Section |
 |---|---|---|
-| Grammar completeness (`parse_iff_grammar`, capstone 7.7) | **Open — forward direction DONE** (2026-08-10): Fix B done, Fix A's accumulation sorry-free and the `L4YAML.Capstones` gate green. What is left is β.5 — retire `pendingFlow` and delete `scannerDrop` (14 escape sites, 4 drop sites as of item 27), then the converse and the biconditional. Per-item record and ordered remainder: [Row 12 — β.5 closure log](#row-12--β5-closure-log) | [Grammar completeness plan](#grammar-completeness-plan) |
+| Grammar completeness (`parse_iff_grammar`, capstone 7.7) | **Open — forward direction DONE** (2026-08-10): Fix B done, Fix A's accumulation sorry-free and the `L4YAML.Capstones` gate green. What is left is β.5 — retire `pendingFlow` and delete `scannerDrop` (14 escape sites, 4 drop sites as of item 28), then the converse and the biconditional. Per-item record and ordered remainder: [Row 12 — β.5 closure log](#row-12--β5-closure-log) | [Grammar completeness plan](#grammar-completeness-plan) |
 | Merge semantics (`DuplicateKeyPolicy.merge`) | **Open** (design ready; re-base on `LawfulBEq`) | [Merge semantics plan](#merge-semantics-plan) |
 | Security limits: open questions + future work | **Open** (design questions; 3 unimplemented features) | [Security hardening backlog](#security-hardening-backlog) |
 | Limit-enforcement verification, and the rest | **Open** (varied) | [Other open items](#other-open-items) |
@@ -5501,23 +5501,24 @@ invisible to every axis we score. What is left is proof completeness.
 
 | # | Action | Blocks | Where |
 |---|---|---|---|
-| 12 | **β.5 — retire `pendingFlow`, delete `scannerDrop`.** Items 11–27 have closed it one arm at a time; `block_dispatch_deferred` stands at 14 call sites and `scannerDrop` at 4. The per-item record and the ordered list of what is left are in [Row 12 — β.5 closure log](#row-12--β5-closure-log). | Step 5, the converse | ditto |
+| 12 | **β.5 — retire `pendingFlow`, delete `scannerDrop`.** Items 11–28 have closed it one arm at a time; `block_dispatch_deferred` stands at 14 call sites and `scannerDrop` at 4. The per-item record and the ordered list of what is left are in [Row 12 — β.5 closure log](#row-12--β5-closure-log). | Step 5, the converse | ditto |
 | 13 | **Step 5 — the converse** `grammar_completeness`, then **Step 6** the `parse_iff_grammar` biconditional | capstone 7.7 | [Grammar completeness plan](#grammar-completeness-plan) |
 
 Items 1–11 and 18 are closed and their rows deleted; the closure records live
 in the sections below, the blow-by-blow history in git.
 
-The full `lake build` has been GREEN since item 9t (977 targets as of item 27,
+The full `lake build` has been GREEN since item 9t (978 targets as of item 28,
 warning-free), `L4YAML.Capstones` included — what the rest of row 12 buys is
 STRENGTH: the `scannerDrop` constructor is the one remaining hole in what the
 capstones assert. `Tests.Guards` builds at 217 jobs, `Tests.Reflections` at
-427 (R644–R653); matrix event 402/402 · JSON 282/282 on BOTH instrument sets —
-items 15, 16, 17 and 19–27 touched no runtime file, so the matrix is unchanged
+428 (R644–R654); matrix event 402/402 · JSON 282/282 on BOTH instrument sets —
+items 15, 16, 17 and 19–28 touched no runtime file, so the matrix is unchanged
 by construction (items 20 and 22's only non-proof edits are `Prop`-valued
-grammar constructors and one added constructor parameter; items 21 and 23–27
+grammar constructors and one added constructor parameter; items 21 and 23–28
 edit no grammar at all, their structural edits being a parameter on
-`PendingNode.pendingProps` (24), two `Prop`-valued pack definitions (25) and
-one new proof module each (26, 27), all in the proof layer).
+`PendingNode.pendingProps` (24), two `Prop`-valued pack definitions (25), one
+new proof module each (26, 27) and one added conjunct on `ImplicitKeyPack`
+(28), all in the proof layer).
 `run-all-tests.sh` verifies 4442/4442 (item 13 retired the last stale pre-9j
 assertion, `{?, ?}` in `ExplicitKeyTests` — Reflection 622's third missed pin;
 item 14 closed the legacy↔indexed plain-scalar walk divergence — a 5,460-input
@@ -5926,22 +5927,66 @@ coupling rather than an inequality nothing could state. New satellite
 `Proofs/Scanner/PreprocessIndentStable.lean`; the new dispatcher lemmas use
 `decide` rather than `native_decide`, so `indicator_floor` adds no axioms.
 
+### Item 28 (2026-08-12)
+
+closed item 27's own punt, and the closure was a re-measurement rather than a
+strengthening. Item 27 read `scanValuePrepare`'s block-mapping push at the
+`:`'s own column, which is the resolved key's only when the save was FRESH, so
+`[189]`'s empty-key entry carried its index and item 15's `  a: |` handed
+`True`. But the runtime pushes at `s.simpleKey.pos.col` — the column of the key
+the `:` resolves — and a lemma stated about that coordinate is dischargeable by
+the producer that pushes there, at any freshness. `scanValuePrepare_key_col_le`
+is that lemma, and it needs no case split between the push and the no-push arm:
+the arm that pushes lands the stack top exactly at the key, and the arm that
+declines was gated by `keyCol ≤ currentIndent`, which is the same inequality
+already. **Reflection 654** is the rule: an optional field's punt names a
+COORDINATE, not a difficulty — read why a producer punted before trying to make
+its case harder-but-provable, and if the runtime measures somewhere else,
+restate the producer's lemma there.
+
+What made it one conjunct rather than a coupling argument is that the quantity
+was already carried on BOTH sides. The pack's `k` is `[63] s-indent(k)` between
+a column-0 landing and the key (item 25's measurement); the scanner has the same
+column as `simpleKey.pos.col`. So `ImplicitKeyPack` gains `sc.simpleKey.pos.col
+= k ∨ True` and nothing else: at the pack's producer the key was saved AT the
+content start (`keyctx_of_preprocess`'s own third component) and the content
+start is at column `k` by `SIndent_col`, so the plain and both quoted heads
+discharge it from facts already in hand; the ALIAS head has no
+saved-key-position datum there and the props pack carries its run's LINE but not
+its column, so those two hand `True` and keep item 17's coverage untouched. The
+conjunct is optional for exactly the reason the floor is (R653), so the pack's
+five producers cost no call site between them.
+
+The re-measurement does NOT retire item 27's version: `value_floor_or` covers
+the KEYLESS `:` — no saved key at all, `pushMappingIndent s s.col` — whose state
+has no key column to be measured at, and `value_key_floor_or` requires
+`simpleKey.possible = true`. Incomparable domains, so both stay, and together
+they are total over the three save shapes. Still punting: the explicit-key
+clear (`scanValueClearKey` drops the saved key when a `?` is open, and what
+survives is `[197] l-block-map-explicit-value(n)`, measured at the `:` again)
+and a step whose preprocessing RE-SAVED at the `:`. Composed: `  a: |`,
+`      abc: |`, `  a: >`, `  a:   |`, `  a: |2`, `  a: |-`, `  "a": |`,
+`  'a': |`, `  "a b": >`, sibling chains, `---⏎  a: |`, `  a: &x |`
+(`ScannerIndentFloorCompose.lean` §5). ZERO grammar edits, ZERO runtime edits;
+`block_dispatch_deferred` holds at 14 and `scannerDrop` at 4 BY CONSTRUCTION,
+and the floor-discharging producers go 3 → 4. `nic_false_of_flow_disp` moved up
+the file so both floors share it instead of restating its plumbing.
+
 ### REMAINING, in order
 
 Ordered by what is cheapest AND has a consumer today, not by what is listed
 first anywhere else. `FlowOpenStack` is deliberately NOT first: it is the most
 expensive piece and none of its three parts lands anything on its own.
 
-1. **The implicit-key `:`'s floor** — item 27 gave `pendingBlock`,
-`pendingMapValue` and `pendingProps` the `IndentFloor` field and discharged it
-for `-`, `?` and the empty-key `:`, all three of which push their block indent
-at their own column. `scanValuePrepare` pushes at the column of the key it
-RESOLVES, so item 15's `  a: |` still hands `True`. What it needs is one
-coupling: `ImplicitKeyPack`'s `sp_key` read as `sc.simpleKey.pos`, threaded
-through `keyctx_of_preprocess` (which already proves `s_prep.simpleKey.pos =
-s_prep.currentPos`) and across the content scan
-(`dispatchContent_value_key_facts` already preserves the saved key). One
-family, one consumer, no grammar.
+1. **The property-headed key's column** — the residue item 28 left, and the
+same one-conjunct move: `PropsKeyPack` carries the run's LINE but not its
+COLUMN, so `  &x a: |` and `  !!str a: |` hand `True` where `  a: |` now
+discharges. Its producer holds the identical facts item 28 used
+(`keyctx_of_preprocess`'s fresh save, `SIndent_col` at the run's start), and
+the consumer rebuilds the pack per arm exactly as the content one does. The
+ALIAS key rides along: it punts only because the pack's alias arm has no
+saved-key-position datum in hand, and `dispatchContent_value_key_facts`
+supplies one wherever it is in scope. Smallest item on this list.
 
 2. **The nested / dedented collection** (2 escape sites) — an indicator at a
 width other than the pending's, which wants `SBlockIndented.compactSeq` /

@@ -656,6 +656,83 @@ lemma scanValue_col_le_currentIndent {s s' : ScannerState}
           rw [advance_indents]; rfl)]
       exact h_prep
 
+/-! ## §6c  The `:` producer, measured at the KEY instead of at itself
+
+Item 27 read `scanValuePrepare`'s push at the INDICATOR's column, which is the
+key's own only when the save was fresh, and punted otherwise.  Item 28 measures
+the same push at the column it actually uses — `s.simpleKey.pos.col`, the
+resolved key's — so an entry whose index is at or below the KEY is bounded
+whether the save was fresh or inherited.  The two arms need no case split
+between them: the arm that pushes lands the stack top exactly at the key, and
+the arm that does not push was gated by `keyCol ≤ currentIndent`, which is the
+same inequality already.
+
+What still punts is the EXPLICIT-key clear (`scanValueClearKey` drops the saved
+key when a `?` is open, and the surviving `[197] l-block-map-explicit-value(n)`
+arm is measured at the `:` again, not at the key) — one value of an optional
+field, not a call site (Reflection 653). -/
+
+/-- **The resolved key's floor.**  `scanValuePrepare` pushes `[187]`'s indent at
+    `s.simpleKey.pos.col`, and declines to push exactly when that column is
+    already at or below the stack top — so an index bounded by the key's column
+    is bounded by the resulting stack top either way. -/
+lemma scanValuePrepare_key_col_le {s : ScannerState} {k : Nat}
+    (h_noflow : s.inFlow = false)
+    (h_poss : s.simpleKey.possible = true)
+    (h_key : (k : Int) ≤ (s.simpleKey.pos.col : Int)) :
+    (k : Int) ≤ (scanValuePrepare s).currentIndent := by
+  unfold scanValuePrepare
+  split
+  · rw [if_pos (by simpa using h_noflow : (!s.inFlow) = true)]
+    split
+    · show (k : Int) ≤ ScannerState.currentIndent _
+      unfold ScannerState.currentIndent
+      rw [show ({ s with
+            tokens := _,
+            indents := s.indents.push
+              { column := (s.simpleKey.pos.col : Int), isSequence := false },
+            simpleKey := { possible := false } } : ScannerState).indents
+          = s.indents.push { column := (s.simpleKey.pos.col : Int), isSequence := false } from rfl,
+        Array.back?_push]
+      simpa using h_key
+    · rename_i h_le
+      show (k : Int) ≤ s.currentIndent
+      exact Int.le_trans h_key (Int.not_lt.mp h_le)
+  · rename_i h_np
+    exact absurd h_poss h_np
+
+/-- **The `:` scan's floor at the resolved key** — with the explicit-key clear
+    punted, because a cleared key leaves `[197]`'s arm measured at the `:`. -/
+lemma scanValue_key_col_le_or {s s' : ScannerState} {k : Nat}
+    (h_noflow : s.inFlow = false)
+    (h_poss : s.simpleKey.possible = true)
+    (h_key : (k : Int) ≤ (s.simpleKey.pos.col : Int))
+    (hok : scanValue s = .ok s') :
+    (k : Int) ≤ s'.currentIndent ∨ True := by
+  rcases scanValueClearKey_simpleKey s with heq | _
+  · unfold scanValue at hok
+    simp only [bind, Except.bind] at hok
+    split at hok
+    · simp at hok
+    · split at hok
+      · simp at hok
+      · simp only [Except.ok.injEq] at hok
+        subst hok
+        obtain ⟨_, _, hfl, _, _, _, _⟩ := scanValueClearKey_fields s
+        refine Or.inl ?_
+        have h_prep := scanValuePrepare_key_col_le (s := scanValueClearKey s) (k := k)
+          (by rw [hfl]; exact h_noflow) (by rw [heq]; exact h_poss) (by rw [heq]; exact h_key)
+        show (k : Int) ≤ ScannerState.currentIndent _
+        rw [currentIndent_of_indents_eq
+          (show ({ (ScannerState.advance
+                    (ScannerState.emit (scanValuePrepare (scanValueClearKey s)) .value)) with
+                  simpleKeyAllowed := true, explicitKeyLine := none } : ScannerState).indents
+              = (scanValuePrepare (scanValueClearKey s)).indents from by
+            show (ScannerState.advance _).indents = _
+            rw [advance_indents]; rfl)]
+        exact h_prep
+  · exact Or.inr trivial
+
 /-- `scanValuePrepare` writes tokens, indents and the saved key. -/
 lemma scanValuePrepare_needIndentCheck (s : ScannerState) :
     (scanValuePrepare s).needIndentCheck = s.needIndentCheck := by
@@ -781,6 +858,28 @@ lemma value_floor_or {s s' : ScannerState}
     have h_scan := dispatchBlockIndicators_value_scan hok
     exact Or.inl ⟨h_noflow, scanValue_col_le_currentIndent h_noflow h_fresh h_scan,
                   scanValue_needIndentCheck h_scan⟩
+
+/-- **The `:` producer's floor measured at the RESOLVED key** (item 28), which
+    is the coordinate `scanValuePrepare` actually pushes at.  Item 27's
+    `value_floor_or` is the special case where the two coincide; this one asks
+    the caller for the coupling instead of assuming the save was fresh, and so
+    reaches the implicit-key entry (`  a: |`) as well as the empty-key one.
+
+    Both punts — a flow `:` and an explicit-key clear — are values of an
+    optional field, so neither costs a call site. -/
+lemma value_key_floor_or {s s' : ScannerState} {k : Nat}
+    (h_poss : s.simpleKey.possible = true)
+    (h_key : (k : Int) ≤ (s.simpleKey.pos.col : Int))
+    (hok : scanNextToken_dispatchBlockIndicators s ':' = .ok (some s')) :
+    (s.inFlow = false ∧ (k : Int) ≤ s'.currentIndent ∧
+      s'.needIndentCheck = s.needIndentCheck) ∨ True := by
+  by_cases h : s.inFlow = true
+  · exact Or.inr trivial
+  · have h_noflow : s.inFlow = false := by simpa using h
+    have h_scan := dispatchBlockIndicators_value_scan hok
+    rcases scanValue_key_col_le_or h_noflow h_poss h_key h_scan with h_le | _
+    · exact Or.inl ⟨h_noflow, h_le, scanValue_needIndentCheck h_scan⟩
+    · exact Or.inr trivial
 
 /-- A `[96]` property scan leaves the indent stack alone, so a run parked at an
     entry's route index inherits the entry's floor unchanged. -/
