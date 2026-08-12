@@ -312,6 +312,142 @@ lemma SFlowNode_singleQ_ctx_lift {n : Nat} {c₁ c₂ : YamlContext} {s s' : Sur
     SFlowNode n c₂ s s' :=
   flowContent_flowNode (SFlowContent_singleQ_ctx_lift h hc₁ hc₂)
 
+/-! ### §3b A break-free reading mentions no indent (item 23)
+
+`[196] s-l+block-node(n,c)`'s flow arm reads its value at the ENTRY's index —
+`SBlockNode.flowInBlock n` takes `SSeparate n .flowOut` and `SFlowNode n
+.flowOut` — while every content reading the accumulation produces is stated
+at 0.  Widening one to the other is NOT a monotonicity fact and is false in
+general: the index occurs in `[71] s-flow-line-prefix(n)` and in `[134]
+s-ns-plain-next-line(n,c)`, both of which sit AFTER a line break, and a
+reading at 0 admits continuation lines that a reading at `n` forbids.
+
+It holds for one structural reason: **a derivation that crosses no break
+contains no occurrence of the index at all.**  The spec says so in its own
+vocabulary — `[111] nb-double-one-line` and `[122] nb-single-one-line` are
+`GStar` of a character class, `[133] ns-plain-one-line(c)` takes only the
+context, and `[104] c-ns-alias-node` takes neither.  So the one-line readings
+items 15–17 already extract for the implicit KEY re-read at every index too,
+and these lifts are constructor rebuilds with no induction on the span.
+
+The `.blockKey → .flowOut` half is free alongside it: `isNsPlainSafe` selects
+the same `isNsChar` arm at both, and the quoted bodies differ only in that the
+key context fixes the one-line body the lift is starting from.
+
+What this does NOT reach, and why, is recorded at the deferral sites:
+`[170]`/`[174]`'s block scalars auto-detect their own content indent (the
+reading at 0 pins the same existential item 22 had to bind on `[183]`/`[187]`),
+and the flow collections carry the index inside `SSeparate n c` slots that a
+rebuild cannot reach without descending the whole mutual family. -/
+
+-- [126] ns-plain-first(c) relabelled `.blockKey → .flowOut`: `isNsPlainSafe`
+-- selects `isNsChar` at both, so every field transports verbatim.
+lemma SNsPlainFirst_blockKey_to_flowOut {s s' : SurfPos}
+    (h : SNsPlainFirst .blockKey s s') : SNsPlainFirst .flowOut s s' := by
+  cases h with
+  | nonIndicator ch rest col hSafe hNotInd =>
+    exact SNsPlainFirst.nonIndicator .flowOut ch rest col hSafe hNotInd
+  | dashSafe next rest col hSafe =>
+    exact SNsPlainFirst.dashSafe .flowOut next rest col hSafe
+  | colonSafe next rest col hSafe =>
+    exact SNsPlainFirst.colonSafe .flowOut next rest col hSafe
+  | questionSafe next rest col hSafe =>
+    exact SNsPlainFirst.questionSafe .flowOut next rest col hSafe
+
+-- [130] ns-plain-char(c), the same relabelling.
+lemma SNsPlainChar_blockKey_to_flowOut {s s' : SurfPos}
+    (h : SNsPlainChar .blockKey s s') : SNsPlainChar .flowOut s s' := by
+  cases h with
+  | safe ch rest col hSafe hNotColon hNotHash =>
+    exact SNsPlainChar.safe .flowOut ch rest col hSafe hNotColon hNotHash
+  | colonSafe prev next rest col hSafe =>
+    exact SNsPlainChar.colonSafe .flowOut prev next rest col hSafe
+  | hashAfterNs rest col hColGt =>
+    exact SNsPlainChar.hashAfterNs .flowOut rest col hColGt
+
+-- [132] nb-ns-plain-in-line(c), one repetition unit.
+lemma SNbNsPlainInLineEntry_blockKey_to_flowOut {s s' : SurfPos}
+    (h : SNbNsPlainInLineEntry .blockKey s s') :
+    SNbNsPlainInLineEntry .flowOut s s' :=
+  match h with
+  | .mk _ _ s₁ _ h_ws h_ch =>
+    .mk .flowOut s s₁ s' h_ws (SNsPlainChar_blockKey_to_flowOut h_ch)
+
+-- The intra-line repetition itself: the only induction the plain lift needs,
+-- and it is over the star, not over the grammar.
+lemma gstar_plainInLine_blockKey_to_flowOut {s s' : SurfPos}
+    (h : GStar (SNbNsPlainInLineEntry .blockKey) s s') :
+    GStar (SNbNsPlainInLineEntry .flowOut) s s' := by
+  induction h with
+  | nil s => exact GStar.nil s
+  | cons s₁ s₂ s₃ h_first _ ih =>
+    exact GStar.cons s₁ s₂ s₃ (SNbNsPlainInLineEntry_blockKey_to_flowOut h_first) ih
+
+-- [133] ns-plain-one-line(c) relabelled `.blockKey → .flowOut`.
+@[yaml_spec "7.3.3" 133 "ns-plain-one-line(c) context lift (blockKey → flowOut)"]
+lemma SNsPlainOneLine_blockKey_to_flowOut {s s' : SurfPos}
+    (h : SNsPlainOneLine .blockKey s s') : SNsPlainOneLine .flowOut s s' :=
+  match h with
+  | .mk _ _ s₁ _ h_first h_rest =>
+    .mk .flowOut s s₁ s'
+      (SNsPlainFirst_blockKey_to_flowOut h_first)
+      (gstar_plainInLine_blockKey_to_flowOut h_rest)
+
+-- [131] ns-plain(n,flow-out) from a one-line body, at EVERY index: `[135]
+-- ns-plain-multi-line(n,c)`'s continuation star is the only place `n` occurs,
+-- and a one-line reading leaves it empty.
+lemma SNsPlain_of_oneLine_flowOut (n : Nat) {s s' : SurfPos}
+    (h : SNsPlainOneLine .flowOut s s') : SNsPlain n .flowOut s s' :=
+  SNsPlainMultiLine.mk n .flowOut s s' s' h (GStar.nil _)
+
+-- [161] ns-flow-node(n,flow-out) from item 15's `.blockKey` one-line plain
+-- witness, at every index.
+lemma SFlowNode_plain_of_keyOneLine (n : Nat) {s s' : SurfPos}
+    (h : SNsPlainOneLine .blockKey s s') : SFlowNode n .flowOut s s' :=
+  flowContent_flowNode (plain_flowContent
+    (SNsPlain_of_oneLine_flowOut n (SNsPlainOneLine_blockKey_to_flowOut h)))
+
+-- [109] c-double-quoted(n,c) re-read at `.flowOut` and EVERY index from a KEY
+-- reading.  `[110] nb-double-text(n₀,block-key)` IS `[111] nb-double-one-line`,
+-- which `[116] nb-double-multi-line(n)`'s `single` arm admits at any `n`, so
+-- the body transports and only the quotes are rebuilt.
+@[yaml_spec "7.3.1" 109 "c-double-quoted(n,c) key one-line lift (flow-out, any n)"]
+lemma SCDoubleQuoted_key_to_flowOut (n : Nat) {n₀ : Nat} {c₀ : YamlContext}
+    {s s' : SurfPos}
+    (h : SCDoubleQuoted n₀ c₀ s s')
+    (hc : c₀ = .blockKey ∨ c₀ = .flowKey) :
+    SCDoubleQuoted n .flowOut s s' :=
+  match h with
+  | .mk _ _ _ s₁ s₂ _ h_open h_text h_close =>
+    .mk n .flowOut s s₁ s₂ s' h_open
+      (SNbDoubleMultiLine.single n s₁ s₂
+        (by rcases hc with hk | hk <;> subst hk <;> exact h_text))
+      h_close
+
+-- [120] c-single-quoted(n,c), the same rebuild over `[122] nb-single-one-line`.
+@[yaml_spec "7.3.2" 120 "c-single-quoted(n,c) key one-line lift (flow-out, any n)"]
+lemma SCSingleQuoted_key_to_flowOut (n : Nat) {n₀ : Nat} {c₀ : YamlContext}
+    {s s' : SurfPos}
+    (h : SCSingleQuoted n₀ c₀ s s')
+    (hc : c₀ = .blockKey ∨ c₀ = .flowKey) :
+    SCSingleQuoted n .flowOut s s' :=
+  match h with
+  | .mk _ _ _ s₁ s₂ _ h_open h_text h_close =>
+    .mk n .flowOut s s₁ s₂ s' h_open
+      (SNbSingleMultiLine.single n s₁ s₂
+        (by rcases hc with hk | hk <;> subst hk <;> exact h_text))
+      h_close
+
+lemma SFlowNode_doubleQ_of_key (n : Nat) {n₀ : Nat} {s s' : SurfPos}
+    (h : SCDoubleQuoted n₀ .blockKey s s') : SFlowNode n .flowOut s s' :=
+  flowContent_flowNode
+    (doubleQuoted_flowContent (SCDoubleQuoted_key_to_flowOut n h (Or.inl rfl)))
+
+lemma SFlowNode_singleQ_of_key (n : Nat) {n₀ : Nat} {s s' : SurfPos}
+    (h : SCSingleQuoted n₀ .blockKey s s') : SFlowNode n .flowOut s s' :=
+  flowContent_flowNode
+    (singleQuoted_flowContent (SCSingleQuoted_key_to_flowOut n h (Or.inl rfl)))
+
 -- [96] c-ns-properties context re-labelling between the two block contexts.
 -- The embedded separator is `SSeparate n c`, which reduces to
 -- `SSeparateLines n` at BOTH block contexts, so each constructor rebuilds

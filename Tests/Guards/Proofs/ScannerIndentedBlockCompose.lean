@@ -122,12 +122,16 @@ indentation reading are the same as at stream level. -/
 #guard emits "---\n  - \n"
   ["+STR", "+DOC ---", "+SEQ", "=VAL :", "-SEQ", "-DOC", "-STR"]
 
-/-! ## §5  Indented entries WITH content — accepted, derivation owed
+/-! ## §5  Indented entries WITH content
 
-These are the residue item 22 names and does not close: the entry frame is
-built at index `k`, but the value must be READ at `k` too, and every content
-reading in `StreamAccum` is stated at 0.  Both pipelines accept them and agree
-on every event; only the accumulation still routes them through the deferral. -/
+The residue item 22 named: the entry frame is built at index `k`, but the value
+must be READ at `k` too, and every content reading in `StreamAccum` was stated
+at 0.  Item 23 closed the first of these — a break-free reading mentions no
+indent, so a one-line scalar value re-reads at the entry's index
+(`ScannerIndentedValueCompose`).  The other two are still accepted-only, for
+reasons that are no longer the same one: `  a: 1` needs the IMPLICIT-KEY pack
+off column 0, and `  - [1]`'s pinned 0 lives in `FlowStackB`'s resume type
+rather than in a content reading. -/
 
 #guard emits "  - a\n"
   ["+STR", "+DOC", "+SEQ", "=VAL :a", "-SEQ", "-DOC", "-STR"]
