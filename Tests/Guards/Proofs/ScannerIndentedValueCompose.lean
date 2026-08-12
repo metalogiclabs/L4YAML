@@ -140,22 +140,20 @@ entry index, so both take the same lift. -/
 
 /-! ## §6  What the one-line lift does NOT reach — accepted, derivation owed
 
-`indentedValue_reads_at_any_indent` asks the whole question once, and these are
-its negative answers:
+`indentedValue_reads_at_any_indent` asks the whole question once, and what is
+left of its negative answer is a value that FOLDS onto a second line —
+precisely the case in which the index DOES occur, so there is nothing to lift.
 
-* a block scalar — `[170]`/`[174]` auto-detect their own content indent, so the
-  reading at 0 pins that existential exactly as inlining `m` pinned
-  `[183]`/`[187]`'s: Reflection 647's shape, one level down;
-* a value that FOLDS onto a second line — precisely the case in which the index
-  DOES occur, so there is nothing to lift.
+Two of the answers recorded here turned out not to be about the reading at all.
+Item 24 showed the property run never was: `&`/`!` complete no value, they open
+a run that `pendingProps` PARKS, and re-indexing that pending's route composes
+`  - &a v` with no lift whatever (`ScannerIndentedPropsCompose`).  Item 26
+showed the block scalar never was either — `[170]`/`[174]` bind their
+auto-detected content indent themselves, so there was no pinned existential of
+`[183]`/`[187]`'s kind to widen; the reading was thrown away by the production
+lemma rather than absent from the grammar
+(`ScannerIndentedBlockScalarCompose`). -/
 
-The property run was a third answer here until item 24 showed it was never a
-question about the reading at all: `&`/`!` complete no value, they open a run
-that `pendingProps` PARKS, and re-indexing that pending's route composes
-`  - &a v` with no lift whatever (`ScannerIndentedPropsCompose`). -/
-
-#guard emits "  - |\n    text\n"
-  ["+STR", "+DOC", "+SEQ", "=VAL |text\\n", "-SEQ", "-DOC", "-STR"]
 #guard emits "  - a\n    b\n"
   ["+STR", "+DOC", "+SEQ", "=VAL :a b", "-SEQ", "-DOC", "-STR"]
 

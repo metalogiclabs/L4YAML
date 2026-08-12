@@ -126,13 +126,14 @@ mapping indicators reach the same run through `pendingMapValue`. -/
 
 /-! ## §5  What the re-indexed route does NOT reach — accepted, derivation owed
 
-Two residues, and the run is neither of them:
+The run is not the cause of any of these:
 
-* `  - &a |` is `[198] s-l+block-scalar`'s props slot, whose `[170]`/`[174]`
-  content indent is auto-detected — `SCLLiteral 0` pins `0 + m`, and
-  `n + m' = 0 + m` needs `m ≥ n`, which a reading at 0 does not carry.  That is
-  Reflection 647's shape one level down, and the SAME gap `  - |` has with no
-  run at all.
+* `  - &a |` was filed here as `[170]`/`[174]`'s auto-detected content indent,
+  the SAME gap `  - |` has with no run at all.  That attribution was right and
+  item 26 has since taken it: `[198]`'s props slot now carries the block scalar
+  at the run's own route index (`ScannerIndentedBlockScalarCompose`), and what
+  is left of it is one inequality against the scanner's indent stack rather
+  than a production.
 * `  - &a [b]` is not a props question either: the flow collection re-enters
   through `FlowOpenStack`'s resume closure, whose argument is `SFlowContent 0
   .flowOut`, so it rides the opaque `scannerDrop` for exactly the reason
@@ -140,8 +141,6 @@ Two residues, and the run is neither of them:
 * A value that FOLDS onto a second line is the case in which the index DOES
   occur, so there is nothing to lift. -/
 
-#guard emits "  - &a |\n    t\n"
-  ["+STR", "+DOC", "+SEQ", "=VAL &a |t\\n", "-SEQ", "-DOC", "-STR"]
 #guard emits "  - &a [1]\n"
   ["+STR", "+DOC", "+SEQ", "+SEQ [] &a", "=VAL :1", "-SEQ", "-SEQ", "-DOC",
    "-STR"]
