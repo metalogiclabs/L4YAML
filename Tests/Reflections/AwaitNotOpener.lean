@@ -222,9 +222,8 @@ def dispatchBranchesAdded : Nat := 0
 /-- Deferral (`block_dispatch_deferred`) call sites before… -/
 def deferralSitesBefore : Nat := 18
 /-- …and after: unchanged, because the arm widened rather than splitting.
-    (Splitting it first DID push this to 22 — the site count is a proxy that
-    inverts when a branch is copied, so the honest measure is which inputs the
-    deferral still owns.) -/
+    (Copying it first DID push this to 22 while composing strictly more input
+    — Reflection 645 has that measurement and its rule.) -/
 def deferralSitesAfter : Nat := 18
 /-- Block indicators the dispatch composes, of three (`-`, `:`, `?`). -/
 def blockIndicatorsComposedBefore : Nat := 2
