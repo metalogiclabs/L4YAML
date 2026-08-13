@@ -618,9 +618,8 @@ def scanValuePrepareIx {input : String} (s : ScannerStateIx input) :
 
 /-- §6.1 for the `:` indicator: the whitespace run in front of the ENTRY must
     carry no tab, and the entry starts at the implicit KEY when there is one —
-    the run between key and `:` is `[155]`'s own trailing `s-separate-in-line?`,
-    where a tab is legal.  With no key (`[186]`'s `e-node`, `[192]`'s explicit
-    value) the entry starts at the `:` and its own run is the indentation.
+    the run between key and `:` is `[154]`'s own trailing `s-separate-in-line?`,
+    where a tab is legal.  With no key (`[192]`'s `e-node`, or the explicit value) the entry starts at the `:` and its own run is the indentation.
 
     Indexed analogue of `L4YAML.Scanner.scanValueIndentTabCheck`; see there for
     why following the entry start is what keeps `a:⏎␣␣→[1, 2]` legal. -/

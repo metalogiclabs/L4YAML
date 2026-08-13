@@ -6100,13 +6100,13 @@ restored no scanner check helps.
 
 The boundary the repair had to respect is what makes the check exact rather
 than blunt: whether a whitespace run IS indentation depends on what FOLLOWS it.
-`[196] s-l+flow-in-block` reaches a flow node or plain scalar through
+`[197] s-l+flow-in-block` reaches a flow node or plain scalar through
 `s-separate-lines`, whose `[69] s-flow-line-prefix(n)` is
 `s-indent(n) s-separate-in-line?` — a real separation slot — so `a:⏎␣␣→[1, 2]`
 and DK95:00's `foo:⏎␣→bar` are LEGAL and must keep parsing. `[187]`'s entry
 has no such slot. So the check lives where the construct is recognised, and it
 follows the ENTRY's first character, not the indicator's: with an implicit key
-the entry starts at the KEY (the run between key and `:` is `[155]`'s own
+the entry starts at the KEY (the run between key and `:` is `[154]`'s own
 trailing `s-separate-in-line?`, so `a→: b` stands), with an empty key at the
 `:` itself. Four scanners gained it — `scanKey`/`scanKeyIx` reuse
 `scanBlockEntry`'s check verbatim, `scanValue`/`scanValueIx` get the new

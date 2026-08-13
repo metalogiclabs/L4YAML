@@ -236,17 +236,17 @@ def scanValuePrepare (s : ScannerState) : ScannerState :=
     whitespace run in front of the entry's first character must carry no tab.
     Where that first character is depends on the entry:
 
-    * with an implicit key (`[186]`'s `ns-s-block-map-implicit-key`), the entry
+    * with an implicit key (`[192]`'s `[193] ns-s-block-map-implicit-key`), the entry
       starts at the KEY, and the run between the key and this `:` is
-      `[155] ns-s-implicit-yaml-key`'s own trailing `s-separate-in-line?`,
+      `[154] ns-s-implicit-yaml-key`'s own trailing `s-separate-in-line?`,
       where `[66]`'s `s-white` admits a tab — `a\t: b` is legal, and it is the
       key's own indentation that must be clean;
-    * with no key — `[186]`'s `e-node` alternative, or `[192]`'s explicit
+    * with no key — `[192]`'s `e-node` alternative, or the explicit
       value — the entry starts AT the `:`, and its own run is the indentation.
 
     So the check follows the entry start, and that is what makes it exact: a
     tab-indented line whose content turns out to be a FLOW node is legal
-    (`[196] s-l+flow-in-block` reaches it through `s-separate-lines`, whose
+    (`[197] s-l+flow-in-block` reaches it through `s-separate-lines`, whose
     `[69] s-flow-line-prefix` is `s-indent(n) s-separate-in-line?`), and only
     the constructs that demand a bare `s-indent` reject it.  `a:⏎␣␣→[1, 2]` and
     `a:⏎␣␣→foo` stand; `a:⏎␣␣→: b`, `a:⏎␣␣→k: v` and `a:⏎␣␣→"k": v` do not. -/

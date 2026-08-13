@@ -17,11 +17,12 @@ could reach the accumulation.  It answered for ONE of the three.
 Step 5b.2.  `scanKey` (`?`) checked only the tab AFTER the indicator, and
 `scanValue` (`:`) only the tab after the colon — so with one space in front of
 the tab, enough to put the column past `currentIndent` where `skipToContentWs`
-reads tabs as `[66] s-separate-in-line`, four shapes PARSED in both pipelines
-that no `[187] l+block-mapping` derivation reaches.  §3 pins them, now refused.
+reads tabs as `[66] s-separate-in-line`, four FAMILIES of shape PARSED in both
+pipelines that no `[187] l+block-mapping` derivation reaches — the empty key,
+the explicit key, and an implicit key plain or quoted.  §3 pins them, refused.
 
 The line the fix has to hold is §1's: the same `␣␣→` prefix is LEGAL in front
-of a flow node or a plain scalar, because `[196] s-l+flow-in-block` reaches
+of a flow node or a plain scalar, because `[197] s-l+flow-in-block` reaches
 those through `s-separate-lines`, whose `[69] s-flow-line-prefix(n)` is
 `s-indent(n) s-separate-in-line?` — a genuine separation slot.  DK95:00 is
 exactly that shape and must keep parsing.  `[187]`'s entry has no such slot:
@@ -80,7 +81,7 @@ scalar, not a block collection. -/
 
 /-! ## §2  The run between a key and its `:` is separation, not indentation
 
-`[155] ns-s-implicit-yaml-key(c)` is `ns-flow-yaml-node(0,c) s-separate-in-line?`,
+`[154] ns-s-implicit-yaml-key(c)` is `ns-flow-yaml-node(0,c) s-separate-in-line?`,
 so the check may not be anchored at the indicator. -/
 
 #guard emits "a\t: b\n"
@@ -108,14 +109,14 @@ so the check may not be anchored at the indicator. -/
 #guard emits "a: |\n  x\n  \ty\n"
   ["+STR", "+DOC", "+MAP", "=VAL :a", "=VAL |x\\n\\ty\\n", "-MAP", "-DOC", "-STR"]
 
-/-! ## §3  The four shapes that parsed and no longer do
+/-! ## §3  The shapes that parsed and no longer do
 
 Each is a block-mapping entry whose `s-indent(n+m)` would have to contain a
-tab.  All four were accepted identically by both pipelines before the item —
+tab.  Every one was accepted identically by both pipelines before the item —
 which is why the deferral's "expected vacuous" survived: the arm anybody
 sampled was the `-`, and it was the one already guarded. -/
 
--- Empty key (`[186]`'s `e-node`), the shape the `:` arm owns.
+-- Empty key (`[192]`'s `e-node`), the shape the `:` arm owns.
 #guard refuses "a:\n  \t: b\n"
 #guard refuses "a:\n  \t:\n"
 #guard refuses "a:\n \t: b\n"
