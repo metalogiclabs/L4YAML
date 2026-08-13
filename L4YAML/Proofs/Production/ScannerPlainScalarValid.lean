@@ -1132,7 +1132,8 @@ lemma scanKey_preserves_PlainScalarsValid
   unfold scanKey at h_ok
   simp only [bind, Except.bind] at h_ok
   split at h_ok
-  · split at h_ok
+  · split at h_ok <;> try contradiction  -- item 31: preceding-whitespace tab
+    split at h_ok
     · split at h_ok
       · contradiction
       · injection h_ok with h_ok; subst h_ok
@@ -1185,12 +1186,14 @@ lemma scanValue_preserves_PlainScalarsValid
   · contradiction
   · split at h_ok
     · contradiction
-    · injection h_ok with h_ok; subst h_ok
-      simp only [advance_preserves_tokens]
-      apply PlainScalarsValid_push_non_plain _ _ _ (by trivial)
-      have h_ck := scanValueClearKey_preserves_tokens s
-      have h_ck_psv : PlainScalarsValid (scanValueClearKey s).tokens := by rw [h_ck]; exact h_old
-      exact scanValuePrepare_preserves_PlainScalarsValid (scanValueClearKey s) h_ck_psv
+    split at h_ok
+    · contradiction  -- scanValueTabCheck (item 31 added the one above)
+    injection h_ok with h_ok; subst h_ok
+    simp only [advance_preserves_tokens]
+    apply PlainScalarsValid_push_non_plain _ _ _ (by trivial)
+    have h_ck := scanValueClearKey_preserves_tokens s
+    have h_ck_psv : PlainScalarsValid (scanValueClearKey s).tokens := by rw [h_ck]; exact h_old
+    exact scanValuePrepare_preserves_PlainScalarsValid (scanValueClearKey s) h_ck_psv
 
 set_option maxHeartbeats 400000 in
 /-- Block indicators: uses `setIfInBounds` which may overwrite tokens, but only
@@ -3798,6 +3801,7 @@ lemma scanKey_new_token_not_plain (s s' : ScannerState)
   -- After Array.getElem_push, h_gen has nested ifs. Repeatedly split + close.
   split at h_ok
   · -- !s.inFlow
+    split at h_ok <;> try contradiction  -- item 31: preceding-whitespace tab
     split at h_ok
     · split at h_ok
       · contradiction
@@ -3876,7 +3880,8 @@ lemma scanKey_preserves_FlowNestingInv
   unfold scanKey at h_ok
   simp only [bind, Except.bind] at h_ok
   split at h_ok
-  · split at h_ok
+  · split at h_ok <;> try contradiction  -- item 31: preceding-whitespace tab
+    split at h_ok
     · split at h_ok
       · contradiction
       · injection h_ok with h_eq; subst h_eq
@@ -4215,35 +4220,37 @@ lemma scanValue_preserves_FlowContextPSV
   · contradiction
   · split at h_ok
     · contradiction
-    · injection h_ok with h_ok; subst h_ok
-      simp only [advance_preserves_tokens]
-      -- s'.tokens = (scanValuePrepare (scanValueClearKey s)).tokens.push ⟨pos, .value, pos⟩
-      -- Step 1: FlowContextPSV for scanValuePrepare (scanValueClearKey s)
-      have h_ck := scanValueClearKey_preserves_tokens s
-      have h_fpsv_ck : FlowContextPSV (scanValueClearKey s).tokens := by
-        rw [h_ck]; exact h_fpsv
-      have h_ph_ck : (scanValueClearKey s).simpleKey.possible = true →
-          (∀ (h : (scanValueClearKey s).simpleKey.tokenIndex < (scanValueClearKey s).tokens.size),
-            ((scanValueClearKey s).tokens[(scanValueClearKey s).simpleKey.tokenIndex]'h).val = .placeholder) ∧
-          (∀ (h : (scanValueClearKey s).simpleKey.tokenIndex + 1 < (scanValueClearKey s).tokens.size),
-            ((scanValueClearKey s).tokens[(scanValueClearKey s).simpleKey.tokenIndex + 1]'h).val = .placeholder) := by
-        cases scanValueClearKey_identity_or_clear s with
-        | inl h_eq => rw [h_eq]; exact h_ph
-        | inr h_cl => intro h; rw [h_cl.1] at h; exact absurd h (by decide)
-      have h_fpsv_prep := scanValuePrepare_preserves_FlowContextPSV
-        (scanValueClearKey s) h_fpsv_ck h_ph_ck
-      -- Step 2: FlowContextPSV_of_prefix_and_new for emit .value
-      refine FlowContextPSV_of_prefix_and_new
-        (scanValuePrepare (scanValueClearKey s)).tokens _ h_fpsv_prep ?_ ?_ ?_
-      · simp [ScannerState.emit, Array.size_push]
-      · intro i hi
-        exact emit_preserves_tokens_at (scanValuePrepare (scanValueClearKey s)) .value i hi
-      · intro j hj hge _
-        apply fpsv_of_not_plain
-        simp only [ScannerState.emit] at hj ⊢
-        have : j = (scanValuePrepare (scanValueClearKey s)).tokens.size := by
-          simp [Array.size_push] at hj; omega
-        subst this; simp [Array.getElem_push_eq]
+    split at h_ok
+    · contradiction  -- scanValueTabCheck (item 31 added the one above)
+    injection h_ok with h_ok; subst h_ok
+    simp only [advance_preserves_tokens]
+    -- s'.tokens = (scanValuePrepare (scanValueClearKey s)).tokens.push ⟨pos, .value, pos⟩
+    -- Step 1: FlowContextPSV for scanValuePrepare (scanValueClearKey s)
+    have h_ck := scanValueClearKey_preserves_tokens s
+    have h_fpsv_ck : FlowContextPSV (scanValueClearKey s).tokens := by
+      rw [h_ck]; exact h_fpsv
+    have h_ph_ck : (scanValueClearKey s).simpleKey.possible = true →
+        (∀ (h : (scanValueClearKey s).simpleKey.tokenIndex < (scanValueClearKey s).tokens.size),
+          ((scanValueClearKey s).tokens[(scanValueClearKey s).simpleKey.tokenIndex]'h).val = .placeholder) ∧
+        (∀ (h : (scanValueClearKey s).simpleKey.tokenIndex + 1 < (scanValueClearKey s).tokens.size),
+          ((scanValueClearKey s).tokens[(scanValueClearKey s).simpleKey.tokenIndex + 1]'h).val = .placeholder) := by
+      cases scanValueClearKey_identity_or_clear s with
+      | inl h_eq => rw [h_eq]; exact h_ph
+      | inr h_cl => intro h; rw [h_cl.1] at h; exact absurd h (by decide)
+    have h_fpsv_prep := scanValuePrepare_preserves_FlowContextPSV
+      (scanValueClearKey s) h_fpsv_ck h_ph_ck
+    -- Step 2: FlowContextPSV_of_prefix_and_new for emit .value
+    refine FlowContextPSV_of_prefix_and_new
+      (scanValuePrepare (scanValueClearKey s)).tokens _ h_fpsv_prep ?_ ?_ ?_
+    · simp [ScannerState.emit, Array.size_push]
+    · intro i hi
+      exact emit_preserves_tokens_at (scanValuePrepare (scanValueClearKey s)) .value i hi
+    · intro j hj hge _
+      apply fpsv_of_not_plain
+      simp only [ScannerState.emit] at hj ⊢
+      have : j = (scanValuePrepare (scanValueClearKey s)).tokens.size := by
+        simp [Array.size_push] at hj; omega
+      subst this; simp [Array.getElem_push_eq]
 
 lemma scanValue_preserves_FlowNestingInv
     (s s' : ScannerState) (h_fni : FlowNestingInv s)
@@ -4260,37 +4267,39 @@ lemma scanValue_preserves_FlowNestingInv
   · contradiction
   · split at h_ok
     · contradiction
-    · injection h_ok with h_ok; subst h_ok
-      -- s' = { advance(emit(scanValuePrepare(scanValueClearKey s)).value) with ... }
-      -- Step 1: scanValueClearKey preserves FlowNestingInv
-      have h_fni_ck : FlowNestingInv (scanValueClearKey s) := by
-        unfold FlowNestingInv at h_fni ⊢; unfold scanValueClearKey
-        split
+    split at h_ok
+    · contradiction  -- scanValueTabCheck (item 31 added the one above)
+    injection h_ok with h_ok; subst h_ok
+    -- s' = { advance(emit(scanValuePrepare(scanValueClearKey s)).value) with ... }
+    -- Step 1: scanValueClearKey preserves FlowNestingInv
+    have h_fni_ck : FlowNestingInv (scanValueClearKey s) := by
+      unfold FlowNestingInv at h_fni ⊢; unfold scanValueClearKey
+      split
+      · split
+        · dsimp only []; exact h_fni
         · split
           · dsimp only []; exact h_fni
-          · split
-            · dsimp only []; exact h_fni
-            · exact h_fni
-        · exact h_fni
-      have h_ph_ck : (scanValueClearKey s).simpleKey.possible = true →
-          (∀ (h : (scanValueClearKey s).simpleKey.tokenIndex < (scanValueClearKey s).tokens.size),
-            ((scanValueClearKey s).tokens[(scanValueClearKey s).simpleKey.tokenIndex]'h).val = .placeholder) ∧
-          (∀ (h : (scanValueClearKey s).simpleKey.tokenIndex + 1 < (scanValueClearKey s).tokens.size),
-            ((scanValueClearKey s).tokens[(scanValueClearKey s).simpleKey.tokenIndex + 1]'h).val = .placeholder) := by
-        cases scanValueClearKey_identity_or_clear s with
-        | inl h_eq => rw [h_eq]; exact h_ph
-        | inr h_cl => intro h; rw [h_cl.1] at h; exact absurd h (by decide)
-      -- Step 2: scanValuePrepare preserves FlowNestingInv
-      have h_fni_prep := scanValuePrepare_preserves_FlowNestingInv
-        (scanValueClearKey s) h_fni_ck h_ph_ck
-      -- Step 3: emit .value preserves FlowNestingInv
-      have h_fni_emit := FlowNestingInv_emit_non_flow
-        (scanValuePrepare (scanValueClearKey s)) .value h_fni_prep
-        (by nofun) (by nofun) (by nofun) (by nofun)
-      -- Step 4: advance + field updates preserve FlowNestingInv
-      unfold FlowNestingInv at h_fni_emit ⊢
-      simp only [advance_preserves_flowLevel, advance_preserves_tokens]
-      exact h_fni_emit
+          · exact h_fni
+      · exact h_fni
+    have h_ph_ck : (scanValueClearKey s).simpleKey.possible = true →
+        (∀ (h : (scanValueClearKey s).simpleKey.tokenIndex < (scanValueClearKey s).tokens.size),
+          ((scanValueClearKey s).tokens[(scanValueClearKey s).simpleKey.tokenIndex]'h).val = .placeholder) ∧
+        (∀ (h : (scanValueClearKey s).simpleKey.tokenIndex + 1 < (scanValueClearKey s).tokens.size),
+          ((scanValueClearKey s).tokens[(scanValueClearKey s).simpleKey.tokenIndex + 1]'h).val = .placeholder) := by
+      cases scanValueClearKey_identity_or_clear s with
+      | inl h_eq => rw [h_eq]; exact h_ph
+      | inr h_cl => intro h; rw [h_cl.1] at h; exact absurd h (by decide)
+    -- Step 2: scanValuePrepare preserves FlowNestingInv
+    have h_fni_prep := scanValuePrepare_preserves_FlowNestingInv
+      (scanValueClearKey s) h_fni_ck h_ph_ck
+    -- Step 3: emit .value preserves FlowNestingInv
+    have h_fni_emit := FlowNestingInv_emit_non_flow
+      (scanValuePrepare (scanValueClearKey s)) .value h_fni_prep
+      (by nofun) (by nofun) (by nofun) (by nofun)
+    -- Step 4: advance + field updates preserve FlowNestingInv
+    unfold FlowNestingInv at h_fni_emit ⊢
+    simp only [advance_preserves_flowLevel, advance_preserves_tokens]
+    exact h_fni_emit
 
 /-! ### SimpleKeyPlaceholderInv — token-value invariant for simple-key positions
 

@@ -50,6 +50,7 @@ import Tests.Guards.Proofs.ScannerProofs
 import Tests.Guards.Proofs.ScannerPropertyRunSameLine
 import Tests.Guards.Proofs.ScannerScalar
 import Tests.Guards.Proofs.ScannerSimpleKey
+import Tests.Guards.Proofs.ScannerTabBeforeBlockEntry
 import Tests.Guards.Proofs.ScannerWhitespace
 import Tests.Guards.Proofs.SchemaComposition
 import Tests.Guards.Proofs.SchemaDump

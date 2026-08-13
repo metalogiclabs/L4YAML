@@ -247,7 +247,10 @@ lemma scanKeyIx_preserves_ScanInvIx {input : String}
   unfold scanKeyIx at h_ok
   simp only [bind, Except.bind] at h_ok
   split at h_ok
-  · split at h_ok
+  · -- item 31: the preceding-whitespace tab check, then the pushMappingIndent if
+    split at h_ok
+    · simp at h_ok
+    split at h_ok
     · split at h_ok
       · simp at h_ok
       · simp only [Except.ok.injEq] at h_ok; subst h_ok
@@ -562,6 +565,8 @@ lemma scanValueIx_preserves_ScanInvIx {input : String}
     (h_ok : scanValueIx s = .ok s') : ScanInvIx s' := by
   unfold scanValueIx at h_ok
   simp only [bind, Except.bind] at h_ok
+  -- Three guards since item 31: validate, indent-tab check, tab check
+  split at h_ok <;> try contradiction
   split at h_ok <;> try contradiction
   split at h_ok <;> try contradiction
   simp only [Except.ok.injEq] at h_ok; subst h_ok
@@ -578,6 +583,8 @@ lemma scanValueIx_preserves_AllKeysValidIx {input : String}
     (h_ok : scanValueIx s = .ok s') : AllKeysValidIx s' := by
   unfold scanValueIx at h_ok
   simp only [bind, Except.bind] at h_ok
+  -- Three guards since item 31: validate, indent-tab check, tab check
+  split at h_ok <;> try contradiction
   split at h_ok <;> try contradiction
   split at h_ok <;> try contradiction
   simp only [Except.ok.injEq] at h_ok; subst h_ok

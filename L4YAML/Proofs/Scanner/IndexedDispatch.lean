@@ -306,7 +306,15 @@ lemma scanKeyIx_offset_monotonic {input : String}
     s.cursor.pos.offset ≤ s'.cursor.pos.offset := by
   unfold scanKeyIx at h
   by_cases hi : (!s.inFlow) = true
-  · -- Block context: rewrite the outer let-if first; that normalises
+  · -- Item 31's preceding-whitespace tab check comes first, under the same
+    -- `!inFlow` guard `scanBlockEntryIx` uses.
+    rw [if_pos hi] at h
+    by_cases ht : s.hasTabInPrecedingWhitespace = true
+    · rw [if_pos ht] at h
+      simp [Bind.bind, Except.bind] at h
+    rw [if_neg ht] at h
+    simp only [] at h
+    -- Block context: rewrite the outer let-if first; that normalises
     -- the post-state to `pushMappingIndentIx s c` and lets the inFlow
     -- preservation lemmas collapse the inner if's condition to `s.inFlow`,
     -- which the second `if_pos hi` then rewrites to its `then` branch.
@@ -338,6 +346,8 @@ lemma scanValueIx_offset_monotonic {input : String}
   split at h
   · cases h                                                  -- validate threw
   · split at h
+    · cases h                                    -- indent-tab check threw (31)
+    split at h
     · cases h                                                -- tab-check threw
     · simp only [Except.ok.injEq] at h
       subst h
@@ -820,7 +830,14 @@ lemma scanKeyIx_tokens_size_le {input : String}
     s.tokens.size ≤ s'.tokens.size := by
   unfold scanKeyIx at h
   by_cases hi : (!s.inFlow) = true
-  · -- Block context: outer if rewrites; inFlow chains normalise the inner
+  · -- Item 31's preceding-whitespace tab check comes first.
+    rw [if_pos hi] at h
+    by_cases ht : s.hasTabInPrecedingWhitespace = true
+    · rw [if_pos ht] at h
+      simp [Bind.bind, Except.bind] at h
+    rw [if_neg ht] at h
+    simp only [] at h
+    -- Block context: outer if rewrites; inFlow chains normalise the inner
     -- if's condition to `s.inFlow`; second if_pos hi rewrites the inner if.
     simp only [if_pos hi, advance_inFlow, emit_inFlow,
       pushMappingIndentIx_inFlow] at h
@@ -846,6 +863,8 @@ lemma scanValueIx_tokens_size_le {input : String}
   split at h
   · cases h                                                  -- validate threw
   · split at h
+    · cases h                                    -- indent-tab check threw (31)
+    split at h
     · cases h                                                -- tab-check threw
     · simp only [Except.ok.injEq] at h
       subst h

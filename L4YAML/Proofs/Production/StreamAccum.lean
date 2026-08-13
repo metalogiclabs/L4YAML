@@ -6396,6 +6396,8 @@ lemma scanValue_inFlow_facts {s s' : ScannerState} (h_flow : s.inFlow = true)
   split at hok
   · exact absurd hok (by simp)
   · split at hok
+    · exact absurd hok (by simp)   -- scanValueIndentTabCheck (item 31)
+    split at hok
     · exact absurd hok (by simp)
     · have h := Except.ok.inj hok
       subst h
@@ -6564,6 +6566,8 @@ lemma scanValue_prod (sc : ScannerState) (sp : SurfPos)
   split at hok
   · exact absurd hok (by simp)
   · split at hok
+    · exact absurd hok (by simp)   -- scanValueIndentTabCheck (item 31)
+    split at hok
     · exact absurd hok (by simp)
     · have h := Except.ok.inj hok
       subst h
@@ -6699,6 +6703,8 @@ lemma scanValue_block_prod (sc : ScannerState) (sp : SurfPos)
   split at hok
   · exact absurd hok (by simp)
   · split at hok
+    · exact absurd hok (by simp)   -- scanValueIndentTabCheck (item 31)
+    split at hok
     · exact absurd hok (by simp)
     · have h := Except.ok.inj hok
       subst h

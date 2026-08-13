@@ -466,7 +466,8 @@ lemma scanKey_adds_one_token (s : ScannerState) (s' : ScannerState)
   unfold scanKey at h
   simp only [] at h
   split at h
-  · -- !inFlow → pushMappingIndent called
+  · -- !inFlow → item 31's preceding-whitespace tab check, then pushMappingIndent
+    split at h <;> try contradiction
     split at h
     · split at h
       · contradiction
@@ -570,18 +571,22 @@ lemma scanValue_adds_tokens (s : ScannerState) (s' : ScannerState)
   · -- scanValueValidate = .error → contradiction
     contradiction
   · -- scanValueValidate = .ok ()
-    -- Split on inner match (scanValueTabCheck): .error first, .ok second
+    -- Split on the inner matches (item 31's `scanValueIndentTabCheck`, then
+    -- `scanValueTabCheck`): .error first, .ok second
+    split at h
+    · -- scanValueIndentTabCheck = .error → contradiction
+      contradiction
     split at h
     · -- scanValueTabCheck = .error → contradiction
       contradiction
-    · -- scanValueTabCheck = .ok () → h : .ok {...} = .ok s'
-      injection h with h_eq; subst h_eq
-      -- Reduce struct projection through { ... with simpleKeyAllowed := ... }
-      dsimp only []
-      rw [advance_preserves_tokens, emit_tokens_size]
-      have h_ck := scanValueClearKey_preserves_tokens s
-      have h_prep := scanValuePrepare_tokens_monotonic (scanValueClearKey s)
-      rw [h_ck] at h_prep; omega
+    -- both checks passed → h : .ok {...} = .ok s'
+    injection h with h_eq; subst h_eq
+    -- Reduce struct projection through { ... with simpleKeyAllowed := ... }
+    dsimp only []
+    rw [advance_preserves_tokens, emit_tokens_size]
+    have h_ck := scanValueClearKey_preserves_tokens s
+    have h_prep := scanValuePrepare_tokens_monotonic (scanValueClearKey s)
+    rw [h_ck] at h_prep; omega
 
 /-- Helper: consumeNewline preserves tokens.
 
@@ -2322,7 +2327,8 @@ lemma scanKey_preserves_prefix (s s' : ScannerState)
   unfold scanKey at h
   simp only [] at h
   split at h
-  · -- !inFlow → pushMappingIndent called
+  · -- !inFlow → item 31's preceding-whitespace tab check, then pushMappingIndent
+    split at h <;> try contradiction
     split at h
     · split at h
       · contradiction
@@ -2666,25 +2672,27 @@ lemma scanValue_preserves_prefix (s s' : ScannerState)
   split at h
   · contradiction  -- scanValueValidate = .error
   · split at h
+    · contradiction  -- scanValueIndentTabCheck = .error (item 31)
+    split at h
     · contradiction  -- scanValueTabCheck = .error
-    · injection h with h_eq; subst h_eq; dsimp only []
-      have h_ck := scanValueClearKey_preserves_tokens s
-      have h_inv' : (scanValueClearKey s).simpleKey.possible = true →
-          (scanValueClearKey s).simpleKey.tokenIndex ≥ n := by
-        unfold scanValueClearKey
-        split
+    injection h with h_eq; subst h_eq; dsimp only []
+    have h_ck := scanValueClearKey_preserves_tokens s
+    have h_inv' : (scanValueClearKey s).simpleKey.possible = true →
+        (scanValueClearKey s).simpleKey.tokenIndex ≥ n := by
+      unfold scanValueClearKey
+      split
+      · split
+        · simp
         · split
           · simp
-          · split
-            · simp
-            · exact h_inv
-        · exact h_inv
-      have h_prep := scanValuePrepare_preserves_prefix (scanValueClearKey s) n
-        (by rw [h_ck]; exact h_n) h_inv' i h_bound
-      have h_emit := emit_preserves_tokens_at (scanValuePrepare (scanValueClearKey s))
-        YamlToken.value i (by have := scanValuePrepare_tokens_monotonic (scanValueClearKey s); rw [h_ck] at this; omega)
-      have h_adv := advance_preserves_tokens ((scanValuePrepare (scanValueClearKey s)).emit .value)
-      simp_all
+          · exact h_inv
+      · exact h_inv
+    have h_prep := scanValuePrepare_preserves_prefix (scanValueClearKey s) n
+      (by rw [h_ck]; exact h_n) h_inv' i h_bound
+    have h_emit := emit_preserves_tokens_at (scanValuePrepare (scanValueClearKey s))
+      YamlToken.value i (by have := scanValuePrepare_tokens_monotonic (scanValueClearKey s); rw [h_ck] at this; omega)
+    have h_adv := advance_preserves_tokens ((scanValuePrepare (scanValueClearKey s)).emit .value)
+    simp_all
 
 set_option maxHeartbeats 400000 in
 /-- scanValue preserves `.pos` at ALL existing token positions.
@@ -2708,26 +2716,28 @@ lemma scanValue_preserves_all_pos (s s' : ScannerState)
   split at h
   · contradiction
   · split at h
+    · contradiction  -- scanValueIndentTabCheck = .error (item 31)
+    split at h
     · contradiction
-    · injection h with h_eq; subst h_eq; dsimp only []
-      have h_ck := scanValueClearKey_preserves_tokens s
-      have h_skv' : (scanValueClearKey s).simpleKey.possible = true →
-          (scanValueClearKey s).simpleKey.tokenIndex < (scanValueClearKey s).tokens.size ∧
-          (scanValueClearKey s).simpleKey.tokenIndex + 1 < (scanValueClearKey s).tokens.size ∧
-          (∀ (h1 : (scanValueClearKey s).simpleKey.tokenIndex < (scanValueClearKey s).tokens.size),
-            (scanValueClearKey s).tokens[(scanValueClearKey s).simpleKey.tokenIndex].pos =
-              (scanValueClearKey s).simpleKey.pos) ∧
-          (∀ (h2 : (scanValueClearKey s).simpleKey.tokenIndex + 1 < (scanValueClearKey s).tokens.size),
-            (scanValueClearKey s).tokens[(scanValueClearKey s).simpleKey.tokenIndex + 1].pos =
-              (scanValueClearKey s).simpleKey.pos) := by
-        cases scanValueClearKey_identity_or_clear s with
-        | inl h_eq => rw [h_eq]; exact h_skv
-        | inr h_cl => intro h_poss; rw [h_cl.1] at h_poss; contradiction
-      have h_prep := scanValuePrepare_preserves_all_pos (scanValueClearKey s) h_skv' i (by rw [h_ck]; exact hi)
-      have h_emit := emit_preserves_tokens_at (scanValuePrepare (scanValueClearKey s))
-        YamlToken.value i (by have := scanValuePrepare_tokens_monotonic (scanValueClearKey s); rw [h_ck] at this; omega)
-      have h_adv := advance_preserves_tokens ((scanValuePrepare (scanValueClearKey s)).emit .value)
-      simp only [h_adv, h_emit]; rw [h_prep]; simp [h_ck]
+    injection h with h_eq; subst h_eq; dsimp only []
+    have h_ck := scanValueClearKey_preserves_tokens s
+    have h_skv' : (scanValueClearKey s).simpleKey.possible = true →
+        (scanValueClearKey s).simpleKey.tokenIndex < (scanValueClearKey s).tokens.size ∧
+        (scanValueClearKey s).simpleKey.tokenIndex + 1 < (scanValueClearKey s).tokens.size ∧
+        (∀ (h1 : (scanValueClearKey s).simpleKey.tokenIndex < (scanValueClearKey s).tokens.size),
+          (scanValueClearKey s).tokens[(scanValueClearKey s).simpleKey.tokenIndex].pos =
+            (scanValueClearKey s).simpleKey.pos) ∧
+        (∀ (h2 : (scanValueClearKey s).simpleKey.tokenIndex + 1 < (scanValueClearKey s).tokens.size),
+          (scanValueClearKey s).tokens[(scanValueClearKey s).simpleKey.tokenIndex + 1].pos =
+            (scanValueClearKey s).simpleKey.pos) := by
+      cases scanValueClearKey_identity_or_clear s with
+      | inl h_eq => rw [h_eq]; exact h_skv
+      | inr h_cl => intro h_poss; rw [h_cl.1] at h_poss; contradiction
+    have h_prep := scanValuePrepare_preserves_all_pos (scanValueClearKey s) h_skv' i (by rw [h_ck]; exact hi)
+    have h_emit := emit_preserves_tokens_at (scanValuePrepare (scanValueClearKey s))
+      YamlToken.value i (by have := scanValuePrepare_tokens_monotonic (scanValueClearKey s); rw [h_ck] at this; omega)
+    have h_adv := advance_preserves_tokens ((scanValuePrepare (scanValueClearKey s)).emit .value)
+    simp only [h_adv, h_emit]; rw [h_prep]; simp [h_ck]
 
 /-- Block indicator dispatch preserves prefix below n (needs simpleKey invariant for scanValue). -/
 lemma dispatchBlockIndicators_preserves_prefix (s : ScannerState) (c : Char) (s' : ScannerState)
@@ -4565,6 +4575,8 @@ lemma scanValue_clears_simpleKey (s : ScannerState) (s' : ScannerState)
     (h : scanValue s = .ok s') : s'.simpleKey.possible = false := by
   unfold scanValue at h
   simp only [bind, Except.bind] at h
+  -- Three guards since item 31: validate, indent-tab check, tab check
+  split at h <;> try contradiction
   split at h <;> try contradiction
   split at h <;> try contradiction
   simp only [Except.ok.injEq] at h; subst h
@@ -4575,6 +4587,8 @@ lemma scanValue_preserves_simpleKeyStack (s : ScannerState) (s' : ScannerState)
     (h : scanValue s = .ok s') : s'.simpleKeyStack = s.simpleKeyStack := by
   unfold scanValue at h
   simp only [bind, Except.bind] at h
+  -- Three guards since item 31: validate, indent-tab check, tab check
+  split at h <;> try contradiction
   split at h <;> try contradiction
   split at h <;> try contradiction
   simp only [Except.ok.injEq] at h; subst h
@@ -4590,6 +4604,8 @@ lemma scanValue_preserves_flowLevel (s : ScannerState) (s' : ScannerState)
     (h : scanValue s = .ok s') : s'.flowLevel = s.flowLevel := by
   unfold scanValue at h
   simp only [bind, Except.bind] at h
+  -- Three guards since item 31: validate, indent-tab check, tab check
+  split at h <;> try contradiction
   split at h <;> try contradiction
   split at h <;> try contradiction
   simp only [Except.ok.injEq] at h; subst h
@@ -8062,7 +8078,8 @@ lemma scanKey_preserves_ScanInv (s s' : ScannerState)
   -- Examine what split does:
   split at h_ok
   · rename_i h_cond1
-    -- h_cond1 tells us what was split on
+    -- item 31's preceding-whitespace tab check, then the pushMappingIndent `if`
+    split at h_ok <;> try contradiction
     split at h_ok
     · rename_i h_cond2
       split at h_ok <;> (first | contradiction | skip)
@@ -8120,16 +8137,18 @@ lemma scanValue_preserves_ScanInv (s s' : ScannerState)
   -- Don't unfold them — just split on .error/.ok for each
   split at h_ok
   · simp at h_ok  -- scanValueValidate error → contradiction
-  · -- scanValueValidate ok; now scanValueTabCheck bind
+  · -- scanValueValidate ok; now the two tab-check binds
+    split at h_ok
+    · simp at h_ok  -- scanValueIndentTabCheck error (item 31) → contradiction
     split at h_ok
     · simp at h_ok  -- scanValueTabCheck error → contradiction
-    · -- Both checks passed
-      simp only [Except.ok.injEq] at h_ok; subst h_ok
-      apply field_update_preserves_ScanInv _ _ _ rfl rfl
-      apply advance_preserves_ScanInv
-      apply emit_preserves_ScanInv
-      exact scanValuePrepare_preserves_ScanInv (scanValueClearKey s)
-        (scanValueClearKey_preserves_ScanInv s h) h_sk
+    -- All three checks passed
+    simp only [Except.ok.injEq] at h_ok; subst h_ok
+    apply field_update_preserves_ScanInv _ _ _ rfl rfl
+    apply advance_preserves_ScanInv
+    apply emit_preserves_ScanInv
+    exact scanValuePrepare_preserves_ScanInv (scanValueClearKey s)
+      (scanValueClearKey_preserves_ScanInv s h) h_sk
 
 -- Phase 2d dispatcher: dispatchBlockIndicators preserves ScanInv.
 lemma dispatchBlockIndicators_preserves_ScanInv (s : ScannerState) (c : Char)
@@ -9931,14 +9950,16 @@ lemma scanValue_offset_lt (s s' : ScannerState)
   split at h
   · cases h
   · split at h
+    · cases h  -- scanValueIndentTabCheck = .error (item 31)
+    split at h
     · cases h
-    · injection h with h_eq; subst h_eq
-      have hck := svck_offset s; have hcke := svck_inputEnd s
-      have hvp : (scanValuePrepare (scanValueClearKey s)).offset = s.offset := by rw [svp_offset, hck]
-      have hvpe : (scanValuePrepare (scanValueClearKey s)).inputEnd = s.inputEnd := by rw [svp_inputEnd, hcke]
-      have h1 := ScannerProgress.advance_offset_lt ((scanValuePrepare (scanValueClearKey s)).emit .value)
-        (by rw [ScannerProgress.emit_offset, ScannerProgress.emit_inputEnd, hvp, hvpe]; exact hlt)
-      rw [ScannerProgress.emit_offset, hvp] at h1; exact h1
+    injection h with h_eq; subst h_eq
+    have hck := svck_offset s; have hcke := svck_inputEnd s
+    have hvp : (scanValuePrepare (scanValueClearKey s)).offset = s.offset := by rw [svp_offset, hck]
+    have hvpe : (scanValuePrepare (scanValueClearKey s)).inputEnd = s.inputEnd := by rw [svp_inputEnd, hcke]
+    have h1 := ScannerProgress.advance_offset_lt ((scanValuePrepare (scanValueClearKey s)).emit .value)
+      (by rw [ScannerProgress.emit_offset, ScannerProgress.emit_inputEnd, hvp, hvpe]; exact hlt)
+    rw [ScannerProgress.emit_offset, hvp] at h1; exact h1
 
 set_option maxHeartbeats 800000 in
 /-- `scanDocumentStart` strictly advances offset when `offset < inputEnd`. -/

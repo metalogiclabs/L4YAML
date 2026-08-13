@@ -313,8 +313,9 @@ lemma scanKey_offset_lt (s s' : ScannerState)
     s.offset < s'.offset := by
   unfold scanKey at h
   simp only [bind, Except.bind] at h
-  split at h  -- !s.inFlow (pushMappingIndent branch)
-  · -- block: s_with_indent = pushMappingIndent s s.col
+  split at h  -- !s.inFlow (item 31: the preceding-whitespace tab check)
+  · split at h <;> (try contradiction)
+    -- block: s_with_indent = pushMappingIndent s s.col
     split at h  -- !s_after_advance.inFlow (tab check)
     · split at h  -- match peek? for tab detection
       · cases h  -- some '\t' → error contradiction

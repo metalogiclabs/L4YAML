@@ -270,7 +270,9 @@ lemma scanKey_prod (sc : ScannerState) (sp : SurfPos)
   unfold scanKey at hok
   simp only [bind, Except.bind] at hok
   split at hok
-  · -- !inFlow: pushMappingIndent
+  · -- !inFlow: item 31's preceding-whitespace tab check, then pushMappingIndent
+    split at hok
+    · simp at hok
     have hcorr_ind := pushMappingIndent_corr sc
       ⟨'?' :: rest, sc.col⟩ hcorr (sc.col : Int) (Int.natCast_nonneg _)
     have hcorr_emit : ScannerSurfCorr
@@ -328,7 +330,9 @@ lemma scanValue_prod (sc : ScannerState) (sp : SurfPos)
   -- scanValueValidate (Except)
   split at hok
   · simp at hok
-  · -- scanValueTabCheck (Except)
+  · -- scanValueIndentTabCheck (item 31), then scanValueTabCheck
+    split at hok
+    · simp at hok
     split at hok
     · simp at hok
     · have h := Except.ok.inj hok; subst h

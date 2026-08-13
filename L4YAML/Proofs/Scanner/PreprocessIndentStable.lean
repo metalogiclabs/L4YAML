@@ -627,34 +627,38 @@ lemma scanValue_col_le_currentIndent {s s' : ScannerState}
     (s.col : Int) ≤ s'.currentIndent := by
   unfold scanValue at hok
   simp only [bind, Except.bind] at hok
+  -- Three `Except` guards now, not two: item 31 inserted
+  -- `scanValueIndentTabCheck` between `scanValueValidate` and the prepare.
   split at hok
   · simp at hok
-  · rename_i h_valid
-    split at hok
-    · simp at hok
-    · simp only [Except.ok.injEq] at hok
-      subst hok
-      obtain ⟨hcol, hind, hfl, hpos, _, _, _⟩ := scanValueClearKey_fields s
-      have h_kc_fresh : (scanValueClearKey s).simpleKey.possible = true →
-          (scanValueClearKey s).simpleKey.pos.col = (scanValueClearKey s).col := by
-        intro hp
-        rcases scanValueClearKey_simpleKey s with heq | hfalse
-        · rw [heq, hcol]
-          rw [heq] at hp
-          rw [h_fresh hp]; rfl
-        · rw [hfalse] at hp; exact absurd hp Bool.false_ne_true
-      have h_prep := scanValuePrepare_col_le
-        (s := scanValueClearKey s) (by rw [hfl]; exact h_noflow) h_kc_fresh h_valid
-      rw [hcol] at h_prep
-      show (s.col : Int) ≤ ScannerState.currentIndent _
-      rw [currentIndent_of_indents_eq
-        (show ({ (ScannerState.advance
-                  (ScannerState.emit (scanValuePrepare (scanValueClearKey s)) .value)) with
-                simpleKeyAllowed := true, explicitKeyLine := none } : ScannerState).indents
-            = (scanValuePrepare (scanValueClearKey s)).indents from by
-          show (ScannerState.advance _).indents = _
-          rw [advance_indents]; rfl)]
-      exact h_prep
+  rename_i h_valid
+  split at hok
+  · simp at hok
+  split at hok
+  · simp at hok
+  simp only [Except.ok.injEq] at hok
+  subst hok
+  obtain ⟨hcol, hind, hfl, hpos, _, _, _⟩ := scanValueClearKey_fields s
+  have h_kc_fresh : (scanValueClearKey s).simpleKey.possible = true →
+      (scanValueClearKey s).simpleKey.pos.col = (scanValueClearKey s).col := by
+    intro hp
+    rcases scanValueClearKey_simpleKey s with heq | hfalse
+    · rw [heq, hcol]
+      rw [heq] at hp
+      rw [h_fresh hp]; rfl
+    · rw [hfalse] at hp; exact absurd hp Bool.false_ne_true
+  have h_prep := scanValuePrepare_col_le
+    (s := scanValueClearKey s) (by rw [hfl]; exact h_noflow) h_kc_fresh h_valid
+  rw [hcol] at h_prep
+  show (s.col : Int) ≤ ScannerState.currentIndent _
+  rw [currentIndent_of_indents_eq
+    (show ({ (ScannerState.advance
+              (ScannerState.emit (scanValuePrepare (scanValueClearKey s)) .value)) with
+            simpleKeyAllowed := true, explicitKeyLine := none } : ScannerState).indents
+        = (scanValuePrepare (scanValueClearKey s)).indents from by
+      show (ScannerState.advance _).indents = _
+      rw [advance_indents]; rfl)]
+  exact h_prep
 
 /-! ## §6c  The `:` producer, measured at the KEY instead of at itself
 
@@ -714,23 +718,25 @@ lemma scanValue_key_col_le_or {s s' : ScannerState} {k : Nat}
     simp only [bind, Except.bind] at hok
     split at hok
     · simp at hok
-    · split at hok
-      · simp at hok
-      · simp only [Except.ok.injEq] at hok
-        subst hok
-        obtain ⟨_, _, hfl, _, _, _, _⟩ := scanValueClearKey_fields s
-        refine Or.inl ?_
-        have h_prep := scanValuePrepare_key_col_le (s := scanValueClearKey s) (k := k)
-          (by rw [hfl]; exact h_noflow) (by rw [heq]; exact h_poss) (by rw [heq]; exact h_key)
-        show (k : Int) ≤ ScannerState.currentIndent _
-        rw [currentIndent_of_indents_eq
-          (show ({ (ScannerState.advance
-                    (ScannerState.emit (scanValuePrepare (scanValueClearKey s)) .value)) with
-                  simpleKeyAllowed := true, explicitKeyLine := none } : ScannerState).indents
-              = (scanValuePrepare (scanValueClearKey s)).indents from by
-            show (ScannerState.advance _).indents = _
-            rw [advance_indents]; rfl)]
-        exact h_prep
+    split at hok
+    · simp at hok
+    split at hok
+    · simp at hok
+    simp only [Except.ok.injEq] at hok
+    subst hok
+    obtain ⟨_, _, hfl, _, _, _, _⟩ := scanValueClearKey_fields s
+    refine Or.inl ?_
+    have h_prep := scanValuePrepare_key_col_le (s := scanValueClearKey s) (k := k)
+      (by rw [hfl]; exact h_noflow) (by rw [heq]; exact h_poss) (by rw [heq]; exact h_key)
+    show (k : Int) ≤ ScannerState.currentIndent _
+    rw [currentIndent_of_indents_eq
+      (show ({ (ScannerState.advance
+                (ScannerState.emit (scanValuePrepare (scanValueClearKey s)) .value)) with
+              simpleKeyAllowed := true, explicitKeyLine := none } : ScannerState).indents
+          = (scanValuePrepare (scanValueClearKey s)).indents from by
+        show (ScannerState.advance _).indents = _
+        rw [advance_indents]; rfl)]
+    exact h_prep
   · exact Or.inr trivial
 
 /-- `scanValuePrepare` writes tokens, indents and the saved key. -/
@@ -754,14 +760,16 @@ lemma scanValue_needIndentCheck {s s' : ScannerState}
   simp only [bind, Except.bind] at hok
   split at hok
   · simp at hok
-  · split at hok
-    · simp at hok
-    · simp only [Except.ok.injEq] at hok
-      subst hok
-      show (ScannerState.advance _).needIndentCheck = _
-      rw [advance_preserves_needIndentCheck]
-      show (scanValuePrepare (scanValueClearKey s)).needIndentCheck = _
-      rw [scanValuePrepare_needIndentCheck, (scanValueClearKey_fields s).2.2.2.2.2.2]
+  split at hok
+  · simp at hok
+  split at hok
+  · simp at hok
+  simp only [Except.ok.injEq] at hok
+  subst hok
+  show (ScannerState.advance _).needIndentCheck = _
+  rw [advance_preserves_needIndentCheck]
+  show (scanValuePrepare (scanValueClearKey s)).needIndentCheck = _
+  rw [scanValuePrepare_needIndentCheck, (scanValueClearKey_fields s).2.2.2.2.2.2]
 
 /-! ## §7  The dispatchers, in the shape the producers consume
 

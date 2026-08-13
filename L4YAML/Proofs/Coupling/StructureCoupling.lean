@@ -387,7 +387,9 @@ lemma scanKey_corr (sc : ScannerState) (sp : SurfPos)
   -- The first let: s_with_indent := if !s.inFlow then pushMappingIndent ...
   -- After bind/Except.bind simplification, we split on !inFlow
   split at hok
-  · -- !inFlow: pushMappingIndent
+  · -- !inFlow: item 31's preceding-whitespace tab check, then pushMappingIndent
+    split at hok
+    · exact absurd hok (by simp)
     have hcorr_ind := pushMappingIndent_corr sc sp hcorr (sc.col : Int) (Int.natCast_nonneg _)
     obtain ⟨sp_adv, hcorr_adv⟩ := advance_corr
       ((pushMappingIndent sc (sc.col : Int)).emit .key) sp
@@ -420,16 +422,19 @@ lemma scanValue_corr (sc : ScannerState) (sp : SurfPos)
   -- scanValueValidate returns Except ScanError Unit
   split at hok
   · exact absurd hok (by simp) -- validate error
-  · -- scanValueTabCheck returns Except ScanError Unit
-    split at hok
-    · exact absurd hok (by simp) -- tabCheck error
-    · have h := Except.ok.inj hok; subst h
-      have hcorr_ck := scanValueClearKey_corr sc sp hcorr
-      have hcorr_prep := scanValuePrepare_corr (scanValueClearKey sc) sp hcorr_ck
-      obtain ⟨sp', hcorr'⟩ := advance_corr
-        ((scanValuePrepare (scanValueClearKey sc)).emit .value) sp
-        ⟨hcorr_prep.chars_from, hcorr_prep.col_eq, hcorr_prep.end_eq, hcorr_prep.input_prefix, hcorr_prep.indent_cols_nonneg⟩
-      exact ⟨sp', ⟨hcorr'.chars_from, hcorr'.col_eq, hcorr'.end_eq, hcorr'.input_prefix, hcorr'.indent_cols_nonneg⟩⟩
+  -- scanValueIndentTabCheck (item 31), then scanValueTabCheck — both
+  -- `Except ScanError Unit`, both error branches contradict `.ok`
+  split at hok
+  · exact absurd hok (by simp) -- indent tab check error
+  split at hok
+  · exact absurd hok (by simp) -- tabCheck error
+  have h := Except.ok.inj hok; subst h
+  have hcorr_ck := scanValueClearKey_corr sc sp hcorr
+  have hcorr_prep := scanValuePrepare_corr (scanValueClearKey sc) sp hcorr_ck
+  obtain ⟨sp', hcorr'⟩ := advance_corr
+    ((scanValuePrepare (scanValueClearKey sc)).emit .value) sp
+    ⟨hcorr_prep.chars_from, hcorr_prep.col_eq, hcorr_prep.end_eq, hcorr_prep.input_prefix, hcorr_prep.indent_cols_nonneg⟩
+  exact ⟨sp', ⟨hcorr'.chars_from, hcorr'.col_eq, hcorr'.end_eq, hcorr'.input_prefix, hcorr'.indent_cols_nonneg⟩⟩
 
 /-! ## §7 Document Boundaries -/
 

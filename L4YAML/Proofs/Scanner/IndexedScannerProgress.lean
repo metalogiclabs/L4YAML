@@ -214,7 +214,14 @@ lemma scanKeyIx_offset_lt {s s' : ScannerStateIx input}
     s.cursor.pos.offset < s'.cursor.pos.offset := by
   unfold scanKeyIx at h
   by_cases hi : (!s.inFlow) = true
-  · simp only [if_pos hi, advance_inFlow, emit_inFlow,
+  · -- Item 31's preceding-whitespace tab check, under the same `!inFlow` guard
+    rw [if_pos hi] at h
+    by_cases ht : s.hasTabInPrecedingWhitespace = true
+    · rw [if_pos ht] at h
+      simp [Bind.bind, Except.bind] at h
+    rw [if_neg ht] at h
+    simp only [] at h
+    simp only [if_pos hi, advance_inFlow, emit_inFlow,
       pushMappingIndentIx_inFlow] at h
     split at h
     · simp [Bind.bind, Except.bind] at h
@@ -240,6 +247,8 @@ lemma scanValueIx_offset_lt {s s' : ScannerStateIx input}
   split at h
   · cases h                                                  -- validate threw
   · split at h
+    · cases h                                    -- indent-tab check threw (31)
+    split at h
     · cases h                                                -- tab-check threw
     · simp only [Except.ok.injEq] at h
       subst h

@@ -1358,6 +1358,8 @@ lemma scanValueIx_preserves_position_specific {input : String}
   split at h_ok
   · cases h_ok
   · split at h_ok
+    · cases h_ok                     -- indent-tab check threw (item 31)
+    split at h_ok
     · cases h_ok
     · simp only [Except.ok.injEq] at h_ok
       subst h_ok

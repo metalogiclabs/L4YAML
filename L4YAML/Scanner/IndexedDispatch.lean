@@ -480,8 +480,9 @@ def isValueCandidateIx {input : String} (s : ScannerStateIx input) : Bool :=
 /-! ## Block-indicator scanners
 
 `scanBlockEntryIx` (`-`), `scanKeyIx` (`?`), `scanValueIx` (`:`).
-Both `scanBlockEntryIx` and `scanKeyIx` carry the legacy tab-in-
-indentation check (§6.1 [187] hardening — landed in Step 5b.2). -/
+All three carry the legacy tab-in-indentation check (§6.1 [187] hardening —
+`-` landed in Step 5b.2, `?` and `:` with DOCS item 31, which found that the
+whitespace in front of a block indicator was only checked for the `-`). -/
 
 /-- Scan `-` block-entry indicator.
 
@@ -502,11 +503,16 @@ def scanBlockEntryIx {input : String} (s : ScannerStateIx input) :
 
 /-- Scan `?` explicit-key indicator.
 
-    Throws `tabInIndentation` if a tab character immediately follows
-    the `?` indicator in block context — that tab would be
-    indentation for the key content (§6.1). -/
+    Throws `tabInIndentation` if a tab appears in the contiguous whitespace
+    immediately before the `?` — in block context the indicator stands directly
+    after `[63] s-indent(n)`, which is spaces only — or if a tab character
+    immediately follows it, which would be indentation for the key content
+    (§6.1). -/
 def scanKeyIx {input : String} (s : ScannerStateIx input) :
     Except ScanError (ScannerStateIx input) := do
+  if !s.inFlow then
+    if s.hasTabInPrecedingWhitespace then
+      throw (.tabInIndentation s.cursor.pos.line s.cursor.pos.col)
   let s := if !s.inFlow then pushMappingIndentIx s s.cursor.pos.col else s
   let line := s.cursor.pos.line
   let s := s.emit YamlToken.key
@@ -610,6 +616,27 @@ def scanValuePrepareIx {input : String} (s : ScannerStateIx input) :
   else
     if !s.inFlow then pushMappingIndentIx s s.cursor.pos.col else s
 
+/-- §6.1 for the `:` indicator: the whitespace run in front of the ENTRY must
+    carry no tab, and the entry starts at the implicit KEY when there is one —
+    the run between key and `:` is `[155]`'s own trailing `s-separate-in-line?`,
+    where a tab is legal.  With no key (`[186]`'s `e-node`, `[192]`'s explicit
+    value) the entry starts at the `:` and its own run is the indentation.
+
+    Indexed analogue of `L4YAML.Scanner.scanValueIndentTabCheck`; see there for
+    why following the entry start is what keeps `a:⏎␣␣→[1, 2]` legal. -/
+@[yaml_spec "6.1", yaml_spec "8.2.2" 187 "l+block-mapping"]
+def scanValueIndentTabCheckIx {input : String} (s : ScannerStateIx input) :
+    Except ScanError Unit :=
+  if s.inFlow then .ok ()
+  else if s.simpleKey.possible then
+    if ScannerStateIx.hasTabInPrecedingWhitespaceLoop
+        input s.simpleKey.cursor.pos.offset s.simpleKey.cursor.pos.offset then
+      throw (.tabInIndentation s.simpleKey.cursor.pos.line s.simpleKey.cursor.pos.col)
+    else .ok ()
+  else if s.hasTabInPrecedingWhitespace then
+    throw (.tabInIndentation s.cursor.pos.line s.cursor.pos.col)
+  else .ok ()
+
 /-- §6.1 tab-after-`:` check: if the explicit value was at or below
     the current indent level and is in block context, the character
     immediately after the consumed `:` must not be a tab.
@@ -624,15 +651,16 @@ def scanValueTabCheckIx {input : String} (origCol : Int) (origIndent : Int)
     else .ok ()
   else .ok ()
 
-/-- Scan `:` value indicator. Mirrors the legacy four-stage chain
-    `scanValueClearKey` / `scanValueValidate` / `scanValuePrepare` /
-    `scanValueTabCheck` so each stage carries a single provable
-    property. -/
+/-- Scan `:` value indicator. Mirrors the legacy five-stage chain
+    `scanValueClearKey` / `scanValueValidate` / `scanValueIndentTabCheck` /
+    `scanValuePrepare` / `scanValueTabCheck` so each stage carries a single
+    provable property. -/
 @[yaml_spec "8.2.2" 6 "c-mapping-value"]
 def scanValueIx {input : String} (s : ScannerStateIx input) :
     Except ScanError (ScannerStateIx input) := do
   let s_kc := scanValueClearKeyIx s
   scanValueValidateIx s_kc
+  scanValueIndentTabCheckIx s_kc
   let s_prepared := scanValuePrepareIx s_kc
   let s_with_token := s_prepared.emit YamlToken.value
   let s_after_advance := s_with_token.advance

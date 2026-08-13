@@ -222,6 +222,8 @@ lemma scanValueIx_preserves_flowLevel
     s'.flowLevel = s.flowLevel := by
   unfold scanValueIx at h
   simp only [bind, Except.bind] at h
+  -- Three guards since item 31: validate, indent-tab check, tab check
+  split at h <;> try contradiction
   split at h <;> try contradiction
   split at h <;> try contradiction
   simp only [Except.ok.injEq] at h; subst h

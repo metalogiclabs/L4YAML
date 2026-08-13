@@ -1189,7 +1189,8 @@ lemma scanKey_filtered_grows (s s' : ScannerState)
   unfold scanKey at h
   simp only [] at h
   split at h
-  · -- !inFlow: pushMappingIndent called
+  · -- !inFlow: item 31's preceding-whitespace tab check, then pushMappingIndent
+    split at h <;> try contradiction
     split at h
     · split at h
       · contradiction
@@ -1228,77 +1229,79 @@ lemma scanValue_filtered_grows (s s' : ScannerState)
   · contradiction
   · split at h
     · contradiction
-    · injection h with h_eq; subst h_eq; dsimp only []
-      simp only [ScannerCorrectness.advance_preserves_tokens]
-      -- Goal: ((scanValuePrepare (scanValueClearKey s)).emit(.value).tokens.filter p).size
-      --       ≥ (s.tokens.filter p).size + 1
-      -- Step 1: emit .value adds 1 non-placeholder via filtered_grows_of_extended_prefix
-      have h_emit_grows :=
-        filtered_grows_of_extended_prefix
-          (scanValuePrepare (scanValueClearKey s)).tokens
-          ((scanValuePrepare (scanValueClearKey s)).emit .value).tokens
-          (fun t => t.val != .placeholder)
-          (by unfold ScannerState.emit; simp [Array.size_push])
-          (fun i hi => ScannerCorrectness.emit_preserves_tokens_at _ .value i hi)
-          (by simp only [emit_tokens_push, Array.getElem_push_eq]; decide)
-      -- Step 2: scanValuePrepare is filter-monotonic
-      have h_ck : (scanValueClearKey s).tokens = s.tokens :=
-        ScannerCorrectness.scanValueClearKey_preserves_tokens s
-      suffices h_prep_mono :
-          ((scanValuePrepare (scanValueClearKey s)).tokens.filter
-            (fun t => t.val != .placeholder)).size ≥
-          (s.tokens.filter (fun t => t.val != .placeholder)).size by omega
-      rw [← h_ck]
-      unfold scanValuePrepare
+    split at h
+    · contradiction   -- scanValueTabCheck (item 31 added the one above)
+    injection h with h_eq; subst h_eq; dsimp only []
+    simp only [ScannerCorrectness.advance_preserves_tokens]
+    -- Goal: ((scanValuePrepare (scanValueClearKey s)).emit(.value).tokens.filter p).size
+    --       ≥ (s.tokens.filter p).size + 1
+    -- Step 1: emit .value adds 1 non-placeholder via filtered_grows_of_extended_prefix
+    have h_emit_grows :=
+      filtered_grows_of_extended_prefix
+        (scanValuePrepare (scanValueClearKey s)).tokens
+        ((scanValuePrepare (scanValueClearKey s)).emit .value).tokens
+        (fun t => t.val != .placeholder)
+        (by unfold ScannerState.emit; simp [Array.size_push])
+        (fun i hi => ScannerCorrectness.emit_preserves_tokens_at _ .value i hi)
+        (by simp only [emit_tokens_push, Array.getElem_push_eq]; decide)
+    -- Step 2: scanValuePrepare is filter-monotonic
+    have h_ck : (scanValueClearKey s).tokens = s.tokens :=
+      ScannerCorrectness.scanValueClearKey_preserves_tokens s
+    suffices h_prep_mono :
+        ((scanValuePrepare (scanValueClearKey s)).tokens.filter
+          (fun t => t.val != .placeholder)).size ≥
+        (s.tokens.filter (fun t => t.val != .placeholder)).size by omega
+    rw [← h_ck]
+    unfold scanValuePrepare
+    split
+    · -- simpleKey.possible = true
+      rename_i h_sk
       split
-      · -- simpleKey.possible = true
-        rename_i h_sk
-        split
-        · split
-          · -- Two setIfInBounds
-            dsimp only []
-            have h1 := Array_setIfInBounds_filter_mono (scanValueClearKey s).tokens
-              (scanValueClearKey s).simpleKey.tokenIndex
-              ⟨(scanValueClearKey s).simpleKey.pos, .blockMappingStart, (scanValueClearKey s).simpleKey.pos⟩
-              (fun t : Positioned YamlToken => t.val != .placeholder) rfl
-            have h2 := Array_setIfInBounds_filter_mono
-              ((scanValueClearKey s).tokens.setIfInBounds (scanValueClearKey s).simpleKey.tokenIndex
-                ⟨(scanValueClearKey s).simpleKey.pos, .blockMappingStart, (scanValueClearKey s).simpleKey.pos⟩)
-              ((scanValueClearKey s).simpleKey.tokenIndex + 1)
-              ⟨(scanValueClearKey s).simpleKey.pos, .key, (scanValueClearKey s).simpleKey.pos⟩
-              (fun t : Positioned YamlToken => t.val != .placeholder) rfl
-            omega
-          · -- One setIfInBounds
-            dsimp only []
-            have := Array_setIfInBounds_filter_mono (scanValueClearKey s).tokens
-              ((scanValueClearKey s).simpleKey.tokenIndex + 1)
-              ⟨(scanValueClearKey s).simpleKey.pos, .key, (scanValueClearKey s).simpleKey.pos⟩
-              (fun t : Positioned YamlToken => t.val != .placeholder) rfl
-            omega
-        · -- inFlow: one setIfInBounds
+      · split
+        · -- Two setIfInBounds
+          dsimp only []
+          have h1 := Array_setIfInBounds_filter_mono (scanValueClearKey s).tokens
+            (scanValueClearKey s).simpleKey.tokenIndex
+            ⟨(scanValueClearKey s).simpleKey.pos, .blockMappingStart, (scanValueClearKey s).simpleKey.pos⟩
+            (fun t : Positioned YamlToken => t.val != .placeholder) rfl
+          have h2 := Array_setIfInBounds_filter_mono
+            ((scanValueClearKey s).tokens.setIfInBounds (scanValueClearKey s).simpleKey.tokenIndex
+              ⟨(scanValueClearKey s).simpleKey.pos, .blockMappingStart, (scanValueClearKey s).simpleKey.pos⟩)
+            ((scanValueClearKey s).simpleKey.tokenIndex + 1)
+            ⟨(scanValueClearKey s).simpleKey.pos, .key, (scanValueClearKey s).simpleKey.pos⟩
+            (fun t : Positioned YamlToken => t.val != .placeholder) rfl
+          omega
+        · -- One setIfInBounds
           dsimp only []
           have := Array_setIfInBounds_filter_mono (scanValueClearKey s).tokens
             ((scanValueClearKey s).simpleKey.tokenIndex + 1)
             ⟨(scanValueClearKey s).simpleKey.pos, .key, (scanValueClearKey s).simpleKey.pos⟩
             (fun t : Positioned YamlToken => t.val != .placeholder) rfl
           omega
+      · -- inFlow: one setIfInBounds
+        dsimp only []
+        have := Array_setIfInBounds_filter_mono (scanValueClearKey s).tokens
+          ((scanValueClearKey s).simpleKey.tokenIndex + 1)
+          ⟨(scanValueClearKey s).simpleKey.pos, .key, (scanValueClearKey s).simpleKey.pos⟩
+          (fun t : Positioned YamlToken => t.val != .placeholder) rfl
+        omega
+    · split
+      · dsimp only []; omega
       · split
-        · dsimp only []; omega
-        · split
-          · -- pushMappingIndent
-            unfold pushMappingIndent
-            split
-            · -- emit .blockMappingStart
-              dsimp only []
-              have := filtered_grows_of_extended_prefix (scanValueClearKey s).tokens
-                ((scanValueClearKey s).emit .blockMappingStart).tokens
-                (fun t : Positioned YamlToken => t.val != .placeholder)
-                (by unfold ScannerState.emit; simp [Array.size_push])
-                (fun i hi => ScannerCorrectness.emit_preserves_tokens_at _ .blockMappingStart i hi)
-                (by simp only [emit_tokens_push, Array.getElem_push_eq]; decide)
-              omega
-            · omega
+        · -- pushMappingIndent
+          unfold pushMappingIndent
+          split
+          · -- emit .blockMappingStart
+            dsimp only []
+            have := filtered_grows_of_extended_prefix (scanValueClearKey s).tokens
+              ((scanValueClearKey s).emit .blockMappingStart).tokens
+              (fun t : Positioned YamlToken => t.val != .placeholder)
+              (by unfold ScannerState.emit; simp [Array.size_push])
+              (fun i hi => ScannerCorrectness.emit_preserves_tokens_at _ .blockMappingStart i hi)
+              (by simp only [emit_tokens_push, Array.getElem_push_eq]; decide)
+            omega
           · omega
+        · omega
 
 -- Block indicator dispatch: scanBlockEntry, scanKey, scanValue.
 lemma dispatchBlockIndicators_filtered_grows (s s' : ScannerState) (c : Char)

@@ -818,6 +818,8 @@ lemma scanValue_preserves_flowStack (s : ScannerState) (s' : ScannerState)
     (h : scanValue s = .ok s') : s'.flowStack = s.flowStack := by
   unfold scanValue at h
   simp only [bind, Except.bind] at h
+  -- Three guards since item 31: validate, indent-tab check, tab check
+  split at h <;> try contradiction
   split at h <;> try contradiction
   split at h <;> try contradiction
   simp only [Except.ok.injEq] at h; subst h

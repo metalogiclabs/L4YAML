@@ -532,12 +532,16 @@ lemma scanNextToken_flow_value (s : ScannerState)
   let s_prep := scanValuePrepare s_ad
   let s_tok := s_prep.emit .value
   let s_adv := s_tok.advance
+  -- Item 31's `scanValueIndentTabCheck` is the identity in flow context — §6.1
+  -- constrains `[63] s-indent`, and a flow collection has none.
+  have h_indentTab : scanValueIndentTabCheck s_ad = .ok () := by
+    unfold scanValueIndentTabCheck; rw [if_pos h_ad_inFlow]
   have h_scanValue_result : scanValue s_ad =
       (scanValueTabCheck (s_ad.col : Int) s_ad.currentIndent s_adv >>= fun () =>
         .ok { s_adv with simpleKeyAllowed := true, explicitKeyLine := none }) := by
     unfold scanValue
     dsimp only []  -- zeta-reduce let bindings in the unfolded body
-    rw [h_ckr, h_validate]
+    rw [h_ckr, h_validate, h_indentTab]
     dsimp only [Bind.bind, Except.bind]
   -- scanValueTabCheck is .ok () since !s_adv.inFlow = false
   -- s_adv.inFlow = s_prep.inFlow = s_ad.inFlow = true (through emit and advance)

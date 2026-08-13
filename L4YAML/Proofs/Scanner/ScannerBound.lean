@@ -246,8 +246,9 @@ lemma scanKey_BoundInv (s s' : ScannerState)
   simp only [bind, Except.bind] at hok
   -- The structure: pushMappingIndent conditionally, emit .key, advance, tab check, ok
   -- After simp, splits on the conditions
-  split at hok  -- !s.inFlow (pushMappingIndent)
-  · -- block: pushMappingIndent
+  split at hok  -- !s.inFlow (item 31's preceding-whitespace tab check)
+  · split at hok <;> try contradiction
+    -- block: pushMappingIndent
     let s_pi := pushMappingIndent s s.col
     let s_em := s_pi.emit .key
     let s_adv := s_em.advance
@@ -335,8 +336,10 @@ lemma scanValue_BoundInv (s s' : ScannerState)
   split at hok
   · contradiction  -- scanValueValidate = .error
   · split at hok
-    · contradiction  -- scanValueTabCheck = .error
-    · injection hok with hok; subst hok
+    · contradiction  -- scanValueIndentTabCheck = .error (item 31)
+    · split at hok
+      · contradiction  -- scanValueTabCheck = .error
+      injection hok with hok; subst hok
       -- Chain BoundInv: scanValueClearKey → scanValuePrepare → emit .value → advance
       have h_off : (scanValuePrepare (scanValueClearKey s)).offset = s.offset := by
         have h_ck : (scanValueClearKey s).offset = s.offset := by

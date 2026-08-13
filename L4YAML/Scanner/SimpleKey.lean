@@ -19,9 +19,9 @@ Split from `Scanner.lean` during Blueprint Initiative 1 Phase 2.
 
 - Block indicator scanners: `scanBlockEntry` (`-`, §8.2.1),
   `scanKey` (`?`, §8.2.2).
-- Value indicator (`:`, §8.2.2, §7.4) decomposed into four helpers
+- Value indicator (`:`, §8.2.2, §7.4) decomposed into five helpers
   + `scanValue`: `scanValueClearKey`, `scanValueValidate`,
-  `scanValuePrepare`, `scanValueTabCheck`.
+  `scanValueIndentTabCheck`, `scanValuePrepare`, `scanValueTabCheck`.
 - Implicit-key tracking: `saveSimpleKey`.
 - Candidate-lookahead predicates: `isBlockEntryCandidate`,
   `isKeyCandidate`, `isJsonNodeToken`, `isValueCandidate`.
@@ -85,12 +85,20 @@ def scanBlockEntry (s : ScannerState) : Except ScanError ScannerState := do
     **Pre**: Scanner at `?` followed by blank/EOF (or flow indicator in flow context).
     **Post**: Pushes mapping indent if needed, emits `key`, advances past `?`,
     sets `simpleKeyAllowed := true`, `explicitKeyLine := some s.line`.
-    **Error**: `tabInIndentation` if tab immediately follows `?` in block context (§6.1).
+    **Error**: `tabInIndentation` if a tab sits in the whitespace run *before*
+    the `?`, or immediately follows it, in block context (§6.1).
 
     **Refactored for verification**: Uses explicit variable names to make
     token tracking clearer for formal proofs. -/
 @[yaml_spec "8.2.2" 190 "c-l-block-map-explicit-key"]
 def scanKey (s : ScannerState) : Except ScanError ScannerState := do
+  -- §6.1: same check, same reason as `scanBlockEntry`.  In block context a `?`
+  -- stands directly after `[63] s-indent(n)` — as `[191]`'s own entry, or as
+  -- `[185] s-l+block-indented`'s `s-indent(m)` when compact — and `s-indent` is
+  -- spaces only, so ANY tab in the run in front of it was used as indentation.
+  if !s.inFlow then
+    if s.hasTabInPrecedingWhitespace then
+      throw (.tabInIndentation s.line s.col)
   let s_with_indent := if !s.inFlow then pushMappingIndent s s.col else s
   let s_with_token := s_with_indent.emit .key
   let s_after_advance := s_with_token.advance
@@ -114,10 +122,10 @@ Scan a value indicator `:`.
 - `[193] c-l-block-map-implicit-value(n)` = `":" ...`
 - `[6]   c-mapping-value` = `":"`
 
-**Refactored for verification**: Decomposed into four helper functions
-(`scanValueClearKey`, `scanValueValidate`, `scanValuePrepare`,
-`scanValueTabCheck`) so that each piece has a simple provable property
-and the composed proof chains them with `omega`.
+**Refactored for verification**: Decomposed into five helper functions
+(`scanValueClearKey`, `scanValueValidate`, `scanValueIndentTabCheck`,
+`scanValuePrepare`, `scanValueTabCheck`) so that each piece has a simple
+provable property and the composed proof chains them with `omega`.
 -/
 
 /-- Clear a spurious simple-key when an explicit `?` key is pending.
@@ -220,6 +228,40 @@ def scanValuePrepare (s : ScannerState) : ScannerState :=
   else
     if !s.inFlow then pushMappingIndent s s.col else s
 
+/-- **§6.1 for the `:` indicator: the run in front of the ENTRY, not in front
+    of the colon.**
+
+    A block-mapping entry is `s-indent(n) ns-l-block-map-entry(n)`
+    (`[187] l+block-mapping`), and `[63] s-indent` is spaces only — so the
+    whitespace run in front of the entry's first character must carry no tab.
+    Where that first character is depends on the entry:
+
+    * with an implicit key (`[186]`'s `ns-s-block-map-implicit-key`), the entry
+      starts at the KEY, and the run between the key and this `:` is
+      `[155] ns-s-implicit-yaml-key`'s own trailing `s-separate-in-line?`,
+      where `[66]`'s `s-white` admits a tab — `a\t: b` is legal, and it is the
+      key's own indentation that must be clean;
+    * with no key — `[186]`'s `e-node` alternative, or `[192]`'s explicit
+      value — the entry starts AT the `:`, and its own run is the indentation.
+
+    So the check follows the entry start, and that is what makes it exact: a
+    tab-indented line whose content turns out to be a FLOW node is legal
+    (`[196] s-l+flow-in-block` reaches it through `s-separate-lines`, whose
+    `[69] s-flow-line-prefix` is `s-indent(n) s-separate-in-line?`), and only
+    the constructs that demand a bare `s-indent` reject it.  `a:⏎␣␣→[1, 2]` and
+    `a:⏎␣␣→foo` stand; `a:⏎␣␣→: b`, `a:⏎␣␣→k: v` and `a:⏎␣␣→"k": v` do not. -/
+@[yaml_spec "6.1", yaml_spec "8.2.2" 187 "l+block-mapping"]
+def scanValueIndentTabCheck (s : ScannerState) : Except ScanError Unit :=
+  if s.inFlow then .ok ()
+  else if s.simpleKey.possible then
+    if ScannerState.hasTabInPrecedingWhitespaceLoop
+        s.input s.simpleKey.pos.offset s.simpleKey.pos.offset then
+      throw (.tabInIndentation s.simpleKey.pos.line s.simpleKey.pos.col)
+    else .ok ()
+  else if s.hasTabInPrecedingWhitespace then
+    throw (.tabInIndentation s.line s.col)
+  else .ok ()
+
 /-- Check for illegal tab after explicit `:` at or below indent level (§6.1).
     `origCol`/`origIndent` come from the *original* state (before emit/advance);
     the peek is on the *advanced* state. -/
@@ -235,6 +277,7 @@ def scanValueTabCheck (origCol : Int) (origIndent : Int) (s_adv : ScannerState) 
 def scanValue (s : ScannerState) : Except ScanError ScannerState := do
   let s_kc := scanValueClearKey s
   scanValueValidate s_kc
+  scanValueIndentTabCheck s_kc
   let s_prepared := scanValuePrepare s_kc
   let s_with_token := s_prepared.emit .value
   let s_after_advance := s_with_token.advance

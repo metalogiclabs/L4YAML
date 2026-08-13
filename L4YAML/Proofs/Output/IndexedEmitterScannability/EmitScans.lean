@@ -720,11 +720,15 @@ lemma scanNextToken_flow_valueIx (s : ScannerStateIx input)
       (((scanValuePrepareIx s_ad).emit YamlToken.value).advance) = .ok () := by
     unfold scanValueTabCheckIx
     simp only [h_adv_inflow, Bool.not_true, Bool.and_false, Bool.false_eq_true, ↓reduceIte]
+  -- Item 31's `scanValueIndentTabCheckIx` is the identity in flow context —
+  -- §6.1 constrains `[63] s-indent`, and a flow collection has none.
+  have h_indentTab : scanValueIndentTabCheckIx s_ad = .ok () := by
+    unfold scanValueIndentTabCheckIx; rw [if_pos h_ad_flow]
   have h_scanValue_ok : scanValueIx s_ad =
       .ok { (((scanValuePrepareIx s_ad).emit YamlToken.value).advance) with
             simpleKeyAllowed := true, explicitKeyLine := none } := by
     unfold scanValueIx
-    simp only [h_clearKey, h_validate, h_tabCheck, bind, Except.bind]
+    simp only [h_clearKey, h_validate, h_indentTab, h_tabCheck, bind, Except.bind]
   -- Step 7: block dispatch produces the result; compose the pipeline.
   have h_block : scanNextTokenIx_dispatchBlockIndicators s_ad ':' =
       .ok (some { (((scanValuePrepareIx s_ad).emit YamlToken.value).advance) with

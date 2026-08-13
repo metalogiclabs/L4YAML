@@ -1968,7 +1968,14 @@ lemma scanKeyIx_preserves_PlainScalarsValidIx {input : String}
     PlainScalarsValidIx s'.tokens := by
   unfold scanKeyIx at h_ok
   by_cases hi : (!s.inFlow) = true
-  · simp only [if_pos hi, advance_inFlow, emit_inFlow,
+  · -- Item 31's preceding-whitespace tab check, under the same `!inFlow` guard
+    rw [if_pos hi] at h_ok
+    by_cases ht : s.hasTabInPrecedingWhitespace = true
+    · rw [if_pos ht] at h_ok
+      simp [Bind.bind, Except.bind] at h_ok
+    rw [if_neg ht] at h_ok
+    simp only [] at h_ok
+    simp only [if_pos hi, advance_inFlow, emit_inFlow,
       pushMappingIndentIx_inFlow] at h_ok
     split at h_ok
     · simp [Bind.bind, Except.bind] at h_ok
@@ -1994,7 +2001,14 @@ lemma scanKeyIx_preserves_FlowContextPSVIx {input : String}
     FlowContextPSVIx s'.tokens := by
   unfold scanKeyIx at h_ok
   by_cases hi : (!s.inFlow) = true
-  · simp only [if_pos hi, advance_inFlow, emit_inFlow,
+  · -- Item 31's preceding-whitespace tab check, under the same `!inFlow` guard
+    rw [if_pos hi] at h_ok
+    by_cases ht : s.hasTabInPrecedingWhitespace = true
+    · rw [if_pos ht] at h_ok
+      simp [Bind.bind, Except.bind] at h_ok
+    rw [if_neg ht] at h_ok
+    simp only [] at h_ok
+    simp only [if_pos hi, advance_inFlow, emit_inFlow,
       pushMappingIndentIx_inFlow] at h_ok
     split at h_ok
     · simp [Bind.bind, Except.bind] at h_ok
@@ -2022,7 +2036,14 @@ lemma scanKeyIx_preserves_FlowNestingInvIx {input : String}
     FlowNestingInvIx s' := by
   unfold scanKeyIx at h_ok
   by_cases hi : (!s.inFlow) = true
-  · simp only [if_pos hi, advance_inFlow, emit_inFlow,
+  · -- Item 31's preceding-whitespace tab check, under the same `!inFlow` guard
+    rw [if_pos hi] at h_ok
+    by_cases ht : s.hasTabInPrecedingWhitespace = true
+    · rw [if_pos ht] at h_ok
+      simp [Bind.bind, Except.bind] at h_ok
+    rw [if_neg ht] at h_ok
+    simp only [] at h_ok
+    simp only [if_pos hi, advance_inFlow, emit_inFlow,
       pushMappingIndentIx_inFlow] at h_ok
     split at h_ok
     · simp [Bind.bind, Except.bind] at h_ok
@@ -2514,6 +2535,8 @@ lemma scanValueIx_preserves_PlainScalarsValidIx {input : String}
   split at h_ok
   · cases h_ok                       -- validate threw
   · split at h_ok
+    · cases h_ok                     -- indent-tab check threw (item 31)
+    split at h_ok
     · cases h_ok                     -- tab-check threw
     · simp only [Except.ok.injEq] at h_ok
       subst h_ok
@@ -2551,6 +2574,8 @@ lemma scanValueIx_preserves_FlowContextPSVIx {input : String}
   split at h_ok
   · cases h_ok
   · split at h_ok
+    · cases h_ok                     -- indent-tab check threw (item 31)
+    split at h_ok
     · cases h_ok
     · simp only [Except.ok.injEq] at h_ok
       subst h_ok
@@ -2574,6 +2599,8 @@ lemma scanValueIx_preserves_FlowNestingInvIx {input : String}
   split at h_ok
   · cases h_ok
   · split at h_ok
+    · cases h_ok                     -- indent-tab check threw (item 31)
+    split at h_ok
     · cases h_ok
     · simp only [Except.ok.injEq] at h_ok
       subst h_ok
@@ -4735,6 +4762,8 @@ lemma scanValueIx_clears_simpleKey {input : String}
     s'.simpleKey.possible = false := by
   unfold scanValueIx at h
   simp only [bind, Except.bind] at h
+  -- Three guards since item 31: validate, indent-tab check, tab check
+  split at h <;> try contradiction
   split at h <;> try contradiction
   split at h <;> try contradiction
   simp only [Except.ok.injEq] at h; subst h
@@ -4748,6 +4777,8 @@ lemma scanValueIx_preserves_simpleKeyStack {input : String}
     s'.simpleKeyStack = s.simpleKeyStack := by
   unfold scanValueIx at h
   simp only [bind, Except.bind] at h
+  -- Three guards since item 31: validate, indent-tab check, tab check
+  split at h <;> try contradiction
   split at h <;> try contradiction
   split at h <;> try contradiction
   simp only [Except.ok.injEq] at h; subst h
@@ -5034,7 +5065,14 @@ lemma scanKeyIx_preserves_prefix {input : String}
     s.tokens[i]'h_bound := by
   unfold scanKeyIx at h_ok
   by_cases hi : (!s.inFlow) = true
-  · simp only [if_pos hi, advance_inFlow, emit_inFlow,
+  · -- Item 31's preceding-whitespace tab check, under the same `!inFlow` guard
+    rw [if_pos hi] at h_ok
+    by_cases ht : s.hasTabInPrecedingWhitespace = true
+    · rw [if_pos ht] at h_ok
+      simp [Bind.bind, Except.bind] at h_ok
+    rw [if_neg ht] at h_ok
+    simp only [] at h_ok
+    simp only [if_pos hi, advance_inFlow, emit_inFlow,
       pushMappingIndentIx_inFlow] at h_ok
     split at h_ok
     · simp [Bind.bind, Except.bind] at h_ok
@@ -5277,6 +5315,8 @@ lemma scanValueIx_preserves_prefix {input : String}
   split at h_ok
   · cases h_ok
   · split at h_ok
+    · cases h_ok                     -- indent-tab check threw (item 31)
+    split at h_ok
     · cases h_ok
     · simp only [Except.ok.injEq] at h_ok
       subst h_ok

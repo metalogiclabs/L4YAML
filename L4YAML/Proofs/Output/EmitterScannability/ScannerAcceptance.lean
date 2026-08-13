@@ -1799,33 +1799,35 @@ lemma scanValue_preserves_position_specific (s s' : ScannerState)
   · contradiction
   · split at h_ok
     · contradiction
-    · injection h_ok with h_eq
-      subst h_eq
-      dsimp only []
-      have h_ck := ScannerCorrectness.scanValueClearKey_preserves_tokens s
-      have h_inv' : (scanValueClearKey s).simpleKey.possible = true →
-          m ≠ (scanValueClearKey s).simpleKey.tokenIndex ∧
-          m ≠ (scanValueClearKey s).simpleKey.tokenIndex + 1 := by
-        unfold scanValueClearKey
-        split
+    split at h_ok
+    · contradiction   -- scanValueTabCheck (item 31 added the one above)
+    injection h_ok with h_eq
+    subst h_eq
+    dsimp only []
+    have h_ck := ScannerCorrectness.scanValueClearKey_preserves_tokens s
+    have h_inv' : (scanValueClearKey s).simpleKey.possible = true →
+        m ≠ (scanValueClearKey s).simpleKey.tokenIndex ∧
+        m ≠ (scanValueClearKey s).simpleKey.tokenIndex + 1 := by
+      unfold scanValueClearKey
+      split
+      · split
+        · simp
         · split
           · simp
-          · split
-            · simp
-            · exact h_inv
-        · exact h_inv
-      have h_m' : m < (scanValueClearKey s).tokens.size := by rw [h_ck]; exact h_m
-      have h_prep := scanValuePrepare_preserves_position_specific (scanValueClearKey s)
-        m h_m' h_inv'
-      have h_prep_sz := ScannerCorrectness.scanValuePrepare_tokens_monotonic
-        (scanValueClearKey s)
-      have h_m_lt_prep : m < (scanValuePrepare (scanValueClearKey s)).tokens.size := by
-        rw [h_ck] at h_prep_sz; omega
-      have h_emit := ScannerCorrectness.emit_preserves_tokens_at
-        (scanValuePrepare (scanValueClearKey s)) YamlToken.value m h_m_lt_prep
-      have h_adv := ScannerCorrectness.advance_preserves_tokens
-        ((scanValuePrepare (scanValueClearKey s)).emit .value)
-      simp_all
+          · exact h_inv
+      · exact h_inv
+    have h_m' : m < (scanValueClearKey s).tokens.size := by rw [h_ck]; exact h_m
+    have h_prep := scanValuePrepare_preserves_position_specific (scanValueClearKey s)
+      m h_m' h_inv'
+    have h_prep_sz := ScannerCorrectness.scanValuePrepare_tokens_monotonic
+      (scanValueClearKey s)
+    have h_m_lt_prep : m < (scanValuePrepare (scanValueClearKey s)).tokens.size := by
+      rw [h_ck] at h_prep_sz; omega
+    have h_emit := ScannerCorrectness.emit_preserves_tokens_at
+      (scanValuePrepare (scanValueClearKey s)) YamlToken.value m h_m_lt_prep
+    have h_adv := ScannerCorrectness.advance_preserves_tokens
+      ((scanValuePrepare (scanValueClearKey s)).emit .value)
+    simp_all
 
 /-- Pointwise (≠m) version of `dispatchBlockIndicators_preserves_prefix`. The
     block-indicators dispatcher is the only one of the four that can call
@@ -2466,37 +2468,39 @@ lemma scanValue_preserves_position_specific_flow (s s' : ScannerState)
   · contradiction
   · split at h_ok
     · contradiction
-    · injection h_ok with h_eq
-      subst h_eq
-      dsimp only []
-      have h_ck := ScannerCorrectness.scanValueClearKey_preserves_tokens s
-      have h_ck_fl := scanValueClearKey_preserves_flowLevel s
-      have h_kc_in_flow : (scanValueClearKey s).inFlow = true := by
-        unfold ScannerState.inFlow at h_in_flow ⊢
-        rw [h_ck_fl]
-        exact h_in_flow
-      have h_inv' : (scanValueClearKey s).simpleKey.possible = true →
-          m ≠ (scanValueClearKey s).simpleKey.tokenIndex + 1 := by
-        unfold scanValueClearKey
-        split
+    split at h_ok
+    · contradiction   -- scanValueTabCheck (item 31 added the one above)
+    injection h_ok with h_eq
+    subst h_eq
+    dsimp only []
+    have h_ck := ScannerCorrectness.scanValueClearKey_preserves_tokens s
+    have h_ck_fl := scanValueClearKey_preserves_flowLevel s
+    have h_kc_in_flow : (scanValueClearKey s).inFlow = true := by
+      unfold ScannerState.inFlow at h_in_flow ⊢
+      rw [h_ck_fl]
+      exact h_in_flow
+    have h_inv' : (scanValueClearKey s).simpleKey.possible = true →
+        m ≠ (scanValueClearKey s).simpleKey.tokenIndex + 1 := by
+      unfold scanValueClearKey
+      split
+      · split
+        · simp
         · split
           · simp
-          · split
-            · simp
-            · exact h_inv
-        · exact h_inv
-      have h_m' : m < (scanValueClearKey s).tokens.size := by rw [h_ck]; exact h_m
-      have h_prep := scanValuePrepare_preserves_position_specific_flow
-        (scanValueClearKey s) h_kc_in_flow m h_m' h_inv'
-      have h_prep_sz := ScannerCorrectness.scanValuePrepare_tokens_monotonic
-        (scanValueClearKey s)
-      have h_m_lt_prep : m < (scanValuePrepare (scanValueClearKey s)).tokens.size := by
-        rw [h_ck] at h_prep_sz; omega
-      have h_emit := ScannerCorrectness.emit_preserves_tokens_at
-        (scanValuePrepare (scanValueClearKey s)) YamlToken.value m h_m_lt_prep
-      have h_adv := ScannerCorrectness.advance_preserves_tokens
-        ((scanValuePrepare (scanValueClearKey s)).emit .value)
-      simp_all
+          · exact h_inv
+      · exact h_inv
+    have h_m' : m < (scanValueClearKey s).tokens.size := by rw [h_ck]; exact h_m
+    have h_prep := scanValuePrepare_preserves_position_specific_flow
+      (scanValueClearKey s) h_kc_in_flow m h_m' h_inv'
+    have h_prep_sz := ScannerCorrectness.scanValuePrepare_tokens_monotonic
+      (scanValueClearKey s)
+    have h_m_lt_prep : m < (scanValuePrepare (scanValueClearKey s)).tokens.size := by
+      rw [h_ck] at h_prep_sz; omega
+    have h_emit := ScannerCorrectness.emit_preserves_tokens_at
+      (scanValuePrepare (scanValueClearKey s)) YamlToken.value m h_m_lt_prep
+    have h_adv := ScannerCorrectness.advance_preserves_tokens
+      ((scanValuePrepare (scanValueClearKey s)).emit .value)
+    simp_all
 
 /-- Pointwise (≠ idx+1) version of `dispatchBlockIndicators_preserves_position_specific`,
     restricted to FLOW context. -/
