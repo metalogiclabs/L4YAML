@@ -110,18 +110,34 @@ mutual
         SBlockNode n c s s'
 
   /-- [185] s-l+block-indented(n,c): content inside a block entry.
-      Can be compact notation, a regular block node, or empty. -/
+      Can be compact notation, a regular block node, or empty.
+
+      **The compact index is `n+1+m`, not `n+m`** (item 33).  The production
+      is reached from `[184] c-l-block-seq-entry(n)` — `'-' s-l+block-indented`
+      — at the position immediately AFTER the indicator, so the entry's own
+      `s-indent(n)` has already been spent and the `-` occupies one more
+      column; `s-indent(m)` then walks `m` further.  A compact entry therefore
+      sits at column `n+1+m`, which is the width `[186] ns-l-compact-sequence`
+      and `[195] ns-l-compact-mapping` require of their SIBLINGS: in `- - a`
+      the inner `-` is at column 2 = 0+1+1, and `- - a⏎  - b`'s second entry
+      is indented to that same column.  Written `n+m` these two constructors
+      named a collection one column to the left of the one the input has.
+
+      Both survived unnoticed because they are the only alternatives of `[185]`
+      with NO producer and NO consumer anywhere in the tree — nothing ever
+      instantiated the index, so nothing could disagree with it.  Building
+      their first consumer is what evaluated them. -/
   @[yaml_spec "8.2.1" 185 "s-l+block-indented(n,c)"]
   inductive SBlockIndented : Nat → YamlContext → SurfPos → SurfPos → Prop where
-    /-- Compact sequence: indent(m) + compact-sequence(n+m). -/
+    /-- Compact sequence: indent(m) + compact-sequence(n+1+m). -/
     | compactSeq (n : Nat) (c : YamlContext) (m : Nat) (s s₁ s' : SurfPos) :
         SIndent m s s₁ →
-        SCompactSeq (n + m) s₁ s' →
+        SCompactSeq (n + 1 + m) s₁ s' →
         SBlockIndented n c s s'
-    /-- Compact mapping: indent(m) + compact-mapping(n+m). -/
+    /-- Compact mapping: indent(m) + compact-mapping(n+1+m). -/
     | compactMap (n : Nat) (c : YamlContext) (m : Nat) (s s₁ s' : SurfPos) :
         SIndent m s s₁ →
-        SCompactMap (n + m) s₁ s' →
+        SCompactMap (n + 1 + m) s₁ s' →
         SBlockIndented n c s s'
     /-- Regular block node. -/
     | node (n : Nat) (c : YamlContext) (s s' : SurfPos) :

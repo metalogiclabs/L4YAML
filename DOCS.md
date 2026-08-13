@@ -5484,7 +5484,7 @@ lives in [README.md](README.md) and is not duplicated here.)
 
 | Item | Status | Section |
 |---|---|---|
-| Grammar completeness (`parse_iff_grammar`, capstone 7.7) | **Open — forward direction DONE** (2026-08-10): Fix B done, Fix A's accumulation sorry-free and the `L4YAML.Capstones` gate green. What is left is β.5 — retire `pendingFlow` and delete `scannerDrop` (8 escape sites, 4 drop sites as of item 32) — then **tighten `implicitContinue`**, the third over-approximation (found 2026-08-13 by item 30; 17 construction sites, not yet priced), and only then the converse and the biconditional. Per-item record and ordered remainder: [Row 12 — β.5 closure log](#row-12--β5-closure-log); the third constructor: [The over-approximation problem](#the-over-approximation-problem) | [Grammar completeness plan](#grammar-completeness-plan) |
+| Grammar completeness (`parse_iff_grammar`, capstone 7.7) | **Open — forward direction DONE** (2026-08-10): Fix B done, Fix A's accumulation sorry-free and the `L4YAML.Capstones` gate green. What is left is β.5 — retire `pendingFlow` and delete `scannerDrop` (8 escape sites, 4 drop sites as of item 33) — then **tighten `implicitContinue`**, the third over-approximation (found 2026-08-13 by item 30; 17 construction sites, not yet priced), and only then the converse and the biconditional. Per-item record and ordered remainder: [Row 12 — β.5 closure log](#row-12--β5-closure-log); the third constructor: [The over-approximation problem](#the-over-approximation-problem) | [Grammar completeness plan](#grammar-completeness-plan) |
 | Merge semantics (`DuplicateKeyPolicy.merge`) | **Open** (design ready; re-base on `LawfulBEq`) | [Merge semantics plan](#merge-semantics-plan) |
 | Security limits: open questions + future work | **Open** (design questions; 3 unimplemented features) | [Security hardening backlog](#security-hardening-backlog) |
 | Limit-enforcement verification, and the rest | **Open** (varied) | [Other open items](#other-open-items) |
@@ -5501,26 +5501,29 @@ invisible to every axis we score. What is left is proof completeness.
 
 | # | Action | Blocks | Where |
 |---|---|---|---|
-| 12 | **β.5 — retire `pendingFlow`, delete `scannerDrop`.** Items 11–32 have closed it one arm at a time; `block_dispatch_deferred` stands at 8 call sites and `scannerDrop` at 4. Items 31–32 are the campaign's only RUNTIME edits and they are one story: the TAB branch was priced "expected vacuous" and was not — only the `-` indicator carried the scanner's tab-in-indentation check, so `?`/`:` accepted four shapes no `[187]` derivation reaches (31) — and refuting it then needed the check restated in `[63] s-indent(n)`'s own coordinate, `tabInLineIndent`, verdict-preserving on the whole suite and on a 3,267-case differential (32). Two families are left: the inline residue (5) and `FlowOpenStack`'s resume type (3, plus all four `scannerDrop` sites). The per-item record and the ordered list are in [Row 12 — β.5 closure log](#row-12--β5-closure-log). | Step 5, the converse | ditto |
+| 12 | **β.5 — retire `pendingFlow`, delete `scannerDrop`.** Items 11–33 have closed it one arm at a time; `block_dispatch_deferred` stands at 8 call sites and `scannerDrop` at 4. Items 31–32 are the campaign's only RUNTIME edits and they are one story: the TAB branch was priced "expected vacuous" and was not — only the `-` indicator carried the scanner's tab-in-indentation check, so `?`/`:` accepted four shapes no `[187]` derivation reaches (31) — and refuting it then needed the check restated in `[63] s-indent(n)`'s own coordinate, `tabInLineIndent` (32). Item 33 then took the COMPACT collection, which the residue had been missing not for want of evidence but for want of a production: `[185] s-l+block-indented`'s other two alternatives ask for no `s-l-comments` at all, and they had carried an off-by-one index for as long as nothing instantiated them. Two families are left: the inline residue (5 sites, one of them narrowed to a single tab shape) and `FlowOpenStack`'s resume type (3, plus all four `scannerDrop` sites). The per-item record and the ordered list are in [Row 12 — β.5 closure log](#row-12--β5-closure-log). | Step 5, the converse | ditto |
 | 19 | **Tighten `implicitContinue`** — the THIRD over-approximation of `[211]`, found 2026-08-13 by item 30 and not yet priced. It requires no `l-document-suffix+` and takes `SLAnyDocument`, so it admits a BARE document after another with no `...`: `- "a"⏎  - b` satisfies `InYamlLanguage` while `parseYaml` rejects it (`invalidBareDocument`, §9.2). It falsifies the converse exactly as `scannerDrop` does. 17 construction sites — one in `DocumentProduction` (`stream_implicit_continue`), already legal because it passes an EXPLICIT document, and 16 in `StreamAccum`, every one passing `SLAnyDocument.bare`. Nothing DEFERS to it, so it is not an escape site and not row 12's business; it comes after row 12 only because row 12's remaining items still edit those 16 sites. | Step 5, the converse | [The over-approximation problem](#the-over-approximation-problem) |
 | 13 | **Step 5 — the converse** `grammar_completeness` — blocked on rows 12 AND 19, since the converse is false while either over-approximation stands — then **Step 6** the `parse_iff_grammar` biconditional | capstone 7.7 | [Grammar completeness plan](#grammar-completeness-plan) |
 
 Items 1–11 and 18 are closed and their rows deleted; the closure records live
 in the sections below, the blow-by-blow history in git.
 
-The full `lake build` has been GREEN since item 9t (986 targets as of item 32,
+The full `lake build` has been GREEN since item 9t (988 targets as of item 33,
 warning-free), `L4YAML.Capstones` included — what the rest of row 12 buys is
 STRENGTH: the `scannerDrop` constructor is the one remaining hole in what the
-capstones assert. `Tests.Guards` builds at 219 jobs, `Tests.Reflections` at
-432 (R644–R658); matrix event 402/402 · JSON 282/282 on BOTH instrument sets
-as of item 30. Items 15, 16, 17 and 19–30 touched no runtime file, so for
+capstones assert. `Tests.Guards` builds at 220 jobs, `Tests.Reflections` at
+433 (R644–R659); matrix event 402/402 · JSON 282/282 on BOTH instrument sets
+as of item 30. Items 15, 16, 17, 19–30 and 33 touched no runtime file, so for
 those the matrix is unchanged by construction (items 20 and 22's only non-proof
 edits are `Prop`-valued grammar constructors and one added constructor
 parameter; items 21, 23–30 edit no grammar at all, their structural edits being
 a parameter on `PendingNode.pendingProps` (24), two `Prop`-valued pack
 definitions (25), one new proof module each (26, 27), one added conjunct on
 `ImplicitKeyPack` (28) and one on `PropsKeyPack` (29), and one new grammar-wrap
-lemma (30), all in the proof layer). Items 31 and 32 DO edit the scanner and
+lemma (30), all in the proof layer; item 33's are two corrected `Nat` arguments
+on `Prop`-valued grammar constructors that had no producer and no consumer, a
+re-shaped closure field on two `PendingNode` constructors, and two new
+production lemmas). Items 31 and 32 DO edit the scanner and
 are measured rather than assumed: item 31 moves 13 pinned shapes from accepted
 to refused (a shipped over-acceptance) with the yaml-test-suite per-test
 details byte-identical, and item 32 moves nothing at all — byte-identical
@@ -6189,23 +6192,120 @@ Cost: two runtime definitions per pipeline, ZERO proof files repaired (the new
 branch is inside a stage whose `Except` interface did not change), zero grammar
 edits, one new satellite `Proofs/Coupling/TabIndentBridge.lean`.
 
+### Item 33 (2026-08-13)
+
+took the compact collection, the shape the remainder named — and the production
+it needs had been sitting in the grammar since the beginning, wrong, because
+nothing had ever instantiated it. `block_dispatch_deferred` holds at **8** and
+`scannerDrop` at 4; what moves is one site's DOMAIN, from every inline residue
+at a `-`-parked pending to a single tab shape.
+
+**The escape was described from inside the alternatives it already consumed.**
+Row 12 has called this family irreducible since item 19, on grounds that are
+perfectly true: the step crosses no break, `[79] s-l-comments` needs a break or
+a line start, so nothing can CLOSE the park. `[185] s-l+block-indented(n,c)` has
+four alternatives, and the accumulation had consumers for `s-l+block-node` and
+`e-node s-l-comments` — which are exactly the two that demand comments. The
+other two demand none:
+
+    s-indent(m) ns-l-compact-sequence(n+1+m)
+    s-indent(m) ns-l-compact-mapping(n+1+m)
+
+because a compact collection has no line of its own; it shares the entry
+indicator's. So on the residue every consumed alternative was unavailable and
+every available one unconsumed, and the gap read as "no evidence" when it was
+"wrong alternative". **Reflection 659** is that, plus what it cost to find.
+
+**An alternative nothing produces is an alternative nothing has checked.** Both
+constructors said `SCompactSeq (n + m)`, one column left of the truth, and had
+said so for as long as they had zero producers, zero consumers and zero pins —
+a compiling constructor has had its TYPES checked and its arithmetic checked by
+nothing. `[184] c-l-block-seq-entry(n)` reaches `s-l+block-indented` at the
+position AFTER the indicator, so the entry's own `s-indent(n)` is spent and the
+`-` has taken one more column; `s-indent(m)` walks `m` further and the compact
+opener stands at `n+1+m`. The correction cost ZERO repairs, which is the same
+fact from the other side.
+
+**And the first consumer is not the test — the sibling is.** At `n+m` a
+one-entry compact collection derives exactly as it does at `n+1+m`, because the
+opener's position is supplied by the opener. The index only ever constrains
+`[186]`'s TAIL, so `- - a⏎  - b` is the pin that shows it and `- - a` is not.
+
+**What made it unexpressible was an interface.** `pendingBlock`/
+`pendingBlockContent` carried their entry-level closure as an ACCUMULATOR —
+`∃ sp_first, SBlockSeqEntries n sp_first sp_mid ∧ (∀ sp_end, … → stream)`,
+"here is what has been accumulated and how to spend an extension of it" — and
+that shape obliges the producer to name a BEGINNING. A compact collection has
+none: its first entry is not preceded by its own `s-indent`, so it is not an
+element of `SBlockSeqEntries` at all. Restated as a CONTINUATION —
+`∀ sp_end, SCompactSeqTail n sp_mid sp_end → stream`, "give me the rest and I
+close" — it names no beginning, admits the empty rest, and is spent by the
+indented openers through one new lemma (`SBlockSeqEntries_of_compactTail`: one
+entry plus `[186]`'s tail IS `[183]`'s collection, the two productions differing
+only in whether the opener carries its own indentation). Five producers keep
+their bodies; each snoc becomes a `SCompactSeqTail.cons` on the way in, and the
+`∃` disappears. The slot itself widened from `SBlockNode n .blockIn` to
+`SBlockIndented n .blockIn`, which it always was in the grammar — every producer
+already wrapped with `SBlockIndented.node` before snocing, so the widening cost
+those wraps and bought the two hidden alternatives.
+
+**Composed:** `- - a`, `  - - a`, `-   - a`, `- -`, `---⏎- - a`, `- - - a`,
+`- - - - a`, the `[186]` tails `- - a⏎  - b⏎  - c` at three widths, the dedent
+`- - a⏎- b`, the compact mappings `- : a`, `- ? a`, `- :`, `- ?`, `- ? "k"`,
+`  - : a`, mixed forms `- - : a`, `- : - a`, `- ? - a`, and the compact entry's
+own values at the inner index (`- - &x a`, `- - "a"`, `- - [1]`, `- : [1]`,
+`- - |`) — `ScannerCompactCollectionCompose.lean`, 40 pins. The new pending is
+an ORDINARY `pendingBlock`/`pendingMapValue` at `n+1+m`, so nothing downstream
+knows it is inside a compact collection and items 22–30's arms fire again one
+level in.
+
+**What is left at that site is one shape:** a tab in front of a COMPACT `:`
+(`- \t: a`). `[63]`'s line walk stops on the entry indicator, so `tabInLineIndent`
+— item 32's coordinate — answers `false` here by design; `[66]`'s scan is what
+remains, and `scanBlockEntry`/`scanKey` consult it unconditionally in block
+context while `scanValue` consults it only when the simple-key machine recorded
+NO key. `tab_forces_colon` therefore concludes a CHARACTER rather than `False`:
+after a located tab the indicator can only be a `:`. The scanner does refuse the
+shape (`tabInIndentation`, pinned in §4 of the guard file); refuting it in the
+proof wants `sc.simpleKeyAllowed = true` carried on `pendingBlock` — a fact all
+three indicator scans set on the line they return, and which no break-free step
+clears — plus the `skipToContent`/`unwindIndents` descent for it. That is one
+field and about five short lemmas, and it is the cheapest thing left in row 12.
+
+**Validation.** Full `lake build` green (988 targets, ZERO warnings);
+`run-all-tests.sh` 4453/4453 across 15 suites (adversarial 2441/2441, production
+coverage 770/770, mutation 45/45, property round-trip 124/124); `Tests.Guards`
++ `Tests.Reflections` green; `check-reflection-index.sh`,
+`check-import-closure.sh`, `check-theorem-keyword.sh` OK; `L4YAML.Capstones`
+axiom gate green. ZERO runtime files are touched, so the matrix, the event score
+and both item-14 sweeps are unchanged by construction.
+
 ### REMAINING, in order
 
 Ordered by what is cheapest AND has a consumer today, not by what is listed
 first anywhere else. `FlowOpenStack` is deliberately NOT first: it is the most
-expensive piece and none of its three parts lands anything on its own, so with
-the TAB branch closed the residue moves ahead of it.
+expensive piece and none of its three parts lands anything on its own.
 
-1. **The inline residue** (5 escape sites) — a mid-line park crossing no
-break, where `SSLComments` cannot exist. It owns the COMPACT collection
-(`- - a`, `  - - a`), which item 30 established is this family's and not the
-nested one's, and what that shape wants is
-`SBlockIndented.compactSeq`/`compactMap` — the only alternatives of `[185]`
-with no consumer yet. **And then the deletion itself**: the `close_with_ssl`
-arm that calls `scannerDrop` dies with `pendingFlow`, and the constructor
-leaves `Surface/Document.lean`.
+1. **`simpleKeyAllowed` on `pendingBlock`** (narrows 1 escape site to nothing) —
+the single shape item 33 left: a tab in front of a compact `:`. All three
+indicator scans set `simpleKeyAllowed := true` on the line they return, and a
+break-free step never clears it, so the fresh save `scanNextToken_preprocess`
+makes lands AT the `:` and `scanValueIndentTabCheck`'s key branch reads the very
+run the located disjunct names. One optional-free field, a
+`dispatchBlockIndicators` lemma, and the `skipToContent`/`unwindIndents` descent
+that item 27 already wrote for the indent stack.
 
-2. **`FlowOpenStack`'s resume type** — three parts, priced by item 25, and the
+2. **The rest of the inline residue** (4 escape sites) — the same mid-line park
+at pendings whose slot is not an `[185]`: `noPending`; the generic
+close-and-reopen (`pendingMapValue`, `pendingProps`, `pendingFlow`, the two
+document pendings); `pendingBlockContent`, whose `- a: 1` is a COMPACT MAPPING
+whose key is the content already parked — item 25's `ImplicitKeyPack` on a
+second pending, and the largest single inhabitant left in row 12; and the
+content dispatch's own no-break arm. **And then the deletion itself**: the
+`close_with_ssl` arm that calls `scannerDrop` dies with `pendingFlow`, and the
+constructor leaves `Surface/Document.lean`.
+
+3. **`FlowOpenStack`'s resume type** — three parts, priced by item 25, and the
 reason this row still has a `scannerDrop`: the resume's `SFlowContent 0
 .flowOut` and the frame's `SeqFrame 0 (inFlowCtx .flowOut)` are the same
 index, ≈86 literal pins across 31 substantive declarations. (i) couple the
@@ -9292,7 +9392,10 @@ side condition is whether the discarded arm has an answer at all).
 > schedules the nested collection through `SBlockIndented`'s
 > `compactSeq`/`compactMap` — item 30 showed that is the COMPACT (`- - a`)
 > shape, which belongs to the inline residue, and that the nested collection is
-> `[199]`'s block collection at `[183]`'s auto-detected `m`.
+> `[199]`'s block collection at `[183]`'s auto-detected `m`.  Item 33 then
+> built the compact one, and found both `[185]` alternatives indexed `n+m`
+> where the input puts them at `n+1+m` — an arithmetic nothing had checked,
+> because nothing had ever instantiated it.
 >
 > **Status (2026-08-12, item 25):** `StreamAccum.lean` is **sorry-free**, the
 > chain is threaded, and the `L4YAML.Capstones` gate is **GREEN** — the full

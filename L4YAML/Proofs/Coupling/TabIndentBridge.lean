@@ -442,14 +442,23 @@ lemma preprocess_input {sc s_prep : ScannerState} {c : Char}
 /-! ## §5 The bridge -/
 
 /-- The scanner's two backward scans, from a run of `s-white`s that ends at
-    its offset and contains a tab. -/
+    its offset and contains a tab.
+
+    **The two are not equally available** (item 33).  `[66]`'s scan reads the
+    run and nothing else, so it answers from the run alone; `[63]`'s reads the
+    whole LINE in front of the offset, so it answers only when the run IS the
+    line — `sc.col = ws.length`.  A COMPACT collection's run is not: the
+    indicator that parked the pending is on the line in front of it.  The
+    second conjunct is therefore stated as an implication rather than split
+    into a second lemma, so that both callers share the one offset
+    decomposition. -/
 lemma tab_scans_of_run {sc : ScannerState} {sp_land sp_ind : SurfPos} {ws : List Char}
     (hcorr : ScannerSurfCorr sc sp_ind)
     (hsuf : sp_land.chars <:+ sc.input.toList)
     (hrun : sp_land.chars = ws ++ sp_ind.chars)
-    (hwh : ∀ c ∈ ws, c = ' ' ∨ c = '\t') (htab : '\t' ∈ ws)
-    (hcol : sc.col = ws.length) :
-    sc.hasTabInPrecedingWhitespace = true ∧ sc.tabInLineIndent = true := by
+    (hwh : ∀ c ∈ ws, c = ' ' ∨ c = '\t') (htab : '\t' ∈ ws) :
+    sc.hasTabInPrecedingWhitespace = true ∧
+      (sc.col = ws.length → sc.tabInLineIndent = true) := by
   obtain ⟨pre, hsplit, hoff⟩ := hcorr.input_prefix
   obtain ⟨q, hq⟩ := hsuf
   have heq : pre ++ sp_ind.chars = (q ++ ws) ++ sp_ind.chars := by
@@ -465,7 +474,8 @@ lemma tab_scans_of_run {sc : ScannerState} {sp_land sp_ind : SurfPos} {ws : List
   · unfold ScannerState.hasTabInPrecedingWhitespace
     have h := hasTabLoop_of_run sc.input sc.offset q ws sp_ind.chars hfull hwh htab hlen
     rwa [hoff'] at h
-  · unfold ScannerState.tabInLineIndent
+  · intro hcol
+    unfold ScannerState.tabInLineIndent
     have h := tabInLineIndentLoop_of_run sc.input ws.length q ws sp_ind.chars false rfl hfull hwh
       (Or.inr htab)
     rw [hoff'] at h
@@ -495,6 +505,29 @@ lemma tabIndent_scans_of_located
     have h2 : sp_ind.col = sc.col := hcorr.col_eq
     subst hwseq
     omega
-  exact tab_scans_of_run hcorr hsuf hrun hwh hmem hcol
+  obtain ⟨h1, h2⟩ := tab_scans_of_run hcorr hsuf hrun hwh hmem
+  exact ⟨h1, h2 hcol⟩
+
+/-- **The refutation one production down** (item 33): a tab inside the run in
+    front of a COMPACT indicator.
+
+    `[185] s-l+block-indented`'s `s-indent(m)` is spaces only for the same
+    reason `[63]` is anywhere else, but the run is no longer the whole line —
+    the `-` (or `?`, or `:`) that opened the entry sits in front of it — so
+    `[63]`'s own backward walk stops on that indicator and answers `false`.
+    What survives is `[66]`'s scan, which reads the run and nothing else, and
+    that is enough for the two indicators that consult it unconditionally.  So
+    this lemma is `tabIndent_scans_of_located` with the column-0 landing
+    dropped AND the second conjunct with it — a strictly weaker package,
+    which is exactly what the residue can pay for. -/
+lemma tabRun_scan_of_located
+    {sc : ScannerState} {sp_run sp_ind : SurfPos}
+    (hcorr : ScannerSurfCorr sc sp_ind)
+    (hsuf : sp_run.chars <:+ sc.input.toList)
+    (htab : ∃ sa sb, GStar SSWhite sp_run sa ∧ SSWhite sa sb ∧
+              sa.chars.head? = some '\t' ∧ GStar SSWhite sb sp_ind) :
+    sc.hasTabInPrecedingWhitespace = true := by
+  obtain ⟨ws, hrun, hwh, hmem⟩ := located_tab_run htab
+  exact (tab_scans_of_run hcorr hsuf hrun hwh hmem).1
 
 end L4YAML.Proofs.TabIndentBridge

@@ -651,6 +651,47 @@ lemma SBlockSeqEntries_snoc {n : Nat} {s s_mid s₁ s₂ s' : SurfPos}
       h_indent' h_dash' h_gnot' h_body
       (SBlockSeqEntries_snoc h_tail h_indent h_dash h_gnot h_indented)
 
+/-- **One entry plus `[186]`'s tail is `[183]`'s collection** (item 33).
+
+    `ns-l-compact-sequence(n)` is `c-l-block-seq-entry(n)` followed by
+    `( s-indent(n) c-l-block-seq-entry(n) )*`, and `l+block-sequence(n)` is
+    `( s-indent(n) c-l-block-seq-entry(n) )+` — so the tail of the first is
+    literally the whole of the second, and the two productions differ ONLY in
+    whether the opening entry carries its own indentation.  That is why the
+    accumulation can hand every block-dispatch pending the same continuation
+    shape (`∀ sp_end, SCompactSeqTail n sp_mid sp_end → …`): a COMPACT opener
+    spends the tail as `SCompactSeq.mk`'s last argument, and an INDENTED one
+    spends it here, re-attaching its own `s-indent(n) '-'` in front.
+
+    Term-mode `match` for `SBlockSeqEntries_snoc`'s reason: the surface types
+    are one 11-way mutual inductive, so `induction` is unavailable and the
+    recursion is structural on the tail proof itself. -/
+lemma SBlockSeqEntries_of_compactTail {n : Nat} {s s₁ s₂ s₃ s' : SurfPos}
+    (h_indent : SIndent n s s₁)
+    (h_dash : GLit '-' s₁ s₂)
+    (h_gnot : GNot SNsChar s₂)
+    (h_body : SBlockIndented n .blockIn s₂ s₃)
+    (h_tail : SCompactSeqTail n s₃ s') :
+    SBlockSeqEntries n s s' :=
+  match h_tail with
+  | .nil _ _ => .single n s s₁ s₂ s₂ s₃ h_indent h_dash h_gnot h_body
+  | .cons _ _ _ _ _ _ h_i h_d h_g h_b h_t =>
+    .cons n s s₁ s₂ s₃ s' h_indent h_dash h_gnot h_body
+      (SBlockSeqEntries_of_compactTail h_i h_d h_g h_b h_t)
+
+/-- The mapping twin: one `[188]` entry plus `[195] ns-l-compact-mapping`'s
+    tail is `[187] l+block-mapping`'s collection, for the same reason. -/
+lemma SBlockMapEntries_of_compactTail {n : Nat} {s s₁ s₂ s' : SurfPos}
+    (h_indent : SIndent n s s₁)
+    (h_entry : SBlockMapEntry n s₁ s₂)
+    (h_tail : SCompactMapTail n s₂ s') :
+    SBlockMapEntries n s s' :=
+  match h_tail with
+  | .nil _ _ => .single n s s₁ s₂ h_indent h_entry
+  | .cons _ _ _ _ _ h_i h_e h_t =>
+    .cons n s s₁ s₂ s' h_indent h_entry
+      (SBlockMapEntries_of_compactTail h_i h_e h_t)
+
 /-! ## §4b Flow entry snoc (`SFlowSeqEntries` / `SFlowMapEntries`)
 
     Flow analogues of `SBlockSeqEntries_snoc` (Fix A, Piece 2). Unlike block
