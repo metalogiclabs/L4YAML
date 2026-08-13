@@ -5484,7 +5484,7 @@ lives in [README.md](README.md) and is not duplicated here.)
 
 | Item | Status | Section |
 |---|---|---|
-| Grammar completeness (`parse_iff_grammar`, capstone 7.7) | **Open — forward direction DONE** (2026-08-10): Fix B done, Fix A's accumulation sorry-free and the `L4YAML.Capstones` gate green. What is left is β.5 — retire `pendingFlow` and delete `scannerDrop` (12 escape sites, 4 drop sites as of item 30), then the converse and the biconditional. Per-item record and ordered remainder: [Row 12 — β.5 closure log](#row-12--β5-closure-log) | [Grammar completeness plan](#grammar-completeness-plan) |
+| Grammar completeness (`parse_iff_grammar`, capstone 7.7) | **Open — forward direction DONE** (2026-08-10): Fix B done, Fix A's accumulation sorry-free and the `L4YAML.Capstones` gate green. What is left is β.5 — retire `pendingFlow` and delete `scannerDrop` (12 escape sites, 4 drop sites as of item 30) — then **tighten `implicitContinue`**, the third over-approximation (found 2026-08-13 by item 30; 17 construction sites, not yet priced), and only then the converse and the biconditional. Per-item record and ordered remainder: [Row 12 — β.5 closure log](#row-12--β5-closure-log); the third constructor: [The over-approximation problem](#the-over-approximation-problem) | [Grammar completeness plan](#grammar-completeness-plan) |
 | Merge semantics (`DuplicateKeyPolicy.merge`) | **Open** (design ready; re-base on `LawfulBEq`) | [Merge semantics plan](#merge-semantics-plan) |
 | Security limits: open questions + future work | **Open** (design questions; 3 unimplemented features) | [Security hardening backlog](#security-hardening-backlog) |
 | Limit-enforcement verification, and the rest | **Open** (varied) | [Other open items](#other-open-items) |
@@ -5502,7 +5502,8 @@ invisible to every axis we score. What is left is proof completeness.
 | # | Action | Blocks | Where |
 |---|---|---|---|
 | 12 | **β.5 — retire `pendingFlow`, delete `scannerDrop`.** Items 11–30 have closed it one arm at a time; `block_dispatch_deferred` stands at 12 call sites and `scannerDrop` at 4. The per-item record and the ordered list of what is left are in [Row 12 — β.5 closure log](#row-12--β5-closure-log). | Step 5, the converse | ditto |
-| 13 | **Step 5 — the converse** `grammar_completeness`, then **Step 6** the `parse_iff_grammar` biconditional | capstone 7.7 | [Grammar completeness plan](#grammar-completeness-plan) |
+| 19 | **Tighten `implicitContinue`** — the THIRD over-approximation of `[211]`, found 2026-08-13 by item 30 and not yet priced. It requires no `l-document-suffix+` and takes `SLAnyDocument`, so it admits a BARE document after another with no `...`: `- "a"⏎  - b` satisfies `InYamlLanguage` while `parseYaml` rejects it (`invalidBareDocument`, §9.2). It falsifies the converse exactly as `scannerDrop` does. 17 construction sites — one in `DocumentProduction` (`stream_implicit_continue`), already legal because it passes an EXPLICIT document, and 16 in `StreamAccum`, every one passing `SLAnyDocument.bare`. Nothing DEFERS to it, so it is not an escape site and not row 12's business; it comes after row 12 only because row 12's remaining items still edit those 16 sites. | Step 5, the converse | [The over-approximation problem](#the-over-approximation-problem) |
+| 13 | **Step 5 — the converse** `grammar_completeness` — blocked on rows 12 AND 19, since the converse is false while either over-approximation stands — then **Step 6** the `parse_iff_grammar` biconditional | capstone 7.7 | [Grammar completeness plan](#grammar-completeness-plan) |
 
 Items 1–11 and 18 are closed and their rows deleted; the closure records live
 in the sections below, the blow-by-blow history in git.
@@ -6059,8 +6060,8 @@ dedent does NOT recover is the entries-level structure of the collection it
 lands back in: that needs a FRAME STACK on the pending, which carries one index
 today, and the derivation it takes instead rides `implicitContinue` — recorded
 in [The over-approximation problem](#the-over-approximation-problem), because
-that constructor is not the faithful `[211]` the section had it down as, and
-Step 5 will meet it.
+that constructor is not the faithful `[211]` the section had it down as. It is
+now action **row 19**.
 
 ### REMAINING, in order
 
@@ -6100,8 +6101,8 @@ leaves `Surface/Document.lean`.
 Not on this list, because it is not an escape site: the DEDENT's entries-level
 fidelity. Item 30 derives it through `implicitContinue` rather than by resuming
 the collection it lands back in, which needs a frame stack on a pending that
-carries one index. Step 5 meets it as part of tightening that constructor —
-[The over-approximation problem](#the-over-approximation-problem).
+carries one index. It belongs to action **row 19**, which tightens that
+constructor — [The over-approximation problem](#the-over-approximation-problem).
 
 ## The ns-char gap
 
@@ -6278,7 +6279,8 @@ Step 0 (the scanner audit for directive handling) and Fix B (eliminating
 |---|---|
 | Fix A: eliminate `scannerDrop` | 🟡 **β.3 and β.4 COMPLETE (2026-08-10)** — `StreamAccum.lean` is sorry-free and the `L4YAML.Capstones` gate is GREEN. β.5 is open: `block_dispatch_deferred` stands at 12 call sites and `scannerDrop` at 4. Per-item record and the ordered list of what is left: [Row 12 — β.5 closure log](#row-12--β5-closure-log) |
 | 1b. Remove `scannerDrop` from `SLYamlStream` | ⬜ open — β.5, once that last use is gone |
-| 5. Prove the converse `grammar_completeness` | ⬜ open — depends on Fix A |
+| 1c. Tighten `implicitContinue` in `SLYamlStream` | ⬜ open — action row 19; the third over-approximation, found 2026-08-13 by item 30 and unpriced. Require `l-document-suffix+` for the bare alternative; 17 construction sites, 16 of them the `StreamAccum` sibling re-opens. [The over-approximation problem](#the-over-approximation-problem) |
+| 5. Prove the converse `grammar_completeness` | ⬜ open — depends on Fix A **and on 1c**: the converse is false while either over-approximation stands |
 | 6. Assemble the `parse_iff_grammar` biconditional | ⬜ open — depends on Step 5 |
 
 ### The over-approximation problem
@@ -6316,10 +6318,17 @@ They make `InYamlLanguage` strictly **weaker** than "parseable YAML"
 `InYamlLanguage` through `scannerDrop` while `parseYaml` rejects it, and
 `- "a"⏎  - b` does the same through `implicitContinue`. **The converse theorem
 is therefore false as long as either survives** — which is why Fix A comes
-before Step 5. Only `scannerDrop` is row 12's business; `implicitContinue` is a
-tightening (require `l-document-suffix+` for the bare alternative), and its
-consumers are the sibling re-opens row 12 has been building on since item 13,
-so it is Step 5's first piece of work rather than an independent one.
+before Step 5. Only `scannerDrop` is row 12's business — nothing DEFERS to
+`implicitContinue`, so it is not an escape site and closing it is not what row
+12's counters count. It is its own action, **row 19**, because it is the same
+kind of obligation on the same theorem and plausibly the same size of one: the
+tightening is to require `l-document-suffix+` for the bare alternative, and 17
+sites construct it — one in `DocumentProduction` (`stream_implicit_continue`),
+which passes an EXPLICIT document and stays legal as written, and 16 in
+`StreamAccum`, every one of them passing `SLAnyDocument.bare`. Those 16 are the
+sibling re-opens row 12 has been building on since item 13 and is still
+editing, which is the only reason row 19 comes after row 12 rather than before
+it. It has not been priced.
 
 The chosen approach removes the constructors from `SLYamlStream` directly
 rather than defining a parallel strict language: no duplicated grammar, the
