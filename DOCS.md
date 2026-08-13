@@ -5484,7 +5484,7 @@ lives in [README.md](README.md) and is not duplicated here.)
 
 | Item | Status | Section |
 |---|---|---|
-| Grammar completeness (`parse_iff_grammar`, capstone 7.7) | **Open — forward direction DONE** (2026-08-10): Fix B done, Fix A's accumulation sorry-free and the `L4YAML.Capstones` gate green. What is left is β.5 — retire `pendingFlow` and delete `scannerDrop` (14 escape sites, 4 drop sites as of item 28), then the converse and the biconditional. Per-item record and ordered remainder: [Row 12 — β.5 closure log](#row-12--β5-closure-log) | [Grammar completeness plan](#grammar-completeness-plan) |
+| Grammar completeness (`parse_iff_grammar`, capstone 7.7) | **Open — forward direction DONE** (2026-08-10): Fix B done, Fix A's accumulation sorry-free and the `L4YAML.Capstones` gate green. What is left is β.5 — retire `pendingFlow` and delete `scannerDrop` (14 escape sites, 4 drop sites as of item 29), then the converse and the biconditional. Per-item record and ordered remainder: [Row 12 — β.5 closure log](#row-12--β5-closure-log) | [Grammar completeness plan](#grammar-completeness-plan) |
 | Merge semantics (`DuplicateKeyPolicy.merge`) | **Open** (design ready; re-base on `LawfulBEq`) | [Merge semantics plan](#merge-semantics-plan) |
 | Security limits: open questions + future work | **Open** (design questions; 3 unimplemented features) | [Security hardening backlog](#security-hardening-backlog) |
 | Limit-enforcement verification, and the rest | **Open** (varied) | [Other open items](#other-open-items) |
@@ -5501,24 +5501,24 @@ invisible to every axis we score. What is left is proof completeness.
 
 | # | Action | Blocks | Where |
 |---|---|---|---|
-| 12 | **β.5 — retire `pendingFlow`, delete `scannerDrop`.** Items 11–28 have closed it one arm at a time; `block_dispatch_deferred` stands at 14 call sites and `scannerDrop` at 4. The per-item record and the ordered list of what is left are in [Row 12 — β.5 closure log](#row-12--β5-closure-log). | Step 5, the converse | ditto |
+| 12 | **β.5 — retire `pendingFlow`, delete `scannerDrop`.** Items 11–29 have closed it one arm at a time; `block_dispatch_deferred` stands at 14 call sites and `scannerDrop` at 4. The per-item record and the ordered list of what is left are in [Row 12 — β.5 closure log](#row-12--β5-closure-log). | Step 5, the converse | ditto |
 | 13 | **Step 5 — the converse** `grammar_completeness`, then **Step 6** the `parse_iff_grammar` biconditional | capstone 7.7 | [Grammar completeness plan](#grammar-completeness-plan) |
 
 Items 1–11 and 18 are closed and their rows deleted; the closure records live
 in the sections below, the blow-by-blow history in git.
 
-The full `lake build` has been GREEN since item 9t (978 targets as of item 28,
+The full `lake build` has been GREEN since item 9t (979 targets as of item 29,
 warning-free), `L4YAML.Capstones` included — what the rest of row 12 buys is
 STRENGTH: the `scannerDrop` constructor is the one remaining hole in what the
 capstones assert. `Tests.Guards` builds at 217 jobs, `Tests.Reflections` at
-428 (R644–R654); matrix event 402/402 · JSON 282/282 on BOTH instrument sets —
-items 15, 16, 17 and 19–28 touched no runtime file, so the matrix is unchanged
+429 (R644–R655); matrix event 402/402 · JSON 282/282 on BOTH instrument sets —
+items 15, 16, 17 and 19–29 touched no runtime file, so the matrix is unchanged
 by construction (items 20 and 22's only non-proof edits are `Prop`-valued
-grammar constructors and one added constructor parameter; items 21 and 23–28
+grammar constructors and one added constructor parameter; items 21 and 23–29
 edit no grammar at all, their structural edits being a parameter on
 `PendingNode.pendingProps` (24), two `Prop`-valued pack definitions (25), one
 new proof module each (26, 27) and one added conjunct on `ImplicitKeyPack`
-(28), all in the proof layer).
+(28) and one on `PropsKeyPack` (29), all in the proof layer).
 `run-all-tests.sh` verifies 4442/4442 (item 13 retired the last stale pre-9j
 assertion, `{?, ?}` in `ExplicitKeyTests` — Reflection 622's third missed pin;
 item 14 closed the legacy↔indexed plain-scalar walk divergence — a 5,460-input
@@ -5972,35 +5972,64 @@ and a step whose preprocessing RE-SAVED at the `:`. Composed: `  a: |`,
 and the floor-discharging producers go 3 → 4. `nic_false_of_flow_disp` moved up
 the file so both floors share it instead of restating its plumbing.
 
+### Item 29 (2026-08-12)
+
+closed both punts item 28 left on the same conjunct, and the two had DIFFERENT
+causes — which is the item's content. The property-headed key's was a LOST
+PROJECTION: `PropsKeyPack` stored the run's `simpleKey.pos.line` while its
+producer had proved `simpleKey.pos = s_prep.currentPos`, the whole position, so
+the column was not missing anywhere — it was dropped between producer and
+consumer. Widening the pack costs the producer nothing (`h_kcol` is the same
+equation projected a second time, closed by the same `SIndent_col` step item 28
+used), and the run's coordinate is the right one to carry: a `[96]` scan is not
+a key save and turns fresh saves off, so the key `&a x: v`'s `:` resolves is
+the one saved AT the property, at the pack's own `k`. The alias key's punt was
+an UNSTATED LEMMA: `dispatchContent_value_key_facts` already proves the
+key-position preservation every value-completing dispatch has, but it is stated
+a thousand lines BELOW `content_dispatch_after_close`, so the repair was a
+three-line `dispatchContent_alias_simpleKey` beside its `&` and `!` peers
+rather than a hoist. **Reflection 655** is the rule: a punt may be a lost
+projection — read what the CARRIER kept, not only what the producer proved —
+and an optional field's `True`s are a taxonomy (lost projection · unstated
+lemma · different production) whose cheap entries are exactly the ones that
+close today.
+
+The conjunct is now TOTAL: all five of `ImplicitKeyPack`'s producers discharge
+it, where item 28 left three. That is recorded rather than cashed in — making
+the field required would cover the same producers today and refuse the next one
+that cannot measure, which is the inflation Reflection 653 declined. The
+extension arms carry the column exactly as they carry the line, so `  &x !!str
+a: |` keeps its key at the `&`; the transport punts on the fresh-save shape,
+which cannot arise behind a property. Composed: `  &x a: |`, `  !!str a: |`,
+`  &x !!str a: |`, `      &x abc: |`, `  &x "a": |`, `  &x 'a': |`, `  &x a: >`,
+`  &x a: |2`, `  &x a: |-`, `  &x a: &v |`, `---⏎  &x a: |`, sibling chains, and
+the alias key `  *m : |` on a defined anchor at two widths and both header
+characters (`ScannerIndentFloorCompose.lean` §6). ZERO grammar edits, ZERO
+runtime edits; `block_dispatch_deferred` holds at 14 and `scannerDrop` at 4 BY
+CONSTRUCTION, and the floor's four producers keep their count with a wider
+domain. What still punts at the `:` is the explicit-key clear — the taxonomy's
+third kind, a different production (`[197]`), and the only one it predicts is
+not free.
+
 ### REMAINING, in order
 
 Ordered by what is cheapest AND has a consumer today, not by what is listed
 first anywhere else. `FlowOpenStack` is deliberately NOT first: it is the most
 expensive piece and none of its three parts lands anything on its own.
 
-1. **The property-headed key's column** — the residue item 28 left, and the
-same one-conjunct move: `PropsKeyPack` carries the run's LINE but not its
-COLUMN, so `  &x a: |` and `  !!str a: |` hand `True` where `  a: |` now
-discharges. Its producer holds the identical facts item 28 used
-(`keyctx_of_preprocess`'s fresh save, `SIndent_col` at the run's start), and
-the consumer rebuilds the pack per arm exactly as the content one does. The
-ALIAS key rides along: it punts only because the pack's alias arm has no
-saved-key-position datum in hand, and `dispatchContent_value_key_facts`
-supplies one wherever it is in scope. Smallest item on this list.
-
-2. **The nested / dedented collection** (2 escape sites) — an indicator at a
+1. **The nested / dedented collection** (2 escape sites) — an indicator at a
 width other than the pending's, which wants `SBlockIndented.compactSeq` /
 `compactMap` rather than a snoc. Real language (`  - - a`, `  a:⏎  - x`), and
 the only remaining family that composes new SHAPES rather than widening a
 domain.
 
-3. **The TAB branch** (4 escape sites, expected VACUOUS) —
+2. **The TAB branch** (4 escape sites, expected VACUOUS) —
 `gstar_white_sIndent_or_tab`'s right disjunct. The scanner answers
 `tabInIndentation` before any block indicator, so refuting it needs the
 conditional tab check carried through preprocessing; it composes nothing new
 and is worth taking only for the count.
 
-4. **`FlowOpenStack`'s resume type** — three parts, priced by item 25, and the
+3. **`FlowOpenStack`'s resume type** — three parts, priced by item 25, and the
 reason this row still has a `scannerDrop`: the resume's `SFlowContent 0
 .flowOut` and the frame's `SeqFrame 0 (inFlowCtx .flowOut)` are the same
 index, ≈86 literal pins across 31 substantive declarations. (i) couple the
@@ -6014,7 +6043,7 @@ re-derive the multi-line plain and quoted scalar readings at `n`, which inside
 a flow genuinely mention the index. Closes 3 of the 4 `scannerDrop` sites and
 the `  - [1]` / `  - &a [b]` family with them.
 
-5. **The inline residue** (5 escape sites) — a mid-line park crossing no
+4. **The inline residue** (5 escape sites) — a mid-line park crossing no
 break, where `SSLComments` cannot exist — **and then the deletion itself**:
 the `close_with_ssl` arm that calls `scannerDrop` dies with `pendingFlow`, and
 the constructor leaves `Surface/Document.lean`.

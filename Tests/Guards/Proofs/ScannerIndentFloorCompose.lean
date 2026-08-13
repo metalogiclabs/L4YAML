@@ -8,7 +8,7 @@ Copyright (c) 2026. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 -/
 
-/-! # The entry index survives into the block scalar's floor (DOCS items 27, 28)
+/-! # The entry index survives into the block scalar's floor (DOCS items 27–29)
 
 Item 26 gave `[170] c-l+literal(n)` / `[174] c-l+folded(n)` a reading at every
 index the body's collected content indent admits, and left ONE inequality owed:
@@ -34,10 +34,18 @@ key it RESOLVES, so measuring the push there rather than at the indicator
 reaches item 15's implicit-key entry too (`  a: |`).  The coupling is one
 conjunct on `ImplicitKeyPack` — the pack's `[63] s-indent(k)` read on the
 scanner's side as the saved key's column — and it is optional for the same
-reason the floor is, so the producers that cannot supply it (a property-headed
-key, an alias key) keep their coverage and hand `True` (Reflection 654).
+reason the floor is, so the producers that cannot supply it hand `True`
+(Reflection 654).
 
-Nothing here is new BEHAVIOUR: items 27 and 28 edit no runtime file and no
+Item 29 supplies it at the two that did.  A property-headed key (`  &x a: |`)
+is measured to the PROPERTY, which is where the scanner saved the key too, so
+`PropsKeyPack` carries the column beside the line it already carried; an alias
+key (`  *m : |`) needed one lemma saying `[104]`'s scan leaves the saved key's
+position alone.  Both were the SAME one-conjunct move, which is what makes the
+pack's coupling total: all five of its producer families discharge it, across
+the seven construction sites the two routes spend between them.
+
+Nothing here is new BEHAVIOUR: items 27, 28 and 29 edit no runtime file and no
 grammar file.  These are the shapes whose ACCUMULATION changed, held fixed so a
 later runtime change cannot move them silently.
 -/
@@ -171,36 +179,81 @@ side, which is the whole content of the coupling. -/
 #guard emits "  a: &x |\n    text\n"
   ["+STR", "+DOC", "+MAP", "=VAL :a", "=VAL &x |text\\n", "-MAP", "-DOC", "-STR"]
 
-/-! ## §6  What the floor does NOT reach — accepted, derivation owed
+/-! ## §6  The two heads item 28 left (item 29)
 
-Four different causes, none of them the block scalar:
+A PROPERTY-headed key is `[161]`'s `propsContent` arm read at `block-key`, and
+its `[63] s-indent(k)` is measured to the PROPERTY — which is exactly where the
+scanner saved the key, because a `[96]` scan is not a key save and turns fresh
+saves off.  So the run's column is the column the `:` will push at, and
+`PropsKeyPack` carries it beside the line datum it already carried.  The
+extension arms transport it: `&x !!str a: |` keeps the key at the `&`.
 
-* `  &x a: |` is a PROPERTY-headed key (item 17's props pack).  Its `k` is
-  measured to the property run, and the key the `:` resolves was saved there
-  too — but `PropsKeyPack` carries the run's LINE, not its column, so this
-  producer hands `True` for the coupling and keeps item 17's coverage
-  untouched.  Supplying the column is the same one-conjunct move item 28 made
-  for the content pack.
+An ALIAS key needs no new coupling at all, only the observation that `[104]`'s
+scan leaves the saved key's position alone (`dispatchContent_alias_simpleKey`)
+— the one datum item 28's alias arm had no way to state. -/
+
+#guard emits "  &x a: |\n    text\n"
+  ["+STR", "+DOC", "+MAP", "=VAL &x :a", "=VAL |text\\n", "-MAP", "-DOC", "-STR"]
+#guard emits "  !!str a: |\n    text\n"
+  ["+STR", "+DOC", "+MAP", "=VAL <tag:yaml.org,2002:str> :a", "=VAL |text\\n", "-MAP",
+   "-DOC", "-STR"]
+-- The EXTENDED run: the second property does not move the key.
+#guard emits "  &x !!str a: |\n    text\n"
+  ["+STR", "+DOC", "+MAP", "=VAL &x <tag:yaml.org,2002:str> :a", "=VAL |text\\n",
+   "-MAP", "-DOC", "-STR"]
+#guard emits "      &x abc: |\n        text\n"
+  ["+STR", "+DOC", "+MAP", "=VAL &x :abc", "=VAL |text\\n", "-MAP", "-DOC", "-STR"]
+-- `[194]`'s JSON key under a run, and the folded and offset headers.
+#guard emits "  &x \"a\": |\n    text\n"
+  ["+STR", "+DOC", "+MAP", "=VAL &x \"a", "=VAL |text\\n", "-MAP", "-DOC", "-STR"]
+#guard emits "  &x 'a': |\n    text\n"
+  ["+STR", "+DOC", "+MAP", "=VAL &x 'a", "=VAL |text\\n", "-MAP", "-DOC", "-STR"]
+#guard emits "  &x a: >\n    x\n    y\n"
+  ["+STR", "+DOC", "+MAP", "=VAL &x :a", "=VAL >x y\\n", "-MAP", "-DOC", "-STR"]
+#guard emits "  &x a: |2\n     text\n"
+  ["+STR", "+DOC", "+MAP", "=VAL &x :a", "=VAL | text\\n", "-MAP", "-DOC", "-STR"]
+#guard emits "  &x a: |-\n    text\n"
+  ["+STR", "+DOC", "+MAP", "=VAL &x :a", "=VAL |text", "-MAP", "-DOC", "-STR"]
+-- The VALUE may carry its own run without moving the key's column.
+#guard emits "  &x a: &v |\n    text\n"
+  ["+STR", "+DOC", "+MAP", "=VAL &x :a", "=VAL &v |text\\n", "-MAP", "-DOC", "-STR"]
+#guard emits "---\n  &x a: |\n    text\n"
+  ["+STR", "+DOC ---", "+MAP", "=VAL &x :a", "=VAL |text\\n", "-MAP", "-DOC", "-STR"]
+#guard emits "  &x a: |\n    p\n  &y b: |\n    q\n"
+  ["+STR", "+DOC", "+MAP", "=VAL &x :a", "=VAL |p\\n", "=VAL &y :b", "=VAL |q\\n",
+   "-MAP", "-DOC", "-STR"]
+-- The alias key, which needs a DEFINED anchor and a space before the `:`
+-- (`ns-anchor-char` admits `:`, so `*m:` is one alias name).
+#guard emits "  a: &m v\n  *m : |\n    text\n"
+  ["+STR", "+DOC", "+MAP", "=VAL :a", "=VAL &m :v", "=ALI *m", "=VAL |text\\n", "-MAP",
+   "-DOC", "-STR"]
+#guard emits "  a: &m v\n  *m : >\n    x\n"
+  ["+STR", "+DOC", "+MAP", "=VAL :a", "=VAL &m :v", "=ALI *m", "=VAL >x\\n", "-MAP",
+   "-DOC", "-STR"]
+#guard emits "      a: &m v\n      *m : |\n        text\n"
+  ["+STR", "+DOC", "+MAP", "=VAL :a", "=VAL &m :v", "=ALI *m", "=VAL |text\\n", "-MAP",
+   "-DOC", "-STR"]
+
+/-! ## §7  What the floor does NOT reach — accepted, derivation owed
+
+Three different causes, none of them the block scalar:
+
 * `  ? a⏎  : |` is the explicit-key `:`.  `scanValueClearKey` drops the saved
   key when a `?` is open, and what survives is `[197]
   l-block-map-explicit-value(n)`, measured at the `:` again — a different arm,
   not a harder instance.
-* An ALIAS key (`  *a: |`, on a defined anchor) has no saved-key-position datum
-  at the pack's producer, so it punts there.
 * `  - - |` is a COMPACT nested collection, which is family C of the escape's
-  inventory and reaches the pending through a route neither item touched.
+  inventory and reaches the pending through a route no item here touched.
 * A step that crosses a BREAK before the header is the landing branch, where
   `unwindIndents` is exactly what may fire — so the transport is unavailable by
   construction, not by omission. -/
 
-#guard emits "  &x a: |\n    text\n"
-  ["+STR", "+DOC", "+MAP", "=VAL &x :a", "=VAL |text\\n", "-MAP", "-DOC", "-STR"]
 #guard emits "  ? a\n  : |\n    text\n"
   ["+STR", "+DOC", "+MAP", "=VAL :a", "=VAL |text\\n", "-MAP", "-DOC", "-STR"]
 #guard emits "  - - |\n      text\n"
   ["+STR", "+DOC", "+SEQ", "+SEQ", "=VAL |text\\n", "-SEQ", "-SEQ", "-DOC", "-STR"]
 
-/-! ## §7  A tab still refutes the indentation reading
+/-! ## §8  A tab still refutes the indentation reading
 
 Unchanged by the floor: the scanner answers first, and `[63] s-indent` is
 spaces only. -/

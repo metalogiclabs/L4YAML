@@ -267,10 +267,20 @@ def ImplicitKeyPack (sc : ScannerState) (sp_start sp_scan : SurfPos) : Prop :=
     run OPENED still sits on the scanner's current line.  It is carried rather
     than demanded because the consuming step can only observe the guard on its
     OWN post-state, and needs this one to conclude the content scan crossed no
-    break. -/
+    break.
+
+    The measurement's last conjunct (item 29) is the run's COLUMN, the twin of
+    the line datum and of `ImplicitKeyPack`'s own (item 28): a `[96]` scan is
+    not a key save (`dispatchContent_*_simpleKey`), so the key the `:` will
+    resolve for `&a x: v` is the one saved AT the property — at column `k`,
+    which is what lets `scanValuePrepare`'s push inherit the entry index here
+    too.  It sits INSIDE the existential because it is a statement about that
+    `k`, and it is optional for the same reason the floor is (Reflection
+    653). -/
 def PropsKeyPack (sc : ScannerState) (sp_start sp_p sp_scan : SurfPos) : Prop :=
   (∃ (k : Nat) (sp_land : SurfPos),
-    sp_land.col = 0 ∧ SLYamlStream sp_start sp_land ∧ SIndent k sp_land sp_p) ∧
+    sp_land.col = 0 ∧ SLYamlStream sp_start sp_land ∧ SIndent k sp_land sp_p ∧
+    (sc.simpleKey.pos.col = k ∨ True)) ∧
   SCNsProperties 0 .blockKey sp_p sp_scan ∧
   sc.simpleKey.pos.line = sc.line
 
@@ -9339,6 +9349,37 @@ lemma dispatchContent_tag_simpleKey {s s' : ScannerState}
             scanTag_simpleKeyAllowed_false h_tag⟩
       · rename_i h_neq; exact absurd rfl h_neq
 
+/-- ... and the `*` twin (item 29).  `[104]`'s scan is the same
+    `scanAnchorOrAlias`, and the `validateAliasClose` that follows it in the
+    dispatcher returns `Unit` — so an alias key's saved POSITION survives its
+    own dispatch exactly as a property's does, which is the one datum item 28's
+    alias arm was missing.  (`dispatchContent_value_key_facts` proves the same
+    thing for every value-completing character, but it is stated a thousand
+    lines below `content_dispatch_after_close` and cannot be used there.) -/
+lemma dispatchContent_alias_simpleKey {s s' : ScannerState}
+    (hok : scanNextToken_dispatchContent s '*' = .ok s') :
+    s'.simpleKey = s.simpleKey ∧ s'.simpleKeyAllowed = false := by
+  unfold scanNextToken_dispatchContent at hok
+  simp only [bind, Except.bind, pure, Except.pure] at hok
+  split at hok
+  · rename_i h_eq; exact absurd h_eq (by decide)
+  · split at hok
+    · split at hok
+      · simp at hok
+      · split at hok
+        · simp at hok
+        · generalize h_al : scanAnchorOrAlias s false = al_result at hok
+          cases al_result with
+          | error => simp at hok
+          | ok s_al =>
+            dsimp only [] at hok
+            split at hok
+            · simp at hok
+            · have h := Except.ok.inj hok; subst h
+              exact ⟨ScannerCorrectness.scanAnchorOrAlias_preserves_simpleKey s false s_al h_al,
+                scanAnchorOrAlias_simpleKeyAllowed_false h_al⟩
+    · rename_i h_neq; exact absurd rfl h_neq
+
 /-- **Opening a property run at a `.colon`-tailed white gap builds the
     completed-entry layout (item 10).**  The fresh reservation preprocessing
     saves lands directly above the gap's `.value`, the property scan then
@@ -9579,8 +9620,21 @@ lemma content_dispatch_after_close
       cases h_keyctx with
       | inr _ => exact Or.inr trivial
       | inl hctx =>
-        obtain ⟨h_start, _h_sk_poss, h_sk_pos⟩ := hctx
-        refine Or.inl ⟨h_start, h_props, ?_⟩
+        obtain ⟨⟨k, sp_land, hcol0, h_stream_land, h_ind⟩, _h_sk_poss, h_sk_pos⟩ := hctx
+        -- Item 29: and the run's COLUMN, from the same two facts item 28 used
+        -- on the content pack.  The save is fresh AT the property (`h_sk_pos`),
+        -- and `[63] s-indent(k)` from a column-0 landing puts the property at
+        -- column `k` — so the key this pack's `:` will resolve sits at the
+        -- entry index the pack carries.
+        have h_kcol : s'.simpleKey.pos.col = k ∨ True := by
+          refine Or.inl ?_
+          rw [h_sk, allowDirectives_update_simpleKey, h_sk_pos]
+          show s_prep.col = k
+          rw [← hcorr_prep.col_eq]
+          have := SIndent_col h_ind
+          rw [hcol0] at this
+          omega
+        refine Or.inl ⟨⟨k, sp_land, hcol0, h_stream_land, h_ind, h_kcol⟩, h_props, ?_⟩
         rw [h_sk, allowDirectives_update_simpleKey, h_sk_pos,
             h_line', allowDirectives_update_line]
         rfl
@@ -9660,8 +9714,9 @@ lemma content_dispatch_after_close
           -- `k` — so the column the `:` will push its mapping indent at is the
           -- entry index this pack carries.  Each arm below supplies the one
           -- thing that could move it: whether the dispatch left the saved key's
-          -- POSITION alone.  The alias arm has no such datum to hand and punts
-          -- the conjunct, which costs `*a: |`'s floor and nothing else.
+          -- POSITION alone.  Item 29 gives the ALIAS arm that datum too
+          -- (`dispatchContent_alias_simpleKey`), so `  *m : |` measures its
+          -- floor where `  a: |` does.
           have h_kcol_of : s'.simpleKey.pos = (if s_prep.allowDirectives then
               { s_prep with allowDirectives := false, documentEverStarted := true }
             else s_prep).simpleKey.pos → (s'.simpleKey.pos.col = k ∨ True) := by
@@ -9686,7 +9741,8 @@ lemma content_dispatch_after_close
             have hsp2 := ScannerSurfCorr_unique hcorr2 hcorr_result
             rw [hsp2] at h_al
             exact Or.inl ⟨k, sp_land, sp_prep, sp_scan', hcol0, h_stream_land, h_ind,
-                          ImplicitKeyHead.json h_al, GStar.nil _, Or.inr trivial⟩
+                          ImplicitKeyHead.json h_al, GStar.nil _,
+                          h_kcol_of (by rw [(dispatchContent_alias_simpleKey h_dispatch).1])⟩
           have hnStar : c ≠ '*' := hstar
           -- The coupling chain: the key was saved AT the content start, so the
           -- guard's `pos.line = line` says the scan crossed no break.  Only the
@@ -10617,6 +10673,21 @@ lemma accum_content_pending (sc : ScannerState)
         else s_prep).line = trailingPropertyRunOnLine sc.tokens sc.line := by
         rw [h_ad_toks, h_ad_line, h_line_pp]
         exact trailingPropertyRunOnLine_congr h_lastr h_penr
+      -- Item 29: the pack's COLUMN datum, transported.  A `[96]` scan turns
+      -- fresh saves off (`dispatchContent_*_simpleKey`), so the key a held run
+      -- opened with is the one this preprocessing inherited and the run's
+      -- column rides an extension unchanged; the fresh-save shape cannot arise
+      -- behind a property, and punts rather than being refuted.
+      have h_kcol_ext : ∀ {k : Nat}, (sc.simpleKey.pos.col = k ∨ True) →
+          s'.simpleKey = (if s_prep.allowDirectives then
+            { s_prep with allowDirectives := false, documentEverStarted := true }
+          else s_prep).simpleKey → (s'.simpleKey.pos.col = k ∨ True) := by
+        intro k h_kcol h_sk
+        rcases preprocess_some_savedKey_shape h_preprocess with _ | h_inh
+        · exact Or.inr trivial
+        · rcases h_kcol with h_eq | _
+          · exact Or.inl (by rw [h_sk, allowDirectives_update_simpleKey, h_inh]; exact h_eq)
+          · exact Or.inr trivial
       by_cases hamp : c = '&'
       · -- ═══ `&` on the run's line: EXTEND (the guard says no anchor held) ═══
         subst hamp
@@ -10678,8 +10749,10 @@ lemma accum_content_pending (sc : ScannerState)
                    cases h_key_p with
                    | inr _ => exact Or.inr trivial
                    | inl hpk =>
-                     obtain ⟨h_start, _h_props_old, h_sk_line⟩ := hpk
-                     refine Or.inl ⟨h_start,
+                     obtain ⟨⟨k, sp_land, hcol0, h_stream_p, h_ind, h_kcol⟩,
+                       _h_props_old, h_sk_line⟩ := hpk
+                     refine Or.inl ⟨⟨k, sp_land, hcol0, h_stream_p, h_ind,
+                         h_kcol_ext h_kcol (dispatchContent_anchor_simpleKey h_dispatch).1⟩,
                        h_run.blockKey_addAnchor
                          (GStar_SSWhite_to_SSeparateInLine sp_scan sp_prep h_ws) h_prop, ?_⟩
                      rw [(dispatchContent_anchor_simpleKey h_dispatch).1,
@@ -10747,8 +10820,10 @@ lemma accum_content_pending (sc : ScannerState)
                      cases h_key_p with
                      | inr _ => exact Or.inr trivial
                      | inl hpk =>
-                       obtain ⟨h_start, _h_props_old, h_sk_line⟩ := hpk
-                       refine Or.inl ⟨h_start,
+                       obtain ⟨⟨k, sp_land, hcol0, h_stream_p, h_ind, h_kcol⟩,
+                         _h_props_old, h_sk_line⟩ := hpk
+                       refine Or.inl ⟨⟨k, sp_land, hcol0, h_stream_p, h_ind,
+                           h_kcol_ext h_kcol (dispatchContent_tag_simpleKey h_dispatch).1⟩,
                          h_run.blockKey_addTag
                            (GStar_SSWhite_to_SSeparateInLine sp_scan sp_prep h_ws) h_prop, ?_⟩
                        rw [(dispatchContent_tag_simpleKey h_dispatch).1,
@@ -10796,16 +10871,29 @@ lemma accum_content_pending (sc : ScannerState)
             -- forward: the key saved when the run opened is still on the
             -- scanner's line, so the guard's post-state equation says the
             -- content scan crossed no break either.  A block-scalar header
-            -- punts — `&a |` is a node, never a key.  Item 28's column
-            -- conjunct punts here too: the run's own key sits at the PROPERTY,
-            -- and `PropsKeyPack` carries that run's line but not its column.
+            -- punts — `&a |` is a node, never a key.  Item 29 hands the COLUMN
+            -- conjunct on with the rest: the pack now carries the run's own
+            -- (`PropsKeyPack`), the property scan turned fresh saves off, and
+            -- each arm supplies the one datum item 28's arms did — whether the
+            -- content dispatch left the saved key's POSITION alone.
             have h_key : s'.simpleKey.possible = true → s'.simpleKey.pos.line = s'.line →
                 ImplicitKeyPack s' sp_start sp_scan' ∨ True := by
               intro _h_poss h_kline
               cases h_key_p with
               | inr _ => exact Or.inr trivial
               | inl hpk =>
-                obtain ⟨⟨k, sp_land, hcol0, h_stream_p, h_ind⟩, h_props_bk, h_sk_line⟩ := hpk
+                obtain ⟨⟨k, sp_land, hcol0, h_stream_p, h_ind, h_kcol⟩,
+                  h_props_bk, h_sk_line⟩ := hpk
+                have h_kcol_of : s'.simpleKey.pos = (if s_prep.allowDirectives then
+                    { s_prep with allowDirectives := false, documentEverStarted := true }
+                  else s_prep).simpleKey.pos → (s'.simpleKey.pos.col = k ∨ True) := by
+                  intro hpp
+                  rcases preprocess_some_savedKey_shape h_preprocess with _ | h_inh
+                  · exact Or.inr trivial
+                  · rcases h_kcol with h_eq | _
+                    · exact Or.inl (by
+                        rw [hpp, allowDirectives_update_simpleKey, h_inh]; exact h_eq)
+                    · exact Or.inr trivial
                 by_cases hc5 : c = '|' ∨ c = '>'
                 · exact Or.inr trivial
                 · have hnPipe : c ≠ '|' := fun h => hc5 (Or.inl h)
@@ -10837,7 +10925,7 @@ lemma accum_content_pending (sc : ScannerState)
                         (SFlowNode.propsContent 0 .blockKey sp_p sp_scan sp_prep sp_scan'
                           h_props_bk h_sep_bk
                           (SFlowContent.doubleQ 0 .blockKey sp_prep sp_scan' h_dq)),
-                      GStar.nil _, Or.inr trivial⟩
+                      GStar.nil _, h_kcol_of h_pp⟩
                   · by_cases hsq : c = '\''
                     · subst hsq
                       obtain ⟨h_pp, h_cond⟩ :=
@@ -10851,7 +10939,7 @@ lemma accum_content_pending (sc : ScannerState)
                           (SFlowNode.propsContent 0 .blockKey sp_p sp_scan sp_prep sp_scan'
                             h_props_bk h_sep_bk
                             (SFlowContent.singleQ 0 .blockKey sp_prep sp_scan' h_sq)),
-                        GStar.nil _, Or.inr trivial⟩
+                        GStar.nil _, h_kcol_of h_pp⟩
                     · obtain ⟨h_sk_pres, h_cond⟩ :=
                         dispatchContent_plainScalar_key_prod _ sp_prep
                           (corr_of_allowDirectives_update hcorr_prep) hpeek_disp h_flow_disp
@@ -10865,7 +10953,7 @@ lemma accum_content_pending (sc : ScannerState)
                           (SFlowNode.propsContent 0 .blockKey sp_p sp_scan sp_prep sp_gram2
                             h_props_bk h_sep_bk
                             (SFlowContent.plain 0 .blockKey sp_prep sp_gram2 h_ol)),
-                        h_tws2, Or.inr trivial⟩
+                        h_tws2, h_kcol_of (by rw [h_sk_pres])⟩
             -- Item 24: the run's route index decides which readings of the
             -- decorated value are available.  At 0 the whole of
             -- `dispatchContent_evidence_content` is — including `[198]`'s
