@@ -6793,16 +6793,40 @@ lemma block_indicator_exhausted {s s' : ScannerState} {c : Char}
   · exact hmap (Or.inr h)
   · exact hmap (Or.inl h)
 
+/-- **`[199] s-l+block-collection` under an entry that is still awaiting its
+    node** (item 30) — a NESTED block sequence, at the outer entry's own index.
+
+    `[183] l+block-sequence(n)`'s auto-detected `m` is `k - n`: the outer entry
+    awaits `s-l+block-node(n, block-in)`, whose collection alternative opens
+    `l+block-sequence(seq-spaces(n, block-in) + m)` and `seq-spaces(n,
+    block-in) = n`, so a `-` that the landing leaves at width `k > n` is the
+    inner collection's first entry rather than a sibling of the outer's.  The
+    gap between the two is `[79] s-l-comments`, which is the same evidence a
+    SIBLING snoc consumes — what differs is only where it is spent (the
+    collection's own leading comments, not the previous entry's tail).
+
+    The side condition is `n ≤ k` and it is the whole content of the split: at
+    `k > n` this reading exists and at `k < n` it does not, because `m` would
+    have to be negative.  A DEDENT is therefore a different construct, not a
+    harder instance — it ends the inner collection and resumes the outer, which
+    is a frame the pending does not carry. -/
+lemma nestedBlockSeq {n k : Nat} (hnk : n ≤ k) {s s₂ s' : SurfPos}
+    (h_ssl : SSLComments s s₂) (h_entries : SBlockSeqEntries k s₂ s') :
+    SBlockNode n .blockIn s s' :=
+  SBlockNode.blockSeq n .blockIn (k - n) s s s₂ s' (GOpt.none s) h_ssl
+    (by simpa [seqSpaces, Nat.add_sub_cancel' hnk] using h_entries)
+
 /-- `[199] s-l+block-collection` opening a document's root node, with
     `[183] l+block-sequence`'s auto-detected indentation set to `k` — the
     width the landing actually left before the `-` (item 22).  At `k = 0` this
     is the column-0 collection every producer built through item 21; at
-    `k > 0` it is the indented one, which had no derivation at all. -/
+    `k > 0` it is the indented one, which had no derivation at all.  It is
+    `nestedBlockSeq` at the root's `n = 0`, where the side condition is
+    vacuous. -/
 lemma rootBlockSeq (k : Nat) {s s₂ s' : SurfPos}
     (h_ssl : SSLComments s s₂) (h_entries : SBlockSeqEntries k s₂ s') :
     SBlockNode 0 .blockIn s s' :=
-  SBlockNode.blockSeq 0 .blockIn k s s s₂ s' (GOpt.none s) h_ssl
-    (by simpa [seqSpaces] using h_entries)
+  nestedBlockSeq (Nat.zero_le k) h_ssl h_entries
 
 /-- `[187] l+block-mapping`'s twin of `rootBlockSeq` (item 22). -/
 lemma rootBlockMap (k : Nat) {s s₂ s' : SurfPos}
@@ -7654,8 +7678,16 @@ lemma accum_block_on_pendingBlockContent
                    h_ind h_dash2 h_gnot2 h_indented, h_cont⟩)
                (indicator_floor hcol_mid h_ind hcorr_prep h_preprocess h_dispatch),
              hcorr_result⟩
-    · exact block_dispatch_deferred sp_start sp_mid sp_scan' s'
-        (h_close_pending sp_mid h_ssl) hcorr_result
+    · -- Item 30: here the widths disagreeing is ONE case, not two.  This
+      -- pending's entry already HAS its node — that is what distinguishes
+      -- `pendingBlockContent` from `pendingBlock` — so `[183]`'s entries at
+      -- `n` are complete at the landing and no `-` at any other width extends
+      -- them: `nestedBlockSeq` has no node to fill and a dedent has no frame
+      -- to resume.  Both take the `:`/`?` arm's route below, which the
+      -- indicator siblings have used at every width since item 13.
+      exact accum_block_on_closeThenBlock sc sp_start sp_block_ctx sp_scan s_prep s' '-'
+        _ sp_scan' h_close_pending h_stream_fallback hcorr_prep hcorr_result
+        h_corr h_preprocess h_dispatch
   · -- c ≠ '-' at the landing: a ':' opens `[189]`'s empty-key entry there
     -- (item 13), a '?' opens `[186]`'s explicit-key one (item 20) — one arm.
     by_cases hcv : c = ':' ∨ c = '?'
@@ -7744,8 +7776,64 @@ lemma accum_block_on_pendingBlock
                    h_ind h_dash2 h_gnot2 h_indented, h_cont⟩)
                (indicator_floor hcol_mid h_ind hcorr_prep h_preprocess h_dispatch),
              hcorr_result⟩
-    · exact block_dispatch_deferred sp_start sp_mid sp_scan' s'
-        (h_close_pending sp_mid h_ssl) hcorr_result
+    · -- Item 30: the widths disagree, and the two directions are DIFFERENT
+      -- constructs — which is why one `k ≠ n` deferral was hiding both.
+      rcases Nat.lt_or_ge n k with hlt | _hge
+      · -- ═══ NESTED (`n < k`): the awaited node IS the inner collection ═══
+        -- `-⏎  - a`.  The entry this pending opened has not been given its
+        -- node yet, so the deeper `-` is not a sibling — it is the first entry
+        -- of `[199]`'s block collection filling that node, at `[183]`'s
+        -- auto-detected `m = k - n`.  The new pending is `pendingBlock` at the
+        -- INNER index, snoc-capable in its own right, so the nesting composes
+        -- to any depth and the inner collection keeps its entries-level
+        -- fidelity rather than riding `[211]`'s document continuation.
+        have hpeek_disp : (if s_prep.allowDirectives then
+            { s_prep with allowDirectives := false, documentEverStarted := true }
+          else s_prep).peek? = some '-' := by
+          have := preprocess_some_peek h_preprocess
+          split
+          · show s_prep.peek? = some '-'; exact this
+          · exact this
+        obtain ⟨sp_dash2, h_dash2, h_gnot2, hcorr_dash2⟩ :=
+          dispatchBlockEntry_full_prod _ _
+            (corr_of_allowDirectives_update hcorr_prep) hpeek_disp h_dispatch
+        have hsp_dash2_eq := ScannerSurfCorr_unique hcorr_dash2 hcorr_result
+        rw [hsp_dash2_eq] at h_dash2 h_gnot2
+        -- The OUTER continuation, asked once: any inner collection ending at
+        -- `sp_end` is the outer entry's node, and the outer pending's own
+        -- entry-level closure carries it the rest of the way.
+        have h_close_inner : ∀ sp_end, SBlockSeqEntries k sp_mid sp_end →
+            SLYamlStream sp_start sp_end := by
+          intro sp_end h_entries
+          obtain ⟨_, h_eo, h_cont⟩ :=
+            h_close_entry_old sp_end (nestedBlockSeq (Nat.le_of_lt hlt) h_ssl h_entries)
+          exact h_cont sp_end h_eo
+        exact ⟨sp_block, sp_block, sp_block, sp_scan', h_stream_block,
+               BlockStack.nil sp_block, FlowStackB.nil sp_block .sep,
+               PendingNode.pendingBlock sp_start sp_block sp_scan' k
+                 (fun sp_final (h_node : SBlockNode k .blockIn sp_scan' sp_final) =>
+                   h_close_inner sp_final
+                     (SBlockSeqEntries.single k sp_mid _ sp_scan' sp_scan' sp_final
+                       h_ind h_dash2 h_gnot2
+                       (SBlockIndented.node k .blockIn sp_scan' sp_final h_node)))
+                 (fun sp_final (h_node : SBlockNode k .blockIn sp_scan' sp_final) =>
+                   ⟨sp_mid,
+                    SBlockSeqEntries.single k sp_mid _ sp_scan' sp_scan' sp_final
+                      h_ind h_dash2 h_gnot2
+                      (SBlockIndented.node k .blockIn sp_scan' sp_final h_node),
+                    h_close_inner⟩)
+                 (indicator_floor hcol_mid h_ind hcorr_prep h_preprocess h_dispatch),
+               hcorr_result⟩
+      · -- ═══ DEDENT (`k < n`): the inner collection ENDS here ═══
+        -- `-⏎  -⏎- b`.  `nestedBlockSeq`'s `m` would have to be negative, so
+        -- there is no reading of the outer entry's node that reaches this `-`;
+        -- resuming the collection the dedent lands back in needs a FRAME the
+        -- pending does not carry.  What is available is the route the `:`/`?`
+        -- arm below already takes at every width: close this pending and open
+        -- the sequence at `k` as `[211]`'s document continuation.
+        exact accum_block_on_closeThenBlock sc sp_start sp_block_ctx sp_scan s_prep s' '-'
+          _ sp_scan' h_close_pending h_stream_fallback hcorr_prep hcorr_result
+          h_corr h_preprocess h_dispatch
   · -- c ≠ '-' at the landing: a ':' opens `[189]`'s empty-key entry there
     -- (item 13), a '?' opens `[186]`'s explicit-key one (item 20) — one arm.
     by_cases hcv : c = ':' ∨ c = '?'

@@ -5484,7 +5484,7 @@ lives in [README.md](README.md) and is not duplicated here.)
 
 | Item | Status | Section |
 |---|---|---|
-| Grammar completeness (`parse_iff_grammar`, capstone 7.7) | **Open — forward direction DONE** (2026-08-10): Fix B done, Fix A's accumulation sorry-free and the `L4YAML.Capstones` gate green. What is left is β.5 — retire `pendingFlow` and delete `scannerDrop` (14 escape sites, 4 drop sites as of item 29), then the converse and the biconditional. Per-item record and ordered remainder: [Row 12 — β.5 closure log](#row-12--β5-closure-log) | [Grammar completeness plan](#grammar-completeness-plan) |
+| Grammar completeness (`parse_iff_grammar`, capstone 7.7) | **Open — forward direction DONE** (2026-08-10): Fix B done, Fix A's accumulation sorry-free and the `L4YAML.Capstones` gate green. What is left is β.5 — retire `pendingFlow` and delete `scannerDrop` (12 escape sites, 4 drop sites as of item 30), then the converse and the biconditional. Per-item record and ordered remainder: [Row 12 — β.5 closure log](#row-12--β5-closure-log) | [Grammar completeness plan](#grammar-completeness-plan) |
 | Merge semantics (`DuplicateKeyPolicy.merge`) | **Open** (design ready; re-base on `LawfulBEq`) | [Merge semantics plan](#merge-semantics-plan) |
 | Security limits: open questions + future work | **Open** (design questions; 3 unimplemented features) | [Security hardening backlog](#security-hardening-backlog) |
 | Limit-enforcement verification, and the rest | **Open** (varied) | [Other open items](#other-open-items) |
@@ -5501,24 +5501,25 @@ invisible to every axis we score. What is left is proof completeness.
 
 | # | Action | Blocks | Where |
 |---|---|---|---|
-| 12 | **β.5 — retire `pendingFlow`, delete `scannerDrop`.** Items 11–29 have closed it one arm at a time; `block_dispatch_deferred` stands at 14 call sites and `scannerDrop` at 4. The per-item record and the ordered list of what is left are in [Row 12 — β.5 closure log](#row-12--β5-closure-log). | Step 5, the converse | ditto |
+| 12 | **β.5 — retire `pendingFlow`, delete `scannerDrop`.** Items 11–30 have closed it one arm at a time; `block_dispatch_deferred` stands at 12 call sites and `scannerDrop` at 4. The per-item record and the ordered list of what is left are in [Row 12 — β.5 closure log](#row-12--β5-closure-log). | Step 5, the converse | ditto |
 | 13 | **Step 5 — the converse** `grammar_completeness`, then **Step 6** the `parse_iff_grammar` biconditional | capstone 7.7 | [Grammar completeness plan](#grammar-completeness-plan) |
 
 Items 1–11 and 18 are closed and their rows deleted; the closure records live
 in the sections below, the blow-by-blow history in git.
 
-The full `lake build` has been GREEN since item 9t (979 targets as of item 29,
+The full `lake build` has been GREEN since item 9t (981 targets as of item 30,
 warning-free), `L4YAML.Capstones` included — what the rest of row 12 buys is
 STRENGTH: the `scannerDrop` constructor is the one remaining hole in what the
-capstones assert. `Tests.Guards` builds at 217 jobs, `Tests.Reflections` at
-429 (R644–R655); matrix event 402/402 · JSON 282/282 on BOTH instrument sets —
-items 15, 16, 17 and 19–29 touched no runtime file, so the matrix is unchanged
+capstones assert. `Tests.Guards` builds at 218 jobs, `Tests.Reflections` at
+430 (R644–R656); matrix event 402/402 · JSON 282/282 on BOTH instrument sets —
+items 15, 16, 17 and 19–30 touched no runtime file, so the matrix is unchanged
 by construction (items 20 and 22's only non-proof edits are `Prop`-valued
-grammar constructors and one added constructor parameter; items 21 and 23–29
+grammar constructors and one added constructor parameter; items 21, 23–30
 edit no grammar at all, their structural edits being a parameter on
 `PendingNode.pendingProps` (24), two `Prop`-valued pack definitions (25), one
-new proof module each (26, 27) and one added conjunct on `ImplicitKeyPack`
-(28) and one on `PropsKeyPack` (29), all in the proof layer).
+new proof module each (26, 27), one added conjunct on `ImplicitKeyPack`
+(28) and one on `PropsKeyPack` (29), and one new grammar-wrap lemma (30), all
+in the proof layer).
 `run-all-tests.sh` verifies 4442/4442 (item 13 retired the last stale pre-9j
 assertion, `{?, ?}` in `ExplicitKeyTests` — Reflection 622's third missed pin;
 item 14 closed the legacy↔indexed plain-scalar walk divergence — a 5,460-input
@@ -6011,25 +6012,69 @@ domain. What still punts at the `:` is the explicit-key clear — the taxonomy's
 third kind, a different production (`[197]`), and the only one it predicts is
 not free.
 
+### Item 30 (2026-08-13)
+
+closed the nested/dedented family, and the first thing it cost was the entry
+above it in this list: neither of the two shapes that entry named is in the
+family. It is selected by the LANDING, so `  - - a` — whose second `-` crosses
+no break — is the INLINE RESIDUE and wants `SBlockIndented.compactSeq`, a
+different production in a different family, and `  a:⏎  - x` parks a
+`pendingMapValue`, which routes to `accum_block_on_closeThenBlock` and makes no
+width comparison at all. What the family actually holds is a break-crossed `-`
+at a width other than the pending's, and **Reflection 656** is why one deferral
+held two of them: `k ≠ n` reads like one condition — one `by_cases`, one escape,
+one argument list — but the negation of an equality on an ORDERED index is
+asymmetric, and `[183] l+block-sequence`'s auto-detected `m` is a DIFFERENCE, so
+the two orders disagree about whether the construct exists at all. `n < k` is a
+nested `[199] s-l+block-collection` filling the node the entry is still awaiting,
+at `m = k - n`; `k < n` is a dedent, where `m` would have to be negative.
+
+The composable half cost one lemma. `nestedBlockSeq` is `rootBlockSeq` with the
+outer index un-pinned and `n ≤ k` as its side condition — and that condition is
+not an extra obligation to go and find (R652's shape) but the case split itself,
+since `n + (k - n) = k` holds exactly where the construct does. `rootBlockSeq`
+becomes its `n = 0` instance and keeps every call site. The new pending is an
+ORDINARY `pendingBlock` at the inner index, so nothing downstream knows it is
+nested: the inner collection snocs its own siblings through item 22's arm, the
+arm fires again one level down, and `-⏎  - a`, `-⏎  -⏎    - a`, `-⏎  -⏎    -⏎
+      - a`, `  -⏎    - a`, `-⏎  - a⏎  - b⏎  - c` and the inner entry's own
+values (`&x a`, `"a"`, `|`, `[1]`, `a: 1`) all compose with entries-level
+fidelity (`ScannerNestedBlockCompose.lean` §§1–2).
+
+The other half cost a LINE, and finding it was the item's second lesson: an
+escape arm's neighbours in the same case split are where its body is likely to
+be sitting already. The `:` and `?` arms of these very two lemmas have taken
+EVERY width since item 13 — `indicator_open_map` closes the pending and re-opens
+at `k` — and only the `-` arm demanded `k = n`, which is a bug report rather
+than a design. Both dedents and the whole of `pendingBlockContent`'s mismatch
+delegate to `accum_block_on_closeThenBlock` verbatim. And the split's ARITY
+turned out to belong to the STATE, not to the gate: `pendingBlockContent`'s
+entry already HAS its node, so there is no hole for the nested reading and its
+mismatch is ONE case, where `pendingBlock`'s is two.
+
+`block_dispatch_deferred` **14 → 12** — the first count this campaign has moved
+since item 21, and the family is gone rather than narrowed; `scannerDrop` holds
+at 4. ZERO grammar edits, ZERO runtime edits, zero new scanner lemmas. What the
+dedent does NOT recover is the entries-level structure of the collection it
+lands back in: that needs a FRAME STACK on the pending, which carries one index
+today, and the derivation it takes instead rides `implicitContinue` — recorded
+in [The over-approximation problem](#the-over-approximation-problem), because
+that constructor is not the faithful `[211]` the section had it down as, and
+Step 5 will meet it.
+
 ### REMAINING, in order
 
 Ordered by what is cheapest AND has a consumer today, not by what is listed
 first anywhere else. `FlowOpenStack` is deliberately NOT first: it is the most
 expensive piece and none of its three parts lands anything on its own.
 
-1. **The nested / dedented collection** (2 escape sites) — an indicator at a
-width other than the pending's, which wants `SBlockIndented.compactSeq` /
-`compactMap` rather than a snoc. Real language (`  - - a`, `  a:⏎  - x`), and
-the only remaining family that composes new SHAPES rather than widening a
-domain.
-
-2. **The TAB branch** (4 escape sites, expected VACUOUS) —
+1. **The TAB branch** (4 escape sites, expected VACUOUS) —
 `gstar_white_sIndent_or_tab`'s right disjunct. The scanner answers
 `tabInIndentation` before any block indicator, so refuting it needs the
 conditional tab check carried through preprocessing; it composes nothing new
 and is worth taking only for the count.
 
-3. **`FlowOpenStack`'s resume type** — three parts, priced by item 25, and the
+2. **`FlowOpenStack`'s resume type** — three parts, priced by item 25, and the
 reason this row still has a `scannerDrop`: the resume's `SFlowContent 0
 .flowOut` and the frame's `SeqFrame 0 (inFlowCtx .flowOut)` are the same
 index, ≈86 literal pins across 31 substantive declarations. (i) couple the
@@ -6043,10 +6088,20 @@ re-derive the multi-line plain and quoted scalar readings at `n`, which inside
 a flow genuinely mention the index. Closes 3 of the 4 `scannerDrop` sites and
 the `  - [1]` / `  - &a [b]` family with them.
 
-4. **The inline residue** (5 escape sites) — a mid-line park crossing no
-break, where `SSLComments` cannot exist — **and then the deletion itself**:
-the `close_with_ssl` arm that calls `scannerDrop` dies with `pendingFlow`, and
-the constructor leaves `Surface/Document.lean`.
+3. **The inline residue** (5 escape sites) — a mid-line park crossing no
+break, where `SSLComments` cannot exist. It owns the COMPACT collection
+(`- - a`, `  - - a`), which item 30 established is this family's and not the
+nested one's, and what that shape wants is
+`SBlockIndented.compactSeq`/`compactMap` — the only alternatives of `[185]`
+with no consumer yet. **And then the deletion itself**: the `close_with_ssl`
+arm that calls `scannerDrop` dies with `pendingFlow`, and the constructor
+leaves `Surface/Document.lean`.
+
+Not on this list, because it is not an escape site: the DEDENT's entries-level
+fidelity. Item 30 derives it through `implicitContinue` rather than by resuming
+the collection it lands back in, which needs a frame stack on a pending that
+carries one index. Step 5 meets it as part of tightening that constructor —
+[The over-approximation problem](#the-over-approximation-problem).
 
 ## The ns-char gap
 
@@ -6221,7 +6276,7 @@ Step 0 (the scanner audit for directive handling) and Fix B (eliminating
 
 | Step | Status |
 |---|---|
-| Fix A: eliminate `scannerDrop` | 🟡 **β.3 and β.4 COMPLETE (2026-08-10)** — `StreamAccum.lean` is sorry-free and the `L4YAML.Capstones` gate is GREEN. β.5 is open: `block_dispatch_deferred` stands at 14 call sites and `scannerDrop` at 4. Per-item record and the ordered list of what is left: [Row 12 — β.5 closure log](#row-12--β5-closure-log) |
+| Fix A: eliminate `scannerDrop` | 🟡 **β.3 and β.4 COMPLETE (2026-08-10)** — `StreamAccum.lean` is sorry-free and the `L4YAML.Capstones` gate is GREEN. β.5 is open: `block_dispatch_deferred` stands at 12 call sites and `scannerDrop` at 4. Per-item record and the ordered list of what is left: [Row 12 — β.5 closure log](#row-12--β5-closure-log) |
 | 1b. Remove `scannerDrop` from `SLYamlStream` | ⬜ open — β.5, once that last use is gone |
 | 5. Prove the converse `grammar_completeness` | ⬜ open — depends on Fix A |
 | 6. Assemble the `parse_iff_grammar` biconditional | ⬜ open — depends on Step 5 |
@@ -6230,11 +6285,11 @@ Step 0 (the scanner audit for directive handling) and Fix B (eliminating
 
 `InYamlLanguage` is defined via `SLYamlStream`
 ([Surface/Document.lean:136](L4YAML/Surface/Document.lean); `InYamlLanguage`
-at :186). Three of its constructors (`single`, `suffixContinue`,
-`implicitContinue`) correspond directly to YAML 1.2.2 §9.1 production [211].
-Two more were **over-approximations** added during the v0.4.6 `scan_strict`
-proof to absorb scanner behaviour that did not map cleanly onto a spec
-production:
+at :186). Two of its constructors (`single`, `suffixContinue`) correspond
+directly to YAML 1.2.2 §9.1 production [211]. The other three are
+**over-approximations**; two were added during the v0.4.6 `scan_strict` proof
+to absorb scanner behaviour that did not map cleanly onto a spec production,
+and the third has been latent since the constructor was written:
 
 - **`directiveDrop`** — absorbed orphaned directives (`%YAML 1.2` with no
   following document). **Removed 2026-08-02.**
@@ -6242,12 +6297,29 @@ production:
   consumed but the grammar could not account for (flow indicators). **Still
   present**, with one live use: the `pendingFlow` arm of
   `PendingNode.close_with_ssl` (`StreamAccum.lean`).
+- **`implicitContinue`** — a document following another with no `---` between
+  them. `[211]`'s repeated group is `( l-document-suffix+ l-document-prefix*
+  l-any-document? | l-document-prefix* l-explicit-document? )`: the alternative
+  that admits a BARE document requires `l-document-suffix+` (a `...` line)
+  first, and the one that needs no suffix admits only an EXPLICIT document.
+  The constructor requires no suffix and takes `SLAnyDocument`, so it admits
+  both — the union of the two alternatives rather than either. **Still
+  present, and load-bearing**: it is how a sibling that closes its pending
+  re-opens at the landing (items 13, 19, 20, 30), so `- "a"⏎  - b` — which the
+  scanner accepts and `parseYaml` rejects with `invalidBareDocument` (§9.2) —
+  still satisfies `InYamlLanguage`. Recorded 2026-08-13 by item 30, which
+  reads the constructor against the production; the section had it down as
+  faithful.
 
 They make `InYamlLanguage` strictly **weaker** than "parseable YAML"
 (`parseable ⊂ InYamlLanguage`): an unclosed `[1, 2` can satisfy
-`InYamlLanguage` through `scannerDrop` while `parseYaml` rejects it. **The
-converse theorem is therefore false as long as `scannerDrop` exists** — which
-is why Fix A comes before Step 5.
+`InYamlLanguage` through `scannerDrop` while `parseYaml` rejects it, and
+`- "a"⏎  - b` does the same through `implicitContinue`. **The converse theorem
+is therefore false as long as either survives** — which is why Fix A comes
+before Step 5. Only `scannerDrop` is row 12's business; `implicitContinue` is a
+tightening (require `l-document-suffix+` for the bare alternative), and its
+consumers are the sibling re-opens row 12 has been building on since item 13,
+so it is Step 5's first piece of work rather than an independent one.
 
 The chosen approach removes the constructors from `SLYamlStream` directly
 rather than defining a parallel strict language: no duplicated grammar, the
@@ -9084,6 +9156,14 @@ side condition is whether the discarded arm has an answer at all).
 
 #### What remains: β.5 (β.3 and β.4 completed 2026-08-10)
 
+> **SNAPSHOT, superseded.** This block records the campaign as it stood at item
+> 25; the live counts, the per-item record and the ordered remainder are in
+> [Row 12 — β.5 closure log](#row-12--β5-closure-log). Its last paragraph
+> schedules the nested collection through `SBlockIndented`'s
+> `compactSeq`/`compactMap` — item 30 showed that is the COMPACT (`- - a`)
+> shape, which belongs to the inline residue, and that the nested collection is
+> `[199]`'s block collection at `[183]`'s auto-detected `m`.
+>
 > **Status (2026-08-12, item 25):** `StreamAccum.lean` is **sorry-free**, the
 > chain is threaded, and the `L4YAML.Capstones` gate is **GREEN** — the full
 > `lake build` passes.  The indexed substrate package landed (item 11), the
