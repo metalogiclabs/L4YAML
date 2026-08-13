@@ -33,6 +33,10 @@ not.
 
 Unlike items 22–30, this item DOES edit runtime files (four scanners, two per
 pipeline).  These are the shapes it moves, and the shapes it must not.
+
+§5 records item 32, which moves none of them: the same verdicts, computed from
+the coordinate `[187]`'s `s-indent(n)` names rather than from the simple-key
+machine's saved position, so that the accumulator's TAB branch can refute.
 -/
 
 namespace Tests.Guards.ScannerTabBeforeBlockEntry
@@ -151,5 +155,42 @@ The `-` arm's own check, and the `col ≤ currentIndent` route in
 #guard refuses "-\t- a\n"
 -- 4EJS, the suite's own "invalid tabs as indentation in a mapping".
 #guard refuses "---\na:\n\tb:\n\t\tc: value\n"
+
+/-! ## §5  The line reading, and what it does not touch (DOCS item 32)
+
+Item 31's check reads the run in front of the ENTRY, which is the simple-key
+machine's `simpleKey.pos` when a key was recorded there — the right verdict in
+a coordinate the grammar accumulation has no coupling for.  Item 32 added the
+same verdict computed from `s.col`: walk back exactly the line's own
+characters, and refuse when every one of them is an `s-white` and one is a tab.
+That is `[63] s-indent(n)`'s own coordinate, and it decides the keyless `:`
+without consulting the key machine at all.
+
+The two readings agree — the whole `yaml-test-suite` is byte-identical per test
+and a 3,267-case tab-shape differential moves nothing in either pipeline — so
+these pins are not new rejections.  They are the shapes that say WHICH reading
+decides, which is what item 32 changed. -/
+
+-- The line reading decides these: nothing on the line but whites, so there is
+-- no key and the run is the entry's `[63] s-indent(n)`.
+#guard refuses "a:\n \t : b\n"            -- the tab need not touch the `:`
+#guard refuses "a:\n  \t\t: b\n"
+#guard refuses "b:\n  a:\n    \t: c\n"    -- at a deeper entry
+-- The KEY reading still decides these: something on the line precedes the `:`,
+-- so the indentation is the run in front of THAT, not in front of the colon.
+#guard refuses "a:\n  \tb\t: c\n"         -- `b\t:` is legal [154]; `␣␣→b` is not
+#guard refuses "a:\n  \t'k': v\n"         -- the third quote form
+-- And neither reading touches these: a tab after `- ` is separation before a
+-- plain scalar, flow context has no `s-indent` at all, and a tab-only line is
+-- `[79] s-l-comments` however far it is indented.
+#guard emits "- a\n- \tb\n"
+  ["+STR", "+DOC", "+SEQ", "=VAL :a", "=VAL :b", "-SEQ", "-DOC", "-STR"]
+#guard emits "{a:\n  \tb}\n"
+  ["+STR", "+DOC", "+MAP {}", "=VAL :a", "=VAL :b", "-MAP", "-DOC", "-STR"]
+#guard emits "[\n  \t1, 2]\n"
+  ["+STR", "+DOC", "+SEQ []", "=VAL :1", "=VAL :2", "-SEQ", "-DOC", "-STR"]
+#guard emits "a: b\n  \t\nc: d\n"
+  ["+STR", "+DOC", "+MAP", "=VAL :a", "=VAL :b", "=VAL :c", "=VAL :d", "-MAP",
+   "-DOC", "-STR"]
 
 end Tests.Guards.ScannerTabBeforeBlockEntry

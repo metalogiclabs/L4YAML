@@ -61,6 +61,42 @@ def ScannerState.hasTabInPrecedingWhitespaceLoop (input : String) (pos : Nat) (f
 def ScannerState.hasTabInPrecedingWhitespace (s : ScannerState) : Bool :=
   ScannerState.hasTabInPrecedingWhitespaceLoop s.input s.offset s.offset
 
+/-- Backward scan over the WHOLE of the current line in front of `pos`: are
+    all `col` characters between the line start and `pos` `s-white`, and is at
+    least one of them a TAB?
+
+    The distinction from `hasTabInPrecedingWhitespaceLoop` is the stopping
+    rule, and it is what makes the answer a statement about `[63] s-indent(n)`
+    rather than about `[66] s-separate-in-line`.  That loop stops at the first
+    non-white and reports the run it walked; this one walks a FIXED `col`
+    characters and reports `false` the moment one of them is not a white.  So
+    `true` says: nothing on this line precedes the token, hence the run in
+    front of it is the line's indentation — and `s-indent` is spaces only.
+
+    Reaching `pos = 0` with `col` still positive is the start of the input,
+    which is a line start too, so the accumulated `sawTab` is the answer
+    there as well. -/
+@[yaml_spec "6.1" 63 "s-indent"]
+def ScannerState.tabInLineIndentLoop (input : String) (pos : Nat) (col : Nat)
+    (sawTab : Bool) : Bool :=
+  match col with
+  | 0 => sawTab
+  | col' + 1 =>
+    if pos == 0 then sawTab
+    else
+      let prevPos := (String.Pos.Raw.prev input ⟨pos⟩).byteIdx
+      let c := String.Pos.Raw.get input ⟨prevPos⟩
+      if c == '\t' then ScannerState.tabInLineIndentLoop input prevPos col' true
+      else if c == ' ' then ScannerState.tabInLineIndentLoop input prevPos col' sawTab
+      else false  -- content on the line: the run is separation, not indentation
+
+/-- `true` when the entire line prefix in front of the current offset is
+    whitespace and a TAB occurs in it — i.e. when the token about to be
+    scanned is indented, and its `[63] s-indent(n)` is not derivable. -/
+@[yaml_spec "6.1" 63 "s-indent"]
+def ScannerState.tabInLineIndent (s : ScannerState) : Bool :=
+  ScannerState.tabInLineIndentLoop s.input s.offset s.col false
+
 /-- Helper for skipWhitespace using structural recursion.
 
     **Termination**: Structurally recursive on `fuel`. -/

@@ -1,0 +1,500 @@
+/-
+Copyright (c) 2026. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+-/
+import L4YAML.Proofs.Coupling.CouplingBridge
+import L4YAML.Proofs.Scanner.ScanStrictCoupling
+import L4YAML.Proofs.Scanner.ScannerWhitespace
+
+/-!
+# The located tab, and the scanner's backward scan (DOCS item 32)
+
+`gstar_white_sIndent_or_tab` splits the whitespace run a step leaves in front
+of a block indicator: either it is `[63] s-indent(k)` — spaces only — or it
+carries a TAB, which `[63]` cannot derive.  Item 31 made the second arm
+REFUTABLE by giving `?` and `:` the §6.1 backward scan `-` already had.  This
+file is the refutation's other half: the arm's tab, LOCATED, is the same
+character the scanner's own backward scan reads.
+
+Three steps, none of which mentions the block indicators:
+
+1. **Runs consume a prefix.**  Every production `[79] s-l-comments` is built
+   from advances the surface position, so its end characters are a suffix of
+   its start characters.  This is what puts the run inside `input.toList`
+   rather than merely beside it — without it, a tab "in the run" and a tab
+   "before the scanner's offset" are statements about different lists.
+2. **The run, as characters.**  A `GStar SSWhite` walk from the landing to the
+   indicator is a list of `s-white`s whose length is the indicator's column
+   (the landing is at column 0), and the located disjunct puts a `'\t'` inside
+   that list.
+3. **The backward walks find it.**  `hasTabInPrecedingWhitespaceLoop` and
+   `tabInLineIndentLoop` step `prev`/`get` exactly the way
+   `peekBack_eq_last_prefix` does, one character at a time, so a run of whites
+   ending at the scanner's offset is walked to its start.
+
+The two loops differ in their stopping rule and so answer different questions:
+the first reports the run it walked (`[66] s-separate-in-line`, which admits a
+tab), the second walks the whole line and reports `false` if anything on it is
+not a white (`[63] s-indent(n)`, which does not).  Both are `true` here,
+because the landing IS the line start.
+-/
+
+set_option autoImplicit false
+
+namespace L4YAML.Proofs.TabIndentBridge
+
+open L4YAML.Surface
+open L4YAML.Scanner
+open L4YAML.Proofs.CouplingBridge
+open L4YAML.Proofs.ScanStrictCoupling
+open L4YAML.Proofs.ScannerWhitespace
+
+/-! ## §1 Surface productions consume a prefix
+
+Stated as `<:+` on the character lists, so the surface run can be identified
+with a segment of `input.toList` rather than compared to it. -/
+
+lemma gstar_suffix {P : SurfPos → SurfPos → Prop} {s s' : SurfPos}
+    (hP : ∀ a b, P a b → b.chars <:+ a.chars) (h : GStar P s s') :
+    s'.chars <:+ s.chars := by
+  induction h with
+  | nil s => exact List.suffix_refl _
+  | cons s₁ s₂ s₃ hp _ ih => exact ih.trans (hP _ _ hp)
+
+lemma gchar_suffix {p : Char → Prop} {a b : SurfPos} (h : GChar p a b) :
+    b.chars <:+ a.chars := by
+  cases h with
+  | mk c rest col _ => exact List.suffix_cons c rest
+
+lemma sswhite_suffix {a b : SurfPos} (h : SSWhite a b) : b.chars <:+ a.chars := by
+  cases h with
+  | space rest col => exact List.suffix_cons ' ' rest
+  | tab rest col => exact List.suffix_cons '\t' rest
+
+lemma sbBreak_suffix {a b : SurfPos} (h : SBBreak a b) : b.chars <:+ a.chars := by
+  cases h with
+  | crLf rest col => exact (List.suffix_cons '\n' rest).trans (List.suffix_cons '\r' _)
+  | cr rest col => exact List.suffix_cons '\r' rest
+  | lf rest col => exact List.suffix_cons '\n' rest
+
+lemma sbComment_suffix {a b : SurfPos} (h : SBComment a b) : b.chars <:+ a.chars := by
+  cases h with
+  | «break» s s' hb => exact sbBreak_suffix hb
+  | eof col => exact List.suffix_refl _
+
+lemma sSeparateInLine_suffix {a b : SurfPos} (h : SSeparateInLine a b) :
+    b.chars <:+ a.chars := by
+  match h with
+  | .whites _ _ hp =>
+    match hp with
+    | .mk _ _ _ hw hs =>
+      exact (gstar_suffix (fun _ _ => sswhite_suffix) hs).trans (sswhite_suffix hw)
+  | .startOfLine _ => exact List.suffix_refl _
+
+lemma scNbCommentText_suffix {a b : SurfPos} (h : SCNbCommentText a b) :
+    b.chars <:+ a.chars := by
+  cases h with
+  | mk rest col s' hg =>
+    exact (gstar_suffix (fun _ _ => gchar_suffix) hg).trans (List.suffix_cons '#' rest)
+
+/-- The `s-separate-in-line` + optional `c-nb-comment-text` + `b-comment`
+    shape both `[76] s-b-comment` and `[78] l-comment` are built from. -/
+private lemma comment_body_suffix {s s₁ s₂ s' : SurfPos}
+    (hsep : SSeparateInLine s s₁) (hopt : GOpt SCNbCommentText s₁ s₂)
+    (hbc : SBComment s₂ s') : s'.chars <:+ s.chars := by
+  refine ((sbComment_suffix hbc).trans ?_).trans (sSeparateInLine_suffix hsep)
+  match hopt with
+  | .none _ => exact List.suffix_refl _
+  | .some _ _ hc => exact scNbCommentText_suffix hc
+
+lemma ssbComment_suffix {a b : SurfPos} (h : SSBComment a b) : b.chars <:+ a.chars := by
+  match h with
+  | .withSep _ _ _ _ hsep hopt hbc => exact comment_body_suffix hsep hopt hbc
+  | .noSep _ _ hbc => exact sbComment_suffix hbc
+
+lemma slComment_suffix {a b : SurfPos} (h : SLComment a b) : b.chars <:+ a.chars := by
+  match h with
+  | .mk _ _ _ _ hsep hopt hbc => exact comment_body_suffix hsep hopt hbc
+
+/-- **`[79] s-l-comments` consumes a prefix.**  The landing a step reaches is
+    a position INSIDE the input, not merely a position whose characters happen
+    to look like a tail of it. -/
+lemma sslComments_suffix {a b : SurfPos} (h : SSLComments a b) : b.chars <:+ a.chars := by
+  cases h with
+  | withComment s s₁ s' hsb hg =>
+    exact (gstar_suffix (fun _ _ => slComment_suffix) hg).trans (ssbComment_suffix hsb)
+  | startOfLine chars s' hg => exact gstar_suffix (fun _ _ => slComment_suffix) hg
+
+/-- The scanner's own surface position is a suffix of its input. -/
+lemma corr_chars_suffix {sc : ScannerState} {sp : SurfPos} (h : ScannerSurfCorr sc sp) :
+    sp.chars <:+ sc.input.toList := by
+  obtain ⟨pre, hsplit, _⟩ := h.input_prefix
+  exact ⟨pre, hsplit.symm⟩
+
+/-! ## §2 The run, as characters -/
+
+/-- A `GStar SSWhite` walk is a list of `s-white`s, and it advances the column
+    by its own length — `[66] s-separate-in-line` measured on the line. -/
+lemma gstar_sswhite_run {s s' : SurfPos} (h : GStar SSWhite s s') :
+    ∃ ws, s.chars = ws ++ s'.chars ∧ (∀ c ∈ ws, c = ' ' ∨ c = '\t') ∧
+          s'.col = s.col + ws.length := by
+  induction h with
+  | nil s => exact ⟨[], by simp, by simp, by simp⟩
+  | cons s₁ s₂ s₃ hw _ ih =>
+    cases hw with
+    | space rest col =>
+      obtain ⟨ws, hch, hwh, hcol⟩ := ih
+      refine ⟨' ' :: ws, by simpa using hch, ?_, by simp at hcol ⊢; omega⟩
+      intro c hc
+      rcases List.mem_cons.mp hc with rfl | hc
+      · exact Or.inl rfl
+      · exact hwh c hc
+    | tab rest col =>
+      obtain ⟨ws, hch, hwh, hcol⟩ := ih
+      refine ⟨'\t' :: ws, by simpa using hch, ?_, by simp at hcol ⊢; omega⟩
+      intro c hc
+      rcases List.mem_cons.mp hc with rfl | hc
+      · exact Or.inr rfl
+      · exact hwh c hc
+
+/-- **The located disjunct, as a character fact.**  The point of locating the
+    tab is exactly this: `'\t' ∈ ws`, where `ws` is the run in front of the
+    indicator — and not `'\t' ∈ s.chars`, which almost every document
+    satisfies and no runtime check can refute. -/
+lemma located_tab_run {s s' : SurfPos}
+    (h : ∃ sa sb, GStar SSWhite s sa ∧ SSWhite sa sb ∧ sa.chars.head? = some '\t' ∧
+                  GStar SSWhite sb s') :
+    ∃ ws, s.chars = ws ++ s'.chars ∧ (∀ c ∈ ws, c = ' ' ∨ c = '\t') ∧ '\t' ∈ ws := by
+  obtain ⟨sa, sb, h1, h2, h3, h4⟩ := h
+  have hsa : sa.chars = '\t' :: sb.chars := by
+    cases h2 with
+    | space rest col => simp at h3
+    | tab rest col => rfl
+  obtain ⟨ws0, hch0, hwh0, _⟩ := gstar_sswhite_run h1
+  obtain ⟨ws1, hch1, hwh1, _⟩ := gstar_sswhite_run h4
+  refine ⟨ws0 ++ '\t' :: ws1, ?_, ?_, ?_⟩
+  · rw [hch0, hsa, hch1]; simp
+  · intro c hc
+    rcases List.mem_append.mp hc with hc | hc
+    · exact hwh0 c hc
+    · rcases List.mem_cons.mp hc with rfl | hc
+      · exact Or.inr rfl
+      · exact hwh1 c hc
+  · exact List.mem_append_right _ (List.mem_cons_self ..)
+
+/-! ## §3 The backward walks read the same characters -/
+
+lemma listByteSize_length_le (l : List Char) : l.length ≤ listByteSize l := by
+  induction l with
+  | nil => simp [listByteSize]
+  | cons c cs ih => have := Char.utf8Size_pos c; simp [listByteSize]; omega
+
+/-- One backward step, at a known character boundary: `prev` lands on the
+    start of the last character of the prefix and `get` recovers it.  The same
+    pair of facts `peekBack_eq_last_prefix` takes, phrased for a prefix given
+    as `pre ++ [c]`. -/
+lemma prev_get_at_concat {input : String} {pre : List Char} {c : Char} {suf : List Char}
+    (hsplit : input.toList = pre ++ c :: suf) :
+    String.Pos.Raw.prev input ⟨listByteSize pre + c.utf8Size⟩ = ⟨listByteSize pre⟩ ∧
+    String.Pos.Raw.get input ⟨listByteSize pre⟩ = c := by
+  constructor
+  · show String.Pos.Raw.utf8PrevAux input.toList 0 ⟨listByteSize pre + c.utf8Size⟩ =
+      ⟨listByteSize pre⟩
+    rw [hsplit]
+    have h := utf8PrevAux_at_boundary pre c suf 0
+    simpa using h
+  · show String.Pos.Raw.utf8GetAux input.toList 0 ⟨listByteSize pre⟩ = c
+    rw [hsplit]
+    have h := utf8GetAux_at_boundary pre c suf (0 : String.Pos.Raw)
+    simpa using h
+
+/-- Peel the last character of a nonempty list. -/
+private lemma exists_concat {l : List Char} (h : l ≠ []) : ∃ l' c, l = l' ++ [c] :=
+  ⟨l.dropLast, l.getLast h, (List.dropLast_concat_getLast h).symm⟩
+
+/-- **`[66]`'s walk finds the tab.**  Walking back from the end of a run of
+    `s-white`s, the loop meets every one of them before it meets anything
+    else, so a tab anywhere in the run is reported. -/
+lemma hasTabLoop_of_run (input : String) :
+    ∀ (fuel : Nat) (pre ws tail : List Char),
+      input.toList = pre ++ ws ++ tail →
+      (∀ c ∈ ws, c = ' ' ∨ c = '\t') → '\t' ∈ ws → ws.length ≤ fuel →
+      ScannerState.hasTabInPrecedingWhitespaceLoop input
+        (listByteSize (pre ++ ws)) fuel = true := by
+  intro fuel
+  induction fuel with
+  | zero =>
+    intro pre ws tail _ _ htab hlen
+    have hnil : ws = [] := List.eq_nil_of_length_eq_zero (by omega)
+    rw [hnil] at htab; simp at htab
+  | succ n ih =>
+    intro pre ws tail hsplit hwh htab hlen
+    have hne : ws ≠ [] := by intro h; rw [h] at htab; simp at htab
+    obtain ⟨ws', c, rfl⟩ := exists_concat hne
+    have hcw : c = ' ' ∨ c = '\t' := hwh c (by simp)
+    have hsplit' : input.toList = (pre ++ ws') ++ c :: tail := by
+      rw [hsplit]; simp
+    have hbs : listByteSize (pre ++ (ws' ++ [c])) = listByteSize (pre ++ ws') + c.utf8Size := by
+      rw [← List.append_assoc, listByteSize_append, listByteSize_append]
+      simp [listByteSize]
+    obtain ⟨hprev, hget⟩ := prev_get_at_concat hsplit'
+    rw [ScannerState.hasTabInPrecedingWhitespaceLoop, hbs]
+    have hpos : ¬ (listByteSize (pre ++ ws') + c.utf8Size = 0) := by
+      have := Char.utf8Size_pos c; omega
+    simp only [beq_iff_eq, if_neg hpos, hprev, hget]
+    rcases hcw with rfl | rfl
+    · -- a space: keep walking, and the tab is still in what is left
+      have htab' : '\t' ∈ ws' := by
+        rcases List.mem_append.mp htab with h | h
+        · exact h
+        · simp at h
+      have hlen' : ws'.length ≤ n := by simp at hlen; omega
+      simpa using ih pre ws' (' ' :: tail) (by simp [hsplit'])
+        (fun x hx => hwh x (List.mem_append_left _ hx)) htab' hlen'
+    · simp
+
+/-- **`[63]`'s walk finds the tab too, and says more.**  It walks the whole
+    line rather than the run, so `true` also certifies that nothing on the
+    line precedes the token — which is what makes the run indentation. -/
+lemma tabInLineIndentLoop_of_run (input : String) :
+    ∀ (m : Nat) (pre ws tail : List Char) (sawTab : Bool),
+      ws.length = m →
+      input.toList = pre ++ ws ++ tail →
+      (∀ c ∈ ws, c = ' ' ∨ c = '\t') → (sawTab = true ∨ '\t' ∈ ws) →
+      ScannerState.tabInLineIndentLoop input (listByteSize (pre ++ ws)) m sawTab = true := by
+  intro m
+  induction m with
+  | zero =>
+    intro pre ws tail sawTab hm _ _ hdisj
+    have hnil : ws = [] := List.eq_nil_of_length_eq_zero hm
+    rw [ScannerState.tabInLineIndentLoop]
+    rcases hdisj with h | h
+    · exact h
+    · rw [hnil] at h; simp at h
+  | succ n ih =>
+    intro pre ws tail sawTab hm hsplit hwh hdisj
+    have hne : ws ≠ [] := by intro h; rw [h] at hm; simp at hm
+    obtain ⟨ws', c, rfl⟩ := exists_concat hne
+    have hcw : c = ' ' ∨ c = '\t' := hwh c (by simp)
+    have hlen' : ws'.length = n := by simp at hm; omega
+    have hsplit' : input.toList = (pre ++ ws') ++ c :: tail := by
+      rw [hsplit]; simp
+    have hbs : listByteSize (pre ++ (ws' ++ [c])) = listByteSize (pre ++ ws') + c.utf8Size := by
+      rw [← List.append_assoc, listByteSize_append, listByteSize_append]
+      simp [listByteSize]
+    obtain ⟨hprev, hget⟩ := prev_get_at_concat hsplit'
+    rw [ScannerState.tabInLineIndentLoop, hbs]
+    have hpos : ¬ (listByteSize (pre ++ ws') + c.utf8Size = 0) := by
+      have := Char.utf8Size_pos c; omega
+    simp only [beq_iff_eq, if_neg hpos, hprev, hget]
+    have hwh' : ∀ x ∈ ws', x = ' ' ∨ x = '\t' :=
+      fun x hx => hwh x (List.mem_append_left _ hx)
+    rcases hcw with rfl | rfl
+    · have hdisj' : sawTab = true ∨ '\t' ∈ ws' := by
+        rcases hdisj with h | h
+        · exact Or.inl h
+        · rcases List.mem_append.mp h with h | h
+          · exact Or.inr h
+          · simp at h
+      simpa using ih pre ws' (' ' :: tail) sawTab hlen' (by simp [hsplit']) hwh' hdisj'
+    · simpa using ih pre ws' ('\t' :: tail) true hlen' (by simp [hsplit']) hwh'
+        (Or.inl rfl)
+
+/-! ## §4 Preprocessing does not change the input string
+
+`ScannerSurfCorr` names `sc.input`, so a suffix fact carried on the state
+BEFORE preprocessing speaks about a different `String` from the one the
+preprocessed state's backward scan reads — unless the two are the same one.
+They are: none of the five functions `skipToContent` descends through writes
+`input`, and neither does `unwindIndents` or `saveSimpleKey`.  The same
+mechanical descent `PreprocessIndentStable` makes for the indent stack. -/
+
+lemma skipSpacesLoop_input (s : ScannerState) (fuel : Nat) :
+    (skipSpacesLoop s fuel).input = s.input := by
+  induction fuel generalizing s with
+  | zero => unfold skipSpacesLoop; rfl
+  | succ fuel' ih =>
+    unfold skipSpacesLoop
+    split
+    · rw [ih, advance_input]
+    · rfl
+
+lemma skipSpaces_input (s : ScannerState) :
+    (skipSpaces s).input = s.input := skipSpacesLoop_input s _
+
+lemma collectCommentTextLoop_input (s : ScannerState) (text : String) (fuel : Nat) :
+    (collectCommentTextLoop s text fuel).2.input = s.input := by
+  induction fuel generalizing s text with
+  | zero => unfold collectCommentTextLoop; rfl
+  | succ fuel' ih =>
+    unfold collectCommentTextLoop
+    split
+    · split
+      · rfl
+      · rw [ih, advance_input]
+    · rfl
+
+lemma skipToContentComment_input (s : ScannerState) :
+    (skipToContentComment s).input = s.input := by
+  unfold skipToContentComment
+  split
+  · simp only []
+    split
+    · split
+      · simp only []
+        rw [collectCommentTextLoop_input, advance_input]
+      · rfl
+    · split
+      · simp only []
+        rw [collectCommentTextLoop_input, advance_input]
+      · rfl
+  · rfl
+
+lemma skipToContentWs_input (s s' : ScannerState)
+    (h : skipToContentWs s = .ok s') : s'.input = s.input := by
+  unfold skipToContentWs at h
+  split at h
+  · simp only [] at h
+    split at h
+    · split at h
+      · split at h
+        · simp at h
+          rw [← h, skipWhitespace_input, skipSpaces_input]
+        · split at h
+          · simp at h
+            rw [← h, skipWhitespace_input, skipSpaces_input]
+          · split at h
+            · simp at h
+              rw [← h, skipWhitespace_input, skipSpaces_input]
+            · simp at h
+        · simp at h
+          rw [← h, skipWhitespace_input, skipSpaces_input]
+      · simp at h
+        rw [← h, skipSpaces_input]
+    · simp at h
+      rw [← h, skipWhitespace_input, skipSpaces_input]
+  · simp at h
+    rw [← h, skipWhitespace_input]
+
+lemma skipToContentLoop_input (s s' : ScannerState) (fuel : Nat)
+    (h : skipToContentLoop s fuel = .ok s') : s'.input = s.input := by
+  induction fuel generalizing s with
+  | zero =>
+    unfold skipToContentLoop at h
+    simp at h; rw [← h]
+  | succ fuel' ih =>
+    unfold skipToContentLoop at h
+    split at h
+    · simp at h
+    · rename_i s1 hws
+      simp only [] at h
+      split at h
+      · split at h
+        · split at h
+          · rw [ih _ h, consumeNewline_preserves_input, skipToContentComment_input]
+            exact skipToContentWs_input s s1 hws
+          · rw [ih _ h, consumeNewline_preserves_input, skipToContentComment_input]
+            exact skipToContentWs_input s s1 hws
+        · simp at h
+          rw [← h, skipToContentComment_input]
+          exact skipToContentWs_input s s1 hws
+      · simp at h
+        rw [← h, skipToContentComment_input]
+        exact skipToContentWs_input s s1 hws
+
+lemma skipToContent_input (s s' : ScannerState) (h : skipToContent s = .ok s') :
+    s'.input = s.input := by
+  unfold skipToContent at h
+  exact skipToContentLoop_input s s' _ h
+
+/-- **The string survives preprocessing.**  The three writers it composes — the
+    walk, the armed unwind, and the key save — all leave `input` alone. -/
+lemma preprocess_input {sc s_prep : ScannerState} {c : Char}
+    (hok : scanNextToken_preprocess sc = .ok (some (s_prep, c))) :
+    s_prep.input = sc.input := by
+  unfold scanNextToken_preprocess at hok
+  simp only [bind, Except.bind, pure, Except.pure] at hok
+  split at hok
+  · simp at hok
+  · rename_i s_content h_skip
+    have h_c : s_content.input = sc.input := skipToContent_input sc s_content h_skip
+    split at hok
+    · simp at hok
+    · split at hok
+      · split at hok
+        · simp at hok
+        · split at hok
+          · simp at hok
+          · have h := Except.ok.inj hok; injection h with h
+            obtain ⟨h1, h2⟩ := Prod.mk.inj h; subst h1; subst h2
+            rw [saveSimpleKey_input]
+            show (unwindIndents s_content ↑s_content.col).input = sc.input
+            unfold unwindIndents
+            rw [unwindIndentsLoop_input]; exact h_c
+      · split at hok
+        · simp at hok
+        · split at hok
+          · simp at hok
+          · have h := Except.ok.inj hok; injection h with h
+            obtain ⟨h1, h2⟩ := Prod.mk.inj h; subst h1; subst h2
+            rw [saveSimpleKey_input]; exact h_c
+
+/-! ## §5 The bridge -/
+
+/-- The scanner's two backward scans, from a run of `s-white`s that ends at
+    its offset and contains a tab. -/
+lemma tab_scans_of_run {sc : ScannerState} {sp_land sp_ind : SurfPos} {ws : List Char}
+    (hcorr : ScannerSurfCorr sc sp_ind)
+    (hsuf : sp_land.chars <:+ sc.input.toList)
+    (hrun : sp_land.chars = ws ++ sp_ind.chars)
+    (hwh : ∀ c ∈ ws, c = ' ' ∨ c = '\t') (htab : '\t' ∈ ws)
+    (hcol : sc.col = ws.length) :
+    sc.hasTabInPrecedingWhitespace = true ∧ sc.tabInLineIndent = true := by
+  obtain ⟨pre, hsplit, hoff⟩ := hcorr.input_prefix
+  obtain ⟨q, hq⟩ := hsuf
+  have heq : pre ++ sp_ind.chars = (q ++ ws) ++ sp_ind.chars := by
+    rw [← hsplit, ← hq, hrun, List.append_assoc]
+  have hpre : pre = q ++ ws := List.append_cancel_right heq
+  have hfull : sc.input.toList = q ++ ws ++ sp_ind.chars := by
+    rw [hsplit, hpre, List.append_assoc]
+  have hoff' : listByteSize (q ++ ws) = sc.offset := by rw [← hpre]; exact hoff
+  have hlen : ws.length ≤ sc.offset := by
+    rw [← hoff', listByteSize_append]
+    have := listByteSize_length_le ws; omega
+  refine ⟨?_, ?_⟩
+  · unfold ScannerState.hasTabInPrecedingWhitespace
+    have h := hasTabLoop_of_run sc.input sc.offset q ws sp_ind.chars hfull hwh htab hlen
+    rwa [hoff'] at h
+  · unfold ScannerState.tabInLineIndent
+    have h := tabInLineIndentLoop_of_run sc.input ws.length q ws sp_ind.chars false rfl hfull hwh
+      (Or.inr htab)
+    rw [hoff'] at h
+    rw [hcol]; exact h
+
+/-- **The refutation, packaged** (item 32).
+
+    The landing is at column 0, the run from it to the indicator is
+    `[66] s-white*` and the located disjunct puts a tab inside it — so both of
+    the scanner's §6.1 scans answer `true`, and every block indicator that
+    reads either of them refuses before the accumulation is reached. -/
+lemma tabIndent_scans_of_located
+    {sc : ScannerState} {sp_land sp_ind : SurfPos}
+    (hcorr : ScannerSurfCorr sc sp_ind)
+    (hsuf : sp_land.chars <:+ sc.input.toList)
+    (hcol0 : sp_land.col = 0)
+    (hws : GStar SSWhite sp_land sp_ind)
+    (htab : ∃ sa sb, GStar SSWhite sp_land sa ∧ SSWhite sa sb ∧
+              sa.chars.head? = some '\t' ∧ GStar SSWhite sb sp_ind) :
+    sc.hasTabInPrecedingWhitespace = true ∧ sc.tabInLineIndent = true := by
+  obtain ⟨ws, hrun, hwh, hmem⟩ := located_tab_run htab
+  obtain ⟨ws2, hrun2, _, hcolrun⟩ := gstar_sswhite_run hws
+  have hwseq : ws = ws2 := List.append_cancel_right (hrun.symm.trans hrun2)
+  have hcol : sc.col = ws.length := by
+    have h1 : sp_ind.col = sp_land.col + ws2.length := hcolrun
+    rw [hcol0] at h1
+    have h2 : sp_ind.col = sc.col := hcorr.col_eq
+    subst hwseq
+    omega
+  exact tab_scans_of_run hcorr hsuf hrun hwh hmem hcol
+
+end L4YAML.Proofs.TabIndentBridge

@@ -17,6 +17,7 @@ import L4YAML.Proofs.Scanner.LineOpenGuard
 import L4YAML.Proofs.Scanner.PropsRunLineCoupling
 import L4YAML.Proofs.Scanner.BlockScalarIndentFloor
 import L4YAML.Proofs.Scanner.PreprocessIndentStable
+import L4YAML.Proofs.Coupling.TabIndentBridge
 
 /-! # Stream Grammar Accumulator (Layer 4d + 4e: Lagging Grammar with Block Stack)
 
@@ -66,6 +67,7 @@ open L4YAML.Proofs.BlockScalarFlowGuard
 open L4YAML.Proofs.BlockScalarIndentFloor
 open L4YAML.Proofs.PreprocessIndentStable
 open L4YAML.Proofs.CouplingBridge
+open L4YAML.Proofs.TabIndentBridge
 open L4YAML.Proofs.ScanStrictCoupling
 open L4YAML.Proofs.ScannerCoupling
 open L4YAML.Proofs.ScalarCoupling
@@ -2262,20 +2264,35 @@ lemma sslComments_refl_of_col0 {sp : SurfPos} (hcol : sp.col = 0) :
 
     This is what replaces the four block-dispatch lemmas' `cases hws` split:
     the `nil` case is not a separate arm, it is `k = 0`, so ONE body serves
-    the column-0 collection and the indented one alike. -/
+    the column-0 collection and the indented one alike.
+
+    **The tab disjunct is LOCATED** (item 32).  It used to read
+    `'\t' ∈ s.chars` — a tab anywhere in the remaining input — while the
+    induction knew exactly where the tab was: inside the run it had just
+    walked.  Weakened that far the disjunct is satisfied by almost every
+    document and cannot be refuted at any price, however hard the scanner is
+    hardened.  Restoring the witness costs nothing, because the `tab` step of
+    the very same induction IS the witness: the run splits as
+    `GStar SSWhite`, that step, `GStar SSWhite`. -/
 lemma gstar_white_sIndent_or_tab {s s' : SurfPos} (h : GStar SSWhite s s') :
-    (∃ k, SIndent k s s') ∨ '\t' ∈ s.chars := by
+    (∃ k, SIndent k s s') ∨
+      ∃ sa sb, GStar SSWhite s sa ∧ SSWhite sa sb ∧ sa.chars.head? = some '\t' ∧
+        GStar SSWhite sb s' := by
   induction h with
   | nil s => exact Or.inl ⟨0, SIndent.zero s⟩
-  | cons s₁ s₂ s₃ hw _ ih =>
+  | cons s₁ s₂ s₃ hw h23 ih =>
     cases hw with
     | space rest col =>
       cases ih with
       | inl h =>
         obtain ⟨k, hk⟩ := h
         exact Or.inl ⟨k + 1, SIndent.succ k rest col s₃ hk⟩
-      | inr h => exact Or.inr (List.mem_cons_of_mem _ h)
-    | tab rest col => exact Or.inr (List.mem_cons_self ..)
+      | inr h =>
+        obtain ⟨sa, sb, h1, h2, h3, h4⟩ := h
+        exact Or.inr ⟨sa, sb, GStar.cons _ _ _ (SSWhite.space rest col) h1, h2, h3, h4⟩
+    | tab rest col =>
+      exact Or.inr ⟨⟨'\t' :: rest, col⟩, ⟨rest, col + 1⟩, GStar.nil _,
+                    SSWhite.tab rest col, rfl, h23⟩
 
 /-- **Where the step LANDS, not where it started** (item 19).
 
@@ -6799,6 +6816,60 @@ lemma block_indicator_exhausted {s s' : ScannerState} {c : Char}
   · exact hmap (Or.inr h)
   · exact hmap (Or.inl h)
 
+/-- **The TAB branch, refuted** (item 32) — the four block-dispatch lemmas'
+    other shared refutation.
+
+    Item 22 read the whites a step leaves in front of the indicator as
+    `[63] s-indent(k)` OR a tab, and deferred the tab: `[63]` is spaces only,
+    so no derivation exists, but the accumulator had no way to say the SCANNER
+    had already refused.  Two things were missing, and item 31 paid the half
+    nobody had priced — only `-` carried the backward scan, so `?` and `:`
+    accepted four families of shape no `[187]` derivation reaches.  What is
+    left is this: the disjunct, LOCATED (`gstar_white_sIndent_or_tab`), is the
+    statement that a tab stands in the run between the landing and the
+    indicator; the landing is at column 0 and preprocessing did not change the
+    string (`preprocess_input`), so that run is the line's indentation inside
+    the very input the scanner walks backwards; and both of the scanner's §6.1
+    scans therefore answer `true` (`tabIndent_scans_of_located`).
+
+    `!inFlow` is a genuine premise rather than a convenience: in a flow
+    collection `[63]` is not in play at all and the tab is legal separation,
+    so the arm is refutable only where the block grammar is the reading.  The
+    caller supplies it from the accumulator's own depth-0 case. -/
+lemma tab_refutes_dispatch {sc s_prep s' : ScannerState} {sp sp_land sp_ind : SurfPos}
+    {c : Char}
+    (h_noflow : s_prep.inFlow = false)
+    (h_corr : ScannerSurfCorr sc sp)
+    (h_ssl : SSLComments sp sp_land)
+    (hcol0 : sp_land.col = 0)
+    (hcorr_prep : ScannerSurfCorr s_prep sp_ind)
+    (hws : GStar SSWhite sp_land sp_ind)
+    (htab : ∃ sa sb, GStar SSWhite sp_land sa ∧ SSWhite sa sb ∧
+              sa.chars.head? = some '\t' ∧ GStar SSWhite sb sp_ind)
+    (h_preprocess : scanNextToken_preprocess sc = .ok (some (s_prep, c)))
+    (h_dispatch : scanNextToken_dispatchBlockIndicators
+        (if s_prep.allowDirectives then
+          { s_prep with allowDirectives := false, documentEverStarted := true }
+        else s_prep) c = .ok (some s')) : False := by
+  have h_inp : s_prep.input = sc.input := preprocess_input h_preprocess
+  have hsuf : sp_land.chars <:+ s_prep.input.toList := by
+    rw [h_inp]; exact (sslComments_suffix h_ssl).trans (corr_chars_suffix h_corr)
+  obtain ⟨h_run, h_line⟩ := tabIndent_scans_of_located hcorr_prep hsuf hcol0 hws htab
+  -- The allow-directives update writes neither the string nor the cursor.
+  have h_fl : (if s_prep.allowDirectives then
+      { s_prep with allowDirectives := false, documentEverStarted := true }
+    else s_prep).inFlow = false := by split <;> exact h_noflow
+  have h_r : (if s_prep.allowDirectives then
+      { s_prep with allowDirectives := false, documentEverStarted := true }
+    else s_prep).hasTabInPrecedingWhitespace = true := by split <;> exact h_run
+  have h_l : (if s_prep.allowDirectives then
+      { s_prep with allowDirectives := false, documentEverStarted := true }
+    else s_prep).tabInLineIndent = true := by split <;> exact h_line
+  rcases dispatchBlockIndicators_indicator_of_some h_dispatch with rfl | rfl | rfl
+  · exact scanBlockEntry_tab_ne h_fl h_r (dispatchBlockIndicators_dash_scan h_dispatch).2
+  · exact scanKey_tab_ne h_fl h_r (dispatchBlockIndicators_key_scan h_dispatch)
+  · exact scanValue_tab_ne h_fl h_l (dispatchBlockIndicators_value_scan h_dispatch)
+
 /-- **`[199] s-l+block-collection` under an entry that is still awaiting its
     node** (item 30) — a NESTED block sequence, at the outer entry's own index.
 
@@ -7252,9 +7323,9 @@ lemma colon_open_map_implicit (sp_start sp_land sp_key sp_gram sp_ws : SurfPos) 
 -- Deferred sorry: constructs pendingFlow with stream evidence.
 -- Concentrates all block-dispatch catch-all sorry into close_with_ssl.
 --
--- What still reaches it, after item 26 kept the block scalar's measured content
--- indent (14 call sites, four families — and the domain is what the claim is,
--- not the count; R645/R646):
+-- What still reaches it, after item 32 refuted the tab branch (8 call sites,
+-- three families — and the domain is what the claim is, not the count;
+-- R645/R646):
 --
 --   * **the inline residue** (5 sites) — a mid-line park that crosses no
 --     break, so nothing can close there (item 19's irreducible remainder).
@@ -7262,11 +7333,6 @@ lemma colon_open_map_implicit (sp_start sp_land sp_key sp_gram sp_ws : SurfPos) 
 --     indented `a: 1` parks mid-line and its `:` cannot close the park, but
 --     it never needed to — the pack re-reads the parked scalar as `[188]`'s
 --     key instead, and only the pack's own column-0 demand had kept it out.
---   * **a TAB where `[63] s-indent` wants spaces** (4 sites) — the other
---     disjunct of `gstar_white_sIndent_or_tab`.  For a BLOCK indicator the
---     scanner refuses first (`tabInIndentation`), so this is expected
---     VACUOUS in the sense of Reflection 646; refuting it needs the
---     scanner's conditional tab check carried through preprocessing.
 --   * **an indicator at a width other than the collection's** (2 sites) — a
 --     NESTED or dedented collection, which needs `SBlockIndented`'s own
 --     `compactSeq`/`compactMap` arms rather than a snoc.
@@ -7308,7 +7374,10 @@ lemma colon_open_map_implicit (sp_start sp_land sp_key sp_gram sp_ws : SurfPos) 
 -- content-indent floor, because `skipToContent` never writes the indent stack
 -- and the indicator pushed at its own column), and the block scalar under an
 -- indented IMPLICIT KEY (item 28 — the push is measured at the key's column,
--- which the pack already carried as `[63] s-indent(k)`).
+-- which the pack already carried as `[63] s-indent(k)`), and **a TAB where
+-- `[63] s-indent` wants spaces** (item 32 — the disjunct, LOCATED, names a
+-- character inside the run the scanner walks backwards, and all three
+-- indicators refuse it: see `tab_refutes_dispatch`).
 lemma block_dispatch_deferred
     (sp_start sp_X sp_scan' : SurfPos) (s' : ScannerState)
     (h_stream : SLYamlStream sp_start sp_X)
@@ -7334,6 +7403,7 @@ lemma accum_block_on_noPending
     (hcorr_prep : ScannerSurfCorr s_prep sp_prep)
     (hcorr_result : ScannerSurfCorr s' sp_scan')
     (h_corr : ScannerSurfCorr sc sp_block)
+    (h_noflow : s_prep.inFlow = false)
     (h_preprocess : scanNextToken_preprocess sc = .ok (some (s_prep, c)))
     (h_dispatch : scanNextToken_dispatchBlockIndicators
         (if s_prep.allowDirectives then
@@ -7364,13 +7434,16 @@ lemma accum_block_on_noPending
   -- collection's own indentation, so `nil` is not a separate arm — it is
   -- `k = 0`.  What the `cases hws` split used to send to the deferral is now
   -- this lemma's OTHER disjunct alone: a tab, which `[63] s-indent` forbids.
-  refine (gstar_white_sIndent_or_tab hws).elim (fun h_ind => ?_) (fun _ =>
-    block_dispatch_deferred sp_start sp_block sp_scan' s' h_stream_block hcorr_result)
-  obtain ⟨k, h_ind⟩ := h_ind
   -- Preprocessing stopped ON the indicator, so it stopped where the whites
   -- ended: `hcmt` is `none`-shaped and the comment case never arises.
   have h_eq := h_pk.resolve_right (by simp [preprocess_some_peek h_preprocess])
   subst h_eq
+  -- Item 32: the tab disjunct is LOCATED, so it names a character inside the
+  -- run the scanner walks backwards — and every indicator refuses it there.
+  refine (gstar_white_sIndent_or_tab hws).elim (fun h_ind => ?_) (fun h_tab =>
+    (tab_refutes_dispatch h_noflow h_corr h_ssl_pre hcol_mid hcorr_prep hws h_tab
+      h_preprocess h_dispatch).elim)
+  obtain ⟨k, h_ind⟩ := h_ind
   by_cases hc : c = '-'
   · subst hc
     have hpeek_disp : (if s_prep.allowDirectives then
@@ -7438,6 +7511,7 @@ lemma accum_block_on_closeThenBlock
     (hcorr_prep : ScannerSurfCorr s_prep sp_prep)
     (hcorr_result : ScannerSurfCorr s' sp_scan')
     (h_corr : ScannerSurfCorr sc sp_scan)
+    (h_noflow : s_prep.inFlow = false)
     (h_preprocess : scanNextToken_preprocess sc = .ok (some (s_prep, c)))
     (h_dispatch : scanNextToken_dispatchBlockIndicators
         (if s_prep.allowDirectives then
@@ -7466,11 +7540,13 @@ lemma accum_block_on_closeThenBlock
   have h_stream_new := h_close_pending sp_mid h_ssl
   -- Item 22: the whites before the indicator are the collection's own
   -- indentation; `nil` is `k = 0`, and only a tab still defers.
-  refine (gstar_white_sIndent_or_tab hws).elim (fun h_ind => ?_) (fun _ =>
-    block_dispatch_deferred sp_start sp_mid sp_scan' s' h_stream_new hcorr_result)
-  obtain ⟨k, h_ind⟩ := h_ind
   have h_eq := h_pk.resolve_right (by simp [preprocess_some_peek h_preprocess])
   subst h_eq
+  -- Item 32: the tab is located in that run, and the scanner refused it.
+  refine (gstar_white_sIndent_or_tab hws).elim (fun h_ind => ?_) (fun h_tab =>
+    (tab_refutes_dispatch h_noflow h_corr h_ssl hcol_mid hcorr_prep hws h_tab
+      h_preprocess h_dispatch).elim)
+  obtain ⟨k, h_ind⟩ := h_ind
   by_cases hc : c = '-'
   · subst hc
     have hpeek_disp : (if s_prep.allowDirectives then
@@ -7544,6 +7620,7 @@ lemma accum_block_on_pendingContent
     (hcorr_prep : ScannerSurfCorr s_prep sp_prep)
     (hcorr_result : ScannerSurfCorr s' sp_scan')
     (h_corr : ScannerSurfCorr sc sp_scan)
+    (h_noflow : s_prep.inFlow = false)
     (h_preprocess : scanNextToken_preprocess sc = .ok (some (s_prep, c)))
     (h_dispatch : scanNextToken_dispatchBlockIndicators
         (if s_prep.allowDirectives then
@@ -7563,7 +7640,7 @@ lemma accum_block_on_pendingContent
         | inr _ =>
           exact accum_block_on_closeThenBlock sc sp_start sp_block_ctx sp_scan s_prep s' ':'
             sp_prep sp_scan' h_close_pending h_stream_fallback hcorr_prep hcorr_result
-            h_corr h_preprocess h_dispatch
+            h_corr h_noflow h_preprocess h_dispatch
         | inl pack =>
           obtain ⟨k, sp_land, sp_key, sp_gram, hcol0, h_stream_key, h_ind, h_ol, h_tws,
                   h_kcol⟩ := pack
@@ -7583,7 +7660,7 @@ lemma accum_block_on_pendingContent
             -- let the `:` open the EMPTY-key entry (`x⏎: v`).
             exact accum_block_on_closeThenBlock sc sp_start sp_block_ctx sp_scan s_prep s' ':'
               sp_prep sp_scan' h_close_pending h_stream_fallback hcorr_prep hcorr_result
-              h_corr h_preprocess h_dispatch
+              h_corr h_noflow h_preprocess h_dispatch
           | inr h_mid =>
             -- Same line: chain the `:` step's own whites onto the pack's tail
             -- and open the mapping at the key.
@@ -7595,13 +7672,13 @@ lemma accum_block_on_pendingContent
               (implicit_key_floor h_poss h_kcol h_preprocess h_dispatch)
       · exact accum_block_on_closeThenBlock sc sp_start sp_block_ctx sp_scan s_prep s' ':'
           sp_prep sp_scan' h_close_pending h_stream_fallback hcorr_prep hcorr_result
-          h_corr h_preprocess h_dispatch
+          h_corr h_noflow h_preprocess h_dispatch
     · exact accum_block_on_closeThenBlock sc sp_start sp_block_ctx sp_scan s_prep s' ':'
         sp_prep sp_scan' h_close_pending h_stream_fallback hcorr_prep hcorr_result
-        h_corr h_preprocess h_dispatch
+        h_corr h_noflow h_preprocess h_dispatch
   · exact accum_block_on_closeThenBlock sc sp_start sp_block_ctx sp_scan s_prep s' c
       sp_prep sp_scan' h_close_pending h_stream_fallback hcorr_prep hcorr_result
-      h_corr h_preprocess h_dispatch
+      h_corr h_noflow h_preprocess h_dispatch
 
 -- Block dispatch with pendingBlockContent: accumulate entries via h_entry_old.
 -- Item 22: the entry index `n` is the pending's own, not a hardcoded 0 — a
@@ -7621,6 +7698,7 @@ lemma accum_block_on_pendingBlockContent
     (hcorr_prep : ScannerSurfCorr s_prep sp_prep)
     (hcorr_result : ScannerSurfCorr s' sp_scan')
     (h_corr : ScannerSurfCorr sc sp_scan)
+    (h_noflow : s_prep.inFlow = false)
     (h_preprocess : scanNextToken_preprocess sc = .ok (some (s_prep, c)))
     (h_dispatch : scanNextToken_dispatchBlockIndicators
         (if s_prep.allowDirectives then
@@ -7643,12 +7721,13 @@ lemma accum_block_on_pendingBlockContent
     block_dispatch_deferred sp_start sp_block_ctx sp_scan' s'
       h_stream_fallback hcorr_result)
   obtain ⟨h_ssl, hcol_mid⟩ := h_landed
-  refine (gstar_white_sIndent_or_tab hws).elim (fun h_ind => ?_) (fun _ =>
-    block_dispatch_deferred sp_start sp_mid sp_scan' s'
-      (h_close_pending sp_mid h_ssl) hcorr_result)
-  obtain ⟨k, h_ind⟩ := h_ind
   have h_eq := h_pk.resolve_right (by simp [preprocess_some_peek h_preprocess])
   subst h_eq
+  -- Item 32: the tab is located in that run, and the scanner refused it.
+  refine (gstar_white_sIndent_or_tab hws).elim (fun h_ind => ?_) (fun h_tab =>
+    (tab_refutes_dispatch h_noflow h_corr h_ssl hcol_mid hcorr_prep hws h_tab
+      h_preprocess h_dispatch).elim)
+  obtain ⟨k, h_ind⟩ := h_ind
   by_cases hc : c = '-'
   · subst hc
     -- The snoc index is the collection's; a `-` at a DIFFERENT indentation
@@ -7693,7 +7772,7 @@ lemma accum_block_on_pendingBlockContent
       -- indicator siblings have used at every width since item 13.
       exact accum_block_on_closeThenBlock sc sp_start sp_block_ctx sp_scan s_prep s' '-'
         _ sp_scan' h_close_pending h_stream_fallback hcorr_prep hcorr_result
-        h_corr h_preprocess h_dispatch
+        h_corr h_noflow h_preprocess h_dispatch
   · -- c ≠ '-' at the landing: a ':' opens `[189]`'s empty-key entry there
     -- (item 13), a '?' opens `[186]`'s explicit-key one (item 20) — one arm.
     by_cases hcv : c = ':' ∨ c = '?'
@@ -7717,6 +7796,7 @@ lemma accum_block_on_pendingBlock
     (hcorr_prep : ScannerSurfCorr s_prep sp_prep)
     (hcorr_result : ScannerSurfCorr s' sp_scan')
     (h_corr : ScannerSurfCorr sc sp_scan)
+    (h_noflow : s_prep.inFlow = false)
     (h_preprocess : scanNextToken_preprocess sc = .ok (some (s_prep, c)))
     (h_dispatch : scanNextToken_dispatchBlockIndicators
         (if s_prep.allowDirectives then
@@ -7739,12 +7819,13 @@ lemma accum_block_on_pendingBlock
     block_dispatch_deferred sp_start sp_block_ctx sp_scan' s'
       h_stream_fallback hcorr_result)
   obtain ⟨h_ssl, hcol_mid⟩ := h_landed
-  refine (gstar_white_sIndent_or_tab hws).elim (fun h_ind => ?_) (fun _ =>
-    block_dispatch_deferred sp_start sp_mid sp_scan' s'
-      (h_close_pending sp_mid h_ssl) hcorr_result)
-  obtain ⟨k, h_ind⟩ := h_ind
   have h_eq := h_pk.resolve_right (by simp [preprocess_some_peek h_preprocess])
   subst h_eq
+  -- Item 32: the tab is located in that run, and the scanner refused it.
+  refine (gstar_white_sIndent_or_tab hws).elim (fun h_ind => ?_) (fun h_tab =>
+    (tab_refutes_dispatch h_noflow h_corr h_ssl hcol_mid hcorr_prep hws h_tab
+      h_preprocess h_dispatch).elim)
+  obtain ⟨k, h_ind⟩ := h_ind
   by_cases hc : c = '-'
   · subst hc
     -- Item 22: `[72] e-node` closes the previous entry at whatever indent the
@@ -7839,7 +7920,7 @@ lemma accum_block_on_pendingBlock
         -- the sequence at `k` as `[211]`'s document continuation.
         exact accum_block_on_closeThenBlock sc sp_start sp_block_ctx sp_scan s_prep s' '-'
           _ sp_scan' h_close_pending h_stream_fallback hcorr_prep hcorr_result
-          h_corr h_preprocess h_dispatch
+          h_corr h_noflow h_preprocess h_dispatch
   · -- c ≠ '-' at the landing: a ':' opens `[189]`'s empty-key entry there
     -- (item 13), a '?' opens `[186]`'s explicit-key one (item 20) — one arm.
     by_cases hcv : c = ':' ∨ c = '?'
@@ -7856,6 +7937,7 @@ lemma accum_block_pending (sc : ScannerState)
     (h_stream_block : SLYamlStream sp_start sp_block)
     (h_pending : PendingNode sc false sp_start sp_block sp_scan)
     (h_corr : ScannerSurfCorr sc sp_scan)
+    (h_noflow : s_prep.inFlow = false)
     (h_preprocess : scanNextToken_preprocess sc = .ok (some (s_prep, c)))
     (h_dispatch : scanNextToken_dispatchBlockIndicators
         (if s_prep.allowDirectives then
@@ -7877,34 +7959,34 @@ lemma accum_block_pending (sc : ScannerState)
   cases h_pending with
   | noPending =>
     exact accum_block_on_noPending sc sp_start sp_block s_prep s' c sp_prep sp_scan'
-      h_stream_block hcorr_prep hcorr_result h_corr h_preprocess h_dispatch
+      h_stream_block hcorr_prep hcorr_result h_corr h_noflow h_preprocess h_dispatch
   | pendingDocEnd _ _
   | pendingDocStart _ =>
     all_goals
       exact accum_block_on_closeThenBlock sc sp_start sp_block sp_scan s_prep s' c sp_prep sp_scan'
-        h_close_pending h_stream_block hcorr_prep hcorr_result h_corr h_preprocess h_dispatch
+        h_close_pending h_stream_block hcorr_prep hcorr_result h_corr h_noflow h_preprocess h_dispatch
   | pendingContent _ _ _ _ _ h_key =>
     -- Item 15: the same-line `:` may fire the implicit-key coupling.
     exact accum_block_on_pendingContent sc sp_start sp_block sp_scan s_prep s' c sp_prep sp_scan'
-      h_close_pending h_key h_stream_block hcorr_prep hcorr_result h_corr h_preprocess h_dispatch
+      h_close_pending h_key h_stream_block hcorr_prep hcorr_result h_corr h_noflow h_preprocess h_dispatch
   | pendingProps _ _ _
   | pendingFlow _
   | pendingMapValue _ _ =>
     all_goals
       exact accum_block_on_closeThenBlock sc sp_start sp_block sp_scan s_prep s' c sp_prep sp_scan'
-        h_close_pending h_stream_block hcorr_prep hcorr_result h_corr h_preprocess h_dispatch
+        h_close_pending h_stream_block hcorr_prep hcorr_result h_corr h_noflow h_preprocess h_dispatch
   | pendingBlockContent =>
     -- Item 22: the pending's own entry index rides through; the `n ≠ 0`
     -- deferral this arm used to open is gone with it.
     rename_i n_old _ _ h_entry_old
     exact accum_block_on_pendingBlockContent sc sp_start sp_block sp_block sp_scan s_prep s' c
       sp_prep sp_scan' n_old h_stream_block h_close_pending h_stream_block h_entry_old
-      hcorr_prep hcorr_result h_corr h_preprocess h_dispatch
+      hcorr_prep hcorr_result h_corr h_noflow h_preprocess h_dispatch
   | pendingBlock =>
     rename_i n_old _ _ h_close_entry_old
     exact accum_block_on_pendingBlock sc sp_start sp_block sp_block sp_scan s_prep s' c sp_prep
       sp_scan' n_old h_stream_block h_close_pending h_stream_block h_close_entry_old
-      hcorr_prep hcorr_result h_corr h_preprocess h_dispatch
+      hcorr_prep hcorr_result h_corr h_noflow h_preprocess h_dispatch
 
 lemma accum_step_block (sc : ScannerState)
     (sp_start sp_gram sp_block sp_flow sp_scan : SurfPos)
@@ -7946,10 +8028,17 @@ lemma accum_step_block (sc : ScannerState)
           ScannerFlowStack.preprocess_preserves_flowStack sc s_prep c h_preprocess]
       exact h_flow.kinds_nil_of_depth_zero
     rw [h_lvl, h_ks]
+    -- Item 32: the accumulator's depth-0 case IS `!inFlow` on the preprocessed
+    -- state — the tab branch is refutable only where `[63] s-indent` is the
+    -- reading, and this is where the caller knows that it is.
+    have h_noflow : s_prep.inFlow = false := by
+      unfold ScannerState.inFlow
+      rw [preprocess_preserves_flowLevel sc s_prep c h_preprocess, h0]
+      simp
     obtain ⟨g', bl', fl', sn', q1, q2, q3, q4, q5⟩ :=
       accum_block_pending sc sp_start sp_flow sp_scan s_prep s' c
         (absorb_stacksB sp_start sp_gram sp_block sp_flow h_stream h_stack h_flow)
-        (h_pending h0) h_corr h_preprocess h_dispatch
+        (h_pending h0) h_corr h_noflow h_preprocess h_dispatch
     exact ⟨g', bl', fl', sn', q1, q2, ⟨#[], q3.retail, fun h => absurd h (by omega)⟩, fun _ => q4, q5,
            fun h => absurd h (by omega)⟩
   · -- ═══ DEPTH ≥ 1: three arms — one free, one BUILT here, one NOT. ═══

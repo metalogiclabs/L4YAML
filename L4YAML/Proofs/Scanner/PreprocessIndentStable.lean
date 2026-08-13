@@ -918,4 +918,62 @@ lemma dispatchContent_props_indents {s s' : ScannerState} {c : Char}
     · simp at hok
     · exact scanTag_preserves_indents hok
 
+/-! ## §7  A tab in the indentation refuses, in every arm (DOCS item 32)
+
+`[63] s-indent(n)` is spaces only, and all three block indicators stand
+directly after one — `[184]`'s own entry for `-`, `[191]`'s for `?`, and for a
+keyless `:` either `[192]`'s `e-node` entry or `[195]`'s explicit value.  Each
+scanner says so, and this is the form the accumulator's tab branch reads: a
+successful dispatch is impossible.  The `-` arm has carried its scan since Step
+5b.2, the `?` and `:` arms since item 31. -/
+
+/-- `?` and `-` read the run in front of the indicator (`[66]`'s walk); `:`
+    reads the whole line (`[63]`'s), because the run in front of a keyless `:`
+    IS the entry's indentation. -/
+lemma scanBlockEntry_tab_ne {s s' : ScannerState}
+    (h_noflow : s.inFlow = false) (htab : s.hasTabInPrecedingWhitespace = true) :
+    scanBlockEntry s ≠ .ok s' := by
+  intro hok
+  unfold scanBlockEntry at hok
+  simp only [bind, Except.bind, h_noflow, Bool.not_false, if_true, htab] at hok
+  simp at hok
+
+lemma scanKey_tab_ne {s s' : ScannerState}
+    (h_noflow : s.inFlow = false) (htab : s.hasTabInPrecedingWhitespace = true) :
+    scanKey s ≠ .ok s' := by
+  intro hok
+  unfold scanKey at hok
+  simp only [bind, Except.bind, h_noflow, Bool.not_false, if_true, htab] at hok
+  simp at hok
+
+/-- `scanValueClearKey` writes `simpleKey` and nothing else, so the two scans
+    read the same string, offset and column on either side of it. -/
+lemma scanValueClearKey_scan_fields (s : ScannerState) :
+    (scanValueClearKey s).inFlow = s.inFlow ∧
+    (scanValueClearKey s).tabInLineIndent = s.tabInLineIndent ∧
+    (scanValueClearKey s).line = s.line ∧ (scanValueClearKey s).col = s.col := by
+  unfold scanValueClearKey ScannerState.tabInLineIndent ScannerState.inFlow
+  split <;> (try split) <;> (try split) <;> exact ⟨rfl, rfl, rfl, rfl⟩
+
+lemma scanValueIndentTabCheck_tab {s : ScannerState}
+    (h_noflow : s.inFlow = false) (htab : s.tabInLineIndent = true) :
+    scanValueIndentTabCheck s = .error (.tabInIndentation s.line s.col) := by
+  unfold scanValueIndentTabCheck
+  simp only [h_noflow, htab, Bool.false_eq_true, if_false, if_true]
+  rfl
+
+lemma scanValue_tab_ne {s s' : ScannerState}
+    (h_noflow : s.inFlow = false) (htab : s.tabInLineIndent = true) :
+    scanValue s ≠ .ok s' := by
+  intro hok
+  obtain ⟨h_fl, h_tab, _, _⟩ := scanValueClearKey_scan_fields s
+  have h_check := scanValueIndentTabCheck_tab (s := scanValueClearKey s)
+    (by rw [h_fl]; exact h_noflow) (by rw [h_tab]; exact htab)
+  unfold scanValue at hok
+  simp only [bind, Except.bind] at hok
+  split at hok
+  · simp at hok
+  · rw [h_check] at hok
+    simp at hok
+
 end L4YAML.Proofs.PreprocessIndentStable

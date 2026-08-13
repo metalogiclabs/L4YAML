@@ -482,7 +482,11 @@ def isValueCandidateIx {input : String} (s : ScannerStateIx input) : Bool :=
 `scanBlockEntryIx` (`-`), `scanKeyIx` (`?`), `scanValueIx` (`:`).
 All three carry the legacy tab-in-indentation check (§6.1 [187] hardening —
 `-` landed in Step 5b.2, `?` and `:` with DOCS item 31, which found that the
-whitespace in front of a block indicator was only checked for the `-`). -/
+whitespace in front of a block indicator was only checked for the `-`).  DOCS
+item 32 added `:`'s second reading, `tabInLineIndent`: when the whole line in
+front of the `:` is whitespace there is no key on it, so the run IS
+`[63] s-indent(n)` — the same verdict, taken from the line rather than from
+where a key happens to have been recorded. -/
 
 /-- Scan `-` block-entry indicator.
 
@@ -627,6 +631,8 @@ def scanValuePrepareIx {input : String} (s : ScannerStateIx input) :
 def scanValueIndentTabCheckIx {input : String} (s : ScannerStateIx input) :
     Except ScanError Unit :=
   if s.inFlow then .ok ()
+  else if s.tabInLineIndent then
+    throw (.tabInIndentation s.cursor.pos.line s.cursor.pos.col)
   else if s.simpleKey.possible then
     if ScannerStateIx.hasTabInPrecedingWhitespaceLoop
         input s.simpleKey.cursor.pos.offset s.simpleKey.cursor.pos.offset then

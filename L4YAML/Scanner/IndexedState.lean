@@ -379,6 +379,30 @@ def hasTabInPrecedingWhitespace {input : String}
     (s : ScannerStateIx input) : Bool :=
   hasTabInPrecedingWhitespaceLoop input s.cursor.pos.offset s.cursor.pos.offset
 
+/-- Indexed analogue of `ScannerState.tabInLineIndentLoop`: walk a FIXED `col`
+    characters back, and report `false` the moment one of them is not an
+    `s-white`.  `true` therefore says the run in front of the token is the
+    line's own `[63] s-indent(n)`, and that it contains a tab. -/
+@[yaml_spec "6.1" 63 "s-indent"]
+def tabInLineIndentLoop (input : String) (pos : Nat) (col : Nat)
+    (sawTab : Bool) : Bool :=
+  match col with
+  | 0 => sawTab
+  | col' + 1 =>
+    if pos == 0 then sawTab
+    else
+      let prevPos := (String.Pos.Raw.prev input ⟨pos⟩).byteIdx
+      let c := String.Pos.Raw.get input ⟨prevPos⟩
+      if c == '\t' then tabInLineIndentLoop input prevPos col' true
+      else if c == ' ' then tabInLineIndentLoop input prevPos col' sawTab
+      else false
+
+/-- `true` when the entire line prefix in front of the cursor is whitespace
+    and a TAB occurs in it. -/
+@[yaml_spec "6.1" 63 "s-indent"]
+def tabInLineIndent {input : String} (s : ScannerStateIx input) : Bool :=
+  tabInLineIndentLoop input s.cursor.pos.offset s.cursor.pos.col false
+
 end ScannerStateIx
 
 end L4YAML.Scanner.Indexed

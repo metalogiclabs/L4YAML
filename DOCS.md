@@ -5484,7 +5484,7 @@ lives in [README.md](README.md) and is not duplicated here.)
 
 | Item | Status | Section |
 |---|---|---|
-| Grammar completeness (`parse_iff_grammar`, capstone 7.7) | **Open — forward direction DONE** (2026-08-10): Fix B done, Fix A's accumulation sorry-free and the `L4YAML.Capstones` gate green. What is left is β.5 — retire `pendingFlow` and delete `scannerDrop` (12 escape sites, 4 drop sites as of item 31) — then **tighten `implicitContinue`**, the third over-approximation (found 2026-08-13 by item 30; 17 construction sites, not yet priced), and only then the converse and the biconditional. Per-item record and ordered remainder: [Row 12 — β.5 closure log](#row-12--β5-closure-log); the third constructor: [The over-approximation problem](#the-over-approximation-problem) | [Grammar completeness plan](#grammar-completeness-plan) |
+| Grammar completeness (`parse_iff_grammar`, capstone 7.7) | **Open — forward direction DONE** (2026-08-10): Fix B done, Fix A's accumulation sorry-free and the `L4YAML.Capstones` gate green. What is left is β.5 — retire `pendingFlow` and delete `scannerDrop` (8 escape sites, 4 drop sites as of item 32) — then **tighten `implicitContinue`**, the third over-approximation (found 2026-08-13 by item 30; 17 construction sites, not yet priced), and only then the converse and the biconditional. Per-item record and ordered remainder: [Row 12 — β.5 closure log](#row-12--β5-closure-log); the third constructor: [The over-approximation problem](#the-over-approximation-problem) | [Grammar completeness plan](#grammar-completeness-plan) |
 | Merge semantics (`DuplicateKeyPolicy.merge`) | **Open** (design ready; re-base on `LawfulBEq`) | [Merge semantics plan](#merge-semantics-plan) |
 | Security limits: open questions + future work | **Open** (design questions; 3 unimplemented features) | [Security hardening backlog](#security-hardening-backlog) |
 | Limit-enforcement verification, and the rest | **Open** (varied) | [Other open items](#other-open-items) |
@@ -5501,26 +5501,33 @@ invisible to every axis we score. What is left is proof completeness.
 
 | # | Action | Blocks | Where |
 |---|---|---|---|
-| 12 | **β.5 — retire `pendingFlow`, delete `scannerDrop`.** Items 11–31 have closed it one arm at a time; `block_dispatch_deferred` stands at 12 call sites and `scannerDrop` at 4. Item 31 is the campaign's first RUNTIME edit: the TAB branch was priced "expected vacuous" and was not — only the `-` indicator carried the scanner's tab-in-indentation check, and `?`/`:` accepted four shapes no `[187]` derivation reaches. The per-item record and the ordered list of what is left are in [Row 12 — β.5 closure log](#row-12--β5-closure-log). | Step 5, the converse | ditto |
+| 12 | **β.5 — retire `pendingFlow`, delete `scannerDrop`.** Items 11–32 have closed it one arm at a time; `block_dispatch_deferred` stands at 8 call sites and `scannerDrop` at 4. Items 31–32 are the campaign's only RUNTIME edits and they are one story: the TAB branch was priced "expected vacuous" and was not — only the `-` indicator carried the scanner's tab-in-indentation check, so `?`/`:` accepted four shapes no `[187]` derivation reaches (31) — and refuting it then needed the check restated in `[63] s-indent(n)`'s own coordinate, `tabInLineIndent`, verdict-preserving on the whole suite and on a 3,267-case differential (32). Two families are left: the inline residue (5) and `FlowOpenStack`'s resume type (3, plus all four `scannerDrop` sites). The per-item record and the ordered list are in [Row 12 — β.5 closure log](#row-12--β5-closure-log). | Step 5, the converse | ditto |
 | 19 | **Tighten `implicitContinue`** — the THIRD over-approximation of `[211]`, found 2026-08-13 by item 30 and not yet priced. It requires no `l-document-suffix+` and takes `SLAnyDocument`, so it admits a BARE document after another with no `...`: `- "a"⏎  - b` satisfies `InYamlLanguage` while `parseYaml` rejects it (`invalidBareDocument`, §9.2). It falsifies the converse exactly as `scannerDrop` does. 17 construction sites — one in `DocumentProduction` (`stream_implicit_continue`), already legal because it passes an EXPLICIT document, and 16 in `StreamAccum`, every one passing `SLAnyDocument.bare`. Nothing DEFERS to it, so it is not an escape site and not row 12's business; it comes after row 12 only because row 12's remaining items still edit those 16 sites. | Step 5, the converse | [The over-approximation problem](#the-over-approximation-problem) |
 | 13 | **Step 5 — the converse** `grammar_completeness` — blocked on rows 12 AND 19, since the converse is false while either over-approximation stands — then **Step 6** the `parse_iff_grammar` biconditional | capstone 7.7 | [Grammar completeness plan](#grammar-completeness-plan) |
 
 Items 1–11 and 18 are closed and their rows deleted; the closure records live
 in the sections below, the blow-by-blow history in git.
 
-The full `lake build` has been GREEN since item 9t (981 targets as of item 30,
+The full `lake build` has been GREEN since item 9t (986 targets as of item 32,
 warning-free), `L4YAML.Capstones` included — what the rest of row 12 buys is
 STRENGTH: the `scannerDrop` constructor is the one remaining hole in what the
-capstones assert. `Tests.Guards` builds at 218 jobs, `Tests.Reflections` at
-430 (R644–R656); matrix event 402/402 · JSON 282/282 on BOTH instrument sets —
-items 15, 16, 17 and 19–30 touched no runtime file, so the matrix is unchanged
-by construction (items 20 and 22's only non-proof edits are `Prop`-valued
-grammar constructors and one added constructor parameter; items 21, 23–30
-edit no grammar at all, their structural edits being a parameter on
-`PendingNode.pendingProps` (24), two `Prop`-valued pack definitions (25), one
-new proof module each (26, 27), one added conjunct on `ImplicitKeyPack`
-(28) and one on `PropsKeyPack` (29), and one new grammar-wrap lemma (30), all
-in the proof layer).
+capstones assert. `Tests.Guards` builds at 219 jobs, `Tests.Reflections` at
+432 (R644–R658); matrix event 402/402 · JSON 282/282 on BOTH instrument sets
+as of item 30. Items 15, 16, 17 and 19–30 touched no runtime file, so for
+those the matrix is unchanged by construction (items 20 and 22's only non-proof
+edits are `Prop`-valued grammar constructors and one added constructor
+parameter; items 21, 23–30 edit no grammar at all, their structural edits being
+a parameter on `PendingNode.pendingProps` (24), two `Prop`-valued pack
+definitions (25), one new proof module each (26, 27), one added conjunct on
+`ImplicitKeyPack` (28) and one on `PropsKeyPack` (29), and one new grammar-wrap
+lemma (30), all in the proof layer). Items 31 and 32 DO edit the scanner and
+are measured rather than assumed: item 31 moves 13 pinned shapes from accepted
+to refused (a shipped over-acceptance) with the yaml-test-suite per-test
+details byte-identical, and item 32 moves nothing at all — byte-identical
+details again, plus a 3,267-case tab-shape differential clean in both
+pipelines. The matrix has not been re-run for either; what stands in its place
+is the suite's per-test equality, which is the same comparison on the same
+inputs.
 `run-all-tests.sh` verifies 4442/4442 (item 13 retired the last stale pre-9j
 assertion, `{?, ?}` in `ExplicitKeyTests` — Reflection 622's third missed pin;
 item 14 closed the legacy↔indexed plain-scalar walk divergence — a 5,460-input
@@ -6123,33 +6130,80 @@ corrected and split — DK95:00 is the plain-scalar shape, and it is pinned
 beside the entry shape in `ScannerTabBeforeBlockEntry.lean`.
 
 `block_dispatch_deferred` holds at **12** and `scannerDrop` at 4: this item
-makes the TAB branch refutable, it does not yet refute it. That is the next
-entry below.
+makes the TAB branch refutable, it does not yet refute it. That is item 32.
+
+### Item 32 (2026-08-13)
+
+refuted it. `block_dispatch_deferred` **12 → 8**; `scannerDrop` unchanged at 4.
+
+The half item 31 named was cheap and went first: `gstar_white_sIndent_or_tab`'s
+right disjunct is now LOCATED — `∃ sa sb, GStar SSWhite s sa ∧ SSWhite sa sb ∧
+sa.chars.head? = some '\t' ∧ GStar SSWhite sb s'` — proved by the same
+induction, whose `tab` step IS the witness. The other half was not where the
+list said it was, and that is **Reflection 658**.
+
+*A runtime guard the proof cannot reach is usually a guard stated in the wrong
+COORDINATE.* Item 31's `scanValueIndentTabCheck` anchors at the ENTRY's first
+character, which is `simpleKey.pos` when the simple-key machine recorded a key
+there. The verdict is right; the coordinate is one the grammar accumulation has
+no coupling for. "There is no key on this line" was therefore unprovable even
+where the line in front of the `:` was known to be nothing but whitespace —
+`preprocess_some_savedKey_shape` leaves an inherited-key case open, and closing
+it means an invariant relating `simpleKey.pos` to real token starts, which does
+not exist and is an item of its own.
+
+So the check was restated in the coordinate `[187] l+block-mapping`'s
+`s-indent(n)` actually names: `tabInLineIndent` walks back exactly `s.col`
+characters and answers `true` only when every one of them is an `s-white` and
+one is a tab. That certifies more than the old reading and consults nothing:
+if the whole line prefix is separation then nothing on the line can be a key,
+so the `:` is `[192]`'s empty-key entry or `[195]`'s explicit value, and either
+way the run in front of it is `[63] s-indent(n)` — spaces only.
+
+**Verdict-preserving, and tested rather than argued** (item 31's own rule,
+turned on this item's edit): the whole `yaml-test-suite` is **347/358 with
+per-test details byte-identical**, and a purpose-built 3,267-case differential
+over tab shapes — 11 prefixes × 11 whitespace runs × 27 bodies, both pipelines,
+comparing accepted event streams and rejection messages — moves nothing. The
+new branch fires exactly where the old ones already did.
+
+The bridge from the located run to the scanner's backward walk owed two facts,
+neither of which existed and both of which are load-bearing, because "the same
+characters" is not "the same place": `preprocess_input` (the walk, the armed
+unwind and the key save all leave `input` alone, by the descent item 27 already
+makes for the indent stack) and `sslComments_suffix` (a `[79] s-l-comments`
+consumes a PREFIX, so the landing is a position inside the input rather than a
+list that resembles its tail). With those, `tabIndent_scans_of_located` reads
+the run off `ScannerSurfCorr.input_prefix` and both loops walk it — the same
+`prev`/`get` step `peekBack_eq_last_prefix` takes.
+
+The last premise was already decided one frame up. The refutation is sound only
+in block context — inside a flow collection the same characters are legal
+`[66]` separation — and `accum_step_block`'s depth-0 case IS that fact; it had
+simply never been threaded. `s_prep.inFlow = false` now passes through
+`accum_block_pending` to the four arms, and `tab_refutes_dispatch` closes all
+three indicators: `-` and `?` from `hasTabInPrecedingWhitespace` (Step 5b.2 and
+item 31), `:` from `tabInLineIndent`.
+
+Cost: two runtime definitions per pipeline, ZERO proof files repaired (the new
+branch is inside a stage whose `Except` interface did not change), zero grammar
+edits, one new satellite `Proofs/Coupling/TabIndentBridge.lean`.
 
 ### REMAINING, in order
 
 Ordered by what is cheapest AND has a consumer today, not by what is listed
 first anywhere else. `FlowOpenStack` is deliberately NOT first: it is the most
-expensive piece and none of its three parts lands anything on its own.
+expensive piece and none of its three parts lands anything on its own, so with
+the TAB branch closed the residue moves ahead of it.
 
-1. **The TAB branch** (4 escape sites) — `gstar_white_sIndent_or_tab`'s right
-disjunct. Item 31 paid the half nobody had priced: the branch was NOT vacuous,
-because only the `-` indicator carried the scanner's backward tab scan, and
-`?`/`:` are now guarded too. What is left is the refutation, in two pieces.
-(i) **Locate the witness**: the disjunct says `'\t' ∈ s.chars`, a tab anywhere
-downstream, where the induction knows it is inside the run — restate it as
-`∃ sa, GStar SSWhite s sa ∧ sa.chars.head? = some '\t'`, which the same
-induction proves. Free, and nothing works until it is done. (ii) **Bridge it to
-the scanner's own check**: `ScannerSurfCorr.input_prefix` gives
-`sc.input.toList = pre ++ sp.chars` with `listByteSize pre = sc.offset`, and
-`hasTabInPrecedingWhitespaceLoop` walks `pre` backwards one `prev`/`get` at a
-time — the same step `peekBack_eq_last_prefix` already takes, so the induction
-has its helpers (`utf8PrevAux_at_boundary`, `listByteSize_dropLast_add_getLast`)
-in `Proofs/Coupling/CouplingBridge.lean`. Then all three arms refute from
-`h_dispatch`: `-` and `?` from `hasTabInPrecedingWhitespace`, and `:` because a
-run of pure whites from the landing to the colon means there is no key on the
-line, which is precisely `scanValueIndentTabCheck`'s no-key branch.
-It composes no new input — the count is the whole of its return.
+1. **The inline residue** (5 escape sites) — a mid-line park crossing no
+break, where `SSLComments` cannot exist. It owns the COMPACT collection
+(`- - a`, `  - - a`), which item 30 established is this family's and not the
+nested one's, and what that shape wants is
+`SBlockIndented.compactSeq`/`compactMap` — the only alternatives of `[185]`
+with no consumer yet. **And then the deletion itself**: the `close_with_ssl`
+arm that calls `scannerDrop` dies with `pendingFlow`, and the constructor
+leaves `Surface/Document.lean`.
 
 2. **`FlowOpenStack`'s resume type** — three parts, priced by item 25, and the
 reason this row still has a `scannerDrop`: the resume's `SFlowContent 0
@@ -6164,15 +6218,6 @@ currentIndent + 1` (`  - [1,⏎  2]` refused, `  - [1,⏎   2]` accepted); (iii)
 re-derive the multi-line plain and quoted scalar readings at `n`, which inside
 a flow genuinely mention the index. Closes 3 of the 4 `scannerDrop` sites and
 the `  - [1]` / `  - &a [b]` family with them.
-
-3. **The inline residue** (5 escape sites) — a mid-line park crossing no
-break, where `SSLComments` cannot exist. It owns the COMPACT collection
-(`- - a`, `  - - a`), which item 30 established is this family's and not the
-nested one's, and what that shape wants is
-`SBlockIndented.compactSeq`/`compactMap` — the only alternatives of `[185]`
-with no consumer yet. **And then the deletion itself**: the `close_with_ssl`
-arm that calls `scannerDrop` dies with `pendingFlow`, and the constructor
-leaves `Surface/Document.lean`.
 
 Not on this list, because it is not an escape site: the DEDENT's entries-level
 fidelity. Item 30 derives it through `implicitContinue` rather than by resuming
@@ -6353,7 +6398,7 @@ Step 0 (the scanner audit for directive handling) and Fix B (eliminating
 
 | Step | Status |
 |---|---|
-| Fix A: eliminate `scannerDrop` | 🟡 **β.3 and β.4 COMPLETE (2026-08-10)** — `StreamAccum.lean` is sorry-free and the `L4YAML.Capstones` gate is GREEN. β.5 is open: `block_dispatch_deferred` stands at 12 call sites and `scannerDrop` at 4. Per-item record and the ordered list of what is left: [Row 12 — β.5 closure log](#row-12--β5-closure-log) |
+| Fix A: eliminate `scannerDrop` | 🟡 **β.3 and β.4 COMPLETE (2026-08-10)** — `StreamAccum.lean` is sorry-free and the `L4YAML.Capstones` gate is GREEN. β.5 is open: `block_dispatch_deferred` stands at 8 call sites and `scannerDrop` at 4. Per-item record and the ordered list of what is left: [Row 12 — β.5 closure log](#row-12--β5-closure-log) |
 | 1b. Remove `scannerDrop` from `SLYamlStream` | ⬜ open — β.5, once that last use is gone |
 | 1c. Tighten `implicitContinue` in `SLYamlStream` | ⬜ open — action row 19; the third over-approximation, found 2026-08-13 by item 30 and unpriced. Require `l-document-suffix+` for the bare alternative; 17 construction sites, 16 of them the `StreamAccum` sibling re-opens. [The over-approximation problem](#the-over-approximation-problem) |
 | 5. Prove the converse `grammar_completeness` | ⬜ open — depends on Fix A **and on 1c**: the converse is false while either over-approximation stands |

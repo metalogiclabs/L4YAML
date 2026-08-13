@@ -101,6 +101,7 @@ import L4YAML.Proofs.Foundation.StringProperties
 import L4YAML.Proofs.Coupling.StructureCoupling
 import L4YAML.Proofs.Production.StructureProduction
 import L4YAML.Proofs.Coupling.SurfaceCoupling
+import L4YAML.Proofs.Coupling.TabIndentBridge
 import L4YAML.Proofs.Schema.TagResolution
 import L4YAML.Scanner.Scanner
 import L4YAML.Schema.Schema

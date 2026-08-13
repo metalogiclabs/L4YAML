@@ -249,10 +249,21 @@ def scanValuePrepare (s : ScannerState) : ScannerState :=
     (`[197] s-l+flow-in-block` reaches it through `s-separate-lines`, whose
     `[69] s-flow-line-prefix` is `s-indent(n) s-separate-in-line?`), and only
     the constructs that demand a bare `s-indent` reject it.  `a:⏎␣␣→[1, 2]` and
-    `a:⏎␣␣→foo` stand; `a:⏎␣␣→: b`, `a:⏎␣␣→k: v` and `a:⏎␣␣→"k": v` do not. -/
+    `a:⏎␣␣→foo` stand; `a:⏎␣␣→: b`, `a:⏎␣␣→k: v` and `a:⏎␣␣→"k": v` do not.
+
+    The first test asks the entry-start question DIRECTLY, without consulting
+    the simple-key state machine at all: if the whole of the line in front of
+    this `:` is whitespace then nothing on the line can be a key, so the entry
+    starts here and its run IS `[63] s-indent(n)`.  It decides exactly the
+    shapes the two tests below decide — the save `scanNextToken_preprocess`
+    makes at the indicator's own position sends the second test to this same
+    run — but it decides them from the LINE, which is the coordinate `[187]`
+    names, rather than from where a key happens to have been recorded. -/
 @[yaml_spec "6.1", yaml_spec "8.2.2" 187 "l+block-mapping"]
 def scanValueIndentTabCheck (s : ScannerState) : Except ScanError Unit :=
   if s.inFlow then .ok ()
+  else if s.tabInLineIndent then
+    throw (.tabInIndentation s.line s.col)
   else if s.simpleKey.possible then
     if ScannerState.hasTabInPrecedingWhitespaceLoop
         s.input s.simpleKey.pos.offset s.simpleKey.pos.offset then
