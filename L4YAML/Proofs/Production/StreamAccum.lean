@@ -471,7 +471,20 @@ inductive PendingNode (sc : ScannerState) : Bool → SurfPos → SurfPos → Sur
       `scanBlockScalarBody`'s content-indent floor is measured against that
       stack, so `  - |` can read its body at the entry's own index.  It is
       OPTIONAL (`IndentFloor sc n ∨ True`) because not every producer of this
-      constructor can take the measurement locally — see Reflection 653. -/
+      constructor can take the measurement locally — see Reflection 653.
+
+      `h_sk` (item 34) is the pending's OWN half of §6.1 for the compact
+      `s-indent(m)`.  Every producer of this constructor comes off a `-` scan,
+      which ends `simpleKeyAllowed := true`; a break-free step never clears it,
+      so the next `scanNextToken_preprocess` records a simple key AT the
+      character it dispatches, and `scanValueIndentTabCheck`'s key branch walks
+      back from the very run `[185]`'s `s-indent(m)` occupies.  Unlike
+      `h_floor` it is not optional — it is a fact about the scan the producer
+      just performed, not a measurement the producer might not be able to
+      take — and it is what refutes a tab in front of a COMPACT `:`, the one
+      shape item 33 could not reach: `[63]`'s line coordinate (item 32) says
+      `false` there by design, because the entry indicator really is on the
+      line. -/
   | pendingBlock (sp_start sp_block sp_scan : SurfPos) (n : Nat)
       (h_close : ∀ sp_mid,
         SBlockIndented n .blockIn sp_scan sp_mid →
@@ -479,7 +492,8 @@ inductive PendingNode (sc : ScannerState) : Bool → SurfPos → SurfPos → Sur
       (h_close_entry : ∀ sp_mid,
         SBlockIndented n .blockIn sp_scan sp_mid →
         ∀ sp_end, SCompactSeqTail n sp_mid sp_end → SLYamlStream sp_start sp_end)
-      (h_floor : IndentFloor sc n ∨ True) :
+      (h_floor : IndentFloor sc n ∨ True)
+      (h_sk : sc.simpleKeyAllowed = true) :
       PendingNode sc false sp_start sp_block sp_scan
   /-- A KEYLESS block-mapping entry opened at column 0, depth 0, one node
       awaited — the mapping twin of `pendingBlock` (item 13).  The whole entry
@@ -1998,7 +2012,7 @@ lemma PendingNode.close_with_ssl {sc : ScannerState}
   | pendingBlock =>
     -- Item 22: `[72] e-node` + `[79] s-l-comments` is indent-INERT, so the
     -- empty close serves the entry at whatever indent the pending carries.
-    rename_i n _ h_close _
+    rename_i n _h_floor _h_sk h_close _h_close_entry
     exact h_close sp_mid (SBlockIndented.empty n .blockIn sp_scan sp_mid h_ssl)
   | pendingMapValue =>
     rename_i n _ h_close
@@ -4635,7 +4649,7 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
     -- content lift at all — the pinned 0 is in the OPEN STACK's resume type,
     -- supplied when the collection closes, so `  - [1]` rides `scannerDrop`
     -- until `FlowStackB` carries the index the way `PendingNode` now does.
-    rename_i n_old _ h_close _
+    rename_i n_old _h_floor _h_sk h_close _h_close_entry
     match n_old, h_close with
     | 0, h_close =>
       obtain ⟨sp_gap, h_sep0, hcorr_gap⟩ :=
@@ -6889,7 +6903,7 @@ lemma tab_refutes_dispatch {sc s_prep s' : ScannerState} {sp sp_land sp_ind : Su
   · exact scanKey_tab_ne h_fl h_r (dispatchBlockIndicators_key_scan h_dispatch)
   · exact scanValue_tab_ne h_fl h_l (dispatchBlockIndicators_value_scan h_dispatch)
 
-/-- **The compact indicator's half of the same refutation** (item 33).
+/-- **The compact indicator's half of the same refutation** (items 33/34).
 
     A tab inside `[185] s-l+block-indented`'s `s-indent(m)` is illegal for the
     same reason it is inside `[63]` anywhere: `s-indent` is spaces.  But the
@@ -6899,17 +6913,26 @@ lemma tab_refutes_dispatch {sc s_prep s' : ScannerState} {sp sp_land sp_ind : Su
     available, and the three arms do not read it alike: `scanBlockEntry` and
     `scanKey` consult `hasTabInPrecedingWhitespace` unconditionally in block
     context, so `- \t- a` and `- \t? a` refuse; `scanValue` consults it only
-    when the simple-key machine has recorded NO key, and whether it has is a
-    fact about `simpleKeyAllowed` that no pending carries.
+    when the simple-key machine has recorded NO key.
 
-    So what this lemma concludes is a CHARACTER, not `False`: after a located
-    tab, the indicator can only be a `:`.  The remaining case is the one
-    deferral item 33 leaves at this site, and its price is one field —
-    `sc.simpleKeyAllowed = true`, which all three indicator scans set and no
-    break-free step clears — not a new production. -/
-lemma tab_forces_colon {sc s_prep s' : ScannerState} {sp sp_ind : SurfPos}
+    Item 33 stopped there and concluded a CHARACTER — after a located tab the
+    indicator can only be a `:` — because whether a key was recorded is a fact
+    about `simpleKeyAllowed`, and no pending carried one.  Item 34 carries it
+    (`PendingNode.pendingBlock`'s `h_sk`), and then the `:` arm is not an
+    exception but the same run read from one field further along: the flag says
+    preprocessing SAVED, a save is at the cursor, and `scanValue`'s key branch
+    walks back from the cursor.  All three arms refuse, and the conclusion is
+    `False` again.
+
+    `h_sk` is about `sc` — the state the pending is parked at, one preprocessing
+    step BEFORE the dispatch — which is what makes it a pending's field rather
+    than a hypothesis about the dispatch: fresh saves only ever go up across the
+    walk (`skipToContent_simpleKeyAllowed_mono`), so the producer's `-` scan
+    settles it for whatever the next step turns out to be. -/
+lemma tab_refutes_dispatch_inline {sc s_prep s' : ScannerState} {sp sp_ind : SurfPos}
     {c : Char}
     (h_noflow : s_prep.inFlow = false)
+    (h_sk : sc.simpleKeyAllowed = true)
     (h_corr : ScannerSurfCorr sc sp)
     (hcorr_prep : ScannerSurfCorr s_prep sp_ind)
     (htab : ∃ sa sb, GStar SSWhite sp sa ∧ SSWhite sa sb ∧
@@ -6918,7 +6941,7 @@ lemma tab_forces_colon {sc s_prep s' : ScannerState} {sp sp_ind : SurfPos}
     (h_dispatch : scanNextToken_dispatchBlockIndicators
         (if s_prep.allowDirectives then
           { s_prep with allowDirectives := false, documentEverStarted := true }
-        else s_prep) c = .ok (some s')) : c = ':' := by
+        else s_prep) c = .ok (some s')) : False := by
   have h_inp : s_prep.input = sc.input := preprocess_input h_preprocess
   have hsuf : sp.chars <:+ s_prep.input.toList := by
     rw [h_inp]; exact corr_chars_suffix h_corr
@@ -6930,9 +6953,19 @@ lemma tab_forces_colon {sc s_prep s' : ScannerState} {sp sp_ind : SurfPos}
       { s_prep with allowDirectives := false, documentEverStarted := true }
     else s_prep).hasTabInPrecedingWhitespace = true := by split <;> exact h_run
   rcases dispatchBlockIndicators_indicator_of_some h_dispatch with rfl | rfl | rfl
-  · exact (scanBlockEntry_tab_ne h_fl h_r (dispatchBlockIndicators_dash_scan h_dispatch).2).elim
-  · exact (scanKey_tab_ne h_fl h_r (dispatchBlockIndicators_key_scan h_dispatch)).elim
-  · rfl
+  · exact scanBlockEntry_tab_ne h_fl h_r (dispatchBlockIndicators_dash_scan h_dispatch).2
+  · exact scanKey_tab_ne h_fl h_r (dispatchBlockIndicators_key_scan h_dispatch)
+  · -- The `:`: the key the step recorded is AT this character, so the branch
+    -- `scanValueIndentTabCheck` takes reads the run in front of it either way.
+    obtain ⟨_, h_pos⟩ := preprocess_saved_key_at_cursor h_sk h_noflow h_preprocess
+    have h_pos' : (if s_prep.allowDirectives then
+        { s_prep with allowDirectives := false, documentEverStarted := true }
+      else s_prep).simpleKey.pos.offset =
+        (if s_prep.allowDirectives then
+          { s_prep with allowDirectives := false, documentEverStarted := true }
+        else s_prep).offset := by split <;> exact h_pos
+    exact scanValue_tab_run_ne h_fl h_r (fun _ => h_pos')
+      (dispatchBlockIndicators_value_scan h_dispatch)
 
 /-- **`[199] s-l+block-collection` under an entry that is still awaiting its
     node** (item 30) — a NESTED block sequence, at the outer entry's own index.
@@ -7473,10 +7506,10 @@ lemma colon_open_map_implicit (sp_start sp_land sp_key sp_gram sp_ws : SurfPos) 
 -- Concentrates all block-dispatch catch-all sorry into close_with_ssl.
 --
 -- What still reaches it, after item 33 gave the residue `[185]`'s compact
--- alternatives (8 call sites, TWO families — and the domain is what the claim
--- is, not the count; R645/R646):
+-- alternatives and item 34 refuted the tab in front of them (7 call sites, TWO
+-- families — and the domain is what the claim is, not the count; R645/R646):
 --
---   * **the inline residue** (5 sites) — a mid-line park that crosses no
+--   * **the inline residue** (4 sites) — a mid-line park that crosses no
 --     break, so `[79] s-l-comments` cannot exist and nothing can CLOSE there
 --     (item 19's remainder).  Item 25 removed its largest inhabitant without
 --     changing its shape: an indented `a: 1` parks mid-line and its `:` cannot
@@ -7485,16 +7518,14 @@ lemma colon_open_map_implicit (sp_start sp_land sp_key sp_gram sp_ws : SurfPos) 
 --     `-`-parked family by not closing at all: `[185] s-l+block-indented`'s
 --     `compactSeq`/`compactMap` fill the entry's still-open content slot and
 --     ask for no comments, so `- - a`, `- : a`, `- ? a` and their nestings
---     compose.  What is left at that site is ONE shape — a tab in front of a
---     COMPACT `:` — where `[63]`'s line walk stops on the entry indicator and
---     `scanValue` reads `[66]`'s scan only when the simple-key machine
---     recorded nothing; refuting it wants `sc.simpleKeyAllowed = true` on the
---     pending (see `tab_forces_colon`).  The other four sites are the same
---     residue at pendings whose slot is not an `SBlockIndented`: `noPending`,
---     the generic close-and-reopen (`pendingMapValue`, `pendingProps`,
---     `pendingFlow`, the two document pendings), `pendingBlockContent` — whose
---     `- a: 1` wants item 25's pack on a second pending — and the content
---     dispatch's own no-break arm.
+--     compose; item 34 then closed that site outright by carrying
+--     `sc.simpleKeyAllowed = true` on the pending, which is what lets the `:`
+--     arm read `[66]`'s scan (see `tab_refutes_dispatch_inline`).  The four
+--     that remain are the same residue at pendings whose slot is not an
+--     `SBlockIndented`: `noPending`, the generic close-and-reopen
+--     (`pendingMapValue`, `pendingProps`, `pendingFlow`, the two document
+--     pendings), `pendingBlockContent` — whose `- a: 1` wants item 25's pack on
+--     a second pending — and the content dispatch's own no-break arm.
 --   * **an indented value the one-line reading does not reach** (3 sites: one
 --     per indented content arm, plus the props consumer's nonzero side) — a
 --     value that FOLDS, a step that landed on a fresh line, or a block scalar
@@ -7539,9 +7570,12 @@ lemma colon_open_map_implicit (sp_start sp_land sp_key sp_gram sp_ws : SurfPos) 
 -- indicators refuse it: see `tab_refutes_dispatch`), a NESTED or dedented
 -- collection at a width other than the pending's (item 30 — `n < k` is
 -- `[199]`'s collection at `[183]`'s `m = k - n`, `k < n` takes the `:`/`?`
--- arm's route), and **the COMPACT collection** (item 33 — `[185]`'s other two
+-- arm's route), **the COMPACT collection** (item 33 — `[185]`'s other two
 -- alternatives, which need no `s-l-comments` because they share the entry
--- indicator's line).
+-- indicator's line), and **the tab in front of one** (item 34 — the pending
+-- carries `simpleKeyAllowed`, so the `:` arm's tab test reads the compact
+-- `s-indent(m)` from the key the step just saved rather than from a line
+-- coordinate that stops at the entry indicator).
 lemma block_dispatch_deferred
     (sp_start sp_X sp_scan' : SurfPos) (s' : ScannerState)
     (h_stream : SLYamlStream sp_start sp_X)
@@ -7647,7 +7681,8 @@ lemma accum_block_on_noPending
                    (GOpt.some sp_block sp_end
                      (SLAnyDocument.bare sp_block sp_end h_bare))
                    (GStar.nil _))
-             (indicator_floor hcol_mid h_ind hcorr_prep h_preprocess h_dispatch),
+             (indicator_floor hcol_mid h_ind hcorr_prep h_preprocess h_dispatch)
+             (dispatchBlockEntry_simpleKeyAllowed h_dispatch),
            hcorr_result⟩
   · -- c ≠ '-' at the landing: a ':' opens `[189]`'s empty-key entry (item 13)
     -- and a '?' opens `[186]`'s explicit-key one (item 20) — ONE arm, because
@@ -7746,7 +7781,8 @@ lemma accum_block_on_closeThenBlock
                    (GOpt.some sp_mid sp_end
                      (SLAnyDocument.bare sp_mid sp_end h_bare))
                    (GStar.nil _))
-             (indicator_floor hcol_mid h_ind hcorr_prep h_preprocess h_dispatch),
+             (indicator_floor hcol_mid h_ind hcorr_prep h_preprocess h_dispatch)
+             (dispatchBlockEntry_simpleKeyAllowed h_dispatch),
            hcorr_result⟩
   · -- c ≠ '-' at the landing: a ':' opens `[189]`'s empty-key entry there
     -- (item 13), a '?' opens `[186]`'s explicit-key one (item 20) — one arm.
@@ -7909,7 +7945,8 @@ lemma accum_block_on_pendingBlockContent
                  fun sp_end h_tail =>
                    h_cont sp_end (SCompactSeqTail.cons k sp_mid _ sp_scan' sp_final sp_end
                      h_ind h_dash2 h_gnot2 h_indented h_tail))
-               (indicator_floor hcol_mid h_ind hcorr_prep h_preprocess h_dispatch),
+               (indicator_floor hcol_mid h_ind hcorr_prep h_preprocess h_dispatch)
+               (dispatchBlockEntry_simpleKeyAllowed h_dispatch),
              hcorr_result⟩
     · -- Item 30: here the widths disagreeing is ONE case, not two.  This
       -- pending's entry already HAS its node — that is what distinguishes
@@ -7939,6 +7976,7 @@ lemma accum_block_on_pendingBlock
     (h_stream_fallback : SLYamlStream sp_start sp_block_ctx)
     (h_close_entry_old : ∀ (sp : SurfPos), SBlockIndented n .blockIn sp_scan sp →
       ∀ (sp_end : SurfPos), SCompactSeqTail n sp sp_end → SLYamlStream sp_start sp_end)
+    (h_sk : sc.simpleKeyAllowed = true)
     (hcorr_prep : ScannerSurfCorr s_prep sp_prep)
     (hcorr_result : ScannerSurfCorr s' sp_scan')
     (h_corr : ScannerSurfCorr sc sp_scan)
@@ -8004,7 +8042,8 @@ lemma accum_block_on_pendingBlock
                  fun sp_end h_tail =>
                    h_cont sp_end (SCompactSeqTail.cons k sp_mid _ sp_scan' sp_final sp_end
                      h_ind h_dash2 h_gnot2 h_indented h_tail))
-               (indicator_floor hcol_mid h_ind hcorr_prep h_preprocess h_dispatch),
+               (indicator_floor hcol_mid h_ind hcorr_prep h_preprocess h_dispatch)
+               (dispatchBlockEntry_simpleKeyAllowed h_dispatch),
              hcorr_result⟩
     · -- Item 30: the widths disagree, and the two directions are DIFFERENT
       -- constructs — which is why one `k ≠ n` deferral was hiding both.
@@ -8051,7 +8090,8 @@ lemma accum_block_on_pendingBlock
                      h_close_inner sp_end
                        (SBlockSeqEntries_of_compactTail h_ind h_dash2 h_gnot2
                          h_indented h_tail))
-                 (indicator_floor hcol_mid h_ind hcorr_prep h_preprocess h_dispatch),
+                 (indicator_floor hcol_mid h_ind hcorr_prep h_preprocess h_dispatch)
+                 (dispatchBlockEntry_simpleKeyAllowed h_dispatch),
                hcorr_result⟩
       · -- ═══ DEDENT (`k < n`): the inner collection ENDS here ═══
         -- `-⏎  -⏎- b`.  `nestedBlockSeq`'s `m` would have to be negative, so
@@ -8119,7 +8159,8 @@ lemma accum_block_on_pendingBlock
                      (SBlockIndented.compactSeq n .blockIn m sp_mid sp_sc sp_end h_ind
                        (SCompactSeq.mk (n + 1 + m) sp_sc sp_scan' sp_final sp_end
                          h_dash2 h_gnot2 h_bi h_tail)))
-               (Or.inr trivial),
+               (Or.inr trivial)
+               (dispatchBlockEntry_simpleKeyAllowed h_dispatch),
              hcorr_result⟩
     · by_cases hcv : c = ':' ∨ c = '?'
       · -- `- : a` and `- ? a`: `[195] ns-l-compact-mapping`, the same two
@@ -8128,14 +8169,12 @@ lemma accum_block_on_pendingBlock
           sp_block sp_scan' h_stream_block h_close_old h_ind hcorr_prep hcorr_result
           (preprocess_some_peek h_preprocess) h_dispatch
       · exact (block_indicator_exhausted h_dispatch hc hcv).elim
-  · -- The TAB, one production down (item 33).  `[185]`'s `s-indent(m)` is
-    -- spaces too, and `[66]`'s backward scan refuses it in front of a `-` or
-    -- a `?`; the `:` is what is left, and it is this site's whole remainder.
-    have hcolon := tab_forces_colon h_noflow h_corr hcorr_prep h_tab
-      h_preprocess h_dispatch
-    subst hcolon
-    exact block_dispatch_deferred sp_start sp_block_ctx sp_scan' s'
-      h_stream_fallback hcorr_result
+  · -- The TAB, one production down (items 33/34).  `[185]`'s `s-indent(m)` is
+    -- spaces too, and `[66]`'s backward scan refuses it in front of all three
+    -- indicators — the `:` included, once the pending says a key was recorded
+    -- at the character being dispatched.  This site defers nothing.
+    exact (tab_refutes_dispatch_inline h_noflow h_sk h_corr hcorr_prep h_tab
+      h_preprocess h_dispatch).elim
 
 -- Helper: handles all PendingNode cases for block dispatch given stream at sp_block.
 lemma accum_block_pending (sc : ScannerState)
@@ -8190,9 +8229,9 @@ lemma accum_block_pending (sc : ScannerState)
       sp_prep sp_scan' n_old h_stream_block h_close_pending h_stream_block h_entry_old
       hcorr_prep hcorr_result h_corr h_noflow h_preprocess h_dispatch
   | pendingBlock =>
-    rename_i n_old _ _ h_close_entry_old
+    rename_i n_old _h_floor h_sk_old _h_close h_close_entry_old
     exact accum_block_on_pendingBlock sc sp_start sp_block sp_block sp_scan s_prep s' c sp_prep
-      sp_scan' n_old h_stream_block h_close_pending h_stream_block h_close_entry_old
+      sp_scan' n_old h_stream_block h_close_pending h_stream_block h_close_entry_old h_sk_old
       hcorr_prep hcorr_result h_corr h_noflow h_preprocess h_dispatch
 
 lemma accum_step_block (sc : ScannerState)
@@ -11477,7 +11516,7 @@ lemma accum_content_pending (sc : ScannerState)
     -- reading was stated at 0; item 23 gives the nonzero side its own arm.
     -- The two are not nested: at column 0 a property run and a block scalar
     -- also compose, and the indented arm carries neither.
-    rename_i n_old h_floor_old h_close_old h_close_entry_old
+    rename_i n_old h_floor_old _h_sk h_close_old h_close_entry_old
     match n_old, h_close_old, h_close_entry_old, h_floor_old with
     | 0, h_close_old, h_close_entry_old, _ =>
       exact accum_content_on_pendingBlock sc sp_start sp_block sp_scan s_prep s' c sp_prep sp_scan'

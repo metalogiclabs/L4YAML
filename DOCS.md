@@ -5501,19 +5501,19 @@ invisible to every axis we score. What is left is proof completeness.
 
 | # | Action | Blocks | Where |
 |---|---|---|---|
-| 12 | **β.5 — retire `pendingFlow`, delete `scannerDrop`.** Items 11–33 have closed it one arm at a time; `block_dispatch_deferred` stands at 8 call sites and `scannerDrop` at 4. Items 31–32 are the campaign's only RUNTIME edits and they are one story: the TAB branch was priced "expected vacuous" and was not — only the `-` indicator carried the scanner's tab-in-indentation check, so `?`/`:` accepted four shapes no `[187]` derivation reaches (31) — and refuting it then needed the check restated in `[63] s-indent(n)`'s own coordinate, `tabInLineIndent` (32). Item 33 then took the COMPACT collection, which the residue had been missing not for want of evidence but for want of a production: `[185] s-l+block-indented`'s other two alternatives ask for no `s-l-comments` at all, and they had carried an off-by-one index for as long as nothing instantiated them. Two families are left: the inline residue (5 sites, one of them narrowed to a single tab shape) and `FlowOpenStack`'s resume type (3, plus all four `scannerDrop` sites). The per-item record and the ordered list are in [Row 12 — β.5 closure log](#row-12--β5-closure-log). | Step 5, the converse | ditto |
+| 12 | **β.5 — retire `pendingFlow`, delete `scannerDrop`.** Items 11–34 have closed it one arm at a time; `block_dispatch_deferred` stands at 7 call sites and `scannerDrop` at 4. Items 31–32 are the campaign's only RUNTIME edits and they are one story: the TAB branch was priced "expected vacuous" and was not — only the `-` indicator carried the scanner's tab-in-indentation check, so `?`/`:` accepted four shapes no `[187]` derivation reaches (31) — and refuting it then needed the check restated in `[63] s-indent(n)`'s own coordinate, `tabInLineIndent` (32). Item 33 then took the COMPACT collection, which the residue had been missing not for want of evidence but for want of a production: `[185] s-l+block-indented`'s other two alternatives ask for no `s-l-comments` at all, and they had carried an off-by-one index for as long as nothing instantiated them. Item 34 closed that site outright — the tab it left in front of a compact `:` is refutable once the pending carries `simpleKeyAllowed`, because the branch `scanValue`'s §6.1 test takes is decided by whether a key was recorded and a break-free step records one at the character being dispatched. Two families are left: the inline residue (4 sites) and `FlowOpenStack`'s resume type (3, plus all four `scannerDrop` sites). The per-item record and the ordered list are in [Row 12 — β.5 closure log](#row-12--β5-closure-log). | Step 5, the converse | ditto |
 | 19 | **Tighten `implicitContinue`** — the THIRD over-approximation of `[211]`, found 2026-08-13 by item 30 and not yet priced. It requires no `l-document-suffix+` and takes `SLAnyDocument`, so it admits a BARE document after another with no `...`: `- "a"⏎  - b` satisfies `InYamlLanguage` while `parseYaml` rejects it (`invalidBareDocument`, §9.2). It falsifies the converse exactly as `scannerDrop` does. 17 construction sites — one in `DocumentProduction` (`stream_implicit_continue`), already legal because it passes an EXPLICIT document, and 16 in `StreamAccum`, every one passing `SLAnyDocument.bare`. Nothing DEFERS to it, so it is not an escape site and not row 12's business; it comes after row 12 only because row 12's remaining items still edit those 16 sites. | Step 5, the converse | [The over-approximation problem](#the-over-approximation-problem) |
 | 13 | **Step 5 — the converse** `grammar_completeness` — blocked on rows 12 AND 19, since the converse is false while either over-approximation stands — then **Step 6** the `parse_iff_grammar` biconditional | capstone 7.7 | [Grammar completeness plan](#grammar-completeness-plan) |
 
 Items 1–11 and 18 are closed and their rows deleted; the closure records live
 in the sections below, the blow-by-blow history in git.
 
-The full `lake build` has been GREEN since item 9t (988 targets as of item 33,
+The full `lake build` has been GREEN since item 9t (990 targets as of item 34,
 warning-free), `L4YAML.Capstones` included — what the rest of row 12 buys is
 STRENGTH: the `scannerDrop` constructor is the one remaining hole in what the
-capstones assert. `Tests.Guards` builds at 220 jobs, `Tests.Reflections` at
-433 (R644–R659); matrix event 402/402 · JSON 282/282 on BOTH instrument sets
-as of item 30. Items 15, 16, 17, 19–30 and 33 touched no runtime file, so for
+capstones assert. `Tests.Guards` builds at 221 jobs, `Tests.Reflections` at
+434 (R644–R660); matrix event 402/402 · JSON 282/282 on BOTH instrument sets
+as of item 30. Items 15, 16, 17, 19–30, 33 and 34 touched no runtime file, so for
 those the matrix is unchanged by construction (items 20 and 22's only non-proof
 edits are `Prop`-valued grammar constructors and one added constructor
 parameter; items 21, 23–30 edit no grammar at all, their structural edits being
@@ -5523,7 +5523,8 @@ definitions (25), one new proof module each (26, 27), one added conjunct on
 lemma (30), all in the proof layer; item 33's are two corrected `Nat` arguments
 on `Prop`-valued grammar constructors that had no producer and no consumer, a
 re-shaped closure field on two `PendingNode` constructors, and two new
-production lemmas). Items 31 and 32 DO edit the scanner and
+production lemmas, and item 34's is one added `Prop`-valued field on
+`PendingNode.pendingBlock`). Items 31 and 32 DO edit the scanner and
 are measured rather than assumed: item 31 moves 13 pinned shapes from accepted
 to refused (a shipped over-acceptance) with the yaml-test-suite per-test
 details byte-identical, and item 32 moves nothing at all — byte-identical
@@ -6271,6 +6272,7 @@ proof wants `sc.simpleKeyAllowed = true` carried on `pendingBlock` — a fact al
 three indicator scans set on the line they return, and which no break-free step
 clears — plus the `skipToContent`/`unwindIndents` descent for it. That is one
 field and about five short lemmas, and it is the cheapest thing left in row 12.
+(Item 34 did it: one field, thirteen short lemmas, no transport lemma.)
 
 **Validation.** Full `lake build` green (988 targets, ZERO warnings);
 `run-all-tests.sh` 4453/4453 across 15 suites (adversarial 2441/2441, production
@@ -6280,22 +6282,88 @@ coverage 770/770, mutation 45/45, property round-trip 124/124); `Tests.Guards`
 axiom gate green. ZERO runtime files are touched, so the matrix, the event score
 and both item-14 sweeps are unchanged by construction.
 
+### Item 34 (2026-08-13)
+
+refuted the shape item 33 left. `block_dispatch_deferred` **8 → 7**;
+`scannerDrop` 4 → 4. One field on `PendingNode.pendingBlock`, no new production,
+no runtime edit, and — the part worth keeping — no transport lemma.
+
+**A branching check is not refuted by the data.** `- →: a` is refused by the
+scanner and had no refutation in the proof, and the reason was not evidence
+about the input. §6.1's test for a `:` is `scanValueIndentTabCheck`, and it
+reads one of two places: the recorded simple key's offset if the machine has
+one, the cursor's otherwise. The accumulator knew the run in front of the cursor
+held a tab and could not conclude the scan threw, because a key recorded
+somewhere else would have sent the walk to a clean run. What was missing was a
+fact about the STATE, and no widening of the grammar could have supplied it —
+item 33's `tab_forces_colon` concluding a character rather than `False` is
+exactly that gap, stated.
+
+**The fact needed is smaller than the obvious one.** Not "no stale key exists"
+— a claim about the whole history — but "the key, if any, is AT the cursor". At
+that point the two branches read the same place and the conditional is only
+apparent: the key branch walks back from the `:`'s own offset, which is what the
+fallback branch would have done. So the work was reachability, not two readings.
+**Reflection 660** is that, with the monotonicity below.
+
+**Monotone facts are the cheap kind to carry.** `simpleKeyAllowed` only ever
+goes UP across a step — `skipToContentLoop` re-arms it on every break outside a
+flow and nothing in the walk clears it (`skipToContent_simpleKeyAllowed_mono`,
+proved with no flow hypothesis at all, unlike item 10's flow-context
+preservation) — and `unwindIndents` writes only tokens and the indent stack. So
+the producer discharges the field from the scan it just performed
+(`scanBlockEntry` ends `simpleKeyAllowed := true`, hence
+`dispatchBlockEntry_simpleKeyAllowed` at all 6 producers) and the CONSUMER needs
+no hypothesis about what the step did. Contrast item 27's `h_floor`, which
+carries the indent stack and therefore needed `IndentFloor.transport` at every
+re-park: a non-monotone datum buys its own transport lemma, a monotone one is
+its own.
+
+**So the field is REQUIRED, not optional.** `h_floor` is `IndentFloor sc n ∨
+True` because producers genuinely differ in what they can measure (Reflection
+653); `h_sk : sc.simpleKeyAllowed = true` is a fact about the scan the producer
+just performed, so every producer has it and an `∨ True` would only have let the
+next one skip it (item 29's rule, read forward).
+
+**The chain, thirteen lemmas.** In `EntryBoundaryLayout`: the unwind preserves
+the flag (2), the walk raises it (2), `saveSimpleKey` preserves `inFlow` and —
+without the `explicitKeyLine` side condition item 10's flow version needs,
+because the suppression branch is `inFlow && …` — saves at the cursor in block
+context (2), preprocessing is walk-then-optional-unwind-then-save
+(`preprocess_save_elim`), and the two compose into
+`preprocess_saved_key_at_cursor`. In `PreprocessIndentStable`: the `-` scan's
+flag (2), `scanValueClearKey`'s string and offset with its key disjunction, and
+the two that matter — `scanValueIndentTabCheck_run` (both branches read the run
+when the key is at the cursor) and `scanValue_tab_run_ne`. In `StreamAccum`,
+`tab_forces_colon` becomes `tab_refutes_dispatch_inline` and concludes `False`.
+
+**Pinned:** `ScannerCompactTabRefused.lean`, 35 pins in four sections — the
+compact `:` refused at every width and nesting (`- →: a`, `-→: a`, `  - →: a`,
+`- - →: a`, `- - - →: a`, `- →: [1]`, `- →: |`), the other two indicators beside
+it, and — this is what makes the refutation exact rather than a ban on tabs
+after an indicator — the boundary that is still ACCEPTED: a tab in front of
+CONTENT (`- →a`, `- →[1]`, `- →"a"`) is `[66] s-separate-in-line`, and so is the
+gap between an implicit key and its `:` (`a→: b`, `- a→: 1`, `- - a→: 1`,
+`- "k"→: v`), which is the branch the whole item reasons about, taken by a key
+that is genuinely in front of the colon.
+
+**Validation.** Full `lake build` green (990 targets, ZERO warnings);
+`run-all-tests.sh` 4453/4453 across 15 suites; `Tests.Guards` +
+`Tests.Reflections` green; `check-reflection-index.sh`,
+`check-import-closure.sh`, `check-theorem-keyword.sh` OK; `L4YAML.Capstones`
+axiom gate green; the annotation verifier stands at its same 18 pre-existing
+name mismatches. ZERO runtime files are touched, so the matrix, the event score
+and both item-14 sweeps are unchanged by construction.
+
 ### REMAINING, in order
 
 Ordered by what is cheapest AND has a consumer today, not by what is listed
 first anywhere else. `FlowOpenStack` is deliberately NOT first: it is the most
-expensive piece and none of its three parts lands anything on its own.
+expensive piece and none of its three parts lands anything on its own. (The
+list's previous first entry — `simpleKeyAllowed` on `pendingBlock` — is item 34,
+closed; what it narrowed to nothing was the tab in front of a compact `:`.)
 
-1. **`simpleKeyAllowed` on `pendingBlock`** (narrows 1 escape site to nothing) —
-the single shape item 33 left: a tab in front of a compact `:`. All three
-indicator scans set `simpleKeyAllowed := true` on the line they return, and a
-break-free step never clears it, so the fresh save `scanNextToken_preprocess`
-makes lands AT the `:` and `scanValueIndentTabCheck`'s key branch reads the very
-run the located disjunct names. One optional-free field, a
-`dispatchBlockIndicators` lemma, and the `skipToContent`/`unwindIndents` descent
-that item 27 already wrote for the indent stack.
-
-2. **The rest of the inline residue** (4 escape sites) — the same mid-line park
+1. **The rest of the inline residue** (4 escape sites) — the same mid-line park
 at pendings whose slot is not an `[185]`: `noPending`; the generic
 close-and-reopen (`pendingMapValue`, `pendingProps`, `pendingFlow`, the two
 document pendings); `pendingBlockContent`, whose `- a: 1` is a COMPACT MAPPING
@@ -6305,7 +6373,7 @@ content dispatch's own no-break arm. **And then the deletion itself**: the
 `close_with_ssl` arm that calls `scannerDrop` dies with `pendingFlow`, and the
 constructor leaves `Surface/Document.lean`.
 
-3. **`FlowOpenStack`'s resume type** — three parts, priced by item 25, and the
+2. **`FlowOpenStack`'s resume type** — three parts, priced by item 25, and the
 reason this row still has a `scannerDrop`: the resume's `SFlowContent 0
 .flowOut` and the frame's `SeqFrame 0 (inFlowCtx .flowOut)` are the same
 index, ≈86 literal pins across 31 substantive declarations. (i) couple the
@@ -6498,7 +6566,7 @@ Step 0 (the scanner audit for directive handling) and Fix B (eliminating
 
 | Step | Status |
 |---|---|
-| Fix A: eliminate `scannerDrop` | 🟡 **β.3 and β.4 COMPLETE (2026-08-10)** — `StreamAccum.lean` is sorry-free and the `L4YAML.Capstones` gate is GREEN. β.5 is open: `block_dispatch_deferred` stands at 8 call sites and `scannerDrop` at 4. Per-item record and the ordered list of what is left: [Row 12 — β.5 closure log](#row-12--β5-closure-log) |
+| Fix A: eliminate `scannerDrop` | 🟡 **β.3 and β.4 COMPLETE (2026-08-10)** — `StreamAccum.lean` is sorry-free and the `L4YAML.Capstones` gate is GREEN. β.5 is open: `block_dispatch_deferred` stands at 7 call sites and `scannerDrop` at 4. Per-item record and the ordered list of what is left: [Row 12 — β.5 closure log](#row-12--β5-closure-log) |
 | 1b. Remove `scannerDrop` from `SLYamlStream` | ⬜ open — β.5, once that last use is gone |
 | 1c. Tighten `implicitContinue` in `SLYamlStream` | ⬜ open — action row 19; the third over-approximation, found 2026-08-13 by item 30 and unpriced. Require `l-document-suffix+` for the bare alternative; 17 construction sites, 16 of them the `StreamAccum` sibling re-opens. [The over-approximation problem](#the-over-approximation-problem) |
 | 5. Prove the converse `grammar_completeness` | ⬜ open — depends on Fix A **and on 1c**: the converse is false while either over-approximation stands |

@@ -656,4 +656,144 @@ lemma scanTag_simpleKeyAllowed_false {s s' : ScannerState}
   · have h := Except.ok.inj hok; subst h; rfl
   · have h := Except.ok.inj hok; subst h; rfl
 
+/-! ## In BLOCK context the save is the other way round (DOCS item 34)
+
+Everything above is about keeping a key ALIVE across preprocessing, which is a
+flow-context concern: inside a flow collection a break must not re-arm fresh
+saves, or the reservation the entry boundary depends on gets masked.  Item 34
+needs the opposite direction, and in block context it is unconditional.
+
+`simpleKeyAllowed` only ever goes UP across the walk — `skipToContentLoop`
+re-arms it on every break outside a flow and no piece of the walk ever clears
+it — so a state that arrives at preprocessing with fresh saves enabled hands
+`saveSimpleKey` a state with fresh saves enabled, whatever the step crossed.
+And in block context `saveSimpleKey`'s suppression branch (`inFlow &&
+explicitKeyLine == some line`) is closed outright, so the save happens: the
+dispatch-time state carries a key AT the cursor.
+
+That is what sends `scanValueIndentTabCheck`'s test to the run in front of the
+`:` (`scanValue_tab_run_ne`, `PreprocessIndentStable`), and every block
+indicator's scan leaves `simpleKeyAllowed := true` behind it — so a pending
+parked at an indicator can carry the hypothesis as a field and spend it one
+step later. -/
+
+/-- The unwind writes `tokens` and `indents`. -/
+lemma unwindIndentsLoop_preserves_simpleKeyAllowed (s : ScannerState) (col : Int)
+    (fuel : Nat) :
+    (unwindIndentsLoop s col fuel).simpleKeyAllowed = s.simpleKeyAllowed := by
+  induction fuel generalizing s with
+  | zero => unfold unwindIndentsLoop; rfl
+  | succ _ ih =>
+    unfold unwindIndentsLoop
+    split
+    · rw [ih]; simp [ScannerState.emit]
+    · rfl
+
+lemma unwindIndents_preserves_simpleKeyAllowed (s : ScannerState) (col : Int) :
+    (unwindIndents s col).simpleKeyAllowed = s.simpleKeyAllowed := by
+  unfold unwindIndents; exact unwindIndentsLoop_preserves_simpleKeyAllowed s col _
+
+/-- **Fresh saves only go up across the walk.**  The block branch of the break
+    sets the flag; every other piece of `skipToContentLoop` preserves it.  No
+    flow hypothesis: this is the direction that holds on both sides. -/
+lemma skipToContentLoop_simpleKeyAllowed_mono (s s' : ScannerState) (fuel : Nat)
+    (h_a : s.simpleKeyAllowed = true) (h : skipToContentLoop s fuel = .ok s') :
+    s'.simpleKeyAllowed = true := by
+  induction fuel generalizing s with
+  | zero => unfold skipToContentLoop at h; simp at h; rw [← h]; exact h_a
+  | succ _ ih =>
+    unfold skipToContentLoop at h
+    split at h
+    · simp at h
+    · rename_i s1 hws
+      have h_a1 : s1.simpleKeyAllowed = true :=
+        (skipToContentWs_preserves_simpleKeyAllowed s s1 hws).trans h_a
+      have h_a2 : (skipToContentComment s1).simpleKeyAllowed = true :=
+        (skipToContentComment_preserves_simpleKeyAllowed s1).trans h_a1
+      simp only [] at h
+      split at h
+      · split at h
+        · split at h
+          · exact ih _ rfl h
+          · exact ih _ ((consumeNewline_preserves_simpleKeyAllowed _).trans h_a2) h
+        · simp at h; rw [← h]; exact h_a2
+      · simp at h; rw [← h]; exact h_a2
+
+lemma skipToContent_simpleKeyAllowed_mono (s s' : ScannerState)
+    (h_a : s.simpleKeyAllowed = true) (h : skipToContent s = .ok s') :
+    s'.simpleKeyAllowed = true := by
+  unfold skipToContent at h
+  exact skipToContentLoop_simpleKeyAllowed_mono s s' _ h_a h
+
+lemma saveSimpleKey_inFlow (s : ScannerState) :
+    (saveSimpleKey s).inFlow = s.inFlow := by
+  unfold saveSimpleKey ScannerState.inFlow
+  split
+  · rfl
+  · split <;> rfl
+
+/-- **The block save, without the `explicitKeyLine` side condition.**  The
+    suppression branch is `inFlow &&  …`, so outside a flow the flag alone
+    decides — and `? a : b`, where an explicit key IS pending, is precisely a
+    shape that must still record its compact key. -/
+lemma saveSimpleKey_fresh_block {s : ScannerState}
+    (h_a : s.simpleKeyAllowed = true) (h_flow : s.inFlow = false) :
+    (saveSimpleKey s).simpleKey.possible = true ∧
+    (saveSimpleKey s).simpleKey.pos.offset = s.offset ∧
+    (saveSimpleKey s).offset = s.offset := by
+  unfold saveSimpleKey
+  rw [if_neg (by simp [h_flow]), if_pos h_a]
+  exact ⟨rfl, rfl, rfl⟩
+
+/-- Preprocessing, in the shape the block context reads it: the walk, then the
+    armed unwind or nothing, then the save. -/
+lemma preprocess_save_elim {sc s_prep : ScannerState} {c : Char}
+    (h : scanNextToken_preprocess sc = .ok (some (s_prep, c))) :
+    ∃ s_u s_skip, skipToContent sc = .ok s_skip ∧ s_prep = saveSimpleKey s_u ∧
+      (s_u = s_skip ∨
+        s_u = { unwindIndents s_skip s_skip.col with needIndentCheck := false }) := by
+  unfold scanNextToken_preprocess at h
+  simp only [bind, Except.bind, pure, Except.pure] at h
+  cases hsk : skipToContent sc with
+  | error e => rw [hsk] at h; exact absurd h (by simp)
+  | ok s_skip =>
+    rw [hsk] at h
+    dsimp only [] at h
+    split at h
+    · exact absurd h (by simp)
+    · split at h
+      · split at h
+        · exact absurd h (by simp)
+        · split at h
+          · exact absurd h (by simp)
+          · simp only [Except.ok.injEq, Option.some.injEq, Prod.mk.injEq] at h
+            exact ⟨_, s_skip, rfl, h.1.symm, Or.inr rfl⟩
+      · split at h
+        · exact absurd h (by simp)
+        · split at h
+          · exact absurd h (by simp)
+          · simp only [Except.ok.injEq, Option.some.injEq, Prod.mk.injEq] at h
+            exact ⟨_, s_skip, rfl, h.1.symm, Or.inl rfl⟩
+
+/-- **A key AT the cursor, from the flag alone** (item 34).  What the `:` scan's
+    tab test needs, and what a pending parked at a block indicator can carry. -/
+lemma preprocess_saved_key_at_cursor {sc s_prep : ScannerState} {c : Char}
+    (h_a : sc.simpleKeyAllowed = true)
+    (h_noflow : s_prep.inFlow = false)
+    (h : scanNextToken_preprocess sc = .ok (some (s_prep, c))) :
+    s_prep.simpleKey.possible = true ∧
+    s_prep.simpleKey.pos.offset = s_prep.offset := by
+  obtain ⟨s_u, s_skip, hsk, h_save, h_cases⟩ := preprocess_save_elim h
+  have h_al_skip : s_skip.simpleKeyAllowed = true :=
+    skipToContent_simpleKeyAllowed_mono sc s_skip h_a hsk
+  have h_al : s_u.simpleKeyAllowed = true := by
+    rcases h_cases with rfl | rfl
+    · exact h_al_skip
+    · show (unwindIndents s_skip s_skip.col).simpleKeyAllowed = true
+      rw [unwindIndents_preserves_simpleKeyAllowed]; exact h_al_skip
+  have h_fl : s_u.inFlow = false := by
+    rw [← saveSimpleKey_inFlow s_u, ← h_save]; exact h_noflow
+  obtain ⟨h_poss, h_pos, h_off⟩ := saveSimpleKey_fresh_block h_al h_fl
+  exact ⟨by rw [h_save]; exact h_poss, by rw [h_save, h_pos, h_off]⟩
+
 end L4YAML.Proofs.EntryBoundaryLayout

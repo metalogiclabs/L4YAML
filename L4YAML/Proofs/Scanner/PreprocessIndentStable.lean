@@ -976,4 +976,115 @@ lemma scanValue_tab_ne {s s' : ScannerState}
   · rw [h_check] at hok
     simp at hok
 
+/-! ## §8  …and in front of a COMPACT `:`, from the run (DOCS item 34)
+
+§7 refutes the tab from `[63] s-indent`'s own coordinate — `tabInLineIndent`,
+the whole line in front of the token — and that coordinate answers `false` for a
+COMPACT indicator by design: `- →: a` has the entry's `-` on the line, so the
+line-walk stops there and reports "something precedes this token", which is
+true and is not the question.  The question is whether the run BETWEEN the two
+indicators is `[185] s-l+block-indented`'s `s-indent(m)`, and that run is what
+`[66]`'s backward scan reads.
+
+`scanBlockEntry` and `scanKey` read it directly (§7's two `_tab_ne`s, which need
+nothing but the run).  `scanValue` consults the simple-key machine first, and
+the branch it takes is not the one the shape suggests: on the indicator's own
+line preprocessing has just SAVED a key at the `:` itself — every block
+indicator's scan leaves `simpleKeyAllowed := true`, and a break-free step never
+clears it — so the key branch walks back from the same offset the fallback
+branch would.  Both read the run; the run has a tab; the scan throws either way.
+
+That is the whole content of the two lemmas below: a `:` whose recorded key, if
+any, sits AT the cursor cannot be scanned over a tabbed run. -/
+
+/-- The `-` scan re-arms fresh saves.  This is what puts a recorded key at the
+    NEXT indicator when nothing intervenes, and so what sends the `:` scan's
+    tab test to the run in front of it. -/
+lemma scanBlockEntry_simpleKeyAllowed {s s' : ScannerState}
+    (hok : scanBlockEntry s = .ok s') : s'.simpleKeyAllowed = true := by
+  unfold scanBlockEntry at hok
+  simp only [bind, Except.bind] at hok
+  split at hok
+  · split at hok
+    · simp at hok
+    · simp only [Except.ok.injEq] at hok; rw [← hok]
+  · simp only [Except.ok.injEq] at hok; rw [← hok]
+
+/-- The dispatcher's `-` arm, in the form the accumulator's producers hold. -/
+lemma dispatchBlockEntry_simpleKeyAllowed {s s' : ScannerState}
+    (hok : scanNextToken_dispatchBlockIndicators s '-' = .ok (some s')) :
+    s'.simpleKeyAllowed = true :=
+  scanBlockEntry_simpleKeyAllowed (dispatchBlockIndicators_dash_scan hok).2
+
+/-- `scanValueClearKey` writes `simpleKey` and nothing else, so both tab tests
+    read the same string and the same offset on either side of it — and the key
+    it leaves is either the incoming one or none at all. -/
+lemma scanValueClearKey_key_fields (s : ScannerState) :
+    (scanValueClearKey s).input = s.input ∧
+    (scanValueClearKey s).offset = s.offset ∧
+    ((scanValueClearKey s).simpleKey.possible = false ∨
+      (scanValueClearKey s).simpleKey = s.simpleKey) := by
+  unfold scanValueClearKey
+  split
+  · split
+    · exact ⟨rfl, rfl, Or.inl rfl⟩
+    · split
+      · exact ⟨rfl, rfl, Or.inl rfl⟩
+      · exact ⟨rfl, rfl, Or.inr rfl⟩
+  · exact ⟨rfl, rfl, Or.inr rfl⟩
+
+/-- **Both branches read the same run.**  With a tab in the whitespace behind
+    the cursor and any recorded key sitting AT it, `scanValueIndentTabCheck`
+    throws: the key branch walks back from `simpleKey.pos.offset` and the
+    fallback branch from `offset`, and the hypothesis says those are one. -/
+lemma scanValueIndentTabCheck_run {s : ScannerState}
+    (h_noflow : s.inFlow = false)
+    (h_run : s.hasTabInPrecedingWhitespace = true)
+    (h_key : s.simpleKey.possible = true → s.simpleKey.pos.offset = s.offset) :
+    ∃ e, scanValueIndentTabCheck s = .error e := by
+  by_cases h_til : s.tabInLineIndent = true
+  · exact ⟨_, scanValueIndentTabCheck_tab h_noflow h_til⟩
+  · have h_til' : s.tabInLineIndent = false := by simpa using h_til
+    by_cases h_poss : s.simpleKey.possible = true
+    · -- the recorded key sits AT the cursor, so its walk IS the cursor's
+      have hh : ScannerState.hasTabInPrecedingWhitespaceLoop s.input
+          s.simpleKey.pos.offset s.simpleKey.pos.offset = true := by
+        rw [h_key h_poss]; exact h_run
+      refine ⟨.tabInIndentation s.simpleKey.pos.line s.simpleKey.pos.col, ?_⟩
+      unfold scanValueIndentTabCheck
+      simp only [h_noflow, h_til', h_poss, hh, Bool.false_eq_true, if_false, if_true]
+      rfl
+    · have h_poss' : s.simpleKey.possible = false := by simpa using h_poss
+      refine ⟨.tabInIndentation s.line s.col, ?_⟩
+      unfold scanValueIndentTabCheck
+      simp only [h_noflow, h_til', h_poss', h_run, Bool.false_eq_true, if_false, if_true]
+      rfl
+
+/-- The `:` scan over a tabbed run, in the shape the dispatch hands it. -/
+lemma scanValue_tab_run_ne {s s' : ScannerState}
+    (h_noflow : s.inFlow = false)
+    (h_run : s.hasTabInPrecedingWhitespace = true)
+    (h_key : s.simpleKey.possible = true → s.simpleKey.pos.offset = s.offset) :
+    scanValue s ≠ .ok s' := by
+  intro hok
+  obtain ⟨h_fl, _, _, _⟩ := scanValueClearKey_scan_fields s
+  obtain ⟨h_inp, h_off, h_sk⟩ := scanValueClearKey_key_fields s
+  have h_run' : (scanValueClearKey s).hasTabInPrecedingWhitespace = true := by
+    unfold ScannerState.hasTabInPrecedingWhitespace at h_run ⊢
+    rw [h_inp, h_off]; exact h_run
+  have h_key' : (scanValueClearKey s).simpleKey.possible = true →
+      (scanValueClearKey s).simpleKey.pos.offset = (scanValueClearKey s).offset := by
+    intro h_poss
+    rcases h_sk with h | h
+    · rw [h] at h_poss; simp at h_poss
+    · rw [h, h_off]; exact h_key (by rw [← h]; exact h_poss)
+  obtain ⟨e, h_check⟩ := scanValueIndentTabCheck_run (s := scanValueClearKey s)
+    (by rw [h_fl]; exact h_noflow) h_run' h_key'
+  unfold scanValue at hok
+  simp only [bind, Except.bind] at hok
+  split at hok
+  · simp at hok
+  · rw [h_check] at hok
+    simp at hok
+
 end L4YAML.Proofs.PreprocessIndentStable
