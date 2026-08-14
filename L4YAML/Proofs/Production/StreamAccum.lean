@@ -222,19 +222,28 @@ inductive ImplicitKeyHead : SurfPos → SurfPos → Prop where
 
 /-- The implicit-key pack (item 15): everything a same-line `:` needs to read
     the parked content back as `[193] ns-s-block-map-implicit-key`.
-    `sp_key` is the key's start (= the content start), the stream is closed at
-    the LINE start `sp_land` (not past the content — the content chars are
-    covered by the key production instead of by a closed document), and the
-    trailing `s-white*` runs to the pending's scan position, where the
-    consumer appends its own preprocessing whites and the `GLit ':'`.
+    `sp_key` is the key's start (= the content start), and the trailing
+    `s-white*` runs to the pending's scan position, where the consumer appends
+    its own preprocessing whites and the `GLit ':'`.
+
+    **`h_route` is the entry's way back into the stream** (item 38), and it is
+    the whole of what the pack owes besides the head.  Items 15–25 wrote the
+    same fact as three coordinates — a column-0 line start, the stream closed
+    there, and `[63] s-indent(k)` from it to the key — which is one particular
+    way to reach a `[187] l+block-mapping` and not the only one: `[185]
+    s-l+block-indented`'s `ns-l-compact-mapping` alternative reaches the same
+    entry with NO line start in front of it at all, which is what `- a: 1` is.
+    Coordinates admit one producer; the route admits every producer that can
+    finish an entry, and the consumer needs nothing else — see
+    [[CarryTheRouteNotTheCoordinates]].
 
     `k` (item 25) is the entry's own indentation — `[187] l+block-mapping(n)`'s
-    auto-detected `n+m`, read off the whites between the line start and the key
-    as `[63] s-indent(k)`.  Items 15–17 pinned it at 0 by demanding
-    `sp_key.col = 0`, which made every INDENTED mapping (`  a: 1`, and so most
-    of the language) underivable.  Nothing about the key HEAD moves with it:
-    `[193]`/`[194]` take no indent at all — the spec writes `n/a` — so
-    `ImplicitKeyHead` is stated once and reads inside an entry at any width.
+    auto-detected `n+m` at a line start, `[195]`'s `n+1+m` in a compact one.
+    Items 15–17 pinned it at 0 by demanding `sp_key.col = 0`, which made every
+    INDENTED mapping (`  a: 1`, and so most of the language) underivable.
+    Nothing about the key HEAD moves with it: `[193]`/`[194]` take no indent at
+    all — the spec writes `n/a` — so `ImplicitKeyHead` is stated once and reads
+    inside an entry at any width.
 
     The last conjunct (item 28) is `k` read on the SCANNER's side: the key the
     `:` is about to resolve was saved at the key's own column, which is the
@@ -242,12 +251,11 @@ inductive ImplicitKeyHead : SurfPos → SurfPos → Prop where
     `scanValuePrepare`'s push — the coordinate that arm actually uses — and it
     is OPTIONAL for the same reason the floor itself is (Reflection 653): the
     props pack's own key sits at the property run, not at the content, so that
-    producer hands `True` and keeps its coverage of `&a x: v` unchanged. -/
+    producer hands `True` and keeps its coverage of `&a x: v` unchanged, and
+    the compact route cannot measure its own column either. -/
 def ImplicitKeyPack (sc : ScannerState) (sp_start sp_scan : SurfPos) : Prop :=
-  ∃ (k : Nat) (sp_land sp_key sp_gram : SurfPos),
-    sp_land.col = 0 ∧
-    SLYamlStream sp_start sp_land ∧
-    SIndent k sp_land sp_key ∧
+  ∃ (k : Nat) (sp_key sp_gram : SurfPos),
+    (∀ sp_v, SBlockMapEntry k sp_key sp_v → SLYamlStream sp_start sp_v) ∧
     ImplicitKeyHead sp_key sp_gram ∧
     GStar SSWhite sp_gram sp_scan ∧
     (sc.simpleKey.pos.col = k ∨ True)
@@ -461,7 +469,16 @@ inductive PendingNode (sc : ScannerState) : Bool → SurfPos → SurfPos → Sur
       their own opener while every existing producer keeps its snoc: what was
       `SBlockSeqEntries_snoc h_entries_old …` is now `SCompactSeqTail.cons …`
       on the way IN, and the block openers spend the tail through
-      `SBlockSeqEntries_of_compactTail`. -/
+      `SBlockSeqEntries_of_compactTail`.
+
+      `h_key` (item 38) is `pendingContent`'s implicit-key coupling on this
+      pending, and it is what `- a: 1` needed on top of the tail: the parked
+      content is the KEY of `[195] ns-l-compact-mapping`, `[185]`'s other
+      mapping alternative, and the entry it opens closes the ENCLOSING entry
+      rather than a document.  Nothing about the key head moves with that —
+      the field's type is `pendingContent`'s verbatim — because the pack now
+      carries a route instead of the coordinates one route is built from
+      (`compactMapRoute`, `compactKeyPack_of_dispatch`). -/
   | pendingBlockContent (sp_start sp_block sp_scan : SurfPos) (n : Nat)
       (h_line : sp_scan.col = 0 ∨ LineNodeStop sp_scan.chars)
       (h_closable : ∀ sp_mid,
@@ -469,7 +486,9 @@ inductive PendingNode (sc : ScannerState) : Bool → SurfPos → SurfPos → Sur
         SLYamlStream sp_start sp_mid)
       (h_closable_entry : ∀ sp_mid,
         SSLComments sp_scan sp_mid →
-        ∀ sp_end, SCompactSeqTail n sp_mid sp_end → SLYamlStream sp_start sp_end) :
+        ∀ sp_end, SCompactSeqTail n sp_mid sp_end → SLYamlStream sp_start sp_end)
+      (h_key : sc.simpleKey.possible = true → sc.simpleKey.pos.line = sc.line →
+        ImplicitKeyPack sc sp_start sp_scan ∨ True) :
       PendingNode sc false sp_start sp_block sp_scan
   /-- Block indicator scanned (`-`, `?`, `:`).
       The gap sp_block → sp_scan contains the indicator character.
@@ -2029,7 +2048,7 @@ lemma PendingNode.close_with_ssl {sc : ScannerState}
     -- Absorb opaque scanner content (flow/block indicators) via scannerDrop.
     exact SLYamlStream.scannerDrop sp_start sp_block sp_scan sp_mid h_stream h_ssl
   | pendingBlockContent =>
-    rename_i _ h_closable _
+    rename_i _ h_closable _ _
     exact h_closable sp_mid h_ssl
   | pendingDocEnd =>
     rename_i h_marker
@@ -4629,7 +4648,7 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
     rename_i h_line _
     exact main h_close_pending (refuted (h_line.imp id LineTailSuffix.toLineNoOpen))
   | pendingBlockContent =>
-    rename_i _ h_line _ _
+    rename_i _ h_line _ _ _
     exact main h_close_pending (refuted (h_line.imp id LineNodeStop.toLineNoOpen))
   | pendingFlow =>
     -- The deferred state: its own closing strategy is `scannerDrop`, and the
@@ -7058,6 +7077,49 @@ lemma rootBlockMap (k : Nat) {s s₂ s' : SurfPos}
   SBlockNode.blockMap 0 .blockIn k s s s₂ s' (GOpt.none s) h_ssl
     (by simpa using h_entries)
 
+/-- **The two ways a finished `[188]` entry re-enters the stream** (item 38),
+    and the reason `ImplicitKeyPack` carries a route rather than the
+    coordinates one of them happens to be built from.
+
+    `rootMapRoute` is what items 15–25 spent inline: a column-0 line start with
+    the stream closed there, `[63] s-indent(k)` in front of the key, and the
+    entry wrapped in `[187] l+block-mapping` + `[199]` + a bare document +
+    `[211]`'s implicit continuation.  Every coordinate it takes is consumed
+    HERE and none of it survives into the pack. -/
+lemma rootMapRoute {sp_start sp_land sp_key : SurfPos} {k : Nat}
+    (hcol0 : sp_land.col = 0)
+    (h_stream_land : SLYamlStream sp_start sp_land)
+    (h_ind : SIndent k sp_land sp_key) :
+    ∀ sp_v, SBlockMapEntry k sp_key sp_v → SLYamlStream sp_start sp_v :=
+  fun sp_v h_entry =>
+    SLYamlStream.implicitContinue sp_start sp_land sp_land sp_v sp_v
+      h_stream_land (GStar.nil _)
+      (GOpt.some sp_land sp_v (SLAnyDocument.bare sp_land sp_v
+        (SLBareDocument.mk sp_land sp_v
+          (rootBlockMap k (sslComments_refl_of_col0 hcol0)
+            (SBlockMapEntries.single k sp_land sp_key sp_v h_ind h_entry)))))
+      (GStar.nil _)
+
+/-- …and `compactMapRoute` is `[185] s-l+block-indented`'s OTHER mapping
+    alternative, `s-indent(m) ns-l-compact-mapping(n+1+m)` — the one `- a: 1`
+    has.  There is no line start in front of this entry and there never will
+    be: the key sits on the same line as the `-` that opened the sequence
+    entry, so `[79] s-l-comments` has nothing to match and `rootMapRoute`'s
+    first hypothesis is unavailable, not merely unproved.  What the entry does
+    instead is close the ENCLOSING entry, through the closure the pending
+    already carries — the same frame item 33 built for the keyless `- : v`
+    (`compact_open_map`), with `[188]`'s implicit-key alternative in the
+    empty-key one's place. -/
+lemma compactMapRoute {sp_start sp_entry sp_key : SurfPos} {n m : Nat}
+    (h_close : ∀ sp, SBlockIndented n .blockIn sp_entry sp → SLYamlStream sp_start sp)
+    (h_ind : SIndent m sp_entry sp_key) :
+    ∀ sp_v, SBlockMapEntry (n + 1 + m) sp_key sp_v → SLYamlStream sp_start sp_v :=
+  fun sp_v h_entry =>
+    h_close sp_v
+      (SBlockIndented.compactMap n .blockIn m sp_entry sp_key sp_v h_ind
+        (SCompactMap.mk (n + 1 + m) sp_key sp_v sp_v h_entry
+          (SCompactMapTail.nil (n + 1 + m) sp_v)))
+
 /-- `[63] s-indent(k)` is `k` spaces, so it advances the column by exactly `k`
     (item 27): the entry index the accumulator measures off the landing IS the
     indicator's column, which is what the scanner pushed its indent at. -/
@@ -7483,17 +7545,19 @@ lemma implicitKeyHead_to_SImplicitKey {s s₁ s' : SurfPos}
 -- two alternatives, so every head — plain, quoted, alias, property-prefixed —
 -- reuses this producer unchanged.
 --
--- Item 25 gave it the entry indent `k`, and the arithmetic is `colon_open_map`'s
--- verbatim: `rootBlockMap k` binds `[187]`'s auto-detected width once for the
--- collection and `SBlockMapEntries.single k` puts the pack's `[63] s-indent(k)`
--- in front of the entry.  The KEY is untouched — `[193]`/`[194]` carry no
--- indent — so the two producers now differ only in which `[188]` alternative
--- fills the entry.
-lemma colon_open_map_implicit (sp_start sp_land sp_key sp_gram sp_ws : SurfPos) (k : Nat)
+-- Item 25 gave it the entry indent `k`; item 38 gave the FRAME back to the
+-- producer.  `rootBlockMap k` + `SBlockMapEntries.single k` + the bare
+-- document + `[211]`'s continuation is one way to spend a finished entry, and
+-- `[195] ns-l-compact-mapping` inside `[185]`'s compact alternative is
+-- another — so what this lemma keeps is the part that is the same either way:
+-- `[188]`'s implicit-key entry, built from the pack's head and the `:` this
+-- step just read, handed straight to the pack's own route.  The KEY is
+-- untouched — `[193]`/`[194]` carry no indent — so the producers differ only
+-- in where the entry goes.
+lemma colon_open_map_implicit (sp_start sp_block sp_key sp_gram sp_ws : SurfPos) (k : Nat)
     (s_prep s' : ScannerState) (sp_scan' : SurfPos)
-    (hcol0 : sp_land.col = 0)
-    (h_stream_key : SLYamlStream sp_start sp_land)
-    (h_ind : SIndent k sp_land sp_key)
+    (h_stream_block : SLYamlStream sp_start sp_block)
+    (h_route : ∀ sp_v, SBlockMapEntry k sp_key sp_v → SLYamlStream sp_start sp_v)
     (h_ol : ImplicitKeyHead sp_key sp_gram)
     (h_ws : GStar SSWhite sp_gram sp_ws)
     (hcorr_prep : ScannerSurfCorr s_prep sp_ws)
@@ -7521,25 +7585,14 @@ lemma colon_open_map_implicit (sp_start sp_land sp_key sp_gram sp_ws : SurfPos) 
       (corr_of_allowDirectives_update hcorr_prep) hpeek_disp h_dispatch
   have hsp_eq := ScannerSurfCorr_unique hcorr_colon hcorr_result
   rw [hsp_eq] at h_lit
-  have h_ssl_zero : SSLComments sp_land sp_land := sslComments_refl_of_col0 hcol0
   have h_ik : SImplicitKey sp_key sp_ws := implicitKeyHead_to_SImplicitKey h_ol h_ws
-  exact ⟨sp_land, sp_land, sp_land, sp_scan', h_stream_key,
-         BlockStack.nil sp_land, FlowStackB.nil sp_land .sep,
-         PendingNode.pendingMapValue sp_start sp_land sp_scan' k
+  exact ⟨sp_block, sp_block, sp_block, sp_scan', h_stream_block,
+         BlockStack.nil sp_block, FlowStackB.nil sp_block .sep,
+         PendingNode.pendingMapValue sp_start sp_block sp_scan' k
            (fun sp_v h_node =>
-             have h_entry : SBlockMapEntry k sp_key sp_v :=
-               SBlockMapEntry.implicitKeyNode k sp_key sp_ws sp_scan' sp_v h_ik h_lit
-                 (SBlockNode_blockIn_to_blockOut h_node)
-             have h_entries : SBlockMapEntries k sp_land sp_v :=
-               SBlockMapEntries.single k sp_land sp_key sp_v h_ind h_entry
-             have h_map : SBlockNode 0 .blockIn sp_land sp_v :=
-               rootBlockMap k h_ssl_zero h_entries
-             have h_bare : SLBareDocument sp_land sp_v :=
-               SLBareDocument.mk sp_land sp_v h_map
-             SLYamlStream.implicitContinue sp_start sp_land sp_land sp_v sp_v
-               h_stream_key (GStar.nil _)
-               (GOpt.some sp_land sp_v (SLAnyDocument.bare sp_land sp_v h_bare))
-               (GStar.nil _))
+             h_route sp_v
+               (SBlockMapEntry.implicitKeyNode k sp_key sp_ws sp_scan' sp_v h_ik h_lit
+                 (SBlockNode_blockIn_to_blockOut h_node)))
            h_floor,
          hcorr_result⟩
 
@@ -7662,8 +7715,9 @@ lemma nodeStop_residue_is_colon {sp_scan : SurfPos} {c : Char}
 --     that remain are the same residue at pendings whose slot is not an
 --     `SBlockIndented`: the generic close-and-reopen (`pendingMapValue`,
 --     `pendingProps`, `pendingFlow`, the two document pendings),
---     `pendingBlockContent` — whose `- a: 1` wants item 25's pack on a second
---     pending — and the content dispatch's own no-break arm, whose one
+--     `pendingBlockContent` — whose `- a: 1` item 38 composed, leaving the
+--     punts (a break, a tab, a props or block-scalar head) — and the content
+--     dispatch's own no-break arm, whose one
 --     grammatical inhabitant is `--- a` (`[208]`'s one-line body) and whose
 --     `pendingFlow` arm cannot close while the escape itself is what produces
 --     that pending.
@@ -7959,6 +8013,79 @@ lemma accum_block_on_closeThenBlock
         (preprocess_some_peek h_preprocess) h_dispatch
     · exact (block_indicator_exhausted h_dispatch hc hcv).elim
 
+/-- **The same-line `:` firing the pack** (items 15–17), lifted out of
+    `accum_block_on_pendingContent` by item 38 so that the two pendings whose
+    content is a complete node share it.
+
+    The guard's two facts are decidable on the parking state, so a classical
+    case split alone selects the arm; everything the arm then needs — the
+    entry's route, the key head and its trailing whites — is inside the pack,
+    and what the pack does NOT carry is where the mapping goes.  That is why
+    one lemma can serve a document-root key (`a: 1`) and a compact one
+    (`- a: 1`): the difference lives in the route the producer built.
+
+    `h_punt` is the caller's own answer for every other shape — a punted pack
+    (block-scalar header, a landing this producer could not measure, an
+    inherited stale key) or a `:` that arrived across a break, where the
+    one-line key cannot span and the landing closes the parked node instead. -/
+lemma colon_fires_implicit_key
+    (sc : ScannerState) (sp_start sp_block sp_scan : SurfPos)
+    (s_prep s' : ScannerState) (sp_prep sp_scan' : SurfPos)
+    (h_stream_block : SLYamlStream sp_start sp_block)
+    (h_key : sc.simpleKey.possible = true → sc.simpleKey.pos.line = sc.line →
+      ImplicitKeyPack sc sp_start sp_scan ∨ True)
+    (h_punt : ∃ sp_gram' sp_block' sp_flow' sp_scan'',
+      SLYamlStream sp_start sp_gram' ∧
+      BlockStack sp_gram' sp_block' ∧
+      FlowStackB sp_start 0 #[] #[] .sep sp_block' sp_flow' ∧
+      PendingNode s' false sp_start sp_flow' sp_scan'' ∧
+      ScannerSurfCorr s' sp_scan'')
+    (hcorr_prep : ScannerSurfCorr s_prep sp_prep)
+    (hcorr_result : ScannerSurfCorr s' sp_scan')
+    (h_corr : ScannerSurfCorr sc sp_scan)
+    (h_preprocess : scanNextToken_preprocess sc = .ok (some (s_prep, ':')))
+    (h_dispatch : scanNextToken_dispatchBlockIndicators
+        (if s_prep.allowDirectives then
+          { s_prep with allowDirectives := false, documentEverStarted := true }
+        else s_prep) ':' = .ok (some s')) :
+    ∃ sp_gram' sp_block' sp_flow' sp_scan',
+      SLYamlStream sp_start sp_gram' ∧
+      BlockStack sp_gram' sp_block' ∧
+      FlowStackB sp_start 0 #[] #[] .sep sp_block' sp_flow' ∧
+      PendingNode s' false sp_start sp_flow' sp_scan' ∧
+      ScannerSurfCorr s' sp_scan' := by
+  by_cases h_poss : sc.simpleKey.possible = true
+  · by_cases h_kline : sc.simpleKey.pos.line = sc.line
+    · cases h_key h_poss h_kline with
+      | inr _ => exact h_punt
+      | inl pack =>
+        obtain ⟨k, sp_key, sp_gram, h_route, h_ol, h_tws, h_kcol⟩ := pack
+        obtain ⟨sp_mid, sp_ws, sp_prep2, h_disj, h_ws, _h_cmt, hcorr_prep2, h_pk⟩ :=
+          preprocess_some_ssl_comments_anyCol sc sp_scan s_prep ':' h_corr h_preprocess
+        have hsp_eq2 := ScannerSurfCorr_unique hcorr_prep hcorr_prep2; subst hsp_eq2
+        have h_eq : sp_prep = sp_ws := by
+          cases h_pk with
+          | inl h => exact h
+          | inr h => rw [preprocess_some_peek h_preprocess] at h; cases h
+        subst h_eq
+        cases h_disj with
+        | inl _ =>
+          -- A break intervened: the one-line key cannot span it, so the pack is
+          -- spent — but the break lands the step at a column-0 line start,
+          -- which is item 19's arm (`x⏎: v` opens the EMPTY-key entry there).
+          exact h_punt
+        | inr h_mid =>
+          -- Same line: chain the `:` step's own whites onto the pack's tail
+          -- and open the mapping at the key.
+          rw [h_mid.1] at h_ws
+          exact colon_open_map_implicit sp_start sp_block sp_key sp_gram sp_prep k
+            s_prep s' sp_scan' h_stream_block h_route h_ol
+            (gstar_sswhite_append h_tws h_ws)
+            hcorr_prep hcorr_result (preprocess_some_peek h_preprocess) h_dispatch
+            (implicit_key_floor h_poss h_kcol h_preprocess h_dispatch)
+    · exact h_punt
+  · exact h_punt
+
 -- Block dispatch with pendingContent (item 15): the SAME-LINE `:` fires the
 -- implicit-key coupling.  The guard's two facts are decidable on the parking
 -- state, so a classical case split alone selects the arm: guard true and the
@@ -7972,8 +8099,9 @@ lemma accum_block_on_closeThenBlock
 -- rather than deferred, and the hypothesis its caller supplies names the one
 -- production still owed at this park.
 lemma accum_block_on_pendingContent
-    (sc : ScannerState) (sp_start sp_block_ctx sp_scan : SurfPos)
+    (sc : ScannerState) (sp_start sp_block sp_block_ctx sp_scan : SurfPos)
     (s_prep s' : ScannerState) (c : Char) (sp_prep sp_scan' : SurfPos)
+    (h_stream_block : SLYamlStream sp_start sp_block)
     (h_close_pending : ∀ sp_mid, SSLComments sp_scan sp_mid → SLYamlStream sp_start sp_mid)
     (h_line : sp_scan.col = 0 ∨ LineNodeStop sp_scan.chars)
     (h_key : sc.simpleKey.possible = true → sc.simpleKey.pos.line = sc.line →
@@ -7996,48 +8124,12 @@ lemma accum_block_on_pendingContent
       ScannerSurfCorr s' sp_scan' := by
   by_cases hc : c = ':'
   · subst hc
-    by_cases h_poss : sc.simpleKey.possible = true
-    · by_cases h_kline : sc.simpleKey.pos.line = sc.line
-      · cases h_key h_poss h_kline with
-        | inr _ =>
-          exact accum_block_on_closeThenBlock sc sp_start sp_block_ctx sp_scan s_prep s' ':'
-            sp_prep sp_scan' h_close_pending h_stream_fallback hcorr_prep hcorr_result
-            h_corr h_noflow h_preprocess h_dispatch
-        | inl pack =>
-          obtain ⟨k, sp_land, sp_key, sp_gram, hcol0, h_stream_key, h_ind, h_ol, h_tws,
-                  h_kcol⟩ := pack
-          obtain ⟨sp_mid, sp_ws, sp_prep2, h_disj, h_ws, _h_cmt, hcorr_prep2, h_pk⟩ :=
-            preprocess_some_ssl_comments_anyCol sc sp_scan s_prep ':' h_corr h_preprocess
-          have hsp_eq2 := ScannerSurfCorr_unique hcorr_prep hcorr_prep2; subst hsp_eq2
-          have h_eq : sp_prep = sp_ws := by
-            cases h_pk with
-            | inl h => exact h
-            | inr h => rw [preprocess_some_peek h_preprocess] at h; cases h
-          subst h_eq
-          cases h_disj with
-          | inl _ =>
-            -- A break intervened: the one-line key cannot span it, so the
-            -- pack is spent — but the break lands the step at a column-0 line
-            -- start, which is item 19's arm: close the parked scalar there and
-            -- let the `:` open the EMPTY-key entry (`x⏎: v`).
-            exact accum_block_on_closeThenBlock sc sp_start sp_block_ctx sp_scan s_prep s' ':'
-              sp_prep sp_scan' h_close_pending h_stream_fallback hcorr_prep hcorr_result
-              h_corr h_noflow h_preprocess h_dispatch
-          | inr h_mid =>
-            -- Same line: chain the `:` step's own whites onto the pack's tail
-            -- and open the mapping at the key.
-            rw [h_mid.1] at h_ws
-            exact colon_open_map_implicit sp_start sp_land sp_key sp_gram sp_prep k
-              s_prep s' sp_scan'
-              hcol0 h_stream_key h_ind h_ol (gstar_sswhite_append h_tws h_ws)
-              hcorr_prep hcorr_result (preprocess_some_peek h_preprocess) h_dispatch
-              (implicit_key_floor h_poss h_kcol h_preprocess h_dispatch)
-      · exact accum_block_on_closeThenBlock sc sp_start sp_block_ctx sp_scan s_prep s' ':'
-          sp_prep sp_scan' h_close_pending h_stream_fallback hcorr_prep hcorr_result
-          h_corr h_noflow h_preprocess h_dispatch
-    · exact accum_block_on_closeThenBlock sc sp_start sp_block_ctx sp_scan s_prep s' ':'
+    exact colon_fires_implicit_key sc sp_start sp_block sp_scan s_prep s' sp_prep sp_scan'
+      h_stream_block h_key
+      (accum_block_on_closeThenBlock sc sp_start sp_block_ctx sp_scan s_prep s' ':'
         sp_prep sp_scan' h_close_pending h_stream_fallback hcorr_prep hcorr_result
-        h_corr h_noflow h_preprocess h_dispatch
+        h_corr h_noflow h_preprocess h_dispatch)
+      hcorr_prep hcorr_result h_corr h_preprocess h_dispatch
   · -- Item 37: `c ≠ ':'` at a park that follows a complete node — §7.5 left
     -- the rest of the line at `NodeStop`, and neither remaining indicator is
     -- in it.  The escape is REFUSED here, not paid (`"a" - b`, `[1] ? b`).
@@ -8065,6 +8157,8 @@ lemma accum_block_on_pendingBlockContent
     (h_stream_fallback : InlineResidue sp_scan ':' → SLYamlStream sp_start sp_block_ctx)
     (h_entry_old : ∀ (sp : SurfPos), SSLComments sp_scan sp →
       ∀ (sp_end : SurfPos), SCompactSeqTail n sp sp_end → SLYamlStream sp_start sp_end)
+    (h_key : sc.simpleKey.possible = true → sc.simpleKey.pos.line = sc.line →
+      ImplicitKeyPack sc sp_start sp_scan ∨ True)
     (hcorr_prep : ScannerSurfCorr s_prep sp_prep)
     (hcorr_result : ScannerSurfCorr s' sp_scan')
     (h_corr : ScannerSurfCorr sc sp_scan)
@@ -8080,77 +8174,93 @@ lemma accum_block_on_pendingBlockContent
       FlowStackB sp_start 0 #[] #[] .sep sp_block' sp_flow' ∧
       PendingNode s' false sp_start sp_flow' sp_scan' ∧
       ScannerSurfCorr s' sp_scan' := by
-  -- Item 19: gate on the landing, not on the park — a sibling entry reached
-  -- across a break (`- a⏎- b`) snocs through the SAME `h_entry_old` route a
-  -- column-0 park uses.
-  obtain ⟨sp_mid, sp_ws, sp_sc, h_land, hws, hcmt, hcorr_sc, h_pk⟩ :=
-    preprocess_some_ssl_comments_landing sc sp_scan s_prep c h_corr h_preprocess
-  have hsp_sc_eq := ScannerSurfCorr_unique hcorr_sc hcorr_prep
-  subst hsp_sc_eq
-  refine h_land.elim (fun h_landed => ?_) (fun h_mid =>
-    block_dispatch_deferred sp_start sp_block_ctx sp_scan' s'
-      (h_stream_fallback (nodeStop_residue_is_colon h_line (block_indicator_char h_dispatch)
-        (inline_residue_of_landing h_mid hws h_pk hcorr_prep
-          (preprocess_some_peek h_preprocess)))) hcorr_result)
-  obtain ⟨h_ssl, hcol_mid⟩ := h_landed
-  have h_eq := h_pk.resolve_right (by simp [preprocess_some_peek h_preprocess])
-  subst h_eq
-  -- Item 32: the tab is located in that run, and the scanner refused it.
-  refine (gstar_white_sIndent_or_tab hws).elim (fun h_ind => ?_) (fun h_tab =>
-    (tab_refutes_dispatch h_noflow h_corr h_ssl hcol_mid hcorr_prep hws h_tab
-      h_preprocess h_dispatch).elim)
-  obtain ⟨k, h_ind⟩ := h_ind
-  by_cases hc : c = '-'
-  · subst hc
-    -- The snoc index is the collection's; a `-` at a DIFFERENT indentation
-    -- opens a nested or dedented collection, which this arm cannot build.
-    by_cases hkn : k = n
-    · subst hkn
-      have hpeek_disp : (if s_prep.allowDirectives then
-          { s_prep with allowDirectives := false, documentEverStarted := true }
-        else s_prep).peek? = some '-' := by
-        have := preprocess_some_peek h_preprocess
-        split
-        · show s_prep.peek? = some '-'; exact this
-        · exact this
-      obtain ⟨sp_dash2, h_dash2, h_gnot2, hcorr_dash2⟩ :=
-        dispatchBlockEntry_full_prod _ _
-          (corr_of_allowDirectives_update hcorr_prep) hpeek_disp h_dispatch
-      have hsp_dash2_eq := ScannerSurfCorr_unique hcorr_dash2 hcorr_result
-      rw [hsp_dash2_eq] at h_dash2 h_gnot2
-      have h_cont := h_entry_old sp_mid h_ssl
-      exact ⟨sp_block, sp_block, sp_block, sp_scan', h_stream_block,
-             BlockStack.nil sp_block, FlowStackB.nil sp_block .sep,
-             PendingNode.pendingBlock sp_start sp_block sp_scan' k
-               (fun sp_final (h_indented : SBlockIndented k .blockIn sp_scan' sp_final) =>
-                 h_cont sp_final (SCompactSeqTail.cons k sp_mid _ sp_scan' sp_final sp_final
-                   h_ind h_dash2 h_gnot2 h_indented (SCompactSeqTail.nil k sp_final)))
-               (fun sp_final (h_indented : SBlockIndented k .blockIn sp_scan' sp_final) =>
-                 fun sp_end h_tail =>
-                   h_cont sp_end (SCompactSeqTail.cons k sp_mid _ sp_scan' sp_final sp_end
-                     h_ind h_dash2 h_gnot2 h_indented h_tail))
-               (indicator_floor hcol_mid h_ind hcorr_prep h_preprocess h_dispatch)
-               (dispatchBlockEntry_simpleKeyAllowed h_dispatch),
-             hcorr_result⟩
-    · -- Item 30: here the widths disagreeing is ONE case, not two.  This
-      -- pending's entry already HAS its node — that is what distinguishes
-      -- `pendingBlockContent` from `pendingBlock` — so `[183]`'s entries at
-      -- `n` are complete at the landing and no `-` at any other width extends
-      -- them: `nestedBlockSeq` has no node to fill and a dedent has no frame
-      -- to resume.  Both take the `:`/`?` arm's route below, which the
-      -- indicator siblings have used at every width since item 13.
-      exact accum_block_on_closeThenBlock sc sp_start sp_block_ctx sp_scan s_prep s' '-'
-        _ sp_scan' h_close_pending
-        (fun h_res => (nodeStop_refutes_inline_residue h_line (Or.inl rfl) h_res).elim)
-        hcorr_prep hcorr_result h_corr h_noflow h_preprocess h_dispatch
-  · -- c ≠ '-' at the landing: a ':' opens `[189]`'s empty-key entry there
-    -- (item 13), a '?' opens `[186]`'s explicit-key one (item 20) — one arm.
-    by_cases hcv : c = ':' ∨ c = '?'
-    · exact indicator_open_map sp_start sp_mid _ k c hcv s_prep s' sp_scan'
-        (h_close_pending _ h_ssl) hcol_mid h_ind hcorr_prep hcorr_result
-        (indicator_floor hcol_mid h_ind hcorr_prep h_preprocess h_dispatch)
-        (preprocess_some_peek h_preprocess) h_dispatch
-    · exact (block_indicator_exhausted h_dispatch hc hcv).elim
+  -- Item 38: the same-line `:` may fire the pack instead — `- a: 1` is
+  -- `[195] ns-l-compact-mapping` inside `[185]`'s compact alternative, whose
+  -- key is the content THIS pending parked.  Everything else is the close-and-
+  -- reopen body below, which is also where a punted pack lands.
+  have h_generic :
+    ∃ sp_gram' sp_block' sp_flow' sp_scan'',
+      SLYamlStream sp_start sp_gram' ∧
+      BlockStack sp_gram' sp_block' ∧
+      FlowStackB sp_start 0 #[] #[] .sep sp_block' sp_flow' ∧
+      PendingNode s' false sp_start sp_flow' sp_scan'' ∧
+      ScannerSurfCorr s' sp_scan'' := by
+    -- Item 19: gate on the landing, not on the park — a sibling entry reached
+    -- across a break (`- a⏎- b`) snocs through the SAME `h_entry_old` route a
+    -- column-0 park uses.
+    obtain ⟨sp_mid, sp_ws, sp_sc, h_land, hws, hcmt, hcorr_sc, h_pk⟩ :=
+      preprocess_some_ssl_comments_landing sc sp_scan s_prep c h_corr h_preprocess
+    have hsp_sc_eq := ScannerSurfCorr_unique hcorr_sc hcorr_prep
+    subst hsp_sc_eq
+    refine h_land.elim (fun h_landed => ?_) (fun h_mid =>
+      block_dispatch_deferred sp_start sp_block_ctx sp_scan' s'
+        (h_stream_fallback (nodeStop_residue_is_colon h_line (block_indicator_char h_dispatch)
+          (inline_residue_of_landing h_mid hws h_pk hcorr_prep
+            (preprocess_some_peek h_preprocess)))) hcorr_result)
+    obtain ⟨h_ssl, hcol_mid⟩ := h_landed
+    have h_eq := h_pk.resolve_right (by simp [preprocess_some_peek h_preprocess])
+    subst h_eq
+    -- Item 32: the tab is located in that run, and the scanner refused it.
+    refine (gstar_white_sIndent_or_tab hws).elim (fun h_ind => ?_) (fun h_tab =>
+      (tab_refutes_dispatch h_noflow h_corr h_ssl hcol_mid hcorr_prep hws h_tab
+        h_preprocess h_dispatch).elim)
+    obtain ⟨k, h_ind⟩ := h_ind
+    by_cases hc : c = '-'
+    · subst hc
+      -- The snoc index is the collection's; a `-` at a DIFFERENT indentation
+      -- opens a nested or dedented collection, which this arm cannot build.
+      by_cases hkn : k = n
+      · subst hkn
+        have hpeek_disp : (if s_prep.allowDirectives then
+            { s_prep with allowDirectives := false, documentEverStarted := true }
+          else s_prep).peek? = some '-' := by
+          have := preprocess_some_peek h_preprocess
+          split
+          · show s_prep.peek? = some '-'; exact this
+          · exact this
+        obtain ⟨sp_dash2, h_dash2, h_gnot2, hcorr_dash2⟩ :=
+          dispatchBlockEntry_full_prod _ _
+            (corr_of_allowDirectives_update hcorr_prep) hpeek_disp h_dispatch
+        have hsp_dash2_eq := ScannerSurfCorr_unique hcorr_dash2 hcorr_result
+        rw [hsp_dash2_eq] at h_dash2 h_gnot2
+        have h_cont := h_entry_old sp_mid h_ssl
+        exact ⟨sp_block, sp_block, sp_block, sp_scan', h_stream_block,
+               BlockStack.nil sp_block, FlowStackB.nil sp_block .sep,
+               PendingNode.pendingBlock sp_start sp_block sp_scan' k
+                 (fun sp_final (h_indented : SBlockIndented k .blockIn sp_scan' sp_final) =>
+                   h_cont sp_final (SCompactSeqTail.cons k sp_mid _ sp_scan' sp_final sp_final
+                     h_ind h_dash2 h_gnot2 h_indented (SCompactSeqTail.nil k sp_final)))
+                 (fun sp_final (h_indented : SBlockIndented k .blockIn sp_scan' sp_final) =>
+                   fun sp_end h_tail =>
+                     h_cont sp_end (SCompactSeqTail.cons k sp_mid _ sp_scan' sp_final sp_end
+                       h_ind h_dash2 h_gnot2 h_indented h_tail))
+                 (indicator_floor hcol_mid h_ind hcorr_prep h_preprocess h_dispatch)
+                 (dispatchBlockEntry_simpleKeyAllowed h_dispatch),
+               hcorr_result⟩
+      · -- Item 30: here the widths disagreeing is ONE case, not two.  This
+        -- pending's entry already HAS its node — that is what distinguishes
+        -- `pendingBlockContent` from `pendingBlock` — so `[183]`'s entries at
+        -- `n` are complete at the landing and no `-` at any other width extends
+        -- them: `nestedBlockSeq` has no node to fill and a dedent has no frame
+        -- to resume.  Both take the `:`/`?` arm's route below, which the
+        -- indicator siblings have used at every width since item 13.
+        exact accum_block_on_closeThenBlock sc sp_start sp_block_ctx sp_scan s_prep s' '-'
+          _ sp_scan' h_close_pending
+          (fun h_res => (nodeStop_refutes_inline_residue h_line (Or.inl rfl) h_res).elim)
+          hcorr_prep hcorr_result h_corr h_noflow h_preprocess h_dispatch
+    · -- c ≠ '-' at the landing: a ':' opens `[189]`'s empty-key entry there
+      -- (item 13), a '?' opens `[186]`'s explicit-key one (item 20) — one arm.
+      by_cases hcv : c = ':' ∨ c = '?'
+      · exact indicator_open_map sp_start sp_mid _ k c hcv s_prep s' sp_scan'
+          (h_close_pending _ h_ssl) hcol_mid h_ind hcorr_prep hcorr_result
+          (indicator_floor hcol_mid h_ind hcorr_prep h_preprocess h_dispatch)
+          (preprocess_some_peek h_preprocess) h_dispatch
+      · exact (block_indicator_exhausted h_dispatch hc hcv).elim
+  by_cases hc0 : c = ':'
+  · subst hc0
+    exact colon_fires_implicit_key sc sp_start sp_block sp_scan s_prep s' sp_prep sp_scan'
+      h_stream_block h_key h_generic hcorr_prep hcorr_result h_corr h_preprocess h_dispatch
+  · exact h_generic
 
 -- Block dispatch with pendingBlock: accumulate entries via h_close_entry_old.
 lemma accum_block_on_pendingBlock
@@ -8407,7 +8517,8 @@ lemma accum_block_pending (sc : ScannerState)
   | pendingContent _ _ _ h_line _ h_key =>
     -- Item 15: the same-line `:` may fire the implicit-key coupling.
     -- Item 37: what the caller still owes is the `:` alone.
-    exact accum_block_on_pendingContent sc sp_start sp_block sp_scan s_prep s' c sp_prep sp_scan'
+    exact accum_block_on_pendingContent sc sp_start sp_block sp_block sp_scan s_prep s' c
+      sp_prep sp_scan' h_stream_block
       h_close_pending h_line h_key (fun _ => h_stream_block) hcorr_prep hcorr_result h_corr
       h_noflow h_preprocess h_dispatch
   | pendingProps _ _ _
@@ -8420,10 +8531,10 @@ lemma accum_block_pending (sc : ScannerState)
     -- Item 22: the pending's own entry index rides through; the `n ≠ 0`
     -- deferral this arm used to open is gone with it.
     -- Item 37: and what is left of the escape is `[154]`'s `:`.
-    rename_i n_old h_line _ h_entry_old
+    rename_i n_old h_line _ h_entry_old h_key_old
     exact accum_block_on_pendingBlockContent sc sp_start sp_block sp_block sp_scan s_prep s' c
       sp_prep sp_scan' n_old h_stream_block h_close_pending h_line (fun _ => h_stream_block)
-      h_entry_old hcorr_prep hcorr_result h_corr h_noflow h_preprocess h_dispatch
+      h_entry_old h_key_old hcorr_prep hcorr_result h_corr h_noflow h_preprocess h_dispatch
   | pendingBlock =>
     rename_i n_old _h_floor h_sk_old _h_close h_close_entry_old
     exact accum_block_on_pendingBlock sc sp_start sp_block sp_block sp_scan s_prep s' c sp_prep
@@ -10174,6 +10285,205 @@ lemma keyctx_of_preprocess (sc : ScannerState) (sp sp_prep : SurfPos)
                         h_sk.1, h_sk.2⟩
         · exact Or.inr trivial
 
+/-- **`[188]`'s HEAD, read off the content dispatch that just parked it**
+    (items 15–17), with the entry's ROUTE left to the caller (item 38).
+
+    Items 15–17 grew this inside `content_dispatch_after_close`, where the
+    route was fixed — a column-0 line start and `[63] s-indent(k)` — so the
+    head and the route were written together.  They are independent: `[193]
+    ns-s-implicit-yaml-key` and `[194] c-s-implicit-json-key` take no indent at
+    all (the spec writes `n/a`), so the reading is the same whether the entry
+    is the root mapping's or a compact one's.  Separating them is what lets
+    `- a: 1` reuse `a: 1`'s four arms verbatim.
+
+    The last conjunct is the one fact each arm has to supply about the scan it
+    just did: whether the dispatch left the SAVED key's position alone.  The
+    caller turns it into its own column claim (item 28/29), because what `k`
+    is depends on the route.  A block-scalar header punts — `|` is a node,
+    never a key. -/
+lemma implicitKeyHead_of_dispatch
+    (s_prep s' : ScannerState) (c : Char) (sp_prep sp_scan' : SurfPos)
+    (h_kline : s'.simpleKey.pos.line = s'.line)
+    (h_sk_pos : s_prep.simpleKey.pos = s_prep.currentPos)
+    (hcorr_prep : ScannerSurfCorr s_prep sp_prep)
+    (hcorr_result : ScannerSurfCorr s' sp_scan')
+    (hna : c ≠ '&') (hnt : c ≠ '!')
+    (h_not_doc : (if s_prep.allowDirectives then
+          { s_prep with allowDirectives := false, documentEverStarted := true }
+        else s_prep).col = 0 →
+      atDocumentBoundary (if s_prep.allowDirectives then
+          { s_prep with allowDirectives := false, documentEverStarted := true }
+        else s_prep) = false)
+    (h_flow_disp : (if s_prep.allowDirectives then
+          { s_prep with allowDirectives := false, documentEverStarted := true }
+        else s_prep).inFlow = false)
+    (hpeek_disp : (if s_prep.allowDirectives then
+          { s_prep with allowDirectives := false, documentEverStarted := true }
+        else s_prep).peek? = some c)
+    (h_dispatch : scanNextToken_dispatchContent (if s_prep.allowDirectives then
+          { s_prep with allowDirectives := false, documentEverStarted := true }
+        else s_prep) c = .ok s') :
+    (∃ sp_gram, ImplicitKeyHead sp_prep sp_gram ∧ GStar SSWhite sp_gram sp_scan' ∧
+      s'.simpleKey.pos = (if s_prep.allowDirectives then
+          { s_prep with allowDirectives := false, documentEverStarted := true }
+        else s_prep).simpleKey.pos) ∨ True := by
+  by_cases hc5 : c = '|' ∨ c = '>'
+  · exact Or.inr trivial
+  have hnPipe : c ≠ '|' := fun h => hc5 (Or.inl h)
+  have hnGt : c ≠ '>' := fun h => hc5 (Or.inr h)
+  by_cases hstar : c = '*'
+  · -- `[188]`'s alias head (item 17): `[104] c-ns-alias-node` is
+    -- `'*' ns-anchor-name`, and `ns-anchor-char` excludes `s-white` and
+    -- `b-char` — an alias CANNOT cross a break, so there is no one-line
+    -- reading to prove and no line hypothesis to discharge.  The production is
+    -- context-free, so it reads at `.blockKey` directly.
+    subst hstar
+    obtain ⟨sp_res2, h_al, hcorr2⟩ :=
+      dispatchContent_alias_prod _ sp_prep .blockKey
+        (corr_of_allowDirectives_update hcorr_prep) hpeek_disp h_dispatch
+    have hsp2 := ScannerSurfCorr_unique hcorr2 hcorr_result
+    rw [hsp2] at h_al
+    exact Or.inl ⟨sp_scan', ImplicitKeyHead.json h_al, GStar.nil _,
+                  by rw [(dispatchContent_alias_simpleKey h_dispatch).1]⟩
+  have hnStar : c ≠ '*' := hstar
+  -- The coupling chain: the key was saved AT the content start, so the guard's
+  -- `pos.line = line` says the scan crossed no break.  Only the key's POSITION
+  -- need survive the dispatch — §7.4's own `endLine` bookkeeping on the quoted
+  -- branches leaves it alone.
+  have h_line_scan : s'.simpleKey.pos = (if s_prep.allowDirectives then
+          { s_prep with allowDirectives := false, documentEverStarted := true }
+        else s_prep).simpleKey.pos →
+      s'.line = (if s_prep.allowDirectives then
+          { s_prep with allowDirectives := false, documentEverStarted := true }
+        else s_prep).line := by
+    intro hpp
+    have h1 : s'.simpleKey.pos.line = s_prep.currentPos.line := by
+      rw [hpp, allowDirectives_update_simpleKey, h_sk_pos]
+    have h2 : s_prep.currentPos.line = s_prep.line := rfl
+    rw [allowDirectives_update_line, ← h2, ← h1]
+    exact h_kline.symm
+  by_cases hdq : c = '"'
+  · -- `[188]`'s JSON arm, double-quoted: the scan ends AT the closing quote,
+    -- so the key's trailing `s-white*` slot is empty.
+    subst hdq
+    obtain ⟨h_pp, h_cond⟩ :=
+      dispatchContent_doubleQuoted_key_prod _ sp_prep
+        (corr_of_allowDirectives_update hcorr_prep) hpeek_disp h_dispatch
+    obtain ⟨sp_res2, h_dq, hcorr2⟩ := h_cond (h_line_scan h_pp)
+    have hsp2 := ScannerSurfCorr_unique hcorr2 hcorr_result
+    rw [hsp2] at h_dq
+    exact Or.inl ⟨sp_scan',
+                  ImplicitKeyHead.json
+                    (SFlowNode.content 0 .blockKey sp_prep sp_scan'
+                      (SFlowContent.doubleQ 0 .blockKey sp_prep sp_scan' h_dq)),
+                  GStar.nil _, h_pp⟩
+  · by_cases hsq : c = '\''
+    · -- `[188]`'s JSON arm, single-quoted.
+      subst hsq
+      obtain ⟨h_pp, h_cond⟩ :=
+        dispatchContent_singleQuoted_key_prod _ sp_prep
+          (corr_of_allowDirectives_update hcorr_prep) hpeek_disp h_dispatch
+      obtain ⟨sp_res2, h_sq, hcorr2⟩ := h_cond (h_line_scan h_pp)
+      have hsp2 := ScannerSurfCorr_unique hcorr2 hcorr_result
+      rw [hsp2] at h_sq
+      exact Or.inl ⟨sp_scan',
+                    ImplicitKeyHead.json
+                      (SFlowNode.content 0 .blockKey sp_prep sp_scan'
+                        (SFlowContent.singleQ 0 .blockKey sp_prep sp_scan' h_sq)),
+                    GStar.nil _, h_pp⟩
+    · -- `[188]`'s YAML arm (item 15).
+      obtain ⟨h_sk_pres, h_cond⟩ :=
+        dispatchContent_plainScalar_key_prod _ sp_prep
+          (corr_of_allowDirectives_update hcorr_prep) hpeek_disp h_flow_disp
+          hna hnStar hnt hnPipe hnGt hdq hsq h_not_doc h_dispatch
+      obtain ⟨sp_gram2, sp_res2, h_ol, h_tws2, hcorr2⟩ :=
+        h_cond (h_line_scan (by rw [h_sk_pres]))
+      have hsp2 := ScannerSurfCorr_unique hcorr2 hcorr_result
+      rw [hsp2] at h_tws2
+      exact Or.inl ⟨sp_gram2, ImplicitKeyHead.yaml h_ol, h_tws2, by rw [h_sk_pres]⟩
+
+/-- **The COMPACT implicit-key pack** (item 38): what a block-sequence ENTRY
+    hands the content it just parked, so that a `:` arriving on the same line
+    reads that content back as `[193]`/`[194]`'s key.
+
+    `- a: 1` is `[195] ns-l-compact-mapping` under `[185] s-l+block-indented`'s
+    second alternative, and the reason items 15–25 could not reach it is not
+    the key — the head lemma above reads `a` exactly as it reads the `a` of
+    `a: 1` — but the FRAME.  `rootMapRoute` wants a column-0 line start with
+    `[79] s-l-comments` closing the previous node at it; a compact entry's key
+    sits on the same line as the `-`, so there is no such landing and never
+    will be.  What there is instead is the enclosing entry's own closure, which
+    is why the pack now carries a route (`compactMapRoute`).
+
+    Three shapes punt, and each is a different construct rather than a weaker
+    instance of this one: a content start reached ACROSS a break (`-⏎  a: 1` is
+    `[185]`'s first alternative, a nested collection under `s-l-comments`), a
+    TAB in the whites (`[63] s-indent(m)` is spaces), and a `&`/`!` head (a
+    `[96]` run parks `pendingProps`, whose own pack is item 17's).  The column
+    conjunct punts too — the entry index here is `n+1+m` and the pending does
+    not carry the `-`'s own column to check it against, which is the same
+    measurement `compact_open_map` could not take (Reflection 653). -/
+lemma compactKeyPack_of_dispatch
+    (sc : ScannerState) (sp_start sp_scan : SurfPos) (n : Nat)
+    (s_prep s' : ScannerState) (c : Char) (sp_prep sp_scan' : SurfPos)
+    (h_close_old : ∀ sp, SBlockIndented n .blockIn sp_scan sp → SLYamlStream sp_start sp)
+    (hcorr_prep : ScannerSurfCorr s_prep sp_prep)
+    (hcorr_result : ScannerSurfCorr s' sp_scan')
+    (h_corr : ScannerSurfCorr sc sp_scan)
+    (h_not_doc : (if s_prep.allowDirectives then
+          { s_prep with allowDirectives := false, documentEverStarted := true }
+        else s_prep).col = 0 →
+      atDocumentBoundary (if s_prep.allowDirectives then
+          { s_prep with allowDirectives := false, documentEverStarted := true }
+        else s_prep) = false)
+    (h_flow_disp : (if s_prep.allowDirectives then
+          { s_prep with allowDirectives := false, documentEverStarted := true }
+        else s_prep).inFlow = false)
+    (h_preprocess : scanNextToken_preprocess sc = .ok (some (s_prep, c)))
+    (h_dispatch : scanNextToken_dispatchContent (if s_prep.allowDirectives then
+          { s_prep with allowDirectives := false, documentEverStarted := true }
+        else s_prep) c = .ok s') :
+    s'.simpleKey.possible = true → s'.simpleKey.pos.line = s'.line →
+      ImplicitKeyPack s' sp_start sp_scan' ∨ True := by
+  intro _h_poss h_kline
+  by_cases hprops : c = '&' ∨ c = '!'
+  · exact Or.inr trivial
+  have hna : c ≠ '&' := fun h => hprops (Or.inl h)
+  have hnt : c ≠ '!' := fun h => hprops (Or.inr h)
+  have hpeek_disp : (if s_prep.allowDirectives then
+          { s_prep with allowDirectives := false, documentEverStarted := true }
+        else s_prep).peek? = some c := by
+    have := preprocess_some_peek h_preprocess
+    split
+    · show s_prep.peek? = some c; exact this
+    · exact this
+  rcases preprocess_some_savedKey_shape h_preprocess with h_sk | _
+  · obtain ⟨sp_mid, sp_ws, sp_prep2, h_disj, h_ws, _h_cmt, hcorr_prep2, h_pk⟩ :=
+      preprocess_some_ssl_comments_anyCol sc sp_scan s_prep c h_corr h_preprocess
+    have hsp_eq2 := ScannerSurfCorr_unique hcorr_prep hcorr_prep2
+    have h_eq : sp_prep2 = sp_ws := by
+      cases h_pk with
+      | inl h => exact h
+      | inr h => rw [preprocess_some_peek h_preprocess] at h; cases h
+    have h_pe : sp_prep = sp_ws := hsp_eq2.trans h_eq
+    cases h_disj with
+    | inl _ => exact Or.inr trivial
+    | inr h_mid =>
+      cases gstar_white_sIndent_or_tab h_ws with
+      | inr _ => exact Or.inr trivial
+      | inl h_ind0 =>
+        obtain ⟨m, h_ind⟩ := h_ind0
+        have h_ind' : SIndent m sp_scan sp_prep := by
+          rw [h_pe, ← h_mid.1]; exact h_ind
+        cases implicitKeyHead_of_dispatch s_prep s' c sp_prep sp_scan' h_kline h_sk.2
+            hcorr_prep hcorr_result hna hnt h_not_doc h_flow_disp hpeek_disp h_dispatch with
+        | inr _ => exact Or.inr trivial
+        | inl h_head =>
+          obtain ⟨sp_gram2, h_ol, h_tws2, _h_pp⟩ := h_head
+          exact Or.inl ⟨n + 1 + m, sp_prep, sp_gram2,
+                        compactMapRoute h_close_old h_ind', h_ol, h_tws2, Or.inr trivial⟩
+  · exact Or.inr trivial
+
 lemma content_dispatch_after_close
     (sp_start sp_block : SurfPos)
     (s_prep s' : ScannerState) (c : Char) (sp_prep sp_scan' : SurfPos)
@@ -10325,106 +10635,39 @@ lemma content_dispatch_after_close
     have h_key : s'.simpleKey.possible = true → s'.simpleKey.pos.line = s'.line →
         ImplicitKeyPack s' sp_start sp_scan' ∨ True := by
       intro _h_poss h_kline
-      by_cases hc5 : c = '|' ∨ c = '>'
-      · exact Or.inr trivial
-      · cases h_keyctx with
+      cases h_keyctx with
+      | inr _ => exact Or.inr trivial
+      | inl hctx =>
+        obtain ⟨⟨k, sp_land, hcol0, h_stream_land, h_ind⟩, _h_sk_poss, h_sk_pos⟩ := hctx
+        -- Item 28: the same `k` on the scanner's side.  The key was saved AT
+        -- the content start (`h_sk_pos`), the content start is `sp_prep`, and
+        -- `[63] s-indent(k)` from a column-0 landing puts `sp_prep` at column
+        -- `k` — so the column the `:` will push its mapping indent at is the
+        -- entry index this pack carries.  What the head lemma supplies is the
+        -- one thing that could move it: whether the dispatch left the saved
+        -- key's POSITION alone.  Item 29 gives the ALIAS arm that datum too,
+        -- so `  *m : |` measures its floor where `  a: |` does.
+        have h_kcol_of : s'.simpleKey.pos = (if s_prep.allowDirectives then
+            { s_prep with allowDirectives := false, documentEverStarted := true }
+          else s_prep).simpleKey.pos → (s'.simpleKey.pos.col = k ∨ True) := by
+          intro hpp
+          refine Or.inl ?_
+          rw [hpp, allowDirectives_update_simpleKey, h_sk_pos]
+          show s_prep.col = k
+          rw [← hcorr_prep.col_eq]
+          have := SIndent_col h_ind
+          rw [hcol0] at this
+          omega
+        -- Item 38: the head is read once and the coordinates are spent HERE,
+        -- into `[187]`'s route, instead of being carried to a consumer that
+        -- could only spend them one way.
+        cases implicitKeyHead_of_dispatch s_prep s' c sp_prep sp_scan' h_kline h_sk_pos
+            hcorr_prep hcorr_result hna hnt h_not_doc h_flow_disp hpeek_disp h_dispatch with
         | inr _ => exact Or.inr trivial
-        | inl hctx =>
-          obtain ⟨⟨k, sp_land, hcol0, h_stream_land, h_ind⟩, _h_sk_poss, h_sk_pos⟩ := hctx
-          have hnPipe : c ≠ '|' := fun h => hc5 (Or.inl h)
-          have hnGt : c ≠ '>' := fun h => hc5 (Or.inr h)
-          -- Item 28: the same `k` on the scanner's side.  The key was saved AT
-          -- the content start (`h_sk_pos`), the content start is `sp_prep`, and
-          -- `[63] s-indent(k)` from a column-0 landing puts `sp_prep` at column
-          -- `k` — so the column the `:` will push its mapping indent at is the
-          -- entry index this pack carries.  Each arm below supplies the one
-          -- thing that could move it: whether the dispatch left the saved key's
-          -- POSITION alone.  Item 29 gives the ALIAS arm that datum too
-          -- (`dispatchContent_alias_simpleKey`), so `  *m : |` measures its
-          -- floor where `  a: |` does.
-          have h_kcol_of : s'.simpleKey.pos = (if s_prep.allowDirectives then
-              { s_prep with allowDirectives := false, documentEverStarted := true }
-            else s_prep).simpleKey.pos → (s'.simpleKey.pos.col = k ∨ True) := by
-            intro hpp
-            refine Or.inl ?_
-            rw [hpp, allowDirectives_update_simpleKey, h_sk_pos]
-            show s_prep.col = k
-            rw [← hcorr_prep.col_eq]
-            have := SIndent_col h_ind
-            rw [hcol0] at this
-            omega
-          by_cases hstar : c = '*'
-          · -- `[188]`'s alias head (item 17): `[104] c-ns-alias-node` is
-            -- `'*' ns-anchor-name`, and `ns-anchor-char` excludes `s-white` and
-            -- `b-char` — an alias CANNOT cross a break, so there is no one-line
-            -- reading to prove and no line hypothesis to discharge.  The
-            -- production is context-free, so it reads at `.blockKey` directly.
-            subst hstar
-            obtain ⟨sp_res2, h_al, hcorr2⟩ :=
-              dispatchContent_alias_prod _ sp_prep .blockKey
-                (corr_of_allowDirectives_update hcorr_prep) hpeek_disp h_dispatch
-            have hsp2 := ScannerSurfCorr_unique hcorr2 hcorr_result
-            rw [hsp2] at h_al
-            exact Or.inl ⟨k, sp_land, sp_prep, sp_scan', hcol0, h_stream_land, h_ind,
-                          ImplicitKeyHead.json h_al, GStar.nil _,
-                          h_kcol_of (by rw [(dispatchContent_alias_simpleKey h_dispatch).1])⟩
-          have hnStar : c ≠ '*' := hstar
-          -- The coupling chain: the key was saved AT the content start, so the
-          -- guard's `pos.line = line` says the scan crossed no break.  Only the
-          -- key's POSITION need survive the dispatch — §7.4's own `endLine`
-          -- bookkeeping on the quoted branches leaves it alone.
-          have h_line_scan : s'.simpleKey.pos = (if s_prep.allowDirectives then
-              { s_prep with allowDirectives := false, documentEverStarted := true }
-            else s_prep).simpleKey.pos →
-              s'.line = (if s_prep.allowDirectives then
-              { s_prep with allowDirectives := false, documentEverStarted := true }
-            else s_prep).line := by
-            intro hpp
-            have h1 : s'.simpleKey.pos.line = s_prep.currentPos.line := by
-              rw [hpp, allowDirectives_update_simpleKey, h_sk_pos]
-            have h2 : s_prep.currentPos.line = s_prep.line := rfl
-            rw [allowDirectives_update_line, ← h2, ← h1]
-            exact h_kline.symm
-          by_cases hdq : c = '"'
-          · -- `[188]`'s JSON arm, double-quoted: the scan ends AT the closing
-            -- quote, so the key's trailing `s-white*` slot is empty.
-            subst hdq
-            obtain ⟨h_pp, h_cond⟩ :=
-              dispatchContent_doubleQuoted_key_prod _ sp_prep
-                (corr_of_allowDirectives_update hcorr_prep) hpeek_disp h_dispatch
-            obtain ⟨sp_res2, h_dq, hcorr2⟩ := h_cond (h_line_scan h_pp)
-            have hsp2 := ScannerSurfCorr_unique hcorr2 hcorr_result
-            rw [hsp2] at h_dq
-            exact Or.inl ⟨k, sp_land, sp_prep, sp_scan', hcol0, h_stream_land, h_ind,
-                          ImplicitKeyHead.json
-                            (SFlowNode.content 0 .blockKey sp_prep sp_scan'
-                              (SFlowContent.doubleQ 0 .blockKey sp_prep sp_scan' h_dq)),
-                          GStar.nil _, h_kcol_of h_pp⟩
-          · by_cases hsq : c = '\''
-            · -- `[188]`'s JSON arm, single-quoted.
-              subst hsq
-              obtain ⟨h_pp, h_cond⟩ :=
-                dispatchContent_singleQuoted_key_prod _ sp_prep
-                  (corr_of_allowDirectives_update hcorr_prep) hpeek_disp h_dispatch
-              obtain ⟨sp_res2, h_sq, hcorr2⟩ := h_cond (h_line_scan h_pp)
-              have hsp2 := ScannerSurfCorr_unique hcorr2 hcorr_result
-              rw [hsp2] at h_sq
-              exact Or.inl ⟨k, sp_land, sp_prep, sp_scan', hcol0, h_stream_land, h_ind,
-                            ImplicitKeyHead.json
-                              (SFlowNode.content 0 .blockKey sp_prep sp_scan'
-                                (SFlowContent.singleQ 0 .blockKey sp_prep sp_scan' h_sq)),
-                            GStar.nil _, h_kcol_of h_pp⟩
-            · -- `[188]`'s YAML arm (item 15).
-              obtain ⟨h_sk_pres, h_cond⟩ :=
-                dispatchContent_plainScalar_key_prod _ sp_prep
-                  (corr_of_allowDirectives_update hcorr_prep) hpeek_disp h_flow_disp
-                  hna hnStar hnt hnPipe hnGt hdq hsq h_not_doc h_dispatch
-              obtain ⟨sp_gram2, sp_res2, h_ol, h_tws2, hcorr2⟩ :=
-                h_cond (h_line_scan (by rw [h_sk_pres]))
-              have hsp2 := ScannerSurfCorr_unique hcorr2 hcorr_result
-              rw [hsp2] at h_tws2
-              exact Or.inl ⟨k, sp_land, sp_prep, sp_gram2, hcol0, h_stream_land, h_ind,
-                            ImplicitKeyHead.yaml h_ol, h_tws2, h_kcol_of (by rw [h_sk_pres])⟩
+        | inl h_head =>
+          obtain ⟨sp_gram2, h_ol, h_tws2, h_pp⟩ := h_head
+          exact Or.inl ⟨k, sp_prep, sp_gram2, rootMapRoute hcol0 h_stream_land h_ind,
+                        h_ol, h_tws2, h_kcol_of h_pp⟩
     obtain ⟨sp_gram, sp_ev, h_ev, h_trailing_ws, hcorr_ev⟩ :=
         dispatchContent_evidence _ sp_prep c
         (corr_of_allowDirectives_update hcorr_prep) hpeek_disp h_not_doc h_dispatch
@@ -10634,7 +10877,10 @@ lemma accum_content_on_pendingBlock
                h_close_entry_old sp_final
                  (SBlockIndented.node 0 .blockIn sp_scan sp_final
                    (SBlockNode.flowInBlock 0 .blockIn sp_scan sp_prep sp_gram sp_final
-                     h_sep h_flow h_ssl_ext))),
+                     h_sep h_flow h_ssl_ext)))
+             (compactKeyPack_of_dispatch sc sp_start sp_scan 0 s_prep s' c sp_prep sp_scan'
+               h_close_old hcorr_prep hcorr_result h_corr h_not_doc h_flow_disp
+               h_preprocess h_dispatch),
            hcorr_result⟩
     | inr h_block =>
       have h_blockNode : SBlockNode 0 .blockIn sp_scan sp_gram :=
@@ -10905,7 +11151,10 @@ lemma accum_content_on_pendingBlock_indented
                  (SBlockIndented.node n .blockIn sp_scan sp_final
                    (SBlockNode.flowInBlock n .blockIn sp_scan sp_prep sp_gram sp_final
                      (h_sep_all n) (h_flow_all n)
-                     (white_prepend_SSLComments h_trailing_ws h_ssl)))),
+                     (white_prepend_SSLComments h_trailing_ws h_ssl))))
+             (compactKeyPack_of_dispatch sc sp_start sp_scan n s_prep s' c sp_prep sp_scan'
+               h_close_old hcorr_prep hcorr_result h_corr h_not_doc h_flow_disp
+               h_preprocess h_dispatch),
            hcorr_result⟩
   · -- Item 24: the run parks at the ENTRY's index; the entry closure is not
     -- carried, so a sibling after `  - &a v` re-opens rather than snocs.
@@ -11202,7 +11451,7 @@ lemma accum_content_pending (sc : ScannerState)
   | pendingDocStart _
   | pendingContent _ _ _
   | pendingFlow _
-  | pendingBlockContent _ _ _ _ =>
+  | pendingBlockContent _ _ _ _ _ =>
     all_goals (
       by_cases hcol : sp_scan.col = 0
       · obtain ⟨sp_mid, sp_ws, sp_prep2, h_ssl, hcol_mid, h_ws, h_cmt, hcorr_prep2, h_pk⟩ :=
@@ -11513,6 +11762,7 @@ lemma accum_content_pending (sc : ScannerState)
               | inl hpk =>
                 obtain ⟨⟨k, sp_land, hcol0, h_stream_p, h_ind, h_kcol⟩,
                   h_props_bk, h_sk_line⟩ := hpk
+                have h_route_k := rootMapRoute hcol0 h_stream_p h_ind
                 have h_kcol_of : s'.simpleKey.pos = (if s_prep.allowDirectives then
                     { s_prep with allowDirectives := false, documentEverStarted := true }
                   else s_prep).simpleKey.pos → (s'.simpleKey.pos.col = k ∨ True) := by
@@ -11549,7 +11799,7 @@ lemma accum_content_pending (sc : ScannerState)
                     obtain ⟨sp_res2, h_dq, hcorr2⟩ := h_cond (h_line_scan h_pp)
                     have hsp2 := ScannerSurfCorr_unique hcorr2 hcorr_result
                     rw [hsp2] at h_dq
-                    exact Or.inl ⟨k, sp_land, sp_p, sp_scan', hcol0, h_stream_p, h_ind,
+                    exact Or.inl ⟨k, sp_p, sp_scan', h_route_k,
                       ImplicitKeyHead.json
                         (SFlowNode.propsContent 0 .blockKey sp_p sp_scan sp_prep sp_scan'
                           h_props_bk h_sep_bk
@@ -11563,7 +11813,7 @@ lemma accum_content_pending (sc : ScannerState)
                       obtain ⟨sp_res2, h_sq, hcorr2⟩ := h_cond (h_line_scan h_pp)
                       have hsp2 := ScannerSurfCorr_unique hcorr2 hcorr_result
                       rw [hsp2] at h_sq
-                      exact Or.inl ⟨k, sp_land, sp_p, sp_scan', hcol0, h_stream_p, h_ind,
+                      exact Or.inl ⟨k, sp_p, sp_scan', h_route_k,
                         ImplicitKeyHead.json
                           (SFlowNode.propsContent 0 .blockKey sp_p sp_scan sp_prep sp_scan'
                             h_props_bk h_sep_bk
@@ -11577,7 +11827,7 @@ lemma accum_content_pending (sc : ScannerState)
                         h_cond (h_line_scan (by rw [h_sk_pres]))
                       have hsp2 := ScannerSurfCorr_unique hcorr2 hcorr_result
                       rw [hsp2] at h_tws2
-                      exact Or.inl ⟨k, sp_land, sp_p, sp_gram2, hcol0, h_stream_p, h_ind,
+                      exact Or.inl ⟨k, sp_p, sp_gram2, h_route_k,
                         ImplicitKeyHead.json
                           (SFlowNode.propsContent 0 .blockKey sp_p sp_scan sp_prep sp_gram2
                             h_props_bk h_sep_bk
