@@ -6435,7 +6435,7 @@ REMOVED one at a time — only narrowed until the constructor goes, at which poi
 they vanish together. The endgame is atomic; the unit of progress before it is
 "eliminate a non-`pendingFlow` inhabitant".
 
-**The pins.** `Tests/Guards/Proofs/ScannerBOMColumn.lean`, 35 `#guard`s in four
+**The pins.** `Tests/Guards/Proofs/ScannerBOMColumn.lean`, 34 `#guard`s in four
 sections: §1 the two shapes the drift broke, plus the directive prelude and the
 `...` suffix, which are column-0 readings for the same reason; §2 the marker is
 transparent to every indentation reading (`﻿a:⏎  b: 1`, the indented root
