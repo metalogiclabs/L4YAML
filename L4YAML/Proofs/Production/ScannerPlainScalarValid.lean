@@ -1322,10 +1322,10 @@ lemma scan_all_plain_scalars_valid (input : String)
   unfold scan at h
   simp only [] at h
   have h_init : PlainScalarsValid (match (ScannerState.mk' input |>.emit .streamStart).peek? with
-      | some '\uFEFF' => (ScannerState.mk' input |>.emit .streamStart).advance
+      | some '\uFEFF' => (ScannerState.mk' input |>.emit .streamStart).consumeBOM
       | _ => ScannerState.mk' input |>.emit .streamStart).tokens := by
     have h_tok_eq : (match (ScannerState.mk' input |>.emit .streamStart).peek? with
-        | some '\uFEFF' => (ScannerState.mk' input |>.emit .streamStart).advance
+        | some '\uFEFF' => (ScannerState.mk' input |>.emit .streamStart).consumeBOM
         | _ => ScannerState.mk' input |>.emit .streamStart).tokens =
         (ScannerState.mk' input |>.emit .streamStart).tokens := by
       split
@@ -5184,11 +5184,11 @@ lemma scan_all_flow_context_psv (input : String)
   exact scanLoop_preserves_FlowInv _ _ _
     (by -- FlowContextPSV for initial state (1 token: .streamStart, not plain)
         have h_tok_eq : (match (ScannerState.mk' input |>.emit .streamStart).peek? with
-            | some '\uFEFF' => (ScannerState.mk' input |>.emit .streamStart).advance
+            | some '\uFEFF' => (ScannerState.mk' input |>.emit .streamStart).consumeBOM
             | _ => ScannerState.mk' input |>.emit .streamStart).tokens =
             (ScannerState.mk' input |>.emit .streamStart).tokens := by
           split
-          · exact advance_preserves_tokens _
+          · exact consumeBOM_preserves_tokens _
           · rfl
         suffices h_suf : FlowContextPSV (ScannerState.mk' input |>.emit .streamStart).tokens by
           exact Eq.mpr (congrArg FlowContextPSV h_tok_eq) h_suf
@@ -5201,30 +5201,30 @@ lemma scan_all_flow_context_psv (input : String)
     (by -- FlowNestingInv for initial state (flowLevel = 0, single non-flow token)
         unfold FlowNestingInv
         split <;> (
-          try simp only [advance_preserves_tokens, advance_preserves_flowLevel]
+          try simp only [consumeBOM_preserves_tokens, consumeBOM_preserves_flowLevel]
           simp only [ScannerState.emit, ScannerState.mk', ScannerState.currentPos]
           unfold flowNesting
           exact flowNesting_go_streamStart _))
     (by -- AllKeysPlaceholderInv for initial state (simpleKey.possible = false, empty stack)
         have h_poss : (match (ScannerState.mk' input |>.emit .streamStart).peek? with
-            | some '\uFEFF' => (ScannerState.mk' input |>.emit .streamStart).advance
+            | some '\uFEFF' => (ScannerState.mk' input |>.emit .streamStart).consumeBOM
             | _ => ScannerState.mk' input |>.emit .streamStart).simpleKey.possible = false := by
           split
-          · rw [advance_preserves_simpleKey]; simp [ScannerState.emit, ScannerState.mk']
+          · rw [consumeBOM_preserves_simpleKey]; simp [ScannerState.emit, ScannerState.mk']
           · simp [ScannerState.emit, ScannerState.mk']
         have h_stack : (match (ScannerState.mk' input |>.emit .streamStart).peek? with
-            | some '\uFEFF' => (ScannerState.mk' input |>.emit .streamStart).advance
+            | some '\uFEFF' => (ScannerState.mk' input |>.emit .streamStart).consumeBOM
             | _ => ScannerState.mk' input |>.emit .streamStart).simpleKeyStack.size = 0 := by
           split
-          · have := advance_preserves_simpleKeyStack (ScannerState.mk' input |>.emit .streamStart)
+          · have := consumeBOM_preserves_simpleKeyStack (ScannerState.mk' input |>.emit .streamStart)
             simp_all [ScannerState.emit, ScannerState.mk']
           · simp [ScannerState.emit, ScannerState.mk']
         have h_empty : ∀ j, ¬(j < (match (ScannerState.mk' input |>.emit .streamStart).peek? with
-            | some '\uFEFF' => (ScannerState.mk' input |>.emit .streamStart).advance
+            | some '\uFEFF' => (ScannerState.mk' input |>.emit .streamStart).consumeBOM
             | _ => ScannerState.mk' input |>.emit .streamStart).simpleKeyStack.size) := by
           intro j; rw [h_stack]; omega
         have h_not_poss : ¬(match (ScannerState.mk' input |>.emit .streamStart).peek? with
-            | some '\uFEFF' => (ScannerState.mk' input |>.emit .streamStart).advance
+            | some '\uFEFF' => (ScannerState.mk' input |>.emit .streamStart).consumeBOM
             | _ => ScannerState.mk' input |>.emit .streamStart).simpleKey.possible = true := by
           rw [h_poss]; decide
         exact ⟨fun hp => absurd hp h_not_poss,
@@ -5543,11 +5543,11 @@ lemma scan_FlowBracketsMatched (input : String)
   exact scanLoop_FlowBracketsMatched _ _ _
     (by -- FlowContextPSV for initial state (1 token: .streamStart, not plain)
         have h_tok_eq : (match (ScannerState.mk' input |>.emit .streamStart).peek? with
-            | some '\uFEFF' => (ScannerState.mk' input |>.emit .streamStart).advance
+            | some '\uFEFF' => (ScannerState.mk' input |>.emit .streamStart).consumeBOM
             | _ => ScannerState.mk' input |>.emit .streamStart).tokens =
             (ScannerState.mk' input |>.emit .streamStart).tokens := by
           split
-          · exact advance_preserves_tokens _
+          · exact consumeBOM_preserves_tokens _
           · rfl
         suffices h_suf : FlowContextPSV (ScannerState.mk' input |>.emit .streamStart).tokens by
           exact Eq.mpr (congrArg FlowContextPSV h_tok_eq) h_suf
@@ -5560,30 +5560,30 @@ lemma scan_FlowBracketsMatched (input : String)
     (by -- FlowNestingInv for initial state (flowLevel = 0, single non-flow token)
         unfold FlowNestingInv
         split <;> (
-          try simp only [advance_preserves_tokens, advance_preserves_flowLevel]
+          try simp only [consumeBOM_preserves_tokens, consumeBOM_preserves_flowLevel]
           simp only [ScannerState.emit, ScannerState.mk', ScannerState.currentPos]
           unfold flowNesting
           exact flowNesting_go_streamStart _))
     (by -- AllKeysPlaceholderInv for initial state (simpleKey.possible = false, empty stack)
         have h_poss : (match (ScannerState.mk' input |>.emit .streamStart).peek? with
-            | some '\uFEFF' => (ScannerState.mk' input |>.emit .streamStart).advance
+            | some '\uFEFF' => (ScannerState.mk' input |>.emit .streamStart).consumeBOM
             | _ => ScannerState.mk' input |>.emit .streamStart).simpleKey.possible = false := by
           split
-          · rw [advance_preserves_simpleKey]; simp [ScannerState.emit, ScannerState.mk']
+          · rw [consumeBOM_preserves_simpleKey]; simp [ScannerState.emit, ScannerState.mk']
           · simp [ScannerState.emit, ScannerState.mk']
         have h_stack : (match (ScannerState.mk' input |>.emit .streamStart).peek? with
-            | some '\uFEFF' => (ScannerState.mk' input |>.emit .streamStart).advance
+            | some '\uFEFF' => (ScannerState.mk' input |>.emit .streamStart).consumeBOM
             | _ => ScannerState.mk' input |>.emit .streamStart).simpleKeyStack.size = 0 := by
           split
-          · have := advance_preserves_simpleKeyStack (ScannerState.mk' input |>.emit .streamStart)
+          · have := consumeBOM_preserves_simpleKeyStack (ScannerState.mk' input |>.emit .streamStart)
             simp_all [ScannerState.emit, ScannerState.mk']
           · simp [ScannerState.emit, ScannerState.mk']
         have h_empty : ∀ j, ¬(j < (match (ScannerState.mk' input |>.emit .streamStart).peek? with
-            | some '\uFEFF' => (ScannerState.mk' input |>.emit .streamStart).advance
+            | some '\uFEFF' => (ScannerState.mk' input |>.emit .streamStart).consumeBOM
             | _ => ScannerState.mk' input |>.emit .streamStart).simpleKeyStack.size) := by
           intro j; rw [h_stack]; omega
         have h_not_poss : ¬(match (ScannerState.mk' input |>.emit .streamStart).peek? with
-            | some '\uFEFF' => (ScannerState.mk' input |>.emit .streamStart).advance
+            | some '\uFEFF' => (ScannerState.mk' input |>.emit .streamStart).consumeBOM
             | _ => ScannerState.mk' input |>.emit .streamStart).simpleKey.possible = true := by
           rw [h_poss]; decide
         exact ⟨fun hp => absurd hp h_not_poss,

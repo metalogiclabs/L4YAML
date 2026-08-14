@@ -562,7 +562,7 @@ lemma scanIx_produces_at_least_two {input : String}
   change _ ≤ tokens.size
   split at h_inc
   · -- some BOM arm: advance preserves tokens
-    simp only [advance_tokens, emit_tokens_size] at h_inc
+    simp only [consumeBOM_tokens, emit_tokens_size] at h_inc
     exact h_inc
   · -- _ arm: tokens.size = ((mk').emit streamStart).tokens.size
     simp only [emit_tokens_size] at h_inc

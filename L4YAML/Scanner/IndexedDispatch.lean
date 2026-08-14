@@ -1599,7 +1599,7 @@ def scanIx (input : String) : Except ScanError (Indexed.TokenStream input) :=
   let s := ScannerStateIx.mk' input
   let s := s.emit YamlToken.streamStart
   let s := match s.peek? with
-    | some '﻿' => s.advance
+    | some '﻿' => s.consumeBOM
     | _ => s
   let fuel := input.utf8ByteSize + 1
   scanLoopIx s (fuel * 4)
@@ -1729,7 +1729,7 @@ def scanWithCommentsIx (input : String) :
   let s := ScannerStateIx.mk' input
   let s := s.emit YamlToken.streamStart
   let s := match s.peek? with
-    | some '﻿' => s.advance
+    | some '﻿' => s.consumeBOM
     | _ => s
   let fuel := input.utf8ByteSize + 1
   match scanLoopIxWC s (fuel * 4) with

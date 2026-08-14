@@ -175,6 +175,17 @@ These delegate to the underlying `IxCursor`. -/
     ScannerStateIx input :=
   { s with cursor := s.cursor.advanceN n }
 
+/-- Indexed twin of `L4YAML.ScannerState.consumeBOM` (§5.2): consume the
+    leading `[3] c-byte-order-mark` without spending a column, so that
+    `[63] s-indent(n)` on the first line is counted from the character
+    after it.  Only `pos.col` moves; `posBound` constrains `pos.offset`
+    alone, so the cursor's well-formedness rides through untouched. -/
+@[yaml_spec "5.2" 3 "c-byte-order-mark",
+  yaml_spec "9.1.1" 202 "l-document-prefix"]
+def consumeBOM {input : String} (s : ScannerStateIx input) : ScannerStateIx input :=
+  let s := s.advance
+  { s with cursor := { s.cursor with pos := { s.cursor.pos with col := 0 } } }
+
 /-! ## Token emission
 
 `emit` pushes an `IxToken` for a zero-width point at the current

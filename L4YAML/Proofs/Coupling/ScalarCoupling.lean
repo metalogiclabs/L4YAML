@@ -79,6 +79,18 @@ lemma advance_corr (sc : ScannerState) (sp : SurfPos)
   · have : sc.advance = sc := by unfold ScannerState.advance; simp [hmore]
     rw [this]; exact ⟨sp, hcorr⟩
 
+/-- The BOM's own step, at the surface (§5.2, item 35).  `consumeBOM` is
+    `advance` with the column put back to 0, and `ScannerSurfCorr`'s only
+    column conjunct is `sp.col = sc.col` — so the surface position that
+    corresponds is `advance`'s, read at column 0.  Nothing else in the
+    correspondence mentions the column. -/
+lemma consumeBOM_corr (sc : ScannerState) (sp : SurfPos)
+    (hcorr : ScannerSurfCorr sc sp) :
+    ∃ sp', ScannerSurfCorr sc.consumeBOM sp' ∧ sp'.col = 0 := by
+  obtain ⟨sp', h'⟩ := advance_corr sc sp hcorr
+  exact ⟨⟨sp'.chars, 0⟩,
+    ⟨h'.chars_from, rfl, h'.end_eq, h'.input_prefix, h'.indent_cols_nonneg⟩, rfl⟩
+
 /-- `consumeNewline` preserves correspondence unconditionally. -/
 lemma consumeNewline_unconditional_corr (sc : ScannerState) (sp : SurfPos)
     (hcorr : ScannerSurfCorr sc sp) :

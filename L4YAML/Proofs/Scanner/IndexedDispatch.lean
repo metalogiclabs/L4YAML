@@ -698,6 +698,9 @@ whitespace skips), and the `_tokens_size` lemmas count emits. -/
 @[simp] lemma advance_tokens {input : String} (s : ScannerStateIx input) :
     s.advance.tokens = s.tokens := rfl
 
+@[simp] lemma consumeBOM_tokens {input : String} (s : ScannerStateIx input) :
+    s.consumeBOM.tokens = s.tokens := rfl
+
 @[simp] lemma advanceN_tokens {input : String} (s : ScannerStateIx input) (n : Nat) :
     (s.advanceN n).tokens = s.tokens := rfl
 

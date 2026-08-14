@@ -335,14 +335,14 @@ lemma scanIx_positions_ordered (tokens : Indexed.TokenStream input)
   -- BOM step: cursor-only advance preserves both.
   have h_sB : ScanInvIx
       (match ((ScannerStateIx.mk' input).emit YamlToken.streamStart).peek? with
-        | some '﻿' => ((ScannerStateIx.mk' input).emit YamlToken.streamStart).advance
+        | some '﻿' => ((ScannerStateIx.mk' input).emit YamlToken.streamStart).consumeBOM
         | _ => (ScannerStateIx.mk' input).emit YamlToken.streamStart) := by
     split
     · exact advance_preserves_ScanInvIx _ h_s0
     · exact h_s0
   have h_sB_akv : AllKeysValidIx
       (match ((ScannerStateIx.mk' input).emit YamlToken.streamStart).peek? with
-        | some '﻿' => ((ScannerStateIx.mk' input).emit YamlToken.streamStart).advance
+        | some '﻿' => ((ScannerStateIx.mk' input).emit YamlToken.streamStart).consumeBOM
         | _ => (ScannerStateIx.mk' input).emit YamlToken.streamStart) := by
     split
     · exact advance_preserves_AllKeysValidIx _ h_s0_akv

@@ -157,7 +157,7 @@ lemma scanFiltered_emitScalar_vals (content : String) (tokens : Array (Positione
     have h_pk_emit : ((ScannerState.mk' (emitScalar content)).emit .streamStart).peek?
         = (ScannerState.mk' (emitScalar content)).peek? := rfl
     unfold scan; dsimp only []; rw [h_pk_emit, h_pk]
-    split <;> first | rfl | exact absurd ‹_› (by decide)
+    split <;> first | exact absurd ‹_› (by decide) | rfl
   have h_ci : s₁.currentIndent = -1 := by
     unfold ScannerState.currentIndent; rw [h_ids1]; rfl
   have h_uwi : unwindIndents s₁ (-1) = s₁ := by

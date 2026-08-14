@@ -1008,7 +1008,7 @@ def scan (input : String) : Except ScanError (Array (Positioned YamlToken)) :=
   let s := s.emit .streamStart
   -- Handle BOM (Byte Order Mark)
   let s := match s.peek? with
-    | some '\uFEFF' => s.advance
+    | some '\uFEFF' => s.consumeBOM
     | _ => s
   -- Calculate fuel: 4x input size should be more than enough
   let fuel := input.utf8ByteSize + 1
@@ -1064,7 +1064,7 @@ def scanWithComments (input : String) :
   let s := ScannerState.mk' input
   let s := s.emit .streamStart
   let s := match s.peek? with
-    | some '\uFEFF' => s.advance
+    | some '\uFEFF' => s.consumeBOM
     | _ => s
   let fuel := input.utf8ByteSize + 1
   match scanLoopFull s (fuel * 4) with

@@ -568,6 +568,12 @@ lemma advance_flowLevel (s : ScannerState) : s.advance.flowLevel = s.flowLevel :
     · split <;> rfl
   · rfl
 
+/-- Item 35's BOM step preserves the flow level too — it is `advance` with
+    the column put back. -/
+lemma consumeBOM_flowLevel (s : ScannerState) :
+    s.consumeBOM.flowLevel = s.flowLevel := by
+  unfold ScannerState.consumeBOM; simpa using advance_flowLevel s
+
 lemma advance_dp (s : ScannerState) : s.advance.directivesPresent = s.directivesPresent := by
   unfold ScannerState.advance; split
   · dsimp only []; split

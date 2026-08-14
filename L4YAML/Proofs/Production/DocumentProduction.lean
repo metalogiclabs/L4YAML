@@ -60,10 +60,12 @@ lemma trivial_prefix (sp : SurfPos) :
   SLDocumentPrefix.comments sp sp (GStar.nil _)
 
 /-- BOM produces a document prefix.
-    '\uFEFF' at any column advances by 1, then no comments. -/
+    `[3] c-byte-order-mark` spends NO column (§5.2, item 35): the character
+    after it opens the line where the marker stood, so `[63] s-indent(n)` on
+    the first line counts from there. -/
 lemma bom_gives_prefix (rest : List Char) (col : Nat) :
-    SLDocumentPrefix ⟨'\uFEFF' :: rest, col⟩ ⟨rest, col + 1⟩ :=
-  SLDocumentPrefix.bom rest col ⟨rest, col + 1⟩ (GStar.nil _)
+    SLDocumentPrefix ⟨'\uFEFF' :: rest, col⟩ ⟨rest, col⟩ :=
+  SLDocumentPrefix.bom rest col ⟨rest, col⟩ (GStar.nil _)
 
 /-! ## §3 Document Suffix Helpers -/
 

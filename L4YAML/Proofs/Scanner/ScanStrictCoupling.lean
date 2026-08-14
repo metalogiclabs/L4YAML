@@ -504,10 +504,10 @@ theorem scan_full_consumption (input : String)
   -- BOM handling preserves ScannerSurfCorr
   have h_bom : ∃ sp, ScannerSurfCorr
       (match (ScannerState.mk' input |>.emit .streamStart).peek? with
-       | some '\uFEFF' => (ScannerState.mk' input |>.emit .streamStart).advance
+       | some '\uFEFF' => (ScannerState.mk' input |>.emit .streamStart).consumeBOM
        | _ => ScannerState.mk' input |>.emit .streamStart) sp := by
     split
-    · exact advance_corr _ _ h_emit
+    · exact (consumeBOM_corr _ _ h_emit).imp fun _ h => h.1
     · exact ⟨_, h_emit⟩
   obtain ⟨sp_bom, h_bom⟩ := h_bom
   exact scanLoop_full_consumption _ sp_bom _ tokens h_bom h

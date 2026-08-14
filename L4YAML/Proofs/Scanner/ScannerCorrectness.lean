@@ -112,6 +112,19 @@ lemma advance_preserves_tokens (s : ScannerState) :
   · -- Case: s.offset >= s.inputEnd
     rfl
 
+/-! ### `consumeBOM` — `advance` with the column put back (item 35)
+
+`consumeBOM` is `advance` followed by `col := 0` (§5.2: the BOM spends no
+column of the first line).  Everything the scan entry points know about the
+post-BOM state therefore rides through from the `advance` lemma above, one
+`simp` away — the column is the only field that differs, and no invariant
+here reads it. -/
+
+lemma consumeBOM_preserves_tokens (s : ScannerState) :
+    s.consumeBOM.tokens = s.tokens := by
+  unfold ScannerState.consumeBOM; simpa using advance_preserves_tokens s
+
+
 /-- The `advance` operation preserves flowLevel.
 
 `advance` only modifies position fields, not flow state. -/
@@ -125,6 +138,10 @@ lemma advance_preserves_flowLevel (s : ScannerState) :
     · split <;> rfl
   · rfl
 
+lemma consumeBOM_preserves_flowLevel (s : ScannerState) :
+    s.consumeBOM.flowLevel = s.flowLevel := by
+  unfold ScannerState.consumeBOM; simpa using advance_preserves_flowLevel s
+
 /-- The `advance` operation preserves flowStack.
 
 `advance` only modifies position fields, not flow state. -/
@@ -137,6 +154,10 @@ lemma advance_preserves_flowStack (s : ScannerState) :
     · rfl
     · split <;> rfl
   · rfl
+
+lemma consumeBOM_preserves_flowStack (s : ScannerState) :
+    s.consumeBOM.flowStack = s.flowStack := by
+  unfold ScannerState.consumeBOM; simpa using advance_preserves_flowStack s
 
 /-- The `emit` operation preserves flowLevel.
 
@@ -2874,6 +2895,10 @@ lemma advance_preserves_simpleKeyAllowed (s : ScannerState) :
     s.advance.simpleKeyAllowed = s.simpleKeyAllowed := by
   unfold ScannerState.advance; dsimp only []; split <;> (try split) <;> (try split) <;> rfl
 
+lemma consumeBOM_preserves_simpleKey (s : ScannerState) :
+    s.consumeBOM.simpleKey = s.simpleKey := by
+  unfold ScannerState.consumeBOM; simpa using advance_preserves_simpleKey s
+
 lemma emit_preserves_simpleKey (s : ScannerState) (tok : YamlToken) :
     (s.emit tok).simpleKey = s.simpleKey := by
   unfold ScannerState.emit; rfl
@@ -3543,6 +3568,10 @@ lemma skipDocEndWhitespace_preserves_simpleKey (s : ScannerState) (fuel : Nat) :
 lemma advance_preserves_simpleKeyStack (s : ScannerState) :
     s.advance.simpleKeyStack = s.simpleKeyStack := by
   unfold ScannerState.advance; dsimp only []; split <;> (try split) <;> (try split) <;> rfl
+
+lemma consumeBOM_preserves_simpleKeyStack (s : ScannerState) :
+    s.consumeBOM.simpleKeyStack = s.simpleKeyStack := by
+  unfold ScannerState.consumeBOM; simpa using advance_preserves_simpleKeyStack s
 
 lemma emit_preserves_simpleKeyStack (s : ScannerState) (tok : YamlToken) :
     (s.emit tok).simpleKeyStack = s.simpleKeyStack := by
@@ -6275,7 +6304,7 @@ lemma scan_produces_at_least_two (input : String) (tokens : Array (Positioned Ya
     rw [emit_tokens_size, mk'_tokens_empty]; simp
   -- Split on h_loop to resolve the match expression
   split at h_loop
-  · rw [advance_preserves_tokens, h_init_size] at h_loop; omega
+  · rw [consumeBOM_preserves_tokens, h_init_size] at h_loop; omega
   · rw [h_init_size] at h_loop; omega
 
 /--
@@ -6310,15 +6339,15 @@ lemma scan_first_is_streamStart (input : String) (tokens : Array (Positioned Yam
 
   -- Step 2: BOM handling preserves tokens (advance_preserves_tokens)
   have h_bom_preserves : ∀ s : ScannerState,
-    (match s.peek? with | some '\uFEFF' => s.advance | _ => s).tokens = s.tokens := by
+    (match s.peek? with | some '\uFEFF' => s.consumeBOM | _ => s).tokens = s.tokens := by
     intro s
     split <;> try rfl
-    exact advance_preserves_tokens s
+    exact consumeBOM_preserves_tokens s
 
   -- Step 3: scanLoop preserves existing tokens
   -- The state after BOM handling
   let s_after_bom := match ((ScannerState.mk' input).emit .streamStart).peek? with
-    | some '\uFEFF' => ((ScannerState.mk' input).emit .streamStart).advance
+    | some '\uFEFF' => ((ScannerState.mk' input).emit .streamStart).consumeBOM
     | _ => (ScannerState.mk' input).emit .streamStart
 
   -- BOM handling preserves tokens
@@ -6347,13 +6376,15 @@ lemma scan_first_is_streamStart (input : String) (tokens : Array (Positioned Yam
       intro h_poss
       exfalso
       revert h_poss; show ¬ _
-      dsimp only [s_after_bom, ScannerState.advance, ScannerState.emit, ScannerState.mk']
+      dsimp only [s_after_bom, ScannerState.consumeBOM, ScannerState.advance,
+        ScannerState.emit, ScannerState.mk']
       split <;> (try split) <;> (try split) <;> (try split) <;> simp
     · -- simpleKeyStack is empty
       intro j h_j
       exfalso
       revert h_j; show ¬ _
-      dsimp only [s_after_bom, ScannerState.advance, ScannerState.emit, ScannerState.mk']
+      dsimp only [s_after_bom, ScannerState.consumeBOM, ScannerState.advance,
+        ScannerState.emit, ScannerState.mk']
       split <;> (try split) <;> (try split) <;> (try split) <;> simp
   -- Apply scanLoop_preserves_tokens with n = 1
   have ⟨h_0_lt_tokens, h_preserved⟩ :=
@@ -6539,6 +6570,12 @@ lemma field_update_preserves_ScanInv (s s' : ScannerState)
     (h : ScanInv s) (h_tok : s'.tokens = s.tokens) (h_off : s'.offset = s.offset) :
     ScanInv s' := by
   unfold ScanInv ScanInv'; rw [h_tok, h_off]; exact h
+
+-- consumeBOM preserves ScanInv: it is `advance` with the column reset (item 35).
+lemma consumeBOM_preserves_ScanInv (s : ScannerState) (h : ScanInv s) :
+    ScanInv s.consumeBOM := by
+  unfold ScannerState.consumeBOM
+  exact field_update_preserves_ScanInv _ _ (advance_preserves_ScanInv s h) rfl rfl
 
 -- Field updates that only increase offset preserve ScanInv.
 lemma offset_ge_preserves_ScanInv (s s' : ScannerState)
@@ -9446,10 +9483,10 @@ lemma scan_positions_ordered (input : String) (tokens : Array (Positioned YamlTo
       simp [ScannerState.emit, ScannerState.mk', ScannerState.currentPos]
   -- BOM handling preserves ScanInv
   have h_inv : ScanInv (match (ScannerState.mk' input).emit .streamStart |>.peek? with
-      | some '\uFEFF' => ((ScannerState.mk' input).emit .streamStart).advance
+      | some '\uFEFF' => ((ScannerState.mk' input).emit .streamStart).consumeBOM
       | _ => (ScannerState.mk' input).emit .streamStart) := by
     split
-    · exact advance_preserves_ScanInv _ h_inv0
+    · exact consumeBOM_preserves_ScanInv _ h_inv0
     · exact h_inv0
   -- Initial AllKeysValid: simpleKey.possible = false, stack empty.
   have h_akv0 : AllKeysValid ((ScannerState.mk' input).emit .streamStart) := by
@@ -9457,13 +9494,13 @@ lemma scan_positions_ordered (input : String) (tokens : Array (Positioned YamlTo
     · intro h_poss; simp [ScannerState.mk', ScannerState.emit] at h_poss
     · intro j hj; simp [ScannerState.mk', ScannerState.emit] at hj
   have h_akv : AllKeysValid (match (ScannerState.mk' input).emit .streamStart |>.peek? with
-      | some '\uFEFF' => ((ScannerState.mk' input).emit .streamStart).advance
+      | some '\uFEFF' => ((ScannerState.mk' input).emit .streamStart).consumeBOM
       | _ => (ScannerState.mk' input).emit .streamStart) := by
     split
-    · have h_tok := advance_preserves_tokens ((ScannerState.mk' input).emit .streamStart)
+    · have h_tok := consumeBOM_preserves_tokens ((ScannerState.mk' input).emit .streamStart)
       exact AllKeysValid_mono _ _ h_akv0
-        (advance_preserves_simpleKey _)
-        (advance_preserves_simpleKeyStack _)
+        (consumeBOM_preserves_simpleKey _)
+        (consumeBOM_preserves_simpleKeyStack _)
         (by simp [h_tok])
         (fun i hi => by simp [h_tok])
     · exact h_akv0

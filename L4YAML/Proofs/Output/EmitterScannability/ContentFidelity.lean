@@ -271,7 +271,7 @@ lemma scanFiltered_emitScalar_content (content : String) (tokens : Array (Positi
         = (ScannerState.mk' (emitScalar content)).peek? := rfl
     unfold scan; dsimp only []
     rw [h_pk_emit, h_pk]
-    split <;> first | rfl | exact absurd ‹_› (by decide)
+    split <;> first | exact absurd ‹_› (by decide) | rfl
   -- Get concrete token array via scanLoop_two_iter_eq
   have h_loop_eq := scanLoop_two_iter_eq h_fuel h_snt1 h_snt2 h_flow1 h_dp1
   -- The raw scan result is ((unwindIndents s₁ (-1)).emit .streamEnd).tokens

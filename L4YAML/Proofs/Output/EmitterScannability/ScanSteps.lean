@@ -1815,7 +1815,7 @@ lemma scan_accepts_emitScalar (content : String) :
     unfold scan; dsimp only []
     rw [h_pk_emit, h_pk]
     -- match some '"' with | some '\uFEFF' => ... | _ => s reduces to s
-    split <;> first | rfl | exact absurd ‹_› (by decide)
+    split <;> first | exact absurd ‹_› (by decide) | rfl
   rw [h_scan_eq]
   exact scanLoop_two_iter h_fuel h_snt1 h_snt2 h_flow1 h_dp1
 

@@ -113,13 +113,23 @@ and trailing comments/whitespace.
   | l-document-prefix* l-explicit-document? )* -/
 
 /-- [202] l-document-prefix: optional BOM + l-comment*.
-    Simplified: just comments (BOM is a single-character check). -/
-@[yaml_spec "9.1.1" 202 "l-document-prefix"]
+    Simplified: just comments (BOM is a single-character check).
+
+    **The BOM spends no column** (§5.2, item 35).  `[3] c-byte-order-mark`
+    is an encoding marker rather than content — in UTF-8 it "is not
+    considered part of the content" — so the character after it opens the
+    line at the SAME column the marker stood at, and `[63] s-indent(n)` on
+    the first line is counted from there.  Carrying `col + 1` made the
+    first line one deeper than every other: `﻿a: 1⏎b: 2` dedents below
+    its own `[187] l+block-mapping`, and `﻿---` sits off column 0, where
+    `[203] c-directives-end` cannot be read at all. -/
+@[yaml_spec "9.1.1" 202 "l-document-prefix",
+  yaml_spec "5.2" 3 "c-byte-order-mark"]
 inductive SLDocumentPrefix : SurfPos → SurfPos → Prop where
   | comments (s s' : SurfPos) :
       GStar SLComment s s' → SLDocumentPrefix s s'
   | bom (rest : List Char) (col : Nat) (s' : SurfPos) :
-      GStar SLComment ⟨rest, col + 1⟩ s' →
+      GStar SLComment ⟨rest, col⟩ s' →
       SLDocumentPrefix ⟨'\uFEFF' :: rest, col⟩ s'
 
 /-- [205] l-document-suffix: '...' + s-l-comments. -/

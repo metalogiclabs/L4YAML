@@ -1036,20 +1036,20 @@ lemma scanIx_first_is_streamStart {input : String}
     rfl
   -- BOM step preserves tokens.
   have h_sB_tok : ∀ (s : ScannerStateIx input),
-      (match s.peek? with | some '﻿' => s.advance | _ => s).tokens = s.tokens := by
+      (match s.peek? with | some '﻿' => s.consumeBOM | _ => s).tokens = s.tokens := by
     intro s; split <;> rfl
   have h_bom_eq : (match ((ScannerStateIx.mk' input).emit YamlToken.streamStart).peek? with
-      | some '﻿' => ((ScannerStateIx.mk' input).emit YamlToken.streamStart).advance
+      | some '﻿' => ((ScannerStateIx.mk' input).emit YamlToken.streamStart).consumeBOM
       | _ => (ScannerStateIx.mk' input).emit YamlToken.streamStart).tokens =
       ((ScannerStateIx.mk' input).emit YamlToken.streamStart).tokens := h_sB_tok _
   have h_sB_sz :
       (match ((ScannerStateIx.mk' input).emit YamlToken.streamStart).peek? with
-        | some '﻿' => ((ScannerStateIx.mk' input).emit YamlToken.streamStart).advance
+        | some '﻿' => ((ScannerStateIx.mk' input).emit YamlToken.streamStart).consumeBOM
         | _ => (ScannerStateIx.mk' input).emit YamlToken.streamStart).tokens.size = 1 := by
     rw [h_bom_eq]; exact h_s0_sz
   have h_n_sB : 1 ≤ (match
       ((ScannerStateIx.mk' input).emit YamlToken.streamStart).peek? with
-      | some '﻿' => ((ScannerStateIx.mk' input).emit YamlToken.streamStart).advance
+      | some '﻿' => ((ScannerStateIx.mk' input).emit YamlToken.streamStart).consumeBOM
       | _ => (ScannerStateIx.mk' input).emit YamlToken.streamStart).tokens.size := by
     rw [h_sB_sz]; omega
   -- Vacuous SimpleKeyAboveIx for the post-streamStart state.
@@ -1069,11 +1069,12 @@ lemma scanIx_first_is_streamStart {input : String}
   -- Vacuous SimpleKeyAboveIx for the BOM-handled state.
   have h_inv_sB : SimpleKeyAboveIx (match
       ((ScannerStateIx.mk' input).emit YamlToken.streamStart).peek? with
-      | some '﻿' => ((ScannerStateIx.mk' input).emit YamlToken.streamStart).advance
+      | some '﻿' => ((ScannerStateIx.mk' input).emit YamlToken.streamStart).consumeBOM
       | _ => (ScannerStateIx.mk' input).emit YamlToken.streamStart) 1 := by
     split
     · exact SimpleKeyAboveIx_mono _ _ 1 h_inv_s0
-        (by simp [advance_preserves_simpleKey]) (by simp [advance_preserves_simpleKeyStack])
+        (by simp [ScannerStateIx.consumeBOM, advance_preserves_simpleKey])
+        (by simp [ScannerStateIx.consumeBOM, advance_preserves_simpleKeyStack])
     · exact h_inv_s0
   -- Apply scanLoopIx_preserves_tokens with n = 1, i = 0.
   obtain ⟨h_pos_ts, h_eq⟩ :=
@@ -1082,17 +1083,17 @@ lemma scanIx_first_is_streamStart {input : String}
   -- h_eq : tokens[0]'_ = bom.tokens[0]'_.
   have h_pos_bom : 0 <
       (match ((ScannerStateIx.mk' input).emit YamlToken.streamStart).peek? with
-        | some '﻿' => ((ScannerStateIx.mk' input).emit YamlToken.streamStart).advance
+        | some '﻿' => ((ScannerStateIx.mk' input).emit YamlToken.streamStart).consumeBOM
         | _ => (ScannerStateIx.mk' input).emit YamlToken.streamStart).tokens.size := by
     rw [h_sB_sz]; omega
   have h_bom_tok0 :
       (match ((ScannerStateIx.mk' input).emit YamlToken.streamStart).peek? with
-        | some '﻿' => ((ScannerStateIx.mk' input).emit YamlToken.streamStart).advance
+        | some '﻿' => ((ScannerStateIx.mk' input).emit YamlToken.streamStart).consumeBOM
         | _ => (ScannerStateIx.mk' input).emit YamlToken.streamStart).tokens[0]'h_pos_bom =
       ((ScannerStateIx.mk' input).emit YamlToken.streamStart).tokens[0]'h_s0_pos := by
     have : ∀ (h : 0 < ((ScannerStateIx.mk' input).emit YamlToken.streamStart).tokens.size),
         (match ((ScannerStateIx.mk' input).emit YamlToken.streamStart).peek? with
-          | some '﻿' => ((ScannerStateIx.mk' input).emit YamlToken.streamStart).advance
+          | some '﻿' => ((ScannerStateIx.mk' input).emit YamlToken.streamStart).consumeBOM
           | _ => (ScannerStateIx.mk' input).emit YamlToken.streamStart).tokens[0]'(h_bom_eq ▸ h) =
         ((ScannerStateIx.mk' input).emit YamlToken.streamStart).tokens[0]'h := by
       intro h; congr 1

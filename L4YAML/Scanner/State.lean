@@ -222,6 +222,25 @@ def ScannerState.advance (s : ScannerState) : ScannerState :=
   else
     s
 
+/-- Consume a leading byte order mark, WITHOUT spending a column.
+
+    **Implements** (YAML 1.2.2 §5.2): `[3] c-byte-order-mark`, as
+    `[202] l-document-prefix` admits it — "in the case of UTF-8 the BOM
+    is not part of the content".  It is an encoding marker, not a
+    character of the first line, so `[63] s-indent(n)` counts from the
+    character AFTER it.
+
+    `advance` alone would leave `col = 1`, which reads the first line as
+    indented by one relative to every following line: `﻿a: 1⏎b: 2`
+    then dedents below its own mapping and the scan refuses it, and
+    `﻿---` is no longer at column 0, so it is a plain scalar rather
+    than `[203] c-directives-end`.  Both are the same off-by-one, and
+    resetting the column here is the whole of the fix. -/
+@[yaml_spec "5.2" 3 "c-byte-order-mark",
+  yaml_spec "9.1.1" 202 "l-document-prefix"]
+def ScannerState.consumeBOM (s : ScannerState) : ScannerState :=
+  { s.advance with col := 0 }
+
 /-- Helper for advanceN using structural recursion on `n`.
 
     **Termination**: Structurally recursive on `n`. -/
