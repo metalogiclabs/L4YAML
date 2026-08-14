@@ -30,6 +30,7 @@ import Tests.Guards.Proofs.ScannerCompactCollectionCompose
 import Tests.Guards.Proofs.ScannerCompactTabRefused
 import Tests.Guards.Proofs.ScannerBOMColumn
 import Tests.Guards.Proofs.ScannerDocEndTail
+import Tests.Guards.Proofs.ScannerNodeTail
 import Tests.Guards.Proofs.ScannerNodePropertyDelimiter
 import Tests.Guards.Proofs.ScannerContracts
 import Tests.Guards.Proofs.ScannerCorrectness

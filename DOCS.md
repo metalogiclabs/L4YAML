@@ -5501,19 +5501,19 @@ invisible to every axis we score. What is left is proof completeness.
 
 | # | Action | Blocks | Where |
 |---|---|---|---|
-| 12 | **β.5 — retire `pendingFlow`, delete `scannerDrop`.** Items 11–36 have closed it one arm at a time; `block_dispatch_deferred` stands at 6 call sites and `scannerDrop` at 4, and the largest site is down to 6 of its 7 pendings. Items 31–32 and 35 are the campaign's RUNTIME edits; 31–32 are one story: the TAB branch was priced "expected vacuous" and was not — only the `-` indicator carried the scanner's tab-in-indentation check, so `?`/`:` accepted four shapes no `[187]` derivation reaches (31) — and refuting it then needed the check restated in `[63] s-indent(n)`'s own coordinate, `tabInLineIndent` (32). Item 33 then took the COMPACT collection, which the residue had been missing not for want of evidence but for want of a production: `[185] s-l+block-indented`'s other two alternatives ask for no `s-l-comments` at all, and they had carried an off-by-one index for as long as nothing instantiated them. Item 34 closed that site outright — the tab it left in front of a compact `:` is refutable once the pending carries `simpleKeyAllowed`, because the branch `scanValue`'s §6.1 test takes is decided by whether a key was recorded and a break-free step records one at the character being dispatched. Item 35 emptied the next one by neither route: with nothing pending and no flow open the machine parks at a LINE START, so the arm named a state it never enters — and the seed could not say so, because the scan spent a column on the byte order mark that §5.2 says spends none, which is why `﻿a: 1⏎b: 2` was refused and `﻿---` was not read as a document marker (the campaign's second runtime story, and the same shape as 31/32). Item 36 then did two things at the close-and-reopen site, neither of them a production: it MEASURED the residue per parked pending (the seven do not behave alike — `pendingDocEnd` is refutable outright, four are refutable on `-`/`?` but not `:`, and `&a - b`/`--- - a`/`: - a` are scanner-accepted over-acceptances that belong to row 19), and it moved two projections. `[204] l-document-suffix`'s allowlist had been DERIVED at item 10 and then spent: `LineNoOpen` kept only "not a flow open" because that was the one question its consumer asked, so the residue's `-`/`?`/`:` was unanswerable from evidence the scanner had already produced — the predicate is now indexed by its stop set (`LineStop P`) with the projection at the CONSUMER. And the escape itself was a projection of the same kind: typed as the stream it produces, it mentioned nothing about the case it escapes, so every caller paid and none could refuse; typed as `InlineResidue sp_scan c → SLYamlStream …` the nine paying sites are unchanged (`fun _ => h`) and `pendingDocEnd` pays `nofun` — the case distinction moved to the call sites and NO lemma was split, which is the mechanism by which each remaining pending can now leave on its own evidence. Two families are left: the inline residue (3 sites) and `FlowOpenStack`'s resume type (3, plus all four `scannerDrop` sites); note that `pendingFlow` has ONE producer — the escape itself — so the arms that serve it can only narrow until the constructor goes, and then go together. The per-item record and the ordered list are in [Row 12 — β.5 closure log](#row-12--β5-closure-log). | Step 5, the converse | ditto |
+| 12 | **β.5 — retire `pendingFlow`, delete `scannerDrop`.** Items 11–37 have closed it one arm at a time; `block_dispatch_deferred` stands at 6 call sites and `scannerDrop` at 4, the largest site is down to 6 of its 7 pendings, and at two of those six the residue is down to ONE character. Items 31–32 and 35 are the campaign's RUNTIME edits; 31–32 are one story: the TAB branch was priced "expected vacuous" and was not — only the `-` indicator carried the scanner's tab-in-indentation check, so `?`/`:` accepted four shapes no `[187]` derivation reaches (31) — and refuting it then needed the check restated in `[63] s-indent(n)`'s own coordinate, `tabInLineIndent` (32). Item 33 then took the COMPACT collection, which the residue had been missing not for want of evidence but for want of a production: `[185] s-l+block-indented`'s other two alternatives ask for no `s-l-comments` at all, and they had carried an off-by-one index for as long as nothing instantiated them. Item 34 closed that site outright — the tab it left in front of a compact `:` is refutable once the pending carries `simpleKeyAllowed`, because the branch `scanValue`'s §6.1 test takes is decided by whether a key was recorded and a break-free step records one at the character being dispatched. Item 35 emptied the next one by neither route: with nothing pending and no flow open the machine parks at a LINE START, so the arm named a state it never enters — and the seed could not say so, because the scan spent a column on the byte order mark that §5.2 says spends none, which is why `﻿a: 1⏎b: 2` was refused and `﻿---` was not read as a document marker (the campaign's second runtime story, and the same shape as 31/32). Item 36 then did two things at the close-and-reopen site, neither of them a production: it MEASURED the residue per parked pending (the seven do not behave alike — `pendingDocEnd` is refutable outright, four are refutable on `-`/`?` but not `:`, and `&a - b`/`--- - a`/`: - a` are scanner-accepted over-acceptances that belong to row 19), and it moved two projections. `[204] l-document-suffix`'s allowlist had been DERIVED at item 10 and then spent: `LineNoOpen` kept only "not a flow open" because that was the one question its consumer asked, so the residue's `-`/`?`/`:` was unanswerable from evidence the scanner had already produced — the predicate is now indexed by its stop set (`LineStop P`) with the projection at the CONSUMER. And the escape itself was a projection of the same kind: typed as the stream it produces, it mentioned nothing about the case it escapes, so every caller paid and none could refuse; typed as `InlineResidue sp_scan c → SLYamlStream …` the nine paying sites are unchanged (`fun _ => h`) and `pendingDocEnd` pays `nofun` — the case distinction moved to the call sites and NO lemma was split, which is the mechanism by which each remaining pending can now leave on its own evidence. Item 37 then spent that mechanism on the next rung down, §7.5's — `validateTrailingContent`/`validateFlowClose`/`validateAliasClose` admit `s-l-comments` PLUS the `:` of `[154]`, so the rung is a DICHOTOMY and not a filter — with the discovery that the two scalar WALKS decide the same set for the opposite reason (a `-` is `ns-plain-safe-out`, so it is ABSORBED and never parks), which is what lets one field carry both families: `NodeTail`, `OffLine` and their union `NodeStop` are named, eight producers are restated at their own strength, ZERO consumers change, and `pendingContent`/`pendingBlockContent` carry the union. The refutation covers two of the residue's three characters and not the third, so the escape does not vanish — it NARROWS, to `InlineResidue sp_scan ':' → SLYamlStream …`, which puts the remaining obligation (one production, `[154]`'s implicit key at a mid-line anchor) in a type instead of in this table. Two families are left: the inline residue (3 sites) and `FlowOpenStack`'s resume type (3, plus all four `scannerDrop` sites); note that `pendingFlow` has ONE producer — the escape itself — so the arms that serve it can only narrow until the constructor goes, and then go together. The per-item record and the ordered list are in [Row 12 — β.5 closure log](#row-12--β5-closure-log). | Step 5, the converse | ditto |
 | 19 | **Tighten `implicitContinue`** — the THIRD over-approximation of `[211]`, found 2026-08-13 by item 30 and not yet priced. It requires no `l-document-suffix+` and takes `SLAnyDocument`, so it admits a BARE document after another with no `...`: `- "a"⏎  - b` satisfies `InYamlLanguage` while `parseYaml` rejects it (`invalidBareDocument`, §9.2). It falsifies the converse exactly as `scannerDrop` does. 17 construction sites — one in `DocumentProduction` (`stream_implicit_continue`), already legal because it passes an EXPLICIT document, and 16 in `StreamAccum`, every one passing `SLAnyDocument.bare`. Nothing DEFERS to it, so it is not an escape site and not row 12's business; it comes after row 12 only because row 12's remaining items still edit those 16 sites. | Step 5, the converse | [The over-approximation problem](#the-over-approximation-problem) |
 | 13 | **Step 5 — the converse** `grammar_completeness` — blocked on rows 12 AND 19, since the converse is false while either over-approximation stands — then **Step 6** the `parse_iff_grammar` biconditional | capstone 7.7 | [Grammar completeness plan](#grammar-completeness-plan) |
 
 Items 1–11 and 18 are closed and their rows deleted; the closure records live
 in the sections below, the blow-by-blow history in git.
 
-The full `lake build` has been GREEN since item 9t (992 targets as of item 36,
+The full `lake build` has been GREEN since item 9t (996 targets as of item 37,
 warning-free), `L4YAML.Capstones` included — what the rest of row 12 buys is
 STRENGTH: the `scannerDrop` constructor is the one remaining hole in what the
-capstones assert. `Tests.Guards` builds at 223 jobs, `Tests.Reflections` at
-436 (R644–R662); matrix event 402/402 · JSON 282/282 on BOTH instrument sets
-as of item 30, re-taken at item 35 and unmoved. Items 15, 16, 17, 19–30, 33, 34 and 36 touched no runtime file, so for
+capstones assert. `Tests.Guards` builds at 224 jobs, `Tests.Reflections` at
+437 (R644–R663); matrix event 402/402 · JSON 282/282 on BOTH instrument sets
+as of item 30, re-taken at item 35 and unmoved. Items 15, 16, 17, 19–30, 33, 34, 36 and 37 touched no runtime file, so for
 those the matrix is unchanged by construction (items 20 and 22's only non-proof
 edits are `Prop`-valued grammar constructors and one added constructor
 parameter; items 21, 23–30 edit no grammar at all, their structural edits being
@@ -6564,6 +6564,100 @@ verifier stands at its same 18 pre-existing name mismatches. No runtime file is
 touched, so the matrix and `eventscore` numbers are item 35's, unchanged by
 construction.
 
+### Item 37 (2026-08-14)
+
+carried §7.5's middle rung the way item 36 carried `[204]`'s, and narrowed the
+escape at the two pendings it serves. `block_dispatch_deferred` 6 → 6,
+`scannerDrop` 4 → 4, pendings reaching the largest site 6 → 6 — and the residue
+those pendings stand for goes **3 indicators → 1**. No new production, no runtime
+edit.
+
+**What §7.5 decides.** `validateTrailingContent` (after a quoted scalar) and
+`validateFlowClose` (after a flow collection returns to block context) are the
+same five lines of code, and `validateAliasClose` IS the first one behind an
+`if`. Their allowlist is `[79] s-l-comments` — a break, a `#`, end of input —
+PLUS a `:`, and the `:` is not slack: a complete block-context node may be
+re-read as `[154] ns-s-implicit-yaml-key` / `[155] c-s-implicit-json-key`. So the
+rung is a DICHOTOMY, not a filter: of the three block indicators the residue
+stands for, `-` and `?` are refused and `:` is the grammatical continuation.
+
+**Measured, park by park** (scan-only vs legacy-parse vs indexed-parse, ~30
+shapes). Every producer of the two `h_line` fields agrees:
+
+| park | producer | `-` / `?` mid-line | `:` mid-line |
+| --- | --- | --- | --- |
+| `"a"`, `'a'` | `validateTrailingContent` | scanner-refused | grammatical |
+| `[1]`, `{a: 1}` | `validateFlowClose` | scanner-refused | grammatical |
+| `*x` | `validateAliasClose` | scanner-refused | (key shape) |
+| `a` (plain) | the WALK | ABSORBED — no park at all | stops the walk |
+| `\|`⏎ (block) | the WALK | ends at column 0 | ends at column 0 |
+| `- "a"`, `- [1]` | as above, one production in | scanner-refused | grammatical |
+
+The plain scalar is the interesting row: `a - b` is ACCEPTED, and not because
+anything admitted the `-` — `[128] ns-plain-safe-out` is `ns-char`, so the walk
+swallowed it and there is no park in front of it to refute. **Refusal and
+absorption are different mechanisms deciding the same set**, which is exactly why
+one field can carry both families.
+
+**Three sets named, and the union is the field's.** `NodeTail` (§7.5's own:
+`TailSuffix ∨ ':'`), `OffLine` (outside `[1] c-printable`, or the BOM — where the
+two WALKS stop with no validator consulted), and `NodeStop = NodeTail ∨ OffLine`,
+which is what a complete block-context node's line may stop at. Eight producers
+are restated at their own strength — `restNodeTail_of_validateTrailingContent`,
+`_of_validateFlowClose`, `_of_validateAliasClose`, `scanDoubleQuoted_restNodeTail`,
+`scanSingleQuoted_restNodeTail`, `scanPlainScalar_restNodeStop`,
+`scanBlockScalar_restNodeStop`, `dispatchContent_restNodeStop` — and **zero
+consumers changed**: every item-10 name keeps its old statement as a one-line
+`mono` wrapper. `pendingContent` and `pendingBlockContent` carry
+`sp_scan.col = 0 ∨ LineNodeStop sp_scan.chars`, and the item-10 consumer
+(`accum_flow_open_depth0`'s no-break arm) weakens with
+`LineNodeStop.toLineNoOpen` exactly as `pendingDocEnd` does.
+
+**The escape narrows to what is left.** This is the half worth keeping. The
+refutation covers two of the residue's three characters, so the escape does not
+vanish — but item 36 made it a FUNCTION of the residue, so it can be re-typed by
+the premise that survived: `accum_block_on_pendingContent` and
+`accum_block_on_pendingBlockContent` now take
+`InlineResidue sp_scan ':' → SLYamlStream sp_start sp_block_ctx`. The `-`/`?`
+arms pay `(nodeStop_refutes_inline_residue …).elim` at the call site where the
+fact lives; the `:` arms pass the escape through unchanged; and the two
+dispatcher arms supply `fun _ => h_stream_block`. **The remaining obligation at
+those two pendings is now a type, not a sentence in this file** — and the premise
+is forced rather than chosen, since `nodeStop_residue_is_colon` reads the
+surviving character off the residue by inversion.
+
+**The pins.** `Tests/Guards/Proofs/ScannerNodeTail.lean`, 38 `#guard`s in five
+sections: §1 what the tail admits after a complete node (break, trailing whites,
+`#`, at stream level and as a mapping value); §2 the residue's own inhabitants
+refused, park by park and indicator by indicator — quoted, single-quoted, flow
+sequence, flow mapping, alias, inside `- `, inside `? `, nested `- - `, and at a
+nonzero indent; §3 the WALKS, which never park in front of one (`a - b`,
+`a ? b`, `- a - b` are single plain scalars; `a #c - b` is a comment; a block
+scalar ends at column 0); §4 the `:` that must SURVIVE — six shapes whose
+refutation would be a defect, and which are the inventory of what row 12 still
+owes here; §5 the boundary, with `scanAccepts` showing `&a - b` accepted by the
+scanner one character away from `"a" - b` refused by it, because a `[96]`
+property run is not a node and has no §7.5 tail.
+
+**Reflection 663** (`EscapeNarrowsToItsResidue`): when the fact refutes only part
+of a residue, re-type the escape by the premise that survived — the refuted
+members are discharged at the call sites, the paying callers are unchanged, and
+the type names the remaining work. With the corollary that two producers can
+decide one set for opposite reasons (refusal and absorption), which is what lets
+one field carry both.
+
+**Validation.** Full `lake build` green (996 targets, ZERO warnings — item 36's
+"992" was taken before its own two test files were registered, so the comparable
+baseline is 994 and this item adds exactly its guard and its reflection);
+`run-all-tests.sh` 4458/4458 across 17 suites; `Tests.Guards` (224) and
+`Tests.Reflections` (437) green; `check-reflection-index.sh` (20 sub-themes, 209
+bulleted demos, 228 reflections, 334 demos imported), `check-import-closure.sh`
+(214 modules), `check-theorem-keyword.sh` (25 capstones) OK; `collect-stats`
+axiom gate clean (7559 theorems, 0 sorries, 0 custom axioms); the annotation
+verifier stands at its same 18 pre-existing name mismatches. No runtime file is
+touched, so the matrix and `eventscore` numbers are item 35's, unchanged by
+construction.
+
 ### REMAINING, in order
 
 Ordered by what is cheapest AND has a consumer today, not by what is listed
@@ -6571,9 +6665,11 @@ first anywhere else. `FlowOpenStack` is deliberately NOT first: it is the most
 expensive piece and none of its three parts lands anything on its own. (The
 list's previous first entry — `noPending`'s share of the inline residue — is
 item 35, closed; what it emptied was a park the machine never makes. Item 36
-then took `pendingDocEnd`'s share of the entry below and made the escape
-REFUSABLE per caller, so the remaining entries can be taken one pending at a
-time rather than one site at a time.)
+then took `pendingDocEnd`'s share and made the escape REFUSABLE per caller, so
+the remaining entries can be taken one pending at a time rather than one site at
+a time; item 37 took §7.5's rung, which left `pendingContent` and
+`pendingBlockContent` owing exactly one production — entry 1 below, whose type
+now says so.)
 
 **Read the count with item 35's structural note.** `pendingFlow` has exactly one
 producer — `block_dispatch_deferred` — and carries only a stream, so a consumer
@@ -6582,44 +6678,35 @@ below both serve `pendingFlow`, so neither is REMOVABLE on its own; they narrow
 until the constructor goes and then vanish together. Plan the remainder as
 "eliminate the non-`pendingFlow` inhabitants", not as "close three sites".
 
-1. **The generic close-and-reopen** (`accum_block_on_closeThenBlock`) — the
-mid-line park, now at SIX pendings rather than seven. Item 36 measured the
-residue per pending and took the one row that closes outright (`pendingDocEnd`,
-by `[204] l-document-suffix`); it also changed the escape's type to
-`InlineResidue sp_scan c → SLYamlStream …`, so every further row below leaves on
-its own evidence without splitting the lemma. What is left, in the order it is
-worth taking:
+1. **The `:` production** — the largest grammatical family left in row 12, and
+now the ONLY thing two of the six pendings still defer: item 37 typed their
+escapes `InlineResidue sp_scan ':' → SLYamlStream …`, so the obligation is
+named. `"a" : b`, `[1] : b`, `{a: 1} : b`, `- [1] : b`, `&a : b`, `: : a` all
+want the parked node re-read as `[154] ns-s-implicit-yaml-key` /
+`[155] c-s-implicit-json-key` at a MID-LINE anchor; items 15/16 built the col-0
+plain and quoted arms (`ImplicitKeyPack`, `colon_open_map_implicit`), so this is
+that machinery re-anchored plus a pack for a closed flow node and for a property
+run. Take `pendingContent` first: its `h_key` field is already the coupling, and
+what fails today is only that `colon_open_map_implicit` wants the key's line to
+start at column 0.
 
-   (a) **§7.5's middle rung.** `validateTrailingContent` (after a quoted scalar)
-   and `validateFlowClose` (after a flow collection returns to block context) are
-   the same five lines of code, and their allowlist is `s-l-comments` PLUS `:`.
-   Carrying it the way `[204]`'s is now carried refutes `-` and `?` at the
-   quoted, flow and `pendingBlockContent` parks — three pendings across sites 1
-   AND 2 from one predicate (`LineStop` is already indexed; the rung needs the
-   producers, which are `restNoOpen_of_validateTrailingContent` and
-   `_of_validateFlowClose` restated at their own strength, plus the plain and
-   block-scalar producers' own stop sets if `pendingContent`'s field is to move
-   as a whole).
+   (Item 36 closed `pendingDocEnd` here by `[204]`; item 37 closed the `-`/`?`
+   half at `pendingContent` and `pendingBlockContent` by §7.5. What is left at
+   this site besides the `:` is `pendingDocStart`, `pendingProps`,
+   `pendingMapValue` and `pendingFlow`, whose residues are entry 3 and row 19.)
 
-   (b) **The `:` production** — the largest grammatical family left in row 12:
-   `[1] : b`, `{a: 1} : b`, `&a : b`, `- [1] : b`, `: : a`. All want the parked
-   node re-read as `[154] ns-s-implicit-yaml-key` / `[155] c-s-implicit-json-key`
-   at a MID-LINE anchor; items 15/16 built the col-0 plain and quoted arms
-   (`ImplicitKeyPack`, `colon_open_map_implicit`), so this is that machinery
-   re-anchored plus a pack for a closed flow node and for a property run.
+2. **Not this row.** `&a - b`, `!t - b`, `--- - a`, `--- ? a`, `: - a`,
+`: ? a` are ACCEPTED by the scanner and refused (or wrongly accepted) by the
+parser: `[200] s-l+block-collection` puts `s-l-comments` between a node's
+properties and the collection, so no block sequence may start on the line that
+opened it. That is an over-acceptance of the token stream and belongs with
+row 19 — the `pendingProps` and `pendingDocStart` shares of entry 1's site are
+this, not a missing production.
 
-   (c) **Not this row.** `&a - b`, `!t - b`, `--- - a`, `--- ? a`, `: - a`,
-   `: ? a` are ACCEPTED by the scanner and refused (or wrongly accepted) by the
-   parser: `[200] s-l+block-collection` puts `s-l-comments` between a node's
-   properties and the collection, so no block sequence may start on the line that
-   opened it. That is an over-acceptance of the token stream and belongs with
-   row 19.
-
-2. **`pendingBlockContent`'s share** — `- a: 1` is `[195] ns-l-compact-mapping`
-inside `[185]`'s compact alternative, its key the content already parked: item
-25's `ImplicitKeyPack` on a second pending, anchored at the ENTRY rather than at
-a column-0 line start, and the largest single inhabitant left in row 12.
-`- "a" - b` and `- [1] b` are scanner-refused and want entry 1(a) verbatim.
+   And `- a: 1` is `[195] ns-l-compact-mapping` inside `[185]`'s compact
+   alternative, its key the content already parked: item 25's `ImplicitKeyPack`
+   on a second pending, anchored at the ENTRY rather than at a column-0 line
+   start. It is entry 1's problem one production in, and worth taking with it.
 
 3. **The content dispatch's own no-break arm** — five pendings at one site.
 Four are scanner-refused (`pendingDocEnd` by `trailingContentAfterDocEnd`, which
@@ -6627,7 +6714,13 @@ Four are scanner-refused (`pendingDocEnd` by `trailingContentAfterDocEnd`, which
 `pendingContent`, `pendingFlow` and `pendingBlockContent` by `trailingContent`).
 `pendingDocEnd`'s share is now one fact away — item 36's field is already on the
 constructor, and the arm additionally needs `c ≠ '#'`, which holds because the
-marker's own whites make `skipToContentComment`'s `commentOk` fire. The fifth is
+marker's own whites make `skipToContentComment`'s `commentOk` fire.
+`pendingContent`/`pendingBlockContent`'s share is item 37's field away plus the
+SAME `c ≠ '#'` — but measured, it stops one character short of that: `"a" :b` and
+`[1] :b` are scanner-ACCEPTED (the `:` not followed by a space starts a plain
+scalar) and refused only by the parser, so a `:` at this dispatch is an
+over-acceptance in row 19's sense, not a state to refute. `"a" x` IS refused, so
+what the field buys here is every other content head. The fifth is
 `pendingDocStart`, whose `--- a` is `[208] l-explicit-document`'s one-line body —
 grammatical, common, and currently riding the escape: it needs
 `content_dispatch_after_close`'s machinery parameterized by the pending's own
@@ -6830,7 +6923,7 @@ Step 0 (the scanner audit for directive handling) and Fix B (eliminating
 
 | Step | Status |
 |---|---|
-| Fix A: eliminate `scannerDrop` | 🟡 **β.3 and β.4 COMPLETE (2026-08-10)** — `StreamAccum.lean` is sorry-free and the `L4YAML.Capstones` gate is GREEN. β.5 is open: `block_dispatch_deferred` stands at 6 call sites and `scannerDrop` at 4, and the largest of those sites is down to 6 of its 7 pendings (item 36). Per-item record and the ordered list of what is left: [Row 12 — β.5 closure log](#row-12--β5-closure-log) |
+| Fix A: eliminate `scannerDrop` | 🟡 **β.3 and β.4 COMPLETE (2026-08-10)** — `StreamAccum.lean` is sorry-free and the `L4YAML.Capstones` gate is GREEN. β.5 is open: `block_dispatch_deferred` stands at 6 call sites and `scannerDrop` at 4, and the largest of those sites is down to 6 of its 7 pendings (item 36), two of which now defer only a `:` (item 37). Per-item record and the ordered list of what is left: [Row 12 — β.5 closure log](#row-12--β5-closure-log) |
 | 1b. Remove `scannerDrop` from `SLYamlStream` | ⬜ open — β.5, once that last use is gone |
 | 1c. Tighten `implicitContinue` in `SLYamlStream` | ⬜ open — action row 19; the third over-approximation, found 2026-08-13 by item 30 and unpriced. Require `l-document-suffix+` for the bare alternative; 17 construction sites, 16 of them the `StreamAccum` sibling re-opens. [The over-approximation problem](#the-over-approximation-problem) |
 | 5. Prove the converse `grammar_completeness` | ⬜ open — depends on Fix A **and on 1c**: the converse is false while either over-approximation stands |

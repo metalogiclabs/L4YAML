@@ -21,11 +21,14 @@ a block scalar ends at column 0 or end of input.
 This file packages that one dispatch's worth of lookahead as a fact about
 the REST OF THE LINE, carried by the pending state to the flow-open step:
 
-* **`LineNoOpen`** — the surface reading: optional `s-white`, then either end
-  of input or a head that is neither white nor `[`/`{`.  Weaker than any of
-  the validators' allowlists (a break, `#`, `:`, a `---` at a document
-  boundary, and a non-printable all qualify), which is what lets the five
-  producer families share one consumer.
+* **`LineStop P`** — the surface reading, INDEXED by its stop set: optional
+  `s-white`, then either end of input or a non-white head in `P`.  Item 10
+  wrote one set into the predicate (`NoOpenHead`) and projected every producer
+  onto it; items 36/37 name the rungs the producers actually decide —
+  `TailSuffix` (`[204]`'s `s-l-comments`), `NodeTail` (§7.5: `s-l-comments`
+  plus `[154]`/`[155]`'s `:`), `OffLine` (outside `[1] c-printable`, or the
+  BOM), and their union `NodeStop` — with `LineStop.mono` at the CONSUMER.
+  `LineNoOpen` is `LineStop NoOpenHead`, and every old consumer is unchanged.
 * **`RestNoOpen`** — the scanner-side reading, quantified over
   `CharsFromOffset` so producers never touch `SurfPos`.
 * **Producers** — one per family, each reading the guard that ran when the
@@ -146,15 +149,80 @@ lemma TailSuffix.toNoOpenHead {c : Char} (h : TailSuffix c) : NoOpenHead c := by
     Bool.or_eq_true, beq_iff_eq] at h
   rintro (rfl | rfl) <;> simp_all
 
+/-- §7.5's own allowlist — the tail of a COMPLETE block-context NODE:
+    `[79] s-l-comments`, plus the `:` that `[154] ns-s-implicit-yaml-key` and
+    `[155] c-s-implicit-json-key` put after a node on its own line.  This is
+    what `validateTrailingContent`, `validateAliasClose` and
+    `validateFlowClose` decide, character for character — one rung weaker than
+    `[204]`'s, because a node CAN be a key and a `...` cannot. -/
+def NodeTail (c : Char) : Prop := TailSuffix c ∨ c = ':'
+
+/-- Outside `[1] c-printable`, or the byte order mark (`[3] c-byte-order-mark`
+    is printable, but no production admits it mid-line): where the two scalar
+    WALKS stop with no validator consulted at all.  A plain scalar absorbs
+    every `ns-plain-safe-out` character it meets, so what it stops at is either
+    `NodeTail` or this; a block scalar's line collection is the same walk. -/
+def OffLine (c : Char) : Prop := isPrintableBool c = false ∨ c = '﻿'
+
+/-- What a complete block-context node's line may stop at: the two families
+    above, and nothing else.  A UNION, not a projection — the `NodeTail`
+    producers keep their own sharper conclusion and weaken here (item 37). -/
+def NodeStop (c : Char) : Prop := NodeTail c ∨ OffLine c
+
+lemma TailSuffix.toNodeTail {c : Char} (h : TailSuffix c) : NodeTail c := Or.inl h
+
+lemma NodeTail.toNodeStop {c : Char} (h : NodeTail c) : NodeStop c := Or.inl h
+
+lemma OffLine.toNodeStop {c : Char} (h : OffLine c) : NodeStop c := Or.inr h
+
+lemma NodeStop.toNoOpenHead {c : Char} (h : NodeStop c) : NoOpenHead c := by
+  rcases h with (hts | rfl) | (hnp | rfl)
+  · exact hts.toNoOpenHead
+  · rintro (h | h) <;> exact absurd h (by decide)
+  · rintro (rfl | rfl) <;> exact absurd hnp (by decide)
+  · rintro (h | h) <;> exact absurd h (by decide)
+
+/-- **What §7.5 refuses.**  A `-` and a `?` are printable, are not the BOM, are
+    not breaks, and are neither `#` nor `:` — so no rung of the ladder admits
+    them.  This is the whole content of item 37 at the character level. -/
+lemma NodeStop.not_dash_or_question {c : Char} (h : NodeStop c)
+    (hc : c = '-' ∨ c = '?') : False := by
+  have hne : c ≠ '-' ∧ c ≠ '?' := by
+    rcases h with ((hbr | hh) | hcol) | (hnp | hbom)
+    · exact ⟨by rintro rfl; exact absurd hbr (by decide),
+             by rintro rfl; exact absurd hbr (by decide)⟩
+    · subst hh; exact ⟨by decide, by decide⟩
+    · subst hcol; exact ⟨by decide, by decide⟩
+    · exact ⟨by rintro rfl; exact absurd hnp (by decide),
+             by rintro rfl; exact absurd hnp (by decide)⟩
+    · subst hbom; exact ⟨by decide, by decide⟩
+  rcases hc with rfl | rfl
+  · exact hne.1 rfl
+  · exact hne.2 rfl
+
 /-- Item 10's predicate, as the specialization it now is. -/
 abbrev LineNoOpen : List Char → Prop := LineStop NoOpenHead
 
 /-- The tail of a `...`: `s-l-comments` and nothing else. -/
 abbrev LineTailSuffix : List Char → Prop := LineStop TailSuffix
 
+/-- §7.5's node tail: `s-l-comments` plus `[154]`/`[155]`'s `:`. -/
+abbrev LineNodeTail : List Char → Prop := LineStop NodeTail
+
+/-- The union a completed block-context node's park carries. -/
+abbrev LineNodeStop : List Char → Prop := LineStop NodeStop
+
 lemma LineTailSuffix.toLineNoOpen {l : List Char}
     (h : LineTailSuffix l) : LineNoOpen l :=
   h.mono (fun _ => TailSuffix.toNoOpenHead)
+
+lemma LineNodeTail.toLineNodeStop {l : List Char}
+    (h : LineNodeTail l) : LineNodeStop l :=
+  h.mono (fun _ => NodeTail.toNodeStop)
+
+lemma LineNodeStop.toLineNoOpen {l : List Char}
+    (h : LineNodeStop l) : LineNoOpen l :=
+  h.mono (fun _ => NodeStop.toNoOpenHead)
 
 /-- The head of a `LineNoOpen` line is never a flow open. -/
 lemma LineNoOpen.not_open_head {c : Char} {rest : List Char}
@@ -184,6 +252,18 @@ lemma LineTailSuffix.no_content_across_whites {sp sp' : SurfPos} {c : Char}
   · rw [hnb] at hbr; cases hbr
   · exact hnc hhash
 
+/-- **The §7.5 refutation** (item 37): after a complete block-context node, a
+    same-line step that crossed only `s-white` cannot dispatch a `-` or a `?`.
+    The `:` is NOT refuted and must not be: it is `[154]`'s implicit key, the
+    one same-line continuation the productions admit. -/
+lemma LineNodeStop.no_indicator_across_whites {sp sp' : SurfPos} {c : Char}
+    (h : LineNodeStop sp.chars) (hws : GStar SSWhite sp sp')
+    (hhead : sp'.chars.head? = some c) (hc : c = '-' ∨ c = '?') : False :=
+  NodeStop.not_dash_or_question
+    (h.across_whites hws hhead
+      (by rcases hc with rfl | rfl <;> rintro (h | h) <;> exact absurd h (by decide)))
+    hc
+
 /-! ## §2 The scanner-side reading and its bridges -/
 
 /-- Scanner-side `LineStop`, quantified over the character suffix so
@@ -193,6 +273,8 @@ def RestStop (P : Char → Prop) (s : ScannerState) : Prop :=
 
 abbrev RestNoOpen (s : ScannerState) : Prop := RestStop NoOpenHead s
 abbrev RestTailSuffix (s : ScannerState) : Prop := RestStop TailSuffix s
+abbrev RestNodeTail (s : ScannerState) : Prop := RestStop NodeTail s
+abbrev RestNodeStop (s : ScannerState) : Prop := RestStop NodeStop s
 
 /-- The projection, scanner side. -/
 lemma RestStop.mono {P Q : Char → Prop} (hPQ : ∀ c, P c → Q c) {s : ScannerState}
@@ -423,22 +505,31 @@ lemma restNoOpen_of_skipDocEndWhitespace (fuel : Nat) :
 
 /-! ## §4 Validator producers -/
 
-/-- The trailing-content allowlist (break, `#`, `:`) is stop-material. -/
+/-- **The allowlist IS `NodeTail`** (item 37): `validateTrailingContent`'s
+    three-way test is `[79] s-l-comments` plus `[154]`/`[155]`'s `:`, which is
+    the set the production names.  Item 10 wrote the projection here — its
+    consumer's `¬(c = '[' ∨ c = '{')` — and that is what made the residue's
+    `-`/`?` unanswerable four sites later. -/
 lemma stop_of_allowlist {c : Char}
     (h : isLineBreakBool c || c == '#' || c == ':') :
-    ¬(c = ' ' ∨ c = '\t') ∧ ¬(c = '[' ∨ c = '{') := by
+    ¬(c = ' ' ∨ c = '\t') ∧ NodeTail c := by
   simp only [Bool.or_eq_true, beq_iff_eq, isLineBreakBool,
     isLineFeedBool, isCarriageReturnBool] at h
-  constructor <;> rintro (rfl | rfl) <;> simp_all
+  refine ⟨by rintro (rfl | rfl) <;> simp_all, ?_⟩
+  rcases h with (hbr | rfl) | rfl
+  · exact Or.inl (Or.inl (by rcases hbr with rfl | rfl <;> decide))
+  · exact Or.inl (Or.inr rfl)
+  · exact Or.inr rfl
 
-/-- §7.5: a passed `validateTrailingContent` makes the window inert. -/
-lemma restNoOpen_of_validateTrailingContent {s : ScannerState} {k : Nat}
+/-- §7.5: a passed `validateTrailingContent` leaves the rest of the line at
+    `NodeTail` — a break, a `#`, or the `:` of an implicit key. -/
+lemma restNodeTail_of_validateTrailingContent {s : ScannerState} {k : Nat}
     (hend : s.inputEnd = s.input.utf8ByteSize)
     (hok : validateTrailingContent s k = .ok ()) :
-    RestNoOpen s := by
+    RestNodeTail s := by
   unfold validateTrailingContent at hok
   simp only [pure, Except.pure] at hok
-  refine restNoOpen_of_skipTrailingSpaces (k - s.offset + 1) s hend
+  refine restStop_of_skipTrailingSpaces (k - s.offset + 1) s hend
     (fun c hc => ?_)
   split at hok
   · rename_i hnone
@@ -452,38 +543,71 @@ lemma restNoOpen_of_validateTrailingContent {s : ScannerState} {k : Nat}
       exact stop_of_allowlist hallow
     · simp at hok
 
-/-- [137]/[140]: a passed `validateFlowClose` at flow level 0. -/
+/-- [137]/[140]: a passed `validateFlowClose` at flow level 0 — the same five
+    lines of code, and so the same set. -/
+lemma restNodeTail_of_validateFlowClose {s : ScannerState}
+    (hend : s.inputEnd = s.input.utf8ByteSize)
+    (hfl : s.flowLevel = 0)
+    (hok : validateFlowClose s = .ok ()) :
+    RestNodeTail s := by
+  unfold validateFlowClose at hok
+  rw [if_pos (by simp [hfl])] at hok
+  simp only [pure, Except.pure] at hok
+  refine restStop_of_skipTrailingSpaces (s.inputEnd - s.offset + 1) s hend
+    (fun c hc => ?_)
+  split at hok
+  · rename_i hnone
+    rw [hc] at hnone; cases hnone
+  · rename_i c' hsome
+    rw [hc] at hsome
+    injection hsome with hce
+    subst hce
+    split at hok
+    · rename_i hallow
+      exact stop_of_allowlist hallow
+    · simp at hok
+
+/-- [104] (item 9h): a passed `validateAliasClose` in block context — it IS
+    `validateTrailingContent`, one `if` down. -/
+lemma restNodeTail_of_validateAliasClose {s : ScannerState}
+    (hend : s.inputEnd = s.input.utf8ByteSize)
+    (hflow : s.inFlow = false)
+    (hok : validateAliasClose s = .ok ()) :
+    RestNodeTail s := by
+  unfold validateAliasClose at hok
+  rw [if_neg (by simp [hflow])] at hok
+  exact restNodeTail_of_validateTrailingContent hend hok
+
+/-! Item 10's conclusions, each one `mono` off the rung above.  Every consumer
+that only ever asked about a flow open is unchanged. -/
+
+lemma restNoOpen_of_validateTrailingContent {s : ScannerState} {k : Nat}
+    (hend : s.inputEnd = s.input.utf8ByteSize)
+    (hok : validateTrailingContent s k = .ok ()) :
+    RestNoOpen s :=
+  (restNodeTail_of_validateTrailingContent hend hok).mono (fun _ => NodeStop.toNoOpenHead ∘ NodeTail.toNodeStop)
+
 lemma restNoOpen_of_validateFlowClose {s : ScannerState}
     (hend : s.inputEnd = s.input.utf8ByteSize)
     (hfl : s.flowLevel = 0)
     (hok : validateFlowClose s = .ok ()) :
-    RestNoOpen s := by
-  unfold validateFlowClose at hok
-  rw [if_pos (by simp [hfl])] at hok
-  simp only [pure, Except.pure] at hok
-  refine restNoOpen_of_skipTrailingSpaces (s.inputEnd - s.offset + 1) s hend
-    (fun c hc => ?_)
-  split at hok
-  · rename_i hnone
-    rw [hc] at hnone; cases hnone
-  · rename_i c' hsome
-    rw [hc] at hsome
-    injection hsome with hce
-    subst hce
-    split at hok
-    · rename_i hallow
-      exact stop_of_allowlist hallow
-    · simp at hok
+    RestNoOpen s :=
+  (restNodeTail_of_validateFlowClose hend hfl hok).mono (fun _ => NodeStop.toNoOpenHead ∘ NodeTail.toNodeStop)
 
-/-- [104] (item 9h): a passed `validateAliasClose` in block context. -/
 lemma restNoOpen_of_validateAliasClose {s : ScannerState}
     (hend : s.inputEnd = s.input.utf8ByteSize)
     (hflow : s.inFlow = false)
     (hok : validateAliasClose s = .ok ()) :
-    RestNoOpen s := by
-  unfold validateAliasClose at hok
-  rw [if_neg (by simp [hflow])] at hok
-  exact restNoOpen_of_validateTrailingContent hend hok
+    RestNoOpen s :=
+  (restNodeTail_of_validateAliasClose hend hflow hok).mono (fun _ => NodeStop.toNoOpenHead ∘ NodeTail.toNodeStop)
+
+/-- The flow-close producer at the union the park carries. -/
+lemma restNodeStop_of_validateFlowClose {s : ScannerState}
+    (hend : s.inputEnd = s.input.utf8ByteSize)
+    (hfl : s.flowLevel = 0)
+    (hok : validateFlowClose s = .ok ()) :
+    RestNodeStop s :=
+  (restNodeTail_of_validateFlowClose hend hfl hok).mono (fun _ => NodeTail.toNodeStop)
 
 /-! ## §5 Scan-level producers: the quoted scalars and `...`
 
@@ -493,11 +617,11 @@ mid-whites the landing peek would be a white — outside every allowlist — so
 `.ok` itself rules that out.  The `hend'` inputs come from the call sites'
 `ScannerSurfCorr` (its `end_eq` field). -/
 
-lemma scanDoubleQuoted_restNoOpen {s s' : ScannerState}
+lemma scanDoubleQuoted_restNodeTail {s s' : ScannerState}
     (hflow : s.inFlow = false)
     (hend' : s'.inputEnd = s'.input.utf8ByteSize)
     (hok : scanDoubleQuoted s = .ok s') :
-    RestNoOpen s' := by
+    RestNodeTail s' := by
   unfold scanDoubleQuoted at hok
   simp only [bind, Except.bind] at hok
   split at hok
@@ -511,17 +635,17 @@ lemma scanDoubleQuoted_restNoOpen {s s' : ScannerState}
         cases u
         injection hok with h_eq
         subst h_eq
-        exact (restNoOpen_of_validateTrailingContent (s := s_after_close)
+        exact (restNodeTail_of_validateTrailingContent (s := s_after_close)
           hend' hval).congr rfl rfl
     · rename_i hnflow
       rw [hflow] at hnflow
       simp at hnflow
 
-lemma scanSingleQuoted_restNoOpen {s s' : ScannerState}
+lemma scanSingleQuoted_restNodeTail {s s' : ScannerState}
     (hflow : s.inFlow = false)
     (hend' : s'.inputEnd = s'.input.utf8ByteSize)
     (hok : scanSingleQuoted s = .ok s') :
-    RestNoOpen s' := by
+    RestNodeTail s' := by
   unfold scanSingleQuoted at hok
   simp only [bind, Except.bind] at hok
   split at hok
@@ -535,11 +659,29 @@ lemma scanSingleQuoted_restNoOpen {s s' : ScannerState}
         cases u
         injection hok with h_eq
         subst h_eq
-        exact (restNoOpen_of_validateTrailingContent (s := s_after_close)
+        exact (restNodeTail_of_validateTrailingContent (s := s_after_close)
           hend' hval).congr rfl rfl
     · rename_i hnflow
       rw [hflow] at hnflow
       simp at hnflow
+
+/-! Item 10's two quoted conclusions, each one `mono` off the rung above. -/
+
+lemma scanDoubleQuoted_restNoOpen {s s' : ScannerState}
+    (hflow : s.inFlow = false)
+    (hend' : s'.inputEnd = s'.input.utf8ByteSize)
+    (hok : scanDoubleQuoted s = .ok s') :
+    RestNoOpen s' :=
+  (scanDoubleQuoted_restNodeTail hflow hend' hok).mono
+    (fun _ => NodeStop.toNoOpenHead ∘ NodeTail.toNodeStop)
+
+lemma scanSingleQuoted_restNoOpen {s s' : ScannerState}
+    (hflow : s.inFlow = false)
+    (hend' : s'.inputEnd = s'.input.utf8ByteSize)
+    (hok : scanSingleQuoted s = .ok s') :
+    RestNoOpen s' :=
+  (scanSingleQuoted_restNodeTail hflow hend' hok).mono
+    (fun _ => NodeStop.toNoOpenHead ∘ NodeTail.toNodeStop)
 
 /-- **[204] `l-document-suffix ::= c-document-end s-l-comments`** — the
     marker's own tail, at its own strength (item 36).  `scanDocumentEnd`'s
@@ -852,15 +994,35 @@ private lemma collectPlainScalarLoop_terminated (fuel : Nat) :
               have hend2 := advance_inputEnd s
               exact ih s.advance _ "" ci ie r hok (by omega)
 
+/-- `[128] ns-plain-safe-out` is `ns-char`, so what makes the walk stop
+    without a validator is a character no production admits at all. -/
+private lemma offLine_of_not_plainSafe {c : Char}
+    (hnw : ¬(isWhiteSpaceBool c = true)) (hnb : ¬(isLineBreakBool c = true))
+    (h : (!isPlainSafeBool c false) = true) : OffLine c := by
+  have hw : isWhiteSpaceBool c = false := by simpa using hnw
+  have hb : isLineBreakBool c = false := by simpa using hnb
+  have hps : isPlainSafeBool c false = false := by simpa using h
+  by_cases hbom : c = '﻿'
+  · exact Or.inr hbom
+  · refine Or.inl ?_
+    by_cases hp : isPrintableBool c = true
+    · rw [show isPlainSafeBool c false = true from by
+        simp [isPlainSafeBool, hw, hb, hp, hbom]] at hps
+      cases hps
+    · simpa using hp
+
 /-- A terminated block-context plain-scalar walk lands at column 0 or on a
-    stop character (never a white, never `[`/`{` — those are absorbed). -/
+    stop character — and the stop set is `NodeStop` exactly (item 37): the
+    walk's own three exits are `#`, `:` and a break (`NodeTail`), plus a
+    character outside `ns-plain-safe-out`, which is `OffLine`.  Every `-`, `?`
+    and `[` is ABSORBED, which is why none of them can be here. -/
 private lemma collectPlainScalarLoop_stop (fuel : Nat) :
     ∀ (s : ScannerState) (content spaces : String) (ci ie : Nat)
       (r : PlainScalarResult),
     collectPlainScalarLoop s content spaces fuel false ci ie = .ok r →
     r.terminated = true →
     r.state.col = 0 ∨ (∀ c, r.state.peek? = some c →
-        ¬(c = ' ' ∨ c = '\t') ∧ ¬(c = '[' ∨ c = '{')) := by
+        ¬(c = ' ' ∨ c = '\t') ∧ NodeStop c) := by
   induction fuel with
   | zero =>
     intro s _ _ _ _ r hok hterm
@@ -885,23 +1047,24 @@ private lemma collectPlainScalarLoop_stop (fuel : Nat) :
             rw [hpk] at hc'
             injection hc' with hce
             subst hce
-            exact ⟨by decide, by decide⟩)
+            exact ⟨by decide, Or.inl (Or.inl (Or.inr rfl))⟩)
         · exact Or.inr (fun c' hc' => by
             rw [hpk] at hc'
             injection hc' with hce
             subst hce
-            exact ⟨by decide, by decide⟩)
+            exact ⟨by decide, Or.inl (Or.inr rfl)⟩)
         · exact Or.inl hcol
       · -- termination char classes below
         have hstop_break : isLineBreakBool c = true →
-            (∀ c', s.peek? = some c' → ¬(c' = ' ' ∨ c' = '\t') ∧ ¬(c' = '[' ∨ c' = '{')) := by
+            (∀ c', s.peek? = some c' → ¬(c' = ' ' ∨ c' = '\t') ∧ NodeStop c') := by
           intro hbr c' hc'
           rw [hpk] at hc'
           injection hc' with hce
           subst hce
+          refine ⟨?_, Or.inl (Or.inl (Or.inl hbr))⟩
           simp only [isLineBreakBool, isLineFeedBool, isCarriageReturnBool,
             Bool.or_eq_true, beq_iff_eq] at hbr
-          constructor <;> rintro (rfl | rfl) <;> simp_all
+          rintro (rfl | rfl) <;> simp_all
         split at hok
         · rename_i hbr
           split at hok
@@ -941,16 +1104,16 @@ private lemma collectPlainScalarLoop_stop (fuel : Nat) :
                 simp only [isWhiteSpaceBool, isSpaceBool, isTabBool,
                   Bool.or_eq_true, beq_iff_eq]
                 exact habs
-              · rintro (rfl | rfl) <;> exact absurd hunsafe (by decide)
+              · exact Or.inr (offLine_of_not_plainSafe hnws hnbr hunsafe)
             · exact ih s.advance _ "" ci ie r hok hterm
 
 /-- `scanPlainScalar` in block context: the emitted state sits at column 0 or
-    on a stop character.  (`hend'` from the caller's corr.) -/
-lemma scanPlainScalar_restNoOpen {s s' : ScannerState}
+    on a `NodeStop` character.  (`hend'` from the caller's corr.) -/
+lemma scanPlainScalar_restNodeStop {s s' : ScannerState}
     (hflow : s.inFlow = false)
     (hend' : s'.inputEnd = s'.input.utf8ByteSize)
     (hok : scanPlainScalar s = .ok s') :
-    s'.col = 0 ∨ RestNoOpen s' := by
+    s'.col = 0 ∨ RestNodeStop s' := by
   unfold scanPlainScalar at hok
   simp only [bind, Except.bind] at hok
   rw [hflow] at hok
@@ -965,8 +1128,16 @@ lemma scanPlainScalar_restNoOpen {s s' : ScannerState}
     cases hstop with
     | inl hcol => exact Or.inl hcol
     | inr hpk =>
-      refine Or.inr ((restNoOpen_of_peek_stop (s := result.state) hend' ?_).congr rfl rfl)
+      refine Or.inr ((restStop_of_peek_stop (s := result.state) hend' ?_).congr rfl rfl)
       exact hpk
+
+lemma scanPlainScalar_restNoOpen {s s' : ScannerState}
+    (hflow : s.inFlow = false)
+    (hend' : s'.inputEnd = s'.input.utf8ByteSize)
+    (hok : scanPlainScalar s = .ok s') :
+    s'.col = 0 ∨ RestNoOpen s' :=
+  (scanPlainScalar_restNodeStop hflow hend' hok).imp id
+    (RestStop.mono (fun _ => NodeStop.toNoOpenHead))
 
 /-! ## §8 The block scalar: every ending is a column-0 line, EOF, or a
 non-printable stop -/
@@ -1032,7 +1203,9 @@ private lemma collectLineContentLoop_stop (fuel : Nat) : ∀ (s : ScannerState) 
       cases hc
 
 /-- The block-scalar body walk: given a column-0-or-EOF entry, every exit is
-    column 0, EOF, or a non-printable stop. -/
+    column 0, EOF, or an `OffLine` stop — the SAME line collection the plain
+    scalar runs, so the same set (item 37).  A mid-line exit is the one arm
+    that says anything, and `collectLineContentLoop_stop` already named it. -/
 private lemma collectBlockScalarLoop_end (fuel : Nat) :
     ∀ (s : ScannerState) (raw : String) (ci ie : Nat),
     (s.col = 0 ∨ s.peek? = none) →
@@ -1040,7 +1213,7 @@ private lemma collectBlockScalarLoop_end (fuel : Nat) :
     s.inputEnd ≤ ie →
     (collectBlockScalarLoop s raw fuel ci ie).2.col = 0 ∨
     (∀ c, (collectBlockScalarLoop s raw fuel ci ie).2.peek? = some c →
-        ¬(c = ' ' ∨ c = '\t') ∧ ¬(c = '[' ∨ c = '{')) := by
+        ¬(c = ' ' ∨ c = '\t') ∧ NodeStop c) := by
   induction fuel with
   | zero => intro s _ _ _ _ hb _; omega
   | succ fuel' ih =>
@@ -1110,11 +1283,10 @@ private lemma collectBlockScalarLoop_end (fuel : Nat) :
                 rw [hlcl] at hstop
                 rcases hstop c' hpk' with hbr2 | hnp | hbom
                 · exact absurd hbr2 (by simpa using hnbr)
-                · constructor
-                  · rintro (rfl | rfl) <;> exact absurd hnp (by decide)
-                  · rintro (rfl | rfl) <;> exact absurd hnp (by decide)
+                · exact ⟨by rintro (rfl | rfl) <;> exact absurd hnp (by decide),
+                         Or.inr (Or.inl hnp)⟩
                 · subst hbom
-                  exact ⟨by decide, by decide⟩
+                  exact ⟨by decide, Or.inr (Or.inr rfl)⟩
             · -- EOF after the line
               rename_i hpk'
               exact Or.inr (fun c hc => by rw [hc] at hpk'; cases hpk')
@@ -1182,13 +1354,13 @@ private lemma scanBlockScalarConsumeNewline_inputEnd {s s' : ScannerState}
   · have he := Except.ok.inj h; subst he; rfl
 
 /-- `scanBlockScalarBody`: the emitted state sits at column 0 or at a stop. -/
-private lemma scanBlockScalarBody_restNoOpen {s_orig s_after_newline s' : ScannerState}
+private lemma scanBlockScalarBody_restNodeStop {s_orig s_after_newline s' : ScannerState}
     {chomp : ChompStyle} {eo : Option Nat} {isLit : Bool} {startPos : YamlPos}
     (hentry : s_after_newline.col = 0 ∨ s_after_newline.peek? = none)
     (hie : s_after_newline.inputEnd ≤ s_orig.inputEnd)
     (hend' : s'.inputEnd = s'.input.utf8ByteSize)
     (hok : scanBlockScalarBody s_orig s_after_newline chomp eo isLit startPos = .ok s') :
-    s'.col = 0 ∨ RestNoOpen s' := by
+    s'.col = 0 ∨ RestNodeStop s' := by
   cases eo with
   | some m =>
     unfold scanBlockScalarBody at hok
@@ -1206,7 +1378,7 @@ private lemma scanBlockScalarBody_restNoOpen {s_orig s_after_newline s' : Scanne
     subst h_eq
     cases hloop with
     | inl h0 => exact Or.inl h0
-    | inr hpk => exact Or.inr ((restNoOpen_of_peek_stop (s := sac) hend' hpk).congr rfl rfl)
+    | inr hpk => exact Or.inr ((restStop_of_peek_stop (s := sac) hend' hpk).congr rfl rfl)
   | none =>
     unfold scanBlockScalarBody at hok
     dsimp only [] at hok
@@ -1229,14 +1401,14 @@ private lemma scanBlockScalarBody_restNoOpen {s_orig s_after_newline s' : Scanne
       subst h_eq
       cases hloop with
       | inl h0 => exact Or.inl h0
-      | inr hpk => exact Or.inr ((restNoOpen_of_peek_stop (s := sac) hend' hpk).congr rfl rfl)
+      | inr hpk => exact Or.inr ((restStop_of_peek_stop (s := sac) hend' hpk).congr rfl rfl)
 
 /-- `scanBlockScalar`: the emitted state sits at column 0, at end of input,
-    or on a non-printable stop.  (`hend'` from the caller's corr.) -/
-lemma scanBlockScalar_restNoOpen {s s' : ScannerState}
+    or on an `OffLine` stop.  (`hend'` from the caller's corr.) -/
+lemma scanBlockScalar_restNodeStop {s s' : ScannerState}
     (hend' : s'.inputEnd = s'.input.utf8ByteSize)
     (hok : scanBlockScalar s = .ok s') :
-    s'.col = 0 ∨ RestNoOpen s' := by
+    s'.col = 0 ∨ RestNodeStop s' := by
   unfold scanBlockScalar at hok
   dsimp only [] at hok
   split at hok
@@ -1274,22 +1446,30 @@ lemma scanBlockScalar_restNoOpen {s s' : ScannerState}
       have h4 := parseBlockHeaderLoop_inputEnd 2 s.advance .clip none
       have h5 := advance_inputEnd s
       omega
-    exact scanBlockScalarBody_restNoOpen hentry hie hend' hok
+    exact scanBlockScalarBody_restNodeStop hentry hie hend' hok
+
+lemma scanBlockScalar_restNoOpen {s s' : ScannerState}
+    (hend' : s'.inputEnd = s'.input.utf8ByteSize)
+    (hok : scanBlockScalar s = .ok s') :
+    s'.col = 0 ∨ RestNoOpen s' :=
+  (scanBlockScalar_restNodeStop hend' hok).imp id
+    (RestStop.mono (fun _ => NodeStop.toNoOpenHead))
 
 /-! ## §9 The dispatch-level producer
 
 For a content dispatch that was NOT a property (`&`/`!`), in block context,
-the emitted state sits at column 0 or cannot reach a `[`/`{` on its line:
-quoted scalars and aliases by their trailing validation, plain scalars by
-absorption (their stop characters exclude the brackets), block scalars by
-ending at column 0 or the end of input. -/
+the emitted state sits at column 0 or stops the line where §7.5 says a
+complete node's line stops: quoted scalars and aliases by their trailing
+validation (`NodeTail` — `s-l-comments` plus `[154]`'s `:`), plain and block
+scalars by their walks (`NodeTail` or `OffLine`).  The union is `NodeStop`,
+and item 10's flow-open reading is one `mono` below it. -/
 
-lemma dispatchContent_restNoOpen {s s' : ScannerState} {c : Char}
+lemma dispatchContent_restNodeStop {s s' : ScannerState} {c : Char}
     (hflow : s.inFlow = false)
     (hna : c ≠ '&') (hnt : c ≠ '!')
     (hend' : s'.inputEnd = s'.input.utf8ByteSize)
     (hok : scanNextToken_dispatchContent s c = .ok s') :
-    s'.col = 0 ∨ RestNoOpen s' := by
+    s'.col = 0 ∨ RestNodeStop s' := by
   unfold scanNextToken_dispatchContent at hok
   simp only [bind, Except.bind, pure, Except.pure] at hok
   split at hok
@@ -1315,13 +1495,14 @@ lemma dispatchContent_restNoOpen {s s' : ScannerState} {c : Char}
               unfold ScannerState.inFlow at hflow ⊢
               rw [hfl]
               exact hflow
-            exact Or.inr (restNoOpen_of_validateAliasClose hend' hflv hval)
+            exact Or.inr ((restNodeTail_of_validateAliasClose hend' hflv hval).mono
+              (fun _ => NodeTail.toNodeStop))
     · split at hok
       · rename_i h_eq
         exact absurd (by simpa using h_eq) hnt
       · split at hok
         · -- '|' or '>': block scalar under the item-9c guard
-          exact scanBlockScalar_restNoOpen hend' (peel_blockScalarGuard hok)
+          exact scanBlockScalar_restNodeStop hend' (peel_blockScalarGuard hok)
         · split at hok
           · -- '"': double-quoted, then the endLine touch-up
             split at hok
@@ -1337,8 +1518,8 @@ lemma dispatchContent_restNoOpen {s s' : ScannerState} {c : Char}
               have hend_dq : s_dq.inputEnd = s_dq.input.utf8ByteSize := by
                 rw [← hfields.2.2, ← hfields.1]
                 exact hend'
-              exact Or.inr ((scanDoubleQuoted_restNoOpen hflow hend_dq hdq).congr
-                hfields.1 hfields.2.1)
+              exact Or.inr (((scanDoubleQuoted_restNodeTail hflow hend_dq hdq).mono
+                (fun _ => NodeTail.toNodeStop)).congr hfields.1 hfields.2.1)
           · split at hok
             · -- '\'': single-quoted
               split at hok
@@ -1354,11 +1535,21 @@ lemma dispatchContent_restNoOpen {s s' : ScannerState} {c : Char}
                 have hend_sq : s_sq.inputEnd = s_sq.input.utf8ByteSize := by
                   rw [← hfields.2.2, ← hfields.1]
                   exact hend'
-                exact Or.inr ((scanSingleQuoted_restNoOpen hflow hend_sq hsq).congr
-                  hfields.1 hfields.2.1)
+                exact Or.inr (((scanSingleQuoted_restNodeTail hflow hend_sq hsq).mono
+                  (fun _ => NodeTail.toNodeStop)).congr hfields.1 hfields.2.1)
             · -- plain scalar (or error)
               split at hok
-              · exact scanPlainScalar_restNoOpen hflow hend' hok
+              · exact scanPlainScalar_restNodeStop hflow hend' hok
               · simp at hok
+
+/-- Item 10's dispatch-level conclusion, one `mono` below §9's own. -/
+lemma dispatchContent_restNoOpen {s s' : ScannerState} {c : Char}
+    (hflow : s.inFlow = false)
+    (hna : c ≠ '&') (hnt : c ≠ '!')
+    (hend' : s'.inputEnd = s'.input.utf8ByteSize)
+    (hok : scanNextToken_dispatchContent s c = .ok s') :
+    s'.col = 0 ∨ RestNoOpen s' :=
+  (dispatchContent_restNodeStop hflow hna hnt hend' hok).imp id
+    (RestStop.mono (fun _ => NodeStop.toNoOpenHead))
 
 end L4YAML.Proofs.LineOpenGuard
