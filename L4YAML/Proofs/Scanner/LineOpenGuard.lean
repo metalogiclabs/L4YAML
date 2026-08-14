@@ -49,31 +49,51 @@ open L4YAML.Proofs.ScannerProgress
 open L4YAML.Proofs.ScannerCorrectness.ScanHelpers
 open L4YAML.Proofs.BlockScalarFlowGuard
 
-/-! ## §1 The predicate and its surface consumers -/
+/-! ## §1 The predicate and its surface consumers
 
-/-- The rest of the current line cannot dispatch a flow open: optional
-    `s-white` [33], then end of input or a head that is neither white nor a
-    `[`/`{`.  (A break, `#`, `:`, `-`, a non-printable — anything a completed
-    construct's trailing validation admits — satisfies the `stop` arm.) -/
-inductive LineNoOpen : List Char → Prop where
-  | nil : LineNoOpen []
+The predicate is indexed by its STOP SET — the characters the producer's own
+validator admitted.  Item 10 wrote one stop set INTO the predicate (`¬(c = '['
+∨ c = '{')`) and projected all four validators onto it inside the producers
+(`stop_of_allowlist`), because the consumer of the day asked only about a flow
+open.  The strength discarded there is exactly what a later consumer needs:
+`[204] l-document-suffix`'s tail is `[79] s-l-comments` and admits a break or
+a `#` and nothing else, which refutes a same-line `-`/`?`/`:` as flatly as it
+refutes a `[`.  So the set rides the predicate and the projection happens at
+the CONSUMER (`LineStop.mono`), which costs the old consumers one `mono` and
+buys the new ones the difference. -/
+
+/-- The rest of the current line stops in `P`: optional `s-white` [33], then
+    end of input or a head that is not white and satisfies `P`. -/
+inductive LineStop (P : Char → Prop) : List Char → Prop where
+  | nil : LineStop P []
   | stop {c : Char} (rest : List Char)
       (hnw : ¬(c = ' ' ∨ c = '\t'))
-      (hno : ¬(c = '[' ∨ c = '{')) : LineNoOpen (c :: rest)
+      (hst : P c) : LineStop P (c :: rest)
   | white {c : Char} {rest : List Char}
       (hw : c = ' ' ∨ c = '\t')
-      (t : LineNoOpen rest) : LineNoOpen (c :: rest)
+      (t : LineStop P rest) : LineStop P (c :: rest)
 
-/-- The head of a `LineNoOpen` line is never a flow open. -/
-lemma LineNoOpen.not_open_head {c : Char} {rest : List Char}
-    (h : LineNoOpen (c :: rest)) (hc : c = '[' ∨ c = '{') : False := by
+/-- **The projection, moved to the consumer.**  A stop set weakens freely;
+    this single step is what every producer used to take on its own behalf. -/
+lemma LineStop.mono {P Q : Char → Prop} (hPQ : ∀ c, P c → Q c) :
+    ∀ {l : List Char}, LineStop P l → LineStop Q l := by
+  intro l h
+  induction h with
+  | nil => exact .nil
+  | stop rest hnw hst => exact .stop rest hnw (hPQ _ hst)
+  | white hw _ ih => exact .white hw ih
+
+/-- The head of a stopped line satisfies the stop set, once it is known not
+    to be one of the leading whites. -/
+lemma LineStop.head_stop {P : Char → Prop} {c : Char} {rest : List Char}
+    (h : LineStop P (c :: rest)) (hnw : ¬(c = ' ' ∨ c = '\t')) : P c := by
   cases h with
-  | stop _ _ hno => exact hno hc
-  | white hw _ => cases hc <;> cases hw <;> simp_all
+  | stop _ _ hst => exact hst
+  | white hw _ => exact absurd hw hnw
 
 /-- One `s-white` step strips one white char and preserves the fact. -/
-lemma LineNoOpen.strip_one {sp sp' : SurfPos}
-    (hw : SSWhite sp sp') (h : LineNoOpen sp.chars) : LineNoOpen sp'.chars := by
+lemma LineStop.strip_one {P : Char → Prop} {sp sp' : SurfPos}
+    (hw : SSWhite sp sp') (h : LineStop P sp.chars) : LineStop P sp'.chars := by
   cases hw with
   | space rest col =>
     cases h with
@@ -85,60 +105,129 @@ lemma LineNoOpen.strip_one {sp sp' : SurfPos}
     | white _ t => exact t
 
 /-- Preprocessing's no-break residue is `s-white*`; the fact survives it. -/
-lemma LineNoOpen.strip {sp sp' : SurfPos}
-    (hws : GStar SSWhite sp sp') (h : LineNoOpen sp.chars) :
-    LineNoOpen sp'.chars := by
+lemma LineStop.strip {P : Char → Prop} {sp sp' : SurfPos}
+    (hws : GStar SSWhite sp sp') (h : LineStop P sp.chars) :
+    LineStop P sp'.chars := by
   induction hws with
   | nil => exact h
   | cons _ _ _ hstep _ ih => exact ih (h.strip_one hstep)
 
-/-- The refutation: a `LineNoOpen` position cannot reach a `[`/`{` across
-    whites alone.  `hhead` is the dispatched char read back through the
-    correspondence. -/
-lemma LineNoOpen.no_open_across_whites {sp sp' : SurfPos} {c : Char}
-    (h : LineNoOpen sp.chars) (hws : GStar SSWhite sp sp')
-    (hhead : sp'.chars.head? = some c) (hc : c = '[' ∨ c = '{') : False := by
+/-- **The consumer's own read**: the character a no-break step dispatches is
+    in the stop set the producing validator admitted.  `hhead` is that
+    character read back through the correspondence. -/
+lemma LineStop.across_whites {P : Char → Prop} {sp sp' : SurfPos} {c : Char}
+    (h : LineStop P sp.chars) (hws : GStar SSWhite sp sp')
+    (hhead : sp'.chars.head? = some c) (hnw : ¬(c = ' ' ∨ c = '\t')) : P c := by
   have h' := h.strip hws
   cases hchars : sp'.chars with
   | nil => rw [hchars] at hhead; cases hhead
   | cons c' rest =>
     rw [hchars] at hhead h'
     injection hhead with hce
-    exact h'.not_open_head (hce ▸ hc)
+    subst hce
+    exact h'.head_stop hnw
+
+/-! ### §1a The stop sets
+
+Three rungs, weakest last, each named for the production that decides it. -/
+
+/-- `[204] l-document-suffix ::= c-document-end s-l-comments` — the tail of a
+    `...`, which admits a break, a `#`, or end of input and NOTHING else: a
+    document-end marker is not a node and cannot be a key. -/
+def TailSuffix (c : Char) : Prop := isLineBreakBool c = true ∨ c = '#'
+
+/-- Item 10's set: the rest of the line cannot dispatch a flow open.  (A
+    break, `#`, `:`, `-`, a non-printable — anything a completed construct's
+    trailing validation admits — satisfies it.) -/
+def NoOpenHead (c : Char) : Prop := ¬(c = '[' ∨ c = '{')
+
+lemma TailSuffix.toNoOpenHead {c : Char} (h : TailSuffix c) : NoOpenHead c := by
+  simp only [TailSuffix, isLineBreakBool, isLineFeedBool, isCarriageReturnBool,
+    Bool.or_eq_true, beq_iff_eq] at h
+  rintro (rfl | rfl) <;> simp_all
+
+/-- Item 10's predicate, as the specialization it now is. -/
+abbrev LineNoOpen : List Char → Prop := LineStop NoOpenHead
+
+/-- The tail of a `...`: `s-l-comments` and nothing else. -/
+abbrev LineTailSuffix : List Char → Prop := LineStop TailSuffix
+
+lemma LineTailSuffix.toLineNoOpen {l : List Char}
+    (h : LineTailSuffix l) : LineNoOpen l :=
+  h.mono (fun _ => TailSuffix.toNoOpenHead)
+
+/-- The head of a `LineNoOpen` line is never a flow open. -/
+lemma LineNoOpen.not_open_head {c : Char} {rest : List Char}
+    (h : LineNoOpen (c :: rest)) (hc : c = '[' ∨ c = '{') : False := by
+  cases h with
+  | stop _ _ hno => exact hno hc
+  | white hw _ => cases hc <;> cases hw <;> simp_all
+
+/-- The refutation: a `LineNoOpen` position cannot reach a `[`/`{` across
+    whites alone.  `hhead` is the dispatched char read back through the
+    correspondence. -/
+lemma LineNoOpen.no_open_across_whites {sp sp' : SurfPos} {c : Char}
+    (h : LineNoOpen sp.chars) (hws : GStar SSWhite sp sp')
+    (hhead : sp'.chars.head? = some c) (hc : c = '[' ∨ c = '{') : False :=
+  h.across_whites hws hhead (by rintro (rfl | rfl) <;> cases hc <;> simp_all) hc
+
+/-- **The `...` refutation** (item 36): after a document-end marker, a
+    same-line step that crossed only `s-white` reaches a break or a `#`.  Any
+    other dispatched character — every block indicator, every content head —
+    contradicts `[204]`'s own suffix check. -/
+lemma LineTailSuffix.no_content_across_whites {sp sp' : SurfPos} {c : Char}
+    (h : LineTailSuffix sp.chars) (hws : GStar SSWhite sp sp')
+    (hhead : sp'.chars.head? = some c)
+    (hnw : ¬(c = ' ' ∨ c = '\t'))
+    (hnb : isLineBreakBool c = false) (hnc : c ≠ '#') : False := by
+  rcases h.across_whites hws hhead hnw with hbr | hhash
+  · rw [hnb] at hbr; cases hbr
+  · exact hnc hhash
 
 /-! ## §2 The scanner-side reading and its bridges -/
 
-/-- Scanner-side `LineNoOpen`, quantified over the character suffix so
+/-- Scanner-side `LineStop`, quantified over the character suffix so
     producers reason with `peek?`/`advance` only. -/
-def RestNoOpen (s : ScannerState) : Prop :=
-  ∀ l, CharsFromOffset s.input s.offset l → LineNoOpen l
+def RestStop (P : Char → Prop) (s : ScannerState) : Prop :=
+  ∀ l, CharsFromOffset s.input s.offset l → LineStop P l
+
+abbrev RestNoOpen (s : ScannerState) : Prop := RestStop NoOpenHead s
+abbrev RestTailSuffix (s : ScannerState) : Prop := RestStop TailSuffix s
+
+/-- The projection, scanner side. -/
+lemma RestStop.mono {P Q : Char → Prop} (hPQ : ∀ c, P c → Q c) {s : ScannerState}
+    (h : RestStop P s) : RestStop Q s := fun l hl => (h l hl).mono hPQ
 
 /-- Read the fact through the correspondence. -/
-lemma RestNoOpen.to_surface {s : ScannerState} {sp : SurfPos}
-    (h : RestNoOpen s) (hcorr : ScannerSurfCorr s sp) : LineNoOpen sp.chars :=
+lemma RestStop.to_surface {P : Char → Prop} {s : ScannerState} {sp : SurfPos}
+    (h : RestStop P s) (hcorr : ScannerSurfCorr s sp) : LineStop P sp.chars :=
   h _ hcorr.chars_from
 
 /-- The two-disjunct form the pending state carries, read through the
     correspondence. -/
-lemma col0_or_lineNoOpen {s' : ScannerState} {sp : SurfPos}
-    (h : s'.col = 0 ∨ RestNoOpen s') (hcorr : ScannerSurfCorr s' sp) :
-    sp.col = 0 ∨ LineNoOpen sp.chars :=
+lemma col0_or_lineStop {P : Char → Prop} {s' : ScannerState} {sp : SurfPos}
+    (h : s'.col = 0 ∨ RestStop P s') (hcorr : ScannerSurfCorr s' sp) :
+    sp.col = 0 ∨ LineStop P sp.chars :=
   h.imp (fun h0 => hcorr.col_eq.trans h0) (fun hr => hr.to_surface hcorr)
 
+lemma col0_or_lineNoOpen {s' : ScannerState} {sp : SurfPos}
+    (h : s'.col = 0 ∨ RestNoOpen s') (hcorr : ScannerSurfCorr s' sp) :
+    sp.col = 0 ∨ LineNoOpen sp.chars := col0_or_lineStop h hcorr
+
 /-- Token emission and record updates leave the cursor alone. -/
-lemma RestNoOpen.congr {s s' : ScannerState}
+lemma RestStop.congr {P : Char → Prop} {s s' : ScannerState}
     (hi : s'.input = s.input) (ho : s'.offset = s.offset)
-    (h : RestNoOpen s) : RestNoOpen s' := by
+    (h : RestStop P s) : RestStop P s' := by
   intro l hl
   rw [hi, ho] at hl
   exact h l hl
 
-/-- A state whose `peek?` is `none` or a non-white non-open char is
-    `RestNoOpen` with an empty white prefix. -/
-lemma restNoOpen_of_peek_stop {s : ScannerState}
+/-- A state whose `peek?` is `none` or a non-white head in `P` is
+    `RestStop P` with an empty white prefix. -/
+lemma restStop_of_peek_stop {P : Char → Prop} {s : ScannerState}
     (hend : s.inputEnd = s.input.utf8ByteSize)
-    (h : ∀ c, s.peek? = some c → ¬(c = ' ' ∨ c = '\t') ∧ ¬(c = '[' ∨ c = '{')) :
-    RestNoOpen s := by
+    (h : ∀ c, s.peek? = some c → ¬(c = ' ' ∨ c = '\t') ∧ P c) :
+    RestStop P s := by
   intro l hl
   cases hl with
   | at_end _ _ => exact .nil
@@ -150,14 +239,23 @@ lemma restNoOpen_of_peek_stop {s : ScannerState}
     obtain ⟨h1, h2⟩ := h c hpk
     exact .stop _ h1 h2
 
+lemma restNoOpen_of_peek_stop {s : ScannerState}
+    (hend : s.inputEnd = s.input.utf8ByteSize)
+    (h : ∀ c, s.peek? = some c → ¬(c = ' ' ∨ c = '\t') ∧ ¬(c = '[' ∨ c = '{')) :
+    RestNoOpen s := restStop_of_peek_stop hend h
+
 /-- A state at column 0 or end of input (the block-scalar endings). -/
-lemma restNoOpen_of_at_end {s : ScannerState}
+lemma restStop_of_at_end {P : Char → Prop} {s : ScannerState}
     (h : s.offset ≥ s.inputEnd) (hend : s.inputEnd = s.input.utf8ByteSize) :
-    RestNoOpen s := by
+    RestStop P s := by
   intro l hl
   cases hl with
   | at_end _ _ => exact .nil
   | cons p hlt _ _ _ _ => omega
+
+lemma restNoOpen_of_at_end {s : ScannerState}
+    (h : s.offset ≥ s.inputEnd) (hend : s.inputEnd = s.input.utf8ByteSize) :
+    RestNoOpen s := restStop_of_at_end h hend
 
 /-- A peeked char is the surface head. -/
 lemma head_of_peek {s : ScannerState} {sp : SurfPos} {c : Char}
@@ -238,24 +336,24 @@ private lemma skipDocEndWhitespace_step_stop {s : ScannerState} {c : Char} {fuel
   rw [hstep, hpk]
   exact if_neg hw
 
-lemma restNoOpen_of_skipTrailingSpaces (fuel : Nat) :
+lemma restStop_of_skipTrailingSpaces {P : Char → Prop} (fuel : Nat) :
     ∀ (s : ScannerState),
     s.inputEnd = s.input.utf8ByteSize →
     (∀ c, (skipTrailingSpaces s fuel).peek? = some c →
-        ¬(c = ' ' ∨ c = '\t') ∧ ¬(c = '[' ∨ c = '{')) →
-    RestNoOpen s := by
+        ¬(c = ' ' ∨ c = '\t') ∧ P c) →
+    RestStop P s := by
   induction fuel with
-  | zero => intro s hend hstop; exact restNoOpen_of_peek_stop hend hstop
+  | zero => intro s hend hstop; exact restStop_of_peek_stop hend hstop
   | succ fuel' ih =>
     intro s hend hstop
     cases hpk : s.peek? with
     | none =>
-      exact restNoOpen_of_peek_stop hend (fun c hc => by rw [hc] at hpk; cases hpk)
+      exact restStop_of_peek_stop hend (fun c hc => by rw [hc] at hpk; cases hpk)
     | some c =>
       obtain ⟨hlt, hget⟩ := peek_some_head hend hpk
       by_cases hw : (c == ' ' || c == '\t') = true
       · rw [skipTrailingSpaces_step_white hpk hw] at hstop
-        have hadv : RestNoOpen s.advance := by
+        have hadv : RestStop P s.advance := by
           refine ih s.advance ?_ hstop
           rw [advance_inputEnd, advance_input]; exact hend
         intro l hl
@@ -264,34 +362,41 @@ lemma restNoOpen_of_skipTrailingSpaces (fuel : Nat) :
         | cons p hplt c' rest hc' hrest =>
           have hce : c' = c := by rw [← hget, ← hc']
           subst hce
-          refine LineNoOpen.white (by
+          refine LineStop.white (by
             simp only [Bool.or_eq_true, beq_iff_eq] at hw
             exact hw) ?_
           refine hadv rest ?_
           rw [advance_input, advance_offset_eq s hlt]
           exact hrest
       · rw [skipTrailingSpaces_step_stop hpk hw] at hstop
-        exact restNoOpen_of_peek_stop hend (fun c' hc' => hstop c' hc')
+        exact restStop_of_peek_stop hend (fun c' hc' => hstop c' hc')
+
+lemma restNoOpen_of_skipTrailingSpaces (fuel : Nat) :
+    ∀ (s : ScannerState),
+    s.inputEnd = s.input.utf8ByteSize →
+    (∀ c, (skipTrailingSpaces s fuel).peek? = some c →
+        ¬(c = ' ' ∨ c = '\t') ∧ ¬(c = '[' ∨ c = '{')) →
+    RestNoOpen s := restStop_of_skipTrailingSpaces fuel
 
 /-- The `skipDocEndWhitespace` clone of the same walk. -/
-lemma restNoOpen_of_skipDocEndWhitespace (fuel : Nat) :
+lemma restStop_of_skipDocEndWhitespace {P : Char → Prop} (fuel : Nat) :
     ∀ (s : ScannerState),
     s.inputEnd = s.input.utf8ByteSize →
     (∀ c, (skipDocEndWhitespace s fuel).peek? = some c →
-        ¬(c = ' ' ∨ c = '\t') ∧ ¬(c = '[' ∨ c = '{')) →
-    RestNoOpen s := by
+        ¬(c = ' ' ∨ c = '\t') ∧ P c) →
+    RestStop P s := by
   induction fuel with
-  | zero => intro s hend hstop; exact restNoOpen_of_peek_stop hend hstop
+  | zero => intro s hend hstop; exact restStop_of_peek_stop hend hstop
   | succ fuel' ih =>
     intro s hend hstop
     cases hpk : s.peek? with
     | none =>
-      exact restNoOpen_of_peek_stop hend (fun c hc => by rw [hc] at hpk; cases hpk)
+      exact restStop_of_peek_stop hend (fun c hc => by rw [hc] at hpk; cases hpk)
     | some c =>
       obtain ⟨hlt, hget⟩ := peek_some_head hend hpk
       by_cases hw : (c == ' ' || c == '\t') = true
       · rw [skipDocEndWhitespace_step_white hpk hw] at hstop
-        have hadv : RestNoOpen s.advance := by
+        have hadv : RestStop P s.advance := by
           refine ih s.advance ?_ hstop
           rw [advance_inputEnd, advance_input]; exact hend
         intro l hl
@@ -300,14 +405,21 @@ lemma restNoOpen_of_skipDocEndWhitespace (fuel : Nat) :
         | cons p hplt c' rest hc' hrest =>
           have hce : c' = c := by rw [← hget, ← hc']
           subst hce
-          refine LineNoOpen.white (by
+          refine LineStop.white (by
             simp only [Bool.or_eq_true, beq_iff_eq] at hw
             exact hw) ?_
           refine hadv rest ?_
           rw [advance_input, advance_offset_eq s hlt]
           exact hrest
       · rw [skipDocEndWhitespace_step_stop hpk hw] at hstop
-        exact restNoOpen_of_peek_stop hend (fun c' hc' => hstop c' hc')
+        exact restStop_of_peek_stop hend (fun c' hc' => hstop c' hc')
+
+lemma restNoOpen_of_skipDocEndWhitespace (fuel : Nat) :
+    ∀ (s : ScannerState),
+    s.inputEnd = s.input.utf8ByteSize →
+    (∀ c, (skipDocEndWhitespace s fuel).peek? = some c →
+        ¬(c = ' ' ∨ c = '\t') ∧ ¬(c = '[' ∨ c = '{')) →
+    RestNoOpen s := restStop_of_skipDocEndWhitespace fuel
 
 /-! ## §4 Validator producers -/
 
@@ -429,12 +541,17 @@ lemma scanSingleQuoted_restNoOpen {s s' : ScannerState}
       rw [hflow] at hnflow
       simp at hnflow
 
-/-- [204]: `scanDocumentEnd`'s suffix probe validated the returned state's
-    own window (the probe starts at `result.offset`). -/
-lemma scanDocumentEnd_restNoOpen {s s' : ScannerState}
+/-- **[204] `l-document-suffix ::= c-document-end s-l-comments`** — the
+    marker's own tail, at its own strength (item 36).  `scanDocumentEnd`'s
+    suffix probe validated the returned state's window (the probe starts at
+    `result.offset`) and admitted exactly `s-l-comments`: a break, a `#`, or
+    end of input.  Nothing about a `[` here — the flow-open reading below is
+    one `mono` away, and every OTHER character is refuted too, which is what a
+    `...` parked mid-line owes the block dispatch. -/
+lemma scanDocumentEnd_restTailSuffix {s s' : ScannerState}
     (hend' : s'.inputEnd = s'.input.utf8ByteSize)
     (hok : scanDocumentEnd s = .ok s') :
-    RestNoOpen s' := by
+    RestTailSuffix s' := by
   unfold scanDocumentEnd at hok
   simp only [bind, Except.bind] at hok
   split at hok
@@ -445,7 +562,7 @@ lemma scanDocumentEnd_restNoOpen {s s' : ScannerState}
       rename_i hpk
       have h_eq := Except.ok.inj hok
       rw [h_eq] at hpk
-      apply restNoOpen_of_skipDocEndWhitespace _ s' hend'
+      apply restStop_of_skipDocEndWhitespace _ s' hend'
       intro c hc
       rw [hc] at hpk
       cases hpk
@@ -453,27 +570,36 @@ lemma scanDocumentEnd_restNoOpen {s s' : ScannerState}
       rename_i hpk
       have h_eq := Except.ok.inj hok
       rw [h_eq] at hpk
-      apply restNoOpen_of_skipDocEndWhitespace _ s' hend'
+      apply restStop_of_skipDocEndWhitespace _ s' hend'
       intro c hc
       rw [hc] at hpk
       injection hpk with hce
       subst hce
-      exact ⟨by decide, by decide⟩
+      exact ⟨by decide, Or.inr rfl⟩
     · -- peek = some c, break required
       rename_i c₀ hne1 hne2 hpk
       split at hok
       · rename_i hbr
         have h_eq := Except.ok.inj hok
         rw [h_eq] at hpk
-        apply restNoOpen_of_skipDocEndWhitespace _ s' hend'
+        apply restStop_of_skipDocEndWhitespace _ s' hend'
         intro c hc
         rw [hc] at hpk
         injection hpk with hce
         subst hce
+        refine ⟨?_, Or.inl hbr⟩
         simp only [isLineBreakBool, isLineFeedBool, isCarriageReturnBool,
           Bool.or_eq_true, beq_iff_eq] at hbr
-        constructor <;> rintro (rfl | rfl) <;> simp_all
+        rintro (rfl | rfl) <;> simp_all
       · cases hok
+
+/-- [204] read at item 10's strength: one `mono`, at the consumer. -/
+lemma scanDocumentEnd_restNoOpen {s s' : ScannerState}
+    (hend' : s'.inputEnd = s'.input.utf8ByteSize)
+    (hok : scanDocumentEnd s = .ok s') :
+    RestNoOpen s' :=
+  (scanDocumentEnd_restTailSuffix hend' hok).mono (fun _ => TailSuffix.toNoOpenHead)
+
 
 /-! ## §6 Offset/inputEnd walk facts for the two scalar loops -/
 

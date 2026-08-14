@@ -391,9 +391,20 @@ inductive PendingNode (sc : ScannerState) : Bool → SurfPos → SurfPos → Sur
       PendingNode sc false sp_start sp_block sp_scan
   /-- Document end `...` scanned. The gap contains SCDocumentEnd.
       Awaiting SSLComments to form SLDocumentSuffix.
-      Carries the marker directly for compositional consumption. -/
+      Carries the marker directly for compositional consumption.
+
+      **`h_line` is at `[204]`'s own strength** (item 36).
+      `l-document-suffix ::= c-document-end s-l-comments`, and
+      `scanDocumentEnd` enforces exactly that: after the marker the line holds
+      whites and then a break, a `#`, or end of input.  Item 10 read that
+      allowlist through `LineNoOpen`, which keeps only "not a flow open"
+      because that was the one question its consumer asked; the set itself
+      answers every question, and the block dispatch's inline residue — a
+      `-`/`?`/`:` reached from a mid-line park — is one of them.  A `...` is
+      not a node, so unlike §7.5's tails this one does not admit a `:` either:
+      the marker cannot be an implicit key. -/
   | pendingDocEnd (sp_start sp_block sp_scan : SurfPos)
-      (h_line : sp_scan.col = 0 ∨ LineNoOpen sp_scan.chars)
+      (h_line : sp_scan.col = 0 ∨ LineTailSuffix sp_scan.chars)
       (h_marker : SCDocumentEnd sp_block sp_scan) :
       PendingNode sc false sp_start sp_block sp_scan
   /-- Document start `---` scanned. The gap contains SCDirectivesEnd
@@ -2905,7 +2916,7 @@ lemma structural_dispatch_to_pending
     obtain ⟨rest, hchars, hcol⟩ := atDocumentEnd_chars s_prep sp hcorr hat
     obtain ⟨sp', h_marker, hcorr'⟩ := scanDocumentEnd_prod s_prep sp hcorr rest hchars hcol s' hde
     exact ⟨sp', false, hcol, PendingNode.pendingDocEnd sp_start sp sp'
-             (Or.inr ((scanDocumentEnd_restNoOpen hcorr'.end_eq hde).to_surface hcorr'))
+             (Or.inr ((scanDocumentEnd_restTailSuffix hcorr'.end_eq hde).to_surface hcorr'))
              h_marker,
            fun h => Bool.noConfusion h, hcorr'⟩
   -- Proof of doc_start_tac
@@ -4613,8 +4624,9 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
     rename_i h_line _ _
     exact main h_close_pending (refuted h_line)
   | pendingDocEnd =>
+    -- Item 36: `[204]`'s suffix set weakens to item 10's at the CONSUMER.
     rename_i h_line _
-    exact main h_close_pending (refuted h_line)
+    exact main h_close_pending (refuted (h_line.imp id LineTailSuffix.toLineNoOpen))
   | pendingBlockContent =>
     rename_i _ h_line _ _
     exact main h_close_pending (refuted h_line)
@@ -7538,6 +7550,63 @@ lemma colon_open_map_implicit (sp_start sp_land sp_key sp_gram sp_ws : SurfPos) 
     branches (residue/tab/width-mismatch) delegate to
     `block_dispatch_deferred`. -/
 
+/-- **The inline residue's own premise** (item 36).  A block dispatch that
+    crossed NO break from a park off column 0: `sp` is the park, `sp_ws` the
+    landing the step's `s-white` [33] run reached, and `c` the character it
+    read there.
+
+    Naming it is the point.  The escape below is handed to its call sites as a
+    bare `SLYamlStream sp_start sp_X` — a conclusion every pending can supply
+    and therefore one that records nothing about WHEN it is needed.  Taken as
+    a function OF this premise, the same sites pay `fun _ => h` unchanged, and
+    a pending whose producer already refuted the shape pays `nofun` instead:
+    the escape becomes refusable without splitting the lemma that carries
+    it. -/
+def InlineResidue (sp : SurfPos) (c : Char) : Prop :=
+  sp.col ≠ 0 ∧ ∃ sp_ws, GStar SSWhite sp sp_ws ∧ sp_ws.chars.head? = some c
+
+/-- The residue's premise, assembled from `preprocess_some_ssl_comments_landing`'s
+    right disjunct: the park is off column 0, the step crossed only `s-white`,
+    and the dispatched character is the head it reached. -/
+lemma inline_residue_of_landing {sp_scan sp_mid sp_ws sp_p : SurfPos}
+    {s_prep : ScannerState} {c : Char}
+    (h_mid : sp_mid = sp_scan ∧ sp_scan.col ≠ 0)
+    (hws : GStar SSWhite sp_mid sp_ws)
+    (h_pk : sp_p = sp_ws ∨ s_prep.peek? = none)
+    (hcorr : ScannerSurfCorr s_prep sp_p)
+    (hpeek : s_prep.peek? = some c) :
+    InlineResidue sp_scan c :=
+  have h_eq : sp_p = sp_ws := h_pk.resolve_right (by simp [hpeek])
+  ⟨h_mid.2, sp_ws, h_mid.1 ▸ hws, h_eq ▸ head_of_peek hcorr hpeek⟩
+
+/-- The block dispatch's character, as the three indicators it can be. -/
+lemma block_indicator_char {s s' : ScannerState} {c : Char}
+    (h : scanNextToken_dispatchBlockIndicators s c = .ok (some s')) :
+    c = '-' ∨ c = ':' ∨ c = '?' := by
+  rcases dispatchBlockIndicators_indicator_of_some h with h | h | h
+  · exact Or.inl h
+  · exact Or.inr (Or.inr h)
+  · exact Or.inr (Or.inl h)
+
+/-- **`...` never parks in the residue** (item 36).  `[204] l-document-suffix`
+    ends the marker with `[79] s-l-comments`, and `scanDocumentEnd` enforces
+    it: past the marker's own whites the line holds a break, a `#`, or nothing
+    at all.  A block indicator is none of the three, so the mid-line park this
+    escape stands for is a state the machine cannot be in — and unlike §7.5's
+    node tails, `[204]`'s admits no `:` either, because a document-end marker
+    is not a node and cannot be re-read as `[154]`'s implicit key. -/
+lemma docEnd_refutes_inline_residue {sp_scan : SurfPos} {c : Char}
+    (h_line : sp_scan.col = 0 ∨ LineTailSuffix sp_scan.chars)
+    (hc : c = '-' ∨ c = ':' ∨ c = '?')
+    (h_res : InlineResidue sp_scan c) : False := by
+  obtain ⟨hcol, sp_ws, hws, h_head⟩ := h_res
+  refine LineTailSuffix.no_content_across_whites (h_line.resolve_left hcol) hws h_head
+    ?_ ?_ ?_
+  · rcases hc with rfl | rfl | rfl <;> rintro (h | h) <;> exact absurd h (by decide)
+  · rcases hc with rfl | rfl | rfl <;> rfl
+  · rcases hc with rfl | rfl | rfl <;> exact (by decide)
+
+
 -- Deferred sorry: constructs pendingFlow with stream evidence.
 -- Concentrates all block-dispatch catch-all sorry into close_with_ssl.
 --
@@ -7756,11 +7825,18 @@ lemma accum_block_on_noPending
 
 -- Block dispatch after closing old pending: '-' at col=0 opens new block sequence.
 -- Shared by pendingContent and pendingFlow constructors.
+--
+-- **The escape is a FUNCTION of the residue** (item 36).  `h_stream_fallback`
+-- used to be the bare stream every one of this lemma's seven pendings could
+-- hand over, which made the deferral unconditional and unrefusable: a pending
+-- that KNOWS the residue is empty had nowhere to say so short of splitting the
+-- lemma.  Taking `InlineResidue sp_scan c` as its argument leaves the paying
+-- sites at `fun _ => h` and gives `pendingDocEnd` the `nofun` it is owed.
 lemma accum_block_on_closeThenBlock
     (sc : ScannerState) (sp_start sp_block_ctx sp_scan : SurfPos)
     (s_prep s' : ScannerState) (c : Char) (sp_prep sp_scan' : SurfPos)
     (h_close_pending : ∀ sp_mid, SSLComments sp_scan sp_mid → SLYamlStream sp_start sp_mid)
-    (h_stream_fallback : SLYamlStream sp_start sp_block_ctx)
+    (h_stream_fallback : InlineResidue sp_scan c → SLYamlStream sp_start sp_block_ctx)
     (hcorr_prep : ScannerSurfCorr s_prep sp_prep)
     (hcorr_result : ScannerSurfCorr s' sp_scan')
     (h_corr : ScannerSurfCorr sc sp_scan)
@@ -7785,10 +7861,12 @@ lemma accum_block_on_closeThenBlock
   have hsp_sc_eq := ScannerSurfCorr_unique hcorr_sc hcorr_prep
   subst hsp_sc_eq
   -- The inline residue — no break from a mid-line park — cannot close here
-  -- (`SSLComments` needs a break or column 0), and defers as before.
-  refine h_land.elim (fun h_landed => ?_) (fun _ =>
+  -- (`SSLComments` needs a break or column 0).  Item 36: the arm now hands the
+  -- escape the residue's own premise, so the CALLER decides whether to defer.
+  refine h_land.elim (fun h_landed => ?_) (fun h_mid =>
     block_dispatch_deferred sp_start sp_block_ctx sp_scan' s'
-      h_stream_fallback hcorr_result)
+      (h_stream_fallback (inline_residue_of_landing h_mid hws h_pk hcorr_prep
+        (preprocess_some_peek h_preprocess))) hcorr_result)
   obtain ⟨h_ssl, hcol_mid⟩ := h_landed
   have h_stream_new := h_close_pending sp_mid h_ssl
   -- Item 22: the whites before the indicator are the collection's own
@@ -7888,7 +7966,7 @@ lemma accum_block_on_pendingContent
       · cases h_key h_poss h_kline with
         | inr _ =>
           exact accum_block_on_closeThenBlock sc sp_start sp_block_ctx sp_scan s_prep s' ':'
-            sp_prep sp_scan' h_close_pending h_stream_fallback hcorr_prep hcorr_result
+            sp_prep sp_scan' h_close_pending (fun _ => h_stream_fallback) hcorr_prep hcorr_result
             h_corr h_noflow h_preprocess h_dispatch
         | inl pack =>
           obtain ⟨k, sp_land, sp_key, sp_gram, hcol0, h_stream_key, h_ind, h_ol, h_tws,
@@ -7908,7 +7986,7 @@ lemma accum_block_on_pendingContent
             -- start, which is item 19's arm: close the parked scalar there and
             -- let the `:` open the EMPTY-key entry (`x⏎: v`).
             exact accum_block_on_closeThenBlock sc sp_start sp_block_ctx sp_scan s_prep s' ':'
-              sp_prep sp_scan' h_close_pending h_stream_fallback hcorr_prep hcorr_result
+              sp_prep sp_scan' h_close_pending (fun _ => h_stream_fallback) hcorr_prep hcorr_result
               h_corr h_noflow h_preprocess h_dispatch
           | inr h_mid =>
             -- Same line: chain the `:` step's own whites onto the pack's tail
@@ -7920,13 +7998,13 @@ lemma accum_block_on_pendingContent
               hcorr_prep hcorr_result (preprocess_some_peek h_preprocess) h_dispatch
               (implicit_key_floor h_poss h_kcol h_preprocess h_dispatch)
       · exact accum_block_on_closeThenBlock sc sp_start sp_block_ctx sp_scan s_prep s' ':'
-          sp_prep sp_scan' h_close_pending h_stream_fallback hcorr_prep hcorr_result
+          sp_prep sp_scan' h_close_pending (fun _ => h_stream_fallback) hcorr_prep hcorr_result
           h_corr h_noflow h_preprocess h_dispatch
     · exact accum_block_on_closeThenBlock sc sp_start sp_block_ctx sp_scan s_prep s' ':'
-        sp_prep sp_scan' h_close_pending h_stream_fallback hcorr_prep hcorr_result
+        sp_prep sp_scan' h_close_pending (fun _ => h_stream_fallback) hcorr_prep hcorr_result
         h_corr h_noflow h_preprocess h_dispatch
   · exact accum_block_on_closeThenBlock sc sp_start sp_block_ctx sp_scan s_prep s' c
-      sp_prep sp_scan' h_close_pending h_stream_fallback hcorr_prep hcorr_result
+      sp_prep sp_scan' h_close_pending (fun _ => h_stream_fallback) hcorr_prep hcorr_result
       h_corr h_noflow h_preprocess h_dispatch
 
 -- Block dispatch with pendingBlockContent: accumulate entries via h_entry_old.
@@ -8015,7 +8093,7 @@ lemma accum_block_on_pendingBlockContent
       -- to resume.  Both take the `:`/`?` arm's route below, which the
       -- indicator siblings have used at every width since item 13.
       exact accum_block_on_closeThenBlock sc sp_start sp_block_ctx sp_scan s_prep s' '-'
-        _ sp_scan' h_close_pending h_stream_fallback hcorr_prep hcorr_result
+        _ sp_scan' h_close_pending (fun _ => h_stream_fallback) hcorr_prep hcorr_result
         h_corr h_noflow h_preprocess h_dispatch
   · -- c ≠ '-' at the landing: a ':' opens `[189]`'s empty-key entry there
     -- (item 13), a '?' opens `[186]`'s explicit-key one (item 20) — one arm.
@@ -8160,7 +8238,7 @@ lemma accum_block_on_pendingBlock
         -- arm below already takes at every width: close this pending and open
         -- the sequence at `k` as `[211]`'s document continuation.
         exact accum_block_on_closeThenBlock sc sp_start sp_block_ctx sp_scan s_prep s' '-'
-          _ sp_scan' h_close_pending h_stream_fallback hcorr_prep hcorr_result
+          _ sp_scan' h_close_pending (fun _ => h_stream_fallback) hcorr_prep hcorr_result
           h_corr h_noflow h_preprocess h_dispatch
   · -- c ≠ '-' at the landing: a ':' opens `[189]`'s empty-key entry there
     -- (item 13), a '?' opens `[186]`'s explicit-key one (item 20) — one arm.
@@ -8265,11 +8343,19 @@ lemma accum_block_pending (sc : ScannerState)
   | noPending _ _ h_col =>
     exact accum_block_on_noPending sc sp_start sp_block s_prep s' c sp_prep sp_scan'
       h_stream_block hcorr_prep hcorr_result h_corr h_col h_noflow h_preprocess h_dispatch
-  | pendingDocEnd _ _
+  | pendingDocEnd _ _ =>
+    rename_i h_line _h_marker
+    -- Item 36: `[204] l-document-suffix` ends the marker with `s-l-comments`,
+    -- so a `-`/`?`/`:` on the marker's own line is a state the scanner refuses
+    -- (`trailingContentAfterDocEnd`).  The escape is REFUSED here, not paid.
+    exact accum_block_on_closeThenBlock sc sp_start sp_block sp_scan s_prep s' c sp_prep sp_scan'
+      h_close_pending
+      (fun h_res => (docEnd_refutes_inline_residue h_line
+        (block_indicator_char h_dispatch) h_res).elim)
+      hcorr_prep hcorr_result h_corr h_noflow h_preprocess h_dispatch
   | pendingDocStart _ =>
-    all_goals
-      exact accum_block_on_closeThenBlock sc sp_start sp_block sp_scan s_prep s' c sp_prep sp_scan'
-        h_close_pending h_stream_block hcorr_prep hcorr_result h_corr h_noflow h_preprocess h_dispatch
+    exact accum_block_on_closeThenBlock sc sp_start sp_block sp_scan s_prep s' c sp_prep sp_scan'
+      h_close_pending (fun _ => h_stream_block) hcorr_prep hcorr_result h_corr h_noflow h_preprocess h_dispatch
   | pendingContent _ _ _ _ _ h_key =>
     -- Item 15: the same-line `:` may fire the implicit-key coupling.
     exact accum_block_on_pendingContent sc sp_start sp_block sp_scan s_prep s' c sp_prep sp_scan'
@@ -8279,7 +8365,7 @@ lemma accum_block_pending (sc : ScannerState)
   | pendingMapValue _ _ =>
     all_goals
       exact accum_block_on_closeThenBlock sc sp_start sp_block sp_scan s_prep s' c sp_prep sp_scan'
-        h_close_pending h_stream_block hcorr_prep hcorr_result h_corr h_noflow h_preprocess h_dispatch
+        h_close_pending (fun _ => h_stream_block) hcorr_prep hcorr_result h_corr h_noflow h_preprocess h_dispatch
   | pendingBlockContent =>
     -- Item 22: the pending's own entry index rides through; the `n ≠ 0`
     -- deferral this arm used to open is gone with it.
