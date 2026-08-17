@@ -186,7 +186,11 @@ its `[63] s-indent(k)` is measured to the PROPERTY — which is exactly where th
 scanner saved the key, because a `[96]` scan is not a key save and turns fresh
 saves off.  So the run's column is the column the `:` will push at, and
 `PropsKeyPack` carries it beside the line datum it already carried.  The
-extension arms transport it: `&x !!str a: |` keeps the key at the `&`.
+extension arms transport it: `&x !!str a: |` keeps the key at the `&`.  (Item 41
+moved the measurement itself into the pack's ROUTE, where the producer that took
+it spends it; the column conjunct is unchanged and still optional, because a
+COMPACT route cannot measure its own column — `- &p a: |` reads its body at 0
+where `-⏎  &p a: |` reads at the entry's index.)
 
 An ALIAS key needs no new coupling at all, only the observation that `[104]`'s
 scan leaves the saved key's position alone (`dispatchContent_alias_simpleKey`)

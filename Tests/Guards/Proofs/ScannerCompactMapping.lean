@@ -149,7 +149,9 @@ construct rather than a weaker instance of `[195]`:
   `[185]`'s FIRST alternative, a nested collection, which wants the enclosing
   index bounded by the inner one;
 * `- &p a: 1` parks a `[96] c-ns-properties` run, whose own pack is item 17's
-  `PropsKeyPack` and whose route is the run's;
+  `PropsKeyPack` and whose route is the run's — item 41 gave that pack this
+  item's route too, so this one composes now
+  (`Tests/Guards/Proofs/ScannerEntryPropsKey.lean`);
 * `- [1]: b` opens a FLOW collection, and its resume is `FlowOpenStack`'s
   pinned index — the row's other family entirely;
 * `k:⏎  a: 1` is the same missing route one construct over, on the mapping

@@ -186,10 +186,13 @@ about what the runtime does. -/
 
 /-! ## §4  What still punts, and the boundary the scanner keeps
 
-The `&`/`!` head is item 17's pack, still carrying the coordinates
-`ImplicitKeyPack` shed; a closed FLOW node is `FlowOpenStack`'s resume type; and
-`[186]`'s explicit entry is an opener, not a key the content dispatch parked.
-Below them is what the scanner decides before any of it is asked. -/
+The `&`/`!` head was item 17's pack, still carrying the coordinates
+`ImplicitKeyPack` shed — item 41 gave it the same route and the first two pins
+below now COMPOSE (`Tests/Guards/Proofs/ScannerEntryPropsKey.lean`); they stay
+here because the emitted events are the same either way and this file's family is
+where the head was first named.  A closed FLOW node is `FlowOpenStack`'s resume
+type; and `[186]`'s explicit entry is an opener, not a key the content dispatch
+parked.  Below them is what the scanner decides before any of it is asked. -/
 
 #guard emits "-\n  &p a: 1\n"
   ["+STR", "+DOC", "+SEQ", "+MAP", "=VAL &p :a", "=VAL :1", "-MAP", "-SEQ", "-DOC", "-STR"]

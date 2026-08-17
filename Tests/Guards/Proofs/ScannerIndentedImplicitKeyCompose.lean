@@ -98,7 +98,9 @@ inside it. -/
 Item 17's `PropsKeyPack` took the same treatment: its column-0 coordinate
 became a line start plus `s-indent(k)`, and the run itself is re-read at
 `block-key`, where `s-separate(n,block-key)` is `[66] s-separate-in-line` and
-mentions no index at all. -/
+mentions no index at all.  (Item 41 then spent those coordinates once, into the
+route the pack now carries, which is what lets the same head read inside a block
+ENTRY — `Tests/Guards/Proofs/ScannerEntryPropsKey.lean`.) -/
 
 #guard emits "  &x a: 1\n"
   ["+STR", "+DOC", "+MAP", "=VAL &x :a", "=VAL :1", "-MAP", "-DOC", "-STR"]
