@@ -33,6 +33,7 @@ import Tests.Guards.Proofs.ScannerDocEndTail
 import Tests.Guards.Proofs.ScannerNodeTail
 import Tests.Guards.Proofs.ScannerCompactMapping
 import Tests.Guards.Proofs.ScannerValueMapping
+import Tests.Guards.Proofs.ScannerNestedEntryMapping
 import Tests.Guards.Proofs.ScannerNodePropertyDelimiter
 import Tests.Guards.Proofs.ScannerContracts
 import Tests.Guards.Proofs.ScannerCorrectness

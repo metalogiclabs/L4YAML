@@ -35,8 +35,17 @@ enclosing entry's index against the column the key landed at.  At the root
 value (`n = 0`) it is vacuous and `k:⏎  a: 1` composes.  At an INDENTED
 `pendingMapValue` a landing can be a dedent — `  : v⏎a: 1` — and there `n ≤ k`
 is false, because the enclosing entry has ended and there is no value left to
-nest inside.  That arm keeps its `True` permanently, and the input is still
+nest inside.  That LANDING keeps its `True` permanently, and the input is still
 served: it takes the deferral, which is what the deferral is for.
+
+**Read §1's `reaches .indented` with [[PuntTheShapeNotTheSite]].**  Item 39 gave
+the whole indented arm the boundary's `True`, and item 40 found that the two
+questions below have a third answer at that site: landings of BOTH kinds reach
+it, so the arm is mixed and the punt belongs to the dedent rather than to the
+arm.  Everything this file proves still holds — a refuting input exists, and
+`closing_the_boundary_is_refutable` says no total producer can exist — but the
+classification is per LANDING, which is what `every_landing_is_served` was
+already modelling one section further down.
 
 §1 three punts of one type.  §2 the two questions that separate them.  §3 what
 closing the boundary would cost.  §4 the side condition IS the punt list.

@@ -478,7 +478,11 @@ inductive PendingNode (sc : ScannerState) : Bool → SurfPos → SurfPos → Sur
       rather than a document.  Nothing about the key head moves with that —
       the field's type is `pendingContent`'s verbatim — because the pack now
       carries a route instead of the coordinates one route is built from
-      (`compactMapRoute`, `compactKeyPack_of_dispatch`). -/
+      (`compactMapRoute`, `entryKeyPack_of_dispatch`).  Item 40 then added the
+      entry's OTHER frame to the same field: a content start reached across a
+      break opens a mapping NESTED in the entry (`-⏎  a: 1`), which is
+      `[185]`'s block-node alternative rather than its compact one and the same
+      route lemma the mapping VALUE's pending uses. -/
   | pendingBlockContent (sp_start sp_block sp_scan : SurfPos) (n : Nat)
       (h_line : sp_scan.col = 0 ∨ LineNodeStop sp_scan.chars)
       (h_closable : ∀ sp_mid,
@@ -7078,8 +7082,11 @@ lemma rootBlockSeq (k : Nat) {s s₂ s' : SurfPos}
     side condition is `nestedBlockSeq`'s verbatim, `n ≤ k`, and it carries the
     same meaning — at `k > n` the value of `k:` is a mapping nested inside it,
     and at `k < n` there is no such reading, because a DEDENT ends the enclosing
-    collection instead of continuing it.  That is why the indented value arm
-    has no producer of this route and the root one does (item 39).
+    collection instead of continuing it.  Item 39 read that as a statement about
+    the indented ARM and gave the route to the root value only; item 40 reads it
+    as a statement about the LANDING, which is what it is — both numbers are in
+    hand where the pack is built, so the producer decides and only the dedent
+    defers (Reflection 666).
 
     Item 22 wrote this lemma's `n = 0` instance inline as `rootBlockMap` and, in
     doing so, wrote the general one and threw away the parameter: the proof is
@@ -7141,7 +7148,11 @@ lemma compactMapRoute {sp_start sp_entry sp_key : SurfPos} {n m : Nat}
           (SCompactMapTail.nil (n + 1 + m) sp_v)))
 
 /-- …and `valueMapRoute` is the third (item 39): the entry belongs to a mapping
-    that is itself the VALUE of an enclosing `[189]` entry — `k:⏎  a: 1`.
+    that is itself NESTED in the node an enclosing entry awaits — the VALUE of a
+    `[189]` entry (`k:⏎  a: 1`) or, since item 40, the node of a `[184]` block
+    SEQUENCE entry (`-⏎  a: 1`), which is `[185]`'s block-node alternative.  One
+    lemma serves both because the frame is the same: `[199]
+    s-l+block-collection` under whatever the pending is waiting for.
 
     Between it and `rootMapRoute` the landing is the SAME measurement: the step
     crossed a break and stopped at column 0 with `[63] s-indent(k)` in front of
@@ -7151,10 +7162,10 @@ lemma compactMapRoute {sp_start sp_entry sp_key : SurfPos} {n m : Nat}
     carries, not by anything the scanner saw.  One reading of the characters,
     two productions that want it.
 
-    The side condition `n ≤ k` is `nestedBlockMap`'s, and it is what confines
-    this route to the ROOT value (`n = 0`, vacuous): at an indented pending a
-    dedent makes it false, and rightly — `  : v⏎a: 1` ends the enclosing entry
-    rather than nesting inside its value. -/
+    The side condition `n ≤ k` is `nestedBlockMap`'s, and it names the DEDENT:
+    `  : v⏎a: 1` ends the enclosing entry rather than nesting inside its value.
+    It is decided at the producer, where both numbers are known, so the routes
+    it excludes are inputs and not sites (item 40, Reflection 666). -/
 lemma valueMapRoute {sp_start sp_scan sp_land sp_key : SurfPos} {n k : Nat}
     (hnk : n ≤ k)
     (h_close : ∀ sp, SBlockNode n .blockIn sp_scan sp → SLYamlStream sp_start sp)
@@ -10448,31 +10459,51 @@ lemma implicitKeyHead_of_dispatch
       rw [hsp2] at h_tws2
       exact Or.inl ⟨sp_gram2, ImplicitKeyHead.yaml h_ol, h_tws2, by rw [h_sk_pres]⟩
 
-/-- **The COMPACT implicit-key pack** (item 38): what a block-sequence ENTRY
-    hands the content it just parked, so that a `:` arriving on the same line
-    reads that content back as `[193]`/`[194]`'s key.
+/-- **The implicit-key pack a parked block ENTRY hands its content** — items
+    38 and 39's two producers, merged by item 40 into ONE reading of the
+    characters with the frame chosen by the branch the landing took.
 
-    `- a: 1` is `[195] ns-l-compact-mapping` under `[185] s-l+block-indented`'s
-    second alternative, and the reason items 15–25 could not reach it is not
-    the key — the head lemma above reads `a` exactly as it reads the `a` of
-    `a: 1` — but the FRAME.  `rootMapRoute` wants a column-0 line start with
-    `[79] s-l-comments` closing the previous node at it; a compact entry's key
-    sits on the same line as the `-`, so there is no such landing and never
-    will be.  What there is instead is the enclosing entry's own closure, which
-    is why the pack now carries a route (`compactMapRoute`).
+    Everything about the READING is shared and was shared before the merge: the
+    whites in front of the content are `[63] s-indent(w)`, the content is
+    `[193]`/`[194]`'s head (`implicitKeyHead_of_dispatch`, unchanged since item
+    38), and what the pack owes besides the head is a ROUTE.  What the two
+    branches disagree about is only where `w` is measured FROM — which is the
+    disjunct `preprocess_some_ssl_comments_anyCol` already returns, so casing on
+    it once is the whole of the merge:
 
-    Three shapes punt, and each is a different construct rather than a weaker
-    instance of this one: a content start reached ACROSS a break (`-⏎  a: 1` is
-    `[185]`'s first alternative, a nested collection under `s-l-comments`), a
-    TAB in the whites (`[63] s-indent(m)` is spaces), and a `&`/`!` head (a
-    `[96]` run parks `pendingProps`, whose own pack is item 17's).  The column
-    conjunct punts too — the entry index here is `n+1+m` and the pending does
-    not carry the `-`'s own column to check it against, which is the same
-    measurement `compact_open_map` could not take (Reflection 653). -/
-lemma compactKeyPack_of_dispatch
+    * the step stayed on the LINE (`- a: 1`).  There is no landing and never
+      will be — the key shares its line with the `-`, so `[79] s-l-comments` has
+      no occurrence to match — and the entry is `[185] s-l+block-indented`'s
+      `s-indent(m) ns-l-compact-mapping(n+1+m)`, closing the ENCLOSING entry
+      through the closure the pending carries (`compactMapRoute`).  Only a
+      pending whose slot is `SBlockIndented` has that alternative, so this
+      closure is the optional argument: a `[189]` entry's VALUE is
+      `s-l+block-node`, which has no compact alternative at all.
+    * the step crossed a BREAK to column 0 (`-⏎  a: 1`, `k:⏎  a: 1`).  Then the
+      entry belongs to a mapping nested INSIDE the node the pending awaits, and
+      `[199] s-l+block-collection` spends the landing as its own leading
+      comments (`valueMapRoute` over `nestedBlockMap`).  Both pendings reach it,
+      which is why `h_node` is the argument neither can do without.  The floor
+      conjunct is RECOVERED here and punted there, for item 39's reason: a known
+      zero is what lets `[63]`'s width be measured.
+
+    **The side condition is decided per INPUT, not per site** (item 40).
+    `nestedBlockMap` wants `n ≤ w`, the pending's index below the column the key
+    landed at, and both numbers are in hand at the split — so the arm serves
+    every landing that nests and defers every DEDENT.  Item 39 read the same
+    inequality as a property of the indented ARM and left it punting whole; what
+    is permanent is the dedent, not the arm (Reflection 666).
+
+    Three shapes punt on both branches, and each is a different construct rather
+    than a weaker instance: a TAB in the whites (`[63]` is spaces, and §6.1
+    refuses it first, so the branch is unobservable), a `&`/`!` head (a `[96]`
+    run parks `pendingProps`, whose own pack is item 17's and still carries the
+    three coordinates this one shed), and an inherited STALE key. -/
+lemma entryKeyPack_of_dispatch
     (sc : ScannerState) (sp_start sp_scan : SurfPos) (n : Nat)
     (s_prep s' : ScannerState) (c : Char) (sp_prep sp_scan' : SurfPos)
-    (h_close_old : ∀ sp, SBlockIndented n .blockIn sp_scan sp → SLYamlStream sp_start sp)
+    (h_node : ∀ sp, SBlockNode n .blockIn sp_scan sp → SLYamlStream sp_start sp)
+    (h_compact : (∀ sp, SBlockIndented n .blockIn sp_scan sp → SLYamlStream sp_start sp) ∨ True)
     (hcorr_prep : ScannerSurfCorr s_prep sp_prep)
     (hcorr_result : ScannerSurfCorr s' sp_scan')
     (h_corr : ScannerSurfCorr sc sp_scan)
@@ -10512,116 +10543,49 @@ lemma compactKeyPack_of_dispatch
       | inl h => exact h
       | inr h => rw [preprocess_some_peek h_preprocess] at h; cases h
     have h_pe : sp_prep = sp_ws := hsp_eq2.trans h_eq
-    cases h_disj with
-    | inl _ => exact Or.inr trivial
-    | inr h_mid =>
-      cases gstar_white_sIndent_or_tab h_ws with
-      | inr _ => exact Or.inr trivial
-      | inl h_ind0 =>
-        obtain ⟨m, h_ind⟩ := h_ind0
-        have h_ind' : SIndent m sp_scan sp_prep := by
-          rw [h_pe, ← h_mid.1]; exact h_ind
-        cases implicitKeyHead_of_dispatch s_prep s' c sp_prep sp_scan' h_kline h_sk.2
-            hcorr_prep hcorr_result hna hnt h_not_doc h_flow_disp hpeek_disp h_dispatch with
-        | inr _ => exact Or.inr trivial
-        | inl h_head =>
-          obtain ⟨sp_gram2, h_ol, h_tws2, _h_pp⟩ := h_head
-          exact Or.inl ⟨n + 1 + m, sp_prep, sp_gram2,
-                        compactMapRoute h_close_old h_ind', h_ol, h_tws2, Or.inr trivial⟩
-  · exact Or.inr trivial
-
-/-- **The VALUE implicit-key pack** (item 39): what a `[189]` entry awaiting its
-    node hands the content it just parked, so that a `:` arriving after it reads
-    that content back as `[193]`/`[194]`'s key — `k:⏎  a: 1`.
-
-    Item 38's move is what makes this a producer and not a rewrite: the pack
-    carries a route, so a third frame costs its own frame lemma
-    (`valueMapRoute`) and nothing else.  The head is `implicitKeyHead_of_dispatch`
-    unchanged, the pack is unchanged, `colon_fires_implicit_key` is unchanged,
-    and no consumer knows there is a third producer.
-
-    Where it DIFFERS from the compact producer is the landing, and the
-    difference runs the other way from what the shapes suggest: this route
-    crosses a break to a column-0 start, so `[63] s-indent(k)` measures the
-    key's column against a known zero and the pack's floor conjunct is
-    RECOVERED — `k:⏎  a: |` reads its body at the entry's own index, where
-    `- a: |` (item 38) reads at 0.
-
-    Three shapes punt.  A content start on the SAME line (`k: a: 1`) is not
-    this construct — the value is a plain scalar whose `:` belongs to row 19's
-    over-acceptance, not to a nested mapping.  A TAB in the whites is `[63]`'s
-    refusal.  A `&`/`!` head parks `pendingProps`, whose own pack (item 17)
-    still carries coordinates rather than a route. -/
-lemma valueKeyPack_of_dispatch
-    (sc : ScannerState) (sp_start sp_scan : SurfPos)
-    (s_prep s' : ScannerState) (c : Char) (sp_prep sp_scan' : SurfPos)
-    (h_close_old : ∀ sp, SBlockNode 0 .blockIn sp_scan sp → SLYamlStream sp_start sp)
-    (hcorr_prep : ScannerSurfCorr s_prep sp_prep)
-    (hcorr_result : ScannerSurfCorr s' sp_scan')
-    (h_corr : ScannerSurfCorr sc sp_scan)
-    (h_not_doc : (if s_prep.allowDirectives then
-          { s_prep with allowDirectives := false, documentEverStarted := true }
-        else s_prep).col = 0 →
-      atDocumentBoundary (if s_prep.allowDirectives then
-          { s_prep with allowDirectives := false, documentEverStarted := true }
-        else s_prep) = false)
-    (h_flow_disp : (if s_prep.allowDirectives then
-          { s_prep with allowDirectives := false, documentEverStarted := true }
-        else s_prep).inFlow = false)
-    (h_preprocess : scanNextToken_preprocess sc = .ok (some (s_prep, c)))
-    (h_dispatch : scanNextToken_dispatchContent (if s_prep.allowDirectives then
-          { s_prep with allowDirectives := false, documentEverStarted := true }
-        else s_prep) c = .ok s') :
-    s'.simpleKey.possible = true → s'.simpleKey.pos.line = s'.line →
-      ImplicitKeyPack s' sp_start sp_scan' ∨ True := by
-  intro _h_poss h_kline
-  by_cases hprops : c = '&' ∨ c = '!'
-  · exact Or.inr trivial
-  have hna : c ≠ '&' := fun h => hprops (Or.inl h)
-  have hnt : c ≠ '!' := fun h => hprops (Or.inr h)
-  have hpeek_disp : (if s_prep.allowDirectives then
-          { s_prep with allowDirectives := false, documentEverStarted := true }
-        else s_prep).peek? = some c := by
-    have := preprocess_some_peek h_preprocess
-    split
-    · show s_prep.peek? = some c; exact this
-    · exact this
-  rcases preprocess_some_savedKey_shape h_preprocess with h_sk | _
-  · obtain ⟨sp_mid, sp_ws, sp_prep2, h_disj, h_ws, _h_cmt, hcorr_prep2, h_pk⟩ :=
-      preprocess_some_ssl_comments_anyCol sc sp_scan s_prep c h_corr h_preprocess
-    have hsp_eq2 := ScannerSurfCorr_unique hcorr_prep hcorr_prep2
-    have h_eq : sp_prep2 = sp_ws := by
-      cases h_pk with
-      | inl h => exact h
-      | inr h => rw [preprocess_some_peek h_preprocess] at h; cases h
-    have h_pe : sp_prep = sp_ws := hsp_eq2.trans h_eq
-    cases h_disj with
+    -- The reading, taken ONCE: `[63] s-indent(w)` in front of the content, and
+    -- the content read back as `[188]`'s key head.  Neither mentions the frame.
+    cases gstar_white_sIndent_or_tab h_ws with
     | inr _ => exact Or.inr trivial
-    | inl h_land =>
-      cases gstar_white_sIndent_or_tab h_ws with
+    | inl h_ind0 =>
+      obtain ⟨w, h_ind⟩ := h_ind0
+      cases implicitKeyHead_of_dispatch s_prep s' c sp_prep sp_scan' h_kline h_sk.2
+          hcorr_prep hcorr_result hna hnt h_not_doc h_flow_disp hpeek_disp h_dispatch with
       | inr _ => exact Or.inr trivial
-      | inl h_ind0 =>
-        obtain ⟨k, h_ind⟩ := h_ind0
-        have h_ind' : SIndent k sp_mid sp_prep := by rw [h_pe]; exact h_ind
-        cases implicitKeyHead_of_dispatch s_prep s' c sp_prep sp_scan' h_kline h_sk.2
-            hcorr_prep hcorr_result hna hnt h_not_doc h_flow_disp hpeek_disp h_dispatch with
-        | inr _ => exact Or.inr trivial
-        | inl h_head =>
-          obtain ⟨sp_gram2, h_ol, h_tws2, h_pp⟩ := h_head
-          -- The floor conjunct, recovered: the landing is at column 0 and the
-          -- save is fresh at the content, so the column the `:` will push its
-          -- mapping indent at is the index this pack carries (items 28/29).
-          have h_kcol : s'.simpleKey.pos.col = k ∨ True := by
-            refine Or.inl ?_
-            rw [h_pp, allowDirectives_update_simpleKey, h_sk.2]
-            show s_prep.col = k
-            rw [← hcorr_prep.col_eq]
-            have := SIndent_col h_ind'
-            rw [h_land.2] at this
-            omega
-          exact Or.inl ⟨k, sp_prep, sp_gram2,
-                        valueMapRoute (Nat.zero_le k) h_close_old h_land.1 h_ind',
-                        h_ol, h_tws2, h_kcol⟩
+      | inl h_head =>
+        obtain ⟨sp_gram2, h_ol, h_tws2, h_pp⟩ := h_head
+        cases h_disj with
+        | inl h_land =>
+          -- Across a break: the entry is `[187]`'s at the landing's own width,
+          -- inside the node this pending awaits.  The side condition is
+          -- `nestedBlockMap`'s and it is decidable here, so the DEDENT defers
+          -- and nothing else does (item 40).
+          by_cases hnw : n ≤ w
+          · have h_ind' : SIndent w sp_mid sp_prep := by rw [h_pe]; exact h_ind
+            -- The floor conjunct, recovered: the landing is at column 0 and the
+            -- save is fresh at the content, so the column the `:` will push its
+            -- mapping indent at is the index this pack carries (items 28/29).
+            have h_kcol : s'.simpleKey.pos.col = w ∨ True := by
+              refine Or.inl ?_
+              rw [h_pp, allowDirectives_update_simpleKey, h_sk.2]
+              show s_prep.col = w
+              rw [← hcorr_prep.col_eq]
+              have := SIndent_col h_ind'
+              rw [h_land.2] at this
+              omega
+            exact Or.inl ⟨w, sp_prep, sp_gram2,
+                          valueMapRoute hnw h_node h_land.1 h_ind', h_ol, h_tws2, h_kcol⟩
+          · exact Or.inr trivial
+        | inr h_mid =>
+          -- On the line: `[195]`, closing the enclosing entry.  Only a pending
+          -- that owns an `SBlockIndented` slot can offer this frame.
+          cases h_compact with
+          | inr _ => exact Or.inr trivial
+          | inl h_close =>
+            have h_ind' : SIndent w sp_scan sp_prep := by
+              rw [h_pe, ← h_mid.1]; exact h_ind
+            exact Or.inl ⟨n + 1 + w, sp_prep, sp_gram2,
+                          compactMapRoute h_close h_ind', h_ol, h_tws2, Or.inr trivial⟩
   · exact Or.inr trivial
 
 lemma content_dispatch_after_close
@@ -11003,6 +10967,11 @@ lemma accum_content_on_pendingBlock
     rw [hsp_ev_eq] at h_trailing_ws hcorr_ev
     cases h_ev with
     | inl h_flow =>
+      -- The content is the entry's node if a break follows, and `[188]`'s KEY if
+      -- a `:` does — the two readings are not exclusive and the pending carries
+      -- both.  Which mapping frame the key gets is decided by the landing this
+      -- step made: `[195]` on the line (item 38), `[187]` nested under the
+      -- entry across a break (item 40).
       exact ⟨sp_block, sp_block, sp_block, sp_scan', h_stream_block,
            BlockStack.nil sp_block, FlowStackB.nil sp_block .sep,
            PendingNode.pendingBlockContent sp_start sp_block sp_scan' 0 h_line
@@ -11018,8 +10987,10 @@ lemma accum_content_on_pendingBlock
                  (SBlockIndented.node 0 .blockIn sp_scan sp_final
                    (SBlockNode.flowInBlock 0 .blockIn sp_scan sp_prep sp_gram sp_final
                      h_sep h_flow h_ssl_ext)))
-             (compactKeyPack_of_dispatch sc sp_start sp_scan 0 s_prep s' c sp_prep sp_scan'
-               h_close_old hcorr_prep hcorr_result h_corr h_not_doc h_flow_disp
+             (entryKeyPack_of_dispatch sc sp_start sp_scan 0 s_prep s' c sp_prep sp_scan'
+               (fun sp h_bn => h_close_old sp (SBlockIndented.node 0 .blockIn sp_scan sp h_bn))
+               (Or.inl h_close_old)
+               hcorr_prep hcorr_result h_corr h_not_doc h_flow_disp
                h_preprocess h_dispatch),
            hcorr_result⟩
     | inr h_block =>
@@ -11292,8 +11263,10 @@ lemma accum_content_on_pendingBlock_indented
                    (SBlockNode.flowInBlock n .blockIn sp_scan sp_prep sp_gram sp_final
                      (h_sep_all n) (h_flow_all n)
                      (white_prepend_SSLComments h_trailing_ws h_ssl))))
-             (compactKeyPack_of_dispatch sc sp_start sp_scan n s_prep s' c sp_prep sp_scan'
-               h_close_old hcorr_prep hcorr_result h_corr h_not_doc h_flow_disp
+             (entryKeyPack_of_dispatch sc sp_start sp_scan n s_prep s' c sp_prep sp_scan'
+               (fun sp h_bn => h_close_old sp (SBlockIndented.node n .blockIn sp_scan sp h_bn))
+               (Or.inl h_close_old)
+               hcorr_prep hcorr_result h_corr h_not_doc h_flow_disp
                h_preprocess h_dispatch),
            hcorr_result⟩
   · -- Item 24: the run parks at the ENTRY's index; the entry closure is not
@@ -11451,8 +11424,9 @@ lemma accum_content_on_pendingMapValue
                h_close_old sp_final
                  (SBlockNode.flowInBlock 0 .blockIn sp_scan sp_prep sp_gram sp_final
                    h_sep h_flow h_ssl_ext))
-             (valueKeyPack_of_dispatch sc sp_start sp_scan s_prep s' c sp_prep sp_scan'
-               h_close_old hcorr_prep hcorr_result h_corr h_not_doc h_flow_disp
+             (entryKeyPack_of_dispatch sc sp_start sp_scan 0 s_prep s' c sp_prep sp_scan'
+               h_close_old (Or.inr trivial)
+               hcorr_prep hcorr_result h_corr h_not_doc h_flow_disp
                h_preprocess h_dispatch),
            hcorr_result⟩
     | inr h_block =>
@@ -11512,11 +11486,13 @@ lemma accum_content_on_pendingMapValue_indented
     ⟨sp_gram, h_sep_all, h_flow_all, h_trailing_ws, h_line⟩ |
     ⟨ha, ht, h_sep_all, h_run_all, h_nic_s, h_real_s, h_anchor_s, h_tag_s, h_ind_s⟩ |
     ⟨h_read, h_sep_all, h_line⟩ | _
-  · -- Item 39 stops HERE, and not for want of evidence: the value route's
-    -- side condition is `n ≤ k`, and at an indented pending a landing can be
-    -- a DEDENT, which makes it false.  `  : v⏎a: 1` ends the enclosing entry
-    -- instead of nesting inside its value, so this punt is the family's
-    -- boundary rather than its debt (Reflection 665).
+  · -- Item 39 stopped here, reading the value route's side condition `n ≤ k` as
+    -- a property of this ARM: at an indented pending a landing can be a DEDENT
+    -- (`  : v⏎a: 1` ends the enclosing entry instead of nesting inside its
+    -- value), and there the datum is false.  Item 40: it is false at the
+    -- dedent, not at the arm — `entryKeyPack_of_dispatch` decides `n ≤ w` from
+    -- the two numbers it already holds, so `  :⏎    a: 1` composes and only the
+    -- dedent takes the deferral (Reflection 666).
     exact ⟨sp_block, sp_block, sp_block, sp_scan', h_stream_block,
            BlockStack.nil sp_block, FlowStackB.nil sp_block .sep,
            PendingNode.pendingContent sp_start sp_block sp_scan' h_line
@@ -11525,7 +11501,10 @@ lemma accum_content_on_pendingMapValue_indented
                  (SBlockNode.flowInBlock n .blockIn sp_scan sp_prep sp_gram sp_final
                    (h_sep_all n) (h_flow_all n)
                    (white_prepend_SSLComments h_trailing_ws h_ssl)))
-             (fun _ _ => Or.inr trivial),
+             (entryKeyPack_of_dispatch sc sp_start sp_scan n s_prep s' c sp_prep sp_scan'
+               h_close_old (Or.inr trivial)
+               hcorr_prep hcorr_result h_corr h_not_doc h_flow_disp
+               h_preprocess h_dispatch),
            hcorr_result⟩
   · -- Item 24: `  : &a v` / `  ? &a v` — the mapping twin parks the same run
     -- against the VALUE's route.
