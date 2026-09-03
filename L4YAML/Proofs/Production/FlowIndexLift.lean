@@ -2,7 +2,7 @@
 Copyright (c) 2026. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 -/
-import L4YAML.Surface.Scalars
+import L4YAML.Surface.Node
 
 /-! # Reading-index lifts for scalar tokens and landing runs (DOCS item 45)
 
@@ -196,5 +196,141 @@ lemma SNsPlain_at (n : Nat) {c : L4YAML.YamlContext} {s s' : SurfPos}
   cases c <;> first
     | exact Or.inl h
     | exact plainMulti_at n h
+
+/-! ## §3  Composite lifts -/
+
+/-- `[66] s-separate-in-line` as a white run (the `startOfLine` alternative is
+    zero-width). -/
+lemma sSeparateInLine_to_gstar {s s' : SurfPos} (h : SSeparateInLine s s') :
+    GStar SSWhite s s' := by
+  cases h with
+  | whites _ hp => cases hp with | mk _ _ h1 h2 => exact GStar.cons _ _ _ h1 h2
+  | startOfLine => exact GStar.nil _
+
+/-- **The separator lift**: a `[70] s-separate-lines(0)` re-reads at `n`
+    unless it took the commented form and its landing under-runs
+    `s-indent(n)`. -/
+lemma SSeparateLines_at (n : Nat) {s s' : SurfPos} (h : SSeparateLines 0 s s') :
+    SSeparateLines n s s' ∨
+      ∃ s₁, SSLComments s s₁ ∧ WhiteRunUnderRun n s₁ s' := by
+  cases h with
+  | inline _ h_il => exact Or.inl (SSeparateLines.inline n _ _ h_il)
+  | commented s₁ _ h_ssl h_flp =>
+    cases h_flp with
+    | mk _ sx h_ind h_opt =>
+      cases h_ind
+      have h_run : GStar SSWhite s₁ s' := by
+        cases h_opt with
+        | none => exact GStar.nil _
+        | some _ h_il => exact sSeparateInLine_to_gstar h_il
+      rcases gstar_white_flowLinePrefix_or_underRun n h_run with h_flp_n | h_ur
+      · exact Or.inl (SSeparateLines.commented n _ _ _ h_ssl h_flp_n)
+      · exact Or.inr ⟨s₁, h_ssl, h_ur⟩
+
+/-- What a 0-content can leave behind under the lift: a scalar that crossed a
+    line, or a nested flow collection (whose reading at `n` is the stack's to
+    build stepwise, never a single token's). -/
+inductive FlowContent0Residue (s : SurfPos) : Prop where
+  | dq (h : DoubleQuotedCrossed s) : FlowContent0Residue s
+  | sq (h : SingleQuotedCrossed s) : FlowContent0Residue s
+  | plain (h : PlainCrossed s) : FlowContent0Residue s
+  | collection : FlowContent0Residue s
+
+/-- **The content lift**: `[158] ns-flow-content` at 0 re-reads at `n` for
+    single-line scalar tokens; the residue is located per constructor. -/
+lemma SFlowContent_at (n : Nat) {c : L4YAML.YamlContext} {s s' : SurfPos}
+    (h : SFlowContent 0 c s s') :
+    SFlowContent n c s s' ∨ FlowContent0Residue s := by
+  cases h with
+  | plain _ _ _ _ hp =>
+    rcases SNsPlain_at n hp with h_n | h_x
+    · exact Or.inl (.plain n _ _ _ h_n)
+    · exact Or.inr (.plain h_x)
+  | flowSeq => exact Or.inr .collection
+  | flowMap => exact Or.inr .collection
+  | singleQ _ _ _ _ hq =>
+    rcases SCSingleQuoted_at n c hq with h_n | h_x
+    · exact Or.inl (.singleQ n _ _ _ h_n)
+    · exact Or.inr (.sq h_x)
+  | doubleQ _ _ _ _ hq =>
+    rcases SCDoubleQuoted_at n c hq with h_n | h_x
+    · exact Or.inl (.doubleQ n _ _ _ h_n)
+    · exact Or.inr (.dq h_x)
+
+/-- The under-run a lifted separator can leave behind, at any position. -/
+def SeparatorUnderRun (n : Nat) : Prop :=
+  ∃ p q r, SSLComments p q ∧ WhiteRunUnderRun n q r
+
+/-- `[69] s-separate(n,c)` lifted: key contexts mention no index; the other
+    four are `SSeparateLines_at`. -/
+lemma SSeparate_at (n : Nat) (c : L4YAML.YamlContext) {s s' : SurfPos}
+    (h : SSeparate 0 c s s') :
+    SSeparate n c s s' ∨ SeparatorUnderRun n := by
+  cases c <;>
+    first
+      | exact Or.inl h
+      | (rcases SSeparateLines_at n h with h' | ⟨s₁, hssl, hur⟩
+         · exact Or.inl h'
+         · exact Or.inr ⟨s, s₁, s', hssl, hur⟩)
+
+/-- `[96] c-ns-properties` lifted: the index occurs only in the optional
+    second half's separator. -/
+lemma SCNsProperties_at (n : Nat) {c : L4YAML.YamlContext} {s s' : SurfPos}
+    (h : SCNsProperties 0 c s s') :
+    SCNsProperties n c s s' ∨ SeparatorUnderRun n := by
+  cases h with
+  | tagFirst _ _ hT hopt =>
+    cases hopt with
+    | none => exact Or.inl (.tagFirst _ _ _ _ _ hT (.none _))
+    | some _ hseq =>
+      cases hseq with
+      | mk _ _ hsep hA =>
+        rcases SSeparate_at n c hsep with hsep' | hx
+        · exact Or.inl (.tagFirst _ _ _ _ _ hT (.some _ _ (.mk _ _ _ hsep' hA)))
+        · exact Or.inr hx
+  | anchorFirst _ _ hA hopt =>
+    cases hopt with
+    | none => exact Or.inl (.anchorFirst _ _ _ _ _ hA (.none _))
+    | some _ hseq =>
+      cases hseq with
+      | mk _ _ hsep hT =>
+        rcases SSeparate_at n c hsep with hsep' | hx
+        · exact Or.inl (.anchorFirst _ _ _ _ _ hA (.some _ _ (.mk _ _ _ hsep' hT)))
+        · exact Or.inr hx
+
+/-- What a 0-node can leave behind under the lift; the content residue's
+    position is the crossing's own (mid-node for a properties-bearing form). -/
+inductive FlowNode0Residue (s : SurfPos) : Prop where
+  | content {s₀ : SurfPos} (h : FlowContent0Residue s₀) : FlowNode0Residue s
+  | separator (n : Nat) (h : SeparatorUnderRun n) : FlowNode0Residue s
+
+/-- `[161] ns-flow-node` lifted: aliases mention no index; the other three
+    constructors lift their pieces. -/
+lemma SFlowNode_at (n : Nat) {c : L4YAML.YamlContext} {s s' : SurfPos}
+    (h : SFlowNode 0 c s s') :
+    SFlowNode n c s s' ∨ FlowNode0Residue s := by
+  cases h
+  case alias =>
+    rename_i hA
+    exact Or.inl (.alias n _ _ _ hA)
+  case content =>
+    rename_i hc
+    rcases SFlowContent_at n hc with h' | hx
+    · exact Or.inl (.content n _ _ _ h')
+    · exact Or.inr (.content hx)
+  case propsContent =>
+    rename_i hsep hp hc
+    rcases SCNsProperties_at n hp with hp' | hx
+    · rcases SSeparate_at n c hsep with hsep' | hx
+      · rcases SFlowContent_at n hc with hc' | hx
+        · exact Or.inl (.propsContent n _ _ _ _ _ hp' hsep' hc')
+        · exact Or.inr (.content hx)
+      · exact Or.inr (.separator n hx)
+    · exact Or.inr (.separator n hx)
+  case propsEmpty =>
+    rename_i hp
+    rcases SCNsProperties_at n hp with hp' | hx
+    · exact Or.inl (.propsEmpty n _ _ _ hp')
+    · exact Or.inr (.separator n hx)
 
 end L4YAML.Proofs.FlowIndexLift

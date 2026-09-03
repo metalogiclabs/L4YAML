@@ -1569,6 +1569,25 @@ inductive MapFrame (n : Nat) (c : YamlContext) : FrameTail → SurfPos → SurfP
       (hqsep : SSeparate n c sp_qe sp_s) (hcolon : GLit ':' sp_s sp') :
       MapFrame n c .colon sp sp'
 
+/-- **The props-run lift** (item 46): a `[96]` run read at 0 re-reads at `n`
+    unless its two-half separator took the commented form and under-ran —
+    single-half runs never mention the index. -/
+lemma PropsRun_at (n : Nat) {ha ht : Bool} {s s' : SurfPos}
+    (h : PropsRun 0 (inFlowCtx .flowOut) ha ht s s') :
+    PropsRun n (inFlowCtx .flowOut) ha ht s s' ∨
+      ∃ p q r, SSLComments p q ∧ WhiteRunUnderRun n q r := by
+  cases h with
+  | anchor _ _ hA => exact Or.inl (.anchor _ _ hA)
+  | tag _ _ hT => exact Or.inl (.tag _ _ hT)
+  | anchorThenTag _ s₁ _ _ hA hsep hT =>
+    rcases SSeparateLines_at n hsep with hs | ⟨q, hssl, hur⟩
+    · exact Or.inl (.anchorThenTag _ _ _ _ hA hs hT)
+    · exact Or.inr ⟨s₁, q, _, hssl, hur⟩
+  | tagThenAnchor _ s₁ _ _ hT hsep hA =>
+    rcases SSeparateLines_at n hsep with hs | ⟨q, hssl, hur⟩
+    · exact Or.inl (.tagThenAnchor _ _ _ _ hT hs hA)
+    · exact Or.inr ⟨s₁, q, _, hssl, hur⟩
+
 /-- The layout half of a saved-key promise (item 10): the key `k` — a
     `simpleKeyStack` entry about to be RESTORED by a flow close — sits directly
     after a `.value` token and strictly behind the cursor.  Together with the
@@ -1609,6 +1628,12 @@ def KmSound (sc : ScannerState) (km : Array Bool) : Prop :=
         sc.simpleKeyStack[off + i]!.tokenIndex + 2 ≤ sc.simpleKeyStack[j]!.tokenIndex) ∧
       (sc.simpleKey.possible = true →
         sc.simpleKeyStack[off + i]!.tokenIndex + 2 ≤ sc.simpleKey.tokenIndex))
+
+/-- The empty mask is sound in every state — it promises nothing (item 46:
+    what a collapsed stack carries). -/
+lemma KmSound.empty (sc : ScannerState) : KmSound sc #[] :=
+  ⟨sc.simpleKeyStack.size, by simp, fun _ h => absurd h (by simp),
+   fun _ h => absurd h (by simp)⟩
 
 /-- `RestoreLayout` rides along any step that preserves the slots below the
     reservation and does not retreat the cursor. -/
@@ -1965,6 +1990,18 @@ inductive FlowStackB (sp_start : SurfPos) (n : Nat) :
   | open (d : Nat) (ks km : Array Bool) (tl : FrameTail) (sp_block sp_cur : SurfPos)
       (h : FlowOpenStack sp_start n d ks km tl sp_block sp_cur) :
       FlowStackB sp_start n d ks km tl sp_block sp_cur
+  /-- **The collapsed stack (item 46)**: an open flow whose grammar reading at
+      the carried index has been RENOUNCED — a landing under-ran `s-indent(n)`
+      or a scalar token crossed a line — leaving only the shape the other
+      invariant conjuncts read (depth, kinds, tail) and a close that absorbs
+      the whole span through `scannerDrop`.  This is where the escape's flow
+      share now lives: the drop is spent at ONE place, the collapse's close,
+      and its domain is exactly the renounce events (`WhiteRunUnderRun`, the
+      `*Crossed` witnesses).  It vanishes with `scannerDrop` (R3). -/
+  | shape (d : Nat) (ks km : Array Bool) (tl : FrameTail) (sp_block sp_cur : SurfPos)
+      (h_depth : 1 ≤ d)
+      (close : ∀ sp_e sp_m, SSLComments sp_e sp_m → SLYamlStream sp_start sp_m) :
+      FlowStackB sp_start n d ks km tl sp_block sp_cur
 
 /-- Re-index a depth-0 (necessarily `nil`) flow stack at any frame tail. -/
 lemma FlowStackB.retail {sp_start : SurfPos} {n : Nat} {ks km : Array Bool} {tl tl' : FrameTail}
@@ -1973,6 +2010,7 @@ lemma FlowStackB.retail {sp_start : SurfPos} {n : Nat} {ks km : Array Bool} {tl 
   cases h with
   | nil => exact .nil _ _
   | «open» _ _ _ _ _ _ hfo => exact absurd (FlowOpenStack_depth_pos hfo) (by omega)
+  | shape _ _ _ _ _ _ hd _ => exact absurd hd (by omega)
 
 /-- At depth 0 the kinds index is empty: the `open` constructor needs a positive
     depth. This is what lets a depth-0 accum step discharge the `flowStack`
@@ -1982,6 +2020,7 @@ lemma FlowStackB.kinds_nil_of_depth_zero {sp_start : SurfPos} {n : Nat} {ks km :
   cases h with
   | nil => rfl
   | «open» _ _ _ _ _ _ hfo => exact absurd (FlowOpenStack_depth_pos hfo) (by omega)
+  | shape _ _ _ _ _ _ hd _ => exact absurd hd (by omega)
 
 /-- At depth 0 the accumulator is `nil`, so its two position indices coincide. -/
 lemma FlowStackB.pos_eq_of_depth_zero {sp_start : SurfPos} {n : Nat} {ks km : Array Bool}
@@ -1989,12 +2028,17 @@ lemma FlowStackB.pos_eq_of_depth_zero {sp_start : SurfPos} {n : Nat} {ks km : Ar
   cases h with
   | nil => rfl
   | «open» _ _ _ _ _ _ hfo => exact absurd (FlowOpenStack_depth_pos hfo) (by omega)
+  | shape _ _ _ _ _ _ hd _ => exact absurd hd (by omega)
 
-/-- Recover the open accumulator at positive depth. -/
+/-- Recover the accumulator at positive depth: the real open stack, or the
+    collapsed shape's close (item 46). -/
 lemma FlowStackB.open_of_succ {sp_start : SurfPos} {n d : Nat} {ks km : Array Bool}
     {tl : FrameTail} {a b : SurfPos} (h : FlowStackB sp_start n (d + 1) ks km tl a b) :
-    FlowOpenStack sp_start n (d + 1) ks km tl a b := by
-  cases h with | «open» _ _ _ _ _ _ hfo => exact hfo
+    FlowOpenStack sp_start n (d + 1) ks km tl a b ∨
+      ∀ sp_e sp_m, SSLComments sp_e sp_m → SLYamlStream sp_start sp_m := by
+  cases h with
+  | «open» _ _ _ _ _ _ hfo => exact Or.inl hfo
+  | shape _ _ _ _ _ _ _ close => exact Or.inr close
 
 /-- Absorb BlockStack + a CLOSED (`nil`, depth 0) `FlowStackB` into the stream.
     The `open` case is vacuous at depth 0 (`FlowOpenStack` has positive depth). -/
@@ -2010,6 +2054,7 @@ lemma absorb_stacksB (sp_start sp_gram sp_block sp_flow : SurfPos)
     | seqLevel _ _ _ _ _ h_cl_b => exact h_cl_b sp_start h_stream
     | mapLevel _ _ _ _ _ h_cl_b => exact h_cl_b sp_start h_stream
   | «open» _ _ _ _ _ _ h => exact absurd (FlowOpenStack_depth_pos h) (by omega)
+  | shape _ _ _ _ _ _ hd _ => exact absurd hd (by omega)
 
 /-- Open the OUTERMOST flow SEQUENCE `[` (nil → depth-1 open), given the base
     `resume` closure for the enclosing context (top-level / block value /
@@ -2052,24 +2097,44 @@ lemma FlowStackB.openMapBase {sp_start sp_before sp_br sp_open sp_es : SurfPos} 
     field. -/
 def FlowStackK (sp_start : SurfPos) (sc : ScannerState) (fl : Nat) (ks : Array Bool)
     (tl : FrameTail) (sp_block sp_flow : SurfPos) : Prop :=
-  ∃ km, FlowStackB sp_start 0 fl ks km tl sp_block sp_flow ∧
+  ∃ n km, FlowStackB sp_start n fl ks km tl sp_block sp_flow ∧
+    ks.size = fl ∧
     (0 < fl → KmSound sc km ∧
       (tl = .value → KeyAfterValueLayout sc ∨
         ∀ sp_prep sp_tok, SSeparateLines 0 sp_flow sp_prep →
           GLit ':' sp_prep sp_tok →
-          FlowStackB sp_start 0 fl ks km .colon sp_block sp_tok))
+          FlowStackB sp_start n fl ks km .colon sp_block sp_tok))
 
 /-- The depth-0 `FlowStackK`: `nil` with an empty mask and vacuous couplings. -/
 lemma FlowStackK.nil (sp_start : SurfPos) (sc : ScannerState) (sp : SurfPos)
     (tl : FrameTail) : FlowStackK sp_start sc 0 #[] tl sp sp :=
-  ⟨#[], FlowStackB.nil sp tl, fun h => absurd h (by omega)⟩
+  ⟨0, #[], FlowStackB.nil sp tl, rfl, fun h => absurd h (by omega)⟩
 
 /-- Re-index a depth-0 `FlowStackK` at any frame tail. -/
 lemma FlowStackK.retail {sp_start : SurfPos} {sc : ScannerState} {ks : Array Bool}
     {tl tl' : FrameTail} {a b : SurfPos} (h : FlowStackK sp_start sc 0 ks tl a b) :
     FlowStackK sp_start sc 0 ks tl' a b := by
-  obtain ⟨km, h_b, -⟩ := h
-  exact ⟨km, h_b.retail, fun h => absurd h (by omega)⟩
+  obtain ⟨nn, km, h_b, hsz, -⟩ := h
+  exact ⟨nn, km, h_b.retail, hsz, fun h => absurd h (by omega)⟩
+
+/-- The one place the flow share of the escape now spends `scannerDrop`
+    (item 46): the close a collapsed stack carries.  The gap constructor
+    absorbs any span, so one captured stream serves every position. -/
+lemma dropClose {sp_start sp_x : SurfPos} (h_stream : SLYamlStream sp_start sp_x) :
+    ∀ sp_e sp_m, SSLComments sp_e sp_m → SLYamlStream sp_start sp_m :=
+  fun _ sp_m h_ssl => SLYamlStream.scannerDrop sp_start sp_x _ sp_m h_stream h_ssl
+
+/-- Package a collapsed stack as the invariant's flow conjunct (item 46): the
+    kept mask still satisfies its couplings, and the `.value`-tail colon route
+    is the shape re-tailed. -/
+lemma FlowStackK.collapse {sp_start : SurfPos} {sc : ScannerState} {fl : Nat}
+    {ks : Array Bool} (km : Array Bool) {tl : FrameTail} {sp_block sp_cur : SurfPos}
+    (hd : 1 ≤ fl) (hsz : ks.size = fl) (h_km : KmSound sc km)
+    (close : ∀ sp_e sp_m, SSLComments sp_e sp_m → SLYamlStream sp_start sp_m) :
+    FlowStackK sp_start sc fl ks tl sp_block sp_cur :=
+  ⟨0, km, .shape fl ks km tl sp_block sp_cur hd close, hsz,
+   fun _ => ⟨h_km, fun _ => Or.inr (fun _ sp_tok _ _ =>
+     .shape fl ks km .colon sp_block sp_tok hd close)⟩⟩
 
 /-- Close any PendingNode to SLYamlStream using SSLComments evidence.
 
@@ -2737,8 +2802,8 @@ lemma preprocessing_eof_extends_stream (sc : ScannerState)
     (sp_start sp_gram sp_block sp_flow sp_scan : SurfPos)
     (h_stream : SLYamlStream sp_start sp_gram)
     (h_stack : BlockStack sp_gram sp_block)
-    {ks km : Array Bool} {tl : FrameTail}
-    (h_flow : FlowStackB sp_start 0 0 ks km tl sp_block sp_flow)
+    {nn : Nat} {ks km : Array Bool} {tl : FrameTail}
+    (h_flow : FlowStackB sp_start nn 0 ks km tl sp_block sp_flow)
     (h_pending : PendingNode sc false sp_start sp_flow sp_scan)
     (h_corr : ScannerSurfCorr sc sp_scan)
     (h_preprocess : scanNextToken_preprocess sc = .ok none) :
@@ -3406,7 +3471,7 @@ lemma accum_step_structural (sc : ScannerState)
         InteriorGap s' (tailOf s'.tokens) sp_flow' sp_scan' ∧
           LastTokenReal s'.tokens ∧ s'.allowDirectives = false) := by
   -- B.4β: the flow stack is indexed by the scanner's `flowLevel`.
-  obtain ⟨km, h_flow, h_kprom⟩ := h_flowK
+  obtain ⟨nn, km, h_flow, h_ksz, h_kprom⟩ := h_flowK
   rcases Nat.eq_zero_or_pos sc.flowLevel with h0 | hpos
   · -- depth 0 (no open flow collection): the existing depth-0 proof.
     rw [h0] at h_flow
@@ -3422,7 +3487,7 @@ lemma accum_step_structural (sc : ScannerState)
       accum_structural_pending sc sp_start sp_flow sp_scan s_prep s' c
         (absorb_stacksB sp_start sp_gram sp_block sp_flow h_stream h_stack h_flow)
         (h_pending h0) h_dir_flag h_corr h_preprocess h_dispatch
-    exact ⟨g', bl', fl', sn', b', q1, q2, ⟨#[], q3.retail, fun h => absurd h (by omega)⟩,
+    exact ⟨g', bl', fl', sn', b', q1, q2, ⟨0, #[], q3.retail, rfl, fun h => absurd h (by omega)⟩,
            fun _ => q4, q5, q6, fun h => absurd h (by omega)⟩
   · -- ═══ DEPTH ≥ 1: VACUOUS. ═══
     -- `scanNextToken_dispatchStructural` has no success arm inside a flow; see
@@ -4584,10 +4649,10 @@ lemma FlowOpenStack.receivePropsNodeColon {sp_start : SurfPos} {n D : Nat}
     * `pendingDocStart` — the flow is the explicit document's OWN node: route
       the completed node through `h_doc_builder` (`GAlt.left ∘ SLBareDocument.mk
       ∘ flowInBlock`), keeping ONE document. Faithful for `--- [a]`.
-    * `pendingBlock` — the flow is the block entry's value: route through
-      `h_close ∘ flowInBlock`; the derivation keeps the block entry open, so
-      `key: [a]` stays ONE document — THE case that previously rode on
-      `scannerDrop`. (Green for `n = 0`, which is what every producer pins.)
+    * `pendingBlock`/`pendingMapValue` — the flow is the entry's value: route
+      through `h_close ∘ flowInBlock` AT THE PENDING'S INDEX (item 46), so
+      `key: [a]` and `  - [1]` alike stay ONE document.  A landing that
+      under-runs `s-indent(n)` on the open takes the drop route instead.
 
     The open itself is uniform (`mk` abstracts `openSeqBase`/`openMapBase`,
     closing over the bracket's `GLit`): the new interior `PendingNode` is
@@ -4610,6 +4675,7 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
     (hcorr_prep : ScannerSurfCorr s_prep sp_prep)
     (hcorr_open : ScannerSurfCorr s' sp_open)
     (h_fl1 : s'.flowLevel = 1)
+    (h_ks1 : s'.flowStack.size = 1)
     (h_real : LastTokenReal s'.tokens)
     (h_ad : s'.allowDirectives = false)
     (h_sync : frameTokenVal? s'.tokens = lastRealTokenVal? s'.tokens)
@@ -4619,10 +4685,10 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
     (h_nv : tailOf s'.tokens ≠ .value)
     (h_sks1 : 0 < s'.simpleKeyStack.size)
     (h_c : c = '[' ∨ c = '{')
-    (mk : ∀ (sp_before : SurfPos),
-        (∀ sp_ne sp_m, SFlowContent 0 .flowOut sp_prep sp_ne →
+    (mk : ∀ (n : Nat) (sp_before : SurfPos),
+        (∀ sp_ne sp_m, SFlowContent n .flowOut sp_prep sp_ne →
          SSLComments sp_ne sp_m → SLYamlStream sp_start sp_m) →
-        FlowStackB sp_start 0 1 s'.flowStack #[false] (tailOf s'.tokens) sp_before sp_open) :
+        FlowStackB sp_start n 1 s'.flowStack #[false] (tailOf s'.tokens) sp_before sp_open) :
     ∃ sp_gram' sp_block' sp_flow' sp_scan',
       SLYamlStream sp_start sp_gram' ∧
       BlockStack sp_gram' sp_block' ∧
@@ -4639,10 +4705,10 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
     · have h0 : i = 0 := by simp at hi; omega
       subst h0
       exact absurd hb (by simp)
-  have h_kpkg : ∀ sp_b sp_f, FlowStackB sp_start 0 1 s'.flowStack #[false]
+  have h_kpkg : ∀ (n : Nat) sp_b sp_f, FlowStackB sp_start n 1 s'.flowStack #[false]
       (tailOf s'.tokens) sp_b sp_f →
       FlowStackK sp_start s' 1 s'.flowStack (tailOf s'.tokens) sp_b sp_f :=
-    fun _ _ h_b => ⟨#[false], h_b, fun _ => ⟨h_km0, fun hv => absurd hv h_nv⟩⟩
+    fun n _ _ h_b => ⟨n, #[false], h_b, h_ks1, fun _ => ⟨h_km0, fun hv => absurd hv h_nv⟩⟩
   have h_stream_block : SLYamlStream sp_start sp_block :=
     absorb_stacksB sp_start sp_gram sp_block sp_block h_stream h_stack (FlowStackB.nil (n := 0) sp_block .sep)
   have h_close_pending : ∀ sp_mid, SSLComments sp_scan sp_mid → SLYamlStream sp_start sp_mid :=
@@ -4679,7 +4745,7 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
       ⟨sp_mid, h_ssl, hws⟩ | ⟨hcol, hws⟩
     · have h_stream_mid : SLYamlStream sp_start sp_mid := h_close sp_mid h_ssl
       exact ⟨sp_mid, sp_mid, sp_open, sp_open, h_stream_mid, BlockStack.nil sp_mid,
-             h_kpkg _ _ (mk sp_mid (topLevelFlowResumeSep h_stream_mid
+             h_kpkg _ _ _ (mk 0 sp_mid (topLevelFlowResumeSep h_stream_mid
                (SSeparateLines.inline 0 sp_mid sp_prep
                  (GStar_SSWhite_to_SSeparateInLine sp_mid sp_prep hws)))),
              PendingNode.noPending sp_start sp_open (Or.inr (inFlow_of_flowLevel_eq h_fl1)), hcorr_open, fun _ => ⟨.white (GStar.nil _) h_sync h_colon, h_real, h_ad⟩⟩
@@ -4700,15 +4766,11 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
           LastTokenReal s'.tokens ∧ s'.allowDirectives = false) :=
     fun h_line hcol hws =>
       (LineNoOpen.no_open_across_whites (h_line.resolve_left hcol) hws h_head h_c).elim
-  -- The OPAQUE resume: the collection re-enters the stream through
-  -- `scannerDrop`, which absorbs the whole gap when it eventually closes.
-  -- Two arms take it, and for the same reason — the resume's argument reads at
-  -- the stack's index, which `FlowStackK` instantiates at 0 (item 44 moved the
-  -- pin from `FlowOpenStack`'s type to that one instantiation) — so nothing
-  -- that has to re-enter at another index can use the resume yet: the deferred
-  -- state, and (item 24) a property run whose route closes at a NONZERO index
-  -- (`  - &a [b]`).  That instantiation is the one β.5 has left after the
-  -- route itself (item 46).
+  -- The OPAQUE resume (item 46: `pendingFlow`'s alone).  The deferred state
+  -- has nothing to spend, so the flow node opened over it re-enters through
+  -- `dropClose` — the collection rides the drop until `pendingFlow` goes (R3).
+  -- Every other pending now opens the stack at its OWN index below; what used
+  -- to share this arm (`  - [1]`, `  - &a [b]`) composes through the resume.
   have opaque_resume : sp_scan.col ≠ 0 → GStar SSWhite sp_scan sp_prep →
       ∃ sp_gram' sp_block' sp_flow' sp_scan',
         SLYamlStream sp_start sp_gram' ∧
@@ -4721,8 +4783,8 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
           LastTokenReal s'.tokens ∧ s'.allowDirectives = false) :=
     fun _ _ =>
       ⟨sp_block, sp_block, sp_open, sp_open, h_stream_block, BlockStack.nil _,
-       h_kpkg _ _ (mk sp_block (fun sp_ne sp_m _ h_ssl =>
-         SLYamlStream.scannerDrop sp_start sp_block sp_ne sp_m h_stream_block h_ssl)),
+       h_kpkg _ _ _ (mk 0 sp_block (fun sp_ne sp_m _ h_ssl =>
+         dropClose h_stream_block sp_ne sp_m h_ssl)),
        PendingNode.noPending sp_start sp_open (Or.inr (inFlow_of_flowLevel_eq h_fl1)), hcorr_open,
        fun _ => ⟨.white (GStar.nil _) h_sync h_colon, h_real, h_ad⟩⟩
   cases h_pending with
@@ -4734,7 +4796,7 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
     have h_pe : sp_gap = sp_prep := ScannerSurfCorr_unique hcorr_gap hcorr_prep
     subst h_pe
     exact ⟨_, _, sp_open, sp_open, h_stream_block, BlockStack.nil _,
-           h_kpkg _ _ (mk _ (topLevelFlowResumeSep h_stream_block h_sep)),
+           h_kpkg _ _ _ (mk 0 _ (topLevelFlowResumeSep h_stream_block h_sep)),
            PendingNode.noPending sp_start sp_open (Or.inr (inFlow_of_flowLevel_eq h_fl1)), hcorr_open, fun _ => ⟨.white (GStar.nil _) h_sync h_colon, h_real, h_ad⟩⟩
   | pendingContent =>
     -- Item 37: §7.5's set weakens to item 10's here, exactly as `[204]`'s does.
@@ -4748,9 +4810,8 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
     rename_i _ h_line _ _ _
     exact main h_close_pending (refuted (h_line.imp id LineNodeStop.toLineNoOpen))
   | pendingFlow =>
-    -- The deferred state: its own closing strategy is `scannerDrop`, and the
-    -- flow node opened here keeps riding it — the resume absorbs the whole
-    -- gap opaquely at the eventual close (β.5 retires this with pendingFlow).
+    -- The deferred state: its own closing strategy is the drop, and the flow
+    -- node opened here keeps riding it (β.5 retires this with pendingFlow, R3).
     exact main h_close_pending opaque_resume
   | pendingProps _ _ _ ha ht sp_node sp_p n h_sep_run h_run h_nic_p h_real_p h_anchor_p h_tag_p
       h_route =>
@@ -4765,20 +4826,23 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
     -- `SFlowContent 0 .flowOut` because `FlowOpenStack` fixed it there.  So
     -- `  - &a [b]` takes the opaque resume, exactly as `  - [1]` does, and for
     -- the same reason rather than a props-shaped one.
-    match n, h_sep_run, h_run, h_route with
-    | 0, h_sep_run, h_run, h_route =>
-      obtain ⟨sp_gap, h_sep0, hcorr_gap⟩ :=
-        preprocess_some_separate_0_anyCol sc sp_scan s_prep c h_corr h_preprocess
-      have h_pe : sp_gap = sp_prep := ScannerSurfCorr_unique hcorr_gap hcorr_prep
-      have h_sep : SSeparateLines 0 sp_scan sp_prep := h_pe ▸ h_sep0
-      exact ⟨sp_gram, sp_block, sp_open, sp_open, h_stream, h_stack,
-             h_kpkg _ _ (mk sp_block (fun sp_ne sp_m h_content h_ssl =>
+    obtain ⟨sp_gap, hcorr_gap, h_sep_or⟩ :=
+      preprocess_some_separate_at_anyCol n sc sp_scan s_prep c h_corr h_preprocess
+    have h_pe : sp_gap = sp_prep := ScannerSurfCorr_unique hcorr_gap hcorr_prep
+    rw [h_pe] at h_sep_or
+    rcases h_sep_or with h_sep | _
+    · exact ⟨sp_gram, sp_block, sp_open, sp_open, h_stream, h_stack,
+             h_kpkg _ _ _ (mk n sp_block (fun sp_ne sp_m h_content h_ssl =>
                h_route sp_m (flowInBlock_blockNode h_sep_run
-                 (SFlowNode.propsContent 0 .flowOut sp_p sp_scan sp_prep sp_ne
+                 (SFlowNode.propsContent n .flowOut sp_p sp_scan sp_prep sp_ne
                    h_run.toProperties h_sep h_content) h_ssl))),
              PendingNode.noPending sp_start sp_open (Or.inr (inFlow_of_flowLevel_eq h_fl1)), hcorr_open,
              fun _ => ⟨.white (GStar.nil _) h_sync h_colon, h_real, h_ad⟩⟩
-    | _ + 1, _, _, _ => exact main h_close_pending opaque_resume
+    · exact ⟨sp_block, sp_block, sp_open, sp_open, h_stream_block, BlockStack.nil _,
+             h_kpkg _ _ _ (mk 0 sp_block (fun sp_ne sp_m _ h_ssl =>
+               dropClose h_stream_block sp_ne sp_m h_ssl)),
+             PendingNode.noPending sp_start sp_open (Or.inr (inFlow_of_flowLevel_eq h_fl1)), hcorr_open,
+             fun _ => ⟨.white (GStar.nil _) h_sync h_colon, h_real, h_ad⟩⟩
   | pendingDocStart =>
     rename_i h_doc_builder
     obtain ⟨sp_gap, h_sep0, hcorr_gap⟩ :=
@@ -4786,7 +4850,7 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
     have h_pe : sp_gap = sp_prep := ScannerSurfCorr_unique hcorr_gap hcorr_prep
     have h_sep : SSeparateLines 0 sp_scan sp_prep := h_pe ▸ h_sep0
     exact ⟨sp_block, sp_block, sp_open, sp_open, h_stream_block, BlockStack.nil sp_block,
-           h_kpkg _ _ (mk sp_block (fun sp_ne sp_m h_content h_ssl =>
+           h_kpkg _ _ _ (mk 0 sp_block (fun sp_ne sp_m h_content h_ssl =>
              SLYamlStream.implicitContinue sp_start sp_block sp_block sp_m sp_m
                h_stream_block (GStar.nil _)
                (GOpt.some sp_block sp_m
@@ -4797,31 +4861,27 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
                (GStar.nil _))),
            PendingNode.noPending sp_start sp_open (Or.inr (inFlow_of_flowLevel_eq h_fl1)), hcorr_open, fun _ => ⟨.white (GStar.nil _) h_sync h_colon, h_real, h_ad⟩⟩
   | pendingBlock =>
-    -- The flow node the open stack's `resume` eventually supplies is read at
-    -- indent 0 (`SFlowContent 0 .flowOut` — `mk`'s own type), so it fits
-    -- `flowInBlock` only for an entry whose own index is 0.  Item 22 unpinned
-    -- the pending and item 23 the inline SCALAR value; this one is not a
-    -- content lift at all — the pinned 0 is `FlowStackK`'s instantiation of
-    -- the stack's index (item 44), spent when the collection closes, so
-    -- `  - [1]` rides `scannerDrop` until item 46 instantiates the index the
-    -- pending carries.
+    -- Item 46: the stack opens at the ENTRY's index, so the resume's node
+    -- fits `flowInBlock n_old` and `  - [1]` composes.  The one deferral left
+    -- is the landing that under-runs `s-indent(n_old)` on the open itself
+    -- (`k:⏎  a:⏎[1]` never scans — `checkBlockFlowIndent` — so the branch's
+    -- domain is the break-crossed opens the check exempts), which takes the
+    -- drop route.
     rename_i n_old _h_floor _h_sk h_close _h_close_entry
-    match n_old, h_close with
-    | 0, h_close =>
-      obtain ⟨sp_gap, h_sep0, hcorr_gap⟩ :=
-        preprocess_some_separate_0_anyCol sc sp_scan s_prep c h_corr h_preprocess
-      have h_pe : sp_gap = sp_prep := ScannerSurfCorr_unique hcorr_gap hcorr_prep
-      have h_sep : SSeparateLines 0 sp_scan sp_prep := h_pe ▸ h_sep0
-      exact ⟨sp_gram, sp_block, sp_open, sp_open, h_stream, h_stack,
-             h_kpkg _ _ (mk sp_block (fun sp_ne sp_m h_content h_ssl =>
-               h_close sp_m (SBlockIndented.node 0 .blockIn sp_scan sp_m
-                 (SBlockNode.flowInBlock 0 .blockIn sp_scan sp_prep sp_ne sp_m
+    obtain ⟨sp_gap, hcorr_gap, h_sep_or⟩ :=
+      preprocess_some_separate_at_anyCol n_old sc sp_scan s_prep c h_corr h_preprocess
+    have h_pe : sp_gap = sp_prep := ScannerSurfCorr_unique hcorr_gap hcorr_prep
+    rw [h_pe] at h_sep_or
+    rcases h_sep_or with h_sep | _
+    · exact ⟨sp_gram, sp_block, sp_open, sp_open, h_stream, h_stack,
+             h_kpkg _ _ _ (mk n_old sp_block (fun sp_ne sp_m h_content h_ssl =>
+               h_close sp_m (SBlockIndented.node n_old .blockIn sp_scan sp_m
+                 (SBlockNode.flowInBlock n_old .blockIn sp_scan sp_prep sp_ne sp_m
                    h_sep (SFlowNode.content _ _ _ _ h_content) h_ssl)))),
              PendingNode.noPending sp_start sp_open (Or.inr (inFlow_of_flowLevel_eq h_fl1)), hcorr_open, fun _ => ⟨.white (GStar.nil _) h_sync h_colon, h_real, h_ad⟩⟩
-    | _ + 1, _ =>
-      exact ⟨sp_block, sp_block, sp_open, sp_open, h_stream_block, BlockStack.nil _,
-             h_kpkg _ _ (mk sp_block (fun sp_ne sp_m _ h_ssl =>
-               SLYamlStream.scannerDrop sp_start sp_block sp_ne sp_m h_stream_block h_ssl)),
+    · exact ⟨sp_block, sp_block, sp_open, sp_open, h_stream_block, BlockStack.nil _,
+             h_kpkg _ _ _ (mk 0 sp_block (fun sp_ne sp_m _ h_ssl =>
+               dropClose h_stream_block sp_ne sp_m h_ssl)),
              PendingNode.noPending sp_start sp_open (Or.inr (inFlow_of_flowLevel_eq h_fl1)), hcorr_open,
              fun _ => ⟨.white (GStar.nil _) h_sync h_colon, h_real, h_ad⟩⟩
   | pendingMapValue =>
@@ -4829,21 +4889,19 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
     -- — same closure type as `pendingBlock`, so the arm is its verbatim clone,
     -- indent split included.
     rename_i n_old _ h_close
-    match n_old, h_close with
-    | 0, h_close =>
-      obtain ⟨sp_gap, h_sep0, hcorr_gap⟩ :=
-        preprocess_some_separate_0_anyCol sc sp_scan s_prep c h_corr h_preprocess
-      have h_pe : sp_gap = sp_prep := ScannerSurfCorr_unique hcorr_gap hcorr_prep
-      have h_sep : SSeparateLines 0 sp_scan sp_prep := h_pe ▸ h_sep0
-      exact ⟨sp_gram, sp_block, sp_open, sp_open, h_stream, h_stack,
-             h_kpkg _ _ (mk sp_block (fun sp_ne sp_m h_content h_ssl =>
-               h_close sp_m (SBlockNode.flowInBlock 0 .blockIn sp_scan sp_prep sp_ne sp_m
+    obtain ⟨sp_gap, hcorr_gap, h_sep_or⟩ :=
+      preprocess_some_separate_at_anyCol n_old sc sp_scan s_prep c h_corr h_preprocess
+    have h_pe : sp_gap = sp_prep := ScannerSurfCorr_unique hcorr_gap hcorr_prep
+    rw [h_pe] at h_sep_or
+    rcases h_sep_or with h_sep | _
+    · exact ⟨sp_gram, sp_block, sp_open, sp_open, h_stream, h_stack,
+             h_kpkg _ _ _ (mk n_old sp_block (fun sp_ne sp_m h_content h_ssl =>
+               h_close sp_m (SBlockNode.flowInBlock n_old .blockIn sp_scan sp_prep sp_ne sp_m
                  h_sep (SFlowNode.content _ _ _ _ h_content) h_ssl))),
              PendingNode.noPending sp_start sp_open (Or.inr (inFlow_of_flowLevel_eq h_fl1)), hcorr_open, fun _ => ⟨.white (GStar.nil _) h_sync h_colon, h_real, h_ad⟩⟩
-    | _ + 1, _ =>
-      exact ⟨sp_block, sp_block, sp_open, sp_open, h_stream_block, BlockStack.nil _,
-             h_kpkg _ _ (mk sp_block (fun sp_ne sp_m _ h_ssl =>
-               SLYamlStream.scannerDrop sp_start sp_block sp_ne sp_m h_stream_block h_ssl)),
+    · exact ⟨sp_block, sp_block, sp_open, sp_open, h_stream_block, BlockStack.nil _,
+             h_kpkg _ _ _ (mk 0 sp_block (fun sp_ne sp_m _ h_ssl =>
+               dropClose h_stream_block sp_ne sp_m h_ssl)),
              PendingNode.noPending sp_start sp_open (Or.inr (inFlow_of_flowLevel_eq h_fl1)), hcorr_open,
              fun _ => ⟨.white (GStar.nil _) h_sync h_colon, h_real, h_ad⟩⟩
 
@@ -5829,7 +5887,7 @@ lemma accum_step_flow (sc : ScannerState)
   --
   -- The dispatch runs on `s_ad` = the allowDirectives-updated preprocessed state,
   -- whose `flowLevel` equals `sc.flowLevel`.
-  obtain ⟨km, h_flow, h_kprom⟩ := h_flowK
+  obtain ⟨nn, km, h_flow, h_ksz, h_kprom⟩ := h_flowK
   rcases Nat.eq_zero_or_pos sc.flowLevel with h0 | hpos
   · -- ═══ DEPTH 0 (no flow open): only `[`/`{` reach `.ok (some s')`; the closing
     -- and separator indicators error at `flowLevel = 0`. ═══
@@ -5876,7 +5934,9 @@ lemma accum_step_flow (sc : ScannerState)
       obtain ⟨g', bl', fl', sn', q1, q2, q3, q4, q5, q6⟩ :=
         accum_flow_open_depth0 sc sp_start sp_gram _ sp_scan sp_prep sp_open
           s_prep _ '[' h_stream h_stack (h_pending h0) h_corr h_preprocess hcorr_prep
-          hcorr_open (by rw [h_fl, h_ad0]) (tailOf_scanFlowSequenceStart _).2
+          hcorr_open (by rw [h_fl, h_ad0])
+          (by rw [ScannerFlowCollection.scanFlowSequenceStart_pushes_true, h_ad_ks0]; rfl)
+          (tailOf_scanFlowSequenceStart _).2
           ((scanFlowSequenceStart_allowDirectives _).trans (allowDirectives_update_false s_prep))
           (sync_scanFlowSequenceStart _)
           (fun h => nomatch (tailOf_scanFlowSequenceStart _).1.symm.trans h)
@@ -5886,7 +5946,7 @@ lemma accum_step_flow (sc : ScannerState)
                 ScannerCorrectness.advance_preserves_simpleKeyStack, Array.size_push]
               omega)
           (Or.inl rfl)
-          (fun _ resume => by
+          (fun _ _ resume => by
             rw [ScannerFlowCollection.scanFlowSequenceStart_pushes_true, h_ad_ks0,
                 (tailOf_scanFlowSequenceStart _).1,
                 show (#[] : Array Bool).push true = #[true] from rfl]
@@ -5918,7 +5978,9 @@ lemma accum_step_flow (sc : ScannerState)
           obtain ⟨g', bl', fl', sn', q1, q2, q3, q4, q5, q6⟩ :=
             accum_flow_open_depth0 sc sp_start sp_gram _ sp_scan sp_prep sp_open
               s_prep _ '{' h_stream h_stack (h_pending h0) h_corr h_preprocess hcorr_prep
-              hcorr_open (by rw [h_fl, h_ad0]) (tailOf_scanFlowMappingStart _).2
+              hcorr_open (by rw [h_fl, h_ad0])
+              (by rw [ScannerFlowCollection.scanFlowMappingStart_pushes_false, h_ad_ks0]; rfl)
+              (tailOf_scanFlowMappingStart _).2
               ((scanFlowMappingStart_allowDirectives _).trans (allowDirectives_update_false s_prep))
               (sync_scanFlowMappingStart _)
               (fun h => nomatch (tailOf_scanFlowMappingStart _).1.symm.trans h)
@@ -5928,7 +5990,7 @@ lemma accum_step_flow (sc : ScannerState)
                     ScannerCorrectness.advance_preserves_simpleKeyStack, Array.size_push]
                   omega)
               (Or.inr rfl)
-              (fun _ resume => by
+              (fun _ _ resume => by
                 rw [ScannerFlowCollection.scanFlowMappingStart_pushes_false, h_ad_ks0,
                     (tailOf_scanFlowMappingStart _).1,
                     show (#[] : Array Bool).push false = #[false] from rfl]
@@ -5991,8 +6053,9 @@ lemma accum_step_flow (sc : ScannerState)
     have h_gap : InteriorGap sc tl sp_flow sp_scan := by
       rw [← htl]; exact (h_interior hpos).1
     rw [hd, hks, htl] at h_flow
-    have h_fos := h_flow.open_of_succ
+    have h_fos_or := h_flow.open_of_succ
     have h_km : KmSound sc km := (h_kprom hpos).1
+    have h_ksz' : ks.size = d + 1 := by rw [← hks, h_ksz, hd]
     unfold scanNextToken_dispatchFlowIndicators at h_dispatch
     have h_adj := flowAdj_ok_of_dispatch_ok h_dispatch
     replace h_dispatch := peel_flowAdj h_dispatch
@@ -6013,6 +6076,196 @@ lemma accum_step_flow (sc : ScannerState)
     -- the interior invariant's "no directive inside an open flow" half survives.
     have h_ad_false : s_ad.allowDirectives = false := by
       rw [← h_ad_def]; exact allowDirectives_update_false s_prep
+    -- ═══ THE SHAPE CONTINUATION (item 46) ═══
+    -- One continuation serves the collapsed stack and every renounce event:
+    -- the grammar reading is given up, so each flow indicator only updates the
+    -- SHAPE (depth, kinds, tail) with the scanner's own bookkeeping, and the
+    -- eventual close spends `close` — `scannerDrop`'s absorption.
+    have shaped : (∀ sp_e sp_m, SSLComments sp_e sp_m → SLYamlStream sp_start sp_m) →
+        ∃ sp_gram' sp_block' sp_flow' sp_scan',
+          SLYamlStream sp_start sp_gram' ∧
+          BlockStack sp_gram' sp_block' ∧
+          FlowStackK sp_start s' s'.flowLevel s'.flowStack (tailOf s'.tokens) sp_block' sp_flow' ∧
+          (s'.flowLevel = 0 → PendingNode s' false sp_start sp_flow' sp_scan') ∧
+          ScannerSurfCorr s' sp_scan' ∧
+          (s'.flowLevel ≥ 1 →
+            InteriorGap s' (tailOf s'.tokens) sp_flow' sp_scan' ∧
+              LastTokenReal s'.tokens ∧ s'.allowDirectives = false) := by
+      intro close
+      split at h_dispatch
+      · -- '[' push: shape depth d+2
+        rename_i heq
+        have hc : c = '[' := by simpa using heq
+        subst hc
+        obtain ⟨sp_tok, h_open_lit, hcorr_tok, h_fl⟩ :=
+          scanFlowSequenceStart_prod s_ad sp_prep hcorr_ad
+            (hpeek_ad.trans (preprocess_some_peek h_preprocess))
+        have hs := Option.some.inj (Except.ok.inj h_dispatch)
+        subst hs
+        have h_off_lt : s_ad.offset < (scanFlowSequenceStart s_ad).offset :=
+          ScannerProgress.scanFlowSequenceStart_offset_lt s_ad (by
+            have hpk := hpeek_ad.trans (preprocess_some_peek h_preprocess)
+            unfold ScannerState.peek? at hpk
+            split at hpk
+            · assumption
+            · exact absurd hpk (by simp))
+        rw [h_fl, h_ad_fl, hd,
+            ScannerFlowCollection.scanFlowSequenceStart_pushes_true, h_ad_ks,
+            (tailOf_scanFlowSequenceStart _).1]
+        exact ⟨sp_gram, sp_block, sp_tok, sp_tok, h_stream, h_stack,
+          FlowStackK.collapse #[] (by omega)
+            (by simp [h_ksz'])
+            (KmSound.empty _) close,
+          nofun, hcorr_tok,
+          fun _ => ⟨.white (GStar.nil _) (sync_scanFlowSequenceStart _) nofun,
+            (tailOf_scanFlowSequenceStart _).2,
+            (scanFlowSequenceStart_allowDirectives _).trans h_ad_false⟩⟩
+      · split at h_dispatch
+        · -- ']' pop: shape depth d, or the close at depth 0
+          rename_i heq
+          have hc : c = ']' := by simpa using heq
+          subst hc
+          split at h_dispatch
+          · simp at h_dispatch
+          · split at h_dispatch
+            · simp at h_dispatch
+            · split at h_dispatch
+              · simp at h_dispatch
+              · rename_i uu hval
+                cases uu
+                have h_ad_pos : s_ad.flowLevel > 0 := by rw [h_ad_fl, hd]; omega
+                obtain ⟨sp_tok, h_close_lit, hcorr_tok, h_fl⟩ :=
+                  scanFlowSequenceEnd_prod s_ad sp_prep hcorr_ad
+                    (hpeek_ad.trans (preprocess_some_peek h_preprocess)) h_ad_pos
+                have hs := Option.some.inj (Except.ok.inj h_dispatch)
+                subst hs
+                have h_fl' : (scanFlowSequenceEnd s_ad).flowLevel = d := by
+                  rw [h_fl, h_ad_fl, hd]; omega
+                rw [h_fl', ScannerFlowCollection.scanFlowSequenceEnd_pops, h_ad_ks,
+                    (tailOf_scanFlowSequenceEnd _).1]
+                rcases Nat.eq_zero_or_pos d with hd0 | hdpos
+                · subst hd0
+                  have h_ks_nil : ks.pop = #[] := by
+                    have hsz0 : ks.pop.size = 0 := by simp [h_ksz']
+                    exact Array.eq_empty_of_size_eq_zero hsz0
+                  rw [h_ks_nil]
+                  exact ⟨sp_gram, sp_block, sp_block, sp_tok, h_stream, h_stack,
+                    ⟨0, #[], FlowStackB.nil sp_block _, rfl, fun h => absurd h (by omega)⟩,
+                    (fun _ => PendingNode.pendingContent sp_start sp_block sp_tok
+                      (Or.inr ((restNodeStop_of_validateFlowClose hcorr_tok.end_eq
+                        (by rw [h_fl']) hval).to_surface hcorr_tok))
+                      (fun sp_m h_ssl => close sp_tok sp_m h_ssl)
+                      (fun _ _ => Or.inr trivial)),
+                    hcorr_tok, fun h => absurd h (by omega)⟩
+                · exact ⟨sp_gram, sp_block, sp_tok, sp_tok, h_stream, h_stack,
+                    FlowStackK.collapse #[] hdpos
+                      (by simp [h_ksz']) (KmSound.empty _) close,
+                    (fun h => absurd h (by omega)), hcorr_tok,
+                    fun _ => ⟨.white (GStar.nil _) (sync_scanFlowSequenceEnd _) nofun,
+                      (tailOf_scanFlowSequenceEnd _).2,
+                      (scanFlowSequenceEnd_allowDirectives _).trans h_ad_false⟩⟩
+        · split at h_dispatch
+          · -- '{' push (mirror '[')
+            rename_i heq
+            have hc : c = '{' := by simpa using heq
+            subst hc
+            obtain ⟨sp_tok, h_open_lit, hcorr_tok, h_fl⟩ :=
+              scanFlowMappingStart_prod s_ad sp_prep hcorr_ad
+                (hpeek_ad.trans (preprocess_some_peek h_preprocess))
+            have hs := Option.some.inj (Except.ok.inj h_dispatch)
+            subst hs
+            have h_off_lt : s_ad.offset < (scanFlowMappingStart s_ad).offset :=
+              ScannerProgress.scanFlowMappingStart_offset_lt s_ad (by
+                have hpk := hpeek_ad.trans (preprocess_some_peek h_preprocess)
+                unfold ScannerState.peek? at hpk
+                split at hpk
+                · assumption
+                · exact absurd hpk (by simp))
+            rw [h_fl, h_ad_fl, hd,
+                ScannerFlowCollection.scanFlowMappingStart_pushes_false, h_ad_ks,
+                (tailOf_scanFlowMappingStart _).1]
+            exact ⟨sp_gram, sp_block, sp_tok, sp_tok, h_stream, h_stack,
+              FlowStackK.collapse #[] (by omega)
+                (by simp [h_ksz'])
+                (KmSound.empty _) close,
+              nofun, hcorr_tok,
+              fun _ => ⟨.white (GStar.nil _) (sync_scanFlowMappingStart _) nofun,
+                (tailOf_scanFlowMappingStart _).2,
+                (scanFlowMappingStart_allowDirectives _).trans h_ad_false⟩⟩
+          · split at h_dispatch
+            · -- '}' pop (mirror ']')
+              rename_i heq
+              have hc : c = '}' := by simpa using heq
+              subst hc
+              split at h_dispatch
+              · simp at h_dispatch
+              · split at h_dispatch
+                · simp at h_dispatch
+                · split at h_dispatch
+                  · simp at h_dispatch
+                  · rename_i uu hval
+                    cases uu
+                    have h_ad_pos : s_ad.flowLevel > 0 := by rw [h_ad_fl, hd]; omega
+                    obtain ⟨sp_tok, h_close_lit, hcorr_tok, h_fl⟩ :=
+                      scanFlowMappingEnd_prod s_ad sp_prep hcorr_ad
+                        (hpeek_ad.trans (preprocess_some_peek h_preprocess)) h_ad_pos
+                    have hs := Option.some.inj (Except.ok.inj h_dispatch)
+                    subst hs
+                    have h_fl' : (scanFlowMappingEnd s_ad).flowLevel = d := by
+                      rw [h_fl, h_ad_fl, hd]; omega
+                    rw [h_fl', ScannerFlowCollection.scanFlowMappingEnd_pops, h_ad_ks,
+                        (tailOf_scanFlowMappingEnd _).1]
+                    rcases Nat.eq_zero_or_pos d with hd0 | hdpos
+                    · subst hd0
+                      have h_ks_nil : ks.pop = #[] := by
+                        have hsz0 : ks.pop.size = 0 := by simp [h_ksz']
+                        exact Array.eq_empty_of_size_eq_zero hsz0
+                      rw [h_ks_nil]
+                      exact ⟨sp_gram, sp_block, sp_block, sp_tok, h_stream, h_stack,
+                        ⟨0, #[], FlowStackB.nil sp_block _, rfl, fun h => absurd h (by omega)⟩,
+                        (fun _ => PendingNode.pendingContent sp_start sp_block sp_tok
+                          (Or.inr ((restNodeStop_of_validateFlowClose hcorr_tok.end_eq
+                            (by rw [h_fl']) hval).to_surface hcorr_tok))
+                          (fun sp_m h_ssl => close sp_tok sp_m h_ssl)
+                          (fun _ _ => Or.inr trivial)),
+                        hcorr_tok, fun h => absurd h (by omega)⟩
+                    · exact ⟨sp_gram, sp_block, sp_tok, sp_tok, h_stream, h_stack,
+                        FlowStackK.collapse #[] hdpos
+                          (by simp [h_ksz']) (KmSound.empty _) close,
+                        (fun h => absurd h (by omega)), hcorr_tok,
+                        fun _ => ⟨.white (GStar.nil _) (sync_scanFlowMappingEnd _) nofun,
+                          (tailOf_scanFlowMappingEnd _).2,
+                          (scanFlowMappingEnd_allowDirectives _).trans h_ad_false⟩⟩
+            · split at h_dispatch
+              · -- ',' hold: shape unchanged, tail .sep
+                rename_i heq
+                have hc : c = ',' := by simpa using heq
+                subst hc
+                split at h_dispatch
+                · simp at h_dispatch
+                · split at h_dispatch
+                  · simp at h_dispatch
+                  · rename_i s_fe hfe
+                    have hs := Option.some.inj (Except.ok.inj h_dispatch)
+                    subst hs
+                    obtain ⟨sp_tok, h_comma_lit, hcorr_tok, h_fl⟩ :=
+                      scanFlowEntry_prod s_ad sp_prep hcorr_ad
+                        (hpeek_ad.trans (preprocess_some_peek h_preprocess)) hfe
+                    have h_fl' : s_fe.flowLevel = d + 1 := by rw [h_fl, h_ad_fl, hd]
+                    have h_ks' : s_fe.flowStack = ks := by
+                      rw [ScannerFlowCollection.scanFlowEntry_preserves_flowStack s_ad s_fe hfe,
+                          h_ad_ks]
+                    rw [h_fl', h_ks', (tailOf_scanFlowEntry hfe).1]
+                    exact ⟨sp_gram, sp_block, sp_tok, sp_tok, h_stream, h_stack,
+                      FlowStackK.collapse #[] (by omega) h_ksz' (KmSound.empty _) close,
+                      nofun, hcorr_tok,
+                      fun _ => ⟨.white (GStar.nil _) (sync_scanFlowEntry hfe) nofun,
+                        (tailOf_scanFlowEntry hfe).2,
+                        (scanFlowEntry_allowDirectives hfe).trans h_ad_false⟩⟩
+              · simp at h_dispatch
+    -- ═══ THE STACK, RESOLVED: real, or already collapsed ═══
+    rcases h_fos_or.symm with h_shape_close | h_fos
+    · exact shaped h_shape_close
     -- ═══ THE INTERIOR GAP, RESOLVED ONCE (β.3) ═══
     -- Both cases hand the five arms the same five things, which is why no arm
     -- below has to know whether a `[96] c-ns-properties` run was being held.
@@ -6031,47 +6284,59 @@ lemma accum_step_flow (sc : ScannerState)
     -- WRAP it (`[&a [b]]` is ONE node whose content is the nested sequence), so
     -- the child frame's `inject` closes over `receivePropsContent` instead.  That
     -- is what `inject`'s `SFlowContent` argument buys.
-    obtain ⟨tl₂, sp_flow₂, h_fos₂, h_lead₂, h_inj, h_ne_value, h_ne_sep, h_cinj, h_klay⟩ :
-        ∃ tl₂ sp_flow₂,
-          FlowOpenStack sp_start 0 (d + 1) ks km tl₂ sp_block sp_flow₂ ∧
-          SSeparateLines 0 sp_flow₂ sp_prep ∧
-          (tl ≠ .value → ∀ sp_ne, SFlowContent 0 .flowIn sp_prep sp_ne →
-            FlowOpenStack sp_start 0 (d + 1) ks km .value sp_block sp_ne) ∧
+    have h_tuple :
+        (∃ tl₂ sp_flow₂,
+          FlowOpenStack sp_start nn (d + 1) ks km tl₂ sp_block sp_flow₂ ∧
+          SSeparateLines nn sp_flow₂ sp_prep ∧
+          (tl ≠ .value → ∀ sp_ne, SFlowContent nn .flowIn sp_prep sp_ne →
+            FlowOpenStack sp_start nn (d + 1) ks km .value sp_block sp_ne) ∧
           ((∀ t, lastRealTokenVal? s_ad.tokens = some t →
               t.completesFlowValue = false) → tl ≠ .value) ∧
           ((∀ t, lastRealTokenVal? s_ad.tokens = some t →
               ¬(t = .flowSequenceStart ∨ t = .flowMappingStart ∨ t = .flowEntry)) →
             tl₂ ≠ .sep) ∧
           (tl = .sep ∨ tl = .question →
-            ∀ sp_ne, SFlowContent 0 .flowIn sp_prep sp_ne →
-            ∀ sp_p₂ sp_t, SSeparateLines 0 sp_ne sp_p₂ → GLit ':' sp_p₂ sp_t →
-            FlowOpenStack sp_start 0 (d + 1) ks km .colon sp_block sp_t) ∧
+            ∀ sp_ne, SFlowContent nn .flowIn sp_prep sp_ne →
+            ∀ sp_p₂ sp_t, SSeparateLines nn sp_ne sp_p₂ → GLit ':' sp_p₂ sp_t →
+            FlowOpenStack sp_start nn (d + 1) ks km .colon sp_block sp_t) ∧
           (tl = .colon →
             (sc.simpleKeyAllowed = true ∧ sc.explicitKeyLine = none ∧
               ∃ tok, sc.tokens[sc.tokens.size - 1]? = some tok ∧ tok.val = .value) ∨
-            KeyAfterValueLayout sc) := by
+            KeyAfterValueLayout sc)) ∨ True := by
       cases h_gap with
       | white h_ws h_sync h_colon_sc =>
-        have h_lead : SSeparateLines 0 sp_flow sp_prep :=
-          SSeparateLines_prepend_white h_ws h_lead0
         have h_ad_sync : frameTokenVal? s_ad.tokens = lastRealTokenVal? s_ad.tokens := by
           rw [← h_ad_def, allowDirectives_update_tokens]
           exact preprocess_preserves_sync_inFlow (by omega) h_real_sc h_preprocess h_sync
-        exact ⟨tl, sp_flow, h_fos, h_lead,
-          (fun h_tail sp_ne h_c =>
-            FlowOpenStack.receiveNode h_fos h_tail h_lead sp_ne (.content _ _ _ _ h_c)),
-          (fun h => by rw [← h_ad_tl]; exact tailOf_ne_value h_ad_sync h),
-          (fun h => by rw [← h_ad_tl]; exact tailOf_ne_sep h_ad_sync h),
-          (fun ht sp_ne h_c sp_p₂ sp_t h_l₂ h_col =>
-            h_fos.receiveNodeColon ht h_lead (.content _ _ _ _ h_c) h_l₂ h_col),
-          (fun htl => Or.inl (h_colon_sc htl))⟩
+        rcases SSeparateLines_at nn (SSeparateLines_prepend_white h_ws h_lead0) with
+          h_lead | _
+        · exact Or.inl ⟨tl, sp_flow, h_fos, h_lead,
+            (fun h_tail sp_ne h_c =>
+              FlowOpenStack.receiveNode h_fos h_tail h_lead sp_ne (.content _ _ _ _ h_c)),
+            (fun h => by rw [← h_ad_tl]; exact tailOf_ne_value h_ad_sync h),
+            (fun h => by rw [← h_ad_tl]; exact tailOf_ne_sep h_ad_sync h),
+            (fun ht sp_ne h_c sp_p₂ sp_t h_l₂ h_col =>
+              h_fos.receiveNodeColon ht h_lead (.content _ _ _ _ h_c) h_l₂ h_col),
+            (fun htl => Or.inl (h_colon_sc htl))⟩
+        · exact Or.inr trivial
       | props ha ht sp_p h_tail h_lead_p h_run _ _ h_colon_sc =>
-        exact ⟨.value, sp_scan, h_fos.receivePropsEmpty h_tail h_lead_p h_run, h_lead0,
-          (fun _ sp_ne h_c => h_fos.receivePropsContent h_tail h_lead_p h_run h_lead0 h_c),
-          (fun _ => h_tail), (fun _ => by decide),
-          (fun ht sp_ne h_c sp_p₂ sp_t h_l₂ h_col =>
-            h_fos.receivePropsNodeColon ht h_lead_p h_run h_lead0 h_c h_l₂ h_col),
-          (fun htl => Or.inr (h_colon_sc htl))⟩
+        rcases SSeparateLines_at nn h_lead_p with h_lead_p' | _
+        · rcases PropsRun_at nn h_run with h_run' | _
+          · rcases SSeparateLines_at nn h_lead0 with h_lead0' | _
+            · exact Or.inl ⟨.value, sp_scan,
+                h_fos.receivePropsEmpty h_tail h_lead_p' h_run', h_lead0',
+                (fun _ sp_ne h_c =>
+                  h_fos.receivePropsContent h_tail h_lead_p' h_run' h_lead0' h_c),
+                (fun _ => h_tail), (fun _ => by decide),
+                (fun ht sp_ne h_c sp_p₂ sp_t h_l₂ h_col =>
+                  h_fos.receivePropsNodeColon ht h_lead_p' h_run' h_lead0' h_c h_l₂ h_col),
+                (fun htl => Or.inr (h_colon_sc htl))⟩
+            · exact Or.inr trivial
+          · exact Or.inr trivial
+        · exact Or.inr trivial
+    rcases h_tuple.symm with - | ⟨tl₂, sp_flow₂, h_fos₂, h_lead₂, h_inj, h_ne_value, h_ne_sep, h_cinj, h_klay⟩
+    · exact shaped (dropClose (absorb_stacksB sp_start sp_gram sp_block sp_block
+        h_stream h_stack (FlowStackB.nil (n := 0) sp_block .sep)))
     split at h_dispatch
     · -- '[': NESTED PUSH, depth d+1 → d+2. The child seq frame's `inject` is
       -- `receiveNode` on the parent (folding the eventual child node + this
@@ -6095,9 +6360,9 @@ lemma accum_step_flow (sc : ScannerState)
       -- arms it (the pushed key sits above a `.value`), a receptive parent
       -- stores the `:`-receiving closure instead.
       obtain ⟨b_new, h_bprom, h_bkey⟩ : ∃ b_new,
-          (b_new = false → ∀ sp_ne, SFlowContent 0 .flowIn sp_prep sp_ne →
-            ∀ sp_p₂ sp_t, SSeparateLines 0 sp_ne sp_p₂ → GLit ':' sp_p₂ sp_t →
-            FlowOpenStack sp_start 0 (d + 1) ks km .colon sp_block sp_t) ∧
+          (b_new = false → ∀ sp_ne, SFlowContent nn .flowIn sp_prep sp_ne →
+            ∀ sp_p₂ sp_t, SSeparateLines nn sp_ne sp_p₂ → GLit ':' sp_p₂ sp_t →
+            FlowOpenStack sp_start nn (d + 1) ks km .colon sp_block sp_t) ∧
           (b_new = true → s_ad.simpleKey.possible = true ∧
             0 < s_ad.simpleKey.tokenIndex ∧
             (∃ tok, s_ad.tokens[s_ad.simpleKey.tokenIndex - 1]? = some tok ∧
@@ -6121,13 +6386,14 @@ lemma accum_step_flow (sc : ScannerState)
           ScannerFlowCollection.scanFlowSequenceStart_pushes_true, h_ad_ks,
           (tailOf_scanFlowSequenceStart _).1]
       exact ⟨sp_gram, sp_block, sp_tok, sp_tok, h_stream, h_stack,
-        ⟨km.push b_new,
+        ⟨nn, km.push b_new,
          .open (d + 1 + 1) (ks.push true) (km.push b_new) .sep sp_block sp_tok
           (.seqNest (d + 1) ks km b_new .sep sp_block sp_prep sp_tok sp_tok sp_tok
             h_bprom
             (h_inj h_tail)
             h_open_lit (GOpt.none sp_tok)
             (.betweenEmpty sp_tok)),
+         (by simp [h_ksz']),
          fun _ => ⟨km_push_at_open (by omega) h_km h_preprocess h_ad_def
              (ScannerCorrectness.scanFlowSequenceStart_stack_pushed s_ad)
              (ScannerCorrectness.scanFlowSequenceStart_simpleKey_cleared s_ad)
@@ -6179,7 +6445,7 @@ lemma accum_step_flow (sc : ScannerState)
                 have h_seq := SeqFrame.closeWithSep h_open h_sep st h_lead₂ h_lead₂ h_close_lit
                 rw [show (#[true] : Array Bool).pop = #[] from rfl]
                 exact ⟨sp_gram, sp_block, sp_block, sp_tok, h_stream, h_stack,
-                  ⟨#[], FlowStackB.nil sp_block _, fun h => absurd h (by omega)⟩,
+                  ⟨0, #[], FlowStackB.nil sp_block _, rfl, fun h => absurd h (by omega)⟩,
                   (fun _ => PendingNode.pendingContent sp_start sp_block sp_tok
                     (Or.inr ((restNodeStop_of_validateFlowClose hcorr_tok.end_eq
                       (by rw [h_fl']) hval).to_surface hcorr_tok))
@@ -6206,8 +6472,9 @@ lemma accum_step_flow (sc : ScannerState)
                     · exact absurd hpk (by simp))
                 rw [Array.pop_push]
                 refine ⟨sp_gram, sp_block, sp_tok, sp_tok, h_stream, h_stack,
-                  ⟨_, .open _ _ _ _ sp_block sp_tok (inject sp_tok
+                  ⟨nn, _, .open _ _ _ _ sp_block sp_tok (inject sp_tok
                     (SFlowContent.flowSeq _ _ _ _ h_seq)),
+                   (by simp at h_ksz'; omega),
                    fun _ => ⟨close_km_pop (by omega) h_km h_preprocess h_ad_def
                        (ScannerCorrectness.scanFlowSequenceEnd_stack_popped s_ad)
                        (ScannerCorrectness.scanFlowSequenceEnd_simpleKey_restored s_ad)
@@ -6228,10 +6495,14 @@ lemma accum_step_flow (sc : ScannerState)
                     h_ad_def (ScannerCorrectness.scanFlowSequenceEnd_simpleKey_restored s_ad)
                     rfl ⟨_, scanFlowSequenceEnd_tokens s_ad⟩ (Nat.le_of_lt h_off_lt) rfl)
                 | false =>
-                  exact Or.inr (fun sp_p' sp_t' h_l h_col =>
-                    .open _ _ _ _ sp_block sp_t'
-                      (promise hb sp_tok (SFlowContent.flowSeq _ _ _ _ h_seq)
-                        sp_p' sp_t' h_l h_col))
+                  exact Or.inr (fun sp_p' sp_t' h_l h_col => by
+                    rcases SSeparateLines_at nn h_l with h_l' | _
+                    · exact .open _ _ _ _ sp_block sp_t'
+                        (promise hb sp_tok (SFlowContent.flowSeq _ _ _ _ h_seq)
+                          sp_p' sp_t' h_l' h_col)
+                    · exact .shape _ _ _ _ _ _ (by omega)
+                        (dropClose (absorb_stacksB sp_start sp_gram sp_block sp_block
+                          h_stream h_stack (FlowStackB.nil (n := 0) sp_block .sep))))
               · -- mapNest + ']': kind-mismatched close (`{a]` nested). REFUTED.
                 simp at h_back
       · split at h_dispatch
@@ -6249,9 +6520,9 @@ lemma accum_step_flow (sc : ScannerState)
               (notCompletes_of_checkFlowAdjacency_ok h_adj h_ad_inflow ⟨by decide, by decide,
                 by decide, by decide⟩)
           obtain ⟨b_new, h_bprom, h_bkey⟩ : ∃ b_new,
-              (b_new = false → ∀ sp_ne, SFlowContent 0 .flowIn sp_prep sp_ne →
-                ∀ sp_p₂ sp_t, SSeparateLines 0 sp_ne sp_p₂ → GLit ':' sp_p₂ sp_t →
-                FlowOpenStack sp_start 0 (d + 1) ks km .colon sp_block sp_t) ∧
+              (b_new = false → ∀ sp_ne, SFlowContent nn .flowIn sp_prep sp_ne →
+                ∀ sp_p₂ sp_t, SSeparateLines nn sp_ne sp_p₂ → GLit ':' sp_p₂ sp_t →
+                FlowOpenStack sp_start nn (d + 1) ks km .colon sp_block sp_t) ∧
               (b_new = true → s_ad.simpleKey.possible = true ∧
                 0 < s_ad.simpleKey.tokenIndex ∧
                 (∃ tok, s_ad.tokens[s_ad.simpleKey.tokenIndex - 1]? = some tok ∧
@@ -6275,13 +6546,14 @@ lemma accum_step_flow (sc : ScannerState)
               ScannerFlowCollection.scanFlowMappingStart_pushes_false, h_ad_ks,
               (tailOf_scanFlowMappingStart _).1]
           exact ⟨sp_gram, sp_block, sp_tok, sp_tok, h_stream, h_stack,
-            ⟨km.push b_new,
+            ⟨nn, km.push b_new,
              .open (d + 1 + 1) (ks.push false) (km.push b_new) .sep sp_block sp_tok
               (.mapNest (d + 1) ks km b_new .sep sp_block sp_prep sp_tok sp_tok sp_tok
                 h_bprom
                 (h_inj h_tail)
                 h_open_lit (GOpt.none sp_tok)
                 (.betweenEmpty sp_tok)),
+             (by simp [h_ksz']),
              fun _ => ⟨km_push_at_open (by omega) h_km h_preprocess h_ad_def
                  (ScannerCorrectness.scanFlowMappingStart_stack_pushed s_ad)
                  (ScannerCorrectness.scanFlowMappingStart_simpleKey_cleared s_ad)
@@ -6331,7 +6603,7 @@ lemma accum_step_flow (sc : ScannerState)
                     have h_map := MapFrame.closeWithSep h_open h_sep st h_lead₂ h_lead₂ h_close_lit
                     rw [show (#[false] : Array Bool).pop = #[] from rfl]
                     exact ⟨sp_gram, sp_block, sp_block, sp_tok, h_stream, h_stack,
-                      ⟨#[], FlowStackB.nil sp_block _, fun h => absurd h (by omega)⟩,
+                      ⟨0, #[], FlowStackB.nil sp_block _, rfl, fun h => absurd h (by omega)⟩,
                       (fun _ => PendingNode.pendingContent sp_start sp_block sp_tok
                         (Or.inr ((restNodeStop_of_validateFlowClose hcorr_tok.end_eq
                           (by rw [h_fl']) hval).to_surface hcorr_tok))
@@ -6354,8 +6626,9 @@ lemma accum_step_flow (sc : ScannerState)
                         · exact absurd hpk (by simp))
                     rw [Array.pop_push]
                     refine ⟨sp_gram, sp_block, sp_tok, sp_tok, h_stream, h_stack,
-                      ⟨_, .open _ _ _ _ sp_block sp_tok (inject sp_tok
+                      ⟨nn, _, .open _ _ _ _ sp_block sp_tok (inject sp_tok
                         (SFlowContent.flowMap _ _ _ _ h_map)),
+                       (by simp at h_ksz'; omega),
                        fun _ => ⟨close_km_pop (by omega) h_km h_preprocess h_ad_def
                            (ScannerCorrectness.scanFlowMappingEnd_stack_popped s_ad)
                            (ScannerCorrectness.scanFlowMappingEnd_simpleKey_restored s_ad)
@@ -6374,10 +6647,14 @@ lemma accum_step_flow (sc : ScannerState)
                         h_ad_def (ScannerCorrectness.scanFlowMappingEnd_simpleKey_restored s_ad)
                         rfl ⟨_, scanFlowMappingEnd_tokens s_ad⟩ (Nat.le_of_lt h_off_lt) rfl)
                     | false =>
-                      exact Or.inr (fun sp_p' sp_t' h_l h_col =>
-                        .open _ _ _ _ sp_block sp_t'
-                          (promise hb sp_tok (SFlowContent.flowMap _ _ _ _ h_map)
-                            sp_p' sp_t' h_l h_col))
+                      exact Or.inr (fun sp_p' sp_t' h_l h_col => by
+                        rcases SSeparateLines_at nn h_l with h_l' | _
+                        · exact .open _ _ _ _ sp_block sp_t'
+                            (promise hb sp_tok (SFlowContent.flowMap _ _ _ _ h_map)
+                              sp_p' sp_t' h_l' h_col)
+                        · exact .shape _ _ _ _ _ _ (by omega)
+                            (dropClose (absorb_stacksB sp_start sp_gram sp_block sp_block
+                              h_stream h_stack (FlowStackB.nil (n := 0) sp_block .sep))))
           · split at h_dispatch
             · -- ',': HOLD, depth unchanged — finish any mid entry (trailing
               -- sep = this step's leading sep), land the frame in `held`.
@@ -6406,8 +6683,9 @@ lemma accum_step_flow (sc : ScannerState)
                   cases h_fos₂
                   · rename_i resume h_open h_sep st
                     exact ⟨sp_gram, sp_block, sp_tok, sp_tok, h_stream, h_stack,
-                      ⟨_, .open _ _ _ _ sp_block sp_tok (.seqBase _ _ _ _ _ _ _ resume h_open h_sep
+                      ⟨nn, _, .open _ _ _ _ sp_block sp_tok (.seqBase _ _ _ _ _ _ _ resume h_open h_sep
                         (st.holdComma h_tail h_lead₂ h_comma_lit)),
+                       h_ksz',
                        fun _ => ⟨comma_km_transport (by omega) h_km h_preprocess h_ad_def (by
                            have hpk := hpeek_ad.trans (preprocess_some_peek h_preprocess)
                            unfold ScannerState.peek? at hpk
@@ -6420,8 +6698,9 @@ lemma accum_step_flow (sc : ScannerState)
                         (scanFlowEntry_allowDirectives hfe).trans h_ad_false⟩⟩
                   · rename_i resume h_open h_sep st
                     exact ⟨sp_gram, sp_block, sp_tok, sp_tok, h_stream, h_stack,
-                      ⟨_, .open _ _ _ _ sp_block sp_tok (.mapBase _ _ _ _ _ _ _ resume h_open h_sep
+                      ⟨nn, _, .open _ _ _ _ sp_block sp_tok (.mapBase _ _ _ _ _ _ _ resume h_open h_sep
                         (st.holdComma h_tail h_lead₂ h_comma_lit)),
+                       h_ksz',
                        fun _ => ⟨comma_km_transport (by omega) h_km h_preprocess h_ad_def (by
                            have hpk := hpeek_ad.trans (preprocess_some_peek h_preprocess)
                            unfold ScannerState.peek? at hpk
@@ -6434,8 +6713,9 @@ lemma accum_step_flow (sc : ScannerState)
                         (scanFlowEntry_allowDirectives hfe).trans h_ad_false⟩⟩
                   · rename_i h_open h_sep promise inject st
                     exact ⟨sp_gram, sp_block, sp_tok, sp_tok, h_stream, h_stack,
-                      ⟨_, .open _ _ _ _ sp_block sp_tok (.seqNest _ _ _ _ _ _ _ _ _ _ promise inject h_open h_sep
+                      ⟨nn, _, .open _ _ _ _ sp_block sp_tok (.seqNest _ _ _ _ _ _ _ _ _ _ promise inject h_open h_sep
                         (st.holdComma h_tail h_lead₂ h_comma_lit)),
+                       h_ksz',
                        fun _ => ⟨comma_km_transport (by omega) h_km h_preprocess h_ad_def (by
                            have hpk := hpeek_ad.trans (preprocess_some_peek h_preprocess)
                            unfold ScannerState.peek? at hpk
@@ -6448,8 +6728,9 @@ lemma accum_step_flow (sc : ScannerState)
                         (scanFlowEntry_allowDirectives hfe).trans h_ad_false⟩⟩
                   · rename_i h_open h_sep promise inject st
                     exact ⟨sp_gram, sp_block, sp_tok, sp_tok, h_stream, h_stack,
-                      ⟨_, .open _ _ _ _ sp_block sp_tok (.mapNest _ _ _ _ _ _ _ _ _ _ promise inject h_open h_sep
+                      ⟨nn, _, .open _ _ _ _ sp_block sp_tok (.mapNest _ _ _ _ _ _ _ _ _ _ promise inject h_open h_sep
                         (st.holdComma h_tail h_lead₂ h_comma_lit)),
+                       h_ksz',
                        fun _ => ⟨comma_km_transport (by omega) h_km h_preprocess h_ad_def (by
                            have hpk := hpeek_ad.trans (preprocess_some_peek h_preprocess)
                            unfold ScannerState.peek? at hpk
@@ -8752,7 +9033,7 @@ lemma accum_step_block (sc : ScannerState)
         InteriorGap s' (tailOf s'.tokens) sp_flow' sp_scan' ∧
           LastTokenReal s'.tokens ∧ s'.allowDirectives = false) := by
   -- B.4β: the flow stack is indexed by the scanner's `flowLevel`.
-  obtain ⟨km, h_flow, h_kprom⟩ := h_flowK
+  obtain ⟨nn, km, h_flow, h_ksz, h_kprom⟩ := h_flowK
   rcases Nat.eq_zero_or_pos sc.flowLevel with h0 | hpos
   · -- depth 0 (no open flow collection): the existing depth-0 proof.
     rw [h0] at h_flow
@@ -8777,7 +9058,7 @@ lemma accum_step_block (sc : ScannerState)
       accum_block_pending sc sp_start sp_flow sp_scan s_prep s' c
         (absorb_stacksB sp_start sp_gram sp_block sp_flow h_stream h_stack h_flow)
         (h_pending h0) h_corr h_noflow h_preprocess h_dispatch
-    exact ⟨g', bl', fl', sn', q1, q2, ⟨#[], q3.retail, fun h => absurd h (by omega)⟩, fun _ => q4, q5,
+    exact ⟨g', bl', fl', sn', q1, q2, ⟨0, #[], q3.retail, rfl, fun h => absurd h (by omega)⟩, fun _ => q4, q5,
            fun h => absurd h (by omega)⟩
   · -- ═══ DEPTH ≥ 1: three arms — one free, one BUILT here, one NOT. ═══
     --
@@ -8822,8 +9103,12 @@ lemma accum_step_block (sc : ScannerState)
     have h_gap : InteriorGap sc tl sp_flow sp_scan := by
       rw [← htl]; exact (h_interior hpos).1
     rw [hd, hks, htl] at h_flow
-    have h_fos := h_flow.open_of_succ
+    have h_fos_or := h_flow.open_of_succ
     have h_km : KmSound sc km := (h_kprom hpos).1
+    have h_ksz' : ks.size = d + 1 := by rw [← hks, h_ksz, hd]
+    have h_stream_blk : SLYamlStream sp_start sp_block :=
+      absorb_stacksB sp_start sp_gram sp_block sp_block h_stream h_stack
+        (FlowStackB.nil (n := 0) sp_block .sep)
     unfold scanNextToken_dispatchBlockIndicators at h_dispatch
     simp only [bind, Except.bind, pure, Except.pure] at h_dispatch
     have hcorr_ad := corr_of_allowDirectives_update hcorr_prep
@@ -8910,9 +9195,15 @@ lemma accum_step_block (sc : ScannerState)
           have h_ks' : s_k.flowStack = ks := by
             rw [ScannerFlowStack.scanKey_preserves_flowStack s_ad s_k hk, h_ad_ks]
           rw [h_fl', h_ks', (tailOf_scanKey h_ad_inflow hk).1]
+          have h_stk : FlowStackB sp_start nn (d + 1) ks km .question sp_block sp_tok := by
+            rcases h_fos_or with h_fos | h_close_sh
+            · rcases SSeparateLines_at nn h_lead with h_lead' | _
+              · exact .open _ _ _ _ sp_block sp_tok
+                  (h_fos.receiveQuestion (htl_sep ▸ rfl) h_lead' h_q_lit)
+              · exact .shape _ _ _ _ _ _ (by omega) (dropClose h_stream_blk)
+            · exact .shape _ _ _ _ _ _ (by omega) h_close_sh
           exact ⟨sp_gram, sp_block, sp_tok, sp_tok, h_stream, h_stack,
-            ⟨km, .open _ _ _ _ sp_block sp_tok
-              (h_fos.receiveQuestion (htl_sep ▸ rfl) h_lead h_q_lit),
+            ⟨nn, km, h_stk, h_ksz',
              fun _ => ⟨scanKey_km_transport (by omega) h_ad_inflow h_km h_preprocess
                  h_ad_def (by
                    have hpk := hpeek_ad.trans (preprocess_some_peek h_preprocess)
@@ -9077,7 +9368,7 @@ lemma accum_step_block (sc : ScannerState)
                   h_colon_lit
                 rw [hd, hks] at h_cl
                 exact ⟨sp_gram, sp_block, sp_tok, sp_tok, h_stream, h_stack,
-                  ⟨km, h_cl, fun _ => ⟨h_km_v, fun hv => nomatch hv⟩⟩,
+                  ⟨nn, km, h_cl, h_ksz', fun _ => ⟨h_km_v, fun hv => nomatch hv⟩⟩,
                   nofun, hcorr_tok, h_bundle⟩
             | colon =>
               -- the `.colon` cells are scan-refuted, white and props alike
@@ -9093,33 +9384,65 @@ lemma accum_step_block (sc : ScannerState)
             | sep =>
               cases h_gap with
               | white h_ws h_sync_w h_colon_w =>
+                have h_stk : FlowStackB sp_start nn (d + 1) ks km .colon sp_block sp_tok := by
+                  rcases h_fos_or with h_fos | h_close_sh
+                  · rcases SSeparateLines_at nn
+                        (SSeparateLines_prepend_white h_ws h_lead0) with h_lead' | _
+                    · exact .open _ _ _ _ sp_block sp_tok
+                        (h_fos.receiveColonSep h_tl_case h_lead' h_colon_lit)
+                    · exact .shape _ _ _ _ _ _ (by omega) (dropClose h_stream_blk)
+                  · exact .shape _ _ _ _ _ _ (by omega) h_close_sh
                 exact ⟨sp_gram, sp_block, sp_tok, sp_tok, h_stream, h_stack,
-                  ⟨km, .open _ _ _ _ sp_block sp_tok
-                    (h_fos.receiveColonSep h_tl_case
-                      (SSeparateLines_prepend_white h_ws h_lead0) h_colon_lit),
+                  ⟨nn, km, h_stk, h_ksz',
                    fun _ => ⟨h_km_v, fun hv => nomatch hv⟩⟩,
                   nofun, hcorr_tok, h_bundle⟩
               | props ha ht sp_p h_tail_p h_lead_p h_run_p _ _ h_colon_p =>
+                have h_stk : FlowStackB sp_start nn (d + 1) ks km .colon sp_block sp_tok := by
+                  rcases h_fos_or with h_fos | h_close_sh
+                  · rcases SSeparateLines_at nn h_lead_p with h_lead_p' | _
+                    · rcases PropsRun_at nn h_run_p with h_run_p' | _
+                      · rcases SSeparateLines_at nn h_lead0 with h_lead0' | _
+                        · exact .open _ _ _ _ sp_block sp_tok
+                            (h_fos.receiveColonPropsSep h_tl_case h_lead_p' h_run_p'
+                              (GOpt.some _ _ h_lead0') h_colon_lit)
+                        · exact .shape _ _ _ _ _ _ (by omega) (dropClose h_stream_blk)
+                      · exact .shape _ _ _ _ _ _ (by omega) (dropClose h_stream_blk)
+                    · exact .shape _ _ _ _ _ _ (by omega) (dropClose h_stream_blk)
+                  · exact .shape _ _ _ _ _ _ (by omega) h_close_sh
                 exact ⟨sp_gram, sp_block, sp_tok, sp_tok, h_stream, h_stack,
-                  ⟨km, .open _ _ _ _ sp_block sp_tok
-                    (h_fos.receiveColonPropsSep h_tl_case h_lead_p h_run_p
-                      (GOpt.some _ _ h_lead0) h_colon_lit),
+                  ⟨nn, km, h_stk, h_ksz',
                    fun _ => ⟨h_km_v, fun hv => nomatch hv⟩⟩,
                   nofun, hcorr_tok, h_bundle⟩
             | question =>
               cases h_gap with
               | white h_ws h_sync_w h_colon_w =>
+                have h_stk : FlowStackB sp_start nn (d + 1) ks km .colon sp_block sp_tok := by
+                  rcases h_fos_or with h_fos | h_close_sh
+                  · rcases SSeparateLines_at nn
+                        (SSeparateLines_prepend_white h_ws h_lead0) with h_lead' | _
+                    · exact .open _ _ _ _ sp_block sp_tok
+                        (h_fos.receiveColonQuestion h_tl_case h_lead' h_colon_lit)
+                    · exact .shape _ _ _ _ _ _ (by omega) (dropClose h_stream_blk)
+                  · exact .shape _ _ _ _ _ _ (by omega) h_close_sh
                 exact ⟨sp_gram, sp_block, sp_tok, sp_tok, h_stream, h_stack,
-                  ⟨km, .open _ _ _ _ sp_block sp_tok
-                    (h_fos.receiveColonQuestion h_tl_case
-                      (SSeparateLines_prepend_white h_ws h_lead0) h_colon_lit),
+                  ⟨nn, km, h_stk, h_ksz',
                    fun _ => ⟨h_km_v, fun hv => nomatch hv⟩⟩,
                   nofun, hcorr_tok, h_bundle⟩
               | props ha ht sp_p h_tail_p h_lead_p h_run_p _ _ h_colon_p =>
+                have h_stk : FlowStackB sp_start nn (d + 1) ks km .colon sp_block sp_tok := by
+                  rcases h_fos_or with h_fos | h_close_sh
+                  · rcases SSeparateLines_at nn h_lead_p with h_lead_p' | _
+                    · rcases PropsRun_at nn h_run_p with h_run_p' | _
+                      · rcases SSeparateLines_at nn h_lead0 with h_lead0' | _
+                        · exact .open _ _ _ _ sp_block sp_tok
+                            (h_fos.receiveColonPropsQuestion h_tl_case h_lead_p' h_run_p'
+                              (GOpt.some _ _ h_lead0') h_colon_lit)
+                        · exact .shape _ _ _ _ _ _ (by omega) (dropClose h_stream_blk)
+                      · exact .shape _ _ _ _ _ _ (by omega) (dropClose h_stream_blk)
+                    · exact .shape _ _ _ _ _ _ (by omega) (dropClose h_stream_blk)
+                  · exact .shape _ _ _ _ _ _ (by omega) h_close_sh
                 exact ⟨sp_gram, sp_block, sp_tok, sp_tok, h_stream, h_stack,
-                  ⟨km, .open _ _ _ _ sp_block sp_tok
-                    (h_fos.receiveColonPropsQuestion h_tl_case h_lead_p h_run_p
-                      (GOpt.some _ _ h_lead0) h_colon_lit),
+                  ⟨nn, km, h_stk, h_ksz',
                    fun _ => ⟨h_km_v, fun hv => nomatch hv⟩⟩,
                   nofun, hcorr_tok, h_bundle⟩
         · -- fallthrough: dispatch returns `.ok none`, not `.ok (some s')`.
@@ -12786,7 +13109,7 @@ lemma accum_step_content (sc : ScannerState)
         InteriorGap s' (tailOf s'.tokens) sp_flow' sp_scan' ∧
           LastTokenReal s'.tokens ∧ s'.allowDirectives = false) := by
   -- B.4β: the flow stack is indexed by the scanner's `flowLevel`.
-  obtain ⟨km, h_flow, h_kprom⟩ := h_flowK
+  obtain ⟨nn, km, h_flow, h_ksz, h_kprom⟩ := h_flowK
   rcases Nat.eq_zero_or_pos sc.flowLevel with h0 | hpos
   · -- depth 0 (no open flow collection): the existing depth-0 proof.
     rw [h0] at h_flow
@@ -12804,7 +13127,7 @@ lemma accum_step_content (sc : ScannerState)
       accum_content_pending sc sp_start sp_flow sp_scan h0 s_prep s' c
         (absorb_stacksB sp_start sp_gram sp_block sp_flow h_stream h_stack h_flow)
         (h_pending h0) h_corr h_preprocess h_not_doc h_dispatch
-    exact ⟨g', bl', fl', sn', q1, q2, ⟨#[], q3.retail, fun h => absurd h (by omega)⟩, fun _ => q4, q5,
+    exact ⟨g', bl', fl', sn', q1, q2, ⟨0, #[], q3.retail, rfl, fun h => absurd h (by omega)⟩, fun _ => q4, q5,
            fun h => absurd h (by omega)⟩
   · -- ═══ DEPTH ≥ 1: the four value-completing arms CLOSE; `&`/`!` do not. ═══
     -- The route is `FlowOpenStack.receiveNode`, and four scanner gaps had to be
@@ -12865,8 +13188,12 @@ lemma accum_step_content (sc : ScannerState)
     have h_gap : InteriorGap sc tl sp_flow sp_scan := by
       rw [← htl]; exact (h_interior hpos).1
     rw [hd, hks, htl] at h_flow
-    have h_fos := h_flow.open_of_succ
+    have h_fos_or := h_flow.open_of_succ
     have h_km : KmSound sc km := (h_kprom hpos).1
+    have h_ksz' : ks.size = d + 1 := by rw [← hks, h_ksz, hd]
+    have h_stream_blk : SLYamlStream sp_start sp_block :=
+      absorb_stacksB sp_start sp_gram sp_block sp_block h_stream h_stack
+        (FlowStackB.nil (n := 0) sp_block .sep)
     have hcorr_ad := corr_of_allowDirectives_update hcorr_prep
     have hpeek_ad : (if s_prep.allowDirectives = true then
         { s_prep with allowDirectives := false, documentEverStarted := true }
@@ -12937,8 +13264,12 @@ lemma accum_step_content (sc : ScannerState)
         have h_real' : LastTokenReal s'.tokens := by
           rw [hname]; exact (tailOf_push_prop (by simp) (by simp [YamlToken.isNodeProperty])).2
         rw [h_fl', h_ks', h_tl']
+        have h_stk : FlowStackB sp_start nn (d + 1) ks km tl sp_block sp_flow := by
+          rcases h_fos_or with h_fos | h_close_sh
+          · exact .open (d + 1) ks km tl sp_block sp_flow h_fos
+          · exact .shape _ _ _ _ _ _ (by omega) h_close_sh
         exact ⟨sp_gram, sp_block, sp_flow, sp_new, h_stream, h_stack,
-          ⟨km, .open (d + 1) ks km tl sp_block sp_flow h_fos,
+          ⟨nn, km, h_stk, h_ksz',
            fun _ => ⟨content_km_transport hpos h_km h_preprocess h_ad_def h_dispatch
                ⟨congrArg SimpleKeyState.possible (dispatchContent_anchor_simpleKey h_dispatch).1,
                 congrArg SimpleKeyState.tokenIndex (dispatchContent_anchor_simpleKey h_dispatch).1⟩
@@ -12994,8 +13325,12 @@ lemma accum_step_content (sc : ScannerState)
           have h_real' : LastTokenReal s'.tokens := by
             rw [hname]; exact (tailOf_push_prop (by simp) (by simp [YamlToken.isNodeProperty])).2
           rw [h_fl', h_ks', h_tl']
+          have h_stk : FlowStackB sp_start nn (d + 1) ks km tl sp_block sp_flow := by
+            rcases h_fos_or with h_fos | h_close_sh
+            · exact .open (d + 1) ks km tl sp_block sp_flow h_fos
+            · exact .shape _ _ _ _ _ _ (by omega) h_close_sh
           exact ⟨sp_gram, sp_block, sp_flow, sp_new, h_stream, h_stack,
-            ⟨km, .open (d + 1) ks km tl sp_block sp_flow h_fos,
+            ⟨nn, km, h_stk, h_ksz',
              fun _ => ⟨content_km_transport hpos h_km h_preprocess h_ad_def h_dispatch
                  ⟨congrArg SimpleKeyState.possible (dispatchContent_tag_simpleKey h_dispatch).1,
                   congrArg SimpleKeyState.tokenIndex (dispatchContent_tag_simpleKey h_dispatch).1⟩
@@ -13070,26 +13405,52 @@ lemma accum_step_content (sc : ScannerState)
           -- parent — the fresh key now sits above its `:` and the next `:` is
           -- scan-refuted) or lands mid-entry (`.sep`/`.question` parent — the
           -- `:`-receiving closure is `receiveNodeColon`).
+          rw [h_fl', h_ks', h_tl']
+          have shape_out : (∀ sp_e sp_m, SSLComments sp_e sp_m → SLYamlStream sp_start sp_m) →
+              ∃ sp_gram' sp_block' sp_flow' sp_scan',
+                SLYamlStream sp_start sp_gram' ∧
+                BlockStack sp_gram' sp_block' ∧
+                FlowStackK sp_start s' (d + 1) ks .value sp_block' sp_flow' ∧
+                ((d + 1) = 0 → PendingNode s' false sp_start sp_flow' sp_scan') ∧
+                ScannerSurfCorr s' sp_scan' ∧
+                ((d + 1) ≥ 1 →
+                  InteriorGap s' .value sp_flow' sp_scan' ∧
+                    LastTokenReal s'.tokens ∧ s'.allowDirectives = false) :=
+            fun close =>
+              ⟨sp_gram, sp_block, sp_ne, sp_res, h_stream, h_stack,
+               FlowStackK.collapse #[] (by omega) h_ksz' (KmSound.empty _) close,
+               (fun h => absurd h (by omega)), hcorr_res,
+               fun _ => ⟨.white h_ws h_sync' nofun, h_real', h_ad'⟩⟩
+          rcases h_fos_or.symm with h_close_sh | h_fos
+          · exact shape_out h_close_sh
+          rcases (SSeparateLines_at nn h_lead).symm with - | h_lead'
+          · exact shape_out (dropClose h_stream_blk)
+          rcases (SFlowNode_at nn h_node).symm with - | h_node'
+          · exact shape_out (dropClose h_stream_blk)
           have h_entry : KeyAfterValueLayout s' ∨
               ∀ sp_p' sp_t', SSeparateLines 0 sp_ne sp_p' → GLit ':' sp_p' sp_t' →
-                FlowStackB sp_start 0 (d + 1) ks km .colon sp_block sp_t' := by
+                FlowStackB sp_start nn (d + 1) ks km .colon sp_block sp_t' := by
             cases h_tl_case : tl with
             | value => exact absurd h_tl_case h_tail
             | colon =>
               exact Or.inl (content_value_layout hpos (Or.inl (h_colon_sc h_tl_case))
                 h_preprocess h_ad_def h_dispatch hamp hbang hnotPipe hnotGt h_off_gt)
             | sep =>
-              exact Or.inr (fun sp_p' sp_t' h_l h_col =>
-                .open _ _ _ _ sp_block sp_t'
-                  (h_fos.receiveNodeColon (h_tl_case ▸ Or.inl rfl) h_lead h_node h_l h_col))
+              exact Or.inr (fun sp_p' sp_t' h_l h_col => by
+                rcases SSeparateLines_at nn h_l with h_l' | _
+                · exact .open _ _ _ _ sp_block sp_t'
+                    (h_fos.receiveNodeColon (h_tl_case ▸ Or.inl rfl) h_lead' h_node' h_l' h_col)
+                · exact .shape _ _ _ _ _ _ (by omega) (dropClose h_stream_blk))
             | question =>
-              exact Or.inr (fun sp_p' sp_t' h_l h_col =>
-                .open _ _ _ _ sp_block sp_t'
-                  (h_fos.receiveNodeColon (h_tl_case ▸ Or.inr rfl) h_lead h_node h_l h_col))
-          rw [h_fl', h_ks', h_tl']
+              exact Or.inr (fun sp_p' sp_t' h_l h_col => by
+                rcases SSeparateLines_at nn h_l with h_l' | _
+                · exact .open _ _ _ _ sp_block sp_t'
+                    (h_fos.receiveNodeColon (h_tl_case ▸ Or.inr rfl) h_lead' h_node' h_l' h_col)
+                · exact .shape _ _ _ _ _ _ (by omega) (dropClose h_stream_blk))
           exact ⟨sp_gram, sp_block, sp_ne, sp_res, h_stream, h_stack,
-            ⟨km, .open (d + 1) ks km .value sp_block sp_ne
-              (FlowOpenStack.receiveNode h_fos h_tail h_lead sp_ne h_node),
+            ⟨nn, km, .open (d + 1) ks km .value sp_block sp_ne
+              (FlowOpenStack.receiveNode h_fos h_tail h_lead' sp_ne h_node'),
+             h_ksz',
              fun _ => ⟨content_km_transport hpos h_km h_preprocess h_ad_def h_dispatch
                  ⟨((dispatchContent_value_key_facts h_dispatch hamp hbang hnotPipe hnotGt).1).1,
                   ((dispatchContent_value_key_facts h_dispatch hamp hbang hnotPipe hnotGt).1).2.1⟩
@@ -13156,8 +13517,12 @@ lemma accum_step_content (sc : ScannerState)
         have h_real' : LastTokenReal s'.tokens := by
           rw [hname]; exact (tailOf_push_prop (by simp) (by simp [YamlToken.isNodeProperty])).2
         rw [h_fl', h_ks', h_tl']
+        have h_stk : FlowStackB sp_start nn (d + 1) ks km tl sp_block sp_flow := by
+          rcases h_fos_or with h_fos | h_close_sh
+          · exact .open (d + 1) ks km tl sp_block sp_flow h_fos
+          · exact .shape _ _ _ _ _ _ (by omega) h_close_sh
         exact ⟨sp_gram, sp_block, sp_flow, sp_new, h_stream, h_stack,
-          ⟨km, .open (d + 1) ks km tl sp_block sp_flow h_fos,
+          ⟨nn, km, h_stk, h_ksz',
            fun _ => ⟨content_km_transport hpos h_km h_preprocess h_ad_def h_dispatch
                ⟨congrArg SimpleKeyState.possible (dispatchContent_anchor_simpleKey h_dispatch).1,
                 congrArg SimpleKeyState.tokenIndex (dispatchContent_anchor_simpleKey h_dispatch).1⟩
@@ -13242,8 +13607,12 @@ lemma accum_step_content (sc : ScannerState)
           have h_real' : LastTokenReal s'.tokens := by
             rw [hname]; exact (tailOf_push_prop (by simp) (by simp [YamlToken.isNodeProperty])).2
           rw [h_fl', h_ks', h_tl']
+          have h_stk : FlowStackB sp_start nn (d + 1) ks km tl sp_block sp_flow := by
+            rcases h_fos_or with h_fos | h_close_sh
+            · exact .open (d + 1) ks km tl sp_block sp_flow h_fos
+            · exact .shape _ _ _ _ _ _ (by omega) h_close_sh
           exact ⟨sp_gram, sp_block, sp_flow, sp_new, h_stream, h_stack,
-            ⟨km, .open (d + 1) ks km tl sp_block sp_flow h_fos,
+            ⟨nn, km, h_stk, h_ksz',
              fun _ => ⟨content_km_transport hpos h_km h_preprocess h_ad_def h_dispatch
                  ⟨congrArg SimpleKeyState.possible (dispatchContent_tag_simpleKey h_dispatch).1,
                   congrArg SimpleKeyState.tokenIndex (dispatchContent_tag_simpleKey h_dispatch).1⟩
@@ -13332,28 +13701,58 @@ lemma accum_step_content (sc : ScannerState)
             -- item 10: a run-decorated node at a `.colon` parent completes the
             -- entry (`[a: &x b` — the pre-run reservation now guards the next
             -- `:`); at a receptive parent the closure wraps the run.
+            rw [h_fl', h_ks', h_tl']
+            have shape_out : (∀ sp_e sp_m, SSLComments sp_e sp_m → SLYamlStream sp_start sp_m) →
+                ∃ sp_gram' sp_block' sp_flow' sp_scan',
+                  SLYamlStream sp_start sp_gram' ∧
+                  BlockStack sp_gram' sp_block' ∧
+                  FlowStackK sp_start s' (d + 1) ks .value sp_block' sp_flow' ∧
+                  ((d + 1) = 0 → PendingNode s' false sp_start sp_flow' sp_scan') ∧
+                  ScannerSurfCorr s' sp_scan' ∧
+                  ((d + 1) ≥ 1 →
+                    InteriorGap s' .value sp_flow' sp_scan' ∧
+                      LastTokenReal s'.tokens ∧ s'.allowDirectives = false) :=
+              fun close =>
+                ⟨sp_gram, sp_block, sp_ne, sp_res, h_stream, h_stack,
+                 FlowStackK.collapse #[] (by omega) h_ksz' (KmSound.empty _) close,
+                 (fun h => absurd h (by omega)), hcorr_res,
+                 fun _ => ⟨.white h_ws h_sync' nofun, h_real', h_ad'⟩⟩
+            rcases h_fos_or.symm with h_close_sh | h_fos
+            · exact shape_out h_close_sh
+            rcases (SSeparateLines_at nn h_lead_p).symm with - | h_lead_p'
+            · exact shape_out (dropClose h_stream_blk)
+            rcases (PropsRun_at nn h_run).symm with - | h_run'
+            · exact shape_out (dropClose h_stream_blk)
+            rcases (SSeparateLines_at nn h_lead0).symm with - | h_lead0'
+            · exact shape_out (dropClose h_stream_blk)
+            rcases (SFlowContent_at nn h_content).symm with - | h_content'
+            · exact shape_out (dropClose h_stream_blk)
             have h_entry : KeyAfterValueLayout s' ∨
                 ∀ sp_p' sp_t', SSeparateLines 0 sp_ne sp_p' → GLit ':' sp_p' sp_t' →
-                  FlowStackB sp_start 0 (d + 1) ks km .colon sp_block sp_t' := by
+                  FlowStackB sp_start nn (d + 1) ks km .colon sp_block sp_t' := by
               cases h_tl_case : tl with
               | value => exact absurd h_tl_case h_tail
               | colon =>
                 exact Or.inl (content_value_layout hpos (Or.inr (h_colon_sc h_tl_case))
                   h_preprocess h_ad_def h_dispatch hamp hbang hnotPipe hnotGt h_off_gt)
               | sep =>
-                exact Or.inr (fun sp_p' sp_t' h_l h_col =>
-                  .open _ _ _ _ sp_block sp_t'
-                    (h_fos.receivePropsNodeColon (h_tl_case ▸ Or.inl rfl) h_lead_p h_run
-                      h_lead0 h_content h_l h_col))
+                exact Or.inr (fun sp_p' sp_t' h_l h_col => by
+                  rcases SSeparateLines_at nn h_l with h_l' | _
+                  · exact .open _ _ _ _ sp_block sp_t'
+                      (h_fos.receivePropsNodeColon (h_tl_case ▸ Or.inl rfl) h_lead_p' h_run'
+                        h_lead0' h_content' h_l' h_col)
+                  · exact .shape _ _ _ _ _ _ (by omega) (dropClose h_stream_blk))
               | question =>
-                exact Or.inr (fun sp_p' sp_t' h_l h_col =>
-                  .open _ _ _ _ sp_block sp_t'
-                    (h_fos.receivePropsNodeColon (h_tl_case ▸ Or.inr rfl) h_lead_p h_run
-                      h_lead0 h_content h_l h_col))
-            rw [h_fl', h_ks', h_tl']
+                exact Or.inr (fun sp_p' sp_t' h_l h_col => by
+                  rcases SSeparateLines_at nn h_l with h_l' | _
+                  · exact .open _ _ _ _ sp_block sp_t'
+                      (h_fos.receivePropsNodeColon (h_tl_case ▸ Or.inr rfl) h_lead_p' h_run'
+                        h_lead0' h_content' h_l' h_col)
+                  · exact .shape _ _ _ _ _ _ (by omega) (dropClose h_stream_blk))
             exact ⟨sp_gram, sp_block, sp_ne, sp_res, h_stream, h_stack,
-              ⟨km, .open (d + 1) ks km .value sp_block sp_ne
-                (h_fos.receivePropsContent h_tail h_lead_p h_run h_lead0 h_content),
+              ⟨nn, km, .open (d + 1) ks km .value sp_block sp_ne
+                (h_fos.receivePropsContent h_tail h_lead_p' h_run' h_lead0' h_content'),
+               h_ksz',
                fun _ => ⟨content_km_transport hpos h_km h_preprocess h_ad_def h_dispatch
                    ⟨((dispatchContent_value_key_facts h_dispatch hamp hbang hnotPipe hnotGt).1).1,
                     ((dispatchContent_value_key_facts h_dispatch hamp hbang hnotPipe hnotGt).1).2.1⟩
@@ -13497,7 +13896,7 @@ lemma scanNextToken_none_stream (sc : ScannerState)
   -- `unterminatedFlowCollection` BEFORE reaching here, so the caller supplies
   -- `h_fl0`. (`scanNextToken sc = .ok none` on its own does NOT rule the case
   -- out — `[a, b` reaches EOF happily; it is the loop's post-check that fails.)
-  obtain ⟨km, h_flow, -⟩ := h_flowK
+  obtain ⟨nn, km, h_flow, -, -⟩ := h_flowK
   rw [h_fl0] at h_flow
   unfold scanNextToken at h_ok
   simp only [bind, Except.bind, pure, Except.pure] at h_ok
@@ -13682,10 +14081,14 @@ lemma scan_content_gives_stream_v2
   split
   · rw [consumeBOM_flowLevel, ScannerCorrectness.consumeBOM_preserves_flowStack,
         ScannerCorrectness.emit_preserves_flowStack]
-    exact ⟨#[], FlowStackB.nil sp _, fun h => absurd h (by
+    exact ⟨0, #[], FlowStackB.nil sp _,
+      (by simp [ScannerCorrectness.emit_preserves_flowLevel, ScannerState.mk']),
+      fun h => absurd h (by
       simp [ScannerCorrectness.emit_preserves_flowLevel, ScannerState.mk'])⟩
   · rw [ScannerCorrectness.emit_preserves_flowStack]
-    exact ⟨#[], FlowStackB.nil sp _, fun h => absurd h (by
+    exact ⟨0, #[], FlowStackB.nil sp _,
+      (by simp [ScannerCorrectness.emit_preserves_flowLevel, ScannerState.mk']),
+      fun h => absurd h (by
       simp [ScannerCorrectness.emit_preserves_flowLevel, ScannerState.mk'])⟩
 
 /-! ## §6 Gap Analysis (historical — file is sorry-free)
