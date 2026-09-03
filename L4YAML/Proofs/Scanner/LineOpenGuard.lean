@@ -1552,4 +1552,91 @@ lemma dispatchContent_restNoOpen {s s' : ScannerState} {c : Char}
   (dispatchContent_restNodeStop hflow hna hnt hend' hok).imp id
     (RestStop.mono (fun _ => NodeStop.toNoOpenHead))
 
+/-- A character outside `[204]`/§7.5's stop families, except the `:` — the
+    component form `dispatchContent_ok_charFacts` supplies branchwise. -/
+private lemma nodeStop_colon_of_class {c : Char}
+    (hhash : c ≠ '#') (hbr : isLineBreakBool c = false)
+    (hp : isPrintableBool c = true) (hbom : c ≠ '﻿') :
+    NodeStop c → c = ':' := by
+  rintro (((hb | hh) | hc) | (hn | hb2))
+  · rw [hbr] at hb; cases hb
+  · exact absurd hh hhash
+  · exact hc
+  · rw [hp] at hn; cases hn
+  · exact absurd hb2 hbom
+
+/-- **The dispatch's own character class** (item 42).  A content dispatch that
+    returns `.ok` read one of the seven construct heads (`&`, `*`, `!`, `|`,
+    `>`, `"`, `'`) or a `[126] ns-plain-first` character.  None of these is
+    white or a break, and the only one `NodeStop` admits is the `:` whose
+    follower is non-blank (`[126]`'s exception list) — a `#`, a non-printable
+    and the BOM are all refused by the dispatch itself (`unexpectedChar`), so
+    the question item 36 answered with `commentOk` never has to be asked: a
+    park whose line stops at `TailSuffix` hands this dispatch NO same-line
+    character at all, and one whose line stops at `NodeStop` hands it exactly
+    `[154]`'s `:`. -/
+lemma dispatchContent_ok_charFacts {s s' : ScannerState} {c : Char}
+    (hok : scanNextToken_dispatchContent s c = .ok s') :
+    ¬(c = ' ' ∨ c = '\t') ∧ (NodeStop c → c = ':') := by
+  unfold scanNextToken_dispatchContent at hok
+  simp only [bind, Except.bind, pure, Except.pure] at hok
+  split at hok
+  · rename_i h_eq
+    have hc : c = '&' := by simpa using h_eq
+    subst hc
+    exact ⟨by decide, nodeStop_colon_of_class (by decide) (by decide) (by decide) (by decide)⟩
+  · split at hok
+    · rename_i h_eq
+      have hc : c = '*' := by simpa using h_eq
+      subst hc
+      exact ⟨by decide, nodeStop_colon_of_class (by decide) (by decide) (by decide) (by decide)⟩
+    · split at hok
+      · rename_i h_eq
+        have hc : c = '!' := by simpa using h_eq
+        subst hc
+        exact ⟨by decide, nodeStop_colon_of_class (by decide) (by decide) (by decide) (by decide)⟩
+      · split at hok
+        · rename_i h_eq
+          have hc : c = '|' ∨ c = '>' := by simpa using h_eq
+          rcases hc with rfl | rfl <;>
+            exact ⟨by decide, nodeStop_colon_of_class (by decide) (by decide) (by decide) (by decide)⟩
+        · split at hok
+          · rename_i h_eq
+            have hc : c = '"' := by simpa using h_eq
+            subst hc
+            exact ⟨by decide, nodeStop_colon_of_class (by decide) (by decide) (by decide) (by decide)⟩
+          · split at hok
+            · rename_i h_eq
+              have hc : c = '\'' := by simpa using h_eq
+              subst hc
+              exact ⟨by decide, nodeStop_colon_of_class (by decide) (by decide) (by decide) (by decide)⟩
+            · split at hok
+              · rename_i h_can
+                unfold canStartPlainScalarBool at h_can
+                split at h_can
+                · rename_i h3
+                  refine ⟨by rcases h3 with rfl | rfl | rfl <;> decide, ?_⟩
+                  intro h
+                  rcases h3 with rfl | rfl | rfl
+                  · exact (NodeStop.not_dash_or_question h (Or.inl rfl)).elim
+                  · exact (NodeStop.not_dash_or_question h (Or.inr rfl)).elim
+                  · rfl
+                · simp only [Bool.and_eq_true, Bool.not_eq_true', bne_iff_ne, ne_eq] at h_can
+                  obtain ⟨⟨⟨⟨hind, hws⟩, hbr⟩, hp⟩, hbom⟩ := h_can
+                  refine ⟨?_, nodeStop_colon_of_class ?_ hbr hp hbom⟩
+                  · rintro (rfl | rfl) <;> exact absurd hws (by decide)
+                  · rintro rfl; exact absurd hind (by decide)
+              · simp at hok
+
+/-- `[204]`'s reading of the same fact: the dispatch never returns `.ok` on a
+    `TailSuffix` character (a break or a `#`). -/
+lemma dispatchContent_ok_not_tailSuffix {s s' : ScannerState} {c : Char}
+    (hok : scanNextToken_dispatchContent s c = .ok s')
+    (hts : TailSuffix c) : False := by
+  have hc := (dispatchContent_ok_charFacts hok).2 hts.toNodeTail.toNodeStop
+  subst hc
+  rcases hts with hb | hh
+  · exact absurd hb (by decide)
+  · exact absurd hh (by decide)
+
 end L4YAML.Proofs.LineOpenGuard

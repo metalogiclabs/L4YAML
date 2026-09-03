@@ -7784,6 +7784,37 @@ lemma nodeStop_residue_is_colon {sp_scan : SurfPos} {c : Char}
   · exact h_res
   · exact (nodeStop_refutes_inline_residue h_line (Or.inr rfl) h_res).elim
 
+/-- **`...` never parks in front of the CONTENT dispatch either** (item 42).
+    The block-indicator refutation above met `[204]`'s allowlist with the three
+    indicators; here the dispatch's own character class does the whole job:
+    `[204]` stops the marker's line at a break or a `#`, and
+    `scanNextToken_dispatchContent` returns `.ok` on neither. -/
+lemma docEnd_refutes_content_residue {sp_scan : SurfPos} {c : Char}
+    {s s' : ScannerState}
+    (h_line : sp_scan.col = 0 ∨ LineTailSuffix sp_scan.chars)
+    (h_dispatch : scanNextToken_dispatchContent s c = .ok s')
+    (h_res : InlineResidue sp_scan c) : False := by
+  obtain ⟨hcol, sp_ws, hws, h_head⟩ := h_res
+  exact dispatchContent_ok_not_tailSuffix h_dispatch
+    ((h_line.resolve_left hcol).across_whites hws h_head
+      (dispatchContent_ok_charFacts h_dispatch).1)
+
+/-- **…and at a complete node's park the content residue IS the `:`**
+    (item 42, §7.5's rung at the content dispatch).  The `-`/`?` never reach
+    this dispatch (they are the block indicators'), so what the stop set
+    leaves is the `:` whose follower is non-blank — `"a" :b`, `[1] :b` —
+    which the scanner reads as a plain-scalar head and the parser refuses:
+    row 19's over-acceptance, not a state to refute here. -/
+lemma nodeStop_content_residue_is_colon {sp_scan : SurfPos} {c : Char}
+    {s s' : ScannerState}
+    (h_line : sp_scan.col = 0 ∨ LineNodeStop sp_scan.chars)
+    (h_dispatch : scanNextToken_dispatchContent s c = .ok s')
+    (h_res : InlineResidue sp_scan c) : c = ':' := by
+  obtain ⟨hcol, sp_ws, hws, h_head⟩ := h_res
+  exact (dispatchContent_ok_charFacts h_dispatch).2
+    ((h_line.resolve_left hcol).across_whites hws h_head
+      (dispatchContent_ok_charFacts h_dispatch).1)
+
 
 -- Deferred sorry: constructs pendingFlow with stream evidence.
 -- Concentrates all block-dispatch catch-all sorry into close_with_ssl.
@@ -11776,20 +11807,52 @@ lemma accum_content_pending (sc : ScannerState)
   -- the closing closure places the stream at the content's line start.
   have h_keyctx := keyctx_of_preprocess sc sp_scan sp_prep s_prep c h_corr hcorr_prep
     h_close_pending h_preprocess
-  cases h_pending with
-  | noPending =>
-    exact accum_content_on_noPending sc sp_start sp_block s_prep s' c sp_prep sp_scan'
-      h_stream_block hcorr_prep hcorr_result h_corr h_preprocess h_not_doc h_flow_disp h_dispatch
-  | pendingDocEnd _ _
-  | pendingDocStart _
-  | pendingContent _ _ _
-  | pendingFlow _
-  | pendingBlockContent _ _ _ _ _ =>
-    all_goals (
-      by_cases hcol : sp_scan.col = 0
-      · obtain ⟨sp_mid, sp_ws, sp_prep2, h_ssl, hcol_mid, h_ws, h_cmt, hcorr_prep2, h_pk⟩ :=
-          preprocess_some_ssl_comments_col0 sc sp_scan s_prep c h_corr hcol h_preprocess
-        have hsp_eq2 := ScannerSurfCorr_unique hcorr_prep hcorr_prep2; subst hsp_eq2
+  -- ═══ Item 42: the shared landing skeleton, factored.  The column-0 and
+  -- break-crossed landings CLOSE the pending identically for every parked
+  -- constructor (`close_with_ssl` + `content_dispatch_after_close`); only the
+  -- no-break arm reads the pending's own line fact, so it is the one thing
+  -- each constructor supplies.  The continuation receives the landing pieces
+  -- the residue lemmas consume: the off-column park, the crossed whites, and
+  -- the peek disjunct that pins the dispatch character at their end. ═══
+  have h_defer_split :
+      (sp_scan.col ≠ 0 → ∀ sp_ws, GStar SSWhite sp_scan sp_ws →
+        (sp_prep = sp_ws ∨ s_prep.peek? = none) →
+        ∃ sp_gram' sp_block' sp_flow' sp_scan',
+          SLYamlStream sp_start sp_gram' ∧
+          BlockStack sp_gram' sp_block' ∧
+          FlowStackB sp_start 0 #[] #[] .sep sp_block' sp_flow' ∧
+          PendingNode s' false sp_start sp_flow' sp_scan' ∧
+          ScannerSurfCorr s' sp_scan') →
+      ∃ sp_gram' sp_block' sp_flow' sp_scan',
+        SLYamlStream sp_start sp_gram' ∧
+        BlockStack sp_gram' sp_block' ∧
+        FlowStackB sp_start 0 #[] #[] .sep sp_block' sp_flow' ∧
+        PendingNode s' false sp_start sp_flow' sp_scan' ∧
+        ScannerSurfCorr s' sp_scan' := by
+    intro h_noBreak
+    by_cases hcol : sp_scan.col = 0
+    · obtain ⟨sp_mid, sp_ws, sp_prep2, h_ssl, hcol_mid, h_ws, h_cmt, hcorr_prep2, h_pk⟩ :=
+        preprocess_some_ssl_comments_col0 sc sp_scan s_prep c h_corr hcol h_preprocess
+      have hsp_eq2 := ScannerSurfCorr_unique hcorr_prep hcorr_prep2; subst hsp_eq2
+      have h_eq : sp_prep = sp_ws := by
+        cases h_pk with
+        | inl h => exact h
+        | inr h => rw [preprocess_some_peek h_preprocess] at h; cases h
+      subst h_eq
+      have h_stream_mid := h_close_pending sp_mid h_ssl
+      have h_sep := SSeparateLines.inline 0 sp_mid sp_prep
+        (GStar_SSWhite_to_SSeparateInLine sp_mid sp_prep h_ws)
+      exact content_dispatch_after_close sp_start sp_mid s_prep s' c sp_prep sp_scan'
+        h_stream_mid h_sep (nic_false_of_flow_disp h_preprocess h_flow_disp)
+        hcorr_prep hcorr_result h_not_doc
+        (preprocess_some_peek h_preprocess) h_flow_disp h_dispatch h_keyctx
+    · -- col≠0: use anyCol, close pending if SSLComments available.
+      obtain ⟨sp_mid, sp_ws, sp_prep2, h_disj, h_ws, h_cmt, hcorr_prep2, h_pk⟩ :=
+        preprocess_some_ssl_comments_anyCol sc sp_scan s_prep c h_corr h_preprocess
+      have hsp_eq2 := ScannerSurfCorr_unique hcorr_prep hcorr_prep2; subst hsp_eq2
+      cases h_disj with
+      | inl h_ssl_col =>
+        obtain ⟨h_ssl, hcol_mid⟩ := h_ssl_col
         have h_eq : sp_prep = sp_ws := by
           cases h_pk with
           | inl h => exact h
@@ -11802,27 +11865,54 @@ lemma accum_content_pending (sc : ScannerState)
           h_stream_mid h_sep (nic_false_of_flow_disp h_preprocess h_flow_disp)
           hcorr_prep hcorr_result h_not_doc
           (preprocess_some_peek h_preprocess) h_flow_disp h_dispatch h_keyctx
-      · -- col≠0: use anyCol, close pending if SSLComments available.
-        obtain ⟨sp_mid, sp_ws, sp_prep2, h_disj, h_ws, h_cmt, hcorr_prep2, h_pk⟩ :=
-          preprocess_some_ssl_comments_anyCol sc sp_scan s_prep c h_corr h_preprocess
-        have hsp_eq2 := ScannerSurfCorr_unique hcorr_prep hcorr_prep2; subst hsp_eq2
-        cases h_disj with
-        | inl h_ssl_col =>
-          obtain ⟨h_ssl, hcol_mid⟩ := h_ssl_col
-          have h_eq : sp_prep = sp_ws := by
-            cases h_pk with
-            | inl h => exact h
-            | inr h => rw [preprocess_some_peek h_preprocess] at h; cases h
-          subst h_eq
-          have h_stream_mid := h_close_pending sp_mid h_ssl
-          have h_sep := SSeparateLines.inline 0 sp_mid sp_prep
-            (GStar_SSWhite_to_SSeparateInLine sp_mid sp_prep h_ws)
-          exact content_dispatch_after_close sp_start sp_mid s_prep s' c sp_prep sp_scan'
-            h_stream_mid h_sep (nic_false_of_flow_disp h_preprocess h_flow_disp)
-            hcorr_prep hcorr_result h_not_doc
-            (preprocess_some_peek h_preprocess) h_flow_disp h_dispatch h_keyctx
-        | inr h_mid_eq =>
-          exact block_dispatch_deferred sp_start sp_block sp_scan' s' h_stream_block hcorr_result)
+      | inr h_mid =>
+        exact h_noBreak hcol sp_ws (h_mid.1 ▸ h_ws) h_pk
+  cases h_pending with
+  | noPending =>
+    exact accum_content_on_noPending sc sp_start sp_block s_prep s' c sp_prep sp_scan'
+      h_stream_block hcorr_prep hcorr_result h_corr h_preprocess h_not_doc h_flow_disp h_dispatch
+  | pendingDocEnd _ _ =>
+    -- ═══ Item 42: the arm is EMPTY.  `[204]` stops the marker's line at a
+    -- break or a `#`, and the content dispatch returns `.ok` on neither
+    -- (`...#foo` never scans a marker at all — `[206] c-forbidden` wants a
+    -- break, a white or the end of input after `...`, and the plain walk
+    -- absorbs the line otherwise). ═══
+    rename_i h_line _h_marker
+    exact h_defer_split (fun hcol sp_ws h_ws h_pk =>
+      absurd (inline_residue_of_landing ⟨rfl, hcol⟩ h_ws h_pk hcorr_prep
+          (preprocess_some_peek h_preprocess))
+        (docEnd_refutes_content_residue h_line h_dispatch))
+  | pendingContent _ _ _ =>
+    -- ═══ Item 42: §7.5's rung at the content dispatch.  The survivors of the
+    -- stop set are refused by the dispatch itself except `[154]`'s `:` with a
+    -- non-blank follower (`"a" :b`), which the scanner reads as a plain-scalar
+    -- head and the parser refuses — row 19's over-acceptance, so the deferral
+    -- stands for exactly that character. ═══
+    rename_i h_line _h_closable _h_key
+    refine h_defer_split (fun hcol sp_ws h_ws h_pk => ?_)
+    have h_colon := nodeStop_content_residue_is_colon h_line h_dispatch
+      (inline_residue_of_landing ⟨rfl, hcol⟩ h_ws h_pk hcorr_prep
+        (preprocess_some_peek h_preprocess))
+    subst h_colon
+    exact block_dispatch_deferred sp_start sp_block sp_scan' s' h_stream_block hcorr_result
+  | pendingBlockContent _ _ _ _ _ =>
+    -- ═══ Item 42: same rung, entry-parked — `- "a" :b` is the shape. ═══
+    rename_i h_line _h_closable _h_closable_entry _h_key
+    refine h_defer_split (fun hcol sp_ws h_ws h_pk => ?_)
+    have h_colon := nodeStop_content_residue_is_colon h_line h_dispatch
+      (inline_residue_of_landing ⟨rfl, hcol⟩ h_ws h_pk hcorr_prep
+        (preprocess_some_peek h_preprocess))
+    subst h_colon
+    exact block_dispatch_deferred sp_start sp_block sp_scan' s' h_stream_block hcorr_result
+  | pendingDocStart _ =>
+    exact h_defer_split (fun _ _ _ _ =>
+      block_dispatch_deferred sp_start sp_block sp_scan' s' h_stream_block hcorr_result)
+  | pendingFlow _ =>
+    -- `pendingFlow` carries no line fact to read — the escape is what
+    -- produces it, and it narrows only by the constructor's own elimination
+    -- (item 35's structural note).
+    exact h_defer_split (fun _ _ _ _ =>
+      block_dispatch_deferred sp_start sp_block sp_scan' s' h_stream_block hcorr_result)
   | pendingProps _ _ _ ha ht sp_node sp_p n h_sep_run h_run h_nic_p h_real_p h_anchor_p h_tag_p h_route h_key_p h_floor_p =>
     -- ═══ Item 12: a held depth-0 run meets a CONTENT character — the
     -- content-dispatch escape RETIRES.  Across a break the run closes as
