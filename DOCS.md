@@ -7174,6 +7174,72 @@ custom axioms); matrix event 402/402, json 282/282, `eventscore` 347/358 on
 the pinned submodule — all unmoved, zero runtime files touched.  No
 `@[yaml_spec]` annotation is added or edited.
 
+### Item 44 (2026-09-03)
+
+took R1's structural half — the flow stack now CARRIES its reading index — and
+the item's two findings are a price and a boundary, both of which item 46's
+threading will spend.
+
+**The re-index.** `FlowOpenStack` and `FlowStackB` gain a parameter `n`, and
+every grammar slot inside the stack reads at it: the frames
+(`SeqFrame n`/`MapFrame n`), the interior separators (`SSeparate n`), the nest
+closures (`promise`/`inject` at `SFlowContent n .flowIn`), and the base
+`resume` (`SFlowContent n .flowOut`).  ONE index serves the whole stack, at
+every depth, because the flow productions propagate theirs unchanged
+(`SFlowSequence n c` reads its entries at `n` and their nested nodes at `n` —
+the encoding folded `[137]`'s `n+1` bookkeeping into a single index long ago),
+and the guard file pins that: a depth-2 stack at index 2 builds from closures
+at one `n`.  Twenty-two stack lemmas generalize with their bodies VERBATIM —
+the receive family, `closeWithSep`, `holdComma`, the open bases, the depth
+facts, `absorb_stacksB` — and `FlowStackK` instantiates the parameter at 0, so
+nothing behaves differently yet: what changed is what the type admits, and
+where the pin lives.  The ≈86 literal zeros item 25 priced are now ONE
+instantiation (plus `topLevelFlowResumeSep` and the depth-0 open arms, which
+item 46 rewires anyway).
+
+**The price (Reflection 670).**  Item 25's census counted OCCURRENCES of the
+pinned index; the edit cost SIGNATURES.  Lean's inductive parameters are
+implicit in constructor applications and invisible to `cases`, so every
+construction and elimination of the stack across the accumulation compiled
+untouched — the whole edit is the two inductive headers, twenty-two
+signatures, and a handful of type ascriptions where a literal depth (`1`, `d + 1`,
+`0`) sat in the slot the new parameter shifted into.  Price a re-index by its
+signatures, not by grepping the literal: the census overpriced this edit by
+roughly three to one, and the same census UNDERPRICES an edit whose literal
+hides in bodies (`show`, `have` ascriptions), which is the direction that
+hurts.
+
+**The boundary, probed before designing** (`Scratch/ProbeFlow.lean`, 32
+verdicts).  Which accepted inputs have readings at `n = k` (the entry's index)
+is decided by which of the scanner's line landings enforce a column, and they
+are not uniform: token-boundary landings inside a flow enforce
+`col > currentIndent` (`k:⏎  - [1,⏎  2]` refused, `⏎   2]` accepted) and
+QUOTED continuation lines enforce the same (`k:⏎  - ["a⏎b"]` refused), but
+the closing bracket is EXEMPT (`k:⏎  - [1,⏎]` accepted, nested `[[1,⏎]⏎]`
+accepted) and PLAIN continuation lines are not checked at all
+(`k:⏎  - [a⏎b]` accepted, folded).  So at a nonzero reading index the
+scanner-accepted family splits: separators and quoted scalars re-derive at
+`n = currentIndent + 1` from the checks the scanner already ran, while an
+exempt bracket line or an under-indented plain continuation lands BELOW the
+index and the reading at `k` does not exist — `[69] s-flow-line-prefix(n)`
+demands `s-indent(n)` and the line has fewer than `n` leading spaces (a
+tab-led continuation under-runs the same way: `s-indent` is spaces).  Those
+inputs are spec-invalid and pipeline-accepted — R2's class, row 19's — and
+item 46's design must let a mid-flight under-run RENOUNCE the grammar reading
+(collapse the stack to a shape-only twin that closes through `scannerDrop`)
+rather than pretend the index held.  The escape does not vanish in R1; its
+domain narrows to exactly the under-run events.
+
+Validation: full `lake build` green (1009 jobs, zero warnings);
+`run-all-tests.sh` 4458/4458; new guard `FlowStackIndexParametric` (7
+abstract-hypothesis examples — the machinery at index 2, which did not
+elaborate before this item); `Tests.Guards`/`Tests.Reflections` green;
+`check-reflection-index.sh` (20/216/235/341 with R670),
+`check-import-closure.sh`, `check-theorem-keyword.sh` OK; `collect-stats`
+axiom gate clean; matrix event 402/402, json 282/282, eventscore 347/358 —
+all unmoved, ZERO runtime edits.  `block_dispatch_deferred` holds at 8 textual
+sites and `scannerDrop` at 4 BY CONSTRUCTION (no escape site was touched).
+
 ### REMAINING, in order
 
 The per-item history is the closure log above; this section lists only the

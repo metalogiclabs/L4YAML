@@ -993,6 +993,16 @@ lemma flowMap_extends_stream
     enclosing context's stream/block ends here) through `sp_cur` (current scan
     position).
 
+    **The reading index `n` (item 44).** Every grammar slot inside the stack —
+    the frames, the interior separators, the nest closures, the base `resume` —
+    reads at ONE index `n`, a parameter of the whole stack: the flow productions
+    propagate their index unchanged (`SFlowSequence n c` → entries at `n` →
+    nested nodes at `n`), so one index serves every frame. `FlowStackK`
+    instantiates it at 0 for now — the pin item 25 priced now lives in that ONE
+    instantiation instead of ≈86 literal zeros — and item 46 makes it the
+    entry's own index, coupled to `sc.currentIndent` (stable inside a flow:
+    preprocessing unwinds indents only when `!inFlow`).
+
     **Per-frame state (B.4 corrected design).** Each open frame carries a full
     `SeqFrame`/`MapFrame` — `between` (a `PartialFlow*`: empty / closeable entries /
     held-after-comma) or `mid` (a `PendingFlow*Entry`: a key/node scanned, entry not
@@ -1814,7 +1824,7 @@ lemma KmSound.back_of_true {sc : ScannerState} {km : Array Bool} {b : Bool}
     `:`-receptive.  This is what carries the `.value`-tail entry disjunct
     (`FlowStackK`) across a close, where the inject erases the parent's frame
     class. -/
-inductive FlowOpenStack (sp_start : SurfPos) :
+inductive FlowOpenStack (sp_start : SurfPos) (n : Nat) :
     Nat → Array Bool → Array Bool → FrameTail → SurfPos → SurfPos → Prop where
   /-- Outermost open flow sequence (depth 1). The outer boundary `sp_before`
       (where the enclosing context's derivation ends) is DECOUPLED from the
@@ -1832,21 +1842,21 @@ inductive FlowOpenStack (sp_start : SurfPos) :
       (`&a [b]`), where the properties must WRAP this frame's eventual node
       (`SFlowNode.propsContent`) rather than be closed before it. -/
   | seqBase (b : Bool) (sp_before sp_br sp_open sp_es sp_cur : SurfPos) (tl : FrameTail)
-      (resume : ∀ sp_ne sp_mid, SFlowContent 0 .flowOut sp_br sp_ne →
+      (resume : ∀ sp_ne sp_mid, SFlowContent n .flowOut sp_br sp_ne →
                 SSLComments sp_ne sp_mid → SLYamlStream sp_start sp_mid)
       (h_open : GLit '[' sp_br sp_open)
-      (h_sep : GOpt (SSeparate 0 .flowOut) sp_open sp_es)
-      (st : SeqFrame 0 (inFlowCtx .flowOut) tl sp_es sp_cur) :
-      FlowOpenStack sp_start 1 #[true] #[b] tl sp_before sp_cur
+      (h_sep : GOpt (SSeparate n .flowOut) sp_open sp_es)
+      (st : SeqFrame n (inFlowCtx .flowOut) tl sp_es sp_cur) :
+      FlowOpenStack sp_start n 1 #[true] #[b] tl sp_before sp_cur
   /-- Outermost open flow mapping (depth 1; see `seqBase` on `sp_before`/`sp_br`
       and on why `resume` takes the CONTENT). -/
   | mapBase (b : Bool) (sp_before sp_br sp_open sp_es sp_cur : SurfPos) (tl : FrameTail)
-      (resume : ∀ sp_ne sp_mid, SFlowContent 0 .flowOut sp_br sp_ne →
+      (resume : ∀ sp_ne sp_mid, SFlowContent n .flowOut sp_br sp_ne →
                 SSLComments sp_ne sp_mid → SLYamlStream sp_start sp_mid)
       (h_open : GLit '{' sp_br sp_open)
-      (h_sep : GOpt (SSeparate 0 .flowOut) sp_open sp_es)
-      (st : MapFrame 0 (inFlowCtx .flowOut) tl sp_es sp_cur) :
-      FlowOpenStack sp_start 1 #[false] #[b] tl sp_before sp_cur
+      (h_sep : GOpt (SSeparate n .flowOut) sp_open sp_es)
+      (st : MapFrame n (inFlowCtx .flowOut) tl sp_es sp_cur) :
+      FlowOpenStack sp_start n 1 #[false] #[b] tl sp_before sp_cur
   /-- A nested open flow sequence (depth d+1) inside a receptive parent. The
       `inject` closure folds this frame's completed `.flowIn` node into the parent
       stack (built at push time from the parent's then-known state).
@@ -1862,29 +1872,29 @@ inductive FlowOpenStack (sp_start : SurfPos) :
       whole `SFlowNode` could not be fed to it. -/
   | seqNest (d : Nat) (ks km : Array Bool) (b : Bool) (tl : FrameTail)
       (sp_before0 sp_par sp_open sp_es sp_cur : SurfPos)
-      (promise : b = false → ∀ sp_ne, SFlowContent 0 .flowIn sp_par sp_ne →
-                ∀ sp_prep sp_tok, SSeparateLines 0 sp_ne sp_prep →
+      (promise : b = false → ∀ sp_ne, SFlowContent n .flowIn sp_par sp_ne →
+                ∀ sp_prep sp_tok, SSeparateLines n sp_ne sp_prep →
                 GLit ':' sp_prep sp_tok →
-                FlowOpenStack sp_start d ks km .colon sp_before0 sp_tok)
-      (inject : ∀ sp_ne, SFlowContent 0 .flowIn sp_par sp_ne →
-                FlowOpenStack sp_start d ks km .value sp_before0 sp_ne)
+                FlowOpenStack sp_start n d ks km .colon sp_before0 sp_tok)
+      (inject : ∀ sp_ne, SFlowContent n .flowIn sp_par sp_ne →
+                FlowOpenStack sp_start n d ks km .value sp_before0 sp_ne)
       (h_open : GLit '[' sp_par sp_open)
-      (h_sep : GOpt (SSeparate 0 .flowIn) sp_open sp_es)
-      (st : SeqFrame 0 (inFlowCtx .flowIn) tl sp_es sp_cur) :
-      FlowOpenStack sp_start (d + 1) (ks.push true) (km.push b) tl sp_before0 sp_cur
+      (h_sep : GOpt (SSeparate n .flowIn) sp_open sp_es)
+      (st : SeqFrame n (inFlowCtx .flowIn) tl sp_es sp_cur) :
+      FlowOpenStack sp_start n (d + 1) (ks.push true) (km.push b) tl sp_before0 sp_cur
   /-- A nested open flow mapping (depth d+1). -/
   | mapNest (d : Nat) (ks km : Array Bool) (b : Bool) (tl : FrameTail)
       (sp_before0 sp_par sp_open sp_es sp_cur : SurfPos)
-      (promise : b = false → ∀ sp_ne, SFlowContent 0 .flowIn sp_par sp_ne →
-                ∀ sp_prep sp_tok, SSeparateLines 0 sp_ne sp_prep →
+      (promise : b = false → ∀ sp_ne, SFlowContent n .flowIn sp_par sp_ne →
+                ∀ sp_prep sp_tok, SSeparateLines n sp_ne sp_prep →
                 GLit ':' sp_prep sp_tok →
-                FlowOpenStack sp_start d ks km .colon sp_before0 sp_tok)
-      (inject : ∀ sp_ne, SFlowContent 0 .flowIn sp_par sp_ne →
-                FlowOpenStack sp_start d ks km .value sp_before0 sp_ne)
+                FlowOpenStack sp_start n d ks km .colon sp_before0 sp_tok)
+      (inject : ∀ sp_ne, SFlowContent n .flowIn sp_par sp_ne →
+                FlowOpenStack sp_start n d ks km .value sp_before0 sp_ne)
       (h_open : GLit '{' sp_par sp_open)
-      (h_sep : GOpt (SSeparate 0 .flowIn) sp_open sp_es)
-      (st : MapFrame 0 (inFlowCtx .flowIn) tl sp_es sp_cur) :
-      FlowOpenStack sp_start (d + 1) (ks.push false) (km.push b) tl sp_before0 sp_cur
+      (h_sep : GOpt (SSeparate n .flowIn) sp_open sp_es)
+      (st : MapFrame n (inFlowCtx .flowIn) tl sp_es sp_cur) :
+      FlowOpenStack sp_start n (d + 1) (ks.push false) (km.push b) tl sp_before0 sp_cur
 
 -- NB (B.4): the base-close helpers `flowSeqBase_closeToStream` /
 -- `flowMapBase_closeToStream` (B.1) took a between-entries `p : PartialFlow*` and
@@ -1929,8 +1939,8 @@ lemma topLevelFlowResumeSep {sp_start sp_mid sp_br : SurfPos}
     only at depth 0. -/
 
 /-- `FlowOpenStack` always has positive depth (the base constructors are depth 1). -/
-lemma FlowOpenStack_depth_pos {sp_start : SurfPos} {d : Nat} {ks km : Array Bool}
-    {tl : FrameTail} {a b : SurfPos} (h : FlowOpenStack sp_start d ks km tl a b) : d ≥ 1 := by
+lemma FlowOpenStack_depth_pos {sp_start : SurfPos} {n d : Nat} {ks km : Array Bool}
+    {tl : FrameTail} {a b : SurfPos} (h : FlowOpenStack sp_start n d ks km tl a b) : d ≥ 1 := by
   cases h <;> omega
 
 -- NB (B.4): the nested-push helpers `pushSeq`/`pushMap` (B.1) attached a child
@@ -1943,21 +1953,21 @@ lemma FlowOpenStack_depth_pos {sp_start : SurfPos} {d : Nat} {ks km : Array Bool
 /-- Depth-indexed flow stack carrying the open-flow accumulator (Stage B).
     Replaces the trivial nil-only `FlowStack`. `nil` (depth 0) means no flow
     is open; `open` (depth d ≥ 1) carries a `FlowOpenStack`. -/
-inductive FlowStackB (sp_start : SurfPos) :
+inductive FlowStackB (sp_start : SurfPos) (n : Nat) :
     Nat → Array Bool → Array Bool → FrameTail → SurfPos → SurfPos → Prop where
   /-- No flow open. The frame-tail index is unconstrained: with no frame there is
       nothing for the scanner's token history to describe, so every depth-0 accum
       step can re-establish the invariant at whatever tail its own token history
       happens to read (`FlowStackB.retail`). -/
-  | nil (sp : SurfPos) (tl : FrameTail) : FlowStackB sp_start 0 #[] #[] tl sp sp
+  | nil (sp : SurfPos) (tl : FrameTail) : FlowStackB sp_start n 0 #[] #[] tl sp sp
   | open (d : Nat) (ks km : Array Bool) (tl : FrameTail) (sp_block sp_cur : SurfPos)
-      (h : FlowOpenStack sp_start d ks km tl sp_block sp_cur) :
-      FlowStackB sp_start d ks km tl sp_block sp_cur
+      (h : FlowOpenStack sp_start n d ks km tl sp_block sp_cur) :
+      FlowStackB sp_start n d ks km tl sp_block sp_cur
 
 /-- Re-index a depth-0 (necessarily `nil`) flow stack at any frame tail. -/
-lemma FlowStackB.retail {sp_start : SurfPos} {ks km : Array Bool} {tl tl' : FrameTail}
-    {a b : SurfPos} (h : FlowStackB sp_start 0 ks km tl a b) :
-    FlowStackB sp_start 0 ks km tl' a b := by
+lemma FlowStackB.retail {sp_start : SurfPos} {n : Nat} {ks km : Array Bool} {tl tl' : FrameTail}
+    {a b : SurfPos} (h : FlowStackB sp_start n 0 ks km tl a b) :
+    FlowStackB sp_start n 0 ks km tl' a b := by
   cases h with
   | nil => exact .nil _ _
   | «open» _ _ _ _ _ _ hfo => exact absurd (FlowOpenStack_depth_pos hfo) (by omega)
@@ -1965,23 +1975,23 @@ lemma FlowStackB.retail {sp_start : SurfPos} {ks km : Array Bool} {tl tl' : Fram
 /-- At depth 0 the kinds index is empty: the `open` constructor needs a positive
     depth. This is what lets a depth-0 accum step discharge the `flowStack`
     component of the invariant it must re-establish. -/
-lemma FlowStackB.kinds_nil_of_depth_zero {sp_start : SurfPos} {ks km : Array Bool}
-    {tl : FrameTail} {a b : SurfPos} (h : FlowStackB sp_start 0 ks km tl a b) : ks = #[] := by
+lemma FlowStackB.kinds_nil_of_depth_zero {sp_start : SurfPos} {n : Nat} {ks km : Array Bool}
+    {tl : FrameTail} {a b : SurfPos} (h : FlowStackB sp_start n 0 ks km tl a b) : ks = #[] := by
   cases h with
   | nil => rfl
   | «open» _ _ _ _ _ _ hfo => exact absurd (FlowOpenStack_depth_pos hfo) (by omega)
 
 /-- At depth 0 the accumulator is `nil`, so its two position indices coincide. -/
-lemma FlowStackB.pos_eq_of_depth_zero {sp_start : SurfPos} {ks km : Array Bool}
-    {tl : FrameTail} {a b : SurfPos} (h : FlowStackB sp_start 0 ks km tl a b) : a = b := by
+lemma FlowStackB.pos_eq_of_depth_zero {sp_start : SurfPos} {n : Nat} {ks km : Array Bool}
+    {tl : FrameTail} {a b : SurfPos} (h : FlowStackB sp_start n 0 ks km tl a b) : a = b := by
   cases h with
   | nil => rfl
   | «open» _ _ _ _ _ _ hfo => exact absurd (FlowOpenStack_depth_pos hfo) (by omega)
 
 /-- Recover the open accumulator at positive depth. -/
-lemma FlowStackB.open_of_succ {sp_start : SurfPos} {d : Nat} {ks km : Array Bool}
-    {tl : FrameTail} {a b : SurfPos} (h : FlowStackB sp_start (d + 1) ks km tl a b) :
-    FlowOpenStack sp_start (d + 1) ks km tl a b := by
+lemma FlowStackB.open_of_succ {sp_start : SurfPos} {n d : Nat} {ks km : Array Bool}
+    {tl : FrameTail} {a b : SurfPos} (h : FlowStackB sp_start n (d + 1) ks km tl a b) :
+    FlowOpenStack sp_start n (d + 1) ks km tl a b := by
   cases h with | «open» _ _ _ _ _ _ hfo => exact hfo
 
 /-- Absorb BlockStack + a CLOSED (`nil`, depth 0) `FlowStackB` into the stream.
@@ -1989,8 +1999,8 @@ lemma FlowStackB.open_of_succ {sp_start : SurfPos} {d : Nat} {ks km : Array Bool
 lemma absorb_stacksB (sp_start sp_gram sp_block sp_flow : SurfPos)
     (h_stream : SLYamlStream sp_start sp_gram)
     (h_stack : BlockStack sp_gram sp_block)
-    {ks km : Array Bool} {tl : FrameTail}
-    (h_flow : FlowStackB sp_start 0 ks km tl sp_block sp_flow) : SLYamlStream sp_start sp_flow := by
+    {n : Nat} {ks km : Array Bool} {tl : FrameTail}
+    (h_flow : FlowStackB sp_start n 0 ks km tl sp_block sp_flow) : SLYamlStream sp_start sp_flow := by
   cases h_flow with
   | nil =>
     cases h_stack with
@@ -2004,23 +2014,23 @@ lemma absorb_stacksB (sp_start sp_gram sp_block sp_flow : SurfPos)
     explicit document). The bracket sits at `sp_br`; the outer boundary
     `sp_before` (where the enclosing derivation ends) is free — any gap
     `sp_before → sp_br` lives inside `resume`. -/
-lemma FlowStackB.openSeqBase {sp_start sp_before sp_br sp_open sp_es : SurfPos} (b : Bool)
-    (resume : ∀ sp_ne sp_m, SFlowContent 0 .flowOut sp_br sp_ne →
+lemma FlowStackB.openSeqBase {sp_start sp_before sp_br sp_open sp_es : SurfPos} {n : Nat} (b : Bool)
+    (resume : ∀ sp_ne sp_m, SFlowContent n .flowOut sp_br sp_ne →
               SSLComments sp_ne sp_m → SLYamlStream sp_start sp_m)
     (h_open : GLit '[' sp_br sp_open)
-    (h_sep : GOpt (SSeparate 0 .flowOut) sp_open sp_es) :
-    FlowStackB sp_start 1 #[true] #[b] .sep sp_before sp_es :=
+    (h_sep : GOpt (SSeparate n .flowOut) sp_open sp_es) :
+    FlowStackB sp_start n 1 #[true] #[b] .sep sp_before sp_es :=
   .open 1 #[true] #[b] .sep sp_before sp_es
     (.seqBase b sp_before sp_br sp_open sp_es sp_es .sep resume h_open h_sep
       (.betweenEmpty sp_es))
 
 /-- Open the outermost flow MAPPING `{` (nil → depth-1 open). -/
-lemma FlowStackB.openMapBase {sp_start sp_before sp_br sp_open sp_es : SurfPos} (b : Bool)
-    (resume : ∀ sp_ne sp_m, SFlowContent 0 .flowOut sp_br sp_ne →
+lemma FlowStackB.openMapBase {sp_start sp_before sp_br sp_open sp_es : SurfPos} {n : Nat} (b : Bool)
+    (resume : ∀ sp_ne sp_m, SFlowContent n .flowOut sp_br sp_ne →
               SSLComments sp_ne sp_m → SLYamlStream sp_start sp_m)
     (h_open : GLit '{' sp_br sp_open)
-    (h_sep : GOpt (SSeparate 0 .flowOut) sp_open sp_es) :
-    FlowStackB sp_start 1 #[false] #[b] .sep sp_before sp_es :=
+    (h_sep : GOpt (SSeparate n .flowOut) sp_open sp_es) :
+    FlowStackB sp_start n 1 #[false] #[b] .sep sp_before sp_es :=
   .open 1 #[false] #[b] .sep sp_before sp_es
     (.mapBase b sp_before sp_br sp_open sp_es sp_es .sep resume h_open h_sep
       (.betweenEmpty sp_es))
@@ -2040,12 +2050,12 @@ lemma FlowStackB.openMapBase {sp_start sp_before sp_br sp_open sp_es : SurfPos} 
     field. -/
 def FlowStackK (sp_start : SurfPos) (sc : ScannerState) (fl : Nat) (ks : Array Bool)
     (tl : FrameTail) (sp_block sp_flow : SurfPos) : Prop :=
-  ∃ km, FlowStackB sp_start fl ks km tl sp_block sp_flow ∧
+  ∃ km, FlowStackB sp_start 0 fl ks km tl sp_block sp_flow ∧
     (0 < fl → KmSound sc km ∧
       (tl = .value → KeyAfterValueLayout sc ∨
         ∀ sp_prep sp_tok, SSeparateLines 0 sp_flow sp_prep →
           GLit ':' sp_prep sp_tok →
-          FlowStackB sp_start fl ks km .colon sp_block sp_tok))
+          FlowStackB sp_start 0 fl ks km .colon sp_block sp_tok))
 
 /-- The depth-0 `FlowStackK`: `nil` with an empty mask and vacuous couplings. -/
 lemma FlowStackK.nil (sp_start : SurfPos) (sc : ScannerState) (sp : SurfPos)
@@ -2686,7 +2696,7 @@ lemma preprocessing_eof_extends_stream (sc : ScannerState)
     (h_stream : SLYamlStream sp_start sp_gram)
     (h_stack : BlockStack sp_gram sp_block)
     {ks km : Array Bool} {tl : FrameTail}
-    (h_flow : FlowStackB sp_start 0 ks km tl sp_block sp_flow)
+    (h_flow : FlowStackB sp_start 0 0 ks km tl sp_block sp_flow)
     (h_pending : PendingNode sc false sp_start sp_flow sp_scan)
     (h_corr : ScannerSurfCorr sc sp_scan)
     (h_preprocess : scanNextToken_preprocess sc = .ok none) :
@@ -3221,7 +3231,7 @@ lemma accum_structural_pending (sc : ScannerState)
     ∃ sp_gram' sp_block' sp_flow' sp_scan' b',
       SLYamlStream sp_start sp_gram' ∧
       BlockStack sp_gram' sp_block' ∧
-      FlowStackB sp_start 0 #[] #[] .sep sp_block' sp_flow' ∧
+      FlowStackB sp_start 0 0 #[] #[] .sep sp_block' sp_flow' ∧
       PendingNode s' b' sp_start sp_flow' sp_scan' ∧
       (b' = true → s'.directivesPresent = true) ∧
       ScannerSurfCorr s' sp_scan' := by
@@ -3241,7 +3251,7 @@ lemma accum_structural_pending (sc : ScannerState)
         ∃ sp_gram' sp_block' sp_flow' sp_scan' b',
           SLYamlStream sp_start sp_gram' ∧
           BlockStack sp_gram' sp_block' ∧
-          FlowStackB sp_start 0 #[] #[] .sep sp_block' sp_flow' ∧
+          FlowStackB sp_start 0 0 #[] #[] .sep sp_block' sp_flow' ∧
           PendingNode s' b' sp_start sp_flow' sp_scan' ∧
           (b' = true → s'.directivesPresent = true) ∧
           ScannerSurfCorr s' sp_scan' := by
@@ -3291,7 +3301,7 @@ lemma accum_structural_pending (sc : ScannerState)
           ∃ sp_gram' sp_block' sp_flow' sp_scan' b',
             SLYamlStream sp_start sp_gram' ∧
             BlockStack sp_gram' sp_block' ∧
-            FlowStackB sp_start 0 #[] #[] .sep sp_block' sp_flow' ∧
+            FlowStackB sp_start 0 0 #[] #[] .sep sp_block' sp_flow' ∧
             PendingNode s' b' sp_start sp_flow' sp_scan' ∧
             (b' = true → s'.directivesPresent = true) ∧
             ScannerSurfCorr s' sp_scan') := by
@@ -3609,15 +3619,15 @@ lemma scanFlowEntry_prod (sc : ScannerState) (sp : SurfPos) {s' : ScannerState}
     `[a:]`, `[? a]`, …). `h_lead_out`/`h_lead_in` are the same separation at
     the outer/entry context (literal contexts at the call sites make both
     defeq to `SSeparateLines 0`). -/
-lemma SeqFrame.closeWithSep {c_out : YamlContext} {tl : FrameTail}
+lemma SeqFrame.closeWithSep {n : Nat} {c_out : YamlContext} {tl : FrameTail}
     {sp_br sp_open sp_es sp_flow sp_prep sp_tok : SurfPos}
     (h_open : GLit '[' sp_br sp_open)
-    (h_sep : GOpt (SSeparate 0 c_out) sp_open sp_es)
-    (st : SeqFrame 0 (inFlowCtx c_out) tl sp_es sp_flow)
-    (h_lead_out : SSeparate 0 c_out sp_flow sp_prep)
-    (h_lead_in : SSeparate 0 (inFlowCtx c_out) sp_flow sp_prep)
+    (h_sep : GOpt (SSeparate n c_out) sp_open sp_es)
+    (st : SeqFrame n (inFlowCtx c_out) tl sp_es sp_flow)
+    (h_lead_out : SSeparate n c_out sp_flow sp_prep)
+    (h_lead_in : SSeparate n (inFlowCtx c_out) sp_flow sp_prep)
     (h_close : GLit ']' sp_prep sp_tok) :
-    SFlowSequence 0 c_out sp_br sp_tok := by
+    SFlowSequence n c_out sp_br sp_tok := by
   cases st
   · -- betweenEmpty: `[]`
     exact PartialFlowSeq.closeSeq h_open (GOpt_SSeparate_extend h_sep h_lead_out)
@@ -3666,15 +3676,15 @@ lemma SeqFrame.closeWithSep {c_out : YamlContext} {tl : FrameTail}
 
 /-- Close a flow-MAPPING frame with `}` (see `SeqFrame.closeWithSep`; mid
     entries complete with an empty value: `{a}`, `{a:}`, `{? a}`, `{:}`, …). -/
-lemma MapFrame.closeWithSep {c_out : YamlContext} {tl : FrameTail}
+lemma MapFrame.closeWithSep {n : Nat} {c_out : YamlContext} {tl : FrameTail}
     {sp_br sp_open sp_es sp_flow sp_prep sp_tok : SurfPos}
     (h_open : GLit '{' sp_br sp_open)
-    (h_sep : GOpt (SSeparate 0 c_out) sp_open sp_es)
-    (st : MapFrame 0 (inFlowCtx c_out) tl sp_es sp_flow)
-    (h_lead_out : SSeparate 0 c_out sp_flow sp_prep)
-    (h_lead_in : SSeparate 0 (inFlowCtx c_out) sp_flow sp_prep)
+    (h_sep : GOpt (SSeparate n c_out) sp_open sp_es)
+    (st : MapFrame n (inFlowCtx c_out) tl sp_es sp_flow)
+    (h_lead_out : SSeparate n c_out sp_flow sp_prep)
+    (h_lead_in : SSeparate n (inFlowCtx c_out) sp_flow sp_prep)
     (h_close : GLit '}' sp_prep sp_tok) :
-    SFlowMapping 0 c_out sp_br sp_tok := by
+    SFlowMapping n c_out sp_br sp_tok := by
   cases st
   · -- betweenEmpty: `{}`
     exact PartialFlowMap.closeMap h_open (GOpt_SSeparate_extend h_sep h_lead_out)
@@ -3798,13 +3808,13 @@ lemma appendMapEntryHeldFrame {n : Nat} {c : YamlContext}
     `[,`) and `betweenHeld` (consecutive commas, `,,`) — are exactly the frames
     `scanFlowEntry` rejects with `invalidFlowEntry`, and exactly the `.sep`-tailed
     ones. `h_tail` is that scanner guard, transported through the tail index. -/
-lemma SeqFrame.holdComma {c : YamlContext} {tl : FrameTail}
+lemma SeqFrame.holdComma {n : Nat} {c : YamlContext} {tl : FrameTail}
     {sp_es sp_flow sp_prep sp_tok : SurfPos}
-    (st : SeqFrame 0 c tl sp_es sp_flow)
+    (st : SeqFrame n c tl sp_es sp_flow)
     (h_tail : tl ≠ .sep)
-    (h_lead : SSeparate 0 c sp_flow sp_prep)
+    (h_lead : SSeparate n c sp_flow sp_prep)
     (hcomma : GLit ',' sp_prep sp_tok) :
-    SeqFrame 0 c .sep sp_es sp_tok := by
+    SeqFrame n c .sep sp_es sp_tok := by
   cases st
   · -- betweenEmpty: leading comma `[,`.
     exact absurd rfl h_tail
@@ -3844,13 +3854,13 @@ lemma SeqFrame.holdComma {c : YamlContext} {tl : FrameTail}
 
 /-- `,` transition on a flow-MAPPING frame (see `SeqFrame.holdComma`; mid
     entries finish with an empty value: `{a,`, `{a:,`, `{? a,`, `{:,`). -/
-lemma MapFrame.holdComma {c : YamlContext} {tl : FrameTail}
+lemma MapFrame.holdComma {n : Nat} {c : YamlContext} {tl : FrameTail}
     {sp_es sp_flow sp_prep sp_tok : SurfPos}
-    (st : MapFrame 0 c tl sp_es sp_flow)
+    (st : MapFrame n c tl sp_es sp_flow)
     (h_tail : tl ≠ .sep)
-    (h_lead : SSeparate 0 c sp_flow sp_prep)
+    (h_lead : SSeparate n c sp_flow sp_prep)
     (hcomma : GLit ',' sp_prep sp_tok) :
-    MapFrame 0 c .sep sp_es sp_tok := by
+    MapFrame n c .sep sp_es sp_tok := by
   cases st
   · -- betweenEmpty: leading comma `{,`.
     exact absurd rfl h_tail
@@ -3899,13 +3909,13 @@ lemma MapFrame.holdComma {c : YamlContext} {tl : FrameTail}
     frames, which is what `scanNextToken_checkFlowAdjacency` refuses to dispatch a
     node-start character from. `h_tail` is that scanner guard. The result is
     always `.value`: a node has just completed. -/
-lemma FlowOpenStack.receiveNode {sp_start : SurfPos} {D : Nat} {ks km : Array Bool}
+lemma FlowOpenStack.receiveNode {sp_start : SurfPos} {n D : Nat} {ks km : Array Bool}
     {tl : FrameTail} {sp_block sp_flow sp_prep : SurfPos}
-    (h_fos : FlowOpenStack sp_start D ks km tl sp_block sp_flow)
+    (h_fos : FlowOpenStack sp_start n D ks km tl sp_block sp_flow)
     (h_tail : tl ≠ .value)
-    (h_lead : SSeparateLines 0 sp_flow sp_prep) :
-    ∀ sp_ne, SFlowNode 0 .flowIn sp_prep sp_ne →
-      FlowOpenStack sp_start D ks km .value sp_block sp_ne := by
+    (h_lead : SSeparateLines n sp_flow sp_prep) :
+    ∀ sp_ne, SFlowNode n .flowIn sp_prep sp_ne →
+      FlowOpenStack sp_start n D ks km .value sp_block sp_ne := by
   intro sp_ne h_node
   cases h_fos
   · -- seqBase
@@ -4062,13 +4072,13 @@ lemma FlowOpenStack.receiveNode {sp_start : SurfPos} {D : Nat} {ks km : Array Bo
 
 /-- `[96]` + `e-scalar`: the property run turned out to decorate an EMPTY node,
     which is what `,`, `]` and `}` decide (`[&a]`, `[&a, b]`, `{&a: v}`). -/
-lemma FlowOpenStack.receivePropsEmpty {sp_start : SurfPos} {D : Nat} {ks km : Array Bool}
+lemma FlowOpenStack.receivePropsEmpty {sp_start : SurfPos} {n D : Nat} {ks km : Array Bool}
     {tl : FrameTail} {sp_block sp_flow sp_p sp_end : SurfPos} {ha ht : Bool}
-    (h_fos : FlowOpenStack sp_start D ks km tl sp_block sp_flow)
+    (h_fos : FlowOpenStack sp_start n D ks km tl sp_block sp_flow)
     (h_tail : tl ≠ .value)
-    (h_lead : SSeparateLines 0 sp_flow sp_p)
-    (h_run : PropsRun 0 (inFlowCtx .flowOut) ha ht sp_p sp_end) :
-    FlowOpenStack sp_start D ks km .value sp_block sp_end :=
+    (h_lead : SSeparateLines n sp_flow sp_p)
+    (h_run : PropsRun n (inFlowCtx .flowOut) ha ht sp_p sp_end) :
+    FlowOpenStack sp_start n D ks km .value sp_block sp_end :=
   h_fos.receiveNode h_tail h_lead sp_end (.propsEmpty _ _ _ _ h_run.toProperties)
 
 /-- `[96]` + `s-separate` + `ns-flow-content`: the property run turned out to
@@ -4076,15 +4086,15 @@ lemma FlowOpenStack.receivePropsEmpty {sp_start : SurfPos} {D : Nat} {ks km : Ar
     `[`/`{` decides (`[&a b]`, `[&a [b]]`). The separation hypothesis is exactly
     what item 9f bought — before it, `[&a[b]]` scanned clean and this node could
     be *defined* but never *fed*. -/
-lemma FlowOpenStack.receivePropsContent {sp_start : SurfPos} {D : Nat} {ks km : Array Bool}
+lemma FlowOpenStack.receivePropsContent {sp_start : SurfPos} {n D : Nat} {ks km : Array Bool}
     {tl : FrameTail} {sp_block sp_flow sp_p sp_end sp_prep sp_ne : SurfPos} {ha ht : Bool}
-    (h_fos : FlowOpenStack sp_start D ks km tl sp_block sp_flow)
+    (h_fos : FlowOpenStack sp_start n D ks km tl sp_block sp_flow)
     (h_tail : tl ≠ .value)
-    (h_lead : SSeparateLines 0 sp_flow sp_p)
-    (h_run : PropsRun 0 (inFlowCtx .flowOut) ha ht sp_p sp_end)
-    (h_sep : SSeparate 0 (inFlowCtx .flowOut) sp_end sp_prep)
-    (h_content : SFlowContent 0 (inFlowCtx .flowOut) sp_prep sp_ne) :
-    FlowOpenStack sp_start D ks km .value sp_block sp_ne :=
+    (h_lead : SSeparateLines n sp_flow sp_p)
+    (h_run : PropsRun n (inFlowCtx .flowOut) ha ht sp_p sp_end)
+    (h_sep : SSeparate n (inFlowCtx .flowOut) sp_end sp_prep)
+    (h_content : SFlowContent n (inFlowCtx .flowOut) sp_prep sp_ne) :
+    FlowOpenStack sp_start n D ks km .value sp_block sp_ne :=
   h_fos.receiveNode h_tail h_lead sp_ne
     (.propsContent _ _ _ _ _ _ h_run.toProperties h_sep h_content)
 
@@ -4104,13 +4114,13 @@ lemma FlowOpenStack.receivePropsContent {sp_start : SurfPos} {D : Nat} {ks km : 
     `holdComma` each consume in their `.question` case. Proving this now is the
     inhabitation check on `midQuestion` — the frame really is producible from
     the two shapes the scanner guard leaves. -/
-lemma FlowOpenStack.receiveQuestion {sp_start : SurfPos} {D : Nat} {ks km : Array Bool}
+lemma FlowOpenStack.receiveQuestion {sp_start : SurfPos} {n D : Nat} {ks km : Array Bool}
     {tl : FrameTail} {sp_block sp_flow sp_prep sp_tok : SurfPos}
-    (h_fos : FlowOpenStack sp_start D ks km tl sp_block sp_flow)
+    (h_fos : FlowOpenStack sp_start n D ks km tl sp_block sp_flow)
     (h_tail : tl = .sep)
-    (h_lead : SSeparateLines 0 sp_flow sp_prep)
+    (h_lead : SSeparateLines n sp_flow sp_prep)
     (hq : GLit '?' sp_prep sp_tok) :
-    FlowOpenStack sp_start D ks km .question sp_block sp_tok := by
+    FlowOpenStack sp_start n D ks km .question sp_block sp_tok := by
   subst h_tail
   cases h_fos
   · -- seqBase: `[? ` / `[a, ? `
@@ -4167,13 +4177,13 @@ lemma FlowOpenStack.receiveQuestion {sp_start : SurfPos} {D : Nat} {ks km : Arra
     the discriminator is the SCANNER's pending simple key. That is the split the
     `scanValueValidate` strictening exists to supply, and it is why only two of
     the three colon-receptive tails can be closed here. -/
-lemma FlowOpenStack.receiveColonSep {sp_start : SurfPos} {D : Nat} {ks km : Array Bool}
+lemma FlowOpenStack.receiveColonSep {sp_start : SurfPos} {n D : Nat} {ks km : Array Bool}
     {tl : FrameTail} {sp_block sp_flow sp_prep sp_tok : SurfPos}
-    (h_fos : FlowOpenStack sp_start D ks km tl sp_block sp_flow)
+    (h_fos : FlowOpenStack sp_start n D ks km tl sp_block sp_flow)
     (h_tail : tl = .sep)
-    (h_lead : SSeparateLines 0 sp_flow sp_prep)
+    (h_lead : SSeparateLines n sp_flow sp_prep)
     (hcolon : GLit ':' sp_prep sp_tok) :
-    FlowOpenStack sp_start D ks km .colon sp_block sp_tok := by
+    FlowOpenStack sp_start n D ks km .colon sp_block sp_tok := by
   subst h_tail
   cases h_fos
   · -- seqBase: `[: ` / `[a, : `
@@ -4222,13 +4232,13 @@ lemma FlowOpenStack.receiveColonSep {sp_start : SurfPos} {D : Nat} {ks km : Arra
     lands in the frame: `midQuestion` holds only the indicator, deferring the
     separation to whatever comes next, and here that is the `:` step's own
     leading separation. -/
-lemma FlowOpenStack.receiveColonQuestion {sp_start : SurfPos} {D : Nat} {ks km : Array Bool}
+lemma FlowOpenStack.receiveColonQuestion {sp_start : SurfPos} {n D : Nat} {ks km : Array Bool}
     {tl : FrameTail} {sp_block sp_flow sp_prep sp_tok : SurfPos}
-    (h_fos : FlowOpenStack sp_start D ks km tl sp_block sp_flow)
+    (h_fos : FlowOpenStack sp_start n D ks km tl sp_block sp_flow)
     (h_tail : tl = .question)
-    (h_lead : SSeparateLines 0 sp_flow sp_prep)
+    (h_lead : SSeparateLines n sp_flow sp_prep)
     (hcolon : GLit ':' sp_prep sp_tok) :
-    FlowOpenStack sp_start D ks km .colon sp_block sp_tok := by
+    FlowOpenStack sp_start n D ks km .colon sp_block sp_tok := by
   subst h_tail
   cases h_fos
   · -- seqBase: `[? : `
@@ -4290,15 +4300,15 @@ lemma FlowOpenStack.receiveColonQuestion {sp_start : SurfPos} {D : Nat} {ks km :
     Total on `.sep` for `receiveColonSep`'s reason: `betweenEmpty` and
     `betweenHeld` are the only frames that index admits, and a properties-only
     key is an `ns-flow-node` after both. -/
-lemma FlowOpenStack.receiveColonPropsSep {sp_start : SurfPos} {D : Nat} {ks km : Array Bool}
+lemma FlowOpenStack.receiveColonPropsSep {sp_start : SurfPos} {n D : Nat} {ks km : Array Bool}
     {tl : FrameTail} {sp_block sp_flow sp_p sp_end sp_prep sp_tok : SurfPos} {ha ht : Bool}
-    (h_fos : FlowOpenStack sp_start D ks km tl sp_block sp_flow)
+    (h_fos : FlowOpenStack sp_start n D ks km tl sp_block sp_flow)
     (h_tail : tl = .sep)
-    (h_lead : SSeparateLines 0 sp_flow sp_p)
-    (h_run : PropsRun 0 (inFlowCtx .flowOut) ha ht sp_p sp_end)
-    (h_gap : GOpt (SSeparate 0 (inFlowCtx .flowOut)) sp_end sp_prep)
+    (h_lead : SSeparateLines n sp_flow sp_p)
+    (h_run : PropsRun n (inFlowCtx .flowOut) ha ht sp_p sp_end)
+    (h_gap : GOpt (SSeparate n (inFlowCtx .flowOut)) sp_end sp_prep)
     (hcolon : GLit ':' sp_prep sp_tok) :
-    FlowOpenStack sp_start D ks km .colon sp_block sp_tok := by
+    FlowOpenStack sp_start n D ks km .colon sp_block sp_tok := by
   subst h_tail
   cases h_fos
   · -- seqBase: `[&a : ` / `[a, &x : `
@@ -4355,15 +4365,15 @@ lemma FlowOpenStack.receiveColonPropsSep {sp_start : SurfPos} {D : Nat} {ks km :
     the `?` is this step's leading separation, exactly as it is there; what
     differs is only where the separation LANDS, because here the key is not an
     `e-node` and the frame has a slot for it. -/
-lemma FlowOpenStack.receiveColonPropsQuestion {sp_start : SurfPos} {D : Nat} {ks km : Array Bool}
+lemma FlowOpenStack.receiveColonPropsQuestion {sp_start : SurfPos} {n D : Nat} {ks km : Array Bool}
     {tl : FrameTail} {sp_block sp_flow sp_p sp_end sp_prep sp_tok : SurfPos} {ha ht : Bool}
-    (h_fos : FlowOpenStack sp_start D ks km tl sp_block sp_flow)
+    (h_fos : FlowOpenStack sp_start n D ks km tl sp_block sp_flow)
     (h_tail : tl = .question)
-    (h_lead : SSeparateLines 0 sp_flow sp_p)
-    (h_run : PropsRun 0 (inFlowCtx .flowOut) ha ht sp_p sp_end)
-    (h_gap : GOpt (SSeparate 0 (inFlowCtx .flowOut)) sp_end sp_prep)
+    (h_lead : SSeparateLines n sp_flow sp_p)
+    (h_run : PropsRun n (inFlowCtx .flowOut) ha ht sp_p sp_end)
+    (h_gap : GOpt (SSeparate n (inFlowCtx .flowOut)) sp_end sp_prep)
     (hcolon : GLit ':' sp_prep sp_tok) :
-    FlowOpenStack sp_start D ks km .colon sp_block sp_tok := by
+    FlowOpenStack sp_start n D ks km .colon sp_block sp_tok := by
   subst h_tail
   cases h_fos
   · -- seqBase: `[? &a : `
@@ -4408,15 +4418,15 @@ lemma FlowOpenStack.receiveColonPropsQuestion {sp_start : SurfPos} {D : Nat} {ks
     The `.colon`-tailed inputs are deliberately absent: a node received there
     COMPLETES the entry (`[a: b`), and the `:` that would follow is
     scan-refuted through `KeyAfterValueLayout`, not received. -/
-lemma FlowOpenStack.receiveNodeColon {sp_start : SurfPos} {D : Nat} {ks km : Array Bool}
+lemma FlowOpenStack.receiveNodeColon {sp_start : SurfPos} {n D : Nat} {ks km : Array Bool}
     {tl : FrameTail} {sp_block sp_flow sp_prep sp_ne sp_prep₂ sp_tok : SurfPos}
-    (h_fos : FlowOpenStack sp_start D ks km tl sp_block sp_flow)
+    (h_fos : FlowOpenStack sp_start n D ks km tl sp_block sp_flow)
     (h_tail : tl = .sep ∨ tl = .question)
-    (h_lead : SSeparateLines 0 sp_flow sp_prep)
-    (h_node : SFlowNode 0 .flowIn sp_prep sp_ne)
-    (h_lead₂ : SSeparateLines 0 sp_ne sp_prep₂)
+    (h_lead : SSeparateLines n sp_flow sp_prep)
+    (h_node : SFlowNode n .flowIn sp_prep sp_ne)
+    (h_lead₂ : SSeparateLines n sp_ne sp_prep₂)
     (hcolon : GLit ':' sp_prep₂ sp_tok) :
-    FlowOpenStack sp_start D ks km .colon sp_block sp_tok := by
+    FlowOpenStack sp_start n D ks km .colon sp_block sp_tok := by
   cases h_tail with
   | inl h_sep_t =>
     subst h_sep_t
@@ -4497,18 +4507,18 @@ lemma FlowOpenStack.receiveNodeColon {sp_start : SurfPos} {D : Nat} {ks km : Arr
 
 /-- The props-held twin: the run decorates the received node (`[a, &x b : `
     is the pair whose KEY is `&x b`), so the closure wraps it and delegates. -/
-lemma FlowOpenStack.receivePropsNodeColon {sp_start : SurfPos} {D : Nat}
+lemma FlowOpenStack.receivePropsNodeColon {sp_start : SurfPos} {n D : Nat}
     {ks km : Array Bool} {tl : FrameTail}
     {sp_block sp_flow sp_p sp_end sp_prep sp_ne sp_prep₂ sp_tok : SurfPos} {ha ht : Bool}
-    (h_fos : FlowOpenStack sp_start D ks km tl sp_block sp_flow)
+    (h_fos : FlowOpenStack sp_start n D ks km tl sp_block sp_flow)
     (h_tail : tl = .sep ∨ tl = .question)
-    (h_lead : SSeparateLines 0 sp_flow sp_p)
-    (h_run : PropsRun 0 (inFlowCtx .flowOut) ha ht sp_p sp_end)
-    (h_sep : SSeparate 0 (inFlowCtx .flowOut) sp_end sp_prep)
-    (h_content : SFlowContent 0 (inFlowCtx .flowOut) sp_prep sp_ne)
-    (h_lead₂ : SSeparateLines 0 sp_ne sp_prep₂)
+    (h_lead : SSeparateLines n sp_flow sp_p)
+    (h_run : PropsRun n (inFlowCtx .flowOut) ha ht sp_p sp_end)
+    (h_sep : SSeparate n (inFlowCtx .flowOut) sp_end sp_prep)
+    (h_content : SFlowContent n (inFlowCtx .flowOut) sp_prep sp_ne)
+    (h_lead₂ : SSeparateLines n sp_ne sp_prep₂)
     (hcolon : GLit ':' sp_prep₂ sp_tok) :
-    FlowOpenStack sp_start D ks km .colon sp_block sp_tok :=
+    FlowOpenStack sp_start n D ks km .colon sp_block sp_tok :=
   h_fos.receiveNodeColon h_tail h_lead
     (.propsContent _ _ _ _ _ _ h_run.toProperties h_sep h_content) h_lead₂ hcolon
 
@@ -4570,7 +4580,7 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
     (mk : ∀ (sp_before : SurfPos),
         (∀ sp_ne sp_m, SFlowContent 0 .flowOut sp_prep sp_ne →
          SSLComments sp_ne sp_m → SLYamlStream sp_start sp_m) →
-        FlowStackB sp_start 1 s'.flowStack #[false] (tailOf s'.tokens) sp_before sp_open) :
+        FlowStackB sp_start 0 1 s'.flowStack #[false] (tailOf s'.tokens) sp_before sp_open) :
     ∃ sp_gram' sp_block' sp_flow' sp_scan',
       SLYamlStream sp_start sp_gram' ∧
       BlockStack sp_gram' sp_block' ∧
@@ -4587,12 +4597,12 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
     · have h0 : i = 0 := by simp at hi; omega
       subst h0
       exact absurd hb (by simp)
-  have h_kpkg : ∀ sp_b sp_f, FlowStackB sp_start 1 s'.flowStack #[false]
+  have h_kpkg : ∀ sp_b sp_f, FlowStackB sp_start 0 1 s'.flowStack #[false]
       (tailOf s'.tokens) sp_b sp_f →
       FlowStackK sp_start s' 1 s'.flowStack (tailOf s'.tokens) sp_b sp_f :=
     fun _ _ h_b => ⟨#[false], h_b, fun _ => ⟨h_km0, fun hv => absurd hv h_nv⟩⟩
   have h_stream_block : SLYamlStream sp_start sp_block :=
-    absorb_stacksB sp_start sp_gram sp_block sp_block h_stream h_stack (FlowStackB.nil sp_block .sep)
+    absorb_stacksB sp_start sp_gram sp_block sp_block h_stream h_stack (FlowStackB.nil (n := 0) sp_block .sep)
   have h_close_pending : ∀ sp_mid, SSLComments sp_scan sp_mid → SLYamlStream sp_start sp_mid :=
     fun sp_mid h_ssl => h_pending.close_with_ssl h_stream_block h_ssl
   -- The dispatched char, read back at the surface: preprocessing stopped ON it.
@@ -4650,11 +4660,13 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
       (LineNoOpen.no_open_across_whites (h_line.resolve_left hcol) hws h_head h_c).elim
   -- The OPAQUE resume: the collection re-enters the stream through
   -- `scannerDrop`, which absorbs the whole gap when it eventually closes.
-  -- Two arms take it, and for the same reason — the resume's argument type is
-  -- `SFlowContent 0 .flowOut`, pinned inside `FlowOpenStack` — so nothing that
-  -- has to re-enter at another index can use the resume at all: the deferred
+  -- Two arms take it, and for the same reason — the resume's argument reads at
+  -- the stack's index, which `FlowStackK` instantiates at 0 (item 44 moved the
+  -- pin from `FlowOpenStack`'s type to that one instantiation) — so nothing
+  -- that has to re-enter at another index can use the resume yet: the deferred
   -- state, and (item 24) a property run whose route closes at a NONZERO index
-  -- (`  - &a [b]`).  That pin is the one β.5 has left after the route itself.
+  -- (`  - &a [b]`).  That instantiation is the one β.5 has left after the
+  -- route itself (item 46).
   have opaque_resume : sp_scan.col ≠ 0 → GStar SSWhite sp_scan sp_prep →
       ∃ sp_gram' sp_block' sp_flow' sp_scan',
         SLYamlStream sp_start sp_gram' ∧
@@ -4747,9 +4759,10 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
     -- indent 0 (`SFlowContent 0 .flowOut` — `mk`'s own type), so it fits
     -- `flowInBlock` only for an entry whose own index is 0.  Item 22 unpinned
     -- the pending and item 23 the inline SCALAR value; this one is not a
-    -- content lift at all — the pinned 0 is in the OPEN STACK's resume type,
-    -- supplied when the collection closes, so `  - [1]` rides `scannerDrop`
-    -- until `FlowStackB` carries the index the way `PendingNode` now does.
+    -- content lift at all — the pinned 0 is `FlowStackK`'s instantiation of
+    -- the stack's index (item 44), spent when the collection closes, so
+    -- `  - [1]` rides `scannerDrop` until item 46 instantiates the index the
+    -- pending carries.
     rename_i n_old _h_floor _h_sk h_close _h_close_entry
     match n_old, h_close with
     | 0, h_close =>
@@ -5778,7 +5791,7 @@ lemma accum_step_flow (sc : ScannerState)
   rcases Nat.eq_zero_or_pos sc.flowLevel with h0 | hpos
   · -- ═══ DEPTH 0 (no flow open): only `[`/`{` reach `.ok (some s')`; the closing
     -- and separator indicators error at `flowLevel = 0`. ═══
-    rw [h0] at h_flow  -- `FlowStackB sp_start 0 #[] #[] .sep …` = nil
+    rw [h0] at h_flow  -- `FlowStackB sp_start 0 0 #[] #[] .sep …` = nil
     have h_ad0 : (if s_prep.allowDirectives then
         { s_prep with allowDirectives := false, documentEverStarted := true }
       else s_prep).flowLevel = 0 :=
@@ -5978,10 +5991,10 @@ lemma accum_step_flow (sc : ScannerState)
     -- is what `inject`'s `SFlowContent` argument buys.
     obtain ⟨tl₂, sp_flow₂, h_fos₂, h_lead₂, h_inj, h_ne_value, h_ne_sep, h_cinj, h_klay⟩ :
         ∃ tl₂ sp_flow₂,
-          FlowOpenStack sp_start (d + 1) ks km tl₂ sp_block sp_flow₂ ∧
+          FlowOpenStack sp_start 0 (d + 1) ks km tl₂ sp_block sp_flow₂ ∧
           SSeparateLines 0 sp_flow₂ sp_prep ∧
           (tl ≠ .value → ∀ sp_ne, SFlowContent 0 .flowIn sp_prep sp_ne →
-            FlowOpenStack sp_start (d + 1) ks km .value sp_block sp_ne) ∧
+            FlowOpenStack sp_start 0 (d + 1) ks km .value sp_block sp_ne) ∧
           ((∀ t, lastRealTokenVal? s_ad.tokens = some t →
               t.completesFlowValue = false) → tl ≠ .value) ∧
           ((∀ t, lastRealTokenVal? s_ad.tokens = some t →
@@ -5990,7 +6003,7 @@ lemma accum_step_flow (sc : ScannerState)
           (tl = .sep ∨ tl = .question →
             ∀ sp_ne, SFlowContent 0 .flowIn sp_prep sp_ne →
             ∀ sp_p₂ sp_t, SSeparateLines 0 sp_ne sp_p₂ → GLit ':' sp_p₂ sp_t →
-            FlowOpenStack sp_start (d + 1) ks km .colon sp_block sp_t) ∧
+            FlowOpenStack sp_start 0 (d + 1) ks km .colon sp_block sp_t) ∧
           (tl = .colon →
             (sc.simpleKeyAllowed = true ∧ sc.explicitKeyLine = none ∧
               ∃ tok, sc.tokens[sc.tokens.size - 1]? = some tok ∧ tok.val = .value) ∨
@@ -6042,7 +6055,7 @@ lemma accum_step_flow (sc : ScannerState)
       obtain ⟨b_new, h_bprom, h_bkey⟩ : ∃ b_new,
           (b_new = false → ∀ sp_ne, SFlowContent 0 .flowIn sp_prep sp_ne →
             ∀ sp_p₂ sp_t, SSeparateLines 0 sp_ne sp_p₂ → GLit ':' sp_p₂ sp_t →
-            FlowOpenStack sp_start (d + 1) ks km .colon sp_block sp_t) ∧
+            FlowOpenStack sp_start 0 (d + 1) ks km .colon sp_block sp_t) ∧
           (b_new = true → s_ad.simpleKey.possible = true ∧
             0 < s_ad.simpleKey.tokenIndex ∧
             (∃ tok, s_ad.tokens[s_ad.simpleKey.tokenIndex - 1]? = some tok ∧
@@ -6196,7 +6209,7 @@ lemma accum_step_flow (sc : ScannerState)
           obtain ⟨b_new, h_bprom, h_bkey⟩ : ∃ b_new,
               (b_new = false → ∀ sp_ne, SFlowContent 0 .flowIn sp_prep sp_ne →
                 ∀ sp_p₂ sp_t, SSeparateLines 0 sp_ne sp_p₂ → GLit ':' sp_p₂ sp_t →
-                FlowOpenStack sp_start (d + 1) ks km .colon sp_block sp_t) ∧
+                FlowOpenStack sp_start 0 (d + 1) ks km .colon sp_block sp_t) ∧
               (b_new = true → s_ad.simpleKey.possible = true ∧
                 0 < s_ad.simpleKey.tokenIndex ∧
                 (∃ tok, s_ad.tokens[s_ad.simpleKey.tokenIndex - 1]? = some tok ∧
@@ -7395,7 +7408,7 @@ lemma colon_open_map (sp_start sp_land sp_ind : SurfPos) (k : Nat)
     ∃ sp_gram' sp_block' sp_flow' sp_scan',
       SLYamlStream sp_start sp_gram' ∧
       BlockStack sp_gram' sp_block' ∧
-      FlowStackB sp_start 0 #[] #[] .sep sp_block' sp_flow' ∧
+      FlowStackB sp_start 0 0 #[] #[] .sep sp_block' sp_flow' ∧
       PendingNode s' false sp_start sp_flow' sp_scan' ∧
       ScannerSurfCorr s' sp_scan' := by
   have hpeek_disp : (if s_prep.allowDirectives then
@@ -7461,7 +7474,7 @@ lemma question_open_map (sp_start sp_land sp_ind : SurfPos) (k : Nat)
     ∃ sp_gram' sp_block' sp_flow' sp_scan',
       SLYamlStream sp_start sp_gram' ∧
       BlockStack sp_gram' sp_block' ∧
-      FlowStackB sp_start 0 #[] #[] .sep sp_block' sp_flow' ∧
+      FlowStackB sp_start 0 0 #[] #[] .sep sp_block' sp_flow' ∧
       PendingNode s' false sp_start sp_flow' sp_scan' ∧
       ScannerSurfCorr s' sp_scan' := by
   have hpeek_disp : (if s_prep.allowDirectives then
@@ -7538,7 +7551,7 @@ lemma compact_open_map (sp_start sp_entry sp_ind : SurfPos) (n m : Nat) (c : Cha
     ∃ sp_gram' sp_block' sp_flow' sp_scan',
       SLYamlStream sp_start sp_gram' ∧
       BlockStack sp_gram' sp_block' ∧
-      FlowStackB sp_start 0 #[] #[] .sep sp_block' sp_flow' ∧
+      FlowStackB sp_start 0 0 #[] #[] .sep sp_block' sp_flow' ∧
       PendingNode s' false sp_start sp_flow' sp_scan' ∧
       ScannerSurfCorr s' sp_scan' := by
   have hpeek_disp : (if s_prep.allowDirectives then
@@ -7605,7 +7618,7 @@ lemma indicator_open_map (sp_start sp_land sp_ind : SurfPos) (k : Nat) (c : Char
     ∃ sp_gram' sp_block' sp_flow' sp_scan',
       SLYamlStream sp_start sp_gram' ∧
       BlockStack sp_gram' sp_block' ∧
-      FlowStackB sp_start 0 #[] #[] .sep sp_block' sp_flow' ∧
+      FlowStackB sp_start 0 0 #[] #[] .sep sp_block' sp_flow' ∧
       PendingNode s' false sp_start sp_flow' sp_scan' ∧
       ScannerSurfCorr s' sp_scan' := by
   cases hc with
@@ -7667,7 +7680,7 @@ lemma colon_open_map_implicit (sp_start sp_block sp_key sp_gram sp_ws : SurfPos)
     ∃ sp_gram' sp_block' sp_flow' sp_scan',
       SLYamlStream sp_start sp_gram' ∧
       BlockStack sp_gram' sp_block' ∧
-      FlowStackB sp_start 0 #[] #[] .sep sp_block' sp_flow' ∧
+      FlowStackB sp_start 0 0 #[] #[] .sep sp_block' sp_flow' ∧
       PendingNode s' false sp_start sp_flow' sp_scan' ∧
       ScannerSurfCorr s' sp_scan' := by
   have hpeek_disp : (if s_prep.allowDirectives then
@@ -7913,7 +7926,7 @@ lemma block_dispatch_deferred
     ∃ sp_gram' sp_block' sp_flow' sp_scan',
       SLYamlStream sp_start sp_gram' ∧
       BlockStack sp_gram' sp_block' ∧
-      FlowStackB sp_start 0 #[] #[] .sep sp_block' sp_flow' ∧
+      FlowStackB sp_start 0 0 #[] #[] .sep sp_block' sp_flow' ∧
       PendingNode s' false sp_start sp_flow' sp_scan' ∧
       ScannerSurfCorr s' sp_scan' :=
   ⟨sp_X, sp_X, sp_X, sp_scan', h_stream,
@@ -7941,7 +7954,7 @@ lemma accum_block_on_noPending
     ∃ sp_gram' sp_block' sp_flow' sp_scan',
       SLYamlStream sp_start sp_gram' ∧
       BlockStack sp_gram' sp_block' ∧
-      FlowStackB sp_start 0 #[] #[] .sep sp_block' sp_flow' ∧
+      FlowStackB sp_start 0 0 #[] #[] .sep sp_block' sp_flow' ∧
       PendingNode s' false sp_start sp_flow' sp_scan' ∧
       ScannerSurfCorr s' sp_scan' := by
   -- Item 21: the last block-dispatch lemma that still gated on the PARK column
@@ -8062,7 +8075,7 @@ lemma accum_block_on_closeThenBlock
     ∃ sp_gram' sp_block' sp_flow' sp_scan',
       SLYamlStream sp_start sp_gram' ∧
       BlockStack sp_gram' sp_block' ∧
-      FlowStackB sp_start 0 #[] #[] .sep sp_block' sp_flow' ∧
+      FlowStackB sp_start 0 0 #[] #[] .sep sp_block' sp_flow' ∧
       PendingNode s' false sp_start sp_flow' sp_scan' ∧
       ScannerSurfCorr s' sp_scan' := by
   -- Item 19: the arm is selected by where the step LANDS, not by the column
@@ -8167,7 +8180,7 @@ lemma colon_fires_implicit_key
     (h_punt : ∃ sp_gram' sp_block' sp_flow' sp_scan'',
       SLYamlStream sp_start sp_gram' ∧
       BlockStack sp_gram' sp_block' ∧
-      FlowStackB sp_start 0 #[] #[] .sep sp_block' sp_flow' ∧
+      FlowStackB sp_start 0 0 #[] #[] .sep sp_block' sp_flow' ∧
       PendingNode s' false sp_start sp_flow' sp_scan'' ∧
       ScannerSurfCorr s' sp_scan'')
     (hcorr_prep : ScannerSurfCorr s_prep sp_prep)
@@ -8181,7 +8194,7 @@ lemma colon_fires_implicit_key
     ∃ sp_gram' sp_block' sp_flow' sp_scan',
       SLYamlStream sp_start sp_gram' ∧
       BlockStack sp_gram' sp_block' ∧
-      FlowStackB sp_start 0 #[] #[] .sep sp_block' sp_flow' ∧
+      FlowStackB sp_start 0 0 #[] #[] .sep sp_block' sp_flow' ∧
       PendingNode s' false sp_start sp_flow' sp_scan' ∧
       ScannerSurfCorr s' sp_scan' := by
   by_cases h_poss : sc.simpleKey.possible = true
@@ -8249,7 +8262,7 @@ lemma accum_block_on_pendingContent
     ∃ sp_gram' sp_block' sp_flow' sp_scan',
       SLYamlStream sp_start sp_gram' ∧
       BlockStack sp_gram' sp_block' ∧
-      FlowStackB sp_start 0 #[] #[] .sep sp_block' sp_flow' ∧
+      FlowStackB sp_start 0 0 #[] #[] .sep sp_block' sp_flow' ∧
       PendingNode s' false sp_start sp_flow' sp_scan' ∧
       ScannerSurfCorr s' sp_scan' := by
   by_cases hc : c = ':'
@@ -8301,7 +8314,7 @@ lemma accum_block_on_pendingBlockContent
     ∃ sp_gram' sp_block' sp_flow' sp_scan',
       SLYamlStream sp_start sp_gram' ∧
       BlockStack sp_gram' sp_block' ∧
-      FlowStackB sp_start 0 #[] #[] .sep sp_block' sp_flow' ∧
+      FlowStackB sp_start 0 0 #[] #[] .sep sp_block' sp_flow' ∧
       PendingNode s' false sp_start sp_flow' sp_scan' ∧
       ScannerSurfCorr s' sp_scan' := by
   -- Item 38: the same-line `:` may fire the pack instead — `- a: 1` is
@@ -8312,7 +8325,7 @@ lemma accum_block_on_pendingBlockContent
     ∃ sp_gram' sp_block' sp_flow' sp_scan'',
       SLYamlStream sp_start sp_gram' ∧
       BlockStack sp_gram' sp_block' ∧
-      FlowStackB sp_start 0 #[] #[] .sep sp_block' sp_flow' ∧
+      FlowStackB sp_start 0 0 #[] #[] .sep sp_block' sp_flow' ∧
       PendingNode s' false sp_start sp_flow' sp_scan'' ∧
       ScannerSurfCorr s' sp_scan'' := by
     -- Item 19: gate on the landing, not on the park — a sibling entry reached
@@ -8414,7 +8427,7 @@ lemma accum_block_on_pendingBlock
     ∃ sp_gram' sp_block' sp_flow' sp_scan',
       SLYamlStream sp_start sp_gram' ∧
       BlockStack sp_gram' sp_block' ∧
-      FlowStackB sp_start 0 #[] #[] .sep sp_block' sp_flow' ∧
+      FlowStackB sp_start 0 0 #[] #[] .sep sp_block' sp_flow' ∧
       PendingNode s' false sp_start sp_flow' sp_scan' ∧
       ScannerSurfCorr s' sp_scan' := by
   -- Item 19: gate on the landing, not on the park — the entry a bare `-`
@@ -8617,7 +8630,7 @@ lemma accum_block_pending (sc : ScannerState)
     ∃ sp_gram' sp_block' sp_flow' sp_scan',
       SLYamlStream sp_start sp_gram' ∧
       BlockStack sp_gram' sp_block' ∧
-      FlowStackB sp_start 0 #[] #[] .sep sp_block' sp_flow' ∧
+      FlowStackB sp_start 0 0 #[] #[] .sep sp_block' sp_flow' ∧
       PendingNode s' false sp_start sp_flow' sp_scan' ∧
       ScannerSurfCorr s' sp_scan' := by
   obtain ⟨sp_prep, hcorr_prep⟩ :=
@@ -10797,7 +10810,7 @@ lemma content_dispatch_routed
     ∃ sp_gram' sp_block' sp_flow' sp_scan',
       SLYamlStream sp_start sp_gram' ∧
       BlockStack sp_gram' sp_block' ∧
-      FlowStackB sp_start 0 #[] #[] .sep sp_block' sp_flow' ∧
+      FlowStackB sp_start 0 0 #[] #[] .sep sp_block' sp_flow' ∧
       PendingNode s' false sp_start sp_flow' sp_scan' ∧
       ScannerSurfCorr s' sp_scan' := by
   have hpeek_disp : (if s_prep.allowDirectives then
@@ -11009,7 +11022,7 @@ lemma content_dispatch_after_close
     ∃ sp_gram' sp_block' sp_flow' sp_scan',
       SLYamlStream sp_start sp_gram' ∧
       BlockStack sp_gram' sp_block' ∧
-      FlowStackB sp_start 0 #[] #[] .sep sp_block' sp_flow' ∧
+      FlowStackB sp_start 0 0 #[] #[] .sep sp_block' sp_flow' ∧
       PendingNode s' false sp_start sp_flow' sp_scan' ∧
       ScannerSurfCorr s' sp_scan' :=
   content_dispatch_routed sp_start sp_block sp_block s_prep s' c sp_prep sp_scan'
@@ -11048,7 +11061,7 @@ lemma accum_content_on_noPending
     ∃ sp_gram' sp_block' sp_flow' sp_scan',
       SLYamlStream sp_start sp_gram' ∧
       BlockStack sp_gram' sp_block' ∧
-      FlowStackB sp_start 0 #[] #[] .sep sp_block' sp_flow' ∧
+      FlowStackB sp_start 0 0 #[] #[] .sep sp_block' sp_flow' ∧
       PendingNode s' false sp_start sp_flow' sp_scan' ∧
       ScannerSurfCorr s' sp_scan' := by
   have hpeek : s_prep.peek? = some c := preprocess_some_peek h_preprocess
@@ -11098,7 +11111,7 @@ lemma accum_content_on_pendingBlock
     ∃ sp_gram' sp_block' sp_flow' sp_scan',
       SLYamlStream sp_start sp_gram' ∧
       BlockStack sp_gram' sp_block' ∧
-      FlowStackB sp_start 0 #[] #[] .sep sp_block' sp_flow' ∧
+      FlowStackB sp_start 0 0 #[] #[] .sep sp_block' sp_flow' ∧
       PendingNode s' false sp_start sp_flow' sp_scan' ∧
       ScannerSurfCorr s' sp_scan' := by
   obtain ⟨sp_prep', h_sep, hcorr_sep⟩ :=
@@ -11480,7 +11493,7 @@ lemma accum_content_on_pendingBlock_indented
     ∃ sp_gram' sp_block' sp_flow' sp_scan',
       SLYamlStream sp_start sp_gram' ∧
       BlockStack sp_gram' sp_block' ∧
-      FlowStackB sp_start 0 #[] #[] .sep sp_block' sp_flow' ∧
+      FlowStackB sp_start 0 0 #[] #[] .sep sp_block' sp_flow' ∧
       PendingNode s' false sp_start sp_flow' sp_scan' ∧
       ScannerSurfCorr s' sp_scan' := by
   rcases indentedValue_reads_at_any_indent sc sp_scan n s_prep s' c sp_prep sp_scan'
@@ -11584,7 +11597,7 @@ lemma accum_content_on_pendingMapValue
     ∃ sp_gram' sp_block' sp_flow' sp_scan',
       SLYamlStream sp_start sp_gram' ∧
       BlockStack sp_gram' sp_block' ∧
-      FlowStackB sp_start 0 #[] #[] .sep sp_block' sp_flow' ∧
+      FlowStackB sp_start 0 0 #[] #[] .sep sp_block' sp_flow' ∧
       PendingNode s' false sp_start sp_flow' sp_scan' ∧
       ScannerSurfCorr s' sp_scan' := by
   obtain ⟨sp_prep', h_sep, hcorr_sep⟩ :=
@@ -11746,7 +11759,7 @@ lemma accum_content_on_pendingMapValue_indented
     ∃ sp_gram' sp_block' sp_flow' sp_scan',
       SLYamlStream sp_start sp_gram' ∧
       BlockStack sp_gram' sp_block' ∧
-      FlowStackB sp_start 0 #[] #[] .sep sp_block' sp_flow' ∧
+      FlowStackB sp_start 0 0 #[] #[] .sep sp_block' sp_flow' ∧
       PendingNode s' false sp_start sp_flow' sp_scan' ∧
       ScannerSurfCorr s' sp_scan' := by
   rcases indentedValue_reads_at_any_indent sc sp_scan n s_prep s' c sp_prep sp_scan'
@@ -11829,7 +11842,7 @@ lemma accum_content_pending (sc : ScannerState)
     ∃ sp_gram' sp_block' sp_flow' sp_scan',
       SLYamlStream sp_start sp_gram' ∧
       BlockStack sp_gram' sp_block' ∧
-      FlowStackB sp_start 0 #[] #[] .sep sp_block' sp_flow' ∧
+      FlowStackB sp_start 0 0 #[] #[] .sep sp_block' sp_flow' ∧
       PendingNode s' false sp_start sp_flow' sp_scan' ∧
       ScannerSurfCorr s' sp_scan' := by
   obtain ⟨sp_prep, hcorr_prep⟩ :=
@@ -11864,13 +11877,13 @@ lemma accum_content_pending (sc : ScannerState)
         ∃ sp_gram' sp_block' sp_flow' sp_scan',
           SLYamlStream sp_start sp_gram' ∧
           BlockStack sp_gram' sp_block' ∧
-          FlowStackB sp_start 0 #[] #[] .sep sp_block' sp_flow' ∧
+          FlowStackB sp_start 0 0 #[] #[] .sep sp_block' sp_flow' ∧
           PendingNode s' false sp_start sp_flow' sp_scan' ∧
           ScannerSurfCorr s' sp_scan') →
       ∃ sp_gram' sp_block' sp_flow' sp_scan',
         SLYamlStream sp_start sp_gram' ∧
         BlockStack sp_gram' sp_block' ∧
-        FlowStackB sp_start 0 #[] #[] .sep sp_block' sp_flow' ∧
+        FlowStackB sp_start 0 0 #[] #[] .sep sp_block' sp_flow' ∧
         PendingNode s' false sp_start sp_flow' sp_scan' ∧
         ScannerSurfCorr s' sp_scan' := by
     intro h_noBreak
@@ -13017,7 +13030,7 @@ lemma accum_step_content (sc : ScannerState)
           -- `:`-receiving closure is `receiveNodeColon`).
           have h_entry : KeyAfterValueLayout s' ∨
               ∀ sp_p' sp_t', SSeparateLines 0 sp_ne sp_p' → GLit ':' sp_p' sp_t' →
-                FlowStackB sp_start (d + 1) ks km .colon sp_block sp_t' := by
+                FlowStackB sp_start 0 (d + 1) ks km .colon sp_block sp_t' := by
             cases h_tl_case : tl with
             | value => exact absurd h_tl_case h_tail
             | colon =>
@@ -13279,7 +13292,7 @@ lemma accum_step_content (sc : ScannerState)
             -- `:`); at a receptive parent the closure wraps the run.
             have h_entry : KeyAfterValueLayout s' ∨
                 ∀ sp_p' sp_t', SSeparateLines 0 sp_ne sp_p' → GLit ':' sp_p' sp_t' →
-                  FlowStackB sp_start (d + 1) ks km .colon sp_block sp_t' := by
+                  FlowStackB sp_start 0 (d + 1) ks km .colon sp_block sp_t' := by
               cases h_tl_case : tl with
               | value => exact absurd h_tl_case h_tail
               | colon =>
