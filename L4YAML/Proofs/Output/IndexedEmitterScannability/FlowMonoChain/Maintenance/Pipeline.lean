@@ -355,6 +355,15 @@ lemma dispatchBlockIndicators_none_close_brace (s : ScannerStateIx input) :
 `Preserve/Step.lean`. Here we add the two siblings: content
 dispatch (success and error) and block-indicator dispatch. -/
 
+/-- Item 47's adjacent-value check is a no-op off the `:` — the indexed twin
+    of `scanNextToken_checkAdjacentValue_ok_of_ne_colon`. -/
+lemma scanNextTokenIx_checkAdjacentValue_ok_of_ne_colon
+    (s : ScannerStateIx input) {c : Char} (h : c ≠ ':') :
+    scanNextTokenIx_checkAdjacentValue s c = .ok () := by
+  have hc : (c == ':') = false := by simpa using h
+  simp only [scanNextTokenIx_checkAdjacentValue, hc, Bool.and_false, Bool.false_and,
+             Bool.false_eq_true, ↓reduceIte]
+
 /-- When all four upstream stages (preprocess → struct → check →
     flow → block) yield `.ok none` and content dispatch produces a
     result, `scanNextTokenIx` returns that result.
@@ -368,6 +377,7 @@ lemma scanNextTokenIx_via_content_dispatch
     (h_check : scanNextTokenIx_checkBlockFlowIndent s_ad c = .ok ())
     (h_flow : scanNextTokenIx_dispatchFlowIndicators s_ad c = .ok none)
     (h_block : scanNextTokenIx_dispatchBlockIndicators s_ad c = .ok none)
+    (h_adj : scanNextTokenIx_checkAdjacentValue s_ad c = .ok ())
     (h_content : scanNextTokenIx_dispatchContent s_ad c = .ok s_result)
     (h_ndp : s_pp.directivesPresent = false) :
     scanNextTokenIx s = .ok (some s_result) := by
@@ -380,6 +390,7 @@ lemma scanNextTokenIx_via_content_dispatch
   rw [h_check]; dsimp only []
   rw [h_flow]; dsimp only []
   rw [h_block]; dsimp only []
+  rw [h_adj]; dsimp only []
   rw [h_content]
 
 /-- Error variant: when content dispatch errors, `scanNextTokenIx`
@@ -394,6 +405,7 @@ lemma scanNextTokenIx_via_content_dispatch_error
     (h_check : scanNextTokenIx_checkBlockFlowIndent s_ad c = .ok ())
     (h_flow : scanNextTokenIx_dispatchFlowIndicators s_ad c = .ok none)
     (h_block : scanNextTokenIx_dispatchBlockIndicators s_ad c = .ok none)
+    (h_adj : scanNextTokenIx_checkAdjacentValue s_ad c = .ok ())
     (h_content : scanNextTokenIx_dispatchContent s_ad c = .error e)
     (h_ndp : s_pp.directivesPresent = false) :
     scanNextTokenIx s = .error e := by
@@ -406,6 +418,7 @@ lemma scanNextTokenIx_via_content_dispatch_error
   rw [h_check]; dsimp only []
   rw [h_flow]; dsimp only []
   rw [h_block]; dsimp only []
+  rw [h_adj]; dsimp only []
   rw [h_content]
 
 /-- When structural/flow dispatches yield `.ok none` and block-

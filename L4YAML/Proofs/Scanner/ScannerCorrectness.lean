@@ -9342,6 +9342,7 @@ lemma scanNextToken_preserves_AllKeysValid :
         simp only [Except.ok.injEq, Option.some.injEq] at h_ok; subst h_ok
         exact dispatchBlockIndicators_preserves_AllKeysValid _ c _ (by assumption) h_akv3
       · -- block none → content
+        split at h_ok <;> (try (simp at h_ok; done)) -- adjacent-value check (item 47)
         split at h_ok <;> (try (simp at h_ok; done)) -- content Except
         simp only [Except.ok.injEq, Option.some.injEq] at h_ok; subst h_ok
         exact dispatchContent_preserves_AllKeysValid _ c _ (by assumption) h_akv3
@@ -9427,6 +9428,7 @@ lemma scanNextToken_preserves_ScanInv :
         exact dispatchBlockIndicators_preserves_ScanInv _ c h_inv3
           (SimpleKeyValid_implies_scanValue_h_sk _ h_skv3) _ (by assumption)
       · -- block none → content
+        split at h_ok <;> (try (simp at h_ok; done)) -- adjacent-value check (item 47)
         split at h_ok <;> (try (simp at h_ok; done)) -- content Except
         simp only [Except.ok.injEq, Option.some.injEq] at h_ok; subst h_ok
         exact dispatchContent_preserves_ScanInv _ c h_inv3 _ (by assumption)
@@ -10612,6 +10614,11 @@ lemma scanNextToken_progress (s s' : ScannerState)
                         simp only [Except.ok.injEq, Option.some.injEq] at h; subst h
                         have := dispatchBlockIndicators_offset_gt sp _ c h_hm h_bi; omega
                       | none =>
+                        -- item 47: adjacent-value check (pure, no state change)
+                        generalize h_av : scanNextToken_checkAdjacentValue sp c = av at h
+                        cases av with
+                        | error => cases h
+                        | ok _ =>
                         generalize h_dc : scanNextToken_dispatchContent sp c = dc at h
                         cases dc with
                         | error => cases h
@@ -10643,6 +10650,11 @@ lemma scanNextToken_progress (s s' : ScannerState)
                         simp only [Except.ok.injEq, Option.some.injEq] at h; subst h
                         have := dispatchBlockIndicators_offset_gt sp2 _ c h_hm2 h_bi; omega
                       | none =>
+                        -- item 47: adjacent-value check (pure, no state change)
+                        generalize h_av : scanNextToken_checkAdjacentValue sp2 c = av at h
+                        cases av with
+                        | error => cases h
+                        | ok _ =>
                         generalize h_dc : scanNextToken_dispatchContent sp2 c = dc at h
                         cases dc with
                         | error => cases h

@@ -208,6 +208,7 @@ lemma scanNextToken_flowStack_step {s s' : ScannerState}
         · rw [ScannerFlowStack.dispatchBlockIndicators_preserves_flowStack _ c1 _
             (by assumption), h_allow_st, h_pre_st]
       · -- block none → content
+        split at h <;> (try (simp at h; done))  -- adjacent-value check (item 47)
         split at h <;> (try (simp at h; done))  -- content Except
         simp only [Except.ok.injEq, Option.some.injEq] at h; subst h
         refine Or.inl ⟨?_, ?_⟩

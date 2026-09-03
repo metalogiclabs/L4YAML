@@ -338,7 +338,9 @@ def scanDoubleQuoted (s : ScannerState) : Except ScanError ScannerState := do
   if !s.inFlow then
     validateTrailingContent s_after_close s.inputEnd
   let s_with_token := s_after_close.emitAt startPos (.scalar content .doubleQuoted)
-  .ok { s_with_token with simpleKeyAllowed := false }
+  -- Item 47: the scalar's interior breaks are the token's own, not structure —
+  -- see `scanFlowSequenceEnd`.
+  .ok { s_with_token with simpleKeyAllowed := false, needIndentCheck := false }
 
 -- Helper: Collect single-quoted content using structural recursion
 @[yaml_spec "7.3.2" 117 "c-quoted-quote",
@@ -415,7 +417,9 @@ def scanSingleQuoted (s : ScannerState) : Except ScanError ScannerState := do
   if !s.inFlow then
     validateTrailingContent s_after_close s.inputEnd
   let s_with_token := s_after_close.emitAt startPos (.scalar content .singleQuoted)
-  .ok { s_with_token with simpleKeyAllowed := false }
+  -- Item 47: the scalar's interior breaks are the token's own, not structure —
+  -- see `scanFlowSequenceEnd`.
+  .ok { s_with_token with simpleKeyAllowed := false, needIndentCheck := false }
 
 /-! ### Plain Scalar Character Predicates
 
@@ -608,7 +612,9 @@ def scanPlainScalar (s : ScannerState) : Except ScanError ScannerState := do
   -- Trim trailing whitespace: plain scalars never have trailing WS per §7.3.3
   let content_trimmed := trimTrailingWS result.content
   let s_with_token := result.state.emitAt startPos (.scalar content_trimmed .plain)
-  .ok { s_with_token with simpleKeyAllowed := false }
+  -- Item 47: the scalar's interior breaks are the token's own, not structure —
+  -- see `scanFlowSequenceEnd`.
+  .ok { s_with_token with simpleKeyAllowed := false, needIndentCheck := false }
 
 /-- States for folded block scalar newline processing (YAML 1.2.2 §8.1.3).
 

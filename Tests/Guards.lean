@@ -40,6 +40,7 @@ import Tests.Guards.Proofs.ScannerDocStartInlineCompose
 import Tests.Guards.Proofs.FlowStackIndexParametric
 import Tests.Guards.Proofs.FlowIndexLeafEvidence
 import Tests.Guards.Proofs.ScannerIndexedFlowCompose
+import Tests.Guards.Proofs.ScannerAdjacentValueRefused
 import Tests.Guards.Proofs.ScannerNodePropertyDelimiter
 import Tests.Guards.Proofs.ScannerContracts
 import Tests.Guards.Proofs.ScannerCorrectness

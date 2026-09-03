@@ -222,18 +222,21 @@ lemma scanNextTokenIx_preserves_sync
                     rw [h_allow_stack, h_allow_fl]
                     exact h_pre_sync
                   · -- BlockIndicators none → Content
+                    -- item 47: adjacent-value check (pure, no state change)
                     split at h_next
                     · contradiction
-                    · rename_i sC hContent
-                      simp only [Except.ok.injEq, Option.some.injEq] at h_next
-                      subst h_next
-                      have h_d_stack := scanNextTokenIx_dispatchContent_preserves_simpleKeyStack
-                        _ c1 _ hContent
-                      have h_d_fl := scanNextTokenIx_dispatchContent_preserves_flowLevel
-                        _ c1 _ hContent
-                      rw [h_d_stack, h_d_fl]
-                      rw [h_allow_stack, h_allow_fl]
-                      exact h_pre_sync
+                    · split at h_next
+                      · contradiction
+                      · rename_i sC hContent
+                        simp only [Except.ok.injEq, Option.some.injEq] at h_next
+                        subst h_next
+                        have h_d_stack := scanNextTokenIx_dispatchContent_preserves_simpleKeyStack
+                          _ c1 _ hContent
+                        have h_d_fl := scanNextTokenIx_dispatchContent_preserves_flowLevel
+                          _ c1 _ hContent
+                        rw [h_d_stack, h_d_fl]
+                        rw [h_allow_stack, h_allow_fl]
+                        exact h_pre_sync
 
 /-! ## §3  Per-step prefix preservation under the SKAF simpleKey bound
 
@@ -382,6 +385,11 @@ lemma scanNextTokenIx_preserves_prefix_of_simpleKey
                         exact ⟨h_sz, h_pref.trans (h_dir_eq.trans h_pre_eq)⟩
                     | none =>
                       dsimp only [] at h_ok
+                      -- item 47: adjacent-value check (pure, no state change)
+                      generalize h_av : scanNextTokenIx_checkAdjacentValue s_dir c = av_res at h_ok
+                      cases av_res with
+                      | error e => simp at h_ok
+                      | ok _ =>
                       generalize h_dc : scanNextTokenIx_dispatchContent s_dir c = dc_res at h_ok
                       cases dc_res with
                       | error e => simp at h_ok

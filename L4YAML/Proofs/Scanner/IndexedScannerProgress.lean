@@ -1012,6 +1012,12 @@ lemma scanNextTokenIx_progress {input : String}
                       cases h
                       exact scanNextTokenIx_dispatchBlockIndicators_offset_gt h_sadj_hm hBlk
                     | none =>
+                      -- item 47: adjacent-value check (pure, no state change)
+                      cases hAdj : scanNextTokenIx_checkAdjacentValue
+                          { sp with allowDirectives := false, documentEverStarted := true } c with
+                      | error e => rw [hAdj] at h; cases h
+                      | ok _ =>
+                      rw [hAdj] at h
                       cases hCon : scanNextTokenIx_dispatchContent
                           { sp with allowDirectives := false, documentEverStarted := true } c with
                       | error e => rw [hCon] at h; cases h
@@ -1043,6 +1049,11 @@ lemma scanNextTokenIx_progress {input : String}
                       cases h
                       exact scanNextTokenIx_dispatchBlockIndicators_offset_gt hHm hBlk
                     | none =>
+                      -- item 47: adjacent-value check (pure, no state change)
+                      cases hAdj : scanNextTokenIx_checkAdjacentValue sp c with
+                      | error e => rw [hAdj] at h; cases h
+                      | ok _ =>
+                      rw [hAdj] at h
                       cases hCon : scanNextTokenIx_dispatchContent sp c with
                       | error e => rw [hCon] at h; cases h
                       | ok _ =>

@@ -277,13 +277,15 @@ lemma scanDoubleQuotedIx_first_filtered_token (s : ScannerStateIx input)
       exfalso
       have h_snt_err := scanNextTokenIx_via_content_dispatch_error
         s (saveSimpleKeyIx s) s_ad '"' e
-        h_pp h_struct h_s_ad_def h_check h_flow_none h_block_none h_dc_eq
+        h_pp h_struct h_s_ad_def h_check h_flow_none h_block_none
+        (scanNextTokenIx_checkAdjacentValue_ok_of_ne_colon _ (by decide)) h_dc_eq
         (scanNextTokenIx_ok_directivesPresent_false h_pp h_struct h_snt)
       rw [h_snt_err] at h_snt; exact absurd h_snt (by simp)
     | ok s_dc =>
       have h_snt_eq := scanNextTokenIx_via_content_dispatch
         s (saveSimpleKeyIx s) s_ad s_dc '"'
-        h_pp h_struct h_s_ad_def h_check h_flow_none h_block_none h_dc_eq
+        h_pp h_struct h_s_ad_def h_check h_flow_none h_block_none
+        (scanNextTokenIx_checkAdjacentValue_ok_of_ne_colon _ (by decide)) h_dc_eq
         (scanNextTokenIx_ok_directivesPresent_false h_pp h_struct h_snt)
       have h_eq2 : s' = s_dc :=
         Option.some.inj (Except.ok.inj (h_snt.symm.trans h_snt_eq))

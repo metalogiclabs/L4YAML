@@ -102,6 +102,11 @@ lemma scanNextTokenIx_preserves_ScanInvIx
                       exact scanNextTokenIx_dispatchBlockIndicators_preserves_ScanInvIx
                         h_sadj h_sadj_akv hBlk
                     | none =>
+                      -- item 47: adjacent-value check (pure, no state change)
+                      cases hAdj : scanNextTokenIx_checkAdjacentValue sadj c with
+                      | error e => rw [hAdj] at h_ok; cases h_ok
+                      | ok _ =>
+                      rw [hAdj] at h_ok
                       cases hCon : scanNextTokenIx_dispatchContent sadj c with
                       | error e => rw [hCon] at h_ok; cases h_ok
                       | ok _ =>
@@ -133,6 +138,11 @@ lemma scanNextTokenIx_preserves_ScanInvIx
                       exact scanNextTokenIx_dispatchBlockIndicators_preserves_ScanInvIx
                         h_sp h_sp_akv hBlk
                     | none =>
+                      -- item 47: adjacent-value check (pure, no state change)
+                      cases hAdj : scanNextTokenIx_checkAdjacentValue sp c with
+                      | error e => rw [hAdj] at h_ok; cases h_ok
+                      | ok _ =>
+                      rw [hAdj] at h_ok
                       cases hCon : scanNextTokenIx_dispatchContent sp c with
                       | error e => rw [hCon] at h_ok; cases h_ok
                       | ok _ =>
@@ -203,6 +213,11 @@ lemma scanNextTokenIx_preserves_AllKeysValidIx
                       exact scanNextTokenIx_dispatchBlockIndicators_preserves_AllKeysValidIx
                         h_sadj_akv hBlk
                     | none =>
+                      -- item 47: adjacent-value check (pure, no state change)
+                      cases hAdj : scanNextTokenIx_checkAdjacentValue sadj c with
+                      | error e => rw [hAdj] at h_ok; cases h_ok
+                      | ok _ =>
+                      rw [hAdj] at h_ok
                       cases hCon : scanNextTokenIx_dispatchContent sadj c with
                       | error e => rw [hCon] at h_ok; cases h_ok
                       | ok _ =>
@@ -233,6 +248,11 @@ lemma scanNextTokenIx_preserves_AllKeysValidIx
                       exact scanNextTokenIx_dispatchBlockIndicators_preserves_AllKeysValidIx
                         h_sp_akv hBlk
                     | none =>
+                      -- item 47: adjacent-value check (pure, no state change)
+                      cases hAdj : scanNextTokenIx_checkAdjacentValue sp c with
+                      | error e => rw [hAdj] at h_ok; cases h_ok
+                      | ok _ =>
+                      rw [hAdj] at h_ok
                       cases hCon : scanNextTokenIx_dispatchContent sp c with
                       | error e => rw [hCon] at h_ok; cases h_ok
                       | ok _ =>

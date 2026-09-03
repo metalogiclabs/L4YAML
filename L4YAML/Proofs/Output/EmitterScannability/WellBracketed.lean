@@ -3006,13 +3006,15 @@ lemma scanNextToken_flow_scalar_filtered_push (s : ScannerState) (rest : List Ch
     | error e =>
       exfalso
       have h_snt_err := scanNextToken_via_content_dispatch_error
-        _ _ _ _ _ h_pp h_struct rfl h_check h_flow_none h_block_none h_dc_eq
+        _ _ _ _ _ h_pp h_struct rfl h_check h_flow_none h_block_none
+        (scanNextToken_checkAdjacentValue_ok_of_ne_colon _ (by decide)) h_dc_eq
         (scanNextToken_ok_directivesPresent_false h_pp h_struct h_snt)
       rw [h_snt_err] at h_snt; exact absurd h_snt (by simp)
     | ok s_dc =>
       have h_snt_eq : scanNextToken s = Except.ok (some s_dc) :=
         scanNextToken_via_content_dispatch _ _ _ _ _ h_pp h_struct rfl h_check
-          h_flow_none h_block_none h_dc_eq
+          h_flow_none h_block_none
+          (scanNextToken_checkAdjacentValue_ok_of_ne_colon _ (by decide)) h_dc_eq
           (scanNextToken_ok_directivesPresent_false h_pp h_struct h_snt)
       have h_eq2 : s' = s_dc := Option.some.inj (Except.ok.inj (h_snt.symm.trans h_snt_eq))
       subst h_eq2; rfl
@@ -3084,13 +3086,15 @@ lemma scanNextToken_flow_scalar_filtered_push_content (s : ScannerState)
     | error e =>
       exfalso
       have h_snt_err := scanNextToken_via_content_dispatch_error
-        _ _ _ _ _ h_pp h_struct rfl h_check h_flow_none h_block_none h_dc_eq
+        _ _ _ _ _ h_pp h_struct rfl h_check h_flow_none h_block_none
+        (scanNextToken_checkAdjacentValue_ok_of_ne_colon _ (by decide)) h_dc_eq
         (scanNextToken_ok_directivesPresent_false h_pp h_struct h_snt)
       rw [h_snt_err] at h_snt; exact absurd h_snt (by simp)
     | ok s_dc =>
       have h_snt_eq : scanNextToken s = Except.ok (some s_dc) :=
         scanNextToken_via_content_dispatch _ _ _ _ _ h_pp h_struct rfl h_check
-          h_flow_none h_block_none h_dc_eq
+          h_flow_none h_block_none
+          (scanNextToken_checkAdjacentValue_ok_of_ne_colon _ (by decide)) h_dc_eq
           (scanNextToken_ok_directivesPresent_false h_pp h_struct h_snt)
       have h_eq2 : s' = s_dc := Option.some.inj (Except.ok.inj (h_snt.symm.trans h_snt_eq))
       subst h_eq2; rfl

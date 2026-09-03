@@ -526,6 +526,11 @@ lemma scanNextTokenIx_maintains_SimpleKeyAboveIx {input : String}
                         s_dir s_blk c n h_inv_dir h_db
                     | none =>
                       dsimp only [] at h_ok
+                      -- item 47: adjacent-value check (pure, no state change)
+                      generalize h_av : scanNextTokenIx_checkAdjacentValue s_dir c = av_res at h_ok
+                      cases av_res with
+                      | error e => simp at h_ok
+                      | ok _ =>
                       generalize h_dc : scanNextTokenIx_dispatchContent s_dir c = dc_res at h_ok
                       cases dc_res with
                       | error e => simp at h_ok
@@ -915,6 +920,11 @@ lemma scanNextTokenIx_preserves_prefix {input : String}
                         exact ⟨h_sz, h_pref.trans (h_dir_eq.trans h_pre_eq)⟩
                     | none =>
                       dsimp only [] at h_ok
+                      -- item 47: adjacent-value check (pure, no state change)
+                      generalize h_av : scanNextTokenIx_checkAdjacentValue s_dir c = av_res at h_ok
+                      cases av_res with
+                      | error e => simp at h_ok
+                      | ok _ =>
                       generalize h_dc : scanNextTokenIx_dispatchContent s_dir c = dc_res at h_ok
                       cases dc_res with
                       | error e => simp at h_ok

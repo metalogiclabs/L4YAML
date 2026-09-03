@@ -271,13 +271,15 @@ lemma scanDoubleQuoted_first_filtered_token (s : ScannerState) (rest : List Char
     | error e =>
       exfalso
       have h_snt_err := scanNextToken_via_content_dispatch_error
-        _ _ _ _ _ h_pp h_struct rfl h_check h_flow_none h_block_none h_dc_eq
+        _ _ _ _ _ h_pp h_struct rfl h_check h_flow_none h_block_none
+        (scanNextToken_checkAdjacentValue_ok_of_ne_colon _ (by decide)) h_dc_eq
         (scanNextToken_ok_directivesPresent_false h_pp h_struct h_snt)
       rw [h_snt_err] at h_snt; exact absurd h_snt (by simp)
     | ok s_dc =>
       have h_snt_eq : scanNextToken s = Except.ok (some s_dc) :=
         scanNextToken_via_content_dispatch _ _ _ _ _ h_pp h_struct rfl h_check
-          h_flow_none h_block_none h_dc_eq
+          h_flow_none h_block_none
+          (scanNextToken_checkAdjacentValue_ok_of_ne_colon _ (by decide)) h_dc_eq
           (scanNextToken_ok_directivesPresent_false h_pp h_struct h_snt)
       have h_eq2 : s' = s_dc := Option.some.inj (Except.ok.inj (h_snt.symm.trans h_snt_eq))
       subst h_eq2; rfl
@@ -464,13 +466,15 @@ lemma emitList_head_step_noOverwrite (s s' : ScannerState) (c : Char) (rest : Li
       | error e =>
         exfalso
         have h_snt_err := scanNextToken_via_content_dispatch_error
-          _ _ _ _ _ h_pp h_struct rfl h_check h_flow_none h_block_none h_dc_eq
+          _ _ _ _ _ h_pp h_struct rfl h_check h_flow_none h_block_none
+          (scanNextToken_checkAdjacentValue_ok_of_ne_colon _ (by decide)) h_dc_eq
           (scanNextToken_ok_directivesPresent_false h_pp h_struct h_snt)
         rw [h_snt_err] at h_snt; exact absurd h_snt (by simp)
       | ok s_dc =>
         have h_snt_eq : scanNextToken s = Except.ok (some s_dc) :=
           scanNextToken_via_content_dispatch _ _ _ _ _ h_pp h_struct rfl h_check
-            h_flow_none h_block_none h_dc_eq
+            h_flow_none h_block_none
+            (scanNextToken_checkAdjacentValue_ok_of_ne_colon _ (by decide)) h_dc_eq
             (scanNextToken_ok_directivesPresent_false h_pp h_struct h_snt)
         have h_eq2 : s' = s_dc := Option.some.inj (Except.ok.inj (h_snt.symm.trans h_snt_eq))
         subst h_eq2; rfl
@@ -1700,15 +1704,20 @@ lemma scanNextToken_filtered_grows_in_flow
       omega
     | .ok none =>
       rw [h_block_eq] at h_snt; simp only at h_snt
-      -- Final dispatch: content.
-      match h_cont_eq : scanNextToken_dispatchContent s_ad c with
-      | .error _ => rw [h_cont_eq] at h_snt; simp at h_snt
-      | .ok s_cont =>
-        rw [h_cont_eq] at h_snt; simp only at h_snt
-        injection h_snt with h_eq; injection h_eq with h_eq; subst h_eq
-        have h_grew := scanNextToken_via_content_dispatch_filtered_grows
-          s _ s_ad s_cont c h_pp h_struct hs_ad h_check h_flow_eq h_block_eq h_cont_eq
-        omega
+      -- Item 47: the adjacent-value check (pure, no state change).
+      match h_adj_eq : scanNextToken_checkAdjacentValue s_ad c with
+      | .error _ => rw [h_adj_eq] at h_snt; simp at h_snt
+      | .ok _ =>
+        rw [h_adj_eq] at h_snt; simp only at h_snt
+        -- Final dispatch: content.
+        match h_cont_eq : scanNextToken_dispatchContent s_ad c with
+        | .error _ => rw [h_cont_eq] at h_snt; simp at h_snt
+        | .ok s_cont =>
+          rw [h_cont_eq] at h_snt; simp only at h_snt
+          injection h_snt with h_eq; injection h_eq with h_eq; subst h_eq
+          have h_grew := scanNextToken_via_content_dispatch_filtered_grows
+            s _ s_ad s_cont c h_pp h_struct hs_ad h_check h_flow_eq h_block_eq h_cont_eq
+          omega
 
 
 

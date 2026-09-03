@@ -645,13 +645,13 @@ lemma scanDoubleQuoted_prod (sc : ScannerState) (sp : SurfPos)
         exact ⟨sp_close,
                SCDoubleQuoted.mk 0 .blockIn _ _ _ _
                  (GLit.mk rest sc.col) h_body h_glit_close,
-               corr_of_simpleKeyAllowed_update false (corr_of_emitAt _ _ hcorr_close)⟩
+               corr_of_simpleKeyAllowed_needIndentCheck_update false false (corr_of_emitAt _ _ hcorr_close)⟩
     · -- !inFlow = false: no validate; `hok` is a direct `.ok` equality now
       have h := Except.ok.inj hok; subst h
       exact ⟨sp_close,
              SCDoubleQuoted.mk 0 .blockIn _ _ _ _
                (GLit.mk rest sc.col) h_body h_glit_close,
-             corr_of_simpleKeyAllowed_update false (corr_of_emitAt _ _ hcorr_close)⟩
+             corr_of_simpleKeyAllowed_needIndentCheck_update false false (corr_of_emitAt _ _ hcorr_close)⟩
 
 /-! ## §4 Single-Quoted Scalar -/
 
@@ -805,13 +805,13 @@ lemma scanSingleQuoted_prod (sc : ScannerState) (sp : SurfPos)
         exact ⟨sp_close,
                SCSingleQuoted.mk 0 .blockIn _ _ _ _
                  (GLit.mk rest sc.col) h_text h_glit_close,
-               corr_of_simpleKeyAllowed_update false (corr_of_emitAt _ _ hcorr_close)⟩
+               corr_of_simpleKeyAllowed_needIndentCheck_update false false (corr_of_emitAt _ _ hcorr_close)⟩
     · -- !inFlow = false: no validate; `hok` is a direct `.ok` equality now
       have h := Except.ok.inj hok; subst h
       exact ⟨sp_close,
              SCSingleQuoted.mk 0 .blockIn _ _ _ _
                (GLit.mk rest sc.col) h_text h_glit_close,
-             corr_of_simpleKeyAllowed_update false (corr_of_emitAt _ _ hcorr_close)⟩
+             corr_of_simpleKeyAllowed_needIndentCheck_update false false (corr_of_emitAt _ _ hcorr_close)⟩
 
 /-! ## §5 Plain-safe bridge (Layer 4a)
 
@@ -2302,7 +2302,7 @@ lemma scanPlainScalar_to_multiLine_native (sc : ScannerState) (sp : SurfPos)
           h_first h_entries)
         _h_next_lines,
       h_trail,
-      corr_of_simpleKeyAllowed_update false (corr_of_emitAt _ _ hcorr_result)⟩
+      corr_of_simpleKeyAllowed_needIndentCheck_update false false (corr_of_emitAt _ _ hcorr_result)⟩
 
 /-! ## §7' The BLOCK-KEY one-line reading (item 15)
 
@@ -2435,7 +2435,7 @@ lemma scanPlainScalar_to_blockKey_oneLine (sc : ScannerState) (sp : SurfPos)
     have h_corr_final : ScannerSurfCorr s' sp_trail := by
       have h := Except.ok.inj hok
       rw [← h]
-      exact corr_of_simpleKeyAllowed_update false (corr_of_emitAt _ _ hcorr_result)
+      exact corr_of_simpleKeyAllowed_needIndentCheck_update false false (corr_of_emitAt _ _ hcorr_result)
     exact ⟨sp_entries, sp_trail,
       SNsPlainOneLine_blockIn_to_blockKey
         (SNsPlainOneLine.mk .blockIn _ ⟨rest, sc.col + 1⟩ sp_entries h_first' h_entries'),
@@ -2732,12 +2732,12 @@ lemma scanDoubleQuoted_to_blockKey_oneLine (sc : ScannerState) (sp : SurfPos)
         exact ⟨sp_close,
                SCDoubleQuoted.mk 0 .blockKey _ _ _ _
                  (GLit.mk rest sc.col) h_text h_glit_close,
-               corr_of_simpleKeyAllowed_update false (corr_of_emitAt _ _ hcorr_close)⟩
+               corr_of_simpleKeyAllowed_needIndentCheck_update false false (corr_of_emitAt _ _ hcorr_close)⟩
     · have h := Except.ok.inj hok; subst h
       exact ⟨sp_close,
              SCDoubleQuoted.mk 0 .blockKey _ _ _ _
                (GLit.mk rest sc.col) h_text h_glit_close,
-             corr_of_simpleKeyAllowed_update false (corr_of_emitAt _ _ hcorr_close)⟩
+             corr_of_simpleKeyAllowed_needIndentCheck_update false false (corr_of_emitAt _ _ hcorr_close)⟩
 
 -- The single-quoted walk never returns to an earlier line.
 lemma collectSingleQuotedLoop_line_ge (sc : ScannerState) (content : String)
@@ -2927,12 +2927,12 @@ lemma scanSingleQuoted_to_blockKey_oneLine (sc : ScannerState) (sp : SurfPos)
         exact ⟨sp_close,
                SCSingleQuoted.mk 0 .blockKey _ _ _ _
                  (GLit.mk rest sc.col) h_text h_glit_close,
-               corr_of_simpleKeyAllowed_update false (corr_of_emitAt _ _ hcorr_close)⟩
+               corr_of_simpleKeyAllowed_needIndentCheck_update false false (corr_of_emitAt _ _ hcorr_close)⟩
     · have h := Except.ok.inj hok; subst h
       exact ⟨sp_close,
              SCSingleQuoted.mk 0 .blockKey _ _ _ _
                (GLit.mk rest sc.col) h_text h_glit_close,
-             corr_of_simpleKeyAllowed_update false (corr_of_emitAt _ _ hcorr_close)⟩
+             corr_of_simpleKeyAllowed_needIndentCheck_update false false (corr_of_emitAt _ _ hcorr_close)⟩
 
 -- Full production: scanPlainScalar → SFlowNode 0 .flowOut + trailing WS + corr.
 -- Lifts the native-context core to `.flowOut` (top-level flow node context).

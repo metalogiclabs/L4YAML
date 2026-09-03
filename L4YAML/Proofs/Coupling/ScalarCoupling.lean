@@ -353,10 +353,10 @@ lemma scanDoubleQuoted_corr (sc : ScannerState) (sp : SurfPos)
       · simp at hok  -- validation error
       · -- validation ok: state unchanged
         have h := Except.ok.inj hok; subst h
-        exact ⟨sp_close, corr_of_simpleKeyAllowed_update false (corr_of_emitAt _ _ hcorr_close)⟩
+        exact ⟨sp_close, corr_of_simpleKeyAllowed_needIndentCheck_update false false (corr_of_emitAt _ _ hcorr_close)⟩
     · -- !inFlow = false: no validate (pure ()); `hok` is a direct `.ok` equality now
       have h := Except.ok.inj hok; subst h
-      exact ⟨sp_close, corr_of_simpleKeyAllowed_update false (corr_of_emitAt _ _ hcorr_close)⟩
+      exact ⟨sp_close, corr_of_simpleKeyAllowed_needIndentCheck_update false false (corr_of_emitAt _ _ hcorr_close)⟩
 
 /-! ## §5 Single-Quoted Scalar -/
 
@@ -426,10 +426,10 @@ lemma scanSingleQuoted_corr (sc : ScannerState) (sp : SurfPos)
       split at hok  -- match on validateTrailingContent result
       · simp at hok  -- validation error
       · have h := Except.ok.inj hok; subst h
-        exact ⟨sp_close, corr_of_simpleKeyAllowed_update false (corr_of_emitAt _ _ hcorr_close)⟩
+        exact ⟨sp_close, corr_of_simpleKeyAllowed_needIndentCheck_update false false (corr_of_emitAt _ _ hcorr_close)⟩
     · -- !inFlow = false: no validate (pure ()); `hok` is a direct `.ok` equality now
       have h := Except.ok.inj hok; subst h
-      exact ⟨sp_close, corr_of_simpleKeyAllowed_update false (corr_of_emitAt _ _ hcorr_close)⟩
+      exact ⟨sp_close, corr_of_simpleKeyAllowed_needIndentCheck_update false false (corr_of_emitAt _ _ hcorr_close)⟩
 
 /-! ## §6 Plain Scalar -/
 
@@ -580,7 +580,7 @@ lemma scanPlainScalar_corr (sc : ScannerState) (sp : SurfPos)
     simp only [Except.ok.injEq] at hok; subst hok
     obtain ⟨sp_loop, hcorr_loop⟩ := collectPlainScalarLoop_corr sc sp "" "" _ _ _ _ hcorr hloop
     exact ⟨sp_loop,
-      corr_of_simpleKeyAllowed_update false (corr_of_emitAt _ _ hcorr_loop)⟩
+      corr_of_simpleKeyAllowed_needIndentCheck_update false false (corr_of_emitAt _ _ hcorr_loop)⟩
 
 /-! ## §7 Block Scalar -/
 

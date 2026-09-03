@@ -331,7 +331,8 @@ lemma scanNextTokenIx_flow_scanDoubleQuoted (s : ScannerStateIx input)
     · rename_i heq; rw [h_dq] at heq; exact absurd heq (by simp)
   have h_snt : scanNextTokenIx s = .ok (some s') :=
     scanNextTokenIx_via_content_dispatch s (saveSimpleKeyIx s) s_ad s' '"'
-      h_pp h_struct h_s_ad_def h_check h_flow_none h_block_none h_dc
+      h_pp h_struct h_s_ad_def h_check h_flow_none h_block_none
+      (scanNextTokenIx_checkAdjacentValue_ok_of_ne_colon _ (by decide)) h_dc
       ((saveSimpleKeyIx_directivesPresent s).trans h_dp)
   -- ── line equality (used by several conjuncts)
   have h_s'_line_eq : s'.cursor.pos.line = s.cursor.pos.line := by

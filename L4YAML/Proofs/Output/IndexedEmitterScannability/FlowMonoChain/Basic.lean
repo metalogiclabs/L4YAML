@@ -914,13 +914,16 @@ lemma scanNextTokenIx_maintains_SKAFIx {input : String}
                         n₀ fl₀ h_s2_tok h_s2_inv
                     · -- BlockIndicators returned none → Content
                       rename_i hBlockNone
+                      -- item 47: adjacent-value check (pure, no state change)
                       split at h_next
                       · contradiction
-                      · rename_i sC hContent
-                        simp only [Except.ok.injEq, Option.some.injEq] at h_next
-                        subst h_next
-                        exact scanNextTokenIx_dispatchContent_maintains_SKAFIx _ _ _ hContent
-                          n₀ fl₀ h_s2_tok h_s2_inv
+                      · split at h_next
+                        · contradiction
+                        · rename_i sC hContent
+                          simp only [Except.ok.injEq, Option.some.injEq] at h_next
+                          subst h_next
+                          exact scanNextTokenIx_dispatchContent_maintains_SKAFIx _ _ _ hContent
+                            n₀ fl₀ h_s2_tok h_s2_inv
 
 /-! ## Fix-B pending-directives check helpers (indexed twins of
 `scanNextToken_checkNoPendingDirectives_ok` / `scanNextToken_ok_directivesPresent_false`). -/

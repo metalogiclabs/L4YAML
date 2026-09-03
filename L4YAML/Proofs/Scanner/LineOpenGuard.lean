@@ -1213,7 +1213,7 @@ private lemma collectBlockScalarLoop_end (fuel : Nat) :
     s.inputEnd ≤ ie →
     (collectBlockScalarLoop s raw fuel ci ie).2.col = 0 ∨
     (∀ c, (collectBlockScalarLoop s raw fuel ci ie).2.peek? = some c →
-        ¬(c = ' ' ∨ c = '\t') ∧ NodeStop c) := by
+        ¬(c = ' ' ∨ c = '\t') ∧ OffLine c) := by
   induction fuel with
   | zero => intro s _ _ _ _ hb _; omega
   | succ fuel' ih =>
@@ -1284,9 +1284,9 @@ private lemma collectBlockScalarLoop_end (fuel : Nat) :
                 rcases hstop c' hpk' with hbr2 | hnp | hbom
                 · exact absurd hbr2 (by simpa using hnbr)
                 · exact ⟨by rintro (rfl | rfl) <;> exact absurd hnp (by decide),
-                         Or.inr (Or.inl hnp)⟩
+                         Or.inl hnp⟩
                 · subst hbom
-                  exact ⟨by decide, Or.inr (Or.inr rfl)⟩
+                  exact ⟨by decide, Or.inr rfl⟩
             · -- EOF after the line
               rename_i hpk'
               exact Or.inr (fun c hc => by rw [hc] at hpk'; cases hpk')
@@ -1353,14 +1353,18 @@ private lemma scanBlockScalarConsumeNewline_inputEnd {s s' : ScannerState}
       · cases h
   · have he := Except.ok.inj h; subst he; rfl
 
-/-- `scanBlockScalarBody`: the emitted state sits at column 0 or at a stop. -/
-private lemma scanBlockScalarBody_restNodeStop {s_orig s_after_newline s' : ScannerState}
+/-- `scanBlockScalarBody`: the emitted state sits at column 0 or at an
+    `OffLine` stop — the collection loop's only mid-line stops are a
+    non-printable or the BOM (item 47 strengthened this from `NodeStop`,
+    which the `:`-residue refutation cannot use because `NodeStop` admits
+    the `:` itself). -/
+private lemma scanBlockScalarBody_restOffLine {s_orig s_after_newline s' : ScannerState}
     {chomp : ChompStyle} {eo : Option Nat} {isLit : Bool} {startPos : YamlPos}
     (hentry : s_after_newline.col = 0 ∨ s_after_newline.peek? = none)
     (hie : s_after_newline.inputEnd ≤ s_orig.inputEnd)
     (hend' : s'.inputEnd = s'.input.utf8ByteSize)
     (hok : scanBlockScalarBody s_orig s_after_newline chomp eo isLit startPos = .ok s') :
-    s'.col = 0 ∨ RestNodeStop s' := by
+    s'.col = 0 ∨ RestStop OffLine s' := by
   cases eo with
   | some m =>
     unfold scanBlockScalarBody at hok
@@ -1405,10 +1409,10 @@ private lemma scanBlockScalarBody_restNodeStop {s_orig s_after_newline s' : Scan
 
 /-- `scanBlockScalar`: the emitted state sits at column 0, at end of input,
     or on an `OffLine` stop.  (`hend'` from the caller's corr.) -/
-lemma scanBlockScalar_restNodeStop {s s' : ScannerState}
+private lemma scanBlockScalar_restOffLine_aux {s s' : ScannerState}
     (hend' : s'.inputEnd = s'.input.utf8ByteSize)
     (hok : scanBlockScalar s = .ok s') :
-    s'.col = 0 ∨ RestNodeStop s' := by
+    s'.col = 0 ∨ RestStop OffLine s' := by
   unfold scanBlockScalar at hok
   dsimp only [] at hok
   split at hok
@@ -1446,7 +1450,21 @@ lemma scanBlockScalar_restNodeStop {s s' : ScannerState}
       have h4 := parseBlockHeaderLoop_inputEnd 2 s.advance .clip none
       have h5 := advance_inputEnd s
       omega
-    exact scanBlockScalarBody_restNodeStop hentry hie hend' hok
+    exact scanBlockScalarBody_restOffLine hentry hie hend' hok
+
+/-- The `OffLine` form, for the `:`-residue refutation (item 47). -/
+lemma scanBlockScalar_restOffLine {s s' : ScannerState}
+    (hend' : s'.inputEnd = s'.input.utf8ByteSize)
+    (hok : scanBlockScalar s = .ok s') :
+    s'.col = 0 ∨ RestStop OffLine s' :=
+  scanBlockScalar_restOffLine_aux hend' hok
+
+lemma scanBlockScalar_restNodeStop {s s' : ScannerState}
+    (hend' : s'.inputEnd = s'.input.utf8ByteSize)
+    (hok : scanBlockScalar s = .ok s') :
+    s'.col = 0 ∨ RestNodeStop s' :=
+  (scanBlockScalar_restOffLine hend' hok).imp id
+    (RestStop.mono (fun _ => OffLine.toNodeStop))
 
 lemma scanBlockScalar_restNoOpen {s s' : ScannerState}
     (hend' : s'.inputEnd = s'.input.utf8ByteSize)
@@ -1541,6 +1559,34 @@ lemma dispatchContent_restNodeStop {s s' : ScannerState} {c : Char}
               split at hok
               · exact scanPlainScalar_restNodeStop hflow hend' hok
               · simp at hok
+
+/-- The block-scalar arm's `OffLine` form (item 47): with `c` pinned at a
+    block-scalar head, the dispatch is `scanBlockScalar` under the item-9c
+    guard, and the scan ends at a line start or an `OffLine` stop — which is
+    what refutes an inline `:` after a block-scalar park. -/
+lemma dispatchContent_blockScalar_restOffLine {s s' : ScannerState} {c : Char}
+    (hbs : c = '|' ∨ c = '>')
+    (hend' : s'.inputEnd = s'.input.utf8ByteSize)
+    (hok : scanNextToken_dispatchContent s c = .ok s') :
+    s'.col = 0 ∨ RestStop OffLine s' := by
+  unfold scanNextToken_dispatchContent at hok
+  simp only [bind, Except.bind, pure, Except.pure] at hok
+  split at hok
+  · rename_i heq
+    have : c = '&' := by simpa using heq
+    rcases hbs with rfl | rfl <;> simp at this
+  split at hok
+  · rename_i heq
+    have : c = '*' := by simpa using heq
+    rcases hbs with rfl | rfl <;> simp at this
+  split at hok
+  · rename_i heq
+    have : c = '!' := by simpa using heq
+    rcases hbs with rfl | rfl <;> simp at this
+  split at hok
+  · exact scanBlockScalar_restOffLine hend' (peel_blockScalarGuard hok)
+  · rename_i heq
+    rcases hbs with rfl | rfl <;> simp at heq
 
 /-- Item 10's dispatch-level conclusion, one `mono` below §9's own. -/
 lemma dispatchContent_restNoOpen {s s' : ScannerState} {c : Char}

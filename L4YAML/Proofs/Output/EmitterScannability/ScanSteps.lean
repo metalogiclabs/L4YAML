@@ -167,6 +167,24 @@ lemma scanNextToken_checkNoPendingDirectives_ok (s : ScannerState)
     scanNextToken_checkNoPendingDirectives s = .ok () := by
   simp only [scanNextToken_checkNoPendingDirectives, h, Bool.false_eq_true, ↓reduceIte]
 
+/-- Item 47's adjacent-value check is a no-op off the `:` (the emitter's
+    content heads are quotes, property markers and plain heads the dumper
+    keeps off `:`). -/
+lemma scanNextToken_checkAdjacentValue_ok_of_ne_colon (s : ScannerState) {c : Char}
+    (h : c ≠ ':') :
+    scanNextToken_checkAdjacentValue s c = .ok () := by
+  have hc : (c == ':') = false := by simpa using h
+  simp only [scanNextToken_checkAdjacentValue, hc, Bool.and_false, Bool.false_and,
+             Bool.false_eq_true, ↓reduceIte]
+
+/-- …and a no-op whenever a break (or an indicator) has re-armed the
+    simple-key flag — every line-start dispatch. -/
+lemma scanNextToken_checkAdjacentValue_ok_of_allowed (s : ScannerState) (c : Char)
+    (h : s.simpleKeyAllowed = true) :
+    scanNextToken_checkAdjacentValue s c = .ok () := by
+  simp only [scanNextToken_checkAdjacentValue, h, Bool.not_true, Bool.and_false,
+             Bool.false_and, Bool.false_eq_true, ↓reduceIte]
+
 /-- Converse dp extraction (Fix B): if `scanNextToken` succeeded and the pipeline
     reached past structural dispatch, the pending-directives check must have
     passed, so `s_pp.directivesPresent = false`.  Lets consumers that already
@@ -924,7 +942,7 @@ lemma scanDoubleQuoted_flow_ok (sc : ScannerState)
       (advance_explicitKeyLine sc)
   -- Build the result state
   let s_result := { (s_after.emitAt sc.currentPos (.scalar content .doubleQuoted))
-                     with simpleKeyAllowed := false }
+                     with simpleKeyAllowed := false, needIndentCheck := false }
   refine ⟨s_result, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
   · -- scanDoubleQuoted sc = .ok s_result
     simp only [scanDoubleQuoted, bind, Except.bind]
@@ -1783,6 +1801,8 @@ lemma scanNextToken_emitScalar_init (content : String) :
   simp only [show s_pp.allowDirectives = true from h_ad_pp, ite_true]
   -- Remaining dispatch steps use s_ad = { s_pp with allowDirectives := false, ... }
   -- which is definitionally equal to the expanded struct in the goal
+  simp only [scanNextToken_checkAdjacentValue_ok_of_ne_colon _
+    (show ('"' : Char) ≠ ':' by decide)]
   exact h_cbfi_ad ▸ h_dfi_ad ▸ h_dbi_ad ▸ h_dc_eq ▸ rfl
 
 /-- **Scalar case**: The scanner accepts any double-quoted scalar produced
@@ -2151,6 +2171,7 @@ lemma scanNextToken_via_content_dispatch (s s_pp s_ad s_result : ScannerState) (
     (h_check : scanNextToken_checkBlockFlowIndent s_ad c = .ok ())
     (h_flow : scanNextToken_dispatchFlowIndicators s_ad c = .ok none)
     (h_block : scanNextToken_dispatchBlockIndicators s_ad c = .ok none)
+    (h_adj : scanNextToken_checkAdjacentValue s_ad c = .ok ())
     (h_content : scanNextToken_dispatchContent s_ad c = .ok s_result)
     (h_ndp : s_pp.directivesPresent = false) :
     scanNextToken s = .ok (some s_result) := by
@@ -2158,7 +2179,7 @@ lemma scanNextToken_via_content_dispatch (s s_pp s_ad s_result : ScannerState) (
   simp only [bind, Except.bind, h_pp, h_struct, pure, Except.pure,
     scanNextToken_checkNoPendingDirectives_ok _ h_ndp]
   rw [← h_ad_eq]
-  simp only [h_check, h_flow, h_block, h_content]
+  simp only [h_check, h_flow, h_block, h_adj, h_content]
 
 /-- Error variant of `scanNextToken_via_content_dispatch`: when content
     dispatch errors, `scanNextToken` propagates that error. -/
@@ -2171,6 +2192,7 @@ lemma scanNextToken_via_content_dispatch_error
     (h_check : scanNextToken_checkBlockFlowIndent s_ad c = .ok ())
     (h_flow : scanNextToken_dispatchFlowIndicators s_ad c = .ok none)
     (h_block : scanNextToken_dispatchBlockIndicators s_ad c = .ok none)
+    (h_adj : scanNextToken_checkAdjacentValue s_ad c = .ok ())
     (h_content : scanNextToken_dispatchContent s_ad c = .error e)
     (h_ndp : s_pp.directivesPresent = false) :
     scanNextToken s = .error e := by
@@ -2178,7 +2200,7 @@ lemma scanNextToken_via_content_dispatch_error
   simp only [bind, Except.bind, h_pp, h_struct, pure, Except.pure,
     scanNextToken_checkNoPendingDirectives_ok _ h_ndp]
   rw [← h_ad_eq]
-  simp only [h_check, h_flow, h_block, h_content]
+  simp only [h_check, h_flow, h_block, h_adj, h_content]
 
 /-- When preprocessing succeeds, structural/flow dispatches return none,
     and block indicator dispatch produces a result, then scanNextToken
@@ -2362,7 +2384,8 @@ lemma scanNextToken_flow_scanDoubleQuoted (s : ScannerState)
   obtain ⟨s_final, h_dc_eq, h_corr_f, h_fl_f, h_dp_f, h_ids_f, h_ek_f, h_col_f, h_tok_f, h_ska_f, h_line_f, h_atol_f, h_endline_f, h_stack_f⟩ := h_content
   -- Step 8: compose through scanNextToken
   exact ⟨s_final, scanNextToken_via_content_dispatch _ _ _ _ _ h_pp h_struct rfl h_check
-    h_flow_none h_block_none h_dc_eq
+    h_flow_none h_block_none
+    (scanNextToken_checkAdjacentValue_ok_of_ne_colon _ (by decide)) h_dc_eq
     ((saveSimpleKey_preserves_directivesPresent s).trans h_dp),
     h_corr_f, h_fl_f, h_dp_f, h_ids_f, h_ek_f, h_col_f,
     fun t ht => by rw [h_tok_f] at ht; injection ht with ht; subst ht; exact ⟨nofun, nofun, nofun⟩,

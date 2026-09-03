@@ -426,6 +426,13 @@ inductive ScanError where
   | underIndentedFlowContent (line col : Nat)
   /-- C0 control character (not matching `[2] nb-json`) inside quoted scalar — §5.1 violation. -/
   | invalidControlChar (c : Char) (style : ScalarStyle) (line col : Nat)
+  /-- A `:` glued to its follower after a completed same-line node — §8.2.2
+      [194] violation.  After a quoted scalar, alias, or flow-collection close
+      in block context, §7.5's validators admit a `:` only as the entry's
+      value indicator, and `[194] c-l-block-map-implicit-value`'s value
+      requires `s-separate` — so `"a" :b`, `[1]:b`, `*x :b` start a second
+      node in a slot that admits exactly one, and no derivation exists. -/
+  | unseparatedValue (line col : Nat)
 
   /- Grammar-level errors (TokenParser.lean) -/
 
@@ -515,6 +522,7 @@ def ScanError.toString : ScanError → String
   | .invalidControlChar c .doubleQuoted l col => s!"invalid control character U+{String.ofList (Nat.toDigits 16 c.val.toNat |>.map Char.toUpper)} in double-quoted scalar at line {l}, column {col}"
   | .invalidControlChar c .singleQuoted l col => s!"invalid control character U+{String.ofList (Nat.toDigits 16 c.val.toNat |>.map Char.toUpper)} in single-quoted scalar at line {l}, column {col}"
   | .invalidControlChar c style l col => s!"invalid control character U+{String.ofList (Nat.toDigits 16 c.val.toNat |>.map Char.toUpper)} in {repr style} scalar at line {l}, column {col}"
+  | .unseparatedValue l c => s!"':' glued to its follower after a completed node at line {l}, column {c} — a value requires separation (§8.2.2)"
   | .expectedToken desc l (some got) => s!"expected {desc} at line {l}, got {got}"
   | .expectedToken desc _ none => s!"expected {desc} but reached end of tokens"
   | .nestingDepthExceeded l    => s!"maximum nesting depth exceeded at line {l}"

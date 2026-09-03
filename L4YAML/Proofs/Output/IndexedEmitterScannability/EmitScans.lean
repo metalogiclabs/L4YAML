@@ -1903,7 +1903,8 @@ lemma scanNextTokenIx_emitScalar_init (content : String) :
   -- ── Step 12: compose via the pipeline
   have h_snt : scanNextTokenIx s₀ = .ok (some s_final) :=
     scanNextTokenIx_via_content_dispatch s₀ s_pp s_ad s_final '"'
-      h_pp_eq h_struct h_s_ad_def h_check_ad h_flow_ad h_block_ad h_dc h_dp_pp
+      h_pp_eq h_struct h_s_ad_def h_check_ad h_flow_ad h_block_ad
+      (scanNextTokenIx_checkAdjacentValue_ok_of_ne_colon _ (by decide)) h_dc h_dp_pp
   -- ── Step 13: extract conclusions
   refine ⟨s_final, h_snt, ?_, ?_, ?_, ?_, ?_⟩
   · -- peek? = none: post-quote surface has empty chars

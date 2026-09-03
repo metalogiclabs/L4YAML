@@ -974,12 +974,15 @@ def scanFlowSequenceEndIx {input : String} (s : ScannerStateIx input) :
   let s := s.emit YamlToken.flowSequenceEnd
   let s := s.advance
   let restored := s.simpleKeyStack.back?.getD { cursor := IxCursor.start input }
+  -- Item 47: the collection's interior breaks are the token's own — mirror of
+  -- the legacy `scanFlowSequenceEnd`.
   { s with
       flowLevel := s.flowLevel - 1,
       flowStack := s.flowStack.pop,
       simpleKeyStack := s.simpleKeyStack.pop,
       simpleKey := restored,
-      simpleKeyAllowed := false }
+      simpleKeyAllowed := false,
+      needIndentCheck := false }
 
 /-- Scan `{` flow-mapping start. -/
 def scanFlowMappingStartIx {input : String} (s : ScannerStateIx input) :
@@ -999,12 +1002,14 @@ def scanFlowMappingEndIx {input : String} (s : ScannerStateIx input) :
   let s := s.emit YamlToken.flowMappingEnd
   let s := s.advance
   let restored := s.simpleKeyStack.back?.getD { cursor := IxCursor.start input }
+  -- Item 47: interior breaks are the token's own — see `scanFlowSequenceEndIx`.
   { s with
       flowLevel := s.flowLevel - 1,
       flowStack := s.flowStack.pop,
       simpleKeyStack := s.simpleKeyStack.pop,
       simpleKey := restored,
-      simpleKeyAllowed := false }
+      simpleKeyAllowed := false,
+      needIndentCheck := false }
 
 /-- Look back through trailing `.placeholder` reservation slots to find
     the last real token value (indexed twin of
@@ -1548,6 +1553,20 @@ def scanNextTokenIx_checkNoPendingDirectives {input : String}
   else
     .ok ()
 
+/-- §8.2.2 [194] / §7.5: a `:` that failed `isValueCandidateIx` while a
+    completed node's stale simple key is recorded starts a second node in a
+    one-node slot (`"a" :b`, `[1]:b`, `*x :b`).  Indexed twin of
+    `scanNextToken_checkAdjacentValue` — see its docstring for the reading. -/
+def scanNextTokenIx_checkAdjacentValue {input : String}
+    (s : ScannerStateIx input) (c : Char) : Except ScanError Unit :=
+  if !s.inFlow && c == ':' && !s.simpleKeyAllowed
+      && (match lastRealTokenValIx? s.tokens with
+          | some t => t.completesFlowValue
+          | none => false) then
+    .error (.unseparatedValue s.cursor.pos.line s.cursor.pos.col)
+  else
+    .ok ()
+
 /-- Scan one token (the per-iteration dispatcher). Returns `none`
     at EOF, `some s'` on a successful token, or an error. -/
 def scanNextTokenIx {input : String} (s : ScannerStateIx input) :
@@ -1569,6 +1588,8 @@ def scanNextTokenIx {input : String} (s : ScannerStateIx input) :
         match ← scanNextTokenIx_dispatchBlockIndicators s c with
         | some s' => return some s'
         | none =>
+          -- §8.2.2 [194] (item 47): mirror of the legacy check.
+          scanNextTokenIx_checkAdjacentValue s c
           let s' ← scanNextTokenIx_dispatchContent s c
           return some s'
 
@@ -1685,6 +1706,8 @@ def scanNextTokenIxWC {input : String} (s : ScannerStateIx input) :
         match ← scanNextTokenIx_dispatchBlockIndicators s c with
         | some s' => return some s'
         | none =>
+          -- §8.2.2 [194] (item 47): mirror of the legacy check.
+          scanNextTokenIx_checkAdjacentValue s c
           let s' ← scanNextTokenIx_dispatchContent s c
           return some s'
 

@@ -182,7 +182,7 @@ lemma scanFlowMappingStartIx_flowLevel_eq (s : ScannerStateIx input) :
   unfold scanFlowSequenceEndIx; rfl
 
 @[simp] lemma scanFlowSequenceEndIx_needIndentCheck (s : ScannerStateIx input) :
-    (scanFlowSequenceEndIx s).needIndentCheck = s.needIndentCheck := by
+    (scanFlowSequenceEndIx s).needIndentCheck = false := by
   unfold scanFlowSequenceEndIx; rfl
 
 /-! ## §4  `scanFlowMappingEndIx` field preservation -/
@@ -204,7 +204,7 @@ lemma scanFlowMappingStartIx_flowLevel_eq (s : ScannerStateIx input) :
   unfold scanFlowMappingEndIx; rfl
 
 @[simp] lemma scanFlowMappingEndIx_needIndentCheck (s : ScannerStateIx input) :
-    (scanFlowMappingEndIx s).needIndentCheck = s.needIndentCheck := by
+    (scanFlowMappingEndIx s).needIndentCheck = false := by
   unfold scanFlowMappingEndIx; rfl
 
 /-! ## §5  `scanFlowEntryIx` field preservation (`Except`-form)

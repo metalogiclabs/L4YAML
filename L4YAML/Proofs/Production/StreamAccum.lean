@@ -337,6 +337,37 @@ lemma inFlow_of_flowLevel_eq {s : ScannerState} {n : Nat} (h : s.flowLevel = n +
     s.inFlow = true := by
   unfold ScannerState.inFlow; rw [h]; simp
 
+/-- **The inline residue's own premise** (item 36).  A block dispatch that
+    crossed NO break from a park off column 0: `sp` is the park, `sp_ws` the
+    landing the step's `s-white` [33] run reached, and `c` the character it
+    read there.
+
+    Naming it is the point.  The escape it feeds is handed to its call sites
+    as a bare `SLYamlStream sp_start sp_X` — a conclusion every pending can
+    supply and therefore one that records nothing about WHEN it is needed.
+    Taken as a function OF this premise, the same sites pay `fun _ => h`
+    unchanged, and a pending whose producer already refuted the shape pays
+    `nofun` instead: the escape becomes refusable without splitting the lemma
+    that carries it.  (Defined here, before `PendingNode`, because item 47's
+    `h_stale` fields take it as their premise.) -/
+def InlineResidue (sp : SurfPos) (c : Char) : Prop :=
+  sp.col ≠ 0 ∧ ∃ sp_ws, GStar SSWhite sp sp_ws ∧ sp_ws.chars.head? = some c
+
+/-- **The stale node tail** (item 47): the scanner-state face of a park that
+    follows a COMPLETE node.  The last real token completes a value
+    (`completesFlowValue`); the completed scan cleared `simpleKeyAllowed`
+    (only a structural break re-arms it, which is also what keeps
+    `:foo: v` at a LINE START out of the check's domain); and — since the
+    token's interior breaks are the token's own — it left `needIndentCheck`
+    down.  These are exactly the facts `scanNextToken_checkAdjacentValue`
+    reads: carried by a pending, they let its `:`-residue arm refute the
+    check's success instead of deferring.  (`LastTokenReal` is what carries
+    the token reading across the next preprocessing's placeholder
+    reservation.) -/
+def StaleNodeTail (sc : ScannerState) : Prop :=
+  sc.needIndentCheck = false ∧ sc.simpleKeyAllowed = false ∧ LastTokenReal sc.tokens ∧
+  ∃ t, lastRealTokenVal? sc.tokens = some t ∧ t.completesFlowValue = true
+
 inductive PendingNode (sc : ScannerState) : Bool → SurfPos → SurfPos → SurfPos → Prop where
   /-- No pending gap. Block stack top and scanner at same position.
       Occurs at stream start, between documents, after document suffixes
@@ -385,7 +416,15 @@ inductive PendingNode (sc : ScannerState) : Bool → SurfPos → SurfPos → Sur
         SSLComments sp_scan sp_mid →
         SLYamlStream sp_start sp_mid)
       (h_key : sc.simpleKey.possible = true → sc.simpleKey.pos.line = sc.line →
-        ImplicitKeyPack sc sp_start sp_scan ∨ True) :
+        ImplicitKeyPack sc sp_start sp_scan ∨ True)
+      -- Item 47 (LAST so the patterns naming the older fields still bind
+      -- them): a mid-line park that could meet an inline `:` at the CONTENT
+      -- dispatch is a stale node tail — the completed scan cleared the
+      -- simple-key flag and left the key strictly behind the cursor — which
+      -- is what refutes `scanNextToken_checkAdjacentValue`'s success at the
+      -- arm.  A park that cannot meet one (a line-start or EOL park) refutes
+      -- the premise instead.
+      (h_stale : InlineResidue sp_scan ':' → StaleNodeTail sc) :
       PendingNode sc false sp_start sp_block sp_scan
   /-- A `[96] c-ns-properties` run scanned at depth 0, content awaited: the
       depth-0 twin of `InteriorGap.props` (items 9h/10; re-shaped by item 12).
@@ -533,7 +572,9 @@ inductive PendingNode (sc : ScannerState) : Bool → SurfPos → SurfPos → Sur
         SSLComments sp_scan sp_mid →
         ∀ sp_end, SCompactSeqTail n sp_mid sp_end → SLYamlStream sp_start sp_end)
       (h_key : sc.simpleKey.possible = true → sc.simpleKey.pos.line = sc.line →
-        ImplicitKeyPack sc sp_start sp_scan ∨ True) :
+        ImplicitKeyPack sc sp_start sp_scan ∨ True)
+      -- Item 47: `pendingContent`'s stale-tail coupling, verbatim.
+      (h_stale : InlineResidue sp_scan ':' → StaleNodeTail sc) :
       PendingNode sc false sp_start sp_block sp_scan
   /-- Block indicator scanned (`-`, `?`, `:`).
       The gap sp_block → sp_scan contains the indicator character.
@@ -2159,16 +2200,14 @@ lemma PendingNode.close_with_ssl {sc : ScannerState}
   cases h_pending with
   | noPending =>
     exact ssl_comments_extend_stream sp_start sp_block sp_mid h_stream h_ssl
-  | pendingContent =>
-    rename_i h_closable _
+  | pendingContent _ _ _ _ h_closable _ _ =>
     exact h_closable sp_mid h_ssl
   | pendingProps _ _ _ ha ht sp_node sp_p n h_sep h_run h_nic h_real h_anchor h_tag h_route =>
     exact PendingNode.propsClose h_sep h_run h_route h_ssl
   | pendingFlow =>
     -- Absorb opaque scanner content (flow/block indicators) via scannerDrop.
     exact SLYamlStream.scannerDrop sp_start sp_block sp_scan sp_mid h_stream h_ssl
-  | pendingBlockContent =>
-    rename_i _ h_closable _ _
+  | pendingBlockContent _ _ _ _ _ h_closable _ _ _ =>
     exact h_closable sp_mid h_ssl
   | pendingDocEnd =>
     rename_i h_marker
@@ -2352,6 +2391,70 @@ lemma preprocess_some_separate_lines_0 (sc : ScannerState) (sp : SurfPos)
     have : SCNbCommentText sp_ws sp_ws := h_eq ▸ h
     exact absurd this (scNbCommentText_irrefl sp_ws)
 
+/-- **The stale flag's transport** (item 47): a walk that exits with the entry
+    flag down consumed no break — `consumeNewline` raises the flag and nothing
+    in the loop clears it — so `simpleKeyAllowed`, which only a consumed break
+    can raise inside the loop, is exactly what it was.  The mirror of
+    `skipToContentLoop_line_eq_of_needIndentCheck`, for the field the
+    adjacent-value refutation reads. -/
+lemma skipToContentLoop_simpleKeyAllowed_eq_of_needIndentCheck
+    (s s' : ScannerState) (fuel : Nat)
+    (h : skipToContentLoop s fuel = .ok s') (hnic : s'.needIndentCheck = false) :
+    s'.simpleKeyAllowed = s.simpleKeyAllowed := by
+  induction fuel generalizing s with
+  | zero => unfold skipToContentLoop at h; simp at h; rw [← h]
+  | succ _ ih =>
+    unfold skipToContentLoop at h
+    split at h
+    · simp at h
+    · rename_i s1 hws
+      simp only [] at h
+      split at h
+      · rename_i c hpk
+        split at h
+        · -- a break was consumed: the flag is up in `s'`, contradicting `hnic`
+          rename_i hb
+          exfalso
+          have hup : (consumeNewline (skipToContentComment s1)).needIndentCheck = true :=
+            consumeNewline_needIndentCheck_of_break _ c hpk hb
+          split at h
+          · have := skipToContentLoop_needIndentCheck_mono _ _ _ h (by simpa using hup)
+            rw [this] at hnic; exact Bool.noConfusion hnic
+          · have := skipToContentLoop_needIndentCheck_mono _ _ _ h hup
+            rw [this] at hnic; exact Bool.noConfusion hnic
+        · simp at h; rw [← h, skipToContentComment_preserves_simpleKeyAllowed]
+          exact skipToContentWs_preserves_simpleKeyAllowed s s1 hws
+      · simp at h; rw [← h, skipToContentComment_preserves_simpleKeyAllowed]
+        exact skipToContentWs_preserves_simpleKeyAllowed s s1 hws
+
+/-- `skipToContent`'s form of the transport. -/
+lemma skipToContent_simpleKeyAllowed_eq_of_needIndentCheck (s s' : ScannerState)
+    (h : skipToContent s = .ok s') (hnic : s'.needIndentCheck = false) :
+    s'.simpleKeyAllowed = s.simpleKeyAllowed := by
+  unfold skipToContent at h
+  exact skipToContentLoop_simpleKeyAllowed_eq_of_needIndentCheck s s' _ h hnic
+
+/-- The save never touches the flag itself. -/
+lemma saveSimpleKey_allowed (st : ScannerState) :
+    (saveSimpleKey st).simpleKeyAllowed = st.simpleKeyAllowed := by
+  unfold saveSimpleKey
+  split
+  · rfl
+  · split <;> rfl
+
+/-- With the flag down, `saveSimpleKey` is a no-op on everything the
+    adjacent-value refutation reads (item 47): the save is gated on
+    `simpleKeyAllowed`, and the flow-suppression branch changes nothing. -/
+lemma saveSimpleKey_stale {st : ScannerState} (h : st.simpleKeyAllowed = false) :
+    (saveSimpleKey st).simpleKey = st.simpleKey ∧
+    (saveSimpleKey st).tokens = st.tokens ∧
+    (saveSimpleKey st).offset = st.offset := by
+  unfold saveSimpleKey
+  split
+  · exact ⟨rfl, rfl, rfl⟩
+  · rw [if_neg (by simp [h])]
+    exact ⟨rfl, rfl, rfl⟩
+
 /-- General-column version of `preprocess_some_ssl_comments_col0`.
     When preprocessing returns `some`, extract `SSLComments` disjunction plus
     `GStar SSWhite` and `ScannerSurfCorr`. No col=0 requirement.
@@ -2371,6 +2474,7 @@ lemma preprocess_some_separate_lines_0 (sc : ScannerState) (sp : SurfPos)
     flag transparency the item-12 payload already uses.  It is the accumulation
     invariant's first fact about `currentIndent`, and it is what carries an
     entry's index across the step that reads its value. -/
+
 lemma preprocess_some_ssl_comments_anyCol (sc : ScannerState) (sp : SurfPos)
     (s_prep : ScannerState) (c : Char)
     (hcorr : ScannerSurfCorr sc sp)
@@ -2382,7 +2486,10 @@ lemma preprocess_some_ssl_comments_anyCol (sc : ScannerState) (sp : SurfPos)
             s_prep.line = sc.line ∧ s_prep.needIndentCheck = false ∧
             lastRealToken? s_prep.tokens = lastRealToken? sc.tokens ∧
             penultRealToken? s_prep.tokens = penultRealToken? sc.tokens) ∧
-          (sc.needIndentCheck = false → s_prep.indents = sc.indents)) ∧
+          (sc.needIndentCheck = false → s_prep.indents = sc.indents) ∧
+          (sc.needIndentCheck = false → sc.simpleKeyAllowed = false →
+            s_prep.simpleKey = sc.simpleKey ∧ s_prep.tokens = sc.tokens ∧
+            sc.offset ≤ s_prep.offset ∧ s_prep.simpleKeyAllowed = false)) ∧
       GStar SSWhite sp_mid sp_ws ∧ GOpt SCNbCommentText sp_ws sp_prep ∧
       ScannerSurfCorr s_prep sp_prep ∧
       (sp_prep = sp_ws ∨ s_prep.peek? = none) := by
@@ -2416,6 +2523,9 @@ lemma preprocess_some_ssl_comments_anyCol (sc : ScannerState) (sp : SurfPos)
                        (by rw [hmf.2, h_nic]; exact Bool.false_ne_true)),
                      (fun h_nic =>
                      absurd (Bool.and_eq_true_iff.mp h_armed).2
+                       (by rw [hmf.2, h_nic]; exact Bool.false_ne_true)),
+                     (fun h_nic _ =>
+                     absurd (Bool.and_eq_true_iff.mp h_armed).2
                        (by rw [hmf.2, h_nic]; exact Bool.false_ne_true))⟩),
                    hws, hcmt,
                    saveSimpleKey_corr _ sp_sc hcorr3,
@@ -2444,7 +2554,23 @@ lemma preprocess_some_ssl_comments_anyCol (sc : ScannerState) (sp : SurfPos)
                      · rw [saveSimpleKey_preserves_lastRealToken s_content h_creal, h_ctoks]
                      · rw [saveSimpleKey_preserves_penultRealToken s_content h_creal, h_ctoks]),
                      (fun _ => (saveSimpleKey_preserves_indents s_content).trans
-                       (skipToContent_preserves_indents sc s_content h_skip))⟩),
+                       (skipToContent_preserves_indents sc s_content h_skip)),
+                     (fun h_nic h_al => by
+                     -- Item 47: the flag stayed down, so the walk crossed no
+                     -- break, `simpleKeyAllowed` survived as `false`, and the
+                     -- save was a no-op on the key, the tokens and the cursor.
+                     have h_cflag : s_content.needIndentCheck = false := hmf.2.trans h_nic
+                     have h_cal : s_content.simpleKeyAllowed = false :=
+                       (skipToContent_simpleKeyAllowed_eq_of_needIndentCheck
+                         sc s_content h_skip h_cflag).trans h_al
+                     obtain ⟨h_sk, h_tk, h_off⟩ := saveSimpleKey_stale h_cal
+                     refine ⟨h_sk.trans (ScannerCorrectness.skipToContent_preserves_simpleKey
+                               sc s_content h_skip),
+                             h_tk.trans (ScannerCorrectness.skipToContent_preserves_tokens
+                               sc s_content h_skip), ?_, ?_⟩
+                     · rw [h_off]
+                       exact ScannerCorrectness.skipToContent_offset_ge sc s_content h_skip
+                     · exact (saveSimpleKey_allowed _).trans h_cal)⟩),
                    hws, hcmt,
                    saveSimpleKey_corr _ sp_sc hcorr_sc,
                    h_pk.imp_right (fun h => by rw [saveSimpleKey_peek]; exact h)⟩
@@ -2649,7 +2775,7 @@ lemma preprocess_some_separate_inline_or_landing (sc : ScannerState) (sp : SurfP
   cases h_disj with
   | inl h_ssl_col => exact Or.inr ⟨sp_mid, h_ssl_col.1, h_ssl_col.2⟩
   | inr h_mid_eq =>
-    have h_indents := h_mid_eq.2.2
+    have h_indents := h_mid_eq.2.2.1
     rw [h_mid_eq.1] at h_ws
     refine Or.inl ⟨sp_ws, fun n c' => ?_, h_eq ▸ hcorr_out, h_indents⟩
     have h_inline : SSeparateInLine sp sp_ws :=
@@ -4798,16 +4924,14 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
     exact ⟨_, _, sp_open, sp_open, h_stream_block, BlockStack.nil _,
            h_kpkg _ _ _ (mk 0 _ (topLevelFlowResumeSep h_stream_block h_sep)),
            PendingNode.noPending sp_start sp_open (Or.inr (inFlow_of_flowLevel_eq h_fl1)), hcorr_open, fun _ => ⟨.white (GStar.nil _) h_sync h_colon, h_real, h_ad⟩⟩
-  | pendingContent =>
+  | pendingContent _ _ _ h_line _ _ _ =>
     -- Item 37: §7.5's set weakens to item 10's here, exactly as `[204]`'s does.
-    rename_i h_line _ _
     exact main h_close_pending (refuted (h_line.imp id LineNodeStop.toLineNoOpen))
   | pendingDocEnd =>
     -- Item 36: `[204]`'s suffix set weakens to item 10's at the CONSUMER.
     rename_i h_line _
     exact main h_close_pending (refuted (h_line.imp id LineTailSuffix.toLineNoOpen))
-  | pendingBlockContent =>
-    rename_i _ h_line _ _ _
+  | pendingBlockContent _ _ _ _ h_line _ _ _ _ =>
     exact main h_close_pending (refuted (h_line.imp id LineNodeStop.toLineNoOpen))
   | pendingFlow =>
     -- The deferred state: its own closing strategy is the drop, and the flow
@@ -4940,6 +5064,7 @@ lemma scanFlowMappingEnd_tokens (s : ScannerState) :
   unfold scanFlowMappingEnd
   simp only [ScannerCorrectness.advance_preserves_tokens, ScannerState.emit]
 
+
 lemma scanFlowEntry_tokens {s s' : ScannerState} (h : scanFlowEntry s = .ok s') :
     s'.tokens = s.tokens.push { pos := s.currentPos, val := .flowEntry } := by
   unfold scanFlowEntry at h
@@ -4980,6 +5105,25 @@ lemma tailOf_scanFlowMappingEnd (s : ScannerState) :
 lemma tailOf_scanFlowEntry {s s' : ScannerState} (h : scanFlowEntry s = .ok s') :
     tailOf s'.tokens = .sep ∧ LastTokenReal s'.tokens := by
   rw [scanFlowEntry_tokens h]; exact tailOf_push (by simp) (by simp [YamlToken.isNodeProperty])
+
+/-- **Item 47: the park after a `]` is a stale node tail on the token alone.**
+    The close writes both flags down (the collection's interior breaks are the
+    token's own), pushes the real `.flowSequenceEnd`, and `StaleNodeTail`'s
+    flow-end disjunct asks nothing of the restored simple key — which is the
+    point: no invariant here couples the key stack to the line, and none is
+    needed. -/
+lemma staleNodeTail_scanFlowSequenceEnd (s : ScannerState) :
+    StaleNodeTail (scanFlowSequenceEnd s) :=
+  ⟨rfl, rfl, (tailOf_scanFlowSequenceEnd s).2, .flowSequenceEnd,
+   by rw [scanFlowSequenceEnd_tokens]; exact lastRealTokenVal_push (by simp),
+   rfl⟩
+
+/-- `}`'s twin. -/
+lemma staleNodeTail_scanFlowMappingEnd (s : ScannerState) :
+    StaleNodeTail (scanFlowMappingEnd s) :=
+  ⟨rfl, rfl, (tailOf_scanFlowMappingEnd s).2, .flowMappingEnd,
+   by rw [scanFlowMappingEnd_tokens]; exact lastRealTokenVal_push (by simp),
+   rfl⟩
 
 /-! None of the five flow indicators is a node property, so each leaves the gap
     `white`: the frame tail and the scanner's two guards read the same token. -/
@@ -5186,6 +5330,287 @@ lemma tailOf_dispatchContent_value {s s' : ScannerState} {c : Char}
       rw [hstr]
       exact tailOf_push_sync (by simp) (by simp [YamlToken.isNodeProperty])
   · exact absurd hok (by simp)
+
+/-- Fresh-save state off the four value-completing content arms (item 10):
+    `*`/`"`/`'`/plain preserve the pending key's layout fields (the quoted
+    arms touch only `endLine`) and turn fresh saves off. -/
+lemma scanDoubleQuoted_simpleKeyAllowed_false {s s' : ScannerState}
+    (h : scanDoubleQuoted s = .ok s') : s'.simpleKeyAllowed = false := by
+  unfold scanDoubleQuoted at h
+  simp only [bind, Except.bind] at h
+  split at h <;> try contradiction
+  rename_i result heq
+  split at h
+  · split at h <;> try contradiction
+    simp only [Except.ok.injEq] at h; subst h; rfl
+  · simp only [Except.ok.injEq] at h; subst h; rfl
+
+lemma scanSingleQuoted_simpleKeyAllowed_false {s s' : ScannerState}
+    (h : scanSingleQuoted s = .ok s') : s'.simpleKeyAllowed = false := by
+  unfold scanSingleQuoted at h
+  simp only [bind, Except.bind] at h
+  split at h <;> try contradiction
+  rename_i result heq
+  split at h
+  · split at h <;> try contradiction
+    simp only [Except.ok.injEq] at h; subst h; rfl
+  · simp only [Except.ok.injEq] at h; subst h; rfl
+
+lemma scanPlainScalar_simpleKeyAllowed_false {s s' : ScannerState}
+    (h : scanPlainScalar s = .ok s') : s'.simpleKeyAllowed = false := by
+  unfold scanPlainScalar at h
+  simp only [bind, Except.bind] at h
+  split at h <;> try contradiction
+  rename_i result heq
+  simp only [Except.ok.injEq] at h; subst h; rfl
+
+/-- The key-layout fields across a value-completing content dispatch. -/
+lemma dispatchContent_value_key_facts {s s' : ScannerState} {c : Char}
+    (hok : scanNextToken_dispatchContent s c = .ok s')
+    (h_amp : c ≠ '&') (h_bang : c ≠ '!') (h_pipe : c ≠ '|') (h_gt : c ≠ '>') :
+    (s'.simpleKey.possible = s.simpleKey.possible ∧
+     s'.simpleKey.tokenIndex = s.simpleKey.tokenIndex ∧
+     s'.simpleKey.pos = s.simpleKey.pos) ∧
+    s'.simpleKeyAllowed = false := by
+  unfold scanNextToken_dispatchContent at hok
+  simp only [bind, Except.bind, pure, Except.pure] at hok
+  split at hok
+  · rename_i heq; exact absurd (by simpa using heq) h_amp
+  split at hok
+  · split at hok
+    · exact absurd hok (by simp)
+    · split at hok
+      · exact absurd hok (by simp)
+      · generalize h_al : scanAnchorOrAlias s false = r at hok
+        cases r with
+        | error => exact absurd hok (by simp)
+        | ok v =>
+          dsimp only [] at hok
+          split at hok
+          · exact absurd hok (by simp)
+          · have hv : s' = v := (Except.ok.inj hok).symm
+            rw [hv, ScannerCorrectness.scanAnchorOrAlias_preserves_simpleKey s false v h_al]
+            exact ⟨⟨rfl, rfl, rfl⟩, scanAnchorOrAlias_simpleKeyAllowed_false h_al⟩
+  split at hok
+  · rename_i heq; exact absurd (by simpa using heq) h_bang
+  split at hok
+  · rename_i heq
+    have hbs : c = '|' ∨ c = '>' := by simpa using heq
+    rcases hbs with h | h
+    · exact absurd h h_pipe
+    · exact absurd h h_gt
+  split at hok
+  · generalize h_dq : scanDoubleQuoted s = r at hok
+    cases r with
+    | error => exact absurd hok (by simp)
+    | ok v =>
+      dsimp only [] at hok
+      have hv : s' = (if v.simpleKey.possible then
+          { v with simpleKey := { v.simpleKey with endLine := v.line } } else v) :=
+        (Except.ok.inj hok).symm
+      have h_pres := ScannerCorrectness.scanDoubleQuoted_preserves_simpleKey s v h_dq
+      have h_al := scanDoubleQuoted_simpleKeyAllowed_false h_dq
+      rw [hv]
+      split
+      · exact ⟨⟨by rw [← h_pres], by rw [← h_pres], by rw [← h_pres]⟩, h_al⟩
+      · exact ⟨⟨by rw [h_pres], by rw [h_pres], by rw [h_pres]⟩, h_al⟩
+  split at hok
+  · generalize h_sq : scanSingleQuoted s = r at hok
+    cases r with
+    | error => exact absurd hok (by simp)
+    | ok v =>
+      dsimp only [] at hok
+      have hv : s' = (if v.simpleKey.possible then
+          { v with simpleKey := { v.simpleKey with endLine := v.line } } else v) :=
+        (Except.ok.inj hok).symm
+      have h_pres := ScannerCorrectness.scanSingleQuoted_preserves_simpleKey s v h_sq
+      have h_al := scanSingleQuoted_simpleKeyAllowed_false h_sq
+      rw [hv]
+      split
+      · exact ⟨⟨by rw [← h_pres], by rw [← h_pres], by rw [← h_pres]⟩, h_al⟩
+      · exact ⟨⟨by rw [h_pres], by rw [h_pres], by rw [h_pres]⟩, h_al⟩
+  split at hok
+  · generalize h_ps : scanPlainScalar s = r at hok
+    cases r with
+    | error => exact absurd hok (by simp)
+    | ok v =>
+      have hv : s' = v := (Except.ok.inj hok).symm
+      rw [hv, ScannerCorrectness.scanPlainScalar_preserves_simpleKey s v h_ps]
+      exact ⟨⟨rfl, rfl, rfl⟩, scanPlainScalar_simpleKeyAllowed_false h_ps⟩
+  · exact absurd hok (by simp)
+
+
+/-! ### Item 47: the stale-tail payment for content-dispatch parks
+
+    Every pending parked directly off a value-completing content dispatch is a
+    stale node tail — the lemmas below say so once, so all such construction
+    sites pay `PendingNode`'s `h_stale` field with one application.  The
+    block-scalar head is the exception twice over: its scan may raise
+    `needIndentCheck` (its trailing break IS structure), and it never meets an
+    inline `:` — the scan ends at a line start or an `OffLine` stop
+    (`scanBlockScalar_restOffLine`), which refutes the residue instead. -/
+
+/-- A `.value` frame tail names a completing token. -/
+lemma completes_of_ofToken_value {t : YamlToken}
+    (h : FrameTail.ofToken t = .value) : t.completesFlowValue = true := by
+  cases t <;> simp_all [FrameTail.ofToken, YamlToken.completesFlowValue]
+
+/-- The scalar scans end with the flag down (the token's interior breaks are
+    the token's own — item 47's scan epilogue). -/
+lemma scanDoubleQuoted_needIndentCheck_false {s s' : ScannerState}
+    (h : scanDoubleQuoted s = .ok s') : s'.needIndentCheck = false := by
+  unfold scanDoubleQuoted at h
+  simp only [bind, Except.bind] at h
+  split at h <;> try contradiction
+  rename_i result heq
+  split at h
+  · split at h <;> try contradiction
+    simp only [Except.ok.injEq] at h; subst h; rfl
+  · simp only [Except.ok.injEq] at h; subst h; rfl
+
+lemma scanSingleQuoted_needIndentCheck_false {s s' : ScannerState}
+    (h : scanSingleQuoted s = .ok s') : s'.needIndentCheck = false := by
+  unfold scanSingleQuoted at h
+  simp only [bind, Except.bind] at h
+  split at h <;> try contradiction
+  rename_i result heq
+  split at h
+  · split at h <;> try contradiction
+    simp only [Except.ok.injEq] at h; subst h; rfl
+  · simp only [Except.ok.injEq] at h; subst h; rfl
+
+lemma scanPlainScalar_needIndentCheck_false {s s' : ScannerState}
+    (h : scanPlainScalar s = .ok s') : s'.needIndentCheck = false := by
+  unfold scanPlainScalar at h
+  simp only [bind, Except.bind] at h
+  split at h <;> try contradiction
+  rename_i result heq
+  simp only [Except.ok.injEq] at h; subst h; rfl
+
+/-- The anchor/alias scan never touches the flag. -/
+lemma scanAnchorOrAlias_needIndentCheck {s s' : ScannerState} {isAnchor : Bool}
+    (h : scanAnchorOrAlias s isAnchor = .ok s') :
+    s'.needIndentCheck = s.needIndentCheck := by
+  unfold scanAnchorOrAlias at h
+  simp only at h
+  split at h
+  · exact absurd h (by simp)
+  · injection h with h_eq
+    rw [← h_eq]
+    exact ((collectAnchorNameLoop_line_nic s.advance ""
+      (s.inputEnd - s.advance.offset)).2).trans (advance_preserves_needIndentCheck s)
+
+/-- A value-completing content dispatch ends with the flag down: the scalar
+    scans write it, the alias scan preserves the dispatch state's own
+    (`nic_false_of_flow_disp`'s). -/
+lemma dispatchContent_needIndentCheck_false {s s' : ScannerState} {c : Char}
+    (hok : scanNextToken_dispatchContent s c = .ok s')
+    (h_amp : c ≠ '&') (h_bang : c ≠ '!') (h_pipe : c ≠ '|') (h_gt : c ≠ '>')
+    (h_nic0 : s.needIndentCheck = false) : s'.needIndentCheck = false := by
+  unfold scanNextToken_dispatchContent at hok
+  simp only [bind, Except.bind, pure, Except.pure] at hok
+  split at hok
+  · rename_i heq; exact absurd (by simpa using heq) h_amp
+  split at hok
+  · split at hok
+    · exact absurd hok (by simp)
+    · split at hok
+      · exact absurd hok (by simp)
+      · generalize h_al : scanAnchorOrAlias s false = r at hok
+        cases r with
+        | error => exact absurd hok (by simp)
+        | ok v =>
+          dsimp only [] at hok
+          split at hok
+          · exact absurd hok (by simp)
+          · have hv : s' = v := (Except.ok.inj hok).symm
+            rw [hv, scanAnchorOrAlias_needIndentCheck h_al]
+            exact h_nic0
+  split at hok
+  · rename_i heq; exact absurd (by simpa using heq) h_bang
+  split at hok
+  · rename_i heq
+    have hbs : c = '|' ∨ c = '>' := by simpa using heq
+    rcases hbs with h | h
+    · exact absurd h h_pipe
+    · exact absurd h h_gt
+  split at hok
+  · generalize h_dq : scanDoubleQuoted s = r at hok
+    cases r with
+    | error => exact absurd hok (by simp)
+    | ok v =>
+      dsimp only [] at hok
+      have hv : s' = (if v.simpleKey.possible then
+          { v with simpleKey := { v.simpleKey with endLine := v.line } } else v) :=
+        (Except.ok.inj hok).symm
+      have hn := scanDoubleQuoted_needIndentCheck_false h_dq
+      rw [hv]; split <;> exact hn
+  split at hok
+  · generalize h_sq : scanSingleQuoted s = r at hok
+    cases r with
+    | error => exact absurd hok (by simp)
+    | ok v =>
+      dsimp only [] at hok
+      have hv : s' = (if v.simpleKey.possible then
+          { v with simpleKey := { v.simpleKey with endLine := v.line } } else v) :=
+        (Except.ok.inj hok).symm
+      have hn := scanSingleQuoted_needIndentCheck_false h_sq
+      rw [hv]; split <;> exact hn
+  split at hok
+  · generalize h_pl : scanPlainScalar s = r at hok
+    cases r with
+    | error => exact absurd hok (by simp)
+    | ok v =>
+      have hv : s' = v := (Except.ok.inj hok).symm
+      rw [hv]
+      exact scanPlainScalar_needIndentCheck_false h_pl
+  · exact absurd hok (by simp)
+
+/-- The value-completing arms leave a stale node tail. -/
+lemma staleNodeTail_of_dispatchContent_value {s s' : ScannerState} {c : Char}
+    (hok : scanNextToken_dispatchContent s c = .ok s')
+    (h_amp : c ≠ '&') (h_bang : c ≠ '!') (h_pipe : c ≠ '|') (h_gt : c ≠ '>')
+    (h_nic0 : s.needIndentCheck = false) :
+    StaleNodeTail s' := by
+  obtain ⟨h_tail, h_real, h_sync⟩ :=
+    tailOf_dispatchContent_value hok h_amp h_bang h_pipe h_gt
+  refine ⟨dispatchContent_needIndentCheck_false hok h_amp h_bang h_pipe h_gt h_nic0,
+          (dispatchContent_value_key_facts hok h_amp h_bang h_pipe h_gt).2,
+          h_real, s'.tokens[s'.tokens.size - 1]!.val, h_real.lastRealTokenVal, ?_⟩
+  apply completes_of_ofToken_value
+  have h_frame : tailOf s'.tokens =
+      FrameTail.ofToken s'.tokens[s'.tokens.size - 1]!.val := by
+    unfold tailOf
+    rw [h_sync, h_real.lastRealTokenVal]
+  rw [← h_frame, h_tail]
+
+/-- **The one payment every content-dispatch park makes** (item 47): a
+    value-completing dispatch IS a stale node tail, and a block-scalar head
+    never meets an inline `:` — the scan ends at a line start or an `OffLine`
+    stop, and `:` is on the line and printable. -/
+lemma stale_of_dispatch {s s' : ScannerState} {c : Char} {sp : SurfPos}
+    (hok : scanNextToken_dispatchContent s c = .ok s')
+    (h_amp : c ≠ '&') (h_bang : c ≠ '!')
+    (h_nic0 : s.needIndentCheck = false)
+    (hcorr : ScannerSurfCorr s' sp) :
+    InlineResidue sp ':' → StaleNodeTail s' := by
+  by_cases hbs : c = '|' ∨ c = '>'
+  · -- the block scalar: refute the residue instead of paying the tail
+    intro h_res
+    exfalso
+    obtain ⟨hcol_ne, sp_ws, hws, h_head⟩ := h_res
+    rcases dispatchContent_blockScalar_restOffLine hbs hcorr.end_eq hok with h0 | h_off
+    · exact hcol_ne (hcorr.col_eq.trans h0)
+    · have h_ls : LineStop OffLine sp.chars := h_off.to_surface hcorr
+      have : OffLine ':' :=
+        h_ls.across_whites hws h_head (by rintro (h | h) <;> exact absurd h (by decide))
+      rcases this with h | h
+      · exact absurd h (by decide)
+      · exact absurd h (by decide)
+  · have h_pipe : c ≠ '|' := fun h => hbs (Or.inl h)
+    have h_gt : c ≠ '>' := fun h => hbs (Or.inr h)
+    exact fun _ =>
+      staleNodeTail_of_dispatchContent_value hok h_amp h_bang h_pipe h_gt h_nic0
 
 /-! ### §1c''b'' What reaching content dispatch says about `c` (β.3)
 
@@ -6155,7 +6580,8 @@ lemma accum_step_flow (sc : ScannerState)
                       (Or.inr ((restNodeStop_of_validateFlowClose hcorr_tok.end_eq
                         (by rw [h_fl']) hval).to_surface hcorr_tok))
                       (fun sp_m h_ssl => close sp_tok sp_m h_ssl)
-                      (fun _ _ => Or.inr trivial)),
+                      (fun _ _ => Or.inr trivial)
+                      (fun _ => staleNodeTail_scanFlowSequenceEnd _)),
                     hcorr_tok, fun h => absurd h (by omega)⟩
                 · exact ⟨sp_gram, sp_block, sp_tok, sp_tok, h_stream, h_stack,
                     FlowStackK.collapse #[] hdpos
@@ -6227,7 +6653,8 @@ lemma accum_step_flow (sc : ScannerState)
                           (Or.inr ((restNodeStop_of_validateFlowClose hcorr_tok.end_eq
                             (by rw [h_fl']) hval).to_surface hcorr_tok))
                           (fun sp_m h_ssl => close sp_tok sp_m h_ssl)
-                          (fun _ _ => Or.inr trivial)),
+                          (fun _ _ => Or.inr trivial)
+                      (fun _ => staleNodeTail_scanFlowMappingEnd _)),
                         hcorr_tok, fun h => absurd h (by omega)⟩
                     · exact ⟨sp_gram, sp_block, sp_tok, sp_tok, h_stream, h_stack,
                         FlowStackK.collapse #[] hdpos
@@ -6451,7 +6878,8 @@ lemma accum_step_flow (sc : ScannerState)
                       (by rw [h_fl']) hval).to_surface hcorr_tok))
                     (fun sp_m h_ssl => resume sp_tok sp_m
                       (SFlowContent.flowSeq _ _ _ _ h_seq) h_ssl)
-                    (fun _ _ => Or.inr trivial)),
+                    (fun _ _ => Or.inr trivial)
+                      (fun _ => staleNodeTail_scanFlowSequenceEnd _)),
                   hcorr_tok, fun h => absurd h (by omega)⟩
               · -- mapBase + ']': kind-mismatched close (`{a]`). REFUTED (9a+9b(i)):
                 -- the scanner only reaches this dispatch with `flowStack.back? =
@@ -6609,7 +7037,8 @@ lemma accum_step_flow (sc : ScannerState)
                           (by rw [h_fl']) hval).to_surface hcorr_tok))
                         (fun sp_m h_ssl => resume sp_tok sp_m
                           (SFlowContent.flowMap _ _ _ _ h_map) h_ssl)
-                        (fun _ _ => Or.inr trivial)),
+                        (fun _ _ => Or.inr trivial)
+                      (fun _ => staleNodeTail_scanFlowMappingEnd _)),
                       hcorr_tok, fun h => absurd h (by omega)⟩
                   · -- seqNest + '}': kind-mismatched close (`[a}` nested). REFUTED.
                     simp at h_back
@@ -8036,21 +8465,6 @@ lemma colon_open_map_implicit (sp_start sp_block sp_key sp_gram sp_ws : SurfPos)
     branches (residue/tab/width-mismatch) delegate to
     `block_dispatch_deferred`. -/
 
-/-- **The inline residue's own premise** (item 36).  A block dispatch that
-    crossed NO break from a park off column 0: `sp` is the park, `sp_ws` the
-    landing the step's `s-white` [33] run reached, and `c` the character it
-    read there.
-
-    Naming it is the point.  The escape below is handed to its call sites as a
-    bare `SLYamlStream sp_start sp_X` — a conclusion every pending can supply
-    and therefore one that records nothing about WHEN it is needed.  Taken as
-    a function OF this premise, the same sites pay `fun _ => h` unchanged, and
-    a pending whose producer already refuted the shape pays `nofun` instead:
-    the escape becomes refusable without splitting the lemma that carries
-    it. -/
-def InlineResidue (sp : SurfPos) (c : Char) : Prop :=
-  sp.col ≠ 0 ∧ ∃ sp_ws, GStar SSWhite sp sp_ws ∧ sp_ws.chars.head? = some c
-
 /-- The residue's premise, assembled from `preprocess_some_ssl_comments_landing`'s
     right disjunct: the park is off column 0, the step crossed only `s-white`,
     and the dispatched character is the head it reached. -/
@@ -8150,6 +8564,60 @@ lemma nodeStop_content_residue_is_colon {sp_scan : SurfPos} {c : Char}
   exact (dispatchContent_ok_charFacts h_dispatch).2
     ((h_line.resolve_left hcol).across_whites hws h_head
       (dispatchContent_ok_charFacts h_dispatch).1)
+
+/-- `lastRealTokenVal?` is the positioned reading's value projection. -/
+lemma lastRealTokenVal?_eq_map (ts : Array (Positioned YamlToken)) :
+    lastRealTokenVal? ts = (lastRealToken? ts).map (·.val) := by
+  unfold lastRealTokenVal? lastRealToken?
+  split
+  · dsimp only []
+    split
+    · split <;> rfl
+    · rfl
+  · rfl
+
+/-- **…and the stale tail refutes it** (item 47).  A park behind a complete
+    node carries `StaleNodeTail`; with the entry flag down the preprocessing
+    that reached this dispatch crossed no break, so the stale key, the token
+    tail and the cursor gap all survive to the dispatch state — which is
+    exactly `scanNextToken_checkAdjacentValue`'s firing condition on the `:`
+    that fell through `isValueCandidate`.  The check therefore errored, and
+    the step's own chain says it did not: the arm's residue is EMPTY. -/
+lemma checkAdjacentValue_refutes_stale {sc s_prep : ScannerState}
+    (h_st : StaleNodeTail sc)
+    (h_noflow : (if s_prep.allowDirectives then
+        { s_prep with allowDirectives := false, documentEverStarted := true }
+      else s_prep).inFlow = false)
+    (h_pay : sc.needIndentCheck = false → LastTokenReal sc.tokens →
+      s_prep.line = sc.line ∧ s_prep.needIndentCheck = false ∧
+      lastRealToken? s_prep.tokens = lastRealToken? sc.tokens ∧
+      penultRealToken? s_prep.tokens = penultRealToken? sc.tokens)
+    (h_pay_sk : sc.needIndentCheck = false → sc.simpleKeyAllowed = false →
+      s_prep.simpleKey = sc.simpleKey ∧ s_prep.tokens = sc.tokens ∧
+      sc.offset ≤ s_prep.offset ∧ s_prep.simpleKeyAllowed = false) :
+    scanNextToken_checkAdjacentValue (if s_prep.allowDirectives then
+        { s_prep with allowDirectives := false, documentEverStarted := true }
+      else s_prep) ':' ≠ .ok () := by
+  obtain ⟨h_nic, h_al, h_real, t, h_last, h_cmp⟩ := h_st
+  obtain ⟨-, -, h_tok_eq, -⟩ := h_pay h_nic h_real
+  obtain ⟨-, -, -, h_al'⟩ := h_pay_sk h_nic h_al
+  have h_val_eq : lastRealTokenVal? s_prep.tokens = lastRealTokenVal? sc.tokens := by
+    rw [lastRealTokenVal?_eq_map, lastRealTokenVal?_eq_map, h_tok_eq]
+  have h_tk : lastRealTokenVal? (if s_prep.allowDirectives then
+      { s_prep with allowDirectives := false, documentEverStarted := true }
+    else s_prep).tokens = some t := by
+    split <;> exact h_val_eq.trans h_last
+  have h_ska : (if s_prep.allowDirectives then
+      { s_prep with allowDirectives := false, documentEverStarted := true }
+    else s_prep).simpleKeyAllowed = false := by
+    split <;> exact h_al'
+  intro h_adj
+  unfold scanNextToken_checkAdjacentValue at h_adj
+  rw [if_pos ?hcond] at h_adj
+  case hcond =>
+    rw [h_noflow, h_tk, h_ska]
+    simp [h_cmp]
+  cases h_adj
 
 
 -- Deferred sorry: constructs pendingFlow with stream evidence.
@@ -8980,7 +9448,7 @@ lemma accum_block_pending (sc : ScannerState)
   | pendingDocStart _ =>
     exact accum_block_on_closeThenBlock sc sp_start sp_block sp_scan s_prep s' c sp_prep sp_scan'
       h_close_pending (fun _ => h_stream_block) hcorr_prep hcorr_result h_corr h_noflow h_preprocess h_dispatch
-  | pendingContent _ _ _ h_line _ h_key =>
+  | pendingContent _ _ _ h_line _ h_key _ =>
     -- Item 15: the same-line `:` may fire the implicit-key coupling.
     -- Item 37: what the caller still owes is the `:` alone.
     exact accum_block_on_pendingContent sc sp_start sp_block sp_block sp_scan s_prep s' c
@@ -8993,11 +9461,10 @@ lemma accum_block_pending (sc : ScannerState)
     all_goals
       exact accum_block_on_closeThenBlock sc sp_start sp_block sp_scan s_prep s' c sp_prep sp_scan'
         h_close_pending (fun _ => h_stream_block) hcorr_prep hcorr_result h_corr h_noflow h_preprocess h_dispatch
-  | pendingBlockContent =>
+  | pendingBlockContent _ _ _ n_old h_line _h_closable h_entry_old h_key_old _h_stale =>
     -- Item 22: the pending's own entry index rides through; the `n ≠ 0`
     -- deferral this arm used to open is gone with it.
     -- Item 37: and what is left of the escape is `[154]`'s `:`.
-    rename_i n_old h_line _ h_entry_old h_key_old
     exact accum_block_on_pendingBlockContent sc sp_start sp_block sp_block sp_scan s_prep s' c
       sp_prep sp_scan' n_old h_stream_block h_close_pending h_line (fun _ => h_stream_block)
       h_entry_old h_key_old hcorr_prep hcorr_result h_corr h_noflow h_preprocess h_dispatch
@@ -11337,7 +11804,10 @@ lemma content_dispatch_routed
                (fun sp_mid h_ssl =>
                  have h_ssl_ext := white_prepend_SSLComments h_trailing_ws h_ssl
                  h_route sp_mid (flowInBlock_blockNode h_sep h_flow h_ssl_ext))
-               h_key,
+               h_key
+               (stale_of_dispatch h_dispatch hna hnt
+                 (by split <;> show s_prep.needIndentCheck = false <;> exact h_nic_prep)
+                 hcorr_result),
              hcorr_result⟩
     | inr h_block =>
       exact ⟨sp_res, sp_res, sp_res, sp_scan', h_stream_res,
@@ -11351,7 +11821,10 @@ lemma content_dispatch_routed
                      (fun h_fld => folded_blockNode h_sep (GOpt.none sp_prep) h_fld)
                  ssl_comments_extend_stream sp_start sp_gram sp_mid
                    (h_route sp_gram h_blockNode) h_ssl_ext)
-               h_key,
+               h_key
+               (stale_of_dispatch h_dispatch hna hnt
+                 (by split <;> show s_prep.needIndentCheck = false <;> exact h_nic_prep)
+                 hcorr_result),
              hcorr_result⟩
 
 /-- The bare-document instance of `content_dispatch_routed` — the node anchors
@@ -11591,7 +12064,10 @@ lemma accum_content_on_pendingBlock
                (fun sp h_bn => h_close_old sp (SBlockIndented.node 0 .blockIn sp_scan sp h_bn))
                (Or.inl h_close_old)
                hcorr_prep hcorr_result h_corr h_not_doc h_flow_disp
-               h_preprocess h_dispatch),
+               h_preprocess h_dispatch)
+             (stale_of_dispatch h_dispatch hna hnt
+               (by split <;> exact nic_false_of_flow_disp (sc := sc) (s_prep := s_prep) h_preprocess h_flow_disp)
+               hcorr_result),
            hcorr_result⟩
     | inr h_block =>
       have h_blockNode : SBlockNode 0 .blockIn sp_scan sp_gram :=
@@ -11606,7 +12082,10 @@ lemma accum_content_on_pendingBlock
                (fun sp_final h_ssl =>
                  have h_ssl_ext := white_prepend_SSLComments h_trailing_ws h_ssl
                  ssl_comments_extend_stream sp_start sp_gram sp_final h_stream' h_ssl_ext)
-               (fun _ _ => Or.inr trivial),
+               (fun _ _ => Or.inr trivial)
+                (stale_of_dispatch h_dispatch hna hnt
+               (by split <;> exact nic_false_of_flow_disp (sc := sc) (s_prep := s_prep) h_preprocess h_flow_disp)
+               hcorr_result),
              hcorr_result⟩
 
 /-- **Does this content step read at EVERY index?** (item 23; item 24; item 26)
@@ -11684,7 +12163,8 @@ lemma indentedValue_reads_at_any_indent
       (∀ n : Nat, SSeparate n .flowOut sp_scan sp_prep) ∧
       (∀ n : Nat, SFlowNode n .flowOut sp_prep sp_gram) ∧
       GStar SSWhite sp_gram sp_scan' ∧
-      (sp_scan'.col = 0 ∨ LineNodeStop sp_scan'.chars)) ∨
+      (sp_scan'.col = 0 ∨ LineNodeStop sp_scan'.chars) ∧
+      (c ≠ '&' ∧ c ≠ '!')) ∨
     (∃ ha ht : Bool,
       (∀ n : Nat, SSeparateLines n sp_scan sp_prep) ∧
       (∀ n : Nat, PropsRun n .flowOut ha ht sp_prep sp_scan') ∧
@@ -11703,7 +12183,8 @@ lemma indentedValue_reads_at_any_indent
         else s_prep).line) ∨
     ((SCLLiteral n sp_prep sp_scan' ∨ SCLFolded n sp_prep sp_scan') ∧
       (∀ (n' : Nat) (c' : YamlContext), SSeparate n' c' sp_scan sp_prep) ∧
-      (sp_scan'.col = 0 ∨ LineNodeStop sp_scan'.chars)) ∨
+      (sp_scan'.col = 0 ∨ LineNodeStop sp_scan'.chars) ∧
+      (c ≠ '&' ∧ c ≠ '!')) ∨
     True := by
   have hpeek : s_prep.peek? = some c := preprocess_some_peek h_preprocess
   have hpeek_disp : (if s_prep.allowDirectives then
@@ -11799,7 +12280,7 @@ lemma indentedValue_reads_at_any_indent
               (Nat.le_of_eq (minContentIndentOf_congr (h_indents h_nic_sc)).symm)) h_floor'
           exact Or.inr (Or.inr (Or.inl
             ⟨h_read.elim (fun h => Or.inl (h n hn)) (fun h => Or.inr (h n hn)),
-             h_sep_all, h_line⟩))
+             h_sep_all, h_line, hna, hnt⟩))
         · exact Or.inr (Or.inr (Or.inr trivial))
       · have hna : c ≠ '&' := fun h => hprops (Or.inl h)
         have hnt : c ≠ '!' := fun h => hprops (Or.inr h)
@@ -11818,7 +12299,7 @@ lemma indentedValue_reads_at_any_indent
           have hsp_ev_eq := ScannerSurfCorr_unique hcorr_ev hcorr_result
           rw [hsp_ev_eq] at h_trailing_ws
           exact Or.inl ⟨sp_gram, fun n => h_sep_all n .flowOut, h_flow_all,
-                        h_trailing_ws, h_line⟩
+                        h_trailing_ws, h_line, hna, hnt⟩
         · exact Or.inr (Or.inr (Or.inr trivial))
   · exact Or.inr (Or.inr (Or.inr trivial))
 
@@ -11863,10 +12344,10 @@ lemma accum_content_on_pendingBlock_indented
       ScannerSurfCorr s' sp_scan' := by
   rcases indentedValue_reads_at_any_indent sc sp_scan n s_prep s' c sp_prep sp_scan'
       h_floor_old hcorr_prep hcorr_result h_corr h_preprocess h_not_doc h_flow_disp h_dispatch with
-    ⟨sp_gram, h_sep_all, h_flow_all, h_trailing_ws, h_line⟩ |
+    ⟨sp_gram, h_sep_all, h_flow_all, h_trailing_ws, h_line, hna, hnt⟩ |
     ⟨ha, ht, h_sep_all, h_run_all, h_nic_s, h_real_s, h_anchor_s, h_tag_s, h_ind_s,
       h_single, h_sk_s, h_line_s⟩ |
-    ⟨h_read, h_sep_all, h_line⟩ | _
+    ⟨h_read, h_sep_all, h_line, hna, hnt⟩ | _
   · exact ⟨sp_block, sp_block, sp_block, sp_scan', h_stream_block,
            BlockStack.nil sp_block, FlowStackB.nil sp_block .sep,
            PendingNode.pendingBlockContent sp_start sp_block sp_scan' n h_line
@@ -11886,7 +12367,10 @@ lemma accum_content_on_pendingBlock_indented
                (fun sp h_bn => h_close_old sp (SBlockIndented.node n .blockIn sp_scan sp h_bn))
                (Or.inl h_close_old)
                hcorr_prep hcorr_result h_corr h_not_doc h_flow_disp
-               h_preprocess h_dispatch),
+               h_preprocess h_dispatch)
+             (stale_of_dispatch h_dispatch hna hnt
+               (by split <;> exact nic_false_of_flow_disp (sc := sc) (s_prep := s_prep) h_preprocess h_flow_disp)
+               hcorr_result),
            hcorr_result⟩
   · -- Item 24: the run parks at the ENTRY's index; the entry closure is not
     -- carried, so a sibling after `  - &a v` re-opens rather than snocs.
@@ -11927,7 +12411,10 @@ lemma accum_content_on_pendingBlock_indented
            PendingNode.pendingContent sp_start sp_scan' sp_scan' h_line
              (fun sp_final h_ssl =>
                ssl_comments_extend_stream sp_start sp_scan' sp_final h_stream' h_ssl)
-             (fun _ _ => Or.inr trivial),
+             (fun _ _ => Or.inr trivial)
+             (stale_of_dispatch h_dispatch hna hnt
+               (by split <;> exact nic_false_of_flow_disp (sc := sc) (s_prep := s_prep) h_preprocess h_flow_disp)
+               hcorr_result),
            hcorr_result⟩
   · exact block_dispatch_deferred sp_start sp_block sp_scan' s' h_stream_block hcorr_result
 
@@ -12073,7 +12560,10 @@ lemma accum_content_on_pendingMapValue
              (entryKeyPack_of_dispatch sc sp_start sp_scan 0 s_prep s' c sp_prep sp_scan'
                h_close_old (Or.inr trivial)
                hcorr_prep hcorr_result h_corr h_not_doc h_flow_disp
-               h_preprocess h_dispatch),
+               h_preprocess h_dispatch)
+             (stale_of_dispatch h_dispatch hna hnt
+               (by split <;> exact nic_false_of_flow_disp (sc := sc) (s_prep := s_prep) h_preprocess h_flow_disp)
+               hcorr_result),
            hcorr_result⟩
     | inr h_block =>
       -- `: |` / `: >` — the block scalar IS the value.
@@ -12089,7 +12579,10 @@ lemma accum_content_on_pendingMapValue
                (fun sp_final h_ssl =>
                  have h_ssl_ext := white_prepend_SSLComments h_trailing_ws h_ssl
                  ssl_comments_extend_stream sp_start sp_gram sp_final h_stream' h_ssl_ext)
-               (fun _ _ => Or.inr trivial),
+               (fun _ _ => Or.inr trivial)
+                (stale_of_dispatch h_dispatch hna hnt
+               (by split <;> exact nic_false_of_flow_disp (sc := sc) (s_prep := s_prep) h_preprocess h_flow_disp)
+               hcorr_result),
              hcorr_result⟩
 
 /-- The mapping twin of `accum_content_on_pendingBlock_indented` (item 23):
@@ -12129,10 +12622,10 @@ lemma accum_content_on_pendingMapValue_indented
       ScannerSurfCorr s' sp_scan' := by
   rcases indentedValue_reads_at_any_indent sc sp_scan n s_prep s' c sp_prep sp_scan'
       h_floor_old hcorr_prep hcorr_result h_corr h_preprocess h_not_doc h_flow_disp h_dispatch with
-    ⟨sp_gram, h_sep_all, h_flow_all, h_trailing_ws, h_line⟩ |
+    ⟨sp_gram, h_sep_all, h_flow_all, h_trailing_ws, h_line, hna, hnt⟩ |
     ⟨ha, ht, h_sep_all, h_run_all, h_nic_s, h_real_s, h_anchor_s, h_tag_s, h_ind_s,
       _h_single, _h_sk_s, _h_line_s⟩ |
-    ⟨h_read, h_sep_all, h_line⟩ | _
+    ⟨h_read, h_sep_all, h_line, hna, hnt⟩ | _
   · -- Item 39 stopped here, reading the value route's side condition `n ≤ k` as
     -- a property of this ARM: at an indented pending a landing can be a DEDENT
     -- (`  : v⏎a: 1` ends the enclosing entry instead of nesting inside its
@@ -12151,7 +12644,10 @@ lemma accum_content_on_pendingMapValue_indented
              (entryKeyPack_of_dispatch sc sp_start sp_scan n s_prep s' c sp_prep sp_scan'
                h_close_old (Or.inr trivial)
                hcorr_prep hcorr_result h_corr h_not_doc h_flow_disp
-               h_preprocess h_dispatch),
+               h_preprocess h_dispatch)
+             (stale_of_dispatch h_dispatch hna hnt
+               (by split <;> exact nic_false_of_flow_disp (sc := sc) (s_prep := s_prep) h_preprocess h_flow_disp)
+               hcorr_result),
            hcorr_result⟩
   · -- Item 24: `  : &a v` / `  ? &a v` — the mapping twin parks the same run
     -- against the VALUE's route.
@@ -12181,7 +12677,10 @@ lemma accum_content_on_pendingMapValue_indented
            PendingNode.pendingContent sp_start sp_scan' sp_scan' h_line
              (fun sp_final h_ssl =>
                ssl_comments_extend_stream sp_start sp_scan' sp_final h_stream' h_ssl)
-             (fun _ _ => Or.inr trivial),
+             (fun _ _ => Or.inr trivial)
+             (stale_of_dispatch h_dispatch hna hnt
+               (by split <;> exact nic_false_of_flow_disp (sc := sc) (s_prep := s_prep) h_preprocess h_flow_disp)
+               hcorr_result),
            hcorr_result⟩
   · exact block_dispatch_deferred sp_start sp_block sp_scan' s' h_stream_block hcorr_result
 
@@ -12194,6 +12693,11 @@ lemma accum_content_pending (sc : ScannerState)
     (h_pending : PendingNode sc false sp_start sp_block sp_scan)
     (h_corr : ScannerSurfCorr sc sp_scan)
     (h_preprocess : scanNextToken_preprocess sc = .ok (some (s_prep, c)))
+    -- Item 47: the adjacent-value check's success, from the step's own chain.
+    (h_adj : scanNextToken_checkAdjacentValue
+        (if s_prep.allowDirectives then
+          { s_prep with allowDirectives := false, documentEverStarted := true }
+        else s_prep) c = .ok ())
     (h_not_doc : (if s_prep.allowDirectives then
           { s_prep with allowDirectives := false, documentEverStarted := true }
         else s_prep).col = 0 →
@@ -12239,6 +12743,16 @@ lemma accum_content_pending (sc : ScannerState)
   have h_defer_split :
       (sp_scan.col ≠ 0 → ∀ sp_ws, GStar SSWhite sp_scan sp_ws →
         (sp_prep = sp_ws ∨ s_prep.peek? = none) →
+        -- Item 47: the no-break step's scanner payload, from the anyCol
+        -- product's inline disjunct — what the stale-tail refutation feeds
+        -- `checkAdjacentValue_refutes_stale`.
+        (sc.needIndentCheck = false → LastTokenReal sc.tokens →
+          s_prep.line = sc.line ∧ s_prep.needIndentCheck = false ∧
+          lastRealToken? s_prep.tokens = lastRealToken? sc.tokens ∧
+          penultRealToken? s_prep.tokens = penultRealToken? sc.tokens) →
+        (sc.needIndentCheck = false → sc.simpleKeyAllowed = false →
+          s_prep.simpleKey = sc.simpleKey ∧ s_prep.tokens = sc.tokens ∧
+          sc.offset ≤ s_prep.offset ∧ s_prep.simpleKeyAllowed = false) →
         ∃ sp_gram' sp_block' sp_flow' sp_scan',
           SLYamlStream sp_start sp_gram' ∧
           BlockStack sp_gram' sp_block' ∧
@@ -12288,7 +12802,7 @@ lemma accum_content_pending (sc : ScannerState)
           hcorr_prep hcorr_result h_not_doc
           (preprocess_some_peek h_preprocess) h_flow_disp h_dispatch h_keyctx
       | inr h_mid =>
-        exact h_noBreak hcol sp_ws (h_mid.1 ▸ h_ws) h_pk
+        exact h_noBreak hcol sp_ws (h_mid.1 ▸ h_ws) h_pk h_mid.2.1 h_mid.2.2.2
   cases h_pending with
   | noPending =>
     exact accum_content_on_noPending sc sp_start sp_block s_prep s' c sp_prep sp_scan'
@@ -12300,32 +12814,33 @@ lemma accum_content_pending (sc : ScannerState)
     -- break, a white or the end of input after `...`, and the plain walk
     -- absorbs the line otherwise). ═══
     rename_i h_line _h_marker
-    exact h_defer_split (fun hcol sp_ws h_ws h_pk =>
+    exact h_defer_split (fun hcol sp_ws h_ws h_pk _ _ =>
       absurd (inline_residue_of_landing ⟨rfl, hcol⟩ h_ws h_pk hcorr_prep
           (preprocess_some_peek h_preprocess))
         (docEnd_refutes_content_residue h_line h_dispatch))
-  | pendingContent _ _ _ =>
-    -- ═══ Item 42: §7.5's rung at the content dispatch.  The survivors of the
-    -- stop set are refused by the dispatch itself except `[154]`'s `:` with a
-    -- non-blank follower (`"a" :b`), which the scanner reads as a plain-scalar
-    -- head and the parser refuses — row 19's over-acceptance, so the deferral
-    -- stands for exactly that character. ═══
-    rename_i h_line _h_closable _h_key
-    refine h_defer_split (fun hcol sp_ws h_ws h_pk => ?_)
-    have h_colon := nodeStop_content_residue_is_colon h_line h_dispatch
-      (inline_residue_of_landing ⟨rfl, hcol⟩ h_ws h_pk hcorr_prep
-        (preprocess_some_peek h_preprocess))
+  | pendingContent _ _ _ h_line _h_closable _h_key h_stale =>
+    -- ═══ Item 47: §7.5's rung at the content dispatch, CLOSED.  Item 42
+    -- narrowed the survivors to `[154]`'s `:` with a non-blank follower
+    -- (`"a" :b`); the scanner now refuses that `:` where `isValueCandidate`
+    -- fell through (`scanNextToken_checkAdjacentValue`), and the park's own
+    -- stale tail is what contradicts the step's record of the check
+    -- succeeding.  Nothing is deferred. ═══
+    refine h_defer_split (fun hcol sp_ws h_ws h_pk h_pay h_pay_sk => ?_)
+    have h_res := inline_residue_of_landing ⟨rfl, hcol⟩ h_ws h_pk hcorr_prep
+      (preprocess_some_peek h_preprocess)
+    have h_colon := nodeStop_content_residue_is_colon h_line h_dispatch h_res
     subst h_colon
-    exact block_dispatch_deferred sp_start sp_block sp_scan' s' h_stream_block hcorr_result
-  | pendingBlockContent _ _ _ _ _ =>
-    -- ═══ Item 42: same rung, entry-parked — `- "a" :b` is the shape. ═══
-    rename_i h_line _h_closable _h_closable_entry _h_key
-    refine h_defer_split (fun hcol sp_ws h_ws h_pk => ?_)
-    have h_colon := nodeStop_content_residue_is_colon h_line h_dispatch
-      (inline_residue_of_landing ⟨rfl, hcol⟩ h_ws h_pk hcorr_prep
-        (preprocess_some_peek h_preprocess))
+    exact absurd h_adj
+      (checkAdjacentValue_refutes_stale (h_stale h_res) h_flow_disp h_pay h_pay_sk)
+  | pendingBlockContent _ _ _ _ h_line _h_closable _h_closable_entry _h_key h_stale =>
+    -- ═══ Item 47: same rung, entry-parked (`- "a" :b`) — same refutation. ═══
+    refine h_defer_split (fun hcol sp_ws h_ws h_pk h_pay h_pay_sk => ?_)
+    have h_res := inline_residue_of_landing ⟨rfl, hcol⟩ h_ws h_pk hcorr_prep
+      (preprocess_some_peek h_preprocess)
+    have h_colon := nodeStop_content_residue_is_colon h_line h_dispatch h_res
     subst h_colon
-    exact block_dispatch_deferred sp_start sp_block sp_scan' s' h_stream_block hcorr_result
+    exact absurd h_adj
+      (checkAdjacentValue_refutes_stale (h_stale h_res) h_flow_disp h_pay h_pay_sk)
   | pendingDocStart _ =>
     -- ═══ Item 43: `--- a` — `[208] l-explicit-document`'s one-line body.
     -- A mid-line park cannot close first, so the dispatch runs ROUTED: the
@@ -12337,7 +12852,7 @@ lemma accum_content_pending (sc : ScannerState)
     -- The key context punts: `--- a: 1` is refused (`contentOnDocumentStartLine`),
     -- so no implicit key ever fires behind this park. ═══
     rename_i h_doc_builder
-    refine h_defer_split (fun hcol sp_ws h_ws h_pk => ?_)
+    refine h_defer_split (fun hcol sp_ws h_ws h_pk _ _ => ?_)
     have h_eq : sp_prep = sp_ws := by
       cases h_pk with
       | inl h => exact h
@@ -12362,7 +12877,7 @@ lemma accum_content_pending (sc : ScannerState)
     -- `pendingFlow` carries no line fact to read — the escape is what
     -- produces it, and it narrows only by the constructor's own elimination
     -- (item 35's structural note).
-    exact h_defer_split (fun _ _ _ _ =>
+    exact h_defer_split (fun _ _ _ _ _ _ =>
       block_dispatch_deferred sp_start sp_block sp_scan' s' h_stream_block hcorr_result)
   | pendingProps _ _ _ ha ht sp_node sp_p n h_sep_run h_run h_nic_p h_real_p h_anchor_p h_tag_p h_route h_key_p h_floor_p =>
     -- ═══ Item 12: a held depth-0 run meets a CONTENT character — the
@@ -12398,7 +12913,7 @@ lemma accum_content_pending (sc : ScannerState)
         hcorr_prep hcorr_result h_not_doc
         (preprocess_some_peek h_preprocess) h_flow_disp h_dispatch h_keyctx
     | inr h_mid =>
-      obtain ⟨h_mid_eq, h_facts0, h_indents0⟩ := h_mid
+      obtain ⟨h_mid_eq, h_facts0, h_indents0, _h_stale0⟩ := h_mid
       obtain ⟨h_line_pp, h_nic_pp, h_lastr, h_penr⟩ := h_facts0 h_nic_p h_real_p
       rw [h_mid_eq] at h_ws
       -- Item 24: the run→content separator is the residual WHITES, so it is
@@ -12731,7 +13246,10 @@ lemma accum_content_pending (sc : ScannerState)
                              (SFlowNode.propsContent 0 .flowOut sp_p sp_scan sp_prep sp_ne
                                h_run.toProperties h_sep2 h_content)
                              (white_prepend_SSLComments h_tws h_ssl)))
-                         h_key,
+                         h_key
+                         (stale_of_dispatch h_dispatch hamp hbang
+                           (by split <;> exact nic_false_of_flow_disp (sc := sc) (s_prep := s_prep) h_preprocess h_flow_disp)
+                           hcorr_result),
                        hcorr_result⟩
               | inr h_block =>
                 exact ⟨sp_block, sp_block, sp_block, sp_scan', h_stream_block,
@@ -12749,7 +13267,10 @@ lemma accum_content_pending (sc : ScannerState)
                                  h_fld)
                            ssl_comments_extend_stream sp_start sp_ne sp_mid
                              (h_route sp_ne h_bn) h_ssl_ext)
-                         h_key,
+                         h_key
+                         (stale_of_dispatch h_dispatch hamp hbang
+                           (by split <;> exact nic_false_of_flow_disp (sc := sc) (s_prep := s_prep) h_preprocess h_flow_disp)
+                           hcorr_result),
                        hcorr_result⟩
             | k + 1, h_sep_run, h_run, h_route, h_sep2 =>
               -- One question, one deferral: is there a reading of this value at
@@ -12807,7 +13328,10 @@ lemma accum_content_pending (sc : ScannerState)
                              (SFlowNode.propsContent (k + 1) .flowOut sp_p sp_scan sp_prep sp_ne
                                h_run.toProperties h_sep2 (h_all (k + 1)))
                              (white_prepend_SSLComments h_tws h_ssl)))
-                         h_key,
+                         h_key
+                         (stale_of_dispatch h_dispatch hamp hbang
+                           (by split <;> exact nic_false_of_flow_disp (sc := sc) (s_prep := s_prep) h_preprocess h_flow_disp)
+                           hcorr_result),
                        hcorr_result⟩
               · -- `  - &a |`: the held run's route closes at `k+1`, and `[198]`'s
                 -- props slot takes the block scalar there — the same node the
@@ -12826,7 +13350,10 @@ lemma accum_content_pending (sc : ScannerState)
                        PendingNode.pendingContent sp_start sp_scan' sp_scan' h_line
                          (fun sp_mid h_ssl =>
                            ssl_comments_extend_stream sp_start sp_scan' sp_mid h_stream' h_ssl)
-                         (fun _ _ => Or.inr trivial),
+                         (fun _ _ => Or.inr trivial)
+                         (stale_of_dispatch h_dispatch hamp hbang
+                           (by split <;> exact nic_false_of_flow_disp (sc := sc) (s_prep := s_prep) h_preprocess h_flow_disp)
+                           hcorr_result),
                        hcorr_result⟩
               · exact block_dispatch_deferred sp_start sp_block sp_scan' s'
                   h_stream_block hcorr_result
@@ -12856,114 +13383,6 @@ lemma accum_content_pending (sc : ScannerState)
       exact accum_content_on_pendingMapValue_indented sc sp_start sp_block sp_scan (k + 1)
         s_prep s' c sp_prep sp_scan' h_stream_block h_close_old h_floor_old
         hcorr_prep hcorr_result h_corr h_preprocess h_not_doc h_flow_disp h_dispatch
-
-/-- Fresh-save state off the four value-completing content arms (item 10):
-    `*`/`"`/`'`/plain preserve the pending key's layout fields (the quoted
-    arms touch only `endLine`) and turn fresh saves off. -/
-lemma scanDoubleQuoted_simpleKeyAllowed_false {s s' : ScannerState}
-    (h : scanDoubleQuoted s = .ok s') : s'.simpleKeyAllowed = false := by
-  unfold scanDoubleQuoted at h
-  simp only [bind, Except.bind] at h
-  split at h <;> try contradiction
-  rename_i result heq
-  split at h
-  · split at h <;> try contradiction
-    simp only [Except.ok.injEq] at h; subst h; rfl
-  · simp only [Except.ok.injEq] at h; subst h; rfl
-
-lemma scanSingleQuoted_simpleKeyAllowed_false {s s' : ScannerState}
-    (h : scanSingleQuoted s = .ok s') : s'.simpleKeyAllowed = false := by
-  unfold scanSingleQuoted at h
-  simp only [bind, Except.bind] at h
-  split at h <;> try contradiction
-  rename_i result heq
-  split at h
-  · split at h <;> try contradiction
-    simp only [Except.ok.injEq] at h; subst h; rfl
-  · simp only [Except.ok.injEq] at h; subst h; rfl
-
-lemma scanPlainScalar_simpleKeyAllowed_false {s s' : ScannerState}
-    (h : scanPlainScalar s = .ok s') : s'.simpleKeyAllowed = false := by
-  unfold scanPlainScalar at h
-  simp only [bind, Except.bind] at h
-  split at h <;> try contradiction
-  rename_i result heq
-  simp only [Except.ok.injEq] at h; subst h; rfl
-
-/-- The key-layout fields across a value-completing content dispatch. -/
-lemma dispatchContent_value_key_facts {s s' : ScannerState} {c : Char}
-    (hok : scanNextToken_dispatchContent s c = .ok s')
-    (h_amp : c ≠ '&') (h_bang : c ≠ '!') (h_pipe : c ≠ '|') (h_gt : c ≠ '>') :
-    (s'.simpleKey.possible = s.simpleKey.possible ∧
-     s'.simpleKey.tokenIndex = s.simpleKey.tokenIndex ∧
-     s'.simpleKey.pos = s.simpleKey.pos) ∧
-    s'.simpleKeyAllowed = false := by
-  unfold scanNextToken_dispatchContent at hok
-  simp only [bind, Except.bind, pure, Except.pure] at hok
-  split at hok
-  · rename_i heq; exact absurd (by simpa using heq) h_amp
-  split at hok
-  · split at hok
-    · exact absurd hok (by simp)
-    · split at hok
-      · exact absurd hok (by simp)
-      · generalize h_al : scanAnchorOrAlias s false = r at hok
-        cases r with
-        | error => exact absurd hok (by simp)
-        | ok v =>
-          dsimp only [] at hok
-          split at hok
-          · exact absurd hok (by simp)
-          · have hv : s' = v := (Except.ok.inj hok).symm
-            rw [hv, ScannerCorrectness.scanAnchorOrAlias_preserves_simpleKey s false v h_al]
-            exact ⟨⟨rfl, rfl, rfl⟩, scanAnchorOrAlias_simpleKeyAllowed_false h_al⟩
-  split at hok
-  · rename_i heq; exact absurd (by simpa using heq) h_bang
-  split at hok
-  · rename_i heq
-    have hbs : c = '|' ∨ c = '>' := by simpa using heq
-    rcases hbs with h | h
-    · exact absurd h h_pipe
-    · exact absurd h h_gt
-  split at hok
-  · generalize h_dq : scanDoubleQuoted s = r at hok
-    cases r with
-    | error => exact absurd hok (by simp)
-    | ok v =>
-      dsimp only [] at hok
-      have hv : s' = (if v.simpleKey.possible then
-          { v with simpleKey := { v.simpleKey with endLine := v.line } } else v) :=
-        (Except.ok.inj hok).symm
-      have h_pres := ScannerCorrectness.scanDoubleQuoted_preserves_simpleKey s v h_dq
-      have h_al := scanDoubleQuoted_simpleKeyAllowed_false h_dq
-      rw [hv]
-      split
-      · exact ⟨⟨by rw [← h_pres], by rw [← h_pres], by rw [← h_pres]⟩, h_al⟩
-      · exact ⟨⟨by rw [h_pres], by rw [h_pres], by rw [h_pres]⟩, h_al⟩
-  split at hok
-  · generalize h_sq : scanSingleQuoted s = r at hok
-    cases r with
-    | error => exact absurd hok (by simp)
-    | ok v =>
-      dsimp only [] at hok
-      have hv : s' = (if v.simpleKey.possible then
-          { v with simpleKey := { v.simpleKey with endLine := v.line } } else v) :=
-        (Except.ok.inj hok).symm
-      have h_pres := ScannerCorrectness.scanSingleQuoted_preserves_simpleKey s v h_sq
-      have h_al := scanSingleQuoted_simpleKeyAllowed_false h_sq
-      rw [hv]
-      split
-      · exact ⟨⟨by rw [← h_pres], by rw [← h_pres], by rw [← h_pres]⟩, h_al⟩
-      · exact ⟨⟨by rw [h_pres], by rw [h_pres], by rw [h_pres]⟩, h_al⟩
-  split at hok
-  · generalize h_ps : scanPlainScalar s = r at hok
-    cases r with
-    | error => exact absurd hok (by simp)
-    | ok v =>
-      have hv : s' = v := (Except.ok.inj hok).symm
-      rw [hv, ScannerCorrectness.scanPlainScalar_preserves_simpleKey s v h_ps]
-      exact ⟨⟨rfl, rfl, rfl⟩, scanPlainScalar_simpleKeyAllowed_false h_ps⟩
-  · exact absurd hok (by simp)
 
 /-- The mask across any content dispatch (item 10): the key stack rides
     through and slots below the incoming array are frozen. -/
@@ -13089,6 +13508,13 @@ lemma accum_step_content (sc : ScannerState)
         (if s_prep.allowDirectives then
           { s_prep with allowDirectives := false, documentEverStarted := true }
         else s_prep) c = .ok none)
+    -- Item 47: the adjacent-value check sits between the block and content
+    -- dispatches, so a content step carries its success — which is what the
+    -- two content parks' `:`-residue arms refute.
+    (h_adj : scanNextToken_checkAdjacentValue
+        (if s_prep.allowDirectives then
+          { s_prep with allowDirectives := false, documentEverStarted := true }
+        else s_prep) c = .ok ())
     (h_dispatch : scanNextToken_dispatchContent
         (if s_prep.allowDirectives then
           { s_prep with allowDirectives := false, documentEverStarted := true }
@@ -13126,7 +13552,7 @@ lemma accum_step_content (sc : ScannerState)
     obtain ⟨g', bl', fl', sn', q1, q2, q3, q4, q5⟩ :=
       accum_content_pending sc sp_start sp_flow sp_scan h0 s_prep s' c
         (absorb_stacksB sp_start sp_gram sp_block sp_flow h_stream h_stack h_flow)
-        (h_pending h0) h_corr h_preprocess h_not_doc h_dispatch
+        (h_pending h0) h_corr h_preprocess h_adj h_not_doc h_dispatch
     exact ⟨g', bl', fl', sn', q1, q2, ⟨0, #[], q3.retail, rfl, fun h => absurd h (by omega)⟩, fun _ => q4, q5,
            fun h => absurd h (by omega)⟩
   · -- ═══ DEPTH ≥ 1: the four value-completing arms CLOSE; `&`/`!` do not. ═══
@@ -13836,7 +14262,8 @@ lemma scanNextToken_accum_step (sc : ScannerState)
                     accum_step_flow sc sp_start sp_gram sp_block sp_flow sp_scan s_pre s_flow_out c_pre
                       h_stream h_stack h_flow h_pending h_corr h_interior h_pre h_flow_disp
                   exact ⟨g', bl', fl', sn', false, q1, q2, q3, q4, fun h => Bool.noConfusion h, q5, q6⟩
-                · split at h_ok
+                · rename_i h_flow_none
+                  split at h_ok
                   · simp at h_ok
                   · split at h_ok
                     · rename_i s_blk h_blk
@@ -13845,36 +14272,42 @@ lemma scanNextToken_accum_step (sc : ScannerState)
                         accum_step_block sc sp_start sp_gram sp_block sp_flow sp_scan s_pre s_blk c_pre
                           h_stream h_stack h_flow h_pending h_corr h_interior h_pre h_blk
                       exact ⟨g', bl', fl', sn', false, q1, q2, q3, q4, fun h => Bool.noConfusion h, q5, q6⟩
-                    · split at h_ok
+                    · rename_i h_blk_none
+                      -- Item 47: the adjacent-value check between the two dispatches.
+                      split at h_ok
                       · simp at h_ok
-                      · -- The two fall-through equations are what `accum_step_content`
-                        -- needs to pin `c` at a content character (§1c''b'').
-                        rename_i h_flow_none _ _ h_blk_none _ s_cnt h_cnt
-                        have h := Except.ok.inj h_ok; injection h with h; subst h
+                      · rename_i u_adj h_adj
+                        cases u_adj
+                        split at h_ok
+                        · simp at h_ok
+                        · -- The two fall-through equations are what `accum_step_content`
+                          -- needs to pin `c` at a content character (§1c''b'').
+                          rename_i s_cnt h_cnt
+                          have h := Except.ok.inj h_ok; injection h with h; subst h
                         -- Derive h_not_doc: structural dispatch returned none on s_pre,
                         -- so s_pre is not at a document boundary when col=0.
                         -- The allowDirectives update preserves col and boundary checks.
-                        have h_not_doc : (if s_pre.allowDirectives then
-                              { s_pre with allowDirectives := false, documentEverStarted := true }
-                            else s_pre).col = 0 →
-                          atDocumentBoundary (if s_pre.allowDirectives then
-                              { s_pre with allowDirectives := false, documentEverStarted := true }
-                            else s_pre) = false := by
-                          split
-                          · intro hcol
-                            have : atDocumentBoundary
-                              { s_pre with allowDirectives := false, documentEverStarted := true }
-                              = atDocumentBoundary s_pre := by
-                              unfold atDocumentBoundary atDocumentStart atDocumentEnd
-                                ScannerState.peekAt?; rfl
-                            rw [this]
-                            exact dispatchStructural_none_not_doc_boundary h_str_eq hcol
-                          · exact dispatchStructural_none_not_doc_boundary h_str_eq
-                        obtain ⟨g', bl', fl', sn', q1, q2, q3, q4, q5, q6⟩ :=
-                          accum_step_content sc sp_start sp_gram sp_block sp_flow sp_scan s_pre s_cnt c_pre
-                            h_stream h_stack h_flow h_pending h_corr h_interior h_pre
-                            h_flow_none h_blk_none h_cnt h_not_doc
-                        exact ⟨g', bl', fl', sn', false, q1, q2, q3, q4, fun h => Bool.noConfusion h, q5, q6⟩
+                          have h_not_doc : (if s_pre.allowDirectives then
+                                { s_pre with allowDirectives := false, documentEverStarted := true }
+                              else s_pre).col = 0 →
+                            atDocumentBoundary (if s_pre.allowDirectives then
+                                { s_pre with allowDirectives := false, documentEverStarted := true }
+                              else s_pre) = false := by
+                            split
+                            · intro hcol
+                              have : atDocumentBoundary
+                                { s_pre with allowDirectives := false, documentEverStarted := true }
+                                = atDocumentBoundary s_pre := by
+                                unfold atDocumentBoundary atDocumentStart atDocumentEnd
+                                  ScannerState.peekAt?; rfl
+                              rw [this]
+                              exact dispatchStructural_none_not_doc_boundary h_str_eq hcol
+                            · exact dispatchStructural_none_not_doc_boundary h_str_eq
+                          obtain ⟨g', bl', fl', sn', q1, q2, q3, q4, q5, q6⟩ :=
+                            accum_step_content sc sp_start sp_gram sp_block sp_flow sp_scan s_pre s_cnt c_pre
+                              h_stream h_stack h_flow h_pending h_corr h_interior h_pre
+                              h_flow_none h_blk_none h_adj h_cnt h_not_doc
+                          exact ⟨g', bl', fl', sn', false, q1, q2, q3, q4, fun h => Bool.noConfusion h, q5, q6⟩
 
 /-! ## §2 EOF Step: scanNextToken returns none
 
@@ -13923,9 +14356,12 @@ lemma scanNextToken_none_stream (sc : ScannerState)
                   · simp at h_ok
                   · split at h_ok
                     · exact absurd (Except.ok.inj h_ok) nofun
-                    · split at h_ok
+                    · -- Item 47: the adjacent-value check between the dispatches.
+                      split at h_ok
                       · simp at h_ok
-                      · exact absurd (Except.ok.inj h_ok) nofun
+                      · split at h_ok
+                        · simp at h_ok
+                        · exact absurd (Except.ok.inj h_ok) nofun
 
 /-! ## §3 scanLoop with Grammar Accumulation
 

@@ -1822,6 +1822,11 @@ lemma scanNextToken_preserves_bound_full (s s' : ScannerState)
                         exact BoundInv.trans h_bi_sp
                           (dispatchBlockIndicators_preserves_bound sp _ c h_bi_sp_refl h_hend_sp h_bk)
                       | none =>
+                        -- item 47: adjacent-value check (pure, no state change)
+                        generalize h_av : scanNextToken_checkAdjacentValue sp c = av at h
+                        cases av with
+                        | error => cases h
+                        | ok _ =>
                         generalize h_dc : scanNextToken_dispatchContent sp c = dc at h
                         cases dc with
                         | error => cases h
@@ -1854,10 +1859,12 @@ lemma scanNextToken_preserves_bound_full (s s' : ScannerState)
                           (dispatchBlockIndicators_preserves_bound _ _ c
                             (BoundInv.refl _ h_bi_sp2.offset_le h_bi_sp2.isValid)
                             (by rw [h_bi_sp2.inputEnd_eq, h_bi_sp2.input_eq]; exact hend) ‹_›)
-                      · split at h  -- content dispatcher result
+                      · split at h  -- adjacent-value check (item 47)
                         · cases h
-                        · simp only [Except.ok.injEq, Option.some.injEq] at h; subst h
-                          exact dispatchContent_preserves_bound s _ _ c h_bi_sp2 hend ‹_›
+                        · split at h  -- content dispatcher result
+                          · cases h
+                          · simp only [Except.ok.injEq, Option.some.injEq] at h; subst h
+                            exact dispatchContent_preserves_bound s _ _ c h_bi_sp2 hend ‹_›
 
 /-- Wrapper matching the signature used in EmitterScannability. -/
 lemma scanNextToken_preserves_bound (s s' : ScannerState)

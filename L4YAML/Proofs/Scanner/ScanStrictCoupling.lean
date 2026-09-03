@@ -414,11 +414,14 @@ lemma scanNextToken_corr (sc : ScannerState) (sp : SurfPos)
                     · rename_i s_blk h_blk
                       have h := Except.ok.inj hok; injection h with h; subst h
                       exact scanNextToken_dispatchBlockIndicators_corr _ sp_pre c_pre hcorr_ad s_blk h_blk
-                    · split at hok
+                    · -- adjacent-value check (item 47)
+                      split at hok
                       · simp at hok
-                      · rename_i s_cnt h_cnt
-                        have h := Except.ok.inj hok; injection h with h; subst h
-                        exact scanNextToken_dispatchContent_corr _ sp_pre c_pre hcorr_ad s_cnt h_cnt
+                      · split at hok
+                        · simp at hok
+                        · rename_i s_cnt h_cnt
+                          have h := Except.ok.inj hok; injection h with h; subst h
+                          exact scanNextToken_dispatchContent_corr _ sp_pre c_pre hcorr_ad s_cnt h_cnt
 
 -- When scanNextToken returns .ok none, all input characters are consumed.
 lemma scanNextToken_none_consumed (sc : ScannerState) (sp : SurfPos)
@@ -449,9 +452,12 @@ lemma scanNextToken_none_consumed (sc : ScannerState) (sp : SurfPos)
                   · simp at hok
                   · split at hok
                     · exact absurd (Except.ok.inj hok) nofun
-                    · split at hok
+                    · -- adjacent-value check (item 47)
+                      split at hok
                       · simp at hok
-                      · exact absurd (Except.ok.inj hok) nofun
+                      · split at hok
+                        · simp at hok
+                        · exact absurd (Except.ok.inj hok) nofun
 
 /-! ## §5 scanLoop Full Consumption -/
 

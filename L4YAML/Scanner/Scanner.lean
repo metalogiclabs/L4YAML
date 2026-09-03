@@ -162,9 +162,15 @@ def scanFlowSequenceEnd (s : ScannerState) : ScannerState :=
   let s_after_advance := s_with_token.advance
   -- Restore the outer simple key saved by the matching flow-open.
   let restored := s_with_token.simpleKeyStack.back?.getD {}
+  -- Item 47: the collection's interior breaks are the TOKEN's own, not
+  -- structure — §7.5 stops the rest of the line at the node's tail, so no
+  -- block outdent can begin before the next structural break sets the flag
+  -- again.  (The indexed pipeline's cursor-level recognisers already read
+  -- token-interior breaks this way.)
   { s_after_advance with
       flowLevel := if s_after_advance.flowLevel > 0 then s_after_advance.flowLevel - 1 else 0,
       simpleKeyAllowed := false,
+      needIndentCheck := false,
       flowStack := s_after_advance.flowStack.pop,
       simpleKey := restored,
       simpleKeyStack := s_after_advance.simpleKeyStack.pop }
@@ -213,9 +219,11 @@ def scanFlowMappingEnd (s : ScannerState) : ScannerState :=
   let s_after_advance := s_with_token.advance
   -- Restore the outer simple key saved by the matching flow-open.
   let restored := s_with_token.simpleKeyStack.back?.getD {}
+  -- Item 47: interior breaks are the token's own — see `scanFlowSequenceEnd`.
   { s_after_advance with
       flowLevel := if s_after_advance.flowLevel > 0 then s_after_advance.flowLevel - 1 else 0,
       simpleKeyAllowed := false,
+      needIndentCheck := false,
       flowStack := s_after_advance.flowStack.pop,
       simpleKey := restored,
       simpleKeyStack := s_after_advance.simpleKeyStack.pop }
@@ -889,6 +897,46 @@ def scanNextToken_checkNoPendingDirectives (s : ScannerState) :
   else
     .ok ()
 
+/-- §8.2.2 [194] / §7.5: a `:` that reaches CONTENT dispatch while a completed
+    node's simple key is still recorded starts a second node in a one-node slot.
+
+    The validators after a quoted scalar, alias, or flow close admit a `:` on
+    the node's line because `[154]`/`[194]` make the node an implicit key — but
+    that reading requires the `:` to BE the value indicator.  A `:` whose
+    follower is not blank fails `isValueCandidate`, falls through the block
+    dispatch, and would be read as a `[126]` plain-scalar head (`:b`) — a
+    SECOND node after the completed one, which no production derives
+    (`"a" :b`, `[1]:b`, `*x :b`).
+
+    The recorded key separates the two `:`-as-plain families: at a genuine
+    node-head position the key was saved fresh AT this character
+    (`saveSimpleKey`, so `pos.offset = offset` — `k: :b`, `- :b`, `:b`), while
+    after a completed node the save is the STALE one made at the node's own
+    head (`pos.offset < offset`; the completed scan cleared
+    `simpleKeyAllowed`, and only a line break re-arms it).  The
+    `completesFlowValue` guard keeps property runs out: after `&a`/`!t` the
+    stale save is the run's own head and `&x :b` is one anchored scalar.
+
+    A flow close is refused on the TOKEN alone: `scanFlowSequenceEnd` restores
+    the key saved at the matching open, and no invariant here couples that
+    stack entry to the line — but after a `]`/`}` a `:` that is not the value
+    indicator can never head a node (`[1]:b` glues, `[1]⏎:b` puts a bare
+    document after another without `...`), so `t == .flowSequenceEnd`/`.flowMappingEnd`
+    fires without consulting the key at all.
+
+    Runs between the block-indicator and content dispatches, so a `:` that IS
+    a value indicator never reaches it. -/
+@[yaml_spec "8.2.2" 194 "c-l-block-map-implicit-value", yaml_spec "7.5"]
+def scanNextToken_checkAdjacentValue (s : ScannerState) (c : Char) :
+    Except ScanError Unit :=
+  if !s.inFlow && c == ':' && !s.simpleKeyAllowed
+      && (match lastRealTokenVal? s.tokens with
+          | some t => t.completesFlowValue
+          | none => false) then
+    .error (.unseparatedValue s.line s.col)
+  else
+    .ok ()
+
 /-- Scan the next token from the input.
 
     **Implements**: Main dispatch loop for YAML token recognition.
@@ -935,6 +983,9 @@ def scanNextToken (s : ScannerState) : Except ScanError (Option ScannerState) :=
         match ← scanNextToken_dispatchBlockIndicators s c with
         | some s' => return some s'
         | none =>
+          -- §8.2.2 [194] (item 47): a `:` that failed `isValueCandidate` while
+          -- a completed node's stale key is recorded has no plain reading.
+          scanNextToken_checkAdjacentValue s c
           let s' ← scanNextToken_dispatchContent s c
           return some s'
 

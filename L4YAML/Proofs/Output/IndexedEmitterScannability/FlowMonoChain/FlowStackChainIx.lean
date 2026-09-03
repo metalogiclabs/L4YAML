@@ -620,6 +620,11 @@ lemma scanNextTokenIx_flowStack_step {s s' : ScannerStateIx input}
                             _ c _ h_db, h_dir_st, h_pre_st]
                     | none =>
                       dsimp only [] at h
+                      -- item 47: adjacent-value check (pure, no state change)
+                      generalize h_av : scanNextTokenIx_checkAdjacentValue s_dir c = av_res at h
+                      cases av_res with
+                      | error e => simp at h
+                      | ok _ =>
                       generalize h_dc : scanNextTokenIx_dispatchContent s_dir c = dc_res at h
                       cases dc_res with
                       | error e => simp at h

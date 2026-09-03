@@ -4279,6 +4279,11 @@ lemma scanNextTokenIx_preserves_PlainScalarsValidIx {input : String}
                         s_dir c s_blk h_db h_psv_dir
                     | none =>
                       dsimp only [] at h_ok
+                      -- item 47: adjacent-value check (pure, no state change)
+                      generalize h_av : scanNextTokenIx_checkAdjacentValue s_dir c = av_res at h_ok
+                      cases av_res with
+                      | error e => simp at h_ok
+                      | ok _ =>
                       generalize h_dc : scanNextTokenIx_dispatchContent s_dir c = dc_res at h_ok
                       cases dc_res with
                       | error e => simp at h_ok
@@ -6189,6 +6194,11 @@ lemma scanNextTokenIx_preserves_AllKeysPlaceholderInvIx {input : String}
                         s_dir s_blk c h_akpi_dir h_db
                     | none =>
                       dsimp only [] at h_ok
+                      -- item 47: adjacent-value check (pure, no state change)
+                      generalize h_av : scanNextTokenIx_checkAdjacentValue s_dir c = av_res at h_ok
+                      cases av_res with
+                      | error e => simp at h_ok
+                      | ok _ =>
                       generalize h_dc : scanNextTokenIx_dispatchContent s_dir c = dc_res at h_ok
                       cases dc_res with
                       | error e => simp at h_ok
@@ -6288,6 +6298,11 @@ lemma scanNextTokenIx_preserves_FlowContextPSVIx {input : String}
                         s_dir c s_blk h_db h_old_dir h_pl_dir
                     | none =>
                       dsimp only [] at h_ok
+                      -- item 47: adjacent-value check (pure, no state change)
+                      generalize h_av : scanNextTokenIx_checkAdjacentValue s_dir c = av_res at h_ok
+                      cases av_res with
+                      | error e => simp at h_ok
+                      | ok _ =>
                       generalize h_dc : scanNextTokenIx_dispatchContent s_dir c = dc_res at h_ok
                       cases dc_res with
                       | error e => simp at h_ok
@@ -6385,6 +6400,11 @@ lemma scanNextTokenIx_preserves_FlowNestingInvIx {input : String}
                         s_dir c s_blk h_db h_fni_dir h_pl_dir
                     | none =>
                       dsimp only [] at h_ok
+                      -- item 47: adjacent-value check (pure, no state change)
+                      generalize h_av : scanNextTokenIx_checkAdjacentValue s_dir c = av_res at h_ok
+                      cases av_res with
+                      | error e => simp at h_ok
+                      | ok _ =>
                       generalize h_dc : scanNextTokenIx_dispatchContent s_dir c = dc_res at h_ok
                       cases dc_res with
                       | error e => simp at h_ok

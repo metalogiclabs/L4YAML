@@ -200,14 +200,19 @@ lemma scanNextTokenIx_filtered_grows_in_flow
       omega
     | .ok none =>
       rw [h_block_eq] at h_snt; simp only at h_snt
-      -- Final dispatch: content.
-      match h_cont_eq : scanNextTokenIx_dispatchContent s_ad c with
-      | .error _ => rw [h_cont_eq] at h_snt; simp at h_snt
-      | .ok s_cont =>
-        rw [h_cont_eq] at h_snt; simp only at h_snt
-        injection h_snt with h_eq; injection h_eq with h_eq; subst h_eq
-        have h_grew := scanNextTokenIx_via_content_dispatch_filtered_grows
-          s _ s_ad s_cont c h_pp h_struct hs_ad h_check h_flow_eq h_block_eq h_cont_eq
-        omega
+      -- Item 47: the adjacent-value check (pure, no state change).
+      match h_adj_eq : scanNextTokenIx_checkAdjacentValue s_ad c with
+      | .error _ => rw [h_adj_eq] at h_snt; simp at h_snt
+      | .ok _ =>
+        rw [h_adj_eq] at h_snt; simp only at h_snt
+        -- Final dispatch: content.
+        match h_cont_eq : scanNextTokenIx_dispatchContent s_ad c with
+        | .error _ => rw [h_cont_eq] at h_snt; simp at h_snt
+        | .ok s_cont =>
+          rw [h_cont_eq] at h_snt; simp only at h_snt
+          injection h_snt with h_eq; injection h_eq with h_eq; subst h_eq
+          have h_grew := scanNextTokenIx_via_content_dispatch_filtered_grows
+            s _ s_ad s_cont c h_pp h_struct hs_ad h_check h_flow_eq h_block_eq h_cont_eq
+          omega
 
 end L4YAML.Proofs.Indexed.EmitterScannability.FilteredGrowth

@@ -1266,7 +1266,8 @@ lemma scanNextToken_preserves_PlainScalarsValid :
       split at h_ok
       · simp only [Except.ok.injEq, Option.some.injEq] at h_ok; subst h_ok
         exact dispatchBlockIndicators_preserves_PlainScalarsValid _ c h_old3 _ (by assumption)
-      · split at h_ok <;> (try (simp at h_ok; done))
+      · split at h_ok <;> (try (simp at h_ok; done)) -- adjacent-value check (item 47)
+        split at h_ok <;> (try (simp at h_ok; done))
         simp only [Except.ok.injEq, Option.some.injEq] at h_ok; subst h_ok
         exact dispatchContent_preserves_PlainScalarsValid _ c h_peek3 h_old3 _ (by assumption)
 
@@ -5108,6 +5109,7 @@ lemma scanNextToken_preserves_FlowInv
           h_akpi3.1 _ (by assumption)
         exact ⟨h_fi.1, h_fi.2, dispatchBlockIndicators_preserves_AllKeysPlaceholderInv _ c h_akpi3 _ (by assumption)⟩
       · -- dispatchContent
+        split at h_ok <;> (try (simp at h_ok; done)) -- adjacent-value check (item 47)
         split at h_ok <;> (try (simp at h_ok; done))
         simp only [Except.ok.injEq, Option.some.injEq] at h_ok; subst h_ok
         have h_fi := dispatchContent_preserves_FlowInv _ c h_peek3 h_fpsv3 h_fni3 _ (by assumption)

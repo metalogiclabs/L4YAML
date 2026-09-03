@@ -24,10 +24,10 @@ So the two arms close by intersection rather than by enumeration:
   accepts neither — the arm is EMPTY (`docEnd_refutes_content_residue`);
 * a complete node's line stops at `NodeStop`, and the intersection with the
   dispatch's class is exactly `[154]`'s `:` with a non-blank follower
-  (`nodeStop_content_residue_is_colon`) — which the scanner reads as a
-  plain-scalar head and only the parser refuses, an over-acceptance of the
-  token stream in row 19's sense, so the deferral stands for that one
-  character and no other.
+  (`nodeStop_content_residue_is_colon`) — which the scanner refuses at the
+  dispatch boundary (`scanNextToken_checkAdjacentValue`, item 47): read as a
+  `[126]` plain-scalar head it would be a SECOND node in a one-node slot,
+  and no production derives one.
 
 §1 pins the `...` side: every same-line content head dies at the marker's own
 scan (`trailingContentAfterDocEnd`), the `s-l-comments` tail is accepted, and
@@ -35,8 +35,9 @@ a `...` with content glued to it never scans a marker at all ([206]
 `c-forbidden` wants a break, a white, or the end of input after the `...`, so
 the plain walk absorbs the line).  §2 pins the node side: every content head
 but the `:` dies at the node's own trailing validation, the `#` that reaches
-the dispatch with `commentOk` down dies AT the dispatch, and the `:` is
-scanner-accepted, parser-refused — one character from the legal `[154]` form.
+the dispatch with `commentOk` down dies AT the dispatch, and the glued `:`
+dies at the adjacent-value check — one character from the legal `[154]` form,
+refused where `isValueCandidate` fell through (item 47).
 -/
 
 namespace Tests.Guards.ScannerContentDispatchStop
@@ -111,12 +112,17 @@ validation — the park's line fact and the refusal are the same decision. -/
 #guard !scanAccepts "\"a\"#x\n" && rejectsAlike "\"a\"#x\n"
 #guard !scanAccepts "- \"a\"#x\n"
 
--- The survivor, one character from legality: a `:` with a non-blank follower
--- is scanner-ACCEPTED (it reads as a plain-scalar head) and parser-refused —
--- row 19's over-acceptance, the exact character the arm still defers.
-#guard scanAccepts "\"a\" :b\n" && rejectsAlike "\"a\" :b\n"
-#guard scanAccepts "[1] :b\n" && rejectsAlike "[1] :b\n"
-#guard scanAccepts "- [1] :b\n" && rejectsAlike "- [1] :b\n"
+-- The survivor is now REFUSED at the scanner (item 47): a `:` with a
+-- non-blank follower after a completed node would read as a plain-scalar
+-- head — a second node in a one-node slot — and
+-- `scanNextToken_checkAdjacentValue` refuses it where `isValueCandidate`
+-- fell through.  The over-acceptance these pins used to record is gone.
+#guard !scanAccepts "\"a\" :b\n" && rejectsAlike "\"a\" :b\n"
+#guard !scanAccepts "[1] :b\n" && rejectsAlike "[1] :b\n"
+#guard !scanAccepts "- [1] :b\n" && rejectsAlike "- [1] :b\n"
+#guard !scanAccepts "\"a\":b\n" && rejectsAlike "\"a\":b\n"
+#guard !scanAccepts "'a':b\n" && rejectsAlike "'a':b\n"
+#guard !scanAccepts "[1]:b\n" && rejectsAlike "[1]:b\n"
 
 -- …and the legal forms on either side of it.
 #guard emits "\"a\" : b\n"

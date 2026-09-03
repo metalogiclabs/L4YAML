@@ -857,6 +857,13 @@ lemma corr_of_simpleKeyAllowed_update {sc : ScannerState} {sp : SurfPos}
     ScannerSurfCorr { sc with simpleKeyAllowed := b } sp :=
   ⟨hcorr.chars_from, hcorr.col_eq, hcorr.end_eq, hcorr.input_prefix, hcorr.indent_cols_nonneg⟩
 
+/-- Item 47's scalar-scan epilogue updates both flags; neither is read by the
+    correspondence. -/
+lemma corr_of_simpleKeyAllowed_needIndentCheck_update {sc : ScannerState} {sp : SurfPos}
+    (b b' : Bool) (hcorr : ScannerSurfCorr sc sp) :
+    ScannerSurfCorr { sc with simpleKeyAllowed := b, needIndentCheck := b' } sp :=
+  ⟨hcorr.chars_from, hcorr.col_eq, hcorr.end_eq, hcorr.input_prefix, hcorr.indent_cols_nonneg⟩
+
 /-! ## §10 PeekBack Reasoning -/
 
 lemma listByteSize_pos_of_ne_nil {l : List Char} (h : l ≠ []) :

@@ -1275,13 +1275,16 @@ lemma scanNextTokenIx_maintains_NoOverwriteAtIx {input : String}
                     subst h_next
                     exact scanNextTokenIx_dispatchBlockIndicators_maintains_NoOverwriteAtIx _ _ _ hBlock
                       m h_s2_m h_s2_inv
-                  · split at h_next
+                  · -- item 47: adjacent-value check (pure, no state change)
+                    split at h_next
                     · contradiction
-                    · rename_i sC hContent
-                      simp only [Except.ok.injEq, Option.some.injEq] at h_next
-                      subst h_next
-                      exact scanNextTokenIx_dispatchContent_maintains_NoOverwriteAtIx _ _ _ hContent
-                        m h_s2_m h_s2_inv
+                    · split at h_next
+                      · contradiction
+                      · rename_i sC hContent
+                        simp only [Except.ok.injEq, Option.some.injEq] at h_next
+                        subst h_next
+                        exact scanNextTokenIx_dispatchContent_maintains_NoOverwriteAtIx _ _ _ hContent
+                          m h_s2_m h_s2_inv
 
 /-! ### §5.5  Step-level pointwise preservation -/
 
@@ -1533,6 +1536,11 @@ lemma scanNextTokenIx_preserves_position_specific {input : String}
                         exact ⟨h_sz, h_pref.trans (h_dir_eq.trans h_pre_eq)⟩
                     | none =>
                       dsimp only [] at h_ok
+                      -- item 47: adjacent-value check (pure, no state change)
+                      generalize h_av : scanNextTokenIx_checkAdjacentValue s_dir c = av_res at h_ok
+                      cases av_res with
+                      | error e => simp at h_ok
+                      | ok _ =>
                       generalize h_dc : scanNextTokenIx_dispatchContent s_dir c = dc_res at h_ok
                       cases dc_res with
                       | error e => simp at h_ok

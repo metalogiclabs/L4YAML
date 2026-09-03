@@ -1646,7 +1646,8 @@ lemma scanNextToken_flow_scalar_savedKey (s : ScannerState)
   have h_snt : scanNextToken s = Except.ok (some
       { s_dq with simpleKey := { s_dq.simpleKey with endLine := s_dq.line } }) :=
     scanNextToken_via_content_dispatch _ _ _ _ _ h_pp h_struct rfl h_check
-      h_flow_none h_block_none h_dc
+      h_flow_none h_block_none
+      (scanNextToken_checkAdjacentValue_ok_of_ne_colon _ (by decide)) h_dc
       ((saveSimpleKey_preserves_directivesPresent s).trans h_dp)
   refine ⟨_, h_snt, ?_, ?_, ?_, ?_, ?_⟩
   · show s_dq.simpleKey.possible = true

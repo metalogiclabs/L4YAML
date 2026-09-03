@@ -158,7 +158,7 @@ lemma scanDoubleQuoted_emitScalar_ok (sc : ScannerState)
       (ScannerCorrectness.advance_preserves_tokens sc)
   -- Build the result state and prove all conjuncts
   refine ⟨{ (s_after.emitAt sc.currentPos (.scalar content .doubleQuoted))
-              with simpleKeyAllowed := false }, ?_, ?_, ?_⟩
+              with simpleKeyAllowed := false, needIndentCheck := false }, ?_, ?_, ?_⟩
   · -- scanDoubleQuoted sc = .ok _
     simp only [scanDoubleQuoted, bind, Except.bind]
     rw [h_ie]
@@ -1233,6 +1233,7 @@ lemma scanNextToken_preserves_sync (s s' : ScannerState)
           _ c1 _ (by assumption)
         rw [h_d_stack, h_d_fl]; rw [h_allow_stack, h_allow_fl]; exact h_pre_sync
       · -- block none → content
+        split at h_next <;> (try (simp at h_next; done)) -- adjacent-value check (item 47)
         split at h_next <;> (try (simp at h_next; done)) -- content Except
         simp only [Except.ok.injEq, Option.some.injEq] at h_next; subst h_next
         have h_d_stack := ScannerCorrectness.dispatchContent_preserves_simpleKeyStack
@@ -1732,13 +1733,16 @@ lemma scanNextToken_maintains_NoOverwriteAt (s s' : ScannerState)
                       subst h_next
                       exact dispatchBlockIndicators_maintains_NoOverwriteAt _ _ _ hBlock
                         m h_s2_m h_s2_inv
-                    · split at h_next
+                    · -- item 47: adjacent-value check (pure, no state change)
+                      split at h_next
                       · contradiction
-                      · rename_i sC hContent
-                        simp only [Except.ok.injEq, Option.some.injEq] at h_next
-                        subst h_next
-                        exact dispatchContent_maintains_NoOverwriteAt _ _ _ hContent
-                          m h_s2_m h_s2_inv
+                      · split at h_next
+                        · contradiction
+                        · rename_i sC hContent
+                          simp only [Except.ok.injEq, Option.some.injEq] at h_next
+                          subst h_next
+                          exact dispatchContent_maintains_NoOverwriteAt _ _ _ hContent
+                            m h_s2_m h_s2_inv
 
 /-! ### §D.5  Step-level pointwise preservation -/
 
@@ -2394,13 +2398,16 @@ lemma scanNextToken_maintains_FlowNoOverwriteAt (s s' : ScannerState)
                       subst h_next
                       exact dispatchBlockIndicators_maintains_FlowNoOverwriteAt _ _ _ hBlock
                         m h_s2_m h_s2_inv
-                    · split at h_next
+                    · -- item 47: adjacent-value check (pure, no state change)
+                      split at h_next
                       · contradiction
-                      · rename_i sC hContent
-                        simp only [Except.ok.injEq, Option.some.injEq] at h_next
-                        subst h_next
-                        exact dispatchContent_maintains_FlowNoOverwriteAt _ _ _ hContent
-                          m h_s2_m h_s2_inv
+                      · split at h_next
+                        · contradiction
+                        · rename_i sC hContent
+                          simp only [Except.ok.injEq, Option.some.injEq] at h_next
+                          subst h_next
+                          exact dispatchContent_maintains_FlowNoOverwriteAt _ _ _ hContent
+                            m h_s2_m h_s2_inv
 
 /-! ### §E.5  Step-level pointwise preservation (with `s.inFlow = true`) -/
 
