@@ -18,6 +18,7 @@ import L4YAML.Proofs.Scanner.PropsRunLineCoupling
 import L4YAML.Proofs.Scanner.BlockScalarIndentFloor
 import L4YAML.Proofs.Scanner.PreprocessIndentStable
 import L4YAML.Proofs.Coupling.TabIndentBridge
+import L4YAML.Proofs.Production.FlowIndexLift
 
 /-! # Stream Grammar Accumulator (Layer 4d + 4e: Lagging Grammar with Block Stack)
 
@@ -67,6 +68,7 @@ open L4YAML.Proofs.BlockScalarFlowGuard
 open L4YAML.Proofs.BlockScalarIndentFloor
 open L4YAML.Proofs.PreprocessIndentStable
 open L4YAML.Proofs.CouplingBridge
+open L4YAML.Proofs.FlowIndexLift
 open L4YAML.Proofs.TabIndentBridge
 open L4YAML.Proofs.ScanStrictCoupling
 open L4YAML.Proofs.ScannerCoupling
@@ -2504,6 +2506,46 @@ lemma preprocess_some_separate_0_anyCol (sc : ScannerState) (sp : SurfPos)
     -- GOpt.some: unreachable — SCNbCommentText sp_ws sp_ws is impossible
     have : SCNbCommentText sp_ws sp_ws := h_eq ▸ h
     exact absurd this (scNbCommentText_irrefl sp_ws)
+
+/-- **The landing read at a GIVEN index** (item 45).  The n-generic twin of
+    `preprocess_some_separate_0_anyCol`: a step that crossed no break reads
+    inline at every `n`; a step that landed on a fresh line reads
+    `[70] s-separate-lines(n)` when the landing's whites open with
+    `[63] s-indent(n)`, and otherwise returns the LOCATED under-run
+    (`WhiteRunUnderRun`: `j < n` spaces, then the run's end or a tab) for the
+    caller to defer or collapse on.  At `n = 0` the right disjunct is
+    uninhabited and this degenerates to the 0 lemma. -/
+lemma preprocess_some_separate_at_anyCol (n : Nat) (sc : ScannerState) (sp : SurfPos)
+    (s_prep : ScannerState) (c : Char)
+    (hcorr : ScannerSurfCorr sc sp)
+    (hok : scanNextToken_preprocess sc = .ok (some (s_prep, c))) :
+    ∃ sp_prep, ScannerSurfCorr s_prep sp_prep ∧
+      (SSeparateLines n sp sp_prep ∨
+        ∃ sp_mid, SSLComments sp sp_mid ∧ sp_mid.col = 0 ∧
+          WhiteRunUnderRun n sp_mid sp_prep) := by
+  obtain ⟨sp_mid, sp_ws, sp_prep, h_disj, h_ws, h_cmt, hcorr_out, h_pk⟩ :=
+    preprocess_some_ssl_comments_anyCol sc sp s_prep c hcorr hok
+  have h_eq : sp_prep = sp_ws := by
+    cases h_pk with
+    | inl h => exact h
+    | inr h => rw [preprocess_some_peek hok] at h; cases h
+  subst h_eq
+  cases h_cmt with
+  | none =>
+    cases h_disj with
+    | inl h_ssl_col =>
+      rcases gstar_white_flowLinePrefix_or_underRun n h_ws with h_flp | h_ur
+      · exact ⟨sp_prep, hcorr_out,
+          Or.inl (SSeparateLines.commented n sp sp_mid sp_prep h_ssl_col.1 h_flp)⟩
+      · exact ⟨sp_prep, hcorr_out,
+          Or.inr ⟨sp_mid, h_ssl_col.1, h_ssl_col.2, h_ur⟩⟩
+    | inr h_mid_eq =>
+      rw [h_mid_eq.1] at h_ws
+      exact ⟨sp_prep, hcorr_out,
+        Or.inl (SSeparateLines.inline n sp sp_prep
+          (GStar_SSWhite_to_SSeparateInLine sp sp_prep h_ws))⟩
+  | some _ h =>
+    exact absurd h (scNbCommentText_irrefl sp_prep)
 
 /-- **The separator half of the break-free reading** (item 23).
 

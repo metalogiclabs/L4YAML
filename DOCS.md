@@ -7240,6 +7240,58 @@ axiom gate clean; matrix event 402/402, json 282/282, eventscore 347/358 —
 all unmoved, ZERO runtime edits.  `block_dispatch_deferred` holds at 8 textual
 sites and `scannerDrop` at 4 BY CONSTRUCTION (no escape site was touched).
 
+### Item 45 (2026-09-03)
+
+took R1's leaf evidence — everything item 46's threading will spend at the
+interior steps, built without touching a single scan-loop induction.
+
+**The landing split at a GIVEN index** (satellite
+`Proofs/Production/FlowIndexLift.lean`).  `gstar_white_take_sIndent` asks
+`gstar_white_sIndent_or_tab`'s question at a supplied `n` instead of an
+existential one: the run opens with `[63] s-indent(n)` and the rest is
+residual whites, or it UNDER-RUNS, and the under-run is located
+(`WhiteRunUnderRun`: `j < n` spaces, then the run's end or a tab — the two
+ways a landing line fails `[69] s-flow-line-prefix(n)`).
+`preprocess_some_separate_at_anyCol` rides it through preprocessing: the
+n-generic twin of the `0` separator lemma, inline case at every index
+(`s-separate-in-line` mentions none), landing case split or located.  Item
+23's `preprocess_some_separate_inline_or_landing` had already given the
+inline half at every index; this pays the landing half it deferred.
+
+**The scalar lifts (Reflection 671 — lift the derivation, not the
+induction).**  The scalar `_prod` chains conclude at 0 through hundreds of
+lines of scan-loop induction, but the single-line constructors of
+`[116]`/`[125]`/`[135]` bind their index without constraining it — a
+single-line body at 0 IS a single-line body at every `n`.  So
+`SCDoubleQuoted_at`/`SCSingleQuoted_at`/`SNsPlain_at` case the 0-derivation
+and re-tag it, returning the `multi` case as a located witness in the
+constructor's own fields (`*Crossed`: the first line's content, then the
+break).  The quoted lifts also convert CONTEXT freely — `[110]`/`[121]` read
+the same body classes everywhere, so the dispatch lemmas' `.blockIn`
+evidence serves a `.flowOut` slot — while plain keeps its context
+(`[127] ns-plain-safe(c)` is context-sensitive).  Contrast Reflection 670:
+there the index was a parameter no construction mentions, so generalizing
+cost signatures; here `multi` constrains it, so full generalization would
+cost the inductions, and the lift buys everything `single` covers for a
+`cases`.
+
+**What stays at 0, by name**: multi-line scalar tokens (the `*Crossed`
+witnesses) and under-run landings (`WhiteRunUnderRun`).  Item 46 collapses
+on both at a nonzero index — for the landings this loses nothing the
+grammar owns (item 44's probes: under-run token landings are the exempt
+`]`/`}` lines, spec-invalid), while multi-line scalars inside a NONZERO-index
+flow are a genuine narrowing residue a later item can pay by generalizing the
+chains the lift declined to.
+
+Validation: full `lake build` green (1014 jobs, zero warnings);
+`run-all-tests.sh` 4458/4458; new guard `FlowIndexLeafEvidence` (concrete
+splitter pins — two spaces split at 2 and under-run 3, the tab at column 1 as
+its own witness — plus the lifts' shapes and a concrete single-line `"a"`
+read at index 2); reflection index 20/217/236/342 with R671; import closure,
+theorem keyword, collect-stats, matrix 402/402 + 282/282, eventscore 347/358
+all green and unmoved — ZERO runtime edits, and the escape counters hold at
+8/4 BY CONSTRUCTION.
+
 ### REMAINING, in order
 
 The per-item history is the closure log above; this section lists only the
