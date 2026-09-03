@@ -7176,145 +7176,97 @@ the pinned submodule — all unmoved, zero runtime files touched.  No
 
 ### REMAINING, in order
 
-Ordered by what is cheapest AND has a consumer today, not by what is listed
-first anywhere else. `FlowOpenStack` is deliberately NOT first: it is the most
-expensive piece and none of its three parts lands anything on its own. (The
-list's previous first entry — `noPending`'s share of the inline residue — is
-item 35, closed; what it emptied was a park the machine never makes. Item 36
-then took `pendingDocEnd`'s share and made the escape REFUSABLE per caller, so
-the remaining entries can be taken one pending at a time rather than one site at
-a time; item 37 took §7.5's rung, which left `pendingContent` and
-`pendingBlockContent` owing exactly one production — entry 1 below, whose type
-now says so; item 38 paid the half of that production a block-sequence ENTRY
-asks for, by making the pack carry a ROUTE instead of one producer's
-coordinates; item 39 paid the mapping VALUE's half on top of it, for the cost of
-one frame lemma; item 40 merged those two producers and, in doing so, gave the
-`-`-parked pending the break-crossed frame and re-cut item 39's boundary — the
-dedent keeps its `True`, the arm does not; item 41 then gave the SIBLING pack —
-`PropsKeyPack`, the property run's — the same route and the same merge, and
-measured what a second application is worth per call site: three of its four
-sites gain, and the fourth's product is empty rather than false. What is left of
-entry 1 is the closed FLOW node's `:`, which is entry 4's business and not a
-missing route. Item 42 then took entry 3's two refutation shares by
-INTERSECTION rather than enumeration — the dispatch's own accept class meets
-the parks' stop sets, `TailSuffix ∩ A = ∅` and `NodeStop ∩ A = {':'}` — so
-`pendingDocEnd`'s share of entry 3 is CLOSED and
-`pendingContent`/`pendingBlockContent`'s defers exactly row 19's `:`; and item
-43 paid the last share, `pendingDocStart`'s `--- a`, by parameterizing the
-dispatch over the closer the pending had carried unconsumed since Fix B
-(`content_dispatch_routed`; `h_doc_builder`'s `SLBareDocument` branch gets its
-first consumer), which CLOSES entry 3: what is left at the content dispatch is
-row 19's `:` and `pendingFlow` itself.)
+The per-item history is the closure log above; this section lists only the
+OPEN work, the dependencies among the items, and what each closure buys.
+Four items stand between here and Step 5 (the converse), three of them this
+row's:
 
-**Read the count with item 35's structural note.** `pendingFlow` has exactly one
-producer — `block_dispatch_deferred` — and carries only a stream, so a consumer
-arm that `cases`es it has nothing to spend and can only defer. Sites 1 and 3
-below both serve `pendingFlow`, so neither is REMOVABLE on its own; they narrow
-until the constructor goes and then vanish together. Plan the remainder as
-"eliminate the non-`pendingFlow` inhabitants", not as "close three sites".
+```
+R1 (FlowOpenStack re-index) ──────────┐
+                                      ├──→ R3 (delete pendingFlow + scannerDrop) ──→ Step 5
+R2 (row 19: over-acceptance residues) ┘                                              ↑
+R4 (row 19: implicitContinue + 0 < m) ───────────────────────────────────────────────┘
+```
 
-1. **The `:` production's remaining ROUTES** — still the largest grammatical
-family in row 12, and still the only thing two of the six pendings defer: item
-37 typed their escapes `InlineResidue sp_scan ':' → SLYamlStream …`. Item 38
-supplied the compact one (`compactMapRoute`, `- a: 1`) and, in doing so, turned
-the rest of the entry from "re-anchor the machinery" into a short list of
-routes, each of which is one lemma of the shape `∀ sp_v, SBlockMapEntry k sp_key
-sp_v → SLYamlStream sp_start sp_v`:
+**The structural fact the plan hangs on** (measured at item 35): `pendingFlow`
+has exactly one producer — `block_dispatch_deferred` itself — and carries only
+a stream, so a consumer arm that `cases`es it has nothing to spend and can
+only defer. The escape's remaining arms therefore cannot be removed one at a
+time; they narrow until the constructor goes and then vanish together. Plan
+the remainder as "eliminate the non-`pendingFlow` inhabitants" (R1 + R2), then
+delete (R3) — not as "close N sites".
 
-   * **the property run's head, at every frame** — CLOSED by item 41, and it is
-     listed here for what it left behind rather than for what it owes.
-     `PropsKeyPack` carries the route, `entryPropsKeyPack_of_dispatch` is the
-     merged producer, and `- &p a: 1`, `-⏎  &p a: 1`, `k:⏎  &p a: 1` and
-     `  - &p a: 1` compose. One site of the four gains nothing and never will
-     without a different pending: an INDENTED `[189]` value reads its content
-     break-free and its slot is `s-l+block-node`, so the branch it can reach and
-     the frame it can offer do not meet (`: &p a: 1`, `k:⏎  : &p a: 1`). That is
-     an empty PRODUCT and not a boundary — relaxing either factor would close
-     it — but neither factor is this row's to relax: the branch is what a
-     break-free value reading returns, and the frame is what `[189]`'s value slot
-     is. So it sits with the DEDENT's entries-level fidelity below, among the
-     things that need a pending carrying a different frame rather than a route
-     this row can write (Reflection 667).
-   * **the closed FLOW node** — `"a" : b`, `[1] : b`, `{a: 1} : b`, `- [1] : b`.
-     These park through the flow machinery, so their `:` is entry 4's business,
-     not a missing route.
-   * **the DEDENT** — NOT a route, and it is listed here so that it is not
-     looked for again. `nestedBlockMap`'s side condition `n ≤ k` is false when
-     the landing is LEFT of the index the pending carries (`k:⏎  :⏎b: 2`,
-     `k:⏎  -⏎b: 2`): the enclosing entry has ended, so there is no node left to
-     nest inside and the pack's fact is refutable rather than unproved
-     (Reflection 665). Item 39 read this as a property of the indented arm and
-     left the arm punting; item 40 found the arm MIXED and moved the punt to the
-     landing (Reflection 666), which is where it stays.
+#### R1 — `FlowOpenStack`'s resume re-index (this row's; blocks R3)
 
-   (Item 36 closed `pendingDocEnd` here by `[204]`; item 37 closed the `-`/`?`
-   half at `pendingContent` and `pendingBlockContent` by §7.5. What is left at
-   this site besides the `:` is `pendingDocStart`, `pendingProps`,
-   `pendingMapValue` and `pendingFlow`, whose residues are entry 3 and row 19.
-   After item 40 the four content-dispatch arms that park a key-carrying pending
-   all hand the same producer, so a new frame is now a call-site argument rather
-   than a lemma; after item 41 the same is true of the six arms that park a
-   property RUN, five of which supply the pack.)
+The resume's `SFlowContent 0 .flowOut` and the frame's
+`SeqFrame 0 (inFlowCtx .flowOut)` are the same pinned index — ≈86 literal
+pins across 31 substantive declarations (priced by item 25). Un-pinning it is
+three parts:
 
-2. **Not this row.** `&a - b`, `!t - b`, `--- - a`, `--- ? a`, `: - a`,
-`: ? a` are ACCEPTED by the scanner and refused (or wrongly accepted) by the
-parser: `[200] s-l+block-collection` puts `s-l-comments` between a node's
-properties and the collection, so no block sequence may start on the line that
-opened it. That is an over-acceptance of the token stream and belongs with
-row 19 — the `pendingProps` and `pendingDocStart` shares of entry 1's site are
-this, not a missing production.
+1. **Couple the carried index to the scanner's indent state** — largely paid
+   by item 27: `PreprocessIndentStable`, `IndentFloor`, and the break-free
+   payload's stack equation already exist; what R1 adds is riding them on the
+   flow stack.
+2. **Derive the interior separators at `n`** from `underIndentedFlowContent`,
+   which already enforces `s.col > s.currentIndent` inside a flow and so IS
+   `s-indent(n)` for `n = currentIndent + 1` (`  - [1,⏎  2]` refused,
+   `  - [1,⏎   2]` accepted).
+3. **Re-derive the multi-line plain and quoted scalar readings at `n`** — the
+   only part that genuinely mentions the index inside a flow.
 
-   (`- a: 1` used to sit here — `[195] ns-l-compact-mapping` inside `[185]`'s
-   compact alternative, its key the content already parked. Item 38 composed it:
-   `ImplicitKeyPack` on `pendingBlockContent`, anchored at the ENTRY through a
-   route rather than at a column-0 line start. Item 39 then composed `k:⏎  a: 1`
-   the same way, anchored at the landing INSIDE the node the enclosing entry is
-   waiting for, and item 40 `-⏎  a: 1` — the same landing under `[185]`'s
-   block-node alternative.)
+Buys: 3 of the 4 `scannerDrop` sites; the `  - [1]` / `  - &a [b]` /
+`  a: [1,2]` family; and the closed FLOW node's `:` routes (`"a" : b`,
+`[1] : b`, `{a: 1} : b`, `- [1] : b`) — the last unbuilt routes of the `:`
+production family (items 38–41 built all the others).
 
-3. **The content dispatch's own no-break arm** — CLOSED as an entry (items
-42–43), listed for what its arms now say.  Item 42 split the five-pending site
-per constructor over a factored landing skeleton and closed the two refutation
-shares by intersecting the parks' stop sets with the dispatch's own accept
-class (`dispatchContent_ok_charFacts`): `pendingDocEnd`'s arm is EMPTY
-(`TailSuffix ∩ A = ∅` — the `c ≠ '#'` this entry used to price as a
-`commentOk` argument came free, the dispatch refuses a `#` itself), and
-`pendingContent`/`pendingBlockContent` defer exactly the measured `:`
-(`NodeStop ∩ A = {':'}` — `"a" :b`, scanner-accepted parser-refused, row 19's
-over-acceptance, not a state to refute).  Item 43 paid `pendingDocStart`'s
-`--- a` — `[208] l-explicit-document`'s one-line body — by parameterizing the
-dispatch over the pending's own closer (`content_dispatch_routed`;
-`content_dispatch_after_close` is its bare-document instance): a mid-line park
-cannot close first, and the closer already existed as `h_doc_builder`'s
-`SLBareDocument` branch, unconsumed since the constructor was written.  What
-the site still serves is row 19's `:` at the two content parks and
-`pendingFlow`'s own arm, which vanishes with the constructor.
+#### R2 — the over-acceptance residues at row 12's sites (row 19's; blocks R3)
 
-**And then the deletion itself**: with no non-`pendingFlow` inhabitant left, the
-constructor leaves `Surface/Document.lean` and all three sites go with it,
-taking the `close_with_ssl` arm that calls `scannerDrop`.
+Inputs the scanner accepts and the parser refuses (or wrongly accepts) still
+reach row 12's escape arms, which can neither close them (no derivation
+exists) nor refute them (the scanner really accepts). They are row 19's to
+resolve — [The over-approximation problem](#the-over-approximation-problem) —
+and are listed here because their arms are non-`pendingFlow` inhabitants R3
+needs emptied:
 
-4. **`FlowOpenStack`'s resume type** — three parts, priced by item 25, and the
-reason this row still has a `scannerDrop`: the resume's `SFlowContent 0
-.flowOut` and the frame's `SeqFrame 0 (inFlowCtx .flowOut)` are the same
-index, ≈86 literal pins across 31 substantive declarations. (i) couple the
-carried index to the scanner's indent state — item 27 built this machinery
-(`PreprocessIndentStable`, `IndentFloor`, and the break-free payload's stack
-equation), so this part is now largely paid; (ii) derive the interior
-separators at `n` from `underIndentedFlowContent`, which already enforces
-`s.col > s.currentIndent` inside a flow and so IS `s-indent(n)` for `n =
-currentIndent + 1` (`  - [1,⏎  2]` refused, `  - [1,⏎   2]` accepted); (iii)
-re-derive the multi-line plain and quoted scalar readings at `n`, which inside
-a flow genuinely mention the index. Closes 3 of the 4 `scannerDrop` sites and
-the `  - [1]` / `  - &a [b]` family with them.
+* the measured `:` at `pendingContent`/`pendingBlockContent`, at both
+  dispatches (`"a" :b` — items 37 and 42 narrowed the arms to exactly this);
+* the same-line collection after properties or a document marker, at
+  `pendingProps`/`pendingDocStart` (`&a - b`, `!t - b`, `--- - a`, `--- ? a`,
+  `: - a`, `: ? a` — `[200]` puts `s-l-comments` between a node's properties
+  and the collection, so no block sequence may start on the line that opened
+  it).
 
-Not on this list, because they are not escape sites: the DEDENT's entries-level
-fidelity, and item 41's empty product. Item 30 derives the dedent through
-`implicitContinue` rather than by resuming the collection it lands back in, which
-needs a frame stack on a pending that carries one index; the empty product needs
-the same thing from the other side — a pending whose slot offers the frame the
-branch it can see requires. Both belong to action **row 19**, which tightens that
-constructor — [The over-approximation problem](#the-over-approximation-problem).
+#### R3 — the deletion itself (needs R1 + R2)
+
+With no non-`pendingFlow` inhabitant left, the `pendingFlow` constructor
+leaves `Surface/Document.lean` and all three remaining
+`block_dispatch_deferred` sites go with it, taking the `close_with_ssl` arm
+that spends the last `scannerDrop`. This is what closes row 12.
+
+#### R4 — row 19 proper (independent of R1–R3; before Step 5)
+
+Tighten the two remaining grammar over-approximations — `implicitContinue`
+(17 construction sites, 16 of them the sibling re-opens row 12 still edits,
+which is the only reason R4 sits after row 12) and `0 < m` on `[183]`/`[187]`'s
+auto-detected width (7 construction sites, zero eliminations). Both falsify
+the converse as long as they survive; details and the chosen approach:
+[The over-approximation problem](#the-over-approximation-problem).
+
+#### Settled questions — do not reopen
+
+* **The DEDENT is not a route** (`k:⏎  :⏎b: 2`): `nestedBlockMap`'s `n ≤ k`
+  is FALSE there — the enclosing entry has ended, the pack's fact is
+  refutable, and the punt lives at the landing (items 39–40, Reflections
+  665–666). Entries-level fidelity for it needs a frame stack on a pending
+  carrying one index — row 19's, not a missing route.
+* **Item 41's empty product** (`: &p a: 1`): the branch an indented `[189]`
+  value can reach and the frame it can offer do not meet; nothing there is
+  false and neither factor is this row's to relax (Reflection 667). Needs a
+  pending carrying a different frame — row 19's.
+* **Entry 3 — the content dispatch's no-break arm — is CLOSED** (items 42–43):
+  `pendingDocEnd`'s arm is empty, the content parks defer exactly R2's `:`,
+  and `--- a` composes through `content_dispatch_routed`. What the site still
+  serves is R2 and `pendingFlow`'s own arm (R3).
 
 ## The ns-char gap
 
