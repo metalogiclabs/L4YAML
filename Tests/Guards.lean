@@ -36,6 +36,7 @@ import Tests.Guards.Proofs.ScannerValueMapping
 import Tests.Guards.Proofs.ScannerNestedEntryMapping
 import Tests.Guards.Proofs.ScannerEntryPropsKey
 import Tests.Guards.Proofs.ScannerContentDispatchStop
+import Tests.Guards.Proofs.ScannerDocStartInlineCompose
 import Tests.Guards.Proofs.ScannerNodePropertyDelimiter
 import Tests.Guards.Proofs.ScannerContracts
 import Tests.Guards.Proofs.ScannerCorrectness

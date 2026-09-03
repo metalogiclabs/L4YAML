@@ -7844,10 +7844,13 @@ lemma nodeStop_content_residue_is_colon {sp_scan : SurfPos} {c : Char}
 --     `pendingProps`, `pendingFlow`, the two document pendings),
 --     `pendingBlockContent` — whose `- a: 1` item 38 composed, leaving the
 --     punts (a break, a tab, a props or block-scalar head) — and the content
---     dispatch's own no-break arm, whose one
---     grammatical inhabitant is `--- a` (`[208]`'s one-line body) and whose
---     `pendingFlow` arm cannot close while the escape itself is what produces
---     that pending.
+--     dispatch's own no-break arm, split per pending by item 42: the parks'
+--     stop sets meet the dispatch's accept class, so `pendingDocEnd`'s arm is
+--     EMPTY, the two content parks defer exactly the measured `:` (`"a" :b`,
+--     row 19's over-acceptance), item 43 composed `pendingDocStart`'s `--- a`
+--     through `content_dispatch_routed` and `h_doc_builder`'s own closer, and
+--     what is left there is `pendingFlow`'s arm, which cannot close while the
+--     escape itself is what produces that pending.
 --   * **an indented value the one-line reading does not reach** (3 sites: one
 --     per indented content arm, plus the props consumer's nonzero side) — a
 --     value that FOLDS, a step that landed on a fresh line, or a block scalar
@@ -10750,11 +10753,23 @@ lemma entryPropsKeyPack_of_dispatch
                         h_props, h_sk_line⟩
   · exact Or.inr trivial
 
-lemma content_dispatch_after_close
-    (sp_start sp_block : SurfPos)
+/-- **The content dispatch, parameterized by the pending's own closer**
+    (item 43).  `content_dispatch_after_close` below is this lemma at
+    `sp_anchor = sp_res` with the bare-document route — the only route the
+    body ever spent until `pendingDocStart`'s no-break arm needed the SAME
+    machinery with the node anchored at the park (just after the `---`) and
+    the stream reached through `h_doc_builder`'s `SLBareDocument` branch
+    instead of a fresh `implicitContinue`.  `h_route` is how a completed
+    `SBlockNode` starting at `sp_anchor` re-enters the stream — the same
+    shape `pendingProps.h_route` already carries, which is why the props
+    parks below can hand it through unchanged — and `sp_res`/`h_stream_res`
+    is where the accumulation invariant's own stream component stays
+    parked. -/
+lemma content_dispatch_routed
+    (sp_start sp_anchor sp_res : SurfPos)
     (s_prep s' : ScannerState) (c : Char) (sp_prep sp_scan' : SurfPos)
-    (h_stream_block : SLYamlStream sp_start sp_block)
-    (h_sep : SSeparateLines 0 sp_block sp_prep)
+    (h_stream_res : SLYamlStream sp_start sp_res)
+    (h_sep : SSeparateLines 0 sp_anchor sp_prep)
     (h_nic_prep : s_prep.needIndentCheck = false)
     (hcorr_prep : ScannerSurfCorr s_prep sp_prep)
     (hcorr_result : ScannerSurfCorr s' sp_scan')
@@ -10772,6 +10787,8 @@ lemma content_dispatch_after_close
         (if s_prep.allowDirectives then
           { s_prep with allowDirectives := false, documentEverStarted := true }
         else s_prep) c = .ok s')
+    (h_route : ∀ sp_m, SBlockNode 0 .blockIn sp_anchor sp_m →
+        SLYamlStream sp_start sp_m)
     (h_keyctx : ((∃ (k : Nat) (sp_land : SurfPos),
                    sp_land.col = 0 ∧ SLYamlStream sp_start sp_land ∧
                    SIndent k sp_land sp_prep) ∧
@@ -10796,13 +10813,6 @@ lemma content_dispatch_after_close
         { s_prep with allowDirectives := false, documentEverStarted := true }
       else s_prep).needIndentCheck = false := by
       split <;> exact h_nic_prep
-    have h_route : ∀ sp_m, SBlockNode 0 .blockIn sp_block sp_m →
-        SLYamlStream sp_start sp_m := fun sp_m h_bn =>
-      SLYamlStream.implicitContinue sp_start sp_block sp_block sp_m sp_m
-        h_stream_block (GStar.nil _)
-        (GOpt.some sp_block sp_m
-          (SLAnyDocument.bare sp_block sp_m (SLBareDocument.mk sp_block sp_m h_bn)))
-        (GStar.nil _)
     -- Item 17: the run's own key coupling.  A property push is not a key save
     -- (`dispatchContent_*_simpleKey`), so the key the `:` will validate is the
     -- one the preprocessing saved AT the `&`/`!` — which is why the key of
@@ -10852,9 +10862,9 @@ lemma content_dispatch_after_close
       obtain ⟨h_line', h_nic'⟩ := dispatchContent_anchor_line_nic hpeek_disp h_dispatch
       obtain ⟨h_nic_s, h_real_s, h_any⟩ := props_couplings_of_push h_tokens h_line' h_nic'
         h_nic_ad (by simp) (by simp [YamlToken.isNodeProperty])
-      exact ⟨sp_block, sp_block, sp_block, sp_scan', h_stream_block,
-             BlockStack.nil sp_block, FlowStackB.nil sp_block .sep,
-             PendingNode.pendingProps sp_start sp_block sp_scan' true false sp_block sp_prep 0
+      exact ⟨sp_res, sp_res, sp_res, sp_scan', h_stream_res,
+             BlockStack.nil sp_res, FlowStackB.nil sp_res .sep,
+             PendingNode.pendingProps sp_start sp_res sp_scan' true false sp_anchor sp_prep 0
                h_sep (PropsRun.anchor _ _ ha_ev) h_nic_s h_real_s
                (fun _ => h_any YamlToken.isAnchorProperty
                  (by simp [YamlToken.isAnchorProperty]))
@@ -10876,9 +10886,9 @@ lemma content_dispatch_after_close
       obtain ⟨h_line', h_nic'⟩ := dispatchContent_tag_line_nic hpeek_disp h_dispatch
       obtain ⟨h_nic_s, h_real_s, h_any⟩ := props_couplings_of_push h_tokens h_line' h_nic'
         h_nic_ad (by simp) (by simp [YamlToken.isNodeProperty])
-      exact ⟨sp_block, sp_block, sp_block, sp_scan', h_stream_block,
-             BlockStack.nil sp_block, FlowStackB.nil sp_block .sep,
-             PendingNode.pendingProps sp_start sp_block sp_scan' false true sp_block sp_prep 0
+      exact ⟨sp_res, sp_res, sp_res, sp_scan', h_stream_res,
+             BlockStack.nil sp_res, FlowStackB.nil sp_res .sep,
+             PendingNode.pendingProps sp_start sp_res sp_scan' false true sp_anchor sp_prep 0
                h_sep (PropsRun.tag _ _ ht_ev) h_nic_s h_real_s
                (fun h => nomatch h)
                (fun _ => h_any YamlToken.isTagProperty
@@ -10943,41 +10953,75 @@ lemma content_dispatch_after_close
     rw [hsp_ev_eq] at h_trailing_ws hcorr_ev
     cases h_ev with
     | inl h_flow =>
-      exact ⟨sp_block, sp_block, sp_block, sp_scan', h_stream_block,
-             BlockStack.nil sp_block, FlowStackB.nil sp_block .sep,
-             PendingNode.pendingContent sp_start sp_block sp_scan' h_line
+      exact ⟨sp_res, sp_res, sp_res, sp_scan', h_stream_res,
+             BlockStack.nil sp_res, FlowStackB.nil sp_res .sep,
+             PendingNode.pendingContent sp_start sp_res sp_scan' h_line
                (fun sp_mid h_ssl =>
                  have h_ssl_ext := white_prepend_SSLComments h_trailing_ws h_ssl
-                 have h_blockNode :=
-                   flowInBlock_blockNode h_sep h_flow h_ssl_ext
-                 have h_bare := SLBareDocument.mk sp_block sp_mid h_blockNode
-                 SLYamlStream.implicitContinue sp_start sp_block sp_block sp_mid sp_mid
-                   h_stream_block (GStar.nil _)
-                   (GOpt.some sp_block sp_mid
-                     (SLAnyDocument.bare sp_block sp_mid h_bare))
-                   (GStar.nil _))
+                 h_route sp_mid (flowInBlock_blockNode h_sep h_flow h_ssl_ext))
                h_key,
              hcorr_result⟩
     | inr h_block =>
-      exact ⟨sp_block, sp_block, sp_block, sp_scan', h_stream_block,
-             BlockStack.nil sp_block, FlowStackB.nil sp_block .sep,
-             PendingNode.pendingContent sp_start sp_block sp_scan' h_line
+      exact ⟨sp_res, sp_res, sp_res, sp_scan', h_stream_res,
+             BlockStack.nil sp_res, FlowStackB.nil sp_res .sep,
+             PendingNode.pendingContent sp_start sp_res sp_scan' h_line
                (fun sp_mid h_ssl =>
                  have h_ssl_ext := white_prepend_SSLComments h_trailing_ws h_ssl
-                 have h_blockNode : SBlockNode 0 .blockIn sp_block sp_gram :=
+                 have h_blockNode : SBlockNode 0 .blockIn sp_anchor sp_gram :=
                    h_block.elim
                      (fun h_lit => literal_blockNode h_sep (GOpt.none sp_prep) h_lit)
                      (fun h_fld => folded_blockNode h_sep (GOpt.none sp_prep) h_fld)
-                 have h_bare := SLBareDocument.mk sp_block sp_gram h_blockNode
-                 have h_stream' := SLYamlStream.implicitContinue
-                   sp_start sp_block sp_block sp_gram sp_gram
-                   h_stream_block (GStar.nil _)
-                   (GOpt.some sp_block sp_gram
-                     (SLAnyDocument.bare sp_block sp_gram h_bare))
-                   (GStar.nil _)
-                 ssl_comments_extend_stream sp_start sp_gram sp_mid h_stream' h_ssl_ext)
+                 ssl_comments_extend_stream sp_start sp_gram sp_mid
+                   (h_route sp_gram h_blockNode) h_ssl_ext)
                h_key,
              hcorr_result⟩
+
+/-- The bare-document instance of `content_dispatch_routed` — the node anchors
+    at the CLOSED stream's landing and re-enters it as `implicitContinue`'s
+    `SLAnyDocument.bare`.  Every pre-item-43 caller is this one. -/
+lemma content_dispatch_after_close
+    (sp_start sp_block : SurfPos)
+    (s_prep s' : ScannerState) (c : Char) (sp_prep sp_scan' : SurfPos)
+    (h_stream_block : SLYamlStream sp_start sp_block)
+    (h_sep : SSeparateLines 0 sp_block sp_prep)
+    (h_nic_prep : s_prep.needIndentCheck = false)
+    (hcorr_prep : ScannerSurfCorr s_prep sp_prep)
+    (hcorr_result : ScannerSurfCorr s' sp_scan')
+    (h_not_doc : (if s_prep.allowDirectives then
+          { s_prep with allowDirectives := false, documentEverStarted := true }
+        else s_prep).col = 0 →
+      atDocumentBoundary (if s_prep.allowDirectives then
+          { s_prep with allowDirectives := false, documentEverStarted := true }
+        else s_prep) = false)
+    (hpeek : s_prep.peek? = some c)
+    (h_flow_disp : (if s_prep.allowDirectives then
+          { s_prep with allowDirectives := false, documentEverStarted := true }
+        else s_prep).inFlow = false)
+    (h_dispatch : scanNextToken_dispatchContent
+        (if s_prep.allowDirectives then
+          { s_prep with allowDirectives := false, documentEverStarted := true }
+        else s_prep) c = .ok s')
+    (h_keyctx : ((∃ (k : Nat) (sp_land : SurfPos),
+                   sp_land.col = 0 ∧ SLYamlStream sp_start sp_land ∧
+                   SIndent k sp_land sp_prep) ∧
+                 s_prep.simpleKey.possible = true ∧
+                 s_prep.simpleKey.pos = s_prep.currentPos) ∨ True) :
+    ∃ sp_gram' sp_block' sp_flow' sp_scan',
+      SLYamlStream sp_start sp_gram' ∧
+      BlockStack sp_gram' sp_block' ∧
+      FlowStackB sp_start 0 #[] #[] .sep sp_block' sp_flow' ∧
+      PendingNode s' false sp_start sp_flow' sp_scan' ∧
+      ScannerSurfCorr s' sp_scan' :=
+  content_dispatch_routed sp_start sp_block sp_block s_prep s' c sp_prep sp_scan'
+    h_stream_block h_sep h_nic_prep hcorr_prep hcorr_result h_not_doc hpeek
+    h_flow_disp h_dispatch
+    (fun sp_m h_bn =>
+      SLYamlStream.implicitContinue sp_start sp_block sp_block sp_m sp_m
+        h_stream_block (GStar.nil _)
+        (GOpt.some sp_block sp_m
+          (SLAnyDocument.bare sp_block sp_m (SLBareDocument.mk sp_block sp_m h_bn)))
+        (GStar.nil _))
+    h_keyctx
 
 -- Content dispatch with noPending: build separate lines + grammar evidence.
 lemma accum_content_on_noPending
@@ -11905,8 +11949,37 @@ lemma accum_content_pending (sc : ScannerState)
     subst h_colon
     exact block_dispatch_deferred sp_start sp_block sp_scan' s' h_stream_block hcorr_result
   | pendingDocStart _ =>
-    exact h_defer_split (fun _ _ _ _ =>
-      block_dispatch_deferred sp_start sp_block sp_scan' s' h_stream_block hcorr_result)
+    -- ═══ Item 43: `--- a` — `[208] l-explicit-document`'s one-line body.
+    -- A mid-line park cannot close first, so the dispatch runs ROUTED: the
+    -- node anchors at the park (just after the `---`), the crossed whites are
+    -- `[80] s-separate(0)`'s inline arm, and the completed node re-enters the
+    -- stream through `h_doc_builder`'s `SLBareDocument` branch — the
+    -- constructor's own closer, consumed here for the first time
+    -- (`close_with_ssl` takes only the `GAlt.right` empty-node branch).
+    -- The key context punts: `--- a: 1` is refused (`contentOnDocumentStartLine`),
+    -- so no implicit key ever fires behind this park. ═══
+    rename_i h_doc_builder
+    refine h_defer_split (fun hcol sp_ws h_ws h_pk => ?_)
+    have h_eq : sp_prep = sp_ws := by
+      cases h_pk with
+      | inl h => exact h
+      | inr h => rw [preprocess_some_peek h_preprocess] at h; cases h
+    subst h_eq
+    have h_sep : SSeparateLines 0 sp_scan sp_prep :=
+      SSeparateLines.inline 0 sp_scan sp_prep
+        (GStar_SSWhite_to_SSeparateInLine sp_scan sp_prep h_ws)
+    exact content_dispatch_routed sp_start sp_scan sp_block s_prep s' c sp_prep sp_scan'
+      h_stream_block h_sep (nic_false_of_flow_disp h_preprocess h_flow_disp)
+      hcorr_prep hcorr_result h_not_doc (preprocess_some_peek h_preprocess)
+      h_flow_disp h_dispatch
+      (fun sp_m h_bn =>
+        SLYamlStream.implicitContinue sp_start sp_block sp_block sp_m sp_m
+          h_stream_block (GStar.nil _)
+          (GOpt.some sp_block sp_m
+            (h_doc_builder sp_m
+              (GAlt.left sp_scan sp_m (SLBareDocument.mk sp_scan sp_m h_bn))))
+          (GStar.nil _))
+      (Or.inr trivial)
   | pendingFlow _ =>
     -- `pendingFlow` carries no line fact to read — the escape is what
     -- produces it, and it narrows only by the constructor's own elimination
