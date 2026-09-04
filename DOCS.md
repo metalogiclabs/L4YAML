@@ -7964,6 +7964,25 @@ custom axioms; all three checkers OK.  New guard
 `ScannerLandedValueClasses` (5 ACCEPT pins with event shapes on both
 pipelines, 2 refusal pins for the dedent bound).
 
+### Item 61 (2026-09-04)
+
+refuted the ALIAS arm of the fold branch — a phantom, not a deferral.  `[104]
+c-ns-alias-node` is `'*' ns-anchor-name` and `[102] ns-anchor-char` excludes
+`s-white` and `b-char`, so an alias cannot cross a break; the branch it sat in
+is entered only when the token DID cross one.  The fact existed
+(`scanAnchorOrAlias_line_nic`, item 9k); what was missing was its dispatch-level
+wrapper past `validateAliasClose`, so the arm read as a class of input rather
+than as the empty set (Reflection 646's signature, once more).  Six `True`
+exits at the indented question, from seven.
+
+ZERO runtime edits; no new reflection.
+
+**Validation.** Full `lake build` green (ZERO warnings); `run-all-tests.sh`
+4461/4461; matrix 402/402 event + 282/282 JSON on BOTH pipelines; `eventscore`
+347/358 with the failure SET identical; 0 direct and 0 transitive sorries, 0
+custom axioms; all three checkers OK.  No new guard: the arm has no inhabitant
+to pin, which is the claim.
+
 ### REMAINING, in order
 
 The per-item history is the closure log above; this section lists only the

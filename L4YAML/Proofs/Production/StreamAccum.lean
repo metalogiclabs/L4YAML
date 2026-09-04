@@ -14113,10 +14113,14 @@ lemma indentedValue_reads_at_any_indent
                          (SCSingleQuoted_multiCtx .flowOut (Or.inl rfl) h_gram)),
                      GStar.nil _, h_sep_n, h_line, hna, hnt⟩)))
                 · exact Or.inr (Or.inr (Or.inr (Or.inr trivial)))
-              · -- Item 54: the PLAIN fold at `n` (an alias never folds and is
-                -- deferred vacuously).
+              · -- Item 54: the PLAIN fold at `n`.  Item 61: the alias arm is a
+                -- PHANTOM, not a deferral — `[102] ns-anchor-char` excludes
+                -- `s-white` and `b-char`, so an alias cannot cross a break and
+                -- the branch this is in (the token DID cross one) is empty.
                 by_cases hstar : c = '*'
-                · exact Or.inr (Or.inr (Or.inr (Or.inr trivial)))
+                · subst hstar
+                  exact absurd
+                    (dispatchContent_alias_line_nic hpeek_disp h_dispatch).1 hline_eq
                 · have hn_mci : n ≤ minContentIndentOf (if s_prep.allowDirectives then
                       { s_prep with allowDirectives := false, documentEverStarted := true }
                     else s_prep) := by

@@ -506,6 +506,41 @@ lemma dispatchContent_anchor_line_nic {s s' : ScannerState}
       exact ⟨hl, hnic⟩
   · rename_i h_neq; exact absurd rfl h_neq
 
+/-- The `*` arm's twin (item 61).  An alias cannot cross a break —
+    `[104] c-ns-alias-node` is `'*' ns-anchor-name` and `[102] ns-anchor-char`
+    excludes `s-white` and `b-char` — so the step that scanned it stayed on its
+    line, and `validateAliasClose` writes nothing.  This is the fact that makes
+    the alias's arm in the FOLD branch a phantom: that branch is entered only
+    when the token crossed a line. -/
+lemma dispatchContent_alias_line_nic {s s' : ScannerState}
+    (hp : s.peek? = some '*')
+    (hok : scanNextToken_dispatchContent s '*' = .ok s') :
+    s'.line = s.line ∧ s'.needIndentCheck = s.needIndentCheck := by
+  unfold scanNextToken_dispatchContent at hok
+  simp only [bind, Except.bind, pure, Except.pure] at hok
+  split at hok
+  · rename_i h_eq; exact absurd h_eq (by decide)
+  · split at hok
+    · split at hok
+      · simp at hok
+      · split at hok
+        · simp at hok
+        · generalize h_al : scanAnchorOrAlias s false = al_result at hok
+          cases al_result with
+          | error => simp at hok
+          | ok s_al =>
+            obtain ⟨hl, hnic⟩ := scanAnchorOrAlias_line_nic hp (by decide) (by decide) h_al
+            split at hok
+            · exact absurd hok (by simp)
+            · rename_i v heq
+              have hv : v = s_al := (Except.ok.inj heq).symm
+              subst hv
+              split at hok
+              · exact absurd hok (by simp)
+              · simp only [Except.ok.injEq] at hok; subst hok
+                exact ⟨hl, hnic⟩
+    · rename_i h_neq; exact absurd rfl h_neq
+
 /-- The `!` arm's twin. -/
 lemma dispatchContent_tag_line_nic {s s' : ScannerState}
     (hp : s.peek? = some '!')
