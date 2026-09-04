@@ -8356,6 +8356,60 @@ New guard `FlowInteriorScalarAtIndex` pins the floor as the ENCLOSING block
 indent across all three scalar styles, at two depths, with §6.1's tab gate and
 the root's vacuity.
 
+### Item 68 (2026-09-04)
+
+**the park's own COLUMN, at the two parks that had none.**  Item 59 gave
+`pendingBlock` one and item 66 spent it; items 66 and 67a then hit the SAME
+boundary twice more, and both times the missing datum was the column that
+`pendingProps` and `pendingMapValue` did not carry.  They carry one now, in the
+two halves the flow open spends separately — which is the finding, because the
+two do not punt in the same places:
+
+* **`h_col0 : 0 < sp_scan.col` — unconditional, all 16 producers.**  A `[96]`
+  run is at least one character wide and every `pendingMapValue` producer parks
+  one character past an indicator, so no park of either constructor is at a line
+  start.  That is `LandingTabFacts`' missing premise: a column-0 landing that is
+  not the park is a landing that crossed a BREAK.
+* **`h_ncol : n ≤ sp_scan.col ∨ True` — 14 of 16.**  The route index measured
+  against that column, optional for `h_floor`'s reason (R653).  The two
+  IMPLICIT-key producers cannot pay it: the key's column reaches them only
+  through `ImplicitKeyPack`, whose `h_kcol` is itself optional — the same
+  boundary that already makes their `h_floor` optional, so the two punt
+  together rather than separately.
+
+Seven grammar column lemmas pay for it, all beside `separateLines_col_ge`:
+`gchar_col`, `glit_col`, `gplus_gchar_col_lt`, `anchorProperty_col_lt`,
+`tagProperty_col_lt`, `separate_col_ge` and `propsRun_col_gt` — the last being
+the one that matters, *a `[96]` run parked at its route's index ends STRICTLY
+right of it*, whatever the run's width.  That is why the field is `n <` and not
+item 59's `= n + 1`: a two-half run has no fixed width.
+
+Measured at `accum_flow_open_depth0`: opens that push a FLOORLESS stack 2 → 0,
+`flowOpen_underRunTab_refuted` call sites 1 → 3.  Every arm of the depth-0 open
+now refutes both halves of the under-run wherever the pending measured its
+floor, and pushes a stack that reads its interior at the pending's own index —
+so `k:⏎␣␣a:␣["p⏎␣␣␣q"]` and `k:⏎␣␣-␣&x␣["p⏎␣␣␣q"]` compose where they used to
+collapse.  ZERO runtime edits.
+
+**One prediction here was wrong and is corrected in place.**  Item 67a's closure
+note said this field would also close the interior separator's tab half.  It
+does not: the interior's `LandingTabFacts` premise is about the FLOW park — the
+position after a `[`/`{`/`,` — and item 68 supplies the BLOCK pending's column,
+which the interior never sees.  The interior's carrier would be
+`PendingNode.noPending`'s flow disjunct (`sc.inFlow = true`), which every flow
+producer could strengthen to carry `0 < sp.col` for the same reason the parks
+above can.  That is a separate increment, not this one.
+
+**Validation.** Full `lake build` green (1057 jobs, ZERO warnings);
+`run-all-tests.sh` 4465/4465; matrix 402/402 event + 282/282 JSON on BOTH
+pipelines; `eventscore` 347/358 unmoved; `#print axioms` on `parse_sound_deep`
+and on each new declaration names no `sorryAx`; three checkers OK (220 library
+modules, unchanged — the new file is a guard).  `git status` showed only
+`Proofs/` and `Tests/`, so the suite executables are item 66's binaries and the
+events could not have moved.  New guard `ScannerFlowParkColumn` pins the open's
+under-run at all three parks (both halves), the interior floor those parks hand
+the stack across all three scalar styles, and the vacuity at route index 0.
+
 ### REMAINING, in order
 
 The per-item history is the closure log above; this section lists only the
@@ -8368,7 +8422,7 @@ a nonzero index.  R2 is CLOSED too (items 47–51), so what stands between here
 and Step 5 (the converse) is R3's remaining production work and R4:
 
 ```
-R1 ✓ (44–46) ──→ R2 ✓ (47–51) ──→ R3 (52–67a landed; 67b open) ──→ Step 5
+R1 ✓ (44–46) ──→ R2 ✓ (47–51) ──→ R3 (52–68 landed; 67b open) ──→ Step 5
                                         └──────→ R4 (implicitContinue + 0 < m) ──┘
 ```
 
@@ -8502,10 +8556,13 @@ and that deletion, by input class:
   `[161] ns-flow-node(0, block-key)`).  ~~The floor refutation threading into
   the OPEN's under-run arms~~ — CLOSED by item 66: §8.1's own
   `checkBlockFlowIndent` is threaded from `scanNextToken`, and the pending's
-  floor turns the under-run's `j < n` into the check's own condition; the four
+  floor turns the under-run's `j < n` into the check's own condition; ~~the four
   textual drop rides at the open are one, serving `pendingFlow` (R3), the
   floorless parks, and `pendingProps`/`pendingMapValue`'s tab half (neither
-  carries the column that says a break was crossed).  ~~What survives:
+  carries the column that says a break was crossed)~~ — the tab half is CLOSED
+  by item 68, which gave both parks the column (`flowOpen_underRunTab_refuted`
+  call sites 1 → 3), so what still rides at the open is `pendingFlow` (R3) and a
+  park whose own `h_floor` punts.  ~~What survives:
   `dropClose`'s remaining domain — the VALID multi-line scalar tokens at a
   nonzero index~~ — the TOKENS are CLOSED by item 67a, which built the flow
   plain walk's readings at `n`, carried the stack's floor from the open
@@ -8522,8 +8579,15 @@ and that deletion, by input class:
       `k:⏎␣␣-␣[1,⏎␣␣→2]` is `tabInIndentation`.  The run-end half is available
       now; the TAB half needs `LandingTabFacts`' premise, which is again "the
       landing crossed a break" — and again the only carrier is a park COLUMN.
-      So this is item 66's boundary a third time, and it closes for all three
-      parks at once when `pendingProps`/`pendingMapValue` gain one.
+      ~~So this is item 66's boundary a third time, and it closes for all three
+      parks at once when `pendingProps`/`pendingMapValue` gain one.~~  It is the
+      same boundary but NOT the same park, corrected 2026-09-04 when item 68 gave
+      those two their column and this did not move: the premise here is about the
+      FLOW park — the position after a `[`/`{`/`,`, which the interior step
+      holds — and the block pending's column never reaches it.  The carrier is
+      `PendingNode.noPending`'s flow disjunct, which every flow producer can
+      strengthen from `sc.inFlow = true` to carry `0 < sp.col` for item 68's own
+      reason: they all park past an indicator.
     * **6 sites are the `:`-receiving closure's ARGUMENT** — `SSeparateLines 0
       sp_ne sp_p'` handed in by a LATER step, so nothing at this step can
       refute it.  It closes by stating `FlowStackK`'s `.value`-tail colon route
