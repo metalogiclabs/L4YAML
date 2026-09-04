@@ -700,7 +700,9 @@ docker run -d --name yamlall yamlio/alpine-runtime-all tail -f /dev/null
 
 # 3. L4YAML's own numbers, in-repo, no docker:
 lake build eventscore
-.lake/build/bin/eventscore --suite ../yaml-test-suite            # event + error axes
+.lake/build/bin/eventscore                                       # event + error axes
+#   ^ NO --suite: the default is the tracked submodule, which is the 347/358
+#     quoted above.  Pointing it at any other checkout scores something else.
 
 # 4. the full apples-to-apples table:
 lake build l4yaml-event l4yaml-json
@@ -709,6 +711,29 @@ python3 scripts/matrix_score.py --data /path/to/suite-data --axis both \
     --l4yaml-json  .lake/build/bin/l4yaml-json \
     --out results.json
 ```
+
+**The two axes score different corpora, and the difference is exactly one test.**
+`eventscore` reads the submodule's `src/` — 351 `.yaml` files, 358 cases with
+variants expanded.  `matrix_score.py` reads the `data` branch — 352 entries, of
+which `name/` and `tags/` are symlink index dirs it skips, leaving 350 tests and
+402 leaves.  The one id in `src/` and not in `data/` is **`ZYU8`**, which is also
+the only test the pinned submodule corrects (see below).  So the correction is
+visible to `eventscore` and invisible to the matrix by construction; the 402 are
+untouched by it, which is why they stay comparable to the published table.
+
+**The pin, and why it is not stale** (checked 2026-09-04).  The submodule is
+[`478062b9`][suite-pin] on `NicolasRouquette/yaml-test-suite`, pushed, and its
+parent is `da267a5c` — today's `yaml/yaml-test-suite` `main` head.  The one
+commit on top marks `ZYU8`'s `%YAML 1.1 1.2` variant `fail: true`, per `[86]
+ns-yaml-directive` and `[82] l-directive`: after `ns-yaml-version` only
+`s-l-comments` may follow, which is the same reading that makes `H7TQ` a failure.
+Upstream's newest tag is still `v2022-01-17`, and `git diff 45db50ae da267a5c --
+src/` — the point the `data` branch was last regenerated, against current main —
+is **empty**: every upstream commit since is a ReadMe entry or a tester-harness
+refactor.  The corpus has not moved since January 2022, so there is nothing to
+pull and no re-score to run.
+
+[suite-pin]: https://github.com/NicolasRouquette/yaml-test-suite/commit/478062b90533880678b1c9243891957c0f2a1b2b
 
 ### Matrix contribution
 
