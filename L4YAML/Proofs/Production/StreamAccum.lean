@@ -13693,15 +13693,20 @@ lemma indentedValue_reads_at_any_indent
       GStar SSWhite sp_gram sp_scan' ∧
       (sp_scan'.col = 0 ∨ LineNodeStop sp_scan'.chars) ∧
       (c ≠ '&' ∧ c ≠ '!')) ∨
+    -- Item 57: the run reads at the pending's OWN index, so a LANDED run
+    -- answers here too (`k:⏎  -⏎    &a x`).  What the landing cannot carry is
+    -- the indent STABILITY — preprocessing unwinds the stack on a fresh line —
+    -- so that conjunct is optional and the consumer's floor transport punts
+    -- with it; the reading itself is the same one the inline run gives.
     (∃ ha ht : Bool,
-      (∀ n : Nat, SSeparateLines n sp_scan sp_prep) ∧
+      SSeparateLines n sp_scan sp_prep ∧
       (∀ n : Nat, PropsRun n .flowOut ha ht sp_prep sp_scan') ∧
       s'.needIndentCheck = false ∧ LastTokenReal s'.tokens ∧
       (ha = true →
         (trailingPropertyRunOnLine s'.tokens s'.line).any YamlToken.isAnchorProperty = true) ∧
       (ht = true →
         (trailingPropertyRunOnLine s'.tokens s'.line).any YamlToken.isTagProperty = true) ∧
-      (sc.needIndentCheck = false → s'.indents = sc.indents) ∧
+      ((sc.needIndentCheck = false → s'.indents = sc.indents) ∨ True) ∧
       (ha = false ∨ ht = false) ∧
       s'.simpleKey = (if s_prep.allowDirectives then
           { s_prep with allowDirectives := false, documentEverStarted := true }
@@ -13769,11 +13774,11 @@ lemma indentedValue_reads_at_any_indent
         obtain ⟨h_line', h_nic'⟩ := dispatchContent_anchor_line_nic hpeek_disp h_dispatch
         obtain ⟨h_nic_s, h_real_s, h_any⟩ := props_couplings_of_push h_tokens h_line' h_nic'
           h_nic_ad (by simp) (by simp [YamlToken.isNodeProperty])
-        exact Or.inr (Or.inl ⟨true, false, fun n => h_sep_all n .flowOut,
+        exact Or.inr (Or.inl ⟨true, false, h_sep_all n .flowOut,
           fun _ => PropsRun.anchor _ _ ha_ev, h_nic_s, h_real_s,
           (fun _ => h_any YamlToken.isAnchorProperty (by simp [YamlToken.isAnchorProperty])),
           (fun h => nomatch h),
-          (fun h_nic_sc => by
+          Or.inl (fun h_nic_sc => by
             rw [dispatchContent_props_indents (Or.inl rfl) h_dispatch,
                 allowDirectives_update_indents]
             exact h_indents h_nic_sc),
@@ -13788,10 +13793,10 @@ lemma indentedValue_reads_at_any_indent
         obtain ⟨h_line', h_nic'⟩ := dispatchContent_tag_line_nic hpeek_disp h_dispatch
         obtain ⟨h_nic_s, h_real_s, h_any⟩ := props_couplings_of_push h_tokens h_line' h_nic'
           h_nic_ad (by simp) (by simp [YamlToken.isNodeProperty])
-        exact Or.inr (Or.inl ⟨false, true, fun n => h_sep_all n .flowOut,
+        exact Or.inr (Or.inl ⟨false, true, h_sep_all n .flowOut,
           fun _ => PropsRun.tag _ _ ht_ev, h_nic_s, h_real_s, (fun h => nomatch h),
           (fun _ => h_any YamlToken.isTagProperty (by simp [YamlToken.isTagProperty])),
-          (fun h_nic_sc => by
+          Or.inl (fun h_nic_sc => by
             rw [dispatchContent_props_indents (Or.inr rfl) h_dispatch,
                 allowDirectives_update_indents]
             exact h_indents h_nic_sc),
@@ -13923,10 +13928,59 @@ lemma indentedValue_reads_at_any_indent
                       ⟨sp_gram, h_gram, h_tws, h_sep_all, h_line, hna, hnt⟩))))
                   · exact Or.inr (Or.inr (Or.inr (Or.inr (Or.inr trivial))))
           · exact Or.inr (Or.inr (Or.inr (Or.inr (Or.inr trivial))))
-  · -- Item 52: the landing.  Props, block scalars and folds there keep the
-    -- deferral (each is its own class); the one-line flow value composes.
+  · -- Item 52: the landing.  Block scalars and folds there keep the deferral
+    -- (each is its own class); the one-line flow value composes, and item 57's
+    -- run does too.
     by_cases hprops : c = '&' ∨ c = '!'
-    · exact Or.inr (Or.inr (Or.inr (Or.inr (Or.inr trivial))))
+    · -- Item 57: the LANDED `[96]` run (`k:⏎  -⏎    &a x`).  A fresh run is
+      -- single-half, so it has no occurrence of the index to lift and reads at
+      -- the pending's own `n` off the landing's separator — item 52's reading
+      -- of the characters, asked of the run instead of the value.  What does
+      -- NOT cross the break is the indent stability: preprocessing unwinds the
+      -- stack on a fresh line, so the floor rides the optional conjunct and the
+      -- consumer's transport punts (the run's own pack is unaffected).
+      rcases preprocess_some_separate_at_anyCol n sc sp_scan s_prep c
+          h_corr h_preprocess with ⟨sp_p2, hcorr2, h_lines | _⟩
+      · have hsp2 := ScannerSurfCorr_unique hcorr_prep hcorr2
+        subst hsp2
+        have h_nic_prep : s_prep.needIndentCheck = false :=
+          nic_false_of_flow_disp h_preprocess h_flow_disp
+        have h_nic_ad : (if s_prep.allowDirectives then
+            { s_prep with allowDirectives := false, documentEverStarted := true }
+          else s_prep).needIndentCheck = false := by
+          split <;> exact h_nic_prep
+        cases hprops with
+        | inl h =>
+          subst h
+          obtain ⟨sp_a, ha_ev, hc⟩ := dispatchContent_anchorProp_prod _ sp_prep
+            (corr_of_allowDirectives_update hcorr_prep) hpeek_disp h_dispatch
+          have hsp_eq2 := ScannerSurfCorr_unique hc hcorr_result
+          rw [hsp_eq2] at ha_ev
+          obtain ⟨name, h_tokens⟩ := dispatchContent_anchor_tokens h_dispatch
+          obtain ⟨h_line', h_nic'⟩ := dispatchContent_anchor_line_nic hpeek_disp h_dispatch
+          obtain ⟨h_nic_s, h_real_s, h_any⟩ := props_couplings_of_push h_tokens h_line' h_nic'
+            h_nic_ad (by simp) (by simp [YamlToken.isNodeProperty])
+          exact Or.inr (Or.inl ⟨true, false, h_lines,
+            fun _ => PropsRun.anchor _ _ ha_ev, h_nic_s, h_real_s,
+            (fun _ => h_any YamlToken.isAnchorProperty (by simp [YamlToken.isAnchorProperty])),
+            (fun h => nomatch h), Or.inr trivial,
+            Or.inr rfl, (dispatchContent_anchor_simpleKey h_dispatch).1, h_line'⟩)
+        | inr h =>
+          subst h
+          obtain ⟨sp_t, ht_ev, hc⟩ := dispatchContent_tagProp_prod _ sp_prep
+            (corr_of_allowDirectives_update hcorr_prep) hpeek_disp h_dispatch
+          have hsp_eq2 := ScannerSurfCorr_unique hc hcorr_result
+          rw [hsp_eq2] at ht_ev
+          obtain ⟨handle, suffix, h_tokens⟩ := dispatchContent_tag_tokens h_dispatch
+          obtain ⟨h_line', h_nic'⟩ := dispatchContent_tag_line_nic hpeek_disp h_dispatch
+          obtain ⟨h_nic_s, h_real_s, h_any⟩ := props_couplings_of_push h_tokens h_line' h_nic'
+            h_nic_ad (by simp) (by simp [YamlToken.isNodeProperty])
+          exact Or.inr (Or.inl ⟨false, true, h_lines,
+            fun _ => PropsRun.tag _ _ ht_ev, h_nic_s, h_real_s, (fun h => nomatch h),
+            (fun _ => h_any YamlToken.isTagProperty (by simp [YamlToken.isTagProperty])),
+            Or.inr trivial,
+            Or.inl rfl, (dispatchContent_tag_simpleKey h_dispatch).1, h_line'⟩)
+      · exact Or.inr (Or.inr (Or.inr (Or.inr (Or.inr trivial))))
     by_cases hbs : c = '|' ∨ c = '>'
     · exact Or.inr (Or.inr (Or.inr (Or.inr (Or.inr trivial))))
     have hna : c ≠ '&' := fun h => hprops (Or.inl h)
@@ -14035,7 +14089,7 @@ lemma accum_content_on_pendingBlock_indented
     exact ⟨sp_block, sp_block, sp_block, sp_scan', h_stream_block,
            BlockStack.nil sp_block, FlowStackB.nil sp_block .sep,
            PendingNode.pendingProps sp_start sp_block sp_scan' ha ht sp_scan sp_prep n
-             (h_sep_all n) (h_run_all n) h_nic_s h_real_s h_anchor_s h_tag_s
+             h_sep_all (h_run_all n) h_nic_s h_real_s h_anchor_s h_tag_s
              (fun sp_m h_bn => h_close_old sp_m
                (SBlockIndented.node n .blockIn sp_scan sp_m h_bn))
              (entryPropsKeyPack_of_dispatch sc sp_start sp_scan n s_prep s' c
@@ -14045,7 +14099,9 @@ lemma accum_content_on_pendingBlock_indented
                (Or.inl h_close_old)
                ((h_run_all 0).toPropertiesBlockKey h_single) h_sk_s h_line_s
                hcorr_prep h_corr h_preprocess)
-             (IndentFloor.transport h_floor_old h_nic_s h_ind_s),
+             (match h_ind_s with
+              | Or.inl h_ind => IndentFloor.transport h_floor_old h_nic_s h_ind
+              | Or.inr _ => Or.inr trivial),
            hcorr_result⟩
   · -- Item 26: `  - |` — `[198]`'s block scalar at the ENTRY's index.  The node
     -- is complete where the scanner stopped ([170]'s `l-chomped-empty` has
@@ -14409,9 +14465,11 @@ lemma accum_content_on_pendingMapValue_indented
     exact ⟨sp_block, sp_block, sp_block, sp_scan', h_stream_block,
            BlockStack.nil sp_block, FlowStackB.nil sp_block .sep,
            PendingNode.pendingProps sp_start sp_block sp_scan' ha ht sp_scan sp_prep n
-             (h_sep_all n) (h_run_all n) h_nic_s h_real_s h_anchor_s h_tag_s
+             h_sep_all (h_run_all n) h_nic_s h_real_s h_anchor_s h_tag_s
              h_close_old (Or.inr trivial)
-             (IndentFloor.transport h_floor_old h_nic_s h_ind_s),
+             (match h_ind_s with
+              | Or.inl h_ind => IndentFloor.transport h_floor_old h_nic_s h_ind
+              | Or.inr _ => Or.inr trivial),
            hcorr_result⟩
   · -- Item 26: `  a: |`, `  : |`, `  ? |` — the mapping twin of the sequence
     -- entry's block-scalar value, closing at the entry's own index.

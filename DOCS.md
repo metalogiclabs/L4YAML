@@ -7833,6 +7833,34 @@ step — so what it buys is measured at the deletion: these inputs no longer
 reach `accum_block_on_closeThenBlock`'s fallback, and the arms that do are
 listed under R3 below.
 
+### Item 57 (2026-09-04)
+
+paid the LANDED property run — `k:⏎  -⏎    &a x`, the tag twin, the empty-key
+and explicit-entry mapping twins, the root's own index, and the sibling snoc
+after it — by asking the one-question lemma's props answer at the pending's own
+index instead of universally.  A fresh `[96]` run is single-half, so it has no
+occurrence of the index to lift (item 24's reading, unchanged); what made the
+landing a separate class was the SEPARATOR's quantifier, exactly as item 52
+found for the value, so the disjunct now carries `SSeparateLines n` where it
+carried `∀ n` and both branches supply it — the inline one by instantiation,
+the landed one from `preprocess_some_separate_at_anyCol` hoisted above the
+`&`/`!` split.
+
+What the break costs is the indent STABILITY: preprocessing unwinds the stack
+on a fresh line, so the landed run cannot hand its pending the floor, and that
+conjunct became optional with the consumer's `IndentFloor.transport` riding it
+(Reflection 653's discipline — a producer that cannot measure says so, and the
+pack the run actually spends is unaffected).  Reflection 678's second
+application; no new reflection.
+
+ZERO runtime edits.
+
+**Validation.** Full `lake build` green (ZERO warnings); `run-all-tests.sh`
+4461/4461; matrix 402/402 event + 282/282 JSON on BOTH pipelines; `eventscore`
+347/358 with the failure SET identical; 0 direct and 0 transitive sorries, 0
+custom axioms; all three checkers OK.  New guard `ScannerLandedPropsCompose`
+(6 ACCEPT pins with event shapes on both pipelines).
+
 ### REMAINING, in order
 
 The per-item history is the closure log above; this section lists only the
@@ -7916,9 +7944,15 @@ and that deletion, by input class:
   spec-valid, and the flow-context folds, the flow share's);
 * ~~the **landing** class — a value on its own line below its indicator~~
   — CLOSED by item 52 (the break binds the index: the fixed-`n` separator
-  instantiates at the pending's own index).  What survives of it: the
-  DEDENT (the under-run landing), and the landed props/block-scalar/fold
-  shapes, each with its own class here;
+  instantiates at the pending's own index) and, for the landed property
+  RUN, by item 57 (the same move on the props answer, the indent stability
+  given up as an optional conjunct).  What survives of it: the DEDENT (the
+  under-run landing — its TAB half is refutable with item 32's route, its
+  run-end half asks a different question: close the entry with `e-node` and
+  re-open the enclosing collection), and the landed block-scalar and fold
+  shapes, which share ONE missing fact — the landing's own `s-indent(n)`
+  bounds the post-unwind stack, so `n ≤ minContentIndentOf s_prep` off the
+  `col ≥ n` the separator witness already carries;
 * the **block-scalar floor** class — parks whose producer handed
   `IndentFloor`'s `True` (`colon_open_map_props`, one `pendingBlock`
   producer);
