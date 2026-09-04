@@ -8105,12 +8105,31 @@ R1 CLOSED (items 44-46): the flow stack carries its reading index, the three
 flow-open drop rides are gone (4 -> 2 textual drop sites), and the drop's
 flow share lives in ONE place -- `dropClose`, the collapse's close -- whose
 domain is the renounce events (all R2-class) plus multi-line scalar tokens at
-a nonzero index.  Three items stand between here and Step 5 (the converse):
+a nonzero index.  R2 is CLOSED too (items 47–51), so what stands between here
+and Step 5 (the converse) is R3's remaining production work and R4:
 
 ```
-R2 (row 19: over-acceptance residues) ──→ R3 (delete pendingFlow + scannerDrop) ──→ Step 5
-R4 (row 19: implicitContinue + 0 < m) ──────────────────────────────────────────────┘
+R1 ✓ (44–46) ──→ R2 ✓ (47–51) ──→ R3 (52–63 landed; 64–67 open) ──→ Step 5
+                                        └──────→ R4 (implicitContinue + 0 < m) ──┘
 ```
+
+**R4 is not parallel to R3 — it is downstream of item 64**, corrected here
+2026-09-04 after measuring what the tightening costs (the diagram above used to
+draw R4 as its own branch, on the strength of "nothing DEFERS to
+`implicitContinue`").  That remains true and is not the constraint.  The
+constraint is `entryKeyPack_of_dispatch`'s landing split
+([StreamAccum.lean:13245](L4YAML/Proofs/Production/StreamAccum.lean)), which
+reads `by_cases hnw : n ≤ w` and spends `valueMapRoute hnw` over
+`nestedBlockMap`.  Carrying `0 < m` turns that side condition into `n < w`, so
+the EQUAL-width landing loses its route and falls to the pack's `Or.inr` —
+strictly enlarging the punt R3's item 65 exists to drain.  The input is
+`k:⏎  :⏎  b: 2`, and the events say what it should read as instead: the parser
+emits ONE inner mapping with two entries at width 2 (`=VAL :` / `=VAL :` /
+`=VAL :b` / `=VAL :2`), so the honest reading closes the awaited entry with
+`e-node` and CONTINUES the same `[187]` — the sibling composition item 64's
+run-end half has to build anyway.  Build it once, in item 64; then R4's
+tightening has somewhere to send the equal-width case, and 1c and 1d can go as
+one session.
 
 **The structural fact the plan hangs on** (measured at item 35): `pendingFlow`
 has exactly one producer — `block_dispatch_deferred` itself — and carries only
@@ -8210,14 +8229,29 @@ and that deletion, by input class:
 
 This is what closes row 12.
 
-#### R4 — row 19 proper (independent of R1–R3; before Step 5)
+#### R4 — row 19 proper (after item 64; before Step 5)
 
 Tighten the two remaining grammar over-approximations — `implicitContinue`
-(17 construction sites, 16 of them the sibling re-opens row 12 still edits,
-which is the only reason R4 sits after row 12) and `0 < m` on `[183]`/`[187]`'s
-auto-detected width (7 construction sites, zero eliminations). Both falsify
-the converse as long as they survive; details and the chosen approach:
-[The over-approximation problem](#the-over-approximation-problem).
+(**16** construction sites as of 2026-09-04, not item 30's 17: 15 of them the
+`StreamAccum` sibling re-opens row 12 still edits, plus
+`DocumentProduction`'s `stream_implicit_continue`, which passes an EXPLICIT
+document and stays legal as written) and
+`0 < m` on `[183]`/`[187]`'s auto-detected width (**4** construction sites as
+of 2026-09-04, not the 7 item 22 counted: `NodeProduction`'s two re-tags inside
+`SBlockNode_blockIn_to_blockOut`, and the `nestedBlockMap`/`nestedBlockSeq`
+frame lemmas, which `rootBlockMap`/`rootBlockSeq` are now instances of — zero
+eliminations). Both falsify the converse as long as they survive; details and
+the chosen approach: [The over-approximation
+problem](#the-over-approximation-problem).
+
+The two halves are ONE action and should be one session, but not before item
+64 — see the dependency note under [REMAINING, in order](#remaining-in-order)
+for the measurement. The sequencing evidence is per-site rather than
+per-count: `nestedBlockSeq`'s one call already passes `Nat.le_of_lt hlt`, so
+the sequence side pays `0 < m` for free, and the root sites are the encoding's
+`n = 0` convention, which the tightening replaces with a root opener rather
+than a side condition. The whole cost lands on `nestedBlockMap`'s one
+consumer, and it lands as a punt until item 64's sibling composition exists.
 
 #### Settled questions — do not reopen
 
@@ -8410,8 +8444,8 @@ Step 0 (the scanner audit for directive handling) and Fix B (eliminating
 |---|---|
 | Fix A: eliminate `scannerDrop` | 🟡 **β.3 and β.4 COMPLETE (2026-08-10)** — `StreamAccum.lean` is sorry-free and the `L4YAML.Capstones` gate is GREEN. β.5 is open: `block_dispatch_deferred` stands at 6 textual call sites (item 42's per-constructor split of the content dispatch — domain smaller, count larger — minus item 43's `--- a` production, minus item 47's two content-park `:`-arms, closed by the adjacent-value check) and `scannerDrop` at 2 (items 44–46 closed the resume re-index: the stack carries its reading index, indented flow values compose at it, and the flow drops concentrated into the collapse's one close), and the largest block-dispatch site is down to 6 of its 7 pendings (item 36), two of which now defer only a blank-followed `:` (items 37/47) — the content dispatch's own arm defers only `pendingFlow` (items 42–43/47; `--- a` composes through `content_dispatch_routed` and `h_doc_builder`'s first-ever-consumed `SLBareDocument` branch, and the glued `:` is refused at the scanner) — and its routes are now all built bar the closed FLOW node's (items 38–41: the root mapping's, the compact entry's, the mapping value's, the mapping nested under an entry — that one free, because item 40 merged the two producers into one — and the property RUN's at each of those frames, item 41, where the merge's coverage turns out to be a PRODUCT of the branch a caller can reach and the frame it can offer). Per-item record and the ordered list of what is left: [Row 12 — β.5 closure log](#row-12--β5-closure-log) |
 | 1b. Remove `scannerDrop` from `SLYamlStream` | ⬜ open — β.5, once that last use is gone |
-| 1c. Tighten `implicitContinue` in `SLYamlStream` | ⬜ open — action row 19; the third over-approximation, found 2026-08-13 by item 30 and unpriced. Require `l-document-suffix+` for the bare alternative; 17 construction sites, 16 of them the `StreamAccum` sibling re-opens. [The over-approximation problem](#the-over-approximation-problem) |
-| 1d. Carry `0 < m` on `[183]`/`[187]`'s auto-detected width | ⬜ open — action row 19; the fourth over-approximation, found 2026-08-16 by item 40 and unpriced. `SBlockNode.blockSeq`/`.blockMap` take `m : Nat` where the productions write `m > 0`; harmless at the root, admits a nested collection at the enclosing entry's width otherwise. [The over-approximation problem](#the-over-approximation-problem) |
+| 1c. Tighten `implicitContinue` in `SLYamlStream` | ⬜ open — action row 19, **after item 64**; the third over-approximation, found 2026-08-13 by item 30 and unpriced. Require `l-document-suffix+` for the bare alternative; 16 construction sites (re-counted 2026-09-04), 15 of them the `StreamAccum` sibling re-opens. [The over-approximation problem](#the-over-approximation-problem) |
+| 1d. Carry `0 < m` on `[183]`/`[187]`'s auto-detected width | ⬜ open — action row 19, **after item 64**; the fourth over-approximation, found 2026-08-16 by item 40 and unpriced. `SBlockNode.blockSeq`/`.blockMap` take `m : Nat` where the productions write `m > 0`; harmless at the root, admits a nested collection at the enclosing entry's width otherwise. 4 construction sites (re-counted 2026-09-04); the price is `nestedBlockMap`'s one consumer, which punts the equal-width landing until item 64's sibling composition exists. [The over-approximation problem](#the-over-approximation-problem) |
 | 5. Prove the converse `grammar_completeness` | ⬜ open — depends on Fix A **and on 1c**: the converse is false while either over-approximation stands |
 | 6. Assemble the `parse_iff_grammar` biconditional | ⬜ open — depends on Step 5 |
 
@@ -8460,8 +8494,17 @@ refuses the sequence-side witnesses (`-⏎a: 1`, `k:⏎  -⏎  a: 1`,
 `- -⏎  a: 1`), so the gap is observable only on the mapping side. Unpriced;
 it belongs with `implicitContinue` in **row 19**, and the fix is presumably to
 carry `0 < m` on the two constructors and give the root its own opener rather
-than an off-by-one convention (7 construction sites for `blockSeq`/`blockMap`
-when item 22 counted them, ZERO elimination sites).
+than an off-by-one convention (item 22 counted 7 construction sites for
+`blockSeq`/`blockMap`; re-counted 2026-09-04 there are **4** — `NodeProduction`'s
+two re-tags inside `SBlockNode_blockIn_to_blockOut` and the two frame lemmas
+`nestedBlockMap`/`nestedBlockSeq`, items 30/39 having made `rootBlockSeq` and
+`rootBlockMap` instances of those rather than construction sites of their own —
+and ZERO elimination sites).  The re-count does not make the item cheaper,
+because the cost was never the number: `nestedBlockSeq`'s one call already
+passes `Nat.le_of_lt hlt`, and the whole price is `nestedBlockMap`'s single
+consumer at [StreamAccum.lean:13245](L4YAML/Proofs/Production/StreamAccum.lean),
+where `n ≤ w` becoming `n < w` sends the EQUAL-width landing to a punt until
+item 64 builds the sibling composition that reads it.
 
 They make `InYamlLanguage` strictly **weaker** than "parseable YAML"
 (`parseable ⊂ InYamlLanguage`): an unclosed `[1, 2` can satisfy
