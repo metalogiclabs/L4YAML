@@ -7730,6 +7730,29 @@ shapes — dq/sq at `-`/`:`/`?` entries, escaped break, interior empty line —
 §2 five escaped-landing refusals incl. tab-zone and marker, five preserved
 acceptances incl. the blank landings, two unchanged fold refusals).
 
+### Item 54 (2026-09-03)
+
+paid the PLAIN half of the fold class — `k:⏎  - a⏎     b`, the `[189]`/`?`
+mapping twins, the folded explicit KEY closed by its value line — by the
+same rule as item 53 (Reflection 679's second application; no new rule):
+`collectPlainScalar_handleBlockLineBreak`'s own under-indent guard
+(`col < contentIndent → terminate`) funds the reading at any
+`n ≤ contentIndent`, and `contentIndent` in block context IS
+`minContentIndentOf`, so `h_floor`'s left is again the exact hypothesis.
+ZERO runtime edits.  The satellite gains the plain chain
+(`skipBlankLinesLoop_prod_at`, `handleBlockLineBreak_prod_at`,
+`collectPlainScalarLoop_prod_at` — flow break deferred to the flow share —
+and `scanPlainScalar_to_flowNode_at`); the analysis lemma's fold disjunct
+gains the plain walk's trailing-whites star (the quoted cases pass the empty
+one), and the dispatch clone `dispatchContent_plainScalar_prod_at` fires it
+(an alias never folds and defers vacuously).
+
+**Validation.** Full `lake build` green (ZERO warnings); `run-all-tests.sh`
+4461/4461; matrix and `eventscore` unmoved by construction (no runtime
+edit); 0 sorries, 0 custom axioms; checkers OK.  New guard
+`ScannerPlainFoldCompose` (4 pins, all ACCEPT with folded event shapes,
+including the entry-level snoc after a fold and the folded key).
+
 ### REMAINING, in order
 
 The per-item history is the closure log above; this section lists only the
@@ -7805,13 +7828,14 @@ leaves `Surface/Document.lean` and every remaining
 that spends one of the two remaining drops.  What still stands between here
 and that deletion, by input class:
 
-* the **fold** class — a multi-line plain/quoted value at an indented
-  entry — QUOTED half CLOSED by item 53 (the refused landings fund the
-  reading; `ScalarFoldAt.lean`).  What survives: the PLAIN fold
-  (`  - a⏎     b`), the props-decorated fold at the props consumer's k+1
-  arm (`- &a "x⏎   y"`), and item 53's named residues (the tab-blank
-  interior line — scanner-accepted, needs a runtime check — and the
-  blank-after-escaped-break line at a nonzero index, spec-valid);
+* ~~the **fold** class — a multi-line plain/quoted value at an indented
+  entry~~ — CLOSED at both indented arms by items 53 (quoted; the refused
+  landings fund the reading, `ScalarFoldAt.lean`) and 54 (plain; the same
+  rule's second application).  What survives: the props-decorated fold at
+  the props consumer's k+1 arm (`- &a "x⏎   y"`), and the named residues
+  (the tab-blank interior line — scanner-accepted, needs a runtime check —
+  the blank-after-escaped-break line at a nonzero index, spec-valid, and
+  the flow-context plain fold, the flow share's);
 * ~~the **landing** class — a value on its own line below its indicator~~
   — CLOSED by item 52 (the break binds the index: the fixed-`n` separator
   instantiates at the pending's own index).  What survives of it: the
