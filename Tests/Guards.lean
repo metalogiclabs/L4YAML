@@ -51,6 +51,7 @@ import Tests.Guards.Proofs.ScannerPropsFoldCompose
 import Tests.Guards.Proofs.ScannerFlowKeyCompose
 import Tests.Guards.Proofs.ScannerLandedPropsCompose
 import Tests.Guards.Proofs.ScannerCompactFillTabRefused
+import Tests.Guards.Proofs.ScannerCompactKeyFloorCompose
 import Tests.Guards.Proofs.ScannerNodePropertyDelimiter
 import Tests.Guards.Proofs.ScannerContracts
 import Tests.Guards.Proofs.ScannerCorrectness

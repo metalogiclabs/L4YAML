@@ -7890,6 +7890,40 @@ applied to a refutation instead of a production).
 custom axioms; all three checkers OK.  New guard
 `ScannerCompactFillTabRefused` (6 refusal pins, 4 accepted controls).
 
+### Item 59 (2026-09-04)
+
+gave the parked ENTRY its own COLUMN, which is the one datum `[195]`'s compact
+route could not measure — `ImplicitKeyPack`'s docstring said so itself ("the
+compact route cannot measure its own column") — and with it `- a: |`,
+`- a: "p⏎    q"`, `- a: &x |`, `- - |`, `- : |` and `- - "a⏎    b"` read their
+values at the compact index instead of falling to the escape.
+
+An entry's index IS its indicator's column: `[63] s-indent(n)` off a line start
+for a fresh collection, off the enclosing PARK for a compact one, and the
+indicator is one character wide — so the park is at `n + 1`, every producer can
+say so, and the fact went in as a required field on `pendingBlock` (and beside
+the `[185]` slot on `pendingMapValue`, where only the `?` and the explicit `:`
+open one).  `entryKeyPack_of_dispatch`'s compact branch then pays the column
+conjunct it had punted since item 28, `implicit_key_floor` turns that into the
+pending's `IndentFloor`, and the value shapes that need a floor — `[198]`'s
+block scalar at the entry index (item 26/27) and the folds at `n` (items
+53–55), including the props consumer's `k+1` arm (item 55) — fire where they
+used to defer.  Two helper lemmas carry the arithmetic
+(`park_col_of_indicator`, `park_col_of_compact`).
+
+Floor punts that remain: `compact_open_map`'s KEYLESS route (`- : v` pushes no
+key, so there is no column to read) and `colon_open_map_props`.
+
+ZERO runtime edits; no new reflection (Reflection 654's coordinate reading,
+third application).
+
+**Validation.** Full `lake build` green (ZERO warnings); `run-all-tests.sh`
+4461/4461; matrix 402/402 event + 282/282 JSON on BOTH pipelines; `eventscore`
+347/358 with the failure SET identical; 0 direct and 0 transitive sorries, 0
+custom axioms; all three checkers OK.  New guard
+`ScannerCompactKeyFloorCompose` (6 ACCEPT pins with event shapes on both
+pipelines).
+
 ### REMAINING, in order
 
 The per-item history is the closure log above; this section lists only the
@@ -7982,9 +8016,11 @@ and that deletion, by input class:
   shapes, which share ONE missing fact — the landing's own `s-indent(n)`
   bounds the post-unwind stack, so `n ≤ minContentIndentOf s_prep` off the
   `col ≥ n` the separator witness already carries;
-* the **block-scalar floor** class — parks whose producer handed
-  `IndentFloor`'s `True` (`colon_open_map_props`, one `pendingBlock`
-  producer);
+* the **block-scalar floor** class — ~~parks whose producer handed
+  `IndentFloor`'s `True`~~ — CLOSED for the COMPACT key by item 59 (the park
+  carries its column, so `[195]`'s route pays the conjunct item 28 punted).
+  What survives: `compact_open_map`'s keyless route (`- : v` pushes no key)
+  and `colon_open_map_props`;
 * the `:`-punt residues at `pendingContent`/`pendingProps`/
   `pendingBlockContent` (stale/tab refutations via the carried `h_stale`,
   the DEDENT route, alias and props-only key heads);
