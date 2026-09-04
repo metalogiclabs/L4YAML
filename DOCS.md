@@ -8536,10 +8536,12 @@ a continuation line may consume nothing past `[69'] s-flow-line-prefix(n)`,
 which at `n = 0` is zero-width — so `[135]`, and through `[159]` the whole
 `[158] ns-flow-content`, admits a derivation ENDING AT COLUMN 0.
 
-That is not a reading of the inductive: it is
+That is not a reading of the inductive: it was
 `Tests/Guards/Proofs/PlainNextLineEmptyRun.lean`, two derivations the compiler
-accepts, `SNsPlainMultiLine 0 .flowIn ⟨['a','\n'],0⟩ ⟨[],0⟩` and the
-`SFlowContent` that wraps it.  A content step's own evidence is exactly what
+accepted, `SNsPlainMultiLine 0 .flowIn ⟨['a','\n'],0⟩ ⟨[],0⟩` and the
+`SFlowContent` that wrapped it.  **That file is gone, deleted by item 71 the
+next session** — which is what the guard said would happen to it, and the only
+thing in 1059 jobs that the strengthening broke.  A content step's own evidence is exactly what
 `InteriorGap`'s column field would have to refute, so the field cannot be
 discharged there and the invariant cannot be stated.
 
@@ -8571,7 +8573,71 @@ discharged there and the invariant cannot be stated.
    `dispatchContent_{anchor,alias,tag}_line_nic`.
 
 Route 1 is the one the source asks for and the one that removes an
-over-approximation rather than routing around it.
+over-approximation rather than routing around it.  It is item 71.
+
+### Item 71 (2026-09-04)
+
+**`[134]` now demands the character the spec demands, and the scanner's own
+content-length check is what supplies it.**  Route 1 of item 70, landed:
+`s-ns-plain-next-line(n,c)`'s trailing repetition is `GPlus`, so a continuation
+line consumes at least one `ns-plain-char` and `[135]` can no longer end at
+column 0.  The change was confirmed by what it broke: a full 1059-job build
+failed in `Tests/Guards/Proofs/PlainNextLineEmptyRun.lean` and NOWHERE else,
+which is exactly what that guard's docstring predicted.  The file is deleted.
+
+**The check does not say what it looks like it says.**  The scanner discards a
+continuation whose recursion did not grow `content`, and it is tempting to read
+"content grew" as "this line had a content character".  It is not: content also
+grows by a FOLD (`content ++ folded`), so a fold landing on another break would
+grow content with no character in between.  What rules that out is where a fold
+LANDS.  Both fold helpers end in `skipWhitespace`, and both consume every
+all-white line before it as an `l-empty`, so the landing is neither `s-white`
+nor a break.  Four lemmas in `Proofs/Coupling/ScalarCoupling.lean` §7:
+
+* `foldQuotedNewlinesLoop_stop`, `skipBlankLinesLoop_stop` — the loop stops at a
+  non-`s-white` character that is not a break, OR (flow only) at a tab under the
+  floor, `blankLineTabUnderFloor`, which the caller's §6.1 gate turns into
+  `tabInIndentation` — so that arm never reaches `.ok`, and the disjunction is
+  discharged at the `.ok` face rather than inside the loop;
+* `foldQuotedNewlines_landing`, `handleBlockLineBreak_landing` — that `.ok` face.
+
+The generic machinery is in `ScannerCoupling.lean`: `skipWhitespace_peek_not_ws`
+with `skipWhitespaceLoop_fuel_irrel` beneath it (the loop's fuel is
+`inputEnd - offset`, exactly enough, so fuel-exhaustion and end-of-input are the
+same case), and `skipWhitespace_skipSpaces` — `s-indent` skipping is absorbed by
+`s-white` skipping, which is what lets the landing lemmas see past the
+`skipSpaces` that the §6.1 gate reads.
+
+**The conjunct.**  `collectPlainScalarLoop_prod` and `collectPlainScalarLoop_prod_at`
+gained
+
+```lean
+(∀ ch, sc.peek? = some ch →
+    isWhiteSpaceBool ch = false ∧ isLineBreakBool ch = false) →
+  content.length < result.content.length →
+  GPlus (SNbNsPlainInLineEntry (ctxOfInFlow inFlow)) sp_ent sp_entries
+```
+
+which needs no induction of its own.  Nine branches return `content` unchanged
+and refute the length hypothesis (`terminates_content_eq` is the one that needed
+a lemma); the break and whitespace branches refute the peek hypothesis from the
+`isLineBreakBool`/`isWhiteSpaceBool` they already split on; and the content
+branch had already built a `GStar.cons` — the same entry, re-read as `GPlus.mk`.
+The two break branches then USE it, at the fold's landing, to fill `[134]`'s new
+field.  The conjunct deliberately does NOT chain through the whitespace branch:
+`a  ⏎ b` is a walk that grows content with zero entries on its entry line, so
+the version without the `isWhiteSpaceBool` premise is false.
+
+`skipBlankLinesLoop`'s fuel is `inputEnd - offset + 1` in the loop's `inputEnd`
+PARAMETER, not the state's field, so the production lemmas also gained
+`h_ie : sc.inputEnd ≤ inputEnd`, carried across the folds by
+`foldQuotedNewlines_inputEnd` and `handleBlockLineBreak_inputEnd`.
+
+**What the strengthening cost elsewhere: one lemma.**
+`GPlus_entries_ctxOfInFlow_to_flowOut`, because `[134]`'s context lift re-packs
+the entries field.  Nothing else in the library reads it.
+
+Item 70's column on `InteriorGap` is now buildable, and is the next item.
 
 ### REMAINING, in order
 

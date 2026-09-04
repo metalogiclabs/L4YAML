@@ -284,9 +284,11 @@ inductive SNsPlainOneLine : L4YAML.YamlContext → SurfPos → SurfPos → Prop 
     in `GStar (SSNsPlainNextLine n c)`.
     NOTE: `SLEmpty` uses `.flowIn` context per YAML spec §6.8 (`s-flow-folded`
     always uses `b-l-trimmed(n, flow-in)` regardless of outer context `c`).
-    NOTE: Uses `GStar` instead of `GPlus` for entries. The YAML spec requires
-    at least one `ns-plain-char`, which is enforced by the scanner's
-    content-length check. TODO: strengthen to `GPlus` once proved. -/
+    The entry repetition is `GPlus`: the spec's `ns-plain-char(c)` before
+    `nb-ns-plain-in-line(c)` demands at least one, and the scanner's
+    content-length check supplies it (`collectPlainScalarLoop_prod`).  A
+    continuation line that consumes nothing past `[69] s-flow-line-prefix(n)`
+    is an `l-empty` line, folded away by `s-flow-folded(n)` above. -/
 @[yaml_spec "7.3.3" 134 "s-ns-plain-next-line(n,c)"]
 inductive SSNsPlainNextLine : Nat → L4YAML.YamlContext → SurfPos → SurfPos → Prop where
   | mk (n : Nat) (c : L4YAML.YamlContext) (s s_ws s₁ s₂ s₃ s' : SurfPos) :
@@ -294,7 +296,7 @@ inductive SSNsPlainNextLine : Nat → L4YAML.YamlContext → SurfPos → SurfPos
       SBBreak s_ws s₁ →
       GStar (SLEmpty n .flowIn) s₁ s₂ →
       SFlowLinePrefix n s₂ s₃ →
-      GStar (SNbNsPlainInLineEntry c) s₃ s' →
+      GPlus (SNbNsPlainInLineEntry c) s₃ s' →
       SSNsPlainNextLine n c s s'
 
 /-- [135] ns-plain-multi-line(n,c): multi-line plain scalar. -/
