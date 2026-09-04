@@ -3165,6 +3165,55 @@ lemma preprocess_some_separate_0_anyCol (sc : ScannerState) (sp : SurfPos)
     have : SCNbCommentText sp_ws sp_ws := h_eq ▸ h
     exact absurd this (scNbCommentText_irrefl sp_ws)
 
+/-- **The trailing-content check preprocessing runs after its own unwind, read
+    as a DISJUNCTION** (item 66).  `scanNextToken_preprocess` refuses a landing
+    that popped indents and still sits deeper than what is left of the floor
+    (`trailingContent`), so an accepted step tells the accumulation which case
+    it is in: either the stack came through untouched — and then the caller's
+    own `currentIndent` is still the one the dispatch will read — or the
+    landing is at or left of the floor, which is `[187]`'s own condition for
+    refusing a flow open. -/
+lemma preprocess_indents_or_underIndent {sc s_prep : ScannerState} {c : Char}
+    (hok : scanNextToken_preprocess sc = .ok (some (s_prep, c))) :
+    s_prep.indents = sc.indents ∨ (s_prep.col : Int) ≤ s_prep.currentIndent := by
+  unfold scanNextToken_preprocess at hok
+  simp only [bind, Except.bind, pure, Except.pure] at hok
+  split at hok
+  · simp at hok
+  · rename_i s_content h_skip
+    have h_ci : s_content.indents = sc.indents :=
+      skipToContent_preserves_indents sc s_content h_skip
+    split at hok
+    · simp at hok
+    · split at hok
+      · -- the armed unwind ran
+        split at hok
+        · simp at hok
+        · rename_i h_nott
+          split at hok
+          · simp at hok
+          · have h := Except.ok.inj hok; injection h with h
+            obtain ⟨h1, h2⟩ := Prod.mk.inj h; subst h1; subst h2
+            rcases unwindIndents_shrink_or_eq s_content (s_content.col : Int) with h_sh | h_eq
+            · refine Or.inr ?_
+              simp only [Bool.and_eq_true, decide_eq_true_eq, not_and, Int.not_lt] at h_nott
+              have h1 : (unwindIndents s_content (s_content.col : Int)).indents.size <
+                  s_content.indents.size := h_sh
+              have h2 := h_nott h1
+              simp only [saveSimpleKey_col, ScannerState.currentIndent,
+                saveSimpleKey_preserves_indents]
+              simpa [ScannerState.currentIndent] using h2
+            · exact Or.inl ((saveSimpleKey_preserves_indents _).trans
+                (by simpa using h_eq.trans h_ci))
+      · -- no unwind: the stack is the walk's, which is the caller's
+        split at hok
+        · simp at hok
+        · split at hok
+          · simp at hok
+          · have h := Except.ok.inj hok; injection h with h
+            obtain ⟨h1, h2⟩ := Prod.mk.inj h; subst h1; subst h2
+            exact Or.inl ((saveSimpleKey_preserves_indents s_content).trans h_ci)
+
 /-- **The landing read at a GIVEN index** (item 45).  The n-generic twin of
     `preprocess_some_separate_0_anyCol`: a step that crossed no break reads
     inline at every `n`; a step that landed on a fresh line reads
@@ -3180,8 +3229,9 @@ lemma preprocess_some_separate_at_anyCol (n : Nat) (sc : ScannerState) (sp : Sur
     ∃ sp_prep, ScannerSurfCorr s_prep sp_prep ∧
       (SSeparateLines n sp sp_prep ∨
         ∃ sp_mid, SSLComments sp sp_mid ∧ sp_mid.col = 0 ∧
-          WhiteRunUnderRun n sp_mid sp_prep) := by
-  obtain ⟨sp_mid, sp_ws, sp_prep, h_disj, h_ws, h_cmt, hcorr_out, h_pk, _⟩ :=
+          WhiteRunUnderRun n sp_mid sp_prep ∧
+          LandingTabFacts sc.currentIndent sc.needIndentCheck s_prep.peek? sp sp_mid) := by
+  obtain ⟨sp_mid, sp_ws, sp_prep, h_disj, h_ws, h_cmt, hcorr_out, h_pk, h_ltsl⟩ :=
     preprocess_some_ssl_comments_anyCol sc sp s_prep c hcorr hok
   have h_eq : sp_prep = sp_ws := by
     cases h_pk with
@@ -3196,7 +3246,7 @@ lemma preprocess_some_separate_at_anyCol (n : Nat) (sc : ScannerState) (sp : Sur
       · exact ⟨sp_prep, hcorr_out,
           Or.inl (SSeparateLines.commented n sp sp_mid sp_prep h_ssl_col.1 h_flp)⟩
       · exact ⟨sp_prep, hcorr_out,
-          Or.inr ⟨sp_mid, h_ssl_col.1, h_ssl_col.2, h_ur⟩⟩
+          Or.inr ⟨sp_mid, h_ssl_col.1, h_ssl_col.2, h_ur, h_ltsl⟩⟩
     | inr h_mid_eq =>
       rw [h_mid_eq.1] at h_ws
       exact ⟨sp_prep, hcorr_out,
@@ -5496,6 +5546,80 @@ lemma flowKeyRoute_of_root {m : Nat} {sp_start sp_scan sp_prep : SurfPos}
           rootMapRoute h_col0 (h_close sp_scan (sslComments_refl_of_col0 h_col0)) h_ind',
           flowKeyHead⟩
 
+/-- **§8.1's floor for a flow OPEN, read as a refutation** (item 66).  A
+    `[`/`{` at or left of the enclosing block collection's indent has no
+    `s-l+flow-in-block(n)` derivation, and the scanner refuses it before any
+    dispatch runs — one check, ahead of all three dispatchers. -/
+lemma checkBlockFlowIndent_refutes {s : ScannerState} {c : Char} {u : Unit}
+    (h_noflow : s.inFlow = false) (h_c : c = '[' ∨ c = '{')
+    (h_ci : 0 ≤ s.currentIndent) (h_col : (s.col : Int) ≤ s.currentIndent)
+    (hok : scanNextToken_checkBlockFlowIndent s c = .ok u) : False := by
+  unfold scanNextToken_checkBlockFlowIndent at hok
+  rw [if_pos ?_] at hok
+  · exact absurd hok (by simp)
+  · rcases h_c with rfl | rfl <;> simp [h_noflow, h_ci, h_col]
+
+/-- **The flow open's own under-run** (item 66): the arithmetic that turns the
+    pending's floor into `checkBlockFlowIndent`'s condition.
+
+    The landing ends its `[63] s-indent` run at `j < n`, and the pending's
+    floor says `n ≤ currentIndent + 1` — so the open sits at or left of the
+    floor.  Which `currentIndent` the CHECK reads is preprocessing's answer,
+    not the caller's: the unwind may have popped.  Both of its cases give the
+    same conclusion (`preprocess_indents_or_underIndent`), which is why the
+    refutation needs no fact about the unwind itself. -/
+lemma flowOpen_underRunEnd_refuted {sc s_prep sd : ScannerState} {c : Char} {n j : Nat}
+    {sp_prep sp_mid : SurfPos} {u : Unit}
+    (h_floor : IndentFloor sc n)
+    (hcorr_prep : ScannerSurfCorr s_prep sp_prep)
+    (h_dcol : sd.col = s_prep.col) (h_dind : sd.indents = s_prep.indents)
+    (h_dflow : sd.inFlow = false)
+    (h_c : c = '[' ∨ c = '{')
+    (h_col0 : sp_mid.col = 0)
+    (hj : j < n) (h_ind : SIndent j sp_mid sp_prep)
+    (h_preprocess : scanNextToken_preprocess sc = .ok (some (s_prep, c)))
+    (h_bfi : scanNextToken_checkBlockFlowIndent sd c = .ok u) : False := by
+  have h_colj : sp_prep.col = j := by
+    have := SIndent_col' h_ind; rw [h_col0] at this; omega
+  have h_scol : s_prep.col = j := by rw [← hcorr_prep.col_eq, h_colj]
+  have h_le : (j : Int) ≤ sc.currentIndent := by
+    have hn := h_floor.2
+    unfold minContentIndentOf at hn
+    omega
+  have h_key : (s_prep.col : Int) ≤ s_prep.currentIndent := by
+    rcases preprocess_indents_or_underIndent h_preprocess with h_eq | h
+    · rw [currentIndent_of_indents_eq h_eq, h_scol]; exact h_le
+    · exact h
+  have h_dc : (sd.col : Int) ≤ sd.currentIndent := by
+    rw [h_dcol, currentIndent_of_indents_eq h_dind]; exact h_key
+  exact checkBlockFlowIndent_refutes h_dflow h_c
+    (Int.le_trans (Int.natCast_nonneg sd.col) h_dc) h_dc h_bfi
+
+/-- **…and its TAB half is §6.1's** (item 66).  A tab at or left of the floor
+    on a line the preprocessing walk ARRIVED at is `tabInIndentation`, which is
+    item 64's `LandingTabFacts` — the same fact, spent one production over: the
+    survivors it names are a comment head and end of input, and a flow open is
+    neither. -/
+lemma flowOpen_underRunTab_refuted {sc s_prep : ScannerState} {c : Char} {n j : Nat}
+    {sp_scan sp_mid sx : SurfPos}
+    (h_floor : IndentFloor sc n)
+    (h_ltsl : LandingTabFacts sc.currentIndent sc.needIndentCheck s_prep.peek? sp_scan sp_mid)
+    (h_break : sp_mid ≠ sp_scan)
+    (h_col0 : sp_mid.col = 0)
+    (hj : j < n) (h_ind : SIndent j sp_mid sx) (h_tab : sx.chars.head? = some '\t')
+    (h_c : c = '[' ∨ c = '{')
+    (h_preprocess : scanNextToken_preprocess sc = .ok (some (s_prep, c))) : False := by
+  have hn := h_floor.2
+  unfold minContentIndentOf at hn
+  have hci : (0 : Int) ≤ sc.currentIndent := by omega
+  have hsx : (sx.col : Int) ≤ sc.currentIndent := by
+    have := SIndent_col' h_ind; rw [h_col0] at this; omega
+  rcases h_ltsl (Or.inr h_break) hci j sx h_ind hsx h_tab with h | h
+  · rw [preprocess_some_peek h_preprocess] at h; cases h
+  · rw [preprocess_some_peek h_preprocess] at h
+    injection h with h
+    rcases h_c with rfl | rfl <;> cases h
+
 lemma accum_flow_open_depth0 (sc : ScannerState)
     (sp_start sp_gram sp_block sp_scan sp_prep sp_open : SurfPos)
     (s_prep s' : ScannerState) (c : Char)
@@ -5518,6 +5642,11 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
     (h_sks1 : 0 < s'.simpleKeyStack.size)
     (h_c : c = '[' ∨ c = '{')
     (h_fl0 : sc.flowLevel = 0)
+    -- Item 66: §8.1's floor, which every flow open passes through before any
+    -- dispatch runs.  The under-run rides below are its refutation.
+    (h_bfi : scanNextToken_checkBlockFlowIndent (if s_prep.allowDirectives then
+          { s_prep with allowDirectives := false, documentEverStarted := true }
+        else s_prep) c = .ok ())
     (mk : ∀ (n : Nat) (sp_before : SurfPos), FlowBaseRoutes sp_start n sp_prep →
         FlowStackB sp_start n 1 s'.flowStack #[false] (tailOf s'.tokens) sp_before sp_open) :
     ∃ sp_gram' sp_block' sp_flow' sp_scan',
@@ -5554,6 +5683,23 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
   -- The dispatched char, read back at the surface: preprocessing stopped ON it.
   have h_head : sp_prep.chars.head? = some c :=
     head_of_peek hcorr_prep (preprocess_some_peek h_preprocess)
+  -- Item 66: the state §8.1's check reads is preprocessing's, one allowDirectives
+  -- update on — which writes neither the cursor nor the stack.
+  have h_dflow : (if s_prep.allowDirectives then
+      { s_prep with allowDirectives := false, documentEverStarted := true }
+    else s_prep).inFlow = false := by
+    unfold ScannerState.inFlow
+    rw [show (if s_prep.allowDirectives then
+          { s_prep with allowDirectives := false, documentEverStarted := true }
+        else s_prep).flowLevel = s_prep.flowLevel from by split <;> rfl,
+      preprocess_preserves_flowLevel sc s_prep c h_preprocess, h_fl0]
+    simp
+  have h_dcol : (if s_prep.allowDirectives then
+      { s_prep with allowDirectives := false, documentEverStarted := true }
+    else s_prep).col = s_prep.col := by split <;> rfl
+  have h_dind : (if s_prep.allowDirectives then
+      { s_prep with allowDirectives := false, documentEverStarted := true }
+    else s_prep).indents = s_prep.indents := by split <;> rfl
   -- Shared fresh-bare-document route for the closeable pendings (Pattern 6),
   -- parameterized (item 10) by the pending's own NO-BREAK continuation: a
   -- refutation for the completed constructs, the `scannerDrop` ride for the
@@ -5615,6 +5761,21 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
   -- `dropClose` — the collection rides the drop until `pendingFlow` goes (R3).
   -- Every other pending now opens the stack at its OWN index below; what used
   -- to share this arm (`  - [1]`, `  - &a [b]`) composes through the resume.
+  have drop_ride :
+      ∃ sp_gram' sp_block' sp_flow' sp_scan',
+        SLYamlStream sp_start sp_gram' ∧
+        BlockStack sp_gram' sp_block' ∧
+        FlowStackK sp_start s' 1 s'.flowStack (tailOf s'.tokens) sp_block' sp_flow' ∧
+        PendingNode s' false sp_start sp_flow' sp_scan' ∧
+        ScannerSurfCorr s' sp_scan' ∧
+        ((1 : Nat) ≥ 1 →
+          InteriorGap s' (tailOf s'.tokens) sp_flow' sp_scan' ∧
+          LastTokenReal s'.tokens ∧ s'.allowDirectives = false) :=
+    ⟨sp_block, sp_block, sp_open, sp_open, h_stream_block, BlockStack.nil _,
+     h_kpkg _ _ _ (mkv 0 sp_block (fun sp_ne sp_m _ h_ssl =>
+       dropClose h_stream_block sp_ne sp_m h_ssl)),
+     PendingNode.noPending sp_start sp_open (Or.inr (inFlow_of_flowLevel_eq h_fl1)), hcorr_open,
+     fun _ => ⟨.white (GStar.nil _) h_sync h_colon, h_real, h_ad⟩⟩
   have opaque_resume : sp_scan.col ≠ 0 → GStar SSWhite sp_scan sp_prep →
       ∃ sp_gram' sp_block' sp_flow' sp_scan',
         SLYamlStream sp_start sp_gram' ∧
@@ -5625,12 +5786,7 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
         ((1 : Nat) ≥ 1 →
           InteriorGap s' (tailOf s'.tokens) sp_flow' sp_scan' ∧
           LastTokenReal s'.tokens ∧ s'.allowDirectives = false) :=
-    fun _ _ =>
-      ⟨sp_block, sp_block, sp_open, sp_open, h_stream_block, BlockStack.nil _,
-       h_kpkg _ _ _ (mkv 0 sp_block (fun sp_ne sp_m _ h_ssl =>
-         dropClose h_stream_block sp_ne sp_m h_ssl)),
-       PendingNode.noPending sp_start sp_open (Or.inr (inFlow_of_flowLevel_eq h_fl1)), hcorr_open,
-       fun _ => ⟨.white (GStar.nil _) h_sync h_colon, h_real, h_ad⟩⟩
+    fun _ _ => drop_ride
   cases h_pending with
   | noPending _ _ h_col =>
     -- Nothing to close: the leading separation rides in the fresh bare
@@ -5663,7 +5819,7 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
     -- node opened here keeps riding it (β.5 retires this with pendingFlow, R3).
     exact main h_close_pending opaque_resume
   | pendingProps _ _ _ ha ht sp_node sp_p n h_sep_run h_run h_nic_p h_real_p h_anchor_p h_tag_p
-      h_route h_pkey _ =>
+      h_route h_pkey h_floor_p =>
     -- Items 9h/10, site 5's legal inhabitant: the held `[96]` run rides INTO
     -- the flow node.  The separation preprocessing crossed (break or not —
     -- `&a [b]` and `&a⏎[b]` alike) becomes the run→content `s-separate`, and
@@ -5679,7 +5835,7 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
       preprocess_some_separate_at_anyCol n sc sp_scan s_prep c h_corr h_preprocess
     have h_pe : sp_gap = sp_prep := ScannerSurfCorr_unique hcorr_gap hcorr_prep
     rw [h_pe] at h_sep_or
-    rcases h_sep_or with h_sep | _
+    rcases h_sep_or with h_sep | ⟨sp_mid2, _h_ssl2, h_col02, h_ur, _h_ltsl2⟩
     · exact ⟨sp_gram, sp_block, sp_open, sp_open, h_stream, h_stack,
              h_kpkg _ _ _ (mk n sp_block ⟨(fun sp_ne sp_m h_content h_ssl =>
                h_route sp_m (flowInBlock_blockNode h_sep_run
@@ -5703,11 +5859,16 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
                Or.inr trivial⟩),
              PendingNode.noPending sp_start sp_open (Or.inr (inFlow_of_flowLevel_eq h_fl1)), hcorr_open,
              fun _ => ⟨.white (GStar.nil _) h_sync h_colon, h_real, h_ad⟩⟩
-    · exact ⟨sp_block, sp_block, sp_open, sp_open, h_stream_block, BlockStack.nil _,
-             h_kpkg _ _ _ (mkv 0 sp_block (fun sp_ne sp_m _ h_ssl =>
-               dropClose h_stream_block sp_ne sp_m h_ssl)),
-             PendingNode.noPending sp_start sp_open (Or.inr (inFlow_of_flowLevel_eq h_fl1)), hcorr_open,
-             fun _ => ⟨.white (GStar.nil _) h_sync h_colon, h_real, h_ad⟩⟩
+    · -- Item 66: the run-end half of the under-run is §8.1's own refusal
+      -- (`k:⏎  b:⏎    &x⏎[1]`); the TAB half still rides the drop, because a
+      -- props park carries no column and so cannot say the landing crossed a
+      -- break — the premise `LandingTabFacts` needs (Reflection 683).
+      rcases h_ur with ⟨j, sx, hj, h_ind, _h_ws2, h_end | _h_tab⟩
+      · rcases h_floor_p with h_floor | _
+        · exact (flowOpen_underRunEnd_refuted h_floor hcorr_prep h_dcol h_dind
+            h_dflow h_c h_col02 hj (h_end ▸ h_ind) h_preprocess h_bfi).elim
+        · exact drop_ride
+      · exact drop_ride
   | pendingDocStart =>
     rename_i h_doc_builder
     obtain ⟨sp_gap, h_sep0, hcorr_gap⟩ :=
@@ -5735,18 +5896,19 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
                h_corr hcorr_prep h_preprocess,
              Or.inr trivial⟩),
            PendingNode.noPending sp_start sp_open (Or.inr (inFlow_of_flowLevel_eq h_fl1)), hcorr_open, fun _ => ⟨.white (GStar.nil _) h_sync h_colon, h_real, h_ad⟩⟩
-  | pendingBlock _ _ _ n_old h_close _ _ _ h_col59 =>
+  | pendingBlock _ _ _ n_old h_close _ h_floor_old _ h_col59 =>
     -- Item 46: the stack opens at the ENTRY's index, so the resume's node
-    -- fits `flowInBlock n_old` and `  - [1]` composes.  The one deferral left
-    -- is the landing that under-runs `s-indent(n_old)` on the open itself
-    -- (`k:⏎  a:⏎[1]` never scans — `checkBlockFlowIndent` — so the branch's
-    -- domain is the break-crossed opens the check exempts), which takes the
-    -- drop route.
+    -- fits `flowInBlock n_old` and `  - [1]` composes.  Item 66: the landing
+    -- that under-runs `s-indent(n_old)` on the OPEN itself is not a deferral
+    -- at all — §8.1's `checkBlockFlowIndent` refuses it when the run ends
+    -- there (`k:⏎  -⏎[1]`, `a:⏎  b:⏎    -⏎  [1]`) and §6.1's own gate when
+    -- the run carries a tab (`k:⏎  -⏎ →[1]`), so the arm is REFUTED wherever
+    -- the pending carries its floor.
     obtain ⟨sp_gap, hcorr_gap, h_sep_or⟩ :=
       preprocess_some_separate_at_anyCol n_old sc sp_scan s_prep c h_corr h_preprocess
     have h_pe : sp_gap = sp_prep := ScannerSurfCorr_unique hcorr_gap hcorr_prep
     rw [h_pe] at h_sep_or
-    rcases h_sep_or with h_sep | _
+    rcases h_sep_or with h_sep | ⟨sp_mid2, _h_ssl2, h_col02, h_ur, h_ltsl2⟩
     · exact ⟨sp_gram, sp_block, sp_open, sp_open, h_stream, h_stack,
              h_kpkg _ _ _ (mk n_old sp_block ⟨(fun sp_ne sp_m h_content h_ssl =>
                h_close sp_m (SBlockIndented.node n_old .blockIn sp_scan sp_m
@@ -5759,12 +5921,15 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
                  (Or.inl h_close) h_corr hcorr_prep h_preprocess,
                Or.inr trivial⟩),
              PendingNode.noPending sp_start sp_open (Or.inr (inFlow_of_flowLevel_eq h_fl1)), hcorr_open, fun _ => ⟨.white (GStar.nil _) h_sync h_colon, h_real, h_ad⟩⟩
-    · exact ⟨sp_block, sp_block, sp_open, sp_open, h_stream_block, BlockStack.nil _,
-             h_kpkg _ _ _ (mkv 0 sp_block (fun sp_ne sp_m _ h_ssl =>
-               dropClose h_stream_block sp_ne sp_m h_ssl)),
-             PendingNode.noPending sp_start sp_open (Or.inr (inFlow_of_flowLevel_eq h_fl1)), hcorr_open,
-             fun _ => ⟨.white (GStar.nil _) h_sync h_colon, h_real, h_ad⟩⟩
-  | pendingMapValue _ _ _ n_old h_close _ _ _ _ h_expl h_vslot =>
+    · rcases h_floor_old with h_floor | _
+      · rcases h_ur with ⟨j, sx, hj, h_ind, _h_ws2, h_end | h_tab⟩
+        · exact (flowOpen_underRunEnd_refuted h_floor hcorr_prep h_dcol h_dind
+            h_dflow h_c h_col02 hj (h_end ▸ h_ind) h_preprocess h_bfi).elim
+        · exact (flowOpen_underRunTab_refuted h_floor h_ltsl2
+            (fun h => by rw [h, h_col59] at h_col02; omega) h_col02 hj h_ind h_tab
+            h_c h_preprocess).elim
+      · exact drop_ride
+  | pendingMapValue _ _ _ n_old h_close h_floor_mv _ _ _ h_expl h_vslot =>
     -- Item 13: the flow collection IS the mapping's value (`: [a]`, `: {a: b}`)
     -- — same closure type as `pendingBlock`, so the arm is its verbatim clone,
     -- indent split included.
@@ -5772,7 +5937,7 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
       preprocess_some_separate_at_anyCol n_old sc sp_scan s_prep c h_corr h_preprocess
     have h_pe : sp_gap = sp_prep := ScannerSurfCorr_unique hcorr_gap hcorr_prep
     rw [h_pe] at h_sep_or
-    rcases h_sep_or with h_sep | _
+    rcases h_sep_or with h_sep | ⟨sp_mid2, _h_ssl2, h_col02, h_ur, _h_ltsl2⟩
     · exact ⟨sp_gram, sp_block, sp_open, sp_open, h_stream, h_stack,
              h_kpkg _ _ _ (mk n_old sp_block ⟨(fun sp_ne sp_m h_content h_ssl =>
                h_close sp_m (SBlockNode.flowInBlock n_old .blockIn sp_scan sp_prep sp_ne sp_m
@@ -5797,11 +5962,14 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
                         h_ind h_lit h_sbi)⟩
                 | Or.inr _ => Or.inr trivial)⟩),
              PendingNode.noPending sp_start sp_open (Or.inr (inFlow_of_flowLevel_eq h_fl1)), hcorr_open, fun _ => ⟨.white (GStar.nil _) h_sync h_colon, h_real, h_ad⟩⟩
-    · exact ⟨sp_block, sp_block, sp_open, sp_open, h_stream_block, BlockStack.nil _,
-             h_kpkg _ _ _ (mkv 0 sp_block (fun sp_ne sp_m _ h_ssl =>
-               dropClose h_stream_block sp_ne sp_m h_ssl)),
-             PendingNode.noPending sp_start sp_open (Or.inr (inFlow_of_flowLevel_eq h_fl1)), hcorr_open,
-             fun _ => ⟨.white (GStar.nil _) h_sync h_colon, h_real, h_ad⟩⟩
+    · -- Item 66: the run-end half is §8.1's refusal (`k:⏎  a:⏎[1]`); the TAB
+      -- half rides the drop for `pendingProps`' reason.
+      rcases h_ur with ⟨j, sx, hj, h_ind, _h_ws2, h_end | _h_tab⟩
+      · rcases h_floor_mv with h_floor | _
+        · exact (flowOpen_underRunEnd_refuted h_floor hcorr_prep h_dcol h_dind
+            h_dflow h_c h_col02 hj (h_end ▸ h_ind) h_preprocess h_bfi).elim
+        · exact drop_ride
+      · exact drop_ride
 
 /-! ### §1c''b Token-history readings of the flow dispatch (9b(ii))
 
@@ -7067,6 +7235,11 @@ lemma accum_step_flow (sc : ScannerState)
       InteriorGap sc (tailOf sc.tokens) sp_flow sp_scan ∧
         LastTokenReal sc.tokens ∧ sc.allowDirectives = false)
     (h_preprocess : scanNextToken_preprocess sc = .ok (some (s_prep, c)))
+    -- Item 66: §8.1's floor, threaded from `scanNextToken` — the one check
+    -- that runs between the structural dispatch and this one.
+    (h_bfi : scanNextToken_checkBlockFlowIndent (if s_prep.allowDirectives then
+          { s_prep with allowDirectives := false, documentEverStarted := true }
+        else s_prep) c = .ok ())
     (h_dispatch : scanNextToken_dispatchFlowIndicators
         (if s_prep.allowDirectives then
           { s_prep with allowDirectives := false, documentEverStarted := true }
@@ -7145,7 +7318,7 @@ lemma accum_step_flow (sc : ScannerState)
               simp only [ScannerCorrectness.emit_preserves_simpleKeyStack,
                 ScannerCorrectness.advance_preserves_simpleKeyStack, Array.size_push]
               omega)
-          (Or.inl rfl) h0
+          (Or.inl rfl) h0 h_bfi
           (fun _ _ resume => by
             rw [ScannerFlowCollection.scanFlowSequenceStart_pushes_true, h_ad_ks0,
                 (tailOf_scanFlowSequenceStart _).1,
@@ -7189,7 +7362,7 @@ lemma accum_step_flow (sc : ScannerState)
                   simp only [ScannerCorrectness.emit_preserves_simpleKeyStack,
                     ScannerCorrectness.advance_preserves_simpleKeyStack, Array.size_push]
                   omega)
-              (Or.inr rfl) h0
+              (Or.inr rfl) h0 h_bfi
               (fun _ _ resume => by
                 rw [ScannerFlowCollection.scanFlowMappingStart_pushes_false, h_ad_ks0,
                     (tailOf_scanFlowMappingStart _).1,
@@ -16730,6 +16903,10 @@ lemma scanNextToken_accum_step (sc : ScannerState)
             split at h_ok
             · simp at h_ok
             · -- scanNextToken_checkBlockFlowIndent — pure check, no state change
+              -- (item 66: and its SUCCESS is what refutes the flow open's own
+              -- under-run landing, so the flow step now takes it).
+              rename_i v_bfi h_bfi
+              cases v_bfi
               split at h_ok
               · simp at h_ok
               · split at h_ok
@@ -16737,7 +16914,7 @@ lemma scanNextToken_accum_step (sc : ScannerState)
                   have h := Except.ok.inj h_ok; injection h with h; subst h
                   obtain ⟨g', bl', fl', sn', q1, q2, q3, q4, q5, q6⟩ :=
                     accum_step_flow sc sp_start sp_gram sp_block sp_flow sp_scan s_pre s_flow_out c_pre
-                      h_stream h_stack h_flow h_pending h_corr h_interior h_pre h_flow_disp
+                      h_stream h_stack h_flow h_pending h_corr h_interior h_pre h_bfi h_flow_disp
                   exact ⟨g', bl', fl', sn', false, q1, q2, q3, q4, fun h => Bool.noConfusion h, q5, q6⟩
                 · rename_i h_flow_none
                   split at h_ok

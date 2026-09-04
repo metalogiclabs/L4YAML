@@ -90,14 +90,17 @@ example : SCDoubleQuoted 2 .flowOut ⟨['"', 'a', '"'], 4⟩ ⟨[], 7⟩ :=
 /-! ## §3  The separator at a given index -/
 
 /-- The landing read's shape: `s-separate-lines(n)` from preprocessing, or the
-    LOCATED under-run on the landing line. -/
+    LOCATED under-run on the landing line — which item 66 hands on with §6.1's
+    own gate beside it, so the caller can refuse the run's tab half where the
+    caller knows a break was crossed. -/
 example (n : Nat) (sc : ScannerState) (sp : SurfPos) (s_prep : ScannerState)
     (c : Char) (hcorr : ScannerSurfCorr sc sp)
     (hok : scanNextToken_preprocess sc = .ok (some (s_prep, c))) :
     ∃ sp_prep, ScannerSurfCorr s_prep sp_prep ∧
       (SSeparateLines n sp sp_prep ∨
         ∃ sp_mid, SSLComments sp sp_mid ∧ sp_mid.col = 0 ∧
-          WhiteRunUnderRun n sp_mid sp_prep) :=
+          WhiteRunUnderRun n sp_mid sp_prep ∧
+          Proofs.LandingTab.LandingTabFacts sc.currentIndent sc.needIndentCheck s_prep.peek? sp sp_mid) :=
   preprocess_some_separate_at_anyCol n sc sp s_prep c hcorr hok
 
 end L4YAML.Tests.Guards.FlowIndexLeafEvidence

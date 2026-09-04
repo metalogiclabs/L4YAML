@@ -8241,6 +8241,63 @@ is scanner-refused at the root), and the shapes the surviving reasons name.  It
 pins runtime behaviour only: an escape is silent, so no observation can say
 which arm an input takes.
 
+### Item 66 (2026-09-04)
+
+**the flow open's own under-run is a scanner refusal.**  Item 46 left one
+deferral at the depth-0 flow open — the landing that under-runs
+`s-indent(n_old)` on the OPEN itself, which no `[70] s-separate-lines(n)`
+derives — and it stood at four textual `dropClose` rides (one per pending that
+opens the stack at its own index, plus `pendingFlow`'s opaque resume).  It is
+now ONE, and its domain is strictly smaller.
+
+**§8.1's floor was already there; what was missing was the arithmetic.**
+`scanNextToken_checkBlockFlowIndent` refuses a `[`/`{` at or left of the
+enclosing block collection's indent, and it runs between the structural
+dispatch and the flow one — so `accum_step_flow` had simply never been handed
+its success.  With it, the pending's own floor closes the gap: `IndentFloor sc
+n` gives `n ≤ currentIndent + 1`, the under-run gives `j < n`, and together
+`j ≤ currentIndent` — which is the check's condition, at the column the landing
+ends its run at.
+
+**Which `currentIndent` the check reads is preprocessing's answer, not the
+caller's**, because the unwind may have popped between them.  That is what
+`preprocess_indents_or_underIndent` settles, and it settles it from the check
+preprocessing ALREADY runs: `trailingContent` refuses a landing that popped
+indents and still sits deeper than what is left of the floor, so an accepted
+step is either one where the stack came through untouched — and then the
+caller's `currentIndent` is the one the check will read — or one that is
+already at or left of the floor.  Both cases give the same conclusion, which is
+why the refutation needs no fact about the unwind itself.  The measured
+alternation is the guard's §1/§2: at `k:⏎␣␣-`, column 0 is
+`underIndentedFlowContent`, column 1 is `trailingContent`, column 2 is
+`underIndentedFlowContent` again, and column 3 reads — the two checks covering
+the levels and the gaps between them.
+
+**The TAB half is item 64's, spent one production over.**  A tab in the
+landing's indent run is `tabInIndentation`, and `LandingTabFacts` says the only
+things that survive §6.1's gate there are a comment head and end of input — a
+flow open is neither.  `preprocess_some_separate_at_anyCol` now hands the fact
+on with the under-run, and `pendingBlock` spends it: its item-59 column
+(`sp_scan.col = n + 1`) is what says the landing crossed a break, which is the
+premise `LandingTabFacts` needs (Reflection 683).  `pendingProps` and
+`pendingMapValue` carry no column, so their tab half still rides the drop —
+named in both arms rather than left as the whole under-run.
+
+What the one remaining ride serves: `pendingFlow`'s opaque resume (R3),
+`pendingProps`/`pendingMapValue` at a park with no floor, and those two parks'
+tab half.  ZERO runtime edits.
+
+**Validation.** Full `lake build` green (1053 jobs, ZERO warnings);
+`run-all-tests.sh` 4465/4465, every suite identical to item 65; matrix 402/402
+event + 282/282 JSON on BOTH pipelines; `eventscore` 347/358 with the per-test
+composition unmoved (252 event-pass, 11 event-diff, 95 error-ok); `#print
+axioms` on `parse_sound_deep` and on each new declaration names no `sorryAx`;
+three checkers OK.  `git status` shows only `Proofs/` and `Tests/`, so the
+suite executables are item 65's binaries.  New guard
+`ScannerFlowOpenUnderRun` pins the column sweep at three parks and two depths,
+the boundary one column past the floor, and the tab at every column the floor
+admits; `FlowIndexLeafEvidence` carries the widened landing disjunct.
+
 ### REMAINING, in order
 
 The per-item history is the closure log above; this section lists only the
@@ -8253,7 +8310,7 @@ a nonzero index.  R2 is CLOSED too (items 47–51), so what stands between here
 and Step 5 (the converse) is R3's remaining production work and R4:
 
 ```
-R1 ✓ (44–46) ──→ R2 ✓ (47–51) ──→ R3 (52–65 landed; 66–67 open) ──→ Step 5
+R1 ✓ (44–46) ──→ R2 ✓ (47–51) ──→ R3 (52–66 landed; 67 open) ──→ Step 5
                                         └──────→ R4 (implicitContinue + 0 < m) ──┘
 ```
 
@@ -8384,11 +8441,17 @@ and that deletion, by input class:
 * the **flow share** — ~~the depth-0 flow close must park REAL evidence
   (`[1] : b`, `? [1]⏎: v`)~~ — CLOSED by item 56 (the frame carries the
   entry routes and the close joins them with the collection re-read as
-  `[161] ns-flow-node(0, block-key)`).  What survives: the item-50 floor
-  refutation threading into the step lemmas' under-run arms, and
+  `[161] ns-flow-node(0, block-key)`).  ~~The floor refutation threading into
+  the OPEN's under-run arms~~ — CLOSED by item 66: §8.1's own
+  `checkBlockFlowIndent` is threaded from `scanNextToken`, and the pending's
+  floor turns the under-run's `j < n` into the check's own condition; the four
+  textual drop rides at the open are one, serving `pendingFlow` (R3), the
+  floorless parks, and `pendingProps`/`pendingMapValue`'s tab half (neither
+  carries the column that says a break was crossed).  What survives:
   `dropClose`'s remaining domain — the VALID multi-line scalar tokens at a
   nonzero index (item 50 refused the renounce events) — which empties when
-  the fold class's readings at `n` reach the flow walkers.
+  the fold class's readings at `n` reach the flow walkers, and the ~22 `_at nn`
+  punts in `accum_step_block`/`accum_step_content` that consume them.
 
 This is what closes row 12.
 
