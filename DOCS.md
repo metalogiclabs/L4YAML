@@ -8395,10 +8395,15 @@ collapse.  ZERO runtime edits.
 note said this field would also close the interior separator's tab half.  It
 does not: the interior's `LandingTabFacts` premise is about the FLOW park — the
 position after a `[`/`{`/`,` — and item 68 supplies the BLOCK pending's column,
-which the interior never sees.  The interior's carrier would be
+which the interior never sees.  ~~The interior's carrier would be
 `PendingNode.noPending`'s flow disjunct (`sc.inFlow = true`), which every flow
 producer could strengthen to carry `0 < sp.col` for the same reason the parks
-above can.  That is a separate increment, not this one.
+above can.~~  **That naming is wrong too** — struck 2026-09-04 by item 69, which
+had to read the consumers: every use of `PendingNode` is gated on
+`sc.flowLevel = 0`, where `sc.inFlow = false` refutes the flow disjunct
+outright, so it carries nothing into the interior or anywhere else.  The
+interior's carrier is a column on the gap between the flow park and the cursor;
+item 69's entry names it.  Either way, a separate increment.
 
 **Validation.** Full `lake build` green (1057 jobs, ZERO warnings);
 `run-all-tests.sh` 4465/4465; matrix 402/402 event + 282/282 JSON on BOTH
@@ -8409,6 +8414,85 @@ modules, unchanged — the new file is a guard).  `git status` showed only
 events could not have moved.  New guard `ScannerFlowParkColumn` pins the open's
 under-run at all three parks (both halves), the interior floor those parks hand
 the stack across all three scalar styles, and the vacuity at route index 0.
+
+### Item 69 (2026-09-04)
+
+**§8.1's OTHER half, the one that runs inside the collection.**  Items 66 and
+68 spent `scanNextToken_checkBlockFlowIndent` at the flow OPEN.  That check is
+guarded on `!inFlow`, so it says nothing once a collection is open — which is
+why the INTERIOR's separator was still riding `scannerDrop` at every landing
+that under-ran the stack's reading index.  The check that runs there is
+`scanNextToken_dispatchStructural`'s, and it is both wider and narrower: it
+refuses EVERY character at or left of `currentIndent`, not just `[` and `{`.
+So the interior's refutation needs no fact about `c` at all — where the open's
+needed `c = '[' ∨ c = '{'` twice.
+
+Three declarations, beside `flowOpen_underRunTab_refuted`:
+
+* **`flowInterior_underRunEnd_refuted`** — the landing ends its `[63] s-indent`
+  run at `j < n`, the stack's floor says `n ≤ currentIndent + 1`, and
+  preprocessing writes no indent inside a flow (`preprocess_indents_of_inFlow`,
+  item 67's), so the column the check READ is `j`; its fall-through
+  (`structural_none_col_gt_of_inFlow`) says `j` is strictly right of the indent
+  it cleared.
+* **`SeparatorTabResidue`** — what is left of the landing: `j < n` spaces and
+  then a TAB, with `LandingTabFacts` packaged beside it for whoever refutes it.
+* **`SSeparateLines_at_interior`** — the step-aware lift. `SSeparateLines_at`
+  knows only the surface, so its residue is either half of the under-run; this
+  one is handed the step that produced the landing.  **The floor is not a
+  hypothesis but the residue's own premise** (`n ≤ minContentIndentOf sc → …`),
+  so a stack that could not measure its index still gets a reading or a residue
+  and pays for the sharper residue only when it can — one shape for both, where
+  items 67a/68 had to case-split at the site.
+
+`accum_step_flow` and `accum_step_block` now take `h_str_none` (the content
+dispatch already had it, from item 67), and each of the three interior branches
+names the lift once, as `h_lead_at`.
+
+Measured: `SSeparateLines_at nn` call sites **19 → 10**.  The nine
+preprocessing-owned separators drop only on the TAB half now.  The raw
+`dropClose` / `block_dispatch_deferred` / `drop_ride` counts are UNCHANGED
+(25/11/7) — as in item 68, the residue narrowed in CONDITION and not in site
+count, and the condition is the honest measurable.
+
+**What the remaining ten are, and what each needs.**  Four lift the `props`
+gap's own leading separation (`InteriorGap.props`'s `h_lead`, a separator
+already scanned): that one was preprocessing's at the step that scanned the
+property, so it could be produced at the stack's index there — which means
+`InteriorGap` taking the index as a parameter.  Six are closure ARGUMENTS
+(`receiveNodeColon`'s `SSeparateLines 0 sp_ne sp_p'`), supplied by a future
+step, so they need `FlowStackK`'s `.value`-tail colon route stated at `n`
+instead of 0 — a signature change on the invariant's packaged case split, not a
+refutation.
+
+**And the TAB half needs a column the interior does not carry.**
+`LandingTabFacts`' premise is "a break was crossed", whose only witness is a
+park at a nonzero column; item 68 gave the BLOCK pendings one, and the flow
+park has none.  Deriving it splits cleanly: `InteriorGap.props` yields
+`0 < sp_scan.col` for free from item 68's own `propsRun_col_gt` at index 0,
+and `InteriorGap.white` reduces it to `0 < sp_flow.col` through the white run.
+What is left is therefore a column invariant on the flow endpoint across the
+interior, whose easy cases are the indicator steps (`glit_col`) and whose hard
+ones are the multi-line scalar productions.  That is the next increment, and
+`ScannerFlowInteriorUnderRun` §3 pins what it has to reach.
+
+**Validation.** Full `lake build` green (1058 jobs, ZERO warnings);
+`run-all-tests.sh` 4465/4465; matrix 402/402 event + 282/282 JSON on BOTH
+pipelines; `eventscore` 347/358 with the composition unmoved (252 event-pass,
+11 event-diff, 0 event-reject, 95 error-ok); `#print axioms` on
+`parse_sound_deep` and on each new declaration names no `sorryAx`; three
+checkers OK (220 library modules, unchanged — the new file is a guard).  ZERO
+runtime edits: `git status` showed only `Proofs/` and `Tests/`.  New guard
+`ScannerFlowInteriorUnderRun` pins the refusal at each frame transition the
+interior takes — a `,` entry, a close, a nested open, a flushed `[96]` run, the
+`?` and `:` key routes — with the reading one column right beside it; that the
+floor is the ENCLOSING block's, so a top-level flow admits a column-0
+continuation and a `- ` entry's admits column 1; and the TAB half, which the
+runtime refuses and the proof does not yet.
+
+> **NB (eventscore).**  Re-learned here: `eventscore --suite ../yaml-test-suite`
+> reads the OTHER checkout and scores 346/358 with "1 valid rejected".  Pass no
+> `--suite`; the tracked copy is the 347/358 every entry above quotes.
 
 ### REMAINING, in order
 
@@ -8422,7 +8506,7 @@ a nonzero index.  R2 is CLOSED too (items 47–51), so what stands between here
 and Step 5 (the converse) is R3's remaining production work and R4:
 
 ```
-R1 ✓ (44–46) ──→ R2 ✓ (47–51) ──→ R3 (52–68 landed; 67b open) ──→ Step 5
+R1 ✓ (44–46) ──→ R2 ✓ (47–51) ──→ R3 (52–69 landed; 67b open) ──→ Step 5
                                         └──────→ R4 (implicitContinue + 0 < m) ──┘
 ```
 
@@ -8568,7 +8652,8 @@ and that deletion, by input class:
   plain walk's readings at `n`, carried the stack's floor from the open
   (`FlowStackK`'s new conjunct, `FlowIndentStable`'s stability) and spent it at
   the content dispatch's value-completing arm: `SFlowNode_at nn` is gone.  What
-  survives is the leading SEPARATOR (19 `SSeparateLines_at nn`) and the props
+  survives is the leading SEPARATOR (~~19~~ **10** `SSeparateLines_at nn` after
+  item 69) and the props
   run's content, and the separator is NOT the same question.  It splits two
   ways, MEASURED at item 67a:
 
@@ -8584,10 +8669,17 @@ and that deletion, by input class:
       same boundary but NOT the same park, corrected 2026-09-04 when item 68 gave
       those two their column and this did not move: the premise here is about the
       FLOW park — the position after a `[`/`{`/`,`, which the interior step
-      holds — and the block pending's column never reaches it.  The carrier is
+      holds — and the block pending's column never reaches it.  ~~The carrier is
       `PendingNode.noPending`'s flow disjunct, which every flow producer can
       strengthen from `sc.inFlow = true` to carry `0 < sp.col` for item 68's own
-      reason: they all park past an indicator.
+      reason: they all park past an indicator.~~  Not that either, struck
+      2026-09-04 by item 69: every use of `PendingNode` is gated on
+      `sc.flowLevel = 0`, where `sc.inFlow = false` refutes that disjunct
+      outright, so it carries nothing.  **Item 69 took the run-END half** here
+      (`dispatchStructural`'s in-flow floor — 9 of these 13 sites converted, the
+      other 4 being the props gap's own lead), and located the tab half's real
+      carrier: a column on `InteriorGap`, where the `props` arm is free from
+      `propsRun_col_gt` and the `white` arm reduces to `0 < sp_flow.col`.
     * **6 sites are the `:`-receiving closure's ARGUMENT** — `SSeparateLines 0
       sp_ne sp_p'` handed in by a LATER step, so nothing at this step can
       refute it.  It closes by stating `FlowStackK`'s `.value`-tail colon route
