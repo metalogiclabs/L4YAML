@@ -7924,6 +7924,46 @@ custom axioms; all three checkers OK.  New guard
 `ScannerCompactKeyFloorCompose` (6 ACCEPT pins with event shapes on both
 pipelines).
 
+### Item 60 (2026-09-04)
+
+merged the landing INTO the question and closed its last three classes: a
+landed property run, a landed block scalar and a landed fold
+(`k:⏎  -⏎    |⏎      x`, `k:⏎  :⏎    >⏎      x`, `k:⏎  -⏎    "a⏎    b"`,
+`k:⏎  -⏎    a⏎    b`, `-⏎  |⏎   x`) now read at the pending's own index.
+
+`indentedValue_reads_at_any_indent` had asked its question TWICE — once in the
+break-free branch, which had the universal separator and the indent stability
+and got all five answers, and once at the landing, which had neither and got
+one.  What actually differs between the two is three FACTS, so the split moved
+there: the separator is `[70] s-separate-lines(n)` at the pending's own index
+either way (items 52/57), the indent stability is the break-free step's alone
+and is now an optional conjunct, and the FLOOR is derived per branch —
+from stability inline, and across a break from the landing's own `s-indent(n)`
+plus the scanner's own dedent check.  That last derivation is the item's new
+lemma (`preprocess_some_floor_at_landing`, with `unwindIndentsLoop`'s
+shrink-or-eq and the cursor-preservation lemmas beneath it): either the unwind
+popped nothing, and the stack is the pending's, or it popped, and preprocessing
+would have thrown `trailingContent` unless the landing sits at or left of the
+new top — so `n ≤ minContentIndentOf s_prep` either way.  Reflection 679's
+shape once more: the check that refuses the dedent is what justifies the
+reading at the index it did not refuse.
+
+The merge deleted a disjunct as well: item 52's landing case is the inline one
+once the quantifier moved, so the question now has five answers rather than
+six, and both consumers lost an arm.  Ten `True` exits are seven — what is left
+there is the floorless pendings' block scalar and fold, the alias phantom, the
+two `ScalarFoldAt` residues, and the DEDENT, which is a different question (the
+enclosing collection ends).
+
+ZERO runtime edits.  New Reflection 681 (`SplitTheFactsNotTheQuestion`).
+
+**Validation.** Full `lake build` green (ZERO warnings); `run-all-tests.sh`
+4461/4461; matrix 402/402 event + 282/282 JSON on BOTH pipelines; `eventscore`
+347/358 with the failure SET identical; 0 direct and 0 transitive sorries, 0
+custom axioms; all three checkers OK.  New guard
+`ScannerLandedValueClasses` (5 ACCEPT pins with event shapes on both
+pipelines, 2 refusal pins for the dedent bound).
+
 ### REMAINING, in order
 
 The per-item history is the closure log above; this section lists only the
@@ -8006,16 +8046,13 @@ and that deletion, by input class:
   a runtime check — the blank-after-escaped-break line at a nonzero index,
   spec-valid, and the flow-context folds, the flow share's);
 * ~~the **landing** class — a value on its own line below its indicator~~
-  — CLOSED by item 52 (the break binds the index: the fixed-`n` separator
-  instantiates at the pending's own index) and, for the landed property
-  RUN, by item 57 (the same move on the props answer, the indent stability
-  given up as an optional conjunct).  What survives of it: the DEDENT (the
-  under-run landing — its TAB half is refutable with item 32's route, its
-  run-end half asks a different question: close the entry with `e-node` and
-  re-open the enclosing collection), and the landed block-scalar and fold
-  shapes, which share ONE missing fact — the landing's own `s-indent(n)`
-  bounds the post-unwind stack, so `n ≤ minContentIndentOf s_prep` off the
-  `col ≥ n` the separator witness already carries;
+  — CLOSED by items 52, 57 and 60: the break binds the index, so the
+  separator instantiates at the pending's own index, and the landing is not
+  a second question but the same one with three facts supplied differently
+  (item 60's merge).  What survives of it: the DEDENT alone — its TAB half
+  is refutable with item 32's route, and its run-end half asks a different
+  question (close the entry with `e-node` and re-open the enclosing
+  collection);
 * the **block-scalar floor** class — ~~parks whose producer handed
   `IndentFloor`'s `True`~~ — CLOSED for the COMPACT key by item 59 (the park
   carries its column, so `[195]`'s route pays the conjunct item 28 punted).

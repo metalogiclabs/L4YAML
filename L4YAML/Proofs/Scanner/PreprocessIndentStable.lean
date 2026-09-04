@@ -185,11 +185,78 @@ lemma skipToContent_preserves_indents (s s' : ScannerState)
   unfold skipToContent at h
   exact skipToContentLoop_preserves_indents s s' _ h
 
+/-! ## §1b  What the unwind does to the stack (item 60)
+
+The loop only POPS, and it stops as soon as the top is at or left of the
+column it is unwinding to.  Two consequences are all the accumulator needs:
+either nothing was popped and the stack is UNCHANGED, or the size strictly
+dropped — which is the very condition preprocessing's own trailing-content
+check tests, so an accepted input tells the caller which case it is in. -/
+
+/-- The loop never grows the stack. -/
+lemma unwindIndentsLoop_size_le (s : ScannerState) (col : Int) (fuel : Nat) :
+    (unwindIndentsLoop s col fuel).indents.size ≤ s.indents.size := by
+  induction fuel generalizing s with
+  | zero => simp [unwindIndentsLoop]
+  | succ fuel ih =>
+    unfold unwindIndentsLoop
+    split
+    · exact Nat.le_trans (ih _) (by simp [ScannerState.emit])
+    · exact Nat.le_refl _
+
+/-- …and it either popped something or left the stack alone. -/
+lemma unwindIndentsLoop_shrink_or_eq (s : ScannerState) (col : Int) (fuel : Nat) :
+    (unwindIndentsLoop s col fuel).indents.size < s.indents.size ∨
+      (unwindIndentsLoop s col fuel).indents = s.indents := by
+  induction fuel generalizing s with
+  | zero => exact Or.inr (by simp [unwindIndentsLoop])
+  | succ fuel ih =>
+    unfold unwindIndentsLoop
+    split
+    · rename_i hgo
+      refine Or.inl (Nat.lt_of_le_of_lt (unwindIndentsLoop_size_le _ _ _) ?_)
+      have h1 : 1 < s.indents.size := by
+        have := (Bool.and_eq_true_iff.mp hgo).2
+        simpa using this
+      have he : (s.emit .blockEnd).indents = s.indents := by simp [ScannerState.emit]
+      show (((s.emit .blockEnd).indents.pop)).size < s.indents.size
+      rw [he, Array.size_pop]
+      omega
+    · exact Or.inr rfl
+
+/-- The unwind moves no cursor: `col` is the column it unwinds TO, not one it
+    writes. -/
+lemma unwindIndentsLoop_col (s : ScannerState) (col : Int) (fuel : Nat) :
+    (unwindIndentsLoop s col fuel).col = s.col := by
+  induction fuel generalizing s with
+  | zero => unfold unwindIndentsLoop; rfl
+  | succ fuel ih =>
+    unfold unwindIndentsLoop; split
+    · exact ih _
+    · rfl
+
+lemma unwindIndents_col (s : ScannerState) (col : Int) :
+    (unwindIndents s col).col = s.col :=
+  unwindIndentsLoop_col s col s.indents.size
+
+/-- The whole unwind, at the fuel the scanner gives it. -/
+lemma unwindIndents_shrink_or_eq (s : ScannerState) (col : Int) :
+    (unwindIndents s col).indents.size < s.indents.size ∨
+      (unwindIndents s col).indents = s.indents :=
+  unwindIndentsLoop_shrink_or_eq s col s.indents.size
+
 /-! ## §2  `saveSimpleKey` pushes tokens, not indents -/
 
 /-- The last step of preprocessing touches `tokens` and `simpleKey` only. -/
 lemma saveSimpleKey_preserves_indents (s : ScannerState) :
     (saveSimpleKey s).indents = s.indents := by
+  unfold saveSimpleKey
+  split
+  · rfl
+  · split <;> rfl
+
+/-- The key save moves no cursor either (item 60). -/
+lemma saveSimpleKey_col (s : ScannerState) : (saveSimpleKey s).col = s.col := by
   unfold saveSimpleKey
   split
   · rfl
