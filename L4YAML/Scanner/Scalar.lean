@@ -271,9 +271,28 @@ def collectDoubleQuotedLoop (s : ScannerState) (content : String) (fuel : Nat)
       match s_after_backslash.peek? with
       | some c =>
         if isLineBreakBool c then do
-          -- Escaped line break: consume and skip whitespace
+          -- Escaped line break: consume and land on the continuation line.
+          -- Item 53: a CONTENT landing is `[112] s-double-escaped(n)`'s own
+          -- `s-flow-line-prefix(n)`, so it clears the same floor the fold's
+          -- does — `s-indent(n)` first (spaces, §6.1 refuses a tab in the
+          -- zone), then past the block indent.  A BLANK landing is
+          -- `[70] l-empty`, whose `s-indent-lt` arm admits a short run —
+          -- it is handled (and checked) by the fold on the next iteration.
           let s_after_newline := consumeNewline s_after_backslash
-          let s_after_ws := skipWhitespace s_after_newline
+          let s_after_sp := skipSpaces s_after_newline
+          let landingBlank :=
+            match (skipWhitespace s_after_sp).peek? with
+            | some c2 => isLineBreakBool c2
+            | none => true
+          if !landingBlank then do
+            if (s_after_sp.col : Int) ≤ s_after_sp.currentIndent then
+              if let some '\t' := s_after_sp.peek? then
+                throw (.tabInIndentation s_after_sp.line s_after_sp.col)
+            if atDocumentStart s_after_sp || atDocumentEnd s_after_sp then
+              throw (.documentMarkerInScalar .doubleQuoted startPos.line)
+            if (s_after_sp.col : Int) ≤ currentIndent then
+              throw (.underIndentedScalar .doubleQuoted s_after_sp.line)
+          let s_after_ws := skipWhitespace s_after_sp
           collectDoubleQuotedLoop s_after_ws content fuel' startPos inFlow currentIndent inputEnd protectedLen
         else do
           -- Regular escape sequence

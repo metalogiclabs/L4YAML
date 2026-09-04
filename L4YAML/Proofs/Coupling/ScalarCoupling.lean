@@ -293,12 +293,18 @@ lemma collectDoubleQuotedLoop_corr (sc : ScannerState) (sp : SurfPos)
       · -- next peek = some c
         rename_i c2 hpeek2
         split at hok
-        · -- isLineBreakBool c2: escaped newline
+        · -- isLineBreakBool c2: escaped newline (item 53 splits the branch)
           obtain ⟨sp_cn, hcorr_cn⟩ :=
             consumeNewline_unconditional_corr sc.advance sp_adv hcorr_adv
+          obtain ⟨_, sp_sp, _, hcorr_sp⟩ :=
+            skipSpaces_corr (consumeNewline sc.advance) sp_cn hcorr_cn
           obtain ⟨sp_ws, _, hcorr_ws⟩ :=
-            skipWhitespace_corr (consumeNewline sc.advance) sp_cn hcorr_cn
-          exact ih _ _ sp_ws content hcorr_ws hok
+            skipWhitespace_corr (skipSpaces (consumeNewline sc.advance)) sp_sp hcorr_sp
+          simp only [bind, Except.bind] at hok
+          repeat' split at hok
+          all_goals first
+            | contradiction
+            | exact ih _ _ sp_ws content hcorr_ws hok
         · -- not line break: processEscape
           simp only [bind, Except.bind] at hok
           split at hok

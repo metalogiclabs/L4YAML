@@ -1507,11 +1507,16 @@ lemma collectDoubleQuotedLoop_preserves_tokens (s : ScannerState) (content : Str
       split at h <;> try contradiction
       -- some c after backslash
       split at h
-      · -- isLineBreak c (escaped line break)
+      · -- isLineBreak c (escaped line break).  Item 53: the landing checks
+        -- split the branch — every throw arm contradicts, both recursing
+        -- arms share one chain (now through `skipSpaces` as well).
         have h_cn := consumeNewline_preserves_tokens s.advance
-        have h_sw := skipWhitespace_preserves_tokens (consumeNewline s.advance)
+        have h_sp := skipSpaces_preserves_tokens (consumeNewline s.advance)
+        have h_sw := skipWhitespace_preserves_tokens (skipSpaces (consumeNewline s.advance))
         have h_adv := advance_preserves_tokens s
-        rw [ih _ _ _ h, h_sw, h_cn, h_adv]
+        simp only [bind, Except.bind] at h
+        repeat' split at h
+        all_goals (first | contradiction | rw [ih _ _ _ h, h_sw, h_sp, h_cn, h_adv])
       · -- regular escape sequence
         simp only [bind, Except.bind] at h
         split at h <;> try contradiction
@@ -3486,11 +3491,14 @@ lemma collectDoubleQuotedLoop_preserves_simpleKey (s : ScannerState) (content : 
       split at h <;> try contradiction
       -- some c after backslash
       split at h
-      · -- isLineBreak c (escaped line break)
+      · -- isLineBreak c (escaped line break; item 53 splits the branch)
         have h_cn := consumeNewline_preserves_simpleKey s.advance
-        have h_sw := skipWhitespace_preserves_simpleKey (consumeNewline s.advance)
+        have h_sp := skipSpaces_preserves_simpleKey (consumeNewline s.advance)
+        have h_sw := skipWhitespace_preserves_simpleKey (skipSpaces (consumeNewline s.advance))
         have h_adv := advance_preserves_simpleKey s
-        rw [ih _ _ _ h, h_sw, h_cn, h_adv]
+        simp only [bind, Except.bind] at h
+        repeat' split at h
+        all_goals (first | contradiction | rw [ih _ _ _ h, h_sw, h_sp, h_cn, h_adv])
       · -- regular escape sequence
         simp only [bind, Except.bind] at h
         split at h <;> try contradiction
@@ -4161,11 +4169,14 @@ lemma collectDoubleQuotedLoop_preserves_simpleKeyStack (s : ScannerState) (conte
       split at h <;> try contradiction
       -- some c after backslash
       split at h
-      · -- isLineBreak c (escaped line break)
+      · -- isLineBreak c (escaped line break; item 53 splits the branch)
         have h_cn := consumeNewline_preserves_simpleKeyStack s.advance
-        have h_sw := skipWhitespace_preserves_simpleKeyStack (consumeNewline s.advance)
+        have h_sp := skipSpaces_preserves_simpleKeyStack (consumeNewline s.advance)
+        have h_sw := skipWhitespace_preserves_simpleKeyStack (skipSpaces (consumeNewline s.advance))
         have h_adv := advance_preserves_simpleKeyStack s
-        rw [ih _ _ _ h, h_sw, h_cn, h_adv]
+        simp only [bind, Except.bind] at h
+        repeat' split at h
+        all_goals (first | contradiction | rw [ih _ _ _ h, h_sw, h_sp, h_cn, h_adv])
       · -- regular escape sequence
         simp only [bind, Except.bind] at h
         split at h <;> try contradiction
@@ -5564,11 +5575,14 @@ lemma collectDoubleQuotedLoop_preserves_flowLevel (s : ScannerState) (content : 
       split at h <;> try contradiction
       -- some c after backslash
       split at h
-      · -- isLineBreak c (escaped line break)
+      · -- isLineBreak c (escaped line break; item 53 splits the branch)
         have h_cn := consumeNewline_preserves_flowLevel s.advance
-        have h_sw := skipWhitespace_preserves_flowLevel (consumeNewline s.advance)
+        have h_sp := skipSpaces_preserves_flowLevel (consumeNewline s.advance)
+        have h_sw := skipWhitespace_preserves_flowLevel (skipSpaces (consumeNewline s.advance))
         have h_adv := advance_preserves_flowLevel s
-        rw [ih _ _ _ h, h_sw, h_cn, h_adv]
+        simp only [bind, Except.bind] at h
+        repeat' split at h
+        all_goals (first | contradiction | rw [ih _ _ _ h, h_sw, h_sp, h_cn, h_adv])
       · -- regular escape sequence
         simp only [bind, Except.bind] at h
         split at h <;> try contradiction
@@ -7777,10 +7791,16 @@ lemma collectDoubleQuotedLoop_offset_ge (s : ScannerState) (content : String)
       split at h
       · -- some c after backslash
         split at h
-        · -- isLineBreak: consumeNewline → skipWhitespace → recurse
-          exact Nat.le_trans (ScannerProgress.advance_offset_ge s)
-            (Nat.le_trans (consumeNewline_offset_ge s.advance)
-            (Nat.le_trans (skipWhitespace_offset_ge _) (ih _ _ _ h)))
+        · -- isLineBreak: consumeNewline → skipSpaces → checks → skipWhitespace
+          -- → recurse (item 53 splits the branch; throws contradict).
+          simp only [bind, Except.bind] at h
+          repeat' split at h
+          all_goals first
+            | contradiction
+            | exact Nat.le_trans (ScannerProgress.advance_offset_ge s)
+                (Nat.le_trans (consumeNewline_offset_ge s.advance)
+                (Nat.le_trans (skipSpaces_offset_ge _)
+                (Nat.le_trans (skipWhitespace_offset_ge _) (ih _ _ _ h))))
         · -- regular escape: processEscape → recurse
           simp only [bind, Except.bind] at h
           split at h <;> try contradiction

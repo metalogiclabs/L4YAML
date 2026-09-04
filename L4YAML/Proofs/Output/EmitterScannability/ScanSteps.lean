@@ -426,10 +426,15 @@ lemma collectDoubleQuotedLoop_preserves_dp (s : ScannerState) (content : String)
       simp only [] at h
       split at h <;> try contradiction
       · split at h
-        · -- Escaped line break
-          exact ih _ _ _ h |>.trans (skipWhitespace_preserves_dp _)
-                         |>.trans (consumeNewline_preserves_dp _)
-                         |>.trans (advance_preserves_dp s)
+        · -- Escaped line break (item 53 splits the branch)
+          simp only [bind, Except.bind] at h
+          repeat' split at h
+          all_goals first
+            | contradiction
+            | exact ih _ _ _ h |>.trans (skipWhitespace_preserves_dp _)
+                |>.trans (skipSpaces_preserves_dp _)
+                |>.trans (consumeNewline_preserves_dp _)
+                |>.trans (advance_preserves_dp s)
         · -- Regular escape
           simp only [bind, Except.bind] at h
           split at h <;> try contradiction
@@ -629,8 +634,15 @@ lemma collectDoubleQuotedLoop_preserves_indents (s : ScannerState) (content : St
       simp only [] at h
       split at h <;> try contradiction
       · split at h
-        · exact (ih _ _ _ h).trans (skipWhitespace_preserves_indents _)
-                |>.trans (consumeNewline_preserves_indents _) |>.trans (advance_preserves_indents s)
+        · -- (item 53 splits the branch)
+          simp only [bind, Except.bind] at h
+          repeat' split at h
+          all_goals first
+            | contradiction
+            | exact (ih _ _ _ h).trans (skipWhitespace_preserves_indents _)
+                |>.trans (skipSpaces_preserves_indents _)
+                |>.trans (consumeNewline_preserves_indents _)
+                |>.trans (advance_preserves_indents s)
         · simp only [bind, Except.bind] at h
           split at h <;> try contradiction
           rename_i escape_result heq_escape
@@ -822,10 +834,15 @@ lemma collectDoubleQuotedLoop_preserves_ek (s : ScannerState) (content : String)
       simp only [] at h
       split at h <;> try contradiction
       · split at h
-        · -- Escaped line break
-          exact ih _ _ _ h |>.trans (skipWhitespace_preserves_ek _)
-                         |>.trans (consumeNewline_preserves_ek _)
-                         |>.trans (advance_explicitKeyLine s)
+        · -- Escaped line break (item 53 splits the branch)
+          simp only [bind, Except.bind] at h
+          repeat' split at h
+          all_goals first
+            | contradiction
+            | exact ih _ _ _ h |>.trans (skipWhitespace_preserves_ek _)
+                |>.trans (skipSpaces_preserves_ek _)
+                |>.trans (consumeNewline_preserves_ek _)
+                |>.trans (advance_explicitKeyLine s)
         · -- Regular escape
           simp only [bind, Except.bind] at h
           split at h <;> try contradiction

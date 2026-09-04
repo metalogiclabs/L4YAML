@@ -521,31 +521,41 @@ lemma collectDoubleQuotedLoop_prod (sc : ScannerState) (sp : SurfPos)
         rename_i c2 hpeek2
         split at hok
         · -- isLineBreakBool c2: escaped newline → multiline break
+          -- (item 53 splits the branch: the landing checks' throws contradict,
+          -- and both recursing arms build the same derivation with the spaces
+          -- run folded into the prefix's separation slot)
           rename_i hlb2
           obtain ⟨sp_cn, h_break_nl, hcorr_cn⟩ :=
             consumeNewline_sbreak_corr sc.advance ⟨rest, sc.col + 1⟩ c2 hcorr_adv hpeek2 hlb2
+          obtain ⟨n0, sp_sp, h_ind_sp, hcorr_sp⟩ :=
+            skipSpaces_corr (consumeNewline sc.advance) sp_cn hcorr_cn
           obtain ⟨sp_ws, h_gstar_ws, hcorr_ws⟩ :=
-            skipWhitespace_corr (consumeNewline sc.advance) sp_cn hcorr_cn
-          obtain ⟨sp_body, sp_close, h_body, h_glit, h_corr⟩ :=
-            ih _ _ sp_ws content hcorr_ws hok
-          -- Build SSDoubleEscaped: no leading ws, backslash, linebreak, no empty lines, flow prefix
-          have h_gopt := gstar_sswhite_to_gopt_sep h_gstar_ws
-          have h_flp : SFlowLinePrefix 0 sp_cn sp_ws :=
-            SFlowLinePrefix.mk 0 sp_cn sp_cn sp_ws (SIndent.zero sp_cn) h_gopt
-          have h_escaped : SSDoubleEscaped 0 ⟨'\\' :: rest, sc.col⟩ sp_ws :=
-            SSDoubleEscaped.mk 0
-              ⟨'\\' :: rest, sc.col⟩ ⟨'\\' :: rest, sc.col⟩
-              ⟨rest, sc.col + 1⟩ sp_cn sp_cn sp_ws
-              (GStar.nil _) (GLit.mk rest sc.col) h_break_nl
-              (GStar.nil sp_cn) h_flp
-          exact ⟨sp_body, sp_close,
-                 SNbDoubleMultiLine.multi 0
+            skipWhitespace_corr (skipSpaces (consumeNewline sc.advance)) sp_sp hcorr_sp
+          have h_gstar_all : GStar SSWhite sp_cn sp_ws :=
+            GStar_trans (SIndent_gives_GStar_SSWhite h_ind_sp) h_gstar_ws
+          simp only [bind, Except.bind] at hok
+          repeat' split at hok
+          all_goals first
+            | contradiction
+            | (obtain ⟨sp_body, sp_close, h_body, h_glit, h_corr⟩ :=
+                 ih _ _ sp_ws content hcorr_ws hok
+               have h_gopt := gstar_sswhite_to_gopt_sep h_gstar_all
+               have h_flp : SFlowLinePrefix 0 sp_cn sp_ws :=
+                 SFlowLinePrefix.mk 0 sp_cn sp_cn sp_ws (SIndent.zero sp_cn) h_gopt
+               have h_escaped : SSDoubleEscaped 0 ⟨'\\' :: rest, sc.col⟩ sp_ws :=
+                 SSDoubleEscaped.mk 0
                    ⟨'\\' :: rest, sc.col⟩ ⟨'\\' :: rest, sc.col⟩
-                   sp_ws ⟨[], 0⟩ sp_body
-                   (GStar.nil _)
-                   (SSDoubleBreak.escaped 0 _ _ h_escaped)
-                   h_body,
-                 h_glit, h_corr⟩
+                   ⟨rest, sc.col + 1⟩ sp_cn sp_cn sp_ws
+                   (GStar.nil _) (GLit.mk rest sc.col) h_break_nl
+                   (GStar.nil sp_cn) h_flp
+               exact ⟨sp_body, sp_close,
+                      SNbDoubleMultiLine.multi 0
+                        ⟨'\\' :: rest, sc.col⟩ ⟨'\\' :: rest, sc.col⟩
+                        sp_ws ⟨[], 0⟩ sp_body
+                        (GStar.nil _)
+                        (SSDoubleBreak.escaped 0 _ _ h_escaped)
+                        h_body,
+                      h_glit, h_corr⟩)
         · -- not line break: processEscape → SNbDoubleChar
           simp only [bind, Except.bind] at hok
           split at hok
@@ -2545,13 +2555,17 @@ lemma collectDoubleQuotedLoop_line_ge (sc : ScannerState) (content : String)
       split at hok
       · rename_i c2 hpeek2
         split at hok
-        · -- escaped break: strictly past the entry line
+        · -- escaped break: strictly past the entry line (item 53 splits it)
           rename_i hlb2
           have h1 := advance_preserves_line_of_ne_break sc '\\' hpeek (by decide) (by decide)
           have h2 := consumeNewline_line_succ sc.advance c2 hpeek2 hlb2
-          have h3 := skipWhitespace_preserves_line (consumeNewline sc.advance)
-          have h4 := ih _ _ _ hok
-          omega
+          have h_sp := skipSpaces_preserves_line (consumeNewline sc.advance)
+          have h3 := skipWhitespace_preserves_line (skipSpaces (consumeNewline sc.advance))
+          simp only [bind, Except.bind] at hok
+          repeat' split at hok
+          all_goals first
+            | contradiction
+            | (have h4 := ih _ _ _ hok; omega)
         · simp only [bind, Except.bind] at hok
           split at hok
           · exact absurd hok (by simp)
@@ -2632,14 +2646,19 @@ lemma collectDoubleQuotedLoop_oneLine_prod (sc : ScannerState) (sp : SurfPos)
       split at hok
       · rename_i c2 hpeek2
         split at hok
-        · -- escaped break: refuted by the same-line exit
+        · -- escaped break: refuted by the same-line exit (item 53 splits it)
           exfalso
           rename_i hlb2
           have h2 := consumeNewline_line_succ sc.advance c2 hpeek2 hlb2
-          have h3 := skipWhitespace_preserves_line (consumeNewline sc.advance)
-          have h4 := collectDoubleQuotedLoop_line_ge _ _ fuel' startPos inFlow
-            currentIndent inputEnd _ hok
-          omega
+          have h_sp := skipSpaces_preserves_line (consumeNewline sc.advance)
+          have h3 := skipWhitespace_preserves_line (skipSpaces (consumeNewline sc.advance))
+          simp only [bind, Except.bind] at hok
+          repeat' split at hok
+          all_goals first
+            | contradiction
+            | (have h4 := collectDoubleQuotedLoop_line_ge _ _ fuel' startPos inFlow
+                 currentIndent inputEnd _ hok
+               omega)
         · simp only [bind, Except.bind] at hok
           split at hok
           · exact absurd hok (by simp)

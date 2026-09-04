@@ -854,10 +854,30 @@ def quotedScalarErrLoopIx {input : String} (c : IxCursor input)
         match c.advance.peek? with
         | some next =>
           if isLineBreakBool next then
-            -- `\<b-break>` line continuation: legacy consumes the break +
-            -- `s-white*` with *no* checks (Scalar.lean:260-264).
-            quotedScalarErrLoopIx (skipWhitespace (consumeLineBreak c.advance))
-              isDouble startLine inFlow currentIndent fuel
+            -- `\<b-break>` line continuation.  Item 53: a CONTENT landing is
+            -- `[112] s-double-escaped(n)`'s own `s-flow-line-prefix(n)`, so
+            -- legacy now clears the fold's floor there (tab in the zone,
+            -- document marker, under-indent — in that order); a BLANK
+            -- landing is `l-empty` and the fold checks it next iteration.
+            let cSp := (skipSpaces (consumeLineBreak c.advance)).1
+            let landingBlank :=
+              match (skipWhitespace cSp).peek? with
+              | some c2 => isLineBreakBool c2
+              | none => true
+            if !landingBlank then
+              if ((cSp.pos.col : Int) ≤ currentIndent)
+                  && (match cSp.peek? with | some '\t' => true | _ => false) then
+                some (.tabInIndentation cSp.pos.line cSp.pos.col)
+              else if atDocumentStartIx cSp || atDocumentEndIx cSp then
+                some (.documentMarkerInScalar ScalarStyle.doubleQuoted startLine)
+              else if (cSp.pos.col : Int) ≤ currentIndent then
+                some (.underIndentedScalar ScalarStyle.doubleQuoted cSp.pos.line)
+              else
+                quotedScalarErrLoopIx (skipWhitespace cSp)
+                  isDouble startLine inFlow currentIndent fuel
+            else
+              quotedScalarErrLoopIx (skipWhitespace cSp)
+                isDouble startLine inFlow currentIndent fuel
           else
             -- Ordinary escape: the escaped character is never a line break,
             -- a quote terminator, or layout — skip both characters.

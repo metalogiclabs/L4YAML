@@ -7680,6 +7680,56 @@ edit); 0 sorries, 0 custom axioms; checkers OK.  New guard
 sibling snoc, nested-mapping value, both mapping twins with a sibling, and
 the three still-deferred landed shapes pinned as accepted).
 
+### Item 53 (2026-09-03)
+
+paid the QUOTED half of the fold class — `k:⏎  - "x⏎    y"`,
+`k:⏎  : 'a⏎   b'`, the `?`'s key twin, escaped breaks and interior empty
+lines included — by walking the collect-loop inductions at the pending's own
+index (Reflection 679 — the refused landings fund the reading).  A runtime
+floor check that covers every landing of a scan loop is the production's own
+justification at the checked index: the same induction that builds the
+0-reading builds the reading at `n ≤ currentIndent + 1`, with the check's
+negation as the only new fact per landing.  New satellite
+`Proofs/Production/ScalarFoldAt.lean`: the `l-empty(n)` lift for skipped
+blank lines (`s-flow-line-prefix(n)` when the run clears the indent,
+`s-indent(<n)` for a short pure-space run), the fold at `n`
+(`foldQuotedNewlines_prod_at` — the landing's space run splits at `n`
+because the gate refused anything shorter), the two collect-loop clones
+(`collect{Double,Single}QuotedLoop_prod_at`, threading
+`currentIndent`-stability through every step), the scan wrappers and the
+context conversions (the quoted body is one multi-line type at all four
+non-key contexts).  `indentedValue_reads_at_any_indent` gains a FIFTH
+disjunct (the fixed-index node with the index-free inline separator), fired
+off `h_floor`'s left — the `IndentFloor` field item 27 built IS the
+`n ≤ currentIndent + 1` hypothesis — and both indented arms consume it with
+arm 1's park.
+
+**The runtime's share**: the ESCAPED-break landing had no checks at all —
+`k:⏎  a: "x\⏎y"` and the root twin were accepted end-to-end although
+`[112] s-double-escaped(n)` ends in the same `s-flow-line-prefix(n)` as the
+fold — so the escaped landing now runs the fold's three checks (§6.1 tab in
+the zone, §9.1.2 marker, §8.1 under-indent) on a CONTENT landing, both
+pipelines (`quotedScalarErrLoopIx`'s escape arm mirrors); a BLANK landing is
+`[70] l-empty` — its own `s-indent-lt` arm admits a short run — and is
+checked by the fold on the next iteration.
+
+**Named residues** (each `∨ True`, cost as domain): a blank interior line
+whose run has fewer than `n` spaces and then a TAB (`k:⏎  a: "x⏎ →⏎   y"` —
+the one shape `[70]` has no arm for; scanner-accepted, a future runtime
+check refuses it); a blank line directly after an escaped break at a nonzero
+index (spec-VALID — `[112]`'s `l-empty*` slot, which the loop attributes to
+the next fold); the PLAIN fold and the props-decorated fold at the
+`k+1` props arm (item 54's); the floor-punted parks (their own class).
+
+**Validation.** Full `lake build` green (ZERO warnings); `run-all-tests.sh`
+4461/4461; matrix event 402/402, json 282/282 on BOTH pipelines and
+`eventscore` 347/358 with the identical failure set (re-taken after the
+runtime edit); 0 sorries, 0 custom axioms; checkers OK.  New guard
+`ScannerQuotedFoldCompose` (18 pins: §1 six compositions with full event
+shapes — dq/sq at `-`/`:`/`?` entries, escaped break, interior empty line —
+§2 five escaped-landing refusals incl. tab-zone and marker, five preserved
+acceptances incl. the blank landings, two unchanged fold refusals).
+
 ### REMAINING, in order
 
 The per-item history is the closure log above; this section lists only the
@@ -7756,10 +7806,12 @@ that spends one of the two remaining drops.  What still stands between here
 and that deletion, by input class:
 
 * the **fold** class — a multi-line plain/quoted value at an indented
-  entry (`  - "x⏎    y"`, `  : 'a⏎   b'`) — the readings at `n` the
-  one-line lemma excludes, at the three indented content arms
-  (`indentedValue_reads_at_any_indent`'s 4th disjunct, and the props
-  consumer's k+1 arm);
+  entry — QUOTED half CLOSED by item 53 (the refused landings fund the
+  reading; `ScalarFoldAt.lean`).  What survives: the PLAIN fold
+  (`  - a⏎     b`), the props-decorated fold at the props consumer's k+1
+  arm (`- &a "x⏎   y"`), and item 53's named residues (the tab-blank
+  interior line — scanner-accepted, needs a runtime check — and the
+  blank-after-escaped-break line at a nonzero index, spec-valid);
 * ~~the **landing** class — a value on its own line below its indicator~~
   — CLOSED by item 52 (the break binds the index: the fixed-`n` separator
   instantiates at the pending's own index).  What survives of it: the

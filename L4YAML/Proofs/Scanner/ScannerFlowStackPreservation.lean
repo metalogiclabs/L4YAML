@@ -440,11 +440,14 @@ lemma collectDoubleQuotedLoop_preserves_flowStack (s : ScannerState) (content : 
       split at h <;> try contradiction
       -- some c after backslash
       split at h
-      · -- isLineBreak c (escaped line break)
+      · -- isLineBreak c (escaped line break; item 53 splits the branch)
         have h_cn := consumeNewline_preserves_flowStack s.advance
-        have h_sw := skipWhitespace_preserves_flowStack (consumeNewline s.advance)
+        have h_sp := skipSpaces_preserves_flowStack (consumeNewline s.advance)
+        have h_sw := skipWhitespace_preserves_flowStack (skipSpaces (consumeNewline s.advance))
         have h_adv := advance_preserves_flowStack s
-        rw [ih _ _ _ h, h_sw, h_cn, h_adv]
+        simp only [bind, Except.bind] at h
+        repeat' split at h
+        all_goals (first | contradiction | rw [ih _ _ _ h, h_sw, h_sp, h_cn, h_adv])
       · -- regular escape sequence
         simp only [bind, Except.bind] at h
         split at h <;> try contradiction

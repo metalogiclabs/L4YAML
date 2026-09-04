@@ -19,6 +19,7 @@ import L4YAML.Proofs.Scanner.BlockScalarIndentFloor
 import L4YAML.Proofs.Scanner.PreprocessIndentStable
 import L4YAML.Proofs.Coupling.TabIndentBridge
 import L4YAML.Proofs.Production.FlowIndexLift
+import L4YAML.Proofs.Production.ScalarFoldAt
 
 /-! # Stream Grammar Accumulator (Layer 4d + 4e: Lagging Grammar with Block Stack)
 
@@ -69,6 +70,7 @@ open L4YAML.Proofs.BlockScalarIndentFloor
 open L4YAML.Proofs.PreprocessIndentStable
 open L4YAML.Proofs.CouplingBridge
 open L4YAML.Proofs.FlowIndexLift
+open L4YAML.Proofs.ScalarFoldAt
 open L4YAML.Proofs.TabIndentBridge
 open L4YAML.Proofs.ScanStrictCoupling
 open L4YAML.Proofs.ScannerCoupling
@@ -11160,6 +11162,76 @@ lemma dispatchContent_singleQuoted_prod (sc : ScannerState) (sp : SurfPos)
                   · exact hcorr'⟩
             · rename_i h_neq; exact absurd rfl h_neq
 
+-- Item 53: the at-`n` twins — a dispatched quoted token reads at the
+-- pending's own index when the floor admits it (`n ≤ currentIndent + 1`);
+-- the loop guards clear every content landing, and the `∨ True` side is
+-- the satellite's named residues.
+lemma dispatchContent_doubleQuoted_prod_at (n : Nat) (sc : ScannerState) (sp : SurfPos)
+    {s' : ScannerState}
+    (hcorr : ScannerSurfCorr sc sp)
+    (hpeek : sc.peek? = some '"')
+    (hok : scanNextToken_dispatchContent sc '"' = .ok s')
+    (hn : (n : Int) ≤ max 0 (sc.currentIndent + 1)) :
+    (∃ sp', SCDoubleQuoted n .blockIn sp sp' ∧ ScannerSurfCorr s' sp') ∨ True := by
+  unfold scanNextToken_dispatchContent at hok
+  simp only [bind, Except.bind, pure, Except.pure] at hok
+  split at hok
+  · rename_i h_eq; exact absurd h_eq (by decide)
+  · split at hok
+    · rename_i h_eq; exact absurd h_eq (by decide)
+    · split at hok
+      · rename_i h_eq; exact absurd h_eq (by decide)
+      · split at hok
+        · rename_i h_eq; exact absurd h_eq (by decide)
+        · split at hok
+          · split at hok
+            · simp at hok
+            · rename_i s_dq hdq
+              have h := Except.ok.inj hok; subst h
+              rcases scanDoubleQuoted_prod_at n sc sp hcorr hpeek hdq hn with
+                ⟨sp', h_gram, hcorr'⟩ | _
+              · refine Or.inl ⟨sp', h_gram, ?_⟩
+                split
+                · exact ⟨hcorr'.chars_from, hcorr'.col_eq,
+                         hcorr'.end_eq, hcorr'.input_prefix, hcorr'.indent_cols_nonneg⟩
+                · exact hcorr'
+              · exact Or.inr trivial
+          · rename_i h_neq; exact absurd rfl h_neq
+
+lemma dispatchContent_singleQuoted_prod_at (n : Nat) (sc : ScannerState) (sp : SurfPos)
+    {s' : ScannerState}
+    (hcorr : ScannerSurfCorr sc sp)
+    (hpeek : sc.peek? = some '\'')
+    (hok : scanNextToken_dispatchContent sc '\'' = .ok s')
+    (hn : (n : Int) ≤ max 0 (sc.currentIndent + 1)) :
+    (∃ sp', SCSingleQuoted n .blockIn sp sp' ∧ ScannerSurfCorr s' sp') ∨ True := by
+  unfold scanNextToken_dispatchContent at hok
+  simp only [bind, Except.bind, pure, Except.pure] at hok
+  split at hok
+  · rename_i h_eq; exact absurd h_eq (by decide)
+  · split at hok
+    · rename_i h_eq; exact absurd h_eq (by decide)
+    · split at hok
+      · rename_i h_eq; exact absurd h_eq (by decide)
+      · split at hok
+        · rename_i h_eq; exact absurd h_eq (by decide)
+        · split at hok
+          · rename_i h_eq; exact absurd h_eq (by decide)
+          · split at hok
+            · split at hok
+              · simp at hok
+              · rename_i s_sq hsq
+                have h := Except.ok.inj hok; subst h
+                rcases scanSingleQuoted_prod_at n sc sp hcorr hpeek hsq hn with
+                  ⟨sp', h_gram, hcorr'⟩ | _
+                · refine Or.inl ⟨sp', h_gram, ?_⟩
+                  split
+                  · exact ⟨hcorr'.chars_from, hcorr'.col_eq,
+                           hcorr'.end_eq, hcorr'.input_prefix, hcorr'.indent_cols_nonneg⟩
+                  · exact hcorr'
+                · exact Or.inr trivial
+            · rename_i h_neq; exact absurd rfl h_neq
+
 -- The BLOCK-KEY twins of the two quoted dispatches (item 16).  Unlike the
 -- plain branch, the quoted branches carry §7.4's OWN `endLine` bookkeeping —
 -- `simpleKey.endLine := line` when a key is possible — so the coupling
@@ -13270,6 +13342,15 @@ lemma indentedValue_reads_at_any_indent
       GStar SSWhite sp_gram sp_scan' ∧
       (sp_scan'.col = 0 ∨ LineNodeStop sp_scan'.chars) ∧
       (c ≠ '&' ∧ c ≠ '!')) ∨
+    -- Item 53: the token itself crossed a line — a QUOTED body reads at the
+    -- pending's own index off the loop's own guards (the fold's, and the
+    -- escaped break's since the runtime edit).  The node is FIXED at `n`
+    -- (the guards were measured against this floor); the separator stays
+    -- index-free (the step is break-free at the dispatch level).
+    (SFlowNode n .flowOut sp_prep sp_scan' ∧
+      (∀ (n' : Nat) (c' : YamlContext), SSeparate n' c' sp_scan sp_prep) ∧
+      (sp_scan'.col = 0 ∨ LineNodeStop sp_scan'.chars) ∧
+      (c ≠ '&' ∧ c ≠ '!')) ∨
     True := by
   have hpeek : s_prep.peek? = some c := preprocess_some_peek h_preprocess
   have hpeek_disp : (if s_prep.allowDirectives then
@@ -13366,7 +13447,7 @@ lemma indentedValue_reads_at_any_indent
           exact Or.inr (Or.inr (Or.inl
             ⟨h_read.elim (fun h => Or.inl (h n hn)) (fun h => Or.inr (h n hn)),
              h_sep_all, h_line, hna, hnt⟩))
-        · exact Or.inr (Or.inr (Or.inr (Or.inr trivial)))
+        · exact Or.inr (Or.inr (Or.inr (Or.inr (Or.inr trivial))))
       · have hna : c ≠ '&' := fun h => hprops (Or.inl h)
         have hnt : c ≠ '!' := fun h => hprops (Or.inr h)
         have hnp : c ≠ '|' := fun h => hbs (Or.inl h)
@@ -13385,13 +13466,58 @@ lemma indentedValue_reads_at_any_indent
           rw [hsp_ev_eq] at h_trailing_ws
           exact Or.inl ⟨sp_gram, fun n => h_sep_all n .flowOut, h_flow_all,
                         h_trailing_ws, h_line, hna, hnt⟩
-        · exact Or.inr (Or.inr (Or.inr (Or.inr trivial)))
+        · -- Item 53: the fold.  A quoted token reads at `n` when the floor
+          -- was measured (`h_floor`'s left is `n ≤ currentIndent + 1`); the
+          -- plain fold keeps the deferral (item 54's class).
+          rcases h_floor with ⟨h_nic_sc, h_le⟩ | _
+          · have h_line := col0_or_lineStop
+              (dispatchContent_restNodeStop h_flow_disp hna hnt hcorr_result.end_eq h_dispatch)
+              hcorr_result
+            have hn_disp : (n : Int) ≤ max 0 ((if s_prep.allowDirectives then
+                { s_prep with allowDirectives := false, documentEverStarted := true }
+              else s_prep).currentIndent + 1) := by
+              have h_ci_ad : (if s_prep.allowDirectives then
+                  { s_prep with allowDirectives := false, documentEverStarted := true }
+                else s_prep).currentIndent = s_prep.currentIndent := by split <;> rfl
+              have h_ci_prep : s_prep.currentIndent = sc.currentIndent :=
+                currentIndent_of_indents_eq (h_indents h_nic_sc)
+              rw [h_ci_ad, h_ci_prep]
+              unfold minContentIndentOf at h_le
+              omega
+            by_cases hdq : c = '"'
+            · subst hdq
+              rcases dispatchContent_doubleQuoted_prod_at n _ sp_prep
+                  (corr_of_allowDirectives_update hcorr_prep) hpeek_disp h_dispatch hn_disp with
+                ⟨sp', h_gram, hcorr'⟩ | _
+              · have hsp_eq := ScannerSurfCorr_unique hcorr' hcorr_result
+                rw [hsp_eq] at h_gram
+                exact Or.inr (Or.inr (Or.inr (Or.inr (Or.inl
+                  ⟨SFlowNode.content n .flowOut sp_prep sp_scan'
+                     (SFlowContent.doubleQ n .flowOut sp_prep sp_scan'
+                       (SCDoubleQuoted_multiCtx .flowOut (Or.inl rfl) h_gram)),
+                   h_sep_all, h_line, hna, hnt⟩))))
+              · exact Or.inr (Or.inr (Or.inr (Or.inr (Or.inr trivial))))
+            · by_cases hsq : c = '\''
+              · subst hsq
+                rcases dispatchContent_singleQuoted_prod_at n _ sp_prep
+                    (corr_of_allowDirectives_update hcorr_prep) hpeek_disp h_dispatch hn_disp with
+                  ⟨sp', h_gram, hcorr'⟩ | _
+                · have hsp_eq := ScannerSurfCorr_unique hcorr' hcorr_result
+                  rw [hsp_eq] at h_gram
+                  exact Or.inr (Or.inr (Or.inr (Or.inr (Or.inl
+                    ⟨SFlowNode.content n .flowOut sp_prep sp_scan'
+                       (SFlowContent.singleQ n .flowOut sp_prep sp_scan'
+                         (SCSingleQuoted_multiCtx .flowOut (Or.inl rfl) h_gram)),
+                     h_sep_all, h_line, hna, hnt⟩))))
+                · exact Or.inr (Or.inr (Or.inr (Or.inr (Or.inr trivial))))
+              · exact Or.inr (Or.inr (Or.inr (Or.inr (Or.inr trivial))))
+          · exact Or.inr (Or.inr (Or.inr (Or.inr (Or.inr trivial))))
   · -- Item 52: the landing.  Props, block scalars and folds there keep the
     -- deferral (each is its own class); the one-line flow value composes.
     by_cases hprops : c = '&' ∨ c = '!'
-    · exact Or.inr (Or.inr (Or.inr (Or.inr trivial)))
+    · exact Or.inr (Or.inr (Or.inr (Or.inr (Or.inr trivial))))
     by_cases hbs : c = '|' ∨ c = '>'
-    · exact Or.inr (Or.inr (Or.inr (Or.inr trivial)))
+    · exact Or.inr (Or.inr (Or.inr (Or.inr (Or.inr trivial))))
     have hna : c ≠ '&' := fun h => hprops (Or.inl h)
     have hnt : c ≠ '!' := fun h => hprops (Or.inr h)
     have hnp : c ≠ '|' := fun h => hbs (Or.inl h)
@@ -13414,8 +13540,8 @@ lemma indentedValue_reads_at_any_indent
         rw [hsp_ev_eq] at h_trailing_ws
         exact Or.inr (Or.inr (Or.inr (Or.inl
           ⟨sp_gram, h_lines, h_flow_all, h_trailing_ws, h_line, hna, hnt⟩)))
-      · exact Or.inr (Or.inr (Or.inr (Or.inr trivial)))
-    · exact Or.inr (Or.inr (Or.inr (Or.inr trivial)))
+      · exact Or.inr (Or.inr (Or.inr (Or.inr (Or.inr trivial))))
+    · exact Or.inr (Or.inr (Or.inr (Or.inr (Or.inr trivial))))
 
 /-- **The INDENTED entry's value** (item 23) — `accum_content_on_pendingBlock`
     at the entry index item 22 gave the pending.
@@ -13462,7 +13588,8 @@ lemma accum_content_on_pendingBlock_indented
     ⟨ha, ht, h_sep_all, h_run_all, h_nic_s, h_real_s, h_anchor_s, h_tag_s, h_ind_s,
       h_single, h_sk_s, h_line_s⟩ |
     ⟨h_read, h_sep_all, h_line, hna, hnt⟩ |
-    ⟨sp_gram, h_sep_ld, h_flow_all, h_trailing_ws, h_line, hna, hnt⟩ | _
+    ⟨sp_gram, h_sep_ld, h_flow_all, h_trailing_ws, h_line, hna, hnt⟩ |
+    ⟨h_node_f, h_sep_all, h_line, hna, hnt⟩ | _
   · exact ⟨sp_block, sp_block, sp_block, sp_scan', h_stream_block,
            BlockStack.nil sp_block, FlowStackB.nil sp_block .sep,
            PendingNode.pendingBlockContent sp_start sp_block sp_scan' n h_line
@@ -13550,6 +13677,30 @@ lemma accum_content_on_pendingBlock_indented
                    (SBlockNode.flowInBlock n .blockIn sp_scan sp_prep sp_gram sp_final
                      h_sep_ld (h_flow_all n)
                      (white_prepend_SSLComments h_trailing_ws h_ssl))))
+             (entryKeyPack_of_dispatch sc sp_start sp_scan n s_prep s' c sp_prep sp_scan'
+               (fun sp h_bn => h_close_old sp (SBlockIndented.node n .blockIn sp_scan sp h_bn))
+               (Or.inl h_close_old)
+               hcorr_prep hcorr_result h_corr h_not_doc h_flow_disp
+               h_preprocess h_dispatch)
+             (stale_of_dispatch h_dispatch hna hnt
+               (by split <;> exact nic_false_of_flow_disp (sc := sc) (s_prep := s_prep) h_preprocess h_flow_disp)
+               hcorr_result),
+           hcorr_result⟩
+  · -- Item 53: `  - "x⏎    y"` — the entry's MULTI-LINE quoted value, read
+    -- at the entry's own index; arm 1's park with the fixed-index node.
+    exact ⟨sp_block, sp_block, sp_block, sp_scan', h_stream_block,
+           BlockStack.nil sp_block, FlowStackB.nil sp_block .sep,
+           PendingNode.pendingBlockContent sp_start sp_block sp_scan' n h_line
+             (fun sp_final h_ssl =>
+               h_close_old sp_final
+                 (SBlockIndented.node n .blockIn sp_scan sp_final
+                   (SBlockNode.flowInBlock n .blockIn sp_scan sp_prep sp_scan' sp_final
+                     (h_sep_all n .flowOut) h_node_f h_ssl)))
+             (fun sp_final h_ssl =>
+               h_close_entry_old sp_final
+                 (SBlockIndented.node n .blockIn sp_scan sp_final
+                   (SBlockNode.flowInBlock n .blockIn sp_scan sp_prep sp_scan' sp_final
+                     (h_sep_all n .flowOut) h_node_f h_ssl)))
              (entryKeyPack_of_dispatch sc sp_start sp_scan n s_prep s' c sp_prep sp_scan'
                (fun sp h_bn => h_close_old sp (SBlockIndented.node n .blockIn sp_scan sp h_bn))
                (Or.inl h_close_old)
@@ -13794,7 +13945,8 @@ lemma accum_content_on_pendingMapValue_indented
     ⟨ha, ht, h_sep_all, h_run_all, h_nic_s, h_real_s, h_anchor_s, h_tag_s, h_ind_s,
       _h_single, _h_sk_s, _h_line_s⟩ |
     ⟨h_read, h_sep_all, h_line, hna, hnt⟩ |
-    ⟨sp_gram, h_sep_ld, h_flow_all, h_trailing_ws, h_line, hna, hnt⟩ | _
+    ⟨sp_gram, h_sep_ld, h_flow_all, h_trailing_ws, h_line, hna, hnt⟩ |
+    ⟨h_node_f, h_sep_all, h_line, hna, hnt⟩ | _
   · -- Item 39 stopped here, reading the value route's side condition `n ≤ k` as
     -- a property of this ARM: at an indented pending a landing can be a DEDENT
     -- (`  : v⏎a: 1` ends the enclosing entry instead of nesting inside its
@@ -13893,6 +14045,35 @@ lemma accum_content_on_pendingMapValue_indented
                           (SBlockNode.flowInBlock n .blockIn sp_scan sp_prep sp_gram sp_m
                             h_sep_ld (h_flow_all n)
                             (white_prepend_SSLComments h_trailing_ws h_ssl))))
+                      h_ind h_lit h_sbi)⟩
+              | Or.inr _ => Or.inr trivial),
+           hcorr_result⟩
+  · -- Item 53: `  : "x⏎    y"` — the MULTI-LINE quoted value at the entry's
+    -- own index; arm 1's park with the fixed-index node, the explicit
+    -- frame's pack composing the same way.
+    exact ⟨sp_block, sp_block, sp_block, sp_scan', h_stream_block,
+           BlockStack.nil sp_block, FlowStackB.nil sp_block .sep,
+           PendingNode.pendingContent sp_start sp_block sp_scan' h_line
+             (fun sp_final h_ssl =>
+               h_close_old sp_final
+                 (SBlockNode.flowInBlock n .blockIn sp_scan sp_prep sp_scan' sp_final
+                   (h_sep_all n .flowOut) h_node_f h_ssl))
+             (entryKeyPack_of_dispatch sc sp_start sp_scan n s_prep s' c sp_prep sp_scan'
+               h_close_old (Or.inr trivial)
+               hcorr_prep hcorr_result h_corr h_not_doc h_flow_disp
+               h_preprocess h_dispatch)
+             (stale_of_dispatch h_dispatch hna hnt
+               (by split <;> exact nic_false_of_flow_disp (sc := sc) (s_prep := s_prep) h_preprocess h_flow_disp)
+               hcorr_result)
+             (match h_expl with
+              | Or.inl ⟨sp_q, h_qlit, route⟩ => Or.inl ⟨n,
+                  fun sp_m sp_i sp_c h_ssl h_ind h_lit sp_v h_sbi =>
+                    route sp_v (SBlockMapEntry.explicit n sp_q sp_scan sp_m sp_i sp_c sp_v
+                      h_qlit
+                      (SBlockIndented.node n .blockOut sp_scan sp_m
+                        (SBlockNode_blockIn_to_blockOut
+                          (SBlockNode.flowInBlock n .blockIn sp_scan sp_prep sp_scan' sp_m
+                            (h_sep_all n .flowOut) h_node_f h_ssl)))
                       h_ind h_lit h_sbi)⟩
               | Or.inr _ => Or.inr trivial),
            hcorr_result⟩

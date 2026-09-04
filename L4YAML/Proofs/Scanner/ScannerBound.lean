@@ -1317,10 +1317,15 @@ lemma collectDoubleQuotedLoop_BoundInv {s₀ : ScannerState} (s s' : ScannerStat
       split at hok  -- s.advance.peek?
       · -- some c
         split at hok  -- isLineBreakBool
-        · -- escaped line break: no bind, just let + recurse
-          try dsimp only [] at hok
-          exact ih _ _ _ (skipWhitespace_BoundInv _
-            (consumeNewline_BoundInv _ (advance_BoundInv s h hend) hend) hend) hok
+        · -- escaped line break (item 53 splits the branch: throws contradict,
+          -- both recursing arms share the chain through `skipSpaces`)
+          simp only [bind, Except.bind] at hok
+          repeat' split at hok
+          all_goals first
+            | contradiction
+            | exact ih _ _ _ (skipWhitespace_BoundInv _
+                (skipSpaces_BoundInv _
+                  (consumeNewline_BoundInv _ (advance_BoundInv s h hend) hend) hend) hend) hok
         · -- regular escape: do with processEscape ←
           simp only [bind, Except.bind, Bind.bind] at hok
           split at hok  -- processEscape result
