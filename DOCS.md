@@ -8519,6 +8519,60 @@ runtime refuses and the proof does not yet.
 > reads the OTHER checkout and scores 346/358 with "1 valid rejected".  Pass no
 > `--suite`; the tracked copy is the 347/358 every entry above quotes.
 
+### Item 70 (2026-09-04)
+
+**The interior's column is not hard — it is false, and the surface says so.**
+Item 69 recorded the tab half's carrier as a column on `InteriorGap` and its
+hard cases as "the multi-line scalar productions".  The first half was right and
+the second was wrong in a way that matters: the four CONTENT producers cannot
+pay the column at all, because on this surface the fact they would have to prove
+does not hold.
+
+`Surface/Scalars.lean` models `[134] s-ns-plain-next-line(n,c)`'s trailing
+`nb-ns-plain-in-line` as `GStar (SNbNsPlainInLineEntry c)` where the spec has
+one-or-more, and says so in its own note ("enforced by the scanner's
+content-length check.  TODO: strengthen to `GPlus` once proved").  With `GStar`
+a continuation line may consume nothing past `[69'] s-flow-line-prefix(n)`,
+which at `n = 0` is zero-width — so `[135]`, and through `[159]` the whole
+`[158] ns-flow-content`, admits a derivation ENDING AT COLUMN 0.
+
+That is not a reading of the inductive: it is
+`Tests/Guards/Proofs/PlainNextLineEmptyRun.lean`, two derivations the compiler
+accepts, `SNsPlainMultiLine 0 .flowIn ⟨['a','\n'],0⟩ ⟨[],0⟩` and the
+`SFlowContent` that wraps it.  A content step's own evidence is exactly what
+`InteriorGap`'s column field would have to refute, so the field cannot be
+discharged there and the invariant cannot be stated.
+
+**What the attempt did establish**, before it hit that (built, then reverted):
+
+* `flowInterior_underRunTab_refuted` — the §6.1 twin of item 68's
+  `flowOpen_underRunTab_refuted`, which needs only `sp_mid ≠ sp_scan` and
+  `c ≠ '#'`.
+* `c ≠ '#'` is free at all three step lemmas: the two indicator dispatches fall
+  through to `.ok none` on anything outside their own sets, and the content
+  dispatch refuses `#` outright because `[22] c-indicator` fails
+  `[126] ns-plain-first` — so the interior needs no `h_c` where item 68's open
+  spent `c = '[' ∨ c = '{'` twice.
+* 22 of the 26 `InteriorGap.white` producers pay `0 < sp_scan.col` from
+  `glit_col` on the indicator they just scanned, and `InteriorGap.props` reads
+  it off `propsRun_col_gt` at index 0.  Only the four content ones do not.
+
+**So the tab half is downstream of one of two items, neither of them this one:**
+
+1. **Strengthen `[134]` to `GPlus`**, threading the scanner's content-length
+   check through `collectPlainScalarLoop`'s recursion.  Blast radius is small —
+   four `SSNsPlainNextLine.mk` sites (`ScalarFoldAt` ×2, `ScalarProduction` ×2)
+   — but the non-emptiness fact is not in hand at any of them today.  This is
+   the fix `Surface/Scalars.lean` already names, and it deletes the new guard.
+2. **Carry `sc.needIndentCheck = true` beside the column.**  `LandingTabFacts`'
+   premise is `nic = true ∨ sp_mid ≠ sp`, and a scan that ends at column 0 is a
+   scan that crossed a break — which in flow nothing clears, since preprocessing
+   unwinds under `!inFlow`.  Scanner-side, and the idiom exists already as
+   `dispatchContent_{anchor,alias,tag}_line_nic`.
+
+Route 1 is the one the source asks for and the one that removes an
+over-approximation rather than routing around it.
+
 ### REMAINING, in order
 
 The per-item history is the closure log above; this section lists only the
@@ -8705,6 +8759,9 @@ and that deletion, by input class:
       other 4 being the props gap's own lead), and located the tab half's real
       carrier: a column on `InteriorGap`, where the `props` arm is free from
       `propsRun_col_gt` and the `white` arm reduces to `0 < sp_flow.col`.
+      ~~The hard cases are the multi-line scalar productions.~~  Not hard —
+      **false**, struck 2026-09-04 by item 70, which built the counter-model:
+      `Tests/Guards/Proofs/PlainNextLineEmptyRun.lean`.  See item 70.
     * **6 sites are the `:`-receiving closure's ARGUMENT** — `SSeparateLines 0
       sp_ne sp_p'` handed in by a LATER step, so nothing at this step can
       refute it.  It closes by stating `FlowStackK`'s `.value`-tail colon route
