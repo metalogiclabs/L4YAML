@@ -625,7 +625,24 @@ inductive PendingNode (sc : ScannerState) : Bool → SurfPos → SurfPos → Sur
         (trailingPropertyRunOnLine sc.tokens sc.line).any YamlToken.isTagProperty = true)
       (h_route : ∀ sp_m, SBlockNode n .blockIn sp_node sp_m → SLYamlStream sp_start sp_m)
       (h_key : PropsKeyPack sc sp_start sp_p sp_scan ∨ True)
-      (h_floor : IndentFloor sc n ∨ True) :
+      (h_floor : IndentFloor sc n ∨ True)
+      -- Item 68 (LAST, same reason): the park's own COLUMN, in the two halves
+      -- the flow open spends separately.
+      --
+      -- `h_col0` is unconditional and is what a `[96]` park has for free: the
+      -- run is at least one character wide (`propsRun_col_gt` at 0), so the park
+      -- is never at a line start.  It is `LandingTabFacts`' missing premise — a
+      -- landing at column 0 that is not the park is a landing that crossed a
+      -- BREAK — which is what closes item 66's remaining tab half here.
+      --
+      -- `h_ncol` is the route index measured against that column, and it is
+      -- optional for the same reason `h_floor` is: it is a measurement, not a
+      -- fact about the scan.  Where it fires it carries the pending's floor onto
+      -- the flow stack (item 67a's `openFloor` needs the separator's own start),
+      -- and it is free at `n = 0` — a run starts at or past the index its route
+      -- closes at (`separateLines_col_ge`) and grows from there.
+      (h_col0 : 0 < sp_scan.col)
+      (h_ncol : n ≤ sp_scan.col ∨ True) :
       PendingNode sc false sp_start sp_block sp_scan
   /-- Document end `...` scanned. The gap contains SCDocumentEnd.
       Awaiting SSLComments to form SLDocumentSuffix.
@@ -878,7 +895,24 @@ inductive PendingNode (sc : ScannerState) : Bool → SurfPos → SurfPos → Sur
       -- producer has it (`scanKey`/`scanValue` both end
       -- `simpleKeyAllowed := true`), and it is what lets the compact fill
       -- refute the inline TAB instead of deferring it.
-      (h_sk : sc.simpleKeyAllowed = true) :
+      (h_sk : sc.simpleKeyAllowed = true)
+      -- Item 68 (LAST, same reason): the park's own COLUMN, in the same two
+      -- halves `pendingProps` carries and for the same two spends.
+      --
+      -- `h_col0` is unconditional: every producer parks one character past an
+      -- indicator (`glit_col`), so no park of this constructor is at a line
+      -- start.  That is what item 66's remaining tab half needed here — a
+      -- column-0 landing that is not the park crossed a break, which is
+      -- `LandingTabFacts`' premise.
+      --
+      -- `h_ncol` is the entry index measured against that column.  The four
+      -- KEYLESS producers pay it outright (the indicator stands AT the index);
+      -- the two IMPLICIT-key ones cannot, because the key's own column reaches
+      -- them only through `ImplicitKeyPack`, which does not carry it — the same
+      -- `h_kcol` boundary that already makes their `h_floor` optional, so the
+      -- two punt together rather than separately.
+      (h_col0 : 0 < sp_scan.col)
+      (h_ncol : n ≤ sp_scan.col ∨ True) :
       PendingNode sc false sp_start sp_block sp_scan
 
 /-- The propsEmpty close of a held run: `[161]`'s `( c-ns-properties e-scalar )`
@@ -5665,6 +5699,94 @@ lemma separateLines_col_ge {n : Nat} {sp sp' : SurfPos}
       | none => exact h1
       | some _ h_il => exact Nat.le_trans h1 (separateInLine_col_le h_il)
 
+/-- …and `[69] s-separate(n,c)` is one of those two, whichever the context
+    picks. -/
+lemma separate_col_ge {n : Nat} {cc : YamlContext} {sp sp' : SurfPos}
+    (h : SSeparate n cc sp sp') (h_start : n ≤ sp.col) : n ≤ sp'.col := by
+  unfold SSeparate at h
+  cases cc with
+  | blockOut | blockIn | flowOut | flowIn => exact separateLines_col_ge h h_start
+  | blockKey | flowKey => exact Nat.le_trans h_start (separateInLine_col_le h)
+
+/-- One character is one column. -/
+lemma gchar_col {p : Char → Prop} {sp sp' : SurfPos} (h : GChar p sp sp') :
+    sp'.col = sp.col + 1 := by cases h; rfl
+
+/-- …and so is one literal. -/
+lemma glit_col {ch : Char} {sp sp' : SurfPos} (h : GLit ch sp sp') :
+    sp'.col = sp.col + 1 := by cases h; rfl
+
+/-- A NON-EMPTY run of single characters moves strictly right. -/
+lemma gplus_gchar_col_lt {p : Char → Prop} {sp sp' : SurfPos}
+    (h : GPlus (GChar p) sp sp') : sp.col < sp'.col := by
+  cases h
+  rename_i hc h_star
+  have := gchar_col hc
+  have := gstar_gchar_col_le h_star
+  omega
+
+/-- `[101] c-ns-anchor-property` is `&` plus a NON-EMPTY name, all on one
+    line. -/
+lemma anchorProperty_col_lt {sp sp' : SurfPos} (h : SCNsAnchorProperty sp sp') :
+    sp.col < sp'.col := by
+  cases h
+  rename_i h_plus
+  have := gplus_gchar_col_lt h_plus
+  simp at this ⊢
+  omega
+
+/-- `[97] c-ns-tag-property` is `!` plus a possibly-empty suffix — so its own
+    indicator is what makes the width strict, in every one of the five
+    shapes. -/
+lemma tagProperty_col_lt {sp sp' : SurfPos} (h : SCNsTagProperty sp sp') :
+    sp.col < sp'.col := by
+  cases h with
+  | verbatim =>
+    rename_i h_lt h_uri h_gt
+    have h1 := glit_col h_lt
+    have h2 := gplus_gchar_col_lt h_uri
+    have h3 := glit_col h_gt
+    simp at h1 ⊢
+    omega
+  | secondary =>
+    rename_i h_star
+    have := gstar_gchar_col_le h_star
+    simp at this ⊢
+    omega
+  | named =>
+    rename_i h_word h_bang h_tail
+    have h1 := gplus_gchar_col_lt h_word
+    have h2 := glit_col h_bang
+    have h3 := gstar_gchar_col_le h_tail
+    simp at h1 ⊢
+    omega
+  | nonSpecific => simp
+  | primary =>
+    rename_i h_star
+    have := gstar_gchar_col_le h_star
+    simp at this ⊢
+    omega
+
+/-- **A `[96]` run parked at its route's index ends STRICTLY right of it**
+    (item 68).  Either half is at least one character wide, and the two-half
+    shapes' internal `[69] s-separate` cannot fall back below `n`
+    (`separate_col_ge`) — so the park's column is a strict bound whatever the
+    run's width, which is what `pendingProps` carries and `= n + 1` could not
+    have said. -/
+lemma propsRun_col_gt {n : Nat} {cc : YamlContext} {ha ht : Bool} {sp sp' : SurfPos}
+    (h : PropsRun n cc ha ht sp sp') (h_start : n ≤ sp.col) : n < sp'.col := by
+  cases h with
+  | anchor _ _ h_a => exact Nat.lt_of_le_of_lt h_start (anchorProperty_col_lt h_a)
+  | tag _ _ h_t => exact Nat.lt_of_le_of_lt h_start (tagProperty_col_lt h_t)
+  | anchorThenTag _ _ _ _ h_a h_sep h_t =>
+    exact Nat.lt_of_le_of_lt
+      (separate_col_ge h_sep (Nat.le_of_lt (Nat.lt_of_le_of_lt h_start (anchorProperty_col_lt h_a))))
+      (tagProperty_col_lt h_t)
+  | tagThenAnchor _ _ _ _ h_t h_sep h_a =>
+    exact Nat.lt_of_le_of_lt
+      (separate_col_ge h_sep (Nat.le_of_lt (Nat.lt_of_le_of_lt h_start (tagProperty_col_lt h_t))))
+      (anchorProperty_col_lt h_a)
+
 /-- **The flow open's floor** (item 67).  The stack the open pushes reads at
     the pending's index for the whole collection, so the index has to still
     measure against the state the OPEN runs at — one preprocessing step past
@@ -5905,7 +6027,7 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
     -- node opened here keeps riding it (β.5 retires this with pendingFlow, R3).
     exact main h_close_pending opaque_resume
   | pendingProps _ _ _ ha ht sp_node sp_p n h_sep_run h_run h_nic_p h_real_p h_anchor_p h_tag_p
-      h_route h_pkey h_floor_p =>
+      h_route h_pkey h_floor_p h_col0_p h_ncol_p =>
     -- Items 9h/10, site 5's legal inhabitant: the held `[96]` run rides INTO
     -- the flow node.  The separation preprocessing crossed (break or not —
     -- `&a [b]` and `&a⏎[b]` alike) becomes the run→content `s-separate`, and
@@ -5921,9 +6043,14 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
       preprocess_some_separate_at_anyCol n sc sp_scan s_prep c h_corr h_preprocess
     have h_pe : sp_gap = sp_prep := ScannerSurfCorr_unique hcorr_gap hcorr_prep
     rw [h_pe] at h_sep_or
-    rcases h_sep_or with h_sep | ⟨sp_mid2, _h_ssl2, h_col02, h_ur, _h_ltsl2⟩
+    rcases h_sep_or with h_sep | ⟨sp_mid2, _h_ssl2, h_col02, h_ur, h_ltsl2⟩
     · exact ⟨sp_gram, sp_block, sp_open, sp_open, h_stream, h_stack,
-             h_kpkg _ _ _ (Or.inr trivial) (mk n sp_block ⟨(fun sp_ne sp_m h_content h_ssl =>
+             -- Item 68: the run's park is at or past its route index, so the
+             -- collection this open pushes reads its interior AT that index
+             -- rather than lifting from 0 (item 67a's `openFloor`).
+             h_kpkg _ _ _ (match h_ncol_p with
+                | Or.inl h_nc => openFloor h_sep h_nc h_floor_p
+                | Or.inr _ => Or.inr trivial) (mk n sp_block ⟨(fun sp_ne sp_m h_content h_ssl =>
                h_route sp_m (flowInBlock_blockNode h_sep_run
                  (SFlowNode.propsContent n .flowOut sp_p sp_scan sp_prep sp_ne
                    h_run.toProperties h_sep h_content) h_ssl)),
@@ -5946,15 +6073,19 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
              PendingNode.noPending sp_start sp_open (Or.inr (inFlow_of_flowLevel_eq h_fl1)), hcorr_open,
              fun _ => ⟨.white (GStar.nil _) h_sync h_colon, h_real, h_ad⟩⟩
     · -- Item 66: the run-end half of the under-run is §8.1's own refusal
-      -- (`k:⏎  b:⏎    &x⏎[1]`); the TAB half still rides the drop, because a
-      -- props park carries no column and so cannot say the landing crossed a
-      -- break — the premise `LandingTabFacts` needs (Reflection 683).
-      rcases h_ur with ⟨j, sx, hj, h_ind, _h_ws2, h_end | _h_tab⟩
+      -- (`k:⏎  b:⏎    &x⏎[1]`).  Item 68: and so is the TAB half now — the park
+      -- carries its own column, and a column-0 landing that is not the park is
+      -- a landing that crossed a break, which is `LandingTabFacts`' premise.
+      rcases h_ur with ⟨j, sx, hj, h_ind, _h_ws2, h_end | h_tab⟩
       · rcases h_floor_p with h_floor | _
         · exact (flowOpen_underRunEnd_refuted h_floor hcorr_prep h_dcol h_dind
             h_dflow h_c h_col02 hj (h_end ▸ h_ind) h_preprocess h_bfi).elim
         · exact drop_ride
-      · exact drop_ride
+      · rcases h_floor_p with h_floor | _
+        · exact (flowOpen_underRunTab_refuted h_floor h_ltsl2
+            (fun h => by rw [h] at h_col02; omega) h_col02 hj h_ind h_tab
+            h_c h_preprocess).elim
+        · exact drop_ride
   | pendingDocStart =>
     rename_i h_doc_builder
     obtain ⟨sp_gap, h_sep0, hcorr_gap⟩ :=
@@ -6015,7 +6146,7 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
             (fun h => by rw [h, h_col59] at h_col02; omega) h_col02 hj h_ind h_tab
             h_c h_preprocess).elim
       · exact drop_ride
-  | pendingMapValue _ _ _ n_old h_close h_floor_mv _ _ _ h_expl h_vslot =>
+  | pendingMapValue _ _ _ n_old h_close h_floor_mv _ _ _ h_expl h_vslot _ h_col0_mv h_ncol_mv =>
     -- Item 13: the flow collection IS the mapping's value (`: [a]`, `: {a: b}`)
     -- — same closure type as `pendingBlock`, so the arm is its verbatim clone,
     -- indent split included.
@@ -6023,9 +6154,14 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
       preprocess_some_separate_at_anyCol n_old sc sp_scan s_prep c h_corr h_preprocess
     have h_pe : sp_gap = sp_prep := ScannerSurfCorr_unique hcorr_gap hcorr_prep
     rw [h_pe] at h_sep_or
-    rcases h_sep_or with h_sep | ⟨sp_mid2, _h_ssl2, h_col02, h_ur, _h_ltsl2⟩
+    rcases h_sep_or with h_sep | ⟨sp_mid2, _h_ssl2, h_col02, h_ur, h_ltsl2⟩
     · exact ⟨sp_gram, sp_block, sp_open, sp_open, h_stream, h_stack,
-             h_kpkg _ _ _ (Or.inr trivial) (mk n_old sp_block ⟨(fun sp_ne sp_m h_content h_ssl =>
+             -- Item 68: `pendingBlock`'s floor ride, on the mapping's value —
+             -- `k:⏎  a: ["p⏎     q"]` reads its interior at the entry's index.
+             h_kpkg _ _ _ (match h_ncol_mv with
+                | Or.inl h_nc => openFloor h_sep h_nc h_floor_mv
+                | Or.inr _ => Or.inr trivial)
+               (mk n_old sp_block ⟨(fun sp_ne sp_m h_content h_ssl =>
                h_close sp_m (SBlockNode.flowInBlock n_old .blockIn sp_scan sp_prep sp_ne sp_m
                  h_sep (SFlowNode.content _ _ _ _ h_content) h_ssl)),
                -- Item 56: `k:⏎  [1]: b` — the mapping the key opens nests in the
@@ -6048,14 +6184,18 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
                         h_ind h_lit h_sbi)⟩
                 | Or.inr _ => Or.inr trivial)⟩),
              PendingNode.noPending sp_start sp_open (Or.inr (inFlow_of_flowLevel_eq h_fl1)), hcorr_open, fun _ => ⟨.white (GStar.nil _) h_sync h_colon, h_real, h_ad⟩⟩
-    · -- Item 66: the run-end half is §8.1's refusal (`k:⏎  a:⏎[1]`); the TAB
-      -- half rides the drop for `pendingProps`' reason.
-      rcases h_ur with ⟨j, sx, hj, h_ind, _h_ws2, h_end | _h_tab⟩
+    · -- Item 66: the run-end half is §8.1's refusal (`k:⏎  a:⏎[1]`).  Item 68:
+      -- and the TAB half is §6.1's, for `pendingProps`' reason.
+      rcases h_ur with ⟨j, sx, hj, h_ind, _h_ws2, h_end | h_tab⟩
       · rcases h_floor_mv with h_floor | _
         · exact (flowOpen_underRunEnd_refuted h_floor hcorr_prep h_dcol h_dind
             h_dflow h_c h_col02 hj (h_end ▸ h_ind) h_preprocess h_bfi).elim
         · exact drop_ride
-      · exact drop_ride
+      · rcases h_floor_mv with h_floor | _
+        · exact (flowOpen_underRunTab_refuted h_floor h_ltsl2
+            (fun h => by rw [h] at h_col02; omega) h_col02 hj h_ind h_tab
+            h_c h_preprocess).elim
+        · exact drop_ride
 
 /-! ### §1c''b Token-history readings of the flow dispatch (9b(ii))
 
@@ -9827,7 +9967,11 @@ lemma colon_open_map (sp_start sp_land sp_ind : SurfPos) (k : Nat)
                (GOpt.some sp_land sp_v (SLAnyDocument.bare sp_land sp_v h_bare))
                (GStar.nil _))
            h_floor_in hpf.1 hpf.2.1 hpf.2.2 (Or.inr trivial) (Or.inr trivial)
-           (scanValue_simpleKeyAllowed (dispatchBlock_colon_scanValue h_dispatch)),
+           (scanValue_simpleKeyAllowed (dispatchBlock_colon_scanValue h_dispatch))
+           -- Item 68: the `:` stands AT the entry index (`s-indent(k)` from a
+           -- column-0 landing) and the park is the character past it.
+           (by have := SIndent_col h_ind; have := glit_col h_lit; omega)
+           (Or.inl (by have := SIndent_col h_ind; have := glit_col h_lit; omega)),
          hcorr_result⟩
 
 -- The col-0 `?` producer (item 20): the explicit-key twin of `colon_open_map`.
@@ -9914,7 +10058,10 @@ lemma question_open_map (sp_start sp_land sp_ind : SurfPos) (k : Nat)
            (Or.inl ⟨park_col_of_indicator hcol_land h_ind h_lit, fun sp_v h_sbi =>
              h_route51 sp_v
                (SBlockMapEntry.explicitEmpty k sp_ind sp_scan' sp_v h_lit h_sbi)⟩)
-           (scanKey_simpleKeyAllowed (dispatchBlock_question_scanKey h_dispatch)),
+           (scanKey_simpleKeyAllowed (dispatchBlock_question_scanKey h_dispatch))
+           -- Item 68: the same column the slot above carries, stated on its own.
+           (by have := park_col_of_indicator hcol_land h_ind h_lit; omega)
+           (Or.inl (by have := park_col_of_indicator hcol_land h_ind h_lit; omega)),
          hcorr_result⟩
 
 /-- **The explicit VALUE line** (item 51): a `:` landing at the pending
@@ -9983,7 +10130,10 @@ lemma colon_open_map_explicit (sp_start sp_scan sp_mid sp_ind : SurfPos) (nv : N
            h_floor_in hpf.1 hpf.2.1 hpf.2.2
            (Or.inr trivial)
            (Or.inl ⟨park_col_of_indicator hcol_mid h_ind h_lit, h_slot⟩)
-           (scanValue_simpleKeyAllowed (dispatchBlock_colon_scanValue h_dispatch)),
+           (scanValue_simpleKeyAllowed (dispatchBlock_colon_scanValue h_dispatch))
+           -- Item 68: the same column the slot above carries, stated on its own.
+           (by have := park_col_of_indicator hcol_mid h_ind h_lit; omega)
+           (Or.inl (by have := park_col_of_indicator hcol_mid h_ind h_lit; omega)),
          hcorr_result⟩
 
 /-- **The COMPACT mapping** (item 33): the same two keyless openers, one line
@@ -10073,6 +10223,24 @@ lemma compact_open_map (sp_start sp_entry sp_ind : SurfPos) (n m : Nat)
         SBlockMapEntry.explicitEmpty (n + 1 + m) sp_ind sp_scan' sp_v h_lit
           (SBlockIndented.node (n + 1 + m) .blockOut sp_scan' sp_v
             (SBlockNode_blockIn_to_blockOut h_node))
+  -- Item 68: the park is the character past the indicator, whichever indicator
+  -- this is — the one fact both `[188]` alternatives share.
+  have h_park_col : sp_scan'.col = sp_ind.col + 1 := by
+    cases hc with
+    | inl h =>
+      subst h
+      obtain ⟨sp_colon, h_lit, hcorr_colon⟩ :=
+        dispatchBlockValue_full_prod _ sp_ind
+          (corr_of_allowDirectives_update hcorr_prep) hpeek_disp h_dispatch
+      rw [ScannerSurfCorr_unique hcorr_colon hcorr_result] at h_lit
+      exact glit_col h_lit
+    | inr h =>
+      subst h
+      obtain ⟨sp_q, h_lit, hcorr_q⟩ :=
+        dispatchBlockKey_full_prod _ sp_ind
+          (corr_of_allowDirectives_update hcorr_prep) hpeek_disp h_dispatch
+      rw [ScannerSurfCorr_unique hcorr_q hcorr_result] at h_lit
+      exact glit_col h_lit
   have hpk : s'.needIndentCheck = false ∧ LastTokenReal s'.tokens ∧
       (s'.implicitValueLine = some s'.line ∨ True) ∧ s'.simpleKeyAllowed = true := by
     cases hc with
@@ -10128,7 +10296,11 @@ lemma compact_open_map (sp_start sp_entry sp_ind : SurfPos) (n m : Nat)
                    (SCompactMapTail.nil (n + 1 + m) sp_v))))
            h_floor
            hpk.1 hpk.2.1 hpk.2.2.1 (Or.inr trivial) (Or.inr trivial)
-           hpk.2.2.2,
+           hpk.2.2.2
+           -- Item 68: the indicator stands at `s-indent(m)` past the entry's own
+           -- column, and the park is the character after it.
+           (by have h1 := SIndent_col h_ind; rw [hcol_entry] at h1; omega)
+           (Or.inl (by have h1 := SIndent_col h_ind; rw [hcol_entry] at h1; omega)),
          hcorr_result⟩
 
 -- The two KEYLESS block-mapping openers under one name (item 20).  They
@@ -10254,7 +10426,12 @@ lemma colon_open_map_implicit (sp_start sp_block sp_key sp_gram sp_ws : SurfPos)
                (SBlockMapEntry.implicitKeyNode k sp_key sp_ws sp_scan' sp_v h_ik h_lit
                  (SBlockNode_blockIn_to_blockOut h_node)))
            h_floor hpf.1 hpf.2.1 hpf.2.2 (Or.inr trivial) (Or.inr trivial)
-           (scanValue_simpleKeyAllowed (dispatchBlock_colon_scanValue h_dispatch)),
+           (scanValue_simpleKeyAllowed (dispatchBlock_colon_scanValue h_dispatch))
+           -- Item 68: the `:` is a character, so the park is past column 0.  The
+           -- INDEX is the half this producer cannot measure: `k` reaches it
+           -- through `ImplicitKeyPack`, which carries the key's route and not the
+           -- key's column, so `h_ncol` punts exactly where `h_floor` does.
+           (by have := glit_col h_lit; omega) (Or.inr trivial),
          hcorr_result⟩
 
 /-- **The anchored null key** (item 49): the parked `[96]` run IS the implicit
@@ -10319,7 +10496,10 @@ lemma colon_open_map_props (sp_start sp_block sp_p sp_scan : SurfPos) (k : Nat)
                  (SBlockNode_blockIn_to_blockOut h_node)))
            (implicit_key_floor h_poss h_kcol h_preprocess h_dispatch)
            hpf.1 hpf.2.1 hpf.2.2 (Or.inr trivial) (Or.inr trivial)
-           (scanValue_simpleKeyAllowed (dispatchBlock_colon_scanValue h_dispatch)),
+           (scanValue_simpleKeyAllowed (dispatchBlock_colon_scanValue h_dispatch))
+           -- Item 68: `colon_open_map_implicit`'s boundary, for its reason — the
+           -- run's own column is the pack's optional datum, not this producer's.
+           (by have := glit_col h_lit; omega) (Or.inr trivial),
          hcorr_result⟩
 
 /-- …and the coupling that fires it (item 49): at a props park the same-line
@@ -14326,7 +14506,10 @@ lemma content_dispatch_routed
                  (SCNsProperties.anchorFirst 0 .blockKey sp_prep sp_scan' sp_scan'
                    ha_ev (GOpt.none sp_scan'))
                  (dispatchContent_anchor_simpleKey h_dispatch).1 h_line')
-               (Or.inl (IndentFloor.zero h_nic_s)),
+               (Or.inl (IndentFloor.zero h_nic_s))
+               -- Item 68: a `[96]` run is at least one character wide, and this
+               -- route closes at index 0.
+               (by have := anchorProperty_col_lt ha_ev; omega) (Or.inl (Nat.zero_le _)),
              hcorr_result⟩
     | inr h =>
       subst h
@@ -14350,7 +14533,10 @@ lemma content_dispatch_routed
                  (SCNsProperties.tagFirst 0 .blockKey sp_prep sp_scan' sp_scan'
                    ht_ev (GOpt.none sp_scan'))
                  (dispatchContent_tag_simpleKey h_dispatch).1 h_line')
-               (Or.inl (IndentFloor.zero h_nic_s)),
+               (Or.inl (IndentFloor.zero h_nic_s))
+               -- Item 68: a `[96]` run is at least one character wide, and this
+               -- route closes at index 0.
+               (by have := tagProperty_col_lt ht_ev; omega) (Or.inl (Nat.zero_le _)),
              hcorr_result⟩
   · have hna : c ≠ '&' := fun h => hprops (Or.inl h)
     have hnt : c ≠ '!' := fun h => hprops (Or.inr h)
@@ -14607,7 +14793,10 @@ lemma accum_content_on_pendingBlock
                    ha_ev (GOpt.none sp_scan'))
                  (dispatchContent_anchor_simpleKey h_dispatch).1 h_line'
                  hcorr_prep h_corr h_preprocess)
-               (Or.inl (IndentFloor.zero h_nic_s)),
+               (Or.inl (IndentFloor.zero h_nic_s))
+               -- Item 68: a `[96]` run is at least one character wide, and this
+               -- route closes at index 0.
+               (by have := anchorProperty_col_lt ha_ev; omega) (Or.inl (Nat.zero_le _)),
              hcorr_result⟩
     | inr h =>
       subst h
@@ -14633,7 +14822,10 @@ lemma accum_content_on_pendingBlock
                    ht_ev (GOpt.none sp_scan'))
                  (dispatchContent_tag_simpleKey h_dispatch).1 h_line'
                  hcorr_prep h_corr h_preprocess)
-               (Or.inl (IndentFloor.zero h_nic_s)),
+               (Or.inl (IndentFloor.zero h_nic_s))
+               -- Item 68: a `[96]` run is at least one character wide, and this
+               -- route closes at index 0.
+               (by have := tagProperty_col_lt ht_ev; omega) (Or.inl (Nat.zero_le _)),
              hcorr_result⟩
   · have hna : c ≠ '&' := fun h => hprops (Or.inl h)
     have hnt : c ≠ '!' := fun h => hprops (Or.inr h)
@@ -15186,7 +15378,15 @@ lemma accum_content_on_pendingBlock_indented
                hcorr_prep h_corr h_preprocess)
              (match h_ind_s with
               | Or.inl h_ind => IndentFloor.transport h_floor_old h_nic_s h_ind
-              | Or.inr _ => Or.inr trivial),
+              | Or.inr _ => Or.inr trivial)
+             -- Item 68: the entry park sits at `n + 1` (item 59), the run starts
+             -- at or past `n` from there, and grows.
+             (by
+               have := propsRun_col_gt (h_run_all n)
+                 (separateLines_col_ge h_sep_all (by omega))
+               omega)
+             (Or.inl (Nat.le_of_lt (propsRun_col_gt (h_run_all n)
+               (separateLines_col_ge h_sep_all (by omega))))),
            hcorr_result⟩
   · -- Item 26: `  - |` — `[198]`'s block scalar at the ENTRY's index.  The node
     -- is complete where the scanner stopped ([170]'s `l-chomped-empty` has
@@ -15328,7 +15528,10 @@ lemma accum_content_on_pendingMapValue
                    ha_ev (GOpt.none sp_scan'))
                  (dispatchContent_anchor_simpleKey h_dispatch).1 h_line'
                  hcorr_prep h_corr h_preprocess)
-               (Or.inl (IndentFloor.zero h_nic_s)),
+               (Or.inl (IndentFloor.zero h_nic_s))
+               -- Item 68: a `[96]` run is at least one character wide, and this
+               -- route closes at index 0.
+               (by have := anchorProperty_col_lt ha_ev; omega) (Or.inl (Nat.zero_le _)),
              hcorr_result⟩
     | inr h =>
       subst h
@@ -15354,7 +15557,10 @@ lemma accum_content_on_pendingMapValue
                    ht_ev (GOpt.none sp_scan'))
                  (dispatchContent_tag_simpleKey h_dispatch).1 h_line'
                  hcorr_prep h_corr h_preprocess)
-               (Or.inl (IndentFloor.zero h_nic_s)),
+               (Or.inl (IndentFloor.zero h_nic_s))
+               -- Item 68: a `[96]` run is at least one character wide, and this
+               -- route closes at index 0.
+               (by have := tagProperty_col_lt ht_ev; omega) (Or.inl (Nat.zero_le _)),
              hcorr_result⟩
   · have hna : c ≠ '&' := fun h => hprops (Or.inl h)
     have hnt : c ≠ '!' := fun h => hprops (Or.inr h)
@@ -15440,6 +15646,10 @@ lemma accum_content_on_pendingMapValue_indented
     (h_stream_block : SLYamlStream sp_start sp_block)
     (h_close_old : ∀ (sp : SurfPos), SBlockNode n .blockIn sp_scan sp → SLYamlStream sp_start sp)
     (h_floor_old : IndentFloor sc n ∨ True)
+    -- Item 68: the park's own column, where the pending could measure it — a
+    -- `[96]` run parked from here inherits it through the run's leading
+    -- separation (`separateLines_col_ge`).
+    (h_ncol_old : n ≤ sp_scan.col ∨ True)
     -- Item 51: the pending's `[187]` explicit frame at the entry's index
     -- (`k:⏎  ? a` — the nested `?`), threaded exactly as at the root arm.
     (h_expl : (∃ sp_q : SurfPos, GLit '?' sp_q sp_scan ∧
@@ -15528,7 +15738,12 @@ lemma accum_content_on_pendingMapValue_indented
              h_close_old (Or.inr trivial)
              (match h_ind_s with
               | Or.inl h_ind => IndentFloor.transport h_floor_old h_nic_s h_ind
-              | Or.inr _ => Or.inr trivial),
+              | Or.inr _ => Or.inr trivial)
+             -- Item 68: the run is a character wide whatever the index; the
+             -- index itself rides the pending's own measurement.
+             (by have := propsRun_col_gt (h_run_all 0) (Nat.zero_le _); omega)
+             (h_ncol_old.imp (fun h => Nat.le_of_lt (propsRun_col_gt (h_run_all n)
+               (separateLines_col_ge h_sep_all h))) id),
            hcorr_result⟩
   · -- Item 26: `  a: |`, `  : |`, `  ? |` — the mapping twin of the sequence
     -- entry's block-scalar value, closing at the entry's own index.
@@ -15776,7 +15991,8 @@ lemma accum_content_pending (sc : ScannerState)
     -- (item 35's structural note).
     exact h_defer_split (fun _ _ _ _ _ _ =>
       block_dispatch_deferred sp_start sp_block sp_scan' s' h_stream_block hcorr_result)
-  | pendingProps _ _ _ ha ht sp_node sp_p n h_sep_run h_run h_nic_p h_real_p h_anchor_p h_tag_p h_route h_key_p h_floor_p =>
+  | pendingProps _ _ _ ha ht sp_node sp_p n h_sep_run h_run h_nic_p h_real_p h_anchor_p h_tag_p
+      h_route h_key_p h_floor_p _h_col0_p h_ncol_p =>
     -- ═══ Item 12: a held depth-0 run meets a CONTENT character — the
     -- content-dispatch escape RETIRES.  Across a break the run closes as
     -- `propsEmpty` (the parked couplings go stale with the line, and are not
@@ -15929,7 +16145,12 @@ lemma accum_content_pending (sc : ScannerState)
                  (IndentFloor.transport h_floor_p h_nic_s (fun h_nic_sc => by
                    rw [dispatchContent_props_indents (by simp) h_dispatch,
                        allowDirectives_update_indents]
-                   exact h_indents0 h_nic_sc)),
+                   exact h_indents0 h_nic_sc))
+                   -- Item 68: the run GREW, so the park moved right; the index rides
+                   -- the run's own internal separation to the new end.
+                   (by have := anchorProperty_col_lt h_prop; omega)
+                   (h_ncol_p.imp (fun h => Nat.le_of_lt (Nat.lt_of_le_of_lt
+                     (separateLines_col_ge h_sep2 h) (anchorProperty_col_lt h_prop))) id),
                hcorr_result⟩
       · by_cases hbang : c = '!'
         · -- ═══ `!` on the run's line: the mirror ═══
@@ -16003,7 +16224,12 @@ lemma accum_content_pending (sc : ScannerState)
                    (IndentFloor.transport h_floor_p h_nic_s (fun h_nic_sc => by
                      rw [dispatchContent_props_indents (by simp) h_dispatch,
                          allowDirectives_update_indents]
-                     exact h_indents0 h_nic_sc)),
+                     exact h_indents0 h_nic_sc))
+                     -- Item 68: the run GREW, so the park moved right; the index rides
+                     -- the run's own internal separation to the new end.
+                     (by have := tagProperty_col_lt h_prop; omega)
+                     (h_ncol_p.imp (fun h => Nat.le_of_lt (Nat.lt_of_le_of_lt
+                       (separateLines_col_ge h_sep2 h) (tagProperty_col_lt h_prop))) id),
                  hcorr_result⟩
         · by_cases hstar : c = '*'
           · -- ═══ `*` on the run's line: REFUTED (items 9e/9k) ═══
@@ -16348,15 +16574,15 @@ lemma accum_content_pending (sc : ScannerState)
         s_prep s' c sp_prep sp_scan' h_stream_block h_close_old h_close_entry_old h_floor_old
         h_col_old
         hcorr_prep hcorr_result h_corr h_preprocess h_not_doc h_flow_disp h_dispatch
-  | pendingMapValue _ _ _ n_old h_close_old h_floor_old _ _ _ h_expl51 _ =>
-    match n_old, h_close_old, h_floor_old, h_expl51 with
-    | 0, h_close_old, _, h_expl51 =>
+  | pendingMapValue _ _ _ n_old h_close_old h_floor_old _ _ _ h_expl51 _ _ _ h_ncol_old =>
+    match n_old, h_close_old, h_floor_old, h_expl51, h_ncol_old with
+    | 0, h_close_old, _, h_expl51, _ =>
       exact accum_content_on_pendingMapValue sc sp_start sp_block sp_scan s_prep s' c sp_prep
         sp_scan' h_stream_block h_close_old h_expl51
         hcorr_prep hcorr_result h_corr h_preprocess h_not_doc h_flow_disp h_dispatch
-    | k + 1, h_close_old, h_floor_old, h_expl51 =>
+    | k + 1, h_close_old, h_floor_old, h_expl51, h_ncol_old =>
       exact accum_content_on_pendingMapValue_indented sc sp_start sp_block sp_scan (k + 1)
-        s_prep s' c sp_prep sp_scan' h_stream_block h_close_old h_floor_old h_expl51
+        s_prep s' c sp_prep sp_scan' h_stream_block h_close_old h_floor_old h_ncol_old h_expl51
         hcorr_prep hcorr_result h_corr h_preprocess h_not_doc h_flow_disp h_dispatch
 
 /-- The mask across any content dispatch (item 10): the key stack rides
