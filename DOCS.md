@@ -8293,7 +8293,18 @@ and that deletion, by input class:
   empty: every block-indicator producer now pays the floor;
 * the `:`-punt residues at `pendingContent`/`pendingProps`/
   `pendingBlockContent` (stale/tab refutations via the carried `h_stale`,
-  the DEDENT route, alias and props-only key heads);
+  the DEDENT route, alias and props-only key heads).  **Scoped 2026-09-04**:
+  the key HEAD is not what is missing — `implicitKeyHead_of_dispatch` already
+  covers the alias, both quoted arms and the plain arm, and `*x : b` is
+  scanner-refused (`invalidImplicitKey`) rather than owed.  What is missing is
+  that `entryKeyPack_of_dispatch`'s punts are UNLOCATED, so the `:` step that
+  consumes the pack cannot tell a tab from a block-scalar head from a stale
+  key and must escape on all of them.  The tab is the measured case: `k:⏎␣→a`
+  is ACCEPTED (preprocessing's §6.1 gate fires only at or left of
+  `currentIndent`), so the pack really does punt there, and `k:⏎␣→a: 1` is
+  refused by the `:`'s own backward scan ONE STEP LATER — a refutation the
+  consumer can spend and the producer cannot.  Locating the punts is the item;
+  the DEDENT among them is item 64's boundary and stays;
 * the **explicit-entry pack threading** at the key-park kinds item 51
   left `Or.inr`: block-scalar, flow, compact, inner-map, props and folded
   keys (each mechanical once its park's own class above lands);

@@ -13180,10 +13180,21 @@ lemma implicitKeyHead_of_dispatch
     is permanent is the dedent, not the arm (Reflection 666).
 
     Three shapes punt on both branches, and each is a different construct rather
-    than a weaker instance: a TAB in the whites (`[63]` is spaces, and §6.1
-    refuses it first, so the branch is unobservable), a `&`/`!` head (a `[96]`
-    run parks `pendingProps`, whose own pack is item 17's and still carries the
-    three coordinates this one shed), and an inherited STALE key. -/
+    than a weaker instance: a TAB in the whites, a `&`/`!` head (a `[96]` run
+    parks `pendingProps`, whose own pack is item 17's and still carries the
+    three coordinates this one shed), and an inherited STALE key.
+
+    **The tab punt is REACHED** — corrected 2026-09-04 by measurement; this
+    docstring used to say §6.1 refuses it first and the branch is unobservable,
+    and that is false at THIS step.  `k:⏎␣<TAB>a` is ACCEPTED: preprocessing's
+    own §6.1 gate fires only at or left of `currentIndent`, the tab here sits
+    past it, and a plain VALUE reads there.  What refuses the KEY form
+    `k:⏎␣<TAB>a: 1` is the `:`'s own §6.1 backward scan one step LATER
+    (`scanValueIndentTabCheck`, items 31/32) — so the pack punts on an input
+    the scanner accepts, and the refutation that makes the punt costless is
+    available only at the CONSUMER.  Spending it needs the punt LOCATED, which
+    is its own item; until then the arm is a real escape whose domain is empty
+    on accepted inputs. -/
 lemma entryKeyPack_of_dispatch
     (sc : ScannerState) (sp_start sp_scan : SurfPos) (n : Nat)
     (s_prep s' : ScannerState) (c : Char) (sp_prep sp_scan' : SurfPos)
