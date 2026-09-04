@@ -1424,6 +1424,9 @@ lemma collectPlainScalarLoop_preserves_tokens (s : ScannerState) (content lastLi
               split at h
               · injection h with h_eq; cases h_eq; rfl  -- '#' → state = s
               · -- recurse with content-length check
+                -- item 50: the flow floor's throw contradicts `.ok`
+                split at h
+                · contradiction
                 dsimp only [] at h
                 generalize h_loop : collectPlainScalarLoop s_fold (content ++ content_fold) "" fuel' inFlow contentIndent inputEnd = cont_result at h
                 cases cont_result with
@@ -3402,6 +3405,9 @@ lemma collectPlainScalarLoop_preserves_simpleKey (s : ScannerState) (content las
               split at h
               · injection h with h_eq; cases h_eq; rfl  -- '#' → state = s
               · -- recurse with content-length check
+                -- item 50: the flow floor's throw contradicts `.ok`
+                split at h
+                · contradiction
                 dsimp only [] at h
                 generalize h_loop : collectPlainScalarLoop s_fold (content ++ content_fold) "" fuel' inFlow contentIndent inputEnd = cont_result at h
                 cases cont_result with
@@ -4072,7 +4078,10 @@ lemma collectPlainScalarLoop_preserves_simpleKeyStack (s : ScannerState) (conten
               have h_fold := foldQuotedNewlines_preserves_simpleKeyStack s s_fold content_fold heq
               split at h
               · injection h with h_eq; cases h_eq; rfl  -- '#' → state = s
-              · dsimp only [] at h
+              · -- item 50: the flow floor's throw contradicts `.ok`
+                split at h
+                · contradiction
+                dsimp only [] at h
                 generalize h_loop : collectPlainScalarLoop s_fold (content ++ content_fold) "" fuel' inFlow contentIndent inputEnd = cont_result at h
                 cases cont_result with
                 | ok inner_result =>
@@ -5475,6 +5484,9 @@ lemma collectPlainScalarLoop_preserves_flowLevel (s : ScannerState) (content las
               split at h
               · injection h with h_eq; cases h_eq; rfl  -- '#' → state = s
               · -- recurse with content-length check
+                -- item 50: the flow floor's throw contradicts `.ok`
+                split at h
+                · contradiction
                 dsimp only [] at h
                 generalize h_loop : collectPlainScalarLoop s_fold (content ++ content_fold) "" fuel' inFlow contentIndent inputEnd = cont_result at h
                 cases cont_result with
@@ -7867,6 +7879,9 @@ lemma collectPlainScalarLoop_offset_ge (s : ScannerState) (content spaces : Stri
                 simp only [Except.ok.injEq] at h; subst h
                 exact Nat.le_refl _
               · -- recurse with content-length check
+                -- item 50: the flow floor's throw contradicts `.ok`
+                split at h
+                · contradiction
                 dsimp only [] at h
                 generalize h_loop : collectPlainScalarLoop s_fold (content ++ folded) "" n inFlow contentIndent inputEnd = cont_result at h
                 cases cont_result with
@@ -8187,28 +8202,8 @@ lemma dispatchStructural_preserves_ScanInv (s : ScannerState) (c : Char)
   simp only [bind, Except.bind, pure, Except.pure] at h_ok
   -- Flow indentation check: if in_flow && indentation issue
   split at h_ok
-  · -- flow indentation check true
-    split at h_ok
-    · simp at h_ok  -- error
-    · -- past flow indentation → document marker in flow check
-      split at h_ok
-      · simp at h_ok
-      · split at h_ok
-        · simp only [Except.ok.injEq, Option.some.injEq] at h_ok; subst h_ok
-          exact scanDocumentStart_preserves_ScanInv s h
-        · split at h_ok
-          · split at h_ok
-            · simp at h_ok
-            · simp only [Except.ok.injEq, Option.some.injEq] at h_ok; subst h_ok
-              rename_i s_de h_de
-              exact scanDocumentEnd_preserves_ScanInv s s_de h h_de
-          · split at h_ok
-            · split at h_ok
-              · simp at h_ok
-              · simp only [Except.ok.injEq, Option.some.injEq] at h_ok; subst h_ok
-                rename_i s_dir h_dir
-                exact scanDirective_preserves_ScanInv s s_dir h h_dir
-            · simp at h_ok
+  · -- item 50: the floor refuses outright (the `]`/`}` exemption is gone)
+    simp at h_ok
   · -- flow indentation check false
     split at h_ok
     · simp at h_ok
@@ -9149,38 +9144,8 @@ lemma dispatchStructural_preserves_AllKeysValid (s : ScannerState) (c : Char)
   unfold scanNextToken_dispatchStructural at h
   simp only [bind, Except.bind, pure, Except.pure] at h
   split at h
-  · split at h
-    · simp at h
-    · split at h
-      · simp at h
-      · split at h
-        · simp only [Except.ok.injEq, Option.some.injEq] at h; subst h
-          exact AllKeysValid_of_cleared_current s _ (scanDocumentStart_clears_simpleKey s)
-            (SimpleKeyStackValid_mono s _ h_akv.2
-              (scanDocumentStart_preserves_simpleKeyStack s)
-              (by have := ScanHelpers.scanDocumentStart_adds_tokens s; omega)
-              (fun i hi => ScanHelpers.scanDocumentStart_preserves_prefix s i hi))
-        · split at h
-          · split at h
-            · simp at h
-            · simp only [Except.ok.injEq, Option.some.injEq] at h; subst h
-              rename_i s_de h_de
-              exact AllKeysValid_of_cleared_current s _ (scanDocumentEnd_clears_simpleKey s s_de h_de)
-                (SimpleKeyStackValid_mono s _ h_akv.2
-                  (scanDocumentEnd_preserves_simpleKeyStack s s_de h_de)
-                  (by have := ScanHelpers.scanDocumentEnd_adds_tokens s s_de h_de; omega)
-                  (fun i hi => ScanHelpers.scanDocumentEnd_preserves_prefix s s_de h_de i hi))
-          · split at h
-            · split at h
-              · simp at h
-              · simp only [Except.ok.injEq, Option.some.injEq] at h; subst h
-                rename_i s_dir h_dir
-                exact AllKeysValid_mono s _ h_akv
-                  (scanDirective_preserves_simpleKey s s_dir h_dir)
-                  (scanDirective_preserves_simpleKeyStack s s_dir h_dir)
-                  (ScanHelpers.scanDirective_monotonic s s_dir h_dir)
-                  (fun i hi => ScanHelpers.scanDirective_preserves_prefix s s_dir h_dir i hi)
-            · simp at h
+  · -- item 50: the floor refuses outright (the `]`/`}` exemption is gone)
+    simp at h
   · split at h
     · simp at h
     · split at h
@@ -10558,24 +10523,8 @@ lemma dispatchStructural_offset_gt (s s' : ScannerState) (c : Char)
   unfold scanNextToken_dispatchStructural at h
   simp only [bind, Except.bind, pure, Except.pure, Bind.bind, Pure.pure] at h
   split at h  -- s.inFlow && indent check
-  · split at h  -- c != ']' && c != '}'
-    · cases h
-    · split at h  -- s.col == 0 && s.inFlow && (atDocumentStart || atDocumentEnd)
-      · cases h
-      · split at h  -- s.col == 0 && atDocumentStart
-        · simp only [Except.ok.injEq, Option.some.injEq] at h; subst h
-          exact scanDocumentStart_offset_lt s h_hm
-        · split at h  -- s.col == 0 && atDocumentEnd
-          · split at h
-            · cases h
-            · injection h with h; injection h with h; subst h
-              exact scanDocumentEnd_offset_lt s _ h_hm ‹_›
-          · split at h  -- c == '%' && s.col == 0
-            · split at h
-              · cases h
-              · injection h with h; injection h with h; subst h
-                exact scanDirective_offset_lt s _ h_hm ‹_›
-            · nomatch h
+  · -- item 50: the floor refuses outright (the `]`/`}` exemption is gone)
+    cases h
   · split at h  -- s.col == 0 && s.inFlow && (atDocumentStart || atDocumentEnd)
     · cases h
     · split at h  -- s.col == 0 && atDocumentStart

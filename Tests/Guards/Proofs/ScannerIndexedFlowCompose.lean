@@ -70,21 +70,25 @@ private def rejected (input : String) : Bool :=
 #guard accepted "k:\n  a: [1,\n   2]\n"
 #guard accepted "k:\n  - [\"a\n   b\"]\n"
 
-/-! ## §2  The collapse's domain, and the refused neighbours
+/-! ## §2  The floor, closed (item 50), and the refused neighbours
 
-Accepted by the pipeline, but the reading at the entry's index does not exist
-(`[69] s-flow-line-prefix(n)` fails on the landing): the derivation renounces
-and rides the drop.  Spec-invalid — row 19's over-acceptance class. -/
+Four shapes used to be accepted here although the reading at the entry's
+index does not exist (`[69] s-flow-line-prefix(n)` fails on the landing) —
+the derivation renounced and rode the drop.  Item 50 closes the floor: the
+`]`/`}` exemption is gone from the structural guard (`[137]`/`[140]` sit
+inside `s-l+flow-in-block(n)`'s `ns-flow-node(n+1)`, so the closers clear
+the same floor), the fold's §6.1 tab gate applies in flow, and a flow plain
+continuation is checked against the enclosing block indent. -/
 
--- the exempt closing bracket, below the index
-#guard accepted "k:\n  - [1,\n]\n"
-#guard accepted "k:\n  a: {b: 1,\n}\n"
--- plain-scalar continuation lines, unchecked inside a flow
-#guard accepted "k:\n  - [a\nb]\n"
--- tab-led quoted continuation inside a flow (col-checked, tab-allowed)
-#guard accepted "k:\n  - [\"a\n\t\t\tb\"]\n"
+-- the once-exempt closing bracket, below the index
+#guard rejected "k:\n  - [1,\n]\n"
+#guard rejected "k:\n  a: {b: 1,\n}\n"
+-- plain-scalar continuation line, now floor-checked inside a flow
+#guard rejected "k:\n  - [a\nb]\n"
+-- tab-led quoted continuation inside a flow: §6.1 refuses the tab
+#guard rejected "k:\n  - [\"a\n\t\t\tb\"]\n"
 
--- the refused neighbours: the checks that DO run, run at the entry's level
+-- the refused neighbours: the checks that already ran, at the entry's level
 #guard rejected "k:\n  - [1,\n  2]\n"       -- under-indented continuation
 #guard rejected "k:\n  - [1,\n\t\t\t2]\n"   -- tab as indentation
 #guard rejected "k:\n  - [\"a\nb\"]\n"      -- under-indented quoted continuation

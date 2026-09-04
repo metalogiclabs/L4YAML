@@ -117,7 +117,10 @@ lemma collectPlainScalarLoop_content_isPrefix
             | mk folded s_fold =>
               split at h
               · injection h with h_eq; cases h_eq; exact List.prefix_rfl
-              · generalize h_loop : collectPlainScalarLoop s_fold (content ++ folded) "" fuel' inFlow contentIndent inputEnd = cont_result at h
+              · -- item 50: the flow floor's throw contradicts `.ok`
+                split at h
+                · contradiction
+                generalize h_loop : collectPlainScalarLoop s_fold (content ++ folded) "" fuel' inFlow contentIndent inputEnd = cont_result at h
                 cases cont_result with
                 | ok inner_result =>
                   dsimp only [] at h

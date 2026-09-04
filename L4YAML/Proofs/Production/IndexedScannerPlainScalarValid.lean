@@ -3876,6 +3876,9 @@ lemma scanNextTokenIx_dispatchContent_preserves_PlainScalarsValidIx
             · rw [if_neg hg6] at h_ok
               by_cases hg7 : canStartPlainScalarBool c (s.peekAt? 1) s.inFlow = true
               · rw [if_pos hg7] at h_ok
+                -- item 50: the plain strictness walker's throw contradicts `.ok`
+                split at h_ok
+                · simp at h_ok
                 simp only [Except.ok.injEq] at h_ok
                 subst h_ok
                 -- Plain arm: prove the new token is ScalarScannable _ false.
@@ -4008,6 +4011,9 @@ lemma scanNextTokenIx_dispatchContent_preserves_FlowContextPSVIx
             · rw [if_neg hg6] at h_ok
               by_cases hg7 : canStartPlainScalarBool c (s.peekAt? 1) s.inFlow = true
               · rw [if_pos hg7] at h_ok
+                -- item 50: the plain strictness walker's throw contradicts `.ok`
+                split at h_ok
+                · simp at h_ok
                 simp only [Except.ok.injEq] at h_ok
                 subst h_ok
                 -- Plain arm: conditional ScalarScannable at inFlow = true when flowLevel > 0
@@ -4142,6 +4148,9 @@ lemma scanNextTokenIx_dispatchContent_preserves_FlowNestingInvIx
             · rw [if_neg hg6] at h_ok
               by_cases hg7 : canStartPlainScalarBool c (s.peekAt? 1) s.inFlow = true
               · rw [if_pos hg7] at h_ok
+                -- item 50: the plain strictness walker's throw contradicts `.ok`
+                split at h_ok
+                · simp at h_ok
                 simp only [Except.ok.injEq] at h_ok
                 subst h_ok
                 exact emitAt_non_flow_preserves_FlowNestingInvIx _ _ _ _ h_fni
@@ -6067,8 +6076,10 @@ lemma scanNextTokenIx_dispatchContent_preserves_AllKeysPlaceholderInvIx {input :
               · cases h_ok
             · rw [if_neg hg6] at h_ok
               by_cases hg7 : canStartPlainScalarBool c (s.peekAt? 1) s.inFlow = true
-              · -- plain scalar (always succeeds)
+              · -- plain scalar (item 50: the strictness walker may refuse first)
                 rw [if_pos hg7] at h_ok
+                split at h_ok
+                · simp at h_ok
                 simp only [Except.ok.injEq] at h_ok
                 subst h_ok
                 exact _inline_scalar_preserves_AllKeysPlaceholderInvIx s _ _ _ _ h_akpi

@@ -1303,9 +1303,10 @@ def scanNextTokenIx_preprocess {input : String} (s : ScannerStateIx input) :
     directives. Returns `some s'` if handled, `none` to fall through. -/
 def scanNextTokenIx_dispatchStructural {input : String} (s : ScannerStateIx input)
     (c : Char) : Except ScanError (Option (ScannerStateIx input)) := do
+  -- Item 50: `]`/`}` clear the same floor — the old exemption was an
+  -- over-acceptance (see `scanNextToken_dispatchStructural`).
   if s.inFlow && s.currentIndent >= 0 && (s.cursor.pos.col : Int) <= s.currentIndent then
-    if c != ']' && c != '}' then
-      throw (.underIndentedFlowContent s.cursor.pos.line s.cursor.pos.col)
+    throw (.underIndentedFlowContent s.cursor.pos.line s.cursor.pos.col)
   if s.cursor.pos.col == 0 && s.inFlow
       && (atDocumentStartIx s.cursor || atDocumentEndIx s.cursor) then
     throw (.documentMarkerInFlow s.cursor.pos.line)
@@ -1571,6 +1572,10 @@ def scanNextTokenIx_dispatchContent {input : String} (s : ScannerStateIx input)
     | none =>
       throw (.unterminatedScalar ScalarStyle.singleQuoted s.cursor.pos.line)
   if canStartPlainScalarBool c (s.peekAt? 1) s.inFlow then
+    -- Item 50: legacy's flow fold throws inside `collectPlainScalarLoop`;
+    -- reproduce with the strictness walker before the pure collection.
+    if let some e := plainScalarErrIx s.cursor s.inFlow s.currentIndent then
+      throw e
     let startPos := s.cursor.pos
     let contentIndent := if s.inFlow then s.cursor.pos.col
                           else (max 0 (s.currentIndent + 1)).toNat

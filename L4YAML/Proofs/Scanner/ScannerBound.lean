@@ -1521,7 +1521,10 @@ lemma collectPlainScalarLoop_BoundInv {s₀ : ScannerState} (s : ScannerState)
               try dsimp only [] at hok
               split at hok  -- peek? = some '#'
               · simp only [Except.ok.injEq] at hok; subst hok; exact h
-              · try dsimp only [] at hok
+              · -- item 50: the flow floor's throw contradicts `.ok`
+                split at hok
+                · cases hok
+                try dsimp only [] at hok
                 split at hok  -- match recursive call
                 · next r' heq_rec =>
                   try dsimp only [] at hok
@@ -1635,31 +1638,8 @@ lemma dispatchStructural_preserves_bound (s sp s' : ScannerState) (c : Char)
   -- Step through each if/match in sequence
   -- 1. if s.inFlow && s.currentIndent >= 0 && col <= currentIndent
   split at hok
-  · -- flow indent check true → if c != ']' && c != '}'
-    split at hok
-    · cases hok  -- error
-    · -- c is ']' or '}', fall through
-      -- 2. if col == 0 && inFlow && (docStart || docEnd)
-      split at hok
-      · cases hok  -- error
-      · -- 3. if col == 0 && atDocumentStart
-        split at hok
-        · simp only [Except.ok.injEq, Option.some.injEq] at hok; subst hok
-          exact BoundInv.trans h_bi (scanDocumentStart_BoundInv sp h_refl h_hend)
-        · -- 4. if col == 0 && atDocumentEnd
-          split at hok
-          · -- scanDocumentEnd bind
-            split at hok
-            · cases hok  -- error from scanDocumentEnd
-            · simp only [Except.ok.injEq, Option.some.injEq] at hok; subst hok
-              exact BoundInv.trans h_bi (scanDocumentEnd_BoundInv sp _ h_refl h_hend ‹_›)
-          · -- 5. if c == '%' && col == 0
-            split at hok
-            · split at hok
-              · cases hok  -- error from scanDirective
-              · simp only [Except.ok.injEq, Option.some.injEq] at hok; subst hok
-                exact BoundInv.trans h_bi (scanDirective_BoundInv sp _ h_refl h_hend ‹_›)
-            · cases hok  -- return none
+  · -- item 50: the floor refuses outright (the `]`/`}` exemption is gone)
+    cases hok
   · -- flow indent check false
     split at hok
     · cases hok  -- error

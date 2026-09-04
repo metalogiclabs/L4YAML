@@ -127,24 +127,8 @@ lemma scanNextToken_dispatchStructural_corr (sc : ScannerState) (sp : SurfPos) (
   unfold scanNextToken_dispatchStructural at hok
   simp only [bind, Except.bind, pure, Except.pure] at hok
   split at hok
-  · split at hok
-    · simp at hok
-    · split at hok
-      · simp at hok
-      · split at hok
-        · have h := Except.ok.inj hok; injection h with h; subst h
-          exact scanDocumentStart_corr sc sp hcorr
-        · split at hok
-          · split at hok
-            · simp at hok
-            · have h := Except.ok.inj hok; injection h with h; subst h
-              exact scanDocumentEnd_corr sc sp hcorr _ ‹_›
-          · split at hok
-            · split at hok
-              · simp at hok
-              · have h := Except.ok.inj hok; injection h with h; subst h
-                exact scanDirective_corr sc sp hcorr _ ‹_›
-            · simp at hok
+  · -- item 50: the floor refuses outright (the `]`/`}` exemption is gone)
+    simp at hok
   · split at hok
     · simp at hok
     · split at hok

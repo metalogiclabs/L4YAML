@@ -1647,7 +1647,10 @@ lemma collectPlainScalarLoop_line_le (sc : ScannerState) (content spaces : Strin
             | mk folded s_fold =>
               split at hok
               · have h := Except.ok.inj hok; subst h; exact Nat.le_refl _
-              · generalize h_loop : collectPlainScalarLoop s_fold _ "" fuel' inFlow
+              · -- item 50: the flow floor's throw contradicts `.ok`
+                split at hok
+                · cases hok
+                generalize h_loop : collectPlainScalarLoop s_fold _ "" fuel' inFlow
                   contentIndent inputEnd = cont_result at hok
                 cases cont_result with
                 | ok inner_result =>
@@ -1755,6 +1758,9 @@ lemma collectPlainScalarLoop_prod (sc : ScannerState) (sp : SurfPos)
                        fun _ => rfl⟩
               · -- s_fold.peek? ≠ '#': recurse with content-length check
                 rename_i hfoldpeek
+                -- item 50: the flow floor's throw contradicts `.ok`
+                split at hok
+                · cases hok
                 generalize h_loop : collectPlainScalarLoop s_fold _ "" fuel' inFlow
                   contentIndent inputEnd = cont_result at hok
                 cases cont_result with

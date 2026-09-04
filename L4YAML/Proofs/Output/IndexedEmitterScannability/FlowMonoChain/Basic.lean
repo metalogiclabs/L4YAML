@@ -796,7 +796,10 @@ lemma scanNextTokenIx_dispatchContent_maintains_SKAFIx {input : String}
             · rw [if_neg hg6] at h
               -- plain scalar (success) vs error: one small inner `if`
               split at h
-              · simp only [Except.ok.injEq] at h; subst h
+              · -- item 50: the plain strictness walker's throw contradicts `.ok`
+                split at h
+                · cases h
+                simp only [Except.ok.injEq] at h; subst h
                 exact SimpleKeyAboveFloorIx_of_preserved _ s n₀ fl₀ rfl rfl h_inv
               · cases h
 

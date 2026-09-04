@@ -210,7 +210,9 @@ def foldQuotedNewlines (s : ScannerState) : Except ScanError (String × ScannerS
   -- line, check for tab-as-indentation.  If we haven't advanced past the
   -- current block indent level, a tab here is in the indentation zone.
   let s' := skipSpaces s'
-  if !s'.inFlow && (s'.col : Int) ≤ s'.currentIndent then
+  -- Item 50: the gate applies in FLOW too — `[69] s-flow-line-prefix(n)`
+  -- starts with `[63] s-indent(n)`, which is spaces in either context.
+  if (s'.col : Int) ≤ s'.currentIndent then
     if let some '\t' := s'.peek? then
       throw (.tabInIndentation s'.line s'.col)
   let s' := skipWhitespace s'
@@ -544,7 +546,12 @@ def collectPlainScalarLoop (s : ScannerState) (content : String) (spaces : Strin
             match s_after_fold.peek? with
             | some '#' =>
               .ok { content, spaces, state := s, terminated := true }
-            | _ =>
+            | _ => do
+              -- Item 50 §8.1: a flow plain continuation line must clear the
+              -- enclosing block floor (`[69] s-flow-line-prefix(n)`).
+              if s_after_fold.currentIndent ≥ 0
+                  && (s_after_fold.col : Int) ≤ s_after_fold.currentIndent then
+                throw (.underIndentedScalar .plain s_after_fold.line)
               let content' := content ++ folded
               let prevLen := content'.length
               match collectPlainScalarLoop s_after_fold content' "" fuel' inFlow contentIndent inputEnd with

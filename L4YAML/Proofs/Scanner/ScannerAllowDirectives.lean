@@ -269,10 +269,8 @@ lemma dispatchStructural_inFlow_no_success (s s' : ScannerState) (c : Char)
             simp [Except.map] at hok
           · simp at hok
   split at h
-  · -- under-indent guard fired: non-bracket `c` errors, `]`/`}` fall through.
-    split at h
-    · simp at h
-    · exact chain _ rfl h
+  · -- item 50: the floor refuses outright (the `]`/`}` exemption is gone)
+    simp at h
   · exact chain _ rfl h
 
 end L4YAML.Proofs.ScannerAllowDirectives

@@ -439,7 +439,10 @@ lemma scanNextTokenIx_dispatchContent_maintains_SimpleKeyAboveIx {input : String
             · rw [if_neg hg6] at h_ok
               -- plain scalar (success) vs error: one small inner `if`, so `split` is cheap here
               split at h_ok
-              · simp only [Except.ok.injEq] at h_ok
+              · -- item 50: the plain strictness walker's throw contradicts `.ok`
+                split at h_ok
+                · cases h_ok
+                simp only [Except.ok.injEq] at h_ok
                 subst h_ok
                 exact SimpleKeyAboveIx_mono s _ n h_inv (by simp) (by simp)
               · cases h_ok
@@ -674,7 +677,10 @@ lemma scanNextTokenIx_dispatchContent_preserves_prefix {input : String}
             · rw [if_neg hg6] at h_ok
               -- plain scalar (success) vs error: one small inner `if`, so `split` is cheap here
               split at h_ok
-              · simp only [Except.ok.injEq] at h_ok
+              · -- item 50: the plain strictness walker's throw contradicts `.ok`
+                split at h_ok
+                · cases h_ok
+                simp only [Except.ok.injEq] at h_ok
                 subst h_ok
                 exact _inline_scalar_preserves_prefix s _ _ _ _ i h_bound
               · cases h_ok

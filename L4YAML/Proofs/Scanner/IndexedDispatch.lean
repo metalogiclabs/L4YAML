@@ -1198,48 +1198,8 @@ lemma scanNextTokenIx_dispatchStructural_ok_some_cases {input : String}
       (s.inFlow && decide (s.currentIndent ≥ 0) &&
        decide ((s.cursor.pos.col : Int) ≤ s.currentIndent)) = true
   · rw [if_pos hg1] at h
-    by_cases hg1' : (c != ']' && c != '}') = true
-    · rw [if_pos hg1'] at h
-      simp [Bind.bind, Except.bind] at h
-    · rw [if_neg hg1'] at h
-      -- Continue with productions
-      by_cases hg2 : (s.cursor.pos.col == 0 && s.inFlow &&
-                      (atDocumentStartIx s.cursor || atDocumentEndIx s.cursor)) = true
-      · rw [if_pos hg2] at h
-        simp [Bind.bind, Except.bind, Pure.pure, Except.pure] at h
-      · rw [if_neg hg2] at h
-        by_cases hg3 : (s.cursor.pos.col == 0 && atDocumentStartIx s.cursor) = true
-        · rw [if_pos hg3] at h
-          left
-          show s' = _
-          have := (Except.ok.injEq _ _).mp h
-          exact ((Option.some.injEq _ _).mp this).symm
-        · rw [if_neg hg3] at h
-          by_cases hg4 : (s.cursor.pos.col == 0 && atDocumentEndIx s.cursor) = true
-          · rw [if_pos hg4] at h
-            right; left
-            cases hSDE : scanDocumentEndIx s with
-            | error e =>
-              rw [hSDE] at h
-              simp [Bind.bind, Except.bind] at h
-            | ok v =>
-              rw [hSDE] at h
-              simp [Bind.bind, Except.bind, Pure.pure, Except.pure] at h
-              exact congrArg Except.ok h
-          · rw [if_neg hg4] at h
-            by_cases hg5 : (c == '%' && s.cursor.pos.col == 0) = true
-            · rw [if_pos hg5] at h
-              right; right
-              cases hSD : scanDirectiveIx s with
-              | error e =>
-                rw [hSD] at h
-                simp [Bind.bind, Except.bind] at h
-              | ok v =>
-                rw [hSD] at h
-                simp [Bind.bind, Except.bind, Pure.pure, Except.pure] at h
-                exact congrArg Except.ok h
-            · rw [if_neg hg5] at h
-              simp [Pure.pure, Except.pure] at h
+    -- item 50: the floor refuses outright (the `]`/`}` exemption is gone)
+    simp [Bind.bind, Except.bind] at h
   · rw [if_neg hg1] at h
     by_cases hg2 : (s.cursor.pos.col == 0 && s.inFlow &&
                     (atDocumentStartIx s.cursor || atDocumentEndIx s.cursor)) = true
@@ -1588,6 +1548,9 @@ lemma scanNextTokenIx_dispatchContent_ok_monotonic {input : String}
             · rw [if_neg hg6] at h
               by_cases hg7 : canStartPlainScalarBool c (s.peekAt? 1) s.inFlow = true
               · rw [if_pos hg7] at h
+                -- item 50: the plain strictness walker's throw contradicts `.ok`
+                split at h
+                · simp at h
                 cases h
                 refine ⟨?_, ?_⟩
                 · show s.cursor.pos.offset ≤ _

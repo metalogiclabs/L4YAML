@@ -474,6 +474,9 @@ lemma dispatchContent_new_not_placeholderIx {s s' : ScannerStateIx input} {c : C
             · rw [if_neg hg6] at h
               by_cases hg7 : canStartPlainScalarBool c (s.peekAt? 1) s.inFlow = true
               · rw [if_pos hg7] at h
+                -- item 50: the plain strictness walker's throw contradicts `.ok`
+                split at h
+                · cases h
                 cases h
                 intro hpl
                 simp only [ScannerStateIx.emitAt, IxToken.mk', Indexed.TokenStream.push,
@@ -562,7 +565,11 @@ lemma dispatchContent_adds_one_tokenIx {s s' : ScannerStateIx input} {c : Char}
               · cases h
             · rw [if_neg hg6] at h
               by_cases hg7 : canStartPlainScalarBool c (s.peekAt? 1) s.inFlow = true
-              · rw [if_pos hg7] at h; cases h; simp only [emitAt_tokens_size]
+              · rw [if_pos hg7] at h
+                -- item 50: the plain strictness walker's throw contradicts `.ok`
+                split at h
+                · cases h
+                cases h; simp only [emitAt_tokens_size]
               · rw [if_neg hg7] at h; cases h
 
 lemma dispatchContent_filtered_growsIx {s s' : ScannerStateIx input} {c : Char}

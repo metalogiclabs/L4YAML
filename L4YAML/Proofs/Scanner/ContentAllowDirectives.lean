@@ -283,7 +283,9 @@ lemma collectPlainScalarLoop_preserves_allowDirectives (s : ScannerState) (conte
               have h_fold := foldQuotedNewlines_preserves_allowDirectives s s_fold content_fold heq
               split at h
               · injection h with h_eq; cases h_eq; rfl  -- '#' → state = s
-              · -- recurse with content-length check
+              · -- item 50: the flow floor's throw contradicts `.ok`
+                split at h
+                · contradiction
                 dsimp only [] at h
                 generalize h_loop : collectPlainScalarLoop s_fold (content ++ content_fold) "" fuel' inFlow contentIndent inputEnd = cont_result at h
                 cases cont_result with

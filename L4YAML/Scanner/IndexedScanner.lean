@@ -868,8 +868,7 @@ def quotedScalarErrLoopIx {input : String} (c : IxCursor input)
         -- Fold event: mirror `foldQuotedNewlines`'s checks in legacy order.
         -- 1. §6.1: tab in the indentation zone of the continuation line
         --    (checked at the post-`s-space*` cursor, before `s-white*`).
-        if !inFlow
-            && (((skipSpaces (skipBlankLinesLoopIx (consumeLineBreak c) 0
+        if (((skipSpaces (skipBlankLinesLoopIx (consumeLineBreak c) 0
                   input.utf8ByteSize).1).1.pos.col : Int) ≤ currentIndent)
             && (match (skipSpaces (skipBlankLinesLoopIx (consumeLineBreak c) 0
                   input.utf8ByteSize).1).1.peek? with
@@ -911,6 +910,66 @@ def quotedScalarErrLoopIx {input : String} (c : IxCursor input)
     Option ScanError :=
   quotedScalarErrLoopIx c.advance isDouble c.pos.line inFlow currentIndent
     (input.utf8ByteSize + 1)
+
+/-- Strictness walker for a FLOW plain scalar (item 50): reruns
+    `collectPlainScalarLoopIx`'s flow walk and reports the legacy fold
+    errors in legacy order — a tab in the continuation line's indentation
+    zone (§6.1, at the post-`s-space*` cursor), then a continuation landing
+    at or below the enclosing block floor (§8.1, `[69]
+    s-flow-line-prefix(n)`).  Block context never errors here (a block
+    plain's under-indent TERMINATES the scalar), so the walker is
+    flow-only. -/
+def plainScalarErrLoopIx {input : String} (c : IxCursor input)
+    (spacesLen : Nat) (currentIndent : Int) :
+    Nat → Option ScanError
+  | 0 => none
+  | fuel + 1 =>
+    match c.peek? with
+    | none => none
+    | some ch =>
+      if isCommentBool ch && spacesLen > 0 then none
+      else if isMappingValueBool ch && colonTerminatesPlain c true then none
+      else if isMappingValueBool ch then
+        plainScalarErrLoopIx c.advance 0 currentIndent fuel
+      else if isFlowIndicatorBool ch then none
+      else if isLineBreakBool ch then
+        if (((skipSpaces (skipBlankLinesLoopIx (consumeLineBreak c) 0
+              input.utf8ByteSize).1).1.pos.col : Int) ≤ currentIndent)
+            && (match (skipSpaces (skipBlankLinesLoopIx (consumeLineBreak c) 0
+                  input.utf8ByteSize).1).1.peek? with
+                | some '\t' => true
+                | _ => false) then
+          some (.tabInIndentation
+            (skipSpaces (skipBlankLinesLoopIx (consumeLineBreak c) 0
+              input.utf8ByteSize).1).1.pos.line
+            (skipSpaces (skipBlankLinesLoopIx (consumeLineBreak c) 0
+              input.utf8ByteSize).1).1.pos.col)
+        else
+          match (skipWhitespace (skipBlankLinesLoopIx (consumeLineBreak c) 0
+                  input.utf8ByteSize).1).peek? with
+          | some '#' => none
+          | _ =>
+            if currentIndent ≥ 0
+                && (((skipWhitespace (skipBlankLinesLoopIx (consumeLineBreak c) 0
+                      input.utf8ByteSize).1).pos.col : Int) ≤ currentIndent) then
+              some (.underIndentedScalar .plain
+                (skipWhitespace (skipBlankLinesLoopIx (consumeLineBreak c) 0
+                  input.utf8ByteSize).1).pos.line)
+            else
+              plainScalarErrLoopIx (skipWhitespace
+                  (skipBlankLinesLoopIx (consumeLineBreak c) 0
+                    input.utf8ByteSize).1) 0 currentIndent fuel
+      else if isWhiteSpaceBool ch then
+        plainScalarErrLoopIx c.advance (spacesLen + 1) currentIndent fuel
+      else if !isPlainSafeBool ch true then none
+      else
+        plainScalarErrLoopIx c.advance 0 currentIndent fuel
+
+/-- Strictness walker entry: flow context only (see the loop). -/
+@[inline] def plainScalarErrIx {input : String} (c : IxCursor input)
+    (inFlow : Bool) (currentIndent : Int) : Option ScanError :=
+  if inFlow then plainScalarErrLoopIx c 0 currentIndent (input.utf8ByteSize + 1)
+  else none
 
 /-- Block-context line-break handler for plain scalars. Returns
     `none` if the continuation line is under-indented or hits a

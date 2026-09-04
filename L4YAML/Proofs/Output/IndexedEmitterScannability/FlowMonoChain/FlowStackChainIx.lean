@@ -431,7 +431,10 @@ lemma scanNextTokenIx_dispatchContent_preserves_flowStack
             · rw [if_neg hg6] at h
               -- plain scalar (success) vs error: one small inner `if`
               split at h
-              · simp only [Except.ok.injEq] at h; subst h; rfl
+              · -- item 50: the plain strictness walker's throw contradicts `.ok`
+                split at h
+                · cases h
+                simp only [Except.ok.injEq] at h; subst h; rfl
               · cases h
 
 /-! ## §3  Flow-indicator dispatcher step fact -/

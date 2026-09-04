@@ -524,6 +524,9 @@ lemma collectPlainScalarLoop_corr (sc : ScannerState) (sp : SurfPos)
               split at hok
               · have h := Except.ok.inj hok; subst h; exact ⟨sp, hcorr⟩  -- '#' → state = s
               · -- recurse with content-length check
+                -- item 50: the flow floor's throw contradicts `.ok`
+                split at hok
+                · cases hok
                 generalize h_loop : collectPlainScalarLoop _ _ "" fuel' inFlow contentIndent inputEnd = cont_result at hok
                 cases cont_result with
                 | ok inner_result =>

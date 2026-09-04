@@ -3181,27 +3181,8 @@ lemma dispatchStructural_corr (sc : ScannerState) (sp : SurfPos) (c : Char)
   simp only [bind, Except.bind, pure, Except.pure] at hok
   -- Flow indent guard
   split at hok
-  · split at hok
-    · simp at hok
-    · -- passes guard; fall through
-      split at hok
-      · simp at hok  -- documentMarkerInFlow error
-      · split at hok
-        · have h := Except.ok.inj hok; injection h with h; subst h
-          exact scanDocumentStart_corr sc sp hcorr
-        · split at hok
-          · split at hok
-            · simp at hok
-            · rename_i s_de hde
-              have h := Except.ok.inj hok; injection h with h; subst h
-              exact scanDocumentEnd_corr sc sp hcorr s_de hde
-          · split at hok
-            · split at hok
-              · simp at hok
-              · rename_i s_dir hdir
-                have h := Except.ok.inj hok; injection h with h; subst h
-                exact scanDirective_corr sc sp hcorr s_dir hdir
-            · simp at hok  -- none case
+  · -- item 50: the floor refuses outright (the `]`/`}` exemption is gone)
+    simp at hok
   · -- not inFlow or indent ok; same dispatch
     split at hok
     · simp at hok
@@ -3361,50 +3342,8 @@ lemma structural_dispatch_to_pending
           (b' = true → s'.directivesPresent = true) ∧ ScannerSurfCorr s' sp' by
       -- Dispatch case splitting
       split at h_dispatch
-      · split at h_dispatch
-        · simp at h_dispatch
-        · split at h_dispatch
-          · simp at h_dispatch
-          · split at h_dispatch
-            · -- atDocumentStart (inFlow)
-              rename_i _ _ _ h_cond
-              rw [Bool.and_eq_true] at h_cond
-              have h := Except.ok.inj h_dispatch; injection h with h
-              exact doc_start_tac h_cond.2 (beq_iff_eq.mp h_cond.1) h.symm
-            · -- atDocumentEnd (inFlow): use by_cases to preserve condition
-              by_cases h_docEnd : (s_prep.col == 0 && atDocumentEnd s_prep) = true
-              · rw [if_pos h_docEnd] at h_dispatch
-                rw [Bool.and_eq_true] at h_docEnd
-                split at h_dispatch
-                · simp at h_dispatch
-                · rename_i s_de hde
-                  have h := Except.ok.inj h_dispatch; injection h with h
-                  exact doc_end_tac h_docEnd.2 s_de hde h.symm
-              · rw [if_neg h_docEnd] at h_dispatch
-                by_cases h_dir : (c == '%' && s_prep.col == 0) = true
-                · rw [if_pos h_dir] at h_dispatch
-                  rw [Bool.and_eq_true] at h_dir
-                  split at h_dispatch
-                  · simp at h_dispatch
-                  · rename_i s_dir h_dir_ok
-                    have h := Except.ok.inj h_dispatch; injection h with h; subst h
-                    have hcol : sp.col = 0 := by rw [hcorr.col_eq]; exact beq_iff_eq.mp h_dir.2
-                    have hpeek_pct : s_prep.peek? = some '%' := by
-                      rw [show c = '%' from beq_iff_eq.mp h_dir.1] at hpeek; exact hpeek
-                    obtain ⟨rest, sp_dir, hchars, hgstar, hcorr_dir, h_at_break⟩ :=
-                      scanDirective_prod s_prep sp hcorr hpeek_pct s_dir h_dir_ok
-                    refine ⟨sp_dir, true, hcol,
-                      PendingNode.pendingDirective sp_start sp sp_dir
-                        (fun sp_mid hssl => ?_)
-                        h_stream,
-                      fun _ => scanDirective_directivesPresent h_dir_ok,
-                      hcorr_dir⟩
-                    obtain ⟨sp_chars, sp_col⟩ := sp
-                    subst hchars
-                    exact GPlus.mk _ sp_mid sp_mid
-                      (SLDirective.mk rest sp_col sp_dir sp_mid hgstar hssl) (GStar.nil _)
-                · rw [if_neg h_dir] at h_dispatch
-                  simp at h_dispatch
+      · -- item 50: the floor refuses outright (the `]`/`}` exemption is gone)
+        simp at h_dispatch
       · split at h_dispatch
         · simp at h_dispatch
         · split at h_dispatch
@@ -3481,21 +3420,8 @@ lemma dispatchStructural_col0
   unfold scanNextToken_dispatchStructural at h
   simp only [bind, Except.bind, pure, Except.pure] at h
   split at h
-  · -- inFlow
-    split at h
-    · simp at h
-    · split at h
-      · simp at h
-      · split at h
-        · -- atDocumentStart
-          rename_i _ _ _ h_cond
-          rw [Bool.and_eq_true] at h_cond; exact beq_iff_eq.mp h_cond.1
-        · by_cases hde : (s.col == 0 && atDocumentEnd s) = true
-          · rw [Bool.and_eq_true] at hde; exact beq_iff_eq.mp hde.1
-          · rw [if_neg hde] at h
-            by_cases hdi : (c == '%' && s.col == 0) = true
-            · rw [Bool.and_eq_true] at hdi; exact beq_iff_eq.mp hdi.2
-            · rw [if_neg hdi] at h; simp at h
+  · -- item 50: the floor refuses outright (the `]`/`}` exemption is gone)
+    simp at h
   · -- not inFlow
     split at h
     · simp at h
@@ -3573,35 +3499,8 @@ lemma structural_dispatch_after_directives
           ∃ sp' b', PendingNode s' b' sp_start sp_block sp' ∧
             (b' = true → s'.directivesPresent = true) ∧ ScannerSurfCorr s' sp' by
         split at h_dispatch
-        · split at h_dispatch
-          · simp at h_dispatch
-          · split at h_dispatch
-            · simp at h_dispatch
-            · split at h_dispatch
-              · -- atDocumentStart (inFlow)
-                rename_i _ _ _ h_cond
-                rw [Bool.and_eq_true] at h_cond
-                have h := Except.ok.inj h_dispatch; injection h with h
-                exact doc_start_tac h_cond.2 (beq_iff_eq.mp h_cond.1) h.symm
-              · by_cases h_docEnd : (s_prep.col == 0 && atDocumentEnd s_prep) = true
-                · rw [if_pos h_docEnd] at h_dispatch
-                  split at h_dispatch
-                  · simp at h_dispatch
-                  · rename_i s_de hde
-                    have h := Except.ok.inj h_dispatch; injection h with h
-                    exact doc_end_tac s_de hde h.symm
-                · rw [if_neg h_docEnd] at h_dispatch
-                  by_cases h_dir : (c == '%' && s_prep.col == 0) = true
-                  · rw [if_pos h_dir] at h_dispatch
-                    rw [Bool.and_eq_true] at h_dir
-                    split at h_dispatch
-                    · simp at h_dispatch
-                    · rename_i s_dir h_dir_ok
-                      have h := Except.ok.inj h_dispatch; injection h with h
-                      exact dir_tac s_dir h_dir_ok h.symm
-                        (by rw [show c = '%' from beq_iff_eq.mp h_dir.1] at hpeek; exact hpeek)
-                  · rw [if_neg h_dir] at h_dispatch
-                    simp at h_dispatch
+        · -- item 50: the floor refuses outright (the `]`/`}` exemption is gone)
+          simp at h_dispatch
         · split at h_dispatch
           · simp at h_dispatch
           · split at h_dispatch

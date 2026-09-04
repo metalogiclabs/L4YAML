@@ -7548,6 +7548,50 @@ and `eventscore` unmoved by construction (no runtime edit — the guard file's
 seven pins are ACCEPT pins fixing the event shape: the run is ONE key node,
 `=VAL &a :`).  New guards: `ScannerPropsNullKeyCompose`.
 
+### Item 50 (2026-09-03)
+
+closed the flow floor — the four §2 over-acceptances of
+`ScannerIndexedFlowCompose` (`k:⏎  - [1,⏎]`, `k:⏎  a: {b: 1,⏎}`,
+`k:⏎  - [a⏎b]`, `k:⏎  - ["a⏎→→→b"]`) — by DELETING three gates rather than
+building anything (Reflection 676 — an over-acceptance behind a gate is
+closed by deleting the gate): the refusing checks existed and ran on every
+neighbour, and each family sat one conjunct away.
+
+**The three gates.**  (1) `]`/`}` were exempt from the structural
+under-indent guard: `[137] c-flow-sequence`/`[140] c-flow-mapping` sit
+inside `s-l+flow-in-block(n)`'s `ns-flow-node(n+1,flow-out)`, so the closers
+clear the same floor and the exemption served no production — both
+pipelines' dispatchers lose the inner `if`.  (2) The fold's §6.1
+tab-in-indentation check was `!inFlow`-gated: `[69] s-flow-line-prefix(n)`
+begins with `[63] s-indent(n)`, which is spaces in either context — the
+conjunct is dropped in `foldQuotedNewlines` and in the Ix quoted strictness
+walker.  (3) The flow plain continuation had no floor read at all — the one
+addition, and it is the same `≤ currentIndent` comparison its QUOTED
+neighbour has made since item 7 (`underIndentedScalar .plain`, after the
+fold, behind the `#`-terminator peek).  The Ix twin is `plainScalarErrLoopIx`
+— a strictness walker mirroring `collectPlainScalarLoopIx`'s own termination
+branches in legacy check order (tab, then `#`-stop, then floor), run by the
+dispatcher's plain arm before the pure collection, the same architecture as
+the quoted walker.
+
+**What it moves.**  The drop's renounce events are REFUSED: `dropClose`'s
+remaining domain is the VALID multi-line scalar tokens at a nonzero index —
+exactly the readings R3's remaining production work owes — and the collapse
+no longer absorbs any spec-invalid input.  The discrimination against item
+48 is the reflection's content: there, nothing recorded the facts (new
+checks, new park fields, a refuter); here, each family was one conjunct from
+a check its neighbours already met.  At the root (`currentIndent = -1`, the
+encoding of the spec's `n = -1`) nothing changes: `[a,⏎b]`, `[⏎1,⏎2⏎]` and
+their closers at column 0 stay green.
+
+**Validation.** Full `lake build` green (ZERO warnings); `run-all-tests.sh`
+4461/4461; matrix event 402/402, json 282/282 on BOTH pipelines;
+`eventscore` 347/358 with the identical failure set — no valid input lived
+in a gate's shadow.  Guard flips are exactly `ScannerIndexedFlowCompose` §2
+(four pins, accepted → rejected, docstring restated); the deeper-indented
+neighbours, root flows, comment landings and the already-refused
+under-indent/tab/quoted pins are unchanged on both sides of each gate.
+
 ### REMAINING, in order
 
 The per-item history is the closure log above; this section lists only the
@@ -7619,9 +7663,10 @@ With no non-`pendingFlow` inhabitant left, the `pendingFlow` constructor
 leaves `Surface/Document.lean` and all three remaining
 `block_dispatch_deferred` sites go with it, taking the `close_with_ssl` arm
 that spends one of the two remaining drops.  The other — `dropClose`, the
-collapse's close (item 46) — empties when R2 resolves the renounce events and
-a later item pays the multi-line scalar readings at `n`.  This is what closes
-row 12.
+collapse's close (item 46) — is down to the VALID multi-line scalar tokens
+at a nonzero index (item 50 refused the renounce events: the flow floor is
+closed), and empties when a later item pays those readings at `n`.  This is
+what closes row 12.
 
 #### R4 — row 19 proper (independent of R1–R3; before Step 5)
 

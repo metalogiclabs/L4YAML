@@ -1294,7 +1294,10 @@ lemma scanNextTokenIx_dispatchContent_preserves_ScanInvIx {input : String}
             · rw [if_neg hg6] at h_ok
               -- plain scalar (success) vs error: one small inner `if`
               split at h_ok
-              · simp only [Except.ok.injEq] at h_ok; subst h_ok
+              · -- item 50: the plain strictness walker's throw contradicts `.ok`
+                split at h_ok
+                · cases h_ok
+                simp only [Except.ok.injEq] at h_ok; subst h_ok
                 exact _scalar_emitAt_preserves_ScanInvIx s _ _
                   (scanPlainScalarIx_offset_monotonic s.cursor _ _) h
               · cases h_ok
@@ -1396,7 +1399,10 @@ lemma scanNextTokenIx_dispatchContent_preserves_AllKeysValidIx {input : String}
             · rw [if_neg hg6] at h_ok
               -- plain scalar (success) vs error: one small inner `if`
               split at h_ok
-              · simp only [Except.ok.injEq] at h_ok; subst h_ok
+              · -- item 50: the plain strictness walker's throw contradicts `.ok`
+                split at h_ok
+                · cases h_ok
+                simp only [Except.ok.injEq] at h_ok; subst h_ok
                 exact _scalar_emitAt_preserves_AllKeysValidIx s _ _
                   (scanPlainScalarIx_offset_monotonic s.cursor _ _) h_akv
               · cases h_ok

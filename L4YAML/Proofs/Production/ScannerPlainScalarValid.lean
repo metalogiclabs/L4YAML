@@ -3201,7 +3201,9 @@ lemma collectPlainScalarLoop_preserves_flowLevel (s : ScannerState) (content spa
             split at h
             · -- peek after fold is some '#': terminates → state = s
               injection h with h_eq; subst h_eq; rfl
-            · -- recurse with content-length check
+            · -- item 50: the flow floor's throw contradicts `.ok`
+              split at h
+              · cases h
               generalize h_loop : collectPlainScalarLoop _ _ "" fuel' inFlow contentIndent inputEnd = cont_result at h
               cases cont_result with
               | ok inner_result =>
@@ -4580,38 +4582,8 @@ lemma dispatchStructural_preserves_AllKeysPlaceholderInv
   unfold scanNextToken_dispatchStructural at h_ok
   simp only [bind, Except.bind, pure, Except.pure] at h_ok
   split at h_ok
-  · split at h_ok
-    · simp at h_ok
-    · split at h_ok
-      · simp at h_ok
-      · split at h_ok
-        · simp only [Except.ok.injEq, Option.some.injEq] at h_ok; subst h_ok
-          exact AllKeysPlaceholderInv_of_cleared_mono s _ h_akpi
-            (scanDocumentStart_clears_simpleKey s)
-            (scanDocumentStart_preserves_simpleKeyStack s)
-            (by have := ScanHelpers.scanDocumentStart_adds_tokens s; omega)
-            (fun i hi => ScanHelpers.scanDocumentStart_preserves_prefix s i hi)
-        · split at h_ok
-          · split at h_ok
-            · simp at h_ok
-            · simp only [Except.ok.injEq, Option.some.injEq] at h_ok; subst h_ok
-              rename_i s_de h_de
-              exact AllKeysPlaceholderInv_of_cleared_mono s _ h_akpi
-                (scanDocumentEnd_clears_simpleKey s s_de h_de)
-                (scanDocumentEnd_preserves_simpleKeyStack s s_de h_de)
-                (by have := ScanHelpers.scanDocumentEnd_adds_tokens s s_de h_de; omega)
-                (fun i hi => ScanHelpers.scanDocumentEnd_preserves_prefix s s_de h_de i hi)
-          · split at h_ok
-            · split at h_ok
-              · simp at h_ok
-              · simp only [Except.ok.injEq, Option.some.injEq] at h_ok; subst h_ok
-                rename_i s_dir h_dir
-                exact AllKeysPlaceholderInv_mono s _ h_akpi
-                  (scanDirective_preserves_simpleKey s s_dir h_dir)
-                  (scanDirective_preserves_simpleKeyStack s s_dir h_dir)
-                  (ScanHelpers.scanDirective_monotonic s s_dir h_dir)
-                  (fun i hi => ScanHelpers.scanDirective_preserves_prefix s s_dir h_dir i hi)
-            · simp at h_ok
+  · -- item 50: the floor refuses outright (the `]`/`}` exemption is gone)
+    simp at h_ok
   · split at h_ok
     · simp at h_ok
     · split at h_ok

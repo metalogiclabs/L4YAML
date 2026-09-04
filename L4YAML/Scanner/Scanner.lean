@@ -524,10 +524,12 @@ def scanNextToken_preprocess (s : ScannerState) :
 def scanNextToken_dispatchStructural (s : ScannerState) (c : Char) :
     Except ScanError (Option ScannerState) := do
   -- §8.1 / §7.5: Flow content inside a block structure must be more
-  -- indented than the enclosing block collection.
+  -- indented than the enclosing block collection.  Item 50: the closing
+  -- bracket is content of the same node — `[137]`/`[140]` sit inside
+  -- `s-l+flow-in-block(n)`'s `ns-flow-node(n+1,flow-out)`, so `]`/`}` clear
+  -- the same floor and the old exemption was an over-acceptance.
   if s.inFlow && s.currentIndent >= 0 && (s.col : Int) <= s.currentIndent then
-    if c != ']' && c != '}' then
-      return ← .error (.underIndentedFlowContent s.line s.col)
+    return ← .error (.underIndentedFlowContent s.line s.col)
   -- §5.4: Document markers are forbidden inside flow collections.
   if s.col == 0 && s.inFlow && (atDocumentStart s || atDocumentEnd s) then
     return ← .error (.documentMarkerInFlow s.line)

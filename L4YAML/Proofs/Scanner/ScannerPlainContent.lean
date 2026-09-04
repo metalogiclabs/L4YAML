@@ -359,6 +359,9 @@ lemma collectPlainScalarLoop_preserves_contentInv
                 injection h with h_eq; cases h_eq; exact inv
               · -- recurse with content-length check
                 rename_i hfoldpeek
+                -- item 50: the flow floor's throw contradicts `.ok`
+                split at h
+                · contradiction
                 dsimp only [] at h
                 generalize h_loop : collectPlainScalarLoop s_fold _ "" fuel' inFlow contentIndent inputEnd = cont_result at h
                 cases cont_result with

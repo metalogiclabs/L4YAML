@@ -357,7 +357,10 @@ lemma collectPlainScalarLoop_preserves_flowStack (s : ScannerState) (content las
               have h_fold := foldQuotedNewlines_preserves_flowStack s s_fold content_fold heq
               split at h
               · injection h with h_eq; cases h_eq; rfl  -- '#' → state = s
-              · dsimp only [] at h
+              · -- item 50: the flow floor's throw contradicts `.ok`
+                split at h
+                · contradiction
+                dsimp only [] at h
                 generalize h_loop : collectPlainScalarLoop s_fold (content ++ content_fold) "" fuel' inFlow contentIndent inputEnd = cont_result at h
                 cases cont_result with
                 | ok inner_result =>

@@ -852,6 +852,9 @@ lemma scanNextTokenIx_dispatchContent_offset_gt {s s' : ScannerStateIx input} {c
             · rw [if_neg hg6] at h
               by_cases hg7 : canStartPlainScalarBool c (s.peekAt? 1) s.inFlow = true
               · rw [if_pos hg7] at h
+                -- item 50: the plain strictness walker's throw contradicts `.ok`
+                split at h
+                · simp at h
                 cases h
                 show s.cursor.pos.offset < _
                 simp only [emitAt_cursor]
