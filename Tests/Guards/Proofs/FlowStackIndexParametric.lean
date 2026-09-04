@@ -30,13 +30,15 @@ open L4YAML L4YAML.Surface L4YAML.Proofs.StreamAccum
 /-! ## §1  The base frame opens at a nonzero index -/
 
 /-- `FlowStackB.openSeqBase` at `n = 2`: the resume's content argument and the
-    post-bracket separator both read at 2. -/
+    post-bracket separator both read at 2.  (Item 56 bundled the frame's
+    closures, so the witness opens through `FlowBaseRoutes.ofValue` — the
+    value-only frame an enclosing construct with no entry to offer hands it.) -/
 example {sp_start sp_before sp_br sp_open : SurfPos}
     (resume : ∀ sp_ne sp_m, SFlowContent 2 .flowOut sp_br sp_ne →
               SSLComments sp_ne sp_m → SLYamlStream sp_start sp_m)
     (h_open : GLit '[' sp_br sp_open) :
     FlowStackB sp_start 2 1 #[true] #[false] .sep sp_before sp_open :=
-  FlowStackB.openSeqBase false resume h_open (GOpt.none sp_open)
+  FlowStackB.openSeqBase false (.ofValue resume) h_open (GOpt.none sp_open)
 
 /-- ... and the mapping twin at `n = 2`. -/
 example {sp_start sp_before sp_br sp_open : SurfPos}
@@ -44,7 +46,7 @@ example {sp_start sp_before sp_br sp_open : SurfPos}
               SSLComments sp_ne sp_m → SLYamlStream sp_start sp_m)
     (h_open : GLit '{' sp_br sp_open) :
     FlowStackB sp_start 2 1 #[false] #[false] .sep sp_before sp_open :=
-  FlowStackB.openMapBase false resume h_open (GOpt.none sp_open)
+  FlowStackB.openMapBase false (.ofValue resume) h_open (GOpt.none sp_open)
 
 /-! ## §2  The interior receivers thread the index -/
 

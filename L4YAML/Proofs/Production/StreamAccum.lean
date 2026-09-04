@@ -20,6 +20,7 @@ import L4YAML.Proofs.Scanner.PreprocessIndentStable
 import L4YAML.Proofs.Coupling.TabIndentBridge
 import L4YAML.Proofs.Production.FlowIndexLift
 import L4YAML.Proofs.Production.ScalarFoldAt
+import L4YAML.Proofs.Production.FlowKeyLift
 
 /-! # Stream Grammar Accumulator (Layer 4d + 4e: Lagging Grammar with Block Stack)
 
@@ -70,6 +71,7 @@ open L4YAML.Proofs.BlockScalarIndentFloor
 open L4YAML.Proofs.PreprocessIndentStable
 open L4YAML.Proofs.CouplingBridge
 open L4YAML.Proofs.FlowIndexLift
+open L4YAML.Proofs.FlowKeyLift
 open L4YAML.Proofs.ScalarFoldAt
 open L4YAML.Proofs.TabIndentBridge
 open L4YAML.Proofs.ScanStrictCoupling
@@ -293,6 +295,65 @@ def ImplicitKeyPack (sc : ScannerState) (sp_start sp_scan : SurfPos) : Prop :=
     ImplicitKeyHead sp_key sp_gram ∧
     GStar SSWhite sp_gram sp_scan ∧
     (sc.simpleKey.pos.col = k ∨ True)
+
+/-- **A closed flow collection's implicit-key pack** (item 56): the two halves,
+    joined at the close.
+
+    The pack's ROUTE is the enclosing construct's, and it was known at the OPEN
+    — which is why the frame carries it (`FlowBaseRoutes.key`) rather than the
+    close recomputing it from a state that no longer sees the block level.  The
+    HEAD is the close's own: the completed collection re-read as `[161]
+    ns-flow-node(0, block-key)`, which is `[193] c-s-implicit-json-key`'s node
+    and so `ImplicitKeyHead.json`'s payload.  Neither half is available where
+    the other is, and both are optional for their own reasons: an enclosing
+    construct that hosts no mapping entry has no route, and a collection whose
+    interior crossed a line has no key reading (the scanner refuses that input
+    as a key — `[1,⏎ 2]: b` is "invalid implicit key").
+
+    The trailing `s-white*` is empty because the close parks ON the bracket:
+    `sp_tok` is both the head's end and the park.  The column conjunct is the
+    one this producer cannot measure (item 28's datum belongs to the key save at
+    the `[`, and the close has RESTORED a different one), so it hands `True`
+    exactly as the props pack does. -/
+lemma flowKeyPack_of_close {sc : ScannerState} {n : Nat} {sp_start sp_br sp_tok : SurfPos}
+    (h_key : (∃ (k : Nat) (sp_key : SurfPos),
+      (∀ sp_v, SBlockMapEntry k sp_key sp_v → SLYamlStream sp_start sp_v) ∧
+      (∀ sp_end, SFlowContent n .flowOut sp_br sp_end →
+        ImplicitKeyHead sp_key sp_end ∨ True)) ∨ True)
+    (h_content : SFlowContent n .flowOut sp_br sp_tok) :
+    sc.simpleKey.possible = true → sc.simpleKey.pos.line = sc.line →
+      ImplicitKeyPack sc sp_start sp_tok ∨ True := by
+  intro _ _
+  rcases h_key with ⟨k, sp_key, route, head⟩ | _
+  · rcases head sp_tok h_content with h_head | _
+    · exact Or.inl ⟨k, sp_key, sp_tok, route, h_head, GStar.nil _, Or.inr trivial⟩
+    · exact Or.inr trivial
+  · exact Or.inr trivial
+
+/-- **A closed flow collection's explicit-value pack** (item 56): the `?`
+    frame's half, carried across the collection.
+
+    `[188]`'s value half needs the KEY's `s-l+block-indented` to close it, and
+    for `? [1]⏎: v` that key is the collection the close has just completed —
+    which is why the frame carries the pack with the content still to come and
+    the close applies it.  Reconstructing it at the close is not an option: the
+    frame's value route ends in an already-closed `SLYamlStream`, so nothing
+    downstream can recover the node it consumed. -/
+lemma flowVPack_of_close {n : Nat} {sp_start sp_br sp_tok : SurfPos}
+    (h_vslot : (∃ nv : Nat, ∀ sp_end, SFlowContent n .flowOut sp_br sp_end →
+      ∀ sp_mid sp_i sp_c, SSLComments sp_end sp_mid → SIndent nv sp_mid sp_i →
+        GLit ':' sp_i sp_c → ∀ sp_v, SBlockIndented nv .blockOut sp_c sp_v →
+        SLYamlStream sp_start sp_v) ∨ True)
+    (h_content : SFlowContent n .flowOut sp_br sp_tok) :
+    (∃ nv : Nat,
+      ∀ sp_mid sp_i sp_c : SurfPos,
+        SSLComments sp_tok sp_mid → SIndent nv sp_mid sp_i →
+        GLit ':' sp_i sp_c →
+        ∀ sp_v : SurfPos, SBlockIndented nv .blockOut sp_c sp_v →
+        SLYamlStream sp_start sp_v) ∨ True :=
+  match h_vslot with
+  | Or.inl ⟨nv, f⟩ => Or.inl ⟨nv, f sp_tok h_content⟩
+  | Or.inr _ => Or.inr trivial
 
 /-- The props-key pack (item 17): what a held `[96] c-ns-properties` run hands
     to the content it is about to decorate, so that the pair can be read as
@@ -1932,6 +1993,57 @@ lemma KmSound.back_of_true {sc : ScannerState} {km : Array Bool} {b : Bool}
   rw [show sc.simpleKeyStack.size - 1 = off + km.size from by omega]
   exact h_get
 
+/-- **What a depth-0 flow frame owes its own close** (item 56).
+
+    A base frame is opened over an enclosing construct that will host the
+    completed collection, and WHICH SLOT it hosts is not decided at the open:
+    `[1] b` hosts it as a node, `[1]: b` as `[193] c-s-implicit-json-key` — the
+    key half of a `[187]` entry — and `? [1]⏎: v` as the key half of a `[188]`
+    explicit one.  The characters are the same either way, so the frame carries
+    every reading the enclosing construct can offer and the CLOSE spends
+    whichever the next token names.
+
+    Bundling them is also what keeps the frame's arity fixed: the eighteen
+    frame-extension sites forward this field by name, and only the producers
+    (the open) and the two spenders (the base closes) read inside it.
+
+    * `value` — the collection as the enclosing construct's own node; the
+      original `resume`, unchanged (β.3: it takes `[158] ns-flow-content`, so a
+      held `[96]` run can still wrap the frame's eventual node).
+    * `key` — the collection as an implicit KEY: `ImplicitKeyPack`'s own two
+      halves, with the collection still to come.  The ROUTE is the enclosing
+      construct's `[187]`/`[195]` entry; the HEAD is a function of the closed
+      collection, because the site that opens the frame is the one that knows
+      what the key is made OF — the bracket alone (`[1]: b`) or a held `[96]`
+      run in front of it (`&a [1]: b`), which is also why `sp_key` is carried
+      rather than fixed at `sp_br`.
+    * `vslot` — the collection as an EXPLICIT key: item 51's value pack with
+      the key's own content still to come, so the `?` frame can be spent by a
+      `:` that lands on a later line (`? [1]⏎: v`).
+
+    The last two are optional for the same reason every pack conjunct is: an
+    enclosing construct that cannot host a mapping entry (a document node, a
+    flow value) has no route to hand, and says so. -/
+structure FlowBaseRoutes (sp_start : SurfPos) (n : Nat) (sp_br : SurfPos) : Prop where
+  value : ∀ sp_ne sp_mid, SFlowContent n .flowOut sp_br sp_ne →
+    SSLComments sp_ne sp_mid → SLYamlStream sp_start sp_mid
+  key : (∃ (k : Nat) (sp_key : SurfPos),
+    (∀ sp_v, SBlockMapEntry k sp_key sp_v → SLYamlStream sp_start sp_v) ∧
+    (∀ sp_end, SFlowContent n .flowOut sp_br sp_end →
+      ImplicitKeyHead sp_key sp_end ∨ True)) ∨ True
+  vslot : (∃ nv : Nat, ∀ sp_end, SFlowContent n .flowOut sp_br sp_end →
+    ∀ sp_mid sp_i sp_c, SSLComments sp_end sp_mid → SIndent nv sp_mid sp_i →
+      GLit ':' sp_i sp_c → ∀ sp_v, SBlockIndented nv .blockOut sp_c sp_v →
+      SLYamlStream sp_start sp_v) ∨ True
+
+/-- The routes an enclosing construct that hosts no mapping entry hands a
+    depth-0 frame: the node reading alone. -/
+lemma FlowBaseRoutes.ofValue {sp_start : SurfPos} {n : Nat} {sp_br : SurfPos}
+    (value : ∀ sp_ne sp_mid, SFlowContent n .flowOut sp_br sp_ne →
+      SSLComments sp_ne sp_mid → SLYamlStream sp_start sp_mid) :
+    FlowBaseRoutes sp_start n sp_br :=
+  ⟨value, Or.inr trivial, Or.inr trivial⟩
+
 /-- **Kinds index (9b(i))**. Besides its depth, `FlowOpenStack` is indexed by the
     *kinds* of its open frames — exactly the scanner's `flowStack` (`true` = a
     sequence opened by `[`, `false` = a mapping opened by `{`), outermost first,
@@ -1974,8 +2086,7 @@ inductive FlowOpenStack (sp_start : SurfPos) (n : Nat) :
       (`&a [b]`), where the properties must WRAP this frame's eventual node
       (`SFlowNode.propsContent`) rather than be closed before it. -/
   | seqBase (b : Bool) (sp_before sp_br sp_open sp_es sp_cur : SurfPos) (tl : FrameTail)
-      (resume : ∀ sp_ne sp_mid, SFlowContent n .flowOut sp_br sp_ne →
-                SSLComments sp_ne sp_mid → SLYamlStream sp_start sp_mid)
+      (resume : FlowBaseRoutes sp_start n sp_br)
       (h_open : GLit '[' sp_br sp_open)
       (h_sep : GOpt (SSeparate n .flowOut) sp_open sp_es)
       (st : SeqFrame n (inFlowCtx .flowOut) tl sp_es sp_cur) :
@@ -1983,8 +2094,7 @@ inductive FlowOpenStack (sp_start : SurfPos) (n : Nat) :
   /-- Outermost open flow mapping (depth 1; see `seqBase` on `sp_before`/`sp_br`
       and on why `resume` takes the CONTENT). -/
   | mapBase (b : Bool) (sp_before sp_br sp_open sp_es sp_cur : SurfPos) (tl : FrameTail)
-      (resume : ∀ sp_ne sp_mid, SFlowContent n .flowOut sp_br sp_ne →
-                SSLComments sp_ne sp_mid → SLYamlStream sp_start sp_mid)
+      (resume : FlowBaseRoutes sp_start n sp_br)
       (h_open : GLit '{' sp_br sp_open)
       (h_sep : GOpt (SSeparate n .flowOut) sp_open sp_es)
       (st : MapFrame n (inFlowCtx .flowOut) tl sp_es sp_cur) :
@@ -2167,8 +2277,7 @@ lemma absorb_stacksB (sp_start sp_gram sp_block sp_flow : SurfPos)
     `sp_before` (where the enclosing derivation ends) is free — any gap
     `sp_before → sp_br` lives inside `resume`. -/
 lemma FlowStackB.openSeqBase {sp_start sp_before sp_br sp_open sp_es : SurfPos} {n : Nat} (b : Bool)
-    (resume : ∀ sp_ne sp_m, SFlowContent n .flowOut sp_br sp_ne →
-              SSLComments sp_ne sp_m → SLYamlStream sp_start sp_m)
+    (resume : FlowBaseRoutes sp_start n sp_br)
     (h_open : GLit '[' sp_br sp_open)
     (h_sep : GOpt (SSeparate n .flowOut) sp_open sp_es) :
     FlowStackB sp_start n 1 #[true] #[b] .sep sp_before sp_es :=
@@ -2178,8 +2287,7 @@ lemma FlowStackB.openSeqBase {sp_start sp_before sp_br sp_open sp_es : SurfPos} 
 
 /-- Open the outermost flow MAPPING `{` (nil → depth-1 open). -/
 lemma FlowStackB.openMapBase {sp_start sp_before sp_br sp_open sp_es : SurfPos} {n : Nat} (b : Bool)
-    (resume : ∀ sp_ne sp_m, SFlowContent n .flowOut sp_br sp_ne →
-              SSLComments sp_ne sp_m → SLYamlStream sp_start sp_m)
+    (resume : FlowBaseRoutes sp_start n sp_br)
     (h_open : GLit '{' sp_br sp_open)
     (h_sep : GOpt (SSeparate n .flowOut) sp_open sp_es) :
     FlowStackB sp_start n 1 #[false] #[b] .sep sp_before sp_es :=
@@ -2689,6 +2797,120 @@ lemma gstar_white_sIndent_or_tab {s s' : SurfPos} (h : GStar SSWhite s s') :
     | tab rest col =>
       exact Or.inr ⟨⟨'\t' :: rest, col⟩, ⟨rest, col + 1⟩, GStar.nil _,
                     SSWhite.tab rest col, rfl, h23⟩
+
+/-! ### §0d' The block-mapping ENTRY routes (items 22/38/39/40)
+
+    Where a finished `[188]` entry re-enters the stream.  They sit here, ahead
+    of every consumer, because item 56's flow OPEN needs them too: a depth-0
+    `[`/`{` has to hand its frame the route its close may spend as a KEY, and
+    the open runs long before the content dispatch that used to be their only
+    caller. -/
+
+/-- **`[199] s-l+block-collection` under an entry that is still awaiting its
+    node** — the MAPPING twin of `nestedBlockSeq` (item 39).
+
+    `[187] l+block-mapping(n)`'s auto-detected `m` is `k - n`, with no
+    `seq-spaces` correction to make: the entries land at `n + m` directly.  The
+    side condition is `nestedBlockSeq`'s verbatim, `n ≤ k`, and it carries the
+    same meaning — at `k > n` the value of `k:` is a mapping nested inside it,
+    and at `k < n` there is no such reading, because a DEDENT ends the enclosing
+    collection instead of continuing it.  Item 39 read that as a statement about
+    the indented ARM and gave the route to the root value only; item 40 reads it
+    as a statement about the LANDING, which is what it is — both numbers are in
+    hand where the pack is built, so the producer decides and only the dedent
+    defers (Reflection 666).
+
+    Item 22 wrote this lemma's `n = 0` instance inline as `rootBlockMap` and, in
+    doing so, wrote the general one and threw away the parameter: the proof is
+    the same term with `k` in `k - n`'s place. -/
+lemma nestedBlockMap {n k : Nat} (hnk : n ≤ k) {s s₂ s' : SurfPos}
+    (h_ssl : SSLComments s s₂) (h_entries : SBlockMapEntries k s₂ s') :
+    SBlockNode n .blockIn s s' :=
+  SBlockNode.blockMap n .blockIn (k - n) s s s₂ s' (GOpt.none s) h_ssl
+    (by simpa [Nat.add_sub_cancel' hnk] using h_entries)
+
+/-- `[187] l+block-mapping`'s twin of `rootBlockSeq` (item 22): `nestedBlockMap`
+    at the root's `n = 0`, where the side condition is vacuous (item 39). -/
+lemma rootBlockMap (k : Nat) {s s₂ s' : SurfPos}
+    (h_ssl : SSLComments s s₂) (h_entries : SBlockMapEntries k s₂ s') :
+    SBlockNode 0 .blockIn s s' :=
+  nestedBlockMap (Nat.zero_le k) h_ssl h_entries
+
+/-- **The two ways a finished `[188]` entry re-enters the stream** (item 38),
+    and the reason `ImplicitKeyPack` carries a route rather than the
+    coordinates one of them happens to be built from.
+
+    `rootMapRoute` is what items 15–25 spent inline: a column-0 line start with
+    the stream closed there, `[63] s-indent(k)` in front of the key, and the
+    entry wrapped in `[187] l+block-mapping` + `[199]` + a bare document +
+    `[211]`'s implicit continuation.  Every coordinate it takes is consumed
+    HERE and none of it survives into the pack. -/
+lemma rootMapRoute {sp_start sp_land sp_key : SurfPos} {k : Nat}
+    (hcol0 : sp_land.col = 0)
+    (h_stream_land : SLYamlStream sp_start sp_land)
+    (h_ind : SIndent k sp_land sp_key) :
+    ∀ sp_v, SBlockMapEntry k sp_key sp_v → SLYamlStream sp_start sp_v :=
+  fun sp_v h_entry =>
+    SLYamlStream.implicitContinue sp_start sp_land sp_land sp_v sp_v
+      h_stream_land (GStar.nil _)
+      (GOpt.some sp_land sp_v (SLAnyDocument.bare sp_land sp_v
+        (SLBareDocument.mk sp_land sp_v
+          (rootBlockMap k (sslComments_refl_of_col0 hcol0)
+            (SBlockMapEntries.single k sp_land sp_key sp_v h_ind h_entry)))))
+      (GStar.nil _)
+
+/-- …and `compactMapRoute` is `[185] s-l+block-indented`'s OTHER mapping
+    alternative, `s-indent(m) ns-l-compact-mapping(n+1+m)` — the one `- a: 1`
+    has.  There is no line start in front of this entry and there never will
+    be: the key sits on the same line as the `-` that opened the sequence
+    entry, so `[79] s-l-comments` has nothing to match and `rootMapRoute`'s
+    first hypothesis is unavailable, not merely unproved.  What the entry does
+    instead is close the ENCLOSING entry, through the closure the pending
+    already carries — the same frame item 33 built for the keyless `- : v`
+    (`compact_open_map`), with `[188]`'s implicit-key alternative in the
+    empty-key one's place. -/
+lemma compactMapRoute {sp_start sp_entry sp_key : SurfPos} {n m : Nat}
+    {cc : YamlContext}
+    (h_close : ∀ sp, SBlockIndented n cc sp_entry sp → SLYamlStream sp_start sp)
+    (h_ind : SIndent m sp_entry sp_key) :
+    ∀ sp_v, SBlockMapEntry (n + 1 + m) sp_key sp_v → SLYamlStream sp_start sp_v :=
+  fun sp_v h_entry =>
+    h_close sp_v
+      (SBlockIndented.compactMap n cc m sp_entry sp_key sp_v h_ind
+        (SCompactMap.mk (n + 1 + m) sp_key sp_v sp_v h_entry
+          (SCompactMapTail.nil (n + 1 + m) sp_v)))
+
+/-- …and `valueMapRoute` is the third (item 39): the entry belongs to a mapping
+    that is itself NESTED in the node an enclosing entry awaits — the VALUE of a
+    `[189]` entry (`k:⏎  a: 1`) or, since item 40, the node of a `[184]` block
+    SEQUENCE entry (`-⏎  a: 1`), which is `[185]`'s block-node alternative.  One
+    lemma serves both because the frame is the same: `[199]
+    s-l+block-collection` under whatever the pending is waiting for.
+
+    Between it and `rootMapRoute` the landing is the SAME measurement: the step
+    crossed a break and stopped at column 0 with `[63] s-indent(k)` in front of
+    the key.  What differs is which `[79] s-l-comments` occurrence it fills —
+    `[211]`'s implicit continuation there, `[199] s-l+block-collection`'s own
+    leading comments here — and that is decided by the frame the pending
+    carries, not by anything the scanner saw.  One reading of the characters,
+    two productions that want it.
+
+    The side condition `n ≤ k` is `nestedBlockMap`'s, and it names the DEDENT:
+    `  : v⏎a: 1` ends the enclosing entry rather than nesting inside its value.
+    It is decided at the producer, where both numbers are known, so the routes
+    it excludes are inputs and not sites (item 40, Reflection 666). -/
+lemma valueMapRoute {sp_start sp_scan sp_land sp_key : SurfPos} {n k : Nat}
+    (hnk : n ≤ k)
+    (h_close : ∀ sp, SBlockNode n .blockIn sp_scan sp → SLYamlStream sp_start sp)
+    (h_ssl : SSLComments sp_scan sp_land)
+    (h_ind : SIndent k sp_land sp_key) :
+    ∀ sp_v, SBlockMapEntry k sp_key sp_v → SLYamlStream sp_start sp_v :=
+  fun sp_v h_entry =>
+    h_close sp_v
+      (nestedBlockMap hnk h_ssl
+        (SBlockMapEntries.single k sp_land sp_key sp_v h_ind h_entry))
+
+
 
 /-- **Where the step LANDS, not where it started** (item 19).
 
@@ -4975,6 +5197,117 @@ lemma FlowOpenStack.receivePropsNodeColon {sp_start : SurfPos} {n D : Nat}
     route KEEPS the incoming stream and `BlockStack` (the entry stays open,
     its resolution captured in `resume`). -/
 
+/-- **The key HEAD a depth-0 frame promises** (item 56): whatever collection
+    the close completes, re-read as `[161] ns-flow-node(0, block-key)` — which
+    is `[193] c-s-implicit-json-key`'s node, so `ImplicitKeyHead.json` takes it
+    verbatim.  The residue is a collection whose interior crossed a line, and
+    that input is not a key at all: the scanner refuses `[1,⏎ 2]: b` with
+    "invalid implicit key" before this ever runs. -/
+lemma flowKeyHead {m : Nat} {sp_br : SurfPos} :
+    ∀ sp_end, SFlowContent m .flowOut sp_br sp_end → ImplicitKeyHead sp_br sp_end ∨ True :=
+  fun _ h => (flowNode_toBlockKey (.content _ _ _ _ h)).imp ImplicitKeyHead.json id
+
+/-- **The entry route a parked block ENTRY hands the collection it opens**
+    (item 56) — `entryKeyPack_of_dispatch` with the head deferred.
+
+    A depth-0 `[`/`{` is dispatched exactly where a content token would be, and
+    the whites in front of it read the same way: `[63] s-indent(w)` off a
+    landing (`k:⏎  [1]: b`) or off the line the enclosing entry opened
+    (`- [1]: b`).  What the open cannot do is FINISH the key — the collection is
+    not scanned yet — so it hands the frame the pack's route and the head
+    builder above, and the close applies the builder to what it completed
+    (`flowKeyPack_of_close`).
+
+    The three punts are `entryKeyPack_of_dispatch`'s own, for its reasons: a TAB
+    in the whites (§6.1 refuses it first), a DEDENT landing (`n ≤ w` false ends
+    the enclosing collection rather than nesting in it), and an on-line open
+    under a construct with no compact alternative (a `[189]` value's slot is
+    `s-l+block-node`, which has none). -/
+lemma flowKeyRoute_of_open {n m : Nat} {cc : YamlContext}
+    {sp_start sp_scan sp_prep : SurfPos}
+    {sc s_prep : ScannerState} {c : Char}
+    (h_node : ∀ sp, SBlockNode n .blockIn sp_scan sp → SLYamlStream sp_start sp)
+    (h_compact : (∀ sp, SBlockIndented n cc sp_scan sp →
+      SLYamlStream sp_start sp) ∨ True)
+    (h_corr : ScannerSurfCorr sc sp_scan)
+    (hcorr_prep : ScannerSurfCorr s_prep sp_prep)
+    (h_preprocess : scanNextToken_preprocess sc = .ok (some (s_prep, c))) :
+    (∃ (k : Nat) (sp_key : SurfPos),
+      (∀ sp_v, SBlockMapEntry k sp_key sp_v → SLYamlStream sp_start sp_v) ∧
+      (∀ sp_end, SFlowContent m .flowOut sp_prep sp_end →
+        ImplicitKeyHead sp_key sp_end ∨ True)) ∨ True := by
+  obtain ⟨sp_mid, sp_ws, sp_prep2, h_disj, h_ws, _h_cmt, hcorr_prep2, h_pk⟩ :=
+    preprocess_some_ssl_comments_anyCol sc sp_scan s_prep c h_corr h_preprocess
+  have h_pe : sp_prep = sp_ws := by
+    have hsp_eq2 := ScannerSurfCorr_unique hcorr_prep hcorr_prep2
+    have h_eq : sp_prep2 = sp_ws := by
+      cases h_pk with
+      | inl h => exact h
+      | inr h => rw [preprocess_some_peek h_preprocess] at h; cases h
+    exact hsp_eq2.trans h_eq
+  cases gstar_white_sIndent_or_tab h_ws with
+  | inr _ => exact Or.inr trivial
+  | inl h_ind0 =>
+    obtain ⟨w, h_ind⟩ := h_ind0
+    cases h_disj with
+    | inl h_land =>
+      by_cases hnw : n ≤ w
+      · have h_ind' : SIndent w sp_mid sp_prep := by rw [h_pe]; exact h_ind
+        exact Or.inl ⟨w, sp_prep, valueMapRoute hnw h_node h_land.1 h_ind', flowKeyHead⟩
+      · exact Or.inr trivial
+    | inr h_mid =>
+      cases h_compact with
+      | inr _ => exact Or.inr trivial
+      | inl h_close =>
+        have h_ind' : SIndent w sp_scan sp_prep := by rw [h_pe, ← h_mid.1]; exact h_ind
+        exact Or.inl ⟨n + 1 + w, sp_prep, compactMapRoute h_close h_ind', flowKeyHead⟩
+
+/-- **The ROOT's version** (item 56): the collection opens where a document's
+    own node is expected, so the entry it may key belongs to `[187]
+    l+block-mapping` at the root — `rootMapRoute`, off the landing when the
+    open crossed a break (`# c⏎[1]: b`) and off the park itself when it did not
+    (`[1]: b`).  Both readings need the same column-0 line start, which is what
+    a block-context park with nothing pending IS. -/
+lemma flowKeyRoute_of_root {m : Nat} {sp_start sp_scan sp_prep : SurfPos}
+    {sc s_prep : ScannerState} {c : Char}
+    (h_col : sp_scan.col = 0 ∨ True)
+    (h_close : ∀ sp_mid, SSLComments sp_scan sp_mid → SLYamlStream sp_start sp_mid)
+    (h_corr : ScannerSurfCorr sc sp_scan)
+    (hcorr_prep : ScannerSurfCorr s_prep sp_prep)
+    (h_preprocess : scanNextToken_preprocess sc = .ok (some (s_prep, c))) :
+    (∃ (k : Nat) (sp_key : SurfPos),
+      (∀ sp_v, SBlockMapEntry k sp_key sp_v → SLYamlStream sp_start sp_v) ∧
+      (∀ sp_end, SFlowContent m .flowOut sp_prep sp_end →
+        ImplicitKeyHead sp_key sp_end ∨ True)) ∨ True := by
+  obtain ⟨sp_mid, sp_ws, sp_prep2, h_disj, h_ws, _h_cmt, hcorr_prep2, h_pk⟩ :=
+    preprocess_some_ssl_comments_anyCol sc sp_scan s_prep c h_corr h_preprocess
+  have h_pe : sp_prep = sp_ws := by
+    have hsp_eq2 := ScannerSurfCorr_unique hcorr_prep hcorr_prep2
+    have h_eq : sp_prep2 = sp_ws := by
+      cases h_pk with
+      | inl h => exact h
+      | inr h => rw [preprocess_some_peek h_preprocess] at h; cases h
+    exact hsp_eq2.trans h_eq
+  cases gstar_white_sIndent_or_tab h_ws with
+  | inr _ => exact Or.inr trivial
+  | inl h_ind0 =>
+    obtain ⟨w, h_ind⟩ := h_ind0
+    cases h_disj with
+    | inl h_land =>
+      have h_ind' : SIndent w sp_mid sp_prep := by rw [h_pe]; exact h_ind
+      exact Or.inl ⟨w, sp_prep,
+        rootMapRoute h_land.2 (h_close sp_mid h_land.1) h_ind', flowKeyHead⟩
+    | inr h_mid =>
+      -- No break crossed: the park itself is the line start, which only a
+      -- block-context park with nothing pending can claim.
+      cases h_col with
+      | inr _ => exact Or.inr trivial
+      | inl h_col0 =>
+        have h_ind' : SIndent w sp_scan sp_prep := by rw [h_pe, ← h_mid.1]; exact h_ind
+        exact Or.inl ⟨w, sp_prep,
+          rootMapRoute h_col0 (h_close sp_scan (sslComments_refl_of_col0 h_col0)) h_ind',
+          flowKeyHead⟩
+
 lemma accum_flow_open_depth0 (sc : ScannerState)
     (sp_start sp_gram sp_block sp_scan sp_prep sp_open : SurfPos)
     (s_prep s' : ScannerState) (c : Char)
@@ -4996,9 +5329,8 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
     (h_nv : tailOf s'.tokens ≠ .value)
     (h_sks1 : 0 < s'.simpleKeyStack.size)
     (h_c : c = '[' ∨ c = '{')
-    (mk : ∀ (n : Nat) (sp_before : SurfPos),
-        (∀ sp_ne sp_m, SFlowContent n .flowOut sp_prep sp_ne →
-         SSLComments sp_ne sp_m → SLYamlStream sp_start sp_m) →
+    (h_fl0 : sc.flowLevel = 0)
+    (mk : ∀ (n : Nat) (sp_before : SurfPos), FlowBaseRoutes sp_start n sp_prep →
         FlowStackB sp_start n 1 s'.flowStack #[false] (tailOf s'.tokens) sp_before sp_open) :
     ∃ sp_gram' sp_block' sp_flow' sp_scan',
       SLYamlStream sp_start sp_gram' ∧
@@ -5010,6 +5342,13 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
         InteriorGap s' (tailOf s'.tokens) sp_flow' sp_scan' ∧
           LastTokenReal s'.tokens ∧ s'.allowDirectives = false) := by
   rw [h_fl1]
+  -- The value-only open (item 56): a site that has no entry route to hand
+  -- opens through this and says so once, rather than spelling two `Or.inr`s.
+  have mkv : ∀ (n : Nat) (sp_before : SurfPos),
+      (∀ sp_ne sp_m, SFlowContent n .flowOut sp_prep sp_ne →
+        SSLComments sp_ne sp_m → SLYamlStream sp_start sp_m) →
+      FlowStackB sp_start n 1 s'.flowStack #[false] (tailOf s'.tokens) sp_before sp_open :=
+    fun n sp_before v => mk n sp_before (.ofValue v)
   have h_km0 : KmSound s' #[false] := by
     refine ⟨s'.simpleKeyStack.size - 1, by simp; omega,
       fun i hi hb => ?_, fun i hi hb => ?_⟩ <;>
@@ -5056,9 +5395,15 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
       ⟨sp_mid, h_ssl, hws⟩ | ⟨hcol, hws⟩
     · have h_stream_mid : SLYamlStream sp_start sp_mid := h_close sp_mid h_ssl
       exact ⟨sp_mid, sp_mid, sp_open, sp_open, h_stream_mid, BlockStack.nil sp_mid,
-             h_kpkg _ _ _ (mk 0 sp_mid (topLevelFlowResumeSep h_stream_mid
+             h_kpkg _ _ _ (mk 0 sp_mid ⟨topLevelFlowResumeSep h_stream_mid
                (SSeparateLines.inline 0 sp_mid sp_prep
-                 (GStar_SSWhite_to_SSeparateInLine sp_mid sp_prep hws)))),
+                 (GStar_SSWhite_to_SSeparateInLine sp_mid sp_prep hws)),
+               -- Item 56: the fresh document's root entry, when the collection
+               -- turns out to be a key (`[1]⏎[2]: b`, `...⏎[1]: b`).  Only the
+               -- LANDING reading applies here — this branch is the one that
+               -- crossed a break, and the other never reaches `mk`.
+               flowKeyRoute_of_root (Or.inr trivial) h_close h_corr hcorr_prep h_preprocess,
+               Or.inr trivial⟩),
              PendingNode.noPending sp_start sp_open (Or.inr (inFlow_of_flowLevel_eq h_fl1)), hcorr_open, fun _ => ⟨.white (GStar.nil _) h_sync h_colon, h_real, h_ad⟩⟩
     · exact h_nobreak hcol hws
   -- The completed constructs cannot reach a same-line `[`/`{`: their producers'
@@ -5094,20 +5439,27 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
           LastTokenReal s'.tokens ∧ s'.allowDirectives = false) :=
     fun _ _ =>
       ⟨sp_block, sp_block, sp_open, sp_open, h_stream_block, BlockStack.nil _,
-       h_kpkg _ _ _ (mk 0 sp_block (fun sp_ne sp_m _ h_ssl =>
+       h_kpkg _ _ _ (mkv 0 sp_block (fun sp_ne sp_m _ h_ssl =>
          dropClose h_stream_block sp_ne sp_m h_ssl)),
        PendingNode.noPending sp_start sp_open (Or.inr (inFlow_of_flowLevel_eq h_fl1)), hcorr_open,
        fun _ => ⟨.white (GStar.nil _) h_sync h_colon, h_real, h_ad⟩⟩
   cases h_pending with
-  | noPending =>
+  | noPending _ _ h_col =>
     -- Nothing to close: the leading separation rides in the fresh bare
     -- document's separator slot directly (any column, break or not).
+    -- Item 56: a block-context park with nothing pending IS the column-0 line
+    -- start `rootMapRoute` measures from, so this arm hands the frame the root
+    -- entry route — which is what `[1]: b` spends at the close.
     obtain ⟨sp_gap, h_sep, hcorr_gap⟩ :=
       preprocess_some_separate_0_anyCol sc _ s_prep c h_corr h_preprocess
     have h_pe : sp_gap = sp_prep := ScannerSurfCorr_unique hcorr_gap hcorr_prep
     subst h_pe
+    have h_col0 := h_col.resolve_right
+      (show ¬ sc.inFlow = true by unfold ScannerState.inFlow; rw [h_fl0]; simp)
     exact ⟨_, _, sp_open, sp_open, h_stream_block, BlockStack.nil _,
-           h_kpkg _ _ _ (mk 0 _ (topLevelFlowResumeSep h_stream_block h_sep)),
+           h_kpkg _ _ _ (mk 0 _ ⟨topLevelFlowResumeSep h_stream_block h_sep,
+             flowKeyRoute_of_root (Or.inl h_col0) h_close_pending h_corr hcorr_prep h_preprocess,
+             Or.inr trivial⟩),
            PendingNode.noPending sp_start sp_open (Or.inr (inFlow_of_flowLevel_eq h_fl1)), hcorr_open, fun _ => ⟨.white (GStar.nil _) h_sync h_colon, h_real, h_ad⟩⟩
   | pendingContent _ _ _ h_line _ _ _ _ =>
     -- Item 37: §7.5's set weakens to item 10's here, exactly as `[204]`'s does.
@@ -5123,7 +5475,7 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
     -- node opened here keeps riding it (β.5 retires this with pendingFlow, R3).
     exact main h_close_pending opaque_resume
   | pendingProps _ _ _ ha ht sp_node sp_p n h_sep_run h_run h_nic_p h_real_p h_anchor_p h_tag_p
-      h_route =>
+      h_route h_pkey _ =>
     -- Items 9h/10, site 5's legal inhabitant: the held `[96]` run rides INTO
     -- the flow node.  The separation preprocessing crossed (break or not —
     -- `&a [b]` and `&a⏎[b]` alike) becomes the run→content `s-separate`, and
@@ -5141,14 +5493,30 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
     rw [h_pe] at h_sep_or
     rcases h_sep_or with h_sep | _
     · exact ⟨sp_gram, sp_block, sp_open, sp_open, h_stream, h_stack,
-             h_kpkg _ _ _ (mk n sp_block (fun sp_ne sp_m h_content h_ssl =>
+             h_kpkg _ _ _ (mk n sp_block ⟨(fun sp_ne sp_m h_content h_ssl =>
                h_route sp_m (flowInBlock_blockNode h_sep_run
                  (SFlowNode.propsContent n .flowOut sp_p sp_scan sp_prep sp_ne
-                   h_run.toProperties h_sep h_content) h_ssl))),
+                   h_run.toProperties h_sep h_content) h_ssl)),
+               -- Item 56: `&a [1]: b` — the run is the KEY's head, so the pack
+               -- is the run's own (`PropsKeyPack`, routed at `sp_p`) and the
+               -- collection fills `[161]`'s `propsContent` content slot.  The
+               -- run re-read at `block-key` is the pack's second component; the
+               -- run→content separation converts only when it crossed no break.
+               (match h_pkey with
+                | Or.inl ⟨⟨k, route, _⟩, h_props, _⟩ => Or.inl ⟨k, sp_p, route,
+                    fun sp_end h_content =>
+                      match sep_toBlockKey h_sep, flowContent_toBlockKey h_content with
+                      | Or.inl h_sep', Or.inl h_content' =>
+                          Or.inl (ImplicitKeyHead.json
+                            (SFlowNode.propsContent 0 .blockKey sp_p sp_scan sp_prep sp_end
+                              h_props h_sep' h_content'))
+                      | _, _ => Or.inr trivial⟩
+                | Or.inr _ => Or.inr trivial),
+               Or.inr trivial⟩),
              PendingNode.noPending sp_start sp_open (Or.inr (inFlow_of_flowLevel_eq h_fl1)), hcorr_open,
              fun _ => ⟨.white (GStar.nil _) h_sync h_colon, h_real, h_ad⟩⟩
     · exact ⟨sp_block, sp_block, sp_open, sp_open, h_stream_block, BlockStack.nil _,
-             h_kpkg _ _ _ (mk 0 sp_block (fun sp_ne sp_m _ h_ssl =>
+             h_kpkg _ _ _ (mkv 0 sp_block (fun sp_ne sp_m _ h_ssl =>
                dropClose h_stream_block sp_ne sp_m h_ssl)),
              PendingNode.noPending sp_start sp_open (Or.inr (inFlow_of_flowLevel_eq h_fl1)), hcorr_open,
              fun _ => ⟨.white (GStar.nil _) h_sync h_colon, h_real, h_ad⟩⟩
@@ -5158,16 +5526,26 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
       preprocess_some_separate_0_anyCol sc sp_scan s_prep c h_corr h_preprocess
     have h_pe : sp_gap = sp_prep := ScannerSurfCorr_unique hcorr_gap hcorr_prep
     have h_sep : SSeparateLines 0 sp_scan sp_prep := h_pe ▸ h_sep0
+    -- Item 56: the document's node route, taken as a function of the node
+    -- itself — which is what lets the SAME closure serve the collection as a
+    -- value and the mapping it may key (`---⏎[1]: b`).
+    have h_docnode : ∀ sp, SBlockNode 0 .blockIn sp_scan sp → SLYamlStream sp_start sp :=
+      fun sp h_node =>
+        SLYamlStream.implicitContinue sp_start sp_block sp_block sp sp
+          h_stream_block (GStar.nil _)
+          (GOpt.some sp_block sp
+            (h_doc_builder sp (GAlt.left sp_scan sp (SLBareDocument.mk sp_scan sp h_node))))
+          (GStar.nil _)
     exact ⟨sp_block, sp_block, sp_open, sp_open, h_stream_block, BlockStack.nil sp_block,
-           h_kpkg _ _ _ (mk 0 sp_block (fun sp_ne sp_m h_content h_ssl =>
-             SLYamlStream.implicitContinue sp_start sp_block sp_block sp_m sp_m
-               h_stream_block (GStar.nil _)
-               (GOpt.some sp_block sp_m
-                 (h_doc_builder sp_m (GAlt.left sp_scan sp_m
-                   (SLBareDocument.mk sp_scan sp_m
-                     (SBlockNode.flowInBlock 0 .blockIn sp_scan sp_prep sp_ne sp_m
-                       h_sep (SFlowNode.content _ _ _ _ h_content) h_ssl)))))
-               (GStar.nil _))),
+           h_kpkg _ _ _ (mk 0 sp_block ⟨(fun sp_ne sp_m h_content h_ssl =>
+             h_docnode sp_m (SBlockNode.flowInBlock 0 .blockIn sp_scan sp_prep sp_ne sp_m
+               h_sep (SFlowNode.content _ _ _ _ h_content) h_ssl)),
+             -- `--- [1]: b` on the marker's own line is scan-refused ("unexpected
+             -- content on document-start line"), so only the landing reading is
+             -- owed and the compact half punts.
+             flowKeyRoute_of_open (cc := .blockIn) h_docnode (Or.inr trivial)
+               h_corr hcorr_prep h_preprocess,
+             Or.inr trivial⟩),
            PendingNode.noPending sp_start sp_open (Or.inr (inFlow_of_flowLevel_eq h_fl1)), hcorr_open, fun _ => ⟨.white (GStar.nil _) h_sync h_colon, h_real, h_ad⟩⟩
   | pendingBlock =>
     -- Item 46: the stack opens at the ENTRY's index, so the resume's node
@@ -5183,17 +5561,23 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
     rw [h_pe] at h_sep_or
     rcases h_sep_or with h_sep | _
     · exact ⟨sp_gram, sp_block, sp_open, sp_open, h_stream, h_stack,
-             h_kpkg _ _ _ (mk n_old sp_block (fun sp_ne sp_m h_content h_ssl =>
+             h_kpkg _ _ _ (mk n_old sp_block ⟨(fun sp_ne sp_m h_content h_ssl =>
                h_close sp_m (SBlockIndented.node n_old .blockIn sp_scan sp_m
                  (SBlockNode.flowInBlock n_old .blockIn sp_scan sp_prep sp_ne sp_m
-                   h_sep (SFlowNode.content _ _ _ _ h_content) h_ssl)))),
+                   h_sep (SFlowNode.content _ _ _ _ h_content) h_ssl))),
+               -- Item 56: the entry route, both frames — `- [1]: b` compacts on
+               -- the line, `-⏎  [1]: b` nests in the node the entry awaits.
+               flowKeyRoute_of_open
+                 (fun sp h => h_close sp (SBlockIndented.node n_old .blockIn sp_scan sp h))
+                 (Or.inl h_close) h_corr hcorr_prep h_preprocess,
+               Or.inr trivial⟩),
              PendingNode.noPending sp_start sp_open (Or.inr (inFlow_of_flowLevel_eq h_fl1)), hcorr_open, fun _ => ⟨.white (GStar.nil _) h_sync h_colon, h_real, h_ad⟩⟩
     · exact ⟨sp_block, sp_block, sp_open, sp_open, h_stream_block, BlockStack.nil _,
-             h_kpkg _ _ _ (mk 0 sp_block (fun sp_ne sp_m _ h_ssl =>
+             h_kpkg _ _ _ (mkv 0 sp_block (fun sp_ne sp_m _ h_ssl =>
                dropClose h_stream_block sp_ne sp_m h_ssl)),
              PendingNode.noPending sp_start sp_open (Or.inr (inFlow_of_flowLevel_eq h_fl1)), hcorr_open,
              fun _ => ⟨.white (GStar.nil _) h_sync h_colon, h_real, h_ad⟩⟩
-  | pendingMapValue _ _ _ n_old h_close _ _ _ _ _ _ =>
+  | pendingMapValue _ _ _ n_old h_close _ _ _ _ h_expl h_vslot =>
     -- Item 13: the flow collection IS the mapping's value (`: [a]`, `: {a: b}`)
     -- — same closure type as `pendingBlock`, so the arm is its verbatim clone,
     -- indent split included.
@@ -5203,12 +5587,30 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
     rw [h_pe] at h_sep_or
     rcases h_sep_or with h_sep | _
     · exact ⟨sp_gram, sp_block, sp_open, sp_open, h_stream, h_stack,
-             h_kpkg _ _ _ (mk n_old sp_block (fun sp_ne sp_m h_content h_ssl =>
+             h_kpkg _ _ _ (mk n_old sp_block ⟨(fun sp_ne sp_m h_content h_ssl =>
                h_close sp_m (SBlockNode.flowInBlock n_old .blockIn sp_scan sp_prep sp_ne sp_m
-                 h_sep (SFlowNode.content _ _ _ _ h_content) h_ssl))),
+                 h_sep (SFlowNode.content _ _ _ _ h_content) h_ssl)),
+               -- Item 56: `k:⏎  [1]: b` — the mapping the key opens nests in the
+               -- value this pending awaits; on the LINE it is the compact
+               -- alternative in the value SLOT, which only an explicit `:`
+               -- carries (`? a⏎: [1]: b`) and an implicit one does not.
+               flowKeyRoute_of_open h_close h_vslot h_corr hcorr_prep h_preprocess,
+               -- …and under an open `?` the collection is the KEY half of the
+               -- `[188]` entry that `h_expl` routes (`? [1]⏎: v`).
+               (match h_expl with
+                | Or.inl ⟨sp_q, h_qlit, route⟩ => Or.inl ⟨n_old,
+                    fun sp_end h_content sp_m sp_i sp_c h_ssl h_ind h_lit sp_v h_sbi =>
+                      route sp_v (SBlockMapEntry.explicit n_old sp_q sp_scan sp_m sp_i sp_c sp_v
+                        h_qlit
+                        (SBlockIndented.node n_old .blockOut sp_scan sp_m
+                          (SBlockNode_blockIn_to_blockOut
+                            (SBlockNode.flowInBlock n_old .blockIn sp_scan sp_prep sp_end sp_m
+                              h_sep (SFlowNode.content _ _ _ _ h_content) h_ssl)))
+                        h_ind h_lit h_sbi)⟩
+                | Or.inr _ => Or.inr trivial)⟩),
              PendingNode.noPending sp_start sp_open (Or.inr (inFlow_of_flowLevel_eq h_fl1)), hcorr_open, fun _ => ⟨.white (GStar.nil _) h_sync h_colon, h_real, h_ad⟩⟩
     · exact ⟨sp_block, sp_block, sp_open, sp_open, h_stream_block, BlockStack.nil _,
-             h_kpkg _ _ _ (mk 0 sp_block (fun sp_ne sp_m _ h_ssl =>
+             h_kpkg _ _ _ (mkv 0 sp_block (fun sp_ne sp_m _ h_ssl =>
                dropClose h_stream_block sp_ne sp_m h_ssl)),
              PendingNode.noPending sp_start sp_open (Or.inr (inFlow_of_flowLevel_eq h_fl1)), hcorr_open,
              fun _ => ⟨.white (GStar.nil _) h_sync h_colon, h_real, h_ad⟩⟩
@@ -6555,7 +6957,7 @@ lemma accum_step_flow (sc : ScannerState)
               simp only [ScannerCorrectness.emit_preserves_simpleKeyStack,
                 ScannerCorrectness.advance_preserves_simpleKeyStack, Array.size_push]
               omega)
-          (Or.inl rfl)
+          (Or.inl rfl) h0
           (fun _ _ resume => by
             rw [ScannerFlowCollection.scanFlowSequenceStart_pushes_true, h_ad_ks0,
                 (tailOf_scanFlowSequenceStart _).1,
@@ -6599,7 +7001,7 @@ lemma accum_step_flow (sc : ScannerState)
                   simp only [ScannerCorrectness.emit_preserves_simpleKeyStack,
                     ScannerCorrectness.advance_preserves_simpleKeyStack, Array.size_push]
                   omega)
-              (Or.inr rfl)
+              (Or.inr rfl) h0
               (fun _ _ resume => by
                 rw [ScannerFlowCollection.scanFlowMappingStart_pushes_false, h_ad_ks0,
                     (tailOf_scanFlowMappingStart _).1,
@@ -7061,10 +7463,13 @@ lemma accum_step_flow (sc : ScannerState)
                   (fun _ => PendingNode.pendingContent sp_start sp_block sp_tok
                     (Or.inr ((restNodeStop_of_validateFlowClose hcorr_tok.end_eq
                       (by rw [h_fl']) hval).to_surface hcorr_tok))
-                    (fun sp_m h_ssl => resume sp_tok sp_m
+                    (fun sp_m h_ssl => resume.value sp_tok sp_m
                       (SFlowContent.flowSeq _ _ _ _ h_seq) h_ssl)
-                    (fun _ _ => Or.inr trivial)
-                      (fun _ => staleNodeTail_scanFlowSequenceEnd _) (Or.inr trivial)),
+                    (flowKeyPack_of_close resume.key
+                      (SFlowContent.flowSeq _ _ _ _ h_seq))
+                      (fun _ => staleNodeTail_scanFlowSequenceEnd _)
+                      (flowVPack_of_close resume.vslot
+                        (SFlowContent.flowSeq _ _ _ _ h_seq))),
                   hcorr_tok, fun h => absurd h (by omega)⟩
               · -- mapBase + ']': kind-mismatched close (`{a]`). REFUTED (9a+9b(i)):
                 -- the scanner only reaches this dispatch with `flowStack.back? =
@@ -7220,10 +7625,13 @@ lemma accum_step_flow (sc : ScannerState)
                       (fun _ => PendingNode.pendingContent sp_start sp_block sp_tok
                         (Or.inr ((restNodeStop_of_validateFlowClose hcorr_tok.end_eq
                           (by rw [h_fl']) hval).to_surface hcorr_tok))
-                        (fun sp_m h_ssl => resume sp_tok sp_m
+                        (fun sp_m h_ssl => resume.value sp_tok sp_m
                           (SFlowContent.flowMap _ _ _ _ h_map) h_ssl)
-                        (fun _ _ => Or.inr trivial)
-                      (fun _ => staleNodeTail_scanFlowMappingEnd _) (Or.inr trivial)),
+                        (flowKeyPack_of_close resume.key
+                          (SFlowContent.flowMap _ _ _ _ h_map))
+                      (fun _ => staleNodeTail_scanFlowMappingEnd _)
+                        (flowVPack_of_close resume.vslot
+                          (SFlowContent.flowMap _ _ _ _ h_map))),
                       hcorr_tok, fun h => absurd h (by omega)⟩
                   · -- seqNest + '}': kind-mismatched close (`[a}` nested). REFUTED.
                     simp at h_back
@@ -8065,108 +8473,6 @@ lemma rootBlockSeq (k : Nat) {s s₂ s' : SurfPos}
     SBlockNode 0 .blockIn s s' :=
   nestedBlockSeq (Nat.zero_le k) h_ssl h_entries
 
-/-- **`[199] s-l+block-collection` under an entry that is still awaiting its
-    node** — the MAPPING twin of `nestedBlockSeq` (item 39).
-
-    `[187] l+block-mapping(n)`'s auto-detected `m` is `k - n`, with no
-    `seq-spaces` correction to make: the entries land at `n + m` directly.  The
-    side condition is `nestedBlockSeq`'s verbatim, `n ≤ k`, and it carries the
-    same meaning — at `k > n` the value of `k:` is a mapping nested inside it,
-    and at `k < n` there is no such reading, because a DEDENT ends the enclosing
-    collection instead of continuing it.  Item 39 read that as a statement about
-    the indented ARM and gave the route to the root value only; item 40 reads it
-    as a statement about the LANDING, which is what it is — both numbers are in
-    hand where the pack is built, so the producer decides and only the dedent
-    defers (Reflection 666).
-
-    Item 22 wrote this lemma's `n = 0` instance inline as `rootBlockMap` and, in
-    doing so, wrote the general one and threw away the parameter: the proof is
-    the same term with `k` in `k - n`'s place. -/
-lemma nestedBlockMap {n k : Nat} (hnk : n ≤ k) {s s₂ s' : SurfPos}
-    (h_ssl : SSLComments s s₂) (h_entries : SBlockMapEntries k s₂ s') :
-    SBlockNode n .blockIn s s' :=
-  SBlockNode.blockMap n .blockIn (k - n) s s s₂ s' (GOpt.none s) h_ssl
-    (by simpa [Nat.add_sub_cancel' hnk] using h_entries)
-
-/-- `[187] l+block-mapping`'s twin of `rootBlockSeq` (item 22): `nestedBlockMap`
-    at the root's `n = 0`, where the side condition is vacuous (item 39). -/
-lemma rootBlockMap (k : Nat) {s s₂ s' : SurfPos}
-    (h_ssl : SSLComments s s₂) (h_entries : SBlockMapEntries k s₂ s') :
-    SBlockNode 0 .blockIn s s' :=
-  nestedBlockMap (Nat.zero_le k) h_ssl h_entries
-
-/-- **The two ways a finished `[188]` entry re-enters the stream** (item 38),
-    and the reason `ImplicitKeyPack` carries a route rather than the
-    coordinates one of them happens to be built from.
-
-    `rootMapRoute` is what items 15–25 spent inline: a column-0 line start with
-    the stream closed there, `[63] s-indent(k)` in front of the key, and the
-    entry wrapped in `[187] l+block-mapping` + `[199]` + a bare document +
-    `[211]`'s implicit continuation.  Every coordinate it takes is consumed
-    HERE and none of it survives into the pack. -/
-lemma rootMapRoute {sp_start sp_land sp_key : SurfPos} {k : Nat}
-    (hcol0 : sp_land.col = 0)
-    (h_stream_land : SLYamlStream sp_start sp_land)
-    (h_ind : SIndent k sp_land sp_key) :
-    ∀ sp_v, SBlockMapEntry k sp_key sp_v → SLYamlStream sp_start sp_v :=
-  fun sp_v h_entry =>
-    SLYamlStream.implicitContinue sp_start sp_land sp_land sp_v sp_v
-      h_stream_land (GStar.nil _)
-      (GOpt.some sp_land sp_v (SLAnyDocument.bare sp_land sp_v
-        (SLBareDocument.mk sp_land sp_v
-          (rootBlockMap k (sslComments_refl_of_col0 hcol0)
-            (SBlockMapEntries.single k sp_land sp_key sp_v h_ind h_entry)))))
-      (GStar.nil _)
-
-/-- …and `compactMapRoute` is `[185] s-l+block-indented`'s OTHER mapping
-    alternative, `s-indent(m) ns-l-compact-mapping(n+1+m)` — the one `- a: 1`
-    has.  There is no line start in front of this entry and there never will
-    be: the key sits on the same line as the `-` that opened the sequence
-    entry, so `[79] s-l-comments` has nothing to match and `rootMapRoute`'s
-    first hypothesis is unavailable, not merely unproved.  What the entry does
-    instead is close the ENCLOSING entry, through the closure the pending
-    already carries — the same frame item 33 built for the keyless `- : v`
-    (`compact_open_map`), with `[188]`'s implicit-key alternative in the
-    empty-key one's place. -/
-lemma compactMapRoute {sp_start sp_entry sp_key : SurfPos} {n m : Nat}
-    (h_close : ∀ sp, SBlockIndented n .blockIn sp_entry sp → SLYamlStream sp_start sp)
-    (h_ind : SIndent m sp_entry sp_key) :
-    ∀ sp_v, SBlockMapEntry (n + 1 + m) sp_key sp_v → SLYamlStream sp_start sp_v :=
-  fun sp_v h_entry =>
-    h_close sp_v
-      (SBlockIndented.compactMap n .blockIn m sp_entry sp_key sp_v h_ind
-        (SCompactMap.mk (n + 1 + m) sp_key sp_v sp_v h_entry
-          (SCompactMapTail.nil (n + 1 + m) sp_v)))
-
-/-- …and `valueMapRoute` is the third (item 39): the entry belongs to a mapping
-    that is itself NESTED in the node an enclosing entry awaits — the VALUE of a
-    `[189]` entry (`k:⏎  a: 1`) or, since item 40, the node of a `[184]` block
-    SEQUENCE entry (`-⏎  a: 1`), which is `[185]`'s block-node alternative.  One
-    lemma serves both because the frame is the same: `[199]
-    s-l+block-collection` under whatever the pending is waiting for.
-
-    Between it and `rootMapRoute` the landing is the SAME measurement: the step
-    crossed a break and stopped at column 0 with `[63] s-indent(k)` in front of
-    the key.  What differs is which `[79] s-l-comments` occurrence it fills —
-    `[211]`'s implicit continuation there, `[199] s-l+block-collection`'s own
-    leading comments here — and that is decided by the frame the pending
-    carries, not by anything the scanner saw.  One reading of the characters,
-    two productions that want it.
-
-    The side condition `n ≤ k` is `nestedBlockMap`'s, and it names the DEDENT:
-    `  : v⏎a: 1` ends the enclosing entry rather than nesting inside its value.
-    It is decided at the producer, where both numbers are known, so the routes
-    it excludes are inputs and not sites (item 40, Reflection 666). -/
-lemma valueMapRoute {sp_start sp_scan sp_land sp_key : SurfPos} {n k : Nat}
-    (hnk : n ≤ k)
-    (h_close : ∀ sp, SBlockNode n .blockIn sp_scan sp → SLYamlStream sp_start sp)
-    (h_ssl : SSLComments sp_scan sp_land)
-    (h_ind : SIndent k sp_land sp_key) :
-    ∀ sp_v, SBlockMapEntry k sp_key sp_v → SLYamlStream sp_start sp_v :=
-  fun sp_v h_entry =>
-    h_close sp_v
-      (nestedBlockMap hnk h_ssl
-        (SBlockMapEntries.single k sp_land sp_key sp_v h_ind h_entry))
 
 /-- `[63] s-indent(k)` is `k` spaces, so it advances the column by exactly `k`
     (item 27): the entry index the accumulator measures off the landing IS the
