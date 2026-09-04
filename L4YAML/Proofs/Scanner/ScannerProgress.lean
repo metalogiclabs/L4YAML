@@ -296,6 +296,7 @@ lemma scanBlockEntry_offset_lt (s s' : ScannerState)
   simp only [bind, Except.bind] at h
   split at h
   · split at h <;> (try contradiction)
+    split at h <;> (try contradiction)  -- item 48 same-line check
     injection h with h_eq; subst h_eq
     have h_pi : (pushSequenceIndent s s.col).offset = s.offset := pushSequenceIndent_offset s _
     have h_pie : (pushSequenceIndent s s.col).inputEnd = s.inputEnd := pushSequenceIndent_inputEnd s _
@@ -315,6 +316,7 @@ lemma scanKey_offset_lt (s s' : ScannerState)
   simp only [bind, Except.bind] at h
   split at h  -- !s.inFlow (item 31: the preceding-whitespace tab check)
   · split at h <;> (try contradiction)
+    split at h <;> (try contradiction)  -- item 48 same-line check
     -- block: s_with_indent = pushMappingIndent s s.col
     split at h  -- !s_after_advance.inFlow (tab check)
     · split at h  -- match peek? for tab detection

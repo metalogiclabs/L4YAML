@@ -157,13 +157,14 @@ under `[195]` instead of under `[187]` + `[199]`. -/
    "-MAP", "-SEQ", "-DOC", "-STR"]
 #guard emits "- - |\n    t\n"
   ["+STR", "+DOC", "+SEQ", "+SEQ", "=VAL |t\\n", "-SEQ", "-SEQ", "-DOC", "-STR"]
--- The two compact forms mix, in either order.
+-- The compact forms mix where the grammar has a compact slot: `-` and `?`
+-- take `s-l+block-indented`.  An implicit `:` takes `[194] s-l+block-node`,
+-- which has NO compact alternative — the scanner refuses that direction
+-- (item 48's `sameLineBlockCollection`).
 #guard emits "- - : a\n"
   ["+STR", "+DOC", "+SEQ", "+SEQ", "+MAP", "=VAL :", "=VAL :a", "-MAP", "-SEQ",
    "-SEQ", "-DOC", "-STR"]
-#guard emits "- : - a\n"
-  ["+STR", "+DOC", "+SEQ", "+MAP", "=VAL :", "+SEQ", "=VAL :a", "-SEQ", "-MAP",
-   "-SEQ", "-DOC", "-STR"]
+#guard refuses "- : - a\n"
 #guard emits "- ? - a\n"
   ["+STR", "+DOC", "+SEQ", "+MAP", "+SEQ", "=VAL :a", "-SEQ", "=VAL :",
    "-MAP", "-SEQ", "-DOC", "-STR"]

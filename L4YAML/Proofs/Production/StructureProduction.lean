@@ -189,7 +189,9 @@ lemma scanBlockEntry_prod (sc : ScannerState) (sp : SurfPos)
   · -- !inFlow: pushSequenceIndent
     split at hok
     · simp at hok
-    · have h := Except.ok.inj hok; subst h
+    · split at hok  -- item 48 same-line check
+      · simp at hok
+      have h := Except.ok.inj hok; subst h
       have hcorr_ind := pushSequenceIndent_corr sc
         ⟨'-' :: rest, sc.col⟩ hcorr (sc.col : Int) (Int.natCast_nonneg _)
       have hcorr_emit : ScannerSurfCorr
@@ -271,6 +273,9 @@ lemma scanKey_prod (sc : ScannerState) (sp : SurfPos)
   simp only [bind, Except.bind] at hok
   split at hok
   · -- !inFlow: item 31's preceding-whitespace tab check, then pushMappingIndent
+    split at hok
+    · simp at hok
+    -- item 48 same-line check
     split at hok
     · simp at hok
     have hcorr_ind := pushMappingIndent_corr sc

@@ -180,10 +180,9 @@ the arm added in front of it. -/
 
 #guard !scanAccepts "- \ta: 1\n" && rejectsAlike "- \ta: 1\n"
 #guard !scanAccepts "-\ta: 1\n" && rejectsAlike "-\ta: 1\n"
--- A second `:` on the line: the scanner ACCEPTS it (`b:` is plain content
--- until the `:` resolves) and the parser refuses — a row-19 over-acceptance of
--- the token stream, the same shape item 37 measured at `"a" :b`.
-#guard scanAccepts "- a: b: c\n" && rejects "- a: b: c\n"
+-- A second `:` on the line: `[194]`'s value slot has no same-line mapping, and
+-- the scanner refuses it there (item 48's `nestedMappingOnLine`).
+#guard !scanAccepts "- a: b: c\n" && rejectsAlike "- a: b: c\n"
 -- Item 37, at the pending this item extended: `-` and `?` are still refused.
 #guard !scanAccepts "- \"a\" - b\n" && rejects "- \"a\" - b\n"
 #guard rejects "- [1] ? b\n"

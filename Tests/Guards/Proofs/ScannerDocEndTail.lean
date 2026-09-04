@@ -137,20 +137,19 @@ key.  Both halves are pinned here; the proof owes the second. -/
 Two families reach the same residue and are NOT refutable there, for opposite
 reasons — pinned so the boundary is a measurement rather than an omission.
 
-`&a - b` and `--- - a` are ACCEPTED by the scanner and refused only by the
-parser: `[200] s-l+block-collection` puts `s-l-comments` between a node's
-properties and the collection, so neither sequence may start on the line that
-opened it.  That gap is an over-acceptance of the token stream, which belongs
-to the row-19 work on `implicitContinue`, not to a missing production.
+`&a - b` and `--- - a` are refused by the SCANNER (item 48's same-line check):
+`[200] s-l+block-collection` puts `s-l-comments` between a node's properties
+and the collection, so neither sequence may start on the line that opened it,
+and the scanner now says so before any pending is asked.
 
 `&a : b` is the other direction: accepted by everything and grammatical, an
 anchored empty key under `[154]`, still riding the escape because no pending
 re-reads a parked property run as a key. -/
 
-#guard scanAccepts "&a - b\n" && rejectsAlike "&a - b\n"
-#guard scanAccepts "!t - b\n" && rejects "!t - b\n"
-#guard scanAccepts "--- - a\n" && rejectsAlike "--- - a\n"
-#guard scanAccepts "--- ? a\n" && rejectsAlike "--- ? a\n"
+#guard !scanAccepts "&a - b\n" && rejectsAlike "&a - b\n"
+#guard !scanAccepts "!t - b\n" && rejectsAlike "!t - b\n"
+#guard !scanAccepts "--- - a\n" && rejectsAlike "--- - a\n"
+#guard !scanAccepts "--- ? a\n" && rejectsAlike "--- ? a\n"
 
 #guard emits "&a : b\n"
   ["+STR", "+DOC", "+MAP", "=VAL &a :", "=VAL :b", "-MAP", "-DOC", "-STR"]

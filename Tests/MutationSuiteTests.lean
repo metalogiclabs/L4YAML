@@ -267,8 +267,10 @@ def testDeleteNewlineLeniencies (state : IO.Ref TestCollector) : IO Unit := do
   setCategory state "LENIENT: delete-newline"
 
   -- Source: 2JQS:0 `: a\n: b\n` (empty key mapping)
-  -- Mutation: join lines 0 and 1
-  mustParse state "2JQS:0 join empty-key lines (LENIENT: libyaml rejects)"
+  -- Mutation: join lines 0 and 1.  Refused at the scanner since the
+  -- `[194]` same-line check: an implicit value admits no same-line
+  -- mapping (`nestedMappingOnLine`), agreeing with libyaml.
+  mustReject state "2JQS:0 join empty-key lines (rejected, like libyaml)"
     ": a: b\n"
 
   -- Source: 4ABK:0 (multi-doc with implicit keys)

@@ -488,6 +488,124 @@ front of the `:` is whitespace there is no key on it, so the run IS
 `[63] s-indent(n)` — the same verdict, taken from the line rather than from
 where a key happens to have been recorded. -/
 
+/-- Look back through trailing `.placeholder` reservation slots to find
+    the last real token value (indexed twin of
+    `L4YAML.Scanner.lastRealTokenVal?`). Returns `none` if the stream
+    contains no real token yet. -/
+def lastRealTokenValIx? {input : String} (ts : Indexed.TokenStream input) :
+    Option YamlToken :=
+  let arr := ts.tokens
+  if arr.size > 0 then
+    let lastIdx := arr.size - 1
+    let tok1 := arr[lastIdx]!.token
+    if tok1 == YamlToken.placeholder && lastIdx > 0 then
+      let tok2 := arr[lastIdx - 1]!.token
+      if tok2 == YamlToken.placeholder && lastIdx > 1 then
+        some arr[lastIdx - 2]!.token
+      else some tok2
+    else some tok1
+  else none
+
+/-- Index of the token `lastRealTokenValIx?` reads (indexed twin of
+    `L4YAML.Scanner.lastRealTokenIdx?`). -/
+def lastRealTokenIdxIx? {input : String} (ts : Indexed.TokenStream input) :
+    Option Nat :=
+  let arr := ts.tokens
+  if arr.size > 0 then
+    let lastIdx := arr.size - 1
+    if arr[lastIdx]!.token == YamlToken.placeholder && lastIdx > 0 then
+      if arr[lastIdx - 1]!.token == YamlToken.placeholder && lastIdx > 1 then
+        some (lastIdx - 2)
+      else some (lastIdx - 1)
+    else some lastIdx
+  else none
+
+/-- Walk this line's tokens backwards looking for a `---` — the indexed twin
+    of `docStartOnLine` (item 48). -/
+def docStartOnLineLoopIx {input : String} (ts : Indexed.TokenStream input)
+    (i : Nat) (line : Nat) : Bool :=
+  match i with
+  | 0 => false
+  | j + 1 =>
+    match ts.tokens[j]? with
+    | none => false
+    | some t =>
+      if t.token == .documentStart && t.start.line == line then true
+      else if t.start.line == line || t.token == .placeholder then
+        docStartOnLineLoopIx ts j line
+      else false
+
+def docStartOnLineIx {input : String} (ts : Indexed.TokenStream input)
+    (line : Nat) : Bool :=
+  docStartOnLineLoopIx ts ts.size line
+
+/-- The real token *before* the one `lastRealTokenValIx?` reads (indexed twin of
+    `L4YAML.Scanner.penultRealTokenVal?`). -/
+def penultRealTokenValIx? {input : String} (ts : Indexed.TokenStream input) :
+    Option YamlToken :=
+  match lastRealTokenIdxIx? ts with
+  | some i => lastRealTokenValIx? { tokens := ts.tokens.extract 0 i }
+  | none => none
+
+/-- Trailing run of node-property tokens, most recent first (indexed twin of
+    `L4YAML.Scanner.trailingPropertyRun`). -/
+def trailingPropertyRunIx {input : String} (ts : Indexed.TokenStream input) :
+    List YamlToken :=
+  match lastRealTokenValIx? ts with
+  | some t1 =>
+    if t1.isNodeProperty then
+      match penultRealTokenValIx? ts with
+      | some t2 => if t2.isNodeProperty then [t1, t2] else [t1]
+      | none => [t1]
+    else []
+  | none => []
+
+/-- The last real token itself, not just its value (indexed twin of
+    `L4YAML.Scanner.lastRealToken?`). -/
+def lastRealTokenIx? {input : String} (ts : Indexed.TokenStream input) :
+    Option (Indexed.IxToken input) :=
+  let arr := ts.tokens
+  if arr.size > 0 then
+    let lastIdx := arr.size - 1
+    let tok1 := arr[lastIdx]!
+    if tok1.token == YamlToken.placeholder && lastIdx > 0 then
+      let tok2 := arr[lastIdx - 1]!
+      if tok2.token == YamlToken.placeholder && lastIdx > 1 then
+        some arr[lastIdx - 2]!
+      else some tok2
+    else some tok1
+  else none
+
+/-- Indexed twin of `L4YAML.Scanner.penultRealToken?`. -/
+def penultRealTokenIx? {input : String} (ts : Indexed.TokenStream input) :
+    Option (Indexed.IxToken input) :=
+  match lastRealTokenIdxIx? ts with
+  | some i => lastRealTokenIx? { tokens := ts.tokens.extract 0 i }
+  | none => none
+
+/-- The trailing property run truncated at a line change (indexed twin of
+    `L4YAML.Scanner.trailingPropertyRunOnLine`; see it for why a same-line run
+    is a sound reading in block context). -/
+def trailingPropertyRunOnLineIx {input : String} (ts : Indexed.TokenStream input)
+    (line : Nat) : List YamlToken :=
+  match lastRealTokenIx? ts with
+  | some t1 =>
+    if t1.token.isNodeProperty && t1.start.line == line then
+      match penultRealTokenIx? ts with
+      | some t2 =>
+        if t2.token.isNodeProperty && t2.start.line == line then [t1.token, t2.token]
+        else [t1.token]
+      | none => [t1.token]
+    else []
+  | none => []
+
+/-- Indexed twin of `L4YAML.Scanner.lastTokenIsNodePropertyOnLine`. -/
+def lastTokenIsNodePropertyOnLineIx {input : String} (ts : Indexed.TokenStream input)
+    (line : Nat) : Bool :=
+  match lastRealTokenIx? ts with
+  | some t => t.token.isNodeProperty && t.start.line == line
+  | none => false
+
 /-- Scan `-` block-entry indicator.
 
     Throws `tabInIndentation` if a tab appears in the contiguous
@@ -500,6 +618,11 @@ def scanBlockEntryIx {input : String} (s : ScannerStateIx input) :
   if !s.inFlow then
     if s.hasTabInPrecedingWhitespace then
       throw (.tabInIndentation s.cursor.pos.line s.cursor.pos.col)
+    -- Item 48: mirror of the legacy same-line check — see `scanBlockEntry`.
+    if s.implicitValueLine == some s.cursor.pos.line
+        || lastTokenIsNodePropertyOnLineIx s.tokens s.cursor.pos.line
+        || docStartOnLineIx s.tokens s.cursor.pos.line then
+      throw (.sameLineBlockCollection s.cursor.pos.line s.cursor.pos.col)
   let s := if !s.inFlow then pushSequenceIndentIx s s.cursor.pos.col else s
   let s := s.emit YamlToken.blockEntry
   let s := s.advance
@@ -517,8 +640,14 @@ def scanKeyIx {input : String} (s : ScannerStateIx input) :
   if !s.inFlow then
     if s.hasTabInPrecedingWhitespace then
       throw (.tabInIndentation s.cursor.pos.line s.cursor.pos.col)
+    -- Item 48: mirror of the legacy same-line check — see `scanKey`.
+    if s.implicitValueLine == some s.cursor.pos.line
+        || lastTokenIsNodePropertyOnLineIx s.tokens s.cursor.pos.line
+        || docStartOnLineIx s.tokens s.cursor.pos.line then
+      throw (.sameLineBlockCollection s.cursor.pos.line s.cursor.pos.col)
   let s := if !s.inFlow then pushMappingIndentIx s s.cursor.pos.col else s
   let line := s.cursor.pos.line
+  let col := s.cursor.pos.col
   let s := s.emit YamlToken.key
   let s := s.advance
   if !s.inFlow then
@@ -526,6 +655,7 @@ def scanKeyIx {input : String} (s : ScannerStateIx input) :
       throw (.tabInIndentation s.cursor.pos.line s.cursor.pos.col)
   .ok { s with simpleKeyAllowed := true,
                 explicitKeyLine := some line,
+                explicitKeyCol := (col : Int),
                 simpleKey := { cursor := IxCursor.start input } }
 
 /-- Clear a spurious simple-key when an explicit `?` key is pending.
@@ -592,6 +722,11 @@ def scanValueValidateIx {input : String} (s : ScannerStateIx input) :
         throw (.sameLineExplicitValue s.cursor.pos.line s.cursor.pos.col)
       else if (s.cursor.pos.col : Int) != s.currentIndent then
         throw (.misindentedExplicitValue s.cursor.pos.line s.cursor.pos.col s.currentIndent)
+  -- Item 48: mirror of the legacy same-line checks — see `scanValueValidate`.
+  if !s.inFlow && s.implicitValueLine == some s.cursor.pos.line then
+    throw (.nestedMappingOnLine s.cursor.pos.line s.cursor.pos.col)
+  if !s.inFlow && docStartOnLineIx s.tokens s.cursor.pos.line then
+    throw (.contentOnDocumentStartLine s.cursor.pos.line s.cursor.pos.col)
 
 /-- Resolve a pending simple key by overwriting placeholders at
     `simpleKey.tokenIndex`. Pure state update on the token stream
@@ -670,7 +805,20 @@ def scanValueIx {input : String} (s : ScannerStateIx input) :
   let s_with_token := s_prepared.emit YamlToken.value
   let s_after_advance := s_with_token.advance
   scanValueTabCheckIx (s.cursor.pos.col : Int) s.currentIndent s_after_advance
-  .ok { s_after_advance with simpleKeyAllowed := true, explicitKeyLine := none }
+  -- Item 48: mirror of the legacy implicit-value recording and the pending
+  -- `?`'s survival through its key's own compact entries — see `scanValue`.
+  let ivl : Option Nat :=
+    if s.inFlow || (s_kc.explicitKeyLine.isSome && !s_kc.simpleKey.possible) then
+      s_after_advance.implicitValueLine
+    else some s.cursor.pos.line
+  let ekl : Option Nat :=
+    if s_kc.explicitKeyLine.isSome && !s_kc.simpleKey.possible then none
+    else if !s.inFlow && s_kc.simpleKey.possible
+        && (s_kc.simpleKey.cursor.pos.col : Int) > s_kc.explicitKeyCol then
+      s_kc.explicitKeyLine
+    else none
+  let ekc : Int := if ekl.isSome then s_kc.explicitKeyCol else -1
+  .ok { s_after_advance with simpleKeyAllowed := true, explicitKeyLine := ekl, explicitKeyCol := ekc, implicitValueLine := ivl }
 
 /-! ## Document-marker scanners -/
 
@@ -1011,104 +1159,7 @@ def scanFlowMappingEndIx {input : String} (s : ScannerStateIx input) :
       simpleKeyAllowed := false,
       needIndentCheck := false }
 
-/-- Look back through trailing `.placeholder` reservation slots to find
-    the last real token value (indexed twin of
-    `L4YAML.Scanner.lastRealTokenVal?`). Returns `none` if the stream
-    contains no real token yet. -/
-def lastRealTokenValIx? {input : String} (ts : Indexed.TokenStream input) :
-    Option YamlToken :=
-  let arr := ts.tokens
-  if arr.size > 0 then
-    let lastIdx := arr.size - 1
-    let tok1 := arr[lastIdx]!.token
-    if tok1 == YamlToken.placeholder && lastIdx > 0 then
-      let tok2 := arr[lastIdx - 1]!.token
-      if tok2 == YamlToken.placeholder && lastIdx > 1 then
-        some arr[lastIdx - 2]!.token
-      else some tok2
-    else some tok1
-  else none
 
-/-- Index of the token `lastRealTokenValIx?` reads (indexed twin of
-    `L4YAML.Scanner.lastRealTokenIdx?`). -/
-def lastRealTokenIdxIx? {input : String} (ts : Indexed.TokenStream input) :
-    Option Nat :=
-  let arr := ts.tokens
-  if arr.size > 0 then
-    let lastIdx := arr.size - 1
-    if arr[lastIdx]!.token == YamlToken.placeholder && lastIdx > 0 then
-      if arr[lastIdx - 1]!.token == YamlToken.placeholder && lastIdx > 1 then
-        some (lastIdx - 2)
-      else some (lastIdx - 1)
-    else some lastIdx
-  else none
-
-/-- The real token *before* the one `lastRealTokenValIx?` reads (indexed twin of
-    `L4YAML.Scanner.penultRealTokenVal?`). -/
-def penultRealTokenValIx? {input : String} (ts : Indexed.TokenStream input) :
-    Option YamlToken :=
-  match lastRealTokenIdxIx? ts with
-  | some i => lastRealTokenValIx? { tokens := ts.tokens.extract 0 i }
-  | none => none
-
-/-- Trailing run of node-property tokens, most recent first (indexed twin of
-    `L4YAML.Scanner.trailingPropertyRun`). -/
-def trailingPropertyRunIx {input : String} (ts : Indexed.TokenStream input) :
-    List YamlToken :=
-  match lastRealTokenValIx? ts with
-  | some t1 =>
-    if t1.isNodeProperty then
-      match penultRealTokenValIx? ts with
-      | some t2 => if t2.isNodeProperty then [t1, t2] else [t1]
-      | none => [t1]
-    else []
-  | none => []
-
-/-- The last real token itself, not just its value (indexed twin of
-    `L4YAML.Scanner.lastRealToken?`). -/
-def lastRealTokenIx? {input : String} (ts : Indexed.TokenStream input) :
-    Option (Indexed.IxToken input) :=
-  let arr := ts.tokens
-  if arr.size > 0 then
-    let lastIdx := arr.size - 1
-    let tok1 := arr[lastIdx]!
-    if tok1.token == YamlToken.placeholder && lastIdx > 0 then
-      let tok2 := arr[lastIdx - 1]!
-      if tok2.token == YamlToken.placeholder && lastIdx > 1 then
-        some arr[lastIdx - 2]!
-      else some tok2
-    else some tok1
-  else none
-
-/-- Indexed twin of `L4YAML.Scanner.penultRealToken?`. -/
-def penultRealTokenIx? {input : String} (ts : Indexed.TokenStream input) :
-    Option (Indexed.IxToken input) :=
-  match lastRealTokenIdxIx? ts with
-  | some i => lastRealTokenIx? { tokens := ts.tokens.extract 0 i }
-  | none => none
-
-/-- The trailing property run truncated at a line change (indexed twin of
-    `L4YAML.Scanner.trailingPropertyRunOnLine`; see it for why a same-line run
-    is a sound reading in block context). -/
-def trailingPropertyRunOnLineIx {input : String} (ts : Indexed.TokenStream input)
-    (line : Nat) : List YamlToken :=
-  match lastRealTokenIx? ts with
-  | some t1 =>
-    if t1.token.isNodeProperty && t1.start.line == line then
-      match penultRealTokenIx? ts with
-      | some t2 =>
-        if t2.token.isNodeProperty && t2.start.line == line then [t1.token, t2.token]
-        else [t1.token]
-      | none => [t1.token]
-    else []
-  | none => []
-
-/-- Indexed twin of `L4YAML.Scanner.lastTokenIsNodePropertyOnLine`. -/
-def lastTokenIsNodePropertyOnLineIx {input : String} (ts : Indexed.TokenStream input)
-    (line : Nat) : Bool :=
-  match lastRealTokenIx? ts with
-  | some t => t.token.isNodeProperty && t.start.line == line
-  | none => false
 
 /-- §6.9 [96]: does the property run ending at the cursor already carry an
     anchor?  (Indexed twin of `L4YAML.Scanner.propertyRunHasAnchor`; see its

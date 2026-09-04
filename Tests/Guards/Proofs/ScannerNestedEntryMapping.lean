@@ -231,9 +231,9 @@ parked.  Below them is what the scanner decides before any of it is asked. -/
 -- A block scalar body shallower than its key is not the entry's node.
 #guard !scanAccepts "-\n  a: |\n x\n" && rejectsAlike "-\n  a: |\n x\n"
 #guard scanAccepts "-\n  a: |\n  x\n" && rejects "-\n  a: |\n  x\n"
--- A second `:` on the line is scanner-accepted and parser-refused — row 19's
--- over-acceptance, exactly as items 38 and 39 measured it.
-#guard scanAccepts "-\n  a: b: c\n" && rejects "-\n  a: b: c\n"
+-- A second `:` on the line is refused at the scanner (item 48's
+-- `nestedMappingOnLine`): `[194]`'s value slot has no same-line mapping.
+#guard !scanAccepts "-\n  a: b: c\n" && rejectsAlike "-\n  a: b: c\n"
 -- The `-` after a plain scalar is ABSORBED by `[128] ns-plain-safe-out` (item
 -- 37), so no residue reaches the dispatch; after a QUOTED one it is genuine.
 #guard emits "-\n  a - b\n"

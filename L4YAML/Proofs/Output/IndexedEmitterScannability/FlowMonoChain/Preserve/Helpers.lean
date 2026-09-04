@@ -334,9 +334,9 @@ lemma saveSimpleKeyIx_tokens_size_ge (s : ScannerStateIx input) :
 short-circuit. Two specialized openings (the flow-context one is the
 key downstream consumer):
 
-  * §4.1 — `_ok_of_not_possible_ek_none`: when both
+  * §4.1 — `_ok_of_not_possible_ek_none`: in flow, when both
     `simpleKey.possible` and `explicitKeyLine` are absent, every
-    guard is `false`.
+    guard is `false` (item 48's same-line checks are `!inFlow`-gated).
   * §4.2 — `_ok_of_flow_allTokensOnLine`: in flow context with
     `explicitKeyLine = none`, the strictened missing-comma guard
     (item 9r: `simpleKey + tokens[idx-1] is a `.value``, whatever the
@@ -347,11 +347,13 @@ key downstream consumer):
     legacy landing.) -/
 
 lemma scanValueValidateIx_ok_of_not_possible_ek_none (s : ScannerStateIx input)
+    (h_flow : s.inFlow = true)
     (h_ek : s.explicitKeyLine = none)
     (h_sk : s.simpleKey.possible = false) :
     scanValueValidateIx s = .ok () := by
   unfold scanValueValidateIx
-  simp only [h_sk, Bool.false_and, ↓reduceIte, h_ek, reduceCtorEq]
+  simp only [h_sk, h_flow, Bool.not_true, Bool.false_and, ↓reduceIte, h_ek,
+             reduceCtorEq]
   rfl
 
 /-- In flow context with the pending reservation at an entry boundary

@@ -528,7 +528,8 @@ lemma scanNextToken_flow_value (s : ScannerState)
   --   let s_tok := s_prep.emit .value
   --   let s_adv := s_tok.advance
   --   scanValueTabCheck s_ad.col s_ad.currentIndent s_adv  -- .ok () in flow
-  --   .ok { s_adv with simpleKeyAllowed := true, explicitKeyLine := none }
+  --   .ok { s_adv with simpleKeyAllowed := true, explicitKeyLine := none,
+  --                     explicitKeyCol := -1 }  -- item 48's arms are dead in flow
   let s_prep := scanValuePrepare s_ad
   let s_tok := s_prep.emit .value
   let s_adv := s_tok.advance
@@ -538,11 +539,17 @@ lemma scanNextToken_flow_value (s : ScannerState)
     unfold scanValueIndentTabCheck; rw [if_pos h_ad_inFlow]
   have h_scanValue_result : scanValue s_ad =
       (scanValueTabCheck (s_ad.col : Int) s_ad.currentIndent s_adv >>= fun () =>
-        .ok { s_adv with simpleKeyAllowed := true, explicitKeyLine := none }) := by
+        .ok { s_adv with simpleKeyAllowed := true, explicitKeyLine := none,
+                          explicitKeyCol := -1 }) := by
     unfold scanValue
     dsimp only []  -- zeta-reduce let bindings in the unfolded body
     rw [h_ckr, h_validate, h_indentTab]
     dsimp only [Bind.bind, Except.bind]
+    -- Item 48's epilogue: with `explicitKeyLine = none` and `inFlow = true`
+    -- every survival arm is dead, so the new fields reduce to the literals.
+    simp only [h_ad_ek, h_ad_inFlow, Option.isSome_none, Bool.false_and,
+               Bool.not_true, Bool.true_or, ite_false, ite_true, Bool.false_eq_true]
+    rfl
   -- scanValueTabCheck is .ok () since !s_adv.inFlow = false
   -- s_adv.inFlow = s_prep.inFlow = s_ad.inFlow = true (through emit and advance)
   have h_prep_inFlow : s_prep.inFlow = s_ad.inFlow := by
@@ -561,7 +568,8 @@ lemma scanNextToken_flow_value (s : ScannerState)
       rw [h_adv_inFlow, h_tok_inFlow, h_prep_inFlow]; exact h_ad_inFlow
     simp [this]
   -- Derive scanValue s_ad = .ok s_final
-  let s_final : ScannerState := { s_adv with simpleKeyAllowed := true, explicitKeyLine := none }
+  let s_final : ScannerState := { s_adv with simpleKeyAllowed := true, explicitKeyLine := none,
+                                              explicitKeyCol := -1 }
   have h_scanValue_ok : scanValue s_ad = .ok s_final := by
     rw [h_scanValue_result, h_tab_ok]; dsimp only [Bind.bind, Except.bind]
   -- Derive block dispatch result

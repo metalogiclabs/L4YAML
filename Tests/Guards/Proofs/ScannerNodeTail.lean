@@ -167,13 +167,12 @@ be a defect, not a tightening; they are pinned so the boundary is visible. -/
 
 `&a`/`!t` park a `[96] c-ns-properties` run, which is not a complete node and
 so carries no §7.5 tail at all — nothing validated its line.  The scanner
-ACCEPTS the identical shape there, and only the parser refuses it (`[200]
-s-l+block-collection` puts `s-l-comments` between a node's properties and the
-collection).  That gap is an over-acceptance of the token stream and belongs to
-the row-19 work, not to this rung. -/
+refuses the identical shape there too, but by a different check: item 48's
+same-line rule (`[200] s-l+block-collection` puts `s-l-comments` between a
+node's properties and the collection), not this rung's node tail. -/
 
-#guard scanAccepts "&a - b\n" && rejectsAlike "&a - b\n"
-#guard scanAccepts "!t - b\n" && rejectsAlike "!t - b\n"
+#guard !scanAccepts "&a - b\n" && rejectsAlike "&a - b\n"
+#guard !scanAccepts "!t - b\n" && rejectsAlike "!t - b\n"
 -- The contrast, one character apart: the node park refuses at the SCANNER.
 #guard !scanAccepts "\"a\" - b\n"
 #guard !scanAccepts "[1] - b\n"

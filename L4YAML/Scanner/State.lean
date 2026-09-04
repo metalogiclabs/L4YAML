@@ -110,6 +110,20 @@ structure ScannerState where
       saving on the same line as `?`, and (b) bypass the flow-sequence
       implicit-key-single-line restriction when `?` was used. -/
   explicitKeyLine : Option Nat := none
+  /-- Line number of the most recent block-context IMPLICIT value indicator
+      (item 48).  `[194] c-l-block-map-implicit-value`'s value slot is
+      `s-l+block-node` — no compact alternative, no same-line mapping — so a
+      block-collection indicator or a second `:` on this line has no
+      derivation.  The EXPLICIT value (`[192]`'s, whose slot is
+      `s-l+block-indented` with the compact alternatives) does not set it,
+      which is what keeps `? a⏎: - b` and `? a⏎: b: c` served. -/
+  implicitValueLine : Option Nat := none
+  /-- Column of the pending `?` (item 48), meaningful only while
+      `explicitKeyLine` is set: an implicit `:` whose resolved key sits
+      DEEPER than this column is inside the explicit key's own content
+      (spec 8.19's multi-line compact keys), so the pending `?` survives it;
+      at or left of it, a sibling entry has closed the `?`-entry. -/
+  explicitKeyCol : Int := -1
   /-- Collected comments (position × text). Comments are stored here as a
       side-channel rather than in the token array so that all existing
       `preserves_tokens` proofs remain valid unchanged. -/

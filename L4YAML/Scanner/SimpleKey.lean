@@ -5,6 +5,7 @@ Released under Apache 2.0 license as described in the file LICENSE.
 import L4YAML.Scanner.State
 import L4YAML.Scanner.Whitespace
 import L4YAML.Scanner.Indent
+import L4YAML.Scanner.TokenQueries
 
 /-!
 # Scanner — Simple Keys, Block Entries, and Value Indicators
@@ -68,6 +69,16 @@ def scanBlockEntry (s : ScannerState) : Except ScanError ScannerState := do
   if !s.inFlow then
     if s.hasTabInPrecedingWhitespace then
       throw (.tabInIndentation s.line s.col)
+    -- Item 48: `[194]`'s implicit value has no compact alternative, `[200]`
+    -- separates properties from their collection with `s-l-comments`, and no
+    -- block collection opens on the `---` line — so a `-` never shares a line
+    -- with an implicit `:` (`k: - a`), a property run (`&a - b`), or a
+    -- document marker (`--- - a`).  The explicit `:`/`?`/`-` predecessors
+    -- (compact collections, `[185]`/`[192]`/`[201]`) set none of the three.
+    if s.implicitValueLine == some s.line
+        || lastTokenIsNodePropertyOnLine s.tokens s.line
+        || docStartOnLine s.tokens s.line then
+      throw (.sameLineBlockCollection s.line s.col)
   let s_with_indent := if !s.inFlow then pushSequenceIndent s s.col else s
   let s_with_token := s_with_indent.emit .blockEntry
   let s_after_advance := s_with_token.advance
@@ -99,6 +110,12 @@ def scanKey (s : ScannerState) : Except ScanError ScannerState := do
   if !s.inFlow then
     if s.hasTabInPrecedingWhitespace then
       throw (.tabInIndentation s.line s.col)
+    -- Item 48: `scanBlockEntry`'s same-line check, for the `?` — `k: ? a`,
+    -- `&a ? b` and `--- ? a` have no derivation for the same three reasons.
+    if s.implicitValueLine == some s.line
+        || lastTokenIsNodePropertyOnLine s.tokens s.line
+        || docStartOnLine s.tokens s.line then
+      throw (.sameLineBlockCollection s.line s.col)
   let s_with_indent := if !s.inFlow then pushMappingIndent s s.col else s
   let s_with_token := s_with_indent.emit .key
   let s_after_advance := s_with_token.advance
@@ -111,6 +128,7 @@ def scanKey (s : ScannerState) : Except ScanError ScannerState := do
   -- explicit `key` token; the next `:` is this key's value indicator,
   -- not confirmation of a new implicit key.
   .ok { s_after_advance with simpleKeyAllowed := true, explicitKeyLine := some s.line,
+                              explicitKeyCol := (s.col : Int),
                               simpleKey := { possible := false } }
 
 /-! ### scanValue — value indicator `:` (§8.2.2, §7.4)
@@ -197,6 +215,18 @@ def scanValueValidate (s : ScannerState) : Except ScanError Unit := do
         throw (.sameLineExplicitValue s.line s.col)
       else if (s.col : Int) != s.currentIndent then
         throw (.misindentedExplicitValue s.line s.col s.currentIndent)
+  -- Item 48: §8.2.2 [194] — an implicit value is `s-l+block-node`, which has
+  -- no same-line mapping, so a SECOND block-context value indicator on an
+  -- implicit `:`'s line has no derivation (`k: v : w`, `k: v: w`,
+  -- `k: &a : b`).  The explicit value never set the field, which is what
+  -- keeps `? a⏎: b: c` — `[192]`'s compact mapping — served.
+  if !s.inFlow && s.implicitValueLine == some s.line then
+    throw (.nestedMappingOnLine s.line s.col)
+  -- Item 48: §9.1.1 — the `---` line admits one same-line NODE, not a
+  -- same-line mapping entry, so a block-context `:` with the marker still on
+  -- the line has no derivation (`--- : a`, `--- k: v`, `--- "a": b`).
+  if !s.inFlow && docStartOnLine s.tokens s.line then
+    throw (.contentOnDocumentStartLine s.line s.col)
 
 /-- Build the prepared state: resolve a pending simple key by overwriting
     placeholder slots (via `Array.setIfInBounds`), optionally pushing indent
@@ -293,7 +323,24 @@ def scanValue (s : ScannerState) : Except ScanError ScannerState := do
   let s_with_token := s_prepared.emit .value
   let s_after_advance := s_with_token.advance
   scanValueTabCheck s.col s.currentIndent s_after_advance
-  .ok { s_after_advance with simpleKeyAllowed := true, explicitKeyLine := none }
+  -- Item 48: record the IMPLICIT value's line (`[194]`); the explicit value
+  -- (`[192]`'s, selected exactly as in `scanValueValidate`'s §8.2.2 [197]
+  -- branch) leaves the field alone, as does a flow-context `:`.
+  let ivl : Option Nat :=
+    if s.inFlow || (s_kc.explicitKeyLine.isSome && !s_kc.simpleKey.possible) then
+      s_after_advance.implicitValueLine
+    else some s.line
+  -- Item 48: the pending `?` survives an implicit `:` INSIDE the explicit
+  -- key's own content — a resolved key deeper than the mapping's indent
+  -- (spec 8.19's `? earth: blue⏎: moon: white`) — and is consumed by its
+  -- explicit value or killed by a sibling entry at the mapping's level.
+  let ekl : Option Nat :=
+    if s_kc.explicitKeyLine.isSome && !s_kc.simpleKey.possible then none
+    else if !s.inFlow && s_kc.simpleKey.possible && (s_kc.simpleKey.pos.col : Int) > s_kc.explicitKeyCol then
+      s_kc.explicitKeyLine
+    else none
+  let ekc : Int := if ekl.isSome then s_kc.explicitKeyCol else -1
+  .ok { s_after_advance with simpleKeyAllowed := true, explicitKeyLine := ekl, explicitKeyCol := ekc, implicitValueLine := ivl }
 
 /-! ## Simple-Key Tracking and Candidate Predicates -/
 

@@ -234,13 +234,10 @@ Below that: a closed FLOW node parks through the flow machinery, so its `:` is
 `FlowOpenStack`'s business; a block-scalar header is a node and never a key; and
 what the scanner refuses it refuses before any of this is asked. -/
 
--- The mapping VALUE's on-line landing: accepted, still deferred.
-#guard emits ": &p a: 1\n"
-  ["+STR", "+DOC", "+MAP", "=VAL :", "+MAP", "=VAL &p :a", "=VAL :1", "-MAP", "-MAP",
-   "-DOC", "-STR"]
-#guard emits "k:\n  : &p a: 1\n"
-  ["+STR", "+DOC", "+MAP", "=VAL :k", "+MAP", "=VAL :", "+MAP", "=VAL &p :a", "=VAL :1",
-   "-MAP", "-MAP", "-MAP", "-DOC", "-STR"]
+-- The mapping VALUE's on-line landing: `[194]`'s value slot has no same-line
+-- mapping, and the scanner refuses it there (item 48's `nestedMappingOnLine`).
+#guard !scanAccepts ": &p a: 1\n" && rejectsAlike ": &p a: 1\n"
+#guard !scanAccepts "k:\n  : &p a: 1\n" && rejectsAlike "k:\n  : &p a: 1\n"
 -- A run in front of a closed flow collection: `[194]`'s own alternative, parked
 -- by the flow machinery rather than by this content dispatch.
 #guard emits "- &p [1]: b\n"

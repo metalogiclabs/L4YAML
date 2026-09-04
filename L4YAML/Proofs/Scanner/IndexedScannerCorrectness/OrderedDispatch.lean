@@ -221,7 +221,10 @@ lemma scanBlockEntryIx_preserves_ScanInvIx {input : String}
   · -- !s.inFlow = true: tab check active
     split at h_ok
     · simp at h_ok
-    · simp only [Except.ok.injEq] at h_ok; subst h_ok
+    · -- item 48 same-line check
+      split at h_ok
+      · simp at h_ok
+      simp only [Except.ok.injEq] at h_ok; subst h_ok
       have h1 := pushSequenceIndentIx_preserves_ScanInvIx s s.cursor.pos.col h
       have h2 := emit_preserves_ScanInvIx _ YamlToken.blockEntry h1
       have h3 := advance_preserves_ScanInvIx _ h2
@@ -248,6 +251,9 @@ lemma scanKeyIx_preserves_ScanInvIx {input : String}
   simp only [bind, Except.bind] at h_ok
   split at h_ok
   · -- item 31: the preceding-whitespace tab check, then the pushMappingIndent if
+    split at h_ok
+    · simp at h_ok
+    -- item 48 same-line check
     split at h_ok
     · simp at h_ok
     split at h_ok

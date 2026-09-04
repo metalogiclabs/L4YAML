@@ -227,10 +227,10 @@ absorbs before any of it can be asked. -/
 #guard !scanAccepts "k:\n  a: 1\n b: 2\n" && rejectsAlike "k:\n  a: 1\n b: 2\n"
 -- A block scalar body flush with its key is not the entry's node.
 #guard scanAccepts "k:\n  a: |\n  x\n" && rejects "k:\n  a: |\n  x\n"
--- A second `:` on the line is scanner-accepted and parser-refused — row 19's
--- over-acceptance, exactly as `- a: b: c` measured it at item 38.
-#guard scanAccepts "k: a: 1\n" && rejects "k: a: 1\n"
-#guard scanAccepts "k:\n  a: b: c\n" && rejects "k:\n  a: b: c\n"
+-- A second `:` on the line is refused at the scanner (item 48's
+-- `nestedMappingOnLine`): `[194]`'s value slot has no same-line mapping.
+#guard !scanAccepts "k: a: 1\n" && rejectsAlike "k: a: 1\n"
+#guard !scanAccepts "k:\n  a: b: c\n" && rejectsAlike "k:\n  a: b: c\n"
 -- The `-` after a plain scalar is ABSORBED into it (item 37), so no residue
 -- reaches the dispatch at all…
 #guard emits "k:\n  a - b\n"

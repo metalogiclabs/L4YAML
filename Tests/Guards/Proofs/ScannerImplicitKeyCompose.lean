@@ -103,8 +103,9 @@ The multiline shapes the §7.4 coupling excludes keep their rejections. -/
 -- so the `:` meets a stale cross-line key — the scan rejects (item 14's
 -- refutation, unchanged).
 #guard verdicts "x\na: b\n" == (some (.invalidImplicitKey 1), some (.invalidImplicitKey 1))
--- A value cannot itself become an implicit key on the same line.
-#guard verdicts "a: b: c\n" == (some (.trailingContent 0 3), some (.trailingContent 0 3))
+-- A value cannot itself become an implicit key on the same line — the
+-- scanner refuses the second `:` (item 48's `nestedMappingOnLine`).
+#guard verdicts "a: b: c\n" == (some (.nestedMappingOnLine 0 4), some (.nestedMappingOnLine 0 4))
 -- A completed quoted document refuses a following bare mapping — the
 -- accumulation's over-approximation admits the SCAN, the parser rejects.
 #guard verdicts "\"x\"\na: b\n" ==

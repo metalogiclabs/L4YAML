@@ -94,18 +94,18 @@ private def scanAccepts (input : String) : Bool :=
 
 A block COLLECTION may not open on the marker's line: `[200]
 s-l+block-collection` puts `s-l-comments` between a node's properties and the
-collection, and the same reading holds at the document level.  The scanner
-ACCEPTS the token stream and the parser refuses it
-(`contentOnDocumentStartLine`) — an over-acceptance in row 19's sense, and the
+collection, and the same reading holds at the document level.  The SCANNER
+refuses the whole family (item 48: `sameLineBlockCollection` for `-`/`?`,
+`contentOnDocumentStartLine` for a `:` behind the marker), which is the
 reason the routed arm's key context punts without loss: no implicit key ever
 fires behind a `---` park, spaced or not. -/
 
-#guard scanAccepts "--- a: 1\n" && rejectsAlike "--- a: 1\n"
-#guard scanAccepts "--- - a\n" && rejectsAlike "--- - a\n"
-#guard scanAccepts "--- ? a\n" && rejectsAlike "--- ? a\n"
-#guard scanAccepts "--- : a\n" && rejectsAlike "--- : a\n"
-#guard scanAccepts "--- a : b\n" && rejectsAlike "--- a : b\n"
-#guard scanAccepts "--- \"a\" : b\n" && rejectsAlike "--- \"a\" : b\n"
+#guard !scanAccepts "--- a: 1\n" && rejectsAlike "--- a: 1\n"
+#guard !scanAccepts "--- - a\n" && rejectsAlike "--- - a\n"
+#guard !scanAccepts "--- ? a\n" && rejectsAlike "--- ? a\n"
+#guard !scanAccepts "--- : a\n" && rejectsAlike "--- : a\n"
+#guard !scanAccepts "--- a : b\n" && rejectsAlike "--- a : b\n"
+#guard !scanAccepts "--- \"a\" : b\n" && rejectsAlike "--- \"a\" : b\n"
 -- content past the one-line body's own close
 #guard scanAccepts "--- a #c\nb\n" && rejectsAlike "--- a #c\nb\n"
 

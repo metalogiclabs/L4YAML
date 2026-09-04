@@ -366,12 +366,15 @@ lemma scanBlockEntry_corr (sc : ScannerState) (sp : SurfPos)
   · -- !inFlow
     split at hok
     · exact absurd hok (by simp)
-    · have h := Except.ok.inj hok; subst h
-      have hcorr_ind := pushSequenceIndent_corr sc sp hcorr (sc.col : Int) (Int.natCast_nonneg _)
-      obtain ⟨sp', hcorr'⟩ := advance_corr
-        ((pushSequenceIndent sc (sc.col : Int)).emit .blockEntry) sp
-        ⟨hcorr_ind.chars_from, hcorr_ind.col_eq, hcorr_ind.end_eq, hcorr_ind.input_prefix, hcorr_ind.indent_cols_nonneg⟩
-      exact ⟨sp', ⟨hcorr'.chars_from, hcorr'.col_eq, hcorr'.end_eq, hcorr'.input_prefix, hcorr'.indent_cols_nonneg⟩⟩
+    · -- item 48 same-line check
+      split at hok
+      · exact absurd hok (by simp)
+      · have h := Except.ok.inj hok; subst h
+        have hcorr_ind := pushSequenceIndent_corr sc sp hcorr (sc.col : Int) (Int.natCast_nonneg _)
+        obtain ⟨sp', hcorr'⟩ := advance_corr
+          ((pushSequenceIndent sc (sc.col : Int)).emit .blockEntry) sp
+          ⟨hcorr_ind.chars_from, hcorr_ind.col_eq, hcorr_ind.end_eq, hcorr_ind.input_prefix, hcorr_ind.indent_cols_nonneg⟩
+        exact ⟨sp', ⟨hcorr'.chars_from, hcorr'.col_eq, hcorr'.end_eq, hcorr'.input_prefix, hcorr'.indent_cols_nonneg⟩⟩
   · -- inFlow
     have h := Except.ok.inj hok; subst h
     obtain ⟨sp', hcorr'⟩ := advance_corr (sc.emit .blockEntry) sp
@@ -388,6 +391,9 @@ lemma scanKey_corr (sc : ScannerState) (sp : SurfPos)
   -- After bind/Except.bind simplification, we split on !inFlow
   split at hok
   · -- !inFlow: item 31's preceding-whitespace tab check, then pushMappingIndent
+    split at hok
+    · exact absurd hok (by simp)
+    -- item 48 same-line check
     split at hok
     · exact absurd hok (by simp)
     have hcorr_ind := pushMappingIndent_corr sc sp hcorr (sc.col : Int) (Int.natCast_nonneg _)

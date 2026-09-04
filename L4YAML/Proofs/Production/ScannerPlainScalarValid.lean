@@ -1114,7 +1114,9 @@ lemma scanBlockEntry_preserves_PlainScalarsValid
   split at h_ok
   · split at h_ok
     · contradiction
-    · injection h_ok with h_ok; subst h_ok
+    · split at h_ok  -- item 48 same-line check
+      · contradiction
+      injection h_ok with h_ok; subst h_ok
       simp only [advance_preserves_tokens]
       apply PlainScalarsValid_push_non_plain _ _ _ (by trivial)
       exact pushSequenceIndent_preserves_PlainScalarsValid s s.col h_old
@@ -1133,6 +1135,7 @@ lemma scanKey_preserves_PlainScalarsValid
   simp only [bind, Except.bind] at h_ok
   split at h_ok
   · split at h_ok <;> try contradiction  -- item 31: preceding-whitespace tab
+    split at h_ok <;> try contradiction  -- item 48 same-line check
     split at h_ok
     · split at h_ok
       · contradiction
@@ -3693,7 +3696,9 @@ lemma scanBlockEntry_new_token_not_plain (s s' : ScannerState)
   split at h_ok
   · split at h_ok
     · contradiction
-    · injection h_ok with h_eq; subst h_eq
+    · split at h_ok  -- item 48 same-line check
+      · contradiction
+      injection h_ok with h_eq; subst h_eq
       simp only [advance_preserves_tokens] at h_gen
       unfold pushSequenceIndent ScannerState.emit at h_gen
       split at h_gen
@@ -3745,7 +3750,9 @@ lemma scanBlockEntry_preserves_FlowNestingInv
   split at h_ok
   · split at h_ok
     · contradiction
-    · injection h_ok with h_eq; subst h_eq
+    · split at h_ok  -- item 48 same-line check
+      · contradiction
+      injection h_ok with h_eq; subst h_eq
       -- Case: !inFlow, no tab error
       -- s' = (pushSequenceIndent s s.col).emit(blockEntry).advance
       unfold pushSequenceIndent
@@ -3803,6 +3810,7 @@ lemma scanKey_new_token_not_plain (s s' : ScannerState)
   split at h_ok
   · -- !s.inFlow
     split at h_ok <;> try contradiction  -- item 31: preceding-whitespace tab
+    split at h_ok <;> try contradiction  -- item 48 same-line check
     split at h_ok
     · split at h_ok
       · contradiction
@@ -3882,6 +3890,7 @@ lemma scanKey_preserves_FlowNestingInv
   simp only [bind, Except.bind] at h_ok
   split at h_ok
   · split at h_ok <;> try contradiction  -- item 31: preceding-whitespace tab
+    split at h_ok <;> try contradiction  -- item 48 same-line check
     split at h_ok
     · split at h_ok
       · contradiction

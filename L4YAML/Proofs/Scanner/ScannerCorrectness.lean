@@ -302,6 +302,39 @@ lemma unwindIndents_preserves_flowLevel (s : ScannerState) (col : Int) :
   unfold unwindIndents
   exact unwindIndentsLoop_preserves_flowLevel s col s.indents.size
 
+/-- `unwindIndentsLoop` preserves `needIndentCheck` (item 48): each step is an
+    `emit .blockEnd` plus an `indents` update. -/
+lemma unwindIndentsLoop_preserves_needIndentCheck (s : ScannerState) (col : Int) (fuel : Nat) :
+    (unwindIndentsLoop s col fuel).needIndentCheck = s.needIndentCheck := by
+  induction fuel generalizing s with
+  | zero => unfold unwindIndentsLoop; rfl
+  | succ fuel' ih =>
+    unfold unwindIndentsLoop
+    split
+    · rw [ih]; rfl
+    · rfl
+
+lemma unwindIndents_preserves_needIndentCheck (s : ScannerState) (col : Int) :
+    (unwindIndents s col).needIndentCheck = s.needIndentCheck := by
+  unfold unwindIndents
+  exact unwindIndentsLoop_preserves_needIndentCheck s col s.indents.size
+
+/-- `unwindIndentsLoop` preserves `line` (item 48): no step moves the cursor. -/
+lemma unwindIndentsLoop_preserves_line (s : ScannerState) (col : Int) (fuel : Nat) :
+    (unwindIndentsLoop s col fuel).line = s.line := by
+  induction fuel generalizing s with
+  | zero => unfold unwindIndentsLoop; rfl
+  | succ fuel' ih =>
+    unfold unwindIndentsLoop
+    split
+    · rw [ih]; rfl
+    · rfl
+
+lemma unwindIndents_preserves_line (s : ScannerState) (col : Int) :
+    (unwindIndents s col).line = s.line := by
+  unfold unwindIndents
+  exact unwindIndentsLoop_preserves_line s col s.indents.size
+
 /-- `saveSimpleKey` preserves `flowLevel`. -/
 lemma saveSimpleKey_preserves_flowLevel (s : ScannerState) :
     (saveSimpleKey s).flowLevel = s.flowLevel := by
@@ -489,6 +522,7 @@ lemma scanKey_adds_one_token (s : ScannerState) (s' : ScannerState)
   split at h
   · -- !inFlow → item 31's preceding-whitespace tab check, then pushMappingIndent
     split at h <;> try contradiction
+    split at h <;> try contradiction  -- item 48 same-line check
     split at h
     · split at h
       · contradiction
@@ -1049,6 +1083,175 @@ lemma skipToContent_preserves_flowLevel (s : ScannerState) (s' : ScannerState) :
   unfold skipToContent at h
   exact skipToContentLoop_preserves_flowLevel s s' _ h
 
+/-! ## implicitValueLine preservation through the skipToContent chain (item 48)
+
+`implicitValueLine` is written by `scanValue` alone; the whole preprocessing
+chain carries it unchanged.  The clones below mirror the `flowLevel` ladder
+lemma-for-lemma — same functions, same branch structure. -/
+
+lemma advance_preserves_implicitValueLine (s : ScannerState) :
+    s.advance.implicitValueLine = s.implicitValueLine := by
+  unfold ScannerState.advance
+  split
+  · simp only []
+    split
+    · rfl
+    · split <;> rfl
+  · rfl
+
+lemma emit_preserves_implicitValueLine (s : ScannerState) (tok : YamlToken) :
+    (s.emit tok).implicitValueLine = s.implicitValueLine := by
+  unfold ScannerState.emit
+  rfl
+
+lemma unwindIndentsLoop_preserves_implicitValueLine (s : ScannerState) (col : Int) (fuel : Nat) :
+    (unwindIndentsLoop s col fuel).implicitValueLine = s.implicitValueLine := by
+  induction fuel generalizing s with
+  | zero => unfold unwindIndentsLoop; rfl
+  | succ fuel' ih =>
+    unfold unwindIndentsLoop
+    split
+    · rw [ih]; exact emit_preserves_implicitValueLine s .blockEnd
+    · rfl
+
+lemma unwindIndents_preserves_implicitValueLine (s : ScannerState) (col : Int) :
+    (unwindIndents s col).implicitValueLine = s.implicitValueLine := by
+  unfold unwindIndents
+  exact unwindIndentsLoop_preserves_implicitValueLine s col s.indents.size
+
+lemma saveSimpleKey_preserves_implicitValueLine (s : ScannerState) :
+    (saveSimpleKey s).implicitValueLine = s.implicitValueLine := by
+  unfold saveSimpleKey
+  split <;> (try rfl)
+  split <;> rfl
+
+lemma consumeNewline_preserves_implicitValueLine (s : ScannerState) :
+    (consumeNewline s).implicitValueLine = s.implicitValueLine := by
+  unfold consumeNewline
+  split
+  · exact advance_preserves_implicitValueLine s
+  · dsimp only []
+    split
+    · exact advance_preserves_implicitValueLine s
+    · exact advance_preserves_implicitValueLine s
+  · rfl
+
+lemma skipSpaces_preserves_implicitValueLine (s : ScannerState) :
+    (skipSpaces s).implicitValueLine = s.implicitValueLine := by
+  unfold skipSpaces
+  generalize s.inputEnd - s.offset = fuel
+  induction fuel generalizing s with
+  | zero => unfold skipSpacesLoop; rfl
+  | succ fuel' IH =>
+    unfold skipSpacesLoop; split
+    · rw [IH, advance_preserves_implicitValueLine]
+    · rfl
+
+lemma skipWhitespace_preserves_implicitValueLine (s : ScannerState) :
+    (skipWhitespace s).implicitValueLine = s.implicitValueLine := by
+  unfold skipWhitespace
+  generalize s.inputEnd - s.offset = fuel
+  induction fuel generalizing s with
+  | zero => unfold skipWhitespaceLoop; rfl
+  | succ fuel' IH =>
+    unfold skipWhitespaceLoop; split
+    · split
+      · rw [IH, advance_preserves_implicitValueLine]
+      · rfl
+    · rfl
+
+lemma collectCommentTextLoop_preserves_implicitValueLine (s : ScannerState)
+    (text : String) (fuel : Nat) :
+    (collectCommentTextLoop s text fuel).2.implicitValueLine = s.implicitValueLine := by
+  induction fuel generalizing s text with
+  | zero => unfold collectCommentTextLoop; rfl
+  | succ fuel' IH =>
+    unfold collectCommentTextLoop; split
+    · split
+      · rfl
+      · rw [IH, advance_preserves_implicitValueLine]
+    · rfl
+
+lemma skipToContentWs_preserves_implicitValueLine (s : ScannerState) (s' : ScannerState)
+    (h : skipToContentWs s = .ok s') :
+    s'.implicitValueLine = s.implicitValueLine := by
+  unfold skipToContentWs at h
+  split at h
+  · simp only [] at h
+    split at h
+    · split at h
+      · split at h
+        · simp at h; rw [← h, skipWhitespace_preserves_implicitValueLine,
+            skipSpaces_preserves_implicitValueLine]
+        · split at h
+          · simp at h; rw [← h, skipWhitespace_preserves_implicitValueLine,
+              skipSpaces_preserves_implicitValueLine]
+          · split at h
+            · simp at h; rw [← h, skipWhitespace_preserves_implicitValueLine,
+                skipSpaces_preserves_implicitValueLine]
+            · simp at h
+        · simp at h; rw [← h, skipWhitespace_preserves_implicitValueLine,
+            skipSpaces_preserves_implicitValueLine]
+      · simp at h; rw [← h, skipSpaces_preserves_implicitValueLine]
+    · simp at h; rw [← h, skipWhitespace_preserves_implicitValueLine,
+        skipSpaces_preserves_implicitValueLine]
+  · simp at h; rw [← h, skipWhitespace_preserves_implicitValueLine]
+
+lemma skipToContentComment_preserves_implicitValueLine (s : ScannerState) :
+    (skipToContentComment s).implicitValueLine = s.implicitValueLine := by
+  unfold skipToContentComment
+  split
+  · simp only []
+    split
+    · split
+      · simp only []
+        rw [collectCommentTextLoop_preserves_implicitValueLine, advance_preserves_implicitValueLine]
+      · rfl
+    · split
+      · simp only []
+        rw [collectCommentTextLoop_preserves_implicitValueLine, advance_preserves_implicitValueLine]
+      · rfl
+  · rfl
+
+lemma skipToContentLoop_preserves_implicitValueLine (s : ScannerState) (s' : ScannerState)
+    (fuel : Nat)
+    (h : skipToContentLoop s fuel = .ok s') :
+    s'.implicitValueLine = s.implicitValueLine := by
+  induction fuel generalizing s with
+  | zero =>
+    unfold skipToContentLoop at h
+    simp at h; rw [← h]
+  | succ fuel' IH =>
+    unfold skipToContentLoop at h
+    split at h
+    · simp at h
+    · rename_i s1 hws
+      simp only [] at h
+      split at h
+      · rename_i c hpeek
+        split at h
+        · split at h
+          · have ih := IH _ h
+            rw [ih, consumeNewline_preserves_implicitValueLine,
+                skipToContentComment_preserves_implicitValueLine]
+            exact skipToContentWs_preserves_implicitValueLine s s1 hws
+          · have ih := IH _ h
+            rw [ih, consumeNewline_preserves_implicitValueLine,
+                skipToContentComment_preserves_implicitValueLine]
+            exact skipToContentWs_preserves_implicitValueLine s s1 hws
+        · simp at h; rw [← h, skipToContentComment_preserves_implicitValueLine]
+          exact skipToContentWs_preserves_implicitValueLine s s1 hws
+      · simp at h; rw [← h, skipToContentComment_preserves_implicitValueLine]
+        exact skipToContentWs_preserves_implicitValueLine s s1 hws
+
+lemma skipToContent_preserves_implicitValueLine (s : ScannerState) (s' : ScannerState) :
+    skipToContent s = .ok s' →
+    s'.implicitValueLine = s.implicitValueLine := by
+  intro h
+  unfold skipToContent at h
+  exact skipToContentLoop_preserves_implicitValueLine s s' _ h
+
+
 /-! ## Helper Lemmas for scan* Functions
 
 Each scan* function called by scanNextToken either emits tokens or adds them via
@@ -1118,7 +1321,7 @@ lemma processEscape_preserves_tokens (s : ScannerState) (ch : Char) (s' : Scanne
   simp only [] at h
   split at h <;> try contradiction
   -- Split on each character case
-  repeat (split at h)
+  repeat' (split at h)
   -- Handle all goals
   all_goals (
     first
@@ -1911,7 +2114,7 @@ lemma scanFlowEntry_adds_one_token (s : ScannerState) (s' : ScannerState)
     s'.tokens.size ≥ s.tokens.size + 1 := by
   unfold scanFlowEntry at h
   simp only [bind, Except.bind] at h
-  repeat (split at h)
+  repeat' (split at h)
   all_goals (first
     | contradiction
     | (injection h with h_eq; subst h_eq
@@ -1924,7 +2127,7 @@ lemma scanBlockEntry_adds_tokens (s : ScannerState) (s' : ScannerState)
   unfold scanBlockEntry at h
   dsimp only [] at h
   simp only [bind, Except.bind] at h
-  repeat (split at h)
+  repeat' (split at h)
   all_goals (first
     | contradiction
     | (injection h with h_eq; subst h_eq
@@ -2315,7 +2518,7 @@ lemma scanFlowEntry_preserves_prefix (s s' : ScannerState)
     (h : scanFlowEntry s = .ok s') (i : Nat) (h_i : i < s.tokens.size) :
     s'.tokens[i]'(by have := scanFlowEntry_adds_one_token s s' h; omega) = s.tokens[i] := by
   unfold scanFlowEntry at h; simp only [bind, Except.bind] at h
-  repeat (split at h)
+  repeat' (split at h)
   all_goals (first
     | contradiction
     | (injection h with h_eq; subst h_eq; dsimp only []
@@ -2329,7 +2532,7 @@ lemma scanBlockEntry_preserves_prefix (s s' : ScannerState)
   unfold scanBlockEntry at h
   dsimp only [] at h
   simp only [bind, Except.bind] at h
-  repeat (split at h)
+  repeat' (split at h)
   all_goals (first
     | contradiction
     | (injection h with h_eq; subst h_eq; dsimp only []
@@ -2350,6 +2553,7 @@ lemma scanKey_preserves_prefix (s s' : ScannerState)
   split at h
   · -- !inFlow → item 31's preceding-whitespace tab check, then pushMappingIndent
     split at h <;> try contradiction
+    split at h <;> try contradiction  -- item 48 same-line check
     split at h
     · split at h
       · contradiction
@@ -3095,7 +3299,7 @@ lemma processEscape_preserves_simpleKey (s : ScannerState) (ch : Char) (s' : Sca
   simp only [] at h
   split at h <;> try contradiction
   -- Split on each character case
-  repeat (split at h)
+  repeat' (split at h)
   -- Handle all goals
   all_goals (
     first
@@ -3766,7 +3970,7 @@ lemma processEscape_preserves_simpleKeyStack (s : ScannerState) (ch : Char) (s' 
   simp only [] at h
   split at h <;> try contradiction
   -- Split on each character case
-  repeat (split at h)
+  repeat' (split at h)
   -- Handle all goals
   all_goals (
     first
@@ -5226,7 +5430,7 @@ lemma processEscape_preserves_flowLevel (s : ScannerState) (ch : Char) (s' : Sca
   unfold processEscape at h
   simp only [] at h
   split at h <;> try contradiction
-  repeat (split at h)
+  repeat' (split at h)
   all_goals (
     first
     | (injection h with h_eq; cases h_eq; exact advance_preserves_flowLevel s)
@@ -8093,7 +8297,9 @@ lemma scanBlockEntry_preserves_ScanInv (s s' : ScannerState)
     rename_i h_fl
     split at h_ok
     · contradiction
-    · simp only [Except.ok.injEq] at h_ok; subst h_ok
+    · split at h_ok  -- item 48 same-line check
+      · contradiction
+      simp only [Except.ok.injEq] at h_ok; subst h_ok
       -- h_fl resolves if → pushSequenceIndent s s.col
       have h1 := pushSequenceIndent_preserves_ScanInv s s.col h
       have h2 := emit_preserves_ScanInv _ .blockEntry h1
@@ -8117,6 +8323,7 @@ lemma scanKey_preserves_ScanInv (s s' : ScannerState)
   · rename_i h_cond1
     -- item 31's preceding-whitespace tab check, then the pushMappingIndent `if`
     split at h_ok <;> try contradiction
+    split at h_ok <;> try contradiction  -- item 48 same-line check
     split at h_ok
     · rename_i h_cond2
       split at h_ok <;> (first | contradiction | skip)

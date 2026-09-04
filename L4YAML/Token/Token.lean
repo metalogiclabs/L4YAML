@@ -433,6 +433,19 @@ inductive ScanError where
       requires `s-separate` — so `"a" :b`, `[1]:b`, `*x :b` start a second
       node in a slot that admits exactly one, and no derivation exists. -/
   | unseparatedValue (line col : Nat)
+  /-- A block-collection indicator (`-`/`?`) on the line of an implicit `:`,
+      a node-property run, or a `---` marker — §8.2.2/§6.9/§9.1.1 violation.
+      `[194] c-l-block-map-implicit-value`'s slot is `s-l+block-node` (no
+      compact alternative), `[200]` separates properties from their collection
+      with `s-l-comments`, and no block collection opens on the `---` line —
+      so `k: - a`, `&a - b` and `--- - a` have no derivation. -/
+  | sameLineBlockCollection (line col : Nat)
+  /-- A second block-context value indicator on the line of an implicit `:` —
+      §8.2.2 [194] violation: the implicit value is `s-l+block-node`, which
+      has no same-line mapping, so `k: v : w` and `k: v: w` have no
+      derivation.  (`? a⏎: b: c` stays legal: the EXPLICIT value's slot is
+      `s-l+block-indented`, whose compact mapping this is.) -/
+  | nestedMappingOnLine (line col : Nat)
 
   /- Grammar-level errors (TokenParser.lean) -/
 
@@ -523,6 +536,8 @@ def ScanError.toString : ScanError → String
   | .invalidControlChar c .singleQuoted l col => s!"invalid control character U+{String.ofList (Nat.toDigits 16 c.val.toNat |>.map Char.toUpper)} in single-quoted scalar at line {l}, column {col}"
   | .invalidControlChar c style l col => s!"invalid control character U+{String.ofList (Nat.toDigits 16 c.val.toNat |>.map Char.toUpper)} in {repr style} scalar at line {l}, column {col}"
   | .unseparatedValue l c => s!"':' glued to its follower after a completed node at line {l}, column {c} — a value requires separation (§8.2.2)"
+  | .sameLineBlockCollection l c => s!"block collection indicator at line {l}, column {c} — no block collection may share a line with an implicit ':', node properties, or '---' (§8.2.2)"
+  | .nestedMappingOnLine l c => s!"second value indicator at line {l}, column {c} — an implicit value admits no same-line mapping (§8.2.2)"
   | .expectedToken desc l (some got) => s!"expected {desc} at line {l}, got {got}"
   | .expectedToken desc _ none => s!"expected {desc} but reached end of tokens"
   | .nestingDepthExceeded l    => s!"maximum nesting depth exceeded at line {l}"

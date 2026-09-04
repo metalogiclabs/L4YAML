@@ -111,8 +111,10 @@ lemma scanBlockEntryIx_tokens_eq {s s' : ScannerStateIx input}
     by_cases ht : s.hasTabInPrecedingWhitespace = true
     · rw [if_pos ht] at h; simp [Bind.bind, Except.bind] at h
     · rw [if_neg ht] at h
-      simp only [] at h
-      rw [if_pos hi] at h
+      -- Item 48 same-line check: the throw branch contradicts `.ok s'`;
+      -- `split` resolves the `!s.inFlow` let-if by assumption `hi`.
+      split at h
+      · simp [Bind.bind, Except.bind] at h
       simp only [Except.ok.injEq] at h
       subst h
       simp only [if_pos hi, advance_tokens]
@@ -142,6 +144,9 @@ lemma scanKeyIx_tokens_eq {s s' : ScannerStateIx input}
     rw [if_neg ht] at h
     simp only [] at h
     simp only [if_pos hi, advance_inFlow, emit_inFlow, pushMappingIndentIx_inFlow] at h
+    -- Item 48 same-line check first, then the post-`?` tab peek.
+    split at h
+    · simp [Bind.bind, Except.bind] at h
     split at h
     · simp [Bind.bind, Except.bind] at h
     · simp only [Except.ok.injEq] at h

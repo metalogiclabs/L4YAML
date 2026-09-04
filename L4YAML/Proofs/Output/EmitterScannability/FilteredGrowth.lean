@@ -1171,7 +1171,7 @@ lemma scanBlockEntry_filtered_grows (s s' : ScannerState)
   -- h_new: the last token is .blockEntry (non-placeholder)
   unfold scanBlockEntry at h; dsimp only [] at h
   simp only [bind, Except.bind] at h
-  repeat (split at h)
+  repeat' (split at h)
   all_goals (first | contradiction | skip)
   all_goals (injection h with h_eq; subst h_eq; dsimp only [])
   all_goals simp only [ScannerCorrectness.advance_preserves_tokens, emit_tokens_push,
@@ -1194,6 +1194,8 @@ lemma scanKey_filtered_grows (s s' : ScannerState)
   simp only [] at h
   split at h
   · -- !inFlow: item 31's preceding-whitespace tab check, then pushMappingIndent
+    split at h <;> try contradiction
+    -- item 48 same-line check
     split at h <;> try contradiction
     split at h
     · split at h

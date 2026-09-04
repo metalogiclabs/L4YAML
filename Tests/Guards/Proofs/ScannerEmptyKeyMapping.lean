@@ -100,10 +100,6 @@ the position the close reached. -/
 #guard emits ": v\n:\n"
   ["+STR", "+DOC", "+MAP", "=VAL :", "=VAL :v", "=VAL :", "=VAL :", "-MAP", "-DOC", "-STR"]
 
--- Nested empty keys on one line stay escaped (col ≠ 0) but must stay green.
-#guard emits ": : v\n"
-  ["+STR", "+DOC", "+MAP", "=VAL :", "+MAP", "=VAL :", "=VAL :v", "-MAP", "-MAP", "-DOC", "-STR"]
-
 -- The map closed by a document suffix.
 #guard emits ": v\n...\n"
   ["+STR", "+DOC", "+MAP", "=VAL :", "=VAL :v", "-MAP", "-DOC ...", "-STR"]
@@ -125,5 +121,9 @@ private def verdicts (input : String) : Option ScanError × Option ScanError :=
 -- `:x` is not a value indicator at all — `isValueCandidate` wants a blank
 -- after — it is a plain scalar.
 #guard emits ":x\n" ["+STR", "+DOC", "=VAL ::x", "-DOC", "-STR"]
+
+-- Nested empty keys on one line: `[194]`'s value slot has no same-line
+-- mapping, so the second `:` is refused (item 48's `nestedMappingOnLine`).
+#guard verdicts ": : v\n" == (some (.nestedMappingOnLine 0 2), some (.nestedMappingOnLine 0 2))
 
 end Tests.Guards.ScannerEmptyKeyMapping

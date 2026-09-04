@@ -102,7 +102,12 @@ disjunct is `False` at a compact pending rather than "`c = ':'`". -/
 #guard refusesTab "? \t- a\n" 0 3
 #guard refusesTab "? \t: a\n" 0 3
 #guard refusesTab ": \t- a\n" 0 3
-#guard refusesTab ": \t: a\n" 0 3
+-- The same-line check ([194] has no same-line mapping, item 48) sits in
+-- `scanValueValidate`, ahead of the value's own tab check — so the nested
+-- `:` outranks the tab here.
+#guard (match Events.streamToEvents ": \t: a\n", Events.streamToEventsIx ": \t: a\n" with
+        | .error e, .error e' => e == .nestedMappingOnLine 0 3 && e' == e
+        | _, _ => false)
 
 /-! ## §3  The boundary: `[66] s-separate-in-line` is still a tab, and still legal
 

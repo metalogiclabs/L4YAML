@@ -1104,14 +1104,17 @@ lemma saveSimpleKey_id_of_flow_ska_false_ek_none (s : ScannerState)
   simp only [h_flow, h_ek, show (none == some s.line) = false from by rfl,
              Bool.true_and, Bool.false_eq_true, ite_false, h_ska]
 
--- scanValueValidate always succeeds when simpleKey.possible is false
--- and explicitKeyLine is none: all 5 checks short-circuit.
+-- scanValueValidate always succeeds in flow when simpleKey.possible is false
+-- and explicitKeyLine is none: the key checks short-circuit on those two
+-- fields, and item 48's same-line checks (B3/B4) are `!inFlow`-gated.
 lemma scanValueValidate_ok_of_not_possible_ek_none (s : ScannerState)
+    (h_flow : s.inFlow = true)
     (h_ek : s.explicitKeyLine = none)
     (h_sk : s.simpleKey.possible = false) :
     scanValueValidate s = .ok () := by
   unfold scanValueValidate
-  simp only [h_sk, Bool.false_and, ite_false, h_ek, reduceCtorEq]
+  simp only [h_sk, h_flow, Bool.not_true, Bool.false_and, Bool.and_false,
+             ite_false, h_ek, reduceCtorEq]
   rfl
 
 -- All tokens in the array have pos.line equal to a given line number.

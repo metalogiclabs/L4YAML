@@ -333,7 +333,9 @@ lemma scanBlockEntry_indents {s s' : ScannerState}
   simp only [bind, Except.bind, h_noflow, Bool.not_false, if_true] at hok
   split at hok
   · simp at hok
-  · simp only [Except.ok.injEq] at hok
+  · split at hok
+    · simp at hok  -- item 48 same-line check
+    simp only [Except.ok.injEq] at hok
     subst hok
     show (ScannerState.advance (ScannerState.emit _ _)).indents = _
     rw [advance_indents]; rfl
@@ -355,7 +357,9 @@ lemma scanBlockEntry_needIndentCheck {s s' : ScannerState}
   simp only [bind, Except.bind, h_noflow, Bool.not_false, if_true] at hok
   split at hok
   · simp at hok
-  · simp only [Except.ok.injEq] at hok
+  · split at hok
+    · simp at hok  -- item 48 same-line check
+    simp only [Except.ok.injEq] at hok
     subst hok
     show (ScannerState.advance (ScannerState.emit _ _)).needIndentCheck = _
     rw [advance_preserves_needIndentCheck]
@@ -650,13 +654,13 @@ lemma scanValue_col_le_currentIndent {s s' : ScannerState}
   have h_prep := scanValuePrepare_col_le
     (s := scanValueClearKey s) (by rw [hfl]; exact h_noflow) h_kc_fresh h_valid
   rw [hcol] at h_prep
-  show (s.col : Int) ≤ ScannerState.currentIndent _
+  -- Item 48: the epilogue's record widened; step to the advance-chain state
+  -- (field-wise definitional) and rewrite its indents as before.
+  show (s.col : Int) ≤
+    (((scanValuePrepare (scanValueClearKey s)).emit YamlToken.value).advance).currentIndent
   rw [currentIndent_of_indents_eq
-    (show ({ (ScannerState.advance
-              (ScannerState.emit (scanValuePrepare (scanValueClearKey s)) .value)) with
-            simpleKeyAllowed := true, explicitKeyLine := none } : ScannerState).indents
+    (show (((scanValuePrepare (scanValueClearKey s)).emit YamlToken.value).advance).indents
         = (scanValuePrepare (scanValueClearKey s)).indents from by
-      show (ScannerState.advance _).indents = _
       rw [advance_indents]; rfl)]
   exact h_prep
 
@@ -728,13 +732,12 @@ lemma scanValue_key_col_le_or {s s' : ScannerState} {k : Nat}
     refine Or.inl ?_
     have h_prep := scanValuePrepare_key_col_le (s := scanValueClearKey s) (k := k)
       (by rw [hfl]; exact h_noflow) (by rw [heq]; exact h_poss) (by rw [heq]; exact h_key)
-    show (k : Int) ≤ ScannerState.currentIndent _
+    -- Item 48: same advance-chain step as the fresh-save producer above.
+    show (k : Int) ≤
+      (((scanValuePrepare (scanValueClearKey s)).emit YamlToken.value).advance).currentIndent
     rw [currentIndent_of_indents_eq
-      (show ({ (ScannerState.advance
-                (ScannerState.emit (scanValuePrepare (scanValueClearKey s)) .value)) with
-              simpleKeyAllowed := true, explicitKeyLine := none } : ScannerState).indents
+      (show (((scanValuePrepare (scanValueClearKey s)).emit YamlToken.value).advance).indents
           = (scanValuePrepare (scanValueClearKey s)).indents from by
-        show (ScannerState.advance _).indents = _
         rw [advance_indents]; rfl)]
     exact h_prep
   · exact Or.inr trivial
@@ -1007,7 +1010,9 @@ lemma scanBlockEntry_simpleKeyAllowed {s s' : ScannerState}
   split at hok
   · split at hok
     · simp at hok
-    · simp only [Except.ok.injEq] at hok; rw [← hok]
+    · split at hok
+      · simp at hok  -- item 48 same-line check
+      · simp only [Except.ok.injEq] at hok; rw [← hok]
   · simp only [Except.ok.injEq] at hok; rw [← hok]
 
 /-- The dispatcher's `-` arm, in the form the accumulator's producers hold. -/

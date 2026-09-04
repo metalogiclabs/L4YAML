@@ -1868,8 +1868,10 @@ lemma scanBlockEntryIx_preserves_PlainScalarsValidIx {input : String}
     by_cases ht : s.hasTabInPrecedingWhitespace = true
     · rw [if_pos ht] at h_ok; simp [Bind.bind, Except.bind] at h_ok
     · rw [if_neg ht] at h_ok
-      simp only [] at h_ok
-      rw [if_pos hi] at h_ok
+      -- Item 48 same-line check: the throw branch contradicts `.ok s'`;
+      -- `split` resolves the `!s.inFlow` let-if by assumption `hi`.
+      split at h_ok
+      · simp [Bind.bind, Except.bind] at h_ok
       simp only [Except.ok.injEq] at h_ok
       subst h_ok
       show PlainScalarsValidIx
@@ -1899,8 +1901,10 @@ lemma scanBlockEntryIx_preserves_FlowContextPSVIx {input : String}
     by_cases ht : s.hasTabInPrecedingWhitespace = true
     · rw [if_pos ht] at h_ok; simp [Bind.bind, Except.bind] at h_ok
     · rw [if_neg ht] at h_ok
-      simp only [] at h_ok
-      rw [if_pos hi] at h_ok
+      -- Item 48 same-line check: the throw branch contradicts `.ok s'`;
+      -- `split` resolves the `!s.inFlow` let-if by assumption `hi`.
+      split at h_ok
+      · simp [Bind.bind, Except.bind] at h_ok
       simp only [Except.ok.injEq] at h_ok
       subst h_ok
       show FlowContextPSVIx
@@ -1932,8 +1936,10 @@ lemma scanBlockEntryIx_preserves_FlowNestingInvIx {input : String}
     by_cases ht : s.hasTabInPrecedingWhitespace = true
     · rw [if_pos ht] at h_ok; simp [Bind.bind, Except.bind] at h_ok
     · rw [if_neg ht] at h_ok
-      simp only [] at h_ok
-      rw [if_pos hi] at h_ok
+      -- Item 48 same-line check: the throw branch contradicts `.ok s'`;
+      -- `split` resolves the `!s.inFlow` let-if by assumption `hi`.
+      split at h_ok
+      · simp [Bind.bind, Except.bind] at h_ok
       simp only [Except.ok.injEq] at h_ok
       subst h_ok
       have h_step1 := pushSequenceIndentIx_preserves_FlowNestingInvIx
@@ -1977,6 +1983,9 @@ lemma scanKeyIx_preserves_PlainScalarsValidIx {input : String}
     simp only [] at h_ok
     simp only [if_pos hi, advance_inFlow, emit_inFlow,
       pushMappingIndentIx_inFlow] at h_ok
+    -- Item 48 same-line check first, then the post-`?` tab peek.
+    split at h_ok
+    · simp [Bind.bind, Except.bind] at h_ok
     split at h_ok
     · simp [Bind.bind, Except.bind] at h_ok
     · simp only [Except.ok.injEq] at h_ok
@@ -2010,6 +2019,9 @@ lemma scanKeyIx_preserves_FlowContextPSVIx {input : String}
     simp only [] at h_ok
     simp only [if_pos hi, advance_inFlow, emit_inFlow,
       pushMappingIndentIx_inFlow] at h_ok
+    -- Item 48 same-line check first, then the post-`?` tab peek.
+    split at h_ok
+    · simp [Bind.bind, Except.bind] at h_ok
     split at h_ok
     · simp [Bind.bind, Except.bind] at h_ok
     · simp only [Except.ok.injEq] at h_ok
@@ -2045,6 +2057,9 @@ lemma scanKeyIx_preserves_FlowNestingInvIx {input : String}
     simp only [] at h_ok
     simp only [if_pos hi, advance_inFlow, emit_inFlow,
       pushMappingIndentIx_inFlow] at h_ok
+    -- Item 48 same-line check first, then the post-`?` tab peek.
+    split at h_ok
+    · simp [Bind.bind, Except.bind] at h_ok
     split at h_ok
     · simp [Bind.bind, Except.bind] at h_ok
     · simp only [Except.ok.injEq] at h_ok
@@ -5042,8 +5057,10 @@ lemma scanBlockEntryIx_preserves_prefix {input : String}
     · rw [if_pos ht] at h_ok
       simp [Bind.bind, Except.bind] at h_ok
     · rw [if_neg ht] at h_ok
-      simp only [] at h_ok
-      rw [if_pos hi] at h_ok
+      -- Item 48 same-line check: the throw branch contradicts `.ok s'`;
+      -- `split` resolves the `!s.inFlow` let-if by assumption `hi`.
+      split at h_ok
+      · simp [Bind.bind, Except.bind] at h_ok
       simp only [Except.ok.injEq] at h_ok
       subst h_ok
       show ((pushSequenceIndentIx s s.cursor.pos.col).emit YamlToken.blockEntry).tokens[i]'_ =
@@ -5079,6 +5096,9 @@ lemma scanKeyIx_preserves_prefix {input : String}
     simp only [] at h_ok
     simp only [if_pos hi, advance_inFlow, emit_inFlow,
       pushMappingIndentIx_inFlow] at h_ok
+    -- Item 48 same-line check first, then the post-`?` tab peek.
+    split at h_ok
+    · simp [Bind.bind, Except.bind] at h_ok
     split at h_ok
     · simp [Bind.bind, Except.bind] at h_ok
     · simp only [Except.ok.injEq] at h_ok

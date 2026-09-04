@@ -222,6 +222,7 @@ lemma scanBlockEntry_BoundInv (s s' : ScannerState)
   split at hok  -- !s.inFlow
   · -- block: tab check + pushSequenceIndent
     split at hok <;> try contradiction
+    split at hok <;> try contradiction  -- item 48 same-line check
     injection hok with hok; subst hok
     let s_pi := pushSequenceIndent s s.col
     let s_em := s_pi.emit .blockEntry
@@ -248,6 +249,7 @@ lemma scanKey_BoundInv (s s' : ScannerState)
   -- After simp, splits on the conditions
   split at hok  -- !s.inFlow (item 31's preceding-whitespace tab check)
   · split at hok <;> try contradiction
+    split at hok <;> try contradiction  -- item 48 same-line check
     -- block: pushMappingIndent
     let s_pi := pushMappingIndent s s.col
     let s_em := s_pi.emit .key
