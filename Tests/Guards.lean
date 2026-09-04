@@ -54,6 +54,7 @@ import Tests.Guards.Proofs.ScannerCompactFillTabRefused
 import Tests.Guards.Proofs.ScannerCompactKeyFloorCompose
 import Tests.Guards.Proofs.ScannerLandedValueClasses
 import Tests.Guards.Proofs.ScannerBlankFoldTabRefused
+import Tests.Guards.Proofs.ScannerCompactKeylessFloor
 import Tests.Guards.Proofs.ScannerNodePropertyDelimiter
 import Tests.Guards.Proofs.ScannerContracts
 import Tests.Guards.Proofs.ScannerCorrectness

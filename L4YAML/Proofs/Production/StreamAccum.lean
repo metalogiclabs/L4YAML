@@ -400,7 +400,11 @@ def PropsKeyPack (sc : ScannerState) (sp_start sp_p sp_scan : SurfPos) : Prop :=
     (∀ sp_v, SBlockMapEntry k sp_p sp_v → SLYamlStream sp_start sp_v) ∧
     (sc.simpleKey.pos.col = k ∨ True)) ∧
   SCNsProperties 0 .blockKey sp_p sp_scan ∧
-  sc.simpleKey.pos.line = sc.line
+  sc.simpleKey.pos.line = sc.line ∧
+  -- Item 63: the key is actually SAVED.  Both producers read it off
+  -- preprocessing's own save, and `implicit_key_floor` needs it to spend the
+  -- column conjunct above — a column is a coordinate of a key that exists.
+  sc.simpleKey.possible = true
 
 /-- `inFlow` is `0 < flowLevel` read as a `Bool` (item 35): the flow producers
     of `PendingNode.noPending` all know their depth, and this is the one step
@@ -3256,6 +3260,17 @@ lemma savedKey_line_of_preprocess {sc s_prep : ScannerState} {c : Char}
   cases preprocess_some_savedKey_shape hok with
   | inl h => rw [h.2]; rfl
   | inr h => rw [h, h_sk_line, h_line_pp]
+
+/-- Item 63's twin of the line transport: a saved key SURVIVES preprocessing.
+    Either the walk re-saved (and the new key exists by construction) or it
+    inherited the old one, which existed by hypothesis. -/
+lemma savedKey_poss_of_preprocess {sc s_prep : ScannerState} {c : Char}
+    (hok : scanNextToken_preprocess sc = .ok (some (s_prep, c)))
+    (h_poss : sc.simpleKey.possible = true) :
+    s_prep.simpleKey.possible = true := by
+  cases preprocess_some_savedKey_shape hok with
+  | inl h => exact h.1
+  | inr h => rw [h]; exact h_poss
 
 /-- Flow-open threading: when preprocessing returns `some`, either a CLOSE POINT
     exists — `SSLComments sp_scan sp_mid` (a line break was crossed, or col-0
@@ -8678,10 +8693,9 @@ lemma nic_false_of_indicator_noflow {sc s_prep : ScannerState} {c : Char}
     `True` back.  That is a smaller domain, not an extra escape: the field is
     `IndentFloor sc n ∨ True` precisely so a producer that cannot measure costs
     nothing (R645/R646). -/
-lemma indicator_floor {sc s_prep s' : ScannerState} {sp_land sp_prep : SurfPos}
+lemma indicator_floor_at_col {sc s_prep s' : ScannerState} {sp_prep : SurfPos}
     {k : Nat} {c : Char}
-    (hcol_land : sp_land.col = 0)
-    (h_ind : SIndent k sp_land sp_prep)
+    (hcol_prep : sp_prep.col = k)
     (hcorr_prep : ScannerSurfCorr s_prep sp_prep)
     (h_preprocess : scanNextToken_preprocess sc = .ok (some (s_prep, c)))
     (h_dispatch : scanNextToken_dispatchBlockIndicators
@@ -8692,12 +8706,10 @@ lemma indicator_floor {sc s_prep s' : ScannerState} {sp_land sp_prep : SurfPos}
   have h_col : (((if s_prep.allowDirectives then
         { s_prep with allowDirectives := false, documentEverStarted := true }
       else s_prep).col : Int)) = (k : Int) := by
-    have h1 : sp_prep.col = k := by
-      have := SIndent_col h_ind; rw [hcol_land] at this; omega
     have h2 : (if s_prep.allowDirectives then
         { s_prep with allowDirectives := false, documentEverStarted := true }
       else s_prep).col = s_prep.col := by split <;> rfl
-    rw [h2, ← hcorr_prep.col_eq, h1]
+    rw [h2, ← hcorr_prep.col_eq, hcol_prep]
   have h_nic_of_noflow := nic_false_of_indicator_noflow (c := c) h_preprocess
   rcases dispatchBlockIndicators_indicator_of_some h_dispatch with rfl | rfl | rfl
   · obtain ⟨h_noflow, _⟩ := dispatchBlockIndicators_dash_scan h_dispatch
@@ -8731,6 +8743,23 @@ lemma indicator_floor {sc s_prep s' : ScannerState} {sp_land sp_prep : SurfPos}
                       le_minContentIndentOf_of_int_le (by omega)⟩
       · exact Or.inr trivial
     · exact Or.inr trivial
+
+/-- The landing form, which is what every non-compact indicator producer holds:
+    a zero landing plus `[63]`'s width IS the dispatch's column. -/
+lemma indicator_floor {sc s_prep s' : ScannerState} {sp_land sp_prep : SurfPos}
+    {k : Nat} {c : Char}
+    (hcol_land : sp_land.col = 0)
+    (h_ind : SIndent k sp_land sp_prep)
+    (hcorr_prep : ScannerSurfCorr s_prep sp_prep)
+    (h_preprocess : scanNextToken_preprocess sc = .ok (some (s_prep, c)))
+    (h_dispatch : scanNextToken_dispatchBlockIndicators
+        (if s_prep.allowDirectives then
+          { s_prep with allowDirectives := false, documentEverStarted := true }
+        else s_prep) c = .ok (some s')) :
+    IndentFloor s' k ∨ True :=
+  indicator_floor_at_col
+    (by have := SIndent_col h_ind; rw [hcol_land] at this; omega)
+    hcorr_prep h_preprocess h_dispatch
 
 /-- **The implicit key's floor** (item 28).
 
@@ -9475,10 +9504,16 @@ lemma colon_open_map_explicit (sp_start sp_scan sp_mid sp_ind : SurfPos) (nv : N
 lemma compact_open_map (sp_start sp_entry sp_ind : SurfPos) (n m : Nat)
     (ctx : YamlContext) (c : Char)
     (hc : c = ':' ∨ c = '?')
+    (sc : ScannerState)
     (s_prep s' : ScannerState) (sp_block sp_scan' : SurfPos)
     (h_stream_block : SLYamlStream sp_start sp_block)
     (h_close_old : ∀ sp, SBlockIndented n ctx sp_entry sp → SLYamlStream sp_start sp)
     (h_ind : SIndent m sp_entry sp_ind)
+    -- Item 63: the entry's own column, one past the `-` at `s-indent(n)`.
+    -- With it the compact indicator's column IS the pending's index, which is
+    -- what `indicator_floor_at_col` measures the scanner's push against.
+    (hcol_entry : sp_entry.col = n + 1)
+    (h_preprocess : scanNextToken_preprocess sc = .ok (some (s_prep, c)))
     (hcorr_prep : ScannerSurfCorr s_prep sp_ind)
     (hcorr_result : ScannerSurfCorr s' sp_scan')
     (hpeek : s_prep.peek? = some c)
@@ -9544,6 +9579,36 @@ lemma compact_open_map (sp_start sp_entry sp_ind : SurfPos) (n m : Nat)
         h_nic_disp
       exact ⟨hpf.1, hpf.2, Or.inr trivial,
         scanKey_simpleKeyAllowed (dispatchBlock_question_scanKey h_dispatch)⟩
+  -- Item 63: the pending's floor, from the push the dispatch just made.  The
+  -- `?` half is UNCONDITIONAL in block context — `[187]`'s push is not gated
+  -- on a saved key — so it is stated as the left disjunct rather than routed
+  -- through `indicator_floor_at_col`'s flow punt, which the block guard
+  -- refutes; that is what makes the strengthening machine-checked rather than
+  -- a disjunction nobody can interrogate.  The `:` half goes through the
+  -- shared route, whose remaining punt is an INHERITED save — `[189]`'s
+  -- empty-key entry is exactly the fresh one.
+  have h_col_k : (((if s_prep.allowDirectives then
+        { s_prep with allowDirectives := false, documentEverStarted := true }
+      else s_prep).col : Int)) = ((n + 1 + m : Nat) : Int) := by
+    have h1 : sp_ind.col = n + 1 + m := by
+      have := SIndent_col h_ind; rw [hcol_entry] at this; omega
+    have h2 : (if s_prep.allowDirectives then
+        { s_prep with allowDirectives := false, documentEverStarted := true }
+      else s_prep).col = s_prep.col := by split <;> rfl
+    rw [h2, ← hcorr_prep.col_eq, h1]
+  have h_floor : IndentFloor s' (n + 1 + m) ∨ True := by
+    cases hc with
+    | inr h =>
+      subst h
+      rcases key_floor_or h_dispatch with ⟨_, h_le, h_nic⟩ | h_flow
+      · exact Or.inl ⟨by rw [h_nic]; exact h_nic_disp,
+                      le_minContentIndentOf_of_int_le (by omega)⟩
+      · rw [h_flow] at h_noflow_disp; exact absurd h_noflow_disp (by simp)
+    | inl h =>
+      subst h
+      exact indicator_floor_at_col
+        (by have := SIndent_col h_ind; rw [hcol_entry] at this; omega)
+        hcorr_prep h_preprocess h_dispatch
   exact ⟨sp_block, sp_block, sp_block, sp_scan', h_stream_block,
          BlockStack.nil sp_block, FlowStackB.nil sp_block .sep,
          PendingNode.pendingMapValue sp_start sp_block sp_scan' (n + 1 + m)
@@ -9552,7 +9617,8 @@ lemma compact_open_map (sp_start sp_entry sp_ind : SurfPos) (n m : Nat)
                (SBlockIndented.compactMap n ctx m sp_entry sp_ind sp_v h_ind
                  (SCompactMap.mk (n + 1 + m) sp_ind sp_v sp_v (h_entry_of sp_v h_node)
                    (SCompactMapTail.nil (n + 1 + m) sp_v))))
-           (Or.inr trivial) hpk.1 hpk.2.1 hpk.2.2.1 (Or.inr trivial) (Or.inr trivial)
+           h_floor
+           hpk.1 hpk.2.1 hpk.2.2.1 (Or.inr trivial) (Or.inr trivial)
            hpk.2.2.2,
          hcorr_result⟩
 
@@ -9688,10 +9754,16 @@ lemma colon_open_map_implicit (sp_start sp_block sp_key sp_gram sp_ws : SurfPos)
     The pack's entry route closes it; the floor punts (Reflection 653 — the
     run's own column is the pack's optional datum, not this producer's). -/
 lemma colon_open_map_props (sp_start sp_block sp_p sp_scan : SurfPos) (k : Nat)
+    (sc : ScannerState)
     (s_prep s' : ScannerState) (sp_prep sp_scan' : SurfPos)
     (h_route : ∀ sp_v, SBlockMapEntry k sp_p sp_v → SLYamlStream sp_start sp_v)
     (h_props : SCNsProperties 0 .blockKey sp_p sp_scan)
     (h_ws : GStar SSWhite sp_scan sp_prep)
+    -- Item 63: the pack's own coordinates — the key exists and sits at the
+    -- entry's column — spent into `[187]`'s push through `implicit_key_floor`.
+    (h_poss : sc.simpleKey.possible = true)
+    (h_kcol : sc.simpleKey.pos.col = k ∨ True)
+    (h_preprocess : scanNextToken_preprocess sc = .ok (some (s_prep, ':')))
     (h_stream_block : SLYamlStream sp_start sp_block)
     (hcorr_prep : ScannerSurfCorr s_prep sp_prep)
     (hcorr_result : ScannerSurfCorr s' sp_scan')
@@ -9736,7 +9808,8 @@ lemma colon_open_map_props (sp_start sp_block sp_p sp_scan : SurfPos) (k : Nat)
              h_route sp_v
                (SBlockMapEntry.implicitKeyNode k sp_p sp_prep sp_scan' sp_v h_ik h_lit
                  (SBlockNode_blockIn_to_blockOut h_node)))
-           (Or.inr trivial) hpf.1 hpf.2.1 hpf.2.2 (Or.inr trivial) (Or.inr trivial)
+           (implicit_key_floor h_poss h_kcol h_preprocess h_dispatch)
+           hpf.1 hpf.2.1 hpf.2.2 (Or.inr trivial) (Or.inr trivial)
            (scanValue_simpleKeyAllowed (dispatchBlock_colon_scanValue h_dispatch)),
          hcorr_result⟩
 
@@ -9772,7 +9845,7 @@ lemma colon_fires_props_key (sc : ScannerState)
   cases h_key with
   | inr _ => exact h_punt
   | inl pack =>
-    obtain ⟨⟨k, h_route, _h_kcol⟩, h_props, _h_skline⟩ := pack
+    obtain ⟨⟨k, h_route, h_kcol⟩, h_props, _h_skline, h_poss⟩ := pack
     obtain ⟨sp_mid, sp_ws, sp_prep2, h_disj, h_ws, _h_cmt, hcorr_prep2, h_pk⟩ :=
       preprocess_some_ssl_comments_anyCol sc sp_scan s_prep ':' h_corr h_preprocess
     have hsp_eq2 := ScannerSurfCorr_unique hcorr_prep hcorr_prep2; subst hsp_eq2
@@ -9788,8 +9861,9 @@ lemma colon_fires_props_key (sc : ScannerState)
       exact h_punt
     | inr h_mid =>
       rw [h_mid.1] at h_ws
-      exact colon_open_map_props sp_start sp_block sp_p sp_scan k s_prep s'
-        sp_prep sp_scan' h_route h_props h_ws h_stream_block hcorr_prep
+      exact colon_open_map_props sp_start sp_block sp_p sp_scan k sc s_prep s'
+        sp_prep sp_scan' h_route h_props h_ws h_poss h_kcol h_preprocess
+        h_stream_block hcorr_prep
         hcorr_result (preprocess_some_peek h_preprocess)
         (noflow_disp_of_noflow h_noflow)
         (nic_false_of_indicator_noflow h_preprocess (noflow_disp_of_noflow h_noflow))
@@ -10301,8 +10375,9 @@ lemma accum_block_on_closeThenBlock
                  (park_col_of_compact h_col_vslot h_ind h_dash2),
                hcorr_result⟩
       · by_cases hcv : c = ':' ∨ c = '?'
-        · exact compact_open_map sp_start sp_mid _ nv m .blockOut c hcv s_prep s'
-            sp_a sp_scan' h_stream_a (fun sp h_bi => hvs sp h_bi) h_ind hcorr_prep hcorr_result
+        · exact compact_open_map sp_start sp_mid _ nv m .blockOut c hcv sc s_prep s'
+            sp_a sp_scan' h_stream_a (fun sp h_bi => hvs sp h_bi) h_ind h_col_vslot
+            h_preprocess hcorr_prep hcorr_result
             (preprocess_some_peek h_preprocess) (noflow_disp_of_noflow h_noflow)
             (nic_false_of_indicator_noflow h_preprocess (noflow_disp_of_noflow h_noflow))
             h_dispatch
@@ -10871,8 +10946,9 @@ lemma accum_block_on_pendingBlock
     · by_cases hcv : c = ':' ∨ c = '?'
       · -- `- : a` and `- ? a`: `[195] ns-l-compact-mapping`, the same two
         -- `[188]` alternatives `indicator_open_map` opens at a landing.
-        exact compact_open_map sp_start sp_mid sp_sc n m .blockIn c hcv s_prep s'
-          sp_block sp_scan' h_stream_block h_close_old h_ind hcorr_prep hcorr_result
+        exact compact_open_map sp_start sp_mid sp_sc n m .blockIn c hcv sc s_prep s'
+          sp_block sp_scan' h_stream_block h_close_old h_ind h_col_old
+          h_preprocess hcorr_prep hcorr_result
           (preprocess_some_peek h_preprocess) (noflow_disp_of_noflow h_noflow)
           (nic_false_of_indicator_noflow h_preprocess (noflow_disp_of_noflow h_noflow))
           h_dispatch
@@ -13288,7 +13364,8 @@ lemma entryPropsKeyPack_of_dispatch
             rw [h_land.2] at this
             omega
           exact Or.inl ⟨⟨w, valueMapRoute hnw h_node h_land.1 h_ind', h_kcol⟩,
-                        h_props, h_sk_line⟩
+                        h_props, h_sk_line,
+                        by rw [h_sk, allowDirectives_update_simpleKey]; exact h_shape.1⟩
         · exact Or.inr trivial
       | inr h_mid =>
         cases h_compact with
@@ -13297,7 +13374,8 @@ lemma entryPropsKeyPack_of_dispatch
           have h_ind' : SIndent w sp_scan sp_prep := by
             rw [h_pe, ← h_mid.1]; exact h_ind
           exact Or.inl ⟨⟨n + 1 + w, compactMapRoute h_close h_ind', Or.inr trivial⟩,
-                        h_props, h_sk_line⟩
+                        h_props, h_sk_line,
+                        by rw [h_sk, allowDirectives_update_simpleKey]; exact h_shape.1⟩
   · exact Or.inr trivial
 
 /-- **The content dispatch, parameterized by the pending's own closer**
@@ -13394,7 +13472,8 @@ lemma content_dispatch_routed
           omega
         -- Item 41: the coordinates are spent HERE, into `[187]`'s root route,
         -- rather than carried to a consumer that could only spend them one way.
-        refine Or.inl ⟨⟨k, rootMapRoute hcol0 h_stream_land h_ind, h_kcol⟩, h_props, ?_⟩
+        refine Or.inl ⟨⟨k, rootMapRoute hcol0 h_stream_land h_ind, h_kcol⟩, h_props, ?_,
+          by rw [h_sk, allowDirectives_update_simpleKey]; exact _h_sk_poss⟩
         rw [h_sk, allowDirectives_update_simpleKey, h_sk_pos,
             h_line', allowDirectives_update_line]
         rfl
@@ -14964,11 +15043,15 @@ lemma accum_content_pending (sc : ScannerState)
                    cases h_key_p with
                    | inr _ => exact Or.inr trivial
                    | inl hpk =>
-                     obtain ⟨⟨k, h_route_k, h_kcol⟩, _h_props_old, h_sk_line⟩ := hpk
+                     obtain ⟨⟨k, h_route_k, h_kcol⟩, _h_props_old, h_sk_line, h_poss_old⟩ := hpk
                      refine Or.inl ⟨⟨k, h_route_k,
                          h_kcol_ext h_kcol (dispatchContent_anchor_simpleKey h_dispatch).1⟩,
                        h_run.blockKey_addAnchor
-                         (GStar_SSWhite_to_SSeparateInLine sp_scan sp_prep h_ws) h_prop, ?_⟩
+                         (GStar_SSWhite_to_SSeparateInLine sp_scan sp_prep h_ws) h_prop, ?_,
+                       by
+                         rw [(dispatchContent_anchor_simpleKey h_dispatch).1,
+                             allowDirectives_update_simpleKey]
+                         exact savedKey_poss_of_preprocess h_preprocess h_poss_old⟩
                      rw [(dispatchContent_anchor_simpleKey h_dispatch).1,
                          allowDirectives_update_simpleKey, h_line',
                          allowDirectives_update_line]
@@ -15034,11 +15117,15 @@ lemma accum_content_pending (sc : ScannerState)
                      cases h_key_p with
                      | inr _ => exact Or.inr trivial
                      | inl hpk =>
-                       obtain ⟨⟨k, h_route_k, h_kcol⟩, _h_props_old, h_sk_line⟩ := hpk
+                       obtain ⟨⟨k, h_route_k, h_kcol⟩, _h_props_old, h_sk_line, h_poss_old⟩ := hpk
                        refine Or.inl ⟨⟨k, h_route_k,
                            h_kcol_ext h_kcol (dispatchContent_tag_simpleKey h_dispatch).1⟩,
                          h_run.blockKey_addTag
-                           (GStar_SSWhite_to_SSeparateInLine sp_scan sp_prep h_ws) h_prop, ?_⟩
+                           (GStar_SSWhite_to_SSeparateInLine sp_scan sp_prep h_ws) h_prop, ?_,
+                         by
+                           rw [(dispatchContent_tag_simpleKey h_dispatch).1,
+                               allowDirectives_update_simpleKey]
+                           exact savedKey_poss_of_preprocess h_preprocess h_poss_old⟩
                        rw [(dispatchContent_tag_simpleKey h_dispatch).1,
                            allowDirectives_update_simpleKey, h_line',
                            allowDirectives_update_line]
@@ -15098,7 +15185,7 @@ lemma accum_content_pending (sc : ScannerState)
               cases h_key_p with
               | inr _ => exact Or.inr trivial
               | inl hpk =>
-                obtain ⟨⟨k, h_route_k, h_kcol⟩, h_props_bk, h_sk_line⟩ := hpk
+                obtain ⟨⟨k, h_route_k, h_kcol⟩, h_props_bk, h_sk_line, h_poss_old⟩ := hpk
                 have h_kcol_of : s'.simpleKey.pos = (if s_prep.allowDirectives then
                     { s_prep with allowDirectives := false, documentEverStarted := true }
                   else s_prep).simpleKey.pos → (s'.simpleKey.pos.col = k ∨ True) := by

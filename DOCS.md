@@ -7911,8 +7911,11 @@ block scalar at the entry index (item 26/27) and the folds at `n` (items
 used to defer.  Two helper lemmas carry the arithmetic
 (`park_col_of_indicator`, `park_col_of_compact`).
 
-Floor punts that remain: `compact_open_map`'s KEYLESS route (`- : v` pushes no
-key, so there is no column to read) and `colon_open_map_props`.
+Floor punts that remain: ~~`compact_open_map`'s KEYLESS route (`- : v` pushes no
+key, so there is no column to read) and `colon_open_map_props`~~ — CLOSED by
+item 63: the keyless route's index IS the indicator's column (the entry column
+this item threads, plus `[185]`'s `s-indent(m)`), and the props route's is the
+property's, which `PropsKeyPack` already carried.
 
 ZERO runtime edits; no new reflection (Reflection 654's coordinate reading,
 third application).
@@ -8044,6 +8047,56 @@ accepts that must not move — exactly `n` spaces then a tab
 root's `n = 0` where a tab-only blank line IS `l-empty(0)`, and the
 block-context skipper, which is a different production.
 
+### Item 63 (2026-09-04)
+
+**the two floorless producers measure their own push.**  `[183]
+l+block-sequence(n)` and `[187] l+block-mapping(n)` are opened by
+`pushSequenceIndent` / `pushMappingIndent`, both at the INDICATOR's column, so
+a pending's index is discharged by the push it was created alongside — items
+27/28 proved that and packaged it (`dash_floor`, `key_floor_or`,
+`value_floor_or`, `value_key_floor_or`, `indicator_floor`,
+`implicit_key_floor`).  **Nothing consumed the last two.**  Two producers were
+still handing `IndentFloor … ∨ True` its right disjunct unconditionally:
+
+* `compact_open_map` — the KEYLESS compact routes `- : v` / `- ? k`
+  (`[195] ns-l-compact-mapping`).  Its index is the indicator's column, which
+  is `sp_entry.col + m`; the entry column was the datum it lacked, and it is
+  the same `sp_par.col = n + 1` item 59 already threads for
+  `park_col_of_compact`.  `indicator_floor` is generalized to
+  `indicator_floor_at_col`, which asks for the dispatch's column rather than a
+  zero landing plus `[63]`'s width — the landing form is now a two-line
+  wrapper, so its nine call sites are untouched.
+* `colon_open_map_props` — the props-decorated implicit key `&a : v`, whose
+  index is the PROPERTY's column.  `PropsKeyPack` already carried that column
+  (`sc.simpleKey.pos.col = k ∨ True`, item 29) and both of its producers read
+  it off preprocessing's own save; what the pack did not say is that the key
+  EXISTS, which `implicit_key_floor` needs to spend the column.  The pack
+  gains `sc.simpleKey.possible = true`, paid by both producers from
+  `preprocess_some_savedKey_shape`, and transported across a property scan by
+  the new `savedKey_poss_of_preprocess`.
+
+**The `?` half is stated as the LEFT disjunct, not routed through a punt.**
+`[187]`'s push is not gated on a saved key, so in block context — which both
+compact producers carry as `h_noflow_disp` — `key_floor_or`'s only escape is
+refuted and the floor is unconditional.  That matters because a `Prop`
+disjunction cannot be interrogated afterwards: routing the arm through
+`indicator_floor_at_col` would have compiled whether or not the left disjunct
+was reachable.  The `:` half keeps the shared route, whose remaining punt is
+an INHERITED save — and `[189]`'s empty-key entry, the shape this route
+parks, is exactly the fresh one.
+
+ZERO runtime edits; no new reflection.
+
+**Validation.** Full `lake build` green (ZERO warnings); `run-all-tests.sh`
+4465/4465 with every suite identical to item 62; matrix 402/402 event +
+282/282 JSON on BOTH pipelines, zero fails; `eventscore` 347/358 with the
+per-test table byte-identical across all 358 rows; 0 direct and 0 transitive
+sorries, 0 custom axioms; all three checkers OK.  New guard
+`ScannerCompactKeylessFloor` pins the ten shapes whose readings the two floors
+fund — the block scalar and the multi-line quoted value at a compact `:`, at a
+compact `?`, at a widened `[185] s-indent(m)`, and at a property key, each at
+index 0 and one level in.
+
 ### REMAINING, in order
 
 The per-item history is the closure log above; this section lists only the
@@ -8137,8 +8190,9 @@ and that deletion, by input class:
 * the **block-scalar floor** class — ~~parks whose producer handed
   `IndentFloor`'s `True`~~ — CLOSED for the COMPACT key by item 59 (the park
   carries its column, so `[195]`'s route pays the conjunct item 28 punted).
-  What survives: `compact_open_map`'s keyless route (`- : v` pushes no key)
-  and `colon_open_map_props`;
+  ~~What survives: `compact_open_map`'s keyless route (`- : v` pushes no key)
+  and `colon_open_map_props`~~ — both CLOSED by item 63, so the class is
+  empty: every block-indicator producer now pays the floor;
 * the `:`-punt residues at `pendingContent`/`pendingProps`/
   `pendingBlockContent` (stale/tab refutations via the carried `h_stale`,
   the DEDENT route, alias and props-only key heads);
