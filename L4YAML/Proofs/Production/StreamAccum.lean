@@ -9220,6 +9220,118 @@ lemma colon_open_map_implicit (sp_start sp_block sp_key sp_gram sp_ws : SurfPos)
            h_floor hpf.1 hpf.2.1 hpf.2.2,
          hcorr_result⟩
 
+/-- **The anchored null key** (item 49): the parked `[96]` run IS the implicit
+    key — `[161]`'s props-only `ns-flow-yaml-node` under `[193]`, `&a : b` —
+    and the `:` parks the SAME `pendingMapValue` every keyed opener parks.
+    The pack's entry route closes it; the floor punts (Reflection 653 — the
+    run's own column is the pack's optional datum, not this producer's). -/
+lemma colon_open_map_props (sp_start sp_block sp_p sp_scan : SurfPos) (k : Nat)
+    (s_prep s' : ScannerState) (sp_prep sp_scan' : SurfPos)
+    (h_route : ∀ sp_v, SBlockMapEntry k sp_p sp_v → SLYamlStream sp_start sp_v)
+    (h_props : SCNsProperties 0 .blockKey sp_p sp_scan)
+    (h_ws : GStar SSWhite sp_scan sp_prep)
+    (h_stream_block : SLYamlStream sp_start sp_block)
+    (hcorr_prep : ScannerSurfCorr s_prep sp_prep)
+    (hcorr_result : ScannerSurfCorr s' sp_scan')
+    (hpeek : s_prep.peek? = some ':')
+    (h_noflow_disp : (if s_prep.allowDirectives then
+        { s_prep with allowDirectives := false, documentEverStarted := true }
+      else s_prep).inFlow = false)
+    (h_nic_disp : (if s_prep.allowDirectives then
+        { s_prep with allowDirectives := false, documentEverStarted := true }
+      else s_prep).needIndentCheck = false)
+    (h_dispatch : scanNextToken_dispatchBlockIndicators
+        (if s_prep.allowDirectives then
+          { s_prep with allowDirectives := false, documentEverStarted := true }
+        else s_prep) ':' = .ok (some s')) :
+    ∃ sp_gram' sp_block' sp_flow' sp_scan',
+      SLYamlStream sp_start sp_gram' ∧
+      BlockStack sp_gram' sp_block' ∧
+      FlowStackB sp_start 0 0 #[] #[] .sep sp_block' sp_flow' ∧
+      PendingNode s' false sp_start sp_flow' sp_scan' ∧
+      ScannerSurfCorr s' sp_scan' := by
+  have hpeek_disp : (if s_prep.allowDirectives then
+      { s_prep with allowDirectives := false, documentEverStarted := true }
+    else s_prep).peek? = some ':' := by
+    split
+    · show s_prep.peek? = some ':'; exact hpeek
+    · exact hpeek
+  obtain ⟨sp_colon, h_lit, hcorr_colon⟩ :=
+    dispatchBlockValue_full_prod _ sp_prep
+      (corr_of_allowDirectives_update hcorr_prep) hpeek_disp h_dispatch
+  have hsp_eq := ScannerSurfCorr_unique hcorr_colon hcorr_result
+  rw [hsp_eq] at h_lit
+  have h_ik : SImplicitKey sp_p sp_prep :=
+    SImplicitKey.jsonKey sp_p sp_scan sp_prep
+      (SFlowNode.propsEmpty 0 .blockKey sp_p sp_scan h_props)
+      (GOpt.some sp_scan sp_prep (GStar_SSWhite_to_SSeparateInLine sp_scan sp_prep h_ws))
+  have hpf := scanValue_ok_park_facts (dispatchBlock_colon_scanValue h_dispatch)
+    h_noflow_disp h_nic_disp hpeek_disp
+  exact ⟨sp_block, sp_block, sp_block, sp_scan', h_stream_block,
+         BlockStack.nil sp_block, FlowStackB.nil sp_block .sep,
+         PendingNode.pendingMapValue sp_start sp_block sp_scan' k
+           (fun sp_v h_node =>
+             h_route sp_v
+               (SBlockMapEntry.implicitKeyNode k sp_p sp_prep sp_scan' sp_v h_ik h_lit
+                 (SBlockNode_blockIn_to_blockOut h_node)))
+           (Or.inr trivial) hpf.1 hpf.2.1 hpf.2.2,
+         hcorr_result⟩
+
+/-- …and the coupling that fires it (item 49): at a props park the same-line
+    `:` spends the pack — the landed side closes and reopens as before, the
+    pack-less side keeps the escape. -/
+lemma colon_fires_props_key (sc : ScannerState)
+    (sp_start sp_block sp_p sp_scan : SurfPos)
+    (s_prep s' : ScannerState) (sp_prep sp_scan' : SurfPos)
+    (h_stream_block : SLYamlStream sp_start sp_block)
+    (h_key : PropsKeyPack sc sp_start sp_p sp_scan ∨ True)
+    (h_punt : ∃ sp_gram' sp_block' sp_flow' sp_scan'',
+      SLYamlStream sp_start sp_gram' ∧
+      BlockStack sp_gram' sp_block' ∧
+      FlowStackB sp_start 0 0 #[] #[] .sep sp_block' sp_flow' ∧
+      PendingNode s' false sp_start sp_flow' sp_scan'' ∧
+      ScannerSurfCorr s' sp_scan'')
+    (hcorr_prep : ScannerSurfCorr s_prep sp_prep)
+    (hcorr_result : ScannerSurfCorr s' sp_scan')
+    (h_corr : ScannerSurfCorr sc sp_scan)
+    (h_noflow : s_prep.inFlow = false)
+    (h_preprocess : scanNextToken_preprocess sc = .ok (some (s_prep, ':')))
+    (h_dispatch : scanNextToken_dispatchBlockIndicators
+        (if s_prep.allowDirectives then
+          { s_prep with allowDirectives := false, documentEverStarted := true }
+        else s_prep) ':' = .ok (some s')) :
+    ∃ sp_gram' sp_block' sp_flow' sp_scan',
+      SLYamlStream sp_start sp_gram' ∧
+      BlockStack sp_gram' sp_block' ∧
+      FlowStackB sp_start 0 0 #[] #[] .sep sp_block' sp_flow' ∧
+      PendingNode s' false sp_start sp_flow' sp_scan' ∧
+      ScannerSurfCorr s' sp_scan' := by
+  cases h_key with
+  | inr _ => exact h_punt
+  | inl pack =>
+    obtain ⟨⟨k, h_route, _h_kcol⟩, h_props, _h_skline⟩ := pack
+    obtain ⟨sp_mid, sp_ws, sp_prep2, h_disj, h_ws, _h_cmt, hcorr_prep2, h_pk⟩ :=
+      preprocess_some_ssl_comments_anyCol sc sp_scan s_prep ':' h_corr h_preprocess
+    have hsp_eq2 := ScannerSurfCorr_unique hcorr_prep hcorr_prep2; subst hsp_eq2
+    have h_eq : sp_prep = sp_ws := by
+      cases h_pk with
+      | inl h => exact h
+      | inr h => rw [preprocess_some_peek h_preprocess] at h; cases h
+    subst h_eq
+    cases h_disj with
+    | inl _ =>
+      -- A break intervened: the one-line key cannot span it; the landed side
+      -- closes and reopens through the caller's own route.
+      exact h_punt
+    | inr h_mid =>
+      rw [h_mid.1] at h_ws
+      exact colon_open_map_props sp_start sp_block sp_p sp_scan k s_prep s'
+        sp_prep sp_scan' h_route h_props h_ws h_stream_block hcorr_prep
+        hcorr_result (preprocess_some_peek h_preprocess)
+        (noflow_disp_of_noflow h_noflow)
+        (nic_false_of_indicator_noflow h_preprocess (noflow_disp_of_noflow h_noflow))
+        h_dispatch
+
 /-! #### Wadler-style per-constructor theorems for block dispatch (Layer 4o/4x)
 
     Each theorem handles one substantial `PendingNode` constructor case for
@@ -10256,14 +10368,21 @@ lemma accum_block_pending (sc : ScannerState)
       sp_prep sp_scan' h_stream_block
       h_close_pending h_line h_key (fun _ _ => h_stream_block) hcorr_prep hcorr_result h_corr
       h_noflow h_preprocess h_dispatch
-  | pendingProps _ _ _ ha ht _ _ _ _ h_run h_nic48 h_real48 h_anchor48 h_tag48 _ _ _ =>
+  | pendingProps _ _ _ ha ht _ sp_p _ _ h_run h_nic48 h_real48 h_anchor48 h_tag48 _ h_key48 _ =>
     -- ═══ Item 48: a `-`/`?` behind a parked property run is refused by the
     -- scanner (`[200]` separates a node's properties from its collection),
-    -- and the run's own trailing-token fact is the check's read.  The `:`
-    -- keeps the escape: `&a : b` is `[154]`'s anchored empty key (item 49). ═══
+    -- and the run's own trailing-token fact is the check's read.  Item 49:
+    -- the `:` COMPOSES — the run is `[161]`'s props-only yaml node read as
+    -- `[193]`'s implicit key (`&a : b`), fired through the pack; only a
+    -- pack-less park still escapes. ═══
     by_cases hc48 : c = ':'
-    · exact accum_block_on_closeThenBlock sc sp_start sp_block sp_scan s_prep s' c sp_prep sp_scan'
-        h_close_pending (fun _ _ => h_stream_block) hcorr_prep hcorr_result h_corr h_noflow h_preprocess h_dispatch
+    · subst hc48
+      exact colon_fires_props_key sc sp_start sp_block sp_p sp_scan s_prep s'
+        sp_prep sp_scan' h_stream_block h_key48
+        (accum_block_on_closeThenBlock sc sp_start sp_block sp_scan s_prep s' ':'
+          sp_prep sp_scan' h_close_pending (fun _ _ => h_stream_block) hcorr_prep
+          hcorr_result h_corr h_noflow h_preprocess h_dispatch)
+        hcorr_prep hcorr_result h_corr h_noflow h_preprocess h_dispatch
     · have h_prop : lastTokenIsNodePropertyOnLine sc.tokens sc.line = true := by
         rcases PropsRun.ha_or_ht h_run with hha | hht
         · exact lastTokenIsNodePropertyOnLine_of_run_any (h_anchor48 hha)

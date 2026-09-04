@@ -7516,6 +7516,38 @@ the same-line check ahead of the tab check.  New guards:
 `ScannerSameLineCollectionRefused` (three refused families §1a–§1c, the
 preserved explicit/compact/break/flow neighbours §2).
 
+### Item 49 (2026-09-03)
+
+closed the props park's `:` arm — `&a : b`, `!t : b`, `&a !t : b`, `&a :`,
+and the entry-parked `k:⏎  &p : b`, `- &p : b` — by ONE producer composing
+constructors that all existed: the parked `[96]` run read whole as the
+implicit KEY (`[161] ns-flow-node`'s props-only alternative,
+`SFlowNode.propsEmpty`, under `[193]`, `SImplicitKey.jsonKey`), the `:`
+literal, and the parked value through `SBlockMapEntry.implicitKeyNode`,
+closed by the entry route `PropsKeyPack` has carried since item 41.  ZERO
+grammar edits, ZERO runtime edits, zero invariant fields — the arm's own
+docstring had cited `[154]`/`[161]` since item 42, and an escape that cites
+its inhabitant's rule numbers is a closure whose cost is one application
+(Reflection 675 — read the overlap off the TYPES, the way R667 reads an
+empty product; a prose-only escape names a missing constructor instead, and
+the two annotations price differently).
+
+**The wiring.**  `colon_open_map_props` (the producer: props key + `:` +
+parked `pendingMapValue`, the same park every keyed opener leaves, with the
+item-48 fields paid by `scanValue_ok_park_facts` — the `:` here is implicit,
+so the stamp rides) and `colon_fires_props_key` (the coupling: the same-line
+`:` spends the pack, the break-crossed side and the pack-less parks keep the
+caller's own route).  The floor punts (Reflection 653: the run's column is
+the pack's optional datum).  What the escape retains at this arm: parks
+whose producer paid the pack's `∨ True` (a re-saved key, a tab in the
+whites, a run against a `[189]` value on its own line — item 41's list).
+
+**Validation.** Full `lake build` green (ZERO warnings); `run-all-tests.sh`
+4461/4461; checkers OK; `collect-stats` 0 sorries / 0 custom axioms; matrix
+and `eventscore` unmoved by construction (no runtime edit — the guard file's
+seven pins are ACCEPT pins fixing the event shape: the run is ONE key node,
+`=VAL &a :`).  New guards: `ScannerPropsNullKeyCompose`.
+
 ### REMAINING, in order
 
 The per-item history is the closure log above; this section lists only the
@@ -7574,10 +7606,12 @@ needs emptied:
   (`sameLineBlockCollection`/`contentOnDocumentStartLine`;
   `pendingDocStart`'s arm and `pendingProps`' `-`/`?` shares refute).
   What survives of the family is the EXPLICIT side, which is grammatical:
-  `&a : b` needs `[154]`'s anchored-null-key production at `pendingProps`'
-  `:` arm (item 49), and the explicit `:`'s compact value (`? a⏎: - w`)
-  needs `[193]`'s `s-l+block-indented` at `pendingMapValue`'s `∨ True` side
-  — productions to BUILD, not residues to refute.
+  ~~`&a : b` at `pendingProps`' `:` arm~~ — CLOSED by item 49
+  (`colon_open_map_props` composes the existing constructors through the
+  pack; the pack-less parks keep the escape) — and the explicit `:`'s
+  compact value (`? a⏎: - w`), which needs `[193]`'s `s-l+block-indented`
+  at `pendingMapValue`'s `∨ True` side — a production to BUILD, not a
+  residue to refute.
 
 #### R3 — the deletion itself (needs R2)
 
