@@ -7861,6 +7861,35 @@ ZERO runtime edits.
 custom axioms; all three checkers OK.  New guard `ScannerLandedPropsCompose`
 (6 ACCEPT pins with event shapes on both pipelines).
 
+### Item 58 (2026-09-04)
+
+REFUTED the inline TAB at the compact fill, and with it the first of row 12's
+escape sites: `block_dispatch_deferred` stands at **6** textual call sites, down
+from 7.
+
+`? \t- a`, `? \t? a`, `? \t: a` and the explicit `:`'s twins (`? a⏎: \t- w`)
+are §6.1 refusals — `[63] s-indent(n)` is spaces — and the scanner refuses every
+one of them.  What the arm lacked was not a proof but a COORDINATE:
+`tab_refutes_dispatch_inline`'s `-` and `?` halves need nothing, and its `:`
+half needs the park's own `simpleKeyAllowed`, because the branch
+`scanValueIndentTabCheck` takes is decided by whether the key it will resolve
+sits AT the character being dispatched.  Both `scanKey` and `scanValue` end
+`simpleKeyAllowed := true`, so EVERY `pendingMapValue` producer has the fact —
+which is why it went in as a required field rather than an optional one (item
+36's rule: a fact every producer can supply belongs in the type).  Four new
+export lemmas (`scanKey_simpleKeyAllowed`, `scanValue_simpleKeyAllowed` and
+their dispatch wrappers) and the coordinate rides item 51's slot into the arm
+that spends it.
+
+ZERO runtime edits; no new reflection (Reflections 653/654's coordinate reading,
+applied to a refutation instead of a production).
+
+**Validation.** Full `lake build` green (ZERO warnings); `run-all-tests.sh`
+4461/4461; matrix 402/402 event + 282/282 JSON on BOTH pipelines; `eventscore`
+347/358 with the failure SET identical; 0 direct and 0 transitive sorries, 0
+custom axioms; all three checkers OK.  New guard
+`ScannerCompactFillTabRefused` (6 refusal pins, 4 accepted controls).
+
 ### REMAINING, in order
 
 The per-item history is the closure log above; this section lists only the

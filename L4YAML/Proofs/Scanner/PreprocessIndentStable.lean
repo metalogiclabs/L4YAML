@@ -1021,6 +1021,43 @@ lemma dispatchBlockEntry_simpleKeyAllowed {s s' : ScannerState}
     s'.simpleKeyAllowed = true :=
   scanBlockEntry_simpleKeyAllowed (dispatchBlockIndicators_dash_scan hok).2
 
+/-- The `?` scan re-arms too (item 58): the explicit key it opens is a fresh
+    context for a save, so the tab test at the NEXT indicator reads the run in
+    front of that indicator — which is what refutes the inline tab residue at a
+    `?`-park. -/
+lemma scanKey_simpleKeyAllowed {s s' : ScannerState}
+    (hok : scanKey s = .ok s') : s'.simpleKeyAllowed = true := by
+  unfold scanKey at hok
+  simp only [bind, Except.bind] at hok
+  repeat' split at hok
+  all_goals first
+    | (simp at hok; done)
+    | (simp only [Except.ok.injEq] at hok; rw [← hok]; done)
+    | (exfalso; simp_all [throw, throwThe, MonadExceptOf.throw])
+
+/-- …and so does the `:` scan. -/
+lemma scanValue_simpleKeyAllowed {s s' : ScannerState}
+    (hok : scanValue s = .ok s') : s'.simpleKeyAllowed = true := by
+  unfold scanValue at hok
+  simp only [bind, Except.bind] at hok
+  repeat' split at hok
+  all_goals first
+    | (simp at hok; done)
+    | (simp only [Except.ok.injEq] at hok; rw [← hok]; done)
+    | (exfalso; simp_all [throw, throwThe, MonadExceptOf.throw])
+
+/-- The dispatcher's `?` arm, in the producers' form. -/
+lemma dispatchBlockKey_simpleKeyAllowed {s s' : ScannerState}
+    (hok : scanNextToken_dispatchBlockIndicators s '?' = .ok (some s')) :
+    s'.simpleKeyAllowed = true :=
+  scanKey_simpleKeyAllowed (dispatchBlockIndicators_key_scan hok)
+
+/-- The dispatcher's `:` arm. -/
+lemma dispatchBlockValue_simpleKeyAllowed {s s' : ScannerState}
+    (hok : scanNextToken_dispatchBlockIndicators s ':' = .ok (some s')) :
+    s'.simpleKeyAllowed = true :=
+  scanValue_simpleKeyAllowed (dispatchBlockIndicators_value_scan hok)
+
 /-- `scanValueClearKey` writes `simpleKey` and nothing else, so both tab tests
     read the same string and the same offset on either side of it — and the key
     it leaves is either the incoming one or none at all. -/
