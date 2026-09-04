@@ -211,7 +211,9 @@ lemma foldQuotedNewlinesLoop_corr (sc : ScannerState) (sp : SurfPos)
       · rename_i hlb
         obtain ⟨sp_cn, hcorr_cn⟩ :=
           consumeNewline_corr (skipWhitespace sc) sp_sk c hcorr_sk hpeek hlb
-        exact ih (consumeNewline (skipWhitespace sc)) sp_cn (cnt + 1) hcorr_cn
+        split
+        · exact ⟨sp, hcorr⟩  -- item 62: the tab-blank line ends the run
+        · exact ih (consumeNewline (skipWhitespace sc)) sp_cn (cnt + 1) hcorr_cn
       · exact ⟨sp, hcorr⟩  -- return saved = original s
     · exact ⟨sp, hcorr⟩
 

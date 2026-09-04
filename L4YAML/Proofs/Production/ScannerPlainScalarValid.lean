@@ -2979,7 +2979,9 @@ lemma foldQuotedNewlinesLoop_preserves_flowLevel (s : ScannerState) (emptyCount 
     simp only []
     split
     · split
-      · rw [ih, consumeNewline_preserves_flowLevel, skipWhitespace_preserves_flowLevel]
+      · split
+        · rfl
+        · rw [ih, consumeNewline_preserves_flowLevel, skipWhitespace_preserves_flowLevel]
       · rfl
     · rfl
 

@@ -14,18 +14,18 @@ import L4YAML.Proofs.Output.EmitterScannability.ScanSteps
     index and return the multi-line ones as `*Crossed` witnesses.  This file
     pays the multi-line readings themselves: the scanner's fold guards — the
     §6.1 tab gate, the document-marker check and the §8.1 under-indent check,
-    which item 53's runtime edit extended to the escaped-break landing —
+    which item 53's runtime edit extended to the escaped-break landing, and
+    item 62's, which extended the §6.1 gate to the run's BLANK lines —
     guarantee every CONTENT landing clears `s-indent(n)` whenever
     `n ≤ currentIndent + 1`, so the same loop inductions that build the
     0-readings build the readings at `n`.
 
-    What stays behind (each arm returns `∨ True`, cost as domain):
-    * a blank interior line whose run has fewer than `n` spaces and then a
-      TAB — the one shape `[70] l-empty(n)` has no arm for (the scanner
-      accepts it; a future runtime check refuses it);
-    * a blank line directly after an ESCAPED break — `[112]`'s `l-empty*`
-      slot, which the loop attributes to the next fold instead;
-    * the vacuous tab-gate-true branch (no accepted input reaches it). -/
+    The blank-line loop is now total at `n` (`foldQuotedNewlinesLoop_prod_at`
+    carries no disjunction), and the fold's §6.1-gate-true branch returns the
+    landing's under-floor COLUMN, which each caller's own §8.1 check refutes.
+    What stays behind: a blank line directly after an ESCAPED break —
+    `[112]`'s `l-empty*` slot, which the loop attributes to the next fold
+    instead. -/
 
 set_option autoImplicit false
 
@@ -72,9 +72,125 @@ private lemma foldLoop_indents (s : ScannerState) (cnt fuel : Nat) :
     unfold foldQuotedNewlinesLoop; dsimp only []
     split
     · split
-      · rw [ih, consumeNewline_indents, skipWhitespace_preserves_indents]
+      · split
+        · rfl
+        · rw [ih, consumeNewline_indents, skipWhitespace_preserves_indents]
       · rfl
     · rfl
+
+/-- Two surface positions agree when their characters and columns do. -/
+private lemma surfpos_eq {a b : SurfPos} (hc : a.chars = b.chars) (hl : a.col = b.col) :
+    a = b := by
+  cases a; cases b
+  simp only [] at hc hl
+  subst hc; subst hl; rfl
+
+/-- `peek?` from correspondence and a known leading character. -/
+private lemma peek_of_head {sc : ScannerState} {sp : SurfPos} {c : Char} {rest : List Char}
+    (hcorr : ScannerSurfCorr sc sp) (h : sp.chars = c :: rest) : sc.peek? = some c := by
+  have hsp : sp = ⟨c :: rest, sp.col⟩ := surfpos_eq (by simpa using h) rfl
+  rw [hsp] at hcorr
+  exact (L4YAML.Proofs.EmitterScannability.peek_of_chars_cons _ _ _ _ hcorr).1
+
+/-- `[63]`'s characters: `s-indent(k)` consumes exactly `k` spaces. -/
+private lemma sindent_chars {k : Nat} {sp sp' : SurfPos} (h : SIndent k sp sp') :
+    sp.chars = List.replicate k ' ' ++ sp'.chars := by
+  induction h with
+  | zero => rfl
+  | succ n rest col s' _ ih => simpa [List.replicate_succ] using ih
+
+/-- Cancel a shorter space prefix against a longer one. -/
+private lemma replicate_split_cancel {k j : Nat} {A B : List Char} (hkj : k ≤ j)
+    (h : List.replicate k ' ' ++ A = List.replicate j ' ' ++ B) :
+    A = List.replicate (j - k) ' ' ++ B := by
+  have hj : List.replicate j (' ' : Char)
+      = List.replicate k ' ' ++ List.replicate (j - k) ' ' := by
+    rw [List.replicate_append_replicate, show k + (j - k) = j from by omega]
+  rw [hj, List.append_assoc] at h
+  exact List.append_cancel_left h
+
+/-- `skipSpaces` stops where `[63] s-indent` runs out: its landing is never
+    itself a space. -/
+private lemma skipSpacesLoop_peek_ne_space :
+    ∀ (fuel : Nat) (s : ScannerState), s.inputEnd - s.offset ≤ fuel →
+      (skipSpacesLoop s fuel).peek? ≠ some ' '
+  | 0, s, hf => by
+      unfold skipSpacesLoop
+      intro h
+      have := peek_some_hasMore s ' ' h
+      omega
+  | fuel + 1, s, hf => by
+      unfold skipSpacesLoop
+      split
+      · rename_i hpk
+        exact skipSpacesLoop_peek_ne_space fuel s.advance
+          (advance_fuel_budget s fuel (peek_some_hasMore s ' ' hpk) (by omega))
+      · rename_i hne
+        exact hne
+
+private lemma skipSpaces_peek_ne_space (s : ScannerState) :
+    (skipSpaces s).peek? ≠ some ' ' :=
+  skipSpacesLoop_peek_ne_space _ s (Nat.le_refl _)
+
+/-- **`skipSpaces` lands exactly on the located tab.**  The surface's split
+    says the run opens with `j` spaces and then a tab; the scanner's own
+    space-skip therefore ends at that character, at column `sp.col + j`.  This
+    is what lets a *runtime* check read a fact the *grammar* located. -/
+private lemma skipSpaces_lands_at_tab {j : Nat} {sc : ScannerState} {sp sx : SurfPos}
+    (hcorr : ScannerSurfCorr sc sp)
+    (hind : SIndent j sp sx) (htab : sx.chars.head? = some '\t') :
+    (skipSpaces sc).peek? = some '\t' ∧ (skipSpaces sc).col = sp.col + j := by
+  obtain ⟨k, sp_k, hind_k, hcorr_k⟩ := skipSpaces_corr sc sp hcorr
+  have hc_j := sindent_chars hind
+  have hc_k := sindent_chars hind_k
+  have hkj : k = j := by
+    rcases Nat.lt_trichotomy k j with h | h | h
+    · exfalso
+      have heq : sp_k.chars = List.replicate (j - k) ' ' ++ sx.chars :=
+        replicate_split_cancel (Nat.le_of_lt h) (hc_k.symm.trans hc_j)
+      rw [show j - k = (j - k - 1) + 1 from by omega, List.replicate_succ,
+        List.cons_append] at heq
+      exact skipSpaces_peek_ne_space sc (peek_of_head hcorr_k heq)
+    · exact h
+    · exfalso
+      have heq : sx.chars = List.replicate (k - j) ' ' ++ sp_k.chars :=
+        replicate_split_cancel (Nat.le_of_lt h) (hc_j.symm.trans hc_k)
+      rw [show k - j = (k - j - 1) + 1 from by omega, List.replicate_succ,
+        List.cons_append] at heq
+      rw [heq] at htab
+      simp at htab
+  subst hkj
+  have hsp : sp_k = sx :=
+    surfpos_eq (List.append_cancel_left (hc_k.symm.trans hc_j))
+      (by rw [SIndent_col' hind_k, SIndent_col' hind])
+  subst hsp
+  obtain ⟨rest, hrest⟩ : ∃ rest, sp_k.chars = '\t' :: rest := by
+    cases hh : sp_k.chars with
+    | nil => rw [hh] at htab; simp at htab
+    | cons a as =>
+      rw [hh] at htab
+      simp only [List.head?_cons, Option.some.injEq] at htab
+      exact ⟨as, by simp [htab]⟩
+  refine ⟨peek_of_head hcorr_k hrest, ?_⟩
+  rw [← hcorr_k.col_eq, SIndent_col' hind_k]
+
+/-- `skipWhitespace` is the identity where the cursor is not on an `s-white`. -/
+private lemma skipWhitespace_id_of_not_white (s : ScannerState)
+    (h : ∀ ch, s.peek? = some ch → isWhiteSpaceBool ch = false) :
+    skipWhitespace s = s := by
+  cases hpk : s.peek? with
+  | none =>
+    have hge : ¬ (s.offset < s.inputEnd) := by
+      intro hlt
+      unfold ScannerState.peek? at hpk
+      rw [if_pos hlt] at hpk
+      exact absurd hpk (by simp)
+    unfold skipWhitespace
+    rw [show s.inputEnd - s.offset = 0 from by omega]
+    simp [skipWhitespaceLoop]
+  | some ch =>
+    exact L4YAML.Proofs.EmitterScannability.skipWhitespace_of_not_ws s ch hpk (h ch hpk)
+      (peek_some_hasMore s ch hpk)
 
 /-! ## §1 `l-empty(n)` from a skipped blank line -/
 
@@ -82,18 +198,27 @@ private lemma foldLoop_indents (s : ScannerState) (cnt fuel : Nat) :
 lemma SBBreak_col0 {sp sp' : SurfPos} (h : SBBreak sp sp') : sp'.col = 0 := by
   cases h <;> rfl
 
+/-- **The one shape `[70] l-empty(n,c)` has no arm for**: a run of `j < n`
+    spaces and then a TAB.  `[63] s-indent` is spaces (§6.1),
+    `[69] s-flow-line-prefix(n)` admits a tab only past the `n`th space, and
+    `[64] s-indent-lt(n)` takes its break immediately after its short run — so
+    this is a scanner over-acceptance, not a missing derivation.  It is stated
+    LOCATED (the index, and the tab's own position) precisely so that item 62's
+    runtime gate can read it. -/
+def BlankRunTabUnderFloor (n : Nat) (sp : SurfPos) : Prop :=
+  ∃ j sx, j < n ∧ SIndent j sp sx ∧ sx.chars.head? = some '\t'
+
 /-- A skipped blank line reads at `n`: its run splits as
     `s-flow-line-prefix(n)` when it clears the indent, as `s-indent(<n)`
-    when it is a short pure-space run, and only the short-run-then-TAB
-    shape has no `[70]` arm. -/
+    when it is a short pure-space run, and otherwise it is the located tab. -/
 lemma slEmpty_flowIn_at (n : Nat) {sp sp₁ sp' : SurfPos}
     (hws : GStar SSWhite sp sp₁) (hbrk : SBBreak sp₁ sp') :
-    SLEmpty n .flowIn sp sp' ∨ True := by
+    SLEmpty n .flowIn sp sp' ∨ BlankRunTabUnderFloor n sp := by
   rcases gstar_white_take_sIndent n hws with ⟨sx, hind, hrest⟩ | ⟨j, sx, hj, hind, hrest, hend⟩
   · exact Or.inl (SLEmpty.flow n sp sp₁ sp' .flowIn (Or.inr rfl)
       (GOpt.some sp sp₁ (SFlowLinePrefix.mk n sp sx sp₁ hind
         (gstar_sswhite_to_gopt_sep hrest))) hbrk)
-  · rcases hend with hend | _
+  · rcases hend with hend | htab
     · subst hend
       -- the whole run is `j < n` spaces: `s-indent(<n)`… once the residual
       -- star is nil.  It is: `sx = sp₁` says the run ended at the split.
@@ -107,22 +232,47 @@ lemma slEmpty_flowIn_at (n : Nat) {sp sp₁ sp' : SurfPos}
         cases hw with
         | space rest col => cases hbrk <;> simp_all
         | tab rest col => cases hbrk <;> simp_all
-    · exact Or.inr trivial
+    · exact Or.inr ⟨j, sx, hj, hind, htab⟩
+
+/-- **Item 62's gate refutes it.**  `blankLineTabUnderFloor` measures the blank
+    line's own space run and the character that ends it; the located residue
+    says that character is a tab at column `j < n ≤ currentIndent + 1`, which
+    is exactly the gate's firing condition.  So a line the loop actually folds
+    never carries the residue. -/
+lemma not_blankRunTab_of_gate {n : Nat} {sc : ScannerState} {sp : SurfPos}
+    (hcorr : ScannerSurfCorr sc sp) (hcol0 : sp.col = 0)
+    (hn : (n : Int) ≤ max 0 (sc.currentIndent + 1))
+    (hgate : blankLineTabUnderFloor sc = false) :
+    ¬ BlankRunTabUnderFloor n sp := by
+  rintro ⟨j, sx, hj, hind, htab⟩
+  obtain ⟨hpk, hcol⟩ := skipSpaces_lands_at_tab hcorr hind htab
+  have hci : (skipSpaces sc).currentIndent = sc.currentIndent :=
+    currentIndent_of_indents_eq (skipSpaces_preserves_indents sc)
+  have hfire : blankLineTabUnderFloor sc = true := by
+    unfold blankLineTabUnderFloor
+    simp only [hpk, hci, hcol, hcol0, Nat.zero_add, beq_self_eq_true, Bool.true_and,
+      decide_eq_true_eq]
+    omega
+  rw [hfire] at hgate
+  exact Bool.noConfusion hgate
 
 /-! ## §2 The blank-line loop at `n` -/
 
-/-- `foldQuotedNewlinesLoop` at `n`: every skipped line is `SLEmpty n`, or
-    some line is the tab residue.  The column fact rides along: a loop
+/-- `foldQuotedNewlinesLoop` at `n`: **every** line the loop skips is
+    `SLEmpty n`.  Item 62's gate stops the run at the one shape `[70]` has no
+    arm for, so nothing is left over.  The column fact rides along: a loop
     entered at a line start leaves at one. -/
 lemma foldQuotedNewlinesLoop_prod_at (n : Nat) (sc : ScannerState) (sp : SurfPos)
-    (cnt fuel : Nat) (hcorr : ScannerSurfCorr sc sp) :
-    (∃ sp', GStar (SLEmpty n .flowIn) sp sp' ∧
+    (cnt fuel : Nat) (hcorr : ScannerSurfCorr sc sp)
+    (hcol0 : sp.col = 0)
+    (hn : (n : Int) ≤ max 0 (sc.currentIndent + 1)) :
+    ∃ sp', GStar (SLEmpty n .flowIn) sp sp' ∧
        ScannerSurfCorr (foldQuotedNewlinesLoop sc cnt fuel).1 sp' ∧
-       (sp.col = 0 → sp'.col = 0)) ∨ True := by
+       sp'.col = 0 := by
   induction fuel generalizing sc sp cnt with
   | zero =>
     simp only [foldQuotedNewlinesLoop]
-    exact Or.inl ⟨sp, GStar.nil _, hcorr, fun h => h⟩
+    exact ⟨sp, GStar.nil _, hcorr, hcol0⟩
   | succ fuel' ih =>
     unfold foldQuotedNewlinesLoop; dsimp only []
     obtain ⟨sp_ws, h_gstar, hcorr_ws⟩ := skipWhitespace_corr sc sp hcorr
@@ -131,24 +281,31 @@ lemma foldQuotedNewlinesLoop_prod_at (n : Nat) (sc : ScannerState) (sp : SurfPos
       · rename_i hlb
         obtain ⟨sp_cn, h_sbreak, hcorr_cn⟩ :=
           consumeNewline_sbreak_corr (skipWhitespace sc) sp_ws c hcorr_ws hpeek hlb
-        rcases slEmpty_flowIn_at n h_gstar h_sbreak with h_lempty | _
-        · rcases ih (consumeNewline (skipWhitespace sc)) sp_cn (cnt + 1) hcorr_cn with
-            ⟨sp_rest, h_gr, hc, hcol⟩ | _
-          · exact Or.inl ⟨sp_rest, GStar.cons sp sp_cn sp_rest h_lempty h_gr, hc,
-              fun _ => hcol (SBBreak_col0 h_sbreak)⟩
-          · exact Or.inr trivial
-        · exact Or.inr trivial
-      · exact Or.inl ⟨sp, GStar.nil _, hcorr, fun h => h⟩
-    · exact Or.inl ⟨sp, GStar.nil _, hcorr, fun h => h⟩
+        split
+        · exact ⟨sp, GStar.nil _, hcorr, hcol0⟩
+        · rename_i hgate
+          have hgate' : blankLineTabUnderFloor sc = false := by simpa using hgate
+          rcases slEmpty_flowIn_at n h_gstar h_sbreak with h_lempty | h_tab
+          · have hci : (consumeNewline (skipWhitespace sc)).currentIndent
+                = sc.currentIndent := by
+              refine currentIndent_of_indents_eq ?_
+              rw [consumeNewline_indents, skipWhitespace_preserves_indents]
+            obtain ⟨sp_rest, h_gr, hc, hcol⟩ :=
+              ih (consumeNewline (skipWhitespace sc)) sp_cn (cnt + 1) hcorr_cn
+                (SBBreak_col0 h_sbreak) (by rw [hci]; exact hn)
+            exact ⟨sp_rest, GStar.cons sp sp_cn sp_rest h_lempty h_gr, hc, hcol⟩
+          · exact absurd h_tab (not_blankRunTab_of_gate hcorr hcol0 hn hgate')
+      · exact ⟨sp, GStar.nil _, hcorr, hcol0⟩
+    · exact ⟨sp, GStar.nil _, hcorr, hcol0⟩
 
 /-! ## §3 The fold at `n` -/
 
-/-- **The fold reads at `n`** whenever `n ≤ currentIndent + 1` and the
-    caller's §8.1 guard passed (the landing's final column clears the
-    indent): the guards make the landing's space run at least `n` long, so
-    `s-flow-line-prefix(n)` splits off the run item 45 style.  The `∨ True`
-    side carries the tab-blank interior line and the vacuous gate-true
-    branch. -/
+/-- **The fold reads at `n`** whenever `n ≤ currentIndent + 1`: the guards make
+    the landing's space run at least `n` long, so `s-flow-line-prefix(n)`
+    splits off the run item 45 style.  The one branch that produces no reading
+    is the §6.1-gate-true one, and it costs no domain: it hands back exactly
+    the fact the CALLER's §8.1 check refuses — the landing sits at or below the
+    floor. -/
 lemma foldQuotedNewlines_prod_at (n : Nat) (sc : ScannerState) (sp : SurfPos)
     (c : Char)
     {content : String} {s' : ScannerState}
@@ -161,19 +318,53 @@ lemma foldQuotedNewlines_prod_at (n : Nat) (sc : ScannerState) (sp : SurfPos)
       SBBreak sp sp₁ ∧
       GStar (SLEmpty n .flowIn) sp₁ sp₂ ∧
       SFlowLinePrefix n sp₂ sp'' ∧
-      ScannerSurfCorr s' sp'') ∨ True := by
+      ScannerSurfCorr s' sp'') ∨ ((s'.col : Int) ≤ sc.currentIndent) := by
   obtain ⟨sp_cn, h_sbreak, hcorr_cn⟩ :=
     consumeNewline_sbreak_corr sc sp c hcorr hpeek hlb
-  rcases foldQuotedNewlinesLoop_prod_at n (consumeNewline sc) sp_cn 0 _ hcorr_cn with
-    ⟨sp_loop, h_gstar_empty, hcorr_loop, hcol_loop⟩ | _
+  have h_ci_cn : (consumeNewline sc).currentIndent = sc.currentIndent :=
+    currentIndent_of_indents_eq (consumeNewline_indents sc)
+  obtain ⟨sp_loop, h_gstar_empty, hcorr_loop, hcol_loop⟩ :=
+    foldQuotedNewlinesLoop_prod_at n (consumeNewline sc) sp_cn 0 _ hcorr_cn
+      (SBBreak_col0 h_sbreak) (by rw [h_ci_cn]; exact hn)
   · obtain ⟨n_sk2, sp_sk2, h_indent2, hcorr_sk2⟩ :=
       skipSpaces_corr (loopResult sc).1 sp_loop hcorr_loop
+    have h_ci_sk0 : (skipSpaces (loopResult sc).1).currentIndent
+        = sc.currentIndent := by
+      refine currentIndent_of_indents_eq ?_
+      rw [skipSpaces_preserves_indents]
+      show (loopResult sc).1.indents = sc.indents
+      rw [show (loopResult sc).1.indents = (consumeNewline sc).indents from
+            foldLoop_indents (consumeNewline sc) 0 _,
+          consumeNewline_indents]
     unfold foldQuotedNewlines at hfold; dsimp only [] at hfold
     split at hfold
-    · -- the gate-true branch: no accepted input reaches it (the final
-      -- column would be at or below the indent), so the domain costs
-      -- nothing.
-      exact Or.inr trivial
+    · -- the gate-true branch: the landing is at or below the floor.  The tab
+      -- half throws; the other half returns that very column, and the
+      -- caller's §8.1 check refuses it.
+      rename_i h_gate
+      have h_gate' : ((skipSpaces (loopResult sc).1).col : Int)
+          ≤ (skipSpaces (loopResult sc).1).currentIndent := by simpa using h_gate
+      split at hfold
+      · cases hfold
+      · rename_i h_no_tab
+        -- past the spaces the landing is neither space nor tab, so the
+        -- trailing `s-white*` skip is the identity and the column stands.
+        have h_id : skipWhitespace (skipSpaces (loopResult sc).1)
+            = skipSpaces (loopResult sc).1 := by
+          refine skipWhitespace_id_of_not_white _ (fun ch hch => ?_)
+          have h_ns : ch ≠ ' ' := by
+            intro hEq
+            exact skipSpaces_peek_ne_space (loopResult sc).1 (by rw [hch, hEq])
+          have h_nt : ch ≠ '\t' := by
+            intro hEq
+            exact h_no_tab (by rw [hch, hEq])
+          simp [isWhiteSpaceBool, isSpaceBool, isTabBool, h_ns, h_nt]
+        refine Or.inr ?_
+        split at hfold <;>
+          · have hinj := Except.ok.inj hfold
+            obtain ⟨_, rfl⟩ := Prod.mk.inj hinj
+            rw [h_id, ← h_ci_sk0]
+            exact h_gate'
     · -- gate-false: the landing's space run clears the indent, so it is at
       -- least `n` long and the prefix splits off it.
       rename_i h_gate
@@ -181,8 +372,7 @@ lemma foldQuotedNewlines_prod_at (n : Nat) (sc : ScannerState) (sp : SurfPos)
         skipWhitespace_corr _ sp_sk2 hcorr_sk2
       -- the run length: the loop lands at column 0, the spaces land at
       -- `n_sk2`, and the gate says that clears the indent.
-      have hcol0 : sp_loop.col = 0 :=
-        hcol_loop (SBBreak_col0 h_sbreak)
+      have hcol0 : sp_loop.col = 0 := hcol_loop
       have hcol_sk2 : sp_sk2.col = n_sk2 := by
         have := SIndent_col' h_indent2; omega
       have h_gate' : ¬ ((skipSpaces (loopResult sc).1).col : Int)
@@ -219,7 +409,6 @@ lemma foldQuotedNewlines_prod_at (n : Nat) (sc : ScannerState) (sp : SurfPos)
       · have hinj := Except.ok.inj hfold
         obtain ⟨_, rfl⟩ := Prod.mk.inj hinj
         exact Or.inl ⟨sp_cn, sp_loop, sp_ws, h_sbreak, h_gstar_empty, h_flp, hcorr_ws⟩
-  · exact Or.inr trivial
 
 /-! ## §4 The double-quoted body at `n` -/
 
@@ -378,7 +567,7 @@ lemma collectDoubleQuotedLoop_prod_at (n : Nat) (sc0 : ScannerState) (sp0 : Surf
           have hn_sc : (n : Int) ≤ max 0 (sc.currentIndent + 1) := by rw [hci]; exact hn
           rcases foldQuotedNewlines_prod_at n sc ⟨c :: rest, sc.col⟩ c hcorr hpeek hlb
               hfold hn_sc with ⟨sp_cn, sp_loop, sp_fold, h_sbreak, h_gstar_empty, h_flp,
-                hcorr_fold⟩ | _
+                hcorr_fold⟩ | h_under
           · have hci' : fold_result.2.currentIndent = currentIndent := by
               refine (currentIndent_of_indents_eq ?_).trans hci
               exact L4YAML.Proofs.EmitterScannability.foldQuotedNewlines_preserves_indents
@@ -402,7 +591,14 @@ lemma collectDoubleQuotedLoop_prod_at (n : Nat) (sc0 : ScannerState) (sp0 : Surf
                            h_glit, h_corr⟩
                        · exact Or.inr trivial)
                     | simp at hok
-          · exact Or.inr trivial
+          · -- item 62: the §6.1-gate-true landing sits at or below the floor,
+            -- and this loop's own §8.1 check is what refuses it.
+            split at hok
+            · simp at hok
+            · split at hok
+              · simp at hok
+              · rename_i h_not_under
+                exact absurd (hci ▸ h_under) h_not_under
       · -- regular character: index-free prepend.
         split at hok
         · simp at hok
@@ -505,7 +701,7 @@ lemma collectSingleQuotedLoop_prod_at (n : Nat) (sc0 : ScannerState) (sp0 : Surf
           have hn_sc : (n : Int) ≤ max 0 (sc0.currentIndent + 1) := by rw [hci0]; exact hn
           rcases foldQuotedNewlines_prod_at n sc0 ⟨c :: rest, sc0.col⟩ c hcorr0 hpeek hlb
               hfold hn_sc with ⟨sp_cn, sp_loop, sp_fold, h_sbreak, h_gstar_empty, h_flp,
-                hcorr_fold⟩ | _
+                hcorr_fold⟩ | h_under
           · have hci' : fold_result.2.currentIndent = currentIndent := by
               refine (currentIndent_of_indents_eq ?_).trans hci0
               exact L4YAML.Proofs.EmitterScannability.foldQuotedNewlines_preserves_indents
@@ -525,7 +721,13 @@ lemma collectSingleQuotedLoop_prod_at (n : Nat) (sc0 : ScannerState) (sp0 : Surf
                       h_body,
                     h_glit, h_corr⟩
                 · exact Or.inr trivial
-          · exact Or.inr trivial
+          · -- item 62: the single-quoted twin of the same refutation.
+            split at hok0
+            · simp at hok0
+            · split at hok0
+              · simp at hok0
+              · rename_i h_not_under
+                exact absurd (hci0 ▸ h_under) h_not_under
       · split at hok0
         · simp at hok0
         · rename_i hne_lb hne_ctrl

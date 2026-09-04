@@ -376,7 +376,9 @@ lemma foldQuotedNewlinesLoop_preserves_dp (s : ScannerState) (emptyCount fuel : 
     simp only []
     split
     · split
-      · rw [ih, consumeNewline_preserves_dp, skipWhitespace_preserves_dp]
+      · split
+        · rfl
+        · rw [ih, consumeNewline_preserves_dp, skipWhitespace_preserves_dp]
       · rfl
     · rfl
 
@@ -584,7 +586,9 @@ lemma foldQuotedNewlinesLoop_preserves_indents (s : ScannerState) (emptyCount fu
     simp only []
     split
     · split
-      · rw [ih, consumeNewline_preserves_indents, skipWhitespace_preserves_indents]
+      · split
+        · rfl
+        · rw [ih, consumeNewline_preserves_indents, skipWhitespace_preserves_indents]
       · rfl
     · rfl
 
@@ -784,7 +788,9 @@ lemma foldQuotedNewlinesLoop_preserves_ek (s : ScannerState) (emptyCount fuel : 
     simp only []
     split
     · split
-      · rw [ih, consumeNewline_preserves_ek, skipWhitespace_preserves_ek]
+      · split
+        · rfl
+        · rw [ih, consumeNewline_preserves_ek, skipWhitespace_preserves_ek]
       · rfl
     · rfl
 

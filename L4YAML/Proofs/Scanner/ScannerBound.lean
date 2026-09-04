@@ -963,7 +963,9 @@ lemma foldQuotedNewlinesLoop_BoundInv {s₀ : ScannerState} (s : ScannerState)
     simp only [foldQuotedNewlinesLoop]
     split
     · split  -- isLineBreakBool
-      · exact ih _ _ (consumeNewline_BoundInv _ (skipWhitespace_BoundInv s h hend) hend)
+      · split  -- item 62: the tab-blank line stops the run
+        · exact h
+        · exact ih _ _ (consumeNewline_BoundInv _ (skipWhitespace_BoundInv s h hend) hend)
       · exact h
     · exact h
 

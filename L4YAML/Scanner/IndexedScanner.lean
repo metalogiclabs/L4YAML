@@ -608,6 +608,31 @@ def skipBlankLinesLoopIx {input : String} (c : IxCursor input)
         (c, emptyCount)
     | none    => (c, emptyCount)
 
+/-- Item 62: the first blank line in a fold run whose white prefix reaches a
+    TAB *before* clearing the floor — the one shape `[70] l-empty(n,c)` has no
+    arm for (`[63] s-indent` is spaces; `[69] s-flow-line-prefix(n)` admits a
+    tab only after the `n` spaces, and `[64] s-indent-lt(n)` takes its break
+    immediately).  The cursor must sit at the *start* of a line.
+
+    Returns the offending cursor — positioned at the tab, which is where
+    legacy reports: its own blank-line loop stops at such a line, and
+    `foldQuotedNewlines`'s §6.1 gate then reads that same position. -/
+@[yaml_spec "6.1" 63 "s-indent(n)", yaml_spec "6.4" 70 "l-empty(n,c)"]
+def blankRunTabIx {input : String} (c : IxCursor input) (currentIndent : Int) :
+    Nat → Option (IxCursor input)
+  | 0 => none
+  | fuel + 1 =>
+    match (skipWhitespace c).peek? with
+    | some ch =>
+      if isLineBreakBool ch then
+        if (((skipSpaces c).1.pos.col : Int) ≤ currentIndent)
+            && (match (skipSpaces c).1.peek? with | some '\t' => true | _ => false) then
+          some (skipSpaces c).1
+        else
+          blankRunTabIx (consumeLineBreak (skipWhitespace c)) currentIndent fuel
+      else none
+    | none => none
+
 /-- Fold a single quoted-scalar line break per §6.5. Cursor must be
     at the line-break character (caller has detected it). Returns
     `(folded, c')`:
@@ -886,9 +911,16 @@ def quotedScalarErrLoopIx {input : String} (c : IxCursor input)
         | none => none
       else if isLineBreakBool ch then
         -- Fold event: mirror `foldQuotedNewlines`'s checks in legacy order.
+        -- 0. Item 62 §6.1: a BLANK line inside the run whose white prefix
+        --    reaches a tab before the floor stops legacy's blank-line loop,
+        --    and legacy's gate then reports at that tab — so this check comes
+        --    before the continuation line's own.
+        if let some ct :=
+            blankRunTabIx (consumeLineBreak c) currentIndent input.utf8ByteSize then
+          some (.tabInIndentation ct.pos.line ct.pos.col)
         -- 1. §6.1: tab in the indentation zone of the continuation line
         --    (checked at the post-`s-space*` cursor, before `s-white*`).
-        if (((skipSpaces (skipBlankLinesLoopIx (consumeLineBreak c) 0
+        else if (((skipSpaces (skipBlankLinesLoopIx (consumeLineBreak c) 0
                   input.utf8ByteSize).1).1.pos.col : Int) ≤ currentIndent)
             && (match (skipSpaces (skipBlankLinesLoopIx (consumeLineBreak c) 0
                   input.utf8ByteSize).1).1.peek? with
@@ -953,7 +985,12 @@ def plainScalarErrLoopIx {input : String} (c : IxCursor input)
         plainScalarErrLoopIx c.advance 0 currentIndent fuel
       else if isFlowIndicatorBool ch then none
       else if isLineBreakBool ch then
-        if (((skipSpaces (skipBlankLinesLoopIx (consumeLineBreak c) 0
+        -- Item 62: the blank-line run's own §6.1 gate first (see
+        -- `quotedScalarErrLoopIx`); legacy's fold stops at such a line.
+        if let some ct :=
+            blankRunTabIx (consumeLineBreak c) currentIndent input.utf8ByteSize then
+          some (.tabInIndentation ct.pos.line ct.pos.col)
+        else if (((skipSpaces (skipBlankLinesLoopIx (consumeLineBreak c) 0
               input.utf8ByteSize).1).1.pos.col : Int) ≤ currentIndent)
             && (match (skipSpaces (skipBlankLinesLoopIx (consumeLineBreak c) 0
                   input.utf8ByteSize).1).1.peek? with

@@ -154,6 +154,25 @@ def processEscape (s : ScannerState) : Except ScanError (Char × ScannerState) :
 def trimTrailingWS (s : String) : String :=
   String.ofList ((s.toList.reverse.dropWhile (fun c => c == ' ' || c == '\t')).reverse)
 
+/-- Is this blank line's own white run one that `[70] l-empty(n,c)` has no
+    arm for — fewer than `n` spaces, and then a TAB?
+
+    `l-empty(n,c)` opens with `s-line-prefix(n,c)` or `[64] s-indent-lt(n)`.
+    Both begin in `[63] s-indent`, which is *spaces* (§6.1); a tab is admitted
+    only by `[69] s-flow-line-prefix(n)`'s trailing `s-separate-in-line?`,
+    i.e. only once the `n` spaces are already there, and `s-indent-lt(n)`
+    takes the break immediately after its short run.  So a run that reaches a
+    tab before clearing the floor matches neither arm.
+
+    The floor is the block indent the continuation line must clear: `n` and
+    `currentIndent + 1` coincide at a fold (`foldQuotedNewlines` below gates
+    the content line on the same column), so the test is the *content* line's
+    §6.1 test read one line earlier. -/
+@[yaml_spec "6.1" 63 "s-indent(n)", yaml_spec "6.4" 70 "l-empty(n,c)"]
+def blankLineTabUnderFloor (s : ScannerState) : Bool :=
+  let s_sp := skipSpaces s
+  (s_sp.peek? == some '\t') && ((s_sp.col : Int) ≤ s_sp.currentIndent)
+
 /-- Helper for foldQuotedNewlines: count consecutive empty lines using structural recursion.
 
     Skips blank lines (spaces followed by line break), counting them.
@@ -176,7 +195,12 @@ def foldQuotedNewlinesLoop (s : ScannerState) (emptyCount : Nat) (fuel : Nat) :
     match s_skipped.peek? with
     | some c =>
       if isLineBreakBool c then
-        foldQuotedNewlinesLoop (consumeNewline s_skipped) (emptyCount + 1) fuel'
+        -- Item 62: a blank line whose run hits a TAB before the floor is not
+        -- an `l-empty(n,c)` line at all.  Stop the run *at* it and hand it to
+        -- `foldQuotedNewlines`'s §6.1 gate below, which reads the same
+        -- position and throws `tabInIndentation` there.
+        if blankLineTabUnderFloor s then (saved, emptyCount)
+        else foldQuotedNewlinesLoop (consumeNewline s_skipped) (emptyCount + 1) fuel'
       else (saved, emptyCount)
     | none => (s, emptyCount)
 

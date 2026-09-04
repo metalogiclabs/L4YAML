@@ -207,11 +207,13 @@ lemma foldQuotedNewlinesLoop_prod (sc : ScannerState) (sp : SurfPos)
         have h_lempty : SLEmpty 0 .flowIn sp sp_cn :=
           SLEmpty.flow 0 sp sp_ws sp_cn .flowIn (Or.inr rfl)
             (GOpt.some sp sp_ws (gstar_sswhite_to_flowlineprefix0 h_gstar)) h_sbreak
-        obtain ⟨sp_rest, h_gstar_rest, hcorr_rest⟩ :=
-          ih (consumeNewline (skipWhitespace sc)) sp_cn (cnt + 1) hcorr_cn
-        exact ⟨sp_rest,
-               GStar.cons sp sp_cn sp_rest h_lempty h_gstar_rest,
-               hcorr_rest⟩
+        split
+        · exact ⟨sp, GStar.nil _, hcorr⟩
+        · obtain ⟨sp_rest, h_gstar_rest, hcorr_rest⟩ :=
+            ih (consumeNewline (skipWhitespace sc)) sp_cn (cnt + 1) hcorr_cn
+          exact ⟨sp_rest,
+                 GStar.cons sp sp_cn sp_rest h_lempty h_gstar_rest,
+                 hcorr_rest⟩
       · exact ⟨sp, GStar.nil _, hcorr⟩
     · exact ⟨sp, GStar.nil _, hcorr⟩
 
@@ -1540,10 +1542,12 @@ lemma foldQuotedNewlinesLoop_line_ge (s : ScannerState) (ec fuel : Nat) :
     · rename_i c hpk
       split
       · rename_i hlb
-        have h1 : (skipWhitespace s).line = s.line := skipWhitespace_preserves_line s
-        have h2 := consumeNewline_line_succ (skipWhitespace s) c hpk hlb
-        have h3 := ih (consumeNewline (skipWhitespace s)) (ec + 1)
-        omega
+        split
+        · exact Nat.le_refl _
+        · have h1 : (skipWhitespace s).line = s.line := skipWhitespace_preserves_line s
+          have h2 := consumeNewline_line_succ (skipWhitespace s) c hpk hlb
+          have h3 := ih (consumeNewline (skipWhitespace s)) (ec + 1)
+          omega
       · exact Nat.le_refl _
     · exact Nat.le_refl _
 

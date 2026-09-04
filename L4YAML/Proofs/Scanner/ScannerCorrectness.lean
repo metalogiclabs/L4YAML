@@ -1368,7 +1368,9 @@ lemma foldQuotedNewlinesLoop_preserves_tokens (s : ScannerState) (emptyCount fue
         simp []
         have h_sp := skipWhitespace_preserves_tokens s
         have h_cn := consumeNewline_preserves_tokens (skipWhitespace s)
-        rw [ih, h_cn, h_sp]
+        split
+        · rfl
+        · rw [ih, h_cn, h_sp]
 
 /-- Helper: foldQuotedNewlines preserves tokens. -/
 lemma foldQuotedNewlines_preserves_tokens (s : ScannerState) (s' : ScannerState) (content : String)
@@ -3354,7 +3356,9 @@ lemma foldQuotedNewlinesLoop_preserves_simpleKey (s : ScannerState) (emptyCount 
         simp []
         have h_sp := skipWhitespace_preserves_simpleKey s
         have h_cn := consumeNewline_preserves_simpleKey (skipWhitespace s)
-        rw [ih, h_cn, h_sp]
+        split
+        · rfl
+        · rw [ih, h_cn, h_sp]
 
 
 lemma foldQuotedNewlines_preserves_simpleKey (s : ScannerState) (s' : ScannerState) (content : String)
@@ -4031,7 +4035,9 @@ lemma foldQuotedNewlinesLoop_preserves_simpleKeyStack (s : ScannerState) (emptyC
         simp []
         have h_sp := skipWhitespace_preserves_simpleKeyStack s
         have h_cn := consumeNewline_preserves_simpleKeyStack (skipWhitespace s)
-        rw [ih, h_cn, h_sp]
+        split
+        · rfl
+        · rw [ih, h_cn, h_sp]
 
 
 lemma foldQuotedNewlines_preserves_simpleKeyStack (s : ScannerState) (s' : ScannerState) (content : String)
@@ -5399,7 +5405,9 @@ lemma foldQuotedNewlinesLoop_preserves_flowLevel (s : ScannerState) (emptyCount 
         simp []
         have h_sp := skipWhitespace_preserves_flowLevel s
         have h_cn := consumeNewline_preserves_flowLevel (skipWhitespace s)
-        rw [ih, h_cn, h_sp]
+        split
+        · rfl
+        · rw [ih, h_cn, h_sp]
 
 lemma foldQuotedNewlines_preserves_flowLevel (s : ScannerState) (s' : ScannerState) (content : String)
     (h : foldQuotedNewlines s = .ok (content, s')) :
@@ -7684,7 +7692,10 @@ lemma foldQuotedNewlinesLoop_offset_ge (s : ScannerState) (emptyCount : Nat)
     unfold foldQuotedNewlinesLoop; simp only []
     split
     · split
-      · exact Nat.le_trans (Nat.le_trans (skipWhitespace_offset_ge s) (consumeNewline_offset_ge _)) (ih _ _)
+      · split
+        · exact Nat.le_refl _
+        · exact Nat.le_trans
+            (Nat.le_trans (skipWhitespace_offset_ge s) (consumeNewline_offset_ge _)) (ih _ _)
       · exact Nat.le_refl _
     · exact Nat.le_refl _
 

@@ -188,7 +188,9 @@ lemma foldQuotedNewlinesLoop_preserves_allowDirectives (s : ScannerState) (empty
         simp []
         have h_sp := skipWhitespace_preserves_allowDirectives s
         have h_cn := consumeNewline_preserves_allowDirectives (skipWhitespace s)
-        rw [ih, h_cn, h_sp]
+        split
+        · rfl
+        · rw [ih, h_cn, h_sp]
 
 lemma foldQuotedNewlines_preserves_allowDirectives (s : ScannerState) (s' : ScannerState) (content : String)
     (h : foldQuotedNewlines s = .ok (content, s')) :

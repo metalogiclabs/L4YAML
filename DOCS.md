@@ -7983,6 +7983,67 @@ ZERO runtime edits; no new reflection.
 custom axioms; all three checkers OK.  No new guard: the arm has no inhabitant
 to pin, which is the claim.
 
+### Item 62 (2026-09-04)
+
+**closed the tab-blank over-acceptance — a RUNTIME narrowing the proof asked
+for.**  `[70] l-empty(n,c)` opens with `s-line-prefix(n,c)` or `[64]
+s-indent-lt(n)`, and both begin in `[63] s-indent`, which is *spaces* (§6.1);
+a tab is admitted only by `[69] s-flow-line-prefix(n)`'s trailing
+`s-separate-in-line?`, i.e. only once the `n` spaces are there, and
+`s-indent-lt(n)` takes its break immediately after its short run.  So a blank
+interior fold line whose white run reaches a tab BEFORE the floor matches
+neither arm — and both pipelines folded it anyway:
+`k:⏎  - "a⏎<TAB>⏎    b"` and `k: "a⏎<TAB>⏎ b"` scanned clean.
+
+The arm had been carried since item 53 as "`∨ True` — the scanner accepts it;
+a future runtime check refuses it".  The check is one conjunction, and it is
+the fold's OWN §6.1 gate read one line earlier: `blankLineTabUnderFloor` tests
+the blank line's `skipSpaces` landing for a tab at a column that has not
+cleared `currentIndent`, and `foldQuotedNewlinesLoop` stops the run there, so
+`foldQuotedNewlines`'s existing gate reads that same position and throws
+`tabInIndentation` at the tab.  `blankRunTabIx` is the indexed twin, checked
+ahead of the continuation line's own test in `quotedScalarErrLoopIx` and
+`plainScalarErrLoopIx` because legacy reports at the earlier line.
+
+With it, `slEmpty_flowIn_at`'s residue — restated LOCATED as
+`BlankRunTabUnderFloor n sp` (`∃ j sx, j < n ∧ SIndent j sp sx ∧
+sx.chars.head? = some '\t'`) — is refuted by `not_blankRunTab_of_gate`, which
+reads the scanner's own space-skip onto the located tab
+(`skipSpaces_lands_at_tab`, via `skipSpaces_peek_ne_space`: the landing is
+never itself a space, so the surface split and the runtime split coincide).
+**`foldQuotedNewlinesLoop_prod_at` loses its disjunction outright** — every
+line the loop skips is `SLEmpty n .flowIn`.
+
+The same pass closed the fold's other vacuous arm: `foldQuotedNewlines_prod_at`
+now returns, in the §6.1-gate-true branch, the landing's under-floor COLUMN
+instead of `True` (the tab half throws; the other half's `skipWhitespace` is
+the identity at a non-white, so the column stands), and both quoted-body
+loops REFUTE it with their own §8.1 `underIndentedScalar` check.
+
+New reflection **682 `UnpayableArmIsABugReport`** — the fourth exit from a
+deferred arm, past Reflection 661's three.
+
+RUNTIME edits (both pipelines): `Scanner/Scalar.lean` gains
+`blankLineTabUnderFloor` and one `if` in `foldQuotedNewlinesLoop`;
+`Scanner/IndexedScanner.lean` gains `blankRunTabIx` and one `if let` in each
+of the two strictness walkers.  Fourteen `foldQuotedNewlinesLoop` proofs gain
+a `split` for the new branch.
+
+**Validation.** Full `lake build` green (ZERO warnings); `run-all-tests.sh`
+4465/4465 — the +4 against item 61 is Production Coverage 778 -> 782, the four
+`@[yaml_spec]` annotations on the two new definitions, every other suite
+identical; matrix 402/402 event + 282/282 JSON on BOTH pipelines with zero
+fails; `eventscore` 347/358 and the per-test result table byte-identical to
+item 61's across all 358 rows — the narrowing moves no suite case, which is
+why it survived a campaign; 0 direct and 0 transitive sorries, 0 custom
+axioms; all three checkers OK.  New guard
+`ScannerBlankFoldTabRefused` pins six refusals (double, single and flow-plain;
+a mapping value at floor 1; a second-blank-line offender) against seven
+accepts that must not move — exactly `n` spaces then a tab
+(`s-flow-line-prefix(n)`), short pure-space runs (`s-indent-lt(n)`), the
+root's `n = 0` where a tab-only blank line IS `l-empty(0)`, and the
+block-context skipper, which is a different production.
+
 ### REMAINING, in order
 
 The per-item history is the closure log above; this section lists only the
@@ -8061,9 +8122,10 @@ and that deletion, by input class:
 * ~~the **fold** class — a multi-line plain/quoted value at an indented
   entry~~ — CLOSED by items 53 (quoted), 54 (plain) and 55 (the
   props-decorated fold at the props consumer's k+1 arm).  What survives:
-  the named residues (the tab-blank interior line — scanner-accepted, needs
-  a runtime check — the blank-after-escaped-break line at a nonzero index,
-  spec-valid, and the flow-context folds, the flow share's);
+  the named residues (~~the tab-blank interior line — scanner-accepted, needs
+  a runtime check~~ — CLOSED by item 62, which added the check and deleted
+  the blank-line loop's disjunction; the blank-after-escaped-break line at a
+  nonzero index, spec-valid, and the flow-context folds, the flow share's);
 * ~~the **landing** class — a value on its own line below its indicator~~
   — CLOSED by items 52, 57 and 60: the break binds the index, so the
   separator instantiates at the pending's own index, and the landing is not

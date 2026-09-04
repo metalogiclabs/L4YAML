@@ -302,7 +302,9 @@ lemma foldQuotedNewlinesLoop_preserves_flowStack (s : ScannerState) (emptyCount 
         simp []
         have h_sp := skipWhitespace_preserves_flowStack s
         have h_cn := consumeNewline_preserves_flowStack (skipWhitespace s)
-        rw [ih, h_cn, h_sp]
+        split
+        · rfl
+        · rw [ih, h_cn, h_sp]
 
 -- Cloned from `ScannerCorrectness` lines 3775-3790 (`_preserves_flowStack` twin).
 lemma foldQuotedNewlines_preserves_flowStack (s : ScannerState) (s' : ScannerState) (content : String)
