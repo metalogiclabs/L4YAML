@@ -44,6 +44,7 @@ import Tests.Guards.Proofs.ScannerAdjacentValueRefused
 import Tests.Guards.Proofs.ScannerSameLineCollectionRefused
 import Tests.Guards.Proofs.ScannerPropsNullKeyCompose
 import Tests.Guards.Proofs.ScannerExplicitValueCompose
+import Tests.Guards.Proofs.ScannerLandedValueCompose
 import Tests.Guards.Proofs.ScannerNodePropertyDelimiter
 import Tests.Guards.Proofs.ScannerContracts
 import Tests.Guards.Proofs.ScannerCorrectness

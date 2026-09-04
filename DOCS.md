@@ -7654,6 +7654,32 @@ reflection index's "Generalization, extraction & reuse" block was not
 ascending (item 49's R675 bullet landed before R670/R671; the checker had
 flagged it since).
 
+### Item 52 (2026-09-03)
+
+closed the LANDING class — the indented entry's value on its own line
+(`k:⏎  -⏎    a`, `k:⏎  :⏎    v`, `k:⏎  ? a⏎  :⏎    v`) — with ZERO runtime
+edits (Reflection 678 — the break binds the index).  The break-free reading
+is index-universal (the index has no occurrence, which is Reflection 671's
+lift and why only the inline arms composed); the landing's separator
+CONSUMES the index — `[70] s-separate-lines(n)` is the crossed break plus
+the fresh line's `s-indent(n)` — so the reading exists at exactly the
+pending's own `n`, and `preprocess_some_separate_at_anyCol` (item 45) had
+built precisely that at any given `n`, waiting for its first indented
+consumer.  The item's whole cost: a fourth disjunct in
+`indentedValue_reads_at_any_indent` (the fixed-index separator + the same
+one-line content evidence as disjunct 1) and one mirror case per indented
+arm — arm 1's park with `h_sep_ld` in the inline separator's place,
+`h_vpack` composing identically under an open `?`.  The landed
+props/block-scalar/fold shapes keep the deferral (each is its own
+REMAINING class); the under-run landing (the dedent) defers as before.
+
+**Validation.** Full `lake build` green (ZERO warnings); `run-all-tests.sh`
+4461/4461; matrix and `eventscore` unmoved by construction (no runtime
+edit); 0 sorries, 0 custom axioms; checkers OK.  New guard
+`ScannerLandedValueCompose` (11 pins, all ACCEPT: both widths, quoted,
+sibling snoc, nested-mapping value, both mapping twins with a sibling, and
+the three still-deferred landed shapes pinned as accepted).
+
 ### REMAINING, in order
 
 The per-item history is the closure log above; this section lists only the
@@ -7734,9 +7760,11 @@ and that deletion, by input class:
   one-line lemma excludes, at the three indented content arms
   (`indentedValue_reads_at_any_indent`'s 4th disjunct, and the props
   consumer's k+1 arm);
-* the **landing** class — a value on its own line below its indicator
-  (`  -⏎    a`, `  :⏎    a: 1`'s dedent side) — the crossed-break
-  production the landing negative already carries the pieces of;
+* ~~the **landing** class — a value on its own line below its indicator~~
+  — CLOSED by item 52 (the break binds the index: the fixed-`n` separator
+  instantiates at the pending's own index).  What survives of it: the
+  DEDENT (the under-run landing), and the landed props/block-scalar/fold
+  shapes, each with its own class here;
 * the **block-scalar floor** class — parks whose producer handed
   `IndentFloor`'s `True` (`colon_open_map_props`, one `pendingBlock`
   producer);
