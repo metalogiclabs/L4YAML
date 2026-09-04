@@ -58,6 +58,7 @@ import Tests.Guards.Proofs.ScannerCompactKeylessFloor
 import Tests.Guards.Proofs.ScannerLandingDedentSplit
 import Tests.Guards.Proofs.ScannerKeyPackPunt
 import Tests.Guards.Proofs.ScannerFlowOpenUnderRun
+import Tests.Guards.Proofs.FlowInteriorScalarAtIndex
 import Tests.Guards.Proofs.ScannerNodePropertyDelimiter
 import Tests.Guards.Proofs.ScannerContracts
 import Tests.Guards.Proofs.ScannerCorrectness

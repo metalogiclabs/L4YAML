@@ -8298,6 +8298,64 @@ suite executables are item 65's binaries.  New guard
 the boundary one column past the floor, and the tab at every column the floor
 admits; `FlowIndexLeafEvidence` carries the widened landing disjunct.
 
+### Item 67a (2026-09-04)
+
+**the flow interior reads at the stack's own index.**  The collapse's remaining
+domain was priced as "the VALID multi-line scalar tokens at a nonzero index",
+and that mis-named the obstruction.  The at-`n` readings had existed since
+items 53–55; what was missing is that the flow stack's reading index arrived at
+the interior **with no floor**, so nothing could instantiate them and every arm
+lifted from 0 and renounced.
+
+**The plain walk's flow branch, which item 45 deferred by name.**
+`collectPlainScalarLoop_prod_at` punted its `inFlow = true` line break with
+"the flow share's own item consumes this".  It is `foldQuotedNewlines_prod_at`
+plus item 50's §8.1 check — the same two pieces the quoted loops already used —
+and the branch's OWN guard is what refutes the landing that under-runs.  The
+loop now carries `currentIndent` beside `contentIndent`, because the two arms
+measure different floors: the block arm's landing must clear the scalar's own
+`contentIndent`, the flow arm's must clear the ENCLOSING block indent.  `n` is
+under both, so one `s-flow-line-prefix(n)` split serves each.
+
+**Nothing inside a flow writes `indents`** — the new `FlowIndentStable`.  §6.1's
+unwind and both `[183]`/`[187]` pushes are `!inFlow`-guarded, so the fact is one
+line per dispatcher rather than an induction over the token walk, and
+preprocessing needs no appeal to item 66's `preprocess_indents_or_underIndent`:
+`skipToContent` neither opens nor closes a collection, so the guard that is
+false at the step's start is false where the unwind reads it and the whole `if`
+is the identity.  The module's other export is a COLUMN fact, and the interior
+needs it in its own right: `scanNextToken_dispatchStructural`'s FIRST check
+refuses every flow-interior token at or left of `currentIndent`, so a
+fall-through says the column cleared the floor — which is what puts the plain
+walk's `contentIndent` (its start column) above the floor its continuation
+lines are measured against.
+
+**`FlowStackK` gains the floor**, as `n ≤ minContentIndentOf sc ∨ True` — the
+shape `IndentFloor` already uses, so a park that cannot measure costs a field
+value and not a call site (R645/R646).  It is established at the OPEN from the
+pending's measurement and the park's own COLUMN, which is what says the landing
+reached `n` (item 60's `preprocess_some_floor_at_landing` does the rest), and
+it rides every interior step on the stability above.  So the boundary is item
+66's, exactly: `pendingBlock` carries a column (item 59) and gets the floor;
+`pendingProps` and `pendingMapValue` do not and keep the deferral.
+
+Spent at the content dispatch's value-completing arm: `SFlowNode_at nn` is GONE
+from `StreamAccum` (4 textual sites → 0), so `-␣["a⏎␣␣␣b"]` at an indented
+entry composes at the entry's index instead of collapsing the stack.  What
+still lifts is the leading SEPARATOR (19 `SSeparateLines_at nn`) and the props
+run's content — see [REMAINING](#remaining-in-order) for why the separator's
+under-run is not the same question.  ZERO runtime edits.
+
+**Validation.** Full `lake build` green (1055 jobs, ZERO warnings);
+`run-all-tests.sh` 4465/4465; matrix 402/402 event + 282/282 JSON on BOTH
+pipelines; `eventscore` 347/358 unmoved; `#print axioms` on `parse_sound_deep`
+and on each new declaration names no `sorryAx`; three checkers OK (220 library
+modules — the new one is a library module, not a guard).  `git status` shows
+only `Proofs/` and `Tests/`, so the suite executables are item 66's binaries.
+New guard `FlowInteriorScalarAtIndex` pins the floor as the ENCLOSING block
+indent across all three scalar styles, at two depths, with §6.1's tab gate and
+the root's vacuity.
+
 ### REMAINING, in order
 
 The per-item history is the closure log above; this section lists only the
@@ -8310,7 +8368,7 @@ a nonzero index.  R2 is CLOSED too (items 47–51), so what stands between here
 and Step 5 (the converse) is R3's remaining production work and R4:
 
 ```
-R1 ✓ (44–46) ──→ R2 ✓ (47–51) ──→ R3 (52–66 landed; 67 open) ──→ Step 5
+R1 ✓ (44–46) ──→ R2 ✓ (47–51) ──→ R3 (52–67a landed; 67b open) ──→ Step 5
                                         └──────→ R4 (implicitContinue + 0 < m) ──┘
 ```
 
@@ -8447,11 +8505,30 @@ and that deletion, by input class:
   floor turns the under-run's `j < n` into the check's own condition; the four
   textual drop rides at the open are one, serving `pendingFlow` (R3), the
   floorless parks, and `pendingProps`/`pendingMapValue`'s tab half (neither
-  carries the column that says a break was crossed).  What survives:
+  carries the column that says a break was crossed).  ~~What survives:
   `dropClose`'s remaining domain — the VALID multi-line scalar tokens at a
-  nonzero index (item 50 refused the renounce events) — which empties when
-  the fold class's readings at `n` reach the flow walkers, and the ~22 `_at nn`
-  punts in `accum_step_block`/`accum_step_content` that consume them.
+  nonzero index~~ — the TOKENS are CLOSED by item 67a, which built the flow
+  plain walk's readings at `n`, carried the stack's floor from the open
+  (`FlowStackK`'s new conjunct, `FlowIndentStable`'s stability) and spent it at
+  the content dispatch's value-completing arm: `SFlowNode_at nn` is gone.  What
+  survives is the leading SEPARATOR (19 `SSeparateLines_at nn`) and the props
+  run's content, and the separator is NOT the same question.  It splits two
+  ways, MEASURED at item 67a:
+
+    * **13 sites are preprocessing's own leading separation**, and the runtime
+      refuses both halves of its under-run in the interior exactly as it does
+      at the open — `k:⏎␣␣-␣[1,⏎␣␣2]` is `underIndentedFlowContent` (the
+      structural dispatch's first check, the `inFlow` one this time) and
+      `k:⏎␣␣-␣[1,⏎␣␣→2]` is `tabInIndentation`.  The run-end half is available
+      now; the TAB half needs `LandingTabFacts`' premise, which is again "the
+      landing crossed a break" — and again the only carrier is a park COLUMN.
+      So this is item 66's boundary a third time, and it closes for all three
+      parks at once when `pendingProps`/`pendingMapValue` gain one.
+    * **6 sites are the `:`-receiving closure's ARGUMENT** — `SSeparateLines 0
+      sp_ne sp_p'` handed in by a LATER step, so nothing at this step can
+      refute it.  It closes by stating `FlowStackK`'s `.value`-tail colon route
+      at `n` instead of at 0, which is a signature change on the invariant's
+      packaged case split, not a refutation.
 
 This is what closes row 12.
 
