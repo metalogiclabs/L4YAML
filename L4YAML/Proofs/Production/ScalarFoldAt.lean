@@ -60,6 +60,36 @@ private lemma foldLoop_indents (s : ScannerState) (cnt fuel : Nat) :
       · rfl
     · rfl
 
+/-- Nor does the plain walk's blank-line skipper. -/
+private lemma skipBlankLines_indents (s : ScannerState) (cnt fuel inputEnd : Nat) :
+    (skipBlankLinesLoop s cnt fuel inputEnd).2.indents = s.indents := by
+  induction fuel generalizing s cnt with
+  | zero => rfl
+  | succ f ih =>
+    unfold skipBlankLinesLoop; dsimp only []
+    split
+    · split
+      · rw [ih, consumeNewline_indents, skipWhitespace_preserves_indents]
+      · rfl
+    · rfl
+
+/-- Nor does the block line-break handler: it consumes a break and skips
+    blanks and whites, none of which touch the indent stack. -/
+private lemma handleBlockLineBreak_indents {s s' : ScannerState} {content content' : String}
+    {contentIndent inputEnd : Nat}
+    (h : collectPlainScalar_handleBlockLineBreak s content contentIndent inputEnd
+         = some (content', s')) : s'.indents = s.indents := by
+  unfold collectPlainScalar_handleBlockLineBreak at h
+  dsimp only [] at h
+  split at h
+  · exact absurd h (by simp)
+  · split at h
+    · exact absurd h (by simp)
+    · simp only [Option.some.injEq, Prod.mk.injEq] at h
+      obtain ⟨-, rfl⟩ := h
+      rw [skipWhitespace_preserves_indents, skipSpaces_preserves_indents,
+          skipBlankLines_indents, consumeNewline_indents]
+
 /-- `skipWhitespace` is the identity where the cursor is not on an `s-white`. -/
 private lemma skipWhitespace_id_of_not_white (s : ScannerState)
     (h : ∀ ch, s.peek? = some ch → isWhiteSpaceBool ch = false) :
@@ -832,19 +862,25 @@ lemma handleBlockLineBreak_prod_at (n : Nat) (sc : ScannerState) (sp : SurfPos) 
           hcorr_ws⟩
   · exact Or.inr trivial
 
-/-- The plain collect loop at `n` (BLOCK context; the flow break keeps the
-    deferral — the flow share's own item consumes it). -/
+/-- The plain collect loop at `n`, in BOTH contexts.  The two line-break arms
+    ask the same question of different floors: the block arm's landing must
+    clear `contentIndent` (the scalar's own), the flow arm's must clear the
+    ENCLOSING block indent (item 50's §8.1 check).  `n` is under both — the
+    caller supplies `n ≤ contentIndent` for one and `n ≤ currentIndent + 1` for
+    the other — so the same `s-flow-line-prefix(n)` split serves each. -/
 lemma collectPlainScalarLoop_prod_at (n : Nat) (sc : ScannerState) (sp : SurfPos)
     (content spaces : String) (fuel : Nat)
     (contentIndent inputEnd : Nat)
-    (sp_ent : SurfPos) (inFlow : Bool)
+    (sp_ent : SurfPos) (inFlow : Bool) (ci : Int)
     (hcorr : ScannerSurfCorr sc sp)
     (h_ws : GStar SSWhite sp_ent sp)
     (h_hash_col : sc.peek? = some '#' → spaces.length = 0 → sc.col > 0)
+    (hci : sc.currentIndent = ci)
     {result : PlainScalarResult}
     (hok : collectPlainScalarLoop sc content spaces fuel inFlow contentIndent inputEnd
            = .ok result)
-    (hn : n ≤ contentIndent) :
+    (hn : n ≤ contentIndent)
+    (hnci : (n : Int) ≤ max 0 (ci + 1)) :
     (∃ sp_entries sp_next sp_trail,
       GStar (SNbNsPlainInLineEntry (ctxOfInFlow inFlow)) sp_ent sp_entries ∧
       GStar (SSNsPlainNextLine n (ctxOfInFlow inFlow)) sp_entries sp_next ∧
@@ -873,8 +909,67 @@ lemma collectPlainScalarLoop_prod_at (n : Nat) (sc : ScannerState) (sp : SurfPos
         split at hok
         · -- line break
           split at hok
-          · -- inFlow = true: the flow share's own item consumes this.
-            exact Or.inr trivial
+          · -- inFlow = true: the fold's reading at `n` (§3); the landing that
+            -- under-runs is refused by this loop's OWN §8.1 check (item 50's).
+            simp only [bind, Except.bind] at hok
+            split at hok
+            · exact absurd hok (by simp)
+            · rename_i fold_result hfold
+              split at hok
+              · -- a `#` on the landing ends the walk before the fold
+                have h := Except.ok.inj hok; subst h
+                exact Or.inl ⟨sp_ent, sp_ent, ⟨c :: rest, sc.col⟩, GStar.nil _,
+                  GStar.nil _, h_ws, hcorr⟩
+              · rename_i hnothash
+                have hci_fold : fold_result.2.currentIndent = ci := by
+                  rw [← hci]
+                  exact currentIndent_of_indents_eq
+                    (L4YAML.Proofs.EmitterScannability.foldQuotedNewlines_preserves_indents
+                      sc fold_result hfold)
+                split at hok
+                · exact absurd hok (by simp)
+                · rename_i h_not_under
+                  generalize h_loop : collectPlainScalarLoop fold_result.2
+                      (content ++ fold_result.1) "" fuel' inFlow contentIndent inputEnd
+                      = cont_result at hok
+                  cases cont_result with
+                  | error e => simp at hok
+                  | ok inner_result =>
+                    dsimp only [] at hok
+                    split at hok
+                    · have h := Except.ok.inj hok; subst h
+                      exact Or.inl ⟨sp_ent, sp_ent, ⟨c :: rest, sc.col⟩, GStar.nil _,
+                        GStar.nil _, h_ws, hcorr⟩
+                    · have h_eq := Except.ok.inj hok; subst h_eq
+                      have hlb : isLineBreakBool c = true := by assumption
+                      rcases foldQuotedNewlines_prod_at n sc ⟨c :: rest, sc.col⟩ c
+                          hcorr hpeek hlb hfold (by rw [hci]; exact hnci) with
+                        ⟨sp₁, sp₂, sp_fold, h_sbreak, h_gstar_empty, h_flp, hcorr_fold⟩
+                        | h_under
+                      · rcases ih fold_result.2 sp_fold (content ++ fold_result.1) ""
+                            sp_fold hcorr_fold (GStar.nil _)
+                            (fun hpk _ => absurd hpk hnothash) hci_fold h_loop with
+                          ⟨sp_entries_ih, sp_next_ih, sp_trail_ih,
+                           h_entries_ih, h_next_ih, h_ws_ih, hcorr_ih⟩ | _
+                        · exact Or.inl ⟨sp_ent, sp_next_ih, sp_trail_ih,
+                            GStar.nil _,
+                            GStar.cons sp_ent sp_entries_ih sp_next_ih
+                              (SSNsPlainNextLine.mk n (ctxOfInFlow inFlow)
+                                sp_ent ⟨c :: rest, sc.col⟩ sp₁ sp₂ sp_fold sp_entries_ih
+                                h_ws h_sbreak h_gstar_empty h_flp h_entries_ih)
+                              h_next_ih,
+                            h_ws_ih, hcorr_ih⟩
+                        · exact Or.inr trivial
+                      · -- item 50's §8.1 check: the fold's under-floor landing is
+                        -- exactly what this branch's own guard refuses.
+                        exfalso
+                        refine h_not_under ?_
+                        have h1 : (fold_result.2.col : Int) ≤ fold_result.2.currentIndent := by
+                          rw [hci_fold, ← hci]; exact h_under
+                        have h2 : fold_result.2.currentIndent ≥ 0 := by
+                          have : (0 : Int) ≤ (fold_result.2.col : Int) := Int.natCast_nonneg _
+                          omega
+                        simp [h1, h2]
           · -- inFlow = false: block line break at `n`
             split at hok
             · have h := Except.ok.inj hok; subst h
@@ -901,7 +996,11 @@ lemma collectPlainScalarLoop_prod_at (n : Nat) (sc : ScannerState) (sp : SurfPos
                         contentIndent inputEnd hcorr hpeek hlb hblk hn with
                       ⟨sp₁, sp₂, sp_fold, h_sbreak, h_gstar_empty, h_flp, hcorr_fold⟩ | _
                     · rcases ih s' sp_fold content' "" sp_fold hcorr_fold (GStar.nil _)
-                          (fun hpk _ => absurd hpk hblkpeek) h_loop with
+                          (fun hpk _ => absurd hpk hblkpeek)
+                          (by rw [← hci]
+                              exact currentIndent_of_indents_eq
+                                (handleBlockLineBreak_indents hblk))
+                          h_loop with
                         ⟨sp_entries_ih, sp_next_ih, sp_trail_ih,
                          h_entries_ih, h_next_ih, h_ws_ih, hcorr_ih⟩ | _
                       · exact Or.inl ⟨sp_ent, sp_next_ih, sp_trail_ih,
@@ -930,6 +1029,7 @@ lemma collectPlainScalarLoop_prod_at (n : Nat) (sc : ScannerState) (sp : SurfPos
             exact ih sc.advance ⟨rest, sc.col + 1⟩ content (spaces.push c) sp_ent
               hcorr_adv (gstar_sswhite_append h_ws (GStar.cons _ _ _ hw (GStar.nil _)))
               (fun _ hlen => by simp [String.length_push] at hlen)
+              (by rw [← hci]; exact currentIndent_of_indents_eq (advance_indents sc))
               hok
           · split at hok
             · have h := Except.ok.inj hok; subst h
@@ -986,6 +1086,7 @@ lemma collectPlainScalarLoop_prod_at (n : Nat) (sc : ScannerState) (sp : SurfPos
                   (fun _ _ => by
                     have h : sc.col + 1 = sc.advance.col := hcorr_adv.col_eq
                     omega)
+                  (by rw [← hci]; exact currentIndent_of_indents_eq (advance_indents sc))
                   hok with
                 ⟨sp_entries, sp_next, sp_trail, h_ent_rest, h_next_rest,
                  h_ws_rest, hcorr_rest⟩ | _
@@ -1051,11 +1152,13 @@ lemma scanPlainScalar_to_flowNode_at (n : Nat) (sc : ScannerState) (sp : SurfPos
       rw [hinflow]; rfl
     rw [hci_eq] at hloop'
     rcases collectPlainScalarLoop_prod_at n sc.advance ⟨rest, sc.col + 1⟩ _ "" _ _ _
-        ⟨rest, sc.col + 1⟩ sc.inFlow hcorr_adv (GStar.nil _)
+        ⟨rest, sc.col + 1⟩ sc.inFlow sc.currentIndent hcorr_adv (GStar.nil _)
         (fun _ _ => by
           have h : sc.col + 1 = sc.advance.col := hcorr_adv.col_eq
           omega)
-        hloop' hn with
+        (currentIndent_of_indents_eq (advance_indents sc))
+        hloop' hn
+        (by unfold minContentIndentOf at hn; omega) with
       ⟨sp_entries, sp_next, sp_trail, h_entries, h_next_lines, h_trail, hcorr_result⟩ | _
     · exact Or.inl ⟨sp_next, sp_trail,
         SFlowNode.content n .flowOut _ _
@@ -1069,6 +1172,110 @@ lemma scanPlainScalar_to_flowNode_at (n : Nat) (sc : ScannerState) (sp : SurfPos
         corr_of_simpleKeyAllowed_needIndentCheck_update false false
           (corr_of_emitAt _ _ hcorr_result)⟩
     · exact Or.inr trivial
+
+/-- **`scanPlainScalar` reads at `n` INSIDE a flow collection** — the flow
+    share item 45 deferred and item 50 gave its check.
+
+    Two floors, one conclusion.  The walk measures its continuation lines
+    against the enclosing BLOCK indent (`currentIndent`), not against its own
+    start column, so `n ≤ currentIndent + 1` is what makes every landing clear
+    `s-indent(n)`.  The scalar's own `contentIndent` is `sc.col`, which the
+    interior's structural check has already put past `currentIndent`
+    (`hcol`) — that is the whole use of the second hypothesis. -/
+lemma scanPlainScalar_to_flowNode_flowIn_at (n : Nat) (sc : ScannerState) (sp : SurfPos)
+    {s' : ScannerState} {c : Char}
+    (hcorr : ScannerSurfCorr sc sp)
+    (hpeek : sc.peek? = some c)
+    (hstart : canStartPlainScalarBool c (sc.peekAt? 1) sc.inFlow = true)
+    (h_not_doc : sc.col = 0 → atDocumentBoundary sc = false)
+    (hok : scanPlainScalar sc = .ok s')
+    (hinflow : sc.inFlow = true)
+    (hcol : sc.currentIndent < (sc.col : Int))
+    (hn : (n : Int) ≤ max 0 (sc.currentIndent + 1)) :
+    (∃ sp_gram sp', SFlowNode n .flowIn sp sp_gram ∧
+                    GStar SSWhite sp_gram sp' ∧
+                    ScannerSurfCorr s' sp') ∨ True := by
+  obtain ⟨rest, hsp_eq⟩ := peek_some_sp hcorr hpeek
+  have hrest_head : ∀ m, sc.peekAt? 1 = some m → ∃ rest', rest = m :: rest' := by
+    intro m hm; unfold ScannerState.peekAt? at hm
+    have hcorr' := hsp_eq ▸ hcorr
+    obtain ⟨pre, rest', hcs, hlen⟩ :=
+      peekAtLoop_some_chars hcorr'.end_eq hm (c :: rest) hcorr'.chars_from
+    have ⟨a, ha⟩ : ∃ a, pre = [a] := by
+      cases pre with
+      | nil => simp at hlen
+      | cons a as => cases as with
+        | nil => exact ⟨a, rfl⟩
+        | cons => simp at hlen
+    subst ha; simp at hcs; obtain ⟨_, rfl⟩ := hcs; exact ⟨rest', rfl⟩
+  rw [hsp_eq]; rw [hsp_eq] at hcorr
+  have h_first : SNsPlainFirst (ctxOfInFlow sc.inFlow) ⟨c :: rest, sc.col⟩ ⟨rest, sc.col + 1⟩ :=
+    canStartPlainScalar_to_SNsPlainFirst c rest sc.col (sc.peekAt? 1) sc.inFlow hstart hrest_head
+  unfold scanPlainScalar at hok
+  simp only [bind, Except.bind] at hok
+  split at hok
+  · simp at hok
+  · rename_i result hloop
+    simp only [Except.ok.injEq] at hok; subst hok
+    have h_term_none := canStartPlain_first_not_terminates c sc sc.inFlow hstart h_not_doc
+    have h_safe := canStartPlain_implies_safe hstart
+    have h_nws := canStartPlainScalar_not_ws hstart
+    have h_nlb := canStartPlain_not_linebreak hstart
+    have h_has_more := peek_some_has_more hpeek
+    obtain ⟨fuel', h_fuel_eq⟩ : ∃ m, (sc.inputEnd - sc.offset + 1) * 2 = m + 1 :=
+      ⟨(sc.inputEnd - sc.offset + 1) * 2 - 1, by omega⟩
+    rw [h_fuel_eq] at hloop
+    have hloop' := collectPlainScalarLoop_content_first_step
+      hpeek h_term_none h_nlb h_nws h_safe hloop
+    have hcorr_adv := advance_non_newline_corr sc c rest hcorr h_has_more
+      (isPlainSafe_not_newline h_safe).1 (isPlainSafe_not_newline h_safe).2
+    have hci_eq : (if sc.inFlow then sc.col else (max 0 (sc.currentIndent + 1)).toNat)
+        = sc.col := by rw [hinflow]; rfl
+    rw [hci_eq] at hloop'
+    rcases collectPlainScalarLoop_prod_at n sc.advance ⟨rest, sc.col + 1⟩ _ "" _ _ _
+        ⟨rest, sc.col + 1⟩ sc.inFlow sc.currentIndent hcorr_adv (GStar.nil _)
+        (fun _ _ => by
+          have h : sc.col + 1 = sc.advance.col := hcorr_adv.col_eq
+          omega)
+        (currentIndent_of_indents_eq (advance_indents sc))
+        hloop' (by omega) hn with
+      ⟨sp_entries, sp_next, sp_trail, h_entries, h_next_lines, h_trail, hcorr_result⟩ | _
+    · have h_ml : SNsPlainMultiLine n (ctxOfInFlow sc.inFlow) ⟨c :: rest, sc.col⟩ sp_next :=
+        SNsPlainMultiLine.mk n (ctxOfInFlow sc.inFlow) _ _ sp_next
+          (SNsPlainOneLine.mk (ctxOfInFlow sc.inFlow) _ ⟨rest, sc.col + 1⟩ sp_entries
+            h_first h_entries)
+          h_next_lines
+      rw [hinflow] at h_ml
+      exact Or.inl ⟨sp_next, sp_trail,
+        SFlowNode.content n .flowIn _ _ (SFlowContent.plain n .flowIn _ _ h_ml),
+        h_trail,
+        corr_of_simpleKeyAllowed_needIndentCheck_update false false
+          (corr_of_emitAt _ _ hcorr_result)⟩
+    · exact Or.inr trivial
+
+/-- The CONTENT-level face of `scanPlainScalar_to_flowNode_flowIn_at` (what a
+    held props run inside a flow collection decorates). -/
+lemma scanPlainScalar_to_flowContent_flowIn_at (n : Nat) (sc : ScannerState) (sp : SurfPos)
+    {s' : ScannerState} {c : Char}
+    (hcorr : ScannerSurfCorr sc sp)
+    (hpeek : sc.peek? = some c)
+    (hstart : canStartPlainScalarBool c (sc.peekAt? 1) sc.inFlow = true)
+    (h_not_doc : sc.col = 0 → atDocumentBoundary sc = false)
+    (hok : scanPlainScalar sc = .ok s')
+    (hinflow : sc.inFlow = true)
+    (hcol : sc.currentIndent < (sc.col : Int))
+    (hn : (n : Int) ≤ max 0 (sc.currentIndent + 1)) :
+    (∃ sp_gram sp', SFlowContent n .flowIn sp sp_gram ∧
+                    GStar SSWhite sp_gram sp' ∧
+                    ScannerSurfCorr s' sp') ∨ True := by
+  rcases scanPlainScalar_to_flowNode_flowIn_at n sc sp hcorr hpeek hstart h_not_doc hok
+      hinflow hcol hn with ⟨sp_gram, sp', h_node, h_tws, hcorr'⟩ | _
+  · cases h_node with
+    | content _ _ _ _ h_content => exact Or.inl ⟨sp_gram, sp', h_content, h_tws, hcorr'⟩
+    | alias => exact Or.inr trivial
+    | propsContent => exact Or.inr trivial
+    | propsEmpty => exact Or.inr trivial
+  · exact Or.inr trivial
 
 /-- The CONTENT-level face of `scanPlainScalar_to_flowNode_at` (what a held
     props run decorates — `SFlowNode.propsContent` wraps content). -/

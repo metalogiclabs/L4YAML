@@ -17,6 +17,7 @@ import L4YAML.Proofs.Scanner.LineOpenGuard
 import L4YAML.Proofs.Scanner.PropsRunLineCoupling
 import L4YAML.Proofs.Scanner.BlockScalarIndentFloor
 import L4YAML.Proofs.Scanner.PreprocessIndentStable
+import L4YAML.Proofs.Scanner.FlowIndentStable
 import L4YAML.Proofs.Coupling.TabIndentBridge
 import L4YAML.Proofs.Production.FlowIndexLift
 import L4YAML.Proofs.Production.ScalarFoldAt
@@ -2391,6 +2392,7 @@ def FlowStackK (sp_start : SurfPos) (sc : ScannerState) (fl : Nat) (ks : Array B
     (tl : FrameTail) (sp_block sp_flow : SurfPos) : Prop :=
   ∃ n km, FlowStackB sp_start n fl ks km tl sp_block sp_flow ∧
     ks.size = fl ∧
+    (n ≤ minContentIndentOf sc ∨ True) ∧
     (0 < fl → KmSound sc km ∧
       (tl = .value → KeyAfterValueLayout sc ∨
         ∀ sp_prep sp_tok, SSeparateLines 0 sp_flow sp_prep →
@@ -2400,14 +2402,25 @@ def FlowStackK (sp_start : SurfPos) (sc : ScannerState) (fl : Nat) (ks : Array B
 /-- The depth-0 `FlowStackK`: `nil` with an empty mask and vacuous couplings. -/
 lemma FlowStackK.nil (sp_start : SurfPos) (sc : ScannerState) (sp : SurfPos)
     (tl : FrameTail) : FlowStackK sp_start sc 0 #[] tl sp sp :=
-  ⟨0, #[], FlowStackB.nil sp tl, rfl, fun h => absurd h (by omega)⟩
+  ⟨0, #[], FlowStackB.nil sp tl, rfl, Or.inl (Nat.zero_le _), fun h => absurd h (by omega)⟩
 
 /-- Re-index a depth-0 `FlowStackK` at any frame tail. -/
 lemma FlowStackK.retail {sp_start : SurfPos} {sc : ScannerState} {ks : Array Bool}
     {tl tl' : FrameTail} {a b : SurfPos} (h : FlowStackK sp_start sc 0 ks tl a b) :
     FlowStackK sp_start sc 0 ks tl' a b := by
-  obtain ⟨nn, km, h_b, hsz, -⟩ := h
-  exact ⟨nn, km, h_b.retail, hsz, fun h => absurd h (by omega)⟩
+  obtain ⟨nn, km, h_b, hsz, h_fl, -⟩ := h
+  exact ⟨nn, km, h_b.retail, hsz, h_fl, fun h => absurd h (by omega)⟩
+
+/-- **The flow stack's floor, transported** (item 67).  A step that leaves the
+    indent stack alone carries the reading index's floor forward unchanged —
+    and inside a flow every step does, which is what `FlowIndentStable` says
+    once per dispatcher.  A stack that never had a floor still has none: the
+    conjunct is `∨ True` for the same reason `IndentFloor` is (R645/R646), so
+    a park that could not measure costs a field value and not a call site. -/
+lemma flowFloor_transport {n : Nat} {sc s' : ScannerState}
+    (h : n ≤ minContentIndentOf sc ∨ True) (h_ind : s'.indents = sc.indents) :
+    n ≤ minContentIndentOf s' ∨ True :=
+  h.imp (fun hle => by rw [minContentIndentOf_congr h_ind]; exact hle) id
 
 /-- The one place the flow share of the escape now spends `scannerDrop`
     (item 46): the close a collapsed stack carries.  The gap constructor
@@ -2424,7 +2437,7 @@ lemma FlowStackK.collapse {sp_start : SurfPos} {sc : ScannerState} {fl : Nat}
     (hd : 1 ≤ fl) (hsz : ks.size = fl) (h_km : KmSound sc km)
     (close : ∀ sp_e sp_m, SSLComments sp_e sp_m → SLYamlStream sp_start sp_m) :
     FlowStackK sp_start sc fl ks tl sp_block sp_cur :=
-  ⟨0, km, .shape fl ks km tl sp_block sp_cur hd close, hsz,
+  ⟨0, km, .shape fl ks km tl sp_block sp_cur hd close, hsz, Or.inl (Nat.zero_le _),
    fun _ => ⟨h_km, fun _ => Or.inr (fun _ sp_tok _ _ =>
      .shape fl ks km .colon sp_block sp_tok hd close)⟩⟩
 
@@ -4242,7 +4255,7 @@ lemma accum_step_structural (sc : ScannerState)
         InteriorGap s' (tailOf s'.tokens) sp_flow' sp_scan' ∧
           LastTokenReal s'.tokens ∧ s'.allowDirectives = false) := by
   -- B.4β: the flow stack is indexed by the scanner's `flowLevel`.
-  obtain ⟨nn, km, h_flow, h_ksz, h_kprom⟩ := h_flowK
+  obtain ⟨nn, km, h_flow, h_ksz, h_floorK, h_kprom⟩ := h_flowK
   rcases Nat.eq_zero_or_pos sc.flowLevel with h0 | hpos
   · -- depth 0 (no open flow collection): the existing depth-0 proof.
     rw [h0] at h_flow
@@ -4258,7 +4271,7 @@ lemma accum_step_structural (sc : ScannerState)
       accum_structural_pending sc sp_start sp_flow sp_scan s_prep s' c
         (absorb_stacksB sp_start sp_gram sp_block sp_flow h_stream h_stack h_flow)
         (h_pending h0) h_dir_flag h_corr h_preprocess h_dispatch
-    exact ⟨g', bl', fl', sn', b', q1, q2, ⟨0, #[], q3.retail, rfl, fun h => absurd h (by omega)⟩,
+    exact ⟨g', bl', fl', sn', b', q1, q2, ⟨0, #[], q3.retail, rfl, Or.inl (Nat.zero_le _), fun h => absurd h (by omega)⟩,
            fun _ => q4, q5, q6, fun h => absurd h (by omega)⟩
   · -- ═══ DEPTH ≥ 1: VACUOUS. ═══
     -- `scanNextToken_dispatchStructural` has no success arm inside a flow; see
@@ -5620,6 +5633,62 @@ lemma flowOpen_underRunTab_refuted {sc s_prep : ScannerState} {c : Char} {n j : 
     injection h with h
     rcases h_c with rfl | rfl <;> cases h
 
+/-- A white run only moves right. -/
+lemma gstar_white_col_le {sp sp' : SurfPos} (h : GStar SSWhite sp sp') :
+    sp.col ≤ sp'.col := by
+  induction h with
+  | nil => exact Nat.le_refl _
+  | cons _ _ _ hw _ ih =>
+    cases hw with
+    | space _ col => exact Nat.le_trans (Nat.le_succ col) ih
+    | tab _ col => exact Nat.le_trans (Nat.le_succ col) ih
+
+/-- …and so does `[66] s-separate-in-line`, whose other alternative is
+    zero-width. -/
+lemma separateInLine_col_le {sp sp' : SurfPos} (h : SSeparateInLine sp sp') :
+    sp.col ≤ sp'.col := gstar_white_col_le (sSeparateInLine_to_gstar h)
+
+/-- **A `[70] s-separate-lines(n)` that STARTS at or past `n` ends there too.**
+    The inline arm only walks right on the line; the commented arm's own
+    `[63] s-indent(n)` puts the landing at `n` and the rest is whites.  This is
+    what lets item 60's landing floor be spent at the flow open, where the
+    separator is in hand but the landing's column is not. -/
+lemma separateLines_col_ge {n : Nat} {sp sp' : SurfPos}
+    (h : SSeparateLines n sp sp') (h_start : n ≤ sp.col) : n ≤ sp'.col := by
+  cases h with
+  | inline _ h_il => exact Nat.le_trans h_start (separateInLine_col_le h_il)
+  | commented _ _ _ h_flp =>
+    cases h_flp with
+    | mk sx _ h_ind h_opt =>
+      have h1 : n ≤ sx.col := by have := SIndent_col' h_ind; omega
+      cases h_opt with
+      | none => exact h1
+      | some _ h_il => exact Nat.le_trans h1 (separateInLine_col_le h_il)
+
+/-- **The flow open's floor** (item 67).  The stack the open pushes reads at
+    the pending's index for the whole collection, so the index has to still
+    measure against the state the OPEN runs at — one preprocessing step past
+    the park.  Item 60's `preprocess_some_floor_at_landing` is the whole
+    argument: either nothing was popped, or the landing's own column is what
+    preprocessing's trailing-content check let through, and the separator the
+    open already holds is where that column comes from.
+
+    `h_start` is the park's own column, which is why this is available at a
+    `pendingBlock` (item 59 put it on the constructor) and not yet at the two
+    parks that carry no column — the same boundary item 66 measured. -/
+lemma flowOpen_floor_at_prep {n : Nat} {sc s_prep : ScannerState} {c : Char}
+    {sp sp_prep : SurfPos}
+    (hcorr_prep : ScannerSurfCorr s_prep sp_prep)
+    (hok : scanNextToken_preprocess sc = .ok (some (s_prep, c)))
+    (h_sep : SSeparateLines n sp sp_prep)
+    (h_start : n ≤ sp.col)
+    (h_floor : IndentFloor sc n ∨ True) :
+    n ≤ minContentIndentOf s_prep ∨ True := by
+  rcases h_floor with ⟨-, h_le⟩ | _
+  · exact Or.inl (preprocess_some_floor_at_landing hok h_le
+      (by rw [← hcorr_prep.col_eq]; exact separateLines_col_ge h_sep h_start))
+  · exact Or.inr trivial
+
 lemma accum_flow_open_depth0 (sc : ScannerState)
     (sp_start sp_gram sp_block sp_scan sp_prep sp_open : SurfPos)
     (s_prep s' : ScannerState) (c : Char)
@@ -5647,6 +5716,9 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
     (h_bfi : scanNextToken_checkBlockFlowIndent (if s_prep.allowDirectives then
           { s_prep with allowDirectives := false, documentEverStarted := true }
         else s_prep) c = .ok ())
+    -- Item 67: the open writes no indent (`[137]`/`[140]` are not block
+    -- structure), which is what carries the pending's floor onto the stack.
+    (h_ind' : s'.indents = s_prep.indents)
     (mk : ∀ (n : Nat) (sp_before : SurfPos), FlowBaseRoutes sp_start n sp_prep →
         FlowStackB sp_start n 1 s'.flowStack #[false] (tailOf s'.tokens) sp_before sp_open) :
     ∃ sp_gram' sp_block' sp_flow' sp_scan',
@@ -5672,10 +5744,24 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
     · have h0 : i = 0 := by simp at hi; omega
       subst h0
       exact absurd hb (by simp)
-  have h_kpkg : ∀ (n : Nat) sp_b sp_f, FlowStackB sp_start n 1 s'.flowStack #[false]
+  -- Item 67: the OPEN is where the flow stack's index gets its floor.  The
+  -- pending's own measurement is the only source, so a park that hands `True`
+  -- opens a stack whose interior cannot read a multi-line token at `n` — the
+  -- deferral narrows to those parks rather than to the whole open.
+  have h_kpkg : ∀ (n : Nat) sp_b sp_f, (n ≤ minContentIndentOf s' ∨ True) →
+      FlowStackB sp_start n 1 s'.flowStack #[false]
       (tailOf s'.tokens) sp_b sp_f →
       FlowStackK sp_start s' 1 s'.flowStack (tailOf s'.tokens) sp_b sp_f :=
-    fun n _ _ h_b => ⟨n, #[false], h_b, h_ks1, fun _ => ⟨h_km0, fun hv => absurd hv h_nv⟩⟩
+    fun n _ _ hfl h_b =>
+      ⟨n, #[false], h_b, h_ks1, hfl, fun _ => ⟨h_km0, fun hv => absurd hv h_nv⟩⟩
+  -- Item 67: the pending's floor, carried onto the stack the open pushes.  It
+  -- needs the park's own COLUMN (`h_start`) — the separator alone cannot say
+  -- the landing reached `k` — so it is available exactly where item 59 put one.
+  have openFloor : ∀ {k : Nat}, SSeparateLines k sp_scan sp_prep → k ≤ sp_scan.col →
+      (IndentFloor sc k ∨ True) → (k ≤ minContentIndentOf s' ∨ True) :=
+    fun h_sep h_start h_fl =>
+      flowFloor_transport
+        (flowOpen_floor_at_prep hcorr_prep h_preprocess h_sep h_start h_fl) h_ind'
   have h_stream_block : SLYamlStream sp_start sp_block :=
     absorb_stacksB sp_start sp_gram sp_block sp_block h_stream h_stack (FlowStackB.nil (n := 0) sp_block .sep)
   have h_close_pending : ∀ sp_mid, SSLComments sp_scan sp_mid → SLYamlStream sp_start sp_mid :=
@@ -5729,7 +5815,7 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
       ⟨sp_mid, h_ssl, hws⟩ | ⟨hcol, hws⟩
     · have h_stream_mid : SLYamlStream sp_start sp_mid := h_close sp_mid h_ssl
       exact ⟨sp_mid, sp_mid, sp_open, sp_open, h_stream_mid, BlockStack.nil sp_mid,
-             h_kpkg _ _ _ (mk 0 sp_mid ⟨topLevelFlowResumeSep h_stream_mid
+             h_kpkg _ _ _ (Or.inl (Nat.zero_le _)) (mk 0 sp_mid ⟨topLevelFlowResumeSep h_stream_mid
                (SSeparateLines.inline 0 sp_mid sp_prep
                  (GStar_SSWhite_to_SSeparateInLine sp_mid sp_prep hws)),
                -- Item 56: the fresh document's root entry, when the collection
@@ -5772,7 +5858,7 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
           InteriorGap s' (tailOf s'.tokens) sp_flow' sp_scan' ∧
           LastTokenReal s'.tokens ∧ s'.allowDirectives = false) :=
     ⟨sp_block, sp_block, sp_open, sp_open, h_stream_block, BlockStack.nil _,
-     h_kpkg _ _ _ (mkv 0 sp_block (fun sp_ne sp_m _ h_ssl =>
+     h_kpkg _ _ _ (Or.inl (Nat.zero_le _)) (mkv 0 sp_block (fun sp_ne sp_m _ h_ssl =>
        dropClose h_stream_block sp_ne sp_m h_ssl)),
      PendingNode.noPending sp_start sp_open (Or.inr (inFlow_of_flowLevel_eq h_fl1)), hcorr_open,
      fun _ => ⟨.white (GStar.nil _) h_sync h_colon, h_real, h_ad⟩⟩
@@ -5801,7 +5887,7 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
     have h_col0 := h_col.resolve_right
       (show ¬ sc.inFlow = true by unfold ScannerState.inFlow; rw [h_fl0]; simp)
     exact ⟨_, _, sp_open, sp_open, h_stream_block, BlockStack.nil _,
-           h_kpkg _ _ _ (mk 0 _ ⟨topLevelFlowResumeSep h_stream_block h_sep,
+           h_kpkg _ _ _ (Or.inl (Nat.zero_le _)) (mk 0 _ ⟨topLevelFlowResumeSep h_stream_block h_sep,
              flowKeyRoute_of_root (Or.inl h_col0) h_close_pending h_corr hcorr_prep h_preprocess,
              Or.inr trivial⟩),
            PendingNode.noPending sp_start sp_open (Or.inr (inFlow_of_flowLevel_eq h_fl1)), hcorr_open, fun _ => ⟨.white (GStar.nil _) h_sync h_colon, h_real, h_ad⟩⟩
@@ -5837,7 +5923,7 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
     rw [h_pe] at h_sep_or
     rcases h_sep_or with h_sep | ⟨sp_mid2, _h_ssl2, h_col02, h_ur, _h_ltsl2⟩
     · exact ⟨sp_gram, sp_block, sp_open, sp_open, h_stream, h_stack,
-             h_kpkg _ _ _ (mk n sp_block ⟨(fun sp_ne sp_m h_content h_ssl =>
+             h_kpkg _ _ _ (Or.inr trivial) (mk n sp_block ⟨(fun sp_ne sp_m h_content h_ssl =>
                h_route sp_m (flowInBlock_blockNode h_sep_run
                  (SFlowNode.propsContent n .flowOut sp_p sp_scan sp_prep sp_ne
                    h_run.toProperties h_sep h_content) h_ssl)),
@@ -5886,7 +5972,7 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
             (h_doc_builder sp (GAlt.left sp_scan sp (SLBareDocument.mk sp_scan sp h_node))))
           (GStar.nil _)
     exact ⟨sp_block, sp_block, sp_open, sp_open, h_stream_block, BlockStack.nil sp_block,
-           h_kpkg _ _ _ (mk 0 sp_block ⟨(fun sp_ne sp_m h_content h_ssl =>
+           h_kpkg _ _ _ (Or.inl (Nat.zero_le _)) (mk 0 sp_block ⟨(fun sp_ne sp_m h_content h_ssl =>
              h_docnode sp_m (SBlockNode.flowInBlock 0 .blockIn sp_scan sp_prep sp_ne sp_m
                h_sep (SFlowNode.content _ _ _ _ h_content) h_ssl)),
              -- `--- [1]: b` on the marker's own line is scan-refused ("unexpected
@@ -5910,7 +5996,7 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
     rw [h_pe] at h_sep_or
     rcases h_sep_or with h_sep | ⟨sp_mid2, _h_ssl2, h_col02, h_ur, h_ltsl2⟩
     · exact ⟨sp_gram, sp_block, sp_open, sp_open, h_stream, h_stack,
-             h_kpkg _ _ _ (mk n_old sp_block ⟨(fun sp_ne sp_m h_content h_ssl =>
+             h_kpkg _ _ _ (openFloor h_sep (by omega) h_floor_old) (mk n_old sp_block ⟨(fun sp_ne sp_m h_content h_ssl =>
                h_close sp_m (SBlockIndented.node n_old .blockIn sp_scan sp_m
                  (SBlockNode.flowInBlock n_old .blockIn sp_scan sp_prep sp_ne sp_m
                    h_sep (SFlowNode.content _ _ _ _ h_content) h_ssl))),
@@ -5939,7 +6025,7 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
     rw [h_pe] at h_sep_or
     rcases h_sep_or with h_sep | ⟨sp_mid2, _h_ssl2, h_col02, h_ur, _h_ltsl2⟩
     · exact ⟨sp_gram, sp_block, sp_open, sp_open, h_stream, h_stack,
-             h_kpkg _ _ _ (mk n_old sp_block ⟨(fun sp_ne sp_m h_content h_ssl =>
+             h_kpkg _ _ _ (Or.inr trivial) (mk n_old sp_block ⟨(fun sp_ne sp_m h_content h_ssl =>
                h_close sp_m (SBlockNode.flowInBlock n_old .blockIn sp_scan sp_prep sp_ne sp_m
                  h_sep (SFlowNode.content _ _ _ _ h_content) h_ssl)),
                -- Item 56: `k:⏎  [1]: b` — the mapping the key opens nests in the
@@ -7260,7 +7346,7 @@ lemma accum_step_flow (sc : ScannerState)
   --
   -- The dispatch runs on `s_ad` = the allowDirectives-updated preprocessed state,
   -- whose `flowLevel` equals `sc.flowLevel`.
-  obtain ⟨nn, km, h_flow, h_ksz, h_kprom⟩ := h_flowK
+  obtain ⟨nn, km, h_flow, h_ksz, h_floorK, h_kprom⟩ := h_flowK
   rcases Nat.eq_zero_or_pos sc.flowLevel with h0 | hpos
   · -- ═══ DEPTH 0 (no flow open): only `[`/`{` reach `.ok (some s')`; the closing
     -- and separator indicators error at `flowLevel = 0`. ═══
@@ -7319,6 +7405,8 @@ lemma accum_step_flow (sc : ScannerState)
                 ScannerCorrectness.advance_preserves_simpleKeyStack, Array.size_push]
               omega)
           (Or.inl rfl) h0 h_bfi
+          (by rw [L4YAML.Proofs.EmitterScannability.scanFlowSequenceStart_preserves_indents,
+                  allowDirectives_update_indents])
           (fun _ _ resume => by
             rw [ScannerFlowCollection.scanFlowSequenceStart_pushes_true, h_ad_ks0,
                 (tailOf_scanFlowSequenceStart _).1,
@@ -7363,6 +7451,8 @@ lemma accum_step_flow (sc : ScannerState)
                     ScannerCorrectness.advance_preserves_simpleKeyStack, Array.size_push]
                   omega)
               (Or.inr rfl) h0 h_bfi
+              (by rw [L4YAML.Proofs.EmitterScannability.scanFlowMappingStart_preserves_indents,
+                      allowDirectives_update_indents])
               (fun _ _ resume => by
                 rw [ScannerFlowCollection.scanFlowMappingStart_pushes_false, h_ad_ks0,
                     (tailOf_scanFlowMappingStart _).1,
@@ -7388,6 +7478,17 @@ lemma accum_step_flow (sc : ScannerState)
     -- `sc.flowStack` kind coupling).
     obtain ⟨d, hd⟩ : ∃ d, sc.flowLevel = d + 1 := ⟨sc.flowLevel - 1, by omega⟩
     have h_real_sc : LastTokenReal sc.tokens := (h_interior hpos).2.1
+    -- Item 67: the stack's reading index still measures against the state this
+    -- step ends at, because inside a flow NOTHING writes the indent stack —
+    -- §6.1's unwind and both `[183]`/`[187]` pushes are `!inFlow`-guarded
+    -- (`FlowIndentStable`).  So the floor the OPEN put on the stack is the
+    -- floor the interior reads its multi-line tokens at.
+    have h_sc_inflow : sc.inFlow = true := inFlow_of_flowLevel_eq hd
+    have h_floorK' : nn ≤ minContentIndentOf s' ∨ True :=
+      flowFloor_transport h_floorK (by
+        rw [FlowIndentStable.dispatchFlowIndicators_preserves_indents h_dispatch,
+            allowDirectives_update_indents,
+            FlowIndentStable.preprocess_indents_of_inFlow h_sc_inflow h_preprocess])
     -- β.3: the accumulation's flow endpoint may sit BEHIND the scanner cursor —
     -- a whitespace run (a flow-interior plain scalar ends its production before
     -- the whitespace `collectPlainScalarLoop` then consumes) or a held property
@@ -7523,7 +7624,8 @@ lemma accum_step_flow (sc : ScannerState)
                     exact Array.eq_empty_of_size_eq_zero hsz0
                   rw [h_ks_nil]
                   exact ⟨sp_gram, sp_block, sp_block, sp_tok, h_stream, h_stack,
-                    ⟨0, #[], FlowStackB.nil sp_block _, rfl, fun h => absurd h (by omega)⟩,
+                    ⟨0, #[], FlowStackB.nil sp_block _, rfl, Or.inl (Nat.zero_le _),
+                     fun h => absurd h (by omega)⟩,
                     (fun _ => PendingNode.pendingContent sp_start sp_block sp_tok
                       (Or.inr ((restNodeStop_of_validateFlowClose hcorr_tok.end_eq
                         (by rw [h_fl']) hval).to_surface hcorr_tok))
@@ -7596,7 +7698,8 @@ lemma accum_step_flow (sc : ScannerState)
                         exact Array.eq_empty_of_size_eq_zero hsz0
                       rw [h_ks_nil]
                       exact ⟨sp_gram, sp_block, sp_block, sp_tok, h_stream, h_stack,
-                        ⟨0, #[], FlowStackB.nil sp_block _, rfl, fun h => absurd h (by omega)⟩,
+                        ⟨0, #[], FlowStackB.nil sp_block _, rfl, Or.inl (Nat.zero_le _),
+                     fun h => absurd h (by omega)⟩,
                         (fun _ => PendingNode.pendingContent sp_start sp_block sp_tok
                           (Or.inr ((restNodeStop_of_validateFlowClose hcorr_tok.end_eq
                             (by rw [h_fl']) hval).to_surface hcorr_tok))
@@ -7768,7 +7871,7 @@ lemma accum_step_flow (sc : ScannerState)
             (h_inj h_tail)
             h_open_lit (GOpt.none sp_tok)
             (.betweenEmpty sp_tok)),
-         (by simp [h_ksz']),
+         (by simp [h_ksz']), h_floorK',
          fun _ => ⟨km_push_at_open (by omega) h_km h_preprocess h_ad_def
              (ScannerCorrectness.scanFlowSequenceStart_stack_pushed s_ad)
              (ScannerCorrectness.scanFlowSequenceStart_simpleKey_cleared s_ad)
@@ -7820,7 +7923,8 @@ lemma accum_step_flow (sc : ScannerState)
                 have h_seq := SeqFrame.closeWithSep h_open h_sep st h_lead₂ h_lead₂ h_close_lit
                 rw [show (#[true] : Array Bool).pop = #[] from rfl]
                 exact ⟨sp_gram, sp_block, sp_block, sp_tok, h_stream, h_stack,
-                  ⟨0, #[], FlowStackB.nil sp_block _, rfl, fun h => absurd h (by omega)⟩,
+                  ⟨0, #[], FlowStackB.nil sp_block _, rfl, Or.inl (Nat.zero_le _),
+                     fun h => absurd h (by omega)⟩,
                   (fun _ => PendingNode.pendingContent sp_start sp_block sp_tok
                     (Or.inr ((restNodeStop_of_validateFlowClose hcorr_tok.end_eq
                       (by rw [h_fl']) hval).to_surface hcorr_tok))
@@ -7853,7 +7957,7 @@ lemma accum_step_flow (sc : ScannerState)
                 refine ⟨sp_gram, sp_block, sp_tok, sp_tok, h_stream, h_stack,
                   ⟨nn, _, .open _ _ _ _ sp_block sp_tok (inject sp_tok
                     (SFlowContent.flowSeq _ _ _ _ h_seq)),
-                   (by simp at h_ksz'; omega),
+                   (by simp at h_ksz'; omega), h_floorK',
                    fun _ => ⟨close_km_pop (by omega) h_km h_preprocess h_ad_def
                        (ScannerCorrectness.scanFlowSequenceEnd_stack_popped s_ad)
                        (ScannerCorrectness.scanFlowSequenceEnd_simpleKey_restored s_ad)
@@ -7932,7 +8036,7 @@ lemma accum_step_flow (sc : ScannerState)
                 (h_inj h_tail)
                 h_open_lit (GOpt.none sp_tok)
                 (.betweenEmpty sp_tok)),
-             (by simp [h_ksz']),
+             (by simp [h_ksz']), h_floorK',
              fun _ => ⟨km_push_at_open (by omega) h_km h_preprocess h_ad_def
                  (ScannerCorrectness.scanFlowMappingStart_stack_pushed s_ad)
                  (ScannerCorrectness.scanFlowMappingStart_simpleKey_cleared s_ad)
@@ -7982,7 +8086,8 @@ lemma accum_step_flow (sc : ScannerState)
                     have h_map := MapFrame.closeWithSep h_open h_sep st h_lead₂ h_lead₂ h_close_lit
                     rw [show (#[false] : Array Bool).pop = #[] from rfl]
                     exact ⟨sp_gram, sp_block, sp_block, sp_tok, h_stream, h_stack,
-                      ⟨0, #[], FlowStackB.nil sp_block _, rfl, fun h => absurd h (by omega)⟩,
+                      ⟨0, #[], FlowStackB.nil sp_block _, rfl, Or.inl (Nat.zero_le _),
+                     fun h => absurd h (by omega)⟩,
                       (fun _ => PendingNode.pendingContent sp_start sp_block sp_tok
                         (Or.inr ((restNodeStop_of_validateFlowClose hcorr_tok.end_eq
                           (by rw [h_fl']) hval).to_surface hcorr_tok))
@@ -8011,7 +8116,7 @@ lemma accum_step_flow (sc : ScannerState)
                     refine ⟨sp_gram, sp_block, sp_tok, sp_tok, h_stream, h_stack,
                       ⟨nn, _, .open _ _ _ _ sp_block sp_tok (inject sp_tok
                         (SFlowContent.flowMap _ _ _ _ h_map)),
-                       (by simp at h_ksz'; omega),
+                       (by simp at h_ksz'; omega), h_floorK',
                        fun _ => ⟨close_km_pop (by omega) h_km h_preprocess h_ad_def
                            (ScannerCorrectness.scanFlowMappingEnd_stack_popped s_ad)
                            (ScannerCorrectness.scanFlowMappingEnd_simpleKey_restored s_ad)
@@ -8068,7 +8173,7 @@ lemma accum_step_flow (sc : ScannerState)
                     exact ⟨sp_gram, sp_block, sp_tok, sp_tok, h_stream, h_stack,
                       ⟨nn, _, .open _ _ _ _ sp_block sp_tok (.seqBase _ _ _ _ _ _ _ resume h_open h_sep
                         (st.holdComma h_tail h_lead₂ h_comma_lit)),
-                       h_ksz',
+                       h_ksz', h_floorK',
                        fun _ => ⟨comma_km_transport (by omega) h_km h_preprocess h_ad_def (by
                            have hpk := hpeek_ad.trans (preprocess_some_peek h_preprocess)
                            unfold ScannerState.peek? at hpk
@@ -8083,7 +8188,7 @@ lemma accum_step_flow (sc : ScannerState)
                     exact ⟨sp_gram, sp_block, sp_tok, sp_tok, h_stream, h_stack,
                       ⟨nn, _, .open _ _ _ _ sp_block sp_tok (.mapBase _ _ _ _ _ _ _ resume h_open h_sep
                         (st.holdComma h_tail h_lead₂ h_comma_lit)),
-                       h_ksz',
+                       h_ksz', h_floorK',
                        fun _ => ⟨comma_km_transport (by omega) h_km h_preprocess h_ad_def (by
                            have hpk := hpeek_ad.trans (preprocess_some_peek h_preprocess)
                            unfold ScannerState.peek? at hpk
@@ -8098,7 +8203,7 @@ lemma accum_step_flow (sc : ScannerState)
                     exact ⟨sp_gram, sp_block, sp_tok, sp_tok, h_stream, h_stack,
                       ⟨nn, _, .open _ _ _ _ sp_block sp_tok (.seqNest _ _ _ _ _ _ _ _ _ _ promise inject h_open h_sep
                         (st.holdComma h_tail h_lead₂ h_comma_lit)),
-                       h_ksz',
+                       h_ksz', h_floorK',
                        fun _ => ⟨comma_km_transport (by omega) h_km h_preprocess h_ad_def (by
                            have hpk := hpeek_ad.trans (preprocess_some_peek h_preprocess)
                            unfold ScannerState.peek? at hpk
@@ -8113,7 +8218,7 @@ lemma accum_step_flow (sc : ScannerState)
                     exact ⟨sp_gram, sp_block, sp_tok, sp_tok, h_stream, h_stack,
                       ⟨nn, _, .open _ _ _ _ sp_block sp_tok (.mapNest _ _ _ _ _ _ _ _ _ _ promise inject h_open h_sep
                         (st.holdComma h_tail h_lead₂ h_comma_lit)),
-                       h_ksz',
+                       h_ksz', h_floorK',
                        fun _ => ⟨comma_km_transport (by omega) h_km h_preprocess h_ad_def (by
                            have hpk := hpeek_ad.trans (preprocess_some_peek h_preprocess)
                            unfold ScannerState.peek? at hpk
@@ -11558,7 +11663,7 @@ lemma accum_step_block (sc : ScannerState)
         InteriorGap s' (tailOf s'.tokens) sp_flow' sp_scan' ∧
           LastTokenReal s'.tokens ∧ s'.allowDirectives = false) := by
   -- B.4β: the flow stack is indexed by the scanner's `flowLevel`.
-  obtain ⟨nn, km, h_flow, h_ksz, h_kprom⟩ := h_flowK
+  obtain ⟨nn, km, h_flow, h_ksz, h_floorK, h_kprom⟩ := h_flowK
   rcases Nat.eq_zero_or_pos sc.flowLevel with h0 | hpos
   · -- depth 0 (no open flow collection): the existing depth-0 proof.
     rw [h0] at h_flow
@@ -11583,7 +11688,7 @@ lemma accum_step_block (sc : ScannerState)
       accum_block_pending sc sp_start sp_flow sp_scan s_prep s' c
         (absorb_stacksB sp_start sp_gram sp_block sp_flow h_stream h_stack h_flow)
         (h_pending h0) h_corr h_noflow h_preprocess h_dispatch
-    exact ⟨g', bl', fl', sn', q1, q2, ⟨0, #[], q3.retail, rfl, fun h => absurd h (by omega)⟩, fun _ => q4, q5,
+    exact ⟨g', bl', fl', sn', q1, q2, ⟨0, #[], q3.retail, rfl, Or.inl (Nat.zero_le _), fun h => absurd h (by omega)⟩, fun _ => q4, q5,
            fun h => absurd h (by omega)⟩
   · -- ═══ DEPTH ≥ 1: three arms — one free, one BUILT here, one NOT. ═══
     --
@@ -11594,6 +11699,21 @@ lemma accum_step_block (sc : ScannerState)
     -- `allowDirectives` update, and recover the open frame stack.
     obtain ⟨d, hd⟩ : ∃ d, sc.flowLevel = d + 1 := ⟨sc.flowLevel - 1, by omega⟩
     have h_real_sc : LastTokenReal sc.tokens := (h_interior hpos).2.1
+    -- Item 67: the flow stack's floor rides the step — inside a flow nothing
+    -- writes the indent stack (`FlowIndentStable`).
+    have h_sc_inflow : sc.inFlow = true := inFlow_of_flowLevel_eq hd
+    have h_adf_inflow : (if s_prep.allowDirectives then
+        { s_prep with allowDirectives := false, documentEverStarted := true }
+      else s_prep).inFlow = true := by
+      unfold ScannerState.inFlow at h_sc_inflow ⊢
+      rw [allowDirectives_update_flowLevel s_prep,
+          preprocess_preserves_flowLevel sc s_prep c h_preprocess]
+      exact h_sc_inflow
+    have h_floorK' : nn ≤ minContentIndentOf s' ∨ True :=
+      flowFloor_transport h_floorK (by
+        rw [FlowIndentStable.dispatchBlockIndicators_preserves_indents h_adf_inflow h_dispatch,
+            allowDirectives_update_indents,
+            FlowIndentStable.preprocess_indents_of_inFlow h_sc_inflow h_preprocess])
     obtain ⟨sp_prep, h_lead0, hcorr_prep⟩ :=
       preprocess_some_separate_0_anyCol sc sp_scan s_prep c h_corr h_preprocess
     have h_ad_fl : (if s_prep.allowDirectives then
@@ -11728,7 +11848,7 @@ lemma accum_step_block (sc : ScannerState)
               · exact .shape _ _ _ _ _ _ (by omega) (dropClose h_stream_blk)
             · exact .shape _ _ _ _ _ _ (by omega) h_close_sh
           exact ⟨sp_gram, sp_block, sp_tok, sp_tok, h_stream, h_stack,
-            ⟨nn, km, h_stk, h_ksz',
+            ⟨nn, km, h_stk, h_ksz', h_floorK',
              fun _ => ⟨scanKey_km_transport (by omega) h_ad_inflow h_km h_preprocess
                  h_ad_def (by
                    have hpk := hpeek_ad.trans (preprocess_some_peek h_preprocess)
@@ -11893,7 +12013,7 @@ lemma accum_step_block (sc : ScannerState)
                   h_colon_lit
                 rw [hd, hks] at h_cl
                 exact ⟨sp_gram, sp_block, sp_tok, sp_tok, h_stream, h_stack,
-                  ⟨nn, km, h_cl, h_ksz', fun _ => ⟨h_km_v, fun hv => nomatch hv⟩⟩,
+                  ⟨nn, km, h_cl, h_ksz', h_floorK', fun _ => ⟨h_km_v, fun hv => nomatch hv⟩⟩,
                   nofun, hcorr_tok, h_bundle⟩
             | colon =>
               -- the `.colon` cells are scan-refuted, white and props alike
@@ -11918,7 +12038,7 @@ lemma accum_step_block (sc : ScannerState)
                     · exact .shape _ _ _ _ _ _ (by omega) (dropClose h_stream_blk)
                   · exact .shape _ _ _ _ _ _ (by omega) h_close_sh
                 exact ⟨sp_gram, sp_block, sp_tok, sp_tok, h_stream, h_stack,
-                  ⟨nn, km, h_stk, h_ksz',
+                  ⟨nn, km, h_stk, h_ksz', h_floorK',
                    fun _ => ⟨h_km_v, fun hv => nomatch hv⟩⟩,
                   nofun, hcorr_tok, h_bundle⟩
               | props ha ht sp_p h_tail_p h_lead_p h_run_p _ _ h_colon_p =>
@@ -11935,7 +12055,7 @@ lemma accum_step_block (sc : ScannerState)
                     · exact .shape _ _ _ _ _ _ (by omega) (dropClose h_stream_blk)
                   · exact .shape _ _ _ _ _ _ (by omega) h_close_sh
                 exact ⟨sp_gram, sp_block, sp_tok, sp_tok, h_stream, h_stack,
-                  ⟨nn, km, h_stk, h_ksz',
+                  ⟨nn, km, h_stk, h_ksz', h_floorK',
                    fun _ => ⟨h_km_v, fun hv => nomatch hv⟩⟩,
                   nofun, hcorr_tok, h_bundle⟩
             | question =>
@@ -11950,7 +12070,7 @@ lemma accum_step_block (sc : ScannerState)
                     · exact .shape _ _ _ _ _ _ (by omega) (dropClose h_stream_blk)
                   · exact .shape _ _ _ _ _ _ (by omega) h_close_sh
                 exact ⟨sp_gram, sp_block, sp_tok, sp_tok, h_stream, h_stack,
-                  ⟨nn, km, h_stk, h_ksz',
+                  ⟨nn, km, h_stk, h_ksz', h_floorK',
                    fun _ => ⟨h_km_v, fun hv => nomatch hv⟩⟩,
                   nofun, hcorr_tok, h_bundle⟩
               | props ha ht sp_p h_tail_p h_lead_p h_run_p _ _ h_colon_p =>
@@ -11967,7 +12087,7 @@ lemma accum_step_block (sc : ScannerState)
                     · exact .shape _ _ _ _ _ _ (by omega) (dropClose h_stream_blk)
                   · exact .shape _ _ _ _ _ _ (by omega) h_close_sh
                 exact ⟨sp_gram, sp_block, sp_tok, sp_tok, h_stream, h_stack,
-                  ⟨nn, km, h_stk, h_ksz',
+                  ⟨nn, km, h_stk, h_ksz', h_floorK',
                    fun _ => ⟨h_km_v, fun hv => nomatch hv⟩⟩,
                   nofun, hcorr_tok, h_bundle⟩
         · -- fallthrough: dispatch returns `.ok none`, not `.ok (some s')`.
@@ -12291,7 +12411,7 @@ lemma dispatchContent_singleQuoted_key_prod (sc : ScannerState) (sp : SurfPos)
                   · exact hcorr'⟩
             · rename_i h_neq; exact absurd rfl h_neq
 
--- Content dispatch for alias: returns `SFlowNode 0 ctx` grammar evidence in ANY
+-- Content dispatch for alias: returns `SFlowNode n ctx` grammar evidence in ANY
 -- context.  Alias is context-free: `SCNsAliasNode` has no `n`/`c` dependency, so
 -- `alias_flowNode` lifts directly to any desired context.  β.3's flow-interior
 -- step instantiates `ctx := .flowIn`, the depth-0 steps `.flowOut`.
@@ -12299,7 +12419,7 @@ lemma dispatchContent_singleQuoted_key_prod (sc : ScannerState) (sp : SurfPos)
 /-- The alias arm at its own production rather than at `[161]`'s wrapper.
     `[104] c-ns-alias-node` takes NEITHER an indent nor a context, so this is
     the one content reading that is index-polymorphic with no side condition at
-    all; `dispatchContent_alias_prod` is the `n = 0` wrapper below, and item
+    all; `dispatchContent_alias_prod` is its `[161]` wrapper below, and item
     23's one-line evidence uses the node directly. -/
 lemma dispatchContent_aliasNode_prod (sc : ScannerState) (sp : SurfPos)
     {s' : ScannerState}
@@ -12335,12 +12455,12 @@ lemma dispatchContent_aliasNode_prod (sc : ScannerState) (sp : SurfPos)
           exact ⟨sp', h_alias, hcorr'⟩
     · rename_i h_neq; exact absurd rfl h_neq
 
-lemma dispatchContent_alias_prod (sc : ScannerState) (sp : SurfPos)
+lemma dispatchContent_alias_prod (n : Nat) (sc : ScannerState) (sp : SurfPos)
     {s' : ScannerState} (ctx : YamlContext)
     (hcorr : ScannerSurfCorr sc sp)
     (hpeek : sc.peek? = some '*')
     (hok : scanNextToken_dispatchContent sc '*' = .ok s') :
-    ∃ sp', SFlowNode 0 ctx sp sp' ∧ ScannerSurfCorr s' sp' := by
+    ∃ sp', SFlowNode n ctx sp sp' ∧ ScannerSurfCorr s' sp' := by
   obtain ⟨sp', h_alias, hcorr'⟩ := dispatchContent_aliasNode_prod sc sp hcorr hpeek hok
   exact ⟨sp', alias_flowNode h_alias, hcorr'⟩
 
@@ -12703,6 +12823,49 @@ lemma dispatchContent_plainScalar_flowIn_prod (sc : ScannerState) (sp : SurfPos)
                 exact ⟨sp_gram, sp'', SFlowContent.plain 0 .flowIn _ _ h_pl, h_ws, hcorr'⟩
               · simp at hok
 
+/-- The at-`n` twin (item 67).  Same walk, and the production is the same
+    native-context one read at the stack's index: the flow walk's continuation
+    check is item 50's §8.1 test against the ENCLOSING block indent, so
+    `n ≤ currentIndent + 1` clears every landing.  `hcol` is what puts the
+    scalar's own `contentIndent` (its start column) above that floor, and the
+    interior's structural check has already established it. -/
+lemma dispatchContent_plainScalar_flowIn_prod_at (n : Nat) (sc : ScannerState) (sp : SurfPos)
+    {s' : ScannerState} {c : Char}
+    (hcorr : ScannerSurfCorr sc sp)
+    (hpeek : sc.peek? = some c)
+    (h_inflow : sc.inFlow = true)
+    (hnotAmpersand : c ≠ '&') (hnotStar : c ≠ '*') (hnotBang : c ≠ '!')
+    (hnotPipe : c ≠ '|') (hnotGt : c ≠ '>') (hnotDQ : c ≠ '"') (hnotSQ : c ≠ '\'')
+    (h_not_doc : sc.col = 0 → atDocumentBoundary sc = false)
+    (hok : scanNextToken_dispatchContent sc c = .ok s')
+    (hcol : sc.currentIndent < (sc.col : Int))
+    (hn : (n : Int) ≤ max 0 (sc.currentIndent + 1)) :
+    (∃ sp_gram sp', SFlowContent n .flowIn sp sp_gram ∧
+                    GStar SSWhite sp_gram sp' ∧
+                    ScannerSurfCorr s' sp') ∨ True := by
+  unfold scanNextToken_dispatchContent at hok
+  simp only [bind, Except.bind, pure, Except.pure] at hok
+  split at hok
+  · rename_i h_eq; exact absurd (beq_iff_eq.mp h_eq) hnotAmpersand
+  · split at hok
+    · rename_i h_eq; exact absurd (beq_iff_eq.mp h_eq) hnotStar
+    · split at hok
+      · rename_i h_eq; exact absurd (beq_iff_eq.mp h_eq) hnotBang
+      · split at hok
+        · rename_i h_eq
+          have h_or := Bool.or_eq_true_iff.mp h_eq
+          cases h_or with
+          | inl h => exact absurd (beq_iff_eq.mp h) hnotPipe
+          | inr h => exact absurd (beq_iff_eq.mp h) hnotGt
+        · split at hok
+          · rename_i h_eq; exact absurd (beq_iff_eq.mp h_eq) hnotDQ
+          · split at hok
+            · rename_i h_eq; exact absurd (beq_iff_eq.mp h_eq) hnotSQ
+            · split at hok
+              · exact ScalarFoldAt.scanPlainScalar_to_flowContent_flowIn_at n sc sp hcorr hpeek
+                  (by assumption) h_not_doc (by assumption) h_inflow hcol hn
+              · simp at hok
+
 /-- **Content dispatch for `&`, stopped at the PROPERTY** (β.3).  `[101]
     c-ns-anchor-property` on its own, before anything wraps it into a node.
 
@@ -12742,15 +12905,15 @@ lemma dispatchContent_anchorProp_prod (sc : ScannerState) (sp : SurfPos)
 -- → `SFlowNode.propsEmpty`; the property itself carries no context, and the
 -- trailing separator is `GOpt.none`, so every context is equally derivable.
 -- Since A10 Except conversion, `.ok` guarantees non-empty name unconditionally.
-lemma dispatchContent_anchor_prod (sc : ScannerState) (sp : SurfPos)
+lemma dispatchContent_anchor_prod (n : Nat) (sc : ScannerState) (sp : SurfPos)
     {s' : ScannerState} (ctx : YamlContext)
     (hcorr : ScannerSurfCorr sc sp)
     (hpeek : sc.peek? = some '&')
     (hok : scanNextToken_dispatchContent sc '&' = .ok s') :
-    ∃ sp', SFlowNode 0 ctx sp sp' ∧ ScannerSurfCorr s' sp' := by
+    ∃ sp', SFlowNode n ctx sp sp' ∧ ScannerSurfCorr s' sp' := by
   obtain ⟨sp', h_anchor, hcorr'⟩ := dispatchContent_anchorProp_prod sc sp hcorr hpeek hok
-  exact ⟨sp', SFlowNode.propsEmpty 0 ctx sp sp'
-    (SCNsProperties.anchorFirst 0 ctx sp sp' sp' h_anchor (GOpt.none _)), hcorr'⟩
+  exact ⟨sp', SFlowNode.propsEmpty n ctx sp sp'
+    (SCNsProperties.anchorFirst n ctx sp sp' sp' h_anchor (GOpt.none _)), hcorr'⟩
 
 /-- **Content dispatch for `!`, stopped at the PROPERTY** — the tag sibling of
     `dispatchContent_anchorProp_prod`.  All four `[97]` forms are covered
@@ -12794,18 +12957,18 @@ lemma dispatchContent_tagProp_prod (sc : ScannerState) (sp : SurfPos)
                 hcorr'.indent_cols_nonneg⟩⟩
       · rename_i h_neq; exact absurd rfl h_neq
 
--- Content dispatch for tag: returns `SFlowNode 0 ctx` grammar evidence in ANY
+-- Content dispatch for tag: returns `SFlowNode n ctx` grammar evidence in ANY
 -- context (same context-freedom as the anchor case).
 -- Tag `!` produces `SCNsTagProperty` → `SCNsProperties.tagFirst` → `SFlowNode.propsEmpty`.
-lemma dispatchContent_tag_prod (sc : ScannerState) (sp : SurfPos)
+lemma dispatchContent_tag_prod (n : Nat) (sc : ScannerState) (sp : SurfPos)
     {s' : ScannerState} (ctx : YamlContext)
     (hcorr : ScannerSurfCorr sc sp)
     (hpeek : sc.peek? = some '!')
     (hok : scanNextToken_dispatchContent sc '!' = .ok s') :
-    ∃ sp', SFlowNode 0 ctx sp sp' ∧ ScannerSurfCorr s' sp' := by
+    ∃ sp', SFlowNode n ctx sp sp' ∧ ScannerSurfCorr s' sp' := by
   obtain ⟨sp', h_tag_prop, hcorr'⟩ := dispatchContent_tagProp_prod sc sp hcorr hpeek hok
-  exact ⟨sp', SFlowNode.propsEmpty 0 ctx sp sp'
-    (SCNsProperties.tagFirst 0 ctx sp sp' sp' h_tag_prop (GOpt.none _)), hcorr'⟩
+  exact ⟨sp', SFlowNode.propsEmpty n ctx sp sp'
+    (SCNsProperties.tagFirst n ctx sp sp' sp' h_tag_prop (GOpt.none _)), hcorr'⟩
 
 -- Unified content evidence extraction (Wadler-style "theorems for free").
 -- All content dispatch paths either produce `SFlowNode 0 .flowOut` (flow content:
@@ -12837,7 +13000,7 @@ lemma dispatchContent_evidence (sc : ScannerState) (sp : SurfPos)
              GStar.nil _, hcorr'⟩
     · by_cases hc_alias : c = '*'
       · subst hc_alias
-        obtain ⟨sp', h_gram, hcorr'⟩ := dispatchContent_alias_prod sc sp .flowOut hcorr hpeek hok
+        obtain ⟨sp', h_gram, hcorr'⟩ := dispatchContent_alias_prod 0 sc sp .flowOut hcorr hpeek hok
         exact ⟨sp', sp', Or.inl h_gram, GStar.nil _, hcorr'⟩
       · by_cases hc_bs : c = '|' ∨ c = '>'
         · obtain ⟨sp', h_gram, hcorr'⟩ :=
@@ -12849,12 +13012,12 @@ lemma dispatchContent_evidence (sc : ScannerState) (sp : SurfPos)
           by_cases hc_amp : c = '&'
           · -- Anchor: SCNsAnchorProperty → SCNsProperties.anchorFirst → SFlowNode.propsEmpty
             subst hc_amp
-            obtain ⟨sp', h_gram, hcorr'⟩ := dispatchContent_anchor_prod sc sp .flowOut hcorr hpeek hok
+            obtain ⟨sp', h_gram, hcorr'⟩ := dispatchContent_anchor_prod 0 sc sp .flowOut hcorr hpeek hok
             exact ⟨sp', sp', Or.inl h_gram, GStar.nil _, hcorr'⟩
           · by_cases hc_bang : c = '!'
             · -- Tag: SCNsTagProperty → SCNsProperties.tagFirst → SFlowNode.propsEmpty
               subst hc_bang
-              obtain ⟨sp', h_gram, hcorr'⟩ := dispatchContent_tag_prod sc sp .flowOut hcorr hpeek hok
+              obtain ⟨sp', h_gram, hcorr'⟩ := dispatchContent_tag_prod 0 sc sp .flowOut hcorr hpeek hok
               exact ⟨sp', sp', Or.inl h_gram, GStar.nil _, hcorr'⟩
             · -- Plain scalar (or error — but .ok means it succeeded)
               obtain ⟨sp_gram, sp', h_gram, h_ws, hcorr'⟩ :=
@@ -12996,15 +13159,15 @@ lemma dispatchContent_evidence_flowIn (sc : ScannerState) (sp : SurfPos)
              GStar.nil _, hcorr'⟩
     · by_cases hc_alias : c = '*'
       · subst hc_alias
-        obtain ⟨sp', h_gram, hcorr'⟩ := dispatchContent_alias_prod sc sp .flowIn hcorr hpeek hok
+        obtain ⟨sp', h_gram, hcorr'⟩ := dispatchContent_alias_prod 0 sc sp .flowIn hcorr hpeek hok
         exact ⟨sp', sp', h_gram, GStar.nil _, hcorr'⟩
       · by_cases hc_amp : c = '&'
         · subst hc_amp
-          obtain ⟨sp', h_gram, hcorr'⟩ := dispatchContent_anchor_prod sc sp .flowIn hcorr hpeek hok
+          obtain ⟨sp', h_gram, hcorr'⟩ := dispatchContent_anchor_prod 0 sc sp .flowIn hcorr hpeek hok
           exact ⟨sp', sp', h_gram, GStar.nil _, hcorr'⟩
         · by_cases hc_bang : c = '!'
           · subst hc_bang
-            obtain ⟨sp', h_gram, hcorr'⟩ := dispatchContent_tag_prod sc sp .flowIn hcorr hpeek hok
+            obtain ⟨sp', h_gram, hcorr'⟩ := dispatchContent_tag_prod 0 sc sp .flowIn hcorr hpeek hok
             exact ⟨sp', sp', h_gram, GStar.nil _, hcorr'⟩
           · obtain ⟨sp_gram, sp'', h_c, h_ws, hcorr'⟩ :=
               dispatchContent_plainScalar_flowIn_prod sc sp hcorr hpeek h_inflow
@@ -13045,6 +13208,168 @@ lemma dispatchContent_evidence_flowIn_content (sc : ScannerState) (sp : SurfPos)
              GStar.nil _, hcorr'⟩
     · exact dispatchContent_plainScalar_flowIn_prod sc sp hcorr hpeek h_inflow
         h_amp h_star h_bang hnotPipe hnotGt hc_dq hc_sq h_not_doc hok
+
+/-- **The flow-interior content evidence at the STACK's own index** (item 67):
+    `dispatchContent_evidence_flowIn` reads every token at 0 and lets the
+    caller lift, which RENOUNCES the whole reading whenever a scalar crossed a
+    line.  Here the reading is built at `n` from the scan itself, so a
+    multi-line token composes instead of collapsing the stack.
+
+    The positions come back either way — the reading is what is optional, not
+    the scan — so this is a drop-in for the 0-version at a site that lifts:
+    where the `∨ True` fires the caller collapses exactly as it did before.
+
+    The two side conditions are the interior's own facts.  `n` is under the
+    enclosing block's content floor (the stack carries that from the open), and
+    the token starts past that floor — `scanNextToken_dispatchStructural`'s
+    FIRST check refuses every flow-interior token at or left of
+    `currentIndent`.  The quoted arms need only the first; the plain arm needs
+    both, because its walk measures continuation lines against the block floor
+    while its own `contentIndent` is the start column. -/
+lemma dispatchContent_evidence_flowIn_at (n : Nat) (sc : ScannerState) (sp : SurfPos)
+    {s' : ScannerState} (c : Char)
+    (hcorr : ScannerSurfCorr sc sp)
+    (hpeek : sc.peek? = some c)
+    (h_inflow : sc.inFlow = true)
+    (h_not_doc : sc.col = 0 → atDocumentBoundary sc = false)
+    (hok : scanNextToken_dispatchContent sc c = .ok s')
+    (hcol : sc.currentIndent < (sc.col : Int))
+    (hn : (n : Int) ≤ max 0 (sc.currentIndent + 1)) :
+    ∃ sp_gram sp',
+      (SFlowNode n .flowIn sp sp_gram ∨ True) ∧
+      GStar SSWhite sp_gram sp' ∧
+      ScannerSurfCorr s' sp' := by
+  obtain ⟨hnotPipe, hnotGt⟩ :=
+    Proofs.BlockScalarFlowGuard.dispatchContent_not_blockScalar_of_inFlow h_inflow hok
+  by_cases hc_dq : c = '"'
+  · subst hc_dq
+    rcases dispatchContent_doubleQuoted_prod_at n sc sp hcorr hpeek hok hn with
+      ⟨sp', h_gram, hcorr'⟩ | _
+    · exact ⟨sp', sp', Or.inl (SFlowNode_doubleQ_ctx_lift h_gram (by decide) (by decide)),
+             GStar.nil _, hcorr'⟩
+    · obtain ⟨sp', -, hcorr'⟩ := dispatchContent_doubleQuoted_prod sc sp hcorr hpeek hok
+      exact ⟨sp', sp', Or.inr trivial, GStar.nil _, hcorr'⟩
+  · by_cases hc_sq : c = '\''
+    · subst hc_sq
+      rcases dispatchContent_singleQuoted_prod_at n sc sp hcorr hpeek hok hn with
+        ⟨sp', h_gram, hcorr'⟩ | _
+      · exact ⟨sp', sp', Or.inl (SFlowNode_singleQ_ctx_lift h_gram (by decide) (by decide)),
+               GStar.nil _, hcorr'⟩
+      · obtain ⟨sp', -, hcorr'⟩ := dispatchContent_singleQuoted_prod sc sp hcorr hpeek hok
+        exact ⟨sp', sp', Or.inr trivial, GStar.nil _, hcorr'⟩
+    · by_cases hc_alias : c = '*'
+      · subst hc_alias
+        obtain ⟨sp', h_gram, hcorr'⟩ :=
+          dispatchContent_alias_prod n sc sp .flowIn hcorr hpeek hok
+        exact ⟨sp', sp', Or.inl h_gram, GStar.nil _, hcorr'⟩
+      · by_cases hc_amp : c = '&'
+        · subst hc_amp
+          obtain ⟨sp', h_gram, hcorr'⟩ :=
+            dispatchContent_anchor_prod n sc sp .flowIn hcorr hpeek hok
+          exact ⟨sp', sp', Or.inl h_gram, GStar.nil _, hcorr'⟩
+        · by_cases hc_bang : c = '!'
+          · subst hc_bang
+            obtain ⟨sp', h_gram, hcorr'⟩ :=
+              dispatchContent_tag_prod n sc sp .flowIn hcorr hpeek hok
+            exact ⟨sp', sp', Or.inl h_gram, GStar.nil _, hcorr'⟩
+          · rcases dispatchContent_plainScalar_flowIn_prod_at n sc sp hcorr hpeek h_inflow
+                hc_amp hc_alias hc_bang hnotPipe hnotGt hc_dq hc_sq h_not_doc hok hcol hn with
+              ⟨sp_gram, sp'', h_c, h_ws, hcorr'⟩ | _
+            · exact ⟨sp_gram, sp'', Or.inl (SFlowNode.content n .flowIn _ _ h_c), h_ws, hcorr'⟩
+            · obtain ⟨sp_gram, sp'', -, h_ws, hcorr'⟩ :=
+                dispatchContent_plainScalar_flowIn_prod sc sp hcorr hpeek h_inflow
+                  hc_amp hc_alias hc_bang hnotPipe hnotGt hc_dq hc_sq h_not_doc hok
+              exact ⟨sp_gram, sp'', Or.inr trivial, h_ws, hcorr'⟩
+
+/-- The CONTENT-level face of `dispatchContent_evidence_flowIn_at` — what a
+    held flow-interior props run decorates (`[158] ns-flow-content`, since
+    `SFlowNode.propsContent` wraps content and not a node). -/
+lemma dispatchContent_evidence_flowIn_content_at (n : Nat) (sc : ScannerState) (sp : SurfPos)
+    {s' : ScannerState} (c : Char)
+    (hcorr : ScannerSurfCorr sc sp)
+    (hpeek : sc.peek? = some c)
+    (h_inflow : sc.inFlow = true)
+    (h_not_doc : sc.col = 0 → atDocumentBoundary sc = false)
+    (h_amp : c ≠ '&') (h_star : c ≠ '*') (h_bang : c ≠ '!')
+    (hok : scanNextToken_dispatchContent sc c = .ok s')
+    (hcol : sc.currentIndent < (sc.col : Int))
+    (hn : (n : Int) ≤ max 0 (sc.currentIndent + 1)) :
+    ∃ sp_gram sp',
+      (SFlowContent n .flowIn sp sp_gram ∨ True) ∧
+      GStar SSWhite sp_gram sp' ∧
+      ScannerSurfCorr s' sp' := by
+  obtain ⟨hnotPipe, hnotGt⟩ :=
+    Proofs.BlockScalarFlowGuard.dispatchContent_not_blockScalar_of_inFlow h_inflow hok
+  by_cases hc_dq : c = '"'
+  · subst hc_dq
+    rcases dispatchContent_doubleQuoted_prod_at n sc sp hcorr hpeek hok hn with
+      ⟨sp'', h_gram, hcorr'⟩ | _
+    · exact ⟨sp'', sp'', Or.inl (SFlowContent_doubleQ_ctx_lift h_gram (by decide) (by decide)),
+             GStar.nil _, hcorr'⟩
+    · obtain ⟨sp'', -, hcorr'⟩ := dispatchContent_doubleQuoted_prod sc sp hcorr hpeek hok
+      exact ⟨sp'', sp'', Or.inr trivial, GStar.nil _, hcorr'⟩
+  · by_cases hc_sq : c = '\''
+    · subst hc_sq
+      rcases dispatchContent_singleQuoted_prod_at n sc sp hcorr hpeek hok hn with
+        ⟨sp'', h_gram, hcorr'⟩ | _
+      · exact ⟨sp'', sp'', Or.inl (SFlowContent_singleQ_ctx_lift h_gram (by decide) (by decide)),
+               GStar.nil _, hcorr'⟩
+      · obtain ⟨sp'', -, hcorr'⟩ := dispatchContent_singleQuoted_prod sc sp hcorr hpeek hok
+        exact ⟨sp'', sp'', Or.inr trivial, GStar.nil _, hcorr'⟩
+    · rcases dispatchContent_plainScalar_flowIn_prod_at n sc sp hcorr hpeek h_inflow
+          h_amp h_star h_bang hnotPipe hnotGt hc_dq hc_sq h_not_doc hok hcol hn with
+        ⟨sp_gram, sp'', h_c, h_ws, hcorr'⟩ | _
+      · exact ⟨sp_gram, sp'', Or.inl h_c, h_ws, hcorr'⟩
+      · obtain ⟨sp_gram, sp'', -, h_ws, hcorr'⟩ :=
+          dispatchContent_plainScalar_flowIn_prod sc sp hcorr hpeek h_inflow
+            h_amp h_star h_bang hnotPipe hnotGt hc_dq hc_sq h_not_doc hok
+        exact ⟨sp_gram, sp'', Or.inr trivial, h_ws, hcorr'⟩
+
+/-- The two above with the floor made OPTIONAL, which is the shape the
+    invariant carries it in: a stack opened at a park that could not measure
+    its index still reads its tokens at 0 and lifts, exactly as before. -/
+lemma dispatchContent_evidence_flowIn_or_at (n : Nat) (sc : ScannerState) (sp : SurfPos)
+    {s' : ScannerState} (c : Char)
+    (hcorr : ScannerSurfCorr sc sp)
+    (hpeek : sc.peek? = some c)
+    (h_inflow : sc.inFlow = true)
+    (h_not_doc : sc.col = 0 → atDocumentBoundary sc = false)
+    (hok : scanNextToken_dispatchContent sc c = .ok s')
+    (hcol : sc.currentIndent < (sc.col : Int))
+    (hn : n ≤ minContentIndentOf sc ∨ True) :
+    ∃ sp_gram sp',
+      (SFlowNode n .flowIn sp sp_gram ∨ True) ∧
+      GStar SSWhite sp_gram sp' ∧
+      ScannerSurfCorr s' sp' := by
+  rcases hn with h | _
+  · exact dispatchContent_evidence_flowIn_at n sc sp c hcorr hpeek h_inflow h_not_doc hok hcol
+      (by unfold minContentIndentOf at h; omega)
+  · obtain ⟨sp_gram, sp'', -, h_ws, hcorr'⟩ :=
+      dispatchContent_evidence_flowIn sc sp c hcorr hpeek h_inflow h_not_doc hok
+    exact ⟨sp_gram, sp'', Or.inr trivial, h_ws, hcorr'⟩
+
+/-- The CONTENT-level twin (the props run's ride). -/
+lemma dispatchContent_evidence_flowIn_content_or_at (n : Nat) (sc : ScannerState) (sp : SurfPos)
+    {s' : ScannerState} (c : Char)
+    (hcorr : ScannerSurfCorr sc sp)
+    (hpeek : sc.peek? = some c)
+    (h_inflow : sc.inFlow = true)
+    (h_not_doc : sc.col = 0 → atDocumentBoundary sc = false)
+    (h_amp : c ≠ '&') (h_star : c ≠ '*') (h_bang : c ≠ '!')
+    (hok : scanNextToken_dispatchContent sc c = .ok s')
+    (hcol : sc.currentIndent < (sc.col : Int))
+    (hn : n ≤ minContentIndentOf sc ∨ True) :
+    ∃ sp_gram sp',
+      (SFlowContent n .flowIn sp sp_gram ∨ True) ∧
+      GStar SSWhite sp_gram sp' ∧
+      ScannerSurfCorr s' sp' := by
+  rcases hn with h | _
+  · exact dispatchContent_evidence_flowIn_content_at n sc sp c hcorr hpeek h_inflow h_not_doc
+      h_amp h_star h_bang hok hcol (by unfold minContentIndentOf at h; omega)
+  · obtain ⟨sp_gram, sp'', -, h_ws, hcorr'⟩ :=
+      dispatchContent_evidence_flowIn_content sc sp c hcorr hpeek h_inflow h_not_doc
+        h_amp h_star h_bang hok
+    exact ⟨sp_gram, sp'', Or.inr trivial, h_ws, hcorr'⟩
 
 /-- The `.flowOut` CONTENT-level evidence (item 12): what a held depth-0 props
     run's ride consumes.  Unlike the `.flowIn` sibling the block-scalar
@@ -13529,7 +13854,7 @@ lemma implicitKeyHead_of_dispatch
     -- context-free, so it reads at `.blockKey` directly.
     subst hstar
     obtain ⟨sp_res2, h_al, hcorr2⟩ :=
-      dispatchContent_alias_prod _ sp_prep .blockKey
+      dispatchContent_alias_prod 0 _ sp_prep .blockKey
         (corr_of_allowDirectives_update hcorr_prep) hpeek_disp h_dispatch
     have hsp2 := ScannerSurfCorr_unique hcorr2 hcorr_result
     rw [hsp2] at h_al
@@ -16169,6 +16494,10 @@ lemma accum_step_content (sc : ScannerState)
         (if s_prep.allowDirectives then
           { s_prep with allowDirectives := false, documentEverStarted := true }
         else s_prep) c = .ok s')
+    -- Item 67: the structural dispatch's FALL-THROUGH, which inside a flow is
+    -- the statement that the token cleared the enclosing block's indent — the
+    -- other half of what a multi-line reading at the stack's index needs.
+    (h_str_none : scanNextToken_dispatchStructural s_prep c = .ok none)
     (h_not_doc : (if s_prep.allowDirectives then
           { s_prep with allowDirectives := false, documentEverStarted := true }
         else s_prep).col = 0 →
@@ -16185,7 +16514,7 @@ lemma accum_step_content (sc : ScannerState)
         InteriorGap s' (tailOf s'.tokens) sp_flow' sp_scan' ∧
           LastTokenReal s'.tokens ∧ s'.allowDirectives = false) := by
   -- B.4β: the flow stack is indexed by the scanner's `flowLevel`.
-  obtain ⟨nn, km, h_flow, h_ksz, h_kprom⟩ := h_flowK
+  obtain ⟨nn, km, h_flow, h_ksz, h_floorK, h_kprom⟩ := h_flowK
   rcases Nat.eq_zero_or_pos sc.flowLevel with h0 | hpos
   · -- depth 0 (no open flow collection): the existing depth-0 proof.
     rw [h0] at h_flow
@@ -16203,7 +16532,7 @@ lemma accum_step_content (sc : ScannerState)
       accum_content_pending sc sp_start sp_flow sp_scan h0 s_prep s' c
         (absorb_stacksB sp_start sp_gram sp_block sp_flow h_stream h_stack h_flow)
         (h_pending h0) h_corr h_preprocess h_adj h_not_doc h_dispatch
-    exact ⟨g', bl', fl', sn', q1, q2, ⟨0, #[], q3.retail, rfl, fun h => absurd h (by omega)⟩, fun _ => q4, q5,
+    exact ⟨g', bl', fl', sn', q1, q2, ⟨0, #[], q3.retail, rfl, Or.inl (Nat.zero_le _), fun h => absurd h (by omega)⟩, fun _ => q4, q5,
            fun h => absurd h (by omega)⟩
   · -- ═══ DEPTH ≥ 1: the four value-completing arms CLOSE; `&`/`!` do not. ═══
     -- The route is `FlowOpenStack.receiveNode`, and four scanner gaps had to be
@@ -16222,6 +16551,21 @@ lemma accum_step_content (sc : ScannerState)
     --    `SSeparate 0 .flowIn` hypothesis available.
     obtain ⟨d, hd⟩ : ∃ d, sc.flowLevel = d + 1 := ⟨sc.flowLevel - 1, by omega⟩
     have h_real_sc : LastTokenReal sc.tokens := (h_interior hpos).2.1
+    -- Item 67: the flow stack's floor rides the step — inside a flow nothing
+    -- writes the indent stack (`FlowIndentStable`).
+    have h_sc_inflow : sc.inFlow = true := inFlow_of_flowLevel_eq hd
+    have h_adf_inflow : (if s_prep.allowDirectives then
+        { s_prep with allowDirectives := false, documentEverStarted := true }
+      else s_prep).inFlow = true := by
+      unfold ScannerState.inFlow at h_sc_inflow ⊢
+      rw [allowDirectives_update_flowLevel s_prep,
+          preprocess_preserves_flowLevel sc s_prep c h_preprocess]
+      exact h_sc_inflow
+    have h_floorK' : nn ≤ minContentIndentOf s' ∨ True :=
+      flowFloor_transport h_floorK (by
+        rw [FlowIndentStable.dispatchContent_preserves_indents h_adf_inflow h_dispatch,
+            allowDirectives_update_indents,
+            FlowIndentStable.preprocess_indents_of_inFlow h_sc_inflow h_preprocess])
     obtain ⟨sp_prep, h_lead0, hcorr_prep⟩ :=
       preprocess_some_separate_0_anyCol sc sp_scan s_prep c h_corr h_preprocess
     have h_ad_fl : (if s_prep.allowDirectives then
@@ -16294,6 +16638,24 @@ lemma accum_step_content (sc : ScannerState)
     have h_ad_false : s_ad.allowDirectives = false := by
       rw [← h_ad_def]; exact allowDirectives_update_false s_prep
     have hpeek : s_ad.peek? = some c := hpeek_ad.trans (preprocess_some_peek h_preprocess)
+    -- Item 67: the two facts a reading at the STACK's index needs, both about
+    -- the state the token is scanned at.  The column is the structural
+    -- dispatch's own fall-through — inside a flow it refuses everything at or
+    -- left of `currentIndent` — and the floor is the stack's, carried from the
+    -- open across a step that writes no indent.
+    have h_ad_ind : s_ad.indents = sc.indents := by
+      rw [← h_ad_def, allowDirectives_update_indents,
+          FlowIndentStable.preprocess_indents_of_inFlow h_sc_inflow h_preprocess]
+    have h_col_ad : s_ad.currentIndent < (s_ad.col : Int) := by
+      have h_prep_flow : s_prep.inFlow = true := by
+        unfold ScannerState.inFlow at h_sc_inflow ⊢
+        rw [preprocess_preserves_flowLevel sc s_prep c h_preprocess]; exact h_sc_inflow
+      have h := FlowIndentStable.structural_none_col_gt_of_inFlow h_prep_flow h_str_none
+      have hc : s_ad.col = s_prep.col := by rw [← h_ad_def]; split <;> rfl
+      have hi : s_ad.indents = s_prep.indents := by rw [← h_ad_def]; split <;> rfl
+      rw [hc, currentIndent_of_indents_eq hi]; exact h
+    have h_floor_ad : nn ≤ minContentIndentOf s_ad ∨ True :=
+      flowFloor_transport h_floorK h_ad_ind
     -- **9c.** No block-scalar header reaches this dispatch inside a flow.
     obtain ⟨hnotPipe, hnotGt⟩ :=
       Proofs.BlockScalarFlowGuard.dispatchContent_not_blockScalar_of_inFlow h_ad_inflow h_dispatch
@@ -16345,7 +16707,7 @@ lemma accum_step_content (sc : ScannerState)
           · exact .open (d + 1) ks km tl sp_block sp_flow h_fos
           · exact .shape _ _ _ _ _ _ (by omega) h_close_sh
         exact ⟨sp_gram, sp_block, sp_flow, sp_new, h_stream, h_stack,
-          ⟨nn, km, h_stk, h_ksz',
+          ⟨nn, km, h_stk, h_ksz', h_floorK',
            fun _ => ⟨content_km_transport hpos h_km h_preprocess h_ad_def h_dispatch
                ⟨congrArg SimpleKeyState.possible (dispatchContent_anchor_simpleKey h_dispatch).1,
                 congrArg SimpleKeyState.tokenIndex (dispatchContent_anchor_simpleKey h_dispatch).1⟩
@@ -16406,7 +16768,7 @@ lemma accum_step_content (sc : ScannerState)
             · exact .open (d + 1) ks km tl sp_block sp_flow h_fos
             · exact .shape _ _ _ _ _ _ (by omega) h_close_sh
           exact ⟨sp_gram, sp_block, sp_flow, sp_new, h_stream, h_stack,
-            ⟨nn, km, h_stk, h_ksz',
+            ⟨nn, km, h_stk, h_ksz', h_floorK',
              fun _ => ⟨content_km_transport hpos h_km h_preprocess h_ad_def h_dispatch
                  ⟨congrArg SimpleKeyState.possible (dispatchContent_tag_simpleKey h_dispatch).1,
                   congrArg SimpleKeyState.tokenIndex (dispatchContent_tag_simpleKey h_dispatch).1⟩
@@ -16456,9 +16818,11 @@ lemma accum_step_content (sc : ScannerState)
           -- frame is receptive, so the node folds straight in and the frame tail
           -- becomes `.value`.  The plain-scalar arm is the one that leaves a
           -- non-empty gap (`h_ws`).
-          obtain ⟨sp_ne, sp_res, h_node, h_ws, hcorr_res⟩ :=
-            dispatchContent_evidence_flowIn s_ad sp_prep c hcorr_ad hpeek h_ad_inflow
-              h_not_doc h_dispatch
+          -- Item 67: at the STACK's own index, so a multi-line token composes
+          -- instead of renouncing the reading.  The lift is gone from this arm.
+          obtain ⟨sp_ne, sp_res, h_node_or, h_ws, hcorr_res⟩ :=
+            dispatchContent_evidence_flowIn_or_at nn s_ad sp_prep c hcorr_ad hpeek h_ad_inflow
+              h_not_doc h_dispatch h_col_ad h_floor_ad
           obtain ⟨h_tl', h_real', h_sync'⟩ :=
             tailOf_dispatchContent_value h_dispatch hamp hbang hnotPipe hnotGt
           have h_off_gt : s_ad.offset < s'.offset :=
@@ -16501,7 +16865,7 @@ lemma accum_step_content (sc : ScannerState)
           · exact shape_out h_close_sh
           rcases (SSeparateLines_at nn h_lead).symm with - | h_lead'
           · exact shape_out (dropClose h_stream_blk)
-          rcases (SFlowNode_at nn h_node).symm with - | h_node'
+          rcases h_node_or.symm with - | h_node'
           · exact shape_out (dropClose h_stream_blk)
           have h_entry : KeyAfterValueLayout s' ∨
               ∀ sp_p' sp_t', SSeparateLines 0 sp_ne sp_p' → GLit ':' sp_p' sp_t' →
@@ -16526,7 +16890,7 @@ lemma accum_step_content (sc : ScannerState)
           exact ⟨sp_gram, sp_block, sp_ne, sp_res, h_stream, h_stack,
             ⟨nn, km, .open (d + 1) ks km .value sp_block sp_ne
               (FlowOpenStack.receiveNode h_fos h_tail h_lead' sp_ne h_node'),
-             h_ksz',
+             h_ksz', h_floorK',
              fun _ => ⟨content_km_transport hpos h_km h_preprocess h_ad_def h_dispatch
                  ⟨((dispatchContent_value_key_facts h_dispatch hamp hbang hnotPipe hnotGt).1).1,
                   ((dispatchContent_value_key_facts h_dispatch hamp hbang hnotPipe hnotGt).1).2.1⟩
@@ -16598,7 +16962,7 @@ lemma accum_step_content (sc : ScannerState)
           · exact .open (d + 1) ks km tl sp_block sp_flow h_fos
           · exact .shape _ _ _ _ _ _ (by omega) h_close_sh
         exact ⟨sp_gram, sp_block, sp_flow, sp_new, h_stream, h_stack,
-          ⟨nn, km, h_stk, h_ksz',
+          ⟨nn, km, h_stk, h_ksz', h_floorK',
            fun _ => ⟨content_km_transport hpos h_km h_preprocess h_ad_def h_dispatch
                ⟨congrArg SimpleKeyState.possible (dispatchContent_anchor_simpleKey h_dispatch).1,
                 congrArg SimpleKeyState.tokenIndex (dispatchContent_anchor_simpleKey h_dispatch).1⟩
@@ -16688,7 +17052,7 @@ lemma accum_step_content (sc : ScannerState)
             · exact .open (d + 1) ks km tl sp_block sp_flow h_fos
             · exact .shape _ _ _ _ _ _ (by omega) h_close_sh
           exact ⟨sp_gram, sp_block, sp_flow, sp_new, h_stream, h_stack,
-            ⟨nn, km, h_stk, h_ksz',
+            ⟨nn, km, h_stk, h_ksz', h_floorK',
              fun _ => ⟨content_km_transport hpos h_km h_preprocess h_ad_def h_dispatch
                  ⟨congrArg SimpleKeyState.possible (dispatchContent_tag_simpleKey h_dispatch).1,
                   congrArg SimpleKeyState.tokenIndex (dispatchContent_tag_simpleKey h_dispatch).1⟩
@@ -16828,7 +17192,7 @@ lemma accum_step_content (sc : ScannerState)
             exact ⟨sp_gram, sp_block, sp_ne, sp_res, h_stream, h_stack,
               ⟨nn, km, .open (d + 1) ks km .value sp_block sp_ne
                 (h_fos.receivePropsContent h_tail h_lead_p' h_run' h_lead0' h_content'),
-               h_ksz',
+               h_ksz', h_floorK',
                fun _ => ⟨content_km_transport hpos h_km h_preprocess h_ad_def h_dispatch
                    ⟨((dispatchContent_value_key_facts h_dispatch hamp hbang hnotPipe hnotGt).1).1,
                     ((dispatchContent_value_key_facts h_dispatch hamp hbang hnotPipe hnotGt).1).2.1⟩
@@ -16960,7 +17324,7 @@ lemma scanNextToken_accum_step (sc : ScannerState)
                           obtain ⟨g', bl', fl', sn', q1, q2, q3, q4, q5, q6⟩ :=
                             accum_step_content sc sp_start sp_gram sp_block sp_flow sp_scan s_pre s_cnt c_pre
                               h_stream h_stack h_flow h_pending h_corr h_interior h_pre
-                              h_flow_none h_blk_none h_adj h_cnt h_not_doc
+                              h_flow_none h_blk_none h_adj h_cnt h_str_eq h_not_doc
                           exact ⟨g', bl', fl', sn', false, q1, q2, q3, q4, fun h => Bool.noConfusion h, q5, q6⟩
 
 /-! ## §2 EOF Step: scanNextToken returns none
@@ -16983,7 +17347,7 @@ lemma scanNextToken_none_stream (sc : ScannerState)
   -- `unterminatedFlowCollection` BEFORE reaching here, so the caller supplies
   -- `h_fl0`. (`scanNextToken sc = .ok none` on its own does NOT rule the case
   -- out — `[a, b` reaches EOF happily; it is the loop's post-check that fails.)
-  obtain ⟨nn, km, h_flow, -, -⟩ := h_flowK
+  obtain ⟨nn, km, h_flow, -, -, -⟩ := h_flowK
   rw [h_fl0] at h_flow
   unfold scanNextToken at h_ok
   simp only [bind, Except.bind, pure, Except.pure] at h_ok
@@ -17173,11 +17537,13 @@ lemma scan_content_gives_stream_v2
         ScannerCorrectness.emit_preserves_flowStack]
     exact ⟨0, #[], FlowStackB.nil sp _,
       (by simp [ScannerCorrectness.emit_preserves_flowLevel, ScannerState.mk']),
+      Or.inl (Nat.zero_le _),
       fun h => absurd h (by
       simp [ScannerCorrectness.emit_preserves_flowLevel, ScannerState.mk'])⟩
   · rw [ScannerCorrectness.emit_preserves_flowStack]
     exact ⟨0, #[], FlowStackB.nil sp _,
       (by simp [ScannerCorrectness.emit_preserves_flowLevel, ScannerState.mk']),
+      Or.inl (Nat.zero_le _),
       fun h => absurd h (by
       simp [ScannerCorrectness.emit_preserves_flowLevel, ScannerState.mk'])⟩
 
