@@ -5667,6 +5667,93 @@ lemma flowOpen_underRunTab_refuted {sc s_prep : ScannerState} {c : Char} {n j : 
     injection h with h
     rcases h_c with rfl | rfl <;> cases h
 
+/-- **The flow INTERIOR's own under-run** (item 69) — the twin of
+    `flowOpen_underRunEnd_refuted`, one production in.
+
+    §8.1's floor has two halves and the OPEN spends only one of them:
+    `checkBlockFlowIndent` is guarded on `!inFlow`, so it says nothing once a
+    collection is open.  The half that runs INSIDE one is
+    `dispatchStructural`'s, and it is both wider and narrower — it refuses
+    EVERY character at or left of `currentIndent`, not just `[` and `{`, which
+    is why this refutation needs no fact about `c` at all.
+
+    The landing ends its `[63] s-indent` run at `j < n`, the stack's floor says
+    `n ≤ currentIndent + 1`, and preprocessing writes no indent inside a flow
+    (`preprocess_indents_of_inFlow`), so the column the check read IS `j` — and
+    its fall-through says `j` is strictly right of the indent it cleared. -/
+lemma flowInterior_underRunEnd_refuted {sc s_prep : ScannerState} {c : Char} {n j : Nat}
+    {sp_mid sp_prep : SurfPos}
+    (h_floor : n ≤ minContentIndentOf sc)
+    (h_inflow : sc.inFlow = true)
+    (hcorr_prep : ScannerSurfCorr s_prep sp_prep)
+    (h_col0 : sp_mid.col = 0)
+    (hj : j < n) (h_ind : SIndent j sp_mid sp_prep)
+    (h_preprocess : scanNextToken_preprocess sc = .ok (some (s_prep, c)))
+    (h_str : scanNextToken_dispatchStructural s_prep c = .ok none) : False := by
+  have h_prep_flow : s_prep.inFlow = true := by
+    unfold ScannerState.inFlow at h_inflow ⊢
+    rw [preprocess_preserves_flowLevel sc s_prep c h_preprocess]; exact h_inflow
+  have h_colj : sp_prep.col = j := by
+    have := SIndent_col' h_ind; rw [h_col0] at this; omega
+  have h_scol : s_prep.col = j := by rw [← hcorr_prep.col_eq, h_colj]
+  have h_ci : s_prep.currentIndent = sc.currentIndent :=
+    currentIndent_of_indents_eq
+      (FlowIndentStable.preprocess_indents_of_inFlow h_inflow h_preprocess)
+  have h_gt := FlowIndentStable.structural_none_col_gt_of_inFlow h_prep_flow h_str
+  rw [h_scol, h_ci] at h_gt
+  unfold minContentIndentOf at h_floor
+  omega
+
+/-- **What survives the interior's separator lift** (item 69): a landing that
+    under-runs the stack's index and carries a TAB, with §6.1's own fact about
+    it still in hand.
+
+    The run-END half is gone — `flowInterior_underRunEnd_refuted` takes it — so
+    this is the whole residue, and `LandingTabFacts` travels beside it because
+    refuting what is left is a question about the FLOW park's column, which the
+    interior does not carry: `LandingTabFacts`' premise is "a break was
+    crossed", and the only witness to that is a park at a nonzero column.  The
+    parks the BLOCK pendings hold have one (items 59/68); the flow park does
+    not, and giving it one is a column invariant across the interior whose hard
+    cases are the multi-line scalar productions. -/
+def SeparatorTabResidue (ci : Int) (nic : Bool) (pk : Option Char) (n : Nat)
+    (s s' : SurfPos) : Prop :=
+  ∃ sp_mid j sx, SSLComments s sp_mid ∧ sp_mid.col = 0 ∧ j < n ∧ SIndent j sp_mid sx ∧
+    GStar SSWhite sx s' ∧ sx.chars.head? = some '\t' ∧ LandingTabFacts ci nic pk s sp_mid
+
+/-- **The interior's separator lift** (item 69), replacing a bare
+    `SSeparateLines_at` wherever the separator being lifted is PREPROCESSING's
+    own — the step's leading separation, cursor to token.
+
+    `SSeparateLines_at` knows only the surface, so its residue is either half
+    of a `WhiteRunUnderRun`; this one is handed the step that produced the
+    landing, so the end half refutes and the residue is the tab.  The floor is
+    not a hypothesis but the residue's own premise: a stack that could not
+    measure its index (`FlowStackK`'s `∨ True`) still gets a reading or a
+    residue, and pays for the sharper residue only when it can. -/
+lemma SSeparateLines_at_interior (n : Nat) {sc s_prep : ScannerState} {c : Char}
+    {sp_scan sp_prep : SurfPos}
+    (h_inflow : sc.inFlow = true)
+    (h_corr : ScannerSurfCorr sc sp_scan)
+    (hcorr_prep : ScannerSurfCorr s_prep sp_prep)
+    (h_preprocess : scanNextToken_preprocess sc = .ok (some (s_prep, c)))
+    (h_str : scanNextToken_dispatchStructural s_prep c = .ok none) :
+    SSeparateLines n sp_scan sp_prep ∨
+      (n ≤ minContentIndentOf sc →
+        SeparatorTabResidue sc.currentIndent sc.needIndentCheck s_prep.peek? n
+          sp_scan sp_prep) := by
+  obtain ⟨sp_p, hcorr_p, h_disj⟩ :=
+    preprocess_some_separate_at_anyCol n sc sp_scan s_prep c h_corr h_preprocess
+  have h_pe : sp_p = sp_prep := ScannerSurfCorr_unique hcorr_p hcorr_prep
+  subst h_pe
+  rcases h_disj with h | ⟨sp_mid, h_ssl, h_col0, ⟨j, sx, hj, h_ind, h_ws, h_alt⟩, h_ltsl⟩
+  · exact Or.inl h
+  · refine Or.inr (fun h_floor => ?_)
+    rcases h_alt with rfl | h_tab
+    · exact (flowInterior_underRunEnd_refuted h_floor h_inflow hcorr_prep h_col0 hj h_ind
+        h_preprocess h_str).elim
+    · exact ⟨sp_mid, j, sx, h_ssl, h_col0, hj, h_ind, h_ws, h_tab, h_ltsl⟩
+
 /-- A white run only moves right. -/
 lemma gstar_white_col_le {sp sp' : SurfPos} (h : GStar SSWhite sp sp') :
     sp.col ≤ sp'.col := by
@@ -7461,6 +7548,11 @@ lemma accum_step_flow (sc : ScannerState)
       InteriorGap sc (tailOf sc.tokens) sp_flow sp_scan ∧
         LastTokenReal sc.tokens ∧ sc.allowDirectives = false)
     (h_preprocess : scanNextToken_preprocess sc = .ok (some (s_prep, c)))
+    -- Item 69: §8.1's OTHER half, the one that runs inside an open collection.
+    -- The content dispatch already took it (item 67); the two indicator
+    -- dispatches take it now, because it is what refutes the run-end half of a
+    -- flow-interior separator's under-run landing.
+    (h_str_none : scanNextToken_dispatchStructural s_prep c = .ok none)
     -- Item 66: §8.1's floor, threaded from `scanNextToken` — the one check
     -- that runs between the structural dispatch and this one.
     (h_bfi : scanNextToken_checkBlockFlowIndent (if s_prep.allowDirectives then
@@ -7635,6 +7727,17 @@ lemma accum_step_flow (sc : ScannerState)
     -- run.  Which it is, is resolved once, below the index bookkeeping.
     obtain ⟨sp_prep, h_lead0, hcorr_prep⟩ :=
       preprocess_some_separate_0_anyCol sc sp_scan s_prep c h_corr h_preprocess
+    -- Item 69: …and the same separator read at the STACK's index, which is what
+    -- every frame transition below actually needs.  The lift is not the
+    -- surface's (`SSeparateLines_at`, whose residue is either half of the
+    -- landing's under-run) but the step's: `dispatchStructural`'s in-flow floor
+    -- refuses a landing that ends at or left of `currentIndent`, so what a site
+    -- can still be handed is the TAB half alone.
+    have h_lead_at : ∀ m : Nat, SSeparateLines m sp_scan sp_prep ∨
+        (m ≤ minContentIndentOf sc →
+          SeparatorTabResidue sc.currentIndent sc.needIndentCheck s_prep.peek? m
+            sp_scan sp_prep) :=
+      fun m => SSeparateLines_at_interior m h_sc_inflow h_corr hcorr_prep h_preprocess h_str_none
     have h_ad_fl : (if s_prep.allowDirectives then
         { s_prep with allowDirectives := false, documentEverStarted := true }
       else s_prep).flowLevel = sc.flowLevel :=
@@ -7926,9 +8029,9 @@ lemma accum_step_flow (sc : ScannerState)
         have h_ad_sync : frameTokenVal? s_ad.tokens = lastRealTokenVal? s_ad.tokens := by
           rw [← h_ad_def, allowDirectives_update_tokens]
           exact preprocess_preserves_sync_inFlow (by omega) h_real_sc h_preprocess h_sync
-        rcases SSeparateLines_at nn (SSeparateLines_prepend_white h_ws h_lead0) with
-          h_lead | _
-        · exact Or.inl ⟨tl, sp_flow, h_fos, h_lead,
+        rcases h_lead_at nn with h_lead0' | _
+        · have h_lead := SSeparateLines_prepend_white h_ws h_lead0'
+          exact Or.inl ⟨tl, sp_flow, h_fos, h_lead,
             (fun h_tail sp_ne h_c =>
               FlowOpenStack.receiveNode h_fos h_tail h_lead sp_ne (.content _ _ _ _ h_c)),
             (fun h => by rw [← h_ad_tl]; exact tailOf_ne_value h_ad_sync h),
@@ -7940,7 +8043,7 @@ lemma accum_step_flow (sc : ScannerState)
       | props ha ht sp_p h_tail h_lead_p h_run _ _ h_colon_sc =>
         rcases SSeparateLines_at nn h_lead_p with h_lead_p' | _
         · rcases PropsRun_at nn h_run with h_run' | _
-          · rcases SSeparateLines_at nn h_lead0 with h_lead0' | _
+          · rcases h_lead_at nn with h_lead0' | _
             · exact Or.inl ⟨.value, sp_scan,
                 h_fos.receivePropsEmpty h_tail h_lead_p' h_run', h_lead0',
                 (fun _ sp_ne h_c =>
@@ -11829,6 +11932,8 @@ lemma accum_step_block (sc : ScannerState)
       InteriorGap sc (tailOf sc.tokens) sp_flow sp_scan ∧
         LastTokenReal sc.tokens ∧ sc.allowDirectives = false)
     (h_preprocess : scanNextToken_preprocess sc = .ok (some (s_prep, c)))
+    -- Item 69: §8.1's in-flow half, as at `accum_step_flow`.
+    (h_str_none : scanNextToken_dispatchStructural s_prep c = .ok none)
     (h_dispatch : scanNextToken_dispatchBlockIndicators
         (if s_prep.allowDirectives then
           { s_prep with allowDirectives := false, documentEverStarted := true }
@@ -11896,6 +12001,17 @@ lemma accum_step_block (sc : ScannerState)
             FlowIndentStable.preprocess_indents_of_inFlow h_sc_inflow h_preprocess])
     obtain ⟨sp_prep, h_lead0, hcorr_prep⟩ :=
       preprocess_some_separate_0_anyCol sc sp_scan s_prep c h_corr h_preprocess
+    -- Item 69: …and the same separator read at the STACK's index, which is what
+    -- every frame transition below actually needs.  The lift is not the
+    -- surface's (`SSeparateLines_at`, whose residue is either half of the
+    -- landing's under-run) but the step's: `dispatchStructural`'s in-flow floor
+    -- refuses a landing that ends at or left of `currentIndent`, so what a site
+    -- can still be handed is the TAB half alone.
+    have h_lead_at : ∀ m : Nat, SSeparateLines m sp_scan sp_prep ∨
+        (m ≤ minContentIndentOf sc →
+          SeparatorTabResidue sc.currentIndent sc.needIndentCheck s_prep.peek? m
+            sp_scan sp_prep) :=
+      fun m => SSeparateLines_at_interior m h_sc_inflow h_corr hcorr_prep h_preprocess h_str_none
     have h_ad_fl : (if s_prep.allowDirectives then
         { s_prep with allowDirectives := false, documentEverStarted := true }
       else s_prep).flowLevel = sc.flowLevel :=
@@ -11985,10 +12101,13 @@ lemma accum_step_block (sc : ScannerState)
           -- does neither, because a property opens no entry, so item 9g's guard
           -- has already rejected `[&a ? b]`. That is why this arm does not want
           -- `accum_step_flow`'s shared five-arm gap resolution.
-          have h_frame : tl = .sep ∧ SSeparateLines 0 sp_flow sp_prep := by
+          have h_frame : tl = .sep ∧ ∀ m : Nat, SSeparateLines m sp_flow sp_prep ∨
+              (m ≤ minContentIndentOf sc →
+                SeparatorTabResidue sc.currentIndent sc.needIndentCheck s_prep.peek? m
+                  sp_scan sp_prep) := by
             cases h_gap with
             | white h_ws h_sync =>
-              refine ⟨?_, SSeparateLines_prepend_white h_ws h_lead0⟩
+              refine ⟨?_, fun m => (h_lead_at m).imp (SSeparateLines_prepend_white h_ws) id⟩
               have h_ad_sync : frameTokenVal? s_ad.tokens = lastRealTokenVal? s_ad.tokens := by
                 rw [← h_ad_def, allowDirectives_update_tokens]
                 exact preprocess_preserves_sync_inFlow (by omega) h_real_sc h_preprocess h_sync
@@ -12022,7 +12141,7 @@ lemma accum_step_block (sc : ScannerState)
           rw [h_fl', h_ks', (tailOf_scanKey h_ad_inflow hk).1]
           have h_stk : FlowStackB sp_start nn (d + 1) ks km .question sp_block sp_tok := by
             rcases h_fos_or with h_fos | h_close_sh
-            · rcases SSeparateLines_at nn h_lead with h_lead' | _
+            · rcases h_lead nn with h_lead' | _
               · exact .open _ _ _ _ sp_block sp_tok
                   (h_fos.receiveQuestion (htl_sep ▸ rfl) h_lead' h_q_lit)
               · exact .shape _ _ _ _ _ _ (by omega) (dropClose h_stream_blk)
@@ -12211,10 +12330,10 @@ lemma accum_step_block (sc : ScannerState)
               | white h_ws h_sync_w h_colon_w =>
                 have h_stk : FlowStackB sp_start nn (d + 1) ks km .colon sp_block sp_tok := by
                   rcases h_fos_or with h_fos | h_close_sh
-                  · rcases SSeparateLines_at nn
-                        (SSeparateLines_prepend_white h_ws h_lead0) with h_lead' | _
+                  · rcases h_lead_at nn with h_lead0' | _
                     · exact .open _ _ _ _ sp_block sp_tok
-                        (h_fos.receiveColonSep h_tl_case h_lead' h_colon_lit)
+                        (h_fos.receiveColonSep h_tl_case
+                          (SSeparateLines_prepend_white h_ws h_lead0') h_colon_lit)
                     · exact .shape _ _ _ _ _ _ (by omega) (dropClose h_stream_blk)
                   · exact .shape _ _ _ _ _ _ (by omega) h_close_sh
                 exact ⟨sp_gram, sp_block, sp_tok, sp_tok, h_stream, h_stack,
@@ -12226,7 +12345,7 @@ lemma accum_step_block (sc : ScannerState)
                   rcases h_fos_or with h_fos | h_close_sh
                   · rcases SSeparateLines_at nn h_lead_p with h_lead_p' | _
                     · rcases PropsRun_at nn h_run_p with h_run_p' | _
-                      · rcases SSeparateLines_at nn h_lead0 with h_lead0' | _
+                      · rcases h_lead_at nn with h_lead0' | _
                         · exact .open _ _ _ _ sp_block sp_tok
                             (h_fos.receiveColonPropsSep h_tl_case h_lead_p' h_run_p'
                               (GOpt.some _ _ h_lead0') h_colon_lit)
@@ -12243,10 +12362,10 @@ lemma accum_step_block (sc : ScannerState)
               | white h_ws h_sync_w h_colon_w =>
                 have h_stk : FlowStackB sp_start nn (d + 1) ks km .colon sp_block sp_tok := by
                   rcases h_fos_or with h_fos | h_close_sh
-                  · rcases SSeparateLines_at nn
-                        (SSeparateLines_prepend_white h_ws h_lead0) with h_lead' | _
+                  · rcases h_lead_at nn with h_lead0' | _
                     · exact .open _ _ _ _ sp_block sp_tok
-                        (h_fos.receiveColonQuestion h_tl_case h_lead' h_colon_lit)
+                        (h_fos.receiveColonQuestion h_tl_case
+                          (SSeparateLines_prepend_white h_ws h_lead0') h_colon_lit)
                     · exact .shape _ _ _ _ _ _ (by omega) (dropClose h_stream_blk)
                   · exact .shape _ _ _ _ _ _ (by omega) h_close_sh
                 exact ⟨sp_gram, sp_block, sp_tok, sp_tok, h_stream, h_stack,
@@ -12258,7 +12377,7 @@ lemma accum_step_block (sc : ScannerState)
                   rcases h_fos_or with h_fos | h_close_sh
                   · rcases SSeparateLines_at nn h_lead_p with h_lead_p' | _
                     · rcases PropsRun_at nn h_run_p with h_run_p' | _
-                      · rcases SSeparateLines_at nn h_lead0 with h_lead0' | _
+                      · rcases h_lead_at nn with h_lead0' | _
                         · exact .open _ _ _ _ sp_block sp_tok
                             (h_fos.receiveColonPropsQuestion h_tl_case h_lead_p' h_run_p'
                               (GOpt.some _ _ h_lead0') h_colon_lit)
@@ -16794,6 +16913,17 @@ lemma accum_step_content (sc : ScannerState)
             FlowIndentStable.preprocess_indents_of_inFlow h_sc_inflow h_preprocess])
     obtain ⟨sp_prep, h_lead0, hcorr_prep⟩ :=
       preprocess_some_separate_0_anyCol sc sp_scan s_prep c h_corr h_preprocess
+    -- Item 69: …and the same separator read at the STACK's index, which is what
+    -- every frame transition below actually needs.  The lift is not the
+    -- surface's (`SSeparateLines_at`, whose residue is either half of the
+    -- landing's under-run) but the step's: `dispatchStructural`'s in-flow floor
+    -- refuses a landing that ends at or left of `currentIndent`, so what a site
+    -- can still be handed is the TAB half alone.
+    have h_lead_at : ∀ m : Nat, SSeparateLines m sp_scan sp_prep ∨
+        (m ≤ minContentIndentOf sc →
+          SeparatorTabResidue sc.currentIndent sc.needIndentCheck s_prep.peek? m
+            sp_scan sp_prep) :=
+      fun m => SSeparateLines_at_interior m h_sc_inflow h_corr hcorr_prep h_preprocess h_str_none
     have h_ad_fl : (if s_prep.allowDirectives then
         { s_prep with allowDirectives := false, documentEverStarted := true }
       else s_prep).flowLevel = sc.flowLevel :=
@@ -17089,8 +17219,9 @@ lemma accum_step_content (sc : ScannerState)
                fun _ => ⟨.white h_ws h_sync' nofun, h_real', h_ad'⟩⟩
           rcases h_fos_or.symm with h_close_sh | h_fos
           · exact shape_out h_close_sh
-          rcases (SSeparateLines_at nn h_lead).symm with - | h_lead'
+          rcases (h_lead_at nn).symm with - | h_lead0'
           · exact shape_out (dropClose h_stream_blk)
+          have h_lead' := SSeparateLines_prepend_white h_white h_lead0'
           rcases h_node_or.symm with - | h_node'
           · exact shape_out (dropClose h_stream_blk)
           have h_entry : KeyAfterValueLayout s' ∨
@@ -17389,7 +17520,7 @@ lemma accum_step_content (sc : ScannerState)
             · exact shape_out (dropClose h_stream_blk)
             rcases (PropsRun_at nn h_run).symm with - | h_run'
             · exact shape_out (dropClose h_stream_blk)
-            rcases (SSeparateLines_at nn h_lead0).symm with - | h_lead0'
+            rcases (h_lead_at nn).symm with - | h_lead0'
             · exact shape_out (dropClose h_stream_blk)
             rcases (SFlowContent_at nn h_content).symm with - | h_content'
             · exact shape_out (dropClose h_stream_blk)
@@ -17504,7 +17635,8 @@ lemma scanNextToken_accum_step (sc : ScannerState)
                   have h := Except.ok.inj h_ok; injection h with h; subst h
                   obtain ⟨g', bl', fl', sn', q1, q2, q3, q4, q5, q6⟩ :=
                     accum_step_flow sc sp_start sp_gram sp_block sp_flow sp_scan s_pre s_flow_out c_pre
-                      h_stream h_stack h_flow h_pending h_corr h_interior h_pre h_bfi h_flow_disp
+                      h_stream h_stack h_flow h_pending h_corr h_interior h_pre h_str_eq h_bfi
+                      h_flow_disp
                   exact ⟨g', bl', fl', sn', false, q1, q2, q3, q4, fun h => Bool.noConfusion h, q5, q6⟩
                 · rename_i h_flow_none
                   split at h_ok
@@ -17514,7 +17646,7 @@ lemma scanNextToken_accum_step (sc : ScannerState)
                       have h := Except.ok.inj h_ok; injection h with h; subst h
                       obtain ⟨g', bl', fl', sn', q1, q2, q3, q4, q5, q6⟩ :=
                         accum_step_block sc sp_start sp_gram sp_block sp_flow sp_scan s_pre s_blk c_pre
-                          h_stream h_stack h_flow h_pending h_corr h_interior h_pre h_blk
+                          h_stream h_stack h_flow h_pending h_corr h_interior h_pre h_str_eq h_blk
                       exact ⟨g', bl', fl', sn', false, q1, q2, q3, q4, fun h => Bool.noConfusion h, q5, q6⟩
                     · rename_i h_blk_none
                       -- Item 47: the adjacent-value check between the two dispatches.
