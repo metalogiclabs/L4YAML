@@ -982,4 +982,27 @@ lemma scanPlainScalar_to_flowNode_at (n : Nat) (sc : ScannerState) (sp : SurfPos
           (corr_of_emitAt _ _ hcorr_result)⟩
     · exact Or.inr trivial
 
+/-- The CONTENT-level face of `scanPlainScalar_to_flowNode_at` (what a held
+    props run decorates — `SFlowNode.propsContent` wraps content). -/
+lemma scanPlainScalar_to_flowContent_at (n : Nat) (sc : ScannerState) (sp : SurfPos)
+    {s' : ScannerState} {c : Char}
+    (hcorr : ScannerSurfCorr sc sp)
+    (hpeek : sc.peek? = some c)
+    (hstart : canStartPlainScalarBool c (sc.peekAt? 1) sc.inFlow = true)
+    (h_not_doc : sc.col = 0 → atDocumentBoundary sc = false)
+    (hok : scanPlainScalar sc = .ok s')
+    (hinflow : sc.inFlow = false)
+    (hn : n ≤ minContentIndentOf sc) :
+    (∃ sp_gram sp', SFlowContent n .flowOut sp sp_gram ∧
+                    GStar SSWhite sp_gram sp' ∧
+                    ScannerSurfCorr s' sp') ∨ True := by
+  rcases scanPlainScalar_to_flowNode_at n sc sp hcorr hpeek hstart h_not_doc hok
+      hinflow hn with ⟨sp_gram, sp', h_node, h_tws, hcorr'⟩ | _
+  · cases h_node with
+    | content _ _ _ _ h_content => exact Or.inl ⟨sp_gram, sp', h_content, h_tws, hcorr'⟩
+    | alias _ _ _ _ h => exact Or.inr trivial
+    | propsContent _ _ _ _ _ _ h1 h2 h3 => exact Or.inr trivial
+    | propsEmpty _ _ _ _ h => exact Or.inr trivial
+  · exact Or.inr trivial
+
 end L4YAML.Proofs.ScalarFoldAt

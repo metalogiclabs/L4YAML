@@ -11557,6 +11557,43 @@ lemma dispatchContent_plainScalar_prod_at (n : Nat) (sc : ScannerState) (sp : Su
                   (by assumption) h_not_doc (by assumption) hinflow hn
               · simp at hok
 
+-- Item 55: the CONTENT-level at-`n` twin (what a held props run decorates).
+lemma dispatchContent_plainScalar_content_prod_at (n : Nat) (sc : ScannerState) (sp : SurfPos)
+    {s' : ScannerState} {c : Char}
+    (hcorr : ScannerSurfCorr sc sp)
+    (hpeek : sc.peek? = some c)
+    (hnotAmpersand : c ≠ '&') (hnotStar : c ≠ '*') (hnotBang : c ≠ '!')
+    (hnotPipe : c ≠ '|') (hnotGt : c ≠ '>') (hnotDQ : c ≠ '"') (hnotSQ : c ≠ '\'')
+    (h_not_doc : sc.col = 0 → atDocumentBoundary sc = false)
+    (hok : scanNextToken_dispatchContent sc c = .ok s')
+    (hinflow : sc.inFlow = false)
+    (hn : n ≤ minContentIndentOf sc) :
+    (∃ sp_gram sp', SFlowContent n .flowOut sp sp_gram ∧
+                    GStar SSWhite sp_gram sp' ∧
+                    ScannerSurfCorr s' sp') ∨ True := by
+  unfold scanNextToken_dispatchContent at hok
+  simp only [bind, Except.bind, pure, Except.pure] at hok
+  split at hok
+  · rename_i h_eq; exact absurd (beq_iff_eq.mp h_eq) hnotAmpersand
+  · split at hok
+    · rename_i h_eq; exact absurd (beq_iff_eq.mp h_eq) hnotStar
+    · split at hok
+      · rename_i h_eq; exact absurd (beq_iff_eq.mp h_eq) hnotBang
+      · split at hok
+        · rename_i h_eq
+          have h_or := Bool.or_eq_true_iff.mp h_eq
+          cases h_or with
+          | inl h => exact absurd (beq_iff_eq.mp h) hnotPipe
+          | inr h => exact absurd (beq_iff_eq.mp h) hnotGt
+        · split at hok
+          · rename_i h_eq; exact absurd (beq_iff_eq.mp h_eq) hnotDQ
+          · split at hok
+            · rename_i h_eq; exact absurd (beq_iff_eq.mp h_eq) hnotSQ
+            · split at hok
+              · exact scanPlainScalar_to_flowContent_at n sc sp hcorr hpeek
+                  (by assumption) h_not_doc (by assumption) hinflow hn
+              · simp at hok
+
 -- The CONTENT-level `.flowOut` twin (item 12): the same walk, ending at
 -- `scanPlainScalar_to_flowContent` — what a held depth-0 props run's ride
 -- consumes, since `SFlowNode.propsContent` wraps content, not a node.
@@ -14747,7 +14784,10 @@ lemma accum_content_pending (sc : ScannerState)
                     (∀ m : Nat, SFlowContent m .flowOut sp_prep sp_ne) ∧
                     GStar SSWhite sp_ne sp_res ∧ ScannerSurfCorr s' sp_res) ∨
                   (SCLLiteral (k + 1) sp_prep sp_scan' ∨
-                   SCLFolded (k + 1) sp_prep sp_scan') ∨ True := by
+                   SCLFolded (k + 1) sp_prep sp_scan') ∨
+                  (∃ sp_ne sp_res,
+                    SFlowContent (k + 1) .flowOut sp_prep sp_ne ∧
+                    GStar SSWhite sp_ne sp_res ∧ ScannerSurfCorr s' sp_res) ∨ True := by
                 by_cases hbs : c = '|' ∨ c = '>'
                 · -- Item 26: `[198]`'s props slot over a block scalar, at the run's
                   -- own route index rather than only at 0.  One question, one
@@ -14774,7 +14814,7 @@ lemma accum_content_pending (sc : ScannerState)
                     exact Or.inr (Or.inl
                       (h_read.elim (fun h => Or.inl (h (k + 1) hn))
                                    (fun h => Or.inr (h (k + 1) hn))))
-                  · exact Or.inr (Or.inr trivial)
+                  · exact Or.inr (Or.inr (Or.inr trivial))
                 · by_cases hline_eq : s'.line = (if s_prep.allowDirectives then
                       { s_prep with allowDirectives := false, documentEverStarted := true }
                     else s_prep).line
@@ -14782,9 +14822,57 @@ lemma accum_content_pending (sc : ScannerState)
                       (corr_of_allowDirectives_update hcorr_prep) hpeek_disp h_flow_disp
                       h_not_doc hamp hstar hbang (fun h => hbs (Or.inl h)) (fun h => hbs (Or.inr h))
                       hline_eq h_dispatch)
-                  · exact Or.inr (Or.inr trivial)
+                  · -- Item 55: the props-decorated FOLD at the run's own route
+                    -- index — items 53/54's readings, fired off the pending's
+                    -- floor (an alias never folds and defers vacuously).
+                    rcases h_floor_p with ⟨h_nic_sc, h_le⟩ | _
+                    · have hn_mci : k + 1 ≤ minContentIndentOf (if s_prep.allowDirectives then
+                          { s_prep with allowDirectives := false, documentEverStarted := true }
+                        else s_prep) := by
+                        have h1 : minContentIndentOf (if s_prep.allowDirectives then
+                            { s_prep with allowDirectives := false, documentEverStarted := true }
+                          else s_prep) = minContentIndentOf s_prep := by
+                          refine minContentIndentOf_congr ?_
+                          split <;> rfl
+                        have h2 : minContentIndentOf s_prep = minContentIndentOf sc :=
+                          minContentIndentOf_congr (h_indents0 h_nic_sc)
+                        rw [h1, h2]
+                        exact h_le
+                      have hn_max : ((k + 1 : Nat) : Int) ≤ max 0 ((if s_prep.allowDirectives then
+                          { s_prep with allowDirectives := false, documentEverStarted := true }
+                        else s_prep).currentIndent + 1) := by
+                        unfold minContentIndentOf at hn_mci
+                        omega
+                      by_cases hdq : c = '"'
+                      · subst hdq
+                        rcases dispatchContent_doubleQuoted_prod_at (k + 1) _ sp_prep
+                            (corr_of_allowDirectives_update hcorr_prep) hpeek_disp h_dispatch
+                            hn_max with ⟨sp', h_gram, hcorr'⟩ | _
+                        · exact Or.inr (Or.inr (Or.inl ⟨sp', sp', 
+                            SFlowContent.doubleQ (k + 1) .flowOut sp_prep sp'
+                              (SCDoubleQuoted_multiCtx .flowOut (Or.inl rfl) h_gram),
+                            GStar.nil _, hcorr'⟩))
+                        · exact Or.inr (Or.inr (Or.inr trivial))
+                      · by_cases hsq : c = '\''
+                        · subst hsq
+                          rcases dispatchContent_singleQuoted_prod_at (k + 1) _ sp_prep
+                              (corr_of_allowDirectives_update hcorr_prep) hpeek_disp h_dispatch
+                              hn_max with ⟨sp', h_gram, hcorr'⟩ | _
+                          · exact Or.inr (Or.inr (Or.inl ⟨sp', sp',
+                              SFlowContent.singleQ (k + 1) .flowOut sp_prep sp'
+                                (SCSingleQuoted_multiCtx .flowOut (Or.inl rfl) h_gram),
+                              GStar.nil _, hcorr'⟩))
+                          · exact Or.inr (Or.inr (Or.inr trivial))
+                        · rcases dispatchContent_plainScalar_content_prod_at (k + 1) _ sp_prep
+                              (corr_of_allowDirectives_update hcorr_prep) hpeek_disp
+                              hamp hstar hbang (fun h => hbs (Or.inl h)) (fun h => hbs (Or.inr h))
+                              hdq hsq h_not_doc h_dispatch h_flow_disp hn_mci with
+                            ⟨sp_g, sp', h_content, h_tws2, hcorr'⟩ | _
+                          · exact Or.inr (Or.inr (Or.inl ⟨sp_g, sp', h_content, h_tws2, hcorr'⟩))
+                          · exact Or.inr (Or.inr (Or.inr trivial))
+                    · exact Or.inr (Or.inr (Or.inr trivial))
               rcases h_one with ⟨sp_ne, sp_res, h_all, h_tws, hcorr_res⟩ |
-                  h_read | _
+                  h_read | ⟨sp_ne, sp_res, h_fixed, h_tws, hcorr_res⟩ | _
               · have hsp_eq4 := ScannerSurfCorr_unique hcorr_res hcorr_result
                 rw [hsp_eq4] at h_tws
                 exact ⟨sp_block, sp_block, sp_block, sp_scan', h_stream_block,
@@ -14818,6 +14906,23 @@ lemma accum_content_pending (sc : ScannerState)
                          (fun sp_mid h_ssl =>
                            ssl_comments_extend_stream sp_start sp_scan' sp_mid h_stream' h_ssl)
                          (fun _ _ => Or.inr trivial)
+                         (stale_of_dispatch h_dispatch hamp hbang
+                           (by split <;> exact nic_false_of_flow_disp (sc := sc) (s_prep := s_prep) h_preprocess h_flow_disp)
+                           hcorr_result) (Or.inr trivial),
+                       hcorr_result⟩
+              · -- Item 55: the props-decorated MULTI-LINE value at `k+1` —
+                -- the first consumer's park with the fixed-index content.
+                have hsp_eq4 := ScannerSurfCorr_unique hcorr_res hcorr_result
+                rw [hsp_eq4] at h_tws
+                exact ⟨sp_block, sp_block, sp_block, sp_scan', h_stream_block,
+                       BlockStack.nil sp_block, FlowStackB.nil sp_block .sep,
+                       PendingNode.pendingContent sp_start sp_block sp_scan' h_line
+                         (fun sp_mid h_ssl =>
+                           h_route sp_mid (flowInBlock_blockNode h_sep_run
+                             (SFlowNode.propsContent (k + 1) .flowOut sp_p sp_scan sp_prep sp_ne
+                               h_run.toProperties h_sep2 h_fixed)
+                             (white_prepend_SSLComments h_tws h_ssl)))
+                         h_key
                          (stale_of_dispatch h_dispatch hamp hbang
                            (by split <;> exact nic_false_of_flow_disp (sc := sc) (s_prep := s_prep) h_preprocess h_flow_disp)
                            hcorr_result) (Or.inr trivial),

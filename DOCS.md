@@ -7753,6 +7753,24 @@ edit); 0 sorries, 0 custom axioms; checkers OK.  New guard
 `ScannerPlainFoldCompose` (4 pins, all ACCEPT with folded event shapes,
 including the entry-level snoc after a fold and the folded key).
 
+### Item 55 (2026-09-04)
+
+paid the last fold shape — the props-decorated multi-line value at the
+run's route index (`k:⏎  - &a "x⏎     y"`, plain and single-quoted twins,
+the sibling snoc after it) — by giving the props consumer's one-question
+lemma a FOURTH answer: the fixed-index content at `k+1`, items 53/54's
+readings fired off the pending's inherited floor (`h_floor_p`'s left,
+transported through the run's own indents-stability), consumed by the first
+arm's park with `SFlowNode.propsContent` at the route index.  The satellite
+gains the CONTENT-level face of the plain wrapper
+(`scanPlainScalar_to_flowContent_at`) and its dispatch clone.  ZERO runtime
+edits; Reflection 679's third application.
+
+**Validation.** Full `lake build` green (ZERO warnings); `run-all-tests.sh`
+4461/4461; matrix and `eventscore` unmoved by construction; 0 sorries, 0
+custom axioms; checkers OK.  New guard `ScannerPropsFoldCompose` (4 ACCEPT
+pins with event shapes).
+
 ### REMAINING, in order
 
 The per-item history is the closure log above; this section lists only the
@@ -7829,13 +7847,11 @@ that spends one of the two remaining drops.  What still stands between here
 and that deletion, by input class:
 
 * ~~the **fold** class — a multi-line plain/quoted value at an indented
-  entry~~ — CLOSED at both indented arms by items 53 (quoted; the refused
-  landings fund the reading, `ScalarFoldAt.lean`) and 54 (plain; the same
-  rule's second application).  What survives: the props-decorated fold at
-  the props consumer's k+1 arm (`- &a "x⏎   y"`), and the named residues
-  (the tab-blank interior line — scanner-accepted, needs a runtime check —
-  the blank-after-escaped-break line at a nonzero index, spec-valid, and
-  the flow-context plain fold, the flow share's);
+  entry~~ — CLOSED by items 53 (quoted), 54 (plain) and 55 (the
+  props-decorated fold at the props consumer's k+1 arm).  What survives:
+  the named residues (the tab-blank interior line — scanner-accepted, needs
+  a runtime check — the blank-after-escaped-break line at a nonzero index,
+  spec-valid, and the flow-context folds, the flow share's);
 * ~~the **landing** class — a value on its own line below its indicator~~
   — CLOSED by item 52 (the break binds the index: the fixed-`n` separator
   instantiates at the pending's own index).  What survives of it: the
