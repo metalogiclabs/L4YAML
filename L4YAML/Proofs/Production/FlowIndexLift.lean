@@ -54,6 +54,17 @@ def WhiteRunUnderRun (n : Nat) (s s' : SurfPos) : Prop :=
   ∃ j sx, j < n ∧ SIndent j s sx ∧ GStar SSWhite sx s' ∧
     (sx = s' ∨ sx.chars.head? = some '\t')
 
+/-- **The DEDENT, located** (item 64).  The step crossed a break, and the
+    landing's `[63] s-indent` run ENDS at a width strictly below the pending's
+    index — `j` spaces and then the content, with no tab, because §6.1 refuses
+    a tab there (`LandingTab.NoLandingTabAt`).  This is the half of
+    `WhiteRunUnderRun` that survives the runtime: the enclosing entry has
+    ended and a sibling opens at an outer level, which is a FRAME question and
+    not a missing separator — there is no `[70] s-separate-lines(n)` to derive
+    here at any price, because the landing never reaches `n`. -/
+def DedentLanding (n : Nat) (s s' : SurfPos) : Prop :=
+  ∃ sp_mid j, SSLComments s sp_mid ∧ sp_mid.col = 0 ∧ j < n ∧ SIndent j sp_mid s'
+
 /-- Split a white run at a GIVEN `n`: `s-indent(n)` plus residual whites, or
     the located under-run. -/
 lemma gstar_white_take_sIndent (n : Nat) {s s' : SurfPos}

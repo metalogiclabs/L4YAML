@@ -5,6 +5,8 @@ Released under Apache 2.0 license as described in the file LICENSE.
 import L4YAML.Proofs.Coupling.ScannerCoupling
 import L4YAML.Proofs.Production.NodeProduction
 import L4YAML.Proofs.Scanner.ScannerLinePreservation
+import L4YAML.Proofs.Scanner.PreprocessIndentStable
+import L4YAML.Proofs.Coupling.LandingTab
 
 /-! # Preprocessing Production Coupling (Layer 4b)
 
@@ -40,6 +42,8 @@ open L4YAML.CharPredicates
 open L4YAML.Proofs.CouplingBridge
 open L4YAML.Proofs.ScannerCoupling
 open L4YAML.Proofs.NodeProduction
+open L4YAML.Proofs.PreprocessIndentStable
+open L4YAML.Proofs.LandingTab
 
 /-! ## §1 Helpers -/
 
@@ -290,11 +294,13 @@ lemma skipToContentLoop_col0_prod
     ∃ sp_mid sp_ws sp', GStar SLComment sp sp_mid ∧ sp_mid.col = 0 ∧
                   GStar SSWhite sp_mid sp_ws ∧ GOpt SCNbCommentText sp_ws sp' ∧
                   ScannerSurfCorr s_result sp' ∧
-                  (sp' = sp_ws ∨ s_result.peek? = none) := by
+                  (sp' = sp_ws ∨ s_result.peek? = none) ∧
+                  LandingTabFacts sc.currentIndent sc.needIndentCheck
+                    s_result.peek? sp sp_mid := by
   induction fuel generalizing sc sp s_result with
   | zero =>
-    simp [skipToContentLoop] at hok; subst hok
-    exact ⟨sp, sp, sp, GStar.nil _, hcol, GStar.nil _, GOpt.none _, hcorr, Or.inl rfl⟩
+    -- `hfuel` is `0 ≥ _ + 1`: the loop is never entered with no fuel at all.
+    exact absurd hfuel (by omega)
   | succ fuel' ih =>
     unfold skipToContentLoop at hok
     dsimp only [] at hok
@@ -319,6 +325,13 @@ lemma skipToContentLoop_col0_prod
           have h_lcomment : SLComment sp sp_brk :=
             SLComment.mk sp sp_ws sp_cmt sp_brk h_sep hopt_cmt
               (SBComment.break _ _ h_break)
+          -- Item 64: the iteration transports §6.1's fact — nothing on the way
+          -- writes the indent stack, and the break re-arms the check.
+          have h_next_ind : (consumeNewline (skipToContentComment s1)).indents = sc.indents := by
+            rw [consumeNewline_indents, skipToContentComment_preserves_indents,
+              skipToContentWs_preserves_indents sc s1 hok_ws]
+          have h_next_nic : (consumeNewline (skipToContentComment s1)).needIndentCheck = true :=
+            consumeNewline_needIndentCheck_of_break _ c hpeek hlb
           -- Fuel budget for recursion
           have ⟨h_ws_off, h_ws_end⟩ := skipToContentWs_offset_mono sc s1 hok_ws
           have ⟨h_sc_off, h_sc_end⟩ := skipToContentComment_offset_mono s1
@@ -351,29 +364,53 @@ lemma skipToContentLoop_col0_prod
               cases sp_brk; dsimp only [] at hcol_brk ⊢
               subst hcol_brk
               exact corr_of_simpleKeyAllowed_update true hcorr_brk
-            obtain ⟨sp_mid, sp_ws_r, sp', hstar_lc, hcol_mid, hws_r, hcmt_r, hcorr', h_pk⟩ :=
+            obtain ⟨sp_mid, sp_ws_r, sp', hstar_lc, hcol_mid, hws_r, hcmt_r, hcorr', h_pk,
+                h_ltsl⟩ :=
               ih _ ⟨sp_brk.chars, 0⟩ s_result hcorr_next rfl hfuel' hok
             exact ⟨sp_mid, sp_ws_r, sp', GStar.cons _ ⟨sp_brk.chars, 0⟩ _
               (by cases sp_brk; dsimp only [] at hcol_brk ⊢; subst hcol_brk; exact h_lcomment)
-              hstar_lc, hcol_mid, hws_r, hcmt_r, hcorr', h_pk⟩
+              hstar_lc, hcol_mid, hws_r, hcmt_r, hcorr', h_pk,
+              h_ltsl.transport (currentIndent_of_indents_eq h_next_ind) h_next_nic⟩
           · -- isInFlowSequence
-            obtain ⟨sp_mid, sp_ws_r, sp', hstar_lc, hcol_mid, hws_r, hcmt_r, hcorr', h_pk⟩ :=
+            obtain ⟨sp_mid, sp_ws_r, sp', hstar_lc, hcol_mid, hws_r, hcmt_r, hcorr', h_pk,
+                h_ltsl⟩ :=
               ih _ sp_brk s_result hcorr_brk hcol_brk hfuel' hok
             exact ⟨sp_mid, sp_ws_r, sp', GStar.cons _ sp_brk _ h_lcomment hstar_lc,
-                   hcol_mid, hws_r, hcmt_r, hcorr', h_pk⟩
+                   hcol_mid, hws_r, hcmt_r, hcorr', h_pk,
+                   h_ltsl.transport (currentIndent_of_indents_eq h_next_ind) h_next_nic⟩
         · -- not line break → stop (trailing ws from final iteration)
           rename_i hnlb
           have hinj := Except.ok.inj hok; subst hinj
           -- skipToContentComment was identity (non-break peek proves no comment consumed)
           have h_id := skipToContentComment_identity_of_content_peek s1 c hpeek hnlb
           rw [h_id]
-          exact ⟨sp, sp_ws, sp_ws, GStar.nil _, hcol, hstar_ws, GOpt.none _, hcorr_ws,
-                 Or.inl rfl⟩
+          refine ⟨sp, sp_ws, sp_ws, GStar.nil _, hcol, hstar_ws, GOpt.none _, hcorr_ws,
+                 Or.inl rfl, ?_⟩
+          -- Item 64: this is the line preprocessing STOPS on, so §6.1's gate
+          -- has already run on it — a tab at or left of the indent would have
+          -- been `tabInIndentation` unless the line ended there.
+          intro hprem hci j sx hind hj htab
+          have hnic : sc.needIndentCheck = true := by
+            rcases hprem with h | h
+            · exact h
+            · exact absurd rfl h
+          obtain ⟨htab_pk, hcol_sp⟩ := skipSpaces_lands_at_tab hcorr hind htab
+          have hle : ((skipSpaces sc).col : Int) ≤ sc.currentIndent := by
+            rw [hcol_sp, ← SIndent_col' hind]; exact hj
+          rcases skipToContentWs_tab_under_indent hok_ws hnic hci htab_pk hle with
+            h_none | ⟨ch, hch, hclass⟩
+          · exact Or.inl h_none
+          · rcases hclass with rfl | hlb
+            · exact Or.inr hch
+            · exact absurd (by
+                have : s1.peek? = some c := by rw [← h_id]; exact hpeek
+                rw [hch] at this
+                cases this; exact hlb) hnlb
       · -- peek? = none → stop (EOF, trailing ws/comment from final iteration)
         rename_i hpeek_none
         have hinj := Except.ok.inj hok; subst hinj
         exact ⟨sp, sp_ws, sp_cmt, GStar.nil _, hcol, hstar_ws, hopt_cmt, hcorr_cmt,
-               Or.inr hpeek_none⟩
+               Or.inr hpeek_none, fun _ _ _ _ _ _ _ => Or.inl hpeek_none⟩
 
 /-- Top-level: `skipToContent` at col=0 produces `GStar SLComment` + correspondence. -/
 lemma skipToContent_col0_prod
@@ -386,7 +423,9 @@ lemma skipToContent_col0_prod
                   ScannerSurfCorr s_result sp' ∧
                   (sp' = sp_ws ∨ s_result.peek? = none) := by
   unfold skipToContent at hok
-  exact skipToContentLoop_col0_prod sc sp _ s_result hcorr hcol (by omega) hok
+  obtain ⟨sp_mid, sp_ws, sp', hstar, hcol_mid, hws, hcmt, hcorr', h_pk, _⟩ :=
+    skipToContentLoop_col0_prod sc sp _ s_result hcorr hcol (by omega) hok
+  exact ⟨sp_mid, sp_ws, sp', hstar, hcol_mid, hws, hcmt, hcorr', h_pk⟩
 
 /-! ## §3 skipToContent at col=0 → SLDocumentPrefix -/
 
@@ -423,11 +462,13 @@ lemma skipToContentLoop_after_break_prod
     ∃ sp_mid sp_ws sp', SSLComments sp sp_mid ∧ sp_mid.col = 0 ∧
                   GStar SSWhite sp_mid sp_ws ∧ GOpt SCNbCommentText sp_ws sp' ∧
                   ScannerSurfCorr s_result sp' ∧
-                  (sp' = sp_ws ∨ s_result.peek? = none) := by
-  obtain ⟨sp_mid, sp_ws, sp', hstar_lc, hcol_mid, hws, hcmt, hcorr', h_pk⟩ :=
+                  (sp' = sp_ws ∨ s_result.peek? = none) ∧
+                  LandingTabFacts sc.currentIndent sc.needIndentCheck
+                    s_result.peek? sp_after_break sp_mid := by
+  obtain ⟨sp_mid, sp_ws, sp', hstar_lc, hcol_mid, hws, hcmt, hcorr', h_pk, h_ltsl⟩ :=
     skipToContentLoop_col0_prod sc sp_after_break fuel s_result hcorr hcol hfuel hok
   exact ⟨sp_mid, sp_ws, sp', SSLComments.withComment sp sp_after_break sp_mid h_sbcomment hstar_lc,
-         hcol_mid, hws, hcmt, hcorr', h_pk⟩
+         hcol_mid, hws, hcmt, hcorr', h_pk, h_ltsl⟩
 
 /-- `skipToContentLoop` at any column → `SSLComments` OR flat whitespace.
     Returns a disjunction: if a break was consumed, produces full `SSLComments`
@@ -445,21 +486,21 @@ lemma skipToContentLoop_anyCol_prod
         sp_mid = sp ∧ s_result.needIndentCheck = sc.needIndentCheck) ∧
       GStar SSWhite sp_mid sp_ws ∧ GOpt SCNbCommentText sp_ws sp' ∧
       ScannerSurfCorr s_result sp' ∧
-      (sp' = sp_ws ∨ s_result.peek? = none) := by
+      (sp' = sp_ws ∨ s_result.peek? = none) ∧
+      LandingTabFacts sc.currentIndent sc.needIndentCheck s_result.peek? sp sp_mid := by
   by_cases hcol : sp.col = 0
   · -- col=0: use existing theorem, wrap as SSLComments.startOfLine
-    obtain ⟨sp_mid, sp_ws, sp', hstar, hcol_mid, hws, hcmt, hcorr', h_pk⟩ :=
+    obtain ⟨sp_mid, sp_ws, sp', hstar, hcol_mid, hws, hcmt, hcorr', h_pk, h_ltsl⟩ :=
       skipToContentLoop_col0_prod sc sp fuel s_result hcorr hcol hfuel hok
     cases sp with | mk chars col =>
     dsimp only [] at hcol; subst hcol
     exact ⟨sp_mid, sp_ws, sp',
       Or.inl ⟨SSLComments.startOfLine chars sp_mid hstar, hcol_mid⟩,
-      hws, hcmt, hcorr', h_pk⟩
+      hws, hcmt, hcorr', h_pk, h_ltsl⟩
   · -- col≠0: induction on fuel; first break builds SSBComment
     induction fuel generalizing sc sp s_result with
     | zero =>
-      simp [skipToContentLoop] at hok; subst hok
-      exact ⟨sp, sp, sp, Or.inr ⟨rfl, rfl⟩, GStar.nil _, GOpt.none _, hcorr, Or.inl rfl⟩
+      exact absurd hfuel (by omega)
     | succ fuel' ih =>
       unfold skipToContentLoop at hok
       dsimp only [] at hok
@@ -510,6 +551,13 @@ lemma skipToContentLoop_anyCol_prod
               · have : sc.inputEnd - (consumeNewline (skipToContentComment s1)).offset = 0 := by
                   omega
                 rw [this]; omega
+            -- Item 64: §6.1's fact rides the iteration — the stack is
+            -- untouched and the break re-arms the check.
+            have h_next_ind : (consumeNewline (skipToContentComment s1)).indents = sc.indents := by
+              rw [consumeNewline_indents, skipToContentComment_preserves_indents,
+                skipToContentWs_preserves_indents sc s1 hok_ws]
+            have h_next_nic : (consumeNewline (skipToContentComment s1)).needIndentCheck = true :=
+              consumeNewline_needIndentCheck_of_break _ c hpeek hlb
             -- Recurse: after break, col=0 so use skipToContentLoop_after_break_prod
             split at hok
             · -- !isInFlowSequence: simpleKeyAllowed update
@@ -520,34 +568,56 @@ lemma skipToContentLoop_anyCol_prod
                 cases sp_brk; dsimp only [] at hcol_brk ⊢
                 subst hcol_brk
                 exact corr_of_simpleKeyAllowed_update true hcorr_brk
-              obtain ⟨sp_mid, sp_ws_r, sp', hssl, hcol_mid, hws_r, hcmt_r, hcorr', h_pk⟩ :=
+              obtain ⟨sp_mid, sp_ws_r, sp', hssl, hcol_mid, hws_r, hcmt_r, hcorr', h_pk,
+                  h_ltsl⟩ :=
                 skipToContentLoop_after_break_prod sp ⟨sp_brk.chars, 0⟩
                   { consumeNewline (skipToContentComment s1) with simpleKeyAllowed := true }
                   fuel' s_result
                   (by cases sp_brk; dsimp only [] at hcol_brk ⊢; subst hcol_brk; exact h_sbc)
                   hcorr_next rfl hfuel' hok
-              exact ⟨sp_mid, sp_ws_r, sp', Or.inl ⟨hssl, hcol_mid⟩, hws_r, hcmt_r, hcorr', h_pk⟩
+              exact ⟨sp_mid, sp_ws_r, sp', Or.inl ⟨hssl, hcol_mid⟩, hws_r, hcmt_r, hcorr', h_pk,
+                h_ltsl.transport (currentIndent_of_indents_eq h_next_ind) h_next_nic⟩
             · -- isInFlowSequence
-              obtain ⟨sp_mid, sp_ws_r, sp', hssl, hcol_mid, hws_r, hcmt_r, hcorr', h_pk⟩ :=
+              obtain ⟨sp_mid, sp_ws_r, sp', hssl, hcol_mid, hws_r, hcmt_r, hcorr', h_pk,
+                  h_ltsl⟩ :=
                 skipToContentLoop_after_break_prod sp sp_brk
                   (consumeNewline (skipToContentComment s1)) fuel' s_result
                   h_sbc hcorr_brk hcol_brk hfuel' hok
-              exact ⟨sp_mid, sp_ws_r, sp', Or.inl ⟨hssl, hcol_mid⟩, hws_r, hcmt_r, hcorr', h_pk⟩
+              exact ⟨sp_mid, sp_ws_r, sp', Or.inl ⟨hssl, hcol_mid⟩, hws_r, hcmt_r, hcorr', h_pk,
+                h_ltsl.transport (currentIndent_of_indents_eq h_next_ind) h_next_nic⟩
           · -- Not break: stop
             rename_i hnlb
             have hinj := Except.ok.inj hok; subst hinj
             have h_id := skipToContentComment_identity_of_content_peek s1 c hpeek hnlb
             rw [h_id]
-            exact ⟨sp, sp_ws, sp_ws,
+            refine ⟨sp, sp_ws, sp_ws,
                    Or.inr ⟨rfl, skipToContentWs_preserves_needIndentCheck sc s1 hok_ws⟩,
-                   hstar_ws, GOpt.none _, hcorr_ws, Or.inl rfl⟩
+                   hstar_ws, GOpt.none _, hcorr_ws, Or.inl rfl, ?_⟩
+            intro hprem hci j sx hind hj htab
+            have hnic : sc.needIndentCheck = true := by
+              rcases hprem with h | h
+              · exact h
+              · exact absurd rfl h
+            obtain ⟨htab_pk, hcol_sp⟩ := skipSpaces_lands_at_tab hcorr hind htab
+            have hle : ((skipSpaces sc).col : Int) ≤ sc.currentIndent := by
+              rw [hcol_sp, ← SIndent_col' hind]; exact hj
+            rcases skipToContentWs_tab_under_indent hok_ws hnic hci htab_pk hle with
+              h_none | ⟨ch, hch, hclass⟩
+            · exact Or.inl h_none
+            · rcases hclass with rfl | hlb
+              · exact Or.inr hch
+              · exact absurd (by
+                  have : s1.peek? = some c := by rw [← h_id]; exact hpeek
+                  rw [hch] at this
+                  cases this; exact hlb) hnlb
         · -- peek? = none: stop
           rename_i hpeek_none
           have hinj := Except.ok.inj hok; subst hinj
           exact ⟨sp, sp_ws, sp_cmt,
                  Or.inr ⟨rfl, (skipToContentComment_preserves_needIndentCheck s1).trans
                    (skipToContentWs_preserves_needIndentCheck sc s1 hok_ws)⟩,
-                 hstar_ws, hopt_cmt, hcorr_cmt, Or.inr hpeek_none⟩
+                 hstar_ws, hopt_cmt, hcorr_cmt, Or.inr hpeek_none,
+                 fun _ _ _ _ _ _ _ => Or.inl hpeek_none⟩
 
 /-- `skipToContentLoop` starting at col=0 produces `SSLComments`. -/
 lemma skipToContentLoop_startOfLine_prod
@@ -560,7 +630,7 @@ lemma skipToContentLoop_startOfLine_prod
                   GStar SSWhite sp_mid sp_ws ∧ GOpt SCNbCommentText sp_ws sp' ∧
                   ScannerSurfCorr s_result sp' ∧
                   (sp' = sp_ws ∨ s_result.peek? = none) := by
-  obtain ⟨sp_mid, sp_ws, sp', hstar_lc, hcol_mid, hws, hcmt, hcorr', h_pk⟩ :=
+  obtain ⟨sp_mid, sp_ws, sp', hstar_lc, hcol_mid, hws, hcmt, hcorr', h_pk, _⟩ :=
     skipToContentLoop_col0_prod sc sp fuel s_result hcorr hcol hfuel hok
   cases sp with | mk chars col =>
   dsimp only [] at hcol; subst hcol
@@ -590,7 +660,8 @@ lemma skipToContent_anyCol_prod
         sp_mid = sp ∧ s_result.needIndentCheck = sc.needIndentCheck) ∧
       GStar SSWhite sp_mid sp_ws ∧ GOpt SCNbCommentText sp_ws sp' ∧
       ScannerSurfCorr s_result sp' ∧
-      (sp' = sp_ws ∨ s_result.peek? = none) := by
+      (sp' = sp_ws ∨ s_result.peek? = none) ∧
+      LandingTabFacts sc.currentIndent sc.needIndentCheck s_result.peek? sp sp_mid := by
   unfold skipToContent at hok
   exact skipToContentLoop_anyCol_prod sc sp _ s_result hcorr (by omega) hok
 

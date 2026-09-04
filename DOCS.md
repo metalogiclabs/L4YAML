@@ -8097,6 +8097,80 @@ fund — the block scalar and the multi-line quoted value at a compact `:`, at a
 compact `?`, at a widened `[185] s-indent(m)`, and at a property key, each at
 index 0 and one level in.
 
+### Item 64 (2026-09-04)
+
+**the under-run had two halves, and only one of them was a landing.**  The
+residue this item closes is ONE `rcases … | _` — `gstar_white_take_sIndent n`
+inside `indentedValue_reads_at_any_indent`'s `pre` block, the branch where the
+step crossed a break and the landing's white run failed to supply
+`[63] s-indent(n)`.  `WhiteRunUnderRun n` is `j < n` spaces followed by *the
+run's end* or *a tab*, and the two halves are not the same kind of thing:
+
+* the **TAB** half is a scanner REFUSAL and has been one all along.  §6.1
+  forbids a tab at or left of the block's current indent, and
+  `skipToContentWs` throws `tabInIndentation` there unless the line stops
+  immediately — a comment, a break, or the end of input.  The refusal was never
+  visible to the accumulation because the PRODUCTION CHAIN drops it: every
+  `_prod` lemma from `skipToContentLoop_col0_prod` up to
+  `preprocess_some_ssl_comments_anyCol` returns the landing's white run and
+  says nothing about the gate that produced it, so eight items priced this arm
+  as unrefutable while the check that refutes it ran on every input.  It is
+  [The over-approximation problem](#the-over-approximation-problem)'s shape
+  turned inside out, and Reflection 683's setting.
+* the **run-end** half survives as the pure-space DEDENT, and it is a
+  BOUNDARY rather than debt (Reflection 665's fourth kind): the value is not
+  this entry's, the enclosing collection resumes at `j`, and there is no
+  `[70] s-separate-lines(n)` to derive at any price because the landing never
+  reaches `n`.  Closing it needs a frame stack on the pending — row 19's, as
+  [Settled questions](#settled-questions--do-not-reopen) already records.
+
+**What made the refusal spendable is a premise the PRODUCER can always
+discharge.**  §6.1's check runs only on a line the loop ARRIVED at, so the fact
+holds under either of two conditions — the check was armed on entry
+(`needIndentCheck = true`), or the loop crossed a break to get here
+(`sp_mid ≠ sp`).  Stated under the first alone it dies at the consumer, whose
+`IndentFloor` supplies `needIndentCheck = false`; under the second alone it
+dies in the recursion, which cannot see its own `sp_mid`.  Stated under their
+DISJUNCTION (`LandingTabFacts`) it composes: each iteration discharges it with
+the break it just consumed, the base case with the flag it was entered with,
+and the consumer by CASES — because the branch it cannot discharge, a
+"landing" that never left the line, is served by the INLINE separator arm it
+already has.  Reflection 683.
+
+New file `Proofs/Coupling/LandingTab.lean` holds the two halves of the bridge:
+item 62's `skipSpaces_lands_at_tab` (un-privated from `ScalarFoldAt`, which
+sits too high in the import graph for preprocessing to use, and now imported
+back rather than authored twice) and `skipToContentWs_tab_under_indent`, which
+reads §6.1's gate as a fact about what SURVIVES it — `pk = none ∨
+pk = some '#'`.  The consumer refutes both from the dispatch's own character
+class (`dispatchContent_ok_charFacts`: a `#` that reaches a content dispatch is
+refused BY it, item 42).  `WhiteRunUnderRun`'s surviving half is named
+`DedentLanding` beside it in `FlowIndexLift`, and
+`indentedValue_reads_at_any_indent` returns it as a SIXTH disjunct instead of
+folding it into the fifth's `True` — the two consumers' patterns are unchanged
+(their trailing `| _` still catches it), so the located residue costs them
+nothing and is there for item 65 to case on.
+
+ZERO runtime edits — the item is `skipToContentWs`'s existing gate, carried
+out of the preprocessing loop so the accumulation can spend it.  Reflection
+**683 `PremiseTheProducerCanDischarge`**.
+
+**Validation.** Full `lake build` green (ZERO warnings); `run-all-tests.sh`
+4465/4465 with every suite identical to item 63 (Production Coverage stays at
+782 — no new `@[yaml_spec]` annotations, because nothing new was annotated);
+matrix 402/402 event + 282/282 JSON on BOTH pipelines, zero fails; `eventscore`
+347/358 with the per-test table's composition unmoved (252 event-pass, 11
+event-diff, 95 error-ok); 0 direct and 0 transitive sorries, 0 custom axioms;
+all three checkers OK (219 library modules, one more than item 63 — the new
+`LandingTab`).  That the events cannot have moved is checkable rather than
+asserted: `git status` shows the item touches only `Proofs/` and `Tests/`, so
+the four suite executables are item 63's binaries.  New guard
+`ScannerLandingDedentSplit` pins both halves — the tab refused at every column
+at or left of `currentIndent` behind each of the three block indicators, the
+boundary one column past it, §6.1's three open exits, four accepted DEDENT
+inhabitants (so the surviving disjunct is a claim and not a formality), and the
+two dedents the scanner itself refuses.
+
 ### REMAINING, in order
 
 The per-item history is the closure log above; this section lists only the
@@ -8202,10 +8276,15 @@ and that deletion, by input class:
   — CLOSED by items 52, 57 and 60: the break binds the index, so the
   separator instantiates at the pending's own index, and the landing is not
   a second question but the same one with three facts supplied differently
-  (item 60's merge).  What survives of it: the DEDENT alone — its TAB half
-  is refutable with item 32's route, and its run-end half asks a different
-  question (close the entry with `e-node` and re-open the enclosing
-  collection);
+  (item 60's merge).  What survived of it was the DEDENT alone, and item 64
+  split that in two: ~~its TAB half is refutable with item 32's route~~ —
+  CLOSED, but NOT by that route, which returns flags no content dispatch
+  reads.  The refusal is §6.1's own, inside `skipToContentWs` and therefore
+  inside `scanNextToken_preprocess`, and item 64 carries it out of the
+  preprocessing loop (`LandingTabFacts`).  What survives is the run-end half,
+  now named `DedentLanding` and returned as its own disjunct: it asks a
+  different question (close the entry with `e-node` and re-open the enclosing
+  collection) and needs a frame stack on the pending, which is row 19's;
 * the **block-scalar floor** class — ~~parks whose producer handed
   `IndentFloor`'s `True`~~ — CLOSED for the COMPACT key by item 59 (the park
   carries its column, so `[195]`'s route pays the conjunct item 28 punted).

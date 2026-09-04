@@ -6,6 +6,7 @@ import L4YAML.Proofs.Production.ScalarProduction
 import L4YAML.Proofs.Production.FlowIndexLift
 import L4YAML.Proofs.Scanner.PreprocessIndentStable
 import L4YAML.Proofs.Output.EmitterScannability.ScanSteps
+import L4YAML.Proofs.Coupling.LandingTab
 
 /-! # Quoted-scalar readings at the pending's own index (DOCS item 53)
 
@@ -40,28 +41,9 @@ open L4YAML.Proofs.ScalarCoupling
 open L4YAML.Proofs.ScalarProduction
 open L4YAML.Proofs.FlowIndexLift
 open L4YAML.Proofs.PreprocessIndentStable
+open L4YAML.Proofs.LandingTab
 
 /-! ## §0 Local plumbing -/
-
-/-- `[63]`'s column arithmetic (local copy — the shared one lives above this
-    file in the import graph). -/
-private lemma SIndent_col' {k : Nat} {sp sp' : SurfPos} (h : SIndent k sp sp') :
-    sp'.col = sp.col + k := by
-  induction h with
-  | zero => rfl
-  | succ n rest col s' _ ih => simpa [ih] using by omega
-
-/-- `consumeNewline` never writes the indent stack. -/
-private lemma consumeNewline_indents (s : ScannerState) :
-    (consumeNewline s).indents = s.indents := by
-  unfold consumeNewline
-  split
-  · exact advance_indents s
-  · dsimp only []
-    split
-    · exact advance_indents s
-    · exact advance_indents s
-  · rfl
 
 /-- Neither does the blank-line loop. -/
 private lemma foldLoop_indents (s : ScannerState) (cnt fuel : Nat) :
@@ -77,102 +59,6 @@ private lemma foldLoop_indents (s : ScannerState) (cnt fuel : Nat) :
         · rw [ih, consumeNewline_indents, skipWhitespace_preserves_indents]
       · rfl
     · rfl
-
-/-- Two surface positions agree when their characters and columns do. -/
-private lemma surfpos_eq {a b : SurfPos} (hc : a.chars = b.chars) (hl : a.col = b.col) :
-    a = b := by
-  cases a; cases b
-  simp only [] at hc hl
-  subst hc; subst hl; rfl
-
-/-- `peek?` from correspondence and a known leading character. -/
-private lemma peek_of_head {sc : ScannerState} {sp : SurfPos} {c : Char} {rest : List Char}
-    (hcorr : ScannerSurfCorr sc sp) (h : sp.chars = c :: rest) : sc.peek? = some c := by
-  have hsp : sp = ⟨c :: rest, sp.col⟩ := surfpos_eq (by simpa using h) rfl
-  rw [hsp] at hcorr
-  exact (L4YAML.Proofs.EmitterScannability.peek_of_chars_cons _ _ _ _ hcorr).1
-
-/-- `[63]`'s characters: `s-indent(k)` consumes exactly `k` spaces. -/
-private lemma sindent_chars {k : Nat} {sp sp' : SurfPos} (h : SIndent k sp sp') :
-    sp.chars = List.replicate k ' ' ++ sp'.chars := by
-  induction h with
-  | zero => rfl
-  | succ n rest col s' _ ih => simpa [List.replicate_succ] using ih
-
-/-- Cancel a shorter space prefix against a longer one. -/
-private lemma replicate_split_cancel {k j : Nat} {A B : List Char} (hkj : k ≤ j)
-    (h : List.replicate k ' ' ++ A = List.replicate j ' ' ++ B) :
-    A = List.replicate (j - k) ' ' ++ B := by
-  have hj : List.replicate j (' ' : Char)
-      = List.replicate k ' ' ++ List.replicate (j - k) ' ' := by
-    rw [List.replicate_append_replicate, show k + (j - k) = j from by omega]
-  rw [hj, List.append_assoc] at h
-  exact List.append_cancel_left h
-
-/-- `skipSpaces` stops where `[63] s-indent` runs out: its landing is never
-    itself a space. -/
-private lemma skipSpacesLoop_peek_ne_space :
-    ∀ (fuel : Nat) (s : ScannerState), s.inputEnd - s.offset ≤ fuel →
-      (skipSpacesLoop s fuel).peek? ≠ some ' '
-  | 0, s, hf => by
-      unfold skipSpacesLoop
-      intro h
-      have := peek_some_hasMore s ' ' h
-      omega
-  | fuel + 1, s, hf => by
-      unfold skipSpacesLoop
-      split
-      · rename_i hpk
-        exact skipSpacesLoop_peek_ne_space fuel s.advance
-          (advance_fuel_budget s fuel (peek_some_hasMore s ' ' hpk) (by omega))
-      · rename_i hne
-        exact hne
-
-private lemma skipSpaces_peek_ne_space (s : ScannerState) :
-    (skipSpaces s).peek? ≠ some ' ' :=
-  skipSpacesLoop_peek_ne_space _ s (Nat.le_refl _)
-
-/-- **`skipSpaces` lands exactly on the located tab.**  The surface's split
-    says the run opens with `j` spaces and then a tab; the scanner's own
-    space-skip therefore ends at that character, at column `sp.col + j`.  This
-    is what lets a *runtime* check read a fact the *grammar* located. -/
-private lemma skipSpaces_lands_at_tab {j : Nat} {sc : ScannerState} {sp sx : SurfPos}
-    (hcorr : ScannerSurfCorr sc sp)
-    (hind : SIndent j sp sx) (htab : sx.chars.head? = some '\t') :
-    (skipSpaces sc).peek? = some '\t' ∧ (skipSpaces sc).col = sp.col + j := by
-  obtain ⟨k, sp_k, hind_k, hcorr_k⟩ := skipSpaces_corr sc sp hcorr
-  have hc_j := sindent_chars hind
-  have hc_k := sindent_chars hind_k
-  have hkj : k = j := by
-    rcases Nat.lt_trichotomy k j with h | h | h
-    · exfalso
-      have heq : sp_k.chars = List.replicate (j - k) ' ' ++ sx.chars :=
-        replicate_split_cancel (Nat.le_of_lt h) (hc_k.symm.trans hc_j)
-      rw [show j - k = (j - k - 1) + 1 from by omega, List.replicate_succ,
-        List.cons_append] at heq
-      exact skipSpaces_peek_ne_space sc (peek_of_head hcorr_k heq)
-    · exact h
-    · exfalso
-      have heq : sx.chars = List.replicate (k - j) ' ' ++ sp_k.chars :=
-        replicate_split_cancel (Nat.le_of_lt h) (hc_j.symm.trans hc_k)
-      rw [show k - j = (k - j - 1) + 1 from by omega, List.replicate_succ,
-        List.cons_append] at heq
-      rw [heq] at htab
-      simp at htab
-  subst hkj
-  have hsp : sp_k = sx :=
-    surfpos_eq (List.append_cancel_left (hc_k.symm.trans hc_j))
-      (by rw [SIndent_col' hind_k, SIndent_col' hind])
-  subst hsp
-  obtain ⟨rest, hrest⟩ : ∃ rest, sp_k.chars = '\t' :: rest := by
-    cases hh : sp_k.chars with
-    | nil => rw [hh] at htab; simp at htab
-    | cons a as =>
-      rw [hh] at htab
-      simp only [List.head?_cons, Option.some.injEq] at htab
-      exact ⟨as, by simp [htab]⟩
-  refine ⟨peek_of_head hcorr_k hrest, ?_⟩
-  rw [← hcorr_k.col_eq, SIndent_col' hind_k]
 
 /-- `skipWhitespace` is the identity where the cursor is not on an `s-white`. -/
 private lemma skipWhitespace_id_of_not_white (s : ScannerState)

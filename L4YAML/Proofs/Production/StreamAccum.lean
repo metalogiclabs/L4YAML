@@ -73,6 +73,7 @@ open L4YAML.Proofs.CouplingBridge
 open L4YAML.Proofs.FlowIndexLift
 open L4YAML.Proofs.FlowKeyLift
 open L4YAML.Proofs.ScalarFoldAt
+open L4YAML.Proofs.LandingTab
 open L4YAML.Proofs.TabIndentBridge
 open L4YAML.Proofs.ScanStrictCoupling
 open L4YAML.Proofs.ScannerCoupling
@@ -2684,13 +2685,14 @@ lemma preprocess_some_ssl_comments_anyCol (sc : ScannerState) (sp : SurfPos)
             sc.offset ≤ s_prep.offset ∧ s_prep.simpleKeyAllowed = false)) ∧
       GStar SSWhite sp_mid sp_ws ∧ GOpt SCNbCommentText sp_ws sp_prep ∧
       ScannerSurfCorr s_prep sp_prep ∧
-      (sp_prep = sp_ws ∨ s_prep.peek? = none) := by
+      (sp_prep = sp_ws ∨ s_prep.peek? = none) ∧
+      LandingTabFacts sc.currentIndent sc.needIndentCheck s_prep.peek? sp sp_mid := by
   unfold scanNextToken_preprocess at hok
   simp only [bind, Except.bind, pure, Except.pure] at hok
   split at hok
   · simp at hok
   · rename_i s_content h_skip
-    obtain ⟨sp_mid, sp_ws, sp_sc, h_disj, hws, hcmt, hcorr_sc, h_pk⟩ :=
+    obtain ⟨sp_mid, sp_ws, sp_sc, h_disj, hws, hcmt, hcorr_sc, h_pk, h_ltsl⟩ :=
       skipToContent_anyCol_prod sc sp s_content hcorr h_skip
     split at hok
     · simp at hok
@@ -2705,6 +2707,13 @@ lemma preprocess_some_ssl_comments_anyCol (sc : ScannerState) (sp : SurfPos)
           · have h := Except.ok.inj hok; injection h with h
             obtain ⟨h1, h2⟩ := Prod.mk.inj h; subst h1; subst h2
             have hcorr2 := unwindIndents_corr_exact s_content sp_sc hcorr_sc (↑s_content.col)
+            -- Item 64: the unwind and the key save move the cursor for neither
+            -- the disjunct below nor §6.1's fact, so both read one peek.
+            have h_peek_arm : (saveSimpleKey { (unwindIndents s_content ↑s_content.col) with
+                needIndentCheck := false }).peek? = s_content.peek? := by
+              rw [saveSimpleKey_peek]; unfold ScannerState.peek? unwindIndents
+              simp only [unwindIndentsLoop_offset, unwindIndentsLoop_inputEnd,
+                unwindIndentsLoop_input]
             have hcorr3 : ScannerSurfCorr
                 { (unwindIndents s_content ↑s_content.col) with
                   needIndentCheck := false } sp_sc :=
@@ -2721,10 +2730,8 @@ lemma preprocess_some_ssl_comments_anyCol (sc : ScannerState) (sp : SurfPos)
                        (by rw [hmf.2, h_nic]; exact Bool.false_ne_true))⟩),
                    hws, hcmt,
                    saveSimpleKey_corr _ sp_sc hcorr3,
-                   h_pk.imp_right (fun h => by
-                     rw [saveSimpleKey_peek]; unfold ScannerState.peek? unwindIndents
-                     simp only [unwindIndentsLoop_offset, unwindIndentsLoop_inputEnd, unwindIndentsLoop_input]
-                     unfold ScannerState.peek? at h; exact h)⟩
+                   h_pk.imp_right (fun h => by rw [h_peek_arm]; exact h),
+                   h_peek_arm ▸ h_ltsl⟩
       · split at hok
         · simp at hok
         · split at hok
@@ -2765,7 +2772,8 @@ lemma preprocess_some_ssl_comments_anyCol (sc : ScannerState) (sp : SurfPos)
                      · exact (saveSimpleKey_allowed _).trans h_cal)⟩),
                    hws, hcmt,
                    saveSimpleKey_corr _ sp_sc hcorr_sc,
-                   h_pk.imp_right (fun h => by rw [saveSimpleKey_peek]; exact h)⟩
+                   h_pk.imp_right (fun h => by rw [saveSimpleKey_peek]; exact h),
+                   (saveSimpleKey_peek s_content) ▸ h_ltsl⟩
 
 /-- A position that already stands AT a line start closes an empty
     `[79] s-l-comments`: `startOfLine` with no comment lines.  The degenerate
@@ -3055,7 +3063,7 @@ lemma preprocess_some_ssl_comments_landing (sc : ScannerState) (sp : SurfPos)
       GStar SSWhite sp_mid sp_ws ∧ GOpt SCNbCommentText sp_ws sp_prep ∧
       ScannerSurfCorr s_prep sp_prep ∧
       (sp_prep = sp_ws ∨ s_prep.peek? = none) := by
-  obtain ⟨sp_mid, sp_ws, sp_p, h_disj, hws, hcmt, hcorr_p, h_pk⟩ :=
+  obtain ⟨sp_mid, sp_ws, sp_p, h_disj, hws, hcmt, hcorr_p, h_pk, _⟩ :=
     preprocess_some_ssl_comments_anyCol sc sp s_prep c hcorr hok
   refine ⟨sp_mid, sp_ws, sp_p, ?_, hws, hcmt, hcorr_p, h_pk⟩
   cases h_disj with
@@ -3074,7 +3082,7 @@ lemma preprocess_some_separate_0_anyCol (sc : ScannerState) (sp : SurfPos)
     (hcorr : ScannerSurfCorr sc sp)
     (hok : scanNextToken_preprocess sc = .ok (some (s_prep, c))) :
     ∃ sp_prep, SSeparateLines 0 sp sp_prep ∧ ScannerSurfCorr s_prep sp_prep := by
-  obtain ⟨sp_mid, sp_ws, sp_prep, h_disj, h_ws, h_cmt, hcorr_out, h_pk⟩ :=
+  obtain ⟨sp_mid, sp_ws, sp_prep, h_disj, h_ws, h_cmt, hcorr_out, h_pk, _⟩ :=
     preprocess_some_ssl_comments_anyCol sc sp s_prep c hcorr hok
   -- Resolve the peek disjunction: sp_prep = sp_ws (since peek? ≠ none)
   have h_eq : sp_prep = sp_ws := by
@@ -3118,7 +3126,7 @@ lemma preprocess_some_separate_at_anyCol (n : Nat) (sc : ScannerState) (sp : Sur
       (SSeparateLines n sp sp_prep ∨
         ∃ sp_mid, SSLComments sp sp_mid ∧ sp_mid.col = 0 ∧
           WhiteRunUnderRun n sp_mid sp_prep) := by
-  obtain ⟨sp_mid, sp_ws, sp_prep, h_disj, h_ws, h_cmt, hcorr_out, h_pk⟩ :=
+  obtain ⟨sp_mid, sp_ws, sp_prep, h_disj, h_ws, h_cmt, hcorr_out, h_pk, _⟩ :=
     preprocess_some_ssl_comments_anyCol sc sp s_prep c hcorr hok
   have h_eq : sp_prep = sp_ws := by
     cases h_pk with
@@ -3170,7 +3178,7 @@ lemma preprocess_some_separate_inline_or_landing (sc : ScannerState) (sp : SurfP
         ScannerSurfCorr s_prep sp_prep ∧
         (sc.needIndentCheck = false → s_prep.indents = sc.indents)) ∨
     (∃ sp_mid, SSLComments sp sp_mid ∧ sp_mid.col = 0) := by
-  obtain ⟨sp_mid, sp_ws, sp_prep, h_disj, h_ws, _, hcorr_out, h_pk⟩ :=
+  obtain ⟨sp_mid, sp_ws, sp_prep, h_disj, h_ws, _, hcorr_out, h_pk, _⟩ :=
     preprocess_some_ssl_comments_anyCol sc sp s_prep c hcorr hok
   have h_eq : sp_prep = sp_ws := by
     cases h_pk with
@@ -3287,7 +3295,7 @@ lemma preprocess_flow_thread (sc : ScannerState) (sp_scan sp_prep : SurfPos)
     (h_preprocess : scanNextToken_preprocess sc = .ok (some (s_prep, c))) :
     (∃ sp_mid, SSLComments sp_scan sp_mid ∧ GStar SSWhite sp_mid sp_prep) ∨
     (sp_scan.col ≠ 0 ∧ GStar SSWhite sp_scan sp_prep) := by
-  obtain ⟨sp_mid, sp_ws, sp_gap, h_disj, hws, _, hcorr_gap, h_pk⟩ :=
+  obtain ⟨sp_mid, sp_ws, sp_gap, h_disj, hws, _, hcorr_gap, h_pk, _⟩ :=
     preprocess_some_ssl_comments_anyCol sc sp_scan s_prep c h_corr h_preprocess
   have h_gap_eq : sp_gap = sp_prep := ScannerSurfCorr_unique hcorr_gap hcorr_prep
   have h_ws_eq : sp_ws = sp_prep := by
@@ -4030,7 +4038,7 @@ lemma accum_structural_pending (sc : ScannerState)
         exact ⟨sp_mid, sp_mid, sp_mid, sp_scan', b', h_stream_mid, BlockStack.nil sp_mid,
                FlowStackB.nil sp_mid .sep, h_pend_new, h_flag, hcorr_result⟩
       · -- col≠0: structural dispatch requires col=0, so SSLComments must exist.
-        obtain ⟨sp_mid, sp_ws, sp_gap, h_disj, hws, hcmt, hcorr_gap, _⟩ :=
+        obtain ⟨sp_mid, sp_ws, sp_gap, h_disj, hws, hcmt, hcorr_gap, _, _⟩ :=
           preprocess_some_ssl_comments_anyCol sc sp_scan s_prep c h_corr h_preprocess
         have ⟨h_ssl, hcol_mid⟩ : SSLComments sp_scan sp_mid ∧ sp_mid.col = 0 := by
           cases h_disj with
@@ -4087,7 +4095,7 @@ lemma accum_structural_pending (sc : ScannerState)
       · obtain ⟨sp_mid, sp_ws, sp_gap, h_ssl, hcol_mid, hws, hcmt, hcorr_gap, _⟩ :=
           preprocess_some_ssl_comments_col0 sc sp_scan s_prep c h_corr hcol h_preprocess
         exact h_after sp_mid h_ssl hcol_mid sp_ws sp_gap hws hcmt hcorr_gap
-      · obtain ⟨sp_mid, sp_ws, sp_gap, h_disj, hws, hcmt, hcorr_gap, _⟩ :=
+      · obtain ⟨sp_mid, sp_ws, sp_gap, h_disj, hws, hcmt, hcorr_gap, _, _⟩ :=
           preprocess_some_ssl_comments_anyCol sc sp_scan s_prep c h_corr h_preprocess
         have ⟨h_ssl, hcol_mid⟩ : SSLComments sp_scan sp_mid ∧ sp_mid.col = 0 := by
           cases h_disj with
@@ -5361,7 +5369,7 @@ lemma flowKeyRoute_of_open {n m : Nat} {cc : YamlContext}
       (∀ sp_v, SBlockMapEntry k sp_key sp_v → SLYamlStream sp_start sp_v) ∧
       (∀ sp_end, SFlowContent m .flowOut sp_prep sp_end →
         ImplicitKeyHead sp_key sp_end ∨ True)) ∨ True := by
-  obtain ⟨sp_mid, sp_ws, sp_prep2, h_disj, h_ws, _h_cmt, hcorr_prep2, h_pk⟩ :=
+  obtain ⟨sp_mid, sp_ws, sp_prep2, h_disj, h_ws, _h_cmt, hcorr_prep2, h_pk, _⟩ :=
     preprocess_some_ssl_comments_anyCol sc sp_scan s_prep c h_corr h_preprocess
   have h_pe : sp_prep = sp_ws := by
     have hsp_eq2 := ScannerSurfCorr_unique hcorr_prep hcorr_prep2
@@ -5404,7 +5412,7 @@ lemma flowKeyRoute_of_root {m : Nat} {sp_start sp_scan sp_prep : SurfPos}
       (∀ sp_v, SBlockMapEntry k sp_key sp_v → SLYamlStream sp_start sp_v) ∧
       (∀ sp_end, SFlowContent m .flowOut sp_prep sp_end →
         ImplicitKeyHead sp_key sp_end ∨ True)) ∨ True := by
-  obtain ⟨sp_mid, sp_ws, sp_prep2, h_disj, h_ws, _h_cmt, hcorr_prep2, h_pk⟩ :=
+  obtain ⟨sp_mid, sp_ws, sp_prep2, h_disj, h_ws, _h_cmt, hcorr_prep2, h_pk, _⟩ :=
     preprocess_some_ssl_comments_anyCol sc sp_scan s_prep c h_corr h_preprocess
   have h_pe : sp_prep = sp_ws := by
     have hsp_eq2 := ScannerSurfCorr_unique hcorr_prep hcorr_prep2
@@ -9846,7 +9854,7 @@ lemma colon_fires_props_key (sc : ScannerState)
   | inr _ => exact h_punt
   | inl pack =>
     obtain ⟨⟨k, h_route, h_kcol⟩, h_props, _h_skline, h_poss⟩ := pack
-    obtain ⟨sp_mid, sp_ws, sp_prep2, h_disj, h_ws, _h_cmt, hcorr_prep2, h_pk⟩ :=
+    obtain ⟨sp_mid, sp_ws, sp_prep2, h_disj, h_ws, _h_cmt, hcorr_prep2, h_pk, _⟩ :=
       preprocess_some_ssl_comments_anyCol sc sp_scan s_prep ':' h_corr h_preprocess
     have hsp_eq2 := ScannerSurfCorr_unique hcorr_prep hcorr_prep2; subst hsp_eq2
     have h_eq : sp_prep = sp_ws := by
@@ -10516,7 +10524,7 @@ lemma colon_fires_implicit_key
       | inr _ => exact h_punt
       | inl pack =>
         obtain ⟨k, sp_key, sp_gram, h_route, h_ol, h_tws, h_kcol⟩ := pack
-        obtain ⟨sp_mid, sp_ws, sp_prep2, h_disj, h_ws, _h_cmt, hcorr_prep2, h_pk⟩ :=
+        obtain ⟨sp_mid, sp_ws, sp_prep2, h_disj, h_ws, _h_cmt, hcorr_prep2, h_pk, _⟩ :=
           preprocess_some_ssl_comments_anyCol sc sp_scan s_prep ':' h_corr h_preprocess
         have hsp_eq2 := ScannerSurfCorr_unique hcorr_prep hcorr_prep2; subst hsp_eq2
         have h_eq : sp_prep = sp_ws := by
@@ -12992,7 +13000,7 @@ lemma keyctx_of_preprocess (sc : ScannerState) (sp sp_prep : SurfPos)
   cases preprocess_some_savedKey_shape h_preprocess with
   | inr _ => exact Or.inr trivial
   | inl h_sk =>
-    obtain ⟨sp_mid, sp_ws, sp_prep2, h_disj, h_ws, _h_cmt, hcorr_prep2, h_pk⟩ :=
+    obtain ⟨sp_mid, sp_ws, sp_prep2, h_disj, h_ws, _h_cmt, hcorr_prep2, h_pk, _⟩ :=
       preprocess_some_ssl_comments_anyCol sc sp s_prep c h_corr h_preprocess
     have hsp_eq2 := ScannerSurfCorr_unique hcorr_prep hcorr_prep2
     have h_eq : sp_prep2 = sp_ws := by
@@ -13217,7 +13225,7 @@ lemma entryKeyPack_of_dispatch
     · show s_prep.peek? = some c; exact this
     · exact this
   rcases preprocess_some_savedKey_shape h_preprocess with h_sk | _
-  · obtain ⟨sp_mid, sp_ws, sp_prep2, h_disj, h_ws, _h_cmt, hcorr_prep2, h_pk⟩ :=
+  · obtain ⟨sp_mid, sp_ws, sp_prep2, h_disj, h_ws, _h_cmt, hcorr_prep2, h_pk, _⟩ :=
       preprocess_some_ssl_comments_anyCol sc sp_scan s_prep c h_corr h_preprocess
     have hsp_eq2 := ScannerSurfCorr_unique hcorr_prep hcorr_prep2
     have h_eq : sp_prep2 = sp_ws := by
@@ -13330,7 +13338,7 @@ lemma entryPropsKeyPack_of_dispatch
     (h_preprocess : scanNextToken_preprocess sc = .ok (some (s_prep, c))) :
     PropsKeyPack s' sp_start sp_prep sp_scan' ∨ True := by
   rcases preprocess_some_savedKey_shape h_preprocess with h_shape | _
-  · obtain ⟨sp_mid, sp_ws, sp_prep2, h_disj, h_ws, _h_cmt, hcorr_prep2, h_pk⟩ :=
+  · obtain ⟨sp_mid, sp_ws, sp_prep2, h_disj, h_ws, _h_cmt, hcorr_prep2, h_pk, _⟩ :=
       preprocess_some_ssl_comments_anyCol sc sp_scan s_prep c h_corr h_preprocess
     have hsp_eq2 := ScannerSurfCorr_unique hcorr_prep hcorr_prep2
     have h_eq : sp_prep2 = sp_ws := by
@@ -13983,6 +13991,11 @@ lemma indentedValue_reads_at_any_indent
       SSeparate n .flowOut sp_scan sp_prep ∧
       (sp_scan'.col = 0 ∨ LineNodeStop sp_scan'.chars) ∧
       (c ≠ '&' ∧ c ≠ '!')) ∨
+    -- Item 64: the landing UNDER-RAN `s-indent(n)`, and what is left of that
+    -- after §6.1 is the pure-space DEDENT, named.  It is a boundary rather
+    -- than debt: the value is not this entry's, the enclosing collection
+    -- resumes at `j`, and no separator at `n` exists to be derived.
+    (IndentFloor sc n → DedentLanding n sp_scan sp_prep) ∨
     True := by
   have hpeek : s_prep.peek? = some c := preprocess_some_peek h_preprocess
   have hpeek_disp : (if s_prep.allowDirectives then
@@ -14002,8 +14015,9 @@ lemma indentedValue_reads_at_any_indent
   -- own `s-indent(n)` across the break (`preprocess_some_floor_at_landing`).
   have pre : (SSeparateLines n sp_scan sp_prep ∧
       ((sc.needIndentCheck = false → s_prep.indents = sc.indents) ∨ True) ∧
-      ((n ≤ minContentIndentOf s_prep) ∨ True)) ∨ True := by
-    obtain ⟨sp_mid, sp_ws, sp_prep2, h_disj, h_ws, _h_cmt, hcorr2, h_pk⟩ :=
+      ((n ≤ minContentIndentOf s_prep) ∨ True)) ∨
+      (IndentFloor sc n → DedentLanding n sp_scan sp_prep) := by
+    obtain ⟨sp_mid, sp_ws, sp_prep2, h_disj, h_ws, _h_cmt, hcorr2, h_pk, h_ltsl⟩ :=
       preprocess_some_ssl_comments_anyCol sc sp_scan s_prep c h_corr h_preprocess
     have h_pe : sp_prep = sp_ws := by
       have hsp_eq2 := ScannerSurfCorr_unique hcorr_prep hcorr2
@@ -14025,7 +14039,7 @@ lemma indentedValue_reads_at_any_indent
       · exact Or.inr trivial
     | inl h_land =>
       -- A break: `[63] s-indent(n)` off the fresh line, or the DEDENT.
-      rcases gstar_white_take_sIndent n h_ws with ⟨sx, h_ind, h_rest⟩ | _
+      rcases gstar_white_take_sIndent n h_ws with ⟨sx, h_ind, h_rest⟩ | h_ur
       · have h_sep : SSeparateLines n sp_scan sp_prep := by
           rw [h_pe]
           exact SSeparateLines.commented n _ _ _ h_land.1
@@ -14042,8 +14056,40 @@ lemma indentedValue_reads_at_any_indent
           rw [h_pe] at h_col_eq
           omega
         · exact Or.inr trivial
-      · exact Or.inr trivial
-  rcases pre with ⟨h_sep_n, h_indents_or, h_floor_at⟩ | _
+      · -- **The under-run** (item 64).  Two halves, and only one of them is a
+        -- landing at all: §6.1 refuses a TAB at or left of the paid floor
+        -- (`LandingTabFacts`, which the loop now carries out of
+        -- `skipToContentWs`), so what survives is the pure-space DEDENT.
+        obtain ⟨j, sx, hj, h_ind, h_rest, hend⟩ := h_ur
+        by_cases hmid : sp_mid = sp_scan
+        · -- The degenerate "landing" that never left the line: its whites are
+          -- `[66] s-separate-in-line`, so the INLINE arm reads them and the
+          -- under-run is not consulted.
+          refine Or.inl ⟨?_, Or.inr trivial, Or.inr trivial⟩
+          rw [h_pe, ← hmid]
+          exact SSeparateLines.inline n _ _ (GStar_SSWhite_to_SSeparateInLine _ _ h_ws)
+        · rcases hend with hrun | htab
+          · exact Or.inr (fun _ => ⟨sp_mid, j, h_land.1, h_land.2, hj,
+              by rw [h_pe, ← hrun]; exact h_ind⟩)
+          · refine Or.inr (fun hfloor => ?_)
+            exfalso
+            -- The floor's own arithmetic supplies both of §6.1's premises: an
+            -- under-run needs `0 < n`, and `n ≤ currentIndent + 1` then puts
+            -- the stack above stream level and the tab at or left of it.
+            have h_le := hfloor.2
+            unfold minContentIndentOf at h_le
+            have hci : 0 ≤ sc.currentIndent := by omega
+            have hsx : (sx.col : Int) ≤ sc.currentIndent := by
+              rw [SIndent_col h_ind, h_land.2]; omega
+            have hc_hash : c ≠ '#' := by
+              intro hc
+              have := (dispatchContent_ok_charFacts h_dispatch).2
+                (hc ▸ (Or.inl (Or.inl (Or.inr rfl)) : NodeStop '#'))
+              rw [hc] at this; cases this
+            rcases h_ltsl (Or.inr hmid) hci j sx h_ind hsx htab with h | h
+            · rw [hpeek] at h; simp at h
+            · rw [hpeek] at h; exact hc_hash (Option.some.inj h)
+  rcases pre with ⟨h_sep_n, h_indents_or, h_floor_at⟩ | h_dedent
   ·
     by_cases hprops : c = '&' ∨ c = '!'
     · -- Item 24: a fresh `[96]` run is single-half, so it has no occurrence of
@@ -14129,7 +14175,7 @@ lemma indentedValue_reads_at_any_indent
           exact Or.inr (Or.inr (Or.inl
             ⟨h_read.elim (fun h => Or.inl (h n hn)) (fun h => Or.inr (h n hn)),
              h_sep_n, h_line, hna, hnt⟩))
-        · exact Or.inr (Or.inr (Or.inr (Or.inr trivial)))
+        · exact Or.inr (Or.inr (Or.inr (Or.inr (Or.inr trivial))))
       · have hna : c ≠ '&' := fun h => hprops (Or.inl h)
         have hnt : c ≠ '!' := fun h => hprops (Or.inr h)
         have hnp : c ≠ '|' := fun h => hbs (Or.inl h)
@@ -14177,7 +14223,7 @@ lemma indentedValue_reads_at_any_indent
                      (SFlowContent.doubleQ n .flowOut sp_prep sp_scan'
                        (SCDoubleQuoted_multiCtx .flowOut (Or.inl rfl) h_gram)),
                    GStar.nil _, h_sep_n, h_line, hna, hnt⟩)))
-              · exact Or.inr (Or.inr (Or.inr (Or.inr trivial)))
+              · exact Or.inr (Or.inr (Or.inr (Or.inr (Or.inr trivial))))
             · by_cases hsq : c = '\''
               · subst hsq
                 rcases dispatchContent_singleQuoted_prod_at n _ sp_prep
@@ -14191,7 +14237,7 @@ lemma indentedValue_reads_at_any_indent
                        (SFlowContent.singleQ n .flowOut sp_prep sp_scan'
                          (SCSingleQuoted_multiCtx .flowOut (Or.inl rfl) h_gram)),
                      GStar.nil _, h_sep_n, h_line, hna, hnt⟩)))
-                · exact Or.inr (Or.inr (Or.inr (Or.inr trivial)))
+                · exact Or.inr (Or.inr (Or.inr (Or.inr (Or.inr trivial))))
               · -- Item 54: the PLAIN fold at `n`.  Item 61: the alias arm is a
                 -- PHANTOM, not a deferral — `[102] ns-anchor-char` excludes
                 -- `s-white` and `b-char`, so an alias cannot cross a break and
@@ -14219,12 +14265,13 @@ lemma indentedValue_reads_at_any_indent
                     rw [hsp_eq] at h_tws
                     exact Or.inr (Or.inr (Or.inr (Or.inl
                       ⟨sp_gram, h_gram, h_tws, h_sep_n, h_line, hna, hnt⟩)))
-                  · exact Or.inr (Or.inr (Or.inr (Or.inr trivial)))
-          · exact Or.inr (Or.inr (Or.inr (Or.inr trivial)))
+                  · exact Or.inr (Or.inr (Or.inr (Or.inr (Or.inr trivial))))
+          · exact Or.inr (Or.inr (Or.inr (Or.inr (Or.inr trivial))))
   · -- The DEDENT: the landing under-ran `s-indent(n)`, so the value is not
     -- this entry's at all — the enclosing collection ends and the next one
-    -- resumes, which is a different question and its own item.
-    exact Or.inr (Or.inr (Or.inr (Or.inr trivial)))
+    -- resumes, which is a different question and its own item.  Item 64 hands
+    -- it on LOCATED rather than as `True`, so that question can be asked.
+    exact Or.inr (Or.inr (Or.inr (Or.inr (Or.inl h_dedent))))
 
 
 /-- **The INDENTED entry's value** (item 23) — `accum_content_on_pendingBlock`
@@ -14810,7 +14857,7 @@ lemma accum_content_pending (sc : ScannerState)
         hcorr_prep hcorr_result h_not_doc
         (preprocess_some_peek h_preprocess) h_flow_disp h_dispatch h_keyctx
     · -- col≠0: use anyCol, close pending if SSLComments available.
-      obtain ⟨sp_mid, sp_ws, sp_prep2, h_disj, h_ws, h_cmt, hcorr_prep2, h_pk⟩ :=
+      obtain ⟨sp_mid, sp_ws, sp_prep2, h_disj, h_ws, h_cmt, hcorr_prep2, h_pk, _⟩ :=
         preprocess_some_ssl_comments_anyCol sc sp_scan s_prep c h_corr h_preprocess
       have hsp_eq2 := ScannerSurfCorr_unique hcorr_prep hcorr_prep2; subst hsp_eq2
       cases h_disj with
@@ -14921,7 +14968,7 @@ lemma accum_content_pending (sc : ScannerState)
       split
       · show s_prep.peek? = some c; exact preprocess_some_peek h_preprocess
       · exact preprocess_some_peek h_preprocess
-    obtain ⟨sp_mid, sp_ws, sp_prep2, h_disj, h_ws, h_cmt, hcorr_prep2, h_pk⟩ :=
+    obtain ⟨sp_mid, sp_ws, sp_prep2, h_disj, h_ws, h_cmt, hcorr_prep2, h_pk, _⟩ :=
       preprocess_some_ssl_comments_anyCol sc sp_scan s_prep c h_corr h_preprocess
     have hsp_eq2 := ScannerSurfCorr_unique hcorr_prep hcorr_prep2; subst hsp_eq2
     have h_eq : sp_prep = sp_ws := by
