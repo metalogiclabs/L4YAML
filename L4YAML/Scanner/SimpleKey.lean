@@ -324,19 +324,32 @@ def scanValue (s : ScannerState) : Except ScanError ScannerState := do
   let s_after_advance := s_with_token.advance
   scanValueTabCheck s.col s.currentIndent s_after_advance
   -- Item 48: record the IMPLICIT value's line (`[194]`); the explicit value
-  -- (`[192]`'s, selected exactly as in `scanValueValidate`'s §8.2.2 [197]
-  -- branch) leaves the field alone, as does a flow-context `:`.
+  -- leaves the field alone, as does a flow-context `:`.
+  -- Item 51: in block context the `:` is the pending `?`'s value line only AT
+  -- the key's own column — `[197] l-block-map-explicit-value`'s `s-indent(n)`
+  -- is exact.  A keyless `:` at any other live column is an ordinary implicit
+  -- `:`: deeper, it is an empty-key entry INSIDE the key's content
+  -- (`? earth: blue⏎  : x`); shallower, the `?` entry has ended and the `:`
+  -- opens an empty-key entry at the outer level (`k:⏎  ? a⏎: v`).  Both
+  -- stamp, so a same-line collection there is refused (§8.2.2 [194]).
+  let explicitValue : Bool :=
+    s_kc.explicitKeyLine.isSome && !s_kc.simpleKey.possible
+      && (s.inFlow || (s.col : Int) == s_kc.explicitKeyCol)
   let ivl : Option Nat :=
-    if s.inFlow || (s_kc.explicitKeyLine.isSome && !s_kc.simpleKey.possible) then
+    if s.inFlow || explicitValue then
       s_after_advance.implicitValueLine
     else some s.line
   -- Item 48: the pending `?` survives an implicit `:` INSIDE the explicit
-  -- key's own content — a resolved key deeper than the mapping's indent
+  -- key's own content — an entry deeper than the mapping's indent
   -- (spec 8.19's `? earth: blue⏎: moon: white`) — and is consumed by its
   -- explicit value or killed by a sibling entry at the mapping's level.
+  -- Item 51: the surviving entry's start is the resolved KEY when one is
+  -- saved and the `:` itself otherwise (an empty-key entry survives too).
   let ekl : Option Nat :=
-    if s_kc.explicitKeyLine.isSome && !s_kc.simpleKey.possible then none
-    else if !s.inFlow && s_kc.simpleKey.possible && (s_kc.simpleKey.pos.col : Int) > s_kc.explicitKeyCol then
+    if explicitValue then none
+    else if !s.inFlow
+        && (if s_kc.simpleKey.possible then (s_kc.simpleKey.pos.col : Int)
+            else (s.col : Int)) > s_kc.explicitKeyCol then
       s_kc.explicitKeyLine
     else none
   let ekc : Int := if ekl.isSome then s_kc.explicitKeyCol else -1

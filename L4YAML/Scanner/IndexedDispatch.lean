@@ -807,14 +807,21 @@ def scanValueIx {input : String} (s : ScannerStateIx input) :
   scanValueTabCheckIx (s.cursor.pos.col : Int) s.currentIndent s_after_advance
   -- Item 48: mirror of the legacy implicit-value recording and the pending
   -- `?`'s survival through its key's own compact entries — see `scanValue`.
+  -- Item 51: the explicit value line is selected only AT the key's column
+  -- (`[197]`'s `s-indent(n)` is exact); any other live column stamps, and
+  -- a deeper entry (keyed or empty-key) keeps the `?` alive — see `scanValue`.
+  let explicitValue : Bool :=
+    s_kc.explicitKeyLine.isSome && !s_kc.simpleKey.possible
+      && (s.inFlow || (s.cursor.pos.col : Int) == s_kc.explicitKeyCol)
   let ivl : Option Nat :=
-    if s.inFlow || (s_kc.explicitKeyLine.isSome && !s_kc.simpleKey.possible) then
+    if s.inFlow || explicitValue then
       s_after_advance.implicitValueLine
     else some s.cursor.pos.line
   let ekl : Option Nat :=
-    if s_kc.explicitKeyLine.isSome && !s_kc.simpleKey.possible then none
-    else if !s.inFlow && s_kc.simpleKey.possible
-        && (s_kc.simpleKey.cursor.pos.col : Int) > s_kc.explicitKeyCol then
+    if explicitValue then none
+    else if !s.inFlow
+        && (if s_kc.simpleKey.possible then (s_kc.simpleKey.cursor.pos.col : Int)
+            else (s.cursor.pos.col : Int)) > s_kc.explicitKeyCol then
       s_kc.explicitKeyLine
     else none
   let ekc : Int := if ekl.isSome then s_kc.explicitKeyCol else -1
