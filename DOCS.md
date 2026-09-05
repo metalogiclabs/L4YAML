@@ -8793,6 +8793,88 @@ unchanged bodies already call.  ZERO runtime edits — one file,
 `Proofs/Production/StreamAccum.lean` — so the matrix cannot have moved and was
 not re-run.
 
+### Item 74 (2026-09-04)
+
+**The `:`'s floor was never about the `:` either — but two of its six
+producers still cannot measure, and the compiler says which.**  Item 73 paid
+`pendingBlock`'s floor and named `pendingMapValue` as the next of the three
+parks `FlowStackK` waits on.  Tightening that field costs **9** errors; pushing
+each one up to the producer that owes it turns them into **8 obligations** —
+five `indicator_floor` landings, the compact opener's own derivation, and two
+`implicit_key_floor` calls.  Six of the eight are one question, and it is not
+the indicator's.
+
+**The finding.**  Item 27's `:` arm punts for two reasons, and both are
+avoidable in principle:
+
+* the SHAPE of the coupling it asks for.  `scanValuePrepare` pushes at
+  `simpleKey.pos.col` and reads nothing else, but `value_floor_or` demanded
+  `simpleKey.pos = currentPos` — the whole position.  Asked for at the COLUMN,
+  the same proof goes through and a producer that can only place the save on
+  the line pays;
+* whether preprocessing re-saved at all.  Outside a flow, `saveSimpleKey`
+  declines for exactly one reason — `simpleKeyAllowed` is down — so
+  `preprocess_some_savedKey_shape`'s inherit arm is decided by the flag, and a
+  park that just scanned `-`/`?`/`:` has it up.  That is the `h_sk` those parks
+  already carry.
+
+The `?` has one reason and it is smaller still: `key_floor_or` cannot decide
+only the FLOW LEVEL, which every block-indicator producer holds.
+
+So `indicator_floor_question_at_col` (flow level) and
+`indicator_floor_colon_at_col` (flow level + armed save) state the two arms at
+their true strengths, beside item 73's `indicator_floor_dash_at_col`;
+`preprocess_saved_key_col` is item 34's lemma read at the column;
+`value_floor_or` and `scanValue_col_le_currentIndent` take the column form of
+freshness; and `indicator_floor_at_col` now delegates its `?` branch instead of
+repeating it.  Two of the six `pendingMapValue` producers pay outright and say
+so in their signatures: `question_open_map`'s `h_floor_in` drops its `∨ True`
+(`indicator_open_map` takes the walk and measures that half itself), and
+`compact_open_map`'s local floor is a `have` with no disjunction, funded by an
+`h_sk` both its callers already hold (`pendingBlock`'s, and
+`pendingMapValue`'s through item 58's `h_vslot`).
+
+**What did NOT land, and why — measured, not surveyed.**  The field stays
+`IndentFloor sc n ∨ True`, because four of the six producers cannot pay:
+
+| producer | input | what it lacks |
+|---|---|---|
+| `colon_open_map` | `: v` at a landing | the park's flag: three of `indicator_open_map`'s four callers (`noPending`, `closeThenBlock`, `pendingBlockContent`) reach the `:` without knowing whether the walk re-saved |
+| `colon_open_map_explicit` | `? a⏎: v` | the same — `h_vpack` carries no flag, only `h_vslot` does |
+| `colon_open_map_implicit` | `a: 1` | `ImplicitKeyPack`'s column conjunct |
+| `colon_open_map_props` | `&a : b` | `PropsKeyPack`'s, for the same reason |
+
+The first two are one question — a break in the walk re-arms saves in block
+context, so the landing itself would settle it, but that fact reaches the
+accumulator only through the surface `SSLComments` and no lemma carries it
+back.  The last two are the pack's column, and its hold-out is
+`flowKeyPack_of_close`: `[1,2]: b` restores its key from `simpleKeyStack`, so
+the column would have to be threaded through the flow interior beside `km`.
+
+**The dependency picture, corrected.**  Every one of `dropClose`'s 23 use
+sites funnels through `FlowStackK`'s floor — including the six the residue
+table books against `InteriorGap`, because the parametrized gap would have to
+be BUILT at the reading index and the producer needs the same floor to do it.
+`FlowStackK`'s floor is `h_kpkg`'s argument, and of that argument's seven
+sites four are free at `n = 0`, one is `pendingBlock`'s (item 73), and two are
+`pendingProps`' and `pendingMapValue`'s.  So the order is: the pack's column →
+`pendingMapValue` → `pendingProps` → `FlowStackK` → the 14 sites.  No
+`dropClose` moved in this item, and the residue table is unchanged.
+
+**Validation.**  Full `lake build` green (1058 jobs, ZERO warnings);
+`run-all-tests.sh` 4465/4465 (run after that build); `eventscore` (no
+`--suite`) 347/358 with the composition unmoved (252 event-pass, 11 event-diff,
+0 event-reject, 95 error-ok); three checkers OK (220 library modules / 354
+imports; 20 sub-themes, 229 demos, 248 reflections; 25 whitelisted `theorem`
+capstones).  `#print axioms` names no `sorryAx`: the three new lemmas and
+`indicator_floor_at_col` are `[propext, Classical.choice, Quot.sound]`, and
+`question_open_map` / `compact_open_map` / `indicator_open_map` name only the
+`dispatchBlock{Key,Value}_full_prod` `native_decide` pairs their unchanged
+bodies already called.  ZERO runtime edits — two proof files,
+`Proofs/Scanner/PreprocessIndentStable.lean` and
+`Proofs/Production/StreamAccum.lean` — so the matrix cannot have moved and was
+not re-run.
+
 ### REMAINING, in order
 
 The per-item history is the closure log above; this section lists only the
@@ -8805,7 +8887,7 @@ a nonzero index.  R2 is CLOSED too (items 47–51), so what stands between here
 and Step 5 (the converse) is R3's remaining production work and R4:
 
 ```
-R1 ✓ (44–46) ──→ R2 ✓ (47–51) ──→ R3 (52–73 landed; 67b open) ──→ Step 5
+R1 ✓ (44–46) ──→ R2 ✓ (47–51) ──→ R3 (52–74 landed; 67b open) ──→ Step 5
                                         └──────→ R4 (implicitContinue + 0 < m) ──┘
 ```
 
@@ -9013,6 +9095,14 @@ moment the floor is real; and the second row's consumers land on it too.  That
 makes the floor the keystone — 14 of the 23 sites wait on it — and item 73 is
 its first link.  Tightening the field itself is **37** mechanical fixes and no
 new proof; what it needs is the two parks above.
+
+Item 74 qualifies the last column for the two `InteriorGap` rows.
+Parametrizing the gap by the reading index is what removes the LIFT at those
+six consumers, but it moves the question to the producer, and the only route
+this file has to a gap at a nonzero index is `SSeparateLines_at_interior`,
+whose second disjunct is `¬ (n ≤ minContentIndentOf sc)` — the floor again.  So
+the parameter is a step after the floor rather than an alternative to it, and
+the "14 of the 23" above is a lower bound on what the floor unblocks.
 
 This is what closes row 12.
 

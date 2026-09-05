@@ -690,10 +690,15 @@ lemma scanValuePrepare_col_le {s : ScannerState}
       exact pushMappingIndent_le s _
 
 /-- **The `:` producer's floor**, when the saved key is the fresh one at the
-    indicator itself — which is exactly `[189]`'s empty-key entry. -/
+    indicator itself — which is exactly `[189]`'s empty-key entry.
+
+    The coupling is asked for at the COLUMN (item 74), not at the whole
+    position: `scanValuePrepare`'s push reads `simpleKey.pos.col` and nothing
+    else, so a producer that can only place the save on the line pays the same
+    price as one that can name its offset. -/
 lemma scanValue_col_le_currentIndent {s s' : ScannerState}
     (h_noflow : s.inFlow = false)
-    (h_fresh : s.simpleKey.possible = true → s.simpleKey.pos = s.currentPos)
+    (h_fresh : s.simpleKey.possible = true → s.simpleKey.pos.col = s.col)
     (hok : scanValue s = .ok s') :
     (s.col : Int) ≤ s'.currentIndent := by
   unfold scanValue at hok
@@ -716,7 +721,7 @@ lemma scanValue_col_le_currentIndent {s s' : ScannerState}
     rcases scanValueClearKey_simpleKey s with heq | hfalse
     · rw [heq, hcol]
       rw [heq] at hp
-      rw [h_fresh hp]; rfl
+      exact h_fresh hp
     · rw [hfalse] at hp; exact absurd hp Bool.false_ne_true
   have h_prep := scanValuePrepare_col_le
     (s := scanValueClearKey s) (by rw [hfl]; exact h_noflow) h_kc_fresh h_valid
@@ -924,9 +929,10 @@ lemma dispatchBlockIndicators_value_scan {s s' : ScannerState}
   · simp at hok
 
 /-- **The `:` producer's floor, packaged** — with the flow case and the
-    inherited-key case both punted. -/
+    inherited-key case both punted.  The freshness premise is the column one
+    (item 74). -/
 lemma value_floor_or {s s' : ScannerState}
-    (h_fresh : s.simpleKey.possible = true → s.simpleKey.pos = s.currentPos)
+    (h_fresh : s.simpleKey.possible = true → s.simpleKey.pos.col = s.col)
     (hok : scanNextToken_dispatchBlockIndicators s ':' = .ok (some s')) :
     (s.inFlow = false ∧ (s.col : Int) ≤ s'.currentIndent ∧
       s'.needIndentCheck = s.needIndentCheck) ∨ s.inFlow = true := by

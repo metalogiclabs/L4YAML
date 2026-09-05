@@ -9658,8 +9658,9 @@ lemma nic_false_of_indicator_noflow {sc s_prep : ScannerState} {c : Char}
 /-- **The dash's floor is unconditional** (item 73).
 
     `indicator_floor_at_col` below punts on two of its three indicators,
-    because `?` and `:` can push at a column that is not their own.  The `-`
-    arm never does: `[183]`'s `pushSequenceIndent` goes to the indicator's own
+    because `?` and `:` can push at a column that is not their own — the `?`
+    inside a flow collection, the `:` when it resolves an inherited key (item
+    74 narrowed both to that).  The `-` arm never does: `[183]`'s `pushSequenceIndent` goes to the indicator's own
     column, which IS the entry index the accumulator reads off the landing.
     Every `pendingBlock` comes off a `-` scan, so that constructor's floor
     field carries no `∨ True` — the escape it used to fund was never funded by
@@ -9704,6 +9705,129 @@ lemma indicator_floor_dash {sc s_prep s' : ScannerState} {sp_land sp_prep : Surf
     (by have := SIndent_col h_ind; rw [hcol_land] at this; omega)
     hcorr_prep h_preprocess h_dispatch
 
+/-- **An armed save is a FRESH save** (item 74) — item 34's
+    `preprocess_saved_key_at_cursor`, read at the coordinate the floor uses.
+
+    `preprocess_some_savedKey_shape`'s two arms are not alike.  The inherit arm
+    exists only because `saveSimpleKey` can decline, and outside a flow it
+    declines for exactly one reason: `simpleKeyAllowed` is down.  So a caller
+    that knows the flag was up knows the arm it is in. -/
+lemma preprocess_saved_key_col {sc s_prep : ScannerState} {c : Char}
+    (h_a : sc.simpleKeyAllowed = true)
+    (h_noflow : s_prep.inFlow = false)
+    (h : scanNextToken_preprocess sc = .ok (some (s_prep, c))) :
+    s_prep.simpleKey.possible = true ∧ s_prep.simpleKey.pos.col = s_prep.col := by
+  obtain ⟨s_u, s_skip, hsk, h_save, h_cases⟩ := preprocess_save_elim h
+  have h_al_skip : s_skip.simpleKeyAllowed = true :=
+    skipToContent_simpleKeyAllowed_mono sc s_skip h_a hsk
+  have h_al : s_u.simpleKeyAllowed = true := by
+    rcases h_cases with rfl | rfl
+    · exact h_al_skip
+    · show (unwindIndents s_skip s_skip.col).simpleKeyAllowed = true
+      rw [unwindIndents_preserves_simpleKeyAllowed]; exact h_al_skip
+  have h_fl : s_u.inFlow = false := by
+    rw [← saveSimpleKey_inFlow s_u, ← h_save]; exact h_noflow
+  have h_shape : (saveSimpleKey s_u).simpleKey.possible = true ∧
+      (saveSimpleKey s_u).simpleKey.pos.col = s_u.col := by
+    unfold saveSimpleKey
+    rw [if_neg (by simp [h_fl]), if_pos h_al]
+    exact ⟨rfl, rfl⟩
+  refine ⟨by rw [h_save]; exact h_shape.1, ?_⟩
+  rw [h_save, saveSimpleKey_col]
+  exact h_shape.2
+
+/-- **The `?`'s floor is a fact about the CONTEXT** (item 74).
+
+    `[187]`'s `pushMappingIndent` goes to the `?`'s own column, which IS the
+    entry index, and `key_floor_or`'s only undecided case is a `?` scanned
+    inside a FLOW collection.  Every block-indicator producer in this file
+    already holds `inFlow = false` at the dispatch state, so the `?` arm of
+    `indicator_floor_at_col` below is optional only because that lemma does not
+    ask for the flow level. -/
+lemma indicator_floor_question_at_col {sc s_prep s' : ScannerState} {sp_prep : SurfPos}
+    {k : Nat}
+    (hcol_prep : sp_prep.col = k)
+    (hcorr_prep : ScannerSurfCorr s_prep sp_prep)
+    (h_noflow : (if s_prep.allowDirectives then
+      { s_prep with allowDirectives := false, documentEverStarted := true }
+    else s_prep).inFlow = false)
+    (h_preprocess : scanNextToken_preprocess sc = .ok (some (s_prep, '?')))
+    (h_dispatch : scanNextToken_dispatchBlockIndicators (if s_prep.allowDirectives then
+      { s_prep with allowDirectives := false, documentEverStarted := true }
+    else s_prep) '?' = .ok (some s')) :
+    IndentFloor s' k := by
+  have h_col : (((if s_prep.allowDirectives then
+      { s_prep with allowDirectives := false, documentEverStarted := true }
+    else s_prep).col : Int)) = (k : Int) := by
+    have h2 : (if s_prep.allowDirectives then
+      { s_prep with allowDirectives := false, documentEverStarted := true }
+    else s_prep).col = s_prep.col := by split <;> rfl
+    rw [h2, ← hcorr_prep.col_eq, hcol_prep]
+  have h_nic_of_noflow := nic_false_of_indicator_noflow (c := '?') h_preprocess
+  rcases key_floor_or h_dispatch with ⟨_, h_le, h_nic⟩ | h_flow
+  · exact ⟨by rw [h_nic]; exact h_nic_of_noflow h_noflow,
+           le_minContentIndentOf_of_int_le (by omega)⟩
+  · rw [h_flow] at h_noflow; exact absurd h_noflow (by simp)
+
+/-- **The `:`'s floor is a fact about the SAVE** (item 74).
+
+    Two things made item 27's `:` arm optional, and neither is about the
+    indicator.  The first is the SHAPE of the coupling `scanValuePrepare` needs:
+    the push reads `simpleKey.pos.col` and nothing else, so a producer only has
+    to place the save on the LINE — which is what `value_floor_or` asks for now.
+    The second is whether preprocessing re-saved at all, and outside a flow that
+    is decided by `simpleKeyAllowed` alone (`preprocess_saved_key_col`).  A park
+    that just scanned `-`/`?`/`:` has the flag up — it is the `h_sk` every one of
+    them already carries — so for those parks the `:` measures its floor exactly
+    as the `-` does.
+
+    What is left is a park that does NOT know the flag, which is where the
+    umbrella below still hands `True` back. -/
+lemma indicator_floor_colon_at_col {sc s_prep s' : ScannerState} {sp_prep : SurfPos}
+    {k : Nat}
+    (hcol_prep : sp_prep.col = k)
+    (hcorr_prep : ScannerSurfCorr s_prep sp_prep)
+    (h_noflow : (if s_prep.allowDirectives then
+      { s_prep with allowDirectives := false, documentEverStarted := true }
+    else s_prep).inFlow = false)
+    (h_sk : sc.simpleKeyAllowed = true)
+    (h_preprocess : scanNextToken_preprocess sc = .ok (some (s_prep, ':')))
+    (h_dispatch : scanNextToken_dispatchBlockIndicators (if s_prep.allowDirectives then
+      { s_prep with allowDirectives := false, documentEverStarted := true }
+    else s_prep) ':' = .ok (some s')) :
+    IndentFloor s' k := by
+  have h_upd_col : (if s_prep.allowDirectives then
+      { s_prep with allowDirectives := false, documentEverStarted := true }
+    else s_prep).col = s_prep.col := by split <;> rfl
+  have h_upd_sk : (if s_prep.allowDirectives then
+      { s_prep with allowDirectives := false, documentEverStarted := true }
+    else s_prep).simpleKey = s_prep.simpleKey := by split <;> rfl
+  have h_upd_fl : (if s_prep.allowDirectives then
+      { s_prep with allowDirectives := false, documentEverStarted := true }
+    else s_prep).flowLevel = s_prep.flowLevel := by split <;> rfl
+  have h_noflow_prep : s_prep.inFlow = false := by
+    unfold ScannerState.inFlow at h_noflow ⊢
+    rw [h_upd_fl] at h_noflow
+    exact h_noflow
+  obtain ⟨-, h_pcol⟩ := preprocess_saved_key_col h_sk h_noflow_prep h_preprocess
+  have h_col : (((if s_prep.allowDirectives then
+      { s_prep with allowDirectives := false, documentEverStarted := true }
+    else s_prep).col : Int)) = (k : Int) := by
+    rw [h_upd_col, ← hcorr_prep.col_eq, hcol_prep]
+  have h_fresh : (if s_prep.allowDirectives then
+      { s_prep with allowDirectives := false, documentEverStarted := true }
+    else s_prep).simpleKey.possible = true → (if s_prep.allowDirectives then
+      { s_prep with allowDirectives := false, documentEverStarted := true }
+    else s_prep).simpleKey.pos.col = (if s_prep.allowDirectives then
+      { s_prep with allowDirectives := false, documentEverStarted := true }
+    else s_prep).col := by
+    intro _; rw [h_upd_sk, h_upd_col]; exact h_pcol
+  have h_nic_of_noflow := nic_false_of_indicator_noflow (c := ':') h_preprocess
+  rcases value_floor_or h_fresh h_dispatch with ⟨_, h_le, h_nic⟩ | h_flow
+  · exact ⟨by rw [h_nic]; exact h_nic_of_noflow h_noflow,
+           le_minContentIndentOf_of_int_le (by omega)⟩
+  · rw [h_flow] at h_noflow; exact absurd h_noflow (by simp)
+
 /-- **The block indicator's own floor** (item 27).
 
     The three indicators push their block-collection indent at their own
@@ -9719,7 +9843,16 @@ lemma indicator_floor_dash {sc s_prep s' : ScannerState} {sp_land sp_prep : Surf
     key at an EARLIER column, which is item 15's implicit-key entry — hands
     `True` back.  That is a smaller domain, not an extra escape: the field is
     `IndentFloor sc n ∨ True` precisely so a producer that cannot measure costs
-    nothing (R645/R646). -/
+    nothing (R645/R646).
+
+    **What is optional here is this lemma's own ignorance** (items 73/74).  Each
+    arm is stated at its true strength above — `indicator_floor_dash_at_col`
+    unconditionally, `indicator_floor_question_at_col` given the flow level, and
+    `indicator_floor_colon_at_col` given the flow level and an armed save — and
+    this one asks for neither datum, so it re-derives what it can and punts on
+    the rest.  A caller holding both spends the arms directly (`compact_open_map`
+    does), and only a caller that has to reach the `:` without knowing whether
+    preprocessing re-saved is genuinely measuring nothing. -/
 lemma indicator_floor_at_col {sc s_prep s' : ScannerState} {sp_prep : SurfPos}
     {k : Nat} {c : Char}
     (hcol_prep : sp_prep.col = k)
@@ -9740,28 +9873,29 @@ lemma indicator_floor_at_col {sc s_prep s' : ScannerState} {sp_prep : SurfPos}
   have h_nic_of_noflow := nic_false_of_indicator_noflow (c := c) h_preprocess
   rcases dispatchBlockIndicators_indicator_of_some h_dispatch with rfl | rfl | rfl
   · exact Or.inl (indicator_floor_dash_at_col hcol_prep hcorr_prep h_preprocess h_dispatch)
-  · rcases key_floor_or h_dispatch with ⟨h_noflow, h_le, h_nic⟩ | _
-    · exact Or.inl ⟨by rw [h_nic]; exact h_nic_of_noflow h_noflow,
-                    le_minContentIndentOf_of_int_le (by omega)⟩
+  · by_cases h_fl : (if s_prep.allowDirectives then
+      { s_prep with allowDirectives := false, documentEverStarted := true }
+    else s_prep).inFlow = true
     · exact Or.inr trivial
+    · exact Or.inl (indicator_floor_question_at_col hcol_prep hcorr_prep
+        (by simpa using h_fl) h_preprocess h_dispatch)
   · rcases preprocess_some_savedKey_shape h_preprocess with ⟨_, h_pos⟩ | _
     · have h_fresh : (if s_prep.allowDirectives then
-            { s_prep with allowDirectives := false, documentEverStarted := true }
-          else s_prep).simpleKey.possible = true →
+      { s_prep with allowDirectives := false, documentEverStarted := true }
+    else s_prep).simpleKey.possible = true →
           (if s_prep.allowDirectives then
-            { s_prep with allowDirectives := false, documentEverStarted := true }
-          else s_prep).simpleKey.pos =
-          (if s_prep.allowDirectives then
-            { s_prep with allowDirectives := false, documentEverStarted := true }
-          else s_prep).currentPos := by
+      { s_prep with allowDirectives := false, documentEverStarted := true }
+    else s_prep).simpleKey.pos.col = (if s_prep.allowDirectives then
+      { s_prep with allowDirectives := false, documentEverStarted := true }
+    else s_prep).col := by
         intro _
         have hk : (if s_prep.allowDirectives then
-            { s_prep with allowDirectives := false, documentEverStarted := true }
-          else s_prep).simpleKey = s_prep.simpleKey := by split <;> rfl
+      { s_prep with allowDirectives := false, documentEverStarted := true }
+    else s_prep).simpleKey = s_prep.simpleKey := by split <;> rfl
         have hp : (if s_prep.allowDirectives then
-            { s_prep with allowDirectives := false, documentEverStarted := true }
-          else s_prep).currentPos = s_prep.currentPos := by split <;> rfl
-        rw [hk, hp]; exact h_pos
+      { s_prep with allowDirectives := false, documentEverStarted := true }
+    else s_prep).col = s_prep.col := by split <;> rfl
+        rw [hk, hp, h_pos]; rfl
       rcases value_floor_or h_fresh h_dispatch with ⟨h_noflow, h_le, h_nic⟩ | _
       · exact Or.inl ⟨by rw [h_nic]; exact h_nic_of_noflow h_noflow,
                       le_minContentIndentOf_of_int_le (by omega)⟩
@@ -10371,7 +10505,11 @@ lemma question_open_map (sp_start sp_land sp_ind : SurfPos) (k : Nat)
     (h_ind : SIndent k sp_land sp_ind)
     (hcorr_prep : ScannerSurfCorr s_prep sp_ind)
     (hcorr_result : ScannerSurfCorr s' sp_scan')
-    (h_floor_in : IndentFloor s' k ∨ True)
+    -- Item 74: a MEASUREMENT here, not an option.  `[187]`'s push goes to the
+    -- `?`'s own column and the only thing `key_floor_or` cannot decide is the
+    -- flow level, which this lemma's caller holds — so the `?` opener pays its
+    -- floor the way the `-` opener has since item 73.
+    (h_floor_in : IndentFloor s' k)
     (hpeek : s_prep.peek? = some '?')
     (_h_noflow_disp : (if s_prep.allowDirectives then
         { s_prep with allowDirectives := false, documentEverStarted := true }
@@ -10425,7 +10563,7 @@ lemma question_open_map (sp_start sp_land sp_ind : SurfPos) (k : Nat)
                (SBlockMapEntry.explicitEmpty k sp_ind sp_scan' sp_k h_lit
                  (SBlockIndented.node k .blockOut sp_scan' sp_k
                    (SBlockNode_blockIn_to_blockOut h_node))))
-           h_floor_in hpk.1 hpk.2 (Or.inr trivial)
+           (Or.inl h_floor_in) hpk.1 hpk.2 (Or.inr trivial)
            -- Item 51: the `?` literal + the entry route (`h_expl`), and the
            -- KEY slot itself (`h_vslot`) — `[186]`'s `s-l+block-indented`,
            -- compact alternatives included (`? - a`, `? ? b`, `? : v`).
@@ -10545,7 +10683,7 @@ lemma compact_open_map (sp_start sp_entry sp_ind : SurfPos) (n m : Nat)
     (h_ind : SIndent m sp_entry sp_ind)
     -- Item 63: the entry's own column, one past the `-` at `s-indent(n)`.
     -- With it the compact indicator's column IS the pending's index, which is
-    -- what `indicator_floor_at_col` measures the scanner's push against.
+    -- what the floor lemmas measure the scanner's push against.
     (hcol_entry : sp_entry.col = n + 1)
     (h_preprocess : scanNextToken_preprocess sc = .ok (some (s_prep, c)))
     (hcorr_prep : ScannerSurfCorr s_prep sp_ind)
@@ -10560,7 +10698,13 @@ lemma compact_open_map (sp_start sp_entry sp_ind : SurfPos) (n m : Nat)
     (h_dispatch : scanNextToken_dispatchBlockIndicators
         (if s_prep.allowDirectives then
           { s_prep with allowDirectives := false, documentEverStarted := true }
-        else s_prep) c = .ok (some s')) :
+        else s_prep) c = .ok (some s'))
+    -- Item 74 (LAST): the PARK's own armed save.  Both callers reach this
+    -- lemma from a pending that just scanned an indicator (`pendingBlock`'s
+    -- `h_sk`, `pendingMapValue`'s through `h_vslot`), and it is what turns the
+    -- compact `:`'s floor from a measurement this producer might not be able
+    -- to take into one it always can.
+    (h_sk : sc.simpleKeyAllowed = true) :
     ∃ sp_gram' sp_block' sp_flow' sp_scan',
       SLYamlStream sp_start sp_gram' ∧
       BlockStack sp_gram' sp_block' ∧
@@ -10631,36 +10775,23 @@ lemma compact_open_map (sp_start sp_entry sp_ind : SurfPos) (n m : Nat)
         h_nic_disp
       exact ⟨hpf.1, hpf.2, Or.inr trivial,
         scanKey_simpleKeyAllowed (dispatchBlock_question_scanKey h_dispatch)⟩
-  -- Item 63: the pending's floor, from the push the dispatch just made.  The
-  -- `?` half is UNCONDITIONAL in block context — `[187]`'s push is not gated
-  -- on a saved key — so it is stated as the left disjunct rather than routed
-  -- through `indicator_floor_at_col`'s flow punt, which the block guard
-  -- refutes; that is what makes the strengthening machine-checked rather than
-  -- a disjunction nobody can interrogate.  The `:` half goes through the
-  -- shared route, whose remaining punt is an INHERITED save — `[189]`'s
-  -- empty-key entry is exactly the fresh one.
-  have h_col_k : (((if s_prep.allowDirectives then
-        { s_prep with allowDirectives := false, documentEverStarted := true }
-      else s_prep).col : Int)) = ((n + 1 + m : Nat) : Int) := by
-    have h1 : sp_ind.col = n + 1 + m := by
+  -- Item 63: the pending's floor, from the push the dispatch just made.
+  -- Item 74: neither indicator punts here.  The `?` needs only the flow level
+  -- and the `:` only that plus the park's armed save, and this producer holds
+  -- both — so the compact opener measures its floor where item 27's umbrella
+  -- had to hand `True` back for the `:`.
+  have h_floor : IndentFloor s' (n + 1 + m) := by
+    have hcol_ind : sp_ind.col = n + 1 + m := by
       have := SIndent_col h_ind; rw [hcol_entry] at this; omega
-    have h2 : (if s_prep.allowDirectives then
-        { s_prep with allowDirectives := false, documentEverStarted := true }
-      else s_prep).col = s_prep.col := by split <;> rfl
-    rw [h2, ← hcorr_prep.col_eq, h1]
-  have h_floor : IndentFloor s' (n + 1 + m) ∨ True := by
     cases hc with
     | inr h =>
       subst h
-      rcases key_floor_or h_dispatch with ⟨_, h_le, h_nic⟩ | h_flow
-      · exact Or.inl ⟨by rw [h_nic]; exact h_nic_disp,
-                      le_minContentIndentOf_of_int_le (by omega)⟩
-      · rw [h_flow] at h_noflow_disp; exact absurd h_noflow_disp (by simp)
+      exact indicator_floor_question_at_col hcol_ind hcorr_prep h_noflow_disp
+        h_preprocess h_dispatch
     | inl h =>
       subst h
-      exact indicator_floor_at_col
-        (by have := SIndent_col h_ind; rw [hcol_entry] at this; omega)
-        hcorr_prep h_preprocess h_dispatch
+      exact indicator_floor_colon_at_col hcol_ind hcorr_prep h_noflow_disp h_sk
+        h_preprocess h_dispatch
   exact ⟨sp_block, sp_block, sp_block, sp_scan', h_stream_block,
          BlockStack.nil sp_block, FlowStackB.nil sp_block .sep,
          PendingNode.pendingMapValue sp_start sp_block sp_scan' (n + 1 + m)
@@ -10669,7 +10800,7 @@ lemma compact_open_map (sp_start sp_entry sp_ind : SurfPos) (n m : Nat)
                (SBlockIndented.compactMap n ctx m sp_entry sp_ind sp_v h_ind
                  (SCompactMap.mk (n + 1 + m) sp_ind sp_v sp_v (h_entry_of sp_v h_node)
                    (SCompactMapTail.nil (n + 1 + m) sp_v))))
-           h_floor
+           (Or.inl h_floor)
            hpk.1 hpk.2.1 hpk.2.2.1 (Or.inr trivial) (Or.inr trivial)
            hpk.2.2.2
            -- Item 68: the indicator stands at `s-indent(m)` past the entry's own
@@ -10683,7 +10814,8 @@ lemma compact_open_map (sp_start sp_entry sp_ind : SurfPos) (n m : Nat)
 -- them is character-for-character the same — same landing, same `hws`/`hcmt`
 -- split, same pending — so the four block-dispatch producers take ONE branch
 -- for both indicators rather than a copy each.
-lemma indicator_open_map (sp_start sp_land sp_ind : SurfPos) (k : Nat) (c : Char)
+lemma indicator_open_map {sc : ScannerState}
+    (sp_start sp_land sp_ind : SurfPos) (k : Nat) (c : Char)
     (hc : c = ':' ∨ c = '?')
     (s_prep s' : ScannerState) (sp_scan' : SurfPos)
     (h_stream_land : SLYamlStream sp_start sp_land)
@@ -10702,13 +10834,19 @@ lemma indicator_open_map (sp_start sp_land sp_ind : SurfPos) (k : Nat) (c : Char
     (h_dispatch : scanNextToken_dispatchBlockIndicators
         (if s_prep.allowDirectives then
           { s_prep with allowDirectives := false, documentEverStarted := true }
-        else s_prep) c = .ok (some s')) :
+        else s_prep) c = .ok (some s'))
+    -- Item 74 (LAST): the walk itself.  `h_floor_in` is now the `:` half's
+    -- datum alone — the `?` half measures its own floor here, from the flow
+    -- level this lemma already demands.
+    (h_preprocess : scanNextToken_preprocess sc = .ok (some (s_prep, c))) :
     ∃ sp_gram' sp_block' sp_flow' sp_scan',
       SLYamlStream sp_start sp_gram' ∧
       BlockStack sp_gram' sp_block' ∧
       FlowStackB sp_start 0 0 #[] #[] .sep sp_block' sp_flow' ∧
       PendingNode s' false sp_start sp_flow' sp_scan' ∧
       ScannerSurfCorr s' sp_scan' := by
+  have hcol_ind : sp_ind.col = k := by
+    have := SIndent_col h_ind; rw [hcol_land] at this; omega
   cases hc with
   | inl h =>
     subst h
@@ -10718,8 +10856,10 @@ lemma indicator_open_map (sp_start sp_land sp_ind : SurfPos) (k : Nat) (c : Char
   | inr h =>
     subst h
     exact question_open_map sp_start sp_land sp_ind k s_prep s' sp_scan' h_stream_land
-      hcol_land h_ind hcorr_prep hcorr_result h_floor_in hpeek h_noflow_disp
-      h_nic_disp h_dispatch
+      hcol_land h_ind hcorr_prep hcorr_result
+      (indicator_floor_question_at_col hcol_ind hcorr_prep h_noflow_disp
+        h_preprocess h_dispatch)
+      hpeek h_noflow_disp h_nic_disp h_dispatch
 
 /-- The head IS `[188]`, arm for arm: the plain head is `[193]`'s YAML key
     directly (`SNsPlain 0 .blockKey` IS `SNsPlainOneLine .blockKey`), a flow
@@ -11316,7 +11456,7 @@ lemma accum_block_on_noPending
         (indicator_floor hcol_mid h_ind hcorr_prep h_preprocess h_dispatch)
         (preprocess_some_peek h_preprocess) (noflow_disp_of_noflow h_noflow)
         (nic_false_of_indicator_noflow h_preprocess (noflow_disp_of_noflow h_noflow))
-        h_dispatch
+        h_dispatch h_preprocess
     · exact (block_indicator_exhausted h_dispatch hc hcv).elim
 
 -- Block dispatch after closing old pending: '-' at col=0 opens new block sequence.
@@ -11445,7 +11585,7 @@ lemma accum_block_on_closeThenBlock
             h_preprocess hcorr_prep hcorr_result
             (preprocess_some_peek h_preprocess) (noflow_disp_of_noflow h_noflow)
             (nic_false_of_indicator_noflow h_preprocess (noflow_disp_of_noflow h_noflow))
-            h_dispatch
+            h_dispatch h_sk
         · exact (block_indicator_exhausted h_dispatch hc hcv).elim
     · exact block_dispatch_deferred sp_start sp_block_ctx sp_scan' s'
         (h_stream_fallback (inline_residue_of_landing ⟨h_mid.1, h_mid.2.1⟩ hws h_pk hcorr_prep
@@ -11513,7 +11653,7 @@ lemma accum_block_on_closeThenBlock
         (indicator_floor hcol_mid h_ind hcorr_prep h_preprocess h_dispatch)
         (preprocess_some_peek h_preprocess) (noflow_disp_of_noflow h_noflow)
         (nic_false_of_indicator_noflow h_preprocess (noflow_disp_of_noflow h_noflow))
-        h_dispatch
+        h_dispatch h_preprocess
       -- Item 51: an explicit-value pack fires on the `:` at its OWN column —
       -- `[187]`'s `s-indent(n)` is exact — and any other shape falls back to
       -- the generic close-and-reopen.
@@ -11839,7 +11979,7 @@ lemma accum_block_on_pendingBlockContent
           (indicator_floor hcol_mid h_ind hcorr_prep h_preprocess h_dispatch)
           (preprocess_some_peek h_preprocess) (noflow_disp_of_noflow h_noflow)
           (nic_false_of_indicator_noflow h_preprocess (noflow_disp_of_noflow h_noflow))
-          h_dispatch
+          h_dispatch h_preprocess
       · exact (block_indicator_exhausted h_dispatch hc hcv).elim
   by_cases hc0 : c = ':'
   · subst hc0
@@ -11995,7 +12135,7 @@ lemma accum_block_on_pendingBlock
         (indicator_floor hcol_mid h_ind hcorr_prep h_preprocess h_dispatch)
         (preprocess_some_peek h_preprocess) (noflow_disp_of_noflow h_noflow)
         (nic_false_of_indicator_noflow h_preprocess (noflow_disp_of_noflow h_noflow))
-        h_dispatch
+        h_dispatch h_preprocess
     · exact (block_indicator_exhausted h_dispatch hc hcv).elim
   -- ═══ THE INLINE RESIDUE: the COMPACT collection (item 33) ═══
   -- Nothing was crossed, so nothing can close: `SSLComments` needs a break or
@@ -12058,7 +12198,7 @@ lemma accum_block_on_pendingBlock
           h_preprocess hcorr_prep hcorr_result
           (preprocess_some_peek h_preprocess) (noflow_disp_of_noflow h_noflow)
           (nic_false_of_indicator_noflow h_preprocess (noflow_disp_of_noflow h_noflow))
-          h_dispatch
+          h_dispatch h_sk
       · exact (block_indicator_exhausted h_dispatch hc hcv).elim
   · -- The TAB, one production down (items 33/34).  `[185]`'s `s-indent(m)` is
     -- spaces too, and `[66]`'s backward scan refuses it in front of all three
