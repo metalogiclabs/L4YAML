@@ -9822,6 +9822,31 @@ that reaches each:
 | ~~3~~ | ~~the props run, `PropsRun_at nn h_run`~~ | CLOSED by item 86, the same shape |
 | 2 | the node at `nn` — `dispatchContent_evidence_flowIn_or_at`'s `∨ True` and `SFlowContent_at nn` | the one reading item 67a's `SFlowNode_at` closure did not cover |
 | ~~1~~ | ~~the tuple fallback in `accum_step_flow`, fed by all four of the above~~ | CLOSED by item 86 — its last punt feeder died, the `∨ True` came off `h_tuple` |
+
+  **The ledger above is nearly empty — and it was never the whole distance**
+  (measured 2026-09-05, after items 84–86 emptied it to THREE `dropClose`
+  uses: the node-at-`nn` pair and `pendingFlow`'s own ride).  Draining the
+  node-at-`nn` pair traced to `ScalarFoldAt`'s loop punts, and their base
+  case is the blank-after-escaped-break landing — which is not a missing
+  proof but an OVER-ACCEPTANCE: the escape arm of `collectDoubleQuotedLoop`
+  skips the §6.1 checks on a BLANK landing entirely (`if !landingBlank`), so
+  a tab-blank line after `\⏎` (`"a\⏎→⏎b"`, spec-invalid: `s-indent-lt`
+  is spaces-only) is scanner-accepted and `slEmpty_flowIn_at`'s residue is
+  REAL there.  Closing it needs item 62's gate extended to the escape's
+  blank landing — a RUNTIME edit, with matrix/eventscore impact to measure —
+  plus the `[112]` re-attribution (the recursion hands the blank lines to
+  the next fold's trimmed slot; the escape's own `l-empty*` slot takes them
+  back by inversion at a break-headed position) and the single-quoted twin.
+
+  And the DELETION has preconditions outside this ledger: `pendingFlow`'s
+  producers are also the block dispatch's inline-residue defers, fed by
+  `KeyPackPunt`'s surviving reasons — `noFrame` (item 51's explicit-entry
+  threading at the six key-park kinds), `staleKey`, and `dedent`, the last
+  being the sibling composition items 64–65 LOCATED and this plan orders as
+  row 19's own (a frame stack on the pending).  So row 12's β.5 deletion
+  closes after: the escaped-blank gate item, the `noFrame` threading, the
+  `staleKey` drain, and the DEDENT composition — in that order, the last
+  crossing into row 19's architecture.
 | 1 | `drop_ride` — `pendingFlow`'s opaque resume | the deletion proper |
 
 Items 69 and 72 made `h_lead_at` TOTAL, so the first row is refutable the
