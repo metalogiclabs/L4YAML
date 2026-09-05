@@ -9058,6 +9058,88 @@ the `dispatchBlock{Entry,Key,Value}_full_prod` `native_decide` pairs their
 unchanged bodies already called.  ZERO runtime edits — two proof files, one new
 guard and its registration — so the matrix cannot have moved and was not re-run.
 
+### Item 77 (2026-09-04)
+
+**The content park's own column.**  Item 76 funded the landed `:`'s floor for
+every park OFF a line start — a break re-arms `simpleKeyAllowed` outside a flow,
+so the walk itself says preprocessing re-SAVED.  What it could not fund was the
+park AT one, and `landing_save_or` handed `True` back there.  Item 77 is the
+other half, and it is a column rather than a flag: **no block-context content
+park sits at a line start with the save down**, because the one content scan
+that parks at column 0 re-arms when it does.
+
+**The walk's own lemma.**  `collectPlainScalarLoop_col_or_stuck` is the whole
+argument: a block-context plain walk either ends off column 0 or returns exactly
+what it was handed — its own entry state and its own accumulator.  Every exit
+that can sit at a line start (`terminates?`'s `#`/`:`/document-boundary probe,
+the `handleBlockLineBreak` refusal, the `#`-after-fold, the length test) returns
+`{content, spaces, state := s}`; the three recursive branches all fall in the
+first case, the two `advance`s because they spend a column on a character that
+is not a break, and the fold's continuation because it survives its caller's
+`result.content.length ≤ prevLen` test only by ADDING content.  So a walk that
+MOVED ends off column 0 — and the dispatcher's own guards say it moved:
+`plainSafe_of_canStart` puts `[126] ns-plain-first` inside `[128]
+ns-plain-safe-out`, and `terminates?_none_of_canStart` refutes every probe exit
+at the first character (the accumulator is empty so `#` cannot fire, `:` is
+routed here only with a non-blank follower, the flow arm is dead in block
+context, and the column-0 document boundary belongs to
+`scanNextToken_dispatchStructural`, whose fall-through the content producers
+already carry as `h_not_doc`).
+
+**The other four scans.**  `scanBlockScalar` ends `simpleKeyAllowed := true`, so
+its column-0 park is armed.  `collectSingleQuotedLoop` and
+`collectDoubleQuotedLoop` have exactly one `.ok` exit each — the `advance` over
+the closing quote — and `collectAnchorNameLoop`, `collectVerbatimTagLoop`,
+`collectTagSuffixLoop` and `collectTagHandleLoop` only ever advance over
+characters no break belongs to (`ns-anchor-char`, `ns-uri-char`, `ns-tag-char`,
+`ns-word-char`).  `dispatchContent_col_pos_or_armed` joins them, and
+`dispatchContent_arm_or_col_any` extends it to the PROPERTY characters, so the
+disjunction holds for every content character rather than for the
+node-producing ones alone.
+
+**What it bought.**  Five constructors gained the park's arm as a field —
+`pendingContent`, `pendingBlockContent`, `pendingDocEnd`, `pendingDocStart` and
+`pendingFlow` — paid at 24 producer sites by `content_park_arm` (the content
+dispatch), `glit_col` (the four flow closes, which park on their bracket),
+`scanDocument{Start,End}_simpleKeyAllowed` (the markers) and
+`block_indicator_arm` (the escape's own opener).  The other four pendings
+already carried it: `pendingProps` from `h_col0`, `pendingMapValue` from
+`h_sk`, `pendingBlock` from its own `h_sk`, `noPending` from item 76's `h_arm`.
+`accum_block_on_{closeThenBlock,pendingContent,pendingBlockContent}` take it as
+`h_park`, and `landing_or_park_save` spends the PAIR:
+
+| park | funder |
+|---|---|
+| off a line start | the landing's break (item 76) |
+| at a line start | the park's own flag (item 77) |
+
+The two are exhaustive, so the site MEASURES.  `landing_save_or` is gone with
+its `∨ True`, `indicator_open_map` takes the save rather than
+`save ∨ True`, and **`colon_open_map` and `colon_open_map_explicit` take
+`IndentFloor s' k`** — the option items 27, 74 and 76 kept alive is retired, and
+the `:` opener now stands where the `-` opener has stood since item 73 and the
+`?` opener since item 74.
+
+**What did NOT land.**  No `dropClose` moved and the residue table is unchanged:
+`FlowStackK`'s own `∨ True` floor is `pendingMapValue`'s and `pendingProps`'
+question, not this one.  The two pack rows item 75 left optional
+(`flowKeyPack_of_close`'s `h_kc` and `FlowBaseRoutes.key`'s `kc = k`) are the
+FLOW OPEN's threading — `accum_flow_open_*` has `h_fresh_of` waiting on exactly
+the datum this item built, but it is stated per PARK there and the open's
+landing is a different split.  That is the next item, not a corollary of this
+one.
+
+**Validation.**  Full `lake build` green (1060 jobs, ZERO warnings);
+`run-all-tests.sh` 4465/4465; `eventscore` (no `--suite`) 347/358 with the
+composition unmoved (252 event-pass, 11 event-diff, 0 event-reject, 95
+error-ok); three checkers OK (220 library modules / 354 imports; 20 sub-themes,
+229 demos, 248 reflections; 25 whitelisted `theorem` capstones).  `#print
+axioms` names no `sorryAx`: the eleven new scanner and accumulation lemmas are
+`[propext, Classical.choice, Quot.sound]`, and the accumulation lemmas name only
+the `dispatchBlock{Entry,Key,Value}_full_prod` `native_decide` pairs their
+unchanged bodies already called.  ZERO runtime edits — two proof files, one new
+guard and its registration — so the matrix cannot have moved and was not re-run.
+
 ### REMAINING, in order
 
 The per-item history is the closure log above; this section lists only the
@@ -9070,7 +9152,7 @@ a nonzero index.  R2 is CLOSED too (items 47–51), so what stands between here
 and Step 5 (the converse) is R3's remaining production work and R4:
 
 ```
-R1 ✓ (44–46) ──→ R2 ✓ (47–51) ──→ R3 (52–76 landed; 67b open) ──→ Step 5
+R1 ✓ (44–46) ──→ R2 ✓ (47–51) ──→ R3 (52–77 landed; 67b open) ──→ Step 5
                                         └──────→ R4 (implicitContinue + 0 < m) ──┘
 ```
 
@@ -9220,9 +9302,15 @@ and that deletion, by input class:
   question and it is not the column — whether preprocessing re-saved.  Item 76
   answered it for every park OFF a line start (the walk's break re-arms, and the
   landed arm of `preprocess_some_ssl_comments_anyCol` now carries the fresh
-  save); what is left is the park AT one, which is a CONTENT park whose flag the
+  save); ~~what is left is the park AT one, which is a CONTENT park whose flag the
   block scalar sets and the plain walk does not.  That is item 77 — an invariant
-  on `collectPlainScalarLoop`, not a threading edit.
+  on `collectPlainScalarLoop`, not a threading edit.~~ — CLOSED by item 77, and
+  the invariant was the whole of it: a plain walk that MOVED ends off column 0,
+  so no block-context content park sits at a line start with the save down.  The
+  five parks that lacked the datum carry it as a field now, and the `:`'s floor
+  is a measurement (`colon_open_map` takes `IndentFloor s' k`).  Neither park's
+  own `h_floor` moved: `pendingMapValue` and `pendingProps` are the two
+  `FlowStackK` is still waiting on, and they are the flow OPEN's threading.
   ~~What survives:
   `dropClose`'s remaining domain — the VALID multi-line scalar tokens at a
   nonzero index~~ — the TOKENS are CLOSED by item 67a, which built the flow

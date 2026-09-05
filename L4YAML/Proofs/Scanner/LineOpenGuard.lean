@@ -903,16 +903,21 @@ private lemma handleBlockLineBreak_progress {s : ScannerState} {content : String
 /-! ## §7 The plain scalar: fuel adequacy, then the stop shape -/
 
 /-- The `terminates?` probe stops the scan AT its own state, terminated, and
-    only at `#`, `:` or a column-0 document boundary (block context). -/
+    only at `#`, `:` or a column-0 document boundary (block context).  The
+    CONTENT is untouched (item 77, last so the older patterns still bind): a
+    probe that fires reads the walk's accumulator back unchanged, which is what
+    tells the caller's `result.content.length ≤ prevLen` test that nothing was
+    added past the fold. -/
 private lemma terminates?_inv {c : Char} {s : ScannerState}
     {content spaces : String} {r : PlainScalarResult}
     (h : collectPlainScalar_terminates? c s content spaces false = some r) :
-    r.state = s ∧ r.terminated = true ∧ (c = '#' ∨ c = ':' ∨ s.col = 0) := by
+    r.state = s ∧ r.terminated = true ∧ (c = '#' ∨ c = ':' ∨ s.col = 0) ∧
+      r.content = content := by
   unfold collectPlainScalar_terminates? at h
   split at h
   · rename_i hcond
     injection h with h; subst h
-    refine ⟨rfl, rfl, Or.inl ?_⟩
+    refine ⟨rfl, rfl, Or.inl ?_, rfl⟩
     simp only [Bool.and_eq_true, beq_iff_eq] at hcond
     exact hcond.1
   · split at h
@@ -921,7 +926,7 @@ private lemma terminates?_inv {c : Char} {s : ScannerState}
       split at h <;> split at h <;>
         first
           | (injection h with h; subst h;
-             exact ⟨rfl, rfl, Or.inr (Or.inl (by simpa using hcolon))⟩)
+             exact ⟨rfl, rfl, Or.inr (Or.inl (by simpa using hcolon)), rfl⟩)
           | cases h
     · split at h
       · rename_i hflow
@@ -929,7 +934,7 @@ private lemma terminates?_inv {c : Char} {s : ScannerState}
       · split at h
         · rename_i hdoc
           injection h with h; subst h
-          refine ⟨rfl, rfl, Or.inr (Or.inr ?_)⟩
+          refine ⟨rfl, rfl, Or.inr (Or.inr ?_), rfl⟩
           simp only [Bool.and_eq_true, beq_iff_eq] at hdoc
           simpa using hdoc.1
         · cases h
@@ -1039,7 +1044,7 @@ private lemma collectPlainScalarLoop_stop (fuel : Nat) :
     · rename_i c hpk
       split at hok
       · rename_i hterm'
-        obtain ⟨hst, -, hdisj⟩ := terminates?_inv hterm'
+        obtain ⟨hst, -, hdisj, -⟩ := terminates?_inv hterm'
         injection hok with h_eq; subst h_eq
         rw [hst]
         rcases hdisj with rfl | rfl | hcol
@@ -1106,6 +1111,236 @@ private lemma collectPlainScalarLoop_stop (fuel : Nat) :
                 exact habs
               · exact Or.inr (offLine_of_not_plainSafe hnws hnbr hunsafe)
             · exact ih s.advance _ "" ci ie r hok hterm
+
+
+/-! ### Item 77 — the walk's own column
+
+`collectPlainScalarLoop_stop` leaves `r.state.col = 0` open because the
+`terminates?` probe has a column-0 exit.  What the WALK says is that such an
+exit never becomes the scan's answer: every stop that can sit at a line start
+returns the walk's ENTRY state with the accumulator unchanged, and the fold's
+`result.content.length ≤ prevLen` test then hands the break's own state back
+instead.  So the loop's result is off column 0 whenever the loop moved at all,
+and the dispatcher's guards say it moved. -/
+
+/-- `advance` over a non-break spends a column. -/
+private lemma advance_col_succ_of_peek {s : ScannerState} {c : Char}
+    (hpk : s.peek? = some c) (hnb : isLineBreakBool c = false) :
+    s.advance.col = s.col + 1 := by
+  unfold ScannerState.peek? at hpk
+  split at hpk
+  · rename_i hlt
+    have hc : String.Pos.Raw.get s.input ⟨s.offset⟩ = c := Option.some.inj hpk
+    simp only [isLineBreakBool, isLineFeedBool, isCarriageReturnBool,
+      Bool.or_eq_false_iff, beq_eq_false_iff_ne] at hnb
+    exact advance_col_non_newline s hlt (by rw [hc]; simpa using hnb.1)
+      (by rw [hc]; simpa using hnb.2)
+  · cases hpk
+
+/-- ... so it cannot land on one. -/
+private lemma advance_col_pos_of_peek {s : ScannerState} {c : Char}
+    (hpk : s.peek? = some c) (hnb : isLineBreakBool c = false) :
+    0 < s.advance.col := by
+  rw [advance_col_succ_of_peek hpk hnb]; omega
+
+/-- **The walk moves or stays put** (item 77).  A block-context plain-scalar
+    walk either ends off column 0 or returns exactly what it was handed — its
+    own entry state and its own accumulator.  The three recursive branches all
+    fall in the first case: the two `advance`s spend a column on a character
+    that is not a break, and the fold's continuation survives its caller's
+    length test only by ADDING content, which the second case forbids. -/
+private lemma collectPlainScalarLoop_col_or_stuck (fuel : Nat) :
+    ∀ (s : ScannerState) (content spaces : String) (ci ie : Nat)
+      (r : PlainScalarResult),
+    collectPlainScalarLoop s content spaces fuel false ci ie = .ok r →
+    0 < r.state.col ∨ (r.state = s ∧ r.content = content) := by
+  induction fuel with
+  | zero =>
+    intro s content spaces ci ie r hok
+    unfold collectPlainScalarLoop at hok
+    injection hok with h_eq; subst h_eq
+    exact Or.inr ⟨rfl, rfl⟩
+  | succ fuel' ih =>
+    intro s content spaces ci ie r hok
+    unfold collectPlainScalarLoop at hok
+    split at hok
+    · injection hok with h_eq; subst h_eq
+      exact Or.inr ⟨rfl, rfl⟩
+    · rename_i c hpk
+      split at hok
+      · rename_i hterm'
+        injection hok with h_eq; subst h_eq
+        obtain ⟨hst, -, -, hcont⟩ := terminates?_inv hterm'
+        exact Or.inr ⟨hst, hcont⟩
+      · split at hok
+        · -- a break, block context
+          rename_i hbr
+          split at hok
+          · rename_i hflow
+            simp at hflow
+          · split at hok
+            · injection hok with h_eq; subst h_eq
+              exact Or.inr ⟨rfl, rfl⟩
+            · rename_i content' s2 hblk
+              split at hok
+              · injection hok with h_eq; subst h_eq
+                exact Or.inr ⟨rfl, rfl⟩
+              · dsimp only [] at hok
+                generalize h_loop : collectPlainScalarLoop s2 content' "" fuel' false ci ie = cont at hok
+                cases cont with
+                | ok inner =>
+                  dsimp only [] at hok
+                  split at hok
+                  · injection hok with h_eq; subst h_eq
+                    exact Or.inr ⟨rfl, rfl⟩
+                  · rename_i hgrew
+                    have h_eq := Except.ok.inj hok; subst h_eq
+                    rcases ih s2 content' "" ci ie _ h_loop with h | ⟨-, hcont⟩
+                    · exact Or.inl h
+                    · exact absurd (Nat.le_of_eq (congrArg String.length hcont)) hgrew
+                | error e => simp at hok
+        · rename_i hbr
+          have hnb : isLineBreakBool c = false := by simpa using hbr
+          split at hok
+          · rcases ih s.advance content _ ci ie r hok with h | ⟨hst, -⟩
+            · exact Or.inl h
+            · exact Or.inl (hst ▸ advance_col_pos_of_peek hpk hnb)
+          · split at hok
+            · injection hok with h_eq; subst h_eq
+              exact Or.inr ⟨rfl, rfl⟩
+            · rcases ih s.advance _ "" ci ie r hok with h | ⟨hst, -⟩
+              · exact Or.inl h
+              · exact Or.inl (hst ▸ advance_col_pos_of_peek hpk hnb)
+
+/-- `[126] ns-plain-first(c)` is inside `[128] ns-plain-safe-out`: a character
+    that may START a block-context plain scalar may also CONTINUE one. -/
+private lemma plainSafe_of_canStart {c : Char} {next : Option Char}
+    (h : canStartPlainScalarBool c next false = true) :
+    isPlainSafeBool c false = true := by
+  show (!isWhiteSpaceBool c && !isLineBreakBool c && isPrintableBool c && c != '﻿') = true
+  unfold canStartPlainScalarBool at h
+  split at h
+  · rename_i hind
+    rcases hind with rfl | rfl | rfl <;> rfl
+  · simp only [Bool.and_eq_true] at h ⊢
+    exact ⟨⟨⟨h.1.1.1.2, h.1.1.2⟩, h.1.2⟩, h.2⟩
+
+/-- `[126]`'s `-`/`?`/`:` arm names the FOLLOWER — not blank, printable, not the
+    BOM — which is the exact negation of `terminates?`'s `:` test in block
+    context.  This is why `:b` reaches the plain walk and `: ` does not. -/
+private lemma colon_follower_not_terminating {s : ScannerState}
+    (hstart : canStartPlainScalarBool ':' (s.peekAt? 1) false = true) :
+    ∃ n, s.peekAt? 1 = some n ∧ isBlankBool n = false ∧
+      isPrintableBool n = true ∧ (n == '﻿') = false := by
+  unfold canStartPlainScalarBool at hstart
+  rw [if_pos (Or.inr (Or.inr rfl))] at hstart
+  revert hstart
+  cases hnext : s.peekAt? 1 with
+  | none => intro h; simp at h
+  | some n =>
+    intro h
+    simp only [Bool.and_eq_true] at h
+    refine ⟨n, rfl, ?_, h.1.2, ?_⟩
+    · simp only [isBlankBool, Bool.or_eq_false_iff]
+      exact ⟨by simpa using h.1.1.1.1, by simpa using h.1.1.1.2⟩
+    · simpa using h.2
+
+/-- The dispatcher's own guards refute the probe at the walk's FIRST character:
+    the accumulator is empty so `#` cannot fire, `:` is routed here only with a
+    non-blank follower, the flow arm is dead in block context, and the
+    structural dispatch already took every column-0 document boundary. -/
+private lemma terminates?_none_of_canStart {c : Char} {s : ScannerState}
+    (hstart : canStartPlainScalarBool c (s.peekAt? 1) false = true)
+    (hnotdoc : s.col = 0 → atDocumentBoundary s = false) :
+    collectPlainScalar_terminates? c s "" "" false = none := by
+  unfold collectPlainScalar_terminates?
+  split
+  · rename_i hhash
+    simp at hhash
+  · split
+    · rename_i hcolon
+      have hc : c = ':' := by simpa using hcolon
+      subst hc
+      obtain ⟨n, hn, hbl, hpr, hbom⟩ := colon_follower_not_terminating hstart
+      simp only []
+      rw [hn]
+      simp [hbl, hpr, hbom]
+    · split
+      · rename_i hfl
+        simp at hfl
+      · split
+        · rename_i hdoc
+          simp only [Bool.and_eq_true, beq_iff_eq] at hdoc
+          exact absurd (hnotdoc hdoc.1) (by simp [hdoc.2])
+        · rfl
+
+/-- **A routed block-context plain scalar parks off a line start** (item 77).
+    This is the CONTENT park's own column: the block scalar re-arms the simple
+    key at its column-0 park, and every other content scan — this one, the two
+    quoted ones, the alias — ends on a character it consumed, so no block park
+    that carries a down flag can sit at a line start. -/
+lemma scanPlainScalar_col_pos {s s' : ScannerState} {c : Char}
+    (hflow : s.inFlow = false)
+    (hpk : s.peek? = some c)
+    (hstart : canStartPlainScalarBool c (s.peekAt? 1) false = true)
+    (hnotdoc : s.col = 0 → atDocumentBoundary s = false)
+    (hok : scanPlainScalar s = .ok s') :
+    0 < s'.col := by
+  have hlt : s.offset < s.inputEnd := by
+    unfold ScannerState.peek? at hpk
+    by_cases h : s.offset < s.inputEnd
+    · exact h
+    · rw [if_neg h] at hpk; cases hpk
+  have hps : isPlainSafeBool c false = true := plainSafe_of_canStart hstart
+  have hnb : isLineBreakBool c = false := by
+    revert hps
+    show (!isWhiteSpaceBool c && !isLineBreakBool c && isPrintableBool c && c != '﻿') = true →
+      isLineBreakBool c = false
+    intro h
+    simp only [Bool.and_eq_true] at h
+    simpa using h.1.1.2
+  unfold scanPlainScalar at hok
+  simp only [bind, Except.bind] at hok
+  rw [hflow] at hok
+  split at hok
+  · cases hok
+  · rename_i result h_loop
+    injection hok with h_eq
+    subst h_eq
+    show 0 < result.state.col
+    -- Peel the walk's first step: the guards above forbid every exit that could
+    -- stop at `s`, so the loop advances and the invariant above applies.
+    obtain ⟨fuel', hfuel⟩ : ∃ fuel', (s.inputEnd - s.offset + 1) * 2 = fuel' + 1 :=
+      ⟨(s.inputEnd - s.offset + 1) * 2 - 1, by omega⟩
+    rw [hfuel] at h_loop
+    unfold collectPlainScalarLoop at h_loop
+    split at h_loop
+    · rename_i hnone
+      rw [hnone] at hpk; cases hpk
+    · rename_i c' hpk'
+      rw [hpk] at hpk'
+      obtain rfl : c' = c := (Option.some.inj hpk').symm
+      split at h_loop
+      · rename_i hterm
+        rw [terminates?_none_of_canStart hstart hnotdoc] at hterm
+        cases hterm
+      · split at h_loop
+        · rename_i hbr
+          rw [hnb] at hbr
+          cases hbr
+        · split at h_loop
+          · rcases collectPlainScalarLoop_col_or_stuck fuel' s.advance "" _ _ s.inputEnd result
+              h_loop with h | ⟨hst, -⟩
+            · exact h
+            · exact hst ▸ advance_col_pos_of_peek hpk hnb
+          · split at h_loop
+            · rename_i hunsafe
+              rw [hps] at hunsafe
+              simp at hunsafe
+            · rcases collectPlainScalarLoop_col_or_stuck fuel' s.advance _ "" _ s.inputEnd result
+                h_loop with h | ⟨hst, -⟩
+              · exact h
+              · exact hst ▸ advance_col_pos_of_peek hpk hnb
 
 /-- `scanPlainScalar` in block context: the emitted state sits at column 0 or
     on a `NodeStop` character.  (`hend'` from the caller's corr.) -/
@@ -1473,6 +1708,172 @@ lemma scanBlockScalar_restNoOpen {s s' : ScannerState}
   (scanBlockScalar_restNodeStop hend' hok).imp id
     (RestStop.mono (fun _ => NodeStop.toNoOpenHead))
 
+/-! ### The other content scans' columns (item 77)
+
+The block scalar is the only content scan that can park at a line start, and it
+re-arms the simple key when it does.  The remaining three end on a character
+they consumed inside a line: the quoted scans on their closing quote, the alias
+on its name.  Together with `scanPlainScalar_col_pos` this is what says a
+block-context CONTENT park with the save flag down is never at column 0. -/
+
+/-- The block scalar's park re-arms: `[170]`/`[174]` end past a break, so a key
+    may start on the line the scan stopped at. -/
+lemma scanBlockScalar_simpleKeyAllowed {s s' : ScannerState}
+    (hok : scanBlockScalar s = .ok s') : s'.simpleKeyAllowed = true := by
+  unfold scanBlockScalar at hok
+  simp only [] at hok
+  split at hok
+  · contradiction
+  · unfold scanBlockScalarBody at hok
+    simp only [] at hok
+    repeat (any_goals (split at hok))
+    all_goals (try contradiction)
+    all_goals (simp only [Except.ok.injEq] at hok; subst hok; rfl)
+
+/-- The anchor/alias name walk only ever advances over `[102] ns-anchor-char`,
+    which is not a break, so it never moves LEFT. -/
+private lemma collectAnchorNameLoop_col_ge (fuel : Nat) :
+    ∀ (s : ScannerState) (name : String),
+    s.col ≤ (collectAnchorNameLoop s name fuel).2.col := by
+  induction fuel with
+  | zero => intro s name; exact Nat.le_refl _
+  | succ fuel' ih =>
+    intro s name
+    unfold collectAnchorNameLoop
+    split
+    · rename_i c hpk
+      split
+      · rename_i hchar
+        simp only [Bool.and_eq_true, Bool.not_eq_true'] at hchar
+        have := ih s.advance (name.push c)
+        rw [advance_col_succ_of_peek hpk hchar.1.1.2] at this
+        omega
+      · exact Nat.le_refl _
+    · exact Nat.le_refl _
+
+/-- `[104] c-ns-alias-node` spends its `*` before the name, so the park is
+    inside a line. -/
+lemma scanAnchorOrAlias_col_pos {s s' : ScannerState} {c : Char} {b : Bool}
+    (hpk : s.peek? = some c) (hnb : isLineBreakBool c = false)
+    (hok : scanAnchorOrAlias s b = .ok s') : 0 < s'.col := by
+  unfold scanAnchorOrAlias at hok
+  simp only [] at hok
+  split at hok
+  · cases hok
+  · injection hok with h_eq; subst h_eq
+    have h1 : 0 < s.advance.col := advance_col_pos_of_peek hpk hnb
+    have h2 := collectAnchorNameLoop_col_ge (s.inputEnd - s.advance.offset) s.advance ""
+    show 0 < (collectAnchorNameLoop s.advance "" (s.inputEnd - s.advance.offset)).2.col
+    omega
+
+/-- `[120] c-single-quoted` ends on the closing `'` — the walk's only `.ok`
+    exit is the `advance` over it. -/
+private lemma collectSingleQuotedLoop_col_pos (fuel : Nat) :
+    ∀ (s : ScannerState) (content : String) (startPos : YamlPos) (inFlow : Bool)
+      (ci : Int) (ie : Nat) (rc : String) (s' : ScannerState),
+    collectSingleQuotedLoop s content fuel startPos inFlow ci ie = .ok (rc, s') →
+    0 < s'.col := by
+  induction fuel with
+  | zero => intro s content startPos inFlow ci ie rc s' hok; simp [collectSingleQuotedLoop] at hok
+  | succ fuel' ih =>
+    intro s content startPos inFlow ci ie rc s' hok
+    unfold collectSingleQuotedLoop at hok
+    split at hok
+    · exact absurd hok (by simp)
+    · rename_i hpk
+      dsimp only [] at hok
+      split at hok
+      · exact ih _ _ _ _ _ _ _ _ hok
+      · simp only [Except.ok.injEq, Prod.mk.injEq] at hok
+        obtain ⟨-, rfl⟩ := hok
+        exact advance_col_pos_of_peek hpk (by decide)
+    · rename_i c hpk hnq
+      split at hok
+      · simp only [bind, Except.bind] at hok
+        split at hok
+        · exact absurd hok (by simp)
+        · repeat' split at hok
+          all_goals first
+            | exact ih _ _ _ _ _ _ _ _ hok
+            | simp at hok
+      · split at hok
+        · simp at hok
+        · exact ih _ _ _ _ _ _ _ _ hok
+
+lemma scanSingleQuoted_col_pos {s s' : ScannerState}
+    (hok : scanSingleQuoted s = .ok s') : 0 < s'.col := by
+  unfold scanSingleQuoted at hok
+  simp only [bind, Except.bind] at hok
+  split at hok
+  · simp at hok
+  · rename_i pair hloop
+    obtain ⟨content, s_after_close⟩ := pair
+    simp only [] at hloop hok
+    have hcol := collectSingleQuotedLoop_col_pos _ _ _ _ _ _ _ _ _ hloop
+    split at hok
+    · split at hok
+      · simp at hok
+      · have h := Except.ok.inj hok; subst h; exact hcol
+    · have h := Except.ok.inj hok; subst h; exact hcol
+
+/-- `[109] c-double-quoted` ends on the closing `"`, the same way. -/
+private lemma collectDoubleQuotedLoop_col_pos (fuel : Nat) :
+    ∀ (p : Nat) (s : ScannerState) (content : String) (startPos : YamlPos)
+      (inFlow : Bool) (ci : Int) (ie : Nat) (rc : String) (s' : ScannerState),
+    collectDoubleQuotedLoop s content fuel startPos inFlow ci ie p = .ok (rc, s') →
+    0 < s'.col := by
+  induction fuel with
+  | zero => intro p s content startPos inFlow ci ie rc s' hok; simp [collectDoubleQuotedLoop] at hok
+  | succ fuel' ih =>
+    intro p s content startPos inFlow ci ie rc s' hok
+    unfold collectDoubleQuotedLoop at hok
+    split at hok
+    · exact absurd hok (by simp)
+    · rename_i hpk
+      simp only [Except.ok.injEq, Prod.mk.injEq] at hok
+      obtain ⟨-, rfl⟩ := hok
+      exact advance_col_pos_of_peek hpk (by decide)
+    · dsimp only [] at hok
+      split at hok
+      · split at hok
+        · simp only [bind, Except.bind] at hok
+          repeat' split at hok
+          all_goals first
+            | exact ih _ _ _ _ _ _ _ _ _ hok
+            | simp at hok
+        · simp only [bind, Except.bind] at hok
+          split at hok
+          · exact absurd hok (by simp)
+          · exact ih _ _ _ _ _ _ _ _ _ hok
+      · exact absurd hok (by simp)
+    · split at hok
+      · simp only [bind, Except.bind] at hok
+        split at hok
+        · exact absurd hok (by simp)
+        · repeat' split at hok
+          all_goals first
+            | exact ih _ _ _ _ _ _ _ _ _ hok
+            | simp at hok
+      · split at hok
+        · simp at hok
+        · exact ih _ _ _ _ _ _ _ _ _ hok
+
+lemma scanDoubleQuoted_col_pos {s s' : ScannerState}
+    (hok : scanDoubleQuoted s = .ok s') : 0 < s'.col := by
+  unfold scanDoubleQuoted at hok
+  simp only [bind, Except.bind] at hok
+  split at hok
+  · simp at hok
+  · rename_i pair hloop
+    obtain ⟨content, s_after_close⟩ := pair
+    simp only [] at hloop hok
+    have hcol := collectDoubleQuotedLoop_col_pos _ _ _ _ _ _ _ _ _ _ hloop
+    split at hok
+    · split at hok
+      · simp at hok
+      · have h := Except.ok.inj hok; subst h; exact hcol
+    · have h := Except.ok.inj hok; subst h; exact hcol
+
 /-! ## §9 The dispatch-level producer
 
 For a content dispatch that was NOT a property (`&`/`!`), in block context,
@@ -1559,6 +1960,313 @@ lemma dispatchContent_restNodeStop {s s' : ScannerState} {c : Char}
               split at hok
               · exact scanPlainScalar_restNodeStop hflow hend' hok
               · simp at hok
+
+/-- **The content park's own column** (item 77).  Outside the property arms, a
+    block-context content dispatch parks either with the simple key ARMED — the
+    block scalar, whose `[170]`/`[174]` body ends past a break, so a key may
+    start on the line it stops at — or strictly inside a line: the quoted scans
+    end on their closing quote, the alias on its name, and the plain walk moves
+    (`scanPlainScalar_col_pos`) because the dispatcher's own guards say the
+    probe cannot fire at its first character.
+
+    This is what `col0_or_lineStop`'s disjunction could not say.  A park at a
+    line start with the save DOWN is the one shape the landing's re-arm (item
+    76) does not fund, and it has no inhabitant. -/
+lemma dispatchContent_col_pos_or_armed {s s' : ScannerState} {c : Char}
+    (hflow : s.inFlow = false)
+    (hna : c ≠ '&') (hnt : c ≠ '!')
+    (hpk : s.peek? = some c)
+    (hnotdoc : s.col = 0 → atDocumentBoundary s = false)
+    (hok : scanNextToken_dispatchContent s c = .ok s') :
+    s'.simpleKeyAllowed = true ∨ 0 < s'.col := by
+  unfold scanNextToken_dispatchContent at hok
+  simp only [bind, Except.bind, pure, Except.pure] at hok
+  split at hok
+  · rename_i h_eq
+    exact absurd (by simpa using h_eq) hna
+  · split at hok
+    · -- '*': the alias node's name is spent inside the line
+      rename_i hstar
+      have hnb : isLineBreakBool c = false := by
+        have hc : c = '*' := by simpa using hstar
+        subst hc; decide
+      split at hok
+      · simp at hok
+      split at hok
+      · simp at hok
+      · split at hok
+        · simp at hok
+        · rename_i v hv
+          split at hok
+          · simp at hok
+          · rename_i u hval
+            cases u
+            have hvs : v = s' := Except.ok.inj hok
+            subst hvs
+            exact Or.inr (scanAnchorOrAlias_col_pos hpk hnb hv)
+    · split at hok
+      · rename_i h_eq
+        exact absurd (by simpa using h_eq) hnt
+      · split at hok
+        · -- '|' or '>': the block scalar re-arms at its column-0 park
+          exact Or.inl (scanBlockScalar_simpleKeyAllowed (peel_blockScalarGuard hok))
+        · split at hok
+          · -- '"': the closing quote, then the endLine touch-up (no column)
+            split at hok
+            · simp at hok
+            · rename_i s_dq hdq
+              have heq : (if s_dq.simpleKey.possible then
+                  { s_dq with simpleKey := { s_dq.simpleKey with endLine := s_dq.line } }
+                else s_dq) = s' := Except.ok.inj hok
+              have hcol : s'.col = s_dq.col := by rw [← heq]; split <;> rfl
+              exact Or.inr (hcol ▸ scanDoubleQuoted_col_pos hdq)
+          · split at hok
+            · -- '\'': the same
+              split at hok
+              · simp at hok
+              · rename_i s_sq hsq
+                have heq : (if s_sq.simpleKey.possible then
+                    { s_sq with simpleKey := { s_sq.simpleKey with endLine := s_sq.line } }
+                  else s_sq) = s' := Except.ok.inj hok
+                have hcol : s'.col = s_sq.col := by rw [← heq]; split <;> rfl
+                exact Or.inr (hcol ▸ scanSingleQuoted_col_pos hsq)
+            · -- the plain walk
+              split at hok
+              · rename_i hcan
+                rw [hflow] at hcan
+                exact Or.inr (scanPlainScalar_col_pos hflow hpk hcan hnotdoc hok)
+              · simp at hok
+
+/-! ### The tag property's column (item 77)
+
+`[97] c-ns-tag-property` spends its `!` and then walks `ns-uri-char` /
+`ns-tag-char` / `ns-word-char`, none of which is a break — so the park is
+inside a line, exactly as the anchor's is. -/
+
+private lemma not_lineBreak_of_uriChar {c : Char} (h : isUriCharBool c = true) :
+    isLineBreakBool c = false := by
+  simp only [isLineBreakBool, isLineFeedBool, isCarriageReturnBool,
+    Bool.or_eq_false_iff, beq_eq_false_iff_ne]
+  constructor <;> (rintro rfl; exact absurd h (by decide))
+
+private lemma not_lineBreak_of_tagChar {c : Char} (h : isTagCharBool c = true) :
+    isLineBreakBool c = false := by
+  simp only [isLineBreakBool, isLineFeedBool, isCarriageReturnBool,
+    Bool.or_eq_false_iff, beq_eq_false_iff_ne]
+  constructor <;> (rintro rfl; exact absurd h (by decide))
+
+private lemma not_lineBreak_of_wordChar {c : Char} (h : isWordCharBool c = true) :
+    isLineBreakBool c = false := by
+  simp only [isLineBreakBool, isLineFeedBool, isCarriageReturnBool,
+    Bool.or_eq_false_iff, beq_eq_false_iff_ne]
+  constructor <;> (rintro rfl; exact absurd h (by decide))
+
+private lemma collectVerbatimTagLoop_col_ge (fuel : Nat) :
+    ∀ (s : ScannerState) (uri : String),
+    s.col ≤ (collectVerbatimTagLoop s uri fuel).2.2.col := by
+  induction fuel with
+  | zero => intro s uri; exact Nat.le_refl _
+  | succ fuel' ih =>
+    intro s uri
+    unfold collectVerbatimTagLoop
+    split
+    · rename_i hpk
+      exact Nat.le_of_lt (by rw [advance_col_succ_of_peek hpk (by decide)]; omega)
+    · rename_i c _ hpk
+      split
+      · rename_i huri
+        have := ih s.advance (uri.push c)
+        rw [advance_col_succ_of_peek hpk (not_lineBreak_of_uriChar huri)] at this
+        omega
+      · exact Nat.le_refl _
+    · exact Nat.le_refl _
+
+private lemma collectTagSuffixLoop_col_ge (fuel : Nat) :
+    ∀ (s : ScannerState) (suffix : String),
+    s.col ≤ (collectTagSuffixLoop s suffix fuel).2.col := by
+  induction fuel with
+  | zero => intro s suffix; exact Nat.le_refl _
+  | succ fuel' ih =>
+    intro s suffix
+    unfold collectTagSuffixLoop
+    split
+    · rename_i c hpk
+      split
+      · rename_i htag
+        have := ih s.advance (suffix.push c)
+        rw [advance_col_succ_of_peek hpk (not_lineBreak_of_tagChar htag)] at this
+        omega
+      · exact Nat.le_refl _
+    · exact Nat.le_refl _
+
+private lemma collectTagHandleLoop_col_ge (fuel : Nat) :
+    ∀ (s : ScannerState) (chars : String),
+    s.col ≤ (collectTagHandleLoop s chars fuel).2.2.col := by
+  induction fuel with
+  | zero => intro s chars; exact Nat.le_refl _
+  | succ fuel' ih =>
+    intro s chars
+    unfold collectTagHandleLoop
+    split
+    · rename_i hpk
+      exact Nat.le_of_lt (by rw [advance_col_succ_of_peek hpk (by decide)]; omega)
+    · rename_i c _ hpk
+      split
+      · rename_i hword
+        have := ih s.advance (chars.push c)
+        rw [advance_col_succ_of_peek hpk (not_lineBreak_of_wordChar hword)] at this
+        omega
+      · exact Nat.le_refl _
+    · exact Nat.le_refl _
+
+private lemma scanVerbatimTag_col_ge {s s' : ScannerState} {p : YamlPos}
+    (hpk : s.peek? = some '<') (hok : scanVerbatimTag s p = .ok s') : s.col < s'.col := by
+  have h1 := advance_col_succ_of_peek hpk (by decide)
+  have h2 := collectVerbatimTagLoop_col_ge (p.offset + s.inputEnd - s.advance.offset) s.advance ""
+  unfold scanVerbatimTag at hok
+  simp only [] at hok
+  split at hok
+  · cases hok
+  · split at hok
+    · cases hok
+    · have heq : s' = (collectVerbatimTagLoop s.advance ""
+          (p.offset + s.inputEnd - s.advance.offset)).2.2.emitAt p
+            (.tag "" (collectVerbatimTagLoop s.advance ""
+              (p.offset + s.inputEnd - s.advance.offset)).1) := (Except.ok.inj hok).symm
+      rw [heq]
+      show s.col < (collectVerbatimTagLoop s.advance ""
+        (p.offset + s.inputEnd - s.advance.offset)).2.2.col
+      omega
+
+private lemma scanSecondaryTag_col_ge (s : ScannerState) (p : YamlPos)
+    (hpk : s.peek? = some '!') : s.col < (scanSecondaryTag s p).col := by
+  have h1 := advance_col_succ_of_peek hpk (by decide)
+  have h2 := collectTagSuffixLoop_col_ge (p.offset + s.inputEnd - s.advance.offset) s.advance ""
+  show s.col < (collectTagSuffixLoop s.advance ""
+    (p.offset + s.inputEnd - s.advance.offset)).2.col
+  omega
+
+private lemma emitAt_col (s : ScannerState) (p : YamlPos) (t : YamlToken) :
+    (s.emitAt p t).col = s.col := rfl
+
+private lemma scanNamedTag_col_ge (s : ScannerState) (p : YamlPos) (ie : Nat) :
+    s.col ≤ (scanNamedTag s p ie).col := by
+  have h2 := collectTagHandleLoop_col_ge (ie - s.offset) s ""
+  unfold scanNamedTag
+  simp only []
+  split
+  · have h3 := collectTagSuffixLoop_col_ge
+      (ie - (collectTagHandleLoop s "" (ie - s.offset)).2.2.offset)
+      (collectTagHandleLoop s "" (ie - s.offset)).2.2 ""
+    simp only [emitAt_col]
+    exact Nat.le_trans h2 h3
+  · simp only [emitAt_col]
+    exact h2
+
+/-- `[97] c-ns-tag-property` spends its `!` before the handle, so its park is
+    inside a line — the tag's half of item 77's content sweep. -/
+lemma scanTag_col_pos {s s' : ScannerState} {c : Char}
+    (hpk : s.peek? = some c) (hnb : isLineBreakBool c = false)
+    (hok : scanTag s = .ok s') : 0 < s'.col := by
+  have hbang : 0 < s.advance.col := advance_col_pos_of_peek hpk hnb
+  unfold scanTag at hok
+  simp only [bind, Except.bind] at hok
+  split at hok
+  · have hlt : s.advance.peek? = some '<' := by assumption
+    split at hok
+    · cases hok
+    · rename_i v hv
+      have heq : s' = { v with simpleKeyAllowed := false } := (Except.ok.inj hok).symm
+      have := scanVerbatimTag_col_ge hlt hv
+      rw [heq]
+      show 0 < v.col
+      omega
+  · have hbb : s.advance.peek? = some '!' := by assumption
+    have heq : s' = { scanSecondaryTag s.advance s.currentPos with
+      simpleKeyAllowed := false } := (Except.ok.inj hok).symm
+    have := scanSecondaryTag_col_ge s.advance s.currentPos hbb
+    rw [heq]
+    show 0 < (scanSecondaryTag s.advance s.currentPos).col
+    omega
+  · have heq : s' = { scanNamedTag s.advance s.currentPos s.inputEnd with
+      simpleKeyAllowed := false } := (Except.ok.inj hok).symm
+    have := scanNamedTag_col_ge s.advance s.currentPos s.inputEnd
+    rw [heq]
+    show 0 < (scanNamedTag s.advance s.currentPos s.inputEnd).col
+    omega
+
+/-- The two document markers re-arm as well: `[203]`/`[204]` end a document's
+    own line, so a key may start on the next one. -/
+lemma scanDocumentStart_simpleKeyAllowed (s : ScannerState) :
+    (scanDocumentStart s).simpleKeyAllowed = true := rfl
+
+lemma scanDocumentEnd_simpleKeyAllowed {s s' : ScannerState}
+    (hok : scanDocumentEnd s = .ok s') : s'.simpleKeyAllowed = true := by
+  unfold scanDocumentEnd at hok
+  simp only [bind, Except.bind] at hok
+  repeat (any_goals (split at hok))
+  all_goals (try contradiction)
+  all_goals (simp only [Except.ok.injEq] at hok; subst hok; rfl)
+
+/-- The two PROPERTY arms spend their `&`/`!` before the name, so they park
+    inside a line too — which is what lets item 77's disjunction be stated for
+    EVERY content character rather than for the node-producing ones alone. -/
+private lemma dispatchContent_props_col_pos {s s' : ScannerState} {c : Char}
+    (hprops : c = '&' ∨ c = '!')
+    (hpk : s.peek? = some c)
+    (hok : scanNextToken_dispatchContent s c = .ok s') : 0 < s'.col := by
+  have hnb : isLineBreakBool c = false := by rcases hprops with rfl | rfl <;> decide
+  unfold scanNextToken_dispatchContent at hok
+  simp only [bind, Except.bind, pure, Except.pure] at hok
+  split at hok
+  · -- `&`
+    split at hok
+    · simp at hok
+    · split at hok
+      · simp at hok
+      · rename_i v hv
+        rw [(Except.ok.inj hok).symm]
+        show 0 < v.col
+        exact scanAnchorOrAlias_col_pos hpk hnb hv
+  · split at hok
+    · exfalso
+      rename_i hstar
+      have hc : c = '*' := by simpa using hstar
+      rcases hprops with rfl | rfl <;> simp at hc
+    · split at hok
+      · -- `!`
+        split at hok
+        · simp at hok
+        · exact scanTag_col_pos hpk hnb hok
+      · exfalso
+        rcases hprops with rfl | rfl
+        · exact absurd (by decide : (('&' : Char) == '&') = true) (by assumption)
+        · exact absurd (by decide : (('!' : Char) == '!') = true) (by assumption)
+
+/-- Item 77 for EVERY content character: the property arms by their own
+    indicator, the rest by `dispatchContent_col_pos_or_armed`. -/
+lemma dispatchContent_arm_or_col_any {s s' : ScannerState} {c : Char}
+    (hflow : s.inFlow = false)
+    (hpk : s.peek? = some c)
+    (hnotdoc : s.col = 0 → atDocumentBoundary s = false)
+    (hok : scanNextToken_dispatchContent s c = .ok s') :
+    s'.simpleKeyAllowed = true ∨ 0 < s'.col := by
+  by_cases hprops : c = '&' ∨ c = '!'
+  · exact Or.inr (dispatchContent_props_col_pos hprops hpk hok)
+  · exact dispatchContent_col_pos_or_armed hflow (fun h => hprops (Or.inl h))
+      (fun h => hprops (Or.inr h)) hpk hnotdoc hok
+
+/-- Item 77 at the accumulation site: the same disjunction, with the column
+    read on the SURFACE side, where every park states it. -/
+lemma dispatchContent_arm_or_col {s s' : ScannerState} {sp' : SurfPos} {c : Char}
+    (hflow : s.inFlow = false)
+    (hpk : s.peek? = some c)
+    (hnotdoc : s.col = 0 → atDocumentBoundary s = false)
+    (hok : scanNextToken_dispatchContent s c = .ok s')
+    (hcorr' : ScannerSurfCorr s' sp') :
+    s'.simpleKeyAllowed = true ∨ 0 < sp'.col :=
+  (dispatchContent_arm_or_col_any hflow hpk hnotdoc hok).imp id
+    (fun h => by rw [hcorr'.col_eq]; exact h)
 
 /-- The block-scalar arm's `OffLine` form (item 47): with `c` pinned at a
     block-scalar head, the dispatch is `scanBlockScalar` under the item-9c

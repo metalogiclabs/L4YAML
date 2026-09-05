@@ -2,6 +2,7 @@ import Tests.Guards.Dump
 import Tests.Guards.Parity.IndexedScanAndParse
 import Tests.Guards.Proofs.BodySuccSeqDiscriminator
 import Tests.Guards.Proofs.CommentRoundTrip
+import Tests.Guards.Proofs.ContentParkColumn
 import Tests.Guards.Proofs.DescendIHProjectionProbe
 import Tests.Guards.Proofs.DumpRoundTrip
 import Tests.Guards.Proofs.EndToEndCorrectness
