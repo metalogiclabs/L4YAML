@@ -1730,6 +1730,27 @@ lemma scanBlockScalar_simpleKeyAllowed {s s' : ScannerState}
     all_goals (try contradiction)
     all_goals (simp only [Except.ok.injEq] at hok; subst hok; rfl)
 
+/-- The block-scalar body clears the saved key (§8.1: a block scalar is never
+    an implicit key), so a park that follows one has nothing for the `:` to
+    resolve — which is what refutes the pack's guard rather than punting it. -/
+lemma scanBlockScalarBody_simpleKey_false {s0 s1 : ScannerState} {ch : ChompStyle}
+    {off : Option Nat} {il : Bool} {sp : YamlPos} {s' : ScannerState}
+    (h : scanBlockScalarBody s0 s1 ch off il sp = .ok s') :
+    s'.simpleKey.possible = false := by
+  unfold scanBlockScalarBody at h
+  dsimp only [] at h
+  split at h
+  · exact absurd h (by simp)
+  · have h' := Except.ok.inj h; subst h'; rfl
+
+lemma scanBlockScalar_simpleKey_false {s s' : ScannerState}
+    (h : scanBlockScalar s = .ok s') : s'.simpleKey.possible = false := by
+  unfold scanBlockScalar at h
+  dsimp only [] at h
+  split at h
+  · cases h
+  · exact scanBlockScalarBody_simpleKey_false h
+
 /-- The anchor/alias name walk only ever advances over `[102] ns-anchor-char`,
     which is not a break, so it never moves LEFT. -/
 private lemma collectAnchorNameLoop_col_ge (fuel : Nat) :
@@ -1978,7 +1999,7 @@ lemma dispatchContent_col_pos_or_armed {s s' : ScannerState} {c : Char}
     (hpk : s.peek? = some c)
     (hnotdoc : s.col = 0 → atDocumentBoundary s = false)
     (hok : scanNextToken_dispatchContent s c = .ok s') :
-    s'.simpleKeyAllowed = true ∨ 0 < s'.col := by
+    (s'.simpleKeyAllowed = true ∧ s'.simpleKey.possible = false) ∨ 0 < s'.col := by
   unfold scanNextToken_dispatchContent at hok
   simp only [bind, Except.bind, pure, Except.pure] at hok
   split at hok
@@ -2008,8 +2029,12 @@ lemma dispatchContent_col_pos_or_armed {s s' : ScannerState} {c : Char}
       · rename_i h_eq
         exact absurd (by simpa using h_eq) hnt
       · split at hok
-        · -- '|' or '>': the block scalar re-arms at its column-0 park
-          exact Or.inl (scanBlockScalar_simpleKeyAllowed (peel_blockScalarGuard hok))
+        · -- '|' or '>': the block scalar re-arms at its column-0 park — with
+          -- the saved key CLEARED (§8.1), which is the second half item 80
+          -- records: the one armed content park has nothing for a `:` to
+          -- resolve.
+          exact Or.inl ⟨scanBlockScalar_simpleKeyAllowed (peel_blockScalarGuard hok),
+                        scanBlockScalar_simpleKey_false (peel_blockScalarGuard hok)⟩
         · split at hok
           · -- '"': the closing quote, then the endLine touch-up (no column)
             split at hok
@@ -2250,7 +2275,7 @@ lemma dispatchContent_arm_or_col_any {s s' : ScannerState} {c : Char}
     (hpk : s.peek? = some c)
     (hnotdoc : s.col = 0 → atDocumentBoundary s = false)
     (hok : scanNextToken_dispatchContent s c = .ok s') :
-    s'.simpleKeyAllowed = true ∨ 0 < s'.col := by
+    (s'.simpleKeyAllowed = true ∧ s'.simpleKey.possible = false) ∨ 0 < s'.col := by
   by_cases hprops : c = '&' ∨ c = '!'
   · exact Or.inr (dispatchContent_props_col_pos hprops hpk hok)
   · exact dispatchContent_col_pos_or_armed hflow (fun h => hprops (Or.inl h))
@@ -2264,7 +2289,7 @@ lemma dispatchContent_arm_or_col {s s' : ScannerState} {sp' : SurfPos} {c : Char
     (hnotdoc : s.col = 0 → atDocumentBoundary s = false)
     (hok : scanNextToken_dispatchContent s c = .ok s')
     (hcorr' : ScannerSurfCorr s' sp') :
-    s'.simpleKeyAllowed = true ∨ 0 < sp'.col :=
+    (s'.simpleKeyAllowed = true ∧ s'.simpleKey.possible = false) ∨ 0 < sp'.col :=
   (dispatchContent_arm_or_col_any hflow hpk hnotdoc hok).imp id
     (fun h => by rw [hcorr'.col_eq]; exact h)
 

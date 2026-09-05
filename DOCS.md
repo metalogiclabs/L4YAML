@@ -9299,6 +9299,69 @@ ZERO runtime edits — one proof file, one new guard and its registration, two
 guards' `flowKeyPack_of_close` arguments lose an `Or.inl` — so the matrix cannot
 have moved and was not re-run.
 
+### Item 80 (2026-09-05)
+
+**The content park's armed shape.**  Item 77 said every content scan parks
+ARMED or off a line start, and spent the pair on the LANDED `:`.  What the
+same-line `:` still could not answer was whether preprocessing RE-SAVED at the
+indicator — `implicit_key_floor` cased `preprocess_some_savedKey_shape` and
+punted its fresh arm — and item 79's measurement put that punt first in
+`pendingMapValue`'s chain.  This item answers it with what the park already
+holds.
+
+**The armed park's key is down.**  The one armed content scan is the block
+scalar, and §8.1 clears the saved key on its way out
+(`scanBlockScalar_simpleKey_false`, now beside `scanBlockScalar_simpleKeyAllowed`
+in `LineOpenGuard` where `dispatchContent_col_pos_or_armed` spends both on its
+armed arm).  So the content parks' `h_arm` left disjunct is the PAIR —
+`(simpleKeyAllowed = true ∧ simpleKey.possible = false) ∨ 0 < sp_scan.col` on
+`pendingContent` and `pendingBlockContent` — at zero producer cost: all fifteen
+dispatch sites pay through one bridge (`content_park_arm`), the four flow-close
+sites pay the column, and every old consumer projects (`Or.imp_left And.left`).
+
+**The consumer's two moves.**  In `colon_fires_implicit_key`'s pack arm, a live
+pack (`h_poss`) refutes the armed reading outright, so the park is MID-LINE —
+which makes the `:` this park's own inline residue, and `h_stale` (item 47's
+field, threaded to the colon consumers for the first time) hands back the stale
+tail: flag DOWN, indent check clear.  Those are exactly the premises of the
+no-break transport's stale conjunct (`preprocess_some_ssl_comments_anyCol`),
+which delivers `s_prep.simpleKey = sc.simpleKey` — preprocessing re-saved
+nothing, the key the `:` resolves IS the pack's.  The props side is the same
+derivation from the park's own `h_nic`/`h_ska` (items 12/79), threaded through
+`colon_fires_props_key` into `colon_open_map_props`.
+
+**`implicit_key_floor` takes the inherit as a premise.**  The re-save case was
+never the lemma's to case on, because every caller can answer it; `h_inh :
+s_prep.simpleKey = sc.simpleKey` replaces the internal
+`preprocess_some_savedKey_shape` split, and the fresh-arm `Or.inr trivial` is
+gone.  What remains of the lemma's punt list is ONE entry: `value_key_floor_or`'s
+right arm, the explicit-key clear (`[197]`) — and the refutation shape for that
+is already on file (`scanValueClearKey_keyrun`: with the key on the `:`'s own
+line, the clear is a no-op unless the key sat AT the cursor), so the next item
+owes exactly one datum, the key strictly BEHIND the cursor.
+
+**Measured** (`Tests/Guards/Proofs/ContentParkArmedShape.lean`).  §3 steps the
+scanner over thirteen inputs and checks every reachable post-token state:
+`simpleKeyAllowed = true` at column 0 implies `simpleKey.possible = false`, with
+`armedSeen` witnessing that the armed line-start state is REACHED (the
+block-scalar parks) rather than never applicable.  §4 measures the inherit
+itself: at every state about to dispatch a `:` with the park's shape in hand
+(key live on the current line, flag down, indent check clear, no break crossed),
+`s_prep.simpleKey == s.simpleKey` — eleven shapes, `inheritSeen` firing on the
+implicit-key ones.
+
+**Validation.**  Full `lake build` green (1063 jobs — one new guard — ZERO
+warnings); `run-all-tests.sh` all suites green (summed 6689/6689; coverage
+summary 358/358 applicable correct, 0 failed, 0 unexpected-pass); `eventscore`
+347/358 with the composition unmoved (252 event-pass, 11 event-diff,
+0 event-reject, 95 error-ok); three checkers OK (220 library modules / 354
+imports; 20 sub-themes, 229 demos, 248 reflections; 25 whitelisted `theorem`
+capstones).  `#print axioms` names no `sorryAx` over the thirteen lemmas
+touched; the `native_decide` axioms under the accum lemmas are
+`dispatchBlock*_full_prod`'s and predate this item.  ZERO runtime edits — two
+proof files, one new guard and its registration, one guard's §1 restated — so
+the matrix cannot have moved and was not re-run.
+
 ### REMAINING, in order
 
 The per-item history is the closure log above; this section lists only the
@@ -9311,7 +9374,7 @@ a nonzero index.  R2 is CLOSED too (items 47–51), so what stands between here
 and Step 5 (the converse) is R3's remaining production work and R4:
 
 ```
-R1 ✓ (44–46) ──→ R2 ✓ (47–51) ──→ R3 (52–79 landed; 67b open) ──→ Step 5
+R1 ✓ (44–46) ──→ R2 ✓ (47–51) ──→ R3 (52–80 landed; 67b open) ──→ Step 5
                                         └──────→ R4 (implicitContinue + 0 < m) ──┘
 ```
 
@@ -9492,11 +9555,12 @@ and that deletion, by input class:
   | punt | closes by |
   |---|---|
   | ~~the pack's own column~~ | CLOSED by item 79 |
-  | preprocessing RE-SAVED at the `:` | the park's flag.  The props side has it (`h_ska`); the CONTENT side is `h_arm`'s left disjunct, which needs `sc.simpleKey.possible = false` beside `simpleKeyAllowed = true` — true of the ONLY armed-at-column-0 content scan, the block scalar (§8.1 clears the saved key), and not yet recorded on the constructor |
-  | `scanValueClearKey` cleared the key (`[197]`'s explicit-key arm) | `scanValueClearKey`'s condition (2) is refuted by the pack's own `simpleKey.pos.line = line`; its condition (1) needs the key to sit strictly BEHIND the `:`, which no pack carries |
+  | ~~preprocessing RE-SAVED at the `:`~~ | CLOSED by item 80 — the park's flag: the props side spends `h_ska`, the content side its armed shape (`h_arm`'s left disjunct now carries `simpleKey.possible = false`, §8.1's own clear), and `implicit_key_floor` takes the inherit as a premise |
+  | `scanValueClearKey` cleared the key (`[197]`'s explicit-key arm) | `scanValueClearKey`'s condition (2) is refuted by the pack's own `simpleKey.pos.line = line` (`scanValueClearKey_keyrun` already states the pair); its condition (1) needs the key to sit strictly BEHIND the `:`, which no pack carries — the next item's one datum |
 
-  So the order is: the content park's armed-shape field, then the `[197]` clear,
-  then the field itself, then `pendingProps`' floor, then `FlowStackK`'s.
+  So the order is: ~~the content park's armed-shape field~~ (CLOSED by item 80),
+  then the `[197]` clear, then the field itself, then `pendingProps`' floor,
+  then `FlowStackK`'s.
   ~~What survives:
   `dropClose`'s remaining domain — the VALID multi-line scalar tokens at a
   nonzero index~~ — the TOKENS are CLOSED by item 67a, which built the flow

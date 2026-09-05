@@ -44,14 +44,17 @@ open L4YAML.CharPredicates
 
 The disjunction is stated for an ARBITRARY content character — the property
 arms included, which is what lets the escape (`pendingFlow`) and the two
-content parks carry the same field. -/
+content parks carry the same field.  Since item 80 the armed side carries the
+cleared key too: the one armed content scan is the block scalar, and §8.1
+clears the save on its way out, so an armed park and a live pack cannot
+coexist. -/
 
 example {s s' : ScannerState} {c : Char}
     (hflow : s.inFlow = false)
     (hpk : s.peek? = some c)
     (hnotdoc : s.col = 0 → atDocumentBoundary s = false)
     (hok : scanNextToken_dispatchContent s c = .ok s') :
-    s'.simpleKeyAllowed = true ∨ 0 < s'.col :=
+    (s'.simpleKeyAllowed = true ∧ s'.simpleKey.possible = false) ∨ 0 < s'.col :=
   dispatchContent_arm_or_col_any hflow hpk hnotdoc hok
 
 /-! ## §2  The plain walk's own column, and the premise it rests on
