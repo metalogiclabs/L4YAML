@@ -147,9 +147,10 @@ example {sp_start sp_before sp_br sp_open sp_key : SurfPos}
      Or.inr trivial⟩
     h_open (GOpt.none sp_open)
 
-/-- …and the close spends it: a one-bit mask promising the base slot's column
-    turns that frame into a pack with `ImplicitKeyPack`'s column conjunct
-    DERIVED rather than punted. -/
+/-- …and the close spends it: a one-bit mask carries the base slot's column
+    (item 79 made that promise conditional on the mask rather than optional), so
+    the frame becomes a pack whose column conjunct is DERIVED — both arguments
+    are equations and neither arm of the pack can punt on a measurement. -/
 example {sc : ScannerState} {sp_start sp_br sp_tok sp_key : SurfPos}
     (route : ∀ sp_v, SBlockMapEntry 3 sp_key sp_v → SLYamlStream sp_start sp_v)
     (head : ∀ sp_end, SFlowContent 2 .flowOut sp_br sp_end →
@@ -159,6 +160,6 @@ example {sc : ScannerState} {sp_start sp_br sp_tok sp_key : SurfPos}
     sc.simpleKey.possible = true → sc.simpleKey.pos.line = sc.line →
       ImplicitKeyPack sc sp_start sp_tok ∨ KeyPackPunt sc :=
   flowKeyPack_of_close (kc := 3)
-    (Or.inl ⟨3, sp_key, route, head, rfl⟩) (Or.inl h_kc) h_content
+    (Or.inl ⟨3, sp_key, route, head, rfl⟩) h_kc h_content
 
 end L4YAML.Tests.Guards.FlowStackIndexParametric

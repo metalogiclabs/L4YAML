@@ -8935,7 +8935,8 @@ routes to the same fact:
 | props run | `&a [1]: b` | per input the OTHER way: the run left the flag down, so the shape lemma's INHERIT arm says the stacked key is the park's — at the column `PropsKeyPack` already carries |
 
 **What did NOT change, and why — measured, not surveyed.**
-`ImplicitKeyPack`'s column conjunct stays `∨ True`, and the obligation list is
+~~`ImplicitKeyPack`'s column conjunct stays `∨ True`~~ — it is an EQUATION as of
+item 79; read the paragraph below as the state at item 75.  The obligation list is
 the same eight sites item 74 measured (`flowKeyPack_of_close`, one consumer,
 `entryKeyPack_of_dispatch`'s two arms, and four sites that already hold the
 equality and only spell it as a disjunction).  What changed is the REASON the
@@ -8946,8 +8947,12 @@ the field unconditional would therefore force those parks to punt
 (`KeyPackPunt`) on inputs they cover today, which is a coverage regression and
 not a tightening.~~ — the SECOND of those two is retired by item 78 (every park
 answers now, so `FlowBaseRoutes.key`'s half is an equation); the coverage
-argument stands for the first, which is the collapse's mask and 67b's own
-question.  So the next step is the one item 74 also named for
+argument stands for the first, ~~which is the collapse's mask and 67b's own
+question~~ — and that is wrong too, corrected 2026-09-05 by item 79: a collapsed
+mask has no base slot, but it also builds no pack, so the promise is conditional
+on a nonempty mask rather than optional and the coverage argument has no case to
+cover.  Neither of the two reasons survives.  So the next step is the one item 74
+also named for
 `colon_open_map`: the LANDING's own re-arm — a break re-arms saves in block
 context, and no lemma carries that back to the accumulator.
 
@@ -9222,6 +9227,78 @@ axioms` names no `sorryAx` — `PendingNode.arm_or_col`, both route lemmas,
 one new guard and its registration, one guard's two `Or.inl rfl`s become `rfl` —
 so the matrix cannot have moved and was not re-run.
 
+### Item 79 (2026-09-05)
+
+**The key packs carry their column.**  Item 28 gave `ImplicitKeyPack` a column
+conjunct and wrote it `∨ True`, on Reflection 653's rule: a producer that cannot
+take a measurement should cost a field value rather than a call site.  Items 59,
+63, 75 and 78 answered one producer each.  This item removes what was left of the
+rule's premise — all four producers can measure — so the conjunct is an
+equation, and so is `PropsKeyPack`'s.
+
+**Two things were optional and neither had to be.**
+
+*The mask's base slot.*  `KmSound`'s last conjunct promised the bottom tracked
+slot's column `∨ True` because `FlowStackK.collapse` hands an EMPTY mask and an
+empty mask has no bottom.  But that is a statement about the MASK, and the mask
+can make it itself: the promise is now conditional on `0 < km.size`.  The
+collapse discharges it vacuously (`KmSound.empty`), `pop` owes nothing when it
+empties the mask, and `push` owes the pushed key's column only onto an empty one
+— which is a BASE open, and no nested open has one, because every frame's mask
+is nonempty (`FlowOpenStack.km_pos`, four constructors, `cases <;> simp`).  So
+`KmSound.back_col` and `close_col_of_base` return the column instead of offering
+it.  The `∨ True` that item 78 named as the pack's last funder is gone, and it
+was never a fact about the scanner: a collapsed stack's close is `dropClose` and
+builds no pack at all.
+
+*The compact route's width.*  `entryKeyPack_of_dispatch` and
+`entryPropsKeyPack_of_dispatch` took the compact frame and the park's own column
+as two options — item 59's shape — and all six call sites read them off the same
+field: `(Or.inl h_close_old) (Or.inl h_col_old)` at the three `pendingBlock`
+sites, `(Or.inr trivial) (Or.inr trivial)` at the three that have no compact
+frame.  This is item 78's observation at the flow open, applied to the block
+dispatch: bundled into one option, the arm that has the route has the width to
+measure against, and both compact arms stop punting.
+
+**And the props park's own flag.**  `pendingProps` gains `h_ska :
+sc.simpleKeyAllowed = false` — a `[96]` scan ends `simpleKeyAllowed := false`
+(`dispatchContent_*_simpleKey`, whose `.2` every one of the ten producers already
+had in hand).  Item 29 wrote the consequence in prose and punted anyway; with the
+flag on the constructor, the no-break arm's own stale transport
+(`preprocess_some_ssl_comments_anyCol`'s fourth conjunct, which wants exactly
+`needIndentCheck = false` and the flag down) delivers `s_prep.simpleKey =
+sc.simpleKey`, and the run's two column transports — the EXTENSION's
+(`&a !t x: v`) and the content step's (`&a x: v`) — become refutations.
+
+**What it bought, and what it did not.**  `ImplicitKeyPack`'s and
+`PropsKeyPack`'s column conjuncts are equations, so `implicit_key_floor` takes
+one and no consumer cases on a measurement to reach a floor.  **`pendingMapValue`'s
+`h_floor` did NOT move**, and measuring why is this item's other result — see the
+correction under [REMAINING, in order](#remaining-in-order).
+
+**Measured** (`Tests/Guards/Proofs/MaskBaseColumn.lean` §4; `Scratch/Probe79.lean`
+for the raw table).  `closeMatchesOpen` walks the scanner and compares, at every
+`]`/`}` that returns the flow level to 0, the key the close RESTORES against the
+key the matching open held.  That comparison IS the mask's base slot — nothing
+between the two positions can be read off the closing state, because the interior
+pushes and pops the key stack freely and the restore reaches past all of it.
+Twenty shapes, twenty matches, including the three NESTED interiors
+(`[[1], 2]: b`, `[{a: b}]: b`, `[1, [2, [3]]]: b`) where the base slot has to
+survive levels that stack and restore keys of their own, and the two indented
+openers (`  [1]: b`, `- - [1]: b`) where the column is not 0 and a wrong answer
+would be visible.
+
+**Validation.**  Full `lake build` green (1062 jobs, ZERO warnings);
+`run-all-tests.sh` 4465/4465; `eventscore` (no `--suite`) 347/358 with the
+composition unmoved (252 event-pass, 11 event-diff, 0 event-reject, 95 error-ok);
+three checkers OK (220 library modules / 354 imports; 20 sub-themes, 229 demos,
+248 reflections; 25 whitelisted `theorem` capstones).  `#print axioms` names no
+`sorryAx` over the twelve lemmas touched; `entryKeyPack_of_dispatch`'s
+`native_decide` axioms are `implicitKeyHead_of_dispatch`'s and predate this item.
+ZERO runtime edits — one proof file, one new guard and its registration, two
+guards' `flowKeyPack_of_close` arguments lose an `Or.inl` — so the matrix cannot
+have moved and was not re-run.
+
 ### REMAINING, in order
 
 The per-item history is the closure log above; this section lists only the
@@ -9234,7 +9311,7 @@ a nonzero index.  R2 is CLOSED too (items 47–51), so what stands between here
 and Step 5 (the converse) is R3's remaining production work and R4:
 
 ```
-R1 ✓ (44–46) ──→ R2 ✓ (47–51) ──→ R3 (52–78 landed; 67b open) ──→ Step 5
+R1 ✓ (44–46) ──→ R2 ✓ (47–51) ──→ R3 (52–79 landed; 67b open) ──→ Step 5
                                         └──────→ R4 (implicitContinue + 0 < m) ──┘
 ```
 
@@ -9396,9 +9473,30 @@ and that deletion, by input class:
   the OPEN's own threading is CLOSED by item 78, which read the nine parks' arms
   as one datum (`PendingNode.arm_or_col`) and spent it there: `FlowBaseRoutes.key`
   carries `kc = k` rather than offering it, so the pack's column at the close has
-  ONE funder left and it is the MASK's.  The two parks' `h_floor` still did not
-  move — that is `pendingMapValue`'s and `pendingProps`' own item, and it is what
-  `FlowStackK`'s `∨ True` floor waits on.
+  ONE funder left and it is the MASK's.  ~~The two parks' `h_floor` still did not
+  move — that is `pendingMapValue`'s and `pendingProps`' own item~~ — the MASK's
+  funder is CLOSED by item 79, which made `KmSound`'s base slot conditional on a
+  nonempty mask rather than optional, and bundled the compact route with the
+  park's width at both entry-pack producers: `ImplicitKeyPack`'s and
+  `PropsKeyPack`'s column conjuncts are equations now.  But the two parks' floors
+  still did not move, and item 79 MEASURED why — see the next paragraph.  That is
+  what `FlowStackK`'s `∨ True` floor waits on.
+
+  **`pendingMapValue`'s floor is not one item** (measured at item 79; the plan
+  above used to say it was the next one).  Six producers park that constructor and
+  four already pay a real `IndentFloor`.  The two that do not —
+  `colon_open_map_implicit` and `colon_open_map_props` — both route through
+  `implicit_key_floor`, which punts for exactly three reasons, and item 79 removed
+  only the first:
+
+  | punt | closes by |
+  |---|---|
+  | ~~the pack's own column~~ | CLOSED by item 79 |
+  | preprocessing RE-SAVED at the `:` | the park's flag.  The props side has it (`h_ska`); the CONTENT side is `h_arm`'s left disjunct, which needs `sc.simpleKey.possible = false` beside `simpleKeyAllowed = true` — true of the ONLY armed-at-column-0 content scan, the block scalar (§8.1 clears the saved key), and not yet recorded on the constructor |
+  | `scanValueClearKey` cleared the key (`[197]`'s explicit-key arm) | `scanValueClearKey`'s condition (2) is refuted by the pack's own `simpleKey.pos.line = line`; its condition (1) needs the key to sit strictly BEHIND the `:`, which no pack carries |
+
+  So the order is: the content park's armed-shape field, then the `[197]` clear,
+  then the field itself, then `pendingProps`' floor, then `FlowStackK`'s.
   ~~What survives:
   `dropClose`'s remaining domain — the VALID multi-line scalar tokens at a
   nonzero index~~ — the TOKENS are CLOSED by item 67a, which built the flow

@@ -90,12 +90,12 @@ example {n : Nat} {sc s_prep : ScannerState} {c : Char}
   flowKeyRoute_of_open (m := 0) h_node (Or.inl ⟨h_compact, h_col⟩) h_noflow
     (Or.inl h_sk) h_corr hcorr_prep h_preprocess
 
-/-! ## §3  …and the close's pack has ONE funder left
+/-! ## §3  …and the close's pack carries its column
 
-The frame's half is an equation now, so the pack's column conjunct fires
-exactly when the MASK does — `close_col_of_base`, which reports `True` for a
-stack the collapse has renounced.  That residue is `FlowStackK`'s own floor
-(item 67b's precondition), not this item's. -/
+The frame's half is an equation (item 78) and the MASK's is one too (item 79),
+so the pack's column conjunct is derived at this producer rather than offered.
+What is still optional here is the key ROUTE — a fact about the enclosing
+construct, not a measurement. -/
 
 example {sc : ScannerState} {kc : Nat} {sp_start sp_br sp_tok sp_key : SurfPos}
     (route : ∀ sp_v, SBlockMapEntry kc sp_key sp_v → SLYamlStream sp_start sp_v)
@@ -105,7 +105,7 @@ example {sc : ScannerState} {kc : Nat} {sp_start sp_br sp_tok sp_key : SurfPos}
     (h_content : SFlowContent 0 .flowOut sp_br sp_tok) :
     sc.simpleKey.possible = true → sc.simpleKey.pos.line = sc.line →
       ImplicitKeyPack sc sp_start sp_tok ∨ KeyPackPunt sc :=
-  flowKeyPack_of_close (Or.inl ⟨kc, sp_key, route, head, rfl⟩) (Or.inl h_kc) h_content
+  flowKeyPack_of_close (Or.inl ⟨kc, sp_key, route, head, rfl⟩) h_kc h_content
 
 /-! ## §4  The two funders, measured at every depth-0 open
 
