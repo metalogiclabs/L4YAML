@@ -2645,7 +2645,11 @@ def FlowStackK (sp_start : SurfPos) (sc : ScannerState) (fl : Nat) (ks : Array B
     n ≤ minContentIndentOf sc ∧
     (0 < fl → KmSound sc km kc ∧
       (tl = .value → KeyAfterValueLayout sc ∨
-        ∀ sp_prep sp_tok, SSeparateLines 0 sp_flow sp_prep →
+        -- Item 85: the colon route reads at the stack's own index — the
+        -- producers hand their separator straight through instead of lifting
+        -- it from 0, and the consumer derives the at-`n` reading off the
+        -- floor (`h_lead_at`'s negative arm refutes against it).
+        ∀ sp_prep sp_tok, SSeparateLines n sp_flow sp_prep →
           GLit ':' sp_prep sp_tok →
           FlowStackB sp_start n kc fl ks km .colon sp_block sp_tok))
 
@@ -9008,14 +9012,10 @@ lemma accum_step_flow (sc : ScannerState)
                     h_ad_def (ScannerCorrectness.scanFlowSequenceEnd_simpleKey_restored s_ad)
                     rfl ⟨_, scanFlowSequenceEnd_tokens s_ad⟩ (Nat.le_of_lt h_off_lt) rfl)
                 | false =>
-                  exact Or.inr (fun sp_p' sp_t' h_l h_col => by
-                    rcases SSeparateLines_at nn h_l with h_l' | _
-                    · exact .open _ _ _ _ sp_block sp_t'
-                        (promise hb sp_tok (SFlowContent.flowSeq _ _ _ _ h_seq)
-                          sp_p' sp_t' h_l' h_col)
-                    · exact .shape _ _ _ _ _ _ (by omega)
-                        (dropClose (absorb_stacksB sp_start sp_gram sp_block sp_block
-                          h_stream h_stack (FlowStackB.nil (n := 0) (kc := 0) sp_block .sep))))
+                  exact Or.inr (fun sp_p' sp_t' h_l h_col =>
+                    .open _ _ _ _ sp_block sp_t'
+                      (promise hb sp_tok (SFlowContent.flowSeq _ _ _ _ h_seq)
+                        sp_p' sp_t' h_l h_col))
               · -- mapNest + ']': kind-mismatched close (`{a]` nested). REFUTED.
                 simp at h_back
       · split at h_dispatch
@@ -9171,14 +9171,10 @@ lemma accum_step_flow (sc : ScannerState)
                         h_ad_def (ScannerCorrectness.scanFlowMappingEnd_simpleKey_restored s_ad)
                         rfl ⟨_, scanFlowMappingEnd_tokens s_ad⟩ (Nat.le_of_lt h_off_lt) rfl)
                     | false =>
-                      exact Or.inr (fun sp_p' sp_t' h_l h_col => by
-                        rcases SSeparateLines_at nn h_l with h_l' | _
-                        · exact .open _ _ _ _ sp_block sp_t'
-                            (promise hb sp_tok (SFlowContent.flowMap _ _ _ _ h_map)
-                              sp_p' sp_t' h_l' h_col)
-                        · exact .shape _ _ _ _ _ _ (by omega)
-                            (dropClose (absorb_stacksB sp_start sp_gram sp_block sp_block
-                              h_stream h_stack (FlowStackB.nil (n := 0) (kc := 0) sp_block .sep))))
+                      exact Or.inr (fun sp_p' sp_t' h_l h_col =>
+                        .open _ _ _ _ sp_block sp_t'
+                          (promise hb sp_tok (SFlowContent.flowMap _ _ _ _ h_map)
+                            sp_p' sp_t' h_l h_col))
           · split at h_dispatch
             · -- ',': HOLD, depth unchanged — finish any mid entry (trailing
               -- sep = this step's leading sep), land the frame in `held`.
@@ -13131,10 +13127,11 @@ lemma accum_step_block (sc : ScannerState)
           rw [h_fl', h_ks', (tailOf_scanKey h_ad_inflow hk).1]
           have h_stk : FlowStackB sp_start nn kc (d + 1) ks km .question sp_block sp_tok := by
             rcases h_fos_or with h_fos | h_close_sh
-            · rcases h_lead nn with h_lead' | _
+            · rcases h_lead nn with h_lead' | h_nofloor
               · exact .open _ _ _ _ sp_block sp_tok
                   (h_fos.receiveQuestion (htl_sep ▸ rfl) h_lead' h_q_lit)
-              · exact .shape _ _ _ _ _ _ (by omega) (dropClose h_stream_blk)
+              -- Item 84: the floor refutes the lift's negative arm here too.
+              · exact absurd h_floorK h_nofloor
             · exact .shape _ _ _ _ _ _ (by omega) h_close_sh
           exact ⟨sp_gram, sp_block, sp_tok, sp_tok, h_stream, h_stack,
             ⟨nn, kc, km, h_stk, h_ksz', h_floorK',
@@ -13297,7 +13294,12 @@ lemma accum_step_block (sc : ScannerState)
               · have h_cl := h_closure sp_prep sp_tok
                   (by
                     cases h_gap with
-                    | white h_ws _ _ => exact SSeparateLines_prepend_white h_ws h_lead0
+                    | white h_ws _ _ =>
+                      -- Item 85: the route reads at the stack's index, and the
+                      -- floor refutes the lift's negative arm.
+                      rcases h_lead_at nn with h_lead0' | h_nofloor
+                      · exact SSeparateLines_prepend_white h_ws h_lead0'
+                      · exact absurd h_floorK h_nofloor
                     | props _ _ _ h_tail_p _ _ _ _ _ => exact absurd h_tl_case h_tail_p)
                   h_colon_lit
                 rw [hd, hks] at h_cl
@@ -18307,7 +18309,7 @@ lemma accum_step_content (sc : ScannerState)
           rcases h_node_or.symm with - | h_node'
           · exact shape_out (dropClose h_stream_blk)
           have h_entry : KeyAfterValueLayout s' ∨
-              ∀ sp_p' sp_t', SSeparateLines 0 sp_ne sp_p' → GLit ':' sp_p' sp_t' →
+              ∀ sp_p' sp_t', SSeparateLines nn sp_ne sp_p' → GLit ':' sp_p' sp_t' →
                 FlowStackB sp_start nn kc (d + 1) ks km .colon sp_block sp_t' := by
             cases h_tl_case : tl with
             | value => exact absurd h_tl_case h_tail
@@ -18315,17 +18317,13 @@ lemma accum_step_content (sc : ScannerState)
               exact Or.inl (content_value_layout hpos (Or.inl (h_colon_sc h_tl_case))
                 h_preprocess h_ad_def h_dispatch hamp hbang hnotPipe hnotGt h_off_gt)
             | sep =>
-              exact Or.inr (fun sp_p' sp_t' h_l h_col => by
-                rcases SSeparateLines_at nn h_l with h_l' | _
-                · exact .open _ _ _ _ sp_block sp_t'
-                    (h_fos.receiveNodeColon (h_tl_case ▸ Or.inl rfl) h_lead' h_node' h_l' h_col)
-                · exact .shape _ _ _ _ _ _ (by omega) (dropClose h_stream_blk))
+              exact Or.inr (fun sp_p' sp_t' h_l h_col =>
+                .open _ _ _ _ sp_block sp_t'
+                  (h_fos.receiveNodeColon (h_tl_case ▸ Or.inl rfl) h_lead' h_node' h_l h_col))
             | question =>
-              exact Or.inr (fun sp_p' sp_t' h_l h_col => by
-                rcases SSeparateLines_at nn h_l with h_l' | _
-                · exact .open _ _ _ _ sp_block sp_t'
-                    (h_fos.receiveNodeColon (h_tl_case ▸ Or.inr rfl) h_lead' h_node' h_l' h_col)
-                · exact .shape _ _ _ _ _ _ (by omega) (dropClose h_stream_blk))
+              exact Or.inr (fun sp_p' sp_t' h_l h_col =>
+                .open _ _ _ _ sp_block sp_t'
+                  (h_fos.receiveNodeColon (h_tl_case ▸ Or.inr rfl) h_lead' h_node' h_l h_col))
           exact ⟨sp_gram, sp_block, sp_ne, sp_res, h_stream, h_stack,
             ⟨nn, kc, km, .open (d + 1) ks km .value sp_block sp_ne
               (FlowOpenStack.receiveNode h_fos h_tail h_lead' sp_ne h_node'),
@@ -18611,7 +18609,7 @@ lemma accum_step_content (sc : ScannerState)
             rcases (SFlowContent_at nn h_content).symm with - | h_content'
             · exact shape_out (dropClose h_stream_blk)
             have h_entry : KeyAfterValueLayout s' ∨
-                ∀ sp_p' sp_t', SSeparateLines 0 sp_ne sp_p' → GLit ':' sp_p' sp_t' →
+                ∀ sp_p' sp_t', SSeparateLines nn sp_ne sp_p' → GLit ':' sp_p' sp_t' →
                   FlowStackB sp_start nn kc (d + 1) ks km .colon sp_block sp_t' := by
               cases h_tl_case : tl with
               | value => exact absurd h_tl_case h_tail
@@ -18619,19 +18617,15 @@ lemma accum_step_content (sc : ScannerState)
                 exact Or.inl (content_value_layout hpos (Or.inr (h_colon_sc h_tl_case))
                   h_preprocess h_ad_def h_dispatch hamp hbang hnotPipe hnotGt h_off_gt)
               | sep =>
-                exact Or.inr (fun sp_p' sp_t' h_l h_col => by
-                  rcases SSeparateLines_at nn h_l with h_l' | _
-                  · exact .open _ _ _ _ sp_block sp_t'
-                      (h_fos.receivePropsNodeColon (h_tl_case ▸ Or.inl rfl) h_lead_p' h_run'
-                        h_lead0' h_content' h_l' h_col)
-                  · exact .shape _ _ _ _ _ _ (by omega) (dropClose h_stream_blk))
+                exact Or.inr (fun sp_p' sp_t' h_l h_col =>
+                  .open _ _ _ _ sp_block sp_t'
+                    (h_fos.receivePropsNodeColon (h_tl_case ▸ Or.inl rfl) h_lead_p' h_run'
+                      h_lead0' h_content' h_l h_col))
               | question =>
-                exact Or.inr (fun sp_p' sp_t' h_l h_col => by
-                  rcases SSeparateLines_at nn h_l with h_l' | _
-                  · exact .open _ _ _ _ sp_block sp_t'
-                      (h_fos.receivePropsNodeColon (h_tl_case ▸ Or.inr rfl) h_lead_p' h_run'
-                        h_lead0' h_content' h_l' h_col)
-                  · exact .shape _ _ _ _ _ _ (by omega) (dropClose h_stream_blk))
+                exact Or.inr (fun sp_p' sp_t' h_l h_col =>
+                  .open _ _ _ _ sp_block sp_t'
+                    (h_fos.receivePropsNodeColon (h_tl_case ▸ Or.inr rfl) h_lead_p' h_run'
+                      h_lead0' h_content' h_l h_col))
             exact ⟨sp_gram, sp_block, sp_ne, sp_res, h_stream, h_stack,
               ⟨nn, kc, km, .open (d + 1) ks km .value sp_block sp_ne
                 (h_fos.receivePropsContent h_tail h_lead_p' h_run' h_lead0' h_content'),

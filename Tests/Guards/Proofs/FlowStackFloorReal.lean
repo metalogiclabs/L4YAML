@@ -32,7 +32,7 @@ namespace Tests.Guards.FlowStackFloorReal
 
 open L4YAML L4YAML.Scanner L4YAML.Surface L4YAML.Proofs.StreamAccum
 open L4YAML.Proofs.PreprocessIndentStable L4YAML.Proofs.CouplingBridge
-open L4YAML.Proofs.FlowIndexLift L4YAML.Proofs.LandingTab
+open L4YAML.Proofs.FlowIndexLift L4YAML.Proofs.LandingTab L4YAML.Proofs.EntryBoundaryLayout
 
 /-! ## §1  The conjunct is bare -/
 
@@ -98,5 +98,22 @@ private def flowSeen (input : String) : Bool :=
 #guard flowStable "k:\n  a: [&x b, {c: d}, [e]]\n"
 #guard flowStable "- [1, [2, [3]]]\n"
 #guard flowStable "{a: [1,\n  2], b: c}\n"
+
+/-! ## §3  The `.value`-tail colon route reads at the stack's index (item 85)
+
+The packaged case split's closure takes `SSeparateLines n` — the stack's own
+`n`, not 0 — so the producers hand their separator straight through and the
+consumer derives the at-`n` reading off the floor.  Pinned by applying the
+promise at an abstract index. -/
+
+example {sp_start : SurfPos} {sc : ScannerState} {fl : Nat} {ks : Array Bool}
+    {sp_block sp_flow sp_prep sp_tok : SurfPos}
+    (h : FlowStackK sp_start sc fl ks .value sp_block sp_flow)
+    (h_fl : 0 < fl) :
+    ∃ n kc km, KeyAfterValueLayout sc ∨
+      (SSeparateLines n sp_flow sp_prep → GLit ':' sp_prep sp_tok →
+        FlowStackB sp_start n kc fl ks km .colon sp_block sp_tok) := by
+  obtain ⟨n, kc, km, -, -, -, h_prom⟩ := h
+  exact ⟨n, kc, km, ((h_prom h_fl).2 rfl).imp id (fun f => f sp_prep sp_tok)⟩
 
 end Tests.Guards.FlowStackFloorReal

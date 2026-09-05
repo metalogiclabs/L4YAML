@@ -9517,6 +9517,26 @@ and nested collections.
 OK; `#print axioms` clean of `sorryAx` over the keystone chain.  ZERO runtime
 edits.
 
+### Item 85 (2026-09-05)
+
+**The `.value`-tail colon route reads at the stack's index.**  `FlowStackK`'s
+packaged case split promised its `:`-receiving closure a `SSeparateLines 0` —
+the 0 item 44 priced and item 67a's ledger named as the six-site residue.
+With the floor real the signature change costs nothing on either side: the
+PRODUCERS (the two content steps' `h_entry` closures, the two nested-close
+promises) receive the at-`n` separator directly and hand it through — their
+six `SSeparateLines_at nn` lifts and the `dropClose` each punt fed are GONE —
+and the one CONSUMER (`accum_step_block`'s `.value` colon arm) derives the
+at-`n` reading from `h_lead_at`, whose negative arm the floor refutes.  A
+seventh first-row site (`h_lead nn` at the `?`-receiving arm) refutes the same
+way.  `dropClose` is at 10 uses: `InteriorGap`'s index (3+3), the node at
+`nn` (2), the tuple fallback (1), and `pendingFlow`'s own ride (1).
+
+**Validation.**  Full `lake build` green (1067 jobs, ZERO warnings);
+`run-all-tests.sh` 6689/6689; `eventscore` 347/358 unmoved; checkers OK;
+`#print axioms` clean over the step lemmas.  ZERO runtime edits.  The route's
+new index is pinned in `FlowStackFloorReal` §3.
+
 ### REMAINING, in order
 
 The per-item history is the closure log above; this section lists only the
@@ -9529,7 +9549,7 @@ a nonzero index.  R2 is CLOSED too (items 47–51), so what stands between here
 and Step 5 (the converse) is R3's remaining production work and R4:
 
 ```
-R1 ✓ (44–46) ──→ R2 ✓ (47–51) ──→ R3 (52–84 landed; 67b open) ──→ Step 5
+R1 ✓ (44–46) ──→ R2 ✓ (47–51) ──→ R3 (52–85 landed; 67b open) ──→ Step 5
                                         └──────→ R4 (implicitContinue + 0 < m) ──┘
 ```
 
@@ -9771,7 +9791,7 @@ that reaches each:
 | sites | residue | what closes it |
 |---|---|---|
 | ~~7 (+ the shared one below)~~ | ~~`h_lead_at nn` / `h_lead nn`'s second arm, `¬ (nn ≤ minContentIndentOf sc)`~~ | CLOSED by item 84 — six sites refute outright; the seventh's read feeds the tuple fallback, which the remaining rows still reach |
-| 6 | the `:`-receiving closure's ARGUMENT, `SSeparateLines 0` handed in by a later step | `FlowStackK`'s `.value`-tail colon route stated at `n` — whose consumers then need `h_lead_at` again |
+| ~~6~~ | ~~the `:`-receiving closure's ARGUMENT, `SSeparateLines 0` handed in by a later step~~ | CLOSED by item 85 — the route reads at `n`, the producers hand their separator through, the consumer derives it off the floor |
 | 3 | the props gap's own lead, `SSeparateLines_at nn h_lead_p` | `InteriorGap` taking the reading index as a parameter |
 | 3 | the props run, `PropsRun_at nn h_run` | the same parameter |
 | 2 | the node at `nn` — `dispatchContent_evidence_flowIn_or_at`'s `∨ True` and `SFlowContent_at nn` | the one reading item 67a's `SFlowNode_at` closure did not cover |
