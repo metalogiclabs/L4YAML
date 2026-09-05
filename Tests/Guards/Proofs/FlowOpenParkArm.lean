@@ -1,0 +1,224 @@
+import L4YAML.Proofs.Production.StreamAccum
+import L4YAML.Output.Events
+import L4YAML.Output.EventsIx
+
+/-
+Copyright (c) 2026. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+-/
+
+/-! # The flow open's park arm (DOCS item 78)
+
+Item 75 threaded the column of the key a depth-0 `[`/`{` STACKS all the way to
+the matching close, and left it optional at both ends: the frame offered `kc = k`
+only when the park could say whether preprocessing had re-saved, and the close
+spent it against a mask that may have been collapsed.
+
+Items 76 and 77 answered the park's half between them — off a line start the
+walk's own break re-arms `simpleKeyAllowed`, at one the park carries the flag —
+and this item reads the two as ONE datum on the pending
+(`PendingNode.arm_or_col`) and spends it at the open.  So `FlowBaseRoutes.key`
+carries the equation itself, and what a close still decides per input is the
+MASK's promise alone.
+
+§1–§3 are the compile-time witnesses: the datum is uniform over the nine
+`false`-indexed constructors, the two route lemmas deliver an EQUATION rather
+than an option, and the close's pack has one funder left.  §4 is the
+measurement, which is what says the two funders are exhaustive on real input:
+at every depth-0 flow open the saved key is FRESH whenever the park was armed,
+and INHERITED from the park otherwise. -/
+
+namespace Tests.Guards.FlowOpenParkArm
+
+open L4YAML L4YAML.Scanner L4YAML.Surface L4YAML.Proofs.StreamAccum
+open L4YAML.Proofs.CouplingBridge
+
+/-! ## §1  The datum is uniform over the pendings
+
+The four content parks got their flag-or-column from item 77 and `noPending`
+from item 76; the two indicator parks carried `simpleKeyAllowed` outright since
+items 34/58 and the props park its column since item 68.  Nine constructors,
+one disjunction — so a consumer that only needs THIS need not case on the
+pending at all, which is what lets the flow open take the measurement once,
+ahead of its own split. -/
+
+example {sc : ScannerState} {sp_start sp_block sp_scan : SurfPos}
+    (h_noflow : sc.inFlow = false)
+    (h : PendingNode sc false sp_start sp_block sp_scan) :
+    sc.simpleKeyAllowed = true ∨ 0 < sp_scan.col :=
+  h.arm_or_col h_noflow
+
+/-! ## §2  The route lemmas deliver an equation, not an option
+
+Both arms of each lemma now measure.  The ROOT needs no premise beyond the
+datum: its landed arm has the walk's re-arm and its no-break arm IS the park at
+column 0, where the datum's other disjunct is refuted by arithmetic. -/
+
+example {sc s_prep : ScannerState} {c : Char} {sp_start sp_scan sp_prep : SurfPos}
+    (h_noflow : s_prep.inFlow = false)
+    (h_park : sc.simpleKeyAllowed = true ∨ 0 < sp_scan.col)
+    (h_close : ∀ sp_mid, SSLComments sp_scan sp_mid → SLYamlStream sp_start sp_mid)
+    (h_corr : ScannerSurfCorr sc sp_scan)
+    (hcorr_prep : ScannerSurfCorr s_prep sp_prep)
+    (h_preprocess : scanNextToken_preprocess sc = .ok (some (s_prep, c))) :
+    (∃ (k : Nat) (sp_key : SurfPos),
+      (∀ sp_v, SBlockMapEntry k sp_key sp_v → SLYamlStream sp_start sp_v) ∧
+      (∀ sp_end, SFlowContent 0 .flowOut sp_prep sp_end →
+        ImplicitKeyHead sp_key sp_end ∨ True) ∧
+      s_prep.simpleKey.pos.col = k) ∨ True :=
+  flowKeyRoute_of_root (m := 0) (Or.inr trivial) h_noflow h_park h_close h_corr
+    hcorr_prep h_preprocess
+
+/-- The ENTRY's version, whose compact arm crosses no break and so spends the
+    park's flag directly.  Its route and the width to measure it against travel
+    as one option (item 78), because the arm that has the one has the other. -/
+example {n : Nat} {sc s_prep : ScannerState} {c : Char}
+    {sp_start sp_scan sp_prep : SurfPos}
+    (h_node : ∀ sp, SBlockNode n .blockIn sp_scan sp → SLYamlStream sp_start sp)
+    (h_compact : ∀ sp, SBlockIndented n .blockIn sp_scan sp → SLYamlStream sp_start sp)
+    (h_col : sp_scan.col = n + 1)
+    (h_noflow : s_prep.inFlow = false)
+    (h_sk : sc.simpleKeyAllowed = true)
+    (h_corr : ScannerSurfCorr sc sp_scan)
+    (hcorr_prep : ScannerSurfCorr s_prep sp_prep)
+    (h_preprocess : scanNextToken_preprocess sc = .ok (some (s_prep, c))) :
+    (∃ (k : Nat) (sp_key : SurfPos),
+      (∀ sp_v, SBlockMapEntry k sp_key sp_v → SLYamlStream sp_start sp_v) ∧
+      (∀ sp_end, SFlowContent 0 .flowOut sp_prep sp_end →
+        ImplicitKeyHead sp_key sp_end ∨ True) ∧
+      s_prep.simpleKey.pos.col = k) ∨ True :=
+  flowKeyRoute_of_open (m := 0) h_node (Or.inl ⟨h_compact, h_col⟩) h_noflow
+    (Or.inl h_sk) h_corr hcorr_prep h_preprocess
+
+/-! ## §3  …and the close's pack has ONE funder left
+
+The frame's half is an equation now, so the pack's column conjunct fires
+exactly when the MASK does — `close_col_of_base`, which reports `True` for a
+stack the collapse has renounced.  That residue is `FlowStackK`'s own floor
+(item 67b's precondition), not this item's. -/
+
+example {sc : ScannerState} {kc : Nat} {sp_start sp_br sp_tok sp_key : SurfPos}
+    (route : ∀ sp_v, SBlockMapEntry kc sp_key sp_v → SLYamlStream sp_start sp_v)
+    (head : ∀ sp_end, SFlowContent 0 .flowOut sp_br sp_end →
+      ImplicitKeyHead sp_key sp_end ∨ True)
+    (h_kc : sc.simpleKey.pos.col = kc)
+    (h_content : SFlowContent 0 .flowOut sp_br sp_tok) :
+    sc.simpleKey.possible = true → sc.simpleKey.pos.line = sc.line →
+      ImplicitKeyPack sc sp_start sp_tok ∨ KeyPackPunt sc :=
+  flowKeyPack_of_close (Or.inl ⟨kc, sp_key, route, head, rfl⟩) (Or.inl h_kc) h_content
+
+/-! ## §4  The two funders, measured at every depth-0 open
+
+`openSaveOk` is the pair the open spends, checked on the scanner itself: an
+ARMED park gets a fresh save (the key sits at the cursor preprocessing stopped
+on), and every open's key is that fresh one or the park's own.  The predicate
+is what would fail if a park reached a bracket carrying neither. -/
+
+private def openStepOk (s sp : ScannerState) (c : Char) : Bool :=
+  if (c == '[' || c == '{') && s.flowLevel == 0 then
+    -- an armed park FRESHENS the save…
+    (!s.simpleKeyAllowed || sp.simpleKey.pos.col == sp.col) &&
+    -- …and every open's key is that one or the park's own
+    (sp.simpleKey.pos.col == sp.col || sp.simpleKey.pos.col == s.simpleKey.pos.col)
+  else true
+
+private def openSaveOkLoop (s : ScannerState) (fuel : Nat) : Bool :=
+  match fuel with
+  | 0 => true
+  | fuel' + 1 =>
+    match scanNextToken_preprocess s with
+    | .error _ => true
+    | .ok none => true
+    | .ok (some (sp, c)) =>
+      openStepOk s sp c &&
+        (match scanNextToken s with
+         | .error _ => true
+         | .ok none => true
+         | .ok (some s') => openSaveOkLoop s' fuel')
+
+private def openSaveOk (input : String) : Bool :=
+  openSaveOkLoop ((ScannerState.mk' input).emit .streamStart) (input.utf8ByteSize + 1)
+
+/-- …and the same walk reporting whether a depth-0 open was REACHED at all, so
+    the check above is not vacuous on the shape it is there to measure. -/
+private def openSeenLoop (s : ScannerState) (fuel : Nat) (inherited : Bool) : Bool :=
+  match fuel with
+  | 0 => false
+  | fuel' + 1 =>
+    match scanNextToken_preprocess s with
+    | .error _ => false
+    | .ok none => false
+    | .ok (some (sp, c)) =>
+      ((c == '[' || c == '{') && s.flowLevel == 0 &&
+        (!inherited || sp.simpleKey.pos.col != sp.col)) ||
+        (match scanNextToken s with
+         | .error _ => false
+         | .ok none => false
+         | .ok (some s') => openSeenLoop s' fuel' inherited)
+
+private def openSeen (input : String) : Bool :=
+  openSeenLoop ((ScannerState.mk' input).emit .streamStart) (input.utf8ByteSize + 1) false
+
+/-- A depth-0 open whose key is NOT the fresh one — the props park, which leaves
+    the flag down and so hands the frame the column the property saved. -/
+private def openInherited (input : String) : Bool :=
+  openSeenLoop ((ScannerState.mk' input).emit .streamStart) (input.utf8ByteSize + 1) true
+
+-- The five parks that reach a depth-0 open with a key route to offer.
+#guard openSaveOk "[1]: b\n" && openSeen "[1]: b\n"
+#guard openSaveOk "- [1]: b\n" && openSeen "- [1]: b\n"
+#guard openSaveOk "k:\n  [1]: b\n" && openSeen "k:\n  [1]: b\n"
+#guard openSaveOk "&a [1]: b\n" && openSeen "&a [1]: b\n"
+#guard openSaveOk "? [1]\n: v\n" && openSeen "? [1]\n: v\n"
+-- …the landings, where the walk's own break is the funder…
+#guard openSaveOk "# c\n[1]: b\n" && openSeen "# c\n[1]: b\n"
+#guard openSaveOk "...\n[1]: b\n" && openSeen "...\n[1]: b\n"
+#guard openSaveOk "&a\n[1]: b\n" && openSeen "&a\n[1]: b\n"
+-- …and the value openings, which offer no key at all.
+#guard openSaveOk "[1]\n" && openSaveOk "{a: b}\n"
+#guard openSaveOk "- [1]\n" && openSaveOk "k: {a: b}\n"
+#guard openSaveOk "&a [1]\n"
+
+-- The INHERIT half is load-bearing: the props park really does reach a bracket
+-- with the flag down, and the fresh half really does not cover it.
+#guard openInherited "&a [1]: b\n"
+#guard openInherited "- &p [1]: b\n"
+#guard !openInherited "[1]: b\n"
+#guard !openInherited "- [1]: b\n"
+
+/-! ## §5  The readings the open's key route is FOR, held fixed -/
+
+private def bothEvents (input : String) : Option String × Option String :=
+  ( (match Events.streamToEvents input with | .ok s => some s | .error _ => none)
+  , (match Events.streamToEventsIx input with | .ok s => some s | .error _ => none) )
+
+private def emits (input : String) (expected : List String) : Bool :=
+  let e := some (String.intercalate "\n" expected ++ "\n")
+  bothEvents input == (e, e)
+
+private def refused (input : String) : Bool := bothEvents input == (none, none)
+
+#guard emits "[1]: b\n"
+  ["+STR", "+DOC", "+MAP", "+SEQ []", "=VAL :1", "-SEQ", "=VAL :b", "-MAP", "-DOC", "-STR"]
+#guard emits "- [1]: b\n"
+  ["+STR", "+DOC", "+SEQ", "+MAP", "+SEQ []", "=VAL :1", "-SEQ", "=VAL :b", "-MAP", "-SEQ",
+   "-DOC", "-STR"]
+#guard emits "k:\n  [1]: b\n"
+  ["+STR", "+DOC", "+MAP", "=VAL :k", "+MAP", "+SEQ []", "=VAL :1", "-SEQ", "=VAL :b",
+   "-MAP", "-MAP", "-DOC", "-STR"]
+#guard emits "&a [1]: b\n"
+  ["+STR", "+DOC", "+MAP", "+SEQ [] &a", "=VAL :1", "-SEQ", "=VAL :b", "-MAP", "-DOC", "-STR"]
+#guard emits "- &p [1]: b\n"
+  ["+STR", "+DOC", "+SEQ", "+MAP", "+SEQ [] &p", "=VAL :1", "-SEQ", "=VAL :b", "-MAP",
+   "-SEQ", "-DOC", "-STR"]
+#guard emits "? [1]\n: v\n"
+  ["+STR", "+DOC", "+MAP", "+SEQ []", "=VAL :1", "-SEQ", "=VAL :v", "-MAP", "-DOC", "-STR"]
+#guard emits "# c\n[1]: b\n"
+  ["+STR", "+DOC", "+MAP", "+SEQ []", "=VAL :1", "-SEQ", "=VAL :b", "-MAP", "-DOC", "-STR"]
+-- The two shapes whose arms hand `Or.inr trivial` for the SCANNER's reason
+-- rather than the pending's: a nested mapping on the line, and content on the
+-- document-start line.
+#guard refused "k: [1]: b\n"
+#guard refused "--- [1]: b\n"
+
+end Tests.Guards.FlowOpenParkArm

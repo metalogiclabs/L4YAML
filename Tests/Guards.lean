@@ -41,6 +41,7 @@ import Tests.Guards.Proofs.ScannerContentDispatchStop
 import Tests.Guards.Proofs.ScannerDocStartInlineCompose
 import Tests.Guards.Proofs.FlowStackIndexParametric
 import Tests.Guards.Proofs.FlowIndexLeafEvidence
+import Tests.Guards.Proofs.FlowOpenParkArm
 import Tests.Guards.Proofs.ScannerIndexedFlowCompose
 import Tests.Guards.Proofs.ScannerAdjacentValueRefused
 import Tests.Guards.Proofs.ScannerSameLineCollectionRefused

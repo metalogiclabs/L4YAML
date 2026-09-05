@@ -130,9 +130,10 @@ above all run at `n = 2`, `kc = 3` — and only the BASE constructors read it, i
 
 The pair below is the whole of what item 75 threads: an open that can measure
 its stacked key hands the frame `kc = k`, and the close spends it against the
-mask's base slot.  Stated over abstract hypotheses for the same reason §1–§4
-are: no scanner run reaches the residue these admit until the parks that cannot
-read `simpleKeyAllowed` can say whether preprocessing re-saved. -/
+mask's base slot.  Item 78 removed the first half's option — `FlowBaseRoutes.key`
+now carries the equation itself, because every park says what preprocessing
+saved — so the `rfl`s below are the field's own type rather than one arm of it,
+and what the close still decides per input is the MASK's promise (`h_kc`). -/
 
 /-- A base frame whose entry route is measured AT the stacked key's column. -/
 example {sp_start sp_before sp_br sp_open sp_key : SurfPos}
@@ -142,7 +143,7 @@ example {sp_start sp_before sp_br sp_open sp_key : SurfPos}
     (h_open : GLit '[' sp_br sp_open) :
     FlowStackB sp_start 2 3 1 #[true] #[false] .sep sp_before sp_open :=
   FlowStackB.openSeqBase false
-    ⟨value, Or.inl ⟨3, sp_key, route, fun _ _ => Or.inr trivial, Or.inl rfl⟩,
+    ⟨value, Or.inl ⟨3, sp_key, route, fun _ _ => Or.inr trivial, rfl⟩,
      Or.inr trivial⟩
     h_open (GOpt.none sp_open)
 
@@ -158,6 +159,6 @@ example {sc : ScannerState} {sp_start sp_br sp_tok sp_key : SurfPos}
     sc.simpleKey.possible = true → sc.simpleKey.pos.line = sc.line →
       ImplicitKeyPack sc sp_start sp_tok ∨ KeyPackPunt sc :=
   flowKeyPack_of_close (kc := 3)
-    (Or.inl ⟨3, sp_key, route, head, Or.inl rfl⟩) (Or.inl h_kc) h_content
+    (Or.inl ⟨3, sp_key, route, head, rfl⟩) (Or.inl h_kc) h_content
 
 end L4YAML.Tests.Guards.FlowStackIndexParametric

@@ -414,16 +414,19 @@ inductive KeyPackPunt (sc : ScannerState) : Prop where
     saying so meet here.  The FRAME carries the entry index the route was built
     at against the column the open recorded (`FlowBaseRoutes.key`'s last
     conjunct); the MASK carries that column forward across the whole interior
-    (`KmSound`'s base slot, read out by `KmSound.back_col`).  Either half may be
-    absent — a collapsed mask has no base slot, a park that reached the bracket
-    with the flag down stacked someone else's key — so both are optional and the
-    pack's own conjunct is their conjunction. -/
+    (`KmSound`'s base slot, read out by `KmSound.back_col`).
+
+    Item 78 settled the frame's half: no block-context park reaches a bracket
+    without knowing what preprocessing saved, so the entry index a frame hands
+    over is MEASURED against the stacked key rather than offered.  What remains
+    optional is the mask's — a stack the collapse has renounced carries no base
+    slot — so the pack's own conjunct is `h_kc` alone. -/
 lemma flowKeyPack_of_close {sc : ScannerState} {n kc : Nat} {sp_start sp_br sp_tok : SurfPos}
     (h_key : (∃ (k : Nat) (sp_key : SurfPos),
       (∀ sp_v, SBlockMapEntry k sp_key sp_v → SLYamlStream sp_start sp_v) ∧
       (∀ sp_end, SFlowContent n .flowOut sp_br sp_end →
         ImplicitKeyHead sp_key sp_end ∨ True) ∧
-      (kc = k ∨ True)) ∨ True)
+      kc = k) ∨ True)
     (h_kc : sc.simpleKey.pos.col = kc ∨ True)
     (h_content : SFlowContent n .flowOut sp_br sp_tok) :
     sc.simpleKey.possible = true → sc.simpleKey.pos.line = sc.line →
@@ -432,9 +435,7 @@ lemma flowKeyPack_of_close {sc : ScannerState} {n kc : Nat} {sp_start sp_br sp_t
   rcases h_key with ⟨k, sp_key, route, head, hkcol⟩ | _
   · rcases head sp_tok h_content with h_head | _
     · refine Or.inl ⟨k, sp_key, sp_tok, route, h_head, GStar.nil _, ?_⟩
-      rcases h_kc, hkcol with ⟨h1 | _, h2 | _⟩
-      · exact Or.inl (h1.trans h2)
-      all_goals exact Or.inr trivial
+      exact h_kc.imp (fun h1 => h1.trans hkcol) id
     · exact Or.inr KeyPackPunt.noKeyContext
   · exact Or.inr KeyPackPunt.noKeyContext
 
@@ -962,6 +963,27 @@ inductive PendingNode (sc : ScannerState) : Bool → SurfPos → SurfPos → Sur
       (h_col0 : 0 < sp_scan.col)
       (h_ncol : n ≤ sp_scan.col ∨ True) :
       PendingNode sc false sp_start sp_block sp_scan
+
+/-- **Every block-context park either carries the save or is inside a line**
+    (item 78) — the nine `false`-indexed constructors, read as one datum.
+
+    Item 76 gave `noPending` its flag and item 77 gave the four content parks
+    theirs; the remaining four already carried one half outright — the two
+    indicator parks their `simpleKeyAllowed` (items 34/58), the props park its
+    column (item 68).  So the disjunction is uniform, and the flow OPEN — whose
+    landing is a different split from the block dispatch's — can measure the key
+    it stacks without casing on the pending first. -/
+lemma PendingNode.arm_or_col {sc : ScannerState} {sp_start sp_block sp_scan : SurfPos}
+    (h_noflow : sc.inFlow = false)
+    (h : PendingNode sc false sp_start sp_block sp_scan) :
+    sc.simpleKeyAllowed = true ∨ 0 < sp_scan.col := by
+  cases h with
+  | noPending _ _ _ h_arm =>
+    exact Or.inl (h_arm.resolve_right (by rw [h_noflow]; simp))
+  | pendingProps => exact Or.inr (by assumption)
+  | pendingBlock => exact Or.inl (by assumption)
+  | pendingMapValue => exact Or.inl (by assumption)
+  | _ => assumption
 
 /-- The propsEmpty close of a held run: `[161]`'s `( c-ns-properties e-scalar )`
     arm, composed through the block-node route (`[195] s-l+flow-in-block`). -/
@@ -2254,7 +2276,9 @@ lemma KmSound.back_col {sc : ScannerState} {km : Array Bool} {kc : Nat}
       rather than fixed at `sp_br`.  Item 75 adds the COLUMN: the entry index
       the route was built at, read against `kc` — the column of the key the open
       stacks.  It travels here rather than at the close because only the open
-      can see both numbers at once.
+      can see both numbers at once, and item 78 made it part of the route rather
+      than an option beside it: every park now says what preprocessing saved, so
+      a frame that offers a key offers the index that key sits at.
     * `vslot` — the collection as an EXPLICIT key: item 51's value pack with
       the key's own content still to come, so the `?` frame can be spent by a
       `:` that lands on a later line (`? [1]⏎: v`).
@@ -2270,7 +2294,7 @@ structure FlowBaseRoutes (sp_start : SurfPos) (n : Nat) (sp_br : SurfPos)
     (∀ sp_v, SBlockMapEntry k sp_key sp_v → SLYamlStream sp_start sp_v) ∧
     (∀ sp_end, SFlowContent n .flowOut sp_br sp_end →
       ImplicitKeyHead sp_key sp_end ∨ True) ∧
-    (kc = k ∨ True)) ∨ True
+    kc = k) ∨ True
   vslot : (∃ nv : Nat, ∀ sp_end, SFlowContent n .flowOut sp_br sp_end →
     ∀ sp_mid sp_i sp_c, SSLComments sp_end sp_mid → SIndent nv sp_mid sp_i →
       GLit ':' sp_i sp_c → ∀ sp_v, SBlockIndented nv .blockOut sp_c sp_v →
@@ -5701,6 +5725,47 @@ lemma flowKeyHead {m : Nat} {sp_br : SurfPos} :
     ∀ sp_end, SFlowContent m .flowOut sp_br sp_end → ImplicitKeyHead sp_br sp_end ∨ True :=
   fun _ h => (flowNode_toBlockKey (.content _ _ _ _ h)).imp ImplicitKeyHead.json id
 
+/-- **An armed save is a FRESH save** (item 74) — item 34's
+    `preprocess_saved_key_at_cursor`, read at the coordinate the floor uses.
+
+    `preprocess_some_savedKey_shape`'s two arms are not alike.  The inherit arm
+    exists only because `saveSimpleKey` can decline, and outside a flow it
+    declines for exactly one reason: `simpleKeyAllowed` is down.  So a caller
+    that knows the flag was up knows the arm it is in. -/
+lemma preprocess_saved_key_col {sc s_prep : ScannerState} {c : Char}
+    (h_a : sc.simpleKeyAllowed = true)
+    (h_noflow : s_prep.inFlow = false)
+    (h : scanNextToken_preprocess sc = .ok (some (s_prep, c))) :
+    s_prep.simpleKey.possible = true ∧ s_prep.simpleKey.pos.col = s_prep.col := by
+  obtain ⟨-, s_skip, hsk, -, -⟩ := preprocess_save_elim h
+  exact preprocess_saved_key_col_of_walk hsk
+    (skipToContent_simpleKeyAllowed_mono sc s_skip h_a hsk) h_noflow h
+
+/-- **The landing's save, decided per INPUT** (item 76).
+
+    A park OFF a line start reaches a column-0 landing only across a break, and
+    a break outside a flow re-arms `simpleKeyAllowed` — so preprocessing's save
+    is FRESH and sits at the cursor it stopped on.  A park AT a line start
+    crosses nothing, and there the datum is the park's own flag, which the
+    landing arms do not hold.
+
+    Item 77 closed the split: the park's own flag is a FIELD now
+    (`PendingNode.pendingContent.h_arm` and its four siblings), funded by
+    `content_park_arm` — every content scan either leaves the save armed or
+    leaves the cursor inside a line.  So the two halves are exhaustive and the
+    site MEASURES: the landing pays for a park off a line start, the park's flag
+    pays for one at it. -/
+lemma landing_or_park_save {sc s_prep : ScannerState} {sp_scan : SurfPos} {c : Char}
+    (h_noflow : s_prep.inFlow = false)
+    (h_larm : sp_scan.col ≠ 0 → s_prep.inFlow = false →
+      s_prep.simpleKey.possible = true ∧ s_prep.simpleKey.pos.col = s_prep.col)
+    (h_park : sc.simpleKeyAllowed = true ∨ 0 < sp_scan.col)
+    (h_preprocess : scanNextToken_preprocess sc = .ok (some (s_prep, c))) :
+    s_prep.simpleKey.pos.col = s_prep.col := by
+  rcases h_park with h | h
+  · exact (preprocess_saved_key_col h h_noflow h_preprocess).2
+  · exact (h_larm (by omega) h_noflow).2
+
 /-- **The entry route a parked block ENTRY hands the collection it opens**
     (item 56) — `entryKeyPack_of_dispatch` with the head deferred.
 
@@ -5717,19 +5782,28 @@ lemma flowKeyHead {m : Nat} {sp_br : SurfPos} :
     the enclosing collection rather than nesting in it), and an on-line open
     under a construct with no compact alternative (a `[189]` value's slot is
     `s-l+block-node`, which has none). -/
-lemma flowKeyRoute_of_open {n m kc : Nat} {cc : YamlContext}
+lemma flowKeyRoute_of_open {n m : Nat} {cc : YamlContext}
     {sp_start sp_scan sp_prep : SurfPos}
     {sc s_prep : ScannerState} {c : Char}
     (h_node : ∀ sp, SBlockNode n .blockIn sp_scan sp → SLYamlStream sp_start sp)
-    (h_compact : (∀ sp, SBlockIndented n cc sp_scan sp →
-      SLYamlStream sp_start sp) ∨ True)
-    -- Item 75: the key this open will STACK, read at the column preprocessing
-    -- stopped on — which is what a FRESH save records.  The landing arm needs
-    -- nothing else (a column-0 landing plus `[63]`'s width IS that column);
-    -- the compact arm needs the park's own column as well, and both are the
-    -- data item 59 already put on the parks that reach here.
-    (h_kc : kc = s_prep.col ∨ True)
-    (h_pcol : sp_scan.col = n + 1 ∨ True)
+    -- Item 78: the compact alternative and the park's own COLUMN, in ONE
+    -- option.  Item 75 asked for them separately and the two call sites read
+    -- them off the same field anyway (`pendingBlock`'s `h_col59` beside its
+    -- `h_close`, `pendingMapValue`'s `h_vslot` carrying both halves), so
+    -- bundling them is what makes the compact arm's column unconditional: the
+    -- arm that has the route has the width to measure it against.
+    (h_compact : ((∀ sp, SBlockIndented n cc sp_scan sp →
+      SLYamlStream sp_start sp) ∧ sp_scan.col = n + 1) ∨ True)
+    -- Item 78: the key this open will STACK, MEASURED rather than assumed.
+    -- Item 75 took the coordinate as an option because a park that reached the
+    -- bracket with the flag down stacks someone else's key; items 76 and 77
+    -- between them say no block-context park does — off a line start the walk's
+    -- own break re-arms (the landed arm's payload), and at one the park carries
+    -- the flag (`PendingNode.arm_or_col`).  `h_park` is the pair, and the two
+    -- arms below spend the halves separately: the landing has both funders, the
+    -- compact arm crosses no break and so has only the flag.
+    (h_noflow : s_prep.inFlow = false)
+    (h_park : sc.simpleKeyAllowed = true ∨ 0 < sp_scan.col)
     (h_corr : ScannerSurfCorr sc sp_scan)
     (hcorr_prep : ScannerSurfCorr s_prep sp_prep)
     (h_preprocess : scanNextToken_preprocess sc = .ok (some (s_prep, c))) :
@@ -5737,7 +5811,7 @@ lemma flowKeyRoute_of_open {n m kc : Nat} {cc : YamlContext}
       (∀ sp_v, SBlockMapEntry k sp_key sp_v → SLYamlStream sp_start sp_v) ∧
       (∀ sp_end, SFlowContent m .flowOut sp_prep sp_end →
         ImplicitKeyHead sp_key sp_end ∨ True) ∧
-      (kc = k ∨ True)) ∨ True := by
+      s_prep.simpleKey.pos.col = k) ∨ True := by
   obtain ⟨sp_mid, sp_ws, sp_prep2, h_disj, h_ws, _h_cmt, hcorr_prep2, h_pk, _⟩ :=
     preprocess_some_ssl_comments_anyCol sc sp_scan s_prep c h_corr h_preprocess
   have h_pe : sp_prep = sp_ws := by
@@ -5756,27 +5830,28 @@ lemma flowKeyRoute_of_open {n m kc : Nat} {cc : YamlContext}
       by_cases hnw : n ≤ w
       · have h_ind' : SIndent w sp_mid sp_prep := by rw [h_pe]; exact h_ind
         refine Or.inl ⟨w, sp_prep, valueMapRoute hnw h_node h_land.1 h_ind', flowKeyHead, ?_⟩
-        rcases h_kc with h_kc' | _
-        · refine Or.inl ?_
-          rw [h_kc', ← hcorr_prep.col_eq]
-          have := SIndent_col' h_ind'
-          rw [h_land.2.1] at this
-          omega
-        · exact Or.inr trivial
+        rw [landing_or_park_save h_noflow h_land.2.2 h_park h_preprocess,
+          ← hcorr_prep.col_eq]
+        have := SIndent_col' h_ind'
+        rw [h_land.2.1] at this
+        omega
       · exact Or.inr trivial
     | inr h_mid =>
       cases h_compact with
       | inr _ => exact Or.inr trivial
-      | inl h_close =>
-        have h_ind' : SIndent w sp_scan sp_prep := by rw [h_pe, ← h_mid.1]; exact h_ind
-        refine Or.inl ⟨n + 1 + w, sp_prep, compactMapRoute h_close h_ind', flowKeyHead, ?_⟩
-        rcases h_kc, h_pcol with ⟨h_kc' | _, h_pc | _⟩
-        · refine Or.inl ?_
-          rw [h_kc', ← hcorr_prep.col_eq]
+      | inl h_cp =>
+        -- No break crossed, so the landing's re-arm says nothing and the datum
+        -- has to be the park's own flag.  Both callers of this arm carry one
+        -- outright (`pendingBlock`'s `h_sk`, `pendingMapValue`'s), and a park
+        -- that does not hands the frame no key rather than an unmeasured one.
+        rcases h_park with h_sk | _
+        · have h_ind' : SIndent w sp_scan sp_prep := by rw [h_pe, ← h_mid.1]; exact h_ind
+          refine Or.inl ⟨n + 1 + w, sp_prep, compactMapRoute h_cp.1 h_ind', flowKeyHead, ?_⟩
+          rw [(preprocess_saved_key_col h_sk h_noflow h_preprocess).2, ← hcorr_prep.col_eq]
           have := SIndent_col' h_ind'
-          rw [h_pc] at this
+          rw [h_cp.2] at this
           omega
-        all_goals exact Or.inr trivial
+        · exact Or.inr trivial
 
 /-- **The ROOT's version** (item 56): the collection opens where a document's
     own node is expected, so the entry it may key belongs to `[187]
@@ -5784,14 +5859,16 @@ lemma flowKeyRoute_of_open {n m kc : Nat} {cc : YamlContext}
     open crossed a break (`# c⏎[1]: b`) and off the park itself when it did not
     (`[1]: b`).  Both readings need the same column-0 line start, which is what
     a block-context park with nothing pending IS. -/
-lemma flowKeyRoute_of_root {m kc : Nat} {sp_start sp_scan sp_prep : SurfPos}
+lemma flowKeyRoute_of_root {m : Nat} {sp_start sp_scan sp_prep : SurfPos}
     {sc s_prep : ScannerState} {c : Char}
     (h_col : sp_scan.col = 0 ∨ True)
-    -- Item 75: `flowKeyRoute_of_open`'s datum, and the ROOT needs only the one
-    -- half — both of its arms measure `[63]`'s width from a column-0 line
-    -- start, so the key's column IS the entry index whenever the save was
-    -- fresh at the bracket.
-    (h_kc : kc = s_prep.col ∨ True)
+    -- Item 78: `flowKeyRoute_of_open`'s datum, and the ROOT spends it without a
+    -- second premise.  Both of its arms measure `[63]`'s width from a column-0
+    -- line start; the landing arm has the walk's re-arm, and the no-break arm
+    -- IS the park at column 0, where `h_park`'s other disjunct is refuted by
+    -- arithmetic.  So the key's column is the entry index either way.
+    (h_noflow : s_prep.inFlow = false)
+    (h_park : sc.simpleKeyAllowed = true ∨ 0 < sp_scan.col)
     (h_close : ∀ sp_mid, SSLComments sp_scan sp_mid → SLYamlStream sp_start sp_mid)
     (h_corr : ScannerSurfCorr sc sp_scan)
     (hcorr_prep : ScannerSurfCorr s_prep sp_prep)
@@ -5800,7 +5877,7 @@ lemma flowKeyRoute_of_root {m kc : Nat} {sp_start sp_scan sp_prep : SurfPos}
       (∀ sp_v, SBlockMapEntry k sp_key sp_v → SLYamlStream sp_start sp_v) ∧
       (∀ sp_end, SFlowContent m .flowOut sp_prep sp_end →
         ImplicitKeyHead sp_key sp_end ∨ True) ∧
-      (kc = k ∨ True)) ∨ True := by
+      s_prep.simpleKey.pos.col = k) ∨ True := by
   obtain ⟨sp_mid, sp_ws, sp_prep2, h_disj, h_ws, _h_cmt, hcorr_prep2, h_pk, _⟩ :=
     preprocess_some_ssl_comments_anyCol sc sp_scan s_prep c h_corr h_preprocess
   have h_pe : sp_prep = sp_ws := by
@@ -5819,30 +5896,27 @@ lemma flowKeyRoute_of_root {m kc : Nat} {sp_start sp_scan sp_prep : SurfPos}
       have h_ind' : SIndent w sp_mid sp_prep := by rw [h_pe]; exact h_ind
       refine Or.inl ⟨w, sp_prep,
         rootMapRoute h_land.2.1 (h_close sp_mid h_land.1) h_ind', flowKeyHead, ?_⟩
-      rcases h_kc with h_kc' | _
-      · refine Or.inl ?_
-        rw [h_kc', ← hcorr_prep.col_eq]
-        have := SIndent_col' h_ind'
-        rw [h_land.2.1] at this
-        omega
-      · exact Or.inr trivial
+      rw [landing_or_park_save h_noflow h_land.2.2 h_park h_preprocess,
+        ← hcorr_prep.col_eq]
+      have := SIndent_col' h_ind'
+      rw [h_land.2.1] at this
+      omega
     | inr h_mid =>
       -- No break crossed: the park itself is the line start, which only a
-      -- block-context park with nothing pending can claim.
+      -- block-context park with nothing pending can claim — and that park's
+      -- own column refutes `h_park`'s other disjunct, so the flag is free here.
       cases h_col with
       | inr _ => exact Or.inr trivial
       | inl h_col0 =>
+        have h_sk : sc.simpleKeyAllowed = true := h_park.resolve_right (by omega)
         have h_ind' : SIndent w sp_scan sp_prep := by rw [h_pe, ← h_mid.1]; exact h_ind
         refine Or.inl ⟨w, sp_prep,
           rootMapRoute h_col0 (h_close sp_scan (sslComments_refl_of_col0 h_col0)) h_ind',
           flowKeyHead, ?_⟩
-        rcases h_kc with h_kc' | _
-        · refine Or.inl ?_
-          rw [h_kc', ← hcorr_prep.col_eq]
-          have := SIndent_col' h_ind'
-          rw [h_col0] at this
-          omega
-        · exact Or.inr trivial
+        rw [(preprocess_saved_key_col h_sk h_noflow h_preprocess).2, ← hcorr_prep.col_eq]
+        have := SIndent_col' h_ind'
+        rw [h_col0] at this
+        omega
 
 /-- **§8.1's floor for a flow OPEN, read as a refutation** (item 66).  A
     `[`/`{` at or left of the enclosing block collection's indent has no
@@ -6392,22 +6466,6 @@ lemma flowOpen_floor_at_prep {n : Nat} {sc s_prep : ScannerState} {c : Char}
       (by rw [← hcorr_prep.col_eq]; exact separateLines_col_ge h_sep h_start))
   · exact Or.inr trivial
 
-/-- **An armed save is a FRESH save** (item 74) — item 34's
-    `preprocess_saved_key_at_cursor`, read at the coordinate the floor uses.
-
-    `preprocess_some_savedKey_shape`'s two arms are not alike.  The inherit arm
-    exists only because `saveSimpleKey` can decline, and outside a flow it
-    declines for exactly one reason: `simpleKeyAllowed` is down.  So a caller
-    that knows the flag was up knows the arm it is in. -/
-lemma preprocess_saved_key_col {sc s_prep : ScannerState} {c : Char}
-    (h_a : sc.simpleKeyAllowed = true)
-    (h_noflow : s_prep.inFlow = false)
-    (h : scanNextToken_preprocess sc = .ok (some (s_prep, c))) :
-    s_prep.simpleKey.possible = true ∧ s_prep.simpleKey.pos.col = s_prep.col := by
-  obtain ⟨-, s_skip, hsk, -, -⟩ := preprocess_save_elim h
-  exact preprocess_saved_key_col_of_walk hsk
-    (skipToContent_simpleKeyAllowed_mono sc s_skip h_a hsk) h_noflow h
-
 lemma accum_flow_open_depth0 (sc : ScannerState)
     (sp_start sp_gram sp_block sp_scan sp_prep sp_open : SurfPos)
     (s_prep s' : ScannerState) (c : Char)
@@ -6495,25 +6553,23 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
     fun h_sep h_start h_fl =>
       flowFloor_transport
         (flowOpen_floor_at_prep hcorr_prep h_preprocess h_sep h_start h_fl) h_ind'
-  -- Item 75: the freshness half, per PARK.  Outside a flow `saveSimpleKey`
-  -- declines only with the flag down, so a park that carries `simpleKeyAllowed`
-  -- knows the key this open stacks was recorded AT the bracket — which is what
-  -- turns `[63]`'s width off the landing into the stacked key's column.
-  have h_fresh_of : sc.simpleKeyAllowed = true →
-      (s_prep.simpleKey.pos.col = s_prep.col ∨ True) := by
-    intro h_a
-    refine Or.inl (preprocess_saved_key_col h_a ?_ h_preprocess).2
+  -- Item 78: the flow open's own half of the park arm.  Item 75 asked each
+  -- park for `simpleKeyAllowed` and took `True` from the ones that could not
+  -- answer; the constructors answer uniformly now (`PendingNode.arm_or_col`),
+  -- so the datum is derived ONCE, ahead of the split, and the two route lemmas
+  -- spend it per ARM — the landing's own re-arm off a break (item 76), the
+  -- park's flag when no break was crossed (item 77).
+  have h_noflow_sc : sc.inFlow = false := by
+    unfold ScannerState.inFlow; rw [h_fl0]; simp
+  have h_noflow_prep : s_prep.inFlow = false := by
     unfold ScannerState.inFlow
     rw [preprocess_preserves_flowLevel sc s_prep c h_preprocess, h_fl0]
     simp
-  -- …and the same datum for the parks that do NOT carry the flag, decided per
-  -- INPUT instead of per producer: item 34's shape lemma splits preprocessing
-  -- into a fresh save (whose coordinate IS the bracket's) and an inherited one
-  -- (whose coordinate is the park's own, which is what the props run measures).
-  have h_fresh_shape : s_prep.simpleKey.pos.col = s_prep.col ∨ True := by
-    rcases preprocess_some_savedKey_shape h_preprocess with ⟨-, h_pos⟩ | _
-    · exact Or.inl (by rw [h_pos]; rfl)
-    · exact Or.inr trivial
+  have h_park : sc.simpleKeyAllowed = true ∨ 0 < sp_scan.col :=
+    h_pending.arm_or_col h_noflow_sc
+  -- …and the INHERIT half, which is the props run's rather than the bracket's:
+  -- a `[96]` scan leaves the flag down, so preprocessing at a break-free open
+  -- keeps the key the property saved — the one `PropsKeyPack` already measured.
   have h_inherit_col : s_prep.simpleKey.pos.col = sc.simpleKey.pos.col ∨ True := by
     rcases preprocess_some_savedKey_shape h_preprocess with _ | h_inh
     · exact Or.inr trivial
@@ -6578,7 +6634,7 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
                -- turns out to be a key (`[1]⏎[2]: b`, `...⏎[1]: b`).  Only the
                -- LANDING reading applies here — this branch is the one that
                -- crossed a break, and the other never reaches `mk`.
-               flowKeyRoute_of_root (Or.inr trivial) h_fresh_shape h_close h_corr hcorr_prep
+               flowKeyRoute_of_root (Or.inr trivial) h_noflow_prep h_park h_close h_corr hcorr_prep
                  h_preprocess,
                Or.inr trivial⟩),
              PendingNode.noPending sp_start sp_open (Or.inr (inFlow_of_flowLevel_eq h_fl1))
@@ -6647,7 +6703,7 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
       (show ¬ sc.inFlow = true by unfold ScannerState.inFlow; rw [h_fl0]; simp)
     exact ⟨_, _, sp_open, sp_open, h_stream_block, BlockStack.nil _,
            h_kpkg _ _ _ (Or.inl (Nat.zero_le _)) (mk 0 _ ⟨topLevelFlowResumeSep h_stream_block h_sep,
-             flowKeyRoute_of_root (Or.inl h_col0) h_fresh_shape h_close_pending h_corr
+             flowKeyRoute_of_root (Or.inl h_col0) h_noflow_prep h_park h_close_pending h_corr
                hcorr_prep h_preprocess,
              Or.inr trivial⟩),
            PendingNode.noPending sp_start sp_open (Or.inr (inFlow_of_flowLevel_eq h_fl1))
@@ -6701,9 +6757,18 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
                -- held `[96]` run leaves the flag DOWN, so preprocessing at the
                -- bracket inherits the key the property saved — and that key is
                -- the one this close will restore, at the column `PropsKeyPack`
-               -- already measured.
-               (match h_pkey with
-                | Or.inl ⟨⟨k, route, h_kcol_p⟩, h_props, _⟩ => Or.inl ⟨k, sp_p, route,
+               -- already measured.  Item 78: the column is not optional on the
+               -- frame any more, so this arm hands over a key only when it has
+               -- one to measure — and that costs nothing, because the two ways
+               -- to lose it are the same input.  The run→content conversion
+               -- above (`sep_toBlockKey`) needs a break-free separation, and a
+               -- break is exactly what re-arms the flag and makes preprocessing
+               -- re-save; so a run that lost `h_inherit_col` had already lost
+               -- the head.
+               (match h_pkey, h_inherit_col with
+                | Or.inl ⟨⟨k, route, Or.inl h_kcol_p⟩, h_props, _⟩, Or.inl h_inh =>
+                    have h_col_p : s_prep.simpleKey.pos.col = k := h_inh.trans h_kcol_p
+                    Or.inl ⟨k, sp_p, route,
                     fun sp_end h_content =>
                       match sep_toBlockKey h_sep, flowContent_toBlockKey h_content with
                       | Or.inl h_sep', Or.inl h_content' =>
@@ -6711,10 +6776,8 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
                             (SFlowNode.propsContent 0 .blockKey sp_p sp_scan sp_prep sp_end
                               h_props h_sep' h_content'))
                       | _, _ => Or.inr trivial,
-                    match h_inherit_col, h_kcol_p with
-                    | Or.inl h1, Or.inl h2 => Or.inl (h1.trans h2)
-                    | _, _ => Or.inr trivial⟩
-                | Or.inr _ => Or.inr trivial),
+                    h_col_p⟩
+                | _, _ => Or.inr trivial),
                Or.inr trivial⟩),
              PendingNode.noPending sp_start sp_open (Or.inr (inFlow_of_flowLevel_eq h_fl1))
                (Or.inr (inFlow_of_flowLevel_eq h_fl1)), hcorr_open,
@@ -6757,8 +6820,7 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
              -- content on document-start line"), so only the landing reading is
              -- owed and the compact half punts.
              flowKeyRoute_of_open (cc := .blockIn) h_docnode (Or.inr trivial)
-               h_fresh_shape (Or.inr trivial)
-               h_corr hcorr_prep h_preprocess,
+               h_noflow_prep h_park h_corr hcorr_prep h_preprocess,
              Or.inr trivial⟩),
            PendingNode.noPending sp_start sp_open (Or.inr (inFlow_of_flowLevel_eq h_fl1))
                (Or.inr (inFlow_of_flowLevel_eq h_fl1)), hcorr_open, fun _ => ⟨.white (GStar.nil _) h_sync h_colon h_opencol, h_real, h_ad⟩⟩
@@ -6784,7 +6846,7 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
                -- the line, `-⏎  [1]: b` nests in the node the entry awaits.
                flowKeyRoute_of_open
                  (fun sp h => h_close sp (SBlockIndented.node n_old .blockIn sp_scan sp h))
-                 (Or.inl h_close) (h_fresh_of h_sk_old) (Or.inl h_col59) h_corr hcorr_prep
+                 (Or.inl ⟨h_close, h_col59⟩) h_noflow_prep h_park h_corr hcorr_prep
                  h_preprocess,
                Or.inr trivial⟩),
              PendingNode.noPending sp_start sp_open (Or.inr (inFlow_of_flowLevel_eq h_fl1))
@@ -6821,8 +6883,8 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
                -- value this pending awaits; on the LINE it is the compact
                -- alternative in the value SLOT, which only an explicit `:`
                -- carries (`? a⏎: [1]: b`) and an implicit one does not.
-               flowKeyRoute_of_open h_close (h_vslot.imp And.right id) (h_fresh_of h_sk_mv)
-                 (h_vslot.imp And.left id) h_corr hcorr_prep h_preprocess,
+               flowKeyRoute_of_open h_close (h_vslot.imp (fun h => ⟨h.2, h.1⟩) id)
+                 h_noflow_prep h_park h_corr hcorr_prep h_preprocess,
                -- …and under an open `?` the collection is the KEY half of the
                -- `[188]` entry that `h_expl` routes (`? [1]⏎: v`).
                (match h_expl with
@@ -10206,31 +10268,6 @@ lemma indicator_floor_colon_at_col {sc s_prep s' : ScannerState} {sp_prep : Surf
     exact h_noflow
   exact indicator_floor_colon_at_col_of_save hcol_prep hcorr_prep h_noflow
     (preprocess_saved_key_col h_sk h_noflow_prep h_preprocess).2 h_preprocess h_dispatch
-
-/-- **The landing's save, decided per INPUT** (item 76).
-
-    A park OFF a line start reaches a column-0 landing only across a break, and
-    a break outside a flow re-arms `simpleKeyAllowed` — so preprocessing's save
-    is FRESH and sits at the cursor it stopped on.  A park AT a line start
-    crosses nothing, and there the datum is the park's own flag, which the
-    landing arms do not hold.
-
-    Item 77 closed the split: the park's own flag is a FIELD now
-    (`PendingNode.pendingContent.h_arm` and its four siblings), funded by
-    `content_park_arm` — every content scan either leaves the save armed or
-    leaves the cursor inside a line.  So the two halves are exhaustive and the
-    site MEASURES: the landing pays for a park off a line start, the park's flag
-    pays for one at it. -/
-lemma landing_or_park_save {sc s_prep : ScannerState} {sp_scan : SurfPos} {c : Char}
-    (h_noflow : s_prep.inFlow = false)
-    (h_larm : sp_scan.col ≠ 0 → s_prep.inFlow = false →
-      s_prep.simpleKey.possible = true ∧ s_prep.simpleKey.pos.col = s_prep.col)
-    (h_park : sc.simpleKeyAllowed = true ∨ 0 < sp_scan.col)
-    (h_preprocess : scanNextToken_preprocess sc = .ok (some (s_prep, c))) :
-    s_prep.simpleKey.pos.col = s_prep.col := by
-  rcases h_park with h | h
-  · exact (preprocess_saved_key_col h h_noflow h_preprocess).2
-  · exact (h_larm (by omega) h_noflow).2
 
 /-- **The implicit key's floor** (item 28).
 
