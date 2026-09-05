@@ -919,16 +919,18 @@ inductive PendingNode (sc : ScannerState) : Bool → SurfPos → SurfPos → Sur
       between the two block contexts is absorbed by `[183]`'s `m`, which is
       what generalized `SBlockNode_blockIn_to_blockOut`.
 
-      `h_floor` is `pendingBlock`'s (item 27), and here the family stops being
-      symmetric: `?` pushes `[187]`'s indent at its own column, but `:` pushes at
-      the column of the key it RESOLVES — its own only when the save was fresh,
-      which is exactly `[189]`'s empty-key entry.  So `  ? |` and `  : |` carry
-      the measurement and item 15's `  a: |` hands `True` (Reflection 653 §3). -/
+      `h_floor` is `pendingBlock`'s (item 27), and UNCONDITIONAL since item 82:
+      `?` and the explicit `:` push `[187]`'s indent at their own column, and
+      the implicit `:` pushes at the column of the key it RESOLVES — which the
+      total `implicit_key_floor` measures (items 79–81: the pack's column is an
+      equation, the inherit is the consumer's derivation, and `[197]`'s clear
+      dies on `KeysBehindCursor`).  So item 15's `  a: |` carries the
+      measurement `  ? |` always did, and Reflection 653 §3's `True` is gone. -/
   | pendingMapValue (sp_start sp_block sp_scan : SurfPos) (n : Nat)
       (h_close : ∀ sp_mid,
         SBlockNode n .blockIn sp_scan sp_mid →
         SLYamlStream sp_start sp_mid)
-      (h_floor : IndentFloor sc n ∨ True)
+      (h_floor : IndentFloor sc n)
       -- Item 48 (LAST, same reason): the `:` step's own record.  An IMPLICIT
       -- `:` stamps `implicitValueLine` with its line, which is what refutes a
       -- same-line `-`/`?`/`:` at the next block dispatch; the `∨ True` side is
@@ -6924,7 +6926,7 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
              -- Item 68: `pendingBlock`'s floor ride, on the mapping's value —
              -- `k:⏎  a: ["p⏎     q"]` reads its interior at the entry's index.
              h_kpkg _ _ _ (match h_ncol_mv with
-                | Or.inl h_nc => openFloor h_sep h_nc h_floor_mv
+                | Or.inl h_nc => openFloor h_sep h_nc (Or.inl h_floor_mv)
                 | Or.inr _ => Or.inr trivial)
                (mk n_old sp_block ⟨(fun sp_ne sp_m h_content h_ssl =>
                h_close sp_m (SBlockNode.flowInBlock n_old .blockIn sp_scan sp_prep sp_ne sp_m
@@ -6953,15 +6955,13 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
     · -- Item 66: the run-end half is §8.1's refusal (`k:⏎  a:⏎[1]`).  Item 68:
       -- and the TAB half is §6.1's, for `pendingProps`' reason.
       rcases h_ur with ⟨j, sx, hj, h_ind, _h_ws2, h_end | h_tab⟩
-      · rcases h_floor_mv with h_floor | _
-        · exact (flowOpen_underRunEnd_refuted h_floor hcorr_prep h_dcol h_dind
-            h_dflow h_c h_col02 hj (h_end ▸ h_ind) h_preprocess h_bfi).elim
-        · exact drop_ride
-      · rcases h_floor_mv with h_floor | _
-        · exact (flowOpen_underRunTab_refuted h_floor h_ltsl2
-            (fun h => by rw [h] at h_col02; omega) h_col02 hj h_ind h_tab
-            h_c h_preprocess).elim
-        · exact drop_ride
+      -- Item 82: the park's floor is REAL now, so both halves of the under-run
+      -- refute outright — the two drop rides this arm carried are DELETED.
+      · exact (flowOpen_underRunEnd_refuted h_floor_mv hcorr_prep h_dcol h_dind
+          h_dflow h_c h_col02 hj (h_end ▸ h_ind) h_preprocess h_bfi).elim
+      · exact (flowOpen_underRunTab_refuted h_floor_mv h_ltsl2
+          (fun h => by rw [h] at h_col02; omega) h_col02 hj h_ind h_tab
+          h_c h_preprocess).elim
 
 /-! ### §1c''b Token-history readings of the flow dispatch (9b(ii))
 
@@ -10858,7 +10858,7 @@ lemma colon_open_map (sp_start sp_land sp_ind : SurfPos) (k : Nat)
                h_stream_land (GStar.nil _)
                (GOpt.some sp_land sp_v (SLAnyDocument.bare sp_land sp_v h_bare))
                (GStar.nil _))
-           (Or.inl h_floor_in) hpf.1 hpf.2.1 hpf.2.2 (Or.inr trivial) (Or.inr trivial)
+           h_floor_in hpf.1 hpf.2.1 hpf.2.2 (Or.inr trivial) (Or.inr trivial)
            (scanValue_simpleKeyAllowed (dispatchBlock_colon_scanValue h_dispatch))
            -- Item 68: the `:` stands AT the entry index (`s-indent(k)` from a
            -- column-0 landing) and the park is the character past it.
@@ -10946,7 +10946,7 @@ lemma question_open_map (sp_start sp_land sp_ind : SurfPos) (k : Nat)
                (SBlockMapEntry.explicitEmpty k sp_ind sp_scan' sp_k h_lit
                  (SBlockIndented.node k .blockOut sp_scan' sp_k
                    (SBlockNode_blockIn_to_blockOut h_node))))
-           (Or.inl h_floor_in) hpk.1 hpk.2 (Or.inr trivial)
+           h_floor_in hpk.1 hpk.2 (Or.inr trivial)
            -- Item 51: the `?` literal + the entry route (`h_expl`), and the
            -- KEY slot itself (`h_vslot`) — `[186]`'s `s-l+block-indented`,
            -- compact alternatives included (`? - a`, `? ? b`, `? : v`).
@@ -11025,7 +11025,7 @@ lemma colon_open_map_explicit (sp_start sp_scan sp_mid sp_ind : SurfPos) (nv : N
            (fun sp_v h_node =>
              h_slot sp_v (SBlockIndented.node nv .blockOut sp_scan' sp_v
                (SBlockNode_blockIn_to_blockOut h_node)))
-           (Or.inl h_floor_in) hpf.1 hpf.2.1 hpf.2.2
+           h_floor_in hpf.1 hpf.2.1 hpf.2.2
            (Or.inr trivial)
            (Or.inl ⟨park_col_of_indicator hcol_mid h_ind h_lit, h_slot⟩)
            (scanValue_simpleKeyAllowed (dispatchBlock_colon_scanValue h_dispatch))
@@ -11185,7 +11185,7 @@ lemma compact_open_map (sp_start sp_entry sp_ind : SurfPos) (n m : Nat)
                (SBlockIndented.compactMap n ctx m sp_entry sp_ind sp_v h_ind
                  (SCompactMap.mk (n + 1 + m) sp_ind sp_v sp_v (h_entry_of sp_v h_node)
                    (SCompactMapTail.nil (n + 1 + m) sp_v))))
-           (Or.inl h_floor)
+           h_floor
            hpk.1 hpk.2.1 hpk.2.2.1 (Or.inr trivial) (Or.inr trivial)
            hpk.2.2.2
            -- Item 68: the indicator stands at `s-indent(m)` past the entry's own
@@ -11334,7 +11334,7 @@ lemma colon_open_map_implicit (sp_start sp_block sp_key sp_gram sp_ws : SurfPos)
              h_route sp_v
                (SBlockMapEntry.implicitKeyNode k sp_key sp_ws sp_scan' sp_v h_ik h_lit
                  (SBlockNode_blockIn_to_blockOut h_node)))
-           (Or.inl h_floor) hpf.1 hpf.2.1 hpf.2.2 (Or.inr trivial) (Or.inr trivial)
+           h_floor hpf.1 hpf.2.1 hpf.2.2 (Or.inr trivial) (Or.inr trivial)
            (scanValue_simpleKeyAllowed (dispatchBlock_colon_scanValue h_dispatch))
            -- Item 68: the `:` is a character, so the park is past column 0.  The
            -- INDEX is the half this producer cannot measure: `k` reaches it
@@ -11412,8 +11412,8 @@ lemma colon_open_map_props (sp_start sp_block sp_p sp_scan : SurfPos) (k : Nat)
              h_route sp_v
                (SBlockMapEntry.implicitKeyNode k sp_p sp_prep sp_scan' sp_v h_ik h_lit
                  (SBlockNode_blockIn_to_blockOut h_node)))
-           (Or.inl (implicit_key_floor h_poss h_kcol h_inh h_kline h_behind
-             h_noflow h_preprocess h_dispatch))
+           (implicit_key_floor h_poss h_kcol h_inh h_kline h_behind
+             h_noflow h_preprocess h_dispatch)
            hpf.1 hpf.2.1 hpf.2.2 (Or.inr trivial) (Or.inr trivial)
            (scanValue_simpleKeyAllowed (dispatchBlock_colon_scanValue h_dispatch))
            -- Item 68: `colon_open_map_implicit`'s boundary, for its reason — the
@@ -16761,7 +16761,7 @@ lemma accum_content_on_pendingMapValue_indented
     (s_prep s' : ScannerState) (c : Char) (sp_prep sp_scan' : SurfPos)
     (h_stream_block : SLYamlStream sp_start sp_block)
     (h_close_old : ∀ (sp : SurfPos), SBlockNode n .blockIn sp_scan sp → SLYamlStream sp_start sp)
-    (h_floor_old : IndentFloor sc n ∨ True)
+    (h_floor_old : IndentFloor sc n)
     -- Item 68: the park's own column, where the pending could measure it — a
     -- `[96]` run parked from here inherits it through the run's leading
     -- separation (`separateLines_col_ge`).
@@ -16795,7 +16795,7 @@ lemma accum_content_on_pendingMapValue_indented
       PendingNode s' false sp_start sp_flow' sp_scan' ∧
       ScannerSurfCorr s' sp_scan' := by
   rcases indentedValue_reads_at_any_indent sc sp_scan n s_prep s' c sp_prep sp_scan'
-      h_floor_old hcorr_prep hcorr_result h_corr h_preprocess h_not_doc h_flow_disp h_dispatch with
+      (Or.inl h_floor_old) hcorr_prep hcorr_result h_corr h_preprocess h_not_doc h_flow_disp h_dispatch with
     ⟨sp_gram, h_sep_all, h_flow_all, h_trailing_ws, h_line, hna, hnt⟩ |
     ⟨ha, ht, h_sep_all, h_run_all, h_nic_s, h_real_s, h_anchor_s, h_tag_s, h_ind_s,
       _h_single, _h_sk_s, _h_line_s, h_ska_s⟩ |
@@ -16855,7 +16855,7 @@ lemma accum_content_on_pendingMapValue_indented
              h_sep_all (h_run_all n) h_nic_s h_real_s h_anchor_s h_tag_s
              h_close_old (Or.inr trivial)
              (match h_ind_s with
-              | Or.inl h_ind => IndentFloor.transport h_floor_old h_nic_s h_ind
+              | Or.inl h_ind => IndentFloor.transport (Or.inl h_floor_old) h_nic_s h_ind
               | Or.inr _ => Or.inr trivial)
              -- Item 68: the run is a character wide whatever the index; the
              -- index itself rides the pending's own measurement.

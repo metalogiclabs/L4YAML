@@ -9419,6 +9419,36 @@ scanner-side invariant suite included — names no `sorryAx`.  ZERO runtime
 edits — three proof files, one new guard and its registration, one guard's
 §1 example restated — so the matrix cannot have moved and was not re-run.
 
+### Item 82 (2026-09-05)
+
+**`pendingMapValue`'s floor is unconditional.**  Reflection 653 §3 priced the
+field optional because the implicit `:` pushes at the RESOLVED key's column,
+which the producer could not measure; items 79–81 made it measurable, and this
+item spends the result: `h_floor : IndentFloor sc n`, no `∨ True`.  The four
+keyless producers had real floors since items 59/63 and drop their `Or.inl`;
+the two implicit ones (`colon_open_map_implicit`, `colon_open_map_props`) hand
+over the now-total `implicit_key_floor`.  `accum_content_on_pendingMapValue_indented`'s
+threading premise tightens with it.
+
+**Two drop rides DELETED.**  The flow OPEN's under-run arms on this park —
+`k:⏎  b:⏎[1]`'s run-end half and its tab half — used to case the optional
+floor and ride the drop on its `True` side; with the field real both halves
+refute outright (`flowOpen_underRunEnd_refuted` / `flowOpen_underRunTab_refuted`).
+What still rides at the open: `pendingFlow`'s opaque resume (R3's own) and the
+props park's two arms — `pendingProps.h_floor` is now the LAST optional floor
+a flow open can meet, and it is the next item's.
+
+**Measured** (`Tests/Guards/Proofs/MapValueFloorUnconditional.lean`).  §2
+checks, at every block-context `:` resolving a live same-line key at column
+`k`, that the post-scan state has `k ≤ currentIndent` — the floor's own
+inequality read off the running scanner — over ten shapes including item 15's
+`  a: |` (the punt Reflection 653 §3 was written for) and the flow-close keys.
+
+**Validation.**  Full `lake build` green (1065 jobs, ZERO warnings);
+`run-all-tests.sh` 6689/6689; `eventscore` 347/358 unmoved; three checkers OK
+(220/354; 20/229/248/354; 25 capstones); `#print axioms` clean of `sorryAx`
+over the touched chain.  ZERO runtime edits.
+
 ### REMAINING, in order
 
 The per-item history is the closure log above; this section lists only the
@@ -9431,7 +9461,7 @@ a nonzero index.  R2 is CLOSED too (items 47–51), so what stands between here
 and Step 5 (the converse) is R3's remaining production work and R4:
 
 ```
-R1 ✓ (44–46) ──→ R2 ✓ (47–51) ──→ R3 (52–81 landed; 67b open) ──→ Step 5
+R1 ✓ (44–46) ──→ R2 ✓ (47–51) ──→ R3 (52–82 landed; 67b open) ──→ Step 5
                                         └──────→ R4 (implicitContinue + 0 < m) ──┘
 ```
 
@@ -9617,8 +9647,9 @@ and that deletion, by input class:
 
   So the order is: ~~the content park's armed-shape field~~ (CLOSED by item 80),
   ~~then the `[197]` clear~~ (CLOSED by item 81 — both `colon_open_map` lemmas
-  hand `pendingMapValue` a REAL floor now), then the field itself, then
-  `pendingProps`' floor, then `FlowStackK`'s.
+  hand `pendingMapValue` a REAL floor now), ~~then the field itself~~ (CLOSED by
+  item 82 — `h_floor : IndentFloor sc n` outright, two of the open's drop rides
+  deleted with it), then `pendingProps`' floor, then `FlowStackK`'s.
   ~~What survives:
   `dropClose`'s remaining domain — the VALID multi-line scalar tokens at a
   nonzero index~~ — the TOKENS are CLOSED by item 67a, which built the flow
