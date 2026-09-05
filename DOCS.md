@@ -9537,6 +9537,32 @@ way.  `dropClose` is at 10 uses: `InteriorGap`'s index (3+3), the node at
 `#print axioms` clean over the step lemmas.  ZERO runtime edits.  The route's
 new index is pinned in `FlowStackFloorReal` §3.
 
+### Item 86 (2026-09-05)
+
+**`InteriorGap` reads at every index.**  The props gap's two grammar slots
+were stored at 0 and lifted at the six consumers through
+`SSeparateLines_at`/`PropsRun_at`, whose punts (a surface under-run) fed six
+`dropClose`s.  Item 74's correction said the parameter is a step AFTER the
+floor; with the floor real the honest shape is `h_lead_at`'s own: both fields
+are index-universal and refutable against the floor —
+`∀ m, … ∨ ¬ (m ≤ minContentIndentOf sc)` — so a 0-read is FREE
+(`¬ (0 ≤ _)` is absurd) and an at-`nn` read's negative arm dies on
+`h_floorK`.  The producers pay from their own step's `h_lead_at` (the fresh
+parks) or transport the field (the run extensions, whose `addAnchor`/`addTag`
+now compose per index against the extension step's own at-`m` separator).
+
+**The tuple fallback is GONE.**  With the white arm total since item 84 and
+the props arm total now, `accum_step_flow`'s `h_tuple` lost its last punt
+feeder; the `∨ True` came off its type and the `dropClose` its consumer kept
+for the punt died with it.  `dropClose` is at THREE uses: the node-at-`nn`
+pair (`dispatchContent_evidence_flowIn_or_at`'s `∨ True` and
+`SFlowContent_at nn` — the next item) and `pendingFlow`'s own opaque resume
+(the deletion's).
+
+**Validation.**  Full `lake build` green (1067 jobs, ZERO warnings);
+`run-all-tests.sh` 6689/6689; `eventscore` 347/358 unmoved; checkers OK;
+`#print axioms` clean over the step lemmas.  ZERO runtime edits.
+
 ### REMAINING, in order
 
 The per-item history is the closure log above; this section lists only the
@@ -9549,7 +9575,7 @@ a nonzero index.  R2 is CLOSED too (items 47–51), so what stands between here
 and Step 5 (the converse) is R3's remaining production work and R4:
 
 ```
-R1 ✓ (44–46) ──→ R2 ✓ (47–51) ──→ R3 (52–85 landed; 67b open) ──→ Step 5
+R1 ✓ (44–46) ──→ R2 ✓ (47–51) ──→ R3 (52–86 landed; 67b open) ──→ Step 5
                                         └──────→ R4 (implicitContinue + 0 < m) ──┘
 ```
 
@@ -9792,10 +9818,10 @@ that reaches each:
 |---|---|---|
 | ~~7 (+ the shared one below)~~ | ~~`h_lead_at nn` / `h_lead nn`'s second arm, `¬ (nn ≤ minContentIndentOf sc)`~~ | CLOSED by item 84 — six sites refute outright; the seventh's read feeds the tuple fallback, which the remaining rows still reach |
 | ~~6~~ | ~~the `:`-receiving closure's ARGUMENT, `SSeparateLines 0` handed in by a later step~~ | CLOSED by item 85 — the route reads at `n`, the producers hand their separator through, the consumer derives it off the floor |
-| 3 | the props gap's own lead, `SSeparateLines_at nn h_lead_p` | `InteriorGap` taking the reading index as a parameter |
-| 3 | the props run, `PropsRun_at nn h_run` | the same parameter |
+| ~~3~~ | ~~the props gap's own lead, `SSeparateLines_at nn h_lead_p`~~ | CLOSED by item 86 — the gap's fields are index-universal, refutable against the floor |
+| ~~3~~ | ~~the props run, `PropsRun_at nn h_run`~~ | CLOSED by item 86, the same shape |
 | 2 | the node at `nn` — `dispatchContent_evidence_flowIn_or_at`'s `∨ True` and `SFlowContent_at nn` | the one reading item 67a's `SFlowNode_at` closure did not cover |
-| 1 | the tuple fallback in `accum_step_flow`, fed by all four of the above | all four |
+| ~~1~~ | ~~the tuple fallback in `accum_step_flow`, fed by all four of the above~~ | CLOSED by item 86 — its last punt feeder died, the `∨ True` came off `h_tuple` |
 | 1 | `drop_ride` — `pendingFlow`'s opaque resume | the deletion proper |
 
 Items 69 and 72 made `h_lead_at` TOTAL, so the first row is refutable the

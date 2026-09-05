@@ -1837,8 +1837,13 @@ inductive InteriorGap (sc : ScannerState) (tl : FrameTail) (sp_flow sp_scan : Su
       InteriorGap sc tl sp_flow sp_scan
   | props (ha ht : Bool) (sp_p : SurfPos)
       (h_tail : tl ≠ .value)
-      (h_lead : SSeparateLines 0 sp_flow sp_p)
-      (h_run : PropsRun 0 (inFlowCtx .flowOut) ha ht sp_p sp_scan)
+      -- Item 86: the gap's two grammar slots read at EVERY index, refutable
+      -- against the floor — the `h_lead_at` shape, paid by the producers'
+      -- own at-`m` reads.  A 0-read is free (`¬ (0 ≤ _)` is absurd), so the
+      -- consumers that wanted the old forms still have them.
+      (h_lead : ∀ m, SSeparateLines m sp_flow sp_p ∨ ¬ (m ≤ minContentIndentOf sc))
+      (h_run : ∀ m, PropsRun m (inFlowCtx .flowOut) ha ht sp_p sp_scan ∨
+        ¬ (m ≤ minContentIndentOf sc))
       (h_anchor : ha = true →
         (trailingPropertyRun sc.tokens).any YamlToken.isAnchorProperty = true)
       (h_tag : ht = true →
@@ -6552,7 +6557,9 @@ lemma InteriorGap.col_pos {sc : ScannerState} {tl : FrameTail} {sp_flow sp_scan 
     (h : InteriorGap sc tl sp_flow sp_scan) : 0 < sp_scan.col := by
   cases h with
   | white _ _ _ h_col0 => exact h_col0
-  | props _ _ _ _ _ h_run => exact propsRun_col_gt h_run (Nat.zero_le _)
+  | props _ _ _ _ _ h_run =>
+    exact propsRun_col_gt ((h_run 0).resolve_right (fun h => h (Nat.zero_le _)))
+      (Nat.zero_le _)
 
 /-- **The flow open's floor** (item 67).  The stack the open pushes reads at
     the pending's index for the whole collection, so the index has to still
@@ -8805,7 +8812,7 @@ lemma accum_step_flow (sc : ScannerState)
           (tl = .colon →
             (sc.simpleKeyAllowed = true ∧ sc.explicitKeyLine = none ∧
               ∃ tok, sc.tokens[sc.tokens.size - 1]? = some tok ∧ tok.val = .value) ∨
-            KeyAfterValueLayout sc)) ∨ True := by
+            KeyAfterValueLayout sc)) := by
       cases h_gap with
       | white h_ws h_sync h_colon_sc =>
         have h_ad_sync : frameTokenVal? s_ad.tokens = lastRealTokenVal? s_ad.tokens := by
@@ -8813,7 +8820,7 @@ lemma accum_step_flow (sc : ScannerState)
           exact preprocess_preserves_sync_inFlow (by omega) h_real_sc h_preprocess h_sync
         rcases h_lead_at nn with h_lead0' | h_nofloor
         · have h_lead := SSeparateLines_prepend_white h_ws h_lead0'
-          exact Or.inl ⟨tl, sp_flow, h_fos, h_lead,
+          exact ⟨tl, sp_flow, h_fos, h_lead,
             (fun h_tail sp_ne h_c =>
               FlowOpenStack.receiveNode h_fos h_tail h_lead sp_ne (.content _ _ _ _ h_c)),
             (fun h => by rw [← h_ad_tl]; exact tailOf_ne_value h_ad_sync h),
@@ -8824,10 +8831,12 @@ lemma accum_step_flow (sc : ScannerState)
         -- Item 84: the stack's floor is real, so the lead's negative refutes.
         · exact absurd h_floorK h_nofloor
       | props ha ht sp_p h_tail h_lead_p h_run _ _ h_colon_sc =>
-        rcases SSeparateLines_at nn h_lead_p with h_lead_p' | _
-        · rcases PropsRun_at nn h_run with h_run' | _
+        -- Item 86: the gap's slots read at the stack's index outright, and
+        -- every negative arm dies on the floor.
+        rcases h_lead_p nn with h_lead_p' | h_nofloor
+        · rcases h_run nn with h_run' | h_nofloor
           · rcases h_lead_at nn with h_lead0' | h_nofloor
-            · exact Or.inl ⟨.value, sp_scan,
+            · exact ⟨.value, sp_scan,
                 h_fos.receivePropsEmpty h_tail h_lead_p' h_run', h_lead0',
                 (fun _ sp_ne h_c =>
                   h_fos.receivePropsContent h_tail h_lead_p' h_run' h_lead0' h_c),
@@ -8835,13 +8844,13 @@ lemma accum_step_flow (sc : ScannerState)
                 (fun ht sp_ne h_c sp_p₂ sp_t h_l₂ h_col =>
                   h_fos.receivePropsNodeColon ht h_lead_p' h_run' h_lead0' h_c h_l₂ h_col),
                 (fun htl => Or.inr (h_colon_sc htl))⟩
-            -- Item 84: the same refutation.
             · exact absurd h_floorK h_nofloor
-          · exact Or.inr trivial
-        · exact Or.inr trivial
-    rcases h_tuple.symm with - | ⟨tl₂, sp_flow₂, h_fos₂, h_lead₂, h_inj, h_ne_value, h_ne_sep, h_cinj, h_klay⟩
-    · exact shaped (dropClose (absorb_stacksB sp_start sp_gram sp_block sp_block
-        h_stream h_stack (FlowStackB.nil (n := 0) (kc := 0) sp_block .sep)))
+          · exact absurd h_floorK h_nofloor
+        · exact absurd h_floorK h_nofloor
+    -- Item 86: every feeder of the tuple's punt died on the floor, so the
+    -- fallback it fed is GONE.
+    obtain ⟨tl₂, sp_flow₂, h_fos₂, h_lead₂, h_inj, h_ne_value, h_ne_sep, h_cinj, h_klay⟩ :=
+      h_tuple
     split at h_dispatch
     · -- '[': NESTED PUSH, depth d+1 → d+2. The child seq frame's `inject` is
       -- `receiveNode` on the parent (folding the eventual child node + this
@@ -13104,7 +13113,8 @@ lemma accum_step_block (sc : ScannerState)
               rw [h_ad_last] at hlast
               obtain ⟨f, hf⟩ : ∃ f : YamlToken → Bool,
                   (trailingPropertyRun sc.tokens).any f = true := by
-                rcases h_run.some_half with h | h
+                rcases ((h_run 0).resolve_right
+                    (fun h => h (Nat.zero_le _))).some_half with h | h
                 · exact ⟨YamlToken.isAnchorProperty, h_anchor h⟩
                 · exact ⟨YamlToken.isTagProperty, h_tag h⟩
               obtain ⟨t', hlast', hprop⟩ := lastReal_isProperty_of_run hf
@@ -13335,15 +13345,17 @@ lemma accum_step_block (sc : ScannerState)
               | props ha ht sp_p h_tail_p h_lead_p h_run_p _ _ h_colon_p =>
                 have h_stk : FlowStackB sp_start nn kc (d + 1) ks km .colon sp_block sp_tok := by
                   rcases h_fos_or with h_fos | h_close_sh
-                  · rcases SSeparateLines_at nn h_lead_p with h_lead_p' | _
-                    · rcases PropsRun_at nn h_run_p with h_run_p' | _
+                  -- Item 86: the gap's slots read at the stack's index, and
+                  -- every negative arm dies on the floor.
+                  · rcases h_lead_p nn with h_lead_p' | h_nofloor
+                    · rcases h_run_p nn with h_run_p' | h_nofloor
                       · rcases h_lead_at nn with h_lead0' | h_nofloor
                         · exact .open _ _ _ _ sp_block sp_tok
                             (h_fos.receiveColonPropsSep h_tl_case h_lead_p' h_run_p'
                               (GOpt.some _ _ h_lead0') h_colon_lit)
                         · exact absurd h_floorK h_nofloor
-                      · exact .shape _ _ _ _ _ _ (by omega) (dropClose h_stream_blk)
-                    · exact .shape _ _ _ _ _ _ (by omega) (dropClose h_stream_blk)
+                      · exact absurd h_floorK h_nofloor
+                    · exact absurd h_floorK h_nofloor
                   · exact .shape _ _ _ _ _ _ (by omega) h_close_sh
                 exact ⟨sp_gram, sp_block, sp_tok, sp_tok, h_stream, h_stack,
                   ⟨nn, kc, km, h_stk, h_ksz', h_floorK',
@@ -13367,15 +13379,17 @@ lemma accum_step_block (sc : ScannerState)
               | props ha ht sp_p h_tail_p h_lead_p h_run_p _ _ h_colon_p =>
                 have h_stk : FlowStackB sp_start nn kc (d + 1) ks km .colon sp_block sp_tok := by
                   rcases h_fos_or with h_fos | h_close_sh
-                  · rcases SSeparateLines_at nn h_lead_p with h_lead_p' | _
-                    · rcases PropsRun_at nn h_run_p with h_run_p' | _
+                  -- Item 86: the gap's slots read at the stack's index, and
+                  -- every negative arm dies on the floor.
+                  · rcases h_lead_p nn with h_lead_p' | h_nofloor
+                    · rcases h_run_p nn with h_run_p' | h_nofloor
                       · rcases h_lead_at nn with h_lead0' | h_nofloor
                         · exact .open _ _ _ _ sp_block sp_tok
                             (h_fos.receiveColonPropsQuestion h_tl_case h_lead_p' h_run_p'
                               (GOpt.some _ _ h_lead0') h_colon_lit)
                         · exact absurd h_floorK h_nofloor
-                      · exact .shape _ _ _ _ _ _ (by omega) (dropClose h_stream_blk)
-                    · exact .shape _ _ _ _ _ _ (by omega) (dropClose h_stream_blk)
+                      · exact absurd h_floorK h_nofloor
+                    · exact absurd h_floorK h_nofloor
                   · exact .shape _ _ _ _ _ _ (by omega) h_close_sh
                 exact ⟨sp_gram, sp_block, sp_tok, sp_tok, h_stream, h_stack,
                   ⟨nn, kc, km, h_stk, h_ksz', h_floorK',
@@ -17987,11 +18001,12 @@ lemma accum_step_content (sc : ScannerState)
       rw [allowDirectives_update_flowLevel s_prep,
           preprocess_preserves_flowLevel sc s_prep c h_preprocess]
       exact h_sc_inflow
+    have h_ind_eq : s'.indents = sc.indents := by
+      rw [FlowIndentStable.dispatchContent_preserves_indents h_adf_inflow h_dispatch,
+          allowDirectives_update_indents,
+          FlowIndentStable.preprocess_indents_of_inFlow h_sc_inflow h_preprocess]
     have h_floorK' : nn ≤ minContentIndentOf s' :=
-      flowFloor_transport h_floorK (by
-        rw [FlowIndentStable.dispatchContent_preserves_indents h_adf_inflow h_dispatch,
-            allowDirectives_update_indents,
-            FlowIndentStable.preprocess_indents_of_inFlow h_sc_inflow h_preprocess])
+      flowFloor_transport h_floorK h_ind_eq
     obtain ⟨sp_prep, h_lead0, hcorr_prep⟩ :=
       preprocess_some_separate_0_anyCol sc sp_scan s_prep c h_corr h_preprocess
     -- Items 69/72: …and the same separator read at the STACK's index, which is
@@ -18166,7 +18181,10 @@ lemma accum_step_content (sc : ScannerState)
               h_dispatch)),
              fun hv => absurd hv h_tail⟩⟩,
           (fun h => absurd h (by omega)), hcorr_new,
-          fun _ => ⟨.props true false sp_prep h_tail h_lead (.anchor _ _ h_prop)
+          fun _ => ⟨.props true false sp_prep h_tail
+            (fun m => (h_lead_at m).imp (SSeparateLines_prepend_white h_white)
+              (fun hn hle => hn (minContentIndentOf_congr h_ind_eq ▸ hle)))
+            (fun _ => Or.inl (.anchor _ _ h_prop))
             (fun _ => by
               rw [hname]
               exact trailingPropertyRun_push_head (by simp)
@@ -18227,7 +18245,10 @@ lemma accum_step_content (sc : ScannerState)
               h_dispatch)),
                fun hv => absurd hv h_tail⟩⟩,
             (fun h => absurd h (by omega)), hcorr_new,
-            fun _ => ⟨.props false true sp_prep h_tail h_lead (.tag _ _ h_prop)
+            fun _ => ⟨.props false true sp_prep h_tail
+              (fun m => (h_lead_at m).imp (SSeparateLines_prepend_white h_white)
+                (fun hn hle => hn (minContentIndentOf_congr h_ind_eq ▸ hle)))
+              (fun _ => Or.inl (.tag _ _ h_prop))
               (by simp)
               (fun _ => by
                 rw [hname]
@@ -18343,9 +18364,12 @@ lemma accum_step_content (sc : ScannerState)
       -- decorating.  Note that `h_tail` is read off the gap and not re-derived:
       -- the adjacency check that let the property through ran against the
       -- pre-props tail, and `checkFlowAdjacency` now reads the property itself.
+      -- Item 86: the gap's slots are index-universal; the 0-read is free.
+      have h_run0 : PropsRun 0 (inFlowCtx .flowOut) ha ht sp_p sp_scan :=
+        (h_run 0).resolve_right (fun h => h (Nat.zero_le _))
       have h_last_prop : ∃ t, lastRealTokenVal? s_ad.tokens = some t ∧
           t.isNodeProperty = true := by
-        rcases h_run.some_half with h | h
+        rcases h_run0.some_half with h | h
         · exact lastReal_isProperty_of_run (f := YamlToken.isAnchorProperty)
             (by rw [h_ad_run]; exact h_anchor h)
         · exact lastReal_isProperty_of_run (f := YamlToken.isTagProperty)
@@ -18372,7 +18396,7 @@ lemma accum_step_content (sc : ScannerState)
           | false => rfl
           | true => rw [h_anchor rfl] at h_no_anchor; exact absurd h_no_anchor (by simp)
         subst hha
-        have hht : ht = true := h_run.tag_of_no_anchor
+        have hht : ht = true := h_run0.tag_of_no_anchor
         subst hht
         -- …so what IS held is the tag, and it is the last real token: the run is
         -- read from that token, and it is not the anchor half.
@@ -18422,7 +18446,15 @@ lemma accum_step_content (sc : ScannerState)
               h_dispatch)),
              fun hv => absurd hv h_tail⟩⟩,
           (fun h => absurd h (by omega)), hcorr_new,
-          fun _ => ⟨.props true true sp_p h_tail h_lead_p (h_run.addAnchor h_lead0 h_prop)
+          fun _ => ⟨.props true true sp_p h_tail
+            (fun m => (h_lead_p m).imp id
+              (fun hn hle => hn (minContentIndentOf_congr h_ind_eq ▸ hle)))
+            (fun m => match h_run m, h_lead_at m with
+              | Or.inl r, Or.inl l => Or.inl (r.addAnchor l h_prop)
+              | Or.inr hn, _ => Or.inr (fun hle =>
+                  hn (minContentIndentOf_congr h_ind_eq ▸ hle))
+              | _, Or.inr hn => Or.inr (fun hle =>
+                  hn (minContentIndentOf_congr h_ind_eq ▸ hle)))
             (fun _ => by
               rw [hname]
               exact trailingPropertyRun_push_head (by simp)
@@ -18464,7 +18496,7 @@ lemma accum_step_content (sc : ScannerState)
             | false => rfl
             | true => rw [h_tag rfl] at h_no_tag; exact absurd h_no_tag (by simp)
           subst hht
-          have hha : ha = true := h_run.anchor_of_no_tag
+          have hha : ha = true := h_run0.anchor_of_no_tag
           subst hha
           obtain ⟨t2, h_t2_last, h_t2_prop⟩ := h_last_prop
           have h_t2_anchor : t2.isAnchorProperty = true := by
@@ -18512,7 +18544,15 @@ lemma accum_step_content (sc : ScannerState)
               h_dispatch)),
                fun hv => absurd hv h_tail⟩⟩,
             (fun h => absurd h (by omega)), hcorr_new,
-            fun _ => ⟨.props true true sp_p h_tail h_lead_p (h_run.addTag h_lead0 h_prop)
+            fun _ => ⟨.props true true sp_p h_tail
+              (fun m => (h_lead_p m).imp id
+                (fun hn hle => hn (minContentIndentOf_congr h_ind_eq ▸ hle)))
+              (fun m => match h_run m, h_lead_at m with
+                | Or.inl r, Or.inl l => Or.inl (r.addTag l h_prop)
+                | Or.inr hn, _ => Or.inr (fun hle =>
+                    hn (minContentIndentOf_congr h_ind_eq ▸ hle))
+                | _, Or.inr hn => Or.inr (fun hle =>
+                    hn (minContentIndentOf_congr h_ind_eq ▸ hle)))
               (fun _ => by
                 rw [hname]
                 exact trailingPropertyRun_push_penult (by simp)
@@ -18600,10 +18640,10 @@ lemma accum_step_content (sc : ScannerState)
                      h_dispatch hcorr_res), h_real', h_ad'⟩⟩
             rcases h_fos_or.symm with h_close_sh | h_fos
             · exact shape_out h_close_sh
-            rcases (SSeparateLines_at nn h_lead_p).symm with - | h_lead_p'
-            · exact shape_out (dropClose h_stream_blk)
-            rcases (PropsRun_at nn h_run).symm with - | h_run'
-            · exact shape_out (dropClose h_stream_blk)
+            rcases (h_lead_p nn).symm with h_nofloor | h_lead_p'
+            · exact absurd h_floorK h_nofloor
+            rcases (h_run nn).symm with h_nofloor | h_run'
+            · exact absurd h_floorK h_nofloor
             rcases (h_lead_at nn).symm with h_nofloor | h_lead0'
             · exact absurd h_floorK h_nofloor
             rcases (SFlowContent_at nn h_content).symm with - | h_content'
