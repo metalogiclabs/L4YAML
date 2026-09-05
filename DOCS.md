@@ -8875,6 +8875,96 @@ bodies already called.  ZERO runtime edits — two proof files,
 `Proofs/Production/StreamAccum.lean` — so the matrix cannot have moved and was
 not re-run.
 
+### Item 75 (2026-09-04)
+
+**The pack's column: the key a flow close restores IS the key its open
+stacked, and the mask's anchor was already the whole proof.**  Item 74 named
+`flowKeyPack_of_close` as the hold-out of `ImplicitKeyPack`'s column conjunct —
+`[1,2]: b` restores its key from `simpleKeyStack`, and the coordinate item 28
+needs was recorded at the `[`, one whole collection earlier.  It is threaded
+now, and the threading is smaller than the plan priced it.
+
+**What was threaded.**  `FlowOpenStack`/`FlowStackB` take a second `Nat`
+PARAMETER `kc` — the column of the key the OPEN stacks.  A parameter rather
+than an index because the whole tower shares it: only a BASE close restores
+into a pack, so a nest's own stacked key is irrelevant and nests forward `kc`
+untouched.  `FlowBaseRoutes.key` gains `(kc = k ∨ True)` inside its existential
+— the entry index the route was built at, read against that column — and only
+the open can state it, because only the open sees both numbers.  The scanner
+side rides `KmSound`, which gains a base-slot conjunct at its OWN anchor:
+
+```
+((∃ key, sc.simpleKeyStack[off]? = some key ∧ key.pos.col = kc) ∨ True)
+```
+
+`off` is the offset the promise mask already pins to the stack's top, so
+`off + 0` IS the bottom tracked slot and no second existential is needed.
+`KmSound.back_col` reads it out at a one-bit mask (where the bottom slot is
+`back`), `close_col_of_base` applies it at the two base closes through the
+close arm's existing transports, and `flowKeyPack_of_close` spends the two
+halves as one conjunction.
+
+**The mask's anchor was already the whole proof.**  Carrying the column across
+the interior cost five clauses — one each in `KmSound.empty`, `.transport`,
+`.push`, `.pop`, `.colon_transport` — and no new traversal, because `off` is
+maintained by those lemmas already.  That is what made the item tractable: the
+alternative (a second per-level array, or a walk of the interior) was priced
+into the plan and turned out unnecessary.
+
+**A measured correction to this item's own first design.**  The first attempt
+added `km.size = fl` to `FlowStackK`, to prove that a NESTED open pushes ABOVE
+the base slot rather than into it.  That conjunct is FALSE: `FlowStackK.collapse`
+passes `#[]` for the mask, so a stack that has been through a renounce has a
+mask shorter than its depth.  The compiler said so at all seven collapse sites,
+and the fix is the campaign's own pattern (R645/R646) — make the base-slot
+promise OPTIONAL, and a push onto an empty mask promises nothing instead of
+having to prove something about a key it did not stack.  The reverted conjunct
+is why the collapse's `#[]` is now documented in `KmSound` rather than
+rediscovered.
+
+**All four flow-open route families now measure**, and by three different
+routes to the same fact:
+
+| producer | input | how it measures |
+|---|---|---|
+| `pendingBlock` | `- [1]: b` | its own `h_sk`, through item 74's `preprocess_saved_key_col` — UNCONDITIONAL |
+| `pendingMapValue` | `? [1]: b`, `k: [1]: b` | the same |
+| root / doc-start | `[1,2]: b`, `# c⏎[1]: b`, `---⏎[1]: b` | per INPUT: `preprocess_some_savedKey_shape`'s fresh arm puts the save at the bracket, which is the column `[63]`'s width off a column-0 line start names |
+| props run | `&a [1]: b` | per input the OTHER way: the run left the flag down, so the shape lemma's INHERIT arm says the stacked key is the park's — at the column `PropsKeyPack` already carries |
+
+**What did NOT change, and why — measured, not surveyed.**
+`ImplicitKeyPack`'s column conjunct stays `∨ True`, and the obligation list is
+the same eight sites item 74 measured (`flowKeyPack_of_close`, one consumer,
+`entryKeyPack_of_dispatch`'s two arms, and four sites that already hold the
+equality and only spell it as a disjunction).  What changed is the REASON the
+producer cannot pay: not that it has no datum, but that it has two optional
+ones — a collapsed mask has no base slot, and the fresh/inherit split is
+decided per input at every park that cannot read `simpleKeyAllowed`.  Making
+the field unconditional would therefore force those parks to punt
+(`KeyPackPunt`) on inputs they cover today, which is a coverage regression and
+not a tightening.  So the next step is the one item 74 also named for
+`colon_open_map`: the LANDING's own re-arm — a break re-arms saves in block
+context, and no lemma carries that back to the accumulator.
+
+**No `dropClose` moved**, and the residue table is unchanged.  This item is the
+prerequisite it was scheduled as: the datum now exists at the close, which is
+what `colon_open_map_implicit` and `colon_open_map_props` were waiting for.
+
+**Validation.**  Full `lake build` green (1058 jobs, ZERO warnings);
+`run-all-tests.sh` 4465/4465 (run after that build); `eventscore` (no
+`--suite`) 347/358 with the composition unmoved (252 event-pass, 11 event-diff,
+0 event-reject, 95 error-ok); three checkers OK (220 library modules / 354
+imports; 20 sub-themes, 229 demos, 248 reflections; 25 whitelisted `theorem`
+capstones).  `#print axioms` names no `sorryAx` and no `native_decide` pair:
+`KmSound.back_col`, `.transport` and `.colon_transport` are
+`[propext, Quot.sound]`; `KmSound.push`, `.pop`, `close_col_of_base`,
+`flowKeyPack_of_close`, `flowKeyRoute_of_root`, `flowKeyRoute_of_open` and
+`accum_flow_open_depth0` are `[propext, Classical.choice, Quot.sound]`.
+`Tests/Guards/Proofs/FlowStackIndexParametric.lean` gains §5 — the parameter
+run at `kc = 3` beside `n = 2`, and the open→close pair that turns a measured
+frame into a pack whose column is DERIVED.  ZERO runtime edits (one proof file
+and one guard), so the matrix cannot have moved and was not re-run.
+
 ### REMAINING, in order
 
 The per-item history is the closure log above; this section lists only the
@@ -8887,7 +8977,7 @@ a nonzero index.  R2 is CLOSED too (items 47–51), so what stands between here
 and Step 5 (the converse) is R3's remaining production work and R4:
 
 ```
-R1 ✓ (44–46) ──→ R2 ✓ (47–51) ──→ R3 (52–74 landed; 67b open) ──→ Step 5
+R1 ✓ (44–46) ──→ R2 ✓ (47–51) ──→ R3 (52–75 landed; 67b open) ──→ Step 5
                                         └──────→ R4 (implicitContinue + 0 < m) ──┘
 ```
 
@@ -9029,10 +9119,13 @@ and that deletion, by input class:
   call sites 1 → 3), so what still rides at the open is `pendingFlow` (R3) and a
   park whose own `h_floor` punts — ~~three parks~~ **two** after item 73, which
   made `pendingBlock`'s unconditional (`[183]`'s push is at the indicator's own
-  column, always).  The two left are `pendingMapValue` (blocked on
-  `ImplicitKeyPack`'s column conjunct) and `pendingProps` (blocked on that plus
-  the props landing's optional indent stability), and they are what
-  `FlowStackK`'s own `∨ True` floor — 67b's precondition — is waiting on.
+  column, always).  The two left are `pendingMapValue` and `pendingProps`, and
+  they are what `FlowStackK`'s own `∨ True` floor — 67b's precondition — is
+  waiting on.  Item 75 delivered the datum both were named as blocked on:
+  `ImplicitKeyPack`'s column now reaches a flow close (the frame's `kc`
+  parameter, `KmSound`'s base slot).  What holds the FIELD open after it is one
+  question and it is not the column — whether preprocessing re-saved, which is
+  decided per input everywhere a park cannot read `simpleKeyAllowed`.
   ~~What survives:
   `dropClose`'s remaining domain — the VALID multi-line scalar tokens at a
   nonzero index~~ — the TOKENS are CLOSED by item 67a, which built the flow
