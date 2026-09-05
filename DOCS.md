@@ -9362,6 +9362,63 @@ touched; the `native_decide` axioms under the accum lemmas are
 proof files, one new guard and its registration, one guard's §1 restated — so
 the matrix cannot have moved and was not re-run.
 
+### Item 81 (2026-09-05)
+
+**The saved keys sit strictly behind the cursor.**  `[197]`'s explicit-key
+clear was `implicit_key_floor`'s last punt, and its refutation needed one
+datum the plan said "no pack carries": the resolved key strictly BEHIND the
+`:`.  No pack carries it because no pack has to — it is a fact about the
+SCANNER, uniform across every park and every stacked key, and this item
+states it once: `KeysBehindCursor` (`ScannerCorrectness`) says the current
+saved key and every `simpleKeyStack` entry sit at `pos.offset < offset`.
+Vacuous at `mk'`; preserved by every `scanNextToken` on
+`scanNextToken_progress`'s own skeleton — preprocessing weakens the bound to
+`≤` (a fresh save is AT the cursor), and each dispatch family's strict
+advance (`dispatch*_offset_gt`, all pre-existing) restores `<`, with the flow
+open PUSHING the `≤`-bounded key and the close RESTORING a `<`-bounded one
+(`KeysBehind_push`/`KeysBehind_pop`).
+
+**One threaded conjunct, no new fields.**  The earlier design priced a
+per-constructor `h_behind` on three parks plus a `KmSound` base-slot
+enrichment for the flow-restored keys; the invariant replaces both, because
+the CONSUMING state's own `KeysBehindCursor` already covers whatever key that
+state holds — restored or not.  It rides `scanLoop_grammar_prod` as one
+premise (seeded vacuously in `scan_content_gives_stream_v2`, re-established
+per step by `scanNextToken_preserves_KeysBehindCursor`) and reaches the two
+colon consumers through `accum_step_block` → `accum_block_pending`.
+
+**The floor chain is TOTAL.**  `scanValueClearKey_keyrun` (moved to
+`PreprocessIndentStable`) reduces the clear to two coordinates; the pack's
+guard refutes branch (2) (`pos.line = line`), the invariant refutes branch
+(1) (`pos.offset ≠ offset`), and `scanValue_key_col_le` → `value_key_floor` →
+`implicit_key_floor` carry no `∨ True` — the superseded `_or` twins are
+DELETED.  `colon_open_map_implicit` takes a real floor;
+`colon_open_map_props` derives one; both hand `pendingMapValue.h_floor` an
+`Or.inl`.  The consumers pay the two new premises from what items 79/80
+already threaded: the no-break conjuncts give the inherit, the line
+transport, and `sc.offset ≤ s_prep.offset`, and the invariant closes the
+strict gap.
+
+**Measured** (`Tests/Guards/Proofs/KeysBehindCursorFloor.lean`).  §3 walks 23
+inputs and checks the current key AND the whole stack against the cursor at
+every post-token state — the flow shapes (`[1]: b`, `{a: b}: c`, nested
+interiors) exercising push/restore, the explicit-key shapes (`? earth: blue⏎:
+moon: white`) the suppression edges.  §4 measures the clear itself: a no-op
+at every live same-line `:` STRICTLY BEHIND — and the probe's first, stronger
+form was FALSE, which is this item's measured edge: at `? a : b⏎: v`'s second
+`:`, preprocessing has just re-saved AT the `:`, and the phantom branch
+legitimately fires.  The behind premise is load-bearing, and the callers have
+it exactly because item 80 made them derive the INHERIT first.
+
+**Validation.**  Full `lake build` green (1064 jobs, ZERO warnings);
+`run-all-tests.sh` all 16 suites green (summed 6689/6689); `eventscore`
+347/358 unmoved (252 event-pass, 11 event-diff, 0 event-reject, 95 error-ok);
+three checkers OK (220/354; 20 sub-themes, 229 demos, 248 reflections; 25
+capstones).  `#print axioms` over the fifteen lemmas touched — the
+scanner-side invariant suite included — names no `sorryAx`.  ZERO runtime
+edits — three proof files, one new guard and its registration, one guard's
+§1 example restated — so the matrix cannot have moved and was not re-run.
+
 ### REMAINING, in order
 
 The per-item history is the closure log above; this section lists only the
@@ -9374,7 +9431,7 @@ a nonzero index.  R2 is CLOSED too (items 47–51), so what stands between here
 and Step 5 (the converse) is R3's remaining production work and R4:
 
 ```
-R1 ✓ (44–46) ──→ R2 ✓ (47–51) ──→ R3 (52–80 landed; 67b open) ──→ Step 5
+R1 ✓ (44–46) ──→ R2 ✓ (47–51) ──→ R3 (52–81 landed; 67b open) ──→ Step 5
                                         └──────→ R4 (implicitContinue + 0 < m) ──┘
 ```
 
@@ -9556,11 +9613,12 @@ and that deletion, by input class:
   |---|---|
   | ~~the pack's own column~~ | CLOSED by item 79 |
   | ~~preprocessing RE-SAVED at the `:`~~ | CLOSED by item 80 — the park's flag: the props side spends `h_ska`, the content side its armed shape (`h_arm`'s left disjunct now carries `simpleKey.possible = false`, §8.1's own clear), and `implicit_key_floor` takes the inherit as a premise |
-  | `scanValueClearKey` cleared the key (`[197]`'s explicit-key arm) | `scanValueClearKey`'s condition (2) is refuted by the pack's own `simpleKey.pos.line = line` (`scanValueClearKey_keyrun` already states the pair); its condition (1) needs the key to sit strictly BEHIND the `:`, which no pack carries — the next item's one datum |
+  | ~~`scanValueClearKey` cleared the key (`[197]`'s explicit-key arm)~~ | CLOSED by item 81 — condition (2) dies on the pack's `pos.line = line`, condition (1) on `KeysBehindCursor`, the scanner-wide behind-the-cursor invariant threaded through the loop; `implicit_key_floor` is TOTAL |
 
   So the order is: ~~the content park's armed-shape field~~ (CLOSED by item 80),
-  then the `[197]` clear, then the field itself, then `pendingProps`' floor,
-  then `FlowStackK`'s.
+  ~~then the `[197]` clear~~ (CLOSED by item 81 — both `colon_open_map` lemmas
+  hand `pendingMapValue` a REAL floor now), then the field itself, then
+  `pendingProps`' floor, then `FlowStackK`'s.
   ~~What survives:
   `dropClose`'s remaining domain — the VALID multi-line scalar tokens at a
   nonzero index~~ — the TOKENS are CLOSED by item 67a, which built the flow

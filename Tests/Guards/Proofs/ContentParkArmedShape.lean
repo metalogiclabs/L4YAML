@@ -24,8 +24,8 @@ With the question answered at the consumers (`colon_fires_implicit_key` spends
 the park's `h_stale`/`h_arm`, `colon_fires_props_key` the props park's
 `h_nic`/`h_ska`), `implicit_key_floor` takes the inherit as a PREMISE
 (`h_inh`) instead of casing `preprocess_some_savedKey_shape` and punting on
-its fresh arm.  Its punt list is one entry now: the explicit-key clear
-(`[197]`'s arm inside `scanValue_key_col_le_or`), which is the next item's.
+its fresh arm.  (Item 81 then closed the one remaining punt — the explicit-key
+clear — so the lemma is TOTAL now; §2 of `KeysBehindCursorFloor` pins that.)
 
 §1 pins the strengthened types; §2 pins the consumer's two moves; §3 pins the
 runtime invariant the armed shape states; §4 pins the inherit the consumers
@@ -48,18 +48,25 @@ example {s s' : ScannerState} (hok : scanBlockScalar s = .ok s') :
   ⟨scanBlockScalar_simpleKeyAllowed hok, scanBlockScalar_simpleKey_false hok⟩
 
 /-- `implicit_key_floor` takes the inherit as a premise (`h_inh`) — the
-    re-save case is the caller's to refute, not this lemma's to punt on. -/
+    re-save case is the caller's to refute, not this lemma's to punt on.
+    (Stated here as the item-80 shape; item 81 made the conclusion total, and
+    the weaker disjunction below is the projection every optional field still
+    accepts.) -/
 example {sc s_prep s' : ScannerState} {k : Nat}
     (h_poss : sc.simpleKey.possible = true)
     (h_kcol : sc.simpleKey.pos.col = k)
     (h_inh : s_prep.simpleKey = sc.simpleKey)
+    (h_kline : s_prep.simpleKey.pos.line = s_prep.line)
+    (h_behind : s_prep.simpleKey.pos.offset ≠ s_prep.offset)
+    (h_noflow : s_prep.inFlow = false)
     (h_preprocess : scanNextToken_preprocess sc = .ok (some (s_prep, ':')))
     (h_dispatch : scanNextToken_dispatchBlockIndicators
         (if s_prep.allowDirectives then
           { s_prep with allowDirectives := false, documentEverStarted := true }
         else s_prep) ':' = .ok (some s')) :
     IndentFloor s' k ∨ True :=
-  implicit_key_floor h_poss h_kcol h_inh h_preprocess h_dispatch
+  Or.inl (implicit_key_floor h_poss h_kcol h_inh h_kline h_behind h_noflow
+    h_preprocess h_dispatch)
 
 /-! ## §2  The consumer's two moves
 

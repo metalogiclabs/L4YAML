@@ -10850,4 +10850,486 @@ lemma scanNextToken_progress (s s' : ScannerState)
                           have := dispatchContent_offset_gt sp2 _ c h_hm2 h_peek2 hnoDoc2 h_dc
                           omega
 
+/-! ### The saved keys sit strictly behind the cursor (DOCS item 81)
+
+`scanValueClearKey`'s phantom-key branch tests `simpleKey.pos.offset ==
+s.offset` — a key saved AT the `:` itself.  An INHERITED key can never satisfy
+it: every save is at the then-current cursor (`saveSimpleKey`), and the token
+scanned between the save and any later state strictly advanced the cursor.
+Stated as one scanner-wide invariant over the current key AND the stack (a
+flow close restores a stacked key), vacuous at `mk'` and preserved by every
+`scanNextToken` step: preprocessing may save AT the cursor (the `≤` form
+below), and the dispatch's own strict advance turns the `≤` back into `<`. -/
+
+/-- Every live saved key — current or stacked — is strictly behind the cursor. -/
+def KeysBehindCursor (s : ScannerState) : Prop :=
+  (s.simpleKey.possible = true → s.simpleKey.pos.offset < s.offset) ∧
+  (∀ j (h : j < s.simpleKeyStack.size),
+    s.simpleKeyStack[j].possible = true → s.simpleKeyStack[j].pos.offset < s.offset)
+
+/-- The mid-step weakening: after preprocessing a fresh save sits AT the
+    cursor, so the bound is `≤` until the dispatch advances. -/
+def KeysAtOrBehind (s : ScannerState) : Prop :=
+  (s.simpleKey.possible = true → s.simpleKey.pos.offset ≤ s.offset) ∧
+  (∀ j (h : j < s.simpleKeyStack.size),
+    s.simpleKeyStack[j].possible = true → s.simpleKeyStack[j].pos.offset ≤ s.offset)
+
+lemma KeysBehindCursor.initial (input : String) :
+    KeysBehindCursor (ScannerState.mk' input) := by
+  constructor
+  · intro h
+    exact absurd h (by unfold ScannerState.mk'; simp)
+  · intro j hj
+    exact absurd hj (by unfold ScannerState.mk'; simp)
+
+/-- The seed states the accumulator starts from: `emit`/`consumeBOM` on top of
+    `mk'` touch neither key nor stack liveness, so the invariant stays vacuous. -/
+lemma KeysBehindCursor_of_key_stack_eq {s s' : ScannerState}
+    (h : KeysBehindCursor s)
+    (h_sk : s'.simpleKey = s.simpleKey)
+    (h_stack : s'.simpleKeyStack = s.simpleKeyStack)
+    (h_off : s.offset ≤ s'.offset) : KeysBehindCursor s' := by
+  constructor
+  · intro hp; rw [h_sk] at hp ⊢; exact Nat.lt_of_lt_of_le (h.1 hp) h_off
+  · intro j hj hp
+    simp only [h_stack] at hj hp ⊢
+    exact Nat.lt_of_lt_of_le (h.2 j hj hp) h_off
+
+/-! #### The four spine shapes a dispatch can leave -/
+
+/-- The dispatch kept the key's position (preserved, or an `endLine` touch)
+    and the stack, and strictly advanced. -/
+lemma KeysBehind_preserved {s s' : ScannerState}
+    (h_kab : KeysAtOrBehind s) (h_gt : s.offset < s'.offset)
+    (h_key : s'.simpleKey.possible = true →
+      s'.simpleKey.pos = s.simpleKey.pos ∧ s.simpleKey.possible = true)
+    (h_stack : s'.simpleKeyStack = s.simpleKeyStack) : KeysBehindCursor s' := by
+  constructor
+  · intro hp
+    obtain ⟨hpos, hposs⟩ := h_key hp
+    rw [hpos]
+    exact Nat.lt_of_le_of_lt (h_kab.1 hposs) h_gt
+  · intro j hj hp
+    simp only [h_stack] at hj hp ⊢
+    exact Nat.lt_of_le_of_lt (h_kab.2 j hj hp) h_gt
+
+/-- The dispatch cleared the key and kept the stack. -/
+lemma KeysBehind_cleared {s s' : ScannerState}
+    (h_kab : KeysAtOrBehind s) (h_gt : s.offset < s'.offset)
+    (h_poss : s'.simpleKey.possible = false)
+    (h_stack : s'.simpleKeyStack = s.simpleKeyStack) : KeysBehindCursor s' := by
+  constructor
+  · intro hp; rw [h_poss] at hp; cases hp
+  · intro j hj hp
+    simp only [h_stack] at hj hp ⊢
+    exact Nat.lt_of_le_of_lt (h_kab.2 j hj hp) h_gt
+
+/-- A flow open: the current key is pushed, the current slot cleared. -/
+lemma KeysBehind_push {s s' : ScannerState}
+    (h_kab : KeysAtOrBehind s) (h_gt : s.offset < s'.offset)
+    (h_poss : s'.simpleKey.possible = false)
+    (h_pushed : s'.simpleKeyStack = s.simpleKeyStack.push s.simpleKey) :
+    KeysBehindCursor s' := by
+  constructor
+  · intro hp; rw [h_poss] at hp; cases hp
+  · intro j hj hp
+    simp only [h_pushed] at hj hp ⊢
+    rw [Array.size_push] at hj
+    by_cases hlt : j < s.simpleKeyStack.size
+    · rw [Array.getElem_push_lt hlt] at hp ⊢
+      exact Nat.lt_of_le_of_lt (h_kab.2 j hlt hp) h_gt
+    · have hj_eq : j = s.simpleKeyStack.size := by omega
+      subst hj_eq
+      rw [Array.getElem_push_eq] at hp ⊢
+      exact Nat.lt_of_le_of_lt (h_kab.1 hp) h_gt
+
+/-- A flow close: the stack top is restored, the stack popped. -/
+lemma KeysBehind_pop {s s' : ScannerState}
+    (h_kab : KeysAtOrBehind s) (h_gt : s.offset < s'.offset)
+    (h_restored : s'.simpleKey = s.simpleKeyStack.back?.getD {})
+    (h_popped : s'.simpleKeyStack = s.simpleKeyStack.pop) : KeysBehindCursor s' := by
+  constructor
+  · intro hp
+    rw [h_restored] at hp ⊢
+    by_cases h_size : 0 < s.simpleKeyStack.size
+    · have h_bound : s.simpleKeyStack.size - 1 < s.simpleKeyStack.size := by omega
+      have h_get : s.simpleKeyStack.back?.getD {} =
+          s.simpleKeyStack[s.simpleKeyStack.size - 1]'h_bound := by
+        simp [Array.back?, h_bound]
+      rw [h_get] at hp ⊢
+      exact Nat.lt_of_le_of_lt (h_kab.2 _ h_bound hp) h_gt
+    · exfalso
+      have h0 : s.simpleKeyStack.size = 0 := by omega
+      have h_empty : s.simpleKeyStack.back? = none := by
+        simp [Array.back?, h0]
+      rw [h_empty] at hp
+      exact absurd hp (by simp [Option.getD])
+  · intro j hj hp
+    simp only [h_popped] at hj hp ⊢
+    rw [Array.size_pop] at hj
+    rw [Array.getElem_pop] at hp ⊢
+    exact Nat.lt_of_le_of_lt (h_kab.2 j (by omega) hp) h_gt
+
+/-! #### Preprocessing: the save is at the cursor, everything else inherits -/
+
+/-- `saveSimpleKey` either leaves the key alone or saves AT its own cursor. -/
+lemma saveSimpleKey_key_shape (st : ScannerState) :
+    (saveSimpleKey st).simpleKey = st.simpleKey ∨
+    ((saveSimpleKey st).simpleKey.possible = true ∧
+     (saveSimpleKey st).simpleKey.pos.offset = (saveSimpleKey st).offset) := by
+  unfold saveSimpleKey
+  split
+  · exact Or.inl rfl
+  · split
+    · exact Or.inr ⟨rfl, rfl⟩
+    · exact Or.inl rfl
+
+/-- The preprocessed key: inherited from the caller, or fresh at the cursor. -/
+lemma preprocess_key_shape (s s2 : ScannerState) (c : Char)
+    (h : scanNextToken_preprocess s = .ok (some (s2, c))) :
+    s2.simpleKey = s.simpleKey ∨
+    (s2.simpleKey.possible = true ∧ s2.simpleKey.pos.offset = s2.offset) := by
+  unfold scanNextToken_preprocess at h
+  simp only [bind, Except.bind, pure, Except.pure] at h
+  split at h
+  · simp at h
+  · rename_i s_skip h_skip
+    have h_key_skip := skipToContent_preserves_simpleKey s s_skip h_skip
+    split at h
+    · simp at h
+    · split at h
+      · -- armed unwind branch
+        split at h
+        · simp at h
+        · split at h
+          · simp at h
+          · simp only [Except.ok.injEq, Option.some.injEq, Prod.mk.injEq] at h
+            obtain ⟨rfl, _⟩ := h
+            rcases saveSimpleKey_key_shape
+                { unwindIndents s_skip ↑s_skip.col with needIndentCheck := false } with heq | hfresh
+            · refine Or.inl (heq.trans ?_)
+              show (unwindIndents s_skip ↑s_skip.col).simpleKey = s.simpleKey
+              rw [unwindIndents_preserves_simpleKey]
+              exact h_key_skip
+            · exact Or.inr hfresh
+      · -- no unwind
+        split at h
+        · simp at h
+        · split at h
+          · simp at h
+          · simp only [Except.ok.injEq, Option.some.injEq, Prod.mk.injEq] at h
+            obtain ⟨rfl, _⟩ := h
+            rcases saveSimpleKey_key_shape s_skip with heq | hfresh
+            · exact Or.inl (heq.trans h_key_skip)
+            · exact Or.inr hfresh
+
+/-- Preprocessing keeps every key at or behind the cursor. -/
+lemma preprocess_KeysAtOrBehind {s s2 : ScannerState} {c : Char}
+    (h : scanNextToken_preprocess s = .ok (some (s2, c)))
+    (h_kbc : KeysBehindCursor s) : KeysAtOrBehind s2 := by
+  have h_ge := preprocess_offset_ge s s2 c h
+  have h_stack := preprocess_preserves_simpleKeyStack s s2 c h
+  constructor
+  · intro hp
+    rcases preprocess_key_shape s s2 c h with heq | ⟨_, hfresh⟩
+    · rw [heq] at hp ⊢
+      exact Nat.le_trans (Nat.le_of_lt (h_kbc.1 hp)) h_ge
+    · exact Nat.le_of_eq hfresh
+  · intro j hj hp
+    simp only [h_stack] at hj hp ⊢
+    exact Nat.le_trans (Nat.le_of_lt (h_kbc.2 j hj hp)) h_ge
+
+/-! #### The four dispatch families -/
+
+lemma dispatchStructural_preserves_KeysBehind (s : ScannerState) (c : Char)
+    (s' : ScannerState) (h : scanNextToken_dispatchStructural s c = .ok (some s'))
+    (h_gt : s.offset < s'.offset)
+    (h_kab : KeysAtOrBehind s) : KeysBehindCursor s' := by
+  unfold scanNextToken_dispatchStructural at h
+  simp only [bind, Except.bind, pure, Except.pure] at h
+  split at h
+  · simp at h
+  · split at h
+    · simp at h
+    · split at h
+      · simp only [Except.ok.injEq, Option.some.injEq] at h; subst h
+        exact KeysBehind_cleared h_kab h_gt (scanDocumentStart_clears_simpleKey s)
+          (scanDocumentStart_preserves_simpleKeyStack s)
+      · split at h
+        · split at h
+          · simp at h
+          · simp only [Except.ok.injEq, Option.some.injEq] at h; subst h
+            rename_i s_de h_de
+            exact KeysBehind_cleared h_kab h_gt
+              (scanDocumentEnd_clears_simpleKey s s_de h_de)
+              (scanDocumentEnd_preserves_simpleKeyStack s s_de h_de)
+        · split at h
+          · split at h
+            · simp at h
+            · simp only [Except.ok.injEq, Option.some.injEq] at h; subst h
+              rename_i s_dir h_dir
+              exact KeysBehind_preserved h_kab h_gt
+                (fun hp => ⟨by rw [scanDirective_preserves_simpleKey s _ h_dir],
+                  by rw [← scanDirective_preserves_simpleKey s _ h_dir]; exact hp⟩)
+                (scanDirective_preserves_simpleKeyStack s _ h_dir)
+          · simp at h
+
+lemma dispatchFlowIndicators_preserves_KeysBehind (s : ScannerState) (c : Char)
+    (s' : ScannerState) (h : scanNextToken_dispatchFlowIndicators s c = .ok (some s'))
+    (h_gt : s.offset < s'.offset)
+    (h_kab : KeysAtOrBehind s) : KeysBehindCursor s' := by
+  unfold scanNextToken_dispatchFlowIndicators at h
+  replace h := peel_flowAdj h
+  simp only [bind, Except.bind, pure, Except.pure] at h
+  split at h
+  · simp only [Except.ok.injEq, Option.some.injEq] at h; subst h
+    exact KeysBehind_push h_kab h_gt (scanFlowSequenceStart_simpleKey_cleared s)
+      (scanFlowSequenceStart_stack_pushed s)
+  · split at h
+    · split at h
+      · simp at h
+      · split at h
+        · simp at h
+        · split at h
+          · simp at h
+          · simp only [Except.ok.injEq, Option.some.injEq] at h; subst h
+            exact KeysBehind_pop h_kab h_gt (scanFlowSequenceEnd_simpleKey_restored s)
+              (scanFlowSequenceEnd_stack_popped s)
+    · split at h
+      · simp only [Except.ok.injEq, Option.some.injEq] at h; subst h
+        exact KeysBehind_push h_kab h_gt (scanFlowMappingStart_simpleKey_cleared s)
+          (scanFlowMappingStart_stack_pushed s)
+      · split at h
+        · split at h
+          · simp at h
+          · split at h
+            · simp at h
+            · split at h
+              · simp at h
+              · simp only [Except.ok.injEq, Option.some.injEq] at h; subst h
+                exact KeysBehind_pop h_kab h_gt (scanFlowMappingEnd_simpleKey_restored s)
+                  (scanFlowMappingEnd_stack_popped s)
+        · split at h
+          · split at h
+            · simp at h
+            · split at h
+              · simp at h
+              · rename_i _ _ _ h_entry
+                simp only [Except.ok.injEq, Option.some.injEq] at h; subst h
+                exact KeysBehind_cleared h_kab h_gt
+                  (scanFlowEntry_clears_simpleKey s _ h_entry)
+                  (scanFlowEntry_preserves_simpleKeyStack s _ h_entry)
+          · simp at h
+
+lemma dispatchBlockIndicators_preserves_KeysBehind (s : ScannerState) (c : Char)
+    (s' : ScannerState) (h : scanNextToken_dispatchBlockIndicators s c = .ok (some s'))
+    (h_gt : s.offset < s'.offset)
+    (h_kab : KeysAtOrBehind s) : KeysBehindCursor s' := by
+  unfold scanNextToken_dispatchBlockIndicators at h
+  simp only [bind, Except.bind, pure, Except.pure] at h
+  split at h
+  · split at h
+    · simp at h
+    · simp only [Except.ok.injEq, Option.some.injEq] at h; subst h
+      rename_i s_be h_be
+      exact KeysBehind_preserved h_kab h_gt
+        (fun hp => ⟨by rw [scanBlockEntry_preserves_simpleKey s _ h_be],
+          by rw [← scanBlockEntry_preserves_simpleKey s _ h_be]; exact hp⟩)
+        (scanBlockEntry_preserves_simpleKeyStack s _ h_be)
+  · split at h
+    · split at h
+      · simp at h
+      · simp only [Except.ok.injEq, Option.some.injEq] at h; subst h
+        rename_i s_k h_k
+        exact KeysBehind_cleared h_kab h_gt (scanKey_clears_simpleKey s _ h_k)
+          (scanKey_preserves_simpleKeyStack s _ h_k)
+    · split at h
+      · split at h
+        · simp at h
+        · simp only [Except.ok.injEq, Option.some.injEq] at h; subst h
+          rename_i s_v h_v
+          exact KeysBehind_cleared h_kab h_gt (scanValue_clears_simpleKey s _ h_v)
+            (scanValue_preserves_simpleKeyStack s _ h_v)
+      · simp at h
+
+lemma dispatchContent_preserves_KeysBehind (s : ScannerState) (c : Char)
+    (s' : ScannerState) (h : scanNextToken_dispatchContent s c = .ok s')
+    (h_gt : s.offset < s'.offset)
+    (h_kab : KeysAtOrBehind s) : KeysBehindCursor s' := by
+  unfold scanNextToken_dispatchContent at h
+  simp only [bind, Except.bind, pure, Except.pure] at h
+  split at h
+  · -- '&': anchor, then the definedAnchors touch-up (key and stack untouched)
+    split at h
+    · simp at h
+    split at h
+    · simp at h
+    · rename_i s_a h_anch
+      simp only [Except.ok.injEq] at h; subst h
+      have h_sk := scanAnchorOrAlias_preserves_simpleKey s true s_a h_anch
+      have h_st := scanAnchorOrAlias_preserves_simpleKeyStack s true s_a h_anch
+      exact KeysBehind_preserved h_kab h_gt
+        (fun hp => ⟨by show s_a.simpleKey.pos = _; rw [h_sk],
+          by revert hp; show s_a.simpleKey.possible = true → _; rw [h_sk]; exact id⟩)
+        (by show s_a.simpleKeyStack = _; rw [h_st])
+  · split at h
+    · -- '*': alias
+      split at h
+      · simp at h
+      split at h
+      · simp at h
+      · replace h := aliasArm_scan_ok h
+        exact KeysBehind_preserved h_kab h_gt
+          (fun hp => ⟨by rw [scanAnchorOrAlias_preserves_simpleKey s false _ h],
+            by rw [← scanAnchorOrAlias_preserves_simpleKey s false _ h]; exact hp⟩)
+          (scanAnchorOrAlias_preserves_simpleKeyStack s false _ h)
+    · split at h
+      · -- '!': tag
+        split at h
+        · simp at h
+        exact KeysBehind_preserved h_kab h_gt
+          (fun hp => ⟨by rw [scanTag_preserves_simpleKey s _ h],
+            by rw [← scanTag_preserves_simpleKey s _ h]; exact hp⟩)
+          (scanTag_preserves_simpleKeyStack s _ h)
+      · split at h
+        · -- '|' or '>': the block scalar clears
+          replace h := peel_blockScalarGuard h
+          exact KeysBehind_cleared h_kab h_gt (scanBlockScalar_clears_simpleKey s _ h)
+            (scanBlockScalar_preserves_simpleKeyStack s _ h)
+        · split at h
+          · -- '"': double quoted + endLine touch-up (pos untouched)
+            split at h
+            · simp at h
+            · rename_i s_dq h_dq
+              have h_sk := scanDoubleQuoted_preserves_simpleKey s s_dq h_dq
+              have h_st := scanDoubleQuoted_preserves_simpleKeyStack s s_dq h_dq
+              split at h <;>
+                (simp only [Except.ok.injEq] at h; subst h)
+              · exact KeysBehind_preserved h_kab h_gt
+                  (fun hp => ⟨by simp only [h_sk], by
+                    revert hp; simp only [h_sk]; exact id⟩) (by simp only [h_st])
+              · exact KeysBehind_preserved h_kab h_gt
+                  (fun hp => ⟨by rw [h_sk], by rw [← h_sk]; exact hp⟩) h_st
+          · split at h
+            · -- '\'': single quoted, same
+              split at h
+              · simp at h
+              · rename_i s_sq h_sq
+                have h_sk := scanSingleQuoted_preserves_simpleKey s s_sq h_sq
+                have h_st := scanSingleQuoted_preserves_simpleKeyStack s s_sq h_sq
+                split at h <;>
+                  (simp only [Except.ok.injEq] at h; subst h)
+                · exact KeysBehind_preserved h_kab h_gt
+                    (fun hp => ⟨by simp only [h_sk], by
+                      revert hp; simp only [h_sk]; exact id⟩) (by simp only [h_st])
+                · exact KeysBehind_preserved h_kab h_gt
+                    (fun hp => ⟨by rw [h_sk], by rw [← h_sk]; exact hp⟩) h_st
+            · split at h
+              · -- plain
+                exact KeysBehind_preserved h_kab h_gt
+                  (fun hp => ⟨by rw [scanPlainScalar_preserves_simpleKey s _ h],
+                    by rw [← scanPlainScalar_preserves_simpleKey s _ h]; exact hp⟩)
+                  (scanPlainScalar_preserves_simpleKeyStack s _ h)
+              · simp at h
+
+set_option maxHeartbeats 800000 in
+/-- **`scanNextToken` preserves the invariant.**  The skeleton is
+    `scanNextToken_progress`'s: preprocessing weakens `<` to `≤` (the fresh
+    save is AT the cursor), and every dispatch's strict advance restores it. -/
+lemma scanNextToken_preserves_KeysBehindCursor (s s' : ScannerState)
+    (h : scanNextToken s = .ok (some s'))
+    (h_kbc : KeysBehindCursor s) : KeysBehindCursor s' := by
+  unfold scanNextToken at h
+  simp only [bind, Except.bind, pure, Except.pure, Bind.bind, Pure.pure] at h
+  split at h
+  · cases h
+  · split at h
+    · simp at h
+    · rename_i sp c h_pre
+      have h_kab := preprocess_KeysAtOrBehind h_pre h_kbc
+      have h_hm := preprocess_hasMore s sp c h_pre
+      split at h
+      · cases h
+      · split at h
+        · simp only [Except.ok.injEq, Option.some.injEq] at h; subst h
+          exact dispatchStructural_preserves_KeysBehind sp c _ ‹_›
+            (dispatchStructural_offset_gt sp _ c h_hm ‹_›) h_kab
+        · rename_i h_struct
+          have hnoDoc := dispatchStructural_none_noDoc sp c h_struct
+          have h_peek := preprocess_peek_eq s sp c h_pre
+          split at h
+          · cases h
+          · split at h
+            · cases h
+            · rcases h_ad : sp.allowDirectives with _ | _
+              <;> simp only [h_ad, Bool.false_eq_true, ↓reduceIte] at h
+              · generalize h_fi : scanNextToken_dispatchFlowIndicators sp c = fi at h
+                cases fi with
+                | error => cases h
+                | ok fi_opt =>
+                  cases fi_opt with
+                  | some s_fi =>
+                    simp only [Except.ok.injEq, Option.some.injEq] at h; subst h
+                    exact dispatchFlowIndicators_preserves_KeysBehind sp c _ h_fi
+                      (dispatchFlowIndicators_offset_gt sp _ c h_hm h_fi) h_kab
+                  | none =>
+                    generalize h_bi : scanNextToken_dispatchBlockIndicators sp c = bi at h
+                    cases bi with
+                    | error => cases h
+                    | ok bi_opt =>
+                      cases bi_opt with
+                      | some s_bi =>
+                        simp only [Except.ok.injEq, Option.some.injEq] at h; subst h
+                        exact dispatchBlockIndicators_preserves_KeysBehind sp c _ h_bi
+                          (dispatchBlockIndicators_offset_gt sp _ c h_hm h_bi) h_kab
+                      | none =>
+                        generalize h_av : scanNextToken_checkAdjacentValue sp c = av at h
+                        cases av with
+                        | error => cases h
+                        | ok _ =>
+                        generalize h_dc : scanNextToken_dispatchContent sp c = dc at h
+                        cases dc with
+                        | error => cases h
+                        | ok s_dc =>
+                          simp only [Except.ok.injEq, Option.some.injEq] at h; subst h
+                          exact dispatchContent_preserves_KeysBehind sp c _ h_dc
+                            (dispatchContent_offset_gt sp _ c h_hm h_peek hnoDoc h_dc) h_kab
+              · generalize h_sp2 : (({ sp with allowDirectives := false, documentEverStarted := true } : ScannerState)) = sp2 at h
+                have h_hm2 : sp2.offset < sp2.inputEnd := by rw [← h_sp2]; exact h_hm
+                have h_peek2 : sp2.peek? = some c := by rw [← h_sp2]; exact h_peek
+                have hnoDoc2 : (sp2.col == 0 && atDocumentBoundary sp2) = false := by
+                  rw [← h_sp2]; exact hnoDoc
+                have h_kab2 : KeysAtOrBehind sp2 := by rw [← h_sp2]; exact h_kab
+                generalize h_fi : scanNextToken_dispatchFlowIndicators sp2 c = fi at h
+                cases fi with
+                | error => cases h
+                | ok fi_opt =>
+                  cases fi_opt with
+                  | some s_fi =>
+                    simp only [Except.ok.injEq, Option.some.injEq] at h; subst h
+                    exact dispatchFlowIndicators_preserves_KeysBehind sp2 c _ h_fi
+                      (dispatchFlowIndicators_offset_gt sp2 _ c h_hm2 h_fi) h_kab2
+                  | none =>
+                    generalize h_bi : scanNextToken_dispatchBlockIndicators sp2 c = bi at h
+                    cases bi with
+                    | error => cases h
+                    | ok bi_opt =>
+                      cases bi_opt with
+                      | some s_bi =>
+                        simp only [Except.ok.injEq, Option.some.injEq] at h; subst h
+                        exact dispatchBlockIndicators_preserves_KeysBehind sp2 c _ h_bi
+                          (dispatchBlockIndicators_offset_gt sp2 _ c h_hm2 h_bi) h_kab2
+                      | none =>
+                        generalize h_av : scanNextToken_checkAdjacentValue sp2 c = av at h
+                        cases av with
+                        | error => cases h
+                        | ok _ =>
+                        generalize h_dc : scanNextToken_dispatchContent sp2 c = dc at h
+                        cases dc with
+                        | error => cases h
+                        | ok s_dc =>
+                          simp only [Except.ok.injEq, Option.some.injEq] at h; subst h
+                          exact dispatchContent_preserves_KeysBehind sp2 c _ h_dc
+                            (dispatchContent_offset_gt sp2 _ c h_hm2 h_peek2 hnoDoc2 h_dc) h_kab2
+
 end L4YAML.Proofs.ScannerCorrectness
