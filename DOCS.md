@@ -9449,6 +9449,41 @@ inequality read off the running scanner — over ten shapes including item 15's
 (220/354; 20/229/248/354; 25 capstones); `#print axioms` clean of `sorryAx`
 over the touched chain.  ZERO runtime edits.
 
+### Item 83 (2026-09-05)
+
+**`pendingProps`' floor is unconditional.**  The `[96]` run inherits the
+ENTRY's floor — a props scan writes tokens, not indents — and the one opener
+that could not measure was the INDENTED one, whose landed step unwinds the
+indent stack.  But `indentedValue_reads_at_any_indent` was already DERIVING
+the floor at the landing (`preprocess_some_floor_at_landing`, in its `pre`
+block) and then throwing it away: its props arm returned the stability
+conjunct, optional exactly where the landing is.  This item makes the lemma
+return the floor AT `s'` instead — inline off the stability, landed off the
+landing's own `s-indent(n)`, the props scan preserving the stack either way —
+which needed the lemma's own floor premise real (every caller's park carries
+one since item 82) and the park off a line start (`h_col0`, which every
+producer parks; the degenerate column-0 landing is REFUTED rather than
+punted).  The block-scalar and fold arms spend the same tightened `pre`, so
+their own floor `rcases` collapse to direct uses.
+
+**The flow open's LAST two floor-gated drop rides are DELETED.**  With
+`h_floor : IndentFloor sc n` on the constructor (six root producers drop
+their `Or.inl`, the two indented ones take the lemma's new conjunct, the two
+extension sites transport the real field), the open's props under-run arms
+refute both halves outright.  `drop_ride` has ONE textual use left —
+`pendingFlow`'s opaque resume, R3's own — so the drop's whole surviving
+domain is now the constructor the deletion removes.
+
+**Measured** (`Tests/Guards/Proofs/PropsFloorUnconditional.lean`).  §2 checks
+the floor's two transport premises on the running scanner — `&`/`!` steps
+preserve the indent stack and land with the indent-check flag down — over
+inline, landed (`k:⏎  &a x: 1`) and nested-landed runs.
+
+**Validation.**  Full `lake build` green (1066 jobs, ZERO warnings);
+`run-all-tests.sh` 6689/6689; `eventscore` 347/358 unmoved; three checkers OK;
+`#print axioms` clean of `sorryAx` over the reworked chain.  ZERO runtime
+edits.
+
 ### REMAINING, in order
 
 The per-item history is the closure log above; this section lists only the
@@ -9461,7 +9496,7 @@ a nonzero index.  R2 is CLOSED too (items 47–51), so what stands between here
 and Step 5 (the converse) is R3's remaining production work and R4:
 
 ```
-R1 ✓ (44–46) ──→ R2 ✓ (47–51) ──→ R3 (52–82 landed; 67b open) ──→ Step 5
+R1 ✓ (44–46) ──→ R2 ✓ (47–51) ──→ R3 (52–83 landed; 67b open) ──→ Step 5
                                         └──────→ R4 (implicitContinue + 0 < m) ──┘
 ```
 
@@ -9649,7 +9684,9 @@ and that deletion, by input class:
   ~~then the `[197]` clear~~ (CLOSED by item 81 — both `colon_open_map` lemmas
   hand `pendingMapValue` a REAL floor now), ~~then the field itself~~ (CLOSED by
   item 82 — `h_floor : IndentFloor sc n` outright, two of the open's drop rides
-  deleted with it), then `pendingProps`' floor, then `FlowStackK`'s.
+  deleted with it), ~~then `pendingProps`' floor~~ (CLOSED by item 83 — the
+  flow open's last two floor-gated drop rides went with it; `drop_ride` is
+  `pendingFlow`'s alone now), then `FlowStackK`'s.
   ~~What survives:
   `dropClose`'s remaining domain — the VALID multi-line scalar tokens at a
   nonzero index~~ — the TOKENS are CLOSED by item 67a, which built the flow

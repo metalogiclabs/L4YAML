@@ -46,6 +46,7 @@ import Tests.Guards.Proofs.MaskBaseColumn
 import Tests.Guards.Proofs.ContentParkArmedShape
 import Tests.Guards.Proofs.KeysBehindCursorFloor
 import Tests.Guards.Proofs.MapValueFloorUnconditional
+import Tests.Guards.Proofs.PropsFloorUnconditional
 import Tests.Guards.Proofs.ScannerIndexedFlowCompose
 import Tests.Guards.Proofs.ScannerAdjacentValueRefused
 import Tests.Guards.Proofs.ScannerSameLineCollectionRefused
