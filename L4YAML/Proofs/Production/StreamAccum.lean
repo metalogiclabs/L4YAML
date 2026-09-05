@@ -1718,13 +1718,20 @@ lemma opensFlowEntry_false_of_isNodeProperty {t : YamlToken} (h : t.isNodeProper
     fires — because that is the direction a refutation needs (`[&a &b]` dies
     because the guard `propertyRunHasAnchor` is true, so the dispatch never
     returns `.ok`). The converse is never used and would cost the reverse
-    lookback reasoning for nothing. -/
+    lookback reasoning for nothing.
+
+    `h_col0` — "the park is not at a line start" — is item 72's, and it is the
+    interior's half of the fact items 59/68 put on the block parks: a landing at
+    column 0 is a landing that crossed a break, which is `LandingTabFacts`'
+    missing premise. `props` does not carry it as a field because
+    `propsRun_col_gt` reads it off `h_run` (`InteriorGap.col_pos`). -/
 inductive InteriorGap (sc : ScannerState) (tl : FrameTail) (sp_flow sp_scan : SurfPos) : Prop where
   | white (h_ws : GStar SSWhite sp_flow sp_scan)
       (h_sync : frameTokenVal? sc.tokens = lastRealTokenVal? sc.tokens)
       (h_colon : tl = .colon → sc.simpleKeyAllowed = true ∧
         sc.explicitKeyLine = none ∧
-        ∃ tok, sc.tokens[sc.tokens.size - 1]? = some tok ∧ tok.val = .value) :
+        ∃ tok, sc.tokens[sc.tokens.size - 1]? = some tok ∧ tok.val = .value)
+      (h_col0 : 0 < sp_scan.col) :
       InteriorGap sc tl sp_flow sp_scan
   | props (ha ht : Bool) (sp_p : SurfPos)
       (h_tail : tl ≠ .value)
@@ -5704,44 +5711,103 @@ lemma flowInterior_underRunEnd_refuted {sc s_prep : ScannerState} {c : Char} {n 
   unfold minContentIndentOf at h_floor
   omega
 
-/-- **What survives the interior's separator lift** (item 69): a landing that
-    under-runs the stack's index and carries a TAB, with §6.1's own fact about
-    it still in hand.
+/-! ### §1d″ The landing is not a comment head (item 72)
 
-    The run-END half is gone — `flowInterior_underRunEnd_refuted` takes it — so
-    this is the whole residue, and `LandingTabFacts` travels beside it because
-    refuting what is left is a question about the FLOW park's column, which the
-    interior does not carry: `LandingTabFacts`' premise is "a break was
-    crossed", and the only witness to that is a park at a nonzero column.  The
-    parks the BLOCK pendings hold have one (items 59/68); the flow park does
-    not, and giving it one is a column invariant across the interior whose hard
-    cases are the multi-line scalar productions. -/
-def SeparatorTabResidue (ci : Int) (nic : Bool) (pk : Option Char) (n : Nat)
-    (s s' : SurfPos) : Prop :=
-  ∃ sp_mid j sx, SSLComments s sp_mid ∧ sp_mid.col = 0 ∧ j < n ∧ SIndent j sp_mid sx ∧
-    GStar SSWhite sx s' ∧ sx.chars.head? = some '\t' ∧ LandingTabFacts ci nic pk s sp_mid
+    `LandingTabFacts` names two survivors of §6.1's tab check — end of input and
+    a `#` — and the step lemmas refute the second from the dispatch they already
+    ran.  Nothing here is about tabs: each dispatch simply declines `#`, and
+    saying so once is what lets the interior's tab half be refuted without the
+    `c = '[' ∨ c = '{'` item 68's open had to spend. -/
 
-/-- **The interior's separator lift** (item 69), replacing a bare
+/-- The five flow indicators are not `#`: anything outside the set falls
+    through to `.ok none`. -/
+lemma flowIndicators_ne_comment {s s' : ScannerState} {c : Char}
+    (h : scanNextToken_dispatchFlowIndicators s c = .ok (some s')) : c ≠ '#' := by
+  rintro rfl
+  unfold scanNextToken_dispatchFlowIndicators at h
+  simp only [bind, Except.bind, pure, Except.pure] at h
+  split at h
+  · simp at h
+  · simp at h
+
+/-- …and neither are `-`, `?` and `:`. -/
+lemma blockIndicators_ne_comment {s s' : ScannerState} {c : Char}
+    (h : scanNextToken_dispatchBlockIndicators s c = .ok (some s')) : c ≠ '#' := by
+  rintro rfl
+  unfold scanNextToken_dispatchBlockIndicators at h
+  simp only [bind, Except.bind, pure, Except.pure] at h
+  simp at h
+
+/-- The content dispatch refuses `#` OUTRIGHT rather than falling through: it is
+    a `[22] c-indicator`, so it fails `[126] ns-plain-first` and the plain-scalar
+    arm that would have taken it errors instead. -/
+lemma content_ne_comment {s s' : ScannerState} {c : Char}
+    (h : scanNextToken_dispatchContent s c = .ok s') : c ≠ '#' := by
+  rintro rfl
+  unfold scanNextToken_dispatchContent at h
+  simp only [bind, Except.bind, pure, Except.pure] at h
+  rw [show CharPredicates.canStartPlainScalarBool '#' (s.peekAt? 1) s.inFlow = false from by
+    unfold CharPredicates.canStartPlainScalarBool
+    rw [if_neg (by decide)]
+    decide] at h
+  simp at h
+
+/-- **…and the interior's TAB half is §6.1's too** (item 72) — the twin of
+    `flowOpen_underRunTab_refuted`, and the last thing standing between the
+    interior's separator lift and a total reading.
+
+    What the open spends and this does not is a fact about the CHARACTER:
+    `LandingTabFacts` leaves a comment head standing, and the open refutes it
+    with `c = '[' ∨ c = '{'`.  Here the same job is done by the dispatch's own
+    `c ≠ '#'`, which every step already has.
+
+    `h_break` is item 72's: `InteriorGap` now carries the park's column, so a
+    landing at column 0 is by construction not the park — which is exactly
+    `LandingTabFacts`' premise, and the reason this lemma could not be stated
+    while the flow gap was columnless. -/
+lemma flowInterior_underRunTab_refuted {sc s_prep : ScannerState} {c : Char} {n j : Nat}
+    {sp_scan sp_mid sx : SurfPos}
+    (h_floor : n ≤ minContentIndentOf sc)
+    (h_ltsl : LandingTabFacts sc.currentIndent sc.needIndentCheck s_prep.peek? sp_scan sp_mid)
+    (h_break : sp_mid ≠ sp_scan)
+    (h_col0 : sp_mid.col = 0)
+    (hj : j < n) (h_ind : SIndent j sp_mid sx) (h_tab : sx.chars.head? = some '\t')
+    (h_hash : c ≠ '#')
+    (h_preprocess : scanNextToken_preprocess sc = .ok (some (s_prep, c))) : False := by
+  unfold minContentIndentOf at h_floor
+  have hci : (0 : Int) ≤ sc.currentIndent := by omega
+  have hsx : (sx.col : Int) ≤ sc.currentIndent := by
+    have := SIndent_col' h_ind; rw [h_col0] at this; omega
+  rcases h_ltsl (Or.inr h_break) hci j sx h_ind hsx h_tab with h | h
+  · rw [preprocess_some_peek h_preprocess] at h; cases h
+  · rw [preprocess_some_peek h_preprocess] at h
+    injection h with h
+    exact h_hash h
+
+/-- **The interior's separator lift** (items 69, 72), replacing a bare
     `SSeparateLines_at` wherever the separator being lifted is PREPROCESSING's
     own — the step's leading separation, cursor to token.
 
-    `SSeparateLines_at` knows only the surface, so its residue is either half
-    of a `WhiteRunUnderRun`; this one is handed the step that produced the
-    landing, so the end half refutes and the residue is the tab.  The floor is
-    not a hypothesis but the residue's own premise: a stack that could not
-    measure its index (`FlowStackK`'s `∨ True`) still gets a reading or a
-    residue, and pays for the sharper residue only when it can. -/
+    `SSeparateLines_at` knows only the surface, so its residue is either half of
+    a `WhiteRunUnderRun`; this one is handed the step that produced the landing,
+    and BOTH halves refute — the run end by `dispatchStructural`'s in-flow floor
+    (item 69), the tab by §6.1's gate (item 72).  So there is no residue at all:
+    what a site gets is the reading, or the fact that its stack's index over-runs
+    the floor and so was never measurable there.
+
+    The floor is not a hypothesis but the second disjunct's own negation: a
+    stack that could not measure its index (`FlowStackK`'s `∨ True`) still gets
+    a reading or that, and pays nothing for the difference. -/
 lemma SSeparateLines_at_interior (n : Nat) {sc s_prep : ScannerState} {c : Char}
     {sp_scan sp_prep : SurfPos}
     (h_inflow : sc.inFlow = true)
+    (h_col : 0 < sp_scan.col)
+    (h_hash : c ≠ '#')
     (h_corr : ScannerSurfCorr sc sp_scan)
     (hcorr_prep : ScannerSurfCorr s_prep sp_prep)
     (h_preprocess : scanNextToken_preprocess sc = .ok (some (s_prep, c)))
     (h_str : scanNextToken_dispatchStructural s_prep c = .ok none) :
-    SSeparateLines n sp_scan sp_prep ∨
-      (n ≤ minContentIndentOf sc →
-        SeparatorTabResidue sc.currentIndent sc.needIndentCheck s_prep.peek? n
-          sp_scan sp_prep) := by
+    SSeparateLines n sp_scan sp_prep ∨ ¬ (n ≤ minContentIndentOf sc) := by
   obtain ⟨sp_p, hcorr_p, h_disj⟩ :=
     preprocess_some_separate_at_anyCol n sc sp_scan s_prep c h_corr h_preprocess
   have h_pe : sp_p = sp_prep := ScannerSurfCorr_unique hcorr_p hcorr_prep
@@ -5750,9 +5816,10 @@ lemma SSeparateLines_at_interior (n : Nat) {sc s_prep : ScannerState} {c : Char}
   · exact Or.inl h
   · refine Or.inr (fun h_floor => ?_)
     rcases h_alt with rfl | h_tab
-    · exact (flowInterior_underRunEnd_refuted h_floor h_inflow hcorr_prep h_col0 hj h_ind
-        h_preprocess h_str).elim
-    · exact ⟨sp_mid, j, sx, h_ssl, h_col0, hj, h_ind, h_ws, h_tab, h_ltsl⟩
+    · exact flowInterior_underRunEnd_refuted h_floor h_inflow hcorr_prep h_col0 hj h_ind
+        h_preprocess h_str
+    · exact flowInterior_underRunTab_refuted h_floor h_ltsl
+        (fun h => by rw [h] at h_col0; omega) h_col0 hj h_ind h_tab h_hash h_preprocess
 
 /-- A white run only moves right. -/
 lemma gstar_white_col_le {sp sp' : SurfPos} (h : GStar SSWhite sp sp') :
@@ -5874,6 +5941,160 @@ lemma propsRun_col_gt {n : Nat} {cc : YamlContext} {ha ht : Bool} {sp sp' : Surf
       (separate_col_ge h_sep (Nat.le_of_lt (Nat.lt_of_le_of_lt h_start (tagProperty_col_lt h_t))))
       (anchorProperty_col_lt h_a)
 
+/-! ### §1d′ A flow node never ends at column 0 (item 72)
+
+    `InteriorGap`'s column field is discharged at the four CONTENT producers by
+    the node the dispatch just built, and this is the ladder that reads it off.
+    Every `[161] ns-flow-node(n,c)` alternative closes on a character of its
+    own — the alias' name, a quote, a `]`/`}`, a plain scalar's
+    `ns-plain-char`, or, when the content is `e-scalar`, the `[96]` properties
+    that precede it — so the endpoint is one column right of SOMETHING, whatever
+    the node's shape and wherever its last line began.
+
+    Item 71 is what makes the plain arm true: with `[134]`'s trailing repetition
+    a `GStar`, a continuation line could consume nothing past a zero-width
+    `[69'] s-flow-line-prefix(0)` and `[135]` ended at column 0.  The two
+    derivations that witnessed it were `Tests/Guards/Proofs/PlainNextLineEmptyRun.lean`,
+    which item 71 deleted. -/
+
+/-- One `[130] ns-plain-char(c)` is one column, in all three shapes. -/
+lemma plainChar_col {cc : YamlContext} {sp sp' : SurfPos} (h : SNsPlainChar cc sp sp') :
+    sp'.col = sp.col + 1 := by cases h <;> rfl
+
+/-- …and one `[126] ns-plain-first(c)`. -/
+lemma plainFirst_col {cc : YamlContext} {sp sp' : SurfPos} (h : SNsPlainFirst cc sp sp') :
+    sp'.col = sp.col + 1 := by cases h <;> rfl
+
+/-- `[132]`'s entry moves STRICTLY right: its leading whites never move left,
+    and the `ns-plain-char` that closes it is one column wide. -/
+lemma plainInLineEntry_col_lt {cc : YamlContext} {sp sp' : SurfPos}
+    (h : SNbNsPlainInLineEntry cc sp sp') : sp.col < sp'.col := by
+  cases h
+  rename_i h_ws h_ch
+  have := gstar_white_col_le h_ws
+  have := plainChar_col h_ch
+  omega
+
+lemma gstar_plainEntry_col_le {cc : YamlContext} {sp sp' : SurfPos}
+    (h : GStar (SNbNsPlainInLineEntry cc) sp sp') : sp.col ≤ sp'.col := by
+  induction h with
+  | nil => exact Nat.le_refl _
+  | cons _ _ _ he _ ih => exact Nat.le_trans (Nat.le_of_lt (plainInLineEntry_col_lt he)) ih
+
+lemma gplus_plainEntry_col_lt {cc : YamlContext} {sp sp' : SurfPos}
+    (h : GPlus (SNbNsPlainInLineEntry cc) sp sp') : sp.col < sp'.col := by
+  cases h with
+  | mk s₂ _ hfirst hrest =>
+    have := plainInLineEntry_col_lt hfirst
+    have := gstar_plainEntry_col_le hrest
+    omega
+
+/-- `[133] ns-plain-one-line(c)` — its `ns-plain-first` is the character. -/
+lemma plainOneLine_col_pos {cc : YamlContext} {sp sp' : SurfPos}
+    (h : SNsPlainOneLine cc sp sp') : 0 < sp'.col := by
+  cases h
+  rename_i h_first h_rest
+  have := plainFirst_col h_first
+  have := gstar_plainEntry_col_le h_rest
+  omega
+
+/-- `[134] s-ns-plain-next-line(n,c)` — item 71's `GPlus` is exactly this fact:
+    the line the fold landed on carries at least one `ns-plain-char`, so the
+    endpoint is right of the line prefix however wide that prefix was. -/
+lemma plainNextLine_col_pos {n : Nat} {cc : YamlContext} {sp sp' : SurfPos}
+    (h : SSNsPlainNextLine n cc sp sp') : 0 < sp'.col := by
+  cases h
+  rename_i h_plus
+  have := gplus_plainEntry_col_lt h_plus
+  omega
+
+/-- `[135] ns-plain-multi-line(n,c)` — the head line if there are no
+    continuations, else the last one. -/
+lemma plainMultiLine_col_pos {n : Nat} {cc : YamlContext} {sp sp' : SurfPos}
+    (h : SNsPlainMultiLine n cc sp sp') : 0 < sp'.col := by
+  cases h
+  rename_i h_one h_next
+  have h1 := plainOneLine_col_pos h_one
+  clear h_one
+  induction h_next with
+  | nil => exact h1
+  | cons _ _ _ hl _ ih => exact ih (plainNextLine_col_pos hl)
+
+/-- `[131] ns-plain(n,c)`, in every context the definition dispatches on. -/
+lemma plain_col_pos {n : Nat} {cc : YamlContext} {sp sp' : SurfPos}
+    (h : SNsPlain n cc sp sp') : 0 < sp'.col := by
+  cases cc <;> simp only [SNsPlain] at h <;>
+    first
+      | exact plainMultiLine_col_pos h
+      | exact plainOneLine_col_pos h
+
+/-- `[104] c-ns-alias-node` — the `*` alone puts the endpoint past column 0. -/
+lemma aliasNode_col_pos {sp sp' : SurfPos} (h : SCNsAliasNode sp sp') : 0 < sp'.col := by
+  cases h
+  rename_i h_plus
+  have := gplus_gchar_col_lt h_plus
+  simp at this
+  omega
+
+/-- `[96] c-ns-properties(n,c)` — whichever half comes last is at least one
+    character wide (`anchorProperty_col_lt` / `tagProperty_col_lt`). -/
+lemma properties_col_pos {n : Nat} {cc : YamlContext} {sp sp' : SurfPos}
+    (h : SCNsProperties n cc sp sp') : 0 < sp'.col := by
+  cases h
+  · rename_i h_t h_opt
+    cases h_opt
+    · have := tagProperty_col_lt h_t; omega
+    · rename_i h_seq
+      cases h_seq
+      rename_i h_a
+      have := anchorProperty_col_lt h_a; omega
+  · rename_i h_a h_opt
+    cases h_opt
+    · have := anchorProperty_col_lt h_a; omega
+    · rename_i h_seq
+      cases h_seq
+      rename_i h_t
+      have := tagProperty_col_lt h_t; omega
+
+/-- `[137] c-flow-sequence(n,c)` ends on its own `]`. -/
+lemma flowSequence_col_pos {n : Nat} {cc : YamlContext} {sp sp' : SurfPos}
+    (h : SFlowSequence n cc sp sp') : 0 < sp'.col := by
+  cases h <;> (rename_i h_close; have := glit_col h_close; omega)
+
+/-- `[140] c-flow-mapping(n,c)` ends on its own `}`. -/
+lemma flowMapping_col_pos {n : Nat} {cc : YamlContext} {sp sp' : SurfPos}
+    (h : SFlowMapping n cc sp sp') : 0 < sp'.col := by
+  cases h <;> (rename_i h_close; have := glit_col h_close; omega)
+
+/-- `[158] ns-flow-content(n,c)`.  The recursion stops here: a collection's
+    endpoint is its closing indicator, so nothing reads the nested nodes. -/
+lemma flowContent_col_pos {n : Nat} {cc : YamlContext} {sp sp' : SurfPos}
+    (h : SFlowContent n cc sp sp') : 0 < sp'.col := by
+  cases h with
+  | plain _ _ _ _ h => exact plain_col_pos h
+  | flowSeq _ _ _ _ h => exact flowSequence_col_pos h
+  | flowMap _ _ _ _ h => exact flowMapping_col_pos h
+  | singleQ _ _ _ _ h => cases h; rename_i h_close; have := glit_col h_close; omega
+  | doubleQ _ _ _ _ h => cases h; rename_i h_close; have := glit_col h_close; omega
+
+/-- `[161] ns-flow-node(n,c)` never ends at column 0. -/
+lemma flowNode_col_pos {n : Nat} {cc : YamlContext} {sp sp' : SurfPos}
+    (h : SFlowNode n cc sp sp') : 0 < sp'.col := by
+  cases h with
+  | alias _ _ _ _ h => exact aliasNode_col_pos h
+  | content _ _ _ _ h => exact flowContent_col_pos h
+  | propsContent _ _ _ _ _ _ _ _ h => exact flowContent_col_pos h
+  | propsEmpty _ _ _ _ h => exact properties_col_pos h
+
+/-- **The interior's park is never at a line start** (item 72).  `white` carries
+    the column as a field; `props` does not need one, because a `[96]` run at
+    index 0 already ends strictly right of it (`propsRun_col_gt`). -/
+lemma InteriorGap.col_pos {sc : ScannerState} {tl : FrameTail} {sp_flow sp_scan : SurfPos}
+    (h : InteriorGap sc tl sp_flow sp_scan) : 0 < sp_scan.col := by
+  cases h with
+  | white _ _ _ h_col0 => exact h_col0
+  | props _ _ _ _ _ h_run => exact propsRun_col_gt h_run (Nat.zero_le _)
+
 /-- **The flow open's floor** (item 67).  The stack the open pushes reads at
     the pending's index for the whole collection, so the index has to still
     measure against the state the OPEN runs at — one preprocessing step past
@@ -5919,6 +6140,9 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
     (h_nv : tailOf s'.tokens ≠ .value)
     (h_sks1 : 0 < s'.simpleKeyStack.size)
     (h_c : c = '[' ∨ c = '{')
+    -- Item 72: the open's own indicator is one column wide, so no park this
+    -- lemma builds is at a line start (`InteriorGap.white`'s `h_col0`).
+    (h_opencol : 0 < sp_open.col)
     (h_fl0 : sc.flowLevel = 0)
     -- Item 66: §8.1's floor, which every flow open passes through before any
     -- dispatch runs.  The under-run rides below are its refutation.
@@ -6033,7 +6257,7 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
                -- crossed a break, and the other never reaches `mk`.
                flowKeyRoute_of_root (Or.inr trivial) h_close h_corr hcorr_prep h_preprocess,
                Or.inr trivial⟩),
-             PendingNode.noPending sp_start sp_open (Or.inr (inFlow_of_flowLevel_eq h_fl1)), hcorr_open, fun _ => ⟨.white (GStar.nil _) h_sync h_colon, h_real, h_ad⟩⟩
+             PendingNode.noPending sp_start sp_open (Or.inr (inFlow_of_flowLevel_eq h_fl1)), hcorr_open, fun _ => ⟨.white (GStar.nil _) h_sync h_colon h_opencol, h_real, h_ad⟩⟩
     · exact h_nobreak hcol hws
   -- The completed constructs cannot reach a same-line `[`/`{`: their producers'
   -- trailing validation left the rest of the line inert (`h_line`), and the
@@ -6070,7 +6294,7 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
      h_kpkg _ _ _ (Or.inl (Nat.zero_le _)) (mkv 0 sp_block (fun sp_ne sp_m _ h_ssl =>
        dropClose h_stream_block sp_ne sp_m h_ssl)),
      PendingNode.noPending sp_start sp_open (Or.inr (inFlow_of_flowLevel_eq h_fl1)), hcorr_open,
-     fun _ => ⟨.white (GStar.nil _) h_sync h_colon, h_real, h_ad⟩⟩
+     fun _ => ⟨.white (GStar.nil _) h_sync h_colon h_opencol, h_real, h_ad⟩⟩
   have opaque_resume : sp_scan.col ≠ 0 → GStar SSWhite sp_scan sp_prep →
       ∃ sp_gram' sp_block' sp_flow' sp_scan',
         SLYamlStream sp_start sp_gram' ∧
@@ -6099,7 +6323,7 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
            h_kpkg _ _ _ (Or.inl (Nat.zero_le _)) (mk 0 _ ⟨topLevelFlowResumeSep h_stream_block h_sep,
              flowKeyRoute_of_root (Or.inl h_col0) h_close_pending h_corr hcorr_prep h_preprocess,
              Or.inr trivial⟩),
-           PendingNode.noPending sp_start sp_open (Or.inr (inFlow_of_flowLevel_eq h_fl1)), hcorr_open, fun _ => ⟨.white (GStar.nil _) h_sync h_colon, h_real, h_ad⟩⟩
+           PendingNode.noPending sp_start sp_open (Or.inr (inFlow_of_flowLevel_eq h_fl1)), hcorr_open, fun _ => ⟨.white (GStar.nil _) h_sync h_colon h_opencol, h_real, h_ad⟩⟩
   | pendingContent _ _ _ h_line _ _ _ _ =>
     -- Item 37: §7.5's set weakens to item 10's here, exactly as `[204]`'s does.
     exact main h_close_pending (refuted (h_line.imp id LineNodeStop.toLineNoOpen))
@@ -6158,7 +6382,7 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
                 | Or.inr _ => Or.inr trivial),
                Or.inr trivial⟩),
              PendingNode.noPending sp_start sp_open (Or.inr (inFlow_of_flowLevel_eq h_fl1)), hcorr_open,
-             fun _ => ⟨.white (GStar.nil _) h_sync h_colon, h_real, h_ad⟩⟩
+             fun _ => ⟨.white (GStar.nil _) h_sync h_colon h_opencol, h_real, h_ad⟩⟩
     · -- Item 66: the run-end half of the under-run is §8.1's own refusal
       -- (`k:⏎  b:⏎    &x⏎[1]`).  Item 68: and so is the TAB half now — the park
       -- carries its own column, and a column-0 landing that is not the park is
@@ -6199,7 +6423,7 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
              flowKeyRoute_of_open (cc := .blockIn) h_docnode (Or.inr trivial)
                h_corr hcorr_prep h_preprocess,
              Or.inr trivial⟩),
-           PendingNode.noPending sp_start sp_open (Or.inr (inFlow_of_flowLevel_eq h_fl1)), hcorr_open, fun _ => ⟨.white (GStar.nil _) h_sync h_colon, h_real, h_ad⟩⟩
+           PendingNode.noPending sp_start sp_open (Or.inr (inFlow_of_flowLevel_eq h_fl1)), hcorr_open, fun _ => ⟨.white (GStar.nil _) h_sync h_colon h_opencol, h_real, h_ad⟩⟩
   | pendingBlock _ _ _ n_old h_close _ h_floor_old _ h_col59 =>
     -- Item 46: the stack opens at the ENTRY's index, so the resume's node
     -- fits `flowInBlock n_old` and `  - [1]` composes.  Item 66: the landing
@@ -6224,7 +6448,7 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
                  (fun sp h => h_close sp (SBlockIndented.node n_old .blockIn sp_scan sp h))
                  (Or.inl h_close) h_corr hcorr_prep h_preprocess,
                Or.inr trivial⟩),
-             PendingNode.noPending sp_start sp_open (Or.inr (inFlow_of_flowLevel_eq h_fl1)), hcorr_open, fun _ => ⟨.white (GStar.nil _) h_sync h_colon, h_real, h_ad⟩⟩
+             PendingNode.noPending sp_start sp_open (Or.inr (inFlow_of_flowLevel_eq h_fl1)), hcorr_open, fun _ => ⟨.white (GStar.nil _) h_sync h_colon h_opencol, h_real, h_ad⟩⟩
     · rcases h_floor_old with h_floor | _
       · rcases h_ur with ⟨j, sx, hj, h_ind, _h_ws2, h_end | h_tab⟩
         · exact (flowOpen_underRunEnd_refuted h_floor hcorr_prep h_dcol h_dind
@@ -6270,7 +6494,7 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
                               h_sep (SFlowNode.content _ _ _ _ h_content) h_ssl)))
                         h_ind h_lit h_sbi)⟩
                 | Or.inr _ => Or.inr trivial)⟩),
-             PendingNode.noPending sp_start sp_open (Or.inr (inFlow_of_flowLevel_eq h_fl1)), hcorr_open, fun _ => ⟨.white (GStar.nil _) h_sync h_colon, h_real, h_ad⟩⟩
+             PendingNode.noPending sp_start sp_open (Or.inr (inFlow_of_flowLevel_eq h_fl1)), hcorr_open, fun _ => ⟨.white (GStar.nil _) h_sync h_colon h_opencol, h_real, h_ad⟩⟩
     · -- Item 66: the run-end half is §8.1's refusal (`k:⏎  a:⏎[1]`).  Item 68:
       -- and the TAB half is §6.1's, for `pendingProps`' reason.
       rcases h_ur with ⟨j, sx, hj, h_ind, _h_ws2, h_end | h_tab⟩
@@ -7636,7 +7860,7 @@ lemma accum_step_flow (sc : ScannerState)
               simp only [ScannerCorrectness.emit_preserves_simpleKeyStack,
                 ScannerCorrectness.advance_preserves_simpleKeyStack, Array.size_push]
               omega)
-          (Or.inl rfl) h0 h_bfi
+          (Or.inl rfl) (by have := glit_col h_open; omega) h0 h_bfi
           (by rw [L4YAML.Proofs.EmitterScannability.scanFlowSequenceStart_preserves_indents,
                   allowDirectives_update_indents])
           (fun _ _ resume => by
@@ -7682,7 +7906,7 @@ lemma accum_step_flow (sc : ScannerState)
                   simp only [ScannerCorrectness.emit_preserves_simpleKeyStack,
                     ScannerCorrectness.advance_preserves_simpleKeyStack, Array.size_push]
                   omega)
-              (Or.inr rfl) h0 h_bfi
+              (Or.inr rfl) (by have := glit_col h_open; omega) h0 h_bfi
               (by rw [L4YAML.Proofs.EmitterScannability.scanFlowMappingStart_preserves_indents,
                       allowDirectives_update_indents])
               (fun _ _ resume => by
@@ -7727,17 +7951,18 @@ lemma accum_step_flow (sc : ScannerState)
     -- run.  Which it is, is resolved once, below the index bookkeeping.
     obtain ⟨sp_prep, h_lead0, hcorr_prep⟩ :=
       preprocess_some_separate_0_anyCol sc sp_scan s_prep c h_corr h_preprocess
-    -- Item 69: …and the same separator read at the STACK's index, which is what
-    -- every frame transition below actually needs.  The lift is not the
+    -- Items 69/72: …and the same separator read at the STACK's index, which is
+    -- what every frame transition below actually needs.  The lift is not the
     -- surface's (`SSeparateLines_at`, whose residue is either half of the
-    -- landing's under-run) but the step's: `dispatchStructural`'s in-flow floor
-    -- refuses a landing that ends at or left of `currentIndent`, so what a site
-    -- can still be handed is the TAB half alone.
-    have h_lead_at : ∀ m : Nat, SSeparateLines m sp_scan sp_prep ∨
-        (m ≤ minContentIndentOf sc →
-          SeparatorTabResidue sc.currentIndent sc.needIndentCheck s_prep.peek? m
-            sp_scan sp_prep) :=
-      fun m => SSeparateLines_at_interior m h_sc_inflow h_corr hcorr_prep h_preprocess h_str_none
+    -- landing's under-run) but the step's, and BOTH halves refute:
+    -- `dispatchStructural`'s in-flow floor takes the run end, §6.1's own gate
+    -- takes the tab.  So a site is handed the reading, or the fact that its
+    -- stack's index over-runs the floor and was never measurable there.
+    have h_scancol : 0 < sp_scan.col := ((h_interior hpos).1).col_pos
+    have h_lead_at : ∀ m : Nat,
+        SSeparateLines m sp_scan sp_prep ∨ ¬ (m ≤ minContentIndentOf sc) :=
+      fun m => SSeparateLines_at_interior m h_sc_inflow h_scancol
+        (flowIndicators_ne_comment h_dispatch) h_corr hcorr_prep h_preprocess h_str_none
     have h_ad_fl : (if s_prep.allowDirectives then
         { s_prep with allowDirectives := false, documentEverStarted := true }
       else s_prep).flowLevel = sc.flowLevel :=
@@ -7834,7 +8059,7 @@ lemma accum_step_flow (sc : ScannerState)
             (by simp [h_ksz'])
             (KmSound.empty _) close,
           nofun, hcorr_tok,
-          fun _ => ⟨.white (GStar.nil _) (sync_scanFlowSequenceStart _) nofun,
+          fun _ => ⟨.white (GStar.nil _) (sync_scanFlowSequenceStart _) nofun (by have := glit_col h_open_lit; omega),
             (tailOf_scanFlowSequenceStart _).2,
             (scanFlowSequenceStart_allowDirectives _).trans h_ad_false⟩⟩
       · split at h_dispatch
@@ -7880,7 +8105,7 @@ lemma accum_step_flow (sc : ScannerState)
                     FlowStackK.collapse #[] hdpos
                       (by simp [h_ksz']) (KmSound.empty _) close,
                     (fun h => absurd h (by omega)), hcorr_tok,
-                    fun _ => ⟨.white (GStar.nil _) (sync_scanFlowSequenceEnd _) nofun,
+                    fun _ => ⟨.white (GStar.nil _) (sync_scanFlowSequenceEnd _) nofun (by have := glit_col h_close_lit; omega),
                       (tailOf_scanFlowSequenceEnd _).2,
                       (scanFlowSequenceEnd_allowDirectives _).trans h_ad_false⟩⟩
         · split at h_dispatch
@@ -7908,7 +8133,7 @@ lemma accum_step_flow (sc : ScannerState)
                 (by simp [h_ksz'])
                 (KmSound.empty _) close,
               nofun, hcorr_tok,
-              fun _ => ⟨.white (GStar.nil _) (sync_scanFlowMappingStart _) nofun,
+              fun _ => ⟨.white (GStar.nil _) (sync_scanFlowMappingStart _) nofun (by have := glit_col h_open_lit; omega),
                 (tailOf_scanFlowMappingStart _).2,
                 (scanFlowMappingStart_allowDirectives _).trans h_ad_false⟩⟩
           · split at h_dispatch
@@ -7954,7 +8179,7 @@ lemma accum_step_flow (sc : ScannerState)
                         FlowStackK.collapse #[] hdpos
                           (by simp [h_ksz']) (KmSound.empty _) close,
                         (fun h => absurd h (by omega)), hcorr_tok,
-                        fun _ => ⟨.white (GStar.nil _) (sync_scanFlowMappingEnd _) nofun,
+                        fun _ => ⟨.white (GStar.nil _) (sync_scanFlowMappingEnd _) nofun (by have := glit_col h_close_lit; omega),
                           (tailOf_scanFlowMappingEnd _).2,
                           (scanFlowMappingEnd_allowDirectives _).trans h_ad_false⟩⟩
             · split at h_dispatch
@@ -7980,7 +8205,7 @@ lemma accum_step_flow (sc : ScannerState)
                     exact ⟨sp_gram, sp_block, sp_tok, sp_tok, h_stream, h_stack,
                       FlowStackK.collapse #[] (by omega) h_ksz' (KmSound.empty _) close,
                       nofun, hcorr_tok,
-                      fun _ => ⟨.white (GStar.nil _) (sync_scanFlowEntry hfe) nofun,
+                      fun _ => ⟨.white (GStar.nil _) (sync_scanFlowEntry hfe) nofun (by have := glit_col h_comma_lit; omega),
                         (tailOf_scanFlowEntry hfe).2,
                         (scanFlowEntry_allowDirectives hfe).trans h_ad_false⟩⟩
               · simp at h_dispatch
@@ -8125,7 +8350,7 @@ lemma accum_step_flow (sc : ScannerState)
                exact ⟨h1, h2, h3, by omega, h5⟩),
            nofun⟩⟩,
         nofun, hcorr_tok,
-        fun _ => ⟨.white (GStar.nil _) (sync_scanFlowSequenceStart _) nofun, (tailOf_scanFlowSequenceStart _).2,
+        fun _ => ⟨.white (GStar.nil _) (sync_scanFlowSequenceStart _) nofun (by have := glit_col h_open_lit; omega), (tailOf_scanFlowSequenceStart _).2,
           (scanFlowSequenceStart_allowDirectives _).trans h_ad_false⟩⟩
     · split at h_dispatch
       · -- ']': POP, depth d+1 → d.
@@ -8213,7 +8438,7 @@ lemma accum_step_flow (sc : ScannerState)
                     have := FlowOpenStack_depth_pos
                       (inject sp_tok (SFlowContent.flowSeq _ _ _ _ h_seq))
                     omega)), hcorr_tok,
-                  fun _ => ⟨.white (GStar.nil _) (sync_scanFlowSequenceEnd _) nofun, (tailOf_scanFlowSequenceEnd _).2,
+                  fun _ => ⟨.white (GStar.nil _) (sync_scanFlowSequenceEnd _) nofun (by have := glit_col h_close_lit; omega), (tailOf_scanFlowSequenceEnd _).2,
                     (scanFlowSequenceEnd_allowDirectives _).trans h_ad_false⟩⟩
                 cases hb : b with
                 | true =>
@@ -8290,7 +8515,7 @@ lemma accum_step_flow (sc : ScannerState)
                    exact ⟨h1, h2, h3, by omega, h5⟩),
                nofun⟩⟩,
             nofun, hcorr_tok,
-            fun _ => ⟨.white (GStar.nil _) (sync_scanFlowMappingStart _) nofun, (tailOf_scanFlowMappingStart _).2,
+            fun _ => ⟨.white (GStar.nil _) (sync_scanFlowMappingStart _) nofun (by have := glit_col h_open_lit; omega), (tailOf_scanFlowMappingStart _).2,
               (scanFlowMappingStart_allowDirectives _).trans h_ad_false⟩⟩
         · split at h_dispatch
           · -- '}': POP, depth d+1 → d (mirror of ']').
@@ -8370,7 +8595,7 @@ lemma accum_step_flow (sc : ScannerState)
                         have := FlowOpenStack_depth_pos
                           (inject sp_tok (SFlowContent.flowMap _ _ _ _ h_map))
                         omega)), hcorr_tok,
-                      fun _ => ⟨.white (GStar.nil _) (sync_scanFlowMappingEnd _) nofun, (tailOf_scanFlowMappingEnd _).2,
+                      fun _ => ⟨.white (GStar.nil _) (sync_scanFlowMappingEnd _) nofun (by have := glit_col h_close_lit; omega), (tailOf_scanFlowMappingEnd _).2,
                         (scanFlowMappingEnd_allowDirectives _).trans h_ad_false⟩⟩
                     cases hb : b with
                     | true =>
@@ -8425,7 +8650,7 @@ lemma accum_step_flow (sc : ScannerState)
                            · exact absurd hpk (by simp)) hfe,
                          nofun⟩⟩,
                       nofun, hcorr_tok,
-                      fun _ => ⟨.white (GStar.nil _) (sync_scanFlowEntry hfe) nofun, (tailOf_scanFlowEntry hfe).2,
+                      fun _ => ⟨.white (GStar.nil _) (sync_scanFlowEntry hfe) nofun (by have := glit_col h_comma_lit; omega), (tailOf_scanFlowEntry hfe).2,
                         (scanFlowEntry_allowDirectives hfe).trans h_ad_false⟩⟩
                   · rename_i resume h_open h_sep st
                     exact ⟨sp_gram, sp_block, sp_tok, sp_tok, h_stream, h_stack,
@@ -8440,7 +8665,7 @@ lemma accum_step_flow (sc : ScannerState)
                            · exact absurd hpk (by simp)) hfe,
                          nofun⟩⟩,
                       nofun, hcorr_tok,
-                      fun _ => ⟨.white (GStar.nil _) (sync_scanFlowEntry hfe) nofun, (tailOf_scanFlowEntry hfe).2,
+                      fun _ => ⟨.white (GStar.nil _) (sync_scanFlowEntry hfe) nofun (by have := glit_col h_comma_lit; omega), (tailOf_scanFlowEntry hfe).2,
                         (scanFlowEntry_allowDirectives hfe).trans h_ad_false⟩⟩
                   · rename_i h_open h_sep promise inject st
                     exact ⟨sp_gram, sp_block, sp_tok, sp_tok, h_stream, h_stack,
@@ -8455,7 +8680,7 @@ lemma accum_step_flow (sc : ScannerState)
                            · exact absurd hpk (by simp)) hfe,
                          nofun⟩⟩,
                       nofun, hcorr_tok,
-                      fun _ => ⟨.white (GStar.nil _) (sync_scanFlowEntry hfe) nofun, (tailOf_scanFlowEntry hfe).2,
+                      fun _ => ⟨.white (GStar.nil _) (sync_scanFlowEntry hfe) nofun (by have := glit_col h_comma_lit; omega), (tailOf_scanFlowEntry hfe).2,
                         (scanFlowEntry_allowDirectives hfe).trans h_ad_false⟩⟩
                   · rename_i h_open h_sep promise inject st
                     exact ⟨sp_gram, sp_block, sp_tok, sp_tok, h_stream, h_stack,
@@ -8470,7 +8695,7 @@ lemma accum_step_flow (sc : ScannerState)
                            · exact absurd hpk (by simp)) hfe,
                          nofun⟩⟩,
                       nofun, hcorr_tok,
-                      fun _ => ⟨.white (GStar.nil _) (sync_scanFlowEntry hfe) nofun, (tailOf_scanFlowEntry hfe).2,
+                      fun _ => ⟨.white (GStar.nil _) (sync_scanFlowEntry hfe) nofun (by have := glit_col h_comma_lit; omega), (tailOf_scanFlowEntry hfe).2,
                         (scanFlowEntry_allowDirectives hfe).trans h_ad_false⟩⟩
             · -- fallthrough: dispatch returns `.ok none`, not `.ok (some s')`.
               simp at h_dispatch
@@ -12001,17 +12226,18 @@ lemma accum_step_block (sc : ScannerState)
             FlowIndentStable.preprocess_indents_of_inFlow h_sc_inflow h_preprocess])
     obtain ⟨sp_prep, h_lead0, hcorr_prep⟩ :=
       preprocess_some_separate_0_anyCol sc sp_scan s_prep c h_corr h_preprocess
-    -- Item 69: …and the same separator read at the STACK's index, which is what
-    -- every frame transition below actually needs.  The lift is not the
+    -- Items 69/72: …and the same separator read at the STACK's index, which is
+    -- what every frame transition below actually needs.  The lift is not the
     -- surface's (`SSeparateLines_at`, whose residue is either half of the
-    -- landing's under-run) but the step's: `dispatchStructural`'s in-flow floor
-    -- refuses a landing that ends at or left of `currentIndent`, so what a site
-    -- can still be handed is the TAB half alone.
-    have h_lead_at : ∀ m : Nat, SSeparateLines m sp_scan sp_prep ∨
-        (m ≤ minContentIndentOf sc →
-          SeparatorTabResidue sc.currentIndent sc.needIndentCheck s_prep.peek? m
-            sp_scan sp_prep) :=
-      fun m => SSeparateLines_at_interior m h_sc_inflow h_corr hcorr_prep h_preprocess h_str_none
+    -- landing's under-run) but the step's, and BOTH halves refute:
+    -- `dispatchStructural`'s in-flow floor takes the run end, §6.1's own gate
+    -- takes the tab.  So a site is handed the reading, or the fact that its
+    -- stack's index over-runs the floor and was never measurable there.
+    have h_scancol : 0 < sp_scan.col := ((h_interior hpos).1).col_pos
+    have h_lead_at : ∀ m : Nat,
+        SSeparateLines m sp_scan sp_prep ∨ ¬ (m ≤ minContentIndentOf sc) :=
+      fun m => SSeparateLines_at_interior m h_sc_inflow h_scancol
+        (blockIndicators_ne_comment h_dispatch) h_corr hcorr_prep h_preprocess h_str_none
     have h_ad_fl : (if s_prep.allowDirectives then
         { s_prep with allowDirectives := false, documentEverStarted := true }
       else s_prep).flowLevel = sc.flowLevel :=
@@ -12101,10 +12327,8 @@ lemma accum_step_block (sc : ScannerState)
           -- does neither, because a property opens no entry, so item 9g's guard
           -- has already rejected `[&a ? b]`. That is why this arm does not want
           -- `accum_step_flow`'s shared five-arm gap resolution.
-          have h_frame : tl = .sep ∧ ∀ m : Nat, SSeparateLines m sp_flow sp_prep ∨
-              (m ≤ minContentIndentOf sc →
-                SeparatorTabResidue sc.currentIndent sc.needIndentCheck s_prep.peek? m
-                  sp_scan sp_prep) := by
+          have h_frame : tl = .sep ∧ ∀ m : Nat,
+              SSeparateLines m sp_flow sp_prep ∨ ¬ (m ≤ minContentIndentOf sc) := by
             cases h_gap with
             | white h_ws h_sync =>
               refine ⟨?_, fun m => (h_lead_at m).imp (SSeparateLines_prepend_white h_ws) id⟩
@@ -12157,7 +12381,7 @@ lemma accum_step_block (sc : ScannerState)
                    · exact absurd hpk (by simp)) hk,
                nofun⟩⟩,
             nofun, hcorr_tok,
-            fun _ => ⟨.white (GStar.nil _) (sync_scanKey h_ad_inflow hk) nofun,
+            fun _ => ⟨.white (GStar.nil _) (sync_scanKey h_ad_inflow hk) nofun (by have := glit_col h_q_lit; omega),
               (tailOf_scanKey h_ad_inflow hk).2,
               (scanKey_inFlow_allowDirectives h_ad_inflow hk).trans h_ad_false⟩⟩
       · split at h_dispatch
@@ -12294,7 +12518,7 @@ lemma accum_step_block (sc : ScannerState)
                 (fun _ => ⟨h_facts.2.1, h_facts.2.2.1,
                   ⟨_, by
                     rw [h_facts.1, Array.size_push, Nat.add_sub_cancel,
-                        Array.getElem?_push, if_pos rfl], rfl⟩⟩),
+                        Array.getElem?_push, if_pos rfl], rfl⟩⟩) (by have := glit_col h_colon_lit; omega),
                 h_tails.2.1, h_facts.2.2.2.2.2.2.2.trans h_ad_false⟩
             rw [h_fl_v, h_tails.1] at h_bundle
             rw [h_fl_v, h_ks_v, h_tails.1]
@@ -13472,6 +13696,31 @@ lemma dispatchContent_evidence_flowIn (sc : ScannerState) (sp : SurfPos)
               dispatchContent_plainScalar_flowIn_prod sc sp hcorr hpeek h_inflow
                 hc_amp hc_alias hc_bang hnotPipe hnotGt hc_dq hc_sq h_not_doc hok
             exact ⟨sp_gram, sp'', SFlowNode.content 0 .flowIn _ _ h_c, h_ws, hcorr'⟩
+
+/-- **Where a flow-interior content dispatch leaves the cursor** (item 72):
+    never at column 0.
+
+    `InteriorGap`'s column field is stated on the SCANNER's landing, which trails
+    the node's endpoint by the whitespace `collectPlainScalarLoop` consumed — and
+    `[80] s-white` never moves left.  The evidence is the UNINDEXED
+    `dispatchContent_evidence_flowIn`, so this is available at the `_at` faces
+    too, where the index-carrying disjunct may have been renounced: what pays the
+    column is that the dispatch built a node at all, not the index it was read
+    at. -/
+lemma dispatchContent_flowIn_col_pos {sc s' : ScannerState} {sp sp' : SurfPos} {c : Char}
+    (hcorr : ScannerSurfCorr sc sp)
+    (hpeek : sc.peek? = some c)
+    (h_inflow : sc.inFlow = true)
+    (h_not_doc : sc.col = 0 → atDocumentBoundary sc = false)
+    (hok : scanNextToken_dispatchContent sc c = .ok s')
+    (hcorr' : ScannerSurfCorr s' sp') : 0 < sp'.col := by
+  obtain ⟨sp_g, sp_r, h_node, h_ws, hcorr_r⟩ :=
+    dispatchContent_evidence_flowIn sc sp c hcorr hpeek h_inflow h_not_doc hok
+  have h_eq : sp_r = sp' := ScannerSurfCorr_unique hcorr_r hcorr'
+  subst h_eq
+  have := flowNode_col_pos h_node
+  have := gstar_white_col_le h_ws
+  omega
 
 /-- **β.3's flow-interior CONTENT evidence.**  `dispatchContent_evidence_flowIn`
     stopped at `[161] ns-flow-node`; the props gap needs `[158] ns-flow-content`,
@@ -16913,17 +17162,18 @@ lemma accum_step_content (sc : ScannerState)
             FlowIndentStable.preprocess_indents_of_inFlow h_sc_inflow h_preprocess])
     obtain ⟨sp_prep, h_lead0, hcorr_prep⟩ :=
       preprocess_some_separate_0_anyCol sc sp_scan s_prep c h_corr h_preprocess
-    -- Item 69: …and the same separator read at the STACK's index, which is what
-    -- every frame transition below actually needs.  The lift is not the
+    -- Items 69/72: …and the same separator read at the STACK's index, which is
+    -- what every frame transition below actually needs.  The lift is not the
     -- surface's (`SSeparateLines_at`, whose residue is either half of the
-    -- landing's under-run) but the step's: `dispatchStructural`'s in-flow floor
-    -- refuses a landing that ends at or left of `currentIndent`, so what a site
-    -- can still be handed is the TAB half alone.
-    have h_lead_at : ∀ m : Nat, SSeparateLines m sp_scan sp_prep ∨
-        (m ≤ minContentIndentOf sc →
-          SeparatorTabResidue sc.currentIndent sc.needIndentCheck s_prep.peek? m
-            sp_scan sp_prep) :=
-      fun m => SSeparateLines_at_interior m h_sc_inflow h_corr hcorr_prep h_preprocess h_str_none
+    -- landing's under-run) but the step's, and BOTH halves refute:
+    -- `dispatchStructural`'s in-flow floor takes the run end, §6.1's own gate
+    -- takes the tab.  So a site is handed the reading, or the fact that its
+    -- stack's index over-runs the floor and was never measurable there.
+    have h_scancol : 0 < sp_scan.col := ((h_interior hpos).1).col_pos
+    have h_lead_at : ∀ m : Nat,
+        SSeparateLines m sp_scan sp_prep ∨ ¬ (m ≤ minContentIndentOf sc) :=
+      fun m => SSeparateLines_at_interior m h_sc_inflow h_scancol
+        (content_ne_comment h_dispatch) h_corr hcorr_prep h_preprocess h_str_none
     have h_ad_fl : (if s_prep.allowDirectives then
         { s_prep with allowDirectives := false, documentEverStarted := true }
       else s_prep).flowLevel = sc.flowLevel :=
@@ -17216,7 +17466,9 @@ lemma accum_step_content (sc : ScannerState)
               ⟨sp_gram, sp_block, sp_ne, sp_res, h_stream, h_stack,
                FlowStackK.collapse #[] (by omega) h_ksz' (KmSound.empty _) close,
                (fun h => absurd h (by omega)), hcorr_res,
-               fun _ => ⟨.white h_ws h_sync' nofun, h_real', h_ad'⟩⟩
+               fun _ => ⟨.white h_ws h_sync' nofun
+                   (dispatchContent_flowIn_col_pos hcorr_ad hpeek h_ad_inflow h_not_doc
+                     h_dispatch hcorr_res), h_real', h_ad'⟩⟩
           rcases h_fos_or.symm with h_close_sh | h_fos
           · exact shape_out h_close_sh
           rcases (h_lead_at nn).symm with - | h_lead0'
@@ -17254,7 +17506,9 @@ lemma accum_step_content (sc : ScannerState)
                  (Nat.le_of_lt h_off_gt),
                fun _ => h_entry⟩⟩,
             (fun h => absurd h (by omega)), hcorr_res,
-            fun _ => ⟨.white h_ws h_sync' nofun, h_real', h_ad'⟩⟩
+            fun _ => ⟨.white h_ws h_sync' nofun
+                   (dispatchContent_flowIn_col_pos hcorr_ad hpeek h_ad_inflow h_not_doc
+                     h_dispatch hcorr_res), h_real', h_ad'⟩⟩
     | props ha ht sp_p h_tail h_lead_p h_run h_anchor h_tag h_colon_sc =>
       -- ═══ A `[96] c-ns-properties` RUN IS HELD ═══
       -- Every arm here is about what the character in hand DECIDES the run was
@@ -17513,7 +17767,9 @@ lemma accum_step_content (sc : ScannerState)
                 ⟨sp_gram, sp_block, sp_ne, sp_res, h_stream, h_stack,
                  FlowStackK.collapse #[] (by omega) h_ksz' (KmSound.empty _) close,
                  (fun h => absurd h (by omega)), hcorr_res,
-                 fun _ => ⟨.white h_ws h_sync' nofun, h_real', h_ad'⟩⟩
+                 fun _ => ⟨.white h_ws h_sync' nofun
+                   (dispatchContent_flowIn_col_pos hcorr_ad hpeek h_ad_inflow h_not_doc
+                     h_dispatch hcorr_res), h_real', h_ad'⟩⟩
             rcases h_fos_or.symm with h_close_sh | h_fos
             · exact shape_out h_close_sh
             rcases (SSeparateLines_at nn h_lead_p).symm with - | h_lead_p'
@@ -17556,7 +17812,9 @@ lemma accum_step_content (sc : ScannerState)
                    (Nat.le_of_lt h_off_gt),
                  fun _ => h_entry⟩⟩,
               (fun h => absurd h (by omega)), hcorr_res,
-              fun _ => ⟨.white h_ws h_sync' nofun, h_real', h_ad'⟩⟩
+              fun _ => ⟨.white h_ws h_sync' nofun
+                   (dispatchContent_flowIn_col_pos hcorr_ad hpeek h_ad_inflow h_not_doc
+                     h_dispatch hcorr_res), h_real', h_ad'⟩⟩
 
 /-! ### §1f Composition: Per-Dispatch → Full accum_step
 

@@ -8639,6 +8639,93 @@ the entries field.  Nothing else in the library reads it.
 
 Item 70's column on `InteriorGap` is now buildable, and is the next item.
 
+### Item 72 (2026-09-04)
+
+**The interior's park now carries a column, and with it the tab half closes —
+so the flow-interior separator lift has NO residue left.**  Item 70 priced this
+as a column invariant whose four content producers could not pay it; item 71
+made them able to, and this is that column spent.  `InteriorGap.white` gains
+`h_col0 : 0 < sp_scan.col`, `SeparatorTabResidue` is DELETED, and
+`SSeparateLines_at_interior` now returns
+
+```lean
+SSeparateLines n sp_scan sp_prep ∨ ¬ (n ≤ minContentIndentOf sc)
+```
+
+— a reading, or the statement that the stack's index over-runs the floor and
+was never measurable there.  Nothing about tabs survives into the invariant.
+
+**What the four content producers pay it with is a surface fact, not a scanner
+one.**  §1d′ is the ladder: `plainChar_col` → `plainInLineEntry_col_lt` →
+`gplus_plainEntry_col_lt` → `plainNextLine_col_pos` → `plainMultiLine_col_pos`
+→ `plain_col_pos`, beside `aliasNode_col_pos`, `properties_col_pos`,
+`flowSequence_col_pos`, `flowMapping_col_pos`, and the two that close it,
+`flowContent_col_pos` and `flowNode_col_pos`.  **The recursion stops at a
+collection's closing indicator** — `[137]`/`[140]` end on `]`/`}`, which is a
+`GLit`, so nothing reads the nested nodes and `SFlowNode`/`SFlowContent` need no
+mutual induction, only two `cases`.  Every `[161]` alternative ends one column
+right of SOMETHING: the alias' name, a quote, a `]`/`}`, an `ns-plain-char`, or,
+where the content is `e-scalar`, the `[96]` run in front of it.
+
+Item 71 is what makes the plain arm true, and it is the whole reason this item
+was blocked: with `[134]`'s trailing repetition a `GStar`, a continuation line
+could consume nothing past a zero-width `[69'] s-flow-line-prefix(0)` and `[135]`
+ended at column 0 — which is what `Tests/Guards/Proofs/PlainNextLineEmptyRun.lean`
+compiled, and what item 71 deleted.
+
+**The evidence to read it off has to be the UNINDEXED one.**
+`dispatchContent_flowIn_col_pos` goes through `dispatchContent_evidence_flowIn`,
+not the `_at` face, because the `_at` face's node is `∨ True` — a step whose
+index was renounced still built a node, and the column does not care which index
+it was read at.  `ScannerSurfCorr_unique` pins the two landings together and
+`gstar_white_col_le` covers the whitespace `collectPlainScalarLoop` then eats.
+The 24 other producers pay from `glit_col` on the indicator they just scanned
+(7 of them through a new `h_opencol` hypothesis on `accum_flow_open_depth0`,
+whose two call sites hold the open's own `GLit`), and `InteriorGap.props` pays
+from `propsRun_col_gt` at index 0 — `InteriorGap.col_pos` is the pair.
+
+**The tab half then costs one lemma and one fact about the character.**
+`flowInterior_underRunTab_refuted` is `flowOpen_underRunTab_refuted` with two
+substitutions: `IndentFloor sc n` becomes the bare `n ≤ minContentIndentOf sc`,
+and `c = '[' ∨ c = '{'` becomes `c ≠ '#'`.  `LandingTabFacts` leaves exactly two
+survivors — end of input and a comment head — and the first dies on
+`preprocess_some_peek`.  The second is refuted by the dispatch each step has
+already run, in §1d″: `flowIndicators_ne_comment` and `blockIndicators_ne_comment`
+(anything outside their own sets falls through to `.ok none`) and
+`content_ne_comment`, which is not a fall-through at all — `#` is a `[22]
+c-indicator`, so it fails `[126] ns-plain-first`, `canStartPlainScalarBool` is
+`false` on it, and the arm errors.
+
+`h_break` — `LandingTabFacts`' premise, "a break was crossed" — is now free:
+the park's column is nonzero and the landing's is 0, so they are not the same
+position.  That is the whole content of item 70's diagnosis, and it is one line.
+
+**What this does NOT yet buy.**  The reading's second arm is still discarded at
+every use site, because `FlowStackK` carries its floor as `∨ True` and a stack
+opened at an unmeasurable park cannot refute `¬ (n ≤ minContentIndentOf sc)`.
+So no `dropClose` disappears here.  What disappeared is the RESIDUE — the
+invariant no longer carries tab evidence anywhere — which is the precondition
+for tightening that floor, and that is item 67b's.
+
+**Validation.**  Full `lake build` green (1058 jobs, ZERO warnings);
+`run-all-tests.sh` 4465/4465; `eventscore` (no `--suite`) 347/358 with the
+composition unmoved (252 event-pass, 11 event-diff, 0 event-reject, 95 error-ok);
+three checkers OK (220 library modules / 354 imports; 20 sub-themes, 229 demos,
+248 reflections; 25 whitelisted `theorem` capstones).  `#print axioms` names no
+`sorryAx`: the surface ladder and `InteriorGap.col_pos` are
+`[propext, Quot.sound]`, the rest `[propext, Classical.choice, Quot.sound]`, and
+`dispatchContent_flowIn_col_pos` inherits `dispatchContent_evidence_flowIn`'s 21
+`native_decide` axioms — the same 21, counted on both, none new.  ZERO runtime
+edits: the diff is one file, `Proofs/Production/StreamAccum.lean`, so the matrix
+cannot have moved and was not re-run.
+
+> **NB (a green signal that compiled the wrong tree).**  The first
+> `run-all-tests.sh` of this item ran against HEAD's `.olean`s: measuring item
+> 71's job count meant stashing the diff and rebuilding, which left the previous
+> commit's artifacts on disk, and the test script does not rebuild.  It reported
+> 4465/4465 — true, and about the wrong tree.  Rebuild before believing any gate
+> that follows a stash.
+
 ### REMAINING, in order
 
 The per-item history is the closure log above; this section lists only the
@@ -8651,7 +8738,7 @@ a nonzero index.  R2 is CLOSED too (items 47–51), so what stands between here
 and Step 5 (the converse) is R3's remaining production work and R4:
 
 ```
-R1 ✓ (44–46) ──→ R2 ✓ (47–51) ──→ R3 (52–69 landed; 67b open) ──→ Step 5
+R1 ✓ (44–46) ──→ R2 ✓ (47–51) ──→ R3 (52–72 landed; 67b open) ──→ Step 5
                                         └──────→ R4 (implicitContinue + 0 < m) ──┘
 ```
 
