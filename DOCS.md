@@ -9484,6 +9484,39 @@ inline, landed (`k:⏎  &a x: 1`) and nested-landed runs.
 `#print axioms` clean of `sorryAx` over the reworked chain.  ZERO runtime
 edits.
 
+### Item 84 (2026-09-05)
+
+**`FlowStackK`'s floor is real — the keystone.**  The invariant's conjunct is
+`n ≤ minContentIndentOf sc` outright.  The collapse re-indexes at 0 and pays
+`Nat.zero_le`; the depth-0 stack likewise; and every OPEN measures, because
+the parks' floors are unconditional (items 73/82/83) and the landing's column
+comes from the WALK: `preprocess_some_separate_at_floor` hands the separator
+and the floor TOGETHER — inline off the stability that the floor's own
+`needIndentCheck = false` buys, landed off the landing's own `s-indent(n)`
+(`preprocess_some_floor_at_landing`) — which retires the open's `h_ncol`
+reads entirely (the plan's "37 mechanical fixes" measured at 35 compiler
+errors plus the three open-site rewires).  `flowFloor_transport` and the
+in-flow step transports are total with it.
+
+**Six `dropClose` sites became refutations.**  `h_lead_at`'s negative arm is
+`¬ (nn ≤ minContentIndentOf sc)`, and the floor refutes it — at the interior
+content arm, the props-content arm, and the four `:`-receiving arms.  The
+drop's use count is 23 → 17, and every survivor is a NAMED residue from the
+67b ledger: the `:`-closure's 0-index ARGUMENT (6 — the `.value`-tail colon
+route stated at `n`, next), `InteriorGap`'s reading index (3+3), the node at
+`nn` (2), the tuple fallback (3, fed by those), and `pendingFlow`'s own
+opaque resume (1, the deletion's).
+
+**Measured** (`Tests/Guards/Proofs/FlowStackFloorReal.lean`).  §2 checks the
+floor's transport fact — at every step taken at `flowLevel ≥ 1` the indent
+stack is untouched — over multi-line interiors, quoted folds, property runs
+and nested collections.
+
+**Validation.**  Full `lake build` green (1067 jobs, ZERO warnings);
+`run-all-tests.sh` 6689/6689; `eventscore` 347/358 unmoved; three checkers
+OK; `#print axioms` clean of `sorryAx` over the keystone chain.  ZERO runtime
+edits.
+
 ### REMAINING, in order
 
 The per-item history is the closure log above; this section lists only the
@@ -9496,7 +9529,7 @@ a nonzero index.  R2 is CLOSED too (items 47–51), so what stands between here
 and Step 5 (the converse) is R3's remaining production work and R4:
 
 ```
-R1 ✓ (44–46) ──→ R2 ✓ (47–51) ──→ R3 (52–83 landed; 67b open) ──→ Step 5
+R1 ✓ (44–46) ──→ R2 ✓ (47–51) ──→ R3 (52–84 landed; 67b open) ──→ Step 5
                                         └──────→ R4 (implicitContinue + 0 < m) ──┘
 ```
 
@@ -9686,7 +9719,8 @@ and that deletion, by input class:
   item 82 — `h_floor : IndentFloor sc n` outright, two of the open's drop rides
   deleted with it), ~~then `pendingProps`' floor~~ (CLOSED by item 83 — the
   flow open's last two floor-gated drop rides went with it; `drop_ride` is
-  `pendingFlow`'s alone now), then `FlowStackK`'s.
+  `pendingFlow`'s alone now), ~~then `FlowStackK`'s~~ (CLOSED by item 84 — the
+  keystone: six `dropClose` sites refute off the real floor, 23 → 17).
   ~~What survives:
   `dropClose`'s remaining domain — the VALID multi-line scalar tokens at a
   nonzero index~~ — the TOKENS are CLOSED by item 67a, which built the flow
@@ -9736,7 +9770,7 @@ that reaches each:
 
 | sites | residue | what closes it |
 |---|---|---|
-| 7 (+ the shared one below) | `h_lead_at nn` / `h_lead nn`'s second arm, `¬ (nn ≤ minContentIndentOf sc)` | `FlowStackK` carrying a REAL floor |
+| ~~7 (+ the shared one below)~~ | ~~`h_lead_at nn` / `h_lead nn`'s second arm, `¬ (nn ≤ minContentIndentOf sc)`~~ | CLOSED by item 84 — six sites refute outright; the seventh's read feeds the tuple fallback, which the remaining rows still reach |
 | 6 | the `:`-receiving closure's ARGUMENT, `SSeparateLines 0` handed in by a later step | `FlowStackK`'s `.value`-tail colon route stated at `n` — whose consumers then need `h_lead_at` again |
 | 3 | the props gap's own lead, `SSeparateLines_at nn h_lead_p` | `InteriorGap` taking the reading index as a parameter |
 | 3 | the props run, `PropsRun_at nn h_run` | the same parameter |
