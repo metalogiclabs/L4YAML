@@ -545,7 +545,15 @@ inductive PendingNode (sc : ScannerState) : Bool → SurfPos → SurfPos → Sur
       landing arm.  A pending that carries no evidence is also a pending
       that names no state, and this is what naming the state is worth. -/
   | noPending (sp_start sp : SurfPos)
-      (h_col : sp.col = 0 ∨ sc.inFlow = true) :
+      (h_col : sp.col = 0 ∨ sc.inFlow = true)
+      -- **`h_arm` — the save is armed wherever the column is 0** (item 76, LAST
+      -- so the patterns naming `h_col` still bind it).  The block-context park
+      -- is the stream's own seed, and `ScannerState.mk'` arms the flag; every
+      -- other producer is a flow one and pays the same `inFlow` disjunct
+      -- `h_col` does.  It is what lets the landed `:` here MEASURE its floor:
+      -- a park at a line start crosses no break, so the landing's own re-arm
+      -- says nothing and the flag has to come from the park.
+      (h_arm : sc.simpleKeyAllowed = true ∨ sc.inFlow = true) :
       PendingNode sc false sp_start sp sp
   /-- Content token scanned (scalar, anchor, alias, tag).
       The gap sp_block → sp_scan contains SSeparate + content.
@@ -2858,6 +2866,75 @@ lemma saveSimpleKey_stale {st : ScannerState} (h : st.simpleKeyAllowed = false) 
   · rw [if_neg (by simp [h])]
     exact ⟨rfl, rfl, rfl⟩
 
+-- Helper (B.4β): `scanNextToken_preprocess` preserves `flowLevel`. Replicated
+-- from `EmitterScannability.preprocess_preserves_flowLevel` (that module is not
+-- in this file's import closure) via the reachable `ScannerCorrectness.*`
+-- primitives (skipToContent / unwindIndents / saveSimpleKey).
+lemma preprocess_preserves_flowLevel (s s1 : ScannerState) (c : Char)
+    (h : scanNextToken_preprocess s = .ok (some (s1, c))) :
+    s1.flowLevel = s.flowLevel := by
+  unfold scanNextToken_preprocess at h
+  simp only [bind, pure, Pure.pure, Except.pure] at h
+  simp only [Except.bind] at h
+  split at h
+  · contradiction
+  · rename_i s_skip h_skip
+    have h_fl_skip := ScannerCorrectness.skipToContent_preserves_flowLevel s s_skip h_skip
+    split at h
+    · simp at h
+    · split at h
+      · split at h
+        · contradiction
+        · split at h
+          · simp at h
+          · simp only [Except.ok.injEq, Option.some.injEq, Prod.mk.injEq] at h
+            obtain ⟨rfl, _⟩ := h
+            rw [ScannerCorrectness.saveSimpleKey_preserves_flowLevel]
+            show (unwindIndents s_skip s_skip.col).flowLevel = s.flowLevel
+            rw [ScannerCorrectness.unwindIndents_preserves_flowLevel]; exact h_fl_skip
+      · split at h
+        · contradiction
+        · split at h
+          · simp at h
+          · simp only [Except.ok.injEq, Option.some.injEq, Prod.mk.injEq] at h
+            obtain ⟨rfl, _⟩ := h
+            rw [ScannerCorrectness.saveSimpleKey_preserves_flowLevel]; exact h_fl_skip
+
+/-- **The fresh save, from the WALK's flag instead of the PARK's** (item 76).
+
+    Item 74's `preprocess_saved_key_col` is this lemma read through
+    `skipToContent_simpleKeyAllowed_mono`: a park that carries an armed save
+    hands it to the walk unchanged, and `saveSimpleKey` outside a flow declines
+    for that one reason.  The walk has a SECOND way to arrive armed — a break
+    re-arms in block context (`skipToContentLoop`'s `!s3.inFlow` branch) — and
+    that one is not a fact about the park at all, which is why the premise has
+    to be the post-walk flag rather than the entry flag. -/
+lemma preprocess_saved_key_col_of_walk {sc s_prep s_walk : ScannerState} {c : Char}
+    (h_skip : skipToContent sc = .ok s_walk)
+    (h_a : s_walk.simpleKeyAllowed = true)
+    (h_noflow : s_prep.inFlow = false)
+    (h : scanNextToken_preprocess sc = .ok (some (s_prep, c))) :
+    s_prep.simpleKey.possible = true ∧ s_prep.simpleKey.pos.col = s_prep.col := by
+  obtain ⟨s_u, s_w, hsk, h_save, h_cases⟩ := preprocess_save_elim h
+  have h_eq : s_w = s_walk := by
+    rw [h_skip] at hsk; exact (Except.ok.inj hsk).symm
+  subst h_eq
+  have h_al : s_u.simpleKeyAllowed = true := by
+    rcases h_cases with rfl | rfl
+    · exact h_a
+    · show (unwindIndents s_w s_w.col).simpleKeyAllowed = true
+      rw [unwindIndents_preserves_simpleKeyAllowed]; exact h_a
+  have h_fl : s_u.inFlow = false := by
+    rw [← saveSimpleKey_inFlow s_u, ← h_save]; exact h_noflow
+  have h_shape : (saveSimpleKey s_u).simpleKey.possible = true ∧
+      (saveSimpleKey s_u).simpleKey.pos.col = s_u.col := by
+    unfold saveSimpleKey
+    rw [if_neg (by simp [h_fl]), if_pos h_al]
+    exact ⟨rfl, rfl⟩
+  refine ⟨by rw [h_save]; exact h_shape.1, ?_⟩
+  rw [h_save, saveSimpleKey_col]
+  exact h_shape.2
+
 /-- General-column version of `preprocess_some_ssl_comments_col0`.
     When preprocessing returns `some`, extract `SSLComments` disjunction plus
     `GStar SSWhite` and `ScannerSurfCorr`. No col=0 requirement.
@@ -2876,14 +2953,30 @@ lemma saveSimpleKey_stale {st : ScannerState} (h : st.simpleKeyAllowed = false) 
     (`PreprocessIndentStable`), and the armed branch is refuted by the same
     flag transparency the item-12 payload already uses.  It is the accumulation
     invariant's first fact about `currentIndent`, and it is what carries an
-    entry's index across the step that reads its value. -/
+    entry's index across the step that reads its value.
+
+    **Item 76 enrichment**: the LANDED arm carries the fresh SAVE, for a park
+    off a line start.  Such a park reaches a column-0 landing only across a
+    break, and a break outside a flow re-arms `simpleKeyAllowed`
+    (`skipToContentLoop`) — so `saveSimpleKey` fires at the cursor
+    preprocessing stopped on, which is item 74's coordinate funded by the walk
+    instead of by the park's own flag. -/
 
 lemma preprocess_some_ssl_comments_anyCol (sc : ScannerState) (sp : SurfPos)
     (s_prep : ScannerState) (c : Char)
     (hcorr : ScannerSurfCorr sc sp)
     (hok : scanNextToken_preprocess sc = .ok (some (s_prep, c))) :
     ∃ sp_mid sp_ws sp_prep,
-      (SSLComments sp sp_mid ∧ sp_mid.col = 0 ∨
+      (SSLComments sp sp_mid ∧ sp_mid.col = 0 ∧
+          -- **Item 76: the landing's own re-arm, read at the SAVE.**  A park
+          -- off a line start reaches a column-0 landing only across a break,
+          -- and a break outside a flow re-arms `simpleKeyAllowed` — so for
+          -- those parks preprocessing's `saveSimpleKey` is a FRESH one, at the
+          -- cursor it stopped on.  This is item 74's datum, funded by the walk
+          -- rather than by the park's own flag.
+          (sp.col ≠ 0 → s_prep.inFlow = false →
+            s_prep.simpleKey.possible = true ∧
+            s_prep.simpleKey.pos.col = s_prep.col) ∨
         sp_mid = sp ∧
           (sc.needIndentCheck = false → LastTokenReal sc.tokens →
             s_prep.line = sc.line ∧ s_prep.needIndentCheck = false ∧
@@ -2897,13 +2990,28 @@ lemma preprocess_some_ssl_comments_anyCol (sc : ScannerState) (sp : SurfPos)
       ScannerSurfCorr s_prep sp_prep ∧
       (sp_prep = sp_ws ∨ s_prep.peek? = none) ∧
       LandingTabFacts sc.currentIndent sc.needIndentCheck s_prep.peek? sp sp_mid := by
+  have hok0 := hok
   unfold scanNextToken_preprocess at hok
   simp only [bind, Except.bind, pure, Except.pure] at hok
   split at hok
   · simp at hok
   · rename_i s_content h_skip
-    obtain ⟨sp_mid, sp_ws, sp_sc, h_disj, hws, hcmt, hcorr_sc, h_pk, h_ltsl⟩ :=
+    obtain ⟨sp_mid, sp_ws, sp_sc, h_disj0, hws, hcmt, hcorr_sc, h_pk, h_ltsl⟩ :=
       skipToContent_anyCol_prod sc sp s_content hcorr h_skip
+    -- Item 76: the walk's re-arm, spent once here so both `.ok` branches below
+    -- carry the SAVE rather than the flag.  The flow level travels backwards:
+    -- preprocessing writes none, so the dispatch state's is the park's.
+    have h_scflow : s_prep.inFlow = false → sc.inFlow = false := by
+      intro hnf
+      unfold ScannerState.inFlow at hnf ⊢
+      rw [← preprocess_preserves_flowLevel sc s_prep c hok0]; exact hnf
+    have h_disj := h_disj0.imp_left (fun h =>
+      show SSLComments sp sp_mid ∧ sp_mid.col = 0 ∧
+          (sp.col ≠ 0 → s_prep.inFlow = false →
+            s_prep.simpleKey.possible = true ∧
+            s_prep.simpleKey.pos.col = s_prep.col) from
+      ⟨h.1, h.2.1, fun hcol hnf =>
+        preprocess_saved_key_col_of_walk h_skip (h.2.2 hcol (h_scflow hnf)) hnf hok0⟩)
     split at hok
     · simp at hok
     · split at hok
@@ -3263,7 +3371,14 @@ lemma preprocess_some_ssl_comments_landing (sc : ScannerState) (sp : SurfPos)
     (hcorr : ScannerSurfCorr sc sp)
     (hok : scanNextToken_preprocess sc = .ok (some (s_prep, c))) :
     ∃ sp_mid sp_ws sp_prep,
-      (SSLComments sp sp_mid ∧ sp_mid.col = 0 ∨ sp_mid = sp ∧ sp.col ≠ 0 ∧
+      (SSLComments sp sp_mid ∧ sp_mid.col = 0 ∧
+          -- Item 76: the landed arm's fresh SAVE, for a park off a line start
+          -- (`preprocess_some_ssl_comments_anyCol`).  The col-0 park lands
+          -- without crossing a break, which is exactly where this is vacuous.
+          (sp.col ≠ 0 → s_prep.inFlow = false →
+            s_prep.simpleKey.possible = true ∧
+            s_prep.simpleKey.pos.col = s_prep.col) ∨
+        sp_mid = sp ∧ sp.col ≠ 0 ∧
         -- Item 48: the no-break step's clause-1 payload, carried out of the
         -- anyCol product so the block arms can feed the same-line refutation.
         (sc.needIndentCheck = false → LastTokenReal sc.tokens →
@@ -3281,7 +3396,8 @@ lemma preprocess_some_ssl_comments_landing (sc : ScannerState) (sp : SurfPos)
   | inr h =>
     by_cases hcol : sp.col = 0
     · exact Or.inl ⟨by rw [h.1]; exact sslComments_refl_of_col0 hcol,
-                    by rw [h.1]; exact hcol⟩
+                    by rw [h.1]; exact hcol,
+                    fun hne _ => absurd hcol hne⟩
     · exact Or.inr ⟨h.1, hcol, h.2.1⟩
 
 /-- General-column `SSeparateLines 0` from preprocessing with content.
@@ -3401,7 +3517,7 @@ lemma preprocess_some_separate_at_anyCol (n : Nat) (sc : ScannerState) (sp : Sur
       · exact ⟨sp_prep, hcorr_out,
           Or.inl (SSeparateLines.commented n sp sp_mid sp_prep h_ssl_col.1 h_flp)⟩
       · exact ⟨sp_prep, hcorr_out,
-          Or.inr ⟨sp_mid, h_ssl_col.1, h_ssl_col.2, h_ur, h_ltsl⟩⟩
+          Or.inr ⟨sp_mid, h_ssl_col.1, h_ssl_col.2.1, h_ur, h_ltsl⟩⟩
     | inr h_mid_eq =>
       rw [h_mid_eq.1] at h_ws
       exact ⟨sp_prep, hcorr_out,
@@ -3445,7 +3561,7 @@ lemma preprocess_some_separate_inline_or_landing (sc : ScannerState) (sp : SurfP
     | inl h => exact h
     | inr h => rw [preprocess_some_peek hok] at h; cases h
   cases h_disj with
-  | inl h_ssl_col => exact Or.inr ⟨sp_mid, h_ssl_col.1, h_ssl_col.2⟩
+  | inl h_ssl_col => exact Or.inr ⟨sp_mid, h_ssl_col.1, h_ssl_col.2.1⟩
   | inr h_mid_eq =>
     have h_indents := h_mid_eq.2.2.1
     rw [h_mid_eq.1] at h_ws
@@ -3689,39 +3805,6 @@ lemma allowDirectives_update_false (s : ScannerState) :
   · rfl
   · rename_i h; simpa using h
 
--- Helper (B.4β): `scanNextToken_preprocess` preserves `flowLevel`. Replicated
--- from `EmitterScannability.preprocess_preserves_flowLevel` (that module is not
--- in this file's import closure) via the reachable `ScannerCorrectness.*`
--- primitives (skipToContent / unwindIndents / saveSimpleKey).
-lemma preprocess_preserves_flowLevel (s s1 : ScannerState) (c : Char)
-    (h : scanNextToken_preprocess s = .ok (some (s1, c))) :
-    s1.flowLevel = s.flowLevel := by
-  unfold scanNextToken_preprocess at h
-  simp only [bind, pure, Pure.pure, Except.pure] at h
-  simp only [Except.bind] at h
-  split at h
-  · contradiction
-  · rename_i s_skip h_skip
-    have h_fl_skip := ScannerCorrectness.skipToContent_preserves_flowLevel s s_skip h_skip
-    split at h
-    · simp at h
-    · split at h
-      · split at h
-        · contradiction
-        · split at h
-          · simp at h
-          · simp only [Except.ok.injEq, Option.some.injEq, Prod.mk.injEq] at h
-            obtain ⟨rfl, _⟩ := h
-            rw [ScannerCorrectness.saveSimpleKey_preserves_flowLevel]
-            show (unwindIndents s_skip s_skip.col).flowLevel = s.flowLevel
-            rw [ScannerCorrectness.unwindIndents_preserves_flowLevel]; exact h_fl_skip
-      · split at h
-        · contradiction
-        · split at h
-          · simp at h
-          · simp only [Except.ok.injEq, Option.some.injEq, Prod.mk.injEq] at h
-            obtain ⟨rfl, _⟩ := h
-            rw [ScannerCorrectness.saveSimpleKey_preserves_flowLevel]; exact h_fl_skip
 
 /-- Preprocessing carries `implicitValueLine` unchanged (item 48): the field is
     written by `scanValue` alone, and none of skip/unwind/save touch it. -/
@@ -4302,7 +4385,7 @@ lemma accum_structural_pending (sc : ScannerState)
           preprocess_some_ssl_comments_anyCol sc sp_scan s_prep c h_corr h_preprocess
         have ⟨h_ssl, hcol_mid⟩ : SSLComments sp_scan sp_mid ∧ sp_mid.col = 0 := by
           cases h_disj with
-          | inl h => exact h
+          | inl h => exact ⟨h.1, h.2.1⟩
           | inr h_eq =>
             exfalso
             have h_gap_eq := ScannerSurfCorr_unique hcorr_gap hcorr_prep
@@ -4359,7 +4442,7 @@ lemma accum_structural_pending (sc : ScannerState)
           preprocess_some_ssl_comments_anyCol sc sp_scan s_prep c h_corr h_preprocess
         have ⟨h_ssl, hcol_mid⟩ : SSLComments sp_scan sp_mid ∧ sp_mid.col = 0 := by
           cases h_disj with
-          | inl h => exact h
+          | inl h => exact ⟨h.1, h.2.1⟩
           | inr h_eq =>
             exfalso
             have h_gap_eq := ScannerSurfCorr_unique hcorr_gap hcorr_prep
@@ -5659,7 +5742,7 @@ lemma flowKeyRoute_of_open {n m kc : Nat} {cc : YamlContext}
         · refine Or.inl ?_
           rw [h_kc', ← hcorr_prep.col_eq]
           have := SIndent_col' h_ind'
-          rw [h_land.2] at this
+          rw [h_land.2.1] at this
           omega
         · exact Or.inr trivial
       · exact Or.inr trivial
@@ -5717,12 +5800,12 @@ lemma flowKeyRoute_of_root {m kc : Nat} {sp_start sp_scan sp_prep : SurfPos}
     | inl h_land =>
       have h_ind' : SIndent w sp_mid sp_prep := by rw [h_pe]; exact h_ind
       refine Or.inl ⟨w, sp_prep,
-        rootMapRoute h_land.2 (h_close sp_mid h_land.1) h_ind', flowKeyHead, ?_⟩
+        rootMapRoute h_land.2.1 (h_close sp_mid h_land.1) h_ind', flowKeyHead, ?_⟩
       rcases h_kc with h_kc' | _
       · refine Or.inl ?_
         rw [h_kc', ← hcorr_prep.col_eq]
         have := SIndent_col' h_ind'
-        rw [h_land.2] at this
+        rw [h_land.2.1] at this
         omega
       · exact Or.inr trivial
     | inr h_mid =>
@@ -6274,24 +6357,9 @@ lemma preprocess_saved_key_col {sc s_prep : ScannerState} {c : Char}
     (h_noflow : s_prep.inFlow = false)
     (h : scanNextToken_preprocess sc = .ok (some (s_prep, c))) :
     s_prep.simpleKey.possible = true ∧ s_prep.simpleKey.pos.col = s_prep.col := by
-  obtain ⟨s_u, s_skip, hsk, h_save, h_cases⟩ := preprocess_save_elim h
-  have h_al_skip : s_skip.simpleKeyAllowed = true :=
-    skipToContent_simpleKeyAllowed_mono sc s_skip h_a hsk
-  have h_al : s_u.simpleKeyAllowed = true := by
-    rcases h_cases with rfl | rfl
-    · exact h_al_skip
-    · show (unwindIndents s_skip s_skip.col).simpleKeyAllowed = true
-      rw [unwindIndents_preserves_simpleKeyAllowed]; exact h_al_skip
-  have h_fl : s_u.inFlow = false := by
-    rw [← saveSimpleKey_inFlow s_u, ← h_save]; exact h_noflow
-  have h_shape : (saveSimpleKey s_u).simpleKey.possible = true ∧
-      (saveSimpleKey s_u).simpleKey.pos.col = s_u.col := by
-    unfold saveSimpleKey
-    rw [if_neg (by simp [h_fl]), if_pos h_al]
-    exact ⟨rfl, rfl⟩
-  refine ⟨by rw [h_save]; exact h_shape.1, ?_⟩
-  rw [h_save, saveSimpleKey_col]
-  exact h_shape.2
+  obtain ⟨-, s_skip, hsk, -, -⟩ := preprocess_save_elim h
+  exact preprocess_saved_key_col_of_walk hsk
+    (skipToContent_simpleKeyAllowed_mono sc s_skip h_a hsk) h_noflow h
 
 lemma accum_flow_open_depth0 (sc : ScannerState)
     (sp_start sp_gram sp_block sp_scan sp_prep sp_open : SurfPos)
@@ -6466,7 +6534,8 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
                flowKeyRoute_of_root (Or.inr trivial) h_fresh_shape h_close h_corr hcorr_prep
                  h_preprocess,
                Or.inr trivial⟩),
-             PendingNode.noPending sp_start sp_open (Or.inr (inFlow_of_flowLevel_eq h_fl1)), hcorr_open, fun _ => ⟨.white (GStar.nil _) h_sync h_colon h_opencol, h_real, h_ad⟩⟩
+             PendingNode.noPending sp_start sp_open (Or.inr (inFlow_of_flowLevel_eq h_fl1))
+               (Or.inr (inFlow_of_flowLevel_eq h_fl1)), hcorr_open, fun _ => ⟨.white (GStar.nil _) h_sync h_colon h_opencol, h_real, h_ad⟩⟩
     · exact h_nobreak hcol hws
   -- The completed constructs cannot reach a same-line `[`/`{`: their producers'
   -- trailing validation left the rest of the line inert (`h_line`), and the
@@ -6502,7 +6571,8 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
     ⟨sp_block, sp_block, sp_open, sp_open, h_stream_block, BlockStack.nil _,
      h_kpkg _ _ _ (Or.inl (Nat.zero_le _)) (mkv 0 sp_block (fun sp_ne sp_m _ h_ssl =>
        dropClose h_stream_block sp_ne sp_m h_ssl)),
-     PendingNode.noPending sp_start sp_open (Or.inr (inFlow_of_flowLevel_eq h_fl1)), hcorr_open,
+     PendingNode.noPending sp_start sp_open (Or.inr (inFlow_of_flowLevel_eq h_fl1))
+               (Or.inr (inFlow_of_flowLevel_eq h_fl1)), hcorr_open,
      fun _ => ⟨.white (GStar.nil _) h_sync h_colon h_opencol, h_real, h_ad⟩⟩
   have opaque_resume : sp_scan.col ≠ 0 → GStar SSWhite sp_scan sp_prep →
       ∃ sp_gram' sp_block' sp_flow' sp_scan',
@@ -6533,7 +6603,8 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
              flowKeyRoute_of_root (Or.inl h_col0) h_fresh_shape h_close_pending h_corr
                hcorr_prep h_preprocess,
              Or.inr trivial⟩),
-           PendingNode.noPending sp_start sp_open (Or.inr (inFlow_of_flowLevel_eq h_fl1)), hcorr_open, fun _ => ⟨.white (GStar.nil _) h_sync h_colon h_opencol, h_real, h_ad⟩⟩
+           PendingNode.noPending sp_start sp_open (Or.inr (inFlow_of_flowLevel_eq h_fl1))
+               (Or.inr (inFlow_of_flowLevel_eq h_fl1)), hcorr_open, fun _ => ⟨.white (GStar.nil _) h_sync h_colon h_opencol, h_real, h_ad⟩⟩
   | pendingContent _ _ _ h_line _ _ _ _ =>
     -- Item 37: §7.5's set weakens to item 10's here, exactly as `[204]`'s does.
     exact main h_close_pending (refuted (h_line.imp id LineNodeStop.toLineNoOpen))
@@ -6599,7 +6670,8 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
                     | _, _ => Or.inr trivial⟩
                 | Or.inr _ => Or.inr trivial),
                Or.inr trivial⟩),
-             PendingNode.noPending sp_start sp_open (Or.inr (inFlow_of_flowLevel_eq h_fl1)), hcorr_open,
+             PendingNode.noPending sp_start sp_open (Or.inr (inFlow_of_flowLevel_eq h_fl1))
+               (Or.inr (inFlow_of_flowLevel_eq h_fl1)), hcorr_open,
              fun _ => ⟨.white (GStar.nil _) h_sync h_colon h_opencol, h_real, h_ad⟩⟩
     · -- Item 66: the run-end half of the under-run is §8.1's own refusal
       -- (`k:⏎  b:⏎    &x⏎[1]`).  Item 68: and so is the TAB half now — the park
@@ -6642,7 +6714,8 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
                h_fresh_shape (Or.inr trivial)
                h_corr hcorr_prep h_preprocess,
              Or.inr trivial⟩),
-           PendingNode.noPending sp_start sp_open (Or.inr (inFlow_of_flowLevel_eq h_fl1)), hcorr_open, fun _ => ⟨.white (GStar.nil _) h_sync h_colon h_opencol, h_real, h_ad⟩⟩
+           PendingNode.noPending sp_start sp_open (Or.inr (inFlow_of_flowLevel_eq h_fl1))
+               (Or.inr (inFlow_of_flowLevel_eq h_fl1)), hcorr_open, fun _ => ⟨.white (GStar.nil _) h_sync h_colon h_opencol, h_real, h_ad⟩⟩
   | pendingBlock _ _ _ n_old h_close _ h_floor_old h_sk_old h_col59 =>
     -- Item 46: the stack opens at the ENTRY's index, so the resume's node
     -- fits `flowInBlock n_old` and `  - [1]` composes.  Item 66: the landing
@@ -6668,7 +6741,8 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
                  (Or.inl h_close) (h_fresh_of h_sk_old) (Or.inl h_col59) h_corr hcorr_prep
                  h_preprocess,
                Or.inr trivial⟩),
-             PendingNode.noPending sp_start sp_open (Or.inr (inFlow_of_flowLevel_eq h_fl1)), hcorr_open, fun _ => ⟨.white (GStar.nil _) h_sync h_colon h_opencol, h_real, h_ad⟩⟩
+             PendingNode.noPending sp_start sp_open (Or.inr (inFlow_of_flowLevel_eq h_fl1))
+               (Or.inr (inFlow_of_flowLevel_eq h_fl1)), hcorr_open, fun _ => ⟨.white (GStar.nil _) h_sync h_colon h_opencol, h_real, h_ad⟩⟩
     · -- Item 73: `pendingBlock`'s floor is a measurement now, not an option, so
       -- BOTH halves of the open's under-run are refuted here and the arm no
       -- longer rides the drop.
@@ -6716,7 +6790,8 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
                               h_sep (SFlowNode.content _ _ _ _ h_content) h_ssl)))
                         h_ind h_lit h_sbi)⟩
                 | Or.inr _ => Or.inr trivial)⟩),
-             PendingNode.noPending sp_start sp_open (Or.inr (inFlow_of_flowLevel_eq h_fl1)), hcorr_open, fun _ => ⟨.white (GStar.nil _) h_sync h_colon h_opencol, h_real, h_ad⟩⟩
+             PendingNode.noPending sp_start sp_open (Or.inr (inFlow_of_flowLevel_eq h_fl1))
+               (Or.inr (inFlow_of_flowLevel_eq h_fl1)), hcorr_open, fun _ => ⟨.white (GStar.nil _) h_sync h_colon h_opencol, h_real, h_ad⟩⟩
     · -- Item 66: the run-end half is §8.1's refusal (`k:⏎  a:⏎[1]`).  Item 68:
       -- and the TAB half is §6.1's, for `pendingProps`' reason.
       rcases h_ur with ⟨j, sx, hj, h_ind, _h_ws2, h_end | h_tab⟩
@@ -9919,10 +9994,10 @@ lemma nic_false_of_indicator_noflow {sc s_prep : ScannerState} {c : Char}
 
 /-- **The dash's floor is unconditional** (item 73).
 
-    `indicator_floor_at_col` below punts on two of its three indicators,
-    because `?` and `:` can push at a column that is not their own — the `?`
+    The `?` and the `:` can push at a column that is not their own — the `?`
     inside a flow collection, the `:` when it resolves an inherited key (item
-    74 narrowed both to that).  The `-` arm never does: `[183]`'s `pushSequenceIndent` goes to the indicator's own
+    74 narrowed both to that, and each states its own premise below).  The `-`
+    never does: `[183]`'s `pushSequenceIndent` goes to the indicator's own
     column, which IS the entry index the accumulator reads off the landing.
     Every `pendingBlock` comes off a `-` scan, so that constructor's floor
     field carries no `∨ True` — the escape it used to fund was never funded by
@@ -9972,9 +10047,8 @@ lemma indicator_floor_dash {sc s_prep s' : ScannerState} {sp_land sp_prep : Surf
     `[187]`'s `pushMappingIndent` goes to the `?`'s own column, which IS the
     entry index, and `key_floor_or`'s only undecided case is a `?` scanned
     inside a FLOW collection.  Every block-indicator producer in this file
-    already holds `inFlow = false` at the dispatch state, so the `?` arm of
-    `indicator_floor_at_col` below is optional only because that lemma does not
-    ask for the flow level. -/
+    already holds `inFlow = false` at the dispatch state, so the `?` half never
+    costs a caller anything. -/
 lemma indicator_floor_question_at_col {sc s_prep s' : ScannerState} {sp_prep : SurfPos}
     {k : Nat}
     (hcol_prep : sp_prep.col = k)
@@ -10000,28 +10074,31 @@ lemma indicator_floor_question_at_col {sc s_prep s' : ScannerState} {sp_prep : S
            le_minContentIndentOf_of_int_le (by omega)⟩
   · rw [h_flow] at h_noflow; exact absurd h_noflow (by simp)
 
-/-- **The `:`'s floor is a fact about the SAVE** (item 74).
+/-- **The `:`'s floor is a fact about the SAVE** (items 74/76).
 
     Two things made item 27's `:` arm optional, and neither is about the
     indicator.  The first is the SHAPE of the coupling `scanValuePrepare` needs:
     the push reads `simpleKey.pos.col` and nothing else, so a producer only has
     to place the save on the LINE — which is what `value_floor_or` asks for now.
-    The second is whether preprocessing re-saved at all, and outside a flow that
-    is decided by `simpleKeyAllowed` alone (`preprocess_saved_key_col`).  A park
-    that just scanned `-`/`?`/`:` has the flag up — it is the `h_sk` every one of
-    them already carries — so for those parks the `:` measures its floor exactly
-    as the `-` does.
+    The second is whether preprocessing re-saved at all, and that is what this
+    lemma's premise IS: the fresh save, however the caller came by it.
 
-    What is left is a park that does NOT know the flag, which is where the
-    umbrella below still hands `True` back. -/
-lemma indicator_floor_colon_at_col {sc s_prep s' : ScannerState} {sp_prep : SurfPos}
+    There are two ways to come by it, and item 76 is the second.  A park that
+    just scanned `-`/`?`/`:` has the flag up and hands it to the walk unchanged
+    (`preprocess_saved_key_col`, the `h_sk` every one of them carries).  A park
+    that carries no flag can still be OFF a line start, and then the column-0
+    landing it reaches was reached across a break — which re-arms in block
+    context, so the save is fresh for that input (`landing_save_or`).
+
+    What is left is a park with neither: at a line start, with no flag. -/
+lemma indicator_floor_colon_at_col_of_save {sc s_prep s' : ScannerState} {sp_prep : SurfPos}
     {k : Nat}
     (hcol_prep : sp_prep.col = k)
     (hcorr_prep : ScannerSurfCorr s_prep sp_prep)
     (h_noflow : (if s_prep.allowDirectives then
       { s_prep with allowDirectives := false, documentEverStarted := true }
     else s_prep).inFlow = false)
-    (h_sk : sc.simpleKeyAllowed = true)
+    (h_pcol : s_prep.simpleKey.pos.col = s_prep.col)
     (h_preprocess : scanNextToken_preprocess sc = .ok (some (s_prep, ':')))
     (h_dispatch : scanNextToken_dispatchBlockIndicators (if s_prep.allowDirectives then
       { s_prep with allowDirectives := false, documentEverStarted := true }
@@ -10033,14 +10110,6 @@ lemma indicator_floor_colon_at_col {sc s_prep s' : ScannerState} {sp_prep : Surf
   have h_upd_sk : (if s_prep.allowDirectives then
       { s_prep with allowDirectives := false, documentEverStarted := true }
     else s_prep).simpleKey = s_prep.simpleKey := by split <;> rfl
-  have h_upd_fl : (if s_prep.allowDirectives then
-      { s_prep with allowDirectives := false, documentEverStarted := true }
-    else s_prep).flowLevel = s_prep.flowLevel := by split <;> rfl
-  have h_noflow_prep : s_prep.inFlow = false := by
-    unfold ScannerState.inFlow at h_noflow ⊢
-    rw [h_upd_fl] at h_noflow
-    exact h_noflow
-  obtain ⟨-, h_pcol⟩ := preprocess_saved_key_col h_sk h_noflow_prep h_preprocess
   have h_col : (((if s_prep.allowDirectives then
       { s_prep with allowDirectives := false, documentEverStarted := true }
     else s_prep).col : Int)) = (k : Int) := by
@@ -10059,96 +10128,52 @@ lemma indicator_floor_colon_at_col {sc s_prep s' : ScannerState} {sp_prep : Surf
            le_minContentIndentOf_of_int_le (by omega)⟩
   · rw [h_flow] at h_noflow; exact absurd h_noflow (by simp)
 
-/-- **The block indicator's own floor** (item 27).
-
-    The three indicators push their block-collection indent at their own
-    column — `[183]`'s `pushSequenceIndent` for `-`, `[187]`'s
-    `pushMappingIndent` for `?`, and for `:` the resolved key's column, which
-    is the indicator's own exactly when the save was FRESH (the shape
-    `colon_open_map` parks: `[189]`'s empty-key entry).  So the entry index the
-    accumulator reads off the landing is at or below the stack top a block
-    scalar's content indent will be measured against, and the pending can carry
-    it.
-
-    Everything that is not that shape — a flow `?`/`:`, or a `:` resolving a
-    key at an EARLIER column, which is item 15's implicit-key entry — hands
-    `True` back.  That is a smaller domain, not an extra escape: the field is
-    `IndentFloor sc n ∨ True` precisely so a producer that cannot measure costs
-    nothing (R645/R646).
-
-    **What is optional here is this lemma's own ignorance** (items 73/74).  Each
-    arm is stated at its true strength above — `indicator_floor_dash_at_col`
-    unconditionally, `indicator_floor_question_at_col` given the flow level, and
-    `indicator_floor_colon_at_col` given the flow level and an armed save — and
-    this one asks for neither datum, so it re-derives what it can and punts on
-    the rest.  A caller holding both spends the arms directly (`compact_open_map`
-    does), and only a caller that has to reach the `:` without knowing whether
-    preprocessing re-saved is genuinely measuring nothing. -/
-lemma indicator_floor_at_col {sc s_prep s' : ScannerState} {sp_prep : SurfPos}
-    {k : Nat} {c : Char}
+/-- Item 74's form: the park's own armed flag funds the save.  Item 76 added the
+    OTHER funder — a break in the walk — which is why the premise above is the
+    save and not the flag. -/
+lemma indicator_floor_colon_at_col {sc s_prep s' : ScannerState} {sp_prep : SurfPos}
+    {k : Nat}
     (hcol_prep : sp_prep.col = k)
     (hcorr_prep : ScannerSurfCorr s_prep sp_prep)
-    (h_preprocess : scanNextToken_preprocess sc = .ok (some (s_prep, c)))
-    (h_dispatch : scanNextToken_dispatchBlockIndicators
-        (if s_prep.allowDirectives then
-          { s_prep with allowDirectives := false, documentEverStarted := true }
-        else s_prep) c = .ok (some s')) :
-    IndentFloor s' k ∨ True := by
-  have h_col : (((if s_prep.allowDirectives then
-        { s_prep with allowDirectives := false, documentEverStarted := true }
-      else s_prep).col : Int)) = (k : Int) := by
-    have h2 : (if s_prep.allowDirectives then
-        { s_prep with allowDirectives := false, documentEverStarted := true }
-      else s_prep).col = s_prep.col := by split <;> rfl
-    rw [h2, ← hcorr_prep.col_eq, hcol_prep]
-  have h_nic_of_noflow := nic_false_of_indicator_noflow (c := c) h_preprocess
-  rcases dispatchBlockIndicators_indicator_of_some h_dispatch with rfl | rfl | rfl
-  · exact Or.inl (indicator_floor_dash_at_col hcol_prep hcorr_prep h_preprocess h_dispatch)
-  · by_cases h_fl : (if s_prep.allowDirectives then
+    (h_noflow : (if s_prep.allowDirectives then
       { s_prep with allowDirectives := false, documentEverStarted := true }
-    else s_prep).inFlow = true
-    · exact Or.inr trivial
-    · exact Or.inl (indicator_floor_question_at_col hcol_prep hcorr_prep
-        (by simpa using h_fl) h_preprocess h_dispatch)
-  · rcases preprocess_some_savedKey_shape h_preprocess with ⟨_, h_pos⟩ | _
-    · have h_fresh : (if s_prep.allowDirectives then
+    else s_prep).inFlow = false)
+    (h_sk : sc.simpleKeyAllowed = true)
+    (h_preprocess : scanNextToken_preprocess sc = .ok (some (s_prep, ':')))
+    (h_dispatch : scanNextToken_dispatchBlockIndicators (if s_prep.allowDirectives then
       { s_prep with allowDirectives := false, documentEverStarted := true }
-    else s_prep).simpleKey.possible = true →
-          (if s_prep.allowDirectives then
+    else s_prep) ':' = .ok (some s')) :
+    IndentFloor s' k := by
+  have h_upd_fl : (if s_prep.allowDirectives then
       { s_prep with allowDirectives := false, documentEverStarted := true }
-    else s_prep).simpleKey.pos.col = (if s_prep.allowDirectives then
-      { s_prep with allowDirectives := false, documentEverStarted := true }
-    else s_prep).col := by
-        intro _
-        have hk : (if s_prep.allowDirectives then
-      { s_prep with allowDirectives := false, documentEverStarted := true }
-    else s_prep).simpleKey = s_prep.simpleKey := by split <;> rfl
-        have hp : (if s_prep.allowDirectives then
-      { s_prep with allowDirectives := false, documentEverStarted := true }
-    else s_prep).col = s_prep.col := by split <;> rfl
-        rw [hk, hp, h_pos]; rfl
-      rcases value_floor_or h_fresh h_dispatch with ⟨h_noflow, h_le, h_nic⟩ | _
-      · exact Or.inl ⟨by rw [h_nic]; exact h_nic_of_noflow h_noflow,
-                      le_minContentIndentOf_of_int_le (by omega)⟩
-      · exact Or.inr trivial
-    · exact Or.inr trivial
+    else s_prep).flowLevel = s_prep.flowLevel := by split <;> rfl
+  have h_noflow_prep : s_prep.inFlow = false := by
+    unfold ScannerState.inFlow at h_noflow ⊢
+    rw [h_upd_fl] at h_noflow
+    exact h_noflow
+  exact indicator_floor_colon_at_col_of_save hcol_prep hcorr_prep h_noflow
+    (preprocess_saved_key_col h_sk h_noflow_prep h_preprocess).2 h_preprocess h_dispatch
 
-/-- The landing form, which is what every non-compact indicator producer holds:
-    a zero landing plus `[63]`'s width IS the dispatch's column. -/
-lemma indicator_floor {sc s_prep s' : ScannerState} {sp_land sp_prep : SurfPos}
-    {k : Nat} {c : Char}
-    (hcol_land : sp_land.col = 0)
-    (h_ind : SIndent k sp_land sp_prep)
-    (hcorr_prep : ScannerSurfCorr s_prep sp_prep)
-    (h_preprocess : scanNextToken_preprocess sc = .ok (some (s_prep, c)))
-    (h_dispatch : scanNextToken_dispatchBlockIndicators
-        (if s_prep.allowDirectives then
-          { s_prep with allowDirectives := false, documentEverStarted := true }
-        else s_prep) c = .ok (some s')) :
-    IndentFloor s' k ∨ True :=
-  indicator_floor_at_col
-    (by have := SIndent_col h_ind; rw [hcol_land] at this; omega)
-    hcorr_prep h_preprocess h_dispatch
+/-- **The landing's save, decided per INPUT** (item 76).
+
+    A park OFF a line start reaches a column-0 landing only across a break, and
+    a break outside a flow re-arms `simpleKeyAllowed` — so preprocessing's save
+    is FRESH and sits at the cursor it stopped on.  A park AT a line start
+    crosses nothing, and there the datum is the park's own flag, which the
+    landing arms do not hold.
+
+    The site is therefore MIXED rather than punting (Reflection 666): the column
+    that decides it is one the caller already has, so the `by_cases` lives in
+    the producer and the arm hands `True` back only for the inputs that have
+    no datum, not for every input it sees. -/
+lemma landing_save_or {s_prep : ScannerState} {sp_scan : SurfPos}
+    (h_noflow : s_prep.inFlow = false)
+    (h_arm : sp_scan.col ≠ 0 → s_prep.inFlow = false →
+      s_prep.simpleKey.possible = true ∧ s_prep.simpleKey.pos.col = s_prep.col) :
+    s_prep.simpleKey.pos.col = s_prep.col ∨ True := by
+  by_cases h0 : sp_scan.col = 0
+  · exact Or.inr trivial
+  · exact Or.inl (h_arm h0 h_noflow).2
 
 /-- **The implicit key's floor** (item 28).
 
@@ -11054,7 +11079,11 @@ lemma indicator_open_map {sc : ScannerState}
     (h_ind : SIndent k sp_land sp_ind)
     (hcorr_prep : ScannerSurfCorr s_prep sp_ind)
     (hcorr_result : ScannerSurfCorr s' sp_scan')
-    (h_floor_in : IndentFloor s' k ∨ True)
+    -- Item 76: the FRESH SAVE, not the floor.  Both indicators push at their own
+    -- column and the `?` measures that itself (item 74); what the `:` needs on
+    -- top is that preprocessing re-saved, and this lemma's callers now have two
+    -- ways to know it — the park's armed flag, or the landing's own break.
+    (h_save : s_prep.simpleKey.pos.col = s_prep.col ∨ True)
     (hpeek : s_prep.peek? = some c)
     (h_noflow_disp : (if s_prep.allowDirectives then
         { s_prep with allowDirectives := false, documentEverStarted := true }
@@ -11082,8 +11111,10 @@ lemma indicator_open_map {sc : ScannerState}
   | inl h =>
     subst h
     exact colon_open_map sp_start sp_land sp_ind k s_prep s' sp_scan' h_stream_land
-      hcol_land h_ind hcorr_prep hcorr_result h_floor_in hpeek h_noflow_disp
-      h_nic_disp h_dispatch
+      hcol_land h_ind hcorr_prep hcorr_result
+      (h_save.imp (fun hp => indicator_floor_colon_at_col_of_save hcol_ind hcorr_prep
+        h_noflow_disp hp h_preprocess h_dispatch) id)
+      hpeek h_noflow_disp h_nic_disp h_dispatch
   | inr h =>
     subst h
     exact question_open_map sp_start sp_land sp_ind k s_prep s' sp_scan' h_stream_land
@@ -11583,6 +11614,10 @@ lemma accum_block_on_noPending
     (hcorr_result : ScannerSurfCorr s' sp_scan')
     (h_corr : ScannerSurfCorr sc sp_block)
     (h_col : sp_block.col = 0 ∨ sc.inFlow = true)
+    -- Item 76: the park's own armed save (`noPending.h_arm`).  This park sits at
+    -- a LINE START in block context, so the walk's re-arm says nothing here and
+    -- the flag is the only funder the landed `:` has.
+    (h_arm : sc.simpleKeyAllowed = true ∨ sc.inFlow = true)
     (h_noflow : s_prep.inFlow = false)
     (h_preprocess : scanNextToken_preprocess sc = .ok (some (s_prep, c)))
     (h_dispatch : scanNextToken_dispatchBlockIndicators
@@ -11619,7 +11654,7 @@ lemma accum_block_on_noPending
     rw [← preprocess_preserves_flowLevel sc s_prep c h_preprocess]; exact h_noflow
   refine h_land.elim (fun h_landed => ?_) (fun h_mid =>
     absurd (h_col.resolve_right (by simp [h_scflow])) h_mid.2.1)
-  obtain ⟨h_ssl_pre, hcol_mid⟩ := h_landed
+  obtain ⟨h_ssl_pre, hcol_mid, h_larm⟩ := h_landed
   -- Item 22: the whites the landing left before the indicator ARE the
   -- collection's own indentation, so `nil` is not a separate arm — it is
   -- `k = 0`.  What the `cases hws` split used to send to the deferral is now
@@ -11684,7 +11719,10 @@ lemma accum_block_on_noPending
     · exact indicator_open_map sp_start sp_mid _ k c hcv s_prep s' sp_scan'
         (ssl_comments_extend_stream sp_start sp_block _ h_stream_block h_ssl_pre)
         hcol_mid h_ind hcorr_prep hcorr_result
-        (indicator_floor hcol_mid h_ind hcorr_prep h_preprocess h_dispatch)
+        -- Item 76: the seed's flag, not the landing's break — this park is the
+        -- line start `h_col` names, so it measures at EVERY input.
+        (Or.inl (preprocess_saved_key_col (h_arm.resolve_right (by simp [h_scflow]))
+          h_noflow h_preprocess).2)
         (preprocess_some_peek h_preprocess) (noflow_disp_of_noflow h_noflow)
         (nic_false_of_indicator_noflow h_preprocess (noflow_disp_of_noflow h_noflow))
         h_dispatch h_preprocess
@@ -11821,7 +11859,7 @@ lemma accum_block_on_closeThenBlock
     · exact block_dispatch_deferred sp_start sp_block_ctx sp_scan' s'
         (h_stream_fallback (inline_residue_of_landing ⟨h_mid.1, h_mid.2.1⟩ hws h_pk hcorr_prep
           (preprocess_some_peek h_preprocess)) h_mid.2.2) hcorr_result
-  obtain ⟨h_ssl, hcol_mid⟩ := h_landed
+  obtain ⟨h_ssl, hcol_mid, h_larm⟩ := h_landed
   have h_stream_new := h_close_pending sp_mid h_ssl
   -- Item 22: the whites before the indicator are the collection's own
   -- indentation; `nil` is `k = 0`, and only a tab still defers.
@@ -11881,7 +11919,7 @@ lemma accum_block_on_closeThenBlock
     by_cases hcv : c = ':' ∨ c = '?'
     · have h_generic := indicator_open_map sp_start sp_mid _ k c hcv s_prep s' sp_scan'
         h_stream_new hcol_mid h_ind hcorr_prep hcorr_result
-        (indicator_floor hcol_mid h_ind hcorr_prep h_preprocess h_dispatch)
+        (landing_save_or h_noflow h_larm)
         (preprocess_some_peek h_preprocess) (noflow_disp_of_noflow h_noflow)
         (nic_false_of_indicator_noflow h_preprocess (noflow_disp_of_noflow h_noflow))
         h_dispatch h_preprocess
@@ -11895,7 +11933,13 @@ lemma accum_block_on_closeThenBlock
           · subst hknv
             exact colon_open_map_explicit sp_start sp_scan sp_mid _ nv s_prep s'
               sp_scan' h_stream_new hvp h_ssl hcol_mid h_ind hcorr_prep hcorr_result
-              (indicator_floor hcol_mid h_ind hcorr_prep h_preprocess h_dispatch)
+              -- Item 76: the explicit VALUE line measures on the same datum the
+              -- keyless opener does — `h_vpack` carries no flag, and the
+              -- landing supplies one for every park off a line start.
+              ((landing_save_or h_noflow h_larm).imp (fun hp =>
+                indicator_floor_colon_at_col_of_save
+                  (by have := SIndent_col h_ind; rw [hcol_mid] at this; omega)
+                  hcorr_prep (noflow_disp_of_noflow h_noflow) hp h_preprocess h_dispatch) id)
               (preprocess_some_peek h_preprocess) (noflow_disp_of_noflow h_noflow)
               (nic_false_of_indicator_noflow h_preprocess (noflow_disp_of_noflow h_noflow))
               h_dispatch
@@ -12150,7 +12194,7 @@ lemma accum_block_on_pendingBlockContent
         (h_stream_fallback (nodeStop_residue_is_colon h_line (block_indicator_char h_dispatch)
           (inline_residue_of_landing ⟨h_mid.1, h_mid.2.1⟩ hws h_pk hcorr_prep
             (preprocess_some_peek h_preprocess))) h_mid.2.2) hcorr_result)
-    obtain ⟨h_ssl, hcol_mid⟩ := h_landed
+    obtain ⟨h_ssl, hcol_mid, h_larm⟩ := h_landed
     have h_eq := h_pk.resolve_right (by simp [preprocess_some_peek h_preprocess])
     subst h_eq
     -- Item 32: the tab is located in that run, and the scanner refused it.
@@ -12207,7 +12251,7 @@ lemma accum_block_on_pendingBlockContent
       by_cases hcv : c = ':' ∨ c = '?'
       · exact indicator_open_map sp_start sp_mid _ k c hcv s_prep s' sp_scan'
           (h_close_pending _ h_ssl) hcol_mid h_ind hcorr_prep hcorr_result
-          (indicator_floor hcol_mid h_ind hcorr_prep h_preprocess h_dispatch)
+          (landing_save_or h_noflow h_larm)
           (preprocess_some_peek h_preprocess) (noflow_disp_of_noflow h_noflow)
           (nic_false_of_indicator_noflow h_preprocess (noflow_disp_of_noflow h_noflow))
           h_dispatch h_preprocess
@@ -12258,7 +12302,7 @@ lemma accum_block_on_pendingBlock
   -- landing — it is `[185] s-l+block-indented`'s compact alternative, which
   -- asks for no `[79] s-l-comments` at all.  Its body is at the bottom.
   refine h_land.elim (fun h_landed => ?_) (fun h_inline => ?_)
-  obtain ⟨h_ssl, hcol_mid⟩ := h_landed
+  obtain ⟨h_ssl, hcol_mid, h_larm⟩ := h_landed
   -- Item 32: the tab is located in that run, and the scanner refused it.
   refine (gstar_white_sIndent_or_tab hws).elim (fun h_ind => ?_) (fun h_tab =>
     (tab_refutes_dispatch h_noflow h_corr h_ssl hcol_mid hcorr_prep hws h_tab
@@ -12363,7 +12407,9 @@ lemma accum_block_on_pendingBlock
     by_cases hcv : c = ':' ∨ c = '?'
     · exact indicator_open_map sp_start sp_mid _ k c hcv s_prep s' sp_scan'
         (h_close_pending _ h_ssl) hcol_mid h_ind hcorr_prep hcorr_result
-        (indicator_floor hcol_mid h_ind hcorr_prep h_preprocess h_dispatch)
+        -- Item 76: this park carries the flag itself (item 59), so the `:`
+        -- measures at EVERY input here, landing or not.
+        (Or.inl (preprocess_saved_key_col h_sk h_noflow h_preprocess).2)
         (preprocess_some_peek h_preprocess) (noflow_disp_of_noflow h_noflow)
         (nic_false_of_indicator_noflow h_preprocess (noflow_disp_of_noflow h_noflow))
         h_dispatch h_preprocess
@@ -12465,9 +12511,10 @@ lemma accum_block_pending (sc : ScannerState)
   have h_close_pending : ∀ sp_mid, SSLComments sp_scan sp_mid → SLYamlStream sp_start sp_mid :=
     fun sp_mid h_ssl => h_pending.close_with_ssl h_stream_block h_ssl
   cases h_pending with
-  | noPending _ _ h_col =>
+  | noPending _ _ h_col h_arm =>
     exact accum_block_on_noPending sc sp_start sp_block s_prep s' c sp_prep sp_scan'
-      h_stream_block hcorr_prep hcorr_result h_corr h_col h_noflow h_preprocess h_dispatch
+      h_stream_block hcorr_prep hcorr_result h_corr h_col h_arm h_noflow h_preprocess
+      h_dispatch
   | pendingDocEnd _ _ =>
     rename_i h_line _h_marker
     -- Item 36: `[204] l-document-suffix` ends the marker with `s-l-comments`,
@@ -14746,7 +14793,7 @@ lemma keyctx_of_preprocess (sc : ScannerState) (sp sp_prep : SurfPos)
       have h_ind' : SIndent k sp_mid sp_prep := by rw [h_pe]; exact h_ind
       cases h_disj with
       | inl hssl =>
-        exact Or.inl ⟨⟨k, sp_mid, hssl.2, h_close sp_mid hssl.1, h_ind'⟩, h_sk.1, h_sk.2⟩
+        exact Or.inl ⟨⟨k, sp_mid, hssl.2.1, h_close sp_mid hssl.1, h_ind'⟩, h_sk.1, h_sk.2⟩
       | inr hmid =>
         by_cases hc0 : sp.col = 0
         · have hcol_eq : sp = ⟨sp.chars, 0⟩ := by
@@ -15047,7 +15094,7 @@ lemma entryKeyPack_of_dispatch
               show s_prep.col = w
               rw [← hcorr_prep.col_eq]
               have := SIndent_col h_ind'
-              rw [h_land.2] at this
+              rw [h_land.2.1] at this
               omega
             exact Or.inl ⟨w, sp_prep, sp_gram2,
                           valueMapRoute hnw h_node h_land.1 h_ind', h_ol, h_tws2, h_kcol⟩
@@ -15155,7 +15202,7 @@ lemma entryPropsKeyPack_of_dispatch
             show s_prep.col = w
             rw [← hcorr_prep.col_eq]
             have := SIndent_col h_ind'
-            rw [h_land.2] at this
+            rw [h_land.2.1] at this
             omega
           exact Or.inl ⟨⟨w, valueMapRoute hnw h_node h_land.1 h_ind', h_kcol⟩,
                         h_props, h_sk_line,
@@ -15849,7 +15896,7 @@ lemma indentedValue_reads_at_any_indent
         · refine Or.inl (preprocess_some_floor_at_landing h_preprocess h_le ?_)
           -- the landing's own indent: `n` columns past a column-0 start, and
           -- the residual whites only move right
-          have h_sx : sx.col = n := by rw [SIndent_col h_ind, h_land.2]; omega
+          have h_sx : sx.col = n := by rw [SIndent_col h_ind, h_land.2.1]; omega
           have h_ge := gstar_sswhite_col_ge _ _ h_rest
           have h_col_eq : sp_prep.col = s_prep.col := hcorr_prep.col_eq
           rw [h_pe] at h_col_eq
@@ -15868,7 +15915,7 @@ lemma indentedValue_reads_at_any_indent
           rw [h_pe, ← hmid]
           exact SSeparateLines.inline n _ _ (GStar_SSWhite_to_SSeparateInLine _ _ h_ws)
         · rcases hend with hrun | htab
-          · exact Or.inr (fun _ => ⟨sp_mid, j, h_land.1, h_land.2, hj,
+          · exact Or.inr (fun _ => ⟨sp_mid, j, h_land.1, h_land.2.1, hj,
               by rw [h_pe, ← hrun]; exact h_ind⟩)
           · refine Or.inr (fun hfloor => ?_)
             exfalso
@@ -15879,7 +15926,7 @@ lemma indentedValue_reads_at_any_indent
             unfold minContentIndentOf at h_le
             have hci : 0 ≤ sc.currentIndent := by omega
             have hsx : (sx.col : Int) ≤ sc.currentIndent := by
-              rw [SIndent_col h_ind, h_land.2]; omega
+              rw [SIndent_col h_ind, h_land.2.1]; omega
             have hc_hash : c ≠ '#' := by
               intro hc
               have := (dispatchContent_ok_charFacts h_dispatch).2
@@ -18557,7 +18604,19 @@ lemma scan_content_gives_stream_v2
     -- Item 35: the seed parks at a LINE START — the stream's own, after the
     -- BOM if there is one (§5.2 spends no column).  That is the whole of the
     -- block-context side of `noPending`'s `h_col`.
-    (fun _ => PendingNode.noPending ⟨input.toList, 0⟩ sp (Or.inl h_col))
+    -- Item 76: …and the seed's SAVE is armed, because `ScannerState.mk'` arms it
+    -- and neither the `streamStart` emission nor §5.2's BOM touches the flag.
+    (fun _ => PendingNode.noPending ⟨input.toList, 0⟩ sp (Or.inl h_col)
+      (Or.inl (by
+        have h_emit : ((ScannerState.mk' input).emit YamlToken.streamStart).simpleKeyAllowed
+            = true := by simp [ScannerState.emit, ScannerState.mk']
+        split
+        · show ({ (((ScannerState.mk' input).emit YamlToken.streamStart)).advance with
+              col := 0 } : ScannerState).simpleKeyAllowed = true
+          show (((ScannerState.mk' input).emit YamlToken.streamStart)).advance.simpleKeyAllowed
+            = true
+          rw [ScannerCorrectness.advance_preserves_simpleKeyAllowed]; exact h_emit
+        · exact h_emit)))
     (fun hb => Bool.noConfusion hb) h_corr
     (fun hge => absurd hge (by
       -- the seed scanner is at flow level 0, so the flow-interior conjunct is vacuous

@@ -22,6 +22,7 @@ import Tests.Guards.Proofs.ScannerFlowPropertyRun
 import Tests.Guards.Proofs.ScannerIndentedBlockCompose
 import Tests.Guards.Proofs.ScannerIndentedBlockScalarCompose
 import Tests.Guards.Proofs.ScannerIndentFloorCompose
+import Tests.Guards.Proofs.ScannerLandingRearm
 import Tests.Guards.Proofs.ScannerIndentedImplicitKeyCompose
 import Tests.Guards.Proofs.ScannerIndentedPropsCompose
 import Tests.Guards.Proofs.ScannerIndentedValueCompose

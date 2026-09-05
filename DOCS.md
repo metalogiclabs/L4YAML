@@ -8857,8 +8857,9 @@ table books against `InteriorGap`, because the parametrized gap would have to
 be BUILT at the reading index and the producer needs the same floor to do it.
 `FlowStackK`'s floor is `h_kpkg`'s argument, and of that argument's seven
 sites four are free at `n = 0`, one is `pendingBlock`'s (item 73), and two are
-`pendingProps`' and `pendingMapValue`'s.  So the order is: the pack's column →
-`pendingMapValue` → `pendingProps` → `FlowStackK` → the 14 sites.  No
+`pendingProps`' and `pendingMapValue`'s.  So the order is: the pack's column
+(item 75) → the landing's re-arm (item 76) → the content park's own column
+(item 77) → `pendingMapValue` → `pendingProps` → `FlowStackK` → the 14 sites.  No
 `dropClose` moved in this item, and the residue table is unchanged.
 
 **Validation.**  Full `lake build` green (1058 jobs, ZERO warnings);
@@ -8965,6 +8966,98 @@ run at `kc = 3` beside `n = 2`, and the open→close pair that turns a measured
 frame into a pack whose column is DERIVED.  ZERO runtime edits (one proof file
 and one guard), so the matrix cannot have moved and was not re-run.
 
+### Item 76 (2026-09-04)
+
+**The landing's own re-arm: a break re-arms the save, and now the accumulator
+can say so.**  Items 74 and 75 both ended at the same sentence — the `:`'s floor
+and the pack's column are decided by whether preprocessing RE-SAVED, and the
+parks that carry no `simpleKeyAllowed` could not tell.  The scanner has always
+answered it: `skipToContentLoop` sets `simpleKeyAllowed := true` on every break
+outside a flow (§7.4.2 suppresses it inside one).  What was missing is a lemma
+that carries the answer back.
+
+**What was threaded.**  `skipToContentLoop_anyCol_prod`'s LANDED arm gains one
+conjunct —
+
+```
+(sp.col ≠ 0 → sc.inFlow = false → s_result.simpleKeyAllowed = true)
+```
+
+— proved where the break is consumed, from `skipToContentLoop_simpleKeyAllowed_mono`
+in the block branch and from the flow level in the other.  The guard is the
+PARK's column, because the two arms of that disjunct are not exclusive: a park
+already AT a line start reaches a column-0 landing without crossing anything, so
+only a park off one has a break to point at.  `preprocess_some_ssl_comments_anyCol`
+then converts it once — `preprocess_saved_key_col_of_walk` is item 74's lemma
+stated at its true premise, the POST-WALK flag rather than the park's — and both
+that lemma and `preprocess_some_ssl_comments_landing` deliver the fresh save
+itself:
+
+```
+(sp.col ≠ 0 → s_prep.inFlow = false →
+   s_prep.simpleKey.possible = true ∧ s_prep.simpleKey.pos.col = s_prep.col)
+```
+
+**The site is MIXED, not punting** (Reflection 666, made a third time).
+`landing_save_or` decides it by a column the caller already has: off a line
+start the `:` measures, at one it hands `True` back.  So the arm punts on the
+INPUTS that have no datum rather than on every input it sees — which is what
+items 40 and 65 did for the pack, applied here to the floor.
+
+**What each of the four callers now pays.**
+
+| caller | park | how it measures |
+|---|---|---|
+| `accum_block_on_pendingBlock` | after a `-` | its own `h_sk` (item 59) — UNCONDITIONAL, at every input |
+| `accum_block_on_noPending` | the stream's seed | a new `h_arm` on the constructor: `ScannerState.mk'` arms the flag, and every other producer is a flow one and pays the same `inFlow` disjunct `h_col` does — UNCONDITIONAL |
+| `accum_block_on_closeThenBlock` | any pending's close | per INPUT: the landing, for a park off a line start |
+| `accum_block_on_pendingBlockContent` | a completed node in an entry | the same |
+
+`colon_open_map_explicit` — item 74's second row, `? a⏎: v` — measures on the
+identical datum, because `h_vpack` carries no flag either.
+
+**What the umbrella cost, and its deletion.**  `indicator_open_map` used to take
+`IndentFloor s' k ∨ True` and every caller filled it with `indicator_floor`,
+which re-derived what it could and punted on the rest.  It now takes the SAVE
+(`s_prep.simpleKey.pos.col = s_prep.col ∨ True`) and builds the floor itself
+through `indicator_floor_colon_at_col_of_save`, so the umbrella has no caller
+left: `indicator_floor` and `indicator_floor_at_col` are DELETED, and the three
+per-indicator lemmas each state their own premise — the `-` unconditionally, the
+`?` given the flow level, the `:` given the save.
+
+**What did NOT land, and why — measured, not surveyed.**  `colon_open_map`'s
+`h_floor_in` keeps its `∨ True`, because two of `indicator_open_map`'s four
+callers still meet the input that has neither funder: a CONTENT park at column
+0.  That park is real — `[170]`'s block scalar consumes its trailing break and
+parks at a line start — and it is armed there (`scanBlockScalar` ends
+`simpleKeyAllowed := true`), so the field is true; what is missing is a proof
+that the OTHER content scans never park at column 0.  `scanPlainScalar_restNodeStop`
+admits the case (its `terminates?` probe has a `s.col = 0` exit at a document
+boundary) and the walk sets `simpleKeyAllowed := false`, so `pendingContent`
+cannot carry the flag until that exit is refuted — which needs an invariant on
+`collectPlainScalarLoop`, not a threading edit.  A sweep of all 351 suite inputs
+finds ZERO block-context parks at column 0 with the save down, and
+`Tests/Guards/Proofs/ScannerLandingRearm.lean` §4 pins that measurement on the
+shapes that reach one.  So the remaining half is item 77's, and it is a column,
+not a flag.
+
+**No `dropClose` moved**, and the residue table is unchanged.  Both `colon_*`
+rows of item 74's table now measure for every park off a line start; the other
+two rows are the packs' columns, which item 75 left optional for the same reason
+and which the same item 77 unblocks.
+
+**Validation.**  Full `lake build` green (1059 jobs, ZERO warnings);
+`run-all-tests.sh` 4465/4465 (run after that build); `eventscore` (no
+`--suite`) 347/358 with the composition unmoved (252 event-pass, 11 event-diff,
+0 event-reject, 95 error-ok); three checkers OK (220 library modules / 354
+imports; 20 sub-themes, 229 demos, 248 reflections; 25 whitelisted `theorem`
+capstones).  `#print axioms` names no `sorryAx`: `landing_save_or` depends on no
+axioms at all, the seven production lemmas are
+`[propext, Classical.choice, Quot.sound]`, and the accumulation lemmas name only
+the `dispatchBlock{Entry,Key,Value}_full_prod` `native_decide` pairs their
+unchanged bodies already called.  ZERO runtime edits — two proof files, one new
+guard and its registration — so the matrix cannot have moved and was not re-run.
+
 ### REMAINING, in order
 
 The per-item history is the closure log above; this section lists only the
@@ -8977,7 +9070,7 @@ a nonzero index.  R2 is CLOSED too (items 47–51), so what stands between here
 and Step 5 (the converse) is R3's remaining production work and R4:
 
 ```
-R1 ✓ (44–46) ──→ R2 ✓ (47–51) ──→ R3 (52–75 landed; 67b open) ──→ Step 5
+R1 ✓ (44–46) ──→ R2 ✓ (47–51) ──→ R3 (52–76 landed; 67b open) ──→ Step 5
                                         └──────→ R4 (implicitContinue + 0 < m) ──┘
 ```
 
@@ -9124,8 +9217,12 @@ and that deletion, by input class:
   waiting on.  Item 75 delivered the datum both were named as blocked on:
   `ImplicitKeyPack`'s column now reaches a flow close (the frame's `kc`
   parameter, `KmSound`'s base slot).  What holds the FIELD open after it is one
-  question and it is not the column — whether preprocessing re-saved, which is
-  decided per input everywhere a park cannot read `simpleKeyAllowed`.
+  question and it is not the column — whether preprocessing re-saved.  Item 76
+  answered it for every park OFF a line start (the walk's break re-arms, and the
+  landed arm of `preprocess_some_ssl_comments_anyCol` now carries the fresh
+  save); what is left is the park AT one, which is a CONTENT park whose flag the
+  block scalar sets and the plain walk does not.  That is item 77 — an invariant
+  on `collectPlainScalarLoop`, not a threading edit.
   ~~What survives:
   `dropClose`'s remaining domain — the VALID multi-line scalar tokens at a
   nonzero index~~ — the TOKENS are CLOSED by item 67a, which built the flow

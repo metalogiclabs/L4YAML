@@ -7,6 +7,7 @@ import L4YAML.Proofs.Production.NodeProduction
 import L4YAML.Proofs.Scanner.ScannerLinePreservation
 import L4YAML.Proofs.Scanner.PreprocessIndentStable
 import L4YAML.Proofs.Coupling.LandingTab
+import L4YAML.Proofs.Scanner.EntryBoundaryLayout
 
 /-! # Preprocessing Production Coupling (Layer 4b)
 
@@ -44,6 +45,7 @@ open L4YAML.Proofs.ScannerCoupling
 open L4YAML.Proofs.NodeProduction
 open L4YAML.Proofs.PreprocessIndentStable
 open L4YAML.Proofs.LandingTab
+open L4YAML.Proofs.EntryBoundaryLayout
 
 /-! ## §1 Helpers -/
 
@@ -482,7 +484,15 @@ lemma skipToContentLoop_anyCol_prod
     (hfuel : fuel ≥ sc.inputEnd - sc.offset + 1)
     (hok : skipToContentLoop sc fuel = .ok s_result) :
     ∃ sp_mid sp_ws sp',
-      (SSLComments sp sp_mid ∧ sp_mid.col = 0 ∨
+      (SSLComments sp sp_mid ∧ sp_mid.col = 0 ∧
+          -- **Item 76: the landing's own re-arm.**  A park that is NOT at a
+          -- line start reaches a column-0 landing only across a BREAK, and
+          -- `skipToContentLoop` re-arms the simple key on every break outside a
+          -- flow — so the walk itself says the next `saveSimpleKey` will be a
+          -- FRESH one.  Guarded by the park's column because the col-0 entry
+          -- lands without crossing anything, and by the flow level because
+          -- §7.4.2's gate is what suppresses the re-arm inside a collection.
+          (sp.col ≠ 0 → sc.inFlow = false → s_result.simpleKeyAllowed = true) ∨
         sp_mid = sp ∧ s_result.needIndentCheck = sc.needIndentCheck) ∧
       GStar SSWhite sp_mid sp_ws ∧ GOpt SCNbCommentText sp_ws sp' ∧
       ScannerSurfCorr s_result sp' ∧
@@ -495,7 +505,7 @@ lemma skipToContentLoop_anyCol_prod
     cases sp with | mk chars col =>
     dsimp only [] at hcol; subst hcol
     exact ⟨sp_mid, sp_ws, sp',
-      Or.inl ⟨SSLComments.startOfLine chars sp_mid hstar, hcol_mid⟩,
+      Or.inl ⟨SSLComments.startOfLine chars sp_mid hstar, hcol_mid, fun h _ => absurd rfl h⟩,
       hws, hcmt, hcorr', h_pk, h_ltsl⟩
   · -- col≠0: induction on fuel; first break builds SSBComment
     induction fuel generalizing sc sp s_result with
@@ -575,16 +585,30 @@ lemma skipToContentLoop_anyCol_prod
                   fuel' s_result
                   (by cases sp_brk; dsimp only [] at hcol_brk ⊢; subst hcol_brk; exact h_sbc)
                   hcorr_next rfl hfuel' hok
-              exact ⟨sp_mid, sp_ws_r, sp', Or.inl ⟨hssl, hcol_mid⟩, hws_r, hcmt_r, hcorr', h_pk,
+              exact ⟨sp_mid, sp_ws_r, sp',
+                Or.inl ⟨hssl, hcol_mid, fun _ _ =>
+                  skipToContentLoop_simpleKeyAllowed_mono _ s_result fuel' rfl hok⟩,
+                hws_r, hcmt_r, hcorr', h_pk,
                 h_ltsl.transport (currentIndent_of_indents_eq h_next_ind) h_next_nic⟩
-            · -- isInFlowSequence
+            · -- isInFlowSequence: §7.4.2 suppresses the re-arm, and the walk
+              -- carries no flow level of its own — so the payload's premise is
+              -- refuted from the entry state's.
+              rename_i h_inflow
               obtain ⟨sp_mid, sp_ws_r, sp', hssl, hcol_mid, hws_r, hcmt_r, hcorr', h_pk,
                   h_ltsl⟩ :=
                 skipToContentLoop_after_break_prod sp sp_brk
                   (consumeNewline (skipToContentComment s1)) fuel' s_result
                   h_sbc hcorr_brk hcol_brk hfuel' hok
-              exact ⟨sp_mid, sp_ws_r, sp', Or.inl ⟨hssl, hcol_mid⟩, hws_r, hcmt_r, hcorr', h_pk,
+              refine ⟨sp_mid, sp_ws_r, sp',
+                Or.inl ⟨hssl, hcol_mid, fun _ h_nf => absurd ?_ h_inflow⟩,
+                hws_r, hcmt_r, hcorr', h_pk,
                 h_ltsl.transport (currentIndent_of_indents_eq h_next_ind) h_next_nic⟩
+              show (!(consumeNewline (skipToContentComment s1)).inFlow) = true
+              unfold ScannerState.inFlow at h_nf ⊢
+              rw [ScannerCorrectness.consumeNewline_preserves_flowLevel,
+                  ScannerCorrectness.skipToContentComment_preserves_flowLevel,
+                  ScannerCorrectness.skipToContentWs_preserves_flowLevel sc s1 hok_ws]
+              simpa using h_nf
           · -- Not break: stop
             rename_i hnlb
             have hinj := Except.ok.inj hok; subst hinj
@@ -656,7 +680,15 @@ lemma skipToContent_anyCol_prod
     (hcorr : ScannerSurfCorr sc sp)
     (hok : skipToContent sc = .ok s_result) :
     ∃ sp_mid sp_ws sp',
-      (SSLComments sp sp_mid ∧ sp_mid.col = 0 ∨
+      (SSLComments sp sp_mid ∧ sp_mid.col = 0 ∧
+          -- **Item 76: the landing's own re-arm.**  A park that is NOT at a
+          -- line start reaches a column-0 landing only across a BREAK, and
+          -- `skipToContentLoop` re-arms the simple key on every break outside a
+          -- flow — so the walk itself says the next `saveSimpleKey` will be a
+          -- FRESH one.  Guarded by the park's column because the col-0 entry
+          -- lands without crossing anything, and by the flow level because
+          -- §7.4.2's gate is what suppresses the re-arm inside a collection.
+          (sp.col ≠ 0 → sc.inFlow = false → s_result.simpleKeyAllowed = true) ∨
         sp_mid = sp ∧ s_result.needIndentCheck = sc.needIndentCheck) ∧
       GStar SSWhite sp_mid sp_ws ∧ GOpt SCNbCommentText sp_ws sp' ∧
       ScannerSurfCorr s_result sp' ∧
@@ -898,7 +930,7 @@ lemma skipToContent_eof_ssl_comments
     cases hcase with
     | inl h =>
       -- Break was consumed: SSLComments sp sp_mid at col=0, extend with eof SLComment
-      obtain ⟨h_ssl, hcol_mid⟩ := h
+      obtain ⟨h_ssl, hcol_mid, -⟩ := h
       have h_sep := GStar_SSWhite_to_SSeparateInLine sp_mid sp_ws hws
       cases sp' with | mk chars' col' =>
       simp only [] at hchars; subst hchars
