@@ -810,7 +810,7 @@ inductive PendingNode (sc : ScannerState) : Bool → SurfPos → SurfPos → Sur
       (h_close_entry : ∀ sp_mid,
         SBlockIndented n .blockIn sp_scan sp_mid →
         ∀ sp_end, SCompactSeqTail n sp_mid sp_end → SLYamlStream sp_start sp_end)
-      (h_floor : IndentFloor sc n ∨ True)
+      (h_floor : IndentFloor sc n)
       (h_sk : sc.simpleKeyAllowed = true)
       -- Item 59 (LAST): the park's own COLUMN.  The entry's index IS its
       -- indicator's column and the park sits one character past it, so this is
@@ -6438,7 +6438,7 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
     rw [h_pe] at h_sep_or
     rcases h_sep_or with h_sep | ⟨sp_mid2, _h_ssl2, h_col02, h_ur, h_ltsl2⟩
     · exact ⟨sp_gram, sp_block, sp_open, sp_open, h_stream, h_stack,
-             h_kpkg _ _ _ (openFloor h_sep (by omega) h_floor_old) (mk n_old sp_block ⟨(fun sp_ne sp_m h_content h_ssl =>
+             h_kpkg _ _ _ (openFloor h_sep (by omega) (Or.inl h_floor_old)) (mk n_old sp_block ⟨(fun sp_ne sp_m h_content h_ssl =>
                h_close sp_m (SBlockIndented.node n_old .blockIn sp_scan sp_m
                  (SBlockNode.flowInBlock n_old .blockIn sp_scan sp_prep sp_ne sp_m
                    h_sep (SFlowNode.content _ _ _ _ h_content) h_ssl))),
@@ -6449,14 +6449,15 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
                  (Or.inl h_close) h_corr hcorr_prep h_preprocess,
                Or.inr trivial⟩),
              PendingNode.noPending sp_start sp_open (Or.inr (inFlow_of_flowLevel_eq h_fl1)), hcorr_open, fun _ => ⟨.white (GStar.nil _) h_sync h_colon h_opencol, h_real, h_ad⟩⟩
-    · rcases h_floor_old with h_floor | _
-      · rcases h_ur with ⟨j, sx, hj, h_ind, _h_ws2, h_end | h_tab⟩
-        · exact (flowOpen_underRunEnd_refuted h_floor hcorr_prep h_dcol h_dind
-            h_dflow h_c h_col02 hj (h_end ▸ h_ind) h_preprocess h_bfi).elim
-        · exact (flowOpen_underRunTab_refuted h_floor h_ltsl2
-            (fun h => by rw [h, h_col59] at h_col02; omega) h_col02 hj h_ind h_tab
-            h_c h_preprocess).elim
-      · exact drop_ride
+    · -- Item 73: `pendingBlock`'s floor is a measurement now, not an option, so
+      -- BOTH halves of the open's under-run are refuted here and the arm no
+      -- longer rides the drop.
+      rcases h_ur with ⟨j, sx, hj, h_ind, _h_ws2, h_end | h_tab⟩
+      · exact (flowOpen_underRunEnd_refuted h_floor_old hcorr_prep h_dcol h_dind
+          h_dflow h_c h_col02 hj (h_end ▸ h_ind) h_preprocess h_bfi).elim
+      · exact (flowOpen_underRunTab_refuted h_floor_old h_ltsl2
+          (fun h => by rw [h, h_col59] at h_col02; omega) h_col02 hj h_ind h_tab
+          h_c h_preprocess).elim
   | pendingMapValue _ _ _ n_old h_close h_floor_mv _ _ _ h_expl h_vslot _ h_col0_mv h_ncol_mv =>
     -- Item 13: the flow collection IS the mapping's value (`: [a]`, `: {a: b}`)
     -- — same closure type as `pendingBlock`, so the arm is its verbatim clone,
@@ -9654,6 +9655,55 @@ lemma nic_false_of_indicator_noflow {sc s_prep : ScannerState} {c : Char}
   rw [h_nicd]
   exact nic_false_of_flow_disp h_preprocess h_noflow
 
+/-- **The dash's floor is unconditional** (item 73).
+
+    `indicator_floor_at_col` below punts on two of its three indicators,
+    because `?` and `:` can push at a column that is not their own.  The `-`
+    arm never does: `[183]`'s `pushSequenceIndent` goes to the indicator's own
+    column, which IS the entry index the accumulator reads off the landing.
+    Every `pendingBlock` comes off a `-` scan, so that constructor's floor
+    field carries no `∨ True` — the escape it used to fund was never funded by
+    this indicator. -/
+lemma indicator_floor_dash_at_col {sc s_prep s' : ScannerState} {sp_prep : SurfPos}
+    {k : Nat}
+    (hcol_prep : sp_prep.col = k)
+    (hcorr_prep : ScannerSurfCorr s_prep sp_prep)
+    (h_preprocess : scanNextToken_preprocess sc = .ok (some (s_prep, '-')))
+    (h_dispatch : scanNextToken_dispatchBlockIndicators
+        (if s_prep.allowDirectives then
+          { s_prep with allowDirectives := false, documentEverStarted := true }
+        else s_prep) '-' = .ok (some s')) :
+    IndentFloor s' k := by
+  have h_col : (((if s_prep.allowDirectives then
+        { s_prep with allowDirectives := false, documentEverStarted := true }
+      else s_prep).col : Int)) = (k : Int) := by
+    have h2 : (if s_prep.allowDirectives then
+        { s_prep with allowDirectives := false, documentEverStarted := true }
+      else s_prep).col = s_prep.col := by split <;> rfl
+    rw [h2, ← hcorr_prep.col_eq, hcol_prep]
+  have h_nic_of_noflow := nic_false_of_indicator_noflow (c := '-') h_preprocess
+  obtain ⟨h_noflow, _⟩ := dispatchBlockIndicators_dash_scan h_dispatch
+  obtain ⟨h_le, h_nic⟩ := dash_floor h_dispatch
+  exact ⟨by rw [h_nic]; exact h_nic_of_noflow h_noflow,
+         le_minContentIndentOf_of_int_le (by omega)⟩
+
+/-- The landing form of the dash floor: a zero landing plus `[63]`'s width IS
+    the dispatch's column. -/
+lemma indicator_floor_dash {sc s_prep s' : ScannerState} {sp_land sp_prep : SurfPos}
+    {k : Nat}
+    (hcol_land : sp_land.col = 0)
+    (h_ind : SIndent k sp_land sp_prep)
+    (hcorr_prep : ScannerSurfCorr s_prep sp_prep)
+    (h_preprocess : scanNextToken_preprocess sc = .ok (some (s_prep, '-')))
+    (h_dispatch : scanNextToken_dispatchBlockIndicators
+        (if s_prep.allowDirectives then
+          { s_prep with allowDirectives := false, documentEverStarted := true }
+        else s_prep) '-' = .ok (some s')) :
+    IndentFloor s' k :=
+  indicator_floor_dash_at_col
+    (by have := SIndent_col h_ind; rw [hcol_land] at this; omega)
+    hcorr_prep h_preprocess h_dispatch
+
 /-- **The block indicator's own floor** (item 27).
 
     The three indicators push their block-collection indent at their own
@@ -9689,10 +9739,7 @@ lemma indicator_floor_at_col {sc s_prep s' : ScannerState} {sp_prep : SurfPos}
     rw [h2, ← hcorr_prep.col_eq, hcol_prep]
   have h_nic_of_noflow := nic_false_of_indicator_noflow (c := c) h_preprocess
   rcases dispatchBlockIndicators_indicator_of_some h_dispatch with rfl | rfl | rfl
-  · obtain ⟨h_noflow, _⟩ := dispatchBlockIndicators_dash_scan h_dispatch
-    obtain ⟨h_le, h_nic⟩ := dash_floor h_dispatch
-    exact Or.inl ⟨by rw [h_nic]; exact h_nic_of_noflow h_noflow,
-                  le_minContentIndentOf_of_int_le (by omega)⟩
+  · exact Or.inl (indicator_floor_dash_at_col hcol_prep hcorr_prep h_preprocess h_dispatch)
   · rcases key_floor_or h_dispatch with ⟨h_noflow, h_le, h_nic⟩ | _
     · exact Or.inl ⟨by rw [h_nic]; exact h_nic_of_noflow h_noflow,
                     le_minContentIndentOf_of_int_le (by omega)⟩
@@ -11255,7 +11302,7 @@ lemma accum_block_on_noPending
                    (GOpt.some sp_block sp_end
                      (SLAnyDocument.bare sp_block sp_end h_bare))
                    (GStar.nil _))
-             (indicator_floor hcol_mid h_ind hcorr_prep h_preprocess h_dispatch)
+             (indicator_floor_dash hcol_mid h_ind hcorr_prep h_preprocess h_dispatch)
              (dispatchBlockEntry_simpleKeyAllowed h_dispatch)
              (park_col_of_indicator hcol_mid h_ind h_dash),
            hcorr_result⟩
@@ -11387,7 +11434,8 @@ lemma accum_block_on_closeThenBlock
                        (SBlockIndented.compactSeq nv .blockOut m sp_mid _ sp_end h_ind
                          (SCompactSeq.mk (nv + 1 + m) _ sp_scan' sp_final sp_end
                            h_dash2 h_gnot2 h_bi h_tail)))
-                 (Or.inr trivial)
+                 (indicator_floor_dash_at_col (by have := SIndent_col h_ind; omega)
+                    hcorr_prep h_preprocess h_dispatch)
                  (dispatchBlockEntry_simpleKeyAllowed h_dispatch)
                  (park_col_of_compact h_col_vslot h_ind h_dash2),
                hcorr_result⟩
@@ -11453,7 +11501,7 @@ lemma accum_block_on_closeThenBlock
                    (GOpt.some sp_mid sp_end
                      (SLAnyDocument.bare sp_mid sp_end h_bare))
                    (GStar.nil _))
-             (indicator_floor hcol_mid h_ind hcorr_prep h_preprocess h_dispatch)
+             (indicator_floor_dash hcol_mid h_ind hcorr_prep h_preprocess h_dispatch)
              (dispatchBlockEntry_simpleKeyAllowed h_dispatch)
              (park_col_of_indicator hcol_mid h_ind h_dash),
            hcorr_result⟩
@@ -11768,7 +11816,7 @@ lemma accum_block_on_pendingBlockContent
                    fun sp_end h_tail =>
                      h_cont sp_end (SCompactSeqTail.cons k sp_mid _ sp_scan' sp_final sp_end
                        h_ind h_dash2 h_gnot2 h_indented h_tail))
-                 (indicator_floor hcol_mid h_ind hcorr_prep h_preprocess h_dispatch)
+                 (indicator_floor_dash hcol_mid h_ind hcorr_prep h_preprocess h_dispatch)
                  (dispatchBlockEntry_simpleKeyAllowed h_dispatch)
                  (park_col_of_indicator hcol_mid h_ind h_dash2),
                hcorr_result⟩
@@ -11876,7 +11924,7 @@ lemma accum_block_on_pendingBlock
                  fun sp_end h_tail =>
                    h_cont sp_end (SCompactSeqTail.cons k sp_mid _ sp_scan' sp_final sp_end
                      h_ind h_dash2 h_gnot2 h_indented h_tail))
-               (indicator_floor hcol_mid h_ind hcorr_prep h_preprocess h_dispatch)
+               (indicator_floor_dash hcol_mid h_ind hcorr_prep h_preprocess h_dispatch)
                (dispatchBlockEntry_simpleKeyAllowed h_dispatch)
                (park_col_of_indicator hcol_mid h_ind h_dash2),
              hcorr_result⟩
@@ -11925,7 +11973,7 @@ lemma accum_block_on_pendingBlock
                      h_close_inner sp_end
                        (SBlockSeqEntries_of_compactTail h_ind h_dash2 h_gnot2
                          h_indented h_tail))
-                 (indicator_floor hcol_mid h_ind hcorr_prep h_preprocess h_dispatch)
+                 (indicator_floor_dash hcol_mid h_ind hcorr_prep h_preprocess h_dispatch)
                  (dispatchBlockEntry_simpleKeyAllowed h_dispatch)
                  (park_col_of_indicator hcol_mid h_ind h_dash2),
                hcorr_result⟩
@@ -11997,7 +12045,8 @@ lemma accum_block_on_pendingBlock
                      (SBlockIndented.compactSeq n .blockIn m sp_mid sp_sc sp_end h_ind
                        (SCompactSeq.mk (n + 1 + m) sp_sc sp_scan' sp_final sp_end
                          h_dash2 h_gnot2 h_bi h_tail)))
-               (Or.inr trivial)
+               (indicator_floor_dash_at_col (by have := SIndent_col h_ind; omega)
+                  hcorr_prep h_preprocess h_dispatch)
                (dispatchBlockEntry_simpleKeyAllowed h_dispatch)
                (park_col_of_compact h_col_old h_ind h_dash2),
              hcorr_result⟩
@@ -15668,7 +15717,7 @@ lemma accum_content_on_pendingBlock_indented
     (h_close_old : ∀ (sp : SurfPos), SBlockIndented n .blockIn sp_scan sp → SLYamlStream sp_start sp)
     (h_close_entry_old : ∀ (sp : SurfPos), SBlockIndented n .blockIn sp_scan sp →
       ∀ (sp_end : SurfPos), SCompactSeqTail n sp sp_end → SLYamlStream sp_start sp_end)
-    (h_floor_old : IndentFloor sc n ∨ True)
+    (h_floor_old : IndentFloor sc n)
     (h_col_old : sp_scan.col = n + 1)
     (hcorr_prep : ScannerSurfCorr s_prep sp_prep)
     (hcorr_result : ScannerSurfCorr s' sp_scan')
@@ -15694,7 +15743,7 @@ lemma accum_content_on_pendingBlock_indented
       PendingNode s' false sp_start sp_flow' sp_scan' ∧
       ScannerSurfCorr s' sp_scan' := by
   rcases indentedValue_reads_at_any_indent sc sp_scan n s_prep s' c sp_prep sp_scan'
-      h_floor_old hcorr_prep hcorr_result h_corr h_preprocess h_not_doc h_flow_disp h_dispatch with
+      (Or.inl h_floor_old) hcorr_prep hcorr_result h_corr h_preprocess h_not_doc h_flow_disp h_dispatch with
     ⟨sp_gram, h_sep_all, h_flow_all, h_trailing_ws, h_line, hna, hnt⟩ |
     ⟨ha, ht, h_sep_all, h_run_all, h_nic_s, h_real_s, h_anchor_s, h_tag_s, h_ind_s,
       h_single, h_sk_s, h_line_s⟩ |
@@ -15745,7 +15794,7 @@ lemma accum_content_on_pendingBlock_indented
                ((h_run_all 0).toPropertiesBlockKey h_single) h_sk_s h_line_s
                hcorr_prep h_corr h_preprocess)
              (match h_ind_s with
-              | Or.inl h_ind => IndentFloor.transport h_floor_old h_nic_s h_ind
+              | Or.inl h_ind => IndentFloor.transport (Or.inl h_floor_old) h_nic_s h_ind
               | Or.inr _ => Or.inr trivial)
              -- Item 68: the entry park sits at `n + 1` (item 59), the run starts
              -- at or past `n` from there, and grows.

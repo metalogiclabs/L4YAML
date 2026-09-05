@@ -8726,6 +8726,73 @@ cannot have moved and was not re-run.
 > 4465/4465 — true, and about the wrong tree.  Rebuild before believing any gate
 > that follows a stash.
 
+### Item 73 (2026-09-04)
+
+**`pendingBlock`'s floor is a measurement, not an option — the `-` never
+punts.**  Item 67b (the deletion) is blocked on `FlowStackK` carrying a real
+floor rather than `n ≤ minContentIndentOf sc ∨ True`, and the flow open is
+where a stack gets one: `openFloor` turns the PARK's `IndentFloor sc n ∨ True`
+into the stack's.  So the deletion's precondition is the three parks paying
+their floor.  This item pays the first, and measures what the other two cost.
+
+**The finding.**  `indicator_floor_at_col` (item 27) is stated over all three
+block indicators and punts on two of them, so every consumer took the punt.
+But the three do not share the difficulty: `?` and `:` push at a column that
+need not be their own — `[187]`'s push for a `?` inside a flow, and for a `:`
+the RESOLVED key's column, which is the indicator's only when the save was
+fresh.  `-` has no such case.  `[183]`'s `pushSequenceIndent` goes to the
+indicator's own column, unconditionally, and that column IS the entry index.
+The dash arm of `indicator_floor_at_col` was already `Or.inl` with no
+side condition; it was only the lemma's SHAPE that made it optional.
+
+So `indicator_floor_dash_at_col` / `indicator_floor_dash` state the dash arm at
+its own strength (`IndentFloor s' k`, no disjunction), `indicator_floor_at_col`
+now calls the first in its `-` branch rather than repeating it, and
+`PendingNode.pendingBlock`'s `h_floor` drops its `∨ True`.  Every producer of
+that constructor comes off a `-` scan — the constructor's own `h_sk` docstring
+says so, and the compiler confirms it: all seven sites discharge the field, the
+five landing ones with `indicator_floor_dash` and the two COMPACT ones
+(`- - a`, which had been handing `Or.inr trivial`) with
+`indicator_floor_dash_at_col` against `park_col_of_compact`'s own coordinate,
+`sp_prep.col = n + 1 + m`.
+
+**What it buys.**  The flow open's `pendingBlock` arm no longer rides the drop:
+both halves of the under-run — run-end (item 66) and tab (item 68) — are
+refuted from `h_floor_old` directly, where the arm used to `rcases` it and send
+the `True` side to `drop_ride`.  Textual `drop_ride` sites 7 → 6.
+
+**What it does NOT buy, and what the other two parks cost** (measured by
+tightening each field and reading the compiler, not by inspection):
+
+* `pendingMapValue`: **10** errors, 9 mechanical, one real —
+  `implicit_key_floor`, which punts when `ImplicitKeyPack`'s column conjunct
+  (`sc.simpleKey.pos.col = k ∨ True`) is absent, and again inside
+  `value_key_floor_or` on an explicit-key clear.  This is item 15's `  a: |`
+  and it is the SAME open lead the plan already names: the pack does not carry
+  `k ≤ sp_key.col`.
+* `pendingProps`: **19** errors, 17 mechanical (`Or.inl (IndentFloor.zero …)`
+  wrappers and two `rcases`), two real — the props landing's indent STABILITY
+  is itself optional (`indentedValue_reads_at_any_indent`'s props disjunct
+  carries `(sc.needIndentCheck = false → s'.indents = sc.indents) ∨ True`,
+  because preprocessing unwinds the stack on a fresh line), and the props park
+  reachable from a `pendingMapValue` inherits that park's floor.  So this one
+  is downstream of the previous bullet plus one new question.
+
+Both measurements were taken and reverted; only the dash is in the diff.
+
+**Validation.**  Full `lake build` green (1058 jobs, ZERO warnings);
+`run-all-tests.sh` 4465/4465 (run after that build, not after a stash — see
+item 72's NB); `eventscore` (no `--suite`) 347/358 with the composition
+unmoved (252 event-pass, 11 event-diff, 0 event-reject, 95 error-ok); three
+checkers OK (220 library modules / 354 imports; 20 sub-themes, 229 demos, 248
+reflections; 25 whitelisted `theorem` capstones).  `#print axioms` names no
+`sorryAx`: both new lemmas are `[propext, Classical.choice, Quot.sound]`, and
+the five touched `accum_block_*` lemmas name only the three
+`dispatchBlock{Entry,Key,Value}_full_prod` `native_decide` pairs their
+unchanged bodies already call.  ZERO runtime edits — one file,
+`Proofs/Production/StreamAccum.lean` — so the matrix cannot have moved and was
+not re-run.
+
 ### REMAINING, in order
 
 The per-item history is the closure log above; this section lists only the
@@ -8738,7 +8805,7 @@ a nonzero index.  R2 is CLOSED too (items 47–51), so what stands between here
 and Step 5 (the converse) is R3's remaining production work and R4:
 
 ```
-R1 ✓ (44–46) ──→ R2 ✓ (47–51) ──→ R3 (52–72 landed; 67b open) ──→ Step 5
+R1 ✓ (44–46) ──→ R2 ✓ (47–51) ──→ R3 (52–73 landed; 67b open) ──→ Step 5
                                         └──────→ R4 (implicitContinue + 0 < m) ──┘
 ```
 
@@ -8878,7 +8945,13 @@ and that deletion, by input class:
   carries the column that says a break was crossed)~~ — the tab half is CLOSED
   by item 68, which gave both parks the column (`flowOpen_underRunTab_refuted`
   call sites 1 → 3), so what still rides at the open is `pendingFlow` (R3) and a
-  park whose own `h_floor` punts.  ~~What survives:
+  park whose own `h_floor` punts — ~~three parks~~ **two** after item 73, which
+  made `pendingBlock`'s unconditional (`[183]`'s push is at the indicator's own
+  column, always).  The two left are `pendingMapValue` (blocked on
+  `ImplicitKeyPack`'s column conjunct) and `pendingProps` (blocked on that plus
+  the props landing's optional indent stability), and they are what
+  `FlowStackK`'s own `∨ True` floor — 67b's precondition — is waiting on.
+  ~~What survives:
   `dropClose`'s remaining domain — the VALID multi-line scalar tokens at a
   nonzero index~~ — the TOKENS are CLOSED by item 67a, which built the flow
   plain walk's readings at `n`, carried the stack's floor from the open
@@ -8920,6 +8993,26 @@ and that deletion, by input class:
       refute it.  It closes by stating `FlowStackK`'s `.value`-tail colon route
       at `n` instead of at 0, which is a signature change on the invariant's
       packaged case split, not a refutation.
+
+**Item 67b's residue, counted** (2026-09-04, against the tree at item 73).
+`dropClose` has 23 USE sites, and they are not one question.  By the residue
+that reaches each:
+
+| sites | residue | what closes it |
+|---|---|---|
+| 7 (+ the shared one below) | `h_lead_at nn` / `h_lead nn`'s second arm, `¬ (nn ≤ minContentIndentOf sc)` | `FlowStackK` carrying a REAL floor |
+| 6 | the `:`-receiving closure's ARGUMENT, `SSeparateLines 0` handed in by a later step | `FlowStackK`'s `.value`-tail colon route stated at `n` — whose consumers then need `h_lead_at` again |
+| 3 | the props gap's own lead, `SSeparateLines_at nn h_lead_p` | `InteriorGap` taking the reading index as a parameter |
+| 3 | the props run, `PropsRun_at nn h_run` | the same parameter |
+| 2 | the node at `nn` — `dispatchContent_evidence_flowIn_or_at`'s `∨ True` and `SFlowContent_at nn` | the one reading item 67a's `SFlowNode_at` closure did not cover |
+| 1 | the tuple fallback in `accum_step_flow`, fed by all four of the above | all four |
+| 1 | `drop_ride` — `pendingFlow`'s opaque resume | the deletion proper |
+
+Items 69 and 72 made `h_lead_at` TOTAL, so the first row is refutable the
+moment the floor is real; and the second row's consumers land on it too.  That
+makes the floor the keystone — 14 of the 23 sites wait on it — and item 73 is
+its first link.  Tightening the field itself is **37** mechanical fixes and no
+new proof; what it needs is the two parks above.
 
 This is what closes row 12.
 
