@@ -295,29 +295,26 @@ def collectDoubleQuotedLoop (s : ScannerState) (content : String) (fuel : Nat)
       match s_after_backslash.peek? with
       | some c =>
         if isLineBreakBool c then do
-          -- Escaped line break: consume and land on the continuation line.
-          -- Item 53: a CONTENT landing is `[112] s-double-escaped(n)`'s own
-          -- `s-flow-line-prefix(n)`, so it clears the same floor the fold's
-          -- does — `s-indent(n)` first (spaces, §6.1 refuses a tab in the
-          -- zone), then past the block indent.  A BLANK landing is
-          -- `[70] l-empty`, whose `s-indent-lt` arm admits a short run —
-          -- it is handled (and checked) by the fold on the next iteration.
-          let s_after_newline := consumeNewline s_after_backslash
-          let s_after_sp := skipSpaces s_after_newline
-          let landingBlank :=
-            match (skipWhitespace s_after_sp).peek? with
-            | some c2 => isLineBreakBool c2
-            | none => true
-          if !landingBlank then do
-            if (s_after_sp.col : Int) ≤ s_after_sp.currentIndent then
-              if let some '\t' := s_after_sp.peek? then
-                throw (.tabInIndentation s_after_sp.line s_after_sp.col)
-            if atDocumentStart s_after_sp || atDocumentEnd s_after_sp then
-              throw (.documentMarkerInScalar .doubleQuoted startPos.line)
-            if (s_after_sp.col : Int) ≤ currentIndent then
-              throw (.underIndentedScalar .doubleQuoted s_after_sp.line)
-          let s_after_ws := skipWhitespace s_after_sp
-          collectDoubleQuotedLoop s_after_ws content fuel' startPos inFlow currentIndent inputEnd protectedLen
+          -- Escaped line break — `[112] s-double-escaped(n)` is `s-white*
+          -- c-escape b-non-content l-empty(n,FLOW-IN)* s-flow-line-prefix(n)`.
+          -- The escaped break itself is excluded from content and the
+          -- `s-white*` before it is preserved, but each blank line the landing
+          -- opens IS content — `[70] l-empty` folds to a line feed — and its
+          -- white run owes the same §6.1 floor as the fold's blank lines.  So
+          -- the landing runs through `foldQuotedNewlines` itself (blank-line
+          -- loop, tab gate, `s-flow-line-prefix(n)`), with `b-as-space` mapped
+          -- to nothing: a lone escaped break folds to the empty string.
+          let (folded, s_land) ← foldQuotedNewlines s_after_backslash
+          if atDocumentStart s_land || atDocumentEnd s_land then
+            throw (.documentMarkerInScalar .doubleQuoted startPos.line)
+          if (s_land.col : Int) ≤ currentIndent then
+            throw (.underIndentedScalar .doubleQuoted s_land.line)
+          -- The line feeds are content (`b-as-line-feed`), protected from a
+          -- later fold's trim; a landing with no blank lines adds nothing and
+          -- leaves the protected prefix where it was.
+          let content' := if folded == " " then content else content ++ folded
+          let protectedLen' := if folded == " " then protectedLen else content'.length
+          collectDoubleQuotedLoop s_land content' fuel' startPos inFlow currentIndent inputEnd protectedLen'
         else do
           -- Regular escape sequence
           let (ch, s_after_escape) ← processEscape s_after_backslash

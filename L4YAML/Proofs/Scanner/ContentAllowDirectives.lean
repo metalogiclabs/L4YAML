@@ -365,14 +365,16 @@ lemma collectDoubleQuotedLoop_preserves_allowDirectives (s : ScannerState) (cont
       split at h <;> try contradiction
       -- some c after backslash
       split at h
-      · -- isLineBreak c (escaped line break; item 53 splits the branch)
-        have h_cn := consumeNewline_preserves_allowDirectives s.advance
-        have h_sp := skipSpaces_preserves_allowDirectives (consumeNewline s.advance)
-        have h_sw := skipWhitespace_preserves_allowDirectives (skipSpaces (consumeNewline s.advance))
+      · -- isLineBreak c (escaped line break — the landing is a fold, item 87)
         have h_adv := advance_preserves_allowDirectives s
         simp only [bind, Except.bind] at h
-        repeat' split at h
-        all_goals (first | contradiction | rw [ih _ _ _ h, h_sw, h_sp, h_cn, h_adv])
+        split at h <;> try contradiction
+        rename_i fold_result heq
+        cases fold_result with
+        | mk folded s_fold =>
+          have h_fold := foldQuotedNewlines_preserves_allowDirectives s.advance s_fold folded heq
+          repeat' split at h
+          all_goals (first | contradiction | rw [ih _ _ _ h, h_fold, h_adv])
       · -- regular escape sequence
         simp only [bind, Except.bind] at h
         split at h <;> try contradiction

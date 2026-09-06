@@ -428,14 +428,15 @@ lemma collectDoubleQuotedLoop_preserves_dp (s : ScannerState) (content : String)
       simp only [] at h
       split at h <;> try contradiction
       · split at h
-        · -- Escaped line break (item 53 splits the branch)
+        · -- Escaped line break — the landing is a fold (item 87)
           simp only [bind, Except.bind] at h
+          split at h <;> try contradiction
+          rename_i folded_result heq_fold
+          have h_dp_efold := foldQuotedNewlines_preserves_dp _ _ heq_fold
           repeat' split at h
           all_goals first
             | contradiction
-            | exact ih _ _ _ h |>.trans (skipWhitespace_preserves_dp _)
-                |>.trans (skipSpaces_preserves_dp _)
-                |>.trans (consumeNewline_preserves_dp _)
+            | exact ih _ _ _ h |>.trans h_dp_efold
                 |>.trans (advance_preserves_dp s)
         · -- Regular escape
           simp only [bind, Except.bind] at h
@@ -638,14 +639,14 @@ lemma collectDoubleQuotedLoop_preserves_indents (s : ScannerState) (content : St
       simp only [] at h
       split at h <;> try contradiction
       · split at h
-        · -- (item 53 splits the branch)
+        · -- escaped line break — the landing is a fold (item 87)
           simp only [bind, Except.bind] at h
+          split at h <;> try contradiction
+          rename_i fold_result heq_fold
           repeat' split at h
           all_goals first
             | contradiction
-            | exact (ih _ _ _ h).trans (skipWhitespace_preserves_indents _)
-                |>.trans (skipSpaces_preserves_indents _)
-                |>.trans (consumeNewline_preserves_indents _)
+            | exact (ih _ _ _ h).trans (foldQuotedNewlines_preserves_indents _ _ heq_fold)
                 |>.trans (advance_preserves_indents s)
         · simp only [bind, Except.bind] at h
           split at h <;> try contradiction
@@ -840,14 +841,14 @@ lemma collectDoubleQuotedLoop_preserves_ek (s : ScannerState) (content : String)
       simp only [] at h
       split at h <;> try contradiction
       · split at h
-        · -- Escaped line break (item 53 splits the branch)
+        · -- Escaped line break — the landing is a fold (item 87)
           simp only [bind, Except.bind] at h
+          split at h <;> try contradiction
+          rename_i folded_result heq_fold
           repeat' split at h
           all_goals first
             | contradiction
-            | exact ih _ _ _ h |>.trans (skipWhitespace_preserves_ek _)
-                |>.trans (skipSpaces_preserves_ek _)
-                |>.trans (consumeNewline_preserves_ek _)
+            | exact ih _ _ _ h |>.trans (foldQuotedNewlines_preserves_ek _ _ heq_fold)
                 |>.trans (advance_explicitKeyLine s)
         · -- Regular escape
           simp only [bind, Except.bind] at h

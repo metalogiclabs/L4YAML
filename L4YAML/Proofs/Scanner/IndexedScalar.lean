@@ -316,17 +316,16 @@ lemma collectDoubleQuotedLoopIx_offset_monotonic {input : String} (c : IxCursor 
           split at h
           · -- some lbCh
             split at h
-            · -- isLineBreakBool lbCh = true: line-continuation
+            · -- isLineBreakBool lbCh = true: line-continuation lands through
+              -- the fold (item 87)
               have hAdv : c.pos.offset ≤ c.advance.pos.offset :=
                 IxCursor.advance_offset_monotonic c
-              have hCLB : c.advance.pos.offset ≤ (consumeLineBreak c.advance).pos.offset :=
-                consumeLineBreak_offset_monotonic _
-              have hSW : (consumeLineBreak c.advance).pos.offset ≤
-                         (skipWhitespace (consumeLineBreak c.advance)).pos.offset :=
-                skipWhitespace_offset_monotonic _
-              have hRec : (skipWhitespace (consumeLineBreak c.advance)).pos.offset ≤
+              have hFold : c.advance.pos.offset ≤
+                           (foldQuotedNewlinesIx c.advance).2.pos.offset :=
+                foldQuotedNewlinesIx_offset_monotonic c.advance
+              have hRec : (foldQuotedNewlinesIx c.advance).2.pos.offset ≤
                           result.2.pos.offset := ih _ _ _ h
-              exact Nat.le_trans hAdv (Nat.le_trans hCLB (Nat.le_trans hSW hRec))
+              exact Nat.le_trans hAdv (Nat.le_trans hFold hRec)
             · -- isLineBreakBool lbCh = false: normal escape
               split at h
               · rename_i _ _ _ decodedCh cAfterEsc hEsc

@@ -694,10 +694,19 @@ def collectDoubleQuotedLoopIx {input : String} (c : IxCursor input)
         match c.advance.peek? with
         | some lbCh =>
           if isLineBreakBool lbCh then
-            -- `\\<LF>` line-continuation: consume newline + leading WS,
-            -- emit no character.
-            collectDoubleQuotedLoopIx
-              (skipWhitespace (consumeLineBreak c.advance)) content protectedLen fuel
+            -- `\\<LF>` line-continuation — `[112] s-double-escaped(n)`.  The
+            -- escaped break is excluded from content, but each blank line the
+            -- landing opens folds to a line feed (`[70] l-empty` in `[112]`'s
+            -- own slot), so the landing runs through the fold itself, with
+            -- `b-as-space` mapped to nothing (a lone escaped break emits no
+            -- character).  The feeds are content and are protected from a
+            -- later fold's trim; a blank-free landing leaves both untouched.
+            collectDoubleQuotedLoopIx (foldQuotedNewlinesIx c.advance).2
+              (if (foldQuotedNewlinesIx c.advance).1 == " " then content
+               else content ++ (foldQuotedNewlinesIx c.advance).1)
+              (if (foldQuotedNewlinesIx c.advance).1 == " " then protectedLen
+               else (content ++ (foldQuotedNewlinesIx c.advance).1).length)
+              fuel
           else
             match processEscapeIx c.advance with
             | some (decoded, cAfterEsc) =>
@@ -879,29 +888,40 @@ def quotedScalarErrLoopIx {input : String} (c : IxCursor input)
         match c.advance.peek? with
         | some next =>
           if isLineBreakBool next then
-            -- `\<b-break>` line continuation.  Item 53: a CONTENT landing is
-            -- `[112] s-double-escaped(n)`'s own `s-flow-line-prefix(n)`, so
-            -- legacy now clears the fold's floor there (tab in the zone,
-            -- document marker, under-indent — in that order); a BLANK
-            -- landing is `l-empty` and the fold checks it next iteration.
-            let cSp := (skipSpaces (consumeLineBreak c.advance)).1
-            let landingBlank :=
-              match (skipWhitespace cSp).peek? with
-              | some c2 => isLineBreakBool c2
-              | none => true
-            if !landingBlank then
-              if ((cSp.pos.col : Int) ≤ currentIndent)
-                  && (match cSp.peek? with | some '\t' => true | _ => false) then
-                some (.tabInIndentation cSp.pos.line cSp.pos.col)
-              else if atDocumentStartIx cSp || atDocumentEndIx cSp then
-                some (.documentMarkerInScalar ScalarStyle.doubleQuoted startLine)
-              else if (cSp.pos.col : Int) ≤ currentIndent then
-                some (.underIndentedScalar ScalarStyle.doubleQuoted cSp.pos.line)
-              else
-                quotedScalarErrLoopIx (skipWhitespace cSp)
-                  isDouble startLine inFlow currentIndent fuel
+            -- `\<b-break>` line continuation — the landing's blank lines are
+            -- `[112] s-double-escaped(n)`'s own `l-empty*` slot, so the
+            -- landing owes exactly the fold's checks, in legacy order:
+            -- item 62's blank-run gate, then the continuation line's tab,
+            -- document-marker and indent tests.
+            if let some ct :=
+                blankRunTabIx (consumeLineBreak c.advance) currentIndent input.utf8ByteSize then
+              some (.tabInIndentation ct.pos.line ct.pos.col)
+            else if (((skipSpaces (skipBlankLinesLoopIx (consumeLineBreak c.advance) 0
+                      input.utf8ByteSize).1).1.pos.col : Int) ≤ currentIndent)
+                && (match (skipSpaces (skipBlankLinesLoopIx (consumeLineBreak c.advance) 0
+                      input.utf8ByteSize).1).1.peek? with
+                    | some '\t' => true
+                    | _ => false) then
+              some (.tabInIndentation
+                (skipSpaces (skipBlankLinesLoopIx (consumeLineBreak c.advance) 0
+                  input.utf8ByteSize).1).1.pos.line
+                (skipSpaces (skipBlankLinesLoopIx (consumeLineBreak c.advance) 0
+                  input.utf8ByteSize).1).1.pos.col)
+            else if atDocumentStartIx (skipWhitespace
+                      (skipBlankLinesLoopIx (consumeLineBreak c.advance) 0
+                        input.utf8ByteSize).1)
+                  || atDocumentEndIx (skipWhitespace
+                      (skipBlankLinesLoopIx (consumeLineBreak c.advance) 0
+                        input.utf8ByteSize).1) then
+              some (.documentMarkerInScalar ScalarStyle.doubleQuoted startLine)
+            else if ((skipWhitespace (skipBlankLinesLoopIx (consumeLineBreak c.advance) 0
+                      input.utf8ByteSize).1).pos.col : Int) ≤ currentIndent then
+              some (.underIndentedScalar ScalarStyle.doubleQuoted
+                (skipWhitespace (skipBlankLinesLoopIx (consumeLineBreak c.advance) 0
+                  input.utf8ByteSize).1).pos.line)
             else
-              quotedScalarErrLoopIx (skipWhitespace cSp)
+              quotedScalarErrLoopIx (skipWhitespace
+                  (skipBlankLinesLoopIx (consumeLineBreak c.advance) 0 input.utf8ByteSize).1)
                 isDouble startLine inFlow currentIndent fuel
           else
             -- Ordinary escape: the escaped character is never a line break,

@@ -3034,14 +3034,15 @@ lemma collectDoubleQuotedLoop_preserves_flowLevel (s : ScannerState) (content : 
       · -- s_after_backslash.peek? = some c
         -- Now split on isLineBreakBool c
         split at h
-        · -- Escaped line break (item 53 splits the branch)
+        · -- Escaped line break — the landing is a fold (item 87)
           simp only [bind, Except.bind] at h
+          split at h <;> try contradiction
+          rename_i folded_result heq_fold
+          have h_fl_fold := foldQuotedNewlines_preserves_flowLevel _ _ heq_fold
           repeat' split at h
           all_goals first
             | contradiction
-            | exact ih _ _ _ h |>.trans (skipWhitespace_preserves_flowLevel _)
-                |>.trans (skipSpaces_preserves_flowLevel _)
-                |>.trans (consumeNewline_preserves_flowLevel _)
+            | exact ih _ _ _ h |>.trans h_fl_fold
                 |>.trans (advance_preserves_flowLevel s)
         · -- Regular escape
           simp only [bind, Except.bind] at h

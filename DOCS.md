@@ -9563,6 +9563,55 @@ pair (`dispatchContent_evidence_flowIn_or_at`'s `∨ True` and
 `run-all-tests.sh` 6689/6689; `eventscore` 347/358 unmoved; checkers OK;
 `#print axioms` clean over the step lemmas.  ZERO runtime edits.
 
+### Item 87 (2026-09-05)
+
+**The escaped break's landing is a fold.**  `[112] s-double-escaped(n)` is
+`s-white* c-escape b-non-content l-empty(n,FLOW-IN)* s-flow-line-prefix(n)`,
+and the escape arm honored neither of its two consequences: each blank line
+the landing opens is `[70] l-empty` and folds to a LINE FEED — the arm handed
+those lines, stripped, to the NEXT fold, whose `b-non-content` slot swallowed
+the landing's own break (one `\n` short on every blank landing, and
+`b-as-space` where the landing was the only blank line) — and the blank
+landing's white run owes §6.1's floor, which the `if !landingBlank` guard
+bypassed entirely, so `"a\⏎→⏎b"` was scanner-accepted though spec-invalid
+(`s-indent-lt` is spaces-only) — the OVER-ACCEPTANCE the 67b endgame
+measurement named as node-at-`nn`'s base case.  Both close with ONE move in
+both pipelines: the landing runs through `foldQuotedNewlines` itself — the
+blank-line loop, item 62's tab gate, `s-flow-line-prefix(n)` — with
+`b-as-space` mapped to nothing (the escaped break is excluded from content)
+and no trailing trim (`[112]` preserves the `s-white*` before the escape).
+The indexed twin's error loop takes the same checks in legacy order,
+`blankRunTabIx` first.
+
+**The proof share is the re-attribution.**  The escape arm's reader is now
+the fold's own — `ScalarCoupling`'s branch composes `foldQuotedNewlines_corr`,
+`ScalarFoldAt`'s composes `foldQuotedNewlines_prod_at` — so the landing's
+`l-empty` lines are attributed to the escape's own `l-empty*` slot instead of
+arriving, stripped, at the next fold's trimmed one.  No declaration was added
+or renamed; the ~270 changed proof lines are the two branches restated on the
+fold lemmas plus their fallout.  `dropClose` is UNCHANGED at three uses: this
+item makes the node-at-`nn` pair drainable — its base case is no longer an
+over-acceptance — and the drain itself is the next item.
+
+**Measured** (`Tests/Guards/Proofs/ScannerEscapedBreakLanding.lean`).  The
+three §1 refusals were accepts (tab before the floor on the blank landing, at
+entry indent and at a mapping value); the §2 content rows moved by exactly the
+landing's line feed (`"a\⏎⏎b"` is `a\nb`, was `a b`), each value matching
+PyYAML 6.0.3; §3 pins the boundary that must not move — a content landing
+adds nothing, exactly-`n`-then-tab IS `s-flow-line-prefix(n)`, and a root
+tab-only blank landing is `l-empty(0)`.  PyYAML accepts all three refusals,
+as it accepts item 62's un-escaped family — its laxity is uniform here, so
+the refusals rest on the spec, not on a differential.
+
+**Validation.**  Full `lake build` green (1068 jobs — 1067 plus the guard
+module, ZERO warnings); `run-all-tests.sh` 6689/6689; `eventscore` 347/358
+UNMOVED (252 pass / 11 diff / 0 reject / 95 error-ok — the narrowing moves no
+suite case, item 62's experience repeated); matrix UNMOVED on both pipelines
+(event 402/402, json 279 pass / 3 err-ok); three checkers OK (220 modules /
+354 imports; 20/229/248/354; 25 capstones); `#print axioms`: no `sorryAx`,
+`foldQuotedNewlines_prod_at` at `[propext, Classical.choice, Quot.sound]`.
+RUNTIME edits in BOTH pipelines.
+
 ### REMAINING, in order
 
 The per-item history is the closure log above; this section lists only the
@@ -9820,23 +9869,24 @@ that reaches each:
 | ~~6~~ | ~~the `:`-receiving closure's ARGUMENT, `SSeparateLines 0` handed in by a later step~~ | CLOSED by item 85 — the route reads at `n`, the producers hand their separator through, the consumer derives it off the floor |
 | ~~3~~ | ~~the props gap's own lead, `SSeparateLines_at nn h_lead_p`~~ | CLOSED by item 86 — the gap's fields are index-universal, refutable against the floor |
 | ~~3~~ | ~~the props run, `PropsRun_at nn h_run`~~ | CLOSED by item 86, the same shape |
-| 2 | the node at `nn` — `dispatchContent_evidence_flowIn_or_at`'s `∨ True` and `SFlowContent_at nn` | the one reading item 67a's `SFlowNode_at` closure did not cover |
+| 2 | the node at `nn` — `dispatchContent_evidence_flowIn_or_at`'s `∨ True` and `SFlowContent_at nn` | the one reading item 67a's `SFlowNode_at` closure did not cover; its base case was the escaped-blank over-acceptance, CLOSED by item 87 (the landing is a fold), so the drain is now proof work only |
 | ~~1~~ | ~~the tuple fallback in `accum_step_flow`, fed by all four of the above~~ | CLOSED by item 86 — its last punt feeder died, the `∨ True` came off `h_tuple` |
 
   **The ledger above is nearly empty — and it was never the whole distance**
   (measured 2026-09-05, after items 84–86 emptied it to THREE `dropClose`
   uses: the node-at-`nn` pair and `pendingFlow`'s own ride).  Draining the
   node-at-`nn` pair traced to `ScalarFoldAt`'s loop punts, and their base
-  case is the blank-after-escaped-break landing — which is not a missing
+  case was the blank-after-escaped-break landing — ~~which is not a missing
   proof but an OVER-ACCEPTANCE: the escape arm of `collectDoubleQuotedLoop`
   skips the §6.1 checks on a BLANK landing entirely (`if !landingBlank`), so
   a tab-blank line after `\⏎` (`"a\⏎→⏎b"`, spec-invalid: `s-indent-lt`
   is spaces-only) is scanner-accepted and `slEmpty_flowIn_at`'s residue is
-  REAL there.  Closing it needs item 62's gate extended to the escape's
-  blank landing — a RUNTIME edit, with matrix/eventscore impact to measure —
-  plus the `[112]` re-attribution (the recursion hands the blank lines to
-  the next fold's trimmed slot; the escape's own `l-empty*` slot takes them
-  back by inversion at a break-headed position) and the single-quoted twin.
+  REAL there~~ — CLOSED by item 87: the landing runs through
+  `foldQuotedNewlines` itself in both pipelines (item 62's gate included),
+  and the escape arm's reader is the fold's own, so the `l-empty` lines are
+  the escape's `l-empty*` slot's rather than the next fold's trimmed one.
+  Matrix and eventscore measured UNMOVED.  What remains of the pair is the
+  drain proper — proof work against a runtime that is now honest.
 
   And the DELETION has preconditions outside this ledger: `pendingFlow`'s
   producers are also the block dispatch's inline-residue defers, fed by
@@ -9844,9 +9894,10 @@ that reaches each:
   threading at the six key-park kinds), `staleKey`, and `dedent`, the last
   being the sibling composition items 64–65 LOCATED and this plan orders as
   row 19's own (a frame stack on the pending).  So row 12's β.5 deletion
-  closes after: the escaped-blank gate item, the `noFrame` threading, the
-  `staleKey` drain, and the DEDENT composition — in that order, the last
-  crossing into row 19's architecture.
+  closes after: ~~the escaped-blank gate item~~ (CLOSED by item 87), the
+  node-at-`nn` drain, the `noFrame` threading, the `staleKey` drain, and the
+  DEDENT composition — in that order, the last crossing into row 19's
+  architecture.
 | 1 | `drop_ride` — `pendingFlow`'s opaque resume | the deletion proper |
 
 Items 69 and 72 made `h_lead_at` TOTAL, so the first row is refutable the

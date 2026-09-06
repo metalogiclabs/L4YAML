@@ -397,59 +397,58 @@ lemma collectDoubleQuotedLoop_prod_at (n : Nat) (sc0 : ScannerState) (sp0 : Surf
       split at hok
       · rename_i c2 hpeek2
         split at hok
-        · -- escaped break: item 53's landing structure.  A CONTENT landing
-          -- passed the under-indent check, so its space run clears `n` and
-          -- becomes the escape's own `s-flow-line-prefix(n)`; a BLANK
-          -- landing keeps the deferral (`[112]`'s `l-empty*` slot, which the
-          -- loop attributes to the next fold).
+        · -- escaped break — item 87: the landing IS a fold, so §3's reader
+          -- hands the break, the blank lines (`[112]`'s own `l-empty*` slot,
+          -- item 62's gate included) and the prefix, exactly as at the fold
+          -- arm; the §6.1-gate-true branch returns the under-floor column
+          -- this loop's own §8.1 check refuses.  No landing is deferred.
           rename_i hlb2
-          obtain ⟨sp_cn, h_break_nl, hcorr_cn⟩ :=
-            consumeNewline_sbreak_corr sc.advance ⟨rest, sc.col + 1⟩ c2 hcorr_adv hpeek2 hlb2
-          obtain ⟨n_sp, sp_sp, h_ind_sp, hcorr_sp⟩ :=
-            skipSpaces_corr (consumeNewline sc.advance) sp_cn hcorr_cn
-          obtain ⟨sp_ws, h_gstar_ws, hcorr_ws⟩ :=
-            skipWhitespace_corr (skipSpaces (consumeNewline sc.advance)) sp_sp hcorr_sp
-          have hci' : (skipWhitespace (skipSpaces (consumeNewline sc.advance))).currentIndent
-              = currentIndent := by
-            refine (currentIndent_of_indents_eq ?_).trans hci
-            rw [skipWhitespace_preserves_indents, skipSpaces_preserves_indents,
-                consumeNewline_indents, advance_indents]
           simp only [bind, Except.bind] at hok
-          repeat' split at hok
-          all_goals first
-            | contradiction
-            | -- the CONTENT landing: the last check's negation is in scope.
-              (rename_i hgt
-               rcases ih _ _ sp_ws content hcorr_ws hok hci' with
-                 ⟨sp_body, sp_close, h_body, h_glit, h_corr⟩ | _
-               · refine Or.inl ⟨sp_body, sp_close, ?_, h_glit, h_corr⟩
-                 have hcol_cn : sp_cn.col = 0 := SBBreak_col0 h_break_nl
-                 have hcol_sp : sp_sp.col = n_sp := by
-                   have := SIndent_col' h_ind_sp; omega
-                 have hcol_state : (skipSpaces (consumeNewline sc.advance)).col = n_sp := by
-                   rw [← hcorr_sp.col_eq]; exact hcol_sp
-                 have hn_le : n ≤ n_sp := by
-                   rw [hcol_state] at hgt; omega
-                 have h_ind_sp' : SIndent (n + (n_sp - n)) sp_cn sp_sp := by
-                   rw [show n + (n_sp - n) = n_sp from by omega]; exact h_ind_sp
-                 obtain ⟨sp_mid, h_ind_n, h_ind_rest⟩ := sindent_split h_ind_sp'
-                 have h_flp : SFlowLinePrefix n sp_cn sp_ws :=
-                   SFlowLinePrefix.mk n sp_cn sp_mid sp_ws h_ind_n
-                     (gstar_sswhite_to_gopt_sep
-                       (gstar_sswhite_append (sindent_to_gstar_sswhite h_ind_rest) h_gstar_ws))
-                 exact SNbDoubleMultiLine.multi n
-                   ⟨'\\' :: rest, sc.col⟩ ⟨'\\' :: rest, sc.col⟩ sp_ws ⟨[], 0⟩ sp_body
-                   (GStar.nil _)
-                   (SSDoubleBreak.escaped n _ _
-                     (SSDoubleEscaped.mk n
-                       ⟨'\\' :: rest, sc.col⟩ ⟨'\\' :: rest, sc.col⟩
-                       ⟨rest, sc.col + 1⟩ sp_cn sp_cn sp_ws
-                       (GStar.nil _) (GLit.mk rest sc.col) h_break_nl
-                       (GStar.nil sp_cn) h_flp))
-                   h_body
-               · exact Or.inr trivial)
-            | -- the BLANK landing: keep the deferral.
-              exact Or.inr trivial
+          split at hok
+          · exact absurd hok (by simp)
+          · rename_i fold_result hfold
+            have hci_adv : sc.advance.currentIndent = currentIndent := by
+              refine (currentIndent_of_indents_eq ?_).trans hci
+              exact advance_indents sc
+            have hn_sc : (n : Int) ≤ max 0 (sc.advance.currentIndent + 1) := by
+              rw [hci_adv]; exact hn
+            rcases foldQuotedNewlines_prod_at n sc.advance ⟨rest, sc.col + 1⟩ c2
+                hcorr_adv hpeek2 hlb2 hfold hn_sc with ⟨sp_cn, sp_loop, sp_fold,
+                  h_sbreak, h_gstar_empty, h_flp, hcorr_fold⟩ | h_under
+            · have hci' : fold_result.2.currentIndent = currentIndent := by
+                refine (currentIndent_of_indents_eq ?_).trans hci_adv
+                exact L4YAML.Proofs.EmitterScannability.foldQuotedNewlines_preserves_indents
+                  sc.advance fold_result hfold
+              split at hok
+              · simp at hok
+              · split at hok
+                · simp at hok
+                · split at hok <;>
+                    first
+                      | (rcases ih _ _ sp_fold _ hcorr_fold hok hci' with
+                           ⟨sp_body, sp_close, h_body, h_glit, h_corr⟩ | _
+                         · refine Or.inl ⟨sp_body, sp_close, ?_, h_glit, h_corr⟩
+                           exact SNbDoubleMultiLine.multi n
+                             ⟨'\\' :: rest, sc.col⟩ ⟨'\\' :: rest, sc.col⟩
+                             sp_fold ⟨[], 0⟩ sp_body
+                             (GStar.nil _)
+                             (SSDoubleBreak.escaped n _ _
+                               (SSDoubleEscaped.mk n
+                                 ⟨'\\' :: rest, sc.col⟩ ⟨'\\' :: rest, sc.col⟩
+                                 ⟨rest, sc.col + 1⟩ sp_cn sp_loop sp_fold
+                                 (GStar.nil _) (GLit.mk rest sc.col) h_sbreak
+                                 h_gstar_empty h_flp))
+                             h_body
+                         · exact Or.inr trivial)
+                      | simp at hok
+            · -- the §6.1-gate-true landing sits at or below the floor, and
+              -- this loop's own §8.1 check is what refuses it.
+              split at hok
+              · simp at hok
+              · split at hok
+                · simp at hok
+                · rename_i h_not_under
+                  exact absurd (hci_adv ▸ h_under) h_not_under
         · -- ordinary escape: index-free prepend.
           simp only [bind, Except.bind] at hok
           split at hok

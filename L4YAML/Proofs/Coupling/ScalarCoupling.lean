@@ -295,18 +295,18 @@ lemma collectDoubleQuotedLoop_corr (sc : ScannerState) (sp : SurfPos)
       · -- next peek = some c
         rename_i c2 hpeek2
         split at hok
-        · -- isLineBreakBool c2: escaped newline (item 53 splits the branch)
-          obtain ⟨sp_cn, hcorr_cn⟩ :=
-            consumeNewline_unconditional_corr sc.advance sp_adv hcorr_adv
-          obtain ⟨_, sp_sp, _, hcorr_sp⟩ :=
-            skipSpaces_corr (consumeNewline sc.advance) sp_cn hcorr_cn
-          obtain ⟨sp_ws, _, hcorr_ws⟩ :=
-            skipWhitespace_corr (skipSpaces (consumeNewline sc.advance)) sp_sp hcorr_sp
+        · -- isLineBreakBool c2: escaped newline — the landing is a fold
+          -- (item 87); throws contradict, both folded arms recurse from it.
           simp only [bind, Except.bind] at hok
-          repeat' split at hok
-          all_goals first
-            | contradiction
-            | exact ih _ _ sp_ws content hcorr_ws hok
+          split at hok
+          · exact absurd hok (by simp)  -- fold error
+          · rename_i fold_result hfold
+            obtain ⟨sp_fold, hcorr_fold⟩ :=
+              foldQuotedNewlines_corr sc.advance sp_adv hcorr_adv hfold
+            repeat' split at hok
+            all_goals first
+              | contradiction
+              | exact ih _ _ sp_fold _ hcorr_fold hok
         · -- not line break: processEscape
           simp only [bind, Except.bind] at hok
           split at hok
