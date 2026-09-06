@@ -10291,6 +10291,98 @@ survived the suite for 50 items).  Three checkers OK (222/354;
 lemmas and restated step lemmas at the standard three,
 `ek_restore_of_push_body` at `propext` alone.
 
+### Item 99 (2026-09-06)
+
+**The DEDENT composes as a sibling — the deferral drains, and the frame
+stack R4 needs exists.**  Items 64–65 LOCATED the dedent
+(`FlowIndexLift.DedentLanding`, returned as `indentedValue_reads_at_any_indent`'s
+own disjunct, and `KeyPackPunt.dedent`) and both consumers deferred it into
+`block_dispatch_deferred`; this item drains the two arms and builds the
+entries-level machinery the honest sibling reading needs.  ZERO runtime
+edits; StreamAccum only.  The probe (24 inputs, both pipelines) pinned the
+family first: every dedent input is ACCEPTED with SIBLING-shaped events —
+`k:⏎  :⏎b: 2` is ONE outer mapping whose inner `{null: null}` closes at the
+landing (`=VAL :`/`=VAL :`), never a nested reading; the intermediate-width
+dedent (`a:⏎  b:⏎    -⏎  c: v`) conses one level out; and the refused
+neighbors (`k:⏎  -⏎ a` trailingContent, `k:⏎  - x⏎- y` bare-document) show
+a landing width matching no open level never reaches the arms.
+
+* **The drain was cheaper than the composition** — the two indented content
+  arms' dedent disjunct now composes instead of deferring, and it needed NO
+  new evidence: the pending's own fused closure can close the awaited entry
+  EMPTY (`SBlockIndented.empty` / `SBlockNode.emptyNode` take exactly the
+  landing's comments), and what is left is a column-0 position with a closed
+  stream and `s-indent(j)` in front of the landed content — which is
+  `content_dispatch_after_close`'s exact signature, the same delegation the
+  transition-close path already makes.  The landing's own indent rides in as
+  the key context, so the sibling's `:` composes through the root pack
+  (`rootMapRoute j`) and chains (`k:⏎  :⏎b: 2⏎c: 3`,
+  `k:⏎  :⏎b:⏎  c: 1⏎d: 2`) ride the pack it re-seeds.
+* **`ResumeFrames` is the frame stack** (row 19's own architecture, now
+  built): the still-open block-mapping levels at a park, innermost first,
+  each level held as its entries-level continuation — the `[195]`-tail shape
+  `(s-indent(k) ns-l-block-map-entry(k))*` — strictly decreasing widths on
+  the type, the bottom the finished stream.  Block grammar closes every
+  level at one position, so the frames chain by position alone:
+  `ResumeFrames.close` (nil tails) recovers the fused stream, and
+  `ResumeFrames.resumeAt` pops to the landing's own level and hands back its
+  continuation — `[187]` CONTINUED rather than a bare-document re-open.
+* **The pack carries a RESUME twin** (`ImplicitKeyPack`'s 9th conjunct,
+  item 93's pattern): the same entry and the same `SCompactMapTail`, ending
+  in the levels below instead of the fused stream.  The root producer pays
+  it outright (`rootMapRouteF`, `ks = []`); `entryKeyPack_of_dispatch`'s
+  nested branch pays it from the caller's frames (`h_nodeF`) whenever the
+  landing is strictly deeper; and `colon_open_map_implicit` spends it into
+  the park's two new faces.  So the frames are LIVE on the implicit-`:`
+  chain: root pack → `pendingMapValue.h_closeF`/`h_frames` → nested pack →
+  deeper park, at any depth.
+* **The pendings carry the frames as optional fields** (R653):
+  `pendingBlock.h_closeF` (the `h_close_entry` twin), `pendingMapValue`'s
+  `h_closeF`/`h_frames` (the transport face off the completed node, the
+  spend face off the empty entry — two faces because only the producer
+  holds the entry's shape), `pendingBlockContent.h_closeF`.  Paid by the
+  root openers (`colon_open_map`, `question_open_map`, the landed `-` at
+  `accum_block_on_closeThenBlock`) and by `colon_open_map_implicit`;
+  stubbed (`Or.inr trivial`) at the compact/explicit/props producers and
+  the sibling-`-` transports — R4-prep residues, named below, which the
+  DRAIN never reads.
+* **`entryKeyPack_of_dispatch`'s dedent branch is R4's landing pad**: with
+  frames in hand (`h_dframes`) and the landing width a member of the stack,
+  it builds the pack by CONSING at that level (`resumeAt` + the tail's
+  `cons`) — the honest sibling reading, entry-level fidelity included.  No
+  input reaches it today (the arms drain upstream, and `n ≤ w` still
+  routes the equal-width landing through `nestedBlockMap`); when R4
+  tightens `0 < m`, the equal-width sibling falls exactly here and finds
+  the level `n` frame waiting.  `KeyPackPunt.dedent` stays as the
+  non-member return.
+
+**Validation.**  ZERO runtime edits (`git diff` touches
+`Proofs/Production/StreamAccum.lean` and Tests only), so the matrix cannot
+move and was not re-run (items 63/74's precedent); `run-all-tests.sh` green
+— 2030/2030 per-suite results and 4471/4471 verified checks across all 17
+suites (the "4671" in item 98's entry was a different extraction's sum; the
+per-suite table is the comparable record and it is unmoved) — and
+`eventscore` unmoved at 347/358 (252/11/0/95).  Full `lake build` green
+(1074 jobs, zero warnings); three checkers OK (222/354; 20/229/248/354; 25
+capstones).  `#print axioms`: no `sorryAx` anywhere; `ResumeFrames.close`,
+`ResumeFrames.resumeAt` and `rootMapRouteF` at `[propext]` alone; the
+touched accumulation lemmas keep StreamAccum's standing baseline (the
+three + the pre-existing `native_decide` leaves).  New guard
+`ScannerDedentSibling`: 15 sibling-event compositions, 4 unmoved
+neighbors (the equal-width sibling among them — R4's case, pinned), 4
+standing refusals, and the machinery pinned at its types
+(`close`/`resumeAt`/`level`/`rootMapRouteF`).
+
+**Residues (named).**  The frames transports at the sibling/nested `-`
+producers (`accum_block_on_pendingBlock`'s three cons sites,
+`accum_block_on_pendingBlockContent`'s), and the payments at
+`compact_open_map`/`colon_open_map_explicit`/`colon_open_map_props` and the
+flow-close pack (`flowKeyPack_of_close` hands `Or.inr`) — all R4-prep: the
+drain reads none of them, and a chain crossing an unpaid producer simply
+re-seeds at the next landing's root pack.  The props-headed dedent sibling
+(`k:⏎  :⏎&q b: 2`) composes through the drain like any other landed
+content.
+
 ### REMAINING, in order
 
 The per-item history is the closure log above; this section lists only the
@@ -10304,7 +10396,7 @@ too (items 47–51), so what stands between here
 and Step 5 (the converse) is R3's remaining production work and R4:
 
 ```
-R1 ✓ (44–46) ──→ R2 ✓ (47–51) ──→ R3 (52–98 landed; 67b open) ──→ Step 5
+R1 ✓ (44–46) ──→ R2 ✓ (47–51) ──→ R3 (52–99 landed; 67b open) ──→ Step 5
                                         └──────→ R4 (implicitContinue + 0 < m) ──┘
 ```
 
@@ -10326,6 +10418,10 @@ run-end half has to build anyway.  Build it once; then R4's tightening has somew
 and 1c and 1d can go as one session.  Items 64 and 65 LOCATED it rather than
 building it — `DedentLanding` and `KeyPackPunt.dedent` — because the reading it
 needs is a frame stack on the pending, which is row 19's own item.
+**BUILT by item 99** (2026-09-06): the frame stack is `ResumeFrames`, the
+pack's resume twin threads it, and `entryKeyPack_of_dispatch`'s dedent
+branch conses at the landing's level — the equal-width case has its
+somewhere.  R4 is UNBLOCKED.
 
 **The structural fact the plan hangs on** (measured at item 35): `pendingFlow`
 has exactly one producer — `block_dispatch_deferred` itself — and carries only
@@ -10403,10 +10499,14 @@ and that deletion, by input class:
   CLOSED, but NOT by that route, which returns flags no content dispatch
   reads.  The refusal is §6.1's own, inside `skipToContentWs` and therefore
   inside `scanNextToken_preprocess`, and item 64 carries it out of the
-  preprocessing loop (`LandingTabFacts`).  What survives is the run-end half,
+  preprocessing loop (`LandingTabFacts`).  ~~What survives is the run-end half,
   now named `DedentLanding` and returned as its own disjunct: it asks a
   different question (close the entry with `e-node` and re-open the enclosing
-  collection) and needs a frame stack on the pending, which is row 19's;
+  collection) and needs a frame stack on the pending, which is row 19's~~ —
+  CLOSED by item 99: both consumer arms drain the disjunct (the entry closes
+  empty on the landing's own comments and the landed content parks through
+  `content_dispatch_after_close` with `s-indent(j)` as its key context), and
+  the frame stack exists (`ResumeFrames`);
 * the **block-scalar floor** class — ~~parks whose producer handed
   `IndentFloor`'s `True`~~ — CLOSED for the COMPACT key by item 59 (the park
   carries its column, so `[195]`'s route pays the conjunct item 28 punted).
@@ -10426,7 +10526,9 @@ and that deletion, by input class:
   punt there, and `k:⏎␣→a: 1` is refused by `scanValueIndentTabCheck` ONE STEP
   LATER, reading the run in front of the KEY — which is what the constructor
   carries, together with the park's stale tail so the reading can travel.  What
-  still rides the deferral, now named: `dedent` (item 64's boundary, row 19's),
+  still rides the deferral, now named: ~~`dedent` (item 64's boundary, row
+  19's)~~ — DRAINED by item 99 (the arms compose upstream; the constructor
+  stays as the dedent branch's non-member return, R4's landing pad),
   `noFrame` (item 89 threads the frame-owning sites — what the reason still
   names is `[189]`'s scanner-refused same-line key, awaiting its witness),
   and `noKeyContext` (item 56's frameless flow closes); ~~`staleKey`~~ is
@@ -10631,8 +10733,10 @@ that reaches each:
   (CLOSED by item 89 — the frame-owning sites hand `h_vslot`; the exotic
   keys' VALUE-LINE face rides the R2 pack-threading bullet, not this
   reason), ~~the `staleKey` drain~~ (CLOSED by item 90 — the constructor is
-  deleted: the save is fresh off the park's own flag), and the DEDENT
-  composition — in that order, the last crossing into row 19's architecture.
+  deleted: the save is fresh off the park's own flag), and ~~the DEDENT
+  composition~~ (CLOSED by item 99 — the arms drain and `ResumeFrames`
+  stands) — in that order, the last crossing into row 19's architecture,
+  now crossed.
 | 1 | `drop_ride` — `pendingFlow`'s opaque resume | the deletion proper |
 
 Items 69 and 72 made `h_lead_at` TOTAL, so the first row is refutable the
@@ -10651,7 +10755,7 @@ the "14 of the 23" above is a lower bound on what the floor unblocks.
 
 This is what closes row 12.
 
-#### R4 — row 19 proper (after the DEDENT composition; before Step 5)
+#### R4 — row 19 proper (UNBLOCKED by item 99; before Step 5)
 
 Tighten the two remaining grammar over-approximations — `implicitContinue`
 (**16** construction sites as of 2026-09-04, not item 30's 17: 15 of them the
@@ -10666,13 +10770,11 @@ eliminations). Both falsify the converse as long as they survive; details and
 the chosen approach: [The over-approximation
 problem](#the-over-approximation-problem).
 
-The two halves are ONE action and should be one session, but not before the
-DEDENT composition — see the dependency note under [REMAINING, in
-order](#remaining-in-order) for the measurement.  Items 64 and 65 LOCATED that
-composition (`FlowIndexLift.DedentLanding`, returned as its own disjunct, and
-`KeyPackPunt.dedent`) without building it: it closes the awaited entry with
-`e-node` and resumes the enclosing collection, which needs a frame stack on a
-pending that carries one index — row 19's own. The sequencing evidence is per-site rather than
+The two halves are ONE action and should be one session, ~~but not before the
+DEDENT composition~~ — item 99 BUILT that composition (`ResumeFrames`, the
+pack's resume twin, and the dedent branch's cons at the landing's level), so
+this row is unblocked; see the dependency note under [REMAINING, in
+order](#remaining-in-order) for the original measurement. The sequencing evidence is per-site rather than
 per-count: `nestedBlockSeq`'s one call already passes `Nat.le_of_lt hlt`, so
 the sequence side pays `0 < m` for free, and the root sites are the encoding's
 `n = 0` convention, which the tightening replaces with a root opener rather
@@ -10685,7 +10787,9 @@ consumer, and it lands as a punt until item 64's sibling composition exists.
   is FALSE there — the enclosing entry has ended, the pack's fact is
   refutable, and the punt lives at the landing (items 39–40, Reflections
   665–666). Entries-level fidelity for it needs a frame stack on a pending
-  carrying one index — row 19's, not a missing route.
+  carrying one index — row 19's, not a missing route.  (The stack now
+  exists — item 99's `ResumeFrames` — and the landing composes; the
+  entries-level cons awaits R4's rewiring.)
 * **Item 41's empty product** (`: &p a: 1`): the branch an indented `[189]`
   value can reach and the frame it can offer do not meet; nothing there is
   false and neither factor is this row's to relax (Reflection 667). Needs a
