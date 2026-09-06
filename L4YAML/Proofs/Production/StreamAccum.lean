@@ -466,9 +466,21 @@ def StaleNodeTail (sc : ScannerState) : Prop :=
       `[185] s-l+block-indented` compact alternative to close.  A park that
       OWNS one hands it instead (item 89 threads `pendingMapValue.h_vslot`
       through the content dispatch, so `? a: b` and `? a⏎: b: c` compose
-      through `[195]`), which leaves the `[189]` value slots — `s-l+block-node`
-      has no compact alternative, and their same-line key is the scanner's
-      refusal (`k: a: 1`).
+      through `[195]`).  What is left of it after item 101 is the EXPLICIT
+      value with no slot — `?⏎: b: c`, which the scanner accepts and which
+      needs the `?` frame's own value pack rather than a refutation.
+    * `implicitValue` — the frameless park's other half, split off `noFrame`
+      by item 101 and REFUTABLE for the same reason `tab` is, at the same
+      place.  `[189]`'s value slot is `s-l+block-node`, which has no compact
+      alternative, so a key on the park's own line has no frame here either —
+      but the value indicator STAMPED that line (`implicitValueLine`), and
+      §8.2.2 refuses a second value indicator on a stamped line, so
+      `k: a: 1` is not an input the pack owes a reading for.  The constructor
+      carries the stamp at the park plus the park's STALE TAIL, which is what
+      makes the stamp transportable: `scanValue` is the field's only writer,
+      so the content scan between the value indicator and this park left it
+      alone (`dispatchContent_implicitValueLine`), and the no-break landing
+      puts the park on the stamped line.
     * `noKeyContext` — the producer was handed none: the depth-0 flow closes
       whose frame carries no mapping route (item 56's residue), and the two
       packs whose own key context is optional.  It is the one reason that is
@@ -489,6 +501,8 @@ inductive KeyPackPunt (sc : ScannerState) : Prop where
       (h_st : StaleNodeTail sc) : KeyPackPunt sc
   | dedent : KeyPackPunt sc
   | noFrame : KeyPackPunt sc
+  | implicitValue (h_ivl : sc.implicitValueLine = some sc.line)
+      (h_st : StaleNodeTail sc) : KeyPackPunt sc
   | noKeyContext : KeyPackPunt sc
 
 /-- **A closed flow collection's implicit-key pack** (item 56): the two halves,
@@ -7934,6 +7948,76 @@ lemma dispatchContent_needIndentCheck_false {s s' : ScannerState} {c : Char}
       exact scanPlainScalar_needIndentCheck_false h_pl
   · exact absurd hok (by simp)
 
+/-- **The implicit value's stamp survives its own content** (item 101).
+    `scanValue` is `implicitValueLine`'s only writer, so a value-completing
+    content dispatch carries the field unchanged — which is what lets the `:`
+    that meets the parked content be refused by the same §8.2.2 check that
+    refused the one at the value indicator.  Same branch structure as
+    `dispatchContent_needIndentCheck_false`; the endLine touch-up in the
+    quoted arms rewrites `simpleKey` alone. -/
+lemma dispatchContent_implicitValueLine {s s' : ScannerState} {c : Char}
+    (hok : scanNextToken_dispatchContent s c = .ok s')
+    (h_amp : c ≠ '&') (h_bang : c ≠ '!') (h_pipe : c ≠ '|') (h_gt : c ≠ '>') :
+    s'.implicitValueLine = s.implicitValueLine := by
+  unfold scanNextToken_dispatchContent at hok
+  simp only [bind, Except.bind, pure, Except.pure] at hok
+  split at hok
+  · rename_i heq; exact absurd (by simpa using heq) h_amp
+  split at hok
+  · split at hok
+    · exact absurd hok (by simp)
+    · split at hok
+      · exact absurd hok (by simp)
+      · generalize h_al : scanAnchorOrAlias s false = r at hok
+        cases r with
+        | error => exact absurd hok (by simp)
+        | ok v =>
+          dsimp only [] at hok
+          split at hok
+          · exact absurd hok (by simp)
+          · have hv : s' = v := (Except.ok.inj hok).symm
+            rw [hv]
+            exact ScannerCorrectness.scanAnchorOrAlias_preserves_implicitValueLine s false v h_al
+  split at hok
+  · rename_i heq; exact absurd (by simpa using heq) h_bang
+  split at hok
+  · rename_i heq
+    have hbs : c = '|' ∨ c = '>' := by simpa using heq
+    rcases hbs with h | h
+    · exact absurd h h_pipe
+    · exact absurd h h_gt
+  split at hok
+  · generalize h_dq : scanDoubleQuoted s = r at hok
+    cases r with
+    | error => exact absurd hok (by simp)
+    | ok v =>
+      dsimp only [] at hok
+      have hv : s' = (if v.simpleKey.possible then
+          { v with simpleKey := { v.simpleKey with endLine := v.line } } else v) :=
+        (Except.ok.inj hok).symm
+      have hn := ScannerCorrectness.scanDoubleQuoted_preserves_implicitValueLine s v h_dq
+      rw [hv]; split <;> exact hn
+  split at hok
+  · generalize h_sq : scanSingleQuoted s = r at hok
+    cases r with
+    | error => exact absurd hok (by simp)
+    | ok v =>
+      dsimp only [] at hok
+      have hv : s' = (if v.simpleKey.possible then
+          { v with simpleKey := { v.simpleKey with endLine := v.line } } else v) :=
+        (Except.ok.inj hok).symm
+      have hn := ScannerCorrectness.scanSingleQuoted_preserves_implicitValueLine s v h_sq
+      rw [hv]; split <;> exact hn
+  split at hok
+  · generalize h_pl : scanPlainScalar s = r at hok
+    cases r with
+    | error => exact absurd hok (by simp)
+    | ok v =>
+      have hv : s' = v := (Except.ok.inj hok).symm
+      rw [hv]
+      exact ScannerCorrectness.scanPlainScalar_preserves_implicitValueLine s v h_pl
+  · exact absurd hok (by simp)
+
 /-- The value-completing arms leave a stale node tail. -/
 lemma staleNodeTail_of_dispatchContent_value {s s' : ScannerState} {c : Char}
     (hok : scanNextToken_dispatchContent s c = .ok s')
@@ -12840,6 +12924,18 @@ lemma colon_fires_implicit_key
               exact h_run
           | dedent => exact h_punt
           | noFrame => exact h_punt
+          | implicitValue h_ivl h_st =>
+            -- ═══ Item 101: the second reason that is REFUTABLE here, and for
+            -- the same shape as the tab's.  The park is an implicit value's
+            -- own content, its line carries the value indicator's stamp, and
+            -- §8.2.2 refuses a second value indicator on a stamped line —
+            -- the very check item 48 spent at `pendingMapValue`, one step
+            -- later.  What carries it across that step is the park's stale
+            -- tail: flag down and no break, so the preprocessing this `:`
+            -- came through neither re-saved nor changed the line. ═══
+            exact (dispatch_refutes_sameLine h_st.1 h_st.2.2.1 (Or.inl h_ivl)
+              (preprocess_preserves_implicitValueLine sc s_prep ':' h_preprocess)
+              (noflow_disp_of_noflow h_noflow) h_mid.2.1 h_dispatch).elim
           | noKeyContext => exact h_punt
         | inl pack =>
           obtain ⟨k, sp_key, sp_gram, h_route, h_ol, h_tws, h_kcol, h_kslot_pk, h_rfr_pk⟩ := pack
@@ -15937,6 +16033,19 @@ lemma entryKeyPack_of_dispatch
         ∀ sp_i sp_c : SurfPos, SIndent nv sp sp_i → GLit ':' sp_i sp_c →
         ∀ sp_v : SurfPos, SBlockIndented nv .blockOut sp_c sp_v →
         SLYamlStream sp_start sp_v) ∨ True)) ∨ True)
+    -- **Item 101 — the park's own implicit-value stamp**, for the branch
+    -- `h_compact` has no frame for.  A `[189]` value slot cannot offer a
+    -- compact alternative, so a key on the park's own line punts there; but
+    -- the value indicator that opened the slot stamped its line, and §8.2.2
+    -- refuses a second value indicator on a stamped line — so the punt names
+    -- a REFUTABLE reason rather than an unread input.  The two companions are
+    -- the transport: with the entry flag down and a real tail the no-break
+    -- landing keeps `s_prep` on the park's line, which is the line the stamp
+    -- names.  All three are `pendingMapValue`'s own fields; the compact
+    -- callers (a `-`'s slot, a `?`'s) pass `Or.inr trivial` — they hand
+    -- `h_compact` instead and never reach the branch.
+    (h_ivl : (sc.implicitValueLine = some sc.line ∧ sc.needIndentCheck = false ∧
+      LastTokenReal sc.tokens) ∨ True)
     -- Item 99: `h_node`'s RESUME twin — the levels still open once the
     -- awaited node completes (the entry's own level at `n` included, so the
     -- bound is `≤ n`).  The nested branch pays the pack's resume twin from
@@ -16116,7 +16225,35 @@ lemma entryKeyPack_of_dispatch
         -- On the line: `[195]`, closing the enclosing entry.  Only a pending
         -- that owns an `SBlockIndented` slot can offer this frame.
         cases h_compact with
-        | inr _ => exact Or.inr KeyPackPunt.noFrame
+        | inr _ =>
+          -- ═══ Item 101: no frame — so the park is a VALUE slot, and the two
+          -- kinds of value slot part here.  An EXPLICIT one keeps `noFrame`
+          -- (`?⏎: b: c` is accepted and wants the `?` frame's value pack); an
+          -- IMPLICIT one stamped its line, and the stamp travels: the content
+          -- scan between the value indicator and this park is not
+          -- `scanValue`, so it left the field alone, and the no-break landing
+          -- keeps the park on the stamped line. ═══
+          refine h_ivl.elim (fun h_stamp => ?_) (fun _ => Or.inr KeyPackPunt.noFrame)
+          obtain ⟨h_ivl0, h_nic0, h_real0⟩ := h_stamp
+          -- The park's line is the preprocessing's (no break crossed) and the
+          -- preprocessing's is the value indicator's.
+          have h_line_pp : s_prep.line = sc.line := (h_mid.2.1 h_nic0 h_real0).1
+          have h_line_s' : s'.line = s_prep.line := by
+            have h := h_kline
+            rw [h_pp, allowDirectives_update_simpleKey, h_sk.2] at h
+            exact h.symm
+          have h_ivl_disp : (if s_prep.allowDirectives then
+              { s_prep with allowDirectives := false, documentEverStarted := true }
+            else s_prep).implicitValueLine = s_prep.implicitValueLine := by
+            split <;> rfl
+          have h_stamp' : s'.implicitValueLine = some s'.line := by
+            rw [dispatchContent_implicitValueLine h_dispatch hna hnt hnPipe hnGt,
+                h_ivl_disp, preprocess_preserves_implicitValueLine sc s_prep c h_preprocess,
+                h_ivl0, h_line_s', h_line_pp]
+          exact Or.inr (KeyPackPunt.implicitValue h_stamp'
+            (staleNodeTail_of_dispatchContent_value h_dispatch hna hnt hnPipe hnGt
+              (by split <;>
+                exact nic_false_of_flow_disp (sc := sc) (s_prep := s_prep) h_preprocess h_flow_disp)))
         | inl h_cp =>
           have h_ind' : SIndent w sp_scan sp_prep := by
             rw [← h_mid.1]; exact h_ind
@@ -16793,6 +16930,9 @@ lemma accum_content_on_pendingBlock
                -- Item 93: a root `- `'s indicator sits at column 0, so no `?`
                -- frame can own this park — the value-line face is vacuous.
                (Or.inl ⟨h_close_old, h_col_old, Or.inr trivial⟩)
+               -- Item 101: an entry's own compact slot, so the frame is
+               -- `h_compact`'s and the stamp branch is unreachable.
+               (Or.inr trivial)
                (Or.inr trivial) (Or.inr trivial) hna hnt h_ska
                hcorr_prep hcorr_result h_corr h_not_doc h_flow_disp
                h_preprocess h_dispatch)
@@ -17329,6 +17469,8 @@ lemma accum_content_on_pendingBlock_indented
                        kslot sp h_bi sp (SCompactSeqTail.nil n sp)
                          sp_i sp_c h_iv h_lit sp_v h_sbi⟩
                  | Or.inr _ => Or.inr trivial⟩)
+               -- Item 101: an entry's own compact slot (see the root site).
+               (Or.inr trivial)
                -- Item 99: the frames feed the pack's resume twin — the node
                -- (or the empty entry) closes this entry, the nil tail closes
                -- the sequence, and the levels below ride through.
@@ -17488,6 +17630,8 @@ lemma accum_content_on_pendingBlock_indented
                        kslot sp h_bi sp (SCompactSeqTail.nil n sp)
                          sp_i sp_c h_iv h_lit sp_v h_sbi⟩
                  | Or.inr _ => Or.inr trivial⟩)
+               -- Item 101: an entry's own compact slot (see the root site).
+               (Or.inr trivial)
                -- Item 99: the frames feed the pack's resume twin — the node
                -- (or the empty entry) closes this entry, the nil tail closes
                -- the sequence, and the levels below ride through.
@@ -17589,6 +17733,14 @@ lemma accum_content_on_pendingMapValue
       SLYamlStream sp_start sp_v) ∨ True)
     -- Item 90: the park's own flag (item 58), handed to the pack lemmas.
     (h_ska : sc.simpleKeyAllowed = true)
+    -- Item 101: the park's own implicit-value stamp and the two facts that
+    -- carry it to the content park — `pendingMapValue`'s `h_ivl`, `h_nic` and
+    -- `h_real`.  Spent by the pack lemma at the branch `h_vslot` has no frame
+    -- for: an IMPLICIT value's same-line key is refused by §8.2.2, so that
+    -- punt names a reason rather than an input.
+    (h_ivl_mv : sc.implicitValueLine = some sc.line ∨ True)
+    (h_nic_mv : sc.needIndentCheck = false)
+    (h_real_mv : LastTokenReal sc.tokens)
     (hcorr_prep : ScannerSurfCorr s_prep sp_prep)
     (hcorr_result : ScannerSurfCorr s' sp_scan')
     (h_corr : ScannerSurfCorr sc sp_scan)
@@ -17628,6 +17780,12 @@ lemma accum_content_on_pendingMapValue
   -- Item 93: …and the frame's VALUE-LINE pack rides beside it, paid from
   -- `h_expl` — the completed compact content is the `?`'s KEY, and the line
   -- closes the entry through `[188]`'s explicit constructor.
+  -- Item 101: the stamp in the shape the pack lemma reads it.
+  have h_ivl_pack : (sc.implicitValueLine = some sc.line ∧
+      sc.needIndentCheck = false ∧ LastTokenReal sc.tokens) ∨ True :=
+    match h_ivl_mv with
+    | Or.inl h => Or.inl ⟨h, h_nic_mv, h_real_mv⟩
+    | Or.inr _ => Or.inr trivial
   have h_compact_vslot : ((∀ sp, SBlockIndented 0 .blockIn sp_scan sp →
       SLYamlStream sp_start sp) ∧ sp_scan.col = 0 + 1 ∧
       ((∃ nv : Nat, ∀ sp : SurfPos, SBlockIndented 0 .blockIn sp_scan sp →
@@ -17777,7 +17935,8 @@ lemma accum_content_on_pendingMapValue
                  (SBlockNode.flowInBlock 0 .blockIn sp_scan sp_prep sp_gram sp_final
                    h_sep h_flow h_ssl_ext))
              (entryKeyPack_of_dispatch sc sp_start sp_scan 0 s_prep s' c sp_prep sp_scan'
-               h_close_old h_compact_vslot (Or.inr trivial) (Or.inr trivial) hna hnt h_ska
+               h_close_old h_compact_vslot h_ivl_pack (Or.inr trivial) (Or.inr trivial)
+               hna hnt h_ska
                hcorr_prep hcorr_result h_corr h_not_doc h_flow_disp
                h_preprocess h_dispatch)
              (stale_of_dispatch h_dispatch hna hnt
@@ -17881,6 +18040,14 @@ lemma accum_content_on_pendingMapValue_indented
       ResumeFrames sp_start ks sp_mid) ∨ True)
     -- Item 90: the park's own flag (item 58), handed to the pack lemmas.
     (h_ska : sc.simpleKeyAllowed = true)
+    -- Item 101: the park's own implicit-value stamp and the two facts that
+    -- carry it to the content park — `pendingMapValue`'s `h_ivl`, `h_nic` and
+    -- `h_real`.  Spent by the pack lemma at the branch `h_vslot` has no frame
+    -- for: an IMPLICIT value's same-line key is refused by §8.2.2, so that
+    -- punt names a reason rather than an input.
+    (h_ivl_mv : sc.implicitValueLine = some sc.line ∨ True)
+    (h_nic_mv : sc.needIndentCheck = false)
+    (h_real_mv : LastTokenReal sc.tokens)
     (hcorr_prep : ScannerSurfCorr s_prep sp_prep)
     (hcorr_result : ScannerSurfCorr s' sp_scan')
     (h_corr : ScannerSurfCorr sc sp_scan)
@@ -17908,6 +18075,12 @@ lemma accum_content_on_pendingMapValue_indented
   -- root arm.
   -- Item 93: with the frame's value-line pack beside it, paid from `h_expl`
   -- as at the root arm.
+  -- Item 101: the stamp in the shape the pack lemma reads it.
+  have h_ivl_pack : (sc.implicitValueLine = some sc.line ∧
+      sc.needIndentCheck = false ∧ LastTokenReal sc.tokens) ∨ True :=
+    match h_ivl_mv with
+    | Or.inl h => Or.inl ⟨h, h_nic_mv, h_real_mv⟩
+    | Or.inr _ => Or.inr trivial
   have h_compact_vslot : ((∀ sp, SBlockIndented n .blockIn sp_scan sp →
       SLYamlStream sp_start sp) ∧ sp_scan.col = n + 1 ∧
       ((∃ nv : Nat, ∀ sp : SurfPos, SBlockIndented n .blockIn sp_scan sp →
@@ -17947,7 +18120,7 @@ lemma accum_content_on_pendingMapValue_indented
                    h_sep_all (h_flow_all n)
                    (white_prepend_SSLComments h_trailing_ws h_ssl)))
              (entryKeyPack_of_dispatch sc sp_start sp_scan n s_prep s' c sp_prep sp_scan'
-               h_close_old h_compact_vslot
+               h_close_old h_compact_vslot h_ivl_pack
                -- Item 99: the frames feed the pack's resume twin — level `n`
                -- rides on top for the transport face, and the spend face is
                -- the park's own `h_frames`.
@@ -18081,7 +18254,7 @@ lemma accum_content_on_pendingMapValue_indented
                    h_sep_all h_node_f
                    (white_prepend_SSLComments h_tws_f h_ssl)))
              (entryKeyPack_of_dispatch sc sp_start sp_scan n s_prep s' c sp_prep sp_scan'
-               h_close_old h_compact_vslot
+               h_close_old h_compact_vslot h_ivl_pack
                -- Item 99: the frames feed the pack's resume twin — level `n`
                -- rides on top for the transport face, and the spend face is
                -- the park's own `h_frames`.
@@ -19041,19 +19214,22 @@ lemma accum_content_pending (sc : ScannerState)
         s_prep s' c sp_prep sp_scan' h_stream_block h_close_old h_close_entry_old h_kslot92
         h_closeF99 h_floor_old h_col_old h_sk_old
         hcorr_prep hcorr_result h_corr h_preprocess h_not_doc h_flow_disp h_dispatch
-  | pendingMapValue _ _ _ n_old h_close_old h_floor_old _ _ _ h_expl51 h_vslot51 h_sk58 h_col0_old h_ncol_old
+  | pendingMapValue _ _ _ n_old h_close_old h_floor_old h_nic101 h_real101 h_ivl101
+      h_expl51 h_vslot51 h_sk58 h_col0_old h_ncol_old
       h_kslot93 h_closeF99 h_frames99 =>
     match n_old, h_close_old, h_floor_old, h_expl51, h_vslot51, h_ncol_old, h_kslot93,
         h_closeF99, h_frames99 with
     | 0, h_close_old, _, h_expl51, h_vslot51, _, h_kslot93, _, _ =>
       exact accum_content_on_pendingMapValue sc sp_start sp_block sp_scan s_prep s' c sp_prep
         sp_scan' h_stream_block h_close_old h_expl51 h_vslot51 h_kslot93 h_sk58
+        h_ivl101 h_nic101 h_real101
         hcorr_prep hcorr_result h_corr h_preprocess h_not_doc h_flow_disp h_dispatch
     | k + 1, h_close_old, h_floor_old, h_expl51, h_vslot51, h_ncol_old, h_kslot93,
         h_closeF99, h_frames99 =>
       exact accum_content_on_pendingMapValue_indented sc sp_start sp_block sp_scan (k + 1)
         s_prep s' c sp_prep sp_scan' h_stream_block h_close_old h_floor_old h_col0_old
         h_ncol_old h_expl51 h_vslot51 h_kslot93 h_closeF99 h_frames99 h_sk58
+        h_ivl101 h_nic101 h_real101
         hcorr_prep hcorr_result h_corr h_preprocess h_not_doc h_flow_disp h_dispatch
 
 /-- The mask across any content dispatch (item 10): the key stack rides

@@ -33,9 +33,14 @@ runtime observation can say that.
   `k: |⏎  x` opens a SECOND entry with an empty key rather than resolving the
   scalar.  An alias IS a key wherever a park offers one.
 * §4 **the reasons that remain are claims, not formalities.**  `dedent` and
-  `noFrame` each name a shape the scanner ACCEPTS, so the deferral they ride is
-  carrying real inputs — row 19's frame stack and item 51's explicit-entry
-  threading respectively.  `noKeyContext` is about the CALLER rather than the
+  ~~`noFrame`~~ each name a shape the scanner ACCEPTS, so the deferral they ride
+  is carrying real inputs — row 19's frame stack and item 51's explicit-entry
+  threading respectively.  **Half of `noFrame` did not** — struck 2026-09-06 by
+  item 101, which read the two pins below against each other: `? a⏎: b: c` is
+  accepted and `k: a: 1` is refused, so one name was covering two reasons.  The
+  refused half is `[189]`'s IMPLICIT value, whose indicator stamped its line;
+  it is now `KeyPackPunt.implicitValue` and it is REFUTED at the same place the
+  tab is.  See `ScannerImplicitValueSameLineKey`.  `noKeyContext` is about the CALLER rather than the
   input, and its complement is what is pinnable: where item 56's frame does
   carry a route, the closed flow collection reads as `[194]`'s JSON key. -/
 
@@ -100,10 +105,13 @@ private def tabAt (input : String) : Option (Nat × Nat) :=
    "=VAL :j", "=VAL :v", "-MAP", "-DOC", "-STR"]
 -- `noFrame` — the key is on the park's own line and the park owns no compact
 -- alternative: `[192]`'s explicit entry, whose value is a compact mapping.
+-- This is what the name covers after item 101's split.
 #guard emits "? a\n: b: c\n"
   ["+STR", "+DOC", "+MAP", "=VAL :a", "+MAP", "=VAL :b", "=VAL :c", "-MAP",
    "-MAP", "-DOC", "-STR"]
--- …and its implicit sibling, which the scanner refuses (§8.2.2 [194]).
+-- …and its implicit sibling, which the scanner refuses (§8.2.2 [194]) — the
+-- other half, `KeyPackPunt.implicitValue` since item 101, refuted rather than
+-- deferred.  The family is pinned in `ScannerImplicitValueSameLineKey`.
 #guard refuses "k: a: 1\n"
 -- `noKeyContext`'s complement — a closed flow collection as `[194]`'s JSON
 -- key, at the two frames item 56 gave routes and at the mapping form.  What

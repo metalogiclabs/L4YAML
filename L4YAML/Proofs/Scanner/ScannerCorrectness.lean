@@ -3618,6 +3618,394 @@ lemma collectAnchorNameLoop_preserves_flowLevel (s : ScannerState) (acc : String
     · -- none
       rfl
 
+/-! ## `implicitValueLine` through the CONTENT scans (item 101)
+
+Item 48 carried the stamp through the preprocessing chain, which is where a
+block dispatch reads it.  A CONTENT dispatch reads it one step further on: the
+`[189]` implicit value's own content parks a pending, and the `:` that meets
+that park is refused by `scanValueValidate` for the same reason the one at the
+value indicator was.  `scanValue` is still the field's only writer, so the four
+value-completing scans carry it unchanged — the ladder below mirrors the
+`simpleKey` one lemma-for-lemma, same functions, same branch structure. -/
+
+lemma collectHexDigitsLoop_preserves_implicitValueLine (s : ScannerState) (hex : String) (n : Nat) :
+    (collectHexDigitsLoop s hex n).snd.implicitValueLine = s.implicitValueLine := by
+  induction n generalizing s hex with
+  | zero => unfold collectHexDigitsLoop; rfl
+  | succ n' ih =>
+    unfold collectHexDigitsLoop
+    cases h_peek : s.peek? with
+    | none => simp []
+    | some c =>
+      simp []
+      split
+      · have h_adv := advance_preserves_implicitValueLine s
+        rw [ih, h_adv]
+      · rfl
+
+
+lemma parseHexEscape_preserves_implicitValueLine (s : ScannerState) (n : Nat) (ch : Char) (s' : ScannerState)
+    (h : parseHexEscape s n = .ok (ch, s')) :
+    s'.implicitValueLine = s.implicitValueLine := by
+  unfold parseHexEscape at h
+  simp only [] at h
+  have h_collect := collectHexDigitsLoop_preserves_implicitValueLine s "" n
+  split at h <;> try contradiction
+  split at h <;> try contradiction
+  injection h with h_eq; cases h_eq
+  rw [h_collect]
+
+
+lemma processEscape_preserves_implicitValueLine (s : ScannerState) (ch : Char) (s' : ScannerState)
+    (h : processEscape s = .ok (ch, s')) :
+    s'.implicitValueLine = s.implicitValueLine := by
+  unfold processEscape at h
+  simp only [] at h
+  split at h <;> try contradiction
+  -- Split on each character case
+  repeat' (split at h)
+  -- Handle all goals
+  all_goals (
+    first
+    | (injection h with h_eq; cases h_eq; exact advance_preserves_implicitValueLine s)
+    | (have h_adv := advance_preserves_implicitValueLine s
+       have h_hex := parseHexEscape_preserves_implicitValueLine s.advance _ ch s' h
+       rw [h_hex, h_adv])
+    | contradiction
+  )
+
+
+lemma skipBlankLinesLoop_preserves_implicitValueLine (s : ScannerState) (cnt fuel inputEnd : Nat) :
+    (skipBlankLinesLoop s cnt fuel inputEnd).snd.implicitValueLine = s.implicitValueLine := by
+  induction fuel generalizing s cnt with
+  | zero => unfold skipBlankLinesLoop; rfl
+  | succ fuel' ih =>
+    unfold skipBlankLinesLoop
+    cases h_peek : (skipWhitespace s).peek? with
+    | none => simp [h_peek]
+    | some c =>
+      simp [h_peek]
+      cases h_lb : isLineBreakBool c with
+      | false => simp []
+      | true =>
+        simp []
+        have h_sp := skipWhitespace_preserves_implicitValueLine s
+        have h_cn := consumeNewline_preserves_implicitValueLine (skipWhitespace s)
+        -- item 100: the gate's arm keeps the state untouched
+        split
+        · rfl
+        · rw [ih, h_cn, h_sp]
+
+
+lemma foldQuotedNewlinesLoop_preserves_implicitValueLine (s : ScannerState) (emptyCount fuel : Nat) :
+    (foldQuotedNewlinesLoop s emptyCount fuel).fst.implicitValueLine = s.implicitValueLine := by
+  induction fuel generalizing s emptyCount with
+  | zero => unfold foldQuotedNewlinesLoop; rfl
+  | succ fuel' ih =>
+    unfold foldQuotedNewlinesLoop
+    cases h_peek : (skipWhitespace s).peek? with
+    | none => simp [h_peek]
+    | some c =>
+      simp [h_peek]
+      cases h_lb : isLineBreakBool c with
+      | false => simp []
+      | true =>
+        simp []
+        have h_sp := skipWhitespace_preserves_implicitValueLine s
+        have h_cn := consumeNewline_preserves_implicitValueLine (skipWhitespace s)
+        split
+        · rfl
+        · rw [ih, h_cn, h_sp]
+
+
+lemma foldQuotedNewlines_preserves_implicitValueLine (s : ScannerState) (s' : ScannerState) (content : String)
+    (h : foldQuotedNewlines s = .ok (content, s')) :
+    s'.implicitValueLine = s.implicitValueLine := by
+  unfold foldQuotedNewlines at h
+  simp only [bind, Except.bind, pure] at h
+  have h_cn := consumeNewline_preserves_implicitValueLine s
+  let fuel := s.inputEnd - (consumeNewline s).offset + 1
+  have h_fold := foldQuotedNewlinesLoop_preserves_implicitValueLine (consumeNewline s) 0 fuel
+  have h_sp := skipSpaces_preserves_implicitValueLine (foldQuotedNewlinesLoop (consumeNewline s) 0 fuel).fst
+  have h_sw := skipWhitespace_preserves_implicitValueLine (skipSpaces (foldQuotedNewlinesLoop (consumeNewline s) 0 fuel).fst)
+  -- 4.32.0 reshaped the do-notation match tree; split fully, then close every
+  -- leaf uniformly (error leaves by contradiction, ok leaves by the fold chain).
+  repeat' split at h
+  all_goals first
+    | contradiction
+    | (injection h with heq; cases heq; rw [h_sw, h_sp, h_fold, h_cn])
+
+
+lemma collectPlainScalarLoop_preserves_implicitValueLine (s : ScannerState) (content lastLine : String)
+    (fuel : Nat) (inFlow : Bool) (contentIndent inputEnd : Nat) :
+    ∀ result, collectPlainScalarLoop s content lastLine fuel inFlow contentIndent inputEnd = .ok result →
+    result.state.implicitValueLine = s.implicitValueLine := by
+  intro result h
+  induction fuel generalizing s content lastLine with
+  | zero =>
+    unfold collectPlainScalarLoop at h
+    injection h with h_eq; cases h_eq; rfl
+  | succ fuel' ih =>
+    unfold collectPlainScalarLoop at h
+    split at h
+    · -- peek = none
+      injection h with h_eq; cases h_eq; rfl
+    · -- peek = some c
+      rename_i c
+      split at h
+      · -- collectPlainScalar_terminates? = some → state = s
+        rename_i hterm
+        injection h with h_eq; cases h_eq
+        rw [ScanHelpers.collectPlainScalar_terminates?_state _ _ _ _ _ _ hterm]
+      · -- collectPlainScalar_terminates? = none → continue
+        split at h
+        · -- isLineBreak c
+          split at h
+          · -- inFlow
+            simp only [bind, Except.bind] at h
+            split at h <;> try contradiction
+            rename_i fold_result heq
+            cases fold_result with
+            | mk content_fold s_fold =>
+              have h_fold := foldQuotedNewlines_preserves_implicitValueLine s s_fold content_fold heq
+              split at h
+              · injection h with h_eq; cases h_eq; rfl  -- '#' → state = s
+              · -- recurse with content-length check
+                -- item 50: the flow floor's throw contradicts `.ok`
+                split at h
+                · contradiction
+                dsimp only [] at h
+                generalize h_loop : collectPlainScalarLoop s_fold (content ++ content_fold) "" fuel' inFlow contentIndent inputEnd = cont_result at h
+                cases cont_result with
+                | ok inner_result =>
+                  dsimp only [] at h
+                  split at h
+                  · injection h with h_eq; cases h_eq; rfl
+                  · have h_eq := Except.ok.inj h; subst h_eq
+                    rw [ih s_fold (content ++ content_fold) "" h_loop, h_fold]
+                | error e => simp at h
+          · -- !inFlow: block line break
+            split at h
+            · -- _handleBlockLineBreak = none → terminate
+              injection h with h_eq; cases h_eq; rfl
+            · -- _handleBlockLineBreak = some → recurse
+              rename_i content' s' hblk
+              have hprop : s'.implicitValueLine = s.implicitValueLine := by
+                unfold collectPlainScalar_handleBlockLineBreak at hblk
+                simp only [] at hblk
+                split at hblk <;> try contradiction
+                split at hblk <;> try contradiction
+                have := Prod.mk.inj (Option.some.inj hblk)
+                rw [← this.2, skipWhitespace_preserves_implicitValueLine, skipSpaces_preserves_implicitValueLine,
+                    skipBlankLinesLoop_preserves_implicitValueLine, consumeNewline_preserves_implicitValueLine]
+              split at h
+              · injection h with h_eq; cases h_eq; rfl  -- '#' → state = s
+              · dsimp only [] at h
+                generalize h_loop : collectPlainScalarLoop s' content' "" fuel' inFlow contentIndent inputEnd = cont_result at h
+                cases cont_result with
+                | ok inner_result =>
+                  dsimp only [] at h
+                  split at h
+                  · injection h with h_eq; cases h_eq; rfl
+                  · have h_eq := Except.ok.inj h; subst h_eq
+                    rw [ih _ _ _ h_loop, hprop]
+                | error e => simp at h
+        · split at h
+          · -- isWhiteSpace c
+            have h_adv := advance_preserves_implicitValueLine s
+            rw [ih s.advance content (lastLine.push _) h, h_adv]
+          · -- regular content
+            split at h
+            · -- !isPlainSafe → terminate
+              injection h with h_eq; cases h_eq; rfl
+            · -- plainSafe → recurse
+              simp only [] at h
+              have h_adv := advance_preserves_implicitValueLine s
+              rw [ih s.advance _ "" h, h_adv]
+
+
+lemma collectDoubleQuotedLoop_preserves_implicitValueLine (s : ScannerState) (content : String)
+    (fuel : Nat) (startPos : YamlPos) (inFlow : Bool) (currentIndent : Int) (inputEnd : Nat) :
+    ∀ result, collectDoubleQuotedLoop s content fuel startPos inFlow currentIndent inputEnd = .ok result →
+    result.snd.implicitValueLine = s.implicitValueLine := by
+  -- protectedLen (default 0) is generalised so the IH covers the fold
+  -- boundary the recursive call shifts (B2).
+  suffices H : ∀ (p : Nat) (s : ScannerState) (content : String) (result : String × ScannerState),
+      collectDoubleQuotedLoop s content fuel startPos inFlow currentIndent inputEnd p = .ok result →
+      result.snd.implicitValueLine = s.implicitValueLine by
+    intro result h; exact H 0 s content result h
+  intro p s content result h
+  induction fuel generalizing s content p with
+  | zero =>
+    unfold collectDoubleQuotedLoop at h
+    contradiction
+  | succ fuel' ih =>
+    unfold collectDoubleQuotedLoop at h
+    split at h
+    · -- none case
+      contradiction
+    · -- some '"' case (closing quote)
+      injection h with h_eq; cases h_eq
+      exact advance_preserves_implicitValueLine s
+    · -- some '\\' case (escape sequence)
+      simp only [] at h
+      split at h <;> try contradiction
+      -- some c after backslash
+      split at h
+      · -- isLineBreak c (escaped line break; item 53 splits the branch)
+        have h_adv := advance_preserves_implicitValueLine s
+        simp only [bind, Except.bind] at h
+        split at h <;> try contradiction
+        rename_i fold_result heq
+        cases fold_result with
+        | mk folded s_fold =>
+          have h_fold := foldQuotedNewlines_preserves_implicitValueLine s.advance s_fold folded heq
+          repeat' split at h
+          all_goals (first | contradiction | rw [ih _ _ _ h, h_fold, h_adv])
+      · -- regular escape sequence
+        simp only [bind, Except.bind] at h
+        split at h <;> try contradiction
+        rename_i escape_result heq
+        cases escape_result with
+        | mk ch s_after_escape =>
+          have h_proc := processEscape_preserves_implicitValueLine s.advance ch s_after_escape heq
+          have h_adv := advance_preserves_implicitValueLine s
+          rw [ih _ _ _ h, h_proc, h_adv]
+    · -- some c case (regular character)
+      split at h
+      · -- isLineBreak c
+        simp only [bind, Except.bind] at h
+        split at h <;> try contradiction
+        rename_i fold_result heq
+        cases fold_result with
+        | mk folded s_fold =>
+          have h_fold := foldQuotedNewlines_preserves_implicitValueLine s s_fold folded heq
+          repeat' split at h
+          all_goals (first | contradiction | rw [ih _ _ _ h, h_fold])
+      · -- regular character
+        split at h <;> try contradiction  -- isNbJsonBool check
+        have h_adv := advance_preserves_implicitValueLine s
+        rw [ih _ _ _ h, h_adv]
+
+
+lemma collectSingleQuotedLoop_preserves_implicitValueLine (s : ScannerState) (content : String)
+    (fuel : Nat) (startPos : YamlPos) (inFlow : Bool) (currentIndent : Int) (inputEnd : Nat) :
+    ∀ result, collectSingleQuotedLoop s content fuel startPos inFlow currentIndent inputEnd = .ok result →
+    result.snd.implicitValueLine = s.implicitValueLine := by
+  intro result h
+  induction fuel generalizing s content with
+  | zero =>
+    unfold collectSingleQuotedLoop at h
+    contradiction
+  | succ fuel' ih =>
+    unfold collectSingleQuotedLoop at h
+    split at h
+    · -- none case
+      contradiction
+    · -- some '\'' case
+      simp only [] at h
+      split at h
+      · -- escaped quote: '\''\''
+        have h_adv1 := advance_preserves_implicitValueLine s
+        have h_adv2 := advance_preserves_implicitValueLine s.advance
+        rw [ih _ _ h, h_adv2, h_adv1]
+      · -- closing quote
+        injection h with h_eq; cases h_eq
+        exact advance_preserves_implicitValueLine s
+    · -- some c case (not quote)
+      split at h
+      · -- isLineBreak c = true
+        simp only [bind, Except.bind] at h
+        split at h <;> try contradiction
+        rename_i fold_result heq
+        cases fold_result with
+        | mk folded s_fold =>
+          have h_fold := foldQuotedNewlines_preserves_implicitValueLine s s_fold folded heq
+          repeat' split at h
+          all_goals (first | contradiction | rw [ih s_fold _ h, h_fold])
+      · -- isLineBreak c = false, regular character
+        split at h <;> try contradiction  -- isNbJsonBool check
+        have h_adv := advance_preserves_implicitValueLine s
+        rw [ih s.advance _ h, h_adv]
+
+
+lemma collectAnchorNameLoop_preserves_implicitValueLine (s : ScannerState) (acc : String) (fuel : Nat) :
+    (collectAnchorNameLoop s acc fuel).snd.implicitValueLine = s.implicitValueLine := by
+  induction fuel generalizing s acc with
+  | zero =>
+    unfold collectAnchorNameLoop
+    rfl
+  | succ fuel' ih =>
+    unfold collectAnchorNameLoop
+    split
+    · -- some c
+      split
+      · -- condition true: recurse with advance
+        rw [ih]
+        exact advance_preserves_implicitValueLine s
+      · -- condition false: return
+        rfl
+    · -- none
+      rfl
+
+lemma emitAt_preserves_implicitValueLine (s : ScannerState) (pos : YamlPos) (tok : YamlToken) :
+    (s.emitAt pos tok).implicitValueLine = s.implicitValueLine := by
+  unfold ScannerState.emitAt; rfl
+
+lemma scanAnchorOrAlias_preserves_implicitValueLine (s : ScannerState) (isAnchor : Bool)
+    (s' : ScannerState) (hok : scanAnchorOrAlias s isAnchor = .ok s') :
+    s'.implicitValueLine = s.implicitValueLine := by
+  unfold scanAnchorOrAlias at hok; dsimp only [] at hok
+  split at hok
+  · exact absurd hok (by simp)
+  · have h := Except.ok.inj hok; subst h; dsimp only []
+    simp [emitAt_preserves_implicitValueLine, collectAnchorNameLoop_preserves_implicitValueLine,
+          advance_preserves_implicitValueLine]
+
+lemma scanPlainScalar_preserves_implicitValueLine (s : ScannerState) (s' : ScannerState)
+    (h : scanPlainScalar s = .ok s') : s'.implicitValueLine = s.implicitValueLine := by
+  unfold scanPlainScalar at h
+  simp only [bind, Except.bind] at h
+  split at h <;> try contradiction
+  rename_i result heq
+  simp only [Except.ok.injEq] at h; subst h
+  simp [emitAt_preserves_implicitValueLine]
+  exact collectPlainScalarLoop_preserves_implicitValueLine s "" "" _ _ _ _ result heq
+
+lemma scanDoubleQuoted_preserves_implicitValueLine (s : ScannerState) (s' : ScannerState)
+    (h : scanDoubleQuoted s = .ok s') : s'.implicitValueLine = s.implicitValueLine := by
+  unfold scanDoubleQuoted at h
+  simp only [bind, Except.bind] at h
+  split at h <;> try contradiction
+  rename_i result heq
+  split at h
+  · split at h <;> try contradiction
+    simp only [Except.ok.injEq] at h; subst h
+    simp [emitAt_preserves_implicitValueLine]
+    have := collectDoubleQuotedLoop_preserves_implicitValueLine s.advance "" _ _ _ _ _ result heq
+    rw [this, advance_preserves_implicitValueLine]
+  · simp only [Except.ok.injEq] at h; subst h
+    simp [emitAt_preserves_implicitValueLine]
+    have := collectDoubleQuotedLoop_preserves_implicitValueLine s.advance "" _ _ _ _ _ result heq
+    rw [this, advance_preserves_implicitValueLine]
+
+lemma scanSingleQuoted_preserves_implicitValueLine (s : ScannerState) (s' : ScannerState)
+    (h : scanSingleQuoted s = .ok s') : s'.implicitValueLine = s.implicitValueLine := by
+  unfold scanSingleQuoted at h
+  simp only [bind, Except.bind] at h
+  split at h <;> try contradiction
+  rename_i result heq
+  split at h
+  · split at h <;> try contradiction
+    simp only [Except.ok.injEq] at h; subst h
+    simp [emitAt_preserves_implicitValueLine]
+    have := collectSingleQuotedLoop_preserves_implicitValueLine s.advance "" _ _ _ _ _ result heq
+    rw [this, advance_preserves_implicitValueLine]
+  · simp only [Except.ok.injEq] at h; subst h
+    simp [emitAt_preserves_implicitValueLine]
+    have := collectSingleQuotedLoop_preserves_implicitValueLine s.advance "" _ _ _ _ _ result heq
+    rw [this, advance_preserves_implicitValueLine]
+
 lemma collectDirectiveNameLoop_preserves_simpleKey (s : ScannerState) (name : String) (fuel : Nat) :
     (collectDirectiveNameLoop s name fuel).snd.simpleKey = s.simpleKey := by
   induction fuel generalizing s name with
