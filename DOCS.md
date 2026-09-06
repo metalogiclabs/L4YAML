@@ -9742,6 +9742,61 @@ precedent).  No new guard: `ScannerKeyPackPunt` already pins the runtime
 behavior at every boundary this item touches, and a deleted constructor has
 no observable to pin.
 
+### Item 91 (2026-09-05)
+
+**The props park gets its value-line pack: `h_kslot`, the route's twin.**
+`? &p⏎: - w` parked the `[96]` run inside the `?`'s key and lost the entry:
+the `:` landing on the next line found `pendingProps` holding a route that
+closes the KEY but nothing that keeps the `[188]` entry open, so the walk
+deferred — the VALUE-LINE face of the props kind, the most contained of the
+explicit-entry pack-threading bullet's six.  The field's shape follows one
+rule: **a park's pack-twin mirrors its ROUTE field's domain.**  `h_route`
+consumes `SBlockNode n .blockIn sp_node sp_m`; `h_kslot` consumes the same
+node — the completed key — and then the value line (`s-indent(nv) ':'
+s-l+block-indented(nv,blockOut)`), producing the stream through the ONE
+`SBlockMapEntry.explicit`; frameless producers pass `Or.inr trivial`.
+Appended LAST, so every destructuring pattern that binds a field prefix
+stays valid unedited.
+
+**Producers — ten constructor sites, no lemma signature moved.**  Three PAY
+from their own `h_expl` (the two root props arms of
+`accum_content_on_pendingMapValue` and the indented props arm of its twin):
+the payment term is the one items 51/89 already build at the neighboring
+content arms — `SBlockIndented.node` over `SBlockNode_blockIn_to_blockOut`
+fills `[192]`'s key half.  Five punt (`content_dispatch_routed`'s pair and
+the three `pendingBlock` parks — a `-` entry has no `[187]` value line, so
+no frame exists to hand).  Two transport (the `&`/`!` run extension re-parks
+with the frame unmoved — the run grows, the entry does not).
+
+**Consumers — the landed `:` and the content ride.**  (A) the block
+dispatch's `pendingProps` arm converts `h_kslot` into `closeThenBlock`'s
+`h_vpack`: the run closes as `propsEmpty` into the key (the `propsClose`
+core, `flowInBlock_blockNode` absorbing the landing's `s-l-comments`), and
+`colon_open_map_explicit` fires at the frame's own column — `? &p⏎: - w`
+composes.  (B) the props-content ride's three `propsContent` parks convert
+it into `pendingContent.h_vpack` with each site's `h_closable` node — 
+`? &p a⏎: - w`, and the indented and fixed-index twins
+(`k:⏎  ? &p a⏎  : - w`, `k:⏎  ? &p "a"⏎  : - w`).  The arm's two
+block-scalar parks stay `Or.inr`, now saying why at the site: their node
+completes BEFORE the landing's `s-l-comments`, and whether `[170]`'s
+`l-chomped-empty` absorbs them is unestablished — the block-scalar kind's
+own gate, still open.
+
+**Validation.**  Runtime acceptance measured FIRST: all seven target inputs
+(`? &p⏎: - w`, `? &p a⏎: - w`, the tag/quoted/indented twins, and the
+block-scalar shape) already parse with correct events in both pipelines, so
+the item is proof-only.  Full `lake build` green (1068 jobs, ZERO warnings —
+`StreamAccum` compiled on the first attempt; the one rebuild was
+`PropsFloorUnconditional`'s §1 example, which builds the park by hand and
+gained the punt argument); `run-all-tests.sh` 6691/6691 unmoved (no new
+annotation); `eventscore` 347/358 unmoved (252 pass / 11 diff / 0 reject /
+95 error-ok); three checkers OK (220 modules / 354 imports; 20/229/248/354;
+25 capstones); `#print axioms`: no `sorryAx` — the changed lemmas at the
+standard three plus the standing `native_decide` baselines.  ZERO runtime
+edits; matrix not re-run (items 63/64/74's precedent).  No new guard: no
+runtime observable moved, and the punt an input takes is not observable
+(item 65's own boundary).
+
 ### REMAINING, in order
 
 The per-item history is the closure log above; this section lists only the
@@ -9755,7 +9810,7 @@ too (items 47–51), so what stands between here
 and Step 5 (the converse) is R3's remaining production work and R4:
 
 ```
-R1 ✓ (44–46) ──→ R2 ✓ (47–51) ──→ R3 (52–90 landed; 67b open) ──→ Step 5
+R1 ✓ (44–46) ──→ R2 ✓ (47–51) ──→ R3 (52–91 landed; 67b open) ──→ Step 5
                                         └──────→ R4 (implicitContinue + 0 < m) ──┘
 ```
 
@@ -9886,10 +9941,16 @@ and that deletion, by input class:
 * the **explicit-entry pack threading** at the key-park kinds item 51
   left `Or.inr`: block-scalar, flow, compact, inner-map, props and folded
   keys.  The SAME-LINE face of the inner-map and props kinds is item 89's
-  (`h_vslot` reaches the pack lemmas as their compact frame); what stays
-  open at all six is the VALUE-LINE face — `h_vpack` riding the inner
-  parks so `? |⏎  k⏎: - w` and its siblings spend the landed `:` instead
-  of closing `e-node` and deferring the reopened `[189]`'s compact fill;
+  (`h_vslot` reaches the pack lemmas as their compact frame); the
+  VALUE-LINE face of the PROPS kind is item 91's (`h_kslot` mirrors the
+  park's route, paid from `h_expl`, spent by the landed `:` and carried
+  through the content ride — `? &p⏎: - w` and `? &p a⏎: - w` with their
+  indented twins compose).  What stays open is the VALUE-LINE face of the
+  other four kinds — block-scalar (gated on whether `[170]`'s
+  `l-chomped-empty` absorbs the landing's `s-l-comments`), flow, compact,
+  and inner-map (whose `ImplicitKeyPack` route needs a pack face beside
+  the e-node-baked one) — so `? |⏎  k⏎: - w` and its siblings still close
+  `e-node` and defer the reopened `[189]`'s compact fill;
 * the **flow share** — ~~the depth-0 flow close must park REAL evidence
   (`[1] : b`, `? [1]⏎: v`)~~ — CLOSED by item 56 (the frame carries the
   entry routes and the close joins them with the collection re-read as

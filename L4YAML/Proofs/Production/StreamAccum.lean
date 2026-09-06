@@ -636,8 +636,8 @@ inductive PendingNode (sc : ScannerState) : Bool → SurfPos → SurfPos → Sur
       depth-0 twin of `InteriorGap.props` (items 9h/10; re-shaped by item 12).
       The run is held as GRAMMAR (`PropsRun`, kinds indexed) between the route
       anchor `sp_node` (where the enclosing context expects a block node to
-      start) and `sp_scan`; `h_route` is the ONE closure — how a completed
-      `SBlockNode` starting at `sp_node` re-enters the stream — so every
+      start) and `sp_scan`; `h_route` is the ONE unconditional closure — how a
+      completed `SBlockNode` starting at `sp_node` re-enters the stream — so every
       consumption (propsEmpty close, ride into flow content, ride into a
       block scalar via `[198]`'s props slot, run extension) composes its own
       node and applies it.  `h_anchor`/`h_tag` couple the held kinds to item
@@ -710,7 +710,23 @@ inductive PendingNode (sc : ScannerState) : Bool → SurfPos → SurfPos → Sur
       -- and punted; with the flag on the constructor the no-break arm's own
       -- transport (`preprocess_some_ssl_comments_anyCol`'s stale conjunct)
       -- delivers the inherit, and the run's column stops being optional.
-      (h_ska : sc.simpleKeyAllowed = false) :
+      (h_ska : sc.simpleKeyAllowed = false)
+      -- **Item 91 — the explicit frame's VALUE line** (LAST, same reason).
+      -- The pack-twin of `h_route`, mirrored on the route's own domain: where
+      -- the run's anchor `sp_node` is an open `[187]` explicit KEY slot, the
+      -- node the route awaits is the entry's key, and `s-indent(nv) ':'
+      -- s-l+block-indented(nv,block-out)` is still owed after it completes —
+      -- `? &p a⏎: - w` parks this run inside the `?`'s key, and the landed
+      -- `:` must find the entry open.  The route cannot serve there (the key
+      -- alone is not the stream), so the producer that owns the frame hands
+      -- the whole value line: given the completed key node and the line's
+      -- three spans, the stream closes through the ONE `[188]` entry.
+      -- Producers with no frame pass `Or.inr trivial`.
+      (h_kslot : (∃ nv : Nat,
+        ∀ sp_m : SurfPos, SBlockNode n .blockIn sp_node sp_m →
+        ∀ sp_i sp_c : SurfPos, SIndent nv sp_m sp_i → GLit ':' sp_i sp_c →
+        ∀ sp_v : SurfPos, SBlockIndented nv .blockOut sp_c sp_v →
+        SLYamlStream sp_start sp_v) ∨ True) :
       PendingNode sc false sp_start sp_block sp_scan
   /-- Document end `...` scanned. The gap contains SCDocumentEnd.
       Awaiting SSLComments to form SLDocumentSuffix.
@@ -11492,7 +11508,8 @@ lemma colon_open_map_props (sp_start sp_block sp_p sp_scan : SurfPos) (k : Nat)
          hcorr_result⟩
 
 /-- …and the coupling that fires it (item 49): at a props park the same-line
-    `:` spends the pack — the landed side closes and reopens as before, the
+    `:` spends the pack — the landed side closes and reopens (or, since item
+    91, spends the park's `h_kslot` where a `[187]` frame is open), the
     pack-less side keeps the escape. -/
 lemma colon_fires_props_key (sc : ScannerState)
     (sp_start sp_block sp_p sp_scan : SurfPos)
@@ -12847,8 +12864,8 @@ lemma accum_block_pending (sc : ScannerState)
       sp_prep sp_scan' h_stream_block
       h_close_pending h_line h_key (fun _ _ => h_stream_block) h_vpack51 hcorr_prep hcorr_result h_corr
       h_noflow h_kbc h_stale47 h_arm77 h_preprocess h_dispatch
-  | pendingProps _ _ _ ha ht _ sp_p _ _ h_run h_nic48 h_real48 h_anchor48 h_tag48 _ h_key48 _
-      h_col0_p _ h_ska79 =>
+  | pendingProps _ _ _ ha ht _ sp_p _ h_sep_p h_run h_nic48 h_real48 h_anchor48 h_tag48 _ h_key48 _
+      h_col0_p _ h_ska79 h_kslot91 =>
     -- ═══ Item 48: a `-`/`?` behind a parked property run is refused by the
     -- scanner (`[200]` separates a node's properties from its collection),
     -- and the run's own trailing-token fact is the check's read.  Item 49:
@@ -12860,7 +12877,18 @@ lemma accum_block_pending (sc : ScannerState)
       exact colon_fires_props_key sc sp_start sp_block sp_p sp_scan s_prep s'
         sp_prep sp_scan' h_stream_block h_nic48 h_ska79 h_real48 h_kbc h_key48
         (accum_block_on_closeThenBlock sc sp_start sp_block sp_scan s_prep s' ':'
-          sp_prep sp_scan' h_close_pending (fun _ _ => h_stream_block) (Or.inr trivial) (Or.inr trivial) hcorr_prep
+          sp_prep sp_scan' h_close_pending (fun _ _ => h_stream_block)
+          -- Item 91: the landed `:` is the frame's VALUE line — the run
+          -- closes as `propsEmpty` into the `?`'s key, and the pack routes
+          -- the rest (`? &p⏎: - w`).
+          (match h_kslot91 with
+           | Or.inl ⟨nv, kslot⟩ => Or.inl ⟨nv,
+               fun sp_m sp_i sp_c h_ssl h_ind h_lit sp_v h_sbi =>
+                 kslot sp_m (flowInBlock_blockNode h_sep_p
+                   (SFlowNode.propsEmpty _ .flowOut sp_p sp_scan h_run.toProperties)
+                   h_ssl) sp_i sp_c h_ind h_lit sp_v h_sbi⟩
+           | Or.inr _ => Or.inr trivial)
+          (Or.inr trivial) hcorr_prep
           hcorr_result h_corr h_noflow (Or.inr h_col0_p) h_preprocess h_dispatch)
         hcorr_prep hcorr_result h_corr h_noflow h_preprocess h_dispatch
     · have h_prop : lastTokenIsNodePropertyOnLine sc.tokens sc.line = true := by
@@ -15596,7 +15624,7 @@ lemma content_dispatch_routed
                -- Item 68: a `[96]` run is at least one character wide, and this
                -- route closes at index 0.
                (by have := anchorProperty_col_lt ha_ev; omega) (Or.inl (Nat.zero_le _))
-               (dispatchContent_anchor_simpleKey h_dispatch).2,
+               (dispatchContent_anchor_simpleKey h_dispatch).2 (Or.inr trivial),
              hcorr_result⟩
     | inr h =>
       subst h
@@ -15624,7 +15652,7 @@ lemma content_dispatch_routed
                -- Item 68: a `[96]` run is at least one character wide, and this
                -- route closes at index 0.
                (by have := tagProperty_col_lt ht_ev; omega) (Or.inl (Nat.zero_le _))
-               (dispatchContent_tag_simpleKey h_dispatch).2,
+               (dispatchContent_tag_simpleKey h_dispatch).2 (Or.inr trivial),
              hcorr_result⟩
   · have hna : c ≠ '&' := fun h => hprops (Or.inl h)
     have hnt : c ≠ '!' := fun h => hprops (Or.inr h)
@@ -15891,7 +15919,7 @@ lemma accum_content_on_pendingBlock
                -- Item 68: a `[96]` run is at least one character wide, and this
                -- route closes at index 0.
                (by have := anchorProperty_col_lt ha_ev; omega) (Or.inl (Nat.zero_le _))
-               (dispatchContent_anchor_simpleKey h_dispatch).2,
+               (dispatchContent_anchor_simpleKey h_dispatch).2 (Or.inr trivial),
              hcorr_result⟩
     | inr h =>
       subst h
@@ -15922,7 +15950,7 @@ lemma accum_content_on_pendingBlock
                -- Item 68: a `[96]` run is at least one character wide, and this
                -- route closes at index 0.
                (by have := tagProperty_col_lt ht_ev; omega) (Or.inl (Nat.zero_le _))
-               (dispatchContent_tag_simpleKey h_dispatch).2,
+               (dispatchContent_tag_simpleKey h_dispatch).2 (Or.inr trivial),
              hcorr_result⟩
   · have hna : c ≠ '&' := fun h => hprops (Or.inl h)
     have hnt : c ≠ '!' := fun h => hprops (Or.inr h)
@@ -16491,7 +16519,8 @@ lemma accum_content_on_pendingBlock_indented
                  (separateLines_col_ge h_sep_all (by omega))
                omega)
              (Or.inl (Nat.le_of_lt (propsRun_col_gt (h_run_all n)
-               (separateLines_col_ge h_sep_all (by omega))))) h_ska_s,
+               (separateLines_col_ge h_sep_all (by omega))))) h_ska_s
+             (Or.inr trivial),
            hcorr_result⟩
   · -- Item 26: `  - |` — `[198]`'s block scalar at the ENTRY's index.  The node
     -- is complete where the scanner stopped ([170]'s `l-chomped-empty` has
@@ -16665,7 +16694,19 @@ lemma accum_content_on_pendingMapValue
                -- Item 68: a `[96]` run is at least one character wide, and this
                -- route closes at index 0.
                (by have := anchorProperty_col_lt ha_ev; omega) (Or.inl (Nat.zero_le _))
-               (dispatchContent_anchor_simpleKey h_dispatch).2,
+               (dispatchContent_anchor_simpleKey h_dispatch).2
+               -- Item 91: the pending's explicit frame, mirrored onto the
+               -- run's route — the run heads the `?`'s KEY, and the value
+               -- line closes the entry (`? &p a⏎: - w`, `? &p⏎: - w`).
+               (match h_expl with
+                | Or.inl ⟨sp_q, h_qlit, route⟩ => Or.inl ⟨0,
+                    fun sp_m h_bn sp_i sp_c h_ind h_lit sp_v h_sbi =>
+                      route sp_v (SBlockMapEntry.explicit 0 sp_q sp_scan sp_m sp_i sp_c sp_v
+                        h_qlit
+                        (SBlockIndented.node 0 .blockOut sp_scan sp_m
+                          (SBlockNode_blockIn_to_blockOut h_bn))
+                        h_ind h_lit h_sbi)⟩
+                | Or.inr _ => Or.inr trivial),
              hcorr_result⟩
     | inr h =>
       subst h
@@ -16696,7 +16737,16 @@ lemma accum_content_on_pendingMapValue
                -- Item 68: a `[96]` run is at least one character wide, and this
                -- route closes at index 0.
                (by have := tagProperty_col_lt ht_ev; omega) (Or.inl (Nat.zero_le _))
-               (dispatchContent_tag_simpleKey h_dispatch).2,
+               (dispatchContent_tag_simpleKey h_dispatch).2
+               (match h_expl with
+                | Or.inl ⟨sp_q, h_qlit, route⟩ => Or.inl ⟨0,
+                    fun sp_m h_bn sp_i sp_c h_ind h_lit sp_v h_sbi =>
+                      route sp_v (SBlockMapEntry.explicit 0 sp_q sp_scan sp_m sp_i sp_c sp_v
+                        h_qlit
+                        (SBlockIndented.node 0 .blockOut sp_scan sp_m
+                          (SBlockNode_blockIn_to_blockOut h_bn))
+                        h_ind h_lit h_sbi)⟩
+                | Or.inr _ => Or.inr trivial),
              hcorr_result⟩
   · have hna : c ≠ '&' := fun h => hprops (Or.inl h)
     have hnt : c ≠ '!' := fun h => hprops (Or.inr h)
@@ -16908,7 +16958,18 @@ lemma accum_content_on_pendingMapValue_indented
              -- index itself rides the pending's own measurement.
              (by have := propsRun_col_gt (h_run_all 0) (Nat.zero_le _); omega)
              (h_ncol_old.imp (fun h => Nat.le_of_lt (propsRun_col_gt (h_run_all n)
-               (separateLines_col_ge h_sep_all h))) id) h_ska_s,
+               (separateLines_col_ge h_sep_all h))) id) h_ska_s
+             -- Item 91: the nested `?`'s frame, mirrored onto the run's route
+             -- at the entry's index (`k:⏎  ? &p a⏎  : - w`).
+             (match h_expl with
+              | Or.inl ⟨sp_q, h_qlit, route⟩ => Or.inl ⟨n,
+                  fun sp_m h_bn sp_i sp_c h_ind h_lit sp_v h_sbi =>
+                    route sp_v (SBlockMapEntry.explicit n sp_q sp_scan sp_m sp_i sp_c sp_v
+                      h_qlit
+                      (SBlockIndented.node n .blockOut sp_scan sp_m
+                        (SBlockNode_blockIn_to_blockOut h_bn))
+                      h_ind h_lit h_sbi)⟩
+              | Or.inr _ => Or.inr trivial),
            hcorr_result⟩
   · -- Item 26: `  a: |`, `  : |`, `  ? |` — the mapping twin of the sequence
     -- entry's block-scalar value, closing at the entry's own index.
@@ -17164,7 +17225,7 @@ lemma accum_content_pending (sc : ScannerState)
         ((content_park_arm (preprocess_some_peek h_preprocess) h_flow_disp h_not_doc h_dispatch
           hcorr_result).imp_left And.left) hcorr_result)
   | pendingProps _ _ _ ha ht sp_node sp_p n h_sep_run h_run h_nic_p h_real_p h_anchor_p h_tag_p
-      h_route h_key_p h_floor_p _h_col0_p h_ncol_p h_ska_p =>
+      h_route h_key_p h_floor_p _h_col0_p h_ncol_p h_ska_p h_kslot_p =>
     -- ═══ Item 12: a held depth-0 run meets a CONTENT character — the
     -- content-dispatch escape RETIRES.  Across a break the run closes as
     -- `propsEmpty` (the parked couplings go stale with the line, and are not
@@ -17328,7 +17389,9 @@ lemma accum_content_pending (sc : ScannerState)
                    (by have := anchorProperty_col_lt h_prop; omega)
                    (h_ncol_p.imp (fun h => Nat.le_of_lt (Nat.lt_of_le_of_lt
                      (separateLines_col_ge h_sep2 h) (anchorProperty_col_lt h_prop))) id)
-                   (dispatchContent_anchor_simpleKey h_dispatch).2,
+                   (dispatchContent_anchor_simpleKey h_dispatch).2
+                   -- Item 91: the run grows, the frame does not move.
+                   h_kslot_p,
                hcorr_result⟩
       · by_cases hbang : c = '!'
         · -- ═══ `!` on the run's line: the mirror ═══
@@ -17411,7 +17474,8 @@ lemma accum_content_pending (sc : ScannerState)
                      (by have := tagProperty_col_lt h_prop; omega)
                      (h_ncol_p.imp (fun h => Nat.le_of_lt (Nat.lt_of_le_of_lt
                        (separateLines_col_ge h_sep2 h) (tagProperty_col_lt h_prop))) id)
-                     (dispatchContent_tag_simpleKey h_dispatch).2,
+                     (dispatchContent_tag_simpleKey h_dispatch).2
+                     h_kslot_p,
                  hcorr_result⟩
         · by_cases hstar : c = '*'
           · -- ═══ `*` on the run's line: REFUTED (items 9e/9k) ═══
@@ -17540,8 +17604,8 @@ lemma accum_content_pending (sc : ScannerState)
             -- break-free CONTENT reading is: `[170]`/`[174]` auto-detect a
             -- content indent that `SCLLiteral 0` has already pinned, which is
             -- the same gap `  - |` has without a run (R647 one level down).
-            match n, h_sep_run, h_run, h_route, h_sep2 with
-            | 0, h_sep_run, h_run, h_route, h_sep2 =>
+            match n, h_sep_run, h_run, h_route, h_sep2, h_kslot_p with
+            | 0, h_sep_run, h_run, h_route, h_sep2, h_kslot_p =>
               obtain ⟨sp_ne, sp_res, h_ev, h_tws, hcorr_res⟩ :=
                 dispatchContent_evidence_content _ sp_prep c
                   (corr_of_allowDirectives_update hcorr_prep) hpeek_disp h_not_doc
@@ -17561,7 +17625,19 @@ lemma accum_content_pending (sc : ScannerState)
                          h_key
                          (stale_of_dispatch h_dispatch hamp hbang
                            (by split <;> exact nic_false_of_flow_disp (sc := sc) (s_prep := s_prep) h_preprocess h_flow_disp)
-                           hcorr_result) (Or.inr trivial)
+                           hcorr_result)
+                         -- Item 91: the decorated content is the frame's KEY,
+                         -- and the ride keeps the value line open — the pack's
+                         -- node is `h_closable`'s own (`? &p a⏎: - w`).
+                         (match h_kslot_p with
+                          | Or.inl ⟨nv, kslot⟩ => Or.inl ⟨nv,
+                              fun sp_mid sp_i sp_c h_ssl h_ind h_lit sp_v h_sbi =>
+                                kslot sp_mid (flowInBlock_blockNode h_sep_run
+                                  (SFlowNode.propsContent 0 .flowOut sp_p sp_scan sp_prep sp_ne
+                                    h_run.toProperties h_sep2 h_content)
+                                  (white_prepend_SSLComments h_tws h_ssl))
+                                  sp_i sp_c h_ind h_lit sp_v h_sbi⟩
+                          | Or.inr _ => Or.inr trivial)
                            (content_park_arm (preprocess_some_peek h_preprocess)
                              h_flow_disp h_not_doc h_dispatch hcorr_result),
                        hcorr_result⟩
@@ -17584,11 +17660,16 @@ lemma accum_content_pending (sc : ScannerState)
                          h_key
                          (stale_of_dispatch h_dispatch hamp hbang
                            (by split <;> exact nic_false_of_flow_disp (sc := sc) (s_prep := s_prep) h_preprocess h_flow_disp)
-                           hcorr_result) (Or.inr trivial)
+                           hcorr_result)
+                         -- Item 91's residue: a block-scalar KEY closes at
+                         -- `sp_ne`, before the landing's `s-l-comments` — the
+                         -- pack would need `[170]`'s `l-chomped-empty` to
+                         -- absorb them, which is unestablished.
+                         (Or.inr trivial)
                            (content_park_arm (preprocess_some_peek h_preprocess)
                              h_flow_disp h_not_doc h_dispatch hcorr_result),
                        hcorr_result⟩
-            | k + 1, h_sep_run, h_run, h_route, h_sep2 =>
+            | k + 1, h_sep_run, h_run, h_route, h_sep2, h_kslot_p =>
               -- One question, one deferral: is there a reading of this value at
               -- EVERY index?  Both negative answers — a block-scalar header and
               -- a step that crossed a break — are already-named families.
@@ -17694,7 +17775,18 @@ lemma accum_content_pending (sc : ScannerState)
                          h_key
                          (stale_of_dispatch h_dispatch hamp hbang
                            (by split <;> exact nic_false_of_flow_disp (sc := sc) (s_prep := s_prep) h_preprocess h_flow_disp)
-                           hcorr_result) (Or.inr trivial)
+                           hcorr_result)
+                         -- Item 91: as at the `n = 0` arm, one index up
+                         -- (`k:⏎  ? &p a⏎  : - w`).
+                         (match h_kslot_p with
+                          | Or.inl ⟨nv, kslot⟩ => Or.inl ⟨nv,
+                              fun sp_mid sp_i sp_c h_ssl h_ind h_lit sp_v h_sbi =>
+                                kslot sp_mid (flowInBlock_blockNode h_sep_run
+                                  (SFlowNode.propsContent (k + 1) .flowOut sp_p sp_scan sp_prep
+                                    sp_ne h_run.toProperties h_sep2 (h_all (k + 1)))
+                                  (white_prepend_SSLComments h_tws h_ssl))
+                                  sp_i sp_c h_ind h_lit sp_v h_sbi⟩
+                          | Or.inr _ => Or.inr trivial)
                            (content_park_arm (preprocess_some_peek h_preprocess)
                              h_flow_disp h_not_doc h_dispatch hcorr_result),
                        hcorr_result⟩
@@ -17720,7 +17812,10 @@ lemma accum_content_pending (sc : ScannerState)
                                simp))
                          (stale_of_dispatch h_dispatch hamp hbang
                            (by split <;> exact nic_false_of_flow_disp (sc := sc) (s_prep := s_prep) h_preprocess h_flow_disp)
-                           hcorr_result) (Or.inr trivial)
+                           hcorr_result)
+                         -- Item 91's residue, at the run's own index: the
+                         -- same `l-chomped-empty` boundary as the `n = 0` arm.
+                         (Or.inr trivial)
                            (content_park_arm (preprocess_some_peek h_preprocess)
                              h_flow_disp h_not_doc h_dispatch hcorr_result),
                        hcorr_result⟩
@@ -17739,7 +17834,17 @@ lemma accum_content_pending (sc : ScannerState)
                          h_key
                          (stale_of_dispatch h_dispatch hamp hbang
                            (by split <;> exact nic_false_of_flow_disp (sc := sc) (s_prep := s_prep) h_preprocess h_flow_disp)
-                           hcorr_result) (Or.inr trivial)
+                           hcorr_result)
+                         -- Item 91: the fixed-index twin (`k:⏎  ? &p "a"⏎  : - w`).
+                         (match h_kslot_p with
+                          | Or.inl ⟨nv, kslot⟩ => Or.inl ⟨nv,
+                              fun sp_mid sp_i sp_c h_ssl h_ind h_lit sp_v h_sbi =>
+                                kslot sp_mid (flowInBlock_blockNode h_sep_run
+                                  (SFlowNode.propsContent (k + 1) .flowOut sp_p sp_scan sp_prep
+                                    sp_ne h_run.toProperties h_sep2 h_fixed)
+                                  (white_prepend_SSLComments h_tws h_ssl))
+                                  sp_i sp_c h_ind h_lit sp_v h_sbi⟩
+                          | Or.inr _ => Or.inr trivial)
                            (content_park_arm (preprocess_some_peek h_preprocess)
                              h_flow_disp h_not_doc h_dispatch hcorr_result),
                        hcorr_result⟩
