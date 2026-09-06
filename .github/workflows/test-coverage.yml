@@ -399,6 +399,13 @@ jobs:
           lake exe l4yaml-doc
           echo "Verso HTML generated in doc/_out/html-multi/"
 
+      - name: Rewrite SVG images as interactive <object> embeds
+        # Multi-page site only: <img> disables SVG-internal navigation, so the
+        # doc-gen4 links on the theorem-graph nodes need <object>. The single
+        # page keeps <img> — it feeds html-to-pdf.py, and WeasyPrint rasterizes
+        # <img src="*.svg"> natively.
+        run: python3 scripts/svg-objects.py doc/_out/html-multi
+
       - name: Copy Verso output to docs/
         run: |
           # docs/reports (test reports + stats.json from Phases 2-3) must
