@@ -10003,6 +10003,79 @@ not re-run (items 63/64/74's precedent).  No new guard: no runtime
 observable moved; one guard destructure gained a `_`
 (`MaskBaseColumn`'s §3 projection).
 
+### Item 95 (2026-09-06)
+
+**The block-scalar key's value line: `[169] l-trail-comments`, and the walk
+the stop pins.**  `? |⏎  x⏎: - w` was the value-line face's next open kind,
+gated on one uninvestigated question: the scalar's node is complete where the
+scanner stopped, and the landing's `[79] s-l-comments` between it and the
+`:` line had no home.  The answer is that the home was MISSING: our `[173]
+l-literal-content` formalized `l-chomped-empty` as trailing break + empty
+lines + partial indent, with no `[169]` slot at all — a spec production
+simply absent from the surface.  Three pieces close the kind:
+
+* **`SLTrailComments` (`[169]`), and a `GOpt` slot for it in `[173]`.**  The
+  first comment sits at `s-indent(<n)` — a comment at `n` or more spaces is
+  scalar CONTENT, `[171]`'s `nb-char+` admits `#` — and the rider is
+  `[78] l-comment`, the same production `[79]` is built from, so a landing
+  walk re-parents into the slot verbatim.  Every existing constructor site
+  pays `GOpt.none`; the composition helpers pass the new component through.
+* **The stop pins the walk** (`collectBlockScalarLoop`'s own exits, read as
+  facts about the characters).  The loop consumes every blank line and stops
+  at end of input, at a document boundary, or at a line of `j < contentIndent`
+  spaces and then a non-space non-break character `c`.  A `[79]` walk from
+  such a position is decided by `c` alone: at end of input every unit is
+  zero-width (`sslcomments_at_eof`); at `c ∉ {'#', TAB}` no unit derives at
+  all — `[66]` cannot cross `c` and `[76]` cannot end on it
+  (`sslcomments_forced_trivial`); at `c = '#'` the first unit is forced to
+  consume exactly the spaces, the text and its break — `[169]`'s head — and
+  the walk's tail is `[169]`'s own rider (`sslcomments_peel_hash`).  The loop
+  production lemma carries this as an ABSORPTION CLOSURE beside the node —
+  `∀ sp_mid, SSLComments sp' sp_mid → SLLiteralContent ci sp sp_mid`, or the
+  named `BlockScalarTabStop` residue — under two fuel premises that mirror
+  the runtime's own computation, so the fuel-out exits are unreachable
+  (item 71's pattern).  `scanBlockScalar_prod`, the `_prod_at` floor twin,
+  and the two dispatch faces re-export it pointwise; nothing else about
+  their statements moved.
+* **The parks pay their packs with the re-read node.**  Four sites, one
+  pattern — the closure hands the SAME scalar extended to the landing, the
+  arm's own `literal_blockNode`/`folded_blockNode` wrap rebuilds the node
+  there, and the park's twin (the field items 91–93 installed) fires:
+  the sequence-entry arm from `pendingBlock.h_kslot` with a `nil` tail
+  (`? |⏎  x⏎: - w`, `? - |⏎    x⏎: - w`); the mapping-twin arm from
+  `pendingMapValue.h_kslot` (`? a: |⏎    x⏎: - w`, `k:⏎  ? |⏎    x⏎  : - w`);
+  and the props consumer's two arms from `pendingProps.h_kslot` with the
+  props-headed `[199]` node (`? &p |⏎  x⏎: - w`, and the run's own index for
+  the indented twin).  Chomp indicators, folded scalars, tag heads, blank and
+  comment landings (`? |⏎  x⏎# c⏎: - w`) and the indented twins all ride the
+  same four payments.
+
+**The TAB stop is a named residue AND a located over-acceptance.**  A walk
+CAN cross a tab-led line (`[66]`'s `s-white+` admits tabs) but `[168]`/`[169]`
+cannot absorb one (`s-indent` is spaces-only) — and the runtime, which skips
+the line, accepts inputs the spec has no derivation for: `k: |⏎  x⏎<TAB># c⏎a: b`,
+`? |⏎  x⏎<TAB>⏎: - w` and the space-then-tab variants all parse today.
+Narrowing that is a RUNTIME change with matrix impact — item 62's shape,
+not this item's; until then the tab stop rides `BlockScalarTabStop` and the
+parks keep their deferral on it.
+
+**Validation.**  Runtime acceptance measured FIRST: all twenty-one probed
+inputs — the four chomp/fold headers, the compact wrap, blank/comment/
+comment-at-EOF landings, tag and props heads, `? |2`, the multi-line body,
+the empty body `? |⏎: - w`, the inner-map key `? a: |⏎    x⏎: - w`, and the
+indented twins — parse with correct events (two mis-indented probes are
+correctly refused), so the item is proof-only at the accumulation.  Full
+`lake build` green (1068 jobs, ZERO warnings); `run-all-tests.sh` 6693/6693
+— moved from 6691 by exactly the one new `@[yaml_spec 169]` annotation,
+counted once per report format (item 62's precedent), every other line
+byte-identical; `eventscore` 347/358 unmoved (252/11/0/95); three checkers
+OK (220/354; 20/229/248/354; 25).  `#print axioms`: no `sorryAx`; the walk
+kit at the standard three (`sslcomments_at_eof` at NONE), the strengthened
+loop lemma at exactly the standard three (the printable-char facts went
+through plain `decide`), the consumers at their pre-existing profiles.  ZERO
+runtime edits; matrix not re-run (items 63/64/74's precedent).  No new
+guard: no runtime observable moved.
+
 ### REMAINING, in order
 
 The per-item history is the closure log above; this section lists only the
@@ -10016,7 +10089,7 @@ too (items 47–51), so what stands between here
 and Step 5 (the converse) is R3's remaining production work and R4:
 
 ```
-R1 ✓ (44–46) ──→ R2 ✓ (47–51) ──→ R3 (52–94 landed; 67b open) ──→ Step 5
+R1 ✓ (44–46) ──→ R2 ✓ (47–51) ──→ R3 (52–95 landed; 67b open) ──→ Step 5
                                         └──────→ R4 (implicitContinue + 0 < m) ──┘
 ```
 
@@ -10165,16 +10238,21 @@ and that deletion, by input class:
   same pair, produced at `entryPropsKeyPack_of_dispatch`'s compact branch
   and spent through the props-content arm's `ImplicitKeyPack` builds and
   `colon_open_map_props`, so `? &p a: b⏎: - w`, `? &p : b⏎: - w`,
-  `? - &p a: 1⏎: - w` and the tag/quoted/indented twins compose).  What
-  stays open is the VALUE-LINE face of the last two kinds — block-scalar
-  (gated on whether `[170]`'s `l-chomped-empty` absorbs the landing's
-  `s-l-comments`) and flow (`FlowBaseRoutes.key`/`vslot` carry no pack
-  face) — plus the named residues: the seq-spaces/landed family
+  `? - &p a: 1⏎: - w` and the tag/quoted/indented twins compose); the
+  VALUE-LINE face of the BLOCK-SCALAR kind is item 95's (`[169]
+  l-trail-comments` added to `[173]`, the stop pinning the walk, and the
+  loop production carrying an absorption closure the four parks pay their
+  twins with — `? |⏎  x⏎: - w`, `? - |⏎    x⏎: - w`, `? a: |⏎    x⏎: - w`,
+  `? &p |⏎  x⏎: - w`, the chomp/fold/tag/landing variants and the indented
+  twins compose).  What stays open is the VALUE-LINE face of the FLOW kind
+  (`FlowBaseRoutes.key`/`vslot` carry no pack face) — plus the named
+  residues: the TAB-led block-scalar landing (`BlockScalarTabStop` — a
+  located over-acceptance, item 95's note), the seq-spaces/landed family
   (`?⏎- a⏎: - w`, `?⏎  a: b⏎: - w`, `?⏎  &p a: b⏎: - w`: the key is a
   `[185]` `s-l+block-node`/`[199]` nesting, which no park twins yet) and
   the inner-map sibling (`? a: b⏎  c: d⏎: e` — `SCompactMapTail.cons` has
-  no producer yet) — so `? |⏎  k⏎: - w` and those siblings still close
-  `e-node` and defer the reopened `[189]`'s compact fill;
+  no producer yet) — so those siblings still close `e-node` and defer the
+  reopened `[189]`'s compact fill;
 * the **flow share** — ~~the depth-0 flow close must park REAL evidence
   (`[1] : b`, `? [1]⏎: v`)~~ — CLOSED by item 56 (the frame carries the
   entry routes and the close joins them with the collection re-read as

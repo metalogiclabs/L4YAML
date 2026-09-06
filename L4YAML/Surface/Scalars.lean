@@ -360,16 +360,33 @@ inductive SBNbLiteralNext : Nat → SurfPos → SurfPos → Prop where
       SBAsLineFeed s s₁ → SLNbLiteralText n s₁ s' →
       SBNbLiteralNext n s s'
 
+/-- [169] l-trail-comments(n): trailing comment lines after block scalar
+    content — `l-chomped-empty`'s comment tail.  The first comment sits at
+    fewer than n indentation spaces (a comment at n or more spaces is scalar
+    CONTENT — `[171]`'s `nb-char+` admits `#`); the rider is `[78] l-comment`,
+    the same production `[79] s-l-comments` is built from, so a landing walk
+    between a block-scalar key and its `:` line re-parents here verbatim. -/
+@[yaml_spec "8.1.1" 169 "l-trail-comments(n)"]
+inductive SLTrailComments : Nat → SurfPos → SurfPos → Prop where
+  | mk (n : Nat) (s s₁ s₂ s₃ s' : SurfPos) :
+      SIndentLt n s s₁ →
+      SCNbCommentText s₁ s₂ →
+      SBComment s₂ s₃ →
+      GStar SLComment s₃ s' →
+      SLTrailComments n s s'
+
 /-- [173] l-literal-content(n,t): full literal scalar content.
     Optional first line + continuation lines + optional trailing break,
-    plus l-chomped-empty(n,t): trailing empty lines + optional partial indent at EOF. -/
+    plus l-chomped-empty(n,t) ([166]–[168]): trailing empty lines, an optional
+    `[169] l-trail-comments` run, and an optional partial indent at EOF. -/
 @[yaml_spec "8.1.2" 173 "l-literal-content(n,t)"]
 inductive SLLiteralContent : Nat → SurfPos → SurfPos → Prop where
-  | mk (n : Nat) (s s₁ s₂ s₃ s' : SurfPos) :
+  | mk (n : Nat) (s s₁ s₂ s₃ s₄ s' : SurfPos) :
       GOpt (GSeq (SLNbLiteralText n) (GStar (SBNbLiteralNext n))) s s₁ →
       GOpt SBBreak s₁ s₂ →
       GStar (SLEmpty n .blockIn) s₂ s₃ →
-      GOpt (SIndentLe n) s₃ s' →
+      GOpt (SLTrailComments n) s₃ s₄ →
+      GOpt (SIndentLe n) s₄ s' →
       SLLiteralContent n s s'
 
 /-- [170] c-l+literal(n): complete literal block scalar.

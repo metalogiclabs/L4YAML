@@ -70,11 +70,15 @@ lemma scanBlockScalarBody_contentIndent_floor
     (isLiteral : Bool) (startPos : YamlPos) {s' : ScannerState}
     (hcorr : ScannerSurfCorr sc_after_nl sp)
     (hoff : ∀ d, explicitOffset = some d → d ≥ 1)
+    (h_ie : sc_after_nl.inputEnd ≤ sc_orig.inputEnd)
     (hok : scanBlockScalarBody sc_orig sc_after_nl chomp explicitOffset isLiteral startPos
            = .ok s') :
     ∃ sp' contentIndent,
       (max 0 (sc_orig.currentIndent + 1)).toNat ≤ contentIndent ∧
-      SLLiteralContent contentIndent sp sp' ∧ ScannerSurfCorr s' sp' := by
+      SLLiteralContent contentIndent sp sp' ∧ ScannerSurfCorr s' sp' ∧
+      ((∀ sp_mid : SurfPos, SSLComments sp' sp_mid →
+          SLLiteralContent contentIndent sp sp_mid) ∨
+        BlockScalarTabStop sp') := by
   unfold scanBlockScalarBody at hok
   dsimp only [] at hok
   cases hoff_eq : explicitOffset with
@@ -83,12 +87,13 @@ lemma scanBlockScalarBody_contentIndent_floor
     have hd : d ≥ 1 := hoff d hoff_eq
     let contentIndent := (max 0 (sc_orig.currentIndent + (↑d : Int))).toNat
     let fuel := sc_orig.inputEnd - sc_after_nl.offset + 1
-    obtain ⟨sp_loop, h_lit_content, hcorr_loop⟩ :=
+    obtain ⟨sp_loop, h_lit_content, hcorr_loop, h_absorb⟩ :=
       collectBlockScalarLoop_literal_prod sc_after_nl sp "" fuel contentIndent sc_orig.inputEnd hcorr
+        (Nat.le_refl _) h_ie
     have h := Except.ok.inj hok; subst h
     refine ⟨sp_loop, contentIndent, ?_, h_lit_content,
             ⟨hcorr_loop.chars_from, hcorr_loop.col_eq, hcorr_loop.end_eq,
-             hcorr_loop.input_prefix, hcorr_loop.indent_cols_nonneg⟩⟩
+             hcorr_loop.input_prefix, hcorr_loop.indent_cols_nonneg⟩, h_absorb⟩
     show (max 0 (sc_orig.currentIndent + 1)).toNat
          ≤ (max 0 (sc_orig.currentIndent + (↑d : Int))).toNat
     omega
@@ -110,12 +115,13 @@ lemma scanBlockScalarBody_contentIndent_floor
         rw [h_auto] at this
         exact this (by simp [h_err])
       let fuel := sc_orig.inputEnd - sc_after_nl.offset + 1
-      obtain ⟨sp_loop, h_lit_content, hcorr_loop⟩ :=
+      obtain ⟨sp_loop, h_lit_content, hcorr_loop, h_absorb⟩ :=
         collectBlockScalarLoop_literal_prod sc_after_nl sp "" fuel ci sc_orig.inputEnd hcorr
+          (Nat.le_refl _) h_ie
       have h := Except.ok.inj hok; subst h
       exact ⟨sp_loop, ci, h_ge, h_lit_content,
              ⟨hcorr_loop.chars_from, hcorr_loop.col_eq, hcorr_loop.end_eq,
-              hcorr_loop.input_prefix, hcorr_loop.indent_cols_nonneg⟩⟩
+              hcorr_loop.input_prefix, hcorr_loop.indent_cols_nonneg⟩, h_absorb⟩
 
 /-! ## §2  The reading at every index the floor admits
 
@@ -140,7 +146,10 @@ lemma scanBlockScalar_prod_at (sc : ScannerState) (sp : SurfPos)
     ∃ sp' d,
       (max 0 (sc.currentIndent + 1)).toNat ≤ d ∧
       ((∀ n, n ≤ d → SCLLiteral n sp sp') ∨ (∀ n, n ≤ d → SCLFolded n sp sp')) ∧
-      ScannerSurfCorr s' sp' := by
+      ScannerSurfCorr s' sp' ∧
+      ((∀ sp_mid : SurfPos, SSLComments sp' sp_mid →
+          (∀ n, n ≤ d → SCLLiteral n sp sp_mid) ∨ (∀ n, n ≤ d → SCLFolded n sp sp_mid)) ∨
+        BlockScalarTabStop sp') := by
   unfold scanBlockScalar at hok
   dsimp only [] at hok
   have hoff : ∀ d, (parseBlockHeaderLoop sc.advance .clip none 2).2.1 = some d → d ≥ 1 :=
@@ -155,6 +164,8 @@ lemma scanBlockScalar_prod_at (sc : ScannerState) (sp : SurfPos)
   split at hok
   · simp at hok
   · rename_i s_after_nl hcn
+    have h_ie : s_after_nl.inputEnd ≤ sc.inputEnd :=
+      scanBlockScalar_afterNewline_inputEnd hcn
     obtain ⟨sp_nl, h_brk, hcorr_nl⟩ :=
       scanBlockScalarConsumeNewline_prod _ sp_cmt hcorr_cmt hcn
     have h_ssbcomment : SSBComment sp_hdr sp_nl := by
@@ -190,13 +201,18 @@ lemma scanBlockScalar_prod_at (sc : ScannerState) (sp : SurfPos)
       rw [hsp_adv_eq] at h_hdr_chars
       have h_header : SCBBlockHeader ⟨rest, sc.col + 1⟩ sp_nl :=
         SCBBlockHeader.mk ⟨rest, sc.col + 1⟩ sp_hdr sp_nl h_hdr_chars h_ssbcomment
-      obtain ⟨sp_body, contentIndent, h_floor, h_literal_content, hcorr_body⟩ :=
-        scanBlockScalarBody_contentIndent_floor sc s_after_nl sp_nl _ _ _ _ hcorr_nl hoff hok
-      refine ⟨sp_body, contentIndent, h_floor, Or.inl (fun n hn => ?_), hcorr_body⟩
-      have h_at : SLLiteralContent (n + (contentIndent - n)) sp_nl sp_body := by
-        have h_split : n + (contentIndent - n) = contentIndent := by omega
-        rw [h_split]; exact h_literal_content
-      exact SCLLiteral.mk n (contentIndent - n) rest sc.col sp_nl sp_body h_header h_at
+      obtain ⟨sp_body, contentIndent, h_floor, h_literal_content, hcorr_body, h_absorb⟩ :=
+        scanBlockScalarBody_contentIndent_floor sc s_after_nl sp_nl _ _ _ _ hcorr_nl hoff h_ie hok
+      refine ⟨sp_body, contentIndent, h_floor, Or.inl (fun n hn => ?_), hcorr_body,
+              h_absorb.imp_left fun cl sp_mid W => Or.inl fun n hn => ?_⟩
+      · have h_at : SLLiteralContent (n + (contentIndent - n)) sp_nl sp_body := by
+          have h_split : n + (contentIndent - n) = contentIndent := by omega
+          rw [h_split]; exact h_literal_content
+        exact SCLLiteral.mk n (contentIndent - n) rest sc.col sp_nl sp_body h_header h_at
+      · have h_at : SLLiteralContent (n + (contentIndent - n)) sp_nl sp_mid := by
+          have h_split : n + (contentIndent - n) = contentIndent := by omega
+          rw [h_split]; exact cl sp_mid W
+        exact SCLLiteral.mk n (contentIndent - n) rest sc.col sp_nl sp_mid h_header h_at
     · obtain ⟨rest, hsp_eq⟩ := peek_some_sp hcorr hfold
       subst hsp_eq
       have hmore := peek_some_has_more hfold
@@ -206,12 +222,17 @@ lemma scanBlockScalar_prod_at (sc : ScannerState) (sp : SurfPos)
       rw [hsp_adv_eq] at h_hdr_chars
       have h_header : SCBBlockHeader ⟨rest, sc.col + 1⟩ sp_nl :=
         SCBBlockHeader.mk ⟨rest, sc.col + 1⟩ sp_hdr sp_nl h_hdr_chars h_ssbcomment
-      obtain ⟨sp_body, contentIndent, h_floor, h_literal_content, hcorr_body⟩ :=
-        scanBlockScalarBody_contentIndent_floor sc s_after_nl sp_nl _ _ _ _ hcorr_nl hoff hok
-      refine ⟨sp_body, contentIndent, h_floor, Or.inr (fun n hn => ?_), hcorr_body⟩
-      have h_at : SLLiteralContent (n + (contentIndent - n)) sp_nl sp_body := by
-        have h_split : n + (contentIndent - n) = contentIndent := by omega
-        rw [h_split]; exact h_literal_content
-      exact SCLFolded.mk n (contentIndent - n) rest sc.col sp_nl sp_body h_header h_at
+      obtain ⟨sp_body, contentIndent, h_floor, h_literal_content, hcorr_body, h_absorb⟩ :=
+        scanBlockScalarBody_contentIndent_floor sc s_after_nl sp_nl _ _ _ _ hcorr_nl hoff h_ie hok
+      refine ⟨sp_body, contentIndent, h_floor, Or.inr (fun n hn => ?_), hcorr_body,
+              h_absorb.imp_left fun cl sp_mid W => Or.inr fun n hn => ?_⟩
+      · have h_at : SLLiteralContent (n + (contentIndent - n)) sp_nl sp_body := by
+          have h_split : n + (contentIndent - n) = contentIndent := by omega
+          rw [h_split]; exact h_literal_content
+        exact SCLFolded.mk n (contentIndent - n) rest sc.col sp_nl sp_body h_header h_at
+      · have h_at : SLLiteralContent (n + (contentIndent - n)) sp_nl sp_mid := by
+          have h_split : n + (contentIndent - n) = contentIndent := by omega
+          rw [h_split]; exact cl sp_mid W
+        exact SCLFolded.mk n (contentIndent - n) rest sc.col sp_nl sp_mid h_header h_at
 
 end L4YAML.Proofs.BlockScalarIndentFloor

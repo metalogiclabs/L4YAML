@@ -3296,14 +3296,14 @@ lemma prepend_empty_to_text_line {n : Nat}
 -- Empty literal content: no text, no break, no trailing.
 lemma empty_literal_content {n : Nat} (sp : SurfPos) :
     SLLiteralContent n sp sp :=
-  SLLiteralContent.mk n sp sp sp sp sp
-    (GOpt.none sp) (GOpt.none sp) (GStar.nil sp) (GOpt.none sp)
+  SLLiteralContent.mk n sp sp sp sp sp sp
+    (GOpt.none sp) (GOpt.none sp) (GStar.nil sp) (GOpt.none sp) (GOpt.none sp)
 
 -- Trailing indent only: `SIndentLe n` at EOF.
 lemma indent_only_literal_content {n : Nat} {sp sp' : SurfPos}
     (h : SIndentLe n sp sp') : SLLiteralContent n sp sp' :=
-  SLLiteralContent.mk n sp sp sp sp sp'
-    (GOpt.none sp) (GOpt.none sp) (GStar.nil sp) (GOpt.some sp sp' h)
+  SLLiteralContent.mk n sp sp sp sp sp sp'
+    (GOpt.none sp) (GOpt.none sp) (GStar.nil sp) (GOpt.none sp) (GOpt.some sp sp' h)
 
 -- Prepend an `SLEmpty n .blockIn` to `SLLiteralContent n`.
 -- The empty line either joins the first text line's prefix or the trailing empties.
@@ -3313,41 +3313,41 @@ lemma prepend_empty_to_literal_content {n : Nat}
     (h_tail : SLLiteralContent n sp₁ sp') :
     SLLiteralContent n sp sp' := by
   match h_tail with
-  | .mk _ _ sp_t1 sp_t2 sp_t3 _ h_opt_text h_opt_break h_trail_empties h_trail_indent =>
+  | .mk _ _ sp_t1 sp_t2 sp_t3 sp_t4 _ h_opt_text h_opt_break h_trail_empties h_trail_cmts h_trail_indent =>
     match h_opt_text with
     | .some _ _ (GSeq.mk _ sp_first_end _ h_first_text h_conts) =>
       -- Has text: prepend empty to first text line's prefix
-      exact SLLiteralContent.mk n sp sp_t1 sp_t2 sp_t3 sp'
+      exact SLLiteralContent.mk n sp sp_t1 sp_t2 sp_t3 sp_t4 sp'
         (GOpt.some sp sp_t1 (GSeq.mk sp sp_first_end sp_t1
           (prepend_empty_to_text_line h_empty h_first_text) h_conts))
-        h_opt_break h_trail_empties h_trail_indent
+        h_opt_break h_trail_empties h_trail_cmts h_trail_indent
     | .none _ =>
       -- No text: add our empty to trailing empties, handling tail's break
       match h_opt_break with
       | .none _ =>
         -- sp_t1 = sp₁, sp_t2 = sp₁: chain directly
-        exact SLLiteralContent.mk n sp sp sp sp_t3 sp'
+        exact SLLiteralContent.mk n sp sp sp sp_t3 sp_t4 sp'
           (GOpt.none sp) (GOpt.none sp)
           (GStar.cons sp sp₁ sp_t3 h_empty h_trail_empties)
-          h_trail_indent
+          h_trail_cmts h_trail_indent
       | .some _ _ h_brk =>
         -- sp_t1 = sp₁: convert tail's break to SLEmpty, chain
         let brk_empty : SLEmpty n .blockIn sp₁ sp_t2 :=
           SLEmpty.block n sp₁ sp₁ sp_t2 .blockIn (Or.inr rfl) (GOpt.none sp₁) h_brk
-        exact SLLiteralContent.mk n sp sp sp sp_t3 sp'
+        exact SLLiteralContent.mk n sp sp sp sp_t3 sp_t4 sp'
           (GOpt.none sp) (GOpt.none sp)
           (GStar.cons sp sp₁ sp_t3 h_empty
             (GStar.cons sp₁ sp_t2 sp_t3 brk_empty h_trail_empties))
-          h_trail_indent
+          h_trail_cmts h_trail_indent
 
 -- Single content line without trailing break → `SLLiteralContent`.
 lemma content_only_to_literal {n : Nat}
     {sp sp' : SurfPos}
     (h_text : SLNbLiteralText n sp sp') :
     SLLiteralContent n sp sp' :=
-  SLLiteralContent.mk n sp sp' sp' sp' sp'
+  SLLiteralContent.mk n sp sp' sp' sp' sp' sp'
     (GOpt.some sp sp' (GSeq.mk sp sp' sp' h_text (GStar.nil sp')))
-    (GOpt.none sp') (GStar.nil sp') (GOpt.none sp')
+    (GOpt.none sp') (GStar.nil sp') (GOpt.none sp') (GOpt.none sp')
 
 -- Content line + trailing break + body tail → `SLLiteralContent`.
 -- The break + tail's text lines become `SBNbLiteralNext` continuations.
@@ -3358,35 +3358,35 @@ lemma content_break_tail_to_literal {n : Nat}
     (h_tail : SLLiteralContent n sp₂ sp') :
     SLLiteralContent n sp sp' := by
   match h_tail with
-  | .mk _ _ sp_t1 sp_t2 sp_t3 _ h_opt_text h_opt_break h_trail_empties h_trail_indent =>
+  | .mk _ _ sp_t1 sp_t2 sp_t3 sp_t4 _ h_opt_text h_opt_break h_trail_empties h_trail_cmts h_trail_indent =>
     match h_opt_text with
     | .some _ _ (GSeq.mk _ sp_tail_first_end _ h_tail_first h_tail_conts) =>
       -- Tail has text: break + tail_first = SBNbLiteralNext, prepend to continuations
       let new_next : SBNbLiteralNext n sp₁ sp_tail_first_end :=
         SBNbLiteralNext.mk n sp₁ sp₂ sp_tail_first_end h_break h_tail_first
       let new_conts := GStar.cons sp₁ sp_tail_first_end sp_t1 new_next h_tail_conts
-      exact SLLiteralContent.mk n sp sp_t1 sp_t2 sp_t3 sp'
+      exact SLLiteralContent.mk n sp sp_t1 sp_t2 sp_t3 sp_t4 sp'
         (GOpt.some sp sp_t1 (GSeq.mk sp sp₁ sp_t1 h_text new_conts))
-        h_opt_break h_trail_empties h_trail_indent
+        h_opt_break h_trail_empties h_trail_cmts h_trail_indent
     | .none _ =>
       -- Tail has no text: our break is the trailing break.
       -- The tail's break (if any) becomes an SLEmpty (break = indent(0) + break).
       match h_opt_break with
       | .none _ =>
         -- No tail break: straightforward
-        exact SLLiteralContent.mk n sp sp₁ sp₂ sp_t3 sp'
+        exact SLLiteralContent.mk n sp sp₁ sp₂ sp_t3 sp_t4 sp'
           (GOpt.some sp sp₁ (GSeq.mk sp sp₁ sp₁ h_text (GStar.nil sp₁)))
           (GOpt.some sp₁ sp₂ h_break)
-          h_trail_empties h_trail_indent
+          h_trail_empties h_trail_cmts h_trail_indent
       | .some _ _ h_tail_break =>
         -- Tail has a break too: convert it to an SLEmpty and prepend to empties
         let new_empty : SLEmpty n .blockIn sp₂ sp_t2 :=
           SLEmpty.block n sp₂ sp₂ sp_t2 .blockIn (Or.inr rfl) (GOpt.none sp₂) h_tail_break
-        exact SLLiteralContent.mk n sp sp₁ sp₂ sp_t3 sp'
+        exact SLLiteralContent.mk n sp sp₁ sp₂ sp_t3 sp_t4 sp'
           (GOpt.some sp sp₁ (GSeq.mk sp sp₁ sp₁ h_text (GStar.nil sp₁)))
           (GOpt.some sp₁ sp₂ h_break)
           (GStar.cons sp₂ sp_t2 sp_t3 new_empty h_trail_empties)
-          h_trail_indent
+          h_trail_cmts h_trail_indent
 
 -- Content line + trailing break + trailing indent → `SLLiteralContent`.
 lemma content_break_indent_to_literal {n : Nat}
@@ -3395,9 +3395,9 @@ lemma content_break_indent_to_literal {n : Nat}
     (h_break : SBBreak sp₁ sp₂)
     (h_indent : GOpt (SIndentLe n) sp₂ sp') :
     SLLiteralContent n sp sp' :=
-  SLLiteralContent.mk n sp sp₁ sp₂ sp₂ sp'
+  SLLiteralContent.mk n sp sp₁ sp₂ sp₂ sp₂ sp'
     (GOpt.some sp sp₁ (GSeq.mk sp sp₁ sp₁ h_text (GStar.nil sp₁)))
-    (GOpt.some sp₁ sp₂ h_break) (GStar.nil sp₂) h_indent
+    (GOpt.some sp₁ sp₂ h_break) (GStar.nil sp₂) (GOpt.none sp₂) h_indent
 
 -- Prefix a text line to `SLLiteralContent` when no break separates them.
 -- (The "tail has text" sub-case is unreachable when contentIndent ≥ 1 and
@@ -3435,12 +3435,12 @@ lemma prefix_text_literal_content {n : Nat}
     (h_tail : SLLiteralContent n sp₁ sp') :
     SLLiteralContent n sp sp' := by
   match h_tail with
-  | .mk _ _ sp_t1 sp_t2 sp_t3 _ h_opt_text h_opt_break h_trail_empties h_trail_indent =>
+  | .mk _ _ sp_t1 sp_t2 sp_t3 sp_t4 _ h_opt_text h_opt_break h_trail_empties h_trail_cmts h_trail_indent =>
     match h_opt_text with
     | .none _ =>
-      exact SLLiteralContent.mk n sp sp₁ sp_t2 sp_t3 sp'
+      exact SLLiteralContent.mk n sp sp₁ sp_t2 sp_t3 sp_t4 sp'
         (GOpt.some sp sp₁ (GSeq.mk sp sp₁ sp₁ h_text (GStar.nil sp₁)))
-        h_opt_break h_trail_empties h_trail_indent
+        h_opt_break h_trail_empties h_trail_cmts h_trail_indent
     | .some _ _ h_gseq =>
       -- The tail starts with text: compose h_text with the tail's text
       match h_gseq with
@@ -3456,7 +3456,7 @@ lemma prefix_text_literal_content {n : Nat}
                 match h_empties2 with
                 | GStar.nil _ =>
                   -- No empties between texts: merge GPlus spans through indent
-                  exact SLLiteralContent.mk n sp sp_t1 sp_t2 sp_t3 sp'
+                  exact SLLiteralContent.mk n sp sp_t1 sp_t2 sp_t3 sp_t4 sp'
                     (GOpt.some sp sp_t1
                       (GSeq.mk sp sp_m sp_t1
                         (SLNbLiteralText.mk n sp sp_e1 sp_m h_empties1
@@ -3465,7 +3465,7 @@ lemma prefix_text_literal_content {n : Nat}
                               (GStar_trans (SIndent_gives_GStar_SNbChar h_indent2)
                                 (GPlus_to_GStar h_chars2)))))
                         h_conts))
-                    h_opt_break h_trail_empties h_trail_indent
+                    h_opt_break h_trail_empties h_trail_cmts h_trail_indent
                 | GStar.cons _ sp_f _ h_first_empty h_rest_empties =>
                   -- Has empties: first empty contains a break we can use
                   match h_first_empty with
@@ -3478,14 +3478,14 @@ lemma prefix_text_literal_content {n : Nat}
                     match h_opt_ile with
                     | GOpt.none _ =>
                       -- No indent before break: use h_text as-is
-                      exact SLLiteralContent.mk n sp sp_t1 sp_t2 sp_t3 sp'
+                      exact SLLiteralContent.mk n sp sp_t1 sp_t2 sp_t3 sp_t4 sp'
                         (GOpt.some sp sp_t1
                           (GSeq.mk sp sp₁ sp_t1 h_text
                             (GStar.cons sp₁ sp_m sp_t1 cont_line h_conts)))
-                        h_opt_break h_trail_empties h_trail_indent
+                        h_opt_break h_trail_empties h_trail_cmts h_trail_indent
                     | GOpt.some _ _ h_ile =>
                       -- Absorb indent-le spaces into GPlus, extend text to sp_x
-                      exact SLLiteralContent.mk n sp sp_t1 sp_t2 sp_t3 sp'
+                      exact SLLiteralContent.mk n sp sp_t1 sp_t2 sp_t3 sp_t4 sp'
                         (GOpt.some sp sp_t1
                           (GSeq.mk sp sp_x sp_t1
                             (SLNbLiteralText.mk n sp sp_e1 sp_x h_empties1
@@ -3493,11 +3493,456 @@ lemma prefix_text_literal_content {n : Nat}
                                 (GPlus_extend_GStar h_chars1
                                   (SIndentLe_gives_GStar_SNbChar h_ile))))
                             (GStar.cons sp_x sp_m sp_t1 cont_line h_conts)))
-                        h_opt_break h_trail_empties h_trail_indent
+                        h_opt_break h_trail_empties h_trail_cmts h_trail_indent
                   | .flow _ _ _ _ _ hc _ _ =>
                     exact absurd hc (by obtain h | h := hc <;> cases h)
                   | .flowLt _ _ _ _ _ hc _ _ =>
                     exact absurd hc (by obtain h | h := hc <;> cases h)
+
+/-! ### §8b-walk  The landing walk at a block-scalar stop
+
+`collectBlockScalarLoop` stops at end of input, at a document boundary, or at
+a line the scalar does not own: fewer than `contentIndent` spaces and then a
+non-space non-break character.  A `[79] s-l-comments` walk read from the stop
+is pinned by the characters alone:
+
+* at end of input every unit is zero-width, so the walk goes nowhere;
+* at a stop line whose character is not `#` and not a tab, no unit derives at
+  all — `[66] s-separate-in-line` cannot cross the character and
+  `[76] b-comment` cannot end on it;
+* at a `#` line the first unit is forced to consume exactly the spaces, the
+  comment text, and its break — `[169] l-trail-comments`' head — and the
+  walk's remaining units are `[78] l-comment`, `[169]`'s own rider, verbatim.
+
+The TAB stop is the one shape the walk can enter (`[66]`'s `s-white+` admits
+tabs) but `[168]`/`[169]` cannot absorb (`s-indent` is spaces-only); it is
+returned as the named residue `BlockScalarTabStop`, not absorbed. -/
+
+/-- The named residue: the loop stopped at a line of spaces headed by a TAB.
+    A `[79]` walk can cross such a line but no `[170]`/`[174]` derivation
+    absorbs it, and the runtime — which skips it — accepts inputs the spec
+    has no derivation for (`k: |⏎  x⏎<TAB># c⏎a: b`): a located
+    over-acceptance, recorded in DOCS beside item 95. -/
+def BlockScalarTabStop (sp : SurfPos) : Prop :=
+  ∃ j rest, sp.chars = List.replicate j ' ' ++ '\t' :: rest
+
+-- SurfPos extensionality: the two fields determine the position.
+private lemma surfpos_ext {a b : SurfPos} (hc : a.chars = b.chars)
+    (hl : a.col = b.col) : a = b := by
+  cases a; cases b; simp_all
+
+-- `[63]`'s characters and column, locally (the coupling file's versions sit
+-- in a namespace this file does not open).
+private lemma sindent_chars' {k : Nat} {sp sp' : SurfPos} (h : SIndent k sp sp') :
+    sp.chars = List.replicate k ' ' ++ sp'.chars := by
+  induction h with
+  | zero => rfl
+  | succ n rest col s' _ ih => simpa [List.replicate_succ] using ih
+
+private lemma sindent_col' {k : Nat} {sp sp' : SurfPos} (h : SIndent k sp sp') :
+    sp'.col = sp.col + k := by
+  induction h with
+  | zero => exact (Nat.add_zero _).symm
+  | succ n rest col s' _ ih => simp only [] at ih ⊢; omega
+
+-- `[33]`: one `s-white` step consumes the head, which is a space or tab.
+lemma sswhite_head {sp sp' : SurfPos} (h : SSWhite sp sp') :
+    ∃ ch rest, sp.chars = ch :: rest ∧ (ch = ' ' ∨ ch = '\t') ∧
+      sp' = ⟨rest, sp.col + 1⟩ := by
+  cases h with
+  | space rest col => exact ⟨' ', rest, rfl, Or.inl rfl, rfl⟩
+  | tab rest col => exact ⟨'\t', rest, rfl, Or.inr rfl, rfl⟩
+
+-- A white run read at `j` spaces followed by a non-white character stays
+-- inside the spaces: `k ≤ j` consumed, landing characters and column pinned.
+lemma gstar_white_spaces_stop {c : Char} {rest : List Char} {sp sp' : SurfPos}
+    (h : GStar SSWhite sp sp') :
+    ∀ j : Nat, sp.chars = List.replicate j ' ' ++ c :: rest →
+      c ≠ ' ' → c ≠ '\t' →
+      ∃ k, k ≤ j ∧ sp'.chars = List.replicate (j - k) ' ' ++ c :: rest ∧
+        sp'.col = sp.col + k := by
+  induction h with
+  | nil =>
+    intro j hchars _ _
+    exact ⟨0, Nat.zero_le _, by simpa using hchars, (Nat.add_zero _).symm⟩
+  | cons s mid e h1 _ ih =>
+    intro j hchars hc_sp hc_tab
+    obtain ⟨ch, rest', hch, hcw, hmid⟩ := sswhite_head h1
+    match j with
+    | 0 =>
+      rw [hchars] at hch
+      simp only [List.replicate, List.nil_append, List.cons.injEq] at hch
+      cases hcw with
+      | inl h' => exact absurd (hch.1.trans h') hc_sp
+      | inr h' => exact absurd (hch.1.trans h') hc_tab
+    | j' + 1 =>
+      rw [hchars] at hch
+      rw [List.replicate_succ, List.cons_append] at hch
+      have hch' := List.cons.injEq .. ▸ hch
+      obtain ⟨-, hrest⟩ := List.cons.inj hch
+      have hmidchars : mid.chars = List.replicate j' ' ' ++ c :: rest := by
+        rw [hmid]; exact hrest.symm
+      obtain ⟨k, hk, hchars', hcol⟩ := ih j' hmidchars hc_sp hc_tab
+      have hmidcol : mid.col = s.col + 1 := by rw [hmid]
+      refine ⟨k + 1, by omega, ?_, by omega⟩
+      have : j' + 1 - (k + 1) = j' - k := by omega
+      rw [this]; exact hchars'
+
+-- A character other than `\\n`/`\\r` is not a break, at the Prop face.
+private lemma not_break_char {c : Char} (h1 : c ≠ '\n') (h2 : c ≠ '\r') :
+    ¬ isLineBreakProp c := by
+  intro h
+  rcases h with h | h
+  · exact h1 (by simpa [isLineFeedProp, beq_iff_eq] using h)
+  · exact h2 (by simpa [isCarriageReturnProp, beq_iff_eq] using h)
+
+-- `[76]` cannot fire at a nonempty position whose head is not a line break.
+lemma sbcomment_head_refuted {c : Char} {rest : List Char} {sp sp' : SurfPos}
+    (hchars : sp.chars = c :: rest) (hcb : ¬ isLineBreakProp c)
+    (h : SBComment sp sp') : False := by
+  cases h with
+  | «break» =>
+    rename_i hb
+    cases hb <;>
+      · injection hchars with h1 _
+        first
+        | exact hcb (h1 ▸ show isLineBreakProp '\r' from Or.inr (by simp [isCarriageReturnProp]))
+        | exact hcb (h1 ▸ show isLineBreakProp '\n' from Or.inl (by simp [isLineFeedProp]))
+  | eof => cases hchars
+
+-- …and at a spaces-then-`c` line it cannot fire anywhere in the spaces either.
+lemma sbcomment_at_spaces_refuted {j : Nat} {c : Char} {rest : List Char}
+    {sp sp' : SurfPos}
+    (hchars : sp.chars = List.replicate j ' ' ++ c :: rest)
+    (hcb : ¬ isLineBreakProp c)
+    (h : SBComment sp sp') : False := by
+  match j with
+  | 0 => exact sbcomment_head_refuted (by simpa using hchars) hcb h
+  | j' + 1 =>
+    refine sbcomment_head_refuted (c := ' ')
+      (rest := List.replicate j' ' ' ++ c :: rest) ?_ ?_ h
+    · rw [hchars, List.replicate_succ, List.cons_append]
+    · exact not_break_char (by decide) (by decide)
+
+-- One `[78]`-shaped unit (separation, optional comment text, comment break)
+-- read at a line of `j` spaces and then a non-space non-tab non-break
+-- character `c`: it derives only if `c = '#'`, and then the separation
+-- consumed exactly the spaces and the text is present, pinned past them.
+lemma comment_unit_at_spaces {j : Nat} {c : Char} {rest : List Char}
+    {sp sp₁ sp₂ sp' : SurfPos}
+    (hchars : sp.chars = List.replicate j ' ' ++ c :: rest)
+    (hc_sp : c ≠ ' ') (hc_tab : c ≠ '\t') (hcb : ¬ isLineBreakProp c)
+    (hsep : SSeparateInLine sp sp₁)
+    (hopt : GOpt SCNbCommentText sp₁ sp₂)
+    (hbc : SBComment sp₂ sp') :
+    c = '#' ∧ sp₁ = ⟨c :: rest, sp.col + j⟩ ∧ SCNbCommentText sp₁ sp₂ := by
+  have hpin : ∃ k, k ≤ j ∧ sp₁.chars = List.replicate (j - k) ' ' ++ c :: rest ∧
+      sp₁.col = sp.col + k := by
+    cases hsep with
+    | whites =>
+      rename_i hp
+      match hp with
+      | GPlus.mk _ m _ h1 h2 =>
+        exact gstar_white_spaces_stop (GStar.cons _ m _ h1 h2) j hchars hc_sp hc_tab
+    | startOfLine => exact ⟨0, Nat.zero_le _, by simpa using hchars, (Nat.add_zero _).symm⟩
+  obtain ⟨k, hk, hch1, hcol1⟩ := hpin
+  rcases Nat.lt_or_ge k j with hlt | hge
+  · -- spaces remain at sp₁: the text needs `#`, the break needs a break —
+    -- both stare at a space.
+    exfalso
+    have hj : j - k = (j - k - 1) + 1 := by omega
+    rw [hj, List.replicate_succ, List.cons_append] at hch1
+    cases hopt with
+    | none =>
+      exact sbcomment_head_refuted hch1 (not_break_char (by decide) (by decide)) hbc
+    | some _ htext =>
+      cases htext with
+      | mk =>
+        injection hch1 with h1 _
+        cases h1
+  · -- the separation consumed all `j` spaces
+    have hkj : k = j := Nat.le_antisymm (by omega) hge
+    subst hkj
+    have hch1' : sp₁.chars = c :: rest := by simpa using hch1
+    have hpos : sp₁ = ⟨c :: rest, sp.col + k⟩ := surfpos_ext hch1' hcol1
+    cases hopt with
+    | none => exact absurd hbc (fun h => sbcomment_head_refuted hch1' hcb h)
+    | some _ htext =>
+      have hc_hash : c = '#' := by
+        cases htext with
+        | mk =>
+          injection hch1' with h1 _
+          exact h1.symm
+      exact ⟨hc_hash, hpos, htext⟩
+
+/-- `[79]` at a stop line whose character is not `#`, not a tab, not a space
+    and not a break: the walk is forced empty. -/
+lemma sslcomments_forced_trivial {j : Nat} {c : Char} {rest : List Char}
+    {sp sp_mid : SurfPos}
+    (hchars : sp.chars = List.replicate j ' ' ++ c :: rest)
+    (hc_sp : c ≠ ' ') (hc_tab : c ≠ '\t') (hc_hash : c ≠ '#')
+    (hcb : ¬ isLineBreakProp c)
+    (h : SSLComments sp sp_mid) : sp_mid = sp := by
+  cases h with
+  | withComment =>
+    rename_i hsb hstar
+    cases hsb with
+    | withSep =>
+      rename_i hsep hopt hbc
+      exact absurd (comment_unit_at_spaces hchars hc_sp hc_tab hcb hsep hopt hbc).1 hc_hash
+    | noSep =>
+      rename_i hbc
+      exact (sbcomment_at_spaces_refuted hchars hcb hbc).elim
+  | startOfLine =>
+    rename_i hstar
+    cases hstar with
+    | nil => rfl
+    | cons =>
+      rename_i h1 h2
+      cases h1 with
+      | mk =>
+        rename_i hsep hopt hbc
+        exact absurd (comment_unit_at_spaces hchars hc_sp hc_tab hcb hsep hopt hbc).1 hc_hash
+
+/-- `[79]` at a `#`-headed stop line: the walk is empty, or it opens with the
+    comment — text and break pinned past the spaces — and the rest of the
+    walk is bare `[78] l-comment`s, `[169]`'s own rider, verbatim. -/
+lemma sslcomments_peel_hash {j : Nat} {rest : List Char} {sp sp_mid : SurfPos}
+    (hchars : sp.chars = List.replicate j ' ' ++ '#' :: rest)
+    (h : SSLComments sp sp_mid) :
+    sp_mid = sp ∨
+    ∃ sp_t sp_b, SCNbCommentText ⟨'#' :: rest, sp.col + j⟩ sp_t ∧
+      SBComment sp_t sp_b ∧ GStar SLComment sp_b sp_mid := by
+  have hcb : ¬ isLineBreakProp '#' := not_break_char (by decide) (by decide)
+  cases h with
+  | withComment =>
+    rename_i hsb hstar
+    cases hsb with
+    | withSep =>
+      rename_i hsep hopt hbc
+      obtain ⟨-, hpin, htext⟩ :=
+        comment_unit_at_spaces hchars (by decide) (by decide) hcb hsep hopt hbc
+      exact Or.inr ⟨_, _, hpin ▸ htext, hbc, hstar⟩
+    | noSep =>
+      rename_i hbc
+      exact (sbcomment_at_spaces_refuted hchars hcb hbc).elim
+  | startOfLine =>
+    rename_i hstar
+    cases hstar with
+    | nil => exact Or.inl rfl
+    | cons =>
+      rename_i h1 h2
+      cases h1 with
+      | mk =>
+        rename_i hsep hopt hbc
+        obtain ⟨-, hpin, htext⟩ :=
+          comment_unit_at_spaces hchars (by decide) (by decide) hcb hsep hopt hbc
+        exact Or.inr ⟨_, _, hpin ▸ htext, hbc, h2⟩
+
+-- `[79]` at end of input: every unit is zero-width, so the walk goes nowhere.
+lemma ssepinline_at_eof {sp sp' : SurfPos} (hchars : sp.chars = [])
+    (h : SSeparateInLine sp sp') : sp' = sp := by
+  cases h with
+  | whites =>
+    rename_i hp
+    match hp with
+    | GPlus.mk _ m _ h1 _ =>
+      obtain ⟨ch, rest, hch, -, -⟩ := sswhite_head h1
+      rw [hchars] at hch; cases hch
+  | startOfLine => rfl
+
+lemma sbcomment_at_eof {sp sp' : SurfPos} (hchars : sp.chars = [])
+    (h : SBComment sp sp') : sp' = sp := by
+  cases h with
+  | «break» =>
+    rename_i hb
+    cases hb <;> cases hchars
+  | eof => rfl
+
+lemma gopt_text_at_eof {sp sp' : SurfPos} (hchars : sp.chars = [])
+    (h : GOpt SCNbCommentText sp sp') : sp' = sp := by
+  cases h with
+  | none => rfl
+  | some _ htext => cases htext with | mk => cases hchars
+
+lemma ssbcomment_at_eof {sp sp' : SurfPos} (hchars : sp.chars = [])
+    (h : SSBComment sp sp') : sp' = sp := by
+  cases h with
+  | withSep =>
+    rename_i hsep hopt hbc
+    rw [ssepinline_at_eof hchars hsep] at hopt
+    rw [gopt_text_at_eof hchars hopt] at hbc
+    exact sbcomment_at_eof hchars hbc
+  | noSep =>
+    rename_i hbc
+    exact sbcomment_at_eof hchars hbc
+
+lemma slcomment_at_eof {sp sp' : SurfPos} (hchars : sp.chars = [])
+    (h : SLComment sp sp') : sp' = sp := by
+  cases h with
+  | mk =>
+    rename_i hsep hopt hbc
+    rw [ssepinline_at_eof hchars hsep] at hopt
+    rw [gopt_text_at_eof hchars hopt] at hbc
+    exact sbcomment_at_eof hchars hbc
+
+lemma gstar_slcomment_at_eof {sp sp' : SurfPos} (hchars : sp.chars = [])
+    (h : GStar SLComment sp sp') : sp' = sp := by
+  induction h with
+  | nil => rfl
+  | cons s m e h1 h2 ih =>
+    have hm : m = s := slcomment_at_eof hchars h1
+    subst hm
+    exact ih hchars
+
+lemma sslcomments_at_eof {sp sp_mid : SurfPos} (hchars : sp.chars = [])
+    (h : SSLComments sp sp_mid) : sp_mid = sp := by
+  cases h with
+  | withComment =>
+    rename_i hsb hstar
+    rw [ssbcomment_at_eof hchars hsb] at hstar
+    exact gstar_slcomment_at_eof hchars hstar
+  | startOfLine =>
+    rename_i hstar
+    exact gstar_slcomment_at_eof hchars hstar
+
+-- The runtime side of the stop shape: a partial `consumeExactSpaces` run
+-- ends staring at a non-space.
+lemma consumeExactSpaces_partial_stop (sc : ScannerState) (count : Nat)
+    (hlt : (consumeExactSpaces sc count).1 < count) :
+    (consumeExactSpaces sc count).2.peek? ≠ some ' ' := by
+  induction count generalizing sc with
+  | zero => omega
+  | succ n ih =>
+    by_cases hpeek : sc.peek? = some ' '
+    · rw [consumeExactSpaces_succ_space_fst sc n hpeek] at hlt
+      rw [consumeExactSpaces_succ_space_snd sc n hpeek]
+      exact ih sc.advance (by omega)
+    · rw [consumeExactSpaces_succ_not_space sc n hpeek]
+      exact hpeek
+
+-- …and the document-boundary stop peeks a `-` or a `.`.
+lemma atDocumentBoundary_peek (sc : ScannerState)
+    (h : atDocumentBoundary sc = true) :
+    sc.peek? = some '-' ∨ sc.peek? = some '.' := by
+  have h0 : sc.peekAt? 0 = sc.peek? := rfl
+  unfold atDocumentBoundary atDocumentStart atDocumentEnd at h
+  rw [Bool.or_eq_true] at h
+  cases h with
+  | inl h =>
+    simp only [Bool.and_eq_true, beq_iff_eq] at h
+    exact Or.inl (h0 ▸ h.1.1.1.2)
+  | inr h =>
+    simp only [Bool.and_eq_true, beq_iff_eq] at h
+    exact Or.inr (h0 ▸ h.1.1.1.2)
+
+-- Offset monotonicity for the loop's fuel invariant.
+private lemma advance_offset_ge' (s : ScannerState) : s.advance.offset ≥ s.offset := by
+  by_cases h : s.offset < s.inputEnd
+  · have := advance_offset_eq s h
+    have := raw_next_gt s.input s.offset
+    omega
+  · unfold ScannerState.advance
+    simp only [h, ↓reduceIte]
+    exact Nat.le_refl _
+
+lemma consumeExactSpaces_offset_ge (sc : ScannerState) (count : Nat) :
+    (consumeExactSpaces sc count).2.offset ≥ sc.offset := by
+  induction count generalizing sc with
+  | zero => exact Nat.le_refl _
+  | succ n ih =>
+    by_cases hpeek : sc.peek? = some ' '
+    · rw [consumeExactSpaces_succ_space_snd sc n hpeek]
+      exact Nat.le_trans (advance_offset_ge' sc) (ih sc.advance)
+    · rw [consumeExactSpaces_succ_not_space sc n hpeek]
+      exact Nat.le_refl _
+
+lemma collectLineContentLoop_offset_ge (sc : ScannerState) (content : String)
+    (fuel : Nat) :
+    (collectLineContentLoop sc content fuel).2.offset ≥ sc.offset := by
+  induction fuel generalizing sc content with
+  | zero => exact Nat.le_refl _
+  | succ fuel' ih =>
+    unfold collectLineContentLoop
+    split
+    · split
+      · exact Nat.le_refl _
+      · exact Nat.le_trans (advance_offset_ge' sc) (ih sc.advance _)
+    · exact Nat.le_refl _
+
+-- `peek? = none` at a correspondence: the surface characters are exhausted.
+lemma peek_none_chars_nil {sc : ScannerState} {sp : SurfPos}
+    (hcorr : ScannerSurfCorr sc sp) (hpeek : sc.peek? = none) : sp.chars = [] := by
+  cases hch : sp.chars with
+  | nil => rfl
+  | cons c cs =>
+    exfalso
+    obtain ⟨pre, hcat, hsize⟩ := hcorr.input_prefix
+    have hend := hcorr.end_eq
+    have hlt := peek_none_not_lt hpeek
+    have h1 : listByteSize sc.input.toList = listByteSize pre + listByteSize sp.chars := by
+      rw [hcat, listByteSize_append]
+    have h2 := utf8ByteSize_eq_listByteSize sc.input
+    have h3 : 0 < listByteSize sp.chars :=
+      listByteSize_pos_of_ne_nil (by rw [hch]; simp)
+    omega
+
+-- State `inputEnd` is untouched by the loops the block-scalar body composes.
+lemma consumeExactSpaces_inputEnd (sc : ScannerState) (count : Nat) :
+    (consumeExactSpaces sc count).2.inputEnd = sc.inputEnd := by
+  induction count generalizing sc with
+  | zero => rfl
+  | succ n ih =>
+    by_cases hpeek : sc.peek? = some ' '
+    · rw [consumeExactSpaces_succ_space_snd sc n hpeek]
+      rw [ih sc.advance, advance_inputEnd]
+    · rw [consumeExactSpaces_succ_not_space sc n hpeek]
+
+lemma collectLineContentLoop_inputEnd (sc : ScannerState) (content : String)
+    (fuel : Nat) :
+    (collectLineContentLoop sc content fuel).2.inputEnd = sc.inputEnd := by
+  induction fuel generalizing sc content with
+  | zero => rfl
+  | succ fuel' ih =>
+    unfold collectLineContentLoop
+    split
+    · split
+      · rfl
+      · rw [ih sc.advance, advance_inputEnd]
+    · rfl
+
+-- The character the line loop stops on fails its continue test: it is a
+-- break, a non-printable, or a BOM.  The fuel premise mirrors the runtime's
+-- own computation (`fuel ≥ B - offset + 1` with the state's window inside
+-- `B`), so a fuel-out stop cannot masquerade as a character stop.
+lemma collectLineContentLoop_stop_char {B : Nat} (sc : ScannerState)
+    (content : String) (fuel : Nat) {c' : Char}
+    (h_fuel : fuel ≥ B - sc.offset + 1) (h_ie : sc.inputEnd ≤ B)
+    (hpk : (collectLineContentLoop sc content fuel).2.peek? = some c') :
+    (isLineBreakBool c' || !isPrintableBool c' || c' == '﻿') = true := by
+  induction fuel generalizing sc content with
+  | zero => omega
+  | succ fuel' ih =>
+    unfold collectLineContentLoop at hpk
+    split at hpk
+    · rename_i c hpeek
+      split at hpk
+      · rename_i hstop
+        rw [hpeek] at hpk
+        cases hpk
+        exact hstop
+      · rename_i hstop
+        have hmore := peek_some_has_more hpeek
+        have hadv : sc.advance.offset > sc.offset := by
+          have := advance_offset_eq sc hmore
+          have := raw_next_gt sc.input sc.offset
+          omega
+        exact ih sc.advance (content.push _)
+          (by have := advance_inputEnd sc; omega)
+          (by rw [advance_inputEnd]; exact h_ie) hpk
+    · rename_i hpeek
+      rw [hpeek] at hpk
+      cases hpk
 
 /-! ### §8b-main collectBlockScalarLoop literal production
 
@@ -3508,23 +3953,56 @@ lemma prefix_text_literal_content {n : Nat}
   - processes a content line + break (content_break_tail_to_literal),
   - processes a content line without break (content_only or prefix_text). -/
 
--- `collectBlockScalarLoop` produces `SLLiteralContent n` and preserves correspondence.
+-- Two characters a non-printable stop can never be (printable, non-BOM).
+private lemma nonprint_ne (c d : Char)
+    (hd : isPrintableBool d = true ∧ (d == '\uFEFF') = false)
+    (h : ¬ isPrintableBool c = true ∨ (c == '\uFEFF') = true) : c ≠ d := by
+  intro hceq
+  subst hceq
+  rcases h with h | h
+  · exact h hd.1
+  · rw [hd.2] at h; cases h
+
+-- `collectBlockScalarLoop` produces `SLLiteralContent n`, preserves
+-- correspondence, and (item 95) pins the landing walk at its stop: either
+-- any `[79] s-l-comments` walk from the end of the derivation is absorbable
+-- into the SAME `SLLiteralContent` (extended through the trailing `[169]`
+-- slot, or forced empty by the stop character), or the stop is the named
+-- TAB residue.  The fuel premises mirror the runtime's own computation, so
+-- a fuel-out exit is unreachable.
 lemma collectBlockScalarLoop_literal_prod
     (sc : ScannerState) (sp : SurfPos)
     (rawContent : String) (fuel : Nat) (contentIndent inputEnd : Nat)
-    (hcorr : ScannerSurfCorr sc sp) :
+    (hcorr : ScannerSurfCorr sc sp)
+    (h_fuel : fuel ≥ inputEnd - sc.offset + 1) (h_ie : sc.inputEnd ≤ inputEnd) :
     ∃ sp', SLLiteralContent contentIndent sp sp' ∧
-           ScannerSurfCorr (collectBlockScalarLoop sc rawContent fuel contentIndent inputEnd).2 sp' := by
+           ScannerSurfCorr (collectBlockScalarLoop sc rawContent fuel contentIndent inputEnd).2 sp' ∧
+           ((∀ sp_mid : SurfPos, SSLComments sp' sp_mid →
+               SLLiteralContent contentIndent sp sp_mid) ∨
+             BlockScalarTabStop sp') := by
   induction fuel generalizing sc sp rawContent with
-  | zero =>
-    simp [collectBlockScalarLoop]
-    exact ⟨sp, empty_literal_content sp, hcorr⟩
+  | zero => omega
   | succ fuel' ih =>
     unfold collectBlockScalarLoop
     dsimp only []
     split
-    · -- Document boundary: stop
-      exact ⟨sp, empty_literal_content sp, hcorr⟩
+    · -- Document boundary: stop.  The boundary's own character (`-` or `.`)
+      -- pins the walk empty.
+      rename_i hbdry
+      have hpeekb : sc.peek? = some '-' ∨ sc.peek? = some '.' :=
+        atDocumentBoundary_peek sc (Bool.and_eq_true_iff.mp hbdry).2
+      refine ⟨sp, empty_literal_content sp, hcorr, Or.inl fun sp_mid W => ?_⟩
+      rcases hpeekb with hpk | hpk
+      · obtain ⟨rest, hsp_eq⟩ := peek_some_sp hcorr hpk
+        rw [sslcomments_forced_trivial (j := 0) (c := '-') (rest := rest)
+          (by rw [hsp_eq]; simp) (by decide) (by decide) (by decide)
+          (not_break_char (by decide) (by decide)) W]
+        exact empty_literal_content sp
+      · obtain ⟨rest, hsp_eq⟩ := peek_some_sp hcorr hpk
+        rw [sslcomments_forced_trivial (j := 0) (c := '.') (rest := rest)
+          (by rw [hsp_eq]; simp) (by decide) (by decide) (by decide)
+          (not_break_char (by decide) (by decide)) W]
+        exact empty_literal_content sp
     · -- Not document boundary
       -- Get correspondence and indent for consumeExactSpaces result
       obtain ⟨sp_spaces, h_sindent, hcorr_spaces⟩ :=
@@ -3532,10 +4010,16 @@ lemma collectBlockScalarLoop_literal_prod
       have hle : (consumeExactSpaces sc contentIndent).1 ≤ contentIndent :=
         consumeExactSpaces_fst_le sc contentIndent
       split
-      · -- peek? = none after spaces: EOF → trailing indent
+      · -- peek? = none after spaces: EOF → trailing indent; the walk is
+        -- zero-width at end of input.
+        rename_i hpeek
+        have hnil : sp_spaces.chars = [] := peek_none_chars_nil hcorr_spaces hpeek
         exact ⟨sp_spaces,
                indent_only_literal_content ⟨_, hle, h_sindent⟩,
-               hcorr_spaces⟩
+               hcorr_spaces,
+               Or.inl fun sp_mid W => by
+                 rw [sslcomments_at_eof hnil W]
+                 exact indent_only_literal_content ⟨_, hle, h_sindent⟩⟩
       · rename_i c hpeek
         split
         · -- isLineBreakBool c = true: empty line
@@ -3545,11 +4029,60 @@ lemma collectBlockScalarLoop_literal_prod
           have h_empty : SLEmpty contentIndent .blockIn sp sp_nl :=
             SLEmpty.block contentIndent sp sp_spaces sp_nl .blockIn (Or.inr rfl)
               (GOpt.some sp sp_spaces ⟨_, hle, h_sindent⟩) h_break
-          obtain ⟨sp_end, h_tail, hcorr_end⟩ := ih _ sp_nl _ hcorr_nl
-          exact ⟨sp_end, prepend_empty_to_literal_content h_empty h_tail, hcorr_end⟩
+          have ho1 := consumeExactSpaces_offset_ge sc contentIndent
+          have hie1 := consumeExactSpaces_inputEnd sc contentIndent
+          have hmore := peek_some_has_more hpeek
+          have ho2 := consumeNewline_offset_advance _ c hpeek hlb
+          have ho2a := ho2.1
+          have hmore1 : (consumeExactSpaces sc contentIndent).2.offset < sc.inputEnd := by
+            rw [← hie1]; exact hmore
+          obtain ⟨sp_end, h_tail, hcorr_end, h_cl⟩ := ih _ sp_nl _ hcorr_nl
+            (by omega) (by rw [ho2.2, hie1]; exact h_ie)
+          exact ⟨sp_end, prepend_empty_to_literal_content h_empty h_tail, hcorr_end,
+                 h_cl.imp_left fun cl sp_mid W =>
+                   prepend_empty_to_literal_content h_empty (cl sp_mid W)⟩
         · split
-          · -- under-indent: return original position
-            exact ⟨sp, empty_literal_content sp, hcorr⟩
+          · -- Under-indent stop: `j < contentIndent` spaces, then a
+            -- non-space non-break character.  The walk is pinned by that
+            -- character: `#` re-parents into `[169]`'s slot, a TAB is the
+            -- named residue, anything else forces the walk empty.
+            rename_i hne_lb h_under
+            have h_under' := h_under
+            simp only [Bool.and_eq_true, decide_eq_true_eq, Bool.not_eq_true'] at h_under'
+            obtain ⟨hjlt, hlbf⟩ := h_under'
+            have hc_sp : c ≠ ' ' := fun hceq =>
+              consumeExactSpaces_partial_stop sc contentIndent hjlt (hceq ▸ hpeek)
+            have hcbp : ¬ isLineBreakProp c := fun hp => by
+              simp [(isLineBreak_iff c).mpr hp] at hlbf
+            obtain ⟨rest, hsp_eq⟩ := peek_some_sp hcorr_spaces hpeek
+            have hchars : sp.chars =
+                List.replicate (consumeExactSpaces sc contentIndent).1 ' ' ++ c :: rest := by
+              rw [sindent_chars' h_sindent, hsp_eq]
+            by_cases hc_tab : c = '\t'
+            · subst hc_tab
+              exact ⟨sp, empty_literal_content sp, hcorr,
+                     Or.inr ⟨_, rest, hchars⟩⟩
+            · by_cases hc_hash : c = '#'
+              · -- `[169]` head: the walk re-parents verbatim
+                subst hc_hash
+                have hpos : sp_spaces =
+                    ⟨'#' :: rest, sp.col + (consumeExactSpaces sc contentIndent).1⟩ :=
+                  surfpos_ext (by rw [hsp_eq]) (sindent_col' h_sindent)
+                refine ⟨sp, empty_literal_content sp, hcorr,
+                        Or.inl fun sp_mid W => ?_⟩
+                rcases sslcomments_peel_hash hchars W with heq | ⟨sp_t, sp_b, htext, hbc, hrider⟩
+                · rw [heq]; exact empty_literal_content sp
+                · exact SLLiteralContent.mk contentIndent sp sp sp sp sp_mid sp_mid
+                    (GOpt.none sp) (GOpt.none sp) (GStar.nil sp)
+                    (GOpt.some sp sp_mid
+                      (SLTrailComments.mk contentIndent sp _ sp_t sp_b sp_mid
+                        ⟨_, hjlt, hpos ▸ h_sindent⟩ htext hbc hrider))
+                    (GOpt.none sp_mid)
+              · -- any other character refuses every walk unit
+                refine ⟨sp, empty_literal_content sp, hcorr,
+                        Or.inl fun sp_mid W => ?_⟩
+                rw [sslcomments_forced_trivial hchars hc_sp hc_tab hc_hash hcbp W]
+                exact empty_literal_content sp
           · -- content line: full indent consumed
             rename_i hne_lb hne_under
             -- Derive: spacesConsumed = contentIndent (from ¬under-indent + ≤)
@@ -3571,12 +4104,12 @@ lemma collectBlockScalarLoop_literal_prod
               cases h : isLineBreakBool c with
               | false => rfl
               | true => exact absurd h hne_lb_bool
-            by_cases hnb : (isPrintableBool c && c != '﻿') = true
+            by_cases hnb : (isPrintableBool c && c != '\uFEFF') = true
             · -- First char is nb-char: the line loop consumes ≥ 1 char.
               have hpr : isPrintableBool c = true := (Bool.and_eq_true_iff.mp hnb).1
-              have hbom : (c == '﻿') = false := by
+              have hbom : (c == '\uFEFF') = false := by
                 have h2 := (Bool.and_eq_true_iff.mp hnb).2
-                cases h : (c == '﻿') with
+                cases h : (c == '\uFEFF') with
                 | false => rfl
                 | true => rw [bne, h] at h2; exact absurd h2 (by decide)
               -- GPlus SNbChar from content
@@ -3596,21 +4129,68 @@ lemma collectBlockScalarLoop_literal_prod
                   rename_i hlb'
                   obtain ⟨sp_nl', h_break', hcorr_nl'⟩ :=
                     consumeNewline_sbreak_corr _ sp_content c' hcorr_content hpeek' hlb'
-                  obtain ⟨sp_end, h_tail, hcorr_end⟩ := ih _ sp_nl' _ hcorr_nl'
+                  have ho1 := consumeExactSpaces_offset_ge sc contentIndent
+                  have hie1 := consumeExactSpaces_inputEnd sc contentIndent
+                  have ho3 := collectLineContentLoop_offset_ge
+                    (consumeExactSpaces sc contentIndent).2 ""
+                    (inputEnd - (consumeExactSpaces sc contentIndent).2.offset + 1)
+                  have hie3 := collectLineContentLoop_inputEnd
+                    (consumeExactSpaces sc contentIndent).2 ""
+                    (inputEnd - (consumeExactSpaces sc contentIndent).2.offset + 1)
+                  have hmore' := peek_some_has_more hpeek'
+                  have ho4 := consumeNewline_offset_advance _ c' hpeek' hlb'
+                  have ho4a := ho4.1
+                  have hmore3 : (collectLineContentLoop (consumeExactSpaces sc contentIndent).2 ""
+                      (inputEnd - (consumeExactSpaces sc contentIndent).2.offset + 1)).2.offset
+                        < sc.inputEnd := by
+                    rw [← hie1, ← hie3]; exact hmore'
+                  obtain ⟨sp_end, h_tail, hcorr_end, h_cl⟩ := ih _ sp_nl' _ hcorr_nl'
+                    (by omega) (by rw [ho4.2, hie3, hie1]; exact h_ie)
                   exact ⟨sp_end,
                          content_break_tail_to_literal h_text_line h_break' h_tail,
-                         hcorr_end⟩
-                · -- Line stopped at a non-nb-char: block scalar ends here.
-                  exact ⟨sp_content, content_only_to_literal h_text_line, hcorr_content⟩
+                         hcorr_end,
+                         h_cl.imp_left fun cl sp_mid W =>
+                           content_break_tail_to_literal h_text_line h_break' (cl sp_mid W)⟩
+                · -- Line stopped at a non-nb-char: block scalar ends here,
+                  -- and the stop character refuses every walk unit.
+                  rename_i hlb'
+                  have hstop := collectLineContentLoop_stop_char (B := inputEnd)
+                    (consumeExactSpaces sc contentIndent).2 ""
+                    (inputEnd - (consumeExactSpaces sc contentIndent).2.offset + 1)
+                    (Nat.le_refl _)
+                    (by rw [consumeExactSpaces_inputEnd]; exact h_ie) hpeek'
+                  have hnp : ¬ isPrintableBool c' = true ∨ (c' == '\uFEFF') = true := by
+                    rcases Bool.or_eq_true_iff.mp hstop with h | h
+                    · rcases Bool.or_eq_true_iff.mp h with h | h
+                      · exact absurd h hlb'
+                      · exact Or.inl (by simpa using h)
+                    · exact Or.inr h
+                  obtain ⟨rest', hsp_eq'⟩ := peek_some_sp hcorr_content hpeek'
+                  have hchars' : sp_content.chars =
+                      List.replicate 0 ' ' ++ c' :: rest' := by
+                    rw [hsp_eq']; simp
+                  have hcbp' : ¬ isLineBreakProp c' := fun hp => hlb' ((isLineBreak_iff c').mpr hp)
+                  refine ⟨sp_content, content_only_to_literal h_text_line, hcorr_content,
+                          Or.inl fun sp_mid W => ?_⟩
+                  rw [sslcomments_forced_trivial hchars'
+                        (nonprint_ne c' ' ' (by decide) hnp)
+                        (nonprint_ne c' '\t' (by decide) hnp)
+                        (nonprint_ne c' '#' (by decide) hnp) hcbp' W]
+                  exact content_only_to_literal h_text_line
               · -- peek? = none after content: EOF
-                exact ⟨sp_content, content_only_to_literal h_text_line, hcorr_content⟩
+                rename_i hpeek'
+                have hnil := peek_none_chars_nil hcorr_content hpeek'
+                exact ⟨sp_content, content_only_to_literal h_text_line, hcorr_content,
+                       Or.inl fun sp_mid W => by
+                         rw [sslcomments_at_eof hnil W]
+                         exact content_only_to_literal h_text_line⟩
             · -- First char is NOT nb-char: the line loop consumes nothing and
               -- the block scalar ends after this line's indent.
-              have hcond : (isLineBreakBool c || !isPrintableBool c || c == '﻿') = true := by
+              have hcond : (isLineBreakBool c || !isPrintableBool c || c == '\uFEFF') = true := by
                 cases hp : isPrintableBool c with
                 | false => simp
                 | true =>
-                  cases hb : (c == '﻿') with
+                  cases hb : (c == '\uFEFF') with
                   | true => simp
                   | false => exact absurd (by simp [hp, bne, hb]) hnb
               have hloop : collectLineContentLoop (consumeExactSpaces sc contentIndent).2 ""
@@ -3621,10 +4201,27 @@ lemma collectBlockScalarLoop_literal_prod
               rw [hloop]
               simp only [hpeek, hlb_f, Bool.false_eq_true, ↓reduceIte,
                 String.append_empty]
-              exact ⟨sp_spaces,
-                     indent_only_literal_content
-                       ⟨contentIndent, Nat.le_refl _, h_sindent_full⟩,
-                     hcorr_spaces'⟩
+              -- the stop character is non-printable or BOM: forced-trivial
+              have hnp : ¬ isPrintableBool c = true ∨ (c == '\uFEFF') = true := by
+                cases hp : isPrintableBool c with
+                | false => exact Or.inl (by simp)
+                | true =>
+                  cases hb : (c == '\uFEFF') with
+                  | true => exact Or.inr rfl
+                  | false => exact absurd (by simp [hp, bne, hb]) hnb
+              obtain ⟨rest, hsp_eq⟩ := peek_some_sp hcorr_spaces' hpeek
+              have hchars : sp_spaces.chars = List.replicate 0 ' ' ++ c :: rest := by
+                rw [hsp_eq]; simp
+              have hcbp : ¬ isLineBreakProp c := fun hp => by
+                simp [(isLineBreak_iff c).mpr hp] at hlb_f
+              refine ⟨sp_spaces,
+                     indent_only_literal_content ⟨contentIndent, Nat.le_refl _, h_sindent_full⟩,
+                     hcorr_spaces', Or.inl fun sp_mid W => ?_⟩
+              rw [sslcomments_forced_trivial hchars
+                    (nonprint_ne c ' ' (by decide) hnp)
+                    (nonprint_ne c '\t' (by decide) hnp)
+                    (nonprint_ne c '#' (by decide) hnp) hcbp W]
+              exact indent_only_literal_content ⟨contentIndent, Nat.le_refl _, h_sindent_full⟩
 
 /-! ## §8c Block Scalar Composition
 
@@ -3776,13 +4373,112 @@ lemma scanBlockScalar_unreachable_comment_without_ws
 -- `scanBlockScalarBody` for literal produces `SLLiteralContent` + correspondence.
 -- Unwraps `scanBlockScalarBody` to expose `collectBlockScalarLoop`, applies
 -- `collectBlockScalarLoop_literal_prod`, then adjusts for emitAt/simpleKey.
+-- The header path's `inputEnd` preservation (private twins of
+-- `LineOpenGuard`'s, which are not exported).
+private lemma parseBlockHeaderLoop_inputEnd' (fuel : Nat) :
+    ∀ (s : ScannerState) (chomp : ChompStyle) (eo : Option Nat),
+    (parseBlockHeaderLoop s chomp eo fuel).2.2.inputEnd = s.inputEnd := by
+  induction fuel with
+  | zero => intro s _ _; rfl
+  | succ fuel' ih =>
+    intro s chomp eo
+    unfold parseBlockHeaderLoop
+    split
+    · exact (ih s.advance _ _).trans (advance_inputEnd s)
+    · exact (ih s.advance _ _).trans (advance_inputEnd s)
+    · split
+      · exact (ih s.advance _ _).trans (advance_inputEnd s)
+      · rfl
+    · rfl
+
+private lemma collectCommentTextLoop_inputEnd' (fuel : Nat) :
+    ∀ (s : ScannerState) (text : String),
+    (collectCommentTextLoop s text fuel).2.inputEnd = s.inputEnd := by
+  induction fuel with
+  | zero => intro s _; unfold collectCommentTextLoop; rfl
+  | succ fuel' ih =>
+    intro s text
+    unfold collectCommentTextLoop
+    split
+    · split
+      · rfl
+      · exact (ih s.advance _).trans (advance_inputEnd s)
+    · rfl
+
+private lemma skipWhitespaceLoop_inputEnd' (fuel : Nat) :
+    ∀ (s : ScannerState), (skipWhitespaceLoop s fuel).inputEnd = s.inputEnd := by
+  induction fuel with
+  | zero => intro s; simp [skipWhitespaceLoop]
+  | succ fuel' ih =>
+    intro s
+    unfold skipWhitespaceLoop
+    split
+    · split
+      · exact (ih s.advance).trans (advance_inputEnd s)
+      · rfl
+    · rfl
+
+private lemma skipWhitespace_inputEnd' (s : ScannerState) :
+    (skipWhitespace s).inputEnd = s.inputEnd :=
+  skipWhitespaceLoop_inputEnd' _ s
+
+private lemma scanBlockScalarSkipComment_inputEnd' (s : ScannerState) :
+    (scanBlockScalarSkipComment s).inputEnd = s.inputEnd := by
+  unfold scanBlockScalarSkipComment
+  split
+  · dsimp only []
+    generalize hp : collectCommentTextLoop s.advance ""
+      (s.advance.inputEnd - s.advance.offset) = pr
+    obtain ⟨text, s2⟩ := pr
+    have hcc := collectCommentTextLoop_inputEnd'
+      (s.advance.inputEnd - s.advance.offset) s.advance ""
+    rw [hp] at hcc
+    dsimp only [] at hcc
+    split
+    · split
+      · exact hcc.trans (advance_inputEnd s)
+      · rfl
+    · rfl
+  · rfl
+
+private lemma scanBlockScalarConsumeNewline_inputEnd' {s s' : ScannerState}
+    (h : scanBlockScalarConsumeNewline s = .ok s') : s'.inputEnd = s.inputEnd := by
+  unfold scanBlockScalarConsumeNewline at h
+  split at h
+  · split at h
+    · have he := Except.ok.inj h; subst he
+      exact consumeNewline_inputEnd s
+    · split at h
+      · have he := Except.ok.inj h; subst he; rfl
+      · cases h
+  · have he := Except.ok.inj h; subst he; rfl
+
+/-- The composed header path (`|`/`>`, header chars, whitespace, comment,
+    newline) leaves `inputEnd` alone — the fact the body lemmas' fuel premise
+    needs at every caller. -/
+lemma scanBlockScalar_afterNewline_inputEnd {sc s_after_nl : ScannerState}
+    (hcn : scanBlockScalarConsumeNewline (scanBlockScalarSkipComment
+      (skipWhitespace (parseBlockHeaderLoop sc.advance .clip none 2).2.2)) = .ok s_after_nl) :
+    s_after_nl.inputEnd ≤ sc.inputEnd := by
+  have h1 := scanBlockScalarConsumeNewline_inputEnd' hcn
+  have h2 := scanBlockScalarSkipComment_inputEnd'
+    (skipWhitespace (parseBlockHeaderLoop sc.advance .clip none 2).2.2)
+  have h3 := skipWhitespace_inputEnd' (parseBlockHeaderLoop sc.advance .clip none 2).2.2
+  have h4 := parseBlockHeaderLoop_inputEnd' 2 sc.advance .clip none
+  have h5 := advance_inputEnd sc
+  omega
+
 lemma scanBlockScalarBody_literal_prod (sc_orig sc_after_nl : ScannerState)
     (sp : SurfPos) (chomp : ChompStyle) (explicitOffset : Option Nat)
     (startPos : YamlPos) {s' : ScannerState}
     (hcorr : ScannerSurfCorr sc_after_nl sp)
+    (h_ie : sc_after_nl.inputEnd ≤ sc_orig.inputEnd)
     (hok : scanBlockScalarBody sc_orig sc_after_nl chomp explicitOffset true startPos = .ok s') :
     ∃ sp' contentIndent,
-      SLLiteralContent contentIndent sp sp' ∧ ScannerSurfCorr s' sp' := by
+      SLLiteralContent contentIndent sp sp' ∧ ScannerSurfCorr s' sp' ∧
+      ((∀ sp_mid : SurfPos, SSLComments sp' sp_mid →
+          SLLiteralContent contentIndent sp sp_mid) ∨
+        BlockScalarTabStop sp') := by
   unfold scanBlockScalarBody at hok
   dsimp only [] at hok
   cases hoff_eq : explicitOffset with
@@ -3791,11 +4487,13 @@ lemma scanBlockScalarBody_literal_prod (sc_orig sc_after_nl : ScannerState)
     -- autoDetectErr? = none, so the match on autoDetectErr? reduces to .ok path directly
     let contentIndent := (max 0 (sc_orig.currentIndent + (↑d : Int))).toNat
     let fuel := sc_orig.inputEnd - sc_after_nl.offset + 1
-    obtain ⟨sp_loop, h_lit_content, hcorr_loop⟩ :=
+    obtain ⟨sp_loop, h_lit_content, hcorr_loop, h_absorb⟩ :=
       collectBlockScalarLoop_literal_prod sc_after_nl sp "" fuel contentIndent sc_orig.inputEnd hcorr
+        (Nat.le_refl _) h_ie
     have h := Except.ok.inj hok; subst h
     exact ⟨sp_loop, contentIndent, h_lit_content,
-           ⟨hcorr_loop.chars_from, hcorr_loop.col_eq, hcorr_loop.end_eq, hcorr_loop.input_prefix, hcorr_loop.indent_cols_nonneg⟩⟩
+           ⟨hcorr_loop.chars_from, hcorr_loop.col_eq, hcorr_loop.end_eq, hcorr_loop.input_prefix, hcorr_loop.indent_cols_nonneg⟩,
+           h_absorb⟩
   | none =>
     rw [hoff_eq] at hok
     generalize h_auto : autoDetectBlockScalarIndent sc_after_nl
@@ -3809,11 +4507,13 @@ lemma scanBlockScalarBody_literal_prod (sc_orig sc_after_nl : ScannerState)
     | none =>
       simp only [h_err] at hok
       let fuel := sc_orig.inputEnd - sc_after_nl.offset + 1
-      obtain ⟨sp_loop, h_lit_content, hcorr_loop⟩ :=
+      obtain ⟨sp_loop, h_lit_content, hcorr_loop, h_absorb⟩ :=
         collectBlockScalarLoop_literal_prod sc_after_nl sp "" fuel ci sc_orig.inputEnd hcorr
+          (Nat.le_refl _) h_ie
       have h := Except.ok.inj hok; subst h
       exact ⟨sp_loop, ci, h_lit_content,
-             ⟨hcorr_loop.chars_from, hcorr_loop.col_eq, hcorr_loop.end_eq, hcorr_loop.input_prefix, hcorr_loop.indent_cols_nonneg⟩⟩
+             ⟨hcorr_loop.chars_from, hcorr_loop.col_eq, hcorr_loop.end_eq, hcorr_loop.input_prefix, hcorr_loop.indent_cols_nonneg⟩,
+             h_absorb⟩
 
 -- `scanBlockScalarBody` for folded also produces `SLLiteralContent` + correspondence.
 -- The scanner uses the same `collectBlockScalarLoop` for both literal and folded;
@@ -3822,9 +4522,13 @@ lemma scanBlockScalarBody_folded_prod (sc_orig sc_after_nl : ScannerState)
     (sp : SurfPos) (chomp : ChompStyle) (explicitOffset : Option Nat)
     (startPos : YamlPos) {s' : ScannerState}
     (hcorr : ScannerSurfCorr sc_after_nl sp)
+    (h_ie : sc_after_nl.inputEnd ≤ sc_orig.inputEnd)
     (hok : scanBlockScalarBody sc_orig sc_after_nl chomp explicitOffset false startPos = .ok s') :
     ∃ sp' contentIndent,
-      SLLiteralContent contentIndent sp sp' ∧ ScannerSurfCorr s' sp' := by
+      SLLiteralContent contentIndent sp sp' ∧ ScannerSurfCorr s' sp' ∧
+      ((∀ sp_mid : SurfPos, SSLComments sp' sp_mid →
+          SLLiteralContent contentIndent sp sp_mid) ∨
+        BlockScalarTabStop sp') := by
   unfold scanBlockScalarBody at hok
   dsimp only [] at hok
   cases hoff_eq : explicitOffset with
@@ -3832,11 +4536,13 @@ lemma scanBlockScalarBody_folded_prod (sc_orig sc_after_nl : ScannerState)
     rw [hoff_eq] at hok
     let contentIndent := (max 0 (sc_orig.currentIndent + (↑d : Int))).toNat
     let fuel := sc_orig.inputEnd - sc_after_nl.offset + 1
-    obtain ⟨sp_loop, h_lit_content, hcorr_loop⟩ :=
+    obtain ⟨sp_loop, h_lit_content, hcorr_loop, h_absorb⟩ :=
       collectBlockScalarLoop_literal_prod sc_after_nl sp "" fuel contentIndent sc_orig.inputEnd hcorr
+        (Nat.le_refl _) h_ie
     have h := Except.ok.inj hok; subst h
     exact ⟨sp_loop, contentIndent, h_lit_content,
-           ⟨hcorr_loop.chars_from, hcorr_loop.col_eq, hcorr_loop.end_eq, hcorr_loop.input_prefix, hcorr_loop.indent_cols_nonneg⟩⟩
+           ⟨hcorr_loop.chars_from, hcorr_loop.col_eq, hcorr_loop.end_eq, hcorr_loop.input_prefix, hcorr_loop.indent_cols_nonneg⟩,
+           h_absorb⟩
   | none =>
     rw [hoff_eq] at hok
     generalize h_auto : autoDetectBlockScalarIndent sc_after_nl
@@ -3850,11 +4556,13 @@ lemma scanBlockScalarBody_folded_prod (sc_orig sc_after_nl : ScannerState)
     | none =>
       simp only [h_err] at hok
       let fuel := sc_orig.inputEnd - sc_after_nl.offset + 1
-      obtain ⟨sp_loop, h_lit_content, hcorr_loop⟩ :=
+      obtain ⟨sp_loop, h_lit_content, hcorr_loop, h_absorb⟩ :=
         collectBlockScalarLoop_literal_prod sc_after_nl sp "" fuel ci sc_orig.inputEnd hcorr
+          (Nat.le_refl _) h_ie
       have h := Except.ok.inj hok; subst h
       exact ⟨sp_loop, ci, h_lit_content,
-             ⟨hcorr_loop.chars_from, hcorr_loop.col_eq, hcorr_loop.end_eq, hcorr_loop.input_prefix, hcorr_loop.indent_cols_nonneg⟩⟩
+             ⟨hcorr_loop.chars_from, hcorr_loop.col_eq, hcorr_loop.end_eq, hcorr_loop.input_prefix, hcorr_loop.indent_cols_nonneg⟩,
+             h_absorb⟩
 
 -- `scanBlockScalar` produces `SCLLiteral 0` or `SCLFolded 0` and preserves correspondence.
 -- Header: FULLY PROVEN (delimiter + header chars + SSBComment).
@@ -3866,7 +4574,10 @@ lemma scanBlockScalar_prod (sc : ScannerState) (sp : SurfPos)
     (hcorr : ScannerSurfCorr sc sp)
     (hchar : sc.peek? = some '|' ∨ sc.peek? = some '>')
     (hok : scanBlockScalar sc = .ok s') :
-    ∃ sp', (SCLLiteral 0 sp sp' ∨ SCLFolded 0 sp sp') ∧ ScannerSurfCorr s' sp' := by
+    ∃ sp', (SCLLiteral 0 sp sp' ∨ SCLFolded 0 sp sp') ∧ ScannerSurfCorr s' sp' ∧
+      ((∀ sp_mid : SurfPos, SSLComments sp' sp_mid →
+          SCLLiteral 0 sp sp_mid ∨ SCLFolded 0 sp sp_mid) ∨
+        BlockScalarTabStop sp') := by
   unfold scanBlockScalar at hok
   dsimp only [] at hok
   -- Step 1: advance past '|' or '>'
@@ -3884,6 +4595,8 @@ lemma scanBlockScalar_prod (sc : ScannerState) (sp : SurfPos)
   split at hok
   · simp at hok  -- error
   · rename_i s_after_nl hcn
+    have h_ie : s_after_nl.inputEnd ≤ sc.inputEnd :=
+      scanBlockScalar_afterNewline_inputEnd hcn
     -- Step 4b: scanBlockScalarConsumeNewline → SBComment
     obtain ⟨sp_nl, h_brk, hcorr_nl⟩ :=
       scanBlockScalarConsumeNewline_prod _ sp_cmt hcorr_cmt hcn
@@ -3927,14 +4640,17 @@ lemma scanBlockScalar_prod (sc : ScannerState) (sp : SurfPos)
       -- Body grammar via scanBlockScalarBody_literal_prod (gives SLLiteralContent)
       have h_is_lit : (sc.peek? == some '|') = true := by rw [hlit]; decide
       rw [h_is_lit] at hok
-      obtain ⟨sp_body, contentIndent, h_literal_content, hcorr_body⟩ :=
-        scanBlockScalarBody_literal_prod sc s_after_nl sp_nl _ _ _ hcorr_nl hok
+      obtain ⟨sp_body, contentIndent, h_literal_content, hcorr_body, h_absorb⟩ :=
+        scanBlockScalarBody_literal_prod sc s_after_nl sp_nl _ _ _ hcorr_nl h_ie hok
       have h_literal_content' : SLLiteralContent (0 + contentIndent) sp_nl sp_body := by
         rw [Nat.zero_add]; exact h_literal_content
-      exact ⟨sp_body,
+      refine ⟨sp_body,
              Or.inl (SCLLiteral.mk 0 contentIndent rest sc.col sp_nl sp_body h_header
                h_literal_content'),
-             hcorr_body⟩
+             hcorr_body, ?_⟩
+      refine h_absorb.imp_left fun cl sp_mid W => Or.inl ?_
+      exact SCLLiteral.mk 0 contentIndent rest sc.col sp_nl sp_mid h_header
+        (by rw [Nat.zero_add]; exact cl sp_mid W)
     · -- Folded: sc.peek? = some '>'
       obtain ⟨rest, hsp_eq⟩ := peek_some_sp hcorr hfold
       subst hsp_eq
@@ -3948,13 +4664,16 @@ lemma scanBlockScalar_prod (sc : ScannerState) (sp : SurfPos)
       -- Body grammar via scanBlockScalarBody_folded_prod (gives SLLiteralContent)
       have h_is_fld : (sc.peek? == some '|') = false := by rw [hfold]; decide
       rw [h_is_fld] at hok
-      obtain ⟨sp_body, contentIndent, h_literal_content, hcorr_body⟩ :=
-        scanBlockScalarBody_folded_prod sc s_after_nl sp_nl _ _ _ hcorr_nl hok
+      obtain ⟨sp_body, contentIndent, h_literal_content, hcorr_body, h_absorb⟩ :=
+        scanBlockScalarBody_folded_prod sc s_after_nl sp_nl _ _ _ hcorr_nl h_ie hok
       have h_literal_content' : SLLiteralContent (0 + contentIndent) sp_nl sp_body := by
         rw [Nat.zero_add]; exact h_literal_content
-      exact ⟨sp_body,
+      refine ⟨sp_body,
              Or.inr (SCLFolded.mk 0 contentIndent rest sc.col sp_nl sp_body h_header
                h_literal_content'),
-             hcorr_body⟩
+             hcorr_body, ?_⟩
+      refine h_absorb.imp_left fun cl sp_mid W => Or.inr ?_
+      exact SCLFolded.mk 0 contentIndent rest sc.col sp_nl sp_mid h_header
+        (by rw [Nat.zero_add]; exact cl sp_mid W)
 
 end L4YAML.Proofs.ScalarProduction

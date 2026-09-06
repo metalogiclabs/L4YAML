@@ -14113,7 +14113,10 @@ lemma dispatchContent_blockScalar_prod (sc : ScannerState) (sp : SurfPos)
     (hpeek : sc.peek? = some c)
     (hchar : c = '|' ∨ c = '>')
     (hok : scanNextToken_dispatchContent sc c = .ok s') :
-    ∃ sp', (SCLLiteral 0 sp sp' ∨ SCLFolded 0 sp sp') ∧ ScannerSurfCorr s' sp' := by
+    ∃ sp', (SCLLiteral 0 sp sp' ∨ SCLFolded 0 sp sp') ∧ ScannerSurfCorr s' sp' ∧
+      ((∀ sp_mid : SurfPos, SSLComments sp' sp_mid →
+          SCLLiteral 0 sp sp_mid ∨ SCLFolded 0 sp sp_mid) ∨
+        L4YAML.Proofs.ScalarProduction.BlockScalarTabStop sp') := by
   cases hchar with
   | inl h_lit =>
     subst h_lit
@@ -14164,7 +14167,10 @@ lemma dispatchContent_blockScalar_prod_at (sc : ScannerState) (sp : SurfPos)
     ∃ sp' d,
       (max 0 (sc.currentIndent + 1)).toNat ≤ d ∧
       ((∀ n, n ≤ d → SCLLiteral n sp sp') ∨ (∀ n, n ≤ d → SCLFolded n sp sp')) ∧
-      ScannerSurfCorr s' sp' := by
+      ScannerSurfCorr s' sp' ∧
+      ((∀ sp_mid : SurfPos, SSLComments sp' sp_mid →
+          (∀ n, n ≤ d → SCLLiteral n sp sp_mid) ∨ (∀ n, n ≤ d → SCLFolded n sp sp_mid)) ∨
+        L4YAML.Proofs.ScalarProduction.BlockScalarTabStop sp') := by
   cases hchar with
   | inl h_lit =>
     subst h_lit
@@ -14645,7 +14651,7 @@ lemma dispatchContent_evidence (sc : ScannerState) (sp : SurfPos)
         obtain ⟨sp', h_gram, hcorr'⟩ := dispatchContent_alias_prod 0 sc sp .flowOut hcorr hpeek hok
         exact ⟨sp', sp', Or.inl h_gram, GStar.nil _, hcorr'⟩
       · by_cases hc_bs : c = '|' ∨ c = '>'
-        · obtain ⟨sp', h_gram, hcorr'⟩ :=
+        · obtain ⟨sp', h_gram, hcorr', _⟩ :=
             dispatchContent_blockScalar_prod sc sp hcorr hpeek hc_bs hok
           exact ⟨sp', sp', Or.inr ⟨h_gram, hc_bs⟩, GStar.nil _, hcorr'⟩
         · -- Remaining cases: '&' (anchor), '!' (tag), plain scalar, error
@@ -14958,7 +14964,12 @@ lemma dispatchContent_evidence_content (sc : ScannerState) (sp : SurfPos)
     (hok : scanNextToken_dispatchContent sc c = .ok s') :
     ∃ sp_gram sp',
       (SFlowContent 0 .flowOut sp sp_gram ∨
-        (SCLLiteral 0 sp sp_gram ∨ SCLFolded 0 sp sp_gram)) ∧
+        ((SCLLiteral 0 sp sp_gram ∨ SCLFolded 0 sp sp_gram) ∧
+          -- Item 95: the walk at the scalar's stop, absorbable or the named
+          -- TAB residue.
+          ((∀ sp_mid : SurfPos, SSLComments sp_gram sp_mid →
+              SCLLiteral 0 sp sp_mid ∨ SCLFolded 0 sp sp_mid) ∨
+            L4YAML.Proofs.ScalarProduction.BlockScalarTabStop sp_gram))) ∧
       GStar SSWhite sp_gram sp' ∧
       ScannerSurfCorr s' sp' := by
   by_cases hc_dq : c = '"'
@@ -14972,9 +14983,9 @@ lemma dispatchContent_evidence_content (sc : ScannerState) (sp : SurfPos)
       exact ⟨sp', sp', Or.inl (SFlowContent_singleQ_ctx_lift h_gram (by decide) (by decide)),
              GStar.nil _, hcorr'⟩
     · by_cases hc_bs : c = '|' ∨ c = '>'
-      · obtain ⟨sp', h_gram, hcorr'⟩ :=
+      · obtain ⟨sp', h_gram, hcorr', h_absorb⟩ :=
           dispatchContent_blockScalar_prod sc sp hcorr hpeek hc_bs hok
-        exact ⟨sp', sp', Or.inr h_gram, GStar.nil _, hcorr'⟩
+        exact ⟨sp', sp', Or.inr ⟨h_gram, h_absorb⟩, GStar.nil _, hcorr'⟩
       · have hnotPipe : c ≠ '|' := fun h => hc_bs (Or.inl h)
         have hnotGt : c ≠ '>' := fun h => hc_bs (Or.inr h)
         obtain ⟨sp_gram, sp', h_gram, h_ws, hcorr'⟩ :=
@@ -16500,6 +16511,13 @@ lemma indentedValue_reads_at_any_indent
       -- Item 79: the property scan's own flag, which the park it feeds carries.
       s'.simpleKeyAllowed = false) ∨
     ((SCLLiteral n sp_prep sp_scan' ∨ SCLFolded n sp_prep sp_scan') ∧
+      -- Item 95: the landing walk at the scalar's stop, absorbable into the
+      -- SAME node through `[169] l-trail-comments` (or forced empty by the
+      -- stop character) — or the TAB-led stop, the shape `[168]`/`[169]`
+      -- cannot absorb, returned as the named residue.
+      ((∀ sp_mid : SurfPos, SSLComments sp_scan' sp_mid →
+          SCLLiteral n sp_prep sp_mid ∨ SCLFolded n sp_prep sp_mid) ∨
+        L4YAML.Proofs.ScalarProduction.BlockScalarTabStop sp_scan') ∧
       SSeparate n .blockIn sp_scan sp_prep ∧
       (sp_scan'.col = 0 ∨ LineNodeStop sp_scan'.chars) ∧
       (c ≠ '&' ∧ c ≠ '!') ∧ (c = '|' ∨ c = '>')) ∨
@@ -16668,11 +16686,11 @@ lemma indentedValue_reads_at_any_indent
         -- existentially, so the reading holds at every index below the indent the
         -- body was collected at, and the scanner's own `minContentIndent` floor is
         -- what says which indices those are.
-        obtain ⟨sp_bs, d, h_floor', h_read, hcorr_bs⟩ :=
+        obtain ⟨sp_bs, d, h_floor', h_read, hcorr_bs, h_absorb95⟩ :=
           dispatchContent_blockScalar_prod_at _ sp_prep
             (corr_of_allowDirectives_update hcorr_prep) hpeek_disp hbs h_dispatch
         have hsp_bs_eq := ScannerSurfCorr_unique hcorr_bs hcorr_result
-        rw [hsp_bs_eq] at h_read
+        rw [hsp_bs_eq] at h_read h_absorb95
         have h_ci : (if s_prep.allowDirectives then
             { s_prep with allowDirectives := false, documentEverStarted := true }
           else s_prep).currentIndent = s_prep.currentIndent := by
@@ -16693,6 +16711,8 @@ lemma indentedValue_reads_at_any_indent
         have hn : n ≤ d := Nat.le_trans h_floor_at h_floor'
         exact Or.inr (Or.inr (Or.inl
           ⟨h_read.elim (fun h => Or.inl (h n hn)) (fun h => Or.inr (h n hn)),
+           h_absorb95.imp_left fun cl sp_mid W =>
+             (cl sp_mid W).elim (fun h => Or.inl (h n hn)) (fun h => Or.inr (h n hn)),
            h_sep_n, h_line, ⟨hna, hnt⟩, hbs⟩))
       · have hna : c ≠ '&' := fun h => hprops (Or.inl h)
         have hnt : c ≠ '!' := fun h => hprops (Or.inr h)
@@ -16844,7 +16864,7 @@ lemma accum_content_on_pendingBlock_indented
     ⟨sp_gram, h_sep_all, h_flow_all, h_trailing_ws, h_line, hna, hnt⟩ |
     ⟨ha, ht, h_sep_all, h_run_all, h_nic_s, h_real_s, h_anchor_s, h_tag_s, h_ind_s,
       h_single, h_sk_s, h_line_s, h_ska_s⟩ |
-    ⟨h_read, h_sep_all, h_line, ⟨hna, hnt⟩, hbs⟩ |
+    ⟨h_read, h_absorb95, h_sep_all, h_line, ⟨hna, hnt⟩, hbs⟩ |
     ⟨sp_gramf, h_node_f, h_tws_f, h_sep_all, h_line, hna, hnt⟩ | _
   · exact ⟨sp_block, sp_block, sp_block, sp_scan', h_stream_block,
            BlockStack.nil sp_block, FlowStackB.nil sp_block .sep,
@@ -16965,12 +16985,25 @@ lemma accum_content_on_pendingBlock_indented
              (stale_of_dispatch h_dispatch hna hnt
                (by split <;> exact nic_false_of_flow_disp (sc := sc) (s_prep := s_prep) h_preprocess h_flow_disp)
                hcorr_result)
-             -- Item 92: `h_kslot_old` cannot ride into this park's `h_vpack`
-             -- — the scalar's node is complete HERE, before the landing's
-             -- `s-l-comments`, and whether `[170]`'s `l-chomped-empty` absorbs
-             -- one is unestablished (the block-scalar kind's own gate), so
-             -- `? - |⏎  x⏎: - w` stays with the deferral.
-             (Or.inr trivial)
+             -- Item 95: `h_kslot_old` NOW rides into this park's `h_vpack` —
+             -- the landing's `s-l-comments` is absorbed into the scalar's own
+             -- `[169] l-trail-comments` slot (or forced empty by the stop
+             -- character), so the SAME node re-read to the landing closes the
+             -- entry and the frame reads the `:` line (`? |⏎  x⏎: - w`,
+             -- `? - |⏎    x⏎: - w`).  The TAB-led stop stays with the
+             -- deferral (the named `BlockScalarTabStop` residue).
+             (match h_kslot_old, h_absorb95 with
+              | Or.inl ⟨nv, kslot⟩, Or.inl cl => Or.inl ⟨nv,
+                  fun sp_mid sp_i sp_c h_ssl h_iv h_lit sp_v h_sbi =>
+                    kslot sp_mid
+                      (SBlockIndented.node n .blockIn sp_scan sp_mid
+                        ((cl sp_mid h_ssl).elim
+                          (fun h_lit' =>
+                            literal_blockNode h_sep_all (GOpt.none sp_prep) h_lit')
+                          (fun h_fld' =>
+                            folded_blockNode h_sep_all (GOpt.none sp_prep) h_fld')))
+                      sp_mid (SCompactSeqTail.nil n sp_mid) sp_i sp_c h_iv h_lit sp_v h_sbi⟩
+              | _, _ => Or.inr trivial)
                (content_park_arm (preprocess_some_peek h_preprocess)
                  h_flow_disp h_not_doc h_dispatch hcorr_result),
            hcorr_result⟩
@@ -17398,7 +17431,7 @@ lemma accum_content_on_pendingMapValue_indented
     ⟨sp_gram, h_sep_all, h_flow_all, h_trailing_ws, h_line, hna, hnt⟩ |
     ⟨ha, ht, h_sep_all, h_run_all, h_nic_s, h_real_s, h_anchor_s, h_tag_s, h_ind_s,
       h_single, h_sk_s, h_line_s, h_ska_s⟩ |
-    ⟨h_read, h_sep_all, h_line, ⟨hna, hnt⟩, hbs⟩ |
+    ⟨h_read, h_absorb95, h_sep_all, h_line, ⟨hna, hnt⟩, hbs⟩ |
     ⟨sp_gramf, h_node_f, h_tws_f, h_sep_all, h_line, hna, hnt⟩ | _
   · -- Item 39 stopped here, reading the value route's side condition `n ≤ k` as
     -- a property of this ARM: at an indented pending a landing can be a DEDENT
@@ -17507,7 +17540,23 @@ lemma accum_content_on_pendingMapValue_indented
                (by rw [dispatchContent_blockScalar_simpleKey_false hbs h_dispatch]; simp))
              (stale_of_dispatch h_dispatch hna hnt
                (by split <;> exact nic_false_of_flow_disp (sc := sc) (s_prep := s_prep) h_preprocess h_flow_disp)
-               hcorr_result) (Or.inr trivial)
+               hcorr_result)
+             -- Item 95: the park's value-line twin (item 93's `h_kslot`)
+             -- rides in — the landing walk is absorbed into the scalar's own
+             -- `[169]` slot, so the node re-read to the landing feeds the
+             -- twin and `k:⏎  ? a: |⏎    x⏎  : - w` composes.  The TAB-led
+             -- stop stays with the deferral.
+             (match h_kslot, h_absorb95 with
+              | Or.inl ⟨nv, kslot⟩, Or.inl cl => Or.inl ⟨nv,
+                  fun sp_mid sp_i sp_c h_ssl h_iv h_lit sp_v h_sbi =>
+                    kslot sp_mid
+                      ((cl sp_mid h_ssl).elim
+                        (fun h_lit' =>
+                          literal_blockNode h_sep_all (GOpt.none sp_prep) h_lit')
+                        (fun h_fld' =>
+                          folded_blockNode h_sep_all (GOpt.none sp_prep) h_fld'))
+                      sp_i sp_c h_iv h_lit sp_v h_sbi⟩
+              | _, _ => Or.inr trivial)
                (content_park_arm (preprocess_some_peek h_preprocess)
                  h_flow_disp h_not_doc h_dispatch hcorr_result),
            hcorr_result⟩
@@ -18183,7 +18232,8 @@ lemma accum_content_pending (sc : ScannerState)
                            (content_park_arm (preprocess_some_peek h_preprocess)
                              h_flow_disp h_not_doc h_dispatch hcorr_result),
                        hcorr_result⟩
-              | inr h_block =>
+              | inr h_block_pair =>
+                obtain ⟨h_block, h_absorb95⟩ := h_block_pair
                 exact ⟨sp_block, sp_block, sp_block, sp_scan', h_stream_block,
                        BlockStack.nil sp_block, FlowStackB.nil sp_block .sep,
                        PendingNode.pendingContent sp_start sp_block sp_scan' h_line
@@ -18203,11 +18253,27 @@ lemma accum_content_pending (sc : ScannerState)
                          (stale_of_dispatch h_dispatch hamp hbang
                            (by split <;> exact nic_false_of_flow_disp (sc := sc) (s_prep := s_prep) h_preprocess h_flow_disp)
                            hcorr_result)
-                         -- Item 91's residue: a block-scalar KEY closes at
-                         -- `sp_ne`, before the landing's `s-l-comments` — the
-                         -- pack would need `[170]`'s `l-chomped-empty` to
-                         -- absorb them, which is unestablished.
-                         (Or.inr trivial)
+                         -- Item 95: the props-headed block-scalar KEY's value
+                         -- line — the landing's `s-l-comments` is absorbed
+                         -- into `[169]`, the props-headed node re-read to the
+                         -- landing feeds the park's own twin, and
+                         -- `? &p |⏎  x⏎: - w` composes.  The TAB-led stop
+                         -- stays with the deferral.
+                         (match h_kslot_p, h_absorb95 with
+                          | Or.inl ⟨nv, kslot⟩, Or.inl cl => Or.inl ⟨nv,
+                              fun sp_mid sp_i sp_c h_ssl h_ind h_lit sp_v h_sbi =>
+                                kslot sp_mid
+                                  ((cl sp_mid (white_prepend_SSLComments h_tws h_ssl)).elim
+                                    (fun h_lit' => literal_blockNode h_sep_run
+                                      (GOpt.some _ _
+                                        (GSeq.mk _ _ _ h_run.toPropertiesBlockIn h_sep2))
+                                      h_lit')
+                                    (fun h_fld' => folded_blockNode h_sep_run
+                                      (GOpt.some _ _
+                                        (GSeq.mk _ _ _ h_run.toPropertiesBlockIn h_sep2))
+                                      h_fld'))
+                                  sp_i sp_c h_ind h_lit sp_v h_sbi⟩
+                          | _, _ => Or.inr trivial)
                            (content_park_arm (preprocess_some_peek h_preprocess)
                              h_flow_disp h_not_doc h_dispatch hcorr_result),
                        hcorr_result⟩
@@ -18219,7 +18285,12 @@ lemma accum_content_pending (sc : ScannerState)
                     (∀ m : Nat, SFlowContent m .flowOut sp_prep sp_ne) ∧
                     GStar SSWhite sp_ne sp_res ∧ ScannerSurfCorr s' sp_res) ∨
                   ((SCLLiteral (k + 1) sp_prep sp_scan' ∨
-                    SCLFolded (k + 1) sp_prep sp_scan') ∧ (c = '|' ∨ c = '>')) ∨
+                    SCLFolded (k + 1) sp_prep sp_scan') ∧
+                    ((∀ sp_mid : SurfPos, SSLComments sp_scan' sp_mid →
+                        SCLLiteral (k + 1) sp_prep sp_mid ∨
+                        SCLFolded (k + 1) sp_prep sp_mid) ∨
+                      L4YAML.Proofs.ScalarProduction.BlockScalarTabStop sp_scan') ∧
+                    (c = '|' ∨ c = '>')) ∨
                   (∃ sp_ne sp_res,
                     SFlowContent (k + 1) .flowOut sp_prep sp_ne ∧
                     GStar SSWhite sp_ne sp_res ∧ ScannerSurfCorr s' sp_res) ∨ True := by
@@ -18228,11 +18299,11 @@ lemma accum_content_pending (sc : ScannerState)
                   -- own route index rather than only at 0.  One question, one
                   -- negative answer, so the guard is asked here and the arm below
                   -- keeps its single route to the escape.
-                  obtain ⟨sp_bs, d, h_floor', h_read, hcorr_bs⟩ :=
+                  obtain ⟨sp_bs, d, h_floor', h_read, hcorr_bs, h_absorb95⟩ :=
                     dispatchContent_blockScalar_prod_at _ sp_prep
                       (corr_of_allowDirectives_update hcorr_prep) hpeek_disp hbs h_dispatch
                   have hsp_bs_eq := ScannerSurfCorr_unique hcorr_bs hcorr_result
-                  rw [hsp_bs_eq] at h_read
+                  rw [hsp_bs_eq] at h_read h_absorb95
                   have h_ci : (if s_prep.allowDirectives then
                       { s_prep with allowDirectives := false, documentEverStarted := true }
                     else s_prep).currentIndent = s_prep.currentIndent := by
@@ -18247,7 +18318,10 @@ lemma accum_content_pending (sc : ScannerState)
                         (minContentIndentOf_congr (h_indents0 h_floor_p.1)).symm)) h_floor'
                   exact Or.inr (Or.inl
                     ⟨h_read.elim (fun h => Or.inl (h (k + 1) hn))
-                                 (fun h => Or.inr (h (k + 1) hn)), hbs⟩)
+                                 (fun h => Or.inr (h (k + 1) hn)),
+                     h_absorb95.imp_left fun cl sp_mid W =>
+                       (cl sp_mid W).elim (fun h => Or.inl (h (k + 1) hn))
+                                          (fun h => Or.inr (h (k + 1) hn)), hbs⟩)
                 · by_cases hline_eq : s'.line = (if s_prep.allowDirectives then
                       { s_prep with allowDirectives := false, documentEverStarted := true }
                     else s_prep).line
@@ -18303,7 +18377,7 @@ lemma accum_content_pending (sc : ScannerState)
                         · exact Or.inr (Or.inr (Or.inl ⟨sp_g, sp', h_content, h_tws2, hcorr'⟩))
                         · exact Or.inr (Or.inr (Or.inr trivial))
               rcases h_one with ⟨sp_ne, sp_res, h_all, h_tws, hcorr_res⟩ |
-                  ⟨h_read, hbs⟩ | ⟨sp_ne, sp_res, h_fixed, h_tws, hcorr_res⟩ | _
+                  ⟨h_read, h_absorb95k, hbs⟩ | ⟨sp_ne, sp_res, h_fixed, h_tws, hcorr_res⟩ | _
               · have hsp_eq4 := ScannerSurfCorr_unique hcorr_res hcorr_result
                 rw [hsp_eq4] at h_tws
                 exact ⟨sp_block, sp_block, sp_block, sp_scan', h_stream_block,
@@ -18355,9 +18429,26 @@ lemma accum_content_pending (sc : ScannerState)
                          (stale_of_dispatch h_dispatch hamp hbang
                            (by split <;> exact nic_false_of_flow_disp (sc := sc) (s_prep := s_prep) h_preprocess h_flow_disp)
                            hcorr_result)
-                         -- Item 91's residue, at the run's own index: the
-                         -- same `l-chomped-empty` boundary as the `n = 0` arm.
-                         (Or.inr trivial)
+                         -- Item 95, at the run's own index: the walk is
+                         -- absorbed into `[169]` exactly as at the `n = 0`
+                         -- arm, and the props-headed node re-read to the
+                         -- landing feeds the park's twin
+                         -- (`k:⏎  ? &p |⏎      x⏎  : - w`).
+                         (match h_kslot_p, h_absorb95k with
+                          | Or.inl ⟨nv, kslot⟩, Or.inl cl => Or.inl ⟨nv,
+                              fun sp_mid sp_i sp_c h_ssl h_ind h_lit sp_v h_sbi =>
+                                kslot sp_mid
+                                  ((cl sp_mid h_ssl).elim
+                                    (fun h_lit' => literal_blockNode h_sep_run
+                                      (GOpt.some _ _
+                                        (GSeq.mk _ _ _ h_run.toPropertiesBlockIn h_sep2))
+                                      h_lit')
+                                    (fun h_fld' => folded_blockNode h_sep_run
+                                      (GOpt.some _ _
+                                        (GSeq.mk _ _ _ h_run.toPropertiesBlockIn h_sep2))
+                                      h_fld'))
+                                  sp_i sp_c h_ind h_lit sp_v h_sbi⟩
+                          | _, _ => Or.inr trivial)
                            (content_park_arm (preprocess_some_peek h_preprocess)
                              h_flow_disp h_not_doc h_dispatch hcorr_result),
                        hcorr_result⟩
