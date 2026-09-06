@@ -108,8 +108,7 @@ private def tabAt (input : String) : Option (Nat × Nat) :=
 -- `noKeyContext`'s complement — a closed flow collection as `[194]`'s JSON
 -- key, at the two frames item 56 gave routes and at the mapping form.  What
 -- the constructor covers is a frame with no route at all, which is a fact
--- about the pending and not about any input; `staleKey` is likewise not
--- exhibitable from the outside.
+-- about the pending and not about any input.
 #guard emits "[1] : b\n"
   ["+STR", "+DOC", "+MAP", "+SEQ []", "=VAL :1", "-SEQ", "=VAL :b", "-MAP",
    "-DOC", "-STR"]

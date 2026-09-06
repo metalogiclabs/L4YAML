@@ -796,4 +796,30 @@ lemma preprocess_saved_key_at_cursor {sc s_prep : ScannerState} {c : Char}
   obtain ⟨h_poss, h_pos, h_off⟩ := saveSimpleKey_fresh_block h_al h_fl
   exact ⟨by rw [h_save]; exact h_poss, by rw [h_save, h_pos, h_off]⟩
 
+/-- **The fresh save's whole position** (item 90) — `preprocess_saved_key_at_cursor`
+    at the record rather than the offset.  This is the pair the implicit-key
+    pack producers destructure, so the flag alone decides
+    `preprocess_some_savedKey_shape`'s arm: outside a flow the save declines
+    only with the flag down, and every pack producer's park carries it up. -/
+lemma preprocess_saved_key_fresh {sc s_prep : ScannerState} {c : Char}
+    (h_a : sc.simpleKeyAllowed = true)
+    (h_noflow : s_prep.inFlow = false)
+    (h : scanNextToken_preprocess sc = .ok (some (s_prep, c))) :
+    s_prep.simpleKey.possible = true ∧
+    s_prep.simpleKey.pos = s_prep.currentPos := by
+  obtain ⟨s_u, s_skip, hsk, h_save, h_cases⟩ := preprocess_save_elim h
+  have h_al_skip : s_skip.simpleKeyAllowed = true :=
+    skipToContent_simpleKeyAllowed_mono sc s_skip h_a hsk
+  have h_al : s_u.simpleKeyAllowed = true := by
+    rcases h_cases with rfl | rfl
+    · exact h_al_skip
+    · show (unwindIndents s_skip s_skip.col).simpleKeyAllowed = true
+      rw [unwindIndents_preserves_simpleKeyAllowed]; exact h_al_skip
+  have h_fl : s_u.inFlow = false := by
+    rw [← saveSimpleKey_inFlow s_u, ← h_save]; exact h_noflow
+  rw [h_save]
+  unfold saveSimpleKey
+  rw [if_neg (by simp [h_fl]), if_pos h_al]
+  exact ⟨rfl, rfl⟩
+
 end L4YAML.Proofs.EntryBoundaryLayout

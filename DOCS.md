@@ -9705,6 +9705,43 @@ punt an input takes is not observable (item 65's own boundary), and the six
 inputs' runtime acceptance is pinned by `ScannerExplicitValueCompose` and
 `ScannerKeyPackPunt` already.
 
+### Item 90 (2026-09-05)
+
+**The `staleKey` drain: the constructor is gone.**  `KeyPackPunt.staleKey`
+named "preprocessing made no fresh save" — but outside a flow `saveSimpleKey`
+declines for exactly one reason (`simpleKeyAllowed` down — item 74's
+measurement), and every producer of the two pack lemmas is a park that
+carries the flag UP as a field: `pendingBlock.h_sk` (item 34) and
+`pendingMapValue.h_sk` (item 58).  The machinery was already on the shelf —
+`skipToContent_simpleKeyAllowed_mono`, `unwindIndents_preserves_simpleKeyAllowed`,
+`preprocess_save_elim`, and item 74's own reading "an armed save is a FRESH
+save" (`preprocess_saved_key_col`, `preprocess_saved_key_at_cursor`) — this
+item adds the missing face, `preprocess_saved_key_fresh`
+(EntryBoundaryLayout): the flag and the block level give the save's WHOLE
+position, `pos = currentPos`, which is the pair the pack producers
+destructure.
+
+So `entryKeyPack_of_dispatch` and `entryPropsKeyPack_of_dispatch` take the
+park's flag (`h_ska`) and read the fresh save off it in place of the
+`preprocess_some_savedKey_shape` case split — the inherit arm has no
+inhabitant at these premises, the `staleKey` punt no producer, and the
+constructor is DELETED, with `colon_fires_implicit_key`'s arm for it.  The
+four content lemmas thread the flag from the park fields their caller was
+already binding and discarding.  `keyctx_of_preprocess` keeps its own
+inherit punt: its callers hold only item 76's disjunction
+(`simpleKeyAllowed ∨ inFlow`), not the flag outright, so its `∨ True` stays
+honest and its docstring already says so.
+
+**Validation.**  Full `lake build` green (1068 jobs, ZERO warnings — first
+attempt again); `run-all-tests.sh` 6691/6691 unmoved; `eventscore` 347/358
+unmoved (252 pass / 11 diff / 0 reject / 95 error-ok); three checkers OK
+(220 modules / 354 imports; 20/229/248/354; 25 capstones); `#print axioms`:
+no `sorryAx` — `preprocess_saved_key_fresh` at `[propext, Classical.choice,
+Quot.sound]`.  ZERO runtime edits; matrix not re-run (items 63/64/74's
+precedent).  No new guard: `ScannerKeyPackPunt` already pins the runtime
+behavior at every boundary this item touches, and a deleted constructor has
+no observable to pin.
+
 ### REMAINING, in order
 
 The per-item history is the closure log above; this section lists only the
@@ -9718,7 +9755,7 @@ too (items 47–51), so what stands between here
 and Step 5 (the converse) is R3's remaining production work and R4:
 
 ```
-R1 ✓ (44–46) ──→ R2 ✓ (47–51) ──→ R3 (52–89 landed; 67b open) ──→ Step 5
+R1 ✓ (44–46) ──→ R2 ✓ (47–51) ──→ R3 (52–90 landed; 67b open) ──→ Step 5
                                         └──────→ R4 (implicitContinue + 0 < m) ──┘
 ```
 
@@ -9843,7 +9880,9 @@ and that deletion, by input class:
   still rides the deferral, now named: `dedent` (item 64's boundary, row 19's),
   `noFrame` (item 89 threads the frame-owning sites — what the reason still
   names is `[189]`'s scanner-refused same-line key, awaiting its witness),
-  `staleKey`, and `noKeyContext` (item 56's frameless flow closes);
+  and `noKeyContext` (item 56's frameless flow closes); ~~`staleKey`~~ is
+  GONE (item 90 — the save is fresh off the park's own flag, the
+  constructor deleted);
 * the **explicit-entry pack threading** at the key-park kinds item 51
   left `Or.inr`: block-scalar, flow, compact, inner-map, props and folded
   keys.  The SAME-LINE face of the inner-map and props kinds is item 89's
@@ -9991,15 +10030,16 @@ that reaches each:
   producers are also the block dispatch's inline-residue defers, fed by
   `KeyPackPunt`'s surviving reasons — `noFrame` (item 89 threads the six
   frame-owning sites; the reason's residue is `[189]`'s scanner-refused
-  same-line key), `staleKey`, and `dedent`, the last
+  same-line key) and `dedent`, the last
   being the sibling composition items 64–65 LOCATED and this plan orders as
   row 19's own (a frame stack on the pending).  So row 12's β.5 deletion
   closes after: ~~the escaped-blank gate item~~ (CLOSED by item 87), ~~the
   node-at-`nn` drain~~ (CLOSED by item 88), ~~the `noFrame` threading~~
   (CLOSED by item 89 — the frame-owning sites hand `h_vslot`; the exotic
   keys' VALUE-LINE face rides the R2 pack-threading bullet, not this
-  reason), the `staleKey` drain, and the DEDENT composition — in that
-  order, the last crossing into row 19's architecture.
+  reason), ~~the `staleKey` drain~~ (CLOSED by item 90 — the constructor is
+  deleted: the save is fresh off the park's own flag), and the DEDENT
+  composition — in that order, the last crossing into row 19's architecture.
 | 1 | `drop_ride` — `pendingFlow`'s opaque resume | the deletion proper |
 
 Items 69 and 72 made `h_lead_at` TOTAL, so the first row is refutable the
