@@ -9612,6 +9612,43 @@ suite case, item 62's experience repeated); matrix UNMOVED on both pipelines
 `foldQuotedNewlines_prod_at` at `[propext, Classical.choice, Quot.sound]`.
 RUNTIME edits in BOTH pipelines.
 
+### Item 88 (2026-09-05)
+
+**The node-at-`nn` pair is drained.**  What stood between the two remaining
+non-`pendingFlow` `dropClose` uses and their deletion was a family of
+`∨ True` punts in `ScalarFoldAt` whose only base case died with item 87:
+with the escaped break's landing the fold's own, EVERY landing of the quoted
+loops carries a check, so `collectDoubleQuotedLoop_prod_at` /
+`collectSingleQuotedLoop_prod_at` and their scan and dispatch wrappers state
+the reading at `n` with no disjunction — each surviving punt was propagating
+an induction hypothesis no arm any longer instantiates, and dropping the
+disjunction cost nothing but the `Or.inl`s.  The plain walk's one genuine
+residue is the BLOCK arm's (its blank-line skipper carries no §6.1 gate), so
+`collectPlainScalarLoop_prod_at` returns it LOCATED as `inFlow = false` —
+the premise-shaped punt of items 69/72 — and the flow face refutes it off
+its own `hinflow`: `scanPlainScalar_to_flowContent_flowIn_at` is total,
+stated at `[158] ns-flow-content` (what both consumers wrap), and the
+node-level flowIn face is deleted with the punt it existed to carry.
+
+**Both `dropClose` exits die at the consumer.**  The value-completing arm
+reads `dispatchContent_evidence_flowIn_at nn` directly — the floor is real
+(item 84), so the `_or_at` faces that carried it as optional are deleted —
+and the props arm reads `dispatchContent_evidence_flowIn_content_at nn`
+instead of lifting a 0-reading through `SFlowContent_at`, whose collection
+and crossed residues were exactly the renounce.  A multi-line scalar token
+at a nonzero index no longer collapses the stack in either path.
+`dropClose` has ONE use — `pendingFlow`'s own opaque resume, the
+deletion's — and `drop_ride` is unchanged at one.  ZERO runtime edits.
+
+**Validation.**  Full `lake build` green (1068 jobs, ZERO warnings);
+`run-all-tests.sh` 6689/6689 (the ledger summation, unmoved);
+`eventscore` 347/358 unmoved (252 pass / 11 diff / 0 reject / 95 error-ok);
+three checkers OK (220 modules / 354 imports; 20/229/248/354; 25 capstones);
+`#print axioms`: no `sorryAx` — both quoted loop lemmas at `[propext,
+Classical.choice, Quot.sound]`, the flow plain face adding only
+`ScalarProduction`'s standing `native_decide` char-class baseline.  Matrix
+not re-run (zero runtime edits — items 63/64/74's precedent).
+
 ### REMAINING, in order
 
 The per-item history is the closure log above; this section lists only the
@@ -9619,12 +9656,13 @@ OPEN work, the dependencies among the items, and what each closure buys.
 R1 CLOSED (items 44-46): the flow stack carries its reading index, the three
 flow-open drop rides are gone (4 -> 2 textual drop sites), and the drop's
 flow share lives in ONE place -- `dropClose`, the collapse's close -- whose
-domain is the renounce events (all R2-class) plus multi-line scalar tokens at
-a nonzero index.  R2 is CLOSED too (items 47–51), so what stands between here
+domain, since items 84–88 emptied the renounce events and the multi-line
+scalar readings, is `pendingFlow`'s own ride and nothing else.  R2 is CLOSED
+too (items 47–51), so what stands between here
 and Step 5 (the converse) is R3's remaining production work and R4:
 
 ```
-R1 ✓ (44–46) ──→ R2 ✓ (47–51) ──→ R3 (52–86 landed; 67b open) ──→ Step 5
+R1 ✓ (44–46) ──→ R2 ✓ (47–51) ──→ R3 (52–88 landed; 67b open) ──→ Step 5
                                         └──────→ R4 (implicitContinue + 0 < m) ──┘
 ```
 
@@ -9869,7 +9907,7 @@ that reaches each:
 | ~~6~~ | ~~the `:`-receiving closure's ARGUMENT, `SSeparateLines 0` handed in by a later step~~ | CLOSED by item 85 — the route reads at `n`, the producers hand their separator through, the consumer derives it off the floor |
 | ~~3~~ | ~~the props gap's own lead, `SSeparateLines_at nn h_lead_p`~~ | CLOSED by item 86 — the gap's fields are index-universal, refutable against the floor |
 | ~~3~~ | ~~the props run, `PropsRun_at nn h_run`~~ | CLOSED by item 86, the same shape |
-| 2 | the node at `nn` — `dispatchContent_evidence_flowIn_or_at`'s `∨ True` and `SFlowContent_at nn` | the one reading item 67a's `SFlowNode_at` closure did not cover; its base case was the escaped-blank over-acceptance, CLOSED by item 87 (the landing is a fold), so the drain is now proof work only |
+| ~~2~~ | ~~the node at `nn` — `dispatchContent_evidence_flowIn_or_at`'s `∨ True` and `SFlowContent_at nn`~~ | CLOSED by items 87+88 — the base case (the escaped-blank over-acceptance) died at the runtime, then the readings totalized and both consumers read at `nn` directly |
 | ~~1~~ | ~~the tuple fallback in `accum_step_flow`, fed by all four of the above~~ | CLOSED by item 86 — its last punt feeder died, the `∨ True` came off `h_tuple` |
 
   **The ledger above is nearly empty — and it was never the whole distance**
@@ -9885,8 +9923,8 @@ that reaches each:
   `foldQuotedNewlines` itself in both pipelines (item 62's gate included),
   and the escape arm's reader is the fold's own, so the `l-empty` lines are
   the escape's `l-empty*` slot's rather than the next fold's trimmed one.
-  Matrix and eventscore measured UNMOVED.  What remains of the pair is the
-  drain proper — proof work against a runtime that is now honest.
+  Matrix and eventscore measured UNMOVED.  The drain proper landed as item
+  88: `dropClose` has ONE use, `pendingFlow`'s own ride.
 
   And the DELETION has preconditions outside this ledger: `pendingFlow`'s
   producers are also the block dispatch's inline-residue defers, fed by
@@ -9894,10 +9932,10 @@ that reaches each:
   threading at the six key-park kinds), `staleKey`, and `dedent`, the last
   being the sibling composition items 64–65 LOCATED and this plan orders as
   row 19's own (a frame stack on the pending).  So row 12's β.5 deletion
-  closes after: ~~the escaped-blank gate item~~ (CLOSED by item 87), the
-  node-at-`nn` drain, the `noFrame` threading, the `staleKey` drain, and the
-  DEDENT composition — in that order, the last crossing into row 19's
-  architecture.
+  closes after: ~~the escaped-blank gate item~~ (CLOSED by item 87), ~~the
+  node-at-`nn` drain~~ (CLOSED by item 88), the `noFrame` threading, the
+  `staleKey` drain, and the DEDENT composition — in that order, the last
+  crossing into row 19's architecture.
 | 1 | `drop_ride` — `pendingFlow`'s opaque resume | the deletion proper |
 
 Items 69 and 72 made `h_lead_at` TOTAL, so the first row is refutable the
