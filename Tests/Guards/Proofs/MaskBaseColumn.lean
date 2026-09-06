@@ -70,7 +70,7 @@ could measure a floor.  It is a projection now. -/
 example {sc : ScannerState} {sp_start sp_scan : SurfPos}
     (h : ImplicitKeyPack sc sp_start sp_scan) :
     ∃ k : Nat, sc.simpleKey.pos.col = k := by
-  obtain ⟨k, _, _, _, _, _, h_col⟩ := h
+  obtain ⟨k, _, _, _, _, _, h_col, _⟩ := h
   exact ⟨k, h_col⟩
 
 example {sc : ScannerState} {sp_start sp_p sp_scan : SurfPos}
