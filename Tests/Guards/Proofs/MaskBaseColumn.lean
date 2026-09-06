@@ -76,7 +76,7 @@ example {sc : ScannerState} {sp_start sp_scan : SurfPos}
 example {sc : ScannerState} {sp_start sp_p sp_scan : SurfPos}
     (h : PropsKeyPack sc sp_start sp_p sp_scan) :
     ∃ k : Nat, sc.simpleKey.pos.col = k := by
-  obtain ⟨⟨k, _, h_col⟩, _⟩ := h
+  obtain ⟨⟨k, _, h_col, _⟩, _⟩ := h
   exact ⟨k, h_col⟩
 
 /-- The flow close's producer, with both arguments equations: nothing in this

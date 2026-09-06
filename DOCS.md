@@ -9936,6 +9936,73 @@ matrix not re-run (items 63/64/74's precedent).  No new guard: no runtime
 observable moved; two guards' constructions gained the appended field's
 `Or.inr trivial` / a destructure `_`.
 
+### Item 94 (2026-09-06)
+
+**The props-headed key's value line: `PropsKeyPack` carries the same route
+PAIR.**  `? &p a: b⏎: - w` was item 93's first named residue: the props run
+heads the inner compact key, so the key's route is `PropsKeyPack`'s — and
+that pack carried route + column only, so the value line deferred exactly
+where the unheaded `? a: b⏎: - w` had before item 93.  The item is 93's
+design moved one shelf over, and every consumer it feeds already existed:
+
+* **`PropsKeyPack`'s route existential gains the ENTRY-level twin** —
+  `ImplicitKeyPack`'s pair verbatim, stated at the run's own start (the
+  `[188]` entry, the `[195]` tail with `SCompactMapTail` riding for a
+  future sibling cons, then `s-indent(nv) ':' s-l+block-indented`).  Its
+  one real producer is `entryPropsKeyPack_of_dispatch`'s on-the-line
+  branch: `h_compact` widens to item 93's three-conjunct frame (the three
+  `h_compact_vslot` callers stop projecting the third conjunct away and
+  pass the payload whole), and the branch folds entry+tail into the same
+  `compactMap` wrap `compactMapRoute` builds — item 93's payment term with
+  the run in the head's place.  The indented `pendingBlock` props arm pays
+  the widened frame from item 92's `h_kslot` with a `nil` sequence tail
+  (`? - &p a: 1⏎: - w` composes), the root arms and the landed
+  `valueMapRoute` branch punt with the reason at the site, and the two
+  run-extension transports carry the pair verbatim — the pair is pure
+  surface, so growing the run does not move it.
+* **The pair lands in the two consumers that already knew its shape.**
+  The props-CONTENT arm's three `ImplicitKeyPack` builds (`&p a`,
+  `&p "a"`, `&p 'a'` heads) hand `h_kslot_pk` straight into the 8th
+  component — the entry domains are identical by construction — after
+  which the whole of item 93's chain (`colon_fires_implicit_key` →
+  `colon_open_map_implicit` → `pendingMapValue.h_kslot` → `h_vpack`)
+  serves the props-headed family untouched.  And `colon_open_map_props`
+  takes the pair as a hypothesis and pays the park's `h_kslot` itself —
+  `colon_open_map_implicit`'s payment with the props-empty key in the
+  entry's head — so the run-only key composes too (`? &p : b⏎: - w`).
+
+With the anchor/tag/double-anchor-tag heads, the quoted keys, the empty
+inner value and the indented twins (`k:⏎  ? &p a: b⏎  : - w`), the
+props-headed inner-map family composes end to end.
+
+**Named residues, at their punt sites.**  `?⏎  &p a: b⏎: - w` (the landed
+run heads a `[199] s-l+block-node` nesting — the props face of the
+landed-nesting residue, no compact alternative); the flow open's
+`pendingProps` arm binds the pair and drops it (`FlowBaseRoutes.key` is
+route-only — the FLOW kind's own item, now the pair's third rider); the
+inner-map sibling (`SCompactMapTail.cons` still has no producer); the root
+frames (a column-0 run heads no explicit entry).
+
+**Validation.**  Runtime acceptance measured FIRST: all fourteen probed
+inputs — `? &p a: b⏎: - w`, `? !!str a: b⏎: - w`, `? !x a: b⏎: - w`,
+`? &p !!str a: b⏎: - w`, `? &p a: b⏎: w`, `? &p a:⏎: - w`,
+`? &p "a": b⏎: - w`, `? &p a: &x b⏎: - w`, `? &p : b⏎: - w`,
+`? - &p a: 1⏎: - w`, `k:⏎  ? &p a: b⏎  : - w`, `k:⏎  ? - &p a: 1⏎  : - w`
+and the multi-char-anchor/seq-entry shapes — parse with correct events, so
+the item is proof-only.  Full `lake build` green (1068 jobs, ZERO
+warnings; ONE compiler-found fixup — the flow open's `pendingProps` arm
+destructures the pack's inner triple, a seventh site the sweep had
+missed — every other site compiled as written); `run-all-tests.sh`
+6691/6691 unmoved (36 summary lines); `eventscore` 347/358 unmoved
+(252/11/0/95); three checkers OK (220/354; 20/229/248/354; 25);
+`#print axioms`: no `sorryAx` — `entryPropsKeyPack_of_dispatch` at the
+standard three, `colon_open_map_props`/`colon_fires_props_key` at the
+standard three plus the two pre-existing `native_decide` axioms their
+implicit-key siblings carry (item 79's note).  ZERO runtime edits; matrix
+not re-run (items 63/64/74's precedent).  No new guard: no runtime
+observable moved; one guard destructure gained a `_`
+(`MaskBaseColumn`'s §3 projection).
+
 ### REMAINING, in order
 
 The per-item history is the closure log above; this section lists only the
@@ -9949,7 +10016,7 @@ too (items 47–51), so what stands between here
 and Step 5 (the converse) is R3's remaining production work and R4:
 
 ```
-R1 ✓ (44–46) ──→ R2 ✓ (47–51) ──→ R3 (52–93 landed; 67b open) ──→ Step 5
+R1 ✓ (44–46) ──→ R2 ✓ (47–51) ──→ R3 (52–94 landed; 67b open) ──→ Step 5
                                         └──────→ R4 (implicitContinue + 0 < m) ──┘
 ```
 
@@ -10094,17 +10161,20 @@ and that deletion, by input class:
   entry-level twin with the `[195]` tail riding — and `pendingMapValue`
   gets `h_close`'s twin, so `? a: b⏎: - w`, `? a:⏎: - w`,
   `? - a: 1⏎: - w`, `? a: &x b⏎: - w` and the indented/quoted twins
-  compose).  What stays open is the VALUE-LINE face of the last two
-  kinds — block-scalar (gated on whether `[170]`'s `l-chomped-empty`
-  absorbs the landing's `s-l-comments`) and flow
-  (`FlowBaseRoutes.key`/`vslot` carry no pack face) — plus the named
-  residues: the seq-spaces/landed pair (`?⏎- a⏎: - w`, `?⏎  a: b⏎: - w`:
-  the key is a `[185]` `s-l+block-node`/`[199]` nesting, which no park
-  twins yet), the props-headed key (`? &p a: b⏎: - w` — `PropsKeyPack`'s
-  own pair), and the inner-map sibling (`? a: b⏎  c: d⏎: e` —
-  `SCompactMapTail.cons` has no producer yet) — so `? |⏎  k⏎: - w` and
-  those siblings still close `e-node` and defer the reopened `[189]`'s
-  compact fill;
+  compose); the PROPS-HEADED key is item 94's (`PropsKeyPack` carries the
+  same pair, produced at `entryPropsKeyPack_of_dispatch`'s compact branch
+  and spent through the props-content arm's `ImplicitKeyPack` builds and
+  `colon_open_map_props`, so `? &p a: b⏎: - w`, `? &p : b⏎: - w`,
+  `? - &p a: 1⏎: - w` and the tag/quoted/indented twins compose).  What
+  stays open is the VALUE-LINE face of the last two kinds — block-scalar
+  (gated on whether `[170]`'s `l-chomped-empty` absorbs the landing's
+  `s-l-comments`) and flow (`FlowBaseRoutes.key`/`vslot` carry no pack
+  face) — plus the named residues: the seq-spaces/landed family
+  (`?⏎- a⏎: - w`, `?⏎  a: b⏎: - w`, `?⏎  &p a: b⏎: - w`: the key is a
+  `[185]` `s-l+block-node`/`[199]` nesting, which no park twins yet) and
+  the inner-map sibling (`? a: b⏎  c: d⏎: e` — `SCompactMapTail.cons` has
+  no producer yet) — so `? |⏎  k⏎: - w` and those siblings still close
+  `e-node` and defer the reopened `[189]`'s compact fill;
 * the **flow share** — ~~the depth-0 flow close must park REAL evidence
   (`[1] : b`, `? [1]⏎: v`)~~ — CLOSED by item 56 (the frame carries the
   entry routes and the close joins them with the collection re-read as

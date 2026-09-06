@@ -532,7 +532,19 @@ lemma flowVPack_of_close {n : Nat} {sp_start sp_br sp_tok : SurfPos}
 def PropsKeyPack (sc : ScannerState) (sp_start sp_p sp_scan : SurfPos) : Prop :=
   (∃ k : Nat,
     (∀ sp_v, SBlockMapEntry k sp_p sp_v → SLYamlStream sp_start sp_v) ∧
-    sc.simpleKey.pos.col = k) ∧
+    sc.simpleKey.pos.col = k ∧
+    -- Item 94: the route's VALUE-LINE twin, at the ENTRY level — the pair
+    -- `ImplicitKeyPack` carries (item 93), stated at the run's own start,
+    -- because a props-headed key (`? &p a: b⏎: - w`) resolves its entry
+    -- there.  The `SCompactMapTail` rides so a sibling site can cons;
+    -- every present consumer passes `nil`.  Producers whose frame has no
+    -- value line pass `Or.inr trivial`.
+    ((∃ nv : Nat,
+      ∀ sp_v : SurfPos, SBlockMapEntry k sp_p sp_v →
+      ∀ sp_e : SurfPos, SCompactMapTail k sp_v sp_e →
+      ∀ sp_i sp_c : SurfPos, SIndent nv sp_e sp_i → GLit ':' sp_i sp_c →
+      ∀ sp_w : SurfPos, SBlockIndented nv .blockOut sp_c sp_w →
+      SLYamlStream sp_start sp_w) ∨ True)) ∧
   SCNsProperties 0 .blockKey sp_p sp_scan ∧
   sc.simpleKey.pos.line = sc.line ∧
   -- Item 63: the key is actually SAVED.  Both producers read it off
@@ -6968,8 +6980,11 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
                -- break is exactly what re-arms the flag and makes preprocessing
                -- re-save; so a run that lost `h_inherit_col` had already lost
                -- the head.
+               -- Item 94: the pack's value-line pair stops at this open —
+               -- `FlowBaseRoutes.key` is route-only (the flow kind's own
+               -- residue), so the frame has nowhere to carry it.
                (match h_pkey, h_inherit_col with
-                | Or.inl ⟨⟨k, route, h_kcol_p⟩, h_props, _⟩, Or.inl h_inh =>
+                | Or.inl ⟨⟨k, route, h_kcol_p, _⟩, h_props, _⟩, Or.inl h_inh =>
                     have h_col_p : s_prep.simpleKey.pos.col = k := h_inh.trans h_kcol_p
                     Or.inl ⟨k, sp_p, route,
                     fun sp_end h_content =>
@@ -11529,6 +11544,14 @@ lemma colon_open_map_props (sp_start sp_block sp_p sp_scan : SurfPos) (k : Nat)
     (sc : ScannerState)
     (s_prep s' : ScannerState) (sp_prep sp_scan' : SurfPos)
     (h_route : ∀ sp_v, SBlockMapEntry k sp_p sp_v → SLYamlStream sp_start sp_v)
+    -- Item 94: the pack's value-line pair (item 93's shape, at the run's
+    -- start) — spent into the park's own twin below.
+    (h_kslot : (∃ nv : Nat,
+      ∀ sp_v : SurfPos, SBlockMapEntry k sp_p sp_v →
+      ∀ sp_e : SurfPos, SCompactMapTail k sp_v sp_e →
+      ∀ sp_i sp_c : SurfPos, SIndent nv sp_e sp_i → GLit ':' sp_i sp_c →
+      ∀ sp_w : SurfPos, SBlockIndented nv .blockOut sp_c sp_w →
+      SLYamlStream sp_start sp_w) ∨ True)
     (h_props : SCNsProperties 0 .blockKey sp_p sp_scan)
     (h_ws : GStar SSWhite sp_scan sp_prep)
     -- Item 63: the pack's own coordinates — the key exists and sits at the
@@ -11596,9 +11619,19 @@ lemma colon_open_map_props (sp_start sp_block sp_p sp_scan : SurfPos) (k : Nat)
            -- Item 68: `colon_open_map_implicit`'s boundary, for its reason — the
            -- run's own column is the pack's optional datum, not this producer's.
            (by have := glit_col h_lit; omega) (Or.inr trivial)
-           -- Item 93: `PropsKeyPack` carries no value-line face yet — the
-           -- props-headed inner-map key is that pack's own pair.
-           (Or.inr trivial),
+           -- Item 94: the park's twin, from the pack's pair — the completed
+           -- inner value folds into the props-headed entry, `nil` tail
+           -- (`? &p : b⏎: - w`; `colon_open_map_implicit`'s payment, with
+           -- the props-empty key in the entry's head).
+           (match h_kslot with
+            | Or.inl ⟨nv, kslot⟩ => Or.inl ⟨nv,
+                fun sp_m h_node sp_i sp_c h_iv h_lit_v sp_v h_sbi =>
+                  kslot sp_m
+                    (SBlockMapEntry.implicitKeyNode k sp_p sp_prep sp_scan' sp_m h_ik h_lit
+                      (SBlockNode_blockIn_to_blockOut h_node))
+                    sp_m (SCompactMapTail.nil k sp_m)
+                    sp_i sp_c h_iv h_lit_v sp_v h_sbi⟩
+            | Or.inr _ => Or.inr trivial),
          hcorr_result⟩
 
 /-- …and the coupling that fires it (item 49): at a props park the same-line
@@ -11643,7 +11676,7 @@ lemma colon_fires_props_key (sc : ScannerState)
   cases h_key with
   | inr _ => exact h_punt
   | inl pack =>
-    obtain ⟨⟨k, h_route, h_kcol⟩, h_props, h_skline, h_poss⟩ := pack
+    obtain ⟨⟨k, h_route, h_kcol, h_kslot_pk⟩, h_props, h_skline, h_poss⟩ := pack
     obtain ⟨sp_mid, sp_ws, sp_prep2, h_disj, h_ws, _h_cmt, hcorr_prep2, h_pk, _⟩ :=
       preprocess_some_ssl_comments_anyCol sc sp_scan s_prep ':' h_corr h_preprocess
     have hsp_eq2 := ScannerSurfCorr_unique hcorr_prep hcorr_prep2; subst hsp_eq2
@@ -11665,7 +11698,7 @@ lemma colon_fires_props_key (sc : ScannerState)
       obtain ⟨h_inh, -, h_off_ge, -⟩ := h_mid.2.2.2 h_nic h_ska
       obtain ⟨h_line_pp, -, -, -⟩ := h_mid.2.1 h_nic h_real
       exact colon_open_map_props sp_start sp_block sp_p sp_scan k sc s_prep s'
-        sp_prep sp_scan' h_route h_props h_ws h_poss h_kcol h_inh
+        sp_prep sp_scan' h_route h_kslot_pk h_props h_ws h_poss h_kcol h_inh
         (by rw [h_inh, h_line_pp]; exact h_skline)
         (by rw [h_inh]; have := h_kbc.1 h_poss; omega)
         h_noflow h_preprocess
@@ -15722,9 +15755,16 @@ lemma entryPropsKeyPack_of_dispatch
     (h_node : ∀ sp, SBlockNode n .blockIn sp_scan sp → SLYamlStream sp_start sp)
     -- Item 79: `entryKeyPack_of_dispatch`'s bundled frame, verbatim — the
     -- compact route and the park's width, so the run's own column is measured
-    -- on the line as it already was across a break.
+    -- on the line as it already was across a break.  Item 94: and the frame's
+    -- VALUE LINE (item 93's third conjunct, verbatim) — the compact branch
+    -- below folds the props-headed mapping into it, which is what gives
+    -- `PropsKeyPack` its pair (`? &p a: b⏎: - w`).
     (h_compact : ((∀ sp, SBlockIndented n .blockIn sp_scan sp → SLYamlStream sp_start sp) ∧
-      sp_scan.col = n + 1) ∨ True)
+      sp_scan.col = n + 1 ∧
+      ((∃ nv : Nat, ∀ sp : SurfPos, SBlockIndented n .blockIn sp_scan sp →
+        ∀ sp_i sp_c : SurfPos, SIndent nv sp sp_i → GLit ':' sp_i sp_c →
+        ∀ sp_v : SurfPos, SBlockIndented nv .blockOut sp_c sp_v →
+        SLYamlStream sp_start sp_v) ∨ True)) ∨ True)
     -- Item 90: the flag and the block level, `entryKeyPack_of_dispatch`'s
     -- own pair — the save is fresh for the same reason.
     (h_ska : sc.simpleKeyAllowed = true)
@@ -15776,7 +15816,12 @@ lemma entryPropsKeyPack_of_dispatch
           have := SIndent_col h_ind'
           rw [h_land.2.1] at this
           omega
-        exact Or.inl ⟨⟨w, valueMapRoute hnw h_node h_land.1 h_ind', h_kcol⟩,
+        exact Or.inl ⟨⟨w, valueMapRoute hnw h_node h_land.1 h_ind', h_kcol,
+                      -- Item 94: the landed run's key belongs to a mapping
+                      -- nested in a `[199] s-l+block-node` slot — no compact
+                      -- alternative, so no frame twins it (the props face of
+                      -- item 93's landed-nesting residue: `?⏎  &p a: b⏎: - w`).
+                      Or.inr trivial⟩,
                       h_props, h_sk_line,
                       by rw [h_sk, allowDirectives_update_simpleKey]; exact h_shape.1⟩
       · exact Or.inr trivial
@@ -15793,9 +15838,22 @@ lemma entryPropsKeyPack_of_dispatch
           show s_prep.col = n + 1 + w
           rw [← hcorr_prep.col_eq]
           have := SIndent_col h_ind'
-          rw [h_cp.2] at this
+          rw [h_cp.2.1] at this
           omega
-        exact Or.inl ⟨⟨n + 1 + w, compactMapRoute h_cp.1 h_ind', h_kcol⟩,
+        exact Or.inl ⟨⟨n + 1 + w, compactMapRoute h_cp.1 h_ind', h_kcol,
+                      -- Item 94: the frame's value line — the props-headed
+                      -- entry and its tail folded into the same `[195]` wrap
+                      -- the route builds, exactly item 93's term
+                      -- (`? &p a: b⏎: - w`, `? &p : b⏎: - w`).
+                      match h_cp.2.2 with
+                      | Or.inl ⟨nv, kslot⟩ => Or.inl ⟨nv,
+                          fun sp_v h_entry sp_e h_tail sp_i sp_c h_iv h_lit sp_w h_sbi =>
+                            kslot sp_e
+                              (SBlockIndented.compactMap n .blockIn w sp_scan sp_prep sp_e
+                                h_ind'
+                                (SCompactMap.mk (n + 1 + w) sp_prep sp_v sp_e h_entry h_tail))
+                              sp_i sp_c h_iv h_lit sp_w h_sbi⟩
+                      | Or.inr _ => Or.inr trivial⟩,
                       h_props, h_sk_line,
                       by rw [h_sk, allowDirectives_update_simpleKey]; exact h_shape.1⟩
 
@@ -15892,7 +15950,10 @@ lemma content_dispatch_routed
           omega
         -- Item 41: the coordinates are spent HERE, into `[187]`'s root route,
         -- rather than carried to a consumer that could only spend them one way.
-        refine Or.inl ⟨⟨k, rootMapRoute hcol0 h_stream_land h_ind, h_kcol⟩, h_props, ?_,
+        refine Or.inl ⟨⟨k, rootMapRoute hcol0 h_stream_land h_ind, h_kcol,
+          -- Item 94: a root frame — the run heads a key at column 0, and no
+          -- `?` fits to its left, so no value line twins the route.
+          Or.inr trivial⟩, h_props, ?_,
           by rw [h_sk, allowDirectives_update_simpleKey]; exact _h_sk_poss⟩
         rw [h_sk, allowDirectives_update_simpleKey, h_sk_pos,
             h_line', allowDirectives_update_line]
@@ -16211,7 +16272,10 @@ lemma accum_content_on_pendingBlock
                -- Item 41: …and the run is also a KEY HEAD, at either of the
                -- entry's two frames — `- &p a: 1` compact, `-⏎  &p a: 1` nested.
                (entryPropsKeyPack_of_dispatch sc sp_start sp_scan 0 s_prep s' '&'
-                 sp_prep sp_scan' h_route (Or.inl ⟨h_close_old, h_col_old⟩)
+                 sp_prep sp_scan'
+                 -- Item 94: a root `- `'s indicator sits at column 0, so no
+                 -- `?` frame can own this park — the value-line face is vacuous.
+                 h_route (Or.inl ⟨h_close_old, h_col_old, Or.inr trivial⟩)
                  h_ska (by revert h_flow_disp; split <;> (intro h; exact h))
                  (SCNsProperties.anchorFirst 0 .blockKey sp_prep sp_scan' sp_scan'
                    ha_ev (GOpt.none sp_scan'))
@@ -16242,7 +16306,9 @@ lemma accum_content_on_pendingBlock
                  (by simp [YamlToken.isTagProperty]))
                h_route
                (entryPropsKeyPack_of_dispatch sc sp_start sp_scan 0 s_prep s' '!'
-                 sp_prep sp_scan' h_route (Or.inl ⟨h_close_old, h_col_old⟩)
+                 sp_prep sp_scan'
+                 -- Item 94: root frame, as at the `&` arm above.
+                 h_route (Or.inl ⟨h_close_old, h_col_old, Or.inr trivial⟩)
                  h_ska (by revert h_flow_disp; split <;> (intro h; exact h))
                  (SCNsProperties.tagFirst 0 .blockKey sp_prep sp_scan' sp_scan'
                    ht_ev (GOpt.none sp_scan'))
@@ -16845,7 +16911,16 @@ lemma accum_content_on_pendingBlock_indented
                sp_prep sp_scan'
                (fun sp_m h_bn => h_close_old sp_m
                  (SBlockIndented.node n .blockIn sp_scan sp_m h_bn))
-               (Or.inl ⟨h_close_old, h_col_old⟩)
+               -- Item 94: the entry's own value-line pack (item 92's field)
+               -- serves the frame face, `nil` sequence tail — as at the
+               -- `entryKeyPack_of_dispatch` site above (`? - &p a: 1⏎: - w`).
+               (Or.inl ⟨h_close_old, h_col_old,
+                 match h_kslot_old with
+                 | Or.inl ⟨nv, kslot⟩ => Or.inl ⟨nv,
+                     fun sp h_bi sp_i sp_c h_iv h_lit sp_v h_sbi =>
+                       kslot sp h_bi sp (SCompactSeqTail.nil n sp)
+                         sp_i sp_c h_iv h_lit sp_v h_sbi⟩
+                 | Or.inr _ => Or.inr trivial⟩)
                h_ska (by revert h_flow_disp; split <;> (intro h; exact h))
                ((h_run_all 0).toPropertiesBlockKey h_single) h_sk_s h_line_s
                hcorr_prep h_corr h_preprocess)
@@ -17080,7 +17155,7 @@ lemma accum_content_on_pendingMapValue
                -- `s-l+block-node`, which has no compact alternative, so the
                -- on-line landing (`: &p a: 1`) is the branch that punts.
                (entryPropsKeyPack_of_dispatch sc sp_start sp_scan 0 s_prep s' '&'
-                 sp_prep sp_scan' h_route (h_compact_vslot.imp_left fun h => ⟨h.1, h.2.1⟩)
+                 sp_prep sp_scan' h_route h_compact_vslot
                  h_ska (by revert h_flow_disp; split <;> (intro h; exact h))
                  (SCNsProperties.anchorFirst 0 .blockKey sp_prep sp_scan' sp_scan'
                    ha_ev (GOpt.none sp_scan'))
@@ -17126,7 +17201,7 @@ lemma accum_content_on_pendingMapValue
                  (by simp [YamlToken.isTagProperty]))
                h_route
                (entryPropsKeyPack_of_dispatch sc sp_start sp_scan 0 s_prep s' '!'
-                 sp_prep sp_scan' h_route (h_compact_vslot.imp_left fun h => ⟨h.1, h.2.1⟩)
+                 sp_prep sp_scan' h_route h_compact_vslot
                  h_ska (by revert h_flow_disp; split <;> (intro h; exact h))
                  (SCNsProperties.tagFirst 0 .blockKey sp_prep sp_scan' sp_scan'
                    ht_ev (GOpt.none sp_scan'))
@@ -17392,7 +17467,7 @@ lemma accum_content_on_pendingMapValue_indented
              h_sep_all (h_run_all n) h_nic_s h_real_s h_anchor_s h_tag_s
              h_close_old
              (entryPropsKeyPack_of_dispatch sc sp_start sp_scan n s_prep s' c
-               sp_prep sp_scan' h_close_old (h_compact_vslot.imp_left fun h => ⟨h.1, h.2.1⟩)
+               sp_prep sp_scan' h_close_old h_compact_vslot
                h_ska (by revert h_flow_disp; split <;> (intro h; exact h))
                ((h_run_all 0).toPropertiesBlockKey h_single) h_sk_s h_line_s
                hcorr_prep h_corr h_preprocess)
@@ -17820,9 +17895,12 @@ lemma accum_content_pending (sc : ScannerState)
                    cases h_key_p with
                    | inr _ => exact Or.inr trivial
                    | inl hpk =>
-                     obtain ⟨⟨k, h_route_k, h_kcol⟩, _h_props_old, h_sk_line, h_poss_old⟩ := hpk
+                     obtain ⟨⟨k, h_route_k, h_kcol, h_kslot_pk⟩, _h_props_old, h_sk_line,
+                       h_poss_old⟩ := hpk
                      refine Or.inl ⟨⟨k, h_route_k,
-                         h_kcol_ext h_kcol (dispatchContent_anchor_simpleKey h_dispatch).1⟩,
+                         h_kcol_ext h_kcol (dispatchContent_anchor_simpleKey h_dispatch).1,
+                         -- Item 94: the run grows, the entry does not move.
+                         h_kslot_pk⟩,
                        h_run.blockKey_addAnchor
                          (GStar_SSWhite_to_SSeparateInLine sp_scan sp_prep h_ws) h_prop, ?_,
                        by
@@ -17905,9 +17983,12 @@ lemma accum_content_pending (sc : ScannerState)
                      cases h_key_p with
                      | inr _ => exact Or.inr trivial
                      | inl hpk =>
-                       obtain ⟨⟨k, h_route_k, h_kcol⟩, _h_props_old, h_sk_line, h_poss_old⟩ := hpk
+                       obtain ⟨⟨k, h_route_k, h_kcol, h_kslot_pk⟩, _h_props_old, h_sk_line,
+                         h_poss_old⟩ := hpk
                        refine Or.inl ⟨⟨k, h_route_k,
-                           h_kcol_ext h_kcol (dispatchContent_tag_simpleKey h_dispatch).1⟩,
+                           h_kcol_ext h_kcol (dispatchContent_tag_simpleKey h_dispatch).1,
+                           -- Item 94: as at the `&` transport above.
+                           h_kslot_pk⟩,
                          h_run.blockKey_addTag
                            (GStar_SSWhite_to_SSeparateInLine sp_scan sp_prep h_ws) h_prop, ?_,
                          by
@@ -17983,7 +18064,8 @@ lemma accum_content_pending (sc : ScannerState)
               cases h_key_p with
               | inr _ => exact Or.inr KeyPackPunt.noKeyContext
               | inl hpk =>
-                obtain ⟨⟨k, h_route_k, h_kcol⟩, h_props_bk, h_sk_line, h_poss_old⟩ := hpk
+                obtain ⟨⟨k, h_route_k, h_kcol, h_kslot_pk⟩, h_props_bk, h_sk_line,
+                  h_poss_old⟩ := hpk
                 -- Item 79: the same inherit, at the CONTENT step — so the head
                 -- the pack completes carries the run's own column rather than
                 -- offering it.
@@ -18019,15 +18101,16 @@ lemma accum_content_pending (sc : ScannerState)
                     obtain ⟨sp_res2, h_dq, hcorr2⟩ := h_cond (h_line_scan h_pp)
                     have hsp2 := ScannerSurfCorr_unique hcorr2 hcorr_result
                     rw [hsp2] at h_dq
-                    -- Item 93: a props-HEADED key's route is `PropsKeyPack`'s,
-                    -- which carries no value-line face yet — `? &p a: b⏎: - w`
-                    -- stays with the deferral (the props pack's own pair).
+                    -- Item 94: a props-HEADED key's route is `PropsKeyPack`'s,
+                    -- and so is its value line — the pack's pair has the
+                    -- entry-level domain `ImplicitKeyPack`'s twin asks for,
+                    -- verbatim (`? &p "a": b⏎: - w`).
                     exact Or.inl ⟨k, sp_p, sp_scan', h_route_k,
                       ImplicitKeyHead.json
                         (SFlowNode.propsContent 0 .blockKey sp_p sp_scan sp_prep sp_scan'
                           h_props_bk h_sep_bk
                           (SFlowContent.doubleQ 0 .blockKey sp_prep sp_scan' h_dq)),
-                      GStar.nil _, h_kcol_of h_pp, Or.inr trivial⟩
+                      GStar.nil _, h_kcol_of h_pp, h_kslot_pk⟩
                   · by_cases hsq : c = '\''
                     · subst hsq
                       obtain ⟨h_pp, h_cond⟩ :=
@@ -18041,7 +18124,7 @@ lemma accum_content_pending (sc : ScannerState)
                           (SFlowNode.propsContent 0 .blockKey sp_p sp_scan sp_prep sp_scan'
                             h_props_bk h_sep_bk
                             (SFlowContent.singleQ 0 .blockKey sp_prep sp_scan' h_sq)),
-                        GStar.nil _, h_kcol_of h_pp, Or.inr trivial⟩
+                        GStar.nil _, h_kcol_of h_pp, h_kslot_pk⟩
                     · obtain ⟨h_sk_pres, h_cond⟩ :=
                         dispatchContent_plainScalar_key_prod _ sp_prep
                           (corr_of_allowDirectives_update hcorr_prep) hpeek_disp h_flow_disp
@@ -18055,7 +18138,7 @@ lemma accum_content_pending (sc : ScannerState)
                           (SFlowNode.propsContent 0 .blockKey sp_p sp_scan sp_prep sp_gram2
                             h_props_bk h_sep_bk
                             (SFlowContent.plain 0 .blockKey sp_prep sp_gram2 h_ol)),
-                        h_tws2, h_kcol_of (by rw [h_sk_pres]), Or.inr trivial⟩
+                        h_tws2, h_kcol_of (by rw [h_sk_pres]), h_kslot_pk⟩
             -- Item 24: the run's route index decides which readings of the
             -- decorated value are available.  At 0 the whole of
             -- `dispatchContent_evidence_content` is — including `[198]`'s
