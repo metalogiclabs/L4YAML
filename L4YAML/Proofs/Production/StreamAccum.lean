@@ -448,18 +448,24 @@ lemma flowKeyPack_of_close {sc : ScannerState} {n kc : Nat} {sp_start sp_br sp_t
       (∀ sp_v, SBlockMapEntry k sp_key sp_v → SLYamlStream sp_start sp_v) ∧
       (∀ sp_end, SFlowContent n .flowOut sp_br sp_end →
         ImplicitKeyHead sp_key sp_end ∨ True) ∧
-      kc = k) ∨ True)
+      kc = k ∧
+      ((∃ nv : Nat,
+        ∀ sp_v : SurfPos, SBlockMapEntry k sp_key sp_v →
+        ∀ sp_e : SurfPos, SCompactMapTail k sp_v sp_e →
+        ∀ sp_i sp_c : SurfPos, SIndent nv sp_e sp_i → GLit ':' sp_i sp_c →
+        ∀ sp_w : SurfPos, SBlockIndented nv .blockOut sp_c sp_w →
+        SLYamlStream sp_start sp_w) ∨ True)) ∨ True)
     (h_kc : sc.simpleKey.pos.col = kc)
     (h_content : SFlowContent n .flowOut sp_br sp_tok) :
     sc.simpleKey.possible = true → sc.simpleKey.pos.line = sc.line →
       ImplicitKeyPack sc sp_start sp_tok ∨ KeyPackPunt sc := by
   intro _ _
-  rcases h_key with ⟨k, sp_key, route, head, hkcol⟩ | _
+  rcases h_key with ⟨k, sp_key, route, head, hkcol, h_pair⟩ | _
   · rcases head sp_tok h_content with h_head | _
-    -- Item 93: the frame carries no value-line face yet (`FlowBaseRoutes.key`
-    -- is route-only), so the pack's twin punts — the FLOW kind's own item.
+    -- Item 96: the frame carries the value-line pair now, and it passes
+    -- through verbatim — the pack's twin is the frame's own.
     · exact Or.inl ⟨k, sp_key, sp_tok, route, h_head, GStar.nil _, h_kc.trans hkcol,
-        Or.inr trivial⟩
+        h_pair⟩
     · exact Or.inr KeyPackPunt.noKeyContext
   · exact Or.inr KeyPackPunt.noKeyContext
 
@@ -2440,7 +2446,19 @@ structure FlowBaseRoutes (sp_start : SurfPos) (n : Nat) (sp_br : SurfPos)
     (∀ sp_v, SBlockMapEntry k sp_key sp_v → SLYamlStream sp_start sp_v) ∧
     (∀ sp_end, SFlowContent n .flowOut sp_br sp_end →
       ImplicitKeyHead sp_key sp_end ∨ True) ∧
-    kc = k) ∨ True
+    kc = k ∧
+    -- Item 96: the route's VALUE-LINE pair (`ImplicitKeyPack`'s own 8th, item
+    -- 93), carried beside the route so the close's pack can hand it on —
+    -- `? [1]: b⏎: - w` resolves its inner entry at the close and still owes
+    -- the enclosing frame's `s-indent(nv) ':' s-l+block-indented` line.  The
+    -- `SCompactMapTail` rides so a sibling site can cons; consumers pass
+    -- `nil`.  A frame whose enclosing construct has no value line says so.
+    ((∃ nv : Nat,
+      ∀ sp_v : SurfPos, SBlockMapEntry k sp_key sp_v →
+      ∀ sp_e : SurfPos, SCompactMapTail k sp_v sp_e →
+      ∀ sp_i sp_c : SurfPos, SIndent nv sp_e sp_i → GLit ':' sp_i sp_c →
+      ∀ sp_w : SurfPos, SBlockIndented nv .blockOut sp_c sp_w →
+      SLYamlStream sp_start sp_w) ∨ True)) ∨ True
   vslot : (∃ nv : Nat, ∀ sp_end, SFlowContent n .flowOut sp_br sp_end →
     ∀ sp_mid sp_i sp_c, SSLComments sp_end sp_mid → SIndent nv sp_mid sp_i →
       GLit ':' sp_i sp_c → ∀ sp_v, SBlockIndented nv .blockOut sp_c sp_v →
@@ -6007,6 +6025,14 @@ lemma flowKeyRoute_of_open {n m : Nat} {cc : YamlContext}
     -- arm that has the route has the width to measure it against.
     (h_compact : ((∀ sp, SBlockIndented n cc sp_scan sp →
       SLYamlStream sp_start sp) ∧ sp_scan.col = n + 1) ∨ True)
+    -- Item 96: the compact slot's VALUE-LINE twin, mirrored on `h_compact`'s
+    -- domain (item 91's rule) — the enclosing `[188]` entry's own
+    -- `s-indent(nv) ':' s-l+block-indented` line after the key this route
+    -- completes.  Callers whose slot has no value line pass `Or.inr trivial`.
+    (h_compact_pair : (∃ nv : Nat, ∀ sp, SBlockIndented n cc sp_scan sp →
+      ∀ sp_i sp_c : SurfPos, SIndent nv sp sp_i → GLit ':' sp_i sp_c →
+      ∀ sp_v : SurfPos, SBlockIndented nv .blockOut sp_c sp_v →
+      SLYamlStream sp_start sp_v) ∨ True)
     -- Item 78: the key this open will STACK, MEASURED rather than assumed.
     -- Item 75 took the coordinate as an option because a park that reached the
     -- bracket with the flag down stacks someone else's key; items 76 and 77
@@ -6024,7 +6050,13 @@ lemma flowKeyRoute_of_open {n m : Nat} {cc : YamlContext}
       (∀ sp_v, SBlockMapEntry k sp_key sp_v → SLYamlStream sp_start sp_v) ∧
       (∀ sp_end, SFlowContent m .flowOut sp_prep sp_end →
         ImplicitKeyHead sp_key sp_end ∨ True) ∧
-      s_prep.simpleKey.pos.col = k) ∨ True := by
+      s_prep.simpleKey.pos.col = k ∧
+      ((∃ nv : Nat,
+        ∀ sp_v : SurfPos, SBlockMapEntry k sp_key sp_v →
+        ∀ sp_e : SurfPos, SCompactMapTail k sp_v sp_e →
+        ∀ sp_i sp_c : SurfPos, SIndent nv sp_e sp_i → GLit ':' sp_i sp_c →
+        ∀ sp_w : SurfPos, SBlockIndented nv .blockOut sp_c sp_w →
+        SLYamlStream sp_start sp_w) ∨ True)) ∨ True := by
   obtain ⟨sp_mid, sp_ws, sp_prep2, h_disj, h_ws, _h_cmt, hcorr_prep2, h_pk, _⟩ :=
     preprocess_some_ssl_comments_anyCol sc sp_scan s_prep c h_corr h_preprocess
   have h_pe : sp_prep = sp_ws := by
@@ -6042,7 +6074,11 @@ lemma flowKeyRoute_of_open {n m : Nat} {cc : YamlContext}
     | inl h_land =>
       by_cases hnw : n ≤ w
       · have h_ind' : SIndent w sp_mid sp_prep := by rw [h_pe]; exact h_ind
-        refine Or.inl ⟨w, sp_prep, valueMapRoute hnw h_node h_land.1 h_ind', flowKeyHead, ?_⟩
+        -- Item 96: the landing branch's pair stays with the deferral — the
+        -- entry nests as `[199]`/`[187]` under the awaited node, which is the
+        -- landed-nesting residue (item 93's boundary), not the compact kind's.
+        refine Or.inl ⟨w, sp_prep, valueMapRoute hnw h_node h_land.1 h_ind', flowKeyHead, ?_,
+          Or.inr trivial⟩
         rw [landing_or_park_save h_noflow h_land.2.2 h_park h_preprocess,
           ← hcorr_prep.col_eq]
         have := SIndent_col' h_ind'
@@ -6059,11 +6095,25 @@ lemma flowKeyRoute_of_open {n m : Nat} {cc : YamlContext}
         -- that does not hands the frame no key rather than an unmeasured one.
         rcases h_park with h_sk | _
         · have h_ind' : SIndent w sp_scan sp_prep := by rw [h_pe, ← h_mid.1]; exact h_ind
-          refine Or.inl ⟨n + 1 + w, sp_prep, compactMapRoute h_cp.1 h_ind', flowKeyHead, ?_⟩
-          rw [(preprocess_saved_key_col h_sk h_noflow h_preprocess).2, ← hcorr_prep.col_eq]
-          have := SIndent_col' h_ind'
-          rw [h_cp.2] at this
-          omega
+          have h_col_eq : s_prep.simpleKey.pos.col = n + 1 + w := by
+            rw [(preprocess_saved_key_col h_sk h_noflow h_preprocess).2, ← hcorr_prep.col_eq]
+            have := SIndent_col' h_ind'
+            rw [h_cp.2] at this
+            omega
+          -- Item 96: the pair — entry plus tail complete the slot's key as
+          -- `[195] ns-l-compact-mapping` (`compactMapRoute`'s own wrap, tail
+          -- kept), and the slot's twin reads the value line off it.
+          refine Or.inl ⟨n + 1 + w, sp_prep, compactMapRoute h_cp.1 h_ind', flowKeyHead,
+            h_col_eq, ?_⟩
+          cases h_compact_pair with
+          | inr _ => exact Or.inr trivial
+          | inl h_pr =>
+            obtain ⟨nv, pair⟩ := h_pr
+            refine Or.inl ⟨nv, fun sp_v h_entry sp_e h_tail sp_i sp_c h_iv h_lit sp_w h_sbi =>
+              pair sp_e
+                (SBlockIndented.compactMap n cc w sp_scan sp_prep sp_e h_ind'
+                  (SCompactMap.mk (n + 1 + w) sp_prep sp_v sp_e h_entry h_tail))
+                sp_i sp_c h_iv h_lit sp_w h_sbi⟩
         · exact Or.inr trivial
 
 /-- **The ROOT's version** (item 56): the collection opens where a document's
@@ -6090,7 +6140,16 @@ lemma flowKeyRoute_of_root {m : Nat} {sp_start sp_scan sp_prep : SurfPos}
       (∀ sp_v, SBlockMapEntry k sp_key sp_v → SLYamlStream sp_start sp_v) ∧
       (∀ sp_end, SFlowContent m .flowOut sp_prep sp_end →
         ImplicitKeyHead sp_key sp_end ∨ True) ∧
-      s_prep.simpleKey.pos.col = k) ∨ True := by
+      s_prep.simpleKey.pos.col = k ∧
+      -- Item 96: the ROOT's entry has no enclosing value line — its sibling
+      -- `: v` is `[187]`'s own next entry, not a `[188]` close — so the pair
+      -- is not owed here and both arms punt it (item 93's root boundary).
+      ((∃ nv : Nat,
+        ∀ sp_v : SurfPos, SBlockMapEntry k sp_key sp_v →
+        ∀ sp_e : SurfPos, SCompactMapTail k sp_v sp_e →
+        ∀ sp_i sp_c : SurfPos, SIndent nv sp_e sp_i → GLit ':' sp_i sp_c →
+        ∀ sp_w : SurfPos, SBlockIndented nv .blockOut sp_c sp_w →
+        SLYamlStream sp_start sp_w) ∨ True)) ∨ True := by
   obtain ⟨sp_mid, sp_ws, sp_prep2, h_disj, h_ws, _h_cmt, hcorr_prep2, h_pk, _⟩ :=
     preprocess_some_ssl_comments_anyCol sc sp_scan s_prep c h_corr h_preprocess
   have h_pe : sp_prep = sp_ws := by
@@ -6108,7 +6167,8 @@ lemma flowKeyRoute_of_root {m : Nat} {sp_start sp_scan sp_prep : SurfPos}
     | inl h_land =>
       have h_ind' : SIndent w sp_mid sp_prep := by rw [h_pe]; exact h_ind
       refine Or.inl ⟨w, sp_prep,
-        rootMapRoute h_land.2.1 (h_close sp_mid h_land.1) h_ind', flowKeyHead, ?_⟩
+        rootMapRoute h_land.2.1 (h_close sp_mid h_land.1) h_ind', flowKeyHead, ?_,
+        Or.inr trivial⟩
       rw [landing_or_park_save h_noflow h_land.2.2 h_park h_preprocess,
         ← hcorr_prep.col_eq]
       have := SIndent_col' h_ind'
@@ -6125,7 +6185,7 @@ lemma flowKeyRoute_of_root {m : Nat} {sp_start sp_scan sp_prep : SurfPos}
         have h_ind' : SIndent w sp_scan sp_prep := by rw [h_pe, ← h_mid.1]; exact h_ind
         refine Or.inl ⟨w, sp_prep,
           rootMapRoute h_col0 (h_close sp_scan (sslComments_refl_of_col0 h_col0)) h_ind',
-          flowKeyHead, ?_⟩
+          flowKeyHead, ?_, Or.inr trivial⟩
         rw [(preprocess_saved_key_col h_sk h_noflow h_preprocess).2, ← hcorr_prep.col_eq]
         have := SIndent_col' h_ind'
         rw [h_col0] at this
@@ -6937,7 +6997,7 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
     -- node opened here keeps riding it (β.5 retires this with pendingFlow, R3).
     exact main h_close_pending opaque_resume
   | pendingProps _ _ _ ha ht sp_node sp_p n h_sep_run h_run h_nic_p h_real_p h_anchor_p h_tag_p
-      h_route h_pkey h_floor_p h_col0_p h_ncol_p =>
+      h_route h_pkey h_floor_p h_col0_p h_ncol_p _h_ska_p h_kslot_p =>
     -- Items 9h/10, site 5's legal inhabitant: the held `[96]` run rides INTO
     -- the flow node.  The separation preprocessing crossed (break or not —
     -- `&a [b]` and `&a⏎[b]` alike) becomes the run→content `s-separate`, and
@@ -6980,11 +7040,12 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
                -- break is exactly what re-arms the flag and makes preprocessing
                -- re-save; so a run that lost `h_inherit_col` had already lost
                -- the head.
-               -- Item 94: the pack's value-line pair stops at this open —
-               -- `FlowBaseRoutes.key` is route-only (the flow kind's own
-               -- residue), so the frame has nowhere to carry it.
+               -- Item 96: the pack's value-line pair RIDES now —
+               -- `FlowBaseRoutes.key` carries it as the route's own third
+               -- rider, so the close's pack hands it on verbatim
+               -- (`? &p [1]: b⏎: - w`).
                (match h_pkey, h_inherit_col with
-                | Or.inl ⟨⟨k, route, h_kcol_p, _⟩, h_props, _⟩, Or.inl h_inh =>
+                | Or.inl ⟨⟨k, route, h_kcol_p, h_pair_p⟩, h_props, _⟩, Or.inl h_inh =>
                     have h_col_p : s_prep.simpleKey.pos.col = k := h_inh.trans h_kcol_p
                     Or.inl ⟨k, sp_p, route,
                     fun sp_end h_content =>
@@ -6994,9 +7055,20 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
                             (SFlowNode.propsContent 0 .blockKey sp_p sp_scan sp_prep sp_end
                               h_props h_sep' h_content'))
                       | _, _ => Or.inr trivial,
-                    h_col_p⟩
+                    h_col_p, h_pair_p⟩
                 | _, _ => Or.inr trivial),
-               Or.inr trivial⟩),
+               -- Item 96: the run's value line — the collection completes the
+               -- props-headed KEY of an open `[188]` entry and the landed `:`
+               -- closes it (`? &p [1]⏎: - w`); the twin item 91 installed
+               -- fires on the same node the value route above builds.
+               (match h_kslot_p with
+                | Or.inl ⟨nv, kslot⟩ => Or.inl ⟨nv,
+                    fun sp_end h_content sp_m sp_i sp_c h_ssl h_iv h_lit sp_v h_sbi =>
+                      kslot sp_m (flowInBlock_blockNode h_sep_run
+                        (SFlowNode.propsContent n .flowOut sp_p sp_scan sp_prep sp_end
+                          h_run.toProperties h_sep h_content) h_ssl)
+                        sp_i sp_c h_iv h_lit sp_v h_sbi⟩
+                | Or.inr _ => Or.inr trivial)⟩),
              PendingNode.noPending sp_start sp_open (Or.inr (inFlow_of_flowLevel_eq h_fl1))
                (Or.inr (inFlow_of_flowLevel_eq h_fl1)), hcorr_open,
              fun _ => ⟨.white (GStar.nil _) h_sync h_colon h_opencol, h_real, h_ad⟩⟩
@@ -7036,12 +7108,12 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
              -- `--- [1]: b` on the marker's own line is scan-refused ("unexpected
              -- content on document-start line"), so only the landing reading is
              -- owed and the compact half punts.
-             flowKeyRoute_of_open (cc := .blockIn) h_docnode (Or.inr trivial)
+             flowKeyRoute_of_open (cc := .blockIn) h_docnode (Or.inr trivial) (Or.inr trivial)
                h_noflow_prep h_park h_corr hcorr_prep h_preprocess,
              Or.inr trivial⟩),
            PendingNode.noPending sp_start sp_open (Or.inr (inFlow_of_flowLevel_eq h_fl1))
                (Or.inr (inFlow_of_flowLevel_eq h_fl1)), hcorr_open, fun _ => ⟨.white (GStar.nil _) h_sync h_colon h_opencol, h_real, h_ad⟩⟩
-  | pendingBlock _ _ _ n_old h_close _ h_floor_old h_sk_old h_col59 =>
+  | pendingBlock _ _ _ n_old h_close _ h_floor_old h_sk_old h_col59 h_kslot_old =>
     -- Item 46: the stack opens at the ENTRY's index, so the resume's node
     -- fits `flowInBlock n_old` and `  - [1]` composes.  Item 66: the landing
     -- that under-runs `s-indent(n_old)` on the OPEN itself is not a deferral
@@ -7062,11 +7134,35 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
                    h_sep (SFlowNode.content _ _ _ _ h_content) h_ssl))),
                -- Item 56: the entry route, both frames — `- [1]: b` compacts on
                -- the line, `-⏎  [1]: b` nests in the node the entry awaits.
+               -- Item 96: …and the compact route's value line is the entry's own
+               -- twin (item 92's `h_kslot`, `nil` tail) — the mapping this key
+               -- opens completes the `-`'s node inside an open `?` key, and the
+               -- landed `:` closes it (`? - [1]: b⏎: - w`).
                flowKeyRoute_of_open
                  (fun sp h => h_close sp (SBlockIndented.node n_old .blockIn sp_scan sp h))
-                 (Or.inl ⟨h_close, h_col59⟩) h_noflow_prep h_park h_corr hcorr_prep
+                 (Or.inl ⟨h_close, h_col59⟩)
+                 (match h_kslot_old with
+                  | Or.inl ⟨nv, kslot⟩ => Or.inl ⟨nv,
+                      fun sp h_bi sp_i sp_c h_iv h_lit sp_v h_sbi =>
+                        kslot sp h_bi sp (SCompactSeqTail.nil n_old sp)
+                          sp_i sp_c h_iv h_lit sp_v h_sbi⟩
+                  | Or.inr _ => Or.inr trivial)
+                 h_noflow_prep h_park h_corr hcorr_prep
                  h_preprocess,
-               Or.inr trivial⟩),
+               -- Item 96: the entry's value line, off the same twin — the
+               -- completed collection is the `-`'s node, the entry heads the
+               -- `?`'s compact-SEQUENCE key, and the landed `:` closes it
+               -- (`? - [1]⏎: - w`); the wrap is the value closure's own.
+               (match h_kslot_old with
+                | Or.inl ⟨nv, kslot⟩ => Or.inl ⟨nv,
+                    fun sp_end h_content sp_m sp_i sp_c h_ssl h_iv h_lit sp_v h_sbi =>
+                      kslot sp_m
+                        (SBlockIndented.node n_old .blockIn sp_scan sp_m
+                          (SBlockNode.flowInBlock n_old .blockIn sp_scan sp_prep sp_end sp_m
+                            h_sep (SFlowNode.content _ _ _ _ h_content) h_ssl))
+                        sp_m (SCompactSeqTail.nil n_old sp_m)
+                        sp_i sp_c h_iv h_lit sp_v h_sbi⟩
+                | Or.inr _ => Or.inr trivial)⟩),
              PendingNode.noPending sp_start sp_open (Or.inr (inFlow_of_flowLevel_eq h_fl1))
                (Or.inr (inFlow_of_flowLevel_eq h_fl1)), hcorr_open, fun _ => ⟨.white (GStar.nil _) h_sync h_colon h_opencol, h_real, h_ad⟩⟩
     · -- Item 73: `pendingBlock`'s floor is a measurement now, not an option, so
@@ -7079,7 +7175,7 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
           (fun h => by rw [h, h_col59] at h_col02; omega) h_col02 hj h_ind h_tab
           h_c h_preprocess).elim
   | pendingMapValue _ _ _ n_old h_close h_floor_mv _ _ _ h_expl h_vslot h_sk_mv h_col0_mv
-      h_ncol_mv =>
+      h_ncol_mv h_kslot_mv =>
     -- Item 13: the flow collection IS the mapping's value (`: [a]`, `: {a: b}`)
     -- — same closure type as `pendingBlock`, so the arm is its verbatim clone,
     -- indent split included.
@@ -7101,12 +7197,26 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
                -- value this pending awaits; on the LINE it is the compact
                -- alternative in the value SLOT, which only an explicit `:`
                -- carries (`? a⏎: [1]: b`) and an implicit one does not.
+               -- Item 96: the slot's value line rides as the route's pair — the
+               -- compact map this key opens IS the `?`'s key content, and the
+               -- landed `:` closes the `[188]` entry `h_expl` routes
+               -- (`? [1]: b⏎: - w`).
                flowKeyRoute_of_open h_close (h_vslot.imp (fun h => ⟨h.2, h.1⟩) id)
+                 (match h_expl with
+                  | Or.inl ⟨sp_q, h_qlit, route⟩ => Or.inl ⟨n_old,
+                      fun sp h_bo sp_i sp_c h_iv h_lit sp_v h_sbi =>
+                        route sp_v (SBlockMapEntry.explicit n_old sp_q sp_scan sp sp_i sp_c sp_v
+                          h_qlit h_bo h_iv h_lit h_sbi)⟩
+                  | Or.inr _ => Or.inr trivial)
                  h_noflow_prep h_park h_corr hcorr_prep h_preprocess,
                -- …and under an open `?` the collection is the KEY half of the
                -- `[188]` entry that `h_expl` routes (`? [1]⏎: v`).
-               (match h_expl with
-                | Or.inl ⟨sp_q, h_qlit, route⟩ => Or.inl ⟨n_old,
+               -- Item 96: an IMPLICIT park has no `?` of its own, but the twin
+               -- item 93 installed reads the same node — the collection is the
+               -- inner entry's VALUE, and the landed `:` closes the OUTER
+               -- entry (`? a: [1]⏎: - w`).
+               (match h_expl, h_kslot_mv with
+                | Or.inl ⟨sp_q, h_qlit, route⟩, _ => Or.inl ⟨n_old,
                     fun sp_end h_content sp_m sp_i sp_c h_ssl h_ind h_lit sp_v h_sbi =>
                       route sp_v (SBlockMapEntry.explicit n_old sp_q sp_scan sp_m sp_i sp_c sp_v
                         h_qlit
@@ -7115,7 +7225,13 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
                             (SBlockNode.flowInBlock n_old .blockIn sp_scan sp_prep sp_end sp_m
                               h_sep (SFlowNode.content _ _ _ _ h_content) h_ssl)))
                         h_ind h_lit h_sbi)⟩
-                | Or.inr _ => Or.inr trivial)⟩),
+                | Or.inr _, Or.inl ⟨nv, kslot⟩ => Or.inl ⟨nv,
+                    fun sp_end h_content sp_m sp_i sp_c h_ssl h_ind h_lit sp_v h_sbi =>
+                      kslot sp_m
+                        (SBlockNode.flowInBlock n_old .blockIn sp_scan sp_prep sp_end sp_m
+                          h_sep (SFlowNode.content _ _ _ _ h_content) h_ssl)
+                        sp_i sp_c h_ind h_lit sp_v h_sbi⟩
+                | Or.inr _, Or.inr _ => Or.inr trivial)⟩),
              PendingNode.noPending sp_start sp_open (Or.inr (inFlow_of_flowLevel_eq h_fl1))
                (Or.inr (inFlow_of_flowLevel_eq h_fl1)), hcorr_open, fun _ => ⟨.white (GStar.nil _) h_sync h_colon h_opencol, h_real, h_ad⟩⟩
     · -- Item 66: the run-end half is §8.1's refusal (`k:⏎  a:⏎[1]`).  Item 68:

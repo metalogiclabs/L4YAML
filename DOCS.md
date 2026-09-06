@@ -10076,6 +10076,83 @@ through plain `decide`), the consumers at their pre-existing profiles.  ZERO
 runtime edits; matrix not re-run (items 63/64/74's precedent).  No new
 guard: no runtime observable moved.
 
+### Item 96 (2026-09-06)
+
+**The flow key's value line: the frame carries the pack faces the close
+spends.**  The value-line face's last open kind.  Unlike item 95 there was no
+missing production — `[197] s-l+flow-in-block` ends in its own `s-l-comments`,
+so the landing's walk has always had a home, and `FlowBaseRoutes.vslot`
+already stated the whole line (`SFlowContent → SSLComments → s-indent(nv) ':'
+→ s-l+block-indented → stream`), with `flowVPack_of_close` completing it into
+`pendingContent.h_vpack` at the base close and the landed `:` firing
+`colon_open_map_explicit` off that field — which is why the ROOT family
+(`? [1]⏎: - w` and its `[]`/`{}`/`{a}`/nested/quoted/landing/indented
+variants) has composed since items 51/56.  What was open is the FUNDING: only
+the `?` park's own arm paid `vslot` (from `h_expl`), and the frame's `key`
+field was route-only, so every OTHER park under the `?` lost the line at the
+bracket.  Two moves close it, both item 95's payment pattern read at the flow
+OPEN:
+
+* **Three `vslot` payments from the parks' own 91–93 twins.**  The open's
+  arm holds exactly the pieces its VALUE route wraps — the separator, the
+  completed collection as `SFlowNode.content`, the landing's `SSLComments` —
+  so the twin fires on the same node the route builds: `pendingBlock` from
+  `h_kslot` with a `nil` `SCompactSeqTail` (`? - [1]⏎: - w`), `pendingProps`
+  from `h_kslot` over `propsContent` (`? &p [1]⏎: - w`, `? !!seq [1]⏎: - w`),
+  and `pendingMapValue`'s IMPLICIT park — `h_expl` empty — as a fallback from
+  item 93's `h_kslot` (`? a: [1]⏎: - w`).  The indented twins ride the same
+  three payments at the pending's own index.
+* **`FlowBaseRoutes.key` gains the route's value-line pair** —
+  `ImplicitKeyPack`'s own 8th (item 93), stated at the frame's `k`/`sp_key`
+  so `flowKeyPack_of_close` passes it through VERBATIM and the pack chain
+  items 93–94 built (`colon_fires_implicit_key` → `colon_open_map_implicit`
+  → `pendingMapValue.h_kslot` → the content arms' `h_vpack` fallback) serves
+  untouched.  Producers: `flowKeyRoute_of_open` takes the compact slot's twin
+  as a hypothesis (`h_compact_pair`, mirrored on `h_compact`'s domain — item
+  91's rule) and pays the pair in its COMPACT branch with `compactMapRoute`'s
+  own wrap, tail kept (`SCompactMap.mk` + `SBlockIndented.compactMap`);
+  the `pendingMapValue` caller funds it from `h_expl` via
+  `SBlockMapEntry.explicit` (`? [1]: b⏎: - w`), the `pendingBlock` caller
+  from its `h_kslot` twin (`? - [1]: b⏎: - w`), and the props arm passes
+  `PropsKeyPack`'s own pair — the component item 94 bound and dropped —
+  straight through (`? &p [1]: b⏎: - w`).  The LANDING branch and the two
+  `flowKeyRoute_of_root` arms punt the pair with a reason: the entry nests
+  as `[199]`/`[187]` under the awaited node (the landed-nesting residue,
+  item 93's boundary) or sits at the root, where a following `: v` is
+  `[187]`'s own next entry and no `[188]` close is owed.
+
+**A located OVER-REFUSAL, found by the acceptance probe.**  The landed `:`
+after a flow key whose interior contained an implicit `:` pair or crossed a
+line refuses a block-collection value: `? {a: b}⏎: - w`, `? {a: }⏎: - w`,
+`? [a: b]⏎: - w` and `? [1,⏎   2]⏎: - w` are all VALID YAML refused with
+item 48's §8.2.2 message — while `? {a}⏎: - w`, `? {a: b}⏎: v` and
+`? [1,⏎   2]⏎: v` pass, so the trigger is the stamp/restored-key interaction
+at the flow close, not the value.  The reported position lags too
+(`block collection indicator at line 1, column 2` for a `-` on line 2 —
+the line counter does not advance across the close's break).  Fixing it is a
+RUNTIME change with matrix impact — item 62's shape, its own item; these
+inputs are outside the accumulator's obligation (it speaks only of accepted
+runs) and are recorded here so the refusal is not rediscovered.
+
+**Validation.**  Runtime acceptance measured FIRST: all twenty-seven probed
+accepting inputs — the root family with empty/multi-entry/nested/quoted
+collections, props and tag heads, blank/comment landings, the compact
+(`? - [1]⏎: - w`), props (`? &p [1]⏎: - w`), inner-map (`? a: [1]⏎: - w`)
+and close-formed-key (`? [1]: b⏎: - w`, `? [1]:⏎: - w`, `? - [1]: b⏎: - w`,
+`? &p [1]: b⏎: - w`) families, and the indented twins of each — parse with
+correct events, so the item is proof-only at the accumulation.  Full
+`lake build` green (1068 jobs, ZERO warnings; the StreamAccum arms compiled
+FIRST TRY — the three failures were guard files constructing the frame by
+hand, item 91's recurring gotcha: `FlowStackIndexParametric`,
+`MaskBaseColumn`, `FlowOpenParkArm`, each appending the pair or the punt).
+`run-all-tests.sh` 6693/6693, line-diff vs item 95's log timing-jitter only
+(no new annotation, so no movement — item 62's mechanism in reverse);
+`eventscore` 347/358 unmoved (252/11/0/95); three checkers OK (220/354;
+20/229/248/354; 25).  `#print axioms`: no `sorryAx`; the two route lemmas
+and the close pack at the standard three, `flowVPack_of_close` at `propext`
+alone.  ZERO runtime edits; matrix not re-run (items 63/64/74's precedent).
+No new guard: no runtime observable moved.
+
 ### REMAINING, in order
 
 The per-item history is the closure log above; this section lists only the
@@ -10089,7 +10166,7 @@ too (items 47–51), so what stands between here
 and Step 5 (the converse) is R3's remaining production work and R4:
 
 ```
-R1 ✓ (44–46) ──→ R2 ✓ (47–51) ──→ R3 (52–95 landed; 67b open) ──→ Step 5
+R1 ✓ (44–46) ──→ R2 ✓ (47–51) ──→ R3 (52–96 landed; 67b open) ──→ Step 5
                                         └──────→ R4 (implicitContinue + 0 < m) ──┘
 ```
 
@@ -10244,15 +10321,23 @@ and that deletion, by input class:
   loop production carrying an absorption closure the four parks pay their
   twins with — `? |⏎  x⏎: - w`, `? - |⏎    x⏎: - w`, `? a: |⏎    x⏎: - w`,
   `? &p |⏎  x⏎: - w`, the chomp/fold/tag/landing variants and the indented
-  twins compose).  What stays open is the VALUE-LINE face of the FLOW kind
-  (`FlowBaseRoutes.key`/`vslot` carry no pack face) — plus the named
-  residues: the TAB-led block-scalar landing (`BlockScalarTabStop` — a
-  located over-acceptance, item 95's note), the seq-spaces/landed family
+  twins compose); and the VALUE-LINE face of the FLOW kind — the LAST of
+  the six — is item 96's (three `vslot` payments at the flow open from the
+  parks' 91–93 twins, and `FlowBaseRoutes.key` carries the route's pair so
+  `flowKeyPack_of_close` hands it on — `? - [1]⏎: - w`, `? &p [1]⏎: - w`,
+  `? a: [1]⏎: - w`, `? [1]: b⏎: - w`, `? - [1]: b⏎: - w`,
+  `? &p [1]: b⏎: - w` and the indented twins compose; the root family
+  `? [1]⏎: - w` had composed since items 51/56).  **The face is CLOSED at
+  every kind**; what stays is the named residues: the TAB-led block-scalar
+  landing (`BlockScalarTabStop` — a located over-acceptance, item 95's
+  note), the flow close's §8.2.2 OVER-REFUSAL (`? {a: b}⏎: - w` — valid,
+  refused; item 96's note), the seq-spaces/landed family
   (`?⏎- a⏎: - w`, `?⏎  a: b⏎: - w`, `?⏎  &p a: b⏎: - w`: the key is a
-  `[185]` `s-l+block-node`/`[199]` nesting, which no park twins yet) and
-  the inner-map sibling (`? a: b⏎  c: d⏎: e` — `SCompactMapTail.cons` has
-  no producer yet) — so those siblings still close `e-node` and defer the
-  reopened `[189]`'s compact fill;
+  `[185]` `s-l+block-node`/`[199]` nesting, which no park twins yet — and
+  `flowKeyRoute_of_open`'s landing branch punts its pair into the same
+  residue) and the inner-map sibling (`? a: b⏎  c: d⏎: e` —
+  `SCompactMapTail.cons` has no producer yet) — so those siblings still
+  close `e-node` and defer the reopened `[189]`'s compact fill;
 * the **flow share** — ~~the depth-0 flow close must park REAL evidence
   (`[1] : b`, `? [1]⏎: v`)~~ — CLOSED by item 56 (the frame carries the
   entry routes and the close joins them with the collection re-read as

@@ -143,7 +143,7 @@ example {sp_start sp_before sp_br sp_open sp_key : SurfPos}
     (h_open : GLit '[' sp_br sp_open) :
     FlowStackB sp_start 2 3 1 #[true] #[false] .sep sp_before sp_open :=
   FlowStackB.openSeqBase false
-    ⟨value, Or.inl ⟨3, sp_key, route, fun _ _ => Or.inr trivial, rfl⟩,
+    ⟨value, Or.inl ⟨3, sp_key, route, fun _ _ => Or.inr trivial, rfl, Or.inr trivial⟩,
      Or.inr trivial⟩
     h_open (GOpt.none sp_open)
 
@@ -160,6 +160,6 @@ example {sc : ScannerState} {sp_start sp_br sp_tok sp_key : SurfPos}
     sc.simpleKey.possible = true → sc.simpleKey.pos.line = sc.line →
       ImplicitKeyPack sc sp_start sp_tok ∨ KeyPackPunt sc :=
   flowKeyPack_of_close (kc := 3)
-    (Or.inl ⟨3, sp_key, route, head, rfl⟩) h_kc h_content
+    (Or.inl ⟨3, sp_key, route, head, rfl, Or.inr trivial⟩) h_kc h_content
 
 end L4YAML.Tests.Guards.FlowStackIndexParametric

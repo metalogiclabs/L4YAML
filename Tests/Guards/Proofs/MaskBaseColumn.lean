@@ -90,7 +90,7 @@ example {sc : ScannerState} {kc : Nat} {sp_start sp_br sp_tok sp_key : SurfPos}
     (h_content : SFlowContent 0 .flowOut sp_br sp_tok) :
     sc.simpleKey.possible = true → sc.simpleKey.pos.line = sc.line →
       ImplicitKeyPack sc sp_start sp_tok ∨ KeyPackPunt sc :=
-  flowKeyPack_of_close (Or.inl ⟨kc, sp_key, route, head, rfl⟩) h_kc h_content
+  flowKeyPack_of_close (Or.inl ⟨kc, sp_key, route, head, rfl, Or.inr trivial⟩) h_kc h_content
 
 /-! ## §4  The promise, measured on the scanner
 
