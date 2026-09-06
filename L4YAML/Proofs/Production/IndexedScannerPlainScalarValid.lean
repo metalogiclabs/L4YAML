@@ -3834,6 +3834,9 @@ lemma scanNextTokenIx_dispatchContent_preserves_PlainScalarsValidIx
           · -- Peel the §6.1/§8.1.3 body-validator guard (item 7 strictness).
             split at h_ok
             · cases h_ok
+            -- Peel the §6.1/§8.1.1 tab-stop guard (`blockScalarTabStopErrIx`).
+            split at h_ok
+            · cases h_ok
             split at h_ok
             · rename_i r hBS
               simp only [Except.ok.injEq] at h_ok
@@ -3968,6 +3971,9 @@ lemma scanNextTokenIx_dispatchContent_preserves_FlowContextPSVIx
           split at h_ok
           · cases h_ok
           · -- Peel the §6.1/§8.1.3 body-validator guard (item 7 strictness).
+            split at h_ok
+            · cases h_ok
+            -- Peel the §6.1/§8.1.1 tab-stop guard (`blockScalarTabStopErrIx`).
             split at h_ok
             · cases h_ok
             split at h_ok
@@ -4105,6 +4111,9 @@ lemma scanNextTokenIx_dispatchContent_preserves_FlowNestingInvIx
           split at h_ok
           · cases h_ok
           · -- Peel the §6.1/§8.1.3 body-validator guard (item 7 strictness).
+            split at h_ok
+            · cases h_ok
+            -- Peel the §6.1/§8.1.1 tab-stop guard (`blockScalarTabStopErrIx`).
             split at h_ok
             · cases h_ok
             split at h_ok
@@ -6043,6 +6052,9 @@ lemma scanNextTokenIx_dispatchContent_preserves_AllKeysPlaceholderInvIx {input :
           split at h_ok
           · cases h_ok
           · -- Peel the §6.1/§8.1.3 body-validator guard (item 7 strictness).
+            split at h_ok
+            · cases h_ok
+            -- Peel the §6.1/§8.1.1 tab-stop guard (`blockScalarTabStopErrIx`).
             split at h_ok
             · cases h_ok
             split at h_ok

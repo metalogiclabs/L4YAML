@@ -1252,20 +1252,24 @@ lemma scanBlockScalarBody_BoundInv {s₀ : ScannerState} (s_orig s_after_newline
   cases explicitOffset with
   | some m =>
     dsimp only [] at hok
-    simp only [Except.ok.injEq] at hok; subst hok
-    exact ⟨(collectBlockScalarLoop_BoundInv s_after_newline "" _ _ _ h hend).offset_le,
-           (collectBlockScalarLoop_BoundInv s_after_newline "" _ _ _ h hend).inputEnd_eq,
-           (collectBlockScalarLoop_BoundInv s_after_newline "" _ _ _ h hend).input_eq,
-           (collectBlockScalarLoop_BoundInv s_after_newline "" _ _ _ h hend).isValid⟩
-  | none =>
-    dsimp only [] at hok
-    split at hok  -- match autoDetectErr?
+    split at hok  -- blockScalarTabStop gate
     · cases hok  -- error
     · simp only [Except.ok.injEq] at hok; subst hok
       exact ⟨(collectBlockScalarLoop_BoundInv s_after_newline "" _ _ _ h hend).offset_le,
              (collectBlockScalarLoop_BoundInv s_after_newline "" _ _ _ h hend).inputEnd_eq,
              (collectBlockScalarLoop_BoundInv s_after_newline "" _ _ _ h hend).input_eq,
              (collectBlockScalarLoop_BoundInv s_after_newline "" _ _ _ h hend).isValid⟩
+  | none =>
+    dsimp only [] at hok
+    split at hok  -- match autoDetectErr?
+    · cases hok  -- error
+    · split at hok  -- blockScalarTabStop gate
+      · cases hok  -- error
+      · simp only [Except.ok.injEq] at hok; subst hok
+        exact ⟨(collectBlockScalarLoop_BoundInv s_after_newline "" _ _ _ h hend).offset_le,
+               (collectBlockScalarLoop_BoundInv s_after_newline "" _ _ _ h hend).inputEnd_eq,
+               (collectBlockScalarLoop_BoundInv s_after_newline "" _ _ _ h hend).input_eq,
+               (collectBlockScalarLoop_BoundInv s_after_newline "" _ _ _ h hend).isValid⟩
 
 set_option maxHeartbeats 3200000 in
 lemma scanBlockScalar_BoundInv (s s' : ScannerState)

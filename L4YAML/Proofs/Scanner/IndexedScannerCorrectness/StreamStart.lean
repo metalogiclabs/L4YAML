@@ -407,6 +407,9 @@ lemma scanNextTokenIx_dispatchContent_maintains_SimpleKeyAboveIx {input : String
           -- Peel the §6.1/§8.1.3 body-validator guard (item 7 strictness).
           split at h_ok
           · cases h_ok
+          -- Peel the §6.1/§8.1.1 tab-stop guard (`blockScalarTabStopErrIx`).
+          split at h_ok
+          · cases h_ok
           split at h_ok
           · simp only [Except.ok.injEq] at h_ok
             subst h_ok
@@ -643,6 +646,9 @@ lemma scanNextTokenIx_dispatchContent_preserves_prefix {input : String}
           split at h_ok
           · cases h_ok
           -- Peel the §6.1/§8.1.3 body-validator guard (item 7 strictness).
+          split at h_ok
+          · cases h_ok
+          -- Peel the §6.1/§8.1.1 tab-stop guard (`blockScalarTabStopErrIx`).
           split at h_ok
           · cases h_ok
           split at h_ok

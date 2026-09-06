@@ -10153,6 +10153,72 @@ and the close pack at the standard three, `flowVPack_of_close` at `propext`
 alone.  ZERO runtime edits; matrix not re-run (items 63/64/74's precedent).
 No new guard: no runtime observable moved.
 
+### Item 97 (2026-09-06)
+
+**The block-scalar TAB stop is refused, and the residue leaves every `.ok`
+face.**  Item 95's located over-acceptance, closed as a RUNTIME narrowing in
+both pipelines — item 62's shape.  The collection loop's non-empty stop is a
+line of fewer-than-indent spaces and then a non-space non-break character,
+and when that character is a TAB the line derives nowhere: `[167]`/`[168]`'s
+`s-indent(≤n)`/`s-indent(<n)` and `[169] l-trail-comments`' head are all
+spaces-only, and nothing after the scalar can absorb the line either (a
+following token's own indent is `[63]` too).  The runtime skipped it —
+`skipToContent`'s §6.1 gate exempts blank and comment landings, which is
+exactly the hole — so `k: |⏎  x⏎<TAB># c⏎a: b`, `? |⏎  x⏎<TAB>⏎: - w` and
+the space-then-tab/folded/chomp/explicit-indicator variants all parsed.
+
+* **Legacy: `blockScalarTabStop` + a gate in `scanBlockScalarBody`.**
+  `(skipSpaces s).peek? == some '\t'` read at the loop's return — at the
+  non-empty stop that state is the line start with the stop character past
+  the short space run, and at every other exit (EOF, document boundary, a
+  non-printable stop) the test is false by the exit's own shape.  The gate
+  throws `tabInIndentation` at the tab's own line and column, which is the
+  position the pre-existing refusals of the content-led family
+  (`k: |⏎  x⏎<TAB>z`) already report — those errors do not move.
+* **Indexed: `blockScalarTabStopErrIx`**, the walker form the pipeline's
+  strictness checks all take: recompute the content indent exactly as
+  `scanBlockScalarIx`, run the collection loop, read the stop.  The
+  dispatcher's `|`/`>` arm runs it after `blockScalarBodyErrIx`, mirroring
+  the legacy order (auto-detect errors fire before the loop's stop is
+  reached).
+* **The proof payoff — the disjunct comes off nine statements.**
+  `BlockScalarTabStop` survives only in `collectBlockScalarLoop_literal_prod`
+  (the loop has no error channel); `not_blockScalarTabStop_of_gate` — item
+  62's `skipSpaces_lands_at_tab` behind a spaces-then-tab `[63]` construction
+  — refutes it at the body's `.ok` face, and the `∨` is DELETED from
+  `scanBlockScalarBody_literal_prod`/`_folded_prod`, `scanBlockScalar_prod`,
+  `scanBlockScalarBody_contentIndent_floor`, `scanBlockScalar_prod_at`, both
+  dispatch faces, `dispatchContent_evidence_content`,
+  `indentedValue_reads_at_any_indent` and the props consumer's `k + 1` local.
+  The four park payments that matched on it (items 95's twins) are total in
+  that dimension now — their residue arms are gone.  Textual footprint: 14
+  sites → 4, all in `ScalarProduction`.
+
+**Validation.**  Runtime probed FIRST, both pipelines side by side: nine
+family members accepted before the gate and refused after, at the tab's own
+position (`line 3` after a blank line, `column 1` after a space); seven
+boundary inputs unchanged (`# c` head, the tab-led `[78] l-comment` RIDER
+after a valid head — `s-separate-in-line` admits tabs there — tab at full
+indent as content, the zero-indent scalar owning tab lines outright); three
+already-refused controls report byte-identical errors.  Legacy and indexed
+agree on all nineteen, and the new guard `ScannerBlockScalarTabStop` pins
+all of them — nine refusals, seven boundary accepts, three stable prior
+refusals — in both pipelines at compile time.  Full `lake build` green
+(1069 jobs, ZERO warnings);
+the ~23 proofs that unfold `scanBlockScalarBody` each gained one `split` for
+the gate (item 62's cost pattern), and the Ix dispatcher's guard is peeled at
+17 sites.  `run-all-tests.sh` 6701 — moved from item 96's 6693 by exactly the
+four new `@[yaml_spec]` annotations (769 → 773 entries), once per report
+format, every other line jitter only.  **Matrix re-run (runtime moved)**:
+402/402 event + 282/282 JSON on BOTH instrument pairs, per-test JSON
+byte-identical between legacy and `-ix` (0 diffs).  `eventscore` 347/358
+unmoved (252/11/0/95 — 0 valid rejected, so the gate refuses no valid suite
+input; the suite's own tab-after-scalar cases were already refused at
+auto-detect, which is why the over-acceptance survived it).  Three checkers
+OK (220/354; 20/229/248/354; 25 capstones).  `#print axioms`: no `sorryAx`;
+`not_blockScalarTabStop_of_gate` and the body lemmas at the standard three;
+the dispatch faces at their pre-existing profiles.
+
 ### REMAINING, in order
 
 The per-item history is the closure log above; this section lists only the
@@ -10166,7 +10232,7 @@ too (items 47–51), so what stands between here
 and Step 5 (the converse) is R3's remaining production work and R4:
 
 ```
-R1 ✓ (44–46) ──→ R2 ✓ (47–51) ──→ R3 (52–96 landed; 67b open) ──→ Step 5
+R1 ✓ (44–46) ──→ R2 ✓ (47–51) ──→ R3 (52–97 landed; 67b open) ──→ Step 5
                                         └──────→ R4 (implicitContinue + 0 < m) ──┘
 ```
 
@@ -10328,9 +10394,12 @@ and that deletion, by input class:
   `? a: [1]⏎: - w`, `? [1]: b⏎: - w`, `? - [1]: b⏎: - w`,
   `? &p [1]: b⏎: - w` and the indented twins compose; the root family
   `? [1]⏎: - w` had composed since items 51/56).  **The face is CLOSED at
-  every kind**; what stays is the named residues: the TAB-led block-scalar
+  every kind**; what stays is the named residues: ~~the TAB-led block-scalar
   landing (`BlockScalarTabStop` — a located over-acceptance, item 95's
-  note), the flow close's §8.2.2 OVER-REFUSAL (`? {a: b}⏎: - w` — valid,
+  note)~~ — CLOSED by item 97 (the runtime refuses the stop in both
+  pipelines and the residue disjunct is gone from every `.ok` face; the
+  parks' twin payments there are total now), the flow close's §8.2.2
+  OVER-REFUSAL (`? {a: b}⏎: - w` — valid,
   refused; item 96's note), the seq-spaces/landed family
   (`?⏎- a⏎: - w`, `?⏎  a: b⏎: - w`, `?⏎  &p a: b⏎: - w`: the key is a
   `[185]` `s-l+block-node`/`[199]` nesting, which no park twins yet — and

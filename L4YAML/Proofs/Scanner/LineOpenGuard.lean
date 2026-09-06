@@ -1613,11 +1613,13 @@ private lemma scanBlockScalarBody_restOffLine {s_orig s_after_newline s' : Scann
     rw [hlr] at hloop
     obtain ⟨raw2, sac⟩ := lr
     dsimp only [] at hok hloop
-    injection hok with h_eq
-    subst h_eq
-    cases hloop with
-    | inl h0 => exact Or.inl h0
-    | inr hpk => exact Or.inr ((restStop_of_peek_stop (s := sac) hend' hpk).congr rfl rfl)
+    split at hok
+    · cases hok
+    · injection hok with h_eq
+      subst h_eq
+      cases hloop with
+      | inl h0 => exact Or.inl h0
+      | inr hpk => exact Or.inr ((restStop_of_peek_stop (s := sac) hend' hpk).congr rfl rfl)
   | none =>
     unfold scanBlockScalarBody at hok
     dsimp only [] at hok
@@ -1636,11 +1638,13 @@ private lemma scanBlockScalarBody_restOffLine {s_orig s_after_newline s' : Scann
       rw [hlr] at hloop
       obtain ⟨raw2, sac⟩ := lr
       dsimp only [] at hok hloop
-      injection hok with h_eq
-      subst h_eq
-      cases hloop with
-      | inl h0 => exact Or.inl h0
-      | inr hpk => exact Or.inr ((restStop_of_peek_stop (s := sac) hend' hpk).congr rfl rfl)
+      split at hok
+      · cases hok
+      · injection hok with h_eq
+        subst h_eq
+        cases hloop with
+        | inl h0 => exact Or.inl h0
+        | inr hpk => exact Or.inr ((restStop_of_peek_stop (s := sac) hend' hpk).congr rfl rfl)
 
 /-- `scanBlockScalar`: the emitted state sits at column 0, at end of input,
     or on an `OffLine` stop.  (`hend'` from the caller's corr.) -/
@@ -1739,9 +1743,9 @@ lemma scanBlockScalarBody_simpleKey_false {s0 s1 : ScannerState} {ch : ChompStyl
     s'.simpleKey.possible = false := by
   unfold scanBlockScalarBody at h
   dsimp only [] at h
-  split at h
-  · exact absurd h (by simp)
-  · have h' := Except.ok.inj h; subst h'; rfl
+  repeat (any_goals (split at h))
+  all_goals (try contradiction)
+  all_goals (have h' := Except.ok.inj h; subst h'; rfl)
 
 lemma scanBlockScalar_simpleKey_false {s s' : ScannerState}
     (h : scanBlockScalar s = .ok s') : s'.simpleKey.possible = false := by

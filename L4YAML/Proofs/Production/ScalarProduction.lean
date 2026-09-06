@@ -3,6 +3,7 @@ Copyright (c) 2026. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 -/
 import L4YAML.Proofs.Coupling.ScalarCoupling
+import L4YAML.Proofs.Coupling.LandingTab
 import L4YAML.Proofs.Scanner.ScannerCorrectness
 import L4YAML.Proofs.Scanner.ScannerLinePreservation
 
@@ -3518,13 +3519,48 @@ The TAB stop is the one shape the walk can enter (`[66]`'s `s-white+` admits
 tabs) but `[168]`/`[169]` cannot absorb (`s-indent` is spaces-only); it is
 returned as the named residue `BlockScalarTabStop`, not absorbed. -/
 
-/-- The named residue: the loop stopped at a line of spaces headed by a TAB.
-    A `[79]` walk can cross such a line but no `[170]`/`[174]` derivation
-    absorbs it, and the runtime — which skips it — accepts inputs the spec
-    has no derivation for (`k: |⏎  x⏎<TAB># c⏎a: b`): a located
-    over-acceptance, recorded in DOCS beside item 95. -/
+/-- The loop's TAB stop: a line of spaces headed by a TAB.  A `[79]` walk can
+    cross such a line but no `[170]`/`[174]` derivation absorbs it, so the
+    runtime refuses it — `blockScalarTabStop`, the gate in
+    `scanBlockScalarBody`, reads exactly this shape at the loop's stop and
+    throws `tabInIndentation` there.  The residue therefore survives only in
+    the LOOP lemma (which has no error channel); every `.ok` face refutes it
+    via `not_blockScalarTabStop_of_gate` below. -/
 def BlockScalarTabStop (sp : SurfPos) : Prop :=
   ∃ j rest, sp.chars = List.replicate j ' ' ++ '\t' :: rest
+
+-- Build the `[63]` run a spaces-then-tab opening describes, landing on the
+-- tab (existentially: the landing column is `sp.col + j`, which the consumer
+-- below does not need).
+private lemma sindent_of_replicate {j : Nat} {tail : List Char} :
+    ∀ {sp : SurfPos}, sp.chars = List.replicate j ' ' ++ tail →
+      ∃ sx, SIndent j sp sx ∧ sx.chars = tail := by
+  induction j with
+  | zero =>
+    intro sp h
+    exact ⟨sp, SIndent.zero sp, by simpa using h⟩
+  | succ j' ih =>
+    intro sp h
+    obtain ⟨cs, col⟩ := sp
+    simp only [List.replicate_succ, List.cons_append] at h
+    subst h
+    obtain ⟨sx, hind, hxchars⟩ :=
+      ih (sp := ⟨List.replicate j' ' ' ++ tail, col + 1⟩) rfl
+    exact ⟨sx, SIndent.succ j' _ col sx hind, hxchars⟩
+
+/-- The gate refutes the residue: at a state whose `blockScalarTabStop` test
+    did not fire, no corresponding surface position opens with spaces and
+    then a tab — `skipSpaces` would land exactly on that tab
+    (`skipSpaces_lands_at_tab`), which is the gate's firing condition. -/
+lemma not_blockScalarTabStop_of_gate {sc : ScannerState} {sp : SurfPos}
+    (hcorr : ScannerSurfCorr sc sp)
+    (hgate : ¬ blockScalarTabStop sc = true) :
+    ¬ BlockScalarTabStop sp := by
+  rintro ⟨j, rest, hchars⟩
+  obtain ⟨sx, hind, hxchars⟩ := sindent_of_replicate hchars
+  have hpk := (L4YAML.Proofs.LandingTab.skipSpaces_lands_at_tab hcorr hind
+    (by rw [hxchars]; rfl)).1
+  exact hgate (by simp [blockScalarTabStop, hpk])
 
 -- SurfPos extensionality: the two fields determine the position.
 private lemma surfpos_ext {a b : SurfPos} (hc : a.chars = b.chars)
@@ -4476,9 +4512,8 @@ lemma scanBlockScalarBody_literal_prod (sc_orig sc_after_nl : ScannerState)
     (hok : scanBlockScalarBody sc_orig sc_after_nl chomp explicitOffset true startPos = .ok s') :
     ∃ sp' contentIndent,
       SLLiteralContent contentIndent sp sp' ∧ ScannerSurfCorr s' sp' ∧
-      ((∀ sp_mid : SurfPos, SSLComments sp' sp_mid →
-          SLLiteralContent contentIndent sp sp_mid) ∨
-        BlockScalarTabStop sp') := by
+      (∀ sp_mid : SurfPos, SSLComments sp' sp_mid →
+        SLLiteralContent contentIndent sp sp_mid) := by
   unfold scanBlockScalarBody at hok
   dsimp only [] at hok
   cases hoff_eq : explicitOffset with
@@ -4490,10 +4525,14 @@ lemma scanBlockScalarBody_literal_prod (sc_orig sc_after_nl : ScannerState)
     obtain ⟨sp_loop, h_lit_content, hcorr_loop, h_absorb⟩ :=
       collectBlockScalarLoop_literal_prod sc_after_nl sp "" fuel contentIndent sc_orig.inputEnd hcorr
         (Nat.le_refl _) h_ie
-    have h := Except.ok.inj hok; subst h
-    exact ⟨sp_loop, contentIndent, h_lit_content,
-           ⟨hcorr_loop.chars_from, hcorr_loop.col_eq, hcorr_loop.end_eq, hcorr_loop.input_prefix, hcorr_loop.indent_cols_nonneg⟩,
-           h_absorb⟩
+    dsimp only [] at hok
+    split at hok
+    · cases hok
+    · rename_i h_gate
+      have h := Except.ok.inj hok; subst h
+      exact ⟨sp_loop, contentIndent, h_lit_content,
+             ⟨hcorr_loop.chars_from, hcorr_loop.col_eq, hcorr_loop.end_eq, hcorr_loop.input_prefix, hcorr_loop.indent_cols_nonneg⟩,
+             h_absorb.resolve_right (not_blockScalarTabStop_of_gate hcorr_loop h_gate)⟩
   | none =>
     rw [hoff_eq] at hok
     generalize h_auto : autoDetectBlockScalarIndent sc_after_nl
@@ -4510,10 +4549,13 @@ lemma scanBlockScalarBody_literal_prod (sc_orig sc_after_nl : ScannerState)
       obtain ⟨sp_loop, h_lit_content, hcorr_loop, h_absorb⟩ :=
         collectBlockScalarLoop_literal_prod sc_after_nl sp "" fuel ci sc_orig.inputEnd hcorr
           (Nat.le_refl _) h_ie
-      have h := Except.ok.inj hok; subst h
-      exact ⟨sp_loop, ci, h_lit_content,
-             ⟨hcorr_loop.chars_from, hcorr_loop.col_eq, hcorr_loop.end_eq, hcorr_loop.input_prefix, hcorr_loop.indent_cols_nonneg⟩,
-             h_absorb⟩
+      split at hok
+      · cases hok
+      · rename_i h_gate
+        have h := Except.ok.inj hok; subst h
+        exact ⟨sp_loop, ci, h_lit_content,
+               ⟨hcorr_loop.chars_from, hcorr_loop.col_eq, hcorr_loop.end_eq, hcorr_loop.input_prefix, hcorr_loop.indent_cols_nonneg⟩,
+               h_absorb.resolve_right (not_blockScalarTabStop_of_gate hcorr_loop h_gate)⟩
 
 -- `scanBlockScalarBody` for folded also produces `SLLiteralContent` + correspondence.
 -- The scanner uses the same `collectBlockScalarLoop` for both literal and folded;
@@ -4526,9 +4568,8 @@ lemma scanBlockScalarBody_folded_prod (sc_orig sc_after_nl : ScannerState)
     (hok : scanBlockScalarBody sc_orig sc_after_nl chomp explicitOffset false startPos = .ok s') :
     ∃ sp' contentIndent,
       SLLiteralContent contentIndent sp sp' ∧ ScannerSurfCorr s' sp' ∧
-      ((∀ sp_mid : SurfPos, SSLComments sp' sp_mid →
-          SLLiteralContent contentIndent sp sp_mid) ∨
-        BlockScalarTabStop sp') := by
+      (∀ sp_mid : SurfPos, SSLComments sp' sp_mid →
+        SLLiteralContent contentIndent sp sp_mid) := by
   unfold scanBlockScalarBody at hok
   dsimp only [] at hok
   cases hoff_eq : explicitOffset with
@@ -4539,10 +4580,14 @@ lemma scanBlockScalarBody_folded_prod (sc_orig sc_after_nl : ScannerState)
     obtain ⟨sp_loop, h_lit_content, hcorr_loop, h_absorb⟩ :=
       collectBlockScalarLoop_literal_prod sc_after_nl sp "" fuel contentIndent sc_orig.inputEnd hcorr
         (Nat.le_refl _) h_ie
-    have h := Except.ok.inj hok; subst h
-    exact ⟨sp_loop, contentIndent, h_lit_content,
-           ⟨hcorr_loop.chars_from, hcorr_loop.col_eq, hcorr_loop.end_eq, hcorr_loop.input_prefix, hcorr_loop.indent_cols_nonneg⟩,
-           h_absorb⟩
+    dsimp only [] at hok
+    split at hok
+    · cases hok
+    · rename_i h_gate
+      have h := Except.ok.inj hok; subst h
+      exact ⟨sp_loop, contentIndent, h_lit_content,
+             ⟨hcorr_loop.chars_from, hcorr_loop.col_eq, hcorr_loop.end_eq, hcorr_loop.input_prefix, hcorr_loop.indent_cols_nonneg⟩,
+             h_absorb.resolve_right (not_blockScalarTabStop_of_gate hcorr_loop h_gate)⟩
   | none =>
     rw [hoff_eq] at hok
     generalize h_auto : autoDetectBlockScalarIndent sc_after_nl
@@ -4559,10 +4604,13 @@ lemma scanBlockScalarBody_folded_prod (sc_orig sc_after_nl : ScannerState)
       obtain ⟨sp_loop, h_lit_content, hcorr_loop, h_absorb⟩ :=
         collectBlockScalarLoop_literal_prod sc_after_nl sp "" fuel ci sc_orig.inputEnd hcorr
           (Nat.le_refl _) h_ie
-      have h := Except.ok.inj hok; subst h
-      exact ⟨sp_loop, ci, h_lit_content,
-             ⟨hcorr_loop.chars_from, hcorr_loop.col_eq, hcorr_loop.end_eq, hcorr_loop.input_prefix, hcorr_loop.indent_cols_nonneg⟩,
-             h_absorb⟩
+      split at hok
+      · cases hok
+      · rename_i h_gate
+        have h := Except.ok.inj hok; subst h
+        exact ⟨sp_loop, ci, h_lit_content,
+               ⟨hcorr_loop.chars_from, hcorr_loop.col_eq, hcorr_loop.end_eq, hcorr_loop.input_prefix, hcorr_loop.indent_cols_nonneg⟩,
+               h_absorb.resolve_right (not_blockScalarTabStop_of_gate hcorr_loop h_gate)⟩
 
 -- `scanBlockScalar` produces `SCLLiteral 0` or `SCLFolded 0` and preserves correspondence.
 -- Header: FULLY PROVEN (delimiter + header chars + SSBComment).
@@ -4575,9 +4623,8 @@ lemma scanBlockScalar_prod (sc : ScannerState) (sp : SurfPos)
     (hchar : sc.peek? = some '|' ∨ sc.peek? = some '>')
     (hok : scanBlockScalar sc = .ok s') :
     ∃ sp', (SCLLiteral 0 sp sp' ∨ SCLFolded 0 sp sp') ∧ ScannerSurfCorr s' sp' ∧
-      ((∀ sp_mid : SurfPos, SSLComments sp' sp_mid →
-          SCLLiteral 0 sp sp_mid ∨ SCLFolded 0 sp sp_mid) ∨
-        BlockScalarTabStop sp') := by
+      (∀ sp_mid : SurfPos, SSLComments sp' sp_mid →
+        SCLLiteral 0 sp sp_mid ∨ SCLFolded 0 sp sp_mid) := by
   unfold scanBlockScalar at hok
   dsimp only [] at hok
   -- Step 1: advance past '|' or '>'
@@ -4648,9 +4695,9 @@ lemma scanBlockScalar_prod (sc : ScannerState) (sp : SurfPos)
              Or.inl (SCLLiteral.mk 0 contentIndent rest sc.col sp_nl sp_body h_header
                h_literal_content'),
              hcorr_body, ?_⟩
-      refine h_absorb.imp_left fun cl sp_mid W => Or.inl ?_
-      exact SCLLiteral.mk 0 contentIndent rest sc.col sp_nl sp_mid h_header
-        (by rw [Nat.zero_add]; exact cl sp_mid W)
+      intro sp_mid W
+      exact Or.inl (SCLLiteral.mk 0 contentIndent rest sc.col sp_nl sp_mid h_header
+        (by rw [Nat.zero_add]; exact h_absorb sp_mid W))
     · -- Folded: sc.peek? = some '>'
       obtain ⟨rest, hsp_eq⟩ := peek_some_sp hcorr hfold
       subst hsp_eq
@@ -4672,8 +4719,8 @@ lemma scanBlockScalar_prod (sc : ScannerState) (sp : SurfPos)
              Or.inr (SCLFolded.mk 0 contentIndent rest sc.col sp_nl sp_body h_header
                h_literal_content'),
              hcorr_body, ?_⟩
-      refine h_absorb.imp_left fun cl sp_mid W => Or.inr ?_
-      exact SCLFolded.mk 0 contentIndent rest sc.col sp_nl sp_mid h_header
-        (by rw [Nat.zero_add]; exact cl sp_mid W)
+      intro sp_mid W
+      exact Or.inr (SCLFolded.mk 0 contentIndent rest sc.col sp_nl sp_mid h_header
+        (by rw [Nat.zero_add]; exact h_absorb sp_mid W))
 
 end L4YAML.Proofs.ScalarProduction

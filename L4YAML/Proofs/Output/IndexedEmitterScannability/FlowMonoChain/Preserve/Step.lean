@@ -379,6 +379,9 @@ lemma scanNextTokenIx_dispatchContent_preserves_flowLevel
           -- Peel the §6.1/§8.1.3 body-validator guard (item 7 strictness).
           split at h
           · cases h
+          -- Peel the §6.1/§8.1.1 tab-stop guard (`blockScalarTabStopErrIx`).
+          split at h
+          · cases h
           split at h
           · simp only [Except.ok.injEq] at h; subst h; rfl
           · cases h
@@ -468,6 +471,9 @@ lemma scanNextTokenIx_dispatchContent_preserves_simpleKeyStack
           split at h
           · cases h
           -- Peel the §6.1/§8.1.3 body-validator guard (item 7 strictness).
+          split at h
+          · cases h
+          -- Peel the §6.1/§8.1.1 tab-stop guard (`blockScalarTabStopErrIx`).
           split at h
           · cases h
           split at h

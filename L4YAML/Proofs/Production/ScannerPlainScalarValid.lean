@@ -2909,9 +2909,12 @@ lemma scanBlockScalar_preserves_flowLevel (s s' : ScannerState)
     · -- Case: autoDetectErr? = some err (error case)
       contradiction
     · -- Case: autoDetectErr? = none (success case)
-      simp only [ScannerState.emitAt] at h_ok
-      injection h_ok with h_eq; subst h_eq
-      simp [collectBlockScalarLoop_preserves_flowLevel, h_fl]
+      repeat (any_goals (split at h_ok))
+      all_goals (try contradiction)
+      all_goals
+        simp only [ScannerState.emitAt] at h_ok
+        injection h_ok with h_eq; subst h_eq
+        simp [collectBlockScalarLoop_preserves_flowLevel, h_fl]
 
 lemma collectHexDigitsLoop_preserves_flowLevel (s : ScannerState) (hex : String) (n : Nat) :
     (collectHexDigitsLoop s hex n).snd.flowLevel = s.flowLevel := by
@@ -3328,15 +3331,19 @@ lemma scanBlockScalar_preserves_FlowInv (s s' : ScannerState)
       simp only [] at h_ok
       split at h_ok
       · contradiction
-      · simp only [ScannerState.emitAt, Except.ok.injEq] at h_ok
-        subst h_ok
-        dsimp only [] at h_gen
-        simp only [Array.getElem_push] at h_gen
-        rw [collectBlockScalarLoop_preserves_tokens, h_tok] at h_gen
-        simp only [Nat.lt_irrefl, dite_false] at h_gen
-        -- h_gen : .scalar content (if ... then .literal else .folded) = tok_val
-        -- Split the if in the hypothesis, then subst back
-        split at h_gen <;> (subst h_gen; trivial)
+      · repeat (any_goals (split at h_ok))
+        all_goals (try contradiction)
+        all_goals
+          simp only [ScannerState.emitAt, Except.ok.injEq] at h_ok
+          subst h_ok
+          dsimp only [] at h_gen
+          simp only [Array.getElem_push] at h_gen
+          rw [collectBlockScalarLoop_preserves_tokens, h_tok] at h_gen
+          simp only [Nat.lt_irrefl, dite_false] at h_gen
+          -- h_gen : .scalar content (with the style decided) = tok_val
+          first
+          | (split at h_gen <;> (subst h_gen; trivial))
+          | (subst h_gen; trivial)
   · -- FlowNestingInv: flowLevel unchanged, scalar is non-flow token
     unfold FlowNestingInv at *
     have h_size : s'.tokens.size = s.tokens.size + 1 := by
@@ -3359,12 +3366,15 @@ lemma scanBlockScalar_preserves_FlowInv (s s' : ScannerState)
             skipWhitespace_preserves_tokens,
             parseBlockHeaderLoop_preserves_tokens,
             advance_preserves_tokens]
-      simp only [ScannerState.emitAt] at h_ok
-      injection h_ok with h_eq; subst h_eq
-      simp only []
-      rw [collectBlockScalarLoop_preserves_tokens, h_tok]
-      rw [flowNesting_push_non_flow s.tokens _ (by nofun) (by nofun) (by nofun) (by nofun)]
-      exact h_fni
+      repeat (any_goals (split at h_ok))
+      all_goals (try contradiction)
+      all_goals
+        simp only [ScannerState.emitAt] at h_ok
+        injection h_ok with h_eq; subst h_eq
+        simp only []
+        rw [collectBlockScalarLoop_preserves_tokens, h_tok]
+        rw [flowNesting_push_non_flow s.tokens _ (by nofun) (by nofun) (by nofun) (by nofun)]
+        exact h_fni
 
 lemma scanDoubleQuoted_preserves_FlowInv (s s' : ScannerState)
     (h_ok : scanDoubleQuoted s = .ok s')

@@ -1534,6 +1534,28 @@ def blockScalarBodyErrIx {input : String} (c : IxCursor input)
     blockScalarAutoIndentErrLoopIx (blockHeaderToBodyIx c) 0 0 indentFloor
       (input.utf8ByteSize + 1)
 
+/-- Twin of the legacy `blockScalarTabStop` gate (`scanBlockScalarBody`,
+    Scanner/Scalar.lean), in this pipeline's walker form: recompute the
+    content indent exactly as `scanBlockScalarIx` does, run the collection
+    loop, and report a TAB heading the loop's stop line.  No arm of
+    `[166] l-chomped-empty(n,t)` derives such a line — `[167]`/`[168]`'s
+    `s-indent(≤n)` and `[169] l-trail-comments`' head are all spaces-only —
+    so the tab sits in required indentation (§6.1).  The dispatcher's
+    `|`/`>` arm runs this after `blockScalarBodyErrIx` and throws. -/
+@[yaml_spec "8.1.1" 166 "l-chomped-empty(n,t)", yaml_spec "6.1" 63 "s-indent(n)"]
+def blockScalarTabStopErrIx {input : String} (c : IxCursor input)
+    (indentFloor : Nat) : Option ScanError :=
+  let stop := (collectBlockScalarLoopIx (blockHeaderToBodyIx c) ""
+    (match (parseBlockHeaderLoopIx c.advance .clip none 2).2.1 with
+      | some m => indentFloor + m - 1
+      | none   => autoDetectBlockScalarIndentIx (blockHeaderToBodyIx c)
+                    indentFloor)
+    input.utf8ByteSize).2
+  if (skipSpaces stop).1.peek? == some '\t' then
+    some (.tabInIndentation (skipSpaces stop).1.pos.line
+      (skipSpaces stop).1.pos.col)
+  else none
+
 /-- Scan a block scalar. The cursor must be at the introducer `|`
     (literal) or `>` (folded). Returns `(content, style, c')`
     where `style` is `.literal` or `.folded` and `c'` is the cursor

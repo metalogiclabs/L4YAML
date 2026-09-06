@@ -1499,6 +1499,9 @@ lemma scanNextTokenIx_dispatchContent_ok_monotonic {input : String}
           · -- Peel the §6.1/§8.1.3 body-validator guard (item 7 strictness).
             split at h
             · cases h
+            -- Peel the §6.1/§8.1.1 tab-stop guard (`blockScalarTabStopErrIx`).
+            split at h
+            · cases h
             -- Use split at h to handle the dependent match's hBS witness.
             split at h
             · rename_i r hBS

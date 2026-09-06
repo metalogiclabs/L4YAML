@@ -1507,6 +1507,11 @@ def scanNextTokenIx_dispatchContent {input : String} (s : ScannerStateIx input)
     -- recogniser cannot throw.
     if let some e := blockScalarBodyErrIx s.cursor indentFloor then
       throw e
+    -- §6.1 / §8.1.1 strictness: a spaces-then-TAB line at the collection
+    -- loop's stop — no arm of `l-chomped-empty` derives it.  Twin of the
+    -- legacy gate in `scanBlockScalarBody`.
+    if let some e := blockScalarTabStopErrIx s.cursor indentFloor then
+      throw e
     let startPos := s.cursor.pos
     match hBS : scanBlockScalarIx s.cursor indentFloor with
     | some r =>

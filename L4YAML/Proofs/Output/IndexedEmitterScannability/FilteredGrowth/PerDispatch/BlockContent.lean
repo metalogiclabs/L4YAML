@@ -435,6 +435,9 @@ lemma dispatchContent_new_not_placeholderIx {s s' : ScannerStateIx input} {c : C
           -- Peel the §6.1/§8.1.3 body-validator guard (item 7 strictness).
           split at h
           · cases h
+          -- Peel the §6.1/§8.1.1 tab-stop guard (`blockScalarTabStopErrIx`).
+          split at h
+          · cases h
           split at h
           · rename_i r hBS
             cases h
@@ -540,6 +543,9 @@ lemma dispatchContent_adds_one_tokenIx {s s' : ScannerStateIx input} {c : Char}
           split at h
           · cases h
           -- Peel the §6.1/§8.1.3 body-validator guard (item 7 strictness).
+          split at h
+          · cases h
+          -- Peel the §6.1/§8.1.1 tab-stop guard (`blockScalarTabStopErrIx`).
           split at h
           · cases h
           split at h

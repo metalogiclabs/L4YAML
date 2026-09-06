@@ -1167,6 +1167,9 @@ lemma scanNextTokenIx_dispatchContent_maintains_NoOverwriteAtIx {input : String}
           -- Peel the §6.1/§8.1.3 body-validator guard (item 7 strictness).
           split at h
           · cases h
+          -- Peel the §6.1/§8.1.1 tab-stop guard (`blockScalarTabStopErrIx`).
+          split at h
+          · cases h
           split at h
           · simp only [Except.ok.injEq] at h; subst h
             exact NoOverwriteAtIx_of_cleared_preserved _ s m rfl rfl h_inv

@@ -14230,9 +14230,8 @@ lemma dispatchContent_blockScalar_prod (sc : ScannerState) (sp : SurfPos)
     (hchar : c = '|' ∨ c = '>')
     (hok : scanNextToken_dispatchContent sc c = .ok s') :
     ∃ sp', (SCLLiteral 0 sp sp' ∨ SCLFolded 0 sp sp') ∧ ScannerSurfCorr s' sp' ∧
-      ((∀ sp_mid : SurfPos, SSLComments sp' sp_mid →
-          SCLLiteral 0 sp sp_mid ∨ SCLFolded 0 sp sp_mid) ∨
-        L4YAML.Proofs.ScalarProduction.BlockScalarTabStop sp') := by
+      (∀ sp_mid : SurfPos, SSLComments sp' sp_mid →
+        SCLLiteral 0 sp sp_mid ∨ SCLFolded 0 sp sp_mid) := by
   cases hchar with
   | inl h_lit =>
     subst h_lit
@@ -14284,9 +14283,8 @@ lemma dispatchContent_blockScalar_prod_at (sc : ScannerState) (sp : SurfPos)
       (max 0 (sc.currentIndent + 1)).toNat ≤ d ∧
       ((∀ n, n ≤ d → SCLLiteral n sp sp') ∨ (∀ n, n ≤ d → SCLFolded n sp sp')) ∧
       ScannerSurfCorr s' sp' ∧
-      ((∀ sp_mid : SurfPos, SSLComments sp' sp_mid →
-          (∀ n, n ≤ d → SCLLiteral n sp sp_mid) ∨ (∀ n, n ≤ d → SCLFolded n sp sp_mid)) ∨
-        L4YAML.Proofs.ScalarProduction.BlockScalarTabStop sp') := by
+      (∀ sp_mid : SurfPos, SSLComments sp' sp_mid →
+        (∀ n, n ≤ d → SCLLiteral n sp sp_mid) ∨ (∀ n, n ≤ d → SCLFolded n sp sp_mid)) := by
   cases hchar with
   | inl h_lit =>
     subst h_lit
@@ -15081,11 +15079,10 @@ lemma dispatchContent_evidence_content (sc : ScannerState) (sp : SurfPos)
     ∃ sp_gram sp',
       (SFlowContent 0 .flowOut sp sp_gram ∨
         ((SCLLiteral 0 sp sp_gram ∨ SCLFolded 0 sp sp_gram) ∧
-          -- Item 95: the walk at the scalar's stop, absorbable or the named
-          -- TAB residue.
-          ((∀ sp_mid : SurfPos, SSLComments sp_gram sp_mid →
-              SCLLiteral 0 sp sp_mid ∨ SCLFolded 0 sp sp_mid) ∨
-            L4YAML.Proofs.ScalarProduction.BlockScalarTabStop sp_gram))) ∧
+          -- Item 95: the walk at the scalar's stop, absorbable into the
+          -- same node (item 97's gate refuses the TAB stop).
+          (∀ sp_mid : SurfPos, SSLComments sp_gram sp_mid →
+            SCLLiteral 0 sp sp_mid ∨ SCLFolded 0 sp sp_mid))) ∧
       GStar SSWhite sp_gram sp' ∧
       ScannerSurfCorr s' sp' := by
   by_cases hc_dq : c = '"'
@@ -16629,11 +16626,10 @@ lemma indentedValue_reads_at_any_indent
     ((SCLLiteral n sp_prep sp_scan' ∨ SCLFolded n sp_prep sp_scan') ∧
       -- Item 95: the landing walk at the scalar's stop, absorbable into the
       -- SAME node through `[169] l-trail-comments` (or forced empty by the
-      -- stop character) — or the TAB-led stop, the shape `[168]`/`[169]`
-      -- cannot absorb, returned as the named residue.
-      ((∀ sp_mid : SurfPos, SSLComments sp_scan' sp_mid →
-          SCLLiteral n sp_prep sp_mid ∨ SCLFolded n sp_prep sp_mid) ∨
-        L4YAML.Proofs.ScalarProduction.BlockScalarTabStop sp_scan') ∧
+      -- stop character); the TAB-led stop, the shape `[168]`/`[169]` cannot
+      -- absorb, is refused by item 97's runtime gate.
+      (∀ sp_mid : SurfPos, SSLComments sp_scan' sp_mid →
+        SCLLiteral n sp_prep sp_mid ∨ SCLFolded n sp_prep sp_mid) ∧
       SSeparate n .blockIn sp_scan sp_prep ∧
       (sp_scan'.col = 0 ∨ LineNodeStop sp_scan'.chars) ∧
       (c ≠ '&' ∧ c ≠ '!') ∧ (c = '|' ∨ c = '>')) ∨
@@ -16827,8 +16823,8 @@ lemma indentedValue_reads_at_any_indent
         have hn : n ≤ d := Nat.le_trans h_floor_at h_floor'
         exact Or.inr (Or.inr (Or.inl
           ⟨h_read.elim (fun h => Or.inl (h n hn)) (fun h => Or.inr (h n hn)),
-           h_absorb95.imp_left fun cl sp_mid W =>
-             (cl sp_mid W).elim (fun h => Or.inl (h n hn)) (fun h => Or.inr (h n hn)),
+           fun sp_mid W =>
+             (h_absorb95 sp_mid W).elim (fun h => Or.inl (h n hn)) (fun h => Or.inr (h n hn)),
            h_sep_n, h_line, ⟨hna, hnt⟩, hbs⟩))
       · have hna : c ≠ '&' := fun h => hprops (Or.inl h)
         have hnt : c ≠ '!' := fun h => hprops (Or.inr h)
@@ -17106,10 +17102,9 @@ lemma accum_content_on_pendingBlock_indented
              -- `[169] l-trail-comments` slot (or forced empty by the stop
              -- character), so the SAME node re-read to the landing closes the
              -- entry and the frame reads the `:` line (`? |⏎  x⏎: - w`,
-             -- `? - |⏎    x⏎: - w`).  The TAB-led stop stays with the
-             -- deferral (the named `BlockScalarTabStop` residue).
+             -- `? - |⏎    x⏎: - w`).
              (match h_kslot_old, h_absorb95 with
-              | Or.inl ⟨nv, kslot⟩, Or.inl cl => Or.inl ⟨nv,
+              | Or.inl ⟨nv, kslot⟩, cl => Or.inl ⟨nv,
                   fun sp_mid sp_i sp_c h_ssl h_iv h_lit sp_v h_sbi =>
                     kslot sp_mid
                       (SBlockIndented.node n .blockIn sp_scan sp_mid
@@ -17660,10 +17655,9 @@ lemma accum_content_on_pendingMapValue_indented
              -- Item 95: the park's value-line twin (item 93's `h_kslot`)
              -- rides in — the landing walk is absorbed into the scalar's own
              -- `[169]` slot, so the node re-read to the landing feeds the
-             -- twin and `k:⏎  ? a: |⏎    x⏎  : - w` composes.  The TAB-led
-             -- stop stays with the deferral.
+             -- twin and `k:⏎  ? a: |⏎    x⏎  : - w` composes.
              (match h_kslot, h_absorb95 with
-              | Or.inl ⟨nv, kslot⟩, Or.inl cl => Or.inl ⟨nv,
+              | Or.inl ⟨nv, kslot⟩, cl => Or.inl ⟨nv,
                   fun sp_mid sp_i sp_c h_ssl h_iv h_lit sp_v h_sbi =>
                     kslot sp_mid
                       ((cl sp_mid h_ssl).elim
@@ -18373,10 +18367,9 @@ lemma accum_content_pending (sc : ScannerState)
                          -- line — the landing's `s-l-comments` is absorbed
                          -- into `[169]`, the props-headed node re-read to the
                          -- landing feeds the park's own twin, and
-                         -- `? &p |⏎  x⏎: - w` composes.  The TAB-led stop
-                         -- stays with the deferral.
+                         -- `? &p |⏎  x⏎: - w` composes.
                          (match h_kslot_p, h_absorb95 with
-                          | Or.inl ⟨nv, kslot⟩, Or.inl cl => Or.inl ⟨nv,
+                          | Or.inl ⟨nv, kslot⟩, cl => Or.inl ⟨nv,
                               fun sp_mid sp_i sp_c h_ssl h_ind h_lit sp_v h_sbi =>
                                 kslot sp_mid
                                   ((cl sp_mid (white_prepend_SSLComments h_tws h_ssl)).elim
@@ -18402,10 +18395,9 @@ lemma accum_content_pending (sc : ScannerState)
                     GStar SSWhite sp_ne sp_res ∧ ScannerSurfCorr s' sp_res) ∨
                   ((SCLLiteral (k + 1) sp_prep sp_scan' ∨
                     SCLFolded (k + 1) sp_prep sp_scan') ∧
-                    ((∀ sp_mid : SurfPos, SSLComments sp_scan' sp_mid →
+                    (∀ sp_mid : SurfPos, SSLComments sp_scan' sp_mid →
                         SCLLiteral (k + 1) sp_prep sp_mid ∨
-                        SCLFolded (k + 1) sp_prep sp_mid) ∨
-                      L4YAML.Proofs.ScalarProduction.BlockScalarTabStop sp_scan') ∧
+                        SCLFolded (k + 1) sp_prep sp_mid) ∧
                     (c = '|' ∨ c = '>')) ∨
                   (∃ sp_ne sp_res,
                     SFlowContent (k + 1) .flowOut sp_prep sp_ne ∧
@@ -18435,8 +18427,8 @@ lemma accum_content_pending (sc : ScannerState)
                   exact Or.inr (Or.inl
                     ⟨h_read.elim (fun h => Or.inl (h (k + 1) hn))
                                  (fun h => Or.inr (h (k + 1) hn)),
-                     h_absorb95.imp_left fun cl sp_mid W =>
-                       (cl sp_mid W).elim (fun h => Or.inl (h (k + 1) hn))
+                     fun sp_mid W =>
+                       (h_absorb95 sp_mid W).elim (fun h => Or.inl (h (k + 1) hn))
                                           (fun h => Or.inr (h (k + 1) hn)), hbs⟩)
                 · by_cases hline_eq : s'.line = (if s_prep.allowDirectives then
                       { s_prep with allowDirectives := false, documentEverStarted := true }
@@ -18551,7 +18543,7 @@ lemma accum_content_pending (sc : ScannerState)
                          -- landing feeds the park's twin
                          -- (`k:⏎  ? &p |⏎      x⏎  : - w`).
                          (match h_kslot_p, h_absorb95k with
-                          | Or.inl ⟨nv, kslot⟩, Or.inl cl => Or.inl ⟨nv,
+                          | Or.inl ⟨nv, kslot⟩, cl => Or.inl ⟨nv,
                               fun sp_mid sp_i sp_c h_ssl h_ind h_lit sp_v h_sbi =>
                                 kslot sp_mid
                                   ((cl sp_mid h_ssl).elim

@@ -13,6 +13,7 @@ import Tests.Guards.Proofs.RoundTrip
 import Tests.Guards.Proofs.RoundTripComposition
 import Tests.Guards.Proofs.ScannerAliasTrailingContent
 import Tests.Guards.Proofs.ScannerBlockScalarInFlow
+import Tests.Guards.Proofs.ScannerBlockScalarTabStop
 import Tests.Guards.Proofs.ScannerFlowColonAdjacency
 import Tests.Guards.Proofs.ScannerFlowExplicitEmptyKey
 import Tests.Guards.Proofs.ScannerFlowExplicitEntryBoundary

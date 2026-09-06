@@ -759,8 +759,14 @@ lemma scanBlockScalarBody_corr (sc_orig sc_after_nl : ScannerState)
         (collectBlockScalarLoop sc_after_nl "" fuel contentIndent sc_orig.inputEnd).snd sp' :=
       collectBlockScalarLoop_corr sc_after_nl sp "" fuel contentIndent sc_orig.inputEnd hcorr
     obtain ⟨sp_loop, hcorr_loop⟩ := hcorr_res
-    have h := Except.ok.inj hok; subst h
-    exact ⟨sp_loop, ⟨hcorr_loop.chars_from, hcorr_loop.col_eq, hcorr_loop.end_eq, hcorr_loop.input_prefix, hcorr_loop.indent_cols_nonneg⟩⟩
+    -- the match on explicitOffset splits first, then the blockScalarTabStop
+    -- gate's `if`; the error arms are impossible (Except.error = Except.ok)
+    repeat (any_goals (split at hok))
+    all_goals (try contradiction)
+    all_goals
+      have h := Except.ok.inj hok
+      subst h
+      exact ⟨sp_loop, ⟨hcorr_loop.chars_from, hcorr_loop.col_eq, hcorr_loop.end_eq, hcorr_loop.input_prefix, hcorr_loop.indent_cols_nonneg⟩⟩
 
 /-- `scanBlockScalar` preserves correspondence on `.ok` paths. -/
 lemma scanBlockScalar_corr (sc : ScannerState) (sp : SurfPos)

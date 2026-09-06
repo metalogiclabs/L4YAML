@@ -922,6 +922,22 @@ def collectBlockScalarLoop (s : ScannerState) (rawContent : String) (fuel : Nat)
               then rawContent'.push '\n' else rawContent'
             (rawContent'', s_after_line)
 
+/-- Did `collectBlockScalarLoop` stop at a line of spaces headed by a TAB?
+
+    The loop's non-empty stop is a line of fewer than `contentIndent` spaces
+    and then a non-space non-break character, read from the line's start.  A
+    TAB there sits where `[166] l-chomped-empty(n,t)` requires `[63] s-indent`
+    — `[167]`/`[168]`'s `s-indent(≤n)` and `[169] l-trail-comments`' head are
+    all spaces-only — so no arm of the scalar's trailing production derives
+    the line, and nothing after the scalar can reach it either (a following
+    token's own indent is `[63]` too): `scanBlockScalarBody` refuses at the
+    tab (§6.1).  Every other exit of the loop leaves the scanner at end of
+    input, at a document boundary, or peeking a non-tab character, where this
+    test is false. -/
+@[yaml_spec "8.1.1" 166 "l-chomped-empty(n,t)", yaml_spec "6.1" 63 "s-indent(n)"]
+def blockScalarTabStop (s : ScannerState) : Bool :=
+  (skipSpaces s).peek? == some '\t'
+
 /-- Helper for scanBlockScalar header parsing using structural recursion.
 
     Parses up to `fuel` header characters: chomp indicator (`-`/`+`) and
@@ -1023,6 +1039,12 @@ def scanBlockScalarBody (s_orig : ScannerState) (s_after_newline : ScannerState)
   | none =>
     let fuel := s_orig.inputEnd - s_after_newline.offset + 1
     let (rawContent, s_after_content) := collectBlockScalarLoop s_after_newline "" fuel contentIndent s_orig.inputEnd
+    if blockScalarTabStop s_after_content then
+      -- The collection loop stopped at a spaces-then-TAB line: no arm of
+      -- `[166] l-chomped-empty(n,t)` derives it (see `blockScalarTabStop`).
+      .error (.tabInIndentation (skipSpaces s_after_content).line
+        (skipSpaces s_after_content).col)
+    else
     let stripTrailingNewlines (str : String) : String :=
       String.ofList (str.toList.reverse.dropWhile (· == '\n') |>.reverse)
     let content := match chomp with

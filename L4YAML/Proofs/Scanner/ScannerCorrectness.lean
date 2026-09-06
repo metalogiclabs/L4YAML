@@ -10430,9 +10430,11 @@ lemma scanBlockScalarBody_offset_ge (s_orig s_nl : ScannerState)
     (h : scanBlockScalarBody s_orig s_nl chomp expl isLit startPos = .ok s') :
     s'.offset ≥ s_nl.offset := by
   unfold scanBlockScalarBody at h; dsimp only [] at h
-  split at h
-  · cases h
-  · simp only [Except.ok.injEq] at h; subst h
+  repeat (any_goals (split at h))
+  all_goals (try contradiction)
+  all_goals
+    simp only [Except.ok.injEq] at h
+    subst h
     exact collectBlockScalarLoop_offset_ge _ _ _ _ _
 
 /-- `scanBlockScalar` strictly advances offset when `offset < inputEnd`. -/
