@@ -161,8 +161,11 @@ lemma skipBlankLinesLoop_preserves_indents (s : ScannerState) (cnt fuel inputEnd
     unfold skipBlankLinesLoop; dsimp only []
     split
     · split
-      · rw [ih, L4YAML.Proofs.EmitterScannability.consumeNewline_preserves_indents,
-            skipWhitespace_preserves_indents]
+      · -- item 100: the gate's arm keeps the stack
+        split
+        · rfl
+        · rw [ih, L4YAML.Proofs.EmitterScannability.consumeNewline_preserves_indents,
+              skipWhitespace_preserves_indents]
       · rfl
     · rfl
 

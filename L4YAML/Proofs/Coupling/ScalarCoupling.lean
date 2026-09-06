@@ -457,7 +457,10 @@ lemma skipBlankLinesLoop_corr (sc : ScannerState) (sp : SurfPos)
       · rename_i hlb
         obtain ⟨sp_cn, hcorr_cn⟩ :=
           consumeNewline_corr (skipWhitespace sc) sp_sk c hcorr_sk hpeek hlb
-        exact ih (consumeNewline (skipWhitespace sc)) sp_cn (cnt + 1) hcorr_cn
+        -- item 100: the gate's arm returns the saved state
+        split
+        · exact ⟨sp, hcorr⟩
+        · exact ih (consumeNewline (skipWhitespace sc)) sp_cn (cnt + 1) hcorr_cn
       · exact ⟨sp, hcorr⟩  -- return saved
     · exact ⟨sp, hcorr⟩
 
@@ -837,16 +840,21 @@ lemma foldQuotedNewlinesLoop_stop (s : ScannerState) (cnt fuel : Nat)
     · rename_i hpk
       right; intro ch h; rw [hpk] at h; cases h
 
-/-- `skipBlankLinesLoop` stops at a line whose first non-`s-white` character is
-    not a break. -/
+/-- Item 100: the plain walk's twin of `foldQuotedNewlinesLoop_stop`.
+    `skipBlankLinesLoop` stops either at a tab under the floor — which the
+    caller's own under-indent test then reads as the end of the scalar — or at a
+    line whose first non-`s-white` character is not a break: every all-white line
+    in between is an `l-empty`. -/
 lemma skipBlankLinesLoop_stop (s : ScannerState) (cnt fuel ie : Nat)
     (hfuel : s.inputEnd - s.offset ≤ fuel) :
+    blankLineTabUnderFloor (skipBlankLinesLoop s cnt fuel ie).2 = true ∨
     ∀ ch, (skipWhitespace (skipBlankLinesLoop s cnt fuel ie).2).peek? = some ch →
       isLineBreakBool ch = false := by
   induction fuel generalizing s cnt with
   | zero =>
     have hnone : s.peek? = none := by
       simp only [ScannerState.peek?]; simp only [ite_eq_right_iff]; omega
+    right
     simp only [skipBlankLinesLoop]
     rw [skipWhitespace_noop s (by simp [hnone])]
     intro ch h; rw [hnone] at h; cases h
@@ -857,16 +865,19 @@ lemma skipBlankLinesLoop_stop (s : ScannerState) (cnt fuel ie : Nat)
     · rename_i c hpk
       split
       · rename_i hlb
-        have hmono := skipWhitespace_offset_mono s
-        have hmore := peek_some_hasMore _ c hpk
-        have hcn := consumeNewline_offset_advance _ c hpk hlb
-        exact ih (consumeNewline (skipWhitespace s)) (cnt + 1) (by omega)
+        split
+        · rename_i htab; exact Or.inl htab
+        · have hmono := skipWhitespace_offset_mono s
+          have hmore := peek_some_hasMore _ c hpk
+          have hcn := consumeNewline_offset_advance _ c hpk hlb
+          exact ih (consumeNewline (skipWhitespace s)) (cnt + 1) (by omega)
       · rename_i hlb
+        right
         intro ch h
         rw [hpk] at h; injection h with h; subst h
         simpa using hlb
     · rename_i hpk
-      intro ch h; rw [hpk] at h; cases h
+      right; intro ch h; rw [hpk] at h; cases h
 
 lemma foldQuotedNewlinesLoop_inputEnd (s : ScannerState) (cnt fuel : Nat) :
     (foldQuotedNewlinesLoop s cnt fuel).1.inputEnd = s.inputEnd := by
@@ -890,7 +901,10 @@ lemma skipBlankLinesLoop_inputEnd (s : ScannerState) (cnt fuel ie : Nat) :
     rw [skipBlankLinesLoop]
     split
     · split
-      · rw [ih, consumeNewline_inputEnd, (skipWhitespace_offset_mono s).2]
+      · -- item 100: the gate's arm keeps the state
+        split
+        · rfl
+        · rw [ih, consumeNewline_inputEnd, (skipWhitespace_offset_mono s).2]
       · rfl
     · rfl
 
@@ -962,9 +976,18 @@ lemma foldQuotedNewlines_inputEnd {s s' : ScannerState} {folded : String}
 
 /-- A block fold lands on a character that is neither `s-white` nor a break.
     `hie` is the caller's fuel bound: `skipBlankLinesLoop` is given
-    `ie - offset + 1`, which covers the input when `ie` does. -/
+    `ie - offset + 1`, which covers the input when `ie` does.
+
+    Item 100: `hgate` says the blank run was not stopped by the fold's own §6.1
+    gate.  It is the caller's to supply because it is an ARITHMETIC fact about
+    the floor — a gate-stopped line is under-indented, so the handler returned
+    `none` there — and the indent transport that shows it lives one layer up
+    (`handleBlockLineBreak_gate_false`). -/
 lemma handleBlockLineBreak_landing {s s' : ScannerState} {content content' : String}
     {ci ie : Nat} (hie : s.inputEnd ≤ ie + 1)
+    (hgate : blankLineTabUnderFloor
+      (skipBlankLinesLoop (consumeNewline s) 0
+        (ie - (consumeNewline s).offset + 1) ie).2 = false)
     (h : collectPlainScalar_handleBlockLineBreak s content ci ie = some (content', s')) :
     ∀ ch, s'.peek? = some ch → isWhiteSpaceBool ch = false ∧ isLineBreakBool ch = false := by
   unfold collectPlainScalar_handleBlockLineBreak at h
@@ -982,9 +1005,11 @@ lemma handleBlockLineBreak_landing {s s' : ScannerState} {content content' : Str
       intro ch hpk
       refine ⟨skipWhitespace_peek_not_ws _ ch hpk, ?_⟩
       rw [skipWhitespace_skipSpaces] at hpk
-      exact skipBlankLinesLoop_stop (consumeNewline s) 0
-        (ie - (consumeNewline s).offset + 1) ie
-        (by rw [consumeNewline_inputEnd]; omega) ch hpk
+      rcases skipBlankLinesLoop_stop (consumeNewline s) 0
+          (ie - (consumeNewline s).offset + 1) ie
+          (by rw [consumeNewline_inputEnd]; omega) with htab | hstop
+      · exact absurd htab (by rw [hgate]; simp)
+      · exact hstop ch hpk
 
 lemma handleBlockLineBreak_inputEnd {s s' : ScannerState} {content content' : String}
     {ci ie : Nat}

@@ -210,6 +210,39 @@ lemma skipBlankLinesLoopIx_offset_monotonic {input : String} (c : IxCursor input
     · -- peek? = none: yields (c, _)
       exact Nat.le_refl _
 
+/-- Item 100's gated twin: the plain walk's blank-line skipper is monotone for
+    the same reason, the gate's arm returning the entry cursor. -/
+lemma skipBlankLinesPlainIx_offset_monotonic {input : String} (c : IxCursor input)
+    (emptyCount : Nat) (contentIndent : Nat) (fuel : Nat) :
+    c.pos.offset ≤ (skipBlankLinesPlainIx c emptyCount contentIndent fuel).1.pos.offset := by
+  induction fuel generalizing c emptyCount with
+  | zero => unfold skipBlankLinesPlainIx; exact Nat.le_refl _
+  | succ fuel ih =>
+    unfold skipBlankLinesPlainIx
+    split
+    · -- some ch
+      split
+      · -- isLineBreakBool ch = true: the gate's arm rests at the entry cursor,
+        -- the fold's arm steps forward (the `&&` splits into both tests)
+        have hSP : c.pos.offset ≤ (skipWhitespace c).pos.offset :=
+          skipWhitespace_offset_monotonic c
+        have hCLB : (skipWhitespace c).pos.offset ≤
+                    (consumeLineBreak (skipWhitespace c)).pos.offset :=
+          consumeLineBreak_offset_monotonic _
+        have hRec :
+            (consumeLineBreak (skipWhitespace c)).pos.offset ≤
+            (skipBlankLinesPlainIx (consumeLineBreak (skipWhitespace c))
+              (emptyCount + 1) contentIndent fuel).1.pos.offset :=
+          ih (consumeLineBreak (skipWhitespace c)) (emptyCount + 1)
+        repeat' split
+        all_goals first
+          | exact Nat.le_refl _
+          | exact Nat.le_trans hSP (Nat.le_trans hCLB hRec)
+      · -- isLineBreakBool ch = false: yields (c, _)
+        exact Nat.le_refl _
+    · -- peek? = none: yields (c, _)
+      exact Nat.le_refl _
+
 lemma foldQuotedNewlinesIx_offset_monotonic {input : String} (c : IxCursor input) :
     c.pos.offset ≤ (foldQuotedNewlinesIx c).2.pos.offset := by
   unfold foldQuotedNewlinesIx
@@ -244,24 +277,24 @@ lemma handleBlockLineBreakIx_offset_monotonic {input : String} (c : IxCursor inp
     consumeLineBreak_offset_monotonic c
   have hBL :
       (consumeLineBreak c).pos.offset ≤
-      (skipBlankLinesLoopIx (consumeLineBreak c) 0 input.utf8ByteSize).1.pos.offset :=
-    skipBlankLinesLoopIx_offset_monotonic _ _ _
+      (skipBlankLinesPlainIx (consumeLineBreak c) 0 contentIndent input.utf8ByteSize).1.pos.offset :=
+    skipBlankLinesPlainIx_offset_monotonic _ _ _ _
   have hSP :
-      (skipBlankLinesLoopIx (consumeLineBreak c) 0 input.utf8ByteSize).1.pos.offset ≤
+      (skipBlankLinesPlainIx (consumeLineBreak c) 0 contentIndent input.utf8ByteSize).1.pos.offset ≤
       (skipSpaces
-        (skipBlankLinesLoopIx (consumeLineBreak c) 0 input.utf8ByteSize).1).1.pos.offset :=
+        (skipBlankLinesPlainIx (consumeLineBreak c) 0 contentIndent input.utf8ByteSize).1).1.pos.offset :=
     skipSpaces_offset_monotonic _
   have hSW :
       (skipSpaces
-        (skipBlankLinesLoopIx (consumeLineBreak c) 0 input.utf8ByteSize).1).1.pos.offset ≤
+        (skipBlankLinesPlainIx (consumeLineBreak c) 0 contentIndent input.utf8ByteSize).1).1.pos.offset ≤
       (skipWhitespace
         (skipSpaces
-          (skipBlankLinesLoopIx (consumeLineBreak c) 0 input.utf8ByteSize).1).1).pos.offset :=
+          (skipBlankLinesPlainIx (consumeLineBreak c) 0 contentIndent input.utf8ByteSize).1).1).pos.offset :=
     skipWhitespace_offset_monotonic _
   have hChain : c.pos.offset ≤
       (skipWhitespace
         (skipSpaces
-          (skipBlankLinesLoopIx (consumeLineBreak c) 0 input.utf8ByteSize).1).1).pos.offset :=
+          (skipBlankLinesPlainIx (consumeLineBreak c) 0 contentIndent input.utf8ByteSize).1).1).pos.offset :=
     Nat.le_trans hCLB (Nat.le_trans hBL (Nat.le_trans hSP hSW))
   split at h
   · contradiction                 -- col < contentIndent → none

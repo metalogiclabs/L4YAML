@@ -3149,8 +3149,11 @@ lemma skipBlankLinesLoop_preserves_flowLevel (s : ScannerState) (cnt fuel inputE
     · -- peek? = some c
       split
       · -- isLineBreakBool c = true
-        exact ih _ _ |>.trans (consumeNewline_preserves_flowLevel _)
-                             |>.trans (skipWhitespace_preserves_flowLevel s)
+        -- item 100: the gate's arm keeps the state untouched
+        split
+        · rfl
+        · exact ih _ _ |>.trans (consumeNewline_preserves_flowLevel _)
+                               |>.trans (skipWhitespace_preserves_flowLevel s)
       · -- isLineBreakBool c = false
         rfl
     · -- peek? = none

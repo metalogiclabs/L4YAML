@@ -73,10 +73,12 @@ private def refuses (input : String) : Bool :=
 #guard emits "[a\n\t\nb]\n"
   ["+STR", "+DOC", "+SEQ []", "=VAL :a\\nb", "-SEQ", "-DOC", "-STR"]
 
--- §3 The BLOCK-context blank-line skipper is a different production
--- (`l-empty(n,block-in)`, `skipBlankLinesLoop`) and is untouched.
-#guard emits "k:\n  - a\n\t\n    b\n"
-  ["+STR", "+DOC", "+MAP", "=VAL :k", "+SEQ", "=VAL :a\\nb", "-SEQ", "-MAP",
-   "-DOC", "-STR"]
+-- §3 The BLOCK plain walk (`skipBlankLinesLoop`) reads its blank lines at the
+-- SAME production — this section used to call it `l-empty(n,block-in)` and
+-- pin the fold as accepted, but `[134] s-ns-plain-next-line(n,c)` folds
+-- through `[74] s-flow-folded(n)`, whose empty lines are `l-empty(n,flow-in)`,
+-- exactly the ones above.  Item 100 gates that loop too; the family's own pins
+-- are in `ScannerPlainBlankFoldTab`.
+#guard refuses "k:\n  - a\n\t\n    b\n"
 
 end L4YAML.Tests.Guards.ScannerBlankFoldTabRefused

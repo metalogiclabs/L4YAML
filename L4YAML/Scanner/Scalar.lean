@@ -485,8 +485,16 @@ def skipBlankLinesLoop (s : ScannerState) (cnt : Nat) (fuel : Nat) (inputEnd : N
     match s_after_spaces.peek? with
     | some c =>
       if isLineBreakBool c then
-        let s_after_newline := consumeNewline s_after_spaces
-        skipBlankLinesLoop s_after_newline (cnt + 1) fuel' inputEnd
+        -- Item 100: the quoted fold's gate (`foldQuotedNewlinesLoop`, item 62)
+        -- at the PLAIN walk.  A blank line whose white run reaches a TAB before
+        -- clearing the floor is not an `[70] l-empty(n,c)` line at all — both
+        -- of its arms open in `[63] s-indent`, which is spaces (§6.1) — so the
+        -- run stops *at* it.  The caller's own under-indent test then ends the
+        -- scalar there rather than folding a line no grammar admits.
+        if blankLineTabUnderFloor s then (cnt, saved)
+        else
+          let s_after_newline := consumeNewline s_after_spaces
+          skipBlankLinesLoop s_after_newline (cnt + 1) fuel' inputEnd
       else
         (cnt, saved)
     | none => (cnt, s)

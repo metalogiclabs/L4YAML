@@ -170,7 +170,10 @@ lemma skipBlankLinesLoop_preserves_allowDirectives (s : ScannerState) (cnt fuel 
         simp []
         have h_sp := skipWhitespace_preserves_allowDirectives s
         have h_cn := consumeNewline_preserves_allowDirectives (skipWhitespace s)
-        rw [ih, h_cn, h_sp]
+        -- item 100: the gate's arm keeps the state untouched
+        split
+        · rfl
+        · rw [ih, h_cn, h_sp]
 
 lemma foldQuotedNewlinesLoop_preserves_allowDirectives (s : ScannerState) (emptyCount fuel : Nat) :
     (foldQuotedNewlinesLoop s emptyCount fuel).fst.allowDirectives = s.allowDirectives := by

@@ -58,6 +58,7 @@ import Tests.Guards.Proofs.ScannerExplicitValueCompose
 import Tests.Guards.Proofs.ScannerLandedValueCompose
 import Tests.Guards.Proofs.ScannerQuotedFoldCompose
 import Tests.Guards.Proofs.ScannerPlainFoldCompose
+import Tests.Guards.Proofs.ScannerPlainBlankFoldTab
 import Tests.Guards.Proofs.ScannerPropsFoldCompose
 import Tests.Guards.Proofs.ScannerFlowKeyCompose
 import Tests.Guards.Proofs.ScannerLandedPropsCompose

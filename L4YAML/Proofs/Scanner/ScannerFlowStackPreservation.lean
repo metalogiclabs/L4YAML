@@ -283,7 +283,10 @@ lemma skipBlankLinesLoop_preserves_flowStack (s : ScannerState) (cnt fuel inputE
         simp []
         have h_sp := skipWhitespace_preserves_flowStack s
         have h_cn := consumeNewline_preserves_flowStack (skipWhitespace s)
-        rw [ih, h_cn, h_sp]
+        -- item 100: the gate's arm keeps the state untouched
+        split
+        · rfl
+        · rw [ih, h_cn, h_sp]
 
 -- Cloned from `ScannerCorrectness` lines 3756-3772 (`_preserves_flowStack` twin).
 lemma foldQuotedNewlinesLoop_preserves_flowStack (s : ScannerState) (emptyCount fuel : Nat) :

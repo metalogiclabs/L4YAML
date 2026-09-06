@@ -1399,11 +1399,96 @@ lemma skipBlankLinesLoop_prod (sc : ScannerState) (sp : SurfPos)
             (GOpt.some sp sp_ws (gstar_sswhite_to_flowlineprefix0 h_gstar)) h_sbreak
         obtain ⟨sp_rest, h_gstar_rest, hcorr_rest⟩ :=
           ih (consumeNewline (skipWhitespace sc)) sp_cn (cnt + 1) hcorr_cn
-        exact ⟨sp_rest,
-               GStar.cons sp sp_cn sp_rest h_lempty h_gstar_rest,
-               hcorr_rest⟩
+        -- item 100: the gate's arm returns the saved state, reading nothing
+        split
+        · exact ⟨sp, GStar.nil _, hcorr⟩
+        · exact ⟨sp_rest,
+                 GStar.cons sp sp_cn sp_rest h_lempty h_gstar_rest,
+                 hcorr_rest⟩
       · exact ⟨sp, GStar.nil _, hcorr⟩
     · exact ⟨sp, GStar.nil _, hcorr⟩
+
+/-! ## §5b′ The gate's own arithmetic (item 100)
+
+    `skipBlankLinesLoop`'s §6.1 gate stops the blank run at a line whose white
+    prefix reaches a tab before the floor.  Such a line is UNDER the
+    continuation indent, so the handler's own first test ends the scalar there:
+    past that test the gate is known false, which is what the fold's landing
+    lemma reads.  The premise is the floor's arithmetic —
+    `minContentIndentOf`'s `max 0 (currentIndent+1)` in block context, §8.1's
+    column in flow — and it is the caller's, because the handler takes its
+    floor as a parameter. -/
+
+/-- The blank-line skipper leaves the indent stack alone. -/
+lemma skipBlankLinesLoop_indents (s : ScannerState) (cnt fuel inputEnd : Nat) :
+    (skipBlankLinesLoop s cnt fuel inputEnd).2.indents = s.indents := by
+  induction fuel generalizing s cnt with
+  | zero => rfl
+  | succ fuel' ih =>
+    unfold skipBlankLinesLoop; dsimp only []
+    split
+    · split
+      · split
+        · rfl
+        · rw [ih, L4YAML.Proofs.ScannerWhitespace.consumeNewline_preserves_indents,
+              L4YAML.Proofs.EmitterScannability.skipWhitespace_preserves_indents]
+      · rfl
+    · rfl
+
+/-- …so does the whole handler. -/
+lemma handleBlockLineBreak_indents' {s s' : ScannerState} {content content' : String}
+    {ci ie : Nat}
+    (h : collectPlainScalar_handleBlockLineBreak s content ci ie = some (content', s')) :
+    s'.indents = s.indents := by
+  unfold collectPlainScalar_handleBlockLineBreak at h
+  dsimp only [] at h
+  split at h
+  · exact absurd h (by simp)
+  · split at h
+    · exact absurd h (by simp)
+    · simp only [Option.some.injEq, Prod.mk.injEq] at h
+      obtain ⟨-, rfl⟩ := h
+      rw [L4YAML.Proofs.EmitterScannability.skipWhitespace_preserves_indents,
+          L4YAML.Proofs.EmitterScannability.skipSpaces_preserves_indents,
+          skipBlankLinesLoop_indents,
+          L4YAML.Proofs.ScannerWhitespace.consumeNewline_preserves_indents]
+
+/-- The block continuation floor sits strictly above the block indent —
+    `minContentIndentOf`'s `max 0 (currentIndent + 1)`, read as an `Int`. -/
+lemma currentIndent_lt_blockContentIndent {s : ScannerState} (h : s.inFlow = false) :
+    (s.currentIndent : Int) <
+      ((if s.inFlow then s.col else (max 0 (s.currentIndent + 1)).toNat : Nat) : Int) := by
+  rw [if_neg (by simp [h])]
+  omega
+
+/-- **Past the handler's under-indent test the gate did not fire.**  A run the
+    gate stopped sits at a column at or below the block indent, and the
+    continuation floor is above it. -/
+lemma handleBlockLineBreak_gate_false {s s' : ScannerState} {content content' : String}
+    {ci ie : Nat} (hcin : (s.currentIndent : Int) < (ci : Int))
+    (h : collectPlainScalar_handleBlockLineBreak s content ci ie = some (content', s')) :
+    blankLineTabUnderFloor (skipBlankLinesLoop (consumeNewline s) 0
+      (ie - (consumeNewline s).offset + 1) ie).2 = false := by
+  unfold collectPlainScalar_handleBlockLineBreak at h
+  dsimp only [] at h
+  split at h
+  · exact absurd h (by simp)
+  · rename_i h_guard
+    cases hg : blankLineTabUnderFloor (skipBlankLinesLoop (consumeNewline s) 0
+        (ie - (consumeNewline s).offset + 1) ie).2 with
+    | false => rfl
+    | true =>
+      exfalso
+      simp only [blankLineTabUnderFloor, Bool.and_eq_true, beq_iff_eq,
+        decide_eq_true_eq] at hg
+      have hci : (skipSpaces (skipBlankLinesLoop (consumeNewline s) 0
+          (ie - (consumeNewline s).offset + 1) ie).2).currentIndent = s.currentIndent := by
+        simp only [ScannerState.currentIndent,
+          L4YAML.Proofs.EmitterScannability.skipSpaces_preserves_indents,
+          skipBlankLinesLoop_indents,
+          L4YAML.Proofs.ScannerWhitespace.consumeNewline_preserves_indents]
+      rw [hci] at hg
+      omega
 
 /-! ## §5c handleBlockLineBreak production
 
@@ -1520,7 +1605,10 @@ lemma skipBlankLinesLoop_line_ge (s : ScannerState) (cnt fuel inputEnd : Nat) :
         have h1 : (skipWhitespace s).line = s.line := skipWhitespace_preserves_line s
         have h2 := consumeNewline_line_succ (skipWhitespace s) c hpk hlb
         have h3 := ih (consumeNewline (skipWhitespace s)) (cnt + 1)
-        omega
+        -- item 100: the gate's arm rests on the same line
+        split
+        · exact Nat.le_refl _
+        · omega
       · exact Nat.le_refl _
     · exact Nat.le_refl _
 
@@ -1718,6 +1806,11 @@ lemma collectPlainScalarLoop_prod (sc : ScannerState) (sp : SurfPos)
     (h_ws : GStar SSWhite sp_ent sp)
     (h_hash_col : sc.peek? = some '#' → spaces.length = 0 → sc.col > 0)
     (h_ie : sc.inputEnd ≤ inputEnd)
+    -- Item 100: in BLOCK context the continuation floor sits above the block
+    -- indent (`minContentIndentOf`'s own arithmetic), which is what says a
+    -- blank line the fold's §6.1 gate stopped at is under-indented — so the
+    -- handler ended the scalar there rather than folding it.
+    (hcin : inFlow = false → (sc.currentIndent : Int) < (contentIndent : Int))
     {result : PlainScalarResult}
     (hok : collectPlainScalarLoop sc content spaces fuel inFlow contentIndent inputEnd
            = .ok result) :
@@ -1806,7 +1899,8 @@ lemma collectPlainScalarLoop_prod (sc : ScannerState) (sp : SurfPos)
                             h_entries_ih, h_next_ih, h_ws_ih, hcorr_ih, -, h_plus_ih⟩ :=
                       h_ctx ▸ ih s_fold sp_fold _ "" sp_fold hcorr_fold (GStar.nil _)
                         (fun hpk _ => absurd hpk hfoldpeek)
-                        (by rw [foldQuotedNewlines_inputEnd heq]; exact h_ie) h_loop
+                        (by rw [foldQuotedNewlines_inputEnd heq]; exact h_ie)
+                        (fun hnf => absurd hnf (by simp [h_inf])) h_loop
                     -- Item 71: `[134]` demands an `ns-plain-char` on the continuation
                     -- line.  The fold lands on neither `s-white` nor a break, so the
                     -- scanner's own content-length check IS that character.
@@ -1832,6 +1926,9 @@ lemma collectPlainScalarLoop_prod (sc : ScannerState) (sp : SurfPos)
                            fun hpre _ => by simp [(hpre c hpeek).2] at hlb⟩
                 | error e => simp at hok
           · -- inFlow = false: block line break (handleBlockLineBreak)
+            rename_i h_notflow
+            have h_nf : inFlow = false := by
+              revert h_notflow; cases inFlow <;> simp
             split at hok
             · -- handleBlockLineBreak = none: terminate → state = sc
               have h := Except.ok.inj hok; subst h
@@ -1872,10 +1969,18 @@ lemma collectPlainScalarLoop_prod (sc : ScannerState) (sp : SurfPos)
                             h_entries_ih, h_next_ih, h_ws_ih, hcorr_ih, -, h_plus_ih⟩ :=
                       ih s' sp_fold content' "" sp_fold hcorr_fold (GStar.nil _)
                         (fun hpk _ => absurd hpk hblkpeek)
-                        (by rw [handleBlockLineBreak_inputEnd hblk]; exact h_ie) h_loop
+                        (by rw [handleBlockLineBreak_inputEnd hblk]; exact h_ie)
+                        (fun hnf => by
+                          have hci : s'.currentIndent = sc.currentIndent := by
+                            simp only [ScannerState.currentIndent,
+                              handleBlockLineBreak_indents' hblk]
+                          rw [hci]; exact hcin hnf) h_loop
                     -- Item 71: the block fold also lands on a content character.
                     have h_entries_plus :=
-                      h_plus_ih (handleBlockLineBreak_landing (by omega) hblk)
+                      h_plus_ih
+                        (handleBlockLineBreak_landing (by omega)
+                          (handleBlockLineBreak_gate_false
+                            (hcin h_nf) hblk) hblk)
                         (Nat.lt_of_not_le h_grew)
                     -- Build SSNsPlainNextLine 0 (ctxOfInFlow inFlow).  One-line
                     -- conjunct: the fold strictly advanced the line (item 15).
@@ -1914,6 +2019,10 @@ lemma collectPlainScalarLoop_prod (sc : ScannerState) (sp : SurfPos)
                 hcorr_adv (gstar_sswhite_append h_ws (GStar.cons _ _ _ hw (GStar.nil _)))
                 (fun _ hlen => by simp [String.length_push] at hlen)
                 (by rw [advance_inputEnd]; exact h_ie)
+                (fun hnf => by
+                  simp only [ScannerState.currentIndent,
+                    L4YAML.Proofs.EmitterScannability.advance_preserves_indents]
+                  exact hcin hnf)
                 hok
             exact ⟨sp_entries_r, sp_next_r, sp_trail_r, h_ent_r, h_next_r, h_ws_r, hcorr_r,
                    fun h_same => h_one_r (by
@@ -1986,6 +2095,10 @@ lemma collectPlainScalarLoop_prod (sc : ScannerState) (sp : SurfPos)
                     have h : sc.col + 1 = sc.advance.col := hcorr_adv.col_eq
                     omega)
                   (by rw [advance_inputEnd]; exact h_ie)
+                  (fun hnf => by
+                    simp only [ScannerState.currentIndent,
+                      L4YAML.Proofs.EmitterScannability.advance_preserves_indents]
+                    exact hcin hnf)
                   hok
               have h_entry : SNbNsPlainInLineEntry (ctxOfInFlow inFlow) sp_ent
                   ⟨rest, sc.col + 1⟩ :=
@@ -2358,6 +2471,12 @@ lemma scanPlainScalar_to_multiLine_native (sc : ScannerState) (sp : SurfPos)
           have h : sc.col + 1 = sc.advance.col := hcorr_adv.col_eq
           omega)
         (by rw [advance_inputEnd]; exact Nat.le_refl _)
+        (fun hnf => by
+          have hci : sc.advance.currentIndent = sc.currentIndent := by
+            simp only [ScannerState.currentIndent,
+              L4YAML.Proofs.EmitterScannability.advance_preserves_indents]
+          rw [hci]
+          exact currentIndent_lt_blockContentIndent (s := sc) (by simpa using hnf))
         hloop'
     -- Step 3: Build the native-context scalar (no lift)
     exact ⟨sp_next, sp_trail,
@@ -2485,6 +2604,12 @@ lemma scanPlainScalar_to_blockKey_oneLine (sc : ScannerState) (sp : SurfPos)
           have h : sc.col + 1 = sc.advance.col := hcorr_adv.col_eq
           omega)
         (by rw [advance_inputEnd]; exact Nat.le_refl _)
+        (fun hnf => by
+          have hci : sc.advance.currentIndent = sc.currentIndent := by
+            simp only [ScannerState.currentIndent,
+              L4YAML.Proofs.EmitterScannability.advance_preserves_indents]
+          rw [hci]
+          exact currentIndent_lt_blockContentIndent (s := sc) (by simpa using hnf))
         hloop'
     -- The same-line exit kills the next-line star: sp_next = sp_entries.
     have hadv_line : sc.advance.line = sc.line :=

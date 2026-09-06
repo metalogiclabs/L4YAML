@@ -1349,7 +1349,10 @@ lemma skipBlankLinesLoop_preserves_tokens (s : ScannerState) (cnt fuel inputEnd 
         simp []
         have h_sp := skipWhitespace_preserves_tokens s
         have h_cn := consumeNewline_preserves_tokens (skipWhitespace s)
-        rw [ih, h_cn, h_sp]
+        -- item 100: the gate's arm keeps the state untouched
+        split
+        · rfl
+        · rw [ih, h_cn, h_sp]
 
 /-- Helper: foldQuotedNewlinesLoop preserves tokens. -/
 lemma foldQuotedNewlinesLoop_preserves_tokens (s : ScannerState) (emptyCount fuel : Nat) :
@@ -3339,7 +3342,10 @@ lemma skipBlankLinesLoop_preserves_simpleKey (s : ScannerState) (cnt fuel inputE
         simp []
         have h_sp := skipWhitespace_preserves_simpleKey s
         have h_cn := consumeNewline_preserves_simpleKey (skipWhitespace s)
-        rw [ih, h_cn, h_sp]
+        -- item 100: the gate's arm keeps the state untouched
+        split
+        · rfl
+        · rw [ih, h_cn, h_sp]
 
 
 lemma foldQuotedNewlinesLoop_preserves_simpleKey (s : ScannerState) (emptyCount fuel : Nat) :
@@ -4030,7 +4036,10 @@ lemma skipBlankLinesLoop_preserves_simpleKeyStack (s : ScannerState) (cnt fuel i
         simp []
         have h_sp := skipWhitespace_preserves_simpleKeyStack s
         have h_cn := consumeNewline_preserves_simpleKeyStack (skipWhitespace s)
-        rw [ih, h_cn, h_sp]
+        -- item 100: the gate's arm keeps the state untouched
+        split
+        · rfl
+        · rw [ih, h_cn, h_sp]
 
 
 lemma foldQuotedNewlinesLoop_preserves_simpleKeyStack (s : ScannerState) (emptyCount fuel : Nat) :
@@ -5403,7 +5412,10 @@ lemma skipBlankLinesLoop_preserves_flowLevel (s : ScannerState) (cnt fuel inputE
         simp []
         have h_sp := skipWhitespace_preserves_flowLevel s
         have h_cn := consumeNewline_preserves_flowLevel (skipWhitespace s)
-        rw [ih, h_cn, h_sp]
+        -- item 100: the gate's arm keeps the state untouched
+        split
+        · rfl
+        · rw [ih, h_cn, h_sp]
 
 lemma foldQuotedNewlinesLoop_preserves_flowLevel (s : ScannerState) (emptyCount fuel : Nat) :
     (foldQuotedNewlinesLoop s emptyCount fuel).fst.flowLevel = s.flowLevel := by
@@ -7769,9 +7781,12 @@ lemma skipBlankLinesLoop_offset_ge (s : ScannerState) (cnt : Nat) (fuel : Nat)
     unfold skipBlankLinesLoop; simp only []
     split
     · split
-      · exact Nat.le_trans
-          (Nat.le_trans (skipWhitespace_offset_ge s) (consumeNewline_offset_ge _))
-          (ih _ _)
+      · -- item 100: the gate stops the run where it started
+        split
+        · exact Nat.le_refl _
+        · exact Nat.le_trans
+            (Nat.le_trans (skipWhitespace_offset_ge s) (consumeNewline_offset_ge _))
+            (ih _ _)
       · exact Nat.le_refl _
     · exact Nat.le_refl _
 

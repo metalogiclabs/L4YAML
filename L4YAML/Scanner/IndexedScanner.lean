@@ -1048,6 +1048,36 @@ def plainScalarErrLoopIx {input : String} (c : IxCursor input)
   if inFlow then plainScalarErrLoopIx c 0 currentIndent (input.utf8ByteSize + 1)
   else none
 
+/-- Item 100: the BLOCK plain walk's blank-line skipper — `skipBlankLinesLoopIx`
+    with the fold's own §6.1 gate, mirroring legacy `skipBlankLinesLoop`.
+
+    A blank line whose white run reaches a TAB before clearing the floor is
+    not an `[70] l-empty(n,c)` line (both arms open in `[63] s-indent`, which
+    is spaces), so the run stops *at* it and the caller's under-indent test
+    ends the scalar there.  The floor is the continuation indent: legacy tests
+    `col ≤ currentIndent`, and `contentIndent = (max 0 (currentIndent+1)).toNat`
+    makes that the same predicate as `col < contentIndent`.
+
+    The quoted fold keeps the ungated `skipBlankLinesLoopIx`: its own gate is
+    `blankRunTabIx`, one level up in `quotedScalarErrLoopIx`. -/
+@[yaml_spec "6.1" 63 "s-indent(n)", yaml_spec "6.4" 70 "l-empty(n,c)"]
+def skipBlankLinesPlainIx {input : String} (c : IxCursor input)
+    (emptyCount : Nat) (contentIndent : Nat) : Nat → IxCursor input × Nat
+  | 0          => (c, emptyCount)
+  | fuel + 1 =>
+    match (skipWhitespace c).peek? with
+    | some ch =>
+      if isLineBreakBool ch then
+        if ((skipSpaces c).1.pos.col < contentIndent)
+            && (match (skipSpaces c).1.peek? with | some '\t' => true | _ => false) then
+          (c, emptyCount)
+        else
+          skipBlankLinesPlainIx (consumeLineBreak (skipWhitespace c)) (emptyCount + 1)
+            contentIndent fuel
+      else
+        (c, emptyCount)
+    | none    => (c, emptyCount)
+
 /-- Block-context line-break handler for plain scalars. Returns
     `none` if the continuation line is under-indented or hits a
     document boundary; otherwise `some (folded, c')` with the
@@ -1058,31 +1088,37 @@ def plainScalarErrLoopIx {input : String} (c : IxCursor input)
 def handleBlockLineBreakIx {input : String} (c : IxCursor input)
     (contentIndent : Nat) : Option (String × IxCursor input) :=
   if (skipSpaces
-        (skipBlankLinesLoopIx (consumeLineBreak c) 0 input.utf8ByteSize).1).1.pos.col
+        (skipBlankLinesPlainIx (consumeLineBreak c) 0 contentIndent
+          input.utf8ByteSize).1).1.pos.col
        < contentIndent then
     none
   else if atDocumentBoundaryIx
             (skipSpaces
-              (skipBlankLinesLoopIx (consumeLineBreak c) 0 input.utf8ByteSize).1).1 then
+              (skipBlankLinesPlainIx (consumeLineBreak c) 0 contentIndent
+                input.utf8ByteSize).1).1 then
     none
   else
     -- Past the required indent (tested with `skipSpaces` above, §6.1), any
     -- further spaces/tabs are `s-separate-in-line` [66] leading white space
     -- and are folded away; a leading tab is therefore stripped rather than
     -- kept as content (HS5T, UV7Q; legacy fix B3).
-    if (skipBlankLinesLoopIx (consumeLineBreak c) 0 input.utf8ByteSize).2 > 0 then
+    if (skipBlankLinesPlainIx (consumeLineBreak c) 0 contentIndent
+          input.utf8ByteSize).2 > 0 then
       some (String.ofList
               (List.replicate
-                (skipBlankLinesLoopIx (consumeLineBreak c) 0 input.utf8ByteSize).2
+                (skipBlankLinesPlainIx (consumeLineBreak c) 0 contentIndent
+                  input.utf8ByteSize).2
                 lineFeedChar),
             skipWhitespace
               (skipSpaces
-                (skipBlankLinesLoopIx (consumeLineBreak c) 0 input.utf8ByteSize).1).1)
+                (skipBlankLinesPlainIx (consumeLineBreak c) 0 contentIndent
+                  input.utf8ByteSize).1).1)
     else
       some (String.singleton spaceChar,
             skipWhitespace
               (skipSpaces
-                (skipBlankLinesLoopIx (consumeLineBreak c) 0 input.utf8ByteSize).1).1)
+                (skipBlankLinesPlainIx (consumeLineBreak c) 0 contentIndent
+                  input.utf8ByteSize).1).1)
 
 /-- The legacy no-gain rewind (`Scanner/Scalar.lean::collectPlainScalarLoop`):
     a folded continuation that collected nothing beyond the fold itself

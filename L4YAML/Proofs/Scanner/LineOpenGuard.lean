@@ -866,11 +866,14 @@ private lemma skipBlankLinesLoop_fields (fuel : Nat) : ∀ (s : ScannerState) (c
     dsimp only []
     split
     · split
-      · obtain ⟨h1, h2⟩ := ih (consumeNewline (skipWhitespace s)) (cnt + 1) inputEnd
-        obtain ⟨hw1, hw2⟩ := skipWhitespace_fields s
-        obtain ⟨hn1, hn2⟩ := consumeNewline_fields (skipWhitespace s)
-        exact ⟨Nat.le_trans hw1 (Nat.le_trans hn1 h1),
-               h2.trans (hn2.trans hw2)⟩
+      · -- item 100: the gate stops the run where it started
+        split
+        · exact ⟨Nat.le_refl _, rfl⟩
+        · obtain ⟨h1, h2⟩ := ih (consumeNewline (skipWhitespace s)) (cnt + 1) inputEnd
+          obtain ⟨hw1, hw2⟩ := skipWhitespace_fields s
+          obtain ⟨hn1, hn2⟩ := consumeNewline_fields (skipWhitespace s)
+          exact ⟨Nat.le_trans hw1 (Nat.le_trans hn1 h1),
+                 h2.trans (hn2.trans hw2)⟩
       · exact ⟨Nat.le_refl _, rfl⟩
     · exact ⟨Nat.le_refl _, rfl⟩
 

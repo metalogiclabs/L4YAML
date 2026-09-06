@@ -874,7 +874,9 @@ lemma skipBlankLinesLoop_BoundInv {s₀ : ScannerState} (s : ScannerState)
     simp only [skipBlankLinesLoop]
     split  -- (skipSpaces s).peek? = some c
     · split  -- isLineBreakBool
-      · exact ih _ _ (consumeNewline_BoundInv _ (skipWhitespace_BoundInv s h hend) hend)
+      · split  -- item 100: the gate stops the run at the offending line
+        · exact h
+        · exact ih _ _ (consumeNewline_BoundInv _ (skipWhitespace_BoundInv s h hend) hend)
       · exact h
     · exact h
 

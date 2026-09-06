@@ -8033,6 +8033,12 @@ cleared `currentIndent`, and `foldQuotedNewlinesLoop` stops the run there, so
 ahead of the continuation line's own test in `quotedScalarErrLoopIx` and
 `plainScalarErrLoopIx` because legacy reports at the earlier line.
 
+**Correction (item 100, 2026-09-06).**  This item scoped itself to the quoted
+fold and recorded the plain walk's own skipper as "a different production,
+untouched".  It is the same production — `[134] s-ns-plain-next-line` folds
+through `[74] s-flow-folded(n)`, so its empty lines are `l-empty(n,flow-in)`
+as well — and `skipBlankLinesLoop` carries this gate now.
+
 With it, `slEmpty_flowIn_at`'s residue — restated LOCATED as
 `BlankRunTabUnderFloor n sp` (`∃ j sx, j < n ∧ SIndent j sp sx ∧
 sx.chars.head? = some '\t'`) — is refuted by `not_blankRunTab_of_gate`, which
@@ -8595,10 +8601,12 @@ all-white line before it as an `l-empty`, so the landing is neither `s-white`
 nor a break.  Four lemmas in `Proofs/Coupling/ScalarCoupling.lean` §7:
 
 * `foldQuotedNewlinesLoop_stop`, `skipBlankLinesLoop_stop` — the loop stops at a
-  non-`s-white` character that is not a break, OR (flow only) at a tab under the
-  floor, `blankLineTabUnderFloor`, which the caller's §6.1 gate turns into
-  `tabInIndentation` — so that arm never reaches `.ok`, and the disjunction is
-  discharged at the `.ok` face rather than inside the loop;
+  non-`s-white` character that is not a break, OR at a tab under the floor,
+  `blankLineTabUnderFloor`, which the quoted caller's §6.1 gate turns into
+  `tabInIndentation` and the plain caller's under-indent test turns into the
+  end of the scalar (item 100 gave the plain loop the same gate) — so that arm
+  never reaches this face, and the disjunction is discharged at the `.ok` face
+  rather than inside the loop;
 * `foldQuotedNewlines_landing`, `handleBlockLineBreak_landing` — that `.ok` face.
 
 The generic machinery is in `ScannerCoupling.lean`: `skipWhitespace_peek_not_ws`
@@ -10383,6 +10391,106 @@ re-seeds at the next landing's root pack.  The props-headed dedent sibling
 (`k:⏎  :⏎&q b: 2`) composes through the drain like any other landed
 content.
 
+### Item 100 (2026-09-06)
+
+**The plain walk's blank fold line is measured against the floor too** — item
+62's gate at the other loop, and with it three of the six remaining
+`block_dispatch_deferred` sites.
+
+Item 62 closed the quoted fold and recorded the plain one as out of scope:
+"the BLOCK-context blank-line skipper is a different production
+(`l-empty(n,block-in)`, `skipBlankLinesLoop`) and is untouched", pinned as an
+ACCEPT in that item's own guard.  It is not a different production.
+`[135] ns-plain-multi-line(n,c)` folds through `[134] s-ns-plain-next-line`
+→ `[74] s-flow-folded(n)` → `[73] b-l-folded(n,flow-in)`, whose empty lines are
+`l-empty(n,**flow-in**)` — the same ones the quoted fold reads, as the reading
+lemma had said all along (`GStar (SLEmpty n .flowIn)`).  So the same shape has
+no arm here either, and both pipelines folded it anyway: `k:⏎  a⏎<TAB>⏎  b`
+scanned clean while its quoted twin threw `tabInIndentation`.
+
+**Located, and the gate is the located predicate.**  The residue was already
+named — `BlankRunTabUnderFloor n sp` from item 62 — and already refutable —
+`not_blankRunTab_of_gate` — so this item is the runtime half alone:
+`skipBlankLinesLoop` stops the run AT the offending line, exactly as
+`foldQuotedNewlinesLoop` does.  The floor is not an approximation of the
+grammar's condition but the same condition: a continuation is read at
+`n = currentIndent + 1`, so "fewer than `n` spaces before the tab" IS "at or
+below `currentIndent`", which is what `blankLineTabUnderFloor` tests.
+
+**Where the refusal comes from is the one difference from item 62.**  The
+quoted fold had a §6.1 gate one line down to throw at the stopped position;
+the plain walk's landing test does not throw — it TERMINATES the scalar (an
+under-indented continuation ends a plain scalar, it does not fail).  So the
+stopped run ends the scalar at its last real character and the document is
+then refused for want of structure (`k:⏎  a⏎<TAB>⏎  b` is
+`invalidBareDocument 3 2`, both pipelines), rather than by an invented error.
+That also makes the narrowing exact where a thrown error would over-refuse:
+the same tab-blank line is LEGAL when it is not the scalar's — trailing at
+EOF, before a dedent, before a comment, or before a continuation that collects
+nothing (the no-gain rewind) — because there it is `[79] s-l-comments`, whose
+`s-separate-in-line` admits the tab.  All four stay accepted, unmoved.
+
+**The proof chain loses its last plain-walk residue, and three deferrals with
+it.**  `skipBlankLinesLoop_prod_at` drops `∨ True` (every line the loop folds
+is `SLEmpty n`, refuted line by line off the loop's own gate), so
+`handleBlockLineBreak_prod_at` drops it, so `collectPlainScalarLoop_prod_at`
+drops `∨ inFlow = false`, so `scanPlainScalar_to_flowNode_at` and
+`dispatchContent_plainScalar_prod_at` drop theirs — and
+**`indentedValue_reads_at_any_indent`'s trailing `True` comes off the
+statement**: the five readings are all of it.  The two indented content arms
+and the props arm therefore stop deferring, and `block_dispatch_deferred` goes
+**6 → 3** (what is left: the two inline-residue sites at
+`accum_block_on_closeThenBlock`/`accum_block_on_pendingBlockContent`, and
+`pendingFlow`'s own arm, which goes with the constructor).
+
+Two structural consequences worth their own lines.  The content-level reading
+became the PRIMARY one — `scanPlainScalar_to_flowContent_at` carries the proof
+and `scanPlainScalar_to_flowNode_at` is a three-line wrapper — because the old
+direction had to `cases` a node it built itself and pay an `alias` branch that
+no plain walk can produce.  And `handleBlockLineBreak_landing` gained the one
+premise the gate makes necessary (`blankRunTabUnderFloor … = false`), supplied
+by `handleBlockLineBreak_gate_false` from the floor's own arithmetic
+(`currentIndent < contentIndent`, true of `minContentIndentOf` in block context
+and of §8.1's column in flow) — the handler takes its floor as a PARAMETER, so
+the relation between the two is the caller's to state.
+
+RUNTIME edits (both pipelines): `Scanner/Scalar.lean` gains one `if` in
+`skipBlankLinesLoop` (the item-62 gate verbatim, no new definition);
+`Scanner/IndexedScanner.lean` gains `skipBlankLinesPlainIx` — the same loop
+with the gate, phrased against `contentIndent` because a cursor carries no
+indent stack, and the two agree since `contentIndent = max 0 (currentIndent+1)`
+makes `col ≤ currentIndent` and `col < contentIndent` the same test — used by
+`handleBlockLineBreakIx` alone (the quoted fold keeps the ungated loop; its
+gate is `blankRunTabIx`, one level up).  Fifteen proofs across nine files gain
+a `split` for the new branch.
+
+**Validation.**  Full `lake build` green (ZERO warnings); `run-all-tests.sh`
+4473/4473 across all 17 suites — the +2 against item 99 is Production Coverage
+790 vs 788, the two `@[yaml_spec]` annotations on `skipBlankLinesPlainIx`,
+every other suite identical; **matrix 402/402 event + 282/282 JSON on BOTH
+pipelines**; `eventscore` 347/358 unmoved (252 pass / 11 diff / 0 event-reject
+/ 95 error-ok — no valid input newly rejected, no invalid one newly accepted);
+no `sorryAx` anywhere in the chain, the two newly-total leaves at
+`[propext, Classical.choice, Quot.sound]` and everything else at the
+pre-existing `native_decide` baseline; all three checkers OK (222/354;
+20/229/248/354; 25 capstones).  A 24-input probe pinned the family in both
+pipelines before the edit and after it, with byte-identical verdicts on both
+sides of every row.
+
+New guard `ScannerPlainBlankFoldTab` pins 7 refusals (a mapping value's floor,
+a sequence entry's, a nested entry's, a nested mapping's at one space short,
+two offending lines, a second fold), 8 accepts that must not move (the run
+clears the floor at three depths, the pure-space and empty runs, the root
+where the floor is 0, the flow fold) and 5 more where the run is not the
+scalar's, plus the three now-total readings AT THEIR TYPES.  Item 62's guard
+keeps the correction in place: its §3 pin flips from `emits` to `refuses` and
+says why the production it named was the same one.
+
+Residue: none of this item's own.  The plain walk's remaining `∨ True`s are
+the flow share's (`foldQuotedNewlines`' escaped-break landing at a nonzero
+index, item 87's note), and the deletion's own two inline-residue sites are
+item 67b's.
+
 ### REMAINING, in order
 
 The per-item history is the closure log above; this section lists only the
@@ -10396,7 +10504,7 @@ too (items 47–51), so what stands between here
 and Step 5 (the converse) is R3's remaining production work and R4:
 
 ```
-R1 ✓ (44–46) ──→ R2 ✓ (47–51) ──→ R3 (52–99 landed; 67b open) ──→ Step 5
+R1 ✓ (44–46) ──→ R2 ✓ (47–51) ──→ R3 (52–100 landed; 67b open) ──→ Step 5
                                         └──────→ R4 (implicitContinue + 0 < m) ──┘
 ```
 
@@ -10487,8 +10595,10 @@ and that deletion, by input class:
   entry~~ — CLOSED by items 53 (quoted), 54 (plain) and 55 (the
   props-decorated fold at the props consumer's k+1 arm).  What survives:
   the named residues (~~the tab-blank interior line — scanner-accepted, needs
-  a runtime check~~ — CLOSED by item 62, which added the check and deleted
-  the blank-line loop's disjunction; the blank-after-escaped-break line at a
+  a runtime check~~ — CLOSED by item 62 for the QUOTED fold, which added the
+  check and deleted that blank-line loop's disjunction, and by item 100 for
+  the PLAIN one, whose skipper reads the same `l-empty(n,flow-in)` and now
+  carries the same gate; the blank-after-escaped-break line at a
   nonzero index, spec-valid, and the flow-context folds, the flow share's);
 * ~~the **landing** class — a value on its own line below its indicator~~
   — CLOSED by items 52, 57 and 60: the break binds the index, so the
@@ -10720,6 +10830,14 @@ that reaches each:
   the escape's `l-empty*` slot's rather than the next fold's trimmed one.
   Matrix and eventscore measured UNMOVED.  The drain proper landed as item
   88: `dropClose` has ONE use, `pendingFlow`'s own ride.
+
+  **The deferral's own count** (2026-09-06, after item 100): three
+  `block_dispatch_deferred` sites remain, and they are two questions.  Two are
+  the INLINE RESIDUE — the mid-line `:` at `accum_block_on_closeThenBlock` and
+  at `accum_block_on_pendingBlockContent`, narrowed to that one character by
+  item 37's `nodeStop_residue_is_colon` — and the third is `pendingFlow`'s own
+  arm, which cannot close while the escape is what produces the pending, and
+  goes with the constructor.
 
   And the DELETION has preconditions outside this ledger: `pendingFlow`'s
   producers are also the block dispatch's inline-residue defers, fed by

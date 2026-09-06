@@ -14624,8 +14624,9 @@ lemma dispatchContent_plainScalar_prod (sc : ScannerState) (sp : SurfPos)
                 simp at hok
 
 -- Item 53/54: the at-`n` twin — the dispatched PLAIN token reads at the
--- pending's own index in block context (`n ≤ minContentIndentOf`); the flow
--- share and the satellite's residues ride `∨ True`.
+-- pending's own index in block context (`n ≤ minContentIndentOf`).
+-- Item 100: TOTAL — the walk's last residue was the blank run's tab under the
+-- floor, and `skipBlankLinesLoop`'s own §6.1 gate refutes it.
 lemma dispatchContent_plainScalar_prod_at (n : Nat) (sc : ScannerState) (sp : SurfPos)
     {s' : ScannerState} {c : Char}
     (hcorr : ScannerSurfCorr sc sp)
@@ -14636,9 +14637,9 @@ lemma dispatchContent_plainScalar_prod_at (n : Nat) (sc : ScannerState) (sp : Su
     (hok : scanNextToken_dispatchContent sc c = .ok s')
     (hinflow : sc.inFlow = false)
     (hn : n ≤ minContentIndentOf sc) :
-    (∃ sp_gram sp', SFlowNode n .flowOut sp sp_gram ∧
-                    GStar SSWhite sp_gram sp' ∧
-                    ScannerSurfCorr s' sp') ∨ True := by
+    ∃ sp_gram sp', SFlowNode n .flowOut sp sp_gram ∧
+                   GStar SSWhite sp_gram sp' ∧
+                   ScannerSurfCorr s' sp' := by
   unfold scanNextToken_dispatchContent at hok
   simp only [bind, Except.bind, pure, Except.pure] at hok
   split at hok
@@ -14673,9 +14674,9 @@ lemma dispatchContent_plainScalar_content_prod_at (n : Nat) (sc : ScannerState) 
     (hok : scanNextToken_dispatchContent sc c = .ok s')
     (hinflow : sc.inFlow = false)
     (hn : n ≤ minContentIndentOf sc) :
-    (∃ sp_gram sp', SFlowContent n .flowOut sp sp_gram ∧
-                    GStar SSWhite sp_gram sp' ∧
-                    ScannerSurfCorr s' sp') ∨ True := by
+    ∃ sp_gram sp', SFlowContent n .flowOut sp sp_gram ∧
+                   GStar SSWhite sp_gram sp' ∧
+                   ScannerSurfCorr s' sp' := by
   unfold scanNextToken_dispatchContent at hok
   simp only [bind, Except.bind, pure, Except.pure] at hok
   split at hok
@@ -16961,8 +16962,12 @@ lemma indentedValue_reads_at_any_indent
     -- after §6.1 is the pure-space DEDENT, named.  It is a boundary rather
     -- than debt: the value is not this entry's, the enclosing collection
     -- resumes at `j`, and no separator at `n` exists to be derived.
-    (IndentFloor sc n → DedentLanding n sp_scan sp_prep) ∨
-    True := by
+    --
+    -- Item 100: these five are ALL of it.  The catch-all `∨ True` that used to
+    -- close the list stood for one input — a multi-line PLAIN value whose fold
+    -- crossed a blank line with a tab under the floor — and the walk's own
+    -- §6.1 gate has refused it since.
+    (IndentFloor sc n → DedentLanding n sp_scan sp_prep) := by
   have hpeek : s_prep.peek? = some c := preprocess_some_peek h_preprocess
   have hpeek_disp : (if s_prep.allowDirectives then
       { s_prep with allowDirectives := false, documentEverStarted := true }
@@ -17216,21 +17221,20 @@ lemma indentedValue_reads_at_any_indent
                       split <;> rfl
                     rw [h1]
                     exact h_floor_at
-                  rcases dispatchContent_plainScalar_prod_at n _ sp_prep
+                  obtain ⟨sp_gram, sp', h_gram, h_tws, hcorr'⟩ :=
+                    dispatchContent_plainScalar_prod_at n _ sp_prep
                       (corr_of_allowDirectives_update hcorr_prep) hpeek_disp
                       hna hstar hnt hnp hng hdq hsq h_not_doc h_dispatch
-                      h_flow_disp hn_mci with
-                    ⟨sp_gram, sp', h_gram, h_tws, hcorr'⟩ | _
-                  · have hsp_eq := ScannerSurfCorr_unique hcorr' hcorr_result
-                    rw [hsp_eq] at h_tws
-                    exact Or.inr (Or.inr (Or.inr (Or.inl
-                      ⟨sp_gram, h_gram, h_tws, h_sep_n, h_line, hna, hnt⟩)))
-                  · exact Or.inr (Or.inr (Or.inr (Or.inr (Or.inr trivial))))
+                      h_flow_disp hn_mci
+                  have hsp_eq := ScannerSurfCorr_unique hcorr' hcorr_result
+                  rw [hsp_eq] at h_tws
+                  exact Or.inr (Or.inr (Or.inr (Or.inl
+                    ⟨sp_gram, h_gram, h_tws, h_sep_n, h_line, hna, hnt⟩)))
   · -- The DEDENT: the landing under-ran `s-indent(n)`, so the value is not
     -- this entry's at all — the enclosing collection ends and the next one
     -- resumes, which is a different question and its own item.  Item 64 hands
     -- it on LOCATED rather than as `True`, so that question can be asked.
-    exact Or.inr (Or.inr (Or.inr (Or.inr (Or.inl h_dedent))))
+    exact Or.inr (Or.inr (Or.inr (Or.inr h_dedent)))
 
 
 /-- **The INDENTED entry's value** (item 23) — `accum_content_on_pendingBlock`
@@ -17527,11 +17531,6 @@ lemma accum_content_on_pendingBlock_indented
     -- content does (`content_dispatch_after_close`) — the landing's own
     -- `s-indent(j)` is the key context, so the sibling's `:` composes and
     -- the pack's resume twin re-seeds the frames (`k:⏎  -⏎b: 2`).
-    rcases h_ded with h_ded | _
-    case inr =>
-      exact block_dispatch_deferred sp_start sp_block sp_scan' s' h_stream_block
-        ((content_park_arm (preprocess_some_peek h_preprocess) h_flow_disp h_not_doc h_dispatch
-          hcorr_result).imp_left And.left) hcorr_result
     obtain ⟨sp_mid, j, h_ssl_land, h_col0m, _hj, h_ind⟩ := h_ded h_floor_old
     have h_stream_mid : SLYamlStream sp_start sp_mid :=
       h_close_old sp_mid (SBlockIndented.empty n .blockIn sp_scan sp_mid h_ssl_land)
@@ -18130,11 +18129,6 @@ lemma accum_content_on_pendingMapValue_indented
     -- the awaited value never arrived, so the entry closes on `[72]`'s empty
     -- node and the landed content parks off the closed prefix with the
     -- landing's `s-indent(j)` as its key context (`k:⏎  :⏎b: 2`).
-    rcases h_ded with h_ded | _
-    case inr =>
-      exact block_dispatch_deferred sp_start sp_block sp_scan' s' h_stream_block
-        ((content_park_arm (preprocess_some_peek h_preprocess) h_flow_disp h_not_doc h_dispatch
-          hcorr_result).imp_left And.left) hcorr_result
     obtain ⟨sp_mid, j, h_ssl_land, h_col0m, _hj, h_ind⟩ := h_ded h_floor_old
     have h_stream_mid : SLYamlStream sp_start sp_mid :=
       h_close_old sp_mid (SBlockNode.emptyNode n .blockIn sp_scan sp_mid h_ssl_land)
@@ -18836,9 +18830,12 @@ lemma accum_content_pending (sc : ScannerState)
                         SCLLiteral (k + 1) sp_prep sp_mid ∨
                         SCLFolded (k + 1) sp_prep sp_mid) ∧
                     (c = '|' ∨ c = '>')) ∨
+                  -- Item 100: three readings, no catch-all — the props-decorated
+                  -- PLAIN value at `k+1` is total now (`skipBlankLinesLoop`'s
+                  -- §6.1 gate refuted the blank run's tab under the floor).
                   (∃ sp_ne sp_res,
                     SFlowContent (k + 1) .flowOut sp_prep sp_ne ∧
-                    GStar SSWhite sp_ne sp_res ∧ ScannerSurfCorr s' sp_res) ∨ True := by
+                    GStar SSWhite sp_ne sp_res ∧ ScannerSurfCorr s' sp_res) := by
                 by_cases hbs : c = '|' ∨ c = '>'
                 · -- Item 26: `[198]`'s props slot over a block scalar, at the run's
                   -- own route index rather than only at 0.  One question, one
@@ -18900,29 +18897,28 @@ lemma accum_content_pending (sc : ScannerState)
                         dispatchContent_doubleQuoted_prod_at (k + 1) _ sp_prep
                           (corr_of_allowDirectives_update hcorr_prep) hpeek_disp h_dispatch
                           hn_max
-                      exact Or.inr (Or.inr (Or.inl ⟨sp', sp',
+                      exact Or.inr (Or.inr ⟨sp', sp',
                         SFlowContent.doubleQ (k + 1) .flowOut sp_prep sp'
                           (SCDoubleQuoted_multiCtx .flowOut (Or.inl rfl) h_gram),
-                        GStar.nil _, hcorr'⟩))
+                        GStar.nil _, hcorr'⟩)
                     · by_cases hsq : c = '\''
                       · subst hsq
                         obtain ⟨sp', h_gram, hcorr'⟩ :=
                           dispatchContent_singleQuoted_prod_at (k + 1) _ sp_prep
                             (corr_of_allowDirectives_update hcorr_prep) hpeek_disp h_dispatch
                             hn_max
-                        exact Or.inr (Or.inr (Or.inl ⟨sp', sp',
+                        exact Or.inr (Or.inr ⟨sp', sp',
                           SFlowContent.singleQ (k + 1) .flowOut sp_prep sp'
                             (SCSingleQuoted_multiCtx .flowOut (Or.inl rfl) h_gram),
-                          GStar.nil _, hcorr'⟩))
-                      · rcases dispatchContent_plainScalar_content_prod_at (k + 1) _ sp_prep
+                          GStar.nil _, hcorr'⟩)
+                      · obtain ⟨sp_g, sp', h_content, h_tws2, hcorr'⟩ :=
+                          dispatchContent_plainScalar_content_prod_at (k + 1) _ sp_prep
                             (corr_of_allowDirectives_update hcorr_prep) hpeek_disp
                             hamp hstar hbang (fun h => hbs (Or.inl h)) (fun h => hbs (Or.inr h))
-                            hdq hsq h_not_doc h_dispatch h_flow_disp hn_mci with
-                          ⟨sp_g, sp', h_content, h_tws2, hcorr'⟩ | _
-                        · exact Or.inr (Or.inr (Or.inl ⟨sp_g, sp', h_content, h_tws2, hcorr'⟩))
-                        · exact Or.inr (Or.inr (Or.inr trivial))
+                            hdq hsq h_not_doc h_dispatch h_flow_disp hn_mci
+                        exact Or.inr (Or.inr ⟨sp_g, sp', h_content, h_tws2, hcorr'⟩)
               rcases h_one with ⟨sp_ne, sp_res, h_all, h_tws, hcorr_res⟩ |
-                  ⟨h_read, h_absorb95k, hbs⟩ | ⟨sp_ne, sp_res, h_fixed, h_tws, hcorr_res⟩ | _
+                  ⟨h_read, h_absorb95k, hbs⟩ | ⟨sp_ne, sp_res, h_fixed, h_tws, hcorr_res⟩
               · have hsp_eq4 := ScannerSurfCorr_unique hcorr_res hcorr_result
                 rw [hsp_eq4] at h_tws
                 exact ⟨sp_block, sp_block, sp_block, sp_scan', h_stream_block,
@@ -19026,10 +19022,6 @@ lemma accum_content_pending (sc : ScannerState)
                            (content_park_arm (preprocess_some_peek h_preprocess)
                              h_flow_disp h_not_doc h_dispatch hcorr_result),
                        hcorr_result⟩
-              · exact block_dispatch_deferred sp_start sp_block sp_scan' s'
-                  h_stream_block
-                  ((content_park_arm (preprocess_some_peek h_preprocess) h_flow_disp h_not_doc
-                    h_dispatch hcorr_result).imp_left And.left) hcorr_result
   | pendingBlock _ _ _ n_old h_close_old h_close_entry_old h_floor_old h_sk_old h_col_old
       h_kslot92 h_closeF99 =>
     -- Item 22 split this arm on the pending's own index because every content
