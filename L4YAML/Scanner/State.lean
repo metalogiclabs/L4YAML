@@ -108,7 +108,17 @@ structure ScannerState where
   /-- Line number of the most recent explicit `?` key indicator, if the
       entry has not yet been closed by `:`.  Used to (a) inhibit simple-key
       saving on the same line as `?`, and (b) bypass the flow-sequence
-      implicit-key-single-line restriction when `?` was used. -/
+      implicit-key-single-line restriction when `?` was used.
+
+      **Scoped to the current flow level** (item 98): a flow open pushes the
+      pair `(explicitKeyLine, explicitKeyCol)` onto `explicitKeyStack` and
+      clears both, and the matching close restores them, so a pending `?`
+      is visible exactly at its own level.  A nested collection's `,`/`:`
+      indicators end entries of the NESTED collection only — the block
+      `?`'s value is still `[197] l-block-map-explicit-value(n)`'s
+      `s-indent(n) ":"` after the close (`? {a: b}⏎: - w`), and content on
+      the `?`'s line INSIDE the nested collection is that collection's own,
+      free to reserve its simple key (`? [a: b]⏎: v`). -/
   explicitKeyLine : Option Nat := none
   /-- Line number of the most recent block-context IMPLICIT value indicator
       (item 48).  `[194] c-l-block-map-implicit-value`'s value slot is
@@ -124,6 +134,11 @@ structure ScannerState where
       (spec 8.19's multi-line compact keys), so the pending `?` survives it;
       at or left of it, a sibling entry has closed the `?`-entry. -/
   explicitKeyCol : Int := -1
+  /-- Saved `(explicitKeyLine, explicitKeyCol)` pairs for enclosing flow
+      nesting levels (item 98) — `simpleKeyStack`'s discipline for the
+      explicit-key stamp.  Pushed on flow-open (`[`, `{`), popped on
+      flow-close (`]`, `}`). -/
+  explicitKeyStack : Array (Option Nat × Int) := #[]
   /-- Collected comments (position × text). Comments are stored here as a
       side-channel rather than in the token array so that all existing
       `preserves_tokens` proofs remain valid unchanged. -/

@@ -117,6 +117,11 @@ structure ScannerStateIx (input : String) where
       (spec 8.19's multi-line compact keys), so the pending `?` survives it;
       at or left of it, a sibling entry has closed the `?`-entry. -/
   explicitKeyCol : Int := -1
+  /-- Saved `(explicitKeyLine, explicitKeyCol)` pairs for enclosing flow
+      nesting levels (item 98) — the explicit-key stamp is scoped to its own
+      flow level.  Pushed on flow-open, popped on flow-close; twin of
+      `L4YAML.Scanner.ScannerState.explicitKeyStack`. -/
+  explicitKeyStack : Array (Option Nat × Int) := #[]
   /-- Anchor names defined in the current document. -/
   definedAnchors : Array String := #[]
   /-- Collected comments (position × text). Populated by

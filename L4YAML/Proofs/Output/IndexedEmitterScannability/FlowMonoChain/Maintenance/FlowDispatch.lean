@@ -117,7 +117,7 @@ variable {input : String}
   unfold scanFlowSequenceStartIx; rfl
 
 @[simp] lemma scanFlowSequenceStartIx_explicitKeyLine (s : ScannerStateIx input) :
-    (scanFlowSequenceStartIx s).explicitKeyLine = s.explicitKeyLine := by
+    (scanFlowSequenceStartIx s).explicitKeyLine = none := by
   unfold scanFlowSequenceStartIx; rfl
 
 @[simp] lemma scanFlowSequenceStartIx_allowDirectives (s : ScannerStateIx input) :
@@ -144,7 +144,7 @@ lemma scanFlowSequenceStartIx_flowLevel_eq (s : ScannerStateIx input) :
   unfold scanFlowMappingStartIx; rfl
 
 @[simp] lemma scanFlowMappingStartIx_explicitKeyLine (s : ScannerStateIx input) :
-    (scanFlowMappingStartIx s).explicitKeyLine = s.explicitKeyLine := by
+    (scanFlowMappingStartIx s).explicitKeyLine = none := by
   unfold scanFlowMappingStartIx; rfl
 
 @[simp] lemma scanFlowMappingStartIx_allowDirectives (s : ScannerStateIx input) :
@@ -174,7 +174,7 @@ lemma scanFlowMappingStartIx_flowLevel_eq (s : ScannerStateIx input) :
   unfold scanFlowSequenceEndIx; rfl
 
 @[simp] lemma scanFlowSequenceEndIx_explicitKeyLine (s : ScannerStateIx input) :
-    (scanFlowSequenceEndIx s).explicitKeyLine = s.explicitKeyLine := by
+    (scanFlowSequenceEndIx s).explicitKeyLine = (s.explicitKeyStack.back?.getD (none, -1)).1 := by
   unfold scanFlowSequenceEndIx; rfl
 
 @[simp] lemma scanFlowSequenceEndIx_allowDirectives (s : ScannerStateIx input) :
@@ -196,7 +196,7 @@ lemma scanFlowMappingStartIx_flowLevel_eq (s : ScannerStateIx input) :
   unfold scanFlowMappingEndIx; rfl
 
 @[simp] lemma scanFlowMappingEndIx_explicitKeyLine (s : ScannerStateIx input) :
-    (scanFlowMappingEndIx s).explicitKeyLine = s.explicitKeyLine := by
+    (scanFlowMappingEndIx s).explicitKeyLine = (s.explicitKeyStack.back?.getD (none, -1)).1 := by
   unfold scanFlowMappingEndIx; rfl
 
 @[simp] lemma scanFlowMappingEndIx_allowDirectives (s : ScannerStateIx input) :

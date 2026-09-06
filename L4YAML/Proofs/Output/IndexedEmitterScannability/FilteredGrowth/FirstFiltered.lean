@@ -133,7 +133,8 @@ lemma scanFlowSequenceStartIx_first_filtered_token (s : ScannerStateIx input)
               s_ad.cursor.pos (Nat.le_refl _) s_ad.cursor.posBound) := by
     show (({(s_ad.emit YamlToken.flowSequenceStart).advance with
               flowLevel := _, flowStack := _, simpleKeyStack := _,
-              simpleKey := _, simpleKeyAllowed := _ } : ScannerStateIx input).tokens).tokens = _
+              simpleKey := _, simpleKeyAllowed := _, explicitKeyStack := _,
+              explicitKeyLine := _, explicitKeyCol := _ } : ScannerStateIx input).tokens).tokens = _
     rfl
   rw [h_s', h_fss_tokens, Array.filter_push]
   simp only [show ((IxToken.mk' (input := input) s_ad.cursor.pos YamlToken.flowSequenceStart
@@ -205,7 +206,8 @@ lemma scanFlowMappingStartIx_first_filtered_token (s : ScannerStateIx input)
               s_ad.cursor.pos (Nat.le_refl _) s_ad.cursor.posBound) := by
     show (({(s_ad.emit YamlToken.flowMappingStart).advance with
               flowLevel := _, flowStack := _, simpleKeyStack := _,
-              simpleKey := _, simpleKeyAllowed := _ } : ScannerStateIx input).tokens).tokens = _
+              simpleKey := _, simpleKeyAllowed := _, explicitKeyStack := _,
+              explicitKeyLine := _, explicitKeyCol := _ } : ScannerStateIx input).tokens).tokens = _
     rfl
   rw [h_s', h_fms_tokens, Array.filter_push]
   simp only [show ((IxToken.mk' (input := input) s_ad.cursor.pos YamlToken.flowMappingStart

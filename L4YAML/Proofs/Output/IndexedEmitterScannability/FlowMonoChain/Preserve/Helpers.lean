@@ -164,6 +164,18 @@ update and is unchanged by `emit`, the proof is `rfl` in all branches. -/
   · rfl
   · split <;> rfl
 
+@[simp] lemma saveSimpleKeyIx_explicitKeyCol (s : ScannerStateIx input) :
+    (saveSimpleKeyIx s).explicitKeyCol = s.explicitKeyCol := by
+  unfold saveSimpleKeyIx; split
+  · rfl
+  · split <;> rfl
+
+@[simp] lemma saveSimpleKeyIx_explicitKeyStack (s : ScannerStateIx input) :
+    (saveSimpleKeyIx s).explicitKeyStack = s.explicitKeyStack := by
+  unfold saveSimpleKeyIx; split
+  · rfl
+  · split <;> rfl
+
 @[simp] lemma saveSimpleKeyIx_directivesPresent (s : ScannerStateIx input) :
     (saveSimpleKeyIx s).directivesPresent = s.directivesPresent := by
   unfold saveSimpleKeyIx; split

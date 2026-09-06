@@ -602,8 +602,8 @@ lemma scanNextTokenIx_flow_open_mapping_init (input : String) (rest : List Char)
   have h_s'_corr : ScannerSurfCorrIx (scanFlowMappingStartIx s_ad)
       ⟨rest, (scanFlowMappingStartIx s_ad).cursor.pos.col⟩ := by
     rw [h_col_f]; exact h_corr_f
-  have h_s'_ek : (scanFlowMappingStartIx s_ad).explicitKeyLine = none := by
-    rw [scanFlowMappingStartIx_explicitKeyLine, h_ad_ek]; exact h_ek_pp
+  have h_s'_ek : (scanFlowMappingStartIx s_ad).explicitKeyLine = none :=
+    scanFlowMappingStartIx_explicitKeyLine s_ad
   have h_ad_pk : s_ad.cursor.peek? = some '{' := by
     show s_ad.peek? = some '{'
     rw [show s_ad.peek? = s_pp.peek? from by
@@ -838,8 +838,8 @@ lemma scanNextTokenIx_flow_open_seq_init (input : String) (rest : List Char)
   have h_s'_corr : ScannerSurfCorrIx (scanFlowSequenceStartIx s_ad)
       ⟨rest, (scanFlowSequenceStartIx s_ad).cursor.pos.col⟩ := by
     rw [h_col_f]; exact h_corr_f
-  have h_s'_ek : (scanFlowSequenceStartIx s_ad).explicitKeyLine = none := by
-    rw [scanFlowSequenceStartIx_explicitKeyLine, h_ad_ek]; exact h_ek_pp
+  have h_s'_ek : (scanFlowSequenceStartIx s_ad).explicitKeyLine = none :=
+    scanFlowSequenceStartIx_explicitKeyLine s_ad
   have h_ad_pk : s_ad.cursor.peek? = some '[' := by
     show s_ad.peek? = some '['
     rw [show s_ad.peek? = s_pp.peek? from by

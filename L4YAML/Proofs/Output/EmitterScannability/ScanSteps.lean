@@ -1116,6 +1116,12 @@ lemma saveSimpleKey_preserves_peek (s : ScannerState) :
 @[simp] lemma saveSimpleKey_preserves_ek (s : ScannerState) :
     (saveSimpleKey s).explicitKeyLine = s.explicitKeyLine := by
   unfold saveSimpleKey; split <;> (try rfl); split <;> rfl
+@[simp] lemma saveSimpleKey_preserves_ekc (s : ScannerState) :
+    (saveSimpleKey s).explicitKeyCol = s.explicitKeyCol := by
+  unfold saveSimpleKey; split <;> (try rfl); split <;> rfl
+@[simp] lemma saveSimpleKey_preserves_ekStack (s : ScannerState) :
+    (saveSimpleKey s).explicitKeyStack = s.explicitKeyStack := by
+  unfold saveSimpleKey; split <;> (try rfl); split <;> rfl
 
 -- saveSimpleKey is the identity when simpleKeyAllowed = false and the
 -- flow-context explicit-key guard doesn't fire (explicitKeyLine ≠ some line).
@@ -2136,8 +2142,8 @@ lemma scanFlowSequenceStart_preserves_indents (s : ScannerState) :
   unfold scanFlowSequenceStart; simp only [advance_preserves_indents, ScannerState.emit]
 
 lemma scanFlowSequenceStart_preserves_ek (s : ScannerState) :
-    (scanFlowSequenceStart s).explicitKeyLine = s.explicitKeyLine := by
-  unfold scanFlowSequenceStart; dsimp only []; simp only [advance_explicitKeyLine, ScannerState.emit]
+    (scanFlowSequenceStart s).explicitKeyLine = none := by
+  unfold scanFlowSequenceStart; rfl
 
 lemma scanFlowSequenceStart_line_eq (s : ScannerState) :
     (scanFlowSequenceStart s).line = s.advance.line := by
@@ -2455,7 +2461,8 @@ lemma scanFlowSequenceStart_lastRealTokenVal (s : ScannerState) :
   have h : (scanFlowSequenceStart s).tokens =
       s.tokens.push ⟨s.currentPos, .flowSequenceStart, s.currentPos⟩ := by
     show ({ ({ s with simpleKey := _ }.emit .flowSequenceStart).advance with
-        flowLevel := _, simpleKeyAllowed := _, flowStack := _, simpleKeyStack := _ }).tokens = _
+        flowLevel := _, simpleKeyAllowed := _, flowStack := _, simpleKeyStack := _,
+                  explicitKeyStack := _, explicitKeyLine := _, explicitKeyCol := _ }).tokens = _
     simp only [ScannerCorrectness.advance_preserves_tokens, ScannerState.emit,
                ScannerState.currentPos]
   rw [h]
@@ -2468,7 +2475,8 @@ lemma scanFlowMappingStart_lastRealTokenVal (s : ScannerState) :
   have h : (scanFlowMappingStart s).tokens =
       s.tokens.push ⟨s.currentPos, .flowMappingStart, s.currentPos⟩ := by
     show ({ ({ s with simpleKey := _ }.emit .flowMappingStart).advance with
-        flowLevel := _, simpleKeyAllowed := _, flowStack := _, simpleKeyStack := _ }).tokens = _
+        flowLevel := _, simpleKeyAllowed := _, flowStack := _, simpleKeyStack := _,
+                  explicitKeyStack := _, explicitKeyLine := _, explicitKeyCol := _ }).tokens = _
     simp only [ScannerCorrectness.advance_preserves_tokens, ScannerState.emit,
                ScannerState.currentPos]
   rw [h]
@@ -2601,8 +2609,7 @@ lemma scanNextToken_flow_open_init (input : String) (rest : List Char)
                 some { column := (-1 : Int), isSequence := false } := by
               rw [h_ids_final]; rfl
             unfold ScannerState.currentIndent; rw [hb]; decide,
-         by rw [scanFlowSequenceStart_preserves_ek s_ad]
-            simp only [s_ad]; split <;> exact h_ek_pp,
+         scanFlowSequenceStart_preserves_ek s_ad,
          by rw [scanFlowSequenceStart_line_eq]
             have h_ad_pk : s_ad.peek? = some '[' := by
               simp only [s_ad]; split <;> exact h_pk_pp
@@ -2621,7 +2628,8 @@ lemma scanNextToken_flow_open_init (input : String) (rest : List Char)
                 = s_ad.tokens.push ⟨s_ad.currentPos, .flowSequenceStart, s_ad.currentPos⟩ := by
               show ({ ({ s_ad with simpleKey := _ }.emit .flowSequenceStart).advance with
                   flowLevel := _, simpleKeyAllowed := _,
-                  flowStack := _, simpleKeyStack := _ }).tokens = _
+                  flowStack := _, simpleKeyStack := _,
+                  explicitKeyStack := _, explicitKeyLine := _, explicitKeyCol := _ }).tokens = _
               simp only [ScannerCorrectness.advance_preserves_tokens,
                          ScannerState.emit, ScannerState.currentPos]
             have h_ad_tokens : s_ad.tokens = s_pp.tokens := by
@@ -2677,7 +2685,7 @@ lemma scanNextToken_flow_open_nested (s : ScannerState) (rest : List Char)
       ∧ s'.flowLevel = s.flowLevel + 1
       ∧ s'.directivesPresent = s.directivesPresent
       ∧ s'.indents = s.indents
-      ∧ s'.explicitKeyLine = s.explicitKeyLine
+      ∧ s'.explicitKeyLine = none
       ∧ s'.col = s.col + 1
       ∧ s'.line = s.line
       ∧ AllTokensOnLine s' s'.line
@@ -2688,7 +2696,8 @@ lemma scanNextToken_flow_open_nested (s : ScannerState) (rest : List Char)
       ∧ s.tokens.size < s'.tokens.size
       ∧ s'.simpleKeyStack = s.simpleKeyStack.push (saveSimpleKey s).simpleKey
       ∧ (∀ t, lastRealTokenVal? s'.tokens = some t → t.completesFlowValue = false)
-      ∧ s'.flowStack = s.flowStack.push true := by
+      ∧ s'.flowStack = s.flowStack.push true
+      ∧ s'.explicitKeyStack = s.explicitKeyStack.push (s.explicitKeyLine, s.explicitKeyCol) := by
   have h_pp : scanNextToken_preprocess s = .ok (some (saveSimpleKey s, '[')) :=
     scanNextToken_preprocess_flow s '[' rest s.col hcorr h_flow
       (by decide) (by decide) (by decide)
@@ -2749,8 +2758,8 @@ lemma scanNextToken_flow_open_nested (s : ScannerState) (rest : List Char)
     rw [scanFlowSequenceStart_line_eq]
     exact (advance_line_of_peek s_ad '[' h_lt_ad h_peek_ad (by decide) (by decide)).trans h_ad_line
   refine ⟨_, h_snt, ?_, h_fl_f.trans (congrArg (· + 1) h_ad_fl),
-    h_dp_f.trans h_ad_dp, h_ids_f.trans h_ad_ids, h_ek_f.trans h_ad_ek, ?_, h_line_f, ?_, ?_, ?_, ?_,
-    ScannerCorrectness.scanFlowSequenceStart_simpleKey_cleared s_ad, ?_, ?_, ?_, ?_⟩
+    h_dp_f.trans h_ad_dp, h_ids_f.trans h_ad_ids, h_ek_f, ?_, h_line_f, ?_, ?_, ?_, ?_,
+    ScannerCorrectness.scanFlowSequenceStart_simpleKey_cleared s_ad, ?_, ?_, ?_, ?_, ?_⟩
   · rw [h_col_f]; exact h_corr_f
   · rw [h_col_f, h_ad_col]
   · rw [h_line_f]
@@ -2795,6 +2804,19 @@ lemma scanNextToken_flow_open_nested (s : ScannerState) (rest : List Char)
     rw [L4YAML.Proofs.ScannerFlowCollection.scanFlowSequenceStart_pushes_true]
     congr 1
     simp only [s_ad]; split <;> exact saveSimpleKey_preserves_flowStack s
+  · -- explicitKeyStack: the open pushes the outer stamp (item 98)
+    rw [ScannerCorrectness.scanFlowSequenceStart_ek_pushed]
+    have h1 : s_ad.explicitKeyStack = s.explicitKeyStack := by
+      simp only [s_ad]; split
+      · show (saveSimpleKey s).explicitKeyStack = _
+        unfold saveSimpleKey; split <;> (try rfl); split <;> rfl
+      · unfold saveSimpleKey; split <;> (try rfl); split <;> rfl
+    have h2 : s_ad.explicitKeyCol = s.explicitKeyCol := by
+      simp only [s_ad]; split
+      · show (saveSimpleKey s).explicitKeyCol = _
+        unfold saveSimpleKey; split <;> (try rfl); split <;> rfl
+      · unfold saveSimpleKey; split <;> (try rfl); split <;> rfl
+    rw [h1, h2, h_ad_ek]
 
 -- ═══ Block indicators: concrete none lemmas ═══
 
@@ -3167,8 +3189,9 @@ lemma scanFlowSequenceEnd_preserves_indents (s : ScannerState) :
   unfold scanFlowSequenceEnd; dsimp only []; simp only [advance_preserves_indents, ScannerState.emit]
 
 lemma scanFlowSequenceEnd_preserves_ek (s : ScannerState) :
-    (scanFlowSequenceEnd s).explicitKeyLine = s.explicitKeyLine := by
-  unfold scanFlowSequenceEnd; dsimp only []; simp only [advance_explicitKeyLine, ScannerState.emit]
+    (scanFlowSequenceEnd s).explicitKeyLine
+      = (s.explicitKeyStack.back?.getD (none, -1)).1 :=
+  ScannerCorrectness.scanFlowSequenceEnd_ek_restored s
 
 /-- FlowLevel through scanFlowSequenceEnd: decremented by 1. -/
 lemma scanFlowSequenceEnd_flowLevel (s : ScannerState) :
@@ -3279,7 +3302,7 @@ lemma scanNextToken_flow_close_seq_nested (s : ScannerState)
       ∧ s'.flowLevel = s.flowLevel - 1
       ∧ s'.directivesPresent = s.directivesPresent
       ∧ s'.indents = s.indents
-      ∧ s'.explicitKeyLine = s.explicitKeyLine
+      ∧ s'.explicitKeyLine = (s.explicitKeyStack.back?.getD (none, -1)).1
       ∧ s'.col = s.col + 1
       ∧ (∀ t, lastRealTokenVal? s'.tokens = some t →
           t ≠ .flowSequenceStart ∧ t ≠ .flowMappingStart ∧ t ≠ .flowEntry)
@@ -3289,7 +3312,8 @@ lemma scanNextToken_flow_close_seq_nested (s : ScannerState)
       ∧ EndLineOnLine s'
       ∧ s'.simpleKeyStack = s.simpleKeyStack.pop
       ∧ s'.simpleKey = s.simpleKeyStack.back?.getD {}
-      ∧ (∀ i, i < s.tokens.size → s'.tokens[i]? = s.tokens[i]?) := by
+      ∧ (∀ i, i < s.tokens.size → s'.tokens[i]? = s.tokens[i]?)
+      ∧ s'.explicitKeyStack = s.explicitKeyStack.pop := by
   -- Step 1: preprocessing
   have h_pp : scanNextToken_preprocess s = .ok (some (saveSimpleKey s, ']')) :=
     scanNextToken_preprocess_flow s ']' rest s.col hcorr h_flow
@@ -3341,7 +3365,11 @@ lemma scanNextToken_flow_close_seq_nested (s : ScannerState)
       unfold saveSimpleKey; split <;> (try rfl); split <;> rfl
     · unfold saveSimpleKey; split <;> (try rfl); split <;> rfl
   have ⟨h_corr_f, h_fl_f, h_dp_f, h_ids_f, h_col_f⟩ := scanFlowSequenceEnd_detail s_ad rest h_ad_corr
-  have h_ek_f := scanFlowSequenceEnd_preserves_ek s_ad
+  have h_ad_eks : s_ad.explicitKeyStack = s.explicitKeyStack := by
+    simp only [s_ad]; split <;> exact saveSimpleKey_preserves_ekStack s
+  have h_ek_f : (scanFlowSequenceEnd s_ad).explicitKeyLine
+      = (s.explicitKeyStack.back?.getD (none, -1)).1 :=
+    (scanFlowSequenceEnd_preserves_ek s_ad).trans (by rw [h_ad_eks])
   have h_ad_line : s_ad.line = s.line := by
     simp only [s_ad]; split <;> exact saveSimpleKey_preserves_line s
   have ⟨h_peek_ad, h_lt_ad⟩ := peek_of_chars_cons s_ad ']' rest s_ad.col h_ad_corr
@@ -3349,7 +3377,8 @@ lemma scanNextToken_flow_close_seq_nested (s : ScannerState)
     show (s_ad.emit .flowSequenceEnd).advance.line = s.line
     rw [advance_line_of_peek (s_ad.emit .flowSequenceEnd) ']' h_lt_ad h_peek_ad (by decide) (by decide)]
     exact h_ad_line
-  refine ⟨_, h_snt, ?_, ?_, h_dp_f.trans h_ad_dp, h_ids_f.trans h_ad_ids, h_ek_f.trans h_ad_ek, ?_, ?_, ?_, h_line_f, ?_, ?_, ?_, ?_, ?_⟩
+  refine ⟨_, h_snt, ?_, ?_, h_dp_f.trans h_ad_dp, h_ids_f.trans h_ad_ids, h_ek_f, ?_, ?_, ?_, h_line_f, ?_, ?_, ?_, ?_, ?_,
+    (ScannerCorrectness.scanFlowSequenceEnd_ekstack_popped s_ad).trans (by rw [h_ad_eks])⟩
   · rw [h_col_f]; exact h_corr_f
   · rw [h_fl_f]; split
     · rw [h_ad_fl]
@@ -3521,8 +3550,8 @@ lemma scanFlowMappingStart_preserves_indents (s : ScannerState) :
   unfold scanFlowMappingStart; simp only [advance_preserves_indents, ScannerState.emit]
 
 lemma scanFlowMappingStart_preserves_ek (s : ScannerState) :
-    (scanFlowMappingStart s).explicitKeyLine = s.explicitKeyLine := by
-  unfold scanFlowMappingStart; dsimp only []; simp only [advance_explicitKeyLine, ScannerState.emit]
+    (scanFlowMappingStart s).explicitKeyLine = none := by
+  unfold scanFlowMappingStart; rfl
 
 lemma scanFlowMappingStart_line_eq (s : ScannerState) :
     (scanFlowMappingStart s).line = s.advance.line := by
@@ -3580,8 +3609,9 @@ lemma scanFlowMappingEnd_preserves_indents (s : ScannerState) :
   unfold scanFlowMappingEnd; dsimp only []; simp only [advance_preserves_indents, ScannerState.emit]
 
 lemma scanFlowMappingEnd_preserves_ek (s : ScannerState) :
-    (scanFlowMappingEnd s).explicitKeyLine = s.explicitKeyLine := by
-  unfold scanFlowMappingEnd; dsimp only []; simp only [advance_explicitKeyLine, ScannerState.emit]
+    (scanFlowMappingEnd s).explicitKeyLine
+      = (s.explicitKeyStack.back?.getD (none, -1)).1 :=
+  ScannerCorrectness.scanFlowMappingEnd_ek_restored s
 
 lemma scanFlowMappingEnd_flowLevel (s : ScannerState) :
     (scanFlowMappingEnd s).flowLevel =
@@ -3664,7 +3694,7 @@ lemma scanNextToken_flow_close_mapping_nested (s : ScannerState)
       ∧ s'.flowLevel = s.flowLevel - 1
       ∧ s'.directivesPresent = s.directivesPresent
       ∧ s'.indents = s.indents
-      ∧ s'.explicitKeyLine = s.explicitKeyLine
+      ∧ s'.explicitKeyLine = (s.explicitKeyStack.back?.getD (none, -1)).1
       ∧ s'.col = s.col + 1
       ∧ (∀ t, lastRealTokenVal? s'.tokens = some t →
           t ≠ .flowSequenceStart ∧ t ≠ .flowMappingStart ∧ t ≠ .flowEntry)
@@ -3674,7 +3704,8 @@ lemma scanNextToken_flow_close_mapping_nested (s : ScannerState)
       ∧ EndLineOnLine s'
       ∧ s'.simpleKeyStack = s.simpleKeyStack.pop
       ∧ s'.simpleKey = s.simpleKeyStack.back?.getD {}
-      ∧ (∀ i, i < s.tokens.size → s'.tokens[i]? = s.tokens[i]?) := by
+      ∧ (∀ i, i < s.tokens.size → s'.tokens[i]? = s.tokens[i]?)
+      ∧ s'.explicitKeyStack = s.explicitKeyStack.pop := by
   have h_pp : scanNextToken_preprocess s = .ok (some (saveSimpleKey s, '}')) :=
     scanNextToken_preprocess_flow s '}' rest s.col hcorr h_flow
       (by decide) (by decide) (by decide)
@@ -3717,7 +3748,11 @@ lemma scanNextToken_flow_close_mapping_nested (s : ScannerState)
       unfold saveSimpleKey; split <;> (try rfl); split <;> rfl
     · unfold saveSimpleKey; split <;> (try rfl); split <;> rfl
   have ⟨h_corr_f, h_fl_f, h_dp_f, h_ids_f, h_col_f⟩ := scanFlowMappingEnd_detail s_ad rest h_ad_corr
-  have h_ek_f := scanFlowMappingEnd_preserves_ek s_ad
+  have h_ad_eks : s_ad.explicitKeyStack = s.explicitKeyStack := by
+    simp only [s_ad]; split <;> exact saveSimpleKey_preserves_ekStack s
+  have h_ek_f : (scanFlowMappingEnd s_ad).explicitKeyLine
+      = (s.explicitKeyStack.back?.getD (none, -1)).1 :=
+    (scanFlowMappingEnd_preserves_ek s_ad).trans (by rw [h_ad_eks])
   have h_ad_line : s_ad.line = s.line := by
     simp only [s_ad]; split <;> exact saveSimpleKey_preserves_line s
   have ⟨h_peek_ad, h_lt_ad⟩ := peek_of_chars_cons s_ad '}' rest s_ad.col h_ad_corr
@@ -3725,7 +3760,8 @@ lemma scanNextToken_flow_close_mapping_nested (s : ScannerState)
     show (s_ad.emit .flowMappingEnd).advance.line = s.line
     rw [advance_line_of_peek (s_ad.emit .flowMappingEnd) '}' h_lt_ad h_peek_ad (by decide) (by decide)]
     exact h_ad_line
-  refine ⟨_, h_snt, ?_, ?_, h_dp_f.trans h_ad_dp, h_ids_f.trans h_ad_ids, h_ek_f.trans h_ad_ek, ?_, ?_, ?_, h_line_f, ?_, ?_, ?_, ?_, ?_⟩
+  refine ⟨_, h_snt, ?_, ?_, h_dp_f.trans h_ad_dp, h_ids_f.trans h_ad_ids, h_ek_f, ?_, ?_, ?_, h_line_f, ?_, ?_, ?_, ?_, ?_,
+    (ScannerCorrectness.scanFlowMappingEnd_ekstack_popped s_ad).trans (by rw [h_ad_eks])⟩
   · rw [h_col_f]; exact h_corr_f
   · rw [h_fl_f]; split
     · rw [h_ad_fl]
@@ -3882,7 +3918,7 @@ lemma scanNextToken_flow_open_mapping_nested (s : ScannerState) (rest : List Cha
       ∧ s'.flowLevel = s.flowLevel + 1
       ∧ s'.directivesPresent = s.directivesPresent
       ∧ s'.indents = s.indents
-      ∧ s'.explicitKeyLine = s.explicitKeyLine
+      ∧ s'.explicitKeyLine = none
       ∧ s'.col = s.col + 1
       ∧ s'.line = s.line
       ∧ AllTokensOnLine s' s'.line
@@ -3898,7 +3934,8 @@ lemma scanNextToken_flow_open_mapping_nested (s : ScannerState) (rest : List Cha
       -- the `{` re-enables simple-key reservation, and the `{` token itself
       -- caps the raw array, so `LastRawNotValue` holds.
       ∧ s'.simpleKeyAllowed = true
-      ∧ LastRawNotValue s' := by
+      ∧ LastRawNotValue s'
+      ∧ s'.explicitKeyStack = s.explicitKeyStack.push (s.explicitKeyLine, s.explicitKeyCol) := by
   have h_pp : scanNextToken_preprocess s = .ok (some (saveSimpleKey s, '{')) :=
     scanNextToken_preprocess_flow s '{' rest s.col hcorr h_flow
       (by decide) (by decide) (by decide)
@@ -3952,8 +3989,8 @@ lemma scanNextToken_flow_open_mapping_nested (s : ScannerState) (rest : List Cha
     rw [scanFlowMappingStart_line_eq]
     exact (advance_line_of_peek s_ad '{' h_lt_ad h_peek_ad (by decide) (by decide)).trans h_ad_line
   refine ⟨_, h_snt, ?_, h_fl_f.trans (congrArg (· + 1) h_ad_fl),
-    h_dp_f.trans h_ad_dp, h_ids_f.trans h_ad_ids, h_ek_f.trans h_ad_ek, ?_, h_line_f, ?_, ?_, ?_, ?_,
-    ScannerCorrectness.scanFlowMappingStart_simpleKey_cleared s_ad, ?_, ?_, ?_, ?_, ?_, ?_⟩
+    h_dp_f.trans h_ad_dp, h_ids_f.trans h_ad_ids, h_ek_f, ?_, h_line_f, ?_, ?_, ?_, ?_,
+    ScannerCorrectness.scanFlowMappingStart_simpleKey_cleared s_ad, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
   · rw [h_col_f]; exact h_corr_f
   · rw [h_col_f, h_ad_col]
   · rw [h_line_f]
@@ -4006,10 +4043,18 @@ lemma scanNextToken_flow_open_mapping_nested (s : ScannerState) (rest : List Cha
     have h_tok : (scanFlowMappingStart s_ad).tokens =
         s_ad.tokens.push ⟨s_ad.currentPos, .flowMappingStart, s_ad.currentPos⟩ := by
       show ({ ({ s_ad with simpleKey := _ }.emit .flowMappingStart).advance with
-          flowLevel := _, simpleKeyAllowed := _, flowStack := _, simpleKeyStack := _ }).tokens = _
+          flowLevel := _, simpleKeyAllowed := _, flowStack := _, simpleKeyStack := _,
+                  explicitKeyStack := _, explicitKeyLine := _, explicitKeyCol := _ }).tokens = _
       simp only [ScannerCorrectness.advance_preserves_tokens, ScannerState.emit,
                  ScannerState.currentPos]
     exact lastRawNotValue_of_push (by simp) h_tok
+  · -- explicitKeyStack: the open pushes the outer stamp (item 98)
+    rw [ScannerCorrectness.scanFlowMappingStart_ek_pushed]
+    have h1 : s_ad.explicitKeyStack = s.explicitKeyStack := by
+      simp only [s_ad]; split <;> exact saveSimpleKey_preserves_ekStack s
+    have h2 : s_ad.explicitKeyCol = s.explicitKeyCol := by
+      simp only [s_ad]; split <;> exact saveSimpleKey_preserves_ekc s
+    rw [h1, h2, h_ad_ek]
 
 -- ═══ Init flow open: `{` — mapping at top level ═══
 
@@ -4141,8 +4186,7 @@ lemma scanNextToken_flow_open_mapping_init (input : String) (rest : List Char)
                 some { column := (-1 : Int), isSequence := false } := by
               rw [h_ids_final]; rfl
             unfold ScannerState.currentIndent; rw [hb]; decide,
-         by rw [scanFlowMappingStart_preserves_ek s_ad]
-            simp only [s_ad]; split <;> exact h_ek_pp,
+         scanFlowMappingStart_preserves_ek s_ad,
          by rw [scanFlowMappingStart_line_eq]
             have h_ad_pk : s_ad.peek? = some '{' := by
               simp only [s_ad]; split <;> exact h_pk_pp
@@ -4161,7 +4205,8 @@ lemma scanNextToken_flow_open_mapping_init (input : String) (rest : List Char)
                 = s_ad.tokens.push ⟨s_ad.currentPos, .flowMappingStart, s_ad.currentPos⟩ := by
               show ({ ({ s_ad with simpleKey := _ }.emit .flowMappingStart).advance with
                   flowLevel := _, simpleKeyAllowed := _,
-                  flowStack := _, simpleKeyStack := _ }).tokens = _
+                  flowStack := _, simpleKeyStack := _,
+                  explicitKeyStack := _, explicitKeyLine := _, explicitKeyCol := _ }).tokens = _
               simp only [ScannerCorrectness.advance_preserves_tokens,
                          ScannerState.emit, ScannerState.currentPos]
             have h_ad_tokens : s_ad.tokens = s_pp.tokens := by
@@ -4210,7 +4255,8 @@ lemma scanNextToken_flow_open_mapping_init (input : String) (rest : List Char)
                s_ad.tokens.push ⟨s_ad.currentPos, .flowMappingStart, s_ad.currentPos⟩ := by
              show ({ ({ s_ad with simpleKey := _ }.emit .flowMappingStart).advance with
                  flowLevel := _, simpleKeyAllowed := _,
-                 flowStack := _, simpleKeyStack := _ }).tokens = _
+                 flowStack := _, simpleKeyStack := _,
+                  explicitKeyStack := _, explicitKeyLine := _, explicitKeyCol := _ }).tokens = _
              simp only [ScannerCorrectness.advance_preserves_tokens,
                         ScannerState.emit, ScannerState.currentPos]
            exact lastRawNotValue_of_push (by simp) h_tok,
@@ -4219,7 +4265,8 @@ lemma scanNextToken_flow_open_mapping_init (input : String) (rest : List Char)
                s_ad.tokens.push ⟨s_ad.currentPos, .flowMappingStart, s_ad.currentPos⟩ := by
              show ({ ({ s_ad with simpleKey := _ }.emit .flowMappingStart).advance with
                  flowLevel := _, simpleKeyAllowed := _,
-                 flowStack := _, simpleKeyStack := _ }).tokens = _
+                 flowStack := _, simpleKeyStack := _,
+                  explicitKeyStack := _, explicitKeyLine := _, explicitKeyCol := _ }).tokens = _
              simp only [ScannerCorrectness.advance_preserves_tokens,
                         ScannerState.emit, ScannerState.currentPos]
            have h_feq : (scanFlowMappingStart s_ad).tokens.filter (fun t => t.val != .placeholder)

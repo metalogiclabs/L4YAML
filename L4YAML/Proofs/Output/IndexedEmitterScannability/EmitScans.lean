@@ -3,6 +3,7 @@ Copyright (c) 2026. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 -/
 import L4YAML.Proofs.Output.IndexedEmitterScannability.FilteredGrowth
+import L4YAML.Proofs.Output.IndexedEmitterScannability.FlowMonoChain.EkStackChainIx
 
 /-! # `IndexedEmitterScannability.EmitScans` — Phase 3 Step 6f.3b3 staging
 
@@ -1406,7 +1407,7 @@ lemma emit_scans_in_flowIx (v : YamlValue) {inFlow : Bool}
     -- Step 1: '[' open (SS2a)
     obtain ⟨s₁, h_snt₁, h_corr₁, h_fl₁, h_dp₁, h_ids₁, h_ek₁, h_col₁,
             _h_line₁, h_atol₁, h_endline₁, h_stack_endline₁, h_stack_pop₁, h_last_s₁,
-            h_push₁, _h_ska₁, _h_lrv₁, h_stackpush₁, h_poss₁, h_size₁, h_prefix₁⟩ :=
+            h_push₁, _h_ska₁, _h_lrv₁, h_stackpush₁, h_poss₁, h_size₁, h_prefix₁, h_ekpush₁⟩ :=
       scanNextTokenIx_flow_open_seq_nested s_state
         ((L4YAML.Emit.emit.emitList items.toList).toList ++ [']'] ++ rest)
         hcorr₀ h_flow h_indent h_col h_atol h_endline h_dp h_last
@@ -1434,7 +1435,7 @@ lemma emit_scans_in_flowIx (v : YamlValue) {inFlow : Bool}
     obtain ⟨n₂, s₂, h_chain₂, h_corr₂, h_fl₂, h_dp₂, h_ids₂, h_ek₂, h_col₂,
             h_s2_inflow, h_s2_indent, _h_line₂, h_atol₂, h_endline₂, h_stack₂, h_fmc₂⟩ :=
       h_list_scan s₁ ([']'] ++ rest) h_corr₁_assoc h_s1_inflow (by rw [h_fl₁]; omega)
-        h_s1_indent h_s1_col (by rw [h_ek₁]; exact h_ek) h_atol₁ h_endline₁ h_sync₁
+        h_s1_indent h_s1_col h_ek₁ h_atol₁ h_endline₁ h_sync₁
         (by rw [h_dp₁]; exact h_dp) h_last_s₁
     -- Step 3: ']' close (FlowClose §1)
     have h_fl₂_ge2 : s₂.flowLevel ≥ 2 := by rw [h_fl₂, h_fl₁]; omega
@@ -1446,7 +1447,7 @@ lemma emit_scans_in_flowIx (v : YamlValue) {inFlow : Bool}
       exact Array.back?_push
     obtain ⟨s₃, h_snt₃, h_corr₃, h_fl₃, h_dp₃, h_ids₃, h_ek₃, h_col₃,
             h_tok₃, h_ska₃, _h_line₃, h_atol₃, h_endline₃, h_stack₃,
-            h_restore₃, h_prefix₃⟩ :=
+            h_restore₃, h_prefix₃, _⟩ :=
       scanNextTokenIx_flow_close_seq_nested s₂ rest h_corr₂ h_s2_inflow h_s2_indent h_col₂
         h_fl₂_ge2 h_atol₂ h_stack_endline₂ (by rw [h_dp₂, h_dp₁]; exact h_dp) h_kind₂
     -- FlowMonoChainIx composition: weaken body floor from fl+1 down to fl, sandwich.
@@ -1478,7 +1479,7 @@ lemma emit_scans_in_flowIx (v : YamlValue) {inFlow : Bool}
     · rw [h_fl₃, h_fl₂, h_fl₁]; omega
     · rw [h_dp₃, h_dp₂, h_dp₁]
     · rw [h_ids₃, h_ids₂, h_ids₁]
-    · rw [h_ek₃, h_ek₂, h_ek₁]
+    · rw [h_ek₃, h_fmc₂.ekStack_eq rfl h_fl₂, h_ekpush₁, Array.back?_push, Option.getD_some]
     · rw [h_col₃]; omega
     · unfold ScannerStateIx.inFlow
       exact decide_eq_true (by rw [h_fl₃, h_fl₂, h_fl₁]; omega)
@@ -1525,7 +1526,7 @@ lemma emit_scans_in_flowIx (v : YamlValue) {inFlow : Bool}
     -- Step 1: '{' open (FlowClose §3)
     obtain ⟨s₁, h_snt₁, h_corr₁, h_fl₁, h_dp₁, h_ids₁, h_ek₁, h_col₁,
             _h_line₁, h_atol₁, h_endline₁, h_stack_endline₁, h_stack_pop₁, h_last_s₁,
-            h_push₁, h_ska₁, h_lrv₁, h_stackpush₁, h_poss₁, h_size₁, h_prefix₁⟩ :=
+            h_push₁, h_ska₁, h_lrv₁, h_stackpush₁, h_poss₁, h_size₁, h_prefix₁, h_ekpush₁⟩ :=
       scanNextTokenIx_flow_open_mapping_nested s_state
         ((L4YAML.Emit.emit.emitPairList pairs.toList).toList ++ ['}'] ++ rest)
         hcorr₀ h_flow h_indent h_col h_atol h_endline h_dp h_last
@@ -1557,7 +1558,7 @@ lemma emit_scans_in_flowIx (v : YamlValue) {inFlow : Bool}
     obtain ⟨n₂, s₂, h_chain₂, h_corr₂, h_fl₂, h_dp₂, h_ids₂, h_ek₂, h_col₂,
             h_s2_inflow, h_s2_indent, _h_line₂, h_atol₂, h_endline₂, h_stack₂, h_fmc₂⟩ :=
       h_pair_scan s₁ (['}'] ++ rest) h_corr₁_assoc h_s1_inflow (by rw [h_fl₁]; omega)
-        h_s1_indent h_s1_col (by rw [h_ek₁]; exact h_ek) h_atol₁ h_endline₁
+        h_s1_indent h_s1_col h_ek₁ h_atol₁ h_endline₁
         h_ska₁ h_lrv₁ h_sync₁
         (by rw [h_dp₁]; exact h_dp) h_last_s₁
     -- Step 3: '}' close (FlowClose §2)
@@ -1570,7 +1571,7 @@ lemma emit_scans_in_flowIx (v : YamlValue) {inFlow : Bool}
       exact Array.back?_push
     obtain ⟨s₃, h_snt₃, h_corr₃, h_fl₃, h_dp₃, h_ids₃, h_ek₃, h_col₃,
             h_tok₃, h_ska₃, _h_line₃, h_atol₃, h_endline₃, h_stack₃,
-            h_restore₃, h_prefix₃⟩ :=
+            h_restore₃, h_prefix₃, _⟩ :=
       scanNextTokenIx_flow_close_mapping_nested s₂ rest h_corr₂ h_s2_inflow h_s2_indent h_col₂
         h_fl₂_ge2 h_atol₂ h_stack_endline₂ (by rw [h_dp₂, h_dp₁]; exact h_dp) h_kind₂
     -- FlowMonoChainIx composition (mirror of sequence case)
@@ -1602,7 +1603,7 @@ lemma emit_scans_in_flowIx (v : YamlValue) {inFlow : Bool}
     · rw [h_fl₃, h_fl₂, h_fl₁]; omega
     · rw [h_dp₃, h_dp₂, h_dp₁]
     · rw [h_ids₃, h_ids₂, h_ids₁]
-    · rw [h_ek₃, h_ek₂, h_ek₁]
+    · rw [h_ek₃, h_fmc₂.ekStack_eq rfl h_fl₂, h_ekpush₁, Array.back?_push, Option.getD_some]
     · rw [h_col₃]; omega
     · unfold ScannerStateIx.inFlow
       exact decide_eq_true (by rw [h_fl₃, h_fl₂, h_fl₁]; omega)

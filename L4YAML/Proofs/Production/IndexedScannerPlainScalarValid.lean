@@ -4930,6 +4930,32 @@ lemma scanFlowMappingEndIx_stack_popped {input : String}
     (scanFlowMappingEndIx s).simpleKeyStack = s.simpleKeyStack.pop := by
   unfold scanFlowMappingEndIx; rfl
 
+-- Item 98: the explicit-key stamp rides the same open/close discipline —
+-- Ix twins of the `ScannerCorrectness` `_ek_pushed` / `_ek_restored` /
+-- `_ekstack_popped` suite.
+
+lemma scanFlowSequenceStartIx_ek_pushed {input : String}
+    (s : ScannerStateIx input) :
+    (scanFlowSequenceStartIx s).explicitKeyStack
+      = s.explicitKeyStack.push (s.explicitKeyLine, s.explicitKeyCol) := by
+  unfold scanFlowSequenceStartIx; rfl
+
+lemma scanFlowMappingStartIx_ek_pushed {input : String}
+    (s : ScannerStateIx input) :
+    (scanFlowMappingStartIx s).explicitKeyStack
+      = s.explicitKeyStack.push (s.explicitKeyLine, s.explicitKeyCol) := by
+  unfold scanFlowMappingStartIx; rfl
+
+lemma scanFlowSequenceEndIx_ekstack_popped {input : String}
+    (s : ScannerStateIx input) :
+    (scanFlowSequenceEndIx s).explicitKeyStack = s.explicitKeyStack.pop := by
+  unfold scanFlowSequenceEndIx; rfl
+
+lemma scanFlowMappingEndIx_ekstack_popped {input : String}
+    (s : ScannerStateIx input) :
+    (scanFlowMappingEndIx s).explicitKeyStack = s.explicitKeyStack.pop := by
+  unfold scanFlowMappingEndIx; rfl
+
 /-- Item 9q: `scanFlowEntryIx` CLEARS the pending simple key.  The `,` never
     confirmed it — it re-enables reservation, so preprocessing overwrites the
     field before any dispatcher reads it — but leaving it set pointed at the

@@ -89,7 +89,8 @@ lemma scanFlowSequenceStart_first_filtered_token (s : ScannerState) (rest : List
       = s_ad.tokens.push ⟨s_ad.currentPos, .flowSequenceStart, s_ad.currentPos⟩ := by
     show ({ ({ s_ad with simpleKey := _ }.emit .flowSequenceStart).advance with
         flowLevel := _, simpleKeyAllowed := _,
-        flowStack := _, simpleKeyStack := _ }).tokens = _
+        flowStack := _, simpleKeyStack := _,
+        explicitKeyStack := _, explicitKeyLine := _, explicitKeyCol := _ }).tokens = _
     simp only [ScannerCorrectness.advance_preserves_tokens,
                ScannerState.emit, ScannerState.currentPos]
   have h_ad_tokens_filter :
@@ -152,7 +153,8 @@ lemma scanFlowMappingStart_first_filtered_token (s : ScannerState) (rest : List 
       = s_ad.tokens.push ⟨s_ad.currentPos, .flowMappingStart, s_ad.currentPos⟩ := by
     show ({ ({ s_ad with simpleKey := _ }.emit .flowMappingStart).advance with
         flowLevel := _, simpleKeyAllowed := _,
-        flowStack := _, simpleKeyStack := _ }).tokens = _
+        flowStack := _, simpleKeyStack := _,
+        explicitKeyStack := _, explicitKeyLine := _, explicitKeyCol := _ }).tokens = _
     simp only [ScannerCorrectness.advance_preserves_tokens,
                ScannerState.emit, ScannerState.currentPos]
   have h_ad_tokens_filter :

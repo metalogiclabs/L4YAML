@@ -10122,17 +10122,20 @@ OPEN:
   `[187]`'s own next entry and no `[188]` close is owed.
 
 **A located OVER-REFUSAL, found by the acceptance probe.**  The landed `:`
-after a flow key whose interior contained an implicit `:` pair or crossed a
-line refuses a block-collection value: `? {a: b}⏎: - w`, `? {a: }⏎: - w`,
+after a flow key whose interior contained an implicit `:` pair ~~or crossed a
+line~~ refuses a block-collection value: `? {a: b}⏎: - w`, `? {a: }⏎: - w`,
 `? [a: b]⏎: - w` and `? [1,⏎   2]⏎: - w` are all VALID YAML refused with
 item 48's §8.2.2 message — while `? {a}⏎: - w`, `? {a: b}⏎: v` and
 `? [1,⏎   2]⏎: v` pass, so the trigger is the stamp/restored-key interaction
-at the flow close, not the value.  The reported position lags too
-(`block collection indicator at line 1, column 2` for a `-` on line 2 —
-the line counter does not advance across the close's break).  Fixing it is a
+at the flow close, not the value.  (Corrected by item 98's probe: the
+trigger is any `,` OR `:` indicator inside the key's collection —
+`? [1, 2]⏎: - w` refuses too, and the crossed line alone never does; and
+~~the reported position lags~~ — no, the report is the scanner's ordinary
+0-based line, misread here as 1-based.)  Fixing it is a
 RUNTIME change with matrix impact — item 62's shape, its own item; these
 inputs are outside the accumulator's obligation (it speaks only of accepted
-runs) and are recorded here so the refusal is not rediscovered.
+runs) and are recorded here so the refusal is not rediscovered.  CLOSED by
+item 98.
 
 **Validation.**  Runtime acceptance measured FIRST: all twenty-seven probed
 accepting inputs — the root family with empty/multi-entry/nested/quoted
@@ -10219,6 +10222,75 @@ OK (220/354; 20/229/248/354; 25 capstones).  `#print axioms`: no `sorryAx`;
 `not_blockScalarTabStop_of_gate` and the body lemmas at the standard three;
 the dispatch faces at their pre-existing profiles.
 
+### Item 98 (2026-09-06)
+
+**The explicit-key stamp is scoped to its flow level — the flow close's
+§8.2.2 over-refusal is gone.**  Item 96's located over-refusal, closed as a
+RUNTIME widening in both pipelines.  `explicitKeyLine`/`explicitKeyCol` are
+per-flow-level state that the interior clobbered: an inner flow `:` took
+`scanValue`'s `explicitValue` path (its `s.inFlow ||` conjunct) and consumed
+the block `?`'s stamp, the inner `,` cleared it outright
+(`scanFlowEntry`), and nothing restored it at the close — so the landed `:`
+no longer read as `[197] l-block-map-explicit-value`'s `s-indent(n) ":"`,
+stamped `implicitValueLine`, and item 48's check refused the compact value
+(`? {a: b}⏎: - w` — `sameLineBlockCollection`, valid YAML refused).  The
+probe sharpened item 96's note: the trigger is any `,` OR `:` inside the
+key's collection (`? [1, 2]⏎: - w` refused too; a crossed line alone never
+did), and the "position lag" was a misread of the scanner's 0-based lines.
+The same scoping hole had a SECOND symptom: `saveSimpleKey`'s `?`-line guard
+leaked INTO the nested collection, so a flow-sequence pair there never wrote
+its retroactive `.key` token and `? [a: b]⏎: v` died in the parser
+(`expected ']' but reached end of tokens`).
+
+* **The fix is `simpleKeyStack`'s discipline for the stamp**: a new
+  `explicitKeyStack : Array (Option Nat × Int)` on both scanner states; the
+  two flow OPENS push the pair and clear it for the interior, the two CLOSES
+  pop and restore.  Eight function edits (4 legacy + 4 Ix), one field per
+  state, nothing else — `scanValue`, `scanKey`, `saveSimpleKey` and
+  `scanFlowEntry` are untouched, because their reads are correct once the
+  field is correctly scoped.  Both symptom classes close at once, nesting
+  included (`? [? a, b]⏎: - w`, `? [[1, 2]]⏎: - w` compose).
+* **The proof surface was the emitter-scannability towers alone** — the
+  Production/StreamAccum tower needed ZERO edits (its lemmas quantify over
+  the accepted run's own state).  The open-step lemmas' `explicitKeyLine`
+  conjunct restates as `= none` (now unconditional), the close-steps' as
+  `= (s.explicitKeyStack.back?.getD (none, -1)).1` plus a pop conjunct, and
+  the open-steps gain the push conjunct.  The open→body→close composites
+  re-derive the preserved stamp through TWO NEW CHAIN FILES —
+  `Proofs/Scanner/ScannerEkStackPreservation.lean` (the leaf suite, a
+  scripted field-rename clone of `ScannerFlowStackPreservation` that
+  compiled on the first try) and
+  `Proofs/Output/IndexedEmitterScannability/FlowMonoChain/EkStackChainIx.lean`
+  (its Ix twin) — capped by `FlowMonoChain.ekStack_eq` /
+  `FlowMonoChainIx.ekStack_eq` (`flowStack_eq`'s twins in
+  `FlowStackChain.lean` §6) and the one-line composite helper
+  `ek_restore_of_push_body`.  Because the aggregates already carry their
+  `FlowMonoChain` witness, NO aggregate definition changed — the ~20
+  composites each swapped one destructure tail and one `rw`.
+
+**Validation.**  Runtime probed FIRST, both pipelines side by side, 44
+inputs: the nine-member refusal family now accepts with the correct events
+(the key's collection, then `+SEQ w -SEQ` / the compact-mapping twin), the
+seq-pair family parses, and every flow-`?` scoping control
+(`[? a, b: c]`, `[? a]: v`, `[? [x], b]`, `[? a : b]`) and block control
+(`? a⏎: - w`, `? {a: b}: v`, `k: - a` refused, `{a: b}: - w` refused) is
+byte-identical to its pre-fix output.  The new guard
+`ScannerExplicitKeyScope` pins the family (11 compositions), the seq-pair
+fix (2), the boundary (7) and item 48's standing refusals (4) in both
+pipelines at compile time.  Full `lake build` green (1074 jobs, ZERO
+warnings; library modules 220 → 222 = the two chain files).
+`run-all-tests.sh` 2030 N/N + 4671 checks, line-diff vs item 97's log =
+line-number drift only (no new annotation).  **Matrix re-run (runtime
+moved)**: 402/402 event + 282/282 JSON on BOTH instrument pairs, per-test
+JSON byte-identical between legacy and `-ix` AND byte-identical to item
+97's baseline (0 diffs) — the widening moves no suite row, and `eventscore`
+347/358 unmoved (252/11/0/95; error-miss 0, so no invalid input is newly
+accepted; valid-rejected was already 0, which is why the over-refusal
+survived the suite for 50 items).  Three checkers OK (222/354;
+20/229/248/354; 25 capstones).  `#print axioms`: no `sorryAx`; the chain
+lemmas and restated step lemmas at the standard three,
+`ek_restore_of_push_body` at `propext` alone.
+
 ### REMAINING, in order
 
 The per-item history is the closure log above; this section lists only the
@@ -10232,7 +10304,7 @@ too (items 47–51), so what stands between here
 and Step 5 (the converse) is R3's remaining production work and R4:
 
 ```
-R1 ✓ (44–46) ──→ R2 ✓ (47–51) ──→ R3 (52–97 landed; 67b open) ──→ Step 5
+R1 ✓ (44–46) ──→ R2 ✓ (47–51) ──→ R3 (52–98 landed; 67b open) ──→ Step 5
                                         └──────→ R4 (implicitContinue + 0 < m) ──┘
 ```
 
@@ -10398,9 +10470,13 @@ and that deletion, by input class:
   landing (`BlockScalarTabStop` — a located over-acceptance, item 95's
   note)~~ — CLOSED by item 97 (the runtime refuses the stop in both
   pipelines and the residue disjunct is gone from every `.ok` face; the
-  parks' twin payments there are total now), the flow close's §8.2.2
+  parks' twin payments there are total now), ~~the flow close's §8.2.2
   OVER-REFUSAL (`? {a: b}⏎: - w` — valid,
-  refused; item 96's note), the seq-spaces/landed family
+  refused; item 96's note)~~ — CLOSED by item 98 (the explicit-key stamp
+  is scoped to its flow level: the opens push and clear it, the closes
+  restore it, so the landed `:` reads as `[197]`'s explicit value again —
+  and `saveSimpleKey`'s `?`-line guard no longer leaks into the nested
+  collection, fixing `? [a: b]⏎: v` with it), the seq-spaces/landed family
   (`?⏎- a⏎: - w`, `?⏎  a: b⏎: - w`, `?⏎  &p a: b⏎: - w`: the key is a
   `[185]` `s-l+block-node`/`[199]` nesting, which no park twins yet — and
   `flowKeyRoute_of_open`'s landing branch punts its pair into the same

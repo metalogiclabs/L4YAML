@@ -137,6 +137,12 @@ def scanFlowSequenceStart (s : ScannerState) : ScannerState :=
   -- Example: `[a, b]: value` — the simple key saved before `[` must
   -- still be pending after `]` for `:` to confirm it.
   let savedKey := s.simpleKey
+  -- Item 98: the explicit-key stamp is per-flow-level state — save the outer
+  -- pair and clear it for the interior, so a pending `?` neither leaks into
+  -- the nested collection (`? [a: b]⏎: v`'s pair may reserve its key) nor is
+  -- consumed by the nested collection's own `,`/`:` (`? [1, 2]⏎: - w`'s
+  -- landed `:` is still `[197]`'s explicit value after the close).
+  let savedEk := (s.explicitKeyLine, s.explicitKeyCol)
   let s_key_disabled := { s with simpleKey := { possible := false } }
   let s_with_token := s_key_disabled.emit .flowSequenceStart
   let s_after_advance := s_with_token.advance
@@ -144,7 +150,10 @@ def scanFlowSequenceStart (s : ScannerState) : ScannerState :=
       flowLevel := s_after_advance.flowLevel + 1,
       simpleKeyAllowed := true,
       flowStack := s_after_advance.flowStack.push true,
-      simpleKeyStack := s_after_advance.simpleKeyStack.push savedKey }
+      simpleKeyStack := s_after_advance.simpleKeyStack.push savedKey,
+      explicitKeyStack := s_after_advance.explicitKeyStack.push savedEk,
+      explicitKeyLine := none,
+      explicitKeyCol := -1 }
 
 /-- Scan a flow sequence end indicator `]`.
 
@@ -163,6 +172,8 @@ def scanFlowSequenceEnd (s : ScannerState) : ScannerState :=
   let s_after_advance := s_with_token.advance
   -- Restore the outer simple key saved by the matching flow-open.
   let restored := s_with_token.simpleKeyStack.back?.getD {}
+  -- Item 98: restore the outer explicit-key stamp — see `scanFlowSequenceStart`.
+  let restoredEk := s_with_token.explicitKeyStack.back?.getD (none, -1)
   -- Item 47: the collection's interior breaks are the TOKEN's own, not
   -- structure — §7.5 stops the rest of the line at the node's tail, so no
   -- block outdent can begin before the next structural break sets the flag
@@ -174,7 +185,10 @@ def scanFlowSequenceEnd (s : ScannerState) : ScannerState :=
       needIndentCheck := false,
       flowStack := s_after_advance.flowStack.pop,
       simpleKey := restored,
-      simpleKeyStack := s_after_advance.simpleKeyStack.pop }
+      simpleKeyStack := s_after_advance.simpleKeyStack.pop,
+      explicitKeyLine := restoredEk.1,
+      explicitKeyCol := restoredEk.2,
+      explicitKeyStack := s_after_advance.explicitKeyStack.pop }
 
 /-- Scan a flow mapping start indicator `{`.
 
@@ -194,6 +208,8 @@ def scanFlowMappingStart (s : ScannerState) : ScannerState :=
   -- Example: `{a: b}: value` — the simple key saved before `{` must
   -- still be pending after `}` for `:` to confirm it.
   let savedKey := s.simpleKey
+  -- Item 98: save + clear the explicit-key stamp — see `scanFlowSequenceStart`.
+  let savedEk := (s.explicitKeyLine, s.explicitKeyCol)
   let s_key_disabled := { s with simpleKey := { possible := false } }
   let s_with_token := s_key_disabled.emit .flowMappingStart
   let s_after_advance := s_with_token.advance
@@ -201,7 +217,10 @@ def scanFlowMappingStart (s : ScannerState) : ScannerState :=
       flowLevel := s_after_advance.flowLevel + 1,
       simpleKeyAllowed := true,
       flowStack := s_after_advance.flowStack.push false,
-      simpleKeyStack := s_after_advance.simpleKeyStack.push savedKey }
+      simpleKeyStack := s_after_advance.simpleKeyStack.push savedKey,
+      explicitKeyStack := s_after_advance.explicitKeyStack.push savedEk,
+      explicitKeyLine := none,
+      explicitKeyCol := -1 }
 
 /-- Scan a flow mapping end indicator `}`.
 
@@ -220,6 +239,8 @@ def scanFlowMappingEnd (s : ScannerState) : ScannerState :=
   let s_after_advance := s_with_token.advance
   -- Restore the outer simple key saved by the matching flow-open.
   let restored := s_with_token.simpleKeyStack.back?.getD {}
+  -- Item 98: restore the outer explicit-key stamp — see `scanFlowSequenceStart`.
+  let restoredEk := s_with_token.explicitKeyStack.back?.getD (none, -1)
   -- Item 47: interior breaks are the token's own — see `scanFlowSequenceEnd`.
   { s_after_advance with
       flowLevel := if s_after_advance.flowLevel > 0 then s_after_advance.flowLevel - 1 else 0,
@@ -227,7 +248,10 @@ def scanFlowMappingEnd (s : ScannerState) : ScannerState :=
       needIndentCheck := false,
       flowStack := s_after_advance.flowStack.pop,
       simpleKey := restored,
-      simpleKeyStack := s_after_advance.simpleKeyStack.pop }
+      simpleKeyStack := s_after_advance.simpleKeyStack.pop,
+      explicitKeyLine := restoredEk.1,
+      explicitKeyCol := restoredEk.2,
+      explicitKeyStack := s_after_advance.explicitKeyStack.pop }
 
 
 
@@ -411,10 +435,12 @@ def flowKeyFollowerOk (s : ScannerState) : Bool :=
     — all valid, all handled correctly by the flow-MAPPING parser — were
     REJECTED in a flow sequence (`expected ']' but reached end of tokens`): the
     retroactive `.key` token was never written, and `parseFlowSequenceLoop`
-    dispatches on exactly that token.  Clearing here is safe for the BLOCK
-    explicit key whose node contains a flow collection (`? [a, b]⏎: v`), because
-    that `,` belongs to the nested collection and the block `:` resolves through
-    the indent stack, not through `explicitKeyLine`.
+    dispatches on exactly that token.  The clear reaches exactly the entries of
+    the `,`'s OWN collection (item 98): an enclosing `?`'s stamp is parked on
+    `explicitKeyStack` by the flow open and restored by the matching close, so
+    the block explicit key whose node contains a flow collection
+    (`? [a, b]⏎: - w`) still resolves its landed `:` as `[197]`'s explicit
+    value.
 
     **Refactored for verification**: Uses explicit variable names to make
     token tracking clearer for formal proofs. -/

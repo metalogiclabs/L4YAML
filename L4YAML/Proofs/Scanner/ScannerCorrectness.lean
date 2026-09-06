@@ -3803,6 +3803,16 @@ lemma emit_preserves_simpleKeyStack (s : ScannerState) (tok : YamlToken) :
     (s.emit tok).simpleKeyStack = s.simpleKeyStack := by
   unfold ScannerState.emit; rfl
 
+/-! ### explicitKeyStack Preservation Lemmas (item 98) -/
+
+lemma advance_preserves_explicitKeyStack (s : ScannerState) :
+    s.advance.explicitKeyStack = s.explicitKeyStack := by
+  unfold ScannerState.advance; dsimp only []; split <;> (try split) <;> (try split) <;> rfl
+
+lemma emit_preserves_explicitKeyStack (s : ScannerState) (tok : YamlToken) :
+    (s.emit tok).explicitKeyStack = s.explicitKeyStack := by
+  unfold ScannerState.emit; rfl
+
 lemma skipSpacesLoop_preserves_simpleKeyStack (s : ScannerState) (fuel : Nat) :
     (skipSpacesLoop s fuel).simpleKeyStack = s.simpleKeyStack := by
   induction fuel generalizing s with
@@ -6102,6 +6112,49 @@ lemma scanFlowMappingEnd_stack_popped (s : ScannerState) :
     (scanFlowMappingEnd s).simpleKeyStack = s.simpleKeyStack.pop := by
   unfold scanFlowMappingEnd
   simp [advance_preserves_simpleKeyStack, emit_preserves_simpleKeyStack]
+
+-- Item 98: the explicit-key stamp rides the same open/close discipline —
+-- the open pushes the pair and clears it, the close restores and pops.
+
+lemma scanFlowSequenceStart_ek_pushed (s : ScannerState) :
+    (scanFlowSequenceStart s).explicitKeyStack
+      = s.explicitKeyStack.push (s.explicitKeyLine, s.explicitKeyCol) := by
+  unfold scanFlowSequenceStart
+  simp [advance_preserves_explicitKeyStack, emit_preserves_explicitKeyStack]
+
+lemma scanFlowMappingStart_ek_pushed (s : ScannerState) :
+    (scanFlowMappingStart s).explicitKeyStack
+      = s.explicitKeyStack.push (s.explicitKeyLine, s.explicitKeyCol) := by
+  unfold scanFlowMappingStart
+  simp [advance_preserves_explicitKeyStack, emit_preserves_explicitKeyStack]
+
+lemma scanFlowSequenceStart_ek_cleared (s : ScannerState) :
+    (scanFlowSequenceStart s).explicitKeyLine = none := rfl
+
+lemma scanFlowMappingStart_ek_cleared (s : ScannerState) :
+    (scanFlowMappingStart s).explicitKeyLine = none := rfl
+
+lemma scanFlowSequenceEnd_ek_restored (s : ScannerState) :
+    (scanFlowSequenceEnd s).explicitKeyLine
+      = (s.explicitKeyStack.back?.getD (none, -1)).1 := by
+  unfold scanFlowSequenceEnd
+  simp [emit_preserves_explicitKeyStack]
+
+lemma scanFlowMappingEnd_ek_restored (s : ScannerState) :
+    (scanFlowMappingEnd s).explicitKeyLine
+      = (s.explicitKeyStack.back?.getD (none, -1)).1 := by
+  unfold scanFlowMappingEnd
+  simp [emit_preserves_explicitKeyStack]
+
+lemma scanFlowSequenceEnd_ekstack_popped (s : ScannerState) :
+    (scanFlowSequenceEnd s).explicitKeyStack = s.explicitKeyStack.pop := by
+  unfold scanFlowSequenceEnd
+  simp [advance_preserves_explicitKeyStack, emit_preserves_explicitKeyStack]
+
+lemma scanFlowMappingEnd_ekstack_popped (s : ScannerState) :
+    (scanFlowMappingEnd s).explicitKeyStack = s.explicitKeyStack.pop := by
+  unfold scanFlowMappingEnd
+  simp [advance_preserves_explicitKeyStack, emit_preserves_explicitKeyStack]
 
 set_option maxHeartbeats 400000 in
 /-- scanNextToken preserves existing token prefix below `n`.

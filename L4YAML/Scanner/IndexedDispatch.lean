@@ -1116,12 +1116,17 @@ def scanFlowSequenceStartIx {input : String} (s : ScannerStateIx input) :
     ScannerStateIx input :=
   let s := s.emit YamlToken.flowSequenceStart
   let s := s.advance
+  -- Item 98: the explicit-key stamp is per-flow-level state — save the outer
+  -- pair and clear it for the interior; mirror of `scanFlowSequenceStart`.
   { s with
       flowLevel := s.flowLevel + 1,
       flowStack := s.flowStack.push true,
       simpleKeyStack := s.simpleKeyStack.push s.simpleKey,
       simpleKey := { cursor := IxCursor.start input },
-      simpleKeyAllowed := true }
+      simpleKeyAllowed := true,
+      explicitKeyStack := s.explicitKeyStack.push (s.explicitKeyLine, s.explicitKeyCol),
+      explicitKeyLine := none,
+      explicitKeyCol := -1 }
 
 /-- Scan `]` flow-sequence end. -/
 def scanFlowSequenceEndIx {input : String} (s : ScannerStateIx input) :
@@ -1129,6 +1134,8 @@ def scanFlowSequenceEndIx {input : String} (s : ScannerStateIx input) :
   let s := s.emit YamlToken.flowSequenceEnd
   let s := s.advance
   let restored := s.simpleKeyStack.back?.getD { cursor := IxCursor.start input }
+  -- Item 98: restore the outer explicit-key stamp — see `scanFlowSequenceStartIx`.
+  let restoredEk := s.explicitKeyStack.back?.getD (none, -1)
   -- Item 47: the collection's interior breaks are the token's own — mirror of
   -- the legacy `scanFlowSequenceEnd`.
   { s with
@@ -1137,19 +1144,26 @@ def scanFlowSequenceEndIx {input : String} (s : ScannerStateIx input) :
       simpleKeyStack := s.simpleKeyStack.pop,
       simpleKey := restored,
       simpleKeyAllowed := false,
-      needIndentCheck := false }
+      needIndentCheck := false,
+      explicitKeyLine := restoredEk.1,
+      explicitKeyCol := restoredEk.2,
+      explicitKeyStack := s.explicitKeyStack.pop }
 
 /-- Scan `{` flow-mapping start. -/
 def scanFlowMappingStartIx {input : String} (s : ScannerStateIx input) :
     ScannerStateIx input :=
   let s := s.emit YamlToken.flowMappingStart
   let s := s.advance
+  -- Item 98: save + clear the explicit-key stamp — see `scanFlowSequenceStartIx`.
   { s with
       flowLevel := s.flowLevel + 1,
       flowStack := s.flowStack.push false,
       simpleKeyStack := s.simpleKeyStack.push s.simpleKey,
       simpleKey := { cursor := IxCursor.start input },
-      simpleKeyAllowed := true }
+      simpleKeyAllowed := true,
+      explicitKeyStack := s.explicitKeyStack.push (s.explicitKeyLine, s.explicitKeyCol),
+      explicitKeyLine := none,
+      explicitKeyCol := -1 }
 
 /-- Scan `}` flow-mapping end. -/
 def scanFlowMappingEndIx {input : String} (s : ScannerStateIx input) :
@@ -1157,6 +1171,8 @@ def scanFlowMappingEndIx {input : String} (s : ScannerStateIx input) :
   let s := s.emit YamlToken.flowMappingEnd
   let s := s.advance
   let restored := s.simpleKeyStack.back?.getD { cursor := IxCursor.start input }
+  -- Item 98: restore the outer explicit-key stamp — see `scanFlowSequenceStartIx`.
+  let restoredEk := s.explicitKeyStack.back?.getD (none, -1)
   -- Item 47: interior breaks are the token's own — see `scanFlowSequenceEndIx`.
   { s with
       flowLevel := s.flowLevel - 1,
@@ -1164,7 +1180,10 @@ def scanFlowMappingEndIx {input : String} (s : ScannerStateIx input) :
       simpleKeyStack := s.simpleKeyStack.pop,
       simpleKey := restored,
       simpleKeyAllowed := false,
-      needIndentCheck := false }
+      needIndentCheck := false,
+      explicitKeyLine := restoredEk.1,
+      explicitKeyCol := restoredEk.2,
+      explicitKeyStack := s.explicitKeyStack.pop }
 
 
 
