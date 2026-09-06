@@ -533,6 +533,26 @@ lemma SBlockNode_blockIn_to_blockOut {n : Nat} {s s' : SurfPos}
   | .emptyNode _ _ _ _ h_ssl =>
     .emptyNode n .blockOut s s' h_ssl
 
+-- [185] s-l+block-indented re-labelling blockIn → blockOut, at any indent.
+-- The context reaches only the block-node alternative (the compact collections
+-- and the empty node are context-inert by construction), so this is one layer
+-- over the `[196]` lemma above.  It is what lets an OPEN `[185]` slot — a
+-- `?`'s key or an explicit `:`'s value, whose closure is stated at the slot's
+-- own `.blockOut` — consume the compact collection the `.blockIn` route
+-- machinery composes (DOCS item 89).
+@[yaml_spec "8.2.1" 185 "s-l+block-indented(n,c) blockIn → blockOut"]
+lemma SBlockIndented_blockIn_to_blockOut {n : Nat} {s s' : SurfPos}
+    (h : SBlockIndented n .blockIn s s') : SBlockIndented n .blockOut s s' :=
+  match h with
+  | .compactSeq _ _ m _ s₁ _ h_ind h_seq =>
+    .compactSeq n .blockOut m s s₁ s' h_ind h_seq
+  | .compactMap _ _ m _ s₁ _ h_ind h_map =>
+    .compactMap n .blockOut m s s₁ s' h_ind h_map
+  | .node _ _ _ _ h_node =>
+    .node n .blockOut s s' (SBlockNode_blockIn_to_blockOut h_node)
+  | .empty _ _ _ _ h_ssl =>
+    .empty n .blockOut s s' h_ssl
+
 /-! ## §6 GStar/GPlus Lifting and Alias/Anchor Conversion (Layer 4a) -/
 
 -- Alias node: GLit '*' + GPlus anchor chars → SCNsAliasNode.

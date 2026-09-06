@@ -363,8 +363,12 @@ def StaleNodeTail (sc : ScannerState) : Prop :=
       enclosing collection resumes, which needs a frame stack the pending does
       not carry.
     * `noFrame` — the key is on the park's own line and the park owns no
-      `[185] s-l+block-indented` compact alternative to close (`k: a: 1`, and
-      the explicit `? a⏎: b: c` that item 51's threading still owes).
+      `[185] s-l+block-indented` compact alternative to close.  A park that
+      OWNS one hands it instead (item 89 threads `pendingMapValue.h_vslot`
+      through the content dispatch, so `? a: b` and `? a⏎: b: c` compose
+      through `[195]`), which leaves the `[189]` value slots — `s-l+block-node`
+      has no compact alternative, and their same-line key is the scanner's
+      refusal (`k: a: 1`).
     * `staleKey` — preprocessing made no fresh save, so the key the `:` would
       resolve was recorded before this step and its coordinates are not this
       park's.
@@ -951,10 +955,13 @@ inductive PendingNode (sc : ScannerState) : Bool → SurfPos → SurfPos → Sur
       -- `[185] s-l+block-indented` slot this pending awaits when the frame
       -- around it admits one — the `?`'s KEY slot, or the explicit `:`'s
       -- VALUE slot — and it is what the same-line `-`/`?`/`:` spends on the
-      -- compact alternatives (`? - a`, `? a⏎: - w`'s `-`).  The implicit
-      -- producers pay neither: `[189]`'s slots are `s-l+block-node`, which
-      -- has no compact alternative, and their same-line indicators are
-      -- refused through `h_ivl`'s stamp instead.
+      -- compact alternatives (`? - a`, `? a⏎: - w`'s `-`), and what the
+      -- same-line implicit or props key head closes through `[195]`
+      -- (`? a: b`, `? &p a: 1` — item 89 hands it to the content dispatch's
+      -- pack lemmas as their compact frame).  The implicit producers pay
+      -- neither: `[189]`'s slots are `s-l+block-node`, which has no compact
+      -- alternative, and their same-line indicators are refused through
+      -- `h_ivl`'s stamp instead.
       (h_expl : (∃ sp_q : SurfPos, GLit '?' sp_q sp_scan ∧
         ∀ sp_v : SurfPos, SBlockMapEntry n sp_q sp_v →
           SLYamlStream sp_start sp_v) ∨ True)
@@ -16538,6 +16545,16 @@ lemma accum_content_on_pendingMapValue
     (h_expl : (∃ sp_q : SurfPos, GLit '?' sp_q sp_scan ∧
       ∀ sp_v : SurfPos, SBlockMapEntry 0 sp_q sp_v →
         SLYamlStream sp_start sp_v) ∨ True)
+    -- Item 89: the pending's OPEN `[185]` slot, when the frame around it
+    -- admits one — `pendingMapValue.h_vslot`, handed on so the same-line key
+    -- head can close the slot through `[195] ns-l-compact-mapping` instead of
+    -- punting `noFrame` (`? a: b`'s `a`, and `? a⏎: b: c`'s `b` at the value
+    -- slot the landed `:` parked).  The flow OPEN already spends this field
+    -- the same way (`flowKeyRoute_of_open`, item 78); this is the content
+    -- dispatch's half.
+    (h_vslot : (sp_scan.col = 0 + 1 ∧ ∀ sp_v : SurfPos,
+      SBlockIndented 0 .blockOut sp_scan sp_v →
+        SLYamlStream sp_start sp_v) ∨ True)
     (hcorr_prep : ScannerSurfCorr s_prep sp_prep)
     (hcorr_result : ScannerSurfCorr s' sp_scan')
     (h_corr : ScannerSurfCorr sc sp_scan)
@@ -16571,6 +16588,15 @@ lemma accum_content_on_pendingMapValue
     split
     · show s_prep.peek? = some c; exact hpeek
     · exact hpeek
+  -- Item 89: the open slot in the shape the pack lemmas bundle.  The compact
+  -- routes are context-blind, so the slot's own `.blockOut` closure serves the
+  -- `.blockIn` reading the route machinery composes.
+  have h_compact_vslot : ((∀ sp, SBlockIndented 0 .blockIn sp_scan sp →
+      SLYamlStream sp_start sp) ∧ sp_scan.col = 0 + 1) ∨ True :=
+    match h_vslot with
+    | Or.inl hvs => Or.inl ⟨fun sp h_bi =>
+        hvs.2 sp (SBlockIndented_blockIn_to_blockOut h_bi), hvs.1⟩
+    | Or.inr _ => Or.inr trivial
   by_cases hprops : c = '&' ∨ c = '!'
   · -- `: &a v` — the held run decorates the mapping's VALUE.
     have h_nic_prep : s_prep.needIndentCheck = false :=
@@ -16605,7 +16631,7 @@ lemma accum_content_on_pendingMapValue
                -- `s-l+block-node`, which has no compact alternative, so the
                -- on-line landing (`: &p a: 1`) is the branch that punts.
                (entryPropsKeyPack_of_dispatch sc sp_start sp_scan 0 s_prep s' '&'
-                 sp_prep sp_scan' h_route (Or.inr trivial)
+                 sp_prep sp_scan' h_route h_compact_vslot
                  (SCNsProperties.anchorFirst 0 .blockKey sp_prep sp_scan' sp_scan'
                    ha_ev (GOpt.none sp_scan'))
                  (dispatchContent_anchor_simpleKey h_dispatch).1 h_line'
@@ -16635,7 +16661,7 @@ lemma accum_content_on_pendingMapValue
                  (by simp [YamlToken.isTagProperty]))
                h_route
                (entryPropsKeyPack_of_dispatch sc sp_start sp_scan 0 s_prep s' '!'
-                 sp_prep sp_scan' h_route (Or.inr trivial)
+                 sp_prep sp_scan' h_route h_compact_vslot
                  (SCNsProperties.tagFirst 0 .blockKey sp_prep sp_scan' sp_scan'
                    ht_ev (GOpt.none sp_scan'))
                  (dispatchContent_tag_simpleKey h_dispatch).1 h_line'
@@ -16675,7 +16701,7 @@ lemma accum_content_on_pendingMapValue
                  (SBlockNode.flowInBlock 0 .blockIn sp_scan sp_prep sp_gram sp_final
                    h_sep h_flow h_ssl_ext))
              (entryKeyPack_of_dispatch sc sp_start sp_scan 0 s_prep s' c sp_prep sp_scan'
-               h_close_old (Or.inr trivial) hna hnt
+               h_close_old h_compact_vslot hna hnt
                hcorr_prep hcorr_result h_corr h_not_doc h_flow_disp
                h_preprocess h_dispatch)
              (stale_of_dispatch h_dispatch hna hnt
@@ -16746,6 +16772,11 @@ lemma accum_content_on_pendingMapValue_indented
     (h_expl : (∃ sp_q : SurfPos, GLit '?' sp_q sp_scan ∧
       ∀ sp_v : SurfPos, SBlockMapEntry n sp_q sp_v →
         SLYamlStream sp_start sp_v) ∨ True)
+    -- Item 89: the pending's OPEN `[185]` slot at the entry's index, threaded
+    -- exactly as at the root arm (`k:⏎  ? a: b`'s `a`).
+    (h_vslot : (sp_scan.col = n + 1 ∧ ∀ sp_v : SurfPos,
+      SBlockIndented n .blockOut sp_scan sp_v →
+        SLYamlStream sp_start sp_v) ∨ True)
     (hcorr_prep : ScannerSurfCorr s_prep sp_prep)
     (hcorr_result : ScannerSurfCorr s' sp_scan')
     (h_corr : ScannerSurfCorr sc sp_scan)
@@ -16769,11 +16800,19 @@ lemma accum_content_on_pendingMapValue_indented
       FlowStackB sp_start 0 0 0 #[] #[] .sep sp_block' sp_flow' ∧
       PendingNode s' false sp_start sp_flow' sp_scan' ∧
       ScannerSurfCorr s' sp_scan' := by
+  -- Item 89: the open slot in the shape the pack lemmas bundle, as at the
+  -- root arm.
+  have h_compact_vslot : ((∀ sp, SBlockIndented n .blockIn sp_scan sp →
+      SLYamlStream sp_start sp) ∧ sp_scan.col = n + 1) ∨ True :=
+    match h_vslot with
+    | Or.inl hvs => Or.inl ⟨fun sp h_bi =>
+        hvs.2 sp (SBlockIndented_blockIn_to_blockOut h_bi), hvs.1⟩
+    | Or.inr _ => Or.inr trivial
   rcases indentedValue_reads_at_any_indent sc sp_scan n s_prep s' c sp_prep sp_scan'
       h_floor_old h_col0_old hcorr_prep hcorr_result h_corr h_preprocess h_not_doc h_flow_disp h_dispatch with
     ⟨sp_gram, h_sep_all, h_flow_all, h_trailing_ws, h_line, hna, hnt⟩ |
     ⟨ha, ht, h_sep_all, h_run_all, h_nic_s, h_real_s, h_anchor_s, h_tag_s, h_ind_s,
-      _h_single, _h_sk_s, _h_line_s, h_ska_s⟩ |
+      h_single, h_sk_s, h_line_s, h_ska_s⟩ |
     ⟨h_read, h_sep_all, h_line, ⟨hna, hnt⟩, hbs⟩ |
     ⟨sp_gramf, h_node_f, h_tws_f, h_sep_all, h_line, hna, hnt⟩ | _
   · -- Item 39 stopped here, reading the value route's side condition `n ≤ k` as
@@ -16792,7 +16831,7 @@ lemma accum_content_on_pendingMapValue_indented
                    h_sep_all (h_flow_all n)
                    (white_prepend_SSLComments h_trailing_ws h_ssl)))
              (entryKeyPack_of_dispatch sc sp_start sp_scan n s_prep s' c sp_prep sp_scan'
-               h_close_old (Or.inr trivial) hna hnt
+               h_close_old h_compact_vslot hna hnt
                hcorr_prep hcorr_result h_corr h_not_doc h_flow_disp
                h_preprocess h_dispatch)
              (stale_of_dispatch h_dispatch hna hnt
@@ -16818,17 +16857,23 @@ lemma accum_content_on_pendingMapValue_indented
   · -- Item 24: `  : &a v` / `  ? &a v` — the mapping twin parks the same run
     -- against the VALUE's route.
     --
-    -- Item 41: and this is the props pack's own `h_compact` boundary, the one
-    -- site of the four that gains nothing.  The branch is break-free, so the
-    -- only frame available is `[195]`'s compact mapping; `[189]`'s value slot is
-    -- `s-l+block-node`, which has no compact alternative — so `  : &p a: 1`
-    -- keeps the deferral for the reason `  : a: 1` does, and `k:⏎  &p a: 1`
-    -- is served by the root arm above instead.
+    -- Item 41: and this is the props pack's own `h_compact` boundary.  The
+    -- branch is break-free, so the only frame available is `[195]`'s compact
+    -- mapping, and which parks own one is the pending's own field: an open
+    -- `[185]` slot offers it (`k:⏎  ? &p a: 1` — the run heads the compact
+    -- key, item 89), while a `[189]` value slot is `s-l+block-node`, which
+    -- has no compact alternative — so `  : &p a: 1` keeps the deferral for
+    -- the reason `  : a: 1` does, and `k:⏎  &p a: 1` is served by the root
+    -- arm above instead.
     exact ⟨sp_block, sp_block, sp_block, sp_scan', h_stream_block,
            BlockStack.nil sp_block, FlowStackB.nil sp_block .sep,
            PendingNode.pendingProps sp_start sp_block sp_scan' ha ht sp_scan sp_prep n
              h_sep_all (h_run_all n) h_nic_s h_real_s h_anchor_s h_tag_s
-             h_close_old (Or.inr trivial)
+             h_close_old
+             (entryPropsKeyPack_of_dispatch sc sp_start sp_scan n s_prep s' c
+               sp_prep sp_scan' h_close_old h_compact_vslot
+               ((h_run_all 0).toPropertiesBlockKey h_single) h_sk_s h_line_s
+               hcorr_prep h_corr h_preprocess)
              ⟨h_nic_s, h_ind_s⟩
              -- Item 68: the run is a character wide whatever the index; the
              -- index itself rides the pending's own measurement.
@@ -16868,7 +16913,7 @@ lemma accum_content_on_pendingMapValue_indented
                    h_sep_all h_node_f
                    (white_prepend_SSLComments h_tws_f h_ssl)))
              (entryKeyPack_of_dispatch sc sp_start sp_scan n s_prep s' c sp_prep sp_scan'
-               h_close_old (Or.inr trivial) hna hnt
+               h_close_old h_compact_vslot hna hnt
                hcorr_prep hcorr_result h_corr h_not_doc h_flow_disp
                h_preprocess h_dispatch)
              (stale_of_dispatch h_dispatch hna hnt
@@ -17688,16 +17733,16 @@ lemma accum_content_pending (sc : ScannerState)
         s_prep s' c sp_prep sp_scan' h_stream_block h_close_old h_close_entry_old h_floor_old
         h_col_old
         hcorr_prep hcorr_result h_corr h_preprocess h_not_doc h_flow_disp h_dispatch
-  | pendingMapValue _ _ _ n_old h_close_old h_floor_old _ _ _ h_expl51 _ _ h_col0_old h_ncol_old =>
-    match n_old, h_close_old, h_floor_old, h_expl51, h_ncol_old with
-    | 0, h_close_old, _, h_expl51, _ =>
+  | pendingMapValue _ _ _ n_old h_close_old h_floor_old _ _ _ h_expl51 h_vslot51 _ h_col0_old h_ncol_old =>
+    match n_old, h_close_old, h_floor_old, h_expl51, h_vslot51, h_ncol_old with
+    | 0, h_close_old, _, h_expl51, h_vslot51, _ =>
       exact accum_content_on_pendingMapValue sc sp_start sp_block sp_scan s_prep s' c sp_prep
-        sp_scan' h_stream_block h_close_old h_expl51
+        sp_scan' h_stream_block h_close_old h_expl51 h_vslot51
         hcorr_prep hcorr_result h_corr h_preprocess h_not_doc h_flow_disp h_dispatch
-    | k + 1, h_close_old, h_floor_old, h_expl51, h_ncol_old =>
+    | k + 1, h_close_old, h_floor_old, h_expl51, h_vslot51, h_ncol_old =>
       exact accum_content_on_pendingMapValue_indented sc sp_start sp_block sp_scan (k + 1)
         s_prep s' c sp_prep sp_scan' h_stream_block h_close_old h_floor_old h_col0_old
-        h_ncol_old h_expl51
+        h_ncol_old h_expl51 h_vslot51
         hcorr_prep hcorr_result h_corr h_preprocess h_not_doc h_flow_disp h_dispatch
 
 /-- The mask across any content dispatch (item 10): the key stack rides

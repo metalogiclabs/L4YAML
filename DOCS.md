@@ -9649,6 +9649,62 @@ Classical.choice, Quot.sound]`, the flow plain face adding only
 `ScalarProduction`'s standing `native_decide` char-class baseline.  Matrix
 not re-run (zero runtime edits — items 63/64/74's precedent).
 
+### Item 89 (2026-09-05)
+
+**The `noFrame` threading: a park that owns the frame hands it.**
+`KeyPackPunt.noFrame` stood for "the key is on the park's own line and the
+park owns no `[185]` compact alternative" — but six of the sites producing it
+were `pendingMapValue` content arms, and that park has owned exactly the
+frame the punt names since item 51: `h_vslot`, the OPEN `[185]` slot (the
+`?`'s key, or an explicit `:`'s value), whose compact-mapping alternative is
+what a same-line key head closes.  The flow OPEN has spent that field as its
+compact frame since item 78 (`flowKeyRoute_of_open`); this item hands it to
+the content dispatch's two pack lemmas the same way, at all six sites that
+passed `Or.inr trivial`: the root and indented key arms
+(`entryKeyPack_of_dispatch` — three sites, one of them the multi-line arm's
+twin), the two root props arms, and the indented props arm — which had
+punted its whole `PropsKeyPack` and now builds it with the pack lemma the
+`pendingBlock` twin already calls, off the same `h_single`/`h_sk_s`/
+`h_line_s` facts its destructuring already bound and discarded.
+
+**One grammar lemma funds the conversion.**  The slot's closure is stated at
+the slot's own `.blockOut`; the compact routes compose in `.blockIn`.
+`SBlockIndented_blockIn_to_blockOut` (NodeProduction, beside its `[196]`
+twin) is one layer of re-labelling — `[185]`'s context reaches only its
+block-node alternative, so the compact and empty arms re-tag and the node
+arm delegates.  With it, `? a: b`, `? &p a: 1`, `? a⏎: b: c`'s `b: c`, and
+their landed twins (`k:⏎  ? a: b`, `k:⏎  ? &p a: 1`) read through `[195]
+ns-l-compact-mapping` closing the open slot, where each previously deferred
+through `colon_fires_implicit_key`'s punt arm.
+
+**What `noFrame` still names is located, and it is the scanner's.**  The
+`[189]` slots are `s-l+block-node`, which has no compact alternative — and a
+same-line key there (`k: a: 1`) is the scanner's own refusal
+(`invalidImplicitKey`), so the reason's remaining producers are the parks
+whose slot field is genuinely `Or.inr`: a refutation candidate in item 65's
+tab pattern, not a threading gap.  What this item does NOT move is the
+VALUE-LINE face of the exotic keys: `? a: b⏎: - w` still defers one step
+later — the landed `:` after an inner structure has no value pack to spend
+(`h_vpack` is `pendingContent`'s alone), so the walk closes the entry with
+`e-node` and the reopened `[189]` park defers the same-line `- w` — the
+`closeThenBlock` inline-residue rows already on the 67b ledger.  ZERO
+runtime edits.
+
+**Validation.**  Full `lake build` green (1068 jobs, ZERO warnings — both
+changed files compiled on the first attempt); `run-all-tests.sh` 6691/6691
+— the ledger summation moved by exactly the new lemma's `@[yaml_spec 185]`
+annotation (Production Coverage 782 → 783, Verified 4465 → 4466, item 62's
+mechanism); `eventscore` 347/358 unmoved (252 pass / 11 diff / 0 reject /
+95 error-ok); three checkers OK (220 modules / 354 imports; 20/229/248/354;
+25 capstones); `#print axioms`: no `sorryAx` —
+`SBlockIndented_blockIn_to_blockOut` at `[propext, Quot.sound]`,
+`entryPropsKeyPack_of_dispatch` at the standard three, the two content
+lemmas adding only the standing `native_decide` baselines.  Matrix not
+re-run (zero runtime edits — items 63/64/74's precedent).  No guard: the
+punt an input takes is not observable (item 65's own boundary), and the six
+inputs' runtime acceptance is pinned by `ScannerExplicitValueCompose` and
+`ScannerKeyPackPunt` already.
+
 ### REMAINING, in order
 
 The per-item history is the closure log above; this section lists only the
@@ -9662,7 +9718,7 @@ too (items 47–51), so what stands between here
 and Step 5 (the converse) is R3's remaining production work and R4:
 
 ```
-R1 ✓ (44–46) ──→ R2 ✓ (47–51) ──→ R3 (52–88 landed; 67b open) ──→ Step 5
+R1 ✓ (44–46) ──→ R2 ✓ (47–51) ──→ R3 (52–89 landed; 67b open) ──→ Step 5
                                         └──────→ R4 (implicitContinue + 0 < m) ──┘
 ```
 
@@ -9785,11 +9841,16 @@ and that deletion, by input class:
   LATER, reading the run in front of the KEY — which is what the constructor
   carries, together with the park's stale tail so the reading can travel.  What
   still rides the deferral, now named: `dedent` (item 64's boundary, row 19's),
-  `noFrame` (item 51's explicit-entry threading), `staleKey`, and
-  `noKeyContext` (item 56's frameless flow closes);
+  `noFrame` (item 89 threads the frame-owning sites — what the reason still
+  names is `[189]`'s scanner-refused same-line key, awaiting its witness),
+  `staleKey`, and `noKeyContext` (item 56's frameless flow closes);
 * the **explicit-entry pack threading** at the key-park kinds item 51
   left `Or.inr`: block-scalar, flow, compact, inner-map, props and folded
-  keys (each mechanical once its park's own class above lands);
+  keys.  The SAME-LINE face of the inner-map and props kinds is item 89's
+  (`h_vslot` reaches the pack lemmas as their compact frame); what stays
+  open at all six is the VALUE-LINE face — `h_vpack` riding the inner
+  parks so `? |⏎  k⏎: - w` and its siblings spend the landed `:` instead
+  of closing `e-node` and deferring the reopened `[189]`'s compact fill;
 * the **flow share** — ~~the depth-0 flow close must park REAL evidence
   (`[1] : b`, `? [1]⏎: v`)~~ — CLOSED by item 56 (the frame carries the
   entry routes and the close joins them with the collection re-read as
@@ -9928,14 +9989,17 @@ that reaches each:
 
   And the DELETION has preconditions outside this ledger: `pendingFlow`'s
   producers are also the block dispatch's inline-residue defers, fed by
-  `KeyPackPunt`'s surviving reasons — `noFrame` (item 51's explicit-entry
-  threading at the six key-park kinds), `staleKey`, and `dedent`, the last
+  `KeyPackPunt`'s surviving reasons — `noFrame` (item 89 threads the six
+  frame-owning sites; the reason's residue is `[189]`'s scanner-refused
+  same-line key), `staleKey`, and `dedent`, the last
   being the sibling composition items 64–65 LOCATED and this plan orders as
   row 19's own (a frame stack on the pending).  So row 12's β.5 deletion
   closes after: ~~the escaped-blank gate item~~ (CLOSED by item 87), ~~the
-  node-at-`nn` drain~~ (CLOSED by item 88), the `noFrame` threading, the
-  `staleKey` drain, and the DEDENT composition — in that order, the last
-  crossing into row 19's architecture.
+  node-at-`nn` drain~~ (CLOSED by item 88), ~~the `noFrame` threading~~
+  (CLOSED by item 89 — the frame-owning sites hand `h_vslot`; the exotic
+  keys' VALUE-LINE face rides the R2 pack-threading bullet, not this
+  reason), the `staleKey` drain, and the DEDENT composition — in that
+  order, the last crossing into row 19's architecture.
 | 1 | `drop_ride` — `pendingFlow`'s opaque resume | the deletion proper |
 
 Items 69 and 72 made `h_lead_at` TOTAL, so the first row is refutable the
