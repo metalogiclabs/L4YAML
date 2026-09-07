@@ -1168,6 +1168,16 @@ inductive PendingNode (sc : ScannerState) : Bool → SurfPos → SurfPos → Sur
       -- spends it with a `nil` tail (`k:⏎  - x⏎b: 2`); a sibling `-`
       -- transports it by consing the tail.  Producers whose enclosing
       -- levels are fused pass `Or.inr trivial`.
+      --
+      -- **Item 110 pays it, and spends it at the CONTENT dispatch's landing
+      -- skeleton.**  An entry-level face read at the empty tail IS the
+      -- skeleton's landing-level face, so `k:⏎  - a⏎b: 2` resumes the level
+      -- the sequence stands in instead of re-opening at the root — no
+      -- re-sizing, which is what item 99 sizing this field at the entry
+      -- level bought.  The two INDEXED producers pay (the flow/plain arm and
+      -- the multi-line one, both from `pendingBlock.h_closeF`); the ROOT `-`
+      -- keeps punting, and there the input is refused rather than missing
+      -- (`- a⏎b: 2` is `trailingContent`).
       (h_closeF : (∃ ks : List Nat, (∀ k' ∈ ks, k' < n) ∧
         ∀ sp_mid : SurfPos, SSLComments sp_scan sp_mid →
         ∀ sp_end : SurfPos, SCompactSeqTail n sp_mid sp_end →
@@ -18582,7 +18592,21 @@ lemma accum_content_on_pendingBlock_indented
                             (white_prepend_SSLComments h_trailing_ws h_ssl)))
                         sp_e h_tail sp_i sp_c h_iv h_lit sp_v h_sbi⟩
                 | Or.inr _ => Or.inr trivial)
-             (Or.inr trivial),
+             -- Item 110: `h_close_entry_old`'s RESUME face, transported the
+             -- same way that closure is — the entry's node folds in, the
+             -- sequence tail rides, and the levels BELOW the entry stand
+             -- ready for a landing to pop to (`k:⏎  - a⏎b: 2`).  Item 99
+             -- gave this field to the constructor and left every producer
+             -- punting it; this is the arm that can pay.
+             (match h_closeF_old with
+              | Or.inl ⟨ks, h_lt, closeF⟩ => Or.inl ⟨ks, h_lt,
+                  fun sp_final h_ssl =>
+                    closeF sp_final
+                      (SBlockIndented.node n .blockIn sp_scan sp_final
+                        (SBlockNode.flowInBlock n .blockIn sp_scan sp_prep sp_gram sp_final
+                          h_sep_all (h_flow_all n)
+                          (white_prepend_SSLComments h_trailing_ws h_ssl)))⟩
+              | Or.inr _ => Or.inr trivial),
            hcorr_result⟩
   · -- Item 24: the run parks at the ENTRY's index; the entry closure is not
     -- carried, so a sibling after `  - &a v` re-opens rather than snocs.
@@ -18776,7 +18800,17 @@ lemma accum_content_on_pendingBlock_indented
                             (white_prepend_SSLComments h_tws_f h_ssl)))
                         sp_e h_tail sp_i sp_c h_iv h_lit sp_v h_sbi⟩
                 | Or.inr _ => Or.inr trivial)
-             (Or.inr trivial),
+             -- Item 110: the multi-line value's face, exactly as above
+             -- (`k:⏎  - "p⏎    q"⏎b: 2`).
+             (match h_closeF_old with
+              | Or.inl ⟨ks, h_lt, closeF⟩ => Or.inl ⟨ks, h_lt,
+                  fun sp_final h_ssl =>
+                    closeF sp_final
+                      (SBlockIndented.node n .blockIn sp_scan sp_final
+                        (SBlockNode.flowInBlock n .blockIn sp_scan sp_prep sp_gramf sp_final
+                          h_sep_all h_node_f
+                          (white_prepend_SSLComments h_tws_f h_ssl)))⟩
+              | Or.inr _ => Or.inr trivial),
            hcorr_result⟩
   · -- Item 99: the DEDENT drains.  The landing ended this entry, so the
     -- pending's own closure closes it EMPTY (`[185]`'s comment form), and
@@ -19734,9 +19768,26 @@ lemma accum_content_pending (sc : ScannerState)
     subst h_colon
     exact absurd h_adj
       (checkAdjacentValue_refutes_stale (h_stale h_res) h_flow_disp h_pay h_pay_sk)
-  | pendingBlockContent _ _ _ _ h_line _h_closable _h_closable_entry _h_key h_stale _ =>
+  | pendingBlockContent _ _ _ n h_line _h_closable _h_closable_entry _h_key h_stale _
+      _h_kslot h_closeF110 =>
     -- ═══ Item 47: same rung, entry-parked (`- "a" :b`) — same refutation. ═══
-    refine h_defer_split (Or.inr trivial) (Or.inr trivial) (fun hcol sp_ws h_ws h_pk h_pay h_pay_sk => ?_)
+    --
+    -- ═══ Item 110: and the landing arms get this park's frames, from the
+    -- field it has ALREADY — `h_closeF` is the entry-level face, so a landing
+    -- that ends the collection reads it with a `nil` tail and the levels below
+    -- the entry stand ready.  `k:⏎  - a⏎b: 2` is ONE root mapping with two
+    -- entries; the root context could only give its `b` a second bare
+    -- document.  No new field: item 99 sized this one at the entry level for
+    -- exactly this reason. ═══
+    refine h_defer_split
+      (match h_closeF110 with
+       | Or.inl ⟨ks, _, closeF⟩ =>
+           Or.inl ⟨ks, fun sp_m h_ssl => closeF sp_m h_ssl sp_m (SCompactSeqTail.nil n sp_m)⟩
+       | Or.inr _ => Or.inr trivial)
+      -- The sequence entry stands under no explicit-key frame that is a STACK
+      -- (item 108's note at the producers): `h_kslot` is a single value line,
+      -- not a `ResumeFrames`, so the value face has nothing to carry.
+      (Or.inr trivial) (fun hcol sp_ws h_ws h_pk h_pay h_pay_sk => ?_)
     have h_res := inline_residue_of_landing ⟨rfl, hcol⟩ h_ws h_pk hcorr_prep
       (preprocess_some_peek h_preprocess)
     have h_colon := nodeStop_content_residue_is_colon h_line h_dispatch h_res

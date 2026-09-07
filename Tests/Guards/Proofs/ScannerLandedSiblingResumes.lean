@@ -239,9 +239,12 @@ example {sp_start sp_land sp_key : SurfPos} {k nv : Nat}
 
 /-! ## §7 What this item does NOT close
 
-* `pendingBlockContent` — the entry-parked completed content (`- a: b⏎  c: d`)
-  keeps the root context; it takes the same two fields and its own producers'
-  payments, which this item does not make.
+* `pendingBlockContent` — the entry-parked completed content — keeps the root
+  context; its own producers' payments are not made here.  (CLOSED by item 110,
+  which needed no new field: `h_closeF` was already sized at the entry level.
+  ~~`- a: b⏎  c: d`~~ was the wrong input to name for it — that one parks
+  `pendingContent`, the `b` being a completed mapping value; the entry-parked
+  family is `k:⏎  - a⏎b: 2`.)
 * The PROPS landing.  `content_dispatch_routed`'s `h_props_key` still reads
   only the root key context, so a landed `&p c: d` sibling re-opens at the root
   as before; `PropsKeyPack` carries no resume twin to spend.
