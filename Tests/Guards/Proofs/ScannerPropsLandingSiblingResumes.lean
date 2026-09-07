@@ -175,7 +175,8 @@ example {sp_start sp_p sp_prep sp_scan' : SurfPos} {k : Nat} {ks : List Nat}
   of its own, and the props-decorated VALUE completion punts `pendingContent`'s
   faces — §1 pins its width-0 input as §9.2-refused; the nested twin rides.
 * The block-scalar value arms of the two `accum_content_on_pendingMapValue`
-  lemmas (item 109's residue, unchanged).
+  lemmas (item 109's residue — CLOSED by item 112, the node re-read to the
+  landing).
 * The construction sites: `SLYamlStream.implicitContinue` still takes
   `GOpt SLAnyDocument` — item 110 measured the tightening at 16 sites, LAST. -/
 

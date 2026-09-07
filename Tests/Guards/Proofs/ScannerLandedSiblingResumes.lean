@@ -250,9 +250,12 @@ example {sp_start sp_land sp_key : SurfPos} {k nv : Nat}
   as before; `PropsKeyPack` carries no resume twin to spend.  (CLOSED by item
   111: the pack gains items 99/108's twins and `h_props_key` resumes first.)
 * The block-scalar value arms of the two `accum_content_on_pendingMapValue`
-  lemmas punt their frames (`? a: |⏎  x⏎  c: d`): the node there is complete at
-  the park rather than at the landing, so the transport face does not apply
-  unchanged.
+  lemmas punt their frames: the node there is complete at the park rather than
+  at the landing, so the transport face does not apply unchanged.  (CLOSED by
+  item 112 — item 95's absorption closure re-reads the node TO the landing and
+  every face takes the re-read.  ~~`? a: |⏎  x⏎  c: d`~~ was also mis-indented
+  for the family: the body must clear its entry's width, and as spelled the
+  input is refused; the honest spelling is `? a: |⏎    x⏎  c: d⏎: v`.)
 * The construction sites themselves.  `SLYamlStream.implicitContinue` still
   takes `GOpt SLAnyDocument` where `[211]` writes `l-explicit-document?` after a
   prefix-only continuation; tightening the CONSTRUCTOR is row 19's own step, and

@@ -19326,28 +19326,68 @@ lemma accum_content_on_pendingMapValue
               | Or.inr _ => Or.inr trivial),
            hcorr_result⟩
     | inr h_bs0 =>
-      obtain ⟨h_block, hbs⟩ := h_bs0
-      -- `: |` / `: >` — the block scalar IS the value.
-      have h_blockNode : SBlockNode 0 .blockIn sp_scan sp_gram :=
-        h_block.elim
+      obtain ⟨_, hbs⟩ := h_bs0
+      -- `: |` / `: >` — the block scalar IS the value.  Item 112:
+      -- `dispatchContent_evidence` drops item 95's absorption closure, so
+      -- re-derive the reading with it.  The flow arm's payments fold the
+      -- landing's `s-l-comments` INTO the node; a block scalar's production
+      -- ends at the park, so the transport face takes the node RE-READ to the
+      -- landing instead — the walk absorbed into the scalar's own `[169]`
+      -- slot.
+      obtain ⟨sp_bs, h_read, hcorr_bs, h_absorb95⟩ :=
+        dispatchContent_blockScalar_prod _ sp_prep
+          (corr_of_allowDirectives_update hcorr_prep) hpeek_disp hbs h_dispatch
+      have hsp_bs_eq := ScannerSurfCorr_unique hcorr_bs hcorr_result
+      rw [hsp_bs_eq] at h_read h_absorb95
+      have h_nodeAt : ∀ sp_m : SurfPos, SSLComments sp_scan' sp_m →
+          SBlockNode 0 .blockIn sp_scan sp_m := fun sp_m h_ssl =>
+        (h_absorb95 sp_m h_ssl).elim
           (fun h_lit => literal_blockNode h_sep (GOpt.none sp_prep) h_lit)
           (fun h_fld => folded_blockNode h_sep (GOpt.none sp_prep) h_fld)
-      have h_stream' : SLYamlStream sp_start sp_gram :=
-        h_close_old sp_gram h_blockNode
-      exact ⟨sp_gram, sp_gram, sp_gram, sp_scan', h_stream',
-             BlockStack.nil sp_gram, FlowStackB.nil sp_gram .sep,
-             PendingNode.pendingContent sp_start sp_gram sp_scan' h_line
-               (fun sp_final h_ssl =>
-                 have h_ssl_ext := white_prepend_SSLComments h_trailing_ws h_ssl
-                 ssl_comments_extend_stream sp_start sp_gram sp_final h_stream' h_ssl_ext)
+      have h_blockNode : SBlockNode 0 .blockIn sp_scan sp_scan' :=
+        h_read.elim
+          (fun h_lit => literal_blockNode h_sep (GOpt.none sp_prep) h_lit)
+          (fun h_fld => folded_blockNode h_sep (GOpt.none sp_prep) h_fld)
+      have h_stream' : SLYamlStream sp_start sp_scan' :=
+        h_close_old sp_scan' h_blockNode
+      exact ⟨sp_scan', sp_scan', sp_scan', sp_scan', h_stream',
+             BlockStack.nil sp_scan', FlowStackB.nil sp_scan' .sep,
+             PendingNode.pendingContent sp_start sp_scan' sp_scan' h_line
+               (fun sp_final h_ssl => h_close_old sp_final (h_nodeAt sp_final h_ssl))
                (fun h_poss _ => absurd h_poss
                  (by rw [dispatchContent_blockScalar_simpleKey_false hbs h_dispatch]; simp))
                 (stale_of_dispatch h_dispatch hna hnt
                (by split <;> exact nic_false_of_flow_disp (sc := sc) (s_prep := s_prep) h_preprocess h_flow_disp)
-               hcorr_result) (Or.inr trivial)
+               hcorr_result)
+               -- Item 112: the value-line face — the `?` frame first
+               -- (`? |⏎  x⏎: v`, the scalar is the frame's own KEY), the
+               -- park's twin when the frame is a level up.
+               (match h_expl with
+                | Or.inl ⟨sp_q, h_qlit, route⟩ => Or.inl ⟨0,
+                    fun sp_m sp_i sp_c h_ssl h_ind h_lit sp_v h_sbi =>
+                      route sp_v (SBlockMapEntry.explicit 0 sp_q sp_scan sp_m sp_i sp_c sp_v
+                        h_qlit
+                        (SBlockIndented.node 0 .blockOut sp_scan sp_m
+                          (SBlockNode_blockIn_to_blockOut (h_nodeAt sp_m h_ssl)))
+                        h_ind h_lit h_sbi)⟩
+                | Or.inr _ =>
+                  match h_kslot with
+                  | Or.inl ⟨nv, kslot⟩ => Or.inl ⟨nv,
+                      fun sp_m sp_i sp_c h_ssl h_ind h_lit sp_v h_sbi =>
+                        kslot sp_m (h_nodeAt sp_m h_ssl) sp_i sp_c h_ind h_lit sp_v h_sbi⟩
+                  | Or.inr _ => Or.inr trivial)
                (content_park_arm (preprocess_some_peek h_preprocess)
                  h_flow_disp h_not_doc h_dispatch hcorr_result)
-               (Or.inr trivial) (Or.inr trivial),
+               -- Item 112: the root arm's frames (items 109/108's faces), the
+               -- same re-read node — `a: |⏎  x⏎c: d`'s `c` continues level 0.
+               (match h_closeF99 with
+                | Or.inl ⟨ks, _, closeF⟩ => Or.inl ⟨0 :: ks, fun sp_mid h_ssl =>
+                    closeF sp_mid (h_nodeAt sp_mid h_ssl)⟩
+                | Or.inr _ => Or.inr trivial)
+               (match h_closeFV99 with
+                | Or.inl ⟨nv, ks, _, closeFV⟩ => Or.inl ⟨nv, ks, fun sp_mid h_ssl =>
+                    closeFV sp_mid (h_nodeAt sp_mid h_ssl)⟩
+                | Or.inr _ => Or.inr trivial),
              hcorr_result⟩
 
 /-- The mapping twin of `accum_content_on_pendingBlock_indented` (item 23):
@@ -19608,34 +19648,55 @@ lemma accum_content_on_pendingMapValue_indented
         (fun h_lit => literal_blockNode h_sep_all (GOpt.none sp_prep) h_lit)
         (fun h_fld => folded_blockNode h_sep_all (GOpt.none sp_prep) h_fld)
     have h_stream' : SLYamlStream sp_start sp_scan' := h_close_old sp_scan' h_blockNode
+    -- Item 112: the landing walk absorbed into the scalar's own `[169]` slot
+    -- (item 95's closure), once, for every face below — a completed node
+    -- cannot fold the landing's `s-l-comments` in the way the flow arm's
+    -- `flowInBlock` does, so each face takes the node RE-READ to the landing.
+    have h_nodeAt : ∀ sp_m : SurfPos, SSLComments sp_scan' sp_m →
+        SBlockNode n .blockIn sp_scan sp_m := fun sp_m h_ssl =>
+      (h_absorb95 sp_m h_ssl).elim
+        (fun h_lit' => literal_blockNode h_sep_all (GOpt.none sp_prep) h_lit')
+        (fun h_fld' => folded_blockNode h_sep_all (GOpt.none sp_prep) h_fld')
     exact ⟨sp_scan', sp_scan', sp_scan', sp_scan', h_stream',
            BlockStack.nil sp_scan', FlowStackB.nil sp_scan' .sep,
            PendingNode.pendingContent sp_start sp_scan' sp_scan' h_line
-             (fun sp_final h_ssl =>
-               ssl_comments_extend_stream sp_start sp_scan' sp_final h_stream' h_ssl)
+             (fun sp_final h_ssl => h_close_old sp_final (h_nodeAt sp_final h_ssl))
              (fun h_poss _ => absurd h_poss
                (by rw [dispatchContent_blockScalar_simpleKey_false hbs h_dispatch]; simp))
              (stale_of_dispatch h_dispatch hna hnt
                (by split <;> exact nic_false_of_flow_disp (sc := sc) (s_prep := s_prep) h_preprocess h_flow_disp)
                hcorr_result)
              -- Item 95: the park's value-line twin (item 93's `h_kslot`)
-             -- rides in — the landing walk is absorbed into the scalar's own
-             -- `[169]` slot, so the node re-read to the landing feeds the
-             -- twin and `k:⏎  ? a: |⏎    x⏎  : - w` composes.
-             (match h_kslot, h_absorb95 with
-              | Or.inl ⟨nv, kslot⟩, cl => Or.inl ⟨nv,
+             -- rides in — the node re-read to the landing feeds the twin and
+             -- `k:⏎  ? a: |⏎    x⏎  : - w` composes.  Item 112: the nested
+             -- `?` frame pays FIRST, as at every sibling arm
+             -- (`k:⏎  ? |⏎    x⏎  : v` — the scalar is the frame's own KEY).
+             (match h_expl with
+              | Or.inl ⟨sp_q, h_qlit, route⟩ => Or.inl ⟨n,
                   fun sp_mid sp_i sp_c h_ssl h_iv h_lit sp_v h_sbi =>
-                    kslot sp_mid
-                      ((cl sp_mid h_ssl).elim
-                        (fun h_lit' =>
-                          literal_blockNode h_sep_all (GOpt.none sp_prep) h_lit')
-                        (fun h_fld' =>
-                          folded_blockNode h_sep_all (GOpt.none sp_prep) h_fld'))
-                      sp_i sp_c h_iv h_lit sp_v h_sbi⟩
-              | _, _ => Or.inr trivial)
+                    route sp_v (SBlockMapEntry.explicit n sp_q sp_scan sp_mid sp_i sp_c sp_v
+                      h_qlit
+                      (SBlockIndented.node n .blockOut sp_scan sp_mid
+                        (SBlockNode_blockIn_to_blockOut (h_nodeAt sp_mid h_ssl)))
+                      h_iv h_lit h_sbi)⟩
+              | Or.inr _ =>
+                match h_kslot with
+                | Or.inl ⟨nv, kslot⟩ => Or.inl ⟨nv,
+                    fun sp_mid sp_i sp_c h_ssl h_iv h_lit sp_v h_sbi =>
+                      kslot sp_mid (h_nodeAt sp_mid h_ssl) sp_i sp_c h_iv h_lit sp_v h_sbi⟩
+                | Or.inr _ => Or.inr trivial)
                (content_park_arm (preprocess_some_peek h_preprocess)
                  h_flow_disp h_not_doc h_dispatch hcorr_result)
-             (Or.inr trivial) (Or.inr trivial),
+             -- Item 112: items 99/108's faces — the re-read node feeds the
+             -- transport, so `k:⏎  a: |⏎    x⏎  c: d` resumes its level.
+             (match h_closeF99 with
+              | Or.inl ⟨ks, _, closeF⟩ => Or.inl ⟨n :: ks, fun sp_mid h_ssl =>
+                  closeF sp_mid (h_nodeAt sp_mid h_ssl)⟩
+              | Or.inr _ => Or.inr trivial)
+             (match h_closeFV108 with
+              | Or.inl ⟨nv, ks, _, closeFV⟩ => Or.inl ⟨nv, ks, fun sp_mid h_ssl =>
+                  closeFV sp_mid (h_nodeAt sp_mid h_ssl)⟩
+              | Or.inr _ => Or.inr trivial),
            hcorr_result⟩
   · -- Items 53/54: the MULTI-LINE value (quoted or plain) at the entry's
     -- own index; arm 1's park with the fixed-index node, the explicit

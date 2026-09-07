@@ -173,7 +173,8 @@ example {sc s_prep : ScannerState} {c : Char}
   plain `b`, and what stays root-parked in it is the props-decorated VALUE
   completion's `pendingContent` faces, one of item 109's punting producers.)
 * The block-scalar value arms of the two `accum_content_on_pendingMapValue`
-  lemmas, and the BLOCK dispatch's own `pendingBlockContent` arm
+  lemmas (CLOSED by item 112 — the node re-read to the landing), and the BLOCK
+  dispatch's own `pendingBlockContent` arm
   (`accum_block_on_pendingBlockContent`) — this item, like item 109, is the
   CONTENT dispatch's landing skeleton only.
 * The construction sites.  `SLYamlStream.implicitContinue` still takes
