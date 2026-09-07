@@ -4099,6 +4099,279 @@ lemma scanTag_preserves_implicitValueLine (s : ScannerState)
     simp [scanNamedTag_preserves_implicitValueLine, advance_preserves_implicitValueLine]
 
 
+/-! ### … and through the BLOCK SCALAR, which totalizes the walk (item 103)
+
+The stamp ladder above stops at the tag: items 101/102 needed the heads a
+content dispatch reads as a KEY, and `|`/`>` is not one.  The flow interior
+reads every head, so the last arm has to be walked too — and once it is, the
+dispatch lemma is TOTAL and the three head-restricted readings above collapse
+into it.  These are `ContentAllowDirectives.lean`'s walks with the field
+renamed, for the reason stated there: both proofs bottom out in
+`advance`/`emitAt`, which touch no field but their own. -/
+
+lemma consumeExactSpaces_preserves_implicitValueLine (s : ScannerState) (count : Nat) :
+    (consumeExactSpaces s count).snd.implicitValueLine = s.implicitValueLine := by
+  induction count generalizing s with
+  | zero => unfold consumeExactSpaces; rfl
+  | succ count' ih =>
+    unfold consumeExactSpaces; split
+    · simp only []; rw [ih]; exact advance_preserves_implicitValueLine s
+    · rfl
+
+lemma parseBlockHeaderLoop_preserves_implicitValueLine (s : ScannerState) (chomp : ChompStyle)
+    (offset : Option Nat) (fuel : Nat) :
+    (parseBlockHeaderLoop s chomp offset fuel).snd.snd.implicitValueLine = s.implicitValueLine := by
+  induction fuel generalizing s chomp offset with
+  | zero => unfold parseBlockHeaderLoop; rfl
+  | succ fuel' ih =>
+    unfold parseBlockHeaderLoop; split
+    · rw [ih]; exact advance_preserves_implicitValueLine s
+    · rw [ih]; exact advance_preserves_implicitValueLine s
+    · split
+      · rw [ih]; exact advance_preserves_implicitValueLine s
+      · rfl
+    · rfl
+
+lemma collectLineContentLoop_preserves_implicitValueLine (s : ScannerState) (content : String) (fuel : Nat) :
+    (collectLineContentLoop s content fuel).snd.implicitValueLine = s.implicitValueLine := by
+  induction fuel generalizing s content with
+  | zero => unfold collectLineContentLoop; rfl
+  | succ fuel' ih =>
+    unfold collectLineContentLoop
+    split
+    · split
+      · rfl
+      · rw [ih]; exact advance_preserves_implicitValueLine s
+    · rfl
+
+lemma collectBlockScalarLoop_preserves_implicitValueLine (s : ScannerState) (rawContent : String)
+    (fuel : Nat) (contentIndent : Nat) (inputEnd : Nat) :
+    (collectBlockScalarLoop s rawContent fuel contentIndent inputEnd).snd.implicitValueLine = s.implicitValueLine := by
+  induction fuel generalizing s rawContent with
+  | zero => unfold collectBlockScalarLoop; rfl
+  | succ fuel' ih =>
+    unfold collectBlockScalarLoop
+    split
+    · rfl
+    · simp only []
+      split
+      · exact consumeExactSpaces_preserves_implicitValueLine s contentIndent
+      · split
+        · rw [ih, consumeNewline_preserves_implicitValueLine, consumeExactSpaces_preserves_implicitValueLine]
+        · split
+          · rfl
+          · split
+            · split
+              · rw [ih, consumeNewline_preserves_implicitValueLine,
+                    collectLineContentLoop_preserves_implicitValueLine, consumeExactSpaces_preserves_implicitValueLine]
+              · dsimp only []
+                rw [collectLineContentLoop_preserves_implicitValueLine, consumeExactSpaces_preserves_implicitValueLine]
+            · rw [collectLineContentLoop_preserves_implicitValueLine, consumeExactSpaces_preserves_implicitValueLine]
+
+lemma scanBlockScalarSkipComment_preserves_implicitValueLine (s : ScannerState) :
+    (scanBlockScalarSkipComment s).implicitValueLine = s.implicitValueLine := by
+  unfold scanBlockScalarSkipComment
+  split
+  · -- some '#'
+    split
+    · -- peekBack? = some c
+      dsimp only []
+      split
+      · simp only []
+        rw [collectCommentTextLoop_preserves_implicitValueLine, advance_preserves_implicitValueLine]
+      · rfl
+    · -- peekBack? = none
+      rfl
+  · rfl
+
+lemma scanBlockScalarConsumeNewline_preserves_implicitValueLine (s s' : ScannerState)
+    (h : scanBlockScalarConsumeNewline s = .ok s') : s'.implicitValueLine = s.implicitValueLine := by
+  unfold scanBlockScalarConsumeNewline at h
+  split at h
+  · split at h
+    · injection h with h_eq; subst h_eq; exact consumeNewline_preserves_implicitValueLine s
+    · split at h
+      · injection h with h_eq; subst h_eq; rfl
+      · contradiction
+  · injection h with h_eq; subst h_eq; rfl
+
+lemma scanBlockScalarBody_preserves_implicitValueLine (s_orig s_nl : ScannerState)
+    (chomp : ChompStyle) (expl : Option Nat) (isLit : Bool) (startPos : YamlPos) (s' : ScannerState)
+    (h_fl : s_nl.implicitValueLine = s_orig.implicitValueLine)
+    (h : scanBlockScalarBody s_orig s_nl chomp expl isLit startPos = .ok s') :
+    s'.implicitValueLine = s_orig.implicitValueLine := by
+  unfold scanBlockScalarBody at h
+  simp only [] at h
+  repeat (any_goals (split at h))
+  all_goals (try contradiction)
+  all_goals (simp only [Except.ok.injEq] at h; subst h; dsimp only [])
+  all_goals rw [emitAt_preserves_implicitValueLine, collectBlockScalarLoop_preserves_implicitValueLine, h_fl]
+
+lemma scanBlockScalar_preserves_implicitValueLine (s : ScannerState) (s' : ScannerState)
+    (h : scanBlockScalar s = .ok s') : s'.implicitValueLine = s.implicitValueLine := by
+  unfold scanBlockScalar at h
+  simp only [] at h
+  split at h
+  · contradiction
+  · exact scanBlockScalarBody_preserves_implicitValueLine s _ _ _ _ _ s'
+      (by rw [scanBlockScalarConsumeNewline_preserves_implicitValueLine _ _ (by assumption),
+              scanBlockScalarSkipComment_preserves_implicitValueLine,
+              skipWhitespace_preserves_implicitValueLine,
+              parseBlockHeaderLoop_preserves_implicitValueLine,
+              advance_preserves_implicitValueLine]) h
+
+lemma dispatchContent_preserves_implicitValueLine (s : ScannerState) (c : Char) (s' : ScannerState)
+    (h : scanNextToken_dispatchContent s c = .ok s') :
+    s'.implicitValueLine = s.implicitValueLine := by
+  unfold scanNextToken_dispatchContent at h
+  simp only [bind, pure, Pure.pure, Except.pure] at h
+  simp only [Except.bind] at h
+  split at h
+  · -- '&': scanAnchorOrAlias bind
+    split at h   -- item 9e: the property-run guard
+    · simp at h
+    generalize h_fn : scanAnchorOrAlias s true = result at h
+    cases result with
+    | error e => simp at h
+    | ok s_a =>
+      simp only [Except.ok.injEq] at h; subst h; dsimp only []
+      exact scanAnchorOrAlias_preserves_implicitValueLine s true s_a h_fn
+  · split at h
+    · -- '*': alias
+      split at h   -- item 9e: the property-run guard
+      · simp at h
+      split at h
+      · simp at h
+      · -- item 9h: peel `validateAliasClose`; the alias facts are unchanged.
+        exact scanAnchorOrAlias_preserves_implicitValueLine s false _ (aliasArm_scan_ok h)
+    · split at h
+      · -- '!': tag
+        split at h   -- item 9e: the property-run guard
+        · simp at h
+        generalize h_fn : scanTag s = result at h
+        cases result with
+        | error e => simp at h
+        | ok s_t =>
+          simp only [Except.ok.injEq] at h; subst h
+          exact scanTag_preserves_implicitValueLine s s_t h_fn
+      · -- remaining: block scalar, quoted, plain
+        repeat (any_goals (split at h))
+        any_goals contradiction
+        all_goals (try simp only [Except.ok.injEq] at *)
+        all_goals (try contradiction)
+        all_goals (try subst_vars)
+        all_goals (try dsimp only [])
+        all_goals first
+          | exact scanBlockScalar_preserves_implicitValueLine _ _ (by assumption)
+          | exact scanDoubleQuoted_preserves_implicitValueLine _ _ (by assumption)
+          | exact scanSingleQuoted_preserves_implicitValueLine _ _ (by assumption)
+          | exact scanPlainScalar_preserves_implicitValueLine _ _ (by assumption)
+          | (simp_all; done)
+
+
+/-! ### … and through the FLOW indicators (item 103)
+
+The stamp has to cross a whole flow COLLECTION to reach the close that may
+read it as a key (`k: [1]: 2`), so the five indicators and the `?` are walked
+here too.  None of them writes the field — `scanValue` is still its only
+writer, and inside a flow even that one preserves it. -/
+
+lemma pushMappingIndent_preserves_implicitValueLine (s : ScannerState) (col : Int) :
+    (pushMappingIndent s col).implicitValueLine = s.implicitValueLine := by
+  unfold pushMappingIndent; split
+  · simp [emit_preserves_implicitValueLine]
+  · rfl
+
+lemma scanFlowSequenceStart_preserves_implicitValueLine (s : ScannerState) :
+    (scanFlowSequenceStart s).implicitValueLine = s.implicitValueLine := by
+  unfold scanFlowSequenceStart
+  simp [advance_preserves_implicitValueLine, emit_preserves_implicitValueLine]
+
+lemma scanFlowMappingStart_preserves_implicitValueLine (s : ScannerState) :
+    (scanFlowMappingStart s).implicitValueLine = s.implicitValueLine := by
+  unfold scanFlowMappingStart
+  simp [advance_preserves_implicitValueLine, emit_preserves_implicitValueLine]
+
+lemma scanFlowSequenceEnd_preserves_implicitValueLine (s : ScannerState) :
+    (scanFlowSequenceEnd s).implicitValueLine = s.implicitValueLine := by
+  unfold scanFlowSequenceEnd
+  simp [advance_preserves_implicitValueLine, emit_preserves_implicitValueLine]
+
+lemma scanFlowMappingEnd_preserves_implicitValueLine (s : ScannerState) :
+    (scanFlowMappingEnd s).implicitValueLine = s.implicitValueLine := by
+  unfold scanFlowMappingEnd
+  simp [advance_preserves_implicitValueLine, emit_preserves_implicitValueLine]
+
+lemma scanFlowEntry_preserves_implicitValueLine (s : ScannerState) (s' : ScannerState)
+    (h : scanFlowEntry s = .ok s') : s'.implicitValueLine = s.implicitValueLine := by
+  unfold scanFlowEntry at h
+  simp only [bind, Except.bind] at h
+  repeat (any_goals (split at h))
+  all_goals (try contradiction)
+  all_goals (simp only [Except.ok.injEq] at h; subst h)
+  all_goals simp [advance_preserves_implicitValueLine, emit_preserves_implicitValueLine]
+
+lemma scanKey_preserves_implicitValueLine (s : ScannerState) (s' : ScannerState)
+    (h : scanKey s = .ok s') : s'.implicitValueLine = s.implicitValueLine := by
+  unfold scanKey at h
+  simp only [bind, Except.bind] at h
+  repeat (any_goals (split at h))
+  all_goals (try contradiction)
+  all_goals (simp only [Except.ok.injEq] at h; subst h)
+  all_goals simp [advance_preserves_implicitValueLine, emit_preserves_implicitValueLine,
+                  pushMappingIndent_preserves_implicitValueLine]
+
+
+/-! ### … and the `:` that DECLINES to stamp (item 103)
+
+`scanValue` is the field's only writer, and inside a flow it writes what it
+read: `[a: b]`'s `:` is `[142] ns-flow-map-implicit-entry`'s, not `[194]`'s, so
+the stamp a block-context value indicator left outside the collection survives
+the collection's own entries. -/
+
+lemma scanValueClearKey_preserves_implicitValueLine (s : ScannerState) :
+    (scanValueClearKey s).implicitValueLine = s.implicitValueLine := by
+  unfold scanValueClearKey
+  split
+  · split
+    · rfl
+    · split <;> rfl
+  · rfl
+
+lemma scanValuePrepare_preserves_implicitValueLine (s : ScannerState) :
+    (scanValuePrepare s).implicitValueLine = s.implicitValueLine := by
+  unfold scanValuePrepare
+  split
+  · split
+    · split <;> rfl
+    · rfl
+  · split
+    · rfl
+    · split
+      · exact pushMappingIndent_preserves_implicitValueLine s s.col
+      · rfl
+
+lemma scanValue_inFlow_implicitValueLine {s s' : ScannerState}
+    (h_flow : s.inFlow = true) (hok : scanValue s = .ok s') :
+    s'.implicitValueLine = s.implicitValueLine := by
+  unfold scanValue at hok
+  simp only [bind, Except.bind] at hok
+  split at hok
+  · exact absurd hok (by simp)
+  · split at hok
+    · exact absurd hok (by simp)
+    split at hok
+    · exact absurd hok (by simp)
+    · have h := Except.ok.inj hok
+      subst h
+      show (if s.inFlow || _ then _ else _) = _
+      rw [h_flow]
+      simp only [Bool.true_or, if_pos]
+      show ((scanValuePrepare (scanValueClearKey s)).emit .value).advance.implicitValueLine = _
+      rw [advance_preserves_implicitValueLine, emit_preserves_implicitValueLine,
+          scanValuePrepare_preserves_implicitValueLine,
+          scanValueClearKey_preserves_implicitValueLine]
+
 lemma collectDirectiveNameLoop_preserves_simpleKey (s : ScannerState) (name : String) (fuel : Nat) :
     (collectDirectiveNameLoop s name fuel).snd.simpleKey = s.simpleKey := by
   induction fuel generalizing s name with

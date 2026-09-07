@@ -107,17 +107,21 @@ example {n : Nat} {sc s_prep : ScannerState} {c : Char}
 The frame's half is an equation (item 78) and the MASK's is one too (item 79),
 so the pack's column conjunct is derived at this producer rather than offered.
 What is still optional here is the key ROUTE — a fact about the enclosing
-construct, not a measurement. -/
+construct, not a measurement — and, since item 103, the open's stamp reading,
+which is a fact about the input and is what names the punt where the route is
+absent. -/
 
 example {sc : ScannerState} {kc : Nat} {sp_start sp_br sp_tok sp_key : SurfPos}
     (route : ∀ sp_v, SBlockMapEntry kc sp_key sp_v → SLYamlStream sp_start sp_v)
     (head : ∀ sp_end, SFlowContent 0 .flowOut sp_br sp_end →
       ImplicitKeyHead sp_key sp_end ∨ True)
     (h_kc : sc.simpleKey.pos.col = kc)
+    (h_park : StalePark sc)
     (h_content : SFlowContent 0 .flowOut sp_br sp_tok) :
     sc.simpleKey.possible = true → sc.simpleKey.pos.line = sc.line →
       ImplicitKeyPack sc sp_start sp_tok ∨ KeyPackPunt sc :=
-  flowKeyPack_of_close (Or.inl ⟨kc, sp_key, route, head, rfl, Or.inr trivial⟩) h_kc h_content
+  flowKeyPack_of_close (Or.inl ⟨kc, sp_key, route, head, rfl, Or.inr trivial⟩)
+    ⟨h_kc, Or.inr trivial⟩ h_park h_content
 
 /-! ## §4  The two funders, measured at every depth-0 open
 

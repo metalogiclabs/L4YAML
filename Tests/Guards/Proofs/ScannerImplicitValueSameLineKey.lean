@@ -113,14 +113,14 @@ private def emitsOk (input : String) : Bool :=
 
 -- §4 The transport, at its type: the fact that makes the reason spendable at
 -- the `:` a step later.  `scanValue` is `implicitValueLine`'s only writer, so
--- the four value-completing content scans carry the stamp unchanged.
+-- NO content scan touches the stamp — item 103 totalized the walk, and the
+-- head-restricted readings items 101 and 102 proved are this one at a head.
 open L4YAML.Scanner L4YAML.Proofs.StreamAccum in
-/-- The stamp survives the implicit value's own content. -/
+/-- The stamp survives the implicit value's own content, at every head. -/
 example {s s' : ScannerState} {c : Char}
-    (hok : scanNextToken_dispatchContent s c = .ok s')
-    (h_amp : c ≠ '&') (h_bang : c ≠ '!') (h_pipe : c ≠ '|') (h_gt : c ≠ '>') :
+    (hok : scanNextToken_dispatchContent s c = .ok s') :
     s'.implicitValueLine = s.implicitValueLine :=
-  dispatchContent_implicitValueLine hok h_amp h_bang h_pipe h_gt
+  dispatchContent_implicitValueLine hok
 
 open L4YAML.Scanner L4YAML.Proofs.StreamAccum in
 /-- …and the punt that spends it names every half of what it carries.  Item

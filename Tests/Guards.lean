@@ -71,6 +71,7 @@ import Tests.Guards.Proofs.ScannerLandingDedentSplit
 import Tests.Guards.Proofs.ScannerKeyPackPunt
 import Tests.Guards.Proofs.ScannerImplicitValueSameLineKey
 import Tests.Guards.Proofs.ScannerPropsRunSameLineKey
+import Tests.Guards.Proofs.ScannerFlowCloseSameLineKey
 import Tests.Guards.Proofs.ScannerFlowOpenUnderRun
 import Tests.Guards.Proofs.FlowInteriorScalarAtIndex
 import Tests.Guards.Proofs.ScannerFlowParkColumn

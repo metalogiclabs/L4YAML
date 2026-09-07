@@ -56,10 +56,12 @@ example {sp_start : SurfPos} {n kc fl : Nat} {ks km : Array Bool}
 /-! ## §2  So the outermost close reads a column, not an option -/
 
 /-- `KmSound.back_col`: a mask of exactly one bit discharges the promise's own
-    premise, so the slot the close restores comes back with its column. -/
+    premise, so the slot the close restores comes back with its column — and,
+    since item 103, with the open's stamp reading beside it. -/
 example {sc : ScannerState} {km : Array Bool} {kc : Nat}
     (h : KmSound sc km kc) (h1 : km.size = 1) :
-    ∃ key, sc.simpleKeyStack.back? = some key ∧ key.pos.col = kc :=
+    ∃ key, sc.simpleKeyStack.back? = some key ∧ key.pos.col = kc ∧
+      (sc.implicitValueLine = some key.pos.line ∨ True) :=
   h.back_col h1
 
 /-! ## §3  …and both packs carry an equation
@@ -79,18 +81,22 @@ example {sc : ScannerState} {sp_start sp_p sp_scan : SurfPos}
   obtain ⟨⟨k, _, h_col, _⟩, _⟩ := h
   exact ⟨k, h_col⟩
 
-/-- The flow close's producer, with both arguments equations: nothing in this
+/-- The flow close's producer, with the COLUMN an equation: nothing in this
     pack is decided by a case split on a measurement.  What stays optional is
-    the key ROUTE — a fact about the enclosing construct. -/
+    the key ROUTE — a fact about the enclosing construct — and, beside the
+    column, the open's stamp reading, which is a fact about the input (item
+    103) and is what names the punt where the route is absent. -/
 example {sc : ScannerState} {kc : Nat} {sp_start sp_br sp_tok sp_key : SurfPos}
     (route : ∀ sp_v, SBlockMapEntry kc sp_key sp_v → SLYamlStream sp_start sp_v)
     (head : ∀ sp_end, SFlowContent 0 .flowOut sp_br sp_end →
       ImplicitKeyHead sp_key sp_end ∨ True)
     (h_kc : sc.simpleKey.pos.col = kc)
+    (h_park : StalePark sc)
     (h_content : SFlowContent 0 .flowOut sp_br sp_tok) :
     sc.simpleKey.possible = true → sc.simpleKey.pos.line = sc.line →
       ImplicitKeyPack sc sp_start sp_tok ∨ KeyPackPunt sc :=
-  flowKeyPack_of_close (Or.inl ⟨kc, sp_key, route, head, rfl, Or.inr trivial⟩) h_kc h_content
+  flowKeyPack_of_close (Or.inl ⟨kc, sp_key, route, head, rfl, Or.inr trivial⟩)
+    ⟨h_kc, Or.inr trivial⟩ h_park h_content
 
 /-! ## §4  The promise, measured on the scanner
 

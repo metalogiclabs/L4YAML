@@ -123,20 +123,15 @@ example {sc : ScannerState} {t : YamlToken}
   cases h'
   cases t <;> simp_all [YamlToken.isNodeProperty, YamlToken.completesFlowValue]
 
--- §4b …and the three facts that make the reason spendable two steps later.
+-- §4b …and the two facts that make the reason spendable two steps later.
+-- Item 102 proved the property heads' stamp readings separately; item 103
+-- totalized the walk, so the run's own scan is the same lemma as its content's.
 open L4YAML.Scanner L4YAML.Proofs.StreamAccum in
-/-- The stamp survives the property run's own scan, `&` half … -/
-example {s s' : ScannerState}
-    (hok : scanNextToken_dispatchContent s '&' = .ok s') :
+/-- The stamp survives the property run's own scan — `&` and `!` alike. -/
+example {s s' : ScannerState} {c : Char}
+    (hok : scanNextToken_dispatchContent s c = .ok s') :
     s'.implicitValueLine = s.implicitValueLine :=
-  dispatchContent_anchor_implicitValueLine hok
-
-open L4YAML.Scanner L4YAML.Proofs.StreamAccum in
-/-- … and `!` half. -/
-example {s s' : ScannerState}
-    (hok : scanNextToken_dispatchContent s '!' = .ok s') :
-    s'.implicitValueLine = s.implicitValueLine :=
-  dispatchContent_tag_implicitValueLine hok
+  dispatchContent_implicitValueLine hok
 
 open L4YAML.Scanner L4YAML.Proofs.StreamAccum in
 /-- The punt travels with the park it is about — the run's extension takes the
@@ -165,10 +160,13 @@ example {sc s' : ScannerState} (h_punt : KeyPackPunt sc)
 -- own guard.  Measured refused, pinned, named.
 #guard tabbed "k:\n \t&p : 1\n" 1 2
 
--- §6 The other named residue this item does NOT take: a FLOW collection
--- opened at the run's park closes through item 56's frame, whose key context
--- is optional — so `noKeyContext` still stands there and the input still
--- defers.  Pinned as refused so the next item has its measurement.
+-- §6 The other named residue item 102 did not take: a FLOW collection opened
+-- at the run's park closes through item 56's frame, whose key context is
+-- optional.  Pinned as refused so the next item had its measurement — and
+-- item 103 took it, carrying the stamp across the collection on the mask's
+-- base slot.  The run's share of that is the punt this file pins: a props park
+-- in a stamped slot punts `implicitValue`, and the flow open reads the stamp
+-- off that constructor rather than off a field of its own.
 #guard stamped "k: &p [1]: 2\n" 0 9
 
 end L4YAML.Tests.Guards.ScannerPropsRunSameLineKey

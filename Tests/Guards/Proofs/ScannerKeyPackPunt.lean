@@ -40,9 +40,15 @@ runtime observation can say that.
   accepted and `k: a: 1` is refused, so one name was covering two reasons.  The
   refused half is `[189]`'s IMPLICIT value, whose indicator stamped its line;
   it is now `KeyPackPunt.implicitValue` and it is REFUTED at the same place the
-  tab is.  See `ScannerImplicitValueSameLineKey`.  `noKeyContext` is about the CALLER rather than the
-  input, and its complement is what is pinnable: where item 56's frame does
-  carry a route, the closed flow collection reads as `[194]`'s JSON key. -/
+  tab is.  See `ScannerImplicitValueSameLineKey`.  **And half of `noKeyContext`
+  did not either** — struck 2026-09-06 by item 103, which read the same pair one
+  construct over: `k: [1]: 2` is refused where `[1]: 2` is accepted, so a flow
+  close in a stamped value slot was riding the CALLER's name for the INPUT's
+  reason.  It hands `implicitValue` now, carried across the whole collection on
+  the mask's base slot; see `ScannerFlowCloseSameLineKey`.  What keeps the name
+  is a frame with no route at all, and its complement is what is pinnable: where
+  item 56's frame does carry a route, the closed flow collection reads as
+  `[194]`'s JSON key. -/
 
 namespace L4YAML.Tests.Guards.ScannerKeyPackPunt
 
@@ -115,8 +121,8 @@ private def tabAt (input : String) : Option (Nat × Nat) :=
 #guard refuses "k: a: 1\n"
 -- `noKeyContext`'s complement — a closed flow collection as `[194]`'s JSON
 -- key, at the two frames item 56 gave routes and at the mapping form.  What
--- the constructor covers is a frame with no route at all, which is a fact
--- about the pending and not about any input.
+-- the constructor covers after item 103 is a frame with no route at all AND no
+-- stamp, which is a fact about the pending and not about any input.
 #guard emits "[1] : b\n"
   ["+STR", "+DOC", "+MAP", "+SEQ []", "=VAL :1", "-SEQ", "=VAL :b", "-MAP",
    "-DOC", "-STR"]

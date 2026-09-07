@@ -8248,7 +8248,9 @@ is scanner-refused, the explicit `? a⏎: b: c` is item 51's threading; item 101
 split the two and refuted the first),
 `staleKey`, and `noKeyContext` (the depth-0 flow closes whose frame carries no
 mapping route, item 56's residue, plus the two packs whose key context is
-optional).  The last is the only one about the CALLER rather than the input.
+optional).  The last is the only one about the CALLER rather than the input —
+and item 103 split it on that boundary, the closes in a STAMPED value slot
+being about the input after all.
 
 ZERO runtime edits.  The `:` boundary the refutation must not cross is `a→: b`,
 which is legal — `[154]`'s own trailing `s-separate-in-line?` admits `s-white`,
@@ -10670,11 +10672,14 @@ which `ImplicitKeyPack`'s consumer reads off the guard its field is stated
 under and `colon_fires_props_key` has only inside the pack.  `k:⏎␣→&p : 1` is
 measured refused and still defers.
 
-**What this leaves**, named twice over.  `k: &p [1]: 2` is refused at runtime
+**What this leaves**, named twice over.  ~~`k: &p [1]: 2` is refused at runtime
 and still defers — a flow collection opened at the run's park closes through
-item 56's frame, whose key context is optional, so `noKeyContext` stands there.
-And the props park's own TAB, above.  Both are pinned as refused in the guard,
-so the next item has its measurement rather than a plan sentence.  Otherwise
+item 56's frame, whose key context is optional, so `noKeyContext` stands
+there.~~ — TAKEN by item 103, which carries the stamp across the collection on
+the mask's base slot; the run's share of it needs no new field, because this
+item's own punt already carries the reading.  And the props park's own TAB,
+above, which still stands.  Both were pinned as refused in the guard,
+so the next item had its measurement rather than a plan sentence.  Otherwise
 the inline residue's reasons are unchanged: ~~`tab`~~ (65), ~~the implicit
 value's frameless key~~ (101, and 102 on the props side), `dedent` (99 drained
 its arms; R4's landing pad), `noFrame`'s EXPLICIT half, and `noKeyContext`.
@@ -10713,6 +10718,122 @@ its reason, and item 101's own pin took the widened carrier — which is the
 guards doing what they are for.  The annotation verifier stands at its same
 pre-existing name mismatches, none in the new code.
 
+### Item 103 (2026-09-06)
+
+**The flow collection carries the stamp to its own close.**  The third park in
+`[189]`'s value slot, after item 101's content park and item 102's property
+run — and the one whose reason had to travel furthest.
+
+`k: [1]: 2` measures refused (`nestedMappingOnLine 0 6`, both pipelines) and
+deferred: `flowKeyPack_of_close` punted `noKeyContext` — the reason that is
+about the CALLER and carries nothing — wherever item 56's frame had no key
+route to hand.  A `[189]` value slot has none, which is correct: the value is
+`s-l+block-node` and hosts no mapping entry.  So the name was right about the
+frame and wrong about the input, exactly as `noFrame` was before item 101 and
+`noKeyContext` is on the props side.
+
+**The carrier was already there.**  The park a `]` makes is not one step past
+the value indicator but a whole COLLECTION past it, and the only thing that
+crosses a flow interior is `KmSound`'s base slot — item 75's anchor, which
+carries the open's key COLUMN to the close for exactly this pack.  The stamp is
+the same slot's second datum and rides the same transports.  What makes that
+sound is one measurement: `scanValue` is `implicitValueLine`'s only writer and
+it DECLINES inside a flow (`[142] ns-flow-map-implicit-entry`'s `:` is not
+`[194]`'s), so the field the base open was dispatched under IS the field the
+close is dispatched under.  Six transport lemmas gain one premise each
+(`km_push_at_open`, `close_km_pop`, `comma_km_transport`,
+`scanKey_km_transport`, `content_km_transport`, `KmSound.colon_transport`) and
+`close_col_of_base` returns the pair instead of the column.
+
+**The walk had to be totalized first, and that is a net deletion.**  A flow
+interior reads every head, so `content_km_transport`'s stamp premise cannot be
+head-restricted — where items 101 and 102 each proved the heads a KEY can start
+with.  The missing arm is the block scalar, and the `allowDirectives` ladder in
+[ContentAllowDirectives.lean](L4YAML/Proofs/Scanner/ContentAllowDirectives.lean)
+already walks it; nine lemmas transpose (`consumeExactSpaces`,
+`parseBlockHeaderLoop`, `collectLineContentLoop`, `collectBlockScalarLoop`,
+`scanBlockScalarSkipComment`, `scanBlockScalarConsumeNewline`,
+`scanBlockScalarBody`, `scanBlockScalar`, `dispatchContent`) by the same recipe
+items 101 and 102 used, and compiled first try.  With
+`dispatchContent_preserves_implicitValueLine` TOTAL, item 101's
+head-restricted reading and item 102's two property twins are one lemma: three
+declarations become one, and both guards' pins get strictly stronger
+statements.
+
+**The open records the reading, and it is a case split rather than a premise.**
+The question is whether a value indicator stamped the line the open's key sits
+on, and its second half — is the saved key still on the park's line — is
+DECIDABLE, so `flowOpen_stamp` does `by_cases` on it.  A key that reached the
+bracket across a break lands on a later line, which is exactly the input the
+reading must not claim (`k:⏎  [1]: b` is legal).  The first half is the park's:
+`pendingMapValue` carries `h_ivl` already, and the PROPS park needs no new
+field at all — its `h_key` punts `implicitValue` in this slot (item 102), and
+that constructor's first component IS the reading.  Five of the open's seven
+`h_kpkg` sites hand `Or.inr trivial`, for the same reason they hand no route.
+
+**Measured before designed**, scan / legacy / indexed agreeing on the error
+TEXT and not merely the verdict.  Refused, all `nestedMappingOnLine` at the
+second indicator's own position: `k: [1]: 2`, `k: {a: b}: 2`, `k: []: 2`,
+`k: {}: 2`, `k: [1] : 2`, `k: [[1]]: 2`, `k: [{a: b}]: 2`, `k: [1]:`,
+`k: [1]: 2: 3`, `: [1]: 2`, `- k: [1]: 2`, `? a: [1]: 2`, and the
+props-decorated `k: &p [1]: 2`, `k: !t {a: b}: 2`, `k: &p !t [1]: 2`.
+Accepted and unmoved: `[1]: 2`, `{a: b}: 2`, `- [1]: 2`, `k:⏎  [1]: 2`,
+`&p [1]: 2`, `- &p [1]: 2`, `k:⏎  &p [1]: 2`, `? [1]⏎: 2`, `? [1]: 2`,
+`?⏎: [1]: 2`, `? a⏎: [1]: 2` — the EXPLICIT indicator leaves the field alone,
+which is why the `?` frame's slot keeps its key — and `k: [1]`, `k: [a: b]`,
+whose interior `:` is `[142]`'s and neither fires the stamp nor sets one.
+
+**What this leaves**, pinned as measured.  A collection whose interior crossed
+a LINE is not a key at all, and the scanner refuses it with `invalidImplicitKey`
+rather than §8.2.2 — `[1,⏎ 2]: 3`, `k: [1,⏎ 2]: 3`, `- [1,⏎  2]: 3`.  Where no
+indicator stamped the line, that input still reaches `noKeyContext`: the punt
+there is the HEAD's own `∨ True`, a statement about the grammar reading, and
+naming it needs a bridge from "the content spans a break" to the scanner's line
+— not this item.  Otherwise the inline residue's reasons are unchanged:
+~~`tab`~~ (65), ~~the implicit value's frameless key~~ (101, 102 on the props
+side, **103 at the flow close**), `dedent` (99 drained its arms; R4's landing
+pad), `noFrame`'s EXPLICIT half, and what is left of `noKeyContext` — a frame
+with neither a route nor a stamp.
+
+New guard `ScannerFlowCloseSameLineKey` pins the 15 refusals by their
+`nestedMappingOnLine` POSITION, the 13 accepts that must not move, the
+multi-line residue by its own `invalidImplicitKey` line, and seven facts at
+their types: the base slot's pair of readings, the open's case split, and the
+five scans between them that write no stamp.
+
+**What is and is not machine-checked**, restated because this item threads a
+reason further than either of its siblings.  The REFUTATION is item 101's and
+is a proof — it derives `False` from `KeyPackPunt.implicitValue` and uses no
+escape.  That a given input REACHES it is a reading of the call graph plus the
+runtime measurement above, not a theorem; the campaign's instrument for that is
+the escape-site count, and it does not move here (3 → 3) because the other
+reasons remain at the same arms.  What the item strictly buys is the same as
+101's and 102's: the domain of those arms is smaller by the families listed
+above.
+
+**Validation.**  Full `lake build` green (1079 jobs, ZERO warnings);
+`run-all-tests.sh` **4473/4473** across 17 suites — unmoved, this item adds no
+`@[yaml_spec]` annotation; matrix **402/402 event and 282/282 JSON on BOTH
+pipelines**; `eventscore` **347/358** (252 event-pass, 11 event-diff, **0
+event-reject**, 95 error-ok).  All unmoved BY CONSTRUCTION — no runtime file is
+touched — and run anyway.  `check-reflection-index.sh` (20 sub-themes, 229
+bulleted demos, 248 reflections, 354 demos imported),
+`check-import-closure.sh` (222 modules) and `check-theorem-keyword.sh` (25
+capstones) OK; no `sorryAx` anywhere, and the new scan / transport / open /
+close leaves all sit at `[propext, Classical.choice, Quot.sound]`, with
+`KmSound.back_col` at `[propext, Quot.sound]`.  `colon_fires_implicit_key`,
+probed here for the first time, carries two PRE-EXISTING `native_decide`
+axioms from `dispatchBlockValue_full_prod`'s character comparisons; its proof
+is untouched by this item.  `collect-stats` reports 0 direct and 0 transitive
+`sorry`, 0 custom axioms, over **8092** theorems — 8072 at item 102 plus
+exactly the twenty this item nets (nineteen new readings, one wrapper, two
+head-restricted twins deleted).  THREE existing guards failed on the signature
+changes and were corrected — `MaskBaseColumn`, `FlowOpenParkArm` and
+`FlowStackIndexParametric` all pinned `flowKeyPack_of_close`'s old argument
+list, and the first also pinned `KmSound.back_col`'s pair — which is the
+guards doing what they are for.  The annotation verifier stands at its same two
+pre-existing `NodeProduction.lean` name mismatches, none in the new code.
+
 ### REMAINING, in order
 
 The per-item history is the closure log above; this section lists only the
@@ -10726,7 +10847,7 @@ too (items 47–51), so what stands between here
 and Step 5 (the converse) is R3's remaining production work and R4:
 
 ```
-R1 ✓ (44–46) ──→ R2 ✓ (47–51) ──→ R3 (52–102 landed; 67b open) ──→ Step 5
+R1 ✓ (44–46) ──→ R2 ✓ (47–51) ──→ R3 (52–103 landed; 67b open) ──→ Step 5
                                         └──────→ R4 (implicitContinue + 0 < m) ──┘
 ```
 
@@ -10867,7 +10988,9 @@ and that deletion, by input class:
   value's half is `KeyPackPunt.implicitValue` and is refuted from the value
   indicator's own line stamp, and what keeps the name is the EXPLICIT slot's
   `?⏎: b: c`, item 51's threading,
-  and `noKeyContext` (item 56's frameless flow closes); ~~`staleKey`~~ is
+  and ~~`noKeyContext` (item 56's frameless flow closes)~~ — SPLIT the same way
+  by item 103: a close in a stamped value slot hands `implicitValue`, and the
+  name keeps the frames with no stamp either; ~~`staleKey`~~ is
   GONE (item 90 — the save is fresh off the park's own flag, the
   constructor deleted);
 * the **explicit-entry pack threading** at the key-park kinds item 51
@@ -11071,14 +11194,17 @@ that reaches each:
   the residue IS the pack's punt, and the punt's reasons are the honest list:
   ~~`tab`~~ (refuted at item 65), ~~the implicit value's frameless key~~
   (refuted at item 101 — `k: a: 1` and its whole family are §8.2.2's own
-  refusal — and at item 102 on the props side, `k: &p a: 1`), `dedent` (item
+  refusal — at item 102 on the props side, `k: &p a: 1`, and at item 103 at
+  the FLOW close, `k: [1]: 2` and `k: &p [1]: 2`, where the reason crosses a
+  whole collection on the mask's base slot), `dedent` (item
   99 drained the arms; the constructor is R4's landing pad), `noFrame`'s
   EXPLICIT half (`?⏎: b: c`, accepted — item 51's threading, the `?` frame's
-  value pack), and `noKeyContext` (item 56's frameless flow closes, which is
-  now also the props path's own residue: `k: &p [1]: 2` measures refused and
-  still defers, the run's park having opened a FLOW collection whose frame's
-  key context is optional).  Two of five paid on both packs, and what is left
-  of the third is one construct — the flow open — rather than one pack.
+  value pack), and what is left of `noKeyContext` — a depth-0 frame with
+  neither a mapping route nor a stamp, whose own named input is the
+  multi-line-interior key (`[1,⏎ 2]: 3`, refused as `invalidImplicitKey` and
+  reaching the HEAD's punt rather than the route's).  Two of five paid at all
+  three parks, and what is left of the third is a frame class rather than a
+  construct.
 
   And the DELETION has preconditions outside this ledger: `pendingFlow`'s
   producers are also the block dispatch's inline-residue defers, fed by
