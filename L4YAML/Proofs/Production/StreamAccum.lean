@@ -486,9 +486,19 @@ lemma StaleNodeTail.toStalePark {sc : ScannerState} (h : StaleNodeTail sc) :
       `[185] s-l+block-indented` compact alternative to close.  A park that
       OWNS one hands it instead (item 89 threads `pendingMapValue.h_vslot`
       through the content dispatch, so `? a: b` and `? a⏎: b: c` compose
-      through `[195]`).  What is left of it after item 101 is the EXPLICIT
-      value with no slot — `?⏎: b: c`, which the scanner accepts and which
-      needs the `?` frame's own value pack rather than a refutation.
+      through `[195]`).  ~~What is left of it after item 101 is the EXPLICIT
+      value with no slot — `?⏎: b: c`.~~  Not that family, corrected by item
+      105: the landed `:` at an open `?` frame re-parks through
+      `colon_open_map_explicit`, whose `h_vslot` is a real slot, so `?⏎: b: c`
+      and `? a⏎: b: c` reach the compact branch and not this reason.  What the
+      name was holding is the COMPACT `?` — `- ? a: b` — whose producer
+      handed `Or.inr trivial` for the two fields the column-0 producer has
+      paid since item 51.  Item 105 pays them (`compactExplicitKeyFrame`), and
+      the reason has no named input left: every `pendingMapValue` producer
+      that still hands `Or.inr trivial` for `h_vslot` is an IMPLICIT `:`, and
+      hands the stamp instead.  What keeps the constructor is that
+      `scanValue_ok_park_facts` cannot say so — `scanValue` serves both value
+      indicators and its third component is optional for that reason alone.
     * `implicitValue` — the frameless park's other half, split off `noFrame`
       by item 101 and REFUTABLE for the same reason `tab` is, at the same
       place.  `[189]`'s value slot is `s-l+block-node`, which has no compact
@@ -11910,6 +11920,46 @@ lemma colon_open_map_explicit (sp_start sp_scan sp_mid sp_ind : SurfPos) (nv : N
              (Or.inr trivial),
          hcorr_result⟩
 
+/-- **A compact `?` opens the same `[186]` explicit key a landed one does**
+    (item 105) — the two fields `question_open_map` has paid since item 51,
+    for the park one line over.
+
+    `[195] ns-l-compact-mapping(n+1+m)`'s first entry is an ordinary `[188]`,
+    so the `?` that heads it is `[186] c-l-block-map-explicit-key(n+1+m)` and
+    owns both of the things a `?` owns: the ENTRY route any `[188]` at that
+    index takes to the stream (`h_expl`, which is what keeps the entry open
+    until its `:` value line lands) and the `[186]` KEY slot itself
+    (`h_vslot` — `s-l+block-indented(n+1+m, block-out)`, compact alternatives
+    included).  Both factor through ONE route into the enclosing entry's
+    closure, which is why they are one lemma and not two.
+
+    The asymmetry with the landed `?` is entirely in that route, and it is the
+    same one `compact_open_map`'s own `h_close` already carries:
+    `question_open_map` sends the finished entry through `rootBlockMap` + a
+    bare document + `[211]`'s continuation, this sends it through
+    `[195]` + `[185]`'s `compactMap` alternative to the `-` (or `?`, or `:`)
+    that parked the pending.  Nothing about the KEY differs, which is why
+    `- ? a: b` reads as `? {a: b}` exactly as `? a: b` does. -/
+lemma compactExplicitKeyFrame {sp_start sp_entry sp_ind sp_scan' : SurfPos}
+    {n m : Nat} {ctx : YamlContext}
+    (h_close_old : ∀ sp, SBlockIndented n ctx sp_entry sp → SLYamlStream sp_start sp)
+    (h_ind : SIndent m sp_entry sp_ind)
+    (h_qlit : GLit '?' sp_ind sp_scan') :
+    (∃ sp_q : SurfPos, GLit '?' sp_q sp_scan' ∧
+      ∀ sp_v : SurfPos, SBlockMapEntry (n + 1 + m) sp_q sp_v →
+        SLYamlStream sp_start sp_v) ∧
+    (∀ sp_v : SurfPos, SBlockIndented (n + 1 + m) .blockOut sp_scan' sp_v →
+      SLYamlStream sp_start sp_v) :=
+  have h_route : ∀ sp_v : SurfPos, SBlockMapEntry (n + 1 + m) sp_ind sp_v →
+      SLYamlStream sp_start sp_v := fun sp_v h_entry =>
+    h_close_old sp_v
+      (SBlockIndented.compactMap n ctx m sp_entry sp_ind sp_v h_ind
+        (SCompactMap.mk (n + 1 + m) sp_ind sp_v sp_v h_entry
+          (SCompactMapTail.nil (n + 1 + m) sp_v)))
+  ⟨⟨sp_ind, h_qlit, h_route⟩,
+   fun sp_v h_sbi => h_route sp_v
+     (SBlockMapEntry.explicitEmpty (n + 1 + m) sp_ind sp_scan' sp_v h_qlit h_sbi)⟩
+
 /-- **The COMPACT mapping** (item 33): the same two keyless openers, one line
     over.
 
@@ -12053,6 +12103,43 @@ lemma compact_open_map (sp_start sp_entry sp_ind : SurfPos) (n m : Nat)
       subst h
       exact indicator_floor_colon_at_col hcol_ind hcorr_prep h_noflow_disp h_sk
         h_preprocess h_dispatch
+  -- ═══ Item 105: the compact `?` is a `[186]` explicit key like any other, so
+  -- it hands the two fields the column-0 opener has handed since item 51 — the
+  -- `[188]` entry route (`h_expl`) and the `[186]` KEY slot (`h_vslot`).  What
+  -- differs between the two producers is only the frame the finished entry
+  -- goes into, and that difference is already carried by `h_close` above:
+  -- `question_open_map` wraps the entry in `rootBlockMap` + a bare document +
+  -- the `[211]` continuation, this one in `[195] ns-l-compact-mapping` handed
+  -- to the ENCLOSING entry's own closure.  Both fields factor through that one
+  -- route, which is why they cost a single `have`.
+  --
+  -- The `:` branch pays neither, and must not: `[189]`'s value is
+  -- `s-l+block-node`, which has no compact alternative and opens no `[188]`
+  -- entry of its own — its same-line key is refused from the stamp instead
+  -- (item 101), which is the field `hpk.2.2.1` carries. ═══
+  have h_qlit : c = '?' → GLit '?' sp_ind sp_scan' := by
+    intro h
+    subst h
+    obtain ⟨sp_q, h_lit, hcorr_q⟩ :=
+      dispatchBlockKey_full_prod _ sp_ind
+        (corr_of_allowDirectives_update hcorr_prep) hpeek_disp h_dispatch
+    rw [ScannerSurfCorr_unique hcorr_q hcorr_result] at h_lit
+    exact h_lit
+  have h_park_col' : sp_scan'.col = (n + 1 + m) + 1 := by
+    have h1 := SIndent_col h_ind; rw [hcol_entry] at h1; omega
+  have h_expl105 : (∃ sp_q : SurfPos, GLit '?' sp_q sp_scan' ∧
+      ∀ sp_v : SurfPos, SBlockMapEntry (n + 1 + m) sp_q sp_v →
+        SLYamlStream sp_start sp_v) ∨ True :=
+    match hc with
+    | Or.inl _ => Or.inr trivial
+    | Or.inr h => Or.inl (compactExplicitKeyFrame h_close_old h_ind (h_qlit h)).1
+  have h_vslot105 : (sp_scan'.col = (n + 1 + m) + 1 ∧ ∀ sp_v : SurfPos,
+      SBlockIndented (n + 1 + m) .blockOut sp_scan' sp_v →
+        SLYamlStream sp_start sp_v) ∨ True :=
+    match hc with
+    | Or.inl _ => Or.inr trivial
+    | Or.inr h =>
+      Or.inl ⟨h_park_col', (compactExplicitKeyFrame h_close_old h_ind (h_qlit h)).2⟩
   exact ⟨sp_block, sp_block, sp_block, sp_scan', h_stream_block,
          BlockStack.nil sp_block, FlowStackB.nil sp_block .sep,
          PendingNode.pendingMapValue sp_start sp_block sp_scan' (n + 1 + m)
@@ -12062,7 +12149,7 @@ lemma compact_open_map (sp_start sp_entry sp_ind : SurfPos) (n m : Nat)
                  (SCompactMap.mk (n + 1 + m) sp_ind sp_v sp_v (h_entry_of sp_v h_node)
                    (SCompactMapTail.nil (n + 1 + m) sp_v))))
            h_floor
-           hpk.1 hpk.2.1 hpk.2.2.1 (Or.inr trivial) (Or.inr trivial)
+           hpk.1 hpk.2.1 hpk.2.2.1 h_expl105 h_vslot105
            hpk.2.2.2
            -- Item 68: the indicator stands at `s-indent(m)` past the entry's own
            -- column, and the park is the character after it.

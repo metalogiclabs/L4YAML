@@ -10560,8 +10560,13 @@ decides the whole family.
 
 **What this leaves at the two inline-residue sites**, named: `dedent`
 (item 99 drained its arms; the constructor is the non-member return, R4's
-landing pad), `noFrame`'s explicit half (`?⏎: b: c` — item 51's threading,
-the `?` frame's own value pack), and `noKeyContext` (item 56's frameless
+landing pad), ~~`noFrame`'s explicit half (`?⏎: b: c` — item 51's threading,
+the `?` frame's own value pack)~~ — **the wrong family, corrected by item
+105**: the landed `:` at an open `?` frame re-parks through
+`colon_open_map_explicit`, which pays a real `h_vslot`, so `?⏎: b: c` and
+`? a⏎: b: c` reach the compact branch.  The park that reached `noFrame` was
+the COMPACT `?` (`- ? a: b`), whose producer paid neither field — and item
+105 pays both.  Also `noKeyContext` (item 56's frameless
 flow closes, and the props pack's own `∨ True`, which is why `k: &p a: 1` is
 measured refused above and still deferred: `entryPropsKeyPack_of_dispatch`
 returns `PropsKeyPack ∨ True` rather than `∨ KeyPackPunt`, so the props path
@@ -10572,8 +10577,9 @@ its argument, was what a `[96]` park could not supply.
 
 New guard `ScannerImplicitValueSameLineKey` pins the 12 refusals by their
 `nestedMappingOnLine` POSITION (so the §8.2.2 check is what is being
-observed, not just some refusal), 6 accepts that must not move, the 6
-explicit-slot accepts that keep `noFrame`, and the transport plus the punt at
+observed, not just some refusal), 6 accepts that must not move, ~~the 6
+explicit-slot accepts that keep `noFrame`~~ — those are a BOUNDARY, not the
+reason's family (item 105) — and the transport plus the punt at
 their types.  Item 65's guard carries the correction in place: its §4
 docstring bullet is struck where it called `noFrame` a shape the scanner
 accepts, and both pins now say which half they belong to.
@@ -10922,6 +10928,86 @@ reports **19** name mismatches across seven files, every one of them
 pre-existing and none in the new code — the count is corrected in item 103's
 entry above, which named only the two in `NodeProduction.lean`.
 
+### Item 105 (2026-09-06)
+
+**A compact `?` is a `[186]` explicit key like any other** — the two fields
+`question_open_map` has paid since item 51, for the park one line over.  And
+the scoping lesson is item 104's again, on the other side: **when a punt names
+an input, check that the input still reaches the punt.**  Item 101 wrote
+`noFrame`'s residue down as the EXPLICIT value slot (`?⏎: b: c`, `? a⏎: b: c`)
+and it was already served when it wrote it — items 51 and 89 between them
+route the landed `:` at an open `?` frame through `colon_open_map_explicit`,
+whose `h_vslot` is a real slot, so the mid-line `:` after the value's head
+reaches `entryKeyPack_of_dispatch`'s COMPACT branch and never the punt.  What
+the name was actually holding was one construct over.
+
+**The park is the compact `?`.**  `compact_open_map` is the sole producer for
+a `?` that arrives on the same line as the `-` (or `?`, or `:`) that parked
+the pending, and its `?` branch handed `Or.inr trivial` for both `h_expl` and
+`h_vslot` — the `[188]` entry route and the `[186]` KEY slot.  There is no
+reason for it to: `[195] ns-l-compact-mapping(n+1+m)`'s first entry is an
+ordinary `[188]`, so the `?` heading it is `[186] c-l-block-map-explicit-key`
+and owns exactly what a landed `?` owns.  The whole difference between the two
+producers is the frame the finished entry goes into, and `compact_open_map`'s
+own `h_close` already carries it: `question_open_map` sends the entry through
+`rootBlockMap` + a bare document + `[211]`'s continuation, this one through
+`[195]` + `[185]`'s `compactMap` alternative to the enclosing entry's closure.
+Both fields factor through that one route, so the payment is a single lemma —
+`compactExplicitKeyFrame`, `[propext]` alone, no runtime edit.
+
+**How the reasons partition, measured on the source.**  Six producers park
+`pendingMapValue`.  Two pay a real `h_vslot` (`question_open_map`,
+`colon_open_map_explicit`) and reach the compact branch; the other four hand
+`Or.inr trivial` — and three of them are IMPLICIT `:` producers whose `h_ivl`
+is the stamp item 101 refutes.  The fourth was `compact_open_map`'s `?`, which
+had neither.  With it paid, `noFrame` has no named input at all: what keeps
+the constructor is that `scanValue_ok_park_facts`'s third component is
+optional, because `scanValue` serves BOTH value indicators and cannot tell
+them apart from its own premises.  Making it tell them apart is a
+scanner↔surface coupling — the pending's index against the scanner's
+`explicitKeyCol` — and it is the reason's own next item, not this one.
+
+**Measured before designed**, both pipelines agreeing on events and not only
+on the verdict.  The KEY slot: `- ? a: b` reads as `? {a: b}` exactly as
+`? a: b` does, with `? ? a: b`, `- ? &p a: b`, `- ? !t a: b`, `- ? "a": b`,
+and the slot's other alternatives `- ? - a`, `- ? ? b`, `- ? : v`,
+`- ? [1]: 2`.  The ENTRY route: `- ? a⏎  : b`, `- ? a⏎  : - w`,
+`- ? &p a⏎  : b`, and both fields at once in `- ? a: b⏎  : c`.  The frames
+that reach the same park: `- - ? a: b`, `k:⏎  - ? a: b`, `? - ? a: b`,
+`- ? a: b⏎- c`.  The boundary that must not move is the compact `:`, which
+pays neither field and must not — `[189]`'s value is `s-l+block-node`, and
+`- : a: b` and `- ? a: b: c` are both refused by the stamp (§8.2.2).
+
+New guard `ScannerCompactExplicitKey` pins those 20 shapes — 14 by their exact
+event stream — and the payment at its type.  Item 65's guard and item 101's
+entry carry the correction in place: the `? a⏎: b: c` pin is re-labeled a
+boundary and `- ? a: b` added beside it.
+
+**What is and is not machine-checked.**  The PAYMENT is a proof; the build
+says the two fields are inhabited at that park and were not.  That `- ? a: b`
+is the input riding them is a reading of the call graph — `compact_open_map`
+is the only producer for a same-line `?` — plus the runtime measurements
+above, the same standard as items 101–104, and the same standard that got item
+101's attribution wrong.  Escape-site counts do not move: three
+`block_dispatch_deferred`, one `dropClose`, two `scannerDrop`.
+
+**Validation.**  Full `lake build` green (**1081** jobs, ZERO warnings);
+`run-all-tests.sh` **4473/4473** across 17 suites — unmoved, this item adds no
+`@[yaml_spec]` annotation; matrix **402/402 event and 282/282 JSON on BOTH
+pipelines**; `eventscore` **347/358** (252 event-pass, 11 event-diff, **0
+event-reject**, 95 error-ok).  All unmoved BY CONSTRUCTION — no runtime file
+is touched — and run anyway.  `check-reflection-index.sh` (20 sub-themes, 229
+bulleted demos, 248 reflections, 354 demos imported),
+`check-import-closure.sh` (222 modules) and `check-theorem-keyword.sh` (25
+capstones) OK; `collect-stats` reports 0 direct and 0 transitive `sorry`, 0
+custom axioms, **8097** theorems — 8096 at item 104 plus exactly the one this
+item adds.  No `sorryAx` anywhere: `compactExplicitKeyFrame` is `[propext]`
+and `compact_open_map`'s profile is unchanged (it already called both
+`dispatchBlockKey_full_prod` and `dispatchBlockValue_full_prod`, whose four
+`native_decide` axioms it has carried since item 33).  The annotation verifier
+reports the same **19** name mismatches across seven files, every one
+pre-existing and none in the new code.
+
 ### REMAINING, in order
 
 The per-item history is the closure log above; this section lists only the
@@ -10935,7 +11021,7 @@ too (items 47–51), so what stands between here
 and Step 5 (the converse) is R3's remaining production work and R4:
 
 ```
-R1 ✓ (44–46) ──→ R2 ✓ (47–51) ──→ R3 (52–104 landed; 67b open) ──→ Step 5
+R1 ✓ (44–46) ──→ R2 ✓ (47–51) ──→ R3 (52–105 landed; 67b open) ──→ Step 5
                                         └──────→ R4 (implicitContinue + 0 < m) ──┘
 ```
 
@@ -11074,8 +11160,10 @@ and that deletion, by input class:
   names is `[189]`'s scanner-refused same-line key, awaiting its witness)~~ —
   the witness LANDED at item 101, which split the reason: the implicit
   value's half is `KeyPackPunt.implicitValue` and is refuted from the value
-  indicator's own line stamp, and what keeps the name is the EXPLICIT slot's
-  `?⏎: b: c`, item 51's threading,
+  indicator's own line stamp, and ~~what keeps the name is the EXPLICIT slot's
+  `?⏎: b: c`, item 51's threading~~ — that slot pays itself
+  (`colon_open_map_explicit`), and the park the name held was the COMPACT `?`,
+  paid by item 105,
   and ~~`noKeyContext` (item 56's frameless flow closes)~~ — SPLIT the same way
   by item 103: a close in a stamped value slot hands `implicitValue`, and the
   name keeps the frames with no stamp either — and item 104 took the input the
@@ -11287,9 +11375,13 @@ that reaches each:
   refusal — at item 102 on the props side, `k: &p a: 1`, and at item 103 at
   the FLOW close, `k: [1]: 2` and `k: &p [1]: 2`, where the reason crosses a
   whole collection on the mask's base slot), `dedent` (item
-  99 drained the arms; the constructor is R4's landing pad), `noFrame`'s
+  99 drained the arms; the constructor is R4's landing pad), ~~`noFrame`'s
   EXPLICIT half (`?⏎: b: c`, accepted — item 51's threading, the `?` frame's
-  value pack), and what is left of `noKeyContext` — a depth-0 frame with
+  value pack)~~ — that family was already served when item 101 named it, and
+  the input the reason held was the COMPACT `?` (`- ? a: b`), **paid by item
+  105**, after which `noFrame` has no named input and what keeps the
+  constructor is `scanValue_ok_park_facts`'s optional stamp — and what is left
+  of `noKeyContext` — a depth-0 frame with
   neither a mapping route nor a stamp.  ~~whose own named input is the
   multi-line-interior key (`[1,⏎ 2]: 3`, refused as `invalidImplicitKey` and
   reaching the HEAD's punt rather than the route's)~~ — that input is not this

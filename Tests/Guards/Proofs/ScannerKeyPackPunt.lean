@@ -35,7 +35,10 @@ runtime observation can say that.
 * §4 **the reasons that remain are claims, not formalities.**  `dedent` and
   ~~`noFrame`~~ each name a shape the scanner ACCEPTS, so the deferral they ride
   is carrying real inputs — row 19's frame stack and item 51's explicit-entry
-  threading respectively.  **Half of `noFrame` did not** — struck 2026-09-06 by
+  threading respectively.  (`noFrame`'s shape is `- ? a: b`, not the
+  `? a⏎: b: c` pinned below — item 105's correction; the landed `:` pays its
+  own slot and the COMPACT `?` was the one that did not.)
+  **Half of `noFrame` did not** — struck 2026-09-06 by
   item 101, which read the two pins below against each other: `? a⏎: b: c` is
   accepted and `k: a: 1` is refused, so one name was covering two reasons.  The
   refused half is `[189]`'s IMPLICIT value, whose indicator stamped its line;
@@ -109,12 +112,20 @@ private def tabAt (input : String) : Option (Nat × Nat) :=
 #guard emits "k:\n  :\nj: v\n"
   ["+STR", "+DOC", "+MAP", "=VAL :k", "+MAP", "=VAL :", "=VAL :", "-MAP",
    "=VAL :j", "=VAL :v", "-MAP", "-DOC", "-STR"]
--- `noFrame` — the key is on the park's own line and the park owns no compact
+-- ~~`noFrame` — the key is on the park's own line and the park owns no compact
 -- alternative: `[192]`'s explicit entry, whose value is a compact mapping.
--- This is what the name covers after item 101's split.
+-- This is what the name covers after item 101's split.~~  Not this input,
+-- corrected 2026-09-06 by item 105: the landed `:` re-parks through
+-- `colon_open_map_explicit`, which pays the slot, so the pin below is a
+-- BOUNDARY the reason must not claim.  The park that reached `noFrame` is the
+-- COMPACT `?` one line over — `- ? a: b`, whose producer paid neither field —
+-- and it is pinned in `ScannerCompactExplicitKey`.
 #guard emits "? a\n: b: c\n"
   ["+STR", "+DOC", "+MAP", "=VAL :a", "+MAP", "=VAL :b", "=VAL :c", "-MAP",
    "-MAP", "-DOC", "-STR"]
+#guard emits "- ? a: b\n"
+  ["+STR", "+DOC", "+SEQ", "+MAP", "+MAP", "=VAL :a", "=VAL :b", "-MAP",
+   "=VAL :", "-MAP", "-SEQ", "-DOC", "-STR"]
 -- …and its implicit sibling, which the scanner refuses (§8.2.2 [194]) — the
 -- other half, `KeyPackPunt.implicitValue` since item 101, refuted rather than
 -- deferred.  The family is pinned in `ScannerImplicitValueSameLineKey`.
