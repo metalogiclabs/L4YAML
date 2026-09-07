@@ -162,10 +162,14 @@ example {s s' : ScannerState} (h : scanKey s = .ok s') :
 
 -- §6 The residue this item does NOT take, pinned as measured: a collection
 -- whose interior crossed a LINE is not a key at all, and the scanner says so
--- with its own refusal rather than §8.2.2's.  Where no indicator stamped the
--- line, `flowKeyPack_of_close` still has only `noKeyContext` to name for it —
--- the head's own `∨ True`, which is a statement about the GRAMMAR reading and
--- needs a bridge from "the content spans a break" to the scanner's line.
+-- with its own refusal rather than §8.2.2's.
+--
+-- ~~Where no indicator stamped the line, `flowKeyPack_of_close` still has only
+-- `noKeyContext` to name for it — the head's own `∨ True`.~~  Item 104 TOOK
+-- these three, and located them one step earlier: the input never reaches the
+-- head, because the pack's own guard — the saved key is on the park's line —
+-- is FALSE for it, and §7.4's one-line key check refutes the branch above it.
+-- See `ScannerStaleKeyColon`.
 private def badKey (input : String) (line : Nat) : Bool :=
   ( (match Events.streamToEvents input with
      | .error (.invalidImplicitKey l) => some l | _ => none)

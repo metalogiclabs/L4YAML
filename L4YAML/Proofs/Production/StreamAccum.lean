@@ -584,7 +584,9 @@ lemma keyPackPunt_transport {sc s' : ScannerState} (h_punt : KeyPackPunt sc)
     the other is, and both are optional for their own reasons: an enclosing
     construct that hosts no mapping entry has no route, and a collection whose
     interior crossed a line has no key reading (the scanner refuses that input
-    as a key — `[1,⏎ 2]: b` is "invalid implicit key").
+    as a key — `[1,⏎ 2]: b` is "invalid implicit key", and item 104 spends that
+    refusal at the guard BEFORE this lemma, so the head's option is never the
+    one an input turns on).
 
     The trailing `s-white*` is empty because the close parks ON the bracket:
     `sp_tok` is both the head's end and the park.
@@ -6244,7 +6246,10 @@ lemma FlowOpenStack.receivePropsNodeColon {sp_start : SurfPos} {n D : Nat}
     is `[193] c-s-implicit-json-key`'s node, so `ImplicitKeyHead.json` takes it
     verbatim.  The residue is a collection whose interior crossed a line, and
     that input is not a key at all: the scanner refuses `[1,⏎ 2]: b` with
-    "invalid implicit key" before this ever runs. -/
+    "invalid implicit key" before this ever runs — which item 104 turns from a
+    remark into a proof, at the guard one step ahead of this one
+    (`dispatch_refutes_staleKey`; the pack's `simpleKey.pos.line = line` is
+    FALSE for that input, so the head is never asked). -/
 lemma flowKeyHead {m : Nat} {sp_br : SurfPos} :
     ∀ sp_end, SFlowContent m .flowOut sp_br sp_end → ImplicitKeyHead sp_br sp_end ∨ True :=
   fun _ h => (flowNode_toBlockKey (.content _ _ _ _ h)).imp ImplicitKeyHead.json id
@@ -11383,6 +11388,146 @@ lemma dispatch_refutes_sameLine {sc s_prep s' : ScannerState} {c : Char}
   exact hmain _ (by split <;> rfl) (by split <;> rfl) (by split <;> rfl)
     h_noflow h_dispatch
 
+/-! ### Item 104 — the key from an EARLIER line is not this `:`'s key
+
+`[154] ns-s-implicit-yaml-key` is one line, and §7.4 is where the scanner says
+so: `scanValueValidate`'s first check throws `invalidImplicitKey` when the `:`
+resolves a key saved on a different line.  A park whose saved key is STALE — a
+flow collection closed across a break, a folded plain or quoted scalar — is
+therefore an input the scanner refuses, and the four lemmas below are that
+refusal read backwards, in the shape `dispatch_refutes_sameLine` reads item
+48's.
+
+The one shape §7.4 does not decide is the one it hands on to §8.2.2 `[197]`: an
+explicit-key frame open on the stale key's own line makes `scanValueClearKey`
+take the key down, and the misindent check decides the `:` instead.  So the
+lift's conclusion is a DISJUNCTION — the key is this line's, or the `?` frame
+is open on the key's line and the `:` stands at the mapping indent — and the
+second disjunct is what keeps the deferral. -/
+
+/-- §7.4's own check, read backwards: a `:` the scanner accepted with a live
+    saved key resolves a key on its OWN line. -/
+lemma scanValueValidate_ok_keyLine {s : ScannerState}
+    (h : scanValueValidate s = .ok ())
+    (h_noflow : s.inFlow = false)
+    (h_poss : s.simpleKey.possible = true) :
+    s.simpleKey.pos.line = s.line := by
+  unfold scanValueValidate at h
+  simp only [Bind.bind, Except.bind, Pure.pure, Except.pure, throw, throwThe,
+             MonadExceptOf.throw] at h
+  by_cases hne : s.simpleKey.pos.line = s.line
+  · exact hne
+  · exfalso
+    have hcond : (s.simpleKey.possible && !s.inFlow && s.simpleKey.pos.line != s.line) = true := by
+      simp [h_poss, h_noflow, hne]
+    rw [if_pos hcond] at h
+    exact absurd h (by simp)
+
+/-- §8.2.2 `[197]`'s own check, read the same way: with the key already down
+    and the `?` frame open on an earlier line, an accepted `:` stands at the
+    mapping's indent — `s-indent(n)` is exact. -/
+lemma scanValueValidate_ok_explicit_col {s : ScannerState} {ek : Nat}
+    (h : scanValueValidate s = .ok ())
+    (h_noflow : s.inFlow = false)
+    (h_poss : s.simpleKey.possible = false)
+    (h_ek : s.explicitKeyLine = some ek)
+    (h_ne : s.line ≠ ek) :
+    (s.col : Int) = s.currentIndent := by
+  unfold scanValueValidate at h
+  simp only [Bind.bind, Except.bind, Pure.pure, Except.pure, throw, throwThe,
+             MonadExceptOf.throw, h_poss, h_noflow, h_ek, Bool.false_and,
+             Bool.and_false, Bool.not_false, Bool.true_and] at h
+  by_cases hcol : (s.col : Int) = s.currentIndent
+  · exact hcol
+  · exfalso
+    simp only [h_ne, if_false, beq_iff_eq, bne_iff_ne, ne_eq, hcol, not_false_eq_true,
+      if_true] at h
+    exact absurd h (by simp)
+
+/-- **The lift through `scanValueClearKey`** — the two checks joined at the one
+    state that separates them.
+
+    `[197]`'s clear is the only way a live key stops being §7.4's business, and
+    it fires on exactly two conditions: a key saved AT the `:` (refuted by
+    `KeysBehindCursor`, item 81's scanner-wide invariant) and a key saved on
+    the `?`'s own line.  The second is the residue, and it carries the misindent
+    check's reading with it. -/
+lemma scanValue_ok_keyLine {s s' : ScannerState}
+    (h : scanValue s = .ok s')
+    (h_noflow : s.inFlow = false)
+    (h_poss : s.simpleKey.possible = true)
+    (h_behind : s.simpleKey.pos.offset < s.offset) :
+    s.simpleKey.pos.line = s.line ∨
+      (s.explicitKeyLine = some s.simpleKey.pos.line ∧ (s.col : Int) = s.currentIndent) := by
+  unfold scanValue at h
+  simp only [bind, Except.bind] at h
+  split at h
+  case h_1 => cases h
+  case h_2 u hval =>
+    have hval' : scanValueValidate (scanValueClearKey s) = .ok () := by cases u; exact hval
+    unfold scanValueClearKey at hval'
+    split at hval'
+    · rename_i ek hek
+      split at hval'
+      · -- The phantom-key clear: the key sits AT the cursor, which item 81
+        -- refutes for every live save.
+        rename_i hc
+        exfalso
+        simp only [Bool.and_eq_true, beq_iff_eq] at hc
+        omega
+      · split at hval'
+        · -- The `?`-line clear: §7.4 is silent and `[197]` decides.
+          rename_i hc2
+          simp only [Bool.and_eq_true, beq_iff_eq, bne_iff_ne, ne_eq] at hc2
+          refine Or.inr ⟨by rw [hek, hc2.1.1.2], ?_⟩
+          exact scanValueValidate_ok_explicit_col
+            (s := { s with simpleKey := { possible := false } })
+            hval' h_noflow rfl hek hc2.1.2
+        · exact Or.inl (scanValueValidate_ok_keyLine hval' h_noflow h_poss)
+    · exact Or.inl (scanValueValidate_ok_keyLine hval' h_noflow h_poss)
+
+/-- **…and a park whose saved key is STALE refutes the dispatch** (item 104),
+    in `dispatch_refutes_sameLine`'s shape: the no-break payload carries the
+    key, the line and the cursor to the dispatch state, and the `:`'s own
+    success then says the key was this line's — or names the `?` frame that
+    took it down. -/
+lemma dispatch_refutes_staleKey {sc s_prep s' : ScannerState}
+    (h_poss : sc.simpleKey.possible = true)
+    (h_kline : ¬ (sc.simpleKey.pos.line = sc.line))
+    (h_behind : sc.simpleKey.pos.offset < sc.offset)
+    (h_inh : s_prep.simpleKey = sc.simpleKey)
+    (h_line_eq : s_prep.line = sc.line)
+    (h_off_ge : sc.offset ≤ s_prep.offset)
+    (h_noflow : (if s_prep.allowDirectives then
+        { s_prep with allowDirectives := false, documentEverStarted := true }
+      else s_prep).inFlow = false)
+    (h_dispatch : scanNextToken_dispatchBlockIndicators
+        (if s_prep.allowDirectives then
+          { s_prep with allowDirectives := false, documentEverStarted := true }
+        else s_prep) ':' = .ok (some s')) :
+    s_prep.explicitKeyLine = some sc.simpleKey.pos.line ∧
+      (s_prep.col : Int) = s_prep.currentIndent := by
+  -- Generalize the dispatch state, as item 48's transport does: the
+  -- `allowDirectives` update touches none of the six fields the two checks
+  -- read.
+  have hmain : ∀ sd : ScannerState, sd.simpleKey = s_prep.simpleKey →
+      sd.line = s_prep.line → sd.offset = s_prep.offset → sd.col = s_prep.col →
+      sd.currentIndent = s_prep.currentIndent →
+      sd.explicitKeyLine = s_prep.explicitKeyLine → sd.inFlow = false →
+      scanNextToken_dispatchBlockIndicators sd ':' = .ok (some s') →
+      s_prep.explicitKeyLine = some sc.simpleKey.pos.line ∧
+        (s_prep.col : Int) = s_prep.currentIndent := by
+    intro sd hsk hln hoff hcol hind hek hfl hdd
+    rcases scanValue_ok_keyLine (dispatchBlock_colon_scanValue hdd) hfl
+      (by rw [hsk, h_inh]; exact h_poss)
+      (by rw [hsk, h_inh, hoff]; have := h_behind; omega) with h_same | ⟨h1, h2⟩
+    · refine absurd ?_ h_kline
+      rw [← h_line_eq, ← h_inh, ← hsk, ← hln]
+      exact h_same
+    · exact ⟨by rw [← hek, h1, hsk, h_inh], by rw [← hcol, ← hind]; exact h2⟩
+  exact hmain _ (by split <;> rfl) (by split <;> rfl) (by split <;> rfl)
+    (by split <;> rfl) (by split <;> rfl) (by split <;> rfl) h_noflow h_dispatch
+
 /-- `peek?` reads only `offset`/`input`/`inputEnd`. -/
 lemma peek?_congr {s₁ s₂ : ScannerState}
     (ho : s₁.offset = s₂.offset) (hi : s₁.input = s₂.input)
@@ -13177,7 +13322,46 @@ lemma colon_fires_implicit_key
               (by rw [h_inh, h_line_pp]; exact h_kline)
               (by rw [h_inh]; have := h_kbc.1 h_poss; omega)
               h_noflow h_preprocess h_dispatch)
-    · exact h_punt
+    · -- ═══ Item 104: the key is STALE — saved on an earlier line, which is
+      -- what a flow collection closed across a break, a folded plain scalar
+      -- and a folded quoted one all leave at the park.  §7.4 refuses that `:`
+      -- outright (`invalidImplicitKey`), so this is not a deferral but a
+      -- refutation, and it reads the landing for its own reason: only the
+      -- break-free step carries the park's key to the dispatch.  Across a
+      -- break the input is item 19's arm again (`x⏎: v`), where a stale key is
+      -- ordinary.
+      --
+      -- What survives is BOTH halves of the one shape §7.4 does not decide:
+      -- a `?` frame open on the key's own line, where `scanValueClearKey`
+      -- takes the key down before §7.4 reads it, AND the `:` standing at the
+      -- mapping's own indent, where `[197]`'s misindent check then lets it
+      -- through.  Every input we can write for that pair is refused one stage
+      -- earlier — the explicit key's continuation lines must be indented past
+      -- the `?`, so the `:` after them cannot land at the `?`'s column — but
+      -- that is the under-indent invariant's statement, not this step's. ═══
+      obtain ⟨sp_mid, sp_ws, sp_prep2, h_disj, h_ws, _h_cmt, hcorr_prep2, h_pk, _⟩ :=
+        preprocess_some_ssl_comments_anyCol sc sp_scan s_prep ':' h_corr h_preprocess
+      have hsp_eq2 := ScannerSurfCorr_unique hcorr_prep hcorr_prep2; subst hsp_eq2
+      have h_eq : sp_prep = sp_ws := by
+        cases h_pk with
+        | inl h => exact h
+        | inr h => rw [preprocess_some_peek h_preprocess] at h; cases h
+      subst h_eq
+      cases h_disj with
+      | inl _ => exact h_punt
+      | inr h_mid =>
+        by_cases hek : s_prep.explicitKeyLine = some sc.simpleKey.pos.line ∧
+            (s_prep.col : Int) = s_prep.currentIndent
+        · exact h_punt
+        · rcases h_arm with ⟨_, h_poss_f⟩ | h_colpos
+          · exact absurd h_poss (by rw [h_poss_f]; exact Bool.false_ne_true)
+          rw [h_mid.1] at h_ws
+          have h_st := h_stale ⟨by omega, _, h_ws,
+            head_of_peek hcorr_prep (preprocess_some_peek h_preprocess)⟩
+          obtain ⟨h_inh, -, h_off_ge, -⟩ := h_mid.2.2.2 h_st.1 h_st.2.1
+          obtain ⟨h_line_pp, -, -, -⟩ := h_mid.2.1 h_st.1 h_st.2.2.1
+          exact absurd (dispatch_refutes_staleKey h_poss h_kline (h_kbc.1 h_poss)
+            h_inh h_line_pp h_off_ge (noflow_disp_of_noflow h_noflow) h_dispatch) hek
   · exact h_punt
 
 -- Block dispatch with pendingContent (item 15): the SAME-LINE `:` fires the

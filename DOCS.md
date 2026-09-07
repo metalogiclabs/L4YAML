@@ -10785,11 +10785,15 @@ whose interior `:` is `[142]`'s and neither fires the stamp nor sets one.
 
 **What this leaves**, pinned as measured.  A collection whose interior crossed
 a LINE is not a key at all, and the scanner refuses it with `invalidImplicitKey`
-rather than §8.2.2 — `[1,⏎ 2]: 3`, `k: [1,⏎ 2]: 3`, `- [1,⏎  2]: 3`.  Where no
+rather than §8.2.2 — `[1,⏎ 2]: 3`, `k: [1,⏎ 2]: 3`, `- [1,⏎  2]: 3`.  ~~Where no
 indicator stamped the line, that input still reaches `noKeyContext`: the punt
 there is the HEAD's own `∨ True`, a statement about the grammar reading, and
 naming it needs a bridge from "the content spans a break" to the scanner's line
-— not this item.  Otherwise the inline residue's reasons are unchanged:
+— not this item.~~  **Wrong about which punt the input reaches**, corrected by
+item 104: the pack's own guard is `simpleKey.pos.line = line` and that is FALSE
+at a park holding a key from an earlier line, so the head is never asked and no
+bridge is needed.  §7.4's one-line key check refutes the branch above the pack
+instead.  Otherwise the inline residue's reasons are unchanged:
 ~~`tab`~~ (65), ~~the implicit value's frameless key~~ (101, 102 on the props
 side, **103 at the flow close**), `dedent` (99 drained its arms; R4's landing
 pad), `noFrame`'s EXPLICIT half, and what is left of `noKeyContext` — a frame
@@ -10831,8 +10835,92 @@ head-restricted twins deleted).  THREE existing guards failed on the signature
 changes and were corrected — `MaskBaseColumn`, `FlowOpenParkArm` and
 `FlowStackIndexParametric` all pinned `flowKeyPack_of_close`'s old argument
 list, and the first also pinned `KmSound.back_col`'s pair — which is the
-guards doing what they are for.  The annotation verifier stands at its same two
-pre-existing `NodeProduction.lean` name mismatches, none in the new code.
+guards doing what they are for.  The annotation verifier reports no mismatch in
+the new code.  (~~stands at its same two pre-existing `NodeProduction.lean` name
+mismatches~~ — the two in that file are pre-existing, but they are not the whole
+of what the verifier lists: the count is **19** across seven files, all
+pre-existing.  Corrected 2026-09-06 by item 104, which re-ran it.)
+
+### Item 104 (2026-09-06)
+
+**The key from an EARLIER line is not this `:`'s key.**  Item 103 left the
+multi-line-interior family as `flowKeyPack_of_close`'s head punt and priced a
+bridge for it.  Neither was right, and the measurement says so before any proof
+does: `colon_fires_implicit_key` reads two decidable facts off the park before
+it does anything — a key is live, and the key is on the park's own line — and
+for `[1,⏎ 2]: 3` the SECOND is false.  The input never reaches the pack, let
+alone its head.  What it rides is the `¬ h_kline` branch, one case split above,
+which returned the deferral for every input in it.
+
+**That branch is a refutation.**  `[154] ns-s-implicit-yaml-key` is one line and
+`scanValueValidate` is where the scanner says so: its first check throws
+`invalidImplicitKey` when the `:` would resolve a key saved on a different line.
+So a stale key at the park is an input the scanner REFUSES, and the branch is
+item 48's shape verbatim — `dispatch_refutes_sameLine` reads a fact the park
+RECORDED against the dispatch's own success; this reads a fact the park's guard
+DENIES against the same success.  Four lemmas: the §7.4 check backwards, the
+§8.2.2 `[197]` check backwards, the lift that joins them across
+`scanValueClearKey`, and the transport (`dispatch_refutes_staleKey`).
+
+**`scanValueClearKey` is the whole of the difficulty, and item 81 had already
+paid half of it.**  The clear is the only way a live key stops being §7.4's
+business, and it fires on two conditions: a key saved AT the `:`, which
+`KeysBehindCursor` — the scanner-wide behind-the-cursor invariant item 81
+threaded — refutes for every live save, and a key saved on the `?`'s own line,
+which is the residue.  There §7.4 goes silent and `[197]`'s misindent check
+decides instead, so the lift's conclusion is a disjunction and its second arm
+carries that check's own reading: the `:` stands at the mapping indent.
+
+**The residue is a PAIR, and the pair is what the runtime refuses.**  Both
+halves have to hold — a `?` frame open on the key's line AND the `:` at the
+mapping's own column — and the second is measured empty: an explicit key's
+continuation lines must be indented past the `?`, so the `:` that follows them
+is strictly right of the mapping indent.  `? [1,⏎ 2]: v` is
+`misindentedExplicitValue 1 3 0`, `? "a⏎ b": v` the same, `? x⏎ y: v` is
+`1 2 0`, and the indented ` ? [1,⏎  ]: v` is `1 3 1` — the error prints both
+columns, so the guard pins the inequality rather than the verdict.  Refuting it
+in the proof is the under-indent invariant's statement, not this step's.
+
+**Measured before designed**, scan / legacy / indexed agreeing on the error TEXT.
+Refused, all `invalidImplicitKey` at the `:`'s own line: `[1,⏎ 2]: 3`,
+`{a: b,⏎ c: d}: 3`, `x⏎y: v`, `"a⏎b": c`, `'a⏎b': c`, `"a⏎b" : c`,
+`[1,⏎ 2,⏎ 3]: 4`, `k:⏎  [1,⏎   2]: 3`, `- [1,⏎  2]: 3`, `- - [1,⏎    2]: 3`,
+`? a⏎: [1,⏎  2]: 3` — the three ways a park ends up holding a stale key (a flow
+collection closed across a break, a folded plain scalar, a folded quoted one),
+under every frame that reaches them.  Accepted and unmoved: `[1, 2]: 3`, `x⏎y`,
+`"a⏎b"`, `k: [1,⏎  2]`, and `? [1,⏎ 2]⏎: v` — the multi-line collection read as
+`[197]`'s key, which is the shape the refutation must leave alone.
+
+New guard `ScannerStaleKeyColon` pins the 11 refusals by the line §7.4 names, the
+5 accepts, the 4 residue probes by BOTH columns of their misindent error, and
+the four lemmas at their types.
+
+**What is and is not machine-checked.**  The REFUTATION is a proof: the branch
+derives `False` and uses no escape.  That a given input reaches it is a reading
+of the call graph plus the runtime measurement above, as at items 101–103, and
+the escape-site count does not move (3 → 3).  What the item buys is that the
+`:`'s deferral no longer has a stale-key domain at all — the pack's second
+guard is answered rather than punted — and, separately, that item 103's account
+of where the family lands is corrected in the artifact that carried it.
+
+**Validation.**  Full `lake build` green (1080 jobs, ZERO warnings);
+`run-all-tests.sh` **4473/4473** across 17 suites — unmoved, this item adds no
+`@[yaml_spec]` annotation; matrix **402/402 event and 282/282 JSON on BOTH
+pipelines**; `eventscore` **347/358** (252 event-pass, 11 event-diff, **0
+event-reject**, 95 error-ok).  All unmoved BY CONSTRUCTION — no runtime file is
+touched — and run anyway.  `check-reflection-index.sh` (20 sub-themes, 229
+bulleted demos, 248 reflections, 354 demos imported),
+`check-import-closure.sh` (222 modules) and `check-theorem-keyword.sh` (25
+capstones) OK; `collect-stats` reports 0 direct and 0 transitive `sorry`, 0
+custom axioms, over **8096** theorems — 8092 at item 103 plus exactly the four
+this item adds.  No `sorryAx` anywhere — the two validate readings sit at
+`[propext, Quot.sound]` and the lift and transport at
+`[propext, Classical.choice, Quot.sound]`, and `colon_fires_implicit_key`
+carries the same two PRE-EXISTING `native_decide` axioms from
+`dispatchBlockValue_full_prod` item 103 recorded.  The annotation verifier
+reports **19** name mismatches across seven files, every one of them
+pre-existing and none in the new code — the count is corrected in item 103's
+entry above, which named only the two in `NodeProduction.lean`.
 
 ### REMAINING, in order
 
@@ -10847,7 +10935,7 @@ too (items 47–51), so what stands between here
 and Step 5 (the converse) is R3's remaining production work and R4:
 
 ```
-R1 ✓ (44–46) ──→ R2 ✓ (47–51) ──→ R3 (52–103 landed; 67b open) ──→ Step 5
+R1 ✓ (44–46) ──→ R2 ✓ (47–51) ──→ R3 (52–104 landed; 67b open) ──→ Step 5
                                         └──────→ R4 (implicitContinue + 0 < m) ──┘
 ```
 
@@ -10990,7 +11078,9 @@ and that deletion, by input class:
   `?⏎: b: c`, item 51's threading,
   and ~~`noKeyContext` (item 56's frameless flow closes)~~ — SPLIT the same way
   by item 103: a close in a stamped value slot hands `implicitValue`, and the
-  name keeps the frames with no stamp either; ~~`staleKey`~~ is
+  name keeps the frames with no stamp either — and item 104 took the input the
+  name was still carrying (the multi-line interior), which turned out to be a
+  different question one case split higher; ~~`staleKey`~~ is
   GONE (item 90 — the save is fresh off the park's own flag, the
   constructor deleted);
 * the **explicit-entry pack threading** at the key-park kinds item 51
@@ -11200,11 +11290,17 @@ that reaches each:
   99 drained the arms; the constructor is R4's landing pad), `noFrame`'s
   EXPLICIT half (`?⏎: b: c`, accepted — item 51's threading, the `?` frame's
   value pack), and what is left of `noKeyContext` — a depth-0 frame with
-  neither a mapping route nor a stamp, whose own named input is the
+  neither a mapping route nor a stamp.  ~~whose own named input is the
   multi-line-interior key (`[1,⏎ 2]: 3`, refused as `invalidImplicitKey` and
-  reaching the HEAD's punt rather than the route's).  Two of five paid at all
-  three parks, and what is left of the third is a frame class rather than a
-  construct.
+  reaching the HEAD's punt rather than the route's)~~ — that input is not this
+  reason's at all, corrected by item 104, which found it one case split HIGHER
+  (the pack's `simpleKey.pos.line = line` guard is false for it) and refuted it
+  there off §7.4's one-line key check.  Two of five paid at all three parks;
+  what is left of the third is a frame class rather than a construct, and it
+  has no named input.  The `:`'s OWN residue is now one shape and it is not a
+  pack punt: a `?` frame open on a stale key's line with the `:` at the mapping
+  indent, which the runtime refuses upstream (item 104 §3) and the under-indent
+  invariant would refute here.
 
   And the DELETION has preconditions outside this ledger: `pendingFlow`'s
   producers are also the block dispatch's inline-residue defers, fed by
