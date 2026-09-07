@@ -434,6 +434,25 @@ def StaleNodeTail (sc : ScannerState) : Prop :=
   sc.needIndentCheck = false ∧ sc.simpleKeyAllowed = false ∧ LastTokenReal sc.tokens ∧
   ∃ t, lastRealTokenVal? sc.tokens = some t ∧ t.completesFlowValue = true
 
+/-- **What a punt's refutation actually spends** (item 102): the park's three
+    LINE facts, with no claim about what stands in front of them.
+
+    `KeyPackPunt`'s two refutable reasons carried `StaleNodeTail` because the
+    first producer to build them had one; the refutations use its first three
+    conjuncts and never the fourth.  That fourth conjunct names a COMPLETED
+    value, which is precisely what a `[96] c-ns-properties` park has not got —
+    `completesFlowValue` excludes the property tokens by construction — so the
+    carrier, not the reasoning, is what kept the props path from naming a
+    reason at all.  Typed as what the consumer reads, the same two refutations
+    serve the value parks and the property parks alike. -/
+def StalePark (sc : ScannerState) : Prop :=
+  sc.needIndentCheck = false ∧ sc.simpleKeyAllowed = false ∧ LastTokenReal sc.tokens
+
+/-- A completed node's tail is a stale park; the converse is false at a `[96]`
+    run, which is the whole point of the split. -/
+lemma StaleNodeTail.toStalePark {sc : ScannerState} (h : StaleNodeTail sc) :
+    StalePark sc := ⟨h.1, h.2.1, h.2.2.1⟩
+
 /-- **Why the pack is not there** (item 65) — the reasons a producer has
     for handing no `ImplicitKeyPack`, in place of the `True` that used to stand
     for all of them at once.  (Item 65 also named a `staleKey` reason —
@@ -454,10 +473,11 @@ def StaleNodeTail (sc : ScannerState) : Prop :=
       past it (so `k:⏎␣→a` is accepted and the pack really does punt), while
       the `:`'s own backward scan — `scanValueIndentTabCheck`, items 31/32 —
       reads the run in front of the KEY and throws.  The constructor therefore
-      carries that scan's own reading, plus the park's STALE TAIL — which is
-      what makes the reading transportable: with the flag down and no break,
-      preprocessing re-saves nothing, so the key the `:` resolves is the key
-      the tab precedes (`colon_fires_implicit_key` spends both).
+      carries that scan's own reading, plus the park's own three flags
+      (`StalePark`) — which is what makes the reading transportable: with the
+      flag down and no break, preprocessing re-saves nothing, so the key the
+      `:` resolves is the key the tab precedes (`colon_fires_implicit_key`
+      spends both).
     * `dedent` — the landing under-ran the pending's index, so the value is
       not this entry's at all.  Item 64's boundary, and row 19's to close: the
       enclosing collection resumes, which needs a frame stack the pending does
@@ -476,11 +496,15 @@ def StaleNodeTail (sc : ScannerState) : Prop :=
       but the value indicator STAMPED that line (`implicitValueLine`), and
       §8.2.2 refuses a second value indicator on a stamped line, so
       `k: a: 1` is not an input the pack owes a reading for.  The constructor
-      carries the stamp at the park plus the park's STALE TAIL, which is what
-      makes the stamp transportable: `scanValue` is the field's only writer,
-      so the content scan between the value indicator and this park left it
-      alone (`dispatchContent_implicitValueLine`), and the no-break landing
-      puts the park on the stamped line.
+      carries the stamp at the park, the park's saved-key LINE and its three
+      flags (`StalePark`), which is what makes the stamp transportable:
+      `scanValue` is the field's only writer, so the content scan between the
+      value indicator and this park left it alone
+      (`dispatchContent_implicitValueLine`), and the no-break landing puts the
+      park on the stamped line.  Item 102 adds the key line and widens the
+      carrier from `StaleNodeTail`, which is what lets a `[96]` property run
+      hand the same reason on (`k: &p a: 1`) — the run is a key HEAD, and the
+      stamp survives its scan too.
     * `noKeyContext` — the producer was handed none: the depth-0 flow closes
       whose frame carries no mapping route (item 56's residue), and the two
       packs whose own key context is optional.  It is the one reason that is
@@ -498,12 +522,50 @@ def StaleNodeTail (sc : ScannerState) : Prop :=
 inductive KeyPackPunt (sc : ScannerState) : Prop where
   | tab (h : ScannerState.hasTabInPrecedingWhitespaceLoop sc.input
       sc.simpleKey.pos.offset sc.simpleKey.pos.offset = true)
-      (h_st : StaleNodeTail sc) : KeyPackPunt sc
+      (h_st : StalePark sc) : KeyPackPunt sc
   | dedent : KeyPackPunt sc
   | noFrame : KeyPackPunt sc
   | implicitValue (h_ivl : sc.implicitValueLine = some sc.line)
-      (h_st : StaleNodeTail sc) : KeyPackPunt sc
+      (h_kline : sc.simpleKey.pos.line = sc.line)
+      (h_st : StalePark sc) : KeyPackPunt sc
   | noKeyContext : KeyPackPunt sc
+
+/-- **A punt travels with the park it is about** (item 102).
+
+    Every reason is a statement about the park's own state, and a step that
+    moves the park without moving what the reason reads carries it: a `[96]`
+    run's EXTENSION (`&p !t`) and the run's own CONTENT are both such steps.
+    What each reason reads is exactly the premise list — the input and the
+    saved key's POSITION for the tab's backward scan, the line and the stamp
+    for the implicit value, the park's three flags for both, and nothing at
+    all for the three unpayable names.  The `.pos` (rather than the whole
+    saved key) is what makes this usable at a content dispatch, where the
+    scans return the position alone.
+
+    The LINE reaches the new park by either of two routes, and which one is
+    available is a property of the step rather than of the reason: a property
+    EXTENSION never moves the line and says so directly, while a content scan
+    may (a multi-line scalar), and there the saved key's own line is what
+    carries it — the step's consumer observes exactly that guard on its own
+    post-state, and a key that spanned a break fails it first. -/
+lemma keyPackPunt_transport {sc s' : ScannerState} (h_punt : KeyPackPunt sc)
+    (h_skpos : s'.simpleKey.pos = sc.simpleKey.pos)
+    (h_input : s'.input = sc.input)
+    (h_line : s'.line = sc.line ∨ s'.simpleKey.pos.line = s'.line)
+    (h_ivl : s'.implicitValueLine = sc.implicitValueLine)
+    (h_st : StalePark s') : KeyPackPunt s' := by
+  cases h_punt with
+  | tab h _ => exact KeyPackPunt.tab (by rw [h_input, h_skpos]; exact h) h_st
+  | dedent => exact KeyPackPunt.dedent
+  | noFrame => exact KeyPackPunt.noFrame
+  | implicitValue h_ivl0 h_kl _ =>
+    have h_ln : s'.line = sc.line := by
+      cases h_line with
+      | inl h => exact h
+      | inr h => rw [← h, h_skpos]; exact h_kl
+    exact KeyPackPunt.implicitValue (by rw [h_ivl, h_ivl0, h_ln])
+      (by rw [h_skpos, h_ln]; exact h_kl) h_st
+  | noKeyContext => exact KeyPackPunt.noKeyContext
 
 /-- **A closed flow collection's implicit-key pack** (item 56): the two halves,
     joined at the close.
@@ -785,9 +847,14 @@ inductive PendingNode (sc : ScannerState) : Bool → SurfPos → SurfPos → Sur
       the ROUTE the pack carries (item 41) rather than by the column-0 line start
       items 17–29 demanded — so the same field now covers a run parked at a block
       ENTRY (`- &p a: 1`, `-⏎  &p a: 1`, `k:⏎  &p a: 1`) as well as at the root.
-      What still punts is a TAB in the whites, a DEDENT landing, and a run
-      parked against a `[189]` VALUE on its own line, which has no compact
-      alternative to close.
+      Item 102 replaced this field's `True` with the sibling's `KeyPackPunt`,
+      so what punts is NAMED here too: a TAB in the whites, a DEDENT landing,
+      and a run parked against a value on its own line with no compact
+      alternative to close — split, as on the sibling, into the EXPLICIT slot
+      (`?⏎: &p a: 1`, accepted, keeps `noFrame`) and the `[189]` IMPLICIT one,
+      whose indicator stamped the line and which the `:` therefore REFUTES
+      (`k: &p a: 1`).  `noKeyContext` stays the caller's: a landed run whose
+      own key context is optional.
 
       `n` (item 24) is the index the ROUTE closes at — the indent of the block
       node the enclosing context is waiting for, which is 0 at stream level and
@@ -817,7 +884,7 @@ inductive PendingNode (sc : ScannerState) : Bool → SurfPos → SurfPos → Sur
       (h_tag : ht = true →
         (trailingPropertyRunOnLine sc.tokens sc.line).any YamlToken.isTagProperty = true)
       (h_route : ∀ sp_m, SBlockNode n .blockIn sp_node sp_m → SLYamlStream sp_start sp_m)
-      (h_key : PropsKeyPack sc sp_start sp_p sp_scan ∨ True)
+      (h_key : PropsKeyPack sc sp_start sp_p sp_scan ∨ KeyPackPunt sc)
       (h_floor : IndentFloor sc n)
       -- Item 68 (LAST, same reason): the park's own COLUMN, in the two halves
       -- the flow open spends separately.
@@ -12071,7 +12138,7 @@ lemma colon_fires_props_key (sc : ScannerState)
     (h_ska : sc.simpleKeyAllowed = false)
     (h_real : LastTokenReal sc.tokens)
     (h_kbc : ScannerCorrectness.KeysBehindCursor sc)
-    (h_key : PropsKeyPack sc sp_start sp_p sp_scan ∨ True)
+    (h_key : PropsKeyPack sc sp_start sp_p sp_scan ∨ KeyPackPunt sc)
     (h_punt : ∃ sp_gram' sp_block' sp_flow' sp_scan'',
       SLYamlStream sp_start sp_gram' ∧
       BlockStack sp_gram' sp_block' ∧
@@ -12094,7 +12161,38 @@ lemma colon_fires_props_key (sc : ScannerState)
       PendingNode s' false sp_start sp_flow' sp_scan' ∧
       ScannerSurfCorr s' sp_scan' := by
   cases h_key with
-  | inr _ => exact h_punt
+  | inr punt =>
+    -- ═══ Item 102: the props park's punt is LOCATED now, so this `:` spends
+    -- the one reason that is its own — the same §8.2.2 refusal item 101 gave
+    -- the sibling, one construct over.  `k: &p : 1` and `k: !!str : 1` are an
+    -- implicit value's second value indicator, and the property scan is not
+    -- `scanValue`, so the stamp the indicator left is still on the park's
+    -- line.  The other four ride the deferral: the dedent is row 19's, the
+    -- explicit frameless park item 51's, `noKeyContext` nobody's — and the
+    -- TAB is a named residue rather than a missing argument.  Its refutation
+    -- (`scanValue_tab_keyrun_ne`, item 65) also wants the saved key's LINE
+    -- and its possibility, which `colon_fires_implicit_key` reads off the
+    -- guard its own field is stated under and this lemma has only inside the
+    -- pack; `k:⏎␣→&p : 1` is measured refused and still defers, while the
+    -- decorated `k:⏎␣→&p a: 1` is paid, the transport landing it on that
+    -- consumer instead. ═══
+    cases punt with
+    | implicitValue h_ivl _h_kl _h_st =>
+      obtain ⟨_sp_mid, _sp_ws, _sp_prep2, h_disj, _h_ws, _h_cmt, hcorr_prep2, _h_pk, _⟩ :=
+        preprocess_some_ssl_comments_anyCol sc sp_scan s_prep ':' h_corr h_preprocess
+      have hsp_eq2 := ScannerSurfCorr_unique hcorr_prep hcorr_prep2; subst hsp_eq2
+      cases h_disj with
+      -- A break intervened, so the stamped line is behind us and the `:` is a
+      -- landed one — the caller's own escape, as on the pack side below.
+      | inl _ => exact h_punt
+      | inr h_mid =>
+        exact (dispatch_refutes_sameLine h_nic h_real (Or.inl h_ivl)
+          (preprocess_preserves_implicitValueLine sc s_prep ':' h_preprocess)
+          (noflow_disp_of_noflow h_noflow) h_mid.2.1 h_dispatch).elim
+    | tab _ _ => exact h_punt
+    | dedent => exact h_punt
+    | noFrame => exact h_punt
+    | noKeyContext => exact h_punt
   | inl pack =>
     obtain ⟨⟨k, h_route, h_kcol, h_kslot_pk⟩, h_props, h_skline, h_poss⟩ := pack
     obtain ⟨sp_mid, sp_ws, sp_prep2, h_disj, h_ws, _h_cmt, hcorr_prep2, h_pk, _⟩ :=
@@ -12903,7 +13001,7 @@ lemma colon_fires_implicit_key
           cases punt with
           | tab h_run h_st =>
             exfalso
-            obtain ⟨h_line_eq, -, -, -⟩ := h_mid.2.1 h_st.1 h_st.2.2.1
+            obtain ⟨h_line_eq, -, -, -⟩ := h_mid.2.1 h_st.1 h_st.2.2
             obtain ⟨h_sk_eq, -, -, -⟩ := h_mid.2.2.2 h_st.1 h_st.2.1
             have h_inp : s_prep.input = sc.input := preprocess_input h_preprocess
             refine scanValue_tab_keyrun_ne (s := if s_prep.allowDirectives then
@@ -12924,16 +13022,18 @@ lemma colon_fires_implicit_key
               exact h_run
           | dedent => exact h_punt
           | noFrame => exact h_punt
-          | implicitValue h_ivl h_st =>
+          | implicitValue h_ivl _h_kline h_st =>
             -- ═══ Item 101: the second reason that is REFUTABLE here, and for
             -- the same shape as the tab's.  The park is an implicit value's
             -- own content, its line carries the value indicator's stamp, and
             -- §8.2.2 refuses a second value indicator on a stamped line —
             -- the very check item 48 spent at `pendingMapValue`, one step
-            -- later.  What carries it across that step is the park's stale
-            -- tail: flag down and no break, so the preprocessing this `:`
-            -- came through neither re-saved nor changed the line. ═══
-            exact (dispatch_refutes_sameLine h_st.1 h_st.2.2.1 (Or.inl h_ivl)
+            -- later.  What carries it across that step is the park's own
+            -- three flags: flag down and no break, so the preprocessing this
+            -- `:` came through neither re-saved nor changed the line.  (Item
+            -- 102's saved-key line is the props path's transport datum, not
+            -- this step's — the `:` observes the guard on its own state.) ═══
+            exact (dispatch_refutes_sameLine h_st.1 h_st.2.2 (Or.inl h_ivl)
               (preprocess_preserves_implicitValueLine sc s_prep ':' h_preprocess)
               (noflow_disp_of_noflow h_noflow) h_mid.2.1 h_dispatch).elim
           | noKeyContext => exact h_punt
@@ -15624,6 +15724,50 @@ lemma dispatchContent_tag_simpleKey {s s' : ScannerState}
             scanTag_simpleKeyAllowed_false h_tag⟩
       · rename_i h_neq; exact absurd rfl h_neq
 
+/-- **The implicit value's stamp survives the property RUN** (item 102), the
+    `&` half.  `dispatchContent_implicitValueLine` reads a value-completing
+    character and so excludes the two property heads; a `[96]` run parks
+    BEFORE any content, so the run's own scan is where the stamp has to travel
+    first — this is what lets `k: &p : 1` and `k: &p a: 1` be refused by the
+    same §8.2.2 check that refuses `k: : 1` and `k: a: 1`. -/
+lemma dispatchContent_anchor_implicitValueLine {s s' : ScannerState}
+    (hok : scanNextToken_dispatchContent s '&' = .ok s') :
+    s'.implicitValueLine = s.implicitValueLine := by
+  unfold scanNextToken_dispatchContent at hok
+  simp only [bind, Except.bind, pure, Except.pure] at hok
+  split at hok
+  · split at hok
+    · simp at hok
+    generalize h_anch : scanAnchorOrAlias s true = anch_result at hok
+    cases anch_result with
+    | error => simp at hok
+    | ok s_anch =>
+      change Except.ok _ = Except.ok s' at hok
+      have h := Except.ok.inj hok; subst h
+      exact ScannerCorrectness.scanAnchorOrAlias_preserves_implicitValueLine s true s_anch h_anch
+  · rename_i h_neq; exact absurd rfl h_neq
+
+/-- ... and the `!` twin. -/
+lemma dispatchContent_tag_implicitValueLine {s s' : ScannerState}
+    (hok : scanNextToken_dispatchContent s '!' = .ok s') :
+    s'.implicitValueLine = s.implicitValueLine := by
+  unfold scanNextToken_dispatchContent at hok
+  simp only [bind, Except.bind, pure, Except.pure] at hok
+  split at hok
+  · rename_i h_eq; exact absurd h_eq (by decide)
+  · split at hok
+    · rename_i h_eq; exact absurd h_eq (by decide)
+    · split at hok
+      · split at hok
+        · simp at hok
+        generalize h_tag : scanTag s = tag_result at hok
+        cases tag_result with
+        | error => simp at hok
+        | ok s_tag =>
+          simp only [Except.ok.injEq] at hok; subst hok
+          exact ScannerCorrectness.scanTag_preserves_implicitValueLine s s_tag h_tag
+      · rename_i h_neq; exact absurd rfl h_neq
+
 /-- ... and the `*` twin (item 29).  `[104]`'s scan is the same
     `scanAnchorOrAlias`, and the `validateAliasClose` that follows it in the
     dispatcher returns `Unit` — so an alias key's saved POSITION survives its
@@ -16127,7 +16271,8 @@ lemma entryKeyPack_of_dispatch
     -- preprocessing saved it, and which the dispatch moved neither the
     -- string nor the position of.
     refine Or.inr (KeyPackPunt.tab ?_
-      (staleNodeTail_of_dispatchContent_value h_dispatch hna hnt hnPipe hnGt
+      (StaleNodeTail.toStalePark <|
+       staleNodeTail_of_dispatchContent_value h_dispatch hna hnt hnPipe hnGt
         (by split <;>
           exact nic_false_of_flow_disp (sc := sc) (s_prep := s_prep) h_preprocess h_flow_disp)))
     have hsuf : sp_mid.chars <:+ s_prep.input.toList := by
@@ -16250,8 +16395,9 @@ lemma entryKeyPack_of_dispatch
             rw [dispatchContent_implicitValueLine h_dispatch hna hnt hnPipe hnGt,
                 h_ivl_disp, preprocess_preserves_implicitValueLine sc s_prep c h_preprocess,
                 h_ivl0, h_line_s', h_line_pp]
-          exact Or.inr (KeyPackPunt.implicitValue h_stamp'
-            (staleNodeTail_of_dispatchContent_value h_dispatch hna hnt hnPipe hnGt
+          exact Or.inr (KeyPackPunt.implicitValue h_stamp' h_kline
+            (StaleNodeTail.toStalePark <|
+             staleNodeTail_of_dispatchContent_value h_dispatch hna hnt hnPipe hnGt
               (by split <;>
                 exact nic_false_of_flow_disp (sc := sc) (s_prep := s_prep) h_preprocess h_flow_disp)))
         | inl h_cp =>
@@ -16345,10 +16491,29 @@ lemma entryPropsKeyPack_of_dispatch
     (h_line' : s'.line = (if s_prep.allowDirectives then
           { s_prep with allowDirectives := false, documentEverStarted := true }
         else s_prep).line)
+    -- ═══ Item 102: the sibling's `True` becomes `KeyPackPunt`, and what it
+    -- costs is three post-state data the caller has for free — the park's own
+    -- flags, the input the tab reason's backward scan walks, and the stamp
+    -- carried across the PROPERTY scan
+    -- (`dispatchContent_{anchor,tag}_implicitValueLine`, item 102's ladder).
+    -- They are stated as premises for the reason `h_sk`/`h_line'` are: this
+    -- lemma does not take the dispatch, because a `[96]` run's head is read
+    -- by its caller. ═══
+    (h_ppf : StalePark s')
+    (h_input : s'.input = (if s_prep.allowDirectives then
+          { s_prep with allowDirectives := false, documentEverStarted := true }
+        else s_prep).input)
+    (h_ivl_post : s'.implicitValueLine = (if s_prep.allowDirectives then
+          { s_prep with allowDirectives := false, documentEverStarted := true }
+        else s_prep).implicitValueLine)
+    -- `entryKeyPack_of_dispatch`'s own optional premise, verbatim: the value
+    -- indicator's stamp at the PARK, offered only by a `[189]` value slot.
+    (h_ivl : (sc.implicitValueLine = some sc.line ∧ sc.needIndentCheck = false ∧
+      LastTokenReal sc.tokens) ∨ True)
     (hcorr_prep : ScannerSurfCorr s_prep sp_prep)
     (h_corr : ScannerSurfCorr sc sp_scan)
     (h_preprocess : scanNextToken_preprocess sc = .ok (some (s_prep, c))) :
-    PropsKeyPack s' sp_start sp_prep sp_scan' ∨ True := by
+    PropsKeyPack s' sp_start sp_prep sp_scan' ∨ KeyPackPunt s' := by
   -- Item 90: the save is FRESH (see `entryKeyPack_of_dispatch`).
   have h_shape : s_prep.simpleKey.possible = true ∧
       s_prep.simpleKey.pos = s_prep.currentPos :=
@@ -16368,7 +16533,30 @@ lemma entryPropsKeyPack_of_dispatch
         h_shape.2]
     rfl
   cases gstar_white_sIndent_or_tab h_ws with
-  | inr _ => exact Or.inr trivial
+  | inr htab =>
+    -- ═══ Item 102: the tab is LOCATED here too, and by the same reading —
+    -- the `:`'s own backward scan walks from the KEY's offset, and a `[96]`
+    -- scan moves neither the string nor the saved position (`h_input`,
+    -- `h_sk`).  The park itself really is accepted (`k:⏎␣→&p a` reads), so
+    -- this punts rather than refutes, exactly as item 65's does; the
+    -- refutation comes at the `:`, which for a decorated CONTENT park is
+    -- `colon_fires_implicit_key`'s, reached through the transport below. ═══
+    rw [← h_pe] at htab
+    refine Or.inr (KeyPackPunt.tab ?_ h_ppf)
+    have hsuf : sp_mid.chars <:+ s_prep.input.toList := by
+      rw [preprocess_input h_preprocess]
+      rcases h_disj with h | h
+      · exact (sslComments_suffix h.1).trans (corr_chars_suffix h_corr)
+      · rw [h.1]; exact corr_chars_suffix h_corr
+    have h_run : s_prep.hasTabInPrecedingWhitespace = true :=
+      tabRun_scan_of_located hcorr_prep hsuf htab
+    have h_pos : s'.simpleKey.pos = s_prep.simpleKey.pos := by
+      rw [h_sk, allowDirectives_update_simpleKey]
+    have h_inp : s'.input = s_prep.input := by
+      rw [h_input]; split <;> rfl
+    unfold ScannerState.hasTabInPrecedingWhitespace at h_run
+    rw [h_inp, h_pos, h_shape.2]
+    exact h_run
   | inl h_ind0 =>
     obtain ⟨w, h_ind⟩ := h_ind0
     cases h_disj with
@@ -16393,10 +16581,33 @@ lemma entryPropsKeyPack_of_dispatch
                       Or.inr trivial⟩,
                       h_props, h_sk_line,
                       by rw [h_sk, allowDirectives_update_simpleKey]; exact h_shape.1⟩
-      · exact Or.inr trivial
+      · -- Item 102: the landing under-ran the run's own index — item 64's
+        -- boundary, at the props park (`k:⏎  &p a: 1⏎ b: 2`).
+        exact Or.inr KeyPackPunt.dedent
     | inr h_mid =>
       cases h_compact with
-      | inr _ => exact Or.inr trivial
+      | inr _ =>
+        -- ═══ Item 102: item 101's split, at the RUN's head.  A `[189]`
+        -- IMPLICIT value slot has no compact alternative for the pack to
+        -- close, but its indicator stamped the line, and the stamp survives
+        -- the PROPERTY scan (`h_ivl_post`) exactly as it survives a value
+        -- one — so `k: &p a: 1` is refused where `?⏎: &p a: 1` is read.  The
+        -- EXPLICIT half keeps the name, as it does on the sibling. ═══
+        refine h_ivl.elim (fun h_stamp => ?_) (fun _ => Or.inr KeyPackPunt.noFrame)
+        obtain ⟨h_ivl0, h_nic0, h_real0⟩ := h_stamp
+        have h_line_pp : s_prep.line = sc.line := (h_mid.2.1 h_nic0 h_real0).1
+        have h_ad_ivl : (if s_prep.allowDirectives then
+            { s_prep with allowDirectives := false, documentEverStarted := true }
+          else s_prep).implicitValueLine = s_prep.implicitValueLine := by
+          split <;> rfl
+        have h_ad_line : (if s_prep.allowDirectives then
+            { s_prep with allowDirectives := false, documentEverStarted := true }
+          else s_prep).line = s_prep.line := by split <;> rfl
+        have h_stamp' : s'.implicitValueLine = some s'.line := by
+          rw [h_ivl_post, h_ad_ivl,
+              preprocess_preserves_implicitValueLine sc s_prep c h_preprocess,
+              h_ivl0, h_line', h_ad_line, h_line_pp]
+        exact Or.inr (KeyPackPunt.implicitValue h_stamp' h_sk_line h_ppf)
       | inl h_cp =>
         have h_ind' : SIndent w sp_scan sp_prep := by
           rw [h_pe, ← h_mid.1]; exact h_ind
@@ -16499,10 +16710,12 @@ lemma content_dispatch_routed
         s'.line = (if s_prep.allowDirectives then
             { s_prep with allowDirectives := false, documentEverStarted := true }
           else s_prep).line →
-        PropsKeyPack s' sp_start sp_prep sp_run ∨ True := by
+        PropsKeyPack s' sp_start sp_prep sp_run ∨ KeyPackPunt s' := by
       intro sp_run h_props h_sk h_line'
       cases h_keyctx with
-      | inr _ => exact Or.inr trivial
+      -- Item 102: the caller's own reason, named — a landed dispatch whose
+      -- key context is optional, which is what `noKeyContext` is for.
+      | inr _ => exact Or.inr KeyPackPunt.noKeyContext
       | inl hctx =>
         obtain ⟨⟨k, sp_land, hcol0, h_stream_land, h_ind⟩, _h_sk_poss, h_sk_pos⟩ := hctx
         -- Item 29: and the run's COLUMN, from the same two facts item 28 used
@@ -16853,6 +17066,12 @@ lemma accum_content_on_pendingBlock
                  (SCNsProperties.anchorFirst 0 .blockKey sp_prep sp_scan' sp_scan'
                    ha_ev (GOpt.none sp_scan'))
                  (dispatchContent_anchor_simpleKey h_dispatch).1 h_line'
+                 -- Item 102: the park's three flags, the input, and the stamp
+                 -- across the property scan.
+                 ⟨h_nic_s, (dispatchContent_anchor_simpleKey h_dispatch).2, h_real_s⟩
+                 (dispatchContent_input (corr_of_allowDirectives_update hcorr_prep)
+                   h_dispatch)
+                 (dispatchContent_anchor_implicitValueLine h_dispatch) (Or.inr trivial)
                  hcorr_prep h_corr h_preprocess)
                (IndentFloor.zero h_nic_s)
                -- Item 68: a `[96]` run is at least one character wide, and this
@@ -16886,6 +17105,12 @@ lemma accum_content_on_pendingBlock
                  (SCNsProperties.tagFirst 0 .blockKey sp_prep sp_scan' sp_scan'
                    ht_ev (GOpt.none sp_scan'))
                  (dispatchContent_tag_simpleKey h_dispatch).1 h_line'
+                 -- Item 102: the park's three flags, the input, and the stamp
+                 -- across the property scan.
+                 ⟨h_nic_s, (dispatchContent_tag_simpleKey h_dispatch).2, h_real_s⟩
+                 (dispatchContent_input (corr_of_allowDirectives_update hcorr_prep)
+                   h_dispatch)
+                 (dispatchContent_tag_implicitValueLine h_dispatch) (Or.inr trivial)
                  hcorr_prep h_corr h_preprocess)
                (IndentFloor.zero h_nic_s)
                -- Item 68: a `[96]` run is at least one character wide, and this
@@ -17076,7 +17301,14 @@ lemma indentedValue_reads_at_any_indent
           { s_prep with allowDirectives := false, documentEverStarted := true }
         else s_prep).line ∧
       -- Item 79: the property scan's own flag, which the park it feeds carries.
-      s'.simpleKeyAllowed = false) ∨
+      s'.simpleKeyAllowed = false ∧
+      -- Item 102: …and the implicit value's STAMP, carried across the property
+      -- scan.  The arm knows which head it took and the caller does not, so
+      -- the transport is returned rather than re-derived — it is what lets the
+      -- run's park hand `KeyPackPunt.implicitValue` on (`k: &p a: 1`).
+      s'.implicitValueLine = (if s_prep.allowDirectives then
+          { s_prep with allowDirectives := false, documentEverStarted := true }
+        else s_prep).implicitValueLine) ∨
     ((SCLLiteral n sp_prep sp_scan' ∨ SCLFolded n sp_prep sp_scan') ∧
       -- Item 95: the landing walk at the scalar's stop, absorbable into the
       -- SAME node through `[169] l-trail-comments` (or forced empty by the
@@ -17228,7 +17460,8 @@ lemma indentedValue_reads_at_any_indent
             rw [minContentIndentOf_congr h_ind_eq]
             exact h_floor_at),
           Or.inr rfl, (dispatchContent_anchor_simpleKey h_dispatch).1, h_line',
-          (dispatchContent_anchor_simpleKey h_dispatch).2⟩)
+          (dispatchContent_anchor_simpleKey h_dispatch).2,
+          dispatchContent_anchor_implicitValueLine h_dispatch⟩)
       | inr h =>
         subst h
         obtain ⟨sp_t, ht_ev, hc⟩ := dispatchContent_tagProp_prod _ sp_prep
@@ -17249,7 +17482,8 @@ lemma indentedValue_reads_at_any_indent
             rw [minContentIndentOf_congr h_ind_eq]
             exact h_floor_at),
           Or.inl rfl, (dispatchContent_tag_simpleKey h_dispatch).1, h_line',
-          (dispatchContent_tag_simpleKey h_dispatch).2⟩)
+          (dispatchContent_tag_simpleKey h_dispatch).2,
+          dispatchContent_tag_implicitValueLine h_dispatch⟩)
     · by_cases hbs : c = '|' ∨ c = '>'
       · -- Item 26: a block scalar is not a one-line reading and never will be,
         -- but it does not need to be — `[170]`/`[174]` bind their content indent
@@ -17438,7 +17672,7 @@ lemma accum_content_on_pendingBlock_indented
       h_floor_old (by omega) hcorr_prep hcorr_result h_corr h_preprocess h_not_doc h_flow_disp h_dispatch with
     ⟨sp_gram, h_sep_all, h_flow_all, h_trailing_ws, h_line, hna, hnt⟩ |
     ⟨ha, ht, h_sep_all, h_run_all, h_nic_s, h_real_s, h_anchor_s, h_tag_s, h_ind_s,
-      h_single, h_sk_s, h_line_s, h_ska_s⟩ |
+      h_single, h_sk_s, h_line_s, h_ska_s, h_ivl_s⟩ |
     ⟨h_read, h_absorb95, h_sep_all, h_line, ⟨hna, hnt⟩, hbs⟩ |
     ⟨sp_gramf, h_node_f, h_tws_f, h_sep_all, h_line, hna, hnt⟩ | h_ded
   · exact ⟨sp_block, sp_block, sp_block, sp_scan', h_stream_block,
@@ -17537,6 +17771,13 @@ lemma accum_content_on_pendingBlock_indented
                  | Or.inr _ => Or.inr trivial⟩)
                h_ska (by revert h_flow_disp; split <;> (intro h; exact h))
                ((h_run_all 0).toPropertiesBlockKey h_single) h_sk_s h_line_s
+               -- Item 102: the park's own three flags, the input the tab
+               -- reason's backward scan walks, and the stamp the props arm
+               -- carried across the property scan.
+               ⟨h_nic_s, h_ska_s, h_real_s⟩
+               (dispatchContent_input (corr_of_allowDirectives_update hcorr_prep)
+                 h_dispatch)
+               h_ivl_s (Or.inr trivial)
                hcorr_prep h_corr h_preprocess)
              ⟨h_nic_s, h_ind_s⟩
              -- Item 68: the entry park sits at `n + 1` (item 59), the run starts
@@ -17841,6 +18082,12 @@ lemma accum_content_on_pendingMapValue
                  (SCNsProperties.anchorFirst 0 .blockKey sp_prep sp_scan' sp_scan'
                    ha_ev (GOpt.none sp_scan'))
                  (dispatchContent_anchor_simpleKey h_dispatch).1 h_line'
+                 -- Item 102: the park's three flags, the input, and the stamp
+                 -- across the property scan.
+                 ⟨h_nic_s, (dispatchContent_anchor_simpleKey h_dispatch).2, h_real_s⟩
+                 (dispatchContent_input (corr_of_allowDirectives_update hcorr_prep)
+                   h_dispatch)
+                 (dispatchContent_anchor_implicitValueLine h_dispatch) h_ivl_pack
                  hcorr_prep h_corr h_preprocess)
                (IndentFloor.zero h_nic_s)
                -- Item 68: a `[96]` run is at least one character wide, and this
@@ -17887,6 +18134,12 @@ lemma accum_content_on_pendingMapValue
                  (SCNsProperties.tagFirst 0 .blockKey sp_prep sp_scan' sp_scan'
                    ht_ev (GOpt.none sp_scan'))
                  (dispatchContent_tag_simpleKey h_dispatch).1 h_line'
+                 -- Item 102: the park's three flags, the input, and the stamp
+                 -- across the property scan.
+                 ⟨h_nic_s, (dispatchContent_tag_simpleKey h_dispatch).2, h_real_s⟩
+                 (dispatchContent_input (corr_of_allowDirectives_update hcorr_prep)
+                   h_dispatch)
+                 (dispatchContent_tag_implicitValueLine h_dispatch) h_ivl_pack
                  hcorr_prep h_corr h_preprocess)
                (IndentFloor.zero h_nic_s)
                -- Item 68: a `[96]` run is at least one character wide, and this
@@ -18101,7 +18354,7 @@ lemma accum_content_on_pendingMapValue_indented
       h_floor_old h_col0_old hcorr_prep hcorr_result h_corr h_preprocess h_not_doc h_flow_disp h_dispatch with
     ⟨sp_gram, h_sep_all, h_flow_all, h_trailing_ws, h_line, hna, hnt⟩ |
     ⟨ha, ht, h_sep_all, h_run_all, h_nic_s, h_real_s, h_anchor_s, h_tag_s, h_ind_s,
-      h_single, h_sk_s, h_line_s, h_ska_s⟩ |
+      h_single, h_sk_s, h_line_s, h_ska_s, h_ivl_s⟩ |
     ⟨h_read, h_absorb95, h_sep_all, h_line, ⟨hna, hnt⟩, hbs⟩ |
     ⟨sp_gramf, h_node_f, h_tws_f, h_sep_all, h_line, hna, hnt⟩ | h_ded
   · -- Item 39 stopped here, reading the value route's side condition `n ≤ k` as
@@ -18186,6 +18439,13 @@ lemma accum_content_on_pendingMapValue_indented
                sp_prep sp_scan' h_close_old h_compact_vslot
                h_ska (by revert h_flow_disp; split <;> (intro h; exact h))
                ((h_run_all 0).toPropertiesBlockKey h_single) h_sk_s h_line_s
+               -- Item 102: the park's own three flags, the input the tab
+               -- reason's backward scan walks, and the stamp the props arm
+               -- carried across the property scan.
+               ⟨h_nic_s, h_ska_s, h_real_s⟩
+               (dispatchContent_input (corr_of_allowDirectives_update hcorr_prep)
+                 h_dispatch)
+               h_ivl_s h_ivl_pack
                hcorr_prep h_corr h_preprocess)
              ⟨h_nic_s, h_ind_s⟩
              -- Item 68: the run is a character wide whatever the index; the
@@ -18656,7 +18916,24 @@ lemma accum_content_pending (sc : ScannerState)
                    -- half is separated by the residual whites, so the extended
                    -- run still reads at `block-key`.
                    cases h_key_p with
-                   | inr _ => exact Or.inr trivial
+                   -- Item 102: the run GREW, and the punt is about the park, so it
+                   -- rides the extension exactly as the pack does — the property
+                   -- scan moves neither the input, the saved position, the line
+                   -- nor the stamp (`k: &p !t a: 1`).
+                   | inr h_punt =>
+                     refine Or.inr (keyPackPunt_transport h_punt ?_ ?_ ?_ ?_
+                       ⟨h_nic_s, (dispatchContent_anchor_simpleKey h_dispatch).2, h_real_s⟩)
+                     · rw [(dispatchContent_anchor_simpleKey h_dispatch).1,
+                           allowDirectives_update_simpleKey, h_inherit]
+                     · have h_i : s_prep.input = sc.input := preprocess_input h_preprocess
+                       rw [dispatchContent_input (corr_of_allowDirectives_update hcorr_prep)
+                             h_dispatch]
+                       split <;> exact h_i
+                     · exact Or.inl (by rw [h_line', h_ad_line, h_line_pp])
+                     · have h_v : s_prep.implicitValueLine = sc.implicitValueLine :=
+                         preprocess_preserves_implicitValueLine sc s_prep _ h_preprocess
+                       rw [dispatchContent_anchor_implicitValueLine h_dispatch]
+                       split <;> exact h_v
                    | inl hpk =>
                      obtain ⟨⟨k, h_route_k, h_kcol, h_kslot_pk⟩, _h_props_old, h_sk_line,
                        h_poss_old⟩ := hpk
@@ -18744,7 +19021,24 @@ lemma accum_content_pending (sc : ScannerState)
                    h_route
                    (by
                      cases h_key_p with
-                     | inr _ => exact Or.inr trivial
+                     -- Item 102: the run GREW, and the punt is about the park, so it
+                     -- rides the extension exactly as the pack does — the property
+                     -- scan moves neither the input, the saved position, the line
+                     -- nor the stamp (`k: &p !t a: 1`).
+                     | inr h_punt =>
+                       refine Or.inr (keyPackPunt_transport h_punt ?_ ?_ ?_ ?_
+                         ⟨h_nic_s, (dispatchContent_tag_simpleKey h_dispatch).2, h_real_s⟩)
+                       · rw [(dispatchContent_tag_simpleKey h_dispatch).1,
+                             allowDirectives_update_simpleKey, h_inherit]
+                       · have h_i : s_prep.input = sc.input := preprocess_input h_preprocess
+                         rw [dispatchContent_input (corr_of_allowDirectives_update hcorr_prep)
+                               h_dispatch]
+                         split <;> exact h_i
+                       · exact Or.inl (by rw [h_line', h_ad_line, h_line_pp])
+                       · have h_v : s_prep.implicitValueLine = sc.implicitValueLine :=
+                           preprocess_preserves_implicitValueLine sc s_prep _ h_preprocess
+                         rw [dispatchContent_tag_implicitValueLine h_dispatch]
+                         split <;> exact h_v
                      | inl hpk =>
                        obtain ⟨⟨k, h_route_k, h_kcol, h_kslot_pk⟩, _h_props_old, h_sk_line,
                          h_poss_old⟩ := hpk
@@ -18824,8 +19118,60 @@ lemma accum_content_pending (sc : ScannerState)
             have h_key : s'.simpleKey.possible = true → s'.simpleKey.pos.line = s'.line →
                 ImplicitKeyPack s' sp_start sp_scan' ∨ KeyPackPunt s' := by
               intro h_poss h_kline
+              -- ═══ Item 102: the content dispatch's own three facts about the
+              -- park it creates, taken ONCE.  The pack branch below spends the
+              -- first per head; the punt branch needs all three, because the
+              -- reason the RUN parked with is about the run's park and this
+              -- step moves it (`k: &p a: 1`, `k: !t a: 1`). ═══
+              have h_park_all : s'.simpleKey.pos = (if s_prep.allowDirectives then
+                    { s_prep with allowDirectives := false, documentEverStarted := true }
+                  else s_prep).simpleKey.pos ∧
+                  (s'.implicitValueLine = (if s_prep.allowDirectives then
+                    { s_prep with allowDirectives := false, documentEverStarted := true }
+                  else s_prep).implicitValueLine ∧ StalePark s') := by
+                by_cases hc5 : c = '|' ∨ c = '>'
+                · exact absurd h_poss
+                    (by rw [dispatchContent_blockScalar_simpleKey_false hc5 h_dispatch]; simp)
+                · have hnPipe : c ≠ '|' := fun h => hc5 (Or.inl h)
+                  have hnGt : c ≠ '>' := fun h => hc5 (Or.inr h)
+                  have h_nic_ad : (if s_prep.allowDirectives then
+                      { s_prep with allowDirectives := false, documentEverStarted := true }
+                    else s_prep).needIndentCheck = false := by
+                    split <;>
+                      exact nic_false_of_flow_disp (sc := sc) (s_prep := s_prep)
+                        h_preprocess h_flow_disp
+                  refine ⟨?_, dispatchContent_implicitValueLine h_dispatch hamp hbang hnPipe hnGt,
+                    (staleNodeTail_of_dispatchContent_value h_dispatch hamp hbang hnPipe hnGt
+                      h_nic_ad).toStalePark⟩
+                  by_cases hdq : c = '"'
+                  · subst hdq
+                    exact (dispatchContent_doubleQuoted_key_prod _ sp_prep
+                      (corr_of_allowDirectives_update hcorr_prep) hpeek_disp h_dispatch).1
+                  · by_cases hsq : c = '\''
+                    · subst hsq
+                      exact (dispatchContent_singleQuoted_key_prod _ sp_prep
+                        (corr_of_allowDirectives_update hcorr_prep) hpeek_disp h_dispatch).1
+                    · rw [(dispatchContent_plainScalar_key_prod _ sp_prep
+                        (corr_of_allowDirectives_update hcorr_prep) hpeek_disp h_flow_disp
+                        hamp hstar hbang hnPipe hnGt hdq hsq h_not_doc h_dispatch).1]
               cases h_key_p with
-              | inr _ => exact Or.inr KeyPackPunt.noKeyContext
+              | inr h_punt =>
+                -- Item 102: the run's park had a REASON, and the decorated
+                -- content inherits it — the scan moved neither the input nor
+                -- the saved position, the stamp rode through, and the line
+                -- travels by the saved key (a multi-line scalar fails the
+                -- consumer's own guard first).
+                refine Or.inr (keyPackPunt_transport h_punt ?_ ?_ (Or.inr h_kline) ?_
+                  h_park_all.2.2)
+                · rw [h_park_all.1, allowDirectives_update_simpleKey, h_inherit]
+                · have h_i : s_prep.input = sc.input := preprocess_input h_preprocess
+                  rw [dispatchContent_input (corr_of_allowDirectives_update hcorr_prep)
+                        h_dispatch]
+                  split <;> exact h_i
+                · have h_v : s_prep.implicitValueLine = sc.implicitValueLine :=
+                    preprocess_preserves_implicitValueLine sc s_prep _ h_preprocess
+                  rw [h_park_all.2.1]
+                  split <;> exact h_v
               | inl hpk =>
                 obtain ⟨⟨k, h_route_k, h_kcol, h_kslot_pk⟩, h_props_bk, h_sk_line,
                   h_poss_old⟩ := hpk

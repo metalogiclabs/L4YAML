@@ -4006,6 +4006,99 @@ lemma scanSingleQuoted_preserves_implicitValueLine (s : ScannerState) (s' : Scan
     have := collectSingleQuotedLoop_preserves_implicitValueLine s.advance "" _ _ _ _ _ result heq
     rw [this, advance_preserves_implicitValueLine]
 
+/-! ### … and through the TAG scan (item 102)
+
+The props run's own head is `&`/`!`, which the content ladder above excludes:
+`dispatchContent_implicitValueLine` reads a value-completing character.  A
+`[96]` run parks before its content, so the stamp has to survive the property
+scan itself before the run's content can carry it — the anchor half is
+`scanAnchorOrAlias_preserves_implicitValueLine` above, and this is the tag
+half, mirroring the `simpleKey` ladder lemma-for-lemma. -/
+
+lemma collectVerbatimTagLoop_preserves_implicitValueLine (s : ScannerState) (uri : String) (fuel : Nat) :
+    (collectVerbatimTagLoop s uri fuel).snd.snd.implicitValueLine = s.implicitValueLine := by
+  induction fuel generalizing s uri with
+  | zero => unfold collectVerbatimTagLoop; rfl
+  | succ fuel' ih =>
+    unfold collectVerbatimTagLoop
+    split
+    · simp only []; exact advance_preserves_implicitValueLine s  -- found '>', return (uri, s.advance)
+    · split  -- isUriCharBool
+      · rw [ih]; exact advance_preserves_implicitValueLine s  -- uri char, recurse
+      · rfl  -- not uri char, return (uri, s)
+    · simp only []  -- none, return (uri, s)
+
+lemma collectTagSuffixLoop_preserves_implicitValueLine (s : ScannerState) (suffix : String) (fuel : Nat) :
+    (collectTagSuffixLoop s suffix fuel).snd.implicitValueLine = s.implicitValueLine := by
+  induction fuel generalizing s suffix with
+  | zero => unfold collectTagSuffixLoop; rfl
+  | succ fuel' ih =>
+    unfold collectTagSuffixLoop
+    split
+    · split
+      · rw [ih]; exact advance_preserves_implicitValueLine s  -- tag char, recurse
+      · simp only []  -- not tag char, return
+    · simp only []  -- none, return
+
+lemma collectTagHandleLoop_preserves_implicitValueLine (s : ScannerState) (chars : String) (fuel : Nat) :
+    (collectTagHandleLoop s chars fuel).snd.snd.implicitValueLine = s.implicitValueLine := by
+  induction fuel generalizing s chars with
+  | zero => unfold collectTagHandleLoop; rfl
+  | succ fuel' ih =>
+    unfold collectTagHandleLoop
+    split
+    · simp only []; exact advance_preserves_implicitValueLine s  -- found '!', return (chars, true, s.advance)
+    · split  -- split on the if condition
+      · rw [ih]; exact advance_preserves_implicitValueLine s  -- word char, recurse
+      · simp only []  -- not word char, return
+    · simp only []  -- none, return
+
+lemma scanVerbatimTag_preserves_implicitValueLine (s : ScannerState) (startPos : YamlPos)
+    (s' : ScannerState) (hok : scanVerbatimTag s startPos = .ok s') :
+    s'.implicitValueLine = s.implicitValueLine := by
+  unfold scanVerbatimTag at hok; dsimp only [] at hok
+  split at hok
+  · exact absurd hok (by simp)
+  · split at hok
+    · exact absurd hok (by simp)
+    · have h := Except.ok.inj hok; subst h
+      simp [emitAt_preserves_implicitValueLine, collectVerbatimTagLoop_preserves_implicitValueLine,
+            advance_preserves_implicitValueLine]
+
+lemma scanSecondaryTag_preserves_implicitValueLine (s : ScannerState) (startPos : YamlPos) :
+    (scanSecondaryTag s startPos).implicitValueLine = s.implicitValueLine := by
+  unfold scanSecondaryTag
+  simp [emitAt_preserves_implicitValueLine, collectTagSuffixLoop_preserves_implicitValueLine,
+        advance_preserves_implicitValueLine]
+
+lemma scanNamedTag_preserves_implicitValueLine (s : ScannerState) (startPos : YamlPos) (inputEnd : Nat) :
+    (scanNamedTag s startPos inputEnd).implicitValueLine = s.implicitValueLine := by
+  unfold scanNamedTag
+  simp only []
+  split
+  · simp [emitAt_preserves_implicitValueLine, collectTagSuffixLoop_preserves_implicitValueLine,
+          collectTagHandleLoop_preserves_implicitValueLine]
+  · simp [emitAt_preserves_implicitValueLine, collectTagHandleLoop_preserves_implicitValueLine]
+
+lemma scanTag_preserves_implicitValueLine (s : ScannerState)
+    (s' : ScannerState) (hok : scanTag s = .ok s') :
+    s'.implicitValueLine = s.implicitValueLine := by
+  unfold scanTag at hok; dsimp only [] at hok
+  split at hok
+  · simp only [bind, Except.bind] at hok
+    generalize hv : scanVerbatimTag s.advance s.currentPos = result at hok
+    cases result with
+    | error e => simp at hok
+    | ok s_verb =>
+      dsimp only [] at hok; have h := Except.ok.inj hok; subst h; dsimp only []
+      simp [scanVerbatimTag_preserves_implicitValueLine s.advance s.currentPos s_verb hv,
+            advance_preserves_implicitValueLine]
+  · have h := Except.ok.inj hok; subst h; dsimp only []
+    simp [scanSecondaryTag_preserves_implicitValueLine, advance_preserves_implicitValueLine]
+  · have h := Except.ok.inj hok; subst h; dsimp only []
+    simp [scanNamedTag_preserves_implicitValueLine, advance_preserves_implicitValueLine]
+
+
 lemma collectDirectiveNameLoop_preserves_simpleKey (s : ScannerState) (name : String) (fuel : Nat) :
     (collectDirectiveNameLoop s name fuel).snd.simpleKey = s.simpleKey := by
   induction fuel generalizing s name with

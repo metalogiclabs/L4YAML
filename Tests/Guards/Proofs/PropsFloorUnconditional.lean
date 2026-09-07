@@ -49,7 +49,10 @@ example {sc : ScannerState} {sp_start sp_block sp_scan sp_node sp_p : SurfPos}
     PendingNode sc false sp_start sp_block sp_scan :=
   PendingNode.pendingProps sp_start sp_block sp_scan true false sp_node sp_p n
     h_sep h_run h_nic h_real (fun _ => h_anchor) (fun h => nomatch h) h_route
-    (Or.inr trivial) h_floor h_col0 (Or.inr trivial) h_ska (Or.inr trivial)
+    -- Item 102: the key field's `True` became `KeyPackPunt`, so a pin that
+    -- offers no pack has to NAME why — here, a caller with no key context.
+    (Or.inr KeyPackPunt.noKeyContext) h_floor h_col0 (Or.inr trivial) h_ska
+    (Or.inr trivial)
 
 /-! ## §2  The measurement: the floor's transport premises
 

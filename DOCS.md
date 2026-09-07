@@ -10564,7 +10564,9 @@ flow closes, and the props pack's own `∨ True`, which is why `k: &p a: 1` is
 measured refused above and still deferred: `entryPropsKeyPack_of_dispatch`
 returns `PropsKeyPack ∨ True` rather than `∨ KeyPackPunt`, so the props path
 has no reason to name yet).  That last one is this item's own boundary and
-its natural sequel: the same split, one lemma over.
+its natural sequel: the same split, one lemma over.  **Taken by item 102**,
+which also found why it had not been taken already — the punt's CARRIER, not
+its argument, was what a `[96]` park could not supply.
 
 New guard `ScannerImplicitValueSameLineKey` pins the 12 refusals by their
 `nestedMappingOnLine` POSITION (so the §8.2.2 check is what is being
@@ -10586,6 +10588,131 @@ capstones) OK; no `sorryAx` anywhere, and the five new leaves at
 `[propext, Classical.choice, Quot.sound]`.  The annotation verifier stands at
 its same pre-existing name mismatches, none in the new code.
 
+### Item 102 (2026-09-06)
+
+**The property run's park hands the stamp on.**  Item 101's props twin, and the
+measurement that opened it was of the CARRIER rather than of the reasoning.
+
+`entryPropsKeyPack_of_dispatch` returned `PropsKeyPack ∨ True`, which is why
+`k: &p a: 1` measured refused (`nestedMappingOnLine 0 7`) and still deferred.
+The obvious reading — "the props path needs its own version of item 101's
+argument" — was wrong.  The argument transfers verbatim; what did not was
+`KeyPackPunt`'s PAYLOAD.  Both refutable reasons carried `StaleNodeTail`,
+because the first producer to build them had one, and its fourth conjunct says
+the last real token COMPLETES a value.  `[96] c-ns-properties` tokens are
+excluded from `completesFlowValue` by construction ([Token.lean:275](L4YAML/Token/Token.lean)),
+so a property park HAS no stale tail — while the two refutations read three of
+the four conjuncts and never the fourth.  The carrier, not the reason, is what
+kept the props path silent.  `StalePark` is those three, `StaleNodeTail`
+projects into it, and the same two reasons now serve a value park and a
+property park alike.  (Item 36's rule, applied to a carrier instead of a
+predicate: type the datum at what reads it, and the projection moves to the
+producer.)
+
+**The reason then has to TRAVEL**, and that is the item's real cost.  A `[96]`
+run parks BEFORE its content, so `k: &p a: 1`'s `:` meets the park the SCALAR
+made, two steps past the value indicator that stamped the line — where item
+101's `:` met the value's own content park one step past it.
+`keyPackPunt_transport` is that step, stated once and spent at both moves the
+run makes: the EXTENSION (`&p !t`, `!t &p`) and the CONTENT.  Its premise list
+is exactly what the reasons read — the input and the saved key's POSITION for
+the tab's backward scan, the line and the stamp for the implicit value, the
+park's three flags for both, and nothing at all for `dedent`/`noFrame`/
+`noKeyContext`.  The LINE arrives by either of two routes and which one is
+available is a property of the STEP, not of the reason: an extension never
+moves the line and says so directly; a content scan may (a multi-line scalar),
+and there the saved key's own line carries it — the consumer observes exactly
+that guard on its own post-state, and a key that spanned a break fails it
+first.
+
+The stamp's own transport needed one more rung.  `dispatchContent_implicitValueLine`
+(item 101) reads a value-completing character and so excludes the two property
+heads, which are precisely the heads here; the anchor half was already built
+(`scanAnchorOrAlias_preserves_implicitValueLine`) and the TAG half was not, so
+seven more lemmas are transposed from the `simpleKey` ladder
+(`collectVerbatimTagLoop`, `collectTagSuffixLoop`, `collectTagHandleLoop`,
+`scanVerbatimTag`, `scanSecondaryTag`, `scanNamedTag`, `scanTag`) and two
+dispatch lemmas sit on top.  Same recipe as item 101, same result: compiled
+first try.
+
+**What the producer pays.**  All three of `entryPropsKeyPack_of_dispatch`'s
+punts are named, not just the one that pays: `tab` (the same located run — a
+`[96]` scan moves neither the string nor the saved position, so item 65's
+reading transports through `h_input`/`h_sk`), `dedent` (item 64's boundary at
+the props park), and the `h_compact = Or.inr` branch SPLIT as on the sibling —
+`noFrame` for the EXPLICIT slot, `implicitValue` for `[189]`'s.  The cost is
+four premises; at the four call sites that read their own head every piece was
+already in hand.  The other two dispatch on a generic `c`, so
+`indentedValue_reads_at_any_indent`'s props disjunct gains ONE conjunct (the
+stamp across the property scan): the arm knows which head it took and its
+caller does not, so the transport is returned rather than re-derived.
+
+**Measured before designed**, scan / legacy / indexed agreeing on the error
+TEXT and not merely the verdict.  Refused, all `nestedMappingOnLine` at the
+second indicator's own position: `k: &p : 1`, `k: !!str : 1`, `k: &p !t : 1`
+(the run's own park — `colon_fires_props_key`'s share), and `k: &p a: 1`,
+`k: !t a: 1`, `k: &p "a" : b`, `k: &p 'a' : b`, `k: &p !t a: 1`,
+`k: !t &p a: 1`, `: &p a: 1`, `- k: &p a: 1`, `? a: &p b: c`, `k: &p→a: 1`
+(the content park — the transport's share).  Accepted and unmoved: `&p a: 1`,
+`&p !t a: 1`, `- &p a: 1`, `- &p !t a: 1`, `k:⏎  &p a: 1`, `k:⏎  &p !t a: 1`,
+`?⏎: &p a: 1`, `?⏎: &p !t a: 1`, `? a⏎: &p b: c`, `k: &p⏎  a: 1`,
+`k: &p |⏎  x`, and `k: &p: 1` — which looks like the refused family and is
+not, `&p:` being a plain scalar with an anchor and no second indicator at all.
+
+**The tab is paid at one consumer and not the other**, which is worth stating
+because naming it is what made the difference visible.  The park really is
+accepted (`k:⏎␣→&p a` reads), so the pack punts exactly as item 65's does.  A
+decorated CONTENT park then lands on `colon_fires_implicit_key`, which refutes
+the tab — so `k:⏎␣→&p a: 1` and `k:⏎␣→&p !t a: 1` (both `tabInIndentation 1 2`)
+are paid, a family the transport buys beyond the stamp.  The RUN's own park is
+not: item 65's refutation also wants the saved key's line and its possibility,
+which `ImplicitKeyPack`'s consumer reads off the guard its field is stated
+under and `colon_fires_props_key` has only inside the pack.  `k:⏎␣→&p : 1` is
+measured refused and still defers.
+
+**What this leaves**, named twice over.  `k: &p [1]: 2` is refused at runtime
+and still defers — a flow collection opened at the run's park closes through
+item 56's frame, whose key context is optional, so `noKeyContext` stands there.
+And the props park's own TAB, above.  Both are pinned as refused in the guard,
+so the next item has its measurement rather than a plan sentence.  Otherwise
+the inline residue's reasons are unchanged: ~~`tab`~~ (65), ~~the implicit
+value's frameless key~~ (101, and 102 on the props side), `dedent` (99 drained
+its arms; R4's landing pad), `noFrame`'s EXPLICIT half, and `noKeyContext`.
+
+New guard `ScannerPropsRunSameLineKey` pins the 13 refusals by their
+`nestedMappingOnLine` POSITION, the 12 accepts that must not move, the tab
+family by its `tabInIndentation` position (two accepted parks, two paid
+refusals, one named residue), the `k: &p [1]: 2` residue, and four facts at
+their types — including the one that explains the item: a park whose last real
+token is a `[96]` property has NO `StaleNodeTail`, which is machine-checked
+rather than asserted here.
+
+**What is and is not machine-checked**, since a threaded reason is easy to
+mistake for a spent one.  The two REFUTATIONS are proofs — each derives `False`
+from the punt and uses no escape.  That a given input REACHES one of them is a
+reading of the call graph plus the runtime measurement above, not a theorem;
+the campaign's own instrument for that is the escape-site count, and it does
+not move here (3 → 3) because the other reasons remain at the same arms.  What
+the item strictly buys is the same as item 101's: the domain of those arms is
+smaller by the families listed above.
+
+**Validation.**  Full `lake build` green (1078 jobs, ZERO warnings);
+`run-all-tests.sh` **4473/4473** across 17 suites — unmoved, this item adds no
+`@[yaml_spec]` annotation; matrix **402/402 event and 282/282 JSON on BOTH
+pipelines**; `eventscore` **347/358** (252 event-pass, 11 event-diff, **0
+event-reject**, 95 error-ok).  All unmoved BY CONSTRUCTION — no runtime file is
+touched — and run anyway.  `check-reflection-index.sh` (20 sub-themes, 229
+bulleted demos, 248 reflections, 354 demos imported),
+`check-import-closure.sh` (222 modules) and `check-theorem-keyword.sh` (25
+capstones) OK; no `sorryAx` anywhere, and of the leaves probed the seven
+scan/dispatch/transport lemmas sit at `[propext, Classical.choice, Quot.sound]`
+with the carrier projection at `[propext]` alone; `collect-stats` reports 0 direct and 0 transitive `sorry`, 0 custom axioms, over **8072** theorems — 8061 at item 101 plus exactly the eleven lemmas this item adds.  Two
+EXISTING guards failed on the signature changes and were corrected —
+`PropsFloorUnconditional` pinned the props key field at `∨ True` and now names
+its reason, and item 101's own pin took the widened carrier — which is the
+guards doing what they are for.  The annotation verifier stands at its same
+pre-existing name mismatches, none in the new code.
+
 ### REMAINING, in order
 
 The per-item history is the closure log above; this section lists only the
@@ -10599,7 +10726,7 @@ too (items 47–51), so what stands between here
 and Step 5 (the converse) is R3's remaining production work and R4:
 
 ```
-R1 ✓ (44–46) ──→ R2 ✓ (47–51) ──→ R3 (52–101 landed; 67b open) ──→ Step 5
+R1 ✓ (44–46) ──→ R2 ✓ (47–51) ──→ R3 (52–102 landed; 67b open) ──→ Step 5
                                         └──────→ R4 (implicitContinue + 0 < m) ──┘
 ```
 
@@ -10938,26 +11065,29 @@ that reaches each:
   arm, which cannot close while the escape is what produces the pending, and
   goes with the constructor.
 
-  **And the inline residue's own count** (2026-09-06, after item 101), which
+  **And the inline residue's own count** (2026-09-06, after item 102), which
   is what the two sites are made of rather than what they are called.  The
   mid-line `:` composes whenever `colon_fires_implicit_key` gets a pack, so
   the residue IS the pack's punt, and the punt's reasons are the honest list:
   ~~`tab`~~ (refuted at item 65), ~~the implicit value's frameless key~~
   (refuted at item 101 — `k: a: 1` and its whole family are §8.2.2's own
-  refusal), `dedent` (item 99 drained the arms; the constructor is R4's
-  landing pad), `noFrame`'s EXPLICIT half (`?⏎: b: c`, accepted — item 51's
-  threading, the `?` frame's value pack), and `noKeyContext` (item 56's
-  frameless flow closes, plus `entryPropsKeyPack_of_dispatch`'s own `∨ True`,
-  which is why the props twin `k: &p a: 1` measures refused and still
-  defers).  Two of five paid, and the next one is the props pack's — the same
-  split one lemma over.
+  refusal — and at item 102 on the props side, `k: &p a: 1`), `dedent` (item
+  99 drained the arms; the constructor is R4's landing pad), `noFrame`'s
+  EXPLICIT half (`?⏎: b: c`, accepted — item 51's threading, the `?` frame's
+  value pack), and `noKeyContext` (item 56's frameless flow closes, which is
+  now also the props path's own residue: `k: &p [1]: 2` measures refused and
+  still defers, the run's park having opened a FLOW collection whose frame's
+  key context is optional).  Two of five paid on both packs, and what is left
+  of the third is one construct — the flow open — rather than one pack.
 
   And the DELETION has preconditions outside this ledger: `pendingFlow`'s
   producers are also the block dispatch's inline-residue defers, fed by
   `KeyPackPunt`'s surviving reasons — ~~`noFrame` (item 89 threads the six
   frame-owning sites; the reason's residue is `[189]`'s scanner-refused
   same-line key)~~ (SPLIT by item 101: the scanner-refused half is refuted,
-  the explicit half remains) and `dedent`, the last
+  the explicit half remains — and item 102 does the same on the PROPS pack,
+  which had no reason to split until its punt's carrier was cut down to what
+  the refutations read) and `dedent`, the last
   being the sibling composition items 64–65 LOCATED and this plan orders as
   row 19's own (a frame stack on the pending).  So row 12's β.5 deletion
   closes after: ~~the escaped-blank gate item~~ (CLOSED by item 87), ~~the

@@ -123,9 +123,14 @@ example {s s' : ScannerState} {c : Char}
   dispatchContent_implicitValueLine hok h_amp h_bang h_pipe h_gt
 
 open L4YAML.Scanner L4YAML.Proofs.StreamAccum in
-/-- …and the punt that spends it names both halves of what it carries. -/
+/-- …and the punt that spends it names every half of what it carries.  Item
+    102 widened the carrier from `StaleNodeTail` to the three flags the
+    refutations actually read (`StalePark`) and added the saved key's line,
+    which is what a property park needs in order to hand the same reason on;
+    a value park still projects into it. -/
 example {sc : ScannerState} (h_ivl : sc.implicitValueLine = some sc.line)
+    (h_kline : sc.simpleKey.pos.line = sc.line)
     (h_st : StaleNodeTail sc) : KeyPackPunt sc :=
-  KeyPackPunt.implicitValue h_ivl h_st
+  KeyPackPunt.implicitValue h_ivl h_kline h_st.toStalePark
 
 end L4YAML.Tests.Guards.ScannerImplicitValueSameLineKey
