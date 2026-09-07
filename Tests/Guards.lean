@@ -91,6 +91,7 @@ import Tests.Guards.Proofs.ScannerEmitBridge
 import Tests.Guards.Proofs.ScannerEmptyKeyMapping
 import Tests.Guards.Proofs.ScannerExplicitKeyCompose
 import Tests.Guards.Proofs.ScannerDedentSibling
+import Tests.Guards.Proofs.ScannerDedentKeepsExplicitFrame
 import Tests.Guards.Proofs.ScannerExplicitKeyScope
 import Tests.Guards.Proofs.ScannerImplicitKeyCompose
 import Tests.Guards.Proofs.ScannerPlainNoGainRewind

@@ -24,7 +24,8 @@ each held as its `[195]`-tail continuation), which is where R4's
 
 §1 pins the dedent family ACCEPTED with sibling-shaped events in both
 pipelines; §2 the unmoved neighbors; §3 the standing refusals; §4 the frames
-machinery at its types. -/
+machinery at its types (at the STREAM bottom — item 108 made the bottom a
+parameter without moving any of this). -/
 
 namespace L4YAML.Tests.Guards.ScannerDedentSibling
 
@@ -118,21 +119,25 @@ private def refuses (input : String) : Bool :=
 
 -- §4 The frames machinery at its types: a two-level stack closes to the
 -- fused stream, and the spend pops to the landing's own level.
-example {sp_start sp : SurfPos} (h : ResumeFrames sp_start [2, 0] sp) :
+example {sp_start sp : SurfPos} (h : ResumeFrames (SLYamlStream sp_start) [2, 0] sp) :
     SLYamlStream sp_start sp := h.close
 
-example {sp_start sp : SurfPos} (h : ResumeFrames sp_start [2, 0] sp) :
+example {sp_start sp : SurfPos} (h : ResumeFrames (SLYamlStream sp_start) [2, 0] sp) :
     ∃ ks', (∀ k' ∈ ks', k' < 0) ∧
       (∀ sp_end, SCompactMapTail 0 sp sp_end →
-        ResumeFrames sp_start ks' sp_end) :=
+        ResumeFrames (SLYamlStream sp_start) ks' sp_end) :=
   h.resumeAt (by simp)
 
-/-- The level constructor demands the strict ordering, and the bottom is the
-    stream — the two invariants every producer pays. -/
+/-- The level constructor demands the strict ordering, and this stack's bottom
+    is the stream — the two invariants every producer of THIS instantiation
+    pays.  The bottom became a parameter at item 108, where the same stack over
+    the explicit frame's value line keeps a `?` open across a dedent
+    (`ScannerDedentKeepsExplicitFrame`); everything here is that construct at
+    `SLYamlStream sp_start` and is unchanged by it. -/
 example {sp_start sp : SurfPos}
     (h_cont : ∀ sp_end, SCompactMapTail 3 sp sp_end →
-      ResumeFrames sp_start [1] sp_end) :
-    ResumeFrames sp_start [3, 1] sp :=
+      ResumeFrames (SLYamlStream sp_start) [1] sp_end) :
+    ResumeFrames (SLYamlStream sp_start) [3, 1] sp :=
   ResumeFrames.level 3 [1] sp (by simp) h_cont
 
 /-- `rootMapRouteF` seeds the stack: the entry plus its whole tail close the
@@ -142,7 +147,7 @@ example {sp_start sp_land sp_key : SurfPos} {k : Nat}
     (h_ind : SIndent k sp_land sp_key) :
     ∀ sp_v, SBlockMapEntry k sp_key sp_v →
     ∀ sp_e, SCompactMapTail k sp_v sp_e →
-    ResumeFrames sp_start [] sp_e :=
+    ResumeFrames (SLYamlStream sp_start) [] sp_e :=
   rootMapRouteF hcol0 h_stream h_ind
 
 end L4YAML.Tests.Guards.ScannerDedentSibling

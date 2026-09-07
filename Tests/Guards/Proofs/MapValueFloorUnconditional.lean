@@ -41,6 +41,7 @@ example {sc : ScannerState} {sp_start sp_block sp_scan : SurfPos} {n : Nat}
     h_nic h_real (Or.inr trivial) (Or.inr trivial) (Or.inr trivial)
     h_sk h_col0 (Or.inr trivial) (Or.inr trivial)
     (Or.inr trivial) (Or.inr trivial)
+    (Or.inr trivial) (Or.inr trivial)
 
 /-- ...and `colon_open_map_implicit`'s slot asks for exactly that. -/
 example {s' : ScannerState} {k : Nat} (h : IndentFloor s' k) :

@@ -5509,7 +5509,7 @@ lives in [README.md](README.md) and is not duplicated here.)
 
 | Item | Status | Section |
 |---|---|---|
-| Grammar completeness (`parse_iff_grammar`, capstone 7.7) | **Open — forward direction DONE** (2026-08-10): Fix B done, Fix A's accumulation sorry-free and the `L4YAML.Capstones` gate green. What is left is β.5 — retire `pendingFlow` and delete `scannerDrop` (6 textual escape sites and 2 drop sites as of item 48; item 42's per-constructor split raised the escape count 6 → 9 while shrinking the domain, R645/R646, item 43's `--- a` production took one back, item 46's collapse concentrated the flow drops into `dropClose`, item 47's adjacent-value check closed both content parks' `:`-arms 8 → 6, and item 48's same-line checks emptied the BLOCK-dispatch residue at `pendingDocStart`, `pendingProps` (`-`/`?`) and `pendingMapValue`'s implicit side — count unmoved, domain down to the explicit-side productions) — then **tighten `implicitContinue`**, the third over-approximation (found 2026-08-13 by item 30; 17 construction sites, not yet priced) then `[187]`/`[183]`'s auto-detected width (a fourth, found 2026-08-16 by item 40, priced 2026-09-07 by item 107 — a re-indexing of `SBlockNode`, so it no longer travels with the third), and only then the converse and the biconditional. Per-item record and ordered remainder: [Row 12 — β.5 closure log](#row-12--β5-closure-log); the third constructor: [The over-approximation problem](#the-over-approximation-problem) | [Grammar completeness plan](#grammar-completeness-plan) |
+| Grammar completeness (`parse_iff_grammar`, capstone 7.7) | **Open — forward direction DONE** (2026-08-10): Fix B done, Fix A's accumulation sorry-free and the `L4YAML.Capstones` gate green. What is left is β.5 — retire `pendingFlow` and delete `scannerDrop` (6 textual escape sites and 2 drop sites as of item 48; item 42's per-constructor split raised the escape count 6 → 9 while shrinking the domain, R645/R646, item 43's `--- a` production took one back, item 46's collapse concentrated the flow drops into `dropClose`, item 47's adjacent-value check closed both content parks' `:`-arms 8 → 6, and item 48's same-line checks emptied the BLOCK-dispatch residue at `pendingDocStart`, `pendingProps` (`-`/`?`) and `pendingMapValue`'s implicit side — count unmoved, domain down to the explicit-side productions) — then **tighten `implicitContinue`**, the third over-approximation (found 2026-08-13 by item 30; 18 construction sites re-counted 2026-09-07, and priced by SHAPE rather than count at item 108 — the sites are downstream of one landing skeleton that closes the pending and re-opens at the root) then `[187]`/`[183]`'s auto-detected width (a fourth, found 2026-08-16 by item 40, priced 2026-09-07 by item 107 — a re-indexing of `SBlockNode`, so it no longer travels with the third), and only then the converse and the biconditional. Per-item record and ordered remainder: [Row 12 — β.5 closure log](#row-12--β5-closure-log); the third constructor: [The over-approximation problem](#the-over-approximation-problem) | [Grammar completeness plan](#grammar-completeness-plan) |
 | Merge semantics (`DuplicateKeyPolicy.merge`) | **Open** (design ready; re-base on `LawfulBEq`) | [Merge semantics plan](#merge-semantics-plan) |
 | Security limits: open questions + future work | **Open** (design questions; 3 unimplemented features) | [Security hardening backlog](#security-hardening-backlog) |
 | Limit-enforcement verification, and the rest | **Open** (varied) | [Other open items](#other-open-items) |
@@ -11183,17 +11183,22 @@ and kill the root.
 
 Row 19's 1d is no longer "4 construction sites, unpriced".  It is downstream of
 a grammar re-indexing, and 1c stays where it is.  The sibling family's own item
-is the `ResumeFrames` generalization, which is independent of both.
+is the `ResumeFrames` generalization, which is independent of both — LANDED at
+item 108, which also found that the two sibling inputs named in the ledger are
+1c's rather than the generalization's.
 
 #### Validation
 
-Full build **1083 jobs**, zero warnings; `run-all-tests.sh` runs **19** suites,
+Full build **1083 jobs**, zero warnings; ~~`run-all-tests.sh` runs **19** suites,
 all green — the **16** that print a `Results:` line total **2032/2032**, and the
-other three report in their own formats (`5/5 correctly rejected` and two
-diagnostics).  *That denominator is this run's own*: item 106 recorded
-"4473/4473 across 17 suites" from an aggregation this session could not
-reproduce, and the runner prints no grand total, so the number is stated here
-with the rule that produced it rather than carried forward.  Matrix **402/402
+other three report in their own formats.  *That denominator is this run's own*:
+item 106 recorded "4473/4473 across 17 suites" from an aggregation this session
+could not reproduce, and the runner prints no grand total~~ — **wrong, corrected
+2026-09-07 by item 108**: the runner DOES print a grand total, on its own
+`Verified:` line, and it reads **4473/4473 across 17 suites**, item 106's number
+unmoved.  What item 107 counted was `Results:` lines, which only some suites
+emit; the summary line was there and went unread, so a reproducible number was
+reported as unreproducible.  Matrix **402/402
 event and 282/282 JSON on BOTH pipelines** — measured with the dedicated
 `l4yaml-event-ix`/`l4yaml-json-ix` binaries rather than a `-ix` wrapper, since
 an ignored flag would have made the second row a copy of the first.
@@ -11204,10 +11209,127 @@ sub-themes, 229 bulleted demos, 248 reflections, 354 demos imported),
 `check-import-closure.sh` (**222** library modules — the new guard is a test
 module and does not move it) and `check-theorem-keyword.sh` (25 capstones) OK;
 `collect-stats` reports 0 direct and 0 transitive `sorry`, 0 custom axioms,
-**8098** theorems (unmoved: the guard's facts are `example`s).  The annotation
+~~**8098** theorems~~ (the sorry audit is the `adversarialinstantiation` suite,
+green; the theorem figure is corrected under [Item 108](#item-108-2026-09-07),
+which could not reproduce it from `stats.json`'s fields either).  The annotation
 verifier reports the same **19** mismatches across the same seven files.
 Escape-site counts UNMOVED: three `block_dispatch_deferred`, one `dropClose`
 use, two `scannerDrop`.
+
+### Item 108 (2026-09-07)
+
+**A `ResumeFrames` stack bottomed at the stream has no `?` left in it**, and
+that is the whole of what kept the explicit frame out of the dedent landing.
+Item 99 built the stack of still-open mapping levels and bottomed it at the
+finished stream, which is exactly right for its own inputs: `k:⏎  :⏎b: 2`'s `b`
+is a sibling in the ROOT mapping, and the root mapping ends in the stream.
+Inside a `[186]` explicit KEY the same landing wants the same stack over a
+different bottom — `?⏎  a:⏎    b:⏎  c: 2⏎: - w` reads `c` as a sibling of `a`,
+and at that point the `?` entry still owes `[190] s-indent(nv) ':'
+s-l+block-indented(nv, block-out)`, which `: - w` supplies.
+
+**And not because the bottom is far away.**  The `?` entry is closed with
+`[188]`'s `e-node` value INSIDE the outermost level's own continuation
+(`question_open_map`'s `rootMapRouteF … explicitEmpty`), so by the time the
+bottom is reached the frame is already spent.  The two stacks are therefore
+different objects, not one stack read two ways: under `?⏎  a:` the stream stack
+is `[2, 0]` — the key's own level, then the mapping the `?` entry sits in — and
+the value-line stack is `[2]`, because below the `?` there is no open level at
+all, only an unpaid value.  A landing width can name a level in one and not the
+other, so the dedent branch takes the membership test twice.
+
+**The build**: `ResumeFrames` takes its bottom as a parameter
+(`ResumeFrames (P : SurfPos → Prop)`), `close` reaches `P` instead of the
+stream, and `ExplValueLine sp_start nv` names the value-line bottom — the
+predicate items 93/106 wrote inline at every twin.  Item 99's uses are the
+instantiation at `SLYamlStream sp_start`, unchanged.  Then the second stack
+rides beside the first at each carrier it already travels: one face on
+`ImplicitKeyPack`, two fields on `PendingNode.pendingMapValue`, two hypotheses
+on `entryKeyPack_of_dispatch`.  `question_open_map` pays the bottom off its own
+`h_expl` — `[188]`'s `explicit` alternative where the stream face takes
+`explicitEmpty` — `colon_open_map_implicit` pushes each entry's level onto it,
+and the dedent branch pops it and hands the pack a REAL value-line twin where
+item 99 handed `Or.inr trivial`.
+
+#### The sibling's recorded reason was half right, and the halves are different items
+
+Item 107 struck items 92–96's "`SCompactMapTail.cons` has no producer" and put
+the blocker at the dedent branch's `Or.inr trivial`.  That is correct — for the
+sibling whose landing meets a park that still AWAITS a node.  It is not correct
+for the two inputs the ledger actually names.  `? a: b⏎  c: d⏎: e` and
+`?⏎  a: b⏎  c: d⏎: - w` land on COMPLETED content, and a completed-content park
+never reaches that branch: every parked constructor's break-crossed or column-0
+landing goes through ONE shared skeleton (`h_defer_split`, inside
+`accum_content_pending`) which closes the pending with `close_with_ssl` and
+calls `content_dispatch_after_close` with a ROOT key context — re-opening the
+landed key as a fresh bare document through `[211]`'s `implicitContinue`.  The
+frames are not consulted there at all, and the park's `h_vpack` — the `?` frame
+it was holding — goes with the close.  **That half is row 19's `implicitContinue`
+(1c), not this branch**, which is also why 1c is not 17 mechanical construction
+sites: the sites are downstream of one architectural fact, that a landed sibling
+after a completed node has no carrier but the root.
+
+#### A reachability gap in item 99, closed here
+
+Before this item the dedent branch had no reachable input under a root `?` or a
+root `:` at all — and neither did item 99's own stream face.  `question_open_map`
+pays `h_closeF`/`h_frames`, and `accum_content_on_pendingMapValue` (the arm for
+`n = 0`) never took them: the dispatcher matched them into `_`, and the arm
+handed `entryKeyPack_of_dispatch` `Or.inr trivial` for both.  So the first
+landing inside a root explicit key already lost the stack, and everything below
+it inherited nothing.  Both faces are threaded through that arm now, which is
+what gives this item's payment — and item 99's — an input.
+
+#### What is and is not machine-checked
+
+The GENERALIZATION and the PAYMENTS are proofs: every hop in the chain passes a
+named hypothesis rather than `Or.inr trivial`, and the compiler checked each
+application.  That a given input reaches the branch is a reading of the call
+graph plus the runtime measurement, as at items 101–104; the escape-site count
+does not move (3 → 3), because this item pays a punt's ARGUMENT rather than
+removing a deferral.  New guard `ScannerDedentKeepsExplicitFrame` pins the
+family in both pipelines (including the two-level dedent and the chained
+siblings after it), the parametric bottom at its type, the `?` producer's
+bottom, the threading hop, and the dedent's spend — and §6 pins the
+completed-content half with the reason above, so the two are not conflated
+again.
+
+#### Corrections to earlier entries
+
+* **Item 107's suite total was wrong**, corrected in its own entry above:
+  `run-all-tests.sh` prints a grand total on a `Verified:` line and it reads
+  **4473/4473 across 17 suites** — item 106's number, unmoved.  Item 107 counted
+  `Results:` lines, which only some suites emit, and reported a reproducible
+  number as unreproducible.
+* **Item 107's `8098` theorems could not be reproduced from `stats.json`**
+  either, and no field of the current schema carries it; the fields are named in
+  Validation below instead of a total whose derivation is unknown.  The
+  sorry-freeness gate is the `adversarialinstantiation` suite, which is what
+  reports `2441/2441` in the runner.
+* **The `implicitContinue` count has moved**: the plan records 16 construction
+  sites in `StreamAccum` (re-counted 2026-09-04) and there are now **17**, plus
+  `DocumentProduction`'s one — items 99–106 added a site.  Row 19's 1c is
+  updated.
+
+#### Validation
+
+Full `lake build` green (**1084 jobs**, ZERO warnings — 1083 at item 107 plus
+this item's guard); `run-all-tests.sh` **4473/4473 across 17 suites**, including the sorry audit at **2441/2441**;
+matrix **402/402 event and 282/282 JSON on BOTH pipelines**, the legacy binaries
+and the dedicated `l4yaml-event-ix`/`l4yaml-json-ix` identical; `eventscore`
+**347/358** (252 event-pass, 11 event-diff, **0** event-reject, 95 error-ok) —
+all unmoved BY CONSTRUCTION, no runtime file is touched, and run anyway.
+`check-reflection-index.sh` (20 sub-themes, 229 bulleted demos, 248 reflections,
+354 demos imported), `check-import-closure.sh` (**222** library modules) and
+`check-theorem-keyword.sh` (25 capstones) OK.  `collect-stats` writes
+`docs/reports/stats.json`, whose `static` block reads: library **6342**
+theorems+lemmas over 222 files, proofs **6137** over 154, tests **2645** over
+556, **0** axioms in library and proofs.  The annotation verifier reports the
+same **19** name mismatches across the same seven files, every one pre-existing.
+Escape-site counts UNMOVED: three `block_dispatch_deferred` applications
+([StreamAccum.lean:13322](L4YAML/Proofs/Production/StreamAccum.lean),
+`:13789`, `:19507`), one `dropClose` use (`:7395`), two `scannerDrop`
+(`:3133`, `:3178`).
 
 ### REMAINING, in order
 
@@ -11222,7 +11344,7 @@ too (items 47–51), so what stands between here
 and Step 5 (the converse) is R3's remaining production work and R4:
 
 ```
-R1 ✓ (44–46) ──→ R2 ✓ (47–51) ──→ R3 (52–107 landed; 67b open) ──→ Step 5
+R1 ✓ (44–46) ──→ R2 ✓ (47–51) ──→ R3 (52–108 landed; 67b open) ──→ Step 5
                                         └──────→ R4 (implicitContinue + 0 < m) ──┘
 ```
 
@@ -11437,9 +11559,18 @@ and that deletion, by input class:
   `?⏎  a: b⏎  c: d⏎: - w` — ~~`SCompactMapTail.cons` has no producer yet, which
   item 106's twin threads the tail for but does not build~~; **the reason is
   stale**, struck 2026-09-07 by item 107: `.cons` has had two producers since
-  item 99, and the blocker is the dedent branch's `Or.inr trivial` value-line
-  twin, which needs `ResumeFrames` generalized over its bottom) — so those
-  siblings still close `e-node` and defer the reopened `[189]`'s compact fill;
+  item 99, ~~and the blocker is the dedent branch's `Or.inr trivial` value-line
+  twin, which needs `ResumeFrames` generalized over its bottom~~ — that blocker
+  is REAL but it is a different input's, corrected 2026-09-07 by item 108, which
+  built the generalization and paid the branch: a sibling landing on a park that
+  still AWAITS a node reaches it (`?⏎  a:⏎    b:⏎  c: 2⏎: - w`, whose chain now
+  carries a named payment at every hop rather than an `Or.inr trivial`),
+  and a sibling landing on COMPLETED content never does — `h_defer_split` closes
+  every parked constructor identically and `content_dispatch_after_close`
+  re-opens at the ROOT through `implicitContinue`, discarding the park's
+  `h_vpack`.  **The two inputs named here are in that second half, so they are
+  row 19's 1c**) — so those siblings still close `e-node` and defer the reopened
+  `[189]`'s compact fill;
 * the **flow share** — ~~the depth-0 flow close must park REAL evidence
   (`[1] : b`, `? [1]⏎: v`)~~ — CLOSED by item 56 (the frame carries the
   entry routes and the close joins them with the collection re-read as
@@ -11652,10 +11783,17 @@ This is what closes row 12.
 #### R4 — row 19 proper (UNBLOCKED by item 99; before Step 5)
 
 Tighten the two remaining grammar over-approximations — `implicitContinue`
-(**16** construction sites as of 2026-09-04, not item 30's 17: 15 of them the
-`StreamAccum` sibling re-opens row 12 still edits, plus
-`DocumentProduction`'s `stream_implicit_continue`, which passes an EXPLICIT
-document and stays legal as written) and
+(~~**16** construction sites as of 2026-09-04~~ **17** as of 2026-09-07, items
+99–106 having added one: 16 of them the `StreamAccum` sibling re-opens row 12
+still edits, plus `DocumentProduction`'s `stream_implicit_continue`, which
+passes an EXPLICIT document and stays legal as written.  **The count is not the
+cost**, measured 2026-09-07 by item 108: the sites are downstream of ONE
+architectural fact — a sibling landing after a COMPLETED node has no carrier but
+the root, because `h_defer_split` (the shared landing skeleton in
+`accum_content_pending`) closes every parked constructor and hands
+`content_dispatch_after_close` a root key context.  Tightening `implicitContinue`
+means giving that skeleton the frames instead, which is `ResumeFrames` — built
+at item 99, generalized over its bottom at item 108) and
 `0 < m` on `[183]`/`[187]`'s auto-detected width (**4** construction sites as
 of 2026-09-04, not the 7 item 22 counted: `NodeProduction`'s two re-tags inside
 `SBlockNode_blockIn_to_blockOut`, and the `nestedBlockMap`/`nestedBlockSeq`
@@ -11868,7 +12006,7 @@ Step 0 (the scanner audit for directive handling) and Fix B (eliminating
 |---|---|
 | Fix A: eliminate `scannerDrop` | 🟡 **β.3 and β.4 COMPLETE (2026-08-10)** — `StreamAccum.lean` is sorry-free and the `L4YAML.Capstones` gate is GREEN. β.5 is open: `block_dispatch_deferred` stands at 6 textual call sites (item 42's per-constructor split of the content dispatch — domain smaller, count larger — minus item 43's `--- a` production, minus item 47's two content-park `:`-arms, closed by the adjacent-value check) and `scannerDrop` at 2 (items 44–46 closed the resume re-index: the stack carries its reading index, indented flow values compose at it, and the flow drops concentrated into the collapse's one close), and the largest block-dispatch site is down to 6 of its 7 pendings (item 36), two of which now defer only a blank-followed `:` (items 37/47) — the content dispatch's own arm defers only `pendingFlow` (items 42–43/47; `--- a` composes through `content_dispatch_routed` and `h_doc_builder`'s first-ever-consumed `SLBareDocument` branch, and the glued `:` is refused at the scanner) — and its routes are now all built bar the closed FLOW node's (items 38–41: the root mapping's, the compact entry's, the mapping value's, the mapping nested under an entry — that one free, because item 40 merged the two producers into one — and the property RUN's at each of those frames, item 41, where the merge's coverage turns out to be a PRODUCT of the branch a caller can reach and the frame it can offer). Per-item record and the ordered list of what is left: [Row 12 — β.5 closure log](#row-12--β5-closure-log) |
 | 1b. Remove `scannerDrop` from `SLYamlStream` | ⬜ open — β.5, once that last use is gone |
-| 1c. Tighten `implicitContinue` in `SLYamlStream` | ⬜ open — action row 19, **after the DEDENT composition**; the third over-approximation, found 2026-08-13 by item 30 and unpriced. Require `l-document-suffix+` for the bare alternative; 16 construction sites (re-counted 2026-09-04), 15 of them the `StreamAccum` sibling re-opens. [The over-approximation problem](#the-over-approximation-problem) |
+| 1c. Tighten `implicitContinue` in `SLYamlStream` | ⬜ open — action row 19, **after the DEDENT composition**; the third over-approximation, found 2026-08-13 by item 30. Require `l-document-suffix+` for the bare alternative; ~~16 construction sites (re-counted 2026-09-04), 15 of them the `StreamAccum` sibling re-opens~~ **17 in `StreamAccum` as of 2026-09-07** (item 108's re-count) plus `DocumentProduction`'s one — and the count is not the cost: item 108 measured the sites as downstream of `h_defer_split`'s root re-open, so this row is a frames-carrying landing skeleton, not 17 edits. [The over-approximation problem](#the-over-approximation-problem) |
 | 1d. Carry `0 < m` on `[183]`/`[187]`'s auto-detected width | ⬜ open — action row 19; the fourth over-approximation, found 2026-08-16 by item 40. **PRICED 2026-09-07 by item 107, and it is not what this row said.** ~~4 construction sites; harmless at the root~~ — the root is exactly where it is not harmless: three families reach `m = 0` (the root's own mapping, the seq-spaces key `?⏎- a`, and the equal-width landing), the spec reaches the first two with `m = 1` off an index of `-1`, and `seqSpaces 0 .blockOut = seqSpaces 1 .blockOut` because `Nat` subtraction truncates at precisely that index. So the honest floor (`n < E`, or `n ≤ E` in block-out) is false at the root for an encoding reason, and this row is downstream of a re-indexing of `SBlockNode` to `n_lean = n_spec + 1` — the convention `[198]`'s docstring already states and the three collection constructors do not follow. Machine-checked in `Tests/Guards/Proofs/BlockCollectionWidthFloor.lean`. [The over-approximation problem](#the-over-approximation-problem) |
 | 5. Prove the converse `grammar_completeness` | ⬜ open — depends on Fix A **and on 1c**: the converse is false while either over-approximation stands |
 | 6. Assemble the `parse_iff_grammar` biconditional | ⬜ open — depends on Step 5 |
@@ -11939,13 +12077,19 @@ before Step 5. Only `scannerDrop` is row 12's business — nothing DEFERS to
 `implicitContinue`, so it is not an escape site and closing it is not what row
 12's counters count. It is its own action, **row 19**, because it is the same
 kind of obligation on the same theorem and plausibly the same size of one: the
-tightening is to require `l-document-suffix+` for the bare alternative, and 17
-sites construct it — one in `DocumentProduction` (`stream_implicit_continue`),
-which passes an EXPLICIT document and stays legal as written, and 16 in
-`StreamAccum`, every one of them passing `SLAnyDocument.bare`. Those 16 are the
-sibling re-opens row 12 has been building on since item 13 and is still
-editing, which is the only reason row 19 comes after row 12 rather than before
-it. It has not been priced.
+tightening is to require `l-document-suffix+` for the bare alternative, and
+~~17~~ **18** sites construct it (re-counted 2026-09-07 by item 108) — one in
+`DocumentProduction` (`stream_implicit_continue`), which passes an EXPLICIT
+document and stays legal as written, and **17** in `StreamAccum`, every one of
+them passing `SLAnyDocument.bare`. Those are the sibling re-opens row 12 has
+been building on since item 13 and is still editing, which is the only reason
+row 19 comes after row 12 rather than before it. ~~It has not been priced.~~
+**Item 108 prices the shape rather than the count**: every one of those sites is
+reached because a landed sibling after a COMPLETED node has no carrier but the
+root — `h_defer_split` closes the pending and `content_dispatch_after_close`
+takes a root key context — so the row is a landing skeleton that carries
+`ResumeFrames` instead of closing, and the 17 sites fall out of that one change
+rather than being edited one at a time.
 
 The chosen approach removes the constructors from `SLYamlStream` directly
 rather than defining a parallel strict language: no duplicated grammar, the
