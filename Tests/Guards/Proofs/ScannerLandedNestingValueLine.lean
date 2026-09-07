@@ -117,9 +117,12 @@ private def refuses (input : String) : Bool :=
 -- reaches this branch: the runtime refuses this shape upstream.
 #guard refuses "k:\n  ?\n    a: b\n: - w\n"
 -- The SIBLING inside the landed key reads as one mapping with two entries —
--- accepted, and the twin's `SCompactMapTail` argument admits it — but
--- `SCompactMapTail.cons` still has no producer, so the second entry's
--- composition is a residue this item does not close.
+-- accepted, and the twin's `SCompactMapTail` argument admits it — but the
+-- second entry's composition is a residue this item does not close.  (~~`.cons`
+-- still has no producer~~ — stale when written; item 99 gave it two at the
+-- dedent branch's resume cons.  What blocks the sibling is the value-line twin
+-- that branch cannot pay, `ResumeFrames` bottoming at the fused stream — item
+-- 107's measurement, `BlockCollectionWidthFloor`.)
 #guard emits "?\n  a: b\n  c: d\n: - w\n"
   ["+STR", "+DOC", "+MAP", "+MAP", "=VAL :a", "=VAL :b", "=VAL :c", "=VAL :d",
    "-MAP", "+SEQ", "=VAL :w", "-SEQ", "-MAP", "-DOC", "-STR"]
