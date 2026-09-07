@@ -3778,6 +3778,51 @@ lemma valueMapRoute {sp_start sp_scan sp_land sp_key : SurfPos} {n k : Nat}
       (nestedBlockMap hnk h_ssl
         (SBlockMapEntries.single k sp_land sp_key sp_v h_ind h_entry))
 
+/-- **`h_close`'s value-line twin, from the frame the park already carries**
+    (item 106).
+
+    An open `[186]` explicit key owes two things once its KEY node is complete:
+    `s-indent(n) ':'` and the value slot (`[197]
+    l-block-map-explicit-value(n)`), after which the whole `[188]` entry is
+    finished and goes wherever the frame's route sends it.  A `?` producer pays
+    exactly that route (`pendingMapValue.h_expl` — the `?` literal plus
+    `∀ sp_v, SBlockMapEntry n sp_q sp_v → SLYamlStream sp_start sp_v`), and the
+    key node is what the park's own `h_close` awaits — so the twin is a
+    derivation and not a second authoring: fold the awaited node into
+    `[186]`'s key slot, take the value line, hand the finished entry to the
+    route.
+
+    Stated at the CLOSURE's domain rather than at any one completed node (item
+    91's rule), which is what makes it usable where the node is still a
+    variable: the landed key's mapping is built inside `entryKeyPack_of_dispatch`
+    and only becomes a node when the pack's consumer supplies its entries.
+
+    The `Or.inr` argument is the park's own `h_kslot` — a park whose frame is a
+    LEVEL UP carries the twin as a field instead of deriving it here — so the
+    two funders are read as one datum and every call site passes both. -/
+lemma explFrameValueLine {sp_start sp_scan : SurfPos} {n : Nat}
+    (h_expl : (∃ sp_q : SurfPos, GLit '?' sp_q sp_scan ∧
+      ∀ sp_v : SurfPos, SBlockMapEntry n sp_q sp_v →
+        SLYamlStream sp_start sp_v) ∨ True)
+    (h_kslot : (∃ nv : Nat,
+      ∀ sp_m : SurfPos, SBlockNode n .blockIn sp_scan sp_m →
+      ∀ sp_i sp_c : SurfPos, SIndent nv sp_m sp_i → GLit ':' sp_i sp_c →
+      ∀ sp_v : SurfPos, SBlockIndented nv .blockOut sp_c sp_v →
+      SLYamlStream sp_start sp_v) ∨ True) :
+    (∃ nv : Nat,
+      ∀ sp_m : SurfPos, SBlockNode n .blockIn sp_scan sp_m →
+      ∀ sp_i sp_c : SurfPos, SIndent nv sp_m sp_i → GLit ':' sp_i sp_c →
+      ∀ sp_v : SurfPos, SBlockIndented nv .blockOut sp_c sp_v →
+      SLYamlStream sp_start sp_v) ∨ True :=
+  match h_expl with
+  | Or.inl ⟨sp_q, h_qlit, route⟩ => Or.inl ⟨n,
+      fun sp_m h_node sp_i sp_c h_iv h_lit sp_v h_sbi =>
+        route sp_v (SBlockMapEntry.explicit n sp_q sp_scan sp_m sp_i sp_c sp_v h_qlit
+          (SBlockIndented.node n .blockOut sp_scan sp_m
+            (SBlockNode_blockIn_to_blockOut h_node))
+          h_iv h_lit h_sbi)⟩
+  | Or.inr _ => h_kslot
+
 
 
 /-- **The landing's own indentation funds the floor** (item 60).
@@ -16497,6 +16542,20 @@ lemma entryKeyPack_of_dispatch
     (sc : ScannerState) (sp_start sp_scan : SurfPos) (n : Nat)
     (s_prep s' : ScannerState) (c : Char) (sp_prep sp_scan' : SurfPos)
     (h_node : ∀ sp, SBlockNode n .blockIn sp_scan sp → SLYamlStream sp_start sp)
+    -- **Item 106 — `h_node`'s VALUE-LINE twin**, for the branch `h_compact`'s
+    -- own twin cannot reach.  Where the key LANDS, the entry belongs to a
+    -- mapping nested inside the node the pending awaits — the `[199]`
+    -- alternative, not the compact one — and when that node is an open `[186]`
+    -- explicit KEY the landed `:` still has the frame's own value line to
+    -- close (`?⏎  a: b⏎: - w`).  The route is the same `nestedBlockMap` the
+    -- branch already builds, ending in this twin instead of in `h_node`.
+    -- Callers derive it with `explFrameValueLine`; those whose frame has no
+    -- value line pass `Or.inr trivial`.
+    (h_nodeV : (∃ nv : Nat,
+      ∀ sp_m : SurfPos, SBlockNode n .blockIn sp_scan sp_m →
+      ∀ sp_i sp_c : SurfPos, SIndent nv sp_m sp_i → GLit ':' sp_i sp_c →
+      ∀ sp_v : SurfPos, SBlockIndented nv .blockOut sp_c sp_v →
+      SLYamlStream sp_start sp_v) ∨ True)
     -- Item 59: the COMPACT frame, with the park's own column beside it.  The
     -- column is what that branch's key needs in order to know its `[187]` entry
     -- index IS the column the scanner pushed its indent at — the conjunct item
@@ -16655,11 +16714,25 @@ lemma entryKeyPack_of_dispatch
             omega
           exact Or.inl ⟨w, sp_prep, sp_gram2,
                         valueMapRoute hnw h_node h_land.1 h_ind', h_ol, h_tws2, h_kcol,
-                        -- Item 93: the landed key belongs to a mapping nested
-                        -- in a `[199] s-l+block-node` slot — no compact
-                        -- alternative, so no frame twins it (the map face of
-                        -- item 92's seq-spaces residue: `?⏎  a: b⏎: - w`).
-                        Or.inr trivial,
+                        -- ~~Item 93: the landed key belongs to a mapping
+                        -- nested in a `[199] s-l+block-node` slot — no
+                        -- compact alternative, so no frame twins it (the map
+                        -- face of item 92's seq-spaces residue).~~  The slot
+                        -- has no compact alternative and never will, but the
+                        -- FRAME is not the slot: item 106 reads it one level
+                        -- up.  The `[199]` nesting is the `?`'s KEY, so the
+                        -- landed `:` still owes `s-indent(n) ':'` and the
+                        -- value — `h_nodeV` — and the route is the same
+                        -- `nestedBlockMap` the entry route above takes
+                        -- (`?⏎  a: b⏎: - w`, `?⏎  "a": b⏎: c: d`).
+                        (match h_nodeV with
+                         | Or.inl ⟨nv, nodeV⟩ => Or.inl ⟨nv,
+                             fun sp_v h_entry sp_e h_tail sp_i sp_c h_iv h_lit sp_w h_sbi =>
+                               nodeV sp_e
+                                 (nestedBlockMap hnw h_land.1
+                                   (SBlockMapEntries_of_compactTail h_ind' h_entry h_tail))
+                                 sp_i sp_c h_iv h_lit sp_w h_sbi⟩
+                         | Or.inr _ => Or.inr trivial),
                         -- Item 99: the nested mapping's resume twin — the
                         -- entry and tail close the mapping the caller's node
                         -- awaits, and the caller's own frames (`h_nodeF`)
@@ -16807,6 +16880,14 @@ lemma entryPropsKeyPack_of_dispatch
     (sc : ScannerState) (sp_start sp_scan : SurfPos) (n : Nat)
     (s_prep s' : ScannerState) (c : Char) (sp_prep sp_scan' : SurfPos)
     (h_node : ∀ sp, SBlockNode n .blockIn sp_scan sp → SLYamlStream sp_start sp)
+    -- Item 106: `entryKeyPack_of_dispatch`'s new twin, verbatim — the frame's
+    -- value line stated at `h_node`'s domain, for the LANDED branch, whose
+    -- nesting the compact conjunct above cannot reach (`?⏎  &p a: b⏎: - w`).
+    (h_nodeV : (∃ nv : Nat,
+      ∀ sp_m : SurfPos, SBlockNode n .blockIn sp_scan sp_m →
+      ∀ sp_i sp_c : SurfPos, SIndent nv sp_m sp_i → GLit ':' sp_i sp_c →
+      ∀ sp_v : SurfPos, SBlockIndented nv .blockOut sp_c sp_v →
+      SLYamlStream sp_start sp_v) ∨ True)
     -- Item 79: `entryKeyPack_of_dispatch`'s bundled frame, verbatim — the
     -- compact route and the park's width, so the run's own column is measured
     -- on the line as it already was across a break.  Item 94: and the frame's
@@ -16913,11 +16994,22 @@ lemma entryPropsKeyPack_of_dispatch
           rw [h_land.2.1] at this
           omega
         exact Or.inl ⟨⟨w, valueMapRoute hnw h_node h_land.1 h_ind', h_kcol,
-                      -- Item 94: the landed run's key belongs to a mapping
+                      -- ~~Item 94: the landed run's key belongs to a mapping
                       -- nested in a `[199] s-l+block-node` slot — no compact
                       -- alternative, so no frame twins it (the props face of
-                      -- item 93's landed-nesting residue: `?⏎  &p a: b⏎: - w`).
-                      Or.inr trivial⟩,
+                      -- item 93's landed-nesting residue).~~  The props face
+                      -- of item 106's correction, and it reads the same way:
+                      -- the nesting is the `?`'s KEY, so the frame is a level
+                      -- up and `h_nodeV` carries its value line
+                      -- (`?⏎  &p a: b⏎: - w`, `?⏎  !t a: b⏎: - w`).
+                      (match h_nodeV with
+                       | Or.inl ⟨nv, nodeV⟩ => Or.inl ⟨nv,
+                           fun sp_v h_entry sp_e h_tail sp_i sp_c h_iv h_lit sp_w h_sbi =>
+                             nodeV sp_e
+                               (nestedBlockMap hnw h_land.1
+                                 (SBlockMapEntries_of_compactTail h_ind' h_entry h_tail))
+                               sp_i sp_c h_iv h_lit sp_w h_sbi⟩
+                       | Or.inr _ => Or.inr trivial)⟩,
                       h_props, h_sk_line,
                       by rw [h_sk, allowDirectives_update_simpleKey]; exact h_shape.1⟩
       · -- Item 102: the landing under-ran the run's own index — item 64's
@@ -17400,7 +17492,9 @@ lemma accum_content_on_pendingBlock
                  sp_prep sp_scan'
                  -- Item 94: a root `- `'s indicator sits at column 0, so no
                  -- `?` frame can own this park — the value-line face is vacuous.
-                 h_route (Or.inl ⟨h_close_old, h_col_old, Or.inr trivial⟩)
+                 -- Item 106: and its landed twin is vacuous for the same reason.
+                 h_route (Or.inr trivial)
+                 (Or.inl ⟨h_close_old, h_col_old, Or.inr trivial⟩)
                  h_ska (by revert h_flow_disp; split <;> (intro h; exact h))
                  (SCNsProperties.anchorFirst 0 .blockKey sp_prep sp_scan' sp_scan'
                    ha_ev (GOpt.none sp_scan'))
@@ -17439,7 +17533,8 @@ lemma accum_content_on_pendingBlock
                (entryPropsKeyPack_of_dispatch sc sp_start sp_scan 0 s_prep s' '!'
                  sp_prep sp_scan'
                  -- Item 94: root frame, as at the `&` arm above.
-                 h_route (Or.inl ⟨h_close_old, h_col_old, Or.inr trivial⟩)
+                 h_route (Or.inr trivial)
+                 (Or.inl ⟨h_close_old, h_col_old, Or.inr trivial⟩)
                  h_ska (by revert h_flow_disp; split <;> (intro h; exact h))
                  (SCNsProperties.tagFirst 0 .blockKey sp_prep sp_scan' sp_scan'
                    ht_ev (GOpt.none sp_scan'))
@@ -17491,6 +17586,10 @@ lemma accum_content_on_pendingBlock
                      h_sep h_flow h_ssl_ext)))
              (entryKeyPack_of_dispatch sc sp_start sp_scan 0 s_prep s' c sp_prep sp_scan'
                (fun sp h_bn => h_close_old sp (SBlockIndented.node 0 .blockIn sp_scan sp h_bn))
+               -- Item 106: same reason as the compact face below it — a root
+               -- `-` owns no `?` frame, so the landed nesting has no value
+               -- line either.
+               (Or.inr trivial)
                -- Item 93: a root `- `'s indicator sits at column 0, so no `?`
                -- frame can own this park — the value-line face is vacuous.
                (Or.inl ⟨h_close_old, h_col_old, Or.inr trivial⟩)
@@ -18031,6 +18130,18 @@ lemma accum_content_on_pendingBlock_indented
                      (white_prepend_SSLComments h_trailing_ws h_ssl))))
              (entryKeyPack_of_dispatch sc sp_start sp_scan n s_prep s' c sp_prep sp_scan'
                (fun sp h_bn => h_close_old sp (SBlockIndented.node n .blockIn sp_scan sp h_bn))
+               -- Item 106: the same field on the LANDED face — the key's
+               -- mapping is nested in the `-` entry's content instead of
+               -- compact with it, so the node wraps into the slot the twin
+               -- reads and the sequence tail is `nil` exactly as below
+               -- (`? -⏎    a: 1⏎: - w`).
+               (match h_kslot_old with
+                | Or.inl ⟨nv, kslot⟩ => Or.inl ⟨nv,
+                    fun sp h_bn sp_i sp_c h_iv h_lit sp_v h_sbi =>
+                      kslot sp (SBlockIndented.node n .blockIn sp_scan sp h_bn)
+                        sp (SCompactSeqTail.nil n sp)
+                        sp_i sp_c h_iv h_lit sp_v h_sbi⟩
+                | Or.inr _ => Or.inr trivial)
                -- Item 93: the entry's own value-line pack (item 92's field)
                -- serves the frame face — the compact mapping this pack will
                -- build IS this entry's content, `nil` sequence tail
@@ -18098,6 +18209,15 @@ lemma accum_content_on_pendingBlock_indented
                sp_prep sp_scan'
                (fun sp_m h_bn => h_close_old sp_m
                  (SBlockIndented.node n .blockIn sp_scan sp_m h_bn))
+               -- Item 106: the LANDED twin, as at the `entryKeyPack_of_dispatch`
+               -- site above (`? -⏎    &p a: 1⏎: - w`).
+               (match h_kslot_old with
+                | Or.inl ⟨nv, kslot⟩ => Or.inl ⟨nv,
+                    fun sp h_bn sp_i sp_c h_iv h_lit sp_v h_sbi =>
+                      kslot sp (SBlockIndented.node n .blockIn sp_scan sp h_bn)
+                        sp (SCompactSeqTail.nil n sp)
+                        sp_i sp_c h_iv h_lit sp_v h_sbi⟩
+                | Or.inr _ => Or.inr trivial)
                -- Item 94: the entry's own value-line pack (item 92's field)
                -- serves the frame face, `nil` sequence tail — as at the
                -- `entryKeyPack_of_dispatch` site above (`? - &p a: 1⏎: - w`).
@@ -18199,6 +18319,18 @@ lemma accum_content_on_pendingBlock_indented
                      (white_prepend_SSLComments h_tws_f h_ssl))))
              (entryKeyPack_of_dispatch sc sp_start sp_scan n s_prep s' c sp_prep sp_scan'
                (fun sp h_bn => h_close_old sp (SBlockIndented.node n .blockIn sp_scan sp h_bn))
+               -- Item 106: the same field on the LANDED face — the key's
+               -- mapping is nested in the `-` entry's content instead of
+               -- compact with it, so the node wraps into the slot the twin
+               -- reads and the sequence tail is `nil` exactly as below
+               -- (`? -⏎    a: 1⏎: - w`).
+               (match h_kslot_old with
+                | Or.inl ⟨nv, kslot⟩ => Or.inl ⟨nv,
+                    fun sp h_bn sp_i sp_c h_iv h_lit sp_v h_sbi =>
+                      kslot sp (SBlockIndented.node n .blockIn sp_scan sp h_bn)
+                        sp (SCompactSeqTail.nil n sp)
+                        sp_i sp_c h_iv h_lit sp_v h_sbi⟩
+                | Or.inr _ => Or.inr trivial)
                -- Item 93: the entry's own value-line pack (item 92's field)
                -- serves the frame face — the compact mapping this pack will
                -- build IS this entry's content, `nil` sequence tail
@@ -18416,7 +18548,8 @@ lemma accum_content_on_pendingMapValue
                -- `s-l+block-node`, which has no compact alternative, so the
                -- on-line landing (`: &p a: 1`) is the branch that punts.
                (entryPropsKeyPack_of_dispatch sc sp_start sp_scan 0 s_prep s' '&'
-                 sp_prep sp_scan' h_route h_compact_vslot
+                 sp_prep sp_scan' h_route (explFrameValueLine h_expl h_kslot)
+                 h_compact_vslot
                  h_ska (by revert h_flow_disp; split <;> (intro h; exact h))
                  (SCNsProperties.anchorFirst 0 .blockKey sp_prep sp_scan' sp_scan'
                    ha_ev (GOpt.none sp_scan'))
@@ -18468,7 +18601,8 @@ lemma accum_content_on_pendingMapValue
                  (by simp [YamlToken.isTagProperty]))
                h_route
                (entryPropsKeyPack_of_dispatch sc sp_start sp_scan 0 s_prep s' '!'
-                 sp_prep sp_scan' h_route h_compact_vslot
+                 sp_prep sp_scan' h_route (explFrameValueLine h_expl h_kslot)
+                 h_compact_vslot
                  h_ska (by revert h_flow_disp; split <;> (intro h; exact h))
                  (SCNsProperties.tagFirst 0 .blockKey sp_prep sp_scan' sp_scan'
                    ht_ev (GOpt.none sp_scan'))
@@ -18527,7 +18661,8 @@ lemma accum_content_on_pendingMapValue
                  (SBlockNode.flowInBlock 0 .blockIn sp_scan sp_prep sp_gram sp_final
                    h_sep h_flow h_ssl_ext))
              (entryKeyPack_of_dispatch sc sp_start sp_scan 0 s_prep s' c sp_prep sp_scan'
-               h_close_old h_compact_vslot h_ivl_pack (Or.inr trivial) (Or.inr trivial)
+               h_close_old (explFrameValueLine h_expl h_kslot)
+               h_compact_vslot h_ivl_pack (Or.inr trivial) (Or.inr trivial)
                hna hnt h_ska
                hcorr_prep hcorr_result h_corr h_not_doc h_flow_disp
                h_preprocess h_dispatch)
@@ -18712,7 +18847,8 @@ lemma accum_content_on_pendingMapValue_indented
                    h_sep_all (h_flow_all n)
                    (white_prepend_SSLComments h_trailing_ws h_ssl)))
              (entryKeyPack_of_dispatch sc sp_start sp_scan n s_prep s' c sp_prep sp_scan'
-               h_close_old h_compact_vslot h_ivl_pack
+               h_close_old (explFrameValueLine h_expl h_kslot)
+               h_compact_vslot h_ivl_pack
                -- Item 99: the frames feed the pack's resume twin — level `n`
                -- rides on top for the transport face, and the spend face is
                -- the park's own `h_frames`.
@@ -18775,7 +18911,8 @@ lemma accum_content_on_pendingMapValue_indented
              h_sep_all (h_run_all n) h_nic_s h_real_s h_anchor_s h_tag_s
              h_close_old
              (entryPropsKeyPack_of_dispatch sc sp_start sp_scan n s_prep s' c
-               sp_prep sp_scan' h_close_old h_compact_vslot
+               sp_prep sp_scan' h_close_old (explFrameValueLine h_expl h_kslot)
+               h_compact_vslot
                h_ska (by revert h_flow_disp; split <;> (intro h; exact h))
                ((h_run_all 0).toPropertiesBlockKey h_single) h_sk_s h_line_s
                -- Item 102: the park's own three flags, the input the tab
@@ -18853,7 +18990,8 @@ lemma accum_content_on_pendingMapValue_indented
                    h_sep_all h_node_f
                    (white_prepend_SSLComments h_tws_f h_ssl)))
              (entryKeyPack_of_dispatch sc sp_start sp_scan n s_prep s' c sp_prep sp_scan'
-               h_close_old h_compact_vslot h_ivl_pack
+               h_close_old (explFrameValueLine h_expl h_kslot)
+               h_compact_vslot h_ivl_pack
                -- Item 99: the frames feed the pack's resume twin — level `n`
                -- rides on top for the transport face, and the spend face is
                -- the park's own `h_frames`.

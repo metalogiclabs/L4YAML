@@ -9921,9 +9921,12 @@ machinery, untouched.  With the indented twins (`k:⏎  ? a: b⏎  : - w`) and
 the quoted/aliased/multi-entry-value shapes, the inner-map-key family
 composes end to end.
 
-**Named residues, at their punt sites.**  `?⏎  a: b⏎: - w` (runtime-ACCEPTED;
+**Named residues, at their punt sites.**  ~~`?⏎  a: b⏎: - w` (runtime-ACCEPTED;
 the landed key is a `[199] s-l+block-node` nesting — the map face of item
-92's seq-spaces residue, no compact alternative and no park twins it);
+92's seq-spaces residue, no compact alternative and no park twins it)~~ —
+PAID by item 106: the slot has no compact alternative, but the reason read the
+wrong level.  The `?` FRAME is a level up and owes the same value line either
+way, so `h_node`'s twin carries it through the branch's own `nestedBlockMap`;
 `? &p a: b⏎: - w` (accepted; the props-HEADED key routes through
 `PropsKeyPack`, which carries no value-line face yet — that pack's own
 pair); `? a: b⏎  c: d⏎: e` (accepted; `SCompactMapTail.cons` has no
@@ -9989,9 +9992,10 @@ With the anchor/tag/double-anchor-tag heads, the quoted keys, the empty
 inner value and the indented twins (`k:⏎  ? &p a: b⏎  : - w`), the
 props-headed inner-map family composes end to end.
 
-**Named residues, at their punt sites.**  `?⏎  &p a: b⏎: - w` (the landed
+**Named residues, at their punt sites.**  ~~`?⏎  &p a: b⏎: - w` (the landed
 run heads a `[199] s-l+block-node` nesting — the props face of the
-landed-nesting residue, no compact alternative); the flow open's
+landed-nesting residue, no compact alternative)~~ — PAID by item 106 on the
+same reading as the map face; the flow open's
 `pendingProps` arm binds the pair and drops it (`FlowBaseRoutes.key` is
 route-only — the FLOW kind's own item, now the pair's third rider); the
 inner-map sibling (`SCompactMapTail.cons` still has no producer); the root
@@ -10131,8 +10135,10 @@ OPEN:
   `PropsKeyPack`'s own pair — the component item 94 bound and dropped —
   straight through (`? &p [1]: b⏎: - w`).  The LANDING branch and the two
   `flowKeyRoute_of_root` arms punt the pair with a reason: the entry nests
-  as `[199]`/`[187]` under the awaited node (the landed-nesting residue,
-  item 93's boundary) or sits at the root, where a following `: v` is
+  as `[199]`/`[187]` under the awaited node (~~the landed-nesting residue,
+  item 93's boundary~~ — that REASON is item 106's correction and no longer
+  stands; the site is still unpaid, and what it now waits on is the twin
+  reaching a flow open) or sits at the root, where a following `: v` is
   `[187]`'s own next entry and no `[188]` close is owed.
 
 **A located OVER-REFUSAL, found by the acceptance probe.**  The landed `:`
@@ -11008,6 +11014,96 @@ and `compact_open_map`'s profile is unchanged (it already called both
 reports the same **19** name mismatches across seven files, every one
 pre-existing and none in the new code.
 
+### Item 106 (2026-09-06)
+
+**The landed key inside a `?` frame still owes the frame's value line** — items
+93 and 94's residue, and the lesson is the one the last two items keep
+producing in different clothes: **read the level a punt is about.**
+
+`[186] c-l-block-map-explicit-key(n)`'s KEY is `s-l+block-indented(n,
+block-out)`, which has two alternatives.  Items 92–96 paid the `?` frame's
+value line at the COMPACT one — the key shares the `?`'s line (`? a: b⏎: - w`,
+`? - a⏎: - w`).  At the other one the key LANDS: `[199] s-l+block-collection`,
+a mapping nested one line down and more indented (`?⏎  a: b⏎: - w`).  Both
+sites wrote the same sentence there —
+
+> the landed key belongs to a mapping nested in a `[199] s-l+block-node` slot
+> — no compact alternative, so no frame twins it
+
+— and the first half is right about the wrong thing.  The SLOT has no compact
+alternative and never will.  The FRAME is a level up, and nothing about it
+changes with which alternative its key took: `s-indent(n) ':'` and the value
+slot are owed either way, and the `[188]` entry is finished either way.
+
+#### The payment
+
+One derivation, `explFrameValueLine` (`[propext, Quot.sound]`): fold the
+awaited KEY node into `[186]`'s key slot, take the value line, hand the
+finished entry to the route the `?` producer has paid since item 51
+(`pendingMapValue.h_expl`).  Stated at the CLOSURE's domain rather than at any
+one completed node — item 91's rule — which is what makes it usable where the
+node is still a variable, and its `Or.inr` argument is the park's own
+`h_kslot`, so a park whose frame is a level further up funds it from the field
+instead.  The two funders are read as one datum and every call site passes
+both.
+
+`entryKeyPack_of_dispatch` and `entryPropsKeyPack_of_dispatch` gain
+`h_nodeV` — `h_node`'s value-line twin — and their landed branches spend it
+through the SAME `nestedBlockMap` the entry route already builds
+(`SBlockMapEntries_of_compactTail`, verbatim from the resume twin two lines
+above it).  Six call sites each: the three `pendingMapValue` ones derive it,
+and the `pendingBlock` ones at a nonzero index pay their own face from
+`h_kslot_old` with a `nil` sequence tail — the `-` inside a `?`'s key, whose
+content LANDS (`? -⏎    a: 1⏎: - w`).  The two root `-` sites stay vacuous for
+item 93's own reason: an indicator at column 0 owns no `?` frame.
+
+#### The family, measured on both pipelines
+
+Map face: `?⏎  a: b⏎: - w`, `?⏎  a: b⏎: c: d` (the value slot is
+`s-l+block-indented` in full), `?⏎  "a": b⏎: - w`, `?⏎   a: b⏎: - w` (the
+landing width is the key's own).  Props face: `?⏎  &p a: b⏎: - w`,
+`?⏎  !t a: b⏎: - w`, `?⏎  &p !t a: b⏎: - w`.  Sequence park: `? -⏎    a: 1⏎:
+- w` and its props twin.  Frames: `k:⏎  ?⏎    a: b⏎  : - w`,
+`k:⏎  ? -⏎      a: 1⏎  : - w`.  Guard:
+`Tests/Guards/Proofs/ScannerLandedNestingValueLine.lean`.
+
+#### What this does NOT close
+
+* the SIBLING inside the landed key — `?⏎  a: b⏎  c: d⏎: - w` reads as one
+  mapping with two entries, and the twin's `SCompactMapTail` argument admits
+  it, but `SCompactMapTail.cons` still has no producer.  Pinned as a boundary.
+* the seq-spaces KEY (`?⏎- a⏎: - w`), where the landed `-` closes the pending
+  and opens a NEW `[183]` under no frame — a different question, and still the
+  `h_vpack` deferral at `accum_block_on_closeThenBlock`.
+* the DEDENT (`w < n`), which never reaches this branch: the runtime refuses
+  `k:⏎  ?⏎    a: b⏎: - w` upstream.
+
+#### What is and is not machine-checked
+
+The payments are TERMS, so their type-checking is the evidence the route
+exists; an escape is silent, so no runtime observation can say which arm a
+given input takes.  The guard pins the derivation at its type, and separately
+pins the half that carries content — the left disjunct's payload, derivable
+from the frame alone.  The disjunction itself cannot be pinned by an equation:
+`∨ True` is a `Prop`, so proof irrelevance would make any such pin vacuous.
+
+#### Validation
+
+Full build **1082 jobs**, zero warnings; `run-all-tests.sh` **4473/4473**
+across 17 suites; matrix **402/402 event and 282/282 JSON on BOTH pipelines**;
+`eventscore` **347/358** (252 event-pass, 11 event-diff, **0 event-reject**, 95
+error-ok).  All unmoved BY CONSTRUCTION — no runtime file is touched — and run
+anyway.  `check-reflection-index.sh` (20 sub-themes, 229 bulleted demos, 248
+reflections, 354 demos imported), `check-import-closure.sh` (222 modules) and
+`check-theorem-keyword.sh` (25 capstones) OK; `collect-stats` reports 0 direct
+and 0 transitive `sorry`, 0 custom axioms, **8098** theorems — 8097 at item 105
+plus exactly the one this item adds.  `explFrameValueLine` is `[propext,
+Quot.sound]`, and since every payment is a term built from it, neither pack
+lemma's axiom profile can have gained anything.  The annotation verifier
+reports the same **19** name mismatches across seven files, every one
+pre-existing and none in the new code.  Escape-site counts UNMOVED: three
+`block_dispatch_deferred`, one `dropClose` use, two `scannerDrop`.
+
 ### REMAINING, in order
 
 The per-item history is the closure log above; this section lists only the
@@ -11021,7 +11117,7 @@ too (items 47–51), so what stands between here
 and Step 5 (the converse) is R3's remaining production work and R4:
 
 ```
-R1 ✓ (44–46) ──→ R2 ✓ (47–51) ──→ R3 (52–105 landed; 67b open) ──→ Step 5
+R1 ✓ (44–46) ──→ R2 ✓ (47–51) ──→ R3 (52–106 landed; 67b open) ──→ Step 5
                                         └──────→ R4 (implicitContinue + 0 < m) ──┘
 ```
 
@@ -11215,12 +11311,19 @@ and that deletion, by input class:
   is scoped to its flow level: the opens push and clear it, the closes
   restore it, so the landed `:` reads as `[197]`'s explicit value again —
   and `saveSimpleKey`'s `?`-line guard no longer leaks into the nested
-  collection, fixing `? [a: b]⏎: v` with it), the seq-spaces/landed family
+  collection, fixing `? [a: b]⏎: v` with it), ~~the seq-spaces/landed family
   (`?⏎- a⏎: - w`, `?⏎  a: b⏎: - w`, `?⏎  &p a: b⏎: - w`: the key is a
-  `[185]` `s-l+block-node`/`[199]` nesting, which no park twins yet — and
-  `flowKeyRoute_of_open`'s landing branch punts its pair into the same
-  residue) and the inner-map sibling (`? a: b⏎  c: d⏎: e` —
-  `SCompactMapTail.cons` has no producer yet) — so those siblings still
+  `[185]` `s-l+block-node`/`[199]` nesting, which no park twins yet)~~ — the
+  `[199]` half is PAID by item 106, which found the punt reading the wrong
+  level: the slot has no compact alternative, but the FRAME is one level up
+  and `h_node`'s value-line twin carries it (`?⏎  a: b⏎: - w`,
+  `?⏎  &p a: b⏎: - w`, `? -⏎    a: 1⏎: - w` and the indented twins compose).
+  What is left of the family is the seq-spaces KEY alone (`?⏎- a⏎: - w`),
+  where the landed `-` CLOSES the pending and opens a new `[183]` under no
+  frame — and `flowKeyRoute_of_open`'s landing branch punts its pair into the
+  same residue — and the inner-map sibling (`? a: b⏎  c: d⏎: e`,
+  `?⏎  a: b⏎  c: d⏎: - w` — `SCompactMapTail.cons` has no producer yet, which
+  item 106's twin threads the tail for but does not build) — so those siblings still
   close `e-node` and defer the reopened `[189]`'s compact fill;
 * the **flow share** — ~~the depth-0 flow close must park REAL evidence
   (`[1] : b`, `? [1]⏎: v`)~~ — CLOSED by item 56 (the frame carries the
