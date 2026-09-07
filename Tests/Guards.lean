@@ -94,6 +94,7 @@ import Tests.Guards.Proofs.ScannerDedentSibling
 import Tests.Guards.Proofs.ScannerDedentKeepsExplicitFrame
 import Tests.Guards.Proofs.ScannerLandedSiblingResumes
 import Tests.Guards.Proofs.ScannerEntryContentSiblingResumes
+import Tests.Guards.Proofs.ScannerPropsLandingSiblingResumes
 import Tests.Guards.Proofs.ScannerExplicitKeyScope
 import Tests.Guards.Proofs.ScannerImplicitKeyCompose
 import Tests.Guards.Proofs.ScannerPlainNoGainRewind

@@ -773,7 +773,17 @@ lemma flowVPack_of_close {n : Nat} {sp_start sp_br sp_tok : SurfPos}
     `k`.  Item 29 left it optional for Reflection 653's reason — the compact
     route cannot measure its own column — and item 79 removed that reason: the
     compact route now travels WITH the park's width, so both producers measure
-    and the conjunct is an equation. -/
+    and the conjunct is an equation.
+
+    **Item 111 — the route's two RESUME twins, `ImplicitKeyPack`'s items 99/108
+    verbatim at the run's start.**  A props-headed key parked at a RESUMED
+    landing (`k:⏎  m:⏎    - a⏎  &p n: 2⏎o: 3`) must hand the still-open levels
+    below its entry to whatever park it opens, or the NEXT landing re-opens at
+    the root; the route alone cannot, its codomain being the fused stream.  The
+    stream-bottomed twin carries them; the `ExplValueLine`-bottomed one is the
+    same stack under an open `[186]` explicit key.  Producers whose levels are
+    fused pass `Or.inr trivial`; the landing producer pays them from
+    `ResumeKeyCtx` and the root one pays `ks = []`. -/
 def PropsKeyPack (sc : ScannerState) (sp_start sp_p sp_scan : SurfPos) : Prop :=
   (∃ k : Nat,
     (∀ sp_v, SBlockMapEntry k sp_p sp_v → SLYamlStream sp_start sp_v) ∧
@@ -789,7 +799,17 @@ def PropsKeyPack (sc : ScannerState) (sp_start sp_p sp_scan : SurfPos) : Prop :=
       ∀ sp_e : SurfPos, SCompactMapTail k sp_v sp_e →
       ∀ sp_i sp_c : SurfPos, SIndent nv sp_e sp_i → GLit ':' sp_i sp_c →
       ∀ sp_w : SurfPos, SBlockIndented nv .blockOut sp_c sp_w →
-      SLYamlStream sp_start sp_w) ∨ True)) ∧
+      SLYamlStream sp_start sp_w) ∨ True) ∧
+    -- Item 111: the route's RESUME twin (item 99's shape).
+    ((∃ ks : List Nat, (∀ k' ∈ ks, k' < k) ∧
+      ∀ sp_v : SurfPos, SBlockMapEntry k sp_p sp_v →
+      ∀ sp_e : SurfPos, SCompactMapTail k sp_v sp_e →
+      ResumeFrames (SLYamlStream sp_start) ks sp_e) ∨ True) ∧
+    -- Item 111: …and the value-line-bottomed one (item 108's shape).
+    ((∃ (nv : Nat) (ks : List Nat), (∀ k' ∈ ks, k' < k) ∧
+      ∀ sp_v : SurfPos, SBlockMapEntry k sp_p sp_v →
+      ∀ sp_e : SurfPos, SCompactMapTail k sp_v sp_e →
+      ResumeFrames (ExplValueLine sp_start nv) ks sp_e) ∨ True)) ∧
   SCNsProperties 0 .blockKey sp_p sp_scan ∧
   sc.simpleKey.pos.line = sc.line ∧
   -- Item 63: the key is actually SAVED.  Both producers read it off
@@ -7567,8 +7587,12 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
                -- `FlowBaseRoutes.key` carries it as the route's own third
                -- rider, so the close's pack hands it on verbatim
                -- (`? &p [1]: b⏎: - w`).
+               -- Item 111: the pack's resume twins are DROPPED at this
+               -- boundary — `FlowBaseRoutes.key` carries the value-line pair
+               -- only, and widening the flow frame's rider is 67b's carrier
+               -- work, not this item's (`&p [1]: b` at a resumed landing).
                (match h_pkey, h_inherit_col with
-                | Or.inl ⟨⟨k, route, h_kcol_p, h_pair_p⟩, h_props, _⟩, Or.inl h_inh =>
+                | Or.inl ⟨⟨k, route, h_kcol_p, h_pair_p, _, _⟩, h_props, _⟩, Or.inl h_inh =>
                     have h_col_p : s_prep.simpleKey.pos.col = k := h_inh.trans h_kcol_p
                     Or.inl ⟨k, sp_p, route,
                     fun sp_end h_content =>
@@ -12624,6 +12648,19 @@ lemma colon_open_map_props (sp_start sp_block sp_p sp_scan : SurfPos) (k : Nat)
       ∀ sp_i sp_c : SurfPos, SIndent nv sp_e sp_i → GLit ':' sp_i sp_c →
       ∀ sp_w : SurfPos, SBlockIndented nv .blockOut sp_c sp_w →
       SLYamlStream sp_start sp_w) ∨ True)
+    -- Item 111: the pack's RESUME twins (`colon_open_map_implicit`'s items
+    -- 99/108 premises, verbatim at the run's start) — handed on so the park
+    -- this `:` opens can pay its own frames, which is what keeps the levels
+    -- for the landing AFTER an anchored null key
+    -- (`k:⏎  m:⏎    - a⏎  &p : 2⏎o: 3`).
+    (h_routeF : (∃ ks : List Nat, (∀ k' ∈ ks, k' < k) ∧
+      ∀ sp_v : SurfPos, SBlockMapEntry k sp_p sp_v →
+      ∀ sp_e : SurfPos, SCompactMapTail k sp_v sp_e →
+      ResumeFrames (SLYamlStream sp_start) ks sp_e) ∨ True)
+    (h_routeFV : (∃ (nv : Nat) (ks : List Nat), (∀ k' ∈ ks, k' < k) ∧
+      ∀ sp_v : SurfPos, SBlockMapEntry k sp_p sp_v →
+      ∀ sp_e : SurfPos, SCompactMapTail k sp_v sp_e →
+      ResumeFrames (ExplValueLine sp_start nv) ks sp_e) ∨ True)
     (h_props : SCNsProperties 0 .blockKey sp_p sp_scan)
     (h_ws : GStar SSWhite sp_scan sp_prep)
     -- Item 63: the pack's own coordinates — the key exists and sits at the
@@ -12704,12 +12741,55 @@ lemma colon_open_map_props (sp_start sp_block sp_p sp_scan : SurfPos) (k : Nat)
                     sp_m (SCompactMapTail.nil k sp_m)
                     sp_i sp_c h_iv h_lit_v sp_v h_sbi⟩
             | Or.inr _ => Or.inr trivial)
-             (Or.inr trivial)
-             (Or.inr trivial)
-             -- Item 108: the props pack carries no frames of either bottom
-             -- (item 99 left the stream face here too); the props-headed
-             -- sibling rides the same residue.
-             (Or.inr trivial) (Or.inr trivial),
+             -- Item 111: the pack CARRIES frames now, so the anchored null
+             -- key pays the four faces exactly as `colon_open_map_implicit`
+             -- does — the completed entry re-opens level `k` for the
+             -- transport, the EMPTY entry does the same for the park's own
+             -- dedent landing, on both bottoms.
+             (match h_routeF with
+              | Or.inl ⟨ks, h_lt, routeF⟩ => Or.inl ⟨ks, h_lt,
+                  fun sp_mid h_node =>
+                    ResumeFrames.level k ks sp_mid h_lt
+                      (fun sp_end h_tail =>
+                        routeF sp_mid
+                          (SBlockMapEntry.implicitKeyNode k sp_p sp_prep sp_scan' sp_mid
+                            h_ik h_lit (SBlockNode_blockIn_to_blockOut h_node))
+                          sp_end h_tail)⟩
+              | Or.inr _ => Or.inr trivial)
+             (match h_routeF with
+              | Or.inl ⟨ks, h_lt, routeF⟩ => Or.inl ⟨k :: ks,
+                  fun sp_mid h_ssl =>
+                    ResumeFrames.level k ks sp_mid h_lt
+                      (fun sp_end h_tail =>
+                        routeF sp_mid
+                          (SBlockMapEntry.implicitKeyEmpty k sp_p sp_prep sp_scan' sp_mid
+                            h_ik h_lit h_ssl)
+                          sp_end h_tail)⟩
+              | Or.inr _ => Or.inr trivial)
+             (match h_routeFV with
+              | Or.inl ⟨nv, ks, h_lt, routeFV⟩ => Or.inl ⟨nv, k :: ks,
+                  fun k' hk' => by
+                    rcases List.mem_cons.mp hk' with h | h
+                    · omega
+                    · exact Nat.le_of_lt (h_lt k' h),
+                  fun sp_mid h_node =>
+                    ResumeFrames.level k ks sp_mid h_lt
+                      (fun sp_end h_tail =>
+                        routeFV sp_mid
+                          (SBlockMapEntry.implicitKeyNode k sp_p sp_prep sp_scan' sp_mid
+                            h_ik h_lit (SBlockNode_blockIn_to_blockOut h_node))
+                          sp_end h_tail)⟩
+              | Or.inr _ => Or.inr trivial)
+             (match h_routeFV with
+              | Or.inl ⟨nv, ks, h_lt, routeFV⟩ => Or.inl ⟨nv, k :: ks,
+                  fun sp_mid h_ssl =>
+                    ResumeFrames.level k ks sp_mid h_lt
+                      (fun sp_end h_tail =>
+                        routeFV sp_mid
+                          (SBlockMapEntry.implicitKeyEmpty k sp_p sp_prep sp_scan' sp_mid
+                            h_ik h_lit h_ssl)
+                          sp_end h_tail)⟩
+              | Or.inr _ => Or.inr trivial),
          hcorr_result⟩
 
 /-- …and the coupling that fires it (item 49): at a props park the same-line
@@ -12785,7 +12865,8 @@ lemma colon_fires_props_key (sc : ScannerState)
     | noFrame => exact h_punt
     | noKeyContext => exact h_punt
   | inl pack =>
-    obtain ⟨⟨k, h_route, h_kcol, h_kslot_pk⟩, h_props, h_skline, h_poss⟩ := pack
+    obtain ⟨⟨k, h_route, h_kcol, h_kslot_pk, h_resF_pk, h_resFV_pk⟩,
+      h_props, h_skline, h_poss⟩ := pack
     obtain ⟨sp_mid, sp_ws, sp_prep2, h_disj, h_ws, _h_cmt, hcorr_prep2, h_pk, _⟩ :=
       preprocess_some_ssl_comments_anyCol sc sp_scan s_prep ':' h_corr h_preprocess
     have hsp_eq2 := ScannerSurfCorr_unique hcorr_prep hcorr_prep2; subst hsp_eq2
@@ -12807,7 +12888,7 @@ lemma colon_fires_props_key (sc : ScannerState)
       obtain ⟨h_inh, -, h_off_ge, -⟩ := h_mid.2.2.2 h_nic h_ska
       obtain ⟨h_line_pp, -, -, -⟩ := h_mid.2.1 h_nic h_real
       exact colon_open_map_props sp_start sp_block sp_p sp_scan k sc s_prep s'
-        sp_prep sp_scan' h_route h_kslot_pk h_props h_ws h_poss h_kcol h_inh
+        sp_prep sp_scan' h_route h_kslot_pk h_resF_pk h_resFV_pk h_props h_ws h_poss h_kcol h_inh
         (by rw [h_inh, h_line_pp]; exact h_skline)
         (by rw [h_inh]; have := h_kbc.1 h_poss; omega)
         h_noflow h_preprocess
@@ -17353,7 +17434,12 @@ lemma entryPropsKeyPack_of_dispatch
                                (nestedBlockMap hnw h_land.1
                                  (SBlockMapEntries_of_compactTail h_ind' h_entry h_tail))
                                sp_i sp_c h_iv h_lit sp_w h_sbi⟩
-                       | Or.inr _ => Or.inr trivial)⟩,
+                       | Or.inr _ => Or.inr trivial),
+                      -- Item 111: the resume twins stay unpaid HERE — paying
+                      -- them is `entryKeyPack_of_dispatch`'s four threaded
+                      -- premises (items 99/108), transposed to the props side;
+                      -- the LANDING producer (`h_props_key`) pays its own.
+                      Or.inr trivial, Or.inr trivial⟩,
                       h_props, h_sk_line,
                       by rw [h_sk, allowDirectives_update_simpleKey]; exact h_shape.1⟩
       · -- Item 102: the landing under-ran the run's own index — item 64's
@@ -17400,7 +17486,7 @@ lemma entryPropsKeyPack_of_dispatch
                       -- entry and its tail folded into the same `[195]` wrap
                       -- the route builds, exactly item 93's term
                       -- (`? &p a: b⏎: - w`, `? &p : b⏎: - w`).
-                      match h_cp.2.2 with
+                      (match h_cp.2.2 with
                       | Or.inl ⟨nv, kslot⟩ => Or.inl ⟨nv,
                           fun sp_v h_entry sp_e h_tail sp_i sp_c h_iv h_lit sp_w h_sbi =>
                             kslot sp_e
@@ -17408,7 +17494,11 @@ lemma entryPropsKeyPack_of_dispatch
                                 h_ind'
                                 (SCompactMap.mk (n + 1 + w) sp_prep sp_v sp_e h_entry h_tail))
                               sp_i sp_c h_iv h_lit sp_w h_sbi⟩
-                      | Or.inr _ => Or.inr trivial⟩,
+                      | Or.inr _ => Or.inr trivial),
+                      -- Item 111: as at the landed branch — the compact frame
+                      -- is fused into the enclosing entry's closure, so the
+                      -- resume twins stay unpaid here.
+                      Or.inr trivial, Or.inr trivial⟩,
                       h_props, h_sk_line,
                       by rw [h_sk, allowDirectives_update_simpleKey]; exact h_shape.1⟩
 
@@ -17492,13 +17582,26 @@ lemma content_dispatch_routed
           else s_prep).line →
         PropsKeyPack s' sp_start sp_prep sp_run ∨ KeyPackPunt s' := by
       intro sp_run h_props h_sk h_line'
-      cases h_keyctx with
-      -- Item 102: the caller's own reason, named — a landed dispatch whose
-      -- key context is optional, which is what `noKeyContext` is for.
-      | inr _ => exact Or.inr KeyPackPunt.noKeyContext
-      | inl hctx =>
-        obtain ⟨⟨k, sp_land, hcol0, h_stream_land, h_ind⟩, _h_sk_poss, h_sk_pos⟩ := hctx
-        -- Item 29: and the run's COLUMN, from the same two facts item 28 used
+      -- Item 111: the pack is assembled ONCE, from whichever context has a
+      -- route — item 109's `h_build`, on the sibling pack.  The two contexts
+      -- agree on the run's coordinates and differ only in how the entry it
+      -- heads reaches the stream.
+      have h_buildP : ∀ (k : Nat) (sp_land : SurfPos),
+          sp_land.col = 0 → SIndent k sp_land sp_prep →
+          s_prep.simpleKey.possible = true →
+          s_prep.simpleKey.pos = s_prep.currentPos →
+          (∀ sp_v, SBlockMapEntry k sp_prep sp_v → SLYamlStream sp_start sp_v) →
+          ((∃ ks : List Nat, (∀ k' ∈ ks, k' < k) ∧
+            ∀ sp_v : SurfPos, SBlockMapEntry k sp_prep sp_v →
+            ∀ sp_e : SurfPos, SCompactMapTail k sp_v sp_e →
+            ResumeFrames (SLYamlStream sp_start) ks sp_e) ∨ True) →
+          ((∃ (nv : Nat) (ks : List Nat), (∀ k' ∈ ks, k' < k) ∧
+            ∀ sp_v : SurfPos, SBlockMapEntry k sp_prep sp_v →
+            ∀ sp_e : SurfPos, SCompactMapTail k sp_v sp_e →
+            ResumeFrames (ExplValueLine sp_start nv) ks sp_e) ∨ True) →
+          PropsKeyPack s' sp_start sp_prep sp_run ∨ KeyPackPunt s' := by
+        intro k sp_land hcol0 h_ind h_sk_poss h_sk_pos h_route_k h_resF h_resFV
+        -- Item 29: the run's COLUMN, from the same two facts item 28 used
         -- on the content pack.  The save is fresh AT the property (`h_sk_pos`),
         -- and `[63] s-indent(k)` from a column-0 landing puts the property at
         -- column `k` — so the key this pack's `:` will resolve sits at the
@@ -17510,16 +17613,46 @@ lemma content_dispatch_routed
           have := SIndent_col h_ind
           rw [hcol0] at this
           omega
-        -- Item 41: the coordinates are spent HERE, into `[187]`'s root route,
+        -- Item 41: the coordinates are spent HERE, into the entry's route,
         -- rather than carried to a consumer that could only spend them one way.
-        refine Or.inl ⟨⟨k, rootMapRoute hcol0 h_stream_land h_ind, h_kcol,
-          -- Item 94: a root frame — the run heads a key at column 0, and no
-          -- `?` fits to its left, so no value line twins the route.
-          Or.inr trivial⟩, h_props, ?_,
-          by rw [h_sk, allowDirectives_update_simpleKey]; exact _h_sk_poss⟩
+        refine Or.inl ⟨⟨k, h_route_k, h_kcol,
+          -- Item 94: the run heads a landed key, and no `?` fits to its
+          -- left on either branch, so no value line twins the route.
+          Or.inr trivial, h_resF, h_resFV⟩, h_props, ?_,
+          by rw [h_sk, allowDirectives_update_simpleKey]; exact h_sk_poss⟩
         rw [h_sk, allowDirectives_update_simpleKey, h_sk_pos,
             h_line', allowDirectives_update_line]
         rfl
+      -- Item 111: the RESUMING context first, as at `h_key` below — the honest
+      -- reading where the park that closed here kept frames whose stack the
+      -- landing width names (`k:⏎  - a⏎&p b: 2`).
+      cases h_resumectx with
+      | inl hres =>
+        obtain ⟨⟨k, ks, sp_land, hcol0, h_ind, h_lt, cont, hresV⟩,
+                h_sk_poss, h_sk_pos⟩ := hres
+        exact h_buildP k sp_land hcol0 h_ind h_sk_poss h_sk_pos
+          (resumeMapRoute h_ind cont)
+          (Or.inl ⟨ks, h_lt, resumeMapRouteF h_ind cont⟩)
+          (match hresV with
+           | Or.inl ⟨nv, ksv, h_ltv, contv⟩ =>
+               Or.inl ⟨nv, ksv, h_ltv, resumeMapRouteF h_ind contv⟩
+           | Or.inr _ => Or.inr trivial)
+      | inr _ =>
+        cases h_keyctx with
+        -- Item 102: the caller's own reason, named — a landed dispatch whose
+        -- key context is optional, which is what `noKeyContext` is for.
+        | inr _ => exact Or.inr KeyPackPunt.noKeyContext
+        | inl hctx =>
+          obtain ⟨⟨k, sp_land, hcol0, h_stream_land, h_ind⟩, h_sk_poss, h_sk_pos⟩ := hctx
+          -- Item 111: the root pays the resume twin outright, as at `h_build`'s
+          -- root arm — the entry and its whole tail close the root mapping and
+          -- nothing is open below (`ks = []`); no explicit frame stands over
+          -- the root, so the value-line stack has nothing to bottom at.
+          exact h_buildP k sp_land hcol0 h_ind h_sk_poss h_sk_pos
+            (rootMapRoute hcol0 h_stream_land h_ind)
+            (Or.inl ⟨[], fun _ h => absurd h (List.not_mem_nil),
+              rootMapRouteF hcol0 h_stream_land h_ind⟩)
+            (Or.inr trivial)
     cases hprops with
     | inl h =>
       subst h
@@ -19991,12 +20124,13 @@ lemma accum_content_pending (sc : ScannerState)
                        rw [dispatchContent_implicitValueLine h_dispatch]
                        split <;> exact h_v
                    | inl hpk =>
-                     obtain ⟨⟨k, h_route_k, h_kcol, h_kslot_pk⟩, _h_props_old, h_sk_line,
-                       h_poss_old⟩ := hpk
+                     obtain ⟨⟨k, h_route_k, h_kcol, h_kslot_pk, h_resF_pk, h_resFV_pk⟩,
+                       _h_props_old, h_sk_line, h_poss_old⟩ := hpk
                      refine Or.inl ⟨⟨k, h_route_k,
                          h_kcol_ext h_kcol (dispatchContent_anchor_simpleKey h_dispatch).1,
-                         -- Item 94: the run grows, the entry does not move.
-                         h_kslot_pk⟩,
+                         -- Items 94/111: the run grows, the entry does not move
+                         -- — all three twins ride.
+                         h_kslot_pk, h_resF_pk, h_resFV_pk⟩,
                        h_run.blockKey_addAnchor
                          (GStar_SSWhite_to_SSeparateInLine sp_scan sp_prep h_ws) h_prop, ?_,
                        by
@@ -20096,12 +20230,12 @@ lemma accum_content_pending (sc : ScannerState)
                          rw [dispatchContent_implicitValueLine h_dispatch]
                          split <;> exact h_v
                      | inl hpk =>
-                       obtain ⟨⟨k, h_route_k, h_kcol, h_kslot_pk⟩, _h_props_old, h_sk_line,
-                         h_poss_old⟩ := hpk
+                       obtain ⟨⟨k, h_route_k, h_kcol, h_kslot_pk, h_resF_pk, h_resFV_pk⟩,
+                         _h_props_old, h_sk_line, h_poss_old⟩ := hpk
                        refine Or.inl ⟨⟨k, h_route_k,
                            h_kcol_ext h_kcol (dispatchContent_tag_simpleKey h_dispatch).1,
-                           -- Item 94: as at the `&` transport above.
-                           h_kslot_pk⟩,
+                           -- Items 94/111: as at the `&` transport above.
+                           h_kslot_pk, h_resF_pk, h_resFV_pk⟩,
                          h_run.blockKey_addTag
                            (GStar_SSWhite_to_SSeparateInLine sp_scan sp_prep h_ws) h_prop, ?_,
                          by
@@ -20229,8 +20363,8 @@ lemma accum_content_pending (sc : ScannerState)
                   rw [h_park_all.2.1]
                   split <;> exact h_v
               | inl hpk =>
-                obtain ⟨⟨k, h_route_k, h_kcol, h_kslot_pk⟩, h_props_bk, h_sk_line,
-                  h_poss_old⟩ := hpk
+                obtain ⟨⟨k, h_route_k, h_kcol, h_kslot_pk, h_resF_pk, h_resFV_pk⟩,
+                  h_props_bk, h_sk_line, h_poss_old⟩ := hpk
                 -- Item 79: the same inherit, at the CONTENT step — so the head
                 -- the pack completes carries the run's own column rather than
                 -- offering it.
@@ -20269,14 +20403,14 @@ lemma accum_content_pending (sc : ScannerState)
                     -- Item 94: a props-HEADED key's route is `PropsKeyPack`'s,
                     -- and so is its value line — the pack's pair has the
                     -- entry-level domain `ImplicitKeyPack`'s twin asks for,
-                    -- verbatim (`? &p "a": b⏎: - w`).
+                    -- verbatim (`? &p "a": b⏎: - w`).  Item 111: and so are
+                    -- its RESUME twins, the same way.
                     exact Or.inl ⟨k, sp_p, sp_scan', h_route_k,
                       ImplicitKeyHead.json
                         (SFlowNode.propsContent 0 .blockKey sp_p sp_scan sp_prep sp_scan'
                           h_props_bk h_sep_bk
                           (SFlowContent.doubleQ 0 .blockKey sp_prep sp_scan' h_dq)),
-                      GStar.nil _, h_kcol_of h_pp, h_kslot_pk, Or.inr trivial,
-                      Or.inr trivial⟩
+                      GStar.nil _, h_kcol_of h_pp, h_kslot_pk, h_resF_pk, h_resFV_pk⟩
                   · by_cases hsq : c = '\''
                     · subst hsq
                       obtain ⟨h_pp, h_cond⟩ :=
@@ -20290,8 +20424,7 @@ lemma accum_content_pending (sc : ScannerState)
                           (SFlowNode.propsContent 0 .blockKey sp_p sp_scan sp_prep sp_scan'
                             h_props_bk h_sep_bk
                             (SFlowContent.singleQ 0 .blockKey sp_prep sp_scan' h_sq)),
-                        GStar.nil _, h_kcol_of h_pp, h_kslot_pk, Or.inr trivial,
-                        Or.inr trivial⟩
+                        GStar.nil _, h_kcol_of h_pp, h_kslot_pk, h_resF_pk, h_resFV_pk⟩
                     · obtain ⟨h_sk_pres, h_cond⟩ :=
                         dispatchContent_plainScalar_key_prod _ sp_prep
                           (corr_of_allowDirectives_update hcorr_prep) hpeek_disp h_flow_disp
@@ -20305,8 +20438,8 @@ lemma accum_content_pending (sc : ScannerState)
                           (SFlowNode.propsContent 0 .blockKey sp_p sp_scan sp_prep sp_gram2
                             h_props_bk h_sep_bk
                             (SFlowContent.plain 0 .blockKey sp_prep sp_gram2 h_ol)),
-                        h_tws2, h_kcol_of (by rw [h_sk_pres]), h_kslot_pk, Or.inr trivial,
-                        Or.inr trivial⟩
+                        h_tws2, h_kcol_of (by rw [h_sk_pres]), h_kslot_pk, h_resF_pk,
+                        h_resFV_pk⟩
             -- Item 24: the run's route index decides which readings of the
             -- decorated value are available.  At 0 the whole of
             -- `dispatchContent_evidence_content` is — including `[198]`'s

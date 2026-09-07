@@ -247,7 +247,8 @@ example {sp_start sp_land sp_key : SurfPos} {k nv : Nat}
   family is `k:⏎  - a⏎b: 2`.)
 * The PROPS landing.  `content_dispatch_routed`'s `h_props_key` still reads
   only the root key context, so a landed `&p c: d` sibling re-opens at the root
-  as before; `PropsKeyPack` carries no resume twin to spend.
+  as before; `PropsKeyPack` carries no resume twin to spend.  (CLOSED by item
+  111: the pack gains items 99/108's twins and `h_props_key` resumes first.)
 * The block-scalar value arms of the two `accum_content_on_pendingMapValue`
   lemmas punt their frames (`? a: |⏎  x⏎  c: d`): the node there is complete at
   the park rather than at the landing, so the transport face does not apply
