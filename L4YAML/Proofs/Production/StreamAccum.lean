@@ -17822,18 +17822,26 @@ lemma content_dispatch_routed
                (Or.inr trivial) (Or.inr trivial),
              hcorr_result⟩
     | inr h_bs0 =>
-      obtain ⟨h_block, hbs⟩ := h_bs0
+      obtain ⟨_, hbs⟩ := h_bs0
+      -- Item 113: `dispatchContent_evidence` drops item 95's absorption
+      -- closure, so re-derive the reading with it (the value arms' idiom,
+      -- item 112) — the scalar re-reads TO the landing and the route takes
+      -- the re-read node, with no document suffix.  The park's other faces
+      -- stay vacuous: a landed block scalar heads no entry, and its
+      -- landed inputs are refused (`k:⏎  a: 1⏎|⏎  x` is §9.2).
+      obtain ⟨sp_bs, _, hcorr_bs, h_absorb95⟩ :=
+        dispatchContent_blockScalar_prod _ sp_prep
+          (corr_of_allowDirectives_update hcorr_prep) hpeek_disp hbs h_dispatch
+      have hsp_bs_eq := ScannerSurfCorr_unique hcorr_bs hcorr_result
+      rw [hsp_bs_eq] at h_absorb95
       exact ⟨sp_res, sp_res, sp_res, sp_scan', h_stream_res,
              BlockStack.nil sp_res, FlowStackB.nil sp_res .sep,
              PendingNode.pendingContent sp_start sp_res sp_scan' h_line
                (fun sp_mid h_ssl =>
-                 have h_ssl_ext := white_prepend_SSLComments h_trailing_ws h_ssl
-                 have h_blockNode : SBlockNode 0 .blockIn sp_anchor sp_gram :=
-                   h_block.elim
+                 h_route sp_mid
+                   ((h_absorb95 sp_mid h_ssl).elim
                      (fun h_lit => literal_blockNode h_sep (GOpt.none sp_prep) h_lit)
-                     (fun h_fld => folded_blockNode h_sep (GOpt.none sp_prep) h_fld)
-                 ssl_comments_extend_stream sp_start sp_gram sp_mid
-                   (h_route sp_gram h_blockNode) h_ssl_ext)
+                     (fun h_fld => folded_blockNode h_sep (GOpt.none sp_prep) h_fld)))
                h_key
                (stale_of_dispatch h_dispatch hna hnt
                  (by split <;> show s_prep.needIndentCheck = false <;> exact h_nic_prep)
@@ -18140,27 +18148,47 @@ lemma accum_content_on_pendingBlock
              (Or.inr trivial),
            hcorr_result⟩
     | inr h_bs0 =>
-      obtain ⟨h_block, hbs⟩ := h_bs0
-      have h_blockNode : SBlockNode 0 .blockIn sp_scan sp_gram :=
-        h_block.elim
+      obtain ⟨_, hbs⟩ := h_bs0
+      -- Item 113: the entry's completed value is a block scalar, and the park
+      -- keeps the ENTRIES chain — item 95's absorption closure re-reads the
+      -- scalar to the landing (the value arms' idiom, item 112), so the
+      -- entry-level closures fold the re-read node exactly as the flow arm
+      -- folds its own, and `- |⏎  x⏎- y` snocs instead of re-opening.
+      obtain ⟨sp_bs, _, hcorr_bs, h_absorb95⟩ :=
+        dispatchContent_blockScalar_prod _ sp_prep
+          (corr_of_allowDirectives_update hcorr_prep) hpeek_disp hbs h_dispatch
+      have hsp_bs_eq := ScannerSurfCorr_unique hcorr_bs hcorr_result
+      rw [hsp_bs_eq] at h_absorb95
+      have h_nodeAt : ∀ sp_m : SurfPos, SSLComments sp_scan' sp_m →
+          SBlockNode 0 .blockIn sp_scan sp_m := fun sp_m h_ssl =>
+        (h_absorb95 sp_m h_ssl).elim
           (fun h_lit => literal_blockNode h_sep (GOpt.none sp_prep) h_lit)
           (fun h_fld => folded_blockNode h_sep (GOpt.none sp_prep) h_fld)
-      have h_stream' : SLYamlStream sp_start sp_gram :=
-        h_close_old sp_gram (SBlockIndented.node 0 .blockIn sp_scan sp_gram h_blockNode)
-      exact ⟨sp_gram, sp_gram, sp_gram, sp_scan', h_stream',
-             BlockStack.nil sp_gram, FlowStackB.nil sp_gram .sep,
-             PendingNode.pendingContent sp_start sp_gram sp_scan' h_line
+      exact ⟨sp_block, sp_block, sp_block, sp_scan', h_stream_block,
+             BlockStack.nil sp_block, FlowStackB.nil sp_block .sep,
+             PendingNode.pendingBlockContent sp_start sp_block sp_scan' 0 h_line
                (fun sp_final h_ssl =>
-                 have h_ssl_ext := white_prepend_SSLComments h_trailing_ws h_ssl
-                 ssl_comments_extend_stream sp_start sp_gram sp_final h_stream' h_ssl_ext)
+                 h_close_old sp_final
+                   (SBlockIndented.node 0 .blockIn sp_scan sp_final
+                     (h_nodeAt sp_final h_ssl)))
+               (fun sp_final h_ssl =>
+                 h_close_entry_old sp_final
+                   (SBlockIndented.node 0 .blockIn sp_scan sp_final
+                     (h_nodeAt sp_final h_ssl)))
                (fun h_poss _ => absurd h_poss
                  (by rw [dispatchContent_blockScalar_simpleKey_false hbs h_dispatch]; simp))
-                (stale_of_dispatch h_dispatch hna hnt
-               (by split <;> exact nic_false_of_flow_disp (sc := sc) (s_prep := s_prep) h_preprocess h_flow_disp)
-               hcorr_result) (Or.inr trivial)
+               (stale_of_dispatch h_dispatch hna hnt
+                 (by split <;> exact nic_false_of_flow_disp (sc := sc) (s_prep := s_prep) h_preprocess h_flow_disp)
+                 hcorr_result)
                (content_park_arm (preprocess_some_peek h_preprocess)
                  h_flow_disp h_not_doc h_dispatch hcorr_result)
-               (Or.inr trivial) (Or.inr trivial),
+               -- Item 92: a root `- `'s indicator sits at column 0, so no `?`
+               -- frame can own this park — the value-line face is vacuous.
+               (Or.inr trivial)
+               -- Item 110: a root `- ` stands inside no mapping level, and the
+               -- landing that would spend this face is refused
+               -- (`- |⏎  x⏎b: 2` is `trailingContent`).
+               (Or.inr trivial),
              hcorr_result⟩
 
 /-- **Does this content step read at EVERY index?** (item 23; item 24; item 26)
@@ -18806,49 +18834,59 @@ lemma accum_content_on_pendingBlock_indented
                       sp_m (SCompactSeqTail.nil n sp_m) sp_i sp_c h_iv h_lit sp_v h_sbi⟩
               | Or.inr _ => Or.inr trivial),
            hcorr_result⟩
-  · -- Item 26: `  - |` — `[198]`'s block scalar at the ENTRY's index.  The node
-    -- is complete where the scanner stopped ([170]'s `l-chomped-empty` has
-    -- already absorbed the trailing breaks), so the entry closes here and what
-    -- parks is the plain content pending, not the entry-level one: a sibling
-    -- after `  - |` re-opens through `[211]`'s bare-document continuation,
-    -- exactly as item 13's mapping twin does.
-    have h_blockNode : SBlockNode n .blockIn sp_scan sp_scan' :=
-      h_read.elim
-        (fun h_lit => literal_blockNode h_sep_all (GOpt.none sp_prep) h_lit)
-        (fun h_fld => folded_blockNode h_sep_all (GOpt.none sp_prep) h_fld)
-    have h_stream' : SLYamlStream sp_start sp_scan' :=
-      h_close_old sp_scan' (SBlockIndented.node n .blockIn sp_scan sp_scan' h_blockNode)
-    exact ⟨sp_scan', sp_scan', sp_scan', sp_scan', h_stream',
-           BlockStack.nil sp_scan', FlowStackB.nil sp_scan' .sep,
-           PendingNode.pendingContent sp_start sp_scan' sp_scan' h_line
+  · -- Item 26: `  - |` — `[198]`'s block scalar at the ENTRY's index.  The
+    -- node is complete where the scanner stopped ([170]'s `l-chomped-empty`
+    -- has already absorbed the trailing breaks).  Item 113: the ENTRIES chain
+    -- no longer drops with it — item 95's absorption closure re-reads the
+    -- scalar to the landing (the value arms' idiom, item 112), so the park
+    -- keeps the entry-level closures and `k:⏎  - |⏎    x⏎  - y` snocs where
+    -- it re-opened through `[211]`'s bare-document continuation.
+    have h_nodeAt : ∀ sp_m : SurfPos, SSLComments sp_scan' sp_m →
+        SBlockNode n .blockIn sp_scan sp_m := fun sp_m h_ssl =>
+      (h_absorb95 sp_m h_ssl).elim
+        (fun h_lit' => literal_blockNode h_sep_all (GOpt.none sp_prep) h_lit')
+        (fun h_fld' => folded_blockNode h_sep_all (GOpt.none sp_prep) h_fld')
+    exact ⟨sp_block, sp_block, sp_block, sp_scan', h_stream_block,
+           BlockStack.nil sp_block, FlowStackB.nil sp_block .sep,
+           PendingNode.pendingBlockContent sp_start sp_block sp_scan' n h_line
              (fun sp_final h_ssl =>
-               ssl_comments_extend_stream sp_start sp_scan' sp_final h_stream' h_ssl)
+               h_close_old sp_final
+                 (SBlockIndented.node n .blockIn sp_scan sp_final
+                   (h_nodeAt sp_final h_ssl)))
+             (fun sp_final h_ssl =>
+               h_close_entry_old sp_final
+                 (SBlockIndented.node n .blockIn sp_scan sp_final
+                   (h_nodeAt sp_final h_ssl)))
              (fun h_poss _ => absurd h_poss
                (by rw [dispatchContent_blockScalar_simpleKey_false hbs h_dispatch]; simp))
              (stale_of_dispatch h_dispatch hna hnt
                (by split <;> exact nic_false_of_flow_disp (sc := sc) (s_prep := s_prep) h_preprocess h_flow_disp)
                hcorr_result)
-             -- Item 95: `h_kslot_old` NOW rides into this park's `h_vpack` —
-             -- the landing's `s-l-comments` is absorbed into the scalar's own
-             -- `[169] l-trail-comments` slot (or forced empty by the stop
-             -- character), so the SAME node re-read to the landing closes the
-             -- entry and the frame reads the `:` line (`? |⏎  x⏎: - w`,
-             -- `? - |⏎    x⏎: - w`).
-             (match h_kslot_old, h_absorb95 with
-              | Or.inl ⟨nv, kslot⟩, cl => Or.inl ⟨nv,
-                  fun sp_mid sp_i sp_c h_ssl h_iv h_lit sp_v h_sbi =>
-                    kslot sp_mid
-                      (SBlockIndented.node n .blockIn sp_scan sp_mid
-                        ((cl sp_mid h_ssl).elim
-                          (fun h_lit' =>
-                            literal_blockNode h_sep_all (GOpt.none sp_prep) h_lit')
-                          (fun h_fld' =>
-                            folded_blockNode h_sep_all (GOpt.none sp_prep) h_fld')))
-                      sp_mid (SCompactSeqTail.nil n sp_mid) sp_i sp_c h_iv h_lit sp_v h_sbi⟩
-              | _, _ => Or.inr trivial)
-               (content_park_arm (preprocess_some_peek h_preprocess)
-                 h_flow_disp h_not_doc h_dispatch hcorr_result)
-             (Or.inr trivial) (Or.inr trivial),
+             (content_park_arm (preprocess_some_peek h_preprocess)
+               h_flow_disp h_not_doc h_dispatch hcorr_result)
+             -- Items 92/95: the pack now rides at the ENTRY level — the
+             -- re-read node closes this entry and the sequence tail RIDES
+             -- (`? - |⏎    x⏎  - y⏎: v`'s sibling conses before the frame's
+             -- `:` line spends), where item 95's content park could only
+             -- close it `nil` (`? - |⏎    x⏎: - w`).
+             (match h_kslot_old with
+              | Or.inl ⟨nv, kslot⟩ => Or.inl ⟨nv,
+                  fun sp_m h_ssl sp_e h_tail sp_i sp_c h_iv h_lit sp_v h_sbi =>
+                    kslot sp_m
+                      (SBlockIndented.node n .blockIn sp_scan sp_m
+                        (h_nodeAt sp_m h_ssl))
+                      sp_e h_tail sp_i sp_c h_iv h_lit sp_v h_sbi⟩
+              | Or.inr _ => Or.inr trivial)
+             -- Item 110: `h_close_entry_old`'s RESUME face, the re-read node
+             -- folded in exactly as that closure folds it — the landing pops
+             -- to a level the sequence stands in (`k:⏎  - |⏎    x⏎b: 2`).
+             (match h_closeF_old with
+              | Or.inl ⟨ks, h_lt, closeF⟩ => Or.inl ⟨ks, h_lt,
+                  fun sp_final h_ssl =>
+                    closeF sp_final
+                      (SBlockIndented.node n .blockIn sp_scan sp_final
+                        (h_nodeAt sp_final h_ssl))⟩
+              | Or.inr _ => Or.inr trivial),
            hcorr_result⟩
   · -- Items 53/54: the entry's MULTI-LINE value (quoted or plain), read at
     -- the entry's own index; arm 1's park with the fixed-index node.

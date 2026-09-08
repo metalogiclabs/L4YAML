@@ -195,9 +195,12 @@ example {sp_start sp_scan sp_scan' : SurfPos} {n : Nat}
   runtime-accepted, ONE sequence) still re-open.  Two carriers wait there:
   an entry SIBLING rides the entries chain (`pendingBlockContent`'s park,
   item 110's shape), and a mapping-level landing rides the frames — both
-  take this item's re-read at that lemma's own fields.
+  take this item's re-read at that lemma's own fields.  (CLOSED by item 113
+  — both arms park `pendingBlockContent` with the re-read at every face.)
 * `content_dispatch_routed`'s block-scalar arm — a landed scalar HEAD's own
   park; its landing faces still punt (`(Or.inr trivial)` ×3 at the build).
+  (Item 113 gave it the re-read CLOSE and pinned the punts' inputs as
+  refused — `|` heads no entry.)
 * The props-decorated scalar parks (`accum_content_on_pendingProps`'s
   block-scalar arms) pay their value-line twin from the re-read but not the
   frames — the props park has no `h_closeF`/`h_frames` of its own to
