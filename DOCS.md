@@ -12490,6 +12490,56 @@ unmoved (6355 / 6150, confirmed against the item-119 artifact); this
 item adds one guard file (+7 `#guard`s).  Escape-site counts UNMOVED
 (the §4 list above).
 
+### Item 121 (2026-09-07)
+
+**The under-indent invariant, MEASURED — one name, three couplings.**
+Items 101/104/105/107 each deferred a residue to "the under-indent
+invariant" and the ledger carried it as one multi-session item.  The
+measurement (item 119's finding one item over): it is THREE distinct
+couplings, each with its own carrier, consumer, and price —
+
+* **U1 — the `?`-line column bound** (scanner-internal,
+  `KeysBehindCursor`-shaped): a live simple-key candidate saved on the
+  pending `?`'s own line sits strictly right of `explicitKeyCol`.  Serves
+  item 104's stale-key PAIR — `scanValueClearKey`'s `?`-line arm — whose
+  deferred disjunct becomes a refutation; the pair's inputs are all
+  runtime-refused today (`? [1,⏎ 2]: v`, `? x⏎ y: v`, pinned).
+  One-session build in item 81's mold (define, thread the preservation,
+  expose at the dispatch shape).
+* **U2 — the park-face coupling** (scanner ↔ surface):
+  `sc.explicitKeyLine = some l` at a park implies the park's `?`-frame
+  face (`h_expl`/`h_vslot`) is REAL, as a mandatory conditional field.
+  Item 105 measured this as REQUIRED for `KeyPackPunt.noFrame`'s
+  deletion — `scanValue` stamps only when `explicitValue` is false,
+  `explicitValue` reads `explicitKeyLine`, and the two keyless `:`
+  branches produce IDENTICAL scanner states, so no scanner-internal fact
+  can separate them; the discriminator must be the surface face.  The
+  spend deletes `noFrame` by `by_cases` on the flag (set → the real face
+  routes through the explicit opener; unset → the stamp is real).  Cost:
+  the "every pending" threading item 101's measured note priced — every
+  producer of the face-carrying parks pays or refutes the conditional.
+* **U3 — the frames ↔ indent-stack coupling**: the packs' resume-twin
+  lists `ks` are surface data, and the misindented-sibling refusal is the
+  SCANNER's (`scanNextToken_preprocess`'s unwind check —
+  `k:⏎    a: 1⏎  b: 2` = `trailing content`, pinned, both pipelines).
+  `KeyPackPunt.dedent`'s `w ∉ ks` deferred case becomes a refutation only
+  when `ks` is coupled to the columns of `sc.indents`' open entries — an
+  accumulation-invariant conjunct, the widest of the three.
+
+**Order**: U1 (self-contained), then U2 (deletes `noFrame`, and with
+`noKeyContext`'s twin shrinks the `pendingFlow` feed toward 67b's
+deletion), then U3 (R4's landing-pad narrowing).  The `explicitKeyLine`
+machine itself is already exact in the runtime (`scanValue`'s
+`explicitValue`/`ekl` computation — the `?` consumed at its column,
+survived by deeper entries, killed by shallower ones) and §1 of the new
+guard pins it with exact event streams.
+
+New guard `Tests/Guards/Proofs/UnderIndentInvariantMap.lean` (13
+`#guard`s): §1 the `explicitKeyLine` machine and U1's refused pair
+family, §2 U3's misindented-sibling refusals (scanner-attributed), §3 the
+valid sibling boundary the couplings must not cross.  Zero library and
+runtime edits.
+
 ### REMAINING, in order
 
 The per-item history is the closure log above; this section lists only the
@@ -12503,7 +12553,7 @@ too (items 47–51), so what stands between here
 and Step 5 (the converse) is R3's remaining production work and R4:
 
 ```
-R1 ✓ (44–46) ──→ R2 ✓ (47–51) ──→ R3 (52–118 landed; 67b open) ──→ Step 5
+R1 ✓ (44–46) ──→ R2 ✓ (47–51) ──→ R3 (52–120 landed; 67b's deletion on U2) ──→ Step 5
                                         └──────→ R4 (implicitContinue + 0 < m) ──┘
 ```
 
@@ -12900,7 +12950,10 @@ that reaches each:
   has no named input.  The `:`'s OWN residue is now one shape and it is not a
   pack punt: a `?` frame open on a stale key's line with the `:` at the mapping
   indent, which the runtime refuses upstream (item 104 §3) and the under-indent
-  invariant would refute here.
+  invariant would refute here.  (Item 121 MEASURED that invariant: it is three
+  couplings — U1 the `?`-line column bound serves exactly this pair, U2 the
+  park-face coupling serves `noFrame`'s deletion, U3 the frames↔indent-stack
+  coupling serves `dedent`'s `w ∉ ks` — see [Item 121](#item-121-2026-09-07).)
 
   And the DELETION has preconditions outside this ledger: `pendingFlow`'s
   producers are also the block dispatch's inline-residue defers, fed by
