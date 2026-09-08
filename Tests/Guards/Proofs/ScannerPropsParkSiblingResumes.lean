@@ -274,6 +274,9 @@ example {sp_start sp_node sp_p sp_scan : SurfPos} {n : Nat} {ks : List Nat}
   resume twins — the landed props-headed KEY under an explicit frame
   (`?⏎  &p a: b⏎  c: d⏎: - w`) waits on `entryKeyPack`'s four threaded
   premises transposed to props (item 111's second residue, unchanged).
+  (CLOSED by item 115 — the four premises transposed, the landed branch
+  paying strictly-deeper and the dedent branch popping; the compact
+  branch's punt is item 99's shared residue.)
 * The flow OPEN's props arm still drops the pack's twins at
   `FlowBaseRoutes.key` (67b's carrier, `&p [1]: b` at a resumed landing).
 * The ROUTED producers' five faces punt with no input — a landed run's

@@ -17371,6 +17371,26 @@ lemma entryPropsKeyPack_of_dispatch
         ∀ sp_i sp_c : SurfPos, SIndent nv sp sp_i → GLit ':' sp_i sp_c →
         ∀ sp_v : SurfPos, SBlockIndented nv .blockOut sp_c sp_v →
         SLYamlStream sp_start sp_v) ∨ True)) ∨ True)
+    -- ═══ Item 115: `entryKeyPack_of_dispatch`'s four threaded premises
+    -- (items 99/108), transposed to the props side — verbatim, because the
+    -- run-headed key nests in exactly the mapping the scalar-headed one does.
+    -- The LANDED branch pays the pack's resume twins from the node-domain
+    -- pair whenever the landing is strictly deeper, and the DEDENT branch
+    -- pops the comment-domain pair, so a props-headed sibling conses onto
+    -- the level its width names instead of deferring.  Callers without
+    -- frames pass `Or.inr trivial`. ═══
+    (h_nodeF : (∃ ks : List Nat, (∀ k' ∈ ks, k' ≤ n) ∧
+      ∀ sp_m : SurfPos, SBlockNode n .blockIn sp_scan sp_m →
+      ResumeFrames (SLYamlStream sp_start) ks sp_m) ∨ True)
+    (h_dframes : (∃ ks : List Nat,
+      ∀ sp_m : SurfPos, SSLComments sp_scan sp_m →
+      ResumeFrames (SLYamlStream sp_start) ks sp_m) ∨ True)
+    (h_nodeFV : (∃ (nv : Nat) (ks : List Nat), (∀ k' ∈ ks, k' ≤ n) ∧
+      ∀ sp_m : SurfPos, SBlockNode n .blockIn sp_scan sp_m →
+      ResumeFrames (ExplValueLine sp_start nv) ks sp_m) ∨ True)
+    (h_dframesV : (∃ (nv : Nat) (ks : List Nat),
+      ∀ sp_m : SurfPos, SSLComments sp_scan sp_m →
+      ResumeFrames (ExplValueLine sp_start nv) ks sp_m) ∨ True)
     -- Item 90: the flag and the block level, `entryKeyPack_of_dispatch`'s
     -- own pair — the save is fresh for the same reason.
     (h_ska : sc.simpleKeyAllowed = true)
@@ -17481,16 +17501,90 @@ lemma entryPropsKeyPack_of_dispatch
                                  (SBlockMapEntries_of_compactTail h_ind' h_entry h_tail))
                                sp_i sp_c h_iv h_lit sp_w h_sbi⟩
                        | Or.inr _ => Or.inr trivial),
-                      -- Item 111: the resume twins stay unpaid HERE — paying
-                      -- them is `entryKeyPack_of_dispatch`'s four threaded
-                      -- premises (items 99/108), transposed to the props side;
-                      -- the LANDING producer (`h_props_key`) pays its own.
-                      Or.inr trivial, Or.inr trivial⟩,
+                      -- Item 115: the nested mapping's resume twins, items
+                      -- 99/108's terms verbatim — the run-headed entry and its
+                      -- tail close the mapping the caller's node awaits, and
+                      -- the caller's own frames carry on below it.  Only the
+                      -- strictly-deeper landing pays (`n < w`): at `w = n` the
+                      -- sibling belongs to the level itself
+                      -- (`?⏎  &p a: b⏎  c: d⏎: - w` reads `c` as `a`'s
+                      -- sibling with the `?`'s value line still owed).
+                      if hlt : n < w then
+                        match h_nodeF with
+                        | Or.inl ⟨ks, h_le, nodeF⟩ => Or.inl ⟨ks,
+                            fun k' hk' => Nat.lt_of_le_of_lt (h_le k' hk') hlt,
+                            fun sp_v h_entry sp_e h_tail =>
+                              nodeF sp_e (nestedBlockMap hnw h_land.1
+                                (SBlockMapEntries_of_compactTail h_ind' h_entry h_tail))⟩
+                        | Or.inr _ => Or.inr trivial
+                      else Or.inr trivial,
+                      if hlt : n < w then
+                        match h_nodeFV with
+                        | Or.inl ⟨nv, ks, h_le, nodeFV⟩ => Or.inl ⟨nv, ks,
+                            fun k' hk' => Nat.lt_of_le_of_lt (h_le k' hk') hlt,
+                            fun sp_v h_entry sp_e h_tail =>
+                              nodeFV sp_e (nestedBlockMap hnw h_land.1
+                                (SBlockMapEntries_of_compactTail h_ind' h_entry h_tail))⟩
+                        | Or.inr _ => Or.inr trivial
+                      else Or.inr trivial⟩,
                       h_props, h_sk_line,
                       by rw [h_sk, allowDirectives_update_simpleKey]; exact h_shape.1⟩
-      · -- Item 102: the landing under-ran the run's own index — item 64's
-        -- boundary, at the props park (`k:⏎  &p a: 1⏎ b: 2`).
-        exact Or.inr KeyPackPunt.dedent
+      · -- Item 115: the DEDENT composes — item 99's move, at the run.  The
+        -- landing under-ran the awaited node's index, so the props-headed
+        -- key is a SIBLING at an enclosing mapping level: the pending's
+        -- frames close the awaited entry empty, the landing width pops to
+        -- its own level, and the key conses there — `k:⏎  a:⏎&p b: 2` reads
+        -- as ONE outer mapping with the anchor on `b`.  A width naming no
+        -- frame (a caller without frames included) defers exactly as before
+        -- (`k:⏎  a:⏎ &p b: 2` = `trailingContent`).  The value-line stack
+        -- pops independently, its membership test taken twice, exactly as at
+        -- `entryKeyPack_of_dispatch`'s dedent (item 108) —
+        -- `?⏎  a:⏎    b:⏎  &p c: 2⏎: - w` keeps the `?` open.
+        rcases h_dframes with ⟨ks, dframes⟩ | _
+        · by_cases hmem : w ∈ ks
+          · have h_ind' : SIndent w sp_mid sp_prep := by rw [h_pe]; exact h_ind
+            have h_kcol : s'.simpleKey.pos.col = w := by
+              rw [h_sk, allowDirectives_update_simpleKey, h_shape.2]
+              show s_prep.col = w
+              rw [← hcorr_prep.col_eq]
+              have := SIndent_col h_ind'
+              rw [h_land.2.1] at this
+              omega
+            obtain ⟨ks', h_lt', cont'⟩ :=
+              (dframes sp_mid h_land.1).resumeAt hmem
+            exact Or.inl ⟨⟨w,
+              fun sp_v h_entry =>
+                (cont' sp_v (SCompactMapTail.cons w sp_mid sp_prep sp_v sp_v
+                  h_ind' h_entry (SCompactMapTail.nil w sp_v))).close,
+              h_kcol,
+              (match h_dframesV with
+               | Or.inl ⟨nv, ksV, dframesV⟩ =>
+                   if hmemV : w ∈ ksV then
+                     match (dframesV sp_mid h_land.1).resumeAt hmemV with
+                     | ⟨_, _, contV⟩ => Or.inl ⟨nv,
+                         fun sp_v h_entry sp_e h_tail sp_i sp_c h_iv h_lit sp_w h_sbi =>
+                           (contV sp_e (SCompactMapTail.cons w sp_mid sp_prep sp_v sp_e
+                             h_ind' h_entry h_tail)).close sp_i sp_c h_iv h_lit sp_w h_sbi⟩
+                   else Or.inr trivial
+               | Or.inr _ => Or.inr trivial),
+              Or.inl ⟨ks', h_lt',
+                fun sp_v h_entry sp_e h_tail =>
+                  cont' sp_e (SCompactMapTail.cons w sp_mid sp_prep sp_v sp_e
+                    h_ind' h_entry h_tail)⟩,
+              (match h_dframesV with
+               | Or.inl ⟨nv, ksV, dframesV⟩ =>
+                   if hmemV : w ∈ ksV then
+                     match (dframesV sp_mid h_land.1).resumeAt hmemV with
+                     | ⟨ksV', h_ltV', contV⟩ => Or.inl ⟨nv, ksV', h_ltV',
+                         fun sp_v h_entry sp_e h_tail =>
+                           contV sp_e (SCompactMapTail.cons w sp_mid sp_prep sp_v sp_e
+                             h_ind' h_entry h_tail)⟩
+                   else Or.inr trivial
+               | Or.inr _ => Or.inr trivial)⟩,
+              h_props, h_sk_line,
+              by rw [h_sk, allowDirectives_update_simpleKey]; exact h_shape.1⟩
+          · exact Or.inr KeyPackPunt.dedent
+        · exact Or.inr KeyPackPunt.dedent
     | inr h_mid =>
       cases h_compact with
       | inr _ =>
@@ -17541,9 +17635,12 @@ lemma entryPropsKeyPack_of_dispatch
                                 (SCompactMap.mk (n + 1 + w) sp_prep sp_v sp_e h_entry h_tail))
                               sp_i sp_c h_iv h_lit sp_w h_sbi⟩
                       | Or.inr _ => Or.inr trivial),
-                      -- Item 111: as at the landed branch — the compact frame
-                      -- is fused into the enclosing entry's closure, so the
-                      -- resume twins stay unpaid here.
+                      -- Item 99's compact residue, shared with
+                      -- `entryKeyPack_of_dispatch`'s compact branch: the
+                      -- frame's levels are fused into the enclosing entry's
+                      -- closure, so the resume twins stay unpaid here (its
+                      -- dedent is the named residue; item 115 paid the landed
+                      -- and dedent branches only).
                       Or.inr trivial, Or.inr trivial⟩,
                       h_props, h_sk_line,
                       by rw [h_sk, allowDirectives_update_simpleKey]; exact h_shape.1⟩
@@ -18086,6 +18183,11 @@ lemma accum_content_on_pendingBlock
                  -- Item 106: and its landed twin is vacuous for the same reason.
                  h_route (Or.inr trivial)
                  (Or.inl ⟨h_close_old, h_col_old, Or.inr trivial⟩)
+                 -- Item 115: a root `- `'s park stands under no frame — all
+                 -- four faces punt, as at the `entryKeyPack_of_dispatch` site
+                 -- below (the dedent has no input at index 0, and
+                 -- `- x⏎&p b: 2` is `trailingContent`).
+                 (Or.inr trivial) (Or.inr trivial) (Or.inr trivial) (Or.inr trivial)
                  h_ska (by revert h_flow_disp; split <;> (intro h; exact h))
                  (SCNsProperties.anchorFirst 0 .blockKey sp_prep sp_scan' sp_scan'
                    ha_ev (GOpt.none sp_scan'))
@@ -18134,6 +18236,8 @@ lemma accum_content_on_pendingBlock
                  -- Item 94: root frame, as at the `&` arm above.
                  h_route (Or.inr trivial)
                  (Or.inl ⟨h_close_old, h_col_old, Or.inr trivial⟩)
+                 -- Item 115: as at the `&` arm — no frame at a root `- `.
+                 (Or.inr trivial) (Or.inr trivial) (Or.inr trivial) (Or.inr trivial)
                  h_ska (by revert h_flow_disp; split <;> (intro h; exact h))
                  (SCNsProperties.tagFirst 0 .blockKey sp_prep sp_scan' sp_scan'
                    ht_ev (GOpt.none sp_scan'))
@@ -18876,6 +18980,28 @@ lemma accum_content_on_pendingBlock_indented
                        kslot sp h_bi sp (SCompactSeqTail.nil n sp)
                          sp_i sp_c h_iv h_lit sp_v h_sbi⟩
                  | Or.inr _ => Or.inr trivial⟩)
+               -- Item 115: items 99/108's faces, as at the
+               -- `entryKeyPack_of_dispatch` site above — the run-headed key's
+               -- mapping (or the empty entry) closes this entry, the nil tail
+               -- closes the sequence, and the levels below ride through
+               -- (`k:⏎  -⏎&p b: 2` pops).
+               (match h_closeF_old with
+                | Or.inl ⟨ks, h_lt, closeF⟩ => Or.inl ⟨ks,
+                    fun k' hk' => Nat.le_of_lt (h_lt k' hk'),
+                    fun sp_m h_bn =>
+                      closeF sp_m (SBlockIndented.node n .blockIn sp_scan sp_m h_bn)
+                        sp_m (SCompactSeqTail.nil n sp_m)⟩
+                | Or.inr _ => Or.inr trivial)
+               (match h_closeF_old with
+                | Or.inl ⟨ks, _, closeF⟩ => Or.inl ⟨ks,
+                    fun sp_m h_ssl =>
+                      closeF sp_m (SBlockIndented.empty n .blockIn sp_scan sp_m h_ssl)
+                        sp_m (SCompactSeqTail.nil n sp_m)⟩
+                | Or.inr _ => Or.inr trivial)
+               -- Item 115: the sequence entry's own explicit frame is
+               -- `h_kslot_old`'s, which is not a stack — item 108's residue,
+               -- shared with the implicit twin.
+               (Or.inr trivial) (Or.inr trivial)
                h_ska (by revert h_flow_disp; split <;> (intro h; exact h))
                ((h_run_all 0).toPropertiesBlockKey h_single) h_sk_s h_line_s
                -- Item 102: the park's own three flags, the input the tab
@@ -19277,6 +19403,23 @@ lemma accum_content_on_pendingMapValue
                (entryPropsKeyPack_of_dispatch sc sp_start sp_scan 0 s_prep s' '&'
                  sp_prep sp_scan' h_route (explFrameValueLine h_expl h_kslot)
                  h_compact_vslot
+                 -- Item 115: the park's own frames, in the pack lemma's shape,
+                 -- exactly as at the `entryKeyPack_of_dispatch` arm below —
+                 -- so `?⏎  &p a: b⏎  c: d⏎: - w` reads `c` as `a`'s sibling
+                 -- with the `?`'s value line still owed.
+                 (match h_closeF99 with
+                  | Or.inl ⟨ks, h_lt, closeF⟩ => Or.inl ⟨0 :: ks,
+                      fun k' hk' => by
+                        rcases List.mem_cons.mp hk' with h | h
+                        · omega
+                        · exact Nat.le_of_lt (h_lt k' h),
+                      closeF⟩
+                  | Or.inr _ => Or.inr trivial)
+                 h_frames99
+                 (match h_closeFV99 with
+                  | Or.inl ⟨nv, ks, h_le, closeFV⟩ => Or.inl ⟨nv, ks, h_le, closeFV⟩
+                  | Or.inr _ => Or.inr trivial)
+                 h_framesV99
                  h_ska (by revert h_flow_disp; split <;> (intro h; exact h))
                  (SCNsProperties.anchorFirst 0 .blockKey sp_prep sp_scan' sp_scan'
                    ha_ev (GOpt.none sp_scan'))
@@ -19342,6 +19485,23 @@ lemma accum_content_on_pendingMapValue
                (entryPropsKeyPack_of_dispatch sc sp_start sp_scan 0 s_prep s' '!'
                  sp_prep sp_scan' h_route (explFrameValueLine h_expl h_kslot)
                  h_compact_vslot
+                 -- Item 115: the park's own frames, in the pack lemma's shape,
+                 -- exactly as at the `entryKeyPack_of_dispatch` arm below —
+                 -- so `?⏎  &p a: b⏎  c: d⏎: - w` reads `c` as `a`'s sibling
+                 -- with the `?`'s value line still owed.
+                 (match h_closeF99 with
+                  | Or.inl ⟨ks, h_lt, closeF⟩ => Or.inl ⟨0 :: ks,
+                      fun k' hk' => by
+                        rcases List.mem_cons.mp hk' with h | h
+                        · omega
+                        · exact Nat.le_of_lt (h_lt k' h),
+                      closeF⟩
+                  | Or.inr _ => Or.inr trivial)
+                 h_frames99
+                 (match h_closeFV99 with
+                  | Or.inl ⟨nv, ks, h_le, closeFV⟩ => Or.inl ⟨nv, ks, h_le, closeFV⟩
+                  | Or.inr _ => Or.inr trivial)
+                 h_framesV99
                  h_ska (by revert h_flow_disp; split <;> (intro h; exact h))
                  (SCNsProperties.tagFirst 0 .blockKey sp_prep sp_scan' sp_scan'
                    ht_ev (GOpt.none sp_scan'))
@@ -19768,6 +19928,19 @@ lemma accum_content_on_pendingMapValue_indented
              (entryPropsKeyPack_of_dispatch sc sp_start sp_scan n s_prep s' c
                sp_prep sp_scan' h_close_old (explFrameValueLine h_expl h_kslot)
                h_compact_vslot
+               -- Item 115: the park's own frames — level `n` rides on top for
+               -- the transport face, as at the `entryKeyPack_of_dispatch`
+               -- arms beside this one, so `k:⏎  a:⏎&p b: 2` pops and
+               -- `k:⏎  a:⏎    &p b: c⏎    d: e⏎  f: 2` resumes then pops.
+               (match h_closeF99 with
+                | Or.inl ⟨ks, h_lt, closeF⟩ => Or.inl ⟨n :: ks,
+                    fun k' hk' => by
+                      rcases List.mem_cons.mp hk' with h | h
+                      · omega
+                      · exact Nat.le_of_lt (h_lt k' h),
+                    closeF⟩
+                | Or.inr _ => Or.inr trivial)
+               h_frames99 h_closeFV108 h_framesV108
                h_ska (by revert h_flow_disp; split <;> (intro h; exact h))
                ((h_run_all 0).toPropertiesBlockKey h_single) h_sk_s h_line_s
                -- Item 102: the park's own three flags, the input the tab

@@ -167,6 +167,8 @@ example {sp_start sp_p sp_prep sp_scan' : SurfPos} {k : Nat} {ks : List Nat}
   `entryKeyPack_of_dispatch`'s four threaded premises (items 99/108)
   transposed to the props side — the entry-parked props key inside a still
   open construct (`?⏎  &p a: b⏎  c: d⏎: - w`'s `c`) still rides the deferral.
+  (CLOSED by item 115 — the four premises transposed verbatim, six callers
+  paying what their parks hold.)
 * The flow frame's rider.  `FlowBaseRoutes.key` carries the value-line pair
   only, so the flow-open arm DROPS the twins at that boundary — `&p [1]: b`
   parked at a resumed landing keeps its levels only once 67b widens the

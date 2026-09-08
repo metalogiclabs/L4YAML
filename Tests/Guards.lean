@@ -98,6 +98,7 @@ import Tests.Guards.Proofs.ScannerPropsLandingSiblingResumes
 import Tests.Guards.Proofs.ScannerBlockScalarSiblingResumes
 import Tests.Guards.Proofs.ScannerBlockScalarEntrySiblingResumes
 import Tests.Guards.Proofs.ScannerPropsParkSiblingResumes
+import Tests.Guards.Proofs.ScannerEntryPropsKeySiblingResumes
 import Tests.Guards.Proofs.ScannerExplicitKeyScope
 import Tests.Guards.Proofs.ScannerImplicitKeyCompose
 import Tests.Guards.Proofs.ScannerPlainNoGainRewind
