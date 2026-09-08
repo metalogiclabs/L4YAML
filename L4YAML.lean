@@ -91,6 +91,7 @@ import L4YAML.Proofs.Scanner.ScannerProofs
 import L4YAML.Proofs.Scanner.ScannerScalar
 import L4YAML.Proofs.Scanner.ScalarWalkColFloor
 import L4YAML.Proofs.Scanner.StaleCursorFloor
+import L4YAML.Proofs.Scanner.ExplicitKeyCoupling
 import L4YAML.Proofs.Scanner.ScannerSimpleKey
 import L4YAML.Proofs.Scanner.ScannerWhitespace
 import L4YAML.Proofs.Scanner.ScanStrictCoupling

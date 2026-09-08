@@ -12676,6 +12676,112 @@ coupling — `KeyPackPunt.noFrame`'s deletion, the every-pending
 threading) and U3 (frames ↔ indent-stack, R4's landing pad), per
 [item 121](#item-121-2026-09-07)'s map.
 
+### Item 124 (2026-09-08)
+
+**The park-face coupling's scanner half** — U2's fuel, landed the way item 122
+landed item 123's: the transport ladder and the discriminators first, the
+field redesign and its spend next.  ZERO runtime edits.
+
+**Measured first, and the measurements changed the plan's shape.**
+
+* **The register writers are exactly six.**  `explicitKeyLine`/`explicitKeyCol`
+  are written by `scanKey` (sets the `?`'s line and column), `scanValue` (the
+  epilogue's rule), the four flow brackets (the opens push the pair on
+  `explicitKeyStack` and clear it; the closes restore it), and `scanFlowEntry`
+  (the `,` ends the entry: line cleared, column left behind).  Nothing else —
+  in particular the document markers do NOT touch the registers, and every
+  skip, content scan, props scan and the block-scalar walk carries them
+  unchanged.
+* **The runtime discriminator is LINE-FREE.**  `scanValue`'s `explicitValue`
+  is `s_kc.explicitKeyLine.isSome && !s_kc.simpleKey.possible && (inFlow ||
+  (col : Int) == s_kc.explicitKeyCol)` — three conjuncts, each refutable from
+  coordinates a landed-`:` consumer already holds.  Every case of the coming
+  by_cases spend closes without any line coupling: no `l < line` invariant, no
+  landing-line analysis (the near-miss that threatened one — the clear's
+  `line != ekLine` guard — drops out because BOTH clear outcomes land in the
+  same arm of the `explicitKeyLine` rule, `scanValue_ekl_none_of_col_le`).
+* **The flow face already rides the REAL lane.**  `FlowBaseRoutes.vslot` is
+  item 51's value pack carried through the open flow tower, and the depth-0
+  close spends it (`flowVPack_of_close resume.vslot`) into the parked
+  `pendingContent`.  The GAP is the COLLAPSE lane: `FlowStackK.collapse`
+  renounces the face while the scanner restores the pair, so its two depth-0
+  closes park `h_vpack = Or.inr trivial` against a live restored
+  `explicitKeyLine` — `? [1,⏎2]`-style inputs, whose later landed `:` then
+  rides `colon_open_map` into the `h_ivl` right disjunct and the `noFrame`
+  punt.  Traced end to end: `? [a]⏎: b: c` is ACCEPTED (the landed `:` is the
+  explicit value off the RESTORED pair, no stamp, and the same-line `b: c`
+  reads through `[195]`), so U2's deletion owes the collapse shape a face slot
+  beside its `close` — the payment U2b makes, not a reason to re-scope.
+* The boundary refusals the discriminators lean on, re-measured: a keyless
+  `:` DEEPER than a live `?` never parks (`? a⏎  : v` is
+  `misindentedExplicitValue` — `[197]`'s `s-indent(n)` is exact), and the
+  keyed `:` beneath a live frame always stamps — at the frame's own column it
+  also kills the pair (`? [a]⏎z: v`: the landing carries the restored pair,
+  `z:` consumes it into `[189]`'s empty-key reading), deeper it lets the pair
+  survive (spec 8.19's `? earth: blue⏎: moon: white`).
+
+**The build**: `L4YAML/Proofs/Scanner/ExplicitKeyCoupling.lean` — 114 public
+lemmas (the env count agrees exactly; a first draft of this entry said 117,
+polluted by two docstring lines that WRAP onto a line beginning with the word
+`lemma` — the source-scan metric counts trimmed line starts, so the file's
+prose is now wrapped to keep the metric honest, and the discrepancy was
+caught by diffing the source scan against the environment walk before
+committing).
+§1–§4 are item 101's `implicitValueLine` ladder transposed TWICE (the same
+functions carry all three fields for the same reason, so the transposition is
+the sed item 101 used; `scanFlowEntry`'s ekl lemma is the one transposition
+casualty, replaced by `scanFlowEntry_explicitKeyLine_none`).  §5 is the
+writers: `scanKey_ok_explicitKey`, the flow-bracket column facts, the
+preprocessing wrapper `preprocess_preserves_explicitKey`, and the five
+`scanValue` discriminators —
+
+* `scanValue_ok_of_ekl_none` — no pending `?`: STAMPS, field stays down;
+* `scanValue_stamp_of_col_ne` — live `?`, the `:` off the frame's column:
+  STAMPS (the column conjunct alone);
+* `scanValue_stamp_of_key` — a resolved key: STAMPS
+  (`scanValueClearKey_keeps_key`: a key saved strictly behind the cursor on
+  the cursor's own line survives both clear branches);
+* `scanValue_ekl_none_of_col_le` — any `:` whose resolved coordinate does not
+  exceed the frame's column CONSUMES the pending (every arm of the
+  `explicitKeyLine` rule lands on `none`, line-free);
+* `scanValue_ekl_some_source` — survival preserves the column register from a
+  live pre-state, which is what threads a frame's face to the new park.
+
+Axiom profile: `[propext, Classical.choice, Quot.sound]` on all of §5 and the
+ladder — no `native_decide` anywhere in this file.
+
+**What U2b now is, exactly** (the recipe this item's measurements fix):
+`pendingMapValue.h_ivl`'s right disjunct becomes the park's own value-slot
+face (stamp-or-face, deleting the `∨ True`); the `h_vpack` family becomes
+face-or-refutation (`sc.inFlow = false → sc.explicitKeyLine = none`) with the
+face carrying the conditional column conjunct
+(`sc.explicitKeyLine.isSome = true → (nv : Int) = sc.explicitKeyCol`); the
+landed-`:` consumers by_cases on the register the way `explicitValue` itself
+does, spending this item's five discriminators; the collapse shape gains a
+face slot; and `KeyPackPunt.noFrame` goes.  Every producer of every block
+pending pays or refutes — the ~92-site threading the ledger priced.
+
+New guard `ExplicitKeyCouplingLadder` (30 `#guard` + 9 `example`): §1 pins
+the discriminators and the two transport wrappers at their landed types; §2
+re-checks the register discipline (`explicitKeyLine.isSome → explicitKeyCol ≥
+0`, on the state AND on every stacked pair) as a step-trace fold over 12
+families; §3 pins the register TRACES (set → carry → park → restore → consume,
+the `,`'s clear, 8.19's survival) at named step counts; §4 pins the families'
+verdicts on both pipelines.
+
+**Validation.**  Full `lake build` green (**1106** jobs, ZERO warnings);
+`run-all-tests.sh` **4473/4473** across 17 suites (unmoved — no annotation
+added); matrix **402/402 event and 282/282 JSON on BOTH pipelines** (legacy
+and `-ix` twins); `eventscore` **347/358**; `check-import-closure.sh`
+(**225** modules, +1), `check-reflection-index.sh` (20/229/248/354) and
+`check-theorem-keyword.sh` (25 capstones) OK; annotation verifier same **19**
+pre-existing name mismatches.  `collect-stats`: tests **572** files /
+**6243** `#guard`s (+30 exact = the new guard file); proofs **157** modules /
+**6284** (+114) and library **225** modules / **6489** (+114 = exactly the
+new file's public lemmas); env **8245** theorems (+114 — the two `private`
+helpers are name-mangled out of the `L4YAML.*` walk), **0** direct and **0**
+transitive `sorry`, **0** custom axioms.
+
 ### REMAINING, in order
 
 The per-item history is the closure log above; this section lists only the
@@ -12689,7 +12795,7 @@ too (items 47–51), so what stands between here
 and Step 5 (the converse) is R3's remaining production work and R4:
 
 ```
-R1 ✓ (44–46) ──→ R2 ✓ (47–51) ──→ R3 (52–123 landed; 67b's deletion on U2) ──→ Step 5
+R1 ✓ (44–46) ──→ R2 ✓ (47–51) ──→ R3 (52–124 landed; 67b's deletion on U2) ──→ Step 5
                                         └──────→ R4 (implicitContinue + 0 < m) ──┘
 ```
 

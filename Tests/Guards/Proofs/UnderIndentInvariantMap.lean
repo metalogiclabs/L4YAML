@@ -43,7 +43,11 @@ carrier, consumer, and price:
   the explicit opener; unset → `explicitValue` is false and the stamp is
   real).  Cost: every producer of the face-carrying parks pays or refutes
   the conditional — the "every pending" threading item 101's §measured
-  note priced, a session at least.
+  note priced, a session at least.  [Item 124 landed the SCANNER half:
+  `ExplicitKeyCoupling` carries both registers through every scan and
+  states the five LINE-FREE `scanValue` discriminators the by_cases
+  spends (guard `ExplicitKeyCouplingLadder`); the field redesign, the
+  collapse shape's face slot and the deletion are U2b.]
 * **U3 — the frames ↔ indent-stack coupling**: the packs' resume-twin
   lists `ks` are SURFACE data; the runtime's misindented-sibling refusal
   reads the SCANNER's indent stack (`scanNextToken_preprocess`'s unwind
