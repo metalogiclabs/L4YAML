@@ -12345,6 +12345,90 @@ at two more dispatchers; it removes no deferral.
 
 New guard `Tests/Guards/Proofs/ScannerSuffixCollectionLanding.lean`.
 
+### Item 119 (2026-09-07)
+
+**The raised-flag refusal half, MEASURED — a measurement item (item 107's
+kind), and the measurement repriced the ledger's sentence.**  The NEXT
+entry read "every input the fallback sites still serve must be
+scanner-REFUSED — §9.2's trailingContent family", as if the refusals
+existed and wanted only a carrier.  They do not exist:
+
+**The §9.2 refusal lives in the parser, not the scanner.**  Sixty-plus
+probes over every raised-flag family — a completed root flow collection,
+quoted scalar, block scalar or post-comment plain scalar followed by new
+content; a dangling non-key node at an open block level's own column
+(plain, quoted, property-run, alias and block-scalar shapes, mid-stream
+and at EOF); a `-` at a mapping's own column with the entry complete —
+all scan CLEAN in both pipelines and die downstream in `parseStreamLoop`
+(`StreamState.validNextToken`,
+[TokenParser.lean:797](L4YAML/Parser/TokenParser.lean#L797)) or the
+emitters' twins, as `invalidBareDocument`.  So the refusal half is a
+runtime MIGRATION — the scanner must learn the check — and 1c's
+constructor stays blocked behind it: the accumulation invariant holds at
+every SCANNER step, so any scanner-accepted prefix must carry a stream
+derivation, which for these inputs only `implicitContinue` provides.
+
+**The design, validated probe-by-probe** (every condition below matches
+the parser's verdict on every probed input, message and position
+included, so the migration is byte-invisible to matrix and eventscore —
+the checks would reuse `.invalidBareDocument`):
+
+* **M1 — the completed root document**: block context, indent stack at
+  its sentinel alone, last real token a flow close or a scalar of any
+  style, a break crossed since its end; placed after the structural
+  dispatch so markers and directives stay legal.  Same-line junk is
+  already refused (`validateFlowClose`/`validateTrailingContent` — but
+  see the asymmetry below); the alias-as-root case is unreachable
+  (`undefinedAlias` fires first); anchors and tags do not complete
+  (`&p⏎x` is one anchored scalar).
+* **M2 — the dangling node run at an open level's column**: a trailing
+  run `[anchor|tag]* (scalar|alias)?` whose start sits at an open indent
+  level's exact column, whose structural predecessor is NOT
+  `.value`/`.key`/`.blockEntry`, with a break crossed — or EOF, in
+  `scanLoop`.  The three exemptions are the equal-column value readings
+  the pipeline ACCEPTS (`a:⏎b` = `{a: b}`, `?⏎b⏎: v`, `-⏎b`), and the
+  unresolved run is visible in the TOKEN ARRAY (placeholders never
+  rewritten), so no new state field is needed.  Must run BEFORE the
+  structural dispatch: the dangler also dies at a `...`/`---` dispatch.
+* **M3 — the `-` at a mapping top's own column**: valid iff the value is
+  still awaited (last real token `.value`, or a property run after it)
+  or a same-indent sequence continues (a `.blockEntry` at this column
+  before any `.key`/`.value` at a column ≤ it, walking the token array
+  backward); otherwise refused.  `?`/`:` at the column open new entries
+  and stay legal; `- a⏎? k⏎: v` is pipeline-ACCEPTED through the
+  parser's artifact-token leniency, which scopes the mechanism to `-`.
+
+**The price, measured — why this landed as a map and not a build.**  The
+emitter-scannability trees re-verify the scanning of emitted output
+through `scanNextToken`'s decomposition: the `scanNextToken_via_*`
+composition lemmas have ~105 call sites across ~20 files in the two
+trees, the `dispatchStructural`-shape facts ~145 references, and
+`scanBlockEntry` 276.  Every placement of a new refusal — a new bind in
+`scanNextToken`'s chain, a throw inside `dispatchStructural`, or one
+inside `scanBlockEntry` — lands its discharge burden on one of those
+ladders: a 100+-site absorption PER MECHANISM, on top of the runtime
+edits ×3 chains (legacy, `scanNextTokenIx`, `scanNextTokenIxWC`) and the
+`scanLoop` EOF twins.  **The refusal half is at least three items — one
+mechanism plus its absorption each — not one**, and the constructor's
+prerequisite chain is now M1 → M2 → M3 → the 16 swaps → the constructor.
+
+**Found by the map**: same-line junk after a completed root flow close
+or quoted scalar (`[1, 2] x`, `"x" y`) is refused by the LEGACY scanner
+but ACCEPTED by the INDEXED one — verdict parity holds (the parser
+refuses both), but the layer differs, so M1's landing inherits the
+indexed same-line boundary as its own obligation.  And one
+pipeline-refused shape rides OUTSIDE the §9.2 family: `a:⏎&p⏎- y` dies
+as `trailing content` while `&p⏎c: 2` is a legal anchored mapping — M2's
+`.value` exemption leaves it to the parser, a named residue for whichever
+item lands M2.
+
+New guard `Tests/Guards/Proofs/ScannerRaisedFlagRefusalMap.lean` pins
+the whole map: §2–§4 the gap per mechanism (`parserGap`: both scanners
+accept, both pipelines refuse — the pins each landing must flip), §5 the
+neighbors the scanner already refuses, §6 the valid boundary each
+mechanism must not cross, §7–§8 the two oddities above.  Zero library
+edits; the runtime is untouched.
+
 ### REMAINING, in order
 
 The per-item history is the closure log above; this section lists only the
@@ -12821,7 +12905,13 @@ by item 112, 2026-09-07 — the node re-read to the landing), and ~~a
 carrier for "no document started"~~ (paid by item 116, 2026-09-07 —
 `noPending.h_nodoc`; see [Item 110](#item-110-2026-09-07), which left the
 suffix state's mirror carrier in its place — ~~itself~~ paid by item 117,
-2026-09-07, the landing skeleton's `h_sfx` face)) and
+2026-09-07, the landing skeleton's `h_sfx` face; the raised-flag REFUSAL
+half remains, and item 119 MEASURED it: the §9.2 refusal lives in the
+PARSER today, so it is a runtime migration of three mechanisms — M1 the
+completed root document, M2 the dangling node run at a level's column,
+M3 the `-` at a mapping's column — each with a 100+-site
+emitter-scannability absorption, at least three items, the map pinned in
+`ScannerRaisedFlagRefusalMap`)) and
 `0 < m` on `[183]`/`[187]`'s auto-detected width (**4** construction sites as
 of 2026-09-04, not the 7 item 22 counted: `NodeProduction`'s two re-tags inside
 `SBlockNode_blockIn_to_blockOut`, and the `nestedBlockMap`/`nestedBlockSeq`
