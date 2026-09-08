@@ -108,6 +108,7 @@ import Tests.Guards.Proofs.UnderIndentInvariantMap
 import Tests.Guards.Proofs.ScalarWalkCrossLineFloor
 import Tests.Guards.Proofs.StaleCursorFloorInvariant
 import Tests.Guards.Proofs.ExplicitKeyCouplingLadder
+import Tests.Guards.Proofs.ParkFaceCoupling
 import Tests.Guards.Proofs.ScannerExplicitKeyScope
 import Tests.Guards.Proofs.ScannerImplicitKeyCompose
 import Tests.Guards.Proofs.ScannerPlainNoGainRewind

@@ -19,6 +19,7 @@ import L4YAML.Proofs.Scanner.BlockScalarIndentFloor
 import L4YAML.Proofs.Scanner.PreprocessIndentStable
 import L4YAML.Proofs.Scanner.FlowIndentStable
 import L4YAML.Proofs.Scanner.StaleCursorFloor
+import L4YAML.Proofs.Scanner.ExplicitKeyCoupling
 import L4YAML.Proofs.Coupling.TabIndentBridge
 import L4YAML.Proofs.Production.FlowIndexLift
 import L4YAML.Proofs.Production.ScalarFoldAt
@@ -522,26 +523,19 @@ lemma StaleNodeTail.toStalePark {sc : ScannerState} (h : StaleNodeTail sc) :
       not this entry's at all.  Item 64's boundary, and row 19's to close: the
       enclosing collection resumes, which needs a frame stack the pending does
       not carry.
-    * `noFrame` — the key is on the park's own line and the park owns no
-      `[185] s-l+block-indented` compact alternative to close.  A park that
-      OWNS one hands it instead (item 89 threads `pendingMapValue.h_vslot`
-      through the content dispatch, so `? a: b` and `? a⏎: b: c` compose
-      through `[195]`).  ~~What is left of it after item 101 is the EXPLICIT
-      value with no slot — `?⏎: b: c`.~~  Not that family, corrected by item
-      105: the landed `:` at an open `?` frame re-parks through
-      `colon_open_map_explicit`, whose `h_vslot` is a real slot, so `?⏎: b: c`
-      and `? a⏎: b: c` reach the compact branch and not this reason.  What the
-      name was holding is the COMPACT `?` — `- ? a: b` — whose producer
-      handed `Or.inr trivial` for the two fields the column-0 producer has
-      paid since item 51.  Item 105 pays them (`compactExplicitKeyFrame`), and
-      the reason has no named input left: every `pendingMapValue` producer
-      that still hands `Or.inr trivial` for `h_vslot` is an IMPLICIT `:`, and
-      hands the stamp instead.  What keeps the constructor is that
-      `scanValue_ok_park_facts` cannot say so — `scanValue` serves both value
-      indicators and its third component is optional for that reason alone.
-    * `implicitValue` — the frameless park's other half, split off `noFrame`
-      by item 101 and REFUTABLE for the same reason `tab` is, at the same
-      place.  `[189]`'s value slot is `s-l+block-node`, which has no compact
+    (A fourth reason, `noFrame` — a same-line key at a park with no compact
+    alternative to close — is GONE, item 125.  A park that owns a frame hands
+    it: item 89 threads `pendingMapValue.h_vslot` through the content
+    dispatch, item 105 pays the compact `?`'s (`compactExplicitKeyFrame`),
+    and item 125 makes the field itself stamp-or-FACE — the frameless
+    explicit park does not exist, and the frameless implicit one carries the
+    stamp for REAL, because the landed `:` consumers now decide their own
+    dispatch state's registers against item 124's line-free discriminators
+    instead of reading `scanValue_ok_park_facts`' optional third component.)
+
+    * `implicitValue` — the frameless park's other half, split off the former
+      `noFrame` by item 101 and REFUTABLE for the same reason `tab` is, at
+      the same place.  `[189]`'s value slot is `s-l+block-node`, which has no compact
       alternative, so a key on the park's own line has no frame here either —
       but the value indicator STAMPED that line (`implicitValueLine`), and
       §8.2.2 refuses a second value indicator on a stamped line, so
@@ -579,7 +573,6 @@ inductive KeyPackPunt (sc : ScannerState) : Prop where
       sc.simpleKey.pos.offset sc.simpleKey.pos.offset = true)
       (h_st : StalePark sc) : KeyPackPunt sc
   | dedent : KeyPackPunt sc
-  | noFrame : KeyPackPunt sc
   | implicitValue (h_ivl : sc.implicitValueLine = some sc.line)
       (h_kline : sc.simpleKey.pos.line = sc.line)
       (h_st : StalePark sc) : KeyPackPunt sc
@@ -612,7 +605,6 @@ lemma keyPackPunt_transport {sc s' : ScannerState} (h_punt : KeyPackPunt sc)
   cases h_punt with
   | tab h _ => exact KeyPackPunt.tab (by rw [h_input, h_skpos]; exact h) h_st
   | dedent => exact KeyPackPunt.dedent
-  | noFrame => exact KeyPackPunt.noFrame
   | implicitValue h_ivl0 h_kl _ =>
     have h_ln : s'.line = sc.line := by
       cases h_line with
@@ -1006,12 +998,11 @@ inductive PendingNode (sc : ScannerState) : Bool → SurfPos → SurfPos → Sur
       ENTRY (`- &p a: 1`, `-⏎  &p a: 1`, `k:⏎  &p a: 1`) as well as at the root.
       Item 102 replaced this field's `True` with the sibling's `KeyPackPunt`,
       so what punts is NAMED here too: a TAB in the whites, a DEDENT landing,
-      and a run parked against a value on its own line with no compact
-      alternative to close — split, as on the sibling, into the EXPLICIT slot
-      (`?⏎: &p a: 1`, accepted, keeps `noFrame`) and the `[189]` IMPLICIT one,
+      and a run parked against a `[189]` IMPLICIT value on its own line —
       whose indicator stamped the line and which the `:` therefore REFUTES
-      (`k: &p a: 1`).  `noKeyContext` stays the caller's: a landed run whose
-      own key context is optional.
+      (`k: &p a: 1`); the EXPLICIT slot's run (`?⏎: &p a: 1`, accepted)
+      composes through the field's own FACE since item 125.  `noKeyContext`
+      stays the caller's: a landed run whose own key context is optional.
 
       `n` (item 24) is the index the ROUTE closes at — the indent of the block
       node the enclosing context is waiting for, which is 0 at stream level and
@@ -1420,15 +1411,23 @@ inductive PendingNode (sc : ScannerState) : Bool → SurfPos → SurfPos → Sur
         SBlockNode n .blockIn sp_scan sp_mid →
         SLYamlStream sp_start sp_mid)
       (h_floor : IndentFloor sc n)
-      -- Item 48 (LAST, same reason): the `:` step's own record.  An IMPLICIT
-      -- `:` stamps `implicitValueLine` with its line, which is what refutes a
-      -- same-line `-`/`?`/`:` at the next block dispatch; the `∨ True` side is
-      -- the EXPLICIT `:` (`[193]`'s value slot, which admits a compact
-      -- collection), where the park stays escapable — cost as domain, not as
-      -- a call site (Reflection 653).
+      -- Item 48: the `:` step's own record.  An IMPLICIT `:` stamps
+      -- `implicitValueLine` with its line, which is what refutes a same-line
+      -- `-`/`?`/`:` at the next block dispatch.  **Item 125: the other
+      -- disjunct is the park's own value-slot FACE** — `h_vslot`'s left half,
+      -- stated here so the field is stamp-or-face rather than stamp-or-`True`.
+      -- The four `:` producers pay the stamp (item 124's line-free
+      -- discriminators make it REAL: the landed `:` consumers case on their
+      -- own dispatch state's `explicitKeyLine`/`explicitKeyCol`, and a `:`
+      -- that could not consume an explicit pair stamped); the `?` producers
+      -- and the explicit `:` pay the face they already pay `h_vslot`.  This
+      -- is what deleted `KeyPackPunt.noFrame`: the pack lemmas' same-line
+      -- branch reads stamp-or-face and never punts frameless.
       (h_nic : sc.needIndentCheck = false)
       (h_real : LastTokenReal sc.tokens)
-      (h_ivl : sc.implicitValueLine = some sc.line ∨ True)
+      (h_ivl : sc.implicitValueLine = some sc.line ∨
+        (sp_scan.col = n + 1 ∧ ∀ sp_v : SurfPos,
+          SBlockIndented n .blockOut sp_scan sp_v → SLYamlStream sp_start sp_v))
       -- Item 51 (LAST, same reason).  `h_expl` is the `[187]` explicit
       -- frame a `?` producer offers: its own `?` literal plus the route ANY
       -- `[188]` entry at its column takes to the stream — which is how the
@@ -7890,7 +7889,6 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
           exact flowOpen_stamp (Or.inl h_ivl) h_preprocess h_ivl_open
         | tab _ _ => exact Or.inr trivial
         | dedent => exact Or.inr trivial
-        | noFrame => exact Or.inr trivial
         | noKeyContext => exact Or.inr trivial
     rcases h_sep_or with ⟨h_sep, h_floor_prep⟩ | ⟨sp_mid2, _h_ssl2, h_col02, h_ur, h_ltsl2⟩
     · exact ⟨sp_gram, sp_block, sp_open, sp_open, h_stream, h_stack,
@@ -8079,7 +8077,8 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
              -- Item 103: the `[189]` value slot's own stamp, recorded at the
              -- open so the close can read it — `k: [1]: 2` is the flow twin of
              -- item 101's `k: a: 1`, one construct over.
-             h_kpkg _ _ _ (flowOpen_stamp h_ivl_mv h_preprocess h_ivl_open)
+             h_kpkg _ _ _
+               (flowOpen_stamp (h_ivl_mv.imp id (fun _ => trivial)) h_preprocess h_ivl_open)
                (openFloorT h_floor_prep)
                (mk n_old sp_block ⟨(fun sp_ne sp_m h_content h_ssl =>
                h_close sp_m (SBlockNode.flowInBlock n_old .blockIn sp_scan sp_prep sp_ne sp_m
@@ -12170,6 +12169,24 @@ lemma scanValue_ok_park_facts {s s' : ScannerState}
                 = (scanValuePrepare (scanValueClearKey s)).line from rfl,
               hp_line, hck_line]
 
+/-- **The stamp is REAL when the `:` could not consume an explicit pair**
+    (item 125): item 124's two line-free `scanValue` discriminators, joined in
+    the disjunctive form the landed-`:` consumers decide by classical case
+    split on their own dispatch state.  A `:` whose state has no live
+    `explicitKeyLine`, or whose column differs from `explicitKeyCol`, computed
+    `explicitValue = false` and stamped its line — which is what pays
+    `pendingMapValue.h_ivl`'s left disjunct outright. -/
+lemma scanValue_stamp_of_src {s s' : ScannerState}
+    (h : scanValue s = .ok s') (h_noflow : s.inFlow = false)
+    (h_peek : s.peek? = some ':')
+    (h_src : s.explicitKeyLine = none ∨ (s.col : Int) ≠ s.explicitKeyCol) :
+    s'.implicitValueLine = some s'.line :=
+  h_src.elim
+    (fun h_ek =>
+      (ExplicitKeyCoupling.scanValue_ok_of_ekl_none h h_noflow h_peek h_ek).1)
+    (fun h_ne =>
+      ExplicitKeyCoupling.scanValue_stamp_of_col_ne h h_noflow h_peek h_ne)
+
 -- The col-0 `:` producer (item 13): from a stream already closed at the
 -- line start, the value indicator opens an EMPTY-KEY block mapping and
 -- parks `pendingMapValue`.  The entry frame — `s-indent(0)` +
@@ -12203,6 +12220,21 @@ lemma colon_open_map (sp_start sp_land sp_ind : SurfPos) (k : Nat)
         (if s_prep.allowDirectives then
           { s_prep with allowDirectives := false, documentEverStarted := true }
         else s_prep) ':' = .ok (some s'))
+    -- Item 125: the stamp's SOURCE — the dispatch state either carries no
+    -- live explicit-key register or stands off its column, so `scanValue`
+    -- computed `explicitValue = false` and stamped.  The caller decides this
+    -- by classical case split on its own state (both conjuncts are its own
+    -- fields); the one shape it cannot prove — a live register at the
+    -- landing's own column with no face in hand — defers there instead of
+    -- parking an unstamped `[189]` slot here.
+    (h_src : (if s_prep.allowDirectives then
+        { s_prep with allowDirectives := false, documentEverStarted := true }
+      else s_prep).explicitKeyLine = none ∨
+      ((if s_prep.allowDirectives then
+        { s_prep with allowDirectives := false, documentEverStarted := true }
+      else s_prep).col : Int) ≠ (if s_prep.allowDirectives then
+        { s_prep with allowDirectives := false, documentEverStarted := true }
+      else s_prep).explicitKeyCol)
     -- Item 118: the landing's open suffix arm (item 117's face, instantiated
     -- at `sp_land` by the caller).  The entry this `:` opens belongs to the
     -- next DOCUMENT, so a `...` park routes it into `suffixContinue`'s own
@@ -12249,7 +12281,12 @@ lemma colon_open_map (sp_start sp_land sp_ind : SurfPos) (k : Nat)
              h_routeE sp_v
                (SBlockMapEntry.emptyKeyNode k sp_ind sp_scan' sp_v h_lit
                  (SBlockNode_blockIn_to_blockOut h_node)))
-           h_floor_in hpf.1 hpf.2.1 hpf.2.2 (Or.inr trivial) (Or.inr trivial)
+           h_floor_in hpf.1 hpf.2.1
+           -- Item 125: the stamp is REAL — the caller's `h_src` says the `:`
+           -- could not consume an explicit pair, so the epilogue stamped.
+           (Or.inl (scanValue_stamp_of_src (dispatchBlock_colon_scanValue h_dispatch)
+             h_noflow_disp hpeek_disp h_src))
+           (Or.inr trivial) (Or.inr trivial)
            (scanValue_simpleKeyAllowed (dispatchBlock_colon_scanValue h_dispatch))
            -- Item 68: the `:` stands AT the entry index (`s-indent(k)` from a
            -- column-0 landing) and the park is the character past it.
@@ -12363,7 +12400,12 @@ lemma question_open_map (sp_start sp_land sp_ind : SurfPos) (k : Nat)
                (SBlockMapEntry.explicitEmpty k sp_ind sp_scan' sp_k h_lit
                  (SBlockIndented.node k .blockOut sp_scan' sp_k
                    (SBlockNode_blockIn_to_blockOut h_node))))
-           h_floor_in hpk.1 hpk.2 (Or.inr trivial)
+           h_floor_in hpk.1 hpk.2
+           -- Item 125: a `?` does not stamp — it pays the face instead, the
+           -- same `[186]` KEY slot `h_vslot` carries below.
+           (Or.inr ⟨park_col_of_indicator hcol_land h_ind h_lit, fun sp_v h_sbi =>
+             h_route51 sp_v
+               (SBlockMapEntry.explicitEmpty k sp_ind sp_scan' sp_v h_lit h_sbi)⟩)
            -- Item 51: the `?` literal + the entry route (`h_expl`), and the
            -- KEY slot itself (`h_vslot`) — `[186]`'s `s-l+block-indented`,
            -- compact alternatives included (`? - a`, `? ? b`, `? : v`).
@@ -12488,7 +12530,10 @@ lemma colon_open_map_explicit (sp_start sp_scan sp_mid sp_ind : SurfPos) (nv : N
            (fun sp_v h_node =>
              h_slot sp_v (SBlockIndented.node nv .blockOut sp_scan' sp_v
                (SBlockNode_blockIn_to_blockOut h_node)))
-           h_floor_in hpf.1 hpf.2.1 hpf.2.2
+           h_floor_in hpf.1 hpf.2.1
+           -- Item 125: the explicit `:` does not stamp — it pays the face,
+           -- the same `[185]` value slot `h_vslot` carries below.
+           (Or.inr ⟨park_col_of_indicator hcol_mid h_ind h_lit, h_slot⟩)
            (Or.inr trivial)
            (Or.inl ⟨park_col_of_indicator hcol_mid h_ind h_lit, h_slot⟩)
            (scanValue_simpleKeyAllowed (dispatchBlock_colon_scanValue h_dispatch))
@@ -12598,7 +12643,17 @@ lemma compact_open_map (sp_start sp_entry sp_ind : SurfPos) (n m : Nat)
     -- `h_sk`, `pendingMapValue`'s through `h_vslot`), and it is what turns the
     -- compact `:`'s floor from a measurement this producer might not be able
     -- to take into one it always can.
-    (h_sk : sc.simpleKeyAllowed = true) :
+    (h_sk : sc.simpleKeyAllowed = true)
+    -- Item 125: the compact `:`'s stamp source, decided by the caller's own
+    -- case split (see `colon_open_map.h_src`); the `?` arm never reads it.
+    (h_src : c = ':' → (if s_prep.allowDirectives then
+        { s_prep with allowDirectives := false, documentEverStarted := true }
+      else s_prep).explicitKeyLine = none ∨
+      ((if s_prep.allowDirectives then
+        { s_prep with allowDirectives := false, documentEverStarted := true }
+      else s_prep).col : Int) ≠ (if s_prep.allowDirectives then
+        { s_prep with allowDirectives := false, documentEverStarted := true }
+      else s_prep).explicitKeyCol) :
     ∃ sp_gram' sp_block' sp_flow' sp_scan',
       SLYamlStream sp_start sp_gram' ∧
       BlockStack sp_gram' sp_block' ∧
@@ -12654,20 +12709,39 @@ lemma compact_open_map (sp_start sp_entry sp_ind : SurfPos) (n m : Nat)
           (corr_of_allowDirectives_update hcorr_prep) hpeek_disp h_dispatch
       rw [ScannerSurfCorr_unique hcorr_q hcorr_result] at h_lit
       exact glit_col h_lit
+  have h_qlit : c = '?' → GLit '?' sp_ind sp_scan' := by
+    intro h
+    subst h
+    obtain ⟨sp_q, h_lit, hcorr_q⟩ :=
+      dispatchBlockKey_full_prod _ sp_ind
+        (corr_of_allowDirectives_update hcorr_prep) hpeek_disp h_dispatch
+    rw [ScannerSurfCorr_unique hcorr_q hcorr_result] at h_lit
+    exact h_lit
+  have h_park_col' : sp_scan'.col = (n + 1 + m) + 1 := by
+    have h1 := SIndent_col h_ind; rw [hcol_entry] at h1; omega
   have hpk : s'.needIndentCheck = false ∧ LastTokenReal s'.tokens ∧
-      (s'.implicitValueLine = some s'.line ∨ True) ∧ s'.simpleKeyAllowed = true := by
+      (s'.implicitValueLine = some s'.line ∨
+        (sp_scan'.col = (n + 1 + m) + 1 ∧ ∀ sp_v : SurfPos,
+          SBlockIndented (n + 1 + m) .blockOut sp_scan' sp_v →
+            SLYamlStream sp_start sp_v)) ∧ s'.simpleKeyAllowed = true := by
     cases hc with
     | inl h =>
       subst h
       have hpf := scanValue_ok_park_facts (dispatchBlock_colon_scanValue h_dispatch)
         h_noflow_disp h_nic_disp hpeek_disp
-      exact ⟨hpf.1, hpf.2.1, hpf.2.2,
+      -- Item 125: the compact `:` stamps for REAL, off the caller's source.
+      exact ⟨hpf.1, hpf.2.1,
+        Or.inl (scanValue_stamp_of_src (dispatchBlock_colon_scanValue h_dispatch)
+          h_noflow_disp hpeek_disp (h_src rfl)),
         scanValue_simpleKeyAllowed (dispatchBlock_colon_scanValue h_dispatch)⟩
     | inr h =>
       subst h
       have hpf := scanKey_ok_park_facts (dispatchBlock_question_scanKey h_dispatch)
         h_nic_disp
-      exact ⟨hpf.1, hpf.2, Or.inr trivial,
+      -- Item 125: the compact `?` pays the face (item 105's frame).
+      exact ⟨hpf.1, hpf.2,
+        Or.inr ⟨h_park_col',
+          (compactExplicitKeyFrame h_close_old h_ind (h_qlit rfl)).2⟩,
         scanKey_simpleKeyAllowed (dispatchBlock_question_scanKey h_dispatch)⟩
   -- Item 63: the pending's floor, from the push the dispatch just made.
   -- Item 74: neither indicator punts here.  The `?` needs only the flow level
@@ -12700,16 +12774,6 @@ lemma compact_open_map (sp_start sp_entry sp_ind : SurfPos) (n m : Nat)
   -- `s-l+block-node`, which has no compact alternative and opens no `[188]`
   -- entry of its own — its same-line key is refused from the stamp instead
   -- (item 101), which is the field `hpk.2.2.1` carries. ═══
-  have h_qlit : c = '?' → GLit '?' sp_ind sp_scan' := by
-    intro h
-    subst h
-    obtain ⟨sp_q, h_lit, hcorr_q⟩ :=
-      dispatchBlockKey_full_prod _ sp_ind
-        (corr_of_allowDirectives_update hcorr_prep) hpeek_disp h_dispatch
-    rw [ScannerSurfCorr_unique hcorr_q hcorr_result] at h_lit
-    exact h_lit
-  have h_park_col' : sp_scan'.col = (n + 1 + m) + 1 := by
-    have h1 := SIndent_col h_ind; rw [hcol_entry] at h1; omega
   have h_expl105 : (∃ sp_q : SurfPos, GLit '?' sp_q sp_scan' ∧
       ∀ sp_v : SurfPos, SBlockMapEntry (n + 1 + m) sp_q sp_v →
         SLYamlStream sp_start sp_v) ∨ True :=
@@ -12785,6 +12849,16 @@ lemma indicator_open_map {sc : ScannerState}
     -- datum alone — the `?` half measures its own floor here, from the flow
     -- level this lemma already demands.
     (h_preprocess : scanNextToken_preprocess sc = .ok (some (s_prep, c)))
+    -- Item 125: the `:` half's stamp source (see `colon_open_map.h_src`),
+    -- handed through; the `?` half never reads it.
+    (h_src : c = ':' → (if s_prep.allowDirectives then
+        { s_prep with allowDirectives := false, documentEverStarted := true }
+      else s_prep).explicitKeyLine = none ∨
+      ((if s_prep.allowDirectives then
+        { s_prep with allowDirectives := false, documentEverStarted := true }
+      else s_prep).col : Int) ≠ (if s_prep.allowDirectives then
+        { s_prep with allowDirectives := false, documentEverStarted := true }
+      else s_prep).explicitKeyCol)
     -- Item 118: the landing's open suffix arm, handed through to whichever
     -- opener the indicator selects.
     (h_sfx_land : SuffixRun sp_start sp_land ∨ True) :
@@ -12803,7 +12877,7 @@ lemma indicator_open_map {sc : ScannerState}
       hcol_land h_ind hcorr_prep hcorr_result
       (indicator_floor_colon_at_col_of_save hcol_ind hcorr_prep
         h_noflow_disp h_save h_preprocess h_dispatch)
-      hpeek h_noflow_disp h_nic_disp h_dispatch h_sfx_land
+      hpeek h_noflow_disp h_nic_disp h_dispatch (h_src rfl) h_sfx_land
   | inr h =>
     subst h
     exact question_open_map sp_start sp_land sp_ind k s_prep s' sp_scan' h_stream_land
@@ -12887,7 +12961,16 @@ lemma colon_open_map_implicit (sp_start sp_block sp_key sp_gram sp_ws : SurfPos)
           { s_prep with allowDirectives := false, documentEverStarted := true }
         else s_prep) ':' = .ok (some s'))
     -- Item 81: the floor is REAL — `implicit_key_floor` is total now.
-    (h_floor : IndentFloor s' k) :
+    (h_floor : IndentFloor s' k)
+    -- ═══ Item 125: the KEY the `:` resolves is what makes the stamp REAL —
+    -- `scanValue` computes `explicitValue = ekl.isSome && !possible && …`,
+    -- and a possible key strictly behind the cursor on the `:`'s own line
+    -- (the pack's guard plus `KeysBehindCursor`, both transported by the
+    -- caller through the same no-break conjuncts as the floor) forces the
+    -- stamp arm whatever the register holds. ═══
+    (h_poss_pp : s_prep.simpleKey.possible = true)
+    (h_kline_pp : s_prep.simpleKey.pos.line = s_prep.line)
+    (h_behind_pp : s_prep.simpleKey.pos.offset ≠ s_prep.offset) :
     ∃ sp_gram' sp_block' sp_flow' sp_scan',
       SLYamlStream sp_start sp_gram' ∧
       BlockStack sp_gram' sp_block' ∧
@@ -12908,6 +12991,14 @@ lemma colon_open_map_implicit (sp_start sp_block sp_key sp_gram sp_ws : SurfPos)
   have h_ik : SImplicitKey sp_key sp_ws := implicitKeyHead_to_SImplicitKey h_ol h_ws
   have hpf := scanValue_ok_park_facts (dispatchBlock_colon_scanValue h_dispatch)
     h_noflow_disp h_nic_disp hpeek_disp
+  -- Item 125: the resolved key's three facts, read on the dispatch state
+  -- (the `allowDirectives` update touches none of them).
+  have h_stamp : s'.implicitValueLine = some s'.line :=
+    ExplicitKeyCoupling.scanValue_stamp_of_key
+      (dispatchBlock_colon_scanValue h_dispatch) h_noflow_disp hpeek_disp
+      (by split <;> exact h_poss_pp)
+      (by split <;> exact h_behind_pp)
+      (by split <;> exact h_kline_pp)
   exact ⟨sp_block, sp_block, sp_block, sp_scan', h_stream_block,
          BlockStack.nil sp_block, FlowStackB.nil sp_block .sep,
          PendingNode.pendingMapValue sp_start sp_block sp_scan' k
@@ -12915,7 +13006,7 @@ lemma colon_open_map_implicit (sp_start sp_block sp_key sp_gram sp_ws : SurfPos)
              h_route sp_v
                (SBlockMapEntry.implicitKeyNode k sp_key sp_ws sp_scan' sp_v h_ik h_lit
                  (SBlockNode_blockIn_to_blockOut h_node)))
-           h_floor hpf.1 hpf.2.1 hpf.2.2 (Or.inr trivial) (Or.inr trivial)
+           h_floor hpf.1 hpf.2.1 (Or.inl h_stamp) (Or.inr trivial) (Or.inr trivial)
            (scanValue_simpleKeyAllowed (dispatchBlock_colon_scanValue h_dispatch))
            -- Item 68: the `:` is a character, so the park is past column 0.  The
            -- INDEX is the half this producer cannot measure: `k` reaches it
@@ -13071,6 +13162,14 @@ lemma colon_open_map_props (sp_start sp_block sp_p sp_scan : SurfPos) (k : Nat)
       (GOpt.some sp_scan sp_prep (GStar_SSWhite_to_SSeparateInLine sp_scan sp_prep h_ws))
   have hpf := scanValue_ok_park_facts (dispatchBlock_colon_scanValue h_dispatch)
     h_noflow_disp h_nic_disp hpeek_disp
+  -- Item 125: the resolved key makes the stamp REAL (see
+  -- `colon_open_map_implicit`) — this lemma already holds all three facts.
+  have h_stamp : s'.implicitValueLine = some s'.line :=
+    ExplicitKeyCoupling.scanValue_stamp_of_key
+      (dispatchBlock_colon_scanValue h_dispatch) h_noflow_disp hpeek_disp
+      (by split <;> (rw [h_inh]; exact h_poss))
+      (by split <;> exact h_behind)
+      (by split <;> exact h_kline)
   exact ⟨sp_block, sp_block, sp_block, sp_scan', h_stream_block,
          BlockStack.nil sp_block, FlowStackB.nil sp_block .sep,
          PendingNode.pendingMapValue sp_start sp_block sp_scan' k
@@ -13080,7 +13179,7 @@ lemma colon_open_map_props (sp_start sp_block sp_p sp_scan : SurfPos) (k : Nat)
                  (SBlockNode_blockIn_to_blockOut h_node)))
            (implicit_key_floor h_poss h_kcol h_inh h_kline h_behind
              h_noflow h_preprocess h_dispatch)
-           hpf.1 hpf.2.1 hpf.2.2 (Or.inr trivial) (Or.inr trivial)
+           hpf.1 hpf.2.1 (Or.inl h_stamp) (Or.inr trivial) (Or.inr trivial)
            (scanValue_simpleKeyAllowed (dispatchBlock_colon_scanValue h_dispatch))
            -- Item 68: `colon_open_map_implicit`'s boundary, for its reason — the
            -- run's own column is the pack's optional datum, not this producer's.
@@ -13219,7 +13318,6 @@ lemma colon_fires_props_key (sc : ScannerState)
           (noflow_disp_of_noflow h_noflow) h_mid.2.1 h_dispatch).elim
     | tab _ _ => exact h_punt
     | dedent => exact h_punt
-    | noFrame => exact h_punt
     | noKeyContext => exact h_punt
   | inl pack =>
     obtain ⟨⟨k, h_route, h_kcol, h_kslot_pk, h_resF_pk, h_resFV_pk⟩,
@@ -13655,16 +13753,40 @@ lemma accum_block_on_noPending
     -- and a '?' opens `[186]`'s explicit-key one (item 20) — ONE arm, because
     -- the pending both park names only the node it awaits.
     by_cases hcv : c = ':' ∨ c = '?'
-    · exact indicator_open_map sp_start sp_mid _ k c hcv s_prep s' sp_scan'
-        (ssl_comments_extend_stream sp_start sp_block _ h_stream_block h_ssl_pre)
-        hcol_mid h_ind hcorr_prep hcorr_result
-        -- Item 76: the seed's flag, not the landing's break — this park is the
-        -- line start `h_col` names, so it measures at EVERY input.
-        (preprocess_saved_key_col (h_arm.resolve_right (by simp [h_scflow]))
-          h_noflow h_preprocess).2
-        (preprocess_some_peek h_preprocess) (noflow_disp_of_noflow h_noflow)
-        (nic_false_of_indicator_noflow h_preprocess (noflow_disp_of_noflow h_noflow))
-        h_dispatch h_preprocess (Or.inr trivial)
+    · have h_open := fun (h_src : c = ':' → (if s_prep.allowDirectives then
+              { s_prep with allowDirectives := false, documentEverStarted := true }
+            else s_prep).explicitKeyLine = none ∨
+            ((if s_prep.allowDirectives then
+              { s_prep with allowDirectives := false, documentEverStarted := true }
+            else s_prep).col : Int) ≠ (if s_prep.allowDirectives then
+              { s_prep with allowDirectives := false, documentEverStarted := true }
+            else s_prep).explicitKeyCol) =>
+        indicator_open_map sp_start sp_mid _ k c hcv s_prep s' sp_scan'
+          (ssl_comments_extend_stream sp_start sp_block _ h_stream_block h_ssl_pre)
+          hcol_mid h_ind hcorr_prep hcorr_result
+          -- Item 76: the seed's flag, not the landing's break — this park is
+          -- the line start `h_col` names, so it measures at EVERY input.
+          (preprocess_saved_key_col (h_arm.resolve_right (by simp [h_scflow]))
+            h_noflow h_preprocess).2
+          (preprocess_some_peek h_preprocess) (noflow_disp_of_noflow h_noflow)
+          (nic_false_of_indicator_noflow h_preprocess (noflow_disp_of_noflow h_noflow))
+          h_dispatch h_preprocess h_src (Or.inr trivial)
+      -- Item 125: the `:`'s own stamp source, decided here (see
+      -- `accum_block_on_closeThenBlock`); the `?` never reads it.
+      refine hcv.elim (fun hc_colon => ?_) (fun hc_q => ?_)
+      · by_cases h_src : (if s_prep.allowDirectives then
+            { s_prep with allowDirectives := false, documentEverStarted := true }
+          else s_prep).explicitKeyLine = none ∨
+          ((if s_prep.allowDirectives then
+            { s_prep with allowDirectives := false, documentEverStarted := true }
+          else s_prep).col : Int) ≠ (if s_prep.allowDirectives then
+            { s_prep with allowDirectives := false, documentEverStarted := true }
+          else s_prep).explicitKeyCol
+        · exact h_open (fun _ => h_src)
+        · exact block_dispatch_deferred sp_start sp_mid sp_scan' s'
+            (ssl_comments_extend_stream sp_start sp_block _ h_stream_block h_ssl_pre)
+            (Or.inl (block_indicator_arm h_dispatch)) hcorr_result
+      · exact h_open (fun h => absurd (hc_q.symm.trans h) (by decide))
     · exact (block_indicator_exhausted h_dispatch hc hcv).elim
 
 -- Block dispatch after closing old pending: '-' at col=0 opens new block sequence.
@@ -13827,12 +13949,36 @@ lemma accum_block_on_closeThenBlock
              (Or.inr trivial),
                hcorr_result⟩
       · by_cases hcv : c = ':' ∨ c = '?'
-        · exact compact_open_map sp_start sp_mid _ nv m .blockOut c hcv sc s_prep s'
-            sp_a sp_scan' h_stream_a (fun sp h_bi => hvs sp h_bi) h_ind h_col_vslot
-            h_preprocess hcorr_prep hcorr_result
-            (preprocess_some_peek h_preprocess) (noflow_disp_of_noflow h_noflow)
-            (nic_false_of_indicator_noflow h_preprocess (noflow_disp_of_noflow h_noflow))
-            h_dispatch h_sk
+        · have h_fill := fun (h_src : c = ':' → (if s_prep.allowDirectives then
+                { s_prep with allowDirectives := false, documentEverStarted := true }
+              else s_prep).explicitKeyLine = none ∨
+              ((if s_prep.allowDirectives then
+                { s_prep with allowDirectives := false, documentEverStarted := true }
+              else s_prep).col : Int) ≠ (if s_prep.allowDirectives then
+                { s_prep with allowDirectives := false, documentEverStarted := true }
+              else s_prep).explicitKeyCol) =>
+            compact_open_map sp_start sp_mid _ nv m .blockOut c hcv sc s_prep s'
+              sp_a sp_scan' h_stream_a (fun sp h_bi => hvs sp h_bi) h_ind h_col_vslot
+              h_preprocess hcorr_prep hcorr_result
+              (preprocess_some_peek h_preprocess) (noflow_disp_of_noflow h_noflow)
+              (nic_false_of_indicator_noflow h_preprocess (noflow_disp_of_noflow h_noflow))
+              h_dispatch h_sk h_src
+          -- Item 125: the compact `:` decides its own stamp source; the one
+          -- undecided shape (a live register at the `:`'s own column) stays
+          -- the deferral it already was, and the `?` never reads it.
+          refine hcv.elim (fun hc_colon => ?_) (fun hc_q => ?_)
+          · by_cases h_src : (if s_prep.allowDirectives then
+                { s_prep with allowDirectives := false, documentEverStarted := true }
+              else s_prep).explicitKeyLine = none ∨
+              ((if s_prep.allowDirectives then
+                { s_prep with allowDirectives := false, documentEverStarted := true }
+              else s_prep).col : Int) ≠ (if s_prep.allowDirectives then
+                { s_prep with allowDirectives := false, documentEverStarted := true }
+              else s_prep).explicitKeyCol
+            · exact h_fill (fun _ => h_src)
+            · exact block_dispatch_deferred sp_start sp_a sp_scan' s' h_stream_a
+                (Or.inl (block_indicator_arm h_dispatch)) hcorr_result
+          · exact h_fill (fun h => absurd (hc_q.symm.trans h) (by decide))
         · exact (block_indicator_exhausted h_dispatch hc hcv).elim
     · exact block_dispatch_deferred sp_start sp_block_ctx sp_scan' s'
         (h_stream_fallback (inline_residue_of_landing ⟨h_mid.1, h_mid.2.1⟩ hws h_pk hcorr_prep
@@ -13922,36 +14068,73 @@ lemma accum_block_on_closeThenBlock
   · -- c ≠ '-' at the landing: a ':' opens `[189]`'s empty-key entry there
     -- (item 13), a '?' opens `[186]`'s explicit-key one (item 20) — one arm.
     by_cases hcv : c = ':' ∨ c = '?'
-    · have h_generic := indicator_open_map sp_start sp_mid _ k c hcv s_prep s' sp_scan'
-        h_stream_new hcol_mid h_ind hcorr_prep hcorr_result
-        (landing_or_park_save h_noflow h_larm h_park h_preprocess)
-        (preprocess_some_peek h_preprocess) (noflow_disp_of_noflow h_noflow)
-        (nic_false_of_indicator_noflow h_preprocess (noflow_disp_of_noflow h_noflow))
-        h_dispatch h_preprocess h_sfx_land
-      -- Item 51: an explicit-value pack fires on the `:` at its OWN column —
-      -- `[187]`'s `s-indent(n)` is exact — and any other shape falls back to
-      -- the generic close-and-reopen.
+    · have h_generic := fun (h_src : c = ':' → (if s_prep.allowDirectives then
+            { s_prep with allowDirectives := false, documentEverStarted := true }
+          else s_prep).explicitKeyLine = none ∨
+          ((if s_prep.allowDirectives then
+            { s_prep with allowDirectives := false, documentEverStarted := true }
+          else s_prep).col : Int) ≠ (if s_prep.allowDirectives then
+            { s_prep with allowDirectives := false, documentEverStarted := true }
+          else s_prep).explicitKeyCol) =>
+        indicator_open_map sp_start sp_mid _ k c hcv s_prep s' sp_scan'
+          h_stream_new hcol_mid h_ind hcorr_prep hcorr_result
+          (landing_or_park_save h_noflow h_larm h_park h_preprocess)
+          (preprocess_some_peek h_preprocess) (noflow_disp_of_noflow h_noflow)
+          (nic_false_of_indicator_noflow h_preprocess (noflow_disp_of_noflow h_noflow))
+          h_dispatch h_preprocess h_src h_sfx_land
       by_cases hc_colon : c = ':'
       · subst hc_colon
-        rcases h_vpack with ⟨nv, hvp⟩ | _
-        · by_cases hknv : nv = k
-          · subst hknv
-            exact colon_open_map_explicit sp_start sp_scan sp_mid _ nv s_prep s'
-              sp_scan' h_stream_new hvp h_ssl hcol_mid h_ind hcorr_prep hcorr_result
-              -- Item 76: the explicit VALUE line measures on the same datum the
-              -- keyless opener does — `h_vpack` carries no flag, and the
-              -- landing supplies one for every park off a line start.
-              (indicator_floor_colon_at_col_of_save
-                (by have := SIndent_col h_ind; rw [hcol_mid] at this; omega)
-                hcorr_prep (noflow_disp_of_noflow h_noflow)
-                (landing_or_park_save h_noflow h_larm h_park h_preprocess)
-                h_preprocess h_dispatch)
-              (preprocess_some_peek h_preprocess) (noflow_disp_of_noflow h_noflow)
-              (nic_false_of_indicator_noflow h_preprocess (noflow_disp_of_noflow h_noflow))
-              h_dispatch
-          · exact h_generic
-        · exact h_generic
-      · exact h_generic
+        -- Item 51: an explicit-value pack fires on the `:` at its OWN column —
+        -- `[187]`'s `s-indent(n)` is exact — and any other shape falls back to
+        -- the generic close-and-reopen.
+        have h_explicit := fun (hvp : ∀ sp_m sp_i sp_c : SurfPos,
+            SSLComments sp_scan sp_m → SIndent k sp_m sp_i → GLit ':' sp_i sp_c →
+            ∀ sp_v : SurfPos, SBlockIndented k .blockOut sp_c sp_v →
+            SLYamlStream sp_start sp_v) =>
+          colon_open_map_explicit sp_start sp_scan sp_mid _ k s_prep s'
+            sp_scan' h_stream_new hvp h_ssl hcol_mid h_ind hcorr_prep hcorr_result
+            -- Item 76: the explicit VALUE line measures on the same datum the
+            -- keyless opener does — `h_vpack` carries no flag, and the
+            -- landing supplies one for every park off a line start.
+            (indicator_floor_colon_at_col_of_save
+              (by have := SIndent_col h_ind; rw [hcol_mid] at this; omega)
+              hcorr_prep (noflow_disp_of_noflow h_noflow)
+              (landing_or_park_save h_noflow h_larm h_park h_preprocess)
+              h_preprocess h_dispatch)
+            (preprocess_some_peek h_preprocess) (noflow_disp_of_noflow h_noflow)
+            (nic_false_of_indicator_noflow h_preprocess (noflow_disp_of_noflow h_noflow))
+            h_dispatch
+        -- ═══ Item 125: the landed `:` decides its own stamp source by
+        -- classical case split — both conjuncts are the dispatch state's own
+        -- fields.  With a source the generic reopen's park carries a REAL
+        -- stamp; without one the register is live AT the landing's own
+        -- column, and the pack (when the park carries one at that column)
+        -- still fires the explicit route — every other such landing is the
+        -- collapse lane's restored pair (item 124's measured gap), which
+        -- stays the deferral it already was. ═══
+        by_cases h_src : (if s_prep.allowDirectives then
+            { s_prep with allowDirectives := false, documentEverStarted := true }
+          else s_prep).explicitKeyLine = none ∨
+          ((if s_prep.allowDirectives then
+            { s_prep with allowDirectives := false, documentEverStarted := true }
+          else s_prep).col : Int) ≠ (if s_prep.allowDirectives then
+            { s_prep with allowDirectives := false, documentEverStarted := true }
+          else s_prep).explicitKeyCol
+        · rcases h_vpack with ⟨nv, hvp⟩ | _
+          · by_cases hknv : nv = k
+            · subst hknv
+              exact h_explicit hvp
+            · exact h_generic (fun _ => h_src)
+          · exact h_generic (fun _ => h_src)
+        · rcases h_vpack with ⟨nv, hvp⟩ | _
+          · by_cases hknv : nv = k
+            · subst hknv
+              exact h_explicit hvp
+            · exact block_dispatch_deferred sp_start sp_mid sp_scan' s' h_stream_new
+                (Or.inl (block_indicator_arm h_dispatch)) hcorr_result
+          · exact block_dispatch_deferred sp_start sp_mid sp_scan' s' h_stream_new
+              (Or.inl (block_indicator_arm h_dispatch)) hcorr_result
+      · exact h_generic (fun h => absurd h hc_colon)
     · exact (block_indicator_exhausted h_dispatch hc hcv).elim
 
 /-- **The same-line `:` firing the pack** (items 15–17), lifted out of
@@ -14065,7 +14248,6 @@ lemma colon_fires_implicit_key
               rw [h_i, allowDirectives_update_simpleKey, h_sk_eq]
               exact h_run
           | dedent => exact h_punt
-          | noFrame => exact h_punt
           | implicitValue h_ivl _h_kline h_st =>
             -- ═══ Item 101: the second reason that is REFUTABLE here, and for
             -- the same shape as the tab's.  The park is an implicit value's
@@ -14113,6 +14295,11 @@ lemma colon_fires_implicit_key
               (by rw [h_inh, h_line_pp]; exact h_kline)
               (by rw [h_inh]; have := h_kbc.1 h_poss; omega)
               h_noflow h_preprocess h_dispatch)
+            -- Item 125: the resolved key's three facts, the floor's own
+            -- transports re-read — they make the park's stamp REAL.
+            (by rw [h_inh]; exact h_poss)
+            (by rw [h_inh, h_line_pp]; exact h_kline)
+            (by rw [h_inh]; have := h_kbc.1 h_poss; omega)
     · -- ═══ Item 104: the key is STALE — saved on an earlier line, which is
       -- what a flow collection closed across a break, a folded plain scalar
       -- and a folded quoted one all leave at the park.  §7.4 refuses that `:`
@@ -14404,39 +14591,73 @@ lemma accum_block_on_pendingBlockContent
     · -- c ≠ '-' at the landing: a ':' opens `[189]`'s empty-key entry there
       -- (item 13), a '?' opens `[186]`'s explicit-key one (item 20) — one arm.
       by_cases hcv : c = ':' ∨ c = '?'
-      · have h_gen := indicator_open_map sp_start sp_mid _ k c hcv s_prep s' sp_scan'
-          (h_close_pending _ h_ssl) hcol_mid h_ind hcorr_prep hcorr_result
-          (landing_or_park_save h_noflow h_larm (h_park.imp_left And.left) h_preprocess)
-          (preprocess_some_peek h_preprocess) (noflow_disp_of_noflow h_noflow)
-          (nic_false_of_indicator_noflow h_preprocess (noflow_disp_of_noflow h_noflow))
-          h_dispatch h_preprocess (Or.inr trivial)
+      · have h_gen := fun (h_src : c = ':' → (if s_prep.allowDirectives then
+              { s_prep with allowDirectives := false, documentEverStarted := true }
+            else s_prep).explicitKeyLine = none ∨
+            ((if s_prep.allowDirectives then
+              { s_prep with allowDirectives := false, documentEverStarted := true }
+            else s_prep).col : Int) ≠ (if s_prep.allowDirectives then
+              { s_prep with allowDirectives := false, documentEverStarted := true }
+            else s_prep).explicitKeyCol) =>
+          indicator_open_map sp_start sp_mid _ k c hcv s_prep s' sp_scan'
+            (h_close_pending _ h_ssl) hcol_mid h_ind hcorr_prep hcorr_result
+            (landing_or_park_save h_noflow h_larm (h_park.imp_left And.left) h_preprocess)
+            (preprocess_some_peek h_preprocess) (noflow_disp_of_noflow h_noflow)
+            (nic_false_of_indicator_noflow h_preprocess (noflow_disp_of_noflow h_noflow))
+            h_dispatch h_preprocess h_src (Or.inr trivial)
         -- Item 92: the frame's VALUE line fires on the `:` at its own column
         -- (`[190]`'s `s-indent(nv)` is exact) — the parked content closes as
         -- the compact KEY with a nil tail (`? - a⏎: - w`); any other shape
         -- falls back to the generic close-and-reopen.
         by_cases hc_colon : c = ':'
         · subst hc_colon
-          rcases h_kslot with ⟨nv, kslot⟩ | _
-          · by_cases hknv : nv = k
-            · subst hknv
-              exact colon_open_map_explicit sp_start sp_scan sp_mid _ nv s_prep s'
-                sp_scan' (h_close_pending _ h_ssl)
-                (fun sp_m sp_i sp_c h_ssl_m h_iv h_lit sp_v h_sbi =>
-                  kslot sp_m h_ssl_m sp_m (SCompactSeqTail.nil n sp_m)
-                    sp_i sp_c h_iv h_lit sp_v h_sbi)
-                h_ssl hcol_mid h_ind hcorr_prep hcorr_result
-                (indicator_floor_colon_at_col_of_save
-                  (by have := SIndent_col h_ind; rw [hcol_mid] at this; omega)
-                  hcorr_prep (noflow_disp_of_noflow h_noflow)
-                  (landing_or_park_save h_noflow h_larm (h_park.imp_left And.left)
-                    h_preprocess)
-                  h_preprocess h_dispatch)
-                (preprocess_some_peek h_preprocess) (noflow_disp_of_noflow h_noflow)
-                (nic_false_of_indicator_noflow h_preprocess (noflow_disp_of_noflow h_noflow))
-                h_dispatch
-            · exact h_gen
-          · exact h_gen
-        · exact h_gen
+          have h_explicit := fun (kslot : ∀ sp_m : SurfPos, SSLComments sp_scan sp_m →
+              ∀ sp_e : SurfPos, SCompactSeqTail n sp_m sp_e →
+              ∀ sp_i sp_c : SurfPos, SIndent k sp_e sp_i → GLit ':' sp_i sp_c →
+              ∀ sp_v : SurfPos, SBlockIndented k .blockOut sp_c sp_v →
+              SLYamlStream sp_start sp_v) =>
+            colon_open_map_explicit sp_start sp_scan sp_mid _ k s_prep s'
+              sp_scan' (h_close_pending _ h_ssl)
+              (fun sp_m sp_i sp_c h_ssl_m h_iv h_lit sp_v h_sbi =>
+                kslot sp_m h_ssl_m sp_m (SCompactSeqTail.nil n sp_m)
+                  sp_i sp_c h_iv h_lit sp_v h_sbi)
+              h_ssl hcol_mid h_ind hcorr_prep hcorr_result
+              (indicator_floor_colon_at_col_of_save
+                (by have := SIndent_col h_ind; rw [hcol_mid] at this; omega)
+                hcorr_prep (noflow_disp_of_noflow h_noflow)
+                (landing_or_park_save h_noflow h_larm (h_park.imp_left And.left)
+                  h_preprocess)
+                h_preprocess h_dispatch)
+              (preprocess_some_peek h_preprocess) (noflow_disp_of_noflow h_noflow)
+              (nic_false_of_indicator_noflow h_preprocess (noflow_disp_of_noflow h_noflow))
+              h_dispatch
+          -- Item 125: the landed `:` decides its stamp source, as at
+          -- `accum_block_on_closeThenBlock`.
+          by_cases h_src : (if s_prep.allowDirectives then
+              { s_prep with allowDirectives := false, documentEverStarted := true }
+            else s_prep).explicitKeyLine = none ∨
+            ((if s_prep.allowDirectives then
+              { s_prep with allowDirectives := false, documentEverStarted := true }
+            else s_prep).col : Int) ≠ (if s_prep.allowDirectives then
+              { s_prep with allowDirectives := false, documentEverStarted := true }
+            else s_prep).explicitKeyCol
+          · rcases h_kslot with ⟨nv, kslot⟩ | _
+            · by_cases hknv : nv = k
+              · subst hknv
+                exact h_explicit kslot
+              · exact h_gen (fun _ => h_src)
+            · exact h_gen (fun _ => h_src)
+          · rcases h_kslot with ⟨nv, kslot⟩ | _
+            · by_cases hknv : nv = k
+              · subst hknv
+                exact h_explicit kslot
+              · exact block_dispatch_deferred sp_start sp_mid sp_scan' s'
+                  (h_close_pending _ h_ssl)
+                  (Or.inl (block_indicator_arm h_dispatch)) hcorr_result
+            · exact block_dispatch_deferred sp_start sp_mid sp_scan' s'
+                (h_close_pending _ h_ssl)
+                (Or.inl (block_indicator_arm h_dispatch)) hcorr_result
+        · exact h_gen (fun h => absurd h hc_colon)
       · exact (block_indicator_exhausted h_dispatch hc hcv).elim
   by_cases hc0 : c = ':'
   · subst hc0
@@ -14623,39 +14844,74 @@ lemma accum_block_on_pendingBlock
   · -- c ≠ '-' at the landing: a ':' opens `[189]`'s empty-key entry there
     -- (item 13), a '?' opens `[186]`'s explicit-key one (item 20) — one arm.
     by_cases hcv : c = ':' ∨ c = '?'
-    · have h_gen := indicator_open_map sp_start sp_mid _ k c hcv s_prep s' sp_scan'
-        (h_close_pending _ h_ssl) hcol_mid h_ind hcorr_prep hcorr_result
-        -- Item 76: this park carries the flag itself (item 59), so the `:`
-        -- measures at EVERY input here, landing or not.
-        (preprocess_saved_key_col h_sk h_noflow h_preprocess).2
-        (preprocess_some_peek h_preprocess) (noflow_disp_of_noflow h_noflow)
-        (nic_false_of_indicator_noflow h_preprocess (noflow_disp_of_noflow h_noflow))
-        h_dispatch h_preprocess (Or.inr trivial)
+    · have h_gen := fun (h_src : c = ':' → (if s_prep.allowDirectives then
+            { s_prep with allowDirectives := false, documentEverStarted := true }
+          else s_prep).explicitKeyLine = none ∨
+          ((if s_prep.allowDirectives then
+            { s_prep with allowDirectives := false, documentEverStarted := true }
+          else s_prep).col : Int) ≠ (if s_prep.allowDirectives then
+            { s_prep with allowDirectives := false, documentEverStarted := true }
+          else s_prep).explicitKeyCol) =>
+        indicator_open_map sp_start sp_mid _ k c hcv s_prep s' sp_scan'
+          (h_close_pending _ h_ssl) hcol_mid h_ind hcorr_prep hcorr_result
+          -- Item 76: this park carries the flag itself (item 59), so the `:`
+          -- measures at EVERY input here, landing or not.
+          (preprocess_saved_key_col h_sk h_noflow h_preprocess).2
+          (preprocess_some_peek h_preprocess) (noflow_disp_of_noflow h_noflow)
+          (nic_false_of_indicator_noflow h_preprocess (noflow_disp_of_noflow h_noflow))
+          h_dispatch h_preprocess h_src (Or.inr trivial)
       -- Item 92: the frame's VALUE line fires on the `:` at its own column —
       -- the awaited entry closes empty into the compact KEY (`? -⏎: - w`);
       -- any other shape falls back to the generic close-and-reopen.
       by_cases hc_colon : c = ':'
       · subst hc_colon
-        rcases h_kslot with ⟨nv, kslot⟩ | _
-        · by_cases hknv : nv = k
-          · subst hknv
-            exact colon_open_map_explicit sp_start sp_scan sp_mid _ nv s_prep s'
-              sp_scan' (h_close_pending _ h_ssl)
-              (fun sp_m sp_i sp_c h_ssl_m h_iv h_lit sp_v h_sbi =>
-                kslot sp_m (SBlockIndented.empty n .blockIn sp_scan sp_m h_ssl_m)
-                  sp_m (SCompactSeqTail.nil n sp_m) sp_i sp_c h_iv h_lit sp_v h_sbi)
-              h_ssl hcol_mid h_ind hcorr_prep hcorr_result
-              (indicator_floor_colon_at_col_of_save
-                (by have := SIndent_col h_ind; rw [hcol_mid] at this; omega)
-                hcorr_prep (noflow_disp_of_noflow h_noflow)
-                (landing_or_park_save h_noflow h_larm (Or.inl h_sk) h_preprocess)
-                h_preprocess h_dispatch)
-              (preprocess_some_peek h_preprocess) (noflow_disp_of_noflow h_noflow)
-              (nic_false_of_indicator_noflow h_preprocess (noflow_disp_of_noflow h_noflow))
-              h_dispatch
-          · exact h_gen
-        · exact h_gen
-      · exact h_gen
+        have h_explicit := fun (kslot : ∀ sp_m : SurfPos,
+            SBlockIndented n .blockIn sp_scan sp_m →
+            ∀ sp_e : SurfPos, SCompactSeqTail n sp_m sp_e →
+            ∀ sp_i sp_c : SurfPos, SIndent k sp_e sp_i → GLit ':' sp_i sp_c →
+            ∀ sp_v : SurfPos, SBlockIndented k .blockOut sp_c sp_v →
+            SLYamlStream sp_start sp_v) =>
+          colon_open_map_explicit sp_start sp_scan sp_mid _ k s_prep s'
+            sp_scan' (h_close_pending _ h_ssl)
+            (fun sp_m sp_i sp_c h_ssl_m h_iv h_lit sp_v h_sbi =>
+              kslot sp_m (SBlockIndented.empty n .blockIn sp_scan sp_m h_ssl_m)
+                sp_m (SCompactSeqTail.nil n sp_m) sp_i sp_c h_iv h_lit sp_v h_sbi)
+            h_ssl hcol_mid h_ind hcorr_prep hcorr_result
+            (indicator_floor_colon_at_col_of_save
+              (by have := SIndent_col h_ind; rw [hcol_mid] at this; omega)
+              hcorr_prep (noflow_disp_of_noflow h_noflow)
+              (landing_or_park_save h_noflow h_larm (Or.inl h_sk) h_preprocess)
+              h_preprocess h_dispatch)
+            (preprocess_some_peek h_preprocess) (noflow_disp_of_noflow h_noflow)
+            (nic_false_of_indicator_noflow h_preprocess (noflow_disp_of_noflow h_noflow))
+            h_dispatch
+        -- Item 125: the landed `:` decides its stamp source, as at
+        -- `accum_block_on_closeThenBlock`.
+        by_cases h_src : (if s_prep.allowDirectives then
+            { s_prep with allowDirectives := false, documentEverStarted := true }
+          else s_prep).explicitKeyLine = none ∨
+          ((if s_prep.allowDirectives then
+            { s_prep with allowDirectives := false, documentEverStarted := true }
+          else s_prep).col : Int) ≠ (if s_prep.allowDirectives then
+            { s_prep with allowDirectives := false, documentEverStarted := true }
+          else s_prep).explicitKeyCol
+        · rcases h_kslot with ⟨nv, kslot⟩ | _
+          · by_cases hknv : nv = k
+            · subst hknv
+              exact h_explicit kslot
+            · exact h_gen (fun _ => h_src)
+          · exact h_gen (fun _ => h_src)
+        · rcases h_kslot with ⟨nv, kslot⟩ | _
+          · by_cases hknv : nv = k
+            · subst hknv
+              exact h_explicit kslot
+            · exact block_dispatch_deferred sp_start sp_mid sp_scan' s'
+                (h_close_pending _ h_ssl)
+                (Or.inl (block_indicator_arm h_dispatch)) hcorr_result
+          · exact block_dispatch_deferred sp_start sp_mid sp_scan' s'
+              (h_close_pending _ h_ssl)
+              (Or.inl (block_indicator_arm h_dispatch)) hcorr_result
+      · exact h_gen (fun h => absurd h hc_colon)
     · exact (block_indicator_exhausted h_dispatch hc hcv).elim
   -- ═══ THE INLINE RESIDUE: the COMPACT collection (item 33) ═══
   -- Nothing was crossed, so nothing can close: `SSLComments` needs a break or
@@ -14727,12 +14983,35 @@ lemma accum_block_on_pendingBlock
     · by_cases hcv : c = ':' ∨ c = '?'
       · -- `- : a` and `- ? a`: `[195] ns-l-compact-mapping`, the same two
         -- `[188]` alternatives `indicator_open_map` opens at a landing.
-        exact compact_open_map sp_start sp_mid sp_sc n m .blockIn c hcv sc s_prep s'
-          sp_block sp_scan' h_stream_block h_close_old h_ind h_col_old
-          h_preprocess hcorr_prep hcorr_result
-          (preprocess_some_peek h_preprocess) (noflow_disp_of_noflow h_noflow)
-          (nic_false_of_indicator_noflow h_preprocess (noflow_disp_of_noflow h_noflow))
-          h_dispatch h_sk
+        have h_fill := fun (h_src : c = ':' → (if s_prep.allowDirectives then
+              { s_prep with allowDirectives := false, documentEverStarted := true }
+            else s_prep).explicitKeyLine = none ∨
+            ((if s_prep.allowDirectives then
+              { s_prep with allowDirectives := false, documentEverStarted := true }
+            else s_prep).col : Int) ≠ (if s_prep.allowDirectives then
+              { s_prep with allowDirectives := false, documentEverStarted := true }
+            else s_prep).explicitKeyCol) =>
+          compact_open_map sp_start sp_mid sp_sc n m .blockIn c hcv sc s_prep s'
+            sp_block sp_scan' h_stream_block h_close_old h_ind h_col_old
+            h_preprocess hcorr_prep hcorr_result
+            (preprocess_some_peek h_preprocess) (noflow_disp_of_noflow h_noflow)
+            (nic_false_of_indicator_noflow h_preprocess (noflow_disp_of_noflow h_noflow))
+            h_dispatch h_sk h_src
+        -- Item 125: the compact `:`'s own stamp source, decided here; the
+        -- undecided shape stays the deferral, and the `?` never reads it.
+        refine hcv.elim (fun hc_colon => ?_) (fun hc_q => ?_)
+        · by_cases h_src : (if s_prep.allowDirectives then
+              { s_prep with allowDirectives := false, documentEverStarted := true }
+            else s_prep).explicitKeyLine = none ∨
+            ((if s_prep.allowDirectives then
+              { s_prep with allowDirectives := false, documentEverStarted := true }
+            else s_prep).col : Int) ≠ (if s_prep.allowDirectives then
+              { s_prep with allowDirectives := false, documentEverStarted := true }
+            else s_prep).explicitKeyCol
+          · exact h_fill (fun _ => h_src)
+          · exact block_dispatch_deferred sp_start sp_block sp_scan' s' h_stream_block
+              (Or.inl (block_indicator_arm h_dispatch)) hcorr_result
+        · exact h_fill (fun h => absurd (hc_q.symm.trans h) (by decide))
       · exact (block_indicator_exhausted h_dispatch hc hcv).elim
   · -- The TAB, one production down (items 33/34).  `[185]`'s `s-indent(m)` is
     -- spaces too, and `[66]`'s backward scan refuses it in front of all three
@@ -17385,11 +17664,19 @@ lemma entryKeyPack_of_dispatch
     -- a REFUTABLE reason rather than an unread input.  The two companions are
     -- the transport: with the entry flag down and a real tail the no-break
     -- landing keeps `s_prep` on the park's line, which is the line the stamp
-    -- names.  All three are `pendingMapValue`'s own fields; the compact
-    -- callers (a `-`'s slot, a `?`'s) pass `Or.inr trivial` — they hand
-    -- `h_compact` instead and never reach the branch.
+    -- names.  **Item 125: the other disjunct is the FACE** — `h_compact`'s
+    -- own left shape, paid from `pendingMapValue.h_ivl`'s face — so the
+    -- same-line branch composes through the compact construction where it
+    -- used to punt `noFrame` (that constructor is deleted).  Callers whose
+    -- `h_compact` is real pass the same frame here.
     (h_ivl : (sc.implicitValueLine = some sc.line ∧ sc.needIndentCheck = false ∧
-      LastTokenReal sc.tokens) ∨ True)
+      LastTokenReal sc.tokens) ∨
+      ((∀ sp, SBlockIndented n .blockIn sp_scan sp → SLYamlStream sp_start sp) ∧
+        sp_scan.col = n + 1 ∧
+        ((∃ nv : Nat, ∀ sp : SurfPos, SBlockIndented n .blockIn sp_scan sp →
+          ∀ sp_i sp_c : SurfPos, SIndent nv sp sp_i → GLit ':' sp_i sp_c →
+          ∀ sp_v : SurfPos, SBlockIndented nv .blockOut sp_c sp_v →
+          SLYamlStream sp_start sp_v) ∨ True)))
     -- Item 99: `h_node`'s RESUME twin — the levels still open once the
     -- awaited node completes (the entry's own level at `n` included, so the
     -- bound is `≤ n`).  The nested branch pays the pack's resume twin from
@@ -17642,18 +17929,31 @@ lemma entryKeyPack_of_dispatch
             · exact Or.inr KeyPackPunt.dedent
           · exact Or.inr KeyPackPunt.dedent
       | inr h_mid =>
-        -- On the line: `[195]`, closing the enclosing entry.  Only a pending
-        -- that owns an `SBlockIndented` slot can offer this frame.
-        cases h_compact with
-        | inr _ =>
-          -- ═══ Item 101: no frame — so the park is a VALUE slot, and the two
-          -- kinds of value slot part here.  An EXPLICIT one keeps `noFrame`
-          -- (`?⏎: b: c` is accepted and wants the `?` frame's value pack); an
-          -- IMPLICIT one stamped its line, and the stamp travels: the content
+        -- On the line: `[195]`, closing the enclosing entry.  ═══ Item 125:
+        -- the frame is `h_compact`'s or the field's own FACE — a park with
+        -- neither carries the stamp, so the split below is total and the
+        -- frameless punt (`KeyPackPunt.noFrame`, deleted) has no arm left.
+        have h_split : ((∀ sp, SBlockIndented n .blockIn sp_scan sp →
+            SLYamlStream sp_start sp) ∧ sp_scan.col = n + 1 ∧
+            ((∃ nv : Nat, ∀ sp : SurfPos, SBlockIndented n .blockIn sp_scan sp →
+              ∀ sp_i sp_c : SurfPos, SIndent nv sp sp_i → GLit ':' sp_i sp_c →
+              ∀ sp_v : SurfPos, SBlockIndented nv .blockOut sp_c sp_v →
+              SLYamlStream sp_start sp_v) ∨ True)) ∨
+            (sc.implicitValueLine = some sc.line ∧ sc.needIndentCheck = false ∧
+              LastTokenReal sc.tokens) :=
+          match h_compact with
+          | Or.inl h_cp => Or.inl h_cp
+          | Or.inr _ =>
+            match h_ivl with
+            | Or.inl h_stamp => Or.inr h_stamp
+            | Or.inr h_face => Or.inl h_face
+        cases h_split with
+        | inr h_stamp =>
+          -- ═══ Item 101: no frame — the park is an IMPLICIT value slot: its
+          -- indicator stamped its line, and the stamp travels: the content
           -- scan between the value indicator and this park is not
           -- `scanValue`, so it left the field alone, and the no-break landing
           -- keeps the park on the stamped line. ═══
-          refine h_ivl.elim (fun h_stamp => ?_) (fun _ => Or.inr KeyPackPunt.noFrame)
           obtain ⟨h_ivl0, h_nic0, h_real0⟩ := h_stamp
           -- The park's line is the preprocessing's (no break crossed) and the
           -- preprocessing's is the value indicator's.
@@ -17809,10 +18109,17 @@ lemma entryPropsKeyPack_of_dispatch
     (h_ivl_post : s'.implicitValueLine = (if s_prep.allowDirectives then
           { s_prep with allowDirectives := false, documentEverStarted := true }
         else s_prep).implicitValueLine)
-    -- `entryKeyPack_of_dispatch`'s own optional premise, verbatim: the value
-    -- indicator's stamp at the PARK, offered only by a `[189]` value slot.
+    -- `entryKeyPack_of_dispatch`'s own premise, verbatim: the value
+    -- indicator's stamp at the PARK, offered only by a `[189]` value slot —
+    -- or, item 125, the FACE in `h_compact`'s own left shape.
     (h_ivl : (sc.implicitValueLine = some sc.line ∧ sc.needIndentCheck = false ∧
-      LastTokenReal sc.tokens) ∨ True)
+      LastTokenReal sc.tokens) ∨
+      ((∀ sp, SBlockIndented n .blockIn sp_scan sp → SLYamlStream sp_start sp) ∧
+        sp_scan.col = n + 1 ∧
+        ((∃ nv : Nat, ∀ sp : SurfPos, SBlockIndented n .blockIn sp_scan sp →
+          ∀ sp_i sp_c : SurfPos, SIndent nv sp sp_i → GLit ':' sp_i sp_c →
+          ∀ sp_v : SurfPos, SBlockIndented nv .blockOut sp_c sp_v →
+          SLYamlStream sp_start sp_v) ∨ True)))
     (hcorr_prep : ScannerSurfCorr s_prep sp_prep)
     (h_corr : ScannerSurfCorr sc sp_scan)
     (h_preprocess : scanNextToken_preprocess sc = .ok (some (s_prep, c))) :
@@ -17978,15 +18285,29 @@ lemma entryPropsKeyPack_of_dispatch
           · exact Or.inr KeyPackPunt.dedent
         · exact Or.inr KeyPackPunt.dedent
     | inr h_mid =>
-      cases h_compact with
-      | inr _ =>
+      -- ═══ Item 125: the frame is `h_compact`'s or the field's own FACE, as
+      -- on the sibling — the frameless punt has no arm left here either. ═══
+      have h_split : ((∀ sp, SBlockIndented n .blockIn sp_scan sp →
+          SLYamlStream sp_start sp) ∧ sp_scan.col = n + 1 ∧
+          ((∃ nv : Nat, ∀ sp : SurfPos, SBlockIndented n .blockIn sp_scan sp →
+            ∀ sp_i sp_c : SurfPos, SIndent nv sp sp_i → GLit ':' sp_i sp_c →
+            ∀ sp_v : SurfPos, SBlockIndented nv .blockOut sp_c sp_v →
+            SLYamlStream sp_start sp_v) ∨ True)) ∨
+          (sc.implicitValueLine = some sc.line ∧ sc.needIndentCheck = false ∧
+            LastTokenReal sc.tokens) :=
+        match h_compact with
+        | Or.inl h_cp => Or.inl h_cp
+        | Or.inr _ =>
+          match h_ivl with
+          | Or.inl h_stamp => Or.inr h_stamp
+          | Or.inr h_face => Or.inl h_face
+      cases h_split with
+      | inr h_stamp =>
         -- ═══ Item 102: item 101's split, at the RUN's head.  A `[189]`
         -- IMPLICIT value slot has no compact alternative for the pack to
         -- close, but its indicator stamped the line, and the stamp survives
         -- the PROPERTY scan (`h_ivl_post`) exactly as it survives a value
-        -- one — so `k: &p a: 1` is refused where `?⏎: &p a: 1` is read.  The
-        -- EXPLICIT half keeps the name, as it does on the sibling. ═══
-        refine h_ivl.elim (fun h_stamp => ?_) (fun _ => Or.inr KeyPackPunt.noFrame)
+        -- one — so `k: &p a: 1` is refused where `?⏎: &p a: 1` is read. ═══
         obtain ⟨h_ivl0, h_nic0, h_real0⟩ := h_stamp
         have h_line_pp : s_prep.line = sc.line := (h_mid.2.1 h_nic0 h_real0).1
         have h_ad_ivl : (if s_prep.allowDirectives then
@@ -18631,7 +18952,10 @@ lemma accum_content_on_pendingBlock
                  ⟨h_nic_s, (dispatchContent_anchor_simpleKey h_dispatch).2, h_real_s⟩
                  (dispatchContent_input (corr_of_allowDirectives_update hcorr_prep)
                    h_dispatch)
-                 (dispatchContent_implicitValueLine h_dispatch) (Or.inr trivial)
+                 (dispatchContent_implicitValueLine h_dispatch)
+                 -- Item 125: the field's face is the same frame `h_compact`
+                 -- carries two arguments up.
+                 (Or.inr ⟨h_close_old, h_col_old, Or.inr trivial⟩)
                  hcorr_prep h_corr h_preprocess)
                (IndentFloor.zero h_nic_s)
                -- Item 68: a `[96]` run is at least one character wide, and this
@@ -18681,7 +19005,10 @@ lemma accum_content_on_pendingBlock
                  ⟨h_nic_s, (dispatchContent_tag_simpleKey h_dispatch).2, h_real_s⟩
                  (dispatchContent_input (corr_of_allowDirectives_update hcorr_prep)
                    h_dispatch)
-                 (dispatchContent_implicitValueLine h_dispatch) (Or.inr trivial)
+                 (dispatchContent_implicitValueLine h_dispatch)
+                 -- Item 125: the field's face is the same frame `h_compact`
+                 -- carries two arguments up.
+                 (Or.inr ⟨h_close_old, h_col_old, Or.inr trivial⟩)
                  hcorr_prep h_corr h_preprocess)
                (IndentFloor.zero h_nic_s)
                -- Item 68: a `[96]` run is at least one character wide, and this
@@ -18736,9 +19063,9 @@ lemma accum_content_on_pendingBlock
                -- Item 93: a root `- `'s indicator sits at column 0, so no `?`
                -- frame can own this park — the value-line face is vacuous.
                (Or.inl ⟨h_close_old, h_col_old, Or.inr trivial⟩)
-               -- Item 101: an entry's own compact slot, so the frame is
-               -- `h_compact`'s and the stamp branch is unreachable.
-               (Or.inr trivial)
+               -- Item 125: an entry's own compact slot — the field's face is
+               -- the same frame `h_compact` carries above.
+               (Or.inr ⟨h_close_old, h_col_old, Or.inr trivial⟩)
                (Or.inr trivial) (Or.inr trivial)
                -- Item 108: a root `- `'s park stands under no explicit frame.
                (Or.inr trivial) (Or.inr trivial) hna hnt h_ska
@@ -19319,8 +19646,15 @@ lemma accum_content_on_pendingBlock_indented
                        kslot sp h_bi sp (SCompactSeqTail.nil n sp)
                          sp_i sp_c h_iv h_lit sp_v h_sbi⟩
                  | Or.inr _ => Or.inr trivial⟩)
-               -- Item 101: an entry's own compact slot (see the root site).
-               (Or.inr trivial)
+               -- Item 125: an entry's own compact slot (see the root site) —
+               -- the field's face is the same frame `h_compact` carries above.
+               (Or.inr ⟨h_close_old, h_col_old,
+                 match h_kslot_old with
+                 | Or.inl ⟨nv, kslot⟩ => Or.inl ⟨nv,
+                     fun sp h_bi sp_i sp_c h_iv h_lit sp_v h_sbi =>
+                       kslot sp h_bi sp (SCompactSeqTail.nil n sp)
+                         sp_i sp_c h_iv h_lit sp_v h_sbi⟩
+                 | Or.inr _ => Or.inr trivial⟩)
                -- Item 99: the frames feed the pack's resume twin — the node
                -- (or the empty entry) closes this entry, the nil tail closes
                -- the sequence, and the levels below ride through.
@@ -19444,7 +19778,16 @@ lemma accum_content_on_pendingBlock_indented
                ⟨h_nic_s, h_ska_s, h_real_s⟩
                (dispatchContent_input (corr_of_allowDirectives_update hcorr_prep)
                  h_dispatch)
-               h_ivl_s (Or.inr trivial)
+               h_ivl_s
+               -- Item 125: the field's face is the same frame `h_compact`
+               -- carries, `nil`-tailed exactly as there.
+               (Or.inr ⟨h_close_old, h_col_old,
+                 match h_kslot_old with
+                 | Or.inl ⟨nv, kslot⟩ => Or.inl ⟨nv,
+                     fun sp h_bi sp_i sp_c h_iv h_lit sp_v h_sbi =>
+                       kslot sp h_bi sp (SCompactSeqTail.nil n sp)
+                         sp_i sp_c h_iv h_lit sp_v h_sbi⟩
+                 | Or.inr _ => Or.inr trivial⟩)
                hcorr_prep h_corr h_preprocess)
              ⟨h_nic_s, h_ind_s⟩
              -- Item 68: the entry park sits at `n + 1` (item 59), the run starts
@@ -19585,8 +19928,15 @@ lemma accum_content_on_pendingBlock_indented
                        kslot sp h_bi sp (SCompactSeqTail.nil n sp)
                          sp_i sp_c h_iv h_lit sp_v h_sbi⟩
                  | Or.inr _ => Or.inr trivial⟩)
-               -- Item 101: an entry's own compact slot (see the root site).
-               (Or.inr trivial)
+               -- Item 125: an entry's own compact slot (see the root site) —
+               -- the field's face is the same frame `h_compact` carries above.
+               (Or.inr ⟨h_close_old, h_col_old,
+                 match h_kslot_old with
+                 | Or.inl ⟨nv, kslot⟩ => Or.inl ⟨nv,
+                     fun sp h_bi sp_i sp_c h_iv h_lit sp_v h_sbi =>
+                       kslot sp h_bi sp (SCompactSeqTail.nil n sp)
+                         sp_i sp_c h_iv h_lit sp_v h_sbi⟩
+                 | Or.inr _ => Or.inr trivial⟩)
                -- Item 99: the frames feed the pack's resume twin — the node
                -- (or the empty entry) closes this entry, the nil tail closes
                -- the sequence, and the levels below ride through.
@@ -19696,11 +20046,10 @@ lemma accum_content_on_pendingMapValue
         SLYamlStream sp_start sp_v) ∨ True)
     -- Item 89: the pending's OPEN `[185]` slot, when the frame around it
     -- admits one — `pendingMapValue.h_vslot`, handed on so the same-line key
-    -- head can close the slot through `[195] ns-l-compact-mapping` instead of
-    -- punting `noFrame` (`? a: b`'s `a`, and `? a⏎: b: c`'s `b` at the value
-    -- slot the landed `:` parked).  The flow OPEN already spends this field
-    -- the same way (`flowKeyRoute_of_open`, item 78); this is the content
-    -- dispatch's half.
+    -- head can close the slot through `[195] ns-l-compact-mapping`
+    -- (`? a: b`'s `a`, and `? a⏎: b: c`'s `b` at the value slot the landed
+    -- `:` parked).  The flow OPEN already spends this field the same way
+    -- (`flowKeyRoute_of_open`, item 78); this is the content dispatch's half.
     (h_vslot : (sp_scan.col = 0 + 1 ∧ ∀ sp_v : SurfPos,
       SBlockIndented 0 .blockOut sp_scan sp_v →
         SLYamlStream sp_start sp_v) ∨ True)
@@ -19737,8 +20086,12 @@ lemma accum_content_on_pendingMapValue
     -- carry it to the content park — `pendingMapValue`'s `h_ivl`, `h_nic` and
     -- `h_real`.  Spent by the pack lemma at the branch `h_vslot` has no frame
     -- for: an IMPLICIT value's same-line key is refused by §8.2.2, so that
-    -- punt names a reason rather than an input.
-    (h_ivl_mv : sc.implicitValueLine = some sc.line ∨ True)
+    -- punt names a reason rather than an input.  Item 125: the field is
+    -- stamp-or-FACE now, and the face routes that branch through the compact
+    -- construction instead of `noFrame`.
+    (h_ivl_mv : sc.implicitValueLine = some sc.line ∨
+      (sp_scan.col = 0 + 1 ∧ ∀ sp_v : SurfPos,
+        SBlockIndented 0 .blockOut sp_scan sp_v → SLYamlStream sp_start sp_v))
     (h_nic_mv : sc.needIndentCheck = false)
     (h_real_mv : LastTokenReal sc.tokens)
     (hcorr_prep : ScannerSurfCorr s_prep sp_prep)
@@ -19780,12 +20133,27 @@ lemma accum_content_on_pendingMapValue
   -- Item 93: …and the frame's VALUE-LINE pack rides beside it, paid from
   -- `h_expl` — the completed compact content is the `?`'s KEY, and the line
   -- closes the entry through `[188]`'s explicit constructor.
-  -- Item 101: the stamp in the shape the pack lemma reads it.
+  -- Item 101: the stamp in the shape the pack lemma reads it.  Item 125: or
+  -- the FACE, converted exactly as `h_compact_vslot` converts the slot below
+  -- — so the pack lemma's same-line branch composes instead of punting.
   have h_ivl_pack : (sc.implicitValueLine = some sc.line ∧
-      sc.needIndentCheck = false ∧ LastTokenReal sc.tokens) ∨ True :=
+      sc.needIndentCheck = false ∧ LastTokenReal sc.tokens) ∨
+      ((∀ sp, SBlockIndented 0 .blockIn sp_scan sp → SLYamlStream sp_start sp) ∧
+        sp_scan.col = 0 + 1 ∧
+        ((∃ nv : Nat, ∀ sp : SurfPos, SBlockIndented 0 .blockIn sp_scan sp →
+          ∀ sp_i sp_c : SurfPos, SIndent nv sp sp_i → GLit ':' sp_i sp_c →
+          ∀ sp_v : SurfPos, SBlockIndented nv .blockOut sp_c sp_v →
+          SLYamlStream sp_start sp_v) ∨ True)) :=
     match h_ivl_mv with
     | Or.inl h => Or.inl ⟨h, h_nic_mv, h_real_mv⟩
-    | Or.inr _ => Or.inr trivial
+    | Or.inr h_face => Or.inr ⟨fun sp h_bi =>
+        h_face.2 sp (SBlockIndented_blockIn_to_blockOut h_bi), h_face.1,
+        match h_expl with
+        | Or.inl ⟨sp_q, h_qlit, route⟩ => Or.inl ⟨0,
+            fun sp h_bi sp_i sp_c h_iv h_lit sp_v h_sbi =>
+              route sp_v (SBlockMapEntry.explicit 0 sp_q sp_scan sp sp_i sp_c sp_v
+                h_qlit (SBlockIndented_blockIn_to_blockOut h_bi) h_iv h_lit h_sbi)⟩
+        | Or.inr _ => Or.inr trivial⟩
   have h_compact_vslot : ((∀ sp, SBlockIndented 0 .blockIn sp_scan sp →
       SLYamlStream sp_start sp) ∧ sp_scan.col = 0 + 1 ∧
       ((∃ nv : Nat, ∀ sp : SurfPos, SBlockIndented 0 .blockIn sp_scan sp →
@@ -20200,8 +20568,11 @@ lemma accum_content_on_pendingMapValue_indented
     -- carry it to the content park — `pendingMapValue`'s `h_ivl`, `h_nic` and
     -- `h_real`.  Spent by the pack lemma at the branch `h_vslot` has no frame
     -- for: an IMPLICIT value's same-line key is refused by §8.2.2, so that
-    -- punt names a reason rather than an input.
-    (h_ivl_mv : sc.implicitValueLine = some sc.line ∨ True)
+    -- punt names a reason rather than an input.  Item 125: stamp-or-FACE, as
+    -- at the root arm.
+    (h_ivl_mv : sc.implicitValueLine = some sc.line ∨
+      (sp_scan.col = n + 1 ∧ ∀ sp_v : SurfPos,
+        SBlockIndented n .blockOut sp_scan sp_v → SLYamlStream sp_start sp_v))
     (h_nic_mv : sc.needIndentCheck = false)
     (h_real_mv : LastTokenReal sc.tokens)
     (hcorr_prep : ScannerSurfCorr s_prep sp_prep)
@@ -20231,12 +20602,26 @@ lemma accum_content_on_pendingMapValue_indented
   -- root arm.
   -- Item 93: with the frame's value-line pack beside it, paid from `h_expl`
   -- as at the root arm.
-  -- Item 101: the stamp in the shape the pack lemma reads it.
+  -- Item 101: the stamp in the shape the pack lemma reads it.  Item 125: or
+  -- the FACE, converted as at the root arm.
   have h_ivl_pack : (sc.implicitValueLine = some sc.line ∧
-      sc.needIndentCheck = false ∧ LastTokenReal sc.tokens) ∨ True :=
+      sc.needIndentCheck = false ∧ LastTokenReal sc.tokens) ∨
+      ((∀ sp, SBlockIndented n .blockIn sp_scan sp → SLYamlStream sp_start sp) ∧
+        sp_scan.col = n + 1 ∧
+        ((∃ nv : Nat, ∀ sp : SurfPos, SBlockIndented n .blockIn sp_scan sp →
+          ∀ sp_i sp_c : SurfPos, SIndent nv sp sp_i → GLit ':' sp_i sp_c →
+          ∀ sp_v : SurfPos, SBlockIndented nv .blockOut sp_c sp_v →
+          SLYamlStream sp_start sp_v) ∨ True)) :=
     match h_ivl_mv with
     | Or.inl h => Or.inl ⟨h, h_nic_mv, h_real_mv⟩
-    | Or.inr _ => Or.inr trivial
+    | Or.inr h_face => Or.inr ⟨fun sp h_bi =>
+        h_face.2 sp (SBlockIndented_blockIn_to_blockOut h_bi), h_face.1,
+        match h_expl with
+        | Or.inl ⟨sp_q, h_qlit, route⟩ => Or.inl ⟨n,
+            fun sp h_bi sp_i sp_c h_iv h_lit sp_v h_sbi =>
+              route sp_v (SBlockMapEntry.explicit n sp_q sp_scan sp sp_i sp_c sp_v
+                h_qlit (SBlockIndented_blockIn_to_blockOut h_bi) h_iv h_lit h_sbi)⟩
+        | Or.inr _ => Or.inr trivial⟩
   have h_compact_vslot : ((∀ sp, SBlockIndented n .blockIn sp_scan sp →
       SLYamlStream sp_start sp) ∧ sp_scan.col = n + 1 ∧
       ((∃ nv : Nat, ∀ sp : SurfPos, SBlockIndented n .blockIn sp_scan sp →

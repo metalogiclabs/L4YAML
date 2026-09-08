@@ -12782,6 +12782,86 @@ new file's public lemmas); env **8245** theorems (+114 — the two `private`
 helpers are name-mangled out of the `L4YAML.*` walk), **0** direct and **0**
 transitive `sorry`, **0** custom axioms.
 
+### Item 125 (2026-09-08)
+
+**U2 CLOSED, and `KeyPackPunt.noFrame` is deleted** — the park-face coupling's
+spend, on item 124's fuel.  ZERO runtime edits; the whole item is one field's
+right disjunct and the consumers that decide it.
+
+**The plan's shape was wrong in one way worth recording.**  U2 was priced as a
+scanner↔surface coupling stated as a mandatory conditional field on every
+face-carrying park — `sc.explicitKeyLine = some l` implies the park's `?`-frame
+face is REAL — with an every-pending threading behind it (~92 producer sites).
+What the item measured is that the coupling does not need to be a park field at
+all, because the question it answers is asked at the CONSUMER and the consumer
+holds the state:
+
+* `pendingMapValue.h_ivl` became **stamp-or-FACE** — its right disjunct is the
+  same `[185] s-l+block-indented` slot `h_vslot` already carries, so no producer
+  learns anything new.  Six producer lemmas, seven payments (`compact_open_map`
+  pays on both of its branches): the `?` openers — landed `question_open_map`
+  and the compact one — and the explicit `:` (`colon_open_map_explicit`) hand
+  the face they hand `h_vslot`; the four keyless-or-implicit `:` payments
+  (`colon_open_map`, the compact `:`, `colon_open_map_implicit`,
+  `colon_open_map_props`) hand a stamp.
+* The stamp is **REAL** now rather than `scanValue_ok_park_facts`' optional
+  third component, and that is what item 124's discriminators bought.  Two
+  routes, one per producer family: a `:` that RESOLVES a key stamps whatever the
+  register holds (`scanValue_stamp_of_key` — the pack producers already carry
+  the key's three facts for their floor, so `colon_open_map_implicit` and
+  `colon_open_map_props` pay from premises they had); a KEYLESS `:` stamps when
+  its own state has no live `explicitKeyLine` or stands off `explicitKeyCol`
+  (`scanValue_stamp_of_src`, this item's one new lemma, joining item 124's
+  `scanValue_ok_of_ekl_none` and `scanValue_stamp_of_col_ne`).
+* The by_cases moved to the **landed-`:` consumers**, where both conjuncts are
+  the dispatch state's own fields and a classical split decides them — six
+  splits across five lemmas (`accum_block_on_noPending`,
+  `accum_block_on_closeThenBlock` and `accum_block_on_pendingBlock` twice each
+  for their landing and inline-residue compact-fill arms, and
+  `accum_block_on_pendingBlockContent`).
+* So the pack lemmas' same-line branch is **total**: the frame from `h_compact`,
+  or the face from the field, or the stamp.  `KeyPackPunt.noFrame` — the reason
+  item 105 measured as having no named input left — is gone, with its transport
+  arm and its three consumer arms.
+
+**What the escape costs instead.**  The undecided shape is a live register at
+the landing's own column with no pack at that column: that is the COLLAPSE
+lane item 124 measured — a flow collection that renounced its grammar reading
+(`FlowStackB.shape`) restores the scanner's pair at its close while the surface
+side keeps no face.  `? [a]⏎: b: c` is accepted and now reaches the deferral
+through an undecided SOURCE rather than through a punt, which is the honest
+statement of what is open: giving `FlowStackK.collapse` a face slot converts
+these, and nothing else in the file waits on it.
+
+**The field's other consumer** is unchanged in substance: the flow-open arm
+reads the stamp half only (`flowOpen_stamp` takes the weakened `∨ True`
+form, one `.imp` at the call site), because a face at the park says nothing
+about the collection the open pushes.
+
+New guard `ParkFaceCoupling` (13 `#guard` + 3 `example`): §1 pins the
+four-constructor `KeyPackPunt` as a TOTAL match (were `noFrame` still there, the
+guard would not elaborate) and the field's landed type through the constructor
+itself; §2 pins the consumer's own discriminator; §3 pins the face payers, the
+stamp payers, 8.19's keyed-`:` survival, and — as a boundary, not a claim — the
+two collapse-lane inputs that the scanner accepts and the proof side still
+defers.
+
+**Validation.**  Full `lake build` green (**1107** jobs, ZERO warnings);
+`run-all-tests.sh` **4473/4473** across 17 suites; matrix **402/402** event and
+**282/282** JSON on BOTH pipelines (legacy and `-ix` twins); `eventscore`
+**347/358**; `check-import-closure.sh` (**225** modules),
+`check-reflection-index.sh` (20/229/248/354) and `check-theorem-keyword.sh`
+(**25** capstones) OK; annotation verifier same **19** pre-existing name
+mismatches.  `collect-stats`: tests **573** files (+1) / **6256** `#guard`s
+(+13 exact = the new guard file); proofs **6285** and library **6490** (+1 each
+= `scanValue_stamp_of_src`, the item's one new lemma); env **8246** theorems
+(+1, agreeing with the source scan), **0** direct and **0** transitive `sorry`,
+**0** custom axioms.  Axiom profiles: `scanValue_stamp_of_src`, both pack
+lemmas and `keyPackPunt_transport` carry the standard three; the producer and
+consumer lemmas carry only the `native_decide` axioms their dispatch-production
+dependencies already had.  A runtime probe re-measured every family this entry
+names, both pipelines agreeing.
+
 ### REMAINING, in order
 
 The per-item history is the closure log above; this section lists only the
@@ -12795,7 +12875,7 @@ too (items 47–51), so what stands between here
 and Step 5 (the converse) is R3's remaining production work and R4:
 
 ```
-R1 ✓ (44–46) ──→ R2 ✓ (47–51) ──→ R3 (52–124 landed; 67b's deletion on U2) ──→ Step 5
+R1 ✓ (44–46) ──→ R2 ✓ (47–51) ──→ R3 (52–125 landed; U2 CLOSED, noFrame gone) ──→ Step 5
                                         └──────→ R4 (implicitContinue + 0 < m) ──┘
 ```
 

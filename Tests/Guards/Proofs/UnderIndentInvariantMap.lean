@@ -46,8 +46,15 @@ carrier, consumer, and price:
   note priced, a session at least.  [Item 124 landed the SCANNER half:
   `ExplicitKeyCoupling` carries both registers through every scan and
   states the five LINE-FREE `scanValue` discriminators the by_cases
-  spends (guard `ExplicitKeyCouplingLadder`); the field redesign, the
-  collapse shape's face slot and the deletion are U2b.]
+  spends (guard `ExplicitKeyCouplingLadder`).  **CLOSED by item 125**,
+  whose measured shape differs from the plan above in one way worth
+  keeping: the coupling is NOT a park field.  `pendingMapValue.h_ivl`
+  became stamp-or-FACE — the same `[185]` slot `h_vslot` carries — and
+  the by_cases moved to the landed-`:` CONSUMERS, which decide their own
+  dispatch state's `explicitKeyLine`/`explicitKeyCol` and spend item
+  124's discriminators to make the stamp REAL.  `KeyPackPunt.noFrame` is
+  gone; what is left is the collapse lane's restored pair, which defers
+  at the `:` instead of parking an unstamped slot.]
 * **U3 — the frames ↔ indent-stack coupling**: the packs' resume-twin
   lists `ks` are SURFACE data; the runtime's misindented-sibling refusal
   reads the SCANNER's indent stack (`scanNextToken_preprocess`'s unwind
