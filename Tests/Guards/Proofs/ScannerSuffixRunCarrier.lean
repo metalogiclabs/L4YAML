@@ -112,6 +112,8 @@ private def refuses (input : String) : Bool :=
 -- through the other dispatches (`accum_block_on_closeThenBlock`, the flow
 -- open), which still fold the park and ride `implicitContinue`.  Pinned as
 -- ACCEPTED: 1c residue families, not refusals.
+-- (CLOSED by item 118 — the same face read at both skeletons; see
+-- `ScannerSuffixCollectionLanding`.)
 #guard emits "- x\n...\n- y\n"
   ["+STR", "+DOC", "+SEQ", "=VAL :x", "-SEQ", "-DOC ...",
    "+DOC", "+SEQ", "=VAL :y", "-SEQ", "-DOC", "-STR"]
@@ -214,9 +216,13 @@ example {sp_start sp_block sp_scan sp_land sp_key : SurfPos} {k : Nat}
   `close_with_ssl` before the entry routes are built — the sequence document
   still rides `implicitContinue` (§1's `- x⏎...⏎- y` pin).  Paying it is
   the same face read at the block skeleton.
+  (CLOSED by item 118 — `h_docRoute` plus the openers' suffix faces; see
+  `ScannerSuffixCollectionLanding`.)
 * The FLOW open after a suffix.  `...⏎[1, 2]` folds the park at the `[` and
   the completed collection re-enters through `topLevelFlowResumeSep` — 67b's
   rows, one more reason the flow base routes are a carrier question.
+  (CLOSED by item 118 — `suffixFlowResumeSep` + `flowKeyRoute_of_root`'s
+  landing face, without touching 67b's rider.)
 * The EOF close.  `close_with_ssl`'s `pendingDocEnd` arm keeps the
   empty-slot fold — honest, because there IS no next document (§2's second
   example is that fold recovered from the open run).

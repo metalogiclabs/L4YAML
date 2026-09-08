@@ -73,7 +73,7 @@ example {sc s_prep : ScannerState} {c : Char} {sp_start sp_scan sp_prep : SurfPo
         ∀ sp_w : SurfPos, SBlockIndented nv .blockOut sp_c sp_w →
         SLYamlStream sp_start sp_w) ∨ True)) ∨ True :=
   flowKeyRoute_of_root (m := 0) (Or.inr trivial) h_noflow h_park h_close h_corr
-    hcorr_prep h_preprocess
+    hcorr_prep h_preprocess (Or.inr trivial)
 
 /-- The ENTRY's version, whose compact arm crosses no break and so spends the
     park's flag directly.  Its route and the width to measure it against travel
