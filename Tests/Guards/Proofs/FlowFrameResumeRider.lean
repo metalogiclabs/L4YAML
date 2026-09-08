@@ -28,14 +28,14 @@ stream, and the bare flow key at an open level's own column is §8.1-refused
 makes the family reachable, which is why the props arm is the one payment.
 
 **This is the 67b piece that was committable.**  The DELETION proper —
-`pendingFlow`, `scannerDrop`, `dropClose`, `FlowStackB.shape`,
-`close_with_ssl`'s arm, `block_dispatch_deferred`'s three sites — stays
-blocked: the two inline-residue defer sites still PRODUCE the pending
-whenever the key packs punt, and the punts that remain are
-`KeyPackPunt.dedent` (R4's landing pad, by design) and the two reasons with
-no named input (`noFrame`, `noKeyContext`), whose deletion needs the
-under-indent invariant (items 101/104/105's measured chain).  §4 pins the
-counts so the blockage is measured, not assumed. -/
+`pendingFlow`, `scannerDrop`, `dropClose`, `close_with_ssl`'s arm,
+`block_dispatch_deferred`'s three sites — stays blocked: the two
+inline-residue defer sites still PRODUCE the pending whenever the key packs
+punt, and the punts that remain are `KeyPackPunt.dedent` (R4's landing pad,
+by design) and `noKeyContext`, which has no named input (items 101/104/105's
+measured chain).  §4 pins the counts so the blockage is measured, not
+assumed.  (Two names have since left this list: `noFrame` with item 125, and
+`FlowStackB.shape` with item 126, which measured the collapse unreachable.) -/
 
 namespace L4YAML.Tests.Guards.FlowFrameResumeRider
 
@@ -135,10 +135,10 @@ The escape's three `block_dispatch_deferred` applications and the one
 `dropClose` use stand exactly where items 116–118 left them (the counts are
 re-measured in DOCS item 120); the two inline-residue sites still produce
 `pendingFlow` off `KeyPackPunt`'s surviving reasons.  `dedent` is R4's
-landing pad by design; `noFrame` and `noKeyContext` have NO named input
-(items 104/105) and their constructors' deletion is the under-indent
-invariant's spend.  So the rest of 67b — the constructor, `scannerDrop`,
-`dropClose`, `FlowStackB.shape`, `close_with_ssl`'s arm — waits on that
-item, not on this one. -/
+landing pad by design; `noKeyContext` has NO named input (item 104) and its
+constructor's deletion is the under-indent invariant's spend — `noFrame`'s
+was paid at item 125.  So the rest of 67b — the constructor, `scannerDrop`,
+`dropClose`, `close_with_ssl`'s arm — waits on that item, not on this one.
+(`FlowStackB.shape` left the list at item 126, unreachable and deleted.) -/
 
 end L4YAML.Tests.Guards.FlowFrameResumeRider

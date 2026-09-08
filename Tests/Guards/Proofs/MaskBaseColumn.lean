@@ -17,11 +17,13 @@ producer each, and this item removes the last of the reason.
 Two things were still optional and neither had to be.
 
 * **The mask's base slot.**  `KmSound` promised the bottom tracked slot's column
-  `∨ True` because `FlowStackK.collapse` hands an EMPTY mask and an empty mask
-  has no bottom.  That is a statement about the mask, so the mask can carry it:
-  the promise is conditional on `0 < km.size`, the collapse discharges it
-  vacuously, and every frame's mask is nonempty (`FlowOpenStack.km_pos`).  So
-  `KmSound.back_col` and `close_col_of_base` return the column.
+  `∨ True` because an empty mask has no bottom.  That is a statement about the
+  mask, so the mask can carry it: the promise is conditional on `0 < km.size`,
+  and every frame's mask is nonempty (`FlowOpenStack.km_pos`).  So
+  `KmSound.back_col` and `close_col_of_base` return the column.  (The empty
+  mask the `∨ True` was written for was the collapsed stack's; item 126
+  deleted that constructor, and `KmSound.empty` is now the only state with no
+  bottom slot — nothing in the accumulation hands it.)
 * **The compact route's width.**  `entryKeyPack_of_dispatch` took the compact
   frame and the park's column as two options, and all six call sites read them
   off the same field — item 78's observation at the flow open, applied to the
@@ -40,10 +42,10 @@ namespace Tests.Guards.MaskBaseColumn
 
 open L4YAML L4YAML.Scanner L4YAML.Surface L4YAML.Proofs.StreamAccum
 
-/-! ## §1  An empty mask is the collapse's, and no frame has one -/
+/-! ## §1  An empty mask promises nothing, and no frame has one -/
 
-/-- The collapse still costs nothing: an empty mask promises no base slot, and
-    says so by its own size rather than by a disjunct. -/
+/-- The empty mask costs nothing: it promises no base slot, and says so by its
+    own size rather than by a disjunct. -/
 example (sc : ScannerState) (kc : Nat) : KmSound sc #[] kc := KmSound.empty sc kc
 
 /-- …and no `FlowOpenStack` carries one — the two base constructors write a

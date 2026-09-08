@@ -53,8 +53,12 @@ carrier, consumer, and price:
   the by_cases moved to the landed-`:` CONSUMERS, which decide their own
   dispatch state's `explicitKeyLine`/`explicitKeyCol` and spend item
   124's discriminators to make the stamp REAL.  `KeyPackPunt.noFrame` is
-  gone; what is left is the collapse lane's restored pair, which defers
-  at the `:` instead of parking an unstamped slot.]
+  gone; what is left defers at the `:` instead of parking an unstamped
+  slot — a live register at the landing's own column with no pack at
+  that column.  (Items 124 and 125 called that residue "the collapse
+  lane"; item 126 measured the collapse UNREACHABLE and deleted it, so
+  the residue is the state above and nothing else — see
+  `CollapseLaneDeleted`.)]
 * **U3 — the frames ↔ indent-stack coupling**: the packs' resume-twin
   lists `ks` are SURFACE data; the runtime's misindented-sibling refusal
   reads the SCANNER's indent stack (`scanNextToken_preprocess`'s unwind

@@ -32,6 +32,13 @@ share's domain shrank from "every indented flow" to the renounce events.
 §2 the step that loses the reading, and the collapse threading where the
 rich state is stuck.  §3 the concentration: both renounce events spend the
 same close.
+
+**The sequel** (item 126, Reflection 684 `EscapeWithNoEntrance`).  An escape
+built this way is closed one birth site at a time by the repairs that refute
+its events, and the last one closes silently: `FlowStackB.shape`'s producers
+each ended up consuming a `shape`, so no reachable state carried one while
+every transport arm went on compiling.  The lesson above is what got the
+invariant through item 46; the sequel is how to notice the day it is over.
 -/
 
 namespace L4YAML.Tests.Reflections.CollapseKeepsWhatNeighborsRead

@@ -31,13 +31,21 @@ park field at all.
   arms every punt consumer had to carry.
 
 What is NOT closed, and is stated here so the next reader does not re-derive
-it: the COLLAPSE lane.  A flow collection that renounced its grammar reading
-(`FlowStackB.shape`) restores the scanner's register pair at its close while
-the surface side keeps no face, so `? [a]⏎: b: c` reaches the landed `:` with
-a live register at the `:`'s own column and nothing to pay the explicit route
-with.  That input is ACCEPTED by the scanner and DEFERS on the proof side —
-the same escape it took before this item, now reached by an undecided source
-rather than by a punt.  §3 pins that boundary.
+it: a landed `:` under a live register at the `:`'s own column, with no pack
+at that column to pay the explicit route with.  `? [a]⏎: b: c` is such an
+input: ACCEPTED by the scanner, and on the proof side the same escape it took
+before this item, now reached by an undecided source rather than by a punt.
+§3 pins that boundary.
+
+**Correction (item 126).**  The two lines above named that residue "the
+COLLAPSE lane" and attributed it to `FlowStackB.shape` — a flow collection
+that renounced its grammar reading, restoring the scanner's register pair at
+a close the surface side kept no face for.  There is no such lane: item 126
+measured the collapse constructor UNREACHABLE (every construction of one
+consumed one) and deleted it, and these inputs ride the real flow lane, whose
+value slot the open pays and the close converts.  The boundary is the state
+named above; the story about how it is reached was wrong.  See
+`CollapseLaneDeleted`.
 
 §1 pins the field's two shapes and the deletion; §2 the consumer's own
 discriminator; §3 the accepted/refused families on both pipelines. -/
@@ -125,11 +133,11 @@ private def refuses (input : String) : Bool :=
   ["+STR", "+DOC", "+MAP", "+MAP", "=VAL :earth", "=VAL :blue", "-MAP",
    "+MAP", "=VAL :moon", "=VAL :white", "-MAP", "-MAP", "-DOC", "-STR"]
 
--- The COLLAPSE lane's residue, pinned as a BOUNDARY rather than a claim:
--- the scanner accepts these (the restored register pair off a renounced flow
--- collection), and the proof side reaches them with an undecided stamp
--- source and defers.  A later item that gives `FlowStackB.shape` a face slot
--- is what turns these into compositions.
+-- The residue, pinned as a BOUNDARY rather than a claim: the scanner accepts
+-- these, and the proof side reaches them with an undecided stamp source and
+-- defers.  (Item 126: the reason given here for the deferral — a collapsed
+-- flow stack — was wrong; the inputs themselves are unchanged, and
+-- `CollapseLaneDeleted` §3 pins their events.)
 #guard accepts "? [a]\n: b: c\n"
 #guard accepts "? {x: y}\n: b: c\n"
 
