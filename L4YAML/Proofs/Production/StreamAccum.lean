@@ -824,6 +824,16 @@ lemma inFlow_of_flowLevel_eq {s : ScannerState} {n : Nat} (h : s.flowLevel = n +
     s.inFlow = true := by
   unfold ScannerState.inFlow; rw [h]; simp
 
+/-- The flow producers' `h_nodoc` (item 116): at depth ≥ 1 the face's
+    `inFlow = false` premise refutes itself — the same
+    `inFlow_of_flowLevel_eq h_fl1` the sites pay `h_col` and `h_arm` with,
+    read against the premise instead of into a disjunct. -/
+lemma nodoc_of_flowLevel_succ {sc : ScannerState} {n : Nat} {sp_start sp : SurfPos}
+    (h : sc.flowLevel = n + 1) :
+    sc.inFlow = false → sc.documentEverStarted = false →
+    GStar SLDocumentPrefix sp_start sp :=
+  fun hnf _ => (Bool.noConfusion (hnf ▸ inFlow_of_flowLevel_eq h) : GStar _ sp_start sp)
+
 
 inductive PendingNode (sc : ScannerState) : Bool → SurfPos → SurfPos → SurfPos → Prop where
   /-- No pending gap. Block stack top and scanner at same position.
@@ -856,7 +866,26 @@ inductive PendingNode (sc : ScannerState) : Bool → SurfPos → SurfPos → Sur
       -- `h_col` does.  It is what lets the landed `:` here MEASURE its floor:
       -- a park at a line start crosses no break, so the landing's own re-arm
       -- says nothing and the flag has to come from the park.
-      (h_arm : sc.simpleKeyAllowed = true ∨ sc.inFlow = true) :
+      (h_arm : sc.simpleKeyAllowed = true ∨ sc.inFlow = true)
+      -- **`h_nodoc` — the region behind a virgin block-context park is
+      -- document prefixes only** (item 116): row 19's "no document started"
+      -- carrier, the prerequisite item 110 measured 1c's constructor
+      -- tightening against.  The constructor has exactly EIGHT producers,
+      -- and the premises split them the way `h_col`'s disjunction does: the
+      -- seven flow-interior sites refute `inFlow = false` with the
+      -- `inFlow_of_flowLevel_eq h_fl1` they already pay the other two
+      -- fields with (`nodoc_of_flowLevel_succ`), and the seed pays the real
+      -- witness — `[202]`'s byte order mark if there is one, nothing else —
+      -- ignoring both premises.  A `---` parks `pendingDocStart` and raises
+      -- `documentEverStarted`; a `...` parks `pendingDocEnd`; so a block
+      -- context park with the flag still down stands on prefixes alone.
+      -- What it buys: a landing off this park can spend a completed root
+      -- node as the stream's FIRST document — `nodocMapRoute`, `[211]`'s
+      -- `single`, whose document slot the tightening leaves untouched —
+      -- where `rootMapRoute` hands `implicitContinue` a bare document the
+      -- stream cannot honestly restart.
+      (h_nodoc : sc.inFlow = false → sc.documentEverStarted = false →
+        GStar SLDocumentPrefix sp_start sp) :
       PendingNode sc false sp_start sp sp
   /-- Content token scanned (scalar, anchor, alias, tag).
       The gap sp_block → sp_scan contains SSeparate + content.
@@ -1826,6 +1855,21 @@ lemma ssl_comments_extend_stream
     (GStar.cons sp sp_final sp_final (SLDocumentPrefix.comments sp sp_final h_gstar) (GStar.nil _))
     (GOpt.none _)
     (GStar.nil _)
+
+/-- **The "no document started" witness's own landing extension** (item 116):
+    the comment lines a landing crosses are `[202] l-document-prefix`'s own,
+    so a prefixes-only region stays prefixes-only across the same
+    `[79] s-l-comments` that `ssl_comments_extend_stream` absorbs into the
+    stream.  This is how `h_nodoc`'s witness travels from the park to the
+    landing `nodocMapRoute` spends it at. -/
+lemma ssl_comments_extend_prefixes {sp_start sp sp_final : SurfPos}
+    (h_pre : GStar SLDocumentPrefix sp_start sp)
+    (h_ssl : SSLComments sp sp_final) :
+    GStar SLDocumentPrefix sp_start sp_final :=
+  GStar_trans h_pre
+    (GStar.cons sp sp_final sp_final
+      (SLDocumentPrefix.comments sp sp_final (SSLComments_to_GStar sp sp_final h_ssl))
+      (GStar.nil _))
 
 /-- Extend `SLYamlStream` with a top-level flow sequence node + trailing comments.
 
@@ -3876,6 +3920,54 @@ lemma rootMapRouteF {sp_start sp_land sp_key : SurfPos} {k : Nat}
     ResumeFrames.bottom sp_e
       (SLYamlStream.implicitContinue sp_start sp_land sp_land sp_e sp_e
         h_stream_land (GStar.nil _)
+        (GOpt.some sp_land sp_e (SLAnyDocument.bare sp_land sp_e
+          (SLBareDocument.mk sp_land sp_e
+            (rootBlockMap k (sslComments_refl_of_col0 hcol0)
+              (SBlockMapEntries_of_compactTail h_ind h_entry h_tail)))))
+        (GStar.nil _))
+
+/-- **`rootMapRoute`'s tightening-ready twin** (item 116): the same landing
+    coordinates spent as the stream's FIRST document.  `rootMapRoute` hands
+    the bare document to `[211]`'s implicit continuation, which is honest
+    only when the accumulated stream has started none — a fact
+    `SLYamlStream sp_start sp_land` does not record (item 110's measured
+    obstacle at all 16 of 1c's breaking sites).  This twin takes the
+    record itself — `noPending.h_nodoc`'s witness, carried to the landing by
+    `ssl_comments_extend_prefixes` — and needs no stream at all: the
+    derivation is `single`, whose `l-any-document?` slot row 19's 1c leaves
+    untouched.  Nothing spends it yet; the constructor migration is LAST,
+    and this is the route its fallback sites swap to where the witness
+    pays. -/
+lemma nodocMapRoute {sp_start sp_land sp_key : SurfPos} {k : Nat}
+    (hcol0 : sp_land.col = 0)
+    (h_nodoc : GStar SLDocumentPrefix sp_start sp_land)
+    (h_ind : SIndent k sp_land sp_key) :
+    ∀ sp_v, SBlockMapEntry k sp_key sp_v → SLYamlStream sp_start sp_v :=
+  fun sp_v h_entry =>
+    SLYamlStream.single sp_start sp_land sp_v sp_v
+      h_nodoc
+      (GOpt.some sp_land sp_v (SLAnyDocument.bare sp_land sp_v
+        (SLBareDocument.mk sp_land sp_v
+          (rootBlockMap k (sslComments_refl_of_col0 hcol0)
+            (SBlockMapEntries.single k sp_land sp_key sp_v h_ind h_entry)))))
+      (GStar.nil _)
+
+/-- **`nodocMapRoute` at the ENTRIES level** — `rootMapRouteF`'s twin, the
+    same substitution: the frames bottom out in a stream built by `single`
+    from the witness instead of by `implicitContinue` from the accumulated
+    stream.  `ks = []` as at the root always: nothing is open below the
+    stream's first document. -/
+lemma nodocMapRouteF {sp_start sp_land sp_key : SurfPos} {k : Nat}
+    (hcol0 : sp_land.col = 0)
+    (h_nodoc : GStar SLDocumentPrefix sp_start sp_land)
+    (h_ind : SIndent k sp_land sp_key) :
+    ∀ sp_v, SBlockMapEntry k sp_key sp_v →
+    ∀ sp_e, SCompactMapTail k sp_v sp_e →
+    ResumeFrames (SLYamlStream sp_start) [] sp_e :=
+  fun _sp_v h_entry sp_e h_tail =>
+    ResumeFrames.bottom sp_e
+      (SLYamlStream.single sp_start sp_land sp_e sp_e
+        h_nodoc
         (GOpt.some sp_land sp_e (SLAnyDocument.bare sp_land sp_e
           (SLBareDocument.mk sp_land sp_e
             (rootBlockMap k (sslComments_refl_of_col0 hcol0)
@@ -7489,7 +7581,8 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
                  h_preprocess,
                Or.inr trivial⟩),
              PendingNode.noPending sp_start sp_open (Or.inr (inFlow_of_flowLevel_eq h_fl1))
-               (Or.inr (inFlow_of_flowLevel_eq h_fl1)), hcorr_open, fun _ => ⟨.white (GStar.nil _) h_sync h_colon h_opencol, h_real, h_ad⟩⟩
+               (Or.inr (inFlow_of_flowLevel_eq h_fl1))
+               (nodoc_of_flowLevel_succ h_fl1), hcorr_open, fun _ => ⟨.white (GStar.nil _) h_sync h_colon h_opencol, h_real, h_ad⟩⟩
     · exact h_nobreak hcol hws
   -- The completed constructs cannot reach a same-line `[`/`{`: their producers'
   -- trailing validation left the rest of the line inert (`h_line`), and the
@@ -7526,7 +7619,8 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
      h_kpkg _ _ _ (Or.inr trivial) (Nat.zero_le _) (mkv 0 sp_block (fun sp_ne sp_m _ h_ssl =>
        dropClose h_stream_block sp_ne sp_m h_ssl)),
      PendingNode.noPending sp_start sp_open (Or.inr (inFlow_of_flowLevel_eq h_fl1))
-               (Or.inr (inFlow_of_flowLevel_eq h_fl1)), hcorr_open,
+               (Or.inr (inFlow_of_flowLevel_eq h_fl1))
+               (nodoc_of_flowLevel_succ h_fl1), hcorr_open,
      fun _ => ⟨.white (GStar.nil _) h_sync h_colon h_opencol, h_real, h_ad⟩⟩
   have opaque_resume : sp_scan.col ≠ 0 → GStar SSWhite sp_scan sp_prep →
       ∃ sp_gram' sp_block' sp_flow' sp_scan',
@@ -7558,7 +7652,8 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
                hcorr_prep h_preprocess,
              Or.inr trivial⟩),
            PendingNode.noPending sp_start sp_open (Or.inr (inFlow_of_flowLevel_eq h_fl1))
-               (Or.inr (inFlow_of_flowLevel_eq h_fl1)), hcorr_open, fun _ => ⟨.white (GStar.nil _) h_sync h_colon h_opencol, h_real, h_ad⟩⟩
+               (Or.inr (inFlow_of_flowLevel_eq h_fl1))
+               (nodoc_of_flowLevel_succ h_fl1), hcorr_open, fun _ => ⟨.white (GStar.nil _) h_sync h_colon h_opencol, h_real, h_ad⟩⟩
   | pendingContent _ _ _ h_line _ _ _ _ _ =>
     -- Item 37: §7.5's set weakens to item 10's here, exactly as `[204]`'s does.
     exact main h_close_pending (refuted (h_line.imp id LineNodeStop.toLineNoOpen))
@@ -7663,7 +7758,8 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
                         sp_i sp_c h_iv h_lit sp_v h_sbi⟩
                 | Or.inr _ => Or.inr trivial)⟩),
              PendingNode.noPending sp_start sp_open (Or.inr (inFlow_of_flowLevel_eq h_fl1))
-               (Or.inr (inFlow_of_flowLevel_eq h_fl1)), hcorr_open,
+               (Or.inr (inFlow_of_flowLevel_eq h_fl1))
+               (nodoc_of_flowLevel_succ h_fl1), hcorr_open,
              fun _ => ⟨.white (GStar.nil _) h_sync h_colon h_opencol, h_real, h_ad⟩⟩
     · -- Item 66: the run-end half of the under-run is §8.1's own refusal
       -- (`k:⏎  b:⏎    &x⏎[1]`).  Item 68: and so is the TAB half now — the park
@@ -7705,7 +7801,8 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
                h_noflow_prep h_park h_corr hcorr_prep h_preprocess,
              Or.inr trivial⟩),
            PendingNode.noPending sp_start sp_open (Or.inr (inFlow_of_flowLevel_eq h_fl1))
-               (Or.inr (inFlow_of_flowLevel_eq h_fl1)), hcorr_open, fun _ => ⟨.white (GStar.nil _) h_sync h_colon h_opencol, h_real, h_ad⟩⟩
+               (Or.inr (inFlow_of_flowLevel_eq h_fl1))
+               (nodoc_of_flowLevel_succ h_fl1), hcorr_open, fun _ => ⟨.white (GStar.nil _) h_sync h_colon h_opencol, h_real, h_ad⟩⟩
   | pendingBlock _ _ _ n_old h_close _ h_floor_old h_sk_old h_col59 h_kslot_old =>
     -- Item 46: the stack opens at the ENTRY's index, so the resume's node
     -- fits `flowInBlock n_old` and `  - [1]` composes.  Item 66: the landing
@@ -7757,7 +7854,8 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
                         sp_i sp_c h_iv h_lit sp_v h_sbi⟩
                 | Or.inr _ => Or.inr trivial)⟩),
              PendingNode.noPending sp_start sp_open (Or.inr (inFlow_of_flowLevel_eq h_fl1))
-               (Or.inr (inFlow_of_flowLevel_eq h_fl1)), hcorr_open, fun _ => ⟨.white (GStar.nil _) h_sync h_colon h_opencol, h_real, h_ad⟩⟩
+               (Or.inr (inFlow_of_flowLevel_eq h_fl1))
+               (nodoc_of_flowLevel_succ h_fl1), hcorr_open, fun _ => ⟨.white (GStar.nil _) h_sync h_colon h_opencol, h_real, h_ad⟩⟩
     · -- Item 73: `pendingBlock`'s floor is a measurement now, not an option, so
       -- BOTH halves of the open's under-run are refuted here and the arm no
       -- longer rides the drop.
@@ -7830,7 +7928,8 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
                         sp_i sp_c h_ind h_lit sp_v h_sbi⟩
                 | Or.inr _, Or.inr _ => Or.inr trivial)⟩),
              PendingNode.noPending sp_start sp_open (Or.inr (inFlow_of_flowLevel_eq h_fl1))
-               (Or.inr (inFlow_of_flowLevel_eq h_fl1)), hcorr_open, fun _ => ⟨.white (GStar.nil _) h_sync h_colon h_opencol, h_real, h_ad⟩⟩
+               (Or.inr (inFlow_of_flowLevel_eq h_fl1))
+               (nodoc_of_flowLevel_succ h_fl1), hcorr_open, fun _ => ⟨.white (GStar.nil _) h_sync h_colon h_opencol, h_real, h_ad⟩⟩
     · -- Item 66: the run-end half is §8.1's refusal (`k:⏎  a:⏎[1]`).  Item 68:
       -- and the TAB half is §6.1's, for `pendingProps`' reason.
       rcases h_ur with ⟨j, sx, hj, h_ind, _h_ws2, h_end | h_tab⟩
@@ -22561,14 +22660,18 @@ lemma bom_advance_gives_prefix (input : String) (sp : SurfPos)
           h_adv.indent_cols_nonneg⟩,
          rfl⟩
 
-/-- Initial stream: at position 0, the empty stream is valid. -/
+/-- Initial stream: at position 0, the empty stream is valid.  The last
+    conjunct is the seed's `h_nodoc` payment (item 116): what the seed park
+    stands behind is `[202]`'s byte order mark if there is one and nothing
+    else — the same prefix run the stream conjunct wraps in `single`. -/
 lemma initial_stream_and_prefix (input : String) :
     ∃ sp, SLYamlStream ⟨input.toList, 0⟩ sp ∧
           ScannerSurfCorr
             (match (ScannerState.mk' input |>.emit .streamStart).peek? with
              | some '\uFEFF' => (ScannerState.mk' input |>.emit .streamStart).consumeBOM
              | _ => ScannerState.mk' input |>.emit .streamStart) sp ∧
-          sp.col = 0 := by
+          sp.col = 0 ∧
+          GStar SLDocumentPrefix ⟨input.toList, 0⟩ sp := by
   have h_chars := CouplingBridge.chars_from_zero_toList input
   have h_init := initial_corr input input.toList h_chars
   have h_emit : ScannerSurfCorr ((ScannerState.mk' input).emit .streamStart)
@@ -22583,11 +22686,11 @@ lemma initial_stream_and_prefix (input : String) :
       SLYamlStream.single ⟨input.toList, 0⟩ sp' sp' sp'
         (GStar.cons _ sp' _ h_prefix (GStar.nil _))
         (GOpt.none _) (GStar.nil _),
-      h_corr', h_col'⟩
+      h_corr', h_col', GStar.cons _ sp' _ h_prefix (GStar.nil _)⟩
   · -- No BOM
     exact ⟨⟨input.toList, 0⟩,
       SLYamlStream.single _ _ _ _ (GStar.nil _) (GOpt.none _) (GStar.nil _),
-      h_emit, rfl⟩
+      h_emit, rfl, GStar.nil _⟩
 
 /-! ## §5 Top-Level Composition: scan → SLYamlStream
 
@@ -22602,7 +22705,7 @@ lemma scan_content_gives_stream_v2
                            sp_final.chars = [] := by
   unfold scan at h
   simp only [] at h
-  obtain ⟨sp, h_stream, h_corr, h_col⟩ := initial_stream_and_prefix input
+  obtain ⟨sp, h_stream, h_corr, h_col, h_prefix⟩ := initial_stream_and_prefix input
   refine scanLoop_grammar_prod _ ⟨input.toList, 0⟩ sp sp sp sp _ tokens
     h_stream
     -- Item 81: the seed's keys are vacuously behind — `mk'` saves nothing and
@@ -22639,7 +22742,11 @@ lemma scan_content_gives_stream_v2
           show (((ScannerState.mk' input).emit YamlToken.streamStart)).advance.simpleKeyAllowed
             = true
           rw [ScannerCorrectness.advance_preserves_simpleKeyAllowed]; exact h_emit
-        · exact h_emit)))
+        · exact h_emit))
+      -- Item 116: the seed's `h_nodoc` is the real payment — the witness is
+      -- `initial_stream_and_prefix`'s own last conjunct, and both premises
+      -- are ignored because the seed holds it unconditionally.
+      (fun _ _ => h_prefix))
     (fun hb => Bool.noConfusion hb) h_corr
     (fun hge => absurd hge (by
       -- the seed scanner is at flow level 0, so the flow-interior conjunct is vacuous

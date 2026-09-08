@@ -194,6 +194,7 @@ example {P : SurfPos → Prop} {sp_scan sp_mid sp_prep : SurfPos}
   holds no frames); their dedent inputs are `trailingContent`, pinned in §1.
 * The flow frame's rider (`FlowBaseRoutes.key` carries the value-line pair
   only — 67b's carrier) and the "no document started" carrier — items 111's
-  and 110's residues, untouched here. -/
+  and 110's residues, untouched here.  (The latter CLOSED by item 116 —
+  `noPending.h_nodoc`.) -/
 
 end L4YAML.Tests.Guards.ScannerEntryPropsKeySiblingResumes

@@ -5509,7 +5509,7 @@ lives in [README.md](README.md) and is not duplicated here.)
 
 | Item | Status | Section |
 |---|---|---|
-| Grammar completeness (`parse_iff_grammar`, capstone 7.7) | **Open — forward direction DONE** (2026-08-10): Fix B done, Fix A's accumulation sorry-free and the `L4YAML.Capstones` gate green. What is left is β.5 — retire `pendingFlow` and delete `scannerDrop` (6 textual escape sites and 2 drop sites as of item 48; item 42's per-constructor split raised the escape count 6 → 9 while shrinking the domain, R645/R646, item 43's `--- a` production took one back, item 46's collapse concentrated the flow drops into `dropClose`, item 47's adjacent-value check closed both content parks' `:`-arms 8 → 6, and item 48's same-line checks emptied the BLOCK-dispatch residue at `pendingDocStart`, `pendingProps` (`-`/`?`) and `pendingMapValue`'s implicit side — count unmoved, domain down to the explicit-side productions) — then **tighten `implicitContinue`**, the third over-approximation (found 2026-08-13 by item 30; 18 construction sites re-counted 2026-09-07, priced by SHAPE rather than count at item 108 — the sites are downstream of one landing skeleton that closes the pending and re-opens at the root — and that skeleton was given the frames at item 109, with item 110 paying `pendingBlockContent` and measuring the constructor as the LAST step rather than the next — 16 breaking sites, `rootMapRoute` among them — item 111 paying the props landing (`PropsKeyPack` gains the resume twins, `h_props_key` resumes first), item 112 paying the block-scalar value arms (the node re-read to the landing through item 95's absorption closure) and item 113 extending the re-read to the sequence side (the entry arms park `pendingBlockContent`, keeping the entries chain), with item 114 paying the props park's own resume faces (five faces on `pendingProps`, paid by the entry and mapping producers and spent at every value completion and at the landing) and item 115 the entry producers' props-key pack twins (`entryKeyPack`'s four threaded premises transposed, the landed branch paying strictly-deeper and the dedent branch popping), leaving a "no document started" carrier and the constructor) then `[187]`/`[183]`'s auto-detected width (a fourth, found 2026-08-16 by item 40, priced 2026-09-07 by item 107 — a re-indexing of `SBlockNode`, so it no longer travels with the third), and only then the converse and the biconditional. Per-item record and ordered remainder: [Row 12 — β.5 closure log](#row-12--β5-closure-log); the third constructor: [The over-approximation problem](#the-over-approximation-problem) | [Grammar completeness plan](#grammar-completeness-plan) |
+| Grammar completeness (`parse_iff_grammar`, capstone 7.7) | **Open — forward direction DONE** (2026-08-10): Fix B done, Fix A's accumulation sorry-free and the `L4YAML.Capstones` gate green. What is left is β.5 — retire `pendingFlow` and delete `scannerDrop` (6 textual escape sites and 2 drop sites as of item 48; item 42's per-constructor split raised the escape count 6 → 9 while shrinking the domain, R645/R646, item 43's `--- a` production took one back, item 46's collapse concentrated the flow drops into `dropClose`, item 47's adjacent-value check closed both content parks' `:`-arms 8 → 6, and item 48's same-line checks emptied the BLOCK-dispatch residue at `pendingDocStart`, `pendingProps` (`-`/`?`) and `pendingMapValue`'s implicit side — count unmoved, domain down to the explicit-side productions) — then **tighten `implicitContinue`**, the third over-approximation (found 2026-08-13 by item 30; 18 construction sites re-counted 2026-09-07, priced by SHAPE rather than count at item 108 — the sites are downstream of one landing skeleton that closes the pending and re-opens at the root — and that skeleton was given the frames at item 109, with item 110 paying `pendingBlockContent` and measuring the constructor as the LAST step rather than the next — 16 breaking sites, `rootMapRoute` among them — item 111 paying the props landing (`PropsKeyPack` gains the resume twins, `h_props_key` resumes first), item 112 paying the block-scalar value arms (the node re-read to the landing through item 95's absorption closure) and item 113 extending the re-read to the sequence side (the entry arms park `pendingBlockContent`, keeping the entries chain), with item 114 paying the props park's own resume faces (five faces on `pendingProps`, paid by the entry and mapping producers and spent at every value completion and at the landing) and item 115 the entry producers' props-key pack twins (`entryKeyPack`'s four threaded premises transposed, the landed branch paying strictly-deeper and the dedent branch popping), and item 116 the "no document started" carrier itself (`noPending.h_nodoc`, its `single`-based spend landed beside `rootMapRoute` as `nodocMapRoute`/`nodocMapRouteF`), leaving the suffix state's mirror carrier and the constructor) then `[187]`/`[183]`'s auto-detected width (a fourth, found 2026-08-16 by item 40, priced 2026-09-07 by item 107 — a re-indexing of `SBlockNode`, so it no longer travels with the third), and only then the converse and the biconditional. Per-item record and ordered remainder: [Row 12 — β.5 closure log](#row-12--β5-closure-log); the third constructor: [The over-approximation problem](#the-over-approximation-problem) | [Grammar completeness plan](#grammar-completeness-plan) |
 | Merge semantics (`DuplicateKeyPolicy.merge`) | **Open** (design ready; re-base on `LawfulBEq`) | [Merge semantics plan](#merge-semantics-plan) |
 | Security limits: open questions + future work | **Open** (design questions; 3 unimplemented features) | [Security hardening backlog](#security-hardening-backlog) |
 | Limit-enforcement verification, and the rest | **Open** (varied) | [Other open items](#other-open-items) |
@@ -11919,6 +11919,8 @@ props-VALUE completions behind the ROUTED producers' punts are refused
 * The flow OPEN's props arm still drops the twins at `FlowBaseRoutes.key`
   (67b's carrier).
 * The "no document started" carrier and the CONSTRUCTOR (item 110: LAST).
+  (The carrier PAID by item 116 — `noPending.h_nodoc`; the constructor
+  remains last.)
 
 #### Validation
 
@@ -12000,6 +12002,8 @@ not a key — identically on the implicit side.
 * The flow OPEN's props arm still drops the twins at `FlowBaseRoutes.key`
   (67b's carrier).
 * The "no document started" carrier and the CONSTRUCTOR (item 110: LAST).
+  (The carrier PAID by item 116 — `noPending.h_nodoc`; the constructor
+  remains last.)
 
 #### Validation
 
@@ -12027,6 +12031,116 @@ lines.  This item pays faces, it removes no deferral.
 
 New guard `Tests/Guards/Proofs/ScannerEntryPropsKeySiblingResumes.lean`.
 
+### Item 116 (2026-09-07)
+
+**Row 19's "no document started" carrier — 1c's last measured prerequisite,
+paid.**  Item 110 built the constructor tightening and found all 16 breaking
+sites blocked by one missing datum: `rootMapRoute` and its kin append a
+completed top-level node to the accumulated stream as a fresh bare document
+via `[211]`'s `implicitContinue`, honest only when the stream has started
+none — and `SLYamlStream sp_start sp` does not record that.  The props
+landing (the other named prerequisite) was paid at item 111; this item pays
+the record itself.
+
+**The build is one field in `noPending`'s own style, not a threaded
+conjunct.**  The quint threads the stream through four step lemmas and a
+dozen pending-level ones, but the datum is only ever REAL at one park:
+`noPending` has exactly eight producers — the seed and seven flow-interior
+sites — and every other pending's creation is itself a document starter.  So
+the carrier is
+
+```
+h_nodoc : sc.inFlow = false → sc.documentEverStarted = false →
+    GStar SLDocumentPrefix sp_start sp
+```
+
+appended LAST on `PendingNode.noPending`, MANDATORY — no `∨ True` — because
+its premises already name the two producer families the way `h_col`'s
+disjunction does.  The seven flow sites refute `inFlow = false` with the
+same `inFlow_of_flowLevel_eq h_fl1` they pay the other two fields with
+(`nodoc_of_flowLevel_succ`, one helper, applied by a single seven-site
+`replace_all`); the seed pays the real witness ignoring both premises —
+`initial_stream_and_prefix` now returns it beside the stream it always
+built (`[202]`'s byte order mark in the BOM branch, `GStar.nil` in the
+other).  The premises are TRUE facts, not conveniences: `---` parks
+`pendingDocStart` and raises `documentEverStarted` at `scanDocumentStart`,
+`...` parks `pendingDocEnd`, a directive parks the `true`-indexed
+`pendingDirective` (and a directive without `---` before content is §9.1.5
+[209]'s refusal, probed), and every flow/block/content dispatch runs behind
+the wrapper that raises the flag — so a block-context park with the flag
+still down stands on prefixes alone.
+
+**The spend is landed beside `rootMapRoute`, and it needs no stream at
+all.**  `nodocMapRoute`/`nodocMapRouteF` reproduce `rootMapRoute`'s and
+`rootMapRouteF`'s exact interfaces with the witness in the stream
+hypothesis's place, and derive the stream via `single` — whose
+`l-any-document?` slot the tightening leaves untouched — instead of
+extending a stream they cannot interrogate; `ssl_comments_extend_prefixes`
+carries the witness from the park to the landing over the same
+`[79] s-l-comments` that `ssl_comments_extend_stream` absorbs into the
+stream.  The guard's §5 states the whole chain at its type: face fired by
+the two flags, witness extended to the landing, both route faces produced,
+`SLYamlStream` nowhere in the premises.  Nothing spends the twins in the
+library yet — the 16 sites still hand `implicitContinue` their bare
+documents, and the constructor migration stays LAST.
+
+#### Boundaries
+
+* At the runtime, the carrier's family is one document with any prefix run
+  in front (`a: 1`, `# c⏎a: 1`, BOM twins, blank lines, `[1, 2]`), the
+  zero-document streams (`# just a comment`, empty input — the seed witness
+  spent as the whole derivation), and the flag's own producers (`---`,
+  `%YAML 1.2⏎---⏎a: 1`).  All probed on both pipelines before building.
+* `%YAML 1.2⏎a: 1` and a bare `%YAML 1.2` are refused, which is what makes
+  the field's truth uniform: no reachable block-context `noPending` stands
+  behind a consumed directive.
+
+#### Not closed
+
+* The SUFFIX state.  `scanDocumentEnd` neither raises the flag nor requires
+  a started document, and `pendingDocEnd`'s close spends `suffixContinue`
+  with its document slot already empty — so `...⏎a: 1`, `...⏎...⏎a: 1` and
+  `a: 1⏎...⏎b: 2` (all accepted, pinned in the guard) still give the next
+  bare document to `implicitContinue`.  The mirror carrier — the suffix run
+  held open so the next document lands in `suffixContinue`'s own
+  `l-any-document?` — is its own item, and it is what the tightening's
+  raised-flag case will spend.
+* The raised-flag coupling `sc.allowDirectives = false →
+  sc.documentEverStarted = true` is a scanner-state invariant nothing
+  threads; nothing needs it until the tightening adjudicates its punts.
+* The 16 sites and the CONSTRUCTOR (item 110: LAST — both prerequisites now
+  paid, the suffix state newly named in its place).
+
+#### Validation
+
+Full `lake build` green (**1092 jobs**, ZERO warnings — 1091 at item 115
+plus this item's guard); `run-all-tests.sh` **4473/4473 across 17 suites**;
+matrix **402/402 event and 282/282 JSON on BOTH pipelines**; `eventscore`
+**347/358** (252 event-pass, 11 event-diff, **0** event-reject, 95
+error-ok).  `check-reflection-index.sh` (20 sub-themes, 229 bulleted demos,
+248 reflections, 354 demos imported), `check-import-closure.sh` (**222**
+library modules) and `check-theorem-keyword.sh` (25 capstones) OK.
+`collect-stats`' `static` block: library **6349** theorems+lemmas over 222
+files and proofs **6144** over 154 — each +4, exactly this item's
+`nodoc_of_flowLevel_succ`, `ssl_comments_extend_prefixes`, `nodocMapRoute`
+and `nodocMapRouteF`, which live in a proofs module both blocks count —
+tests **2645** over **564** files, guards **6003**
+(+16, exactly the new guard file's `#guard`s), **0** axioms in library and
+proofs.  `#print axioms` on the six touched declarations
+(`nodoc_of_flowLevel_succ`, `ssl_comments_extend_prefixes`, `nodocMapRoute`,
+`nodocMapRouteF`, `initial_stream_and_prefix`,
+`scan_content_gives_stream_v2`): no `sorryAx`; the new lemmas are
+`[propext]`-or-less, the capstone chain keeps the standard three plus the
+pre-existing `native_decide` families.  The annotation verifier reports the
+same **19** name mismatches, every one pre-existing.  Escape-site counts
+UNMOVED — three `block_dispatch_deferred` applications (`:13618`, `:14085`,
+`:20466`, shifted by this item's added lines), one `dropClose` use
+(`:7620`), two `scannerDrop` (`:3275`, `:3320`);
+`ssl_comments_extend_stream` still 6 lines.  This item adds a carrier; it
+removes no deferral.
+
+New guard `Tests/Guards/Proofs/ScannerNoDocStartedCarrier.lean`.
+
 ### REMAINING, in order
 
 The per-item history is the closure log above; this section lists only the
@@ -12040,7 +12154,7 @@ too (items 47–51), so what stands between here
 and Step 5 (the converse) is R3's remaining production work and R4:
 
 ```
-R1 ✓ (44–46) ──→ R2 ✓ (47–51) ──→ R3 (52–115 landed; 67b open) ──→ Step 5
+R1 ✓ (44–46) ──→ R2 ✓ (47–51) ──→ R3 (52–116 landed; 67b open) ──→ Step 5
                                         └──────→ R4 (implicitContinue + 0 < m) ──┘
 ```
 
@@ -12499,8 +12613,10 @@ bare document, which is honest only when the stream has started none.  So the
 constructor is this half's LAST step and its remaining prerequisites are the
 props landing (paid by item 111, 2026-09-07 — `PropsKeyPack` carries the resume
 twins and `h_props_key` resumes first), ~~the block-scalar value arms~~ (paid
-by item 112, 2026-09-07 — the node re-read to the landing), and a
-carrier for "no document started" — see [Item 110](#item-110-2026-09-07)) and
+by item 112, 2026-09-07 — the node re-read to the landing), and ~~a
+carrier for "no document started"~~ (paid by item 116, 2026-09-07 —
+`noPending.h_nodoc`; see [Item 110](#item-110-2026-09-07), which leaves the
+suffix state's mirror carrier in its place)) and
 `0 < m` on `[183]`/`[187]`'s auto-detected width (**4** construction sites as
 of 2026-09-04, not the 7 item 22 counted: `NodeProduction`'s two re-tags inside
 `SBlockNode_blockIn_to_blockOut`, and the `nestedBlockMap`/`nestedBlockSeq`
@@ -12713,7 +12829,7 @@ Step 0 (the scanner audit for directive handling) and Fix B (eliminating
 |---|---|
 | Fix A: eliminate `scannerDrop` | 🟡 **β.3 and β.4 COMPLETE (2026-08-10)** — `StreamAccum.lean` is sorry-free and the `L4YAML.Capstones` gate is GREEN. β.5 is open: `block_dispatch_deferred` stands at 6 textual call sites (item 42's per-constructor split of the content dispatch — domain smaller, count larger — minus item 43's `--- a` production, minus item 47's two content-park `:`-arms, closed by the adjacent-value check) and `scannerDrop` at 2 (items 44–46 closed the resume re-index: the stack carries its reading index, indented flow values compose at it, and the flow drops concentrated into the collapse's one close), and the largest block-dispatch site is down to 6 of its 7 pendings (item 36), two of which now defer only a blank-followed `:` (items 37/47) — the content dispatch's own arm defers only `pendingFlow` (items 42–43/47; `--- a` composes through `content_dispatch_routed` and `h_doc_builder`'s first-ever-consumed `SLBareDocument` branch, and the glued `:` is refused at the scanner) — and its routes are now all built bar the closed FLOW node's (items 38–41: the root mapping's, the compact entry's, the mapping value's, the mapping nested under an entry — that one free, because item 40 merged the two producers into one — and the property RUN's at each of those frames, item 41, where the merge's coverage turns out to be a PRODUCT of the branch a caller can reach and the frame it can offer). Per-item record and the ordered list of what is left: [Row 12 — β.5 closure log](#row-12--β5-closure-log) |
 | 1b. Remove `scannerDrop` from `SLYamlStream` | ⬜ open — β.5, once that last use is gone |
-| 1c. Tighten `implicitContinue` in `SLYamlStream` | ⬜ open — action row 19, **after the DEDENT composition**; the third over-approximation, found 2026-08-13 by item 30. Require `l-document-suffix+` for the bare alternative; ~~16 construction sites (re-counted 2026-09-04), 15 of them the `StreamAccum` sibling re-opens~~ **17 in `StreamAccum` as of 2026-09-07** (item 108's re-count) plus `DocumentProduction`'s one — and the count is not the cost: item 108 measured the sites as downstream of `h_defer_split`'s root re-open, so this row is a frames-carrying landing skeleton, not 17 edits. **The skeleton now carries them** (item 109, 2026-09-07): `pendingContent` holds both stacks, `resumectx_of_landing` reads the landing at the entries level, and `content_dispatch_routed` prefers `resumeMapRoute` over `rootMapRoute` where a level is open — so the remaining work on this row is the CONSTRUCTOR (`GOpt SLAnyDocument` → `GOpt SLExplicitDocument`) plus the sites item 109 names as not closed: ~~`pendingBlockContent`~~ (**PAID by item 110**, 2026-09-07, from the entry-level field item 99 had already sized — no new field), ~~the props landing~~ (**PAID by item 111**, 2026-09-07 — `PropsKeyPack` gains items 99/108's resume twins and `h_props_key` resumes first), and ~~the block-scalar value arms~~ (**PAID by item 112**, 2026-09-07 — item 95's absorption closure re-reads the scalar to the landing, so the transport faces apply after all). **The constructor is LAST, not next** — item 110 built it and measured **16 breaking sites, all in `StreamAccum`**, two of them `rootMapRoute`/`rootMapRouteF`, the fallback every punting park uses; the rest append a completed top-level node as a fresh bare document, which is honest only when the stream has started none, and `SLYamlStream sp_start sp` does not record that. See [Item 110](#item-110-2026-09-07). [The over-approximation problem](#the-over-approximation-problem) |
+| 1c. Tighten `implicitContinue` in `SLYamlStream` | ⬜ open — action row 19, **after the DEDENT composition**; the third over-approximation, found 2026-08-13 by item 30. Require `l-document-suffix+` for the bare alternative; ~~16 construction sites (re-counted 2026-09-04), 15 of them the `StreamAccum` sibling re-opens~~ **17 in `StreamAccum` as of 2026-09-07** (item 108's re-count) plus `DocumentProduction`'s one — and the count is not the cost: item 108 measured the sites as downstream of `h_defer_split`'s root re-open, so this row is a frames-carrying landing skeleton, not 17 edits. **The skeleton now carries them** (item 109, 2026-09-07): `pendingContent` holds both stacks, `resumectx_of_landing` reads the landing at the entries level, and `content_dispatch_routed` prefers `resumeMapRoute` over `rootMapRoute` where a level is open — so the remaining work on this row is the CONSTRUCTOR (`GOpt SLAnyDocument` → `GOpt SLExplicitDocument`) plus the sites item 109 names as not closed: ~~`pendingBlockContent`~~ (**PAID by item 110**, 2026-09-07, from the entry-level field item 99 had already sized — no new field), ~~the props landing~~ (**PAID by item 111**, 2026-09-07 — `PropsKeyPack` gains items 99/108's resume twins and `h_props_key` resumes first), and ~~the block-scalar value arms~~ (**PAID by item 112**, 2026-09-07 — item 95's absorption closure re-reads the scalar to the landing, so the transport faces apply after all). **The constructor is LAST, not next** — item 110 built it and measured **16 breaking sites, all in `StreamAccum`**, two of them `rootMapRoute`/`rootMapRouteF`, the fallback every punting park uses; the rest append a completed top-level node as a fresh bare document, which is honest only when the stream has started none, and `SLYamlStream sp_start sp` does not record that. **The record exists now** (item 116, 2026-09-07): `noPending.h_nodoc` carries `GStar SLDocumentPrefix` behind the virgin park, and `nodocMapRoute`/`nodocMapRouteF` are the `single`-based routes the fallback sites swap to where it pays — what remains ahead of the constructor is the SUFFIX state's mirror carrier (`...⏎a: 1`: `pendingDocEnd` closes `suffixContinue` with its document slot already empty). See [Item 110](#item-110-2026-09-07) and [Item 116](#item-116-2026-09-07). [The over-approximation problem](#the-over-approximation-problem) |
 | 1d. Carry `0 < m` on `[183]`/`[187]`'s auto-detected width | ⬜ open — action row 19; the fourth over-approximation, found 2026-08-16 by item 40. **PRICED 2026-09-07 by item 107, and it is not what this row said.** ~~4 construction sites; harmless at the root~~ — the root is exactly where it is not harmless: three families reach `m = 0` (the root's own mapping, the seq-spaces key `?⏎- a`, and the equal-width landing), the spec reaches the first two with `m = 1` off an index of `-1`, and `seqSpaces 0 .blockOut = seqSpaces 1 .blockOut` because `Nat` subtraction truncates at precisely that index. So the honest floor (`n < E`, or `n ≤ E` in block-out) is false at the root for an encoding reason, and this row is downstream of a re-indexing of `SBlockNode` to `n_lean = n_spec + 1` — the convention `[198]`'s docstring already states and the three collection constructors do not follow. Machine-checked in `Tests/Guards/Proofs/BlockCollectionWidthFloor.lean`. [The over-approximation problem](#the-over-approximation-problem) |
 | 5. Prove the converse `grammar_completeness` | ⬜ open — depends on Fix A **and on 1c**: the converse is false while either over-approximation stands |
 | 6. Assemble the `parse_iff_grammar` biconditional | ⬜ open — depends on Step 5 |
