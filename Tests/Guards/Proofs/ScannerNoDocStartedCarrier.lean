@@ -106,6 +106,8 @@ private def refuses (input : String) : Bool :=
 -- over-approximation), and its honest carrier (`suffixContinue`'s own open
 -- `l-any-document?`) is the mirror item this one does not build.  Pinned as
 -- ACCEPTED: these are 1c's residue families, not refusals.
+-- (The mirror carrier CLOSED by item 117 — `SuffixRun` + the landing
+-- skeleton's `h_sfx` face; see `ScannerSuffixRunCarrier`.)
 #guard emits "...\na: 1\n"
   ["+STR", "+DOC", "+MAP", "=VAL :a", "=VAL :1", "-MAP", "-DOC", "-STR"]
 #guard emits "...\n...\na: 1\n"
@@ -199,7 +201,10 @@ example {sc : ScannerState} {sp_start sp sp_land sp_key : SurfPos} {k : Nat}
   `...⏎a: 1` and its twins (§1's last three pins) still give the bare
   document to `implicitContinue`.  The mirror carrier — the suffix run held
   open so the next document lands in `suffixContinue`'s own
-  `l-any-document?` — is its own item.
+  `l-any-document?` — is its own item.  (CLOSED by item 117 — the landing
+  skeleton's `h_sfx` face, spent through `suffixMapRoute`/`suffixMapRouteF`/
+  `suffixNodeRoute`; the content-dispatch landings route through the open
+  arm now.)
 * The raised-flag side.  `sc.allowDirectives = false → sc.documentEverStarted
   = true` is a scanner-state invariant nothing threads; the tightening's
   case split at a raised flag will be served by the suffix carrier and the
