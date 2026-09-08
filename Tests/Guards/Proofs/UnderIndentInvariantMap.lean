@@ -17,14 +17,18 @@ finding one item over — it is THREE couplings, not one, each with its own
 carrier, consumer, and price:
 
 * **U1 — the `?`-line column bound (scanner-internal, KeysBehindCursor-
-  shaped)**: a live simple-key candidate saved on the pending `?`'s own
-  line sits strictly right of `explicitKeyCol` — `saveSimpleKey` saves at
-  the cursor, the cursor is right of the `?` for the rest of its line, and
-  every op preserves the bound.  Serves item 104's stale-key PAIR (the
+  shaped)**: at a boundary whose live candidate is saved on an EARLIER
+  line, the CURSOR sits strictly past `currentIndent`.  [Item 122
+  CORRECTED this bullet: it originally bounded the KEY's column against
+  `explicitKeyCol` — a true fact that cannot refute the pair, whose
+  decidable half is about the cursor; `ScalarWalkCrossLineFloor` §1 is
+  the machine-checked witness.]  Serves item 104's stale-key PAIR (the
   `?`-line arm of `scanValueClearKey`), replacing the disjunction's
-  deferred arm with a refutation.  One-session build in item 81's mold:
-  define, thread the preservation through the scanner ops, expose at the
-  dispatch shape.
+  deferred arm with a refutation.  Repriced by item 122: the walks' own
+  floors are LANDED (`ScalarWalkColFloor`); the invariant, its
+  preservation clone of item 81's skeleton, the one-premise threading and
+  the spend remain — one more session, not item 81's "pre-existing
+  lemmas" shape.
 * **U2 — the park-face coupling (scanner ↔ SURFACE)**: `sc.explicitKeyLine
   = some l` at a park implies the park's `?`-frame face (`h_expl` /
   `h_vslot`) is REAL — stated as a mandatory conditional field in the

@@ -89,6 +89,7 @@ import L4YAML.Proofs.Production.ScannerPlainScalarValid
 import L4YAML.Proofs.Scanner.ScannerProgress
 import L4YAML.Proofs.Scanner.ScannerProofs
 import L4YAML.Proofs.Scanner.ScannerScalar
+import L4YAML.Proofs.Scanner.ScalarWalkColFloor
 import L4YAML.Proofs.Scanner.ScannerSimpleKey
 import L4YAML.Proofs.Scanner.ScannerWhitespace
 import L4YAML.Proofs.Scanner.ScanStrictCoupling

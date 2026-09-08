@@ -12499,13 +12499,18 @@ measurement (item 119's finding one item over): it is THREE distinct
 couplings, each with its own carrier, consumer, and price —
 
 * **U1 — the `?`-line column bound** (scanner-internal,
-  `KeysBehindCursor`-shaped): a live simple-key candidate saved on the
-  pending `?`'s own line sits strictly right of `explicitKeyCol`.  Serves
+  `KeysBehindCursor`-shaped): ~~a live simple-key candidate saved on the
+  pending `?`'s own line sits strictly right of `explicitKeyCol`~~
+  — **item 122 corrected the conclusion**: the sufficient bound is the
+  CURSOR's, `currentIndent < col` at a stale-live boundary; the key-column
+  projection is true but cannot refute the pair (see
+  [Item 122](#item-122-2026-09-08)).  Serves
   item 104's stale-key PAIR — `scanValueClearKey`'s `?`-line arm — whose
   deferred disjunct becomes a refutation; the pair's inputs are all
   runtime-refused today (`? [1,⏎ 2]: v`, `? x⏎ y: v`, pinned).
-  One-session build in item 81's mold (define, thread the preservation,
-  expose at the dispatch shape).
+  ~~One-session build in item 81's mold (define, thread the preservation,
+  expose at the dispatch shape).~~ Repriced by item 122, which landed the
+  walks' floors; the invariant + preservation + threading + spend remain.
 * **U2 — the park-face coupling** (scanner ↔ surface):
   `sc.explicitKeyLine = some l` at a park implies the park's `?`-frame
   face (`h_expl`/`h_vslot`) is REAL, as a mandatory conditional field.
@@ -12540,6 +12545,72 @@ family, §2 U3's misindented-sibling refusals (scanner-attributed), §3 the
 valid sibling boundary the couplings must not cross.  Zero library and
 runtime edits.
 
+### Item 122 (2026-09-08)
+
+**U1's conclusion CORRECTED — the bound is the cursor's, not the key's —
+and the walks' cross-line floors LANDED.**  Pressure-testing item 121's
+recorded U1 against its own spend site
+([StreamAccum.lean:14139](L4YAML/Proofs/Production/StreamAccum.lean)'s
+`by_cases` pair punt) before building it found the recorded conclusion
+insufficient: the pair's decidable half is
+`(s_prep.col : Int) = s_prep.currentIndent` — a fact about the CURSOR —
+and no bridge leads from "the key's column clears `explicitKeyCol`" to
+it.  The witness is machine-checked
+(`ScalarWalkCrossLineFloor` §1): a state where the recorded projection
+AND item 81's `KeysBehindCursor` both hold, `scanValueClearKey`'s
+`?`-line arm fires, and `scanValueValidate` still answers `.ok` — while
+flipping ONLY the cursor bound flips the verdict to
+`misindentedExplicitValue`.  So the sufficient U1 statement is: **at a
+boundary whose live candidate is saved on an earlier line,
+`currentIndent < col`** — step-trace-pinned over the pinned families
+(guard §2), including `a: 1⏎b⏎: 2`, where the probe ALSO corrected a
+mechanism guess: the plain walk's continuation gate is its
+`contentIndent = (max 0 (currentIndent + 1)).toNat` parameter — the
+walk is SELF-FLOORING in block context, its start column irrelevant —
+so the equal-column landing is refused by the walk itself and the park
+stays on the content's own line.
+
+**Landed** (`L4YAML/Proofs/Scanner/ScalarWalkColFloor.lean`, zero
+runtime edits, module compiled on the first structural pass): the three
+walks are the only makers of stale-live boundaries in block context — a
+break-crossing preprocess re-arms and fresh-saves (`pos.line = line`,
+vacuous), the push ops clear the key, and the flow-close restore is
+already paid by `FlowIndentStable.structural_none_col_gt_of_inFlow` —
+and each walk now pays its own floor:
+
+* three line-or-floor loop inductions (`collectPlainScalarLoop` via
+  `handleBlockLineBreak`'s landing gate; both quoted loops via their
+  `underIndentedScalar` throw, which runs in BOTH contexts), over new
+  column-monotonicity helpers for `skipWhitespace`, `processEscape`,
+  `parseHexEscape` and the hex walk (`ns-hex-digit` and `[62]`'s escape
+  characters are never `b-char`);
+* per-scan exports in the dispatch layer's shape:
+  `scanPlainScalar_crossline_col_floor` (premise-free on the start
+  column), `scanDoubleQuoted_crossline_col_floor`,
+  `scanSingleQuoted_crossline_col_floor` — an `.ok` exit off the entry
+  line sits strictly past `currentIndent`.  Axiom profile: the three
+  exports depend on `propext`/`Classical.choice`/`Quot.sound` only.
+
+**What remains of U1, repriced honestly**: the invariant definition over
+the stale-live premise, its preservation clone of
+`scanNextToken_preserves_KeysBehindCursor` (walk cases = these exports;
+flow cases = the structural floor; fresh-save cases vacuous), the
+one-premise threading along item 81's path, and the spend replacing the
+pair punt with `omega` against the pair's second conjunct — one more
+session, and NOT item 81's "all per-scan lemmas pre-existed" shape;
+that claim was the part of "one-session build in item 81's mold" the
+measurement struck.  Corrections applied in the artifacts that carry
+the error: `UnderIndentInvariantMap.lean`'s U1 bullet and this log's
+item-121 entry.
+
+Guard `Tests/Guards/Proofs/ScalarWalkCrossLineFloor.lean` (22
+`#guard`s + 3 type examples): §1 the insufficiency witness pair
+`W`/`W1`, §2 the cursor form as a decidable `scanNextToken` fold over
+12 pinned inputs (the refused pair family, the compact-in-key deep
+walk, the sibling-column probe, accepted explicit keys, the nested
+flow restore, multiline values), §3 the three export types, §4 runtime
+non-vacuity of the cross-line exits.
+
 ### REMAINING, in order
 
 The per-item history is the closure log above; this section lists only the
@@ -12553,7 +12624,7 @@ too (items 47–51), so what stands between here
 and Step 5 (the converse) is R3's remaining production work and R4:
 
 ```
-R1 ✓ (44–46) ──→ R2 ✓ (47–51) ──→ R3 (52–120 landed; 67b's deletion on U2) ──→ Step 5
+R1 ✓ (44–46) ──→ R2 ✓ (47–51) ──→ R3 (52–122 landed; 67b's deletion on U2) ──→ Step 5
                                         └──────→ R4 (implicitContinue + 0 < m) ──┘
 ```
 
