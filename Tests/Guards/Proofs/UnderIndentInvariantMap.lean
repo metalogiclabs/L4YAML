@@ -24,11 +24,12 @@ carrier, consumer, and price:
   decidable half is about the cursor; `ScalarWalkCrossLineFloor` §1 is
   the machine-checked witness.]  Serves item 104's stale-key PAIR (the
   `?`-line arm of `scanValueClearKey`), replacing the disjunction's
-  deferred arm with a refutation.  Repriced by item 122: the walks' own
-  floors are LANDED (`ScalarWalkColFloor`); the invariant, its
-  preservation clone of item 81's skeleton, the one-premise threading and
-  the spend remain — one more session, not item 81's "pre-existing
-  lemmas" shape.
+  deferred arm with a refutation.  Repriced by item 122 (the walks' own
+  floors landed first, `ScalarWalkColFloor`) and CLOSED by item 123:
+  `StaleCursorFloor.StaleKeyCursorFloor` is the invariant,
+  `scanNextToken_preserves_StaleKeyCursorFloor` its clone of item 81's
+  skeleton, and `colon_fires_implicit_key`'s pair punt is spent
+  (`StaleCursorFloorInvariant` is the guard).
 * **U2 — the park-face coupling (scanner ↔ SURFACE)**: `sc.explicitKeyLine
   = some l` at a park implies the park's `?`-frame face (`h_expl` /
   `h_vslot`) is REAL — stated as a mandatory conditional field in the
@@ -52,9 +53,9 @@ carrier, consumer, and price:
   Serves R4's landing pad narrowing; its carrier is an accumulation-
   invariant conjunct, not a park field — the widest of the three.
 
-Order: U1 (self-contained), then U2 (unblocks `noFrame` → shrinks the
-`pendingFlow` feed → 67b's deletion with `noKeyContext`'s twin), then U3
-(R4's own).  §1 pins the scanner's `explicitKeyLine` machine on the
+Order: U1 (self-contained — CLOSED by items 122+123), then U2 (unblocks
+`noFrame` → shrinks the `pendingFlow` feed → 67b's deletion with
+`noKeyContext`'s twin), then U3 (R4's own).  §1 pins the scanner's `explicitKeyLine` machine on the
 runtime; §2 pins U3's refusal family; §3 pins the valid boundary the
 couplings must not cross. -/
 

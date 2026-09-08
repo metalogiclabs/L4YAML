@@ -18,6 +18,7 @@ import L4YAML.Proofs.Scanner.PropsRunLineCoupling
 import L4YAML.Proofs.Scanner.BlockScalarIndentFloor
 import L4YAML.Proofs.Scanner.PreprocessIndentStable
 import L4YAML.Proofs.Scanner.FlowIndentStable
+import L4YAML.Proofs.Scanner.StaleCursorFloor
 import L4YAML.Proofs.Coupling.TabIndentBridge
 import L4YAML.Proofs.Production.FlowIndexLift
 import L4YAML.Proofs.Production.ScalarFoldAt
@@ -13982,6 +13983,10 @@ lemma colon_fires_implicit_key
     -- Item 81: every saved key sits strictly behind the cursor — what refutes
     -- `[197]`'s phantom-key clear at the floor.
     (h_kbc : ScannerCorrectness.KeysBehindCursor sc)
+    -- Item 123: the stale-cursor floor — a stale live key puts the cursor
+    -- strictly past `currentIndent`, which refutes `[197]`'s misindent pair
+    -- at the stale-key `:`.
+    (h_scf : StaleCursorFloor.StaleKeyCursorFloor sc)
     (h_punt : ∃ sp_gram' sp_block' sp_flow' sp_scan'',
       SLYamlStream sp_start sp_gram' ∧
       BlockStack sp_gram' sp_block' ∧
@@ -14136,17 +14141,36 @@ lemma colon_fires_implicit_key
       cases h_disj with
       | inl _ => exact h_punt
       | inr h_mid =>
+        rcases h_arm with ⟨_, h_poss_f⟩ | h_colpos
+        · exact absurd h_poss (by rw [h_poss_f]; exact Bool.false_ne_true)
+        rw [h_mid.1] at h_ws
+        have h_st := h_stale ⟨by omega, _, h_ws,
+          head_of_peek hcorr_prep (preprocess_some_peek h_preprocess)⟩
+        obtain ⟨h_inh, -, h_off_ge, -⟩ := h_mid.2.2.2 h_st.1 h_st.2.1
+        obtain ⟨h_line_pp, -, -, -⟩ := h_mid.2.1 h_st.1 h_st.2.2.1
         by_cases hek : s_prep.explicitKeyLine = some sc.simpleKey.pos.line ∧
             (s_prep.col : Int) = s_prep.currentIndent
-        · exact h_punt
-        · rcases h_arm with ⟨_, h_poss_f⟩ | h_colpos
-          · exact absurd h_poss (by rw [h_poss_f]; exact Bool.false_ne_true)
-          rw [h_mid.1] at h_ws
-          have h_st := h_stale ⟨by omega, _, h_ws,
-            head_of_peek hcorr_prep (preprocess_some_peek h_preprocess)⟩
-          obtain ⟨h_inh, -, h_off_ge, -⟩ := h_mid.2.2.2 h_st.1 h_st.2.1
-          obtain ⟨h_line_pp, -, -, -⟩ := h_mid.2.1 h_st.1 h_st.2.2.1
-          exact absurd (dispatch_refutes_staleKey h_poss h_kline (h_kbc.1 h_poss)
+        · -- ═══ Item 123: the pair's SECOND conjunct is refuted, so the punt is
+          -- spent.  The stale-cursor floor puts the park's cursor strictly past
+          -- `currentIndent`; the no-break step carries the indent stack across
+          -- unchanged (`h_mid`'s indents conjunct) and only moves the column
+          -- right (the surface `s-white*` run), so the `:` cannot stand AT the
+          -- mapping's own indent — `(s_prep.col : Int) = s_prep.currentIndent`
+          -- is impossible with the key still live from an earlier line. ═══
+          exfalso
+          have h_nf_sc : sc.inFlow = false := by
+            unfold ScannerState.inFlow at h_noflow ⊢
+            rw [← preprocess_preserves_flowLevel sc s_prep ':' h_preprocess]
+            exact h_noflow
+          have h_floor := h_scf h_nf_sc h_poss h_kline
+          have h_ind := h_mid.2.2.1 h_st.1
+          have h_ci : s_prep.currentIndent = sc.currentIndent := by
+            unfold ScannerState.currentIndent; rw [h_ind]
+          have h_cols := gstar_sswhite_col_ge _ _ h_ws
+          have h1 := h_corr.col_eq
+          have h2 := hcorr_prep.col_eq
+          omega
+        · exact absurd (dispatch_refutes_staleKey h_poss h_kline (h_kbc.1 h_poss)
             h_inh h_line_pp h_off_ge (noflow_disp_of_noflow h_noflow) h_dispatch) hek
   · exact h_punt
 
@@ -14189,6 +14213,8 @@ lemma accum_block_on_pendingContent
     (h_noflow : s_prep.inFlow = false)
     -- Item 81: the scanner-wide behind-the-cursor fact, for the floor.
     (h_kbc : ScannerCorrectness.KeysBehindCursor sc)
+    -- Item 123: the stale-cursor floor, spent at the stale-key `:`.
+    (h_scf : StaleCursorFloor.StaleKeyCursorFloor sc)
     -- Item 80: the park's stale tail, threaded to the `:`'s re-save question.
     (h_stale : InlineResidue sp_scan ':' → StaleNodeTail sc)
     -- **Item 77 — the park's own arm**, as at `accum_block_on_closeThenBlock`:
@@ -14211,7 +14237,7 @@ lemma accum_block_on_pendingContent
   by_cases hc : c = ':'
   · subst hc
     exact colon_fires_implicit_key sc sp_start sp_block sp_scan s_prep s' sp_prep sp_scan'
-      h_stream_block h_key h_stale h_park h_kbc
+      h_stream_block h_key h_stale h_park h_kbc h_scf
       (accum_block_on_closeThenBlock sc sp_start sp_block_ctx sp_scan s_prep s' ':'
         sp_prep sp_scan' h_close_pending h_stream_fallback h_vpack (Or.inr trivial) hcorr_prep hcorr_result
         h_corr h_noflow (h_park.imp_left And.left) h_preprocess h_dispatch (Or.inr trivial))
@@ -14264,6 +14290,8 @@ lemma accum_block_on_pendingBlockContent
     (h_stale : InlineResidue sp_scan ':' → StaleNodeTail sc)
     -- Item 81: and the behind-the-cursor fact, for the same floor.
     (h_kbc : ScannerCorrectness.KeysBehindCursor sc)
+    -- Item 123: and the stale-cursor floor, for the stale-key `:`.
+    (h_scf : StaleCursorFloor.StaleKeyCursorFloor sc)
     (hcorr_prep : ScannerSurfCorr s_prep sp_prep)
     (hcorr_result : ScannerSurfCorr s' sp_scan')
     (h_corr : ScannerSurfCorr sc sp_scan)
@@ -14413,7 +14441,7 @@ lemma accum_block_on_pendingBlockContent
   by_cases hc0 : c = ':'
   · subst hc0
     exact colon_fires_implicit_key sc sp_start sp_block sp_scan s_prep s' sp_prep sp_scan'
-      h_stream_block h_key h_stale h_park h_kbc h_generic hcorr_prep hcorr_result h_corr
+      h_stream_block h_key h_stale h_park h_kbc h_scf h_generic hcorr_prep hcorr_result h_corr
       h_noflow h_preprocess h_dispatch
   · exact h_generic
 
@@ -14719,6 +14747,7 @@ lemma accum_block_pending (sc : ScannerState)
     (s_prep s' : ScannerState) (c : Char)
     (h_stream_block : SLYamlStream sp_start sp_block)
     (h_kbc : ScannerCorrectness.KeysBehindCursor sc)
+    (h_scf : StaleCursorFloor.StaleKeyCursorFloor sc)
     (h_pending : PendingNode sc false sp_start sp_block sp_scan)
     (h_corr : ScannerSurfCorr sc sp_scan)
     (h_noflow : s_prep.inFlow = false)
@@ -14783,7 +14812,7 @@ lemma accum_block_pending (sc : ScannerState)
     exact accum_block_on_pendingContent sc sp_start sp_block sp_block sp_scan s_prep s' c
       sp_prep sp_scan' h_stream_block
       h_close_pending h_line h_key (fun _ _ => h_stream_block) h_vpack51 hcorr_prep hcorr_result h_corr
-      h_noflow h_kbc h_stale47 h_arm77 h_preprocess h_dispatch
+      h_noflow h_kbc h_scf h_stale47 h_arm77 h_preprocess h_dispatch
   | pendingProps _ _ _ ha ht _ sp_p _ h_sep_p h_run h_nic48 h_real48 h_anchor48 h_tag48 _ h_key48 _
       h_col0_p _ h_ska79 h_kslot91 =>
     -- ═══ Item 48: a `-`/`?` behind a parked property run is refused by the
@@ -14891,7 +14920,7 @@ lemma accum_block_pending (sc : ScannerState)
     -- Item 37: and what is left of the escape is `[154]`'s `:`.
     exact accum_block_on_pendingBlockContent sc sp_start sp_block sp_block sp_scan s_prep s' c
       sp_prep sp_scan' n_old h_stream_block h_close_pending h_line (fun _ _ => h_stream_block)
-      h_entry_old h_kslot92 h_key_old h_stale47 h_kbc hcorr_prep hcorr_result h_corr h_noflow
+      h_entry_old h_kslot92 h_key_old h_stale47 h_kbc h_scf hcorr_prep hcorr_result h_corr h_noflow
       h_arm77 h_preprocess h_dispatch
   | pendingBlock _ _ _ n_old _h_close h_close_entry_old _h_floor h_sk_old h_col_old h_kslot92 =>
     exact accum_block_on_pendingBlock sc sp_start sp_block sp_block sp_scan s_prep s' c sp_prep
@@ -14903,6 +14932,7 @@ lemma accum_step_block (sc : ScannerState)
     (s_prep s' : ScannerState) (c : Char)
     (h_stream : SLYamlStream sp_start sp_gram)
     (h_kbc : ScannerCorrectness.KeysBehindCursor sc)
+    (h_scf : StaleCursorFloor.StaleKeyCursorFloor sc)
     (h_stack : BlockStack sp_gram sp_block)
     (h_flowK : FlowStackK sp_start sc sc.flowLevel sc.flowStack (tailOf sc.tokens) sp_block sp_flow)
     (h_pending : sc.flowLevel = 0 → PendingNode sc false sp_start sp_flow sp_scan)
@@ -14951,7 +14981,7 @@ lemma accum_step_block (sc : ScannerState)
     obtain ⟨g', bl', fl', sn', q1, q2, q3, q4, q5⟩ :=
       accum_block_pending sc sp_start sp_flow sp_scan s_prep s' c
         (absorb_stacksB sp_start sp_gram sp_block sp_flow h_stream h_stack h_flow)
-        h_kbc (h_pending h0) h_corr h_noflow h_preprocess h_dispatch
+        h_kbc h_scf (h_pending h0) h_corr h_noflow h_preprocess h_dispatch
     exact ⟨g', bl', fl', sn', q1, q2, ⟨0, 0, #[], q3.retail, rfl, Nat.zero_le _, fun h => absurd h (by omega)⟩, fun _ => q4, q5,
            fun h => absurd h (by omega)⟩
   · -- ═══ DEPTH ≥ 1: three arms — one free, one BUILT here, one NOT. ═══
@@ -22746,6 +22776,7 @@ lemma scanNextToken_accum_step (sc : ScannerState)
     (s' : ScannerState) {b : Bool}
     (h_stream : SLYamlStream sp_start sp_gram)
     (h_kbc : ScannerCorrectness.KeysBehindCursor sc)
+    (h_scf : StaleCursorFloor.StaleKeyCursorFloor sc)
     (h_stack : BlockStack sp_gram sp_block)
     (h_flow : FlowStackK sp_start sc sc.flowLevel sc.flowStack (tailOf sc.tokens) sp_block sp_flow)
     (h_pending : sc.flowLevel = 0 → PendingNode sc b sp_start sp_flow sp_scan)
@@ -22825,7 +22856,7 @@ lemma scanNextToken_accum_step (sc : ScannerState)
                       have h := Except.ok.inj h_ok; injection h with h; subst h
                       obtain ⟨g', bl', fl', sn', q1, q2, q3, q4, q5, q6⟩ :=
                         accum_step_block sc sp_start sp_gram sp_block sp_flow sp_scan s_pre s_blk c_pre
-                          h_stream h_kbc h_stack h_flow h_pending h_corr h_interior h_pre h_str_eq h_blk
+                          h_stream h_kbc h_scf h_stack h_flow h_pending h_corr h_interior h_pre h_str_eq h_blk
                       exact ⟨g', bl', fl', sn', false, q1, q2, q3, q4, fun h => Bool.noConfusion h, q5, q6⟩
                     · rename_i h_blk_none
                       -- Item 47: the adjacent-value check between the two dispatches.
@@ -22931,6 +22962,8 @@ lemma scanLoop_grammar_prod (sc : ScannerState)
     -- seed's is vacuous, and `scanNextToken_preserves_KeysBehindCursor`
     -- re-establishes it at every step.
     (h_kbc : ScannerCorrectness.KeysBehindCursor sc)
+    -- Item 123: the stale-cursor floor rides the same way.
+    (h_scf : StaleCursorFloor.StaleKeyCursorFloor sc)
     (h_stack : BlockStack sp_gram sp_block)
     (h_flow : FlowStackK sp_start sc sc.flowLevel sc.flowStack (tailOf sc.tokens) sp_block sp_flow)
     (h_pending : sc.flowLevel = 0 → PendingNode sc b sp_start sp_flow sp_scan)
@@ -22974,10 +23007,11 @@ lemma scanLoop_grammar_prod (sc : ScannerState)
       obtain ⟨sp_gram', sp_block', sp_flow', sp_scan', b', h_stream', h_stack', h_flow',
               h_pending', h_flag', h_corr', h_interior'⟩ :=
         scanNextToken_accum_step sc sp_start sp_gram sp_block sp_flow sp_scan s_next
-          h_stream h_kbc h_stack h_flow h_pending h_dir_flag h_corr h_interior h_next
+          h_stream h_kbc h_scf h_stack h_flow h_pending h_dir_flag h_corr h_interior h_next
       exact ih s_next sp_gram' sp_block' sp_flow' sp_scan' tokens
         h_stream'
         (ScannerCorrectness.scanNextToken_preserves_KeysBehindCursor sc s_next h_next h_kbc)
+        (StaleCursorFloor.scanNextToken_preserves_StaleKeyCursorFloor sc s_next h_next h_scf)
         h_stack' h_flow' h_pending' h_flag' h_corr' h_interior' h_ok
 
 /-! ## §4 Initial Stream + BOM Handling
@@ -23083,6 +23117,14 @@ lemma scan_content_gives_stream_v2
           (by rw [ScannerCorrectness.consumeBOM_preserves_simpleKey]; exact h_sk0)
           (by rw [ScannerCorrectness.consumeBOM_preserves_simpleKeyStack]; exact h_ss0)
       · exact h_base _ h_sk0 h_ss0)
+    -- Item 123: same seed, same reason — no key is live.
+    (by
+      have h_sk0 : ((ScannerState.mk' input).emit YamlToken.streamStart).simpleKey.possible
+          = false := by simp [ScannerState.emit, ScannerState.mk']
+      split
+      · exact StaleCursorFloor.StaleKeyCursorFloor.of_cleared
+          (by rw [ScannerCorrectness.consumeBOM_preserves_simpleKey]; exact h_sk0)
+      · exact StaleCursorFloor.StaleKeyCursorFloor.of_cleared h_sk0)
     (BlockStack.nil sp) ?_
     -- Item 35: the seed parks at a LINE START — the stream's own, after the
     -- BOM if there is one (§5.2 spends no column).  That is the whole of the

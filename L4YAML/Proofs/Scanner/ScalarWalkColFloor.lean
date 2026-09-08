@@ -40,7 +40,7 @@ open L4YAML.Proofs.ScalarProduction
 /-! ## §1  Column monotonicity of the walks' same-line helpers -/
 
 /-- A non-break `advance` spends exactly one column. -/
-private lemma advance_col_succ_of_peek {s : ScannerState} {c : Char}
+lemma advance_col_succ_of_peek {s : ScannerState} {c : Char}
     (hpk : s.peek? = some c) (hnb : isLineBreakBool c = false) :
     s.advance.col = s.col + 1 := by
   unfold ScannerState.peek? at hpk
@@ -54,7 +54,7 @@ private lemma advance_col_succ_of_peek {s : ScannerState} {c : Char}
   · cases hpk
 
 /-- `s-white` is not `b-char`: the separation walk moves the column only. -/
-private lemma skipWhitespaceLoop_col_ge (s : ScannerState) (fuel : Nat) :
+lemma skipWhitespaceLoop_col_ge (s : ScannerState) (fuel : Nat) :
     s.col ≤ (skipWhitespaceLoop s fuel).col := by
   induction fuel generalizing s with
   | zero => unfold skipWhitespaceLoop; exact Nat.le_refl _
@@ -73,7 +73,7 @@ private lemma skipWhitespaceLoop_col_ge (s : ScannerState) (fuel : Nat) :
       · exact Nat.le_refl _
     · exact Nat.le_refl _
 
-private lemma skipWhitespace_col_ge (s : ScannerState) :
+lemma skipWhitespace_col_ge (s : ScannerState) :
     s.col ≤ (skipWhitespace s).col :=
   skipWhitespaceLoop_col_ge s _
 
@@ -465,5 +465,307 @@ lemma scanSingleQuoted_crossline_col_floor {s s' : ScannerState}
           (by decide) (by decide))) with h | h
     · exact absurd (h_fields.1.trans h) h_ne
     · rw [h_fields.2]; omega
+
+/-! ## §2b  The walks' same-line exits, as column monotonicity (item 123)
+
+The stale-cursor invariant's walk cases also need the OTHER exit: a walk that
+ends ON its entry line only moved the column right.  The break arms cannot
+produce such an exit — the folds land strictly below
+(`handleBlockLineBreak_line_lt` / `foldQuotedNewlines_line_lt`) and the loops
+never return to an earlier line (`collectPlainScalarLoop_line_le` /
+`collect*QuotedLoop_line_ge`) — so each induction closes them by
+contradiction and only the same-line steps carry weight. -/
+
+/-- **A BLOCK plain walk that exits on its entry line only moved right.** -/
+lemma collectPlainScalarLoop_col_ge_of_line_eq (fuel : Nat) :
+    ∀ (s : ScannerState) (content spaces : String) (ci ie : Nat)
+      (r : PlainScalarResult),
+    collectPlainScalarLoop s content spaces fuel false ci ie = .ok r →
+    r.state.line = s.line → s.col ≤ r.state.col := by
+  induction fuel with
+  | zero =>
+    intro s content spaces ci ie r hok _
+    unfold collectPlainScalarLoop at hok
+    injection hok with h_eq; subst h_eq
+    exact Nat.le_refl _
+  | succ fuel' ih =>
+    intro s content spaces ci ie r hok h_line
+    unfold collectPlainScalarLoop at hok
+    split at hok
+    · injection hok with h_eq; subst h_eq
+      exact Nat.le_refl _
+    · rename_i c hpk
+      split at hok
+      · rename_i hterm'
+        injection hok with h_eq; subst h_eq
+        rw [terminates?_state hterm']
+        exact Nat.le_refl _
+      · split at hok
+        · -- a break, block context: a same-line exit is impossible past the fold
+          rename_i hlb
+          split at hok
+          · rename_i hflow
+            simp at hflow
+          · split at hok
+            · injection hok with h_eq; subst h_eq
+              exact Nat.le_refl _
+            · rename_i content' s2 hblk
+              split at hok
+              · injection hok with h_eq; subst h_eq
+                exact Nat.le_refl _
+              · dsimp only [] at hok
+                generalize h_loop :
+                  collectPlainScalarLoop s2 content' "" fuel' false ci ie = cont at hok
+                cases cont with
+                | ok inner =>
+                  dsimp only [] at hok
+                  split at hok
+                  · injection hok with h_eq; subst h_eq
+                    exact Nat.le_refl _
+                  · have h_eq := Except.ok.inj hok; subst h_eq
+                    exfalso
+                    have h1 := handleBlockLineBreak_line_lt hpk hlb hblk
+                    have h2 := collectPlainScalarLoop_line_le s2 content' ""
+                      fuel' false ci ie h_loop
+                    omega
+                | error e => simp at hok
+        · rename_i hbr
+          have hnb : isLineBreakBool c = false := by simpa using hbr
+          have h_adv_line : s.advance.line = s.line :=
+            advance_preserves_line_of_ne_break s c hpk
+              (by intro hc; rw [hc] at hnb; cases hnb)
+              (by intro hc; rw [hc] at hnb; cases hnb)
+          have h_adv_col : s.advance.col = s.col + 1 :=
+            advance_col_succ_of_peek hpk hnb
+          split at hok
+          · have := ih s.advance content _ ci ie r hok
+              (by rw [h_line, h_adv_line])
+            omega
+          · split at hok
+            · injection hok with h_eq; subst h_eq
+              exact Nat.le_refl _
+            · have := ih s.advance _ "" ci ie r hok
+                (by rw [h_line, h_adv_line])
+              omega
+
+/-- **A double-quoted walk that exits on its entry line only moved right.** -/
+lemma collectDoubleQuotedLoop_col_ge_of_line_eq (sc : ScannerState)
+    (content : String) (fuel : Nat) (startPos : YamlPos) (inFlow : Bool)
+    (currentIndent : Int) (inputEnd protectedLen : Nat)
+    {result_content : String} {s' : ScannerState}
+    (hok : collectDoubleQuotedLoop sc content fuel startPos inFlow currentIndent
+             inputEnd protectedLen = .ok (result_content, s'))
+    (h_line : s'.line = sc.line) : sc.col ≤ s'.col := by
+  induction fuel generalizing sc content protectedLen with
+  | zero => simp [collectDoubleQuotedLoop] at hok
+  | succ fuel' ih =>
+    unfold collectDoubleQuotedLoop at hok
+    split at hok
+    · exact absurd hok (by simp)
+    · -- closing quote
+      rename_i _ hpeek
+      simp only [Except.ok.injEq, Prod.mk.injEq] at hok
+      obtain ⟨-, rfl⟩ := hok
+      rw [advance_col_succ_of_peek hpeek (by decide)]
+      omega
+    · -- backslash
+      rename_i _ hpeek
+      have h_adv_line : sc.advance.line = sc.line :=
+        advance_preserves_line_of_ne_break sc '\\' hpeek (by decide) (by decide)
+      have h_adv_col : sc.advance.col = sc.col + 1 :=
+        advance_col_succ_of_peek hpeek (by decide)
+      dsimp only [] at hok
+      split at hok
+      · rename_i c2 hpeek2
+        split at hok
+        · -- escaped break: the fold lands strictly below and the loop never returns
+          rename_i hlb2
+          simp only [bind, Except.bind] at hok
+          split at hok
+          · exact absurd hok (by simp)
+          · rename_i fold_res hfold
+            split at hok
+            · simp at hok
+            · split at hok
+              · simp at hok
+              · exfalso
+                have h1 := foldQuotedNewlines_line_lt hpeek2 hlb2 hfold
+                have h2 := collectDoubleQuotedLoop_line_ge _ _ fuel' startPos inFlow
+                  currentIndent inputEnd _ hok
+                omega
+        · -- regular escape: same line, column only grows
+          simp only [bind, Except.bind] at hok
+          split at hok
+          · exact absurd hok (by simp)
+          · rename_i esc_result hproc
+            have h_esc_line := processEscape_line hproc
+            have h_esc_col := processEscape_col_ge hproc
+            have := ih _ _ _ hok (by rw [h_line, ← h_adv_line, ← h_esc_line])
+            omega
+      · exact absurd hok (by simp)
+    · -- regular character
+      rename_i _opt c hne_dq hne_bs hpeek
+      split at hok
+      · -- line break: same reasoning as the escaped one
+        rename_i hlb
+        simp only [bind, Except.bind] at hok
+        split at hok
+        · exact absurd hok (by simp)
+        · rename_i fold_res hfold
+          split at hok
+          · simp at hok
+          · split at hok
+            · simp at hok
+            · exfalso
+              have h1 := foldQuotedNewlines_line_lt hpeek hlb hfold
+              have h2 := collectDoubleQuotedLoop_line_ge _ _ fuel' startPos inFlow
+                currentIndent inputEnd _ hok
+              omega
+      · split at hok
+        · simp at hok
+        · rename_i hne_lb _
+          have hnb : isLineBreakBool c = false := by simpa using hne_lb
+          have h_a_line := advance_preserves_line_of_ne_break sc c hpeek
+            (by intro hc; rw [hc] at hnb; cases hnb)
+            (by intro hc; rw [hc] at hnb; cases hnb)
+          have h_a_col := advance_col_succ_of_peek hpeek hnb
+          have := ih _ _ _ hok (by rw [h_line, ← h_a_line])
+          omega
+
+/-- `collectSingleQuotedLoop`'s twin of the above. -/
+lemma collectSingleQuotedLoop_col_ge_of_line_eq (sc : ScannerState)
+    (content : String) (fuel : Nat) (startPos : YamlPos) (inFlow : Bool)
+    (currentIndent : Int) (inputEnd : Nat)
+    {result_content : String} {s' : ScannerState}
+    (hok : collectSingleQuotedLoop sc content fuel startPos inFlow currentIndent
+             inputEnd = .ok (result_content, s'))
+    (h_line : s'.line = sc.line) : sc.col ≤ s'.col := by
+  induction fuel generalizing sc content with
+  | zero => simp [collectSingleQuotedLoop] at hok
+  | succ fuel' ih =>
+    unfold collectSingleQuotedLoop at hok
+    split at hok
+    · exact absurd hok (by simp)
+    · -- a quote: escaped pair, or the close
+      rename_i _ hpeek
+      have h_adv_line : sc.advance.line = sc.line :=
+        advance_preserves_line_of_ne_break sc '\'' hpeek (by decide) (by decide)
+      have h_adv_col : sc.advance.col = sc.col + 1 :=
+        advance_col_succ_of_peek hpeek (by decide)
+      dsimp only [] at hok
+      split at hok
+      · -- escaped quote '': two more columns
+        rename_i hpeek2
+        have h_adv2_line : sc.advance.advance.line = sc.advance.line :=
+          advance_preserves_line_of_ne_break sc.advance '\'' hpeek2
+            (by decide) (by decide)
+        have h_adv2_col : sc.advance.advance.col = sc.advance.col + 1 :=
+          advance_col_succ_of_peek hpeek2 (by decide)
+        have := ih _ _ hok (by rw [h_line, ← h_adv_line, ← h_adv2_line])
+        omega
+      · -- closing quote
+        simp only [Except.ok.injEq, Prod.mk.injEq] at hok
+        obtain ⟨-, rfl⟩ := hok
+        omega
+    · -- regular character
+      rename_i _opt c hne_sq hpeek
+      split at hok
+      · -- line break: the fold lands strictly below and the loop never returns
+        rename_i hlb
+        simp only [bind, Except.bind] at hok
+        split at hok
+        · exact absurd hok (by simp)
+        · rename_i fold_res hfold
+          split at hok
+          · simp at hok
+          · split at hok
+            · simp at hok
+            · exfalso
+              have h1 := foldQuotedNewlines_line_lt hpeek hlb hfold
+              have h2 := collectSingleQuotedLoop_line_ge _ _ fuel' startPos inFlow
+                currentIndent inputEnd hok
+              omega
+      · split at hok
+        · simp at hok
+        · rename_i hne_lb _
+          have hnb : isLineBreakBool c = false := by simpa using hne_lb
+          have h_a_line := advance_preserves_line_of_ne_break sc c hpeek
+            (by intro hc; rw [hc] at hnb; cases hnb)
+            (by intro hc; rw [hc] at hnb; cases hnb)
+          have h_a_col := advance_col_succ_of_peek hpeek hnb
+          have := ih _ _ hok (by rw [h_line, ← h_a_line])
+          omega
+
+/-! ## §3b  The per-scan same-line exports -/
+
+/-- **A block-context plain scalar that ends on its entry line only moved the
+    column right.** -/
+lemma scanPlainScalar_sameline_col_ge {s s' : ScannerState}
+    (h_noflow : s.inFlow = false)
+    (hok : scanPlainScalar s = .ok s')
+    (h_line : s'.line = s.line) : s.col ≤ s'.col := by
+  unfold scanPlainScalar at hok
+  simp only [bind, Except.bind, h_noflow, Bool.false_eq_true, ↓reduceIte] at hok
+  split at hok
+  · cases hok
+  · rename_i r h_loop
+    have h_eq := Except.ok.inj hok
+    have h_line' : s'.line = r.state.line := by rw [← h_eq]; rfl
+    have h_col : s'.col = r.state.col := by rw [← h_eq]; rfl
+    rw [h_col]
+    exact collectPlainScalarLoop_col_ge_of_line_eq _ s "" ""
+      ((max 0 (s.currentIndent + 1)).toNat) s.inputEnd r h_loop
+      (by rw [← h_line', h_line])
+
+/-- **A double-quoted scalar that ends on its entry line only moved the
+    column right.** -/
+lemma scanDoubleQuoted_sameline_col_ge {s s' : ScannerState}
+    (h_pk : s.peek? = some '"')
+    (hok : scanDoubleQuoted s = .ok s')
+    (h_line : s'.line = s.line) : s.col ≤ s'.col := by
+  unfold scanDoubleQuoted at hok
+  simp only [bind, Except.bind] at hok
+  split at hok
+  · cases hok
+  · rename_i res h_loop
+    have h_fields : s'.line = res.2.line ∧ s'.col = res.2.col := by
+      split at hok
+      · split at hok
+        · cases hok
+        · exact ⟨by rw [← Except.ok.inj hok]; rfl, by rw [← Except.ok.inj hok]; rfl⟩
+      · exact ⟨by rw [← Except.ok.inj hok]; rfl, by rw [← Except.ok.inj hok]; rfl⟩
+    have h_adv_line : s.advance.line = s.line :=
+      advance_preserves_line_of_ne_break s '"' h_pk (by decide) (by decide)
+    have h_adv_col : s.advance.col = s.col + 1 :=
+      advance_col_succ_of_peek h_pk (by decide)
+    have h_ge := collectDoubleQuotedLoop_col_ge_of_line_eq s.advance "" _
+      s.currentPos s.inFlow s.currentIndent s.inputEnd 0 h_loop
+      (by rw [← h_fields.1, h_line, ← h_adv_line])
+    omega
+
+/-- `scanSingleQuoted`'s twin. -/
+lemma scanSingleQuoted_sameline_col_ge {s s' : ScannerState}
+    (h_pk : s.peek? = some '\'')
+    (hok : scanSingleQuoted s = .ok s')
+    (h_line : s'.line = s.line) : s.col ≤ s'.col := by
+  unfold scanSingleQuoted at hok
+  simp only [bind, Except.bind] at hok
+  split at hok
+  · cases hok
+  · rename_i res h_loop
+    have h_fields : s'.line = res.2.line ∧ s'.col = res.2.col := by
+      split at hok
+      · split at hok
+        · cases hok
+        · exact ⟨by rw [← Except.ok.inj hok]; rfl, by rw [← Except.ok.inj hok]; rfl⟩
+      · exact ⟨by rw [← Except.ok.inj hok]; rfl, by rw [← Except.ok.inj hok]; rfl⟩
+    have h_adv_line : s.advance.line = s.line :=
+      advance_preserves_line_of_ne_break s '\'' h_pk (by decide) (by decide)
+    have h_adv_col : s.advance.col = s.col + 1 :=
+      advance_col_succ_of_peek h_pk (by decide)
+    have h_ge := collectSingleQuotedLoop_col_ge_of_line_eq s.advance "" _
+      s.currentPos s.inFlow s.currentIndent s.inputEnd h_loop
+      (by rw [← h_fields.1, h_line, ← h_adv_line])
+    omega
 
 end L4YAML.Proofs.ScalarWalkColFloor

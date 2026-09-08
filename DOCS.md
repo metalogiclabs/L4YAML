@@ -12611,6 +12611,71 @@ walk, the sibling-column probe, accepted explicit keys, the nested
 flow restore, multiline values), §3 the three export types, §4 runtime
 non-vacuity of the cross-line exits.
 
+### Item 123 (2026-09-08)
+
+**U1-core LANDED and SPENT — the stale-cursor floor is a scanner-wide
+invariant, and item 104's `[197]` pair punt is a refutation.**
+`L4YAML/Proofs/Scanner/StaleCursorFloor.lean` defines
+`StaleKeyCursorFloor`: in block context, a live saved key from an
+earlier line puts the cursor strictly past `currentIndent`.  Its
+preservation is `scanNextToken_preserves_KeysBehindCursor`'s clone,
+paid exactly as item 122 priced it — with the one addition the
+repricing predicted it would need:
+
+* **preprocessing**: a block break-crossing re-arms `simpleKeyAllowed`
+  (`skipToContentLoop`) so `saveSimpleKey` overwrites the key AT the
+  landing (same line — premise refuted); a same-line pass only moves
+  the column right, and under the floor itself the armed unwind has
+  nothing to pop (`unwindIndentsLoop`'s guard is strict);
+* **the walks**: cross-line exits pay via item 122's floors; SAME-LINE
+  exits needed the other half — `ScalarWalkColFloor` §3b's
+  `scan*_sameline_col_ge` (new loop inductions whose break arms close
+  by line contradiction: `handleBlockLineBreak_line_lt` /
+  `foldQuotedNewlines_line_lt` against the loops' own `line_le`/
+  `line_ge`);
+* **the flow closes**: the bracket's dispatch cleared
+  `structural_none_col_gt_of_inFlow`'s floor one column earlier;
+  every flow-interior step is vacuous under the invariant's own
+  block-context premise;
+* **the directive**: `[82] l-directive` is a one-line production —
+  line/indents preservation through its five collect loops and
+  `skipToEndOfLine`, none of which had cursor lemmas before;
+* everything else clears the key or saves fresh on the cursor's line.
+
+**The spend**: `colon_fires_implicit_key`'s stale branch
+(`accum_block_on_pendingContent`/`_BlockContent`'s `:` across no break
+with the key saved on an earlier line) no longer punts on the pair
+`explicitKeyLine = some pos.line ∧ (col : Int) = currentIndent` — the
+floor rides the no-break step (indents carried by
+`preprocess_some_ssl_comments_anyCol`'s conjunct, column mono by the
+surface `s-white*` run) and `omega` refutes the second conjunct, so
+the stale-key `:` is refuted OUTRIGHT on both sides of the pair.  The
+threading is item 81's path verbatim: `h_scf` rides beside `h_kbc`
+from `scan_content_gives_stream_v2`'s seed (`of_cleared` — no key is
+live at `mk'`) through `scanLoop_grammar_prod` (re-established each
+step) down the accum chain.  Zero runtime edits; the change is
+byte-invisible to both pipelines.
+
+Axiom note: unlike item 122's three exports, the invariant's
+preservation depends on `ScalarProduction`'s existing
+`native_decide` char-class facts (via `consumeNewline_line_succ`) —
+the same family the pipeline capstones already carry; no new custom
+axioms.
+
+Guard `Tests/Guards/Proofs/StaleCursorFloorInvariant.lean` (21
+`#guard`s + 6 examples): §1 the invariant's definition as an `rfl` pin
+plus the preservation/preprocess/same-line-column types, §2 the landed
+form as a decidable `scanNextToken` fold over 16 inputs (item 122's
+families plus the multiline-quoted-key `:`s, the directive dispatch and
+a cross-line root flow), §3 the spend's family still refused and the
+accepted readings' event streams, both pipelines.
+
+What U1 leaves behind: nothing — the coupling is landed and spent.
+The under-indent invariant's remaining couplings are U2 (the park-face
+coupling — `KeyPackPunt.noFrame`'s deletion, the every-pending
+threading) and U3 (frames ↔ indent-stack, R4's landing pad), per
+[item 121](#item-121-2026-09-07)'s map.
+
 ### REMAINING, in order
 
 The per-item history is the closure log above; this section lists only the
@@ -12624,7 +12689,7 @@ too (items 47–51), so what stands between here
 and Step 5 (the converse) is R3's remaining production work and R4:
 
 ```
-R1 ✓ (44–46) ──→ R2 ✓ (47–51) ──→ R3 (52–122 landed; 67b's deletion on U2) ──→ Step 5
+R1 ✓ (44–46) ──→ R2 ✓ (47–51) ──→ R3 (52–123 landed; 67b's deletion on U2) ──→ Step 5
                                         └──────→ R4 (implicitContinue + 0 < m) ──┘
 ```
 
