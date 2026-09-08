@@ -13046,6 +13046,14 @@ out, because ruling it out is `ScannerState.WellFormed`'s sixth conjunct and the
 accumulation does not carry it (`WellFormed` is preserved for `advance` and
 `emit` only).  Threading it is its own item, and it is not on U3's critical
 path: the surface inclusion is about non-sentinel entries either way.
+[**DISCHARGED by item 128**, which threaded that conjunct alone through every
+scanner step: the conclusion is an equation with no disjunct now, and
+`preprocess_landing_at_level` takes `IndentStackBase.SentinelBase sc`.  Item 128
+also CORRECTS the parenthetical above — the universal `preserves_wellFormed`
+lemmas cover six state operations, not two, and the STEP is covered by
+`ScannerDispatch` §7's concrete `#guard`s; what the accumulation lacked was a
+universal transport, which is a different thing from an unproven fact.  See
+[Item 128](#item-128-2026-09-08).]
 
 New guard `UnwindLandsAtLevel` (12 `#guard` + 7 `example`): §1 pins each
 marker's SINGLE constructor as a total match and the absorption as the incoming
@@ -13076,6 +13084,89 @@ non-recursive one does not, and dropping the two self-referential levels made
 absent).  **0** direct and **0** transitive `sorry`, **0** custom axioms.  Zero
 runtime files changed, so no event or JSON output can have moved.
 
+### Item 128 (2026-09-08)
+
+**The indent stack's base, threaded.**  Item 127 read a popping landing's column
+off the top entry and had to carry one escape — `s_prep.indents.size ≤ 1`, a
+stack popped to a single entry.  That entry is the sentinel at column `-1`,
+which no landing column equals, so the escape is empty; saying so is
+`ScannerState.WellFormed`'s sixth conjunct.
+
+**A concrete check is not a transport.**  `WellFormed` has had six conjuncts and
+preservation proofs since the P10.10 layer — including
+`pushMappingIndent_preserves_sentinel` and its sequence twin, exactly the facts
+this item needed.  But every UNIVERSAL lemma in that layer is about a state
+OPERATION: `advance`, `emit`, `emitAt`, `saveSimpleKey`, the two pushes, and a
+set of record-update patterns.  `scanNextToken`'s own preservation is
+`ScannerDispatch` §7, which is `#guard`-first by design — 192 concrete guards in
+the guard tree's twin, "check WellFormed after scanNextToken" among them.  Those
+guards are true and they are not a transport: a proof about an arbitrary
+accumulation state cannot spend a check on a concrete state.  So `WellFormed`
+appears nowhere downstream of the scanner, and item 127's escape was a case the
+state's own invariant already ruled out, in a form no proof could reach.
+
+**The price is a WALK, and the walk had two siblings.**
+`ScannerFlowStackPreservation` (1170 lines) and `ScannerEkStackPreservation`
+(1166) already walk every scanner function for `flowStack` and
+`explicitKeyStack`, function by function.  A field walk is field-agnostic
+wherever the field does not move, so the `indents` walk is those two with three
+functions doing something instead of nothing — which is why this landed as one
+file rather than as the multi-item threading its `WellFormed` framing suggested.
+
+**The stack has exactly four writers** — `pushMappingIndent`,
+`pushSequenceIndent`, `unwindIndentsLoop`, and `scanValuePrepare`'s own `push`,
+which pushes directly rather than through either helper — and each keeps index
+0: a push writes past the end, and the unwind's guard stops at size 1, so the
+bottom entry is never the one popped.  Everything else is an `indents` equation.
+`IndentStackBase.lean` is that: `SentinelBase s := s.indents[0]? = some
+{ column := -1, isSequence := false }` (the `getElem?` form carries its own
+non-emptiness), the four writers, the nineteen `_preserves_indents` clones the
+earlier walks did not need (the directive chain, the block-scalar chain,
+`advanceN`, `skipToEndOfLine`, the document-end whites), the six steps that move
+the stack, the five `scanNextToken` stages, the step, and the seed — 41 lemmas
+over 676 lines, standard axioms only.
+
+**The spend.**  `preprocess_landing_at_level` takes `SentinelBase sc` and its
+conclusion loses the disjunct: an accepted popping landing sits AT an open
+level's own column, on an entry the park already held, full stop.
+
+**The escape's family, measured.**  A stack that CAN pop to its base is what an
+indented root leaves behind — `  a: 1` pushes a mapping level at column 2 over
+the sentinel — and every landing to the left of it is `trailingContent` in both
+pipelines, reported at the landing's own column rather than at the level's
+(`  a: 1⏎b: 2`, `  a: 1⏎ b: 2`, `  - x⏎- y`, `  a:⏎    b: 1⏎c: 2`).  Neither a
+comment line nor `...` nor `---` saves it: preprocessing unwinds before any of
+them is dispatched.  The boundary that says the refusal comes from the POP and
+not from the column: `  [1, 2]⏎b: 2` pushes no level at all, scans clean in both
+pipelines, and dies in the parser instead — item 119's M1 family.
+
+**What this does NOT do.**  Thread the base into the accumulation.
+`scanLoop_grammar_prod` carries `KeysBehindCursor` and `StaleKeyCursorFloor`
+because each has a consumer; a premise with none is an unused binder, and the
+build gate is zero warnings.  The seed and the step are the whole of what a
+consumer needs, so the threading lands with U3's spend, beside `h_kbc`/`h_scf`.
+
+New guard `IndentBaseThreaded` (15 `#guard` + 10 `example`): §1 types the
+predicate, its seed, its step, the two consequences and the four writers; §2 is
+the runtime family above; §3 types the landing equation with the escape gone.
+
+**Validation.**  Full `lake build` green (**1113** jobs — 1110 plus the new
+library module and the new guard — ZERO warnings); `run-all-tests.sh`
+**4473/4473** across 17 suites; matrix **402/402** event and **282/282** JSON on
+BOTH pipelines; `eventscore` **347/358**; `check-import-closure.sh` (**226**
+modules, +1), `check-reflection-index.sh` (20/230/249/355) and
+`check-theorem-keyword.sh` (**25** capstones) OK; annotation verifier same **19**
+pre-existing name mismatches with coverage 211/211.  `collect-stats`: tests
+**577** files (+1) / **6293** `#guard`s (+15 exact = the new guard's own);
+proofs **6332** and library **6537** (+41 each = the new file's lemmas); env
+**8293** theorems, which is **+42** — source and environment differ by exactly
+one again, and the one is `SentinelBase.eq_1`, the equation lemma a `def`
+generates (measured: 46 `thmInfo` constants in the new namespace, 4 of them
+internal `._proof_` auxiliaries, 42 public).  Item 127's delta was
+`BlockStack.brecOn`, from an inductive; this one is from a definition.  **0**
+direct and **0** transitive `sorry`, **0** custom axioms.  Zero runtime files
+changed, so no event or JSON output can have moved.
+
 ### REMAINING, in order
 
 The per-item history is the closure log above; this section lists only the
@@ -13092,7 +13183,7 @@ too (items 47–51), so what stands between here
 and Step 5 (the converse) is R3's remaining production work and R4:
 
 ```
-R1 ✓ (44–46) ──→ R2 ✓ (47–51) ──→ R3 (52–127 landed; U2 CLOSED, the collapse gone) ──→ Step 5
+R1 ✓ (44–46) ──→ R2 ✓ (47–51) ──→ R3 (52–128 landed; U2 CLOSED, the collapse gone) ──→ Step 5
                                         └──────→ R4 (implicitContinue + 0 < m) ──┘
 ```
 

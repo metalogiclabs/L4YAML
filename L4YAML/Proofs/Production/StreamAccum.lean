@@ -18,6 +18,7 @@ import L4YAML.Proofs.Scanner.PropsRunLineCoupling
 import L4YAML.Proofs.Scanner.BlockScalarIndentFloor
 import L4YAML.Proofs.Scanner.PreprocessIndentStable
 import L4YAML.Proofs.Scanner.FlowIndentStable
+import L4YAML.Proofs.Scanner.IndentStackBase
 import L4YAML.Proofs.Scanner.StaleCursorFloor
 import L4YAML.Proofs.Scanner.ExplicitKeyCoupling
 import L4YAML.Proofs.Coupling.TabIndentBridge
@@ -4397,17 +4398,19 @@ lemma preprocess_indents_or_underIndent {sc s_prep : ScannerState} {c : Char}
     open mapping level of `sc.indents` is one of the frames — which is an
     accumulation-invariant conjunct no carrier holds today (§0b).
 
-    The one escape is the sentinel: a stack popped to a single entry rests on
-    `{ column := -1 }`, which no landing column equals.  It is named in the
-    conclusion rather than discharged, because ruling it out is
-    `ScannerState.WellFormed`'s sixth conjunct and the accumulation does not
-    carry it. -/
+    **The sentinel escape is DISCHARGED** (item 128; item 127 carried it as a
+    `s_prep.indents.size ≤ 1` disjunct).  A stack popped to a single entry rests
+    on `{ column := -1 }`, so preprocessing's own `col ≤ currentIndent` cannot
+    hold there — but saying so needs `ScannerState.WellFormed`'s sixth conjunct,
+    which the accumulation did not carry.  `IndentStackBase.SentinelBase` is that
+    conjunct alone, threaded through every scanner step, and it is a premise
+    here. -/
 lemma preprocess_landing_at_level {sc s_prep : ScannerState} {c : Char}
     (hok : scanNextToken_preprocess sc = .ok (some (s_prep, c)))
-    (h_pop : s_prep.indents ≠ sc.indents) :
-    s_prep.indents.size ≤ 1 ∨
-      ∃ e, s_prep.indents.back? = some e ∧ e ∈ sc.indents ∧
-        e.column = (s_prep.col : Int) := by
+    (h_pop : s_prep.indents ≠ sc.indents)
+    (h_base : IndentStackBase.SentinelBase sc) :
+    ∃ e, s_prep.indents.back? = some e ∧ e ∈ sc.indents ∧
+      e.column = (s_prep.col : Int) := by
   have h_le : (s_prep.col : Int) ≤ s_prep.currentIndent :=
     (preprocess_indents_or_underIndent hok).resolve_left h_pop
   have h_ge : (s_prep.currentIndent ≤ (s_prep.col : Int) ∧
@@ -4452,8 +4455,7 @@ lemma preprocess_landing_at_level {sc s_prep : ScannerState} {c : Char}
               obtain ⟨h1, h2⟩ := Prod.mk.inj h; subst h1; subst h2
               exact absurd ((saveSimpleKey_preserves_indents s_content).trans h_ci) h_pop
   rcases h_ge with ⟨h_ge, h_mem⟩ | h_small
-  · right
-    have heq : s_prep.currentIndent = (s_prep.col : Int) := Int.le_antisymm h_ge h_le
+  · have heq : s_prep.currentIndent = (s_prep.col : Int) := Int.le_antisymm h_ge h_le
     obtain ⟨e, hb⟩ : ∃ e, s_prep.indents.back? = some e := by
       rcases hb : s_prep.indents.back? with _ | e
       · exfalso
@@ -4464,7 +4466,12 @@ lemma preprocess_landing_at_level {sc s_prep : ScannerState} {c : Char}
     refine ⟨e, hb, h_mem e hb, ?_⟩
     rw [ScannerState.currentIndent, hb] at heq
     exact heq
-  · exact Or.inl h_small
+  · -- Item 128: the stack popped to its base, which sits at `-1` — and
+    -- preprocessing accepted a landing at or right of it.
+    exfalso
+    rw [(IndentStackBase.preprocess_base hok h_base).currentIndent_of_size_le_one
+      h_small] at h_le
+    omega
 
 /-- **The landing read at a GIVEN index** (item 45).  The n-generic twin of
     `preprocess_some_separate_0_anyCol`: a step that crossed no break reads

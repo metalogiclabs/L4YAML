@@ -76,7 +76,11 @@ carrier, consumer, and price:
   level of `sc.indents` is one of the frames".  It also found the carrier
   a reader would reach for to be empty: `BlockStack`, documented as the
   mirror of the indent stack, has no producer for either level and its
-  `col` was never read — deleted, guard `UnwindLandsAtLevel`.]
+  `col` was never read — deleted, guard `UnwindLandsAtLevel`.  Item 128
+  discharged that reading's one escape (a stack popped to the sentinel):
+  `IndentStackBase.SentinelBase` carries `WellFormed`'s sixth conjunct
+  through every scanner step, so the landing is an equation outright —
+  guard `IndentBaseThreaded`.]
 
 Order: U1 (self-contained — CLOSED by items 122+123), then U2 (unblocks
 `noFrame` → shrinks the `pendingFlow` feed → 67b's deletion with

@@ -80,14 +80,17 @@ example (s : ScannerState) (col : Int) (e : IndentEntry)
   unwindIndents_back_mem s col e h
 
 /-- The two inequalities together: an accepted popping landing is AT an open
-    level's own column, and that level is one the park already held. -/
+    level's own column, and that level is one the park already held.  (Item 128
+    DISCHARGED the sentinel escape this conclusion used to carry as a
+    `s_prep.indents.size ≤ 1` disjunct — the premise below is the scanner-wide
+    base it needed; see `IndentBaseThreaded`.) -/
 example {sc s_prep : ScannerState} {c : Char}
     (hok : scanNextToken_preprocess sc = .ok (some (s_prep, c)))
-    (h_pop : s_prep.indents ≠ sc.indents) :
-    s_prep.indents.size ≤ 1 ∨
-      ∃ e, s_prep.indents.back? = some e ∧ e ∈ sc.indents ∧
-        e.column = (s_prep.col : Int) :=
-  preprocess_landing_at_level hok h_pop
+    (h_pop : s_prep.indents ≠ sc.indents)
+    (h_base : L4YAML.Proofs.IndentStackBase.SentinelBase sc) :
+    ∃ e, s_prep.indents.back? = some e ∧ e ∈ sc.indents ∧
+      e.column = (s_prep.col : Int) :=
+  preprocess_landing_at_level hok h_pop h_base
 
 /-- …and §8.2.1 says the level is a MAPPING level: a key at an open SEQUENCE
     level's own column does not validate. -/
