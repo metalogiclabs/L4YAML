@@ -71,7 +71,15 @@ example {sc s_prep : ScannerState} {c : Char} {sp_start sp_scan sp_prep : SurfPo
         ∀ sp_e : SurfPos, SCompactMapTail k sp_v sp_e →
         ∀ sp_i sp_c : SurfPos, SIndent nv sp_e sp_i → GLit ':' sp_i sp_c →
         ∀ sp_w : SurfPos, SBlockIndented nv .blockOut sp_c sp_w →
-        SLYamlStream sp_start sp_w) ∨ True)) ∨ True :=
+        SLYamlStream sp_start sp_w) ∨ True) ∧
+      ((∃ ks : List Nat, (∀ k' ∈ ks, k' < k) ∧
+        ∀ sp_v : SurfPos, SBlockMapEntry k sp_key sp_v →
+        ∀ sp_e : SurfPos, SCompactMapTail k sp_v sp_e →
+        ResumeFrames (SLYamlStream sp_start) ks sp_e) ∨ True) ∧
+      ((∃ (nv : Nat) (ks : List Nat), (∀ k' ∈ ks, k' < k) ∧
+        ∀ sp_v : SurfPos, SBlockMapEntry k sp_key sp_v →
+        ∀ sp_e : SurfPos, SCompactMapTail k sp_v sp_e →
+        ResumeFrames (ExplValueLine sp_start nv) ks sp_e) ∨ True)) ∨ True :=
   flowKeyRoute_of_root (m := 0) (Or.inr trivial) h_noflow h_park h_close h_corr
     hcorr_prep h_preprocess (Or.inr trivial)
 
@@ -98,7 +106,15 @@ example {n : Nat} {sc s_prep : ScannerState} {c : Char}
         ∀ sp_e : SurfPos, SCompactMapTail k sp_v sp_e →
         ∀ sp_i sp_c : SurfPos, SIndent nv sp_e sp_i → GLit ':' sp_i sp_c →
         ∀ sp_w : SurfPos, SBlockIndented nv .blockOut sp_c sp_w →
-        SLYamlStream sp_start sp_w) ∨ True)) ∨ True :=
+        SLYamlStream sp_start sp_w) ∨ True) ∧
+      ((∃ ks : List Nat, (∀ k' ∈ ks, k' < k) ∧
+        ∀ sp_v : SurfPos, SBlockMapEntry k sp_key sp_v →
+        ∀ sp_e : SurfPos, SCompactMapTail k sp_v sp_e →
+        ResumeFrames (SLYamlStream sp_start) ks sp_e) ∨ True) ∧
+      ((∃ (nv : Nat) (ks : List Nat), (∀ k' ∈ ks, k' < k) ∧
+        ∀ sp_v : SurfPos, SBlockMapEntry k sp_key sp_v →
+        ∀ sp_e : SurfPos, SCompactMapTail k sp_v sp_e →
+        ResumeFrames (ExplValueLine sp_start nv) ks sp_e) ∨ True)) ∨ True :=
   flowKeyRoute_of_open (m := 0) h_node (Or.inl ⟨h_compact, h_col⟩) (Or.inr trivial) h_noflow
     (Or.inl h_sk) h_corr hcorr_prep h_preprocess
 
@@ -120,7 +136,8 @@ example {sc : ScannerState} {kc : Nat} {sp_start sp_br sp_tok sp_key : SurfPos}
     (h_content : SFlowContent 0 .flowOut sp_br sp_tok) :
     sc.simpleKey.possible = true → sc.simpleKey.pos.line = sc.line →
       ImplicitKeyPack sc sp_start sp_tok ∨ KeyPackPunt sc :=
-  flowKeyPack_of_close (Or.inl ⟨kc, sp_key, route, head, rfl, Or.inr trivial⟩)
+  flowKeyPack_of_close (Or.inl ⟨kc, sp_key, route, head, rfl, Or.inr trivial,
+      Or.inr trivial, Or.inr trivial⟩)
     ⟨h_kc, Or.inr trivial⟩ h_park h_content
 
 /-! ## §4  The two funders, measured at every depth-0 open

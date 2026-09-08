@@ -11607,7 +11607,8 @@ derives that reading.
 One boundary surfaced in the flow open's props arm (item 96's rider):
 `FlowBaseRoutes.key` carries the value-line pair only, so that arm DROPS the
 twins at the frame — recorded in place; widening the flow frame's rider is
-67b's carrier work (`&p [1]: b` at a resumed landing).
+67b's carrier work (`&p [1]: b` at a resumed landing).  (PAID by item 120 —
+the frame carries the twins and the close hands them on.)
 
 **Boundaries, both machine-checked as refusals**: a width that names no open
 level is `trailingContent` at the props head too (`k:⏎  - a⏎ &p b: 2`), and a
@@ -11916,8 +11917,8 @@ props-VALUE completions behind the ROUTED producers' punts are refused
   resume twins (`?⏎  &p a: b⏎  c: d⏎: - w` — item 111's second residue:
   `entryKeyPack`'s four threaded premises transposed to props).  (CLOSED by
   item 115.)
-* The flow OPEN's props arm still drops the twins at `FlowBaseRoutes.key`
-  (67b's carrier).
+* ~~The flow OPEN's props arm still drops the twins at `FlowBaseRoutes.key`
+  (67b's carrier)~~ — PAID by item 120 (the flow frame's resume rider).
 * The "no document started" carrier and the CONSTRUCTOR (item 110: LAST).
   (The carrier PAID by item 116 — `noPending.h_nodoc`; the constructor
   remains last.)
@@ -11999,8 +12000,8 @@ not a key — identically on the implicit side.
 #### Not closed
 
 * The compact branch's twins (item 99's residue, both packs).
-* The flow OPEN's props arm still drops the twins at `FlowBaseRoutes.key`
-  (67b's carrier).
+* ~~The flow OPEN's props arm still drops the twins at `FlowBaseRoutes.key`
+  (67b's carrier)~~ — PAID by item 120 (the flow frame's resume rider).
 * The "no document started" carrier and the CONSTRUCTOR (item 110: LAST).
   (The carrier PAID by item 116 — `noPending.h_nodoc`; the constructor
   remains last.)
@@ -12428,6 +12429,66 @@ accept, both pipelines refuse — the pins each landing must flip), §5 the
 neighbors the scanner already refuses, §6 the valid boundary each
 mechanism must not cross, §7–§8 the two oddities above.  Zero library
 edits; the runtime is untouched.
+
+### Item 120 (2026-09-07)
+
+**The flow frame's resume rider — 67b's committable piece — and the
+deletion proper measured still blocked.**  Item 111 gave `PropsKeyPack`
+the two resume twins and named the one boundary that dropped them: the
+flow open's props arm, where `FlowBaseRoutes.key` carried the value-line
+pair only.  A props-headed flow KEY at a resumed landing (`&p [1]: b` —
+the props head is what clears §8.1; the bare flow key at an open level's
+own column is refused as `flow content under-indented`, pinned) lost its
+context's holdings across the collection.
+
+**The rider**: `FlowBaseRoutes.key` gains the two twins beside the pair
+(items 99/108's shapes at the key's own entry); the props arm passes its
+pack's own through — the pack's `(k, sp_p)` domain IS the frame's
+`(k, sp_key)`, so the hand-off is verbatim; and `flowKeyPack_of_close`
+hands them into the pack it builds, replacing the two `Or.inr trivial`s
+items 99/108 had left there.  `flowKeyRoute_of_root` /
+`flowKeyRoute_of_open` punt the new conjuncts (their routes end in the
+closed stream, and the §8.1 refusal above leaves their families no
+accepted input) — the recorded residue.  Zero new lemmas, zero runtime
+edits; the module built FIRST-TRY, and the workspace caught exactly the
+expected pin breaks (`FlowOpenParkArm` ×3, `MaskBaseColumn`,
+`FlowStackIndexParametric` — the route lemmas' and the close's stated
+types gain the conjuncts).
+
+**Consumed**: `k:⏎  m:⏎    - a⏎  &p [1]: b` (the props-flow key at the
+resumed level), its deep-value twin `…&p [1]:⏎    x: 1⏎  n: 2` (the
+99-twin's pop), the following-sibling shape, and the `?`-frame twin
+`?⏎  &p [1]: b⏎: - w` (the 108 twin) — all pinned with exact event
+streams in the new guard `Tests/Guards/Proofs/FlowFrameResumeRider.lean`
+(7 `#guard`s + the rider at its types: the widened key through
+`flowKeyPack_of_close` into a full pack, and the paid key as a valid
+`FlowBaseRoutes`).
+
+**The deletion proper stays blocked, measured**: the three
+`block_dispatch_deferred` applications (`:13836`, `:14307`, `:20822`
+after this item's shifts), one `dropClose` use (`:7802`), two
+`scannerDrop` (`:3348`, `:3393`) all stand; the two inline-residue defer
+sites still produce `pendingFlow` off `KeyPackPunt`'s surviving reasons —
+`dedent` (R4's landing pad by design) and the two reasons with NO named
+input (`noFrame`, `noKeyContext`), whose constructors' deletion is the
+under-indent invariant's spend (items 101/104/105's measured chain).  So
+the rest of 67b — the constructor, `scannerDrop`, `dropClose`,
+`FlowStackB.shape`, `close_with_ssl`'s arm — waits on that item.
+
+#### Validation
+
+Full `lake build` green (**1096 jobs**, zero warnings — 1095 at item 119
+plus this item's guard; the module built first-try);
+`run-all-tests.sh` **4473/4473 across 17 suites**; matrix **402/402
+event and 282/282 JSON on BOTH pipelines**; `eventscore` **347/358**;
+three checkers OK (222 / 20·229·248·354 / 25); the annotation verifier's
+same **19** pre-existing name mismatches.  `#print axioms`:
+`flowKeyPack_of_close` and both route lemmas keep `[propext,
+Classical.choice, Quot.sound]`, `FlowBaseRoutes.ofValue` `[propext]`;
+no `sorryAx`.  Zero new lemmas, so the library/proofs counts are
+unmoved (6355 / 6150, confirmed against the item-119 artifact); this
+item adds one guard file (+7 `#guard`s).  Escape-site counts UNMOVED
+(the §4 list above).
 
 ### REMAINING, in order
 

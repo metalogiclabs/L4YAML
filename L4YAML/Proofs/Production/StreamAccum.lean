@@ -676,7 +676,16 @@ lemma flowKeyPack_of_close {sc : ScannerState} {n kc : Nat} {sp_start sp_br sp_t
         ∀ sp_e : SurfPos, SCompactMapTail k sp_v sp_e →
         ∀ sp_i sp_c : SurfPos, SIndent nv sp_e sp_i → GLit ':' sp_i sp_c →
         ∀ sp_w : SurfPos, SBlockIndented nv .blockOut sp_c sp_w →
-        SLYamlStream sp_start sp_w) ∨ True)) ∨ True)
+        SLYamlStream sp_start sp_w) ∨ True) ∧
+      -- Item 120: the resume twins ride the frame beside the pair.
+      ((∃ ks : List Nat, (∀ k' ∈ ks, k' < k) ∧
+        ∀ sp_v : SurfPos, SBlockMapEntry k sp_key sp_v →
+        ∀ sp_e : SurfPos, SCompactMapTail k sp_v sp_e →
+        ResumeFrames (SLYamlStream sp_start) ks sp_e) ∨ True) ∧
+      ((∃ (nv : Nat) (ks : List Nat), (∀ k' ∈ ks, k' < k) ∧
+        ∀ sp_v : SurfPos, SBlockMapEntry k sp_key sp_v →
+        ∀ sp_e : SurfPos, SCompactMapTail k sp_v sp_e →
+        ResumeFrames (ExplValueLine sp_start nv) ks sp_e) ∨ True)) ∨ True)
     -- Item 103: the close's own reading of the base slot, both halves at once
     -- (`close_col_of_base`) — the column the pack carries and the stamp the
     -- punt names.
@@ -694,17 +703,15 @@ lemma flowKeyPack_of_close {sc : ScannerState} {n kc : Nat} {sp_start sp_br sp_t
     cases h_stamp with
     | inl h => exact KeyPackPunt.implicitValue (by rw [h, h_kline]) h_kline h_park
     | inr _ => exact KeyPackPunt.noKeyContext
-  rcases h_key with ⟨k, sp_key, route, head, hkcol, h_pair⟩ | _
+  rcases h_key with ⟨k, sp_key, route, head, hkcol, h_pair, h_tw99, h_tw108⟩ | _
   · rcases head sp_tok h_content with h_head | _
     -- Item 96: the frame carries the value-line pair now, and it passes
     -- through verbatim — the pack's twin is the frame's own.
+    -- Item 120: and the resume twins ride the same way, so the pack a
+    -- props-headed flow key hands the landed `:` keeps its context's
+    -- holdings across the collection.
     · exact Or.inl ⟨k, sp_key, sp_tok, route, h_head, GStar.nil _, h_kc.trans hkcol,
-        h_pair,
-        -- Item 99: a flow frame's key route is fused below its own level —
-        -- a dedent under a mapping this key opens stays a named residue.
-        Or.inr trivial,
-        -- Item 108: and fused below is fused for the value line too.
-        Or.inr trivial⟩
+        h_pair, h_tw99, h_tw108⟩
     · exact Or.inr punt
   · exact Or.inr punt
 
@@ -2960,7 +2967,22 @@ structure FlowBaseRoutes (sp_start : SurfPos) (n : Nat) (sp_br : SurfPos)
       ∀ sp_e : SurfPos, SCompactMapTail k sp_v sp_e →
       ∀ sp_i sp_c : SurfPos, SIndent nv sp_e sp_i → GLit ':' sp_i sp_c →
       ∀ sp_w : SurfPos, SBlockIndented nv .blockOut sp_c sp_w →
-      SLYamlStream sp_start sp_w) ∨ True)) ∨ True
+      SLYamlStream sp_start sp_w) ∨ True) ∧
+    -- Item 120: the route's two RESUME twins (items 99/108's shapes at the
+    -- key's own entry), riding beside the pair for the same reason — the
+    -- close's pack hands them on, which is what lets a park opened off a
+    -- flow-keyed entry at a RESUMED landing give its own dedent landing
+    -- somewhere (`k:⏎  m:⏎    - a⏎  &p [1]:⏎    x: 1⏎  n: 2` pops to the
+    -- resumed level).  Producers whose enclosing levels are already fused
+    -- pass `Or.inr trivial`; the props arm passes its pack's own.
+    ((∃ ks : List Nat, (∀ k' ∈ ks, k' < k) ∧
+      ∀ sp_v : SurfPos, SBlockMapEntry k sp_key sp_v →
+      ∀ sp_e : SurfPos, SCompactMapTail k sp_v sp_e →
+      ResumeFrames (SLYamlStream sp_start) ks sp_e) ∨ True) ∧
+    ((∃ (nv : Nat) (ks : List Nat), (∀ k' ∈ ks, k' < k) ∧
+      ∀ sp_v : SurfPos, SBlockMapEntry k sp_key sp_v →
+      ∀ sp_e : SurfPos, SCompactMapTail k sp_v sp_e →
+      ResumeFrames (ExplValueLine sp_start nv) ks sp_e) ∨ True)) ∨ True
   vslot : (∃ nv : Nat, ∀ sp_end, SFlowContent n .flowOut sp_br sp_end →
     ∀ sp_mid sp_i sp_c, SSLComments sp_end sp_mid → SIndent nv sp_mid sp_i →
       GLit ':' sp_i sp_c → ∀ sp_v, SBlockIndented nv .blockOut sp_c sp_v →
@@ -6805,7 +6827,20 @@ lemma flowKeyRoute_of_open {n m : Nat} {cc : YamlContext}
         ∀ sp_e : SurfPos, SCompactMapTail k sp_v sp_e →
         ∀ sp_i sp_c : SurfPos, SIndent nv sp_e sp_i → GLit ':' sp_i sp_c →
         ∀ sp_w : SurfPos, SBlockIndented nv .blockOut sp_c sp_w →
-        SLYamlStream sp_start sp_w) ∨ True)) ∨ True := by
+        SLYamlStream sp_start sp_w) ∨ True) ∧
+      -- Item 120: the resume twins (the frame's rider).  Both arms' routes
+      -- end in the closed stream (`valueMapRoute`/`compactMapRoute`), so the
+      -- entry-level resume faces stay punts here — the recorded residue,
+      -- gated on an accepted input (the parked-entry flow key at a resumed
+      -- landing rides the PROPS arm, which pays from its own pack).
+      ((∃ ks : List Nat, (∀ k' ∈ ks, k' < k) ∧
+        ∀ sp_v : SurfPos, SBlockMapEntry k sp_key sp_v →
+        ∀ sp_e : SurfPos, SCompactMapTail k sp_v sp_e →
+        ResumeFrames (SLYamlStream sp_start) ks sp_e) ∨ True) ∧
+      ((∃ (nv : Nat) (ks : List Nat), (∀ k' ∈ ks, k' < k) ∧
+        ∀ sp_v : SurfPos, SBlockMapEntry k sp_key sp_v →
+        ∀ sp_e : SurfPos, SCompactMapTail k sp_v sp_e →
+        ResumeFrames (ExplValueLine sp_start nv) ks sp_e) ∨ True)) ∨ True := by
   obtain ⟨sp_mid, sp_ws, sp_prep2, h_disj, h_ws, _h_cmt, hcorr_prep2, h_pk, _⟩ :=
     preprocess_some_ssl_comments_anyCol sc sp_scan s_prep c h_corr h_preprocess
   have h_pe : sp_prep = sp_ws := by
@@ -6827,7 +6862,7 @@ lemma flowKeyRoute_of_open {n m : Nat} {cc : YamlContext}
         -- entry nests as `[199]`/`[187]` under the awaited node, which is the
         -- landed-nesting residue (item 93's boundary), not the compact kind's.
         refine Or.inl ⟨w, sp_prep, valueMapRoute hnw h_node h_land.1 h_ind', flowKeyHead, ?_,
-          Or.inr trivial⟩
+          Or.inr trivial, Or.inr trivial, Or.inr trivial⟩
         rw [landing_or_park_save h_noflow h_land.2.2 h_park h_preprocess,
           ← hcorr_prep.col_eq]
         have := SIndent_col' h_ind'
@@ -6853,7 +6888,7 @@ lemma flowKeyRoute_of_open {n m : Nat} {cc : YamlContext}
           -- `[195] ns-l-compact-mapping` (`compactMapRoute`'s own wrap, tail
           -- kept), and the slot's twin reads the value line off it.
           refine Or.inl ⟨n + 1 + w, sp_prep, compactMapRoute h_cp.1 h_ind', flowKeyHead,
-            h_col_eq, ?_⟩
+            h_col_eq, ?_, Or.inr trivial, Or.inr trivial⟩
           cases h_compact_pair with
           | inr _ => exact Or.inr trivial
           | inl h_pr =>
@@ -6904,7 +6939,19 @@ lemma flowKeyRoute_of_root {m : Nat} {sp_start sp_scan sp_prep : SurfPos}
         ∀ sp_e : SurfPos, SCompactMapTail k sp_v sp_e →
         ∀ sp_i sp_c : SurfPos, SIndent nv sp_e sp_i → GLit ':' sp_i sp_c →
         ∀ sp_w : SurfPos, SBlockIndented nv .blockOut sp_c sp_w →
-        SLYamlStream sp_start sp_w) ∨ True)) ∨ True := by
+        SLYamlStream sp_start sp_w) ∨ True) ∧
+      -- Item 120: the resume twins (the frame's rider) — the ROOT's levels
+      -- are the stream itself, so both arms punt; paying `ks = []` here is
+      -- the recorded residue, gated on an accepted input that needs it (the
+      -- bare flow key at a level's own column is §8.1-refused).
+      ((∃ ks : List Nat, (∀ k' ∈ ks, k' < k) ∧
+        ∀ sp_v : SurfPos, SBlockMapEntry k sp_key sp_v →
+        ∀ sp_e : SurfPos, SCompactMapTail k sp_v sp_e →
+        ResumeFrames (SLYamlStream sp_start) ks sp_e) ∨ True) ∧
+      ((∃ (nv : Nat) (ks : List Nat), (∀ k' ∈ ks, k' < k) ∧
+        ∀ sp_v : SurfPos, SBlockMapEntry k sp_key sp_v →
+        ∀ sp_e : SurfPos, SCompactMapTail k sp_v sp_e →
+        ResumeFrames (ExplValueLine sp_start nv) ks sp_e) ∨ True)) ∨ True := by
   obtain ⟨sp_mid, sp_ws, sp_prep2, h_disj, h_ws, _h_cmt, hcorr_prep2, h_pk, _⟩ :=
     preprocess_some_ssl_comments_anyCol sc sp_scan s_prep c h_corr h_preprocess
   have h_pe : sp_prep = sp_ws := by
@@ -6926,7 +6973,7 @@ lemma flowKeyRoute_of_root {m : Nat} {sp_start sp_scan sp_prep : SurfPos}
          | Or.inl sfx => suffixMapRoute h_land.2.1 (sfx sp_mid h_land.1) h_ind'
          | Or.inr _ => rootMapRoute h_land.2.1 (h_close sp_mid h_land.1) h_ind'),
         flowKeyHead, ?_,
-        Or.inr trivial⟩
+        Or.inr trivial, Or.inr trivial, Or.inr trivial⟩
       rw [landing_or_park_save h_noflow h_land.2.2 h_park h_preprocess,
         ← hcorr_prep.col_eq]
       have := SIndent_col' h_ind'
@@ -6943,7 +6990,7 @@ lemma flowKeyRoute_of_root {m : Nat} {sp_start sp_scan sp_prep : SurfPos}
         have h_ind' : SIndent w sp_scan sp_prep := by rw [h_pe, ← h_mid.1]; exact h_ind
         refine Or.inl ⟨w, sp_prep,
           rootMapRoute h_col0 (h_close sp_scan (sslComments_refl_of_col0 h_col0)) h_ind',
-          flowKeyHead, ?_, Or.inr trivial⟩
+          flowKeyHead, ?_, Or.inr trivial, Or.inr trivial, Or.inr trivial⟩
         rw [(preprocess_saved_key_col h_sk h_noflow h_preprocess).2, ← hcorr_prep.col_eq]
         have := SIndent_col' h_ind'
         rw [h_col0] at this
@@ -7874,12 +7921,14 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
                -- `FlowBaseRoutes.key` carries it as the route's own third
                -- rider, so the close's pack hands it on verbatim
                -- (`? &p [1]: b⏎: - w`).
-               -- Item 111: the pack's resume twins are DROPPED at this
-               -- boundary — `FlowBaseRoutes.key` carries the value-line pair
-               -- only, and widening the flow frame's rider is 67b's carrier
-               -- work, not this item's (`&p [1]: b` at a resumed landing).
+               -- Item 111 dropped the pack's resume twins at this boundary;
+               -- item 120 widened `FlowBaseRoutes.key` (the flow frame's
+               -- rider, 67b's carrier), so they ride through now — the
+               -- props-headed flow key at a RESUMED landing keeps its
+               -- context's holdings across the collection
+               -- (`k:⏎  m:⏎    - a⏎  &p [1]:⏎    x: 1⏎  n: 2`).
                (match h_pkey, h_inherit_col with
-                | Or.inl ⟨⟨k, route, h_kcol_p, h_pair_p, _, _⟩, h_props, _⟩, Or.inl h_inh =>
+                | Or.inl ⟨⟨k, route, h_kcol_p, h_pair_p, h_tw99p, h_tw108p⟩, h_props, _⟩, Or.inl h_inh =>
                     have h_col_p : s_prep.simpleKey.pos.col = k := h_inh.trans h_kcol_p
                     Or.inl ⟨k, sp_p, route,
                     fun sp_end h_content =>
@@ -7889,7 +7938,7 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
                             (SFlowNode.propsContent 0 .blockKey sp_p sp_scan sp_prep sp_end
                               h_props h_sep' h_content'))
                       | _, _ => Or.inr trivial,
-                    h_col_p, h_pair_p⟩
+                    h_col_p, h_pair_p, h_tw99p, h_tw108p⟩
                 | _, _ => Or.inr trivial),
                -- Item 96: the run's value line — the collection completes the
                -- props-headed KEY of an open `[188]` entry and the landed `:`

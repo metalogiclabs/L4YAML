@@ -103,6 +103,7 @@ import Tests.Guards.Proofs.ScannerNoDocStartedCarrier
 import Tests.Guards.Proofs.ScannerSuffixRunCarrier
 import Tests.Guards.Proofs.ScannerSuffixCollectionLanding
 import Tests.Guards.Proofs.ScannerRaisedFlagRefusalMap
+import Tests.Guards.Proofs.FlowFrameResumeRider
 import Tests.Guards.Proofs.ScannerExplicitKeyScope
 import Tests.Guards.Proofs.ScannerImplicitKeyCompose
 import Tests.Guards.Proofs.ScannerPlainNoGainRewind
