@@ -39,23 +39,24 @@ import L4YAML.Proofs.Production.FlowKeyLift
 
     Additionally, block collections (`SBlockSeqEntries`, `SBlockMapEntries`) span
     multiple `scanNextToken` calls. A block sequence `- a\n- b` involves ≥4 tokens.
-    The scanner tracks this via an indent stack; the grammar needs a corresponding
-    `BlockStack`.
+    The scanner tracks this via an indent stack; the grammar tracks it on the
+    PENDING, as the levels' own continuations (`ResumeFrames`, §0) rather than as
+    a stack of witnesses beside the stream.
 
     The fix: a **four-component state** (the "lagging quad"):
 
         ∀ token step:
           SLYamlStream sp_start sp_gram  ∧      -- grammar up to here
-          BlockStack sp_gram sp_block    ∧      -- nested block collections
+          BlockStack sp_gram sp_block    ∧      -- position marker (§0b)
           PendingNode sc false sp_start sp_block sp_scan   ∧    -- immediate pending state
           ScannerSurfCorr sc sp_scan            -- scanner ahead
 
     At each step:
     1. Preprocessing of token N+1 provides `SSLComments` to close token N
-    2. `unwindIndents` may pop `BlockStack` levels (forming `SBlockNode`)
-    3. `pushSequenceIndent`/`pushMappingIndent` may push `BlockStack` levels
-    4. Content dispatch of token N+1 opens a new `PendingNode`
-    At EOF, the final `BlockStack` is fully unwound and `PendingNode` closed.
+    2. The landing's own width decides which of the pending's frames resume
+       (`ResumeFrames.resumeAt`) and which close (`ResumeFrames.close`)
+    3. Content dispatch of token N+1 opens a new `PendingNode`
+    At EOF, the frames close and the `PendingNode` closes with them.
 
     ## Sorry narrowing
 
@@ -95,7 +96,7 @@ open L4YAML.Proofs.PropsRunLineCoupling
 
 /-! ## §0a PendingNode — Immediate Pending State
 
-    Tracks the gap between the `BlockStack` top (`sp_block`) and the scanner
+    Tracks the gap between the block marker (`sp_block`, §0b) and the scanner
     position (`sp_scan`). This gap contains the most recent token's characters
     that haven't yet been incorporated into either a block collection entry
     or a standalone grammar production.
@@ -1279,7 +1280,7 @@ inductive PendingNode (sc : ScannerState) : Bool → SurfPos → SurfPos → Sur
       PendingNode sc false sp_start sp_block sp_scan
   /-- Block indicator scanned (`-`, `?`, `:`).
       The gap sp_block → sp_scan contains the indicator character.
-      The block nesting is tracked separately by `BlockStack`.
+      The block nesting is tracked separately, on the pending's frames.
       `h_close` takes the entry CONTENT as `[185] s-l+block-indented` and
       produces the stream. For empty entries (no content follows), the caller
       provides `SBlockIndented.empty ... h_ssl`; for content entries, it
@@ -1587,99 +1588,46 @@ lemma props_couplings_of_push {s_ad s' : ScannerState} {tok : YamlToken}
   rw [h_tokens, h_line]
   exact trailingPropertyRunOnLine_push_head h_ph h_np rfl hf
 
-/-! ## §0b BlockStack — Nested Block Collection Accumulator
+/-! ## §0b BlockStack and FlowStack — the two position-identity markers
 
-    Tracks partially-accumulated block collections being built across
-    multiple `scanNextToken` calls. Mirrors the scanner's indent stack
-    (minus the sentinel entry at column -1).
+    Two links of the position chain
+    `SLYamlStream → BlockStack → FlowStack → PendingNode → ScannerSurfCorr`,
+    each with `nil` as its only constructor: `BlockStack sp_gram sp_block` and
+    `FlowStack sp_block sp_flow` say that the three positions coincide.
 
-    Each level records:
-    - `col`: The column where this block collection starts (matching
-      scanner's `IndentEntry.column`)
-    - Whether it's a sequence or mapping (matching `IndentEntry.isSequence`)
-    - Position boundaries for this nesting level's character coverage
+    **Where the block nesting is.**  Not here.  The open block levels a landing
+    resumes ride the PENDING, as `ResumeFrames` (§0's resume frames): a list of
+    still-open mapping widths, each held as its entries-level continuation, with
+    the levels' own grammar closed inside the closure rather than stated as a
+    stack of witnesses.  That is the stack the dedent landing pops
+    (`ResumeFrames.resumeAt`) and the one a scanner coupling would have to
+    measure against `sc.indents`.  A `BlockStack` level, by contrast, has no
+    producer at all: the deletion of its `seqLevel`/`mapLevel` constructors
+    raised four errors, all of them match arms in the two absorptions below, and
+    both matches are total on `nil` alone (item 127).
 
-    The actual grammar types are:
-    - `SBlockSeqEntries n` (`single | cons`): entries for block sequences
-    - `SBlockMapEntries n` (`single | cons`): entries for block mappings
-    - `SBlockNode.blockSeq`: wraps `SBlockSeqEntries` with `GOpt props + SSLComments`
-    - `SBlockNode.blockMap`: wraps `SBlockMapEntries` with `GOpt props + SSLComments`
-
-    **Protocol (mirrors scanner's indent stack operations):**
-
-    - **Push** (`pushSequenceIndent`/`pushMappingIndent`): When `col > currentIndent`,
-      a new indent entry is pushed and `.blockSequenceStart`/`.blockMappingStart`
-      is emitted. `BlockStack` gets a corresponding `.seqLevel`/`.mapLevel`.
-
-    - **Pop** (`unwindIndents` in preprocessing): When content moves to a lower
-      column, indent entries are popped and `.blockEnd` tokens emitted. Each pop
-      finalizes the block collection into `SBlockNode.blockSeq`/`.blockMap`,
-      potentially extending `SLYamlStream`.
-
-    - **Same-level entry** (e.g., second `-` at same indent): The current level's
-      accumulated entries grow by one (`SBlockSeqEntries.cons` / `SBlockMapEntries.cons`).
-      No push/pop occurs.
-
-    Each `seqLevel`/`mapLevel` carries a compositional closure
-    `h_closable` that can extend the stream from the stack's outer
-    boundary (`sp`) through all accumulated block content to the
-    level's top (`sp'`). This avoids requiring explicit grammar
-    witnesses (`SBlockSeqEntries`, `SBlockMapEntries`) at this stage —
-    those are constructed inside the closure when the closure is
-    provided (future work). -/
+    **Where the flow nesting is.**  Also not here: `FlowStackB` carries the open
+    flow collections (`FlowOpenStack` at positive depth), and the flow
+    indicators themselves ride `PendingNode.pendingFlow`, composed at
+    consumption time by `close_with_ssl`. -/
 
 inductive BlockStack : SurfPos → SurfPos → Prop where
   /-- No active block collections. At document level or stream start. -/
   | nil (sp : SurfPos) : BlockStack sp sp
-  /-- Block sequence being accumulated at column `col`.
-      Outer stack covers sp → sp_mid. This level's character coverage
-      is sp_mid → sp'. Entries will form `SBlockSeqEntries (seqSpaces n c)`
-      where `n` is determined by `col`.
-      `h_closable`: given any stream ending at `sp`, extends it to `sp'`
-      by incorporating the inner stack + this level's accumulated entries. -/
-  | seqLevel (col : Int) (sp sp_mid sp' : SurfPos) :
-      BlockStack sp sp_mid →
-      (∀ (sp_start : SurfPos), SLYamlStream sp_start sp → SLYamlStream sp_start sp') →
-      BlockStack sp sp'
-  /-- Block mapping being accumulated at column `col`.
-      Entries will form `SBlockMapEntries n`.
-      `h_closable`: given any stream ending at `sp`, extends it to `sp'`
-      by incorporating the inner stack + this level's accumulated entries. -/
-  | mapLevel (col : Int) (sp sp_mid sp' : SurfPos) :
-      BlockStack sp sp_mid →
-      (∀ (sp_start : SurfPos), SLYamlStream sp_start sp → SLYamlStream sp_start sp') →
-      BlockStack sp sp'
-
-/-! ## §0b' FlowStack — Flow Level Marker
-
-    Trivial position-identity type bridging BlockStack and PendingNode.
-    FlowStack.nil is the only constructor — flow collection evidence
-    (open brackets, entries) is deferred to PendingNode.pendingFlow
-    and close_with_ssl.
-
-    FlowStack sits between BlockStack and PendingNode in the position chain:
-    `SLYamlStream → BlockStack → FlowStack → PendingNode → ScannerSurfCorr`
-
-    After 4z.1: FlowStack is always nil. All flow indicator evidence
-    (`GLit '['`, `GLit '{'`) is captured in PendingNode.pendingFlow
-    and composed at consumption time via close_with_ssl. -/
 
 inductive FlowStack : SurfPos → SurfPos → Prop where
   /-- No active flow collections. At block level or stream start. -/
   | nil (sp : SurfPos) : FlowStack sp sp
 
-/-- Absorb both BlockStack and FlowStack into the stream.
-    FlowStack is always nil (4z.1), so this only handles BlockStack. -/
+/-- Absorb both markers into the stream: three coincident positions, so the
+    incoming stream IS the outgoing one. -/
 lemma absorb_stacks (sp_start sp_gram sp_block sp_flow : SurfPos)
     (h_stream : SLYamlStream sp_start sp_gram)
     (h_stack : BlockStack sp_gram sp_block)
     (h_flow : FlowStack sp_block sp_flow) : SLYamlStream sp_start sp_flow := by
   cases h_flow with
-  | nil =>
-    cases h_stack with
+  | nil => cases h_stack with
     | nil => exact h_stream
-    | seqLevel _ _ _ _ _ h_cl_b => exact h_cl_b sp_start h_stream
-    | mapLevel _ _ _ _ _ h_cl_b => exact h_cl_b sp_start h_stream
 
 /-! ## §0c Helpers for §1a (EOF Stream Extension)
 
@@ -1982,7 +1930,7 @@ lemma flowMap_extends_stream
     **Closure-injection nesting.** A nested frame does NOT store its parent stack
     explicitly; it carries `inject`, a closure built at push time from the parent's
     then-known state, that folds THIS frame's completed node into the parent
-    (mirrors `BlockStack.seqLevel`'s `h_close`). The pop is then uniform: close the
+    (the same shape as a `ResumeFrames` level's continuation). The pop is then uniform: close the
     top frame to an `SFlowNode`, then apply `resume` (base, depth 1 → `SLYamlStream`)
     or `inject` (nest, depth d+1 → parent stack). Contexts line up:
     `inFlowCtx .flowOut = inFlowCtx .flowIn = .flowIn`, so every interior node is
@@ -3227,19 +3175,17 @@ lemma FlowStackB.open_of_succ {sp_start : SurfPos} {n d : Nat} {ks km : Array Bo
   cases h with
   | «open» _ _ _ _ _ _ hfo => exact hfo
 
-/-- Absorb BlockStack + a CLOSED (`nil`, depth 0) `FlowStackB` into the stream.
-    The `open` case is vacuous at depth 0 (`FlowOpenStack` has positive depth). -/
+/-- Absorb the block marker + a CLOSED (`nil`, depth 0) `FlowStackB` into the
+    stream.  The `open` case is vacuous at depth 0 (`FlowOpenStack` has positive
+    depth). -/
 lemma absorb_stacksB (sp_start sp_gram sp_block sp_flow : SurfPos)
     (h_stream : SLYamlStream sp_start sp_gram)
     (h_stack : BlockStack sp_gram sp_block)
     {n : Nat} {ks km : Array Bool} {kc : Nat} {tl : FrameTail}
     (h_flow : FlowStackB sp_start n kc 0 ks km tl sp_block sp_flow) : SLYamlStream sp_start sp_flow := by
   cases h_flow with
-  | nil =>
-    cases h_stack with
+  | nil => cases h_stack with
     | nil => exact h_stream
-    | seqLevel _ _ _ _ _ h_cl_b => exact h_cl_b sp_start h_stream
-    | mapLevel _ _ _ _ _ h_cl_b => exact h_cl_b sp_start h_stream
   | «open» _ _ _ _ _ _ h => exact absurd (FlowOpenStack_depth_pos h) (by omega)
 
 /-- Open the OUTERMOST flow SEQUENCE `[` (nil → depth-1 open), given the base
@@ -4434,6 +4380,92 @@ lemma preprocess_indents_or_underIndent {sc s_prep : ScannerState} {c : Char}
             obtain ⟨h1, h2⟩ := Prod.mk.inj h; subst h1; subst h2
             exact Or.inl ((saveSimpleKey_preserves_indents s_content).trans h_ci)
 
+/-- **The landing sits AT the level it lands on** (item 127) — the same step
+    read from BOTH sides, which is the scanner half of the frames ↔
+    indent-stack coupling (DOCS's U3).
+
+    Item 66 above reads preprocessing's trailing-content check: a landing that
+    popped is at or left of what is left of the floor.  The unwind itself gives
+    the other inequality — the loop runs until the top is at or left of the
+    column it unwinds to (`unwindIndents_terminal`) — so the two together pin
+    the landing at the top entry's own column, and the loop only pops, so that
+    entry was already on the incoming stack (`unwindIndents_back_mem`).
+
+    `ResumeFrames.resumeAt` asks only for MEMBERSHIP of the landing width in the
+    frames; this says the scanner knows something stronger.  What is still
+    missing to refute `KeyPackPunt.dedent` is the surface direction — that every
+    open mapping level of `sc.indents` is one of the frames — which is an
+    accumulation-invariant conjunct no carrier holds today (§0b).
+
+    The one escape is the sentinel: a stack popped to a single entry rests on
+    `{ column := -1 }`, which no landing column equals.  It is named in the
+    conclusion rather than discharged, because ruling it out is
+    `ScannerState.WellFormed`'s sixth conjunct and the accumulation does not
+    carry it. -/
+lemma preprocess_landing_at_level {sc s_prep : ScannerState} {c : Char}
+    (hok : scanNextToken_preprocess sc = .ok (some (s_prep, c)))
+    (h_pop : s_prep.indents ≠ sc.indents) :
+    s_prep.indents.size ≤ 1 ∨
+      ∃ e, s_prep.indents.back? = some e ∧ e ∈ sc.indents ∧
+        e.column = (s_prep.col : Int) := by
+  have h_le : (s_prep.col : Int) ≤ s_prep.currentIndent :=
+    (preprocess_indents_or_underIndent hok).resolve_left h_pop
+  have h_ge : (s_prep.currentIndent ≤ (s_prep.col : Int) ∧
+      ∀ e, s_prep.indents.back? = some e → e ∈ sc.indents) ∨
+      s_prep.indents.size ≤ 1 := by
+    unfold scanNextToken_preprocess at hok
+    simp only [bind, Except.bind, pure, Except.pure] at hok
+    split at hok
+    · simp at hok
+    · rename_i s_content h_skip
+      have h_ci : s_content.indents = sc.indents :=
+        skipToContent_preserves_indents sc s_content h_skip
+      split at hok
+      · simp at hok
+      · split at hok
+        · split at hok
+          · simp at hok
+          · split at hok
+            · simp at hok
+            · have h := Except.ok.inj hok; injection h with h
+              obtain ⟨h1, h2⟩ := Prod.mk.inj h; subst h1; subst h2
+              have hind : (saveSimpleKey { unwindIndents s_content (s_content.col : Int) with
+                  needIndentCheck := false }).indents
+                  = (unwindIndents s_content (s_content.col : Int)).indents :=
+                saveSimpleKey_preserves_indents _
+              have hcol : (saveSimpleKey { unwindIndents s_content (s_content.col : Int) with
+                  needIndentCheck := false }).col = s_content.col := by
+                rw [saveSimpleKey_col]
+                exact unwindIndents_col s_content (s_content.col : Int)
+              rcases unwindIndents_terminal s_content (s_content.col : Int) with h | h
+              · refine Or.inl ⟨?_, ?_⟩
+                · rw [currentIndent_of_indents_eq hind, hcol]; exact h
+                · intro e he
+                  rw [hind] at he
+                  exact h_ci ▸ unwindIndents_back_mem s_content _ e he
+              · exact Or.inr (by rw [hind]; exact h)
+        · split at hok
+          · simp at hok
+          · split at hok
+            · simp at hok
+            · have h := Except.ok.inj hok; injection h with h
+              obtain ⟨h1, h2⟩ := Prod.mk.inj h; subst h1; subst h2
+              exact absurd ((saveSimpleKey_preserves_indents s_content).trans h_ci) h_pop
+  rcases h_ge with ⟨h_ge, h_mem⟩ | h_small
+  · right
+    have heq : s_prep.currentIndent = (s_prep.col : Int) := Int.le_antisymm h_ge h_le
+    obtain ⟨e, hb⟩ : ∃ e, s_prep.indents.back? = some e := by
+      rcases hb : s_prep.indents.back? with _ | e
+      · exfalso
+        rw [ScannerState.currentIndent, hb] at heq
+        simp only [] at heq
+        omega
+      · exact ⟨e, rfl⟩
+    refine ⟨e, hb, h_mem e hb, ?_⟩
+    rw [ScannerState.currentIndent, hb] at heq
+    exact heq
+  · exact Or.inl h_small
+
 /-- **The landing read at a GIVEN index** (item 45).  The n-generic twin of
     `preprocess_some_separate_0_anyCol`: a step that crossed no break reads
     inline at every `n`; a step that landed on a fresh line reads
@@ -4694,15 +4726,15 @@ lemma preprocess_flow_thread (sc : ScannerState) (sp_scan sp_prep : SurfPos)
 
     Each dispatcher has a sorry lemma that:
     1. Closes the previous `PendingNode` using `SSLComments` from preprocessing
-    2. May pop `BlockStack` levels if `unwindIndents` fired (dedent)
-    3. May push `BlockStack` levels if `pushSequenceIndent`/`pushMappingIndent` fired
-    4. Opens a new `PendingNode` for the dispatched token
-    5. Extends `SLYamlStream` as needed (dedent closures, document boundaries)
+    2. Resumes or closes the pending's frames according to the landing's width
+       (`ResumeFrames.resumeAt` / `.close`)
+    3. Opens a new `PendingNode` for the dispatched token
+    4. Extends `SLYamlStream` as needed (dedent closures, document boundaries)
 
     ### §1a Preprocessing + EOF
 
     When `scanNextToken_preprocess` returns `none`, the scanner reached EOF.
-    Close all pending state — unwind entire BlockStack, close PendingNode,
+    Close all pending state — close the frames, close the PendingNode,
     and finalize the stream.
 
     **Proven case**: `BlockStack.nil` + `PendingNode.noPending` (any column).
@@ -4906,8 +4938,8 @@ lemma dispatchStructural_docStart_noflow {s s' : ScannerState} {c : Char}
 
     `scanNextToken_dispatchStructural` handles `---`, `...`, `%`-directives.
     Preprocessing provides SSLComments to close the previous pending node.
-    If indent levels decreased, BlockStack pops accordingly.
-    The structural token opens a new pending state.
+    A structural marker closes every open level, so the pending's frames close
+    with it.  The structural token opens a new pending state.
 
     **Proven case**: `BlockStack.nil` + `PendingNode.noPending`.
     No pending to close. Structural dispatch preserves corr via
@@ -5333,7 +5365,6 @@ lemma dispatch_new_pending
   exact ⟨b', h_pending_new, h_flag⟩
 
 -- Helper: handles all PendingNode cases given a stream at sp_block.
--- Factored out so nil, seqLevel, and mapLevel all delegate here.
 lemma accum_structural_pending (sc : ScannerState)
     (sp_start sp_block sp_scan : SurfPos)
     (s_prep s' : ScannerState) (c : Char) {b : Bool}
@@ -6677,7 +6708,7 @@ lemma FlowOpenStack.receivePropsNodeColon {sp_start : SurfPos} {n D : Nat}
     `h_sep := GOpt.none` (post-bracket separation is deferred to the first
     entry step). The stream/stack witnesses vary per route: the fresh-document
     routes re-anchor at the close point with nil stacks; the `pendingBlock`
-    route KEEPS the incoming stream and `BlockStack` (the entry stays open,
+    route KEEPS the incoming stream and marker (the entry stays open,
     its resolution captured in `resume`). -/
 
 /-- **The key HEAD a depth-0 frame promises** (item 56): whatever collection
@@ -10561,17 +10592,27 @@ lemma scanValue_prod (sc : ScannerState) (sp : SurfPos)
     `scanNextToken_dispatchBlockIndicators` handles `-`, `?`, `:`.
     This is the core of block collection accumulation:
 
-    1. Preprocessing may unwind indent levels → BlockStack pops
-    2. `pushSequenceIndent`/`pushMappingIndent` may push → BlockStack pushes
+    1. Preprocessing may unwind indent levels → the landing resumes at a level
+    2. `pushSequenceIndent`/`pushMappingIndent` may push → a level opens
     3. The indicator character is consumed → pendingBlock
 
-    **Scanner → BlockStack correspondence:**
-    - `scanBlockEntry` calls `pushSequenceIndent s s.col`:
-      If `col > currentIndent` → `.seqLevel col` pushed onto BlockStack
-    - `scanKey` calls `pushMappingIndent s s.col`:
-      If `col > currentIndent` → `.mapLevel col` pushed onto BlockStack
-    - `scanValue` calls `scanValuePrepare` which may retroactively emit
-      `.blockMappingStart` → `.mapLevel` pushed if needed
+    **Scanner → frames correspondence.**  The scanner's stack is
+    `sc.indents` (a sentinel at column -1, then one `IndentEntry` per open
+    level, columns strictly increasing).  The grammar's counterpart is the
+    pending's own `ResumeFrames`: the still-open MAPPING levels, innermost
+    first, each held as its entries-level continuation.
+    - `scanKey`/`scanValuePrepare` push `{ column, isSequence := false }` where
+      a producer conses a `ResumeFrames.level`.
+    - `scanBlockEntry` pushes `{ column, isSequence := true }`, which the
+      frames do NOT record: a dedent landing is an implicit key, and a
+      sequence level it crosses can only close.
+    - `unwindIndents` pops back to the landing's column, which
+      `ResumeFrames.resumeAt` matches by popping the widths above it.
+
+    The two are not yet coupled, and that gap is what `KeyPackPunt.dedent`
+    names: `resumeAt` needs the landing width to be a MEMBER of the frames,
+    and only `sc.indents` knows that it is (item 127's §1c pins the scanner
+    half — an accepted popping landing sits exactly AT the level it lands on).
 
     **Proven case**: `BlockStack.nil` + `PendingNode.noPending`.
     No pending to close. Block indicator opens `pendingBlock`. -/
@@ -15456,9 +15497,9 @@ lemma accum_step_block (sc : ScannerState)
     `&` anchor, `*` alias, `!` tag, `|`/`>` block scalar, `"` double-quoted,
     `'` single-quoted, plain scalar. Never returns `none`.
 
-    When inside an active BlockStack, the content token contributes to the
-    current block entry's `SBlockIndented` component. The BlockStack itself
-    doesn't change — only PendingNode transitions to pendingContent.
+    Inside an open block level, the content token contributes to the current
+    block entry's `SBlockIndented` component. The pending's frames do not
+    change — only PendingNode transitions to pendingContent.
 
     **Helper**: `dispatchContent_corr` proves that all content dispatch paths
     preserve `ScannerSurfCorr`. This factors out the dispatch analysis from
@@ -22995,7 +23036,7 @@ lemma scanNextToken_accum_step (sc : ScannerState)
 
     When `scanNextToken` returns `.ok none`, the only code path is through
     `scanNextToken_preprocess` returning `none` (EOF detected).
-    All BlockStack levels are unwound and PendingNode closed. -/
+    Every open level closes and the PendingNode closes with them. -/
 
 lemma scanNextToken_none_stream (sc : ScannerState)
     (sp_start sp_gram sp_block sp_flow sp_scan : SurfPos)

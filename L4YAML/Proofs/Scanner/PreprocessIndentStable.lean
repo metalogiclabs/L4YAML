@@ -245,6 +245,119 @@ lemma unwindIndents_shrink_or_eq (s : ScannerState) (col : Int) :
       (unwindIndents s col).indents = s.indents :=
   unwindIndentsLoop_shrink_or_eq s col s.indents.size
 
+/-! ## §1c  Where the unwind STOPS (item 127)
+
+§1b says whether the loop popped.  This says where it came to rest, which is the
+scanner half of the frames ↔ indent-stack coupling (DOCS's U3): the loop runs
+until the top of the stack is at or left of the column it is unwinding to, so a
+landing that popped anything and survived preprocessing's own trailing-content
+check sits EXACTLY at an open level's column — not merely at or below one.  That
+is stronger than the membership `ResumeFrames.resumeAt` asks for, and it is the
+fact a coupled frames field would spend.
+
+The one escape is the sentinel: a loop that pops to a one-entry stack rests on
+`{ column := -1 }`, which no landing column can equal.  It is named here rather
+than discharged, because ruling it out is a statement about the incoming stack
+(`ScannerState.WellFormed`'s sixth conjunct) that the accumulation does not
+carry. -/
+
+/-- `e ∈ a.pop → e ∈ a`, for the indent stack. -/
+lemma indents_mem_of_mem_pop {a : Array IndentEntry} {e : IndentEntry}
+    (h : e ∈ a.pop) : e ∈ a := by
+  rw [Array.mem_iff_getElem] at h ⊢
+  obtain ⟨i, hi, hie⟩ := h
+  exact ⟨i, by simpa using Nat.lt_of_lt_of_le hi (by simp), by simpa using hie⟩
+
+/-- The loop stops on its own GUARD, not on its fuel, whenever it is given at
+    least as much fuel as the stack has entries — each iteration pops one, and
+    the guard already refuses to pop the last.  So the result satisfies the
+    guard's negation: the top is at or left of `col`, or only the sentinel is
+    left. -/
+lemma unwindIndentsLoop_terminal (s : ScannerState) (col : Int) (fuel : Nat)
+    (h_fuel : s.indents.size ≤ fuel) :
+    (unwindIndentsLoop s col fuel).currentIndent ≤ col ∨
+      (unwindIndentsLoop s col fuel).indents.size ≤ 1 := by
+  induction fuel generalizing s with
+  | zero =>
+    right
+    rw [show unwindIndentsLoop s col 0 = s by unfold unwindIndentsLoop; rfl]
+    omega
+  | succ fuel ih =>
+    unfold unwindIndentsLoop
+    split
+    · rename_i hgo
+      refine ih _ ?_
+      have h1 : 1 < s.indents.size := by
+        have := (Bool.and_eq_true_iff.mp hgo).2
+        simpa using this
+      show ((s.emit .blockEnd).indents.pop).size ≤ fuel
+      have he : (s.emit .blockEnd).indents = s.indents := by simp [ScannerState.emit]
+      rw [he, Array.size_pop]
+      omega
+    · rename_i hno
+      simp only [Bool.and_eq_true, decide_eq_true_eq, not_and] at hno
+      by_cases h1 : 1 < s.indents.size
+      · have hnot : ¬ (col < s.currentIndent) := fun hgt => hno hgt h1
+        exact Or.inl (Int.not_lt.mp hnot)
+      · exact Or.inr (by omega)
+
+/-- The whole unwind, at the fuel the scanner gives it. -/
+lemma unwindIndents_terminal (s : ScannerState) (col : Int) :
+    (unwindIndents s col).currentIndent ≤ col ∨
+      (unwindIndents s col).indents.size ≤ 1 :=
+  unwindIndentsLoop_terminal s col s.indents.size (Nat.le_refl _)
+
+/-- …and the level it rests on is one the incoming stack already held: the loop
+    only pops, so its top is an entry of the stack it started from. -/
+lemma unwindIndentsLoop_back_mem (s : ScannerState) (col : Int) (fuel : Nat)
+    (e : IndentEntry) :
+    (unwindIndentsLoop s col fuel).indents.back? = some e → e ∈ s.indents := by
+  induction fuel generalizing s with
+  | zero =>
+    rw [show unwindIndentsLoop s col 0 = s by unfold unwindIndentsLoop; rfl]
+    exact fun h => Array.mem_of_getElem? h
+  | succ fuel ih =>
+    unfold unwindIndentsLoop
+    split
+    · intro h
+      have hm := ih _ h
+      have he : ({ s.emit .blockEnd with
+          indents := (s.emit .blockEnd).indents.pop } : ScannerState).indents
+          = s.indents.pop := by simp [ScannerState.emit]
+      rw [he] at hm
+      exact indents_mem_of_mem_pop hm
+    · exact fun h => Array.mem_of_getElem? h
+
+lemma unwindIndents_back_mem (s : ScannerState) (col : Int) (e : IndentEntry) :
+    (unwindIndents s col).indents.back? = some e → e ∈ s.indents :=
+  unwindIndentsLoop_back_mem s col s.indents.size e
+
+/-- **…and the level it rests on is a MAPPING level** — §8.2.1, read off the
+    `:`'s own validation.  A saved key at or left of the floor whose column is
+    the top entry's own column is refused when that entry is a SEQUENCE
+    (`a:⏎  - x⏎  b: 2` = `trailing content`), so a `:` that validates at such a
+    column has a mapping level under it.  That is the half `ResumeFrames` needs
+    beyond the column itself: the frames record mapping widths only, because a
+    sequence level a dedent landing crosses can only close. -/
+lemma scanValue_top_not_sequence {s : ScannerState} {top : IndentEntry}
+    (hok : scanValueValidate s = .ok ())
+    (h_poss : s.simpleKey.possible = true) (h_noflow : s.inFlow = false)
+    (h_top : s.indents.back? = some top)
+    (h_at : (s.simpleKey.pos.col : Int) = top.column)
+    (h_le : (s.simpleKey.pos.col : Int) ≤ s.currentIndent) :
+    top.isSequence = false := by
+  cases htop : top.isSequence with
+  | false => rfl
+  | true =>
+    exfalso
+    unfold scanValueValidate at hok
+    have hbeq : ((s.simpleKey.pos.col : Int) == top.column) = true := by simp [h_at]
+    simp [bind, Except.bind, throw, throwThe,
+      MonadExceptOf.throw, h_poss, h_noflow, h_top, htop, h_le, hbeq] at hok
+    split at hok
+    · split at hok <;> simp at hok
+    · simp at hok
+
 /-! ## §2  `saveSimpleKey` pushes tokens, not indents -/
 
 /-- The last step of preprocessing touches `tokens` and `simpleKey` only. -/

@@ -67,6 +67,16 @@ carrier, consumer, and price:
   only when `ks` is coupled to the columns of `sc.indents`' open entries.
   Serves R4's landing pad narrowing; its carrier is an accumulation-
   invariant conjunct, not a park field — the widest of the three.
+  [Item 127 measured the two halves and landed the SCANNER one.  Only ONE
+  inclusion is needed, not an equality: the scanner's side is not a
+  membership but an EQUATION — an accepted popping landing sits AT the
+  top entry's column (`preprocess_landing_at_level`), on an entry the
+  park already held, and §8.2.1 makes that entry a MAPPING level
+  (`scanValue_top_not_sequence`).  So U3 owes only "every open mapping
+  level of `sc.indents` is one of the frames".  It also found the carrier
+  a reader would reach for to be empty: `BlockStack`, documented as the
+  mirror of the indent stack, has no producer for either level and its
+  `col` was never read — deleted, guard `UnwindLandsAtLevel`.]
 
 Order: U1 (self-contained — CLOSED by items 122+123), then U2 (unblocks
 `noFrame` → shrinks the `pendingFlow` feed → 67b's deletion with

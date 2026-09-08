@@ -12536,6 +12536,13 @@ couplings, each with its own carrier, consumer, and price —
   `KeyPackPunt.dedent`'s `w ∉ ks` deferred case becomes a refutation only
   when `ks` is coupled to the columns of `sc.indents`' open entries — an
   accumulation-invariant conjunct, the widest of the three.
+  [~~an equality between `ks` and the stack's open columns~~ — **item 127
+  measured the halves**: only the INCLUSION "every open mapping level is a
+  frame" is owed, because the scanner's own side is not a membership but an
+  EQUATION (`preprocess_landing_at_level`), and the carrier this bullet
+  invites a reader to reach for — `BlockStack`, documented as the mirror of
+  the indent stack — has no producer at all and is deleted.  See
+  [Item 127](#item-127-2026-09-08).]
 
 **Order**: U1 (self-contained), then U2 (deletes `noFrame`, and with
 `noKeyContext`'s twin shrinks the `pendingFlow` feed toward 67b's
@@ -12980,6 +12987,95 @@ item touches is runtime code, so no event or JSON output can have moved; the
 probe re-read the families this entry names on both pipelines anyway, and they
 agree.
 
+### Item 127 (2026-09-08)
+
+**U3's scanner half, and the mirror that mirrors nothing.**  Item 121 measured
+the under-indent invariant as three couplings and priced U3 — the frames ↔
+indent-stack coupling — as "an accumulation-invariant conjunct, the widest of
+the three".  Pricing it found the conjunct smaller than recorded and its
+apparent carrier empty.
+
+**The carrier a reader would reach for has no producer.**  `BlockStack` is
+documented as the accumulation's mirror of the scanner's indent stack, and each
+of its levels carries a `col : Int` "matching scanner's `IndentEntry.column`".
+Nothing in the library builds one.  Deleting `seqLevel` and `mapLevel` raises
+**four errors, every one a match arm** in `absorb_stacks` and `absorb_stacksB`,
+and both matches are then TOTAL on `nil` alone — so the column was never read,
+and `BlockStack` is what `FlowStack` already is: a position-identity marker.
+This is item 126's measurement from the other direction.  There, a constructor
+lost its last entrance to repairs; here, one never had an entrance, and stayed
+because a constructor FIELD is quieter still than a constructor — every arm
+binds it `_`, so a rename probe finds no readers and only the deletion can.
+The block nesting travels on the PENDING, as `ResumeFrames`, and that is where
+the coupling has to go.
+
+**The scanner knows more than `resumeAt` asks — an EQUATION, not a
+membership.**  `ResumeFrames.resumeAt` needs the landing width to be a member
+of the frames.  Two inequalities about the SAME step pin it exactly:
+
+* item 66's, from preprocessing's own trailing-content check — a landing that
+  popped is at or left of what is left of the floor
+  (`preprocess_indents_or_underIndent`);
+* this item's, from the unwind loop itself — given fuel equal to the stack's
+  size the loop stops on its GUARD rather than on its fuel, so the top ends at
+  or left of the column it unwound to (`unwindIndents_terminal`).
+
+So an accepted popping landing sits AT the top entry's own column, and that
+entry was already on the incoming stack, because the loop only pops
+(`unwindIndents_back_mem`).  §8.2.1 supplies the last piece: a key at an open
+SEQUENCE level's own column does not validate (`scanValue_top_not_sequence`,
+`a:⏎  - x⏎  b: 2` = `trailing content`), so the level a landed `:` resumes is a
+MAPPING level — which is what makes the frames' mapping-only widths lossless.
+`preprocess_landing_at_level` is the packaged form.
+
+**What U3 still owes, restated.**  Not an equality between `ks` and the stack's
+open columns — only the SURFACE inclusion: every open mapping level of
+`sc.indents` is one of the pending's frames.  And it buys one of
+`KeyPackPunt.dedent`'s two birth sites, not both: the other
+(`entryKeyPack_of_dispatch`'s frames-absent arm) is the `∨ True` on the frames
+field itself, which the landing skeleton's own producers pay.  Measured beside
+it: the props dispatcher's two `dedent` arms are vacuous at both of its callers
+— they pass `n = 0`, and the dedent branch is `w < n` with `w : Nat` — so the
+one live site is `entryKeyPack_of_dispatch`'s, reached from the sequence-entry
+park at a general index.
+
+**The escape, named rather than discharged.**  A stack popped to a single entry
+rests on the sentinel `{ column := -1 }`, which no landing column equals; the
+conclusion carries `s_prep.indents.size ≤ 1` as a disjunct instead of ruling it
+out, because ruling it out is `ScannerState.WellFormed`'s sixth conjunct and the
+accumulation does not carry it (`WellFormed` is preserved for `advance` and
+`emit` only).  Threading it is its own item, and it is not on U3's critical
+path: the surface inclusion is about non-sentinel entries either way.
+
+New guard `UnwindLandsAtLevel` (12 `#guard` + 7 `example`): §1 pins each
+marker's SINGLE constructor as a total match and the absorption as the incoming
+stream (an added level would make all three fail to elaborate); §2 types the
+four scanner lemmas; §3 is the runtime, measured on both pipelines — the dedent
+landings that compose onto a mapping level (including `a:⏎- x⏎b: 2`, where the
+sequence's column coincides with the mapping's and the landing still names the
+mapping), the six sequence-level landings the scanner refuses, and the two
+no-level landings it refuses.
+
+Reflection 684 (`EscapeWithNoEntrance`) gains the second instance and its
+corollary read forwards: a carrier's docstring is a plan; its constructors are
+the fact.
+
+**Validation.**  Full `lake build` green (**1110** jobs — 1109 plus the new
+guard — ZERO warnings); `run-all-tests.sh` **4473/4473** across 17 suites;
+matrix **402/402** event and **282/282** JSON on BOTH pipelines; `eventscore`
+**347/358**; `check-import-closure.sh` (**225** modules),
+`check-reflection-index.sh` (20/230/249/355) and `check-theorem-keyword.sh`
+(**25** capstones) OK; annotation verifier same **19** pre-existing name
+mismatches with coverage 211/211.  `collect-stats`: tests **576** files (+1) /
+**6278** `#guard`s (+12 exact = the new guard's own); proofs **6291** and
+library **6496** (+7 each = the seven new lemmas); env **8251** theorems, which
+is **+6** — the source scan and the environment differ by exactly one, and the
+one is `BlockStack.brecOn`: a RECURSIVE inductive generates it as a theorem, a
+non-recursive one does not, and dropping the two self-referential levels made
+`BlockStack` non-recursive (measured with a two-inductive probe, then confirmed
+absent).  **0** direct and **0** transitive `sorry`, **0** custom axioms.  Zero
+runtime files changed, so no event or JSON output can have moved.
+
 ### REMAINING, in order
 
 The per-item history is the closure log above; this section lists only the
@@ -12996,7 +13092,7 @@ too (items 47–51), so what stands between here
 and Step 5 (the converse) is R3's remaining production work and R4:
 
 ```
-R1 ✓ (44–46) ──→ R2 ✓ (47–51) ──→ R3 (52–126 landed; U2 CLOSED, the collapse gone) ──→ Step 5
+R1 ✓ (44–46) ──→ R2 ✓ (47–51) ──→ R3 (52–127 landed; U2 CLOSED, the collapse gone) ──→ Step 5
                                         └──────→ R4 (implicitContinue + 0 < m) ──┘
 ```
 

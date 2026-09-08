@@ -30,6 +30,19 @@ that constructor a value-slot FACE.  Deleting it instead: the constructor,
 it, nine `rcases … | h_close_sh` splits and four dead match arms come out —
 289 lines net — with zero runtime edits, zero errors and zero warnings.
 
+**A second instance, from the other direction** (item 127).  A constructor can
+also reach this state without ever having had an entrance: `BlockStack`'s
+`seqLevel`/`mapLevel` were written as the accumulation's mirror of the scanner's
+indent stack, each carrying a `col : Int` "matching scanner's
+`IndentEntry.column`", and no producer was ever written.  Deleting both raises
+four errors, all of them match arms, and `nil` alone is then total.  Two things
+generalize.  A constructor FIELD is even quieter than a constructor: every arm
+binds it `_`, so a rename probe cannot find its readers and only deletion can.
+And the reason it mattered is the corollary above read forwards — the ledger's
+next item was to hang U3's frames ↔ indent-stack coupling on exactly this
+carrier, because its DOCUMENTATION said it mirrored the stack.  A carrier's
+docstring is a plan; its constructors are the fact.
+
 §1 the escape with an entrance (Reflection 672's shape) — and the entrance,
 executable.  §2 the repaired machine, where the entrance is gone and the
 transport arm still compiles.  §3 the deletion, and why it is the measurement:
