@@ -238,7 +238,8 @@ example {sp_start sp_anchor sp_scan' : SurfPos}
 * The props-decorated scalar parks (`accum_content_on_pendingProps`'s
   block-scalar arms) pay their value-line twin from the re-read but not the
   frames — the props park has no `h_closeF`/`h_frames` of its own to
-  transport (item 111's residue, unchanged).
+  transport (item 111's residue).  (CLOSED by item 114 — the park carries
+  five resume faces and every value completion pays them.)
 * The construction sites: `SLYamlStream.implicitContinue` still takes
   `GOpt SLAnyDocument` — item 110 measured the tightening at 16 sites, LAST. -/
 

@@ -174,6 +174,8 @@ example {sp_start sp_p sp_prep sp_scan' : SurfPos} {k : Nat} {ks : List Nat}
 * The props park's own faces.  `pendingProps` carries no `h_closeF`/`h_frames`
   of its own, and the props-decorated VALUE completion punts `pendingContent`'s
   faces — §1 pins its width-0 input as §9.2-refused; the nested twin rides.
+  (CLOSED by item 114 — five resume faces on the park, paid by the entry and
+  mapping producers and spent at every value completion and at the landing.)
 * The block-scalar value arms of the two `accum_content_on_pendingMapValue`
   lemmas (item 109's residue — CLOSED by item 112, the node re-read to the
   landing).
