@@ -1634,6 +1634,13 @@ lemma scanNextTokenIx_ok_some_monotonic {input : String}
             | ok u => exact ⟨u, rfl⟩
           obtain ⟨u, hNPD⟩ := hNPD
           rw [hNPD] at h
+          -- §9.2 bare-document check (item 132): peeled the same way.
+          have hBD : ∃ u, scanNextTokenIx_checkBareDocument sp = .ok u := by
+            cases hx : scanNextTokenIx_checkBareDocument sp with
+            | error e => rw [hx] at h; cases h
+            | ok u => exact ⟨u, rfl⟩
+          obtain ⟨u2, hBD⟩ := hBD
+          rw [hBD] at h
           by_cases hAD : sp.allowDirectives = true
           all_goals first
             | (rw [if_pos hAD] at h

@@ -895,6 +895,9 @@ lemma scanNextTokenIx_maintains_SKAFIx {input : String}
           -- Split on checkNoPendingDirectives (Fix B)
           split at h_next
           · contradiction
+          -- §9.2 bare-document check (item 132)
+          split at h_next
+          · contradiction
           · -- Split on checkBlockFlowIndent
             split at h_next
             · contradiction
@@ -942,6 +945,24 @@ lemma scanNextTokenIx_checkNoPendingDirectives_ok {input : String}
     scanNextTokenIx_checkNoPendingDirectives s = .ok () := by
   simp only [scanNextTokenIx_checkNoPendingDirectives, h, Bool.false_eq_true, ↓reduceIte]
 
+/-- Item 132's §9.2 bare-document check is a no-op inside a flow collection.
+    Indexed twin of `scanNextToken_checkBareDocument_ok_of_inFlow`. -/
+lemma scanNextTokenIx_checkBareDocument_ok_of_inFlow {input : String}
+    (s : ScannerStateIx input) (h : s.inFlow = true) :
+    scanNextTokenIx_checkBareDocument s = .ok () := by
+  simp only [scanNextTokenIx_checkBareDocument, h, Bool.not_true, Bool.false_and,
+             Bool.false_eq_true, ↓reduceIte]
+
+/-- …and wherever nothing behind the cursor completes a node. -/
+lemma scanNextTokenIx_checkBareDocument_ok_of_last {input : String}
+    (s : ScannerStateIx input)
+    (h : ∀ t, lastRealTokenValIx? s.tokens = some t → t.completesFlowValue = false) :
+    scanNextTokenIx_checkBareDocument s = .ok () := by
+  unfold scanNextTokenIx_checkBareDocument
+  cases hx : lastRealTokenValIx? s.tokens with
+  | none => simp
+  | some t => simp [h t hx]
+
 /-- Converse dp extraction (Fix B): if `scanNextTokenIx` succeeded and the
     pipeline reached past structural dispatch, the pending-directives check
     must have passed, so `s_pp.directivesPresent = false`. -/
@@ -961,6 +982,26 @@ lemma scanNextTokenIx_ok_directivesPresent_false {input : String}
         = .error (.directiveWithoutDocument s_pp.cursor.pos.line) := by
       unfold scanNextTokenIx
       simp only [bind, Except.bind, h_pp, h_struct, h_check_err]
+    rw [h_err] at h_snt
+    injection h_snt
+
+/-- The same converse for item 132's §9.2 check. -/
+lemma scanNextTokenIx_ok_checkBareDocument {input : String}
+    {s s_pp : ScannerStateIx input} {c : Char} {r : Option (ScannerStateIx input)}
+    (h_pp : scanNextTokenIx_preprocess s = .ok (some (s_pp, c)))
+    (h_struct : scanNextTokenIx_dispatchStructural s_pp c = .ok none)
+    (h_snt : scanNextTokenIx s = .ok r) :
+    scanNextTokenIx_checkBareDocument s_pp = .ok () := by
+  cases h_bd : scanNextTokenIx_checkBareDocument s_pp with
+  | ok u => cases u; rfl
+  | error e =>
+    exfalso
+    have h_ndp : s_pp.directivesPresent = false :=
+      scanNextTokenIx_ok_directivesPresent_false h_pp h_struct h_snt
+    have h_err : scanNextTokenIx s = .error e := by
+      unfold scanNextTokenIx
+      simp only [bind, Except.bind, h_pp, h_struct,
+        scanNextTokenIx_checkNoPendingDirectives_ok _ h_ndp, h_bd]
     rw [h_err] at h_snt
     injection h_snt
 

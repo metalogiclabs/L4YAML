@@ -436,6 +436,8 @@ lemma scanNextToken_flow_close_seq_outermost_extIx {input : String}
     scanNextTokenIx_via_flow_dispatch s (saveSimpleKeyIx s) s_ad
       (scanFlowSequenceEndIx s_ad) ']' h_pp h_struct rfl h_check h_flow_disp
       ((saveSimpleKeyIx_directivesPresent s).trans h_dp)
+      (scanNextTokenIx_checkBareDocument_ok_of_inFlow _
+        ((saveSimpleKeyIx_inFlow s).trans h_flow))
   -- §5: `scanFlowSequenceEndIx_detail` bundles SurfCorr / flowLevel / dp / indents / col.
   obtain ⟨h_corr_final, h_fl_final, h_dp_final, h_ind_final, _⟩ :=
     scanFlowSequenceEndIx_detail s_ad [] h_ad_corr
@@ -541,6 +543,8 @@ lemma scanNextToken_flow_close_mapping_outermost_extIx {input : String}
     scanNextTokenIx_via_flow_dispatch s (saveSimpleKeyIx s) s_ad
       (scanFlowMappingEndIx s_ad) '}' h_pp h_struct rfl h_check h_flow_disp
       ((saveSimpleKeyIx_directivesPresent s).trans h_dp)
+      (scanNextTokenIx_checkBareDocument_ok_of_inFlow _
+        ((saveSimpleKeyIx_inFlow s).trans h_flow))
   obtain ⟨h_corr_final, h_fl_final, h_dp_final, h_ind_final, _⟩ :=
     scanFlowMappingEndIx_detail s_ad [] h_ad_corr
   have h_result_fl : (scanFlowMappingEndIx s_ad).flowLevel = 0 := by

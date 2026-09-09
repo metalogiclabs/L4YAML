@@ -2841,6 +2841,7 @@ lemma scanNextToken_flow_open_seq_filtered_push (s : ScannerState) (rest : List 
   have h_snt_eq : scanNextToken s = .ok (some (scanFlowSequenceStart s_ad)) :=
     scanNextToken_via_flow_dispatch _ _ _ _ _ h_pp h_struct rfl h_check h_flow_disp
       (scanNextToken_ok_directivesPresent_false h_pp h_struct h_snt)
+      (scanNextToken_ok_checkBareDocument h_pp h_struct h_snt)
   have h_s' : s' = scanFlowSequenceStart s_ad :=
     Option.some.inj (Except.ok.inj (h_snt.symm.trans h_snt_eq))
   have h_ad_filter : s_ad.tokens.filter (fun t => t.val != .placeholder)
@@ -2877,6 +2878,7 @@ lemma scanNextToken_flow_open_map_filtered_push (s : ScannerState) (rest : List 
   have h_snt_eq : scanNextToken s = .ok (some (scanFlowMappingStart s_ad)) :=
     scanNextToken_via_flow_dispatch _ _ _ _ _ h_pp h_struct rfl h_check h_flow_disp
       (scanNextToken_ok_directivesPresent_false h_pp h_struct h_snt)
+      (scanNextToken_ok_checkBareDocument h_pp h_struct h_snt)
   have h_s' : s' = scanFlowMappingStart s_ad :=
     Option.some.inj (Except.ok.inj (h_snt.symm.trans h_snt_eq))
   have h_ad_filter : s_ad.tokens.filter (fun t => t.val != .placeholder)
@@ -2920,6 +2922,7 @@ lemma scanNextToken_flow_close_seq_filtered_push (s : ScannerState) (rest : List
   have h_snt_eq : scanNextToken s = .ok (some (scanFlowSequenceEnd s_ad)) :=
     scanNextToken_via_flow_dispatch _ _ _ _ _ h_pp h_struct rfl h_check h_flow_disp
       (scanNextToken_ok_directivesPresent_false h_pp h_struct h_snt)
+      (scanNextToken_ok_checkBareDocument h_pp h_struct h_snt)
   have h_s' : s' = scanFlowSequenceEnd s_ad :=
     Option.some.inj (Except.ok.inj (h_snt.symm.trans h_snt_eq))
   have h_ad_filter : s_ad.tokens.filter (fun t => t.val != .placeholder)
@@ -2963,6 +2966,7 @@ lemma scanNextToken_flow_close_map_filtered_push (s : ScannerState) (rest : List
   have h_snt_eq : scanNextToken s = .ok (some (scanFlowMappingEnd s_ad)) :=
     scanNextToken_via_flow_dispatch _ _ _ _ _ h_pp h_struct rfl h_check h_flow_disp
       (scanNextToken_ok_directivesPresent_false h_pp h_struct h_snt)
+      (scanNextToken_ok_checkBareDocument h_pp h_struct h_snt)
   have h_s' : s' = scanFlowMappingEnd s_ad :=
     Option.some.inj (Except.ok.inj (h_snt.symm.trans h_snt_eq))
   have h_ad_filter : s_ad.tokens.filter (fun t => t.val != .placeholder)
@@ -3009,6 +3013,7 @@ lemma scanNextToken_flow_scalar_filtered_push (s : ScannerState) (rest : List Ch
         _ _ _ _ _ h_pp h_struct rfl h_check h_flow_none h_block_none
         (scanNextToken_checkAdjacentValue_ok_of_ne_colon _ (by decide)) h_dc_eq
         (scanNextToken_ok_directivesPresent_false h_pp h_struct h_snt)
+        (scanNextToken_ok_checkBareDocument h_pp h_struct h_snt)
       rw [h_snt_err] at h_snt; exact absurd h_snt (by simp)
     | ok s_dc =>
       have h_snt_eq : scanNextToken s = Except.ok (some s_dc) :=
@@ -3016,6 +3021,7 @@ lemma scanNextToken_flow_scalar_filtered_push (s : ScannerState) (rest : List Ch
           h_flow_none h_block_none
           (scanNextToken_checkAdjacentValue_ok_of_ne_colon _ (by decide)) h_dc_eq
           (scanNextToken_ok_directivesPresent_false h_pp h_struct h_snt)
+          (scanNextToken_ok_checkBareDocument h_pp h_struct h_snt)
       have h_eq2 : s' = s_dc := Option.some.inj (Except.ok.inj (h_snt.symm.trans h_snt_eq))
       subst h_eq2; rfl
   have h_tokens_push : ∃ c, s'.tokens
@@ -3089,6 +3095,7 @@ lemma scanNextToken_flow_scalar_filtered_push_content (s : ScannerState)
         _ _ _ _ _ h_pp h_struct rfl h_check h_flow_none h_block_none
         (scanNextToken_checkAdjacentValue_ok_of_ne_colon _ (by decide)) h_dc_eq
         (scanNextToken_ok_directivesPresent_false h_pp h_struct h_snt)
+        (scanNextToken_ok_checkBareDocument h_pp h_struct h_snt)
       rw [h_snt_err] at h_snt; exact absurd h_snt (by simp)
     | ok s_dc =>
       have h_snt_eq : scanNextToken s = Except.ok (some s_dc) :=
@@ -3096,6 +3103,7 @@ lemma scanNextToken_flow_scalar_filtered_push_content (s : ScannerState)
           h_flow_none h_block_none
           (scanNextToken_checkAdjacentValue_ok_of_ne_colon _ (by decide)) h_dc_eq
           (scanNextToken_ok_directivesPresent_false h_pp h_struct h_snt)
+          (scanNextToken_ok_checkBareDocument h_pp h_struct h_snt)
       have h_eq2 : s' = s_dc := Option.some.inj (Except.ok.inj (h_snt.symm.trans h_snt_eq))
       subst h_eq2; rfl
   have h_ad_col : s_ad.col = s.col := by simp only [s_ad]; split <;> exact h_sk_col
@@ -3179,6 +3187,7 @@ lemma scanNextToken_flow_comma_filtered_push (s : ScannerState) (rest : List Cha
       .ok (some { (s_ad.emit .flowEntry).advance with simpleKeyAllowed := true, explicitKeyLine := none, simpleKey := { possible := false } }) :=
     scanNextToken_via_flow_dispatch _ _ _ _ _ h_pp h_struct rfl h_check h_flow_disp
       (scanNextToken_ok_directivesPresent_false h_pp h_struct h_snt)
+      (scanNextToken_ok_checkBareDocument h_pp h_struct h_snt)
   have h_s' : s' = { (s_ad.emit .flowEntry).advance with simpleKeyAllowed := true, explicitKeyLine := none, simpleKey := { possible := false } } :=
     Option.some.inj (Except.ok.inj (h_snt.symm.trans h_snt_eq))
   have h_ad_filter : s_ad.tokens.filter (fun t => t.val != .placeholder)
@@ -3238,6 +3247,7 @@ lemma scanNextToken_flow_comma_simpleKey (s : ScannerState) (rest : List Char)
       .ok (some { (s_ad.emit .flowEntry).advance with simpleKeyAllowed := true, explicitKeyLine := none, simpleKey := { possible := false } }) :=
     scanNextToken_via_flow_dispatch _ _ _ _ _ h_pp h_struct rfl h_check h_flow_disp
       (scanNextToken_ok_directivesPresent_false h_pp h_struct h_snt)
+      (scanNextToken_ok_checkBareDocument h_pp h_struct h_snt)
   have h_s' : s' = { (s_ad.emit .flowEntry).advance with simpleKeyAllowed := true, explicitKeyLine := none, simpleKey := { possible := false } } :=
     Option.some.inj (Except.ok.inj (h_snt.symm.trans h_snt_eq))
   rw [h_s']

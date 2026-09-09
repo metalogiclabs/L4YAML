@@ -86,8 +86,10 @@ break re-armed `simpleKeyAllowed`). -/
 -- 2EBW's shape: the `:`-headed plain KEY at a line start, after a completed
 -- entry — the break re-armed the flag, so the check stays out of the way.
 #guard accepts "?foo: safe question mark\n:foo: safe colon\n-foo: safe dash\n"
--- Cross-line glued `:` after a completed node is NOT the scanner's to refuse
--- (the flag is re-armed); it stays the parser's `bareDocumentContent`.
-#guard scanAccepts "\"a\"\n:b\n" && rejectsAlike "\"a\"\n:b\n"
+-- Cross-line glued `:` after a completed node is not THIS check's: the flag
+-- is re-armed, so item 47's `!simpleKeyAllowed` is false.  It is §9.2's — a
+-- completed ROOT node and content on a later line — and the scanner refuses
+-- it there (item 132), at the same position the parser used to.
+#guard !scanAccepts "\"a\"\n:b\n" && rejectsAlike "\"a\"\n:b\n"
 
 end L4YAML.Tests.Guards.ScannerAdjacentValueRefused

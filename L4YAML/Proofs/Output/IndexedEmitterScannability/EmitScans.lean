@@ -749,6 +749,8 @@ lemma scanNextToken_flow_valueIx (s : ScannerStateIx input)
     scanNextTokenIx_via_block_dispatch s (saveSimpleKeyIx s) s_ad _ ':'
       h_pp h_struct h_s_ad_def h_check h_flow_none h_block
       ((saveSimpleKeyIx_directivesPresent s).trans h_dp)
+      (scanNextTokenIx_checkBareDocument_ok_of_inFlow _
+        ((saveSimpleKeyIx_inFlow s).trans h_flow))
   -- Step 8: result-state field equalities (all via `@[simp]` cursor lemmas).
   have h_R_cursor :
       ({ (((scanValuePrepareIx s_ad).emit YamlToken.value).advance) with
@@ -1763,7 +1765,7 @@ lemma scanNextTokenIx_emitScalar_init (content : String) :
   -- ── Step 2: preprocess via the init-state lemma
   obtain ⟨s_pp, h_pp_eq, h_fl_pp, _h_inflow_pp, h_ci_pp, h_col_pp,
           _h_ad_pp, h_dp_pp, h_ids_pp, _h_off_pp, _h_ek_pp,
-          _h_line_pp, _h_atol_pp, _h_filt_pp⟩ :=
+          _h_line_pp, _h_atol_pp, h_bd_pp, _h_filt_pp⟩ :=
     scanNextTokenIx_preprocess_init_state input '"'
       ((L4YAML.Emit.escapeString content).toList ++ ['"']) h_toList
       (by decide) (by decide) (by decide)
@@ -1910,6 +1912,7 @@ lemma scanNextTokenIx_emitScalar_init (content : String) :
     scanNextTokenIx_via_content_dispatch s₀ s_pp s_ad s_final '"'
       h_pp_eq h_struct h_s_ad_def h_check_ad h_flow_ad h_block_ad
       (scanNextTokenIx_checkAdjacentValue_ok_of_ne_colon _ (by decide)) h_dc h_dp_pp
+      h_bd_pp
   -- ── Step 13: extract conclusions
   refine ⟨s_final, h_snt, ?_, ?_, ?_, ?_, ?_⟩
   · -- peek? = none: post-quote surface has empty chars

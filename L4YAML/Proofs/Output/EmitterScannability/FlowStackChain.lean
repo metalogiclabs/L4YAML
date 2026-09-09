@@ -182,6 +182,7 @@ lemma scanNextToken_flowStack_step {s s' : ScannerState}
           { st with allowDirectives := false, documentEverStarted := true }
         else st).flowLevel = st.flowLevel := by intro st; split <;> rfl
     split at h <;> (try (simp at h; done))  -- checkNoPendingDirectives
+    split at h <;> (try (simp at h; done))  -- checkBareDocument (item 132)
     split at h <;> (try (simp at h; done))  -- checkBlockFlowIndent
     split at h <;> (try (simp at h; done))  -- flow Except
     split at h
@@ -382,6 +383,7 @@ lemma scanNextToken_ekStack_step {s s' : ScannerState}
         (if st.allowDirectives then
           { st with allowDirectives := false, documentEverStarted := true }
         else st).flowLevel = st.flowLevel := by intro st; split <;> rfl
+    split at h <;> (try (simp at h; done))  -- checkBareDocument (item 132)
     split at h <;> (try (simp at h; done))
     split at h <;> (try (simp at h; done))
     split at h <;> (try (simp at h; done))

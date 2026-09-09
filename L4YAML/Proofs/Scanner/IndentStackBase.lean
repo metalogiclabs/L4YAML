@@ -607,6 +607,9 @@ lemma scanNextToken_base {s s' : ScannerState}
           exact dispatchStructural_base ‹_› h_pp
         · split at hok
           · cases hok
+          -- §9.2 bare-document check (item 132)
+          split at hok
+          · cases hok
           · split at hok
             · cases hok
             · -- The directive flag's own record update, which the stack

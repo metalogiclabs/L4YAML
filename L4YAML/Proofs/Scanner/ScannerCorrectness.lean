@@ -10360,6 +10360,8 @@ lemma scanNextToken_preserves_AllKeysValid :
     have h_akv3 := allowDir_ite_preserves_AllKeysValid s2 h_akv2
     -- Pending-directives check (Fix B)
     split at h_ok <;> (try (simp at h_ok; done))
+    -- §9.2 bare-document check (item 132)
+    split at h_ok <;> (try (simp at h_ok; done))
     -- Block→flow underindent check
     split at h_ok <;> (try (simp at h_ok; done))
     -- Flow Except split
@@ -10444,6 +10446,8 @@ lemma scanNextToken_preserves_ScanInv :
     have h_inv3 := allowDir_ite_preserves_ScanInv s2 h_inv2
     have h_skv3 := allowDir_ite_preserves_SimpleKeyValid s2 h_skv2
     -- Pending-directives check (Fix B)
+    split at h_ok <;> (try (simp at h_ok; done))
+    -- §9.2 bare-document check (item 132)
     split at h_ok <;> (try (simp at h_ok; done))
     -- Block→flow underindent check
     split at h_ok <;> (try (simp at h_ok; done))
@@ -11609,6 +11613,9 @@ lemma scanNextToken_progress (s s' : ScannerState)
           -- Pending-directives check (Fix B)
           split at h
           · cases h
+          -- §9.2 bare-document check (item 132)
+          split at h
+          · cases h
           · -- Outermost match is checkBlockFlowIndent
             split at h
             · cases h
@@ -12090,6 +12097,9 @@ lemma scanNextToken_preserves_KeysBehindCursor (s s' : ScannerState)
         · rename_i h_struct
           have hnoDoc := dispatchStructural_none_noDoc sp c h_struct
           have h_peek := preprocess_peek_eq s sp c h_pre
+          split at h
+          · cases h
+          -- §9.2 bare-document check (item 132)
           split at h
           · cases h
           · split at h

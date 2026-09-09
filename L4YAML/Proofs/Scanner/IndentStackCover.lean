@@ -331,6 +331,9 @@ lemma scanNextToken_cover {lo : Nat} {ks : List Nat} {s s' : ScannerState}
           exact Or.inl (dispatchStructural_cover ‹_› h_pp)
         · split at hok
           · cases hok
+          -- §9.2 bare-document check (item 132)
+          split at hok
+          · cases hok
           · split at hok
             · cases hok
             · -- The directive flag's own record update, which the stack

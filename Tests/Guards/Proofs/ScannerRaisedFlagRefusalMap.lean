@@ -33,6 +33,12 @@ here against the runtime's own verdicts:
   `validateTrailingContent` — §5); a root plain scalar completes only
   where its walk stops (a comment line), and the alias-as-root case is
   unreachable (`undefinedAlias` fires first).
+  **LANDED** as `scanNextToken_checkBareDocument` (item 132), so §2's pins
+  are `scannerRefuses` now — `ScannerBareDocumentRefusal` carries the
+  mechanism's own boundary.  The break condition is read off
+  `simpleKeyAllowed` rather than off the completing token's position: a
+  scalar's `endPos` is not populated, so a line test on the TOKEN reads a
+  multi-line scalar's START.
 * **M2 — the dangling node run at an open level's column** (§3): a
   trailing token run `[anchor|tag]* (scalar|alias)?` whose start sits at
   an open indent level's exact column, whose structural predecessor is
@@ -51,7 +57,10 @@ here against the runtime's own verdicts:
 
 All three reuse `.invalidBareDocument`; on every probed input the
 parser's message AND position are what the scanner check would produce,
-so the migration is byte-invisible to the matrix and eventscore.
+so the migration is byte-invisible to the matrix and eventscore.  Item 132
+confirmed that for M1 by running its condition over the whole suite before
+editing the runtime: two tests reach it (BS4K, KS4U), both error tests,
+both with the identical message and position.
 
 **The price, measured (and why this landed as a map, not a build).**
 The emitter-scannability trees re-verify the scanning of emitted output
@@ -65,6 +74,15 @@ discharge burden on one of those ladders, a 100+-site absorption PER
 MECHANISM.  So the refusal half is at least three items (one mechanism
 plus its absorption each), not one, and this guard pins today's
 verdicts so each landing flips its section loudly and intentionally.
+M1's absorption, measured by building it and counting what the
+compiler asked for: **41** extra `split`s across **24** files that
+decompose `scanNextToken`/`scanNextTokenIx`, and **56** discharges across
+**17** files on the `via_*` ladder — which cost one ARGUMENT each rather
+than a proof, because those lemmas take the checks as premises and the
+converse extractor reads the new one off an `.ok` witness the site
+already holds.  So the "100+-site absorption per mechanism" above is the
+right order of magnitude and the right shape; what it is not is 100 sites
+of REASONING.
 
 §2–§4 pin the gap (`parserGap`: both scanners accept, both pipelines
 refuse); §5 the neighbors the scanner already refuses; §6 the valid
@@ -111,46 +129,49 @@ private def scannerRefuses (input : String) : Bool :=
 
 -- §2 M1 — the completed root document, then content on a later line.
 -- Flow close at the root:
-#guard parserGap "[1, 2]\na\n"
-#guard parserGap "[1, 2]\n[3]\n"
-#guard parserGap "[1, 2]\na: 1\n"
-#guard parserGap "[1, 2]\n- y\n"
-#guard parserGap "[1, 2]\n? k\n"
-#guard parserGap "[1, 2]\n: v\n"
-#guard parserGap "[1, 2]\n|\n  x\n"
-#guard parserGap "[1, 2]\n\"q\"\n"
-#guard parserGap "[1, 2]\n&p a\n"
-#guard parserGap "[1, 2]\n!t x\n"
-#guard parserGap "{a: b}\nx\n"
-#guard parserGap "[1, 2] # c\na\n"
-#guard parserGap "[1, 2]\n  a\n"
-#guard parserGap "[1,\n 2]\na\n"
+#guard scannerRefuses "[1, 2]\na\n"
+#guard scannerRefuses "[1, 2]\n[3]\n"
+#guard scannerRefuses "[1, 2]\na: 1\n"
+#guard scannerRefuses "[1, 2]\n- y\n"
+#guard scannerRefuses "[1, 2]\n? k\n"
+#guard scannerRefuses "[1, 2]\n: v\n"
+#guard scannerRefuses "[1, 2]\n|\n  x\n"
+#guard scannerRefuses "[1, 2]\n\"q\"\n"
+#guard scannerRefuses "[1, 2]\n&p a\n"
+#guard scannerRefuses "[1, 2]\n!t x\n"
+#guard scannerRefuses "{a: b}\nx\n"
+#guard scannerRefuses "[1, 2] # c\na\n"
+#guard scannerRefuses "[1, 2]\n  a\n"
+#guard scannerRefuses "[1,\n 2]\na\n"
 -- Quoted scalar at the root:
-#guard parserGap "\"x\"\na\n"
-#guard parserGap "\"x\"\na: 1\n"
-#guard parserGap "\"x\"\n: v\n"
-#guard parserGap "\"x\"\n[1]\n"
-#guard parserGap "\"x\"\n\"y\"\n"
-#guard parserGap "\"x\"\n  a\n"
-#guard parserGap "\"x\"\n? k\n: v\n"
+#guard scannerRefuses "\"x\"\na\n"
+#guard scannerRefuses "\"x\"\na: 1\n"
+#guard scannerRefuses "\"x\"\n: v\n"
+#guard scannerRefuses "\"x\"\n[1]\n"
+#guard scannerRefuses "\"x\"\n\"y\"\n"
+#guard scannerRefuses "\"x\"\n  a\n"
+#guard scannerRefuses "\"x\"\n? k\n: v\n"
 -- Block scalar at the root (the landing IS the later line):
-#guard parserGap "|\n  x\na\n"
-#guard parserGap "|\n  x\nb: 2\n"
-#guard parserGap "|\n  x\n- y\n"
-#guard parserGap "|\n  x\n[1]\n"
-#guard parserGap "|\n  x\n: v\n"
-#guard parserGap "|2\n  x\na\n"
+#guard scannerRefuses "|\n  x\na\n"
+#guard scannerRefuses "|\n  x\nb: 2\n"
+#guard scannerRefuses "|\n  x\n- y\n"
+#guard scannerRefuses "|\n  x\n[1]\n"
+#guard scannerRefuses "|\n  x\n: v\n"
+#guard scannerRefuses "|2\n  x\na\n"
 -- Plain scalar at the root: the walk absorbs continuation lines, so the
 -- completed-scalar state is reachable only where the walk stops — a
 -- comment line.  (`hello⏎world` is ONE scalar; §6.)
-#guard parserGap "hello\n# c\nworld\n"
-#guard parserGap "hello\n# c\nw: 1\n"
-#guard parserGap "hello\n# c\n: v\n"
--- The explicit-document twins (`---` pushes no indent level):
+#guard scannerRefuses "hello\n# c\nworld\n"
+#guard scannerRefuses "hello\n# c\nw: 1\n"
+#guard scannerRefuses "hello\n# c\n: v\n"
+-- The explicit-document twins (`---` pushes no indent level).  The first
+-- is M2's, not M1's, and stays a gap: `a: 1` opens a mapping level at
+-- column 0, so the dangling `b` sits at an OPEN level rather than at the
+-- sentinel — measured against the landed check, which does not fire here.
 #guard parserGap "---\na: 1\nb\n"
-#guard parserGap "--- [1]\nx\n"
-#guard parserGap "--- |\n  q\nx\n"
-#guard parserGap "--- \"x\"\na\n"
+#guard scannerRefuses "--- [1]\nx\n"
+#guard scannerRefuses "--- |\n  q\nx\n"
+#guard scannerRefuses "--- \"x\"\na\n"
 
 -- §3 M2 — the dangling node run at an open level's column.
 -- Plain danglers at a mapping's column (mid-stream and EOF deaths):

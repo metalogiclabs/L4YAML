@@ -67,6 +67,13 @@ lemma scanNextTokenIx_preserves_ScanInvIx
             | ok u => exact ⟨u, rfl⟩
           obtain ⟨u, h_npd⟩ := h_npd
           rw [h_npd] at h_ok
+          -- §9.2 bare-document check (item 132)
+          have h_bd : ∃ u, scanNextTokenIx_checkBareDocument sp = .ok u := by
+            cases hx : scanNextTokenIx_checkBareDocument sp with
+            | error e => rw [hx] at h_ok; cases h_ok
+            | ok u => exact ⟨u, rfl⟩
+          obtain ⟨u2, h_bd⟩ := h_bd
+          rw [h_bd] at h_ok
           simp only [] at h_ok
           by_cases hAD : sp.allowDirectives = true
           · -- allowDirectives = true: sadj has the field updates
@@ -181,6 +188,13 @@ lemma scanNextTokenIx_preserves_AllKeysValidIx
             | ok u => exact ⟨u, rfl⟩
           obtain ⟨u, h_npd⟩ := h_npd
           rw [h_npd] at h_ok
+          -- §9.2 bare-document check (item 132)
+          have h_bd : ∃ u, scanNextTokenIx_checkBareDocument sp = .ok u := by
+            cases hx : scanNextTokenIx_checkBareDocument sp with
+            | error e => rw [hx] at h_ok; cases h_ok
+            | ok u => exact ⟨u, rfl⟩
+          obtain ⟨u2, h_bd⟩ := h_bd
+          rw [h_bd] at h_ok
           simp only [] at h_ok
           by_cases hAD : sp.allowDirectives = true
           · rw [if_pos hAD] at h_ok

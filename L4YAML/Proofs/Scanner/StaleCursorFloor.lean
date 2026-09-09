@@ -1516,6 +1516,9 @@ lemma scanNextToken_preserves_StaleKeyCursorFloor (s s' : ScannerState)
             fun h_fl => structural_none_col_gt_of_inFlow h_fl h_struct
           split at h
           · cases h
+          -- §9.2 bare-document check (item 132)
+          split at h
+          · cases h
           · split at h
             · cases h
             · rcases h_ad : sp.allowDirectives with _ | _

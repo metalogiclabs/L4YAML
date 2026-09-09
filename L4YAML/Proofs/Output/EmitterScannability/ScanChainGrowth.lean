@@ -580,6 +580,8 @@ lemma scanNextToken_flow_value (s : ScannerState)
     scanNextToken_via_block_dispatch s (saveSimpleKey s) s_ad s_final ':'
       h_pp h_struct (by rfl) h_check h_flow_none h_block_result
       ((saveSimpleKey_preserves_directivesPresent s).trans h_dp)
+      (scanNextToken_checkBareDocument_ok_of_inFlow _
+        ((saveSimpleKey_preserves_inFlow s).trans h_flow))
   -- scanValuePrepare preserves key fields in flow context
   -- (only modifies tokens and simpleKey when inFlow = true)
   have h_svp_flow := h_ad_inFlow
@@ -1657,6 +1659,8 @@ lemma scanNextToken_flow_scalar_savedKey (s : ScannerState)
       h_flow_none h_block_none
       (scanNextToken_checkAdjacentValue_ok_of_ne_colon _ (by decide)) h_dc
       ((saveSimpleKey_preserves_directivesPresent s).trans h_dp)
+      (scanNextToken_checkBareDocument_ok_of_inFlow _
+        ((saveSimpleKey_preserves_inFlow s).trans h_flow))
   refine ⟨_, h_snt, ?_, ?_, ?_, ?_, ?_⟩
   · show s_dq.simpleKey.possible = true
     exact h_sdq_poss
@@ -1717,6 +1721,7 @@ lemma scanNextToken_flow_open_seq_savedKey (s s' : ScannerState) (rest : List Ch
   have h_snt_eq : scanNextToken s = .ok (some (scanFlowSequenceStart s_ad)) :=
     scanNextToken_via_flow_dispatch _ _ _ _ _ h_pp h_struct rfl h_check h_flow_disp
       (scanNextToken_ok_directivesPresent_false h_pp h_struct h_snt)
+      (scanNextToken_ok_checkBareDocument h_pp h_struct h_snt)
   have h_s' : s' = scanFlowSequenceStart s_ad :=
     Option.some.inj (Except.ok.inj (h_snt.symm.trans h_snt_eq))
   obtain ⟨tok, h_tok⟩ : ∃ tok, (scanFlowSequenceStart s_ad).tokens = s_ad.tokens.push tok :=
@@ -1759,6 +1764,7 @@ lemma scanNextToken_flow_open_mapping_savedKey (s s' : ScannerState) (rest : Lis
   have h_snt_eq : scanNextToken s = .ok (some (scanFlowMappingStart s_ad)) :=
     scanNextToken_via_flow_dispatch _ _ _ _ _ h_pp h_struct rfl h_check h_flow_disp
       (scanNextToken_ok_directivesPresent_false h_pp h_struct h_snt)
+      (scanNextToken_ok_checkBareDocument h_pp h_struct h_snt)
   have h_s' : s' = scanFlowMappingStart s_ad :=
     Option.some.inj (Except.ok.inj (h_snt.symm.trans h_snt_eq))
   obtain ⟨tok, h_tok⟩ : ∃ tok, (scanFlowMappingStart s_ad).tokens = s_ad.tokens.push tok :=

@@ -1263,6 +1263,9 @@ lemma scanNextTokenIx_maintains_NoOverwriteAtIx {input : String}
           -- Fix B pending-directives check: error arm contradicts h_next
           split at h_next
           · contradiction
+          -- §9.2 bare-document check (item 132): the same shape
+          split at h_next
+          · contradiction
           split at h_next
           · contradiction
           · split at h_next
@@ -1474,6 +1477,9 @@ lemma scanNextTokenIx_preserves_position_specific {input : String}
               rw [← h_dir_def]
               split <;> exact h_inv_pp
             -- Fix B pending-directives check: error arm contradicts h_ok
+            split at h_ok
+            · contradiction
+            -- §9.2 bare-document check (item 132): the same shape
             split at h_ok
             · contradiction
             generalize h_ck : scanNextTokenIx_checkBlockFlowIndent s_dir c = ck_res at h_ok

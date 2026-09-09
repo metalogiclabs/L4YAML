@@ -792,6 +792,50 @@ def scanNextToken_checkNoPendingDirectives (s : ScannerState) :
   else
     .ok ()
 
+/-- §9.2 [211]: a bare document may only be the stream's first, or follow a
+    `...`.  A ROOT node that is already complete, and content on a LATER line
+    with no marker between them, is a second bare document — `l-yaml-stream`
+    offers no production for it.
+
+    The three conjuncts are the whole reading, and each is a state field the
+    scanner already maintains:
+
+    * the indent stack is the sentinel alone, so the completed node is the
+      DOCUMENT's, not an entry inside a still-open block collection (a
+      dangling node at an open level's own column is a different violation
+      and belongs to its own check);
+    * the last real token COMPLETES a node — `YamlToken.completesFlowValue`,
+      the same set `scanNextToken_checkFlowAdjacency` reads: a scalar of any
+      style, an alias, or a flow close.  Node properties and the indicators
+      are excluded because they precede or separate nodes rather than
+      finishing one;
+    * `simpleKeyAllowed` is up, which is exactly "a line break intervened".
+      Every completing scan clears the flag and only a break re-arms it, so
+      the same-line readings this must not touch (`[1, 2]: v` and `"x": 1`,
+      where the completed node is an implicit KEY) are excluded by the flag
+      rather than by a position comparison — the completing token's `endPos`
+      is not populated for scalars, so a line test on the TOKEN would read a
+      multi-line scalar's start.
+
+    Runs after the structural dispatch, so `---`, `...` and directives are
+    reached first and stay legal; a plain scalar absorbs its own continuation
+    lines, so the completed-root state is reachable for that style only where
+    the walk stops (a comment line, `hello⏎# c⏎world`).
+
+    The parser refuses the same inputs one layer down
+    (`StreamState.validNextToken`), at the same position and with this same
+    error, so the check moves the refusal without moving any output. -/
+@[yaml_spec "9.2" 211 "l-yaml-stream"]
+def scanNextToken_checkBareDocument (s : ScannerState) :
+    Except ScanError Unit :=
+  if !s.inFlow && s.simpleKeyAllowed && s.indents.size <= 1
+      && (match lastRealTokenVal? s.tokens with
+          | some t => t.completesFlowValue
+          | none => false) then
+    .error (.invalidBareDocument s.line s.col)
+  else
+    .ok ()
+
 /-- §8.2.2 [194] / §7.5: a `:` that reaches CONTENT dispatch while a completed
     node's simple key is still recorded starts a second node in a one-node slot.
 
@@ -846,13 +890,17 @@ def scanNextToken_checkAdjacentValue (s : ScannerState) (c : Char) :
     Flow:
     1. `scanNextToken_preprocess` — skip whitespace, indent check, peek char
     2. `scanNextToken_dispatchStructural` — validation, document markers, directives
+       (then the §9.1.5 and §9.2 stream-structure checks, which markers escape)
     3. `scanNextToken_dispatchFlowIndicators` — `[`, `]`, `{`, `}`, `,`
     4. `scanNextToken_dispatchBlockIndicators` — `-`, `?`, `:`
     5. `scanNextToken_dispatchContent` — `&`, `*`, `!`, `|`/`>`, `"`, `'`, plain
 
     **Pre**: Scanner state from previous token (or initial state).
     **Post**: Scanner past one token. Token emitted. State updated.
-    **Error**: Unexpected character at current position. -/
+    **Error**: Unexpected character at current position; orphaned directives
+    (§9.1.5); a second bare document (§9.2, `scanNextToken_checkBareDocument`);
+    an under-indented flow open (§8.1); an unseparated `:` after a completed
+    node (§8.2.2). -/
 @[yaml_spec "9.2"]
 def scanNextToken (s : ScannerState) : Except ScanError (Option ScannerState) := do
   match ← scanNextToken_preprocess s with
@@ -864,6 +912,9 @@ def scanNextToken (s : ScannerState) : Except ScanError (Option ScannerState) :=
       -- §9.1.5 [209]: pending directives with no `---` before content
       -- are orphaned — error (spec-exact since the nb-char/ns-char era).
       scanNextToken_checkNoPendingDirectives s
+      -- §9.2 [211] (item 132): a completed ROOT node and content on a later
+      -- line, with no `---`/`...` between them, is a second bare document.
+      scanNextToken_checkBareDocument s
       -- Any non-directive, non-document-marker content means we're in a document.
       -- Disallow directives until the next `...` document-end marker.
       let s := if s.allowDirectives then

@@ -174,10 +174,13 @@ lemma scanNextTokenIx_filtered_grows_in_flow
   have h_ndp_ok : scanNextTokenIx_checkNoPendingDirectives (saveSimpleKeyIx s) = .ok () :=
     scanNextTokenIx_checkNoPendingDirectives_ok _
       (scanNextTokenIx_ok_directivesPresent_false h_pp h_struct h_snt)
+  -- §9.2 bare-document check (item 132), read off the same `.ok` witness.
+  have h_bd_ok : scanNextTokenIx_checkBareDocument (saveSimpleKeyIx s) = .ok () :=
+    scanNextTokenIx_ok_checkBareDocument h_pp h_struct h_snt
   -- Step 4: unfold scanNextTokenIx using the pinned dispatch info.
   unfold scanNextTokenIx at h_snt
   simp only [bind, pure, Pure.pure, Except.pure, Except.bind, h_pp, h_struct,
-             h_ndp_ok, ← hs_ad, h_check] at h_snt
+             h_ndp_ok, h_bd_ok, ← hs_ad, h_check] at h_snt
   -- Step 5: case-analyze on dispatchFlowIndicators result.
   match h_flow_eq : scanNextTokenIx_dispatchFlowIndicators s_ad c with
   | .error _ => rw [h_flow_eq] at h_snt; simp at h_snt

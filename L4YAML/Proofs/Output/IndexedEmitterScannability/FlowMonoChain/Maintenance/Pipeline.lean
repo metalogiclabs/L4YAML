@@ -379,13 +379,15 @@ lemma scanNextTokenIx_via_content_dispatch
     (h_block : scanNextTokenIx_dispatchBlockIndicators s_ad c = .ok none)
     (h_adj : scanNextTokenIx_checkAdjacentValue s_ad c = .ok ())
     (h_content : scanNextTokenIx_dispatchContent s_ad c = .ok s_result)
-    (h_ndp : s_pp.directivesPresent = false) :
+    (h_ndp : s_pp.directivesPresent = false)
+    (h_bare : scanNextTokenIx_checkBareDocument s_pp = .ok ()) :
     scanNextTokenIx s = .ok (some s_result) := by
   unfold scanNextTokenIx
   simp only [bind, Except.bind, pure, Pure.pure, Except.pure]
   rw [h_pp]; dsimp only []
   rw [h_struct]; dsimp only []
   rw [scanNextTokenIx_checkNoPendingDirectives_ok _ h_ndp]; dsimp only []
+  rw [h_bare]; dsimp only []
   rw [← h_ad_eq]
   rw [h_check]; dsimp only []
   rw [h_flow]; dsimp only []
@@ -407,13 +409,15 @@ lemma scanNextTokenIx_via_content_dispatch_error
     (h_block : scanNextTokenIx_dispatchBlockIndicators s_ad c = .ok none)
     (h_adj : scanNextTokenIx_checkAdjacentValue s_ad c = .ok ())
     (h_content : scanNextTokenIx_dispatchContent s_ad c = .error e)
-    (h_ndp : s_pp.directivesPresent = false) :
+    (h_ndp : s_pp.directivesPresent = false)
+    (h_bare : scanNextTokenIx_checkBareDocument s_pp = .ok ()) :
     scanNextTokenIx s = .error e := by
   unfold scanNextTokenIx
   simp only [bind, Except.bind, pure, Pure.pure, Except.pure]
   rw [h_pp]; dsimp only []
   rw [h_struct]; dsimp only []
   rw [scanNextTokenIx_checkNoPendingDirectives_ok _ h_ndp]; dsimp only []
+  rw [h_bare]; dsimp only []
   rw [← h_ad_eq]
   rw [h_check]; dsimp only []
   rw [h_flow]; dsimp only []
@@ -434,13 +438,15 @@ lemma scanNextTokenIx_via_block_dispatch
     (h_check : scanNextTokenIx_checkBlockFlowIndent s_ad c = .ok ())
     (h_flow : scanNextTokenIx_dispatchFlowIndicators s_ad c = .ok none)
     (h_block : scanNextTokenIx_dispatchBlockIndicators s_ad c = .ok (some s_result))
-    (h_ndp : s_pp.directivesPresent = false) :
+    (h_ndp : s_pp.directivesPresent = false)
+    (h_bare : scanNextTokenIx_checkBareDocument s_pp = .ok ()) :
     scanNextTokenIx s = .ok (some s_result) := by
   unfold scanNextTokenIx
   simp only [bind, Except.bind, pure, Pure.pure, Except.pure]
   rw [h_pp]; dsimp only []
   rw [h_struct]; dsimp only []
   rw [scanNextTokenIx_checkNoPendingDirectives_ok _ h_ndp]; dsimp only []
+  rw [h_bare]; dsimp only []
   rw [← h_ad_eq]
   rw [h_check]; dsimp only []
   rw [h_flow]; dsimp only []

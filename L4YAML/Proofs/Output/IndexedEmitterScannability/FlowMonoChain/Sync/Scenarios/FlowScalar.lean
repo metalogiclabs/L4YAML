@@ -334,6 +334,8 @@ lemma scanNextTokenIx_flow_scanDoubleQuoted (s : ScannerStateIx input)
       h_pp h_struct h_s_ad_def h_check h_flow_none h_block_none
       (scanNextTokenIx_checkAdjacentValue_ok_of_ne_colon _ (by decide)) h_dc
       ((saveSimpleKeyIx_directivesPresent s).trans h_dp)
+      (scanNextTokenIx_checkBareDocument_ok_of_inFlow _
+        ((saveSimpleKeyIx_inFlow s).trans h_flow))
   -- ── line equality (used by several conjuncts)
   have h_s'_line_eq : s'.cursor.pos.line = s.cursor.pos.line := by
     rw [h_s'_cursor, h_line_cAfter]; exact h_ad_line

@@ -81,6 +81,7 @@ lemma scanFlowSequenceStart_first_filtered_token (s : ScannerState) (rest : List
   have h_snt_eq : scanNextToken s = .ok (some (scanFlowSequenceStart s_ad)) :=
     scanNextToken_via_flow_dispatch _ _ _ _ _ h_pp h_struct rfl h_check h_flow_disp
       (scanNextToken_ok_directivesPresent_false h_pp h_struct h_snt)
+      (scanNextToken_ok_checkBareDocument h_pp h_struct h_snt)
   have h_s' : s' = scanFlowSequenceStart s_ad := by
     have h := h_snt.symm.trans h_snt_eq
     exact Option.some.inj (Except.ok.inj h)
@@ -146,6 +147,7 @@ lemma scanFlowMappingStart_first_filtered_token (s : ScannerState) (rest : List 
   have h_snt_eq : scanNextToken s = .ok (some (scanFlowMappingStart s_ad)) :=
     scanNextToken_via_flow_dispatch _ _ _ _ _ h_pp h_struct rfl h_check h_flow_disp
       (scanNextToken_ok_directivesPresent_false h_pp h_struct h_snt)
+      (scanNextToken_ok_checkBareDocument h_pp h_struct h_snt)
   have h_s' : s' = scanFlowMappingStart s_ad := by
     have h := h_snt.symm.trans h_snt_eq
     exact Option.some.inj (Except.ok.inj h)
@@ -276,6 +278,7 @@ lemma scanDoubleQuoted_first_filtered_token (s : ScannerState) (rest : List Char
         _ _ _ _ _ h_pp h_struct rfl h_check h_flow_none h_block_none
         (scanNextToken_checkAdjacentValue_ok_of_ne_colon _ (by decide)) h_dc_eq
         (scanNextToken_ok_directivesPresent_false h_pp h_struct h_snt)
+        (scanNextToken_ok_checkBareDocument h_pp h_struct h_snt)
       rw [h_snt_err] at h_snt; exact absurd h_snt (by simp)
     | ok s_dc =>
       have h_snt_eq : scanNextToken s = Except.ok (some s_dc) :=
@@ -283,6 +286,7 @@ lemma scanDoubleQuoted_first_filtered_token (s : ScannerState) (rest : List Char
           h_flow_none h_block_none
           (scanNextToken_checkAdjacentValue_ok_of_ne_colon _ (by decide)) h_dc_eq
           (scanNextToken_ok_directivesPresent_false h_pp h_struct h_snt)
+          (scanNextToken_ok_checkBareDocument h_pp h_struct h_snt)
       have h_eq2 : s' = s_dc := Option.some.inj (Except.ok.inj (h_snt.symm.trans h_snt_eq))
       subst h_eq2; rfl
   -- Extract scanDoubleQuoted's effect from dispatchContent
@@ -403,6 +407,7 @@ lemma emitList_head_step_noOverwrite (s s' : ScannerState) (c : Char) (rest : Li
     have h_snt_eq : scanNextToken s = .ok (some (scanFlowSequenceStart s_ad)) :=
       scanNextToken_via_flow_dispatch _ _ _ _ _ h_pp h_struct rfl h_check h_flow_disp
         (scanNextToken_ok_directivesPresent_false h_pp h_struct h_snt)
+        (scanNextToken_ok_checkBareDocument h_pp h_struct h_snt)
     have h_s' : s' = scanFlowSequenceStart s_ad :=
       Option.some.inj (Except.ok.inj (h_snt.symm.trans h_snt_eq))
     have h_stack_eq : s'.simpleKeyStack = s.simpleKeyStack.push (saveSimpleKey s).simpleKey := by
@@ -432,6 +437,7 @@ lemma emitList_head_step_noOverwrite (s s' : ScannerState) (c : Char) (rest : Li
     have h_snt_eq : scanNextToken s = .ok (some (scanFlowMappingStart s_ad)) :=
       scanNextToken_via_flow_dispatch _ _ _ _ _ h_pp h_struct rfl h_check h_flow_disp
         (scanNextToken_ok_directivesPresent_false h_pp h_struct h_snt)
+        (scanNextToken_ok_checkBareDocument h_pp h_struct h_snt)
     have h_s' : s' = scanFlowMappingStart s_ad :=
       Option.some.inj (Except.ok.inj (h_snt.symm.trans h_snt_eq))
     have h_stack_eq : s'.simpleKeyStack = s.simpleKeyStack.push (saveSimpleKey s).simpleKey := by
@@ -471,6 +477,7 @@ lemma emitList_head_step_noOverwrite (s s' : ScannerState) (c : Char) (rest : Li
           _ _ _ _ _ h_pp h_struct rfl h_check h_flow_none h_block_none
           (scanNextToken_checkAdjacentValue_ok_of_ne_colon _ (by decide)) h_dc_eq
           (scanNextToken_ok_directivesPresent_false h_pp h_struct h_snt)
+          (scanNextToken_ok_checkBareDocument h_pp h_struct h_snt)
         rw [h_snt_err] at h_snt; exact absurd h_snt (by simp)
       | ok s_dc =>
         have h_snt_eq : scanNextToken s = Except.ok (some s_dc) :=
@@ -478,6 +485,7 @@ lemma emitList_head_step_noOverwrite (s s' : ScannerState) (c : Char) (rest : Li
             h_flow_none h_block_none
             (scanNextToken_checkAdjacentValue_ok_of_ne_colon _ (by decide)) h_dc_eq
             (scanNextToken_ok_directivesPresent_false h_pp h_struct h_snt)
+            (scanNextToken_ok_checkBareDocument h_pp h_struct h_snt)
         have h_eq2 : s' = s_dc := Option.some.inj (Except.ok.inj (h_snt.symm.trans h_snt_eq))
         subst h_eq2; rfl
     -- extract scanDoubleQuoted result and relate s' to it
@@ -1680,10 +1688,13 @@ lemma scanNextToken_filtered_grows_in_flow
   have h_ndp_ok : scanNextToken_checkNoPendingDirectives (saveSimpleKey s) = .ok () :=
     scanNextToken_checkNoPendingDirectives_ok _
       (scanNextToken_ok_directivesPresent_false h_pp h_struct h_snt)
+  -- §9.2 bare-document check (item 132), read off the same `.ok` witness.
+  have h_bd_ok : scanNextToken_checkBareDocument (saveSimpleKey s) = .ok () :=
+    scanNextToken_ok_checkBareDocument h_pp h_struct h_snt
   -- Step 4: unfold scanNextToken using the pinned dispatch info.
   unfold scanNextToken at h_snt
   simp only [bind, pure, Pure.pure, Except.pure, Except.bind, h_pp, h_struct,
-             h_ndp_ok, ← hs_ad, h_check] at h_snt
+             h_ndp_ok, h_bd_ok, ← hs_ad, h_check] at h_snt
   -- Step 5: case-analyze on dispatchFlowIndicators result.
   match h_flow_eq : scanNextToken_dispatchFlowIndicators s_ad c with
   | .error _ => rw [h_flow_eq] at h_snt; simp at h_snt

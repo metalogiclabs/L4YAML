@@ -147,6 +147,7 @@ lemma scanNextTokenIx_preprocess_init_state (input : String) (c : Char)
       ∧ s_pp.explicitKeyLine = none
       ∧ s_pp.cursor.pos.line = 0
       ∧ AllTokensOnLineIx s_pp s_pp.cursor.pos.line
+      ∧ scanNextTokenIx_checkBareDocument s_pp = .ok ()
       ∧ s_pp.tokens.tokens.filter (fun t => t.token != .placeholder)
           = ((ScannerStateIx.mk' input).emit YamlToken.streamStart).tokens.tokens.filter
               (fun t => t.token != .placeholder) := by
@@ -191,7 +192,7 @@ lemma scanNextTokenIx_preprocess_init_state (input : String) (c : Char)
   -- Refine: introduce the witness state explicitly and use it to drive the conclusion
   refine ⟨saveSimpleKeyIx { (ScannerStateIx.mk' input).emit YamlToken.streamStart
                               with needIndentCheck := false },
-          ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+          ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
   · -- scanNextTokenIx_preprocess = .ok (some (witness, c))
     unfold scanNextTokenIx_preprocess
     -- Item 7 strictness walker: `none` at a content character, so the
@@ -279,6 +280,21 @@ lemma scanNextTokenIx_preprocess_init_state (input : String) (c : Char)
             needIndentCheck := false } : ScannerStateIx input).cursor.pos.line = 0 :=
       h_emit_line
     exact AllTokensOnLineIx_saveSimpleKeyIx _ 0 h_nic_atol h_nic_line
+  · -- §9.2 bare-document check (item 132): the only real token behind the
+    -- cursor is `streamStart`, which completes nothing.
+    refine scanNextTokenIx_checkBareDocument_ok_of_last _ ?_
+    intro t ht
+    have hlast : lastRealTokenValIx?
+        (saveSimpleKeyIx ({ (ScannerStateIx.mk' input).emit YamlToken.streamStart
+          with needIndentCheck := false } : ScannerStateIx input)).tokens
+        = some YamlToken.streamStart := by
+      unfold saveSimpleKeyIx
+      split
+      · rfl
+      · split <;> rfl
+    rw [hlast] at ht
+    cases ht
+    rfl
   · -- Filter preservation: saveSimpleKeyIx_filter_placeholder, then trivial for record update
     exact saveSimpleKeyIx_filter_placeholder _
 
@@ -347,6 +363,8 @@ lemma scanNextTokenIx_flow_close_seq_outermost (s : ScannerStateIx input)
     (scanFlowSequenceEndIx s_ad) ']'
     h_pp h_struct h_s_ad_def h_check h_flow_disp
     ((saveSimpleKeyIx_directivesPresent s).trans h_dp)
+    (scanNextTokenIx_checkBareDocument_ok_of_inFlow _
+      ((saveSimpleKeyIx_inFlow s).trans h_flow))
   -- Step 7: extract via scanFlowSequenceEndIx_detail (for s_ad at position [']']
   have h_ad_corr : ScannerSurfCorrIx s_ad ⟨[']'], s_ad.cursor.pos.col⟩ := by
     refine ⟨?_, rfl, ?_, ?_⟩
@@ -424,6 +442,8 @@ lemma scanNextTokenIx_flow_close_mapping_outermost (s : ScannerStateIx input)
     (scanFlowMappingEndIx s_ad) '}'
     h_pp h_struct h_s_ad_def h_check h_flow_disp
     ((saveSimpleKeyIx_directivesPresent s).trans h_dp)
+    (scanNextTokenIx_checkBareDocument_ok_of_inFlow _
+      ((saveSimpleKeyIx_inFlow s).trans h_flow))
   have h_ad_corr : ScannerSurfCorrIx s_ad ⟨['}'], s_ad.cursor.pos.col⟩ := by
     refine ⟨?_, rfl, ?_, ?_⟩
     · rw [h_ad_cursor]; exact hcorr.chars_from
@@ -481,7 +501,7 @@ lemma scanNextTokenIx_flow_open_mapping_init (input : String) (rest : List Char)
     (by decide) (by decide) (by decide)
   obtain ⟨s_pp, h_pp_eq, h_fl_pp, h_inflow_pp, h_ci_pp, h_col_pp,
           h_ad_pp, h_dp_pp, h_ids, h_off, h_ek_pp,
-          h_line_pp, h_atol_pp, _h_pp_filt⟩ := h_pp
+          h_line_pp, h_atol_pp, h_bd_pp, _h_pp_filt⟩ := h_pp
   -- Step 2: ScannerSurfCorrIx for s_pp at ⟨'{' :: rest, s_pp.col⟩
   have h_corr₀ : ScannerSurfCorrIx (input := input) (ScannerStateIx.mk' input)
       ⟨'{' :: rest, 0⟩ := by
@@ -572,7 +592,7 @@ lemma scanNextTokenIx_flow_open_mapping_init (input : String) (rest : List Char)
   -- Step 9: compose via scanNextTokenIx_via_flow_dispatch
   have h_snt := scanNextTokenIx_via_flow_dispatch s₀ s_pp s_ad
     (scanFlowMappingStartIx s_ad) '{'
-    h_pp_eq h_struct h_s_ad_def h_check h_flow_disp h_dp_pp
+    h_pp_eq h_struct h_s_ad_def h_check h_flow_disp h_dp_pp h_bd_pp
   -- Step 10: extract via scanFlowMappingStartIx_detail
   have h_ad_corr : ScannerSurfCorrIx s_ad ⟨'{' :: rest, s_ad.cursor.pos.col⟩ := by
     refine ⟨?_, ?_, ?_, ?_⟩
@@ -722,7 +742,7 @@ lemma scanNextTokenIx_flow_open_seq_init (input : String) (rest : List Char)
     (by decide) (by decide) (by decide)
   obtain ⟨s_pp, h_pp_eq, h_fl_pp, h_inflow_pp, h_ci_pp, h_col_pp,
           h_ad_pp, h_dp_pp, h_ids, h_off, h_ek_pp,
-          h_line_pp, h_atol_pp, _h_pp_filt⟩ := h_pp
+          h_line_pp, h_atol_pp, h_bd_pp, _h_pp_filt⟩ := h_pp
   -- Step 2: ScannerSurfCorrIx for s_pp at ⟨'[' :: rest, s_pp.col⟩
   have h_corr₀ : ScannerSurfCorrIx (input := input) (ScannerStateIx.mk' input)
       ⟨'[' :: rest, 0⟩ := by
@@ -808,7 +828,7 @@ lemma scanNextTokenIx_flow_open_seq_init (input : String) (rest : List Char)
   -- Step 9: compose via scanNextTokenIx_via_flow_dispatch
   have h_snt := scanNextTokenIx_via_flow_dispatch s₀ s_pp s_ad
     (scanFlowSequenceStartIx s_ad) '['
-    h_pp_eq h_struct h_s_ad_def h_check h_flow_disp h_dp_pp
+    h_pp_eq h_struct h_s_ad_def h_check h_flow_disp h_dp_pp h_bd_pp
   -- Step 10: extract via scanFlowSequenceStartIx_detail
   have h_ad_corr : ScannerSurfCorrIx s_ad ⟨'[' :: rest, s_ad.cursor.pos.col⟩ := by
     refine ⟨?_, ?_, ?_, ?_⟩

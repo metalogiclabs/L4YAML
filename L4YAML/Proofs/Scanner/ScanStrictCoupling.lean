@@ -379,6 +379,9 @@ lemma scanNextToken_corr (sc : ScannerState) (sp : SurfPos)
           · -- pending-directives check (Fix B)
             split at hok
             · simp at hok
+            -- §9.2 bare-document check (item 132)
+            split at hok
+            · simp at hok
             · have hcorr_ad : ScannerSurfCorr
                   (if s_pre.allowDirectives then
                     { s_pre with allowDirectives := false, documentEverStarted := true }
@@ -424,6 +427,9 @@ lemma scanNextToken_none_consumed (sc : ScannerState) (sp : SurfPos)
       · split at hok
         · exact absurd (Except.ok.inj hok) nofun
         · -- pending-directives check (Fix B)
+          split at hok
+          · simp at hok
+          -- §9.2 bare-document check (item 132)
           split at hok
           · simp at hok
           · split at hok

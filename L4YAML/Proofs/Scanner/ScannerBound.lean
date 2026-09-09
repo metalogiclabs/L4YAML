@@ -1792,6 +1792,9 @@ lemma scanNextToken_preserves_bound_full (s s' : ScannerState)
           -- Pending-directives check (Fix B)
           split at h
           · cases h
+          -- §9.2 bare-document check (item 132)
+          split at h
+          · cases h
           · -- Outermost match is checkBlockFlowIndent (wrapping the if-expression)
             split at h
             · cases h  -- indent error

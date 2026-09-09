@@ -12321,7 +12321,9 @@ Zero runtime edits, zero new fields, ONE new lemma.
   suffix carrier (a `...` intervened — items 117 + 118 pay every landing
   class: content, block indicator, flow open) and the scanner's refusals
   (none did → §9.2's `trailingContent` family); the refusal half has no
-  carrier yet and is the tightening's remaining prerequisite.
+  carrier yet and is the tightening's remaining prerequisite.  [Its FIRST mechanism
+  has a carrier since [item 132](#item-132-2026-09-09) — M1; M2 and M3 are
+  what remains.]
 * The 16 sites and the CONSTRUCTOR (item 110: LAST).
 * The EOF close keeps the honest empty-slot fold.
 
@@ -12385,7 +12387,10 @@ the checks would reuse `.invalidBareDocument`):
   already refused (`validateFlowClose`/`validateTrailingContent` — but
   see the asymmetry below); the alias-as-root case is unreachable
   (`undefinedAlias` fires first); anchors and tags do not complete
-  (`&p⏎x` is one anchored scalar).
+  (`&p⏎x` is one anchored scalar).  **LANDED by
+  [item 132](#item-132-2026-09-09)** as `scanNextToken_checkBareDocument`; the
+  break condition reads `simpleKeyAllowed` rather than the completing token's
+  position, because `endPos` is not populated for scalars.
 * **M2 — the dangling node run at an open level's column**: a trailing
   run `[anchor|tag]* (scalar|alias)?` whose start sits at an open indent
   level's exact column, whose structural predecessor is NOT
@@ -12420,6 +12425,8 @@ edits ×3 chains (legacy, `scanNextTokenIx`, `scanNextTokenIxWC`) and the
 `scanLoop` EOF twins.  **The refusal half is at least three items — one
 mechanism plus its absorption each — not one**, and the constructor's
 prerequisite chain is now M1 → M2 → M3 → the 16 swaps → the constructor.
+**M1 is LANDED** ([item 132](#item-132-2026-09-09)); the chain from here is
+M2 → M3 → the 16 swaps → the constructor.
 
 **Found by the map**: same-line junk after a completed root flow close
 or quoted scalar (`[1, 2] x`, `"x" y`) is refused by the LEGACY scanner
@@ -13524,6 +13531,125 @@ that `unfold` them reduce by delta and generate nothing.  **0** direct and
 **0** transitive `sorry`, **0** custom axioms.  Axiom profile of the two new
 lemmas: `propext`, `Classical.choice`, `Quot.sound` only.
 
+### Item 132 (2026-09-09)
+
+**M1 lands: the completed root document is refused at the scanner.**  Item 119
+measured the raised-flag refusal half and found that §9.2's refusal lives in the
+PARSER — `StreamState.validNextToken` — so the half is a runtime MIGRATION in
+three mechanisms.  This is the first, and the mechanism is
+`scanNextToken_checkBareDocument`: after the structural dispatch (so `---`,
+`...` and directives are reached first and stay legal), a ROOT node that is
+already complete, with content on a LATER line and no marker between them, is a
+second bare document and `[211] l-yaml-stream` offers no production for it.
+
+**Three conjuncts, and the third is the item's one real measurement.**  The
+stack is the sentinel alone (so the completed node is the DOCUMENT's, not an
+entry inside a still-open collection — the dangler at an open level's column is
+M2's); the last real token completes a node (`YamlToken.completesFlowValue`, the
+set `scanNextToken_checkFlowAdjacency` already reads); and `simpleKeyAllowed` is
+up.  That third one is "a break intervened", and it cannot be read off the
+completing TOKEN: `Positioned.endPos` is populated for the indicator tokens and
+NOT for scalars, so a scalar's `endPos` is its own start and a multi-line one
+(`"a⏎b"`, `|⏎  x`) would compare as if it ended on its first line.  The flag says
+it exactly — every completing scan clears `simpleKeyAllowed`, only a break
+re-arms it — which is item 47's reading of the same flag with the polarity
+flipped, one dispatcher later.  What the flag keeps out is the same-line family
+where the completed node is an implicit KEY: `[1, 2]: v` and `"x": 1⏎b: 2` stay
+legal, and a probe of the naive three-conjunct form without it refuses both.
+
+**The condition was run over the corpus BEFORE the runtime was touched.**  A
+`firstFire` walk — real `scanNextToken_preprocess`, real
+`scanNextToken_dispatchStructural`, the candidate predicate at the dispatch
+point — over all **402** suite tests: **2** reach it (BS4K "Comment between
+plain scalar lines", KS4U "Invalid item after end of flow sequence"), both are
+error tests, and both produce `.invalidBareDocument` at the position and with
+the message the parser already produced.  Over item 119's 34 M1 pins: **33**
+match the pipeline's error exactly, message and position; the 34th,
+`---⏎a: 1⏎b`, does NOT fire, because `a: 1` opens a mapping level at column 0
+and the dangling `b` sits at an OPEN level.  That pin was filed under M1 in the
+map and is M2's — corrected in the map, in place, against the landed check
+rather than against a reading of it.
+
+**The absorption, measured by building it.**  Item 119 priced every placement of
+a new refusal at "a 100+-site absorption per mechanism".  That is the right
+order of magnitude and the wrong shape: the compiler asked for **41** extra
+`split`s across **24** files — each one line, in the proofs that decompose
+`scanNextToken`/`scanNextTokenIx` — and **56** discharges across **17** files on
+the `scanNextToken_via_*` ladder, where the cost is one ARGUMENT and not a
+proof.  The reason is Fix B's own shape: those composition lemmas take the
+checks as premises, and `scanNextToken_ok_directivesPresent_false` reads the
+directive premise off an `.ok` witness the call site already holds.  Item 132
+builds the twin — `scanNextToken_ok_checkBareDocument`, and its indexed mirror —
+so 30 of the 56 sites are a one-term edit.  The rest discharge from
+`inFlow = true` (the flow scenarios), from the last token (the emitter's
+document heads), or, at the two init lemmas, from a conjunct added to the
+existential those lemmas already return.  Eight lemmas in all: four `_ok_of_*`
+shapes and the converse on the legacy side, two and the converse on the indexed.
+
+**Three pins outside the map flipped, each corrected where it was written.**
+`ScannerAdjacentValueRefused` carried `"a"⏎:b` as "not the scanner's to refuse —
+the flag is re-armed"; that is still true of item 47's check and is exactly why
+this one fires.  `ScannerDocStartInlineCompose` carried `--- a #c⏎b` as
+scanner-clean; the comment stops the plain walk, so the root node is complete.
+`IndentBaseThreaded` carried `  [1, 2]⏎b: 2` as the boundary showing the
+trailing-content refusal comes from the POP — it does, and this landing pops
+nothing, which is why §9.2 is what refuses it now.  All three keep the same
+pipeline verdict; only the layer moved.
+
+New guard `ScannerBareDocumentRefusal` (53 `#guard` + 5 `example`): §1 types the
+check and its four passing shapes plus the positive one; §2 the refused family —
+every root style that can complete against one landing, every landing kind
+against one root, the multi-line roots, and the `...` that makes the second
+document legal; §3 the boundary — the same-line implicit key, the plain
+scalar's own continuation, a property run, a marker, a comment, EOF; §4 the
+identity of the refusal, `saysAlike` pinning one message at one position from
+both scanners AND both pipelines; §5 what M1 does not reach, with M2's and M3's
+families still `parserOnly`.
+
+**The narrowing is safe for emitted output as a THEOREM, not as a test.**  The
+two emitter-scannability trees prove that `scanNextToken` accepts what the
+emitter emits, by decomposition; a check the emitter's output could trip would
+break that proof rather than a pin.  Both trees build, so the 41 splits and 56
+discharges above are exactly the price of re-proving it with the check in the
+chain.
+
+**Validation.**  Full `lake build` green (**1121** jobs, +1 for the new guard,
+ZERO warnings); `run-all-tests.sh` **4474/4474** (+1: Production Coverage
+Analysis **791/791**, the new check's own `@[yaml_spec "9.2" 211
+"l-yaml-stream"]` site); matrix **402/402** event and
+**282/282** JSON on BOTH pipelines; `eventscore` **347/358** with **0**
+`event-reject` and **0** `error-miss` — the corpus's two reachable inputs were
+already error tests, so a runtime narrowing lands byte-invisible again;
+`check-import-closure.sh` (**228** modules), `check-reflection-index.sh`
+(20/230/249/355) and `check-theorem-keyword.sh` (**25** capstones) OK;
+annotation verifier the same **19** pre-existing name mismatches with coverage
+211/211.  `collect-stats`: tests **581** files (+1) / **6387** `#guard`s (+53
+exact = the new guard's own); proofs **6400** and library **6605** (+8 each =
+the eight new lemmas); env **8365**, which is **+11**.  **0** direct and **0**
+transitive `sorry`, **0** custom axioms.  Axiom profile of the eight: `propext`
+for the six `_ok_of_*` shapes (`_of_indents` adds `Quot.sound`), and
+`propext`/`Classical.choice`/`Quot.sound` for the two converse extractors.
+
+**The env's three over source are MEASURED, and what generates them is a rule
+worth having.**  A scan over the full closure finds exactly **11** `thmInfo`
+constants mentioning the check: the 8 lemmas,
+`scanNextToken_checkBareDocument_ok_of_indents._proof_1_1` (the `omega` side
+goal), and **both** runtime defs' `.eq_1`.  Item 129's rule — a `def`'s equation
+lemma is generated ON DEMAND — holds a third time, and item 132 names the
+demand: **`unfold thedef` reduces by delta and generates nothing;
+`simp only [thedef, …]` needs the equation lemma and creates it.**  Item 131's
+two defs are `unfold`ed everywhere and have no `eq_1` even at full closure
+(re-measured here); these two are passed to `simp only` in the four `_ok_of_*`
+shapes, and both `eq_1`s exist.  So an env delta over the source count is
+readable from the TACTIC, not only from the scan's scope.
+
+**What this leaves.**  M2 (the dangling node run at an open level's own column,
+with its `scanLoop` EOF twin) and M3 (the `-` at a mapping top's own column),
+in that order, then the 16 fallback swaps and the `implicitContinue`
+constructor.  `ScannerRaisedFlagRefusalMap` §3 and §4 still pin both as gaps,
+and `ScannerBareDocumentRefusal` §5 pins the discriminator that keeps M1 clear
+of them: the indent stack.
+
 ### REMAINING, in order
 
 The per-item history is the closure log above; this section lists only the
@@ -13540,7 +13666,7 @@ too (items 47–51), so what stands between here
 and Step 5 (the converse) is R3's remaining production work and R4:
 
 ```
-R1 ✓ (44–46) ──→ R2 ✓ (47–51) ──→ R3 (52–131 landed; U2 CLOSED, the collapse gone) ──→ Step 5
+R1 ✓ (44–46) ──→ R2 ✓ (47–51) ──→ R3 (52–132 landed; U2 CLOSED, the collapse gone) ──→ Step 5
                                         └──────→ R4 (implicitContinue + 0 < m) ──┘
 ```
 

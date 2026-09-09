@@ -594,6 +594,9 @@ lemma scanNextTokenIx_ekStack_step {s s' : ScannerStateIx input}
             -- Fix B pending-directives check: error arm contradicts h
             split at h
             · contradiction
+            -- §9.2 bare-document check (item 132): the same shape
+            split at h
+            · contradiction
             generalize h_ck : scanNextTokenIx_checkBlockFlowIndent s_dir c = ck_res at h
             cases ck_res with
             | error e => simp at h

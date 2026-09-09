@@ -106,8 +106,10 @@ fires behind a `---` park, spaced or not. -/
 #guard !scanAccepts "--- : a\n" && rejectsAlike "--- : a\n"
 #guard !scanAccepts "--- a : b\n" && rejectsAlike "--- a : b\n"
 #guard !scanAccepts "--- \"a\" : b\n" && rejectsAlike "--- \"a\" : b\n"
--- content past the one-line body's own close
-#guard scanAccepts "--- a #c\nb\n" && rejectsAlike "--- a #c\nb\n"
+-- content past the one-line body's own close: the comment stops the plain
+-- walk, so the root node is COMPLETE and the next line is a second bare
+-- document — §9.2's refusal, at the scanner since item 132.
+#guard !scanAccepts "--- a #c\nb\n" && rejectsAlike "--- a #c\nb\n"
 
 -- A `---` with content glued to it is not `[203] c-directives-end` at all:
 -- the plain walk absorbs the line ([206] c-forbidden wants a break, a white

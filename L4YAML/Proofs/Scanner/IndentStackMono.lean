@@ -329,6 +329,9 @@ lemma scanNextToken_mono {s s' : ScannerState}
           exact dispatchStructural_mono ‹_› h_pp
         · split at hok
           · cases hok
+          -- §9.2 bare-document check (item 132)
+          split at hok
+          · cases hok
           · split at hok
             · cases hok
             · rcases h_ad : sp.allowDirectives with _ | _

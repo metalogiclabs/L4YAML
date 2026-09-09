@@ -494,6 +494,13 @@ lemma scanNextTokenIx_maintains_SimpleKeyAboveIx {input : String}
               | ok u => exact ⟨u, rfl⟩
             obtain ⟨u, h_npd⟩ := h_npd
             rw [h_npd] at h_ok
+            -- §9.2 bare-document check (item 132)
+            have h_bd : ∃ u, scanNextTokenIx_checkBareDocument s_pp = .ok u := by
+              cases hx : scanNextTokenIx_checkBareDocument s_pp with
+              | error e => rw [hx] at h_ok; simp at h_ok
+              | ok u => exact ⟨u, rfl⟩
+            obtain ⟨u2, h_bd⟩ := h_bd
+            rw [h_bd] at h_ok
             dsimp only [] at h_ok
             generalize h_dir_def : (if s_pp.allowDirectives = true then
                 { s_pp with allowDirectives := false, documentEverStarted := true }
@@ -847,6 +854,13 @@ lemma scanNextTokenIx_preserves_prefix {input : String}
               | ok u => exact ⟨u, rfl⟩
             obtain ⟨u, h_npd⟩ := h_npd
             rw [h_npd] at h_ok
+            -- §9.2 bare-document check (item 132)
+            have h_bd : ∃ u, scanNextTokenIx_checkBareDocument s_pp = .ok u := by
+              cases hx : scanNextTokenIx_checkBareDocument s_pp with
+              | error e => rw [hx] at h_ok; simp at h_ok
+              | ok u => exact ⟨u, rfl⟩
+            obtain ⟨u2, h_bd⟩ := h_bd
+            rw [h_bd] at h_ok
             dsimp only [] at h_ok
             generalize h_dir_def : (if s_pp.allowDirectives = true then
                 { s_pp with allowDirectives := false, documentEverStarted := true }

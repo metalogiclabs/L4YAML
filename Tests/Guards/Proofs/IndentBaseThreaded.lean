@@ -133,10 +133,11 @@ private def scansClean (input : String) : Bool :=
 #guard accepts "  a:\n    b: 1\n  c: 2\n"
 
 -- (d) The boundary that says the refusal comes from the POP and not from the
--- column: a root flow node pushes no level at all, so the same landing leaves
--- the scanner clean and dies in the parser instead (item 119's M1 family —
--- `ScannerRaisedFlagRefusalMap`).
-#guard scansClean "  [1, 2]\nb: 2\n"
+-- column: a root flow node pushes no level at all, so this landing pops
+-- nothing and the trailing-content check has no reason to fire.  What refuses
+-- it is §9.2 — a completed ROOT node with content on a later line — which the
+-- scanner runs since item 132 (`ScannerBareDocumentRefusal`).
+#guard !scansClean "  [1, 2]\nb: 2\n"
 #guard refuses "  [1, 2]\nb: 2\n"
 
 /-! ## §3  The landing equation, with the escape gone -/

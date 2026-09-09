@@ -1656,6 +1656,19 @@ def scanNextTokenIx_checkNoPendingDirectives {input : String}
   else
     .ok ()
 
+/-- §9.2 [211]: a completed ROOT node and content on a later line with no
+    marker between them is a second bare document.  Indexed twin of
+    `scanNextToken_checkBareDocument` — see its docstring for the reading. -/
+def scanNextTokenIx_checkBareDocument {input : String}
+    (s : ScannerStateIx input) : Except ScanError Unit :=
+  if !s.inFlow && s.simpleKeyAllowed && s.indents.size <= 1
+      && (match lastRealTokenValIx? s.tokens with
+          | some t => t.completesFlowValue
+          | none => false) then
+    .error (.invalidBareDocument s.cursor.pos.line s.cursor.pos.col)
+  else
+    .ok ()
+
 /-- §8.2.2 [194] / §7.5: a `:` that failed `isValueCandidateIx` while a
     completed node's stale simple key is recorded starts a second node in a
     one-node slot (`"a" :b`, `[1]:b`, `*x :b`).  Indexed twin of
@@ -1681,6 +1694,7 @@ def scanNextTokenIx {input : String} (s : ScannerStateIx input) :
     | some s' => return some s'
     | none =>
       scanNextTokenIx_checkNoPendingDirectives s
+      scanNextTokenIx_checkBareDocument s
       let s := if s.allowDirectives then
         { s with allowDirectives := false, documentEverStarted := true }
       else s
@@ -1799,6 +1813,7 @@ def scanNextTokenIxWC {input : String} (s : ScannerStateIx input) :
     | some s' => return some s'
     | none =>
       scanNextTokenIx_checkNoPendingDirectives s
+      scanNextTokenIx_checkBareDocument s
       let s := if s.allowDirectives then
         { s with allowDirectives := false, documentEverStarted := true }
       else s

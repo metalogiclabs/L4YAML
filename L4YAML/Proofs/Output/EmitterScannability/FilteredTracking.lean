@@ -244,6 +244,8 @@ lemma scanNextToken_flow_close_seq_outermost_ext (s : ScannerState)
     (h_ad_fl ▸ h_fl) h_ad_corr h_ad_kind
   have h_snt := scanNextToken_via_flow_dispatch _ _ _ _ _ h_pp h_struct rfl h_check h_flow_disp
     ((saveSimpleKey_preserves_directivesPresent s).trans h_dp)
+    (scanNextToken_checkBareDocument_ok_of_inFlow _
+      ((saveSimpleKey_preserves_inFlow s).trans h_flow))
   -- s' = scanFlowSequenceEnd s_ad
   let s' := scanFlowSequenceEnd s_ad
   have h_result_fl : s'.flowLevel = 0 := by
@@ -340,6 +342,8 @@ lemma scanNextToken_flow_close_mapping_outermost_ext (s : ScannerState)
     (h_ad_fl ▸ h_fl) h_ad_corr h_ad_kind
   have h_snt := scanNextToken_via_flow_dispatch _ _ _ _ _ h_pp h_struct rfl h_check h_flow_disp
     ((saveSimpleKey_preserves_directivesPresent s).trans h_dp)
+    (scanNextToken_checkBareDocument_ok_of_inFlow _
+      ((saveSimpleKey_preserves_inFlow s).trans h_flow))
   -- s' = scanFlowMappingEnd s_ad
   let s' := scanFlowMappingEnd s_ad
   have h_result_fl : s'.flowLevel = 0 := by

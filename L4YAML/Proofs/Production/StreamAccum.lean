@@ -23014,6 +23014,9 @@ lemma scanNextToken_accum_step (sc : ScannerState)
               · exact absurd (h_dir_flag rfl)
                   (by rw [← preprocess_some_directivesPresent h_pre, h_ndp]; simp)
             subst hb
+            -- §9.2 bare-document check (item 132) — pure check, no state change
+            split at h_ok
+            · simp at h_ok
             -- Past structural dispatch: allowDirectives update
             split at h_ok
             · simp at h_ok
@@ -23114,6 +23117,9 @@ lemma scanNextToken_none_stream (sc : ScannerState)
       · split at h_ok
         · exact absurd (Except.ok.inj h_ok) nofun
         · -- pending-directives check (Fix B)
+          split at h_ok
+          · simp at h_ok
+          -- §9.2 bare-document check (item 132)
           split at h_ok
           · simp at h_ok
           · split at h_ok

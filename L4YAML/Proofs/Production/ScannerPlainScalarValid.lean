@@ -1258,6 +1258,8 @@ lemma scanNextToken_preserves_PlainScalarsValid :
       else s2).peek? = some c := by split <;> exact h_peek2
     -- Pending-directives check (Fix B)
     split at h_ok <;> (try (simp at h_ok; done))
+    -- §9.2 bare-document check (item 132)
+    split at h_ok <;> (try (simp at h_ok; done))
     -- Block→flow underindent check
     split at h_ok <;> (try (simp at h_ok; done))
     split at h_ok <;> (try (simp at h_ok; done))
@@ -5091,6 +5093,8 @@ lemma scanNextToken_preserves_FlowInv
         { s2 with allowDirectives := false, documentEverStarted := true }
       else s2).peek? = some c := by split <;> exact h_peek2
     -- Pending-directives check (Fix B)
+    split at h_ok <;> (try (simp at h_ok; done))
+    -- §9.2 bare-document check (item 132)
     split at h_ok <;> (try (simp at h_ok; done))
     -- Block→flow underindent check
     split at h_ok <;> (try (simp at h_ok; done))

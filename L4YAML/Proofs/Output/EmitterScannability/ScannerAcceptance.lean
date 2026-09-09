@@ -1213,6 +1213,8 @@ lemma scanNextToken_preserves_sync (s s' : ScannerState)
       rw [h_allow_stack, h_allow_fl]; exact h_pre_sync
     -- Pending-directives check (Fix B)
     split at h_next <;> (try (simp at h_next; done))
+    -- §9.2 bare-document check (item 132)
+    split at h_next <;> (try (simp at h_next; done))
     -- checkBlockFlowIndent
     split at h_next <;> (try (simp at h_next; done))
     -- Flow Except
@@ -1714,6 +1716,9 @@ lemma scanNextToken_maintains_NoOverwriteAt (s s' : ScannerState)
                   { s1 with allowDirectives := false, documentEverStarted := true }
                 else s1).tokens.size := by
             rw [h_allow_tok]; exact h_pre_m
+          split at h_next
+          · contradiction
+          -- §9.2 bare-document check (item 132)
           split at h_next
           · contradiction
           · split at h_next
@@ -2378,6 +2383,9 @@ lemma scanNextToken_maintains_FlowNoOverwriteAt (s s' : ScannerState)
                   { s1 with allowDirectives := false, documentEverStarted := true }
                 else s1).tokens.size := by
             rw [h_allow_tok]; exact h_pre_m
+          split at h_next
+          · contradiction
+          -- §9.2 bare-document check (item 132)
           split at h_next
           · contradiction
           · split at h_next
