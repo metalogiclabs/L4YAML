@@ -12549,6 +12549,15 @@ couplings, each with its own carrier, consumer, and price —
   (`landing_mem_of_value`) both attached.  What is left of this bullet is the
   THREADING — 55 payment sites, measured, plus a scanner-state parameter
   `FlowBaseRoutes` does not have.  See [Item 129](#item-129-2026-09-08).]
+  [**Item 130 gives the inclusion its FLOOR**: the frames a producer hands over
+  name the levels its own route knows, and a stack holding a level below the one
+  it opens is not covered by that list (`a:⏎  b: 1⏎  : 2` holds 0 and 2; both
+  readings checked on the stack itself).  `Covered lo ks sc`
+  asks only about levels at or right of `lo`, `IndentStackMono` (`WellFormed`'s
+  fifth conjunct, threaded) turns the landing's own bound into that statement,
+  and the threading's two prices — 6 sites for the field the dedent reads, and a
+  premise path of 2/4/25 sites for `Mono`/`SentinelBase` — are measured.  See
+  [Item 130](#item-130-2026-09-09).]
 
 **Order**: U1 (self-contained), then U2 (deletes `noFrame`, and with
 `noKeyContext`'s twin shrinks the `pendingFlow` feed toward 67b's
@@ -13258,7 +13267,11 @@ new guard's §4 as current behavior, named here for the item that closes it.
 through the accumulation.  Stating the conjunct on the two packs'
 stream-bottomed frames fields (`ImplicitKeyPack`, `PropsKeyPack`) raises **15**
 payment sites;
-adding the seven stream-bottomed `PendingNode` fields raises **55**.  Both
+adding the seven stream-bottomed `PendingNode` fields raises **55**.  [**Item 130
+CORRECTS what those sites would carry**: `Covered ks` as stated here is not
+payable at a producer whose park fused its enclosing levels, so the conjunct they
+pay is the FLOORED one, and the premises it needs have a path of their own —
+2/4/25 sites — measured there.]  Both
 numbers are the landed predicate's, not a scaffold's: state the conjunct, build,
 count the distinct sites Lean reports.  One more cost is structural rather than
 a payment: `FlowBaseRoutes` carries no scanner state, so its `key` field's
@@ -13302,6 +13315,116 @@ but "item 128's own proofs rewrote with it" — nothing here has to unfold
 transitive `sorry`, **0** custom axioms.  Zero runtime files changed, so no
 event or JSON output can have moved.
 
+### Item 130 (2026-09-09)
+
+**The stack is monotone, and the cover gets its floor.**  Item 129 built the
+cover and attached its two ends; what it did not do is PAY it, and the payment is
+where the shape of the statement gets decided.  A producer hands over the frames
+its own route knows — `colon_open_map` builds `⟨[k], …⟩` over `rootMapRouteF`,
+whose own list is `[]` — and a stack with a level below `k` is not covered by
+that list.  Such stacks are ordinary: `a:⏎  b: 1⏎  : 2` holds levels 0 and 2
+open, one `+MAP` each, pinned in the new guard.
+
+**The discrimination is machine-checked, on the stack itself.**  For the state
+that input builds (`{-1}`, `{0}`, `{2}`), `¬ Covered 0 [2]` and `Covered 2 [2]`
+are both `example`s in the new guard: with the floor at the level the producer
+opens, the same stack IS covered, and it is the TOP that says so.  That is the
+whole content of the fix — `Covered` gains a FLOOR,
+
+    Covered lo ks s := ∀ e ∈ s.indents, e.isSequence = false →
+      (lo : Int) ≤ e.column → e.column.toNat ∈ ks
+
+and at `lo = 0` it IS item 129's statement — the `0 ≤ e.column` that exempted the
+sentinel there is the floor at its bottom.  The walk is floor-agnostic (the
+transports, the writers, the step and the seed never look below the floor), so
+generalizing cost the two ends one hypothesis each — `lo ≤` the landing's column
+— and nothing else.
+
+**What makes the floored statement payable is monotonicity**, and that is
+`ScannerState.WellFormed`'s FIFTH conjunct: consecutive entries have strictly
+increasing columns.  Like the sixth (item 128) it is proved for the state
+OPERATIONS and for nothing a production proof can reach.  `IndentStackMono.lean`
+carries it through every step — 24 lemmas over 405 lines — and it is much cheaper
+than item 128's walk was, because every one of that item's nineteen
+`_preserves_indents` equations is reusable verbatim and only the four writers
+argue for themselves.  Their argument is one line each: **every push is guarded
+by `col > currentIndent`, which IS the strict step the new top owes the old
+one** — `pushMappingIndent`'s and `pushSequenceIndent`'s own `if`, and
+`scanValuePrepare`'s inline `(s.simpleKey.pos.col : Int) > s.currentIndent`
+in front of the bare `Array.push`.
+
+**The payment, and where its bound comes from.**  `covered_singleton_of_top_le`:
+on a monotone stack every entry is at or left of the top (`Mono.le_currentIndent`
+— the chain lemma, walked index by index), so a top at or left of `c` leaves `c`
+as the only level at or right of `c`.  The bound itself is the landing's:
+`unwindIndents_top_le` — the unwind stops on its own guard, and the guard's other
+exit is a stack popped to the sentinel, which item 128's base reads as `-1`.  Two
+consequences for the openers that push at the landing's own column,
+`scanKey_top_le` (`[187]`'s `?`) and `scanValuePrepare_top_le_keyless`
+(`[196]`'s keyless `:`), say the push cannot leave the top right of where the
+landing put it.
+
+**The escape, named by its own disjunct.**  `preprocess_top_le_col` concludes
+`s'.currentIndent ≤ (s'.col : Int) ∨ s'.indents = s.indents`: either the landing
+has its floor, or the step never unwound and hands its incoming stack straight
+on.  That is not a hole in the invariant, it is the OTHER mechanism — where the
+stack does not move, the cover TRANSPORTS (item 129's step) instead of being
+re-seeded.  So the threading has two sources: the seed at `mk'` (floor 0)
+carried by the step down every chain whose parks never fuse, and this item's
+re-seed at the landing wherever a chain starts at a fused park.
+
+**What this does NOT do, and what that costs — two prices, measured
+separately.**  Thread the floored cover to the dedent punt.
+
+* **The field.**  Stating the conjunct on `pendingMapValue.h_frames` alone —
+  the face `entryKeyPack_of_dispatch`'s dedent branch reads — raises **6** sites:
+  four producers (`colon_open_map`, `question_open_map`, `colon_open_map_implicit`
+  and `colon_open_map_props`) and two relays in `accum_content_pending`'s
+  per-pending match.  Item 129's **55** stands for all seven `PendingNode` frames
+  fields plus the two packs'.
+* **The premise path.**  `Mono` and `SentinelBase` have to REACH those
+  producers, and that path is not free.  Measured level by level, by adding the
+  premise and reading back the sites Lean reports: the two root openers are
+  reached from `indicator_open_map` (**2** sites), which is reached from the four
+  `accum_block_on_*` arms (**4**), which together with
+  `accum_block_on_pendingContent` are reached from **25** sites in
+  `accum_block_pending` and its neighbours — and only then `accum_step_block`,
+  `scanNextToken_accum_step` and `scanLoop_grammar_prod`, where item 128's
+  `scanNextToken_base` and this item's `scanNextToken_mono` discharge both.  As
+  in items 128 and 129, a premise with no consumer is an unused binder and the
+  build gate is zero warnings, so that path lands with the spend it feeds.
+
+New guard `IndentStackMonotone` (9 `#guard` + 13 `example`): §1 types the
+predicate, the chain consequence, the writers, the step and the seed; §2 is the
+runtime — three levels at 0/2/4 and the dedent that resumes, against the landings
+that name no level at all and that both pipelines refuse (`a:⏎  b: 1⏎ c: 2`, at
+column 1 between levels 0 and 2, prints
+`trailing content at line 2, column 1`, `  a: 1⏎b: 2` prints
+`trailing content at line 1, column 0`); §3 is the floored/unfloored
+discrimination on the concrete stack; §4 types the two sources of the bound and
+pins the escape's family (`a: 1⏎b: 2`, `- a: 1⏎  b: 2` — the `:` and its value
+on the key's own line, where the step crosses no break and unwinds nothing).
+
+**Validation.**  Full `lake build` green (**1119** jobs, ZERO warnings);
+`run-all-tests.sh` **4473/4473**; matrix **402/402** event and **282/282** JSON
+on BOTH pipelines (`l4yaml-event`/`l4yaml-json` and the `-ix` twins);
+`eventscore` **347/358**; `check-import-closure.sh` (**228** modules, +1),
+`check-reflection-index.sh` (20/230/249/355) and `check-theorem-keyword.sh`
+(**25** capstones) OK; annotation verifier the same **19** pre-existing name
+mismatches with coverage 211/211.  `collect-stats`: tests **579** files (+1) /
+**6316** `#guard`s (+9 exact = the new guard's own); proofs **6390** and library
+**6595** (+31 each = the mono walk's 24 lemmas and the cover's 7 new ones); env
+**8352**, which is **+32** — and the one over source is `Mono.eq_1`, measured
+rather than inferred: the env scan finds **40** `thmInfo` constants in the new
+namespace, 15 of them `._proof_` auxiliaries and one that equation lemma,
+leaving the 24 public.  It is there because `Mono.of_indents_eq` rewrites with
+the definition; `MonoArr.eq_1`, `Covered.eq_1` and `CoverStep.eq_1` are all
+absent, so item 129's rule — a `def`'s equation lemma is generated ON DEMAND —
+holds a second time.  **0** direct and **0** transitive `sorry`, **0** custom
+axioms.  Axiom profile of the new
+lemmas: `propext`, `Classical.choice`, `Quot.sound` only.  Zero runtime files
+changed, so no event or JSON output can have moved.
+
 ### REMAINING, in order
 
 The per-item history is the closure log above; this section lists only the
@@ -13318,7 +13441,7 @@ too (items 47–51), so what stands between here
 and Step 5 (the converse) is R3's remaining production work and R4:
 
 ```
-R1 ✓ (44–46) ──→ R2 ✓ (47–51) ──→ R3 (52–129 landed; U2 CLOSED, the collapse gone) ──→ Step 5
+R1 ✓ (44–46) ──→ R2 ✓ (47–51) ──→ R3 (52–130 landed; U2 CLOSED, the collapse gone) ──→ Step 5
                                         └──────→ R4 (implicitContinue + 0 < m) ──┘
 ```
 

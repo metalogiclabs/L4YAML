@@ -4485,13 +4485,18 @@ lemma preprocess_landing_at_level {sc s_prep : ScannerState} {c : Char}
     `trailing content`).  That is the shape item 125 established: a residue the
     consumer, not the producer, is the one holding the state to settle.
 
-    `ResumeFrames.resumeAt` asks for exactly the left disjunct. -/
+    `ResumeFrames.resumeAt` asks for exactly the left disjunct.
+
+    Item 130 gave the cover a floor, and the floor is what this lemma asks the
+    caller for: the landing has to sit at or right of it, since below the floor
+    the frames say nothing.  At `lo = 0` the hypothesis is free. -/
 lemma preprocess_landing_mem_or_seq {sc s_prep : ScannerState} {c : Char}
-    {ks : List Nat}
+    {lo : Nat} {ks : List Nat}
     (hok : scanNextToken_preprocess sc = .ok (some (s_prep, c)))
     (h_pop : s_prep.indents ≠ sc.indents)
     (h_base : IndentStackBase.SentinelBase sc)
-    (h_cov : IndentStackCover.Covered ks sc) :
+    (h_floor : lo ≤ s_prep.col)
+    (h_cov : IndentStackCover.Covered lo ks sc) :
     s_prep.col ∈ ks ∨
       ∃ e, s_prep.indents.back? = some e ∧ e.isSequence = true ∧
         e.column = (s_prep.col : Int) := by
@@ -4500,7 +4505,8 @@ lemma preprocess_landing_mem_or_seq {sc s_prep : ScannerState} {c : Char}
   | true => exact Or.inr ⟨e, h_back, h_seq, h_col⟩
   | false =>
     refine Or.inl ?_
-    have h_nn : 0 ≤ e.column := by rw [h_col]; exact Int.natCast_nonneg _
+    have h_nn : (lo : Int) ≤ e.column := by
+      rw [h_col]; exact Int.ofNat_le.mpr h_floor
     have := h_cov e h_mem h_seq h_nn
     rwa [h_col, Int.toNat_natCast] at this
 

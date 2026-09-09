@@ -113,6 +113,7 @@ import Tests.Guards.Proofs.CollapseLaneDeleted
 import Tests.Guards.Proofs.UnwindLandsAtLevel
 import Tests.Guards.Proofs.IndentBaseThreaded
 import Tests.Guards.Proofs.FramesCoverIndents
+import Tests.Guards.Proofs.IndentStackMonotone
 import Tests.Guards.Proofs.ScannerExplicitKeyScope
 import Tests.Guards.Proofs.ScannerImplicitKeyCompose
 import Tests.Guards.Proofs.ScannerPlainNoGainRewind

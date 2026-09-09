@@ -45,47 +45,50 @@ open L4YAML.Proofs.IndentStackCover L4YAML.Proofs.StreamAccum
 
 /-! ## §1  The predicate, its transports, its seed, and its step -/
 
-/-- The predicate: every mapping level at a non-negative column is a frame. -/
-example (ks : List Nat) (s : ScannerState) :
-    Covered ks s ↔
-      ∀ e ∈ s.indents, e.isSequence = false → 0 ≤ e.column → e.column.toNat ∈ ks :=
+/-- The predicate: every mapping level at or right of the floor is a frame.
+    (Item 130 gave `Covered` its floor; at `lo = 0` it is item 129's statement,
+    and `0 ≤ e.column` is what exempts the sentinel there.) -/
+example (lo : Nat) (ks : List Nat) (s : ScannerState) :
+    Covered lo ks s ↔
+      ∀ e ∈ s.indents, e.isSequence = false → (lo : Int) ≤ e.column →
+        e.column.toNat ∈ ks :=
   Iff.rfl
 
 /-- The seed: the sentinel alone is covered by any frames, `[]` included. -/
-example (input : String) : Covered [] (ScannerState.mk' input) := mk'_cover input []
+example (input : String) : Covered 0 [] (ScannerState.mk' input) := mk'_cover input 0 []
 
 /-- The step: a `scanNextToken` either keeps the cover, or opens ONE mapping
     level at the top and the frames gain exactly its column. -/
-example {ks : List Nat} {s s' : ScannerState} (hok : scanNextToken s = .ok (some s'))
-    (h : Covered ks s) :
-    Covered ks s' ∨ ∃ c : Nat,
+example {lo : Nat} {ks : List Nat} {s s' : ScannerState}
+    (hok : scanNextToken s = .ok (some s')) (h : Covered lo ks s) :
+    Covered lo ks s' ∨ ∃ c : Nat,
       s'.indents.back? = some { column := (c : Int), isSequence := false } ∧
-        Covered (c :: ks) s' :=
+        Covered lo (c :: ks) s' :=
   scanNextToken_cover hok h
 
 /-- The four transports: an equal stack, a popped stack, more frames, one more
     frame. -/
-example {ks : List Nat} {s s' : ScannerState} (h : Covered ks s)
-    (heq : s'.indents = s.indents) : Covered ks s' := h.of_indents_eq heq
+example {lo : Nat} {ks : List Nat} {s s' : ScannerState} (h : Covered lo ks s)
+    (heq : s'.indents = s.indents) : Covered lo ks s' := h.of_indents_eq heq
 
-example {ks : List Nat} {s s' : ScannerState} (h : Covered ks s)
-    (hsub : ∀ e ∈ s'.indents, e ∈ s.indents) : Covered ks s' := h.of_subset hsub
+example {lo : Nat} {ks : List Nat} {s s' : ScannerState} (h : Covered lo ks s)
+    (hsub : ∀ e ∈ s'.indents, e ∈ s.indents) : Covered lo ks s' := h.of_subset hsub
 
-example {ks ks' : List Nat} {s : ScannerState} (h : Covered ks s)
-    (hsub : ∀ k ∈ ks, k ∈ ks') : Covered ks' s := h.mono hsub
+example {lo : Nat} {ks ks' : List Nat} {s : ScannerState} (h : Covered lo ks s)
+    (hsub : ∀ k ∈ ks, k ∈ ks') : Covered lo ks' s := h.mono hsub
 
-example {ks : List Nat} {s : ScannerState} (c : Nat) (h : Covered ks s) :
-    Covered (c :: ks) s := h.cons c
+example {lo : Nat} {ks : List Nat} {s : ScannerState} (c : Nat) (h : Covered lo ks s) :
+    Covered lo (c :: ks) s := h.cons c
 
 /-- The writers: the unwind pops, `[183]` is exempt, `[187]` is the payment. -/
-example {ks : List Nat} {s : ScannerState} (col : Int) (h : Covered ks s) :
-    Covered ks (unwindIndents s col) := unwindIndents_cover col h
+example {lo : Nat} {ks : List Nat} {s : ScannerState} (col : Int) (h : Covered lo ks s) :
+    Covered lo ks (unwindIndents s col) := unwindIndents_cover col h
 
-example {ks : List Nat} {s : ScannerState} (col : Int) (h : Covered ks s) :
-    Covered ks (pushSequenceIndent s col) := pushSequenceIndent_cover col h
+example {lo : Nat} {ks : List Nat} {s : ScannerState} (col : Int) (h : Covered lo ks s) :
+    Covered lo ks (pushSequenceIndent s col) := pushSequenceIndent_cover col h
 
-example {ks : List Nat} {s : ScannerState} (c : Nat) (h : Covered ks s) :
-    Covered (c :: ks) (pushMappingIndent s (c : Int)) := pushMappingIndent_cover c h
+example {lo : Nat} {ks : List Nat} {s : ScannerState} (c : Nat) (h : Covered lo ks s) :
+    Covered lo (c :: ks) (pushMappingIndent s (c : Int)) := pushMappingIndent_cover c h
 
 /-! ## §2  The three mapping pushes on the runtime -/
 
@@ -132,27 +135,29 @@ private def scansClean (input : String) : Bool :=
 /-- **The spend.**  With the cover on the park's state, item 127's equation
     reads as MEMBERSHIP — which is what `ResumeFrames.resumeAt` asks — unless
     the landing rests on a sequence level. -/
-example {sc s_prep : ScannerState} {c : Char} {ks : List Nat}
+example {sc s_prep : ScannerState} {c : Char} {lo : Nat} {ks : List Nat}
     (hok : scanNextToken_preprocess sc = .ok (some (s_prep, c)))
     (h_pop : s_prep.indents ≠ sc.indents)
     (h_base : L4YAML.Proofs.IndentStackBase.SentinelBase sc)
-    (h_cov : Covered ks sc) :
+    (h_floor : lo ≤ s_prep.col)
+    (h_cov : Covered lo ks sc) :
     s_prep.col ∈ ks ∨
       ∃ e, s_prep.indents.back? = some e ∧ e.isSequence = true ∧
         e.column = (s_prep.col : Int) :=
-  preprocess_landing_mem_or_seq hok h_pop h_base h_cov
+  preprocess_landing_mem_or_seq hok h_pop h_base h_floor h_cov
 
 /-- **The refuter.**  A `:` that validates at the landing's column has a mapping
     level under it, so the landing is a frame outright. -/
-example {ks : List Nat} {s : ScannerState} {top : IndentEntry}
+example {lo : Nat} {ks : List Nat} {s : ScannerState} {top : IndentEntry}
     (hok : scanValueValidate s = .ok ())
     (h_poss : s.simpleKey.possible = true) (h_noflow : s.inFlow = false)
     (h_top : s.indents.back? = some top)
     (h_at : (s.simpleKey.pos.col : Int) = top.column)
     (h_le : (s.simpleKey.pos.col : Int) ≤ s.currentIndent)
-    (h_cov : Covered ks s) :
+    (h_floor : lo ≤ s.simpleKey.pos.col)
+    (h_cov : Covered lo ks s) :
     s.simpleKey.pos.col ∈ ks :=
-  landing_mem_of_value hok h_poss h_noflow h_top h_at h_le h_cov
+  landing_mem_of_value hok h_poss h_noflow h_top h_at h_le h_floor h_cov
 
 -- The discriminating triple, on ONE landing column, with a POP under it (the
 -- spend's own `h_pop`): the popping landing rests on a mapping level and
