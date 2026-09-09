@@ -12543,6 +12543,12 @@ couplings, each with its own carrier, consumer, and price —
   invites a reader to reach for — `BlockStack`, documented as the mirror of
   the indent stack — has no producer at all and is deleted.  See
   [Item 127](#item-127-2026-09-08).]
+  [**Item 129 BUILDS that inclusion**: `IndentStackCover.Covered ks sc`,
+  carried through every scanner step, with the spend
+  (`preprocess_landing_mem_or_seq`) and the sequence disjunct's refuter
+  (`landing_mem_of_value`) both attached.  What is left of this bullet is the
+  THREADING — 55 payment sites, measured, plus a scanner-state parameter
+  `FlowBaseRoutes` does not have.  See [Item 129](#item-129-2026-09-08).]
 
 **Order**: U1 (self-contained), then U2 (deletes `noFrame`, and with
 `noKeyContext`'s twin shrinks the `pendingFlow` feed toward 67b's
@@ -13037,7 +13043,11 @@ field itself, which the landing skeleton's own producers pay.  Measured beside
 it: the props dispatcher's two `dedent` arms are vacuous at both of its callers
 — they pass `n = 0`, and the dedent branch is `w < n` with `w : Nat` — so the
 one live site is `entryKeyPack_of_dispatch`'s, reached from the sequence-entry
-park at a general index.
+park at a general index.  [**Item 129 builds the inclusion and measures the
+rest**: the conjunct on the two packs' stream-bottomed frames fields raises 15
+payment sites and on the seven `PendingNode` ones 55, and `FlowBaseRoutes`
+needs a scanner-state parameter before its own resume twin can state it at
+all.]
 
 **The escape, named rather than discharged.**  A stack popped to a single entry
 rests on the sentinel `{ column := -1 }`, which no landing column equals; the
@@ -13163,9 +13173,134 @@ proofs **6332** and library **6537** (+41 each = the new file's lemmas); env
 one again, and the one is `SentinelBase.eq_1`, the equation lemma a `def`
 generates (measured: 46 `thmInfo` constants in the new namespace, 4 of them
 internal `._proof_` auxiliaries, 42 public).  Item 127's delta was
-`BlockStack.brecOn`, from an inductive; this one is from a definition.  **0**
+`BlockStack.brecOn`, from an inductive; this one is from a definition.  [**Item 129 REFINES this**: a `def`'s equation lemma is generated ON DEMAND,
+not by the definition — `SentinelBase.eq_1` is in the environment because the
+proofs here rewrite with it, and item 129's two definitions, which nothing has
+to unfold, generate none.]  **0**
 direct and **0** transitive `sorry`, **0** custom axioms.  Zero runtime files
 changed, so no event or JSON output can have moved.
+
+### Item 129 (2026-09-08)
+
+**The frames cover the indent stack.**  U3 is one coupling read from two sides.
+Item 127 has the SCANNER's: an accepted popping landing rests at the top entry's
+own column, on an entry the incoming stack already held, and item 128 removed
+that reading's last escape.  `ResumeFrames.resumeAt` asks the SURFACE question
+about the same landing — is that width one of the still-open mapping frames? —
+and the two meet only through the inclusion U3 has owed since item 121: every
+open mapping level of `sc.indents` is one of the frames.  This item builds that
+inclusion as an engine with both ends attached, and measures the threading it
+does not do.
+
+**The predicate, and its two exemptions.**  `IndentStackCover.Covered ks s` is
+`∀ e ∈ s.indents, e.isSequence = false → 0 ≤ e.column → e.column.toNat ∈ ks`.
+The negative column exempts the sentinel — item 128's conjunct is about the same
+entry from the other side, and the two files never have to meet.  The sequence
+level is exempt because the frames record mapping widths only — a statement
+about the runtime, which is what `landing_mem_of_value` below pays for.
+
+**The walk is cheap wherever the stack does not move.**  A field walk is
+field-agnostic where the field stands still, so this is item 128's walk with the
+conclusion changed and its nineteen `_preserves_indents` equations reused
+verbatim — one of which had to be lifted out of a proof to be reused at all:
+`dispatchContent_base` proved the content dispatch's `indents` equation inline,
+and it is now `IndentStackBase.dispatchContent_preserves_indents`, with the base
+arm reading it back.  The content park is the majority of steps, and it costs
+the cover nothing.
+
+**The step opens at most ONE mapping level, and it is on top.**  The stack has
+four writers (item 128) and the cover pays at one class of them: the unwind only
+pops (`Covered.of_subset`), `[183]`'s sequence push is exempt, and the mapping
+pushes are three call sites — `scanKey`'s `[187]` at the `?`'s own column
+(`SimpleKey.lean:119`), and `scanValuePrepare`'s two, the implicit key's column
+`[193]` (`:248`, a bare `Array.push`) and the keyless entry's `[196]` (`:259`,
+through `pushMappingIndent`).  So `scanNextToken_cover` concludes a disjunction,
+`CoverStep`: the cover survives, or
+
+    ∃ c, s'.indents.back? = some { column := (c : Int), isSequence := false } ∧
+      Covered (c :: ks) s'
+
+which names the new frame by the entry it opened — at the TOP, which is where
+item 127 reads the landing from, so the two compose.  A bare `∃ c, Covered
+(c :: ks) s'` would have been provable and useless: a threading has to know
+WHICH column the frames gain.
+
+**The two ends.**  The spend, in the accumulation:
+`preprocess_landing_mem_or_seq` takes item 127's equation, item 128's base and
+the cover on the park's state, and returns `s_prep.col ∈ ks` — exactly what
+`ResumeFrames.resumeAt` asks — or the landing rests on a sequence level.  The
+refuter, in the engine: `landing_mem_of_value` turns §8.2.1's own check
+(`scanValue_top_not_sequence`) into that disjunct's refutation.  It has to be a
+CONSUMER's lemma, not the landing's, because the check lives in the `:`'s
+validation and the landing's own step does not hold that state yet — item 125's
+shape, arrived at from the other direction.
+
+**The discrimination is one landing column, three consumers.**  With a pop under
+it (the spend's own `h_pop`): `a:⏎  b:⏎    x: 1⏎  c: 2` lands on a mapping level
+and resumes; `a:⏎  - b:⏎      x: 1⏎  c: 2` lands on a SEQUENCE level at the same
+column and is `trailing content` in both pipelines; `a:⏎  - b:⏎      x: 1⏎
+  - c: 2` lands on that same sequence level and resumes, because a `-` is what a
+sequence level is a resume target for.  That is why the frames are mapping-only
+and why the exemption is not a hole.
+
+**A residue this item names and does not close.**  The §8.2.1 check runs at the
+`:` and nowhere else: `scanKey` reaches `pushMappingIndent` with no test in
+front of it.  So the third consumer — an explicit key at a sequence-level
+landing — is accepted by both scanners, and the isolating pair says what that
+costs.  On a MAPPING landing, `a:⏎  b:⏎    x: 1⏎  ? c⏎  : 2` emits one document;
+on the sequence landing, `a:⏎  - b:⏎      x: 1⏎  ? c⏎  : 2` emits
+`… -MAP -DOC +DOC =VAL : -DOC -STR` — the document closes and a second one, with
+an empty scalar, opens.  Both pipelines agree, so it is not a legacy/indexed
+divergence; it is the `?` consumer having no `scanValueValidate`.  Pinned in the
+new guard's §4 as current behavior, named here for the item that closes it.
+
+**What this does NOT do, and what that costs, measured.**  Thread the cover
+through the accumulation.  Stating the conjunct on the two packs'
+stream-bottomed frames fields (`ImplicitKeyPack`, `PropsKeyPack`) raises **15**
+payment sites;
+adding the seven stream-bottomed `PendingNode` fields raises **55**.  Both
+numbers are the landed predicate's, not a scaffold's: state the conjunct, build,
+count the distinct sites Lean reports.  One more cost is structural rather than
+a payment: `FlowBaseRoutes` carries no scanner state, so its `key` field's
+resume twin cannot state the coupling at all —
+
+```
+error: L4YAML/Proofs/Production/StreamAccum.lean:2927:34: Unknown identifier `sc`
+
+Note: It is not possible to treat `sc` as an implicitly bound variable here because the `autoImplicit` option is set to `false`.
+```
+
+— and the structure gains a parameter before that field can pay.  As in item
+128, the threading lands with the spend that consumes it, beside `h_kbc`/`h_scf`
+and now `SentinelBase`: a premise with no consumer is an unused binder, and the
+build gate is zero warnings.
+
+New guard `FramesCoverIndents` (14 `#guard` + 12 `example`): §1 types the
+predicate, its four transports, its seed, its step and the three writers; §2 is
+the runtime — each mapping push resumed at its own column, and the sequence
+level that is not a frame; §3 types both ends and pins the discriminating
+triple; §4 is the residue above.
+
+**Validation.**  Full `lake build` green (**1116** jobs — 1113 plus the new
+library module and the new guard — ZERO warnings); `run-all-tests.sh`
+**4473/4473**; matrix **402/402** event and **282/282** JSON on BOTH pipelines
+(`l4yaml-event`/`l4yaml-json` and the `-ix` twins); `eventscore` **347/358**;
+`check-import-closure.sh` (**227** modules, +1), `check-reflection-index.sh`
+(20/230/249/355) and `check-theorem-keyword.sh` (**25** capstones) OK;
+annotation verifier same **19** pre-existing name mismatches with coverage
+211/211.  `collect-stats`: tests **578** files (+1) / **6307** `#guard`s (+14
+exact = the new guard's own); proofs **6359** and library **6564** (+27 each =
+the cover file's 25 lemmas, the accumulation's spend, and the equation lifted
+out of item 128's content arm); env **8320**, which is **+27** — source and
+environment agree exactly this time, and the difference from item 128 is
+measurable rather than inferred: the new namespace holds **25** `thmInfo`
+constants with no `._proof_` auxiliaries, and neither `Covered.eq_1` nor
+`CoverStep.eq_1` is in the environment at all.  A `def`'s equation lemma is
+generated ON DEMAND, so item 128's surplus was not "a definition generates one"
+but "item 128's own proofs rewrote with it" — nothing here has to unfold
+`Covered`, and the cover's proofs work definitionally.  **0** direct and **0**
+transitive `sorry`, **0** custom axioms.  Zero runtime files changed, so no
+event or JSON output can have moved.
 
 ### REMAINING, in order
 
@@ -13183,7 +13318,7 @@ too (items 47–51), so what stands between here
 and Step 5 (the converse) is R3's remaining production work and R4:
 
 ```
-R1 ✓ (44–46) ──→ R2 ✓ (47–51) ──→ R3 (52–128 landed; U2 CLOSED, the collapse gone) ──→ Step 5
+R1 ✓ (44–46) ──→ R2 ✓ (47–51) ──→ R3 (52–129 landed; U2 CLOSED, the collapse gone) ──→ Step 5
                                         └──────→ R4 (implicitContinue + 0 < m) ──┘
 ```
 

@@ -19,6 +19,7 @@ import L4YAML.Proofs.Scanner.BlockScalarIndentFloor
 import L4YAML.Proofs.Scanner.PreprocessIndentStable
 import L4YAML.Proofs.Scanner.FlowIndentStable
 import L4YAML.Proofs.Scanner.IndentStackBase
+import L4YAML.Proofs.Scanner.IndentStackCover
 import L4YAML.Proofs.Scanner.StaleCursorFloor
 import L4YAML.Proofs.Scanner.ExplicitKeyCoupling
 import L4YAML.Proofs.Coupling.TabIndentBridge
@@ -4472,6 +4473,36 @@ lemma preprocess_landing_at_level {sc s_prep : ScannerState} {c : Char}
     rw [(IndentStackBase.preprocess_base hok h_base).currentIndent_of_size_le_one
       h_small] at h_le
     omega
+
+/-- **The landing, read as MEMBERSHIP of the frames** (item 129) — the surface
+    half of the same coupling.  `preprocess_landing_at_level` pins the landing
+    at an entry the incoming stack already held; `IndentStackCover.Covered` says
+    every open MAPPING level of that stack is one of the frames.  Together the
+    landing width is a frame outright, unless the level it landed on is a
+    SEQUENCE — which the frames deliberately do not record, and which
+    `IndentStackCover.landing_mem_of_value` refutes at the `:` that consumes the
+    landing (§8.2.1: a saved key at a sequence level's own column is
+    `trailing content`).  That is the shape item 125 established: a residue the
+    consumer, not the producer, is the one holding the state to settle.
+
+    `ResumeFrames.resumeAt` asks for exactly the left disjunct. -/
+lemma preprocess_landing_mem_or_seq {sc s_prep : ScannerState} {c : Char}
+    {ks : List Nat}
+    (hok : scanNextToken_preprocess sc = .ok (some (s_prep, c)))
+    (h_pop : s_prep.indents ≠ sc.indents)
+    (h_base : IndentStackBase.SentinelBase sc)
+    (h_cov : IndentStackCover.Covered ks sc) :
+    s_prep.col ∈ ks ∨
+      ∃ e, s_prep.indents.back? = some e ∧ e.isSequence = true ∧
+        e.column = (s_prep.col : Int) := by
+  obtain ⟨e, h_back, h_mem, h_col⟩ := preprocess_landing_at_level hok h_pop h_base
+  cases h_seq : e.isSequence with
+  | true => exact Or.inr ⟨e, h_back, h_seq, h_col⟩
+  | false =>
+    refine Or.inl ?_
+    have h_nn : 0 ≤ e.column := by rw [h_col]; exact Int.natCast_nonneg _
+    have := h_cov e h_mem h_seq h_nn
+    rwa [h_col, Int.toNat_natCast] at this
 
 /-- **The landing read at a GIVEN index** (item 45).  The n-generic twin of
     `preprocess_some_separate_0_anyCol`: a step that crossed no break reads

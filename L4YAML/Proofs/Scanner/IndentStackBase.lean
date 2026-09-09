@@ -532,10 +532,12 @@ lemma dispatchBlockIndicators_base {s s' : ScannerState} {c : Char}
       | exact scanKey_base h_noflow (by assumption) h
       | exact scanValue_base (by assumption) h
 
-lemma dispatchContent_base {s s' : ScannerState} {c : Char}
-    (hok : scanNextToken_dispatchContent s c = .ok s') (h : SentinelBase s) :
-    SentinelBase s' := by
-  refine h.of_indents_eq ?_
+/-- The content dispatch writes tokens, never the indent stack: a scalar, an
+    anchor, an alias and a tag all leave the block structure alone.  (Item 129
+    reads the same equation for the frames' cover, so it is stated once here
+    rather than inlined into the base's own arm.) -/
+lemma dispatchContent_preserves_indents {s s' : ScannerState} {c : Char}
+    (hok : scanNextToken_dispatchContent s c = .ok s') : s'.indents = s.indents := by
   unfold scanNextToken_dispatchContent at hok
   simp only [bind, pure, Pure.pure, Except.pure, Except.bind] at hok
   split at hok
@@ -580,6 +582,11 @@ lemma dispatchContent_base {s s' : ScannerState} {c : Char}
           | exact scanSingleQuoted_preserves_indents (by assumption)
           | exact scanPlainScalar_preserves_indents (by assumption)
           | (simp_all; done)
+
+lemma dispatchContent_base {s s' : ScannerState} {c : Char}
+    (hok : scanNextToken_dispatchContent s c = .ok s') (h : SentinelBase s) :
+    SentinelBase s' :=
+  h.of_indents_eq (dispatchContent_preserves_indents hok)
 
 /-- **The step preserves the base.**  The four writers are the only ones that
     touch the stack, and each keeps index 0. -/
