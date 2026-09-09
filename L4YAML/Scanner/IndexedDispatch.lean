@@ -628,23 +628,39 @@ def scanBlockEntryIx {input : String} (s : ScannerStateIx input) :
   let s := s.advance
   .ok { s with simpleKeyAllowed := true }
 
+/-- Indexed twin of `L4YAML.Scanner.atSequenceIndent`. -/
+def atSequenceIndentIx {input : String} (s : ScannerStateIx input) : Bool :=
+  match s.indents.back? with
+  | some top => top.isSequence && ((s.cursor.pos.col : Int) == top.column)
+  | none => false
+
+/-- Indexed twin of `L4YAML.Scanner.scanKeyValidate`. -/
+@[yaml_spec "8.2.2"]
+def scanKeyValidateIx {input : String} (s : ScannerStateIx input) :
+    Except ScanError Unit := do
+  if s.hasTabInPrecedingWhitespace then
+    throw (.tabInIndentation s.cursor.pos.line s.cursor.pos.col)
+  -- Item 48: mirror of the legacy same-line check — see `scanKey`.
+  if s.implicitValueLine == some s.cursor.pos.line
+      || lastTokenIsNodePropertyOnLineIx s.tokens s.cursor.pos.line
+      || docStartOnLineIx s.tokens s.cursor.pos.line then
+    throw (.sameLineBlockCollection s.cursor.pos.line s.cursor.pos.col)
+  -- §8.2.1: mirror of the legacy check — see `scanKey`.
+  if atSequenceIndentIx s then
+    throw (.trailingContent s.cursor.pos.line s.cursor.pos.col)
+
 /-- Scan `?` explicit-key indicator.
 
     Throws `tabInIndentation` if a tab appears in the contiguous whitespace
     immediately before the `?` — in block context the indicator stands directly
     after `[63] s-indent(n)`, which is spaces only — or if a tab character
     immediately follows it, which would be indentation for the key content
-    (§6.1). -/
+    (§6.1) — or `trailingContent` if the `?` stands at a block sequence's own
+    indent (§8.2.1, `atSequenceIndentIx`). -/
 def scanKeyIx {input : String} (s : ScannerStateIx input) :
     Except ScanError (ScannerStateIx input) := do
   if !s.inFlow then
-    if s.hasTabInPrecedingWhitespace then
-      throw (.tabInIndentation s.cursor.pos.line s.cursor.pos.col)
-    -- Item 48: mirror of the legacy same-line check — see `scanKey`.
-    if s.implicitValueLine == some s.cursor.pos.line
-        || lastTokenIsNodePropertyOnLineIx s.tokens s.cursor.pos.line
-        || docStartOnLineIx s.tokens s.cursor.pos.line then
-      throw (.sameLineBlockCollection s.cursor.pos.line s.cursor.pos.col)
+    scanKeyValidateIx s
   let s := if !s.inFlow then pushMappingIndentIx s s.cursor.pos.col else s
   let line := s.cursor.pos.line
   let col := s.cursor.pos.col

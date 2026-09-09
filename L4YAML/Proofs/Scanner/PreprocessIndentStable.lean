@@ -358,6 +358,38 @@ lemma scanValue_top_not_sequence {s : ScannerState} {top : IndentEntry}
     · split at hok <;> simp at hok
     · simp at hok
 
+/-- **…and so does the `?`** (item 131).  §8.2.1's check runs at `scanKey` as
+    well as at `scanValueValidate`, so the explicit-key indicator refutes the
+    same disjunct the `:` does: an accepted `?` standing at the top entry's own
+    column has a MAPPING level under it (`a:⏎  - x⏎  ? c⏎  : 2` is
+    `trailing content`, exactly as its implicit twin is).  The `:`'s lemma above
+    asks for a `≤ currentIndent` side condition because its check carries one;
+    `atSequenceIndent` does not, since the top's column IS `currentIndent`. -/
+lemma scanKey_top_not_sequence {s s' : ScannerState} {top : IndentEntry}
+    (hok : scanKey s = .ok s') (h_noflow : s.inFlow = false)
+    (h_top : s.indents.back? = some top)
+    (h_at : (s.col : Int) = top.column) :
+    top.isSequence = false := by
+  cases htop : top.isSequence with
+  | false => rfl
+  | true =>
+    exfalso
+    unfold scanKey scanKeyValidate atSequenceIndent at hok
+    have hbeq : ((s.col : Int) == top.column) = true := by simp [h_at]
+    simp [bind, Except.bind, throw, throwThe,
+      MonadExceptOf.throw, h_noflow, h_top, htop, hbeq] at hok
+    -- Every branch of `scanKeyValidate` throws here: the tab check, the
+    -- same-line check, and §8.2.1's own.
+    split at hok
+    · exact absurd hok (by simp)
+    · -- The `.ok` arm's own equation is the refutation: every branch of
+      -- `scanKeyValidate` throws here — the tab check, the same-line check,
+      -- and §8.2.1's own.
+      rename_i heq
+      split at heq
+      · exact absurd heq (by simp)
+      · split at heq <;> exact absurd heq (by simp)
+
 /-! ## §2  `saveSimpleKey` pushes tokens, not indents -/
 
 /-- The last step of preprocessing touches `tokens` and `simpleKey` only. -/
@@ -1160,7 +1192,7 @@ lemma scanKey_tab_ne {s s' : ScannerState}
     (h_noflow : s.inFlow = false) (htab : s.hasTabInPrecedingWhitespace = true) :
     scanKey s ≠ .ok s' := by
   intro hok
-  unfold scanKey at hok
+  unfold scanKey scanKeyValidate at hok
   simp only [bind, Except.bind, h_noflow, Bool.not_false, if_true, htab] at hok
   simp at hok
 

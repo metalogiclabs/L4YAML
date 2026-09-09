@@ -1193,11 +1193,9 @@ lemma scanKey_filtered_grows (s s' : ScannerState)
     (by have := ScannerCorrectness.scanKey_adds_one_token s s' h; omega)
   -- h_new: the last token is .key (non-placeholder)
   unfold scanKey at h
-  simp only [] at h
+  simp only [bind, Except.bind] at h
   split at h
-  · -- !inFlow: item 31's preceding-whitespace tab check, then pushMappingIndent
-    split at h <;> try contradiction
-    -- item 48 same-line check
+  · -- !inFlow: `scanKeyValidate` (item 131), then pushMappingIndent
     split at h <;> try contradiction
     split at h
     · split at h

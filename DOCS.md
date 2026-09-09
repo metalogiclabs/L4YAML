@@ -12400,8 +12400,12 @@ the checks would reuse `.invalidBareDocument`):
   or a same-indent sequence continues (a `.blockEntry` at this column
   before any `.key`/`.value` at a column ≤ it, walking the token array
   backward); otherwise refused.  `?`/`:` at the column open new entries
-  and stay legal; `- a⏎? k⏎: v` is pipeline-ACCEPTED through the
-  parser's artifact-token leniency, which scopes the mechanism to `-`.
+  and stay legal; ~~`- a⏎? k⏎: v` is pipeline-ACCEPTED through the
+  parser's artifact-token leniency, which scopes the mechanism to `-`~~ —
+  **that input is a SEQUENCE level's column, not a mapping's, and it is
+  refused at the scanner** ([item 131](#item-131-2026-09-09)), which is
+  §8.2.1's business rather than M3's; what scopes M3 to `-` is the pair
+  that is still accepted, `a: 1⏎? k⏎: v` and `a: 1⏎: v`.
 
 **The price, measured — why this landed as a map and not a build.**  The
 emitter-scannability trees re-verify the scanning of emitted output
@@ -12558,6 +12562,13 @@ couplings, each with its own carrier, consumer, and price —
   and the threading's two prices — 6 sites for the field the dedent reads, and a
   premise path of 2/4/25 sites for `Mono`/`SentinelBase` — are measured.  See
   [Item 130](#item-130-2026-09-09).]
+  [**Item 131 closes the inclusion's one exemption at both ends**: the frames
+  record mapping widths, so a landing on a SEQUENCE level is not a frame, and
+  the spend returns it as a disjunct for the consumer to refute.  `scanKey` runs
+  §8.2.1's check now, so `landing_mem_of_key` refutes it at the `?` as
+  `landing_mem_of_value` does at the `:`, and no consumer of a landing is left
+  holding the disjunct.  The threading's prices are unchanged.  See
+  [Item 131](#item-131-2026-09-09).]
 
 **Order**: U1 (self-contained), then U2 (deletes `noFrame`, and with
 `noKeyContext`'s twin shrinks the `pendingFlow` feed toward 67b's
@@ -13262,6 +13273,8 @@ on the sequence landing, `a:⏎  - b:⏎      x: 1⏎  ? c⏎  : 2` emits
 an empty scalar, opens.  Both pipelines agree, so it is not a legacy/indexed
 divergence; it is the `?` consumer having no `scanValueValidate`.  Pinned in the
 new guard's §4 as current behavior, named here for the item that closes it.
+[**CLOSED by [item 131](#item-131-2026-09-09)**, which gave `scanKey` the check;
+the guard's §4 pins the refusal and the discrimination it belongs to.]
 
 **What this does NOT do, and what that costs, measured.**  Thread the cover
 through the accumulation.  Stating the conjunct on the two packs'
@@ -13425,6 +13438,92 @@ axioms.  Axiom profile of the new
 lemmas: `propext`, `Classical.choice`, `Quot.sound` only.  Zero runtime files
 changed, so no event or JSON output can have moved.
 
+### Item 131 (2026-09-09)
+
+**The `?` gets §8.2.1's check, and the cover's exemption stops being a
+residue.**  Item 129 named it and left it: the check that refuses a mapping
+entry at a block sequence's own indent lives in `scanValueValidate` and nowhere
+else, so an EXPLICIT key at such a landing reached `pushMappingIndent` untested.
+That push's guard is `col > currentIndent` — the same guard that keeps a
+sequence OFF the stack when it sits at its parent's indent — so it pushed
+nothing, and the `?` opened an entry at a level no collection held.  Both
+pipelines then closed the document and opened a second one for it:
+`a:⏎  - b:⏎      x: 1⏎  ? c⏎  : 2` emitted `… -MAP -DOC +DOC =VAL : -DOC -STR`.
+It is `trailing content at line 3, column 2` now — byte-identical to what its
+implicit twin `a:⏎  - b:⏎      x: 1⏎  c: 2` has always printed, in both
+pipelines.
+
+**The check is one equality, and the asymmetry with `-` is the rule itself.**
+`atSequenceIndent s` asks whether the stack's top is a sequence level whose
+column is the cursor's.  The `:`'s version carries a `keyCol ≤ currentIndent`
+conjunct beside that equality; the top's column IS `currentIndent`
+(`ScannerState.currentIndent` is `back?`'s column), so the conjunct decides
+nothing and the `?`'s twin does not carry one.  What the `?` must NOT share is
+`scanBlockEntry`: a `-` at a sequence's own indent is that sequence's next
+entry.  That is the discrimination item 129's guard already pinned on one
+landing column — `a:⏎  - b:⏎      x: 1⏎  - c: 2` resumes, the `:` twin is
+`trailing content`, and now so is the `?`.
+
+**The price was a factoring, and the compiler named it.**  Added inline as a
+third `if`, the check made `scanKey`'s do-term big enough that the FIRST `split`
+in an existing proof — on `!s.inFlow`, with nothing to do with the new branch —
+failed, reporting simp's step budget:
+
+```
+error: L4YAML/Proofs/Scanner/ScannerProgress.lean:317:2: `simp` failed: maximum number of steps exceeded
+```
+
+Raising `maxSteps` to 10 000 000 did not move it.  So the three block-context
+checks became `scanKeyValidate` — the `:`'s `scanValueValidate` for the
+indicator that OPENS an entry rather than the one that closes its key — and
+`scanKey`'s body is one `if !s.inFlow then scanKeyValidate s`.  That shrinks the
+term permanently: each of the 23 proofs across 14 files that unfold `scanKey` or
+`scanKeyIx` takes ONE split for the whole of the validation, whatever the
+validation grows to hold.
+
+**Two refuters where item 129 had one.**  `scanKey_top_not_sequence` is
+`scanValue_top_not_sequence`'s twin — an accepted `?` at the top entry's own
+column has a MAPPING level under it — and `IndentStackCover.landing_mem_of_key`
+spends it exactly as `landing_mem_of_value` spends the `:`'s.  So
+`preprocess_landing_mem_or_seq`'s right disjunct, the landing that rests on a
+sequence level, is closed at both consumers of a landing, and the cover's
+sequence exemption is a statement about the frames rather than a gap in them.
+
+**A pin flipped, and it was carried in the artifact that held it.**  Item 119's
+map scoped M3 to `-` partly on `- a⏎? k⏎: v` being pipeline-accepted.  That
+input is a SEQUENCE level's column, not a mapping's, and it is refused here;
+the M3 bullet is corrected in place and the map's guard now pins the refusal
+beside its `:` twin.  What still scopes M3 to `-` is the pair at a MAPPING
+top's column, `a: 1⏎? k⏎: v` and `a: 1⏎: v`, both of which stay legal.
+
+New guard `ScannerExplicitKeySequenceIndent` (18 `#guard` + 4 `example`): §1
+types the predicate and both refuters; §2 is one landing column and three
+indicators, against the same three at a MAPPING landing where all of them
+resume; §3 is the boundary the check must not cross — a sequence at its parent
+mapping's OWN indent is never stacked, so `a:⏎- x⏎? c⏎: 2` opens the mapping's
+next entry, and the `?` inside a sequence entry stands to the right of the level
+and is untouched; §4 is the family the check refuses, root and nested, keyed and
+bare.
+
+**Validation.**  Full `lake build` green (**1120** jobs, +1 for the new guard,
+ZERO warnings); `run-all-tests.sh` **4473/4473**; matrix **402/402** event and
+**282/282** JSON on BOTH pipelines (`l4yaml-event`/`l4yaml-json` and the `-ix`
+twins); `eventscore` **347/358** with **0** `event-reject` and **0**
+`error-miss` — the narrowing rejects no valid corpus input and the corpus does
+not reach the shape, so a runtime change lands byte-invisible to both scores;
+`check-import-closure.sh` (**228** modules), `check-reflection-index.sh`
+(20/230/249/355) and `check-theorem-keyword.sh` (**25** capstones) OK;
+annotation verifier the same **19** pre-existing name mismatches with coverage
+211/211.  `collect-stats`: tests **580** files (+1) / **6334** `#guard`s (+18
+exact = the new guard's own); proofs **6392** and library **6597** (+2 each =
+`scanKey_top_not_sequence` and `landing_mem_of_key`); env **8354**, also **+2**
+— source and environment agree exactly, and an env scan says so rather than
+leaving it inferred: `atSequenceIndent` and `scanKeyValidate` have no `eq_1`,
+no `eq_def` and **0** theorem constants in their namespaces, so the 12 proofs
+that `unfold` them reduce by delta and generate nothing.  **0** direct and
+**0** transitive `sorry`, **0** custom axioms.  Axiom profile of the two new
+lemmas: `propext`, `Classical.choice`, `Quot.sound` only.
+
 ### REMAINING, in order
 
 The per-item history is the closure log above; this section lists only the
@@ -13441,7 +13540,7 @@ too (items 47–51), so what stands between here
 and Step 5 (the converse) is R3's remaining production work and R4:
 
 ```
-R1 ✓ (44–46) ──→ R2 ✓ (47–51) ──→ R3 (52–130 landed; U2 CLOSED, the collapse gone) ──→ Step 5
+R1 ✓ (44–46) ──→ R2 ✓ (47–51) ──→ R3 (52–131 landed; U2 CLOSED, the collapse gone) ──→ Step 5
                                         └──────→ R4 (implicitContinue + 0 < m) ──┘
 ```
 

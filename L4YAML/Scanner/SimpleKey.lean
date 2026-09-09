@@ -84,6 +84,51 @@ def scanBlockEntry (s : ScannerState) : Except ScanError ScannerState := do
   let s_after_advance := s_with_token.advance
   .ok { s_after_advance with simpleKeyAllowed := true }
 
+/-- **The cursor stands at a block sequence's own indent** (§8.2.1).
+
+    A sequence level reaches the indent stack only when it stands strictly
+    right of the collection that owns it — `pushSequenceIndent`'s guard is
+    `col > currentIndent` — so a sequence AT its parent mapping's own column is
+    never pushed, and a column that equals a stacked sequence level's is a
+    column no mapping is open at.  An entry indicator there ends the sequence
+    and has nothing to belong to.
+
+    `scanValueValidate` tests this of the SAVED KEY's column, at the `:` that
+    closes the entry; `scanKey` tests it of the cursor, at the `?` that opens
+    one.  The stack's top is `currentIndent` by definition, so equality with
+    the top's column is the whole test. -/
+def atSequenceIndent (s : ScannerState) : Bool :=
+  match s.indents.back? with
+  | some top => top.isSequence && ((s.col : Int) == top.column)
+  | none => false
+
+/-- **What a `?` owes in block context** — the `:`'s `scanValueValidate`, for
+    the indicator that OPENS an entry instead of the one that closes its key.
+    Returns `Unit` on success and never modifies the state.
+
+    The first two checks are `scanBlockEntry`'s, verbatim; the third is not,
+    and the asymmetry is the point.  A `-` at a block sequence's own indent is
+    that sequence's next entry; a `?` there is not, and neither is an implicit
+    key, which is why `scanValueValidate` refuses one. -/
+@[yaml_spec "8.2.2"]
+def scanKeyValidate (s : ScannerState) : Except ScanError Unit := do
+  -- §6.1: same check, same reason as `scanBlockEntry`.  In block context a `?`
+  -- stands directly after `[63] s-indent(n)` — as `[191]`'s own entry, or as
+  -- `[185] s-l+block-indented`'s `s-indent(m)` when compact — and `s-indent` is
+  -- spaces only, so ANY tab in the run in front of it was used as indentation.
+  if s.hasTabInPrecedingWhitespace then
+    throw (.tabInIndentation s.line s.col)
+  -- Item 48: `scanBlockEntry`'s same-line check, for the `?` — `k: ? a`,
+  -- `&a ? b` and `--- ? a` have no derivation for the same three reasons.
+  if s.implicitValueLine == some s.line
+      || lastTokenIsNodePropertyOnLine s.tokens s.line
+      || docStartOnLine s.tokens s.line then
+    throw (.sameLineBlockCollection s.line s.col)
+  -- §8.2.1: the `?` at a block sequence's own indent, the check
+  -- `scanValueValidate` has always run for the `:`.
+  if atSequenceIndent s then
+    throw (.trailingContent s.line s.col)
+
 /-- Scan an explicit key indicator `?`.
 
     **Implements** (YAML 1.2.2 §8.2.2):
@@ -97,25 +142,16 @@ def scanBlockEntry (s : ScannerState) : Except ScanError ScannerState := do
     **Post**: Pushes mapping indent if needed, emits `key`, advances past `?`,
     sets `simpleKeyAllowed := true`, `explicitKeyLine := some s.line`.
     **Error**: `tabInIndentation` if a tab sits in the whitespace run *before*
-    the `?`, or immediately follows it, in block context (§6.1).
+    the `?`, or immediately follows it, in block context (§6.1);
+    `trailingContent` if the `?` stands at a block sequence's own indent
+    (§8.2.1, `atSequenceIndent`).
 
     **Refactored for verification**: Uses explicit variable names to make
     token tracking clearer for formal proofs. -/
 @[yaml_spec "8.2.2" 190 "c-l-block-map-explicit-key"]
 def scanKey (s : ScannerState) : Except ScanError ScannerState := do
-  -- §6.1: same check, same reason as `scanBlockEntry`.  In block context a `?`
-  -- stands directly after `[63] s-indent(n)` — as `[191]`'s own entry, or as
-  -- `[185] s-l+block-indented`'s `s-indent(m)` when compact — and `s-indent` is
-  -- spaces only, so ANY tab in the run in front of it was used as indentation.
   if !s.inFlow then
-    if s.hasTabInPrecedingWhitespace then
-      throw (.tabInIndentation s.line s.col)
-    -- Item 48: `scanBlockEntry`'s same-line check, for the `?` — `k: ? a`,
-    -- `&a ? b` and `--- ? a` have no derivation for the same three reasons.
-    if s.implicitValueLine == some s.line
-        || lastTokenIsNodePropertyOnLine s.tokens s.line
-        || docStartOnLine s.tokens s.line then
-      throw (.sameLineBlockCollection s.line s.col)
+    scanKeyValidate s
   let s_with_indent := if !s.inFlow then pushMappingIndent s s.col else s
   let s_with_token := s_with_indent.emit .key
   let s_after_advance := s_with_token.advance

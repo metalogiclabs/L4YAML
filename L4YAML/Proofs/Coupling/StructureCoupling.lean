@@ -390,10 +390,7 @@ lemma scanKey_corr (sc : ScannerState) (sp : SurfPos)
   -- The first let: s_with_indent := if !s.inFlow then pushMappingIndent ...
   -- After bind/Except.bind simplification, we split on !inFlow
   split at hok
-  · -- !inFlow: item 31's preceding-whitespace tab check, then pushMappingIndent
-    split at hok
-    · exact absurd hok (by simp)
-    -- item 48 same-line check
+  · -- !inFlow: `scanKeyValidate` (item 131), then pushMappingIndent
     split at hok
     · exact absurd hok (by simp)
     have hcorr_ind := pushMappingIndent_corr sc sp hcorr (sc.col : Int) (Int.natCast_nonneg _)

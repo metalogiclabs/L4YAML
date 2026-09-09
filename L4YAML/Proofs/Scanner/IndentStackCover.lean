@@ -442,6 +442,28 @@ lemma landing_mem_of_value {lo : Nat} {ks : List Nat} {s : ScannerState} {top : 
   have := h_cov top h_mem h_seq h_nn
   rwa [← h_at, Int.toNat_natCast] at this
 
+/-- **…and the `?` refutes it too** (item 131).  The same disjunct, at the
+    other indicator that consumes a landing.  `scanKey` runs §8.2.1's check now,
+    so an explicit key accepted at the landing's own column has a mapping level
+    under it and the landing is a frame — the exemption is a residue at neither
+    consumer. -/
+lemma landing_mem_of_key {lo : Nat} {ks : List Nat} {s s' : ScannerState}
+    {top : IndentEntry}
+    (hok : scanKey s = .ok s') (h_noflow : s.inFlow = false)
+    (h_top : s.indents.back? = some top)
+    (h_at : (s.col : Int) = top.column)
+    (h_floor : lo ≤ s.col)
+    (h_cov : Covered lo ks s) :
+    s.col ∈ ks := by
+  have h_seq : top.isSequence = false :=
+    scanKey_top_not_sequence hok h_noflow h_top h_at
+  have h_mem : top ∈ s.indents :=
+    Array.mem_of_getElem? (by rw [← Array.back?_eq_getElem?]; exact h_top)
+  have h_nn : (lo : Int) ≤ top.column := by
+    rw [← h_at]; exact Int.ofNat_le.mpr h_floor
+  have := h_cov top h_mem h_seq h_nn
+  rwa [← h_at, Int.toNat_natCast] at this
+
 /-! ## §7  The floor, and the payment a landing can make alone (item 130)
 
     `Covered 0` is the whole stack, and it is not what a producer can pay.  A

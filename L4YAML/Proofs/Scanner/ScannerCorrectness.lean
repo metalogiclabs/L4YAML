@@ -518,11 +518,10 @@ lemma scanKey_adds_one_token (s : ScannerState) (s' : ScannerState)
     (h : scanKey s = .ok s') :
     s'.tokens.size ≥ s.tokens.size + 1 := by
   unfold scanKey at h
-  simp only [] at h
+  simp only [bind, Except.bind] at h
   split at h
-  · -- !inFlow → item 31's preceding-whitespace tab check, then pushMappingIndent
+  · -- !inFlow → `scanKeyValidate` (item 131), then pushMappingIndent
     split at h <;> try contradiction
-    split at h <;> try contradiction  -- item 48 same-line check
     split at h
     · split at h
       · contradiction
@@ -2564,11 +2563,10 @@ lemma scanKey_preserves_prefix (s s' : ScannerState)
     (h : scanKey s = .ok s') (i : Nat) (h_i : i < s.tokens.size) :
     s'.tokens[i]'(by have := scanKey_adds_one_token s s' h; omega) = s.tokens[i] := by
   unfold scanKey at h
-  simp only [] at h
+  simp only [bind, Except.bind] at h
   split at h
-  · -- !inFlow → item 31's preceding-whitespace tab check, then pushMappingIndent
+  · -- !inFlow → `scanKeyValidate` (item 131), then pushMappingIndent
     split at h <;> try contradiction
-    split at h <;> try contradiction  -- item 48 same-line check
     split at h
     · split at h
       · contradiction
@@ -9181,9 +9179,8 @@ lemma scanKey_preserves_ScanInv (s s' : ScannerState)
   -- Examine what split does:
   split at h_ok
   · rename_i h_cond1
-    -- item 31's preceding-whitespace tab check, then the pushMappingIndent `if`
+    -- `scanKeyValidate` (item 131), then the pushMappingIndent `if`
     split at h_ok <;> try contradiction
-    split at h_ok <;> try contradiction  -- item 48 same-line check
     split at h_ok
     · rename_i h_cond2
       split at h_ok <;> (first | contradiction | skip)

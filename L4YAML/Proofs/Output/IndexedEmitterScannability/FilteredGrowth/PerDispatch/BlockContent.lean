@@ -134,7 +134,7 @@ lemma scanKeyIx_tokens_eq {s s' : ScannerStateIx input}
     s'.tokens =
       ((if !s.inFlow then pushMappingIndentIx s s.cursor.pos.col else s).emit
         YamlToken.key).tokens := by
-  unfold scanKeyIx at h
+  unfold scanKeyIx scanKeyValidateIx at h
   by_cases hi : (!s.inFlow) = true
   · -- Item 31's preceding-whitespace tab check, under the same `!inFlow` guard
     rw [if_pos hi] at h
@@ -142,14 +142,17 @@ lemma scanKeyIx_tokens_eq {s s' : ScannerStateIx input}
     · rw [if_pos ht] at h
       simp [Bind.bind, Except.bind] at h
     rw [if_neg ht] at h
-    simp only [] at h
+    -- §8.2.1's check (item 131), then item 48's same-line check, then the
+    -- post-`?` tab peek.
+    split at h
+    · split at h <;> simp [Bind.bind, Except.bind] at h
+    split at h
+    · simp [Bind.bind, Except.bind] at h
+    simp only [pure, Except.pure] at h
     simp only [if_pos hi, advance_inFlow, emit_inFlow, pushMappingIndentIx_inFlow] at h
-    -- Item 48 same-line check first, then the post-`?` tab peek.
     split at h
     · simp [Bind.bind, Except.bind] at h
-    split at h
-    · simp [Bind.bind, Except.bind] at h
-    · simp only [Except.ok.injEq] at h
+    · simp only [Bind.bind, Except.bind, Except.ok.injEq] at h
       subst h
       simp only [if_pos hi, advance_tokens]
   · simp only [if_neg hi, advance_inFlow, emit_inFlow] at h

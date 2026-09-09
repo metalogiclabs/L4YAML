@@ -272,10 +272,7 @@ lemma scanKey_prod (sc : ScannerState) (sp : SurfPos)
   unfold scanKey at hok
   simp only [bind, Except.bind] at hok
   split at hok
-  · -- !inFlow: item 31's preceding-whitespace tab check, then pushMappingIndent
-    split at hok
-    · simp at hok
-    -- item 48 same-line check
+  · -- !inFlow: `scanKeyValidate` (item 131), then pushMappingIndent
     split at hok
     · simp at hok
     have hcorr_ind := pushMappingIndent_corr sc

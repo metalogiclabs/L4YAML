@@ -27,16 +27,17 @@ cover survives, or exactly one mapping level opened, at the top — which is whe
 item 127 reads the landing from.
 
 **Why the sequence level is exempt, and where that is settled** (§3).  A dedent
-landing that rests on a sequence level is `trailing content` when a `:` consumes
-it (§8.2.1, `scanValue_top_not_sequence`) and ordinary YAML when a `-` does.
-The check lives in the `:`'s own validation, so the refutation is something the
-CONSUMER spends, not something the landing carries — item 125's shape.
+landing that rests on a sequence level is `trailing content` when a `:` or a `?`
+consumes it (§8.2.1, `scanValue_top_not_sequence` and, since item 131,
+`scanKey_top_not_sequence`) and ordinary YAML when a `-` does.  The check lives
+in each indicator's own validation, so the refutation is something the CONSUMER
+spends, not something the landing carries — item 125's shape.
 
 §1 types the predicate, its transports, its seed and its step.  §2 is the
 runtime: the three mapping pushes, each resumed at its own column, and the
 sequence level that is not a frame.  §3 is the two ends — the spend and the
-refuter — with the discriminating triple.  §4 names the residue this item does
-NOT close. -/
+refuter — with the discriminating triple.  §4 takes the same discrimination at
+the EXPLICIT key. -/
 
 namespace L4YAML.Tests.Guards.FramesCoverIndents
 
@@ -175,24 +176,18 @@ example {lo : Nat} {ks : List Nat} {s : ScannerState} {top : IndentEntry}
   ["+STR", "+DOC", "+MAP", "=VAL :a", "+SEQ", "=VAL :x", "=VAL :y", "-SEQ",
    "-MAP", "-DOC", "-STR"]
 
-/-! ## §4  The residue this item does NOT close
+/-! ## §4  The EXPLICIT key at the same landing
 
-`scanValue_top_not_sequence` is stated at the `:`'s own validation, and that is
-the only consumer running the check: the `?` reaches `pushMappingIndent` with no
-§8.2.1 test in front of it.  So a popping landing that rests on a SEQUENCE level
-and is consumed by an EXPLICIT key is accepted by both scanners, and the pair
-below isolates what that costs — the same input with the landing on a MAPPING
-level emits one document, and on a sequence level the stream closes its document
-and opens a second one.  Named here, measured, and left for the item that
-threads the cover through the accumulation. -/
+The exemption is a statement about the frames, not about the input: a landing on
+a sequence level is refused by every indicator that opens a MAPPING entry there,
+and `scanKey_top_not_sequence` is the `?`'s half of that (item 131,
+`ScannerExplicitKeySequenceIndent`).  The pair below is the same
+discrimination as §3's, taken at the `?` instead of at the `:`: the mapping
+landing emits one document and the sequence landing is refused. -/
 
-#guard scansClean "a:\n  - b:\n      x: 1\n  ? c\n  : 2\n"
 #guard emits "a:\n  b:\n    x: 1\n  ? c\n  : 2\n"
   ["+STR", "+DOC", "+MAP", "=VAL :a", "+MAP", "=VAL :b", "+MAP", "=VAL :x",
    "=VAL :1", "-MAP", "=VAL :c", "=VAL :2", "-MAP", "-MAP", "-DOC", "-STR"]
-#guard emits "a:\n  - b:\n      x: 1\n  ? c\n  : 2\n"
-  ["+STR", "+DOC", "+MAP", "=VAL :a", "+SEQ", "+MAP", "=VAL :b", "+MAP",
-   "=VAL :x", "=VAL :1", "-MAP", "-MAP", "-SEQ", "=VAL :c", "=VAL :2", "-MAP",
-   "-DOC", "+DOC", "=VAL :", "-DOC", "-STR"]
+#guard scannerRefuses "a:\n  - b:\n      x: 1\n  ? c\n  : 2\n"
 
 end L4YAML.Tests.Guards.FramesCoverIndents

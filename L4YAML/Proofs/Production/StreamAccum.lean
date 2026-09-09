@@ -11477,12 +11477,10 @@ lemma scanKey_ok_park_facts {s s' : ScannerState}
   unfold scanKey at h
   simp only [bind, Except.bind] at h
   split at h
-  · -- block context: tab check, item 48 same-line check, push, tab-peek check
+  · -- block context: `scanKeyValidate` (item 131), push, tab-peek check
     split at h
     · simp at h
     · split at h
-      · simp at h
-      split at h
       · split at h
         · simp at h
         · have h' := Except.ok.inj h; subst h'
@@ -11637,14 +11635,19 @@ lemma scanKey_ok_sameLine_false {s s' : ScannerState}
     (s.implicitValueLine == some s.line
       || lastTokenIsNodePropertyOnLine s.tokens s.line
       || docStartOnLine s.tokens s.line) = false := by
-  unfold scanKey at h
+  unfold scanKey scanKeyValidate at h
   simp only [bind, Except.bind] at h
   rw [if_pos (show (!s.inFlow) = true by rw [h_noflow]; rfl)] at h
   split at h
   · simp at h
-  · split at h
-    case isTrue hc => simp at h
-    case isFalse hc => exact Bool.eq_false_iff.mpr hc
+  · -- The `.ok` arm's own equation: `scanKeyValidate` returned `()`, so none of
+    -- its three checks fired, the same-line one included.
+    rename_i heq
+    split at heq
+    · exact absurd heq (by simp)
+    · split at heq
+      case isTrue hc => exact absurd heq (by simp)
+      case isFalse hc => exact Bool.eq_false_iff.mpr hc
 
 /-- `scanValueValidate`'s success says the `:`'s two same-line facts are down
     (the property run stays legal there — `&a : b` is `[154]`'s anchored empty

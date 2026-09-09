@@ -248,8 +248,7 @@ lemma scanKey_BoundInv (s s' : ScannerState)
   -- The structure: pushMappingIndent conditionally, emit .key, advance, tab check, ok
   -- After simp, splits on the conditions
   split at hok  -- !s.inFlow (item 31's preceding-whitespace tab check)
-  · split at hok <;> try contradiction
-    split at hok <;> try contradiction  -- item 48 same-line check
+  · split at hok <;> try contradiction  -- `scanKeyValidate` (item 131)
     -- block: pushMappingIndent
     let s_pi := pushMappingIndent s s.col
     let s_em := s_pi.emit .key

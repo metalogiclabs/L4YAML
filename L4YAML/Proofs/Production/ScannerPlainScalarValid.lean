@@ -1134,8 +1134,7 @@ lemma scanKey_preserves_PlainScalarsValid
   unfold scanKey at h_ok
   simp only [bind, Except.bind] at h_ok
   split at h_ok
-  · split at h_ok <;> try contradiction  -- item 31: preceding-whitespace tab
-    split at h_ok <;> try contradiction  -- item 48 same-line check
+  · split at h_ok <;> try contradiction  -- `scanKeyValidate` (item 131)
     split at h_ok
     · split at h_ok
       · contradiction
@@ -3832,8 +3831,7 @@ lemma scanKey_new_token_not_plain (s s' : ScannerState)
   -- After Array.getElem_push, h_gen has nested ifs. Repeatedly split + close.
   split at h_ok
   · -- !s.inFlow
-    split at h_ok <;> try contradiction  -- item 31: preceding-whitespace tab
-    split at h_ok <;> try contradiction  -- item 48 same-line check
+    split at h_ok <;> try contradiction  -- `scanKeyValidate` (item 131)
     split at h_ok
     · split at h_ok
       · contradiction
@@ -3912,8 +3910,7 @@ lemma scanKey_preserves_FlowNestingInv
   unfold scanKey at h_ok
   simp only [bind, Except.bind] at h_ok
   split at h_ok
-  · split at h_ok <;> try contradiction  -- item 31: preceding-whitespace tab
-    split at h_ok <;> try contradiction  -- item 48 same-line check
+  · split at h_ok <;> try contradiction  -- `scanKeyValidate` (item 131)
     split at h_ok
     · split at h_ok
       · contradiction

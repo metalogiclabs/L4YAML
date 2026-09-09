@@ -214,7 +214,7 @@ lemma scanKeyIx_offset_lt {s s' : ScannerStateIx input}
     (h_hm : s.cursor.pos.offset < input.utf8ByteSize)
     (h : scanKeyIx s = .ok s') :
     s.cursor.pos.offset < s'.cursor.pos.offset := by
-  unfold scanKeyIx at h
+  unfold scanKeyIx scanKeyValidateIx at h
   by_cases hi : (!s.inFlow) = true
   · -- Item 31's preceding-whitespace tab check, under the same `!inFlow` guard
     rw [if_pos hi] at h
@@ -222,15 +222,18 @@ lemma scanKeyIx_offset_lt {s s' : ScannerStateIx input}
     · rw [if_pos ht] at h
       simp [Bind.bind, Except.bind] at h
     rw [if_neg ht] at h
-    simp only [] at h
+    -- §8.2.1's check (item 131) and item 48's same-line check: every throw
+    -- branch contradicts `.ok s'`.
+    split at h
+    · split at h <;> simp [Bind.bind, Except.bind] at h
+    split at h
+    · simp [Bind.bind, Except.bind] at h
+    simp only [pure, Except.pure] at h
     simp only [if_pos hi, advance_inFlow, emit_inFlow,
       pushMappingIndentIx_inFlow] at h
-    -- Item 48 same-line check: the throw branch contradicts `.ok s'`.
     split at h
     · simp [Bind.bind, Except.bind] at h
-    split at h
-    · simp [Bind.bind, Except.bind] at h
-    · simp only [Except.ok.injEq] at h
+    · simp only [Bind.bind, Except.bind, Except.ok.injEq] at h
       subst h
       show s.cursor.pos.offset < _
       simp only [advance_cursor, emit_cursor, pushMappingIndentIx_cursor]

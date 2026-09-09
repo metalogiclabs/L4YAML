@@ -234,9 +234,11 @@ private def scannerRefuses (input : String) : Bool :=
 #guard emits "a: 1\n: v\n"
   ["+STR", "+DOC", "+MAP", "=VAL :a", "=VAL :1", "=VAL :", "=VAL :v",
    "-MAP", "-DOC", "-STR"]
--- ...and the parser's artifact-token leniency ACCEPTS this one, which is
--- what keeps M3 away from `?` at a sequence's column:
-#guard accepts "- a\n? k\n: v\n"
+-- ...and the `?` at a SEQUENCE's own column is §8.2.1's, refused at the
+-- scanner (item 131) exactly as its `:` twin above is — so M3, which is
+-- about the `-` at a MAPPING's column, has no business here either way:
+#guard scannerRefuses "- a\n? k\n: v\n"
+#guard scannerRefuses "- a\nk: v\n"
 -- M1's same-line boundary — the `:` that resolves the completed node as
 -- an implicit key never crosses a line:
 #guard emits "[1, 2]: v\n"

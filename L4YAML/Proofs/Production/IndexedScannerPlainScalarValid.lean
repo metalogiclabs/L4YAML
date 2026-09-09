@@ -1972,7 +1972,7 @@ lemma scanKeyIx_preserves_PlainScalarsValidIx {input : String}
     (s s' : ScannerStateIx input) (h_ok : scanKeyIx s = .ok s')
     (h_old : PlainScalarsValidIx s.tokens) :
     PlainScalarsValidIx s'.tokens := by
-  unfold scanKeyIx at h_ok
+  unfold scanKeyIx scanKeyValidateIx at h_ok
   by_cases hi : (!s.inFlow) = true
   · -- Item 31's preceding-whitespace tab check, under the same `!inFlow` guard
     rw [if_pos hi] at h_ok
@@ -1980,15 +1980,18 @@ lemma scanKeyIx_preserves_PlainScalarsValidIx {input : String}
     · rw [if_pos ht] at h_ok
       simp [Bind.bind, Except.bind] at h_ok
     rw [if_neg ht] at h_ok
-    simp only [] at h_ok
+    -- §8.2.1's check (item 131), then item 48's same-line check, then the
+    -- post-`?` tab peek: every throw branch contradicts `.ok s'`.
+    split at h_ok
+    · split at h_ok <;> simp [Bind.bind, Except.bind] at h_ok
+    split at h_ok
+    · simp [Bind.bind, Except.bind] at h_ok
+    simp only [pure, Except.pure] at h_ok
     simp only [if_pos hi, advance_inFlow, emit_inFlow,
       pushMappingIndentIx_inFlow] at h_ok
-    -- Item 48 same-line check first, then the post-`?` tab peek.
     split at h_ok
     · simp [Bind.bind, Except.bind] at h_ok
-    split at h_ok
-    · simp [Bind.bind, Except.bind] at h_ok
-    · simp only [Except.ok.injEq] at h_ok
+    · simp only [Bind.bind, Except.bind, Except.ok.injEq] at h_ok
       subst h_ok
       show PlainScalarsValidIx
         { ((pushMappingIndentIx s s.cursor.pos.col).emit .key).advance with .. }.tokens
@@ -2008,7 +2011,7 @@ lemma scanKeyIx_preserves_FlowContextPSVIx {input : String}
     (s s' : ScannerStateIx input) (h_ok : scanKeyIx s = .ok s')
     (h_old : FlowContextPSVIx s.tokens) :
     FlowContextPSVIx s'.tokens := by
-  unfold scanKeyIx at h_ok
+  unfold scanKeyIx scanKeyValidateIx at h_ok
   by_cases hi : (!s.inFlow) = true
   · -- Item 31's preceding-whitespace tab check, under the same `!inFlow` guard
     rw [if_pos hi] at h_ok
@@ -2016,15 +2019,18 @@ lemma scanKeyIx_preserves_FlowContextPSVIx {input : String}
     · rw [if_pos ht] at h_ok
       simp [Bind.bind, Except.bind] at h_ok
     rw [if_neg ht] at h_ok
-    simp only [] at h_ok
+    -- §8.2.1's check (item 131), then item 48's same-line check, then the
+    -- post-`?` tab peek: every throw branch contradicts `.ok s'`.
+    split at h_ok
+    · split at h_ok <;> simp [Bind.bind, Except.bind] at h_ok
+    split at h_ok
+    · simp [Bind.bind, Except.bind] at h_ok
+    simp only [pure, Except.pure] at h_ok
     simp only [if_pos hi, advance_inFlow, emit_inFlow,
       pushMappingIndentIx_inFlow] at h_ok
-    -- Item 48 same-line check first, then the post-`?` tab peek.
     split at h_ok
     · simp [Bind.bind, Except.bind] at h_ok
-    split at h_ok
-    · simp [Bind.bind, Except.bind] at h_ok
-    · simp only [Except.ok.injEq] at h_ok
+    · simp only [Bind.bind, Except.bind, Except.ok.injEq] at h_ok
       subst h_ok
       show FlowContextPSVIx
         { ((pushMappingIndentIx s s.cursor.pos.col).emit .key).advance with .. }.tokens
@@ -2046,7 +2052,7 @@ lemma scanKeyIx_preserves_FlowNestingInvIx {input : String}
     (s s' : ScannerStateIx input) (h_ok : scanKeyIx s = .ok s')
     (h_fni : FlowNestingInvIx s) :
     FlowNestingInvIx s' := by
-  unfold scanKeyIx at h_ok
+  unfold scanKeyIx scanKeyValidateIx at h_ok
   by_cases hi : (!s.inFlow) = true
   · -- Item 31's preceding-whitespace tab check, under the same `!inFlow` guard
     rw [if_pos hi] at h_ok
@@ -2054,15 +2060,18 @@ lemma scanKeyIx_preserves_FlowNestingInvIx {input : String}
     · rw [if_pos ht] at h_ok
       simp [Bind.bind, Except.bind] at h_ok
     rw [if_neg ht] at h_ok
-    simp only [] at h_ok
+    -- §8.2.1's check (item 131), then item 48's same-line check, then the
+    -- post-`?` tab peek: every throw branch contradicts `.ok s'`.
+    split at h_ok
+    · split at h_ok <;> simp [Bind.bind, Except.bind] at h_ok
+    split at h_ok
+    · simp [Bind.bind, Except.bind] at h_ok
+    simp only [pure, Except.pure] at h_ok
     simp only [if_pos hi, advance_inFlow, emit_inFlow,
       pushMappingIndentIx_inFlow] at h_ok
-    -- Item 48 same-line check first, then the post-`?` tab peek.
     split at h_ok
     · simp [Bind.bind, Except.bind] at h_ok
-    split at h_ok
-    · simp [Bind.bind, Except.bind] at h_ok
-    · simp only [Except.ok.injEq] at h_ok
+    · simp only [Bind.bind, Except.bind, Except.ok.injEq] at h_ok
       subst h_ok
       have h_step1 := pushMappingIndentIx_preserves_FlowNestingInvIx
         s s.cursor.pos.col h_fni
@@ -5129,7 +5138,7 @@ lemma scanKeyIx_preserves_prefix {input : String}
     s'.tokens[i]'(by
       have := scanKeyIx_tokens_size_le h_ok; omega) =
     s.tokens[i]'h_bound := by
-  unfold scanKeyIx at h_ok
+  unfold scanKeyIx scanKeyValidateIx at h_ok
   by_cases hi : (!s.inFlow) = true
   · -- Item 31's preceding-whitespace tab check, under the same `!inFlow` guard
     rw [if_pos hi] at h_ok
@@ -5137,15 +5146,18 @@ lemma scanKeyIx_preserves_prefix {input : String}
     · rw [if_pos ht] at h_ok
       simp [Bind.bind, Except.bind] at h_ok
     rw [if_neg ht] at h_ok
-    simp only [] at h_ok
+    -- §8.2.1's check (item 131), then item 48's same-line check, then the
+    -- post-`?` tab peek: every throw branch contradicts `.ok s'`.
+    split at h_ok
+    · split at h_ok <;> simp [Bind.bind, Except.bind] at h_ok
+    split at h_ok
+    · simp [Bind.bind, Except.bind] at h_ok
+    simp only [pure, Except.pure] at h_ok
     simp only [if_pos hi, advance_inFlow, emit_inFlow,
       pushMappingIndentIx_inFlow] at h_ok
-    -- Item 48 same-line check first, then the post-`?` tab peek.
     split at h_ok
     · simp [Bind.bind, Except.bind] at h_ok
-    split at h_ok
-    · simp [Bind.bind, Except.bind] at h_ok
-    · simp only [Except.ok.injEq] at h_ok
+    · simp only [Bind.bind, Except.bind, Except.ok.injEq] at h_ok
       subst h_ok
       show ((pushMappingIndentIx s s.cursor.pos.col).emit YamlToken.key).tokens[i]'_ =
         s.tokens[i]'h_bound

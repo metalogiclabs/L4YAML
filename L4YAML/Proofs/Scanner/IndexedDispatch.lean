@@ -306,7 +306,7 @@ lemma scanBlockEntryIx_offset_monotonic {input : String}
 lemma scanKeyIx_offset_monotonic {input : String}
     {s s' : ScannerStateIx input} (h : scanKeyIx s = .ok s') :
     s.cursor.pos.offset ≤ s'.cursor.pos.offset := by
-  unfold scanKeyIx at h
+  unfold scanKeyIx scanKeyValidateIx at h
   by_cases hi : (!s.inFlow) = true
   · -- Item 31's preceding-whitespace tab check comes first, under the same
     -- `!inFlow` guard `scanBlockEntryIx` uses.
@@ -315,10 +315,13 @@ lemma scanKeyIx_offset_monotonic {input : String}
     · rw [if_pos ht] at h
       simp [Bind.bind, Except.bind] at h
     rw [if_neg ht] at h
-    -- Item 48 same-line check: the throw branch contradicts `.ok s'`.
+    -- §8.2.1's check (item 131) and item 48's same-line check: every throw
+    -- branch contradicts `.ok s'`.
+    split at h
+    · split at h <;> simp [Bind.bind, Except.bind] at h
     split at h
     · simp [Bind.bind, Except.bind] at h
-    simp only [] at h
+    simp only [pure, Except.pure] at h
     -- Block context: rewrite the outer let-if first; that normalises
     -- the post-state to `pushMappingIndentIx s c` and lets the inFlow
     -- preservation lemmas collapse the inner if's condition to `s.inFlow`,
@@ -330,7 +333,7 @@ lemma scanKeyIx_offset_monotonic {input : String}
     · -- some '\t' — throw fires; bind reduces to `.error _`, contradicts `.ok s'`.
       simp [Bind.bind, Except.bind] at h
     · -- catch-all — `pure () >>= ... = .ok {...}`.
-      simp only [Except.ok.injEq] at h
+      simp only [Bind.bind, Except.bind, Except.ok.injEq] at h
       subst h
       show s.cursor.pos.offset ≤ _
       simp only [advance_cursor, emit_cursor, pushMappingIndentIx_cursor]
@@ -838,7 +841,7 @@ lemma scanBlockEntryIx_tokens_size_le {input : String}
 lemma scanKeyIx_tokens_size_le {input : String}
     {s s' : ScannerStateIx input} (h : scanKeyIx s = .ok s') :
     s.tokens.size ≤ s'.tokens.size := by
-  unfold scanKeyIx at h
+  unfold scanKeyIx scanKeyValidateIx at h
   by_cases hi : (!s.inFlow) = true
   · -- Item 31's preceding-whitespace tab check comes first.
     rw [if_pos hi] at h
@@ -846,17 +849,20 @@ lemma scanKeyIx_tokens_size_le {input : String}
     · rw [if_pos ht] at h
       simp [Bind.bind, Except.bind] at h
     rw [if_neg ht] at h
-    -- Item 48 same-line check: the throw branch contradicts `.ok s'`.
+    -- §8.2.1's check (item 131) and item 48's same-line check: every throw
+    -- branch contradicts `.ok s'`.
+    split at h
+    · split at h <;> simp [Bind.bind, Except.bind] at h
     split at h
     · simp [Bind.bind, Except.bind] at h
-    simp only [] at h
+    simp only [pure, Except.pure] at h
     -- Block context: outer if rewrites; inFlow chains normalise the inner
     -- if's condition to `s.inFlow`; second if_pos hi rewrites the inner if.
     simp only [if_pos hi, advance_inFlow, emit_inFlow,
       pushMappingIndentIx_inFlow] at h
     split at h
     · simp [Bind.bind, Except.bind] at h
-    · simp only [Except.ok.injEq] at h
+    · simp only [Bind.bind, Except.bind, Except.ok.injEq] at h
       subst h
       show s.tokens.size ≤ _
       refine Nat.le_trans (pushMappingIndentIx_tokens_size_le s s.cursor.pos.col) ?_

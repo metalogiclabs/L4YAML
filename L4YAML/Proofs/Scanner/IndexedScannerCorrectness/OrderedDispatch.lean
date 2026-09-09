@@ -250,10 +250,7 @@ lemma scanKeyIx_preserves_ScanInvIx {input : String}
   unfold scanKeyIx at h_ok
   simp only [bind, Except.bind] at h_ok
   split at h_ok
-  · -- item 31: the preceding-whitespace tab check, then the pushMappingIndent if
-    split at h_ok
-    · simp at h_ok
-    -- item 48 same-line check
+  · -- `scanKeyValidate`'s indexed twin (item 131), then the pushMappingIndent if
     split at h_ok
     · simp at h_ok
     split at h_ok
