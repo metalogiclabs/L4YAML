@@ -242,12 +242,19 @@ example {sc : ScannerState} {sp_start sp sp_land : SurfPos}
 Seven `SLAnyDocument.bare` applications, each owing a route decision:
 
 * `topLevelFlowResumeSep` — the completed top-level flow node.  Its suffix twin
-  exists (`suffixFlowResumeSep`, item 118); the head twin does not.
+  exists (`suffixFlowResumeSep`, item 118); ~~the head twin does not~~ **the
+  head twin is `nodocFlowResumeSep`, item 136**, and the virgin park's flow open
+  spends it.
 * `rootMapRoute` and `rootMapRouteF` — the fallback every punting park uses.
   BOTH twins exist on both faces (`nodocMapRoute`/`nodocMapRouteF`, item 116;
-  `suffixMapRoute`/`suffixMapRouteF`, item 117) and neither `nodoc` twin has a
+  `suffixMapRoute`/`suffixMapRouteF`, item 117) ~~and neither `nodoc` twin has a
   consumer yet: what is missing is the FACE at the landing, a real disjunction
-  where `h_sfx_land` today carries `SuffixRun … ∨ True`.
+  where `h_sfx_land` today carries `SuffixRun … ∨ True`~~ — **item 136 gave the
+  landing its HEAD arm** (`colon_open_map`/`question_open_map` take it,
+  `flowKeyRoute_of_root` takes it, `content_dispatch_routed`'s cascade prefers
+  the matching key context), so both `nodoc` twins have consumers.  What is
+  still `∨ True` is the FALLBACK, and what it owes is not a fourth route but
+  items 132–134's refusal.
 * `accum_block_on_closeThenBlock` and `content_dispatch_after_close` — the two
   landing skeletons, whose suffix arm routes through `suffixNodeRoute` and whose
   other arm is the bare document.
@@ -263,6 +270,12 @@ What the seven are waiting on is one carrier, not seven: the landings' `∨ True
 made into a three-way face — the stream's head, an open suffix run, or a level
 resumed — with the fourth case refuted rather than carried.  That fourth case is
 what items 132–134 made refusable: a completed root node followed by content
-with no marker between is `invalidBareDocument` at the SCANNER now. -/
+with no marker between is `invalidBareDocument` at the SCANNER now.
+
+**Item 136 built the head arm and paid it**; the count stayed at nine, because
+the seven are the fallback ARMS of lemmas several families share and an arm goes
+only when its last caller can pay something else.  See `StreamHeadLandingFace`
+for what each of the three remaining families is, and why the refutation rather
+than a fourth route is what they owe. -/
 
 end L4YAML.Tests.Guards.StreamRouteSwapSurface

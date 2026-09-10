@@ -221,9 +221,14 @@ example {sc : ScannerState} {sp_start sp sp_land sp_key : SurfPos} {k : Nat}
   flow extenders — `flowSeq_extends_stream` among them — turned
   `pendingDocStart`'s document builder into a route, and spent THIS field at
   `accum_block_on_noPending`'s two root-sequence faces, the carrier's first
-  consumer.  `nodocMapRoute`/`nodocMapRouteF` are still unspent: the seed's
+  consumer.  ~~`nodocMapRoute`/`nodocMapRouteF` are still unspent: the seed's
   sequence reaches `single` inline, and the map faces wait on the landing's
-  three-way disjunction.  See `StreamRouteSwapSurface`.)
+  three-way disjunction.~~  **Spent at item 136**, which gave the landing face
+  its HEAD arm and paid it at the park's other three landings — the block
+  `:`/`?` through `nodocMapRoute`/`nodocMapRouteF`, the content dispatch
+  through the new `nodocNodeRoute`, and the flow open through the new
+  `nodocFlowResumeSep` and `flowKeyRoute_of_root`'s head arm.  See
+  `StreamRouteSwapSurface` and `StreamHeadLandingFace`.)
 * The compact branches' resume twins on both key packs (item 99's
   fused-closure residue) and the flow frame's rider
   (`FlowBaseRoutes.key`, 67b) are untouched — different rows of the same
