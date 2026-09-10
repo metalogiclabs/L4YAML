@@ -12321,9 +12321,9 @@ Zero runtime edits, zero new fields, ONE new lemma.
   suffix carrier (a `...` intervened — items 117 + 118 pay every landing
   class: content, block indicator, flow open) and the scanner's refusals
   (none did → §9.2's `trailingContent` family); the refusal half has no
-  carrier yet and is the tightening's remaining prerequisite.  [Its FIRST mechanism
-  has a carrier since [item 132](#item-132-2026-09-09) — M1; M2 and M3 are
-  what remains.]
+  carrier yet and is the tightening's remaining prerequisite.  [Its first TWO
+  mechanisms have carriers — M1 at [item 132](#item-132-2026-09-09), M2 at
+  [item 133](#item-133-2026-09-09); M3 is what remains.]
 * The 16 sites and the CONSTRUCTOR (item 110: LAST).
 * The EOF close keeps the honest empty-slot fold.
 
@@ -12399,7 +12399,11 @@ the checks would reuse `.invalidBareDocument`):
   the pipeline ACCEPTS (`a:⏎b` = `{a: b}`, `?⏎b⏎: v`, `-⏎b`), and the
   unresolved run is visible in the TOKEN ARRAY (placeholders never
   rewritten), so no new state field is needed.  Must run BEFORE the
-  structural dispatch: the dangler also dies at a `...`/`---` dispatch.
+  structural dispatch: the dangler also dies at a `...`/`---` dispatch.  **LANDED by
+  [item 133](#item-133-2026-09-09)** as `scanNextToken_checkDanglingNode` and
+  its EOF twin `scanLoop_checkDanglingNode`; the exemptions are
+  `YamlToken.offersNodeSlot`, the run's head is `YamlToken.isNodeBody`, and the
+  reported position is the RUN's start.
 * **M3 — the `-` at a mapping top's own column**: valid iff the value is
   still awaited (last real token `.value`, or a property run after it)
   or a same-indent sequence continues (a `.blockEntry` at this column
@@ -12425,8 +12429,9 @@ edits ×3 chains (legacy, `scanNextTokenIx`, `scanNextTokenIxWC`) and the
 `scanLoop` EOF twins.  **The refusal half is at least three items — one
 mechanism plus its absorption each — not one**, and the constructor's
 prerequisite chain is now M1 → M2 → M3 → the 16 swaps → the constructor.
-**M1 is LANDED** ([item 132](#item-132-2026-09-09)); the chain from here is
-M2 → M3 → the 16 swaps → the constructor.
+**M1 is LANDED** ([item 132](#item-132-2026-09-09)) and **M2 with it**
+([item 133](#item-133-2026-09-09)); the chain from here is M3 → the 16 swaps →
+the constructor.
 
 **Found by the map**: same-line junk after a completed root flow close
 or quoted scalar (`[1, 2] x`, `"x" y`) is refused by the LEGACY scanner
@@ -13650,6 +13655,144 @@ constructor.  `ScannerRaisedFlagRefusalMap` §3 and §4 still pin both as gaps,
 and `ScannerBareDocumentRefusal` §5 pins the discriminator that keeps M1 clear
 of them: the indent stack.
 
+### Item 133 (2026-09-09)
+
+**M2 lands: the dangling node run is refused at the scanner.**  Item 119's
+second mechanism, and the one whose shape is a RUN rather than a token.  A
+trailing `[96]* (scalar|alias)?` whose START sits at an OPEN indent level's own
+column belongs to nothing: the level is already occupied by the collection that
+opened it, so the run is neither that collection's next key nor any indicator's
+content, and §9.2 has no production for it.  `scanNextToken_checkDanglingNode`
+runs BEFORE the structural dispatch — a dangler dies at a `...`/`---` too
+(`a: 1⏎b⏎...`), and the marker would otherwise consume the step — and
+`scanLoop_checkDanglingNode` runs beside `scanLoop`'s other two final
+validations.
+
+**What separates a dangler from a value is its PREDECESSOR, and that is one new
+token predicate.**  `YamlToken.offersNodeSlot` is `:`, `?` and `-` — the three
+block indicators whose own productions are followed by `s-l+block-node` or
+`s-l+block-indented` — so `a:⏎b` is `{a: b}`, `?⏎b⏎: v` is the explicit key's
+content and `-⏎b` is the entry's, at whatever column the content sits.  Behind
+anything else there is no slot: a finished scalar (`a: 1⏎b`), a flow close
+(`k: [1, 2]⏎b`), or another dangler.  The run's own head is
+`YamlToken.isNodeBody` — a scalar or an alias, and NOT the flow closes, which is
+where it parts company with `completesFlowValue`: a `]` in block context ends a
+collection some earlier line opened, so it heads no run.
+
+**The two arms differ in one conjunct, and the difference is the point.**
+Mid-stream the check asks for `simpleKeyAllowed` — a run still on its own line
+may yet be resolved by a `:` (`a: 1⏎b: 2`, where `b` becomes a key), and the
+flag is down there.  At the end of input there is no `:` left to come, so the
+EOF twin does not ask.  That asymmetry is what the first probe got wrong: with
+the flag required at EOF, `a: 1⏎b` was missed while `k: 1⏎|⏎  x` fired, because
+a block scalar's scan leaves the flag up and a plain walk does not.
+
+**The position reported is the RUN's start, not the cursor's.**  The parser
+reports where the offending node begins, and the check reads it off the run's
+first token: `a: 1⏎b⏎c: 2` fires at the dispatch of `c` on line 2 and reports
+line 1, column 0; `k:⏎  a: 1⏎|⏎  x` fires at the end of input and reports line
+2, column 0, the `|`.  A cursor position would have matched neither.
+
+**Measured before the runtime was touched, and that is what made the edit
+safe.**  A `firstFire` walk — real preprocess, real structural dispatch, the
+candidate predicate evaluated at the dispatch point and again at EOF — over all
+**402** suite tests: **7** reach it (236B "Invalid value after mapping", 6S55
+"Invalid scalar at the end of sequence", 7MNF "Missing colon", 9CWY "Invalid
+scalar at the end of mapping", GDY7 "Comment that looks like a mapping key",
+GT5M "Node anchor in sequence", TD5N "Invalid scalar after sequence"), all seven
+error tests, all seven producing the byte-identical `.invalidBareDocument` the
+parser already produced.  **Zero** false positives.  Over item 119's 21 M2 pins
+and a 100-input hand battery: every fire exact, every non-fire either accepted
+or refused by a different check.
+
+**The absorption, measured by building it.**  **63** decomposition repairs
+across **29** files — **32** where one extra `split` suffices and **31** where
+the chain is a `cases`/`generalize` ladder and the check has to be peeled by
+hand — plus **84** discharges on the `via_*` and `scanLoop`/`scanFiltered`
+chain ladders.  That is more than M1's (41 + 56), and the reason is the
+placement: M1's bind sits after the structural dispatch, which most proofs
+reach through a single `split`; M2's sits BEFORE it, so it lands in the
+preprocess arm of every chain decomposition, `scanLoop` included.  **22** helper
+lemmas carry the discharges, in four shapes — the flow context, the
+sentinel-only stack, the run-less token array (a flow close ends no run:
+`trailingNodeRun?_push_none`), and the converse extractor
+`scanNextToken_ok_checkDanglingNode`, which is SIMPLER than item 132's twin
+because the check is the step right after preprocessing and needs no
+`h_struct`.
+
+**The EOF twin is what the emitter-scannability trees pay for.**  M1's check
+never fired at EOF, so those trees only had to carry a premise; M2's does, and
+the four `scanLoop`/`scanLoopIx` terminal lemmas now take
+`scanLoop_checkDanglingNode s_final = .ok ()`.  Three shapes discharge it:
+the sentinel-only stack for a root scalar, and — for the flow documents — the
+fact that a `]`/`}` ends no run, which made the outermost-close lemmas grow that
+conclusion (`scanNextToken_flow_close_seq_outermost` and its three twins).  So
+"the scanner accepts what the emitter emits" is re-proved with the EOF check in
+place, which is the statement M2 is really about.
+
+**Six pins flipped outside item 119's map, each corrected where it was
+written.**  `ScannerBareDocumentRefusal` §5 held M2's four families as
+`parserOnly`; they are `scannerRefuses` now, and the section says what still
+separates the two mechanisms — the indent stack.  `ScannerValueMapping` and
+`ScannerNestedEntryMapping` each pinned `k:⏎  a: |⏎  x` (and its `-` twin) as
+scanner-clean under "a block scalar body flush with its key is not the entry's
+node": true, and what it leaves is a DANGLING run at the key's own level, which
+§9.2 refuses.  And `---⏎a: 1⏎b`, which item 132 filed as M2's and left a gap, is
+refused here.
+
+New guard `ScannerDanglingNodeRefusal` (88 `#guard` + 12 `example`): §1 types the
+check, the two token predicates and the four passing shapes; §2 the refused
+family — both arms, every run shape, both level kinds, the nested and dedented
+landings, the comment and blank-line ends, and the marker dispatch; §3 the
+boundary — the three slot-offering predecessors, the plain scalar's own
+continuation, values of every shape at their indented columns, the root (which
+pushes no level), the markers and the flow interiors; §4 `saysAlike`, one
+message at one position from both scanners AND both pipelines, on nine inputs
+chosen so the RUN's position differs from the cursor's; §5 the discrimination
+from M1 (the sentinel is at `-1`, a column is a `Nat`, so the two never overlap)
+and from M3, which is still the parser's.
+
+**Validation.**  Full `lake build` green (**1122** jobs, +1 for the new guard,
+ZERO warnings); `run-all-tests.sh` **4476/4476** (+2: Production Coverage
+Analysis **793/793**, the two new `@[yaml_spec "9.2" 211 "l-yaml-stream"]`
+sites); matrix **402/402** event and **282/282** JSON on BOTH pipelines;
+`eventscore` **347/358** with **0** `event-reject` and **0** `error-miss` — the
+seven corpus inputs that reach the check were already error tests, so a runtime
+narrowing lands byte-invisible for the third item running;
+`check-import-closure.sh` (**228** modules), `check-reflection-index.sh`
+(20/230/249/355) and `check-theorem-keyword.sh` (**25** capstones) OK;
+annotation verifier the same **19** pre-existing name mismatches with coverage
+211/211.  `collect-stats`: tests **582** files (+1) / **6475** `#guard`s (+88
+exact = the new guard's own); proofs **6422** and library **6627** (+22 each =
+the 22 helper lemmas); env **8389**, which is **+24**.  **0** direct and **0**
+transitive `sorry`, **0** custom axioms.
+
+**The env's inventory, scanned rather than inferred.**  A full-closure scan
+finds **36** `thmInfo` constants mentioning the check: the 22 lemmas, BOTH
+runtime defs' `.eq_1` — item 132's rule a second time, since the four
+`_ok_of_*` shapes pass the defs to `simp only`, which needs the equation lemma
+and creates it — four `._proof_`/`._simp_` side-goal auxiliaries, and eight
+`_private … match_N.eq_M` match equations from the `match` inside
+`danglingNodePos?` and `prevRealIdx?`.  The counted delta reaches 24 of those
+36; the twelve it does not reach are the auxiliaries, and which auxiliary kinds
+`collect-stats` counts is a property of the counter rather than of this item.  Axiom profile of the 22 helpers: `propext` alone for the reduction
+shapes, `propext`/`Quot.sound` where an `Array.any` walk is involved, and
+`propext`/`Classical.choice`/`Quot.sound` for the two converse extractors.
+
+**A pipeline-parity sweep, run because the check is in both.**  Over the 402
+corpus inputs the two pipelines return the same verdict everywhere; **7** return
+different MESSAGES, all of them error-versus-error, and all seven are the
+same-line-junk and bad-escape families item 119 measured as a pre-existing
+LAYER difference (`[1, 2] x` is the legacy scanner's `trailingContent` and the
+indexed pipeline's parser error).  None of the seven is a dangling run: M2 needs
+a break or the end of input, and all seven die on their own line.
+
+**What this leaves.**  M3 — the `-` at a mapping top's own column with the entry
+complete — then the 16 fallback swaps and the `implicitContinue` constructor.
+M3 is the one mechanism whose test is a BACKWARD WALK over the token array
+rather than a predicate on its tail, and `ScannerRaisedFlagRefusalMap` §4 still
+pins its seven inputs as gaps.
+
 ### REMAINING, in order
 
 The per-item history is the closure log above; this section lists only the
@@ -13666,7 +13809,7 @@ too (items 47–51), so what stands between here
 and Step 5 (the converse) is R3's remaining production work and R4:
 
 ```
-R1 ✓ (44–46) ──→ R2 ✓ (47–51) ──→ R3 (52–132 landed; U2 CLOSED, the collapse gone) ──→ Step 5
+R1 ✓ (44–46) ──→ R2 ✓ (47–51) ──→ R3 (52–133 landed; U2 CLOSED, the collapse gone) ──→ Step 5
                                         └──────→ R4 (implicitContinue + 0 < m) ──┘
 ```
 

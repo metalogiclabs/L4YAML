@@ -319,7 +319,8 @@ lemma scanNextTokenIx_flow_close_seq_outermost (s : ScannerStateIx input)
     ∃ s', scanNextTokenIx s = .ok (some s')
       ∧ s'.flowLevel = 0
       ∧ s'.directivesPresent = false
-      ∧ s'.peek? = none := by
+      ∧ s'.peek? = none
+      ∧ scanLoopIx_checkDanglingNode s' = .ok () := by
   -- Step 1: preprocessing
   have h_pp : scanNextTokenIx_preprocess s = .ok (some (saveSimpleKeyIx s, ']')) :=
     scanNextTokenIx_preprocess_flow s ']' [] s.cursor.pos.col hcorr h_flow
@@ -365,6 +366,8 @@ lemma scanNextTokenIx_flow_close_seq_outermost (s : ScannerStateIx input)
     ((saveSimpleKeyIx_directivesPresent s).trans h_dp)
     (scanNextTokenIx_checkBareDocument_ok_of_inFlow _
       ((saveSimpleKeyIx_inFlow s).trans h_flow))
+    (scanNextTokenIx_checkDanglingNode_ok_of_inFlow _
+      ((saveSimpleKeyIx_inFlow s).trans h_flow))
   -- Step 7: extract via scanFlowSequenceEndIx_detail (for s_ad at position [']']
   have h_ad_corr : ScannerSurfCorrIx s_ad ⟨[']'], s_ad.cursor.pos.col⟩ := by
     refine ⟨?_, rfl, ?_, ?_⟩
@@ -384,7 +387,15 @@ lemma scanNextTokenIx_flow_close_seq_outermost (s : ScannerStateIx input)
   -- EOF after the close: h_corr_f gives ScannerSurfCorrIx at ⟨[], col + 1⟩
   have h_s'_peek : (scanFlowSequenceEndIx s_ad).peek? = none :=
     peek_none_of_empty_surfIx (scanFlowSequenceEndIx s_ad) (s_ad.cursor.pos.col + 1) h_corr_f
-  exact ⟨scanFlowSequenceEndIx s_ad, h_snt, h_s'_fl, h_s'_dp, h_s'_peek⟩
+  have h_s'_dn : scanLoopIx_checkDanglingNode (scanFlowSequenceEndIx s_ad) = .ok () := by
+    refine scanLoopIx_checkDanglingNode_ok_of_no_run _ ?_
+    have h_tok : (scanFlowSequenceEndIx s_ad).tokens
+        = ⟨s_ad.tokens.tokens.push (Indexed.IxToken.mk' (input := input)
+            s_ad.cursor.pos YamlToken.flowSequenceEnd s_ad.cursor.pos
+            (Nat.le_refl _) s_ad.cursor.posBound)⟩ := rfl
+    rw [h_tok]
+    exact trailingNodeRunIx?_push_none _ _ rfl rfl rfl
+  exact ⟨scanFlowSequenceEndIx s_ad, h_snt, h_s'_fl, h_s'_dp, h_s'_peek, h_s'_dn⟩
 
 /-! ## §4  `scanNextTokenIx_flow_close_mapping_outermost`
 
@@ -404,7 +415,8 @@ lemma scanNextTokenIx_flow_close_mapping_outermost (s : ScannerStateIx input)
     ∃ s', scanNextTokenIx s = .ok (some s')
       ∧ s'.flowLevel = 0
       ∧ s'.directivesPresent = false
-      ∧ s'.peek? = none := by
+      ∧ s'.peek? = none
+      ∧ scanLoopIx_checkDanglingNode s' = .ok () := by
   have h_pp : scanNextTokenIx_preprocess s = .ok (some (saveSimpleKeyIx s, '}')) :=
     scanNextTokenIx_preprocess_flow s '}' [] s.cursor.pos.col hcorr h_flow
       (by decide) (by decide) (by decide)
@@ -444,6 +456,8 @@ lemma scanNextTokenIx_flow_close_mapping_outermost (s : ScannerStateIx input)
     ((saveSimpleKeyIx_directivesPresent s).trans h_dp)
     (scanNextTokenIx_checkBareDocument_ok_of_inFlow _
       ((saveSimpleKeyIx_inFlow s).trans h_flow))
+    (scanNextTokenIx_checkDanglingNode_ok_of_inFlow _
+      ((saveSimpleKeyIx_inFlow s).trans h_flow))
   have h_ad_corr : ScannerSurfCorrIx s_ad ⟨['}'], s_ad.cursor.pos.col⟩ := by
     refine ⟨?_, rfl, ?_, ?_⟩
     · rw [h_ad_cursor]; exact hcorr.chars_from
@@ -460,7 +474,15 @@ lemma scanNextTokenIx_flow_close_mapping_outermost (s : ScannerStateIx input)
     rw [h_dp_f, h_ad_dp]; exact h_dp
   have h_s'_peek : (scanFlowMappingEndIx s_ad).peek? = none :=
     peek_none_of_empty_surfIx (scanFlowMappingEndIx s_ad) (s_ad.cursor.pos.col + 1) h_corr_f
-  exact ⟨scanFlowMappingEndIx s_ad, h_snt, h_s'_fl, h_s'_dp, h_s'_peek⟩
+  have h_s'_dn : scanLoopIx_checkDanglingNode (scanFlowMappingEndIx s_ad) = .ok () := by
+    refine scanLoopIx_checkDanglingNode_ok_of_no_run _ ?_
+    have h_tok : (scanFlowMappingEndIx s_ad).tokens
+        = ⟨s_ad.tokens.tokens.push (Indexed.IxToken.mk' (input := input)
+            s_ad.cursor.pos YamlToken.flowMappingEnd s_ad.cursor.pos
+            (Nat.le_refl _) s_ad.cursor.posBound)⟩ := rfl
+    rw [h_tok]
+    exact trailingNodeRunIx?_push_none _ _ rfl rfl rfl
+  exact ⟨scanFlowMappingEndIx s_ad, h_snt, h_s'_fl, h_s'_dp, h_s'_peek, h_s'_dn⟩
 
 /-! ## §5  `scanNextTokenIx_flow_open_mapping_init`
 
@@ -593,6 +615,7 @@ lemma scanNextTokenIx_flow_open_mapping_init (input : String) (rest : List Char)
   have h_snt := scanNextTokenIx_via_flow_dispatch s₀ s_pp s_ad
     (scanFlowMappingStartIx s_ad) '{'
     h_pp_eq h_struct h_s_ad_def h_check h_flow_disp h_dp_pp h_bd_pp
+    (scanNextTokenIx_checkDanglingNode_ok_of_sentinel_stack _ h_ids)
   -- Step 10: extract via scanFlowMappingStartIx_detail
   have h_ad_corr : ScannerSurfCorrIx s_ad ⟨'{' :: rest, s_ad.cursor.pos.col⟩ := by
     refine ⟨?_, ?_, ?_, ?_⟩
@@ -829,6 +852,7 @@ lemma scanNextTokenIx_flow_open_seq_init (input : String) (rest : List Char)
   have h_snt := scanNextTokenIx_via_flow_dispatch s₀ s_pp s_ad
     (scanFlowSequenceStartIx s_ad) '['
     h_pp_eq h_struct h_s_ad_def h_check h_flow_disp h_dp_pp h_bd_pp
+    (scanNextTokenIx_checkDanglingNode_ok_of_sentinel_stack _ h_ids)
   -- Step 10: extract via scanFlowSequenceStartIx_detail
   have h_ad_corr : ScannerSurfCorrIx s_ad ⟨'[' :: rest, s_ad.cursor.pos.col⟩ := by
     refine ⟨?_, ?_, ?_, ?_⟩

@@ -204,7 +204,8 @@ lemma scanLoopIx_two_iter {s₀ s₁ : ScannerStateIx input} {fuel : Nat}
     (h_snt0 : scanNextTokenIx s₀ = .ok (some s₁))
     (h_snt1 : scanNextTokenIx s₁ = .ok none)
     (h_flow : s₁.flowLevel = 0)
-    (h_dp : s₁.directivesPresent = false) :
+    (h_dp : s₁.directivesPresent = false)
+    (h_dn : scanLoopIx_checkDanglingNode s₁ = .ok ()) :
     ∃ ts, scanLoopIx s₀ fuel = .ok ts := by
   obtain ⟨f, rfl⟩ : ∃ n, fuel = n + 2 := ⟨fuel - 2, by omega⟩
   -- One step: scanLoopIx s₀ (f+2) = scanLoopIx s₁ (f+1).
@@ -219,6 +220,7 @@ lemma scanLoopIx_two_iter {s₀ s₁ : ScannerStateIx input} {fuel : Nat}
     have h_dp_check : ¬ s₁.directivesPresent = true := by
       simp [h_dp]
     rw [if_neg h_dp_check]
+    rw [h_dn]
     exact ⟨_, rfl⟩
   rw [h1]; exact h2
 
@@ -229,7 +231,8 @@ lemma scanLoopIx_two_iter_eq {s₀ s₁ : ScannerStateIx input} {fuel : Nat}
     (h_snt0 : scanNextTokenIx s₀ = .ok (some s₁))
     (h_snt1 : scanNextTokenIx s₁ = .ok none)
     (h_flow : s₁.flowLevel = 0)
-    (h_dp : s₁.directivesPresent = false) :
+    (h_dp : s₁.directivesPresent = false)
+    (h_dn : scanLoopIx_checkDanglingNode s₁ = .ok ()) :
     scanLoopIx s₀ fuel = .ok ((unwindIndentsIx s₁ (-1)).emit YamlToken.streamEnd).tokens := by
   obtain ⟨f, rfl⟩ : ∃ n, fuel = n + 2 := ⟨fuel - 2, by omega⟩
   have h_step : scanLoopIx s₀ (f + 2) = scanLoopIx s₁ (f + 1) := by
@@ -242,6 +245,7 @@ lemma scanLoopIx_two_iter_eq {s₀ s₁ : ScannerStateIx input} {fuel : Nat}
   have h_dp_check : ¬ s₁.directivesPresent = true := by
     simp [h_dp]
   rw [if_neg h_dp_check]
+  rw [h_dn]
 
 /-- **Terminal step (existential)**: at EOF (and with the no-error
     preconditions on `flowLevel` and `directivesPresent`),
@@ -249,7 +253,8 @@ lemma scanLoopIx_two_iter_eq {s₀ s₁ : ScannerStateIx input} {fuel : Nat}
 lemma scanLoopIx_eof {s : ScannerStateIx input}
     (h_snt : scanNextTokenIx s = .ok none)
     (h_fl : s.flowLevel = 0)
-    (h_dp : s.directivesPresent = false) :
+    (h_dp : s.directivesPresent = false)
+    (h_dn : scanLoopIx_checkDanglingNode s = .ok ()) :
     ∃ ts, scanLoopIx s 1 = .ok ts := by
   unfold scanLoopIx
   rw [h_snt]
@@ -258,6 +263,7 @@ lemma scanLoopIx_eof {s : ScannerStateIx input}
   have h_dp_check : ¬ s.directivesPresent = true := by
     simp [h_dp]
   rw [if_neg h_dp_check]
+  rw [h_dn]
   exact ⟨_, rfl⟩
 
 /-- **Terminal step (equality)**: at EOF, `scanLoopIx` produces
@@ -266,7 +272,8 @@ lemma scanLoopIx_eof_eq {s : ScannerStateIx input} {fuel : Nat}
     (h_fuel : fuel ≥ 1)
     (h_snt : scanNextTokenIx s = .ok none)
     (h_fl : s.flowLevel = 0)
-    (h_dp : s.directivesPresent = false) :
+    (h_dp : s.directivesPresent = false)
+    (h_dn : scanLoopIx_checkDanglingNode s = .ok ()) :
     scanLoopIx s fuel = .ok ((unwindIndentsIx s (-1)).emit YamlToken.streamEnd).tokens := by
   obtain ⟨f, rfl⟩ : ∃ n, fuel = n + 1 := ⟨fuel - 1, by omega⟩
   unfold scanLoopIx
@@ -276,6 +283,7 @@ lemma scanLoopIx_eof_eq {s : ScannerStateIx input} {fuel : Nat}
   have h_dp_check : ¬ s.directivesPresent = true := by
     simp [h_dp]
   rw [if_neg h_dp_check]
+  rw [h_dn]
 
 /-! ## §1.3  Surface correspondence (`ScannerSurfCorrIx`)
 

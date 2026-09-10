@@ -286,7 +286,8 @@ lemma scanLoop_two_iter {s₀ s₁ : ScannerState} {fuel : Nat}
     (h_snt0 : scanNextToken s₀ = .ok (some s₁))
     (h_snt1 : scanNextToken s₁ = .ok none)
     (h_flow : s₁.flowLevel = 0)
-    (h_dp : s₁.directivesPresent = false) :
+    (h_dp : s₁.directivesPresent = false)
+    (h_dn : scanLoop_checkDanglingNode s₁ = .ok ()) :
     ∃ toks, scanLoop s₀ fuel = .ok toks := by
   obtain ⟨f, rfl⟩ : ∃ n, fuel = n + 2 := ⟨fuel - 2, by omega⟩
   -- First iteration: scanNextToken s₀ = .ok (some s₁) → recurse
@@ -294,7 +295,7 @@ lemma scanLoop_two_iter {s₀ s₁ : ScannerState} {fuel : Nat}
     simp only [scanLoop, h_snt0]
   -- Second iteration: scanNextToken s₁ = .ok none → checks → ok
   have h2 : ∃ toks, scanLoop s₁ (f + 1) = .ok toks := by
-    simp only [scanLoop, h_snt1, h_flow, h_dp]
+    simp only [scanLoop, h_snt1, h_flow, h_dp, h_dn]
     exact ⟨_, rfl⟩
   rw [h1]; exact h2
 
@@ -304,10 +305,11 @@ lemma scanLoop_two_iter_eq {s₀ s₁ : ScannerState} {fuel : Nat}
     (h_snt0 : scanNextToken s₀ = .ok (some s₁))
     (h_snt1 : scanNextToken s₁ = .ok none)
     (h_flow : s₁.flowLevel = 0)
-    (h_dp : s₁.directivesPresent = false) :
+    (h_dp : s₁.directivesPresent = false)
+    (h_dn : scanLoop_checkDanglingNode s₁ = .ok ()) :
     scanLoop s₀ fuel = .ok ((unwindIndents s₁ (-1)).emit .streamEnd).tokens := by
   obtain ⟨f, rfl⟩ : ∃ n, fuel = n + 2 := ⟨fuel - 2, by omega⟩
-  simp only [scanLoop, h_snt0, h_snt1, h_flow, h_dp]
+  simp only [scanLoop, h_snt0, h_snt1, h_flow, h_dp, h_dn]
   simp (config := { decide := true }) only [ite_false]
 
 -- ═══ scanLoop compositionality ═══
@@ -369,10 +371,11 @@ lemma scanLoop_fuel_mono {s : ScannerState} {fuel₁ fuel₂ : Nat}
 lemma scanLoop_eof {s : ScannerState}
     (h_snt : scanNextToken s = .ok none)
     (h_fl : s.flowLevel = 0)
-    (h_dp : s.directivesPresent = false) :
+    (h_dp : s.directivesPresent = false)
+    (h_dn : scanLoop_checkDanglingNode s = .ok ()) :
     ∃ toks, scanLoop s 1 = .ok toks := by
   unfold scanLoop; rw [h_snt]
-  simp [show ¬(s.flowLevel > 0) from by omega, h_dp]
+  simp [show ¬(s.flowLevel > 0) from by omega, h_dp, h_dn]
 
 /-- **Terminal step (equality)**: If `scanNextToken` returns `.ok none` (EOF),
     `scanLoop` produces exactly the unwind+streamEnd tokens. -/
@@ -380,11 +383,12 @@ lemma scanLoop_eof_eq {s : ScannerState} {fuel : Nat}
     (h_fuel : fuel ≥ 1)
     (h_snt : scanNextToken s = .ok none)
     (h_fl : s.flowLevel = 0)
-    (h_dp : s.directivesPresent = false) :
+    (h_dp : s.directivesPresent = false)
+    (h_dn : scanLoop_checkDanglingNode s = .ok ()) :
     scanLoop s fuel = .ok ((unwindIndents s (-1)).emit .streamEnd).tokens := by
   obtain ⟨f, rfl⟩ : ∃ n, fuel = n + 1 := ⟨fuel - 1, by omega⟩
   unfold scanLoop; rw [h_snt]
-  simp [show ¬(s.flowLevel > 0) from by omega, h_dp]
+  simp [show ¬(s.flowLevel > 0) from by omega, h_dp, h_dn]
 
 -- ═══ ScanChain: composition of N successful scanNextToken calls ═══
 
@@ -1187,6 +1191,8 @@ lemma scanNextToken_preserves_sync (s s' : ScannerState)
   have h_pre_fl := preprocess_preserves_flowLevel s _ _ h_pre
   have h_pre_sync : s1.simpleKeyStack.size ≥ s1.flowLevel := by
     rw [h_pre_stack, h_pre_fl]; exact h_sync
+  -- §9.2 dangling-node check (item 133)
+  split at h_next <;> (try (simp at h_next; done))
   split at h_next <;> (try (simp at h_next; done)) -- structural Except
   split at h_next
   · -- structural some
@@ -1698,6 +1704,9 @@ lemma scanNextToken_maintains_NoOverwriteAt (s s' : ScannerState)
       have h_pre_inv := preprocess_maintains_NoOverwriteAt s _ _ hPre m h_m h_inv
       have h_pre_mono := ScannerCorrectness.ScanHelpers.preprocess_tokens_mono s _ _ hPre
       have h_pre_m : m < s1.tokens.size := Nat.lt_of_lt_of_le h_m h_pre_mono
+      -- §9.2 dangling-node check (item 133)
+      split at h_next
+      · contradiction
       split at h_next
       · contradiction
       · split at h_next
@@ -2365,6 +2374,9 @@ lemma scanNextToken_maintains_FlowNoOverwriteAt (s s' : ScannerState)
       have h_pre_inv := preprocess_maintains_FlowNoOverwriteAt s _ _ hPre m h_m h_inv
       have h_pre_mono := ScannerCorrectness.ScanHelpers.preprocess_tokens_mono s _ _ hPre
       have h_pre_m : m < s1.tokens.size := Nat.lt_of_lt_of_le h_m h_pre_mono
+      -- §9.2 dangling-node check (item 133)
+      split at h_next
+      · contradiction
       split at h_next
       · contradiction
       · split at h_next

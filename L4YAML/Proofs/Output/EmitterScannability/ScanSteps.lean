@@ -72,10 +72,11 @@ lemma scanFiltered_of_chain (input : String)
     (h_eof : scanNextToken s_final = .ok none)
     (h_fl : s_final.flowLevel = 0)
     (h_dp : s_final.directivesPresent = false)
+    (h_dn : scanLoop_checkDanglingNode s_final = .ok ())
     (h_fuel : n + 1 ≤ (input.utf8ByteSize + 1) * 4) :
     ∃ tokens, scanFiltered input = .ok tokens := by
   -- scanLoop s_final 1 succeeds
-  obtain ⟨toks, h_loop_final⟩ := scanLoop_eof h_eof h_fl h_dp
+  obtain ⟨toks, h_loop_final⟩ := scanLoop_eof h_eof h_fl h_dp h_dn
   -- Chain gives scanLoop s₀ (1 + n) succeeds
   have h_loop := h_chain.to_scanLoop h_loop_final
   -- Fuel monotonicity
@@ -105,11 +106,12 @@ lemma scanFiltered_of_chain_eq (input : String)
     (h_eof : scanNextToken s_final = .ok none)
     (h_fl : s_final.flowLevel = 0)
     (h_dp : s_final.directivesPresent = false)
+    (h_dn : scanLoop_checkDanglingNode s_final = .ok ())
     (h_fuel : n + 1 ≤ (input.utf8ByteSize + 1) * 4) :
     scanFiltered input = .ok (((unwindIndents s_final (-1)).emit .streamEnd).tokens.filter
         (fun t => t.val != .placeholder)) := by
   have h_loop := h_chain.to_scanLoop
-    (scanLoop_eof_eq (fuel := 1) (by omega) h_eof h_fl h_dp)
+    (scanLoop_eof_eq (fuel := 1) (by omega) h_eof h_fl h_dp h_dn)
   have h_loop_fuel := scanLoop_fuel_mono h_loop (by omega : 1 + n ≤ (input.utf8ByteSize + 1) * 4)
   have h_scan : scan input = scanLoop s₀ ((input.utf8ByteSize + 1) * 4) := by
     unfold scan; subst h_s0; dsimp only []
@@ -166,6 +168,132 @@ lemma scanNextToken_checkNoPendingDirectives_ok (s : ScannerState)
     (h : s.directivesPresent = false) :
     scanNextToken_checkNoPendingDirectives s = .ok () := by
   simp only [scanNextToken_checkNoPendingDirectives, h, Bool.false_eq_true, ↓reduceIte]
+
+/-- Item 133's §9.2 dangling-node check is a no-op inside a flow collection. -/
+lemma danglingNodePos?_none_of_inFlow (s : ScannerState) (h : s.inFlow = true) :
+    danglingNodePos? s = none := by
+  simp only [danglingNodePos?, h, ↓reduceIte]
+
+/-- …and wherever the indent stack holds nothing but its sentinel: a token's
+    column is a `Nat`, so it can never equal a negative entry. -/
+lemma danglingNodePos?_none_of_sentinel (s : ScannerState)
+    (h : ∀ e ∈ s.indents, e.column < 0) : danglingNodePos? s = none := by
+  have hnone : ∀ n : Nat, s.indents.any (fun e => e.column == (n : Int)) = false := by
+    intro n
+    rw [Array.any_eq_false]
+    intro i hi
+    have := h s.indents[i] (Array.getElem_mem hi)
+    simp only [beq_iff_eq]
+    omega
+  unfold danglingNodePos?
+  simp only [hnone, Bool.false_eq_true, ↓reduceIte, ite_self]
+  split
+  · rfl
+  · split <;> rfl
+
+lemma scanNextToken_checkDanglingNode_ok_of_inFlow (s : ScannerState)
+    (h : s.inFlow = true) : scanNextToken_checkDanglingNode s = .ok () := by
+  unfold scanNextToken_checkDanglingNode
+  rw [danglingNodePos?_none_of_inFlow s h]
+  split <;> rfl
+
+lemma scanNextToken_checkDanglingNode_ok_of_sentinel (s : ScannerState)
+    (h : ∀ e ∈ s.indents, e.column < 0) :
+    scanNextToken_checkDanglingNode s = .ok () := by
+  unfold scanNextToken_checkDanglingNode
+  rw [danglingNodePos?_none_of_sentinel s h]
+  split <;> rfl
+
+/-- …and on a run's own line, where the flag is down and a `:` may still
+    resolve it. -/
+lemma scanNextToken_checkDanglingNode_ok_of_keyNotAllowed (s : ScannerState)
+    (h : s.simpleKeyAllowed = false) :
+    scanNextToken_checkDanglingNode s = .ok () := by
+  simp only [scanNextToken_checkDanglingNode, h, Bool.false_eq_true, ↓reduceIte]
+
+lemma scanLoop_checkDanglingNode_ok_of_inFlow (s : ScannerState)
+    (h : s.inFlow = true) : scanLoop_checkDanglingNode s = .ok () := by
+  unfold scanLoop_checkDanglingNode
+  rw [danglingNodePos?_none_of_inFlow s h]
+
+lemma scanLoop_checkDanglingNode_ok_of_sentinel (s : ScannerState)
+    (h : ∀ e ∈ s.indents, e.column < 0) :
+    scanLoop_checkDanglingNode s = .ok () := by
+  unfold scanLoop_checkDanglingNode
+  rw [danglingNodePos?_none_of_sentinel s h]
+
+/-- A token array whose last token is neither a node body nor a `[96]` property
+    ends in no node RUN at all — the flow closes and the block indicators are in
+    this shape. -/
+lemma trailingNodeRun?_push_none (ts : Array (Positioned YamlToken))
+    (p : Positioned YamlToken)
+    (hb : p.val.isNodeBody = false) (hp : p.val.isNodeProperty = false)
+    (hph : (p.val == YamlToken.placeholder) = false) :
+    trailingNodeRun? (ts.push p) = none := by
+  have hget : (ts.push p)[ts.size]! = p := by
+    simp [Array.getElem_push]
+  have hlast : prevRealIdx? (ts.push p) (ts.push p).size = some ts.size := by
+    have hsz : (ts.push p).size = ts.size + 1 := Array.size_push ..
+    rw [hsz]
+    show (if (ts.push p)[ts.size]!.val == .placeholder then
+            prevRealIdx? (ts.push p) ts.size else some ts.size) = some ts.size
+    rw [hget, hph]
+    rfl
+  unfold trailingNodeRun?
+  rw [hlast]
+  simp only [hget, hb, hp, Bool.false_eq_true, ↓reduceIte]
+
+lemma danglingNodePos?_none_of_no_run (s : ScannerState)
+    (h : trailingNodeRun? s.tokens = none) : danglingNodePos? s = none := by
+  unfold danglingNodePos?
+  split
+  · rfl
+  · rw [h]
+
+lemma scanLoop_checkDanglingNode_ok_of_no_run (s : ScannerState)
+    (h : trailingNodeRun? s.tokens = none) :
+    scanLoop_checkDanglingNode s = .ok () := by
+  unfold scanLoop_checkDanglingNode
+  rw [danglingNodePos?_none_of_no_run s h]
+
+/-- The sentinel-only stack, in the shape the emitter-scannability init lemmas
+    return it. -/
+lemma sentinel_only_columns_neg {s : ScannerState}
+    (h : s.indents = #[{ column := -1, isSequence := false }]) :
+    ∀ e ∈ s.indents, e.column < 0 := by
+  intro e he
+  rw [h] at he
+  have : e = { column := -1, isSequence := false } := by simpa using he
+  subst this
+  decide
+
+lemma scanNextToken_checkDanglingNode_ok_of_sentinel_stack (s : ScannerState)
+    (h : s.indents = #[{ column := -1, isSequence := false }]) :
+    scanNextToken_checkDanglingNode s = .ok () :=
+  scanNextToken_checkDanglingNode_ok_of_sentinel s (sentinel_only_columns_neg h)
+
+lemma scanLoop_checkDanglingNode_ok_of_sentinel_stack (s : ScannerState)
+    (h : s.indents = #[{ column := -1, isSequence := false }]) :
+    scanLoop_checkDanglingNode s = .ok () :=
+  scanLoop_checkDanglingNode_ok_of_sentinel s (sentinel_only_columns_neg h)
+
+/-- Converse extraction: a `scanNextToken` that got past PREPROCESSING got past
+    this check, because the check is the very next step.  Simpler than item
+    132's twin, which has to clear the structural dispatch first. -/
+lemma scanNextToken_ok_checkDanglingNode
+    {s s_pp : ScannerState} {c : Char} {r : Option ScannerState}
+    (h_pp : scanNextToken_preprocess s = .ok (some (s_pp, c)))
+    (h_snt : scanNextToken s = .ok r) :
+    scanNextToken_checkDanglingNode s_pp = .ok () := by
+  cases h_dn : scanNextToken_checkDanglingNode s_pp with
+  | ok u => cases u; rfl
+  | error e =>
+    exfalso
+    have h_err : scanNextToken s = .error e := by
+      unfold scanNextToken; dsimp only []
+      simp only [bind, Except.bind, h_pp, h_dn]
+    rw [h_err] at h_snt
+    injection h_snt
 
 /-- Item 132's §9.2 bare-document check is a no-op inside a flow collection —
     there is no document boundary to police there. -/
@@ -241,7 +369,8 @@ lemma scanNextToken_ok_directivesPresent_false
       simp only [scanNextToken_checkNoPendingDirectives, h_dp, ↓reduceIte]
     have h_err : scanNextToken s = .error (.directiveWithoutDocument s_pp.line) := by
       unfold scanNextToken; dsimp only []
-      simp only [bind, Except.bind, h_pp, h_struct, h_check_err]
+      simp only [bind, Except.bind, h_pp,
+        scanNextToken_ok_checkDanglingNode h_pp h_snt, h_struct, h_check_err]
     rw [h_err] at h_snt
     injection h_snt
 
@@ -263,7 +392,8 @@ lemma scanNextToken_ok_checkBareDocument
       scanNextToken_ok_directivesPresent_false h_pp h_struct h_snt
     have h_err : scanNextToken s = .error e := by
       unfold scanNextToken; dsimp only []
-      simp only [bind, Except.bind, h_pp, h_struct,
+      simp only [bind, Except.bind, h_pp,
+        scanNextToken_ok_checkDanglingNode h_pp h_snt, h_struct,
         scanNextToken_checkNoPendingDirectives_ok _ h_ndp, h_bd]
     rw [h_err] at h_snt
     injection h_snt
@@ -282,10 +412,11 @@ lemma scanNextToken_via_flow_dispatch (s s_pp s_ad s_result : ScannerState) (c :
     (h_check : scanNextToken_checkBlockFlowIndent s_ad c = .ok ())
     (h_flow : scanNextToken_dispatchFlowIndicators s_ad c = .ok (some s_result))
     (h_ndp : s_pp.directivesPresent = false)
-    (h_bare : scanNextToken_checkBareDocument s_pp = .ok ()) :
+    (h_bare : scanNextToken_checkBareDocument s_pp = .ok ())
+    (h_dang : scanNextToken_checkDanglingNode s_pp = .ok ()) :
     scanNextToken s = .ok (some s_result) := by
   unfold scanNextToken; dsimp only []
-  simp only [bind, Except.bind, h_pp, h_struct, pure, Except.pure,
+  simp only [bind, Except.bind, h_pp, h_dang, h_struct, pure, Except.pure,
     scanNextToken_checkNoPendingDirectives_ok _ h_ndp, h_bare]
   -- After preprocessing and structural dispatch, the allowDirectives conditional
   -- and remaining dispatch stages are visible. Substitute s_ad.
@@ -315,7 +446,8 @@ lemma checkFlowAdjacency_ok_of_scanNextToken_ok
       unfold scanNextToken_dispatchFlowIndicators; rw [hc]; simp only [bind, Except.bind]
     have h_snt_err : scanNextToken s = .error e := by
       unfold scanNextToken; dsimp only []
-      simp only [bind, Except.bind, h_pp, h_struct, pure, Except.pure,
+      simp only [bind, Except.bind, h_pp,
+        scanNextToken_ok_checkDanglingNode h_pp h_snt, h_struct, pure, Except.pure,
         scanNextToken_checkNoPendingDirectives_ok _ h_ndp,
         scanNextToken_ok_checkBareDocument h_pp h_struct h_snt]
       rw [← h_ad_eq]
@@ -1915,6 +2047,8 @@ lemma scanNextToken_emitScalar_init (content : String) :
   unfold scanNextToken
   simp only [bind, Except.bind, h_pp_eq]
   simp only [h_disp_s]
+  -- §9.2 dangling-node check (item 133): the stack is the sentinel alone.
+  simp only [scanNextToken_checkDanglingNode_ok_of_sentinel_stack _ h_ids]
   -- Pending-directives check (Fix B): passes since s_pp has no pending directives.
   simp only [scanNextToken_checkNoPendingDirectives_ok _ h_dp_pp]
   -- §9.2 bare-document check (item 132): the only real token is `streamStart`.
@@ -1935,7 +2069,8 @@ lemma scan_accepts_emitScalar (content : String) :
     obtain ⟨toks, h⟩ := h
     exact ⟨toks.filter fun t => t.val != .placeholder, by rw [h]⟩
   -- First scanNextToken: dispatches to scanDoubleQuoted, succeeds
-  obtain ⟨s₁, h_snt1, h_peek1, h_flow1, h_dp1, _h_tok1, _, _⟩ := scanNextToken_emitScalar_init content
+  obtain ⟨s₁, h_snt1, h_peek1, h_flow1, h_dp1, _h_tok1, h_ids1, _⟩ :=
+    scanNextToken_emitScalar_init content
   -- Second scanNextToken: EOF → .ok none
   have h_snt2 : scanNextToken s₁ = .ok none := scanNextToken_eof s₁ h_peek1
   have h_size := emitScalar_utf8ByteSize_ge content
@@ -1959,6 +2094,7 @@ lemma scan_accepts_emitScalar (content : String) :
     split <;> first | exact absurd ‹_› (by decide) | rfl
   rw [h_scan_eq]
   exact scanLoop_two_iter h_fuel h_snt1 h_snt2 h_flow1 h_dp1
+    (scanLoop_checkDanglingNode_ok_of_sentinel_stack _ h_ids1)
 
 -- ═══ Flow collection scanner acceptance ═══
 -- Infrastructure for proving that the scanner accepts emitted flow collections.
@@ -2295,10 +2431,11 @@ lemma scanNextToken_via_content_dispatch (s s_pp s_ad s_result : ScannerState) (
     (h_adj : scanNextToken_checkAdjacentValue s_ad c = .ok ())
     (h_content : scanNextToken_dispatchContent s_ad c = .ok s_result)
     (h_ndp : s_pp.directivesPresent = false)
-    (h_bare : scanNextToken_checkBareDocument s_pp = .ok ()) :
+    (h_bare : scanNextToken_checkBareDocument s_pp = .ok ())
+    (h_dang : scanNextToken_checkDanglingNode s_pp = .ok ()) :
     scanNextToken s = .ok (some s_result) := by
   unfold scanNextToken; dsimp only []
-  simp only [bind, Except.bind, h_pp, h_struct, pure, Except.pure,
+  simp only [bind, Except.bind, h_pp, h_dang, h_struct, pure, Except.pure,
     scanNextToken_checkNoPendingDirectives_ok _ h_ndp, h_bare]
   rw [← h_ad_eq]
   simp only [h_check, h_flow, h_block, h_adj, h_content]
@@ -2317,10 +2454,11 @@ lemma scanNextToken_via_content_dispatch_error
     (h_adj : scanNextToken_checkAdjacentValue s_ad c = .ok ())
     (h_content : scanNextToken_dispatchContent s_ad c = .error e)
     (h_ndp : s_pp.directivesPresent = false)
-    (h_bare : scanNextToken_checkBareDocument s_pp = .ok ()) :
+    (h_bare : scanNextToken_checkBareDocument s_pp = .ok ())
+    (h_dang : scanNextToken_checkDanglingNode s_pp = .ok ()) :
     scanNextToken s = .error e := by
   unfold scanNextToken; dsimp only []
-  simp only [bind, Except.bind, h_pp, h_struct, pure, Except.pure,
+  simp only [bind, Except.bind, h_pp, h_dang, h_struct, pure, Except.pure,
     scanNextToken_checkNoPendingDirectives_ok _ h_ndp, h_bare]
   rw [← h_ad_eq]
   simp only [h_check, h_flow, h_block, h_adj, h_content]
@@ -2338,10 +2476,11 @@ lemma scanNextToken_via_block_dispatch (s s_pp s_ad s_result : ScannerState) (c 
     (h_flow : scanNextToken_dispatchFlowIndicators s_ad c = .ok none)
     (h_block : scanNextToken_dispatchBlockIndicators s_ad c = .ok (some s_result))
     (h_ndp : s_pp.directivesPresent = false)
-    (h_bare : scanNextToken_checkBareDocument s_pp = .ok ()) :
+    (h_bare : scanNextToken_checkBareDocument s_pp = .ok ())
+    (h_dang : scanNextToken_checkDanglingNode s_pp = .ok ()) :
     scanNextToken s = .ok (some s_result) := by
   unfold scanNextToken; dsimp only []
-  simp only [bind, Except.bind, h_pp, h_struct, pure, Except.pure,
+  simp only [bind, Except.bind, h_pp, h_dang, h_struct, pure, Except.pure,
     scanNextToken_checkNoPendingDirectives_ok _ h_ndp, h_bare]
   rw [← h_ad_eq]
   simp only [h_check, h_flow, h_block]
@@ -2512,6 +2651,8 @@ lemma scanNextToken_flow_scanDoubleQuoted (s : ScannerState)
     (scanNextToken_checkAdjacentValue_ok_of_ne_colon _ (by decide)) h_dc_eq
     ((saveSimpleKey_preserves_directivesPresent s).trans h_dp)
     (scanNextToken_checkBareDocument_ok_of_inFlow _
+      ((saveSimpleKey_preserves_inFlow s).trans h_flow))
+    (scanNextToken_checkDanglingNode_ok_of_inFlow _
       ((saveSimpleKey_preserves_inFlow s).trans h_flow)),
     h_corr_f, h_fl_f, h_dp_f, h_ids_f, h_ek_f, h_col_f,
     fun t ht => by rw [h_tok_f] at ht; injection ht with ht; subst ht; exact ⟨nofun, nofun, nofun⟩,
@@ -2651,7 +2792,7 @@ lemma scanNextToken_flow_open_init (input : String) (rest : List Char)
   -- Step 8: compose through scanNextToken
   have h_snt : scanNextToken s₀ = .ok (some (scanFlowSequenceStart s_ad)) :=
     scanNextToken_via_flow_dispatch _ _ _ _ _ h_pp_eq h_struct rfl h_check h_flow h_dp_pp
-      h_bd_pp
+      h_bd_pp (scanNextToken_checkDanglingNode_ok_of_sentinel_stack _ h_ids)
   -- Step 9: field properties of scanFlowSequenceStart s_ad
   have h_ad_col : s_ad.col = 0 := by
     simp only [s_ad]; split <;> exact h_col_pp
@@ -2821,6 +2962,8 @@ lemma scanNextToken_flow_open_nested (s : ScannerState) (rest : List Char)
   have h_snt := scanNextToken_via_flow_dispatch _ _ _ _ _ h_pp h_struct rfl h_check h_flow_disp
     ((saveSimpleKey_preserves_directivesPresent s).trans h_dp)
     (scanNextToken_checkBareDocument_ok_of_inFlow _
+      ((saveSimpleKey_preserves_inFlow s).trans h_flow))
+    (scanNextToken_checkDanglingNode_ok_of_inFlow _
       ((saveSimpleKey_preserves_inFlow s).trans h_flow))
   -- Step 7: properties of scanFlowSequenceStart s_ad
   have h_ad_fl : s_ad.flowLevel = s.flowLevel := by
@@ -3163,6 +3306,8 @@ lemma scanNextToken_flow_comma (s : ScannerState)
     ((saveSimpleKey_preserves_directivesPresent s).trans h_dp)
     (scanNextToken_checkBareDocument_ok_of_inFlow _
       ((saveSimpleKey_preserves_inFlow s).trans h_flow))
+    (scanNextToken_checkDanglingNode_ok_of_inFlow _
+      ((saveSimpleKey_preserves_inFlow s).trans h_flow))
   -- Step 7: extract properties
   have h_ad_dp : s_ad.directivesPresent = s.directivesPresent := by
     simp only [s_ad]; split <;> exact saveSimpleKey_preserves_directivesPresent s
@@ -3266,6 +3411,7 @@ lemma scanNextToken_flow_comma_raw_push (s : ScannerState) (rest : List Char)
     scanNextToken_via_flow_dispatch _ _ _ _ _ h_pp h_struct rfl h_check h_flow_disp
       (scanNextToken_ok_directivesPresent_false h_pp h_struct h_snt)
       (scanNextToken_ok_checkBareDocument h_pp h_struct h_snt)
+      (scanNextToken_ok_checkDanglingNode h_pp h_snt)
   have h_s' : s' = { (s_ad.emit .flowEntry).advance with simpleKeyAllowed := true, explicitKeyLine := none, simpleKey := { possible := false } } :=
     Option.some.inj (Except.ok.inj (h_snt.symm.trans h_snt_eq))
   refine ⟨⟨{ pos := s_ad.currentPos, val := .flowEntry }, rfl, ?_⟩, by rw [h_s'], by rw [h_s']⟩
@@ -3455,6 +3601,8 @@ lemma scanNextToken_flow_close_seq_nested (s : ScannerState)
     ((saveSimpleKey_preserves_directivesPresent s).trans h_dp)
     (scanNextToken_checkBareDocument_ok_of_inFlow _
       ((saveSimpleKey_preserves_inFlow s).trans h_flow))
+    (scanNextToken_checkDanglingNode_ok_of_inFlow _
+      ((saveSimpleKey_preserves_inFlow s).trans h_flow))
   -- Step 7: extract properties
   have h_ad_dp : s_ad.directivesPresent = s.directivesPresent := by
     simp only [s_ad]; split <;> exact saveSimpleKey_preserves_directivesPresent s
@@ -3584,7 +3732,8 @@ lemma scanNextToken_flow_close_seq_outermost (s : ScannerState)
     ∃ s', scanNextToken s = .ok (some s')
       ∧ s'.flowLevel = 0
       ∧ s'.directivesPresent = false
-      ∧ s'.peek? = none := by
+      ∧ s'.peek? = none
+      ∧ scanLoop_checkDanglingNode s' = .ok () := by
   -- Step 1: preprocessing
   have h_pp : scanNextToken_preprocess s = .ok (some (saveSimpleKey s, ']')) :=
     scanNextToken_preprocess_flow s ']' [] s.col hcorr h_flow
@@ -3625,6 +3774,8 @@ lemma scanNextToken_flow_close_seq_outermost (s : ScannerState)
     ((saveSimpleKey_preserves_directivesPresent s).trans h_dp)
     (scanNextToken_checkBareDocument_ok_of_inFlow _
       ((saveSimpleKey_preserves_inFlow s).trans h_flow))
+    (scanNextToken_checkDanglingNode_ok_of_inFlow _
+      ((saveSimpleKey_preserves_inFlow s).trans h_flow))
   -- Extract properties
   have h_result_fl : (scanFlowSequenceEnd s_ad).flowLevel = 0 := by
     rw [scanFlowSequenceEnd_flowLevel, h_ad_fl, h_fl]
@@ -3639,7 +3790,18 @@ lemma scanNextToken_flow_close_seq_outermost (s : ScannerState)
          h_ad_corr.input_prefix, h_ad_corr.indent_cols_nonneg⟩
         (show (s_ad.emit .flowSequenceEnd).offset < (s_ad.emit .flowSequenceEnd).inputEnd from h_lt)
         (by decide) (by decide))
-  exact ⟨scanFlowSequenceEnd s_ad, h_snt, h_result_fl, h_result_dp, h_result_eof⟩
+  have h_result_dn : scanLoop_checkDanglingNode (scanFlowSequenceEnd s_ad) = .ok () := by
+    refine scanLoop_checkDanglingNode_ok_of_no_run _ ?_
+    have h_tok : (scanFlowSequenceEnd s_ad).tokens
+        = s_ad.tokens.push { pos := s_ad.currentPos, val := .flowSequenceEnd } := by
+      unfold scanFlowSequenceEnd
+      dsimp only []
+      rw [ScannerCorrectness.advance_preserves_tokens (s_ad.emit .flowSequenceEnd)]
+      unfold ScannerState.emit; rfl
+    rw [h_tok]
+    exact trailingNodeRun?_push_none _ _ rfl rfl rfl
+  exact ⟨scanFlowSequenceEnd s_ad, h_snt, h_result_fl, h_result_dp, h_result_eof,
+    h_result_dn⟩
 
 -- ═══ Flow mapping: scanFlowMappingStart / scanFlowMappingEnd ═══
 -- Symmetric to scanFlowSequenceStart/End but for `{`/`}`.
@@ -3843,6 +4005,8 @@ lemma scanNextToken_flow_close_mapping_nested (s : ScannerState)
     ((saveSimpleKey_preserves_directivesPresent s).trans h_dp)
     (scanNextToken_checkBareDocument_ok_of_inFlow _
       ((saveSimpleKey_preserves_inFlow s).trans h_flow))
+    (scanNextToken_checkDanglingNode_ok_of_inFlow _
+      ((saveSimpleKey_preserves_inFlow s).trans h_flow))
   have h_ad_dp : s_ad.directivesPresent = s.directivesPresent := by
     simp only [s_ad]; split <;> exact saveSimpleKey_preserves_directivesPresent s
   have h_ad_ids : s_ad.indents = s.indents := by
@@ -3959,7 +4123,8 @@ lemma scanNextToken_flow_close_mapping_outermost (s : ScannerState)
     ∃ s', scanNextToken s = .ok (some s')
       ∧ s'.flowLevel = 0
       ∧ s'.directivesPresent = false
-      ∧ s'.peek? = none := by
+      ∧ s'.peek? = none
+      ∧ scanLoop_checkDanglingNode s' = .ok () := by
   have h_pp : scanNextToken_preprocess s = .ok (some (saveSimpleKey s, '}')) :=
     scanNextToken_preprocess_flow s '}' [] s.col hcorr h_flow
       (by decide) (by decide) (by decide)
@@ -3995,6 +4160,8 @@ lemma scanNextToken_flow_close_mapping_outermost (s : ScannerState)
     ((saveSimpleKey_preserves_directivesPresent s).trans h_dp)
     (scanNextToken_checkBareDocument_ok_of_inFlow _
       ((saveSimpleKey_preserves_inFlow s).trans h_flow))
+    (scanNextToken_checkDanglingNode_ok_of_inFlow _
+      ((saveSimpleKey_preserves_inFlow s).trans h_flow))
   have h_result_fl : (scanFlowMappingEnd s_ad).flowLevel = 0 := by
     rw [scanFlowMappingEnd_flowLevel, h_ad_fl, h_fl]
     simp (config := { decide := true })
@@ -4008,7 +4175,18 @@ lemma scanNextToken_flow_close_mapping_outermost (s : ScannerState)
          h_ad_corr.input_prefix, h_ad_corr.indent_cols_nonneg⟩
         (show (s_ad.emit .flowMappingEnd).offset < (s_ad.emit .flowMappingEnd).inputEnd from h_lt)
         (by decide) (by decide))
-  exact ⟨scanFlowMappingEnd s_ad, h_snt, h_result_fl, h_result_dp, h_result_eof⟩
+  have h_result_dn : scanLoop_checkDanglingNode (scanFlowMappingEnd s_ad) = .ok () := by
+    refine scanLoop_checkDanglingNode_ok_of_no_run _ ?_
+    have h_tok : (scanFlowMappingEnd s_ad).tokens
+        = s_ad.tokens.push { pos := s_ad.currentPos, val := .flowMappingEnd } := by
+      unfold scanFlowMappingEnd
+      dsimp only []
+      rw [ScannerCorrectness.advance_preserves_tokens (s_ad.emit .flowMappingEnd)]
+      unfold ScannerState.emit; rfl
+    rw [h_tok]
+    exact trailingNodeRun?_push_none _ _ rfl rfl rfl
+  exact ⟨scanFlowMappingEnd s_ad, h_snt, h_result_fl, h_result_dp, h_result_eof,
+    h_result_dn⟩
 
 -- Nested flow open for `{`
 lemma scanNextToken_flow_open_mapping_nested (s : ScannerState) (rest : List Char)
@@ -4066,6 +4244,8 @@ lemma scanNextToken_flow_open_mapping_nested (s : ScannerState) (rest : List Cha
   have h_snt := scanNextToken_via_flow_dispatch _ _ _ _ _ h_pp h_struct rfl h_check h_flow_disp
     ((saveSimpleKey_preserves_directivesPresent s).trans h_dp)
     (scanNextToken_checkBareDocument_ok_of_inFlow _
+      ((saveSimpleKey_preserves_inFlow s).trans h_flow))
+    (scanNextToken_checkDanglingNode_ok_of_inFlow _
       ((saveSimpleKey_preserves_inFlow s).trans h_flow))
   have h_ad_fl : s_ad.flowLevel = s.flowLevel := by
     simp only [s_ad]; split <;> exact saveSimpleKey_preserves_flowLevel s
@@ -4261,7 +4441,7 @@ lemma scanNextToken_flow_open_mapping_init (input : String) (rest : List Char)
   -- Step 8: compose through scanNextToken
   have h_snt : scanNextToken s₀ = .ok (some (scanFlowMappingStart s_ad)) :=
     scanNextToken_via_flow_dispatch _ _ _ _ _ h_pp_eq h_struct rfl h_check h_flow h_dp_pp
-      h_bd_pp
+      h_bd_pp (scanNextToken_checkDanglingNode_ok_of_sentinel_stack _ h_ids)
   -- Step 9: field properties of scanFlowMappingStart s_ad
   have h_ad_col : s_ad.col = 0 := by
     simp only [s_ad]; split <;> exact h_col_pp

@@ -1241,6 +1241,9 @@ lemma scanNextTokenIx_maintains_NoOverwriteAtIx {input : String}
         scanNextTokenIx_preprocess_maintains_NoOverwriteAtIx s _ _ hPre m h_m h_inv
       have h_pre_mono := scanNextTokenIx_preprocess_tokens_size_le s _ _ hPre
       have h_pre_m : m < s1.tokens.size := Nat.lt_of_lt_of_le h_m h_pre_mono
+      -- §9.2 dangling-node check (item 133)
+      split at h_next
+      · contradiction
       split at h_next
       · contradiction
       · split at h_next
@@ -1436,6 +1439,14 @@ lemma scanNextTokenIx_preserves_position_specific {input : String}
         obtain ⟨h_m_pp, h_pre_eq⟩ :=
           _preprocess_preserves_prefix s s_pp c (m + 1) h_m h_pp m (Nat.lt_succ_self m)
         have h_m_pp_lt : m < s_pp.tokens.size := h_m_pp
+        dsimp only [] at h_ok
+        -- §9.2 dangling-node check (item 133)
+        have h_dn : ∃ u, scanNextTokenIx_checkDanglingNode s_pp = .ok u := by
+          cases hx : scanNextTokenIx_checkDanglingNode s_pp with
+          | error e => rw [hx] at h_ok; simp at h_ok
+          | ok u => exact ⟨u, rfl⟩
+        obtain ⟨uDN, h_dn⟩ := h_dn
+        rw [h_dn] at h_ok
         dsimp only [] at h_ok
         generalize h_ds : scanNextTokenIx_dispatchStructural s_pp c = ds_res at h_ok
         cases ds_res with

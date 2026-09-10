@@ -218,11 +218,10 @@ private def saysAlike (input : String) (line col : Nat) : Bool :=
 
 /-! ## §5  What M1 does not reach
 
-    The two mechanisms item 119 measured beside it stay with the parser, and
-    their pins stay `parserGap` in `ScannerRaisedFlagRefusalMap`.  The
-    discriminator is the indent stack: a dangler at an OPEN level's column has
-    a level on it, so this check stands aside (§1's second shape) and M2 is
-    still owed. -/
+    The discriminator between M1 and M2 is the indent stack: a dangler at an
+    OPEN level's column has a level on it, so M1's check stands aside on every
+    input below (§1's second shape).  M2 landed at item 133 and takes the first
+    four; M3 is still the parser's. -/
 
 private def parserOnly (input : String) : Bool :=
   (match Scanner.scan input, Indexed.ScannerStateIx.scanIx input with
@@ -232,12 +231,16 @@ private def parserOnly (input : String) : Bool :=
    | .error _, .error _ => true
    | _, _ => false)
 
--- M2: the dangling node at an open level's own column.
-#guard parserOnly "a: 1\nb\n"
-#guard parserOnly "- a\nb\n"
-#guard parserOnly "---\na: 1\nb\n"
-#guard parserOnly "k: [1, 2]\nb\n"
--- M3: the `-` at a mapping top's own column with the entry complete.
+-- M2: the dangling node at an open level's own column.  It LANDED at item
+-- 133, so these are the scanner's now — kept here because they are what
+-- distinguishes the two mechanisms, and §1's second shape is why M1 stands
+-- aside on every one of them.
+#guard scannerRefuses "a: 1\nb\n"
+#guard scannerRefuses "- a\nb\n"
+#guard scannerRefuses "---\na: 1\nb\n"
+#guard scannerRefuses "k: [1, 2]\nb\n"
+-- M3: the `-` at a mapping top's own column with the entry complete — still
+-- the parser's.
 #guard parserOnly "a: 1\n- y\n"
 #guard parserOnly "? k\n- y\n"
 

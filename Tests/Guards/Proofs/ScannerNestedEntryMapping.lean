@@ -230,7 +230,9 @@ parked.  Below them is what the scanner decides before any of it is asked. -/
 #guard !scanAccepts "-\n  a: 1\n b: 2\n" && rejectsAlike "-\n  a: 1\n b: 2\n"
 -- A block scalar body shallower than its key is not the entry's node.
 #guard !scanAccepts "-\n  a: |\n x\n" && rejectsAlike "-\n  a: |\n x\n"
-#guard scanAccepts "-\n  a: |\n  x\n" && rejects "-\n  a: |\n  x\n"
+-- …and flush with it the body is empty, leaving `x` a DANGLING run at the
+-- key's own level — §9.2's, refused at the scanner (item 133).
+#guard !scanAccepts "-\n  a: |\n  x\n" && rejectsAlike "-\n  a: |\n  x\n"
 -- A second `:` on the line is refused at the scanner (item 48's
 -- `nestedMappingOnLine`): `[194]`'s value slot has no same-line mapping.
 #guard !scanAccepts "-\n  a: b: c\n" && rejectsAlike "-\n  a: b: c\n"

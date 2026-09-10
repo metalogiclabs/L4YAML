@@ -22987,6 +22987,14 @@ lemma scanNextToken_accum_step (sc : ScannerState)
   · split at h_ok
     · exact absurd (Except.ok.inj h_ok) nofun
     · rename_i s_pre c_pre h_pre
+      -- §9.2 dangling-node check (item 133) — pure check, no state change
+      have h_dn : ∃ u, scanNextToken_checkDanglingNode s_pre = .ok u := by
+        cases hx : scanNextToken_checkDanglingNode s_pre with
+        | error e => rw [hx] at h_ok; simp at h_ok
+        | ok u => exact ⟨u, rfl⟩
+      obtain ⟨uDN, h_dn⟩ := h_dn
+      rw [h_dn] at h_ok
+      dsimp only [] at h_ok
       -- Capture structural dispatch result for h_not_doc derivation in content branch
       generalize h_str_eq : scanNextToken_dispatchStructural s_pre c_pre = str_res at h_ok
       split at h_ok
@@ -23112,7 +23120,10 @@ lemma scanNextToken_none_stream (sc : ScannerState)
     · rename_i h_pre
       exact preprocessing_eof_extends_stream sc sp_start sp_gram sp_block sp_flow sp_scan
         h_stream h_stack h_flow h_pending h_corr h_pre
-    · split at h_ok
+    · -- §9.2 dangling-node check (item 133)
+      split at h_ok
+      · simp at h_ok
+      split at h_ok
       · simp at h_ok
       · split at h_ok
         · exact absurd (Except.ok.inj h_ok) nofun

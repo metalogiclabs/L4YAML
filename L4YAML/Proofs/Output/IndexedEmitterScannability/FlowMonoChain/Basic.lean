@@ -861,6 +861,9 @@ lemma scanNextTokenIx_maintains_SKAFIx {input : String}
       have h_pre_sync : s1.simpleKeyStack.size ≥ s1.flowLevel := by
         rw [h_pre_stack, h_pre_fl]; exact h_sync
       have h_pre_n₀ : n₀ ≤ s1.tokens.size := by omega
+      -- §9.2 dangling-node check (item 133)
+      split at h_next
+      · contradiction
       -- Split on dispatchStructural outcome
       split at h_next
       · contradiction
@@ -953,6 +956,84 @@ lemma scanNextTokenIx_checkBareDocument_ok_of_inFlow {input : String}
   simp only [scanNextTokenIx_checkBareDocument, h, Bool.not_true, Bool.false_and,
              Bool.false_eq_true, ↓reduceIte]
 
+/-- Item 133's §9.2 dangling-node check is a no-op inside a flow collection. -/
+lemma scanNextTokenIx_checkDanglingNode_ok_of_inFlow {input : String}
+    (s : ScannerStateIx input) (h : s.inFlow = true) :
+    scanNextTokenIx_checkDanglingNode s = .ok () := by
+  unfold scanNextTokenIx_checkDanglingNode danglingNodePosIx?
+  rw [if_pos h]
+  split <;> rfl
+
+/-- …and wherever the indent stack is its sentinel alone: a token's column is a
+    `Nat`, so it never equals `-1`. -/
+lemma danglingNodePosIx?_none_of_sentinel_stack {input : String}
+    (s : ScannerStateIx input)
+    (h : s.indents = #[{ column := -1, isSequence := false }]) :
+    danglingNodePosIx? s = none := by
+  have hnone : ∀ n : Nat, s.indents.any (fun e => e.column == (n : Int)) = false := by
+    intro n
+    rw [h, Array.any_eq_false]
+    intro i hi
+    have hi0 : i = 0 := by simp at hi; omega
+    subst hi0
+    simp only [beq_iff_eq]
+    show ¬ ((-1 : Int) = (n : Int))
+    omega
+  unfold danglingNodePosIx?
+  simp only [hnone, Bool.false_eq_true, ↓reduceIte, ite_self]
+  split
+  · rfl
+  · split <;> rfl
+
+lemma scanNextTokenIx_checkDanglingNode_ok_of_sentinel_stack {input : String}
+    (s : ScannerStateIx input)
+    (h : s.indents = #[{ column := -1, isSequence := false }]) :
+    scanNextTokenIx_checkDanglingNode s = .ok () := by
+  unfold scanNextTokenIx_checkDanglingNode
+  rw [danglingNodePosIx?_none_of_sentinel_stack s h]
+  split <;> rfl
+
+/-- Indexed twin of `trailingNodeRun?_push_none`: a stream whose last token is
+    neither a node body nor a `[96]` property ends in no run. -/
+lemma trailingNodeRunIx?_push_none {input : String}
+    (ts : Indexed.TokenStream input) (p : Indexed.IxToken input)
+    (hb : p.token.isNodeBody = false) (hp : p.token.isNodeProperty = false)
+    (hph : (p.token == YamlToken.placeholder) = false) :
+    trailingNodeRunIx? ⟨ts.tokens.push p⟩ = none := by
+  have hget : (ts.tokens.push p)[ts.tokens.size]! = p := by
+    simp [Array.getElem_push]
+  have hlast : prevRealIdxIx? (⟨ts.tokens.push p⟩ : Indexed.TokenStream input)
+      (ts.tokens.push p).size = some ts.tokens.size := by
+    have hsz : (ts.tokens.push p).size = ts.tokens.size + 1 := Array.size_push ..
+    rw [hsz]
+    show (if (ts.tokens.push p)[ts.tokens.size]!.token == .placeholder then
+            prevRealIdxIx? _ ts.tokens.size else some ts.tokens.size) = some ts.tokens.size
+    rw [hget, hph]
+    rfl
+  unfold trailingNodeRunIx?
+  rw [hlast]
+  simp only [hget, hb, hp, Bool.false_eq_true, ↓reduceIte]
+
+lemma danglingNodePosIx?_none_of_no_run {input : String} (s : ScannerStateIx input)
+    (h : trailingNodeRunIx? s.tokens = none) : danglingNodePosIx? s = none := by
+  unfold danglingNodePosIx?
+  split
+  · rfl
+  · rw [h]
+
+lemma scanLoopIx_checkDanglingNode_ok_of_no_run {input : String}
+    (s : ScannerStateIx input) (h : trailingNodeRunIx? s.tokens = none) :
+    scanLoopIx_checkDanglingNode s = .ok () := by
+  unfold scanLoopIx_checkDanglingNode
+  rw [danglingNodePosIx?_none_of_no_run s h]
+
+lemma scanLoopIx_checkDanglingNode_ok_of_sentinel_stack {input : String}
+    (s : ScannerStateIx input)
+    (h : s.indents = #[{ column := -1, isSequence := false }]) :
+    scanLoopIx_checkDanglingNode s = .ok () := by
+  unfold scanLoopIx_checkDanglingNode
+  rw [danglingNodePosIx?_none_of_sentinel_stack s h]
+
 /-- …and wherever nothing behind the cursor completes a node. -/
 lemma scanNextTokenIx_checkBareDocument_ok_of_last {input : String}
     (s : ScannerStateIx input)
@@ -962,6 +1043,23 @@ lemma scanNextTokenIx_checkBareDocument_ok_of_last {input : String}
   cases hx : lastRealTokenValIx? s.tokens with
   | none => simp
   | some t => simp [h t hx]
+
+/-- Converse extraction for item 133's §9.2 dangling-node check, which runs
+    before the structural dispatch and so needs no `h_struct`. -/
+lemma scanNextTokenIx_ok_checkDanglingNode {input : String}
+    {s s_pp : ScannerStateIx input} {c : Char} {r : Option (ScannerStateIx input)}
+    (h_pp : scanNextTokenIx_preprocess s = .ok (some (s_pp, c)))
+    (h_snt : scanNextTokenIx s = .ok r) :
+    scanNextTokenIx_checkDanglingNode s_pp = .ok () := by
+  cases h_dn : scanNextTokenIx_checkDanglingNode s_pp with
+  | ok u => cases u; rfl
+  | error e =>
+    exfalso
+    have h_err : scanNextTokenIx s = .error e := by
+      unfold scanNextTokenIx
+      simp only [bind, Except.bind, h_pp, h_dn]
+    rw [h_err] at h_snt
+    injection h_snt
 
 /-- Converse dp extraction (Fix B): if `scanNextTokenIx` succeeded and the
     pipeline reached past structural dispatch, the pending-directives check
@@ -981,7 +1079,8 @@ lemma scanNextTokenIx_ok_directivesPresent_false {input : String}
     have h_err : scanNextTokenIx s
         = .error (.directiveWithoutDocument s_pp.cursor.pos.line) := by
       unfold scanNextTokenIx
-      simp only [bind, Except.bind, h_pp, h_struct, h_check_err]
+      simp only [bind, Except.bind, h_pp,
+        scanNextTokenIx_ok_checkDanglingNode h_pp h_snt, h_struct, h_check_err]
     rw [h_err] at h_snt
     injection h_snt
 
@@ -1000,7 +1099,8 @@ lemma scanNextTokenIx_ok_checkBareDocument {input : String}
       scanNextTokenIx_ok_directivesPresent_false h_pp h_struct h_snt
     have h_err : scanNextTokenIx s = .error e := by
       unfold scanNextTokenIx
-      simp only [bind, Except.bind, h_pp, h_struct,
+      simp only [bind, Except.bind, h_pp,
+        scanNextTokenIx_ok_checkDanglingNode h_pp h_snt, h_struct,
         scanNextTokenIx_checkNoPendingDirectives_ok _ h_ndp, h_bd]
     rw [h_err] at h_snt
     injection h_snt

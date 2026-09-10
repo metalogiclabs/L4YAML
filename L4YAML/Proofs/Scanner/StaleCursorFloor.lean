@@ -1506,6 +1506,9 @@ lemma scanNextToken_preserves_StaleKeyCursorFloor (s s' : ScannerState)
     · rename_i sp c h_pre
       have h_inv2 := preprocess_preserves_StaleKeyCursorFloor h_pre h_inv
       have h_peek := preprocess_peek_eq s sp c h_pre
+      -- §9.2 dangling-node check (item 133)
+      split at h
+      · cases h
       split at h
       · cases h
       · split at h

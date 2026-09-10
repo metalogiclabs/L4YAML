@@ -51,6 +51,14 @@ lemma scanNextTokenIx_preserves_ScanInvIx
       have h_sp := scanNextTokenIx_preprocess_preserves_ScanInvIx h hPre
       have h_sp_akv := scanNextTokenIx_preprocess_preserves_AllKeysValidIx h_akv hPre
       simp only at h_ok
+      -- §9.2 dangling-node check (item 133)
+      have h_dn : ∃ u, scanNextTokenIx_checkDanglingNode sp = .ok u := by
+        cases hx : scanNextTokenIx_checkDanglingNode sp with
+        | error e => rw [hx] at h_ok; cases h_ok
+        | ok u => exact ⟨u, rfl⟩
+      obtain ⟨uDN, h_dn⟩ := h_dn
+      rw [h_dn] at h_ok
+      simp only at h_ok
       cases hStr : scanNextTokenIx_dispatchStructural sp c with
       | error e => rw [hStr] at h_ok; cases h_ok
       | ok structRes =>
@@ -171,6 +179,14 @@ lemma scanNextTokenIx_preserves_AllKeysValidIx
     | some sc =>
       obtain ⟨sp, c⟩ := sc
       have h_sp_akv := scanNextTokenIx_preprocess_preserves_AllKeysValidIx h_akv hPre
+      simp only at h_ok
+      -- §9.2 dangling-node check (item 133)
+      have h_dn : ∃ u, scanNextTokenIx_checkDanglingNode sp = .ok u := by
+        cases hx : scanNextTokenIx_checkDanglingNode sp with
+        | error e => rw [hx] at h_ok; cases h_ok
+        | ok u => exact ⟨u, rfl⟩
+      obtain ⟨uDN, h_dn⟩ := h_dn
+      rw [h_dn] at h_ok
       simp only at h_ok
       cases hStr : scanNextTokenIx_dispatchStructural sp c with
       | error e => rw [hStr] at h_ok; cases h_ok
@@ -309,6 +325,13 @@ lemma scanLoopIx_ordered {s : ScannerStateIx input} {fuel : Nat}
           by_cases hDS : s.directivesPresent = true
           · rw [if_pos hDS] at h_ok; cases h_ok
           · rw [if_neg hDS] at h_ok
+            -- §9.2 dangling-node check (item 133): peel its `.ok` arm.
+            have hDN : ∃ u, scanLoopIx_checkDanglingNode s = .ok u := by
+              cases hx : scanLoopIx_checkDanglingNode s with
+              | error e => rw [hx] at h_ok; cases h_ok
+              | ok u => exact ⟨u, rfl⟩
+            obtain ⟨uDN, hDN⟩ := hDN
+            rw [hDN] at h_ok
             cases h_ok
             -- ts = ((unwindIndentsIx s (-1)).emit streamEnd).tokens
             -- Apply: unwindIndentsIx preserves ScanInvIx → emit preserves ScanInvIx → extract ordering.

@@ -1656,6 +1656,71 @@ def scanNextTokenIx_checkNoPendingDirectives {input : String}
   else
     .ok ()
 
+/-- Indexed twin of `L4YAML.Scanner.prevRealIdx?`. -/
+def prevRealIdxIx? {input : String} (ts : Indexed.TokenStream input) :
+    Nat → Option Nat
+  | 0 => none
+  | i + 1 =>
+    if ts.tokens[i]!.token == .placeholder then prevRealIdxIx? ts i else some i
+
+/-- Indexed twin of `L4YAML.Scanner.trailingNodeRun?`. -/
+def trailingNodeRunIx? {input : String} (ts : Indexed.TokenStream input) :
+    Option (Nat × Option Nat) :=
+  match prevRealIdxIx? ts ts.tokens.size with
+  | none => none
+  | some i =>
+    let t := ts.tokens[i]!.token
+    if t.isNodeProperty then
+      let st := match prevRealIdxIx? ts i with
+                | some j => if ts.tokens[j]!.token.isNodeProperty then j else i
+                | none => i
+      some (st, prevRealIdxIx? ts st)
+    else if t.isNodeBody then
+      let st := match prevRealIdxIx? ts i with
+                | some j =>
+                  if ts.tokens[j]!.token.isNodeProperty then
+                    match prevRealIdxIx? ts j with
+                    | some k => if ts.tokens[k]!.token.isNodeProperty then k else j
+                    | none => j
+                  else i
+                | none => i
+      some (st, prevRealIdxIx? ts st)
+    else none
+
+/-- Indexed twin of `L4YAML.Scanner.danglingNodePos?`. -/
+def danglingNodePosIx? {input : String} (s : ScannerStateIx input) :
+    Option YamlPos :=
+  if s.inFlow then none
+  else
+    match trailingNodeRunIx? s.tokens with
+    | none => none
+    | some (st, pred) =>
+      let offered := match pred with
+        | some j => s.tokens.tokens[j]!.token.offersNodeSlot
+        | none => false
+      if offered then none
+      else
+        let p := s.tokens.tokens[st]!.start
+        if s.indents.any (fun e => e.column == (p.col : Int)) then some p else none
+
+/-- §9.2 [211] mid-stream: indexed twin of
+    `scanNextToken_checkDanglingNode`. -/
+def scanNextTokenIx_checkDanglingNode {input : String}
+    (s : ScannerStateIx input) : Except ScanError Unit :=
+  if s.simpleKeyAllowed then
+    match danglingNodePosIx? s with
+    | some p => .error (.invalidBareDocument p.line p.col)
+    | none => .ok ()
+  else .ok ()
+
+/-- §9.2 [211] at the end of input: indexed twin of
+    `scanLoop_checkDanglingNode`. -/
+def scanLoopIx_checkDanglingNode {input : String}
+    (s : ScannerStateIx input) : Except ScanError Unit :=
+  match danglingNodePosIx? s with
+  | some p => .error (.invalidBareDocument p.line p.col)
+  | none => .ok ()
+
 /-- §9.2 [211]: a completed ROOT node and content on a later line with no
     marker between them is a second bare document.  Indexed twin of
     `scanNextToken_checkBareDocument` — see its docstring for the reading. -/
@@ -1690,6 +1755,9 @@ def scanNextTokenIx {input : String} (s : ScannerStateIx input) :
   match ← scanNextTokenIx_preprocess s with
   | none => return none
   | some (s, c) =>
+    -- §9.2 [211] (item 133): the dangling node run, before the structural
+    -- dispatch — the dangler dies at a `...`/`---` too.
+    scanNextTokenIx_checkDanglingNode s
     match ← scanNextTokenIx_dispatchStructural s c with
     | some s' => return some s'
     | none =>
@@ -1724,6 +1792,10 @@ def scanLoopIx {input : String} (s : ScannerStateIx input) (fuel : Nat) :
       else if s.directivesPresent then
         .error (.directiveWithoutDocument s.cursor.pos.line)
       else
+        -- §9.2 [211] (item 133): the dangling run the stream itself ended.
+        match scanLoopIx_checkDanglingNode s with
+        | .error e => .error e
+        | .ok _ =>
         let s := unwindIndentsIx s (-1)
         let s := s.emit YamlToken.streamEnd
         .ok s.tokens
@@ -1809,6 +1881,9 @@ def scanNextTokenIxWC {input : String} (s : ScannerStateIx input) :
   match ← scanNextTokenIx_preprocessWC s with
   | none => return none
   | some (s, c) =>
+    -- §9.2 [211] (item 133): the dangling node run, before the structural
+    -- dispatch — the dangler dies at a `...`/`---` too.
+    scanNextTokenIx_checkDanglingNode s
     match ← scanNextTokenIx_dispatchStructural s c with
     | some s' => return some s'
     | none =>
@@ -1851,6 +1926,9 @@ def scanLoopIxWC {input : String} (s : ScannerStateIx input) (fuel : Nat) :
       else if s.directivesPresent then
         .error (.directiveWithoutDocument s.cursor.pos.line)
       else
+        match scanLoopIx_checkDanglingNode s with
+        | .error e => .error e
+        | .ok _ =>
         let s := s.skipToContentSWithComments
         let s := unwindIndentsIx s (-1)
         let s := s.emit YamlToken.streamEnd

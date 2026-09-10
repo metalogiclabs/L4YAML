@@ -368,6 +368,9 @@ lemma scanNextToken_corr (sc : ScannerState) (sp : SurfPos)
     · exact absurd (Except.ok.inj hok) nofun
     · rename_i s_pre c_pre h_pre
       obtain ⟨sp_pre, hcorr_pre⟩ := scanNextToken_preprocess_corr sc sp hcorr s_pre c_pre h_pre
+      -- §9.2 dangling-node check (item 133)
+      split at hok
+      · simp at hok
       split at hok
       · simp at hok
       · split at hok
@@ -422,7 +425,10 @@ lemma scanNextToken_none_consumed (sc : ScannerState) (sp : SurfPos)
   · split at hok
     · rename_i h_pre
       exact scanNextToken_preprocess_none_consumed sc sp hcorr h_pre
-    · split at hok
+    · -- §9.2 dangling-node check (item 133)
+      split at hok
+      · simp at hok
+      split at hok
       · simp at hok
       · split at hok
         · exact absurd (Except.ok.inj hok) nofun

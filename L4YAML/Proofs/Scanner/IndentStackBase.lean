@@ -600,6 +600,9 @@ lemma scanNextToken_base {s s' : ScannerState}
     · simp at hok
     · rename_i sp c h_pre
       have h_pp : SentinelBase sp := preprocess_base h_pre h
+      -- §9.2 dangling-node check (item 133)
+      split at hok
+      · cases hok
       split at hok
       · cases hok
       · split at hok

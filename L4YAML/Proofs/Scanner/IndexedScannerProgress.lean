@@ -964,6 +964,14 @@ lemma scanNextTokenIx_progress {input : String}
       have hPk : sp.peek? = some c :=
         scanNextTokenIx_preprocess_peek_eq hPre
       simp only at h
+      -- §9.2 dangling-node check (item 133): peel it, keeping h's tail intact.
+      have hDN : ∃ u, scanNextTokenIx_checkDanglingNode sp = .ok u := by
+        cases hx : scanNextTokenIx_checkDanglingNode sp with
+        | error e => rw [hx] at h; cases h
+        | ok u => exact ⟨u, rfl⟩
+      obtain ⟨uDN, hDN⟩ := hDN
+      rw [hDN] at h
+      simp only at h
       cases hStr : scanNextTokenIx_dispatchStructural sp c with
       | error e => rw [hStr] at h; cases h
       | ok structRes =>

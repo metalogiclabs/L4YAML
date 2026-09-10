@@ -280,6 +280,35 @@ def YamlToken.completesFlowValue : YamlToken → Bool
   | _ => false
 
 /--
+Whether a token is a whole node's BODY: a scalar of any style, or an alias.
+
+`[96] c-ns-properties` is excluded — a property precedes a node rather than
+being one — and so are the flow closes: inside a block context a `]`/`}` ends a
+collection that a `[`/`{` opened on some earlier line, so it never heads a node
+RUN the way a scalar or an alias does.  The dual, `completesFlowValue`, adds the
+closes because there the question is whether a value is finished.
+-/
+def YamlToken.isNodeBody : YamlToken → Bool
+  | .scalar .. => true
+  | .alias .. => true
+  | _ => false
+
+/--
+Whether a token OFFERS the following node a slot: the three block indicators
+whose own production is followed by `s-l+block-indented` or
+`s-l+block-node`.  A node run that stands after one of these is that
+indicator's content, at whatever column the content sits — `a:⏎b` is
+`{a: b}`, `?⏎b⏎: v` is an explicit key's, `-⏎b` is the entry's.  After
+anything else a run at an open level's own column has no slot, which is
+§9.2's dangling-node violation.
+-/
+def YamlToken.offersNodeSlot : YamlToken → Bool
+  | .value => true
+  | .key => true
+  | .blockEntry => true
+  | _ => false
+
+/--
 Whether a token is a node *property*.
 
 `[96] c-ns-properties` is exactly one optional `[101] c-ns-anchor-property`

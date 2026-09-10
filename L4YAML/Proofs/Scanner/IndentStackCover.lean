@@ -324,6 +324,9 @@ lemma scanNextToken_cover {lo : Nat} {ks : List Nat} {s s' : ScannerState}
     · simp at hok
     · rename_i sp c h_pre
       have h_pp : Covered lo ks sp := preprocess_cover h_pre h
+      -- §9.2 dangling-node check (item 133)
+      split at hok
+      · cases hok
       split at hok
       · cases hok
       · split at hok

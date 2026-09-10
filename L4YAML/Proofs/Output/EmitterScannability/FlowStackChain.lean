@@ -163,6 +163,8 @@ lemma scanNextToken_flowStack_step {s s' : ScannerState}
   rename_i s1 c1 h_pre
   have h_pre_st := ScannerFlowStack.preprocess_preserves_flowStack s _ _ h_pre
   have h_pre_fl := preprocess_preserves_flowLevel s _ _ h_pre
+  -- §9.2 dangling-node check (item 133)
+  split at h <;> (try (simp at h; done))
   split at h <;> (try (simp at h; done))  -- structural Except
   split at h
   · -- structural some
@@ -367,6 +369,8 @@ lemma scanNextToken_ekStack_step {s s' : ScannerState}
   rename_i s1 c1 h_pre
   have h_pre_st := ScannerEkStack.preprocess_preserves_explicitKeyStack s _ _ h_pre
   have h_pre_fl := preprocess_preserves_flowLevel s _ _ h_pre
+  -- §9.2 dangling-node check (item 133)
+  split at h <;> (try (simp at h; done))
   split at h <;> (try (simp at h; done))
   split at h
   · simp only [Except.ok.injEq, Option.some.injEq] at h; subst h

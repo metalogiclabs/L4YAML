@@ -118,6 +118,7 @@ lemma scanFlowSequenceStartIx_first_filtered_token (s : ScannerStateIx input)
     h_pp h_struct h_s_ad_def h_check h_flow_disp
     (scanNextTokenIx_ok_directivesPresent_false h_pp h_struct h_snt)
     (scanNextTokenIx_ok_checkBareDocument h_pp h_struct h_snt)
+    (scanNextTokenIx_ok_checkDanglingNode h_pp h_snt)
   have h_s' : s' = scanFlowSequenceStartIx s_ad :=
     Option.some.inj (Except.ok.inj (h_snt.symm.trans h_snt_eq))
   -- s_ad's filtered tokens equal s's filtered tokens
@@ -195,6 +196,7 @@ lemma scanFlowMappingStartIx_first_filtered_token (s : ScannerStateIx input)
     h_pp h_struct h_s_ad_def h_check h_flow_disp
     (scanNextTokenIx_ok_directivesPresent_false h_pp h_struct h_snt)
     (scanNextTokenIx_ok_checkBareDocument h_pp h_struct h_snt)
+    (scanNextTokenIx_ok_checkDanglingNode h_pp h_snt)
   have h_s' : s' = scanFlowMappingStartIx s_ad :=
     Option.some.inj (Except.ok.inj (h_snt.symm.trans h_snt_eq))
   have h_ad_tokens_filter :
@@ -285,6 +287,7 @@ lemma scanDoubleQuotedIx_first_filtered_token (s : ScannerStateIx input)
         (scanNextTokenIx_checkAdjacentValue_ok_of_ne_colon _ (by decide)) h_dc_eq
         (scanNextTokenIx_ok_directivesPresent_false h_pp h_struct h_snt)
         (scanNextTokenIx_ok_checkBareDocument h_pp h_struct h_snt)
+        (scanNextTokenIx_ok_checkDanglingNode h_pp h_snt)
       rw [h_snt_err] at h_snt; exact absurd h_snt (by simp)
     | ok s_dc =>
       have h_snt_eq := scanNextTokenIx_via_content_dispatch
@@ -293,6 +296,7 @@ lemma scanDoubleQuotedIx_first_filtered_token (s : ScannerStateIx input)
         (scanNextTokenIx_checkAdjacentValue_ok_of_ne_colon _ (by decide)) h_dc_eq
         (scanNextTokenIx_ok_directivesPresent_false h_pp h_struct h_snt)
         (scanNextTokenIx_ok_checkBareDocument h_pp h_struct h_snt)
+        (scanNextTokenIx_ok_checkDanglingNode h_pp h_snt)
       have h_eq2 : s' = s_dc :=
         Option.some.inj (Except.ok.inj (h_snt.symm.trans h_snt_eq))
       subst h_eq2; rfl

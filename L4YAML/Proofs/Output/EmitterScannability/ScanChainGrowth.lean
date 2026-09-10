@@ -582,6 +582,8 @@ lemma scanNextToken_flow_value (s : ScannerState)
       ((saveSimpleKey_preserves_directivesPresent s).trans h_dp)
       (scanNextToken_checkBareDocument_ok_of_inFlow _
         ((saveSimpleKey_preserves_inFlow s).trans h_flow))
+      (scanNextToken_checkDanglingNode_ok_of_inFlow _
+        ((saveSimpleKey_preserves_inFlow s).trans h_flow))
   -- scanValuePrepare preserves key fields in flow context
   -- (only modifies tokens and simpleKey when inFlow = true)
   have h_svp_flow := h_ad_inFlow
@@ -1661,6 +1663,8 @@ lemma scanNextToken_flow_scalar_savedKey (s : ScannerState)
       ((saveSimpleKey_preserves_directivesPresent s).trans h_dp)
       (scanNextToken_checkBareDocument_ok_of_inFlow _
         ((saveSimpleKey_preserves_inFlow s).trans h_flow))
+      (scanNextToken_checkDanglingNode_ok_of_inFlow _
+        ((saveSimpleKey_preserves_inFlow s).trans h_flow))
   refine ⟨_, h_snt, ?_, ?_, ?_, ?_, ?_⟩
   · show s_dq.simpleKey.possible = true
     exact h_sdq_poss
@@ -1722,6 +1726,7 @@ lemma scanNextToken_flow_open_seq_savedKey (s s' : ScannerState) (rest : List Ch
     scanNextToken_via_flow_dispatch _ _ _ _ _ h_pp h_struct rfl h_check h_flow_disp
       (scanNextToken_ok_directivesPresent_false h_pp h_struct h_snt)
       (scanNextToken_ok_checkBareDocument h_pp h_struct h_snt)
+      (scanNextToken_ok_checkDanglingNode h_pp h_snt)
   have h_s' : s' = scanFlowSequenceStart s_ad :=
     Option.some.inj (Except.ok.inj (h_snt.symm.trans h_snt_eq))
   obtain ⟨tok, h_tok⟩ : ∃ tok, (scanFlowSequenceStart s_ad).tokens = s_ad.tokens.push tok :=
@@ -1765,6 +1770,7 @@ lemma scanNextToken_flow_open_mapping_savedKey (s s' : ScannerState) (rest : Lis
     scanNextToken_via_flow_dispatch _ _ _ _ _ h_pp h_struct rfl h_check h_flow_disp
       (scanNextToken_ok_directivesPresent_false h_pp h_struct h_snt)
       (scanNextToken_ok_checkBareDocument h_pp h_struct h_snt)
+      (scanNextToken_ok_checkDanglingNode h_pp h_snt)
   have h_s' : s' = scanFlowMappingStart s_ad :=
     Option.some.inj (Except.ok.inj (h_snt.symm.trans h_snt_eq))
   obtain ⟨tok, h_tok⟩ : ∃ tok, (scanFlowMappingStart s_ad).tokens = s_ad.tokens.push tok :=
@@ -3696,7 +3702,7 @@ lemma emit_produces_valid_yaml (v : YamlValue) {inFlow : Bool} (hg : Grammable v
       -- Step 5: Scan ']' (outermost, flowLevel = 1 → 0)
       have h_kind₂ : s₂.flowStack.back? = some true := by
         rw [h_fmc₂.flowStack_eq rfl h_fl₂]; exact h_push₁
-      obtain ⟨s₃, h_snt₃, h_fl₃, h_dp₃, h_peek₃⟩ :=
+      obtain ⟨s₃, h_snt₃, h_fl₃, h_dp₃, h_peek₃, h_dn₃⟩ :=
         scanNextToken_flow_close_seq_outermost s₂ h_corr₂ h_inflow₂ h_indent₂ h_col₂
           (by rw [h_fl₂, h_fl₁]) (by rw [h_dp₂, h_dp₁]) h_kind₂
       -- Step 6: EOF
@@ -3716,7 +3722,7 @@ lemma emit_produces_valid_yaml (v : YamlValue) {inFlow : Bool} (hg : Grammable v
         (h_chain₂.toScanChain.trans (ScanChain.single h_snt₃))
       -- Apply scanFiltered_of_chain
       exact scanFiltered_of_chain _ _ s₃ _ rfl h_no_bom h_chain_all h_eof h_fl₃ h_dp₃
-        (ScanChain.fuel_bound _ _ _ _ rfl h_chain_all h_eof)
+        h_dn₃ (ScanChain.fuel_bound _ _ _ _ rfl h_chain_all h_eof)
   | mapping style pairs tag anchor _ hk hv ihk ihv =>
     -- emit (.mapping style pairs tag anchor) = "{" ++ emitPairList pairs.toList ++ "}"
     change ∃ tokens, scanFiltered ("{" ++ emit.emitPairList pairs.toList ++ "}") = .ok tokens
@@ -3760,7 +3766,7 @@ lemma emit_produces_valid_yaml (v : YamlValue) {inFlow : Bool} (hg : Grammable v
       -- Step 5: Scan '}' (outermost, flowLevel = 1 → 0)
       have h_kind₂ : s₂.flowStack.back? = some false := by
         rw [h_fmc₂.flowStack_eq rfl h_fl₂]; exact h_push₁
-      obtain ⟨s₃, h_snt₃, h_fl₃, h_dp₃, h_peek₃⟩ :=
+      obtain ⟨s₃, h_snt₃, h_fl₃, h_dp₃, h_peek₃, h_dn₃⟩ :=
         scanNextToken_flow_close_mapping_outermost s₂ h_corr₂ h_inflow₂ h_indent₂ h_col₂
           (by rw [h_fl₂, h_fl₁]) (by rw [h_dp₂, h_dp₁]) h_kind₂
       -- Step 6: EOF
@@ -3780,7 +3786,7 @@ lemma emit_produces_valid_yaml (v : YamlValue) {inFlow : Bool} (hg : Grammable v
         (h_chain₂.toScanChain.trans (ScanChain.single h_snt₃))
       -- Apply scanFiltered_of_chain
       exact scanFiltered_of_chain _ _ s₃ _ rfl h_no_bom h_chain_all h_eof h_fl₃ h_dp₃
-        (ScanChain.fuel_bound _ _ _ _ rfl h_chain_all h_eof)
+        h_dn₃ (ScanChain.fuel_bound _ _ _ _ rfl h_chain_all h_eof)
 
 /-! ## §4  Full Pipeline: Emit → Scan → Parse
 

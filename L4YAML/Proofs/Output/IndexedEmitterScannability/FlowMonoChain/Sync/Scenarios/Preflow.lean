@@ -381,6 +381,8 @@ lemma scanNextTokenIx_flow_comma (s : ScannerStateIx input)
     ((saveSimpleKeyIx_directivesPresent s).trans h_dp)
     (scanNextTokenIx_checkBareDocument_ok_of_inFlow _
       ((saveSimpleKeyIx_inFlow s).trans h_flow))
+    (scanNextTokenIx_checkDanglingNode_ok_of_inFlow _
+      ((saveSimpleKeyIx_inFlow s).trans h_flow))
   -- Step 8: extract result properties using the field equalities for s_ad
   -- For the result state s' := { (s_ad.emit .flowEntry).advance with simpleKeyAllowed := true, explicitKeyLine := none, simpleKey := { possible := false } }
   -- Reach in via explicit `show` since s' is just a definitional sugar.

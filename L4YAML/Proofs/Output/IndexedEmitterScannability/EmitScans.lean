@@ -751,6 +751,8 @@ lemma scanNextToken_flow_valueIx (s : ScannerStateIx input)
       ((saveSimpleKeyIx_directivesPresent s).trans h_dp)
       (scanNextTokenIx_checkBareDocument_ok_of_inFlow _
         ((saveSimpleKeyIx_inFlow s).trans h_flow))
+      (scanNextTokenIx_checkDanglingNode_ok_of_inFlow _
+        ((saveSimpleKeyIx_inFlow s).trans h_flow))
   -- Step 8: result-state field equalities (all via `@[simp]` cursor lemmas).
   have h_R_cursor :
       ({ (((scanValuePrepareIx s_ad).emit YamlToken.value).advance) with
@@ -1912,7 +1914,7 @@ lemma scanNextTokenIx_emitScalar_init (content : String) :
     scanNextTokenIx_via_content_dispatch s₀ s_pp s_ad s_final '"'
       h_pp_eq h_struct h_s_ad_def h_check_ad h_flow_ad h_block_ad
       (scanNextTokenIx_checkAdjacentValue_ok_of_ne_colon _ (by decide)) h_dc h_dp_pp
-      h_bd_pp
+      h_bd_pp (scanNextTokenIx_checkDanglingNode_ok_of_sentinel_stack _ h_ids_pp)
   -- ── Step 13: extract conclusions
   refine ⟨s_final, h_snt, ?_, ?_, ?_, ?_, ?_⟩
   · -- peek? = none: post-quote surface has empty chars
@@ -1992,7 +1994,7 @@ lemma scan_accepts_emitScalarIx (content : String) :
     refine ⟨{ tokens := toks.tokens.filter fun t => t.token != YamlToken.placeholder }, ?_⟩
     unfold scanFilteredIx; rw [h]
   -- ── First iteration: scanNextTokenIx s₀ = .ok (some s₁) via SS2 helper
-  obtain ⟨s₁, h_snt1, h_peek1, h_flow1, h_dp1, _, _⟩ :=
+  obtain ⟨s₁, h_snt1, h_peek1, h_flow1, h_dp1, h_ids1, _⟩ :=
     scanNextTokenIx_emitScalar_init content
   -- ── Second iteration: scanNextTokenIx s₁ = .ok none (EOF)
   have h_snt2 : scanNextTokenIx s₁ = .ok none := scanNextTokenIx_eof s₁ h_peek1
@@ -2037,6 +2039,7 @@ lemma scan_accepts_emitScalarIx (content : String) :
     rfl
   rw [h_scan_eq]
   exact scanLoopIx_two_iter h_fuel h_snt1 h_snt2 h_flow1 h_dp1
+    (scanLoopIx_checkDanglingNode_ok_of_sentinel_stack _ h_ids1)
 
 /-! ## §4  `emit_produces_valid_yamlIx` — top-level composition (SS3)
 
@@ -2121,7 +2124,7 @@ lemma emit_produces_valid_yamlIx (v : YamlValue) {inFlow : Bool}
           h_indent₁ (by rw [h_col₁]; omega) h_ek₁
           (h_line₁ ▸ h_atol₁) h_endline₁ _h_stack₁ h_dp₁ h_last_s₁
       -- Step 5: Scan ']' (outermost, flowLevel 1 → 0)
-      obtain ⟨s₃, h_snt₃, h_fl₃, h_dp₃, h_peek₃⟩ :=
+      obtain ⟨s₃, h_snt₃, h_fl₃, h_dp₃, h_peek₃, h_dn₃⟩ :=
         scanNextTokenIx_flow_close_seq_outermost s₂ h_corr₂ h_inflow₂ h_indent₂
           h_col₂ (by rw [h_fl₂, h_fl₁]) (by rw [h_dp₂, h_dp₁])
           (by rw [h_fmc₂.flowStack_eq rfl h_fl₂]; exact h_push₁)
@@ -2148,7 +2151,7 @@ lemma emit_produces_valid_yamlIx (v : YamlValue) {inFlow : Bool}
       have h_fuel := ScanChainIx.fuel_bound _ _ _ rfl h_chain_all h_eof
       exact scanFilteredIx_of_chain
         ("[" ++ L4YAML.Emit.emit.emitList (head :: tail) ++ "]")
-        _ s₃ _ rfl h_no_bom h_chain_all h_eof h_fl₃ h_dp₃ h_fuel
+        _ s₃ _ rfl h_no_bom h_chain_all h_eof h_fl₃ h_dp₃ h_dn₃ h_fuel
   | mapping _style pairs _tag _anchor _inFlow hk hv _ihk _ihv =>
     -- emit (.mapping ...) = "{" ++ emitPairList pairs.toList ++ "}"
     show ∃ tokens,
@@ -2192,7 +2195,7 @@ lemma emit_produces_valid_yamlIx (v : YamlValue) {inFlow : Bool}
         h_pair_scan s₁ ['}'] h_corr₁ h_inflow₁ (by rw [h_fl₁]; omega)
           h_indent₁ (by rw [h_col₁]; omega) h_ek₁
           (h_line₁ ▸ h_atol₁) h_endline₁ h_ska₁ h_lrv₁ _h_stack₁ h_dp₁ h_last_s₁
-      obtain ⟨s₃, h_snt₃, h_fl₃, h_dp₃, h_peek₃⟩ :=
+      obtain ⟨s₃, h_snt₃, h_fl₃, h_dp₃, h_peek₃, h_dn₃⟩ :=
         scanNextTokenIx_flow_close_mapping_outermost s₂ h_corr₂ h_inflow₂ h_indent₂
           h_col₂ (by rw [h_fl₂, h_fl₁]) (by rw [h_dp₂, h_dp₁])
           (by rw [h_fmc₂.flowStack_eq rfl h_fl₂]; exact h_push₁)
@@ -2217,6 +2220,6 @@ lemma emit_produces_valid_yamlIx (v : YamlValue) {inFlow : Bool}
       have h_fuel := ScanChainIx.fuel_bound _ _ _ rfl h_chain_all h_eof
       exact scanFilteredIx_of_chain
         ("{" ++ L4YAML.Emit.emit.emitPairList (phead :: ptail) ++ "}")
-        _ s₃ _ rfl h_no_bom h_chain_all h_eof h_fl₃ h_dp₃ h_fuel
+        _ s₃ _ rfl h_no_bom h_chain_all h_eof h_fl₃ h_dp₃ h_dn₃ h_fuel
 
 end L4YAML.Proofs.Indexed.EmitterScannability.EmitScans

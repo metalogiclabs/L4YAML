@@ -394,6 +394,8 @@ lemma scanLoop_success_emits_streamEnd : ∀ (s : ScannerState) (fuel : Nat) (to
       -- Need to handle the if-then-else for flowLevel and directivesPresent
       split at h <;> try contradiction
       split at h <;> try contradiction
+      -- §9.2 dangling-node check (item 133): the `.error` arm contradicts
+      split at h <;> try contradiction
       -- Now h : .ok ((unwindIndents s (-1)).emit .streamEnd).tokens = .ok tokens
       injection h with h_eq
       exists (unwindIndents s (-1))
@@ -7271,6 +7273,8 @@ lemma scanLoop_preserves_tokens (s : ScannerState) (fuel : Nat) (tokens : Array 
       -- Handle if-then-else conditions
       split at h <;> try contradiction
       split at h <;> try contradiction
+      -- §9.2 dangling-node check (item 133): the `.error` arm contradicts
+      split at h <;> try contradiction
       -- Now h : .ok ((unwindIndents s (-1)).emit .streamEnd).tokens = .ok tokens
       injection h with h_eq
       let s_unwind := unwindIndents s (-1)
@@ -7321,6 +7325,8 @@ lemma scanLoop_increases_tokens (s : ScannerState) (fuel : Nat) (tokens : Array 
     · contradiction
     · -- scanNextToken = none: final emit
       split at h <;> try contradiction
+      split at h <;> try contradiction
+      -- §9.2 dangling-node check (item 133)
       split at h <;> try contradiction
       injection h with h_eq; rw [← h_eq]
       have h1 := unwindIndents_adds_tokens s (-1)
@@ -10351,6 +10357,8 @@ lemma scanNextToken_preserves_AllKeysValid :
   split at h_ok <;> (try (simp at h_ok; done)) -- preprocess Option: none closes
   rename_i s2 c h_pre
   have h_akv2 := preprocess_preserves_AllKeysValid s s2 c h_pre h_akv
+  -- §9.2 dangling-node check (item 133)
+  split at h_ok <;> (try (simp at h_ok; done))
   split at h_ok <;> (try (simp at h_ok; done)) -- structural Except: .error closes
   split at h_ok
   · -- structural Option: some → structural succeeded (source order: some first)
@@ -10437,6 +10445,8 @@ lemma scanNextToken_preserves_ScanInv :
   rename_i s2 c h_pre
   have h_inv2 := preprocess_preserves_ScanInv s s2 c h_inv h_pre
   have h_skv2 := preprocess_preserves_SimpleKeyValid s s2 c h_pre h_skv
+  -- §9.2 dangling-node check (item 133)
+  split at h_ok <;> (try (simp at h_ok; done))
   split at h_ok <;> (try (simp at h_ok; done)) -- structural Except
   split at h_ok
   · -- structural some (source order: some first)
@@ -10491,6 +10501,9 @@ lemma scanLoop_ordered (s : ScannerState) (fuel : Nat)
       split at h_ok
       · simp at h_ok
       · split at h_ok
+        · simp at h_ok
+        -- §9.2 dangling-node check (item 133)
+        split at h_ok
         · simp at h_ok
         · -- tokens = (unwindIndents s (-1)).emit(.streamEnd).tokens
           injection h_ok with h_eq
@@ -11599,6 +11612,9 @@ lemma scanNextToken_progress (s s' : ScannerState)
     · rename_i sp c h_pre
       have h_ge := preprocess_offset_ge s sp c h_pre
       have h_hm := preprocess_hasMore s sp c h_pre
+      -- §9.2 dangling-node check (item 133)
+      split at h
+      · cases h
       -- Split on dispatchStructural
       split at h
       · cases h
@@ -12088,6 +12104,9 @@ lemma scanNextToken_preserves_KeysBehindCursor (s s' : ScannerState)
     · rename_i sp c h_pre
       have h_kab := preprocess_KeysAtOrBehind h_pre h_kbc
       have h_hm := preprocess_hasMore s sp c h_pre
+      -- §9.2 dangling-node check (item 133)
+      split at h
+      · cases h
       split at h
       · cases h
       · split at h

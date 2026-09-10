@@ -491,6 +491,13 @@ lemma scanLoopIx_success_emits_streamEnd {input : String} :
           by_cases hDS : s.directivesPresent = true
           · rw [if_pos hDS] at h; cases h
           · rw [if_neg hDS] at h
+            -- §9.2 dangling-node check (item 133): peel its `.ok` arm.
+            have hDN : ∃ u, scanLoopIx_checkDanglingNode s = .ok u := by
+              cases hx : scanLoopIx_checkDanglingNode s with
+              | error e => rw [hx] at h; cases h
+              | ok u => exact ⟨u, rfl⟩
+            obtain ⟨uDN, hDN⟩ := hDN
+            rw [hDN] at h
             cases h
             exact ⟨unwindIndentsIx s (-1), rfl⟩
       | some s'' => exact ih s'' ts h
@@ -525,6 +532,13 @@ lemma scanLoopIx_increases_tokens {input : String}
           by_cases hDS : s.directivesPresent = true
           · rw [if_pos hDS] at h; cases h
           · rw [if_neg hDS] at h
+            -- §9.2 dangling-node check (item 133): peel its `.ok` arm.
+            have hDN : ∃ u, scanLoopIx_checkDanglingNode s = .ok u := by
+              cases hx : scanLoopIx_checkDanglingNode s with
+              | error e => rw [hx] at h; cases h
+              | ok u => exact ⟨u, rfl⟩
+            obtain ⟨uDN, hDN⟩ := hDN
+            rw [hDN] at h
             cases h
             -- ts = ((unwindIndentsIx s (-1)).emit streamEnd).tokens
             show s.tokens.size + 1 ≤ _

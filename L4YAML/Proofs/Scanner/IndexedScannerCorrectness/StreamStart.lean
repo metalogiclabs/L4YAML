@@ -475,6 +475,14 @@ lemma scanNextTokenIx_maintains_SimpleKeyAboveIx {input : String}
         have h_inv_pp : SimpleKeyAboveIx s_pp n :=
           scanNextTokenIx_preprocess_maintains_SimpleKeyAboveIx s s_pp c n h_n h_pp h_inv
         dsimp only [] at h_ok
+        -- §9.2 dangling-node check (item 133)
+        have h_dn : ∃ u, scanNextTokenIx_checkDanglingNode s_pp = .ok u := by
+          cases hx : scanNextTokenIx_checkDanglingNode s_pp with
+          | error e => rw [hx] at h_ok; simp at h_ok
+          | ok u => exact ⟨u, rfl⟩
+        obtain ⟨uDN, h_dn⟩ := h_dn
+        rw [h_dn] at h_ok
+        dsimp only [] at h_ok
         generalize h_ds : scanNextTokenIx_dispatchStructural s_pp c = ds_res at h_ok
         cases ds_res with
         | error e => simp at h_ok
@@ -823,6 +831,14 @@ lemma scanNextTokenIx_preserves_prefix {input : String}
         have h_n_pp : n ≤ s_pp.tokens.size :=
           Nat.le_trans h_n (scanNextTokenIx_preprocess_tokens_size_le h_pp)
         dsimp only [] at h_ok
+        -- §9.2 dangling-node check (item 133)
+        have h_dn : ∃ u, scanNextTokenIx_checkDanglingNode s_pp = .ok u := by
+          cases hx : scanNextTokenIx_checkDanglingNode s_pp with
+          | error e => rw [hx] at h_ok; simp at h_ok
+          | ok u => exact ⟨u, rfl⟩
+        obtain ⟨uDN, h_dn⟩ := h_dn
+        rw [h_dn] at h_ok
+        dsimp only [] at h_ok
         generalize h_ds : scanNextTokenIx_dispatchStructural s_pp c = ds_res at h_ok
         cases ds_res with
         | error e => simp at h_ok
@@ -999,6 +1015,13 @@ lemma scanLoopIx_preserves_tokens {input : String}
           by_cases hDS : s.directivesPresent = true
           · rw [if_pos hDS] at h; cases h
           · rw [if_neg hDS] at h
+            -- §9.2 dangling-node check (item 133): peel its `.ok` arm.
+            have hDN : ∃ u, scanLoopIx_checkDanglingNode s = .ok u := by
+              cases hx : scanLoopIx_checkDanglingNode s with
+              | error e => rw [hx] at h; cases h
+              | ok u => exact ⟨u, rfl⟩
+            obtain ⟨uDN, hDN⟩ := hDN
+            rw [hDN] at h
             cases h
             -- ts = ((unwindIndentsIx s (-1)).emit streamEnd).tokens
             have h_unwind_sz := unwindIndentsIx_tokens_size_le s (-1)

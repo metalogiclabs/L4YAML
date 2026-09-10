@@ -930,11 +930,14 @@ lemma seqRoot_recseqbodyDeep
     unfold ScannerState.emit ScannerState.mk'
     dsimp only []
     decide
+  -- §9.2 dangling-node check (item 133): the same chain gives the stack itself.
+  have h_dn₃ : scanLoop_checkDanglingNode s₃ = .ok () :=
+    scanLoop_checkDanglingNode_ok_of_sentinel_stack _ (by rw [h_ids₃, h_ids₂, h_ids₁]; rfl)
   -- Token equation: tokens = (s₃.emit .streamEnd).tokens.filter p
   have h_tok_eq : Scanner.scanFiltered input =
       .ok ((s₃.emit .streamEnd).tokens.filter p) :=
     scanFiltered_tokens_eq_of_chain_short_stack input _ s₃ _ rfl h_no_bom
-      h_chain_all h_eof h_fl₃ h_dp₃
+      h_chain_all h_eof h_fl₃ h_dp₃ h_dn₃
       (ScanChain.fuel_bound _ _ _ _ rfl h_chain_all h_eof)
       h_indents_small
   have h_tokens_eq : tokens = (s₃.emit .streamEnd).tokens.filter p := by
@@ -1693,11 +1696,14 @@ lemma mapRoot_recmapbodydeep
     unfold ScannerState.emit ScannerState.mk'
     dsimp only []
     decide
+  -- §9.2 dangling-node check (item 133): the same chain gives the stack itself.
+  have h_dn₃ : scanLoop_checkDanglingNode s₃ = .ok () :=
+    scanLoop_checkDanglingNode_ok_of_sentinel_stack _ (by rw [h_ids₃, h_ids₂, h_ids₁]; rfl)
   -- Token equation
   have h_tok_eq : Scanner.scanFiltered input =
       .ok ((s₃.emit .streamEnd).tokens.filter p) :=
     scanFiltered_tokens_eq_of_chain_short_stack input _ s₃ _ rfl h_no_bom
-      h_chain_all h_eof h_fl₃ h_dp₃
+      h_chain_all h_eof h_fl₃ h_dp₃ h_dn₃
       (ScanChain.fuel_bound _ _ _ _ rfl h_chain_all h_eof)
       h_indents_small
   have h_tokens_eq : tokens = (s₃.emit .streamEnd).tokens.filter p := by

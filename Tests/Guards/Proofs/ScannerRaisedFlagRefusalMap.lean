@@ -46,6 +46,12 @@ here against the runtime's own verdicts:
   `scanLoop`).  The three exempt predecessors are the equal-column value
   readings the pipeline ACCEPTS — `a:⏎b` = `{a: b}`, `?⏎b⏎: v`,
   `-⏎b` — pinned in §6.
+  **LANDED** as `scanNextToken_checkDanglingNode` and its EOF twin
+  `scanLoop_checkDanglingNode` (item 133), so §3's pins are
+  `scannerRefuses` now — `ScannerDanglingNodeRefusal` carries the
+  mechanism's own boundary.  The exempt predecessors are
+  `YamlToken.offersNodeSlot`; the position reported is the RUN's start,
+  which is where the parser reported.
 * **M3 — the `-` at a mapping top's own column** (§4): valid iff the
   mapping's value is still awaited (last real token `.value`, or a
   property run after it) or a same-indent sequence is continuing (a
@@ -82,7 +88,10 @@ than a proof, because those lemmas take the checks as premises and the
 converse extractor reads the new one off an `.ok` witness the site
 already holds.  So the "100+-site absorption per mechanism" above is the
 right order of magnitude and the right shape; what it is not is 100 sites
-of REASONING.
+of REASONING.  M2's (item 133) is 63 + 84, and the difference is the
+PLACEMENT: a bind before the structural dispatch lands in the preprocess
+arm of every chain decomposition, `scanLoop` included, while one after it
+is reached through a single `split`.
 
 §2–§4 pin the gap (`parserGap`: both scanners accept, both pipelines
 refuse); §5 the neighbors the scanner already refuses; §6 the valid
@@ -165,43 +174,44 @@ private def scannerRefuses (input : String) : Bool :=
 #guard scannerRefuses "hello\n# c\nw: 1\n"
 #guard scannerRefuses "hello\n# c\n: v\n"
 -- The explicit-document twins (`---` pushes no indent level).  The first
--- is M2's, not M1's, and stays a gap: `a: 1` opens a mapping level at
--- column 0, so the dangling `b` sits at an OPEN level rather than at the
--- sentinel — measured against the landed check, which does not fire here.
-#guard parserGap "---\na: 1\nb\n"
+-- is M2's, not M1's: `a: 1` opens a mapping level at column 0, so the
+-- dangling `b` sits at an OPEN level rather than at the sentinel, and M1's
+-- check does not fire on it.  Both mechanisms have landed, so both refuse.
+#guard scannerRefuses "---\na: 1\nb\n"
 #guard scannerRefuses "--- [1]\nx\n"
 #guard scannerRefuses "--- |\n  q\nx\n"
 #guard scannerRefuses "--- \"x\"\na\n"
 
--- §3 M2 — the dangling node run at an open level's column.
+-- §3 M2 — the dangling node run at an open level's column.  LANDED
+-- (item 133): every pin below is `scannerRefuses` now.
 -- Plain danglers at a mapping's column (mid-stream and EOF deaths):
-#guard parserGap "a: 1\nb\n"
-#guard parserGap "a: 1\nb\nc: 2\n"
-#guard parserGap "a: 1\n\"q\"\n"
-#guard parserGap "a:\n  b: c\nd\n"
-#guard parserGap "a:\nb\nc\n"
+#guard scannerRefuses "a: 1\nb\n"
+#guard scannerRefuses "a: 1\nb\nc: 2\n"
+#guard scannerRefuses "a: 1\n\"q\"\n"
+#guard scannerRefuses "a:\n  b: c\nd\n"
+#guard scannerRefuses "a:\nb\nc\n"
 -- ...at a sequence's column:
-#guard parserGap "- a\nb\n"
-#guard parserGap "- a\nb\n- c\n"
-#guard parserGap "- a\n\"q\"\n"
+#guard scannerRefuses "- a\nb\n"
+#guard scannerRefuses "- a\nb\n- c\n"
+#guard scannerRefuses "- a\n\"q\"\n"
 -- ...after a completed flow value (the level survives the close):
-#guard parserGap "k: [1, 2]\nb\n"
-#guard parserGap "- [1, 2]\nb\n"
+#guard scannerRefuses "k: [1, 2]\nb\n"
+#guard scannerRefuses "- [1, 2]\nb\n"
 -- Property-run and alias danglers (the run's START carries the column):
-#guard parserGap "x: &q 1\n*q\n"
-#guard parserGap "x: &q 1\n*q\ny: 2\n"
-#guard parserGap "a: 1\n&p b\n"
-#guard parserGap "a: 1\n&p b\nc: 2\n"
-#guard parserGap "a: 1\n&p\n"
-#guard parserGap "a: 1\n&p\nc: 2\n"
+#guard scannerRefuses "x: &q 1\n*q\n"
+#guard scannerRefuses "x: &q 1\n*q\ny: 2\n"
+#guard scannerRefuses "a: 1\n&p b\n"
+#guard scannerRefuses "a: 1\n&p b\nc: 2\n"
+#guard scannerRefuses "a: 1\n&p\n"
+#guard scannerRefuses "a: 1\n&p\nc: 2\n"
 -- Block-scalar danglers at a level's column:
-#guard parserGap "k: 1\n|\n  x\n"
-#guard parserGap "k: 1\n|\n  x\nm: 2\n"
-#guard parserGap "k:\n  a: 1\n|\n  x\n"
+#guard scannerRefuses "k: 1\n|\n  x\n"
+#guard scannerRefuses "k: 1\n|\n  x\nm: 2\n"
+#guard scannerRefuses "k:\n  a: 1\n|\n  x\n"
 -- The dangler dies at a MARKER dispatch too, so the check precedes the
 -- structural dispatch:
-#guard parserGap "a: 1\nb\n...\n"
-#guard parserGap "a: 1\nb\n--- c\n"
+#guard scannerRefuses "a: 1\nb\n...\n"
+#guard scannerRefuses "a: 1\nb\n--- c\n"
 
 -- §4 M3 — the `-` at a mapping top's own column, entry complete.
 #guard parserGap "a: 1\n- y\n"

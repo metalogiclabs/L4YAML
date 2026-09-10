@@ -1781,6 +1781,9 @@ lemma scanNextToken_preserves_bound_full (s s' : ScannerState)
         BoundInv.refl sp h_bi_sp.offset_le h_bi_sp.isValid
       have h_hend_sp : sp.inputEnd = sp.input.utf8ByteSize := by
         rw [h_bi_sp.inputEnd_eq, h_bi_sp.input_eq]; exact hend
+      -- §9.2 dangling-node check (item 133)
+      split at h
+      · cases h
       -- Split on dispatchStructural
       split at h
       · cases h  -- error

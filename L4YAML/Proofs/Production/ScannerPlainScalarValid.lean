@@ -1248,6 +1248,8 @@ lemma scanNextToken_preserves_PlainScalarsValid :
   rename_i s2 c h_pre
   have h_old2 := preprocess_preserves_PlainScalarsValid s s2 c h_old h_pre
   have h_peek2 := preprocess_peek s s2 c h_pre
+  -- §9.2 dangling-node check (item 133)
+  split at h_ok <;> (try (simp at h_ok; done))
   split at h_ok <;> (try (simp at h_ok; done))
   split at h_ok
   · simp only [Except.ok.injEq, Option.some.injEq] at h_ok; subst h_ok
@@ -1310,6 +1312,8 @@ lemma scanLoop_preserves_PlainScalarsValid
     split at h_ok
     · simp at h_ok
     · split at h_ok <;> try (simp at h_ok; done)
+      split at h_ok <;> try (simp at h_ok; done)
+      -- §9.2 dangling-node check (item 133)
       split at h_ok <;> try (simp at h_ok; done)
       injection h_ok with h_eq; rw [← h_eq]
       exact finalEmit_preserves_PlainScalarsValid s h_old
@@ -5078,6 +5082,8 @@ lemma scanNextToken_preserves_FlowInv
   have h_fni2 := preprocess_preserves_FlowNestingInv s s2 c h_fni h_pre
   have h_akpi2 := preprocess_preserves_AllKeysPlaceholderInv s s2 c h_pre h_akpi
   have h_peek2 := preprocess_peek s s2 c h_pre
+  -- §9.2 dangling-node check (item 133)
+  split at h_ok <;> (try (simp at h_ok; done))
   split at h_ok <;> (try (simp at h_ok; done))
   split at h_ok
   · -- dispatchStructural
@@ -5160,6 +5166,8 @@ lemma scanLoop_preserves_FlowInv
     split at h_ok
     · simp at h_ok
     · split at h_ok <;> try (simp at h_ok; done)
+      split at h_ok <;> try (simp at h_ok; done)
+      -- §9.2 dangling-node check (item 133)
       split at h_ok <;> try (simp at h_ok; done)
       injection h_ok with h_eq; rw [← h_eq]
       exact finalEmit_preserves_FlowContextPSV s h_fpsv
@@ -5524,6 +5532,8 @@ lemma scanLoop_FlowBracketsMatched
       -- ¬(s.flowLevel > 0)
       split at h_ok <;> try (simp at h_ok; done)
       -- ¬(s.directivesPresent && !s.documentEverStarted)
+      -- §9.2 dangling-node check (item 133)
+      split at h_ok <;> try (simp at h_ok; done)
       injection h_ok with h_eq; rw [← h_eq]
       -- Goal: FlowBracketsMatched ((unwindIndents s (-1)).emit .streamEnd).tokens
       unfold FlowBracketsMatched

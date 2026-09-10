@@ -170,6 +170,9 @@ lemma scanNextTokenIx_preserves_sync
       have h_pre_fl := scanNextTokenIx_preprocess_preserves_flowLevel s _ _ hPre
       have h_pre_sync : s1.simpleKeyStack.size ≥ s1.flowLevel := by
         rw [h_pre_stack, h_pre_fl]; exact h_sync
+      -- §9.2 dangling-node check (item 133)
+      split at h_next
+      · contradiction
       -- structural
       split at h_next
       · contradiction
@@ -277,6 +280,14 @@ lemma scanNextTokenIx_preserves_prefix_of_simpleKey
           _preprocess_preserves_prefix s s_pp c n h_n h_pp i h_i
         have h_n_pp : n ≤ s_pp.tokens.size :=
           Nat.le_trans h_n (scanNextTokenIx_preprocess_tokens_size_le s s_pp c h_pp)
+        dsimp only [] at h_ok
+        -- §9.2 dangling-node check (item 133)
+        have h_dn : ∃ u, scanNextTokenIx_checkDanglingNode s_pp = .ok u := by
+          cases hx : scanNextTokenIx_checkDanglingNode s_pp with
+          | error e => rw [hx] at h_ok; simp at h_ok
+          | ok u => exact ⟨u, rfl⟩
+        obtain ⟨uDN, h_dn⟩ := h_dn
+        rw [h_dn] at h_ok
         dsimp only [] at h_ok
         generalize h_ds : scanNextTokenIx_dispatchStructural s_pp c = ds_res at h_ok
         cases ds_res with
@@ -474,10 +485,11 @@ lemma scanFilteredIx_of_chain (input : String)
     (h_eof : scanNextTokenIx s_final = .ok none)
     (h_fl : s_final.flowLevel = 0)
     (h_dp : s_final.directivesPresent = false)
+    (h_dn : scanLoopIx_checkDanglingNode s_final = .ok ())
     (h_fuel : n + 1 ≤ (input.utf8ByteSize + 1) * 4) :
     ∃ ts, scanFilteredIx input = .ok ts := by
   -- scanLoopIx at s_final with fuel 1 succeeds (EOF terminal step).
-  obtain ⟨toks_final, h_loop_final⟩ := scanLoopIx_eof h_eof h_fl h_dp
+  obtain ⟨toks_final, h_loop_final⟩ := scanLoopIx_eof h_eof h_fl h_dp h_dn
   -- Chain lifts: scanLoopIx s₀ (1 + n) succeeds with the same result.
   have h_loop : scanLoopIx s₀ (1 + n) = .ok toks_final := h_chain.to_scanLoopIx h_loop_final
   -- Fuel monotonicity: scanLoopIx s₀ ((utf8 + 1) * 4) succeeds.
@@ -511,6 +523,7 @@ lemma scanFilteredIx_of_chain_eq (input : String)
     (h_eof : scanNextTokenIx s_final = .ok none)
     (h_fl : s_final.flowLevel = 0)
     (h_dp : s_final.directivesPresent = false)
+    (h_dn : scanLoopIx_checkDanglingNode s_final = .ok ())
     (h_fuel : n + 1 ≤ (input.utf8ByteSize + 1) * 4) :
     scanFilteredIx input = .ok ⟨(((unwindIndentsIx s_final (-1)).emit
         YamlToken.streamEnd).tokens.tokens.filter
@@ -518,7 +531,7 @@ lemma scanFilteredIx_of_chain_eq (input : String)
   have h_loop : scanLoopIx s₀ ((input.utf8ByteSize + 1) * 4) = .ok
       ((unwindIndentsIx s_final (-1)).emit YamlToken.streamEnd).tokens := by
     have h_step :=
-      scanLoopIx_eof_eq (fuel := 1) (by omega) h_eof h_fl h_dp
+      scanLoopIx_eof_eq (fuel := 1) (by omega) h_eof h_fl h_dp h_dn
     have h_loop_chain := h_chain.to_scanLoopIx h_step
     exact scanLoopIx_fuel_mono h_loop_chain (by omega)
   have h_scan : scanIx input = scanLoopIx s₀ ((input.utf8ByteSize + 1) * 4) := by
@@ -595,11 +608,14 @@ lemma scanNextTokenIx_via_flow_dispatch
     (h_check : scanNextTokenIx_checkBlockFlowIndent s_ad c = .ok ())
     (h_flow : scanNextTokenIx_dispatchFlowIndicators s_ad c = .ok (some s_result))
     (h_ndp : s_pp.directivesPresent = false)
-    (h_bare : scanNextTokenIx_checkBareDocument s_pp = .ok ()) :
+    (h_bare : scanNextTokenIx_checkBareDocument s_pp = .ok ())
+    (h_dang : scanNextTokenIx_checkDanglingNode s_pp = .ok ()) :
     scanNextTokenIx s = .ok (some s_result) := by
   unfold scanNextTokenIx
   simp only [bind, Except.bind, pure, Pure.pure, Except.pure]
   rw [h_pp]
+  dsimp only []
+  rw [h_dang]
   dsimp only []
   rw [h_struct]
   dsimp only []
@@ -639,6 +655,7 @@ lemma checkFlowAdjacencyIx_ok_of_scanNextTokenIx_ok
       unfold scanNextTokenIx
       simp only [bind, Except.bind, pure, Pure.pure, Except.pure]
       rw [h_pp]; dsimp only []
+      rw [scanNextTokenIx_ok_checkDanglingNode h_pp h_snt]; dsimp only []
       rw [h_struct]; dsimp only []
       rw [scanNextTokenIx_checkNoPendingDirectives_ok _ h_ndp]; dsimp only []
       rw [scanNextTokenIx_ok_checkBareDocument h_pp h_struct h_snt]; dsimp only []

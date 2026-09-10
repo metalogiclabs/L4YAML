@@ -274,6 +274,7 @@ lemma scanFiltered_emitScalar_content (content : String) (tokens : Array (Positi
     split <;> first | exact absurd ‹_› (by decide) | rfl
   -- Get concrete token array via scanLoop_two_iter_eq
   have h_loop_eq := scanLoop_two_iter_eq h_fuel h_snt1 h_snt2 h_flow1 h_dp1
+    (scanLoop_checkDanglingNode_ok_of_sentinel_stack _ h_ids1)
   -- The raw scan result is ((unwindIndents s₁ (-1)).emit .streamEnd).tokens
   have h_scan_raw : scan (emitScalar content) =
       .ok ((unwindIndents s₁ (-1)).emit .streamEnd).tokens := by

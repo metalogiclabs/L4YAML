@@ -93,6 +93,50 @@ def trailingPropertyRun (tokens : Array (Positioned YamlToken)) : List YamlToken
     else []
   | none => []
 
+/-! ### The trailing node run (§9.2's dangling node) -/
+
+/-- The previous REAL token's index, strictly before `i`, skipping the
+    reservation placeholders `saveSimpleKey` pushes.
+
+    `lastRealTokenVal?` above skips at most two, which is exactly one save's
+    reservation and is all its callers need.  This walk is unbounded because a
+    RUN's start can sit behind an arbitrary number of them, and it is
+    structurally recursive on `i`, so it is total. -/
+def prevRealIdx? (tokens : Array (Positioned YamlToken)) : Nat → Option Nat
+  | 0 => none
+  | i + 1 => if tokens[i]!.val == .placeholder then prevRealIdx? tokens i else some i
+
+/-- The trailing `[96]* (scalar|alias)?` run at the end of the token array: the
+    index it STARTS at, paired with the index of the real token before it.
+    `none` when the array does not end in a node run at all.
+
+    §6.9 admits at most one anchor and one tag, so the property walk-back is
+    capped at two — the same cap, for the same reason, as
+    `trailingPropertyRun`'s two lookbacks. -/
+def trailingNodeRun? (tokens : Array (Positioned YamlToken)) :
+    Option (Nat × Option Nat) :=
+  match prevRealIdx? tokens tokens.size with
+  | none => none
+  | some i =>
+    let t := tokens[i]!.val
+    if t.isNodeProperty then
+      -- A property run with no body of its own (`&p`, `&p !t`).
+      let st := match prevRealIdx? tokens i with
+                | some j => if tokens[j]!.val.isNodeProperty then j else i
+                | none => i
+      some (st, prevRealIdx? tokens st)
+    else if t.isNodeBody then
+      let st := match prevRealIdx? tokens i with
+                | some j =>
+                  if tokens[j]!.val.isNodeProperty then
+                    match prevRealIdx? tokens j with
+                    | some k => if tokens[k]!.val.isNodeProperty then k else j
+                    | none => j
+                  else i
+                | none => i
+      some (st, prevRealIdx? tokens st)
+    else none
+
 /-! ### When token adjacency means "same property run" (items 9e and 9k)
 
     Token adjacency means "same node" only when nothing that emits no token can

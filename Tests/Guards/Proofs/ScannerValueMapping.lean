@@ -225,8 +225,10 @@ absorbs before any of it can be asked. -/
 #guard !scanAccepts "k:\n \ta: 1\n" && rejectsAlike "k:\n \ta: 1\n"
 -- Ragged indentation inside the nested map is refused at the scanner.
 #guard !scanAccepts "k:\n  a: 1\n b: 2\n" && rejectsAlike "k:\n  a: 1\n b: 2\n"
--- A block scalar body flush with its key is not the entry's node.
-#guard scanAccepts "k:\n  a: |\n  x\n" && rejects "k:\n  a: |\n  x\n"
+-- A block scalar body flush with its key is not the entry's node: the empty
+-- body leaves `x` a DANGLING run at the key's own level, which §9.2 refuses at
+-- the scanner (item 133).
+#guard !scanAccepts "k:\n  a: |\n  x\n" && rejectsAlike "k:\n  a: |\n  x\n"
 -- A second `:` on the line is refused at the scanner (item 48's
 -- `nestedMappingOnLine`): `[194]`'s value slot has no same-line mapping.
 #guard !scanAccepts "k: a: 1\n" && rejectsAlike "k: a: 1\n"

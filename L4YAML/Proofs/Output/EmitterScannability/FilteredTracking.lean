@@ -54,11 +54,13 @@ lemma scanFiltered_tokens_eq_of_chain_short_stack
     (h_eof : scanNextToken s_final = .ok none)
     (h_fl : s_final.flowLevel = 0)
     (h_dp : s_final.directivesPresent = false)
+    (h_dn : scanLoop_checkDanglingNode s_final = .ok ())
     (h_fuel : n + 1 ≤ (input.utf8ByteSize + 1) * 4)
     (h_stack : s_final.indents.size ≤ 1) :
     Scanner.scanFiltered input =
       .ok ((s_final.emit .streamEnd).tokens.filter (fun t => t.val != .placeholder)) := by
-  have h_eq := scanFiltered_of_chain_eq input s₀ s_final n h_s0 h_no_bom h_chain h_eof h_fl h_dp h_fuel
+  have h_eq := scanFiltered_of_chain_eq input s₀ s_final n h_s0 h_no_bom h_chain h_eof h_fl h_dp
+    h_dn h_fuel
   rwa [unwindIndents_noop_short_stack s_final h_stack] at h_eq
 
 /-- `ScanChain` token array monotonicity: tokens array size grows (non-strictly)
@@ -246,6 +248,8 @@ lemma scanNextToken_flow_close_seq_outermost_ext (s : ScannerState)
     ((saveSimpleKey_preserves_directivesPresent s).trans h_dp)
     (scanNextToken_checkBareDocument_ok_of_inFlow _
       ((saveSimpleKey_preserves_inFlow s).trans h_flow))
+    (scanNextToken_checkDanglingNode_ok_of_inFlow _
+      ((saveSimpleKey_preserves_inFlow s).trans h_flow))
   -- s' = scanFlowSequenceEnd s_ad
   let s' := scanFlowSequenceEnd s_ad
   have h_result_fl : s'.flowLevel = 0 := by
@@ -343,6 +347,8 @@ lemma scanNextToken_flow_close_mapping_outermost_ext (s : ScannerState)
   have h_snt := scanNextToken_via_flow_dispatch _ _ _ _ _ h_pp h_struct rfl h_check h_flow_disp
     ((saveSimpleKey_preserves_directivesPresent s).trans h_dp)
     (scanNextToken_checkBareDocument_ok_of_inFlow _
+      ((saveSimpleKey_preserves_inFlow s).trans h_flow))
+    (scanNextToken_checkDanglingNode_ok_of_inFlow _
       ((saveSimpleKey_preserves_inFlow s).trans h_flow))
   -- s' = scanFlowMappingEnd s_ad
   let s' := scanFlowMappingEnd s_ad

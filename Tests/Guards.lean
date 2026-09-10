@@ -54,6 +54,7 @@ import Tests.Guards.Proofs.ScannerEscapedBreakLanding
 import Tests.Guards.Proofs.ScannerIndexedFlowCompose
 import Tests.Guards.Proofs.ScannerAdjacentValueRefused
 import Tests.Guards.Proofs.ScannerBareDocumentRefusal
+import Tests.Guards.Proofs.ScannerDanglingNodeRefusal
 import Tests.Guards.Proofs.ScannerSameLineCollectionRefused
 import Tests.Guards.Proofs.ScannerPropsNullKeyCompose
 import Tests.Guards.Proofs.ScannerExplicitValueCompose

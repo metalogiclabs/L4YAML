@@ -1610,6 +1610,14 @@ lemma scanNextTokenIx_ok_some_monotonic {input : String}
       have hPpO := scanNextTokenIx_preprocess_offset_monotonic hPre
       have hPpT := scanNextTokenIx_preprocess_tokens_size_le hPre
       simp only at h
+      -- §9.2 dangling-node check (item 133): peel it, keeping h's tail intact.
+      have hDN : ∃ u, scanNextTokenIx_checkDanglingNode sp = .ok u := by
+        cases hx : scanNextTokenIx_checkDanglingNode sp with
+        | error e => rw [hx] at h; cases h
+        | ok u => exact ⟨u, rfl⟩
+      obtain ⟨uDN, hDN⟩ := hDN
+      rw [hDN] at h
+      simp only at h
       cases hStr : scanNextTokenIx_dispatchStructural sp c with
       | error e => rw [hStr] at h; cases h
       | ok structRes =>
@@ -1772,6 +1780,13 @@ lemma scanLoopIx_tokens_size_le {input : String}
           by_cases hDS : s.directivesPresent = true
           · rw [if_pos hDS] at h; cases h
           · rw [if_neg hDS] at h
+            -- §9.2 dangling-node check (item 133): peel its `.ok` arm.
+            have hDN : ∃ u, scanLoopIx_checkDanglingNode s = .ok u := by
+              cases hx : scanLoopIx_checkDanglingNode s with
+              | error e => rw [hx] at h; cases h
+              | ok u => exact ⟨u, rfl⟩
+            obtain ⟨uDN, hDN⟩ := hDN
+            rw [hDN] at h
             -- h : .ok ((unwindIndentsIx s (-1)).emit streamEnd).tokens = .ok ts
             cases h
             -- Goal: s.tokens.size ≤ ((unwindIndentsIx s (-1)).emit streamEnd).tokens.size

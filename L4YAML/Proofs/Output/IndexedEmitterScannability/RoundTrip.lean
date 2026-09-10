@@ -197,12 +197,13 @@ lemma scanFiltered_tokens_eq_of_chain_short_stackIx
     (h_eof : scanNextTokenIx s_final = .ok none)
     (h_fl : s_final.flowLevel = 0)
     (h_dp : s_final.directivesPresent = false)
+    (h_dn : scanLoopIx_checkDanglingNode s_final = .ok ())
     (h_fuel : n + 1 ≤ (input.utf8ByteSize + 1) * 4)
     (h_stack : s_final.indents.size ≤ 1) :
     scanFilteredIx input = .ok ⟨((s_final.emit YamlToken.streamEnd).tokens.tokens.filter
       (fun t => t.token != YamlToken.placeholder))⟩ := by
   have h_eq := scanFilteredIx_of_chain_eq input s₀ s_final n h_s0 h_no_bom h_chain
-    h_eof h_fl h_dp h_fuel
+    h_eof h_fl h_dp h_dn h_fuel
   rwa [unwindIndents_noop_short_stackIx s_final h_stack] at h_eq
 
 /-- `ScanChainIx` token-stream monotonicity: the token array grows
@@ -438,6 +439,8 @@ lemma scanNextToken_flow_close_seq_outermost_extIx {input : String}
       ((saveSimpleKeyIx_directivesPresent s).trans h_dp)
       (scanNextTokenIx_checkBareDocument_ok_of_inFlow _
         ((saveSimpleKeyIx_inFlow s).trans h_flow))
+      (scanNextTokenIx_checkDanglingNode_ok_of_inFlow _
+        ((saveSimpleKeyIx_inFlow s).trans h_flow))
   -- §5: `scanFlowSequenceEndIx_detail` bundles SurfCorr / flowLevel / dp / indents / col.
   obtain ⟨h_corr_final, h_fl_final, h_dp_final, h_ind_final, _⟩ :=
     scanFlowSequenceEndIx_detail s_ad [] h_ad_corr
@@ -544,6 +547,8 @@ lemma scanNextToken_flow_close_mapping_outermost_extIx {input : String}
       (scanFlowMappingEndIx s_ad) '}' h_pp h_struct rfl h_check h_flow_disp
       ((saveSimpleKeyIx_directivesPresent s).trans h_dp)
       (scanNextTokenIx_checkBareDocument_ok_of_inFlow _
+        ((saveSimpleKeyIx_inFlow s).trans h_flow))
+      (scanNextTokenIx_checkDanglingNode_ok_of_inFlow _
         ((saveSimpleKeyIx_inFlow s).trans h_flow))
   obtain ⟨h_corr_final, h_fl_final, h_dp_final, h_ind_final, _⟩ :=
     scanFlowMappingEndIx_detail s_ad [] h_ad_corr

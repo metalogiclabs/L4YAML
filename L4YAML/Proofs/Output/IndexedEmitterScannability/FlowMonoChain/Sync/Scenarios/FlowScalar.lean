@@ -336,6 +336,8 @@ lemma scanNextTokenIx_flow_scanDoubleQuoted (s : ScannerStateIx input)
       ((saveSimpleKeyIx_directivesPresent s).trans h_dp)
       (scanNextTokenIx_checkBareDocument_ok_of_inFlow _
         ((saveSimpleKeyIx_inFlow s).trans h_flow))
+      (scanNextTokenIx_checkDanglingNode_ok_of_inFlow _
+        ((saveSimpleKeyIx_inFlow s).trans h_flow))
   -- ── line equality (used by several conjuncts)
   have h_s'_line_eq : s'.cursor.pos.line = s.cursor.pos.line := by
     rw [h_s'_cursor, h_line_cAfter]; exact h_ad_line

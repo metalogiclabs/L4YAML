@@ -109,6 +109,7 @@ lemma scanNextToken_flow_open_mapping_ska (s s' : ScannerState) (rest : List Cha
     scanNextToken_via_flow_dispatch _ _ _ _ _ h_pp h_struct rfl h_check h_flow_disp
       (scanNextToken_ok_directivesPresent_false h_pp h_struct h_snt)
       (scanNextToken_ok_checkBareDocument h_pp h_struct h_snt)
+      (scanNextToken_ok_checkDanglingNode h_pp h_snt)
   have h_s' : s' = scanFlowMappingStart s_ad :=
     Option.some.inj (Except.ok.inj (h_snt.symm.trans h_snt_eq))
   rw [h_s']; rfl

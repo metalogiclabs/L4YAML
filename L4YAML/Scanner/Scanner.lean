@@ -836,6 +836,64 @@ def scanNextToken_checkBareDocument (s : ScannerState) :
   else
     .ok ()
 
+/-- §9.2 [211]: the DANGLING node run.  A trailing `[96]* (scalar|alias)?` whose
+    start sits at an OPEN indent level's own column, and whose structural
+    predecessor offers it no slot, belongs to nothing: the level it sits at is
+    already occupied by the collection that opened it, and the run is neither
+    that collection's next key nor any indicator's content.  §9.2 has no
+    production for it, and the parser refuses it as `invalidBareDocument`.
+
+    The three predecessors that DO offer a slot are `YamlToken.offersNodeSlot`'s
+    — `:`, `?` and `-` — and they are what keeps the equal-column value
+    readings legal: `a:⏎b` is `{a: b}`, `?⏎b⏎: v` is the explicit key's content,
+    `-⏎b` is the entry's.  What has no slot is a run behind a finished one
+    (`a: 1⏎b`), behind a flow close (`k: [1, 2]⏎b`) or behind another dangler.
+
+    The position reported is the RUN's start, not the cursor's, because that is
+    where the offending node begins and where the parser reports.
+
+    This reads the token array alone.  A property run's placeholders are never
+    rewritten while the run is unresolved, so the run is visible there and no
+    new state field is needed. -/
+def danglingNodePos? (s : ScannerState) : Option YamlPos :=
+  if s.inFlow then none
+  else
+    match trailingNodeRun? s.tokens with
+    | none => none
+    | some (st, pred) =>
+      let offered := match pred with
+        | some j => s.tokens[j]!.val.offersNodeSlot
+        | none => false
+      if offered then none
+      else
+        let p := s.tokens[st]!.pos
+        if s.indents.any (fun e => e.column == (p.col : Int)) then some p else none
+
+/-- §9.2 [211] mid-stream: the dangling run, once a line break has ended it.
+
+    `simpleKeyAllowed` is that break, exactly as in
+    `scanNextToken_checkBareDocument`: a run still on its own line may yet be
+    resolved by a `:` (`a: 1⏎b: 2` — `b` becomes a key), and the flag is down
+    there.  Runs BEFORE the structural dispatch, because a dangler dies at a
+    `...`/`---` too (`a: 1⏎b⏎...`) and the marker would otherwise consume the
+    step. -/
+@[yaml_spec "9.2" 211 "l-yaml-stream"]
+def scanNextToken_checkDanglingNode (s : ScannerState) : Except ScanError Unit :=
+  if s.simpleKeyAllowed then
+    match danglingNodePos? s with
+    | some p => .error (.invalidBareDocument p.line p.col)
+    | none => .ok ()
+  else .ok ()
+
+/-- §9.2 [211] at the end of input: the same run, with no break to require —
+    the stream itself ended it (`a: 1⏎b`).  Runs beside `scanLoop`'s other two
+    final validations. -/
+@[yaml_spec "9.2" 211 "l-yaml-stream"]
+def scanLoop_checkDanglingNode (s : ScannerState) : Except ScanError Unit :=
+  match danglingNodePos? s with
+  | some p => .error (.invalidBareDocument p.line p.col)
+  | none => .ok ()
+
 /-- §8.2.2 [194] / §7.5: a `:` that reaches CONTENT dispatch while a completed
     node's simple key is still recorded starts a second node in a one-node slot.
 
@@ -906,6 +964,10 @@ def scanNextToken (s : ScannerState) : Except ScanError (Option ScannerState) :=
   match ← scanNextToken_preprocess s with
   | none => return none
   | some (s, c) =>
+    -- §9.2 [211] (item 133): a dangling node run at an open level's own
+    -- column, ended by the break this landing crossed.  BEFORE the structural
+    -- dispatch, because the dangler dies at a `...`/`---` too.
+    scanNextToken_checkDanglingNode s
     match ← scanNextToken_dispatchStructural s c with
     | some s' => return some s'
     | none =>
@@ -975,6 +1037,10 @@ def scanLoop (s : ScannerState) (fuel : Nat) :
         -- orphan directives in second documents slip through.)
         .error (.directiveWithoutDocument s.line)
       else
+        -- §9.2 [211] (item 133): the dangling run the stream itself ended.
+        match scanLoop_checkDanglingNode s with
+        | .error e => .error e
+        | .ok _ =>
         -- Close all remaining block contexts and emit final token
         let final := unwindIndents s (-1)
         let final := final.emit .streamEnd
@@ -1039,6 +1105,9 @@ def scanLoopFull (s : ScannerState) (fuel : Nat) : Except ScanError ScannerState
         -- scanNextToken calls skipToContent internally, but returns
         -- none (discarding the updated state) when end-of-input is
         -- reached after comment/whitespace consumption.
+        match scanLoop_checkDanglingNode s with
+        | .error e => .error e
+        | .ok _ =>
         let s := match skipToContent s with | .ok s' => s' | .error _ => s
         let final := unwindIndents s (-1)
         let final := final.emit .streamEnd

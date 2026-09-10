@@ -322,6 +322,9 @@ lemma scanNextToken_mono {s s' : ScannerState}
     · rename_i sp c h_pre
       have h_pp : Mono sp := preprocess_mono h_pre h
       have h_pb : SentinelBase sp := preprocess_base h_pre hbase
+      -- §9.2 dangling-node check (item 133)
+      split at hok
+      · cases hok
       split at hok
       · cases hok
       · split at hok

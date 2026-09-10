@@ -4267,6 +4267,14 @@ lemma scanNextTokenIx_preserves_PlainScalarsValidIx {input : String}
         have h_psv_pp : PlainScalarsValidIx s_pp.tokens :=
           scanNextTokenIx_preprocess_preserves_PlainScalarsValidIx s s_pp c h_pp h_old
         dsimp only [] at h_ok
+        -- §9.2 dangling-node check (item 133)
+        have h_dn : ∃ u, scanNextTokenIx_checkDanglingNode s_pp = .ok u := by
+          cases hx : scanNextTokenIx_checkDanglingNode s_pp with
+          | error e => rw [hx] at h_ok; simp at h_ok
+          | ok u => exact ⟨u, rfl⟩
+        obtain ⟨uDN, h_dn⟩ := h_dn
+        rw [h_dn] at h_ok
+        dsimp only [] at h_ok
         generalize h_ds : scanNextTokenIx_dispatchStructural s_pp c = ds_res at h_ok
         cases ds_res with
         | error e => simp at h_ok
@@ -4397,6 +4405,9 @@ lemma scanLoopIx_preserves_PlainScalarsValidIx {input : String}
     · split at h_ok
       · cases h_ok
       · split at h_ok
+        · cases h_ok
+        -- §9.2 dangling-node check (item 133)
+        split at h_ok
         · cases h_ok
         · simp only [Except.ok.injEq] at h_ok
           subst h_ok
@@ -6227,6 +6238,14 @@ lemma scanNextTokenIx_preserves_AllKeysPlaceholderInvIx {input : String}
         have h_akpi_pp : AllKeysPlaceholderInvIx s_pp :=
           scanNextTokenIx_preprocess_preserves_AllKeysPlaceholderInvIx s s_pp c h_pp h_akpi
         dsimp only [] at h_ok
+        -- §9.2 dangling-node check (item 133)
+        have h_dn : ∃ u, scanNextTokenIx_checkDanglingNode s_pp = .ok u := by
+          cases hx : scanNextTokenIx_checkDanglingNode s_pp with
+          | error e => rw [hx] at h_ok; simp at h_ok
+          | ok u => exact ⟨u, rfl⟩
+        obtain ⟨uDN, h_dn⟩ := h_dn
+        rw [h_dn] at h_ok
+        dsimp only [] at h_ok
         generalize h_ds : scanNextTokenIx_dispatchStructural s_pp c = ds_res at h_ok
         cases ds_res with
         | error e => simp at h_ok
@@ -6330,6 +6349,14 @@ lemma scanNextTokenIx_preserves_FlowContextPSVIx {input : String}
         have h_akpi_pp : AllKeysPlaceholderInvIx s_pp :=
           scanNextTokenIx_preprocess_preserves_AllKeysPlaceholderInvIx s s_pp c h_pp h_akpi
         have h_pl_pp : SimpleKeyPlaceholderInvIx s_pp := h_akpi_pp.1
+        dsimp only [] at h_ok
+        -- §9.2 dangling-node check (item 133)
+        have h_dn : ∃ u, scanNextTokenIx_checkDanglingNode s_pp = .ok u := by
+          cases hx : scanNextTokenIx_checkDanglingNode s_pp with
+          | error e => rw [hx] at h_ok; simp at h_ok
+          | ok u => exact ⟨u, rfl⟩
+        obtain ⟨uDN, h_dn⟩ := h_dn
+        rw [h_dn] at h_ok
         dsimp only [] at h_ok
         generalize h_ds : scanNextTokenIx_dispatchStructural s_pp c = ds_res at h_ok
         cases ds_res with
@@ -6442,6 +6469,14 @@ lemma scanNextTokenIx_preserves_FlowNestingInvIx {input : String}
           scanNextTokenIx_preprocess_preserves_AllKeysPlaceholderInvIx s s_pp c h_pp h_akpi
         have h_pl_pp : SimpleKeyPlaceholderInvIx s_pp := h_akpi_pp.1
         dsimp only [] at h_ok
+        -- §9.2 dangling-node check (item 133)
+        have h_dn : ∃ u, scanNextTokenIx_checkDanglingNode s_pp = .ok u := by
+          cases hx : scanNextTokenIx_checkDanglingNode s_pp with
+          | error e => rw [hx] at h_ok; simp at h_ok
+          | ok u => exact ⟨u, rfl⟩
+        obtain ⟨uDN, h_dn⟩ := h_dn
+        rw [h_dn] at h_ok
+        dsimp only [] at h_ok
         generalize h_ds : scanNextTokenIx_dispatchStructural s_pp c = ds_res at h_ok
         cases ds_res with
         | error e => simp at h_ok
@@ -6545,6 +6580,9 @@ lemma scanLoopIx_preserves_FlowContextPSVIx {input : String}
       · cases h_ok
       · split at h_ok
         · cases h_ok
+        -- §9.2 dangling-node check (item 133)
+        split at h_ok
+        · cases h_ok
         · simp only [Except.ok.injEq] at h_ok
           subst h_ok
           exact finalEmit_preserves_FlowContextPSVIx s h_old
@@ -6574,10 +6612,15 @@ lemma scanLoopIx_preserves_FlowNestingInvIx {input : String}
       · cases h_ok
       · split at h_ok
         · cases h_ok
+        -- §9.2 dangling-node check (item 133)
+        split at h_ok
+        · cases h_ok
         · simp only [Except.ok.injEq] at h_ok
           subst h_ok
-          rename_i h_flow0 _h_dirOK
           have h_flowEq0 : s.flowLevel = 0 := by
+            -- The dangling-node split (item 133) adds three binders of its
+            -- own, so the flow-level hypothesis is five back.
+            rename_i h_flow0 _ _ _ _
             simp only [Nat.not_lt, Nat.le_zero] at h_flow0
             exact h_flow0
           have h_final := finalEmit_preserves_FlowNestingInvIx s h_fni
