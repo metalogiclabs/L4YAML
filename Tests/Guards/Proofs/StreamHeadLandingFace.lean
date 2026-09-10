@@ -275,10 +275,18 @@ Three families reach it and none of them can pay a head:
 For the first two the honest answer is the level they land in — the resume arm,
 which `content_dispatch_routed` already prefers where the park kept its frames
 — and where no level is open and no `...` intervened, §9.2 refuses the input
-outright (§1's last two pins).  So what the fallback arm needs is not a fourth
+outright (§1's last two pins).  ~~So what the fallback arm needs is not a fourth
 route but the refutation items 132–134 made available at the scanner, threaded
 to the accumulation as a contradiction rather than carried as a document.  That
-is the next item, and it is what empties the `∨ True`.
+is the next item, and it is what empties the `∨ True`.~~
+
+**One of them did need a fourth route** (item 137, correcting the sentence
+above).  `pendingDocStart` is in the first family, and a `---` park has a
+document that is still OPEN: the node its landing starts is that document's own
+content, not a second document and not a level to resume.  The park has carried
+the route since item 135; `StreamMarkerLandingFace` pays it at the two landings
+that were still on the fallback.  What is left of the sentence holds for the
+rest — see that file's §5.
 
 `pendingDirective`'s `[209]` witness and the `SLAnyDocument.explicit` wrapper
 stand where item 135 left them: the first is a missing witness, the second

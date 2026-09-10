@@ -108,6 +108,7 @@ import Tests.Guards.Proofs.ScannerSuffixCollectionLanding
 import Tests.Guards.Proofs.ScannerRaisedFlagRefusalMap
 import Tests.Guards.Proofs.StreamRouteSwapSurface
 import Tests.Guards.Proofs.StreamHeadLandingFace
+import Tests.Guards.Proofs.StreamMarkerLandingFace
 import Tests.Guards.Proofs.FlowFrameResumeRider
 import Tests.Guards.Proofs.UnderIndentInvariantMap
 import Tests.Guards.Proofs.ScalarWalkCrossLineFloor
