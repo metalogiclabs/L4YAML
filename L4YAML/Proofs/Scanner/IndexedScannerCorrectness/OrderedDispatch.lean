@@ -224,6 +224,9 @@ lemma scanBlockEntryIx_preserves_ScanInvIx {input : String}
     · -- item 48 same-line check
       split at h_ok
       · simp at h_ok
+      -- `scanBlockEntryValidateIx` (item 134)
+      split at h_ok
+      · simp at h_ok
       simp only [Except.ok.injEq] at h_ok; subst h_ok
       have h1 := pushSequenceIndentIx_preserves_ScanInvIx s s.cursor.pos.col h
       have h2 := emit_preserves_ScanInvIx _ YamlToken.blockEntry h1

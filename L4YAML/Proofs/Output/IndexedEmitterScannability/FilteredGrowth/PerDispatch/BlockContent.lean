@@ -115,6 +115,10 @@ lemma scanBlockEntryIx_tokens_eq {s s' : ScannerStateIx input}
       -- `split` resolves the `!s.inFlow` let-if by assumption `hi`.
       split at h
       · simp [Bind.bind, Except.bind] at h
+      -- `scanBlockEntryValidateIx` (item 134): its throw arm contradicts `.ok s'`.
+      simp only [Bind.bind, Except.bind] at h
+      split at h
+      · simp at h
       simp only [Except.ok.injEq] at h
       subst h
       simp only [if_pos hi, advance_tokens]

@@ -255,23 +255,19 @@ private def saysAlike (input : String) (line col : Nat) : Bool :=
     indent stack is the sentinel alone; M2 is a run at an OPEN level's column.
     The two never overlap, because a column is a `Nat` and the sentinel's is
     `-1`.  M3 — the `-` at a mapping top's own column with the entry complete —
-    is still the parser's, and `-` heads no node run, so this check leaves it
-    alone. -/
-
-private def parserOnly (input : String) : Bool :=
-  (match Scanner.scan input, Indexed.ScannerStateIx.scanIx input with
-   | .ok _, .ok _ => true
-   | _, _ => false) &&
-  (match Events.streamToEvents input, Events.streamToEventsIx input with
-   | .error _, .error _ => true
-   | _, _ => false)
+    landed at item 134, and this check stands aside on its whole family for the
+    reason §1 gives: the trailing run's PREDECESSOR offers it a slot (`k` is the
+    explicit key's content, `1` is `a`'s value), so nothing is dangling.  What
+    has no slot is the `-` in front of it, and that is
+    `scanBlockEntryValidate`'s question, not this one's. -/
 
 -- M1's family: the root, refused by the OTHER check, at the node's own column.
 #guard saysAlike "[1, 2]\na\n" 1 0
 #guard saysAlike "\"x\"\na\n" 1 0
--- M3's: still owed.
-#guard parserOnly "a: 1\n- y\n"
-#guard parserOnly "? k\n- y\n"
-#guard parserOnly ": v\n- y\n"
+-- M3's family: the same message, at the `-`, from all four layers — and the
+-- slot-offering predecessor that keeps THIS check out of it.
+#guard saysAlike "a: 1\n- y\n" 1 0
+#guard saysAlike "? k\n- y\n" 1 0
+#guard saysAlike ": v\n- y\n" 1 0
 
 end L4YAML.Tests.Guards.ScannerDanglingNodeRefusal

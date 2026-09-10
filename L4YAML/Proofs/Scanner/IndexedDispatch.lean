@@ -285,9 +285,14 @@ lemma scanBlockEntryIx_offset_monotonic {input : String}
       rw [if_pos ht] at h
       simp [Bind.bind, Except.bind] at h
     · rw [if_neg ht] at h
-      -- Item 48 same-line check: the throw branch contradicts `.ok s'`.
+      -- Item 48 same-line check, then `scanBlockEntryValidateIx` (item 134):
+      -- both throw arms contradict `.ok s'`.
       split at h
       · simp [Bind.bind, Except.bind] at h
+      -- `scanBlockEntryValidateIx` (item 134): its throw arm contradicts `.ok s'`.
+      simp only [Bind.bind, Except.bind] at h
+      split at h
+      · simp at h
       -- `split` resolved the `!s.inFlow` let-if by assumption `hi`.
       simp only [Except.ok.injEq] at h
       subst h
@@ -821,9 +826,14 @@ lemma scanBlockEntryIx_tokens_size_le {input : String}
       rw [if_pos ht] at h
       simp [Bind.bind, Except.bind] at h
     · rw [if_neg ht] at h
-      -- Item 48 same-line check: the throw branch contradicts `.ok s'`.
+      -- Item 48 same-line check, then `scanBlockEntryValidateIx` (item 134):
+      -- both throw arms contradict `.ok s'`.
       split at h
       · simp [Bind.bind, Except.bind] at h
+      -- `scanBlockEntryValidateIx` (item 134): its throw arm contradicts `.ok s'`.
+      simp only [Bind.bind, Except.bind] at h
+      split at h
+      · simp at h
       -- `split` resolved the `!s.inFlow` let-if by assumption `hi`.
       simp only [Except.ok.injEq] at h
       subst h

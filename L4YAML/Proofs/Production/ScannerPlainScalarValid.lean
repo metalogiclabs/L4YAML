@@ -1116,6 +1116,8 @@ lemma scanBlockEntry_preserves_PlainScalarsValid
     · contradiction
     · split at h_ok  -- item 48 same-line check
       · contradiction
+      split at h_ok  -- `scanBlockEntryValidate` (item 134)
+      · contradiction
       injection h_ok with h_ok; subst h_ok
       simp only [advance_preserves_tokens]
       apply PlainScalarsValid_push_non_plain _ _ _ (by trivial)
@@ -3726,6 +3728,8 @@ lemma scanBlockEntry_new_token_not_plain (s s' : ScannerState)
     · contradiction
     · split at h_ok  -- item 48 same-line check
       · contradiction
+      split at h_ok  -- `scanBlockEntryValidate` (item 134)
+      · contradiction
       injection h_ok with h_eq; subst h_eq
       simp only [advance_preserves_tokens] at h_gen
       unfold pushSequenceIndent ScannerState.emit at h_gen
@@ -3779,6 +3783,8 @@ lemma scanBlockEntry_preserves_FlowNestingInv
   · split at h_ok
     · contradiction
     · split at h_ok  -- item 48 same-line check
+      · contradiction
+      split at h_ok  -- `scanBlockEntryValidate` (item 134)
       · contradiction
       injection h_ok with h_eq; subst h_eq
       -- Case: !inFlow, no tab error

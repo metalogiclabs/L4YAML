@@ -12323,7 +12323,8 @@ Zero runtime edits, zero new fields, ONE new lemma.
   (none did → §9.2's `trailingContent` family); the refusal half has no
   carrier yet and is the tightening's remaining prerequisite.  [Its first TWO
   mechanisms have carriers — M1 at [item 132](#item-132-2026-09-09), M2 at
-  [item 133](#item-133-2026-09-09); M3 is what remains.]
+  [item 133](#item-133-2026-09-09), M3 at [item 134](#item-134-2026-09-09);
+  all three are landed, so the 16 sites and the constructor are what remain.]
 * The 16 sites and the CONSTRUCTOR (item 110: LAST).
 * The EOF close keeps the honest empty-slot fold.
 
@@ -12404,17 +12405,25 @@ the checks would reuse `.invalidBareDocument`):
   its EOF twin `scanLoop_checkDanglingNode`; the exemptions are
   `YamlToken.offersNodeSlot`, the run's head is `YamlToken.isNodeBody`, and the
   reported position is the RUN's start.
-* **M3 — the `-` at a mapping top's own column**: valid iff the value is
-  still awaited (last real token `.value`, or a property run after it)
-  or a same-indent sequence continues (a `.blockEntry` at this column
-  before any `.key`/`.value` at a column ≤ it, walking the token array
+* **M3 — the `-` at a mapping top's own column**: valid iff a node is
+  still awaited (~~last real token `.value`, or a property run after
+  it~~ — **the last real token, read past a `[96]` run, is one of
+  `YamlToken.offersNodeSlot`'s**: the `?` awaits a node exactly as the
+  `:` does, which suite 6PBE's `?⏎- a⏎- b⏎:⏎- c⏎- d` settles) or a
+  same-indent sequence continues (a `.blockEntry` at this column before
+  any `.key`/`.value` at a column ≤ it, walking the token array
   backward); otherwise refused.  `?`/`:` at the column open new entries
   and stay legal; ~~`- a⏎? k⏎: v` is pipeline-ACCEPTED through the
   parser's artifact-token leniency, which scopes the mechanism to `-`~~ —
   **that input is a SEQUENCE level's column, not a mapping's, and it is
   refused at the scanner** ([item 131](#item-131-2026-09-09)), which is
   §8.2.1's business rather than M3's; what scopes M3 to `-` is the pair
-  that is still accepted, `a: 1⏎? k⏎: v` and `a: 1⏎: v`.
+  that is still accepted, `a: 1⏎? k⏎: v` and `a: 1⏎: v`.  **LANDED by
+  [item 134](#item-134-2026-09-09)** as `scanBlockEntryValidate`, inside
+  `scanBlockEntry` beside item 48's check; the position reported is the
+  `-`'s own, and the check also closes a family this map did NOT record —
+  a `-` at the column of a mapping COMPACT IN A SEQUENCE ENTRY
+  (`- a: 1⏎␣␣- y`), which both pipelines ACCEPTED.
 
 **The price, measured — why this landed as a map and not a build.**  The
 emitter-scannability trees re-verify the scanning of emitted output
@@ -12429,9 +12438,14 @@ edits ×3 chains (legacy, `scanNextTokenIx`, `scanNextTokenIxWC`) and the
 `scanLoop` EOF twins.  **The refusal half is at least three items — one
 mechanism plus its absorption each — not one**, and the constructor's
 prerequisite chain is now M1 → M2 → M3 → the 16 swaps → the constructor.
-**M1 is LANDED** ([item 132](#item-132-2026-09-09)) and **M2 with it**
-([item 133](#item-133-2026-09-09)); the chain from here is M3 → the 16 swaps →
-the constructor.
+**All three are LANDED** ([item 132](#item-132-2026-09-09),
+[item 133](#item-133-2026-09-09), [item 134](#item-134-2026-09-09)); the chain
+from here is the 16 swaps → the constructor.  The measured prices were 41 + 56,
+63 + 84 and **21** — the third an order of magnitude under the estimate,
+because `scanBlockEntry` is consumed FORWARD everywhere (a hypothesis
+`scanBlockEntry s = .ok s'` to be peeled) and never CONSTRUCTED, so a new throw
+costs one `split` per site and no reasoning at all.  Which ladder a mechanism
+lands on decides its price more than the mechanism does.
 
 **Found by the map**: same-line junk after a completed root flow close
 or quoted scalar (`[1, 2] x`, `"x" y`) is refused by the LEGACY scanner
@@ -13793,6 +13807,145 @@ M3 is the one mechanism whose test is a BACKWARD WALK over the token array
 rather than a predicate on its tail, and `ScannerRaisedFlagRefusalMap` §4 still
 pins its seven inputs as gaps.
 
+### Item 134 (2026-09-09)
+
+**M3 lands: the `-` at a block mapping's own column is refused at the scanner.**
+Item 119's third mechanism, and the last of the refusal half.  A `-` at a column
+strictly right of the enclosing collection opens a sequence —
+`pushSequenceIndent`'s guard is `col > currentIndent`.  A `-` at a MAPPING's own
+column opens nothing, and is legal only where a NODE is expected:
+`[183] l+block-sequence(n)` is reached from `[185] s-l+block-indented(n,c)` with
+the auto-detected `m` allowed to be 0, so a zero-indented sequence stands
+exactly in a node's slot and nowhere else.  `scanBlockEntryValidate` lives
+inside `scanBlockEntry`, beside item 48's same-line check and item 31's tab
+check, and reports `.invalidBareDocument` at the `-`'s own line and column —
+which is where the parser reported, on every one of the 27 probed inputs.
+
+**Two things expect a node, and the check is their disjunction.**  Either the
+slot the previous indicator opened is still empty — `nodeSlotAwaited`, which
+reads the last real token past a `[96]` run of at most two (`slotHolderIdx?`)
+and asks item 133's own `YamlToken.offersNodeSlot` — or a zero-indented sequence
+at this very column is already open and this is its next entry
+(`sameIndentSequenceOpen`).  Reusing `offersNodeSlot` rather than testing for
+`.value` is not tidiness: **the probe refuted the `.value`-only reading on suite
+6PBE**, `---⏎?⏎- a⏎- b⏎:⏎- c⏎- d`, where the awaited node is the explicit KEY.
+That was the single false positive in the whole 402-input corpus, and it was
+found before the runtime was touched.
+
+**M3 is the one mechanism whose test is a BACKWARD WALK, and the walk is bounded
+at both ends.**  The entries of a zero-indented sequence are separated from one
+another by every token of the collections nested inside them
+(`a:⏎- k: 1⏎␣␣m: 2⏎- y`), so "is this sequence still open?" cannot be read off
+the array's tail the way M1's and M2's questions can.  Forward, the walk stops
+at the first `.blockEntry` at exactly this column — that is the previous entry.
+Backward, it stops at the first `.key`/`.value` at a column ≤ this one, and that
+bound is not a heuristic: `pushMappingIndent` runs at the column of a `.key`, or
+of the `.value` that opens a keyless entry, so the level's own opener is always
+reached, and everything behind it belongs to a collection this `-` cannot
+continue.  `a:⏎- x⏎b: 1⏎- y` is the shape that needs it — the `.blockEntry` at
+column 0 is still in the array, and `b`'s `.key` at column 0 is what says the
+sequence it belonged to is over.
+
+**The measurement, run before the runtime was touched.**  The candidate
+predicate was evaluated at every dispatch of every input, through the REAL
+`scanNextToken_preprocess`, over two corpora.  All **402** suite tests:
+**0** hits after the 6PBE correction (**5** before it, all the same test through
+its symlinked tag directories).  A generated battery of **3 570** inputs — 42
+mapping-opening prefixes × 17 `-` continuations × 5 nestings — **2 023** hits,
+of which **1 632** the pipeline already refused with the identical message at
+the identical position, **391** it ACCEPTED, and **0** with a divergent
+`invalidBareDocument` position.  Every one of the 2 023 was then handed to
+PyYAML and to libyaml: **both reject all 2 023**.  That is the check's
+soundness, measured against two independent references rather than argued.
+
+**The 391 are a family item 119 never recorded, and closing them CHANGES a
+verdict.**  All 391 have one shape — a `-` at the column of a mapping COMPACT IN
+A SEQUENCE ENTRY (`- a: 1⏎␣␣- y`, `- ? k⏎␣␣- y`, `- : v⏎␣␣- y`) — and the map
+missed them because its `parserGap` predicate only collects what the PARSER
+refuses.  Our pipeline accepted them and emitted a spurious empty second
+document (`… -SEQ -DOC +DOC =VAL : -DOC -STR`), which is what an accept built on
+an artifact token looks like from the outside.  PyYAML and libyaml reject every
+one, so this is a correction and not a regression; it is recorded here because
+it is a verdict change, and it is invisible to the matrix and to `eventscore`
+only because no corpus input has the shape.  `ScannerBlockEntryMappingIndent`
+§3 pins the eight representatives.
+
+**The absorption was 21 proofs across 13 files — an order of magnitude under the
+map's estimate, and the reason is the LADDER, not the mechanism.**  Item 119
+priced a `scanBlockEntry` throw at "276 references"; the references are real,
+but every one of them consumes `scanBlockEntry` FORWARD — a hypothesis
+`scanBlockEntry s = .ok s'` to be peeled — and not one CONSTRUCTS an `.ok`.  A
+new throw on a forward-only ladder costs exactly one `split` per site and no
+reasoning: 13 of the 21 are `split at h` + a `contradiction`/`simp` bullet, and
+the 8 indexed ones need a `simp only [Bind.bind, Except.bind] at h` first
+because their proofs resolve the enclosing `if`s with `rw [if_pos/if_neg]` and
+leave the bind unreduced.  M1 cost 41 + 56 and M2 63 + 84 for the opposite
+reason: both are binds in `scanNextToken`'s own chain, which the
+emitter-scannability trees CONSTRUCT.
+
+**One runtime edit was forced by the desugaring, and it is item 129's rule
+pointed at `do`.**  Adding a statement after `scanBlockEntry`'s two
+`if … then throw` guards turned the second one into a `__do_jp` join point,
+which no `rw [if_pos/if_neg]` and no `split` in the ladders below can see
+through — the trace shows `if … then do let __r ← throw …; __do_jp __r else
+__do_jp ()`.  The file already states the discipline for `]`/`}` and `&`
+("full `else`-chain … so the desugaring is a plain nested `ite` with closed
+branches"), and both scanners' `!inFlow` blocks are now else-chains for that
+reason, with the reason written where the chain is.
+
+**A gate caught a numbering slip.**  The new annotations first read
+`[186] l+block-sequence` and `[188] l+block-mapping`, which are the numbers the
+printed spec uses; `yaml-spec-1.2.yaml` — the file
+`verify_yaml_spec_annotations.py` parses, and therefore the one the repo is
+gated against — has 186 as `ns-l-compact-sequence` and 188 as
+`ns-l-block-map-entry`.  Ten new NAME MISMATCHES, 19 → 29, corrected to
+`[183]`/`[187]` in the attributes and in the prose around them.  A docstring
+citing the other numbering is prose; an `@[yaml_spec]` attribute is a claim the
+verifier checks.
+
+New guard `ScannerBlockEntryMappingIndent` (52 `#guard` + 10 `example`): §1
+types the check, the three ways it stands aside, and the exclusivity of
+`atMappingIndent` with `atSequenceIndent`; §2 item 119's seven pins plus every
+way the entry can be complete, every shape the `-` can take, and the nested and
+explicit-document landings — all through `saysAlike`, one message at one
+position from both scanners AND both pipelines; §3 the compact-in-sequence
+family the map did not record; §4 the boundary — the awaited value, the awaited
+KEY (6PBE), the continuing sequence across nested collections and their level
+pops, the new value that re-opens the slot, the indented sequence that never
+reaches the check, and `?`/`:` at the column; §5 the discrimination from M1, M2
+and item 131's `?` twin, by the error each mechanism produces.
+
+**Validation.**  Full `lake build` green (**1123** jobs, +1 for the new guard,
+ZERO warnings); `run-all-tests.sh` **4492/4492** (+16: Production Coverage
+Analysis **809/809**, the new `@[yaml_spec]` sites); matrix **402/402** event and
+**282/282** JSON on BOTH pipelines; `eventscore` **347/358** with **0**
+`event-reject` and **0** `error-miss`; `check-import-closure.sh` (**228**
+modules), `check-reflection-index.sh` (20/230/249/355) and
+`check-theorem-keyword.sh` (**25** capstones) OK; annotation verifier back to
+the **19** pre-existing name mismatches with coverage 211/211.  `collect-stats`:
+tests **583** files (+1) / **6530** `#guard`s (+55 = the new guard's 52 and the
+map's three `!parserGap` lines); proofs **6422** and library **6627**, both
+UNCHANGED, and env **8389**, also unchanged — this item adds no lemma and no
+library-side `simp only [thedef]`, so item 129's on-demand rule has nothing to
+create.  **0** direct and **0** transitive `sorry`, **0** custom axioms; axiom
+profile `propext`/`Classical.choice`/`Quot.sound` on all 20 of the 21 repaired
+lemmas that are reachable by name (the 21st is `private`).
+
+**The map's gap class is now empty, and the map says so.**
+`ScannerRaisedFlagRefusalMap` §4's seven pins are `scannerRefuses`, and three
+`#guard !parserGap` lines — one per mechanism — assert the predicate the map was
+built on no longer holds anywhere in §2–§4.  A map that only ever described a
+gap would pass vacuously once the gap closed; naming the predicate and
+refuting it is what keeps the file a measurement.
+
+**What this leaves.**  The refusal half is complete.  The chain from here is the
+16 fallback swaps and then the `implicitContinue` constructor (item 110), plus
+the floored cover's threading (U3) — whose spend at `entryKeyPack_of_dispatch`'s
+dedent branch still faces the no-pop landing, `h_pop` being unavailable though
+derivable from `IndentFloor sc n` with `w < n`, and the sequence-landing
+disjunct that cannot be refuted at the pack because the `:`'s own check runs a
+step later.
+
 ### REMAINING, in order
 
 The per-item history is the closure log above; this section lists only the
@@ -13809,7 +13962,7 @@ too (items 47–51), so what stands between here
 and Step 5 (the converse) is R3's remaining production work and R4:
 
 ```
-R1 ✓ (44–46) ──→ R2 ✓ (47–51) ──→ R3 (52–133 landed; U2 CLOSED, the collapse gone) ──→ Step 5
+R1 ✓ (44–46) ──→ R2 ✓ (47–51) ──→ R3 (52–134 landed; U2 CLOSED, the collapse gone) ──→ Step 5
                                         └──────→ R4 (implicitContinue + 0 < m) ──┘
 ```
 

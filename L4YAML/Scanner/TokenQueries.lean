@@ -137,6 +137,69 @@ def trailingNodeRun? (tokens : Array (Positioned YamlToken)) :
       some (st, prevRealIdx? tokens st)
     else none
 
+/-! ### The `-` at a block mapping's own column (§9.2's third dangler) -/
+
+/-- The index of the real token that HOLDS THE SLOT the trailing node run would
+    fill: the last real token, read past a `[96] c-ns-properties` run of at most
+    two.  `none` when the array is nothing but properties, or empty.
+
+    §6.9 admits one anchor and one tag, so the walk-back is capped at two — the
+    same cap, for the same reason, as `trailingPropertyRun`'s two lookbacks. -/
+@[yaml_spec "6.9" 96 "c-ns-properties"]
+def slotHolderIdx? (tokens : Array (Positioned YamlToken)) : Option Nat :=
+  match prevRealIdx? tokens tokens.size with
+  | none => none
+  | some i =>
+    if tokens[i]!.val.isNodeProperty then
+      match prevRealIdx? tokens i with
+      | none => none
+      | some j => if tokens[j]!.val.isNodeProperty then prevRealIdx? tokens j else some j
+    else some i
+
+/-- A node is still AWAITED: the slot holder offers one.
+
+    `YamlToken.offersNodeSlot` is item 133's — the three indicators followed by
+    `s-l+block-node` / `s-l+block-indented` — and it is the same predicate for
+    the same reason here: after `:`, after `?`, and after `-`, the node that
+    fills the slot may be a zero-indented block sequence (`[185]`'s
+    `s-l+block-indented(n,c)` reaches `[183] l+block-sequence(n)` with the
+    detected `m` allowed to be 0 at a mapping's own indent — suite 6PBE). -/
+@[yaml_spec "8.2.2" 187 "l+block-mapping",
+  yaml_spec "8.2.1" 183 "l+block-sequence"]
+def nodeSlotAwaited (tokens : Array (Positioned YamlToken)) : Bool :=
+  match slotHolderIdx? tokens with
+  | some i => tokens[i]!.val.offersNodeSlot
+  | none => false
+
+/-- Walking the token array BACKWARD from `i`: does a `.blockEntry` at exactly
+    column `c` stand before any `.key` / `.value` at a column ≤ `c`?
+
+    That is the question "is a same-indent sequence still open here?", and it is
+    the one §9.2 mechanism whose test is a WALK rather than a predicate on the
+    array's tail: a zero-indented sequence's entries are interleaved with the
+    entries of the collections nested inside them, so the previous entry of THIS
+    sequence can sit arbitrarily far back.  The walk is bounded on the other
+    side by the mapping level's own opener: `pushMappingIndent` runs at the
+    column of a `.key` (or of the `.value` that opens a keyless entry), so a
+    `.key`/`.value` at a column ≤ `c` is always reached, and everything before
+    it belongs to a collection this `-` cannot continue.
+
+    Structurally recursive on `i`, so it is total. -/
+@[yaml_spec "8.2.1" 183 "l+block-sequence"]
+def sameIndentSequenceOpenLoop (tokens : Array (Positioned YamlToken)) (c : Int) :
+    Nat → Bool
+  | 0 => false
+  | j + 1 =>
+    let t := tokens[j]!
+    if t.val == .blockEntry && (t.pos.col : Int) == c then true
+    else if (t.val == .key || t.val == .value) && (t.pos.col : Int) <= c then false
+    else sameIndentSequenceOpenLoop tokens c j
+
+/-- `sameIndentSequenceOpenLoop` from the end of the array. -/
+@[yaml_spec "8.2.1" 183 "l+block-sequence"]
+def sameIndentSequenceOpen (tokens : Array (Positioned YamlToken)) (c : Int) : Bool :=
+  sameIndentSequenceOpenLoop tokens c tokens.size
+
 /-! ### When token adjacency means "same property run" (items 9e and 9k)
 
     Token adjacency means "same node" only when nothing that emits no token can

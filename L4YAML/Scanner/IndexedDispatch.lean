@@ -606,6 +606,69 @@ def lastTokenIsNodePropertyOnLineIx {input : String} (ts : Indexed.TokenStream i
   | some t => t.token.isNodeProperty && t.start.line == line
   | none => false
 
+/-- Indexed twin of `L4YAML.Scanner.prevRealIdx?`. -/
+def prevRealIdxIx? {input : String} (ts : Indexed.TokenStream input) :
+    Nat → Option Nat
+  | 0 => none
+  | i + 1 =>
+    if ts.tokens[i]!.token == .placeholder then prevRealIdxIx? ts i else some i
+
+/-- Indexed twin of `L4YAML.Scanner.slotHolderIdx?`. -/
+@[yaml_spec "6.9" 96 "c-ns-properties"]
+def slotHolderIdxIx? {input : String} (ts : Indexed.TokenStream input) : Option Nat :=
+  match prevRealIdxIx? ts ts.tokens.size with
+  | none => none
+  | some i =>
+    if ts.tokens[i]!.token.isNodeProperty then
+      match prevRealIdxIx? ts i with
+      | none => none
+      | some j =>
+        if ts.tokens[j]!.token.isNodeProperty then prevRealIdxIx? ts j else some j
+    else some i
+
+/-- Indexed twin of `L4YAML.Scanner.nodeSlotAwaited`. -/
+@[yaml_spec "8.2.2" 187 "l+block-mapping",
+  yaml_spec "8.2.1" 183 "l+block-sequence"]
+def nodeSlotAwaitedIx {input : String} (ts : Indexed.TokenStream input) : Bool :=
+  match slotHolderIdxIx? ts with
+  | some i => ts.tokens[i]!.token.offersNodeSlot
+  | none => false
+
+/-- Indexed twin of `L4YAML.Scanner.sameIndentSequenceOpenLoop`. -/
+@[yaml_spec "8.2.1" 183 "l+block-sequence"]
+def sameIndentSequenceOpenLoopIx {input : String} (ts : Indexed.TokenStream input)
+    (c : Int) : Nat → Bool
+  | 0 => false
+  | j + 1 =>
+    let t := ts.tokens[j]!
+    if t.token == .blockEntry && (t.start.col : Int) == c then true
+    else if (t.token == .key || t.token == .value) && (t.start.col : Int) <= c then false
+    else sameIndentSequenceOpenLoopIx ts c j
+
+/-- Indexed twin of `L4YAML.Scanner.sameIndentSequenceOpen`. -/
+@[yaml_spec "8.2.1" 183 "l+block-sequence"]
+def sameIndentSequenceOpenIx {input : String} (ts : Indexed.TokenStream input)
+    (c : Int) : Bool :=
+  sameIndentSequenceOpenLoopIx ts c ts.tokens.size
+
+/-- Indexed twin of `L4YAML.Scanner.atMappingIndent`. -/
+def atMappingIndentIx {input : String} (s : ScannerStateIx input) : Bool :=
+  match s.indents.back? with
+  | some top => !top.isSequence && ((s.cursor.pos.col : Int) == top.column)
+  | none => false
+
+/-- Indexed twin of `L4YAML.Scanner.scanBlockEntryValidate`. -/
+@[yaml_spec "9.2" 211 "l-yaml-stream",
+  yaml_spec "8.2.1" 183 "l+block-sequence",
+  yaml_spec "8.2.1" 185 "s-l+block-indented"]
+def scanBlockEntryValidateIx {input : String} (s : ScannerStateIx input) :
+    Except ScanError Unit :=
+  if atMappingIndentIx s && !nodeSlotAwaitedIx s.tokens
+      && !sameIndentSequenceOpenIx s.tokens (s.cursor.pos.col : Int) then
+    .error (.invalidBareDocument s.cursor.pos.line s.cursor.pos.col)
+  else
+    .ok ()
+
 /-- Scan `-` block-entry indicator.
 
     Throws `tabInIndentation` if a tab appears in the contiguous
@@ -616,13 +679,19 @@ def lastTokenIsNodePropertyOnLineIx {input : String} (ts : Indexed.TokenStream i
 def scanBlockEntryIx {input : String} (s : ScannerStateIx input) :
     Except ScanError (ScannerStateIx input) := do
   if !s.inFlow then
+    -- Full `else`-chain, for the reason `scanBlockEntry` gives: with a check
+    -- after them the statement form desugars through `__do_jp` join points.
     if s.hasTabInPrecedingWhitespace then
       throw (.tabInIndentation s.cursor.pos.line s.cursor.pos.col)
     -- Item 48: mirror of the legacy same-line check — see `scanBlockEntry`.
-    if s.implicitValueLine == some s.cursor.pos.line
+    else if s.implicitValueLine == some s.cursor.pos.line
         || lastTokenIsNodePropertyOnLineIx s.tokens s.cursor.pos.line
         || docStartOnLineIx s.tokens s.cursor.pos.line then
       throw (.sameLineBlockCollection s.cursor.pos.line s.cursor.pos.col)
+    -- §9.2 [211] (item 134): mirror of the legacy check — see
+    -- `scanBlockEntryValidate`.
+    else
+      scanBlockEntryValidateIx s
   let s := if !s.inFlow then pushSequenceIndentIx s s.cursor.pos.col else s
   let s := s.emit YamlToken.blockEntry
   let s := s.advance
@@ -1655,13 +1724,6 @@ def scanNextTokenIx_checkNoPendingDirectives {input : String}
     .error (.directiveWithoutDocument s.cursor.pos.line)
   else
     .ok ()
-
-/-- Indexed twin of `L4YAML.Scanner.prevRealIdx?`. -/
-def prevRealIdxIx? {input : String} (ts : Indexed.TokenStream input) :
-    Nat → Option Nat
-  | 0 => none
-  | i + 1 =>
-    if ts.tokens[i]!.token == .placeholder then prevRealIdxIx? ts i else some i
 
 /-- Indexed twin of `L4YAML.Scanner.trailingNodeRun?`. -/
 def trailingNodeRunIx? {input : String} (ts : Indexed.TokenStream input) :

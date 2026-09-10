@@ -223,6 +223,7 @@ lemma scanBlockEntry_BoundInv (s s' : ScannerState)
   · -- block: tab check + pushSequenceIndent
     split at hok <;> try contradiction
     split at hok <;> try contradiction  -- item 48 same-line check
+    split at hok <;> try contradiction  -- `scanBlockEntryValidate` (item 134)
     injection hok with hok; subst hok
     let s_pi := pushSequenceIndent s s.col
     let s_em := s_pi.emit .blockEntry

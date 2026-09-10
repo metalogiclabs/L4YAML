@@ -52,14 +52,18 @@ here against the runtime's own verdicts:
   mechanism's own boundary.  The exempt predecessors are
   `YamlToken.offersNodeSlot`; the position reported is the RUN's start,
   which is where the parser reported.
-* **M3 — the `-` at a mapping top's own column** (§4): valid iff the
-  mapping's value is still awaited (last real token `.value`, or a
-  property run after it) or a same-indent sequence is continuing (a
-  `.blockEntry` at this column stands before any `.key`/`.value` at a
-  column ≤ it); otherwise refused.  `?` and `:` at the column open new
-  entries and stay legal (§6), and `- a⏎? k⏎: v` is pipeline-ACCEPTED
-  through the parser's artifact-token leniency, which is what keeps the
-  mechanism scoped to `-` alone.
+* **M3 — the `-` at a mapping top's own column** (§4): valid iff a node
+  is still awaited (the last real token, read past a `[96]` run, is one
+  of `YamlToken.offersNodeSlot`'s) or a same-indent sequence is
+  continuing (a `.blockEntry` at this column stands before any
+  `.key`/`.value` at a column ≤ it, walking the array BACKWARD);
+  otherwise refused.  `?` and `:` at the column open new entries and
+  stay legal (§6).  **LANDED** as `scanBlockEntryValidate` (item 134),
+  so §4's pins are `scannerRefuses` now, and
+  `ScannerBlockEntryMappingIndent` carries the mechanism's own boundary
+  — including the family this map did NOT record, a `-` at the column of
+  a mapping COMPACT IN A SEQUENCE ENTRY (`- a: 1⏎␣␣- y`), which both
+  pipelines ACCEPTED and which the check also closes.
 
 All three reuse `.invalidBareDocument`; on every probed input the
 parser's message AND position are what the scanner check would produce,
@@ -93,9 +97,10 @@ PLACEMENT: a bind before the structural dispatch lands in the preprocess
 arm of every chain decomposition, `scanLoop` included, while one after it
 is reached through a single `split`.
 
-§2–§4 pin the gap (`parserGap`: both scanners accept, both pipelines
-refuse); §5 the neighbors the scanner already refuses; §6 the valid
-boundary each mechanism must not cross. -/
+§2–§4 pin what WAS the gap (`parserGap`: both scanners accept, both
+pipelines refuse) and is now `scannerRefuses` throughout, the class
+itself pinned empty at the end of §4; §5 the neighbors the scanner
+already refused; §6 the valid boundary each mechanism must not cross. -/
 
 namespace L4YAML.Tests.Guards.ScannerRaisedFlagRefusalMap
 
@@ -213,14 +218,23 @@ private def scannerRefuses (input : String) : Bool :=
 #guard scannerRefuses "a: 1\nb\n...\n"
 #guard scannerRefuses "a: 1\nb\n--- c\n"
 
--- §4 M3 — the `-` at a mapping top's own column, entry complete.
-#guard parserGap "a: 1\n- y\n"
-#guard parserGap "a: 1\n- y\nb: 2\n"
-#guard parserGap "? k\n- y\n"
-#guard parserGap "? k\n- y\n: v\n"
-#guard parserGap ": v\n- y\n"
-#guard parserGap "a:\n  b:\n  - x\n- y\n"
-#guard parserGap "a:\n- x\nb: 1\n- y\n"
+-- §4 M3 — the `-` at a mapping top's own column, entry complete.  LANDED
+-- at item 134 (`scanBlockEntryValidate`); every pin below was `parserGap`.
+#guard scannerRefuses "a: 1\n- y\n"
+#guard scannerRefuses "a: 1\n- y\nb: 2\n"
+#guard scannerRefuses "? k\n- y\n"
+#guard scannerRefuses "? k\n- y\n: v\n"
+#guard scannerRefuses ": v\n- y\n"
+#guard scannerRefuses "a:\n  b:\n  - x\n- y\n"
+#guard scannerRefuses "a:\n- x\nb: 1\n- y\n"
+
+-- Item 119's GAP CLASS IS EMPTY.  `parserGap` — both scanners accept, both
+-- pipelines refuse — is the predicate this map was built on; one
+-- representative of each mechanism now fails it, which is what the three
+-- landings were for.
+#guard !parserGap "[1, 2]\na\n"        -- M1 (item 132)
+#guard !parserGap "a: 1\nb\n"          -- M2 (item 133)
+#guard !parserGap "a: 1\n- y\n"        -- M3 (item 134)
 
 -- §5 The neighbors the scanner ALREADY refuses — the map's boundary with
 -- the existing checks (§8.1 under-indent, §8.2.1 trailing content, §7.4

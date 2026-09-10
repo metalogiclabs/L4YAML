@@ -369,7 +369,10 @@ lemma scanBlockEntry_corr (sc : ScannerState) (sp : SurfPos)
     · -- item 48 same-line check
       split at hok
       · exact absurd hok (by simp)
-      · have h := Except.ok.inj hok; subst h
+      · -- `scanBlockEntryValidate` (item 134)
+        split at hok
+        · exact absurd hok (by simp)
+        have h := Except.ok.inj hok; subst h
         have hcorr_ind := pushSequenceIndent_corr sc sp hcorr (sc.col : Int) (Int.natCast_nonneg _)
         obtain ⟨sp', hcorr'⟩ := advance_corr
           ((pushSequenceIndent sc (sc.col : Int)).emit .blockEntry) sp

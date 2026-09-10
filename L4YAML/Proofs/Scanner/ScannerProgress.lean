@@ -297,6 +297,7 @@ lemma scanBlockEntry_offset_lt (s s' : ScannerState)
   split at h
   · split at h <;> (try contradiction)
     split at h <;> (try contradiction)  -- item 48 same-line check
+    split at h <;> (try contradiction)  -- `scanBlockEntryValidate` (item 134)
     injection h with h_eq; subst h_eq
     have h_pi : (pushSequenceIndent s s.col).offset = s.offset := pushSequenceIndent_offset s _
     have h_pie : (pushSequenceIndent s s.col).inputEnd = s.inputEnd := pushSequenceIndent_inputEnd s _

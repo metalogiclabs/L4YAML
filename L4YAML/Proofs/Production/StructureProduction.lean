@@ -191,6 +191,8 @@ lemma scanBlockEntry_prod (sc : ScannerState) (sp : SurfPos)
     · simp at hok
     · split at hok  -- item 48 same-line check
       · simp at hok
+      split at hok  -- `scanBlockEntryValidate` (item 134)
+      · simp at hok
       have h := Except.ok.inj hok; subst h
       have hcorr_ind := pushSequenceIndent_corr sc
         ⟨'-' :: rest, sc.col⟩ hcorr (sc.col : Int) (Int.natCast_nonneg _)

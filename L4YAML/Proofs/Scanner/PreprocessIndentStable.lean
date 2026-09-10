@@ -547,6 +547,8 @@ lemma scanBlockEntry_indents {s s' : ScannerState}
   · simp at hok
   · split at hok
     · simp at hok  -- item 48 same-line check
+    split at hok
+    · simp at hok  -- `scanBlockEntryValidate` (item 134)
     simp only [Except.ok.injEq] at hok
     subst hok
     show (ScannerState.advance (ScannerState.emit _ _)).indents = _
@@ -571,6 +573,8 @@ lemma scanBlockEntry_needIndentCheck {s s' : ScannerState}
   · simp at hok
   · split at hok
     · simp at hok  -- item 48 same-line check
+    split at hok
+    · simp at hok  -- `scanBlockEntryValidate` (item 134)
     simp only [Except.ok.injEq] at hok
     subst hok
     show (ScannerState.advance (ScannerState.emit _ _)).needIndentCheck = _
@@ -1259,7 +1263,9 @@ lemma scanBlockEntry_simpleKeyAllowed {s s' : ScannerState}
     · simp at hok
     · split at hok
       · simp at hok  -- item 48 same-line check
-      · simp only [Except.ok.injEq] at hok; rw [← hok]
+      · split at hok
+        · simp at hok  -- `scanBlockEntryValidate` (item 134)
+        · simp only [Except.ok.injEq] at hok; rw [← hok]
   · simp only [Except.ok.injEq] at hok; rw [← hok]
 
 /-- The dispatcher's `-` arm, in the form the accumulator's producers hold. -/

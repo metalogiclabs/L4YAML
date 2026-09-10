@@ -220,28 +220,20 @@ private def saysAlike (input : String) (line col : Nat) : Bool :=
 
     The discriminator between M1 and M2 is the indent stack: a dangler at an
     OPEN level's column has a level on it, so M1's check stands aside on every
-    input below (§1's second shape).  M2 landed at item 133 and takes the first
-    four; M3 is still the parser's. -/
+    input below (§1's second shape).  M2 landed at item 133 and M3 at item 134,
+    so all of them are the scanner's now — they stay here because they are what
+    distinguishes the mechanisms, and §1's second shape is why M1 stands aside
+    on every one. -/
 
-private def parserOnly (input : String) : Bool :=
-  (match Scanner.scan input, Indexed.ScannerStateIx.scanIx input with
-   | .ok _, .ok _ => true
-   | _, _ => false) &&
-  (match Events.streamToEvents input, Events.streamToEventsIx input with
-   | .error _, .error _ => true
-   | _, _ => false)
-
--- M2: the dangling node at an open level's own column.  It LANDED at item
--- 133, so these are the scanner's now — kept here because they are what
--- distinguishes the two mechanisms, and §1's second shape is why M1 stands
--- aside on every one of them.
+-- M2: the dangling node at an open level's own column (item 133).
 #guard scannerRefuses "a: 1\nb\n"
 #guard scannerRefuses "- a\nb\n"
 #guard scannerRefuses "---\na: 1\nb\n"
 #guard scannerRefuses "k: [1, 2]\nb\n"
--- M3: the `-` at a mapping top's own column with the entry complete — still
--- the parser's.
-#guard parserOnly "a: 1\n- y\n"
-#guard parserOnly "? k\n- y\n"
+-- M3: the `-` at a mapping top's own column with the entry complete
+-- (item 134) — the token behind it is an INDICATOR, not a node body, so M2
+-- stands aside on these exactly as M1 does.
+#guard scannerRefuses "a: 1\n- y\n"
+#guard scannerRefuses "? k\n- y\n"
 
 end L4YAML.Tests.Guards.ScannerBareDocumentRefusal

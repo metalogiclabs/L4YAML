@@ -1052,6 +1052,8 @@ private lemma scanBlockEntry_line_col {s s' : ScannerState}
   · simp at hok
   · split at hok
     · simp at hok
+    split at hok  -- `scanBlockEntryValidate` (item 134)
+    · simp at hok
     simp only [Except.ok.injEq] at hok
     subst hok
     constructor

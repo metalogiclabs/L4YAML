@@ -85,7 +85,11 @@ implicit key. -/
 #guard bothAccept "k1: &a v\nk2: *a # c\n"           -- a comment
 #guard bothAccept "k1: &a v\n*a : x\n"               -- the alias AS an implicit key
 #guard bothAccept "k1: &a v\n? *a\n: b\n"            -- …and as an explicit one
-#guard bothAccept "k1: &a v\n- *a\n"                 -- a sequence entry
+-- …and a sequence entry, whose `-` has to open a sequence somewhere legal:
+-- at the mapping's OWN column with the entry complete it is §9.2's third
+-- dangler, refused since item 134 (`scanBlockEntryValidate`), which is a
+-- statement about the `-` and not about the alias behind it.
+#guard bothAccept "k1: &a v\nk2:\n- *a\n"             -- a sequence entry
 
 /-! ## §3  Flow context is untouched
 

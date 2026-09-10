@@ -9163,6 +9163,8 @@ lemma scanBlockEntry_preserves_ScanInv (s s' : ScannerState)
     · contradiction
     · split at h_ok  -- item 48 same-line check
       · contradiction
+      split at h_ok  -- `scanBlockEntryValidate` (item 134)
+      · contradiction
       simp only [Except.ok.injEq] at h_ok; subst h_ok
       -- h_fl resolves if → pushSequenceIndent s s.col
       have h1 := pushSequenceIndent_preserves_ScanInv s s.col h

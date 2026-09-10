@@ -46,17 +46,66 @@ open L4YAML.CharPredicates
 
 /-! ## Block Entry, Explicit Key, and Value Indicator Scanning -/
 
+/-- **The cursor stands at a block MAPPING's own indent** (§8.2.2).
+
+    `atSequenceIndent`'s twin, and the two are exclusive by construction: the
+    stack's top is `currentIndent`, so at most one of them can hold. -/
+def atMappingIndent (s : ScannerState) : Bool :=
+  match s.indents.back? with
+  | some top => !top.isSequence && ((s.col : Int) == top.column)
+  | none => false
+
+/-- **What a `-` owes at a block mapping's own indent** (§9.2 [211]) — the third
+    of the raised-flag danglers, after the completed root document and the
+    dangling node run.
+
+    A `-` at a column strictly right of the enclosing collection opens a
+    sequence (`pushSequenceIndent`'s guard).  A `-` at a MAPPING's own column
+    opens nothing: `[183] l+block-sequence(n)` is reached from
+    `[185] s-l+block-indented(n,c)` with the auto-detected `m` allowed to be 0,
+    so a zero-indented sequence is legal exactly where a NODE is expected, and
+    nowhere else.  Two things expect one:
+
+    * the slot the previous indicator opened is still empty — `:` awaiting its
+      value, `?` awaiting its key, `-` awaiting its entry, with at most a
+      `[96]` property run standing in between (`nodeSlotAwaited`);
+    * a zero-indented sequence at this very column is already open, and this is
+      its next entry (`sameIndentSequenceOpen` — a BACKWARD walk, because the
+      previous entry of a zero-indented sequence is separated from this one by
+      every token of the collections nested inside it).
+
+    Otherwise the mapping entry is complete, the mapping is over, and what
+    follows is a second bare document with no `---` in front of it — which is
+    the reading the PARSER already takes, at this very line and column
+    (`.invalidBareDocument`).  DOCS item 119 mapped the family; this is its
+    third mechanism.
+
+    Returns `Unit` on success and never modifies the state. -/
+@[yaml_spec "9.2" 211 "l-yaml-stream",
+  yaml_spec "8.2.1" 183 "l+block-sequence",
+  yaml_spec "8.2.1" 185 "s-l+block-indented"]
+def scanBlockEntryValidate (s : ScannerState) : Except ScanError Unit :=
+  if atMappingIndent s && !nodeSlotAwaited s.tokens
+      && !sameIndentSequenceOpen s.tokens (s.col : Int) then
+    .error (.invalidBareDocument s.line s.col)
+  else
+    .ok ()
+
 /-- Scan a block entry indicator `-`.
 
     **Implements** (YAML 1.2.2 §8.2.1):
-    - `[186] l+block-sequence(n)` = `(s-indent(n+m) c-l-block-seq-entry(n+m))+ for some fixed auto-detected m > 0`
+    - `[183] l+block-sequence(n)` = `(s-indent(n+m) c-l-block-seq-entry(n+m))+ for some fixed auto-detected m > 0`
     - `[187] c-l-block-seq-entry(n)` = `"-" s-l+block-indented(n,BLOCK-IN)`
     - `[4]   c-sequence-entry` = `"-"`
 
     **Pre**: Scanner at `-` followed by blank/EOF, in block context.
     **Post**: Pushes sequence indent if needed, emits `blockEntry`, advances past `-`,
     sets `simpleKeyAllowed := true`.
-    **Error**: `tabInIndentation` if tab is found in preceding whitespace (§6.1).
+    **Error**: `tabInIndentation` if tab is found in preceding whitespace (§6.1);
+    `sameLineBlockCollection` if a `---`, an implicit `:` or a property run
+    shares the line (item 48); `invalidBareDocument` if the `-` stands at a
+    block mapping's own column with the entry complete (§9.2 [211],
+    `scanBlockEntryValidate`).
 
     **Refactored for verification**: Uses explicit variable names to make
     token tracking clearer for formal proofs. -/
@@ -67,6 +116,9 @@ def scanBlockEntry (s : ScannerState) : Except ScanError ScannerState := do
   -- tab used as indentation for this block entry — forbidden.
   -- Handles `-\t-`, `- \t-`, `-\t -`, etc.
   if !s.inFlow then
+    -- Full `else`-chain (not early-exit statements): with a check AFTER them
+    -- the statement form desugars through `__do_jp` join points, which no
+    -- `rw [if_pos/if_neg]` or `split` in the ladders below can see through.
     if s.hasTabInPrecedingWhitespace then
       throw (.tabInIndentation s.line s.col)
     -- Item 48: `[194]`'s implicit value has no compact alternative, `[200]`
@@ -75,10 +127,14 @@ def scanBlockEntry (s : ScannerState) : Except ScanError ScannerState := do
     -- with an implicit `:` (`k: - a`), a property run (`&a - b`), or a
     -- document marker (`--- - a`).  The explicit `:`/`?`/`-` predecessors
     -- (compact collections, `[185]`/`[192]`/`[201]`) set none of the three.
-    if s.implicitValueLine == some s.line
+    else if s.implicitValueLine == some s.line
         || lastTokenIsNodePropertyOnLine s.tokens s.line
         || docStartOnLine s.tokens s.line then
       throw (.sameLineBlockCollection s.line s.col)
+    -- §9.2 [211] (item 134): the `-` at a block mapping's own column with the
+    -- entry complete — see `scanBlockEntryValidate`.
+    else
+      scanBlockEntryValidate s
   let s_with_indent := if !s.inFlow then pushSequenceIndent s s.col else s
   let s_with_token := s_with_indent.emit .blockEntry
   let s_after_advance := s_with_token.advance

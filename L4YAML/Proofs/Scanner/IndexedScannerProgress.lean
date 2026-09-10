@@ -194,6 +194,10 @@ lemma scanBlockEntryIx_offset_lt {s s' : ScannerStateIx input}
       -- Item 48 same-line check: the throw branch contradicts `.ok s'`.
       split at h
       · simp [Bind.bind, Except.bind] at h
+      -- `scanBlockEntryValidateIx` (item 134): its throw arm contradicts `.ok s'`.
+      simp only [Bind.bind, Except.bind] at h
+      split at h
+      · simp at h
       -- `split` resolved the `!s.inFlow` let-if by assumption `hi`.
       simp only [Except.ok.injEq] at h
       subst h

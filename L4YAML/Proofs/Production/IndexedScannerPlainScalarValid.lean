@@ -1872,6 +1872,10 @@ lemma scanBlockEntryIx_preserves_PlainScalarsValidIx {input : String}
       -- `split` resolves the `!s.inFlow` let-if by assumption `hi`.
       split at h_ok
       · simp [Bind.bind, Except.bind] at h_ok
+      -- `scanBlockEntryValidateIx` (item 134): its throw arm contradicts `.ok s'`.
+      simp only [Bind.bind, Except.bind] at h_ok
+      split at h_ok
+      · simp at h_ok
       simp only [Except.ok.injEq] at h_ok
       subst h_ok
       show PlainScalarsValidIx
@@ -1905,6 +1909,10 @@ lemma scanBlockEntryIx_preserves_FlowContextPSVIx {input : String}
       -- `split` resolves the `!s.inFlow` let-if by assumption `hi`.
       split at h_ok
       · simp [Bind.bind, Except.bind] at h_ok
+      -- `scanBlockEntryValidateIx` (item 134): its throw arm contradicts `.ok s'`.
+      simp only [Bind.bind, Except.bind] at h_ok
+      split at h_ok
+      · simp at h_ok
       simp only [Except.ok.injEq] at h_ok
       subst h_ok
       show FlowContextPSVIx
@@ -1940,6 +1948,10 @@ lemma scanBlockEntryIx_preserves_FlowNestingInvIx {input : String}
       -- `split` resolves the `!s.inFlow` let-if by assumption `hi`.
       split at h_ok
       · simp [Bind.bind, Except.bind] at h_ok
+      -- `scanBlockEntryValidateIx` (item 134): its throw arm contradicts `.ok s'`.
+      simp only [Bind.bind, Except.bind] at h_ok
+      split at h_ok
+      · simp at h_ok
       simp only [Except.ok.injEq] at h_ok
       subst h_ok
       have h_step1 := pushSequenceIndentIx_preserves_FlowNestingInvIx
@@ -5132,6 +5144,10 @@ lemma scanBlockEntryIx_preserves_prefix {input : String}
       -- `split` resolves the `!s.inFlow` let-if by assumption `hi`.
       split at h_ok
       · simp [Bind.bind, Except.bind] at h_ok
+      -- `scanBlockEntryValidateIx` (item 134): its throw arm contradicts `.ok s'`.
+      simp only [Bind.bind, Except.bind] at h_ok
+      split at h_ok
+      · simp at h_ok
       simp only [Except.ok.injEq] at h_ok
       subst h_ok
       show ((pushSequenceIndentIx s s.cursor.pos.col).emit YamlToken.blockEntry).tokens[i]'_ =
