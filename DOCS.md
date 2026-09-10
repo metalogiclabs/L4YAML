@@ -13968,10 +13968,11 @@ that agree.
 `SLYamlStream.implicitContinue` and classifying its `l-any-document?` argument,
 finds **16 applications** — and the classification is what the tightening reads:
 one `GOpt.none` (safe at any document type), one `SLAnyDocument.explicit`, one
-`.directive`, and thirteen `.bare`.  The walk costs **7 seconds** against a full
-rebuild's twenty minutes, and it sees what a grep cannot: an application a
-tactic produced, or one whose document argument is a bound variable — three of
-the sixteen were the latter, all of them `pendingDocStart`'s builder.
+`.directive`, and thirteen `.bare`.  The walk costs **7 seconds** (the flip below, scripted as
+flip → build → revert → rebuild, took **4 min 56 s** end to end), and it sees
+what a grep cannot: an application a tactic produced, or one whose document
+argument is a bound variable — three of the sixteen were the latter, all of them
+`pendingDocStart`'s builder.
 
 **Instrument 2: the flip itself.**  After this item's edits, the constructor was
 tightened, `lake build` run, and the file reverted.  Nine errors, all in
