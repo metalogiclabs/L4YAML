@@ -986,7 +986,8 @@ inductive PendingNode (sc : ScannerState) : Bool → SurfPos → SurfPos → Sur
         ResumeFrames (SLYamlStream sp_start) ks sp_mid) ∨ True)
       (h_framesV : (∃ (nv : Nat) (ks : List Nat),
         ∀ sp_mid : SurfPos, SSLComments sp_scan sp_mid →
-        ResumeFrames (ExplValueLine sp_start nv) ks sp_mid) ∨ True) :
+        ResumeFrames (ExplValueLine sp_start nv) ks sp_mid) ∨ True)
+      (h_nodir : sc.allowDirectives = false) :
       PendingNode sc false sp_start sp_block sp_scan
   /-- A `[96] c-ns-properties` run scanned at depth 0, content awaited: the
       depth-0 twin of `InteriorGap.props` (items 9h/10; re-shaped by item 12).
@@ -1132,7 +1133,8 @@ inductive PendingNode (sc : ScannerState) : Bool → SurfPos → SurfPos → Sur
         ResumeFrames (SLYamlStream sp_start) ks sp_m) ∨ True)
       (h_closeFV : (∃ (nv : Nat) (ks : List Nat),
         ∀ sp_m : SurfPos, SBlockNode n .blockIn sp_node sp_m →
-        ResumeFrames (ExplValueLine sp_start nv) ks sp_m) ∨ True) :
+        ResumeFrames (ExplValueLine sp_start nv) ks sp_m) ∨ True)
+      (h_nodir : sc.allowDirectives = false) :
       PendingNode sc false sp_start sp_block sp_scan
   /-- Document end `...` scanned. The gap contains SCDocumentEnd.
       Awaiting SSLComments to form SLDocumentSuffix.
@@ -1168,9 +1170,14 @@ inductive PendingNode (sc : ScannerState) : Bool → SurfPos → SurfPos → Sur
       `l-explicit-document`, which the implicit continuation takes at any
       point in the stream; a directive document (`%YAML` … `---`) is neither,
       and the scanner refuses it after content with no `...`
-      (`directiveWithoutDocument`), so its arm is the stream's own head or the
-      one a suffix opens.  Given content evidence after `---`, the route
-      produces the extended stream.
+      (~~`directiveWithoutDocument`~~ — **`directiveAfterContent`**, corrected
+      2026-09-10 at item 138 against the message the pipeline actually prints:
+      `directiveWithoutDocument` is the OTHER refusal, directives with no `---`
+      after them), so its arm is the stream's own head or the one a suffix
+      opens.  Given content evidence after `---`, the route produces the
+      extended stream.  **That arm is built** (item 138): `pendingDirective`
+      carries it, resolved off the park the `%` closed, and the directive path
+      no longer reaches `implicitContinue` at all.
       -/
   | pendingDocStart (sp_start sp_block sp_scan : SurfPos)
       (h_doc_route : ∀ sp_end,
@@ -1186,7 +1193,8 @@ inductive PendingNode (sc : ScannerState) : Bool → SurfPos → SurfPos → Sur
       (h_marker_tail : ∃ t, lastRealToken? sc.tokens = some t ∧
         t.val = .documentStart ∧ t.pos.line = sc.line)
       -- Item 77: `scanDocumentStart` re-arms too.
-      (h_arm : sc.simpleKeyAllowed = true ∨ 0 < sp_scan.col) :
+      (h_arm : sc.simpleKeyAllowed = true ∨ 0 < sp_scan.col)
+      (h_nodir : sc.allowDirectives = false) :
       PendingNode sc false sp_start sp_block sp_scan
   /-- Directive `%` scanned. The gap contains directive content.
       Awaiting next `%` (accumulate) or `---` (form directive document).
@@ -1206,7 +1214,20 @@ inductive PendingNode (sc : ScannerState) : Bool → SurfPos → SurfPos → Sur
       (h_dir_acc : ∀ sp_mid,
         SSLComments sp_scan sp_mid →
         GPlus SLDirective sp_block sp_mid)
-      (h_stream : SLYamlStream sp_start sp_block) :
+      (h_stream : SLYamlStream sp_start sp_block)
+      -- **Item 138: the directive document's own `[211]` arm** (LAST, so the
+      -- patterns naming the older fields still bind them).  `[209]
+      -- l-directive-document` is not an `l-explicit-document`, so the implicit
+      -- continuation is the wrong arm for it; the right one is the stream's own
+      -- head (`single`'s `l-any-document?` slot) or the slot a `...` opens
+      -- (`suffixContinue`'s), and WHICH is a datum the park that this run
+      -- closed already holds — `noPending.h_nodoc` on one side, the `...`
+      -- park's marker on the other.  The producer resolves it once
+      -- (`PendingNode.dirRoute`) and hands the ROUTE down, exactly as item 135
+      -- reshaped `pendingDocStart.h_doc_route`: given the finished directive
+      -- document, this produces the extended stream.
+      (h_dir_route : ∀ sp_end,
+        SLDirectiveDocument sp_block sp_end → SLYamlStream sp_start sp_end) :
       PendingNode sc true sp_start sp_block sp_scan
   /-- Flow indicator scanned (`]`, `}`, `,`), or deferred block dispatch.
       Carries stream at block level. Closing requires grammar composition
@@ -1215,7 +1236,8 @@ inductive PendingNode (sc : ScannerState) : Bool → SurfPos → SurfPos → Sur
       (h_stream : SLYamlStream sp_start sp_block)
       -- Item 77: the escape carries no grammar, but it does carry the ONE
       -- scanner fact every park has — see `pendingContent.h_arm`.
-      (h_arm : sc.simpleKeyAllowed = true ∨ 0 < sp_scan.col) :
+      (h_arm : sc.simpleKeyAllowed = true ∨ 0 < sp_scan.col)
+      (h_nodir : sc.allowDirectives = false) :
       PendingNode sc false sp_start sp_block sp_scan
   /-- Content token scanned INSIDE a block entry (e.g., `- "hello"`).
       Like `pendingContent`, but additionally carries entry-level evidence
@@ -1297,7 +1319,8 @@ inductive PendingNode (sc : ScannerState) : Bool → SurfPos → SurfPos → Sur
       (h_closeF : (∃ ks : List Nat, (∀ k' ∈ ks, k' < n) ∧
         ∀ sp_mid : SurfPos, SSLComments sp_scan sp_mid →
         ∀ sp_end : SurfPos, SCompactSeqTail n sp_mid sp_end →
-        ResumeFrames (SLYamlStream sp_start) ks sp_end) ∨ True) :
+        ResumeFrames (SLYamlStream sp_start) ks sp_end) ∨ True)
+      (h_nodir : sc.allowDirectives = false) :
       PendingNode sc false sp_start sp_block sp_scan
   /-- Block indicator scanned (`-`, `?`, `:`).
       The gap sp_block → sp_scan contains the indicator character.
@@ -1392,7 +1415,8 @@ inductive PendingNode (sc : ScannerState) : Bool → SurfPos → SurfPos → Sur
       (h_closeF : (∃ ks : List Nat, (∀ k' ∈ ks, k' < n) ∧
         ∀ sp_mid : SurfPos, SBlockIndented n .blockIn sp_scan sp_mid →
         ∀ sp_end : SurfPos, SCompactSeqTail n sp_mid sp_end →
-        ResumeFrames (SLYamlStream sp_start) ks sp_end) ∨ True) :
+        ResumeFrames (SLYamlStream sp_start) ks sp_end) ∨ True)
+      (h_nodir : sc.allowDirectives = false) :
       PendingNode sc false sp_start sp_block sp_scan
   /-- A KEYLESS block-mapping entry opened at column 0, depth 0, one node
       awaited — the mapping twin of `pendingBlock` (item 13).  The whole entry
@@ -1551,7 +1575,8 @@ inductive PendingNode (sc : ScannerState) : Bool → SurfPos → SurfPos → Sur
         ResumeFrames (ExplValueLine sp_start nv) ks sp_mid) ∨ True)
       (h_framesV : (∃ (nv : Nat) (ks : List Nat),
         ∀ sp_mid : SurfPos, SSLComments sp_scan sp_mid →
-        ResumeFrames (ExplValueLine sp_start nv) ks sp_mid) ∨ True) :
+        ResumeFrames (ExplValueLine sp_start nv) ks sp_mid) ∨ True)
+      (h_nodir : sc.allowDirectives = false) :
       PendingNode sc false sp_start sp_block sp_scan
 
 /-- **Every block-context park either carries the save or is inside a line**
@@ -1874,6 +1899,59 @@ lemma ssl_comments_extend_suffixRun {sp_start sp sp_final : SurfPos}
   match h_sfx with
   | ⟨sp₁, sp₂, h_stream, h_plus, h_pre⟩ =>
     ⟨sp₁, sp₂, h_stream, h_plus, ssl_comments_extend_prefixes h_pre h_ssl⟩
+
+/-- **The directive-eligible park's `[211]` arm** (item 138).
+
+    `scanDirective` rejects unless `allowDirectives` is up, and only two parks
+    can have it up: the stream's own seed, whose region behind it is
+    `[202] l-document-prefix*` (`noPending.h_nodoc`), and a `...`, whose region
+    is `[205]`'s suffix run held open (`pendingDocEnd.h_marker` over the
+    accumulated stream).  Every other park is produced past the structural
+    dispatch, where `scanNextToken` has already cleared the flag, and carries
+    `h_nodir` to say so — so those seven refute the premise rather than
+    answering it.
+
+    What comes back is the arm a `%` run's document belongs to: `single`'s own
+    `l-any-document?` slot, or `suffixContinue`'s.  `[211]`'s implicit
+    continuation is not among them, and after this the directive path no longer
+    builds one. -/
+lemma PendingNode.dirRoute {sc : ScannerState} {sp_start sp_block sp_scan : SurfPos}
+    (h : PendingNode sc false sp_start sp_block sp_scan)
+    (h_stream : SLYamlStream sp_start sp_block)
+    (h_noflow : sc.inFlow = false)
+    (h_allow : sc.allowDirectives = true) :
+    ∀ sp_mid, SSLComments sp_scan sp_mid →
+      ∀ sp_end, SLDirectiveDocument sp_mid sp_end → SLYamlStream sp_start sp_end := by
+  cases h with
+  | noPending _ _ _ _ h_nodoc =>
+    exact fun sp_mid h_ssl sp_end h_dd =>
+      SLYamlStream.single sp_start sp_mid sp_end sp_end
+        (ssl_comments_extend_prefixes (h_nodoc h_noflow) h_ssl)
+        (GOpt.some sp_mid sp_end (SLAnyDocument.directive sp_mid sp_end h_dd))
+        (GStar.nil _)
+  | pendingDocEnd _ _ _ _ h_marker _ =>
+    exact fun sp_mid h_ssl sp_end h_dd =>
+      SLYamlStream.suffixContinue sp_start sp_block sp_mid sp_mid sp_end sp_end
+        h_stream
+        (GPlus.mk sp_block sp_mid sp_mid
+          (SLDocumentSuffix.mk sp_block sp_scan sp_mid h_marker h_ssl) (GStar.nil _))
+        (GStar.nil _)
+        (GOpt.some sp_mid sp_end (SLAnyDocument.directive sp_mid sp_end h_dd))
+        (GStar.nil _)
+  | pendingContent =>
+    exact absurd h_allow (by simp [show sc.allowDirectives = false from by assumption])
+  | pendingProps =>
+    exact absurd h_allow (by simp [show sc.allowDirectives = false from by assumption])
+  | pendingDocStart =>
+    exact absurd h_allow (by simp [show sc.allowDirectives = false from by assumption])
+  | pendingFlow =>
+    exact absurd h_allow (by simp [show sc.allowDirectives = false from by assumption])
+  | pendingBlockContent =>
+    exact absurd h_allow (by simp [show sc.allowDirectives = false from by assumption])
+  | pendingBlock =>
+    exact absurd h_allow (by simp [show sc.allowDirectives = false from by assumption])
+  | pendingMapValue =>
+    exact absurd h_allow (by simp [show sc.allowDirectives = false from by assumption])
 
 /-! ## §0c' FlowOpenStack — open flow-collection accumulation (Fix A, Piece 2 / Stage B)
 
@@ -4957,6 +5035,53 @@ lemma allowDirectives_update_false (s : ScannerState) :
   · rfl
   · rename_i h; simpa using h
 
+/-! ### Item 138: the park's `allowDirectives` face, paid once per dispatcher
+
+    Every `PendingNode` produced past the structural dispatch carries
+    `h_nodir : sc.allowDirectives = false`, and the reason is the same at all
+    fifty-odd construction sites: the flag is cleared BEFORE the three
+    dispatchers run (`allowDirectives_update_false`) and none of them writes it
+    again (the three `_preserves_allowDirectives` walks).  Stating that once per
+    dispatcher makes each site a one-term payment, as item 47's
+    `stale_of_dispatch` does for the stale tail.
+
+    What the field buys is a discrimination the accumulation could not make
+    before: `scanDirective` rejects on `!allowDirectives`, so a `%` that reaches
+    `structural_dispatch_to_pending` closed a park with the flag UP — and only
+    two constructors can have it, the stream's own seed (`noPending`) and a
+    `...` (`pendingDocEnd`).  That is what gives `[209] l-directive-document` a
+    real `[211]` arm instead of the implicit continuation. -/
+
+/-- A content dispatch's park has the directive flag down. -/
+lemma nodir_of_content_dispatch {s_prep s' : ScannerState} {c : Char}
+    (h : scanNextToken_dispatchContent
+        (if s_prep.allowDirectives then
+          { s_prep with allowDirectives := false, documentEverStarted := true }
+        else s_prep) c = .ok s') :
+    s'.allowDirectives = false := by
+  rw [ScannerAllowDirectives.dispatchContent_preserves_allowDirectives _ _ _ h]
+  exact allowDirectives_update_false _
+
+/-- A block-indicator dispatch's park has the directive flag down. -/
+lemma nodir_of_block_dispatch {s_prep s' : ScannerState} {c : Char}
+    (h : scanNextToken_dispatchBlockIndicators
+        (if s_prep.allowDirectives then
+          { s_prep with allowDirectives := false, documentEverStarted := true }
+        else s_prep) c = .ok (some s')) :
+    s'.allowDirectives = false := by
+  rw [ScannerAllowDirectives.dispatchBlockIndicators_preserves_allowDirectives h]
+  exact allowDirectives_update_false _
+
+/-- A flow-indicator dispatch's park has the directive flag down. -/
+lemma nodir_of_flow_dispatch {s_prep s' : ScannerState} {c : Char}
+    (h : scanNextToken_dispatchFlowIndicators
+        (if s_prep.allowDirectives then
+          { s_prep with allowDirectives := false, documentEverStarted := true }
+        else s_prep) c = .ok (some s')) :
+    s'.allowDirectives = false := by
+  rw [ScannerAllowDirectives.dispatchFlowIndicators_preserves_allowDirectives h]
+  exact allowDirectives_update_false _
+
 
 /-- Preprocessing carries `implicitValueLine` unchanged (item 48): the field is
     written by `scanValue` alone, and none of skip/unwind/save touch it. -/
@@ -5209,6 +5334,11 @@ lemma structural_dispatch_to_pending
     (hcorr : ScannerSurfCorr s_prep sp)
     (hpeek : s_prep.peek? = some c)
     (h_stream : SLYamlStream sp_start sp)
+    -- **Item 138: the directive document's arm, resolved by the park that
+    -- closed here.**  Only a `%` branch reads it, and only that branch can
+    -- discharge the premise — `scanDirective` rejects with the flag down.
+    (h_dir_route : s_prep.allowDirectives = true →
+      ∀ sp_end, SLDirectiveDocument sp sp_end → SLYamlStream sp_start sp_end)
     (h_nic_ds : atDocumentStart s_prep = true → s_prep.col = 0 →
       s_prep.needIndentCheck = false)
     (h_dispatch : scanNextToken_dispatchStructural s_prep c = .ok (some s')) :
@@ -5264,7 +5394,9 @@ lemma structural_dispatch_to_pending
                   refine ⟨sp_dir, true, hcol,
                     PendingNode.pendingDirective sp_start sp sp_dir
                       (fun sp_mid hssl => ?_)
-                      h_stream,
+                      h_stream
+                      (h_dir_route
+                        (ScannerAllowDirectives.scanDirective_allowDirectives h_dir_ok)),
                     fun _ => scanDirective_directivesPresent h_dir_ok,
                     hcorr_dir⟩
                   obtain ⟨sp_chars, sp_col⟩ := sp
@@ -5302,7 +5434,10 @@ lemma structural_dispatch_to_pending
             (SLAnyDocument.explicit sp sp_end
               (SLExplicitDocument.withContent sp sp' sp_end h_marker h_content)))
           (GStar.nil _))
-      hpark.1 hpark.2.1 hpark.2.2 (Or.inl (scanDocumentStart_simpleKeyAllowed _)),
+      hpark.1 hpark.2.1 hpark.2.2 (Or.inl (scanDocumentStart_simpleKeyAllowed _))
+      -- Item 138: `scanDocumentStart` clears the flag itself (§9.1.2), so a
+      -- `---` park is not directive-eligible and says so definitionally.
+      rfl,
     fun h => Bool.noConfusion h, hcorr'⟩
 
 -- Every `.ok (some _)` branch of `scanNextToken_dispatchStructural` requires
@@ -5373,6 +5508,11 @@ lemma structural_dispatch_after_directives
     (hpeek : s_prep.peek? = some c)
     (h_stream : SLYamlStream sp_start sp_block)
     (h_dirs : GPlus SLDirective sp_block sp_prep)
+    -- **Item 138: the arm the run's document belongs to**, carried on the park
+    -- since the `%` that opened the run and spent here on the `---` that
+    -- finishes it.
+    (h_dir_route : ∀ sp_end,
+      SLDirectiveDocument sp_block sp_end → SLYamlStream sp_start sp_end)
     (h_dp : s_prep.directivesPresent = true)
     (h_nic_ds : atDocumentStart s_prep = true → s_prep.col = 0 →
       s_prep.needIndentCheck = false)
@@ -5431,7 +5571,7 @@ lemma structural_dispatch_after_directives
       refine ⟨sp_dir, true,
         PendingNode.pendingDirective sp_start sp_block sp_dir
           (fun sp_mid hssl => GPlus_snoc h_dirs ?_)
-          h_stream,
+          h_stream h_dir_route,
         fun _ => scanDirective_directivesPresent h_dir_ok,
         hcorr_dir⟩
       obtain ⟨sp_chars, sp_col⟩ := sp_prep
@@ -5449,24 +5589,22 @@ lemma structural_dispatch_after_directives
     (h_nic_ds hat hcol_s)
   exact ⟨sp', false,
     PendingNode.pendingDocStart sp_start sp_block sp'
-      -- Item 135: the route, and this is the arm the tightening has not
-      -- reached yet.  `[209] l-directive-document` is not an
-      -- `l-explicit-document`, so `[211]`'s implicit continuation is the wrong
-      -- arm for it — the right one is the stream's own head (`single`) or the
-      -- slot a `...` opens, and which of the two holds is a datum
-      -- `pendingDirective` does not carry.  The scanner already refuses the
-      -- third reading (`a: 1⏎%YAML 1.2⏎---⏎b: 2` is
-      -- `directiveWithoutDocument`), so the residue is a missing witness, not a
-      -- missing refusal.
+      -- **Item 138: the route the park carries, spent.**  `[209]
+      -- l-directive-document` is not an `l-explicit-document`, so `[211]`'s
+      -- implicit continuation was always the wrong arm for it — item 135 named
+      -- that and could not fix it, because which of the two RIGHT arms holds
+      -- (the stream's own head, or the slot a `...` opens) is a datum the park
+      -- did not carry.  It carries it now: `PendingNode.dirRoute` resolved it
+      -- at the `%`, off `noPending.h_nodoc` or the `...` park's own marker, and
+      -- what stands here is the finished document handed to that arm.
       (fun sp_end h_content =>
-        SLYamlStream.implicitContinue sp_start sp_block sp_block sp_end sp_end
-          h_stream (GStar.nil _)
-          (GOpt.some sp_block sp_end
-            (SLAnyDocument.directive sp_block sp_end
-              (SLDirectiveDocument.mk sp_block sp_prep sp_end h_dirs
-                (SLExplicitDocument.withContent sp_prep sp' sp_end h_marker h_content))))
-          (GStar.nil _))
-      hpark.1 hpark.2.1 hpark.2.2 (Or.inl (scanDocumentStart_simpleKeyAllowed _)),
+        h_dir_route sp_end
+          (SLDirectiveDocument.mk sp_block sp_prep sp_end h_dirs
+            (SLExplicitDocument.withContent sp_prep sp' sp_end h_marker h_content)))
+      hpark.1 hpark.2.1 hpark.2.2 (Or.inl (scanDocumentStart_simpleKeyAllowed _))
+      -- Item 138: `scanDocumentStart` clears the flag itself (§9.1.2), so a
+      -- `---` park is not directive-eligible and says so definitionally.
+      rfl,
     fun h => Bool.noConfusion h, hcorr'⟩
 
 -- Helper (4f.3): gap closure + dispatch → PendingNode at SSLComments midpoint.
@@ -5484,6 +5622,10 @@ lemma dispatch_new_pending
     (hcmt : GOpt SCNbCommentText sp_ws sp_gap)
     (h_stream_mid : SLYamlStream sp_start sp_mid)
     (hpeek : s_prep.peek? = some c)
+    -- Item 138: the closed park's directive arm, at the landing the close
+    -- reached; only the `%` branch downstream reads it.
+    (h_dir_route : s_prep.allowDirectives = true →
+      ∀ sp_end, SLDirectiveDocument sp_mid sp_end → SLYamlStream sp_start sp_end)
     (h_nic_ds : atDocumentStart s_prep = true → s_prep.col = 0 →
       s_prep.needIndentCheck = false)
     (h_dispatch : scanNextToken_dispatchStructural s_prep c = .ok (some s')) :
@@ -5493,8 +5635,12 @@ lemma dispatch_new_pending
     structural_gap_collapse s_prep s' c sp_mid sp_ws sp_gap sp_prep
       hcorr_prep hcorr_gap hcol_mid hws hcmt h_dispatch
   have h_stream_prep : SLYamlStream sp_start sp_prep := h_mid_prep ▸ h_stream_mid
+  have h_dir_prep : s_prep.allowDirectives = true →
+      ∀ sp_end, SLDirectiveDocument sp_prep sp_end → SLYamlStream sp_start sp_end :=
+    h_mid_prep ▸ h_dir_route
   obtain ⟨sp_disp, b', _, h_pending_new, h_flag, hcorr_disp⟩ :=
-    structural_dispatch_to_pending s_prep s' c sp_start sp_prep hcorr_prep hpeek h_stream_prep h_nic_ds h_dispatch
+    structural_dispatch_to_pending s_prep s' c sp_start sp_prep hcorr_prep hpeek h_stream_prep
+      h_dir_prep h_nic_ds h_dispatch
   have h_disp_eq : sp_disp = sp_scan' := ScannerSurfCorr_unique hcorr_disp hcorr_result
   rw [← h_mid_prep, h_disp_eq] at h_pending_new
   exact ⟨b', h_pending_new, h_flag⟩
@@ -5507,6 +5653,9 @@ lemma accum_structural_pending (sc : ScannerState)
     (h_pending : PendingNode sc b sp_start sp_block sp_scan)
     (h_dir_flag : b = true → sc.directivesPresent = true)
     (h_corr : ScannerSurfCorr sc sp_scan)
+    -- Item 138: the depth this lemma is called at, named — `noPending.h_nodoc`
+    -- is stated against it and the directive arm reads it there.
+    (h_noflow : sc.inFlow = false)
     (h_preprocess : scanNextToken_preprocess sc = .ok (some (s_prep, c)))
     (h_dispatch : scanNextToken_dispatchStructural s_prep c = .ok (some s')) :
     ∃ sp_gram' sp_block' sp_flow' sp_scan' b',
@@ -5532,6 +5681,15 @@ lemma accum_structural_pending (sc : ScannerState)
     -- Capture closing strategy before case-split (Pattern 6: parametric closing)
     have h_close_pending : ∀ sp_mid, SSLComments sp_scan sp_mid → SLYamlStream sp_start sp_mid :=
       fun sp_mid h_ssl => h_pending.close_with_ssl h_stream_block h_ssl
+    -- ═══ Item 138: and the park's DIRECTIVE arm, resolved once for both
+    -- landings.  A `%` is the only structural token that can read it, and the
+    -- premise is what `scanDirective` guarantees at that branch alone. ═══
+    have h_ad_sc : s_prep.allowDirectives = sc.allowDirectives :=
+      ScannerAllowDirectives.preprocess_preserves_allowDirectives sc s_prep c h_preprocess
+    have h_dir_pending : sc.allowDirectives = true →
+        ∀ sp_mid, SSLComments sp_scan sp_mid →
+        ∀ sp_end, SLDirectiveDocument sp_mid sp_end → SLYamlStream sp_start sp_end :=
+      fun hA => h_pending.dirRoute h_stream_block h_noflow hA
     -- All false-indexed constructors share the same pattern: extract
     -- SSLComments → close pending to stream → dispatch_new_pending.
     have main : ∀ (h_close : ∀ sp_mid, SSLComments sp_scan sp_mid → SLYamlStream sp_start sp_mid),
@@ -5550,7 +5708,8 @@ lemma accum_structural_pending (sc : ScannerState)
         obtain ⟨b', h_pend_new, h_flag⟩ :=
           dispatch_new_pending s_prep s' c sp_start sp_mid sp_ws sp_gap sp_prep sp_scan'
             (h_nic_ds := h_nic_ds)
-            hcorr_prep hcorr_gap hcorr_result hcol_mid hws hcmt h_stream_mid hpeek h_dispatch
+            hcorr_prep hcorr_gap hcorr_result hcol_mid hws hcmt h_stream_mid hpeek
+            (fun hA => h_dir_pending (h_ad_sc ▸ hA) sp_mid h_ssl) h_dispatch
         exact ⟨sp_mid, sp_mid, sp_mid, sp_scan', b', h_stream_mid, BlockStack.nil sp_mid,
                FlowStackB.nil sp_mid .sep, h_pend_new, h_flag, hcorr_result⟩
       · -- col≠0: structural dispatch requires col=0, so SSLComments must exist.
@@ -5573,14 +5732,14 @@ lemma accum_structural_pending (sc : ScannerState)
         obtain ⟨b', h_pend_new, h_flag⟩ :=
           dispatch_new_pending s_prep s' c sp_start sp_mid sp_ws sp_gap sp_prep sp_scan'
             (h_nic_ds := h_nic_ds)
-            hcorr_prep hcorr_gap hcorr_result hcol_mid hws hcmt h_stream_mid hpeek h_dispatch
+            hcorr_prep hcorr_gap hcorr_result hcol_mid hws hcmt h_stream_mid hpeek
+            (fun hA => h_dir_pending (h_ad_sc ▸ hA) sp_mid h_ssl) h_dispatch
         exact ⟨sp_mid, sp_mid, sp_mid, sp_scan', b', h_stream_mid, BlockStack.nil sp_mid,
                FlowStackB.nil sp_mid .sep, h_pend_new, h_flag, hcorr_result⟩
     exact main h_close_pending
   | true =>
     cases h_pending with
-    | pendingDirective =>
-      rename_i h_stream_old h_dir_acc_old
+    | pendingDirective _ _ _ h_dir_acc_old h_stream_old h_dir_route_old =>
       -- Fix B: resolve the open directive run against the structural token.
       have h_dp_prep : s_prep.directivesPresent = true := by
         rw [preprocess_some_directivesPresent h_preprocess]; exact h_dir_flag rfl
@@ -5602,7 +5761,7 @@ lemma accum_structural_pending (sc : ScannerState)
           h_mid_prep ▸ h_dir_acc_old sp_mid h_ssl
         obtain ⟨sp', b', h_pend', h_flag', hcorr'⟩ :=
           structural_dispatch_after_directives s_prep s' c sp_start sp_block sp_prep
-            hcorr_prep hpeek h_stream_old h_dirs h_dp_prep h_nic_ds h_dispatch
+            hcorr_prep hpeek h_stream_old h_dirs h_dir_route_old h_dp_prep h_nic_ds h_dispatch
         have h_sp_eq : sp' = sp_scan' := ScannerSurfCorr_unique hcorr' hcorr_result
         exact ⟨sp_block, sp_block, sp_block, sp_scan', b', h_stream_old,
                BlockStack.nil sp_block, FlowStackB.nil sp_block .sep, h_sp_eq ▸ h_pend', h_flag',
@@ -5668,7 +5827,8 @@ lemma accum_step_structural (sc : ScannerState)
     obtain ⟨g', bl', fl', sn', b', q1, q2, q3, q4, q5, q6⟩ :=
       accum_structural_pending sc sp_start sp_flow sp_scan s_prep s' c
         (absorb_stacksB sp_start sp_gram sp_block sp_flow h_stream h_stack h_flow)
-        (h_pending h0) h_dir_flag h_corr h_preprocess h_dispatch
+        (h_pending h0) h_dir_flag h_corr
+        (by unfold ScannerState.inFlow; simp; omega) h_preprocess h_dispatch
     exact ⟨g', bl', fl', sn', b', q1, q2, ⟨0, 0, #[], q3.retail, rfl, Nat.zero_le _, fun h => absurd h (by omega)⟩,
            fun _ => q4, q5, q6, fun h => absurd h (by omega)⟩
   · -- ═══ DEPTH ≥ 1: VACUOUS. ═══
@@ -10096,7 +10256,8 @@ lemma accum_step_flow (sc : ScannerState)
                       (flowVPack_of_close resume.vslot
                         (SFlowContent.flowSeq _ _ _ _ h_seq))
                       (Or.inr (by have := glit_col h_close_lit; omega))
-                      (Or.inr trivial) (Or.inr trivial)),
+                      (Or.inr trivial) (Or.inr trivial)
+                    ((ScannerAllowDirectives.scanFlowSequenceEnd_preserves_allowDirectives _).trans h_ad_false)),
                   hcorr_tok, fun h => absurd h (by omega)⟩
               · -- mapBase + ']': kind-mismatched close (`{a]`). REFUTED (9a+9b(i)):
                 -- the scanner only reaches this dispatch with `flowStack.back? =
@@ -10268,7 +10429,8 @@ lemma accum_step_flow (sc : ScannerState)
                         (flowVPack_of_close resume.vslot
                           (SFlowContent.flowMap _ _ _ _ h_map))
                       (Or.inr (by have := glit_col h_close_lit; omega))
-                      (Or.inr trivial) (Or.inr trivial)),
+                      (Or.inr trivial) (Or.inr trivial)
+                        ((ScannerAllowDirectives.scanFlowMappingEnd_preserves_allowDirectives _).trans h_ad_false)),
                       hcorr_tok, fun h => absurd h (by omega)⟩
                   · -- seqNest + '}': kind-mismatched close (`[a}` nested). REFUTED.
                     simp at h_back
@@ -12307,7 +12469,8 @@ lemma colon_open_map (sp_start sp_land sp_ind : SurfPos) (k : Nat)
            -- Item 108: a `[189]` empty-key entry's value slot is
            -- `s-l+block-node` — no explicit frame stands over this park, so
            -- there is no value line for a stack to bottom at.
-           (Or.inr trivial) (Or.inr trivial),
+           (Or.inr trivial) (Or.inr trivial)
+           (nodir_of_block_dispatch h_dispatch),
          hcorr_result⟩
 
 -- The col-0 `?` producer (item 20): the explicit-key twin of `colon_open_map`.
@@ -12472,7 +12635,8 @@ lemma question_open_map (sp_start sp_land sp_ind : SurfPos) (k : Nat)
                    h_route51 sp_w
                      (SBlockMapEntry.explicit k sp_ind sp_scan' sp_m sp_i sp_c sp_w h_lit
                        (SBlockIndented.empty k .blockOut sp_scan' sp_m h_ssl)
-                       h_iv h_colon h_sbi))⟩),
+                       h_iv h_colon h_sbi))⟩)
+           (nodir_of_block_dispatch h_dispatch),
          hcorr_result⟩
 
 /-- **The explicit VALUE line** (item 51): a `:` landing at the pending
@@ -12555,7 +12719,8 @@ lemma colon_open_map_explicit (sp_start sp_scan sp_mid sp_ind : SurfPos) (nv : N
              (Or.inr trivial)
              (Or.inr trivial)
              -- Item 108: nor a value-line-bottomed stack, for the same reason.
-             (Or.inr trivial) (Or.inr trivial),
+             (Or.inr trivial) (Or.inr trivial)
+           (nodir_of_block_dispatch h_dispatch),
          hcorr_result⟩
 
 /-- **A compact `?` opens the same `[186]` explicit key a landed one does**
@@ -12820,7 +12985,8 @@ lemma compact_open_map (sp_start sp_entry sp_ind : SurfPos) (n m : Nat)
              -- a stack here the way `question_open_map` does; no landing inside
              -- a compact key reaches the dedent branch yet, so it stays unpaid
              -- rather than paid and unread.
-             (Or.inr trivial) (Or.inr trivial),
+             (Or.inr trivial) (Or.inr trivial)
+           (nodir_of_block_dispatch h_dispatch),
          hcorr_result⟩
 
 -- The two KEYLESS block-mapping openers under one name (item 20).  They
@@ -13099,7 +13265,8 @@ lemma colon_open_map_implicit (sp_start sp_block sp_key sp_gram sp_ws : SurfPos)
                           (SBlockMapEntry.implicitKeyEmpty k sp_key sp_ws sp_scan' sp_mid
                             h_ik h_lit h_ssl)
                           sp_end h_tail)⟩
-              | Or.inr _ => Or.inr trivial),
+              | Or.inr _ => Or.inr trivial)
+           (nodir_of_block_dispatch h_dispatch),
          hcorr_result⟩
 
 /-- **The anchored null key** (item 49): the parked `[96]` run IS the implicit
@@ -13268,7 +13435,8 @@ lemma colon_open_map_props (sp_start sp_block sp_p sp_scan : SurfPos) (k : Nat)
                           (SBlockMapEntry.implicitKeyEmpty k sp_p sp_prep sp_scan' sp_mid
                             h_ik h_lit h_ssl)
                           sp_end h_tail)⟩
-              | Or.inr _ => Or.inr trivial),
+              | Or.inr _ => Or.inr trivial)
+           (nodir_of_block_dispatch h_dispatch),
          hcorr_result⟩
 
 /-- …and the coupling that fires it (item 49): at a props park the same-line
@@ -13647,7 +13815,11 @@ lemma block_dispatch_deferred
     -- Item 77: the escape's own park still answers the ONE scanner question a
     -- landed `:` asks of it — see `PendingNode.pendingContent.h_arm`.
     (h_arm : s'.simpleKeyAllowed = true ∨ 0 < sp_scan'.col)
-    (hcorr : ScannerSurfCorr s' sp_scan') :
+    (hcorr : ScannerSurfCorr s' sp_scan')
+    -- Item 138: the escape's park carries the directive face too — the
+    -- deferral is a block-indicator dispatch like any other, and its caller
+    -- holds the dispatch equation this reads.
+    (h_nodir : s'.allowDirectives = false) :
     ∃ sp_gram' sp_block' sp_flow' sp_scan',
       SLYamlStream sp_start sp_gram' ∧
       BlockStack sp_gram' sp_block' ∧
@@ -13656,7 +13828,7 @@ lemma block_dispatch_deferred
       ScannerSurfCorr s' sp_scan' :=
   ⟨sp_X, sp_X, sp_X, sp_scan', h_stream,
    BlockStack.nil sp_X, FlowStackB.nil sp_X .sep,
-   PendingNode.pendingFlow sp_start sp_X sp_scan' h_stream h_arm,
+   PendingNode.pendingFlow sp_start sp_X sp_scan' h_stream h_arm h_nodir,
    hcorr⟩
 
 -- Block dispatch with noPending: fresh block entry.
@@ -13779,7 +13951,8 @@ lemma accum_block_on_noPending
              -- Item 92: a landed `-` with nothing pending opens `[183]` under
              -- no `[187]` frame — there is no value line to pack.
              (Or.inr trivial)
-             (Or.inr trivial),
+             (Or.inr trivial)
+             (nodir_of_block_dispatch h_dispatch),
            hcorr_result⟩
   · -- c ≠ '-' at the landing: a ':' opens `[189]`'s empty-key entry (item 13)
     -- and a '?' opens `[186]`'s explicit-key one (item 20) — ONE arm, because
@@ -13827,6 +14000,7 @@ lemma accum_block_on_noPending
         · exact block_dispatch_deferred sp_start sp_mid sp_scan' s'
             (ssl_comments_extend_stream sp_start sp_block _ h_stream_block h_ssl_pre)
             (Or.inl (block_indicator_arm h_dispatch)) hcorr_result
+            (nodir_of_block_dispatch h_dispatch)
       · exact h_open (fun h => absurd (hc_q.symm.trans h) (by decide))
     · exact (block_indicator_exhausted h_dispatch hc hcv).elim
 
@@ -13994,7 +14168,8 @@ lemma accum_block_on_closeThenBlock
                               h_dash2 h_gnot2 h_bi h_tail))
                           sp_i sp_c h_iv h_lit sp_v h_sbi⟩
                   | Or.inr _ => Or.inr trivial)
-             (Or.inr trivial),
+             (Or.inr trivial)
+                 (nodir_of_block_dispatch h_dispatch),
                hcorr_result⟩
       · by_cases hcv : c = ':' ∨ c = '?'
         · have h_fill := fun (h_src : c = ':' → (if s_prep.allowDirectives then
@@ -14026,12 +14201,14 @@ lemma accum_block_on_closeThenBlock
             · exact h_fill (fun _ => h_src)
             · exact block_dispatch_deferred sp_start sp_a sp_scan' s' h_stream_a
                 (Or.inl (block_indicator_arm h_dispatch)) hcorr_result
+                (nodir_of_block_dispatch h_dispatch)
           · exact h_fill (fun h => absurd (hc_q.symm.trans h) (by decide))
         · exact (block_indicator_exhausted h_dispatch hc hcv).elim
     · exact block_dispatch_deferred sp_start sp_block_ctx sp_scan' s'
         (h_stream_fallback (inline_residue_of_landing ⟨h_mid.1, h_mid.2.1⟩ hws h_pk hcorr_prep
           (preprocess_some_peek h_preprocess)) h_mid.2.2)
         (Or.inl (block_indicator_arm h_dispatch)) hcorr_result
+        (nodir_of_block_dispatch h_dispatch)
   obtain ⟨h_ssl, hcol_mid, h_larm⟩ := h_landed
   have h_stream_new := h_close_pending sp_mid h_ssl
   -- Item 118: the suffix face instantiated at this landing, and the route a
@@ -14126,7 +14303,8 @@ lemma accum_block_on_closeThenBlock
                  ResumeFrames.bottom sp_end
                    (h_seqRoute sp_end
                      (SBlockSeqEntries_of_compactTail h_ind h_dash h_gnot
-                       h_indented h_tail))⟩),
+                       h_indented h_tail))⟩)
+             (nodir_of_block_dispatch h_dispatch),
            hcorr_result⟩
   · -- c ≠ '-' at the landing: a ':' opens `[189]`'s empty-key entry there
     -- (item 13), a '?' opens `[186]`'s explicit-key one (item 20) — one arm.
@@ -14198,8 +14376,10 @@ lemma accum_block_on_closeThenBlock
               exact h_explicit hvp
             · exact block_dispatch_deferred sp_start sp_mid sp_scan' s' h_stream_new
                 (Or.inl (block_indicator_arm h_dispatch)) hcorr_result
+                (nodir_of_block_dispatch h_dispatch)
           · exact block_dispatch_deferred sp_start sp_mid sp_scan' s' h_stream_new
               (Or.inl (block_indicator_arm h_dispatch)) hcorr_result
+              (nodir_of_block_dispatch h_dispatch)
       · exact h_generic (fun h => absurd h hc_colon)
     · exact (block_indicator_exhausted h_dispatch hc hcv).elim
 
@@ -14590,7 +14770,8 @@ lemma accum_block_on_pendingBlockContent
         (h_stream_fallback (nodeStop_residue_is_colon h_line (block_indicator_char h_dispatch)
           (inline_residue_of_landing ⟨h_mid.1, h_mid.2.1⟩ hws h_pk hcorr_prep
             (preprocess_some_peek h_preprocess))) h_mid.2.2)
-        (Or.inl (block_indicator_arm h_dispatch)) hcorr_result)
+        (Or.inl (block_indicator_arm h_dispatch)) hcorr_result
+        (nodir_of_block_dispatch h_dispatch))
     obtain ⟨h_ssl, hcol_mid, h_larm⟩ := h_landed
     have h_eq := h_pk.resolve_right (by simp [preprocess_some_peek h_preprocess])
     subst h_eq
@@ -14641,7 +14822,8 @@ lemma accum_block_on_pendingBlockContent
                             h_ind h_dash2 h_gnot2 h_bi h_tail)
                           sp_i sp_c h_iv h_lit sp_v h_sbi⟩
                   | Or.inr _ => Or.inr trivial)
-             (Or.inr trivial),
+             (Or.inr trivial)
+                 (nodir_of_block_dispatch h_dispatch),
                hcorr_result⟩
       · -- Item 30: here the widths disagreeing is ONE case, not two.  This
         -- pending's entry already HAS its node — that is what distinguishes
@@ -14722,9 +14904,11 @@ lemma accum_block_on_pendingBlockContent
               · exact block_dispatch_deferred sp_start sp_mid sp_scan' s'
                   (h_close_pending _ h_ssl)
                   (Or.inl (block_indicator_arm h_dispatch)) hcorr_result
+                  (nodir_of_block_dispatch h_dispatch)
             · exact block_dispatch_deferred sp_start sp_mid sp_scan' s'
                 (h_close_pending _ h_ssl)
                 (Or.inl (block_indicator_arm h_dispatch)) hcorr_result
+                (nodir_of_block_dispatch h_dispatch)
         · exact h_gen (fun h => absurd h hc_colon)
       · exact (block_indicator_exhausted h_dispatch hc hcv).elim
   by_cases hc0 : c = ':'
@@ -14834,7 +15018,8 @@ lemma accum_block_on_pendingBlock
                           h_ind h_dash2 h_gnot2 h_bi h_tail)
                         sp_i sp_c h_iv h_lit sp_v h_sbi⟩
                 | Or.inr _ => Or.inr trivial)
-             (Or.inr trivial),
+             (Or.inr trivial)
+               (nodir_of_block_dispatch h_dispatch),
              hcorr_result⟩
     · -- Item 30: the widths disagree, and the two directions are DIFFERENT
       -- constructs — which is why one `k ≠ n` deferral was hiding both.
@@ -14897,7 +15082,8 @@ lemma accum_block_on_pendingBlock
                           sp_e (SCompactSeqTail.nil n sp_e)
                           sp_i sp_c h_iv h_lit sp_v h_sbi⟩
                   | Or.inr _ => Or.inr trivial)
-             (Or.inr trivial),
+             (Or.inr trivial)
+                 (nodir_of_block_dispatch h_dispatch),
                hcorr_result⟩
       · -- ═══ DEDENT (`k < n`): the inner collection ENDS here ═══
         -- `-⏎  -⏎- b`.  `nestedBlockSeq`'s `m` would have to be negative, so
@@ -14978,9 +15164,11 @@ lemma accum_block_on_pendingBlock
             · exact block_dispatch_deferred sp_start sp_mid sp_scan' s'
                 (h_close_pending _ h_ssl)
                 (Or.inl (block_indicator_arm h_dispatch)) hcorr_result
+                (nodir_of_block_dispatch h_dispatch)
           · exact block_dispatch_deferred sp_start sp_mid sp_scan' s'
               (h_close_pending _ h_ssl)
               (Or.inl (block_indicator_arm h_dispatch)) hcorr_result
+              (nodir_of_block_dispatch h_dispatch)
       · exact h_gen (fun h => absurd h hc_colon)
     · exact (block_indicator_exhausted h_dispatch hc hcv).elim
   -- ═══ THE INLINE RESIDUE: the COMPACT collection (item 33) ═══
@@ -15048,7 +15236,8 @@ lemma accum_block_on_pendingBlock
                         sp_e (SCompactSeqTail.nil n sp_e)
                         sp_i sp_c h_iv h_lit sp_v h_sbi⟩
                 | Or.inr _ => Or.inr trivial)
-             (Or.inr trivial),
+             (Or.inr trivial)
+               (nodir_of_block_dispatch h_dispatch),
              hcorr_result⟩
     · by_cases hcv : c = ':' ∨ c = '?'
       · -- `- : a` and `- ? a`: `[195] ns-l-compact-mapping`, the same two
@@ -15081,6 +15270,7 @@ lemma accum_block_on_pendingBlock
           · exact h_fill (fun _ => h_src)
           · exact block_dispatch_deferred sp_start sp_block sp_scan' s' h_stream_block
               (Or.inl (block_indicator_arm h_dispatch)) hcorr_result
+              (nodir_of_block_dispatch h_dispatch)
         · exact h_fill (fun h => absurd (hc_q.symm.trans h) (by decide))
       · exact (block_indicator_exhausted h_dispatch hc hcv).elim
   · -- The TAB, one production down (items 33/34).  `[185]`'s `s-indent(m)` is
@@ -18760,7 +18950,8 @@ lemma content_dispatch_routed
                -- decorated VALUE at column 0 is `§9.2`-refused (`k:⏎  a: 1⏎&p b`
                -- is bare-document content), so all five faces punt for free.
                (Or.inr trivial) (Or.inr trivial) (Or.inr trivial)
-               (Or.inr trivial) (Or.inr trivial),
+               (Or.inr trivial) (Or.inr trivial)
+               (nodir_of_content_dispatch h_dispatch),
              hcorr_result⟩
     | inr h =>
       subst h
@@ -18792,7 +18983,8 @@ lemma content_dispatch_routed
                -- Item 114: as at the `&` arm — the landed run's decorated
                -- VALUE is `§9.2`-refused, so the faces punt for free.
                (Or.inr trivial) (Or.inr trivial) (Or.inr trivial)
-               (Or.inr trivial) (Or.inr trivial),
+               (Or.inr trivial) (Or.inr trivial)
+               (nodir_of_content_dispatch h_dispatch),
              hcorr_result⟩
   · have hna : c ≠ '&' := fun h => hprops (Or.inl h)
     have hnt : c ≠ '!' := fun h => hprops (Or.inr h)
@@ -18941,7 +19133,8 @@ lemma content_dispatch_routed
                  hcorr_result) (Or.inr trivial)
                  (content_park_arm hpeek
                    h_flow_disp h_not_doc h_dispatch hcorr_result)
-               (Or.inr trivial) (Or.inr trivial),
+               (Or.inr trivial) (Or.inr trivial)
+               (nodir_of_content_dispatch h_dispatch),
              hcorr_result⟩
     | inr h_bs0 =>
       obtain ⟨_, hbs⟩ := h_bs0
@@ -18970,7 +19163,8 @@ lemma content_dispatch_routed
                  hcorr_result) (Or.inr trivial)
                  (content_park_arm hpeek
                    h_flow_disp h_not_doc h_dispatch hcorr_result)
-               (Or.inr trivial) (Or.inr trivial),
+               (Or.inr trivial) (Or.inr trivial)
+               (nodir_of_content_dispatch h_dispatch),
              hcorr_result⟩
 
 /-- The bare-document instance of `content_dispatch_routed` — the node anchors
@@ -19228,7 +19422,8 @@ lemma accum_content_on_pendingBlock
                (Or.inl (fun sp_m h_bn sp_end h_tail =>
                  h_close_entry_old sp_m
                    (SBlockIndented.node 0 .blockIn sp_scan sp_m h_bn) sp_end h_tail))
-               (Or.inr trivial) (Or.inr trivial) (Or.inr trivial) (Or.inr trivial),
+               (Or.inr trivial) (Or.inr trivial) (Or.inr trivial) (Or.inr trivial)
+               (nodir_of_content_dispatch h_dispatch),
              hcorr_result⟩
     | inr h =>
       subst h
@@ -19279,7 +19474,8 @@ lemma accum_content_on_pendingBlock
                (Or.inl (fun sp_m h_bn sp_end h_tail =>
                  h_close_entry_old sp_m
                    (SBlockIndented.node 0 .blockIn sp_scan sp_m h_bn) sp_end h_tail))
-               (Or.inr trivial) (Or.inr trivial) (Or.inr trivial) (Or.inr trivial),
+               (Or.inr trivial) (Or.inr trivial) (Or.inr trivial) (Or.inr trivial)
+               (nodir_of_content_dispatch h_dispatch),
              hcorr_result⟩
   · have hna : c ≠ '&' := fun h => hprops (Or.inl h)
     have hnt : c ≠ '!' := fun h => hprops (Or.inr h)
@@ -19338,7 +19534,8 @@ lemma accum_content_on_pendingBlock
                -- Item 92: a root `- `'s indicator sits at column 0, so no `?`
                -- frame can own this park — the pack is vacuous here.
                (Or.inr trivial)
-             (Or.inr trivial),
+             (Or.inr trivial)
+             (nodir_of_content_dispatch h_dispatch),
            hcorr_result⟩
     | inr h_bs0 =>
       obtain ⟨_, hbs⟩ := h_bs0
@@ -19381,7 +19578,8 @@ lemma accum_content_on_pendingBlock
                -- Item 110: a root `- ` stands inside no mapping level, and the
                -- landing that would spend this face is refused
                -- (`- |⏎  x⏎b: 2` is `trailingContent`).
-               (Or.inr trivial),
+               (Or.inr trivial)
+               (nodir_of_content_dispatch h_dispatch),
              hcorr_result⟩
 
 /-- **Does this content step read at EVERY index?** (item 23; item 24; item 26)
@@ -19967,7 +20165,8 @@ lemma accum_content_on_pendingBlock_indented
                         (SBlockNode.flowInBlock n .blockIn sp_scan sp_prep sp_gram sp_final
                           h_sep_all (h_flow_all n)
                           (white_prepend_SSLComments h_trailing_ws h_ssl)))⟩
-              | Or.inr _ => Or.inr trivial),
+              | Or.inr _ => Or.inr trivial)
+             (nodir_of_content_dispatch h_dispatch),
            hcorr_result⟩
   · -- Item 24: the run parks at the ENTRY's index.  Item 114: and the entry's
     -- own holdings park WITH it — the chain, the frame's pack, and the resume
@@ -20089,7 +20288,8 @@ lemma accum_content_on_pendingBlock_indented
               | Or.inr _ => Or.inr trivial)
              -- Item 114: the node-domain pair is the MAPPING producers' —
              -- this park's completion takes the entries-chain park instead.
-             (Or.inr trivial) (Or.inr trivial),
+             (Or.inr trivial) (Or.inr trivial)
+             (nodir_of_content_dispatch h_dispatch),
            hcorr_result⟩
   · -- Item 26: `  - |` — `[198]`'s block scalar at the ENTRY's index.  The
     -- node is complete where the scanner stopped ([170]'s `l-chomped-empty`
@@ -20143,7 +20343,8 @@ lemma accum_content_on_pendingBlock_indented
                     closeF sp_final
                       (SBlockIndented.node n .blockIn sp_scan sp_final
                         (h_nodeAt sp_final h_ssl))⟩
-              | Or.inr _ => Or.inr trivial),
+              | Or.inr _ => Or.inr trivial)
+             (nodir_of_content_dispatch h_dispatch),
            hcorr_result⟩
   · -- Items 53/54: the entry's MULTI-LINE value (quoted or plain), read at
     -- the entry's own index; arm 1's park with the fixed-index node.
@@ -20245,7 +20446,8 @@ lemma accum_content_on_pendingBlock_indented
                         (SBlockNode.flowInBlock n .blockIn sp_scan sp_prep sp_gramf sp_final
                           h_sep_all h_node_f
                           (white_prepend_SSLComments h_tws_f h_ssl)))⟩
-              | Or.inr _ => Or.inr trivial),
+              | Or.inr _ => Or.inr trivial)
+             (nodir_of_content_dispatch h_dispatch),
            hcorr_result⟩
   · -- Item 99: the DEDENT drains.  The landing ended this entry, so the
     -- pending's own closure closes it EMPTY (`[185]`'s comment form), and
@@ -20525,7 +20727,8 @@ lemma accum_content_on_pendingMapValue
                 | Or.inr _ => Or.inr trivial)
                (match h_closeFV99 with
                 | Or.inl ⟨nv, ks, _, closeFV⟩ => Or.inl ⟨nv, ks, closeFV⟩
-                | Or.inr _ => Or.inr trivial),
+                | Or.inr _ => Or.inr trivial)
+               (nodir_of_content_dispatch h_dispatch),
              hcorr_result⟩
     | inr h =>
       subst h
@@ -20604,7 +20807,8 @@ lemma accum_content_on_pendingMapValue
                 | Or.inr _ => Or.inr trivial)
                (match h_closeFV99 with
                 | Or.inl ⟨nv, ks, _, closeFV⟩ => Or.inl ⟨nv, ks, closeFV⟩
-                | Or.inr _ => Or.inr trivial),
+                | Or.inr _ => Or.inr trivial)
+               (nodir_of_content_dispatch h_dispatch),
              hcorr_result⟩
   · have hna : c ≠ '&' := fun h => hprops (Or.inl h)
     have hnt : c ≠ '!' := fun h => hprops (Or.inr h)
@@ -20703,7 +20907,8 @@ lemma accum_content_on_pendingMapValue
               | Or.inl ⟨nv, ks, _, closeFV⟩ => Or.inl ⟨nv, ks, fun sp_mid h_ssl =>
                   closeFV sp_mid (SBlockNode.flowInBlock 0 .blockIn sp_scan sp_prep sp_gram
                     sp_mid h_sep h_flow (white_prepend_SSLComments h_trailing_ws h_ssl))⟩
-              | Or.inr _ => Or.inr trivial),
+              | Or.inr _ => Or.inr trivial)
+             (nodir_of_content_dispatch h_dispatch),
            hcorr_result⟩
     | inr h_bs0 =>
       obtain ⟨_, hbs⟩ := h_bs0
@@ -20767,7 +20972,8 @@ lemma accum_content_on_pendingMapValue
                (match h_closeFV99 with
                 | Or.inl ⟨nv, ks, _, closeFV⟩ => Or.inl ⟨nv, ks, fun sp_mid h_ssl =>
                     closeFV sp_mid (h_nodeAt sp_mid h_ssl)⟩
-                | Or.inr _ => Or.inr trivial),
+                | Or.inr _ => Or.inr trivial)
+               (nodir_of_content_dispatch h_dispatch),
              hcorr_result⟩
 
 /-- The mapping twin of `accum_content_on_pendingBlock_indented` (item 23):
@@ -20987,7 +21193,8 @@ lemma accum_content_on_pendingMapValue_indented
                   closeFV sp_mid (SBlockNode.flowInBlock n .blockIn sp_scan sp_prep sp_gram
                     sp_mid h_sep_all (h_flow_all n)
                     (white_prepend_SSLComments h_trailing_ws h_ssl))⟩
-              | Or.inr _ => Or.inr trivial),
+              | Or.inr _ => Or.inr trivial)
+             (nodir_of_content_dispatch h_dispatch),
            hcorr_result⟩
   · -- Item 24: `  : &a v` / `  ? &a v` — the mapping twin parks the same run
     -- against the VALUE's route.
@@ -21058,7 +21265,8 @@ lemma accum_content_on_pendingMapValue_indented
               | Or.inr _ => Or.inr trivial)
              (match h_closeFV108 with
               | Or.inl ⟨nv, ks, _, closeFV⟩ => Or.inl ⟨nv, ks, closeFV⟩
-              | Or.inr _ => Or.inr trivial),
+              | Or.inr _ => Or.inr trivial)
+             (nodir_of_content_dispatch h_dispatch),
            hcorr_result⟩
   · -- Item 26: `  a: |`, `  : |`, `  ? |` — the mapping twin of the sequence
     -- entry's block-scalar value, closing at the entry's own index.
@@ -21115,7 +21323,8 @@ lemma accum_content_on_pendingMapValue_indented
              (match h_closeFV108 with
               | Or.inl ⟨nv, ks, _, closeFV⟩ => Or.inl ⟨nv, ks, fun sp_mid h_ssl =>
                   closeFV sp_mid (h_nodeAt sp_mid h_ssl)⟩
-              | Or.inr _ => Or.inr trivial),
+              | Or.inr _ => Or.inr trivial)
+             (nodir_of_content_dispatch h_dispatch),
            hcorr_result⟩
   · -- Items 53/54: the MULTI-LINE value (quoted or plain) at the entry's
     -- own index; arm 1's park with the fixed-index node, the explicit
@@ -21184,7 +21393,8 @@ lemma accum_content_on_pendingMapValue_indented
               | Or.inl ⟨nv, ks, _, closeFV⟩ => Or.inl ⟨nv, ks, fun sp_mid h_ssl =>
                   closeFV sp_mid (SBlockNode.flowInBlock n .blockIn sp_scan sp_prep sp_gramf
                     sp_mid h_sep_all h_node_f (white_prepend_SSLComments h_tws_f h_ssl))⟩
-              | Or.inr _ => Or.inr trivial),
+              | Or.inr _ => Or.inr trivial)
+             (nodir_of_content_dispatch h_dispatch),
            hcorr_result⟩
   · -- Item 99: the DEDENT drains — the mapping-value twin of the arm above:
     -- the awaited value never arrived, so the entry closes on `[72]`'s empty
@@ -21570,7 +21780,8 @@ lemma accum_content_pending (sc : ScannerState)
       (fun _ _ _ _ _ _ =>
       block_dispatch_deferred sp_start sp_block sp_scan' s' h_stream_block
         ((content_park_arm (preprocess_some_peek h_preprocess) h_flow_disp h_not_doc h_dispatch
-          hcorr_result).imp_left And.left) hcorr_result)
+          hcorr_result).imp_left And.left) hcorr_result
+        (nodir_of_content_dispatch h_dispatch))
   | pendingProps _ _ _ ha ht sp_node sp_p n h_sep_run h_run h_nic_p h_real_p h_anchor_p h_tag_p
       h_route h_key_p h_floor_p _h_col0_p h_ncol_p h_ska_p h_kslot_p
       h_routeE_p h_kslotE_p h_closeFE_p h_closeFS_p h_closeFVS_p =>
@@ -21788,7 +21999,8 @@ lemma accum_content_pending (sc : ScannerState)
                    h_kslot_p
                    -- Item 114: nor do the park's resume faces — the anchor
                    -- lives inside the same awaited node.
-                   h_routeE_p h_kslotE_p h_closeFE_p h_closeFS_p h_closeFVS_p,
+                   h_routeE_p h_kslotE_p h_closeFE_p h_closeFS_p h_closeFVS_p
+                 (nodir_of_content_dispatch h_dispatch),
                hcorr_result⟩
       · by_cases hbang : c = '!'
         · -- ═══ `!` on the run's line: the mirror ═══
@@ -21894,7 +22106,8 @@ lemma accum_content_pending (sc : ScannerState)
                      (dispatchContent_tag_simpleKey h_dispatch).2
                      h_kslot_p
                      -- Item 114: the faces ride the extension, as at `&`.
-                     h_routeE_p h_kslotE_p h_closeFE_p h_closeFS_p h_closeFVS_p,
+                     h_routeE_p h_kslotE_p h_closeFE_p h_closeFS_p h_closeFVS_p
+                   (nodir_of_content_dispatch h_dispatch),
                  hcorr_result⟩
         · by_cases hstar : c = '*'
           · -- ═══ `*` on the run's line: REFUTED (items 9e/9k) ═══
@@ -22130,7 +22343,8 @@ lemma accum_content_pending (sc : ScannerState)
                             | Or.inl ⟨ks, h_lt, closeFE⟩ => Or.inl ⟨ks, h_lt,
                                 fun sp_mid h_ssl sp_end h_tail =>
                                   closeFE sp_mid (h_nodeAt sp_mid h_ssl) sp_end h_tail⟩
-                            | Or.inr _ => Or.inr trivial),
+                            | Or.inr _ => Or.inr trivial)
+                           (nodir_of_content_dispatch h_dispatch),
                          hcorr_result⟩
                 | inr _ =>
                   exact ⟨sp_block, sp_block, sp_block, sp_scan', h_stream_block,
@@ -22162,7 +22376,8 @@ lemma accum_content_pending (sc : ScannerState)
                          (match h_closeFVS_p with
                           | Or.inl ⟨nv, ks, closeFVS⟩ => Or.inl ⟨nv, ks,
                               fun sp_mid h_ssl => closeFVS sp_mid (h_nodeAt sp_mid h_ssl)⟩
-                          | Or.inr _ => Or.inr trivial),
+                          | Or.inr _ => Or.inr trivial)
+                         (nodir_of_content_dispatch h_dispatch),
                        hcorr_result⟩
               | inr h_block_pair =>
                 obtain ⟨_, h_absorb95⟩ := h_block_pair
@@ -22205,7 +22420,8 @@ lemma accum_content_pending (sc : ScannerState)
                             | Or.inl ⟨ks, h_lt, closeFE⟩ => Or.inl ⟨ks, h_lt,
                                 fun sp_mid h_ssl sp_end h_tail =>
                                   closeFE sp_mid (h_nodeAt sp_mid h_ssl) sp_end h_tail⟩
-                            | Or.inr _ => Or.inr trivial),
+                            | Or.inr _ => Or.inr trivial)
+                           (nodir_of_content_dispatch h_dispatch),
                          hcorr_result⟩
                 | inr _ =>
                   exact ⟨sp_block, sp_block, sp_block, sp_scan', h_stream_block,
@@ -22238,7 +22454,8 @@ lemma accum_content_pending (sc : ScannerState)
                          (match h_closeFVS_p with
                           | Or.inl ⟨nv, ks, closeFVS⟩ => Or.inl ⟨nv, ks,
                               fun sp_mid h_ssl => closeFVS sp_mid (h_nodeAt sp_mid h_ssl)⟩
-                          | Or.inr _ => Or.inr trivial),
+                          | Or.inr _ => Or.inr trivial)
+                         (nodir_of_content_dispatch h_dispatch),
                        hcorr_result⟩
             | k + 1, h_sep_run, h_run, h_route, h_sep2, h_kslot_p,
                 h_routeE_p, h_kslotE_p, h_closeFE_p, h_closeFS_p, h_closeFVS_p =>
@@ -22382,7 +22599,8 @@ lemma accum_content_pending (sc : ScannerState)
                             | Or.inl ⟨ks, h_lt, closeFE⟩ => Or.inl ⟨ks, h_lt,
                                 fun sp_mid h_ssl sp_end h_tail =>
                                   closeFE sp_mid (h_nodeAt sp_mid h_ssl) sp_end h_tail⟩
-                            | Or.inr _ => Or.inr trivial),
+                            | Or.inr _ => Or.inr trivial)
+                           (nodir_of_content_dispatch h_dispatch),
                          hcorr_result⟩
                 | inr _ =>
                   exact ⟨sp_block, sp_block, sp_block, sp_scan', h_stream_block,
@@ -22412,7 +22630,8 @@ lemma accum_content_pending (sc : ScannerState)
                          (match h_closeFVS_p with
                           | Or.inl ⟨nv, ks, closeFVS⟩ => Or.inl ⟨nv, ks,
                               fun sp_mid h_ssl => closeFVS sp_mid (h_nodeAt sp_mid h_ssl)⟩
-                          | Or.inr _ => Or.inr trivial),
+                          | Or.inr _ => Or.inr trivial)
+                         (nodir_of_content_dispatch h_dispatch),
                        hcorr_result⟩
               · -- `  - &a |`: the held run's route closes at `k+1`, and `[198]`'s
                 -- props slot takes the block scalar there.  Item 114: the
@@ -22457,7 +22676,8 @@ lemma accum_content_pending (sc : ScannerState)
                             | Or.inl ⟨ks, h_lt, closeFE⟩ => Or.inl ⟨ks, h_lt,
                                 fun sp_mid h_ssl sp_end h_tail =>
                                   closeFE sp_mid (h_nodeAt sp_mid h_ssl) sp_end h_tail⟩
-                            | Or.inr _ => Or.inr trivial),
+                            | Or.inr _ => Or.inr trivial)
+                           (nodir_of_content_dispatch h_dispatch),
                          hcorr_result⟩
                 | inr _ =>
                   exact ⟨sp_block, sp_block, sp_block, sp_scan', h_stream_block,
@@ -22492,7 +22712,8 @@ lemma accum_content_pending (sc : ScannerState)
                          (match h_closeFVS_p with
                           | Or.inl ⟨nv, ks, closeFVS⟩ => Or.inl ⟨nv, ks,
                               fun sp_mid h_ssl => closeFVS sp_mid (h_nodeAt sp_mid h_ssl)⟩
-                          | Or.inr _ => Or.inr trivial),
+                          | Or.inr _ => Or.inr trivial)
+                         (nodir_of_content_dispatch h_dispatch),
                        hcorr_result⟩
               · -- Item 55: the props-decorated MULTI-LINE value at `k+1` —
                 -- the first consumer's park with the fixed-index content.
@@ -22532,7 +22753,8 @@ lemma accum_content_pending (sc : ScannerState)
                             | Or.inl ⟨ks, h_lt, closeFE⟩ => Or.inl ⟨ks, h_lt,
                                 fun sp_mid h_ssl sp_end h_tail =>
                                   closeFE sp_mid (h_nodeAt sp_mid h_ssl) sp_end h_tail⟩
-                            | Or.inr _ => Or.inr trivial),
+                            | Or.inr _ => Or.inr trivial)
+                           (nodir_of_content_dispatch h_dispatch),
                          hcorr_result⟩
                 | inr _ =>
                   exact ⟨sp_block, sp_block, sp_block, sp_scan', h_stream_block,
@@ -22561,7 +22783,8 @@ lemma accum_content_pending (sc : ScannerState)
                          (match h_closeFVS_p with
                           | Or.inl ⟨nv, ks, closeFVS⟩ => Or.inl ⟨nv, ks,
                               fun sp_mid h_ssl => closeFVS sp_mid (h_nodeAt sp_mid h_ssl)⟩
-                          | Or.inr _ => Or.inr trivial),
+                          | Or.inr _ => Or.inr trivial)
+                         (nodir_of_content_dispatch h_dispatch),
                        hcorr_result⟩
   | pendingBlock _ _ _ n_old h_close_old h_close_entry_old h_floor_old h_sk_old h_col_old
       h_kslot92 h_closeF99 =>

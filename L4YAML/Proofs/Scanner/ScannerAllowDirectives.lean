@@ -273,4 +273,211 @@ lemma dispatchStructural_inFlow_no_success (s s' : ScannerState) (c : Char)
     simp at h
   · exact chain _ rfl h
 
+/-! ## The two indicator dispatchers (item 138)
+
+    `scanNextToken` clears `allowDirectives` before either indicator dispatcher
+    runs, and neither dispatcher's scans touch the flag again.  Walking them is
+    what turns that clear into a park FIELD: every `PendingNode` produced past
+    the structural dispatch carries `sc.allowDirectives = false`, which is how a
+    later `%` — the one arm `scanDirective` admits — knows the park it closed
+    was the stream's own seed or a `...`.
+
+    The proofs are the file's own shape: unfold, split on the guards, and bottom
+    out in `emit`/`advance`, neither of which writes the field. -/
+
+lemma pushSequenceIndent_preserves_allowDirectives (s : ScannerState) (col : Int) :
+    (pushSequenceIndent s col).allowDirectives = s.allowDirectives := by
+  unfold pushSequenceIndent; split <;> rfl
+
+lemma pushMappingIndent_preserves_allowDirectives (s : ScannerState) (col : Int) :
+    (pushMappingIndent s col).allowDirectives = s.allowDirectives := by
+  unfold pushMappingIndent; split <;> rfl
+
+/-- The `-` indicator's conditional push, at the shape the unfolded
+    `scanBlockEntry` presents it in. -/
+lemma ite_pushSequenceIndent_allowDirectives (s : ScannerState) :
+    (if !s.inFlow then pushSequenceIndent s (s.col : Int) else s).allowDirectives
+      = s.allowDirectives := by
+  split
+  · exact pushSequenceIndent_preserves_allowDirectives _ _
+  · rfl
+
+/-- The `?` indicator's conditional push, likewise. -/
+lemma ite_pushMappingIndent_allowDirectives (s : ScannerState) :
+    (if !s.inFlow then pushMappingIndent s (s.col : Int) else s).allowDirectives
+      = s.allowDirectives := by
+  split
+  · exact pushMappingIndent_preserves_allowDirectives _ _
+  · rfl
+
+lemma scanBlockEntry_preserves_allowDirectives {s s' : ScannerState}
+    (h : scanBlockEntry s = .ok s') : s'.allowDirectives = s.allowDirectives := by
+  unfold scanBlockEntry at h
+  simp only [bind, Except.bind] at h
+  split at h <;> (try split at h) <;> (try split at h) <;> (try split at h) <;>
+    first
+      | (subst h
+         simp only [advance_preserves_allowDirectives, emit_preserves_allowDirectives,
+           ite_pushSequenceIndent_allowDirectives,
+           pushSequenceIndent_preserves_allowDirectives])
+      | (injection h with h
+         subst h
+         simp only [advance_preserves_allowDirectives, emit_preserves_allowDirectives,
+           pushSequenceIndent_preserves_allowDirectives])
+      | (exfalso; simp_all; done)
+
+lemma scanKey_preserves_allowDirectives {s s' : ScannerState}
+    (h : scanKey s = .ok s') : s'.allowDirectives = s.allowDirectives := by
+  unfold scanKey at h
+  simp only [bind, Except.bind] at h
+  split at h <;> (try split at h) <;> (try split at h) <;> (try split at h) <;>
+    first
+      | (subst h
+         simp only [advance_preserves_allowDirectives, emit_preserves_allowDirectives,
+           ite_pushMappingIndent_allowDirectives,
+           pushMappingIndent_preserves_allowDirectives])
+      | (injection h with h
+         subst h
+         simp only [advance_preserves_allowDirectives, emit_preserves_allowDirectives,
+           pushMappingIndent_preserves_allowDirectives])
+      | (exfalso; simp_all; done)
+
+lemma scanValueClearKey_preserves_allowDirectives (s : ScannerState) :
+    (scanValueClearKey s).allowDirectives = s.allowDirectives := by
+  unfold scanValueClearKey
+  split
+  · split
+    · rfl
+    · split <;> rfl
+  · rfl
+
+lemma scanValuePrepare_preserves_allowDirectives (s : ScannerState) :
+    (scanValuePrepare s).allowDirectives = s.allowDirectives := by
+  unfold scanValuePrepare
+  split
+  · split
+    · split <;> rfl
+    · rfl
+  · split
+    · rfl
+    · split
+      · exact pushMappingIndent_preserves_allowDirectives _ _
+      · rfl
+
+lemma scanValue_preserves_allowDirectives {s s' : ScannerState}
+    (h : scanValue s = .ok s') : s'.allowDirectives = s.allowDirectives := by
+  unfold scanValue at h
+  simp only [bind, Except.bind] at h
+  split at h <;> (try split at h) <;> (try split at h) <;> (try split at h) <;>
+    first
+      | (subst h
+         simp only [advance_preserves_allowDirectives, emit_preserves_allowDirectives,
+           scanValuePrepare_preserves_allowDirectives,
+           scanValueClearKey_preserves_allowDirectives])
+      | (injection h with h
+         subst h
+         simp only [advance_preserves_allowDirectives, emit_preserves_allowDirectives,
+           scanValuePrepare_preserves_allowDirectives,
+           scanValueClearKey_preserves_allowDirectives])
+      | (exfalso; simp_all; done)
+
+/-- The block-indicator dispatcher never writes `allowDirectives`. -/
+lemma dispatchBlockIndicators_preserves_allowDirectives {s s' : ScannerState} {c : Char}
+    (h : scanNextToken_dispatchBlockIndicators s c = .ok (some s')) :
+    s'.allowDirectives = s.allowDirectives := by
+  unfold scanNextToken_dispatchBlockIndicators at h
+  simp only [bind, Except.bind, pure, Except.pure] at h
+  split at h
+  · split at h
+    · simp at h
+    · rename_i s_be h_be
+      injection Except.ok.inj h with h
+      subst h
+      exact scanBlockEntry_preserves_allowDirectives h_be
+  · split at h
+    · split at h
+      · simp at h
+      · rename_i s_k h_k
+        injection Except.ok.inj h with h
+        subst h
+        exact scanKey_preserves_allowDirectives h_k
+    · split at h
+      · split at h
+        · simp at h
+        · rename_i s_v h_v
+          injection Except.ok.inj h with h
+          subst h
+          exact scanValue_preserves_allowDirectives h_v
+      · exact absurd (Except.ok.inj h) nofun
+
+lemma scanFlowSequenceStart_preserves_allowDirectives (s : ScannerState) :
+    (scanFlowSequenceStart s).allowDirectives = s.allowDirectives := by
+  unfold scanFlowSequenceStart
+  simp only [advance_preserves_allowDirectives, emit_preserves_allowDirectives]
+
+lemma scanFlowSequenceEnd_preserves_allowDirectives (s : ScannerState) :
+    (scanFlowSequenceEnd s).allowDirectives = s.allowDirectives := by
+  unfold scanFlowSequenceEnd
+  simp only [advance_preserves_allowDirectives, emit_preserves_allowDirectives]
+
+lemma scanFlowMappingStart_preserves_allowDirectives (s : ScannerState) :
+    (scanFlowMappingStart s).allowDirectives = s.allowDirectives := by
+  unfold scanFlowMappingStart
+  simp only [advance_preserves_allowDirectives, emit_preserves_allowDirectives]
+
+lemma scanFlowMappingEnd_preserves_allowDirectives (s : ScannerState) :
+    (scanFlowMappingEnd s).allowDirectives = s.allowDirectives := by
+  unfold scanFlowMappingEnd
+  simp only [advance_preserves_allowDirectives, emit_preserves_allowDirectives]
+
+lemma scanFlowEntry_preserves_allowDirectives {s s' : ScannerState}
+    (h : scanFlowEntry s = .ok s') : s'.allowDirectives = s.allowDirectives := by
+  unfold scanFlowEntry at h
+  simp only [bind, Except.bind] at h
+  split at h <;> (try split at h) <;>
+    first
+      | (subst h
+         simp only [advance_preserves_allowDirectives, emit_preserves_allowDirectives])
+      | (injection h with h
+         subst h
+         simp only [advance_preserves_allowDirectives, emit_preserves_allowDirectives])
+      | (exfalso; simp_all; done)
+
+/-- The flow-indicator dispatcher never writes `allowDirectives` either. -/
+lemma dispatchFlowIndicators_preserves_allowDirectives {s s' : ScannerState} {c : Char}
+    (h : scanNextToken_dispatchFlowIndicators s c = .ok (some s')) :
+    s'.allowDirectives = s.allowDirectives := by
+  unfold scanNextToken_dispatchFlowIndicators at h
+  simp only [bind, Except.bind, pure, Except.pure] at h
+  split at h <;> (try split at h) <;> (try split at h) <;> (try split at h) <;>
+    (try split at h) <;> (try split at h) <;> (try split at h) <;> (try split at h) <;>
+    first
+      | (exfalso; simp_all; done)
+      | (injection h with h
+         injection h with h
+         subst h
+         simp only [scanFlowSequenceStart_preserves_allowDirectives,
+           scanFlowSequenceEnd_preserves_allowDirectives,
+           scanFlowMappingStart_preserves_allowDirectives,
+           scanFlowMappingEnd_preserves_allowDirectives])
+      | (rename_i h_fe
+         injection h with h
+         injection h with h
+         subst h
+         exact scanFlowEntry_preserves_allowDirectives h_fe)
+
+/-- **A directive scan says the flag was up** (item 138): `scanDirective`'s
+    first test is `!s.allowDirectives`, and it throws there.  This is the
+    premise `PendingNode.dirRoute` consumes — it is what narrows the park that
+    a `%` closed to the two the accumulation can give an arm to. -/
+lemma scanDirective_allowDirectives {s s' : ScannerState}
+    (h : scanDirective s = .ok s') : s.allowDirectives = true := by
+  cases had : s.allowDirectives with
+  | true => rfl
+  | false =>
+    exfalso
+    unfold scanDirective at h
+    rw [if_pos (by simp [had])] at h
+    simp at h
+
 end L4YAML.Proofs.ScannerAllowDirectives

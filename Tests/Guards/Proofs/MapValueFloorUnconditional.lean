@@ -38,13 +38,16 @@ example {sc : ScannerState} {sp_start sp_block sp_scan : SurfPos} {n : Nat}
     (h_col0 : 0 < sp_scan.col)
     -- Item 125: `h_ivl` is stamp-or-FACE now, so this pin carries a stamp;
     -- the floor it is about is still the unconditional field beside it.
-    (h_ivl : sc.implicitValueLine = some sc.line) :
+    (h_ivl : sc.implicitValueLine = some sc.line)
+    -- Item 138: and the park's directive face, which every park past the
+    -- structural dispatch carries.
+    (h_nodir : sc.allowDirectives = false) :
     PendingNode sc false sp_start sp_block sp_scan :=
   PendingNode.pendingMapValue sp_start sp_block sp_scan n h_close h_floor
     h_nic h_real (Or.inl h_ivl) (Or.inr trivial) (Or.inr trivial)
     h_sk h_col0 (Or.inr trivial) (Or.inr trivial)
     (Or.inr trivial) (Or.inr trivial)
-    (Or.inr trivial) (Or.inr trivial)
+    (Or.inr trivial) (Or.inr trivial) h_nodir
 
 /-- ...and `colon_open_map_implicit`'s slot asks for exactly that. -/
 example {s' : ScannerState} {k : Nat} (h : IndentFloor s' k) :

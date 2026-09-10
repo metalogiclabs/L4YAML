@@ -147,10 +147,13 @@ example {sc : ScannerState} {sp_start sp_block sp_scan : SurfPos}
     (h_real : LastTokenReal sc.tokens)
     (h_marker_tail : ∃ t, lastRealToken? sc.tokens = some t ∧
       t.val = .documentStart ∧ t.pos.line = sc.line)
-    (h_arm : sc.simpleKeyAllowed = true ∨ 0 < sp_scan.col) :
+    (h_arm : sc.simpleKeyAllowed = true ∨ 0 < sp_scan.col)
+    -- Item 138: and the park's directive face — `scanDocumentStart` clears the
+    -- flag, so a `---` park is not directive-eligible.
+    (h_nodir : sc.allowDirectives = false) :
     PendingNode sc false sp_start sp_block sp_scan :=
   PendingNode.pendingDocStart sp_start sp_block sp_scan h_doc_route
-    h_nic h_real h_marker_tail h_arm
+    h_nic h_real h_marker_tail h_arm h_nodir
 
 -- The `[208]` producer's own payment: `l-explicit-document` is what the
 -- implicit continuation takes, so this arm spends the constructor and stays
