@@ -288,8 +288,18 @@ the route since item 135; `StreamMarkerLandingFace` pays it at the two landings
 that were still on the fallback.  What is left of the sentence holds for the
 rest — see that file's §5.
 
-`pendingDirective`'s `[209]` witness and the `SLAnyDocument.explicit` wrapper
+~~`pendingDirective`'s `[209]` witness~~ and the `SLAnyDocument.explicit` wrapper
 stand where item 135 left them: the first is a missing witness, the second
-comes off at flip time. -/
+comes off at flip time.  (**The witness is PAID by item 138**; the wrapper still
+comes off at flip time.)
+
+**And the "resume arm" half of the paragraph above is wrong too** (item 139,
+correcting it here where it was written).  Where a level IS open the input is
+not served by the resume arm either: it is a DANGLING run, and
+`danglingNodePos?` reads the run off the TOKEN ARRAY, so the scanner cannot
+refuse it until the run has been scanned.  The step therefore runs and the
+fallback genuinely serves it.  What holds is the OTHER half — no level open, no
+`...`, no `---` — and that is exactly what item 139 refutes; see
+`StreamBareDocumentFallback` §1 for the split, measured on the real scanner. -/
 
 end L4YAML.Tests.Guards.StreamHeadLandingFace

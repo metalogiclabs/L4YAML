@@ -338,6 +338,16 @@ outright (items 132–134).  So what the fallback arm needs is still the
 refutation threaded to the accumulation as a contradiction — with one family
 fewer to argue about.
 
+**Half PAID by DOCS item 139** (2026-09-10), which threaded it — and which
+corrects the paragraph above in the one place it could not have known.  Where a
+level IS open the input is not served by the resume arm either: it is a DANGLING
+run, and `danglingNodePos?` reads the run off the TOKEN ARRAY, so the scanner
+cannot refuse it until the run has been scanned.  The step therefore runs, the
+park it makes owes a stream, and the fallback genuinely serves it.  Only the
+sentinel-alone half is refutable at the landing, and that is the half item 139
+refutes; see `StreamBareDocumentFallback` §1 for the split, measured on the real
+scanner.
+
 `pendingDirective`'s `[209]` witness and the `SLAnyDocument.explicit` wrapper
 stand where item 135 left them. -/
 

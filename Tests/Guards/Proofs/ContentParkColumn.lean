@@ -85,8 +85,10 @@ example {sc s_prep s' : ScannerState} {sp_prep sp_scan : SurfPos} {k : Nat}
         { s_prep with allowDirectives := false, documentEverStarted := true }
       else s_prep).inFlow = false)
     (h_noflow : s_prep.inFlow = false)
+    -- Item 139: the landing arm carries the walk's FLAG as its third reading.
     (h_larm : sp_scan.col ≠ 0 → s_prep.inFlow = false →
-      s_prep.simpleKey.possible = true ∧ s_prep.simpleKey.pos.col = s_prep.col)
+      s_prep.simpleKey.possible = true ∧ s_prep.simpleKey.pos.col = s_prep.col ∧
+      s_prep.simpleKeyAllowed = true)
     (h_park : sc.simpleKeyAllowed = true ∨ 0 < sp_scan.col)
     (h_preprocess : scanNextToken_preprocess sc = .ok (some (s_prep, ':')))
     (h_dispatch : scanNextToken_dispatchBlockIndicators
