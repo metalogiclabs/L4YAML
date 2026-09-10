@@ -833,9 +833,8 @@ lemma inFlow_of_flowLevel_eq {s : ScannerState} {n : Nat} (h : s.flowLevel = n +
     read against the premise instead of into a disjunct. -/
 lemma nodoc_of_flowLevel_succ {sc : ScannerState} {n : Nat} {sp_start sp : SurfPos}
     (h : sc.flowLevel = n + 1) :
-    sc.inFlow = false → sc.documentEverStarted = false →
-    GStar SLDocumentPrefix sp_start sp :=
-  fun hnf _ => (Bool.noConfusion (hnf ▸ inFlow_of_flowLevel_eq h) : GStar _ sp_start sp)
+    sc.inFlow = false → GStar SLDocumentPrefix sp_start sp :=
+  fun hnf => (Bool.noConfusion (hnf ▸ inFlow_of_flowLevel_eq h) : GStar _ sp_start sp)
 
 
 inductive PendingNode (sc : ScannerState) : Bool → SurfPos → SurfPos → SurfPos → Prop where
@@ -887,8 +886,17 @@ inductive PendingNode (sc : ScannerState) : Bool → SurfPos → SurfPos → Sur
       -- `single`, whose document slot the tightening leaves untouched —
       -- where `rootMapRoute` hands `implicitContinue` a bare document the
       -- stream cannot honestly restart.
-      (h_nodoc : sc.inFlow = false → sc.documentEverStarted = false →
-        GStar SLDocumentPrefix sp_start sp) :
+      --
+      -- **The flag premise came OFF at item 135**, which is what makes the
+      -- field spendable rather than merely true.  Item 116 wrote both premises
+      -- because they name the two producer families; but the seven flow sites
+      -- refute on `inFlow` ALONE and the seed pays unconditionally, so
+      -- `documentEverStarted = false` was never load-bearing at any producer —
+      -- while at every CONSUMER it is a scanner-state fact nothing threads.
+      -- A premise no producer spends and no consumer can discharge is a field
+      -- that cannot be cashed; dropping it costs nothing and pays
+      -- `accum_block_on_noPending`'s two root-sequence routes.
+      (h_nodoc : sc.inFlow = false → GStar SLDocumentPrefix sp_start sp) :
       PendingNode sc false sp_start sp sp
   /-- Content token scanned (scalar, anchor, alias, tag).
       The gap sp_block → sp_scan contains SSeparate + content.
@@ -1150,14 +1158,25 @@ inductive PendingNode (sc : ScannerState) : Bool → SurfPos → SurfPos → Sur
   /-- Document start `---` scanned. The gap contains SCDirectivesEnd
       (possibly preceded by directives). Awaiting content or SSLComments
       to complete the document.
-      `h_doc_builder` abstracts whether this is an explicit document
-      (standalone `---`) or a directive document (`%YAML` ... `---`).
-      Given content evidence after `---`, it produces `SLAnyDocument`. -/
+
+      **`h_doc_route` is a ROUTE into the stream, not a document** (item 135).
+      The field used to hand back an `SLAnyDocument` and leave every consumer
+      to append it with `[211]`'s `implicitContinue` — three sites building the
+      same term from a document only the PRODUCER knows the shape of.  The
+      producer knows which `[210]` alternative it built and therefore which
+      `[211]` arm carries it: a standalone `---` is an
+      `l-explicit-document`, which the implicit continuation takes at any
+      point in the stream; a directive document (`%YAML` … `---`) is neither,
+      and the scanner refuses it after content with no `...`
+      (`directiveWithoutDocument`), so its arm is the stream's own head or the
+      one a suffix opens.  Given content evidence after `---`, the route
+      produces the extended stream.
+      -/
   | pendingDocStart (sp_start sp_block sp_scan : SurfPos)
-      (h_doc_builder : ∀ sp_end,
+      (h_doc_route : ∀ sp_end,
         GAlt SLBareDocument (GSeq SENode SSLComments) sp_scan sp_end →
-        SLAnyDocument sp_block sp_end)
-      -- Item 48 (LAST, so older patterns still bind `h_doc_builder`): the
+        SLYamlStream sp_start sp_end)
+      -- Item 48 (LAST, so older patterns still bind `h_doc_route`): the
       -- marker's own scanner-side record — the `.documentStart` ends the
       -- array real on the CURRENT line, and the flag is down.  These are
       -- what `dispatch_refutes_sameLine` reads back when a `-`/`?`/`:`
@@ -1856,52 +1875,6 @@ lemma ssl_comments_extend_suffixRun {sp_start sp sp_final : SurfPos}
   | ⟨sp₁, sp₂, h_stream, h_plus, h_pre⟩ =>
     ⟨sp₁, sp₂, h_stream, h_plus, ssl_comments_extend_prefixes h_pre h_ssl⟩
 
-/-- Extend `SLYamlStream` with a top-level flow sequence node + trailing comments.
-
-    The grammatical replacement for `scannerDrop`'s job (Fix A, Piece 2/3): a
-    completed `[...]` scanned at document level is a bare-document flow node —
-    `s-l+flow-in-block` [195] with zero-width leading separation (`.flowOut`,
-    start-of-line) and the trailing `s-l-comments` — hence an `SLBareDocument`
-    that extends the stream via `implicitContinue`. No opaque gap; the flow
-    content `sp_block → sp_flow` is a real `SFlowSequence` derivation. -/
-lemma flowSeq_extends_stream
-    (sp_start sp_block sp_flow sp_final : SurfPos)
-    (h_stream : SLYamlStream sp_start sp_block)
-    (h_flow : SFlowSequence 0 .flowOut sp_block sp_flow)
-    (h_ssl : SSLComments sp_flow sp_final) :
-    SLYamlStream sp_start sp_final :=
-  SLYamlStream.implicitContinue sp_start sp_block sp_block sp_final sp_final
-    h_stream (GStar.nil _)
-    (GOpt.some sp_block sp_final
-      (SLAnyDocument.bare sp_block sp_final
-        (SLBareDocument.mk sp_block sp_final
-          (SBlockNode.flowInBlock 0 .blockIn sp_block sp_block sp_flow sp_final
-            (SSeparateLines.inline 0 sp_block sp_block (SSeparateInLine.startOfLine sp_block))
-            (SFlowNode.content 0 .flowOut sp_block sp_flow
-              (SFlowContent.flowSeq 0 .flowOut sp_block sp_flow h_flow))
-            h_ssl))))
-    (GStar.nil _)
-
-/-- Extend `SLYamlStream` with a top-level flow mapping node + trailing comments.
-    The `{...}` analogue of `flowSeq_extends_stream`. -/
-lemma flowMap_extends_stream
-    (sp_start sp_block sp_flow sp_final : SurfPos)
-    (h_stream : SLYamlStream sp_start sp_block)
-    (h_flow : SFlowMapping 0 .flowOut sp_block sp_flow)
-    (h_ssl : SSLComments sp_flow sp_final) :
-    SLYamlStream sp_start sp_final :=
-  SLYamlStream.implicitContinue sp_start sp_block sp_block sp_final sp_final
-    h_stream (GStar.nil _)
-    (GOpt.some sp_block sp_final
-      (SLAnyDocument.bare sp_block sp_final
-        (SLBareDocument.mk sp_block sp_final
-          (SBlockNode.flowInBlock 0 .blockIn sp_block sp_block sp_flow sp_final
-            (SSeparateLines.inline 0 sp_block sp_block (SSeparateInLine.startOfLine sp_block))
-            (SFlowNode.content 0 .flowOut sp_block sp_flow
-              (SFlowContent.flowMap 0 .flowOut sp_block sp_flow h_flow))
-            h_ssl))))
-    (GStar.nil _)
-
 /-! ## §0c' FlowOpenStack — open flow-collection accumulation (Fix A, Piece 2 / Stage B)
 
     The invariant component carrying the state of ≥1 OPEN flow collections
@@ -1945,7 +1918,7 @@ lemma flowMap_extends_stream
     - block-nested flow (`key: [1,2]`): `resume node ssl = pendingBlock.h_close
       (SBlockNode.flowInBlock … node ssl)`;
     - explicit-document flow (`--- [1,2]`): `resume` routes through
-      `pendingDocStart.h_doc_builder` (`GAlt.left ∘ SLBareDocument.mk`).
+      `pendingDocStart.h_doc_route` (`GAlt.left ∘ SLBareDocument.mk`).
     (`resume` takes the outer flow node at `.flowOut`, which both `flowInBlock`
     and the bare-document node use.) -/
 
@@ -3286,7 +3259,8 @@ lemma dropClose {sp_start sp_x : SurfPos} (h_stream : SLYamlStream sp_start sp_x
     - `noPending`: stream at `sp_block = sp_scan`, extend past SSLComments
     - `pendingContent`/`pendingFlow`/`pendingBlockContent`: delegate to `h_closable`
     - `pendingDocEnd`: build `SLDocumentSuffix` + `SLYamlStream.suffixContinue`
-    - `pendingDocStart`: apply `h_doc_builder` + `SLYamlStream.implicitContinue`
+    - `pendingDocStart`: apply `h_doc_route` (item 135 — the producer spent
+      `[211]`'s arm; this arm only hands it the empty-node branch)
     - `pendingBlock`: close with `SBlockNode.emptyNode` via `h_close`
     (`pendingDirective` is `true`-indexed and cannot occur here — Fix B) -/
 lemma PendingNode.close_with_ssl {sc : ScannerState}
@@ -3312,14 +3286,10 @@ lemma PendingNode.close_with_ssl {sc : ScannerState}
       h_stream (GPlus.mk sp_block sp_mid sp_mid
         (SLDocumentSuffix.mk sp_block sp_scan sp_mid h_marker h_ssl) (GStar.nil _))
       (GStar.nil _) (GOpt.none _) (GStar.nil _)
-  | pendingDocStart _ _ _ h_doc_builder _ _ _ _ =>
-    exact SLYamlStream.implicitContinue sp_start sp_block sp_block sp_mid sp_mid
-      h_stream (GStar.nil _)
-      (GOpt.some sp_block sp_mid
-        (h_doc_builder sp_mid
-          (GAlt.right sp_scan sp_mid
-            (GSeq.mk sp_scan sp_scan sp_mid (GEps.mk sp_scan) h_ssl))))
-      (GStar.nil _)
+  | pendingDocStart _ _ _ h_doc_route _ _ _ _ =>
+    exact h_doc_route sp_mid
+      (GAlt.right sp_scan sp_mid
+        (GSeq.mk sp_scan sp_scan sp_mid (GEps.mk sp_scan) h_ssl))
   | pendingBlock _ _ _ n h_close _ _ _ _ =>
     -- Item 22: `[72] e-node` + `[79] s-l-comments` is indent-INERT, so the
     -- empty close serves the entry at whatever indent the pending carries.
@@ -5221,9 +5191,18 @@ lemma structural_dispatch_to_pending
     (h_nic_ds hat hcol_s)
   exact ⟨sp', false, hcol,
     PendingNode.pendingDocStart sp_start sp sp'
+      -- Item 135: the route, not the document.  `[208] l-explicit-document` is
+      -- what `[211]`'s implicit-continuation arm takes, at any point in the
+      -- stream — so this producer spends the constructor itself and the three
+      -- consumers stop rebuilding it from a document whose alternative they
+      -- cannot see.
       (fun sp_end h_content =>
-        SLAnyDocument.explicit sp sp_end
-          (SLExplicitDocument.withContent sp sp' sp_end h_marker h_content))
+        SLYamlStream.implicitContinue sp_start sp sp sp_end sp_end
+          h_stream (GStar.nil _)
+          (GOpt.some sp sp_end
+            (SLAnyDocument.explicit sp sp_end
+              (SLExplicitDocument.withContent sp sp' sp_end h_marker h_content)))
+          (GStar.nil _))
       hpark.1 hpark.2.1 hpark.2.2 (Or.inl (scanDocumentStart_simpleKeyAllowed _)),
     fun h => Bool.noConfusion h, hcorr'⟩
 
@@ -5371,10 +5350,23 @@ lemma structural_dispatch_after_directives
     (h_nic_ds hat hcol_s)
   exact ⟨sp', false,
     PendingNode.pendingDocStart sp_start sp_block sp'
+      -- Item 135: the route, and this is the arm the tightening has not
+      -- reached yet.  `[209] l-directive-document` is not an
+      -- `l-explicit-document`, so `[211]`'s implicit continuation is the wrong
+      -- arm for it — the right one is the stream's own head (`single`) or the
+      -- slot a `...` opens, and which of the two holds is a datum
+      -- `pendingDirective` does not carry.  The scanner already refuses the
+      -- third reading (`a: 1⏎%YAML 1.2⏎---⏎b: 2` is
+      -- `directiveWithoutDocument`), so the residue is a missing witness, not a
+      -- missing refusal.
       (fun sp_end h_content =>
-        SLAnyDocument.directive sp_block sp_end
-          (SLDirectiveDocument.mk sp_block sp_prep sp_end h_dirs
-            (SLExplicitDocument.withContent sp_prep sp' sp_end h_marker h_content)))
+        SLYamlStream.implicitContinue sp_start sp_block sp_block sp_end sp_end
+          h_stream (GStar.nil _)
+          (GOpt.some sp_block sp_end
+            (SLAnyDocument.directive sp_block sp_end
+              (SLDirectiveDocument.mk sp_block sp_prep sp_end h_dirs
+                (SLExplicitDocument.withContent sp_prep sp' sp_end h_marker h_content))))
+          (GStar.nil _))
       hpark.1 hpark.2.1 hpark.2.2 (Or.inl (scanDocumentStart_simpleKeyAllowed _)),
     fun h => Bool.noConfusion h, hcorr'⟩
 
@@ -6738,7 +6730,7 @@ lemma FlowOpenStack.receivePropsNodeColon {sp_start : SurfPos} {n D : Nat}
       break or col 0) — deferred residue (expected vacuous: an inline flow open
       directly after an unclosed same-line construct, e.g. `"foo" [a]`).
     * `pendingDocStart` — the flow is the explicit document's OWN node: route
-      the completed node through `h_doc_builder` (`GAlt.left ∘ SLBareDocument.mk
+      the completed node through `h_doc_route` (`GAlt.left ∘ SLBareDocument.mk
       ∘ flowInBlock`), keeping ONE document. Faithful for `--- [a]`.
     * `pendingBlock`/`pendingMapValue` — the flow is the entry's value: route
       through `h_close ∘ flowInBlock` AT THE PENDING'S INDEX (item 46), so
@@ -8010,7 +8002,7 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
           (fun h => by rw [h] at h_col02; omega) h_col02 hj h_ind h_tab
           h_c h_preprocess).elim
   | pendingDocStart =>
-    rename_i h_doc_builder
+    rename_i h_doc_route
     obtain ⟨sp_gap, h_sep0, hcorr_gap⟩ :=
       preprocess_some_separate_0_anyCol sc sp_scan s_prep c h_corr h_preprocess
     have h_pe : sp_gap = sp_prep := ScannerSurfCorr_unique hcorr_gap hcorr_prep
@@ -8020,11 +8012,7 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
     -- value and the mapping it may key (`---⏎[1]: b`).
     have h_docnode : ∀ sp, SBlockNode 0 .blockIn sp_scan sp → SLYamlStream sp_start sp :=
       fun sp h_node =>
-        SLYamlStream.implicitContinue sp_start sp_block sp_block sp sp
-          h_stream_block (GStar.nil _)
-          (GOpt.some sp_block sp
-            (h_doc_builder sp (GAlt.left sp_scan sp (SLBareDocument.mk sp_scan sp h_node))))
-          (GStar.nil _)
+        h_doc_route sp (GAlt.left sp_scan sp (SLBareDocument.mk sp_scan sp h_node))
     exact ⟨sp_block, sp_block, sp_open, sp_open, h_stream_block, BlockStack.nil sp_block,
            h_kpkg _ _ _ (Or.inr trivial) (Nat.zero_le _) (mk 0 sp_block ⟨(fun sp_ne sp_m h_content h_ssl =>
              h_docnode sp_m (SBlockNode.flowInBlock 0 .blockIn sp_scan sp_prep sp_ne sp_m
@@ -13415,7 +13403,7 @@ lemma checkAdjacentValue_refutes_stale {sc s_prep : ScannerState}
 --     stop sets meet the dispatch's accept class, so `pendingDocEnd`'s arm is
 --     EMPTY, the two content parks defer exactly the measured `:` (`"a" :b`,
 --     row 19's over-acceptance), item 43 composed `pendingDocStart`'s `--- a`
---     through `content_dispatch_routed` and `h_doc_builder`'s own closer, and
+--     through `content_dispatch_routed` and `h_doc_route`'s own closer, and
 --     what is left there is `pendingFlow`'s arm, which cannot close while the
 --     escape itself is what produces that pending.
 --   * **an indented value the one-line reading does not reach** (3 sites: one
@@ -13506,6 +13494,15 @@ lemma accum_block_on_noPending
     -- a LINE START in block context, so the walk's re-arm says nothing here and
     -- the flag is the only funder the landed `:` has.
     (h_arm : sc.simpleKeyAllowed = true ∨ sc.inFlow = true)
+    -- **Item 135: the park's own `h_nodoc`.**  A block-context `noPending` is
+    -- the stream's seed — item 116 counted the constructor's producers and the
+    -- other seven are flow-interior — so the region behind it is
+    -- `[202] l-document-prefix*` and the `[183]` this `-` opens heads the
+    -- stream's FIRST document.  `[211]`'s `single` carries that, and its
+    -- `l-any-document?` slot is the one row 19's 1c leaves untouched; the
+    -- implicit continuation this arm used to spend restarts a stream that has
+    -- started nothing.
+    (h_nodoc : sc.inFlow = false → GStar SLDocumentPrefix sp_start sp_block)
     (h_noflow : s_prep.inFlow = false)
     (h_preprocess : scanNextToken_preprocess sc = .ok (some (s_prep, c)))
     (h_dispatch : scanNextToken_dispatchBlockIndicators
@@ -13580,8 +13577,8 @@ lemma accum_block_on_noPending
                    h_ind h_dash h_gnot h_indented
                have h_block := rootBlockSeq k h_ssl_pre h_entry
                have h_bare := SLBareDocument.mk sp_block sp_final h_block
-               SLYamlStream.implicitContinue sp_start sp_block sp_block sp_final sp_final
-                 h_stream_block (GStar.nil _)
+               SLYamlStream.single sp_start sp_block sp_final sp_final
+                 (h_nodoc h_scflow)
                  (GOpt.some sp_block sp_final
                    (SLAnyDocument.bare sp_block sp_final h_bare))
                  (GStar.nil _))
@@ -13591,8 +13588,8 @@ lemma accum_block_on_noPending
                    SBlockSeqEntries_of_compactTail h_ind h_dash h_gnot h_indented h_tail
                  have h_block := rootBlockSeq k h_ssl_pre h_entries
                  have h_bare := SLBareDocument.mk sp_block sp_end h_block
-                 SLYamlStream.implicitContinue sp_start sp_block sp_block sp_end sp_end
-                   h_stream_block (GStar.nil _)
+                 SLYamlStream.single sp_start sp_block sp_end sp_end
+                   (h_nodoc h_scflow)
                    (GOpt.some sp_block sp_end
                      (SLAnyDocument.bare sp_block sp_end h_bare))
                    (GStar.nil _))
@@ -14904,9 +14901,9 @@ lemma accum_block_pending (sc : ScannerState)
   have h_close_pending : ∀ sp_mid, SSLComments sp_scan sp_mid → SLYamlStream sp_start sp_mid :=
     fun sp_mid h_ssl => h_pending.close_with_ssl h_stream_block h_ssl
   cases h_pending with
-  | noPending _ _ h_col h_arm =>
+  | noPending _ _ h_col h_arm h_nodoc =>
     exact accum_block_on_noPending sc sp_start sp_block s_prep s' c sp_prep sp_scan'
-      h_stream_block hcorr_prep hcorr_result h_corr h_col h_arm h_noflow h_preprocess
+      h_stream_block hcorr_prep hcorr_result h_corr h_col h_arm h_nodoc h_noflow h_preprocess
       h_dispatch
   | pendingDocEnd _ _ _ h_line h_marker h_arm77 =>
     -- Item 36: `[204] l-document-suffix` ends the marker with `s-l-comments`,
@@ -18208,7 +18205,7 @@ lemma entryPropsKeyPack_of_dispatch
     `sp_anchor = sp_res` with the bare-document route — the only route the
     body ever spent until `pendingDocStart`'s no-break arm needed the SAME
     machinery with the node anchored at the park (just after the `---`) and
-    the stream reached through `h_doc_builder`'s `SLBareDocument` branch
+    the stream reached through `h_doc_route`'s `SLBareDocument` branch
     instead of a fresh `implicitContinue`.  `h_route` is how a completed
     `SBlockNode` starting at `sp_anchor` re-enters the stream — the same
     shape `pendingProps.h_route` already carries, which is why the props
@@ -21046,12 +21043,12 @@ lemma accum_content_pending (sc : ScannerState)
     -- A mid-line park cannot close first, so the dispatch runs ROUTED: the
     -- node anchors at the park (just after the `---`), the crossed whites are
     -- `[80] s-separate(0)`'s inline arm, and the completed node re-enters the
-    -- stream through `h_doc_builder`'s `SLBareDocument` branch — the
+    -- stream through `h_doc_route`'s `SLBareDocument` branch — the
     -- constructor's own closer, consumed here for the first time
     -- (`close_with_ssl` takes only the `GAlt.right` empty-node branch).
     -- The key context punts: `--- a: 1` is refused (`contentOnDocumentStartLine`),
     -- so no implicit key ever fires behind this park. ═══
-    rename_i h_doc_builder
+    rename_i h_doc_route
     refine h_defer_split (Or.inr trivial) (Or.inr trivial) (Or.inr trivial)
       (fun hcol sp_ws h_ws h_pk _ _ => ?_)
     have h_eq : sp_prep = sp_ws := by
@@ -21067,12 +21064,7 @@ lemma accum_content_pending (sc : ScannerState)
       hcorr_prep hcorr_result h_not_doc (preprocess_some_peek h_preprocess)
       h_flow_disp h_dispatch
       (fun sp_m h_bn =>
-        SLYamlStream.implicitContinue sp_start sp_block sp_block sp_m sp_m
-          h_stream_block (GStar.nil _)
-          (GOpt.some sp_block sp_m
-            (h_doc_builder sp_m
-              (GAlt.left sp_scan sp_m (SLBareDocument.mk sp_scan sp_m h_bn))))
-          (GStar.nil _))
+        h_doc_route sp_m (GAlt.left sp_scan sp_m (SLBareDocument.mk sp_scan sp_m h_bn)))
       (Or.inr trivial) (Or.inr trivial) (Or.inr trivial)
   | pendingFlow _ =>
     -- `pendingFlow` carries no line fact to read — the escape is what
@@ -23344,9 +23336,9 @@ lemma scan_content_gives_stream_v2
           rw [ScannerCorrectness.advance_preserves_simpleKeyAllowed]; exact h_emit
         · exact h_emit))
       -- Item 116: the seed's `h_nodoc` is the real payment — the witness is
-      -- `initial_stream_and_prefix`'s own last conjunct, and both premises
-      -- are ignored because the seed holds it unconditionally.
-      (fun _ _ => h_prefix))
+      -- `initial_stream_and_prefix`'s own last conjunct, and the premise is
+      -- ignored because the seed holds it unconditionally.
+      (fun _ => h_prefix))
     (fun hb => Bool.noConfusion hb) h_corr
     (fun hge => absurd hge (by
       -- the seed scanner is at flow level 0, so the flow-interior conjunct is vacuous

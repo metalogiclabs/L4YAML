@@ -19,12 +19,15 @@ pays the record itself.
 
 **The build is one field in `noPending`'s own style.**  The constructor has
 exactly eight producers, and
-`h_nodoc : inFlow = false → documentEverStarted = false → GStar
-SLDocumentPrefix sp_start sp` splits them the way `h_col`'s disjunction
-does: the seven flow-interior sites refute the first premise with the
+~~`h_nodoc : inFlow = false → documentEverStarted = false → GStar
+SLDocumentPrefix sp_start sp`~~ **`h_nodoc : inFlow = false → GStar
+SLDocumentPrefix sp_start sp`** (the flag premise came off at item 135, where
+the field was first spent: no producer used it and no consumer could discharge
+it) splits them the way `h_col`'s disjunction
+does: the seven flow-interior sites refute the premise with the
 `inFlow_of_flowLevel_eq h_fl1` they already pay the other two fields with
 (`nodoc_of_flowLevel_succ`), and the seed pays the real witness — `[202]`'s
-byte order mark if there is one, nothing else — ignoring both premises.  A
+byte order mark if there is one, nothing else — ignoring it.  A
 `---` parks `pendingDocStart` and raises the flag, a `...` parks
 `pendingDocEnd`, a directive parks the `true`-indexed `pendingDirective`,
 and every content and indicator dispatch runs behind the wrapper that raises
@@ -34,7 +37,8 @@ prefixes alone.  The spend the tightening will make is landed beside
 witness via `single`, whose `l-any-document?` slot 1c leaves untouched, and
 `ssl_comments_extend_prefixes` carries the witness from the park to the
 landing.  Nothing changes hands today — the 16 sites still spend
-`implicitContinue`, and the constructor migration stays LAST.
+`implicitContinue`, and the constructor migration stays LAST.  (First spent at
+item 135, which also re-measured the 16 as NINE; see §6.)
 
 §1 is the family at the runtime; §2–§5 are the carrier, the payments, the
 landing extension and the spend at their types; §6 is what this item does
@@ -119,16 +123,18 @@ private def refuses (input : String) : Bool :=
 /-! ## §2 The carrier: the virgin park holds the witness
 
 The constructor's arity, stated: a block-context park with nothing pending
-carries, beside its column and its armed save, the fact that a still-down
-`documentEverStarted` means prefixes and nothing else behind it.  The field
-is MANDATORY — no `∨ True` — because its premises already name the two
-producer families: the seed pays, the seven flow sites refute. -/
+carries, beside its column and its armed save, the fact that there are
+document prefixes and nothing else behind it.  The field is MANDATORY — no
+`∨ True` — because its premise already names the two producer families: the
+seed pays, the seven flow sites refute.  (Item 135 dropped the second
+premise, `documentEverStarted = false`; the block-context park IS the seed,
+so the flag added nothing the `inFlow` premise did not already carry, and
+asking for it made the field uncashable at every consumer.) -/
 
 example {sc : ScannerState} {sp_start sp : SurfPos}
     (h_col : sp.col = 0 ∨ sc.inFlow = true)
     (h_arm : sc.simpleKeyAllowed = true ∨ sc.inFlow = true)
-    (h_nodoc : sc.inFlow = false → sc.documentEverStarted = false →
-      GStar SLDocumentPrefix sp_start sp) :
+    (h_nodoc : sc.inFlow = false → GStar SLDocumentPrefix sp_start sp) :
     PendingNode sc false sp_start sp sp :=
   PendingNode.noPending sp_start sp h_col h_arm h_nodoc
 
@@ -137,8 +143,7 @@ example {sc : ScannerState} {sp_start sp : SurfPos}
 -- refute itself.
 example {sc : ScannerState} {n : Nat} {sp_start sp : SurfPos}
     (h_fl1 : sc.flowLevel = n + 1) :
-    sc.inFlow = false → sc.documentEverStarted = false →
-    GStar SLDocumentPrefix sp_start sp :=
+    sc.inFlow = false → GStar SLDocumentPrefix sp_start sp :=
   nodoc_of_flowLevel_succ h_fl1
 
 /-! ## §3 The seed's payment
@@ -178,10 +183,8 @@ REBUILDS it from the carrier, which is what makes the bare document the
 stream's first rather than `[211]`'s unmarked continuation. -/
 
 example {sc : ScannerState} {sp_start sp sp_land sp_key : SurfPos} {k : Nat}
-    (h_nodoc : sc.inFlow = false → sc.documentEverStarted = false →
-      GStar SLDocumentPrefix sp_start sp)
+    (h_nodoc : sc.inFlow = false → GStar SLDocumentPrefix sp_start sp)
     (h_block : sc.inFlow = false)
-    (h_virgin : sc.documentEverStarted = false)
     (h_ssl : SSLComments sp sp_land)
     (hcol0 : sp_land.col = 0)
     (h_ind : SIndent k sp_land sp_key) :
@@ -190,9 +193,9 @@ example {sc : ScannerState} {sp_start sp sp_land sp_key : SurfPos} {k : Nat}
      ∀ sp_e, SCompactMapTail k sp_v sp_e →
      ResumeFrames (SLYamlStream sp_start) [] sp_e) :=
   ⟨nodocMapRoute hcol0
-      (ssl_comments_extend_prefixes (h_nodoc h_block h_virgin) h_ssl) h_ind,
+      (ssl_comments_extend_prefixes (h_nodoc h_block) h_ssl) h_ind,
    nodocMapRouteF hcol0
-      (ssl_comments_extend_prefixes (h_nodoc h_block h_virgin) h_ssl) h_ind⟩
+      (ssl_comments_extend_prefixes (h_nodoc h_block) h_ssl) h_ind⟩
 
 /-! ## §6 What this item does NOT close
 
@@ -209,11 +212,18 @@ example {sc : ScannerState} {sp_start sp sp_land sp_key : SurfPos} {k : Nat}
   = true` is a scanner-state invariant nothing threads; the tightening's
   case split at a raised flag will be served by the suffix carrier and the
   scanner's refusals, not by this witness.
-* The 16 sites.  `rootMapRoute`, `rootMapRouteF`, `flowSeq_extends_stream`
+* The 16 sites.  `rootMapRoute`, `rootMapRouteF`, ~~`flowSeq_extends_stream`~~
   and their kin still spend `implicitContinue`'s bare slot; the constructor
   (`GOpt SLAnyDocument` → explicit-only continuation) is the migration's
   LAST step (item 110), now with both of its measured prerequisites paid
   (the props landing at item 111, the carrier here).
+  (**16 is now NINE**, re-measured at item 135, which deleted the two dead
+  flow extenders — `flowSeq_extends_stream` among them — turned
+  `pendingDocStart`'s document builder into a route, and spent THIS field at
+  `accum_block_on_noPending`'s two root-sequence faces, the carrier's first
+  consumer.  `nodocMapRoute`/`nodocMapRouteF` are still unspent: the seed's
+  sequence reaches `single` inline, and the map faces wait on the landing's
+  three-way disjunction.  See `StreamRouteSwapSurface`.)
 * The compact branches' resume twins on both key packs (item 99's
   fused-closure residue) and the flow frame's rider
   (`FlowBaseRoutes.key`, 67b) are untouched — different rows of the same
