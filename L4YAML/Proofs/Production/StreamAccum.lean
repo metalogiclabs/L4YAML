@@ -4391,6 +4391,38 @@ lemma bareNodeRoute_or_refused {sc s_prep : ScannerState} {c : Char}
     | Or.inr _ => exact bareNodeRoute h_stream
   · exact bareNodeRoute h_stream
 
+/-- **`topLevelFlowResumeSep`, guarded by §9.2's landing refusal** (item 143) —
+    the FLOW side of `bareNodeRoute_or_refused`, and the same halving read at
+    the other dispatcher.
+
+    A depth-0 `[`/`{` reached across a break from a completed value is the same
+    input shape items 132–134 refuse, and the indent stack is again the
+    discriminator:
+
+    * at the sentinel alone the collection would be a SECOND BARE DOCUMENT and
+      `scanNextToken_checkBareDocument` fires AT the landing, before the
+      bracket's own token exists (`"x"⏎[1, 2]`, `[1]⏎[2]`, `a⏎# c⏎[1, 2]`);
+    * with a level still open §8.1's floor takes the half of the same shape that
+      sits at or left of the enclosing collection (`- "a"⏎[1, 2]`), and the
+      rest the scanner accepts — `k:⏎␣␣"a"⏎␣␣[1, 2]` scans clean and only
+      `TokenParser` refuses it.  That residue is item 140's, not this item's.
+
+    The plain-scalar shapes are absent from the refused family for the reason
+    item 142 measured at the block landing: the scalar ABSORBS the line, so
+    `a⏎[1, 2]` is one multi-line plain scalar and no landing happens at all. -/
+lemma topLevelFlowResumeSep_or_refused {sc s_prep : ScannerState} {c : Char}
+    {sp_start sp_mid sp_br : SurfPos}
+    (h_ref : BareLandingFacts sc s_prep c ∨ True)
+    (h_stream : SLYamlStream sp_start sp_mid)
+    (h_sep : SSeparateLines 0 sp_mid sp_br) :
+    ∀ sp_ne sp_m, SFlowContent 0 .flowOut sp_br sp_ne →
+      SSLComments sp_ne sp_m → SLYamlStream sp_start sp_m := by
+  by_cases hsz : sc.indents.size ≤ 1
+  · match h_ref with
+    | Or.inl h_facts => exact (h_facts.refutes hsz).elim
+    | Or.inr _ => exact topLevelFlowResumeSep h_stream h_sep
+  · exact topLevelFlowResumeSep h_stream h_sep
+
 /-- **The suffix twin of `content_dispatch_after_close`'s bare-document
     route**: a completed top-level node lands in the open arm's slot instead
     of a fresh `implicitContinue` document — so `...⏎hello` and `...⏎a: 1`
@@ -5204,13 +5236,26 @@ lemma savedKey_poss_of_preprocess {sc s_prep : ScannerState} {c : Char}
     closed here; the whitespace evidence still covers the full gap).
     Used by `accum_flow_open_depth0` to close the incoming pending before a
     depth-0 `[`/`{` and to place the residual separation in the fresh bare
-    document's separator slot. -/
+    document's separator slot.
+
+    **Item 143: the close point carries the FLAG.**  Item 139 appended
+    `simpleKeyAllowed` to `preprocess_some_ssl_comments_anyCol`'s landed arm,
+    and this lemma is where that reading was being dropped: its first arm is
+    the LANDING — a break crossed, or a park already at a line start — and
+    §9.2's landing refusal reads the flag off exactly that arm.  Both of the
+    sub-cases below can answer, and by the same exhaustiveness
+    `landing_or_park_ska` spells one layer up: an armed park hands its own flag
+    forward, and a park off a line start reached the landing across a break,
+    which re-arms it. -/
 lemma preprocess_flow_thread (sc : ScannerState) (sp_scan sp_prep : SurfPos)
     (s_prep : ScannerState) (c : Char)
     (h_corr : ScannerSurfCorr sc sp_scan)
     (hcorr_prep : ScannerSurfCorr s_prep sp_prep)
-    (h_preprocess : scanNextToken_preprocess sc = .ok (some (s_prep, c))) :
-    (∃ sp_mid, SSLComments sp_scan sp_mid ∧ GStar SSWhite sp_mid sp_prep) ∨
+    (h_preprocess : scanNextToken_preprocess sc = .ok (some (s_prep, c)))
+    (h_noflow : s_prep.inFlow = false)
+    (h_park : sc.simpleKeyAllowed = true ∨ 0 < sp_scan.col) :
+    (∃ sp_mid, SSLComments sp_scan sp_mid ∧ GStar SSWhite sp_mid sp_prep ∧
+      s_prep.simpleKeyAllowed = true) ∨
     (sp_scan.col ≠ 0 ∧ GStar SSWhite sp_scan sp_prep) := by
   obtain ⟨sp_mid, sp_ws, sp_gap, h_disj, hws, _, hcorr_gap, h_pk, _⟩ :=
     preprocess_some_ssl_comments_anyCol sc sp_scan s_prep c h_corr h_preprocess
@@ -5221,14 +5266,26 @@ lemma preprocess_flow_thread (sc : ScannerState) (sp_scan sp_prep : SurfPos)
     | inr h => rw [preprocess_some_peek h_preprocess] at h; cases h
   rw [h_ws_eq] at hws
   cases h_disj with
-  | inl h => exact Or.inl ⟨sp_mid, h.1, hws⟩
+  | inl h =>
+    -- The landed arm answers with the walk's own re-arm when the park was off
+    -- a line start, and with the park's flag when it was not.
+    have h_ska : s_prep.simpleKeyAllowed = true := by
+      rcases h_park with hp | hp
+      · exact preprocess_simpleKeyAllowed_mono hp h_preprocess
+      · exact (h.2.2 (by omega) h_noflow).2.2
+    exact Or.inl ⟨sp_mid, h.1, hws, h_ska⟩
   | inr h_eq =>
     rw [h_eq.1] at hws
     by_cases hcol : sp_scan.col = 0
-    · obtain ⟨chars, colv⟩ := sp_scan
+    · -- No break, but the park IS the line start — which refutes `h_park`'s
+      -- other disjunct, so the flag is the park's own.
+      have h_ska : s_prep.simpleKeyAllowed = true :=
+        preprocess_simpleKeyAllowed_mono (h_park.resolve_right (by omega)) h_preprocess
+      obtain ⟨chars, colv⟩ := sp_scan
       have hc0 : colv = 0 := hcol
       subst hc0
-      exact Or.inl ⟨⟨chars, 0⟩, SSLComments.startOfLine chars ⟨chars, 0⟩ (GStar.nil _), hws⟩
+      exact Or.inl ⟨⟨chars, 0⟩, SSLComments.startOfLine chars ⟨chars, 0⟩ (GStar.nil _),
+        hws, h_ska⟩
     · exact Or.inr ⟨hcol, hws⟩
 
 /-! ## §1 Per-Dispatch Grammar Accumulator Lemmas
@@ -7564,7 +7621,15 @@ lemma flowKeyRoute_of_root {m : Nat} {sp_start sp_scan sp_prep : SurfPos}
     -- (`[1]: b` at the seed) rather than `rootMapRoute`'s continuation of a
     -- stream with nothing in it.
     (h_nodoc : (∀ sp_m, SSLComments sp_scan sp_m → GStar SLDocumentPrefix sp_start sp_m) ∨
-      True) :
+      True)
+    -- Item 143: §9.2's landing refusal, at the flow open's KEY side.  The
+    -- bundle `bareDocument_refutes_landing` wants is all but one conjunct in
+    -- this lemma's own hypothesis list already — what crosses the boundary is
+    -- the check's success and the park's tail, and the LANDING arm below
+    -- assembles the rest (`h_land.2.2` is the flag's own source).  The no-break
+    -- arm is not a landing and keeps `rootMapRoute` unguarded.
+    (h_bare : scanNextToken_checkBareDocument s_prep = .ok ())
+    (h_tail143 : CompletedTail sc ∨ True) :
     (∃ (k : Nat) (sp_key : SurfPos),
       (∀ sp_v, SBlockMapEntry k sp_key sp_v → SLYamlStream sp_start sp_v) ∧
       (∀ sp_end, SFlowContent m .flowOut sp_prep sp_end →
@@ -7607,11 +7672,17 @@ lemma flowKeyRoute_of_root {m : Nat} {sp_start sp_scan sp_prep : SurfPos}
     cases h_disj with
     | inl h_land =>
       have h_ind' : SIndent w sp_mid sp_prep := by rw [h_pe]; exact h_ind
+      -- Item 143: the fallback arm is a LANDING, so it takes item 142's guard.
+      have h_ref_land : BareLandingFacts sc s_prep c ∨ True :=
+        h_tail143.imp (fun h_tl =>
+          ⟨h_bare, h_preprocess, h_noflow,
+           landing_or_park_ska h_noflow h_land.2.2 h_park h_preprocess, h_tl⟩) id
       refine Or.inl ⟨w, sp_prep,
         (match h_sfx, h_nodoc with
          | Or.inl sfx, _ => suffixMapRoute h_land.2.1 (sfx sp_mid h_land.1) h_ind'
          | Or.inr _, Or.inl nd => nodocMapRoute h_land.2.1 (nd sp_mid h_land.1) h_ind'
-         | Or.inr _, Or.inr _ => rootMapRoute h_land.2.1 (h_close sp_mid h_land.1) h_ind'),
+         | Or.inr _, Or.inr _ =>
+             rootMapRoute_or_refused h_ref_land h_land.2.1 (h_close sp_mid h_land.1) h_ind'),
         flowKeyHead, ?_,
         Or.inr trivial, Or.inr trivial, Or.inr trivial⟩
       rw [landing_or_park_save h_noflow h_land.2.2 h_park h_preprocess,
@@ -8258,6 +8329,11 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
     -- Item 103: nor does it write the stamp, which is what carries a value
     -- indicator's line into the collection and out at its close.
     (h_ivl_open : s'.implicitValueLine = s_prep.implicitValueLine)
+    -- Item 143: §9.2's landing refusal, threaded from `scanNextToken` through
+    -- `accum_step_flow` — the last step that did not carry it.  It runs BEFORE
+    -- the allowDirectives update and before §8.1's floor, so the state it reads
+    -- is preprocessing's own, and both fallbacks below spend it.
+    (h_bare : scanNextToken_checkBareDocument s_prep = .ok ())
     (mk : ∀ (n : Nat) (sp_before : SurfPos),
         FlowBaseRoutes sp_start n sp_prep s_prep.simpleKey.pos.col →
         FlowStackB sp_start n s_prep.simpleKey.pos.col 1 s'.flowStack #[false]
@@ -8375,6 +8451,11 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
       -- flow open) — a `...` park lands the completed collection in
       -- `suffixContinue`'s own slot; only `pendingDocEnd`'s arm pays.
       ((∀ sp_m, SSLComments sp_scan sp_m → SuffixRun sp_start sp_m) ∨ True) →
+      -- Item 143: the park's own TAIL, the fifth reading §9.2's refutation
+      -- needs.  Only the two content parks finished a node, so only they pay;
+      -- `pendingFlow`'s tail is a block indicator and the two marker parks take
+      -- their own arms above this one.
+      (CompletedTail sc ∨ True) →
       ∃ sp_gram' sp_block' sp_flow' sp_scan',
         SLYamlStream sp_start sp_gram' ∧
         BlockStack sp_gram' sp_block' ∧
@@ -8384,10 +8465,16 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
         ((1 : Nat) ≥ 1 →
           InteriorGap s' (tailOf s'.tokens) sp_flow' sp_scan' ∧
           LastTokenReal s'.tokens ∧ s'.allowDirectives = false) := by
-    intro h_close h_nobreak h_sfx
-    rcases preprocess_flow_thread sc sp_scan sp_prep s_prep c h_corr hcorr_prep h_preprocess with
-      ⟨sp_mid, h_ssl, hws⟩ | ⟨hcol, hws⟩
+    intro h_close h_nobreak h_sfx h_tail143
+    rcases preprocess_flow_thread sc sp_scan sp_prep s_prep c h_corr hcorr_prep h_preprocess
+        h_noflow_prep h_park with
+      ⟨sp_mid, h_ssl, hws, h_ska⟩ | ⟨hcol, hws⟩
     · have h_stream_mid : SLYamlStream sp_start sp_mid := h_close sp_mid h_ssl
+      -- Item 143: the landing's bundle, assembled once and spent by both of the
+      -- routes this arm hands the frame — the collection's own (`[1]⏎[2]`) and
+      -- the mapping it may key (`[1]⏎[2]: b`).
+      have h_ref_land : BareLandingFacts sc s_prep c ∨ True :=
+        h_tail143.imp (fun h_tl => ⟨h_bare, h_preprocess, h_noflow_prep, h_ska, h_tl⟩) id
       exact ⟨sp_mid, sp_mid, sp_open, sp_open, h_stream_mid, BlockStack.nil sp_mid,
              h_kpkg _ _ _ (Or.inr trivial) (Nat.zero_le _) (mk 0 sp_mid ⟨(
                -- Item 118: the value route chosen by the face — the open
@@ -8396,7 +8483,7 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
                | Or.inl sfx => suffixFlowResumeSep (sfx sp_mid h_ssl)
                    (SSeparateLines.inline 0 sp_mid sp_prep
                      (GStar_SSWhite_to_SSeparateInLine sp_mid sp_prep hws))
-               | Or.inr _ => topLevelFlowResumeSep h_stream_mid
+               | Or.inr _ => topLevelFlowResumeSep_or_refused h_ref_land h_stream_mid
                    (SSeparateLines.inline 0 sp_mid sp_prep
                      (GStar_SSWhite_to_SSeparateInLine sp_mid sp_prep hws))),
                -- Item 56: the fresh document's root entry, when the collection
@@ -8404,7 +8491,7 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
                -- LANDING reading applies here — this branch is the one that
                -- crossed a break, and the other never reaches `mk`.
                flowKeyRoute_of_root (Or.inr trivial) h_noflow_prep h_park h_close h_corr hcorr_prep
-                 h_preprocess h_sfx (Or.inr trivial),
+                 h_preprocess h_sfx (Or.inr trivial) h_bare h_tail143,
                Or.inr trivial⟩),
              PendingNode.noPending sp_start sp_open (Or.inr (inFlow_of_flowLevel_eq h_fl1))
                (Or.inr (inFlow_of_flowLevel_eq h_fl1))
@@ -8485,15 +8572,18 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
              flowKeyRoute_of_root (Or.inl h_col0) h_noflow_prep h_park h_close_pending h_corr
                hcorr_prep h_preprocess (Or.inr trivial)
                (Or.inl (fun sp_m h_ssl =>
-                 ssl_comments_extend_prefixes (h_nodoc h_scflow) h_ssl)),
+                 ssl_comments_extend_prefixes (h_nodoc h_scflow) h_ssl))
+               h_bare (Or.inr trivial),
              Or.inr trivial⟩),
            PendingNode.noPending sp_start sp_open (Or.inr (inFlow_of_flowLevel_eq h_fl1))
                (Or.inr (inFlow_of_flowLevel_eq h_fl1))
                (nodoc_of_flowLevel_succ h_fl1), hcorr_open, fun _ => ⟨.white (GStar.nil _) h_sync h_colon h_opencol, h_real, h_ad⟩⟩
-  | pendingContent _ _ _ h_line _ _ _ _ _ =>
+  | pendingContent _ _ _ h_line _ _ _ _ _ _ _ _ h_tail143 =>
     -- Item 37: §7.5's set weakens to item 10's here, exactly as `[204]`'s does.
+    -- Item 143: …and this park's producer finished a node, so it PAYS §9.2's
+    -- tail reading (`"x"⏎[1, 2]`, `a⏎# c⏎[1, 2]`).
     exact main h_close_pending (refuted (h_line.imp id LineNodeStop.toLineNoOpen))
-      (Or.inr trivial)
+      (Or.inr trivial) (Or.inl h_tail143)
   | pendingDocEnd _ _ _ h_line h_marker _ =>
     -- Item 36: `[204]`'s suffix set weakens to item 10's at the CONSUMER.
     -- ═══ Item 118: the `...` park pays the flow open's suffix face — the
@@ -8506,13 +8596,16 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
          GPlus.mk sp_block sp_m sp_m
            (SLDocumentSuffix.mk sp_block sp_scan sp_m h_marker h_ssl) (GStar.nil _),
          GStar.nil _⟩))
-  | pendingBlockContent _ _ _ _ h_line _ _ _ _ _ =>
-    exact main h_close_pending (refuted (h_line.imp id LineNodeStop.toLineNoOpen))
+      -- Item 143: the `...` park takes its own arm above, so the tail is not
+      -- owed here — and a document suffix is not a completed flow value.
       (Or.inr trivial)
+  | pendingBlockContent _ _ _ _ h_line _ _ _ _ _ _ _ _ h_tail143 =>
+    exact main h_close_pending (refuted (h_line.imp id LineNodeStop.toLineNoOpen))
+      (Or.inr trivial) (Or.inl h_tail143)
   | pendingFlow =>
     -- The deferred state: its own closing strategy is the drop, and the flow
     -- node opened here keeps riding it (β.5 retires this with pendingFlow, R3).
-    exact main h_close_pending opaque_resume (Or.inr trivial)
+    exact main h_close_pending opaque_resume (Or.inr trivial) (Or.inr trivial)
   | pendingProps _ _ _ ha ht sp_node sp_p n h_sep_run h_run h_nic_p h_real_p h_anchor_p h_tag_p
       h_route h_pkey h_floor_p h_col0_p h_ncol_p _h_ska_p h_kslot_p =>
     -- Items 9h/10, site 5's legal inhabitant: the held `[96]` run rides INTO
@@ -10211,7 +10304,12 @@ lemma accum_step_flow (sc : ScannerState)
     (h_dispatch : scanNextToken_dispatchFlowIndicators
         (if s_prep.allowDirectives then
           { s_prep with allowDirectives := false, documentEverStarted := true }
-        else s_prep) c = .ok (some s')) :
+        else s_prep) c = .ok (some s'))
+    -- Item 143: §9.2's landing refusal.  After item 142 this was the only step
+    -- that did not carry it, and `scanNextToken` has it in scope at the call —
+    -- the check runs between the structural dispatch and this one, exactly as
+    -- §8.1's floor above does.
+    (h_bare : scanNextToken_checkBareDocument s_prep = .ok ()) :
     ∃ sp_gram' sp_block' sp_flow' sp_scan',
       SLYamlStream sp_start sp_gram' ∧
       BlockStack sp_gram' sp_block' ∧
@@ -10295,6 +10393,7 @@ lemma accum_step_flow (sc : ScannerState)
                   allowDirectives_update_indents])
           (by rw [ScannerCorrectness.scanFlowSequenceStart_preserves_implicitValueLine,
                   allowDirectives_update_implicitValueLine])
+          h_bare
           (fun _ _ resume => by
             rw [ScannerFlowCollection.scanFlowSequenceStart_pushes_true, h_ad_ks0,
                 (tailOf_scanFlowSequenceStart _).1,
@@ -10347,6 +10446,7 @@ lemma accum_step_flow (sc : ScannerState)
                       allowDirectives_update_indents])
               (by rw [ScannerCorrectness.scanFlowMappingStart_preserves_implicitValueLine,
                       allowDirectives_update_implicitValueLine])
+              h_bare
               (fun _ _ resume => by
                 rw [ScannerFlowCollection.scanFlowMappingStart_pushes_false, h_ad_ks0,
                     (tailOf_scanFlowMappingStart _).1,
@@ -24323,7 +24423,7 @@ lemma scanNextToken_accum_step (sc : ScannerState)
                   obtain ⟨g', bl', fl', sn', q1, q2, q3, q4, q5, q6⟩ :=
                     accum_step_flow sc sp_start sp_gram sp_block sp_flow sp_scan s_pre s_flow_out c_pre
                       h_stream h_stack h_flow h_pending h_corr h_interior h_pre h_str_eq h_bfi
-                      h_flow_disp
+                      h_flow_disp h_bare
                   exact ⟨g', bl', fl', sn', false, q1, q2, q3, q4, fun h => Bool.noConfusion h, q5, q6⟩
                 · rename_i h_flow_none
                   split at h_ok
