@@ -876,11 +876,29 @@ def danglingNodePos? (s : ScannerState) : Option YamlPos :=
     resolved by a `:` (`a: 1⏎b: 2` — `b` becomes a key), and the flag is down
     there.  Runs BEFORE the structural dispatch, because a dangler dies at a
     `...`/`---` too (`a: 1⏎b⏎...`) and the marker would otherwise consume the
-    step. -/
+    step.
+
+    **The two states are the landing's two halves, and they are not the same
+    state** (item 140).  `s_land` is the landing — its flag is the break this
+    check requires.  `s_run` is the state the landing ARRIVED with, and the run
+    has to be read there: `scanNextToken_preprocess` unwinds the indent stack
+    before it returns, and the unwind EMITS `blockEnd` and POPS the level, so a
+    run whose own level the landing dedents past is no longer trailing and no
+    longer sits at any open column.  Read at the landing alone, `k:⏎␣␣a: 1⏎␣␣b⏎c: 2`
+    scans clean and only `TokenParser`'s `validNextToken` refuses it — at the
+    same position, which is what says the two are the same refusal read at two
+    depths.  `scanLoop_checkDanglingNode` below has always read the pre-unwind
+    array (its own `unwindIndents s (-1)` comes after), so this makes the
+    mid-stream check the end-of-input check's exact mid-stream twin.
+
+    `skipToContent` writes neither tokens nor indents, so `s_run` may be the
+    state `scanNextToken` was called with: the only writer between the two is
+    the unwind, and the save's placeholders are what `prevRealIdx?` skips. -/
 @[yaml_spec "9.2" 211 "l-yaml-stream"]
-def scanNextToken_checkDanglingNode (s : ScannerState) : Except ScanError Unit :=
-  if s.simpleKeyAllowed then
-    match danglingNodePos? s with
+def scanNextToken_checkDanglingNode (s_run s_land : ScannerState) :
+    Except ScanError Unit :=
+  if s_land.simpleKeyAllowed then
+    match danglingNodePos? s_run with
     | some p => .error (.invalidBareDocument p.line p.col)
     | none => .ok ()
   else .ok ()
@@ -960,14 +978,16 @@ def scanNextToken_checkAdjacentValue (s : ScannerState) (c : Char) :
     an under-indented flow open (§8.1); an unseparated `:` after a completed
     node (§8.2.2). -/
 @[yaml_spec "9.2"]
-def scanNextToken (s : ScannerState) : Except ScanError (Option ScannerState) := do
-  match ← scanNextToken_preprocess s with
+def scanNextToken (s_run : ScannerState) : Except ScanError (Option ScannerState) := do
+  match ← scanNextToken_preprocess s_run with
   | none => return none
   | some (s, c) =>
     -- §9.2 [211] (item 133): a dangling node run at an open level's own
     -- column, ended by the break this landing crossed.  BEFORE the structural
-    -- dispatch, because the dangler dies at a `...`/`---` too.
-    scanNextToken_checkDanglingNode s
+    -- dispatch, because the dangler dies at a `...`/`---` too.  The run is read
+    -- off `s_run` and the break off `s`, because preprocessing's unwind
+    -- displaces the run from the array it would be read in (item 140).
+    scanNextToken_checkDanglingNode s_run s
     match ← scanNextToken_dispatchStructural s c with
     | some s' => return some s'
     | none =>

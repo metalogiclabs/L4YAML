@@ -14551,6 +14551,159 @@ per-dispatcher payments and the two answers that need no lemma; §6 what still
 reaches `implicitContinue`, including the `GOpt.none` application that never
 breaks.
 
+### Item 140 (2026-09-10)
+
+**§9.2's mid-stream dangling check was reading one writer too late, and the
+writer was the landing's own unwind.**  Item 139 measured the bare-document
+fallback's surviving half as the dangling family and named a park face for
+`danglingNodePos?` as the item that would close it.  Scoping that face found
+something first: for the INDENTED half of the family the scanner does not refuse
+at all, so there was no refusal to thread — and row 19's 1c could not be closed
+at any price while that landing scanned clean.  This item is the refusal.
+
+**The two checks were not the same check.**  `scanLoop_checkDanglingNode` runs
+before `scanLoop`'s own `unwindIndents s (-1)`, so it reads the array the run is
+still in.  `scanNextToken_checkDanglingNode` ran on the state
+`scanNextToken_preprocess` RETURNS — and preprocessing unwinds: it emits a
+`blockEnd` for every level the landing dedents past and pops them.  A run whose
+own level the landing dedents past is therefore no longer trailing
+(`trailingNodeRun?` stops at the `blockEnd`) and no longer sits at any open
+column (`indents.any` has lost the entry), so the check read `none`.
+
+**The measurement, at the landing where it happens.**  `readingAt` walks the
+real scanner and reports `danglingNodePos?` at BOTH of a landing's states — the
+state the landing arrived with, and the state preprocessing returns:
+
+| input | landing | at the run's state | at the landing's state |
+|---|---|---|---|
+| `a: 1⏎b⏎c: 2` | 4 | `some 1,0`, stack 2 | `some 1,0`, stack 2 |
+| `k:⏎␣␣a: 1⏎␣␣b⏎c: 2` | 6 | `some 2,2`, stack 3 | **`none`**, stack 2 |
+
+The root landing pops nothing and the two readings are the same one; the
+indented landing pops one level and the reading is gone.  That row is the only
+place the two disagree in either input — §1 of the new guard pins all six
+landings of the second.
+
+**What that cost, before this item.**  `k:⏎␣␣a: 1⏎␣␣b⏎c: 2` scanned CLEAN.
+Only `TokenParser.parseStreamLoop`'s `validNextToken` refused it, and at the
+same position the scanner would have named — line 2, column 2, the run's own
+start.  Both halves of the pipeline therefore rejected the input, so no test
+saw anything wrong; what was wrong was WHICH half, and the accumulation is an
+invariant about the scanner alone.  Every step the scanner accepts has to come
+out of `StreamAccum` with a production, so the indented dangling run's step
+owed one, and `bareNodeRoute` — the reading 1c deletes — was the only one
+`[211]` has.  A park face cannot refute a step nothing refuses.
+
+**The change is two states on one check.**  The break is a fact about the
+LANDING and the run is a fact about the ARRAY, and they are now taken from where
+each lives: `scanNextToken_checkDanglingNode s_run s_land`, applied as
+`scanNextToken_checkDanglingNode s_run s` at the one call site in `scanNextToken`
+and its two indexed twins (`scanNextTokenIx`, `scanNextTokenIxWC`).  `s_run` may
+be the state `scanNextToken` was called with, because `skipToContent` writes
+neither tokens nor indents: the only writer between the two is the unwind, and
+the save's placeholders are exactly what `prevRealIdx?` skips.
+
+**It is a strict narrowing, and the suite says how strict.**  `unwindIndents`
+only APPENDS to the array and only POPS the stack, so the post-unwind reading is
+`none` wherever the pre-unwind one is — the new check refuses a superset, and
+the question is only whether the superset exceeds the parser's.  It does not:
+`run-all-tests.sh` **4492/4492**, matrix **402/402** event and **282/282** JSON
+on BOTH pipelines, `eventscore` **347/358** with **0** `event-reject` and **0**
+`error-miss`, `suiterunner` **869 passed / 0 failed / 151 skipped** — every one
+of them unchanged against item 139.  A runtime narrowing that moves no
+conformance number is what "the scanner's acceptance is now the parser's" looks
+like from the outside.
+
+**Sites: 51, and the autoparam is why it is not 90.**  The check's arity change
+reached six categories:
+
+| category | sites |
+|---|---|
+| the four exemption lemmas + two indexed twins | 6 |
+| the two converse extractions (`*_ok_checkDanglingNode`) | 2 |
+| the `via_*` dispatch lemmas' `h_dang` hypothesis (4 legacy + 4 indexed) | 8 |
+| the `have h_dn : ∃ u, … = .ok u` peels in the step inductions | 14 |
+| the exemption lemmas' own call sites (11 legacy + 10 indexed) | 21 |
+| `*_eq_of_preprocess`, the pair that says `f` does not capture `s` | 2 |
+
+That last row is the one that could have been expensive.
+`scanNextToken_eq_of_preprocess` says "two states with the same preprocessing
+result have the same step", and `f` now DOES capture the pre-unwind state — so
+the reading has to be a hypothesis, and there are **39 application sites in 8
+files**.  Every one of them holds the three field equalities the reading needs,
+because the whitespace-walk producers return `tokens`, `indents` and `flowLevel`
+in the same bundle as the preprocessing equality — but the DIRECTION differs by
+site.  Stating the hypothesis as an autoparam that tries `assumption`, then
+`danglingNodePos?_congr` either way round, discharged all **39** with **zero**
+call-site edits.  The congruence is the whole content: `danglingNodePos?` reads
+exactly three fields and nothing else.
+
+Two seeds pay the sentinel exemption at the stream's first landing
+(`init_indents_sentinel` and its indexed twin), where the pre-unwind stack is
+the sentinel alone — which is also the half of the domain where item 140 changes
+nothing, since `unwindIndentsLoop` wants `1 < indents.size` before it pops.
+
+**One family is NOT this item's, and saying so is part of the measurement.**
+`k: [1, 2]⏎␣␣b⏎c: 2` also scans clean and is refused by the parser alone — but
+its `b` stands at column 2 with only the root level open, so `danglingNodePos?`
+reads `none` at BOTH states and no dangling check can reach it.  That is a
+separate over-acceptance at the bare-document boundary, not the one this item
+closes, and the guard's §5 names it rather than letting the family look bigger
+than it is.
+
+**Validation.**  Full `lake build` green (**1129** jobs, +1 for the new guard,
+ZERO warnings); `run-all-tests.sh` **4492/4492** with Production Coverage
+Analysis **809/809**; matrix **402/402** event and **282/282** JSON on both
+pipelines (94 `err-ok` and 3 `err-ok` intact); `eventscore` **347/358** with
+**0**/**0**; `suiterunner` 869/0/151; `check-import-closure.sh` (**228**
+modules), `check-reflection-index.sh` (20/230/249/355) and
+`check-theorem-keyword.sh` (**25** capstones) OK; annotation verifier the same
+**19** pre-existing name mismatches with coverage 211/211.  `collect-stats`:
+tests **589** files (+1) / **6660** `#guard`s (+33 exact = the new guard's own);
+proofs **6462** and library **6667**, each **+4** — the four new lemmas
+(`danglingNodePos?_congr`, `init_indents_sentinel` and their indexed twins,
+which an env scan names); env **8431**, **+6**, so two of the increment are
+compiler-generated equation lemmas that the congruences' `simp only [… inFlow …]`
+forces, and I did not attribute those two individually against a rebuilt
+baseline.  **0** direct and **0** transitive `sorry`, **0** custom axioms;
+`#print axioms` over the sixteen touched declarations shows no `sorryAx` — the
+two seeds depend on no axioms at all, the two congruences are
+`[propext, Quot.sound]`, and the rest carry the standard three plus the
+pre-existing `native_decide` families.
+
+**The surface did not move, and it was re-measured rather than assumed.**  This
+item touches no route: `SLYamlStream.implicitContinue` stands at eight
+applications in eight holders, and flipping its `[210]` slot to
+`GOpt SLExplicitDocument` still gives **six** errors in `StreamAccum`, at the
+same six lemmas item 139 named — `topLevelFlowResumeSep`, `rootMapRoute`,
+`rootMapRouteF`, `bareNodeRoute`, `structural_dispatch_to_pending` and
+`accum_block_on_closeThenBlock` (StreamAccum.lean:3181, 4136, 4159, 4277, 5678,
+14549).
+
+New guard `Tests/Guards/Proofs/ScannerDanglingNodeDedent.lean` (33 `#guard` + 4
+`example`): §1 the displacement at both states of the real landing, with the
+root landing beside it as the control and the five quiet landings pinned as a
+range; §2 the nine-input family, all four readings refusing alike, and the three
+positions quoted in full; §3 the check at its two states with each exemption
+attached to the state it belongs to, and the EOF twin; §4 seventeen controls
+that a dedent must still walk past — the three offering predecessors, the value
+one level down, the absorbed plain continuation, the double dedent and the flow
+interiors — plus item 133's own two arms unmoved; §5 what it buys and the family
+that is not ours.
+
+**What remains.**  The item item 139 named, now with a refusal under it: a
+`danglingNodePos?` face on `pendingContent`, spent where `h_closable` is stated.
+The shape the face has to take is fixed by the same asymmetry this item
+measured — the run is already in the token array when the park is made, so the
+park can hold the reading, while the refusal that contradicts it arrives one
+landing later (`dangling@6` for §1's input, `eof-dangling@N` at the stream's
+end).  That means `h_closable` cannot stay unconditional: the honest shape is the
+stream OR the park's own dangling reading, with the consumers refuting the second
+disjunct from their own landing's check.  Sizing that is the next item.  The flow
+lane (`topLevelFlowResumeSep`) and the block `-` landing
+(`accum_block_on_closeThenBlock`'s `rootBlockSeq`, `rootMapRoute`/`rootMapRouteF`)
+are unchanged by this item and stand where item 139 left them.
+
 ### Item 139 (2026-09-10)
 
 **The bare-document fallback gets a name, half its domain is refuted, and the
@@ -14713,7 +14866,11 @@ label:
 
 * **the dangling window** — `a: 1⏎b`, `- a⏎b`, `k:⏎␣␣a⏎# c⏎b`.  Reached through
   `content_dispatch_after_close` and the landing skeleton's unrefuted arm, and
-  the next item is a park face for `danglingNodePos?`, not a route;
+  the next item is a park face for `danglingNodePos?`, not a route.  **Read this
+  with item 140**: scoping that face found that the INDENTED members of this
+  family were not refused by the scanner at all — the landing's unwind displaced
+  the run before the check saw it — so the face had nothing to contradict until
+  item 140 gave the check its two states;
 * **the flow lane** — `accum_flow_open_depth0`'s shared `main`, where
   `topLevelFlowResumeSep` is the same fallback for a completed flow collection.
   Its refutation is this item's one dispatcher over: `h_bare` threaded through
@@ -14738,7 +14895,7 @@ too (items 47–51), so what stands between here
 and Step 5 (the converse) is R3's remaining production work and R4:
 
 ```
-R1 ✓ (44–46) ──→ R2 ✓ (47–51) ──→ R3 (52–139 landed; U2 CLOSED, the collapse gone) ──→ Step 5
+R1 ✓ (44–46) ──→ R2 ✓ (47–51) ──→ R3 (52–140 landed; U2 CLOSED, the collapse gone) ──→ Step 5
                                         └──────→ R4 (implicitContinue + 0 < m) ──┘
 ```
 
@@ -15436,7 +15593,7 @@ Step 0 (the scanner audit for directive handling) and Fix B (eliminating
 |---|---|
 | Fix A: eliminate `scannerDrop` | 🟡 **β.3 and β.4 COMPLETE (2026-08-10)** — `StreamAccum.lean` is sorry-free and the `L4YAML.Capstones` gate is GREEN. β.5 is open: `block_dispatch_deferred` stands at 6 textual call sites (item 42's per-constructor split of the content dispatch — domain smaller, count larger — minus item 43's `--- a` production, minus item 47's two content-park `:`-arms, closed by the adjacent-value check) and `scannerDrop` at 2 (items 44–46 closed the resume re-index: the stack carries its reading index, indented flow values compose at it, and the flow drops concentrated into the collapse's one close), and the largest block-dispatch site is down to 6 of its 7 pendings (item 36), two of which now defer only a blank-followed `:` (items 37/47) — the content dispatch's own arm defers only `pendingFlow` (items 42–43/47; `--- a` composes through `content_dispatch_routed` and `h_doc_builder`'s first-ever-consumed `SLBareDocument` branch, and the glued `:` is refused at the scanner) — and its routes are now all built bar the closed FLOW node's (items 38–41: the root mapping's, the compact entry's, the mapping value's, the mapping nested under an entry — that one free, because item 40 merged the two producers into one — and the property RUN's at each of those frames, item 41, where the merge's coverage turns out to be a PRODUCT of the branch a caller can reach and the frame it can offer). Per-item record and the ordered list of what is left: [Row 12 — β.5 closure log](#row-12--β5-closure-log) |
 | 1b. Remove `scannerDrop` from `SLYamlStream` | ⬜ open — β.5, once that last use is gone |
-| 1c. Tighten `implicitContinue` in `SLYamlStream` | ⬜ open — action row 19, **after the DEDENT composition**; the third over-approximation, found 2026-08-13 by item 30. Require `l-document-suffix+` for the bare alternative; ~~16 construction sites (re-counted 2026-09-04), 15 of them the `StreamAccum` sibling re-opens~~ **17 in `StreamAccum` as of 2026-09-07** (item 108's re-count) plus `DocumentProduction`'s one — and the count is not the cost: item 108 measured the sites as downstream of `h_defer_split`'s root re-open, so this row is a frames-carrying landing skeleton, not 17 edits. **The skeleton now carries them** (item 109, 2026-09-07): `pendingContent` holds both stacks, `resumectx_of_landing` reads the landing at the entries level, and `content_dispatch_routed` prefers `resumeMapRoute` over `rootMapRoute` where a level is open — so the remaining work on this row is the CONSTRUCTOR (`GOpt SLAnyDocument` → `GOpt SLExplicitDocument`) plus the sites item 109 names as not closed: ~~`pendingBlockContent`~~ (**PAID by item 110**, 2026-09-07, from the entry-level field item 99 had already sized — no new field), ~~the props landing~~ (**PAID by item 111**, 2026-09-07 — `PropsKeyPack` gains items 99/108's resume twins and `h_props_key` resumes first), and ~~the block-scalar value arms~~ (**PAID by item 112**, 2026-09-07 — item 95's absorption closure re-reads the scalar to the landing, so the transport faces apply after all). **The constructor is LAST, not next** — item 110 built it and measured **16 breaking sites, all in `StreamAccum`**, two of them `rootMapRoute`/`rootMapRouteF`, the fallback every punting park uses; the rest append a completed top-level node as a fresh bare document, which is honest only when the stream has started none, and `SLYamlStream sp_start sp` does not record that. **The record exists now** (item 116, 2026-09-07): `noPending.h_nodoc` carries `GStar SLDocumentPrefix` behind the virgin park, and `nodocMapRoute`/`nodocMapRouteF` are the `single`-based routes the fallback sites swap to where it pays.  **And so does the suffix mirror** (item 117, 2026-09-07): the landing skeleton's `h_sfx` face holds the `...` park's arm open and the content landings already route through `suffixContinue`'s own slot (`suffixMapRoute`/`suffixMapRouteF`/`suffixNodeRoute`) — ~~what remains ahead of the constructor is the block/flow landings after a suffix~~ **PAID by item 118** (2026-09-07: the same face at `accum_block_on_closeThenBlock` and the flow open, `suffixFlowResumeSep` beside `topLevelFlowResumeSep`) — ~~what remains ahead of the constructor is the raised-flag refusal half~~ — the refusal half LANDED at items 132–134 (M1/M2/M3), and **item 135 re-measured the count and took it from 16 to NINE**: two sites were dead code, three were `pendingDocStart`'s document builder read at the wrong end (a ROUTE now), and two were the seed's own root sequence, paid by `noPending.h_nodoc` with its unspendable `documentEverStarted` premise dropped. What remains ahead of the constructor is seven bare-document routes waiting on ONE three-way landing face, one directive-document witness on `pendingDirective`, and one `SLAnyDocument.explicit` wrapper the flip itself deletes. **That face has its HEAD arm as of item 136** (2026-09-10): `nodocNodeRoute` and `nodocFlowResumeSep` are written, `nodocctx_of_preprocess` is the key context beside `resumectx`/`suffixctx`, and the virgin park pays all four of its landings — the block `-` (item 135), the block `:`/`?`, the content dispatch and the flow open — so item 116's twins have consumers at last. **And its MARKER arm as of item 137** (2026-09-10): `MarkerNodeRoute` pairs a `---` park with the landing's own `[79] s-l-comments`, `markerSeqRoute`/`markerMapRoute`/`markerMapRouteF` put the landed collection inside the marker's `[208]` document, and `markerctx_of_landing` is the key context beside the other three — so `pendingDocStart` reaches no fallback arm from any landing. The count stayed at NINE through both: the seven are fallback ARMS of shared lemmas, and what is still owed on them — now for two families rather than three — is items 132–134's refusal threaded to the accumulation. **And the directive witness is PAID as of item 138** (2026-09-10): `pendingDirective` carries a route for `[209]`, resolved at the `%` by `PendingNode.dirRoute` off the two parks that can have `allowDirectives` up, so the surface is TEN applications and the flip **eight** errors. **And the refusal is THREADED as of item 139** (2026-09-10): the bare route is named (`bareNodeRoute`, the fourth sibling of `suffixNodeRoute`/`nodocNodeRoute`), the content landings' fallback is guarded by §9.2's landing refusal, and the surface is **EIGHT** applications in eight holders with the flip at **SIX** errors. That item also measured what this row still costs, and the answer is not a route: the dangling family (`a: 1⏎b`, `- a⏎b`) is refused ONE TOKEN LATE — `danglingNodePos?` reads the run off the token array, so the run must be scanned first — and until the park carries that face the accumulation has no witness for the step the scanner accepts, so the constructor cannot be tightened. See [Item 110](#item-110-2026-09-07), [Item 116](#item-116-2026-09-07), [Item 117](#item-117-2026-09-07), [Item 118](#item-118-2026-09-07), [Item 135](#item-135-2026-09-09), [Item 136](#item-136-2026-09-10), [Item 137](#item-137-2026-09-10), [Item 138](#item-138-2026-09-10) and [Item 139](#item-139-2026-09-10). [The over-approximation problem](#the-over-approximation-problem) |
+| 1c. Tighten `implicitContinue` in `SLYamlStream` | ⬜ open — action row 19, **after the DEDENT composition**; the third over-approximation, found 2026-08-13 by item 30. Require `l-document-suffix+` for the bare alternative; ~~16 construction sites (re-counted 2026-09-04), 15 of them the `StreamAccum` sibling re-opens~~ **17 in `StreamAccum` as of 2026-09-07** (item 108's re-count) plus `DocumentProduction`'s one — and the count is not the cost: item 108 measured the sites as downstream of `h_defer_split`'s root re-open, so this row is a frames-carrying landing skeleton, not 17 edits. **The skeleton now carries them** (item 109, 2026-09-07): `pendingContent` holds both stacks, `resumectx_of_landing` reads the landing at the entries level, and `content_dispatch_routed` prefers `resumeMapRoute` over `rootMapRoute` where a level is open — so the remaining work on this row is the CONSTRUCTOR (`GOpt SLAnyDocument` → `GOpt SLExplicitDocument`) plus the sites item 109 names as not closed: ~~`pendingBlockContent`~~ (**PAID by item 110**, 2026-09-07, from the entry-level field item 99 had already sized — no new field), ~~the props landing~~ (**PAID by item 111**, 2026-09-07 — `PropsKeyPack` gains items 99/108's resume twins and `h_props_key` resumes first), and ~~the block-scalar value arms~~ (**PAID by item 112**, 2026-09-07 — item 95's absorption closure re-reads the scalar to the landing, so the transport faces apply after all). **The constructor is LAST, not next** — item 110 built it and measured **16 breaking sites, all in `StreamAccum`**, two of them `rootMapRoute`/`rootMapRouteF`, the fallback every punting park uses; the rest append a completed top-level node as a fresh bare document, which is honest only when the stream has started none, and `SLYamlStream sp_start sp` does not record that. **The record exists now** (item 116, 2026-09-07): `noPending.h_nodoc` carries `GStar SLDocumentPrefix` behind the virgin park, and `nodocMapRoute`/`nodocMapRouteF` are the `single`-based routes the fallback sites swap to where it pays.  **And so does the suffix mirror** (item 117, 2026-09-07): the landing skeleton's `h_sfx` face holds the `...` park's arm open and the content landings already route through `suffixContinue`'s own slot (`suffixMapRoute`/`suffixMapRouteF`/`suffixNodeRoute`) — ~~what remains ahead of the constructor is the block/flow landings after a suffix~~ **PAID by item 118** (2026-09-07: the same face at `accum_block_on_closeThenBlock` and the flow open, `suffixFlowResumeSep` beside `topLevelFlowResumeSep`) — ~~what remains ahead of the constructor is the raised-flag refusal half~~ — the refusal half LANDED at items 132–134 (M1/M2/M3), and **item 135 re-measured the count and took it from 16 to NINE**: two sites were dead code, three were `pendingDocStart`'s document builder read at the wrong end (a ROUTE now), and two were the seed's own root sequence, paid by `noPending.h_nodoc` with its unspendable `documentEverStarted` premise dropped. What remains ahead of the constructor is seven bare-document routes waiting on ONE three-way landing face, one directive-document witness on `pendingDirective`, and one `SLAnyDocument.explicit` wrapper the flip itself deletes. **That face has its HEAD arm as of item 136** (2026-09-10): `nodocNodeRoute` and `nodocFlowResumeSep` are written, `nodocctx_of_preprocess` is the key context beside `resumectx`/`suffixctx`, and the virgin park pays all four of its landings — the block `-` (item 135), the block `:`/`?`, the content dispatch and the flow open — so item 116's twins have consumers at last. **And its MARKER arm as of item 137** (2026-09-10): `MarkerNodeRoute` pairs a `---` park with the landing's own `[79] s-l-comments`, `markerSeqRoute`/`markerMapRoute`/`markerMapRouteF` put the landed collection inside the marker's `[208]` document, and `markerctx_of_landing` is the key context beside the other three — so `pendingDocStart` reaches no fallback arm from any landing. The count stayed at NINE through both: the seven are fallback ARMS of shared lemmas, and what is still owed on them — now for two families rather than three — is items 132–134's refusal threaded to the accumulation. **And the directive witness is PAID as of item 138** (2026-09-10): `pendingDirective` carries a route for `[209]`, resolved at the `%` by `PendingNode.dirRoute` off the two parks that can have `allowDirectives` up, so the surface is TEN applications and the flip **eight** errors. **And the refusal is THREADED as of item 139** (2026-09-10): the bare route is named (`bareNodeRoute`, the fourth sibling of `suffixNodeRoute`/`nodocNodeRoute`), the content landings' fallback is guarded by §9.2's landing refusal, and the surface is **EIGHT** applications in eight holders with the flip at **SIX** errors. That item also measured what this row still costs, and the answer is not a route: the dangling family (`a: 1⏎b`, `- a⏎b`) is refused ONE TOKEN LATE — `danglingNodePos?` reads the run off the token array, so the run must be scanned first — and until the park carries that face the accumulation has no witness for the step the scanner accepts, so the constructor cannot be tightened. **And the refusal itself had a hole, closed by item 140** (2026-09-10): the mid-stream check read the state preprocessing RETURNS, whose unwind emits a `blockEnd` and pops the level, so `k:⏎␣␣a: 1⏎␣␣b⏎c: 2` scanned clean and only `TokenParser`'s `validNextToken` refused it — a parser-only verdict is not available to an invariant about the scanner, so this row was unclosable at any price until the check took its two states. See [Item 110](#item-110-2026-09-07), [Item 116](#item-116-2026-09-07), [Item 117](#item-117-2026-09-07), [Item 118](#item-118-2026-09-07), [Item 135](#item-135-2026-09-09), [Item 136](#item-136-2026-09-10), [Item 137](#item-137-2026-09-10), [Item 138](#item-138-2026-09-10), [Item 139](#item-139-2026-09-10) and [Item 140](#item-140-2026-09-10). [The over-approximation problem](#the-over-approximation-problem) |
 | 1d. Carry `0 < m` on `[183]`/`[187]`'s auto-detected width | ⬜ open — action row 19; the fourth over-approximation, found 2026-08-16 by item 40. **PRICED 2026-09-07 by item 107, and it is not what this row said.** ~~4 construction sites; harmless at the root~~ — the root is exactly where it is not harmless: three families reach `m = 0` (the root's own mapping, the seq-spaces key `?⏎- a`, and the equal-width landing), the spec reaches the first two with `m = 1` off an index of `-1`, and `seqSpaces 0 .blockOut = seqSpaces 1 .blockOut` because `Nat` subtraction truncates at precisely that index. So the honest floor (`n < E`, or `n ≤ E` in block-out) is false at the root for an encoding reason, and this row is downstream of a re-indexing of `SBlockNode` to `n_lean = n_spec + 1` — the convention `[198]`'s docstring already states and the three collection constructors do not follow. Machine-checked in `Tests/Guards/Proofs/BlockCollectionWidthFloor.lean`. [The over-approximation problem](#the-over-approximation-problem) |
 | 5. Prove the converse `grammar_completeness` | ⬜ open — depends on Fix A **and on 1c**: the converse is false while either over-approximation stands |
 | 6. Assemble the `parse_iff_grammar` biconditional | ⬜ open — depends on Step 5 |

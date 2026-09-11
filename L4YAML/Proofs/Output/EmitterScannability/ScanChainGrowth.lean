@@ -582,8 +582,7 @@ lemma scanNextToken_flow_value (s : ScannerState)
       ((saveSimpleKey_preserves_directivesPresent s).trans h_dp)
       (scanNextToken_checkBareDocument_ok_of_inFlow _
         ((saveSimpleKey_preserves_inFlow s).trans h_flow))
-      (scanNextToken_checkDanglingNode_ok_of_inFlow _
-        ((saveSimpleKey_preserves_inFlow s).trans h_flow))
+      (scanNextToken_checkDanglingNode_ok_of_inFlow _ _ h_flow)
   -- scanValuePrepare preserves key fields in flow context
   -- (only modifies tokens and simpleKey when inFlow = true)
   have h_svp_flow := h_ad_inFlow
@@ -1663,8 +1662,7 @@ lemma scanNextToken_flow_scalar_savedKey (s : ScannerState)
       ((saveSimpleKey_preserves_directivesPresent s).trans h_dp)
       (scanNextToken_checkBareDocument_ok_of_inFlow _
         ((saveSimpleKey_preserves_inFlow s).trans h_flow))
-      (scanNextToken_checkDanglingNode_ok_of_inFlow _
-        ((saveSimpleKey_preserves_inFlow s).trans h_flow))
+      (scanNextToken_checkDanglingNode_ok_of_inFlow _ _ h_flow)
   refine ⟨_, h_snt, ?_, ?_, ?_, ?_, ?_⟩
   · show s_dq.simpleKey.possible = true
     exact h_sdq_poss

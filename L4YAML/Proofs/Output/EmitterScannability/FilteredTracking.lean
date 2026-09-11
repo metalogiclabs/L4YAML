@@ -248,8 +248,7 @@ lemma scanNextToken_flow_close_seq_outermost_ext (s : ScannerState)
     ((saveSimpleKey_preserves_directivesPresent s).trans h_dp)
     (scanNextToken_checkBareDocument_ok_of_inFlow _
       ((saveSimpleKey_preserves_inFlow s).trans h_flow))
-    (scanNextToken_checkDanglingNode_ok_of_inFlow _
-      ((saveSimpleKey_preserves_inFlow s).trans h_flow))
+    (scanNextToken_checkDanglingNode_ok_of_inFlow _ _ h_flow)
   -- s' = scanFlowSequenceEnd s_ad
   let s' := scanFlowSequenceEnd s_ad
   have h_result_fl : s'.flowLevel = 0 := by
@@ -348,8 +347,7 @@ lemma scanNextToken_flow_close_mapping_outermost_ext (s : ScannerState)
     ((saveSimpleKey_preserves_directivesPresent s).trans h_dp)
     (scanNextToken_checkBareDocument_ok_of_inFlow _
       ((saveSimpleKey_preserves_inFlow s).trans h_flow))
-    (scanNextToken_checkDanglingNode_ok_of_inFlow _
-      ((saveSimpleKey_preserves_inFlow s).trans h_flow))
+    (scanNextToken_checkDanglingNode_ok_of_inFlow _ _ h_flow)
   -- s' = scanFlowMappingEnd s_ad
   let s' := scanFlowMappingEnd s_ad
   have h_result_fl : s'.flowLevel = 0 := by

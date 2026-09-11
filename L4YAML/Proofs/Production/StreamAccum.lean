@@ -24082,8 +24082,8 @@ lemma scanNextToken_accum_step (sc : ScannerState)
     · exact absurd (Except.ok.inj h_ok) nofun
     · rename_i s_pre c_pre h_pre
       -- §9.2 dangling-node check (item 133) — pure check, no state change
-      have h_dn : ∃ u, scanNextToken_checkDanglingNode s_pre = .ok u := by
-        cases hx : scanNextToken_checkDanglingNode s_pre with
+      have h_dn : ∃ u, scanNextToken_checkDanglingNode sc s_pre = .ok u := by
+        cases hx : scanNextToken_checkDanglingNode sc s_pre with
         | error e => rw [hx] at h_ok; simp at h_ok
         | ok u => exact ⟨u, rfl⟩
       obtain ⟨uDN, h_dn⟩ := h_dn

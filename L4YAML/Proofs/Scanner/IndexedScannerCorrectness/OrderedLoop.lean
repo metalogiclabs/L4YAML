@@ -52,8 +52,8 @@ lemma scanNextTokenIx_preserves_ScanInvIx
       have h_sp_akv := scanNextTokenIx_preprocess_preserves_AllKeysValidIx h_akv hPre
       simp only at h_ok
       -- §9.2 dangling-node check (item 133)
-      have h_dn : ∃ u, scanNextTokenIx_checkDanglingNode sp = .ok u := by
-        cases hx : scanNextTokenIx_checkDanglingNode sp with
+      have h_dn : ∃ u, scanNextTokenIx_checkDanglingNode s sp = .ok u := by
+        cases hx : scanNextTokenIx_checkDanglingNode s sp with
         | error e => rw [hx] at h_ok; cases h_ok
         | ok u => exact ⟨u, rfl⟩
       obtain ⟨uDN, h_dn⟩ := h_dn
@@ -181,8 +181,8 @@ lemma scanNextTokenIx_preserves_AllKeysValidIx
       have h_sp_akv := scanNextTokenIx_preprocess_preserves_AllKeysValidIx h_akv hPre
       simp only at h_ok
       -- §9.2 dangling-node check (item 133)
-      have h_dn : ∃ u, scanNextTokenIx_checkDanglingNode sp = .ok u := by
-        cases hx : scanNextTokenIx_checkDanglingNode sp with
+      have h_dn : ∃ u, scanNextTokenIx_checkDanglingNode s sp = .ok u := by
+        cases hx : scanNextTokenIx_checkDanglingNode s sp with
         | error e => rw [hx] at h_ok; cases h_ok
         | ok u => exact ⟨u, rfl⟩
       obtain ⟨uDN, h_dn⟩ := h_dn

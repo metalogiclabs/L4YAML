@@ -1441,8 +1441,8 @@ lemma scanNextTokenIx_preserves_position_specific {input : String}
         have h_m_pp_lt : m < s_pp.tokens.size := h_m_pp
         dsimp only [] at h_ok
         -- §9.2 dangling-node check (item 133)
-        have h_dn : ∃ u, scanNextTokenIx_checkDanglingNode s_pp = .ok u := by
-          cases hx : scanNextTokenIx_checkDanglingNode s_pp with
+        have h_dn : ∃ u, scanNextTokenIx_checkDanglingNode s s_pp = .ok u := by
+          cases hx : scanNextTokenIx_checkDanglingNode s s_pp with
           | error e => rw [hx] at h_ok; simp at h_ok
           | ok u => exact ⟨u, rfl⟩
         obtain ⟨uDN, h_dn⟩ := h_dn

@@ -570,8 +570,8 @@ lemma scanNextTokenIx_ekStack_step {s s' : ScannerStateIx input}
         have h_pre_fl := scanNextTokenIx_preprocess_preserves_flowLevel s s_pp c h_pp
         dsimp only [] at h
         -- §9.2 dangling-node check (item 133)
-        have h_dn : ∃ u, scanNextTokenIx_checkDanglingNode s_pp = .ok u := by
-          cases hx : scanNextTokenIx_checkDanglingNode s_pp with
+        have h_dn : ∃ u, scanNextTokenIx_checkDanglingNode s s_pp = .ok u := by
+          cases hx : scanNextTokenIx_checkDanglingNode s s_pp with
           | error e => rw [hx] at h; simp at h
           | ok u => exact ⟨u, rfl⟩
         obtain ⟨uDN, h_dn⟩ := h_dn

@@ -956,10 +956,17 @@ lemma scanNextTokenIx_checkBareDocument_ok_of_inFlow {input : String}
   simp only [scanNextTokenIx_checkBareDocument, h, Bool.not_true, Bool.false_and,
              Bool.false_eq_true, ↓reduceIte]
 
+/-- Indexed twin of `init_indents_sentinel`: the stream's seed carries the
+    sentinel alone, so item 140's PRE-unwind reading is `none` at the first
+    landing. -/
+lemma initIx_indents_sentinel (input : String) :
+    ((ScannerStateIx.mk' input).emit YamlToken.streamStart).indents
+      = #[{ column := -1, isSequence := false }] := rfl
+
 /-- Item 133's §9.2 dangling-node check is a no-op inside a flow collection. -/
 lemma scanNextTokenIx_checkDanglingNode_ok_of_inFlow {input : String}
-    (s : ScannerStateIx input) (h : s.inFlow = true) :
-    scanNextTokenIx_checkDanglingNode s = .ok () := by
+    (s_run s_land : ScannerStateIx input) (h : s_run.inFlow = true) :
+    scanNextTokenIx_checkDanglingNode s_run s_land = .ok () := by
   unfold scanNextTokenIx_checkDanglingNode danglingNodePosIx?
   rw [if_pos h]
   split <;> rfl
@@ -986,11 +993,11 @@ lemma danglingNodePosIx?_none_of_sentinel_stack {input : String}
   · split <;> rfl
 
 lemma scanNextTokenIx_checkDanglingNode_ok_of_sentinel_stack {input : String}
-    (s : ScannerStateIx input)
-    (h : s.indents = #[{ column := -1, isSequence := false }]) :
-    scanNextTokenIx_checkDanglingNode s = .ok () := by
+    (s_run s_land : ScannerStateIx input)
+    (h : s_run.indents = #[{ column := -1, isSequence := false }]) :
+    scanNextTokenIx_checkDanglingNode s_run s_land = .ok () := by
   unfold scanNextTokenIx_checkDanglingNode
-  rw [danglingNodePosIx?_none_of_sentinel_stack s h]
+  rw [danglingNodePosIx?_none_of_sentinel_stack s_run h]
   split <;> rfl
 
 /-- Indexed twin of `trailingNodeRun?_push_none`: a stream whose last token is
@@ -1050,8 +1057,8 @@ lemma scanNextTokenIx_ok_checkDanglingNode {input : String}
     {s s_pp : ScannerStateIx input} {c : Char} {r : Option (ScannerStateIx input)}
     (h_pp : scanNextTokenIx_preprocess s = .ok (some (s_pp, c)))
     (h_snt : scanNextTokenIx s = .ok r) :
-    scanNextTokenIx_checkDanglingNode s_pp = .ok () := by
-  cases h_dn : scanNextTokenIx_checkDanglingNode s_pp with
+    scanNextTokenIx_checkDanglingNode s s_pp = .ok () := by
+  cases h_dn : scanNextTokenIx_checkDanglingNode s s_pp with
   | ok u => cases u; rfl
   | error e =>
     exfalso

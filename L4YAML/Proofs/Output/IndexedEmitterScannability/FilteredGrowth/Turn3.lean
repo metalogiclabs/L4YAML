@@ -178,7 +178,7 @@ lemma scanNextTokenIx_filtered_grows_in_flow
   have h_bd_ok : scanNextTokenIx_checkBareDocument (saveSimpleKeyIx s) = .ok () :=
     scanNextTokenIx_ok_checkBareDocument h_pp h_struct h_snt
   -- §9.2 dangling-node check (item 133), from the same `.ok` witness.
-  have h_dn_ok : scanNextTokenIx_checkDanglingNode (saveSimpleKeyIx s) = .ok () :=
+  have h_dn_ok : scanNextTokenIx_checkDanglingNode s (saveSimpleKeyIx s) = .ok () :=
     scanNextTokenIx_ok_checkDanglingNode h_pp h_snt
   -- Step 4: unfold scanNextTokenIx using the pinned dispatch info.
   unfold scanNextTokenIx at h_snt

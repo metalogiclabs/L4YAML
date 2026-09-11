@@ -476,8 +476,8 @@ lemma scanNextTokenIx_maintains_SimpleKeyAboveIx {input : String}
           scanNextTokenIx_preprocess_maintains_SimpleKeyAboveIx s s_pp c n h_n h_pp h_inv
         dsimp only [] at h_ok
         -- §9.2 dangling-node check (item 133)
-        have h_dn : ∃ u, scanNextTokenIx_checkDanglingNode s_pp = .ok u := by
-          cases hx : scanNextTokenIx_checkDanglingNode s_pp with
+        have h_dn : ∃ u, scanNextTokenIx_checkDanglingNode s s_pp = .ok u := by
+          cases hx : scanNextTokenIx_checkDanglingNode s s_pp with
           | error e => rw [hx] at h_ok; simp at h_ok
           | ok u => exact ⟨u, rfl⟩
         obtain ⟨uDN, h_dn⟩ := h_dn
@@ -832,8 +832,8 @@ lemma scanNextTokenIx_preserves_prefix {input : String}
           Nat.le_trans h_n (scanNextTokenIx_preprocess_tokens_size_le h_pp)
         dsimp only [] at h_ok
         -- §9.2 dangling-node check (item 133)
-        have h_dn : ∃ u, scanNextTokenIx_checkDanglingNode s_pp = .ok u := by
-          cases hx : scanNextTokenIx_checkDanglingNode s_pp with
+        have h_dn : ∃ u, scanNextTokenIx_checkDanglingNode s s_pp = .ok u := by
+          cases hx : scanNextTokenIx_checkDanglingNode s s_pp with
           | error e => rw [hx] at h_ok; simp at h_ok
           | ok u => exact ⟨u, rfl⟩
         obtain ⟨uDN, h_dn⟩ := h_dn

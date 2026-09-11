@@ -74,7 +74,7 @@ private def fireAt (s : ScannerState) (n : Nat) : Nat → String
       | .error _ => s!"eof-dangling@{n}"
       | .ok _ => "clean"
     | .ok (some (s1, _)) =>
-      match scanNextToken_checkDanglingNode s1 with
+      match scanNextToken_checkDanglingNode s s1 with
       | .error _ => s!"dangling@{n}"
       | .ok _ =>
         match scanNextToken_checkBareDocument s1 with
@@ -288,7 +288,11 @@ What the fallback still serves, measured in §1:
   and refuses at the next landing, so the accumulation genuinely owes a stream
   for one token.  Closing this half means giving the park a `danglingNodePos?`
   face — the run is already in the token array when the park is made — not a
-  better reading of `[211]`;
+  better reading of `[211]`.  (Read with DOCS item 140: sizing that face found
+  that the INDENTED members of this family were refused by the PARSER only,
+  because the landing's unwind displaced the run before the mid-stream check
+  saw it.  `Tests/Guards/Proofs/ScannerDanglingNodeDedent.lean` is that
+  refusal, and the face has something to contradict now.);
 * **the flow lane** — `accum_flow_open_depth0`'s shared `main`, where
   `topLevelFlowResumeSep` is the same fallback for a completed flow
   collection.  Its refutation is this item's, one dispatcher over: `h_bare`

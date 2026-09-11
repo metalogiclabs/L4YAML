@@ -1621,8 +1621,8 @@ lemma scanNextTokenIx_ok_some_monotonic {input : String}
       have hPpT := scanNextTokenIx_preprocess_tokens_size_le hPre
       simp only at h
       -- §9.2 dangling-node check (item 133): peel it, keeping h's tail intact.
-      have hDN : ∃ u, scanNextTokenIx_checkDanglingNode sp = .ok u := by
-        cases hx : scanNextTokenIx_checkDanglingNode sp with
+      have hDN : ∃ u, scanNextTokenIx_checkDanglingNode s sp = .ok u := by
+        cases hx : scanNextTokenIx_checkDanglingNode s sp with
         | error e => rw [hx] at h; cases h
         | ok u => exact ⟨u, rfl⟩
       obtain ⟨uDN, hDN⟩ := hDN

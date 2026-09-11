@@ -751,8 +751,7 @@ lemma scanNextToken_flow_valueIx (s : ScannerStateIx input)
       ((saveSimpleKeyIx_directivesPresent s).trans h_dp)
       (scanNextTokenIx_checkBareDocument_ok_of_inFlow _
         ((saveSimpleKeyIx_inFlow s).trans h_flow))
-      (scanNextTokenIx_checkDanglingNode_ok_of_inFlow _
-        ((saveSimpleKeyIx_inFlow s).trans h_flow))
+      (scanNextTokenIx_checkDanglingNode_ok_of_inFlow _ _ h_flow)
   -- Step 8: result-state field equalities (all via `@[simp]` cursor lemmas).
   have h_R_cursor :
       ({ (((scanValuePrepareIx s_ad).emit YamlToken.value).advance) with
@@ -1914,7 +1913,8 @@ lemma scanNextTokenIx_emitScalar_init (content : String) :
     scanNextTokenIx_via_content_dispatch s₀ s_pp s_ad s_final '"'
       h_pp_eq h_struct h_s_ad_def h_check_ad h_flow_ad h_block_ad
       (scanNextTokenIx_checkAdjacentValue_ok_of_ne_colon _ (by decide)) h_dc h_dp_pp
-      h_bd_pp (scanNextTokenIx_checkDanglingNode_ok_of_sentinel_stack _ h_ids_pp)
+      h_bd_pp (scanNextTokenIx_checkDanglingNode_ok_of_sentinel_stack _ _
+        (initIx_indents_sentinel _))
   -- ── Step 13: extract conclusions
   refine ⟨s_final, h_snt, ?_, ?_, ?_, ?_, ?_⟩
   · -- peek? = none: post-quote surface has empty chars

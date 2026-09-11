@@ -140,8 +140,7 @@ lemma scanNextTokenIx_flow_open_seq_nested (s : ScannerStateIx input)
     ((saveSimpleKeyIx_directivesPresent s).trans h_dp)
     (scanNextTokenIx_checkBareDocument_ok_of_inFlow _
       ((saveSimpleKeyIx_inFlow s).trans h_flow))
-    (scanNextTokenIx_checkDanglingNode_ok_of_inFlow _
-      ((saveSimpleKeyIx_inFlow s).trans h_flow))
+    (scanNextTokenIx_checkDanglingNode_ok_of_inFlow _ _ h_flow)
   have h_ad_corr : ScannerSurfCorrIx s_ad ⟨'[' :: rest, s_ad.cursor.pos.col⟩ := by
     refine ⟨?_, rfl, ?_, ?_⟩
     · rw [h_ad_cursor]; exact hcorr.chars_from

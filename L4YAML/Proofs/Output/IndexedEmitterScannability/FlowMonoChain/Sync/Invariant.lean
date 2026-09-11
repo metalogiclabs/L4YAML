@@ -282,8 +282,8 @@ lemma scanNextTokenIx_preserves_prefix_of_simpleKey
           Nat.le_trans h_n (scanNextTokenIx_preprocess_tokens_size_le s s_pp c h_pp)
         dsimp only [] at h_ok
         -- §9.2 dangling-node check (item 133)
-        have h_dn : ∃ u, scanNextTokenIx_checkDanglingNode s_pp = .ok u := by
-          cases hx : scanNextTokenIx_checkDanglingNode s_pp with
+        have h_dn : ∃ u, scanNextTokenIx_checkDanglingNode s s_pp = .ok u := by
+          cases hx : scanNextTokenIx_checkDanglingNode s s_pp with
           | error e => rw [hx] at h_ok; simp at h_ok
           | ok u => exact ⟨u, rfl⟩
         obtain ⟨uDN, h_dn⟩ := h_dn
@@ -553,15 +553,41 @@ If two states produce the same preprocessing result, `scanNextTokenIx`
 gives the same result. Then a chain at the second state lifts to a
 chain at the first state. -/
 
-/-- If two states produce the same preprocessing result, then
-    `scanNextTokenIx` returns the same value on both. Indexed twin of
-    legacy `scanNextToken_eq_of_preprocess` (line 2107). -/
+/-- `danglingNodePosIx?` reads exactly three fields — the flow level, the token
+    stream and the indent stack — so two states that agree on them agree on the
+    reading.  Indexed twin of `danglingNodePos?_congr` (item 140). -/
+lemma danglingNodePosIx?_congr {s₁ s₂ : ScannerStateIx input}
+    (h_fl : s₁.flowLevel = s₂.flowLevel)
+    (h_tok : s₁.tokens = s₂.tokens)
+    (h_ind : s₁.indents = s₂.indents) :
+    danglingNodePosIx? s₁ = danglingNodePosIx? s₂ := by
+  simp only [danglingNodePosIx?, ScannerStateIx.inFlow, h_fl, h_tok, h_ind]
+
+/-- If two states produce the same preprocessing result AND the same §9.2
+    reading, then `scanNextTokenIx` returns the same value on both. Indexed twin
+    of legacy `scanNextToken_eq_of_preprocess`, autoparam and all: since item 140
+    the dispatcher reads the PRE-unwind state, and the reading is the whole of
+    that capture. -/
 lemma scanNextTokenIx_eq_of_preprocess (s₁ s₂ : ScannerStateIx input)
-    (h : scanNextTokenIx_preprocess s₁ = scanNextTokenIx_preprocess s₂) :
+    (h : scanNextTokenIx_preprocess s₁ = scanNextTokenIx_preprocess s₂)
+    (h_dn : danglingNodePosIx? s₁ = danglingNodePosIx? s₂ := by
+      first
+        | assumption
+        | exact danglingNodePosIx?_congr (by assumption) (by assumption) (by assumption)
+        | exact (danglingNodePosIx?_congr (by assumption) (by assumption)
+            (by assumption)).symm) :
     scanNextTokenIx s₁ = scanNextTokenIx s₂ := by
   unfold scanNextTokenIx
   simp only [bind, Except.bind]
   rw [h]
+  cases scanNextTokenIx_preprocess s₂ with
+  | error e => rfl
+  | ok r =>
+    cases r with
+    | none => rfl
+    | some p =>
+      obtain ⟨s_pp, c⟩ := p
+      simp only [scanNextTokenIx_checkDanglingNode, h_dn]
 
 /-- If `scanNextTokenIx` gives the same result for two states and the
     second has a `ScanChainIx` of length ≥ 1, then the first does
@@ -609,7 +635,7 @@ lemma scanNextTokenIx_via_flow_dispatch
     (h_flow : scanNextTokenIx_dispatchFlowIndicators s_ad c = .ok (some s_result))
     (h_ndp : s_pp.directivesPresent = false)
     (h_bare : scanNextTokenIx_checkBareDocument s_pp = .ok ())
-    (h_dang : scanNextTokenIx_checkDanglingNode s_pp = .ok ()) :
+    (h_dang : scanNextTokenIx_checkDanglingNode s s_pp = .ok ()) :
     scanNextTokenIx s = .ok (some s_result) := by
   unfold scanNextTokenIx
   simp only [bind, Except.bind, pure, Pure.pure, Except.pure]

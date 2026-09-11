@@ -20,7 +20,11 @@ named the migration M2; this is the landing.
 `scanNextToken_checkDanglingNode` runs BEFORE the structural dispatch — a
 dangler dies at a `...`/`---` too, and the marker would otherwise consume the
 step — and `scanLoop_checkDanglingNode` runs beside `scanLoop`'s other two final
-validations, for the run the stream itself ends.
+validations, for the run the stream itself ends.  The mid-stream check takes TWO
+states since item 140: the break off the landing, the RUN off the state the
+landing arrived with, because preprocessing's unwind displaces the run from the
+array it would otherwise be read in.  See
+`Tests/Guards/Proofs/ScannerDanglingNodeDedent.lean`.
 
 **What separates a dangler from a value is its PREDECESSOR**, and the three that
 offer a slot are `YamlToken.offersNodeSlot`'s: `:`, `?` and `-`, whose own
@@ -71,9 +75,10 @@ example : YamlToken.offersNodeSlot .blockEntry = true := rfl
 example : YamlToken.offersNodeSlot (.scalar "x" .plain) = false := rfl
 example : YamlToken.offersNodeSlot .flowSequenceEnd = false := rfl
 
-/-- Mid-stream the break is required, and `simpleKeyAllowed` is it. -/
-example (s : ScannerState) (h : s.simpleKeyAllowed = false) :
-    scanNextToken_checkDanglingNode s = .ok () := by
+/-- Mid-stream the break is required, and `simpleKeyAllowed` is it — read off
+    the LANDING, which is the second of the check's two states (item 140). -/
+example (s_run s_land : ScannerState) (h : s_land.simpleKeyAllowed = false) :
+    scanNextToken_checkDanglingNode s_run s_land = .ok () := by
   simp only [scanNextToken_checkDanglingNode, h, Bool.false_eq_true, ↓reduceIte]
 
 /-- At EOF it is not: the stream itself ended the run. -/

@@ -1766,11 +1766,13 @@ def danglingNodePosIx? {input : String} (s : ScannerStateIx input) :
         if s.indents.any (fun e => e.column == (p.col : Int)) then some p else none
 
 /-- §9.2 [211] mid-stream: indexed twin of
-    `scanNextToken_checkDanglingNode`. -/
+    `scanNextToken_checkDanglingNode`, including item 140's two states — the
+    run is read off the state the landing ARRIVED with, because preprocessing's
+    unwind emits `blockEnd` and pops the level the run stands at. -/
 def scanNextTokenIx_checkDanglingNode {input : String}
-    (s : ScannerStateIx input) : Except ScanError Unit :=
-  if s.simpleKeyAllowed then
-    match danglingNodePosIx? s with
+    (s_run s_land : ScannerStateIx input) : Except ScanError Unit :=
+  if s_land.simpleKeyAllowed then
+    match danglingNodePosIx? s_run with
     | some p => .error (.invalidBareDocument p.line p.col)
     | none => .ok ()
   else .ok ()
@@ -1812,14 +1814,15 @@ def scanNextTokenIx_checkAdjacentValue {input : String}
 
 /-- Scan one token (the per-iteration dispatcher). Returns `none`
     at EOF, `some s'` on a successful token, or an error. -/
-def scanNextTokenIx {input : String} (s : ScannerStateIx input) :
+def scanNextTokenIx {input : String} (s_run : ScannerStateIx input) :
     Except ScanError (Option (ScannerStateIx input)) := do
-  match ← scanNextTokenIx_preprocess s with
+  match ← scanNextTokenIx_preprocess s_run with
   | none => return none
   | some (s, c) =>
     -- §9.2 [211] (item 133): the dangling node run, before the structural
-    -- dispatch — the dangler dies at a `...`/`---` too.
-    scanNextTokenIx_checkDanglingNode s
+    -- dispatch — the dangler dies at a `...`/`---` too.  Item 140: the run off
+    -- `s_run`, the break off `s`.
+    scanNextTokenIx_checkDanglingNode s_run s
     match ← scanNextTokenIx_dispatchStructural s c with
     | some s' => return some s'
     | none =>
@@ -1938,14 +1941,15 @@ def scanNextTokenIx_preprocessWC {input : String} (s : ScannerStateIx input) :
 
 /-- Comment-preserving per-iteration dispatcher. Identical to
     `scanNextTokenIx` except it routes through `_preprocessWC`. -/
-def scanNextTokenIxWC {input : String} (s : ScannerStateIx input) :
+def scanNextTokenIxWC {input : String} (s_run : ScannerStateIx input) :
     Except ScanError (Option (ScannerStateIx input)) := do
-  match ← scanNextTokenIx_preprocessWC s with
+  match ← scanNextTokenIx_preprocessWC s_run with
   | none => return none
   | some (s, c) =>
     -- §9.2 [211] (item 133): the dangling node run, before the structural
-    -- dispatch — the dangler dies at a `...`/`---` too.
-    scanNextTokenIx_checkDanglingNode s
+    -- dispatch — the dangler dies at a `...`/`---` too.  Item 140: the run off
+    -- `s_run`, the break off `s`.
+    scanNextTokenIx_checkDanglingNode s_run s
     match ← scanNextTokenIx_dispatchStructural s c with
     | some s' => return some s'
     | none =>

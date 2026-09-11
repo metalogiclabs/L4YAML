@@ -381,7 +381,7 @@ lemma scanNextTokenIx_via_content_dispatch
     (h_content : scanNextTokenIx_dispatchContent s_ad c = .ok s_result)
     (h_ndp : s_pp.directivesPresent = false)
     (h_bare : scanNextTokenIx_checkBareDocument s_pp = .ok ())
-    (h_dang : scanNextTokenIx_checkDanglingNode s_pp = .ok ()) :
+    (h_dang : scanNextTokenIx_checkDanglingNode s s_pp = .ok ()) :
     scanNextTokenIx s = .ok (some s_result) := by
   unfold scanNextTokenIx
   simp only [bind, Except.bind, pure, Pure.pure, Except.pure]
@@ -413,7 +413,7 @@ lemma scanNextTokenIx_via_content_dispatch_error
     (h_content : scanNextTokenIx_dispatchContent s_ad c = .error e)
     (h_ndp : s_pp.directivesPresent = false)
     (h_bare : scanNextTokenIx_checkBareDocument s_pp = .ok ())
-    (h_dang : scanNextTokenIx_checkDanglingNode s_pp = .ok ()) :
+    (h_dang : scanNextTokenIx_checkDanglingNode s s_pp = .ok ()) :
     scanNextTokenIx s = .error e := by
   unfold scanNextTokenIx
   simp only [bind, Except.bind, pure, Pure.pure, Except.pure]
@@ -444,7 +444,7 @@ lemma scanNextTokenIx_via_block_dispatch
     (h_block : scanNextTokenIx_dispatchBlockIndicators s_ad c = .ok (some s_result))
     (h_ndp : s_pp.directivesPresent = false)
     (h_bare : scanNextTokenIx_checkBareDocument s_pp = .ok ())
-    (h_dang : scanNextTokenIx_checkDanglingNode s_pp = .ok ()) :
+    (h_dang : scanNextTokenIx_checkDanglingNode s s_pp = .ok ()) :
     scanNextTokenIx s = .ok (some s_result) := by
   unfold scanNextTokenIx
   simp only [bind, Except.bind, pure, Pure.pure, Except.pure]

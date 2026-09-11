@@ -4280,8 +4280,8 @@ lemma scanNextTokenIx_preserves_PlainScalarsValidIx {input : String}
           scanNextTokenIx_preprocess_preserves_PlainScalarsValidIx s s_pp c h_pp h_old
         dsimp only [] at h_ok
         -- §9.2 dangling-node check (item 133)
-        have h_dn : ∃ u, scanNextTokenIx_checkDanglingNode s_pp = .ok u := by
-          cases hx : scanNextTokenIx_checkDanglingNode s_pp with
+        have h_dn : ∃ u, scanNextTokenIx_checkDanglingNode s s_pp = .ok u := by
+          cases hx : scanNextTokenIx_checkDanglingNode s s_pp with
           | error e => rw [hx] at h_ok; simp at h_ok
           | ok u => exact ⟨u, rfl⟩
         obtain ⟨uDN, h_dn⟩ := h_dn
@@ -6255,8 +6255,8 @@ lemma scanNextTokenIx_preserves_AllKeysPlaceholderInvIx {input : String}
           scanNextTokenIx_preprocess_preserves_AllKeysPlaceholderInvIx s s_pp c h_pp h_akpi
         dsimp only [] at h_ok
         -- §9.2 dangling-node check (item 133)
-        have h_dn : ∃ u, scanNextTokenIx_checkDanglingNode s_pp = .ok u := by
-          cases hx : scanNextTokenIx_checkDanglingNode s_pp with
+        have h_dn : ∃ u, scanNextTokenIx_checkDanglingNode s s_pp = .ok u := by
+          cases hx : scanNextTokenIx_checkDanglingNode s s_pp with
           | error e => rw [hx] at h_ok; simp at h_ok
           | ok u => exact ⟨u, rfl⟩
         obtain ⟨uDN, h_dn⟩ := h_dn
@@ -6367,8 +6367,8 @@ lemma scanNextTokenIx_preserves_FlowContextPSVIx {input : String}
         have h_pl_pp : SimpleKeyPlaceholderInvIx s_pp := h_akpi_pp.1
         dsimp only [] at h_ok
         -- §9.2 dangling-node check (item 133)
-        have h_dn : ∃ u, scanNextTokenIx_checkDanglingNode s_pp = .ok u := by
-          cases hx : scanNextTokenIx_checkDanglingNode s_pp with
+        have h_dn : ∃ u, scanNextTokenIx_checkDanglingNode s s_pp = .ok u := by
+          cases hx : scanNextTokenIx_checkDanglingNode s s_pp with
           | error e => rw [hx] at h_ok; simp at h_ok
           | ok u => exact ⟨u, rfl⟩
         obtain ⟨uDN, h_dn⟩ := h_dn
@@ -6486,8 +6486,8 @@ lemma scanNextTokenIx_preserves_FlowNestingInvIx {input : String}
         have h_pl_pp : SimpleKeyPlaceholderInvIx s_pp := h_akpi_pp.1
         dsimp only [] at h_ok
         -- §9.2 dangling-node check (item 133)
-        have h_dn : ∃ u, scanNextTokenIx_checkDanglingNode s_pp = .ok u := by
-          cases hx : scanNextTokenIx_checkDanglingNode s_pp with
+        have h_dn : ∃ u, scanNextTokenIx_checkDanglingNode s s_pp = .ok u := by
+          cases hx : scanNextTokenIx_checkDanglingNode s s_pp with
           | error e => rw [hx] at h_ok; simp at h_ok
           | ok u => exact ⟨u, rfl⟩
         obtain ⟨uDN, h_dn⟩ := h_dn
