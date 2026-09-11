@@ -113,6 +113,7 @@ import Tests.Guards.Proofs.StreamHeadLandingFace
 import Tests.Guards.Proofs.StreamMarkerLandingFace
 import Tests.Guards.Proofs.StreamDirectiveDocumentArm
 import Tests.Guards.Proofs.StreamBareDocumentFallback
+import Tests.Guards.Proofs.StreamBlockLandingRefusal
 import Tests.Guards.Proofs.FlowFrameResumeRider
 import Tests.Guards.Proofs.UnderIndentInvariantMap
 import Tests.Guards.Proofs.ScalarWalkCrossLineFloor
