@@ -56,6 +56,7 @@ import Tests.Guards.Proofs.ScannerAdjacentValueRefused
 import Tests.Guards.Proofs.ScannerBareDocumentRefusal
 import Tests.Guards.Proofs.ScannerDanglingNodeRefusal
 import Tests.Guards.Proofs.ScannerDanglingNodeDedent
+import Tests.Guards.Proofs.StreamDanglingParkRevocable
 import Tests.Guards.Proofs.ScannerBlockEntryMappingIndent
 import Tests.Guards.Proofs.ScannerSameLineCollectionRefused
 import Tests.Guards.Proofs.ScannerPropsNullKeyCompose
