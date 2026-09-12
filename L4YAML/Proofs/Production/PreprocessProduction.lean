@@ -492,7 +492,18 @@ lemma skipToContentLoop_anyCol_prod
           -- FRESH one.  Guarded by the park's column because the col-0 entry
           -- lands without crossing anything, and by the flow level because
           -- §7.4.2's gate is what suppresses the re-arm inside a collection.
-          (sp.col ≠ 0 → sc.inFlow = false → s_result.simpleKeyAllowed = true) ∨
+          (sp.col ≠ 0 → sc.inFlow = false → s_result.simpleKeyAllowed = true) ∧
+          -- **Item 147: the walk's own FLAG, beside the re-arm.**  The break
+          -- that carries a park off a line start down to column 0 is the same
+          -- break `consumeNewline` raises `needIndentCheck` on, and the flag
+          -- only ever goes up for the rest of the loop
+          -- (`skipToContentLoop_needIndentCheck_mono`).  So a landing from a
+          -- park that is NOT at a line start hands preprocessing a state whose
+          -- unwind is ARMED — which is what makes the landing's own floor a
+          -- fact rather than a disjunct.  Ungated by the flow level: a break
+          -- raises the check inside a collection too; only the key's re-arm
+          -- above is §7.4.2's to suppress.
+          (sp.col ≠ 0 → s_result.needIndentCheck = true) ∨
         sp_mid = sp ∧ s_result.needIndentCheck = sc.needIndentCheck) ∧
       GStar SSWhite sp_mid sp_ws ∧ GOpt SCNbCommentText sp_ws sp' ∧
       ScannerSurfCorr s_result sp' ∧
@@ -505,7 +516,8 @@ lemma skipToContentLoop_anyCol_prod
     cases sp with | mk chars col =>
     dsimp only [] at hcol; subst hcol
     exact ⟨sp_mid, sp_ws, sp',
-      Or.inl ⟨SSLComments.startOfLine chars sp_mid hstar, hcol_mid, fun h _ => absurd rfl h⟩,
+      Or.inl ⟨SSLComments.startOfLine chars sp_mid hstar, hcol_mid,
+        fun h _ => absurd rfl h, fun h => absurd rfl h⟩,
       hws, hcmt, hcorr', h_pk, h_ltsl⟩
   · -- col≠0: induction on fuel; first break builds SSBComment
     induction fuel generalizing sc sp s_result with
@@ -587,7 +599,10 @@ lemma skipToContentLoop_anyCol_prod
                   hcorr_next rfl hfuel' hok
               exact ⟨sp_mid, sp_ws_r, sp',
                 Or.inl ⟨hssl, hcol_mid, fun _ _ =>
-                  skipToContentLoop_simpleKeyAllowed_mono _ s_result fuel' rfl hok⟩,
+                  skipToContentLoop_simpleKeyAllowed_mono _ s_result fuel' rfl hok,
+                  -- Item 147: the break armed the check and the loop keeps it up.
+                  fun _ => skipToContentLoop_needIndentCheck_mono _ s_result fuel' hok
+                    (by simpa using h_next_nic)⟩,
                 hws_r, hcmt_r, hcorr', h_pk,
                 h_ltsl.transport (currentIndent_of_indents_eq h_next_ind) h_next_nic⟩
             · -- isInFlowSequence: §7.4.2 suppresses the re-arm, and the walk
@@ -600,7 +615,12 @@ lemma skipToContentLoop_anyCol_prod
                   (consumeNewline (skipToContentComment s1)) fuel' s_result
                   h_sbc hcorr_brk hcol_brk hfuel' hok
               refine ⟨sp_mid, sp_ws_r, sp',
-                Or.inl ⟨hssl, hcol_mid, fun _ h_nf => absurd ?_ h_inflow⟩,
+                Or.inl ⟨hssl, hcol_mid, fun _ h_nf => absurd ?_ h_inflow,
+                  -- Item 147: §7.4.2 suppresses the KEY's re-arm inside a
+                  -- collection, never the indent check — the break raises it
+                  -- here exactly as it does outside one.
+                  fun _ => skipToContentLoop_needIndentCheck_mono _ s_result fuel' hok
+                    h_next_nic⟩,
                 hws_r, hcmt_r, hcorr', h_pk,
                 h_ltsl.transport (currentIndent_of_indents_eq h_next_ind) h_next_nic⟩
               show (!(consumeNewline (skipToContentComment s1)).inFlow) = true
@@ -688,7 +708,18 @@ lemma skipToContent_anyCol_prod
           -- FRESH one.  Guarded by the park's column because the col-0 entry
           -- lands without crossing anything, and by the flow level because
           -- §7.4.2's gate is what suppresses the re-arm inside a collection.
-          (sp.col ≠ 0 → sc.inFlow = false → s_result.simpleKeyAllowed = true) ∨
+          (sp.col ≠ 0 → sc.inFlow = false → s_result.simpleKeyAllowed = true) ∧
+          -- **Item 147: the walk's own FLAG, beside the re-arm.**  The break
+          -- that carries a park off a line start down to column 0 is the same
+          -- break `consumeNewline` raises `needIndentCheck` on, and the flag
+          -- only ever goes up for the rest of the loop
+          -- (`skipToContentLoop_needIndentCheck_mono`).  So a landing from a
+          -- park that is NOT at a line start hands preprocessing a state whose
+          -- unwind is ARMED — which is what makes the landing's own floor a
+          -- fact rather than a disjunct.  Ungated by the flow level: a break
+          -- raises the check inside a collection too; only the key's re-arm
+          -- above is §7.4.2's to suppress.
+          (sp.col ≠ 0 → s_result.needIndentCheck = true) ∨
         sp_mid = sp ∧ s_result.needIndentCheck = sc.needIndentCheck) ∧
       GStar SSWhite sp_mid sp_ws ∧ GOpt SCNbCommentText sp_ws sp' ∧
       ScannerSurfCorr s_result sp' ∧

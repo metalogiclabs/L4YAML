@@ -531,6 +531,57 @@ lemma preprocess_top_le_col {s s' : ScannerState} {c : Char}
             obtain ⟨rfl, _⟩ := hok
             exact Or.inr (by rw [saveSimpleKey_preserves_indents]; exact h_skip_ids)
 
+/-- **The landing's own floor** (item 147) — `preprocess_top_le_col`'s escape,
+    closed by the walk that produced the landing.
+
+    That lemma's right disjunct is not "the unwind popped nothing"; it is "the
+    unwind never ran", and the unwind runs on exactly one condition outside a
+    flow: the indent check is armed when preprocessing reaches it.  The walk
+    arms it — `consumeNewline` raises the flag on every `b-break` and
+    `skipToContentLoop_needIndentCheck_mono` keeps it up — so a step whose walk
+    crossed a break has no escape at all, and the only disjunct left is the
+    SENTINEL: a stack popped to one entry, which `SentinelBase` reads as `-1`.
+
+    This is what a landing consumer can spend.  `skipToContentLoop_anyCol_prod`'s
+    landing arm hands the flag over for any park off a line start (item 147),
+    which is precisely the park a column-0 landing is reached from. -/
+lemma preprocess_top_le_col_of_armed {s s_walk s' : ScannerState} {c : Char}
+    (h_skip : skipToContent s = .ok s_walk)
+    (h_flow : s_walk.inFlow = false)
+    (h_nic : s_walk.needIndentCheck = true)
+    (hok : scanNextToken_preprocess s = .ok (some (s', c))) :
+    s'.currentIndent ≤ (s'.col : Int) ∨ s'.indents.size ≤ 1 := by
+  unfold scanNextToken_preprocess at hok
+  simp only [bind, pure, Pure.pure, Except.pure, Except.bind] at hok
+  split at hok
+  · contradiction
+  · rename_i s_skip h_skip'
+    have h_eq : s_skip = s_walk := by
+      rw [h_skip] at h_skip'; exact (Except.ok.inj h_skip').symm
+    subst h_eq
+    split at hok
+    · simp at hok
+    · split at hok
+      · split at hok
+        · contradiction
+        · split at hok
+          · simp at hok
+          · simp only [Except.ok.injEq, Option.some.injEq, Prod.mk.injEq] at hok
+            obtain ⟨rfl, _⟩ := hok
+            have hcol : (saveSimpleKey { unwindIndents s_skip (s_skip.col : Int) with
+                needIndentCheck := false }).col = s_skip.col := by
+              rw [saveSimpleKey_col]
+              exact unwindIndents_col s_skip (s_skip.col : Int)
+            have hind : (saveSimpleKey { unwindIndents s_skip (s_skip.col : Int) with
+                needIndentCheck := false }).indents
+                = (unwindIndents s_skip (s_skip.col : Int)).indents :=
+              saveSimpleKey_preserves_indents _
+            rcases unwindIndents_terminal s_skip (s_skip.col : Int) with h | h
+            · exact Or.inl (by rw [currentIndent_of_indents_eq hind, hcol]; exact h)
+            · exact Or.inr (by rw [hind]; exact h)
+      · rename_i h_noarm
+        exact absurd (by simp [h_flow, h_nic]) h_noarm
+
 /-- **A mapping push cannot leave the top right of the column it pushed at.**
     Either the push happened, and the top IS that column, or it did not, and the
     top is the one the landing already floored. -/
@@ -563,6 +614,76 @@ lemma scanValuePrepare_top_le_keyless {s : ScannerState}
   rw [if_neg (by simp [h_nokey]), if_neg (by simp [h_noexpl])]
   rw [if_pos (by simp [h_noflow])]
   exact pushMappingIndent_top_le h_floor
+
+/-- `scanValueClearKey` either leaves the state alone or clears the saved key;
+    it touches nothing else (item 147). -/
+lemma scanValueClearKey_id_or_clear (s : ScannerState) :
+    scanValueClearKey s = s ∨
+      scanValueClearKey s = { s with simpleKey := { possible := false } } := by
+  unfold scanValueClearKey
+  split
+  · split
+    · exact Or.inr rfl
+    · split
+      · exact Or.inr rfl
+      · exact Or.inl rfl
+  · exact Or.inl rfl
+
+/-- **`[193]`/`[196]`'s push, bounded by the line's own column** (item 147) —
+    the general form of `scanValuePrepare_top_le_keyless`.  With a simple key
+    live the push is at the KEY's column, so the bound holds exactly when the
+    save was FRESH, which is what preprocessing's landing save makes it.  Both
+    other branches either push at `s.col` itself or push nothing. -/
+lemma scanValuePrepare_top_le {s : ScannerState}
+    (h_fresh : s.simpleKey.possible = true → s.simpleKey.pos.col = s.col)
+    (h_floor : s.currentIndent ≤ (s.col : Int)) :
+    (scanValuePrepare s).currentIndent ≤ (s.col : Int) := by
+  unfold scanValuePrepare
+  split
+  · rename_i h_poss
+    split
+    · split
+      · show ((_ : ScannerState)).currentIndent ≤ _
+        simp only [ScannerState.currentIndent]
+        rw [Array.back?_push]
+        simp only []
+        rw [h_fresh h_poss]
+        exact Int.le_refl _
+      · exact h_floor
+    · exact h_floor
+  · split
+    · exact h_floor
+    · split
+      · exact pushMappingIndent_top_le h_floor
+      · exact h_floor
+
+/-- The `:`'s whole step, bounded the same way (item 147): the key clear moves
+    no indent, the prepare is the only writer, and the emit and the advance
+    leave the stack alone. -/
+lemma scanValue_top_le {s s' : ScannerState}
+    (hok : scanValue s = .ok s')
+    (h_fresh : s.simpleKey.possible = true → s.simpleKey.pos.col = s.col)
+    (h_floor : s.currentIndent ≤ (s.col : Int)) :
+    s'.currentIndent ≤ (s.col : Int) := by
+  unfold scanValue at hok
+  simp only [bind, Except.bind] at hok
+  split at hok <;> try contradiction
+  split at hok <;> try contradiction
+  split at hok <;> try contradiction
+  simp only [Except.ok.injEq] at hok; subst hok
+  have key : (scanValuePrepare (scanValueClearKey s)).currentIndent ≤ (s.col : Int) := by
+    rcases scanValueClearKey_id_or_clear s with h | h
+    · rw [h]; exact scanValuePrepare_top_le h_fresh h_floor
+    · rw [h]
+      refine scanValuePrepare_top_le (fun hp => absurd hp (by simp)) ?_
+      show ({ s with simpleKey := { possible := false } } : ScannerState).currentIndent ≤ _
+      exact h_floor
+  show (((scanValuePrepare (scanValueClearKey s)).emit _).advance).currentIndent ≤ _
+  rw [currentIndent_of_indents_eq
+    (by simp [ScannerLoopInvariant.advance_indents, emit_indents] :
+      (((scanValuePrepare (scanValueClearKey s)).emit YamlToken.value).advance).indents
+        = (scanValuePrepare (scanValueClearKey s)).indents)]
+  exact key
 
 /-- **The payment.**  On a monotone stack every entry is at or left of the top,
     so a top at or left of `c` leaves exactly one level at or right of `c` — `c`

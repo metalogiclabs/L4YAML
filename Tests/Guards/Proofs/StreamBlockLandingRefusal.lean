@@ -186,7 +186,11 @@ example {sc s_prep : ScannerState} {sp_scan : SurfPos} {c : Char}
     (h_noflow : s_prep.inFlow = false)
     (h_larm : sp_scan.col ≠ 0 → s_prep.inFlow = false →
       s_prep.simpleKey.possible = true ∧ s_prep.simpleKey.pos.col = s_prep.col ∧
-      s_prep.simpleKeyAllowed = true)
+      -- Item 147: the landed arm carries a FOURTH reading now — the landing's
+      -- own floor — and these two consumers project past it exactly as they
+      -- project past item 139's flag.
+      s_prep.simpleKeyAllowed = true ∧
+      (s_prep.currentIndent ≤ (s_prep.col : Int) ∨ s_prep.indents.size ≤ 1))
     (h_park : sc.simpleKeyAllowed = true ∨ 0 < sp_scan.col)
     (h_pre : scanNextToken_preprocess sc = .ok (some (s_prep, c))) :
     s_prep.simpleKeyAllowed = true :=

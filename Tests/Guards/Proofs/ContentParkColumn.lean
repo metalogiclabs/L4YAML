@@ -88,7 +88,11 @@ example {sc s_prep s' : ScannerState} {sp_prep sp_scan : SurfPos} {k : Nat}
     -- Item 139: the landing arm carries the walk's FLAG as its third reading.
     (h_larm : sp_scan.col ≠ 0 → s_prep.inFlow = false →
       s_prep.simpleKey.possible = true ∧ s_prep.simpleKey.pos.col = s_prep.col ∧
-      s_prep.simpleKeyAllowed = true)
+      -- Item 147: the landed arm carries a FOURTH reading now — the landing's
+      -- own floor — and these two consumers project past it exactly as they
+      -- project past item 139's flag.
+      s_prep.simpleKeyAllowed = true ∧
+      (s_prep.currentIndent ≤ (s_prep.col : Int) ∨ s_prep.indents.size ≤ 1))
     (h_park : sc.simpleKeyAllowed = true ∨ 0 < sp_scan.col)
     (h_preprocess : scanNextToken_preprocess sc = .ok (some (s_prep, ':')))
     (h_dispatch : scanNextToken_dispatchBlockIndicators
