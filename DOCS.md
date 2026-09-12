@@ -15831,7 +15831,7 @@ lemmas keep the `native_decide` axioms `ScalarProduction` and
 `StructureProduction` have contributed since long before this item.
 
 New guard `Tests/Guards/Proofs/AccumIndentBaseCarried.lean` (2 `#guard`,
-11 `example`): §1 the carriage at its three joints — seed, step, binder; §2 the
+12 `example`): §1 the carriage at its three joints — seed, step, binder; §2 the
 bridge and the two readings it joins; §3 the refutation at its new type, the
 bundle's six conjuncts and the routes' unchanged narrowing; §4 the invariant
 checked against the scanner itself — a walk over 18 inputs reports **121**
@@ -15924,8 +15924,14 @@ and both were removed.
 a producer whose stack it cannot measure keeps the route it already pays.  The
 `lo ≤ n` bound is not decoration: an unbounded `∃ lo` is VACUOUS, since raising
 the floor weakens the cover until it is trivially true (`Covered.raise_floor`).
-The bound is where the chain bottoms — a root producer opens at `n` and covers
-`[n]`, a deeper one inherits the same floor while its widths grow.  The
+~~The bound is where the chain bottoms — a root producer opens at `n` and covers
+`[n]`, a deeper one inherits the same floor while its widths grow.~~
+**Corrected by item 148**: `lo ≤ n` bounds the floor by the park's OWN index,
+and the landing that spends the cover stands BELOW that index — that is what a
+dedent is — so it is exactly the bound `preprocess_landing_mem_or_seq`'s
+`lo ≤ s_prep.col` cannot be met from.  The bound that travels is
+`IndentStackCover.Floor`: at or below the index AND at or below every width the
+frames name, each half answering the way the other fails.  The
 compiler reports exactly the **6** sites item 130 predicted: the four producers
 and the two relays in `accum_content_pending`'s per-pending match.
 
@@ -15991,6 +15997,150 @@ residue there — **5** declarations, **10** sites — and leaves the SEQUENCE
 disjunct, which the `:`'s own check refutes a step later
 (`IndentStackCover.landing_mem_of_value`) and the pack cannot.
 
+### Item 148 (2026-09-12)
+
+**Item 147 seeded the cover and left it unspendable, and not only for the reason
+it named.**  That item said the missing piece was a field on
+`ImplicitKeyPack` — true, and this item adds it — but the field alone would not
+have been enough, because two of item 147's own readings were wrong for the
+consumer that has to spend them.  Both were found by trying to pay, and both are
+machine-checked here.
+
+**The bound was the wrong one.**  `pendingMapValue.h_frames` bounded the floor by
+the park's own index (`lo ≤ n`).  The landing that SPENDS a cover stands BELOW
+that index — that is what a dedent is — and
+`preprocess_landing_mem_or_seq` takes `lo ≤ s_prep.col` as a premise — asked
+BEFORE the landing's membership is known, since membership is what the lemma
+derives.  So the bound has to reach below the landing without naming it, and
+`lo ≤ n` does not.  A bound over the WIDTHS does: it drags the floor down to the
+outermost width the frames name, and in a chain rooted at column 0 that pins it
+AT 0, where the premise is free for any landing whatever (the lemma's own
+docstring: "at `lo = 0` the hypothesis is free").  Bounding by the widths alone
+fails the other way: where the frames are empty it says nothing, and a floor
+free to climb weakens the cover to vacuity (`Covered.raise_floor`).
+`IndentStackCover.Floor lo n ks` is both halves —
+
+```
+lo ≤ n ∧ ∀ k' ∈ ks, lo ≤ k'
+```
+
+— and the guard proves each half is what the other cannot supply: a
+counterexample showing the second does not follow from the first
+(`lo = n = 2`, `ks = [1]`), and a vacuous witness showing the first does not
+follow from the second.  Item 147's DOCS entry is struck and corrected in place.
+
+**And the list was the wrong one.**  The cover a pack carries is over `k :: ks`,
+the key's OWN level included, not over `ks`.  The two branches that pay reach it
+from opposite sides: a key NESTED below the park opens its level at the `:`
+still to come, so its width is free (`Covered.cons`); a key that LANDED on an
+open level finds that level already on the scanner's stack and cannot drop it.
+Stating the full list is what lets one field serve both, and it is what makes
+the `:`'s own push a no-op on the cover — the level it opens is already a frame,
+the step names it twice, and `Covered.dedup_head` folds it back.
+
+**The transport is the `:` and nothing else.**  Between a park and the next park
+lie a content dispatch (the key) and a `:` dispatch (the value indicator), each
+with its own preprocessing.  Preprocessing only pops (`preprocess_cover`) and a
+content dispatch writes no level (`dispatchContent_cover`), so the whole of the
+carriage is `scanValuePrepare`.  `scanValuePrepare_cover` reports the level it
+opens with an EXISTENTIAL, which is all a step-generic caller can say; a caller
+holding the live key holds its column, and that is the difference between
+`c :: ks` for an unknown `c` and the `k :: ks` the frames already name.  The
+named form takes the key-or-`?`-line arm as its premise — which is exactly what
+rules out `[196]`'s keyless push at the cursor — and
+`scanValueClearKey_arm` supplies it whichever way the clear goes.
+
+**What pays.**  The two root `:`/`?` producers seed, as in item 147, now on both
+frame faces — `h_closeF` needs the cover as much as `h_frames`, because the key
+dispatch's NESTED branch reads the one and its DEDENT branch the other, and two
+existentials cannot be identified after the fact.  The NESTED branch of both key
+dispatch lemmas pays the pack: the landed key's width joins the caller's frames
+for free and the floor stays strictly left of it (`n < w` on that branch).  Both
+implicit `:` producers spend the pack into the next park's two faces.  **So the
+chain closes**: every hop is discharged, and none of the payments is conditional
+on anything the accumulation cannot supply, so a cover seeded at a root is
+carried through every nested implicit key on the way down — which is what the
+field was for.
+
+**What does not pay, and why it is not an unthreaded premise.**  The DEDENT
+branch does not.  The level the landing popped TO is still on the scanner's
+stack, so the pack's cover there is over `w :: ks'` while the caller's is over
+the whole of `ks` — and `ResumeFrames.resumeAt` drops every width above `w`.
+Reading the one as the other wants three things at once: the stack's SHAPE
+(`Mono`, which item 147 threaded through the BLOCK lane and which the CONTENT
+lane does not carry), the landing's own floor, and `resumeAt`'s widths as a
+sublist of the ones they came from.  None of the three is at that branch.  A
+fresh document's root, a SEQUENCE park and the flow OPEN pay `Or.inr trivial`
+for a different reason: they have no carried stack to inherit, and the chain is
+seeded at the `:`/`?` producers, which is where `Mono` rides.
+
+**The price, measured.**  The field is stated at **14** places — the two packs,
+the park's two frame faces, the two implicit producers' premises, the two key
+dispatch lemmas' `h_nodeF`, their two local build helpers, and the two relays'
+pair, twice — and the edit touched **19** declarations in `StreamAccum`.  The
+transport is **5** `h_cov_step` helpers, one per lemma that crosses a dispatch,
+and **8** new declarations in `IndentStackCover`: the `:`'s three
+(`scanValueClearKey_arm`, `scanValuePrepare_cover_key`, `scanValue_cover_key`),
+`Covered.dedup_head`, and `Floor` with its three.  One existing guard
+(`ScannerPropsLandingSiblingResumes`) projects past the new conjunct.
+
+**What did NOT move, and could not.**  `SLYamlStream.implicitContinue` is FIVE
+`[210]` flip errors at the same five holders (`topLevelFlowResumeSep` 3232,
+`rootMapRoute` 4501, `rootMapRouteF` 4524, `bareNodeRoute` 4693,
+`structural_dispatch_to_pending` 6026 — the same declarations item 147 measured,
+at their new line numbers); the raw-route census is TWO
+(`content_dispatch_after_close`, `flowKeyRoute_of_root`).  No runtime file
+changed, which `run-all-tests.sh` makes checkable rather than asserted: `docs/`
+regenerates BYTE-IDENTICALLY, so no scanner verdict can have moved.
+
+New guard `Tests/Guards/Proofs/PackCoverChained.lean` (2 `#guard`,
+13 `example`): §1 the bound and the two ways a one-sided bound fails; §2 the
+transport across the `:`, including the shape the producers actually meet (the
+level already a frame, folded by `dedup_head`); §3 the hop composed end to end —
+a park's cover carried across the key dispatch and the `:` into the next park's
+list — and both packs' fields at the type the producers pay; §4 the transport's
+own premise against the scanner: over the same eighteen inputs items 146 and 147
+walk, **121** states (the same count, so it is a cross-check too), **27** steps
+whose preprocessing hands a `:` the value scan then accepts, **18** of those
+opening a level, and **0** at a column the live key does not name — with
+`a:⏎  b:⏎    c: 1⏎d: 2` read on its own (11 states, 4 `:` steps, 3 pushes, and
+the fourth landing on an open level and opening nothing, which is the shape the
+pack's list carries `k` for); §5 the
+price and the one branch that does not pay.
+
+**Validation.**  Full `lake build` green (**1137** jobs, +1 for the new guard,
+ZERO warnings); `scripts/run-all-tests.sh` **4492/4492** with Production
+Coverage Analysis **809/809** and `docs/` regenerated BYTE-IDENTICALLY;
+`eventscore` **347/358** with **252** `event-pass`, **0** `event-reject`, **95**
+`error-ok` and **0** `error-miss`; `suiterunner` **869** passed / **0** failed /
+**151** skipped; `check-import-closure.sh` (**228** modules),
+`check-reflection-index.sh` (20/230/249/355) and `check-theorem-keyword.sh`
+(**25** capstones) OK; `productioncoverage` **211/211** annotated with **0**
+unannotated in scope.  `collect-stats`: tests **597** files (+1) / **6748**
+`#guard`s (**+2** exact — the new guard's own); proofs **6485**, library
+**6690** and env **8454**, **+7** each — the seven new LEMMAS, with no equation
+lemma for `Floor` (a `def`, and nothing rewrites with it: the three lemmas and
+two projections are how it is read), which is item 129's on-demand rule holding
+a fourth time.  **0** direct and **0** transitive `sorry`, **0** custom axioms.
+`#print axioms` over the eight new declarations is
+`[propext]` or less for seven and `[propext, Classical.choice, Quot.sound]` for
+`scanValue_cover_key` — no `sorryAx`.  `entryPropsKeyPack_of_dispatch` is
+`[propext, Classical.choice, Quot.sound]` outright; the other three producers
+keep only the `native_decide` axioms their own dispatch lemmas have contributed
+since long before this item (`dispatchBlockValue_full_prod` at both `:`
+producers, the plain-scalar and anchor-name loops at
+`entryKeyPack_of_dispatch`).
+
+**What remains.**  The dedent spend, which is now one branch and three named
+readings rather than a missing field: carry `Mono` into the content lane (or
+read the shape from the landing another way), take the landing's own floor at
+`entryKeyPack_of_dispatch`'s dedent branch, and strengthen `ResumeFrames.resumeAt`
+to report its widths as a sublist of the ones it popped from.  That branch is
+also where `preprocess_landing_mem_or_seq` is spent and where item 146's base
+residue is owed — **5** declarations, **10** sites — leaving the SEQUENCE
+disjunct, which the `:`'s own check refutes a step later
+(`IndentStackCover.landing_mem_of_value`) and the pack cannot.
+
 ### REMAINING, in order
 
 The per-item history is the closure log above; this section lists only the
@@ -16007,7 +16157,7 @@ too (items 47–51), so what stands between here
 and Step 5 (the converse) is R3's remaining production work and R4:
 
 ```
-R1 ✓ (44–46) ──→ R2 ✓ (47–51) ──→ R3 (52–147 landed; U2 CLOSED, the collapse gone) ──→ Step 5
+R1 ✓ (44–46) ──→ R2 ✓ (47–51) ──→ R3 (52–148 landed; U2 CLOSED, the collapse gone) ──→ Step 5
                                         └──────→ R4 (implicitContinue + 0 < m) ──┘
 ```
 

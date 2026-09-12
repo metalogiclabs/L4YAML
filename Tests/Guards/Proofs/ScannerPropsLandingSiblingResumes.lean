@@ -102,7 +102,9 @@ example {sc : ScannerState} {sp_start sp_p sp_scan : SurfPos}
         ∀ sp_e : SurfPos, SCompactMapTail k sp_v sp_e →
         ResumeFrames (ExplValueLine sp_start nv) ks sp_e) ∨ True) := by
   obtain ⟨⟨k, _, _, _, h_resF, h_resFV⟩, _⟩ := h
-  exact ⟨k, h_resF, h_resFV⟩
+  -- Item 148: the twin carries the scanner's own stack beside the widths;
+  -- a reader that wants only the widths projects past it.
+  exact ⟨k, h_resF.imp (fun ⟨ks, h_lt, _, r⟩ => ⟨ks, h_lt, r⟩) id, h_resFV⟩
 
 /-! ## §3 The landing's payment: the resumed context funds route and twin at once
 

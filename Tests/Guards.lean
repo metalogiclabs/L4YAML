@@ -119,6 +119,7 @@ import Tests.Guards.Proofs.StreamContentLandingRefusal
 import Tests.Guards.Proofs.ScannerLandingColumnRefusal
 import Tests.Guards.Proofs.AccumIndentBaseCarried
 import Tests.Guards.Proofs.LandingFloorCarried
+import Tests.Guards.Proofs.PackCoverChained
 import Tests.Guards.Proofs.FlowFrameResumeRider
 import Tests.Guards.Proofs.UnderIndentInvariantMap
 import Tests.Guards.Proofs.ScalarWalkCrossLineFloor

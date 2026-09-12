@@ -66,6 +66,43 @@ lemma Covered.mono {lo : Nat} {ks ks' : List Nat} {s : ScannerState} (h : Covere
     (hsub : ∀ k ∈ ks, k ∈ ks') : Covered lo ks' s :=
   fun e he hseq hnn => hsub _ (h e he hseq hnn)
 
+/-- **Where a carried cover is spendable** (item 148).  A landing reads as a
+    frame only at or right of the floor (`preprocess_landing_mem_or_seq`), and
+    the landing that spends a park's cover stands BELOW that park's own index —
+    so a floor bounded by the index alone is spendable nowhere.  Bounding it by
+    the widths alone is the opposite failure: where the frames are empty the
+    bound says nothing and the cover weakens to vacuity (`Covered.raise_floor`).
+    Both together is the reading that travels: at or below the level's own
+    index, and at or below every width the frames name. -/
+def Floor (lo n : Nat) (ks : List Nat) : Prop :=
+  lo ≤ n ∧ ∀ k' ∈ ks, lo ≤ k'
+
+/-- A frame the surface opens is bounded as soon as its own width is. -/
+lemma Floor.cons {lo n c : Nat} {ks : List Nat} (h : Floor lo n ks) (hc : lo ≤ c) :
+    Floor lo n (c :: ks) :=
+  ⟨h.1, fun k' hk' => by
+    rcases List.mem_cons.mp hk' with rfl | h'
+    · exact hc
+    · exact h.2 k' h'⟩
+
+/-- The width a dedent landing names is at or right of the floor — which is
+    exactly what `preprocess_landing_mem_or_seq` asks its caller for. -/
+lemma Floor.le_of_mem {lo n j : Nat} {ks : List Nat} (h : Floor lo n ks) (hj : j ∈ ks) :
+    lo ≤ j := h.2 j hj
+
+/-- A deeper level inherits the bound of the level it opened under. -/
+lemma Floor.mono_index {lo n n' : Nat} {ks : List Nat} (h : Floor lo n ks) (hn : n ≤ n') :
+    Floor lo n' ks := ⟨Nat.le_trans h.1 hn, h.2⟩
+
+/-- A width named twice is named once (item 148) — the shape a `:` leaves when
+    the level it opens is already one of the frames. -/
+lemma Covered.dedup_head {lo k : Nat} {ks : List Nat} {s : ScannerState}
+    (h : Covered lo (k :: k :: ks) s) : Covered lo (k :: ks) s :=
+  h.mono fun _ hx => by
+    rcases List.mem_cons.mp hx with rfl | h'
+    · exact List.mem_cons_self
+    · exact h'
+
 /-- …in particular a frame the surface opens costs the cover nothing. -/
 lemma Covered.cons {lo : Nat} {ks : List Nat} {s : ScannerState} (c : Nat)
     (h : Covered lo ks s) :
@@ -684,6 +721,83 @@ lemma scanValue_top_le {s s' : ScannerState}
       (((scanValuePrepare (scanValueClearKey s)).emit YamlToken.value).advance).indents
         = (scanValuePrepare (scanValueClearKey s)).indents)]
   exact key
+
+/-- **What the key clear leaves the `:` to read** (item 148).  Either the saved
+    key survives at its own column, or it is gone AND an explicit `?` line is
+    what took it — which is the branch `scanValuePrepare` answers without
+    pushing at all.  The third shape, an empty register with no `?` line, is
+    `[196]`'s keyless entry, and this lemma says a live key never reaches it. -/
+lemma scanValueClearKey_arm {s : ScannerState} (h : s.simpleKey.possible = true) :
+    ((scanValueClearKey s).simpleKey.possible = true ∧
+        (scanValueClearKey s).simpleKey.pos.col = s.simpleKey.pos.col) ∨
+      ((scanValueClearKey s).simpleKey.possible = false ∧
+        (scanValueClearKey s).explicitKeyLine.isSome = true) := by
+  unfold scanValueClearKey
+  split
+  · rename_i ekLine h_ek
+    split
+    · exact Or.inr ⟨rfl, by simp [h_ek]⟩
+    · split
+      · exact Or.inr ⟨rfl, by simp [h_ek]⟩
+      · exact Or.inl ⟨h, rfl⟩
+  · exact Or.inl ⟨h, rfl⟩
+
+/-- **The `:` opens at the KEY's own column** (item 148) — the named form of
+    `scanValuePrepare_cover`.  That lemma reports the opened level with an
+    existential, which is all a step-generic caller can say; a caller that holds
+    the live key holds its column too, so the frames it hands on are `k :: ks`
+    for a KNOWN `k` rather than `c :: ks` for an unknown one.  The first premise
+    is what keeps `[196]`'s keyless push at `s.col` out: that branch wants the
+    register empty and no `?` line, and the two arms here are the other two. -/
+lemma scanValuePrepare_cover_key {lo k : Nat} {ks : List Nat} {s : ScannerState}
+    (h_arm : s.simpleKey.possible = true ∨ s.explicitKeyLine.isSome = true)
+    (h_col : s.simpleKey.possible = true → s.simpleKey.pos.col = k)
+    (h : Covered lo ks s) :
+    Covered lo (k :: ks) (scanValuePrepare s) := by
+  unfold scanValuePrepare
+  split
+  · rename_i h_poss
+    split
+    · split
+      · intro e he hseq hnn
+        rcases Array.mem_push.mp (by simpa using he) with hmem | rfl
+        · exact List.mem_cons_of_mem _ (h e (by simpa using hmem) hseq hnn)
+        · simp [h_col h_poss]
+      · exact h.cons k
+    · exact h.cons k
+  · rename_i h_nposs
+    split
+    · exact h.cons k
+    · rename_i h_noexpl
+      exact absurd (h_arm.resolve_left (by simpa using h_nposs)) (by simp [h_noexpl])
+
+/-- The `:`'s whole step (item 148): the key clear either keeps the column or
+    hands the prepare its `?` line, the prepare is the only writer, and the emit
+    and the advance leave the stack alone. -/
+lemma scanValue_cover_key {lo k : Nat} {ks : List Nat} {s s' : ScannerState}
+    (hok : scanValue s = .ok s') (h_poss : s.simpleKey.possible = true)
+    (h_col : s.simpleKey.pos.col = k) (h : Covered lo ks s) :
+    Covered lo (k :: ks) s' := by
+  unfold scanValue at hok
+  simp only [bind, Except.bind] at hok
+  split at hok <;> try contradiction
+  split at hok <;> try contradiction
+  split at hok <;> try contradiction
+  simp only [Except.ok.injEq] at hok; subst hok
+  have h_ck : (scanValueClearKey s).indents = s.indents := by
+    unfold scanValueClearKey; split
+    · split
+      · rfl
+      · split <;> rfl
+    · rfl
+  have key : Covered lo (k :: ks) (scanValuePrepare (scanValueClearKey s)) := by
+    rcases scanValueClearKey_arm h_poss with ⟨h1, h2⟩ | ⟨h1, h2⟩
+    · exact scanValuePrepare_cover_key (Or.inl h1) (fun _ => h2.trans h_col)
+        (h.of_indents_eq h_ck)
+    · exact scanValuePrepare_cover_key (Or.inr h2) (fun hp => absurd hp (by simp [h1]))
+        (h.of_indents_eq h_ck)
+  exact key.of_indents_eq
+    (by simp [ScannerLoopInvariant.advance_indents, emit_indents])
 
 /-- **The payment.**  On a monotone stack every entry is at or left of the top,
     so a top at or left of `c` leaves exactly one level at or right of `c` — `c`
