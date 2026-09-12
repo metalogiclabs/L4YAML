@@ -3790,6 +3790,82 @@ lemma unwindIndents_of_size_le_one {s : ScannerState} {col : Int}
     simp only []
     rw [if_neg (by simp [hs])]
 
+/-- **The unwind either does nothing or SHRINKS the stack** (item 145).  One
+    iteration emits a `blockEnd` and pops, and the guard needs `1 < size`, so a
+    loop that ran at all left the stack strictly shorter.  This is what turns
+    "the landing did not pop" into "the landing changed nothing", which is the
+    premise item 139's token transport actually rests on — `size ≤ 1` was only
+    ever a sufficient condition for it. -/
+lemma unwindIndentsLoop_size_le (s : ScannerState) (col : Int) (fuel : Nat) :
+    (unwindIndentsLoop s col fuel).indents.size ≤ s.indents.size := by
+  induction fuel generalizing s with
+  | zero => unfold unwindIndentsLoop; exact Nat.le_refl _
+  | succ _ ih =>
+    unfold unwindIndentsLoop; split
+    · exact Nat.le_trans
+        (ih { s.emit .blockEnd with indents := (s.emit .blockEnd).indents.pop })
+        (by show ((s.emit .blockEnd).indents.pop).size ≤ s.indents.size; simp)
+    · exact Nat.le_refl _
+
+lemma unwindIndentsLoop_eq_or_size_lt (s : ScannerState) (col : Int) (fuel : Nat) :
+    unwindIndentsLoop s col fuel = s ∨
+      (unwindIndentsLoop s col fuel).indents.size < s.indents.size := by
+  induction fuel generalizing s with
+  | zero => unfold unwindIndentsLoop; exact Or.inl rfl
+  | succ _ _ =>
+    unfold unwindIndentsLoop; split
+    · rename_i hg
+      simp only [Bool.and_eq_true, decide_eq_true_eq, gt_iff_lt] at hg
+      refine Or.inr (Nat.lt_of_le_of_lt
+        (unwindIndentsLoop_size_le { s.emit .blockEnd with
+          indents := (s.emit .blockEnd).indents.pop } col _) ?_)
+      show ((s.emit .blockEnd).indents.pop).size < s.indents.size
+      have h_ids : (s.emit .blockEnd).indents = s.indents := rfl
+      rw [h_ids, Array.size_pop]
+      omega
+    · exact Or.inl rfl
+
+/-- **The unwind that left the stack alone is the identity** (item 145). -/
+lemma unwindIndents_of_indents_eq {s : ScannerState} {col : Int}
+    (h : (unwindIndents s col).indents = s.indents) : unwindIndents s col = s := by
+  unfold unwindIndents at h ⊢
+  rcases unwindIndentsLoop_eq_or_size_lt s col s.indents.size with h_id | h_lt
+  · exact h_id
+  · exact absurd (h ▸ h_lt) (Nat.lt_irrefl _)
+
+/-- **The park's §9.2 token reading survives a landing that did not POP**
+    (item 145) — item 139's transport at the premise it always needed.
+    Preprocessing has three writers between the park and the landing:
+    `skipToContent` touches neither the token array nor the stack, the save's
+    two reservation placeholders are exactly what `lastRealTokenVal?` skips, and
+    the unwind is the identity wherever it left the stack alone.  Item 139 asked
+    for `sc.indents.size ≤ 1`, which is one way to know the unwind did nothing;
+    item 145's check needs the landing COLUMN instead, and a landing that pops
+    is refused by neither reading — the `blockEnd` it emits does not complete a
+    value, so `scanNextToken_checkBareDocument` stands aside there by its own
+    reading and the refusal belongs to the DANGLING check one token later
+    (items 133/134). -/
+lemma preprocess_lastRealTokenVal_of_indents_eq {sc s_prep : ScannerState} {c : Char}
+    (h_nopop : s_prep.indents = sc.indents)
+    (h_real : LastTokenReal sc.tokens)
+    (h : scanNextToken_preprocess sc = .ok (some (s_prep, c))) :
+    lastRealTokenVal? s_prep.tokens = lastRealTokenVal? sc.tokens := by
+  obtain ⟨s_u, s_skip, hsk, h_save, h_cases⟩ := preprocess_save_elim h
+  have h_tok_skip : s_skip.tokens = sc.tokens :=
+    ScannerCorrectness.skipToContent_preserves_tokens sc s_skip hsk
+  have h_ind_skip : s_skip.indents = sc.indents :=
+    skipToContent_preserves_indents sc s_skip hsk
+  have h_u : s_u.tokens = sc.tokens := by
+    rcases h_cases with rfl | rfl
+    · exact h_tok_skip
+    · have h_pu : (unwindIndents s_skip (s_skip.col : Int)).indents = s_skip.indents := by
+        rw [h_ind_skip, ← h_nopop, h_save, saveSimpleKey_preserves_indents]
+      have h_id : unwindIndents s_skip (s_skip.col : Int) = s_skip :=
+        unwindIndents_of_indents_eq h_pu
+      show (unwindIndents s_skip ↑s_skip.col).tokens = sc.tokens
+      rw [h_id]; exact h_tok_skip
+  rw [h_save, saveSimpleKey_preserves_lastRealTokenVal _ (by rw [h_u]; exact h_real), h_u]
+
 /-- **The park's §9.2 token reading survives the landing when the stack is the
     sentinel alone** (item 139).  Preprocessing has three writers between the
     park and the landing and the STACK decides all three: `skipToContent`
@@ -3836,28 +3912,42 @@ lemma preprocess_lastRealTokenVal_of_indents_le_one {sc s_prep : ScannerState} {
     Three come from where the landing already stands: the block context is the
     dispatch's own, the flag is the break the landing crossed
     (`preprocess_simpleKeyAllowed_mono`, or item 76's walk), and the completed
-    node behind the park is `PendingNode`'s `h_tail`.  The fourth is the INDENT
-    STACK, and it is the whole discrimination: at the sentinel alone the input
-    is a second bare document and the scanner refuses it AT this landing; with a
-    level still open the same input is a dangling run, which the scanner refuses
-    one token LATER — after the run's own token exists — so this contradiction
-    is unavailable there and the fallback route is genuinely reached. -/
+    node behind the park is `PendingNode`'s `h_tail`.  The other two are the
+    INDENT STACK, and they are the whole discrimination — two premises rather
+    than item 139's single `sc.indents.size ≤ 1`, because the check reads the
+    landing's own COLUMN:
+
+    * `h_nopop` says the landing did not dedent.  A landing that pops emits a
+      `blockEnd`, which completes no value, so the check stands aside there by
+      its own reading whatever the columns say;
+    * `h_open` says the landing stands at no open level, so the completed node's
+      content belongs to nothing — the second bare document the scanner refuses
+      AT this landing.  Where the landing rests ON a level the same input is a
+      SIBLING (`a: 1⏎b: 2`) or a dangling run refused one token LATER, so this
+      contradiction is unavailable there and the fallback route is genuinely
+      reached.
+
+    `sc.indents.size ≤ 1` implies the first (`unwindIndents_of_size_le_one`)
+    and, for any state the scanner can actually reach, the second — every
+    landing column is `≥ 0` and a one-entry stack holds the sentinel at `-1`.
+    That last step needs `ScannerState.WellFormed`'s sixth conjunct, which the
+    accumulation does not carry, so the consumers split on the two readings
+    directly rather than on the size. -/
 lemma bareDocument_refutes_landing {sc s_prep : ScannerState} {c : Char}
     (h_bare : scanNextToken_checkBareDocument s_prep = .ok ())
     (h_pre : scanNextToken_preprocess sc = .ok (some (s_prep, c)))
     (h_noflow : s_prep.inFlow = false)
     (h_ska : s_prep.simpleKeyAllowed = true)
-    (h_size : sc.indents.size ≤ 1)
+    (h_nopop : s_prep.indents = sc.indents)
+    (h_open : (s_prep.indents.any fun e => e.column == (s_prep.col : Int)) = false)
     (h_tail : CompletedTail sc) : False := by
   obtain ⟨h_real, t, h_t, h_comp⟩ := h_tail
-  obtain ⟨h_lrt, h_ind⟩ :=
-    preprocess_lastRealTokenVal_of_indents_le_one h_size h_real h_pre
+  have h_lrt := preprocess_lastRealTokenVal_of_indents_eq h_nopop h_real h_pre
   unfold scanNextToken_checkBareDocument at h_bare
   rw [if_pos (by
     have h_lr : lastRealTokenVal? s_prep.tokens = some t := h_lrt.trans h_t
-    have h_sz : s_prep.indents.size ≤ 1 := by rw [h_ind]; exact h_size
     unfold ScannerState.inFlow at h_noflow
-    simp [ScannerState.inFlow, h_noflow, h_ska, h_sz, h_lr, h_comp])] at h_bare
+    simp [ScannerState.inFlow, h_noflow, h_ska, h_open, h_lr, h_comp])] at h_bare
   cases h_bare
 
 /-- **§9.2's landing refusal, bundled for a route face** (item 142) — the five
@@ -3883,10 +3973,13 @@ def BareLandingFacts (sc s_prep : ScannerState) (c : Char) : Prop :=
   s_prep.simpleKeyAllowed = true ∧
   CompletedTail sc
 
-/-- The bundle spent: at the sentinel alone this landing does not exist. -/
+/-- The bundle spent: at a landing that neither dedented nor rests on an open
+    level, this landing does not exist. -/
 lemma BareLandingFacts.refutes {sc s_prep : ScannerState} {c : Char}
-    (h : BareLandingFacts sc s_prep c) (h_size : sc.indents.size ≤ 1) : False :=
-  bareDocument_refutes_landing h.1 h.2.1 h.2.2.1 h.2.2.2.1 h_size h.2.2.2.2
+    (h : BareLandingFacts sc s_prep c) (h_nopop : s_prep.indents = sc.indents)
+    (h_open : (s_prep.indents.any fun e => e.column == (s_prep.col : Int)) = false) :
+    False :=
+  bareDocument_refutes_landing h.1 h.2.1 h.2.2.1 h.2.2.2.1 h_nopop h_open h.2.2.2.2
 
 /-- General-column version of `preprocess_some_ssl_comments_col0`.
     When preprocessing returns `some`, extract `SSLComments` disjunction plus
@@ -4195,13 +4288,16 @@ lemma rootMapRouteF {sp_start sp_land sp_key : SurfPos} {k : Nat}
 
     The fallback the four-arm route face falls back TO appends the entry's
     mapping to a FINISHED stream as a second bare document, which is the reading
-    row 19's 1c deletes.  Where the landing stands at the sentinel alone with a
+    row 19's 1c deletes.  Where the landing stands at NO OPEN LEVEL with a
     completed node behind it the scanner has already refused the input AT this
     landing — `a⏎: v`, `"x"⏎: v` and `[1, 2]⏎: v` are all
-    `invalidBareDocument 1 0` — so the entry this indicator opens is never
-    accumulated.  With a level still open the same shape is a DANGLING run,
-    refused one token LATER, so the step runs and this route is the only reading
-    `[211]` has for it.
+    `invalidBareDocument 1 0`, and one level in `k:⏎␣␣a⏎␣␣: v` is
+    `invalidBareDocument 2 2` since item 145 — so the entry this indicator opens
+    is never accumulated.  Resting ON a level the same shape is a SIBLING
+    (`a: 1⏎b: 2`) or a DANGLING run refused one token LATER, so the step runs
+    and this route is the only reading `[211]` has for it; and a landing that
+    DEDENTS emits a `blockEnd` first, which completes no value, so the check
+    stands aside there by its own reading.
 
     `h_ref` is `Or.inl` for the parks that finished a node — the two content
     ones, which carry `CompletedTail` as a field — and `Or.inr` for the parks
@@ -4213,10 +4309,13 @@ lemma rootMapRoute_or_refused {sc s_prep : ScannerState} {c : Char}
     (h_stream_land : SLYamlStream sp_start sp_land)
     (h_ind : SIndent k sp_land sp_key) :
     ∀ sp_v, SBlockMapEntry k sp_key sp_v → SLYamlStream sp_start sp_v := by
-  by_cases hsz : sc.indents.size ≤ 1
-  · match h_ref with
-    | Or.inl h_facts => exact (h_facts.refutes hsz).elim
-    | Or.inr _ => exact rootMapRoute hcol0 h_stream_land h_ind
+  by_cases h_np : s_prep.indents = sc.indents
+  · cases h_op : (s_prep.indents.any fun e => e.column == (s_prep.col : Int)) with
+    | false =>
+      match h_ref with
+      | Or.inl h_facts => exact (h_facts.refutes h_np h_op).elim
+      | Or.inr _ => exact rootMapRoute hcol0 h_stream_land h_ind
+    | true => exact rootMapRoute hcol0 h_stream_land h_ind
   · exact rootMapRoute hcol0 h_stream_land h_ind
 
 /-- `rootMapRouteF` under the same guard — the entries-level twin, refuted at
@@ -4230,10 +4329,13 @@ lemma rootMapRouteF_or_refused {sc s_prep : ScannerState} {c : Char}
     ∀ sp_v, SBlockMapEntry k sp_key sp_v →
     ∀ sp_e, SCompactMapTail k sp_v sp_e →
     ResumeFrames (SLYamlStream sp_start) [] sp_e := by
-  by_cases hsz : sc.indents.size ≤ 1
-  · match h_ref with
-    | Or.inl h_facts => exact (h_facts.refutes hsz).elim
-    | Or.inr _ => exact rootMapRouteF hcol0 h_stream_land h_ind
+  by_cases h_np : s_prep.indents = sc.indents
+  · cases h_op : (s_prep.indents.any fun e => e.column == (s_prep.col : Int)) with
+    | false =>
+      match h_ref with
+      | Or.inl h_facts => exact (h_facts.refutes h_np h_op).elim
+      | Or.inr _ => exact rootMapRouteF hcol0 h_stream_land h_ind
+    | true => exact rootMapRouteF hcol0 h_stream_land h_ind
   · exact rootMapRouteF hcol0 h_stream_land h_ind
 
 /-- **`rootMapRoute`'s tightening-ready twin** (item 116): the same landing
@@ -4357,18 +4459,21 @@ lemma bareNodeRoute {sp_start sp_anchor : SurfPos}
     taken OUT.
 
     The discriminator is the indent stack, and it is the whole content of items
-    132–134 read from the accumulation's side:
+    132–134 read from the accumulation's side, with item 145's widening:
 
-    * at the sentinel alone the landed node is a SECOND BARE DOCUMENT and
-      `scanNextToken_checkBareDocument` fires AT this landing — before the node's
-      own token exists — so the step never runs and the route has nothing to
-      serve (`a⏎# c⏎b`, `"x"⏎# c⏎y`);
-    * with a level still open the same input is a DANGLING run, and
+    * at a landing that stands at NO OPEN LEVEL the landed node is a SECOND BARE
+      DOCUMENT and `scanNextToken_checkBareDocument` fires AT this landing —
+      before the node's own token exists — so the step never runs and the route
+      has nothing to serve (`a⏎# c⏎b`, `"x"⏎# c⏎y` at the sentinel,
+      `k:⏎␣␣"x"⏎␣␣b: 2` one level in);
+    * resting ON an open level the same input is a DANGLING run, and
       `scanNextToken_checkDanglingNode` cannot see it yet: `danglingNodePos?`
       reads the run off the token array, so the run has to be SCANNED first
       (`a: 1⏎b`, `- a⏎b` — refused at the next landing or at `scanLoop`'s end).
       The step therefore runs, the park it makes owes a stream, and this route is
-      the only reading `[211]` has for it.
+      the only reading `[211]` has for it;
+    * and a landing that DEDENTS emits a `blockEnd` before the check runs, which
+      completes no value, so the check stands aside on its own reading.
 
     `h_tail` is the park's own arm: `Or.inl` for the two content parks, whose
     producer finished a node, and `Or.inr` for the parks that did not — the two
@@ -4384,11 +4489,14 @@ lemma bareNodeRoute_or_refused {sc s_prep : ScannerState} {c : Char}
     (h_tail : CompletedTail sc ∨ True) :
     ∀ sp_m, SBlockNode 0 .blockIn sp_anchor sp_m →
       SLYamlStream sp_start sp_m := by
-  by_cases hsz : sc.indents.size ≤ 1
-  · match h_tail with
-    | Or.inl h_tl =>
-      exact (bareDocument_refutes_landing h_bare h_pre h_noflow h_ska hsz h_tl).elim
-    | Or.inr _ => exact bareNodeRoute h_stream
+  by_cases h_np : s_prep.indents = sc.indents
+  · cases h_op : (s_prep.indents.any fun e => e.column == (s_prep.col : Int)) with
+    | false =>
+      match h_tail with
+      | Or.inl h_tl =>
+        exact (bareDocument_refutes_landing h_bare h_pre h_noflow h_ska h_np h_op h_tl).elim
+      | Or.inr _ => exact bareNodeRoute h_stream
+    | true => exact bareNodeRoute h_stream
   · exact bareNodeRoute h_stream
 
 /-- **`topLevelFlowResumeSep`, guarded by §9.2's landing refusal** (item 143) —
@@ -4399,13 +4507,14 @@ lemma bareNodeRoute_or_refused {sc s_prep : ScannerState} {c : Char}
     input shape items 132–134 refuse, and the indent stack is again the
     discriminator:
 
-    * at the sentinel alone the collection would be a SECOND BARE DOCUMENT and
-      `scanNextToken_checkBareDocument` fires AT the landing, before the
-      bracket's own token exists (`"x"⏎[1, 2]`, `[1]⏎[2]`, `a⏎# c⏎[1, 2]`);
-    * with a level still open §8.1's floor takes the half of the same shape that
-      sits at or left of the enclosing collection (`- "a"⏎[1, 2]`), and the
-      rest the scanner accepts — `k:⏎␣␣"a"⏎␣␣[1, 2]` scans clean and only
-      `TokenParser` refuses it.  That residue is item 140's, not this item's.
+    * at a landing that stands at NO OPEN LEVEL the collection would be a SECOND
+      BARE DOCUMENT and `scanNextToken_checkBareDocument` fires AT the landing,
+      before the bracket's own token exists (`"x"⏎[1, 2]`, `[1]⏎[2]`,
+      `a⏎# c⏎[1, 2]` at the sentinel; `k:⏎␣␣"a"⏎␣␣[1, 2]` one level in, which
+      item 143 recorded as scanner-clean and item 145 refuses at `2,2`);
+    * resting ON an open level §8.1's floor takes the half of the same shape
+      that sits at or left of the enclosing collection (`- "a"⏎[1, 2]`), and the
+      rest the step really does reach.
 
     The plain-scalar shapes are absent from the refused family for the reason
     item 142 measured at the block landing: the scalar ABSORBS the line, so
@@ -4417,10 +4526,13 @@ lemma topLevelFlowResumeSep_or_refused {sc s_prep : ScannerState} {c : Char}
     (h_sep : SSeparateLines 0 sp_mid sp_br) :
     ∀ sp_ne sp_m, SFlowContent 0 .flowOut sp_br sp_ne →
       SSLComments sp_ne sp_m → SLYamlStream sp_start sp_m := by
-  by_cases hsz : sc.indents.size ≤ 1
-  · match h_ref with
-    | Or.inl h_facts => exact (h_facts.refutes hsz).elim
-    | Or.inr _ => exact topLevelFlowResumeSep h_stream h_sep
+  by_cases h_np : s_prep.indents = sc.indents
+  · cases h_op : (s_prep.indents.any fun e => e.column == (s_prep.col : Int)) with
+    | false =>
+      match h_ref with
+      | Or.inl h_facts => exact (h_facts.refutes h_np h_op).elim
+      | Or.inr _ => exact topLevelFlowResumeSep h_stream h_sep
+    | true => exact topLevelFlowResumeSep h_stream h_sep
   · exact topLevelFlowResumeSep h_stream h_sep
 
 /-- **The suffix twin of `content_dispatch_after_close`'s bare-document

@@ -130,21 +130,24 @@ private def fires (input : String) : String :=
 
 Three of `scanNextToken_checkBareDocument`'s four conjuncts are what the
 landing already holds; the fourth is the stack, and it is the whole
-discrimination. -/
+discrimination.  Item 145 reads it at the landing's own COLUMN rather than at
+the stack's size. -/
 
-/-- Above the sentinel the check stands aside — this is the dangling family's
-    exemption, stated as the check's own reading rather than as prose. -/
-example (s : ScannerState) (h : 1 < s.indents.size) :
+/-- Resting ON an open level the check stands aside — this is the dangling
+    family's exemption, stated as the check's own reading rather than as
+    prose. -/
+example (s : ScannerState)
+    (h : (s.indents.any fun e => e.column == (s.col : Int)) = true) :
     scanNextToken_checkBareDocument s = .ok () := by
-  have hs : ¬ (s.indents.size ≤ 1) := by omega
-  simp only [scanNextToken_checkBareDocument, hs, decide_false, Bool.and_false,
+  simp only [scanNextToken_checkBareDocument, h, Bool.not_true, Bool.and_false,
              Bool.false_and, Bool.false_eq_true, ↓reduceIte]
 
 /-- And with all four it is an error, which is the shape the refutation
     contradicts. -/
 example (s : ScannerState) (t : YamlToken)
     (h_flow : s.inFlow = false) (h_ska : s.simpleKeyAllowed = true)
-    (h_sz : s.indents.size ≤ 1) (h_t : lastRealTokenVal? s.tokens = some t)
+    (h_sz : (s.indents.any fun e => e.column == (s.col : Int)) = false)
+    (h_t : lastRealTokenVal? s.tokens = some t)
     (h_c : t.completesFlowValue = true) :
     scanNextToken_checkBareDocument s = .error (.invalidBareDocument s.line s.col) := by
   unfold ScannerState.inFlow at h_flow
@@ -223,15 +226,18 @@ example {sc s_prep s_walk : ScannerState} {c : Char}
     (h : scanNextToken_preprocess sc = .ok (some (s_prep, c))) :
     s_prep.simpleKeyAllowed = true := preprocess_simpleKeyAllowed_of_walk h_skip h_a h
 
-/-- All four conjuncts together: the contradiction, at its type. -/
+/-- All conjuncts together: the contradiction, at its type.  The stack reading
+    is two premises since item 145 — the landing did not dedent, and it rests on
+    no open level. -/
 example {sc s_prep : ScannerState} {c : Char}
     (h_bare : scanNextToken_checkBareDocument s_prep = .ok ())
     (h_pre : scanNextToken_preprocess sc = .ok (some (s_prep, c)))
     (h_noflow : s_prep.inFlow = false)
     (h_ska : s_prep.simpleKeyAllowed = true)
-    (h_size : sc.indents.size ≤ 1)
+    (h_nopop : s_prep.indents = sc.indents)
+    (h_open : (s_prep.indents.any fun e => e.column == (s_prep.col : Int)) = false)
     (h_tail : CompletedTail sc) : False :=
-  bareDocument_refutes_landing h_bare h_pre h_noflow h_ska h_size h_tail
+  bareDocument_refutes_landing h_bare h_pre h_noflow h_ska h_nopop h_open h_tail
 
 /-! ## §5  The fallback, guarded and unguarded
 

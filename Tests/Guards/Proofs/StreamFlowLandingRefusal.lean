@@ -143,26 +143,30 @@ of the enclosing block collection. -/
 #guard (fires "- \"a\"\n[1, 2]\n", verdict "- \"a\"\n[1, 2]\n")
   == ("step-error@2", "scan-flowfloor 1,0")
 
--- **And the residue no refusal reaches**: a completed value met by a flow open
--- MORE indented than the enclosing collection, with a level still open.  §9.2
--- stands aside (the stack is not the sentinel), §8.1 stands aside (the bracket
--- is past the floor), and only `TokenParser` refuses — item 140's shape, at
--- the family this item's dispatcher reaches.
+-- **The residue this item recorded as the parser's alone**: a completed value
+-- met by a flow open MORE indented than the enclosing collection, with a level
+-- still open.  §8.1 stands aside (the bracket is past the floor), and §9.2
+-- stood aside too, because its first conjunct was the stack's SIZE.  [Item 145
+-- reads the landing's COLUMN: none of these four brackets stands at an open
+-- level, so all four are the scanner's refusal now, at the positions
+-- `TokenParser` used to report.]
 #guard ["k:\n  \"a\"\n  [1, 2]\n", "k:\n  \"a\"\n    [1, 2]\n",
         "k:\n  [1]\n  [2]\n", "- \"a\"\n  [1, 2]\n"].map fires
-  == ["clean", "clean", "clean", "clean"]
+  == ["bare@3 sz=2", "bare@3 sz=2", "bare@5 sz=2", "bare@2 sz=2"]
 #guard ["k:\n  \"a\"\n  [1, 2]\n", "k:\n  \"a\"\n    [1, 2]\n",
         "k:\n  [1]\n  [2]\n", "- \"a\"\n  [1, 2]\n"].map verdict
-  == ["parse-bare 2,2", "parse-bare 2,4", "parse-bare 2,2", "parse-bare 1,2"]
+  == ["scan-bare 2,2", "scan-bare 2,4", "scan-bare 2,2", "scan-bare 1,2"]
 
--- …and the scanner's acceptance there is a full token array, not a truncation.
+-- …and the refusal lands BEFORE the bracket's own token, so the array the
+-- parser used to receive (twenty-one tokens) is never built.
 #guard (match scan "k:\n  \"a\"\n  [1, 2]\n" with
-        | .ok ts => ts.size | .error _ => 0) == 21
+        | .ok ts => ts.size | .error _ => 0) == 0
 
 -- The two floors, read at the bracket itself.  `atOpen` stops at the first
 -- dispatched `[`/`{` and reports what §8.1 compares (`currentIndent` against
--- the bracket's column) and what §9.2 compares (the stack size against the
--- sentinel).  This is the whole discrimination of §1 and §2 in one table.
+-- the bracket's column) and the stack size §9.2 compared before item 145 —
+-- which is why every row but the last reads `sz=2` and the rows still split.
+-- This is the whole discrimination of §1 and §2 in one table.
 #guard ["k:\n  \"a\"\n    [1, 2]\n", "k:\n  \"a\"\n  [1, 2]\n",
         "a: 1\n[1, 2]\n", "- \"a\"\n[1, 2]\n", "- \"a\"\n  [1, 2]\n",
         "\"x\"\n[1, 2]\n"].map atOpen
@@ -171,7 +175,7 @@ of the enclosing block collection. -/
 
 -- The key side of the same residue.
 #guard (fires "k:\n  \"a\"\n    [1]: b\n", verdict "k:\n  \"a\"\n    [1]: b\n")
-  == ("clean", "parse-bare 2,4")
+  == ("bare@3 sz=2", "scan-bare 2,4")
 
 -- A plain scalar absorbs the line at an open level too, so these are accepted
 -- outright rather than left to the parser.
@@ -227,13 +231,13 @@ example {sp_start sp_mid sp_br : SurfPos}
   topLevelFlowResumeSep_or_refused (sc := ScannerState.mk' "")
     (s_prep := ScannerState.mk' "") (c := 'x') (Or.inr trivial) h_stream h_sep
 
-/-- Above the sentinel the check stands aside by its own reading, which is what
-    makes the guard a narrowing rather than a deletion — and is exactly the
-    residue §2 measures. -/
-example (s : ScannerState) (h : 1 < s.indents.size) :
+/-- Resting ON an open level the check stands aside by its own reading, which is
+    what makes the guard a narrowing rather than a deletion. -/
+example (s : ScannerState)
+    (h : (s.indents.any fun e => e.column == (s.col : Int)) = true) :
     scanNextToken_checkBareDocument s = .ok () := by
   unfold scanNextToken_checkBareDocument
-  rw [if_neg (by simp [Nat.not_le.mpr h])]
+  rw [if_neg (by simp [h])]
 
 /-! ## §4  The reading `preprocess_flow_thread` was dropping
 
@@ -282,10 +286,13 @@ example {sc s_prep : ScannerState} {c : Char} {sp_start sp_land sp_key : SurfPos
     ∀ sp_v, SBlockMapEntry k sp_key sp_v → SLYamlStream sp_start sp_v :=
   rootMapRoute_or_refused h_ref hcol0 h_stream h_ind
 
-/-- And spent: at the sentinel alone the landing does not exist. -/
+/-- And spent: at a landing that neither dedented nor rests on an open level,
+    the landing does not exist. -/
 example {sc s_prep : ScannerState} {c : Char}
-    (h : BareLandingFacts sc s_prep c) (hsz : sc.indents.size ≤ 1) : False :=
-  h.refutes hsz
+    (h : BareLandingFacts sc s_prep c) (h_np : s_prep.indents = sc.indents)
+    (h_op : (s_prep.indents.any fun e => e.column == (s_prep.col : Int)) = false) :
+    False :=
+  h.refutes h_np h_op
 
 /-! ## §6  What remains
 

@@ -793,17 +793,21 @@ def scanNextToken_checkNoPendingDirectives (s : ScannerState) :
     .ok ()
 
 /-- §9.2 [211]: a bare document may only be the stream's first, or follow a
-    `...`.  A ROOT node that is already complete, and content on a LATER line
-    with no marker between them, is a second bare document — `l-yaml-stream`
+    `...`.  A node that is already complete, and content on a LATER line at a
+    column NO OPEN LEVEL stands at, is a second bare document — `l-yaml-stream`
     offers no production for it.
 
     The three conjuncts are the whole reading, and each is a state field the
     scanner already maintains:
 
-    * the indent stack is the sentinel alone, so the completed node is the
-      DOCUMENT's, not an entry inside a still-open block collection (a
-      dangling node at an open level's own column is a different violation
-      and belongs to its own check);
+    * the landing column is not one of the open indent levels, so the content
+      belongs to no collection the stream has started: it is neither the
+      enclosing mapping's next key nor any indicator's content, and the
+      collection it would roll in stands in a slot the completed node already
+      fills.  A stack holding the sentinel alone is this condition's special
+      case, since every landing column is `≥ 0` and the sentinel's is `-1`.  A
+      dangling node AT an open level's own column is the complementary
+      violation and belongs to its own check;
     * the last real token COMPLETES a node — `YamlToken.completesFlowValue`,
       the same set `scanNextToken_checkFlowAdjacency` reads: a scalar of any
       style, an alias, or a flow close.  Node properties and the indicators
@@ -819,16 +823,20 @@ def scanNextToken_checkNoPendingDirectives (s : ScannerState) :
 
     Runs after the structural dispatch, so `---`, `...` and directives are
     reached first and stay legal; a plain scalar absorbs its own continuation
-    lines, so the completed-root state is reachable for that style only where
+    lines, so the completed-node state is reachable for that style only where
     the walk stops (a comment line, `hello⏎# c⏎world`).
 
     The parser refuses the same inputs one layer down
     (`StreamState.validNextToken`), at the same position and with this same
-    error, so the check moves the refusal without moving any output. -/
+    error, so the check moves the refusal without moving any output.  That holds
+    at an indented landing as much as at the sentinel: in `k:⏎␣␣"x"⏎␣␣b: 2` the
+    scanner would roll a second `blockMappingStart` in at column 2, which the
+    first document's reading has no slot for, and both refuse at `2,2`. -/
 @[yaml_spec "9.2" 211 "l-yaml-stream"]
 def scanNextToken_checkBareDocument (s : ScannerState) :
     Except ScanError Unit :=
-  if !s.inFlow && s.simpleKeyAllowed && s.indents.size <= 1
+  if !s.inFlow && s.simpleKeyAllowed
+      && !(s.indents.any (fun e => e.column == (s.col : Int)))
       && (match lastRealTokenVal? s.tokens with
           | some t => t.completesFlowValue
           | none => false) then

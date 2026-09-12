@@ -113,11 +113,12 @@ parser — the content lane's copy of item 143's `k:⏎␣␣"a"⏎␣␣[1, 2]`
 #guard (fires "a: 1\n...\nb: 2\n", fires "a: 1\n---\nb: 2\n") == ("clean", "clean")
 #guard (verdict "a: 1\n...\nb: 2\n", verdict "a: 1\n---\nb: 2\n") == ("OK", "OK")
 
--- THE PARSER-ONLY RESIDUE.  The landing is indented, so the scanner is clean
--- and `StreamState.validNextToken` is what refuses — the half item 141's park
--- face is for.
+-- THE INDENTED LANDING.  Item 144 recorded this as the parser's alone — the
+-- scanner was clean because the stack was not the sentinel.  Item 145 reads the
+-- landing's COLUMN instead: level 2 was never pushed, so `"x"` fills `k`'s slot
+-- and `b` stands at no open level.  Same error, same position, one layer up.
 #guard (fires "k:\n  \"x\"\n  b: 2\n", verdict "k:\n  \"x\"\n  b: 2\n")
-  == ("clean", "parse-bare 2,2")
+  == ("bare@3 sz=2", "scan-bare 2,2")
 
 /-! ## §3  The raw site this item leaves, and why its refutable half is empty
 
@@ -228,10 +229,13 @@ example {sp_start sp_land sp_key : SurfPos} {k : Nat}
   rootMapRoute_or_refused (sc := ScannerState.mk' "") (s_prep := ScannerState.mk' "")
     (c := 'x') (Or.inr trivial) hcol0 h_stream h_ind
 
-/-- The bundle spent: at the sentinel alone this landing does not exist. -/
+/-- The bundle spent: at a landing that neither dedented nor rests on an open
+    level, this landing does not exist. -/
 example {sc s_prep : ScannerState} {c : Char}
-    (h : BareLandingFacts sc s_prep c) (hsz : sc.indents.size ≤ 1) : False :=
-  h.refutes hsz
+    (h : BareLandingFacts sc s_prep c) (h_np : s_prep.indents = sc.indents)
+    (h_op : (s_prep.indents.any fun e => e.column == (s_prep.col : Int)) = false) :
+    False :=
+  h.refutes h_np h_op
 
 /-- The bundle assembled, as the two landing arms of `accum_content_pending`'s
     skeleton assemble it: the check's verdict at the landing, the park's own

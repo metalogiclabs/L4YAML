@@ -344,14 +344,16 @@ lemma scanNextToken_checkBareDocument_ok_of_inFlow (s : ScannerState)
   simp only [scanNextToken_checkBareDocument, h, Bool.not_true, Bool.false_and,
              Bool.false_eq_true, ↓reduceIte]
 
-/-- …and wherever a block collection is still open: the completed node is an
-    ENTRY's, so the landing is a dangler at a level rather than a second
-    document. -/
-lemma scanNextToken_checkBareDocument_ok_of_indents (s : ScannerState)
-    (h : 2 ≤ s.indents.size) :
+/-- …and wherever the landing stands AT an open level's own column: the
+    completed node is an ENTRY's and this landing is that collection's own next
+    key, so what the level is exposed to is a dangler one token later rather
+    than a second document.  Item 145 made this the check's own first conjunct;
+    a block collection merely being open is no longer enough, because a landing
+    right of every level is what `k:⏎␣␣"x"⏎␣␣b: 2` does. -/
+lemma scanNextToken_checkBareDocument_ok_of_landingLevel (s : ScannerState)
+    (h : s.indents.any (fun e => e.column == (s.col : Int)) = true) :
     scanNextToken_checkBareDocument s = .ok () := by
-  have hs : ¬ (s.indents.size ≤ 1) := by omega
-  simp only [scanNextToken_checkBareDocument, hs, decide_false, Bool.and_false,
+  simp only [scanNextToken_checkBareDocument, h, Bool.not_true, Bool.and_false,
              Bool.false_and, Bool.false_eq_true, ↓reduceIte]
 
 /-- …and on the completed node's OWN line, where the flag is down and the node

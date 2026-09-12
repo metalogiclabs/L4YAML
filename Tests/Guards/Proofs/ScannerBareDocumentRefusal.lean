@@ -54,12 +54,14 @@ example (s : ScannerState) (h : s.inFlow = true) :
   simp only [scanNextToken_checkBareDocument, h, Bool.not_true, Bool.false_and,
              Bool.false_eq_true, ↓reduceIte]
 
-/-- With a block collection still open the completed node is an ENTRY's, not the
-    document's — M2's question, not this one. -/
-example (s : ScannerState) (h : 2 ≤ s.indents.size) :
+/-- Resting ON an open level the completed node is an ENTRY's, not the
+    document's — M2's question, not this one.  Item 145 made this the check's
+    first conjunct: a block collection merely being OPEN is not enough, because
+    a landing right of every level (`k:⏎␣␣"x"⏎␣␣b: 2`) is refused here. -/
+example (s : ScannerState)
+    (h : (s.indents.any fun e => e.column == (s.col : Int)) = true) :
     scanNextToken_checkBareDocument s = .ok () := by
-  have hs : ¬ (s.indents.size ≤ 1) := by omega
-  simp only [scanNextToken_checkBareDocument, hs, decide_false, Bool.and_false,
+  simp only [scanNextToken_checkBareDocument, h, Bool.not_true, Bool.and_false,
              Bool.false_and, Bool.false_eq_true, ↓reduceIte]
 
 /-- On the completed node's OWN line the flag is down — this is where the node
@@ -83,13 +85,13 @@ example (s : ScannerState)
     parser's own, at the cursor. -/
 example (s : ScannerState) (t : YamlToken)
     (h_flow : s.inFlow = false) (h_ska : s.simpleKeyAllowed = true)
-    (h_ind : s.indents.size ≤ 1)
+    (h_ind : (s.indents.any fun e => e.column == (s.col : Int)) = false)
     (h_last : lastRealTokenVal? s.tokens = some t)
     (h_cmp : t.completesFlowValue = true) :
     scanNextToken_checkBareDocument s
       = .error (.invalidBareDocument s.line s.col) := by
   simp only [scanNextToken_checkBareDocument, h_flow, h_ska, h_ind, h_last, h_cmp,
-             Bool.not_false, Bool.and_self, decide_true, ↓reduceIte]
+             Bool.not_false, Bool.and_self, ↓reduceIte]
 
 /-! ## §2  The family the check refuses -/
 

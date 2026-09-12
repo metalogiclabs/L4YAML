@@ -116,6 +116,7 @@ import Tests.Guards.Proofs.StreamBareDocumentFallback
 import Tests.Guards.Proofs.StreamBlockLandingRefusal
 import Tests.Guards.Proofs.StreamFlowLandingRefusal
 import Tests.Guards.Proofs.StreamContentLandingRefusal
+import Tests.Guards.Proofs.ScannerLandingColumnRefusal
 import Tests.Guards.Proofs.FlowFrameResumeRider
 import Tests.Guards.Proofs.UnderIndentInvariantMap
 import Tests.Guards.Proofs.ScalarWalkCrossLineFloor

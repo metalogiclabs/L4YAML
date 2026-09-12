@@ -112,10 +112,11 @@ private def verdict (input : String) : String :=
 
 /-! ## §2  The half it does not
 
-The discriminator is the indent stack, exactly as at the content landing: with
-a level still open the same shapes are legal (`a: 1⏎: v` is the root mapping's
-second entry) or belong to a different refusal — and one of those refusals is
-still the parser's alone. -/
+The discriminator is the indent stack, exactly as at the content landing:
+resting ON an open level the same shapes are legal (`a: 1⏎: v` is the root
+mapping's second entry) or belong to a different refusal.  [Item 145 moved the
+boundary: the check reads the landing's own COLUMN, so the indented `:` below
+is refused by the scanner now and this section's residue is the `-`'s alone.] -/
 
 -- A level open: the landing is an ordinary sibling and nothing refuses it.
 #guard ["a: 1\n: v\n", "a: 1\n? k\n", "k:\n  a: 1\n  ? k\n"].map fires
@@ -124,27 +125,31 @@ still the parser's alone. -/
   == ["OK", "OK", "OK"]
 
 -- **A completed value met by a `:` at its own column, one level in.**  The
--- run IS offered a slot (`k:` is its predecessor), so the dangling check
--- stands aside; the stack is size 2, so the bare-document check stands aside
--- too.  The scanner accepts all seventeen tokens and only `TokenParser`
--- refuses — item 140's shape at a family item 140 did not reach, and the
--- reason this item closes the sentinel half alone.
+-- run IS offered a slot (`k:` is its predecessor), so the dangling check stands
+-- aside.  The bare-document check stood aside too until item 145 — the stack is
+-- size 2, which was its first conjunct — and reads the landing's COLUMN now:
+-- level 2 was never pushed, so the `:` stands at no open level and the refusal
+-- is the scanner's, at the position the parser used to report.
 #guard (fires "k:\n  a\n  : v\n", verdict "k:\n  a\n  : v\n")
-  == ("clean", "parse-bare 2,2")
+  == ("bare@3 sz=2", "scan-bare 2,2")
 
--- …and the scanner's acceptance is a full token array, not a truncation.
-#guard (match scan "k:\n  a\n  : v\n" with | .ok ts => ts.size | .error _ => 0) == 17
+-- …and the refusal lands BEFORE the `:`'s own token, so nothing is scanned
+-- past it: the array the parser used to receive (seventeen tokens) is never
+-- built.
+#guard (match scan "k:\n  a\n  : v\n" with | .ok ts => ts.size | .error _ => 0) == 0
 
 -- The `-` at an open level is refused by the dispatch's own indent check, not
 -- by §9.2 — so the check reports `ok` and the STEP is what fails.
 #guard (fires "a: 1\n- b\n", verdict "a: 1\n- b\n") == ("step-error@3", "scan-bare 1,0")
 
-/-- Above the sentinel the check stands aside by its own reading, whatever the
-    tail says.  This is why the guard below is a NARROWING and not a deletion. -/
-example (s : ScannerState) (h : 1 < s.indents.size) :
+/-- Resting ON an open level the check stands aside by its own reading, whatever
+    the tail says.  This is why the guard below is a NARROWING and not a
+    deletion. -/
+example (s : ScannerState)
+    (h : (s.indents.any fun e => e.column == (s.col : Int)) = true) :
     scanNextToken_checkBareDocument s = .ok () := by
   unfold scanNextToken_checkBareDocument
-  rw [if_neg (by simp [Nat.not_le.mpr h])]
+  rw [if_neg (by simp [h])]
 
 /-! ## §3  The bundle
 
@@ -162,10 +167,13 @@ example {sc s_prep : ScannerState} {c : Char}
     BareLandingFacts sc s_prep c :=
   ⟨h_bare, h_pre, h_noflow, h_ska, h_tail⟩
 
-/-- …and spent: at the sentinel alone the landing does not exist. -/
+/-- …and spent: at a landing that neither dedented nor rests on an open level,
+    the landing does not exist. -/
 example {sc s_prep : ScannerState} {c : Char}
-    (h : BareLandingFacts sc s_prep c) (hsz : sc.indents.size ≤ 1) : False :=
-  h.refutes hsz
+    (h : BareLandingFacts sc s_prep c) (h_np : s_prep.indents = sc.indents)
+    (h_op : (s_prep.indents.any fun e => e.column == (s_prep.col : Int)) = false) :
+    False :=
+  h.refutes h_np h_op
 
 /-! ## §4  The flag, from the park or from the break
 

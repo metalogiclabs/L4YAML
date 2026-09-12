@@ -1785,12 +1785,14 @@ def scanLoopIx_checkDanglingNode {input : String}
   | some p => .error (.invalidBareDocument p.line p.col)
   | none => .ok ()
 
-/-- §9.2 [211]: a completed ROOT node and content on a later line with no
-    marker between them is a second bare document.  Indexed twin of
-    `scanNextToken_checkBareDocument` — see its docstring for the reading. -/
+/-- §9.2 [211]: a completed node and content on a later line at a column no
+    open level stands at, with no marker between them, is a second bare
+    document.  Indexed twin of `scanNextToken_checkBareDocument` — see its
+    docstring for the reading. -/
 def scanNextTokenIx_checkBareDocument {input : String}
     (s : ScannerStateIx input) : Except ScanError Unit :=
-  if !s.inFlow && s.simpleKeyAllowed && s.indents.size <= 1
+  if !s.inFlow && s.simpleKeyAllowed
+      && !(s.indents.any (fun e => e.column == (s.cursor.pos.col : Int)))
       && (match lastRealTokenValIx? s.tokens with
           | some t => t.completesFlowValue
           | none => false) then

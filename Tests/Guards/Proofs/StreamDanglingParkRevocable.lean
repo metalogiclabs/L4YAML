@@ -173,7 +173,10 @@ instrument records **2275** observations: **2** `R`, **0** `E`, **2273** `D`,
 **0** `U`; of the 2272 `D`s whose landing is a `:`, **2179** sit at a column
 other than 0.  That corpus walk is not reproduced here — a guard that reads
 files is invisible to Lake — but the same instrument over the fixed list below
-shows the same split, and DOCS item 141 records the corpus numbers. -/
+shows the same split, and DOCS item 141 records the corpus numbers.  [Re-run at
+item 145, which widened §9.2's landing refusal to the landing's own column, the
+corpus numbers are unchanged in every cell; what moved is one row of the fixed
+list, noted where it sits.] -/
 
 private def censusFrom (s : ScannerState) (acc : String) : Nat → String
   | 0 => acc ++ "!"
@@ -202,13 +205,17 @@ private def census (input : String) : String :=
         "a: 1\nb\nc: 2\n", "k:\n  a: 1\n  b\nc: 2\n"].map census
   == ["E", "E", "E", "E", "R", "R"]
 
--- Ordinary YAML: five of these nine carry a dangling park that SURVIVES with the
--- flag down, and four never make one at all.  The survivors are the disjunct's
--- real cost.
+-- Ordinary YAML: four of these nine carry a dangling park that SURVIVES with the
+-- flag down, and five never make one at all.  The survivors are the disjunct's
+-- real cost.  [Item 145 moved the eighth row from `D` to none — `k: [1, 2]⏎␣␣b`
+-- lands at column 2 with only levels -1 and 0 open, so §9.2 refuses it at `1,2`
+-- before the run it would park exists.  The CORPUS census above is unmoved:
+-- re-run at item 145 over the same 490 files it is still 2275 / 2 R / 0 E /
+-- 2273 D / 0 U, with 2179 of the colon landings off column 0.]
 #guard ["a: 1\nb: 2\n", "- a\n- b\n", "a: 1\n...\nb", "a: 1\n---\nb",
         "k:\n  a: 1\n  b: 2\n", "a: &x 1\n*x : 2\n", "a: 1\n\"b\" : 2\n",
         "k: [1, 2]\n  b\nc: 2\n", "a\n# c\nb"].map census
-  == ["D", "", "", "", "D", "D", "D", "D", ""]
+  == ["D", "", "", "", "D", "D", "D", "", ""]
 
 -- The two markers close the level, so the same text makes no park at all: that
 -- is item 139's sentinel half, where `checkBareDocument` is the refusal instead.
