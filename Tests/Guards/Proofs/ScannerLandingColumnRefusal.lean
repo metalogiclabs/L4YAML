@@ -278,28 +278,29 @@ example {sc s_prep : ScannerState} {c : Char}
     lastRealTokenVal? s_prep.tokens = lastRealTokenVal? sc.tokens :=
   preprocess_lastRealTokenVal_of_indents_eq h_nopop h_real h
 
-/-- The contradiction, at its type: the two stack readings are two premises. -/
+/-- The contradiction, at its type: the landing's COLUMN is the stack reading,
+    and the base is what the accumulation carries to pay for it (item 146). -/
 example {sc s_prep : ScannerState} {c : Char}
     (h_bare : scanNextToken_checkBareDocument s_prep = .ok ())
     (h_pre : scanNextToken_preprocess sc = .ok (some (s_prep, c)))
     (h_noflow : s_prep.inFlow = false)
     (h_ska : s_prep.simpleKeyAllowed = true)
-    (h_nopop : s_prep.indents = sc.indents)
+    (h_base : L4YAML.Proofs.IndentStackBase.SentinelBase sc)
     (h_open : (s_prep.indents.any fun e => e.column == (s_prep.col : Int)) = false)
     (h_tail : CompletedTail sc) : False :=
-  bareDocument_refutes_landing h_bare h_pre h_noflow h_ska h_nopop h_open h_tail
+  bareDocument_refutes_landing h_bare h_pre h_noflow h_ska h_base h_open h_tail
 
 /-- …and through the bundle the four route faces carry. -/
 example {sc s_prep : ScannerState} {c : Char}
-    (h : BareLandingFacts sc s_prep c) (h_np : s_prep.indents = sc.indents)
+    (h : BareLandingFacts sc s_prep c)
     (h_op : (s_prep.indents.any fun e => e.column == (s_prep.col : Int)) = false) :
     False :=
-  h.refutes h_np h_op
+  h.refutes h_op
 
-/-- The four guarded routes are unchanged at their types — what moved is the
-    case split inside them, from the stack's SIZE to the landing's column.  The
-    narrowing is still a narrowing: a caller with nothing to say passes
-    `Or.inr trivial` and gets the unguarded route. -/
+/-- The three bundle-carrying routes are unchanged at their types — what moved
+    is the case split inside them, from the stack's SIZE to the landing's
+    column.  The narrowing is still a narrowing: a caller with nothing to say
+    passes `Or.inr trivial` and gets the unguarded route. -/
 example {sp_start sp_land sp_key : SurfPos} {k : Nat}
     (hcol0 : sp_land.col = 0)
     (h_stream : SLYamlStream sp_start sp_land)
@@ -308,24 +309,20 @@ example {sp_start sp_land sp_key : SurfPos} {k : Nat}
   rootMapRoute_or_refused (sc := ScannerState.mk' "") (s_prep := ScannerState.mk' "")
     (c := 'x') (Or.inr trivial) hcol0 h_stream h_ind
 
-/-! ## §6  What remains
+/-! ## §6  The dedent exemption, paid
 
-The second premise is redundant at RUNTIME and not in the proof, and that gap
-has a name.  `preprocess_landing_at_level` (item 129) says a landing that popped
-rests at an entry the incoming stack already held — so `pop` and `¬ open` cannot
-both hold — but it asks for `IndentStackBase.SentinelBase sc`, the sixth
-conjunct of `ScannerState.WellFormed`, which the accumulation does not carry.
-Threading it would let `h_nopop` go.  Priced the campaign's way — state the
-conjunct on `BareLandingFacts`, build, read back the distinct sites Lean reports
-— that is 9 sites in the first wave and 50 in the second, held by 12
-declarations; and item 129 measured the same premise's other consumer at 15 and
-55 sites.  So the threading is one item and it serves BOTH, which is why this
-one states the premise instead of paying it.
+`preprocess_landing_at_level` (item 129) says a landing that popped rests at an
+entry the incoming stack already held, so a landing at NO OPEN LEVEL popped
+nothing — `pop` and `¬ open` cannot both hold.  That reading asks for
+`IndentStackBase.SentinelBase sc`, `ScannerState.WellFormed`'s sixth conjunct,
+and item 146 threads it: `BareLandingFacts` carries it, the accumulation carries
+it from `mk'` down, and the refutation takes the landing's column alone.
+`Tests/Guards/Proofs/AccumIndentBaseCarried.lean` pins that thread.
 
 What the widening buys is the residue every landing item recorded and none could
-close: the INDENTED landing is the scanner's refusal now, in both pipelines, so
-the accumulation never sees it.  Item 141's park face is still the answer for
-what a park can assert about a run, which is a different question; this input
-family is settled at the scanner. -/
+close: the INDENTED landing is the scanner's refusal, in both pipelines, so the
+accumulation never sees it.  Item 141's park face is the answer for what a park
+can assert about a run, which is a different question; this input family is
+settled at the scanner. -/
 
 end L4YAML.Tests.Guards.ScannerLandingColumnRefusal

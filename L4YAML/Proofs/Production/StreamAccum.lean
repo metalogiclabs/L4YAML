@@ -3904,6 +3904,185 @@ lemma preprocess_lastRealTokenVal_of_indents_le_one {sc s_prep : ScannerState} {
         h_u.1]
   · rw [h_save, saveSimpleKey_preserves_indents]; exact h_u.2
 
+/-- **The trailing-content check preprocessing runs after its own unwind, read
+    as a DISJUNCTION** (item 66).  `scanNextToken_preprocess` refuses a landing
+    that popped indents and still sits deeper than what is left of the floor
+    (`trailingContent`), so an accepted step tells the accumulation which case
+    it is in: either the stack came through untouched — and then the caller's
+    own `currentIndent` is still the one the dispatch will read — or the
+    landing is at or left of the floor, which is `[187]`'s own condition for
+    refusing a flow open. -/
+lemma preprocess_indents_or_underIndent {sc s_prep : ScannerState} {c : Char}
+    (hok : scanNextToken_preprocess sc = .ok (some (s_prep, c))) :
+    s_prep.indents = sc.indents ∨ (s_prep.col : Int) ≤ s_prep.currentIndent := by
+  unfold scanNextToken_preprocess at hok
+  simp only [bind, Except.bind, pure, Except.pure] at hok
+  split at hok
+  · simp at hok
+  · rename_i s_content h_skip
+    have h_ci : s_content.indents = sc.indents :=
+      skipToContent_preserves_indents sc s_content h_skip
+    split at hok
+    · simp at hok
+    · split at hok
+      · -- the armed unwind ran
+        split at hok
+        · simp at hok
+        · rename_i h_nott
+          split at hok
+          · simp at hok
+          · have h := Except.ok.inj hok; injection h with h
+            obtain ⟨h1, h2⟩ := Prod.mk.inj h; subst h1; subst h2
+            rcases unwindIndents_shrink_or_eq s_content (s_content.col : Int) with h_sh | h_eq
+            · refine Or.inr ?_
+              simp only [Bool.and_eq_true, decide_eq_true_eq, not_and, Int.not_lt] at h_nott
+              have h1 : (unwindIndents s_content (s_content.col : Int)).indents.size <
+                  s_content.indents.size := h_sh
+              have h2 := h_nott h1
+              simp only [saveSimpleKey_col, ScannerState.currentIndent,
+                saveSimpleKey_preserves_indents]
+              simpa [ScannerState.currentIndent] using h2
+            · exact Or.inl ((saveSimpleKey_preserves_indents _).trans
+                (by simpa using h_eq.trans h_ci))
+      · -- no unwind: the stack is the walk's, which is the caller's
+        split at hok
+        · simp at hok
+        · split at hok
+          · simp at hok
+          · have h := Except.ok.inj hok; injection h with h
+            obtain ⟨h1, h2⟩ := Prod.mk.inj h; subst h1; subst h2
+            exact Or.inl ((saveSimpleKey_preserves_indents s_content).trans h_ci)
+
+/-- **The landing sits AT the level it lands on** (item 127) — the same step
+    read from BOTH sides, which is the scanner half of the frames ↔
+    indent-stack coupling (DOCS's U3).
+
+    Item 66 above reads preprocessing's trailing-content check: a landing that
+    popped is at or left of what is left of the floor.  The unwind itself gives
+    the other inequality — the loop runs until the top is at or left of the
+    column it unwinds to (`unwindIndents_terminal`) — so the two together pin
+    the landing at the top entry's own column, and the loop only pops, so that
+    entry was already on the incoming stack (`unwindIndents_back_mem`).
+
+    `ResumeFrames.resumeAt` asks only for MEMBERSHIP of the landing width in the
+    frames; this says the scanner knows something stronger.  What is still
+    missing to refute `KeyPackPunt.dedent` is the surface direction — that every
+    open mapping level of `sc.indents` is one of the frames — which is an
+    accumulation-invariant conjunct no carrier holds today (§0b).
+
+    **The sentinel escape is DISCHARGED** (item 128; item 127 carried it as a
+    `s_prep.indents.size ≤ 1` disjunct).  A stack popped to a single entry rests
+    on `{ column := -1 }`, so preprocessing's own `col ≤ currentIndent` cannot
+    hold there — but saying so needs `ScannerState.WellFormed`'s sixth conjunct,
+    which the accumulation did not carry.  `IndentStackBase.SentinelBase` is that
+    conjunct alone, threaded through every scanner step, and it is a premise
+    here. -/
+lemma preprocess_landing_at_level {sc s_prep : ScannerState} {c : Char}
+    (hok : scanNextToken_preprocess sc = .ok (some (s_prep, c)))
+    (h_pop : s_prep.indents ≠ sc.indents)
+    (h_base : IndentStackBase.SentinelBase sc) :
+    ∃ e, s_prep.indents.back? = some e ∧ e ∈ sc.indents ∧
+      e.column = (s_prep.col : Int) := by
+  have h_le : (s_prep.col : Int) ≤ s_prep.currentIndent :=
+    (preprocess_indents_or_underIndent hok).resolve_left h_pop
+  have h_ge : (s_prep.currentIndent ≤ (s_prep.col : Int) ∧
+      ∀ e, s_prep.indents.back? = some e → e ∈ sc.indents) ∨
+      s_prep.indents.size ≤ 1 := by
+    unfold scanNextToken_preprocess at hok
+    simp only [bind, Except.bind, pure, Except.pure] at hok
+    split at hok
+    · simp at hok
+    · rename_i s_content h_skip
+      have h_ci : s_content.indents = sc.indents :=
+        skipToContent_preserves_indents sc s_content h_skip
+      split at hok
+      · simp at hok
+      · split at hok
+        · split at hok
+          · simp at hok
+          · split at hok
+            · simp at hok
+            · have h := Except.ok.inj hok; injection h with h
+              obtain ⟨h1, h2⟩ := Prod.mk.inj h; subst h1; subst h2
+              have hind : (saveSimpleKey { unwindIndents s_content (s_content.col : Int) with
+                  needIndentCheck := false }).indents
+                  = (unwindIndents s_content (s_content.col : Int)).indents :=
+                saveSimpleKey_preserves_indents _
+              have hcol : (saveSimpleKey { unwindIndents s_content (s_content.col : Int) with
+                  needIndentCheck := false }).col = s_content.col := by
+                rw [saveSimpleKey_col]
+                exact unwindIndents_col s_content (s_content.col : Int)
+              rcases unwindIndents_terminal s_content (s_content.col : Int) with h | h
+              · refine Or.inl ⟨?_, ?_⟩
+                · rw [currentIndent_of_indents_eq hind, hcol]; exact h
+                · intro e he
+                  rw [hind] at he
+                  exact h_ci ▸ unwindIndents_back_mem s_content _ e he
+              · exact Or.inr (by rw [hind]; exact h)
+        · split at hok
+          · simp at hok
+          · split at hok
+            · simp at hok
+            · have h := Except.ok.inj hok; injection h with h
+              obtain ⟨h1, h2⟩ := Prod.mk.inj h; subst h1; subst h2
+              exact absurd ((saveSimpleKey_preserves_indents s_content).trans h_ci) h_pop
+  rcases h_ge with ⟨h_ge, h_mem⟩ | h_small
+  · have heq : s_prep.currentIndent = (s_prep.col : Int) := Int.le_antisymm h_ge h_le
+    obtain ⟨e, hb⟩ : ∃ e, s_prep.indents.back? = some e := by
+      rcases hb : s_prep.indents.back? with _ | e
+      · exfalso
+        rw [ScannerState.currentIndent, hb] at heq
+        simp only [] at heq
+        omega
+      · exact ⟨e, rfl⟩
+    refine ⟨e, hb, h_mem e hb, ?_⟩
+    rw [ScannerState.currentIndent, hb] at heq
+    exact heq
+  · -- Item 128: the stack popped to its base, which sits at `-1` — and
+    -- preprocessing accepted a landing at or right of it.
+    exfalso
+    rw [(IndentStackBase.preprocess_base hok h_base).currentIndent_of_size_le_one
+      h_small] at h_le
+    omega
+
+/-- **A landing that stands at NO OPEN LEVEL did not dedent** (item 146) — the
+    second of §9.2's two stack readings carries the first, for any state whose
+    stack still has its base.
+
+    A landing that popped rests on the entry it popped down TO, at that entry's
+    own column (`preprocess_landing_at_level`), and that entry is on the popped
+    stack — so such a landing stands AT an open level by construction.  Read
+    contrapositively: a landing at no open level popped nothing, and the
+    dedent exemption §9.2's refusal is stated with is not a second case to
+    split on but a consequence of the first.
+
+    The base is what makes this unconditional.  Without it a stack popped to a
+    single entry rests on something unnamed, and the landing could sit at or
+    right of it; with it that entry is the sentinel at `-1`, which no landing
+    column reaches. -/
+lemma preprocess_indents_eq_of_no_open_level {sc s_prep : ScannerState} {c : Char}
+    (hok : scanNextToken_preprocess sc = .ok (some (s_prep, c)))
+    (h_base : IndentStackBase.SentinelBase sc)
+    (h_open : (s_prep.indents.any fun e => e.column == (s_prep.col : Int)) = false) :
+    s_prep.indents = sc.indents := by
+  by_cases h_pop : s_prep.indents = sc.indents
+  · exact h_pop
+  · exfalso
+    obtain ⟨e, h_back, _, h_col⟩ := preprocess_landing_at_level hok h_pop h_base
+    obtain ⟨i, hi, hget⟩ : ∃ i, ∃ h : i < s_prep.indents.size, s_prep.indents[i] = e :=
+      Array.mem_iff_getElem.mp (by
+        rcases Nat.eq_zero_or_pos s_prep.indents.size with hz | hp
+        · rw [Array.back?_eq_getElem?, Array.getElem?_eq_none (by omega)] at h_back
+          exact absurd h_back (by simp)
+        · rw [Array.back?_eq_getElem?,
+              Array.getElem?_eq_getElem (by omega : s_prep.indents.size - 1 < _)] at h_back
+          exact Option.some.inj h_back ▸ Array.getElem_mem _)
+    have h_any : (s_prep.indents.any fun e => e.column == (s_prep.col : Int)) = true := by
+      rw [Array.any_eq_true]
+      exact ⟨i, hi, by rw [hget, h_col]; simp⟩
+    rw [h_open] at h_any
+    exact Bool.noConfusion h_any
+
 /-- **§9.2's landing refusal, spent at the accumulation** (item 139) — the
     contradiction items 132–134 were built to be read at, with all four of
     `scanNextToken_checkBareDocument`'s conjuncts named where the landing holds
@@ -3912,37 +4091,30 @@ lemma preprocess_lastRealTokenVal_of_indents_le_one {sc s_prep : ScannerState} {
     Three come from where the landing already stands: the block context is the
     dispatch's own, the flag is the break the landing crossed
     (`preprocess_simpleKeyAllowed_mono`, or item 76's walk), and the completed
-    node behind the park is `PendingNode`'s `h_tail`.  The other two are the
-    INDENT STACK, and they are the whole discrimination — two premises rather
-    than item 139's single `sc.indents.size ≤ 1`, because the check reads the
-    landing's own COLUMN:
+    node behind the park is `PendingNode`'s `h_tail`.  The fourth is the INDENT
+    STACK, and it is the whole discrimination: `h_open` says the landing stands
+    at no open level, so the completed node's content belongs to nothing — the
+    second bare document the scanner refuses AT this landing.  Where the landing
+    rests ON a level the same input is a SIBLING (`a: 1⏎b: 2`) or a dangling run
+    refused one token LATER, so this contradiction is unavailable there and the
+    fallback route is genuinely reached.
 
-    * `h_nopop` says the landing did not dedent.  A landing that pops emits a
-      `blockEnd`, which completes no value, so the check stands aside there by
-      its own reading whatever the columns say;
-    * `h_open` says the landing stands at no open level, so the completed node's
-      content belongs to nothing — the second bare document the scanner refuses
-      AT this landing.  Where the landing rests ON a level the same input is a
-      SIBLING (`a: 1⏎b: 2`) or a dangling run refused one token LATER, so this
-      contradiction is unavailable there and the fallback route is genuinely
-      reached.
-
-    `sc.indents.size ≤ 1` implies the first (`unwindIndents_of_size_le_one`)
-    and, for any state the scanner can actually reach, the second — every
-    landing column is `≥ 0` and a one-entry stack holds the sentinel at `-1`.
-    That last step needs `ScannerState.WellFormed`'s sixth conjunct, which the
-    accumulation does not carry, so the consumers split on the two readings
-    directly rather than on the size. -/
+    The dedent exemption the check is stated with costs no premise of its own
+    (item 146).  A landing that popped rests at the column of the entry it
+    popped down to, so `h_open` refutes it outright — and what pays for that
+    reading is `h_base`, `ScannerState.WellFormed`'s sixth conjunct, which the
+    accumulation carries from `mk'` down. -/
 lemma bareDocument_refutes_landing {sc s_prep : ScannerState} {c : Char}
     (h_bare : scanNextToken_checkBareDocument s_prep = .ok ())
     (h_pre : scanNextToken_preprocess sc = .ok (some (s_prep, c)))
     (h_noflow : s_prep.inFlow = false)
     (h_ska : s_prep.simpleKeyAllowed = true)
-    (h_nopop : s_prep.indents = sc.indents)
+    (h_base : IndentStackBase.SentinelBase sc)
     (h_open : (s_prep.indents.any fun e => e.column == (s_prep.col : Int)) = false)
     (h_tail : CompletedTail sc) : False := by
   obtain ⟨h_real, t, h_t, h_comp⟩ := h_tail
-  have h_lrt := preprocess_lastRealTokenVal_of_indents_eq h_nopop h_real h_pre
+  have h_lrt := preprocess_lastRealTokenVal_of_indents_eq
+    (preprocess_indents_eq_of_no_open_level h_pre h_base h_open) h_real h_pre
   unfold scanNextToken_checkBareDocument at h_bare
   rw [if_pos (by
     have h_lr : lastRealTokenVal? s_prep.tokens = some t := h_lrt.trans h_t
@@ -3950,10 +4122,10 @@ lemma bareDocument_refutes_landing {sc s_prep : ScannerState} {c : Char}
     simp [ScannerState.inFlow, h_noflow, h_ska, h_open, h_lr, h_comp])] at h_bare
   cases h_bare
 
-/-- **§9.2's landing refusal, bundled for a route face** (item 142) — the five
+/-- **§9.2's landing refusal, bundled for a route face** (item 142) — the six
     readings `bareDocument_refutes_landing` spends, held as ONE hypothesis.
 
-    Item 139 spent them one by one at the CONTENT landing, where all five stand
+    Item 139 spent them one by one at the CONTENT landing, where they all stand
     in the same proof.  The block landing's `:`/`?` routes are chosen two lemmas
     further down (`accum_block_on_closeThenBlock` → `indicator_open_map` →
     `colon_open_map`), and a bundle is what crosses that distance without
@@ -3962,24 +4134,27 @@ lemma bareDocument_refutes_landing {sc s_prep : ScannerState} {c : Char}
     The readings are the check's own conjuncts, held where the landing holds
     them: the scanner's verdict AT this landing, the park's own preprocessing,
     the dispatch's block context, the break the landing crossed
-    (`landing_or_park_ska`), and the completed node behind the park —
-    `PendingNode`'s own `CompletedTail` field.  The INDENT STACK is
-    deliberately NOT among them: it is the discriminator, so it stays with the
+    (`landing_or_park_ska`), the completed node behind the park —
+    `PendingNode`'s own `CompletedTail` field — and the stack's base, which the
+    accumulation threads (item 146).  What is deliberately NOT among them is
+    the landing's own COLUMN: that is the discriminator, so it stays with the
     consumer that splits on it. -/
 def BareLandingFacts (sc s_prep : ScannerState) (c : Char) : Prop :=
   scanNextToken_checkBareDocument s_prep = .ok () ∧
   scanNextToken_preprocess sc = .ok (some (s_prep, c)) ∧
   s_prep.inFlow = false ∧
   s_prep.simpleKeyAllowed = true ∧
-  CompletedTail sc
+  CompletedTail sc ∧
+  IndentStackBase.SentinelBase sc
 
-/-- The bundle spent: at a landing that neither dedented nor rests on an open
-    level, this landing does not exist. -/
+/-- The bundle spent: at a landing that stands at no open level, this landing
+    does not exist. -/
 lemma BareLandingFacts.refutes {sc s_prep : ScannerState} {c : Char}
-    (h : BareLandingFacts sc s_prep c) (h_nopop : s_prep.indents = sc.indents)
+    (h : BareLandingFacts sc s_prep c)
     (h_open : (s_prep.indents.any fun e => e.column == (s_prep.col : Int)) = false) :
     False :=
-  bareDocument_refutes_landing h.1 h.2.1 h.2.2.1 h.2.2.2.1 h_nopop h_open h.2.2.2.2
+  bareDocument_refutes_landing h.1 h.2.1 h.2.2.1 h.2.2.2.1 h.2.2.2.2.2 h_open
+    h.2.2.2.2.1
 
 /-- General-column version of `preprocess_some_ssl_comments_col0`.
     When preprocessing returns `some`, extract `SSLComments` disjunction plus
@@ -4309,14 +4484,12 @@ lemma rootMapRoute_or_refused {sc s_prep : ScannerState} {c : Char}
     (h_stream_land : SLYamlStream sp_start sp_land)
     (h_ind : SIndent k sp_land sp_key) :
     ∀ sp_v, SBlockMapEntry k sp_key sp_v → SLYamlStream sp_start sp_v := by
-  by_cases h_np : s_prep.indents = sc.indents
-  · cases h_op : (s_prep.indents.any fun e => e.column == (s_prep.col : Int)) with
-    | false =>
-      match h_ref with
-      | Or.inl h_facts => exact (h_facts.refutes h_np h_op).elim
-      | Or.inr _ => exact rootMapRoute hcol0 h_stream_land h_ind
-    | true => exact rootMapRoute hcol0 h_stream_land h_ind
-  · exact rootMapRoute hcol0 h_stream_land h_ind
+  cases h_op : (s_prep.indents.any fun e => e.column == (s_prep.col : Int)) with
+  | false =>
+    match h_ref with
+    | Or.inl h_facts => exact (h_facts.refutes h_op).elim
+    | Or.inr _ => exact rootMapRoute hcol0 h_stream_land h_ind
+  | true => exact rootMapRoute hcol0 h_stream_land h_ind
 
 /-- `rootMapRouteF` under the same guard — the entries-level twin, refuted at
     the same landings and for the same reason. -/
@@ -4329,14 +4502,12 @@ lemma rootMapRouteF_or_refused {sc s_prep : ScannerState} {c : Char}
     ∀ sp_v, SBlockMapEntry k sp_key sp_v →
     ∀ sp_e, SCompactMapTail k sp_v sp_e →
     ResumeFrames (SLYamlStream sp_start) [] sp_e := by
-  by_cases h_np : s_prep.indents = sc.indents
-  · cases h_op : (s_prep.indents.any fun e => e.column == (s_prep.col : Int)) with
-    | false =>
-      match h_ref with
-      | Or.inl h_facts => exact (h_facts.refutes h_np h_op).elim
-      | Or.inr _ => exact rootMapRouteF hcol0 h_stream_land h_ind
-    | true => exact rootMapRouteF hcol0 h_stream_land h_ind
-  · exact rootMapRouteF hcol0 h_stream_land h_ind
+  cases h_op : (s_prep.indents.any fun e => e.column == (s_prep.col : Int)) with
+  | false =>
+    match h_ref with
+    | Or.inl h_facts => exact (h_facts.refutes h_op).elim
+    | Or.inr _ => exact rootMapRouteF hcol0 h_stream_land h_ind
+  | true => exact rootMapRouteF hcol0 h_stream_land h_ind
 
 /-- **`rootMapRoute`'s tightening-ready twin** (item 116): the same landing
     coordinates spent as the stream's FIRST document.  `rootMapRoute` hands
@@ -4486,18 +4657,17 @@ lemma bareNodeRoute_or_refused {sc s_prep : ScannerState} {c : Char}
     (h_pre : scanNextToken_preprocess sc = .ok (some (s_prep, c)))
     (h_noflow : s_prep.inFlow = false)
     (h_ska : s_prep.simpleKeyAllowed = true)
+    (h_base : IndentStackBase.SentinelBase sc)
     (h_tail : CompletedTail sc ∨ True) :
     ∀ sp_m, SBlockNode 0 .blockIn sp_anchor sp_m →
       SLYamlStream sp_start sp_m := by
-  by_cases h_np : s_prep.indents = sc.indents
-  · cases h_op : (s_prep.indents.any fun e => e.column == (s_prep.col : Int)) with
-    | false =>
-      match h_tail with
-      | Or.inl h_tl =>
-        exact (bareDocument_refutes_landing h_bare h_pre h_noflow h_ska h_np h_op h_tl).elim
-      | Or.inr _ => exact bareNodeRoute h_stream
-    | true => exact bareNodeRoute h_stream
-  · exact bareNodeRoute h_stream
+  cases h_op : (s_prep.indents.any fun e => e.column == (s_prep.col : Int)) with
+  | false =>
+    match h_tail with
+    | Or.inl h_tl =>
+      exact (bareDocument_refutes_landing h_bare h_pre h_noflow h_ska h_base h_op h_tl).elim
+    | Or.inr _ => exact bareNodeRoute h_stream
+  | true => exact bareNodeRoute h_stream
 
 /-- **`topLevelFlowResumeSep`, guarded by §9.2's landing refusal** (item 143) —
     the FLOW side of `bareNodeRoute_or_refused`, and the same halving read at
@@ -4526,14 +4696,12 @@ lemma topLevelFlowResumeSep_or_refused {sc s_prep : ScannerState} {c : Char}
     (h_sep : SSeparateLines 0 sp_mid sp_br) :
     ∀ sp_ne sp_m, SFlowContent 0 .flowOut sp_br sp_ne →
       SSLComments sp_ne sp_m → SLYamlStream sp_start sp_m := by
-  by_cases h_np : s_prep.indents = sc.indents
-  · cases h_op : (s_prep.indents.any fun e => e.column == (s_prep.col : Int)) with
-    | false =>
-      match h_ref with
-      | Or.inl h_facts => exact (h_facts.refutes h_np h_op).elim
-      | Or.inr _ => exact topLevelFlowResumeSep h_stream h_sep
-    | true => exact topLevelFlowResumeSep h_stream h_sep
-  · exact topLevelFlowResumeSep h_stream h_sep
+  cases h_op : (s_prep.indents.any fun e => e.column == (s_prep.col : Int)) with
+  | false =>
+    match h_ref with
+    | Or.inl h_facts => exact (h_facts.refutes h_op).elim
+    | Or.inr _ => exact topLevelFlowResumeSep h_stream h_sep
+  | true => exact topLevelFlowResumeSep h_stream h_sep
 
 /-- **The suffix twin of `content_dispatch_after_close`'s bare-document
     route**: a completed top-level node lands in the open arm's slot instead
@@ -4941,147 +5109,6 @@ lemma preprocess_some_separate_0_anyCol (sc : ScannerState) (sp : SurfPos)
     -- GOpt.some: unreachable — SCNbCommentText sp_ws sp_ws is impossible
     have : SCNbCommentText sp_ws sp_ws := h_eq ▸ h
     exact absurd this (scNbCommentText_irrefl sp_ws)
-
-/-- **The trailing-content check preprocessing runs after its own unwind, read
-    as a DISJUNCTION** (item 66).  `scanNextToken_preprocess` refuses a landing
-    that popped indents and still sits deeper than what is left of the floor
-    (`trailingContent`), so an accepted step tells the accumulation which case
-    it is in: either the stack came through untouched — and then the caller's
-    own `currentIndent` is still the one the dispatch will read — or the
-    landing is at or left of the floor, which is `[187]`'s own condition for
-    refusing a flow open. -/
-lemma preprocess_indents_or_underIndent {sc s_prep : ScannerState} {c : Char}
-    (hok : scanNextToken_preprocess sc = .ok (some (s_prep, c))) :
-    s_prep.indents = sc.indents ∨ (s_prep.col : Int) ≤ s_prep.currentIndent := by
-  unfold scanNextToken_preprocess at hok
-  simp only [bind, Except.bind, pure, Except.pure] at hok
-  split at hok
-  · simp at hok
-  · rename_i s_content h_skip
-    have h_ci : s_content.indents = sc.indents :=
-      skipToContent_preserves_indents sc s_content h_skip
-    split at hok
-    · simp at hok
-    · split at hok
-      · -- the armed unwind ran
-        split at hok
-        · simp at hok
-        · rename_i h_nott
-          split at hok
-          · simp at hok
-          · have h := Except.ok.inj hok; injection h with h
-            obtain ⟨h1, h2⟩ := Prod.mk.inj h; subst h1; subst h2
-            rcases unwindIndents_shrink_or_eq s_content (s_content.col : Int) with h_sh | h_eq
-            · refine Or.inr ?_
-              simp only [Bool.and_eq_true, decide_eq_true_eq, not_and, Int.not_lt] at h_nott
-              have h1 : (unwindIndents s_content (s_content.col : Int)).indents.size <
-                  s_content.indents.size := h_sh
-              have h2 := h_nott h1
-              simp only [saveSimpleKey_col, ScannerState.currentIndent,
-                saveSimpleKey_preserves_indents]
-              simpa [ScannerState.currentIndent] using h2
-            · exact Or.inl ((saveSimpleKey_preserves_indents _).trans
-                (by simpa using h_eq.trans h_ci))
-      · -- no unwind: the stack is the walk's, which is the caller's
-        split at hok
-        · simp at hok
-        · split at hok
-          · simp at hok
-          · have h := Except.ok.inj hok; injection h with h
-            obtain ⟨h1, h2⟩ := Prod.mk.inj h; subst h1; subst h2
-            exact Or.inl ((saveSimpleKey_preserves_indents s_content).trans h_ci)
-
-/-- **The landing sits AT the level it lands on** (item 127) — the same step
-    read from BOTH sides, which is the scanner half of the frames ↔
-    indent-stack coupling (DOCS's U3).
-
-    Item 66 above reads preprocessing's trailing-content check: a landing that
-    popped is at or left of what is left of the floor.  The unwind itself gives
-    the other inequality — the loop runs until the top is at or left of the
-    column it unwinds to (`unwindIndents_terminal`) — so the two together pin
-    the landing at the top entry's own column, and the loop only pops, so that
-    entry was already on the incoming stack (`unwindIndents_back_mem`).
-
-    `ResumeFrames.resumeAt` asks only for MEMBERSHIP of the landing width in the
-    frames; this says the scanner knows something stronger.  What is still
-    missing to refute `KeyPackPunt.dedent` is the surface direction — that every
-    open mapping level of `sc.indents` is one of the frames — which is an
-    accumulation-invariant conjunct no carrier holds today (§0b).
-
-    **The sentinel escape is DISCHARGED** (item 128; item 127 carried it as a
-    `s_prep.indents.size ≤ 1` disjunct).  A stack popped to a single entry rests
-    on `{ column := -1 }`, so preprocessing's own `col ≤ currentIndent` cannot
-    hold there — but saying so needs `ScannerState.WellFormed`'s sixth conjunct,
-    which the accumulation did not carry.  `IndentStackBase.SentinelBase` is that
-    conjunct alone, threaded through every scanner step, and it is a premise
-    here. -/
-lemma preprocess_landing_at_level {sc s_prep : ScannerState} {c : Char}
-    (hok : scanNextToken_preprocess sc = .ok (some (s_prep, c)))
-    (h_pop : s_prep.indents ≠ sc.indents)
-    (h_base : IndentStackBase.SentinelBase sc) :
-    ∃ e, s_prep.indents.back? = some e ∧ e ∈ sc.indents ∧
-      e.column = (s_prep.col : Int) := by
-  have h_le : (s_prep.col : Int) ≤ s_prep.currentIndent :=
-    (preprocess_indents_or_underIndent hok).resolve_left h_pop
-  have h_ge : (s_prep.currentIndent ≤ (s_prep.col : Int) ∧
-      ∀ e, s_prep.indents.back? = some e → e ∈ sc.indents) ∨
-      s_prep.indents.size ≤ 1 := by
-    unfold scanNextToken_preprocess at hok
-    simp only [bind, Except.bind, pure, Except.pure] at hok
-    split at hok
-    · simp at hok
-    · rename_i s_content h_skip
-      have h_ci : s_content.indents = sc.indents :=
-        skipToContent_preserves_indents sc s_content h_skip
-      split at hok
-      · simp at hok
-      · split at hok
-        · split at hok
-          · simp at hok
-          · split at hok
-            · simp at hok
-            · have h := Except.ok.inj hok; injection h with h
-              obtain ⟨h1, h2⟩ := Prod.mk.inj h; subst h1; subst h2
-              have hind : (saveSimpleKey { unwindIndents s_content (s_content.col : Int) with
-                  needIndentCheck := false }).indents
-                  = (unwindIndents s_content (s_content.col : Int)).indents :=
-                saveSimpleKey_preserves_indents _
-              have hcol : (saveSimpleKey { unwindIndents s_content (s_content.col : Int) with
-                  needIndentCheck := false }).col = s_content.col := by
-                rw [saveSimpleKey_col]
-                exact unwindIndents_col s_content (s_content.col : Int)
-              rcases unwindIndents_terminal s_content (s_content.col : Int) with h | h
-              · refine Or.inl ⟨?_, ?_⟩
-                · rw [currentIndent_of_indents_eq hind, hcol]; exact h
-                · intro e he
-                  rw [hind] at he
-                  exact h_ci ▸ unwindIndents_back_mem s_content _ e he
-              · exact Or.inr (by rw [hind]; exact h)
-        · split at hok
-          · simp at hok
-          · split at hok
-            · simp at hok
-            · have h := Except.ok.inj hok; injection h with h
-              obtain ⟨h1, h2⟩ := Prod.mk.inj h; subst h1; subst h2
-              exact absurd ((saveSimpleKey_preserves_indents s_content).trans h_ci) h_pop
-  rcases h_ge with ⟨h_ge, h_mem⟩ | h_small
-  · have heq : s_prep.currentIndent = (s_prep.col : Int) := Int.le_antisymm h_ge h_le
-    obtain ⟨e, hb⟩ : ∃ e, s_prep.indents.back? = some e := by
-      rcases hb : s_prep.indents.back? with _ | e
-      · exfalso
-        rw [ScannerState.currentIndent, hb] at heq
-        simp only [] at heq
-        omega
-      · exact ⟨e, rfl⟩
-    refine ⟨e, hb, h_mem e hb, ?_⟩
-    rw [ScannerState.currentIndent, hb] at heq
-    exact heq
-  · -- Item 128: the stack popped to its base, which sits at `-1` — and
-    -- preprocessing accepted a landing at or right of it.
-    exfalso
-    rw [(IndentStackBase.preprocess_base hok h_base).currentIndent_of_size_le_one
-      h_small] at h_le
-    omega
 
 /-- **The landing, read as MEMBERSHIP of the frames** (item 129) — the surface
     half of the same coupling.  `preprocess_landing_at_level` pins the landing
@@ -7741,6 +7768,10 @@ lemma flowKeyRoute_of_root {m : Nat} {sp_start sp_scan sp_prep : SurfPos}
     -- assembles the rest (`h_land.2.2` is the flag's own source).  The no-break
     -- arm is not a landing and keeps `rootMapRoute` unguarded.
     (h_bare : scanNextToken_checkBareDocument s_prep = .ok ())
+    -- Item 146: the stack's BASE, carried by the accumulation from `mk'`
+    -- down.  §9.2's landing refusal spends it to read the dedent exemption
+    -- off the landing's column instead of splitting on it.
+    (h_base : IndentStackBase.SentinelBase sc)
     (h_tail143 : CompletedTail sc ∨ True) :
     (∃ (k : Nat) (sp_key : SurfPos),
       (∀ sp_v, SBlockMapEntry k sp_key sp_v → SLYamlStream sp_start sp_v) ∧
@@ -7788,7 +7819,8 @@ lemma flowKeyRoute_of_root {m : Nat} {sp_start sp_scan sp_prep : SurfPos}
       have h_ref_land : BareLandingFacts sc s_prep c ∨ True :=
         h_tail143.imp (fun h_tl =>
           ⟨h_bare, h_preprocess, h_noflow,
-           landing_or_park_ska h_noflow h_land.2.2 h_park h_preprocess, h_tl⟩) id
+           landing_or_park_ska h_noflow h_land.2.2 h_park h_preprocess, h_tl,
+           h_base⟩) id
       refine Or.inl ⟨w, sp_prep,
         (match h_sfx, h_nodoc with
          | Or.inl sfx, _ => suffixMapRoute h_land.2.1 (sfx sp_mid h_land.1) h_ind'
@@ -8446,6 +8478,10 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
     -- the allowDirectives update and before §8.1's floor, so the state it reads
     -- is preprocessing's own, and both fallbacks below spend it.
     (h_bare : scanNextToken_checkBareDocument s_prep = .ok ())
+    -- Item 146: the stack's BASE, carried by the accumulation from `mk'`
+    -- down.  §9.2's landing refusal spends it to read the dedent exemption
+    -- off the landing's column instead of splitting on it.
+    (h_base : IndentStackBase.SentinelBase sc)
     (mk : ∀ (n : Nat) (sp_before : SurfPos),
         FlowBaseRoutes sp_start n sp_prep s_prep.simpleKey.pos.col →
         FlowStackB sp_start n s_prep.simpleKey.pos.col 1 s'.flowStack #[false]
@@ -8586,7 +8622,8 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
       -- routes this arm hands the frame — the collection's own (`[1]⏎[2]`) and
       -- the mapping it may key (`[1]⏎[2]: b`).
       have h_ref_land : BareLandingFacts sc s_prep c ∨ True :=
-        h_tail143.imp (fun h_tl => ⟨h_bare, h_preprocess, h_noflow_prep, h_ska, h_tl⟩) id
+        h_tail143.imp (fun h_tl =>
+          ⟨h_bare, h_preprocess, h_noflow_prep, h_ska, h_tl, h_base⟩) id
       exact ⟨sp_mid, sp_mid, sp_open, sp_open, h_stream_mid, BlockStack.nil sp_mid,
              h_kpkg _ _ _ (Or.inr trivial) (Nat.zero_le _) (mk 0 sp_mid ⟨(
                -- Item 118: the value route chosen by the face — the open
@@ -8603,7 +8640,7 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
                -- LANDING reading applies here — this branch is the one that
                -- crossed a break, and the other never reaches `mk`.
                flowKeyRoute_of_root (Or.inr trivial) h_noflow_prep h_park h_close h_corr hcorr_prep
-                 h_preprocess h_sfx (Or.inr trivial) h_bare h_tail143,
+                 h_preprocess h_sfx (Or.inr trivial) h_bare h_base h_tail143,
                Or.inr trivial⟩),
              PendingNode.noPending sp_start sp_open (Or.inr (inFlow_of_flowLevel_eq h_fl1))
                (Or.inr (inFlow_of_flowLevel_eq h_fl1))
@@ -8685,7 +8722,7 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
                hcorr_prep h_preprocess (Or.inr trivial)
                (Or.inl (fun sp_m h_ssl =>
                  ssl_comments_extend_prefixes (h_nodoc h_scflow) h_ssl))
-               h_bare (Or.inr trivial),
+               h_bare h_base (Or.inr trivial),
              Or.inr trivial⟩),
            PendingNode.noPending sp_start sp_open (Or.inr (inFlow_of_flowLevel_eq h_fl1))
                (Or.inr (inFlow_of_flowLevel_eq h_fl1))
@@ -10421,7 +10458,11 @@ lemma accum_step_flow (sc : ScannerState)
     -- that did not carry it, and `scanNextToken` has it in scope at the call —
     -- the check runs between the structural dispatch and this one, exactly as
     -- §8.1's floor above does.
-    (h_bare : scanNextToken_checkBareDocument s_prep = .ok ()) :
+    (h_bare : scanNextToken_checkBareDocument s_prep = .ok ())
+    -- Item 146: the stack's BASE, carried by the accumulation from `mk'`
+    -- down.  §9.2's landing refusal spends it to read the dedent exemption
+    -- off the landing's column instead of splitting on it.
+    (h_base : IndentStackBase.SentinelBase sc) :
     ∃ sp_gram' sp_block' sp_flow' sp_scan',
       SLYamlStream sp_start sp_gram' ∧
       BlockStack sp_gram' sp_block' ∧
@@ -10505,7 +10546,7 @@ lemma accum_step_flow (sc : ScannerState)
                   allowDirectives_update_indents])
           (by rw [ScannerCorrectness.scanFlowSequenceStart_preserves_implicitValueLine,
                   allowDirectives_update_implicitValueLine])
-          h_bare
+          h_bare h_base
           (fun _ _ resume => by
             rw [ScannerFlowCollection.scanFlowSequenceStart_pushes_true, h_ad_ks0,
                 (tailOf_scanFlowSequenceStart _).1,
@@ -10558,7 +10599,7 @@ lemma accum_step_flow (sc : ScannerState)
                       allowDirectives_update_indents])
               (by rw [ScannerCorrectness.scanFlowMappingStart_preserves_implicitValueLine,
                       allowDirectives_update_implicitValueLine])
-              h_bare
+              h_bare h_base
               (fun _ _ resume => by
                 rw [ScannerFlowCollection.scanFlowMappingStart_pushes_false, h_ad_ks0,
                     (tailOf_scanFlowMappingStart _).1,
@@ -14736,6 +14777,10 @@ lemma accum_block_on_closeThenBlock
     -- content parks and `Or.inr` for the parks whose tail is a `[96]` run or a
     -- block indicator, where the check stands aside by its own reading. ═══
     (h_bare : scanNextToken_checkBareDocument s_prep = .ok ())
+    -- Item 146: the stack's BASE, carried by the accumulation from `mk'`
+    -- down.  §9.2's landing refusal spends it to read the dedent exemption
+    -- off the landing's column instead of splitting on it.
+    (h_base : IndentStackBase.SentinelBase sc)
     (h_tail139 : CompletedTail sc ∨ True) :
     ∃ sp_gram' sp_block' sp_flow' sp_scan',
       SLYamlStream sp_start sp_gram' ∧
@@ -14869,7 +14914,8 @@ lemma accum_block_on_closeThenBlock
     landing_or_park_ska h_noflow h_larm h_park h_preprocess
   -- …and the bundle the `:`/`?` routes take, two lemmas down.
   have h_ref_land : BareLandingFacts sc s_prep c ∨ True :=
-    h_tail139.imp (fun h_tl => ⟨h_bare, h_preprocess, h_noflow, h_ska, h_tl⟩) id
+    h_tail139.imp (fun h_tl =>
+      ⟨h_bare, h_preprocess, h_noflow, h_ska, h_tl, h_base⟩) id
   -- Item 118: the suffix face instantiated at this landing, and the route a
   -- completed top-level node takes off it — the open arm's slot for a `...`
   -- park, the fresh bare document otherwise.  The progress stream stays
@@ -14893,7 +14939,7 @@ lemma accum_block_on_closeThenBlock
     -- fallback, and it is the sixth `[210]` construction site. ═══
     | Or.inr _ =>
         bareNodeRoute_or_refused h_stream_new h_bare h_preprocess h_noflow h_ska
-          h_tail139
+          h_base h_tail139
   -- Item 22: the whites before the indicator are the collection's own
   -- indentation; `nil` is `k = 0`, and only a tab still defers.
   have h_eq := h_pk.resolve_right (by simp [preprocess_some_peek h_preprocess])
@@ -15326,6 +15372,10 @@ lemma accum_block_on_pendingContent
     -- block landing unchanged; `h_tail139` is this park's own field, and a
     -- content park always has it. ═══
     (h_bare : scanNextToken_checkBareDocument s_prep = .ok ())
+    -- Item 146: the stack's BASE, carried by the accumulation from `mk'`
+    -- down.  §9.2's landing refusal spends it to read the dedent exemption
+    -- off the landing's column instead of splitting on it.
+    (h_base : IndentStackBase.SentinelBase sc)
     (h_tail139 : CompletedTail sc) :
     ∃ sp_gram' sp_block' sp_flow' sp_scan',
       SLYamlStream sp_start sp_gram' ∧
@@ -15340,7 +15390,7 @@ lemma accum_block_on_pendingContent
       (accum_block_on_closeThenBlock sc sp_start sp_block_ctx sp_scan s_prep s' ':'
         sp_prep sp_scan' h_close_pending h_stream_fallback h_vpack (Or.inr trivial) hcorr_prep hcorr_result
         h_corr h_noflow (h_park.imp_left And.left) h_preprocess h_dispatch (Or.inr trivial)
-        (Or.inr trivial) h_bare (Or.inl h_tail139))
+        (Or.inr trivial) h_bare h_base (Or.inl h_tail139))
       hcorr_prep hcorr_result h_corr h_noflow h_preprocess h_dispatch
   · -- Item 37: `c ≠ ':'` at a park that follows a complete node — §7.5 left
     -- the rest of the line at `NodeStop`, and neither remaining indicator is
@@ -15351,7 +15401,7 @@ lemma accum_block_on_pendingContent
         ((block_indicator_char h_dispatch).imp id (fun h => h.resolve_left hc)) h_res).elim)
       (Or.inr trivial) (Or.inr trivial) hcorr_prep hcorr_result h_corr h_noflow
       (h_park.imp_left And.left) h_preprocess h_dispatch (Or.inr trivial) (Or.inr trivial)
-      h_bare (Or.inl h_tail139)
+      h_bare h_base (Or.inl h_tail139)
 
 -- Block dispatch with pendingBlockContent: accumulate entries via h_entry_old.
 -- Item 22: the entry index `n` is the pending's own, not a hardcoded 0 — a
@@ -15410,6 +15460,10 @@ lemma accum_block_on_pendingBlockContent
         else s_prep) c = .ok (some s'))
     -- Item 142: §9.2's landing refusal, as at `accum_block_on_pendingContent`.
     (h_bare : scanNextToken_checkBareDocument s_prep = .ok ())
+    -- Item 146: the stack's BASE, carried by the accumulation from `mk'`
+    -- down.  §9.2's landing refusal spends it to read the dedent exemption
+    -- off the landing's column instead of splitting on it.
+    (h_base : IndentStackBase.SentinelBase sc)
     (h_tail139 : CompletedTail sc) :
     ∃ sp_gram' sp_block' sp_flow' sp_scan',
       SLYamlStream sp_start sp_gram' ∧
@@ -15507,7 +15561,7 @@ lemma accum_block_on_pendingBlockContent
           (fun h_res _ => (nodeStop_refutes_inline_residue h_line (Or.inl rfl) h_res).elim)
           (Or.inr trivial) (Or.inr trivial) hcorr_prep hcorr_result h_corr h_noflow
           (h_park.imp_left And.left) h_preprocess h_dispatch (Or.inr trivial) (Or.inr trivial)
-          h_bare (Or.inl h_tail139)
+          h_bare h_base (Or.inl h_tail139)
     · -- c ≠ '-' at the landing: a ':' opens `[189]`'s empty-key entry there
       -- (item 13), a '?' opens `[186]`'s explicit-key one (item 20) — one arm.
       by_cases hcv : c = ':' ∨ c = '?'
@@ -15531,7 +15585,7 @@ lemma accum_block_on_pendingBlockContent
             -- crossed (`landing_or_park_ska`).
             (Or.inl ⟨h_bare, h_preprocess, h_noflow,
               landing_or_park_ska h_noflow h_larm (h_park.imp_left And.left) h_preprocess,
-              h_tail139⟩)
+              h_tail139, h_base⟩)
         -- Item 92: the frame's VALUE line fires on the `:` at its own column
         -- (`[190]`'s `s-indent(nv)` is exact) — the parked content closes as
         -- the compact KEY with a nil tail (`? - a⏎: - w`); any other shape
@@ -15628,7 +15682,11 @@ lemma accum_block_on_pendingBlock
     -- Item 142: §9.2's landing refusal, threaded past this park.  Its own
     -- tail is the `-` that opened the entry, so it pays nothing; the thread
     -- exists because the landing under it does.
-    (h_bare : scanNextToken_checkBareDocument s_prep = .ok ()) :
+    (h_bare : scanNextToken_checkBareDocument s_prep = .ok ())
+    -- Item 146: the stack's BASE, carried by the accumulation from `mk'`
+    -- down.  §9.2's landing refusal spends it to read the dedent exemption
+    -- off the landing's column instead of splitting on it.
+    (h_base : IndentStackBase.SentinelBase sc) :
     ∃ sp_gram' sp_block' sp_flow' sp_scan',
       SLYamlStream sp_start sp_gram' ∧
       BlockStack sp_gram' sp_block' ∧
@@ -15776,7 +15834,7 @@ lemma accum_block_on_pendingBlock
         exact accum_block_on_closeThenBlock sc sp_start sp_block_ctx sp_scan s_prep s' '-'
           _ sp_scan' h_close_pending (fun _ _ => h_stream_fallback) (Or.inr trivial) (Or.inr trivial) hcorr_prep hcorr_result
           h_corr h_noflow (Or.inl h_sk) h_preprocess h_dispatch (Or.inr trivial)
-          (Or.inr trivial) h_bare (Or.inr trivial)
+          (Or.inr trivial) h_bare h_base (Or.inr trivial)
   · -- c ≠ '-' at the landing: a ':' opens `[189]`'s empty-key entry there
     -- (item 13), a '?' opens `[186]`'s explicit-key one (item 20) — one arm.
     by_cases hcv : c = ':' ∨ c = '?'
@@ -15984,7 +16042,11 @@ lemma accum_block_pending (sc : ScannerState)
     -- The check runs before both dispatches, so this is item 139's thread
     -- read at the block one; each arm below decides whether its park can pay
     -- the completed tail that goes with it. ═══
-    (h_bare : scanNextToken_checkBareDocument s_prep = .ok ()) :
+    (h_bare : scanNextToken_checkBareDocument s_prep = .ok ())
+    -- Item 146: the stack's BASE, carried by the accumulation from `mk'`
+    -- down.  §9.2's landing refusal spends it to read the dedent exemption
+    -- off the landing's column instead of splitting on it.
+    (h_base : IndentStackBase.SentinelBase sc) :
     ∃ sp_gram' sp_block' sp_flow' sp_scan',
       SLYamlStream sp_start sp_gram' ∧
       BlockStack sp_gram' sp_block' ∧
@@ -16026,7 +16088,7 @@ lemma accum_block_pending (sc : ScannerState)
       (Or.inr trivial)
       -- Item 142: a `...` marker does not complete a value, so §9.2's check
       -- stands aside here by its own reading and this park pays nothing.
-      h_bare (Or.inr trivial)
+      h_bare h_base (Or.inr trivial)
   | pendingDocStart _ _ _ h_doc_route h_nic48 h_real48 h_ds48 h_arm77 =>
     -- ═══ Item 48: the marker still on the line refutes all three indicators
     -- — B1/B2's `docStartOnLine` for `-`/`?`, B4 for `:` — so the arm's
@@ -16049,7 +16111,7 @@ lemma accum_block_pending (sc : ScannerState)
         h_doc_route sp (GAlt.left sp_scan sp (SLBareDocument.mk sp_scan sp h_bn))⟩))
       -- Item 142: `---` is not a completed value either, and the marker arm
       -- above takes this landing anyway.
-      h_bare (Or.inr trivial)
+      h_bare h_base (Or.inr trivial)
   | pendingContent _ _ _ h_line _ h_key h_stale47 h_vpack51 h_arm77 _ _ _ h_tail139 =>
     -- Item 15: the same-line `:` may fire the implicit-key coupling.
     -- Item 37: what the caller still owes is the `:` alone.
@@ -16058,7 +16120,8 @@ lemma accum_block_pending (sc : ScannerState)
     exact accum_block_on_pendingContent sc sp_start sp_block sp_block sp_scan s_prep s' c
       sp_prep sp_scan' h_stream_block
       h_close_pending h_line h_key (fun _ _ => h_stream_block) h_vpack51 hcorr_prep hcorr_result h_corr
-      h_noflow h_kbc h_scf h_stale47 h_arm77 h_preprocess h_dispatch h_bare h_tail139
+      h_noflow h_kbc h_scf h_stale47 h_arm77 h_preprocess h_dispatch h_bare h_base
+      h_tail139
   | pendingProps _ _ _ ha ht _ sp_p _ h_sep_p h_run h_nic48 h_real48 h_anchor48 h_tag48 _ h_key48 _
       h_col0_p _ h_ska79 h_kslot91 =>
     -- ═══ Item 48: a `-`/`?` behind a parked property run is refused by the
@@ -16085,7 +16148,7 @@ lemma accum_block_pending (sc : ScannerState)
            | Or.inr _ => Or.inr trivial)
           (Or.inr trivial) hcorr_prep
           hcorr_result h_corr h_noflow (Or.inr h_col0_p) h_preprocess h_dispatch
-          (Or.inr trivial) (Or.inr trivial) h_bare
+          (Or.inr trivial) (Or.inr trivial) h_bare h_base
           -- Item 142: a parked `[96]` run's last token is a PROPERTY, which
           -- `completesFlowValue` excludes — item 139's `Or.inr`, re-read here.
           (Or.inr trivial))
@@ -16101,12 +16164,13 @@ lemma accum_block_pending (sc : ScannerState)
             (preprocess_preserves_implicitValueLine sc s_prep c h_preprocess)
             (noflow_disp_of_noflow h_noflow) h_pay h_dispatch).elim)
         (Or.inr trivial) (Or.inr trivial) hcorr_prep hcorr_result h_corr h_noflow (Or.inr h_col0_p)
-        h_preprocess h_dispatch (Or.inr trivial) (Or.inr trivial) h_bare (Or.inr trivial)
+        h_preprocess h_dispatch (Or.inr trivial) (Or.inr trivial) h_bare h_base
+        (Or.inr trivial)
   | pendingFlow _ _ _ _ h_arm77 =>
     exact accum_block_on_closeThenBlock sc sp_start sp_block sp_scan s_prep s' c sp_prep sp_scan'
       h_close_pending (fun _ _ => h_stream_block) (Or.inr trivial) (Or.inr trivial) hcorr_prep
       hcorr_result h_corr h_noflow h_arm77 h_preprocess h_dispatch (Or.inr trivial)
-      (Or.inr trivial) h_bare
+      (Or.inr trivial) h_bare h_base
       -- Item 142: this park's producer is `block_dispatch_deferred`, so the
       -- token behind it is a `-`, `?` or `:` — the third place item 102's
       -- split keeps `completesFlowValue` false by construction.
@@ -16136,7 +16200,7 @@ lemma accum_block_pending (sc : ScannerState)
                  sp_i sp_c h_ind h_lit sp_v h_sbi⟩
          | Or.inr _ => Or.inr trivial)
         (Or.inr trivial) hcorr_prep hcorr_result h_corr h_noflow (Or.inl h_sk58)
-        h_preprocess h_dispatch (Or.inr trivial) (Or.inr trivial) h_bare
+        h_preprocess h_dispatch (Or.inr trivial) (Or.inr trivial) h_bare h_base
         -- Item 142: the token behind a value park is the `:` that opened it.
         (Or.inr trivial)
     · exact accum_block_on_closeThenBlock sc sp_start sp_block sp_scan s_prep s' c sp_prep sp_scan'
@@ -16168,7 +16232,7 @@ lemma accum_block_pending (sc : ScannerState)
               | Or.inr _ => Or.inr trivial)⟩
          | Or.inr _ => Or.inr trivial)
         hcorr_prep hcorr_result h_corr h_noflow (Or.inl h_sk58) h_preprocess h_dispatch
-        (Or.inr trivial) (Or.inr trivial) h_bare (Or.inr trivial)
+        (Or.inr trivial) (Or.inr trivial) h_bare h_base (Or.inr trivial)
   | pendingBlockContent _ _ _ n_old h_line _h_closable h_entry_old h_key_old h_stale47 h_arm77
       h_kslot92 _ _ h_tail139 =>
     -- Item 22: the pending's own entry index rides through; the `n ≠ 0`
@@ -16177,11 +16241,12 @@ lemma accum_block_pending (sc : ScannerState)
     exact accum_block_on_pendingBlockContent sc sp_start sp_block sp_block sp_scan s_prep s' c
       sp_prep sp_scan' n_old h_stream_block h_close_pending h_line (fun _ _ => h_stream_block)
       h_entry_old h_kslot92 h_key_old h_stale47 h_kbc h_scf hcorr_prep hcorr_result h_corr h_noflow
-      h_arm77 h_preprocess h_dispatch h_bare h_tail139
+      h_arm77 h_preprocess h_dispatch h_bare h_base h_tail139
   | pendingBlock _ _ _ n_old _h_close h_close_entry_old _h_floor h_sk_old h_col_old h_kslot92 =>
     exact accum_block_on_pendingBlock sc sp_start sp_block sp_block sp_scan s_prep s' c sp_prep
       sp_scan' n_old h_stream_block h_close_pending h_stream_block h_close_entry_old h_kslot92
       h_sk_old h_col_old hcorr_prep hcorr_result h_corr h_noflow h_preprocess h_dispatch h_bare
+      h_base
 
 lemma accum_step_block (sc : ScannerState)
     (sp_start sp_gram sp_block sp_flow sp_scan : SurfPos)
@@ -16206,7 +16271,11 @@ lemma accum_step_block (sc : ScannerState)
     -- Item 142: §9.2's landing refusal, carried in from
     -- `scanNextToken_accum_step` — the check runs between the structural and
     -- the block dispatch, so the step already holds it.
-    (h_bare : scanNextToken_checkBareDocument s_prep = .ok ()) :
+    (h_bare : scanNextToken_checkBareDocument s_prep = .ok ())
+    -- Item 146: the stack's BASE, carried by the accumulation from `mk'`
+    -- down.  §9.2's landing refusal spends it to read the dedent exemption
+    -- off the landing's column instead of splitting on it.
+    (h_base : IndentStackBase.SentinelBase sc) :
     ∃ sp_gram' sp_block' sp_flow' sp_scan',
       SLYamlStream sp_start sp_gram' ∧
       BlockStack sp_gram' sp_block' ∧
@@ -16241,7 +16310,7 @@ lemma accum_step_block (sc : ScannerState)
     obtain ⟨g', bl', fl', sn', q1, q2, q3, q4, q5⟩ :=
       accum_block_pending sc sp_start sp_flow sp_scan s_prep s' c
         (absorb_stacksB sp_start sp_gram sp_block sp_flow h_stream h_stack h_flow)
-        h_kbc h_scf (h_pending h0) h_corr h_noflow h_preprocess h_dispatch h_bare
+        h_kbc h_scf (h_pending h0) h_corr h_noflow h_preprocess h_dispatch h_bare h_base
     exact ⟨g', bl', fl', sn', q1, q2, ⟨0, 0, #[], q3.retail, rfl, Nat.zero_le _, fun h => absurd h (by omega)⟩, fun _ => q4, q5,
            fun h => absurd h (by omega)⟩
   · -- ═══ DEPTH ≥ 1: three arms — one free, one BUILT here, one NOT. ═══
@@ -22207,6 +22276,10 @@ lemma accum_content_pending (sc : ScannerState)
     -- shape one check earlier and one polarity over.  `scanNextToken` runs this
     -- one BEFORE the `allowDirectives` update, so it reads `s_prep` itself.
     (h_bare : scanNextToken_checkBareDocument s_prep = .ok ())
+    -- Item 146: the stack's BASE, carried by the accumulation from `mk'`
+    -- down.  §9.2's landing refusal spends it to read the dedent exemption
+    -- off the landing's column instead of splitting on it.
+    (h_base : IndentStackBase.SentinelBase sc)
     (h_not_doc : (if s_prep.allowDirectives then
           { s_prep with allowDirectives := false, documentEverStarted := true }
         else s_prep).col = 0 →
@@ -22339,7 +22412,8 @@ lemma accum_content_pending (sc : ScannerState)
           ((h_pending.arm_or_col h_scflow).resolve_right (by omega)) h_preprocess
       -- …and the bundle the root fallback inside `content_dispatch_routed` takes.
       have h_ref_land : BareLandingFacts sc s_prep c ∨ True :=
-        h_tail139.imp (fun h_tl => ⟨h_bare, h_preprocess, h_noflow_prep, h_ska, h_tl⟩) id
+        h_tail139.imp (fun h_tl =>
+          ⟨h_bare, h_preprocess, h_noflow_prep, h_ska, h_tl, h_base⟩) id
       -- ═══ Item 137: a `---` park's landing hands the node to the MARKER's own
       -- document.  The anchor moves from the landing back to the park —
       -- `content_dispatch_routed` takes it as a parameter — so the crossed
@@ -22376,7 +22450,7 @@ lemma accum_content_pending (sc : ScannerState)
         -- reads is the park's own (item 76/77) carried across preprocessing. ═══
         | Or.inr _ =>
             bareNodeRoute_or_refused h_stream_mid h_bare h_preprocess h_noflow_prep
-              h_ska h_tail139
+              h_ska h_base h_tail139
       exact content_dispatch_routed sp_start sp_mid sp_mid s_prep s' c sp_prep sp_scan'
         h_stream_mid h_sep (nic_false_of_flow_disp h_preprocess h_flow_disp)
         hcorr_prep hcorr_result h_not_doc
@@ -22411,7 +22485,8 @@ lemma accum_content_pending (sc : ScannerState)
         -- it (item 76's own datum, read at the flag).
         have h_ska : s_prep.simpleKeyAllowed = true := (hcol_mid.2 hcol h_noflow_prep).2.2
         have h_ref_land : BareLandingFacts sc s_prep c ∨ True :=
-          h_tail139.imp (fun h_tl => ⟨h_bare, h_preprocess, h_noflow_prep, h_ska, h_tl⟩) id
+          h_tail139.imp (fun h_tl =>
+            ⟨h_bare, h_preprocess, h_noflow_prep, h_ska, h_tl, h_base⟩) id
         -- ═══ Item 137: a `---` park's landing hands the node to the MARKER's own
         -- document.  The anchor moves from the landing back to the park —
         -- `content_dispatch_routed` takes it as a parameter — so the crossed
@@ -22445,7 +22520,7 @@ lemma accum_content_pending (sc : ScannerState)
           -- it, which is item 76's own datum read at the flag. ═══
           | Or.inr _ =>
               bareNodeRoute_or_refused h_stream_mid h_bare h_preprocess h_noflow_prep
-                h_ska h_tail139
+                h_ska h_base h_tail139
         exact content_dispatch_routed sp_start sp_mid sp_mid s_prep s' c sp_prep sp_scan'
           h_stream_mid h_sep (nic_false_of_flow_disp h_preprocess h_flow_disp)
           hcorr_prep hcorr_result h_not_doc
@@ -23806,6 +23881,10 @@ lemma accum_step_content (sc : ScannerState)
     -- earlier — before the `allowDirectives` update — so it reads `s_prep`
     -- itself, and it is what the two content parks' FALLBACK route refutes.
     (h_bare : scanNextToken_checkBareDocument s_prep = .ok ())
+    -- Item 146: the stack's BASE, carried by the accumulation from `mk'`
+    -- down.  §9.2's landing refusal spends it to read the dedent exemption
+    -- off the landing's column instead of splitting on it.
+    (h_base : IndentStackBase.SentinelBase sc)
     (h_dispatch : scanNextToken_dispatchContent
         (if s_prep.allowDirectives then
           { s_prep with allowDirectives := false, documentEverStarted := true }
@@ -23847,7 +23926,7 @@ lemma accum_step_content (sc : ScannerState)
     obtain ⟨g', bl', fl', sn', q1, q2, q3, q4, q5⟩ :=
       accum_content_pending sc sp_start sp_flow sp_scan h0 s_prep s' c
         (absorb_stacksB sp_start sp_gram sp_block sp_flow h_stream h_stack h_flow)
-        (h_pending h0) h_corr h_preprocess h_adj h_bare h_not_doc h_dispatch
+        (h_pending h0) h_corr h_preprocess h_adj h_bare h_base h_not_doc h_dispatch
     exact ⟨g', bl', fl', sn', q1, q2, ⟨0, 0, #[], q3.retail, rfl, Nat.zero_le _, fun h => absurd h (by omega)⟩, fun _ => q4, q5,
            fun h => absurd h (by omega)⟩
   · -- ═══ DEPTH ≥ 1: the four value-completing arms CLOSE; `&`/`!` do not. ═══
@@ -24528,6 +24607,10 @@ lemma scanNextToken_accum_step (sc : ScannerState)
     (h_interior : sc.flowLevel ≥ 1 →
       InteriorGap sc (tailOf sc.tokens) sp_flow sp_scan ∧
         LastTokenReal sc.tokens ∧ sc.allowDirectives = false)
+    -- Item 146: the stack's BASE rides the loop, seeded by `mk'` and
+    -- re-established at every step (`IndentStackBase.scanNextToken_base`).
+    -- §9.2's landing refusal is what spends it, four dispatchers down.
+    (h_base : IndentStackBase.SentinelBase sc)
     (h_ok : scanNextToken sc = .ok (some s')) :
     ∃ sp_gram' sp_block' sp_flow' sp_scan' b',
       SLYamlStream sp_start sp_gram' ∧
@@ -24604,7 +24687,7 @@ lemma scanNextToken_accum_step (sc : ScannerState)
                   obtain ⟨g', bl', fl', sn', q1, q2, q3, q4, q5, q6⟩ :=
                     accum_step_flow sc sp_start sp_gram sp_block sp_flow sp_scan s_pre s_flow_out c_pre
                       h_stream h_stack h_flow h_pending h_corr h_interior h_pre h_str_eq h_bfi
-                      h_flow_disp h_bare
+                      h_flow_disp h_bare h_base
                   exact ⟨g', bl', fl', sn', false, q1, q2, q3, q4, fun h => Bool.noConfusion h, q5, q6⟩
                 · rename_i h_flow_none
                   split at h_ok
@@ -24615,7 +24698,7 @@ lemma scanNextToken_accum_step (sc : ScannerState)
                       obtain ⟨g', bl', fl', sn', q1, q2, q3, q4, q5, q6⟩ :=
                         accum_step_block sc sp_start sp_gram sp_block sp_flow sp_scan s_pre s_blk c_pre
                           h_stream h_kbc h_scf h_stack h_flow h_pending h_corr h_interior h_pre h_str_eq h_blk
-                          h_bare
+                          h_bare h_base
                       exact ⟨g', bl', fl', sn', false, q1, q2, q3, q4, fun h => Bool.noConfusion h, q5, q6⟩
                     · rename_i h_blk_none
                       -- Item 47: the adjacent-value check between the two dispatches.
@@ -24651,7 +24734,8 @@ lemma scanNextToken_accum_step (sc : ScannerState)
                           obtain ⟨g', bl', fl', sn', q1, q2, q3, q4, q5, q6⟩ :=
                             accum_step_content sc sp_start sp_gram sp_block sp_flow sp_scan s_pre s_cnt c_pre
                               h_stream h_stack h_flow h_pending h_corr h_interior h_pre
-                              h_flow_none h_blk_none h_adj h_bare h_cnt h_str_eq h_not_doc
+                              h_flow_none h_blk_none h_adj h_bare h_base h_cnt h_str_eq
+                              h_not_doc
                           exact ⟨g', bl', fl', sn', false, q1, q2, q3, q4, fun h => Bool.noConfusion h, q5, q6⟩
 
 /-! ## §2 EOF Step: scanNextToken returns none
@@ -24737,6 +24821,10 @@ lemma scanLoop_grammar_prod (sc : ScannerState)
     (h_interior : sc.flowLevel ≥ 1 →
       InteriorGap sc (tailOf sc.tokens) sp_flow sp_scan ∧
         LastTokenReal sc.tokens ∧ sc.allowDirectives = false)
+    -- Item 146: the stack's BASE rides the loop, seeded by `mk'` and
+    -- re-established at every step (`IndentStackBase.scanNextToken_base`).
+    -- §9.2's landing refusal is what spends it, four dispatchers down.
+    (h_base : IndentStackBase.SentinelBase sc)
     (h_ok : scanLoop sc fuel = .ok tokens) :
     ∃ sp_final : SurfPos, SLYamlStream sp_start sp_final ∧ sp_final.chars = [] := by
   induction fuel generalizing sc sp_gram sp_block sp_flow sp_scan tokens b with
@@ -24772,12 +24860,16 @@ lemma scanLoop_grammar_prod (sc : ScannerState)
       obtain ⟨sp_gram', sp_block', sp_flow', sp_scan', b', h_stream', h_stack', h_flow',
               h_pending', h_flag', h_corr', h_interior'⟩ :=
         scanNextToken_accum_step sc sp_start sp_gram sp_block sp_flow sp_scan s_next
-          h_stream h_kbc h_scf h_stack h_flow h_pending h_dir_flag h_corr h_interior h_next
+          h_stream h_kbc h_scf h_stack h_flow h_pending h_dir_flag h_corr h_interior h_base
+          h_next
       exact ih s_next sp_gram' sp_block' sp_flow' sp_scan' tokens
         h_stream'
         (ScannerCorrectness.scanNextToken_preserves_KeysBehindCursor sc s_next h_next h_kbc)
         (StaleCursorFloor.scanNextToken_preserves_StaleKeyCursorFloor sc s_next h_next h_scf)
-        h_stack' h_flow' h_pending' h_flag' h_corr' h_interior' h_ok
+        h_stack' h_flow' h_pending' h_flag' h_corr' h_interior'
+        -- Item 146: the step re-establishes the base — a push writes past the
+        -- end of the stack and the unwind's guard stops at size 1.
+        (IndentStackBase.scanNextToken_base h_next h_base) h_ok
 
 /-! ## §4 Initial Stream + BOM Handling
 
@@ -24917,6 +25009,18 @@ lemma scan_content_gives_stream_v2
       split <;>
         simp [consumeBOM_flowLevel, ScannerCorrectness.emit_preserves_flowLevel,
           ScannerState.mk']))
+    -- Item 146: the seed's stack IS the sentinel, and neither the `streamStart`
+    -- emission nor §5.2's BOM touches it.
+    (by
+      have h_emit : IndentStackBase.SentinelBase
+          ((ScannerState.mk' input).emit YamlToken.streamStart) :=
+        (IndentStackBase.mk'_base input).of_indents_eq (ScannerContracts.emit_indents _ _)
+      split
+      · exact h_emit.of_indents_eq (by
+          show ({ ((ScannerState.mk' input).emit YamlToken.streamStart).advance with
+            col := 0 } : ScannerState).indents = _
+          exact CouplingBridge.advance_indents _)
+      · exact h_emit)
     h
   -- B.4β: the initial scanner has `flowLevel = 0` (fresh `mk'`, `emit`/`advance`
   -- preserve it), so the empty flow stack is `nil` (depth 0); its frame-tail

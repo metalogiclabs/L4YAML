@@ -234,10 +234,10 @@ example {sc s_prep : ScannerState} {c : Char}
     (h_pre : scanNextToken_preprocess sc = .ok (some (s_prep, c)))
     (h_noflow : s_prep.inFlow = false)
     (h_ska : s_prep.simpleKeyAllowed = true)
-    (h_nopop : s_prep.indents = sc.indents)
+    (h_base : L4YAML.Proofs.IndentStackBase.SentinelBase sc)
     (h_open : (s_prep.indents.any fun e => e.column == (s_prep.col : Int)) = false)
     (h_tail : CompletedTail sc) : False :=
-  bareDocument_refutes_landing h_bare h_pre h_noflow h_ska h_nopop h_open h_tail
+  bareDocument_refutes_landing h_bare h_pre h_noflow h_ska h_base h_open h_tail
 
 /-! ## §5  The fallback, guarded and unguarded
 
@@ -259,9 +259,10 @@ example {sc s_prep : ScannerState} {c : Char} {sp_start sp_anchor : SurfPos}
     (h_pre : scanNextToken_preprocess sc = .ok (some (s_prep, c)))
     (h_noflow : s_prep.inFlow = false)
     (h_ska : s_prep.simpleKeyAllowed = true)
+    (h_base : L4YAML.Proofs.IndentStackBase.SentinelBase sc)
     (h_tail : CompletedTail sc ∨ True) :
     ∀ sp_m, SBlockNode 0 .blockIn sp_anchor sp_m → SLYamlStream sp_start sp_m :=
-  bareNodeRoute_or_refused h_stream h_bare h_pre h_noflow h_ska h_tail
+  bareNodeRoute_or_refused h_stream h_bare h_pre h_noflow h_ska h_base h_tail
 
 /-- A park with no `CompletedTail` still gets the route: the guard is a NARROWING,
     not a deletion. -/
@@ -270,9 +271,10 @@ example {sc s_prep : ScannerState} {c : Char} {sp_start sp_anchor : SurfPos}
     (h_bare : scanNextToken_checkBareDocument s_prep = .ok ())
     (h_pre : scanNextToken_preprocess sc = .ok (some (s_prep, c)))
     (h_noflow : s_prep.inFlow = false)
-    (h_ska : s_prep.simpleKeyAllowed = true) :
+    (h_ska : s_prep.simpleKeyAllowed = true)
+    (h_base : L4YAML.Proofs.IndentStackBase.SentinelBase sc) :
     ∀ sp_m, SBlockNode 0 .blockIn sp_anchor sp_m → SLYamlStream sp_start sp_m :=
-  bareNodeRoute_or_refused h_stream h_bare h_pre h_noflow h_ska (Or.inr trivial)
+  bareNodeRoute_or_refused h_stream h_bare h_pre h_noflow h_ska h_base (Or.inr trivial)
 
 /-! ## §6  What remains
 

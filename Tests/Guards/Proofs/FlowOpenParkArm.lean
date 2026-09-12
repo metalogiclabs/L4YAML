@@ -63,7 +63,10 @@ example {sc s_prep : ScannerState} {c : Char} {sp_start sp_scan sp_prep : SurfPo
     (h_preprocess : scanNextToken_preprocess sc = .ok (some (s_prep, c)))
     -- Item 143: §9.2's landing refusal rides beside the two document faces;
     -- this pin is about the park's flag, so the tail punts here too.
-    (h_bare : scanNextToken_checkBareDocument s_prep = .ok ()) :
+    (h_bare : scanNextToken_checkBareDocument s_prep = .ok ())
+    -- Item 146: …and so does the stack's base, which is what lets the refusal
+    -- read the dedent exemption off the landing's column.
+    (h_base : L4YAML.Proofs.IndentStackBase.SentinelBase sc) :
     (∃ (k : Nat) (sp_key : SurfPos),
       (∀ sp_v, SBlockMapEntry k sp_key sp_v → SLYamlStream sp_start sp_v) ∧
       (∀ sp_end, SFlowContent 0 .flowOut sp_prep sp_end →
@@ -86,7 +89,8 @@ example {sc s_prep : ScannerState} {c : Char} {sp_start sp_scan sp_prep : SurfPo
   -- Item 136: the head face rides beside the suffix one; this pin is about the
   -- park's flag, so both punt here.
   flowKeyRoute_of_root (m := 0) (Or.inr trivial) h_noflow h_park h_close h_corr
-    hcorr_prep h_preprocess (Or.inr trivial) (Or.inr trivial) h_bare (Or.inr trivial)
+    hcorr_prep h_preprocess (Or.inr trivial) (Or.inr trivial) h_bare h_base
+    (Or.inr trivial)
 
 /-- The ENTRY's version, whose compact arm crosses no break and so spends the
     park's flag directly.  Its route and the width to measure it against travel

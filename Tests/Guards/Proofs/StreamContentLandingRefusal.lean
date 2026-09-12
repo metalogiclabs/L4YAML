@@ -229,26 +229,27 @@ example {sp_start sp_land sp_key : SurfPos} {k : Nat}
   rootMapRoute_or_refused (sc := ScannerState.mk' "") (s_prep := ScannerState.mk' "")
     (c := 'x') (Or.inr trivial) hcol0 h_stream h_ind
 
-/-- The bundle spent: at a landing that neither dedented nor rests on an open
-    level, this landing does not exist. -/
+/-- The bundle spent: at a landing that stands at no open level, this landing
+    does not exist. -/
 example {sc s_prep : ScannerState} {c : Char}
-    (h : BareLandingFacts sc s_prep c) (h_np : s_prep.indents = sc.indents)
+    (h : BareLandingFacts sc s_prep c)
     (h_op : (s_prep.indents.any fun e => e.column == (s_prep.col : Int)) = false) :
     False :=
-  h.refutes h_np h_op
+  h.refutes h_op
 
 /-- The bundle assembled, as the two landing arms of `accum_content_pending`'s
     skeleton assemble it: the check's verdict at the landing, the park's own
-    preprocessing, the block context, the re-armed flag, and the park's
-    completed tail. -/
+    preprocessing, the block context, the re-armed flag, the park's completed
+    tail, and the stack's base. -/
 example {sc s_prep : ScannerState} {c : Char}
     (h_bare : scanNextToken_checkBareDocument s_prep = .ok ())
     (h_pre : scanNextToken_preprocess sc = .ok (some (s_prep, c)))
     (h_noflow : s_prep.inFlow = false)
     (h_ska : s_prep.simpleKeyAllowed = true)
-    (h_tail : CompletedTail sc) :
+    (h_tail : CompletedTail sc)
+    (h_base : L4YAML.Proofs.IndentStackBase.SentinelBase sc) :
     BareLandingFacts sc s_prep c :=
-  ⟨h_bare, h_pre, h_noflow, h_ska, h_tail⟩
+  ⟨h_bare, h_pre, h_noflow, h_ska, h_tail, h_base⟩
 
 /-! ## §5  What remains
 
