@@ -19372,7 +19372,16 @@ lemma content_dispatch_routed
         sp_land.col = 0 ∧ MarkerNodeRoute sp_start sp_land ∧
         SIndent k sp_land sp_prep) ∧
       s_prep.simpleKey.possible = true ∧
-      s_prep.simpleKey.pos = s_prep.currentPos) ∨ True) :
+      s_prep.simpleKey.pos = s_prep.currentPos) ∨ True)
+    -- **Item 144: §9.2's landing refusal, the fifth arm** — items 139/142/143's
+    -- bundle, at the dispatcher those items named but did not reach.  `Or.inl`
+    -- says the scanner has already refused this landing (`"x"⏎# c⏎b: 2`), so the
+    -- root fallback the cascade falls back TO is unreachable; `Or.inr` says
+    -- nothing, exactly as the four route arms above it do.  `sc` is the PARK's
+    -- state (the landing's own is `s_prep`) and rides explicitly, because a
+    -- caller with nothing to say leaves it uninferrable.
+    (sc : ScannerState)
+    (h_ref : BareLandingFacts sc s_prep c ∨ True) :
     ∃ sp_gram' sp_block' sp_flow' sp_scan',
       SLYamlStream sp_start sp_gram' ∧
       BlockStack sp_gram' sp_block' ∧
@@ -19512,10 +19521,13 @@ lemma content_dispatch_routed
               -- root arm — the entry and its whole tail close the root mapping and
               -- nothing is open below (`ks = []`); no explicit frame stands over
               -- the root, so the value-line stack has nothing to bottom at.
+              -- Item 144: the fallback, with §9.2's landing refusal taken out
+              -- of its domain — the props cascade's copy of the block landing's
+              -- `h_routeE`/`h_routeF` pair.
               exact h_buildP k sp_land hcol0 h_ind h_sk_poss h_sk_pos
-                (rootMapRoute hcol0 h_stream_land h_ind)
+                (rootMapRoute_or_refused h_ref hcol0 h_stream_land h_ind)
                 (Or.inl ⟨[], fun _ h => absurd h (List.not_mem_nil),
-                  rootMapRouteF hcol0 h_stream_land h_ind⟩)
+                  rootMapRouteF_or_refused h_ref hcol0 h_stream_land h_ind⟩)
                 (Or.inr trivial)
     cases hprops with
     | inl h =>
@@ -19706,10 +19718,11 @@ lemma content_dispatch_routed
               -- line — a col-0 key heads no explicit entry.
               -- Item 99: the root pays the resume twin outright — the entry and its
               -- tail close the root mapping and nothing is open below (`ks = []`).
+              -- Item 144: the same guard on the CONTENT cascade's root arm.
               exact h_build k sp_land hcol0 h_ind h_sk_pos
-                (rootMapRoute hcol0 h_stream_land h_ind)
+                (rootMapRoute_or_refused h_ref hcol0 h_stream_land h_ind)
                 (Or.inl ⟨[], fun _ h => absurd h (List.not_mem_nil),
-                  rootMapRouteF hcol0 h_stream_land h_ind⟩)
+                  rootMapRouteF_or_refused h_ref hcol0 h_stream_land h_ind⟩)
                 -- Item 108: no explicit frame stands over the root, so the
                 -- value-line-bottomed stack has nothing to bottom at.
                 (Or.inr trivial)
@@ -19826,7 +19839,11 @@ lemma content_dispatch_after_close
         sp_land.col = 0 ∧ MarkerNodeRoute sp_start sp_land ∧
         SIndent k sp_land sp_prep) ∧
       s_prep.simpleKey.possible = true ∧
-      s_prep.simpleKey.pos = s_prep.currentPos) ∨ True) :
+      s_prep.simpleKey.pos = s_prep.currentPos) ∨ True)
+    -- Item 144: forwarded, and ALWAYS `Or.inr` at the three call sites — see
+    -- the note on `bareNodeRoute` in the body below.
+    (sc : ScannerState)
+    (h_ref : BareLandingFacts sc s_prep c ∨ True) :
     ∃ sp_gram' sp_block' sp_flow' sp_scan',
       SLYamlStream sp_start sp_gram' ∧
       BlockStack sp_gram' sp_block' ∧
@@ -19839,8 +19856,20 @@ lemma content_dispatch_after_close
     -- Item 139: the same route, named — this lemma is the INDENTED callers'
     -- entry to it, and they are the family the landing skeleton's guarded twin
     -- does not cover (the pending's own level is still open at their landings).
+    --
+    -- **Item 144 measured that this site's refutable half is EMPTY**, and for
+    -- two different reasons.  Its three callers park on `pendingBlock`,
+    -- `pendingMapValue` and `pendingProps`, and none of the three carries a
+    -- `CompletedTail` field: their tails are `blockEntry`, `value` and an
+    -- anchor/tag run, all three of which `completesFlowValue` excludes.  So
+    -- `h_ref` below is `Or.inr` at every call site, and the guard would be a
+    -- parameter nobody pays.  `k:⏎␣␣-⏎␣␣␣␣b` and `k:⏎␣␣a:⏎␣␣␣␣b` stand aside on
+    -- the INDENT STACK too (`sz=3`); `&p⏎␣␣b` stands AT the sentinel (`sz=1`)
+    -- and §9.2 stands aside anyway, on the token reading alone.  What is left
+    -- here is row 19's 1c residue for the indented family — item 141's park
+    -- face, not this thread.
     (bareNodeRoute h_stream_block)
-    h_keyctx h_resumectx h_suffixctx h_nodocctx h_markerctx
+    h_keyctx h_resumectx h_suffixctx h_nodocctx h_markerctx sc h_ref
 
 -- Content dispatch with noPending: build separate lines + grammar evidence.
 lemma accum_content_on_noPending
@@ -19898,6 +19927,9 @@ lemma accum_content_on_noPending
       hcorr_prep hcorr_result h_not_doc hpeek h_flow_disp h_dispatch
       (nodocNodeRoute h_nodoc)
       h_keyctx (Or.inr trivial) (Or.inr trivial) h_nodocctx (Or.inr trivial)
+      -- Item 144: the virgin park finished no node, so §9.2's second conjunct
+      -- has nothing to read and the refusal stands aside by its own reading.
+      sc (Or.inr trivial)
   · obtain ⟨sp_sep, h_sep, hcorr_sep⟩ :=
       preprocess_some_separate_0_anyCol sc sp_block s_prep c h_corr h_preprocess
     have hsp_eq := ScannerSurfCorr_unique hcorr_prep hcorr_sep; subst hsp_eq
@@ -19906,6 +19938,9 @@ lemma accum_content_on_noPending
       hcorr_prep hcorr_result h_not_doc hpeek h_flow_disp h_dispatch
       (nodocNodeRoute h_nodoc)
       h_keyctx (Or.inr trivial) (Or.inr trivial) h_nodocctx (Or.inr trivial)
+      -- Item 144: the virgin park finished no node, so §9.2's second conjunct
+      -- has nothing to read and the refusal stands aside by its own reading.
+      sc (Or.inr trivial)
 
 -- Content dispatch with pendingBlock: compose content inside block entry.
 lemma accum_content_on_pendingBlock
@@ -21092,6 +21127,10 @@ lemma accum_content_on_pendingBlock_indented
         (Or.inr trivial))
       (Or.inr trivial)
       (Or.inr trivial) (Or.inr trivial)
+      -- Item 144: a `-` park's tail is `blockEntry`, which `completesFlowValue`
+      -- excludes — §9.2 stands aside here on its token reading, and on the
+      -- indent stack too (`k:⏎␣␣-⏎␣␣␣␣b` lands at `sz=3`).
+      sc (Or.inr trivial)
 
 -- Item 13: content after the empty-key `:` — the mapping value.  A verbatim
 -- clone of `accum_content_on_pendingBlock` with `h_close` in the entry
@@ -22035,6 +22074,8 @@ lemma accum_content_on_pendingMapValue_indented
       (resumectx_of_landing h_col0m (SIndent_gives_GStar_SSWhite h_ind) h_ssl_land
         h_preprocess h_frames99 h_framesV108)
       (Or.inr trivial) (Or.inr trivial) (Or.inr trivial)
+      -- Item 144: a `:` park's tail is `value`, excluded for the same reason.
+      sc (Or.inr trivial)
 
 -- Helper: handles all PendingNode cases for content dispatch given stream at sp_block.
 lemma accum_content_pending (sc : ScannerState)
@@ -22178,6 +22219,15 @@ lemma accum_content_pending (sc : ScannerState)
         | inr h => rw [preprocess_some_peek h_preprocess] at h; cases h
       subst h_eq
       have h_stream_mid := h_close_pending sp_mid h_ssl
+      -- Item 144: the flag §9.2 reads, hoisted out of `h_route_mid` so the KEY
+      -- routes can spend it too.  The park is AT a line start in this arm, so
+      -- the flag is the park's own (items 76/77) carried across preprocessing.
+      have h_ska : s_prep.simpleKeyAllowed = true :=
+        preprocess_simpleKeyAllowed_mono
+          ((h_pending.arm_or_col h_scflow).resolve_right (by omega)) h_preprocess
+      -- …and the bundle the root fallback inside `content_dispatch_routed` takes.
+      have h_ref_land : BareLandingFacts sc s_prep c ∨ True :=
+        h_tail139.imp (fun h_tl => ⟨h_bare, h_preprocess, h_noflow_prep, h_ska, h_tl⟩) id
       -- ═══ Item 137: a `---` park's landing hands the node to the MARKER's own
       -- document.  The anchor moves from the landing back to the park —
       -- `content_dispatch_routed` takes it as a parameter — so the crossed
@@ -22198,6 +22248,7 @@ lemma accum_content_pending (sc : ScannerState)
           (resumectx_of_landing hcol_mid h_ws h_ssl h_preprocess h_fS h_fV)
           (Or.inr trivial) (Or.inr trivial)
           (markerctx_of_landing hcol_mid h_ws h_ssl h_preprocess (Or.inl h_mk_on))
+          sc h_ref_land
       have h_sep := SSeparateLines.inline 0 sp_mid sp_prep
         (GStar_SSWhite_to_SSeparateInLine sp_mid sp_prep h_ws)
       -- Item 117: a `...` park routes the completed node into the open arm's
@@ -22213,10 +22264,7 @@ lemma accum_content_pending (sc : ScannerState)
         -- reads is the park's own (item 76/77) carried across preprocessing. ═══
         | Or.inr _ =>
             bareNodeRoute_or_refused h_stream_mid h_bare h_preprocess h_noflow_prep
-              (preprocess_simpleKeyAllowed_mono
-                ((h_pending.arm_or_col h_scflow).resolve_right (by omega))
-                h_preprocess)
-              h_tail139
+              h_ska h_tail139
       exact content_dispatch_routed sp_start sp_mid sp_mid s_prep s' c sp_prep sp_scan'
         h_stream_mid h_sep (nic_false_of_flow_disp h_preprocess h_flow_disp)
         hcorr_prep hcorr_result h_not_doc
@@ -22229,6 +22277,10 @@ lemma accum_content_pending (sc : ScannerState)
         (Or.inr trivial)
         -- Item 137: and the marker arm was taken above if there was one.
         (Or.inr trivial)
+        -- ═══ Item 144: and §9.2's landing refusal, which is what takes the
+        -- root fallback's sentinel half out of the KEY cascade — the node-route
+        -- guard two lines above, read at the mapping this content may head. ═══
+        sc h_ref_land
     · -- col≠0: use anyCol, close pending if SSLComments available.
       obtain ⟨sp_mid, sp_ws, sp_prep2, h_disj, h_ws, h_cmt, hcorr_prep2, h_pk, _⟩ :=
         preprocess_some_ssl_comments_anyCol sc sp_scan s_prep c h_corr h_preprocess
@@ -22242,6 +22294,12 @@ lemma accum_content_pending (sc : ScannerState)
           | inr h => rw [preprocess_some_peek h_preprocess] at h; cases h
         subst h_eq
         have h_stream_mid := h_close_pending sp_mid h_ssl
+        -- Item 144: as at the column-0 landing, with the flag off the WALK
+        -- instead of off the park — this branch crossed the break that re-arms
+        -- it (item 76's own datum, read at the flag).
+        have h_ska : s_prep.simpleKeyAllowed = true := (hcol_mid.2 hcol h_noflow_prep).2.2
+        have h_ref_land : BareLandingFacts sc s_prep c ∨ True :=
+          h_tail139.imp (fun h_tl => ⟨h_bare, h_preprocess, h_noflow_prep, h_ska, h_tl⟩) id
         -- ═══ Item 137: a `---` park's landing hands the node to the MARKER's own
         -- document.  The anchor moves from the landing back to the park —
         -- `content_dispatch_routed` takes it as a parameter — so the crossed
@@ -22262,6 +22320,7 @@ lemma accum_content_pending (sc : ScannerState)
             (resumectx_of_landing hcol_mid.1 h_ws h_ssl h_preprocess h_fS h_fV)
             (Or.inr trivial) (Or.inr trivial)
             (markerctx_of_landing hcol_mid.1 h_ws h_ssl h_preprocess (Or.inl h_mk_on))
+            sc h_ref_land
         have h_sep := SSeparateLines.inline 0 sp_mid sp_prep
           (GStar_SSWhite_to_SSeparateInLine sp_mid sp_prep h_ws)
         -- Item 117: as at the column-0 landing.
@@ -22274,8 +22333,7 @@ lemma accum_content_pending (sc : ScannerState)
           -- it, which is item 76's own datum read at the flag. ═══
           | Or.inr _ =>
               bareNodeRoute_or_refused h_stream_mid h_bare h_preprocess h_noflow_prep
-                (hcol_mid.2 hcol h_noflow_prep).2.2
-                h_tail139
+                h_ska h_tail139
         exact content_dispatch_routed sp_start sp_mid sp_mid s_prep s' c sp_prep sp_scan'
           h_stream_mid h_sep (nic_false_of_flow_disp h_preprocess h_flow_disp)
           hcorr_prep hcorr_result h_not_doc
@@ -22283,6 +22341,8 @@ lemma accum_content_pending (sc : ScannerState)
           (resumectx_of_landing hcol_mid.1 h_ws h_ssl h_preprocess h_fS h_fV)
           (suffixctx_of_landing hcol_mid.1 h_ws h_ssl h_preprocess h_sfx)
           (Or.inr trivial) (Or.inr trivial)
+          -- Item 144: as at the column-0 landing.
+          sc h_ref_land
       | inr h_mid =>
         exact h_noBreak hcol sp_ws (h_mid.1 ▸ h_ws) h_pk h_mid.2.1 h_mid.2.2.2
   cases h_pending with
@@ -22420,6 +22480,9 @@ lemma accum_content_pending (sc : ScannerState)
       -- implicit key ever fires here.  The landed arms above are where the
       -- marker's mapping route is paid.
       (Or.inr trivial)
+      -- Item 144: and with no key context there is no root arm to guard; the
+      -- marker park's tail is a `.documentStart` token besides.
+      sc (Or.inr trivial)
   | pendingFlow _ =>
     -- `pendingFlow` carries no line fact to read — the escape is what
     -- produces it, and it narrows only by the constructor's own elimination
@@ -22494,6 +22557,12 @@ lemma accum_content_pending (sc : ScannerState)
           (preprocess_some_peek h_preprocess) h_flow_disp h_dispatch h_keyctx
           (resumectx_of_landing hcol_mid.1 h_ws h_ssl h_preprocess h_fS h_fV)
           (Or.inr trivial) (Or.inr trivial) (Or.inr trivial)
+          -- **Item 144: the props landing IS at the sentinel** (`&p⏎# c⏎b`
+          -- lands at `sz=1`) and §9.2 stands aside anyway, because the run's
+          -- tail is an anchor/tag token and `completesFlowValue` excludes
+          -- those.  This is the one of the three `after_close` callers whose
+          -- emptiness is NOT the indent stack's doing.
+          sc (Or.inr trivial)
     | inr h_mid =>
       obtain ⟨h_mid_eq, h_facts0, h_indents0, h_stale0⟩ := h_mid
       obtain ⟨h_line_pp, h_nic_pp, h_lastr, h_penr⟩ := h_facts0 h_nic_p h_real_p
