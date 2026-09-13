@@ -5,6 +5,8 @@ Released under Apache 2.0 license as described in the file LICENSE.
 import L4YAML.Proofs.Scanner.ScannerCorrectness
 import L4YAML.Proofs.Coupling.CouplingBridge
 import L4YAML.Proofs.Scanner.BlockScalarFlowGuard
+import L4YAML.Proofs.Scanner.ScannerLinePreservation
+import L4YAML.Proofs.Scanner.ScalarWalkColFloor
 
 /-! # No inline flow open ahead — the depth-0 refutation fact (item 10, site 5)
 
@@ -51,6 +53,7 @@ open L4YAML.CharPredicates
 open L4YAML.Proofs.ScannerProgress
 open L4YAML.Proofs.ScannerCorrectness.ScanHelpers
 open L4YAML.Proofs.BlockScalarFlowGuard
+open L4YAML.Proofs.ScalarWalkColFloor (advance_col_succ_of_peek skipWhitespace_col_ge)
 
 /-! ## §1 The predicate and its surface consumers
 
@@ -1757,6 +1760,276 @@ lemma scanBlockScalar_simpleKey_false {s s' : ScannerState}
   split at h
   · cases h
   · exact scanBlockScalarBody_simpleKey_false h
+
+/-! ### The block scalar's own arming (item 154)
+
+Item 77's note above says the block scalar is the only content scan that can
+park at a line start.  These say what it leaves the INDENT CHECK doing when it
+does, which is what a landing off such a park needs in order to spend a cover:
+preprocessing's unwind runs on exactly that flag, and a park at column 0 has
+crossed no break of its own for the landing walk to arm it with.
+
+The one escape is measured, not guessed: a header at end of input consumes no
+break (`scanBlockScalarConsumeNewline`'s `!hasMore` arm), and `"k: |"` really
+does stop with the flag down.  It also stops with nothing left to read, which
+is the disjunct a landing refutes.
+-/
+
+lemma consumeExactSpaces_preserves_nic (s : ScannerState) (count : Nat) :
+    (consumeExactSpaces s count).2.needIndentCheck = s.needIndentCheck := by
+  induction count generalizing s with
+  | zero => unfold consumeExactSpaces; rfl
+  | succ _ ih =>
+    unfold consumeExactSpaces
+    split
+    · dsimp only []; rw [ih, advance_preserves_needIndentCheck]
+    · rfl
+
+lemma collectLineContentLoop_preserves_nic (s : ScannerState) (content : String) (fuel : Nat) :
+    (collectLineContentLoop s content fuel).2.needIndentCheck = s.needIndentCheck := by
+  induction fuel generalizing s content with
+  | zero => unfold collectLineContentLoop; rfl
+  | succ _ ih =>
+    unfold collectLineContentLoop
+    split
+    · split
+      · rfl
+      · rw [ih, advance_preserves_needIndentCheck]
+    · rfl
+
+/-- `consumeNewline` only ever raises the flag. -/
+lemma consumeNewline_nic_mono {s : ScannerState} (h : s.needIndentCheck = true) :
+    (consumeNewline s).needIndentCheck = true := by
+  unfold consumeNewline
+  split
+  · rfl
+  · simp only []; split <;> rfl
+  · exact h
+
+
+/-- The body's collection loop only ever raises the flag: every step that
+    recurses goes through `consumeNewline`, and every step that stops reaches
+    its state through the two flag-preserving walks. -/
+lemma collectBlockScalarLoop_nic_mono (s : ScannerState) (raw : String)
+    (fuel ci ie : Nat) (h : s.needIndentCheck = true) :
+    (collectBlockScalarLoop s raw fuel ci ie).2.needIndentCheck = true := by
+  induction fuel generalizing s raw with
+  | zero => unfold collectBlockScalarLoop; exact h
+  | succ _ ih =>
+    unfold collectBlockScalarLoop
+    split
+    · exact h
+    · simp only []
+      split
+      · rw [consumeExactSpaces_preserves_nic]; exact h
+      · split
+        · exact ih _ _ (consumeNewline_nic_mono
+            (by rw [consumeExactSpaces_preserves_nic]; exact h))
+        · split
+          · exact h
+          · split
+            · split
+              · exact ih _ _ (consumeNewline_nic_mono
+                  (by rw [collectLineContentLoop_preserves_nic,
+                          consumeExactSpaces_preserves_nic]; exact h))
+              · dsimp only []
+                rw [collectLineContentLoop_preserves_nic,
+                    consumeExactSpaces_preserves_nic]; exact h
+            · rw [collectLineContentLoop_preserves_nic,
+                  consumeExactSpaces_preserves_nic]; exact h
+
+lemma emitAt_preserves_nic (s : ScannerState) (pos : YamlPos) (tok : YamlToken) :
+    (s.emitAt pos tok).needIndentCheck = s.needIndentCheck := by
+  unfold ScannerState.emitAt; rfl
+
+lemma scanBlockScalarBody_nic_mono {s_orig s_nl s' : ScannerState} {chomp : ChompStyle}
+    {expl : Option Nat} {isLit : Bool} {startPos : YamlPos}
+    (hs : s_nl.needIndentCheck = true)
+    (h : scanBlockScalarBody s_orig s_nl chomp expl isLit startPos = .ok s') :
+    s'.needIndentCheck = true := by
+  unfold scanBlockScalarBody at h
+  simp only [] at h
+  repeat (any_goals (split at h))
+  all_goals (try contradiction)
+  all_goals (simp only [Except.ok.injEq] at h; subst h; dsimp only [])
+  all_goals (rw [emitAt_preserves_nic]
+             exact collectBlockScalarLoop_nic_mono _ _ _ _ _ hs)
+
+lemma consumeExactSpaces_atEnd {s : ScannerState} (h : s.peek? = none) (count : Nat) :
+    consumeExactSpaces s count = (0, s) := by
+  cases count with
+  | zero => rfl
+  | succ _ => unfold consumeExactSpaces; rw [h]
+
+lemma collectBlockScalarLoop_atEnd {s : ScannerState} (h : s.peek? = none)
+    (raw : String) (fuel ci ie : Nat) :
+    (collectBlockScalarLoop s raw fuel ci ie).2 = s := by
+  cases fuel with
+  | zero => rfl
+  | succ _ =>
+    unfold collectBlockScalarLoop
+    split
+    · rfl
+    · simp only [consumeExactSpaces_atEnd h, h]
+
+lemma scanBlockScalarBody_atEnd {s_orig s_nl s' : ScannerState} {chomp : ChompStyle}
+    {expl : Option Nat} {isLit : Bool} {startPos : YamlPos}
+    (hs : s_nl.peek? = none)
+    (h : scanBlockScalarBody s_orig s_nl chomp expl isLit startPos = .ok s') :
+    s'.col = s_nl.col := by
+  unfold scanBlockScalarBody at h
+  simp only [] at h
+  repeat (any_goals (split at h))
+  all_goals (try contradiction)
+  all_goals (simp only [Except.ok.injEq] at h; subst h; dsimp only [])
+  all_goals (rw [collectBlockScalarLoop_atEnd hs]; unfold ScannerState.emitAt; rfl)
+
+/-! The header's own column floor: `-`, `+`, the indentation digit, the
+separation whites and the header comment are all `nb-char`, so none of them
+moves the cursor LEFT, and the `|`/`>` the dispatch peeked at is spent by the
+opening `advance`.  A header that stops without a break therefore stops
+strictly inside its line — which is how the `"k: |"` escape is refuted at a
+column-0 consumer rather than carried to one. -/
+
+private lemma bsCommentTextLoop_col_ge (fuel : Nat) :
+    ∀ (s : ScannerState) (text : String),
+    s.col ≤ (collectCommentTextLoop s text fuel).2.col := by
+  induction fuel with
+  | zero => intro s text; unfold collectCommentTextLoop; exact Nat.le_refl _
+  | succ _ ih =>
+    intro s text
+    unfold collectCommentTextLoop
+    split
+    · rename_i c hpk
+      split
+      · exact Nat.le_refl _
+      · rename_i hstop
+        have := ih s.advance (text.push c)
+        rw [advance_col_succ_of_peek hpk (by simpa using hstop)] at this
+        omega
+    · exact Nat.le_refl _
+
+private lemma parseBlockHeaderLoop_col_ge (fuel : Nat) :
+    ∀ (s : ScannerState) (ch : ChompStyle) (m : Option Nat),
+    s.col ≤ (parseBlockHeaderLoop s ch m fuel).2.2.col := by
+  induction fuel with
+  | zero => intro s ch m; unfold parseBlockHeaderLoop; exact Nat.le_refl _
+  | succ _ ih =>
+    intro s ch m
+    unfold parseBlockHeaderLoop
+    split
+    · rename_i hpk
+      have := ih s.advance .strip m
+      rw [advance_col_succ_of_peek hpk (by decide)] at this; omega
+    · rename_i hpk
+      have := ih s.advance .keep m
+      rw [advance_col_succ_of_peek hpk (by decide)] at this; omega
+    · rename_i c _ _ hpk
+      split
+      · rename_i hd
+        have := ih s.advance ch (some (c.toNat - '0'.toNat))
+        rw [advance_col_succ_of_peek hpk ?_] at this
+        · omega
+        · simp only [Bool.and_eq_true, bne_iff_ne] at hd
+          have hdig : c.isDigit = true := hd.1
+          simp only [isLineBreakBool, isLineFeedBool, isCarriageReturnBool,
+            Bool.or_eq_false_iff, beq_eq_false_iff_ne]
+          constructor <;> (intro h; subst h; simp at hdig)
+      · exact Nat.le_refl _
+    · exact Nat.le_refl _
+
+private lemma scanBlockScalarSkipComment_col_ge (s : ScannerState) :
+    s.col ≤ (scanBlockScalarSkipComment s).col := by
+  unfold scanBlockScalarSkipComment
+  split
+  · rename_i hpk
+    split
+    · dsimp only []
+      split
+      · simp only []
+        have := bsCommentTextLoop_col_ge (s.advance.inputEnd - s.advance.offset) s.advance ""
+        rw [advance_col_succ_of_peek hpk (by decide)] at this
+        exact Nat.le_trans (Nat.le_succ _) this
+      · exact Nat.le_refl _
+    · exact Nat.le_refl _
+  · exact Nat.le_refl _
+
+/-- **The block scalar arms the indent check** (item 154) — the flag twin of
+    item 77's `scanBlockScalar_simpleKeyAllowed`, carrying the same escape item
+    77's own `col_pos_or_armed` carries, and for the same reason.
+
+    `[170]`/`[174]`'s body begins past a `b-break`, and `consumeNewline` raises
+    the flag on every one; the collection loop only ever raises it again.  The
+    one header that consumes no break is the one at end of input — `"k: |"`
+    really does stop with the flag DOWN — and that header never left its line,
+    so it stops strictly right of column 0.  A landing at a column-0 park
+    resolves the disjunction on the column it already has. -/
+lemma scanBlockScalar_nic_or_col_pos {s s' : ScannerState} {c : Char}
+    (hpk : s.peek? = some c) (hnb : isLineBreakBool c = false)
+    (hok : scanBlockScalar s = .ok s') :
+    s'.needIndentCheck = true ∨ 0 < s'.col := by
+  have hhdr : 0 < (scanBlockScalarSkipComment
+      (skipWhitespace (parseBlockHeaderLoop s.advance .clip none 2).2.2)).col := by
+    have h1 := advance_col_succ_of_peek hpk hnb
+    have h2 := parseBlockHeaderLoop_col_ge 2 s.advance .clip none
+    have h3 := skipWhitespace_col_ge (parseBlockHeaderLoop s.advance .clip none 2).2.2
+    have h4 := scanBlockScalarSkipComment_col_ge
+      (skipWhitespace (parseBlockHeaderLoop s.advance .clip none 2).2.2)
+    omega
+  unfold scanBlockScalar at hok
+  dsimp only [] at hok
+  split at hok
+  · cases hok
+  · rename_i s_nl hnl
+    unfold scanBlockScalarConsumeNewline at hnl
+    split at hnl
+    · rename_i c₀ hpk₀
+      split at hnl
+      · rename_i hbr₀
+        have h := Except.ok.inj hnl; subst h
+        exact Or.inl (scanBlockScalarBody_nic_mono
+          (consumeNewline_needIndentCheck_of_break _ c₀ hpk₀ hbr₀) hok)
+      · split at hnl
+        · rename_i hnomore
+          have hs_eq := Except.ok.inj hnl
+          have hpkn : s_nl.peek? = none := by
+            rw [← hs_eq]
+            unfold ScannerState.peek?; rw [if_neg]
+            simp only [Bool.not_eq_true', ScannerState.hasMore,
+              decide_eq_false_iff_not] at hnomore
+            exact hnomore
+          exact Or.inr (by rw [scanBlockScalarBody_atEnd hpkn hok, ← hs_eq]; exact hhdr)
+        · cases hnl
+    · rename_i hpk₀
+      have hs_eq := Except.ok.inj hnl
+      have hpkn : s_nl.peek? = none := by rw [← hs_eq]; exact hpk₀
+      exact Or.inr (by rw [scanBlockScalarBody_atEnd hpkn hok, ← hs_eq]; exact hhdr)
+
+/-- The dispatch-level form, mirroring `dispatchContent_blockScalar_restOffLine`. -/
+lemma dispatchContent_blockScalar_nic {s s' : ScannerState} {c : Char}
+    (hbs : c = '|' ∨ c = '>')
+    (hpk : s.peek? = some c)
+    (hok : scanNextToken_dispatchContent s c = .ok s') :
+    s'.needIndentCheck = true ∨ 0 < s'.col := by
+  have hnb : isLineBreakBool c = false := by rcases hbs with rfl | rfl <;> decide
+  unfold scanNextToken_dispatchContent at hok
+  simp only [bind, Except.bind, pure, Except.pure] at hok
+  split at hok
+  · rename_i heq
+    have : c = '&' := by simpa using heq
+    rcases hbs with rfl | rfl <;> simp at this
+  split at hok
+  · rename_i heq
+    have : c = '*' := by simpa using heq
+    rcases hbs with rfl | rfl <;> simp at this
+  split at hok
+  · rename_i heq
+    have : c = '!' := by simpa using heq
+    rcases hbs with rfl | rfl <;> simp at this
+  split at hok
+  · exact scanBlockScalar_nic_or_col_pos hpk hnb (peel_blockScalarGuard hok)
+  · rename_i heq
+    rcases hbs with rfl | rfl <;> simp at heq
 
 /-- The anchor/alias name walk only ever advances over `[102] ns-anchor-char`,
     which is not a break, so it never moves LEFT. -/

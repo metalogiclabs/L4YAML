@@ -1110,7 +1110,21 @@ inductive PendingNode (sc : ScannerState) : Bool → SurfPos → SurfPos → Sur
       -- fourth conjunct, held where the landing can read it.  `h_stale` carries
       -- the same fact behind `InlineResidue`'s `col ≠ 0`, which a column-0
       -- landing has not got.
-      (h_tail : CompletedTail sc) :
+      (h_tail : CompletedTail sc)
+      -- **Item 154 — the park's own INDENT CHECK, where the park is at a line
+      -- start** (LAST, same reason).  Item 147 gave a landing its floor off the
+      -- walk that carried it down to column 0; a park already AT column 0
+      -- crosses no such walk, so that reading is not there and item 152's
+      -- consumer punted its PAYER on exactly those landings.  The floor is
+      -- preprocessing's unwind, the unwind runs on this flag, and the flag is
+      -- the park's to state.
+      --
+      -- Only the block scalar pays, and it is the only producer that can be
+      -- asked: `[170]`/`[174]` is the one content scan that reaches column 0
+      -- (item 77's note on `dispatchContent_col_pos_or_armed`), and it reaches
+      -- it by consuming the break that arms the check.  The other producers
+      -- punt into a premise none of their parks can satisfy.
+      (h_nic0 : (sp_scan.col = 0 → sc.needIndentCheck = true) ∨ True) :
       PendingNode sc false sp_start sp_block sp_scan
   /-- A `[96] c-ns-properties` run scanned at depth 0, content awaited: the
       depth-0 twin of `InteriorGap.props` (items 9h/10; re-shaped by item 12).
@@ -8347,6 +8361,36 @@ lemma content_park_arm {s_prep s' : ScannerState} {sp' : SurfPos} {c : Char}
   · show s_prep.peek? = some c; exact hpeek
   · exact hpeek
 
+/-- **Item 154 at the accumulation site**, and the flag twin of the lemma
+    above.  `content_park_arm` says a content park is armed or off a line
+    start; this says what a park that IS at a line start left the INDENT CHECK
+    doing, which is the datum a landing needs before it can floor itself.
+
+    Only the block scalar can pay: it is the only content scan that reaches
+    column 0 at all (item 77's note), and it reaches it by consuming the break
+    that arms the check.  Every other producer punts, and the punt costs
+    nothing — there is no park at column 0 behind a quoted close, an alias
+    name, or a plain walk for it to lose. -/
+lemma content_park_nic {s_prep s' : ScannerState} {sp' : SurfPos} {c : Char}
+    (hbs : c = '|' ∨ c = '>')
+    (hpeek : s_prep.peek? = some c)
+    (h_dispatch : scanNextToken_dispatchContent
+        (if s_prep.allowDirectives then
+          { s_prep with allowDirectives := false, documentEverStarted := true }
+        else s_prep) c = .ok s')
+    (hcorr' : ScannerSurfCorr s' sp') :
+    sp'.col = 0 → s'.needIndentCheck = true := by
+  intro hcol
+  have hpk : (if s_prep.allowDirectives then
+      { s_prep with allowDirectives := false, documentEverStarted := true }
+    else s_prep).peek? = some c := by
+    split
+    · show s_prep.peek? = some c; exact hpeek
+    · exact hpeek
+  rcases dispatchContent_blockScalar_nic hbs hpk h_dispatch with h | h
+  · exact h
+  · rw [hcorr'.col_eq] at hcol; omega
+
 /-- …and so is one literal. -/
 lemma glit_col {ch : Char} {sp sp' : SurfPos} (h : GLit ch sp sp') :
     sp'.col = sp.col + 1 := by cases h; rfl
@@ -11120,7 +11164,10 @@ lemma accum_step_flow (sc : ScannerState)
                       (Or.inr (by have := glit_col h_close_lit; omega))
                       (Or.inr trivial) (Or.inr trivial)
                     ((ScannerAllowDirectives.scanFlowSequenceEnd_preserves_allowDirectives _).trans h_ad_false)
-                    (staleNodeTail_scanFlowSequenceEnd s_ad).toCompletedTail),
+                    (staleNodeTail_scanFlowSequenceEnd s_ad).toCompletedTail
+                    -- Item 154: this scan cannot park at column 0 (item 77's note), so the
+                    -- premise the field states is one none of its parks reaches.
+                    (Or.inr trivial)),
                   hcorr_tok, fun h => absurd h (by omega)⟩
               · -- mapBase + ']': kind-mismatched close (`{a]`). REFUTED (9a+9b(i)):
                 -- the scanner only reaches this dispatch with `flowStack.back? =
@@ -11294,7 +11341,10 @@ lemma accum_step_flow (sc : ScannerState)
                       (Or.inr (by have := glit_col h_close_lit; omega))
                       (Or.inr trivial) (Or.inr trivial)
                         ((ScannerAllowDirectives.scanFlowMappingEnd_preserves_allowDirectives _).trans h_ad_false)
-                        (staleNodeTail_scanFlowMappingEnd s_ad).toCompletedTail),
+                        (staleNodeTail_scanFlowMappingEnd s_ad).toCompletedTail
+                        -- Item 154: this scan cannot park at column 0 (item 77's note), so the
+                        -- premise the field states is one none of its parks reaches.
+                        (Or.inr trivial)),
                       hcorr_tok, fun h => absurd h (by omega)⟩
                   · -- seqNest + '}': kind-mismatched close (`[a}` nested). REFUTED.
                     simp at h_back
@@ -20793,7 +20843,10 @@ lemma content_dispatch_routed
                    h_flow_disp h_not_doc h_dispatch hcorr_result)
                (Or.inr trivial) (Or.inr trivial)
                (nodir_of_content_dispatch h_dispatch)
-               (completedTail_of_dispatch h_dispatch hna hnt),
+               (completedTail_of_dispatch h_dispatch hna hnt)
+               -- Item 154: this scan cannot park at column 0 (item 77's note), so the
+               -- premise the field states is one none of its parks reaches.
+               (Or.inr trivial),
              hcorr_result⟩
     | inr h_bs0 =>
       obtain ⟨_, hbs⟩ := h_bs0
@@ -20824,7 +20877,11 @@ lemma content_dispatch_routed
                    h_flow_disp h_not_doc h_dispatch hcorr_result)
                (Or.inr trivial) (Or.inr trivial)
                (nodir_of_content_dispatch h_dispatch)
-               (completedTail_of_dispatch h_dispatch hna hnt),
+               (completedTail_of_dispatch h_dispatch hna hnt)
+               -- **Item 154: and the park's own indent check.**  `[170]`/`[174]`'s body
+               -- begins past a `b-break`, so a park this scan leaves at column 0 has the
+               -- check ARMED — which is the floor a landing off it needs.
+               (Or.inl (content_park_nic hbs hpeek h_dispatch hcorr_result)),
              hcorr_result⟩
 
 /-- The bare-document instance of `content_dispatch_routed` — the node anchors
@@ -22721,7 +22778,10 @@ lemma accum_content_on_pendingMapValue
                     sp_mid h_sep h_flow (white_prepend_SSLComments h_trailing_ws h_ssl))⟩
               | Or.inr _ => Or.inr trivial)
              (nodir_of_content_dispatch h_dispatch)
-             (completedTail_of_dispatch h_dispatch hna hnt),
+             (completedTail_of_dispatch h_dispatch hna hnt)
+             -- Item 154: this scan cannot park at column 0 (item 77's note), so the
+             -- premise the field states is one none of its parks reaches.
+             (Or.inr trivial),
            hcorr_result⟩
     | inr h_bs0 =>
       obtain ⟨_, hbs⟩ := h_bs0
@@ -22794,7 +22854,11 @@ lemma accum_content_on_pendingMapValue
                     closeFV sp_mid (h_nodeAt sp_mid h_ssl)⟩
                 | Or.inr _ => Or.inr trivial)
                (nodir_of_content_dispatch h_dispatch)
-               (completedTail_of_dispatch h_dispatch hna hnt),
+               (completedTail_of_dispatch h_dispatch hna hnt)
+               -- **Item 154: and the park's own indent check.**  `[170]`/`[174]`'s body
+               -- begins past a `b-break`, so a park this scan leaves at column 0 has the
+               -- check ARMED — which is the floor a landing off it needs.
+               (Or.inl (content_park_nic hbs (preprocess_some_peek h_preprocess) h_dispatch hcorr_result)),
              hcorr_result⟩
 
 /-- The mapping twin of `accum_content_on_pendingBlock_indented` (item 23):
@@ -23066,7 +23130,10 @@ lemma accum_content_on_pendingMapValue_indented
                     (white_prepend_SSLComments h_trailing_ws h_ssl))⟩
               | Or.inr _ => Or.inr trivial)
              (nodir_of_content_dispatch h_dispatch)
-             (completedTail_of_dispatch h_dispatch hna hnt),
+             (completedTail_of_dispatch h_dispatch hna hnt)
+             -- Item 154: this scan cannot park at column 0 (item 77's note), so the
+             -- premise the field states is one none of its parks reaches.
+             (Or.inr trivial),
            hcorr_result⟩
   · -- Item 24: `  : &a v` / `  ? &a v` — the mapping twin parks the same run
     -- against the VALUE's route.
@@ -23219,7 +23286,11 @@ lemma accum_content_on_pendingMapValue_indented
                   closeFV sp_mid (h_nodeAt sp_mid h_ssl)⟩
               | Or.inr _ => Or.inr trivial)
              (nodir_of_content_dispatch h_dispatch)
-             (completedTail_of_dispatch h_dispatch hna hnt),
+             (completedTail_of_dispatch h_dispatch hna hnt)
+             -- **Item 154: and the park's own indent check.**  `[170]`/`[174]`'s body
+             -- begins past a `b-break`, so a park this scan leaves at column 0 has the
+             -- check ARMED — which is the floor a landing off it needs.
+             (Or.inl (content_park_nic hbs (preprocess_some_peek h_preprocess) h_dispatch hcorr_result)),
            hcorr_result⟩
   · -- Items 53/54: the MULTI-LINE value (quoted or plain) at the entry's
     -- own index; arm 1's park with the fixed-index node, the explicit
@@ -23301,7 +23372,10 @@ lemma accum_content_on_pendingMapValue_indented
                     sp_mid h_sep_all h_node_f (white_prepend_SSLComments h_tws_f h_ssl))⟩
               | Or.inr _ => Or.inr trivial)
              (nodir_of_content_dispatch h_dispatch)
-             (completedTail_of_dispatch h_dispatch hna hnt),
+             (completedTail_of_dispatch h_dispatch hna hnt)
+             -- Item 154: this scan cannot park at column 0 (item 77's note), so the
+             -- premise the field states is one none of its parks reaches.
+             (Or.inr trivial),
            hcorr_result⟩
   · -- Item 99: the DEDENT drains — the mapping-value twin of the arm above:
     -- the awaited value never arrived, so the entry closes on `[72]`'s empty
@@ -23514,7 +23588,16 @@ lemma accum_content_pending (sc : ScannerState)
         -- above, and `pendingFlow`'s tail is a block INDICATOR, which
         -- `completesFlowValue` excludes — so its `Or.inr` names a park where the
         -- fact is FALSE, not one where it is merely unstated.
-        (h_tail139 : CompletedTail sc ∨ True),
+        (h_tail139 : CompletedTail sc ∨ True)
+        -- **Item 154: and the park's own INDENT CHECK.**  The column-0 arm
+        -- below is the one landing that cannot floor itself: item 147's reading
+        -- comes off a walk that crossed a break, and a park already at a line
+        -- start crosses none.  The unwind that IS the floor runs on this flag,
+        -- so the park states it and the arm spends it.  `pendingContent` pays,
+        -- from its block-scalar producers; the other four parks punt, and their
+        -- punts name a premise none of their producers can reach column 0 to
+        -- satisfy.
+        (h_nic0 : (sp_scan.col = 0 → sc.needIndentCheck = true) ∨ True),
       (sp_scan.col ≠ 0 → ∀ sp_ws, GStar SSWhite sp_scan sp_ws →
         (sp_prep = sp_ws ∨ s_prep.peek? = none) →
         -- Item 47: the no-break step's scanner payload, from the anyCol
@@ -23539,7 +23622,7 @@ lemma accum_content_pending (sc : ScannerState)
         FlowStackB sp_start 0 0 0 #[] #[] .sep sp_block' sp_flow' ∧
         PendingNode s' false sp_start sp_flow' sp_scan' ∧
         ScannerSurfCorr s' sp_scan' := by
-    intro h_fS h_fV h_sfx h_mk h_tail139 h_noBreak
+    intro h_fS h_fV h_sfx h_mk h_tail139 h_nic0 h_noBreak
     by_cases hcol : sp_scan.col = 0
     · obtain ⟨sp_mid, sp_ws, sp_prep2, h_ssl, hcol_mid, h_ws, h_cmt, hcorr_prep2, h_pk⟩ :=
         preprocess_some_ssl_comments_col0 sc sp_scan s_prep c h_corr hcol h_preprocess
@@ -23560,6 +23643,42 @@ lemma accum_content_pending (sc : ScannerState)
       have h_ref_land : BareLandingFacts sc s_prep c ∨ True :=
         h_tail139.imp (fun h_tl =>
           ⟨h_bare, h_preprocess, h_noflow_prep, h_ska, h_tl, h_base⟩) id
+      -- **Item 154: and the PAYER this arm could not build.**  Item 152 left
+      -- it punting because a landing's floor is read off the walk that carried
+      -- the park down to column 0, and a park already AT column 0 crosses no
+      -- such walk.  The floor is not the walk's, though — it is preprocessing's
+      -- UNWIND, and the unwind runs on `needIndentCheck`.  A park at a line
+      -- start got there by consuming a break, so the flag is up, and
+      -- `preprocess_top_le_col_of_armed` reads the floor off it with no arm at
+      -- all.  The sentinel disjunct falls to `h_base` exactly as it does in
+      -- `landing_floor_of_arm`, and the hop is item 151's, unchanged.
+      have h_pay_col0 : ∀ (w : Nat) (ksw ksw' : List Nat),
+          ((∃ lo m : Nat, IndentStackCover.Floor lo m ksw ∧
+            IndentStackCover.Covered lo ksw sc) ∨ True) →
+          w ∈ ksw → ResumeWidths ksw ksw' w → s_prep.col = w →
+          ((∃ lo : Nat, IndentStackCover.Floor lo w (w :: ksw') ∧
+            IndentStackCover.Covered lo (w :: ksw') s_prep) ∨ True) := by
+        intro w ksw ksw' h_cv hmemw h_ww h_scolw
+        rcases h_nic0 with h_armed | _
+        · rcases h_cv with ⟨lo, _, h_fl, h_cv0⟩ | _
+          · obtain ⟨_, s_skip, hsk, _, _⟩ := preprocess_save_elim h_preprocess
+            have h_floor : s_prep.currentIndent ≤ (s_prep.col : Int) := by
+              rcases IndentStackCover.preprocess_top_le_col_of_armed hsk
+                  (by have hsc := h_scflow
+                      unfold ScannerState.inFlow at hsc ⊢
+                      rw [ScannerCorrectness.skipToContent_preserves_flowLevel sc s_skip hsk]
+                      exact hsc)
+                  (skipToContentLoop_needIndentCheck_mono sc s_skip _ hsk (h_armed hcol))
+                  h_preprocess with h | h
+              · exact h
+              · rw [(IndentStackBase.preprocess_base h_preprocess h_base).currentIndent_of_size_le_one h]
+                omega
+            exact Or.inl (dedent_cover_of_floor
+              (IndentStackMono.preprocess_mono h_preprocess h_mono)
+              (by rw [← h_scolw]; exact h_floor) h_fl
+              (IndentStackCover.preprocess_cover h_preprocess h_cv0) hmemw h_ww)
+          · exact Or.inr trivial
+        · exact Or.inr trivial
       -- ═══ Item 137: a `---` park's landing hands the node to the MARKER's own
       -- document.  The anchor moves from the landing back to the park —
       -- `content_dispatch_routed` takes it as a parameter — so the crossed
@@ -23577,14 +23696,16 @@ lemma accum_content_pending (sc : ScannerState)
           (nic_false_of_flow_disp h_preprocess h_flow_disp)
           hcorr_prep hcorr_result h_not_doc
           (preprocess_some_peek h_preprocess) h_flow_disp h_dispatch mkroute h_keyctx
-          -- **Item 152: the park's faces now CARRY the cover**, and this arm cannot
-          -- spend it.  What a landing's payment needs is `s_prep`'s own floor, and
-          -- `landing_floor_of_arm` reads that off the walk that crossed a break —
-          -- exactly what a park AT a line start has not got (item 147's escape, here
-          -- at the consumer instead of at a producer).  So the two faces go through
-          -- WHOLE, index included, and the PAYER is the punt.
+          -- ~~Item 152: the park's faces now CARRY the cover, and this arm cannot
+          -- spend it.~~  **Item 154: it spends it.**  The obstacle was item 147's
+          -- escape read at the consumer — a park AT a line start crosses no walk
+          -- for `landing_floor_of_arm` to read a floor off.  But the floor is
+          -- preprocessing's UNWIND, the unwind runs on `needIndentCheck`, and a
+          -- park that reached column 0 consumed the break that arms it.  So the
+          -- faces and the payer both go through, and `k:⏎  a: |⏎    x⏎  c: d`
+          -- resumes the level its block scalar was written inside.
           (resumectx_of_landing hcol_mid h_ws h_ssl h_preprocess hcorr_prep
-            h_fS h_fV (fun _ _ _ _ _ _ _ => Or.inr trivial))
+            h_fS h_fV h_pay_col0)
           (Or.inr trivial) (Or.inr trivial)
           (markerctx_of_landing hcol_mid h_ws h_ssl h_preprocess (Or.inl h_mk_on))
           sc h_ref_land
@@ -23608,14 +23729,11 @@ lemma accum_content_pending (sc : ScannerState)
         h_stream_mid h_sep (nic_false_of_flow_disp h_preprocess h_flow_disp)
         hcorr_prep hcorr_result h_not_doc
         (preprocess_some_peek h_preprocess) h_flow_disp h_dispatch h_route_mid h_keyctx
-        -- **Item 152: the park's faces now CARRY the cover**, and this arm cannot
-        -- spend it.  What a landing's payment needs is `s_prep`'s own floor, and
-        -- `landing_floor_of_arm` reads that off the walk that crossed a break —
-        -- exactly what a park AT a line start has not got (item 147's escape, here
-        -- at the consumer instead of at a producer).  So the two faces go through
-        -- WHOLE, index included, and the PAYER is the punt.
+        -- ~~Item 152: …and the PAYER is the punt.~~  **Item 154: the same
+        -- payment as at the marker route above** — `h_pay_col0` is built once
+        -- for both, off the park's own indent check.
         (resumectx_of_landing hcol_mid h_ws h_ssl h_preprocess hcorr_prep
-          h_fS h_fV (fun _ _ _ _ _ _ _ => Or.inr trivial))
+          h_fS h_fV h_pay_col0)
         (suffixctx_of_landing hcol_mid h_ws h_ssl h_preprocess h_sfx)
         -- Item 136: the skeleton's landings close a park that HAS started a
         -- document (`noPending` never reaches the split), so the head context
@@ -23761,12 +23879,14 @@ lemma accum_content_pending (sc : ScannerState)
       -- Item 139: a `...` park's tail is a `.documentEnd` token, which
       -- `completesFlowValue` excludes — §9.2's landing refusal stands aside.
       (Or.inr trivial)
+      -- Item 154: a `...` park's producers all end on the marker's own line.
+      (Or.inr trivial)
       (fun hcol sp_ws h_ws h_pk _ _ =>
       absurd (inline_residue_of_landing ⟨rfl, hcol⟩ h_ws h_pk hcorr_prep
           (preprocess_some_peek h_preprocess))
         (docEnd_refutes_content_residue h_line h_dispatch))
   | pendingContent _ _ _ h_line _h_closable _h_key h_stale _ _ h_fS109 h_fV109 _
-      h_tail139c =>
+      h_tail139c h_nic0c =>
     -- ═══ Item 47: §7.5's rung at the content dispatch, CLOSED.  Item 42
     -- narrowed the survivors to `[154]`'s `:` with a non-blank follower
     -- (`"a" :b`); the scanner now refuses that `:` where `isValueCandidate`
@@ -23785,6 +23905,10 @@ lemma accum_content_pending (sc : ScannerState)
       -- stack at the sentinel alone is the second bare document the scanner
       -- refuses AT the landing (`a⏎# c⏎b`). ═══
       (Or.inl h_tail139c)
+      -- **Item 154: and the park pays its indent check.**  Only the block
+      -- scalar funds this one, and it is the only producer that can reach the
+      -- column-0 landing the arm below spends it on.
+      h_nic0c
       (fun hcol sp_ws h_ws h_pk h_pay h_pay_sk => ?_)
     have h_res := inline_residue_of_landing ⟨rfl, hcol⟩ h_ws h_pk hcorr_prep
       (preprocess_some_peek h_preprocess)
@@ -23819,6 +23943,9 @@ lemma accum_content_pending (sc : ScannerState)
       -- Item 139: the entry-level content park pays the same face, for the
       -- same reason and off the same producers.
       (Or.inl h_tail139b)
+      -- Item 154: `pendingBlockContent`'s producers are entry scans, not block
+      -- scalars; none of them parks at column 0.
+      (Or.inr trivial)
       (fun hcol sp_ws h_ws h_pk h_pay h_pay_sk => ?_)
     have h_res := inline_residue_of_landing ⟨rfl, hcol⟩ h_ws h_pk hcorr_prep
       (preprocess_some_peek h_preprocess)
@@ -23846,6 +23973,8 @@ lemma accum_content_pending (sc : ScannerState)
         h_doc_route sp (GAlt.left sp_scan sp (SLBareDocument.mk sp_scan sp h_bn))⟩))
       -- Item 139: a `---` park's tail is a `.documentStart` token — excluded
       -- like the `...`, and the marker arm above fires first anyway.
+      (Or.inr trivial)
+      -- Item 154: a `---` park ends on the marker, inside its line.
       (Or.inr trivial)
       (fun hcol sp_ws h_ws h_pk _ _ => ?_)
     have h_eq : sp_prep = sp_ws := by
@@ -23879,6 +24008,8 @@ lemma accum_content_pending (sc : ScannerState)
       -- Item 139: `pendingFlow`'s producer is `block_dispatch_deferred`, the
       -- block INDICATOR dispatch's escape, so the token behind this park is a
       -- `-`/`?`/`:` and `CompletedTail` is FALSE here rather than merely unstated.
+      (Or.inr trivial)
+      -- Item 154: `pendingFlow`'s park is a block INDICATOR, never a scalar.
       (Or.inr trivial)
       (fun _ _ _ _ _ _ =>
       block_dispatch_deferred sp_start sp_block sp_scan' s' h_stream_block
@@ -24599,7 +24730,10 @@ lemma accum_content_pending (sc : ScannerState)
                               fun sp_mid h_ssl => closeFVS sp_mid (h_nodeAt sp_mid h_ssl)⟩
                           | Or.inr _ => Or.inr trivial)
                          (nodir_of_content_dispatch h_dispatch)
-                         (completedTail_of_dispatch h_dispatch hamp hbang),
+                         (completedTail_of_dispatch h_dispatch hamp hbang)
+                         -- Item 154: this scan cannot park at column 0 (item 77's note), so the
+                         -- premise the field states is one none of its parks reaches.
+                         (Or.inr trivial),
                        hcorr_result⟩
               | inr h_block_pair =>
                 obtain ⟨_, h_absorb95⟩ := h_block_pair
@@ -24692,7 +24826,10 @@ lemma accum_content_pending (sc : ScannerState)
                               fun sp_mid h_ssl => closeFVS sp_mid (h_nodeAt sp_mid h_ssl)⟩
                           | Or.inr _ => Or.inr trivial)
                          (nodir_of_content_dispatch h_dispatch)
-                         (completedTail_of_dispatch h_dispatch hamp hbang),
+                         (completedTail_of_dispatch h_dispatch hamp hbang)
+                         -- Item 154: this scan cannot park at column 0 (item 77's note), so the
+                         -- premise the field states is one none of its parks reaches.
+                         (Or.inr trivial),
                        hcorr_result⟩
             | k + 1, h_sep_run, h_run, h_route, h_sep2, h_kslot_p,
                 h_routeE_p, h_kslotE_p, h_closeFE_p, h_closeFS_p, h_closeFVS_p =>
@@ -24883,7 +25020,10 @@ lemma accum_content_pending (sc : ScannerState)
                               fun sp_mid h_ssl => closeFVS sp_mid (h_nodeAt sp_mid h_ssl)⟩
                           | Or.inr _ => Or.inr trivial)
                          (nodir_of_content_dispatch h_dispatch)
-                         (completedTail_of_dispatch h_dispatch hamp hbang),
+                         (completedTail_of_dispatch h_dispatch hamp hbang)
+                         -- Item 154: this scan cannot park at column 0 (item 77's note), so the
+                         -- premise the field states is one none of its parks reaches.
+                         (Or.inr trivial),
                        hcorr_result⟩
               · -- `  - &a |`: the held run's route closes at `k+1`, and `[198]`'s
                 -- props slot takes the block scalar there.  Item 114: the
@@ -24980,7 +25120,11 @@ lemma accum_content_pending (sc : ScannerState)
                               fun sp_mid h_ssl => closeFVS sp_mid (h_nodeAt sp_mid h_ssl)⟩
                           | Or.inr _ => Or.inr trivial)
                          (nodir_of_content_dispatch h_dispatch)
-                         (completedTail_of_dispatch h_dispatch hamp hbang),
+                         (completedTail_of_dispatch h_dispatch hamp hbang)
+                         -- **Item 154: and the park's own indent check.**  `[170]`/`[174]`'s body
+                         -- begins past a `b-break`, so a park this scan leaves at column 0 has the
+                         -- check ARMED — which is the floor a landing off it needs.
+                         (Or.inl (content_park_nic hbs (preprocess_some_peek h_preprocess) h_dispatch hcorr_result)),
                        hcorr_result⟩
               · -- Item 55: the props-decorated MULTI-LINE value at `k+1` —
                 -- the first consumer's park with the fixed-index content.
@@ -25066,7 +25210,10 @@ lemma accum_content_pending (sc : ScannerState)
                               fun sp_mid h_ssl => closeFVS sp_mid (h_nodeAt sp_mid h_ssl)⟩
                           | Or.inr _ => Or.inr trivial)
                          (nodir_of_content_dispatch h_dispatch)
-                         (completedTail_of_dispatch h_dispatch hamp hbang),
+                         (completedTail_of_dispatch h_dispatch hamp hbang)
+                         -- Item 154: this scan cannot park at column 0 (item 77's note), so the
+                         -- premise the field states is one none of its parks reaches.
+                         (Or.inr trivial),
                        hcorr_result⟩
   | pendingBlock _ _ _ n_old h_close_old h_close_entry_old h_floor_old h_sk_old h_col_old
       h_kslot92 h_closeF99 =>

@@ -16799,13 +16799,114 @@ since the sentence is a ledger of what the field list has cost.
 
 **What remains.**  Two entries.
 
-* **The column-0 landing arm**, item 147's escape read at item 152's consumer.
-  It does not reach this lane, for the reason above.
+* ~~**The column-0 landing arm**, item 147's escape read at item 152's consumer.
+  It does not reach this lane, for the reason above.~~  (CLOSED by item 154: the
+  floor there is preprocessing's unwind, which runs on `needIndentCheck`, and a
+  park that reached column 0 consumed the break that armed it.)
 * **The sequence chain** — `pendingProps.h_closeFE`, `pendingBlockContent
   .h_closeF` and `pendingBlock.h_closeF`, three fields carrying widths alone on
   one lane, and the sequence park's relay owes a `Mono` and a `SentinelBase`
   besides.  Item 152 named two of the three; `h_closeFE` is the third, found by
   this item's producer census.
+
+Still not the membership split, for item 150's reason: what that punt wants is a
+payload on `KeyPackPunt`, a change to the constructor and to every consumer.
+
+
+### Item 154 (2026-09-13)
+
+**The column-0 landing pays, off the park's own indent check.**  Item 152 gave
+`pendingContent`'s two frames fields a cover and spent it at
+`accum_content_pending`'s landing skeleton — but not on every landing.  The
+skeleton splits on the park's column, and the COLUMN-0 arm punted its PAYER.
+Item 147's reading is why: a landing's floor comes off the walk that carried the
+park down to column 0, and a park already AT a line start crosses no such walk.
+Item 152 recorded it as item 147's escape "at the consumer instead of at a
+producer"; item 153 recorded it as one of two remaining entries.  This is that
+entry.
+
+**The floor is not the walk's.**  It is preprocessing's UNWIND, and outside a
+flow the unwind runs on exactly one condition: `needIndentCheck`.  A park that
+reached column 0 got there by consuming a break, and every break arms the flag.
+So the datum the arm needs is the PARK's, not the landing's — which is item 77's
+own division of labor (`landing_or_park_save`: the landing pays for a park off a
+line start, the park's flag pays for one at it), one field over.
+`pendingContent` gains `h_nic0 : (sp_scan.col = 0 → sc.needIndentCheck = true) ∨
+True`, and both column-0 landings spend it through the same `have`.
+
+**The escape is measured, not assumed — and it is what fixes the field's
+shape.**  A block-scalar header at end of input consumes no break:
+`scanBlockScalarConsumeNewline`'s `!hasMore` arm skips it, and `"k: |"` really
+does stop with the flag DOWN.  So the unconditional claim is FALSE.  That same
+header never left its line, so it stops at column 4 — strictly right of 0 —
+which is why the field is stated as an implication FROM column 0: **the one
+shape that cannot pay is the one shape that cannot reach the premise.**  Had the
+lemma been stated unconditionally it would simply have failed to prove; stating
+it against the measurement got the shape right first.
+
+**Producer census, established by the compiler.**  The same payment term was
+attempted at all **14** `pendingContent` producers and kept where it typechecks:
+**4 pay** — the block-scalar arms, each already holding `hbs : c = '|' ∨ c = '>'`
+from its own `dispatchContent_blockScalar_prod`; **8 punt** — the other content
+arms, which have no `hbs`; **2 punt** — the flow CLOSES, which run no content
+dispatch at all.  The punts are free in the strong sense: they name a premise
+none of their parks can satisfy.  That is the claim the sweep below carries.
+
+**The sweep is what makes the ten punts safe.**  Over the 351-file
+`yaml-test-suite`: **8661** scanner states, **1700** at column 0, **1700**
+armed, **0** at column 0 with the flag down; **52** of them face a real dedent
+and all **52** are floored.  Grouping the **1349** non-initial column-0 states
+by the token behind them returns exactly ONE kind — `ScalarStyle.literal`.  No
+park reaches column 0 except off a block scalar, so nothing is lost where the
+other ten producers punt.
+
+**Measured.**  Full build **1143** jobs, zero warnings (HEAD side **1142** — the
+new guard file); suite **4492/4492** with Production Coverage Analysis
+**809/809**; `docs/` compared against `2e876337` by the stash-and-rebuild
+procedure, **63 of 64** byte-identical and the 64th (`coverage-summary.json`)
+differing only in its `date`, checked key by key.  `eventscore` **347/358** (95
+`error-ok`, **0** `error-miss`), `suiterunner` **869 passed / 0 failed / 151
+skipped**, the three checkers OK (228 modules / 355 imports; 20/230/249/355; 25
+capstones), `productioncoverage` **211/211** annotated productions over
+**809/809** rule↔site pairs.  The `[210]` flip holds at **FIVE** located errors,
+the same five holders items 152 and 153 measured — their line numbers moved by
+exactly **+14**, the height of the constructor comment this item added, which is
+how "the same five" is told apart from "five different".  The raw-route census
+is **TWO**.  `#print axioms accum_content_pending` is `[propext,
+Classical.choice, Quot.sound]` plus its **44** pre-existing `native_decide`
+axioms; the four new scanner lemmas and `content_park_nic` carry the three core
+axioms alone.  No `sorryAx`.
+
+**The price: +15 declarations**, and the first item since 150 to add any.  The
+reason is that the fact it needs is about the SCANNER rather than about the
+accumulation's own bookkeeping — no rearrangement of the frames could produce
+it.  Fourteen go to `LineOpenGuard` beside item 77's own block-scalar family
+(the flag twin of `scanBlockScalar_simpleKeyAllowed`, the monotonicity it rides
+on, and the column floor through the header that refutes its end-of-input
+escape); one is `content_park_nic`, the accumulation-site funder, written beside
+`content_park_arm` it mirrors.  **Zero** in `Tests`: counted the same way on both
+sides of the stash, tests is UNMOVED, test files **+1** and `#guard`s **+11**.
+What the item did NOT need is a new invariant threaded through the
+accumulation — the flag is already the park's to state, as its save flag has
+been since item 77.
+
+`Tests/Guards/Proofs/Col0ParkArmsCheck.lean` carries it: §1 the field; §2 the
+producer census; §3 the block scalar's arming and §3b the escape made a checked
+fact; §4 the payment; §5 the corpus, `(70, 11, 11, 3, 3, 0)`; §6 what still does
+not pay; §7 the price.  **467** insertions / **40** deletions over five files
+plus a **290**-line guard, this entry included.
+
+**Corrected in place.**  Item 152's guard §5 named the column-0 landing arm as
+open and its closing paragraph counted it among three; both struck with the
+closure named, and the closing paragraph also corrected — item 153's census
+found that chain is THREE fields, not two.  Item 153's guard §6 carried the same
+entry; struck there too.
+
+**What remains.**  One entry: the **sequence chain** —
+`pendingProps.h_closeFE`, `pendingBlockContent.h_closeF` and
+`pendingBlock.h_closeF`, three fields carrying widths alone on one lane, with
+the sequence park's relay inside `accum_content_on_pendingBlock_indented` owing
+a `Mono` and a `SentinelBase` besides (that lemma takes neither today).
 
 Still not the membership split, for item 150's reason: what that punt wants is a
 payload on `KeyPackPunt`, a change to the constructor and to every consumer.
@@ -16827,7 +16928,7 @@ too (items 47–51), so what stands between here
 and Step 5 (the converse) is R3's remaining production work and R4:
 
 ```
-R1 ✓ (44–46) ──→ R2 ✓ (47–51) ──→ R3 (52–153 landed; U2 CLOSED, the collapse gone) ──→ Step 5
+R1 ✓ (44–46) ──→ R2 ✓ (47–51) ──→ R3 (52–154 landed; U2 CLOSED, the collapse gone) ──→ Step 5
                                         └──────→ R4 (implicitContinue + 0 < m) ──┘
 ```
 

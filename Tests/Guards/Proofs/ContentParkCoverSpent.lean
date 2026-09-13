@@ -216,9 +216,12 @@ private def censusC (inputs : List String) : Nat × Nat × Nat × Nat :=
 
 /-! ## §5  What still does not pay
 
-* **The column-0 landing arm**, item 147's escape read at the consumer.  The
+* ~~**The column-0 landing arm**, item 147's escape read at the consumer.  The
   payment wants the walk's re-arm, and a park AT a line start crossed no break.
-  Measured above: two of eight.
+  Measured above: two of eight.~~  (CLOSED by item 154.  The payment does not
+  want the walk's re-arm — it wants preprocessing's unwind, which runs on
+  `needIndentCheck`, and a park that reached column 0 consumed the break that
+  armed it.  The datum is the PARK's, as item 77's own save flag has been.)
 * ~~**The props park.**  `accum_content_pending`'s `pendingProps` arm is the one
   punt where the PAYER is not the obstacle — that arm is break-crossed, so the
   floor is there for the asking.  `pendingProps`'s own two frames fields carry
@@ -250,8 +253,9 @@ the payment a single line at the point of use; had the hop stayed inside
 `dedent_cover_of_landing` with that lemma's two escapes attached, this item
 would have had to re-author it.
 
-What is left of the cover's work is §5's three entries: the col-0 landing arm,
-~~`pendingProps`'s two frames fields~~ (item 153), and the `pendingBlock` →
-`pendingBlockContent` chain's two `h_closeF`s. -/
+What is left of the cover's work is §5's three entries: ~~the col-0 landing
+arm~~ (item 154), ~~`pendingProps`'s two frames fields~~ (item 153), and the
+`pendingBlock` → `pendingBlockContent` chain's two `h_closeF`s — which item
+154's own census finds is a chain of THREE, `pendingProps.h_closeFE` included. -/
 
 end L4YAML.Tests.Guards.ContentParkCoverSpent

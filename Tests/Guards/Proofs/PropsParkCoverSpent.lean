@@ -257,9 +257,11 @@ private def censusP (inputs : List String) : Nat × Nat × Nat × Nat × Nat × 
 
 /-! ## §6  What still does not pay
 
-* **The column-0 landing arm** of item 152's skeleton — item 147's escape read
-  at the consumer.  It is untouched here, and it does not reach this lane: a
-  props park is never at a line start (§5's zero).
+* ~~**The column-0 landing arm** of item 152's skeleton — item 147's escape read
+  at the consumer.~~  (CLOSED by item 154: the floor there is preprocessing's
+  unwind, the unwind runs on `needIndentCheck`, and a park that reached column 0
+  consumed the break that arms it.  It never reached this lane in any case — a
+  props park is never at a line start, §5's zero.)
 * **The sequence chain.**  `pendingProps.h_closeFE`, `pendingBlockContent
   .h_closeF` and `pendingBlock.h_closeF` are one chain carrying widths alone,
   and the sequence park's relay owes a `Mono` and a `SentinelBase` besides.
