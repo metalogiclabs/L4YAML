@@ -16902,11 +16902,115 @@ closure named, and the closing paragraph also corrected — item 153's census
 found that chain is THREE fields, not two.  Item 153's guard §6 carried the same
 entry; struck there too.
 
-**What remains.**  One entry: the **sequence chain** —
+~~**What remains.**  One entry: the **sequence chain** —
 `pendingProps.h_closeFE`, `pendingBlockContent.h_closeF` and
 `pendingBlock.h_closeF`, three fields carrying widths alone on one lane, with
 the sequence park's relay inside `accum_content_on_pendingBlock_indented` owing
-a `Mono` and a `SentinelBase` besides (that lemma takes neither today).
+a `Mono` and a `SentinelBase` besides (that lemma takes neither today).~~
+(CLOSED by item 155, which found the entry mis-stated: those fields carried no
+FRAMES either, so the cover they lacked would have been spendable nowhere.)
+
+Still not the membership split, for item 150's reason: what that punt wants is a
+payload on `KeyPackPunt`, a change to the constructor and to every consumer.
+
+
+### Item 155 (2026-09-13)
+
+**The sequence lane gets frames, and then a cover.**  Items 152 and 153 left one
+entry on the menu: `pendingProps.h_closeFE`, `pendingBlockContent.h_closeF` and
+`pendingBlock.h_closeF`, "one chain carrying widths alone", with the sequence
+park's relay owing a `Mono` and a `SentinelBase` besides.  This is that entry —
+and measuring it first showed the entry was **mis-stated**.
+
+**A cover over an empty list is spendable nowhere.**  The landing's hop is
+`ResumeFrames.resumeAt`, whose premise is `j ∈ ks`: a landing resumes only at a
+width the frames NAME.  Flipping `pendingBlock.h_closeF`'s escape from `True` to
+`False` reports **six punts of seven producers**, and the seventh —
+`accum_block_on_closeThenBlock`'s landed `-` — pays `ks = []`.  So the lane's
+frames were empty wherever they existed at all, and the three fields' missing
+cover was never the residue.  The FRAMES were.
+
+**Where a non-empty list exists is the mapping value the sequence fills.**  A
+landed `-` on a `pendingMapValue` opens the collection that becomes the awaited
+node, and the mapping level the park stands in is still open underneath it —
+which is what that park's `h_closeF` has said since item 108, cover included.
+`accum_block_on_closeThenBlock` closes the park before its `-` arm runs, so the
+item carries that reading past the close as `h_valF`, and the sequence park's
+frames become `nv :: ks`.  `k:⏎␣␣- a⏎b: 2` now resumes the mapping the sequence
+was written inside instead of re-opening at the root.
+
+**The side condition is `[183]`'s `m` read as a bound**, and its failing case
+cannot arise.  `nestedBlockSeq` wants `nv ≤ k` and the frames are strictly
+decreasing, so the payment runs at `nv < k` and keeps item 99's bottomed reading
+otherwise.  The shape that fails it is `seq-spaces` — a sequence at its key's own
+column (`k:⏎- a`) — and there the `-` pushes NO level: the stack stays `[0M]` and
+the state never has the shape the payment asks about.  **The one shape that
+cannot pay is the one shape that cannot reach the premise**, which is item 154's
+finding at a different field.
+
+**Census, by the compiler.**  `h_valF` flipped to `∨ False` distinguishes its
+callers by the argument each error names: **9 punts** (`trivial`) and **2
+payers** (`h_closeF155`), the two branches of `accum_block_pending`'s
+`pendingMapValue` arm — the only park that awaits a node when a block indicator
+lands on it.  Flipping the cover conjunct on both the field and the local that
+pays it gives **exactly two errors, and they are the two `ks = []` fallbacks**:
+the cover is present precisely where the frames are non-empty.
+
+**The floor is bounded at the field's own index, and that buys one more hop.**
+Items 152/153 left the index existential because their payers bounded their lists
+at levels the consumer could not name.  This lane's payer knows its index (`nv <
+k` gives it), so the three fields state `Floor lo n ks` rather than `∃ m, Floor
+lo m ks` — and the pack's NESTED branch, which conses the park's own level onto
+the carried frames, becomes payable: `Floor.cons` plus `Covered.cons`, one line,
+closing **six** punts at the entry-key-pack relays (items 148 and 149, three
+sites, two faces each) that were not on the menu at all.
+
+**And the relay pays.**  `accum_content_on_pendingBlock_indented` takes
+`SentinelBase` and `Mono` as parameters, its dedent branch builds the landing's
+payer the way the mapping twin does (`landing_floor_of_arm`, off the park's own
+`h_col_old : sp_scan.col = n + 1`), and the face reaches `resumectx_of_landing`
+whole.  What was missing was never the reasoning — it was the two stack readings
+the floor is read with.
+
+**Corpus — and which corpus.**  Item 154's suite sweep read the wrong files, and
+this entry restates it.  `yaml-test-suite/src/*.yaml` are test DESCRIPTORS, each
+a root sequence of mappings; walking them reads 8661 states across exactly THREE
+indent-stack shapes.  The payloads are in the `yaml: |` blocks, and
+`Tests.SuiteRunner.parseTestFile` extracts them.  Re-walked over those, 351 files
+give **406 cases and 3262 states** in **23** shapes, and item 154's census reads
+**`at0=489 armed=489 pop=2 popFloor=2 NOT-ARMED=0`** — the claim stands, on
+thinner support than the descriptor sweep suggested (2 real dedents, not 52).
+This item's own population is **120** states whose stack top is a sequence over a
+mapping, of which **19** face a pop and **18** land exactly on that mapping's
+width.  The gap is not a miss: a key at the sequence's own indentation is
+`trailingContent`, refused before any dispatch runs.
+
+**Price: no new declaration.**  One parameter on
+`accum_block_on_closeThenBlock`, two on
+`accum_content_on_pendingBlock_indented`, a cover conjunct on each of the three
+recorded fields, and two `have`s.  `nestedBlockSeq`, `Floor.mono_index`,
+`Floor.cons`, `Covered.cons`, `scanBlockEntry_cover`, `landing_floor_of_arm` and
+`dedent_cover_of_floor` were all already in the library — including the `-`'s own
+cover step, which exists because the frames record mapping levels and a sequence
+push is exempt.  Proof and library declaration counts are UNMOVED; tests +4,
+`#guard`s +7, test files +1.
+
+`Tests/Guards/Proofs/SeqLaneFramesSpent.lean` carries it: §1 the membership gate
+that made the recorded item vacuous; §2 the census by the compiler; §3 the
+payment and its side condition; §4 the cover and the hop the index bought; §5 the
+corpus, `(46, 11, 2, 2)`, and the descriptor correction; §6 what still does not
+pay; §7 the price.
+
+**Corrected in place.**  Item 154's guard §5 claimed a suite census taken over
+the descriptors; struck, with the payload numbers given.  Its §6, and the
+sequence-chain entries in items 152's and 153's guards, are struck with the
+closure named and with the reason the entry was mis-stated.
+
+**What remains.**  On the cover's work, nothing: items 152–155 closed all three
+of item 152's residues.  What the sequence lane still keeps is not a missing
+derivation — the two `ks = []` fallbacks are a park with nothing open below it
+and the `seq-spaces` shape that never reaches the premise, and the nine punting
+`h_valF` callers close parks that await no node.
 
 Still not the membership split, for item 150's reason: what that punt wants is a
 payload on `KeyPackPunt`, a change to the constructor and to every consumer.
@@ -16928,7 +17032,7 @@ too (items 47–51), so what stands between here
 and Step 5 (the converse) is R3's remaining production work and R4:
 
 ```
-R1 ✓ (44–46) ──→ R2 ✓ (47–51) ──→ R3 (52–154 landed; U2 CLOSED, the collapse gone) ──→ Step 5
+R1 ✓ (44–46) ──→ R2 ✓ (47–51) ──→ R3 (52–155 landed; U2 CLOSED, the collapse gone) ──→ Step 5
                                         └──────→ R4 (implicitContinue + 0 < m) ──┘
 ```
 

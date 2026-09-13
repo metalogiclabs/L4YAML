@@ -229,10 +229,12 @@ private def censusC (inputs : List String) : Nat × Nat × Nat × Nat :=
   producers that ride those fields punt for the same reason.~~  (CLOSED by item
   153 — the two fields gained the same conjunct, three mapping producers pay it,
   two extensions relay it, and both consumers spend it.)
-* **The sequence chain.**  `pendingBlockContent.h_closeF` carries widths alone,
+* ~~**The sequence chain.**  `pendingBlockContent.h_closeF` carries widths alone,
   and its own payers are `pendingBlock.h_closeF`, which carries none either —
   two fields on one chain, and the sequence park's relay owes a `Mono` and a
-  `SentinelBase` besides. -/
+  `SentinelBase` besides.~~  (CLOSED by item 155.  The chain is real and the
+  diagnosis was incomplete: those fields carried no FRAMES either, so a cover
+  on them would have had no width to be spent at.) -/
 
 example {sc : ScannerState} {sp_start sp_scan : SurfPos} {nv : Nat} {ks : List Nat}
     (fV : ∀ sp_mid : SurfPos, SSLComments sp_scan sp_mid →
@@ -254,8 +256,9 @@ the payment a single line at the point of use; had the hop stayed inside
 would have had to re-author it.
 
 What is left of the cover's work is §5's three entries: ~~the col-0 landing
-arm~~ (item 154), ~~`pendingProps`'s two frames fields~~ (item 153), and the
+arm~~ (item 154), ~~`pendingProps`'s two frames fields~~ (item 153), and ~~the
 `pendingBlock` → `pendingBlockContent` chain's two `h_closeF`s — which item
-154's own census finds is a chain of THREE, `pendingProps.h_closeFE` included. -/
+154's own census finds is a chain of THREE, `pendingProps.h_closeFE`
+included~~ (item 155).  All three are closed. -/
 
 end L4YAML.Tests.Guards.ContentParkCoverSpent

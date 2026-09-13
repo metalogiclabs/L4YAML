@@ -262,10 +262,13 @@ private def censusP (inputs : List String) : Nat × Nat × Nat × Nat × Nat × 
   unwind, the unwind runs on `needIndentCheck`, and a park that reached column 0
   consumed the break that arms it.  It never reached this lane in any case — a
   props park is never at a line start, §5's zero.)
-* **The sequence chain.**  `pendingProps.h_closeFE`, `pendingBlockContent
+* ~~**The sequence chain.**  `pendingProps.h_closeFE`, `pendingBlockContent
   .h_closeF` and `pendingBlock.h_closeF` are one chain carrying widths alone,
   and the sequence park's relay owes a `Mono` and a `SentinelBase` besides.
-  This is the last of item 152's three residues.
+  This is the last of item 152's three residues.~~  (CLOSED by item 155.  The
+  entry was mis-stated: the lane's FRAMES were empty, so the cover would have
+  been spendable nowhere.  §2's "its one payer relays `pendingBlock.h_closeF`,
+  which has none" was right about the field and wrong about what it cost.)
 * **The membership split**, still declined for item 150's reason: paying it
   needs a payload on `KeyPackPunt`, which is a change to the constructor and to
   every consumer. -/

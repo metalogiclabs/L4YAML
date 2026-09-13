@@ -200,12 +200,22 @@ The last component is the item's claim and the one before it is what keeps it
 from passing vacuously: the sweep found column-0 parks with real dedents, and
 every one of them was armed.
 
-The same walk over the 351-file `yaml-test-suite` reads
+~~The same walk over the 351-file `yaml-test-suite` reads
 `at0=1700 armed=1700 pop=52 popFloor=52 NOT-ARMED=0`, and grouping those 1349
 non-initial column-0 states by the token behind them returns ONE kind —
-`ScalarStyle.literal`.  That is the measurement behind §2's claim that the ten
-punting producers lose nothing: no park reaches column 0 except off a block
-scalar. -/
+`ScalarStyle.literal`.~~
+
+**That sweep read the wrong files** (item 155).  `yaml-test-suite/src/*.yaml`
+are test DESCRIPTORS, not payloads — each is a root sequence of mappings, and
+the 8661 states it walks take exactly THREE indent-stack shapes.  The payloads
+are in the `yaml: |` blocks, and `Tests.SuiteRunner.parseTestFile` extracts
+them.  Re-walked over those, 351 files give 406 cases and 3262 states, and the
+census reads **`at0=489 armed=489 pop=2 popFloor=2 NOT-ARMED=0`**.
+
+The claim stands — no park reaches column 0 with the flag down — and the
+support is thinner than the descriptor sweep suggested: two real dedents, not
+fifty-two.  §2's reading of the ten punting producers is unaffected, since it
+turns on the zero. -/
 
 private def factsC (s : ScannerState) : Nat × Nat × Nat × Nat × Nat :=
   if s.col != 0 then (0, 0, 0, 0, 0) else
@@ -262,11 +272,14 @@ private def censusC (inputs : List String) : Nat × Nat × Nat × Nat × Nat × 
 
 /-! ## §6  What still does not pay
 
-One entry, and it is the one item 153 named beside this one: the **sequence
+~~One entry, and it is the one item 153 named beside this one: the **sequence
 chain**.  `pendingProps.h_closeFE`, `pendingBlockContent.h_closeF` and
 `pendingBlock.h_closeF` carry widths alone on one lane, and the sequence park's
 relay inside `accum_content_on_pendingBlock_indented` owes a `Mono` and a
-`SentinelBase` besides — that lemma takes neither today.
+`SentinelBase` besides — that lemma takes neither today.~~  (CLOSED by item
+155, which found the entry mis-stated: the lane's frames were EMPTY, so the
+cover those three fields lacked would have been spendable nowhere.  Item 155
+gives the lane frames off the mapping value the sequence fills, then the cover.)
 
 Two things are NOT residue here.  The eight non-block content producers and the
 two flow closes punt `h_nic0` into a premise they cannot reach (§2, §5), so
