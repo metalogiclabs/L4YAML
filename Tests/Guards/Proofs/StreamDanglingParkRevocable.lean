@@ -27,10 +27,11 @@ and over ordinary YAML.  The consequence for the face is structural: a
 landing crossed a break (`scanNextToken_checkDanglingNode` is gated on
 `simpleKeyAllowed`) or at end of input (`scanLoop_checkDanglingNode` is not
 gated at all).  At a same-line `:` there is no refutation, so the disjunct must
-be CARRIED — and §4 measures how often that is: 2272 of 2275 dangling parks
+be CARRIED — and §4 measures how often that is: ~~2272 of 2275 dangling parks
 observed across 490 real YAML files are a `:` landing with the flag down, 2179
-of them at a column other than 0.  Every sibling key of every nested block
-mapping is one.
+of them at a column other than 0~~ — **332 of 346**, corrected at item 156,
+which found §4's corpus walk reading the suite's test DESCRIPTORS rather than
+its payloads.  Every sibling key of every nested block mapping is one.
 
 So the face cannot be spent until the block landing stops requiring an
 unconditional stream through a park the next `:` turns into a key — which is
@@ -168,15 +169,23 @@ ended on it, `D` it survived a landing whose flag was DOWN (no refutation
 available), `U` it survived with the flag UP (impossible outside a flow — the
 check would have fired).
 
-Over the 490 `.yaml` files in `yaml-test-suite/src` and `examples/` this
+~~Over the 490 `.yaml` files in `yaml-test-suite/src` and `examples/` this
 instrument records **2275** observations: **2** `R`, **0** `E`, **2273** `D`,
 **0** `U`; of the 2272 `D`s whose landing is a `:`, **2179** sit at a column
-other than 0.  That corpus walk is not reproduced here — a guard that reads
+other than 0.~~  **Those are DESCRIPTOR numbers** (item 156): the suite's
+`src/*.yaml` are test descriptors, each a root sequence of mappings, and
+walking them counts their own nested mappings.  Over the 406 payloads
+`Tests.SuiteRunner.parseTestFile` extracts, plus `examples/` (payloads
+already), the instrument records **346** observations: **8** `R`, **6** `E`,
+**332** `D`, **0** `U`.  The split that decides this file's shape is the same
+one — the carried `D`s are 96 % of it — but the discharge-able half is 14
+rather than 2, and six of those are end-of-input, which a descriptor file can
+never produce.  That corpus walk is not reproduced here — a guard that reads
 files is invisible to Lake — but the same instrument over the fixed list below
-shows the same split, and DOCS item 141 records the corpus numbers.  [Re-run at
-item 145, which widened §9.2's landing refusal to the landing's own column, the
-corpus numbers are unchanged in every cell; what moved is one row of the fixed
-list, noted where it sits.] -/
+shows the same split, and DOCS items 141 and 156 record the corpus numbers.
+[Re-run at item 145, which widened §9.2's landing refusal to the landing's own
+column, the corpus numbers are unchanged in every cell; what moved is one row
+of the fixed list, noted where it sits.] -/
 
 private def censusFrom (s : ScannerState) (acc : String) : Nat → String
   | 0 => acc ++ "!"
@@ -269,7 +278,10 @@ private def scanOk (input : String) : String :=
 The two lemmas in §2 are the contradiction the face will spend when it is
 spendable, and nothing spends them yet — the same standing `nodocMapRoute` has
 had since item 116, and for the same reason: the route they refute is not the
-one the accumulation takes until its landing is narrowed.
+one the accumulation takes until its landing is narrowed.  [Item 156 supplied
+the `some` reading they take as a premise — `danglingPark_of_dispatch` and its
+two spent forms, in `StreamAccum` — so what is still missing is the face
+itself, not either half of the contradiction.]
 
 What has to come first is the BLOCK landing.  The disjunct has no home at a
 same-line `:` (§2's gating, §4's 2272), and that landing's own route is already

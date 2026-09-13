@@ -14933,13 +14933,26 @@ one observation per state whose `danglingNodePos?` reads `some`:
 | survived with the flag UP (`U`) | **0** |
 | of the 2272 `D`s whose landing is a `:`, at a column other than 0 | **2179** |
 
-**99.9 % of dangling parks in real YAML are a same-line `:` with the flag down** —
-every sibling key of every nested block mapping is one.  [Re-run at
+~~**99.9 % of dangling parks in real YAML are a same-line `:` with the flag down**~~
+— every sibling key of every nested block mapping is one.  [Re-run at
 [item 145](#item-145-2026-09-11), which widened §9.2's landing refusal to the
 landing's own column, every cell of this table is the same — the corpus rows are
 real YAML and all of them rest on a level.]  That is where the
 disjunct would have to be CARRIED rather than discharged, and it is the hottest
 path in the accumulation, not a corner of it.
+
+**The table above counts the wrong files on the suite side**, corrected
+2026-09-13 by [item 156](#item-156-2026-09-13): `yaml-test-suite/src/*.yaml` are
+test DESCRIPTORS, each a root sequence of mappings, so the walk counts their own
+nested mappings — the same error item 154 made and item 155 corrected at a
+different census.  Over the suite's 406 extracted payloads plus `examples/` the
+instrument records **346** observations: **8** `R`, **6** `E`, **332** `D`,
+**0** `U`.  The carried share is **96 %**, not 99.9 %, and the discharge-able
+half is **14** rather than 2 — six of them end-of-input, which a descriptor file
+can never produce.  The conclusion is unchanged and never rested on the census:
+what decides the face's SHAPE is the revocability table above, which is over
+hand-built inputs.  Item 145's re-run repeated the same reading and so repeats
+the same correction.
 
 **Two witnesses, both scanning clean, put the carry at a lemma that already
 stands flagged.**  `accum_block_pending` builds its `h_close_pending` BEFORE the
@@ -15530,10 +15543,21 @@ parser-only residue; §3 the empty site and the two reasons its callers give;
 now spends a guarded one, and the two raw applications left in the module are
 measured rather than pending.  What stands between here and the constructor flip
 is the half no §9.2 check reaches — the INDENTED landing, where the scanner is
-clean and only `TokenParser` refuses — and that is item 141's park face, priced
+clean and only `TokenParser` refuses — and that is ~~item 141's park face~~,
+priced
 at a converging 32 sites and now witnessed in all three lanes: `k:⏎␣␣a⏎␣␣: v`
 (block), `k:⏎␣␣"a"⏎␣␣[1, 2]` (flow) and `k:⏎␣␣"x"⏎␣␣b: 2` (content).  U3's
 threading is the other open lane.
+
+[**The attribution is wrong**, corrected 2026-09-13 by
+[item 156](#item-156-2026-09-13).  The park face reads `none` at all three of
+`content_dispatch_after_close`'s callers, so it can never refute them: the
+`pendingBlock` and `pendingMapValue` parks stand behind a `-` and a `:`, which
+are `YamlToken.offersNodeSlot`'s own members, so the content FILLS a slot and no
+dangling run exists at all; the props park stands at the sentinel-only stack,
+where no open level has the landing's column.  All three inputs PARSE.  What is
+left at that lemma is a ROUTE — the enclosing park's own — and not a refutation
+of any kind.  The 32-site price is re-measured at item 156 too, and stands.]
 
 [**CLOSED by [item 145](#item-145-2026-09-11)**, and not by a park face: "the
 half no §9.2 check reaches" was §9.2's own fourth conjunct reading the stack's
@@ -17016,6 +17040,132 @@ Still not the membership split, for item 150's reason: what that punt wants is a
 payload on `KeyPackPunt`, a change to the constructor and to every consumer.
 
 
+### Item 156 (2026-09-13)
+
+**§9.2's dangling reading, derived at the producer — and two censuses that read
+the wrong thing.**  Items 148–155 emptied the cover's menu, so the next thing in
+front of the `[210]` constructor flip is the one item 141 named and priced: the
+PARK FACE, a `danglingNodePos?` reading on `pendingContent` spent where
+`h_closable` is stated.  Item 141 built the half that REFUTES and left the half
+that READS unnamed.  This item builds the reading, re-prices the face, and
+corrects two things the plan was carrying.
+
+**The chain is the token array's own, and every link is now a lemma.**  Off `&`
+and `!`, every content arm pushes exactly ONE node body and pushes it at the
+dispatch's own `currentPos` (`dispatchContent_tokens_push`, with the block
+scalar's arm proved separately as `scanBlockScalar_tokens_push` — the value arms
+had their `_tokens` lemmas since item 139 and the block scalar had only a TAIL
+reading).  A body pushed on top starts a trailing run of one, with the array's
+own last REAL slot as its predecessor (`trailingNodeRun?_push_body`, the dual of
+`trailingNodeRun?_push_none`, over `prevRealIdx?_push` and `prevRealIdx?_lt`).
+A completed node tail offers that run no slot, because `completesFlowValue` and
+`offersNodeSlot` are disjoint (`CompletedTail.danglingPred`).  So the park reads
+`some ⟨line, col⟩` at the landing's own column whenever that column names an
+open level — `danglingPark_of_dispatch` — and that is
+`danglingNodePos?`'s four conditions in order.  Spent against the two §9.2
+checks it is `danglingPark_refutes_landing` and `danglingPark_refutes_eof`.
+
+**The predecessor is stated as a `prevRealIdx?` fact, not as `CompletedTail`,
+and that is not a generalization for its own sake.**  Preprocessing's unwind
+EMITS `blockEnd` before the dispatch runs, so at a landing that popped the
+array's last real token is a `blockEnd` rather than the park's own tail — and a
+`blockEnd` offers no slot either.  Stating the premise at the reading the lemma
+actually spends leaves that transport available; stating it as `CompletedTail`
+would have closed the popping half out by construction.
+
+**Item 144's attribution is wrong, and the correction is machine-checked.**  Item
+144 measured that `content_dispatch_after_close` cannot pay §9.2's landing guard
+and recorded the residue as "row 19's 1c residue for the indented family — item
+141's park face".  The measurement stands; the attribution does not.  The face
+reads `none` at all three of that lemma's callers, and for two different
+reasons: the `pendingBlock` and `pendingMapValue` parks stand behind a `-` and a
+`:`, which are `YamlToken.offersNodeSlot`'s own members, so the content FILLS a
+slot and there is no dangling run at all; the props park stands at the
+sentinel-only stack, where no open level has the landing's column.  Read at the
+landing, `k:⏎␣␣-⏎␣␣␣␣b` and `k:⏎␣␣a:⏎␣␣␣␣b` are `col=4 op=false pred=slot` and
+`&p⏎␣␣b` is `col=2 op=false pred=no-slot`; all three PARSE.  What is left there
+is a ROUTE — the enclosing park's own — and no refutation of any kind can reach
+it.  The guard states the general fact at its type: a predecessor that offers a
+slot makes `danglingNodePos?` read `none` outright.
+
+**Item 141's census counted the wrong files**, the same error item 154 made and
+item 155 corrected at a different census.  `yaml-test-suite/src/*.yaml` are test
+DESCRIPTORS, each a root sequence of mappings, so walking them counts their own
+nested mappings.  Item 141's instrument, re-run:
+
+| corpus | obs | `R` | `E` | `D` |
+|---|---|---|---|---|
+| the 490 files walked as payloads (item 141's reading, reproduced exactly) | 2275 | 2 | 0 | 2273 |
+| the suite's 406 extracted payloads | 183 | 6 | 6 | 171 |
+| `examples/`, which are payloads already | 163 | 2 | 0 | 161 |
+
+The honest corpus is **346** observations, **14** of them discharge-able and
+**332** carried — **96 %**, not 99.9 %.  The descriptor sweep manufactured about
+1 930 observations out of its own structure and hid all six of the `E`s, because
+a descriptor file never ends on a dangling run.  **The conclusion is unchanged
+and never rested on the census**: what decides the face's SHAPE is item 141's
+revocability table, which is over hand-built inputs.  What the census decides is
+how HOT the carried disjunct is, and 96 % is still the language rather than a
+corner of it.  Item 145 re-ran the same reading and so repeats the same
+correction.
+
+**The face, re-priced, and in a better shape.**  Stated as a PREMISE —
+`h_closable : danglingNodePos? sc = none → ∀ sp_mid, …`, with
+`PendingNode.close_with_ssl` taking the same premise — the face is **32**
+distinct sites in **9** holders, reached in ONE wave rather than three, because
+a premise never widens a conclusion: `accum_content_pending` 11,
+`accum_content_on_pendingMapValue_indented` 6, `accum_content_on_pendingMapValue`
+5, `content_dispatch_routed` 4, `accum_step_flow` 2, and one apiece at
+`eof_pending`, `accum_structural_pending`, `accum_flow_open_depth0` and
+`accum_block_pending`.  Item 141 priced the conclusion-disjunct shape at
+19 → 28 → 32 with 14 producers and 5 consumers; the producer count is the same
+14 and the five consumers are the same five.
+
+**And the wall is real today, re-confirmed with its witness.**  Four of the five
+consumers stand where §9.2 gives a refutation — `eof_pending` at
+`scanLoop_checkDanglingNode`, gated on nothing, and the three landing consumers
+at `scanNextToken_checkDanglingNode`, gated on the break the landing crossed.
+`accum_block_pending` does not: it builds `h_close_pending` before the case
+split and its live arm is a `:` on the park's own line, where the flag is DOWN
+and the check stands aside by construction.  Item 141's punting witness is what
+makes that real rather than structural — `a: &x 1⏎*x : 2`, an ALIAS key, which
+`pendingContent.h_key` does not pack, so the `:` reaches
+`accum_block_on_closeThenBlock`'s fallback with a dangling park in hand.  It
+scans clean, it PARSES, and its park reads `col=0 op=true pred=no-slot
+park=1,0`.
+
+**Price: twelve declarations, no runtime file, no proof rewired.**  L4YAML
+declarations 7925 → **7937**; tests +1 file and **+7** `#guard`s.  The face
+itself was stated, measured and reverted — every patch this item made outside
+the twelve lemmas was a measurement patch.
+
+`Tests/Guards/Proofs/DanglingParkDerived.lean` carries it (7 `#guard`,
+2 `example`): §1 the chain's premises and conclusion read off the real scanner
+over item 141's family, with two members this item adds; §2 item 144's
+attribution corrected, at its type and over its own three witnesses; §3 the
+corpus correction; §4 the face re-priced; §5 the wall with its witness.
+
+**Corrected in place.**  Item 141's census table and the corresponding §4 of
+`Tests/Guards/Proofs/StreamDanglingParkRevocable.lean` are struck with the
+payload numbers; item 144's "What remains" and the comment inside
+`content_dispatch_after_close` are struck with the attribution corrected.
+
+**What remains.**  The face, and it is one item with one obstacle.  The 32 sites
+are mechanical; the four paying consumers want `scanNextToken_checkDanglingNode`
+threaded from `scanNextToken_accum_step`, where item 141 measured that `h_dn` is
+already derived and discarded.  `accum_block_pending` is the obstacle, and its
+shape is now precise: its `h_close_pending` must move INTO the arms that spend
+it, or `accum_block_on_closeThenBlock`'s `:` fallback must stop taking an
+unconditional stream.  Beside it, the popping half of the landing wants the
+`blockEnd` transport the predecessor premise was left open for.
+
+And the flip's own residue is unchanged and now split by KIND:
+`bareNodeRoute` serves the park face's family at `accum_content_pending` (two
+`_or_refused` sites, whose `h_op = true` half this item's lemma refutes once the
+face exists) and row 19's 1c at `content_dispatch_after_close` (a route, not a
+refutation); `rootMapRoute` serves `flowKeyRoute_of_root`'s no-break arm.
+
+
 ### REMAINING, in order
 
 The per-item history is the closure log above; this section lists only the
@@ -17032,7 +17182,7 @@ too (items 47–51), so what stands between here
 and Step 5 (the converse) is R3's remaining production work and R4:
 
 ```
-R1 ✓ (44–46) ──→ R2 ✓ (47–51) ──→ R3 (52–155 landed; U2 CLOSED, the collapse gone) ──→ Step 5
+R1 ✓ (44–46) ──→ R2 ✓ (47–51) ──→ R3 (52–156 landed; U2 CLOSED, the collapse gone) ──→ Step 5
                                         └──────→ R4 (implicitContinue + 0 < m) ──┘
 ```
 

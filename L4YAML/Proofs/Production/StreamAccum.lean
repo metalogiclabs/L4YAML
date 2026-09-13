@@ -9971,6 +9971,303 @@ lemma completedTail_of_dispatch {s s' : ScannerState} {c : Char}
     discharge item 9d's inversion (`notCompletes_of_checkFlowAdjacency_ok_nodeStart`)
     at a content character — which is what says the frame is receptive. -/
 
+/-! ### §9.2's dangling reading, derived at the PRODUCER (item 156)
+
+Item 141 built the CONSUMER half — `danglingNode_refutes_landing` and
+`danglingNode_refutes_eof`, the two contradictions §9.2's mid-stream and
+end-of-input checks spend — and left the producer half unnamed: nothing said
+what a content dispatch's park READS.  These lemmas say it.  The chain is the
+token array's own: the dispatch pushes exactly one node body at its own
+`currentPos`, that body starts a trailing run of one, the park's predecessor
+offers it no slot, and the landing's column names an open level — which is
+`danglingNodePos?`'s four conditions in order.
+-/
+
+set_option maxHeartbeats 1000000 in
+lemma scanBlockScalar_tokens_push {s s' : ScannerState}
+    (hok : scanBlockScalar s = .ok s') :
+    ∃ (str : String) (sty : ScalarStyle),
+      s'.tokens = s.tokens.push { pos := s.currentPos, val := .scalar str sty } := by
+  unfold scanBlockScalar at hok
+  simp only [] at hok
+  split at hok
+  · cases hok
+  · unfold scanBlockScalarBody at hok
+    simp only [] at hok
+    split at hok
+    · cases hok
+    · repeat (any_goals (split at hok))
+      all_goals (try contradiction)
+      all_goals (have h := Except.ok.inj hok
+                 subst h
+                 exact ⟨_, _, by
+                   unfold ScannerState.emitAt
+                   dsimp only []
+                   simp only [ScannerCorrectness.ScanHelpers.collectBlockScalarLoop_preserves_tokens,
+                     ScannerCorrectness.ScanHelpers.scanBlockScalarConsumeNewline_preserves_tokens _ _ (by assumption),
+                     ScannerCorrectness.ScanHelpers.scanBlockScalarSkipComment_preserves_tokens,
+                     ScannerCorrectness.skipWhitespace_preserves_tokens,
+                     ScannerCorrectness.ScanHelpers.parseBlockHeaderLoop_preserves_tokens,
+                     ScannerCorrectness.advance_preserves_tokens]
+                   rfl⟩)
+
+set_option maxHeartbeats 1000000 in
+/-- **The content dispatch's own token, WITH its position.**  Off the two
+    property characters every arm pushes exactly one node BODY — a scalar of
+    any style or an alias — and pushes it at the dispatch's own
+    `currentPos`. -/
+lemma dispatchContent_tokens_push {s s' : ScannerState} {c : Char}
+    (hok : scanNextToken_dispatchContent s c = .ok s')
+    (h_amp : c ≠ '&') (h_bang : c ≠ '!') :
+    ∃ t : YamlToken, t.isNodeBody = true ∧
+      s'.tokens = s.tokens.push { pos := s.currentPos, val := t } := by
+  unfold scanNextToken_dispatchContent at hok
+  simp only [bind, Except.bind, pure, Except.pure] at hok
+  split at hok
+  · rename_i heq; exact absurd (by simpa using heq) h_amp
+  split at hok
+  · -- `*`: the alias arm
+    split at hok
+    · exact absurd hok (by simp)
+    · split at hok
+      · exact absurd hok (by simp)
+      · generalize h_al : scanAnchorOrAlias s false = r at hok
+        cases r with
+        | error => exact absurd hok (by simp)
+        | ok v =>
+          obtain ⟨name, hname⟩ := scanAnchorOrAlias_tokens h_al
+          dsimp only [] at hok
+          split at hok
+          · exact absurd hok (by simp)
+          · have hv : s' = v := (Except.ok.inj hok).symm
+            subst hv
+            exact ⟨.alias name, by simp [YamlToken.isNodeBody], by simpa using hname⟩
+  split at hok
+  · rename_i heq; exact absurd (by simpa using heq) h_bang
+  split at hok
+  · -- `|`/`>`: the block scalar
+    split at hok
+    · exact absurd hok (by simp)
+    · generalize h_bs : scanBlockScalar s = r at hok
+      cases r with
+      | error => exact absurd hok (by simp)
+      | ok v =>
+        obtain ⟨str, sty, hstr⟩ := scanBlockScalar_tokens_push h_bs
+        have hv : s' = v := (Except.ok.inj hok).symm
+        subst hv
+        exact ⟨.scalar str sty, by simp [YamlToken.isNodeBody], hstr⟩
+  split at hok
+  · generalize h_dq : scanDoubleQuoted s = r at hok
+    cases r with
+    | error => exact absurd hok (by simp)
+    | ok v =>
+      obtain ⟨str, hstr⟩ := scanDoubleQuoted_tokens h_dq
+      dsimp only [] at hok
+      have hv : s' = (if v.simpleKey.possible then
+          { v with simpleKey := { v.simpleKey with endLine := v.line } } else v) :=
+        (Except.ok.inj hok).symm
+      subst hv
+      have htok : (if v.simpleKey.possible then
+          { v with simpleKey := { v.simpleKey with endLine := v.line } } else v).tokens
+          = v.tokens := by split <;> rfl
+      exact ⟨.scalar str .doubleQuoted, by simp [YamlToken.isNodeBody], by rw [htok, hstr]⟩
+  split at hok
+  · generalize h_sq : scanSingleQuoted s = r at hok
+    cases r with
+    | error => exact absurd hok (by simp)
+    | ok v =>
+      obtain ⟨str, hstr⟩ := scanSingleQuoted_tokens h_sq
+      dsimp only [] at hok
+      have hv : s' = (if v.simpleKey.possible then
+          { v with simpleKey := { v.simpleKey with endLine := v.line } } else v) :=
+        (Except.ok.inj hok).symm
+      subst hv
+      have htok : (if v.simpleKey.possible then
+          { v with simpleKey := { v.simpleKey with endLine := v.line } } else v).tokens
+          = v.tokens := by split <;> rfl
+      exact ⟨.scalar str .singleQuoted, by simp [YamlToken.isNodeBody], by rw [htok, hstr]⟩
+  split at hok
+  · generalize h_pl : scanPlainScalar s = r at hok
+    cases r with
+    | error => exact absurd hok (by simp)
+    | ok v =>
+      obtain ⟨str, hstr⟩ := scanPlainScalar_tokens h_pl
+      have hv : s' = v := (Except.ok.inj hok).symm
+      subst hv
+      exact ⟨.scalar str .plain, by simp [YamlToken.isNodeBody], hstr⟩
+  · exact absurd hok (by simp)
+
+/-- `prevRealIdx?` returns an index strictly below the one it was asked at. -/
+lemma prevRealIdx?_lt {ts : Array (Positioned YamlToken)} :
+    ∀ {n i : Nat}, prevRealIdx? ts n = some i → i < n := by
+  intro n
+  induction n with
+  | zero => intro i h; cases h
+  | succ m ih =>
+    intro i h
+    have h' : (if ts[m]!.val == .placeholder then prevRealIdx? ts m else some m) = some i := h
+    split at h'
+    · exact Nat.lt_succ_of_lt (ih h')
+    · rw [← Option.some.inj h']; omega
+
+/-- `prevRealIdx?` reads only slots strictly below its index, so a push at the
+    top is invisible to it. -/
+lemma prevRealIdx?_push {ts : Array (Positioned YamlToken)}
+    {p : Positioned YamlToken} :
+    ∀ i, i ≤ ts.size → prevRealIdx? (ts.push p) i = prevRealIdx? ts i := by
+  intro i
+  induction i with
+  | zero => intro _; rfl
+  | succ n ih =>
+    intro hle
+    have hn : n < ts.size := by omega
+    have hget : (ts.push p)[n]! = ts[n]! := by
+      rw [getElem!_pos (ts.push p) n (by simp only [Array.size_push]; omega),
+          getElem!_pos ts n hn, Array.getElem_push_lt]
+    show (if (ts.push p)[n]!.val == .placeholder then
+            prevRealIdx? (ts.push p) n else some n)
+        = (if ts[n]!.val == .placeholder then prevRealIdx? ts n else some n)
+    rw [hget, ih (by omega)]
+
+/-- A real final slot is the one `prevRealIdx?` lands on. -/
+lemma lastTokenReal_prevRealIdx {ts : Array (Positioned YamlToken)}
+    (h : LastTokenReal ts) : prevRealIdx? ts ts.size = some (ts.size - 1) := by
+  obtain ⟨hsz, hne⟩ := h
+  obtain ⟨m, hm⟩ : ∃ m, ts.size = m + 1 := ⟨ts.size - 1, by omega⟩
+  rw [hm]
+  show (if ts[m]!.val == .placeholder then prevRealIdx? ts m else some m) = some (m + 1 - 1)
+  rw [hm] at hne
+  simp only [Nat.add_sub_cancel] at hne ⊢
+  simp [hne]
+
+/-- **A node BODY pushed on top starts a trailing run of exactly one**, with
+    the array's own last REAL slot as its predecessor — provided that slot is
+    not itself a `[96]` property.  The dual of `trailingNodeRun?_push_none`. -/
+lemma trailingNodeRun?_push_body {ts : Array (Positioned YamlToken)}
+    {p : Positioned YamlToken} {i : Nat}
+    (hb : p.val.isNodeBody = true)
+    (hprev : prevRealIdx? ts ts.size = some i)
+    (hprop : ts[i]!.val.isNodeProperty = false) :
+    trailingNodeRun? (ts.push p) = some (ts.size, some i) := by
+  have hph : (p.val == YamlToken.placeholder) = false := by
+    cases hv : p.val <;> simp_all [YamlToken.isNodeBody]
+  have hp : p.val.isNodeProperty = false := by
+    cases hv : p.val <;> simp_all [YamlToken.isNodeBody, YamlToken.isNodeProperty]
+  have hi : i < ts.size := prevRealIdx?_lt hprev
+  have hget : (ts.push p)[ts.size]! = p := by simp [Array.getElem_push]
+  have hgeti : (ts.push p)[i]! = ts[i]! := by
+    rw [getElem!_pos (ts.push p) i (by simp only [Array.size_push]; omega),
+        getElem!_pos ts i hi, Array.getElem_push_lt]
+  have hlast : prevRealIdx? (ts.push p) (ts.push p).size = some ts.size := by
+    have hsz' : (ts.push p).size = ts.size + 1 := Array.size_push ..
+    rw [hsz']
+    show (if (ts.push p)[ts.size]!.val == .placeholder then
+            prevRealIdx? (ts.push p) ts.size else some ts.size) = some ts.size
+    rw [hget, hph]; rfl
+  have hpred : prevRealIdx? (ts.push p) ts.size = some i := by
+    rw [prevRealIdx?_push ts.size (by omega)]; exact hprev
+  unfold trailingNodeRun?
+  rw [hlast]
+  simp only [hget, hb, hp, Bool.false_eq_true, ↓reduceIte]
+  rw [hpred]
+  dsimp only []
+  rw [hgeti, hprop]
+  simp [hpred]
+
+lemma completesFlowValue_not_offersNodeSlot {t : YamlToken}
+    (h : t.completesFlowValue = true) : t.offersNodeSlot = false := by
+  cases t <;> simp_all [YamlToken.completesFlowValue, YamlToken.offersNodeSlot]
+
+lemma completesFlowValue_not_isNodeProperty {t : YamlToken}
+    (h : t.completesFlowValue = true) : t.isNodeProperty = false := by
+  cases t <;> simp_all [YamlToken.completesFlowValue, YamlToken.isNodeProperty]
+
+/-- A completed node tail is a predecessor that offers the next run NO slot:
+    `completesFlowValue` and `offersNodeSlot` are disjoint sets of tokens. -/
+lemma CompletedTail.danglingPred {s : ScannerState} (h : CompletedTail s) :
+    ∃ i, prevRealIdx? s.tokens s.tokens.size = some i ∧
+      s.tokens[i]!.val.isNodeProperty = false ∧
+      s.tokens[i]!.val.offersNodeSlot = false := by
+  obtain ⟨h_real, tt, h_ltv, h_cfv⟩ := h
+  have h_tt : s.tokens[s.tokens.size - 1]!.val = tt := by
+    rw [h_real.lastRealTokenVal] at h_ltv; exact Option.some.inj h_ltv
+  exact ⟨s.tokens.size - 1, lastTokenReal_prevRealIdx h_real,
+    by rw [h_tt]; exact completesFlowValue_not_isNodeProperty h_cfv,
+    by rw [h_tt]; exact completesFlowValue_not_offersNodeSlot h_cfv⟩
+
+/-- **§9.2's dangling reading, derived at the PRODUCER** — the park a content
+    dispatch makes behind a completed node, at a landing whose column names an
+    open level, IS the dangling run. -/
+lemma danglingPark_of_dispatch {s s' : ScannerState} {c : Char}
+    (hok : scanNextToken_dispatchContent s c = .ok s')
+    (h_amp : c ≠ '&') (h_bang : c ≠ '!')
+    (h_noflow : s'.inFlow = false)
+    (h_prev : ∃ i, prevRealIdx? s.tokens s.tokens.size = some i ∧
+      s.tokens[i]!.val.isNodeProperty = false ∧ s.tokens[i]!.val.offersNodeSlot = false)
+    (h_op : (s.indents.any fun e => e.column == (s.col : Int)) = true) :
+    danglingNodePos? s' = some s.currentPos := by
+  obtain ⟨i, h_i, h_iprop, h_islot⟩ := h_prev
+  obtain ⟨t, h_body, h_tok⟩ := dispatchContent_tokens_push hok h_amp h_bang
+  have hi : i < s.tokens.size := prevRealIdx?_lt h_i
+  have h_run : trailingNodeRun? s'.tokens
+      = some (s.tokens.size, some i) := by
+    rw [h_tok]; exact trailingNodeRun?_push_body h_body h_i h_iprop
+  have h_pred : s'.tokens[i]!.val.offersNodeSlot = false := by
+    rw [h_tok, getElem!_pos _ i (by simp only [Array.size_push]; omega),
+        Array.getElem_push_lt, ← getElem!_pos s.tokens i hi]
+    all_goals first | exact h_islot | omega
+  have h_pos : s'.tokens[s.tokens.size]!.pos = s.currentPos := by
+    rw [h_tok, getElem!_pos _ (s.tokens.size) (by simp only [Array.size_push]; omega)]
+    simp [Array.getElem_push]
+  have h_ind : s'.indents = s.indents :=
+    IndentStackBase.dispatchContent_preserves_indents hok
+  unfold danglingNodePos?
+  rw [h_noflow]
+  simp only [Bool.false_eq_true, ↓reduceIte]
+  rw [h_run]
+  simp only [h_pred, Bool.false_eq_true, ↓reduceIte]
+  rw [h_pos, h_ind]
+  show (if (s.indents.any fun e => e.column == (s.col : Int)) then some s.currentPos
+        else none) = some s.currentPos
+  rw [h_op]
+  rfl
+
+/-- **The producer's reading spent as §9.2's mid-stream refusal.**  A content
+    park made behind a slot-less predecessor, at a landing whose column names an
+    open level, cannot survive a landing that crossed a break — the check is
+    gated on exactly that break (`a: 1⏎b⏎c: 2`, refused at `1,0`).
+
+    This is `danglingNode_refutes_landing`'s other half: item 141 built the
+    contradiction and left the `some` reading to be supplied; this supplies
+    it. -/
+lemma danglingPark_refutes_landing {s s' s_land : ScannerState} {c : Char}
+    (hok : scanNextToken_dispatchContent s c = .ok s')
+    (h_amp : c ≠ '&') (h_bang : c ≠ '!')
+    (h_noflow : s'.inFlow = false)
+    (h_tail : CompletedTail s)
+    (h_op : (s.indents.any fun e => e.column == (s.col : Int)) = true)
+    (h_dn : scanNextToken_checkDanglingNode s' s_land = .ok ())
+    (h_ska : s_land.simpleKeyAllowed = true) : False := by
+  have h := danglingPark_of_dispatch hok h_amp h_bang h_noflow
+    (CompletedTail.danglingPred h_tail) h_op
+  unfold scanNextToken_checkDanglingNode at h_dn
+  rw [if_pos h_ska, h] at h_dn
+  cases h_dn
+
+/-- …and at END OF INPUT, where the check is gated on nothing (`a: 1⏎b`). -/
+lemma danglingPark_refutes_eof {s s' : ScannerState} {c : Char}
+    (hok : scanNextToken_dispatchContent s c = .ok s')
+    (h_amp : c ≠ '&') (h_bang : c ≠ '!')
+    (h_noflow : s'.inFlow = false)
+    (h_tail : CompletedTail s)
+    (h_op : (s.indents.any fun e => e.column == (s.col : Int)) = true)
+    (h_dn : scanLoop_checkDanglingNode s' = .ok ()) : False := by
+  have h := danglingPark_of_dispatch hok h_amp h_bang h_noflow
+    (CompletedTail.danglingPred h_tail) h_op
+  unfold scanLoop_checkDanglingNode at h_dn
+  rw [h] at h_dn
+  cases h_dn
+
 /-- The flow-indicator dispatch fell through, so `c` is none of the five.  Note
     this does not depend on the flow level: at level 0 the three closing
     indicators `.error`, and at level ≥ 1 they return `some`; neither is
@@ -21067,8 +21364,17 @@ lemma content_dispatch_after_close
     -- parameter nobody pays.  `k:⏎␣␣-⏎␣␣␣␣b` and `k:⏎␣␣a:⏎␣␣␣␣b` stand aside on
     -- the INDENT STACK too (`sz=3`); `&p⏎␣␣b` stands AT the sentinel (`sz=1`)
     -- and §9.2 stands aside anyway, on the token reading alone.  What is left
-    -- here is row 19's 1c residue for the indented family — item 141's park
-    -- face, not this thread.
+    -- here is row 19's 1c residue for the indented family — ~~item 141's park
+    -- face~~, not this thread.
+    --
+    -- **Item 156 corrects the attribution.**  The face cannot reach these
+    -- three: `danglingNodePos?` reads `none` at all of them, and for two
+    -- different reasons.  The `pendingBlock` and `pendingMapValue` parks stand
+    -- behind a `-` and a `:`, which are `YamlToken.offersNodeSlot`'s own
+    -- members, so the content FILLS a slot and no dangling run exists; the
+    -- props park stands at the sentinel-only stack, where no open level has
+    -- the landing's column.  All three inputs parse.  What is left here is a
+    -- ROUTE — the enclosing park's own — and not a refutation of any kind.
     (bareNodeRoute h_stream_block)
     h_keyctx h_resumectx h_suffixctx h_nodocctx h_markerctx sc h_ref
 
