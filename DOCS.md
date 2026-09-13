@@ -16704,12 +16704,13 @@ is worse than none.
 
 * **The column-0 landing arm**, item 147's escape read at the consumer.
   Measured above: two of eight.
-* **The props park** — `pendingProps`'s own two frames fields, which fund five
+* ~~**The props park** — `pendingProps`'s own two frames fields, which fund five
   further `pendingContent` producers.  Item 151's "three constructor fields and
   nothing else" was a list of what the six punt sites' IMMEDIATE inputs need;
   these are one level further up the same chain, and the `pendingProps` arm of
   `accum_content_pending` is the one punt where the payer is not the obstacle —
-  that arm is break-crossed, so the floor is there for the asking.
+  that arm is break-crossed, so the floor is there for the asking.~~  (CLOSED by
+  item 153.)
 * **The sequence chain** — `pendingBlockContent.h_closeF`, whose own payers are
   `pendingBlock.h_closeF`, which carries no cover either; two fields on one
   chain, and the sequence park's relay owes a `Mono` and a `SentinelBase`
@@ -16718,6 +16719,96 @@ is worse than none.
 Still not the membership split, for item 150's reason: what that punt wants is a
 payload on `KeyPackPunt`, which is a change to the constructor and to every
 consumer of it.
+
+
+### Item 153 (2026-09-13)
+
+**The property park carries the cover at both faces, and the props landing
+spends it.**  Item 152 paid `pendingContent`'s two frames fields and found that
+five of that park's producers still could not fill the slot, for a reason one
+level up the same chain: they ride `pendingProps.h_closeF` and `.h_closeFV`,
+which carried widths alone.  This item pays those.  Both fields gain the same
+existential-index cover conjunct, the three mapping producers that already hold
+one hand it over, the two run EXTENSIONS step it across the property scan, and
+both consumers spend it — the five `pendingContent` producers and
+`accum_content_pending`'s own `pendingProps` arm.
+
+**The stagger absorbs into one slot, again.**  `pendingMapValue` bounds its two
+faces at different levels on purpose: the transport face runs to the entry's own
+index (`Floor lo n (n :: ks)`, item 148) and the value face bottoms one column
+above the `?` (`Floor lo (n + 1) ks`, item 150).  Both land in the props park's
+single slot, because what that slot states about the index is only that there IS
+one — `IndentStackCover.Floor.pop_to` spends the widths half alone.  That is
+item 152's reading, and it transfers here unchanged even though this park, unlike
+that one, HAS an index of its own: `n` is the route's, not the frames'.
+
+**The column-0 escape cannot arise on this lane, and that is the difference from
+item 152.**  There the consumer kept a residue — a park AT a line start crossed
+no break, so `landing_floor_of_arm` has no arm to read (two of eight landings,
+measured).  A props park carries `h_col0 : 0 < sp_scan.col` as an UNCONDITIONAL
+constructor field: a `[96]` run is at least one character wide.  So the
+payment's premise is the park's own datum rather than something the consumer
+must derive, and the arm needs no case split.  The guard measures the claim
+rather than asserting it — eight held runs in the corpus, none at a line start.
+
+**Why the entry-face preference costs nothing.**  The props arm builds its
+stream face from `h_closeFE` where that exists and from `h_closeF` otherwise,
+and `h_closeFE` carries no cover: its one payer relays `pendingBlock.h_closeF`,
+which has none.  That would be a silent loss if any producer paid both lanes.
+None does — the sequence arm pays the entry face and punts these two, the three
+mapping arms do the reverse — so the preference never discards a cover that was
+there to spend.  The producer census is in the guard's §2.
+
+**Producer census, all ten sites.**  Three pay (the root mapping-value arm, its
+tag twin, the indented arm); two relay across a run extension; five punt — two
+landed root runs and two root `- ` arms hold no frame at all, and the sequence
+arm pays the ENTRY face instead.  The punts needed no edit: the whole field is
+`Or.inr trivial` at each.
+
+**Measured.**  Full build **1142** jobs, zero warnings; suite **4492/4492** with
+Production Coverage Analysis **809/809**; `docs/` compared against `1d0d7637` by
+the stash-and-rebuild procedure, **63 of 64** byte-identical and the 64th
+(`coverage-summary.json`) differing only in its `date`, checked key by key in a
+second full cycle.  `eventscore` **347/358**, `suiterunner` **869/0/151**, the
+three checkers OK, `productioncoverage` **211/211** annotated productions
+(the **809/809** above is the same exe's rule↔site pairs).  The `[210]` flip holds at
+**FIVE** located errors, the same five holders item 152 measured (their line
+numbers move by exactly +14, the constructor comment's height); the raw-route
+census is **TWO**.  `#print axioms` on the four touched accumulation lemmas is
+`[propext, Classical.choice, Quot.sound]` plus their pre-existing
+`native_decide` axioms (44/37/44/44), and `dedent_cover_of_floor` is
+`[propext, Quot.sound]`; no `sorryAx`.
+
+**ZERO new declarations**, measured the same way as item 152: `collect-stats`
+reads proofs **6493**, library **6698**, env **8462** and tests **2650**
+theorems-plus-lemmas — every one UNMOVED — over **602** test files (+1) with
+**6768** `#guard`s (+5).  Item 151's `dedent_cover_of_floor` is again what makes
+the payment a single line at the point of use.
+
+`Tests/Guards/Proofs/PropsParkCoverSpent.lean` carries it: §1 the slot and the
+two floors it absorbs; §2 the producer census and the disjointness that makes
+the face preference free; §3 the step, at the extension and at the decorated
+value; §4 the payment and the escape that is not there; §5 the corpus; §6 what
+still does not pay; §7 the price.  **566** insertions, **47** deletions over six
+files, this entry included.
+
+**Corrected in place.**  Item 152's guard §5 and §6 named `pendingProps`'s two
+frames fields as open; struck there with the closure named.  Item 151's guard
+carried the same residue in its closing paragraph; extended rather than struck,
+since the sentence is a ledger of what the field list has cost.
+
+**What remains.**  Two entries.
+
+* **The column-0 landing arm**, item 147's escape read at item 152's consumer.
+  It does not reach this lane, for the reason above.
+* **The sequence chain** — `pendingProps.h_closeFE`, `pendingBlockContent
+  .h_closeF` and `pendingBlock.h_closeF`, three fields carrying widths alone on
+  one lane, and the sequence park's relay owes a `Mono` and a `SentinelBase`
+  besides.  Item 152 named two of the three; `h_closeFE` is the third, found by
+  this item's producer census.
+
+Still not the membership split, for item 150's reason: what that punt wants is a
+payload on `KeyPackPunt`, a change to the constructor and to every consumer.
 
 
 ### REMAINING, in order
@@ -16736,7 +16827,7 @@ too (items 47–51), so what stands between here
 and Step 5 (the converse) is R3's remaining production work and R4:
 
 ```
-R1 ✓ (44–46) ──→ R2 ✓ (47–51) ──→ R3 (52–152 landed; U2 CLOSED, the collapse gone) ──→ Step 5
+R1 ✓ (44–46) ──→ R2 ✓ (47–51) ──→ R3 (52–153 landed; U2 CLOSED, the collapse gone) ──→ Step 5
                                         └──────→ R4 (implicitContinue + 0 < m) ──┘
 ```
 

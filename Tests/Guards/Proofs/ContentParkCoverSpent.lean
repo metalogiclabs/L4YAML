@@ -219,11 +219,13 @@ private def censusC (inputs : List String) : Nat × Nat × Nat × Nat :=
 * **The column-0 landing arm**, item 147's escape read at the consumer.  The
   payment wants the walk's re-arm, and a park AT a line start crossed no break.
   Measured above: two of eight.
-* **The props park.**  `accum_content_pending`'s `pendingProps` arm is the one
+* ~~**The props park.**  `accum_content_pending`'s `pendingProps` arm is the one
   punt where the PAYER is not the obstacle — that arm is break-crossed, so the
   floor is there for the asking.  `pendingProps`'s own two frames fields carry
   no cover, so there is nothing to spend it on, and the five `pendingContent`
-  producers that ride those fields punt for the same reason.
+  producers that ride those fields punt for the same reason.~~  (CLOSED by item
+  153 — the two fields gained the same conjunct, three mapping producers pay it,
+  two extensions relay it, and both consumers spend it.)
 * **The sequence chain.**  `pendingBlockContent.h_closeF` carries widths alone,
   and its own payers are `pendingBlock.h_closeF`, which carries none either —
   two fields on one chain, and the sequence park's relay owes a `Mono` and a
@@ -249,7 +251,7 @@ the payment a single line at the point of use; had the hop stayed inside
 would have had to re-author it.
 
 What is left of the cover's work is §5's three entries: the col-0 landing arm,
-`pendingProps`'s two frames fields, and the `pendingBlock` →
+~~`pendingProps`'s two frames fields~~ (item 153), and the `pendingBlock` →
 `pendingBlockContent` chain's two `h_closeF`s. -/
 
 end L4YAML.Tests.Guards.ContentParkCoverSpent

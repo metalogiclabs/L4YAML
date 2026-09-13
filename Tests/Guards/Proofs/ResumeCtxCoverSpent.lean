@@ -320,6 +320,13 @@ costs its own producers, and the sequence park costs its relay a `Mono` and a
 and no more: an `Or.imp` at each of the five producers that already held a
 cover.  It also found a field that list did not name — `pendingProps`'s own two
 frames faces, which fund five further `pendingContent` producers and are one
-level further up the same chain. -/
+level further up the same chain.
+
+**Item 153 took those**, and at the same price: three mapping producers hand
+over a cover they already hold, two run extensions step one they already carry,
+and the props arm's landing — the one site where the payer was never the
+obstacle — spends it.  What the list has left is the SEQUENCE chain:
+`pendingProps.h_closeFE`, `pendingBlockContent.h_closeF` and
+`pendingBlock.h_closeF`, three fields on one lane. -/
 
 end L4YAML.Tests.Guards.ResumeCtxCoverSpent

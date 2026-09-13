@@ -124,6 +124,7 @@ import Tests.Guards.Proofs.DedentCoverSpent
 import Tests.Guards.Proofs.ValueLineCoverSpent
 import Tests.Guards.Proofs.ResumeCtxCoverSpent
 import Tests.Guards.Proofs.ContentParkCoverSpent
+import Tests.Guards.Proofs.PropsParkCoverSpent
 import Tests.Guards.Proofs.FlowFrameResumeRider
 import Tests.Guards.Proofs.UnderIndentInvariantMap
 import Tests.Guards.Proofs.ScalarWalkCrossLineFloor
