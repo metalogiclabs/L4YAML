@@ -309,9 +309,11 @@ example {sp_mk sp_mid sp_prep : SurfPos}
 example {sc : ScannerState} {sp_start sp_block sp_scan sp_mid : SurfPos}
     (h_pending : PendingNode sc false sp_start sp_block sp_scan)
     (h_stream : SLYamlStream sp_start sp_block)
+    -- Item 157: the close's new premise; a `...` park never reads it.
+    (h_nd : danglingNodePos? sc = none)
     (h_ssl : SSLComments sp_scan sp_mid) :
     SLYamlStream sp_start sp_mid :=
-  h_pending.close_with_ssl h_stream h_ssl
+  h_pending.close_with_ssl h_stream h_nd h_ssl
 
 /-! ## §5 What remains
 

@@ -175,12 +175,16 @@ example {sp_start sp_block sp' : SurfPos}
 -- still takes the stream and the comments and returns the stream.  What moved
 -- is that the `pendingDocStart` arm now APPLIES the route instead of rebuilding
 -- `[211]`'s term around a document it cannot classify.
+-- [Item 157 adds the park's FACE to the close: a `pendingContent` whose run
+-- is §9.2-dangling has no `[211]` reading, so the premise states the landing
+-- has already refused it.  Every other constructor ignores it.]
 example {sc : ScannerState} {sp_start sp_block sp_scan sp_mid : SurfPos}
     (h_pending : PendingNode sc false sp_start sp_block sp_scan)
     (h_stream : SLYamlStream sp_start sp_block)
+    (h_nd : danglingNodePos? sc = none)
     (h_ssl : SSLComments sp_scan sp_mid) :
     SLYamlStream sp_start sp_mid :=
-  h_pending.close_with_ssl h_stream h_ssl
+  h_pending.close_with_ssl h_stream h_nd h_ssl
 
 /-! ## §3 `h_nodoc` without the flag premise
 

@@ -57,7 +57,11 @@ column 0, where the datum's other disjunct is refuted by arithmetic. -/
 example {sc s_prep : ScannerState} {c : Char} {sp_start sp_scan sp_prep : SurfPos}
     (h_noflow : s_prep.inFlow = false)
     (h_park : sc.simpleKeyAllowed = true ∨ 0 < sp_scan.col)
-    (h_close : ∀ sp_mid, SSLComments sp_scan sp_mid → SLYamlStream sp_start sp_mid)
+    -- Item 157: the close carries the park's own face, and both arms of this
+    -- route pay it from the very flag this pin is about.
+    (h_close : danglingNodePos? sc = none →
+      ∀ sp_mid, SSLComments sp_scan sp_mid → SLYamlStream sp_start sp_mid)
+    (h_dn : scanNextToken_checkDanglingNode sc s_prep = .ok ())
     (h_corr : ScannerSurfCorr sc sp_scan)
     (hcorr_prep : ScannerSurfCorr s_prep sp_prep)
     (h_preprocess : scanNextToken_preprocess sc = .ok (some (s_prep, c)))
@@ -88,7 +92,7 @@ example {sc s_prep : ScannerState} {c : Char} {sp_start sp_scan sp_prep : SurfPo
         ResumeFrames (ExplValueLine sp_start nv) ks sp_e) ∨ True)) ∨ True :=
   -- Item 136: the head face rides beside the suffix one; this pin is about the
   -- park's flag, so both punt here.
-  flowKeyRoute_of_root (m := 0) (Or.inr trivial) h_noflow h_park h_close h_corr
+  flowKeyRoute_of_root (m := 0) (Or.inr trivial) h_noflow h_park h_close h_dn h_corr
     hcorr_prep h_preprocess (Or.inr trivial) (Or.inr trivial) h_bare h_base
     (Or.inr trivial)
 

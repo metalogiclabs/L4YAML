@@ -280,8 +280,11 @@ spendable, and nothing spends them yet — the same standing `nodocMapRoute` has
 had since item 116, and for the same reason: the route they refute is not the
 one the accumulation takes until its landing is narrowed.  [Item 156 supplied
 the `some` reading they take as a premise — `danglingPark_of_dispatch` and its
-two spent forms, in `StreamAccum` — so what is still missing is the face
-itself, not either half of the contradiction.]
+two spent forms, in `StreamAccum` — and item 157 BUILT the face, as a premise
+on `h_closable` and on `PendingNode.close_with_ssl`.  The two lemmas below are
+still unspent, and now for a sharper reason: the face's own refutation
+(`danglingPark_refutes_route`) is taken at the PRODUCER, where the park is made,
+rather than at the landing that closes it.  See `DanglingParkFace`.]
 
 What has to come first is the BLOCK landing.  The disjunct has no home at a
 same-line `:` (§2's gating, §4's 2272), and that landing's own route is already
@@ -296,7 +299,17 @@ read back the distinct sites Lean reports): **19** sites for the disjunct on
 `h_closable` plus `PendingNode.close_with_ssl`'s conclusion — 14 producers and
 5 consumers — then **28** once `accum_block_pending`'s pre-split `have` carries
 it, then **32** once the four `accum_block_on_*` signatures do.  The waves
-converge; what does not converge is the fifth consumer, because §5's witnesses
-have no refutation to be discharged by. -/
+converge; ~~what does not converge is the fifth consumer, because §5's witnesses
+have no refutation to be discharged by.~~
+
+**Item 157: the fifth consumer converges too, and the shape is why.**  Stated as
+a PREMISE (item 156's shape) rather than as a disjunct on the conclusion, the
+face rides inside `h_close_pending`'s own type — so the `have` before
+`accum_block_pending`'s case split costs nothing, and the premise is discharged
+where the close is SPENT.  `accum_block_on_closeThenBlock` spends it in exactly
+one place, the branch where preprocessing produced a landing, and there
+`landing_or_park_ska` supplies the flag.  §5's two witnesses take the no-break
+arm, which spends `h_stream_fallback` — a different parameter — and never reach
+the park's close at all. -/
 
 end L4YAML.Tests.Guards.StreamDanglingParkRevocable
