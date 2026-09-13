@@ -1082,10 +1082,24 @@ inductive PendingNode (sc : ScannerState) : Bool → SurfPos → SurfPos → Sur
       -- down, and once closed the frame's value line is unreachable.  Paid by
       -- the value completion of a `pendingMapValue` that carried them; every
       -- other producer passes `Or.inr trivial`.
+      --
+      -- **Item 152: the cover rides both faces**, in the shape a landing reads
+      -- it — `resumectx_of_landing`'s own input.  The INDEX is existential
+      -- here, and that is the whole reason one slot serves two lanes: this park
+      -- has no `n` of its own (it is depth-0 by construction), the two producers
+      -- that pay bound their lists at DIFFERENT indices (the stream face at the
+      -- entry's level, the value face one column above the `?` — item 150's
+      -- stagger), and `IndentStackCover.Floor.pop_to` spends the WIDTHS half
+      -- alone.  So the index is carried and forgotten, and the landing's hop
+      -- costs the same at either face.
       (h_framesS : (∃ ks : List Nat,
+        ((∃ lo n : Nat, IndentStackCover.Floor lo n ks ∧
+          IndentStackCover.Covered lo ks sc) ∨ True) ∧
         ∀ sp_mid : SurfPos, SSLComments sp_scan sp_mid →
         ResumeFrames (SLYamlStream sp_start) ks sp_mid) ∨ True)
       (h_framesV : (∃ (nv : Nat) (ks : List Nat),
+        ((∃ lo n : Nat, IndentStackCover.Floor lo n ks ∧
+          IndentStackCover.Covered lo ks sc) ∨ True) ∧
         ∀ sp_mid : SurfPos, SSLComments sp_scan sp_mid →
         ResumeFrames (ExplValueLine sp_start nv) ks sp_mid) ∨ True)
       (h_nodir : sc.allowDirectives = false)
@@ -22305,6 +22319,17 @@ lemma accum_content_on_pendingMapValue
       FlowStackB sp_start 0 0 0 #[] #[] .sep sp_block' sp_flow' ∧
       PendingNode s' false sp_start sp_flow' sp_scan' ∧
       ScannerSurfCorr s' sp_scan' := by
+  -- **Item 152: the incoming stack, stepped to the PARK.**  Preprocessing only
+  -- pops and a content dispatch writes no level, so the cover items 148/150 put
+  -- on the two close faces reaches the park those faces fund unchanged — which
+  -- is what lets the park's own resume frames carry it without re-deriving
+  -- anything.  Same chain as `accum_content_pending`'s `h_cov_step`.
+  have h_cov_step : ∀ (lo : Nat) (ks : List Nat),
+      IndentStackCover.Covered lo ks sc → IndentStackCover.Covered lo ks s' :=
+    fun lo ks hc =>
+      IndentStackCover.dispatchContent_cover h_dispatch
+        ((IndentStackCover.preprocess_cover h_preprocess hc).of_indents_eq
+          (by split <;> rfl))
   obtain ⟨sp_prep', h_sep, hcorr_sep⟩ :=
     preprocess_some_separate_0_anyCol sc sp_scan s_prep c h_corr h_preprocess
   have hsp_eq := ScannerSurfCorr_unique hcorr_prep hcorr_sep; subst hsp_eq
@@ -22645,13 +22670,21 @@ lemma accum_content_on_pendingMapValue
              -- SECOND bare document.  The value face is `Or.inr` in practice
              -- (`[186]`'s key must be indented past its `?`, so no explicit
              -- frame stands over a width-0 level) and rides for uniformity.
+             -- Item 152: and the COVER rides with each, off the face that
+             -- already holds it (items 148/150) and stepped to the park.
              (match h_closeF99 with
-              | Or.inl ⟨ks, _, _, closeF⟩ => Or.inl ⟨0 :: ks, fun sp_mid h_ssl =>
+              | Or.inl ⟨ks, _, h_cov, closeF⟩ => Or.inl ⟨0 :: ks,
+                  h_cov.imp (fun ⟨lo, hb, hc⟩ =>
+                    ⟨lo, _, hb, h_cov_step lo (0 :: ks) hc⟩) id,
+                  fun sp_mid h_ssl =>
                   closeF sp_mid (SBlockNode.flowInBlock 0 .blockIn sp_scan sp_prep sp_gram
                     sp_mid h_sep h_flow (white_prepend_SSLComments h_trailing_ws h_ssl))⟩
               | Or.inr _ => Or.inr trivial)
              (match h_closeFV99 with
-              | Or.inl ⟨nv, ks, _, _, closeFV⟩ => Or.inl ⟨nv, ks, fun sp_mid h_ssl =>
+              | Or.inl ⟨nv, ks, _, h_cov, closeFV⟩ => Or.inl ⟨nv, ks,
+                  h_cov.imp (fun ⟨lo, hb, hc⟩ =>
+                    ⟨lo, _, hb, h_cov_step lo ks hc⟩) id,
+                  fun sp_mid h_ssl =>
                   closeFV sp_mid (SBlockNode.flowInBlock 0 .blockIn sp_scan sp_prep sp_gram
                     sp_mid h_sep h_flow (white_prepend_SSLComments h_trailing_ws h_ssl))⟩
               | Or.inr _ => Or.inr trivial)
@@ -22713,12 +22746,19 @@ lemma accum_content_on_pendingMapValue
                  h_flow_disp h_not_doc h_dispatch hcorr_result)
                -- Item 112: the root arm's frames (items 109/108's faces), the
                -- same re-read node — `a: |⏎  x⏎c: d`'s `c` continues level 0.
+               -- Item 152: with the cover, as at the arm above.
                (match h_closeF99 with
-                | Or.inl ⟨ks, _, _, closeF⟩ => Or.inl ⟨0 :: ks, fun sp_mid h_ssl =>
+                | Or.inl ⟨ks, _, h_cov, closeF⟩ => Or.inl ⟨0 :: ks,
+                    h_cov.imp (fun ⟨lo, hb, hc⟩ =>
+                      ⟨lo, _, hb, h_cov_step lo (0 :: ks) hc⟩) id,
+                    fun sp_mid h_ssl =>
                     closeF sp_mid (h_nodeAt sp_mid h_ssl)⟩
                 | Or.inr _ => Or.inr trivial)
                (match h_closeFV99 with
-                | Or.inl ⟨nv, ks, _, _, closeFV⟩ => Or.inl ⟨nv, ks, fun sp_mid h_ssl =>
+                | Or.inl ⟨nv, ks, _, h_cov, closeFV⟩ => Or.inl ⟨nv, ks,
+                    h_cov.imp (fun ⟨lo, hb, hc⟩ =>
+                      ⟨lo, _, hb, h_cov_step lo ks hc⟩) id,
+                    fun sp_mid h_ssl =>
                     closeFV sp_mid (h_nodeAt sp_mid h_ssl)⟩
                 | Or.inr _ => Or.inr trivial)
                (nodir_of_content_dispatch h_dispatch)
@@ -22839,6 +22879,17 @@ lemma accum_content_on_pendingMapValue_indented
       FlowStackB sp_start 0 0 0 #[] #[] .sep sp_block' sp_flow' ∧
       PendingNode s' false sp_start sp_flow' sp_scan' ∧
       ScannerSurfCorr s' sp_scan' := by
+  -- **Item 152: the incoming stack, stepped to the PARK.**  Preprocessing only
+  -- pops and a content dispatch writes no level, so the cover items 148/150 put
+  -- on the two close faces reaches the park those faces fund unchanged — which
+  -- is what lets the park's own resume frames carry it without re-deriving
+  -- anything.  Same chain as `accum_content_pending`'s `h_cov_step`.
+  have h_cov_step : ∀ (lo : Nat) (ks : List Nat),
+      IndentStackCover.Covered lo ks sc → IndentStackCover.Covered lo ks s' :=
+    fun lo ks hc =>
+      IndentStackCover.dispatchContent_cover h_dispatch
+        ((IndentStackCover.preprocess_cover h_preprocess hc).of_indents_eq
+          (by split <;> rfl))
   -- Item 89: the open slot in the shape the pack lemmas bundle, as at the
   -- root arm.
   -- Item 93: with the frame's value-line pack beside it, paid from `h_expl`
@@ -22961,14 +23012,23 @@ lemma accum_content_on_pendingMapValue_indented
              -- SIBLING continue the level it matches (`?⏎  a: b⏎  c: d⏎: - w`
              -- reads `c` as `a`'s sibling with the `?`'s value line still owed)
              -- rather than re-open at the root through `[211]`.
+             -- Item 152: and the cover with them — the stream face's list is
+             -- this one, and the value face's is the `?`'s own (item 150's
+             -- stagger), which is why the park's slot forgets the index.
              (match h_closeF99 with
-              | Or.inl ⟨ks, _, _, closeF⟩ => Or.inl ⟨n :: ks, fun sp_mid h_ssl =>
+              | Or.inl ⟨ks, _, h_cov, closeF⟩ => Or.inl ⟨n :: ks,
+                  h_cov.imp (fun ⟨lo, hb, hc⟩ =>
+                    ⟨lo, _, hb, h_cov_step lo (n :: ks) hc⟩) id,
+                  fun sp_mid h_ssl =>
                   closeF sp_mid (SBlockNode.flowInBlock n .blockIn sp_scan sp_prep sp_gram
                     sp_mid h_sep_all (h_flow_all n)
                     (white_prepend_SSLComments h_trailing_ws h_ssl))⟩
               | Or.inr _ => Or.inr trivial)
              (match h_closeFV108 with
-              | Or.inl ⟨nv, ks, _, _, closeFV⟩ => Or.inl ⟨nv, ks, fun sp_mid h_ssl =>
+              | Or.inl ⟨nv, ks, _, h_cov, closeFV⟩ => Or.inl ⟨nv, ks,
+                  h_cov.imp (fun ⟨lo, hb, hc⟩ =>
+                    ⟨lo, _, hb, h_cov_step lo ks hc⟩) id,
+                  fun sp_mid h_ssl =>
                   closeFV sp_mid (SBlockNode.flowInBlock n .blockIn sp_scan sp_prep sp_gram
                     sp_mid h_sep_all (h_flow_all n)
                     (white_prepend_SSLComments h_trailing_ws h_ssl))⟩
@@ -23102,12 +23162,19 @@ lemma accum_content_on_pendingMapValue_indented
                  h_flow_disp h_not_doc h_dispatch hcorr_result)
              -- Item 112: items 99/108's faces — the re-read node feeds the
              -- transport, so `k:⏎  a: |⏎    x⏎  c: d` resumes its level.
+             -- Item 152: with the cover, as at the arm above.
              (match h_closeF99 with
-              | Or.inl ⟨ks, _, _, closeF⟩ => Or.inl ⟨n :: ks, fun sp_mid h_ssl =>
+              | Or.inl ⟨ks, _, h_cov, closeF⟩ => Or.inl ⟨n :: ks,
+                  h_cov.imp (fun ⟨lo, hb, hc⟩ =>
+                    ⟨lo, _, hb, h_cov_step lo (n :: ks) hc⟩) id,
+                  fun sp_mid h_ssl =>
                   closeF sp_mid (h_nodeAt sp_mid h_ssl)⟩
               | Or.inr _ => Or.inr trivial)
              (match h_closeFV108 with
-              | Or.inl ⟨nv, ks, _, _, closeFV⟩ => Or.inl ⟨nv, ks, fun sp_mid h_ssl =>
+              | Or.inl ⟨nv, ks, _, h_cov, closeFV⟩ => Or.inl ⟨nv, ks,
+                  h_cov.imp (fun ⟨lo, hb, hc⟩ =>
+                    ⟨lo, _, hb, h_cov_step lo ks hc⟩) id,
+                  fun sp_mid h_ssl =>
                   closeFV sp_mid (h_nodeAt sp_mid h_ssl)⟩
               | Or.inr _ => Or.inr trivial)
              (nodir_of_content_dispatch h_dispatch)
@@ -23175,13 +23242,20 @@ lemma accum_content_on_pendingMapValue_indented
                 h_flow_disp h_not_doc h_dispatch hcorr_result)
              -- Item 109: the park's own frames, the multi-line node folded in
              -- as both closures fold it.
+             -- Item 152: with the cover, as at the arms above.
              (match h_closeF99 with
-              | Or.inl ⟨ks, _, _, closeF⟩ => Or.inl ⟨n :: ks, fun sp_mid h_ssl =>
+              | Or.inl ⟨ks, _, h_cov, closeF⟩ => Or.inl ⟨n :: ks,
+                  h_cov.imp (fun ⟨lo, hb, hc⟩ =>
+                    ⟨lo, _, hb, h_cov_step lo (n :: ks) hc⟩) id,
+                  fun sp_mid h_ssl =>
                   closeF sp_mid (SBlockNode.flowInBlock n .blockIn sp_scan sp_prep sp_gramf
                     sp_mid h_sep_all h_node_f (white_prepend_SSLComments h_tws_f h_ssl))⟩
               | Or.inr _ => Or.inr trivial)
              (match h_closeFV108 with
-              | Or.inl ⟨nv, ks, _, _, closeFV⟩ => Or.inl ⟨nv, ks, fun sp_mid h_ssl =>
+              | Or.inl ⟨nv, ks, _, h_cov, closeFV⟩ => Or.inl ⟨nv, ks,
+                  h_cov.imp (fun ⟨lo, hb, hc⟩ =>
+                    ⟨lo, _, hb, h_cov_step lo ks hc⟩) id,
+                  fun sp_mid h_ssl =>
                   closeFV sp_mid (SBlockNode.flowInBlock n .blockIn sp_scan sp_prep sp_gramf
                     sp_mid h_sep_all h_node_f (white_prepend_SSLComments h_tws_f h_ssl))⟩
               | Or.inr _ => Or.inr trivial)
@@ -23359,9 +23433,21 @@ lemma accum_content_pending (sc : ScannerState)
       -- levels; a park that kept them lets the landed key RESUME the level its
       -- width names instead of re-opening at the root.  The parameter is where
       -- each constructor says whether it kept any.
-      ∀ (h_fS : (∃ ks : List Nat, ∀ sp_m : SurfPos, SSLComments sp_scan sp_m →
+      -- **Item 152: and the park's COVER beside them**, so the resuming key
+      -- context the two landing arms build gets its slot filled instead of
+      -- punted.  The skeleton reads the pair exactly as `resumectx_of_landing`
+      -- does — index existential, forgotten at the hop — and the PAYMENT is the
+      -- skeleton's own (`h_pay_res` below), off the `SentinelBase` and `Mono`
+      -- this lemma already carries.  So a park has only to say what it kept.
+      ∀ (h_fS : (∃ ks : List Nat,
+            ((∃ lo n : Nat, IndentStackCover.Floor lo n ks ∧
+              IndentStackCover.Covered lo ks sc) ∨ True) ∧
+            ∀ sp_m : SurfPos, SSLComments sp_scan sp_m →
             ResumeFrames (SLYamlStream sp_start) ks sp_m) ∨ True)
-        (h_fV : (∃ (nv : Nat) (ks : List Nat), ∀ sp_m : SurfPos,
+        (h_fV : (∃ (nv : Nat) (ks : List Nat),
+            ((∃ lo n : Nat, IndentStackCover.Floor lo n ks ∧
+              IndentStackCover.Covered lo ks sc) ∨ True) ∧
+            ∀ sp_m : SurfPos,
             SSLComments sp_scan sp_m →
             ResumeFrames (ExplValueLine sp_start nv) ks sp_m) ∨ True)
         -- **Item 117: and the skeleton takes the park's OPEN suffix arm.**
@@ -23450,14 +23536,14 @@ lemma accum_content_pending (sc : ScannerState)
           (nic_false_of_flow_disp h_preprocess h_flow_disp)
           hcorr_prep hcorr_result h_not_doc
           (preprocess_some_peek h_preprocess) h_flow_disp h_dispatch mkroute h_keyctx
-          -- Item 151: the skeleton's parks — a completed CONTENT park and an
-          -- entry-level one — carry frames but no cover on either face, so the
-          -- slot the context now has is filled with the punt here.  Those two
-          -- constructor fields are where a payment would have to start.
+          -- **Item 152: the park's faces now CARRY the cover**, and this arm cannot
+          -- spend it.  What a landing's payment needs is `s_prep`'s own floor, and
+          -- `landing_floor_of_arm` reads that off the walk that crossed a break —
+          -- exactly what a park AT a line start has not got (item 147's escape, here
+          -- at the consumer instead of at a producer).  So the two faces go through
+          -- WHOLE, index included, and the PAYER is the punt.
           (resumectx_of_landing hcol_mid h_ws h_ssl h_preprocess hcorr_prep
-            (h_fS.imp (fun ⟨ks, r⟩ => ⟨ks, Or.inr trivial, r⟩) id)
-            (h_fV.imp (fun ⟨nv, ks, r⟩ => ⟨nv, ks, Or.inr trivial, r⟩) id)
-            (fun _ _ _ _ _ _ _ => Or.inr trivial))
+            h_fS h_fV (fun _ _ _ _ _ _ _ => Or.inr trivial))
           (Or.inr trivial) (Or.inr trivial)
           (markerctx_of_landing hcol_mid h_ws h_ssl h_preprocess (Or.inl h_mk_on))
           sc h_ref_land
@@ -23481,14 +23567,14 @@ lemma accum_content_pending (sc : ScannerState)
         h_stream_mid h_sep (nic_false_of_flow_disp h_preprocess h_flow_disp)
         hcorr_prep hcorr_result h_not_doc
         (preprocess_some_peek h_preprocess) h_flow_disp h_dispatch h_route_mid h_keyctx
-        -- Item 151: the skeleton's parks — a completed CONTENT park and an
-        -- entry-level one — carry frames but no cover on either face, so the
-        -- slot the context now has is filled with the punt here.  Those two
-        -- constructor fields are where a payment would have to start.
+        -- **Item 152: the park's faces now CARRY the cover**, and this arm cannot
+        -- spend it.  What a landing's payment needs is `s_prep`'s own floor, and
+        -- `landing_floor_of_arm` reads that off the walk that crossed a break —
+        -- exactly what a park AT a line start has not got (item 147's escape, here
+        -- at the consumer instead of at a producer).  So the two faces go through
+        -- WHOLE, index included, and the PAYER is the punt.
         (resumectx_of_landing hcol_mid h_ws h_ssl h_preprocess hcorr_prep
-          (h_fS.imp (fun ⟨ks, r⟩ => ⟨ks, Or.inr trivial, r⟩) id)
-          (h_fV.imp (fun ⟨nv, ks, r⟩ => ⟨nv, ks, Or.inr trivial, r⟩) id)
-          (fun _ _ _ _ _ _ _ => Or.inr trivial))
+          h_fS h_fV (fun _ _ _ _ _ _ _ => Or.inr trivial))
         (suffixctx_of_landing hcol_mid h_ws h_ssl h_preprocess h_sfx)
         -- Item 136: the skeleton's landings close a park that HAS started a
         -- document (`noPending` never reaches the split), so the head context
@@ -23520,6 +23606,31 @@ lemma accum_content_pending (sc : ScannerState)
         have h_ref_land : BareLandingFacts sc s_prep c ∨ True :=
           h_tail139.imp (fun h_tl =>
             ⟨h_bare, h_preprocess, h_noflow_prep, h_ska, h_tl, h_base⟩) id
+        -- **Item 152: the landing's own floor, and the hop it pays for.**  This
+        -- arm is the break-crossed one, so the anyCol product's landed disjunct
+        -- is in hand (`hcol_mid.2`, the same component `h_ska` reads one
+        -- projection over) and `landing_floor_of_arm` turns it into
+        -- `s_prep.currentIndent ≤ s_prep.col` — the one input
+        -- `dedent_cover_of_floor` is otherwise missing.  The INDEX on the way in
+        -- is existential because `IndentStackCover.Floor.pop_to` spends the
+        -- widths half alone, so this ONE payer serves both the stream face and
+        -- the value face, whose lists are bounded at different indices.  Stated
+        -- once here for the two landing routes below.
+        have h_pay_res : ∀ (w : Nat) (ksw ksw' : List Nat),
+            ((∃ lo m : Nat, IndentStackCover.Floor lo m ksw ∧
+              IndentStackCover.Covered lo ksw sc) ∨ True) →
+            w ∈ ksw → ResumeWidths ksw ksw' w → s_prep.col = w →
+            ((∃ lo : Nat, IndentStackCover.Floor lo w (w :: ksw') ∧
+              IndentStackCover.Covered lo (w :: ksw') s_prep) ∨ True) := by
+          intro w ksw ksw' h_cv hmemw h_ww h_scolw
+          rcases h_cv with ⟨lo, _, h_fl, h_cv0⟩ | _
+          · have h_floor := landing_floor_of_arm h_noflow_prep hcol_mid.2 hcol
+              h_base h_preprocess
+            exact Or.inl (dedent_cover_of_floor
+              (IndentStackMono.preprocess_mono h_preprocess h_mono)
+              (by rw [← h_scolw]; exact h_floor) h_fl
+              (IndentStackCover.preprocess_cover h_preprocess h_cv0) hmemw h_ww)
+          · exact Or.inr trivial
         -- ═══ Item 137: a `---` park's landing hands the node to the MARKER's own
         -- document.  The anchor moves from the landing back to the park —
         -- `content_dispatch_routed` takes it as a parameter — so the crossed
@@ -23537,14 +23648,13 @@ lemma accum_content_pending (sc : ScannerState)
             (nic_false_of_flow_disp h_preprocess h_flow_disp)
             hcorr_prep hcorr_result h_not_doc
             (preprocess_some_peek h_preprocess) h_flow_disp h_dispatch mkroute h_keyctx
-            -- Item 151: the skeleton's parks — a completed CONTENT park and an
-            -- entry-level one — carry frames but no cover on either face, so the
-            -- slot the context now has is filled with the punt here.  Those two
-            -- constructor fields are where a payment would have to start.
+            -- **Item 152: and here the context's slot is PAID.**  The park is off a
+            -- line start in this arm, so the walk crossed a break, the break armed the
+            -- indent check, preprocessing's unwind ran — and `h_pay_res` is that floor
+            -- spent through `dedent_cover_of_floor`.  A landed sibling key now resumes
+            -- with the scanner's reading of the stack beside its widths, on both lanes.
             (resumectx_of_landing hcol_mid.1 h_ws h_ssl h_preprocess hcorr_prep
-              (h_fS.imp (fun ⟨ks, r⟩ => ⟨ks, Or.inr trivial, r⟩) id)
-              (h_fV.imp (fun ⟨nv, ks, r⟩ => ⟨nv, ks, Or.inr trivial, r⟩) id)
-              (fun _ _ _ _ _ _ _ => Or.inr trivial))
+              h_fS h_fV h_pay_res)
             (Or.inr trivial) (Or.inr trivial)
             (markerctx_of_landing hcol_mid.1 h_ws h_ssl h_preprocess (Or.inl h_mk_on))
             sc h_ref_land
@@ -23565,14 +23675,13 @@ lemma accum_content_pending (sc : ScannerState)
           h_stream_mid h_sep (nic_false_of_flow_disp h_preprocess h_flow_disp)
           hcorr_prep hcorr_result h_not_doc
           (preprocess_some_peek h_preprocess) h_flow_disp h_dispatch h_route_mid h_keyctx
-          -- Item 151: the skeleton's parks — a completed CONTENT park and an
-          -- entry-level one — carry frames but no cover on either face, so the
-          -- slot the context now has is filled with the punt here.  Those two
-          -- constructor fields are where a payment would have to start.
+          -- **Item 152: and here the context's slot is PAID.**  The park is off a
+          -- line start in this arm, so the walk crossed a break, the break armed the
+          -- indent check, preprocessing's unwind ran — and `h_pay_res` is that floor
+          -- spent through `dedent_cover_of_floor`.  A landed sibling key now resumes
+          -- with the scanner's reading of the stack beside its widths, on both lanes.
           (resumectx_of_landing hcol_mid.1 h_ws h_ssl h_preprocess hcorr_prep
-            (h_fS.imp (fun ⟨ks, r⟩ => ⟨ks, Or.inr trivial, r⟩) id)
-            (h_fV.imp (fun ⟨nv, ks, r⟩ => ⟨nv, ks, Or.inr trivial, r⟩) id)
-            (fun _ _ _ _ _ _ _ => Or.inr trivial))
+            h_fS h_fV h_pay_res)
           (suffixctx_of_landing hcol_mid.1 h_ws h_ssl h_preprocess h_sfx)
           (Or.inr trivial) (Or.inr trivial)
           -- Item 144: as at the column-0 landing.
@@ -23656,7 +23765,11 @@ lemma accum_content_pending (sc : ScannerState)
     refine h_defer_split
       (match h_closeF110 with
        | Or.inl ⟨ks, _, closeF⟩ =>
-           Or.inl ⟨ks, fun sp_m h_ssl => closeF sp_m h_ssl sp_m (SCompactSeqTail.nil n sp_m)⟩
+           -- Item 152: the cover punts — `pendingBlockContent.h_closeF` carries
+           -- widths only, and its own payers are `pendingBlock.h_closeF`, which
+           -- carries none either.  Two fields up the same chain.
+           Or.inl ⟨ks, Or.inr trivial,
+             fun sp_m h_ssl => closeF sp_m h_ssl sp_m (SCompactSeqTail.nil n sp_m)⟩
        | Or.inr _ => Or.inr trivial)
       -- The sequence entry stands under no explicit-key frame that is a STACK
       -- (item 108's note at the producers): `h_kslot` is a single value line,
@@ -23789,10 +23902,10 @@ lemma accum_content_pending (sc : ScannerState)
         h_stream_mid h_sep (nic_false_of_flow_disp h_preprocess h_flow_disp)
         hcorr_prep hcorr_result h_not_doc
           (preprocess_some_peek h_preprocess) h_flow_disp h_dispatch h_keyctx
-          -- Item 151: the skeleton's parks — a completed CONTENT park and an
-          -- entry-level one — carry frames but no cover on either face, so the
-          -- slot the context now has is filled with the punt here.  Those two
-          -- constructor fields are where a payment would have to start.
+          -- **Item 152: the props park punts the cover**, and this is the one site
+          -- where the payer is not the obstacle — the arm is off a line start, so
+          -- the floor is there for the asking.  `pendingProps`'s own two frames
+          -- fields carry no cover, so there is nothing to spend it ON.
           (resumectx_of_landing hcol_mid.1 h_ws h_ssl h_preprocess hcorr_prep
             (h_fS.imp (fun ⟨ks, r⟩ => ⟨ks, Or.inr trivial, r⟩) id)
             (h_fV.imp (fun ⟨nv, ks, r⟩ => ⟨nv, ks, Or.inr trivial, r⟩) id)
@@ -24371,12 +24484,16 @@ lemma accum_content_pending (sc : ScannerState)
                          -- Item 114: the mapping producers' frames ride onto
                          -- the completed value (`k:⏎  a: &p b⏎  c: d`,
                          -- `?⏎  a: &p b⏎: v`).
+                         -- Item 152: the cover punts on both faces, and the
+                         -- reason is one level UP — `pendingProps`'s own two
+                         -- frames fields carry none, so there is nothing here
+                         -- to pass on.
                          (match h_closeFS_p with
-                          | Or.inl ⟨ks, closeFS⟩ => Or.inl ⟨ks,
+                          | Or.inl ⟨ks, closeFS⟩ => Or.inl ⟨ks, Or.inr trivial,
                               fun sp_mid h_ssl => closeFS sp_mid (h_nodeAt sp_mid h_ssl)⟩
                           | Or.inr _ => Or.inr trivial)
                          (match h_closeFVS_p with
-                          | Or.inl ⟨nv, ks, closeFVS⟩ => Or.inl ⟨nv, ks,
+                          | Or.inl ⟨nv, ks, closeFVS⟩ => Or.inl ⟨nv, ks, Or.inr trivial,
                               fun sp_mid h_ssl => closeFVS sp_mid (h_nodeAt sp_mid h_ssl)⟩
                           | Or.inr _ => Or.inr trivial)
                          (nodir_of_content_dispatch h_dispatch)
@@ -24451,12 +24568,16 @@ lemma accum_content_pending (sc : ScannerState)
                              h_flow_disp h_not_doc h_dispatch hcorr_result)
                          -- Item 114: the mapping frames ride the re-read
                          -- (`k:⏎  a: &p |⏎    x⏎  c: d`).
+                         -- Item 152: the cover punts on both faces, and the
+                         -- reason is one level UP — `pendingProps`'s own two
+                         -- frames fields carry none, so there is nothing here
+                         -- to pass on.
                          (match h_closeFS_p with
-                          | Or.inl ⟨ks, closeFS⟩ => Or.inl ⟨ks,
+                          | Or.inl ⟨ks, closeFS⟩ => Or.inl ⟨ks, Or.inr trivial,
                               fun sp_mid h_ssl => closeFS sp_mid (h_nodeAt sp_mid h_ssl)⟩
                           | Or.inr _ => Or.inr trivial)
                          (match h_closeFVS_p with
-                          | Or.inl ⟨nv, ks, closeFVS⟩ => Or.inl ⟨nv, ks,
+                          | Or.inl ⟨nv, ks, closeFVS⟩ => Or.inl ⟨nv, ks, Or.inr trivial,
                               fun sp_mid h_ssl => closeFVS sp_mid (h_nodeAt sp_mid h_ssl)⟩
                           | Or.inr _ => Or.inr trivial)
                          (nodir_of_content_dispatch h_dispatch)
@@ -24629,12 +24750,16 @@ lemma accum_content_pending (sc : ScannerState)
                              h_flow_disp h_not_doc h_dispatch hcorr_result)
                          -- Item 114: the mapping frames ride, one index up
                          -- (`k:⏎  m:⏎    a: &p b⏎  n: 2`).
+                         -- Item 152: the cover punts on both faces, and the
+                         -- reason is one level UP — `pendingProps`'s own two
+                         -- frames fields carry none, so there is nothing here
+                         -- to pass on.
                          (match h_closeFS_p with
-                          | Or.inl ⟨ks, closeFS⟩ => Or.inl ⟨ks,
+                          | Or.inl ⟨ks, closeFS⟩ => Or.inl ⟨ks, Or.inr trivial,
                               fun sp_mid h_ssl => closeFS sp_mid (h_nodeAt sp_mid h_ssl)⟩
                           | Or.inr _ => Or.inr trivial)
                          (match h_closeFVS_p with
-                          | Or.inl ⟨nv, ks, closeFVS⟩ => Or.inl ⟨nv, ks,
+                          | Or.inl ⟨nv, ks, closeFVS⟩ => Or.inl ⟨nv, ks, Or.inr trivial,
                               fun sp_mid h_ssl => closeFVS sp_mid (h_nodeAt sp_mid h_ssl)⟩
                           | Or.inr _ => Or.inr trivial)
                          (nodir_of_content_dispatch h_dispatch)
@@ -24713,12 +24838,16 @@ lemma accum_content_pending (sc : ScannerState)
                              h_flow_disp h_not_doc h_dispatch hcorr_result)
                          -- Item 114: the mapping frames ride the re-read
                          -- (`k:⏎  m:⏎    a: &p |⏎      x⏎  n: 2`).
+                         -- Item 152: the cover punts on both faces, and the
+                         -- reason is one level UP — `pendingProps`'s own two
+                         -- frames fields carry none, so there is nothing here
+                         -- to pass on.
                          (match h_closeFS_p with
-                          | Or.inl ⟨ks, closeFS⟩ => Or.inl ⟨ks,
+                          | Or.inl ⟨ks, closeFS⟩ => Or.inl ⟨ks, Or.inr trivial,
                               fun sp_mid h_ssl => closeFS sp_mid (h_nodeAt sp_mid h_ssl)⟩
                           | Or.inr _ => Or.inr trivial)
                          (match h_closeFVS_p with
-                          | Or.inl ⟨nv, ks, closeFVS⟩ => Or.inl ⟨nv, ks,
+                          | Or.inl ⟨nv, ks, closeFVS⟩ => Or.inl ⟨nv, ks, Or.inr trivial,
                               fun sp_mid h_ssl => closeFVS sp_mid (h_nodeAt sp_mid h_ssl)⟩
                           | Or.inr _ => Or.inr trivial)
                          (nodir_of_content_dispatch h_dispatch)
@@ -24786,12 +24915,16 @@ lemma accum_content_pending (sc : ScannerState)
                              h_flow_disp h_not_doc h_dispatch hcorr_result)
                          -- Item 114: the mapping frames ride the fixed-index
                          -- node.
+                         -- Item 152: the cover punts on both faces, and the
+                         -- reason is one level UP — `pendingProps`'s own two
+                         -- frames fields carry none, so there is nothing here
+                         -- to pass on.
                          (match h_closeFS_p with
-                          | Or.inl ⟨ks, closeFS⟩ => Or.inl ⟨ks,
+                          | Or.inl ⟨ks, closeFS⟩ => Or.inl ⟨ks, Or.inr trivial,
                               fun sp_mid h_ssl => closeFS sp_mid (h_nodeAt sp_mid h_ssl)⟩
                           | Or.inr _ => Or.inr trivial)
                          (match h_closeFVS_p with
-                          | Or.inl ⟨nv, ks, closeFVS⟩ => Or.inl ⟨nv, ks,
+                          | Or.inl ⟨nv, ks, closeFVS⟩ => Or.inl ⟨nv, ks, Or.inr trivial,
                               fun sp_mid h_ssl => closeFVS sp_mid (h_nodeAt sp_mid h_ssl)⟩
                           | Or.inr _ => Or.inr trivial)
                          (nodir_of_content_dispatch h_dispatch)

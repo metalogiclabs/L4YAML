@@ -277,9 +277,12 @@ thing rather than a different input.
   neither of the stack's two readings to pay a cover with.  Both the
   constructor field and the relay's `Mono`/`SentinelBase` thread are what a
   payment costs there.
-* **The skeleton's two parks.**  `pendingContent.h_framesS` / `.h_framesV` and
+* ~~**The skeleton's two parks.**  `pendingContent.h_framesS` / `.h_framesV` and
   `pendingBlockContent.h_closeF` are the faces `h_defer_split` passes, and none
-  of the three has a cover conjunct.
+  of the three has a cover conjunct.~~  **Item 152 paid the first two**, and
+  the skeleton now states the landing's payment once in its break-crossed arm;
+  `pendingBlockContent.h_closeF` still punts, and so does the column-0 arm.
+  See `ContentParkCoverSpent`.
 * **The park at a line start**, item 147's residue, measured above.
 
 The context accepts the punt on either lane, which is what lets those three
@@ -311,6 +314,12 @@ What is left of the cover's own work after this item is the three faces §5
 names: `pendingBlock.h_closeF`, and `pendingContent`'s two.  All three are
 CONSTRUCTOR fields, which is why none of them is a line in this item — each
 costs its own producers, and the sequence park costs its relay a `Mono` and a
-`SentinelBase` besides. -/
+`SentinelBase` besides.
+
+**Item 152 took `pendingContent`'s two**, at the cost that sentence predicted
+and no more: an `Or.imp` at each of the five producers that already held a
+cover.  It also found a field that list did not name — `pendingProps`'s own two
+frames faces, which fund five further `pendingContent` producers and are one
+level further up the same chain. -/
 
 end L4YAML.Tests.Guards.ResumeCtxCoverSpent

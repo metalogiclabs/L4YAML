@@ -300,8 +300,12 @@ premise, and the four faces its producer pays go from `ks = []` with no stack to
 
 What still does not pay: the col-0 park (item 147's residue, at three lanes
 now), the sequence parks, whose two faces carry no cover on either side, and
-`ResumeKeyCtx`, which has no cover slot on either lane — so a landing that
+~~`ResumeKeyCtx`, which has no cover slot on either lane~~ — so a landing that
 resumes through it projects both covers away, which is the one projection of
-each that item 149 kept and this item matches. -/
+each that item 149 kept and this item matches.
+
+**Item 151 gave `ResumeKeyCtx` a slot on each lane** (`ResumeCtxCoverSpent`) and
+**item 152 paid it from the completed content park** (`ContentParkCoverSpent`),
+so of the three named above only the col-0 park and the sequence parks stand. -/
 
 end L4YAML.Tests.Guards.ValueLineCoverSpent

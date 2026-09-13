@@ -164,13 +164,18 @@ The producer hands the value node — completed on the landing's
 closes.  Nothing is re-derived, which is what makes the field free at the three
 value-completion sites and `Or.inr trivial` everywhere else. -/
 
-example {sp_start sp_scan : SurfPos} {n nv : Nat} {ks : List Nat}
+-- Item 152 appended the cover conjunct to both faces, so the payment carries a
+-- third component; the node the closure wraps is unchanged, which is why that
+-- item costs these producers one `Or.imp` and nothing else.
+example {sc : ScannerState} {sp_start sp_scan : SurfPos} {n nv : Nat} {ks : List Nat}
     (build : ∀ sp_mid, SSLComments sp_scan sp_mid → SBlockNode n .blockIn sp_scan sp_mid)
     (closeFV : ∀ sp_mid, SBlockNode n .blockIn sp_scan sp_mid →
       ResumeFrames (ExplValueLine sp_start nv) ks sp_mid) :
-    (∃ (nv : Nat) (ks : List Nat), ∀ sp_mid : SurfPos, SSLComments sp_scan sp_mid →
+    (∃ (nv : Nat) (ks : List Nat),
+      ((∃ lo n : Nat, Floor lo n ks ∧ Covered lo ks sc) ∨ True) ∧
+      ∀ sp_mid : SurfPos, SSLComments sp_scan sp_mid →
       ResumeFrames (ExplValueLine sp_start nv) ks sp_mid) ∨ True :=
-  Or.inl ⟨nv, ks, fun sp_mid h_ssl => closeFV sp_mid (build sp_mid h_ssl)⟩
+  Or.inl ⟨nv, ks, Or.inr trivial, fun sp_mid h_ssl => closeFV sp_mid (build sp_mid h_ssl)⟩
 
 /-! ## §5 The landing's context, read at the entries level
 

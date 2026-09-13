@@ -16585,12 +16585,140 @@ lines, so the count is taken over the located errors and not over the log; the
 raw-route census is TWO (`content_dispatch_after_close`, `flowKeyRoute_of_root`).
 
 **What remains.**  The cover's own work is now three CONSTRUCTOR fields and one
-escape, and nothing else: `pendingBlock.h_closeF`, `pendingContent.h_framesS`
-and `.h_framesV`, `pendingBlockContent.h_closeF` — each costing its own
+escape, and nothing else: `pendingBlock.h_closeF`, ~~`pendingContent.h_framesS`
+and `.h_framesV`~~, `pendingBlockContent.h_closeF` — each costing its own
 producers, and the sequence park costing its relay a `Mono` and a `SentinelBase`
 besides — and item 147's park at a line start.  Not the membership split, for
 item 150's reason: what that punt wants is a payload on `KeyPackPunt`, which is
 a change to the constructor and to every consumer of it.
+
+**Item 152 took `pendingContent`'s two**, at the cost this paragraph predicted
+and no more — one `Or.imp` at each of the five producers that already held a
+cover, and no new declaration.  It also found a field this list does not name:
+`pendingProps`'s own two frames faces, which fund five FURTHER `pendingContent`
+producers.  "Three constructor fields and nothing else" was a census of what the
+six punt sites' IMMEDIATE inputs need; the props faces are one level further up
+the same chain.  See [Item 152](#item-152-2026-09-12).
+
+### Item 152 (2026-09-12)
+
+**The completed content park carries the cover, and the landing skeleton spends
+it.**  Item 151 gave `ResumeKeyCtx` a slot on each lane and paid it at the one
+relay that held both of the stack's readings; every other site filled the slot
+with a punt, and each punt named a CONSTRUCTOR field rather than a missing
+derivation.  This item pays two of them.  `pendingContent.h_framesS` and
+`.h_framesV` — the faces a completed mapping VALUE leaves behind — gain a cover
+conjunct, the five producers that already hold one on the close face they ride
+hand it over, and `accum_content_pending`'s shared landing skeleton spends it at
+the two routes of its break-crossed arm.
+
+**The index is existential, and that is what makes ONE slot serve two lanes.**
+This park is depth-0 by construction: it has no `n` to state a floor against.
+The two faces that fund it are bounded at different indices — the stream face at
+the entry's own level (`Floor lo n (n :: ks)`, item 148), the value face one
+column above the `?` (`Floor lo (n + 1) ks`, item 150's deliberate stagger) —
+and `IndentStackCover.Floor.pop_to` spends the WIDTHS half alone.  So the field
+carries the index and forgets it, exactly as `resumectx_of_landing` does, and
+the two faces share one shape.  The guard's §1 puts both indices into the same
+slot, which is the check.
+
+**The payer is the SKELETON's, not the park's, and that is the second reason
+the item is small.**  What a landing's payment needs is `s_prep`'s own floor,
+and `accum_content_pending` already carries the `SentinelBase` (item 146) and
+`Mono` (item 149) that produce it.  So the payment is stated ONCE, in the
+break-crossed landing arm, off the anyCol product's landed disjunct — the same
+component `h_ska` reads one projection over — and serves both landing routes
+there.  A park has only to say what it kept.
+
+**The column-0 arm cannot state it, and that is item 147's escape met at a
+CONSUMER.**  `landing_floor_of_arm` reads the floor off the walk that crossed a
+break; a park AT a line start crossed none.  So that arm takes the two faces
+WHOLE, index included, and puts the punt on the PAYER instead — which is the
+honest shape: the obstacle is the derivation, not the data.
+
+**No new declaration.**  The item is two field conjuncts, two `have`s (the
+producers' step `h_cov_step` and the skeleton's payment `h_pay_res`), five
+producer sites that hand over a cover they already hold, and seven sites that
+say in one `Or.inr trivial` that they hold none.  `collect-stats` is UNMOVED on
+proofs (**6493**), library (**6698**) and env (**8462**), which is what a
+widening with no authoring looks like.  Item 151's `dedent_cover_of_floor` is
+what makes the payment a single line at the point of use; had the hop stayed
+inside `dedent_cover_of_landing` with that lemma's two escapes attached, this
+item would have had to re-author it.
+
+**§4 measures the corpus, and the measure discriminates.**  Item 109's flagship
+(`?⏎  a: b⏎  c: d⏎: - w`), three twins, one nested dedent and three inputs whose
+park is a BLOCK SCALAR — the one content scan that ends past a break, so its
+park sits AT a line start — give **84** states and **8** pops, all **8** with
+the landing's own floor and **6** of the 8 off a line start.  The two that are
+not are the block-scalar parks whose landing is the immediate dedent; a block
+scalar one level in still pays, because the pop that matters is the LATER
+landing and its park is an ordinary value.  As at item 151, the scanner
+establishes the floor at every one of the eight, so the split measures what the
+PROOF can reach and not what the landing does.
+
+**Validation.**  Full `lake build` green (**1141** jobs, +1 for the new guard,
+ZERO warnings); `scripts/run-all-tests.sh` **4492/4492** with Production
+Coverage Analysis **809/809**; `docs/` compared against `95fc18f1` by the
+build-and-run-the-suite-at-each-commit procedure — **63 of 64** files
+byte-identical, and the 64th (`coverage-summary.json`) compared KEY BY KEY with
+its `date` removed rather than taken on trust: `rest identical: True`.
+`eventscore` **347/358** with **252** `event-pass`, **0** `event-reject`, **95**
+`error-ok` and **0** `error-miss`; `suiterunner` **869** passed / **0** failed /
+**151** skipped; `check-import-closure.sh` (**228** modules),
+`check-reflection-index.sh` (20/230/249/355) and `check-theorem-keyword.sh`
+(**25** capstones) OK; `productioncoverage` **211/211** annotated with **0**
+unannotated in scope.  `collect-stats`: tests **2650** theorems-plus-lemmas
+UNMOVED over **601** files (+1) with **6763** `#guard`s (+4); proofs, library
+and env all UNMOVED.  **0** direct and **0** transitive `sorry`, **0** custom
+axioms.  `#print axioms`: `accum_content_pending`,
+`accum_content_on_pendingMapValue` and `..._indented` are
+`[propext, Classical.choice, Quot.sound]` plus the pre-existing `native_decide`
+axioms of `ScalarProduction` and `BlockScalarIndentFloor` (44/37/44 of them);
+`resumectx_of_landing` and `dedent_cover_of_landing` are the three core axioms
+alone and `dedent_cover_of_floor` is `[propext, Quot.sound]` — no `sorryAx`
+anywhere.  `SLYamlStream.implicitContinue` is FIVE `[210]` flip errors at the
+same five holders (`topLevelFlowResumeSep` 3311, `rootMapRoute` 4580,
+`rootMapRouteF` 4603, `bareNodeRoute` 4772, `structural_dispatch_to_pending`
+6105 — the item-151 lines plus the 14 this item inserted above them);
+`grep -c '^error:'` reads SEVEN, two of which are lake's own summary lines, so
+the count is taken over the located errors and not over the log.  The raw-route
+census is TWO (`content_dispatch_after_close`, `flowKeyRoute_of_root`).
+
+New guard `Tests/Guards/Proofs/ContentParkCoverSpent.lean` (4 `#guard`, 7
+`example`): §1 the slot with both lanes' indices in it and the punt beside them;
+§2 the step that carries a producer's cover to the park; §3 the skeleton's
+payment, whose conclusion is a plain `∃` and which reads the incoming index
+nowhere, plus the same payment composed into the context; §4 the corpus; §5 what
+still does not pay; §6 the price.  **601** insertions, **66** deletions over
+seven files, this entry included.
+
+**Corrected in place.**  Item 150's guard still said `ResumeKeyCtx` "has no
+cover slot on either lane" — item 151 struck that clause in DOCS and in item
+149's guard but not in `ValueLineCoverSpent.lean`.  Struck there now, with both
+closures named.  Item 109's `ScannerLandedSiblingResumes.lean` §4 mirrored the
+old `h_framesV` shape; updated, since a mirror that no longer states the field
+is worse than none.
+
+**What remains.**  Three entries, and one of them this item FOUND:
+
+* **The column-0 landing arm**, item 147's escape read at the consumer.
+  Measured above: two of eight.
+* **The props park** — `pendingProps`'s own two frames fields, which fund five
+  further `pendingContent` producers.  Item 151's "three constructor fields and
+  nothing else" was a list of what the six punt sites' IMMEDIATE inputs need;
+  these are one level further up the same chain, and the `pendingProps` arm of
+  `accum_content_pending` is the one punt where the payer is not the obstacle —
+  that arm is break-crossed, so the floor is there for the asking.
+* **The sequence chain** — `pendingBlockContent.h_closeF`, whose own payers are
+  `pendingBlock.h_closeF`, which carries no cover either; two fields on one
+  chain, and the sequence park's relay owes a `Mono` and a `SentinelBase`
+  besides.
+
+Still not the membership split, for item 150's reason: what that punt wants is a
+payload on `KeyPackPunt`, which is a change to the constructor and to every
+consumer of it.
+
 
 ### REMAINING, in order
 
@@ -16608,7 +16736,7 @@ too (items 47–51), so what stands between here
 and Step 5 (the converse) is R3's remaining production work and R4:
 
 ```
-R1 ✓ (44–46) ──→ R2 ✓ (47–51) ──→ R3 (52–151 landed; U2 CLOSED, the collapse gone) ──→ Step 5
+R1 ✓ (44–46) ──→ R2 ✓ (47–51) ──→ R3 (52–152 landed; U2 CLOSED, the collapse gone) ──→ Step 5
                                         └──────→ R4 (implicitContinue + 0 < m) ──┘
 ```
 
