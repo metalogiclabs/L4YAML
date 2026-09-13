@@ -18895,14 +18895,29 @@ lemma nodocctx_of_preprocess (sc : ScannerState) (sp sp_prep : SurfPos)
     value line.  Both faces ride because they are different stacks (item 108),
     and the STREAM face is required inside the left disjunct — `ImplicitKeyPack`
     needs a route whose codomain is the stream, and only the stream-bottomed
-    stack has one.  The value face is the twin the `?`'s own `: v` line spends. -/
+    stack has one.  The value face is the twin the `?`'s own `: v` line spends.
+
+    **Item 151: each face carries the landing's own cover.**  The two lists
+    below are what the landing RESUMES on, and the pack the consumer builds
+    wants exactly those lists covered — so the conjunct stands here in the
+    shape the pack field takes, `k :: ks` at a floor bounded by every width in
+    it.  It is stated at `s_prep` because that is the only state this context
+    names; the consumer lifts it across the content dispatch, which writes no
+    level.  **Both lanes take the pack's own index `k`**, which is where the
+    value lane stops mirroring its parks: the key this landing heads is a
+    mapping level of EITHER stack, so nothing is excluded here, where at the
+    parks the `?`'s own level is not one of its value-line frames. -/
 def ResumeKeyCtx (s_prep : ScannerState) (sp_start sp_prep : SurfPos) : Prop :=
   ((∃ (k : Nat) (ks : List Nat) (sp_land : SurfPos),
       sp_land.col = 0 ∧ SIndent k sp_land sp_prep ∧
       (∀ k' ∈ ks, k' < k) ∧
+      ((∃ lo : Nat, IndentStackCover.Floor lo k (k :: ks) ∧
+        IndentStackCover.Covered lo (k :: ks) s_prep) ∨ True) ∧
       (∀ sp_end : SurfPos, SCompactMapTail k sp_land sp_end →
         ResumeFrames (SLYamlStream sp_start) ks sp_end) ∧
       ((∃ (nv : Nat) (ksv : List Nat), (∀ k' ∈ ksv, k' < k) ∧
+        ((∃ lo : Nat, IndentStackCover.Floor lo k (k :: ksv) ∧
+          IndentStackCover.Covered lo (k :: ksv) s_prep) ∨ True) ∧
         ∀ sp_end : SurfPos, SCompactMapTail k sp_land sp_end →
           ResumeFrames (ExplValueLine sp_start nv) ksv sp_end) ∨ True)) ∧
     s_prep.simpleKey.possible = true ∧
@@ -18919,17 +18934,45 @@ def ResumeKeyCtx (s_prep : ScannerState) (sp_start sp_prep : SurfPos) : Prop :=
     key, and a TAB in the landing's whites (`[63]` wants spaces).  The third is
     this lemma's: a landing width that names NO open level, which is the dedent
     the scanner refuses upstream as `trailingContent`, and which the membership
-    test therefore decides per input rather than assuming. -/
+    test therefore decides per input rather than assuming.
+
+    **Item 151: and the cover rides both faces through.**  The incoming faces
+    carry the park's cover over the widths they name, the outgoing context
+    wants it over the widths the landing RESUMES on, and that hop is the
+    dedent's — `dedent_cover_of_landing`, which this lemma takes as `h_pay`
+    rather than performing.  Two reasons it is a parameter and not a proof: the
+    scanner facts the hop needs (the stack's two readings, the landing arm's
+    floor) are the CALLER's, and quantifying the payer over the list lets one
+    argument serve both lanes, whose lists differ.
+
+    **The floor's INDEX is existential on the incoming faces.**  A stream face
+    is bounded at its park's index and a value face one column above it (item
+    150), and the hop reads neither: `IndentStackCover.Floor.pop_to` spends the
+    WIDTHS half alone.  So the two lanes hand `h_pay` the same shape, and the
+    index a caller carries is simply forgotten at the door. -/
 lemma resumectx_of_landing {sc s_prep : ScannerState} {c : Char}
     {sp_start sp_scan sp_mid sp_prep : SurfPos}
     (hcol_mid : sp_mid.col = 0)
     (h_ws : GStar SSWhite sp_mid sp_prep)
     (h_ssl : SSLComments sp_scan sp_mid)
     (h_preprocess : scanNextToken_preprocess sc = .ok (some (s_prep, c)))
-    (h_fS : (∃ ks : List Nat, ∀ sp_m : SurfPos, SSLComments sp_scan sp_m →
+    (hcorr_prep : ScannerSurfCorr s_prep sp_prep)
+    (h_fS : (∃ ks : List Nat,
+        ((∃ lo n : Nat, IndentStackCover.Floor lo n ks ∧
+          IndentStackCover.Covered lo ks sc) ∨ True) ∧
+        ∀ sp_m : SurfPos, SSLComments sp_scan sp_m →
         ResumeFrames (SLYamlStream sp_start) ks sp_m) ∨ True)
-    (h_fV : (∃ (nv : Nat) (ks : List Nat), ∀ sp_m : SurfPos, SSLComments sp_scan sp_m →
-        ResumeFrames (ExplValueLine sp_start nv) ks sp_m) ∨ True) :
+    (h_fV : (∃ (nv : Nat) (ks : List Nat),
+        ((∃ lo n : Nat, IndentStackCover.Floor lo n ks ∧
+          IndentStackCover.Covered lo ks sc) ∨ True) ∧
+        ∀ sp_m : SurfPos, SSLComments sp_scan sp_m →
+        ResumeFrames (ExplValueLine sp_start nv) ks sp_m) ∨ True)
+    (h_pay : ∀ (w : Nat) (ks ks' : List Nat),
+        ((∃ lo n : Nat, IndentStackCover.Floor lo n ks ∧
+          IndentStackCover.Covered lo ks sc) ∨ True) →
+        w ∈ ks → ResumeWidths ks ks' w → s_prep.col = w →
+        ((∃ lo : Nat, IndentStackCover.Floor lo w (w :: ks') ∧
+          IndentStackCover.Covered lo (w :: ks') s_prep) ∨ True)) :
     ResumeKeyCtx s_prep sp_start sp_prep := by
   cases preprocess_some_savedKey_shape h_preprocess with
   | inr _ => exact Or.inr trivial
@@ -18941,18 +18984,32 @@ lemma resumectx_of_landing {sc s_prep : ScannerState} {c : Char}
       cases h_fS with
       | inr _ => exact Or.inr trivial
       | inl h_fS0 =>
-        obtain ⟨ks, fS⟩ := h_fS0
+        obtain ⟨ks, h_cvS, fS⟩ := h_fS0
         by_cases hmem : k ∈ ks
         · obtain ⟨ks', h_w, cont⟩ := (fS sp_mid h_ssl).resumeAt hmem
-          refine Or.inl ⟨⟨k, ks', sp_mid, hcol_mid, h_ind, h_w.lt, cont, ?_⟩,
+          -- Item 151: the landing's width at the SCANNER, which is what the
+          -- payer measures its floor against.  `[63] s-indent(k)` off a
+          -- column-0 line start puts the key at column `k`, and the step's own
+          -- correspondence reads that column off `s_prep`.
+          have h_scol : s_prep.col = k := by
+            rw [← hcorr_prep.col_eq]
+            have := SIndent_col h_ind
+            rw [hcol_mid] at this
+            omega
+          refine Or.inl ⟨⟨k, ks', sp_mid, hcol_mid, h_ind, h_w.lt,
+            h_pay k ks ks' h_cvS hmem h_w h_scol, cont, ?_⟩,
             h_sk.1, h_sk.2⟩
           -- The value face is optional all the way down: the park may carry no
           -- explicit frame, or carry one whose stack this width misses.
           match h_fV with
-          | Or.inl ⟨nv, ksv, fV⟩ =>
+          | Or.inl ⟨nv, ksv, h_cvV, fV⟩ =>
             by_cases hmemV : k ∈ ksv
             · obtain ⟨ksv', h_wv, contv⟩ := (fV sp_mid h_ssl).resumeAt hmemV
-              exact Or.inl ⟨nv, ksv', h_wv.lt, contv⟩
+              -- Item 151: the membership test and the payment are both taken a
+              -- SECOND time, for item 108's reason — the two stacks are
+              -- different, so a width can name a level in one and not the other.
+              exact Or.inl ⟨nv, ksv', h_wv.lt,
+                h_pay k ksv ksv' h_cvV hmemV h_wv h_scol, contv⟩
             · exact Or.inr trivial
           | Or.inr _ => exact Or.inr trivial
         · exact Or.inr trivial
@@ -19141,6 +19198,27 @@ lemma implicitKeyHead_of_dispatch
       rw [hsp2] at h_tws2
       exact ⟨sp_gram2, ImplicitKeyHead.yaml h_ol, h_tws2, by rw [h_sk_pres]⟩
 
+/-- **The dedent landing's hop on the cover, at a landing already floored**
+    (item 151) — the arithmetic `dedent_cover_of_landing` performs, with the
+    two escapes that lemma carries taken OUT of it.
+
+    The escapes are about reaching the floor, not about the hop: a caller with
+    no measure of its stack, and a park at a line start whose walk armed no
+    unwind.  A caller that has discharged both hands the top's bound straight
+    in, and gets the payment with no disjunct to case on — which is what the
+    resuming key context wants, since a landing that reaches it came off a park
+    OFF a line start by that park's own field. -/
+lemma dedent_cover_of_floor {s : ScannerState} {lo n w : Nat} {ks ks' : List Nat}
+    (h_mono : IndentStackMono.Mono s)
+    (h_top : s.currentIndent ≤ (w : Int))
+    (h_fl : IndentStackCover.Floor lo n ks)
+    (h_cv : IndentStackCover.Covered lo ks s)
+    (hmem : w ∈ ks)
+    (h_w' : ResumeWidths ks ks' w) :
+    ∃ lo : Nat, IndentStackCover.Floor lo w (w :: ks') ∧
+      IndentStackCover.Covered lo (w :: ks') s :=
+  ⟨lo, h_fl.pop_to hmem h_w'.sub, h_cv.pop_to h_mono h_top h_w'.keep⟩
+
 /-- **The dedent landing's hop on the cover** (item 149) — the payment both
     pack lemmas make at the branch item 148 left punting, written once.
 
@@ -19189,8 +19267,9 @@ lemma dedent_cover_of_landing {sc s_prep s' : ScannerState} {c : Char}
           (IndentStackMono.preprocess_mono h_preprocess h_mono).of_indents_eq h_ind_eq
         have h_top : s'.currentIndent ≤ (w : Int) := by
           rw [currentIndent_of_indents_eq h_ind_eq, ← h_scol]; exact h_floor
-        exact Or.inl ⟨lo, h_fl.pop_to hmem h_w'.sub,
-          (h_cov_step lo ks h_cv).pop_to h_mono' h_top h_w'.keep⟩
+        -- Item 151: the hop itself, shared with the resuming key context.
+        exact Or.inl (dedent_cover_of_floor h_mono' h_top h_fl
+          (h_cov_step lo ks h_cv) hmem h_w')
     · exact Or.inr trivial
   · exact Or.inr trivial
 
@@ -20267,6 +20346,14 @@ lemma content_dispatch_routed
     split
     · show s_prep.peek? = some c; exact hpeek
     · exact hpeek
+  -- **Item 151: the landing's stack, stepped to the park.**  The resuming key
+  -- context states its cover at the landing's own state, and the pack this
+  -- dispatch builds wants it at the park's; a content dispatch writes no
+  -- level, so the two states' stacks are equal and the lift is that equation.
+  have h_cov_lift : ∀ (lo : Nat) (ks : List Nat),
+      IndentStackCover.Covered lo ks s_prep → IndentStackCover.Covered lo ks s' :=
+    fun lo ks hc => IndentStackCover.dispatchContent_cover h_dispatch
+      (hc.of_indents_eq (by split <;> rfl))
   by_cases hprops : c = '&' ∨ c = '!'
   · -- items 9h/10/12: a [96] run is NOT a complete node — park it as
     -- pendingProps, kinds indexed, couplings supplied by the push itself.
@@ -20342,16 +20429,27 @@ lemma content_dispatch_routed
       -- landing width names (`k:⏎  - a⏎&p b: 2`).
       cases h_resumectx with
       | inl hres =>
-        obtain ⟨⟨k, ks, sp_land, hcol0, h_ind, h_lt, cont, hresV⟩,
+        obtain ⟨⟨k, ks, sp_land, hcol0, h_ind, h_lt, h_cov_res, cont, hresV⟩,
                 h_sk_poss, h_sk_pos⟩ := hres
         exact h_buildP k sp_land hcol0 h_ind h_sk_poss h_sk_pos
           (resumeMapRoute h_ind cont)
-          (Or.inl ⟨ks, h_lt, Or.inr trivial, resumeMapRouteF h_ind cont⟩)
+          -- ~~Item 150: `ResumeKeyCtx` has no cover slot on either lane, so the
+          -- value-line face punts here exactly as the stream face does.~~
+          -- **Item 151: it has one on both, and this is where each is spent.**
+          -- The context states its cover at the landing's own state; a content
+          -- dispatch writes no level, so the lift to the park's is the stack
+          -- equation and nothing else.  Both lanes land at the pack's own
+          -- index, so neither floor moves on the way in.
+          (Or.inl ⟨ks, h_lt,
+            h_cov_res.imp (fun ⟨lo, hb, hc⟩ =>
+              ⟨lo, hb, h_cov_lift lo (k :: ks) hc⟩) id,
+            resumeMapRouteF h_ind cont⟩)
           (match hresV with
-           | Or.inl ⟨nv, ksv, h_ltv, contv⟩ =>
-               -- Item 150: `ResumeKeyCtx` has no cover slot on either lane, so
-               -- the value-line face punts here exactly as the stream face does.
-               Or.inl ⟨nv, ksv, h_ltv, Or.inr trivial, resumeMapRouteF h_ind contv⟩
+           | Or.inl ⟨nv, ksv, h_ltv, h_covv, contv⟩ =>
+               Or.inl ⟨nv, ksv, h_ltv,
+                 h_covv.imp (fun ⟨lo, hb, hc⟩ =>
+                   ⟨lo, hb, h_cov_lift lo (k :: ksv) hc⟩) id,
+                 resumeMapRouteF h_ind contv⟩
            | Or.inr _ => Or.inr trivial)
       | inr _ =>
         cases h_suffixctx with
@@ -20561,16 +20659,27 @@ lemma content_dispatch_routed
       -- frames whose stack the landing width names.
       cases h_resumectx with
       | inl hres =>
-        obtain ⟨⟨k, ks, sp_land, hcol0, h_ind, h_lt, cont, hresV⟩,
+        obtain ⟨⟨k, ks, sp_land, hcol0, h_ind, h_lt, h_cov_res, cont, hresV⟩,
                 _h_sk_poss, h_sk_pos⟩ := hres
         exact h_build k sp_land hcol0 h_ind h_sk_pos
           (resumeMapRoute h_ind cont)
-          (Or.inl ⟨ks, h_lt, Or.inr trivial, resumeMapRouteF h_ind cont⟩)
+          -- ~~Item 150: `ResumeKeyCtx` has no cover slot on either lane, so the
+          -- value-line face punts here exactly as the stream face does.~~
+          -- **Item 151: it has one on both, and this is where each is spent.**
+          -- The context states its cover at the landing's own state; a content
+          -- dispatch writes no level, so the lift to the park's is the stack
+          -- equation and nothing else.  Both lanes land at the pack's own
+          -- index, so neither floor moves on the way in.
+          (Or.inl ⟨ks, h_lt,
+            h_cov_res.imp (fun ⟨lo, hb, hc⟩ =>
+              ⟨lo, hb, h_cov_lift lo (k :: ks) hc⟩) id,
+            resumeMapRouteF h_ind cont⟩)
           (match hresV with
-           | Or.inl ⟨nv, ksv, h_ltv, contv⟩ =>
-               -- Item 150: `ResumeKeyCtx` has no cover slot on either lane, so
-               -- the value-line face punts here exactly as the stream face does.
-               Or.inl ⟨nv, ksv, h_ltv, Or.inr trivial, resumeMapRouteF h_ind contv⟩
+           | Or.inl ⟨nv, ksv, h_ltv, h_covv, contv⟩ =>
+               Or.inl ⟨nv, ksv, h_ltv,
+                 h_covv.imp (fun ⟨lo, hb, hc⟩ =>
+                   ⟨lo, hb, h_cov_lift lo (k :: ksv) hc⟩) id,
+                 resumeMapRouteF h_ind contv⟩
            | Or.inr _ => Or.inr trivial)
       | inr _ =>
         cases h_suffixctx with
@@ -22060,13 +22169,19 @@ lemma accum_content_on_pendingBlock_indented
       -- what is left is the mapping levels below (`k:⏎  -⏎b: 2`).  The root
       -- context above stays as the fallback for a width that names no level.
       (resumectx_of_landing h_col0m (SIndent_gives_GStar_SSWhite h_ind) h_ssl_land
-        h_preprocess
+        h_preprocess hcorr_prep
+        -- Item 151: the SEQUENCE park's face has frames and no cover —
+        -- `pendingBlock.h_closeF` carries the widths alone, and this relay has
+        -- neither of the stack's two readings to pay one with — so the slot
+        -- the context now has is filled with the punt.  That field and this
+        -- relay's missing `Mono`/`SentinelBase` are what a payment costs here.
         (match h_closeF_old with
-         | Or.inl ⟨ks, _, closeF⟩ => Or.inl ⟨ks, fun sp_m h_ssl =>
+         | Or.inl ⟨ks, _, closeF⟩ => Or.inl ⟨ks, Or.inr trivial, fun sp_m h_ssl =>
              closeF sp_m (SBlockIndented.empty n .blockIn sp_scan sp_m h_ssl) sp_m
                (SCompactSeqTail.nil n sp_m)⟩
          | Or.inr _ => Or.inr trivial)
-        (Or.inr trivial))
+        (Or.inr trivial)
+        (fun _ _ _ _ _ _ _ => Or.inr trivial))
       (Or.inr trivial)
       (Or.inr trivial) (Or.inr trivial)
       -- Item 144: a `-` park's tail is `blockEntry`, which `completesFlowValue`
@@ -22126,9 +22241,11 @@ lemma accum_content_on_pendingMapValue
     -- park's `h_frames` verbatim, and ~~projects the ROUTE at the pack lemma,
     -- whose `h_dframes` is still the widths alone~~ **since item 149 hands it
     -- to the pack lemma unchanged**: `h_dframes` carries the cover the DEDENT
-    -- branch spends, and `h_closeF99` the one its NESTED branch reads.  The
-    -- one place the route is still projected out is `resumectx_of_landing`,
-    -- which has no cover slot on either lane.
+    -- branch spends, and `h_closeF99` the one its NESTED branch reads.
+    -- ~~The one place the route is still projected out is
+    -- `resumectx_of_landing`, which has no cover slot on either lane.~~
+    -- **Item 151 gave it one on each**, and the face goes through whole —
+    -- index included, which the payer then forgets.
     (h_frames99 : (∃ ks : List Nat,
       ((∃ lo : Nat, IndentStackCover.Floor lo 0 ks ∧
         IndentStackCover.Covered lo ks sc) ∨ True) ∧
@@ -22657,9 +22774,11 @@ lemma accum_content_on_pendingMapValue_indented
     -- park's `h_frames` verbatim, and ~~projects the ROUTE at the pack lemma,
     -- whose `h_dframes` is still the widths alone~~ **since item 149 hands it
     -- to the pack lemma unchanged**: `h_dframes` carries the cover the DEDENT
-    -- branch spends, and `h_closeF99` the one its NESTED branch reads.  The
-    -- one place the route is still projected out is `resumectx_of_landing`,
-    -- which has no cover slot on either lane.
+    -- branch spends, and `h_closeF99` the one its NESTED branch reads.
+    -- ~~The one place the route is still projected out is
+    -- `resumectx_of_landing`, which has no cover slot on either lane.~~
+    -- **Item 151 gave it one on each**, and the face goes through whole —
+    -- index included, which the payer then forgets.
     (h_frames99 : (∃ ks : List Nat,
       ((∃ lo : Nat, IndentStackCover.Floor lo n ks ∧
         IndentStackCover.Covered lo ks sc) ∨ True) ∧
@@ -23087,6 +23206,34 @@ lemma accum_content_on_pendingMapValue_indented
         (SFlowLinePrefix.mk 0 sp_mid sp_mid sp_prep (SIndent.zero sp_mid) h_gopt)
     have h_sk_f := preprocess_saved_key_fresh h_ska
       (by revert h_flow_disp; split <;> (intro h; exact h)) h_preprocess
+    -- **Item 151: the landing's cover hop, for the RESUMING context.**  The
+    -- arm the floor comes off is the anyCol product's own landed disjunct —
+    -- this branch reached column 0 from a park at `sp_scan.col > 0`, so the
+    -- walk crossed a break, the break armed the indent check, and
+    -- preprocessing's unwind ran.  The other disjunct is the step that stayed
+    -- on the line, which this landing is not; refuting it costs more than the
+    -- punt it would replace, so it punts.
+    have h_noflow_land : s_prep.inFlow = false := by
+      revert h_flow_disp; split <;> (intro h; exact h)
+    obtain ⟨_, _, _, h_disj_land, _, _, _, _, _⟩ :=
+      preprocess_some_ssl_comments_anyCol sc sp_scan s_prep c h_corr h_preprocess
+    have h_pay_res : ∀ (w : Nat) (ksw ksw' : List Nat),
+        ((∃ lo m : Nat, IndentStackCover.Floor lo m ksw ∧
+          IndentStackCover.Covered lo ksw sc) ∨ True) →
+        w ∈ ksw → ResumeWidths ksw ksw' w → s_prep.col = w →
+        ((∃ lo : Nat, IndentStackCover.Floor lo w (w :: ksw') ∧
+          IndentStackCover.Covered lo (w :: ksw') s_prep) ∨ True) := by
+      intro w ksw ksw' h_cv hmemw h_ww h_scolw
+      rcases h_cv with ⟨lo, _, h_fl, h_cv0⟩ | _
+      · rcases h_disj_land with ⟨_, _, h_larm⟩ | _
+        · have h_floor := landing_floor_of_arm h_noflow_land h_larm
+            (by omega) h_base h_preprocess
+          exact Or.inl (dedent_cover_of_floor
+            (IndentStackMono.preprocess_mono h_preprocess h_mono)
+            (by rw [← h_scolw]; exact h_floor) h_fl
+            (IndentStackCover.preprocess_cover h_preprocess h_cv0) hmemw h_ww)
+        · exact Or.inr trivial
+      · exact Or.inr trivial
     exact content_dispatch_after_close sp_start sp_mid s_prep s' c sp_prep sp_scan'
       h_stream_mid h_sep_del (nic_false_of_flow_disp h_preprocess h_flow_disp)
       hcorr_prep hcorr_result h_not_doc (preprocess_some_peek h_preprocess)
@@ -23096,15 +23243,23 @@ lemma accum_content_on_pendingMapValue_indented
       -- faces ride: the awaited value never arrived, so the park's own spend
       -- faces already stand at the landing (`?⏎  a:⏎    b:⏎  c: 2⏎: - w`, the
       -- family item 108 paid at the pack lemma, now paid at the dispatch too).
-      -- Item 149: `resumectx_of_landing`'s own frames field is still the widths
-      -- alone — the context it builds has no cover slot to put one in, so this
-      -- is where the projection survives.
+      -- ~~Item 149: `resumectx_of_landing`'s own frames field is still the
+      -- widths alone — the context it builds has no cover slot to put one in,
+      -- so this is where the projection survives.~~  **Item 151: it has one on
+      -- both lanes, and this relay is the site that pays it** — the two
+      -- readings of the stack ride here already, and the park is OFF a line
+      -- start by its own field, so the landing's floor is reachable and
+      -- neither of `dedent_cover_of_landing`'s escapes is taken.  The faces go
+      -- through whole, index and all; the payer forgets the index, which is
+      -- what lets one argument serve a stream face bounded at `n` and a value
+      -- face bounded at `n + 1`.
       (resumectx_of_landing h_col0m (SIndent_gives_GStar_SSWhite h_ind) h_ssl_land
-        h_preprocess (h_frames99.imp (fun ⟨ks, _, r⟩ => ⟨ks, r⟩) id)
-        -- Item 150: `resumectx_of_landing` builds a context with no cover slot
-        -- on EITHER lane, so the value-line face is projected here exactly as
-        -- item 149 left the stream face — the one projection of each that stays.
-        (h_framesV108.imp (fun ⟨nv, ks, _, r⟩ => ⟨nv, ks, r⟩) id))
+        h_preprocess hcorr_prep
+        (h_frames99.imp (fun ⟨ks, hc, r⟩ =>
+          ⟨ks, hc.imp (fun ⟨lo, hb, hcv⟩ => ⟨lo, n, hb, hcv⟩) id, r⟩) id)
+        (h_framesV108.imp (fun ⟨nv, ks, hc, r⟩ =>
+          ⟨nv, ks, hc.imp (fun ⟨lo, hb, hcv⟩ => ⟨lo, n + 1, hb, hcv⟩) id, r⟩) id)
+        h_pay_res)
       (Or.inr trivial) (Or.inr trivial) (Or.inr trivial)
       -- Item 144: a `:` park's tail is `value`, excluded for the same reason.
       sc (Or.inr trivial)
@@ -23295,7 +23450,14 @@ lemma accum_content_pending (sc : ScannerState)
           (nic_false_of_flow_disp h_preprocess h_flow_disp)
           hcorr_prep hcorr_result h_not_doc
           (preprocess_some_peek h_preprocess) h_flow_disp h_dispatch mkroute h_keyctx
-          (resumectx_of_landing hcol_mid h_ws h_ssl h_preprocess h_fS h_fV)
+          -- Item 151: the skeleton's parks — a completed CONTENT park and an
+          -- entry-level one — carry frames but no cover on either face, so the
+          -- slot the context now has is filled with the punt here.  Those two
+          -- constructor fields are where a payment would have to start.
+          (resumectx_of_landing hcol_mid h_ws h_ssl h_preprocess hcorr_prep
+            (h_fS.imp (fun ⟨ks, r⟩ => ⟨ks, Or.inr trivial, r⟩) id)
+            (h_fV.imp (fun ⟨nv, ks, r⟩ => ⟨nv, ks, Or.inr trivial, r⟩) id)
+            (fun _ _ _ _ _ _ _ => Or.inr trivial))
           (Or.inr trivial) (Or.inr trivial)
           (markerctx_of_landing hcol_mid h_ws h_ssl h_preprocess (Or.inl h_mk_on))
           sc h_ref_land
@@ -23319,7 +23481,14 @@ lemma accum_content_pending (sc : ScannerState)
         h_stream_mid h_sep (nic_false_of_flow_disp h_preprocess h_flow_disp)
         hcorr_prep hcorr_result h_not_doc
         (preprocess_some_peek h_preprocess) h_flow_disp h_dispatch h_route_mid h_keyctx
-        (resumectx_of_landing hcol_mid h_ws h_ssl h_preprocess h_fS h_fV)
+        -- Item 151: the skeleton's parks — a completed CONTENT park and an
+        -- entry-level one — carry frames but no cover on either face, so the
+        -- slot the context now has is filled with the punt here.  Those two
+        -- constructor fields are where a payment would have to start.
+        (resumectx_of_landing hcol_mid h_ws h_ssl h_preprocess hcorr_prep
+          (h_fS.imp (fun ⟨ks, r⟩ => ⟨ks, Or.inr trivial, r⟩) id)
+          (h_fV.imp (fun ⟨nv, ks, r⟩ => ⟨nv, ks, Or.inr trivial, r⟩) id)
+          (fun _ _ _ _ _ _ _ => Or.inr trivial))
         (suffixctx_of_landing hcol_mid h_ws h_ssl h_preprocess h_sfx)
         -- Item 136: the skeleton's landings close a park that HAS started a
         -- document (`noPending` never reaches the split), so the head context
@@ -23368,7 +23537,14 @@ lemma accum_content_pending (sc : ScannerState)
             (nic_false_of_flow_disp h_preprocess h_flow_disp)
             hcorr_prep hcorr_result h_not_doc
             (preprocess_some_peek h_preprocess) h_flow_disp h_dispatch mkroute h_keyctx
-            (resumectx_of_landing hcol_mid.1 h_ws h_ssl h_preprocess h_fS h_fV)
+            -- Item 151: the skeleton's parks — a completed CONTENT park and an
+            -- entry-level one — carry frames but no cover on either face, so the
+            -- slot the context now has is filled with the punt here.  Those two
+            -- constructor fields are where a payment would have to start.
+            (resumectx_of_landing hcol_mid.1 h_ws h_ssl h_preprocess hcorr_prep
+              (h_fS.imp (fun ⟨ks, r⟩ => ⟨ks, Or.inr trivial, r⟩) id)
+              (h_fV.imp (fun ⟨nv, ks, r⟩ => ⟨nv, ks, Or.inr trivial, r⟩) id)
+              (fun _ _ _ _ _ _ _ => Or.inr trivial))
             (Or.inr trivial) (Or.inr trivial)
             (markerctx_of_landing hcol_mid.1 h_ws h_ssl h_preprocess (Or.inl h_mk_on))
             sc h_ref_land
@@ -23389,7 +23565,14 @@ lemma accum_content_pending (sc : ScannerState)
           h_stream_mid h_sep (nic_false_of_flow_disp h_preprocess h_flow_disp)
           hcorr_prep hcorr_result h_not_doc
           (preprocess_some_peek h_preprocess) h_flow_disp h_dispatch h_route_mid h_keyctx
-          (resumectx_of_landing hcol_mid.1 h_ws h_ssl h_preprocess h_fS h_fV)
+          -- Item 151: the skeleton's parks — a completed CONTENT park and an
+          -- entry-level one — carry frames but no cover on either face, so the
+          -- slot the context now has is filled with the punt here.  Those two
+          -- constructor fields are where a payment would have to start.
+          (resumectx_of_landing hcol_mid.1 h_ws h_ssl h_preprocess hcorr_prep
+            (h_fS.imp (fun ⟨ks, r⟩ => ⟨ks, Or.inr trivial, r⟩) id)
+            (h_fV.imp (fun ⟨nv, ks, r⟩ => ⟨nv, ks, Or.inr trivial, r⟩) id)
+            (fun _ _ _ _ _ _ _ => Or.inr trivial))
           (suffixctx_of_landing hcol_mid.1 h_ws h_ssl h_preprocess h_sfx)
           (Or.inr trivial) (Or.inr trivial)
           -- Item 144: as at the column-0 landing.
@@ -23606,7 +23789,14 @@ lemma accum_content_pending (sc : ScannerState)
         h_stream_mid h_sep (nic_false_of_flow_disp h_preprocess h_flow_disp)
         hcorr_prep hcorr_result h_not_doc
           (preprocess_some_peek h_preprocess) h_flow_disp h_dispatch h_keyctx
-          (resumectx_of_landing hcol_mid.1 h_ws h_ssl h_preprocess h_fS h_fV)
+          -- Item 151: the skeleton's parks — a completed CONTENT park and an
+          -- entry-level one — carry frames but no cover on either face, so the
+          -- slot the context now has is filled with the punt here.  Those two
+          -- constructor fields are where a payment would have to start.
+          (resumectx_of_landing hcol_mid.1 h_ws h_ssl h_preprocess hcorr_prep
+            (h_fS.imp (fun ⟨ks, r⟩ => ⟨ks, Or.inr trivial, r⟩) id)
+            (h_fV.imp (fun ⟨nv, ks, r⟩ => ⟨nv, ks, Or.inr trivial, r⟩) id)
+            (fun _ _ _ _ _ _ _ => Or.inr trivial))
           (Or.inr trivial) (Or.inr trivial) (Or.inr trivial)
           -- **Item 144: the props landing IS at the sentinel** (`&p⏎# c⏎b`
           -- lands at `sz=1`) and §9.2 stands aside anyway, because the run's

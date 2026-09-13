@@ -39,6 +39,7 @@ continues.  `pendingBlockContent`'s family is the one below. -/
 namespace L4YAML.Tests.Guards.ScannerEntryContentSiblingResumes
 
 open L4YAML L4YAML.Scanner L4YAML.Surface L4YAML.Proofs.StreamAccum
+open L4YAML.Proofs.CouplingBridge
 
 private def emits (input : String) (expected : List String) : Bool :=
   let e := some (String.intercalate "\n" expected ++ "\n")
@@ -151,13 +152,19 @@ example {sc s_prep : ScannerState} {c : Char}
     (h_ws : GStar SSWhite sp_mid sp_prep)
     (h_ssl : SSLComments sp_park sp_mid)
     (h_preprocess : scanNextToken_preprocess sc = .ok (some (s_prep, c)))
+    (hcorr_prep : ScannerSurfCorr s_prep sp_prep)
     (closeF : ∀ sp_m, SSLComments sp_park sp_m →
       ∀ sp_end, SCompactSeqTail n sp_m sp_end →
       ResumeFrames (SLYamlStream sp_start) ks sp_end) :
     ResumeKeyCtx s_prep sp_start sp_prep :=
-  resumectx_of_landing hcol_mid h_ws h_ssl h_preprocess
-    (Or.inl ⟨ks, fun sp_m h => closeF sp_m h sp_m (SCompactSeqTail.nil n sp_m)⟩)
+  -- Item 151: the entry-parked face carries no cover (`pendingBlock.h_closeF`
+  -- is the widths alone), so the slot and the payer both take the punt — which
+  -- is the argument this park actually passes at the relay.
+  resumectx_of_landing hcol_mid h_ws h_ssl h_preprocess hcorr_prep
+    (Or.inl ⟨ks, Or.inr trivial,
+      fun sp_m h => closeF sp_m h sp_m (SCompactSeqTail.nil n sp_m)⟩)
     (Or.inr trivial)
+    (fun _ _ _ _ _ _ _ => Or.inr trivial)
 
 /-! ## §6 What this item does NOT close
 

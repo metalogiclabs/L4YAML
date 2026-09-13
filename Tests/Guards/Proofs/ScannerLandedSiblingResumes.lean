@@ -39,6 +39,8 @@ does not close. -/
 namespace L4YAML.Tests.Guards.ScannerLandedSiblingResumes
 
 open L4YAML L4YAML.Scanner L4YAML.Surface L4YAML.Proofs.StreamAccum
+open L4YAML.Proofs.CouplingBridge
+open L4YAML.Proofs.IndentStackCover
 
 private def emits (input : String) (expected : List String) : Bool :=
   let e := some (String.intercalate "\n" expected ++ "\n")
@@ -182,12 +184,25 @@ example {sc s_prep : ScannerState} {c : Char}
     (h_ws : GStar SSWhite sp_mid sp_prep)
     (h_ssl : SSLComments sp_scan sp_mid)
     (h_preprocess : scanNextToken_preprocess sc = .ok (some (s_prep, c)))
-    (h_fS : (∃ ks : List Nat, ∀ sp_m : SurfPos, SSLComments sp_scan sp_m →
+    (hcorr_prep : ScannerSurfCorr s_prep sp_prep)
+    (h_fS : (∃ ks : List Nat,
+        ((∃ lo n : Nat, Floor lo n ks ∧
+          Covered lo ks sc) ∨ True) ∧
+        ∀ sp_m : SurfPos, SSLComments sp_scan sp_m →
         ResumeFrames (SLYamlStream sp_start) ks sp_m) ∨ True)
-    (h_fV : (∃ (nv : Nat) (ks : List Nat), ∀ sp_m : SurfPos, SSLComments sp_scan sp_m →
-        ResumeFrames (ExplValueLine sp_start nv) ks sp_m) ∨ True) :
+    (h_fV : (∃ (nv : Nat) (ks : List Nat),
+        ((∃ lo n : Nat, Floor lo n ks ∧
+          Covered lo ks sc) ∨ True) ∧
+        ∀ sp_m : SurfPos, SSLComments sp_scan sp_m →
+        ResumeFrames (ExplValueLine sp_start nv) ks sp_m) ∨ True)
+    (h_pay : ∀ (w : Nat) (ks ks' : List Nat),
+        ((∃ lo n : Nat, Floor lo n ks ∧
+          Covered lo ks sc) ∨ True) →
+        w ∈ ks → ResumeWidths ks ks' w → s_prep.col = w →
+        ((∃ lo : Nat, Floor lo w (w :: ks') ∧
+          Covered lo (w :: ks') s_prep) ∨ True)) :
     ResumeKeyCtx s_prep sp_start sp_prep :=
-  resumectx_of_landing hcol_mid h_ws h_ssl h_preprocess h_fS h_fV
+  resumectx_of_landing hcol_mid h_ws h_ssl h_preprocess hcorr_prep h_fS h_fV h_pay
 
 -- **The LEFT disjunct is inhabitable, from exactly the data a paying park has.**
 -- A `∨ True` cannot be interrogated after the fact (proof irrelevance), so the
@@ -204,7 +219,8 @@ example {sp_start sp_land sp_prep : SurfPos} {k : Nat} {ks : List Nat}
     ResumeKeyCtx s_prep sp_start sp_prep :=
   match h_fr.resumeAt hmem with
   | ⟨ks', h_w, cont⟩ =>
-      Or.inl ⟨⟨k, ks', sp_land, hcol0, h_ind, h_w.lt, cont, Or.inr trivial⟩, h_poss, h_pos⟩
+      Or.inl ⟨⟨k, ks', sp_land, hcol0, h_ind, h_w.lt, Or.inr trivial, cont,
+        Or.inr trivial⟩, h_poss, h_pos⟩
 
 /-! ## §6 The discrimination: what the resumed route does NOT need
 
