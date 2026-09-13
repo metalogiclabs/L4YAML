@@ -261,7 +261,10 @@ What pays and what does not, named rather than counted:
   caller's is over the whole of `ks` — and `resumeAt` drops every width above
   `w`.  Reading the one as the other wants the stack's SHAPE (`Mono`, which the
   content lane does not carry), the landing's own floor, and `resumeAt`'s widths
-  as a sublist of the ones they came from.  None of the three is at that branch.
+  as a sublist of the ones they came from — **item 149 corrects the last**: the
+  sublist is the half the FLOOR spends, and the COVER spends the opposite
+  direction, completeness (see `DedentCoverSpent` §1).  None of the three is at
+  that branch.
 * **A fresh document's root**, a **sequence park**, and the **flow OPEN** carry
   no stack to inherit and pay `Or.inr trivial`.  The first two are honest: the
   chain is seeded at the `:`/`?` producers, which is where `Mono` rides.

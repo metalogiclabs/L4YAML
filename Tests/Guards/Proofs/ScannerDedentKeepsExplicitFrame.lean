@@ -169,7 +169,7 @@ example {sp_start sp_mid sp_land : SurfPos} {nv w : Nat} {ks : List Nat}
     refuses the rest. -/
 example {sp_start : SurfPos} {nv : Nat} {sp : SurfPos}
     (h : ResumeFrames (ExplValueLine sp_start nv) [4, 2] sp) :
-    ∃ ks', (∀ k' ∈ ks', k' < 2) ∧
+    ∃ ks', ResumeWidths [4, 2] ks' 2 ∧
       (∀ sp_end, SCompactMapTail 2 sp sp_end →
         ResumeFrames (ExplValueLine sp_start nv) ks' sp_end) :=
   h.resumeAt (by simp)

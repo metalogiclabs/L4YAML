@@ -203,8 +203,8 @@ example {sp_start sp_land sp_prep : SurfPos} {k : Nat} {ks : List Nat}
     (h_pos : s_prep.simpleKey.pos = s_prep.currentPos) :
     ResumeKeyCtx s_prep sp_start sp_prep :=
   match h_fr.resumeAt hmem with
-  | ⟨ks', h_lt, cont⟩ =>
-      Or.inl ⟨⟨k, ks', sp_land, hcol0, h_ind, h_lt, cont, Or.inr trivial⟩, h_poss, h_pos⟩
+  | ⟨ks', h_w, cont⟩ =>
+      Or.inl ⟨⟨k, ks', sp_land, hcol0, h_ind, h_w.lt, cont, Or.inr trivial⟩, h_poss, h_pos⟩
 
 /-! ## §6 The discrimination: what the resumed route does NOT need
 

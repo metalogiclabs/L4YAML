@@ -94,6 +94,19 @@ lemma Floor.le_of_mem {lo n j : Nat} {ks : List Nat} (h : Floor lo n ks) (hj : j
 lemma Floor.mono_index {lo n n' : Nat} {ks : List Nat} (h : Floor lo n ks) (hn : n ≤ n') :
     Floor lo n' ks := ⟨Nat.le_trans h.1 hn, h.2⟩
 
+/-- **The dedent's hop on the frames** (item 149).  A landing pops to a width
+    the frames already name, and what it resumes on is that width plus the ones
+    strictly below it — all of them frames the incoming list held.  So the
+    bound travels without moving: the floor was at or below every width in
+    `ks`, and `w :: ks'` names nothing `ks` did not. -/
+lemma Floor.pop_to {lo n w : Nat} {ks ks' : List Nat}
+    (h : Floor lo n ks) (hmem : w ∈ ks) (hsub : ∀ k' ∈ ks', k' ∈ ks) :
+    Floor lo w (w :: ks') :=
+  ⟨h.2 w hmem, fun k' hk' => by
+    rcases List.mem_cons.mp hk' with rfl | h'
+    · exact h.2 k' hmem
+    · exact h.2 k' (hsub k' h')⟩
+
 /-- A width named twice is named once (item 148) — the shape a `:` leaves when
     the level it opens is already one of the frames. -/
 lemma Covered.dedup_head {lo k : Nat} {ks : List Nat} {s : ScannerState}
@@ -810,5 +823,27 @@ lemma covered_singleton_of_top_le {s : ScannerState} {c : Nat}
   have hc : e.column = (c : Int) := by omega
   rw [hc, Int.toNat_natCast]
   exact List.mem_cons_self
+
+/-- **The dedent's hop on the stack** (item 149) — `covered_singleton_of_top_le`
+    for a cover that is already carried rather than freshly measured.  The same
+    two readings do the work: the landing's own floor puts the top at or left of
+    `w`, and monotonicity puts every remaining entry at or left of the top.  So
+    a level the cover still names is `w` itself or strictly left of it — and the
+    frames strictly left of `w` are exactly the ones the landing resumes on
+    (`ResumeFrames.resumeAt`'s `ResumeWidths`, whose `keep` direction is this
+    lemma's third argument).  What it does NOT need is the floor's own value: the
+    incoming cover keeps it, and this hop only re-lists the widths. -/
+lemma Covered.pop_to {lo w : Nat} {ks ks' : List Nat} {s : ScannerState}
+    (h_mono : Mono s) (h_top : s.currentIndent ≤ (w : Int))
+    (h_keep : ∀ k' ∈ ks, k' < w → k' ∈ ks')
+    (h : Covered lo ks s) : Covered lo (w :: ks') s := by
+  intro e he hseq hlo
+  have hle : e.column ≤ s.currentIndent := h_mono.le_currentIndent e he
+  have hmem := h e he hseq hlo
+  have hnn : (0 : Int) ≤ e.column := Int.le_trans (Int.natCast_nonneg lo) hlo
+  have hlew : e.column.toNat ≤ w := by omega
+  rcases Nat.lt_or_ge e.column.toNat w with hlt | hge
+  · exact List.mem_cons_of_mem _ (h_keep _ hmem hlt)
+  · rw [Nat.le_antisymm hlew hge]; exact List.mem_cons_self
 
 end L4YAML.Proofs.IndentStackCover

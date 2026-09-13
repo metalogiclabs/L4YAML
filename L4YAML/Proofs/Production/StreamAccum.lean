@@ -304,27 +304,64 @@ lemma ResumeFrames.close {P : SurfPos → Prop} :
       cases h; rename_i h_cont
       exact (h_cont sp (SCompactMapTail.nil k sp)).close
 
+/-- **What a landing at `j` leaves of the frames** (item 149): exactly the
+    widths `j` stands above.  `resumeAt` used to report only the BOUND — every
+    surviving width is below `j` — which is what the surface side spends, and
+    the scanner side cannot use: a cover over the incoming widths has to be
+    re-listed over the surviving ones, and for that the missing direction is
+    COMPLETENESS, that a width below `j` survived at all.  The frames are
+    strictly decreasing, so both directions hold of the same list and one
+    equation states them together. -/
+def ResumeWidths (ks ks' : List Nat) (j : Nat) : Prop :=
+  ∀ k', k' ∈ ks' ↔ (k' ∈ ks ∧ k' < j)
+
+/-- The bound, which is what `ResumeFrames`' own `h_lt` slot asks for. -/
+lemma ResumeWidths.lt {ks ks' : List Nat} {j : Nat} (h : ResumeWidths ks ks' j) :
+    ∀ k' ∈ ks', k' < j := fun k' hk' => ((h k').mp hk').2
+
+/-- The surviving widths were frames already — so a floor that bounded the
+    incoming list bounds this one (`IndentStackCover.Floor.pop_to`). -/
+lemma ResumeWidths.sub {ks ks' : List Nat} {j : Nat} (h : ResumeWidths ks ks' j) :
+    ∀ k' ∈ ks', k' ∈ ks := fun k' hk' => ((h k').mp hk').1
+
+/-- …and nothing below `j` was dropped, which is what re-lists a carried cover
+    over the popped stack (`IndentStackCover.Covered.pop_to`). -/
+lemma ResumeWidths.keep {ks ks' : List Nat} {j : Nat} (h : ResumeWidths ks ks' j) :
+    ∀ k' ∈ ks, k' < j → k' ∈ ks' := fun k' hk' hlt => (h k').mpr ⟨hk', hlt⟩
+
 /-- **The dedent's spend**: pop the levels strictly above `j` (their tails are
     empty — the landing ended them) and hand back the `j` level's own
-    continuation, with the popped stack's widths still strictly below `j`.
+    continuation, with the popped stack's widths named exactly (`ResumeWidths`).
     The landing width is a member by the scanner's own unwind — a width
     matching no open level is `trailingContent`, refused before any dispatch
     runs — so the arm decides membership per input and defers the
     non-member case it can no longer receive. -/
 lemma ResumeFrames.resumeAt {P : SurfPos → Prop} {sp : SurfPos} :
     ∀ {ks : List Nat}, ResumeFrames P ks sp → ∀ {j : Nat}, j ∈ ks →
-      ∃ ks', (∀ k' ∈ ks', k' < j) ∧
+      ∃ ks', ResumeWidths ks ks' j ∧
         (∀ sp_end, SCompactMapTail j sp sp_end → ResumeFrames P ks' sp_end)
   | [], _, _, hmem => absurd hmem (List.not_mem_nil)
   | k :: ks, h, j, hmem => by
       cases h; rename_i h_lt h_cont
       by_cases hj : j = k
-      · subst hj; exact ⟨ks, h_lt, h_cont⟩
+      · subst hj
+        refine ⟨ks, fun k' => ⟨fun hk' => ⟨List.mem_cons_of_mem _ hk', h_lt k' hk'⟩, ?_⟩,
+          h_cont⟩
+        rintro ⟨hm, hlt⟩
+        rcases List.mem_cons.mp hm with rfl | h'
+        · exact absurd hlt (Nat.lt_irrefl _)
+        · exact h'
       · have hmem' : j ∈ ks := by
           cases List.mem_cons.mp hmem with
           | inl h_eq => exact absurd h_eq hj
           | inr h_in => exact h_in
-        exact (h_cont sp (SCompactMapTail.nil k sp)).resumeAt hmem'
+        obtain ⟨ks', h_w, cont⟩ := (h_cont sp (SCompactMapTail.nil k sp)).resumeAt hmem'
+        refine ⟨ks', fun k' => ⟨fun hk' =>
+          ⟨List.mem_cons_of_mem _ (h_w.sub k' hk'), h_w.lt k' hk'⟩, ?_⟩, cont⟩
+        rintro ⟨hm, hlt⟩
+        rcases List.mem_cons.mp hm with rfl | h'
+        · exact absurd (Nat.lt_trans (h_lt j hmem') hlt) (Nat.lt_irrefl _)
+        · exact h_w.keep k' h' hlt
 
 /-- **The explicit frame's value line**, named (item 108).  `[186]`'s key is
     complete at `sp_e`, and what the `[188]` entry still owes is `[190]
@@ -18811,16 +18848,16 @@ lemma resumectx_of_landing {sc s_prep : ScannerState} {c : Char}
       | inl h_fS0 =>
         obtain ⟨ks, fS⟩ := h_fS0
         by_cases hmem : k ∈ ks
-        · obtain ⟨ks', h_lt, cont⟩ := (fS sp_mid h_ssl).resumeAt hmem
-          refine Or.inl ⟨⟨k, ks', sp_mid, hcol_mid, h_ind, h_lt, cont, ?_⟩,
+        · obtain ⟨ks', h_w, cont⟩ := (fS sp_mid h_ssl).resumeAt hmem
+          refine Or.inl ⟨⟨k, ks', sp_mid, hcol_mid, h_ind, h_w.lt, cont, ?_⟩,
             h_sk.1, h_sk.2⟩
           -- The value face is optional all the way down: the park may carry no
           -- explicit frame, or carry one whose stack this width misses.
           match h_fV with
           | Or.inl ⟨nv, ksv, fV⟩ =>
             by_cases hmemV : k ∈ ksv
-            · obtain ⟨ksv', h_ltv, contv⟩ := (fV sp_mid h_ssl).resumeAt hmemV
-              exact Or.inl ⟨nv, ksv', h_ltv, contv⟩
+            · obtain ⟨ksv', h_wv, contv⟩ := (fV sp_mid h_ssl).resumeAt hmemV
+              exact Or.inl ⟨nv, ksv', h_wv.lt, contv⟩
             · exact Or.inr trivial
           | Or.inr _ => exact Or.inr trivial
         · exact Or.inr trivial
@@ -19009,6 +19046,59 @@ lemma implicitKeyHead_of_dispatch
       rw [hsp2] at h_tws2
       exact ⟨sp_gram2, ImplicitKeyHead.yaml h_ol, h_tws2, by rw [h_sk_pres]⟩
 
+/-- **The dedent landing's hop on the cover** (item 149) — the payment both
+    pack lemmas make at the branch item 148 left punting, written once.
+
+    The park's frames cover the park's stack over the whole of `ks`; the pack
+    the landing opens carries the widths the landing RESUMES on, `w :: ks'`,
+    and `ks'` holds none of the levels above `w`.  Reading the one list as the
+    other is not a list fact — it is the landing's own floor: preprocessing's
+    unwind stopped at `w`, so the stack it hands the dispatch has nothing above
+    `w` left to name, and monotonicity turns that statement about the TOP into
+    one about every entry (`IndentStackCover.Covered.pop_to`).  The floor value
+    itself does not move — `w` is one of the frames, so the bound the park
+    carried already reaches it (`IndentStackCover.Floor.pop_to`).
+
+    Two escapes stay, and both are the caller's to close rather than
+    consequences of the reading: a caller that cannot measure its stack
+    (`h_cov`), and a park AT a line start, whose walk crossed nothing and so
+    armed no unwind (`hc0` — item 147's own residue, at the lane's other
+    consumer as well). -/
+lemma dedent_cover_of_landing {sc s_prep s' : ScannerState} {c : Char}
+    {sp_scan : SurfPos} {n w : Nat} {ks : List Nat}
+    (h_cov : (IndentStackMono.Mono sc ∧ IndentStackBase.SentinelBase sc) ∨ True)
+    (h_dcov : (∃ lo : Nat, IndentStackCover.Floor lo n ks ∧
+      IndentStackCover.Covered lo ks sc) ∨ True)
+    (hmem : w ∈ ks)
+    (h_larm : sp_scan.col ≠ 0 → s_prep.inFlow = false →
+      s_prep.simpleKey.possible = true ∧ s_prep.simpleKey.pos.col = s_prep.col ∧
+      s_prep.simpleKeyAllowed = true ∧
+      (s_prep.currentIndent ≤ (s_prep.col : Int) ∨ s_prep.indents.size ≤ 1))
+    (h_scol : s_prep.col = w)
+    (h_preprocess : scanNextToken_preprocess sc = .ok (some (s_prep, c)))
+    (h_ind_eq : s'.indents = s_prep.indents)
+    (h_noflow : s_prep.inFlow = false)
+    (h_cov_step : ∀ (lo : Nat) (ks : List Nat),
+      IndentStackCover.Covered lo ks sc → IndentStackCover.Covered lo ks s') :
+    ∀ ks' : List Nat, ResumeWidths ks ks' w →
+      ((∃ lo : Nat, IndentStackCover.Floor lo w (w :: ks') ∧
+        IndentStackCover.Covered lo (w :: ks') s') ∨ True) := by
+  intro ks' h_w'
+  rcases h_cov with ⟨h_mono, h_base⟩ | _
+  · rcases h_dcov with ⟨lo, h_fl, h_cv⟩ | _
+    · by_cases hc0 : sp_scan.col = 0
+      · exact Or.inr trivial
+      · have h_floor : s_prep.currentIndent ≤ (s_prep.col : Int) :=
+          landing_floor_of_arm h_noflow h_larm hc0 h_base h_preprocess
+        have h_mono' : IndentStackMono.Mono s' :=
+          (IndentStackMono.preprocess_mono h_preprocess h_mono).of_indents_eq h_ind_eq
+        have h_top : s'.currentIndent ≤ (w : Int) := by
+          rw [currentIndent_of_indents_eq h_ind_eq, ← h_scol]; exact h_floor
+        exact Or.inl ⟨lo, h_fl.pop_to hmem h_w'.sub,
+          (h_cov_step lo ks h_cv).pop_to h_mono' h_top h_w'.keep⟩
+    · exact Or.inr trivial
+  · exact Or.inr trivial
+
 /-- **The implicit-key pack a parked block ENTRY hands its content** — items
     38 and 39's two producers, merged by item 40 into ONE reading of the
     characters with the frame chosen by the branch the landing took.
@@ -19146,6 +19236,13 @@ lemma entryKeyPack_of_dispatch
     -- the landed key conses there, which is the parser's own sibling
     -- reading.  Callers without frames pass `Or.inr trivial`.
     (h_dframes : (∃ ks : List Nat,
+      -- **Item 149: the cover rides this face too** — `pendingMapValue`'s
+      -- `h_frames` verbatim, where item 148 stopped at the relay.  The DEDENT
+      -- branch reads its frames here, so this is the only face that can fund
+      -- the landing's own hop; `h_nodeF`'s cover is the NESTED branch's and
+      -- the two existentials are different lists.
+      ((∃ lo : Nat, IndentStackCover.Floor lo n ks ∧
+        IndentStackCover.Covered lo ks sc) ∨ True) ∧
       ∀ sp_m : SurfPos, SSLComments sp_scan sp_m →
       ResumeFrames (SLYamlStream sp_start) ks sp_m) ∨ True)
     -- Item 108: the same two faces under an open `[186]` explicit KEY,
@@ -19160,6 +19257,14 @@ lemma entryKeyPack_of_dispatch
     (h_dframesV : (∃ (nv : Nat) (ks : List Nat),
       ∀ sp_m : SurfPos, SSLComments sp_scan sp_m →
       ResumeFrames (ExplValueLine sp_start nv) ks sp_m) ∨ True)
+    -- **Item 149: the stack's own two readings**, the pair item 147 gave the
+    -- indicator lane (`indicator_open_map`'s `h_cov`), now in the CONTENT lane.
+    -- Monotone is what turns a top bound into a bound on every entry; based is
+    -- what closes `landing_floor_of_arm`'s sentinel escape.  Only the DEDENT
+    -- branch reads them, and only to pay `h_dframes`'s cover forward — so a
+    -- caller that cannot measure its stack passes `Or.inr trivial` and keeps
+    -- the frames it already pays.
+    (h_cov : (IndentStackMono.Mono sc ∧ IndentStackBase.SentinelBase sc) ∨ True)
     -- Item 65: the props head is the CALLER's branch, not a punt.
     (hna : c ≠ '&') (hnt : c ≠ '!')
     -- Item 90: the park's own flag (items 34/58) — outside a flow the
@@ -19341,17 +19446,32 @@ lemma entryKeyPack_of_dispatch
           -- conses there — `k:⏎  :⏎b: 2` reads as ONE outer mapping.  A
           -- width naming no frame (a caller without frames included) defers
           -- exactly as before.
-          rcases h_dframes with ⟨ks, dframes⟩ | _
+          rcases h_dframes with ⟨ks, h_dcov, dframes⟩ | _
           · by_cases hmem : w ∈ ks
             · have h_ind' : SIndent w sp_mid sp_prep := h_ind
-              have h_kcol : s'.simpleKey.pos.col = w := by
-                rw [h_pp, allowDirectives_update_simpleKey, h_sk.2]
-                show s_prep.col = w
+              have h_scol : s_prep.col = w := by
                 rw [← hcorr_prep.col_eq]
                 have := SIndent_col h_ind'
                 rw [h_land.2.1] at this
                 omega
-              obtain ⟨ks', h_lt', cont'⟩ :=
+              have h_kcol : s'.simpleKey.pos.col = w := by
+                rw [h_pp, allowDirectives_update_simpleKey, h_sk.2]
+                exact h_scol
+              -- **Item 149: the landing's own hop, paid** — taken here, before
+              -- the pop, because it is stated over the CALLER's `ks` and the
+              -- pack's field wants it over the list the landing resumes on.
+              -- `dedent_cover_of_landing` carries the whole cost; the pack's
+              -- resume twin below is the one field that spends it.
+              have h_pay : ∀ ks' : List Nat, ResumeWidths ks ks' w →
+                  ((∃ lo : Nat, IndentStackCover.Floor lo w (w :: ks') ∧
+                    IndentStackCover.Covered lo (w :: ks') s') ∨ True) :=
+                dedent_cover_of_landing h_cov h_dcov hmem h_land.2.2 h_scol
+                  h_preprocess
+                  (by
+                    rw [IndentStackBase.dispatchContent_preserves_indents h_dispatch]
+                    split <;> rfl)
+                  (by revert h_flow_disp; split <;> (intro h; exact h)) h_cov_step
+              obtain ⟨ks', h_w', cont'⟩ :=
                 (dframes sp_mid h_land.1).resumeAt hmem
               -- ═══ Item 108: the frame the landing keeps.  Item 99 paid the
               -- ROUTE here and handed the pack `Or.inr trivial` for its
@@ -19381,16 +19501,16 @@ lemma entryKeyPack_of_dispatch
                                h_ind' h_entry h_tail)).close sp_i sp_c h_iv h_lit sp_w h_sbi⟩
                      else Or.inr trivial
                  | Or.inr _ => Or.inr trivial),
-                Or.inl ⟨ks', h_lt',
-                  -- **Item 148: the landing's own hop is the one that does not
-                  -- come free.**  The level the landing popped TO is still on
-                  -- the scanner's stack, so the cover here is over `w :: ks'`
-                  -- while the caller's is over the whole of `ks` — and `ks'`
-                  -- drops every width above `w`.  Reading the one as the other
-                  -- wants the stack's SHAPE (`Mono`), the landing's own floor,
-                  -- and `resumeAt`'s widths as a sublist of the ones it came
-                  -- from.  None of those is here.
-                  Or.inr trivial,
+                Or.inl ⟨ks', h_w'.lt,
+                  -- ~~Item 148: the landing's own hop is the one that does not
+                  -- come free.~~  **Item 149 pays it.**  The level the landing
+                  -- popped TO is still on the scanner's stack, so the cover
+                  -- here is over `w :: ks'` while the caller's is over the
+                  -- whole of `ks` — and `ks'` drops every width above `w`.
+                  -- What reads the one as the other is the landing's own
+                  -- FLOOR: the unwind stopped at `w`, so nothing above it is
+                  -- left to name.
+                  h_pay ks' h_w',
                   fun sp_v h_entry sp_e h_tail =>
                     cont' sp_e (SCompactMapTail.cons w sp_mid sp_prep sp_v sp_e
                       h_ind' h_entry h_tail)⟩,
@@ -19400,7 +19520,7 @@ lemma entryKeyPack_of_dispatch
                  | Or.inl ⟨nv, ksV, dframesV⟩ =>
                      if hmemV : w ∈ ksV then
                        match (dframesV sp_mid h_land.1).resumeAt hmemV with
-                       | ⟨ksV', h_ltV', contV⟩ => Or.inl ⟨nv, ksV', h_ltV',
+                       | ⟨ksV', h_wV', contV⟩ => Or.inl ⟨nv, ksV', h_wV'.lt,
                            fun sp_v h_entry sp_e h_tail =>
                              contV sp_e (SCompactMapTail.cons w sp_mid sp_prep sp_v sp_e
                                h_ind' h_entry h_tail)⟩
@@ -19559,6 +19679,13 @@ lemma entryPropsKeyPack_of_dispatch
       ∀ sp_m : SurfPos, SBlockNode n .blockIn sp_scan sp_m →
       ResumeFrames (SLYamlStream sp_start) ks sp_m) ∨ True)
     (h_dframes : (∃ ks : List Nat,
+      -- **Item 149: the cover rides this face too** — `pendingMapValue`'s
+      -- `h_frames` verbatim, where item 148 stopped at the relay.  The DEDENT
+      -- branch reads its frames here, so this is the only face that can fund
+      -- the landing's own hop; `h_nodeF`'s cover is the NESTED branch's and
+      -- the two existentials are different lists.
+      ((∃ lo : Nat, IndentStackCover.Floor lo n ks ∧
+        IndentStackCover.Covered lo ks sc) ∨ True) ∧
       ∀ sp_m : SurfPos, SSLComments sp_scan sp_m →
       ResumeFrames (SLYamlStream sp_start) ks sp_m) ∨ True)
     (h_nodeFV : (∃ (nv : Nat) (ks : List Nat), (∀ k' ∈ ks, k' ≤ n) ∧
@@ -19567,6 +19694,14 @@ lemma entryPropsKeyPack_of_dispatch
     (h_dframesV : (∃ (nv : Nat) (ks : List Nat),
       ∀ sp_m : SurfPos, SSLComments sp_scan sp_m →
       ResumeFrames (ExplValueLine sp_start nv) ks sp_m) ∨ True)
+    -- **Item 149: the stack's own two readings**, the pair item 147 gave the
+    -- indicator lane (`indicator_open_map`'s `h_cov`), now in the CONTENT lane.
+    -- Monotone is what turns a top bound into a bound on every entry; based is
+    -- what closes `landing_floor_of_arm`'s sentinel escape.  Only the DEDENT
+    -- branch reads them, and only to pay `h_dframes`'s cover forward — so a
+    -- caller that cannot measure its stack passes `Or.inr trivial` and keeps
+    -- the frames it already pays.
+    (h_cov : (IndentStackMono.Mono sc ∧ IndentStackBase.SentinelBase sc) ∨ True)
     -- Item 90: the flag and the block level, `entryKeyPack_of_dispatch`'s
     -- own pair — the save is fresh for the same reason.
     (h_ska : sc.simpleKeyAllowed = true)
@@ -19741,17 +19876,25 @@ lemma entryPropsKeyPack_of_dispatch
         -- pops independently, its membership test taken twice, exactly as at
         -- `entryKeyPack_of_dispatch`'s dedent (item 108) —
         -- `?⏎  a:⏎    b:⏎  &p c: 2⏎: - w` keeps the `?` open.
-        rcases h_dframes with ⟨ks, dframes⟩ | _
+        rcases h_dframes with ⟨ks, h_dcov, dframes⟩ | _
         · by_cases hmem : w ∈ ks
           · have h_ind' : SIndent w sp_mid sp_prep := by rw [h_pe]; exact h_ind
-            have h_kcol : s'.simpleKey.pos.col = w := by
-              rw [h_sk, allowDirectives_update_simpleKey, h_shape.2]
-              show s_prep.col = w
+            have h_scol : s_prep.col = w := by
               rw [← hcorr_prep.col_eq]
               have := SIndent_col h_ind'
               rw [h_land.2.1] at this
               omega
-            obtain ⟨ks', h_lt', cont'⟩ :=
+            have h_kcol : s'.simpleKey.pos.col = w := by
+              rw [h_sk, allowDirectives_update_simpleKey, h_shape.2]
+              exact h_scol
+            -- Item 149: the landing's hop, paid exactly as at
+            -- `entryKeyPack_of_dispatch`'s own dedent branch.
+            have h_pay : ∀ ks' : List Nat, ResumeWidths ks ks' w →
+                ((∃ lo : Nat, IndentStackCover.Floor lo w (w :: ks') ∧
+                  IndentStackCover.Covered lo (w :: ks') s') ∨ True) :=
+              dedent_cover_of_landing h_cov h_dcov hmem h_land.2.2 h_scol
+                h_preprocess (h_indents.trans (by split <;> rfl)) h_noflow h_cov_step
+            obtain ⟨ks', h_w', cont'⟩ :=
               (dframes sp_mid h_land.1).resumeAt hmem
             exact Or.inl ⟨⟨w,
               fun sp_v h_entry =>
@@ -19768,10 +19911,10 @@ lemma entryPropsKeyPack_of_dispatch
                              h_ind' h_entry h_tail)).close sp_i sp_c h_iv h_lit sp_w h_sbi⟩
                    else Or.inr trivial
                | Or.inr _ => Or.inr trivial),
-              Or.inl ⟨ks', h_lt',
-                -- Item 148: the landing's hop, unpaid for the reason named at
+              Or.inl ⟨ks', h_w'.lt,
+                -- Item 149: the landing's hop, paid for the reason named at
                 -- `entryKeyPack_of_dispatch`'s own dedent branch.
-                Or.inr trivial,
+                h_pay ks' h_w',
                 fun sp_v h_entry sp_e h_tail =>
                   cont' sp_e (SCompactMapTail.cons w sp_mid sp_prep sp_v sp_e
                     h_ind' h_entry h_tail)⟩,
@@ -19779,7 +19922,7 @@ lemma entryPropsKeyPack_of_dispatch
                | Or.inl ⟨nv, ksV, dframesV⟩ =>
                    if hmemV : w ∈ ksV then
                      match (dframesV sp_mid h_land.1).resumeAt hmemV with
-                     | ⟨ksV', h_ltV', contV⟩ => Or.inl ⟨nv, ksV', h_ltV',
+                     | ⟨ksV', h_wV', contV⟩ => Or.inl ⟨nv, ksV', h_wV'.lt,
                          fun sp_v h_entry sp_e h_tail =>
                            contV sp_e (SCompactMapTail.cons w sp_mid sp_prep sp_v sp_e
                              h_ind' h_entry h_tail)⟩
@@ -20620,6 +20763,8 @@ lemma accum_content_on_pendingBlock
                  -- below (the dedent has no input at index 0, and
                  -- `- x⏎&p b: 2` is `trailingContent`).
                  (Or.inr trivial) (Or.inr trivial) (Or.inr trivial) (Or.inr trivial)
+                 -- Item 149: this park carries no cover, so its dedent hop has none to pay.
+                 (Or.inr trivial)
                  h_ska (by revert h_flow_disp; split <;> (intro h; exact h))
                  (SCNsProperties.anchorFirst 0 .blockKey sp_prep sp_scan' sp_scan'
                    ha_ev (GOpt.none sp_scan'))
@@ -20676,6 +20821,8 @@ lemma accum_content_on_pendingBlock
                  (Or.inl ⟨h_close_old, h_col_old, Or.inr trivial⟩)
                  -- Item 115: as at the `&` arm — no frame at a root `- `.
                  (Or.inr trivial) (Or.inr trivial) (Or.inr trivial) (Or.inr trivial)
+                 -- Item 149: this park carries no cover, so its dedent hop has none to pay.
+                 (Or.inr trivial)
                  h_ska (by revert h_flow_disp; split <;> (intro h; exact h))
                  (SCNsProperties.tagFirst 0 .blockKey sp_prep sp_scan' sp_scan'
                    ht_ev (GOpt.none sp_scan'))
@@ -20751,7 +20898,8 @@ lemma accum_content_on_pendingBlock
                (Or.inr ⟨h_close_old, h_col_old, Or.inr trivial⟩)
                (Or.inr trivial) (Or.inr trivial)
                -- Item 108: a root `- `'s park stands under no explicit frame.
-               (Or.inr trivial) (Or.inr trivial) hna hnt h_ska
+               -- Item 149: this park carries no cover, so its dedent hop has none to pay.
+               (Or.inr trivial) (Or.inr trivial) (Or.inr trivial) hna hnt h_ska
                hcorr_prep hcorr_result h_corr h_not_doc h_flow_disp
                h_preprocess h_dispatch)
              (stale_of_dispatch h_dispatch hna hnt
@@ -21357,6 +21505,9 @@ lemma accum_content_on_pendingBlock_indented
                 | Or.inr _ => Or.inr trivial)
                (match h_closeF_old with
                 | Or.inl ⟨ks, _, closeF⟩ => Or.inl ⟨ks,
+                    -- Item 149: a SEQUENCE park carries no cover on either
+                    -- face, so its dedent hop has none to pay either.
+                    Or.inr trivial,
                     fun sp_m h_ssl =>
                       closeF sp_m (SBlockIndented.empty n .blockIn sp_scan sp_m h_ssl)
                         sp_m (SCompactSeqTail.nil n sp_m)⟩
@@ -21364,7 +21515,8 @@ lemma accum_content_on_pendingBlock_indented
                -- Item 108: the sequence entry's own explicit frame is
                -- `h_kslot_old`'s, which is not a stack — the `?`-headed
                -- sequence key keeps its residue.
-               (Or.inr trivial) (Or.inr trivial) hna hnt h_ska
+               -- Item 149: this park carries no cover, so its dedent hop has none to pay.
+               (Or.inr trivial) (Or.inr trivial) (Or.inr trivial) hna hnt h_ska
                hcorr_prep hcorr_result h_corr h_not_doc h_flow_disp
                h_preprocess h_dispatch)
              (stale_of_dispatch h_dispatch hna hnt
@@ -21457,6 +21609,9 @@ lemma accum_content_on_pendingBlock_indented
                 | Or.inr _ => Or.inr trivial)
                (match h_closeF_old with
                 | Or.inl ⟨ks, _, closeF⟩ => Or.inl ⟨ks,
+                    -- Item 149: a SEQUENCE park carries no cover on either
+                    -- face, so its dedent hop has none to pay either.
+                    Or.inr trivial,
                     fun sp_m h_ssl =>
                       closeF sp_m (SBlockIndented.empty n .blockIn sp_scan sp_m h_ssl)
                         sp_m (SCompactSeqTail.nil n sp_m)⟩
@@ -21465,6 +21620,8 @@ lemma accum_content_on_pendingBlock_indented
                -- `h_kslot_old`'s, which is not a stack — item 108's residue,
                -- shared with the implicit twin.
                (Or.inr trivial) (Or.inr trivial)
+               -- Item 149: this park carries no cover, so its dedent hop has none to pay.
+               (Or.inr trivial)
                h_ska (by revert h_flow_disp; split <;> (intro h; exact h))
                ((h_run_all 0).toPropertiesBlockKey h_single) h_sk_s h_line_s
                -- Item 102: the park's own three flags, the input the tab
@@ -21652,6 +21809,9 @@ lemma accum_content_on_pendingBlock_indented
                 | Or.inr _ => Or.inr trivial)
                (match h_closeF_old with
                 | Or.inl ⟨ks, _, closeF⟩ => Or.inl ⟨ks,
+                    -- Item 149: a SEQUENCE park carries no cover on either
+                    -- face, so its dedent hop has none to pay either.
+                    Or.inr trivial,
                     fun sp_m h_ssl =>
                       closeF sp_m (SBlockIndented.empty n .blockIn sp_scan sp_m h_ssl)
                         sp_m (SCompactSeqTail.nil n sp_m)⟩
@@ -21659,7 +21819,8 @@ lemma accum_content_on_pendingBlock_indented
                -- Item 108: the sequence entry's own explicit frame is
                -- `h_kslot_old`'s, which is not a stack — the `?`-headed
                -- sequence key keeps its residue.
-               (Or.inr trivial) (Or.inr trivial) hna hnt h_ska
+               -- Item 149: this park carries no cover, so its dedent hop has none to pay.
+               (Or.inr trivial) (Or.inr trivial) (Or.inr trivial) hna hnt h_ska
                hcorr_prep hcorr_result h_corr h_not_doc h_flow_disp
                h_preprocess h_dispatch)
              (stale_of_dispatch h_dispatch hna hnt
@@ -21815,6 +21976,12 @@ lemma accum_content_on_pendingMapValue
         SBlockIndented 0 .blockOut sp_scan sp_v → SLYamlStream sp_start sp_v))
     (h_nic_mv : sc.needIndentCheck = false)
     (h_real_mv : LastTokenReal sc.tokens)
+    -- **Item 149: the stack's two readings**, carried down to the pack
+    -- lemmas' dedent branch, which is where a landing's cover is re-listed
+    -- over the widths it pops to.  `h_base` rides beside them from item
+    -- 146's own thread (`accum_content_pending`).
+    (h_mono : IndentStackMono.Mono sc)
+    (h_base : IndentStackBase.SentinelBase sc)
     (hcorr_prep : ScannerSurfCorr s_prep sp_prep)
     (hcorr_result : ScannerSurfCorr s' sp_scan')
     (h_corr : ScannerSurfCorr sc sp_scan)
@@ -21941,13 +22108,16 @@ lemma accum_content_on_pendingMapValue
                       h_cov,
                       closeF⟩
                   | Or.inr _ => Or.inr trivial)
-                 -- Item 147: the pack lemma's `h_dframes` is the widths alone;
-                 -- the cover the field now carries stops here.
-                 (h_frames99.imp (fun ⟨ks, _, r⟩ => ⟨ks, r⟩) id)
+                 -- Item 149: the park's own `h_frames`, VERBATIM — the pack
+                 -- lemma's `h_dframes` now carries the cover beside its widths,
+                 -- so the projection item 147 needed here is gone.
+                 h_frames99
                  (match h_closeFV99 with
                   | Or.inl ⟨nv, ks, h_le, closeFV⟩ => Or.inl ⟨nv, ks, h_le, closeFV⟩
                   | Or.inr _ => Or.inr trivial)
                  h_framesV99
+                 -- Item 149: the stack's two readings, for the dedent branch's cover.
+                 (Or.inl ⟨h_mono, h_base⟩)
                  h_ska (by revert h_flow_disp; split <;> (intro h; exact h))
                  (SCNsProperties.anchorFirst 0 .blockKey sp_prep sp_scan' sp_scan'
                    ha_ev (GOpt.none sp_scan'))
@@ -22030,13 +22200,16 @@ lemma accum_content_on_pendingMapValue
                       h_cov,
                       closeF⟩
                   | Or.inr _ => Or.inr trivial)
-                 -- Item 147: the pack lemma's `h_dframes` is the widths alone;
-                 -- the cover the field now carries stops here.
-                 (h_frames99.imp (fun ⟨ks, _, r⟩ => ⟨ks, r⟩) id)
+                 -- Item 149: the park's own `h_frames`, VERBATIM — the pack
+                 -- lemma's `h_dframes` now carries the cover beside its widths,
+                 -- so the projection item 147 needed here is gone.
+                 h_frames99
                  (match h_closeFV99 with
                   | Or.inl ⟨nv, ks, h_le, closeFV⟩ => Or.inl ⟨nv, ks, h_le, closeFV⟩
                   | Or.inr _ => Or.inr trivial)
                  h_framesV99
+                 -- Item 149: the stack's two readings, for the dedent branch's cover.
+                 (Or.inl ⟨h_mono, h_base⟩)
                  h_ska (by revert h_flow_disp; split <;> (intro h; exact h))
                  (SCNsProperties.tagFirst 0 .blockKey sp_prep sp_scan' sp_scan'
                    ht_ev (GOpt.none sp_scan'))
@@ -22125,12 +22298,13 @@ lemma accum_content_on_pendingMapValue
                     h_cov,
                     closeF⟩
                 | Or.inr _ => Or.inr trivial)
-               (h_frames99.imp (fun ⟨ks, _, r⟩ => ⟨ks, r⟩) id)
+               h_frames99
                (match h_closeFV99 with
                 | Or.inl ⟨nv, ks, h_le, closeFV⟩ => Or.inl ⟨nv, ks, h_le, closeFV⟩
                 | Or.inr _ => Or.inr trivial)
                h_framesV99
-               hna hnt h_ska
+               -- Item 149: the stack's two readings, for the dedent branch's cover.
+               (Or.inl ⟨h_mono, h_base⟩) hna hnt h_ska
                hcorr_prep hcorr_result h_corr h_not_doc h_flow_disp
                h_preprocess h_dispatch)
              (stale_of_dispatch h_dispatch hna hnt
@@ -22327,6 +22501,12 @@ lemma accum_content_on_pendingMapValue_indented
         SBlockIndented n .blockOut sp_scan sp_v → SLYamlStream sp_start sp_v))
     (h_nic_mv : sc.needIndentCheck = false)
     (h_real_mv : LastTokenReal sc.tokens)
+    -- **Item 149: the stack's two readings**, carried down to the pack
+    -- lemmas' dedent branch, which is where a landing's cover is re-listed
+    -- over the widths it pops to.  `h_base` rides beside them from item
+    -- 146's own thread (`accum_content_pending`).
+    (h_mono : IndentStackMono.Mono sc)
+    (h_base : IndentStackBase.SentinelBase sc)
     (hcorr_prep : ScannerSurfCorr s_prep sp_prep)
     (hcorr_result : ScannerSurfCorr s' sp_scan')
     (h_corr : ScannerSurfCorr sc sp_scan)
@@ -22429,7 +22609,8 @@ lemma accum_content_on_pendingMapValue_indented
                     closeF⟩
                 | Or.inr _ => Or.inr trivial)
                -- Item 147: the widths alone, as at the sibling arms.
-               (h_frames99.imp (fun ⟨ks, _, r⟩ => ⟨ks, r⟩) id) h_closeFV108 h_framesV108 hna hnt h_ska
+               -- Item 149: the stack's two readings, for the dedent branch's cover.
+               h_frames99 h_closeFV108 h_framesV108 (Or.inl ⟨h_mono, h_base⟩) hna hnt h_ska
                hcorr_prep hcorr_result h_corr h_not_doc h_flow_disp
                h_preprocess h_dispatch)
              (stale_of_dispatch h_dispatch hna hnt
@@ -22519,7 +22700,9 @@ lemma accum_content_on_pendingMapValue_indented
                     h_cov,
                     closeF⟩
                 | Or.inr _ => Or.inr trivial)
-               (h_frames99.imp (fun ⟨ks, _, r⟩ => ⟨ks, r⟩) id) h_closeFV108 h_framesV108
+               h_frames99 h_closeFV108 h_framesV108
+               -- Item 149: the stack's two readings, for the dedent branch's cover.
+               (Or.inl ⟨h_mono, h_base⟩)
                h_ska (by revert h_flow_disp; split <;> (intro h; exact h))
                ((h_run_all 0).toPropertiesBlockKey h_single) h_sk_s h_line_s
                -- Item 102: the park's own three flags, the input the tab
@@ -22649,7 +22832,8 @@ lemma accum_content_on_pendingMapValue_indented
                     closeF⟩
                 | Or.inr _ => Or.inr trivial)
                -- Item 147: the widths alone, as at the sibling arms.
-               (h_frames99.imp (fun ⟨ks, _, r⟩ => ⟨ks, r⟩) id) h_closeFV108 h_framesV108 hna hnt h_ska
+               -- Item 149: the stack's two readings, for the dedent branch's cover.
+               h_frames99 h_closeFV108 h_framesV108 (Or.inl ⟨h_mono, h_base⟩) hna hnt h_ska
                hcorr_prep hcorr_result h_corr h_not_doc h_flow_disp
                h_preprocess h_dispatch)
              (stale_of_dispatch h_dispatch hna hnt
@@ -22722,6 +22906,9 @@ lemma accum_content_on_pendingMapValue_indented
       -- faces ride: the awaited value never arrived, so the park's own spend
       -- faces already stand at the landing (`?⏎  a:⏎    b:⏎  c: 2⏎: - w`, the
       -- family item 108 paid at the pack lemma, now paid at the dispatch too).
+      -- Item 149: `resumectx_of_landing`'s own frames field is still the widths
+      -- alone — the context it builds has no cover slot to put one in, so this
+      -- is where the projection survives.
       (resumectx_of_landing h_col0m (SIndent_gives_GStar_SSWhite h_ind) h_ssl_land
         h_preprocess (h_frames99.imp (fun ⟨ks, _, r⟩ => ⟨ks, r⟩) id) h_framesV108)
       (Or.inr trivial) (Or.inr trivial) (Or.inr trivial)
@@ -22750,6 +22937,11 @@ lemma accum_content_pending (sc : ScannerState)
     -- down.  §9.2's landing refusal spends it to read the dedent exemption
     -- off the landing's column instead of splitting on it.
     (h_base : IndentStackBase.SentinelBase sc)
+    -- **Item 149: and its SHAPE**, carried the same way and from the same
+    -- seed.  A dedent landing's pack reads the scanner stack it pops to,
+    -- and reading a bound on the TOP as a bound on every entry is what
+    -- monotonicity buys (`IndentStackCover.Covered.pop_to`).
+    (h_mono : IndentStackMono.Mono sc)
     (h_not_doc : (if s_prep.allowDirectives then
           { s_prep with allowDirectives := false, documentEverStarted := true }
         else s_prep).col = 0 →
@@ -24235,7 +24427,7 @@ lemma accum_content_pending (sc : ScannerState)
       exact accum_content_on_pendingMapValue sc sp_start sp_block sp_scan s_prep s' c sp_prep
         sp_scan' h_stream_block h_close_old h_expl51 h_vslot51 h_kslot93
         h_closeF99 h_frames99 h_closeFV108 h_framesV108 h_sk58
-        h_ivl101 h_nic101 h_real101
+        h_ivl101 h_nic101 h_real101 h_mono h_base
         hcorr_prep hcorr_result h_corr h_preprocess h_not_doc h_flow_disp h_dispatch
     | k + 1, h_close_old, h_floor_old, h_expl51, h_vslot51, h_ncol_old, h_kslot93,
         h_closeF99, h_frames99, h_closeFV108, h_framesV108 =>
@@ -24243,7 +24435,7 @@ lemma accum_content_pending (sc : ScannerState)
         s_prep s' c sp_prep sp_scan' h_stream_block h_close_old h_floor_old h_col0_old
         h_ncol_old h_expl51 h_vslot51 h_kslot93 h_closeF99 h_frames99
         h_closeFV108 h_framesV108 h_sk58
-        h_ivl101 h_nic101 h_real101
+        h_ivl101 h_nic101 h_real101 h_mono h_base
         hcorr_prep hcorr_result h_corr h_preprocess h_not_doc h_flow_disp h_dispatch
 
 /-- The mask across any content dispatch (item 10): the key stack rides
@@ -24387,6 +24579,11 @@ lemma accum_step_content (sc : ScannerState)
     -- down.  §9.2's landing refusal spends it to read the dedent exemption
     -- off the landing's column instead of splitting on it.
     (h_base : IndentStackBase.SentinelBase sc)
+    -- **Item 149: and its SHAPE**, carried the same way and from the same
+    -- seed.  A dedent landing's pack reads the scanner stack it pops to,
+    -- and reading a bound on the TOP as a bound on every entry is what
+    -- monotonicity buys (`IndentStackCover.Covered.pop_to`).
+    (h_mono : IndentStackMono.Mono sc)
     (h_dispatch : scanNextToken_dispatchContent
         (if s_prep.allowDirectives then
           { s_prep with allowDirectives := false, documentEverStarted := true }
@@ -24428,7 +24625,7 @@ lemma accum_step_content (sc : ScannerState)
     obtain ⟨g', bl', fl', sn', q1, q2, q3, q4, q5⟩ :=
       accum_content_pending sc sp_start sp_flow sp_scan h0 s_prep s' c
         (absorb_stacksB sp_start sp_gram sp_block sp_flow h_stream h_stack h_flow)
-        (h_pending h0) h_corr h_preprocess h_adj h_bare h_base h_not_doc h_dispatch
+        (h_pending h0) h_corr h_preprocess h_adj h_bare h_base h_mono h_not_doc h_dispatch
     exact ⟨g', bl', fl', sn', q1, q2, ⟨0, 0, #[], q3.retail, rfl, Nat.zero_le _, fun h => absurd h (by omega)⟩, fun _ => q4, q5,
            fun h => absurd h (by omega)⟩
   · -- ═══ DEPTH ≥ 1: the four value-completing arms CLOSE; `&`/`!` do not. ═══
@@ -25239,8 +25436,8 @@ lemma scanNextToken_accum_step (sc : ScannerState)
                           obtain ⟨g', bl', fl', sn', q1, q2, q3, q4, q5, q6⟩ :=
                             accum_step_content sc sp_start sp_gram sp_block sp_flow sp_scan s_pre s_cnt c_pre
                               h_stream h_stack h_flow h_pending h_corr h_interior h_pre
-                              h_flow_none h_blk_none h_adj h_bare h_base h_cnt h_str_eq
-                              h_not_doc
+                              h_flow_none h_blk_none h_adj h_bare h_base h_mono h_cnt
+                              h_str_eq h_not_doc
                           exact ⟨g', bl', fl', sn', false, q1, q2, q3, q4, fun h => Bool.noConfusion h, q5, q6⟩
 
 /-! ## §2 EOF Step: scanNextToken returns none

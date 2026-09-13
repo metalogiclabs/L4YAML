@@ -173,11 +173,11 @@ example {P : SurfPos → Prop} {sp_scan sp_mid sp_prep : SurfPos}
       ∀ sp_v : SurfPos, SBlockMapEntry w sp_prep sp_v →
       ∀ sp_e : SurfPos, SCompactMapTail w sp_v sp_e →
       ResumeFrames P ks' sp_e := by
-  obtain ⟨ks', h_lt', cont'⟩ := (dframes sp_mid h_ssl).resumeAt hmem
+  obtain ⟨ks', h_w', cont'⟩ := (dframes sp_mid h_ssl).resumeAt hmem
   exact ⟨fun sp_v h_entry =>
     (cont' sp_v (SCompactMapTail.cons w sp_mid sp_prep sp_v sp_v
       h_ind h_entry (SCompactMapTail.nil w sp_v))).close,
-    ks', h_lt', fun sp_v h_entry sp_e h_tail =>
+    ks', h_w'.lt, fun sp_v h_entry sp_e h_tail =>
       cont' sp_e (SCompactMapTail.cons w sp_mid sp_prep sp_v sp_e
         h_ind h_entry h_tail)⟩
 

@@ -123,7 +123,7 @@ example {sp_start sp : SurfPos} (h : ResumeFrames (SLYamlStream sp_start) [2, 0]
     SLYamlStream sp_start sp := h.close
 
 example {sp_start sp : SurfPos} (h : ResumeFrames (SLYamlStream sp_start) [2, 0] sp) :
-    ∃ ks', (∀ k' ∈ ks', k' < 0) ∧
+    ∃ ks', ResumeWidths [2, 0] ks' 0 ∧
       (∀ sp_end, SCompactMapTail 0 sp sp_end →
         ResumeFrames (SLYamlStream sp_start) ks' sp_end) :=
   h.resumeAt (by simp)
