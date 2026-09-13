@@ -846,4 +846,21 @@ lemma Covered.pop_to {lo w : Nat} {ks ks' : List Nat} {s : ScannerState}
   · exact List.mem_cons_of_mem _ (h_keep _ hmem hlt)
   · rw [Nat.le_antisymm hlew hge]; exact List.mem_cons_self
 
+/-- **The value-line seed** (item 150).  A value-line-bottomed stack names the
+    mapping levels INSIDE an explicit key and stops at the `?`: resuming at the
+    `?`'s own column is that entry's unpaid value line, not a sibling, so the
+    level the `?` opened is deliberately not one of the frames.  A cover over
+    those frames therefore cannot stand at the `?`'s own floor — it starts ONE
+    column above it, and there it is the EMPTY cover, because a monotone stack's
+    top is its maximum and the `?`'s push put that top at `c`.  This is what the
+    `?` producer pays, and it is why the value-line faces carry
+    `Floor lo (n + 1) ks` where the stream faces carry `Floor lo n ks`. -/
+lemma covered_nil_of_top_le {s : ScannerState} {c : Nat}
+    (h_mono : Mono s) (h_top : s.currentIndent ≤ (c : Int)) : Covered (c + 1) [] s := by
+  intro e he _ hlo
+  have hle : e.column ≤ s.currentIndent := h_mono.le_currentIndent e he
+  exfalso
+  have hc : ((c : Int) + 1) ≤ e.column := by exact_mod_cast hlo
+  omega
+
 end L4YAML.Proofs.IndentStackCover

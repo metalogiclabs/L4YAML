@@ -121,7 +121,10 @@ example {s : ScannerState} {c : Nat}
   covered_singleton_of_top_le h_mono h_top
 
 /-- The bridge this item adds: the three readings, assembled at the indicator
-    into the cover its opener hands the frames. -/
+    into the cover its opener hands the frames.  Item 150 reads the same top
+    TWICE — once as the stream lane's `Covered k [k]`, and once as the value
+    lane's `Covered (k + 1) []`, which is where a value-line stack's floor has
+    to stand since the `?`'s own level is not one of its frames. -/
 example {sc s_prep s' : ScannerState} {sp_prep : SurfPos} {k : Nat} {c : Char}
     (hc : c = ':' ∨ c = '?')
     (hcol_prep : sp_prep.col = k)
@@ -137,7 +140,7 @@ example {sc s_prep s' : ScannerState} {sp_prep : SurfPos} {k : Nat} {c : Char}
     (h_dispatch : scanNextToken_dispatchBlockIndicators (if s_prep.allowDirectives then
       { s_prep with allowDirectives := false, documentEverStarted := true }
     else s_prep) c = .ok (some s')) :
-    Covered k [k] s' :=
+    Covered k [k] s' ∧ Covered (k + 1) [] s' :=
   indicator_cover_at_col hc hcol_prep hcorr_prep h_noflow h_save h_mono h_base h_fl
     h_preprocess h_dispatch
 

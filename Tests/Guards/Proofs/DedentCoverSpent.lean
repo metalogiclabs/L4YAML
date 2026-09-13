@@ -312,17 +312,27 @@ was projected down to its widths now pass it through unchanged.
 
 **What still does not pay.**
 
-* **The membership split.**  The branch still runs `by_cases hmem : w ∈ ks` and
+* ~~**The membership split.**  The branch still runs `by_cases hmem : w ∈ ks` and
   punts when the landing names no frame.  `preprocess_landing_mem_or_seq` derives
   that membership from the cover it now has in hand — but it wants the park's
   `SentinelBase`, `s_prep.indents ≠ sc.indents`, and a refutation of the SEQUENCE
   disjunct, which `IndentStackCover.landing_mem_of_value` settles a step LATER at
-  the `:` and the pack cannot.
+  the `:` and the pack cannot.~~  **Item 150: that reading is wrong, and the
+  derivation would buy nothing.**  `KeyPackPunt.dedent` takes no argument, so the
+  punt disjunct is inhabited at every state and the branch already returns the
+  pack at exactly the inputs where `w ∈ ks` holds — a derivation of `w ∈ ks` can
+  only re-prove what the split decided.  What moves the domain is a PAYLOAD on
+  the constructor.  There is also a fourth requirement this list did not name:
+  `preprocess_landing_mem_or_seq` wants the landing at or right of the cover's
+  floor, and a dedent lands strictly left of the park's index.  Both are
+  machine-checked in `ValueLineCoverSpent`'s §5.
 * **A park at a line start.**  The walk that reached the landing crossed nothing,
   so preprocessing armed no unwind and there is no floor to measure — item 147's
   own residue, at the indicator lane's payers as well.
-* **The value-line stack.**  `h_dframesV` carries no cover at all; the `?` frame's
-  levels are a different stack and nothing measures it yet.
+* ~~**The value-line stack.**  `h_dframesV` carries no cover at all; the `?` frame's
+  levels are a different stack and nothing measures it yet.~~  **Item 150 gives it
+  one** — at a floor one column above the park, because the `?`'s own level is
+  not one of its frames.
 * **Sequence parks.**  `pendingBlock`'s two faces carry no cover on either side,
   so their dedent hop has none to spend — the same stop item 148 recorded. -/
 
