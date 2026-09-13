@@ -10102,6 +10102,93 @@ lemma scanBlockScalar_tokens_push {s s' : ScannerState}
                      ScannerCorrectness.advance_preserves_tokens]
                    rfl⟩)
 
+/-- The token a dispatched `&` pushes. -/
+lemma dispatchContent_anchor_tokens {s s' : ScannerState}
+    (hok : scanNextToken_dispatchContent s '&' = .ok s') :
+    ∃ name, s'.tokens = s.tokens.push ⟨s.currentPos, .anchor name, s.currentPos⟩ := by
+  unfold scanNextToken_dispatchContent at hok
+  simp only [bind, Except.bind, pure, Except.pure] at hok
+  split at hok
+  · split at hok
+    · simp at hok
+    generalize h_anch : scanAnchorOrAlias s true = anch_result at hok
+    cases anch_result with
+    | error => simp at hok
+    | ok s_anch =>
+      change Except.ok _ = Except.ok s' at hok
+      have h := Except.ok.inj hok; subst h
+      obtain ⟨name, hname⟩ := scanAnchorOrAlias_tokens h_anch
+      exact ⟨name, by simpa using hname⟩
+  · rename_i h_neq; exact absurd rfl h_neq
+
+/-- Reading a token off an `emitAt`, with the pre-state's array named.  Stating
+    it this way is what lets the four `[97]` arms below supply their tag payload
+    by unification instead of by transcription. -/
+lemma emitAt_push_tokens {s : ScannerState} {tokens : Array (Positioned YamlToken)}
+    (h : s.tokens = tokens) (pos : YamlPos) (tok : YamlToken) :
+    (s.emitAt pos tok).tokens = tokens.push ⟨pos, tok, pos⟩ := by
+  show s.tokens.push _ = _
+  rw [h]
+
+/-- The token a dispatched `!` pushes — one per `[97]` form, all `.tag`. -/
+lemma dispatchContent_tag_tokens {s s' : ScannerState}
+    (hok : scanNextToken_dispatchContent s '!' = .ok s') :
+    ∃ handle suffix,
+      s'.tokens = s.tokens.push ⟨s.currentPos, .tag handle suffix, s.currentPos⟩ := by
+  unfold scanNextToken_dispatchContent at hok
+  simp only [bind, Except.bind, pure, Except.pure] at hok
+  split at hok
+  · rename_i h_eq; exact absurd h_eq (by decide)
+  · split at hok
+    · rename_i h_eq; exact absurd h_eq (by decide)
+    · split at hok
+      · split at hok
+        · simp at hok
+        generalize h_tag : scanTag s = tag_result at hok
+        cases tag_result with
+        | error => simp at hok
+        | ok s_tag =>
+          simp only [Except.ok.injEq] at hok; subst hok
+          unfold scanTag at h_tag; dsimp only [] at h_tag
+          split at h_tag
+          · -- `!<uri>`
+            simp only [bind, Except.bind, pure, Except.pure] at h_tag
+            generalize hv : scanVerbatimTag s.advance s.currentPos = vres at h_tag
+            cases vres with
+            | error => simp at h_tag
+            | ok s_verb =>
+              dsimp only [] at h_tag
+              have h_eq := Except.ok.inj h_tag; subst h_eq
+              unfold scanVerbatimTag at hv; dsimp only [] at hv
+              split at hv
+              · exact absurd hv (by simp)
+              · split at hv
+                · exact absurd hv (by simp)
+                · have h_eq := Except.ok.inj hv; subst h_eq
+                  exact ⟨_, _, emitAt_push_tokens (by
+                    rw [ScannerCorrectness.ScanHelpers.collectVerbatimTagLoop_preserves_tokens,
+                        ScannerCorrectness.advance_preserves_tokens,
+                        ScannerCorrectness.advance_preserves_tokens]) _ _⟩
+          · -- `!!suffix`
+            have h_eq := Except.ok.inj h_tag; subst h_eq
+            unfold scanSecondaryTag; dsimp only []
+            exact ⟨_, _, emitAt_push_tokens (by
+              rw [ScannerCorrectness.ScanHelpers.collectTagSuffixLoop_preserves_tokens,
+                  ScannerCorrectness.advance_preserves_tokens,
+                  ScannerCorrectness.advance_preserves_tokens]) _ _⟩
+          · -- `!handle!suffix`, `!suffix`, `!`
+            have h_eq := Except.ok.inj h_tag; subst h_eq
+            unfold scanNamedTag; dsimp only []
+            split
+            · exact ⟨_, _, emitAt_push_tokens (by
+                rw [ScannerCorrectness.ScanHelpers.collectTagSuffixLoop_preserves_tokens,
+                    ScannerCorrectness.ScanHelpers.collectTagHandleLoop_preserves_tokens,
+                    ScannerCorrectness.advance_preserves_tokens]) _ _⟩
+            · exact ⟨_, _, emitAt_push_tokens (by
+                rw [ScannerCorrectness.ScanHelpers.collectTagHandleLoop_preserves_tokens,
+                    ScannerCorrectness.advance_preserves_tokens]) _ _⟩
+      · rename_i h_neq; exact absurd rfl h_neq
+
 set_option maxHeartbeats 1000000 in
 /-- **The content dispatch's own token, WITH its position.**  Off the two
     property characters every arm pushes exactly one node BODY — a scalar of
@@ -10188,6 +10275,44 @@ lemma dispatchContent_tokens_push {s s' : ScannerState} {c : Char}
       exact ⟨.scalar str .plain, by simp [YamlToken.isNodeBody], hstr⟩
   · exact absurd hok (by simp)
 
+
+/-- **The content dispatch's own token at the two PROPERTY characters**
+    (item 158) — `dispatchContent_tokens_push`'s twin, and the other half of
+    the dispatcher's token census.  A `&` pushes one `.anchor` and a `!` pushes
+    one `.tag`, each at the dispatch's own `currentPos`, so §6.9's `[96]` run
+    is written exactly where a body would have been. -/
+lemma dispatchContent_tokens_push_prop {s s' : ScannerState} {c : Char}
+    (hok : scanNextToken_dispatchContent s c = .ok s')
+    (h_prop : c = '&' ∨ c = '!') :
+    ∃ t : YamlToken, t.isNodeProperty = true ∧
+      s'.tokens = s.tokens.push { pos := s.currentPos, val := t } := by
+  rcases h_prop with rfl | rfl
+  · obtain ⟨name, h⟩ := dispatchContent_anchor_tokens hok
+    exact ⟨.anchor name, by simp [YamlToken.isNodeProperty], h⟩
+  · obtain ⟨handle, suffix, h⟩ := dispatchContent_tag_tokens hok
+    exact ⟨.tag handle suffix, by simp [YamlToken.isNodeProperty], h⟩
+
+/-- **Every content dispatch pushes exactly one NODE token at its own
+    position** (item 158) — the union of the two lemmas above, and the reason
+    §9.2's park reading needs no case on the character.
+
+    `[96] c-ns-properties` and a node body are the dispatcher's only two
+    outputs: off `&`/`!` the arm scans a scalar or an alias, at `&`/`!` it
+    scans an anchor or a tag, and `trailingNodeRun?` starts a run of one on
+    either. -/
+lemma dispatchContent_tokens_push_node {s s' : ScannerState} {c : Char}
+    (hok : scanNextToken_dispatchContent s c = .ok s') :
+    ∃ t : YamlToken, (t.isNodeBody = true ∨ t.isNodeProperty = true) ∧
+      s'.tokens = s.tokens.push { pos := s.currentPos, val := t } := by
+  by_cases h_amp : c = '&'
+  · obtain ⟨t, ht, h⟩ := dispatchContent_tokens_push_prop hok (Or.inl h_amp)
+    exact ⟨t, Or.inr ht, h⟩
+  · by_cases h_bang : c = '!'
+    · obtain ⟨t, ht, h⟩ := dispatchContent_tokens_push_prop hok (Or.inr h_bang)
+      exact ⟨t, Or.inr ht, h⟩
+    · obtain ⟨t, ht, h⟩ := dispatchContent_tokens_push hok h_amp h_bang
+      exact ⟨t, Or.inl ht, h⟩
+
 /-- `prevRealIdx?` returns an index strictly below the one it was asked at. -/
 lemma prevRealIdx?_lt {ts : Array (Positioned YamlToken)} :
     ∀ {n i : Nat}, prevRealIdx? ts n = some i → i < n := by
@@ -10265,6 +10390,55 @@ lemma trailingNodeRun?_push_body {ts : Array (Positioned YamlToken)}
   rw [hgeti, hprop]
   simp [hpred]
 
+/-- **…and a `[96]` PROPERTY pushed on top does the same** (item 158) — the
+    other arm of `trailingNodeRun?`, reached where the body arm is not.
+
+    The run's start is the property itself rather than a body, so §9.2 reports
+    at the PROPERTY's position: `a: 1⏎&p b` is refused at the `&`, which is
+    where the offending node begins. -/
+lemma trailingNodeRun?_push_prop {ts : Array (Positioned YamlToken)}
+    {p : Positioned YamlToken} {i : Nat}
+    (hb : p.val.isNodeProperty = true)
+    (hprev : prevRealIdx? ts ts.size = some i)
+    (hprop : ts[i]!.val.isNodeProperty = false) :
+    trailingNodeRun? (ts.push p) = some (ts.size, some i) := by
+  have hph : (p.val == YamlToken.placeholder) = false := by
+    cases hv : p.val <;> simp_all [YamlToken.isNodeProperty]
+  have hi : i < ts.size := prevRealIdx?_lt hprev
+  have hget : (ts.push p)[ts.size]! = p := by simp [Array.getElem_push]
+  have hgeti : (ts.push p)[i]! = ts[i]! := by
+    rw [getElem!_pos (ts.push p) i (by simp only [Array.size_push]; omega),
+        getElem!_pos ts i hi, Array.getElem_push_lt]
+  have hlast : prevRealIdx? (ts.push p) (ts.push p).size = some ts.size := by
+    have hsz' : (ts.push p).size = ts.size + 1 := Array.size_push ..
+    rw [hsz']
+    show (if (ts.push p)[ts.size]!.val == .placeholder then
+            prevRealIdx? (ts.push p) ts.size else some ts.size) = some ts.size
+    rw [hget, hph]; rfl
+  have hpred : prevRealIdx? (ts.push p) ts.size = some i := by
+    rw [prevRealIdx?_push ts.size (by omega)]; exact hprev
+  unfold trailingNodeRun?
+  rw [hlast]
+  simp only [hget, hb, ↓reduceIte]
+  rw [hpred]
+  dsimp only []
+  rw [hgeti, hprop]
+  simp [hpred]
+
+/-- **A node token pushed on top starts a trailing run of one** — the two arms
+    joined (item 158).  `danglingNodePos?` reads the same run either way, which
+    is why the park lemma below takes no case on the dispatched character. -/
+lemma trailingNodeRun?_push_node {ts : Array (Positioned YamlToken)}
+    {p : Positioned YamlToken} {i : Nat}
+    (hb : p.val.isNodeBody = true ∨ p.val.isNodeProperty = true)
+    (hprev : prevRealIdx? ts ts.size = some i)
+    (hprop : ts[i]!.val.isNodeProperty = false) :
+    trailingNodeRun? (ts.push p) = some (ts.size, some i) :=
+  match hb with
+  | Or.inl h => trailingNodeRun?_push_body h hprev hprop
+  | Or.inr h => trailingNodeRun?_push_prop h hprev hprop
+
+
 lemma completesFlowValue_not_offersNodeSlot {t : YamlToken}
     (h : t.completesFlowValue = true) : t.offersNodeSlot = false := by
   cases t <;> simp_all [YamlToken.completesFlowValue, YamlToken.offersNodeSlot]
@@ -10299,20 +10473,28 @@ lemma CompletedTail.danglingPred {s : ScannerState} (h : CompletedTail s) :
 
 /-- **§9.2's dangling reading, derived at the PRODUCER** — the park a content
     dispatch makes behind a completed node, at a landing whose column names an
-    open level, IS the dangling run. -/
+    open level, IS the dangling run.
+
+    **Item 158 took the character premises off.**  Item 156 stated this off
+    `&`/`!`, because `dispatchContent_tokens_push` was the body arm alone; with
+    the property arm beside it the dispatcher's whole token census is one
+    statement — exactly one node token, at the dispatch's own `currentPos` —
+    and `trailingNodeRun?` starts a run of one on either.  So the reading is
+    the same at every content character, and the position it reports is the
+    RUN's start whether that is a scalar (`a: 1⏎b`) or a property
+    (`a: 1⏎&p b`). -/
 lemma danglingPark_of_dispatch {s s' : ScannerState} {c : Char}
     (hok : scanNextToken_dispatchContent s c = .ok s')
-    (h_amp : c ≠ '&') (h_bang : c ≠ '!')
     (h_noflow : s'.inFlow = false)
     (h_prev : DanglingPred s.tokens)
     (h_op : (s.indents.any fun e => e.column == (s.col : Int)) = true) :
     danglingNodePos? s' = some s.currentPos := by
   obtain ⟨i, h_i, h_iprop, h_islot⟩ := h_prev
-  obtain ⟨t, h_body, h_tok⟩ := dispatchContent_tokens_push hok h_amp h_bang
+  obtain ⟨t, h_body, h_tok⟩ := dispatchContent_tokens_push_node hok
   have hi : i < s.tokens.size := prevRealIdx?_lt h_i
   have h_run : trailingNodeRun? s'.tokens
       = some (s.tokens.size, some i) := by
-    rw [h_tok]; exact trailingNodeRun?_push_body h_body h_i h_iprop
+    rw [h_tok]; exact trailingNodeRun?_push_node h_body h_i h_iprop
   have h_pred : s'.tokens[i]!.val.offersNodeSlot = false := by
     rw [h_tok, getElem!_pos _ i (by simp only [Array.size_push]; omega),
         Array.getElem_push_lt, ← getElem!_pos s.tokens i hi]
@@ -10343,13 +10525,12 @@ lemma danglingPark_of_dispatch {s s' : ScannerState} {c : Char}
     it. -/
 lemma danglingPark_refutes_landing {s s' s_land : ScannerState} {c : Char}
     (hok : scanNextToken_dispatchContent s c = .ok s')
-    (h_amp : c ≠ '&') (h_bang : c ≠ '!')
     (h_noflow : s'.inFlow = false)
     (h_tail : CompletedTail s)
     (h_op : (s.indents.any fun e => e.column == (s.col : Int)) = true)
     (h_dn : scanNextToken_checkDanglingNode s' s_land = .ok ())
     (h_ska : s_land.simpleKeyAllowed = true) : False := by
-  have h := danglingPark_of_dispatch hok h_amp h_bang h_noflow
+  have h := danglingPark_of_dispatch hok h_noflow
     (CompletedTail.danglingPred h_tail) h_op
   unfold scanNextToken_checkDanglingNode at h_dn
   rw [if_pos h_ska, h] at h_dn
@@ -10358,12 +10539,11 @@ lemma danglingPark_refutes_landing {s s' s_land : ScannerState} {c : Char}
 /-- …and at END OF INPUT, where the check is gated on nothing (`a: 1⏎b`). -/
 lemma danglingPark_refutes_eof {s s' : ScannerState} {c : Char}
     (hok : scanNextToken_dispatchContent s c = .ok s')
-    (h_amp : c ≠ '&') (h_bang : c ≠ '!')
     (h_noflow : s'.inFlow = false)
     (h_tail : CompletedTail s)
     (h_op : (s.indents.any fun e => e.column == (s.col : Int)) = true)
     (h_dn : scanLoop_checkDanglingNode s' = .ok ()) : False := by
-  have h := danglingPark_of_dispatch hok h_amp h_bang h_noflow
+  have h := danglingPark_of_dispatch hok h_noflow
     (CompletedTail.danglingPred h_tail) h_op
   unfold scanLoop_checkDanglingNode at h_dn
   rw [h] at h_dn
@@ -10515,7 +10695,6 @@ lemma danglingPark_refutes_route {sc s_prep s' : ScannerState} {c : Char}
         (if s_prep.allowDirectives then
           { s_prep with allowDirectives := false, documentEverStarted := true }
         else s_prep) c = .ok s')
-    (h_amp : c ≠ '&') (h_bang : c ≠ '!')
     (h_flow' : s'.inFlow = false)
     (h_op : (s_prep.indents.any fun e => e.column == (s_prep.col : Int)) = true) :
     False := by
@@ -10539,7 +10718,7 @@ lemma danglingPark_refutes_route {sc s_prep s' : ScannerState} {c : Char}
         { s_prep with allowDirectives := false, documentEverStarted := true }
       else s_prep).col = s_prep.col from by split <;> rfl]
     exact h_op
-  have h := danglingPark_of_dispatch h_dispatch h_amp h_bang h_flow' h_pred h_op'
+  have h := danglingPark_of_dispatch h_dispatch h_flow' h_pred h_op'
   rw [h_nd] at h
   cases h
 
@@ -10549,11 +10728,20 @@ lemma danglingPark_refutes_route {sc s_prep s' : ScannerState} {c : Char}
     The route is spent in two places and they are not alike.  A VALUE-completing
     character parks as `pendingContent`, whose face says the landing already
     refused a dangling run — and that refutes the route outright.  A `&` or a
-    `!` parks as `pendingProps`, which has no face of its own yet, and there the
+    `!` parks as `pendingProps`, which has no face of its own, and there the
     route stands.  So the gate is the disjunction, and what it NAMES is the
-    residue: the property lane. -/
+    residue.
+
+    **Item 158 took the character premises off the LEFT disjunct.**  §9.2's
+    reading is now derived at every content character, the property arm
+    included, so the refutation the left disjunct spends no longer asks what
+    was dispatched — it asks only for the reading.  What the right disjunct
+    names is therefore no longer "the two property characters" but the state
+    they park in: `pendingProps` carries no face, so at `&`/`!` there is no
+    reading to hand over.  The residue is a missing FIELD, not a missing
+    character. -/
 def ContentRouteGate (s' : ScannerState) (c : Char) : Prop :=
-  (c ≠ '&' ∧ c ≠ '!' ∧ danglingNodePos? s' = none) ∨ (c = '&' ∨ c = '!')
+  danglingNodePos? s' = none ∨ (c = '&' ∨ c = '!')
 
 /-- **`bareNodeRoute_or_refused`, halved a second time** (item 157) — the
     content landing's copy, with §9.2's DANGLING refusal taken out of the half
@@ -10568,8 +10756,16 @@ def ContentRouteGate (s' : ScannerState) (c : Char) : Prop :=
     park crossed a break, ran `scanNextToken_checkDanglingNode` and got `none`.
 
     So both halves of the discriminator are now refuted for a value-completing
-    landing, and the route's whole remaining domain is the `&`/`!` gate's right
-    disjunct — `pendingProps`, which does not carry a face. -/
+    landing, and the route's whole remaining domain is the gate's right
+    disjunct — `pendingProps`, which does not carry a face.
+
+    **Item 158 measured what that residue costs.**  The refutation itself is
+    character-uniform now: given the reading, a `&` or a `!` landing ON an open
+    level behind a completed node is refuted exactly as a scalar one is, and
+    the scanner really does refuse `a: 1⏎&p b`, `k:⏎␣␣a: 1⏎␣␣&p b`, `- a⏎&p b`
+    and `a: 1⏎!!str b` at the RUN's start.  What is missing is only the park's
+    own field — and `a: 1⏎&p [b]` is why that field cannot simply be added:
+    it scans CLEAN.  See `Tests/Guards/Proofs/PropsParkDangling.lean`. -/
 lemma bareNodeRoute_or_refused_content {sc s_prep s' : ScannerState} {c : Char}
     {sp_start sp_anchor : SurfPos}
     (h_stream : SLYamlStream sp_start sp_anchor)
@@ -10595,8 +10791,8 @@ lemma bareNodeRoute_or_refused_content {sc s_prep s' : ScannerState} {c : Char}
     | Or.inr _ => exact bareNodeRoute h_stream
   | true =>
     match h_gate, h_tail with
-    | Or.inl ⟨h_amp, h_bang, h_nd⟩, Or.inl h_tl =>
-      exact (danglingPark_refutes_route h_nd h_pre h_tl h_dispatch h_amp h_bang
+    | Or.inl h_nd, Or.inl h_tl =>
+      exact (danglingPark_refutes_route h_nd h_pre h_tl h_dispatch
         h_flow' h_op).elim
     | Or.inl _, Or.inr _ => exact bareNodeRoute h_stream
     | Or.inr _, _ => exact bareNodeRoute h_stream
@@ -19358,93 +19554,6 @@ lemma lastTokenIsNodeProperty_false_of_dispatch {s s' : ScannerState}
       · rename_i hg; simp at hg; exact hg.1
     · rename_i h_neq; exact absurd rfl h_neq
 
-/-- The token a dispatched `&` pushes. -/
-lemma dispatchContent_anchor_tokens {s s' : ScannerState}
-    (hok : scanNextToken_dispatchContent s '&' = .ok s') :
-    ∃ name, s'.tokens = s.tokens.push ⟨s.currentPos, .anchor name, s.currentPos⟩ := by
-  unfold scanNextToken_dispatchContent at hok
-  simp only [bind, Except.bind, pure, Except.pure] at hok
-  split at hok
-  · split at hok
-    · simp at hok
-    generalize h_anch : scanAnchorOrAlias s true = anch_result at hok
-    cases anch_result with
-    | error => simp at hok
-    | ok s_anch =>
-      change Except.ok _ = Except.ok s' at hok
-      have h := Except.ok.inj hok; subst h
-      obtain ⟨name, hname⟩ := scanAnchorOrAlias_tokens h_anch
-      exact ⟨name, by simpa using hname⟩
-  · rename_i h_neq; exact absurd rfl h_neq
-
-/-- Reading a token off an `emitAt`, with the pre-state's array named.  Stating
-    it this way is what lets the four `[97]` arms below supply their tag payload
-    by unification instead of by transcription. -/
-lemma emitAt_push_tokens {s : ScannerState} {tokens : Array (Positioned YamlToken)}
-    (h : s.tokens = tokens) (pos : YamlPos) (tok : YamlToken) :
-    (s.emitAt pos tok).tokens = tokens.push ⟨pos, tok, pos⟩ := by
-  show s.tokens.push _ = _
-  rw [h]
-
-/-- The token a dispatched `!` pushes — one per `[97]` form, all `.tag`. -/
-lemma dispatchContent_tag_tokens {s s' : ScannerState}
-    (hok : scanNextToken_dispatchContent s '!' = .ok s') :
-    ∃ handle suffix,
-      s'.tokens = s.tokens.push ⟨s.currentPos, .tag handle suffix, s.currentPos⟩ := by
-  unfold scanNextToken_dispatchContent at hok
-  simp only [bind, Except.bind, pure, Except.pure] at hok
-  split at hok
-  · rename_i h_eq; exact absurd h_eq (by decide)
-  · split at hok
-    · rename_i h_eq; exact absurd h_eq (by decide)
-    · split at hok
-      · split at hok
-        · simp at hok
-        generalize h_tag : scanTag s = tag_result at hok
-        cases tag_result with
-        | error => simp at hok
-        | ok s_tag =>
-          simp only [Except.ok.injEq] at hok; subst hok
-          unfold scanTag at h_tag; dsimp only [] at h_tag
-          split at h_tag
-          · -- `!<uri>`
-            simp only [bind, Except.bind, pure, Except.pure] at h_tag
-            generalize hv : scanVerbatimTag s.advance s.currentPos = vres at h_tag
-            cases vres with
-            | error => simp at h_tag
-            | ok s_verb =>
-              dsimp only [] at h_tag
-              have h_eq := Except.ok.inj h_tag; subst h_eq
-              unfold scanVerbatimTag at hv; dsimp only [] at hv
-              split at hv
-              · exact absurd hv (by simp)
-              · split at hv
-                · exact absurd hv (by simp)
-                · have h_eq := Except.ok.inj hv; subst h_eq
-                  exact ⟨_, _, emitAt_push_tokens (by
-                    rw [ScannerCorrectness.ScanHelpers.collectVerbatimTagLoop_preserves_tokens,
-                        ScannerCorrectness.advance_preserves_tokens,
-                        ScannerCorrectness.advance_preserves_tokens]) _ _⟩
-          · -- `!!suffix`
-            have h_eq := Except.ok.inj h_tag; subst h_eq
-            unfold scanSecondaryTag; dsimp only []
-            exact ⟨_, _, emitAt_push_tokens (by
-              rw [ScannerCorrectness.ScanHelpers.collectTagSuffixLoop_preserves_tokens,
-                  ScannerCorrectness.advance_preserves_tokens,
-                  ScannerCorrectness.advance_preserves_tokens]) _ _⟩
-          · -- `!handle!suffix`, `!suffix`, `!`
-            have h_eq := Except.ok.inj h_tag; subst h_eq
-            unfold scanNamedTag; dsimp only []
-            split
-            · exact ⟨_, _, emitAt_push_tokens (by
-                rw [ScannerCorrectness.ScanHelpers.collectTagSuffixLoop_preserves_tokens,
-                    ScannerCorrectness.ScanHelpers.collectTagHandleLoop_preserves_tokens,
-                    ScannerCorrectness.advance_preserves_tokens]) _ _⟩
-            · exact ⟨_, _, emitAt_push_tokens (by
-                rw [ScannerCorrectness.ScanHelpers.collectTagHandleLoop_preserves_tokens,
-                    ScannerCorrectness.advance_preserves_tokens]) _ _⟩
-      · rename_i h_neq; exact absurd rfl h_neq
-
 /-- The simple-key facts a dispatched `&` leaves: the pending key rides
     through (`scanAnchorOrAlias` never touches it) and fresh saves are off —
     what keeps a completed entry's `KeyAfterValueLayout` alive under a freshly
@@ -21163,6 +21272,12 @@ lemma content_dispatch_routed
     -- outright; a `&`/`!` parks as `pendingProps`, which has no face of its
     -- own, and there the route stands.  The gate is what lets one parameter
     -- serve both and NAME which half is left.
+    --
+    -- **Item 158 made the gate's left disjunct character-free.**  §9.2's
+    -- reading is derived at the property arm too now, so the refutation the
+    -- left disjunct spends asks only for the reading.  The right disjunct
+    -- still names `&`/`!`, and what it names there is the missing FIELD: the
+    -- props park below has no reading to hand over.
     (h_route : ContentRouteGate s' c → ∀ sp_m, SBlockNode 0 .blockIn sp_anchor sp_m →
       SLYamlStream sp_start sp_m)
     (h_keyctx : ((∃ (k : Nat) (sp_land : SurfPos),
@@ -21636,7 +21751,7 @@ lemma content_dispatch_routed
              PendingNode.pendingContent sp_start sp_res sp_scan' h_line
                (fun h_nd sp_mid h_ssl =>
                  have h_ssl_ext := white_prepend_SSLComments h_trailing_ws h_ssl
-                 h_route (Or.inl ⟨hna, hnt, h_nd⟩) sp_mid (flowInBlock_blockNode h_sep h_flow h_ssl_ext))
+                 h_route (Or.inl h_nd) sp_mid (flowInBlock_blockNode h_sep h_flow h_ssl_ext))
                h_key
                (stale_of_dispatch h_dispatch hna hnt
                  (by split <;> show s_prep.needIndentCheck = false <;> exact h_nic_prep)
@@ -21667,7 +21782,7 @@ lemma content_dispatch_routed
              BlockStack.nil sp_res, FlowStackB.nil sp_res .sep,
              PendingNode.pendingContent sp_start sp_res sp_scan' h_line
                (fun h_nd sp_mid h_ssl =>
-                 h_route (Or.inl ⟨hna, hnt, h_nd⟩) sp_mid
+                 h_route (Or.inl h_nd) sp_mid
                    ((h_absorb95 sp_mid h_ssl).elim
                      (fun h_lit => literal_blockNode h_sep (GOpt.none sp_prep) h_lit)
                      (fun h_fld => folded_blockNode h_sep (GOpt.none sp_prep) h_fld)))

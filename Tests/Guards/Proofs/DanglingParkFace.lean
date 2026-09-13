@@ -217,23 +217,24 @@ example {sc s_prep s' : ScannerState} {c : Char}
           { s_prep with allowDirectives := false, documentEverStarted := true }
         else s_prep) c = .ok s')
     (h_flow' : s'.inFlow = false)
-    (h_amp : c ≠ '&') (h_bang : c ≠ '!')
     (h_nd : danglingNodePos? s' = none) :
     False := by
   cases h_op : (s_prep.indents.any fun e => e.column == (s_prep.col : Int)) with
   | false => exact bareDocument_refutes_landing h_bare h_pre h_noflow h_ska h_base h_op h_tail
   | true =>
-    exact danglingPark_refutes_route h_nd h_pre h_tail h_dispatch h_amp h_bang h_flow' h_op
+    exact danglingPark_refutes_route h_nd h_pre h_tail h_dispatch h_flow' h_op
 
 -- The gate is what carries that refutation into a route the props arm shares:
--- a value-completing character takes the left disjunct and refutes; `&`/`!`
--- take the right one and the route stands.
+-- a park that HAS the reading takes the left disjunct and refutes; `&`/`!` park
+-- as `pendingProps`, which has no reading to hand over, and take the right one.
+-- (Item 158 took `c ≠ '&' ∧ c ≠ '!'` off the left disjunct: the refutation is
+-- character-uniform now, and what the right disjunct names is the missing
+-- FIELD.)
 example {s' : ScannerState} {c : Char} (h : c = '&' ∨ c = '!') :
     ContentRouteGate s' c := Or.inr h
 
-example {s' : ScannerState} {c : Char}
-    (h_amp : c ≠ '&') (h_bang : c ≠ '!') (h_nd : danglingNodePos? s' = none) :
-    ContentRouteGate s' c := Or.inl ⟨h_amp, h_bang, h_nd⟩
+example {s' : ScannerState} {c : Char} (h_nd : danglingNodePos? s' = none) :
+    ContentRouteGate s' c := Or.inl h_nd
 
 /-! ### The route census after the halving
 
@@ -280,11 +281,19 @@ The gate's right disjunct is the whole remaining domain of the content
 landing's route, and it names the next item exactly: `&` and `!` park as
 `pendingProps`, which carries its stream route as a FIELD and has no face.
 
-The lane is refutable — `danglingNodePos?` reads a `[96]` property run as a node
-run, so a run behind a completed node at an open level is dangling by the same
-reading, and the scanner already refuses all three shapes below.  What is
+~~The lane is refutable — `danglingNodePos?` reads a `[96]` property run as a
+node run, so a run behind a completed node at an open level is dangling by the
+same reading, and the scanner already refuses all three shapes below.  What is
 missing is the constructor's own premise and the producer lemma behind it
-(`dispatchContent_tokens_push`'s property twin). -/
+(`dispatchContent_tokens_push`'s property twin).~~
+
+**Item 158 struck that.**  The producer lemma landed and the refutation is
+character-uniform now, so the four witnesses below are refused as a theorem
+rather than as a measurement.  But "the scanner already refuses" is true only
+of the BLOCK-bodied lane: a property run whose body is a flow collection scans
+CLEAN (`a: 1⏎&p [b]`), so the field cannot simply be added.  The lane's two
+halves, and what the second one costs, are measured in
+`Tests/Guards/Proofs/PropsParkDangling.lean`. -/
 
 #guard ["a: 1\n&p b\n", "k:\n  a: 1\n  &p b\n", "- a\n&p b\n", "a: 1\n!!str b\n"].map scanOk
   == ["SCAN-ERR L4YAML.ScanError.invalidBareDocument 1 0",
