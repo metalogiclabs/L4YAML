@@ -17456,110 +17456,117 @@ established is a route rather than a refutation and so needs the CONSUMER
 narrowed, not a guard.
 
 
+### Item 159 (2026-09-13)
 
-### Item 161 (2026-09-13)
+**§9.2's dangling run, read through a flow collection — and the trigger that
+could not be the flow open.**  Item 158 measured a family the scanner accepted
+and the parser refused (`a: 1⏎&p [b]`, `invalidBareDocument 1 0`) and left two
+ways out: give the accumulation's flow arm the opaque resume, or close the hole
+in the scanner.  This item takes the second, and the first thing it establishes
+is that item 158's own description of the hole named the wrong trigger.
 
-**The bracket balance, read FORWARD — and the gate priced to its ten sites.**
-Item 160 left the property lane one hypothesis short: `FlowBaseRoutes.value` is
-where the gate belongs, and putting it there needs
-`trailingNodeRun?_flowClose_reads_park`, which holds its own answer as a
-premise — `flowOpenIdx? s_cl.tokens i = some s_park.tokens.size`, "the close
-finds ITS open".  This item supplies it, and the shape it is supplied in is the
-whole point.
+**The flow OPEN ends nothing.**  The cheap fix — refuse at a `[`/`{` whose
+landing already reads a dangling run — was written, built, and REFUTED by the
+repo's own guards: a flow collection is a node like any other, so it can head an
+implicit KEY, and the `:` that resolves the run comes after the close.
+`a: 1⏎&p [b]: c` PARSES; so does `k:⏎␣␣m:⏎␣␣␣␣- a⏎␣␣&p [1]: b`, which
+`FlowFrameResumeRider` has witnessed since item 114 and which the gate refused.
+The park's reading is revocable through a collection exactly as item 141
+measured it revocable through a scalar.  That is why the gate — a break, or end
+of input — is unchanged here.
 
-**A backward walk is not a step invariant.**  `flowOpenIdx?` reads the token
-array BACKWARD from the close, counting closes it has yet to balance.  Nothing
-an accumulation carries can maintain that: it is a fact about a finished array,
-re-derived from scratch at every reading, and there is no step at which it
-"becomes" true.  The same balance read FORWARD is a STACK — `flowOpenIdxStack`,
-the indices of the flow opens not yet closed in `ts[0, i)`, innermost first —
-and a stack is maintained one push at a time.
+**What was wrong is the READING.**  `[161] ns-flow-node` is
+`c-ns-properties? ns-flow-content`, and `ns-flow-content` is a flow collection
+as readily as a scalar.  A collection is simply not ONE token, so a run whose
+body is one ends the array in a `]` and both of `trailingNodeRun?`'s arms report
+no run at all — which is why `a: 1⏎&p b` was refused and `a: 1⏎&p [b]` was not.
+The third arm reads the close back to its matching open (`flowOpenIdx?`, a
+bracket-counting walk backward, structurally recursive like
+`sameIndentSequenceOpenLoop`) and continues the `[96]` walk-back from there
+(`propsRunStart`), so the run it reports STARTS where the parser reports:
 
-`flowOpenIdxLoop_eq_stack` is that the two readings are the same reading, and
-it holds at every depth at once: the backward walk with `d` closes outstanding
-is the `d`-th element of the forward stack.  The three transports are then the
-entire per-step cost — an open conses its own index, a close pops the innermost,
-and **everything else is inert**, which is what carries a reading across the
-placeholders a simple key reserves.  `FlowOpenHeld ts d o S` packages the one
-shape a flow tower needs: the base frame's own open at index `o`, still held
-under `d` nested ones.
+| shape | before | after | parser |
+|---|---|---|---|
+| `a: 1⏎&p [b]`, `a: 1⏎&p {b: 1}`, `a: 1⏎!t [b]`, `- a⏎&p [b]` | SCAN-OK | `invalidBareDocument 1,0` | same |
+| `k:⏎␣␣a: 1⏎␣␣&p [b]` / `k:⏎␣␣a: 1⏎&p [b]` | SCAN-OK | `2,2` / `2,0` | same |
+| `a: 1⏎&p [b]: c`, `k:⏎␣␣m:⏎␣␣␣␣- a⏎␣␣&p [1]: b` | SCAN-OK | SCAN-OK | PARSE-OK |
+| `&p [1, 2]`, `k: &p [1, 2]`, `- &p [1, 2]`, `k: [1, 2]⏎m: 3` | SCAN-OK | SCAN-OK | PARSE-OK |
 
-**Where the depth index comes from, and where it does not.**  Not from the
-scanner.  The accumulation already carries the tower's depth as `FlowStackB`'s
-own index, and a base frame reads `d = 0` — so `FlowOpenHeld.flowOpenIdx?`
-discharges item 160's premise from a number the invariant already has.  That the
-token array's own depth agrees with `sc.flowLevel` is a CROSS-CHECK on the
-definition rather than a dependency, and it is measured rather than assumed:
-`flowTokenDepth = flowLevel` at **every step** of every input of length ≤ 6 over
-an eleven-symbol flow alphabet — 1 771 561 inputs, **1 638 834 steps**, maximum
-depth 6, no disagreement — and over the repository's own `examples/` (139 files,
-1 562 steps).  The alphabet carries both brackets, both closes, the two
-separators, a node, a `[96]` property and the three things that END a token
-(Reflection 614: adjacency is manufactured by termination).  CI carries the
-length-≤ 4 sweep (14 641 inputs, 27 143 steps) as four `#guard`s; the longer
-bound is stated here as a measurement with its alphabet, not as a claim about
-all inputs.
+**The trade is items 132–134's and 145's, and it leaves `scannerDrop` alone.**
+The alternative on the table was to hand `accum_flow_open_depth0`'s props arm
+the opaque resume wherever its park is dangling — which would re-widen the drop
+R1 closed and item 126 emptied.  ~~Closing the reading instead takes the input out
+of the accumulation's domain altogether, so that arm has nothing left to decide.~~
+**CORRECTED (item 160): out of the accepted LANGUAGE, not out of the
+accumulation's domain.**  The scan succeeds through the `[`, the `b` and the
+`]`; only the following break or end of input refuses it, so the arm still has
+to build an invariant at the open — and it still cannot.  The gate belongs on
+`FlowBaseRoutes.value`, where the close can pay it.
 
-**The gate, priced by the compiler.**  Guard `FlowBaseRoutes.value` with a
-`Prop` and build: **ten** sites, and only one of them is work.
+**Zero movement on the corpus, and the arm is not vacuous.**  Over the suite's
+**406** leaves in **351** files and the repo's **143** `.yaml` files, the new
+arm produces a reading on **NONE** — the census is "last real token is a flow
+close AND `danglingNodePos?` reads `some`", which is the only way a verdict can
+move.  It fires on the constructed family above, which
+`Tests/Guards/Proofs/FlowRunDanglingClosed.lean` §1 and §3 hold apart.
 
-| class | sites | pays with |
-|---|---|---|
-| `FlowBaseRoutes.ofValue` | 1 | forwards to its own caller |
-| the six open arms with a non-park route — doc-suffix ×2, fresh document, bare document, block value, compact entry | 6 | nothing; the gate is ignored |
-| **the props arm** (`h_route` — item 160's §3) | **1** | the park's own verdict |
-| the two base closes (`resume.value`) | 2 | `danglingNodePos?_flowClose_reads_park` |
+**What the reading costs the emitter side.**  `trailingNodeRun?_push_none` was
+free at a flow close and is not any more: it takes `p.val.isFlowClose = false`,
+and the two outermost-close lemmas that spent it there — legacy
+`scanNextToken_flow_close_{seq,mapping}_outermost` and their indexed twins —
+discharge the check from the indent stack instead (`h_ids`, the sentinel alone,
+where no `Nat` column can match).  The indexed scanner takes the same three
+definitions, so legacy/indexed parity is structural rather than incidental.
 
-So the gate rides the structure as a PARAMETER — the shape `kc` already has
-(item 75: "a PARAMETER, not an index … nests forward it untouched and read
-nothing from it") — six arms pass `True`, the props arm passes
-`danglingNodePos? sc = none`, and the two closes pay it.
+**Item 158's second piece landed with it.**  `pendingBlockContent.h_closable`
+now carries `danglingNodePos? sc = none` exactly as `pendingContent.h_closable`
+has since item 157 — a completed node inside a block ENTRY parks there (`- a⏎b`
+is the same second bare document as `a: 1⏎b`), its ten producers ignore the
+premise, and its one consumer is `PendingNode.close_with_ssl`, which carries
+`h_nd` already.
 
-**The reading at the close, measured.**  `a: 1⏎&p [b]`: the park's array is
-**11** tokens when the `[` arrives, so the open lands at index 11 — `o =
-s_park.tokens.size`, the identity `FlowOpenHeld` carries — and at the `]` the
-stack read at the close's own index is still `[11]`, with `flowOpenIdx?`
-returning `some 11`.  That is what turns the close's verdict into the park's,
-and the refusal it carries is unchanged: `a: 1⏎&p [b]` is
-`invalidBareDocument 1,0` and `a: 1⏎&p [b]: c` scans clean, which is why the
-verdict has to reach the close rather than be decided at the open.
+**Price: eight NEW declarations, in the two scanners.**  `YamlToken.isFlowOpen`
+and `isFlowClose`; `flowOpenIdxLoop`, `flowOpenIdx?`, `propsRunStart` and their
+three indexed twins.  L4YAML declarations **7953 → 7961**; `#guard`s **7136 →
+7154**, test files 606 → 607.  No proof deleted.  The `[210]` constructor flip
+still reports **FIVE** errors at the same five lemma DEFINITIONS —
+`topLevelFlowResumeSep`, `rootMapRoute`, `rootMapRouteF`, `bareNodeRoute`,
+`structural_dispatch_to_pending`.
 
-**Landed.**  Three definitions and seventeen lemmas in
-`L4YAML/Proofs/Production/StreamAccum.lean`: `flowOpenIdxStack`,
-`flowOpenIdxStack_succ`, `flowOpenIdxLoop_eq_stack`, `flowOpenIdx?_eq_head`,
-`flowOpenIdxStack_congr_below`, `flowOpenIdxStack_push_below`,
-`push_getElem!_top`, `flowOpenIdxStack_push_open`,
-`flowOpenIdxStack_push_close`, `flowOpenIdxStack_push_other`, `FlowOpenHeld`
-with `push_open`/`push_close`/`push_other`/`stack_eq`/`stack_at`/`flowOpenIdx?`/
-`depth`, `flowTokenDepth`, and `danglingNodePos?_flowClose_reads_park`.
-Witnessed in `Tests/Guards/Proofs/FlowBracketBalance.lean`.  L4YAML declarations
-**7976 → 7996**; `#guard`s **7165 → 7175**, test files 608 → 609.  The `[210]`
-constructor flip still reports **FIVE** errors at the same five lemma
-DEFINITIONS.
+**Every gate green at the final source state.**  Full `lake build` **1148** jobs
+(+1 for the new guard), ZERO warnings; `run-all-tests.sh` **4496/4496** with
+Production Coverage Analysis **813/813** over **211/211** annotated productions;
+`eventscore` **347/358** with **0** `event-reject` and **0** `error-miss`;
+`suiterunner` **869 passed / 0 failed / 151 skipped**; `check-import-closure.sh`
+(**228** modules, **355** imports), `check-reflection-index.sh` (20/230/249/355)
+and `check-theorem-keyword.sh` (**25** capstones) OK; the annotation verifier the
+same **19** pre-existing name mismatches with coverage 211/211.  `#print axioms`
+over the eight new definitions and the five changed lemmas shows
+`propext`/`Quot.sound`/`Classical.choice` — **no** `sorryAx`.
 
-**Every gate green.**  Full `lake build` **1150** jobs (+1 for the new guard),
-ZERO warnings; `run-all-tests.sh` **4496/4496** with Production Coverage
-Analysis **813/813** over **211/211**; `eventscore` **347/358** with **0**
-`event-reject` and **0** `error-miss`; `suiterunner` **869 passed / 0 failed /
-151 skipped**; `check-import-closure.sh` (**228** modules, **355** imports),
-`check-reflection-index.sh` (20/230/249/355) and `check-theorem-keyword.sh`
-(**25** capstones) OK; the annotation verifier the same **19** pre-existing name
-mismatches with coverage 211/211.  `#print axioms` over all seventeen lemmas
-shows `propext`/`Quot.sound`/`Classical.choice` — **no** `sorryAx`.
+**Corrected in place.**  `PropsParkDangling` §3 recorded the flow-bodied family
+as one the scanner cannot see and implied the open as the fix; §3, §4's consumer
+table and §5's third piece are struck and rewritten with the measurement.
+`DanglingParkFace` §5 gains the closure.  `YamlToken.isNodeBody`'s docstring
+said a `]` "never heads a node RUN"; it now says why that is true of the TOKEN
+and false of the node, and points at `flowOpenIdx?`.
 
-**What remains, in two.**  (1) `FlowBaseRoutes` gains the gate parameter and the
-ten sites above pay it; then `pendingProps.h_route` takes
-`danglingNodePos? sc = none`, item 160's other 22 sites pay as its table says,
-and `ContentRouteGate` loses its right disjunct — the last CHARACTER residue in
-the content landing's bare-document route.  The parameter is a re-index of the
-tower (`FlowBaseRoutes`, `FlowOpenStack`, `FlowStackB`, `FlowStackK`), so
-Reflection 670's rule applies: the price is the SIGNATURES that ascribe those
-types, not the occurrences.  (2) Behind it, the block landing's own half —
-`bareNodeRoute_or_refused`'s `h_op = true` branch.  Its `-` family is already
-refused by the scanner (`a: 1⏎- x` is `invalidBareDocument 1,0`, `k:⏎␣␣a:
-1⏎␣␣- x` is `2,2`), so what is left is the `:`/`?` family, which is LEGAL and
-routes through the key cascade — a CONSUMER to narrow, as item 156 said, not a
-guard.
+**What remains: the property lane, in TWO pieces.**  (1) A premise shape for
+`pendingProps.h_route` that relays through a PROPERTY push.  `danglingNodePos?
+sc = none` does not — the run's start moves on the third property (`&a⏎!t &b x`,
+`PropsParkDangling` §4) — and what does has to see the run's two properties as
+being on different LINES, because three on one line are
+`invalidNodeProperties`.  Its three consumers are then all payable:
+`close_with_ssl` from `h_nd`, `accum_content_pending` from the relay, and
+~~`accum_flow_open_depth0` from the domain this item removed~~ — **NOT the
+third (item 160): that consumer is a grammar-only closure with no scanner state
+in it, and its input is legal (`a: 1⏎&p [b]: c`).**  (2) Behind it, the
+block landing's own half — `accum_block_on_closeThenBlock`'s `h_op = true`
+branch, which serves `pendingBlock`/`pendingMapValue` parks that have no
+completed tail — and then `content_dispatch_after_close`'s route, which item 156
+established is a route rather than a refutation and so needs the CONSUMER
+narrowed, not a guard.
+
 
 ### Item 160 (2026-09-13)
 
@@ -17685,116 +17692,110 @@ is LEGAL and routes through the key cascade — a CONSUMER to narrow, as item 15
 said, not a guard.  All of it is witnessed in
 `Tests/Guards/Proofs/PropsRunReadingTransport.lean`.
 
-### Item 159 (2026-09-13)
 
-**§9.2's dangling run, read through a flow collection — and the trigger that
-could not be the flow open.**  Item 158 measured a family the scanner accepted
-and the parser refused (`a: 1⏎&p [b]`, `invalidBareDocument 1 0`) and left two
-ways out: give the accumulation's flow arm the opaque resume, or close the hole
-in the scanner.  This item takes the second, and the first thing it establishes
-is that item 158's own description of the hole named the wrong trigger.
+### Item 161 (2026-09-13)
 
-**The flow OPEN ends nothing.**  The cheap fix — refuse at a `[`/`{` whose
-landing already reads a dangling run — was written, built, and REFUTED by the
-repo's own guards: a flow collection is a node like any other, so it can head an
-implicit KEY, and the `:` that resolves the run comes after the close.
-`a: 1⏎&p [b]: c` PARSES; so does `k:⏎␣␣m:⏎␣␣␣␣- a⏎␣␣&p [1]: b`, which
-`FlowFrameResumeRider` has witnessed since item 114 and which the gate refused.
-The park's reading is revocable through a collection exactly as item 141
-measured it revocable through a scalar.  That is why the gate — a break, or end
-of input — is unchanged here.
+**The bracket balance, read FORWARD — and the gate priced to its ten sites.**
+Item 160 left the property lane one hypothesis short: `FlowBaseRoutes.value` is
+where the gate belongs, and putting it there needs
+`trailingNodeRun?_flowClose_reads_park`, which holds its own answer as a
+premise — `flowOpenIdx? s_cl.tokens i = some s_park.tokens.size`, "the close
+finds ITS open".  This item supplies it, and the shape it is supplied in is the
+whole point.
 
-**What was wrong is the READING.**  `[161] ns-flow-node` is
-`c-ns-properties? ns-flow-content`, and `ns-flow-content` is a flow collection
-as readily as a scalar.  A collection is simply not ONE token, so a run whose
-body is one ends the array in a `]` and both of `trailingNodeRun?`'s arms report
-no run at all — which is why `a: 1⏎&p b` was refused and `a: 1⏎&p [b]` was not.
-The third arm reads the close back to its matching open (`flowOpenIdx?`, a
-bracket-counting walk backward, structurally recursive like
-`sameIndentSequenceOpenLoop`) and continues the `[96]` walk-back from there
-(`propsRunStart`), so the run it reports STARTS where the parser reports:
+**A backward walk is not a step invariant.**  `flowOpenIdx?` reads the token
+array BACKWARD from the close, counting closes it has yet to balance.  Nothing
+an accumulation carries can maintain that: it is a fact about a finished array,
+re-derived from scratch at every reading, and there is no step at which it
+"becomes" true.  The same balance read FORWARD is a STACK — `flowOpenIdxStack`,
+the indices of the flow opens not yet closed in `ts[0, i)`, innermost first —
+and a stack is maintained one push at a time.
 
-| shape | before | after | parser |
-|---|---|---|---|
-| `a: 1⏎&p [b]`, `a: 1⏎&p {b: 1}`, `a: 1⏎!t [b]`, `- a⏎&p [b]` | SCAN-OK | `invalidBareDocument 1,0` | same |
-| `k:⏎␣␣a: 1⏎␣␣&p [b]` / `k:⏎␣␣a: 1⏎&p [b]` | SCAN-OK | `2,2` / `2,0` | same |
-| `a: 1⏎&p [b]: c`, `k:⏎␣␣m:⏎␣␣␣␣- a⏎␣␣&p [1]: b` | SCAN-OK | SCAN-OK | PARSE-OK |
-| `&p [1, 2]`, `k: &p [1, 2]`, `- &p [1, 2]`, `k: [1, 2]⏎m: 3` | SCAN-OK | SCAN-OK | PARSE-OK |
+`flowOpenIdxLoop_eq_stack` is that the two readings are the same reading, and
+it holds at every depth at once: the backward walk with `d` closes outstanding
+is the `d`-th element of the forward stack.  The three transports are then the
+entire per-step cost — an open conses its own index, a close pops the innermost,
+and **everything else is inert**, which is what carries a reading across the
+placeholders a simple key reserves.  `FlowOpenHeld ts d o S` packages the one
+shape a flow tower needs: the base frame's own open at index `o`, still held
+under `d` nested ones.
 
-**The trade is items 132–134's and 145's, and it leaves `scannerDrop` alone.**
-The alternative on the table was to hand `accum_flow_open_depth0`'s props arm
-the opaque resume wherever its park is dangling — which would re-widen the drop
-R1 closed and item 126 emptied.  ~~Closing the reading instead takes the input out
-of the accumulation's domain altogether, so that arm has nothing left to decide.~~
-**CORRECTED (item 160): out of the accepted LANGUAGE, not out of the
-accumulation's domain.**  The scan succeeds through the `[`, the `b` and the
-`]`; only the following break or end of input refuses it, so the arm still has
-to build an invariant at the open — and it still cannot.  The gate belongs on
-`FlowBaseRoutes.value`, where the close can pay it.
+**Where the depth index comes from, and where it does not.**  Not from the
+scanner.  The accumulation already carries the tower's depth as `FlowStackB`'s
+own index, and a base frame reads `d = 0` — so `FlowOpenHeld.flowOpenIdx?`
+discharges item 160's premise from a number the invariant already has.  That the
+token array's own depth agrees with `sc.flowLevel` is a CROSS-CHECK on the
+definition rather than a dependency, and it is measured rather than assumed:
+`flowTokenDepth = flowLevel` at **every step** of every input of length ≤ 6 over
+an eleven-symbol flow alphabet — 1 771 561 inputs, **1 638 834 steps**, maximum
+depth 6, no disagreement — and over the repository's own `examples/` (139 files,
+1 562 steps).  The alphabet carries both brackets, both closes, the two
+separators, a node, a `[96]` property and the three things that END a token
+(Reflection 614: adjacency is manufactured by termination).  CI carries the
+length-≤ 4 sweep (14 641 inputs, 27 143 steps) as four `#guard`s; the longer
+bound is stated here as a measurement with its alphabet, not as a claim about
+all inputs.
 
-**Zero movement on the corpus, and the arm is not vacuous.**  Over the suite's
-**406** leaves in **351** files and the repo's **143** `.yaml` files, the new
-arm produces a reading on **NONE** — the census is "last real token is a flow
-close AND `danglingNodePos?` reads `some`", which is the only way a verdict can
-move.  It fires on the constructed family above, which
-`Tests/Guards/Proofs/FlowRunDanglingClosed.lean` §1 and §3 hold apart.
+**The gate, priced by the compiler.**  Guard `FlowBaseRoutes.value` with a
+`Prop` and build: **ten** sites, and only one of them is work.
 
-**What the reading costs the emitter side.**  `trailingNodeRun?_push_none` was
-free at a flow close and is not any more: it takes `p.val.isFlowClose = false`,
-and the two outermost-close lemmas that spent it there — legacy
-`scanNextToken_flow_close_{seq,mapping}_outermost` and their indexed twins —
-discharge the check from the indent stack instead (`h_ids`, the sentinel alone,
-where no `Nat` column can match).  The indexed scanner takes the same three
-definitions, so legacy/indexed parity is structural rather than incidental.
+| class | sites | pays with |
+|---|---|---|
+| `FlowBaseRoutes.ofValue` | 1 | forwards to its own caller |
+| the six open arms with a non-park route — doc-suffix ×2, fresh document, bare document, block value, compact entry | 6 | nothing; the gate is ignored |
+| **the props arm** (`h_route` — item 160's §3) | **1** | the park's own verdict |
+| the two base closes (`resume.value`) | 2 | `danglingNodePos?_flowClose_reads_park` |
 
-**Item 158's second piece landed with it.**  `pendingBlockContent.h_closable`
-now carries `danglingNodePos? sc = none` exactly as `pendingContent.h_closable`
-has since item 157 — a completed node inside a block ENTRY parks there (`- a⏎b`
-is the same second bare document as `a: 1⏎b`), its ten producers ignore the
-premise, and its one consumer is `PendingNode.close_with_ssl`, which carries
-`h_nd` already.
+So the gate rides the structure as a PARAMETER — the shape `kc` already has
+(item 75: "a PARAMETER, not an index … nests forward it untouched and read
+nothing from it") — six arms pass `True`, the props arm passes
+`danglingNodePos? sc = none`, and the two closes pay it.
 
-**Price: eight NEW declarations, in the two scanners.**  `YamlToken.isFlowOpen`
-and `isFlowClose`; `flowOpenIdxLoop`, `flowOpenIdx?`, `propsRunStart` and their
-three indexed twins.  L4YAML declarations **7953 → 7961**; `#guard`s **7136 →
-7154**, test files 606 → 607.  No proof deleted.  The `[210]` constructor flip
-still reports **FIVE** errors at the same five lemma DEFINITIONS —
-`topLevelFlowResumeSep`, `rootMapRoute`, `rootMapRouteF`, `bareNodeRoute`,
-`structural_dispatch_to_pending`.
+**The reading at the close, measured.**  `a: 1⏎&p [b]`: the park's array is
+**11** tokens when the `[` arrives, so the open lands at index 11 — `o =
+s_park.tokens.size`, the identity `FlowOpenHeld` carries — and at the `]` the
+stack read at the close's own index is still `[11]`, with `flowOpenIdx?`
+returning `some 11`.  That is what turns the close's verdict into the park's,
+and the refusal it carries is unchanged: `a: 1⏎&p [b]` is
+`invalidBareDocument 1,0` and `a: 1⏎&p [b]: c` scans clean, which is why the
+verdict has to reach the close rather than be decided at the open.
 
-**Every gate green at the final source state.**  Full `lake build` **1148** jobs
-(+1 for the new guard), ZERO warnings; `run-all-tests.sh` **4496/4496** with
-Production Coverage Analysis **813/813** over **211/211** annotated productions;
-`eventscore` **347/358** with **0** `event-reject` and **0** `error-miss`;
-`suiterunner` **869 passed / 0 failed / 151 skipped**; `check-import-closure.sh`
-(**228** modules, **355** imports), `check-reflection-index.sh` (20/230/249/355)
-and `check-theorem-keyword.sh` (**25** capstones) OK; the annotation verifier the
-same **19** pre-existing name mismatches with coverage 211/211.  `#print axioms`
-over the eight new definitions and the five changed lemmas shows
-`propext`/`Quot.sound`/`Classical.choice` — **no** `sorryAx`.
+**Landed.**  Three definitions and seventeen lemmas in
+`L4YAML/Proofs/Production/StreamAccum.lean`: `flowOpenIdxStack`,
+`flowOpenIdxStack_succ`, `flowOpenIdxLoop_eq_stack`, `flowOpenIdx?_eq_head`,
+`flowOpenIdxStack_congr_below`, `flowOpenIdxStack_push_below`,
+`push_getElem!_top`, `flowOpenIdxStack_push_open`,
+`flowOpenIdxStack_push_close`, `flowOpenIdxStack_push_other`, `FlowOpenHeld`
+with `push_open`/`push_close`/`push_other`/`stack_eq`/`stack_at`/`flowOpenIdx?`/
+`depth`, `flowTokenDepth`, and `danglingNodePos?_flowClose_reads_park`.
+Witnessed in `Tests/Guards/Proofs/FlowBracketBalance.lean`.  L4YAML declarations
+**7976 → 7996**; `#guard`s **7165 → 7175**, test files 608 → 609.  The `[210]`
+constructor flip still reports **FIVE** errors at the same five lemma
+DEFINITIONS.
 
-**Corrected in place.**  `PropsParkDangling` §3 recorded the flow-bodied family
-as one the scanner cannot see and implied the open as the fix; §3, §4's consumer
-table and §5's third piece are struck and rewritten with the measurement.
-`DanglingParkFace` §5 gains the closure.  `YamlToken.isNodeBody`'s docstring
-said a `]` "never heads a node RUN"; it now says why that is true of the TOKEN
-and false of the node, and points at `flowOpenIdx?`.
+**Every gate green.**  Full `lake build` **1150** jobs (+1 for the new guard),
+ZERO warnings; `run-all-tests.sh` **4496/4496** with Production Coverage
+Analysis **813/813** over **211/211**; `eventscore` **347/358** with **0**
+`event-reject` and **0** `error-miss`; `suiterunner` **869 passed / 0 failed /
+151 skipped**; `check-import-closure.sh` (**228** modules, **355** imports),
+`check-reflection-index.sh` (20/230/249/355) and `check-theorem-keyword.sh`
+(**25** capstones) OK; the annotation verifier the same **19** pre-existing name
+mismatches with coverage 211/211.  `#print axioms` over all seventeen lemmas
+shows `propext`/`Quot.sound`/`Classical.choice` — **no** `sorryAx`.
 
-**What remains: the property lane, in TWO pieces.**  (1) A premise shape for
-`pendingProps.h_route` that relays through a PROPERTY push.  `danglingNodePos?
-sc = none` does not — the run's start moves on the third property (`&a⏎!t &b x`,
-`PropsParkDangling` §4) — and what does has to see the run's two properties as
-being on different LINES, because three on one line are
-`invalidNodeProperties`.  Its three consumers are then all payable:
-`close_with_ssl` from `h_nd`, `accum_content_pending` from the relay, and
-~~`accum_flow_open_depth0` from the domain this item removed~~ — **NOT the
-third (item 160): that consumer is a grammar-only closure with no scanner state
-in it, and its input is legal (`a: 1⏎&p [b]: c`).**  (2) Behind it, the
-block landing's own half — `accum_block_on_closeThenBlock`'s `h_op = true`
-branch, which serves `pendingBlock`/`pendingMapValue` parks that have no
-completed tail — and then `content_dispatch_after_close`'s route, which item 156
-established is a route rather than a refutation and so needs the CONSUMER
-narrowed, not a guard.
+**What remains, in two.**  (1) `FlowBaseRoutes` gains the gate parameter and the
+ten sites above pay it; then `pendingProps.h_route` takes
+`danglingNodePos? sc = none`, item 160's other 22 sites pay as its table says,
+and `ContentRouteGate` loses its right disjunct — the last CHARACTER residue in
+the content landing's bare-document route.  The parameter is a re-index of the
+tower (`FlowBaseRoutes`, `FlowOpenStack`, `FlowStackB`, `FlowStackK`), so
+Reflection 670's rule applies: the price is the SIGNATURES that ascribe those
+types, not the occurrences.  (2) Behind it, the block landing's own half —
+`bareNodeRoute_or_refused`'s `h_op = true` branch.  Its `-` family is already
+refused by the scanner (`a: 1⏎- x` is `invalidBareDocument 1,0`, `k:⏎␣␣a:
+1⏎␣␣- x` is `2,2`), so what is left is the `:`/`?` family, which is LEGAL and
+routes through the key cascade — a CONSUMER to narrow, as item 156 said, not a
+guard.
 
 
 ### REMAINING, in order
