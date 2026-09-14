@@ -10444,6 +10444,355 @@ lemma trailingNodeRun?_push_node {ts : Array (Positioned YamlToken)}
   | Or.inl h => trailingNodeRun?_push_body h hprev hprop
   | Or.inr h => trailingNodeRun?_push_prop h hprev hprop
 
+/-! ### The run's reading, TRANSPORTED across the three pushes (item 160)
+
+    Item 158 gave `trailingNodeRun?` its two push lemmas at the array's tail —
+    a body and a property each start a run of ONE, provided the token in front
+    of them is not itself a `[96]` property.  That proviso is where a `[96]`
+    PARK lives: a park's own last token IS a property, so a push onto it is
+    exactly the case those lemmas exclude, and it is the case the property
+    lane has to relay through.
+
+    There are three such pushes and they do three different things:
+
+    * a **property** pushed onto a property MOVES the run's start back to the
+      park's own last token (`&a⏎!t &b x` — the start leaves the `&a` on line 0
+      for the `!t` on line 1, which is `PropsParkDangling` §4's witness);
+    * a **body** pushed onto a property PRESERVES the whole reading, which is
+      why a run's ride into its content carries §9.2's verdict unchanged;
+    * a **flow collection** pushed onto a property preserves it too — but only
+      through its close, and only because `trailingNodeRun?`'s third arm reads
+      the close back to the matching open (item 159).  `a: 1⏎&p [b]` reads
+      `1,0` at the park, at the `[`'s own park it reads nothing (in flow), and
+      at the `]` it reads `1,0` again.
+
+    The third is stated with the walk's own answer as a HYPOTHESIS
+    (`flowOpenIdx? … = some …`): finding the open is a fact about the token
+    array's bracket balance, which is the flow stack's to supply. -/
+
+/-- `propsRunStart` never reports past the index it was asked at. -/
+lemma propsRunStart_le (ts : Array (Positioned YamlToken)) (i : Nat) :
+    propsRunStart ts i ≤ i := by
+  unfold propsRunStart
+  cases hj : prevRealIdx? ts i with
+  | none => exact Nat.le_refl _
+  | some j =>
+    have hji : j < i := prevRealIdx?_lt hj
+    dsimp only []
+    split
+    · cases hk : prevRealIdx? ts j with
+      | none => dsimp only []; omega
+      | some k =>
+        have hkj : k < j := prevRealIdx?_lt hk
+        dsimp only []
+        split <;> omega
+    · exact Nat.le_refl _
+
+/-- The backward bracket walk lands strictly below where it started. -/
+lemma flowOpenIdxLoop_lt {ts : Array (Positioned YamlToken)} :
+    ∀ {d i o : Nat}, flowOpenIdxLoop ts d i = some o → o < i := by
+  intro d i
+  induction i generalizing d with
+  | zero => intro o h; cases h
+  | succ n ih =>
+    intro o h
+    unfold flowOpenIdxLoop at h
+    dsimp only [] at h
+    split at h
+    · exact Nat.lt_succ_of_lt (ih h)
+    · split at h
+      · split at h
+        · rw [← Option.some.inj h]; omega
+        · exact Nat.lt_succ_of_lt (ih h)
+      · exact Nat.lt_succ_of_lt (ih h)
+
+/-- Every arm of `trailingNodeRun?` reports a start inside the array, with
+    `prevRealIdx?` of that start as the predecessor.  This is what bounds the
+    two slots `danglingNodePos?` reads, and so what lets the reading be
+    transported by an agreement BELOW the park's own array. -/
+lemma trailingNodeRun?_bounds {ts : Array (Positioned YamlToken)}
+    {st : Nat} {pred : Option Nat} (h : trailingNodeRun? ts = some (st, pred)) :
+    st < ts.size ∧ pred = prevRealIdx? ts st := by
+  unfold trailingNodeRun? at h
+  cases hi : prevRealIdx? ts ts.size with
+  | none => rw [hi] at h; exact absurd h (by simp)
+  | some i =>
+    have hilt : i < ts.size := prevRealIdx?_lt hi
+    rw [hi] at h
+    dsimp only [] at h
+    split at h
+    · cases hj : prevRealIdx? ts i with
+      | none =>
+        rw [hj] at h; dsimp only [] at h
+        simp only [Option.some.injEq, Prod.mk.injEq] at h
+        exact ⟨by omega, by rw [h.1] at h ⊢; exact h.2.symm⟩
+      | some j =>
+        have hji : j < i := prevRealIdx?_lt hj
+        rw [hj] at h; dsimp only [] at h
+        split at h <;>
+          (simp only [Option.some.injEq, Prod.mk.injEq] at h
+           exact ⟨by omega, by rw [h.1] at h ⊢; exact h.2.symm⟩)
+    · split at h
+      · cases hj : prevRealIdx? ts i with
+        | none =>
+          rw [hj] at h; dsimp only [] at h
+          simp only [Option.some.injEq, Prod.mk.injEq] at h
+          exact ⟨by omega, by rw [h.1] at h ⊢; exact h.2.symm⟩
+        | some j =>
+          have hji : j < i := prevRealIdx?_lt hj
+          rw [hj] at h; dsimp only [] at h
+          split at h
+          · cases hk : prevRealIdx? ts j with
+            | none =>
+              rw [hk] at h; dsimp only [] at h
+              simp only [Option.some.injEq, Prod.mk.injEq] at h
+              exact ⟨by omega, by rw [h.1] at h ⊢; exact h.2.symm⟩
+            | some k =>
+              have hkj : k < j := prevRealIdx?_lt hk
+              rw [hk] at h; dsimp only [] at h
+              split at h <;>
+                (simp only [Option.some.injEq, Prod.mk.injEq] at h
+                 exact ⟨by omega, by rw [h.1] at h ⊢; exact h.2.symm⟩)
+          · simp only [Option.some.injEq, Prod.mk.injEq] at h
+            exact ⟨by omega, by rw [h.1] at h ⊢; exact h.2.symm⟩
+      · split at h
+        · cases ho : flowOpenIdx? ts i with
+          | none => rw [ho] at h; exact absurd h (by simp)
+          | some o =>
+            have hoi : o < i := flowOpenIdxLoop_lt ho
+            have hps := propsRunStart_le ts o
+            rw [ho] at h; dsimp only [] at h
+            simp only [Option.some.injEq, Prod.mk.injEq] at h
+            exact ⟨by omega, by rw [h.1] at h ⊢; exact h.2.symm⟩
+        · exact absurd h (by simp)
+
+/-- **§9.2's park verdict depends on the trailing RUN, not on the array.**  Two
+    states with the same flow level, the same indent stack and the same reading
+    read the same verdict, provided they agree on the slots that reading names
+    — and `trailingNodeRun?_bounds` says those slots are below the array the
+    reading was taken on. -/
+lemma danglingNodePos?_congr {s t : ScannerState}
+    (hflow : s.inFlow = t.inFlow)
+    (hind : s.indents = t.indents)
+    (hrun : trailingNodeRun? s.tokens = trailingNodeRun? t.tokens)
+    (hagree : ∀ j, j < t.tokens.size → s.tokens[j]! = t.tokens[j]!) :
+    danglingNodePos? s = danglingNodePos? t := by
+  unfold danglingNodePos?
+  rw [hflow, hind, hrun]
+  cases hf : t.inFlow with
+  | true => simp only [↓reduceIte]
+  | false =>
+    simp only [Bool.false_eq_true, ↓reduceIte]
+    cases hr : trailingNodeRun? t.tokens with
+    | none => rfl
+    | some stp =>
+      obtain ⟨st, pred⟩ := stp
+      obtain ⟨hst, hpred⟩ := trailingNodeRun?_bounds hr
+      cases pred with
+      | none => dsimp only []; simp only [hagree st hst]
+      | some j =>
+        have hj : j < st := prevRealIdx?_lt hpred.symm
+        dsimp only []
+        simp only [hagree j (by omega), hagree st hst]
+
+/-- A push agrees with the array below it. -/
+lemma push_getElem!_below {ts : Array (Positioned YamlToken)}
+    {p : Positioned YamlToken} : ∀ j, j < ts.size → (ts.push p)[j]! = ts[j]! := by
+  intro j hj
+  rw [getElem!_pos (ts.push p) j (by simp only [Array.size_push]; omega),
+      getElem!_pos ts j hj, Array.getElem_push_lt]
+
+/-- **A `[96]` property pushed onto a property run MOVES the start** — back to
+    the park's own last token, which is the walk-back's cap (§6.9 admits one
+    anchor and one tag).  The excluded case of `trailingNodeRun?_push_prop`. -/
+lemma trailingNodeRun?_push_prop_onProp {ts : Array (Positioned YamlToken)}
+    {p : Positioned YamlToken} {i : Nat}
+    (hb : p.val.isNodeProperty = true)
+    (hprev : prevRealIdx? ts ts.size = some i)
+    (hprop : ts[i]!.val.isNodeProperty = true) :
+    trailingNodeRun? (ts.push p) = some (i, prevRealIdx? ts i) := by
+  have hph : (p.val == YamlToken.placeholder) = false := by
+    cases hv : p.val <;> simp_all [YamlToken.isNodeProperty]
+  have hi : i < ts.size := prevRealIdx?_lt hprev
+  have hget : (ts.push p)[ts.size]! = p := by simp [Array.getElem_push]
+  have hgeti : (ts.push p)[i]! = ts[i]! := push_getElem!_below i hi
+  have hlast : prevRealIdx? (ts.push p) (ts.push p).size = some ts.size := by
+    have hsz' : (ts.push p).size = ts.size + 1 := Array.size_push ..
+    rw [hsz']
+    show (if (ts.push p)[ts.size]!.val == .placeholder then
+            prevRealIdx? (ts.push p) ts.size else some ts.size) = some ts.size
+    rw [hget, hph]; rfl
+  have hpred : prevRealIdx? (ts.push p) ts.size = some i := by
+    rw [prevRealIdx?_push ts.size (by omega)]; exact hprev
+  have hpredi : prevRealIdx? (ts.push p) i = prevRealIdx? ts i :=
+    prevRealIdx?_push i (by omega)
+  unfold trailingNodeRun?
+  rw [hlast]
+  simp only [hget, hb, ↓reduceIte]
+  rw [hpred]
+  dsimp only []
+  rw [hgeti, hprop]
+  simp [hpredi]
+
+/-- **A node BODY pushed onto a property run PRESERVES the whole reading** —
+    the walk-back reaches the same start and the same predecessor, so §9.2's
+    verdict rides a run's own content unchanged (`a: 1⏎&p b` is refused at the
+    `&`, where `a: 1⏎&p` already was). -/
+lemma trailingNodeRun?_push_body_onProp {ts : Array (Positioned YamlToken)}
+    {p : Positioned YamlToken} {i : Nat}
+    (hb : p.val.isNodeBody = true)
+    (hprev : prevRealIdx? ts ts.size = some i)
+    (hprop : ts[i]!.val.isNodeProperty = true) :
+    trailingNodeRun? (ts.push p) = trailingNodeRun? ts := by
+  have hph : (p.val == YamlToken.placeholder) = false := by
+    cases hv : p.val <;> simp_all [YamlToken.isNodeBody]
+  have hp : p.val.isNodeProperty = false := by
+    cases hv : p.val <;> simp_all [YamlToken.isNodeBody, YamlToken.isNodeProperty]
+  have hi : i < ts.size := prevRealIdx?_lt hprev
+  have hget : (ts.push p)[ts.size]! = p := by simp [Array.getElem_push]
+  have hgetj : ∀ j, j < ts.size → (ts.push p)[j]! = ts[j]! := push_getElem!_below
+  have hlast : prevRealIdx? (ts.push p) (ts.push p).size = some ts.size := by
+    have hsz' : (ts.push p).size = ts.size + 1 := Array.size_push ..
+    rw [hsz']
+    show (if (ts.push p)[ts.size]!.val == .placeholder then
+            prevRealIdx? (ts.push p) ts.size else some ts.size) = some ts.size
+    rw [hget, hph]; rfl
+  have hpred : prevRealIdx? (ts.push p) ts.size = some i := by
+    rw [prevRealIdx?_push ts.size (by omega)]; exact hprev
+  have hpredi : prevRealIdx? (ts.push p) i = prevRealIdx? ts i :=
+    prevRealIdx?_push i (by omega)
+  unfold trailingNodeRun?
+  rw [hlast, hprev]
+  simp only [hget, hb, hp, Bool.false_eq_true, ↓reduceIte]
+  rw [hpred]
+  dsimp only []
+  rw [hgetj i hi, hprop, hpredi]
+  simp only [↓reduceIte]
+  cases hk : prevRealIdx? ts i with
+  | none => simp [prevRealIdx?_push i (by omega : i ≤ ts.size)]
+  | some k =>
+    have hki : k < i := prevRealIdx?_lt hk
+    dsimp only []
+    rw [hgetj k (by omega)]
+    cases hkp : ts[k]!.val.isNodeProperty with
+    | false => simp [prevRealIdx?_push i (by omega : i ≤ ts.size)]
+    | true => simp [prevRealIdx?_push k (by omega : k ≤ ts.size)]
+
+/-- The trailing run of an array whose last real token is a `[96]` property,
+    written through `propsRunStart` — the same walk-back the flow-close arm
+    runs from the matching open. -/
+lemma trailingNodeRun?_of_lastProp {ts : Array (Positioned YamlToken)} {i : Nat}
+    (hprev : prevRealIdx? ts ts.size = some i)
+    (hprop : ts[i]!.val.isNodeProperty = true) :
+    trailingNodeRun? ts
+      = some (propsRunStart ts ts.size, prevRealIdx? ts (propsRunStart ts ts.size)) := by
+  unfold trailingNodeRun? propsRunStart
+  rw [hprev]
+  simp only [hprop, ↓reduceIte]
+
+lemma prevRealIdx?_congr_below {a b : Array (Positioned YamlToken)} {m : Nat}
+    (h : ∀ j, j < m → a[j]! = b[j]!) :
+    ∀ i, i ≤ m → prevRealIdx? a i = prevRealIdx? b i := by
+  intro i
+  induction i with
+  | zero => intro _; rfl
+  | succ n ih =>
+    intro hle
+    show (if a[n]!.val == .placeholder then prevRealIdx? a n else some n)
+        = (if b[n]!.val == .placeholder then prevRealIdx? b n else some n)
+    rw [h n (by omega), ih (by omega)]
+
+lemma propsRunStart_congr_below {a b : Array (Positioned YamlToken)} {m : Nat}
+    (h : ∀ j, j < m → a[j]! = b[j]!) {i : Nat} (hi : i ≤ m) :
+    propsRunStart a i = propsRunStart b i := by
+  unfold propsRunStart
+  rw [prevRealIdx?_congr_below h i hi]
+  cases hj : prevRealIdx? b i with
+  | none => rfl
+  | some j =>
+    have hji : j < i := prevRealIdx?_lt hj
+    dsimp only []
+    rw [h j (by omega), prevRealIdx?_congr_below h j (by omega)]
+    cases hk : prevRealIdx? b j with
+    | none => rfl
+    | some k =>
+      have hkj : k < j := prevRealIdx?_lt hk
+      dsimp only []
+      rw [h k (by omega)]
+
+lemma isFlowClose_not_isNodeProperty {t : YamlToken} (h : t.isFlowClose = true) :
+    t.isNodeProperty = false := by
+  cases t <;> simp_all [YamlToken.isFlowClose, YamlToken.isNodeProperty]
+
+lemma isFlowClose_not_isNodeBody {t : YamlToken} (h : t.isFlowClose = true) :
+    t.isNodeBody = false := by
+  cases t <;> simp_all [YamlToken.isFlowClose, YamlToken.isNodeBody]
+
+/-- **A flow COLLECTION pushed onto a property run preserves the reading** —
+    read at its CLOSE (item 160).  `b` is the run's own park and `a` the array
+    at the `]`: item 159's third arm walks the close back to the open at
+    `b.size`, `propsRunStart` continues the `[96]` walk-back from there, and
+    both readings only ever touch slots below `b.size` — so the two agree.
+
+    The walk's answer rides as a HYPOTHESIS.  That the close finds ITS open is
+    a statement about the array's bracket balance, and the balance is the flow
+    stack's to know; this lemma is what that knowledge would buy. -/
+lemma trailingNodeRun?_flowClose_reads_park
+    {a b : Array (Positioned YamlToken)} {i k : Nat}
+    (hagree : ∀ j, j < b.size → a[j]! = b[j]!)
+    (hbprev : prevRealIdx? b b.size = some k)
+    (hbprop : b[k]!.val.isNodeProperty = true)
+    (halast : prevRealIdx? a a.size = some i)
+    (haclose : a[i]!.val.isFlowClose = true)
+    (haopen : flowOpenIdx? a i = some b.size) :
+    trailingNodeRun? a = trailingNodeRun? b := by
+  have hnp := isFlowClose_not_isNodeProperty haclose
+  have hnb := isFlowClose_not_isNodeBody haclose
+  have hst : propsRunStart a b.size = propsRunStart b b.size :=
+    propsRunStart_congr_below hagree (Nat.le_refl _)
+  have hle : propsRunStart b b.size ≤ b.size := propsRunStart_le b b.size
+  have hpred : prevRealIdx? a (propsRunStart b b.size)
+      = prevRealIdx? b (propsRunStart b b.size) :=
+    prevRealIdx?_congr_below hagree _ hle
+  rw [trailingNodeRun?_of_lastProp hbprev hbprop]
+  unfold trailingNodeRun?
+  rw [halast]
+  simp only [hnp, hnb, haclose, Bool.false_eq_true, ↓reduceIte]
+  rw [haopen]
+  dsimp only []
+  rw [hst, hpred]
+
+/-- **The property push, at the scanner state** — the reading one `&`/`!`
+    later, when the park's own tail is a `[96]` property.  The start is the
+    PARK's last token, not the pushed one, which is why a premise stated as
+    `danglingNodePos? sc = none` does not relay through a run's extension. -/
+lemma trailingNodeRun?_dispatch_prop_onProp {s s' : ScannerState} {c : Char} {i : Nat}
+    (hok : scanNextToken_dispatchContent s c = .ok s')
+    (hc : c = '&' ∨ c = '!')
+    (hprev : prevRealIdx? s.tokens s.tokens.size = some i)
+    (hiprop : s.tokens[i]!.val.isNodeProperty = true) :
+    trailingNodeRun? s'.tokens = some (i, prevRealIdx? s.tokens i) := by
+  obtain ⟨t, ht, htok⟩ := dispatchContent_tokens_push_prop hok hc
+  rw [htok]
+  exact trailingNodeRun?_push_prop_onProp ht hprev hiprop
+
+/-- **The body push, at the scanner state** — §9.2's verdict is UNCHANGED when
+    a held `[96]` run takes its own content.  The ride into `[161]`'s
+    `propsContent` carries the park's refusal with it. -/
+lemma danglingNodePos?_dispatch_body_onProp {s s' : ScannerState} {c : Char} {i : Nat}
+    (hok : scanNextToken_dispatchContent s c = .ok s')
+    (hna : c ≠ '&') (hnt : c ≠ '!')
+    (hprev : prevRealIdx? s.tokens s.tokens.size = some i)
+    (hiprop : s.tokens[i]!.val.isNodeProperty = true) :
+    danglingNodePos? s' = danglingNodePos? s := by
+  obtain ⟨t, ht, htok⟩ := dispatchContent_tokens_push hok hna hnt
+  refine danglingNodePos?_congr ?_ (IndentStackBase.dispatchContent_preserves_indents hok)
+    ?_ ?_
+  · unfold ScannerState.inFlow
+    rw [ScannerCorrectness.dispatchContent_preserves_flowLevel _ c _ hok]
+  · rw [htok]; exact trailingNodeRun?_push_body_onProp ht hprev hiprop
+  · rw [htok]; exact push_getElem!_below
+
 
 lemma completesFlowValue_not_offersNodeSlot {t : YamlToken}
     (h : t.completesFlowValue = true) : t.offersNodeSlot = false := by
