@@ -238,17 +238,14 @@ example {sc s_prep s' : ScannerState} {c : Char}
   | true =>
     exact danglingPark_refutes_route h_nd h_pre h_tail h_dispatch h_flow' h_op
 
--- The gate is what carries that refutation into a route the props arm shares:
--- a park that HAS the reading takes the left disjunct and refutes; `&`/`!` park
--- as `pendingProps`, which has no reading to hand over, and take the right one.
+-- The gate is what carries that refutation into a route the props arm shares.
 -- (Item 158 took `c ≠ '&' ∧ c ≠ '!'` off the left disjunct: the refutation is
--- character-uniform now, and what the right disjunct names is the missing
--- FIELD.)
-example {s' : ScannerState} {c : Char} (h : c = '&' ∨ c = '!') :
-    ContentRouteGate s' c := Or.inr h
-
+-- character-uniform.  ~~`&`/`!` park as `pendingProps`, which has no reading to
+-- hand over, and take the right one.~~ **Item 165 gave `pendingProps.h_route`
+-- the reading, and the right disjunct is DELETED** — the gate is the reading,
+-- for every content character alike.)
 example {s' : ScannerState} {c : Char} (h_nd : danglingNodePos? s' = none) :
-    ContentRouteGate s' c := Or.inl h_nd
+    ContentRouteGate s' c := h_nd
 
 /-! ### The route census after the halving
 
@@ -257,7 +254,7 @@ they are three different strengths:
 
 | site | form | what is left of its domain |
 |---|---|---|
-| `accum_content_pending` ×2 (the content landing) | `bareNodeRoute_or_refused_content` | the `&`/`!` gate, and parks with no completed tail |
+| `accum_content_pending` ×2 (the content landing) | `bareNodeRoute_or_refused_content` | ~~the `&`/`!` gate, and~~ parks with no completed tail (item 165) |
 | `accum_block_on_closeThenBlock` (the block landing) | `bareNodeRoute_or_refused` | item 139's `h_op = true` half, whole |
 | `content_dispatch_after_close` (row 19's 1c) | `bareNodeRoute` | a ROUTE, not a refutation (item 156) |
 

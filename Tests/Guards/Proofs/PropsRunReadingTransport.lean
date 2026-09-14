@@ -27,8 +27,14 @@ the last CHARACTER residue in the content landing's bare-document route.
 |---|---|---|
 | the park's close (`PendingNode.close_with_ssl`) | 1 | `h_nd`, its own parameter |
 | the landing producers (`content_dispatch_routed` and its four siblings) | 10 | the gate itself, once the right disjunct is gone |
-| the run's rides — its extension and its content (`accum_content_pending`) | 11 | the RELAY, below |
-| the run's ride into a FLOW COLLECTION (`accum_flow_open_depth0`) | 1 | **nothing** |
+| the run's rides — its extension and its content (`accum_content_pending`) | 12 | the RELAY, below |
+| the run's ride into a FLOW COLLECTION (`accum_flow_open_depth0`) | 1 | ~~**nothing**~~ — item 161's gate, spent by item 165's props arm |
+
+**All four classes pay as of item 165**, and the table's own two surprises are
+recorded where they were found: the flow row needed a gate on
+`FlowBaseRoutes.value` (items 161–164), and the extension row needed §6.9's
+length check (item 165's `propertyRunFull`) before the relay below was true at
+all.  The count is TWELVE rides rather than eleven — the re-count is item 165's.
 
 **The relay, in three pushes.**  A park's own last token is a `[96]` property,
 so every push onto it is the case item 158's push lemmas exclude, and the three
@@ -110,20 +116,29 @@ example {s s' : ScannerState} {c : Char} {i : Nat}
   rw [← danglingNodePos?_dispatch_body_onProp hok hna hnt hprev hiprop]
   exact h_nd
 
-/-! ### A PROPERTY moves the start
+/-! ### A PROPERTY moves the start — and item 165 empties the arm
 
-`&a⏎!t &b x`: at step 2 the run starts at the `&a` on line 0; at step 3 the
-third property pushes the start down to the `!t` on line 1.  So the reading at
-the park and the reading one push later are readings of DIFFERENT tokens, and a
-premise stated as `danglingNodePos? sc = none` does not relay through a run's
-own extension.  This is `PropsParkDangling` §4's witness, now with a lemma
-under it. -/
+`&a⏎!t &b x` was this file's witness: at step 2 the run started at the `&a` on
+line 0, and the THIRD property pushed the start down to the `!t` on line 1, so
+the reading at the park and the reading one push later were readings of
+DIFFERENT tokens.  That is why the premise could not be stated as
+`danglingNodePos? sc = none` and relayed through a run's own extension.
+
+**Item 165 refuses the input instead.**  `[96] c-ns-properties` is one optional
+anchor and one optional tag, so a run is at most TWO properties long — and both
+§6.9 guards decide by KIND on the current LINE, which is blind to a run that
+crosses a break.  `propertyRunFull` decides by LENGTH and reads the RUN, so the
+third property is refused where `TokenParser` already refused the document, and
+the walk stops at step 3.  With the arm empty the start never moves at a park
+the scanner reaches, and the premise relays. -/
 
 #guard walk "&a\n!t &b x\n" 6
-  == "run=none park=none ; run=prop@0,0 park=none ; run=prop@0,0 park=none ; \
-run=prop@1,0 park=none ; run=prop@1,0 park=none ; —"
+  == "run=none park=none ; run=prop@0,0 park=none ; run=prop@0,0 park=none ; — ; — ; —"
+#guard scanOk "&a\n!t &b x\n"
+  == "SCAN-ERR L4YAML.ScanError.invalidNodeProperties '&' 1 3"
 
-/-- Where the start goes: the PARK's own last token, not the pushed one. -/
+/-- Where the start WOULD go: the PARK's own last token, not the pushed one.
+    The lemma stands; what item 165 removed is its reachable input. -/
 example {s s' : ScannerState} {c : Char} {i : Nat}
     (hok : scanNextToken_dispatchContent s c = .ok s')
     (hc : c = '&' ∨ c = '!')
@@ -132,11 +147,18 @@ example {s s' : ScannerState} {c : Char} {i : Nat}
     trailingNodeRun? s'.tokens = some (i, prevRealIdx? s.tokens i) :=
   trailingNodeRun?_dispatch_prop_onProp hok hc hprev hiprop
 
--- The move needs the run's two properties on DIFFERENT lines: three on one
--- line are refused by §6.9's own guard, and two are all a park ever holds.
+/-- …and the fact that empties it, read off the dispatch that succeeded. -/
+example {s s' : ScannerState} (hok : scanNextToken_dispatchContent s '&' = .ok s') :
+    propertyRunFull s = false :=
+  propertyRunFull_false_of_anchor_dispatch hok
+
+-- Three properties on ONE line were already refused by §6.9's kind guard; what
+-- item 165 adds is the same answer when the run crosses a break.  The TWO-long
+-- run both stop at is untouched, on a line or across one.
 #guard scanOk "&a !t &b x\n"
   == "SCAN-ERR L4YAML.ScanError.invalidNodeProperties '&' 0 6"
 #guard (scanOk "&a !t x\n", parseOk "&a !t x\n") == ("SCAN-OK", "PARSE-OK")
+#guard (scanOk "&a\n!t x\n", parseOk "&a\n!t x\n") == ("SCAN-OK", "PARSE-OK")
 
 /-! ### A flow COLLECTION preserves it — at the CLOSE
 
@@ -183,7 +205,15 @@ example {ts : Array (Positioned YamlToken)} {st : Nat} {pred : Option Nat}
     st < ts.size ∧ pred = prevRealIdx? ts st :=
   trailingNodeRun?_bounds h
 
-/-! ## §3  The site that cannot pay, and why it is not a park
+/-! ## §3  The site that could not pay — closed at item 165
+
+Everything below stood when it was written and is kept as the record of WHY the
+gate went on `FlowBaseRoutes.value` rather than here.  It is paid now: item 161
+supplied the bracket balance as a forward stack, item 162 carried it across the
+collection's interior, item 164 landed the conjunct and spent the gate at the
+two base closes, and item 165 made this arm open at `some` — over the park
+itself when the landing crossed no break, and ungated when it did, where §9.2's
+own check pays.
 
 `accum_flow_open_depth0`'s props arm builds `FlowBaseRoutes.value` — the
 collection read as the enclosing construct's own node — by applying the park's
@@ -229,13 +259,11 @@ two drop rides; this would put one back, on accepted input. -/
 
 /-! ## §4  What the next item needs
 
-1. `flowOpenIdx? s_cl.tokens i = some s_park.tokens.size` at a depth-0 flow
-   close — the bracket balance the flow stack already indexes, read on the
-   token array.  With it, §1's third lemma turns the close's verdict into the
-   park's, and `FlowBaseRoutes.value` can carry the gate.
-2. Then `pendingProps.h_route` takes `danglingNodePos? sc = none`, its 23 sites
-   pay as the table above says, and `ContentRouteGate` loses its right
-   disjunct.
+1. ~~`flowOpenIdx? s_cl.tokens i = some s_park.tokens.size` at a depth-0 flow
+   close~~ — **item 161**, as `flowOpenIdxStack` read FORWARD.
+2. ~~Then `pendingProps.h_route` takes `danglingNodePos? sc = none`, its 23
+   sites pay as the table above says, and `ContentRouteGate` loses its right
+   disjunct.~~ — **item 165**, with §6.9's length check under it.
 3. Behind both, the block landing's own half — `bareNodeRoute_or_refused`'s
    `h_op = true` branch.  Its `-` family is already refused by the scanner
    (`a: 1⏎- x` is `invalidBareDocument 1 0`, `k:⏎␣␣a: 1⏎␣␣- x` is `2,2`), so

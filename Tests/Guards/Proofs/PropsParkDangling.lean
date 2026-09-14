@@ -247,7 +247,7 @@ third cannot:
 | consumer | what it has |
 |---|---|
 | `PendingNode.close_with_ssl` | `h_nd`, item 157's own parameter — free |
-| `accum_content_pending` (the run's extension and its ride into content) | the NEXT park's premise, one push later |
+| `accum_content_pending` (the run's extension and its ride into content) | the NEXT park's premise, one push later — relayed since item 165 |
 | `accum_flow_open_depth0` (the ride into a flow collection) | ~~nothing: §3's park is live there~~ — item 159 took that input out of the domain |
 
 ~~The flow consumer is §3's own input read from the accumulation's side.  It can
@@ -257,30 +257,45 @@ instead**: a dangling run that rides into a flow collection is refused at the
 next break or at end of input, because the run is visible through the close now.
 The input that arm could not pay for no longer reaches it.
 
-The second consumer has its own obstacle, and it is a fact about the token
-array rather than about the grammar.  A property run's reading transports
-across a BODY push — the walk-back reaches the same run start — but not across
-a PROPERTY push, because the start moves: -/
+The second consumer had its own obstacle, and it was a fact about the token
+array rather than about the grammar.  A property run's reading transports across
+a BODY push — the walk-back reaches the same run start — but it did not transport
+across a PROPERTY push, because the start moved.
 
-#guard scanOk "&a\n!t &b x\n" == "SCAN-OK"
-#guard parseOk "&a\n!t &b x\n" == "PARSE-ERR L4YAML.ScanError.invalidBareDocument 1 3"
+**Item 165 removed the input rather than the lemma.**  `[96]` derives one
+optional anchor and one optional tag, so a run is at most TWO properties long,
+and both §6.9 guards decide by KIND on the current LINE — which is blind to a
+run that crosses a break.  `propertyRunFull` decides by LENGTH and reads the
+RUN, so `&a⏎!t &b x` is refused at the third property, where `TokenParser`
+already refused the document.  With that arm empty the start never moves at a
+park the scanner reaches, and the premise relays through all three pushes. -/
+
+#guard scanOk "&a\n!t &b x\n"
+  == "SCAN-ERR L4YAML.ScanError.invalidNodeProperties '&' 1 3"
+#guard parseOk "&a\n!t &b x\n"
+  == "PARSE-ERR L4YAML.ScanError.invalidNodeProperties '&' 1 3"
 
 -- `&a⏎!t &b x`: at step 2 the token run starts at the `&a` on line 0, because
--- `trailingNodeRun?` walks back over properties and has no line filter; at step
--- 3 the third property pushes the start down to the `!t` on line 1.  So the
--- reading at the park and the reading one push later are not the same reading,
--- and a premise stated as `danglingNodePos? sc = none` does not relay through
--- the run's own extension.
+-- `trailingNodeRun?` walks back over properties and has no line filter.  The
+-- third property is where the start would have moved; the walk has no step 3.
 #guard (List.range 5).map (fun n => parkAt "&a\n!t &b x\n" n)
   == ["run=none park=none",
       "run=prop@0,0 pred=no-slot park=none",
       "run=prop@0,0 pred=no-slot park=none",
-      "run=prop@1,0 pred=no-slot park=none",
-      "run=prop@1,0 pred=no-slot park=none"]
+      "no-state",
+      "no-state"]
 
--- The same three properties on ONE line are scanner-refused — §6.9 admits one
--- anchor and one tag — so the shape above exists only because the run crossed a
--- break, and `trailingPropertyRunOnLine`'s line filter is what lets it.
+-- The TWO-property run it stops at is untouched, across a break as on a line.
+#guard (List.range 5).map (fun n => parkAt "&a\n!t x\n" n)
+  == ["run=none park=none",
+      "run=prop@0,0 pred=no-slot park=none",
+      "run=prop@0,0 pred=no-slot park=none",
+      "run=prop@0,0 pred=no-slot park=none",
+      "no-state"]
+
+-- The same three properties on ONE line were already scanner-refused — §6.9's
+-- kind guard reads the line's own run — so what item 165 adds is the same
+-- answer where the run crossed a break and the line filter saw one token.
 #guard scanOk "&a !t &b x\n" == "SCAN-ERR L4YAML.ScanError.invalidNodeProperties '&' 0 6"
 
 /-! ## §5  What the next item needs

@@ -42,7 +42,9 @@ example {sc : ScannerState} {sp_start sp_block sp_scan sp_node sp_p : SurfPos}
     (h_real : LastTokenReal sc.tokens)
     (h_anchor : (trailingPropertyRunOnLine sc.tokens sc.line).any
       YamlToken.isAnchorProperty = true)
-    (h_route : ∀ sp_m, SBlockNode n .blockIn sp_node sp_m → SLYamlStream sp_start sp_m)
+    -- Item 165: the run's route takes §9.2's verdict now.
+    (h_route : danglingNodePos? sc = none →
+      ∀ sp_m, SBlockNode n .blockIn sp_node sp_m → SLYamlStream sp_start sp_m)
     (h_floor : IndentFloor sc n)
     (h_col0 : 0 < sp_scan.col)
     (h_ska : sc.simpleKeyAllowed = false)

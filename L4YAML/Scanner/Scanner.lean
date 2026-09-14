@@ -269,6 +269,29 @@ def propertyRunHasTag (s : ScannerState) : Bool :=
   (s.inFlow && (trailingPropertyRun s.tokens).any YamlToken.isTagProperty) ||
     (trailingPropertyRunOnLine s.tokens s.line).any YamlToken.isTagProperty
 
+/-- **Is the property run ending at the cursor already FULL?** (item 165)
+
+    `[96] c-ns-properties` is one optional `[101] c-ns-anchor-property` and one
+    optional `[97] c-ns-tag-property`, so a run is at most TWO tokens long and a
+    THIRD has no derivation whatever its kind.  The two guards above decide by
+    KIND, and outside a flow they read the current line's run — which is exactly
+    right for `&a !t &b` (refused on the line) and blind to `&a⏎!t &b`, where
+    the run crosses a break and the line-filtered reading sees one token.  This
+    one decides by LENGTH and reads the RUN, so where the breaks fall does not
+    change the answer.
+
+    Every input it refuses is already `[96]`-invalid — two anchors or two tags
+    on one node — and was refused by `TokenParser` one stage later. -/
+@[yaml_spec "6.9" 96 "c-ns-properties"]
+def propertyRunFull (s : ScannerState) : Bool :=
+  match prevRealIdx? s.tokens s.tokens.size with
+  | none => false
+  | some i =>
+    s.tokens[i]!.val.isNodeProperty &&
+      (match prevRealIdx? s.tokens i with
+       | none => false
+       | some j => s.tokens[j]!.val.isNodeProperty)
+
 /-- Is the cursor directly after a node property?  `[104] c-ns-alias-node` is an
     *alternative* to the properties-bearing form of `[161] ns-flow-node`, never
     its content, so `[&a *x]` and `&a *x` have no derivation. -/
@@ -697,7 +720,11 @@ def scanNextToken_dispatchContent (s : ScannerState) (c : Char) :
     -- §7.5 [161] (item 9f): and the anchor is delimited — `&a[b]` has no
     -- derivation.  Both tests share the SAME `if`, so the dispatcher gains no
     -- `if` and no join point (Reflection 613).
-    if propertyRunHasAnchor s || !propertyFollowerOk (anchorNameEnd s) then
+    -- Item 165: …and the run is at most two properties long, whatever kinds
+    -- they are and wherever its breaks fall.  A third disjunct on the SAME
+    -- `if`, so the dispatcher's shape is unchanged.
+    if propertyRunHasAnchor s || propertyRunFull s ||
+        !propertyFollowerOk (anchorNameEnd s) then
       .error (.invalidNodeProperties c s.line s.col)
     else do
       let s' ← scanAnchorOrAlias s true
@@ -728,7 +755,8 @@ def scanNextToken_dispatchContent (s : ScannerState) (c : Char) :
     -- guard keeps both tests on one `if` (and so the dispatcher's shape), and
     -- `propertyScanFollowerOk` is vacuous on `.error`, so a failing scan still
     -- reports its own error exactly as before.
-    if propertyRunHasTag s || !propertyScanFollowerOk (scanTag s) then
+    if propertyRunHasTag s || propertyRunFull s ||
+        !propertyScanFollowerOk (scanTag s) then
       .error (.invalidNodeProperties c s.line s.col)
     else do
       let s' ← scanTag s

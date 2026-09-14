@@ -1286,6 +1286,19 @@ def propertyRunHasTagIx {input : String} (s : ScannerStateIx input) : Bool :=
   (s.inFlow && (trailingPropertyRunIx s.tokens).any YamlToken.isTagProperty) ||
     (trailingPropertyRunOnLineIx s.tokens s.cursor.pos.line).any YamlToken.isTagProperty
 
+/-- §6.9 [96]: is the property run ending at the cursor already FULL — two
+    tokens, which is all `[96]` derives?  (Indexed twin of
+    `L4YAML.Scanner.propertyRunFull`; see its docstring for why the LENGTH
+    reading is what a run crossing a break needs.) -/
+def propertyRunFullIx {input : String} (s : ScannerStateIx input) : Bool :=
+  match prevRealIdxIx? s.tokens s.tokens.tokens.size with
+  | none => false
+  | some i =>
+    s.tokens.tokens[i]!.token.isNodeProperty &&
+      (match prevRealIdxIx? s.tokens i with
+       | none => false
+       | some j => s.tokens.tokens[j]!.token.isNodeProperty)
+
 /-- §6.9 [104]: is the cursor directly after a node property?  (Indexed twin of
     `L4YAML.Scanner.lastTokenIsNodeProperty`.) -/
 def lastTokenIsNodePropertyIx {input : String} (s : ScannerStateIx input) : Bool :=
@@ -1572,7 +1585,9 @@ def scanNextTokenIx_dispatchContent {input : String} (s : ScannerStateIx input)
     -- `|`/`>` guard below — no `__do_jp` join points.
     -- Item 9f (§7.5 [161]): and the anchor is delimited — `&a[b]`.  Same `if`,
     -- so the dispatcher's shape is unchanged (Reflection 613).
-    if propertyRunHasAnchorIx s || !propertyFollowerOkIx (anchorNameEndIx s) then
+    -- Item 165 (§6.9 [96]): and the run is at most two properties long.
+    if propertyRunHasAnchorIx s || propertyRunFullIx s ||
+        !propertyFollowerOkIx (anchorNameEndIx s) then
       .error (.invalidNodeProperties c s.cursor.pos.line s.cursor.pos.col)
     else do
       let s' ← scanAnchorOrAliasIx s true
@@ -1590,7 +1605,8 @@ def scanNextTokenIx_dispatchContent {input : String} (s : ScannerStateIx input)
   if c == '!' then
     -- Item 9e (§6.9 [96]): one tag per node.
     -- Item 9f (§7.5 [161]): and the tag is delimited — `!t"x"`, `!t[b]`.
-    if propertyRunHasTagIx s || !propertyScanFollowerOkIx (scanTagIx s) then
+    if propertyRunHasTagIx s || propertyRunFullIx s ||
+        !propertyScanFollowerOkIx (scanTagIx s) then
       .error (.invalidNodeProperties c s.cursor.pos.line s.cursor.pos.col)
     else do
       let s' ← scanTagIx s
