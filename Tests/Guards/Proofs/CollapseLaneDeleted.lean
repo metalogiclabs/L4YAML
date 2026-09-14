@@ -48,7 +48,7 @@ open L4YAML L4YAML.Scanner L4YAML.Surface L4YAML.Proofs.StreamAccum
 is what pins the deletion: were `shape` still there, this would not elaborate. -/
 
 example {sp_start : SurfPos} {n kc d : Nat} {ks km : Array Bool} {tl : FrameTail}
-    {a b : SurfPos} (h : FlowStackB sp_start n kc d ks km tl a b) : True :=
+    {a b : SurfPos} (h : FlowStackB sp_start n kc none d ks km tl a b) : True :=
   match h with
   | .nil _ _ => trivial
   | .«open» _ _ _ _ _ _ _ => trivial
@@ -60,8 +60,8 @@ type is the pin: while the collapse existed this returned a disjunction, and
 every consumer split on it. -/
 
 example {sp_start : SurfPos} {n kc d : Nat} {ks km : Array Bool} {tl : FrameTail}
-    {a b : SurfPos} (h : FlowStackB sp_start n kc (d + 1) ks km tl a b) :
-    FlowOpenStack sp_start n kc (d + 1) ks km tl a b := h.open_of_succ
+    {a b : SurfPos} (h : FlowStackB sp_start n kc none (d + 1) ks km tl a b) :
+    FlowOpenStack sp_start n kc none (d + 1) ks km tl a b := h.open_of_succ
 
 /-! ## §3  The families that ride the real lane
 

@@ -53,7 +53,7 @@ example (sc : ScannerState) (kc : Nat) : KmSound sc #[] kc := KmSound.empty sc k
     base-open premise at a NESTED open. -/
 example {sp_start : SurfPos} {n kc fl : Nat} {ks km : Array Bool}
     {tl : FrameTail} {a b : SurfPos}
-    (h : FlowOpenStack sp_start n kc fl ks km tl a b) : 0 < km.size := h.km_pos
+    (h : FlowOpenStack sp_start n kc none fl ks km tl a b) : 0 < km.size := h.km_pos
 
 /-! ## §2  So the outermost close reads a column, not an option -/
 

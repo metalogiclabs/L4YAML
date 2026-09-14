@@ -40,7 +40,7 @@ example {sp_start : SurfPos} {sc : ScannerState} {fl : Nat} {ks : Array Bool}
     {tl : FrameTail} {sp_block sp_flow : SurfPos}
     (h : FlowStackK sp_start sc fl ks tl sp_block sp_flow) :
     ∃ n, n ≤ minContentIndentOf sc := by
-  obtain ⟨n, -, -, -, -, h_floor, -⟩ := h
+  obtain ⟨n, -, -, -, -, -, h_floor, -⟩ := h
   exact ⟨n, h_floor⟩
 
 /-- ...and the separator arrives WITH its floor at the open. -/
@@ -110,10 +110,10 @@ example {sp_start : SurfPos} {sc : ScannerState} {fl : Nat} {ks : Array Bool}
     {sp_block sp_flow sp_prep sp_tok : SurfPos}
     (h : FlowStackK sp_start sc fl ks .value sp_block sp_flow)
     (h_fl : 0 < fl) :
-    ∃ n kc km, KeyAfterValueLayout sc ∨
+    ∃ n kc km g, KeyAfterValueLayout sc ∨
       (SSeparateLines n sp_flow sp_prep → GLit ':' sp_prep sp_tok →
-        FlowStackB sp_start n kc fl ks km .colon sp_block sp_tok) := by
-  obtain ⟨n, kc, km, -, -, -, h_prom⟩ := h
-  exact ⟨n, kc, km, ((h_prom h_fl).2 rfl).imp id (fun f => f sp_prep sp_tok)⟩
+        FlowStackB sp_start n kc g fl ks km .colon sp_block sp_tok) := by
+  obtain ⟨n, kc, km, g, -, -, -, h_prom⟩ := h
+  exact ⟨n, kc, km, g, ((h_prom h_fl).2 rfl).imp id (fun f => f sp_prep sp_tok)⟩
 
 end Tests.Guards.FlowStackFloorReal
