@@ -132,6 +132,7 @@ import Tests.Guards.Proofs.DanglingParkFace
 import Tests.Guards.Proofs.PropsParkDangling
 import Tests.Guards.Proofs.FlowRunDanglingClosed
 import Tests.Guards.Proofs.PropsRunReadingTransport
+import Tests.Guards.Proofs.FlowBracketBalance
 import Tests.Guards.Proofs.FlowFrameResumeRider
 import Tests.Guards.Proofs.UnderIndentInvariantMap
 import Tests.Guards.Proofs.ScalarWalkCrossLineFloor
