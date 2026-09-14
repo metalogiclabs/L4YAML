@@ -221,8 +221,11 @@ it").  Six open arms pass `True`, the props arm passes
 `danglingNodePos? sc = none`, and the two base closes pay it with §3.
 
 Behind that, the block landing's own half — `bareNodeRoute_or_refused`'s
-`h_op = true` branch, whose `-` family the scanner already refuses and whose
-`:`/`?` family is legal and routes through the key cascade: a CONSUMER to
-narrow, as item 156 said, not a guard. -/
+`h_op = true` branch, ~~whose `-` family the scanner already refuses and whose
+`:`/`?` family is legal and routes through the key cascade~~: a CONSUMER to
+narrow, as item 156 said, not a guard.  (**Item 166 corrected the reason**: the
+`-` family is legal too wherever a sequence is open at the landing's column, and
+what the branch wants is that collection's own continuation.  See
+`BlockLandingOpenSeq.lean`.) -/
 
 end L4YAML.Tests.Guards.FlowBracketBalance

@@ -12014,6 +12014,139 @@ lemma danglingPark_refutes_route {sc s_prep s' : ScannerState} {c : Char}
   rw [h_nd] at h
   cases h
 
+/-! ### The BLOCK landing's own half (item 166)
+
+`bareNodeRoute_or_refused` refutes the landing that stands at NO open level and
+leaves the other half whole.  Items 158–165 forecast that half as refusable —
+"the `-` family the scanner already refuses" — and the measurement says
+otherwise: the scanner refuses exactly the half where no sequence is open at the
+landing's column, and the rest is legal input the parser accepts.  What the
+branch serves is therefore not a missing guard but a missing ROUTE, and the
+lemmas below name which one.  See
+`Tests/Guards/Proofs/BlockLandingOpenSeq.lean`. -/
+
+/-- **§8.2.1's own refusal, as a lemma** — `scanBlockEntryValidate`'s error arm
+    read forward.  A `-` at a block MAPPING's own indent with no node slot
+    awaited and no same-indent sequence open is the second bare document
+    `[211]` has no production for, and `scanBlockEntry` never returns. -/
+lemma scanBlockEntry_error_of_bad {s : ScannerState}
+    (h_noflow : s.inFlow = false) (h_map : atMappingIndent s = true)
+    (h_slot : nodeSlotAwaited s.tokens = false)
+    (h_seq : sameIndentSequenceOpen s.tokens (s.col : Int) = false) :
+    ∃ e, scanBlockEntry s = .error e := by
+  unfold scanBlockEntry
+  simp only [bind, Except.bind, h_noflow, Bool.not_false, if_true]
+  split
+  · exact ⟨_, rfl⟩
+  · split
+    · exact ⟨_, rfl⟩
+    · unfold scanBlockEntryValidate
+      rw [if_pos (by simp [h_map, h_slot, h_seq])]
+      exact ⟨_, rfl⟩
+
+/-- …and the same refusal read off the DISPATCH, which is what the accumulation
+    holds.  A `-` that scanned at a block mapping's own indent, with no node
+    slot awaited, continues a same-indent sequence — there is no other reading
+    §8.2.1 leaves open. -/
+lemma dispatchBlockEntry_sameIndentSeq {s s' : ScannerState}
+    (h : scanNextToken_dispatchBlockIndicators s '-' = .ok (some s'))
+    (h_noflow : s.inFlow = false)
+    (h_slot : nodeSlotAwaited s.tokens = false)
+    (h_map : atMappingIndent s = true) :
+    sameIndentSequenceOpen s.tokens (s.col : Int) = true := by
+  cases h_seq : sameIndentSequenceOpen s.tokens (s.col : Int) with
+  | true => rfl
+  | false =>
+    obtain ⟨e, he⟩ := scanBlockEntry_error_of_bad h_noflow h_map h_slot h_seq
+    unfold scanNextToken_dispatchBlockIndicators at h
+    simp only [bind, Except.bind, pure, Except.pure, h_noflow, Bool.not_false,
+      Bool.and_true, beq_self_eq_true, Bool.true_and] at h
+    split at h
+    · rw [he] at h; cases h
+    · simp at h
+
+/-- **A completed tail awaits no node** — `DanglingPred` read through
+    `slotHolderIdx?`.  The two walks are the same walk: `prevRealIdx?` past at
+    most one `[96]` run, and `completesFlowValue` excludes both the property the
+    walk would step over and the slot the holder would offer. -/
+lemma nodeSlotAwaited_false_of_danglingPred {ts : Array (Positioned YamlToken)}
+    (h : DanglingPred ts) : nodeSlotAwaited ts = false := by
+  obtain ⟨i, h_prev, h_prop, h_slot⟩ := h
+  unfold nodeSlotAwaited slotHolderIdx?
+  rw [h_prev]
+  simp only [h_prop]
+  exact h_slot
+
+/-- …at the landing, where the park's own tail is one preprocessing behind.
+    `preprocess_danglingPred` is the transport and the directives update writes
+    no token. -/
+lemma nodeSlotAwaited_false_of_landing {sc s_prep : ScannerState} {c : Char}
+    (h_tail : CompletedTail sc)
+    (h_pre : scanNextToken_preprocess sc = .ok (some (s_prep, c))) :
+    nodeSlotAwaited (if s_prep.allowDirectives then
+      { s_prep with allowDirectives := false, documentEverStarted := true }
+    else s_prep).tokens = false := by
+  rw [show (if s_prep.allowDirectives then
+      { s_prep with allowDirectives := false, documentEverStarted := true }
+    else s_prep).tokens = s_prep.tokens from by split <;> rfl]
+  exact nodeSlotAwaited_false_of_danglingPred
+    (preprocess_danglingPred (CompletedTail.danglingPred h_tail) h_pre)
+
+/-- **What the landed `-` stands at** (item 166) — the reading
+    `bareNodeRoute_or_refused`'s surviving branch was always taken under.
+
+    `[183] l+block-sequence(n)` is reached from `[185] s-l+block-indented(n,c)`
+    with the auto-detected `m` allowed to be 0, so a sequence AT its parent
+    mapping's own column is never pushed onto the indent stack and is visible
+    only in the token array — which is why the two disjuncts read two different
+    places.  `atMappingIndent = false` is the sequence the stack HAS; the
+    same-indent walk is the zero-indented one it has not.  Either way a `[183]`
+    is open at the landing's column and the `-` is its next entry. -/
+def OpenSeqEntry (s : ScannerState) : Prop :=
+  atMappingIndent s = false ∨ sameIndentSequenceOpen s.tokens (s.col : Int) = true
+
+/-- **The block landing's surviving branch, named** (item 166) — the `-`
+    counterpart of `danglingPark_refutes_route`, and the answer is not a
+    refutation.
+
+    At a landed `-` off a park whose tail is a completed node, the dispatch
+    itself settles the reading: the slot holder offers nothing
+    (`nodeSlotAwaited_false_of_landing`), so §8.2.1 would have refused the step
+    unless a sequence is open at this column.  `a: 1⏎- x` and `k:⏎␣␣a: 1⏎␣␣- x`
+    are that refusal (`invalidBareDocument` at `1,0` and `2,2`); `- a:⏎␣␣␣␣b:
+    1⏎- c`, `- - a⏎- b` and `a:⏎- x⏎- y` are the rest, and all three scan and
+    parse clean.
+
+    So the bare-document reading `bareNodeRoute` hands this landing is an
+    over-approximation on the WHOLE of its surviving domain, and what row 1c
+    needs here is the sequence's own continuation — `SBlockSeqEntries k sp_mid
+    sp_e → SLYamlStream sp_start sp_e` for a `[183]` already open — not another
+    guard.  No park carries one at this landing's width:
+    `pendingBlockContent.h_closable_entry` is the tail at the park's OWN width
+    `n`, spent by `accum_block_on_pendingBlockContent` under its `by_cases
+    hkn : k = n`, and what reaches here is that lemma's `k ≠ n` arm and the
+    `pendingContent` park, which has no entry-level route at all.  Item 155's
+    `ResumeFrames` record MAPPING levels by construction, so the sequence's twin
+    is the item behind this one. -/
+lemma blockEntry_landing_openSeq {sc s_prep s' : ScannerState} {c : Char}
+    (h_pre : scanNextToken_preprocess sc = .ok (some (s_prep, c)))
+    (h_tail : CompletedTail sc)
+    (h_noflow : s_prep.inFlow = false)
+    (h_dispatch : scanNextToken_dispatchBlockIndicators
+        (if s_prep.allowDirectives then
+          { s_prep with allowDirectives := false, documentEverStarted := true }
+        else s_prep) '-' = .ok (some s')) :
+    OpenSeqEntry (if s_prep.allowDirectives then
+      { s_prep with allowDirectives := false, documentEverStarted := true }
+    else s_prep) := by
+  cases h_map : atMappingIndent (if s_prep.allowDirectives then
+      { s_prep with allowDirectives := false, documentEverStarted := true }
+    else s_prep) with
+  | false => exact Or.inl h_map
+  | true =>
+    exact Or.inr (dispatchBlockEntry_sameIndentSeq h_dispatch
+      (by split <;> exact h_noflow) (nodeSlotAwaited_false_of_landing h_tail h_pre) h_map)
+
 /-- **What is left of the bare-node route's domain at the CONTENT landing**
     (item 157) — the gate `content_dispatch_routed` hands its route.
 
@@ -18197,17 +18330,6 @@ lemma accum_block_on_closeThenBlock
     match h_mk with
     | Or.inl mk => Or.inl (mk sp_mid h_ssl)
     | Or.inr _ => Or.inr trivial
-  have h_docRoute : ∀ sp_e, SBlockNode 0 .blockIn sp_mid sp_e →
-      SLYamlStream sp_start sp_e :=
-    match h_sfx_land with
-    | Or.inl sfxrun => suffixNodeRoute sfxrun
-    -- ═══ Item 142: the fallback, NAMED (item 139's `bareNodeRoute`, written
-    -- inline here until now) and with §9.2's landing refusal taken out of its
-    -- domain.  This is the block lane's copy of the content landing's
-    -- fallback, and it is the sixth `[210]` construction site. ═══
-    | Or.inr _ =>
-        bareNodeRoute_or_refused h_stream_new h_bare h_preprocess h_noflow h_ska
-          h_base h_tail139
   -- Item 22: the whites before the indicator are the collection's own
   -- indentation; `nil` is `k = 0`, and only a tab still defers.
   have h_eq := h_pk.resolve_right (by simp [preprocess_some_peek h_preprocess])
@@ -18232,6 +18354,27 @@ lemma accum_block_on_closeThenBlock
     have hsp_dash_eq := ScannerSurfCorr_unique hcorr_dash hcorr_result
     rw [hsp_dash_eq] at h_dash h_gnot
     have h_ssl_zero : SSLComments sp_mid sp_mid := sslComments_refl_of_col0 hcol_mid
+    -- ═══ Item 142: the fallback, NAMED (item 139's `bareNodeRoute`, written
+    -- inline here until then) and with §9.2's landing refusal taken out of its
+    -- domain.  This is the block lane's copy of the content landing's
+    -- fallback, and it is the sixth `[210]` construction site.
+    --
+    -- **Item 166 moved it here, and measured what its surviving branch
+    -- serves.**  The `-` arm is the only consumer, so the dispatch is in hand
+    -- where the route is built — and `blockEntry_landing_openSeq` reads the
+    -- landing off it: at `h_op = true` behind a completed node this `-` is the
+    -- next entry of a `[183]` already open at this column, the stack's own
+    -- (`- - a⏎- b`) or a zero-indented one (`a:⏎- x⏎- y`).  The half items
+    -- 158–165 forecast as scanner-refused is only the half with NO sequence
+    -- open (`a: 1⏎- x`), so what stands here is a missing ROUTE — the open
+    -- collection's continuation — rather than a missing guard. ═══
+    have h_docRoute : ∀ sp_e, SBlockNode 0 .blockIn sp_mid sp_e →
+        SLYamlStream sp_start sp_e :=
+      match h_sfx_land with
+      | Or.inl sfxrun => suffixNodeRoute sfxrun
+      | Or.inr _ =>
+          bareNodeRoute_or_refused h_stream_new h_bare h_preprocess h_noflow h_ska
+            h_base h_tail139
     -- ═══ Item 137: the sequence's route, taken at the ENTRIES level so the
     -- marker arm can reach it.  `[199] s-l+block-collection` puts the
     -- `s-l-comments` in FRONT of the entries, so a node already built at the

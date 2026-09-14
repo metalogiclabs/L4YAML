@@ -137,6 +137,7 @@ import Tests.Guards.Proofs.FlowParkAnchor
 import Tests.Guards.Proofs.FlowGateGeneration
 import Tests.Guards.Proofs.FlowReservationFloor
 import Tests.Guards.Proofs.PropsRunLengthGate
+import Tests.Guards.Proofs.BlockLandingOpenSeq
 import Tests.Guards.Proofs.FlowFrameResumeRider
 import Tests.Guards.Proofs.UnderIndentInvariantMap
 import Tests.Guards.Proofs.ScalarWalkCrossLineFloor

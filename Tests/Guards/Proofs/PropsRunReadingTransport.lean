@@ -265,13 +265,24 @@ two drop rides; this would put one back, on accepted input. -/
    sites pay as the table above says, and `ContentRouteGate` loses its right
    disjunct.~~ — **item 165**, with §6.9's length check under it.
 3. Behind both, the block landing's own half — `bareNodeRoute_or_refused`'s
-   `h_op = true` branch.  Its `-` family is already refused by the scanner
+   `h_op = true` branch.  ~~Its `-` family is already refused by the scanner
    (`a: 1⏎- x` is `invalidBareDocument 1 0`, `k:⏎␣␣a: 1⏎␣␣- x` is `2,2`), so
    what is left there is the `:`/`?` family, which is LEGAL and routes through
-   the key cascade — a CONSUMER to narrow, as item 156 said, not a guard. -/
+   the key cascade — a CONSUMER to narrow, as item 156 said, not a guard.~~
+
+   **Corrected by item 166.**  Those two inputs are refused, but not for resting
+   on an open level: `scanBlockEntryValidate` refuses a `-` at a block MAPPING's
+   own indent with no node slot awaited AND no same-indent sequence open.  Lift
+   the last conjunct and the `-` family is legal too — `a:⏎- x⏎- y`,
+   `- - a⏎- b`, `- a:⏎␣␣␣␣b: 1⏎- c` all scan and parse clean at the same
+   landing.  It IS a consumer to narrow, and the route it wants is the open
+   collection's continuation.  See `BlockLandingOpenSeq.lean`. -/
 
 #guard scanOk "a: 1\n- x\n" == "SCAN-ERR L4YAML.ScanError.invalidBareDocument 1 0"
 #guard scanOk "k:\n  a: 1\n  - x\n" == "SCAN-ERR L4YAML.ScanError.invalidBareDocument 2 2"
+-- …and the same landing with a sequence open at the column (item 166):
+#guard (scanOk "a:\n- x\n- y\n", parseOk "a:\n- x\n- y\n") == ("SCAN-OK", "PARSE-OK")
+#guard (scanOk "- - a\n- b\n", parseOk "- - a\n- b\n") == ("SCAN-OK", "PARSE-OK")
 #guard (scanOk "a: 1\n: v\n", parseOk "a: 1\n: v\n") == ("SCAN-OK", "PARSE-OK")
 #guard (scanOk "a: 1\n? k\n", parseOk "a: 1\n? k\n") == ("SCAN-OK", "PARSE-OK")
 
