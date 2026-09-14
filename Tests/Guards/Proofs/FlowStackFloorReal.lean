@@ -114,6 +114,6 @@ example {sp_start : SurfPos} {sc : ScannerState} {fl : Nat} {ks : Array Bool}
       (SSeparateLines n sp_flow sp_prep → GLit ':' sp_prep sp_tok →
         FlowStackB sp_start n kc g fl ks km .colon sp_block sp_tok) := by
   obtain ⟨n, kc, km, g, -, -, -, h_prom⟩ := h
-  exact ⟨n, kc, km, g, ((h_prom h_fl).2 rfl).imp id (fun f => f sp_prep sp_tok)⟩
+  exact ⟨n, kc, km, g, ((h_prom h_fl).2.2 rfl).imp id (fun f => f sp_prep sp_tok)⟩
 
 end Tests.Guards.FlowStackFloorReal

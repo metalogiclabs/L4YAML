@@ -38,7 +38,7 @@ example {sp_start sp_before sp_br sp_open : SurfPos}
               SSLComments sp_ne sp_m → SLYamlStream sp_start sp_m)
     (h_open : GLit '[' sp_br sp_open) :
     FlowStackB sp_start 2 3 none 1 #[true] #[false] .sep sp_before sp_open :=
-  FlowStackB.openSeqBase false (.ofValue resume) h_open (GOpt.none sp_open)
+  FlowStackB.openSeqBase false (.ofValue (fun _ => resume)) h_open (GOpt.none sp_open)
 
 /-- ... and the mapping twin at `n = 2`. -/
 example {sp_start sp_before sp_br sp_open : SurfPos}
@@ -46,7 +46,7 @@ example {sp_start sp_before sp_br sp_open : SurfPos}
               SSLComments sp_ne sp_m → SLYamlStream sp_start sp_m)
     (h_open : GLit '{' sp_br sp_open) :
     FlowStackB sp_start 2 3 none 1 #[false] #[false] .sep sp_before sp_open :=
-  FlowStackB.openMapBase false (.ofValue resume) h_open (GOpt.none sp_open)
+  FlowStackB.openMapBase false (.ofValue (fun _ => resume)) h_open (GOpt.none sp_open)
 
 /-! ## §2  The interior receivers thread the index -/
 
@@ -143,7 +143,7 @@ example {sp_start sp_before sp_br sp_open sp_key : SurfPos}
     (h_open : GLit '[' sp_br sp_open) :
     FlowStackB sp_start 2 3 none 1 #[true] #[false] .sep sp_before sp_open :=
   FlowStackB.openSeqBase false
-    ⟨value, Or.inl ⟨3, sp_key, route, fun _ _ => Or.inr trivial, rfl, Or.inr trivial,
+    ⟨fun _ => value, Or.inl ⟨3, sp_key, route, fun _ _ => Or.inr trivial, rfl, Or.inr trivial,
       Or.inr trivial, Or.inr trivial⟩,
      Or.inr trivial⟩
     h_open (GOpt.none sp_open)

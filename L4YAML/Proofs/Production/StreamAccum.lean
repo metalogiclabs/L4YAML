@@ -3539,23 +3539,233 @@ lemma ParkAnchor.ofOpen {sc0 s' : ScannerState} {p : Positioned YamlToken}
   · rw [htok, push_getElem!_below j hj]
   · rw [htok, flowOpenIdxStack_push_open hop]; rfl
 
+/-- …and it is a PROPER prefix.  A held open is an index INTO the later array,
+    so every reservation a save makes after it lands strictly above the park —
+    which is half of what item 164's floor needs, and the half no step has to
+    maintain. -/
+lemma ParkAnchor.size_lt {sc0 s : ScannerState} {d : Nat} (h : ParkAnchor sc0 s d) :
+    sc0.tokens.size < s.tokens.size := by
+  obtain ⟨S, hheld⟩ := h.held
+  exact hheld.lt
+
+/-! ### The RESERVATION FLOOR (item 164)
+
+Item 163 measured what item 162's fifth step shape — the `:`'s REWRITE — needs
+and could not get.  Inside a flow, `scanValuePrepare` resolves a pending simple
+key by writing the slot at `simpleKey.tokenIndex + 1`, and a park anchored over
+the frame survives that write only if the slot is neither below the base open
+(which would break the prefix the anchor reads) nor a bracket (which would move
+the forward stack the anchor is stated against).  Both are true of every
+reservation a flow interior makes; neither was written down — item 10's
+`KmSound` docstring states the first as a parenthetical and no conjunct proves
+it.
+
+They are ONE predicate over a `SimpleKeyState`, read against the array and the
+park's own open — and the whole KEY STACK carries it, because a flow close
+RESTORES a pending key from `simpleKeyStack` and a floor on the pending alone
+does not survive one.
+
+**The quantifier is DEPTH-RELATIVE, and that is the point.**  The base open
+stacks the key that was pending OUTSIDE the flow, which may sit anywhere — the
+measured walk has `&p [a: b]`'s base close restoring a reservation at index 1
+against an open at 4 — and that is sound precisely because a closed frame owes
+no anchor.  So the floor is owed by the pending key and by the top `d` entries,
+and `Nat`'s truncating subtraction slides the range exactly right: an open
+takes `(size, d)` to `(size + 1, d + 1)` and a close takes `(size, d + 1)` to
+`(size - 1, d)`, and `size - d` is invariant under both. -/
+
+/-- **One armed simple key's RESERVATION, read against the array and the base
+    open** (item 164): above the open, in bounds, and holding no bracket.  An
+    unarmed key promises nothing, which is what makes every clearing step free. -/
+def KeyFloor (ts : Array (Positioned YamlToken)) (o : Nat) (k : SimpleKeyState) : Prop :=
+  k.possible = true →
+    o < k.tokenIndex ∧ k.tokenIndex + 1 < ts.size ∧
+      ts[k.tokenIndex + 1]!.val.isFlowOpen = false ∧
+      ts[k.tokenIndex + 1]!.val.isFlowClose = false
+
+/-- A cleared key owes nothing. -/
+lemma KeyFloor.cleared {ts : Array (Positioned YamlToken)} {o : Nat} {k : SimpleKeyState}
+    (h : k.possible = false) : KeyFloor ts o k :=
+  fun hp => absurd hp (by rw [h]; exact nofun)
+
+/-- **The floor's one transport.**  A step that grows the array and writes no
+    bracket into the slots that were already there carries every floor stated
+    against it — and the key may move, provided an armed successor kept the
+    index its predecessor reserved.  Both the PUSH shapes and the `:`'s REWRITE
+    meet the hypothesis: `.key` is no more a bracket than the placeholder it
+    replaces. -/
+lemma KeyFloor.mono {a b : Array (Positioned YamlToken)} {o : Nat} {k k' : SimpleKeyState}
+    (h : KeyFloor a o k)
+    (hsz : a.size ≤ b.size)
+    (hkeep : ∀ j, j < a.size → a[j]!.val.isFlowOpen = false → a[j]!.val.isFlowClose = false →
+      b[j]!.val.isFlowOpen = false ∧ b[j]!.val.isFlowClose = false)
+    (hposs : k'.possible = true → k.possible = true)
+    (hidx : k'.possible = true → k'.tokenIndex = k.tokenIndex) :
+    KeyFloor b o k' := by
+  intro hp
+  obtain ⟨h1, h2, h3, h4⟩ := h (hposs hp)
+  rw [hidx hp]
+  exact ⟨h1, by omega, (hkeep _ h2 h3 h4).1, (hkeep _ h2 h3 h4).2⟩
+
+/-- The two reserved placeholders, read back at the second slot. -/
+lemma push_push_getElem!_top {ts : Array (Positioned YamlToken)}
+    {p : Positioned YamlToken} : ((ts.push p).push p)[ts.size + 1]! = p := by
+  have h : ts.size + 1 = (ts.push p).size := by simp
+  rw [h]; exact push_getElem!_top
+
+/-- The key a close restores is the stack's own top. -/
+lemma skBack?_getD {xs : Array SimpleKeyState} (h : 0 < xs.size) :
+    xs.back?.getD {} = xs[xs.size - 1]! := by
+  rw [Array.back?, Array.getElem?_eq_getElem (by omega), Array.getElem!_eq_getD,
+      Array.getD_eq_getD_getElem?, Array.getElem?_eq_getElem (by omega)]
+  rfl
+
+/-- A pop leaves every entry below the top where it was. -/
+lemma skPop_getElem! {xs : Array SimpleKeyState} {i : Nat} (h : i < xs.size - 1) :
+    xs.pop[i]! = xs[i]! := by
+  rw [Array.getElem!_eq_getD, Array.getElem!_eq_getD, Array.getD_eq_getD_getElem?,
+      Array.getD_eq_getD_getElem?, Array.getElem?_eq_getElem (by simp; omega),
+      Array.getElem?_eq_getElem (by omega), Array.getElem_pop]
+
+/-- …and a push does too. -/
+lemma skPush_getElem!_lt {xs : Array SimpleKeyState} {k : SimpleKeyState} {i : Nat}
+    (h : i < xs.size) : (xs.push k)[i]! = xs[i]! := by
+  rw [Array.getElem!_eq_getD, Array.getElem!_eq_getD, Array.getD_eq_getD_getElem?,
+      Array.getD_eq_getD_getElem?, Array.getElem?_push, if_neg (by omega)]
+
+/-- The key an open stacks, read back at the top. -/
+lemma skPush_getElem!_at {xs : Array SimpleKeyState} {k : SimpleKeyState} :
+    (xs.push k)[xs.size]! = k := by
+  rw [Array.getElem!_eq_getD, Array.getD_eq_getD_getElem?, Array.getElem?_push, if_pos rfl]
+  rfl
+
+/-- **The reservation floor of a parked flow tower** (item 164): the pending
+    key, and every stack entry ABOVE the base slot. -/
+structure ParkFloor (sc0 s : ScannerState) (d : Nat) : Prop where
+  pending : KeyFloor s.tokens sc0.tokens.size s.simpleKey
+  stacked : ∀ i, s.simpleKeyStack.size - d ≤ i → i < s.simpleKeyStack.size →
+    KeyFloor s.tokens sc0.tokens.size s.simpleKeyStack[i]!
+
+/-- **The shape every ordinary step takes**: the array grows with no bracket
+    written into what was already there, the key stack is untouched, and the
+    pending key either keeps its reservation or is cleared. -/
+lemma ParkFloor.step {sc0 s s' : ScannerState} {d : Nat} (h : ParkFloor sc0 s d)
+    (hsz : s.tokens.size ≤ s'.tokens.size)
+    (hkeep : ∀ j, j < s.tokens.size →
+      s.tokens[j]!.val.isFlowOpen = false → s.tokens[j]!.val.isFlowClose = false →
+      s'.tokens[j]!.val.isFlowOpen = false ∧ s'.tokens[j]!.val.isFlowClose = false)
+    (hsks : s'.simpleKeyStack = s.simpleKeyStack)
+    (hpend : (s'.simpleKey.possible = s.simpleKey.possible ∧
+        s'.simpleKey.tokenIndex = s.simpleKey.tokenIndex) ∨ s'.simpleKey.possible = false) :
+    ParkFloor sc0 s' d := by
+  refine ⟨?_, fun i hlo hhi => ?_⟩
+  · rcases hpend with ⟨hp, hi⟩ | hf
+    · exact h.pending.mono hsz hkeep (fun hq => by rw [← hp]; exact hq) (fun _ => hi)
+    · exact KeyFloor.cleared hf
+  · rw [hsks] at hlo hhi ⊢
+    exact (h.stacked i hlo hhi).mono hsz hkeep id (fun _ => rfl)
+
+/-- **The SAVE** — preprocessing's reservation, two placeholders at the array's
+    end.  Its index is above the base open because the park's array is a PROPER
+    prefix of the one the save extends (`ParkAnchor.size_lt`), and the slot it
+    reserves holds a placeholder by construction. -/
+lemma ParkFloor.save {sc0 s s' : ScannerState} {d : Nat} {p : Positioned YamlToken}
+    (h : ParkFloor sc0 s d)
+    (hlt : sc0.tokens.size < s.tokens.size)
+    (hop : p.val.isFlowOpen = false) (hcl : p.val.isFlowClose = false)
+    (htok : s'.tokens = (s.tokens.push p).push p)
+    (hsks : s'.simpleKeyStack = s.simpleKeyStack)
+    (hidx : s'.simpleKey.possible = true → s'.simpleKey.tokenIndex = s.tokens.size) :
+    ParkFloor sc0 s' d := by
+  have hsz : s.tokens.size ≤ s'.tokens.size := by rw [htok]; simp; omega
+  have hkeep : ∀ j, j < s.tokens.size →
+      s.tokens[j]!.val.isFlowOpen = false → s.tokens[j]!.val.isFlowClose = false →
+      s'.tokens[j]!.val.isFlowOpen = false ∧ s'.tokens[j]!.val.isFlowClose = false := by
+    intro j hj h1 h2
+    rw [htok, push_getElem!_below j (by simp; omega), push_getElem!_below j hj]
+    exact ⟨h1, h2⟩
+  refine ⟨fun hq => ?_, fun i hlo hhi => ?_⟩
+  · rw [hidx hq, htok, push_push_getElem!_top]
+    refine ⟨hlt, ?_, hop, hcl⟩
+    simp
+  · rw [hsks] at hlo hhi ⊢
+    exact (h.stacked i hlo hhi).mono hsz hkeep id (fun _ => rfl)
+
+/-- **The two OPENS** — the pending key is stacked and cleared, so the floor it
+    carried becomes the new top entry's and the range deepens by one. -/
+lemma ParkFloor.pushOpen {sc0 s s' : ScannerState} {d : Nat} {p : Positioned YamlToken}
+    (h : ParkFloor sc0 s d)
+    (htok : s'.tokens = s.tokens.push p)
+    (hsks : s'.simpleKeyStack = s.simpleKeyStack.push s.simpleKey)
+    (hposs : s'.simpleKey.possible = false) :
+    ParkFloor sc0 s' (d + 1) := by
+  have hsz : s.tokens.size ≤ s'.tokens.size := by rw [htok]; simp
+  have hkeep : ∀ j, j < s.tokens.size →
+      s.tokens[j]!.val.isFlowOpen = false → s.tokens[j]!.val.isFlowClose = false →
+      s'.tokens[j]!.val.isFlowOpen = false ∧ s'.tokens[j]!.val.isFlowClose = false := by
+    intro j hj h1 h2
+    rw [htok, push_getElem!_below j hj]; exact ⟨h1, h2⟩
+  refine ⟨KeyFloor.cleared hposs, fun i hlo hhi => ?_⟩
+  rw [hsks] at hlo hhi ⊢
+  rw [Array.size_push] at hlo hhi
+  by_cases htop : i = s.simpleKeyStack.size
+  · subst htop
+    rw [skPush_getElem!_at]
+    exact h.pending.mono hsz hkeep id (fun _ => rfl)
+  · have hi : i < s.simpleKeyStack.size := by omega
+    rw [skPush_getElem!_lt hi]
+    exact (h.stacked i (by omega) hi).mono hsz hkeep id (fun _ => rfl)
+
+/-- **The two CLOSES** — the top entry is popped back into the pending slot,
+    and it carried the floor because it sat above the base slot.  A close of the
+    BASE frame restores the entry at the base slot itself, which owes nothing;
+    that arm is `d = 0` and is not reached here. -/
+lemma ParkFloor.pushClose {sc0 s s' : ScannerState} {d : Nat} {p : Positioned YamlToken}
+    (h : ParkFloor sc0 s (d + 1))
+    (htok : s'.tokens = s.tokens.push p)
+    (hsks : s'.simpleKeyStack = s.simpleKeyStack.pop)
+    (hsk : s'.simpleKey = s.simpleKeyStack.back?.getD {}) :
+    ParkFloor sc0 s' d := by
+  have hsz : s.tokens.size ≤ s'.tokens.size := by rw [htok]; simp
+  have hkeep : ∀ j, j < s.tokens.size →
+      s.tokens[j]!.val.isFlowOpen = false → s.tokens[j]!.val.isFlowClose = false →
+      s'.tokens[j]!.val.isFlowOpen = false ∧ s'.tokens[j]!.val.isFlowClose = false := by
+    intro j hj h1 h2
+    rw [htok, push_getElem!_below j hj]; exact ⟨h1, h2⟩
+  refine ⟨?_, fun i hlo hhi => ?_⟩
+  · rcases Nat.eq_zero_or_pos s.simpleKeyStack.size with h0 | hpos
+    · exact KeyFloor.cleared (by rw [hsk, Array.back?, Array.getElem?_eq_none (by omega)]; rfl)
+    · rw [hsk, skBack?_getD hpos]
+      exact (h.stacked (s.simpleKeyStack.size - 1) (by omega) (by omega)).mono hsz hkeep id
+        (fun _ => rfl)
+  · rw [hsks] at hlo hhi ⊢
+    rw [Array.size_pop] at hlo hhi
+    rw [skPop_getElem! (by omega)]
+    exact (h.stacked i (by omega) (by omega)).mono hsz hkeep id (fun _ => rfl)
+
 /-- **The verdict a depth-0 frame's node reading is gated on.** -/
 def GateOf : Option ScannerState → Prop
   | none => True
   | some sc0 => danglingNodePos? sc0 = none
 
-/-- The anchor at the tower's own depth, `none` carrying nothing. -/
+/-- The anchor at the tower's own depth, `none` carrying nothing.
+
+    **Item 164 put the FLOOR beside it.**  The two travel together through
+    every step and are spent at different ends: the anchor is what the close
+    reads §9.2's verdict off, the floor is what lets the `:` in between write
+    its resolution without moving either. -/
 def FlowBaseAnchor : Option ScannerState → ScannerState → Nat → Prop
   | none, _, _ => True
-  | some sc0, s, d => ParkAnchor sc0 s d
+  | some sc0, s, d => ParkAnchor sc0 s d ∧ ParkFloor sc0 s d
 
 lemma FlowBaseAnchor.transport {g : Option ScannerState} {s s' : ScannerState} {d d' : Nat}
     (h : FlowBaseAnchor g s d)
-    (f : ∀ sc0, ParkAnchor sc0 s d → ParkAnchor sc0 s' d') :
+    (f : ∀ sc0, ParkAnchor sc0 s d → ParkFloor sc0 s d →
+      ParkAnchor sc0 s' d' ∧ ParkFloor sc0 s' d') :
     FlowBaseAnchor g s' d' := by
   cases g with
   | none => trivial
-  | some sc0 => exact f sc0 h
+  | some sc0 => exact f sc0 h.1 h.2
 
 
 /-- **What a depth-0 flow frame owes its own close** (item 56).
@@ -3601,7 +3811,13 @@ lemma FlowBaseAnchor.transport {g : Option ScannerState} {s s' : ScannerState} {
     flow value) has no route to hand, and says so. -/
 structure FlowBaseRoutes (sp_start : SurfPos) (n : Nat) (sp_br : SurfPos)
     (kc : Nat) (g : Option ScannerState) : Prop where
-  value : ∀ sp_ne sp_mid, SFlowContent n .flowOut sp_br sp_ne →
+  -- **Item 164: the node reading is GATED.**  What an enclosing construct owes
+  -- a completed flow collection may depend on a verdict only the CLOSE can
+  -- read — item 160's `[96]` park, whose route is legal exactly when §9.2
+  -- leaves no dangling node.  `GateOf none` is `True` by definition, so the
+  -- six arms whose route is unconditional pay nothing; the two base closes
+  -- pay with `FlowBaseAnchor.gate`, off the anchor the open recorded.
+  value : GateOf g → ∀ sp_ne sp_mid, SFlowContent n .flowOut sp_br sp_ne →
     SSLComments sp_ne sp_mid → SLYamlStream sp_start sp_mid
   key : (∃ (k : Nat) (sp_key : SurfPos),
     (∀ sp_v, SBlockMapEntry k sp_key sp_v → SLYamlStream sp_start sp_v) ∧
@@ -3643,7 +3859,7 @@ structure FlowBaseRoutes (sp_start : SurfPos) (n : Nat) (sp_br : SurfPos)
 /-- The routes an enclosing construct that hosts no mapping entry hands a
     depth-0 frame: the node reading alone. -/
 lemma FlowBaseRoutes.ofValue {g : Option ScannerState} {sp_start : SurfPos} {n : Nat} {sp_br : SurfPos} {kc : Nat}
-    (value : ∀ sp_ne sp_mid, SFlowContent n .flowOut sp_br sp_ne →
+    (value : GateOf g → ∀ sp_ne sp_mid, SFlowContent n .flowOut sp_br sp_ne →
       SSLComments sp_ne sp_mid → SLYamlStream sp_start sp_mid) :
     FlowBaseRoutes sp_start n sp_br kc g :=
   ⟨value, Or.inr trivial, Or.inr trivial⟩
@@ -3966,6 +4182,12 @@ def FlowStackK (sp_start : SurfPos) (sc : ScannerState) (fl : Nat) (ks : Array B
     -- column from the walk (`preprocess_some_separate_at_floor`).
     n ≤ minContentIndentOf sc ∧
     (0 < fl → KmSound sc km kc ∧
+    -- **Item 164: the PARK the base frame was opened over, still anchored** —
+    -- and its reservation floor, which is what lets the `:` in between resolve
+    -- a pending key without moving either.  `fl - 1` is the nesting ABOVE the
+    -- base, so a depth-1 stack reads the anchor at 0, where the close spends
+    -- it (`FlowBaseAnchor.gate`).  An ungated frame (`g = none`) owes nothing.
+      FlowBaseAnchor g sc (fl - 1) ∧
       (tl = .value → KeyAfterValueLayout sc ∨
         -- Item 85: the colon route reads at the stack's own index — the
         -- producers hand their separator straight through instead of lifting
@@ -9258,7 +9480,7 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
   -- The value-only open (item 56): a site that has no entry route to hand
   -- opens through this and says so once, rather than spelling two `Or.inr`s.
   have mkv : ∀ (g : Option ScannerState) (n : Nat) (sp_before : SurfPos),
-      (∀ sp_ne sp_m, SFlowContent n .flowOut sp_prep sp_ne →
+      (GateOf g → ∀ sp_ne sp_m, SFlowContent n .flowOut sp_prep sp_ne →
         SSLComments sp_ne sp_m → SLYamlStream sp_start sp_m) →
       FlowStackB sp_start n s_prep.simpleKey.pos.col g 1 s'.flowStack #[false]
         (tailOf s'.tokens) sp_before sp_open :=
@@ -9280,12 +9502,16 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
   have h_kpkg : ∀ (g : Option ScannerState) (n : Nat) sp_b sp_f,
       (s'.implicitValueLine = some s_prep.simpleKey.pos.line ∨ True) →
       n ≤ minContentIndentOf s' →
+      -- **Item 164: and the park it is anchored over, which is the ARM's too.**
+      -- A `none` open owes nothing; a `some` open is made here — the bracket
+      -- the scanner is pushing IS the anchor's genesis (`ParkAnchor.ofOpen`).
+      FlowBaseAnchor g s' 0 →
       FlowStackB sp_start n s_prep.simpleKey.pos.col g 1 s'.flowStack #[false]
       (tailOf s'.tokens) sp_b sp_f →
       FlowStackK sp_start s' 1 s'.flowStack (tailOf s'.tokens) sp_b sp_f :=
-    fun g n _ _ h_st hfl h_b =>
+    fun g n _ _ h_st hfl h_anch h_b =>
       ⟨n, _, #[false], g, h_b, h_ks1, hfl,
-        fun _ => ⟨h_km0 h_st, fun hv => absurd hv h_nv⟩⟩
+        fun _ => ⟨h_km0 h_st, h_anch, fun hv => absurd hv h_nv⟩⟩
   -- Item 67: the pending's floor, carried onto the stack the open pushes.  It
   -- needs the park's own COLUMN (`h_start`) — the separator alone cannot say
   -- the landing reached `k` — so it is available exactly where item 59 put one.
@@ -9390,7 +9616,7 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
         h_tail143.imp (fun h_tl =>
           ⟨h_bare, h_preprocess, h_noflow_prep, h_ska, h_tl, h_base⟩) id
       exact ⟨sp_mid, sp_mid, sp_open, sp_open, h_stream_mid, BlockStack.nil sp_mid,
-             h_kpkg none _ _ _ (Or.inr trivial) (Nat.zero_le _) (mk none 0 sp_mid ⟨(
+             h_kpkg none _ _ _ (Or.inr trivial) (Nat.zero_le _) trivial (mk none 0 sp_mid ⟨(fun _ =>
                -- Item 118: the value route chosen by the face — the open
                -- arm's slot for a closed `...`, `implicitContinue` otherwise.
                match h_sfx with
@@ -9443,7 +9669,7 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
           InteriorGap s' (tailOf s'.tokens) sp_flow' sp_scan' ∧
           LastTokenReal s'.tokens ∧ s'.allowDirectives = false) :=
     ⟨sp_block, sp_block, sp_open, sp_open, h_stream_block, BlockStack.nil _,
-     h_kpkg none _ _ _ (Or.inr trivial) (Nat.zero_le _) (mkv none 0 sp_block (fun sp_ne sp_m _ h_ssl =>
+     h_kpkg none _ _ _ (Or.inr trivial) (Nat.zero_le _) trivial (mkv none 0 sp_block (fun _ sp_ne sp_m _ h_ssl =>
        dropClose h_stream_block sp_ne sp_m h_ssl)),
      PendingNode.noPending sp_start sp_open (Or.inr (inFlow_of_flowLevel_eq h_fl1))
                (Or.inr (inFlow_of_flowLevel_eq h_fl1))
@@ -9481,8 +9707,8 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
     have h_col0 := h_col.resolve_right
       (show ¬ sc.inFlow = true by rw [h_scflow]; simp)
     exact ⟨_, _, sp_open, sp_open, h_stream_block, BlockStack.nil _,
-           h_kpkg none _ _ _ (Or.inr trivial) (Nat.zero_le _)
-             (mk none 0 _ ⟨nodocFlowResumeSep (h_nodoc h_scflow) h_sep,
+           h_kpkg none _ _ _ (Or.inr trivial) (Nat.zero_le _) trivial
+             (mk none 0 _ ⟨(fun _ => nodocFlowResumeSep (h_nodoc h_scflow) h_sep),
              flowKeyRoute_of_root (Or.inl h_col0) h_noflow_prep h_park h_close_pending h_dn
                h_corr hcorr_prep h_preprocess (Or.inr trivial)
                (Or.inl (fun sp_m h_ssl =>
@@ -9556,7 +9782,7 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
              -- Item 68: the run's park is at or past its route index, so the
              -- collection this open pushes reads its interior AT that index.
              -- Item 84: the floor arrives WITH the separator now.
-             h_kpkg none _ _ _ h_stamp_p (openFloorT h_floor_prep) (mk none n sp_block ⟨(fun sp_ne sp_m h_content h_ssl =>
+             h_kpkg none _ _ _ h_stamp_p (openFloorT h_floor_prep) trivial (mk none n sp_block ⟨(fun _ sp_ne sp_m h_content h_ssl =>
                h_route sp_m (flowInBlock_blockNode h_sep_run
                  (SFlowNode.propsContent n .flowOut sp_p sp_scan sp_prep sp_ne
                    h_run.toProperties h_sep h_content) h_ssl)),
@@ -9648,7 +9874,7 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
       fun sp h_node =>
         h_doc_route sp (GAlt.left sp_scan sp (SLBareDocument.mk sp_scan sp h_node))
     exact ⟨sp_block, sp_block, sp_open, sp_open, h_stream_block, BlockStack.nil sp_block,
-           h_kpkg none _ _ _ (Or.inr trivial) (Nat.zero_le _) (mk none 0 sp_block ⟨(fun sp_ne sp_m h_content h_ssl =>
+           h_kpkg none _ _ _ (Or.inr trivial) (Nat.zero_le _) trivial (mk none 0 sp_block ⟨(fun _ sp_ne sp_m h_content h_ssl =>
              h_docnode sp_m (SBlockNode.flowInBlock 0 .blockIn sp_scan sp_prep sp_ne sp_m
                h_sep (SFlowNode.content _ _ _ _ h_content) h_ssl)),
              -- `--- [1]: b` on the marker's own line is scan-refused ("unexpected
@@ -9675,7 +9901,7 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
     rw [h_pe] at h_sep_or
     rcases h_sep_or with ⟨h_sep, h_floor_prep⟩ | ⟨sp_mid2, _h_ssl2, h_col02, h_ur, h_ltsl2⟩
     · exact ⟨sp_gram, sp_block, sp_open, sp_open, h_stream, h_stack,
-             h_kpkg none _ _ _ (Or.inr trivial) (openFloorT h_floor_prep) (mk none n_old sp_block ⟨(fun sp_ne sp_m h_content h_ssl =>
+             h_kpkg none _ _ _ (Or.inr trivial) (openFloorT h_floor_prep) trivial (mk none n_old sp_block ⟨(fun _ sp_ne sp_m h_content h_ssl =>
                h_close sp_m (SBlockIndented.node n_old .blockIn sp_scan sp_m
                  (SBlockNode.flowInBlock n_old .blockIn sp_scan sp_prep sp_ne sp_m
                    h_sep (SFlowNode.content _ _ _ _ h_content) h_ssl))),
@@ -9742,8 +9968,8 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
              -- item 101's `k: a: 1`, one construct over.
              h_kpkg none _ _ _
                (flowOpen_stamp (h_ivl_mv.imp id (fun _ => trivial)) h_preprocess h_ivl_open)
-               (openFloorT h_floor_prep)
-               (mk none n_old sp_block ⟨(fun sp_ne sp_m h_content h_ssl =>
+               (openFloorT h_floor_prep) trivial
+               (mk none n_old sp_block ⟨(fun _ sp_ne sp_m h_content h_ssl =>
                h_close sp_m (SBlockNode.flowInBlock n_old .blockIn sp_scan sp_prep sp_ne sp_m
                  h_sep (SFlowNode.content _ _ _ _ h_content) h_ssl)),
                -- Item 56: `k:⏎  [1]: b` — the mapping the key opens nests in the
@@ -11862,49 +12088,243 @@ lemma ParkAnchor.pushInert {sc0 s s' : ScannerState} {d : Nat} {p : Positioned Y
   · rw [htok, push_getElem!_below j (by have := h.size_le; omega)]; exact h.below j hj
   · rw [htok]; exact hheld.push_other ho hc
 
+/-- A rewrite away from `i` reads back as it did. -/
+lemma setIfInBounds_getElem!_ne {ts : Array (Positioned YamlToken)} {i j : Nat}
+    {v : Positioned YamlToken} (h : i ≠ j) : (ts.setIfInBounds i v)[j]! = ts[j]! := by
+  rw [Array.getElem!_eq_getD, Array.getElem!_eq_getD, Array.getD_eq_getD_getElem?,
+      Array.getD_eq_getD_getElem?, Array.getElem?_setIfInBounds, if_neg h]
+
+/-- …and AT `i`, in bounds, it reads back the written token. -/
+lemma setIfInBounds_getElem!_self {ts : Array (Positioned YamlToken)} {i : Nat}
+    {v : Positioned YamlToken} (h : i < ts.size) : (ts.setIfInBounds i v)[i]! = v := by
+  rw [Array.getElem!_eq_getD, Array.getD_eq_getD_getElem?, Array.getElem?_setIfInBounds,
+      if_pos rfl, if_pos h]
+  rfl
+
+/-- **The rewrite keeps every slot bracket-free that already was** — including
+    the one it writes, because `[193]`'s `key` is no bracket.  This is the
+    floor's half of item 162's fifth shape, and it needs nothing from the key
+    being resolved. -/
+lemma rewriteKey_keeps_nonBracket {s : ScannerState} {v : Positioned YamlToken}
+    (hv : v.val.isFlowOpen = false) (hv' : v.val.isFlowClose = false) :
+    ∀ j, j < s.tokens.size →
+      s.tokens[j]!.val.isFlowOpen = false → s.tokens[j]!.val.isFlowClose = false →
+      (s.tokens.setIfInBounds (s.simpleKey.tokenIndex + 1) v)[j]!.val.isFlowOpen = false ∧
+      (s.tokens.setIfInBounds (s.simpleKey.tokenIndex + 1) v)[j]!.val.isFlowClose = false := by
+  intro j hj h1 h2
+  by_cases hjt : s.simpleKey.tokenIndex + 1 = j
+  · subst hjt
+    rw [setIfInBounds_getElem!_self hj]
+    exact ⟨hv, hv'⟩
+  · rw [setIfInBounds_getElem!_ne hjt]
+    exact ⟨h1, h2⟩
+
+/-- **The REWRITE, for the floor** (item 164): the resolution write is a
+    non-bracket, so every OTHER armed reservation reads its own slot back
+    unchanged in kind, and the pending key it resolved is cleared. -/
+lemma ParkFloor.rewriteKey {sc0 s s' : ScannerState} {d : Nat}
+    {v q : Positioned YamlToken}
+    (h : ParkFloor sc0 s d)
+    (htok : s'.tokens = (s.tokens.setIfInBounds (s.simpleKey.tokenIndex + 1) v).push q)
+    (hv : v.val.isFlowOpen = false) (hv' : v.val.isFlowClose = false)
+    (hsks : s'.simpleKeyStack = s.simpleKeyStack)
+    (hposs : s'.simpleKey.possible = false) :
+    ParkFloor sc0 s' d := by
+  have hsz : s.tokens.size ≤ s'.tokens.size := by rw [htok]; simp
+  have hkeep : ∀ j, j < s.tokens.size →
+      s.tokens[j]!.val.isFlowOpen = false → s.tokens[j]!.val.isFlowClose = false →
+      s'.tokens[j]!.val.isFlowOpen = false ∧ s'.tokens[j]!.val.isFlowClose = false := by
+    intro j hj h1 h2
+    rw [htok, push_getElem!_below j (by simp; omega)]
+    exact rewriteKey_keeps_nonBracket hv hv' j hj h1 h2
+  exact ⟨KeyFloor.cleared hposs, fun i hlo hhi => by
+    rw [hsks] at hlo hhi ⊢
+    exact (h.stacked i hlo hhi).mono hsz hkeep id (fun _ => rfl)⟩
+
+/-- **The REWRITE, for the anchor** (item 164) — item 162's fifth shape, with
+    the precondition it was missing.  The floor says the resolved slot sits
+    above the base open and holds no bracket, which is exactly what the park's
+    prefix and the forward stack each need: the write lands away from the
+    prefix, and it is kind-for-kind invisible to the balance. -/
+lemma ParkAnchor.rewriteKey {sc0 s s' : ScannerState} {d : Nat} {v q : Positioned YamlToken}
+    (h : ParkAnchor sc0 s d) (hfl : KeyFloor s.tokens sc0.tokens.size s.simpleKey)
+    (hposs : s.simpleKey.possible = true)
+    (htok : s'.tokens = (s.tokens.setIfInBounds (s.simpleKey.tokenIndex + 1) v).push q)
+    (hv : v.val.isFlowOpen = false) (hv' : v.val.isFlowClose = false)
+    (hq : q.val.isFlowOpen = false) (hq' : q.val.isFlowClose = false)
+    (hind : s'.indents = s.indents) : ParkAnchor sc0 s' d := by
+  obtain ⟨hlt, hb, hno, hnc⟩ := hfl hposs
+  have hmid : ParkAnchor sc0
+      { s with tokens := s.tokens.setIfInBounds (s.simpleKey.tokenIndex + 1) v } d := by
+    refine h.congrKind (by simp) (fun j hj => ?_) (fun j hj => ?_) rfl
+    · exact setIfInBounds_getElem!_ne (by omega)
+    · by_cases hjt : s.simpleKey.tokenIndex + 1 = j
+      · subst hjt
+        rw [setIfInBounds_getElem!_self hj, hv, hv', hno, hnc]
+        exact ⟨rfl, rfl⟩
+      · rw [setIfInBounds_getElem!_ne hjt]
+        exact ⟨rfl, rfl⟩
+  exact hmid.pushInert htok hq hq' hind
+
+/-- **What preprocessing does to the reservation, in flow** (item 164): it
+    leaves both the array and the pending key alone, or it SAVES — two
+    placeholders at the incoming array's end, with the key's index recorded at
+    that end.  The two readings come out of one `split`, which is what makes
+    them usable together: a fresh index with an untouched array would leave the
+    reserved slot out of bounds, and nothing rules that out when the shapes are
+    taken from two separate lemmas. -/
+lemma preprocess_floor_cases {sc s_prep : ScannerState} {c : Char}
+    (h_flow : 0 < sc.flowLevel)
+    (h : scanNextToken_preprocess sc = .ok (some (s_prep, c))) :
+    (s_prep.tokens = sc.tokens ∧ s_prep.simpleKey = sc.simpleKey) ∨
+    (∃ p : Positioned YamlToken, p.val = .placeholder ∧
+      s_prep.tokens = (sc.tokens.push p).push p ∧
+      (s_prep.simpleKey.possible = true → s_prep.simpleKey.tokenIndex = sc.tokens.size)) := by
+  obtain ⟨s_skip, hsk, hsave⟩ := preprocess_inFlow_elim h_flow h
+  have h_sk := ScannerCorrectness.skipToContent_preserves_simpleKey sc s_skip hsk
+  have h_tk := ScannerCorrectness.skipToContent_preserves_tokens sc s_skip hsk
+  rw [hsave]
+  unfold saveSimpleKey
+  split
+  · exact Or.inl ⟨h_tk, h_sk⟩
+  · split
+    · refine Or.inr ⟨⟨s_skip.currentPos, .placeholder, s_skip.currentPos⟩, rfl, ?_, ?_⟩
+      · show (s_skip.tokens.push _).push _ = _
+        rw [h_tk]
+      · intro _
+        show s_skip.tokens.size = sc.tokens.size
+        rw [h_tk]
+    · exact Or.inl ⟨h_tk, h_sk⟩
+
+/-- **The whole content lane, in one reading** (item 164): a content dispatch
+    either leaves the pending key's reservation exactly where it was — the
+    quoted scalars move only `endLine` — or clears it.  No content scan OPENS a
+    reservation; only preprocessing's save does, which is why the floor's fresh
+    case belongs there and nowhere else. -/
+lemma dispatchContent_pending_cases {s s' : ScannerState} {c : Char}
+    (h : scanNextToken_dispatchContent s c = .ok s') :
+    (s'.simpleKey.possible = s.simpleKey.possible ∧
+      s'.simpleKey.tokenIndex = s.simpleKey.tokenIndex) ∨ s'.simpleKey.possible = false := by
+  unfold scanNextToken_dispatchContent at h
+  simp only [bind, Except.bind, pure, Pure.pure, Except.pure] at h
+  split at h
+  · split at h
+    · simp at h
+    generalize h_anch : scanAnchorOrAlias s true = result at h
+    cases result with
+    | error e => simp at h
+    | ok s_a =>
+      simp only [Except.ok.injEq] at h; subst h
+      have h_sk := ScannerCorrectness.scanAnchorOrAlias_preserves_simpleKey s true s_a h_anch
+      exact Or.inl ⟨by simp [h_sk], by simp [h_sk]⟩
+  · split at h
+    · split at h
+      · simp at h
+      split at h
+      · contradiction
+      · replace h := aliasArm_scan_ok h
+        generalize h_anch : scanAnchorOrAlias s false = result at h
+        cases result with
+        | error e => simp at h
+        | ok s_a =>
+          simp only [Except.ok.injEq] at h; subst h
+          have h_sk := ScannerCorrectness.scanAnchorOrAlias_preserves_simpleKey s false s_a h_anch
+          exact Or.inl ⟨by rw [h_sk], by rw [h_sk]⟩
+    · split at h
+      · split at h
+        · simp at h
+        generalize h_tag : scanTag s = result at h
+        cases result with
+        | error e => simp at h
+        | ok s_t =>
+          simp only [Except.ok.injEq] at h; subst h
+          have h_sk := ScannerCorrectness.scanTag_preserves_simpleKey s s_t h_tag
+          exact Or.inl ⟨by rw [h_sk], by rw [h_sk]⟩
+      · repeat (any_goals (split at h))
+        all_goals (try contradiction)
+        all_goals (try (simp only [Except.ok.injEq] at h; subst h))
+        all_goals (
+          first
+          | (exact Or.inr (ScannerCorrectness.scanBlockScalar_clears_simpleKey s _ h))
+          | (exact Or.inl ⟨by rw [ScannerCorrectness.scanPlainScalar_preserves_simpleKey s _ h],
+              by rw [ScannerCorrectness.scanPlainScalar_preserves_simpleKey s _ h]⟩)
+          | (rename_i h_eq_dq _;
+             first
+             | (have h_sk := ScannerCorrectness.scanDoubleQuoted_preserves_simpleKey s _ h_eq_dq
+                exact Or.inl ⟨by simp [h_sk], by simp [h_sk]⟩)
+             | (have h_sk := ScannerCorrectness.scanSingleQuoted_preserves_simpleKey s _ h_eq_dq
+                exact Or.inl ⟨by simp [h_sk], by simp [h_sk]⟩))
+          | (simp_all; done))
+
 lemma FlowBaseAnchor.congr {g : Option ScannerState} {s s' : ScannerState} {d : Nat}
-    (h : FlowBaseAnchor g s d) (htok : s'.tokens = s.tokens)
-    (hind : s'.indents = s.indents) : FlowBaseAnchor g s' d :=
-  h.transport (fun _ ha => ha.congr htok hind)
+    (h : FlowBaseAnchor g s d) (htok : s'.tokens = s.tokens) (hind : s'.indents = s.indents)
+    (hsk : s'.simpleKey = s.simpleKey) (hsks : s'.simpleKeyStack = s.simpleKeyStack) :
+    FlowBaseAnchor g s' d :=
+  h.transport (fun _ ha hf => ⟨ha.congr htok hind,
+    hf.step (Nat.le_of_eq (by rw [htok])) (fun j _ h1 h2 => by rw [htok]; exact ⟨h1, h2⟩) hsks
+      (Or.inl ⟨by rw [hsk], by rw [hsk]⟩)⟩)
 
 lemma FlowBaseAnchor.pushInert {g : Option ScannerState} {s s' : ScannerState} {d : Nat}
     {p : Positioned YamlToken} (h : FlowBaseAnchor g s d)
     (htok : s'.tokens = s.tokens.push p)
     (ho : p.val.isFlowOpen = false) (hc : p.val.isFlowClose = false)
-    (hind : s'.indents = s.indents) : FlowBaseAnchor g s' d :=
-  h.transport (fun _ ha => ha.pushInert htok ho hc hind)
+    (hind : s'.indents = s.indents)
+    (hsks : s'.simpleKeyStack = s.simpleKeyStack)
+    (hpend : (s'.simpleKey.possible = s.simpleKey.possible ∧
+        s'.simpleKey.tokenIndex = s.simpleKey.tokenIndex) ∨ s'.simpleKey.possible = false) :
+    FlowBaseAnchor g s' d :=
+  h.transport (fun _ ha hf => ⟨ha.pushInert htok ho hc hind,
+    hf.step (by rw [htok]; simp) (fun j hj h1 h2 => by
+      rw [htok, push_getElem!_below j hj]; exact ⟨h1, h2⟩) hsks hpend⟩)
 
 lemma FlowBaseAnchor.pushOpen {g : Option ScannerState} {s s' : ScannerState} {d : Nat}
     {p : Positioned YamlToken} (h : FlowBaseAnchor g s d)
     (htok : s'.tokens = s.tokens.push p) (hop : p.val.isFlowOpen = true)
-    (hind : s'.indents = s.indents) : FlowBaseAnchor g s' (d + 1) :=
-  h.transport (fun _ ha => ha.pushOpen htok hop hind)
+    (hind : s'.indents = s.indents)
+    (hsks : s'.simpleKeyStack = s.simpleKeyStack.push s.simpleKey)
+    (hposs : s'.simpleKey.possible = false) :
+    FlowBaseAnchor g s' (d + 1) :=
+  h.transport (fun _ ha hf => ⟨ha.pushOpen htok hop hind, hf.pushOpen htok hsks hposs⟩)
 
 lemma FlowBaseAnchor.pushClose {g : Option ScannerState} {s s' : ScannerState} {d : Nat}
     {p : Positioned YamlToken} (h : FlowBaseAnchor g s (d + 1))
     (htok : s'.tokens = s.tokens.push p) (hcl : p.val.isFlowClose = true)
-    (hind : s'.indents = s.indents) : FlowBaseAnchor g s' d :=
-  h.transport (fun _ ha => ha.pushClose htok hcl hind)
+    (hind : s'.indents = s.indents)
+    (hsks : s'.simpleKeyStack = s.simpleKeyStack.pop)
+    (hsk : s'.simpleKey = s.simpleKeyStack.back?.getD {}) :
+    FlowBaseAnchor g s' d :=
+  h.transport (fun _ ha hf => ⟨ha.pushClose htok hcl hind, hf.pushClose htok hsks hsk⟩)
 
-/-- Preprocessing, spelled once for every flow dispatch that passes through it. -/
+/-- Preprocessing, spelled once for every flow dispatch that passes through it.
+
+    **Item 164 named the SAVE here.**  Preprocessing is the only step that opens
+    a reservation, so it is the only one that owes the floor's fresh case — and
+    it pays it from the anchor itself: a held open is an index into the array
+    the save extends, so the index the save records is above it. -/
 lemma FlowBaseAnchor.preprocess {g : Option ScannerState} {sc s_prep : ScannerState}
     {c : Char} {d : Nat} (h : FlowBaseAnchor g sc d) (h_flow : sc.inFlow = true)
     (hpre : scanNextToken_preprocess sc = .ok (some (s_prep, c))) :
     FlowBaseAnchor g s_prep d := by
+  have hfl : 0 < sc.flowLevel := by
+    unfold ScannerState.inFlow at h_flow; simpa using h_flow
   have hind := FlowIndentStable.preprocess_indents_of_inFlow h_flow hpre
-  rcases preprocess_tokens_of_inFlow h_flow hpre with htok | ⟨q, hq, htok⟩
-  · exact h.congr htok hind
-  · have ho : q.val.isFlowOpen = false := by rw [hq]; rfl
-    have hc : q.val.isFlowClose = false := by rw [hq]; rfl
-    exact (h.pushInert (s' := { sc with tokens := sc.tokens.push q }) rfl ho hc rfl).pushInert
-      htok ho hc hind
+  have hsks := ScannerCorrectness.preprocess_preserves_simpleKeyStack sc s_prep c hpre
+  rcases preprocess_floor_cases hfl hpre with ⟨htok, hsk⟩ | ⟨p, hph, htok, hidx⟩
+  · exact h.congr htok hind hsk hsks
+  · have ho : p.val.isFlowOpen = false := by rw [hph]; rfl
+    have hc : p.val.isFlowClose = false := by rw [hph]; rfl
+    refine h.transport (fun _ ha hf => ⟨?_, ?_⟩)
+    · exact (ha.pushInert (s' := { sc with tokens := sc.tokens.push p }) rfl ho hc rfl).pushInert
+        htok ho hc hind
+    · exact hf.save ha.size_lt ho hc htok hsks hidx
 
-/-- The `allowDirectives` update writes neither tokens nor indents. -/
+/-- The `allowDirectives` update writes neither tokens nor indents — nor keys. -/
 lemma FlowBaseAnchor.adUpdate {g : Option ScannerState} {s : ScannerState} {d : Nat}
     (h : FlowBaseAnchor g s d) :
     FlowBaseAnchor g (if s.allowDirectives then
       { s with allowDirectives := false, documentEverStarted := true } else s) d :=
   h.congr (allowDirectives_update_tokens s) (allowDirectives_update_indents s)
+    (by split <;> rfl) (by split <;> rfl)
 
 /-- **The two silent writers, bundled** (item 163).  Every flow dispatch runs
     preprocessing and the `allowDirectives` update before reaching its own
@@ -11922,32 +12342,45 @@ lemma FlowBaseAnchor.dispatchBase {g : Option ScannerState} {sc s_prep : Scanner
 /-- The four bracket indicators, each naming its own shape once (item 163):
     `[`/`{` deepen the hold, `]`/`}` shallow it.  A nested close is the only
     one that needs the depth SPLIT — a base close leaves a `nil` stack, whose
-    anchor conjunct rides under `0 < fl` and is therefore not owed. -/
+    anchor conjunct rides under `0 < fl` and is therefore not owed.
+
+    **Item 164 added the key discipline to the same four.**  An open stacks the
+    pending key and clears it; a close restores the top and pops.  That is the
+    whole of why the floor's range is depth-relative. -/
 lemma FlowBaseAnchor.seqStart {g : Option ScannerState} {s : ScannerState} {d : Nat}
     (h : FlowBaseAnchor g s d) : FlowBaseAnchor g (scanFlowSequenceStart s) (d + 1) :=
   h.pushOpen (scanFlowSequenceStart_tokens s) rfl
     (L4YAML.Proofs.EmitterScannability.scanFlowSequenceStart_preserves_indents s)
+    (ScannerCorrectness.scanFlowSequenceStart_stack_pushed s)
+    (ScannerCorrectness.scanFlowSequenceStart_simpleKey_cleared s)
 
 lemma FlowBaseAnchor.mapStart {g : Option ScannerState} {s : ScannerState} {d : Nat}
     (h : FlowBaseAnchor g s d) : FlowBaseAnchor g (scanFlowMappingStart s) (d + 1) :=
   h.pushOpen (scanFlowMappingStart_tokens s) rfl
     (L4YAML.Proofs.EmitterScannability.scanFlowMappingStart_preserves_indents s)
+    (ScannerCorrectness.scanFlowMappingStart_stack_pushed s)
+    (ScannerCorrectness.scanFlowMappingStart_simpleKey_cleared s)
 
 lemma FlowBaseAnchor.seqEnd {g : Option ScannerState} {s : ScannerState} {d : Nat}
     (h : FlowBaseAnchor g s (d + 1)) : FlowBaseAnchor g (scanFlowSequenceEnd s) d :=
   h.pushClose (scanFlowSequenceEnd_tokens s) rfl
     (L4YAML.Proofs.EmitterScannability.scanFlowSequenceEnd_preserves_indents s)
+    (ScannerCorrectness.scanFlowSequenceEnd_stack_popped s)
+    (ScannerCorrectness.scanFlowSequenceEnd_simpleKey_restored s)
 
 lemma FlowBaseAnchor.mapEnd {g : Option ScannerState} {s : ScannerState} {d : Nat}
     (h : FlowBaseAnchor g s (d + 1)) : FlowBaseAnchor g (scanFlowMappingEnd s) d :=
   h.pushClose (scanFlowMappingEnd_tokens s) rfl
     (L4YAML.Proofs.EmitterScannability.scanFlowMappingEnd_preserves_indents s)
+    (ScannerCorrectness.scanFlowMappingEnd_stack_popped s)
+    (ScannerCorrectness.scanFlowMappingEnd_simpleKey_restored s)
 
 /-- **The whole content lane, in one shape** (item 163).  Item 158's
     `dispatchContent_tokens_push_node` says every content dispatch pushes
     exactly ONE node token, and a node body is no bracket — neither is a `[96]`
     property.  So the six content arms take `pushInert` with no case on the
-    character at all. -/
+    character at all, and item 164's reading of the pending key
+    (`dispatchContent_pending_cases`) rides beside it. -/
 lemma FlowBaseAnchor.content {g : Option ScannerState} {s s' : ScannerState}
     {c : Char} {d : Nat} (h : FlowBaseAnchor g s d) (h_flow : s.inFlow = true)
     (hstep : scanNextToken_dispatchContent s c = .ok s') :
@@ -11959,13 +12392,18 @@ lemma FlowBaseAnchor.content {g : Option ScannerState} {s s' : ScannerState}
                 YamlToken.isFlowOpen, YamlToken.isFlowClose]
   exact h.pushInert htok hnb.1 hnb.2
     (L4YAML.Proofs.FlowIndentStable.dispatchContent_preserves_indents h_flow hstep)
+    (ScannerCorrectness.dispatchContent_preserves_simpleKeyStack s c s' hstep)
+    (dispatchContent_pending_cases hstep)
 
-/-- A flow `?` writes one `key` token and no indent — `pushInert` again. -/
+/-- A flow `?` writes one `key` token and no indent, and clears the pending
+    reservation — `pushInert` again. -/
 lemma FlowBaseAnchor.flowKey {g : Option ScannerState} {s s' : ScannerState} {d : Nat}
     (h : FlowBaseAnchor g s d) (h_flow : s.inFlow = true) (hstep : scanKey s = .ok s') :
     FlowBaseAnchor g s' d :=
   h.pushInert (scanKey_inFlow_tokens h_flow hstep) rfl rfl
     (L4YAML.Proofs.FlowIndentStable.scanKey_indents_of_inFlow h_flow hstep)
+    (ScannerCorrectness.scanKey_preserves_simpleKeyStack s s' hstep)
+    (Or.inr (ScannerCorrectness.scanKey_clears_simpleKey s s' hstep))
 
 /-- The two closes at a depth the arm knows only to be POSITIVE — which is all
     a nested-close arm has, since its depth index is the parent frame's and the
@@ -11983,12 +12421,15 @@ lemma FlowBaseAnchor.mapEndPos {g : Option ScannerState} {s : ScannerState} {d :
   obtain ⟨d', rfl⟩ : ∃ d', d = d' + 1 := ⟨d - 1, by omega⟩
   simpa using h.mapEnd
 
-/-- `,` writes one token that is neither bracket — item 162's `pushInert`. -/
+/-- `,` writes one token that is neither bracket and clears the pending
+    reservation — item 162's `pushInert`. -/
 lemma FlowBaseAnchor.flowEntry {g : Option ScannerState} {s s' : ScannerState} {d : Nat}
     (h : FlowBaseAnchor g s d) (hstep : scanFlowEntry s = .ok s') :
     FlowBaseAnchor g s' d :=
   h.pushInert (scanFlowEntry_tokens hstep) rfl rfl
     (L4YAML.Proofs.FlowIndentStable.scanFlowEntry_preserves_indents hstep)
+    (ScannerCorrectness.scanFlowEntry_preserves_simpleKeyStack s s' hstep)
+    (Or.inr (ScannerCorrectness.scanFlowEntry_clears_simpleKey s s' hstep))
 
 /-- **The spend, at the frame's own close** (item 162).  A depth-0 close reads
     §9.2's verdict on its own state; the anchor says that verdict IS the park's,
@@ -12006,8 +12447,28 @@ lemma FlowBaseAnchor.gate {g : Option ScannerState} {s_bc s_cl : ScannerState}
   cases g with
   | none => trivial
   | some sc0 =>
-    have h' : ParkAnchor sc0 s_bc 0 := h
+    have h' : ParkAnchor sc0 s_bc 0 := h.1
     exact ((h'.dangling_eq hpre hind hflow hlast hclose).symm).trans hnd
+
+/-- **The base close's spend, packaged** (item 164).  A depth-0 close writes its
+    bracket at the array's end, so the anchor's four readings are the push's own
+    — the prefix is untouched, the bracket is the last real token, it sits at the
+    park's index, and it is a close — and the only thing the arm supplies is
+    §9.2's verdict on the state it just made.  That verdict is `pendingContent`'s
+    `h_closable` premise, which is what the close already had to be handed. -/
+lemma FlowBaseAnchor.gate_of_close {g : Option ScannerState} {s_bc s_cl : ScannerState}
+    {p : Positioned YamlToken}
+    (h : FlowBaseAnchor g s_bc 0)
+    (htok : s_cl.tokens = s_bc.tokens.push p)
+    (hcl : p.val.isFlowClose = true)
+    (hind : s_cl.indents = s_bc.indents)
+    (hflow : s_cl.inFlow = false)
+    (hnd : danglingNodePos? s_cl = none) : GateOf g := by
+  have hph : p.val ≠ .placeholder := by
+    cases hv : p.val <;> simp_all [YamlToken.isFlowClose]
+  refine h.gate (fun j hj => by rw [htok, push_getElem!_below j hj]) hind hflow ?_ ?_ hnd
+  · rw [htok, Array.size_push]; exact prevRealIdx?_push_top hph
+  · rw [htok, push_getElem!_top]; exact hcl
 
 /-- Inside a flow, preprocessing leaves the last real token alone: `skipToContent`
     emits nothing, `unwindIndents` is gated off by `inFlow`, and `saveSimpleKey`'s
@@ -12828,6 +13289,13 @@ lemma accum_step_flow (sc : ScannerState)
     rw [hd, hks, htl] at h_flow
     have h_fos := h_flow.open_of_succ
     have h_km : KmSound sc km kc := (h_kprom hpos).1
+    -- **Item 164: the park the base frame was opened over, still anchored** —
+    -- and its reservation floor.  It travels with the mask through every arm:
+    -- the four bracket indicators move it by the shape they write, the `,`/`?`
+    -- and the content lane push, and the `:` spends the floor to resolve the
+    -- pending key without moving either.
+    have h_panch : FlowBaseAnchor gt sc d := by
+      have h := (h_kprom hpos).2.1; rw [hd] at h; simpa using h
     have h_ksz' : ks.size = d + 1 := by rw [← hks, h_ksz, hd]
     unfold scanNextToken_dispatchFlowIndicators at h_dispatch
     have h_adj := flowAdj_ok_of_dispatch_ok h_dispatch
@@ -12849,6 +13317,9 @@ lemma accum_step_flow (sc : ScannerState)
     -- the interior invariant's "no directive inside an open flow" half survives.
     have h_ad_false : s_ad.allowDirectives = false := by
       rw [← h_ad_def]; exact allowDirectives_update_false s_prep
+    -- Item 164: …and across the two silent writers every dispatch crosses.
+    have h_panch_ad : FlowBaseAnchor gt s_ad d := by
+      rw [← h_ad_def]; exact h_panch.dispatchBase h_sc_inflow h_preprocess
     -- ═══ THE INTERIOR GAP, RESOLVED ONCE (β.3) ═══
     -- Both cases hand the five arms the same five things, which is why no arm
     -- below has to know whether a `[96] c-ns-properties` run was being held.
@@ -12994,7 +13465,9 @@ lemma accum_step_flow (sc : ScannerState)
              (fun h0 => absurd h0 (by have := h_fos₂.km_pos; omega))
              (ScannerCorrectness.scanFlowSequenceStart_preserves_implicitValueLine s_ad)
              (fun h0 => absurd h0 (by have := h_fos₂.km_pos; omega)),
-           nofun⟩⟩,
+           -- Item 164: a nested `[` deepens the hold by one and stacks the
+           -- pending key, which is `ParkFloor.pushOpen`'s whole content.
+           h_panch_ad.seqStart, nofun⟩⟩,
         nofun, hcorr_tok,
         fun _ => ⟨.white (GStar.nil _) (sync_scanFlowSequenceStart _) nofun (by have := glit_col h_open_lit; omega), (tailOf_scanFlowSequenceStart _).2,
           (scanFlowSequenceStart_allowDirectives _).trans h_ad_false⟩⟩
@@ -13042,8 +13515,16 @@ lemma accum_step_flow (sc : ScannerState)
                   (fun _ => PendingNode.pendingContent sp_start sp_block sp_tok
                     (Or.inr ((restNodeStop_of_validateFlowClose hcorr_tok.end_eq
                       (by rw [h_fl']) hval).to_surface hcorr_tok))
-                    (fun _ sp_m h_ssl => resume.value sp_tok sp_m
-                      (SFlowContent.flowSeq _ _ _ _ h_seq) h_ssl)
+                    -- **Item 164: the gate, paid at the close.**  The verdict
+                    -- the route is stated against is §9.2's on the state this
+                    -- close just made, and the anchor says that verdict IS the
+                    -- park's.  An ungated frame (`g = none`) pays `trivial`.
+                    (fun hnd sp_m h_ssl => resume.value
+                      (h_panch_ad.gate_of_close (scanFlowSequenceEnd_tokens s_ad) rfl
+                        (L4YAML.Proofs.EmitterScannability.scanFlowSequenceEnd_preserves_indents
+                          s_ad)
+                        (by unfold ScannerState.inFlow; simp [h_fl']) hnd)
+                      sp_tok sp_m (SFlowContent.flowSeq _ _ _ _ h_seq) h_ssl)
                     (flowKeyPack_of_close resume.key
                       (close_col_of_base (by omega) h_km rfl h_preprocess h_ad_def
                         (ScannerCorrectness.scanFlowSequenceEnd_simpleKey_restored s_ad)
@@ -13089,6 +13570,13 @@ lemma accum_step_flow (sc : ScannerState)
                        (ScannerCorrectness.scanFlowSequenceEnd_simpleKey_restored s_ad)
                        ⟨_, scanFlowSequenceEnd_tokens s_ad⟩ (Nat.le_of_lt h_off_lt)
                        (ScannerCorrectness.scanFlowSequenceEnd_preserves_implicitValueLine s_ad),
+                     -- Item 164: a nested `]` shallows the hold, and the arm
+                     -- knows its depth only to be POSITIVE — which is what
+                     -- `seqEndPos` is for.
+                     h_panch_ad.seqEndPos (by
+                       have := FlowOpenStack_depth_pos
+                         (inject sp_tok (SFlowContent.flowSeq _ _ _ _ h_seq))
+                       omega),
                      fun _ => ?_⟩⟩,
                   -- Item 35: a NESTED close leaves the scanner inside the parent
                   -- collection, so the depth-0 pending is vacuous — the frame it
@@ -13173,7 +13661,8 @@ lemma accum_step_flow (sc : ScannerState)
                  (fun h0 => absurd h0 (by have := h_fos₂.km_pos; omega))
                  (ScannerCorrectness.scanFlowMappingStart_preserves_implicitValueLine s_ad)
                  (fun h0 => absurd h0 (by have := h_fos₂.km_pos; omega)),
-               nofun⟩⟩,
+               -- Item 164: the mapping twin of the nested open's hold.
+               h_panch_ad.mapStart, nofun⟩⟩,
             nofun, hcorr_tok,
             fun _ => ⟨.white (GStar.nil _) (sync_scanFlowMappingStart _) nofun (by have := glit_col h_open_lit; omega), (tailOf_scanFlowMappingStart _).2,
               (scanFlowMappingStart_allowDirectives _).trans h_ad_false⟩⟩
@@ -13219,8 +13708,13 @@ lemma accum_step_flow (sc : ScannerState)
                       (fun _ => PendingNode.pendingContent sp_start sp_block sp_tok
                         (Or.inr ((restNodeStop_of_validateFlowClose hcorr_tok.end_eq
                           (by rw [h_fl']) hval).to_surface hcorr_tok))
-                        (fun _ sp_m h_ssl => resume.value sp_tok sp_m
-                          (SFlowContent.flowMap _ _ _ _ h_map) h_ssl)
+                        -- Item 164: the mapping twin of the close's spend.
+                        (fun hnd sp_m h_ssl => resume.value
+                          (h_panch_ad.gate_of_close (scanFlowMappingEnd_tokens s_ad) rfl
+                            (L4YAML.Proofs.EmitterScannability.scanFlowMappingEnd_preserves_indents
+                              s_ad)
+                            (by unfold ScannerState.inFlow; simp [h_fl']) hnd)
+                          sp_tok sp_m (SFlowContent.flowMap _ _ _ _ h_map) h_ssl)
                         (flowKeyPack_of_close resume.key
                           (close_col_of_base (by omega) h_km rfl h_preprocess h_ad_def
                             (ScannerCorrectness.scanFlowMappingEnd_simpleKey_restored s_ad)
@@ -13262,6 +13756,11 @@ lemma accum_step_flow (sc : ScannerState)
                            (ScannerCorrectness.scanFlowMappingEnd_simpleKey_restored s_ad)
                            ⟨_, scanFlowMappingEnd_tokens s_ad⟩ (Nat.le_of_lt h_off_lt)
                            (ScannerCorrectness.scanFlowMappingEnd_preserves_implicitValueLine s_ad),
+                         -- Item 164: the mapping twin of the nested close.
+                         h_panch_ad.mapEndPos (by
+                           have := FlowOpenStack_depth_pos
+                             (inject sp_tok (SFlowContent.flowMap _ _ _ _ h_map))
+                           omega),
                          fun _ => ?_⟩⟩,
                       -- Item 35: the mapping twin of the nested-close vacuity.
                       (fun h => absurd h (by
@@ -13317,7 +13816,7 @@ lemma accum_step_flow (sc : ScannerState)
                            split at hpk
                            · assumption
                            · exact absurd hpk (by simp)) hfe,
-                         nofun⟩⟩,
+                         h_panch_ad.flowEntry hfe, nofun⟩⟩,
                       nofun, hcorr_tok,
                       fun _ => ⟨.white (GStar.nil _) (sync_scanFlowEntry hfe) nofun (by have := glit_col h_comma_lit; omega), (tailOf_scanFlowEntry hfe).2,
                         (scanFlowEntry_allowDirectives hfe).trans h_ad_false⟩⟩
@@ -13332,7 +13831,7 @@ lemma accum_step_flow (sc : ScannerState)
                            split at hpk
                            · assumption
                            · exact absurd hpk (by simp)) hfe,
-                         nofun⟩⟩,
+                         h_panch_ad.flowEntry hfe, nofun⟩⟩,
                       nofun, hcorr_tok,
                       fun _ => ⟨.white (GStar.nil _) (sync_scanFlowEntry hfe) nofun (by have := glit_col h_comma_lit; omega), (tailOf_scanFlowEntry hfe).2,
                         (scanFlowEntry_allowDirectives hfe).trans h_ad_false⟩⟩
@@ -13347,7 +13846,7 @@ lemma accum_step_flow (sc : ScannerState)
                            split at hpk
                            · assumption
                            · exact absurd hpk (by simp)) hfe,
-                         nofun⟩⟩,
+                         h_panch_ad.flowEntry hfe, nofun⟩⟩,
                       nofun, hcorr_tok,
                       fun _ => ⟨.white (GStar.nil _) (sync_scanFlowEntry hfe) nofun (by have := glit_col h_comma_lit; omega), (tailOf_scanFlowEntry hfe).2,
                         (scanFlowEntry_allowDirectives hfe).trans h_ad_false⟩⟩
@@ -13362,7 +13861,7 @@ lemma accum_step_flow (sc : ScannerState)
                            split at hpk
                            · assumption
                            · exact absurd hpk (by simp)) hfe,
-                         nofun⟩⟩,
+                         h_panch_ad.flowEntry hfe, nofun⟩⟩,
                       nofun, hcorr_tok,
                       fun _ => ⟨.white (GStar.nil _) (sync_scanFlowEntry hfe) nofun (by have := glit_col h_comma_lit; omega), (tailOf_scanFlowEntry hfe).2,
                         (scanFlowEntry_allowDirectives hfe).trans h_ad_false⟩⟩
@@ -13611,6 +14110,85 @@ lemma scanValue_prefix_off_targets {s s' : ScannerState} (h_flow : s.inFlow = tr
       omega
     omega)]
   exact h_prep_tokens
+
+/-- **In flow, `scanValuePrepare` writes exactly one slot** (item 164): the
+    SECOND of the two the save reserved, turned into `[193]`'s `key`.  The
+    block arms — the mapping-indent push and the `blockMappingStart` pair —
+    are both off `inFlow`. -/
+lemma scanValuePrepare_inFlow_tokens {s : ScannerState} (h_flow : s.inFlow = true) :
+    (s.simpleKey.possible = false ∧ (scanValuePrepare s).tokens = s.tokens) ∨
+    (s.simpleKey.possible = true ∧
+      (scanValuePrepare s).tokens =
+        s.tokens.setIfInBounds (s.simpleKey.tokenIndex + 1)
+          ⟨s.simpleKey.pos, .key, s.simpleKey.pos⟩) := by
+  unfold scanValuePrepare
+  split
+  · rename_i hp
+    refine Or.inr ⟨hp, ?_⟩
+    rw [if_neg (by simp [h_flow])]
+  · rename_i hp
+    simp only [Bool.not_eq_true] at hp
+    refine Or.inl ⟨hp, ?_⟩
+    split
+    · rfl
+    · rw [if_neg (by simp [h_flow])]
+
+/-- The clear-key either kills the pending key outright or leaves it exactly
+    as it was — it never moves a reservation. -/
+lemma scanValueClearKey_keeps (s : ScannerState) :
+    (scanValueClearKey s).simpleKey.possible = true →
+      (scanValueClearKey s).simpleKey = s.simpleKey := by
+  unfold scanValueClearKey
+  split
+  · split
+    · intro h; exact absurd h (by simp)
+    · split
+      · intro h; exact absurd h (by simp)
+      · intro _; rfl
+  · intro _; rfl
+
+/-- **The `:` step's token array, in flow** (item 164) — either a bare `.value`
+    push, or the pending reservation's SECOND slot rewritten to `[193]`'s `key`
+    and then the push.  This is item 162's fifth shape, stated against the
+    scanner's own function. -/
+lemma scanValue_inFlow_tokens_shape {s s' : ScannerState} (h_flow : s.inFlow = true)
+    (hok : scanValue s = .ok s') :
+    (∃ q : Positioned YamlToken, q.val = .value ∧ s'.tokens = s.tokens.push q) ∨
+    (s.simpleKey.possible = true ∧ ∃ v q : Positioned YamlToken,
+      v.val = .key ∧ q.val = .value ∧
+      s'.tokens = (s.tokens.setIfInBounds (s.simpleKey.tokenIndex + 1) v).push q) := by
+  have h_ck := scanValueClearKey_fields s
+  have h_flow_ck : (scanValueClearKey s).inFlow = true := by
+    unfold ScannerState.inFlow; rw [h_ck.2.2.2.2.2.1]; exact h_flow
+  have h_tok := (scanValue_inFlow_facts h_flow hok).1
+  rcases scanValuePrepare_inFlow_tokens h_flow_ck with ⟨_, hpt⟩ | ⟨hp, hpt⟩
+  · exact Or.inl ⟨⟨(scanValuePrepare (scanValueClearKey s)).currentPos, .value,
+      (scanValuePrepare (scanValueClearKey s)).currentPos⟩, rfl,
+      by rw [h_tok, hpt, h_ck.2.2.2.2.2.2.2.1]⟩
+  · have hkey := scanValueClearKey_keeps s hp
+    refine Or.inr ⟨by rw [← hkey]; exact hp,
+      ⟨s.simpleKey.pos, .key, s.simpleKey.pos⟩,
+      ⟨(scanValuePrepare (scanValueClearKey s)).currentPos, .value,
+       (scanValuePrepare (scanValueClearKey s)).currentPos⟩, rfl, rfl, ?_⟩
+    rw [h_tok, hpt, h_ck.2.2.2.2.2.2.2.1, hkey]
+
+/-- **The fifth shape, at last** (item 164).  The `:` resolves the pending key
+    by REWRITING the slot its save reserved, and the floor is exactly what says
+    that slot is neither below the base open nor a bracket — the precondition
+    item 163 measured and found uncarried.  The keyless arm is an ordinary
+    push: with nothing pending there is nothing to resolve. -/
+lemma FlowBaseAnchor.flowValue {g : Option ScannerState} {s s' : ScannerState} {d : Nat}
+    (h : FlowBaseAnchor g s d) (h_flow : s.inFlow = true) (hstep : scanValue s = .ok s') :
+    FlowBaseAnchor g s' d := by
+  have hind := L4YAML.Proofs.FlowIndentStable.scanValue_indents_of_inFlow h_flow hstep
+  have hsks := (scanValue_inFlow_facts h_flow hstep).2.2.2.2.1
+  have hposs := (scanValue_inFlow_facts h_flow hstep).2.2.2.1
+  rcases scanValue_inFlow_tokens_shape h_flow hstep with ⟨q, hq, htok⟩ | ⟨hp, v, q, hv, hq, htok⟩
+  · exact h.pushInert htok (by rw [hq]; rfl) (by rw [hq]; rfl) hind hsks (Or.inr hposs)
+  · refine h.transport (fun _ ha hf => ⟨?_, ?_⟩)
+    · exact ha.rewriteKey hf.pending hp htok (by rw [hv]; rfl) (by rw [hv]; rfl)
+        (by rw [hq]; rfl) (by rw [hq]; rfl) hind
+    · exact hf.rewriteKey htok (by rw [hv]; rfl) (by rw [hv]; rfl) hsks hposs
 
 /-- The mask across the `:` step itself (item 10).  The resolution write
     lands at the pending reservation's own slots; the ARMED-FLOOR half of the
@@ -18945,6 +19523,13 @@ lemma accum_step_block (sc : ScannerState)
     rw [hd, hks, htl] at h_flow
     have h_fos := h_flow.open_of_succ
     have h_km : KmSound sc km kc := (h_kprom hpos).1
+    -- **Item 164: the park the base frame was opened over, still anchored** —
+    -- and its reservation floor.  It travels with the mask through every arm:
+    -- the four bracket indicators move it by the shape they write, the `,`/`?`
+    -- and the content lane push, and the `:` spends the floor to resolve the
+    -- pending key without moving either.
+    have h_panch : FlowBaseAnchor gt sc d := by
+      have h := (h_kprom hpos).2.1; rw [hd] at h; simpa using h
     have h_ksz' : ks.size = d + 1 := by rw [← hks, h_ksz, hd]
     have h_stream_blk : SLYamlStream sp_start sp_block :=
       absorb_stacksB sp_start sp_gram sp_block sp_block h_stream h_stack
@@ -18961,6 +19546,9 @@ lemma accum_step_block (sc : ScannerState)
     rw [h_ad_def] at h_ad_fl h_ad_ks h_ad_tl h_ad_last h_ad_inflow hcorr_ad hpeek_ad
     have h_ad_false : s_ad.allowDirectives = false := by
       rw [← h_ad_def]; exact allowDirectives_update_false s_prep
+    -- Item 164: …and across the two silent writers every dispatch crosses.
+    have h_panch_ad : FlowBaseAnchor gt s_ad d := by
+      rw [← h_ad_def]; exact h_panch.dispatchBase h_sc_inflow h_preprocess
     split at h_dispatch
     · -- ═══ `-` — REFUTED FOR FREE. ═══
       -- `[184] c-l-block-seq-entry` is a BLOCK production and the arm says so:
@@ -19052,7 +19640,7 @@ lemma accum_step_block (sc : ScannerState)
                    split at hpk
                    · assumption
                    · exact absurd hpk (by simp)) hk,
-               nofun⟩⟩,
+               h_panch_ad.flowKey h_ad_inflow hk, nofun⟩⟩,
             nofun, hcorr_tok,
             fun _ => ⟨.white (GStar.nil _) (sync_scanKey h_ad_inflow hk) nofun (by have := glit_col h_q_lit; omega),
               (tailOf_scanKey h_ad_inflow hk).2,
@@ -19187,6 +19775,13 @@ lemma accum_step_block (sc : ScannerState)
                   · have h_tif : s_ad.simpleKey.tokenIndex = sc.tokens.size := by
                       rw [h_ad_sk_eq, h_ti5]
                     exact ⟨by omega, by omega⟩
+            -- **Item 164: the anchor across the `:` itself** — item 162's
+            -- fifth shape, and the one arm item 163 measured as blocked.  The
+            -- resolution write lands at the pending reservation's second slot;
+            -- the floor says that slot is above the base open and holds no
+            -- bracket, so neither the park's prefix nor the forward stack moves.
+            have h_panch_v : FlowBaseAnchor gt s_v d :=
+              h_panch_ad.flowValue h_ad_inflow hsv
             have h_bundle : s_v.flowLevel ≥ 1 →
                 InteriorGap s_v (tailOf s_v.tokens) sp_tok sp_tok ∧
                   LastTokenReal s_v.tokens ∧ s_v.allowDirectives = false :=
@@ -19201,7 +19796,7 @@ lemma accum_step_block (sc : ScannerState)
             cases h_tl_case : tl with
             | value =>
               -- betweenEntries is scan-refuted; the mid frames stored the closure
-              rcases (h_kprom hpos).2 (htl.trans h_tl_case) with h_layout | h_closure
+              rcases (h_kprom hpos).2.2 (htl.trans h_tl_case) with h_layout | h_closure
               · exact (no_colon_dispatch_of_layout (by omega) h_layout h_preprocess
                   h_ad_sk_eq h_ad_tk_eq h_ad_off_eq h_ad_fl_eq hsv).elim
               · have h_cl := h_closure sp_prep sp_tok
@@ -19217,7 +19812,7 @@ lemma accum_step_block (sc : ScannerState)
                   h_colon_lit
                 rw [hd, hks] at h_cl
                 exact ⟨sp_gram, sp_block, sp_tok, sp_tok, h_stream, h_stack,
-                  ⟨nn, kc, km, gt, h_cl, h_ksz', h_floorK', fun _ => ⟨h_km_v, fun hv => nomatch hv⟩⟩,
+                  ⟨nn, kc, km, gt, h_cl, h_ksz', h_floorK', fun _ => ⟨h_km_v, h_panch_v, fun hv => nomatch hv⟩⟩,
                   nofun, hcorr_tok, h_bundle⟩
             | colon =>
               -- the `.colon` cells are scan-refuted, white and props alike
@@ -19241,7 +19836,7 @@ lemma accum_step_block (sc : ScannerState)
                     · exact absurd h_floorK h_nofloor
                 exact ⟨sp_gram, sp_block, sp_tok, sp_tok, h_stream, h_stack,
                   ⟨nn, kc, km, gt, h_stk, h_ksz', h_floorK',
-                   fun _ => ⟨h_km_v, fun hv => nomatch hv⟩⟩,
+                   fun _ => ⟨h_km_v, h_panch_v, fun hv => nomatch hv⟩⟩,
                   nofun, hcorr_tok, h_bundle⟩
               | props ha ht sp_p h_tail_p h_lead_p h_run_p _ _ h_colon_p =>
                 have h_stk : FlowStackB sp_start nn kc gt (d + 1) ks km .colon sp_block sp_tok := by
@@ -19258,7 +19853,7 @@ lemma accum_step_block (sc : ScannerState)
                     · exact absurd h_floorK h_nofloor
                 exact ⟨sp_gram, sp_block, sp_tok, sp_tok, h_stream, h_stack,
                   ⟨nn, kc, km, gt, h_stk, h_ksz', h_floorK',
-                   fun _ => ⟨h_km_v, fun hv => nomatch hv⟩⟩,
+                   fun _ => ⟨h_km_v, h_panch_v, fun hv => nomatch hv⟩⟩,
                   nofun, hcorr_tok, h_bundle⟩
             | question =>
               cases h_gap with
@@ -19271,7 +19866,7 @@ lemma accum_step_block (sc : ScannerState)
                     · exact absurd h_floorK h_nofloor
                 exact ⟨sp_gram, sp_block, sp_tok, sp_tok, h_stream, h_stack,
                   ⟨nn, kc, km, gt, h_stk, h_ksz', h_floorK',
-                   fun _ => ⟨h_km_v, fun hv => nomatch hv⟩⟩,
+                   fun _ => ⟨h_km_v, h_panch_v, fun hv => nomatch hv⟩⟩,
                   nofun, hcorr_tok, h_bundle⟩
               | props ha ht sp_p h_tail_p h_lead_p h_run_p _ _ h_colon_p =>
                 have h_stk : FlowStackB sp_start nn kc gt (d + 1) ks km .colon sp_block sp_tok := by
@@ -19288,7 +19883,7 @@ lemma accum_step_block (sc : ScannerState)
                     · exact absurd h_floorK h_nofloor
                 exact ⟨sp_gram, sp_block, sp_tok, sp_tok, h_stream, h_stack,
                   ⟨nn, kc, km, gt, h_stk, h_ksz', h_floorK',
-                   fun _ => ⟨h_km_v, fun hv => nomatch hv⟩⟩,
+                   fun _ => ⟨h_km_v, h_panch_v, fun hv => nomatch hv⟩⟩,
                   nofun, hcorr_tok, h_bundle⟩
         · -- fallthrough: dispatch returns `.ok none`, not `.ok (some s')`.
           simp at h_dispatch
@@ -27646,6 +28241,13 @@ lemma accum_step_content (sc : ScannerState)
     rw [hd, hks, htl] at h_flow
     have h_fos := h_flow.open_of_succ
     have h_km : KmSound sc km kc := (h_kprom hpos).1
+    -- **Item 164: the park the base frame was opened over, still anchored** —
+    -- and its reservation floor.  It travels with the mask through every arm:
+    -- the four bracket indicators move it by the shape they write, the `,`/`?`
+    -- and the content lane push, and the `:` spends the floor to resolve the
+    -- pending key without moving either.
+    have h_panch : FlowBaseAnchor gt sc d := by
+      have h := (h_kprom hpos).2.1; rw [hd] at h; simpa using h
     have h_ksz' : ks.size = d + 1 := by rw [← hks, h_ksz, hd]
     have hcorr_ad := corr_of_allowDirectives_update hcorr_prep
     have hpeek_ad : (if s_prep.allowDirectives = true then
@@ -27670,6 +28272,13 @@ lemma accum_step_content (sc : ScannerState)
     rw [h_ad_def] at h_ad_fl h_ad_ks h_ad_tl h_ad_inflow h_ad_run h_ad_last hcorr_ad hpeek_ad
     have h_ad_false : s_ad.allowDirectives = false := by
       rw [← h_ad_def]; exact allowDirectives_update_false s_prep
+    -- Item 164: …and across the two silent writers every dispatch crosses.
+    have h_panch_ad : FlowBaseAnchor gt s_ad d := by
+      rw [← h_ad_def]; exact h_panch.dispatchBase h_sc_inflow h_preprocess
+    -- Item 164: …and across the content dispatch itself, which item 158
+    -- already proved pushes exactly one node token — no bracket, and the
+    -- pending reservation either stands or is cleared.
+    have h_panch_new : FlowBaseAnchor gt s' d := h_panch_ad.content h_ad_inflow h_dispatch
     have hpeek : s_ad.peek? = some c := hpeek_ad.trans (preprocess_some_peek h_preprocess)
     -- Item 67: the two facts a reading at the STACK's index needs, both about
     -- the state the token is scanned at.  The column is the structural
@@ -27757,7 +28366,7 @@ lemma accum_step_content (sc : ScannerState)
                     simp only [beq_iff_eq] at hcol
                     exact h_not_doc hcol)
               h_dispatch)),
-             fun hv => absurd hv h_tail⟩⟩,
+             h_panch_new, fun hv => absurd hv h_tail⟩⟩,
           (fun h => absurd h (by omega)), hcorr_new,
           fun _ => ⟨.props true false sp_prep h_tail
             (fun m => (h_lead_at m).imp (SSeparateLines_prepend_white h_white)
@@ -27819,7 +28428,7 @@ lemma accum_step_content (sc : ScannerState)
                     simp only [beq_iff_eq] at hcol
                     exact h_not_doc hcol)
               h_dispatch)),
-               fun hv => absurd hv h_tail⟩⟩,
+               h_panch_new, fun hv => absurd hv h_tail⟩⟩,
             (fun h => absurd h (by omega)), hcorr_new,
             fun _ => ⟨.props false true sp_prep h_tail
               (fun m => (h_lead_at m).imp (SSeparateLines_prepend_white h_white)
@@ -27911,7 +28520,7 @@ lemma accum_step_content (sc : ScannerState)
                  ⟨((dispatchContent_value_key_facts h_dispatch hamp hbang hnotPipe hnotGt).1).1,
                   ((dispatchContent_value_key_facts h_dispatch hamp hbang hnotPipe hnotGt).1).2.1⟩
                  (Nat.le_of_lt h_off_gt),
-               fun _ => h_entry⟩⟩,
+               h_panch_new, fun _ => h_entry⟩⟩,
             (fun h => absurd h (by omega)), hcorr_res,
             fun _ => ⟨.white h_ws h_sync' nofun
                    (dispatchContent_flowIn_col_pos hcorr_ad hpeek h_ad_inflow h_not_doc
@@ -28000,7 +28609,7 @@ lemma accum_step_content (sc : ScannerState)
                     simp only [beq_iff_eq] at hcol
                     exact h_not_doc hcol)
               h_dispatch)),
-             fun hv => absurd hv h_tail⟩⟩,
+             h_panch_new, fun hv => absurd hv h_tail⟩⟩,
           (fun h => absurd h (by omega)), hcorr_new,
           fun _ => ⟨.props true true sp_p h_tail
             (fun m => (h_lead_p m).imp id
@@ -28096,7 +28705,7 @@ lemma accum_step_content (sc : ScannerState)
                     simp only [beq_iff_eq] at hcol
                     exact h_not_doc hcol)
               h_dispatch)),
-               fun hv => absurd hv h_tail⟩⟩,
+               h_panch_new, fun hv => absurd hv h_tail⟩⟩,
             (fun h => absurd h (by omega)), hcorr_new,
             fun _ => ⟨.props true true sp_p h_tail
               (fun m => (h_lead_p m).imp id
@@ -28210,7 +28819,7 @@ lemma accum_step_content (sc : ScannerState)
                    ⟨((dispatchContent_value_key_facts h_dispatch hamp hbang hnotPipe hnotGt).1).1,
                     ((dispatchContent_value_key_facts h_dispatch hamp hbang hnotPipe hnotGt).1).2.1⟩
                    (Nat.le_of_lt h_off_gt),
-                 fun _ => h_entry⟩⟩,
+                 h_panch_new, fun _ => h_entry⟩⟩,
               (fun h => absurd h (by omega)), hcorr_res,
               fun _ => ⟨.white h_ws h_sync' nofun
                    (dispatchContent_flowIn_col_pos hcorr_ad hpeek h_ad_inflow h_not_doc

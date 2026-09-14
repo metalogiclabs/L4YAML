@@ -124,7 +124,7 @@ example {sp_start sp_br sp_key : SurfPos} {kc : Nat}
       ∀ sp_e : SurfPos, SCompactMapTail kc sp_v sp_e →
       ResumeFrames (ExplValueLine sp_start nv) ks sp_e) :
     FlowBaseRoutes sp_start 0 sp_br kc none :=
-  ⟨value,
+  ⟨fun _ => value,
    Or.inl ⟨kc, sp_key, route, head, rfl, Or.inr trivial,
      Or.inl tw99, Or.inl tw108⟩,
    Or.inr trivial⟩
