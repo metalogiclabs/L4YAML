@@ -122,6 +122,20 @@ example {sc : ScannerState} {sp_start sp_block sp_scan sp_mid : SurfPos}
     SLYamlStream sp_start sp_mid :=
   h_pending.close_with_ssl h_stream h_nd h_ssl
 
+-- **Item 159 puts the same premise on the ENTRY park.**  A completed node
+-- inside a block entry parks as `pendingBlockContent`, not `pendingContent`
+-- (`- a`, `- "x"`, `- &p a`), and until now that park's `h_closable` was the
+-- one content close that said nothing about what it was a reading of — even
+-- though `- a⏎b` is the same second bare document as `a: 1⏎b`.  The example
+-- above already covers it: `close_with_ssl` takes any `PendingNode` and the
+-- consumer is the same one, which is why the premise cost its ten producers
+-- nothing.
+#guard ["- a\nb\n", "- \"x\"\nb\n", "k:\n  - a\n  b\n", "- a\n- b\n"].map scanOk
+  == ["SCAN-ERR L4YAML.ScanError.invalidBareDocument 1 0",
+      "SCAN-ERR L4YAML.ScanError.invalidBareDocument 1 0",
+      "SCAN-ERR L4YAML.ScanError.invalidBareDocument 2 2",
+      "SCAN-OK"]
+
 -- **The gating asymmetry, measured.**  Five landings, each read at the state
 -- the park stands in.  The two that pay the face are the ones whose flag is
 -- UP — a landing across a break, and the end of the stream — and both REFUSE.
@@ -293,7 +307,14 @@ rather than as a measurement.  But "the scanner already refuses" is true only
 of the BLOCK-bodied lane: a property run whose body is a flow collection scans
 CLEAN (`a: 1⏎&p [b]`), so the field cannot simply be added.  The lane's two
 halves, and what the second one costs, are measured in
-`Tests/Guards/Proofs/PropsParkDangling.lean`. -/
+`Tests/Guards/Proofs/PropsParkDangling.lean`.
+
+**And item 159 closed the second half.**  `[161] ns-flow-node` offers a flow
+collection where a scalar stands, so `trailingNodeRun?` reads a trailing close
+back to its matching open and `a: 1⏎&p [b]` is a scanner error at `1,0` now —
+the two halves are one lane again.  What is still missing is a premise shape
+that relays through a PROPERTY push; see
+`Tests/Guards/Proofs/FlowRunDanglingClosed.lean` §5. -/
 
 #guard ["a: 1\n&p b\n", "k:\n  a: 1\n  &p b\n", "- a\n&p b\n", "a: 1\n!!str b\n"].map scanOk
   == ["SCAN-ERR L4YAML.ScanError.invalidBareDocument 1 0",

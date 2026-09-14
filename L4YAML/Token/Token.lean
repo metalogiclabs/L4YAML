@@ -280,17 +280,38 @@ def YamlToken.completesFlowValue : YamlToken → Bool
   | _ => false
 
 /--
-Whether a token is a whole node's BODY: a scalar of any style, or an alias.
+Whether a token is a whole node's BODY **in one token**: a scalar of any style,
+or an alias.
 
 `[96] c-ns-properties` is excluded — a property precedes a node rather than
-being one — and so are the flow closes: inside a block context a `]`/`}` ends a
-collection that a `[`/`{` opened on some earlier line, so it never heads a node
-RUN the way a scalar or an alias does.  The dual, `completesFlowValue`, adds the
-closes because there the question is whether a value is finished.
+being one.  The flow closes are excluded too, but for a different reason, and
+item 159 is where the difference started to matter: a `]`/`}` DOES finish a
+node (`completesFlowValue` says so), but the node it finishes begins at a
+`[`/`{` an arbitrary distance back, so the close does not HEAD a run the way a
+scalar does.  `trailingNodeRun?` reads that node through `flowOpenIdx?` instead.
 -/
 def YamlToken.isNodeBody : YamlToken → Bool
   | .scalar .. => true
   | .alias .. => true
+  | _ => false
+
+/--
+Whether a token OPENS a flow collection — `[137] c-flow-sequence`'s `[` and
+`[140] c-flow-mapping`'s `{` — and whether one CLOSES one.
+
+A complete flow collection is a node whose body spans every token between the
+two, so a run that ends in a close is read back to the matching open
+(`flowOpenIdx?`).  That is what `isNodeBody` cannot express in one token.
+-/
+def YamlToken.isFlowOpen : YamlToken → Bool
+  | .flowSequenceStart => true
+  | .flowMappingStart => true
+  | _ => false
+
+@[inherit_doc YamlToken.isFlowOpen]
+def YamlToken.isFlowClose : YamlToken → Bool
+  | .flowSequenceEnd => true
+  | .flowMappingEnd => true
   | _ => false
 
 /--

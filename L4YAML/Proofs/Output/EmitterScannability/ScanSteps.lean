@@ -263,12 +263,18 @@ lemma scanLoop_checkDanglingNode_ok_of_sentinel (s : ScannerState)
   unfold scanLoop_checkDanglingNode
   rw [danglingNodePos?_none_of_sentinel s h]
 
-/-- A token array whose last token is neither a node body nor a `[96]` property
-    ends in no node RUN at all — the flow closes and the block indicators are in
-    this shape. -/
+/-- A token array whose last token heads no node run — not a `[96]` property,
+    not a one-token body, and not a flow COLLECTION's close — ends in no node
+    run at all.  The block indicators are in this shape.
+
+    **The flow closes are no longer** (item 159): a `]` finishes a node whose
+    run starts back at the matching `[`, so `trailingNodeRun?` reads through it
+    and this lemma has to say so.  What used to be free at a close is now the
+    indent stack's business — see `scanLoop_checkDanglingNode_ok_of_sentinel`. -/
 lemma trailingNodeRun?_push_none (ts : Array (Positioned YamlToken))
     (p : Positioned YamlToken)
     (hb : p.val.isNodeBody = false) (hp : p.val.isNodeProperty = false)
+    (hc : p.val.isFlowClose = false)
     (hph : (p.val == YamlToken.placeholder) = false) :
     trailingNodeRun? (ts.push p) = none := by
   have hget : (ts.push p)[ts.size]! = p := by
@@ -282,7 +288,7 @@ lemma trailingNodeRun?_push_none (ts : Array (Positioned YamlToken))
     rfl
   unfold trailingNodeRun?
   rw [hlast]
-  simp only [hget, hb, hp, Bool.false_eq_true, ↓reduceIte]
+  simp only [hget, hb, hp, hc, Bool.false_eq_true, ↓reduceIte]
 
 lemma danglingNodePos?_none_of_no_run (s : ScannerState)
     (h : trailingNodeRun? s.tokens = none) : danglingNodePos? s = none := by
@@ -3767,7 +3773,9 @@ lemma scanNextToken_flow_close_seq_outermost (s : ScannerState)
     (h_col_pos : s.col > 0)
     (h_fl : s.flowLevel = 1)
     (h_dp : s.directivesPresent = false)
-    (h_kind : s.flowStack.back? = some true) :
+    (h_kind : s.flowStack.back? = some true)
+    -- Item 159: the close's own run reading is now the stack's business.
+    (h_ids : s.indents = #[{ column := -1, isSequence := false }]) :
     ∃ s', scanNextToken s = .ok (some s')
       ∧ s'.flowLevel = 0
       ∧ s'.directivesPresent = false
@@ -3828,16 +3836,15 @@ lemma scanNextToken_flow_close_seq_outermost (s : ScannerState)
          h_ad_corr.input_prefix, h_ad_corr.indent_cols_nonneg⟩
         (show (s_ad.emit .flowSequenceEnd).offset < (s_ad.emit .flowSequenceEnd).inputEnd from h_lt)
         (by decide) (by decide))
+  -- Item 159: a `]`/`}` no longer ends the array in NO run — the run is read
+  -- back to the matching open — so what discharges the check here is the indent
+  -- stack the emitter's own output stands on, which is the sentinel alone.
   have h_result_dn : scanLoop_checkDanglingNode (scanFlowSequenceEnd s_ad) = .ok () := by
-    refine scanLoop_checkDanglingNode_ok_of_no_run _ ?_
-    have h_tok : (scanFlowSequenceEnd s_ad).tokens
-        = s_ad.tokens.push { pos := s_ad.currentPos, val := .flowSequenceEnd } := by
-      unfold scanFlowSequenceEnd
-      dsimp only []
-      rw [ScannerCorrectness.advance_preserves_tokens (s_ad.emit .flowSequenceEnd)]
-      unfold ScannerState.emit; rfl
-    rw [h_tok]
-    exact trailingNodeRun?_push_none _ _ rfl rfl rfl
+    refine scanLoop_checkDanglingNode_ok_of_sentinel_stack _ ?_
+    have h_ad_ids : s_ad.indents = s.indents := by
+      simp only [s_ad]; split <;> exact saveSimpleKey_preserves_indents s
+    rw [scanFlowSequenceEnd_preserves_indents s_ad, h_ad_ids]
+    exact h_ids
   exact ⟨scanFlowSequenceEnd s_ad, h_snt, h_result_fl, h_result_dp, h_result_eof,
     h_result_dn⟩
 
@@ -4156,7 +4163,9 @@ lemma scanNextToken_flow_close_mapping_outermost (s : ScannerState)
     (h_col_pos : s.col > 0)
     (h_fl : s.flowLevel = 1)
     (h_dp : s.directivesPresent = false)
-    (h_kind : s.flowStack.back? = some false) :
+    (h_kind : s.flowStack.back? = some false)
+    -- Item 159: the close's own run reading is now the stack's business.
+    (h_ids : s.indents = #[{ column := -1, isSequence := false }]) :
     ∃ s', scanNextToken s = .ok (some s')
       ∧ s'.flowLevel = 0
       ∧ s'.directivesPresent = false
@@ -4211,16 +4220,15 @@ lemma scanNextToken_flow_close_mapping_outermost (s : ScannerState)
          h_ad_corr.input_prefix, h_ad_corr.indent_cols_nonneg⟩
         (show (s_ad.emit .flowMappingEnd).offset < (s_ad.emit .flowMappingEnd).inputEnd from h_lt)
         (by decide) (by decide))
+  -- Item 159: a `]`/`}` no longer ends the array in NO run — the run is read
+  -- back to the matching open — so what discharges the check here is the indent
+  -- stack the emitter's own output stands on, which is the sentinel alone.
   have h_result_dn : scanLoop_checkDanglingNode (scanFlowMappingEnd s_ad) = .ok () := by
-    refine scanLoop_checkDanglingNode_ok_of_no_run _ ?_
-    have h_tok : (scanFlowMappingEnd s_ad).tokens
-        = s_ad.tokens.push { pos := s_ad.currentPos, val := .flowMappingEnd } := by
-      unfold scanFlowMappingEnd
-      dsimp only []
-      rw [ScannerCorrectness.advance_preserves_tokens (s_ad.emit .flowMappingEnd)]
-      unfold ScannerState.emit; rfl
-    rw [h_tok]
-    exact trailingNodeRun?_push_none _ _ rfl rfl rfl
+    refine scanLoop_checkDanglingNode_ok_of_sentinel_stack _ ?_
+    have h_ad_ids : s_ad.indents = s.indents := by
+      simp only [s_ad]; split <;> exact saveSimpleKey_preserves_indents s
+    rw [scanFlowMappingEnd_preserves_indents s_ad, h_ad_ids]
+    exact h_ids
   exact ⟨scanFlowMappingEnd s_ad, h_snt, h_result_fl, h_result_dp, h_result_eof,
     h_result_dn⟩
 

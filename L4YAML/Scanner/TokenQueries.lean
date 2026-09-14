@@ -106,13 +106,72 @@ def prevRealIdx? (tokens : Array (Positioned YamlToken)) : Nat → Option Nat
   | 0 => none
   | i + 1 => if tokens[i]!.val == .placeholder then prevRealIdx? tokens i else some i
 
-/-- The trailing `[96]* (scalar|alias)?` run at the end of the token array: the
+/-- Walking the token array BACKWARD from `j`, the index of the flow OPEN that
+    matches a close, with `d` further closes still to balance (item 159).
+
+    A complete `[137] c-flow-sequence` / `[140] c-flow-mapping` is a NODE whose
+    body is every token from its open to its close, so a run that ends in a
+    close has to be read back across the whole collection — `prevRealIdx?`
+    alone reaches only the element in front of the `]`.  The array is balanced
+    by construction at block level (`scanNextToken_dispatchFlowIndicators`
+    refuses a close with nothing open and a close that does not match the
+    innermost open), so the walk always finds its partner; `none` is the
+    unreachable arm.
+
+    Structurally recursive on the index, so it is total — the same shape, and
+    for the same reason, as `sameIndentSequenceOpenLoop`. -/
+@[yaml_spec "7.4.1" 137 "c-flow-sequence",
+  yaml_spec "7.4.2" 140 "c-flow-mapping"]
+def flowOpenIdxLoop (tokens : Array (Positioned YamlToken)) (d : Nat) :
+    Nat → Option Nat
+  | 0 => none
+  | j + 1 =>
+    let t := tokens[j]!.val
+    if t.isFlowClose then flowOpenIdxLoop tokens (d + 1) j
+    else if t.isFlowOpen then
+      match d with
+      | 0 => some j
+      | d' + 1 => flowOpenIdxLoop tokens d' j
+    else flowOpenIdxLoop tokens d j
+
+/-- `flowOpenIdxLoop` started just before the close at index `i`. -/
+def flowOpenIdx? (tokens : Array (Positioned YamlToken)) (i : Nat) : Option Nat :=
+  flowOpenIdxLoop tokens 0 i
+
+/-- The `[96]` run standing in front of index `i`, as the index that run STARTS
+    at — `i` itself when the token in front of it is not a property.  §6.9
+    admits at most one anchor and one tag, so the walk-back is capped at two:
+    the same cap, for the same reason, as `trailingPropertyRun`'s two
+    lookbacks. -/
+@[yaml_spec "6.9" 96 "c-ns-properties"]
+def propsRunStart (tokens : Array (Positioned YamlToken)) (i : Nat) : Nat :=
+  match prevRealIdx? tokens i with
+  | some j =>
+    if tokens[j]!.val.isNodeProperty then
+      match prevRealIdx? tokens j with
+      | some k => if tokens[k]!.val.isNodeProperty then k else j
+      | none => j
+    else i
+  | none => i
+
+/-- The trailing `[96]* ns-flow-content?` run at the end of the token array: the
     index it STARTS at, paired with the index of the real token before it.
     `none` when the array does not end in a node run at all.
 
     §6.9 admits at most one anchor and one tag, so the property walk-back is
     capped at two — the same cap, for the same reason, as
-    `trailingPropertyRun`'s two lookbacks. -/
+    `trailingPropertyRun`'s two lookbacks.
+
+    **The third arm is a flow COLLECTION** (item 159).  `[161] ns-flow-node`
+    offers `ns-flow-content`, and that is a flow collection as readily as a
+    scalar — but a collection is not one token, so a run whose body is one ends
+    the array in a `]`/`}` and the first two arms report no run at all.  That is
+    why `a: 1⏎&p [b]` scanned clean while `a: 1⏎&p b` did not, and only
+    `TokenParser`'s `validNextToken` refused it, at the run's start.  The close
+    is read back to its own open (`flowOpenIdx?`) and the property walk-back
+    continues from there, so the run this reports starts where the parser
+    reports: at `&p`. -/
+@[yaml_spec "7.1" 161 "ns-flow-node"]
 def trailingNodeRun? (tokens : Array (Positioned YamlToken)) :
     Option (Nat × Option Nat) :=
   match prevRealIdx? tokens tokens.size with
@@ -135,6 +194,12 @@ def trailingNodeRun? (tokens : Array (Positioned YamlToken)) :
                   else i
                 | none => i
       some (st, prevRealIdx? tokens st)
+    else if t.isFlowClose then
+      match flowOpenIdx? tokens i with
+      | none => none
+      | some o =>
+        let st := propsRunStart tokens o
+        some (st, prevRealIdx? tokens st)
     else none
 
 /-! ### The `-` at a block mapping's own column (§9.2's third dangler) -/

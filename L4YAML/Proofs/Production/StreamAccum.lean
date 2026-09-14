@@ -1459,7 +1459,13 @@ inductive PendingNode (sc : ScannerState) : Bool → SurfPos → SurfPos → Sur
       route lemma the mapping VALUE's pending uses. -/
   | pendingBlockContent (sp_start sp_block sp_scan : SurfPos) (n : Nat)
       (h_line : sp_scan.col = 0 ∨ LineNodeStop sp_scan.chars)
-      (h_closable : ∀ sp_mid,
+      -- **Item 159: the face, on this park too.**  `pendingContent.h_closable`
+      -- has carried §9.2's reading since item 157, and the run's ride into an
+      -- ENTRY parks HERE — `- "x"⏎b` makes a `pendingBlockContent`, not a
+      -- `pendingContent`, and it is the same second bare document.  The premise
+      -- costs its producers nothing (they ignore it) and its ONE consumer,
+      -- `PendingNode.close_with_ssl`, carries `h_nd` already.
+      (h_closable : danglingNodePos? sc = none → ∀ sp_mid,
         SSLComments sp_scan sp_mid →
         SLYamlStream sp_start sp_mid)
       (h_closable_entry : ∀ sp_mid,
@@ -3633,7 +3639,7 @@ lemma PendingNode.close_with_ssl {sc : ScannerState}
     -- Absorb opaque scanner content (flow/block indicators) via scannerDrop.
     exact SLYamlStream.scannerDrop sp_start sp_block sp_scan sp_mid h_stream h_ssl
   | pendingBlockContent _ _ _ _ _ h_closable _ _ _ _ =>
-    exact h_closable sp_mid h_ssl
+    exact h_closable h_nd sp_mid h_ssl
   | pendingDocEnd _ _ _ _ h_marker _ =>
     exact SLYamlStream.suffixContinue sp_start sp_block sp_mid sp_mid sp_mid sp_mid
       h_stream (GPlus.mk sp_block sp_mid sp_mid
@@ -22179,7 +22185,7 @@ lemma accum_content_on_pendingBlock
       exact ⟨sp_block, sp_block, sp_block, sp_scan', h_stream_block,
            BlockStack.nil sp_block, FlowStackB.nil sp_block .sep,
            PendingNode.pendingBlockContent sp_start sp_block sp_scan' 0 h_line
-             (fun sp_final h_ssl =>
+             (fun _ sp_final h_ssl =>
                have h_ssl_ext := white_prepend_SSLComments h_trailing_ws h_ssl
                h_close_old sp_final
                  (SBlockIndented.node 0 .blockIn sp_scan sp_final
@@ -22241,7 +22247,7 @@ lemma accum_content_on_pendingBlock
       exact ⟨sp_block, sp_block, sp_block, sp_scan', h_stream_block,
              BlockStack.nil sp_block, FlowStackB.nil sp_block .sep,
              PendingNode.pendingBlockContent sp_start sp_block sp_scan' 0 h_line
-               (fun sp_final h_ssl =>
+               (fun _ sp_final h_ssl =>
                  h_close_old sp_final
                    (SBlockIndented.node 0 .blockIn sp_scan sp_final
                      (h_nodeAt sp_final h_ssl)))
@@ -22772,7 +22778,7 @@ lemma accum_content_on_pendingBlock_indented
   · exact ⟨sp_block, sp_block, sp_block, sp_scan', h_stream_block,
            BlockStack.nil sp_block, FlowStackB.nil sp_block .sep,
            PendingNode.pendingBlockContent sp_start sp_block sp_scan' n h_line
-             (fun sp_final h_ssl =>
+             (fun _ sp_final h_ssl =>
                h_close_old sp_final
                  (SBlockIndented.node n .blockIn sp_scan sp_final
                    (SBlockNode.flowInBlock n .blockIn sp_scan sp_prep sp_gram sp_final
@@ -23040,7 +23046,7 @@ lemma accum_content_on_pendingBlock_indented
     exact ⟨sp_block, sp_block, sp_block, sp_scan', h_stream_block,
            BlockStack.nil sp_block, FlowStackB.nil sp_block .sep,
            PendingNode.pendingBlockContent sp_start sp_block sp_scan' n h_line
-             (fun sp_final h_ssl =>
+             (fun _ sp_final h_ssl =>
                h_close_old sp_final
                  (SBlockIndented.node n .blockIn sp_scan sp_final
                    (h_nodeAt sp_final h_ssl)))
@@ -23087,7 +23093,7 @@ lemma accum_content_on_pendingBlock_indented
     exact ⟨sp_block, sp_block, sp_block, sp_scan', h_stream_block,
            BlockStack.nil sp_block, FlowStackB.nil sp_block .sep,
            PendingNode.pendingBlockContent sp_start sp_block sp_scan' n h_line
-             (fun sp_final h_ssl =>
+             (fun _ sp_final h_ssl =>
                h_close_old sp_final
                  (SBlockIndented.node n .blockIn sp_scan sp_final
                    (SBlockNode.flowInBlock n .blockIn sp_scan sp_prep sp_gramf sp_final
@@ -25708,7 +25714,7 @@ lemma accum_content_pending (sc : ScannerState)
                   exact ⟨sp_block, sp_block, sp_block, sp_scan', h_stream_block,
                          BlockStack.nil sp_block, FlowStackB.nil sp_block .sep,
                          PendingNode.pendingBlockContent sp_start sp_block sp_scan' 0 h_line
-                           (fun sp_mid h_ssl => h_route sp_mid (h_nodeAt sp_mid h_ssl))
+                           (fun _ sp_mid h_ssl => h_route sp_mid (h_nodeAt sp_mid h_ssl))
                            (fun sp_mid h_ssl sp_end h_tail =>
                              routeE sp_mid (h_nodeAt sp_mid h_ssl) sp_end h_tail)
                            h_key
@@ -25807,7 +25813,7 @@ lemma accum_content_pending (sc : ScannerState)
                   exact ⟨sp_block, sp_block, sp_block, sp_scan', h_stream_block,
                          BlockStack.nil sp_block, FlowStackB.nil sp_block .sep,
                          PendingNode.pendingBlockContent sp_start sp_block sp_scan' 0 h_line
-                           (fun sp_mid h_ssl => h_route sp_mid (h_nodeAt sp_mid h_ssl))
+                           (fun _ sp_mid h_ssl => h_route sp_mid (h_nodeAt sp_mid h_ssl))
                            (fun sp_mid h_ssl sp_end h_tail =>
                              routeE sp_mid (h_nodeAt sp_mid h_ssl) sp_end h_tail)
                            h_key
@@ -26008,7 +26014,7 @@ lemma accum_content_pending (sc : ScannerState)
                          BlockStack.nil sp_block, FlowStackB.nil sp_block .sep,
                          PendingNode.pendingBlockContent sp_start sp_block sp_scan' (k + 1)
                            h_line
-                           (fun sp_mid h_ssl => h_route sp_mid (h_nodeAt sp_mid h_ssl))
+                           (fun _ sp_mid h_ssl => h_route sp_mid (h_nodeAt sp_mid h_ssl))
                            (fun sp_mid h_ssl sp_end h_tail =>
                              routeE sp_mid (h_nodeAt sp_mid h_ssl) sp_end h_tail)
                            h_key
@@ -26105,7 +26111,7 @@ lemma accum_content_pending (sc : ScannerState)
                          BlockStack.nil sp_block, FlowStackB.nil sp_block .sep,
                          PendingNode.pendingBlockContent sp_start sp_block sp_scan' (k + 1)
                            h_line
-                           (fun sp_mid h_ssl => h_route sp_mid (h_nodeAt sp_mid h_ssl))
+                           (fun _ sp_mid h_ssl => h_route sp_mid (h_nodeAt sp_mid h_ssl))
                            (fun sp_mid h_ssl sp_end h_tail =>
                              routeE sp_mid (h_nodeAt sp_mid h_ssl) sp_end h_tail)
                            (fun h_poss _ => absurd h_poss
@@ -26207,7 +26213,7 @@ lemma accum_content_pending (sc : ScannerState)
                          BlockStack.nil sp_block, FlowStackB.nil sp_block .sep,
                          PendingNode.pendingBlockContent sp_start sp_block sp_scan' (k + 1)
                            h_line
-                           (fun sp_mid h_ssl => h_route sp_mid (h_nodeAt sp_mid h_ssl))
+                           (fun _ sp_mid h_ssl => h_route sp_mid (h_nodeAt sp_mid h_ssl))
                            (fun sp_mid h_ssl sp_end h_tail =>
                              routeE sp_mid (h_nodeAt sp_mid h_ssl) sp_end h_tail)
                            h_key

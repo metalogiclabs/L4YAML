@@ -165,24 +165,33 @@ example {s s' : ScannerState}
       "run=prop@1,0 pred=no-slot park=1,0",
       "run=prop@1,0 pred=no-slot park=1,0"]
 
-/-! ## §3  The half that scans clean
+/-! ## §3  The half that scanned clean — CLOSED by item 159
 
-A property run whose body is a FLOW collection is not refused by the scanner at
-all.  Two mechanisms miss it, and they miss it for different reasons:
+**This section recorded a hole, and half of its diagnosis was wrong.**  What it
+said was that a property run whose body is a FLOW collection is not refused at
+all, because §9.2's end-of-input check reads `trailingNodeRun?` and a `]` is
+neither a body nor a property, while §8.1's floor measures the BRACKET's column
+that the run has moved right.  Both halves of that are true.  What does NOT
+follow is the remedy it implied: item 158's own "what remains" offered *closing
+the hole at the flow open*, and an open cannot be the trigger, because a flow
+collection can head an implicit KEY — `a: 1⏎&p [b]: c` PARSES, and so does
+`k:⏎␣␣m:⏎␣␣␣␣- a⏎␣␣&p [1]: b`, which `FlowFrameResumeRider` already witnessed.
 
-* §9.2's end-of-input check reads `trailingNodeRun?`, and a `]` or `}` is
-  neither a body nor a property — so once the collection closes, the array ends
-  in no node run and the reading is `none`;
-* §8.1's floor, which refuses the same shape WITHOUT a run (`a: 1⏎[b]` is
-  `underIndentedFlowContent`), measures the BRACKET's column — and the property
-  run has moved it right.
+Item 159 closed it at the READING instead.  `[161] ns-flow-node` offers
+`ns-flow-content`, and a flow collection is that as readily as a scalar is — so
+`trailingNodeRun?` reads a trailing close back to its matching open
+(`flowOpenIdx?`) and keeps walking the `[96]` run from there.  The terminator is
+unchanged: the break, or end of input.  §4's flow consumer is what that buys.
 
-The parser refuses all four anyway, at the run's start, which is where the
-scanner would have reported. -/
+The witnesses below are `SCAN-ERR` now, at the position they were already
+`PARSE-ERR` at. -/
 
 #guard ["a: 1\n&p [b]\n", "a: 1\n&p {b: 1}\n", "a: 1\n!t [b]\n", "- a\n&p [b]\n",
         "a: 1\n[b]\n"].map scanOk
-  == ["SCAN-OK", "SCAN-OK", "SCAN-OK", "SCAN-OK",
+  == ["SCAN-ERR L4YAML.ScanError.invalidBareDocument 1 0",
+      "SCAN-ERR L4YAML.ScanError.invalidBareDocument 1 0",
+      "SCAN-ERR L4YAML.ScanError.invalidBareDocument 1 0",
+      "SCAN-ERR L4YAML.ScanError.invalidBareDocument 1 0",
       "SCAN-ERR L4YAML.ScanError.underIndentedFlowContent 1 0"]
 
 #guard ["a: 1\n&p [b]\n", "a: 1\n&p {b: 1}\n", "a: 1\n!t [b]\n", "- a\n&p [b]\n",
@@ -193,9 +202,10 @@ scanner would have reported. -/
       "PARSE-ERR L4YAML.ScanError.invalidBareDocument 1 0",
       "PARSE-ERR L4YAML.ScanError.underIndentedFlowContent 1 0"]
 
--- `a: 1⏎&p [b]` step by step: the props park at step 4 DOES read the dangling
--- run, and the very next step — the `[` — ends it.  Nothing downstream can see
--- it again.
+-- `a: 1⏎&p [b]` step by step.  The props park at step 4 reads the dangling run;
+-- the `[` no longer ends it, and at step 7 — the state end of input reads — the
+-- close is walked back to its own open and the run is `&p` again.  Step 5's
+-- `run=none` is the OPEN's own state, where nothing has closed yet.
 #guard (List.range 8).map (fun n => parkAt "a: 1\n&p [b]\n" n)
   == ["run=none park=none",
       "run=body@0,0 pred=no-slot park=none",
@@ -204,7 +214,29 @@ scanner would have reported. -/
       "run=prop@1,0 pred=no-slot park=1,0",
       "run=none park=none",
       "run=body@1,4 pred=no-slot park=none",
-      "run=none park=none"]
+      "run=prop@1,0 pred=no-slot park=1,0"]
+
+-- …and the reading is REVOCABLE through the collection exactly as item 141
+-- measured it through a scalar: the same run, the same `some 1,0`, and a `:`
+-- after the close makes the whole thing a key.  This is why the OPEN cannot be
+-- the trigger, and why the gate stays the break.
+#guard scanOk "a: 1\n&p [b]: c\n" == "SCAN-OK"
+#guard parseOk "a: 1\n&p [b]: c\n" == "PARSE-OK"
+#guard (List.range 8).map (fun n => parkAt "a: 1\n&p [b]: c\n" n)
+  == ["run=none park=none",
+      "run=body@0,0 pred=no-slot park=none",
+      "run=none park=none",
+      "run=body@0,3 pred=slot park=none",
+      "run=prop@1,0 pred=no-slot park=1,0",
+      "run=none park=none",
+      "run=body@1,4 pred=no-slot park=none",
+      "run=prop@1,0 pred=no-slot park=1,0"]
+
+-- The legal neighbours the widened READING leaves alone — the run's predecessor
+-- offers it a slot, or the stack has no level at its column.
+#guard ["&p [1, 2]\n", "k: &p [1, 2]\n", "- &p [1, 2]\n", "k: [1, 2]\nm: 3\n",
+        "k:\n  m:\n    - a\n  &p [1]: b\n"].map scanOk
+  == ["SCAN-OK", "SCAN-OK", "SCAN-OK", "SCAN-OK", "SCAN-OK"]
 
 /-! ## §4  What the field would cost, and where it stops
 
@@ -216,11 +248,14 @@ third cannot:
 |---|---|
 | `PendingNode.close_with_ssl` | `h_nd`, item 157's own parameter — free |
 | `accum_content_pending` (the run's extension and its ride into content) | the NEXT park's premise, one push later |
-| `accum_flow_open_depth0` (the ride into a flow collection) | nothing: §3's park is live there |
+| `accum_flow_open_depth0` (the ride into a flow collection) | ~~nothing: §3's park is live there~~ — item 159 took that input out of the domain |
 
-The flow consumer is §3's own input read from the accumulation's side.  It can
+~~The flow consumer is §3's own input read from the accumulation's side.  It can
 be paid only by giving that arm the opaque resume instead of the props route,
-which is a different item's decision, not a lemma.
+which is a different item's decision, not a lemma.~~  **Item 159 closed §3
+instead**: a dangling run that rides into a flow collection is refused at the
+next break or at end of input, because the run is visible through the close now.
+The input that arm could not pay for no longer reaches it.
 
 The second consumer has its own obstacle, and it is a fact about the token
 array rather than about the grammar.  A property run's reading transports
@@ -259,9 +294,11 @@ three things this item has measured rather than assumed:
 2. `pendingBlockContent.h_closable` guarded as `pendingContent.h_closable`
    already is, since the run's ride into an ENTRY parks there — its only
    consumer is `close_with_ssl`, which carries `h_nd` already;
-3. a decision about the flow ride: the opaque resume (`scannerDrop`, which
+3. ~~a decision about the flow ride: the opaque resume (`scannerDrop`, which
    `pendingFlow` already takes) in place of the props route whenever the park
    is dangling — or §3's hole closed in the scanner, which would make the two
-   refusals agree at the position they already agree on. -/
+   refusals agree at the position they already agree on.~~  **DONE (item 159)**,
+   by the second route — and not at the flow OPEN, which §3 records is not a
+   terminator at all.  See `Tests/Guards/Proofs/FlowRunDanglingClosed.lean`. -/
 
 end L4YAML.Tests.Guards.PropsParkDangling

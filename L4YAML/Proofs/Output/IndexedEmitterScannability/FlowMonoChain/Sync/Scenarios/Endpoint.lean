@@ -315,7 +315,11 @@ lemma scanNextTokenIx_flow_close_seq_outermost (s : ScannerStateIx input)
     (h_col_pos : s.cursor.pos.col > 0)
     (h_fl : s.flowLevel = 1)
     (h_dp : s.directivesPresent = false)
-    (h_kind : s.flowStack.back? = some true) :
+    (h_kind : s.flowStack.back? = some true)
+    -- Item 159: a `]`/`}` no longer ends the stream in NO run — the run is read
+    -- back to the matching open — so the check is discharged by the indent
+    -- stack the emitter's output stands on, the sentinel alone.
+    (h_ids : s.indents = #[{ column := -1, isSequence := false }]) :
     ∃ s', scanNextTokenIx s = .ok (some s')
       ∧ s'.flowLevel = 0
       ∧ s'.directivesPresent = false
@@ -387,13 +391,9 @@ lemma scanNextTokenIx_flow_close_seq_outermost (s : ScannerStateIx input)
   have h_s'_peek : (scanFlowSequenceEndIx s_ad).peek? = none :=
     peek_none_of_empty_surfIx (scanFlowSequenceEndIx s_ad) (s_ad.cursor.pos.col + 1) h_corr_f
   have h_s'_dn : scanLoopIx_checkDanglingNode (scanFlowSequenceEndIx s_ad) = .ok () := by
-    refine scanLoopIx_checkDanglingNode_ok_of_no_run _ ?_
-    have h_tok : (scanFlowSequenceEndIx s_ad).tokens
-        = ⟨s_ad.tokens.tokens.push (Indexed.IxToken.mk' (input := input)
-            s_ad.cursor.pos YamlToken.flowSequenceEnd s_ad.cursor.pos
-            (Nat.le_refl _) s_ad.cursor.posBound)⟩ := rfl
-    rw [h_tok]
-    exact trailingNodeRunIx?_push_none _ _ rfl rfl rfl
+    refine scanLoopIx_checkDanglingNode_ok_of_sentinel_stack _ ?_
+    rw [scanFlowSequenceEndIx_indents s_ad, h_ad_ids]
+    exact h_ids
   exact ⟨scanFlowSequenceEndIx s_ad, h_snt, h_s'_fl, h_s'_dp, h_s'_peek, h_s'_dn⟩
 
 /-! ## §4  `scanNextTokenIx_flow_close_mapping_outermost`
@@ -410,7 +410,11 @@ lemma scanNextTokenIx_flow_close_mapping_outermost (s : ScannerStateIx input)
     (h_col_pos : s.cursor.pos.col > 0)
     (h_fl : s.flowLevel = 1)
     (h_dp : s.directivesPresent = false)
-    (h_kind : s.flowStack.back? = some false) :
+    (h_kind : s.flowStack.back? = some false)
+    -- Item 159: a `]`/`}` no longer ends the stream in NO run — the run is read
+    -- back to the matching open — so the check is discharged by the indent
+    -- stack the emitter's output stands on, the sentinel alone.
+    (h_ids : s.indents = #[{ column := -1, isSequence := false }]) :
     ∃ s', scanNextTokenIx s = .ok (some s')
       ∧ s'.flowLevel = 0
       ∧ s'.directivesPresent = false
@@ -473,13 +477,9 @@ lemma scanNextTokenIx_flow_close_mapping_outermost (s : ScannerStateIx input)
   have h_s'_peek : (scanFlowMappingEndIx s_ad).peek? = none :=
     peek_none_of_empty_surfIx (scanFlowMappingEndIx s_ad) (s_ad.cursor.pos.col + 1) h_corr_f
   have h_s'_dn : scanLoopIx_checkDanglingNode (scanFlowMappingEndIx s_ad) = .ok () := by
-    refine scanLoopIx_checkDanglingNode_ok_of_no_run _ ?_
-    have h_tok : (scanFlowMappingEndIx s_ad).tokens
-        = ⟨s_ad.tokens.tokens.push (Indexed.IxToken.mk' (input := input)
-            s_ad.cursor.pos YamlToken.flowMappingEnd s_ad.cursor.pos
-            (Nat.le_refl _) s_ad.cursor.posBound)⟩ := rfl
-    rw [h_tok]
-    exact trailingNodeRunIx?_push_none _ _ rfl rfl rfl
+    refine scanLoopIx_checkDanglingNode_ok_of_sentinel_stack _ ?_
+    rw [scanFlowMappingEndIx_indents s_ad, h_ad_ids]
+    exact h_ids
   exact ⟨scanFlowMappingEndIx s_ad, h_snt, h_s'_fl, h_s'_dp, h_s'_peek, h_s'_dn⟩
 
 /-! ## §5  `scanNextTokenIx_flow_open_mapping_init`

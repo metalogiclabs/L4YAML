@@ -1725,7 +1725,37 @@ def scanNextTokenIx_checkNoPendingDirectives {input : String}
   else
     .ok ()
 
-/-- Indexed twin of `L4YAML.Scanner.trailingNodeRun?`. -/
+/-- Indexed twin of `L4YAML.Scanner.flowOpenIdxLoop`. -/
+def flowOpenIdxLoopIx {input : String} (ts : Indexed.TokenStream input) (d : Nat) :
+    Nat → Option Nat
+  | 0 => none
+  | j + 1 =>
+    let t := ts.tokens[j]!.token
+    if t.isFlowClose then flowOpenIdxLoopIx ts (d + 1) j
+    else if t.isFlowOpen then
+      match d with
+      | 0 => some j
+      | d' + 1 => flowOpenIdxLoopIx ts d' j
+    else flowOpenIdxLoopIx ts d j
+
+/-- Indexed twin of `L4YAML.Scanner.flowOpenIdx?`. -/
+def flowOpenIdxIx? {input : String} (ts : Indexed.TokenStream input) (i : Nat) :
+    Option Nat :=
+  flowOpenIdxLoopIx ts 0 i
+
+/-- Indexed twin of `L4YAML.Scanner.propsRunStart`. -/
+def propsRunStartIx {input : String} (ts : Indexed.TokenStream input) (i : Nat) : Nat :=
+  match prevRealIdxIx? ts i with
+  | some j =>
+    if ts.tokens[j]!.token.isNodeProperty then
+      match prevRealIdxIx? ts j with
+      | some k => if ts.tokens[k]!.token.isNodeProperty then k else j
+      | none => j
+    else i
+  | none => i
+
+/-- Indexed twin of `L4YAML.Scanner.trailingNodeRun?`, item 159's flow arm
+    included. -/
 def trailingNodeRunIx? {input : String} (ts : Indexed.TokenStream input) :
     Option (Nat × Option Nat) :=
   match prevRealIdxIx? ts ts.tokens.size with
@@ -1747,6 +1777,12 @@ def trailingNodeRunIx? {input : String} (ts : Indexed.TokenStream input) :
                   else i
                 | none => i
       some (st, prevRealIdxIx? ts st)
+    else if t.isFlowClose then
+      match flowOpenIdxIx? ts i with
+      | none => none
+      | some o =>
+        let st := propsRunStartIx ts o
+        some (st, prevRealIdxIx? ts st)
     else none
 
 /-- Indexed twin of `L4YAML.Scanner.danglingNodePos?`. -/

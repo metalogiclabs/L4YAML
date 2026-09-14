@@ -1000,11 +1000,13 @@ lemma scanNextTokenIx_checkDanglingNode_ok_of_sentinel_stack {input : String}
   rw [danglingNodePosIx?_none_of_sentinel_stack s_run h]
   split <;> rfl
 
-/-- Indexed twin of `trailingNodeRun?_push_none`: a stream whose last token is
-    neither a node body nor a `[96]` property ends in no run. -/
+/-- Indexed twin of `trailingNodeRun?_push_none`: a stream whose last token
+    heads no run — not a `[96]` property, not a one-token body, and (item 159)
+    not a flow collection's close — ends in no run. -/
 lemma trailingNodeRunIx?_push_none {input : String}
     (ts : Indexed.TokenStream input) (p : Indexed.IxToken input)
     (hb : p.token.isNodeBody = false) (hp : p.token.isNodeProperty = false)
+    (hc : p.token.isFlowClose = false)
     (hph : (p.token == YamlToken.placeholder) = false) :
     trailingNodeRunIx? ⟨ts.tokens.push p⟩ = none := by
   have hget : (ts.tokens.push p)[ts.tokens.size]! = p := by
@@ -1019,7 +1021,7 @@ lemma trailingNodeRunIx?_push_none {input : String}
     rfl
   unfold trailingNodeRunIx?
   rw [hlast]
-  simp only [hget, hb, hp, Bool.false_eq_true, ↓reduceIte]
+  simp only [hget, hb, hp, hc, Bool.false_eq_true, ↓reduceIte]
 
 lemma danglingNodePosIx?_none_of_no_run {input : String} (s : ScannerStateIx input)
     (h : trailingNodeRunIx? s.tokens = none) : danglingNodePosIx? s = none := by

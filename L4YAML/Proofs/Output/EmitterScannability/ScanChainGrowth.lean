@@ -3703,6 +3703,7 @@ lemma emit_produces_valid_yaml (v : YamlValue) {inFlow : Bool} (hg : Grammable v
       obtain ⟨s₃, h_snt₃, h_fl₃, h_dp₃, h_peek₃, h_dn₃⟩ :=
         scanNextToken_flow_close_seq_outermost s₂ h_corr₂ h_inflow₂ h_indent₂ h_col₂
           (by rw [h_fl₂, h_fl₁]) (by rw [h_dp₂, h_dp₁]) h_kind₂
+          (by rw [h_ids₂, h_ids₁]; rfl)
       -- Step 6: EOF
       have h_eof : scanNextToken s₃ = .ok none := scanNextToken_eof s₃ h_peek₃
       -- Step 7: BOM check (input starts with '[', not BOM)
@@ -3767,6 +3768,7 @@ lemma emit_produces_valid_yaml (v : YamlValue) {inFlow : Bool} (hg : Grammable v
       obtain ⟨s₃, h_snt₃, h_fl₃, h_dp₃, h_peek₃, h_dn₃⟩ :=
         scanNextToken_flow_close_mapping_outermost s₂ h_corr₂ h_inflow₂ h_indent₂ h_col₂
           (by rw [h_fl₂, h_fl₁]) (by rw [h_dp₂, h_dp₁]) h_kind₂
+          (by rw [h_ids₂, h_ids₁]; rfl)
       -- Step 6: EOF
       have h_eof : scanNextToken s₃ = .ok none := scanNextToken_eof s₃ h_peek₃
       -- Step 7: BOM check (input starts with '{', not BOM)
