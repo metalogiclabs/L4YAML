@@ -3162,6 +3162,380 @@ lemma KmSound.back_col {sc : ScannerState} {km : Array Bool} {kc : Nat}
   rw [Array.back?_eq_getElem?, show sc.simpleKeyStack.size - 1 = off from by omega]
   exact h_get
 
+/-- A push agrees with the array below it. -/
+lemma push_getElem!_below {ts : Array (Positioned YamlToken)}
+    {p : Positioned YamlToken} : ∀ j, j < ts.size → (ts.push p)[j]! = ts[j]! := by
+  intro j hj
+  rw [getElem!_pos (ts.push p) j (by simp only [Array.size_push]; omega),
+      getElem!_pos ts j hj, Array.getElem_push_lt]
+
+/-! ### The bracket balance, read FORWARD (item 161)
+
+    Item 160 left `trailingNodeRun?_flowClose_reads_park` holding its own
+    answer as a hypothesis — `flowOpenIdx? a i = some b.size`, "the close finds
+    ITS open" — and named supplying it as the next piece.  It is supplied here,
+    and the shape it is supplied in is the point.
+
+    `flowOpenIdx?` walks the array BACKWARD from the close, counting closes it
+    has yet to balance.  Nothing in an accumulation can maintain that: it is a
+    fact about a finished array, re-derived from scratch at every reading.  The
+    same fact read FORWARD is a STACK — the indices of the opens not yet closed
+    in `ts[0, i)`, innermost first — and a stack is maintained one push at a
+    time, which is what a step invariant can carry.
+
+    `flowOpenIdxLoop_eq_stack` is that the two agree, and it agrees at every
+    depth at once: the backward walk with `d` closes outstanding finds the
+    `d`-th element of the forward stack.  The three push transports are then
+    the whole per-step cost — an open conses, a close pops, everything else
+    leaves the stack alone — and `FlowOpenHeld` packages the one shape a flow
+    tower needs: the base frame's own open, still held under `d` nested ones.
+
+    **Where the depth index comes from.**  Not from the scanner: the
+    accumulation already carries the tower's depth as `FlowStackB`'s own index,
+    and a base frame is at `d = 0`.  That the token array's reading of the same
+    depth agrees with `sc.flowLevel` is a CROSS-CHECK on this definition rather
+    than a dependency, and `FlowBracketBalance` measures it — 1 638 834 scanner
+    steps over every input of length ≤ 6 in an eleven-symbol flow alphabet, and
+    the repository's own `examples/`, with no disagreement. -/
+
+/-- **The indices of the flow opens still unclosed in `ts[0, i)`, innermost
+    FIRST.**  The forward reading of the balance `flowOpenIdx?` walks backward
+    for: an open conses its own index, a close pops the innermost, and every
+    other token leaves the stack alone.
+
+    A close with nothing open pops an empty stack rather than failing — the
+    array is balanced by construction at block level
+    (`scanNextToken_dispatchFlowIndicators` refuses both shapes), so that arm
+    is the same unreachable one `flowOpenIdxLoop`'s `none` is. -/
+def flowOpenIdxStack (ts : Array (Positioned YamlToken)) : Nat → List Nat
+  | 0 => []
+  | i + 1 =>
+    let rest := flowOpenIdxStack ts i
+    let t := ts[i]!.val
+    if t.isFlowClose then rest.tail
+    else if t.isFlowOpen then i :: rest
+    else rest
+
+/-- The stack's one-step equation, as a rewrite that touches only the `i + 1`
+    form — `unfold` would take the recursive occurrence with it. -/
+lemma flowOpenIdxStack_succ (ts : Array (Positioned YamlToken)) (i : Nat) :
+    flowOpenIdxStack ts (i + 1) =
+      (if ts[i]!.val.isFlowClose then (flowOpenIdxStack ts i).tail
+       else if ts[i]!.val.isFlowOpen then i :: flowOpenIdxStack ts i
+       else flowOpenIdxStack ts i) := rfl
+
+/-- **The backward bracket walk computes the forward open-index stack**, at
+    every depth at once: `flowOpenIdxLoop ts d i` — the walk from `i` with `d`
+    closes still to balance — is the `d`-th element of the stack standing at
+    `i`.  The two readings of §7.4's bracket balance are the same reading. -/
+lemma flowOpenIdxLoop_eq_stack (ts : Array (Positioned YamlToken)) :
+    ∀ (i d : Nat), flowOpenIdxLoop ts d i = (flowOpenIdxStack ts i)[d]? := by
+  intro i
+  induction i with
+  | zero => intro d; rfl
+  | succ n ih =>
+    intro d
+    unfold flowOpenIdxLoop flowOpenIdxStack
+    dsimp only []
+    split
+    · rw [ih (d + 1)]
+      cases h : flowOpenIdxStack ts n with
+      | nil => rfl
+      | cons a l => rfl
+    · split
+      · cases d with
+        | zero => rfl
+        | succ d' => dsimp only []; rw [ih d']; rfl
+      · exact ih d
+
+/-- The matching open a close at `i` finds is the stack's own head. -/
+lemma flowOpenIdx?_eq_head (ts : Array (Positioned YamlToken)) (i : Nat) :
+    flowOpenIdx? ts i = (flowOpenIdxStack ts i).head? := by
+  unfold flowOpenIdx?
+  rw [flowOpenIdxLoop_eq_stack]
+  cases flowOpenIdxStack ts i <;> rfl
+
+/-- The stack at `i` reads only `ts[0, i)`, so two arrays agreeing below `m`
+    read the same stack everywhere up to `m`. -/
+lemma flowOpenIdxStack_congr_below {a b : Array (Positioned YamlToken)} {m : Nat}
+    (h : ∀ j, j < m → a[j]! = b[j]!) :
+    ∀ i, i ≤ m → flowOpenIdxStack a i = flowOpenIdxStack b i := by
+  intro i
+  induction i with
+  | zero => intro _; rfl
+  | succ n ih =>
+    intro hn
+    rw [flowOpenIdxStack_succ, flowOpenIdxStack_succ, ih (by omega), h n (by omega)]
+
+/-- **The stack reads only the two bracket predicates** — so two arrays that
+    agree on THOSE give the same stack, whatever else differs between them.
+    This is the congruence a REWRITE needs, where token equality fails: a
+    simple key's resolution turns the slots the save reserved into the
+    `[187] c-l-block-map-implicit-key` pair, and neither the placeholder it
+    replaces nor the `key` that replaces it is a bracket. -/
+lemma flowOpenIdxStack_congr_kind {a b : Array (Positioned YamlToken)} {m : Nat}
+    (h : ∀ j, j < m → a[j]!.val.isFlowOpen = b[j]!.val.isFlowOpen ∧
+      a[j]!.val.isFlowClose = b[j]!.val.isFlowClose) :
+    ∀ i, i ≤ m → flowOpenIdxStack a i = flowOpenIdxStack b i := by
+  intro i
+  induction i with
+  | zero => intro _; rfl
+  | succ n ih =>
+    intro hn
+    obtain ⟨hop, hcl⟩ := h n (by omega)
+    rw [flowOpenIdxStack_succ, flowOpenIdxStack_succ, ih (by omega), hop, hcl]
+
+/-- A push leaves every stack reading below it alone. -/
+lemma flowOpenIdxStack_push_below {ts : Array (Positioned YamlToken)}
+    {p : Positioned YamlToken} : ∀ i, i ≤ ts.size →
+    flowOpenIdxStack (ts.push p) i = flowOpenIdxStack ts i :=
+  flowOpenIdxStack_congr_below (m := ts.size) push_getElem!_below
+
+/-- The pushed token, read back. -/
+lemma push_getElem!_top {ts : Array (Positioned YamlToken)}
+    {p : Positioned YamlToken} : (ts.push p)[ts.size]! = p := by
+  rw [getElem!_pos (ts.push p) ts.size (by simp only [Array.size_push]; omega)]
+  simp
+
+/-- **An open CONSES its own index.** -/
+lemma flowOpenIdxStack_push_open {ts : Array (Positioned YamlToken)}
+    {p : Positioned YamlToken} (h : p.val.isFlowOpen = true) :
+    flowOpenIdxStack (ts.push p) (ts.push p).size
+      = ts.size :: flowOpenIdxStack ts ts.size := by
+  have hcl : p.val.isFlowClose = false := by
+    cases hv : p.val <;> simp_all [YamlToken.isFlowOpen, YamlToken.isFlowClose]
+  rw [Array.size_push, flowOpenIdxStack_succ,
+    flowOpenIdxStack_push_below _ (Nat.le_refl _), push_getElem!_top]
+  simp [hcl, h]
+
+/-- **A close POPS the innermost.** -/
+lemma flowOpenIdxStack_push_close {ts : Array (Positioned YamlToken)}
+    {p : Positioned YamlToken} (h : p.val.isFlowClose = true) :
+    flowOpenIdxStack (ts.push p) (ts.push p).size
+      = (flowOpenIdxStack ts ts.size).tail := by
+  rw [Array.size_push, flowOpenIdxStack_succ,
+    flowOpenIdxStack_push_below _ (Nat.le_refl _), push_getElem!_top]
+  simp [h]
+
+/-- **Everything else leaves the stack alone** — the placeholders a save
+    reserves included, which is why a reading taken at a close is unmoved by
+    whatever the close's own step pushed after it. -/
+lemma flowOpenIdxStack_push_other {ts : Array (Positioned YamlToken)}
+    {p : Positioned YamlToken} (ho : p.val.isFlowOpen = false)
+    (hc : p.val.isFlowClose = false) :
+    flowOpenIdxStack (ts.push p) (ts.push p).size = flowOpenIdxStack ts ts.size := by
+  rw [Array.size_push, flowOpenIdxStack_succ,
+    flowOpenIdxStack_push_below _ (Nat.le_refl _), push_getElem!_top]
+  simp [ho, hc]
+
+/-- **The base frame's own open, still held under `d` nested ones**, with `S`
+    whatever stood below it when it opened.
+
+    This is the shape a flow tower carries: `d` is the nesting ABOVE the base,
+    so `FlowStackB`'s depth index supplies it and a base frame reads `d = 0`.
+    At `d = 0` the walk from the array's end finds `o` — which is exactly the
+    hypothesis item 160's `trailingNodeRun?_flowClose_reads_park` takes. -/
+def FlowOpenHeld (ts : Array (Positioned YamlToken)) (d o : Nat) (S : List Nat) : Prop :=
+  ∃ T : List Nat, T.length = d ∧ flowOpenIdxStack ts ts.size = T ++ (o :: S)
+
+/-- A nested open deepens the hold. -/
+lemma FlowOpenHeld.push_open {ts : Array (Positioned YamlToken)} {d o : Nat}
+    {S : List Nat} {p : Positioned YamlToken} (h : FlowOpenHeld ts d o S)
+    (hp : p.val.isFlowOpen = true) : FlowOpenHeld (ts.push p) (d + 1) o S := by
+  obtain ⟨T, hlen, hst⟩ := h
+  exact ⟨ts.size :: T, by simp [hlen], by
+    rw [flowOpenIdxStack_push_open hp, hst]; rfl⟩
+
+/-- A nested close shallows it — and cannot reach the base, because a hold at
+    depth `d + 1` has a nested open to pop first. -/
+lemma FlowOpenHeld.push_close {ts : Array (Positioned YamlToken)} {d o : Nat}
+    {S : List Nat} {p : Positioned YamlToken} (h : FlowOpenHeld ts (d + 1) o S)
+    (hp : p.val.isFlowClose = true) : FlowOpenHeld (ts.push p) d o S := by
+  obtain ⟨T, hlen, hst⟩ := h
+  cases T with
+  | nil => simp at hlen
+  | cons a T' =>
+    refine ⟨T', by simpa using hlen, ?_⟩
+    rw [flowOpenIdxStack_push_close hp, hst]; rfl
+
+/-- Every other push leaves the hold exactly where it was. -/
+lemma FlowOpenHeld.push_other {ts : Array (Positioned YamlToken)} {d o : Nat}
+    {S : List Nat} {p : Positioned YamlToken} (h : FlowOpenHeld ts d o S)
+    (ho : p.val.isFlowOpen = false) (hc : p.val.isFlowClose = false) :
+    FlowOpenHeld (ts.push p) d o S := by
+  obtain ⟨T, hlen, hst⟩ := h
+  exact ⟨T, hlen, by rw [flowOpenIdxStack_push_other ho hc, hst]⟩
+
+/-- **At the base the hold IS the stack.** -/
+lemma FlowOpenHeld.stack_eq {ts : Array (Positioned YamlToken)} {o : Nat}
+    {S : List Nat} (h : FlowOpenHeld ts 0 o S) :
+    flowOpenIdxStack ts ts.size = o :: S := by
+  obtain ⟨T, hlen, hst⟩ := h
+  cases T with
+  | nil => exact hst
+  | cons a T' => simp at hlen
+
+/-- …and a LATER array that agrees below reads the same stack there, which is
+    how the reading survives the close's own push and the placeholders after
+    it. -/
+lemma FlowOpenHeld.stack_at {a b : Array (Positioned YamlToken)} {o : Nat}
+    {S : List Nat} (h : FlowOpenHeld b 0 o S)
+    (hagree : ∀ j, j < b.size → a[j]! = b[j]!) :
+    flowOpenIdxStack a b.size = o :: S := by
+  rw [flowOpenIdxStack_congr_below hagree _ (Nat.le_refl _)]; exact h.stack_eq
+
+/-- **Item 160's hypothesis, discharged.**  The close at `b.size` finds the
+    open the base frame is holding. -/
+lemma FlowOpenHeld.flowOpenIdx? {a b : Array (Positioned YamlToken)} {o : Nat}
+    {S : List Nat} (h : FlowOpenHeld b 0 o S)
+    (hagree : ∀ j, j < b.size → a[j]! = b[j]!) :
+    flowOpenIdx? a b.size = some o := by
+  rw [flowOpenIdx?_eq_head, h.stack_at hagree]; rfl
+
+/-- The token array's own flow depth — the reading `sc.flowLevel` is measured
+    against (`FlowBracketBalance`). -/
+def flowTokenDepth (ts : Array (Positioned YamlToken)) : Nat :=
+  (flowOpenIdxStack ts ts.size).length
+
+/-- A hold at depth `d` reads a token depth of `d` above the base, the base,
+    and whatever stood below it. -/
+lemma FlowOpenHeld.depth {ts : Array (Positioned YamlToken)} {d o : Nat}
+    {S : List Nat} (h : FlowOpenHeld ts d o S) :
+    flowTokenDepth ts = d + S.length + 1 := by
+  obtain ⟨T, hlen, hst⟩ := h
+  unfold flowTokenDepth
+  rw [hst]; simp [hlen]; omega
+
+
+/-- Every index the forward bracket stack holds sits below the point it was
+    read at.  The `[`'s own index is `i` at the step that pushes it, and a
+    close only ever removes. -/
+lemma flowOpenIdxStack_lt (ts : Array (Positioned YamlToken)) :
+    ∀ i, ∀ x ∈ flowOpenIdxStack ts i, x < i := by
+  intro i
+  induction i with
+  | zero => intro x hx; simp [flowOpenIdxStack] at hx
+  | succ n ih =>
+    intro x hx
+    rw [flowOpenIdxStack_succ] at hx
+    split at hx
+    · have hsub : ∀ (l : List Nat) (y : Nat), y ∈ l.tail → y ∈ l := by
+        intro l y hy
+        cases l with
+        | nil => simp at hy
+        | cons a t => exact List.mem_cons_of_mem a hy
+      exact Nat.lt_succ_of_lt (ih x (hsub _ x hx))
+    · split at hx
+      · rcases List.mem_cons.mp hx with rfl | hx'
+        · omega
+        · exact Nat.lt_succ_of_lt (ih x hx')
+      · exact Nat.lt_succ_of_lt (ih x hx)
+
+/-- A held open is an index INTO the array. -/
+lemma FlowOpenHeld.lt {ts : Array (Positioned YamlToken)} {d o : Nat} {S : List Nat}
+    (h : FlowOpenHeld ts d o S) : o < ts.size := by
+  obtain ⟨T, _, hst⟩ := h
+  exact flowOpenIdxStack_lt ts ts.size o (by rw [hst]; simp)
+
+/-- **The stack survives a run of INERT pushes** — the shape a step takes when
+    it writes tokens that are neither bracket: the prefix is preserved and
+    everything above it opens and closes nothing.  This is what carries the
+    hold across a save's reserved placeholders and across every scalar the
+    interior scans. -/
+lemma flowOpenIdxStack_grow {a b : Array (Positioned YamlToken)}
+    (hpre : ∀ j, j < a.size → b[j]! = a[j]!)
+    (hsz : a.size ≤ b.size)
+    (hinert : ∀ j, a.size ≤ j → j < b.size →
+      b[j]!.val.isFlowOpen = false ∧ b[j]!.val.isFlowClose = false) :
+    flowOpenIdxStack b b.size = flowOpenIdxStack a a.size := by
+  have key : ∀ i, a.size ≤ i → i ≤ b.size →
+      flowOpenIdxStack b i = flowOpenIdxStack a a.size := by
+    intro i
+    induction i with
+    | zero =>
+      intro h1 _
+      have h0 : a.size = 0 := by omega
+      rw [h0]
+      rfl
+    | succ m ih =>
+      intro h1 h2
+      rcases Nat.lt_or_ge m a.size with hm | hm
+      · have hma : a.size = m + 1 := by omega
+        rw [hma]
+        exact flowOpenIdxStack_congr_below (m := a.size) hpre (m + 1) (by omega)
+      · rw [flowOpenIdxStack_succ]
+        obtain ⟨hop, hcl⟩ := hinert m hm (by omega)
+        rw [if_neg (by simp [hcl]), if_neg (by simp [hop])]
+        exact ih hm (by omega)
+  exact key b.size hsz (Nat.le_refl _)
+
+/-- **The park a depth-0 flow frame was opened over, still anchored** (item 162). -/
+structure ParkAnchor (sc0 s : ScannerState) (d : Nat) : Prop where
+  below : ∀ j, j < sc0.tokens.size → s.tokens[j]! = sc0.tokens[j]!
+  held : ∃ S, FlowOpenHeld s.tokens d sc0.tokens.size S
+  ind : s.indents = sc0.indents
+  parkFlow : sc0.inFlow = false
+  parkProp : ∃ k, prevRealIdx? sc0.tokens sc0.tokens.size = some k ∧
+    sc0.tokens[k]!.val.isNodeProperty = true
+
+/-- The park's array is a prefix of every state that still holds its open. -/
+lemma ParkAnchor.size_le {sc0 s : ScannerState} {d : Nat} (h : ParkAnchor sc0 s d) :
+    sc0.tokens.size ≤ s.tokens.size := by
+  obtain ⟨S, hheld⟩ := h.held
+  exact Nat.le_of_lt hheld.lt
+
+/-- Any step whose new tokens open and close nothing carries the anchor. -/
+lemma ParkAnchor.grow {sc0 s s' : ScannerState} {d : Nat} (h : ParkAnchor sc0 s d)
+    (hpre : ∀ j, j < s.tokens.size → s'.tokens[j]! = s.tokens[j]!)
+    (hsz : s.tokens.size ≤ s'.tokens.size)
+    (hinert : ∀ j, s.tokens.size ≤ j → j < s'.tokens.size →
+      s'.tokens[j]!.val.isFlowOpen = false ∧ s'.tokens[j]!.val.isFlowClose = false)
+    (hind : s'.indents = s.indents) : ParkAnchor sc0 s' d := by
+  obtain ⟨S, hheld⟩ := h.held
+  refine ⟨fun j hj => ?_, ⟨S, ?_⟩, hind.trans h.ind, h.parkFlow, h.parkProp⟩
+  · exact (hpre j (by have := h.size_le; omega)).trans (h.below j hj)
+  · unfold FlowOpenHeld at hheld ⊢
+    rw [flowOpenIdxStack_grow hpre hsz hinert]; exact hheld
+
+/-- A flow OPEN pushes the anchor one nest deeper. -/
+lemma ParkAnchor.pushOpen {sc0 s s' : ScannerState} {d : Nat} {p : Positioned YamlToken}
+    (h : ParkAnchor sc0 s d) (htok : s'.tokens = s.tokens.push p)
+    (hop : p.val.isFlowOpen = true) (hind : s'.indents = s.indents) :
+    ParkAnchor sc0 s' (d + 1) := by
+  obtain ⟨S, hheld⟩ := h.held
+  refine ⟨fun j hj => ?_, ⟨S, ?_⟩, hind.trans h.ind, h.parkFlow, h.parkProp⟩
+  · rw [htok, push_getElem!_below j (by have := h.size_le; omega)]; exact h.below j hj
+  · rw [htok]; exact hheld.push_open hop
+
+/-- A flow CLOSE pops one nest off it. -/
+lemma ParkAnchor.pushClose {sc0 s s' : ScannerState} {d : Nat} {p : Positioned YamlToken}
+    (h : ParkAnchor sc0 s (d + 1)) (htok : s'.tokens = s.tokens.push p)
+    (hcl : p.val.isFlowClose = true) (hind : s'.indents = s.indents) :
+    ParkAnchor sc0 s' d := by
+  obtain ⟨S, hheld⟩ := h.held
+  refine ⟨fun j hj => ?_, ⟨S, ?_⟩, hind.trans h.ind, h.parkFlow, h.parkProp⟩
+  · rw [htok, push_getElem!_below j (by have := h.size_le; omega)]; exact h.below j hj
+  · rw [htok]; exact hheld.push_close hcl
+
+/-- **The verdict a depth-0 frame's node reading is gated on.** -/
+def GateOf : Option ScannerState → Prop
+  | none => True
+  | some sc0 => danglingNodePos? sc0 = none
+
+/-- The anchor at the tower's own depth, `none` carrying nothing. -/
+def FlowBaseAnchor : Option ScannerState → ScannerState → Nat → Prop
+  | none, _, _ => True
+  | some sc0, s, d => ParkAnchor sc0 s d
+
+lemma FlowBaseAnchor.transport {g : Option ScannerState} {s s' : ScannerState} {d d' : Nat}
+    (h : FlowBaseAnchor g s d)
+    (f : ∀ sc0, ParkAnchor sc0 s d → ParkAnchor sc0 s' d') :
+    FlowBaseAnchor g s' d' := by
+  cases g with
+  | none => trivial
+  | some sc0 => exact f sc0 h
+
+
 /-- **What a depth-0 flow frame owes its own close** (item 56).
 
     `kc` (item 75) is the column of the key the OPEN stacks — the one the
@@ -10595,13 +10969,6 @@ lemma danglingNodePos?_congr {s t : ScannerState}
         dsimp only []
         simp only [hagree j (by omega), hagree st hst]
 
-/-- A push agrees with the array below it. -/
-lemma push_getElem!_below {ts : Array (Positioned YamlToken)}
-    {p : Positioned YamlToken} : ∀ j, j < ts.size → (ts.push p)[j]! = ts[j]! := by
-  intro j hj
-  rw [getElem!_pos (ts.push p) j (by simp only [Array.size_push]; omega),
-      getElem!_pos ts j hj, Array.getElem_push_lt]
-
 /-- **A `[96]` property pushed onto a property run MOVES the start** — back to
     the park's own last token, which is the walk-back's cap (§6.9 admits one
     anchor and one tag).  The excluded case of `trailingNodeRun?_push_prop`. -/
@@ -10793,225 +11160,6 @@ lemma danglingNodePos?_dispatch_body_onProp {s s' : ScannerState} {c : Char} {i 
   · rw [htok]; exact trailingNodeRun?_push_body_onProp ht hprev hiprop
   · rw [htok]; exact push_getElem!_below
 
-/-! ### The bracket balance, read FORWARD (item 161)
-
-    Item 160 left `trailingNodeRun?_flowClose_reads_park` holding its own
-    answer as a hypothesis — `flowOpenIdx? a i = some b.size`, "the close finds
-    ITS open" — and named supplying it as the next piece.  It is supplied here,
-    and the shape it is supplied in is the point.
-
-    `flowOpenIdx?` walks the array BACKWARD from the close, counting closes it
-    has yet to balance.  Nothing in an accumulation can maintain that: it is a
-    fact about a finished array, re-derived from scratch at every reading.  The
-    same fact read FORWARD is a STACK — the indices of the opens not yet closed
-    in `ts[0, i)`, innermost first — and a stack is maintained one push at a
-    time, which is what a step invariant can carry.
-
-    `flowOpenIdxLoop_eq_stack` is that the two agree, and it agrees at every
-    depth at once: the backward walk with `d` closes outstanding finds the
-    `d`-th element of the forward stack.  The three push transports are then
-    the whole per-step cost — an open conses, a close pops, everything else
-    leaves the stack alone — and `FlowOpenHeld` packages the one shape a flow
-    tower needs: the base frame's own open, still held under `d` nested ones.
-
-    **Where the depth index comes from.**  Not from the scanner: the
-    accumulation already carries the tower's depth as `FlowStackB`'s own index,
-    and a base frame is at `d = 0`.  That the token array's reading of the same
-    depth agrees with `sc.flowLevel` is a CROSS-CHECK on this definition rather
-    than a dependency, and `FlowBracketBalance` measures it — 1 638 834 scanner
-    steps over every input of length ≤ 6 in an eleven-symbol flow alphabet, and
-    the repository's own `examples/`, with no disagreement. -/
-
-/-- **The indices of the flow opens still unclosed in `ts[0, i)`, innermost
-    FIRST.**  The forward reading of the balance `flowOpenIdx?` walks backward
-    for: an open conses its own index, a close pops the innermost, and every
-    other token leaves the stack alone.
-
-    A close with nothing open pops an empty stack rather than failing — the
-    array is balanced by construction at block level
-    (`scanNextToken_dispatchFlowIndicators` refuses both shapes), so that arm
-    is the same unreachable one `flowOpenIdxLoop`'s `none` is. -/
-def flowOpenIdxStack (ts : Array (Positioned YamlToken)) : Nat → List Nat
-  | 0 => []
-  | i + 1 =>
-    let rest := flowOpenIdxStack ts i
-    let t := ts[i]!.val
-    if t.isFlowClose then rest.tail
-    else if t.isFlowOpen then i :: rest
-    else rest
-
-/-- The stack's one-step equation, as a rewrite that touches only the `i + 1`
-    form — `unfold` would take the recursive occurrence with it. -/
-lemma flowOpenIdxStack_succ (ts : Array (Positioned YamlToken)) (i : Nat) :
-    flowOpenIdxStack ts (i + 1) =
-      (if ts[i]!.val.isFlowClose then (flowOpenIdxStack ts i).tail
-       else if ts[i]!.val.isFlowOpen then i :: flowOpenIdxStack ts i
-       else flowOpenIdxStack ts i) := rfl
-
-/-- **The backward bracket walk computes the forward open-index stack**, at
-    every depth at once: `flowOpenIdxLoop ts d i` — the walk from `i` with `d`
-    closes still to balance — is the `d`-th element of the stack standing at
-    `i`.  The two readings of §7.4's bracket balance are the same reading. -/
-lemma flowOpenIdxLoop_eq_stack (ts : Array (Positioned YamlToken)) :
-    ∀ (i d : Nat), flowOpenIdxLoop ts d i = (flowOpenIdxStack ts i)[d]? := by
-  intro i
-  induction i with
-  | zero => intro d; rfl
-  | succ n ih =>
-    intro d
-    unfold flowOpenIdxLoop flowOpenIdxStack
-    dsimp only []
-    split
-    · rw [ih (d + 1)]
-      cases h : flowOpenIdxStack ts n with
-      | nil => rfl
-      | cons a l => rfl
-    · split
-      · cases d with
-        | zero => rfl
-        | succ d' => dsimp only []; rw [ih d']; rfl
-      · exact ih d
-
-/-- The matching open a close at `i` finds is the stack's own head. -/
-lemma flowOpenIdx?_eq_head (ts : Array (Positioned YamlToken)) (i : Nat) :
-    flowOpenIdx? ts i = (flowOpenIdxStack ts i).head? := by
-  unfold flowOpenIdx?
-  rw [flowOpenIdxLoop_eq_stack]
-  cases flowOpenIdxStack ts i <;> rfl
-
-/-- The stack at `i` reads only `ts[0, i)`, so two arrays agreeing below `m`
-    read the same stack everywhere up to `m`. -/
-lemma flowOpenIdxStack_congr_below {a b : Array (Positioned YamlToken)} {m : Nat}
-    (h : ∀ j, j < m → a[j]! = b[j]!) :
-    ∀ i, i ≤ m → flowOpenIdxStack a i = flowOpenIdxStack b i := by
-  intro i
-  induction i with
-  | zero => intro _; rfl
-  | succ n ih =>
-    intro hn
-    rw [flowOpenIdxStack_succ, flowOpenIdxStack_succ, ih (by omega), h n (by omega)]
-
-/-- A push leaves every stack reading below it alone. -/
-lemma flowOpenIdxStack_push_below {ts : Array (Positioned YamlToken)}
-    {p : Positioned YamlToken} : ∀ i, i ≤ ts.size →
-    flowOpenIdxStack (ts.push p) i = flowOpenIdxStack ts i :=
-  flowOpenIdxStack_congr_below (m := ts.size) push_getElem!_below
-
-/-- The pushed token, read back. -/
-lemma push_getElem!_top {ts : Array (Positioned YamlToken)}
-    {p : Positioned YamlToken} : (ts.push p)[ts.size]! = p := by
-  rw [getElem!_pos (ts.push p) ts.size (by simp only [Array.size_push]; omega)]
-  simp
-
-/-- **An open CONSES its own index.** -/
-lemma flowOpenIdxStack_push_open {ts : Array (Positioned YamlToken)}
-    {p : Positioned YamlToken} (h : p.val.isFlowOpen = true) :
-    flowOpenIdxStack (ts.push p) (ts.push p).size
-      = ts.size :: flowOpenIdxStack ts ts.size := by
-  have hcl : p.val.isFlowClose = false := by
-    cases hv : p.val <;> simp_all [YamlToken.isFlowOpen, YamlToken.isFlowClose]
-  rw [Array.size_push, flowOpenIdxStack_succ,
-    flowOpenIdxStack_push_below _ (Nat.le_refl _), push_getElem!_top]
-  simp [hcl, h]
-
-/-- **A close POPS the innermost.** -/
-lemma flowOpenIdxStack_push_close {ts : Array (Positioned YamlToken)}
-    {p : Positioned YamlToken} (h : p.val.isFlowClose = true) :
-    flowOpenIdxStack (ts.push p) (ts.push p).size
-      = (flowOpenIdxStack ts ts.size).tail := by
-  rw [Array.size_push, flowOpenIdxStack_succ,
-    flowOpenIdxStack_push_below _ (Nat.le_refl _), push_getElem!_top]
-  simp [h]
-
-/-- **Everything else leaves the stack alone** — the placeholders a save
-    reserves included, which is why a reading taken at a close is unmoved by
-    whatever the close's own step pushed after it. -/
-lemma flowOpenIdxStack_push_other {ts : Array (Positioned YamlToken)}
-    {p : Positioned YamlToken} (ho : p.val.isFlowOpen = false)
-    (hc : p.val.isFlowClose = false) :
-    flowOpenIdxStack (ts.push p) (ts.push p).size = flowOpenIdxStack ts ts.size := by
-  rw [Array.size_push, flowOpenIdxStack_succ,
-    flowOpenIdxStack_push_below _ (Nat.le_refl _), push_getElem!_top]
-  simp [ho, hc]
-
-/-- **The base frame's own open, still held under `d` nested ones**, with `S`
-    whatever stood below it when it opened.
-
-    This is the shape a flow tower carries: `d` is the nesting ABOVE the base,
-    so `FlowStackB`'s depth index supplies it and a base frame reads `d = 0`.
-    At `d = 0` the walk from the array's end finds `o` — which is exactly the
-    hypothesis item 160's `trailingNodeRun?_flowClose_reads_park` takes. -/
-def FlowOpenHeld (ts : Array (Positioned YamlToken)) (d o : Nat) (S : List Nat) : Prop :=
-  ∃ T : List Nat, T.length = d ∧ flowOpenIdxStack ts ts.size = T ++ (o :: S)
-
-/-- A nested open deepens the hold. -/
-lemma FlowOpenHeld.push_open {ts : Array (Positioned YamlToken)} {d o : Nat}
-    {S : List Nat} {p : Positioned YamlToken} (h : FlowOpenHeld ts d o S)
-    (hp : p.val.isFlowOpen = true) : FlowOpenHeld (ts.push p) (d + 1) o S := by
-  obtain ⟨T, hlen, hst⟩ := h
-  exact ⟨ts.size :: T, by simp [hlen], by
-    rw [flowOpenIdxStack_push_open hp, hst]; rfl⟩
-
-/-- A nested close shallows it — and cannot reach the base, because a hold at
-    depth `d + 1` has a nested open to pop first. -/
-lemma FlowOpenHeld.push_close {ts : Array (Positioned YamlToken)} {d o : Nat}
-    {S : List Nat} {p : Positioned YamlToken} (h : FlowOpenHeld ts (d + 1) o S)
-    (hp : p.val.isFlowClose = true) : FlowOpenHeld (ts.push p) d o S := by
-  obtain ⟨T, hlen, hst⟩ := h
-  cases T with
-  | nil => simp at hlen
-  | cons a T' =>
-    refine ⟨T', by simpa using hlen, ?_⟩
-    rw [flowOpenIdxStack_push_close hp, hst]; rfl
-
-/-- Every other push leaves the hold exactly where it was. -/
-lemma FlowOpenHeld.push_other {ts : Array (Positioned YamlToken)} {d o : Nat}
-    {S : List Nat} {p : Positioned YamlToken} (h : FlowOpenHeld ts d o S)
-    (ho : p.val.isFlowOpen = false) (hc : p.val.isFlowClose = false) :
-    FlowOpenHeld (ts.push p) d o S := by
-  obtain ⟨T, hlen, hst⟩ := h
-  exact ⟨T, hlen, by rw [flowOpenIdxStack_push_other ho hc, hst]⟩
-
-/-- **At the base the hold IS the stack.** -/
-lemma FlowOpenHeld.stack_eq {ts : Array (Positioned YamlToken)} {o : Nat}
-    {S : List Nat} (h : FlowOpenHeld ts 0 o S) :
-    flowOpenIdxStack ts ts.size = o :: S := by
-  obtain ⟨T, hlen, hst⟩ := h
-  cases T with
-  | nil => exact hst
-  | cons a T' => simp at hlen
-
-/-- …and a LATER array that agrees below reads the same stack there, which is
-    how the reading survives the close's own push and the placeholders after
-    it. -/
-lemma FlowOpenHeld.stack_at {a b : Array (Positioned YamlToken)} {o : Nat}
-    {S : List Nat} (h : FlowOpenHeld b 0 o S)
-    (hagree : ∀ j, j < b.size → a[j]! = b[j]!) :
-    flowOpenIdxStack a b.size = o :: S := by
-  rw [flowOpenIdxStack_congr_below hagree _ (Nat.le_refl _)]; exact h.stack_eq
-
-/-- **Item 160's hypothesis, discharged.**  The close at `b.size` finds the
-    open the base frame is holding. -/
-lemma FlowOpenHeld.flowOpenIdx? {a b : Array (Positioned YamlToken)} {o : Nat}
-    {S : List Nat} (h : FlowOpenHeld b 0 o S)
-    (hagree : ∀ j, j < b.size → a[j]! = b[j]!) :
-    flowOpenIdx? a b.size = some o := by
-  rw [flowOpenIdx?_eq_head, h.stack_at hagree]; rfl
-
-/-- The token array's own flow depth — the reading `sc.flowLevel` is measured
-    against (`FlowBracketBalance`). -/
-def flowTokenDepth (ts : Array (Positioned YamlToken)) : Nat :=
-  (flowOpenIdxStack ts ts.size).length
-
-/-- A hold at depth `d` reads a token depth of `d` above the base, the base,
-    and whatever stood below it. -/
-lemma FlowOpenHeld.depth {ts : Array (Positioned YamlToken)} {d o : Nat}
-    {S : List Nat} (h : FlowOpenHeld ts d o S) :
-    flowTokenDepth ts = d + S.length + 1 := by
-  obtain ⟨T, hlen, hst⟩ := h
-  unfold flowTokenDepth
-  rw [hst]; simp [hlen]; omega
-
 /-- **§9.2's verdict at a depth-0 flow close is the PARK's**, from the hold
     alone.  Item 160 measured this equality on the scanner and proved it from a
     hypothesis it could not supply; `FlowOpenHeld` supplies it, and the base
@@ -11038,6 +11186,23 @@ lemma danglingNodePos?_flowClose_reads_park
   refine trailingNodeRun?_flowClose_reads_park hpark hkprev hkprop hlast hclose ?_
   rw [hi]
   exact hheld.flowOpenIdx? hbc
+
+
+/-- **The spend** — at a depth-0 close the park's verdict IS the close's. -/
+lemma ParkAnchor.dangling_eq {sc0 s_bc s_cl : ScannerState}
+    (h : ParkAnchor sc0 s_bc 0)
+    (hpre : ∀ j, j < s_bc.tokens.size → s_cl.tokens[j]! = s_bc.tokens[j]!)
+    (hind : s_cl.indents = s_bc.indents)
+    (hflow : s_cl.inFlow = false)
+    (hlast : prevRealIdx? s_cl.tokens s_cl.tokens.size = some s_bc.tokens.size)
+    (hclose : s_cl.tokens[s_bc.tokens.size]!.val.isFlowClose = true) :
+    danglingNodePos? s_cl = danglingNodePos? sc0 := by
+  obtain ⟨S, hheld⟩ := h.held
+  obtain ⟨k, hk, hkp⟩ := h.parkProp
+  exact danglingNodePos?_flowClose_reads_park (hflow.trans h.parkFlow.symm)
+    (hind.trans h.ind)
+    (fun j hj => (hpre j (by have := h.size_le; omega)).trans (h.below j hj))
+    hpre hheld hk hkp hlast hclose rfl
 
 
 lemma completesFlowValue_not_offersNodeSlot {t : YamlToken}
@@ -11568,6 +11733,166 @@ lemma allowDirectives_update_tokens (s : ScannerState) :
       { s with allowDirectives := false, documentEverStarted := true }
     else s).tokens = s.tokens := by
   split <;> rfl
+
+/-! ### The park anchor, transported (item 162)
+
+    The anchor names one shape — the base frame's own open, still held under
+    `d` nests, over an array that still agrees with the park's below it — and
+    the lemmas below are the FIVE things a scanner step can do to it: write no
+    token, write one that is neither bracket, write an open, write a close, or
+    REWRITE a reserved placeholder into the key it turns out to have been.  A
+    dispatcher that says which of the five it did has paid the anchor in full.
+
+    `preprocess` and `adUpdate` are the two silent writers every flow dispatch
+    passes through before its own push, spelled once here rather than at each
+    arm; `gate` is what the frame's own close spends. -/
+
+/-- **Preprocessing writes nothing the bracket stack reads.**  Its three
+    writers are the walk (no tokens at all), §6.1's armed unwind — whose guard
+    is `!inFlow`, so it is silent inside a collection — and the save, whose
+    reservation is TWO placeholders.  A placeholder opens and closes nothing,
+    which is what carries a reading across it. -/
+lemma preprocess_tokens_of_inFlow {sc s_prep : ScannerState} {c : Char}
+    (h_flow : sc.inFlow = true)
+    (h : scanNextToken_preprocess sc = .ok (some (s_prep, c))) :
+    s_prep.tokens = sc.tokens ∨
+      ∃ p : Positioned YamlToken, p.val = .placeholder ∧
+        s_prep.tokens = (sc.tokens.push p).push p := by
+  unfold scanNextToken_preprocess at h
+  simp only [bind, Except.bind, pure, Except.pure] at h
+  split at h
+  · exact absurd h (by simp)
+  · rename_i s_skip h_skip
+    have h_tok_skip : s_skip.tokens = sc.tokens :=
+      ScannerCorrectness.skipToContent_preserves_tokens sc s_skip h_skip
+    have h_flow_skip : s_skip.inFlow = true := by
+      unfold ScannerState.inFlow at h_flow ⊢
+      rw [ScannerCorrectness.skipToContent_preserves_flowLevel sc s_skip h_skip]
+      exact h_flow
+    have hcond : (!s_skip.inFlow && s_skip.needIndentCheck) = false := by
+      simp [h_flow_skip]
+    simp only [hcond, if_neg Bool.false_ne_true] at h
+    split at h
+    · exact absurd h (by simp)
+    · split at h
+      · exact absurd h (by simp)
+      · split at h
+        · exact absurd h (by simp)
+        · simp only [Except.ok.injEq, Option.some.injEq, Prod.mk.injEq] at h
+          obtain ⟨rfl, -⟩ := h
+          rcases saveSimpleKey_tokens_shape s_skip with h1 | ⟨q, hq, h2⟩
+          · exact Or.inl (h1.trans h_tok_skip)
+          · exact Or.inr ⟨q, hq, by rw [h2, h_tok_skip]⟩
+
+/-- The close is the last real token of the array it ends. -/
+lemma prevRealIdx?_push_top {ts : Array (Positioned YamlToken)}
+    {p : Positioned YamlToken} (hp : p.val ≠ .placeholder) :
+    prevRealIdx? (ts.push p) (ts.size + 1) = some ts.size := by
+  show (if (ts.push p)[ts.size]!.val == .placeholder then
+    prevRealIdx? (ts.push p) ts.size else some ts.size) = some ts.size
+  rw [push_getElem!_top]
+  simp [hp]
+
+/-- A step that writes no token at all carries the anchor. -/
+lemma ParkAnchor.congr {sc0 s s' : ScannerState} {d : Nat} (h : ParkAnchor sc0 s d)
+    (htok : s'.tokens = s.tokens) (hind : s'.indents = s.indents) :
+    ParkAnchor sc0 s' d := by
+  obtain ⟨S, hheld⟩ := h.held
+  exact ⟨fun j hj => by rw [htok]; exact h.below j hj, ⟨S, by rw [htok]; exact hheld⟩,
+    hind.trans h.ind, h.parkFlow, h.parkProp⟩
+
+/-- **A step that REWRITES rather than pushes carries it too** — which is what
+    a simple key's resolution does, turning the two reserved placeholders into
+    the `[187] c-l-block-map-implicit-key` pair.  The stack reads only the two
+    bracket predicates, so agreement on THOSE is all the rewrite owes; the
+    park's own prefix is untouched because the slots a save reserves sit above
+    the open. -/
+lemma ParkAnchor.congrKind {sc0 s s' : ScannerState} {d : Nat} (h : ParkAnchor sc0 s d)
+    (hsz : s'.tokens.size = s.tokens.size)
+    (hbelow : ∀ j, j < sc0.tokens.size → s'.tokens[j]! = s.tokens[j]!)
+    (hkind : ∀ j, j < s.tokens.size →
+      s'.tokens[j]!.val.isFlowOpen = s.tokens[j]!.val.isFlowOpen ∧
+      s'.tokens[j]!.val.isFlowClose = s.tokens[j]!.val.isFlowClose)
+    (hind : s'.indents = s.indents) : ParkAnchor sc0 s' d := by
+  obtain ⟨S, hheld⟩ := h.held
+  refine ⟨fun j hj => (hbelow j hj).trans (h.below j hj), ⟨S, ?_⟩, hind.trans h.ind,
+    h.parkFlow, h.parkProp⟩
+  unfold FlowOpenHeld at hheld ⊢
+  rw [hsz, flowOpenIdxStack_congr_kind (m := s.tokens.size) hkind s.tokens.size (Nat.le_refl _)]
+  exact hheld
+
+/-- A step that writes ONE token that is neither bracket carries it. -/
+lemma ParkAnchor.pushInert {sc0 s s' : ScannerState} {d : Nat} {p : Positioned YamlToken}
+    (h : ParkAnchor sc0 s d) (htok : s'.tokens = s.tokens.push p)
+    (ho : p.val.isFlowOpen = false) (hc : p.val.isFlowClose = false)
+    (hind : s'.indents = s.indents) : ParkAnchor sc0 s' d := by
+  obtain ⟨S, hheld⟩ := h.held
+  refine ⟨fun j hj => ?_, ⟨S, ?_⟩, hind.trans h.ind, h.parkFlow, h.parkProp⟩
+  · rw [htok, push_getElem!_below j (by have := h.size_le; omega)]; exact h.below j hj
+  · rw [htok]; exact hheld.push_other ho hc
+
+lemma FlowBaseAnchor.congr {g : Option ScannerState} {s s' : ScannerState} {d : Nat}
+    (h : FlowBaseAnchor g s d) (htok : s'.tokens = s.tokens)
+    (hind : s'.indents = s.indents) : FlowBaseAnchor g s' d :=
+  h.transport (fun _ ha => ha.congr htok hind)
+
+lemma FlowBaseAnchor.pushInert {g : Option ScannerState} {s s' : ScannerState} {d : Nat}
+    {p : Positioned YamlToken} (h : FlowBaseAnchor g s d)
+    (htok : s'.tokens = s.tokens.push p)
+    (ho : p.val.isFlowOpen = false) (hc : p.val.isFlowClose = false)
+    (hind : s'.indents = s.indents) : FlowBaseAnchor g s' d :=
+  h.transport (fun _ ha => ha.pushInert htok ho hc hind)
+
+lemma FlowBaseAnchor.pushOpen {g : Option ScannerState} {s s' : ScannerState} {d : Nat}
+    {p : Positioned YamlToken} (h : FlowBaseAnchor g s d)
+    (htok : s'.tokens = s.tokens.push p) (hop : p.val.isFlowOpen = true)
+    (hind : s'.indents = s.indents) : FlowBaseAnchor g s' (d + 1) :=
+  h.transport (fun _ ha => ha.pushOpen htok hop hind)
+
+lemma FlowBaseAnchor.pushClose {g : Option ScannerState} {s s' : ScannerState} {d : Nat}
+    {p : Positioned YamlToken} (h : FlowBaseAnchor g s (d + 1))
+    (htok : s'.tokens = s.tokens.push p) (hcl : p.val.isFlowClose = true)
+    (hind : s'.indents = s.indents) : FlowBaseAnchor g s' d :=
+  h.transport (fun _ ha => ha.pushClose htok hcl hind)
+
+/-- Preprocessing, spelled once for every flow dispatch that passes through it. -/
+lemma FlowBaseAnchor.preprocess {g : Option ScannerState} {sc s_prep : ScannerState}
+    {c : Char} {d : Nat} (h : FlowBaseAnchor g sc d) (h_flow : sc.inFlow = true)
+    (hpre : scanNextToken_preprocess sc = .ok (some (s_prep, c))) :
+    FlowBaseAnchor g s_prep d := by
+  have hind := FlowIndentStable.preprocess_indents_of_inFlow h_flow hpre
+  rcases preprocess_tokens_of_inFlow h_flow hpre with htok | ⟨q, hq, htok⟩
+  · exact h.congr htok hind
+  · have ho : q.val.isFlowOpen = false := by rw [hq]; rfl
+    have hc : q.val.isFlowClose = false := by rw [hq]; rfl
+    exact (h.pushInert (s' := { sc with tokens := sc.tokens.push q }) rfl ho hc rfl).pushInert
+      htok ho hc hind
+
+/-- The `allowDirectives` update writes neither tokens nor indents. -/
+lemma FlowBaseAnchor.adUpdate {g : Option ScannerState} {s : ScannerState} {d : Nat}
+    (h : FlowBaseAnchor g s d) :
+    FlowBaseAnchor g (if s.allowDirectives then
+      { s with allowDirectives := false, documentEverStarted := true } else s) d :=
+  h.congr (allowDirectives_update_tokens s) (allowDirectives_update_indents s)
+
+/-- **The spend, at the frame's own close** (item 162).  A depth-0 close reads
+    §9.2's verdict on its own state; the anchor says that verdict IS the park's,
+    so the gate the open recorded is paid by the face the close already carries
+    (`pendingContent`'s `h_closable`, item 157).  An ungated frame pays
+    nothing. -/
+lemma FlowBaseAnchor.gate {g : Option ScannerState} {s_bc s_cl : ScannerState}
+    (h : FlowBaseAnchor g s_bc 0)
+    (hpre : ∀ j, j < s_bc.tokens.size → s_cl.tokens[j]! = s_bc.tokens[j]!)
+    (hind : s_cl.indents = s_bc.indents)
+    (hflow : s_cl.inFlow = false)
+    (hlast : prevRealIdx? s_cl.tokens s_cl.tokens.size = some s_bc.tokens.size)
+    (hclose : s_cl.tokens[s_bc.tokens.size]!.val.isFlowClose = true)
+    (hnd : danglingNodePos? s_cl = none) : GateOf g := by
+  cases g with
+  | none => trivial
+  | some sc0 =>
+    have h' : ParkAnchor sc0 s_bc 0 := h
+    exact ((h'.dangling_eq hpre hind hflow hlast hclose).symm).trans hnd
 
 /-- Inside a flow, preprocessing leaves the last real token alone: `skipToContent`
     emits nothing, `unwindIndents` is gated off by `inFlow`, and `saveSimpleKey`'s
