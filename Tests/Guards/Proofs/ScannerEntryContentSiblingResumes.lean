@@ -165,6 +165,9 @@ example {sc s_prep : ScannerState} {c : Char}
       fun sp_m h => closeF sp_m h sp_m (SCompactSeqTail.nil n sp_m)⟩)
     (Or.inr trivial)
     (fun _ _ _ _ _ _ _ => Or.inr trivial)
+    -- Item 168: the sequence face punts here — this park's own collection is
+    -- item 167's entry-level field, not a mapping level's.
+    (Or.inr trivial)
 
 /-! ## §6 What this item does NOT close
 

@@ -163,7 +163,7 @@ example {sc : ScannerState} {sp_start sp_scan : SurfPos}
         ∀ sp_v : SurfPos, SBlockMapEntry k sp_key sp_v →
         ∀ sp_e : SurfPos, SCompactMapTail k sp_v sp_e →
         ResumeFrames (ExplValueLine sp_start nv) ks sp_e) ∨ True) := by
-  obtain ⟨k, sp_key, _, _, _, _, _, _, _, h_resFV⟩ := h
+  obtain ⟨k, sp_key, _, _, _, _, _, _, _, h_resFV, _⟩ := h
   exact ⟨k, sp_key, h_resFV⟩
 
 /-- …and the props-headed twin carries the same field. -/

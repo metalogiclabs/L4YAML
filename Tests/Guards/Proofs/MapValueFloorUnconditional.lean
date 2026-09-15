@@ -48,6 +48,8 @@ example {sc : ScannerState} {sp_start sp_block sp_scan : SurfPos} {n : Nat}
     h_sk h_col0 (Or.inr trivial) (Or.inr trivial)
     (Or.inr trivial) (Or.inr trivial)
     (Or.inr trivial) (Or.inr trivial) h_nodir
+    -- Item 168: this guard is about the FLOOR; the sequence face punts.
+    (Or.inr trivial)
 
 /-- ...and `colon_open_map_implicit`'s slot asks for exactly that. -/
 example {s' : ScannerState} {k : Nat} (h : IndentFloor s' k) :

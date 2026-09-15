@@ -255,7 +255,7 @@ they are three different strengths:
 | site | form | what is left of its domain |
 |---|---|---|
 | `accum_content_pending` ×2 (the content landing) | `bareNodeRoute_or_refused_content` | ~~the `&`/`!` gate, and~~ parks with no completed tail (item 165) |
-| `accum_block_on_closeThenBlock` (the block landing) | `bareNodeRoute_or_refused` | ~~item 139's `h_op = true` half, whole~~ ~~the open sequence's next entry, and parks with no completed tail (item 166)~~ the open sequence's next entry where NO PARK NAMES it, and parks with no completed tail (item 167) |
+| `accum_block_on_closeThenBlock` (the block landing) | `bareNodeRoute_or_refused` | ~~item 139's `h_op = true` half, whole~~ ~~the open sequence's next entry, and parks with no completed tail (item 166)~~ ~~the open sequence's next entry where NO PARK NAMES it, and parks with no completed tail (item 167)~~ the open sequence's next entry where no park names it — which after item 168 means the landings crossing TWO open mapping levels, the compact cascade carrying one width — and parks with no completed tail |
 | `content_dispatch_after_close` (row 19's 1c) | `bareNodeRoute` | a ROUTE, not a refutation (item 156) |
 
 The `[210]` constructor flip still reports FIVE errors, at the same five lemma

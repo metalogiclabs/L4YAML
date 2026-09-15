@@ -194,8 +194,10 @@ sequence level — §1's first three shapes — and `dropSeq=0` says the corpus
 exhibits none of it.  The half the corpus DOES exhibit, all 76 of it, parks
 inside a block mapping that fills the entry (`- a:⏎␣␣␣␣b: 1⏎- c`), and reaching
 it means carrying the same field across the compact-mapping cascade —
-`ImplicitKeyPack`, `pendingMapValue`, `pendingContent` — which is the item
-behind this one.
+`ImplicitKeyPack`, `pendingMapValue`, `pendingContent`.  **Item 168 carries it**
+(`Tests/Guards/Proofs/CompactMapSeqTail.lean`), and reaches 68 of the 76: the
+cascade is one width wide here too, so the 8 landings that stand on TWO open
+mapping levels stay with `ResumeFrames` on this lane.
 
 One width is carried, not a stack: `- - - a⏎- b` names its INNERMOST enclosing
 collection, so a landing two levels out punts to the document reading.  A stack

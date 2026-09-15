@@ -208,6 +208,8 @@ example {sc s_prep : ScannerState} {c : Char}
           Covered lo (w :: ks') s_prep) ∨ True)) :
     ResumeKeyCtx s_prep sp_start sp_prep :=
   resumectx_of_landing hcol_mid h_ws h_ssl h_preprocess hcorr_prep h_fS h_fV h_pay
+    -- Item 168: this guard is about the two FRAMED lanes; the sequence face punts.
+    (Or.inr trivial)
 
 -- **The LEFT disjunct is inhabitable, from exactly the data a paying park has.**
 -- A `∨ True` cannot be interrogated after the fact (proof irrelevance), so the
@@ -225,6 +227,8 @@ example {sp_start sp_land sp_prep : SurfPos} {k : Nat} {ks : List Nat}
   match h_fr.resumeAt hmem with
   | ⟨ks', h_w, cont⟩ =>
       Or.inl ⟨⟨k, ks', sp_land, hcol0, h_ind, h_w.lt, Or.inr trivial, cont,
+        Or.inr trivial,
+        -- Item 168: the sequence face is the third lane and punts here.
         Or.inr trivial⟩, h_poss, h_pos⟩
 
 /-! ## §6 The discrimination: what the resumed route does NOT need

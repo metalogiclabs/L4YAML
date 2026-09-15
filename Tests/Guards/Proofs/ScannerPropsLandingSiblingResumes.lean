@@ -138,7 +138,9 @@ example {sc : ScannerState} {sp_start sp_p sp_scan sp_gram : SurfPos}
     (hws : GStar SSWhite sp_gram sp_scan) :
     ImplicitKeyPack sc sp_start sp_scan := by
   obtain ⟨⟨k, route, hcol, kslot, resF, resFV⟩, _, _, _⟩ := h
-  exact ⟨k, sp_p, sp_gram, route, head, hws, hcol, kslot, resF, resFV⟩
+  -- Item 168: a run-headed key opens no compact mapping over a sequence entry,
+  -- so the pack's fourth twin punts.
+  exact ⟨k, sp_p, sp_gram, route, head, hws, hcol, kslot, resF, resFV, Or.inr trivial⟩
 
 /-! ## §5 The spend at the anchored null key
 

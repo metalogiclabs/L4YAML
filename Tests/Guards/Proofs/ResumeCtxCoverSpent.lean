@@ -208,7 +208,9 @@ example {sp_start sp_land sp_prep : SurfPos} {k lo : Nat} {ks : List Nat}
   | ⟨ks', h_w, cont⟩ =>
       Or.inl ⟨⟨k, ks', sp_land, hcol0, h_ind, h_w.lt,
         Or.inl (dedent_cover_of_floor h_mono h_top h_fl h_cv hmem h_w),
-        cont, Or.inr trivial⟩, h_poss, h_pos⟩
+        cont, Or.inr trivial,
+        -- Item 168: the sequence face is the third lane and punts here.
+        Or.inr trivial⟩, h_poss, h_pos⟩
 
 /-! ## §4  The lane, walked against the scanner
 
@@ -301,6 +303,8 @@ example {sc s_prep : ScannerState} {c : Char}
   resumectx_of_landing hcol_mid h_ws h_ssl h_preprocess hcorr_prep
     (Or.inl ⟨ks, Or.inr trivial, fS⟩) (Or.inr trivial)
     (fun _ _ _ _ _ _ _ => Or.inr trivial)
+    -- Item 168: the sequence face punts; this guard is about the COVER.
+    (Or.inr trivial)
 
 /-! ## §6  The price
 
