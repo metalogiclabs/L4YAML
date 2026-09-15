@@ -276,7 +276,8 @@ lemma scanFilteredIx_emitScalar_eq (content : String) :
   -- Apply scanFilteredIx_of_chain_eq for the explicit filtered token equality.
   have h_eq := scanFilteredIx_of_chain_eq (emitScalar content)
     _ s₁ 1 rfl h_no_bom h_chain h_snt2 h_flow1 h_dp1
-    (scanLoopIx_checkDanglingNode_ok_of_sentinel_stack _ h_ids1) (by omega)
+    (scanLoopIx_checkDanglingNode_ok_of_sentinel_stack _ h_ids1)
+    (scanLoopIx_checkFlowValueIndent_ok_of_sentinel_stack _ h_ids1) (by omega)
   -- Compute the filtered array step by step.
   -- Step 1: substitute unwindIndentsIx s₁ (-1) = s₁ in h_eq.
   rw [h_uwi] at h_eq

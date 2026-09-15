@@ -498,6 +498,13 @@ lemma scanLoopIx_success_emits_streamEnd {input : String} :
               | ok u => exact ⟨u, rfl⟩
             obtain ⟨uDN, hDN⟩ := hDN
             rw [hDN] at h
+            -- §8.1 flow-value floor (item 172): peeled the same way.
+            have hFV : ∃ u, scanLoopIx_checkFlowValueIndent s = .ok u := by
+              cases hx : scanLoopIx_checkFlowValueIndent s with
+              | error e => rw [hx] at h; cases h
+              | ok u => exact ⟨u, rfl⟩
+            obtain ⟨uFV, hFV⟩ := hFV
+            rw [hFV] at h
             cases h
             exact ⟨unwindIndentsIx s (-1), rfl⟩
       | some s'' => exact ih s'' ts h
@@ -539,6 +546,13 @@ lemma scanLoopIx_increases_tokens {input : String}
               | ok u => exact ⟨u, rfl⟩
             obtain ⟨uDN, hDN⟩ := hDN
             rw [hDN] at h
+            -- §8.1 flow-value floor (item 172): peeled the same way.
+            have hFV : ∃ u, scanLoopIx_checkFlowValueIndent s = .ok u := by
+              cases hx : scanLoopIx_checkFlowValueIndent s with
+              | error e => rw [hx] at h; cases h
+              | ok u => exact ⟨u, rfl⟩
+            obtain ⟨uFV, hFV⟩ := hFV
+            rw [hFV] at h
             cases h
             -- ts = ((unwindIndentsIx s (-1)).emit streamEnd).tokens
             show s.tokens.size + 1 ≤ _

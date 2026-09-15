@@ -371,6 +371,9 @@ lemma scanNextToken_corr (sc : ScannerState) (sp : SurfPos)
       -- §9.2 dangling-node check (item 133)
       split at hok
       · simp at hok
+      -- §8.1 flow-value floor (item 172)
+      split at hok
+      · simp at hok
       split at hok
       · simp at hok
       · split at hok
@@ -393,25 +396,23 @@ lemma scanNextToken_corr (sc : ScannerState) (sp : SurfPos)
                 · exact ⟨hcorr_pre.chars_from, hcorr_pre.col_eq, hcorr_pre.end_eq, hcorr_pre.input_prefix, hcorr_pre.indent_cols_nonneg⟩
                 · exact hcorr_pre
               split at hok
-              · simp at hok
+              · rename_i s_flow h_flow
+                have h := Except.ok.inj hok; injection h with h; subst h
+                exact scanNextToken_dispatchFlowIndicators_corr _ sp_pre c_pre hcorr_ad s_flow h_flow
               · split at hok
-                · rename_i s_flow h_flow
-                  have h := Except.ok.inj hok; injection h with h; subst h
-                  exact scanNextToken_dispatchFlowIndicators_corr _ sp_pre c_pre hcorr_ad s_flow h_flow
+                · simp at hok
                 · split at hok
-                  · simp at hok
-                  · split at hok
-                    · rename_i s_blk h_blk
-                      have h := Except.ok.inj hok; injection h with h; subst h
-                      exact scanNextToken_dispatchBlockIndicators_corr _ sp_pre c_pre hcorr_ad s_blk h_blk
-                    · -- adjacent-value check (item 47)
-                      split at hok
+                  · rename_i s_blk h_blk
+                    have h := Except.ok.inj hok; injection h with h; subst h
+                    exact scanNextToken_dispatchBlockIndicators_corr _ sp_pre c_pre hcorr_ad s_blk h_blk
+                  · -- adjacent-value check (item 47)
+                    split at hok
+                    · simp at hok
+                    · split at hok
                       · simp at hok
-                      · split at hok
-                        · simp at hok
-                        · rename_i s_cnt h_cnt
-                          have h := Except.ok.inj hok; injection h with h; subst h
-                          exact scanNextToken_dispatchContent_corr _ sp_pre c_pre hcorr_ad s_cnt h_cnt
+                      · rename_i s_cnt h_cnt
+                        have h := Except.ok.inj hok; injection h with h; subst h
+                        exact scanNextToken_dispatchContent_corr _ sp_pre c_pre hcorr_ad s_cnt h_cnt
 
 -- When scanNextToken returns .ok none, all input characters are consumed.
 lemma scanNextToken_none_consumed (sc : ScannerState) (sp : SurfPos)
@@ -428,6 +429,9 @@ lemma scanNextToken_none_consumed (sc : ScannerState) (sp : SurfPos)
     · -- §9.2 dangling-node check (item 133)
       split at hok
       · simp at hok
+      -- §8.1 flow-value floor (item 172)
+      split at hok
+      · simp at hok
       split at hok
       · simp at hok
       · split at hok
@@ -441,19 +445,17 @@ lemma scanNextToken_none_consumed (sc : ScannerState) (sp : SurfPos)
           · split at hok
             · simp at hok
             · split at hok
-              · simp at hok
+              · exact absurd (Except.ok.inj hok) nofun
               · split at hok
-                · exact absurd (Except.ok.inj hok) nofun
+                · simp at hok
                 · split at hok
-                  · simp at hok
-                  · split at hok
-                    · exact absurd (Except.ok.inj hok) nofun
-                    · -- adjacent-value check (item 47)
-                      split at hok
+                  · exact absurd (Except.ok.inj hok) nofun
+                  · -- adjacent-value check (item 47)
+                    split at hok
+                    · simp at hok
+                    · split at hok
                       · simp at hok
-                      · split at hok
-                        · simp at hok
-                        · exact absurd (Except.ok.inj hok) nofun
+                      · exact absurd (Except.ok.inj hok) nofun
 
 /-! ## §5 scanLoop Full Consumption -/
 

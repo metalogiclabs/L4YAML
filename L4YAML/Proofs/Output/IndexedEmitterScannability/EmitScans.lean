@@ -672,8 +672,6 @@ lemma scanNextToken_flow_valueIx (s : ScannerStateIx input)
   have h_ad_ek_none : s_ad.explicitKeyLine = none := by rw [h_ad_ek]; exact h_ek
   have h_ad_line : s_ad.cursor.pos.line = s.cursor.pos.line := by rw [h_ad_cursor]
   -- Step 4: checkBlockFlowIndent (vacuous in flow) + flow dispatch → none.
-  have h_check : scanNextTokenIx_checkBlockFlowIndent s_ad ':' = .ok () :=
-    checkBlockFlowIndent_ok_flow s_ad ':' h_ad_flow
   -- Step 5 (hoisted above the dispatch by item 9d — the adjacency check exempts
   -- `:` only while it is a value indicator): `isValueCandidateIx s_ad = true` via
   -- the `peekAt? 1 = ' '` fallback.
@@ -747,7 +745,7 @@ lemma scanNextToken_flow_valueIx (s : ScannerStateIx input)
       .ok (some { (((scanValuePrepareIx s_ad).emit YamlToken.value).advance) with
                   simpleKeyAllowed := true, explicitKeyLine := none, explicitKeyCol := -1 }) :=
     scanNextTokenIx_via_block_dispatch s (saveSimpleKeyIx s) s_ad _ ':'
-      h_pp h_struct h_s_ad_def h_check h_flow_none h_block
+      h_pp h_struct h_s_ad_def (scanNextTokenIx_checkFlowValueIndent_ok_of_inFlow _ _ h_flow) h_flow_none h_block
       ((saveSimpleKeyIx_directivesPresent s).trans h_dp)
       (scanNextTokenIx_checkBareDocument_ok_of_inFlow _
         ((saveSimpleKeyIx_inFlow s).trans h_flow))
@@ -1843,10 +1841,10 @@ lemma scanNextTokenIx_emitScalar_init (content : String) :
   have h_ad_de : atDocumentEndIx s_ad.cursor = false := by
     rw [h_ad_cursor]; exact h_de
   -- ── Step 7: the four no-op dispatchers at s_pp (bundled) and at s_ad
-  have ⟨h_struct, _h_check_pp, _h_flow_pp, _h_block_pp⟩ :=
-    dispatchContentIx_quote s_pp '"' rfl h_fl_pp h_ci_pp h_ds h_de
-  have ⟨_h_struct_ad, h_check_ad, h_flow_ad, h_block_ad⟩ :=
-    dispatchContentIx_quote s_ad '"' rfl h_ad_fl h_ad_ci h_ad_ds h_ad_de
+  have ⟨h_struct, _h_flow_pp, _h_block_pp⟩ :=
+    dispatchContentIx_quote s_pp '"' rfl h_fl_pp h_ds h_de
+  have ⟨_h_struct_ad, h_flow_ad, h_block_ad⟩ :=
+    dispatchContentIx_quote s_ad '"' rfl h_ad_fl h_ad_ds h_ad_de
   -- ── Step 8: surface correspondence at s_ad (cursor unchanged from s_pp)
   have h_ad_corr : ScannerSurfCorrIx s_ad
       ⟨'"' :: ((L4YAML.Emit.escapeString content).toList ++ ['"']), s_ad.cursor.pos.col⟩ := by
@@ -1911,7 +1909,9 @@ lemma scanNextTokenIx_emitScalar_init (content : String) :
   -- ── Step 12: compose via the pipeline
   have h_snt : scanNextTokenIx s₀ = .ok (some s_final) :=
     scanNextTokenIx_via_content_dispatch s₀ s_pp s_ad s_final '"'
-      h_pp_eq h_struct h_s_ad_def h_check_ad h_flow_ad h_block_ad
+      h_pp_eq h_struct h_s_ad_def
+      (scanNextTokenIx_checkFlowValueIndent_ok_of_sentinel_stack _ _
+        (initIx_indents_sentinel _)) h_flow_ad h_block_ad
       (scanNextTokenIx_checkAdjacentValue_ok_of_ne_colon _ (by decide)) h_dc h_dp_pp
       h_bd_pp (scanNextTokenIx_checkDanglingNode_ok_of_sentinel_stack _ _
         (initIx_indents_sentinel _))
@@ -2040,6 +2040,7 @@ lemma scan_accepts_emitScalarIx (content : String) :
   rw [h_scan_eq]
   exact scanLoopIx_two_iter h_fuel h_snt1 h_snt2 h_flow1 h_dp1
     (scanLoopIx_checkDanglingNode_ok_of_sentinel_stack _ h_ids1)
+    (scanLoopIx_checkFlowValueIndent_ok_of_sentinel_stack _ h_ids1)
 
 /-! ## §4  `emit_produces_valid_yamlIx` — top-level composition (SS3)
 
@@ -2124,7 +2125,7 @@ lemma emit_produces_valid_yamlIx (v : YamlValue) {inFlow : Bool}
           h_indent₁ (by rw [h_col₁]; omega) h_ek₁
           (h_line₁ ▸ h_atol₁) h_endline₁ _h_stack₁ h_dp₁ h_last_s₁
       -- Step 5: Scan ']' (outermost, flowLevel 1 → 0)
-      obtain ⟨s₃, h_snt₃, h_fl₃, h_dp₃, h_peek₃, h_dn₃⟩ :=
+      obtain ⟨s₃, h_snt₃, h_fl₃, h_dp₃, h_peek₃, h_dn₃, h_fv₃⟩ :=
         scanNextTokenIx_flow_close_seq_outermost s₂ h_corr₂ h_inflow₂ h_indent₂
           h_col₂ (by rw [h_fl₂, h_fl₁]) (by rw [h_dp₂, h_dp₁])
           (by rw [h_fmc₂.flowStack_eq rfl h_fl₂]; exact h_push₁)
@@ -2152,7 +2153,7 @@ lemma emit_produces_valid_yamlIx (v : YamlValue) {inFlow : Bool}
       have h_fuel := ScanChainIx.fuel_bound _ _ _ rfl h_chain_all h_eof
       exact scanFilteredIx_of_chain
         ("[" ++ L4YAML.Emit.emit.emitList (head :: tail) ++ "]")
-        _ s₃ _ rfl h_no_bom h_chain_all h_eof h_fl₃ h_dp₃ h_dn₃ h_fuel
+        _ s₃ _ rfl h_no_bom h_chain_all h_eof h_fl₃ h_dp₃ h_dn₃ h_fv₃ h_fuel
   | mapping _style pairs _tag _anchor _inFlow hk hv _ihk _ihv =>
     -- emit (.mapping ...) = "{" ++ emitPairList pairs.toList ++ "}"
     show ∃ tokens,
@@ -2196,7 +2197,7 @@ lemma emit_produces_valid_yamlIx (v : YamlValue) {inFlow : Bool}
         h_pair_scan s₁ ['}'] h_corr₁ h_inflow₁ (by rw [h_fl₁]; omega)
           h_indent₁ (by rw [h_col₁]; omega) h_ek₁
           (h_line₁ ▸ h_atol₁) h_endline₁ h_ska₁ h_lrv₁ _h_stack₁ h_dp₁ h_last_s₁
-      obtain ⟨s₃, h_snt₃, h_fl₃, h_dp₃, h_peek₃, h_dn₃⟩ :=
+      obtain ⟨s₃, h_snt₃, h_fl₃, h_dp₃, h_peek₃, h_dn₃, h_fv₃⟩ :=
         scanNextTokenIx_flow_close_mapping_outermost s₂ h_corr₂ h_inflow₂ h_indent₂
           h_col₂ (by rw [h_fl₂, h_fl₁]) (by rw [h_dp₂, h_dp₁])
           (by rw [h_fmc₂.flowStack_eq rfl h_fl₂]; exact h_push₁)
@@ -2222,6 +2223,6 @@ lemma emit_produces_valid_yamlIx (v : YamlValue) {inFlow : Bool}
       have h_fuel := ScanChainIx.fuel_bound _ _ _ rfl h_chain_all h_eof
       exact scanFilteredIx_of_chain
         ("{" ++ L4YAML.Emit.emit.emitPairList (phead :: ptail) ++ "}")
-        _ s₃ _ rfl h_no_bom h_chain_all h_eof h_fl₃ h_dp₃ h_dn₃ h_fuel
+        _ s₃ _ rfl h_no_bom h_chain_all h_eof h_fl₃ h_dp₃ h_dn₃ h_fv₃ h_fuel
 
 end L4YAML.Proofs.Indexed.EmitterScannability.EmitScans

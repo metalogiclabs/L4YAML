@@ -72,14 +72,13 @@ lemma scanFlowSequenceStart_first_filtered_token (s : ScannerState) (rest : List
   else saveSimpleKey s
   have h_ad_flow : s_ad.inFlow = s.inFlow := by
     simp only [s_ad]; split <;> exact h_sk_flow
-  have h_check := checkBlockFlowIndent_ok_flow s_ad '[' (h_ad_flow ▸ h_flow)
   have h_ad_tokens : s_ad.tokens = (saveSimpleKey s).tokens := by
     simp only [s_ad]; split <;> rfl
   have h_flow_disp := dispatchFlowIndicators_bracket s_ad
     (checkFlowAdjacency_ok_of_notCompletes (fun t ht =>
       saveSimpleKey_preserves_completesFalse s h_last t (h_ad_tokens ▸ ht)))
   have h_snt_eq : scanNextToken s = .ok (some (scanFlowSequenceStart s_ad)) :=
-    scanNextToken_via_flow_dispatch _ _ _ _ _ h_pp h_struct rfl h_check h_flow_disp
+    scanNextToken_via_flow_dispatch _ _ _ _ _ h_pp h_struct rfl (scanNextToken_ok_checkFlowValueIndent h_pp h_snt) h_flow_disp
       (scanNextToken_ok_directivesPresent_false h_pp h_struct h_snt)
       (scanNextToken_ok_checkBareDocument h_pp h_struct h_snt)
       (scanNextToken_ok_checkDanglingNode h_pp h_snt)
@@ -139,14 +138,13 @@ lemma scanFlowMappingStart_first_filtered_token (s : ScannerState) (rest : List 
   else saveSimpleKey s
   have h_ad_flow : s_ad.inFlow = s.inFlow := by
     simp only [s_ad]; split <;> exact h_sk_flow
-  have h_check := checkBlockFlowIndent_ok_flow s_ad '{' (h_ad_flow ▸ h_flow)
   have h_ad_tokens : s_ad.tokens = (saveSimpleKey s).tokens := by
     simp only [s_ad]; split <;> rfl
   have h_flow_disp := dispatchFlowIndicators_brace s_ad
     (checkFlowAdjacency_ok_of_notCompletes (fun t ht =>
       saveSimpleKey_preserves_completesFalse s h_last t (h_ad_tokens ▸ ht)))
   have h_snt_eq : scanNextToken s = .ok (some (scanFlowMappingStart s_ad)) :=
-    scanNextToken_via_flow_dispatch _ _ _ _ _ h_pp h_struct rfl h_check h_flow_disp
+    scanNextToken_via_flow_dispatch _ _ _ _ _ h_pp h_struct rfl (scanNextToken_ok_checkFlowValueIndent h_pp h_snt) h_flow_disp
       (scanNextToken_ok_directivesPresent_false h_pp h_struct h_snt)
       (scanNextToken_ok_checkBareDocument h_pp h_struct h_snt)
       (scanNextToken_ok_checkDanglingNode h_pp h_snt)
@@ -262,7 +260,6 @@ lemma scanDoubleQuoted_first_filtered_token (s : ScannerState) (rest : List Char
   have h_ad_flow : s_ad.inFlow = s.inFlow := by
     simp only [s_ad]; split <;> exact h_sk_flow
   have h_ad_flow_true : s_ad.inFlow = true := h_ad_flow ▸ h_flow
-  have h_check := checkBlockFlowIndent_ok_flow s_ad '"' h_ad_flow_true
   have h_ad_tokens : s_ad.tokens = (saveSimpleKey s).tokens := by
     simp only [s_ad]; split <;> rfl
   have h_flow_none : scanNextToken_dispatchFlowIndicators s_ad '"' = .ok none :=
@@ -277,7 +274,7 @@ lemma scanDoubleQuoted_first_filtered_token (s : ScannerState) (rest : List Char
     | error e =>
       exfalso
       have h_snt_err := scanNextToken_via_content_dispatch_error
-        _ _ _ _ _ h_pp h_struct rfl h_check h_flow_none h_block_none
+        _ _ _ _ _ h_pp h_struct rfl (scanNextToken_ok_checkFlowValueIndent h_pp h_snt) h_flow_none h_block_none
         (scanNextToken_checkAdjacentValue_ok_of_ne_colon _ (by decide)) h_dc_eq
         (scanNextToken_ok_directivesPresent_false h_pp h_struct h_snt)
         (scanNextToken_ok_checkBareDocument h_pp h_struct h_snt)
@@ -285,7 +282,7 @@ lemma scanDoubleQuoted_first_filtered_token (s : ScannerState) (rest : List Char
       rw [h_snt_err] at h_snt; exact absurd h_snt (by simp)
     | ok s_dc =>
       have h_snt_eq : scanNextToken s = Except.ok (some s_dc) :=
-        scanNextToken_via_content_dispatch _ _ _ _ _ h_pp h_struct rfl h_check
+        scanNextToken_via_content_dispatch _ _ _ _ _ h_pp h_struct rfl (scanNextToken_ok_checkFlowValueIndent h_pp h_snt)
           h_flow_none h_block_none
           (scanNextToken_checkAdjacentValue_ok_of_ne_colon _ (by decide)) h_dc_eq
           (scanNextToken_ok_directivesPresent_false h_pp h_struct h_snt)
@@ -405,11 +402,10 @@ lemma emitList_head_step_noOverwrite (s s' : ScannerState) (c : Char) (rest : Li
       scanNextToken_preprocess_flow s '[' rest s.col hcorr h_flow (by decide) (by decide) (by decide)
     have h_struct : scanNextToken_dispatchStructural (saveSimpleKey s) '[' = .ok none :=
       dispatchStructural_none_flow _ _ (h_sk_flow ▸ h_flow) (h_sk_indent ▸ h_indent) (h_sk_col ▸ h_col)
-    have h_check := checkBlockFlowIndent_ok_flow s_ad '[' (h_ad_flow ▸ h_flow)
     have h_flow_disp := dispatchFlowIndicators_bracket s_ad
       (checkFlowAdjacency_ok_of_notCompletes h_nc)
     have h_snt_eq : scanNextToken s = .ok (some (scanFlowSequenceStart s_ad)) :=
-      scanNextToken_via_flow_dispatch _ _ _ _ _ h_pp h_struct rfl h_check h_flow_disp
+      scanNextToken_via_flow_dispatch _ _ _ _ _ h_pp h_struct rfl (scanNextToken_ok_checkFlowValueIndent h_pp h_snt) h_flow_disp
         (scanNextToken_ok_directivesPresent_false h_pp h_struct h_snt)
         (scanNextToken_ok_checkBareDocument h_pp h_struct h_snt)
         (scanNextToken_ok_checkDanglingNode h_pp h_snt)
@@ -436,11 +432,10 @@ lemma emitList_head_step_noOverwrite (s s' : ScannerState) (c : Char) (rest : Li
       scanNextToken_preprocess_flow s '{' rest s.col hcorr h_flow (by decide) (by decide) (by decide)
     have h_struct : scanNextToken_dispatchStructural (saveSimpleKey s) '{' = .ok none :=
       dispatchStructural_none_flow _ _ (h_sk_flow ▸ h_flow) (h_sk_indent ▸ h_indent) (h_sk_col ▸ h_col)
-    have h_check := checkBlockFlowIndent_ok_flow s_ad '{' (h_ad_flow ▸ h_flow)
     have h_flow_disp := dispatchFlowIndicators_brace s_ad
       (checkFlowAdjacency_ok_of_notCompletes h_nc)
     have h_snt_eq : scanNextToken s = .ok (some (scanFlowMappingStart s_ad)) :=
-      scanNextToken_via_flow_dispatch _ _ _ _ _ h_pp h_struct rfl h_check h_flow_disp
+      scanNextToken_via_flow_dispatch _ _ _ _ _ h_pp h_struct rfl (scanNextToken_ok_checkFlowValueIndent h_pp h_snt) h_flow_disp
         (scanNextToken_ok_directivesPresent_false h_pp h_struct h_snt)
         (scanNextToken_ok_checkBareDocument h_pp h_struct h_snt)
         (scanNextToken_ok_checkDanglingNode h_pp h_snt)
@@ -468,7 +463,6 @@ lemma emitList_head_step_noOverwrite (s s' : ScannerState) (c : Char) (rest : Li
     have h_struct : scanNextToken_dispatchStructural (saveSimpleKey s) '"' = .ok none :=
       dispatchStructural_none_flow _ _ (h_sk_flow ▸ h_flow) (h_sk_indent ▸ h_indent) (h_sk_col ▸ h_col)
     have h_ad_flow_true : s_ad.inFlow = true := h_ad_flow ▸ h_flow
-    have h_check := checkBlockFlowIndent_ok_flow s_ad '"' h_ad_flow_true
     have h_flow_none : scanNextToken_dispatchFlowIndicators s_ad '"' = .ok none :=
       dispatchFlowIndicators_none _ _ (by decide) (by decide) (by decide) (by decide) (by decide)
         (checkFlowAdjacency_ok_of_notCompletes h_nc)
@@ -480,7 +474,7 @@ lemma emitList_head_step_noOverwrite (s s' : ScannerState) (c : Char) (rest : Li
       | error e =>
         exfalso
         have h_snt_err := scanNextToken_via_content_dispatch_error
-          _ _ _ _ _ h_pp h_struct rfl h_check h_flow_none h_block_none
+          _ _ _ _ _ h_pp h_struct rfl (scanNextToken_ok_checkFlowValueIndent h_pp h_snt) h_flow_none h_block_none
           (scanNextToken_checkAdjacentValue_ok_of_ne_colon _ (by decide)) h_dc_eq
           (scanNextToken_ok_directivesPresent_false h_pp h_struct h_snt)
           (scanNextToken_ok_checkBareDocument h_pp h_struct h_snt)
@@ -488,7 +482,7 @@ lemma emitList_head_step_noOverwrite (s s' : ScannerState) (c : Char) (rest : Li
         rw [h_snt_err] at h_snt; exact absurd h_snt (by simp)
       | ok s_dc =>
         have h_snt_eq : scanNextToken s = Except.ok (some s_dc) :=
-          scanNextToken_via_content_dispatch _ _ _ _ _ h_pp h_struct rfl h_check
+          scanNextToken_via_content_dispatch _ _ _ _ _ h_pp h_struct rfl (scanNextToken_ok_checkFlowValueIndent h_pp h_snt)
             h_flow_none h_block_none
             (scanNextToken_checkAdjacentValue_ok_of_ne_colon _ (by decide)) h_dc_eq
             (scanNextToken_ok_directivesPresent_false h_pp h_struct h_snt)
@@ -1595,7 +1589,6 @@ lemma scanNextToken_via_flow_dispatch_filtered_grows
     (_h_struct : scanNextToken_dispatchStructural s_pp c = .ok none)
     (h_ad_eq : s_ad = if s_pp.allowDirectives then
       { s_pp with allowDirectives := false, documentEverStarted := true } else s_pp)
-    (_h_check : scanNextToken_checkBlockFlowIndent s_ad c = .ok ())
     (h_flow : scanNextToken_dispatchFlowIndicators s_ad c = .ok (some s_result)) :
     (s_result.tokens.filter (fun t => t.val != .placeholder)).size ≥
     (s.tokens.filter (fun t => t.val != .placeholder)).size + 1 := by
@@ -1613,7 +1606,6 @@ lemma scanNextToken_via_block_dispatch_filtered_grows
     (_h_struct : scanNextToken_dispatchStructural s_pp c = .ok none)
     (h_ad_eq : s_ad = if s_pp.allowDirectives then
       { s_pp with allowDirectives := false, documentEverStarted := true } else s_pp)
-    (_h_check : scanNextToken_checkBlockFlowIndent s_ad c = .ok ())
     (_h_flow : scanNextToken_dispatchFlowIndicators s_ad c = .ok none)
     (h_block : scanNextToken_dispatchBlockIndicators s_ad c = .ok (some s_result)) :
     (s_result.tokens.filter (fun t => t.val != .placeholder)).size ≥
@@ -1632,7 +1624,6 @@ lemma scanNextToken_via_content_dispatch_filtered_grows
     (_h_struct : scanNextToken_dispatchStructural s_pp c = .ok none)
     (h_ad_eq : s_ad = if s_pp.allowDirectives then
       { s_pp with allowDirectives := false, documentEverStarted := true } else s_pp)
-    (_h_check : scanNextToken_checkBlockFlowIndent s_ad c = .ok ())
     (_h_flow : scanNextToken_dispatchFlowIndicators s_ad c = .ok none)
     (_h_block : scanNextToken_dispatchBlockIndicators s_ad c = .ok none)
     (h_content : scanNextToken_dispatchContent s_ad c = .ok s_result) :
@@ -1690,8 +1681,6 @@ lemma scanNextToken_filtered_grows_in_flow
     else saveSimpleKey s := rfl
   have h_ad_flow : s_ad.inFlow = s.inFlow := by
     simp only [s_ad]; split <;> exact h_sk_flow
-  have h_check : scanNextToken_checkBlockFlowIndent s_ad c = .ok () :=
-    checkBlockFlowIndent_ok_flow _ _ (h_ad_flow ▸ h_flow)
   -- Fix B: pending-directives check passes (dp = false is forced by h_snt's success).
   have h_ndp_ok : scanNextToken_checkNoPendingDirectives (saveSimpleKey s) = .ok () :=
     scanNextToken_checkNoPendingDirectives_ok _
@@ -1702,10 +1691,13 @@ lemma scanNextToken_filtered_grows_in_flow
   -- §9.2 dangling-node check (item 133), from the same `.ok` witness.
   have h_dn_ok : scanNextToken_checkDanglingNode s (saveSimpleKey s) = .ok () :=
     scanNextToken_ok_checkDanglingNode h_pp h_snt
+  -- §8.1 flow-value floor (item 172), from the same `.ok` witness.
+  have h_fv_ok : scanNextToken_checkFlowValueIndent s (saveSimpleKey s) = .ok () :=
+    scanNextToken_ok_checkFlowValueIndent h_pp h_snt
   -- Step 4: unfold scanNextToken using the pinned dispatch info.
   unfold scanNextToken at h_snt
-  simp only [bind, pure, Pure.pure, Except.pure, Except.bind, h_pp, h_dn_ok, h_struct,
-             h_ndp_ok, h_bd_ok, ← hs_ad, h_check] at h_snt
+  simp only [bind, pure, Pure.pure, Except.pure, Except.bind, h_pp, h_dn_ok, h_fv_ok,
+             h_struct, h_ndp_ok, h_bd_ok, ← hs_ad] at h_snt
   -- Step 5: case-analyze on dispatchFlowIndicators result.
   match h_flow_eq : scanNextToken_dispatchFlowIndicators s_ad c with
   | .error _ => rw [h_flow_eq] at h_snt; simp at h_snt
@@ -1713,7 +1705,7 @@ lemma scanNextToken_filtered_grows_in_flow
     rw [h_flow_eq] at h_snt; simp only at h_snt
     injection h_snt with h_eq; injection h_eq with h_eq; subst h_eq
     have h_grew := scanNextToken_via_flow_dispatch_filtered_grows
-      s _ s_ad s_flow c h_pp h_struct hs_ad h_check h_flow_eq
+      s _ s_ad s_flow c h_pp h_struct hs_ad h_flow_eq
     omega
   | .ok none =>
     rw [h_flow_eq] at h_snt; simp only at h_snt
@@ -1724,7 +1716,7 @@ lemma scanNextToken_filtered_grows_in_flow
       rw [h_block_eq] at h_snt; simp only at h_snt
       injection h_snt with h_eq; injection h_eq with h_eq; subst h_eq
       have h_grew := scanNextToken_via_block_dispatch_filtered_grows
-        s _ s_ad s_block c h_pp h_struct hs_ad h_check h_flow_eq h_block_eq
+        s _ s_ad s_block c h_pp h_struct hs_ad h_flow_eq h_block_eq
       omega
     | .ok none =>
       rw [h_block_eq] at h_snt; simp only at h_snt
@@ -1740,7 +1732,7 @@ lemma scanNextToken_filtered_grows_in_flow
           rw [h_cont_eq] at h_snt; simp only at h_snt
           injection h_snt with h_eq; injection h_eq with h_eq; subst h_eq
           have h_grew := scanNextToken_via_content_dispatch_filtered_grows
-            s _ s_ad s_cont c h_pp h_struct hs_ad h_check h_flow_eq h_block_eq h_cont_eq
+            s _ s_ad s_cont c h_pp h_struct hs_ad h_flow_eq h_block_eq h_cont_eq
           omega
 
 

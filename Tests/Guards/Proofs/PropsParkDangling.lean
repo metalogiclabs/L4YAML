@@ -184,7 +184,8 @@ Item 159 closed it at the READING instead.  `[161] ns-flow-node` offers
 unchanged: the break, or end of input.  §4's flow consumer is what that buys.
 
 The witnesses below are `SCAN-ERR` now, at the position they were already
-`PARSE-ERR` at. -/
+`PARSE-ERR` at — the bare-open fifth included, which item 172's deferred floor
+hands to the same dangling reading as its props-headed rows. -/
 
 #guard ["a: 1\n&p [b]\n", "a: 1\n&p {b: 1}\n", "a: 1\n!t [b]\n", "- a\n&p [b]\n",
         "a: 1\n[b]\n"].map scanOk
@@ -192,7 +193,7 @@ The witnesses below are `SCAN-ERR` now, at the position they were already
       "SCAN-ERR L4YAML.ScanError.invalidBareDocument 1 0",
       "SCAN-ERR L4YAML.ScanError.invalidBareDocument 1 0",
       "SCAN-ERR L4YAML.ScanError.invalidBareDocument 1 0",
-      "SCAN-ERR L4YAML.ScanError.underIndentedFlowContent 1 0"]
+      "SCAN-ERR L4YAML.ScanError.invalidBareDocument 1 0"]
 
 #guard ["a: 1\n&p [b]\n", "a: 1\n&p {b: 1}\n", "a: 1\n!t [b]\n", "- a\n&p [b]\n",
         "a: 1\n[b]\n"].map parseOk
@@ -200,7 +201,7 @@ The witnesses below are `SCAN-ERR` now, at the position they were already
       "PARSE-ERR L4YAML.ScanError.invalidBareDocument 1 0",
       "PARSE-ERR L4YAML.ScanError.invalidBareDocument 1 0",
       "PARSE-ERR L4YAML.ScanError.invalidBareDocument 1 0",
-      "PARSE-ERR L4YAML.ScanError.underIndentedFlowContent 1 0"]
+      "PARSE-ERR L4YAML.ScanError.invalidBareDocument 1 0"]
 
 -- `a: 1⏎&p [b]` step by step.  The props park at step 4 reads the dangling run;
 -- the `[` no longer ends it, and at step 7 — the state end of input reads — the

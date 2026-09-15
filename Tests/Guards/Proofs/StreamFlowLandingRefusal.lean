@@ -137,11 +137,15 @@ new here is that the above-sentinel half is not all parser-only: §8.1's floor
 (item 66) runs at this dispatcher and takes the part of it that sits at or left
 of the enclosing block collection. -/
 
--- §8.1's floor, not §9.2: the check reports `ok` and the STEP is what fails.
+-- Item 172 defers §8.1's floor to the close, so the OPEN's step succeeds and
+-- the landing scans through the collection; what refuses these is the EOF
+-- gate, and the reading is §9.2's — the completed value (`1`, `"a"`) holds
+-- the slot, so the trailing flow node is a dangling run read back to its
+-- open, `invalidBareDocument` at the open's own position.
 #guard (fires "a: 1\n[1, 2]\n", verdict "a: 1\n[1, 2]\n")
-  == ("step-error@3", "scan-flowfloor 1,0")
+  == ("eof-dangling@8", "scan-bare 1,0")
 #guard (fires "- \"a\"\n[1, 2]\n", verdict "- \"a\"\n[1, 2]\n")
-  == ("step-error@2", "scan-flowfloor 1,0")
+  == ("eof-dangling@7", "scan-bare 1,0")
 
 -- **The residue this item recorded as the parser's alone**: a completed value
 -- met by a flow open MORE indented than the enclosing collection, with a level

@@ -74,12 +74,19 @@ private def refuses (input : String) : Bool :=
 #guard emits "?\n  &p [1]: b\n: - w\n"
   ["+STR", "+DOC", "+MAP", "+MAP", "+SEQ [] &p", "=VAL :1", "-SEQ",
    "=VAL :b", "-MAP", "+SEQ", "=VAL :w", "-SEQ", "-MAP", "-DOC", "-STR"]
--- The BOUNDARY that scopes the family to the props head: a bare flow key at
--- an open level's own column is §8.1-refused, so `flowKeyRoute_of_root` /
--- `flowKeyRoute_of_open`'s twin punts have no accepted input behind them.
-#guard refuses "k:\n  m:\n    - a\n  [1]: b\n"
-#guard refuses "a: 1\n[1]: b\n"
-#guard refuses "k:\n  - a\n[1]: b\n"
+-- The props head is NOT load-bearing (item 172): §8.1's floor is read at
+-- the close, so the BARE flow key at an open level's own column is the
+-- same sibling entry, the anchor's two columns now spelling only the anchor.
+#guard emits "k:\n  m:\n    - a\n  [1]: b\n"
+  ["+STR", "+DOC", "+MAP", "=VAL :k", "+MAP", "=VAL :m", "+SEQ",
+   "=VAL :a", "-SEQ", "+SEQ []", "=VAL :1", "-SEQ", "=VAL :b",
+   "-MAP", "-MAP", "-DOC", "-STR"]
+#guard emits "a: 1\n[1]: b\n"
+  ["+STR", "+DOC", "+MAP", "=VAL :a", "=VAL :1", "+SEQ []", "=VAL :1",
+   "-SEQ", "=VAL :b", "-MAP", "-DOC", "-STR"]
+#guard emits "k:\n  - a\n[1]: b\n"
+  ["+STR", "+DOC", "+MAP", "=VAL :k", "+SEQ", "=VAL :a", "-SEQ",
+   "+SEQ []", "=VAL :1", "-SEQ", "=VAL :b", "-MAP", "-DOC", "-STR"]
 
 -- §2 The rider at its types: the frame's key carries the twins and the close
 -- hands them through into the pack — the two slots items 99/108 had left as

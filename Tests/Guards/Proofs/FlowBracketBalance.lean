@@ -93,8 +93,11 @@ The alphabet carries both brackets, both closes, the two separators, a node, a
 alphabet cannot terminate a token measures nothing).
 
 Every input of length ≤ 4 over eleven symbols, checked at every scanner step.
-The same sweep at length 6 — 1 771 561 inputs, 1 638 834 steps — was run out of
-band and also disagreed nowhere; the length checked HERE is the one CI carries. -/
+The same sweep at length 6 — 1 771 561 inputs, 1 638 834 steps at item 161's
+runtime — was run out of band and also disagreed nowhere; the length checked
+HERE is the one CI carries.  Step totals move with the runtime (item 172's
+deferred floor lets refused inputs scan further, +50 steps at length 4), so
+each pin names the runtime it measures. -/
 
 private def alphabet : List String :=
   ["[", "]", "{", "}", ",", ":", "a", "&p", " ", "\n", "#c\n"]
@@ -122,8 +125,8 @@ private def sweep : Nat → List String → Nat × Nat × Bool
 
 #guard sweep 1 [""] == (11, 16, true)
 #guard sweep 2 [""] == (121, 203, true)
-#guard sweep 3 [""] == (1331, 2380, true)
-#guard sweep 4 [""] == (14641, 27143, true)
+#guard sweep 3 [""] == (1331, 2382, true)
+#guard sweep 4 [""] == (14641, 27193, true)
 
 /-! ## §2  The three pushes, proved
 

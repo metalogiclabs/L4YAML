@@ -198,12 +198,13 @@ lemma scanFiltered_tokens_eq_of_chain_short_stackIx
     (h_fl : s_final.flowLevel = 0)
     (h_dp : s_final.directivesPresent = false)
     (h_dn : scanLoopIx_checkDanglingNode s_final = .ok ())
+    (h_fv : scanLoopIx_checkFlowValueIndent s_final = .ok ())
     (h_fuel : n + 1 ≤ (input.utf8ByteSize + 1) * 4)
     (h_stack : s_final.indents.size ≤ 1) :
     scanFilteredIx input = .ok ⟨((s_final.emit YamlToken.streamEnd).tokens.tokens.filter
       (fun t => t.token != YamlToken.placeholder))⟩ := by
   have h_eq := scanFilteredIx_of_chain_eq input s₀ s_final n h_s0 h_no_bom h_chain
-    h_eof h_fl h_dp h_dn h_fuel
+    h_eof h_fl h_dp h_dn h_fv h_fuel
   rwa [unwindIndents_noop_short_stackIx s_final h_stack] at h_eq
 
 /-- `ScanChainIx` token-stream monotonicity: the token array grows
@@ -404,8 +405,6 @@ lemma scanNextToken_flow_close_seq_outermost_extIx {input : String}
     if (saveSimpleKeyIx s).allowDirectives then
       { saveSimpleKeyIx s with allowDirectives := false, documentEverStarted := true }
     else saveSimpleKeyIx s
-  have h_check : scanNextTokenIx_checkBlockFlowIndent s_ad ']' = .ok () :=
-    checkBlockFlowIndent_ok_close_bracket s_ad
   -- s_ad preserves flowLevel / directivesPresent / cursor / indents from s.
   have h_ad_fl : s_ad.flowLevel = s.flowLevel := by
     simp only [s_ad]; split <;> exact FlowMonoChain.saveSimpleKeyIx_flowLevel s
@@ -435,7 +434,7 @@ lemma scanNextToken_flow_close_seq_outermost_extIx {input : String}
   -- §4: factoring lemma assembles the full `scanNextTokenIx s`.
   have h_snt : scanNextTokenIx s = .ok (some (scanFlowSequenceEndIx s_ad)) :=
     scanNextTokenIx_via_flow_dispatch s (saveSimpleKeyIx s) s_ad
-      (scanFlowSequenceEndIx s_ad) ']' h_pp h_struct rfl h_check h_flow_disp
+      (scanFlowSequenceEndIx s_ad) ']' h_pp h_struct rfl (scanNextTokenIx_checkFlowValueIndent_ok_of_inFlow _ _ h_flow) h_flow_disp
       ((saveSimpleKeyIx_directivesPresent s).trans h_dp)
       (scanNextTokenIx_checkBareDocument_ok_of_inFlow _
         ((saveSimpleKeyIx_inFlow s).trans h_flow))
@@ -516,8 +515,6 @@ lemma scanNextToken_flow_close_mapping_outermost_extIx {input : String}
     if (saveSimpleKeyIx s).allowDirectives then
       { saveSimpleKeyIx s with allowDirectives := false, documentEverStarted := true }
     else saveSimpleKeyIx s
-  have h_check : scanNextTokenIx_checkBlockFlowIndent s_ad '}' = .ok () :=
-    checkBlockFlowIndent_ok_close_brace s_ad
   have h_ad_fl : s_ad.flowLevel = s.flowLevel := by
     simp only [s_ad]; split <;> exact FlowMonoChain.saveSimpleKeyIx_flowLevel s
   have h_ad_dp : s_ad.directivesPresent = s.directivesPresent := by
@@ -543,7 +540,7 @@ lemma scanNextToken_flow_close_mapping_outermost_extIx {input : String}
     dispatchFlowIndicators_close_brace s_ad h_ad_fl_pos h_ad_kind
   have h_snt : scanNextTokenIx s = .ok (some (scanFlowMappingEndIx s_ad)) :=
     scanNextTokenIx_via_flow_dispatch s (saveSimpleKeyIx s) s_ad
-      (scanFlowMappingEndIx s_ad) '}' h_pp h_struct rfl h_check h_flow_disp
+      (scanFlowMappingEndIx s_ad) '}' h_pp h_struct rfl (scanNextTokenIx_checkFlowValueIndent_ok_of_inFlow _ _ h_flow) h_flow_disp
       ((saveSimpleKeyIx_directivesPresent s).trans h_dp)
       (scanNextTokenIx_checkBareDocument_ok_of_inFlow _
         ((saveSimpleKeyIx_inFlow s).trans h_flow))

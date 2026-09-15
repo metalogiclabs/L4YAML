@@ -1598,7 +1598,7 @@ lemma scanNextTokenIx_dispatchContent_tokens_size_le {input : String}
 Chains `preprocess` (advances cursor / grows tokens) → optional dispatcher
 (structural/flow/block/content). The structure update
 `{ s with allowDirectives := false, documentEverStarted := true }` and
-`scanNextTokenIx_checkBlockFlowIndent` (returns `Except Unit`) preserve
+the pure checks (each returns `Except Unit`) preserve
 both cursor and tokens; the dispatcher chains close via the per-helper
 lemmas above. -/
 
@@ -1627,6 +1627,14 @@ lemma scanNextTokenIx_ok_some_monotonic {input : String}
         | ok u => exact ⟨u, rfl⟩
       obtain ⟨uDN, hDN⟩ := hDN
       rw [hDN] at h
+      simp only at h
+      -- §8.1 flow-value floor (item 172): peeled the same way.
+      have hFV : ∃ u, scanNextTokenIx_checkFlowValueIndent s sp = .ok u := by
+        cases hx : scanNextTokenIx_checkFlowValueIndent s sp with
+        | error e => rw [hx] at h; cases h
+        | ok u => exact ⟨u, rfl⟩
+      obtain ⟨uFV, hFV⟩ := hFV
+      rw [hFV] at h
       simp only at h
       cases hStr : scanNextTokenIx_dispatchStructural sp c with
       | error e => rw [hStr] at h; cases h
@@ -1664,91 +1672,82 @@ lemma scanNextTokenIx_ok_some_monotonic {input : String}
             | (rw [if_pos hAD] at h
                -- sadj := { sp with allowDirectives := false, documentEverStarted := true }
                -- cursor and tokens unchanged: prove via cases on each dispatcher
-               cases hChk : scanNextTokenIx_checkBlockFlowIndent
+               cases hFlow : scanNextTokenIx_dispatchFlowIndicators
                    { sp with allowDirectives := false, documentEverStarted := true } c with
-               | error e => rw [hChk] at h; cases h
-               | ok _ =>
-                 rw [hChk] at h
-                 cases hFlow : scanNextTokenIx_dispatchFlowIndicators
-                     { sp with allowDirectives := false, documentEverStarted := true } c with
-                 | error e => rw [hFlow] at h; cases h
-                 | ok flowRes =>
-                   rw [hFlow] at h
-                   cases flowRes with
-                   | some _ =>
-                     cases h
-                     have hFO := scanNextTokenIx_dispatchFlowIndicators_offset_monotonic hFlow
-                     have hFT := scanNextTokenIx_dispatchFlowIndicators_tokens_size_le hFlow
-                     exact ⟨hFO, hFT⟩
-                   | none =>
-                     cases hBlk : scanNextTokenIx_dispatchBlockIndicators
-                         { sp with allowDirectives := false, documentEverStarted := true } c with
-                     | error e => rw [hBlk] at h; cases h
-                     | ok blkRes =>
-                       rw [hBlk] at h
-                       cases blkRes with
-                       | some _ =>
+               | error e => rw [hFlow] at h; cases h
+               | ok flowRes =>
+                 rw [hFlow] at h
+                 cases flowRes with
+                 | some _ =>
+                   cases h
+                   have hFO := scanNextTokenIx_dispatchFlowIndicators_offset_monotonic hFlow
+                   have hFT := scanNextTokenIx_dispatchFlowIndicators_tokens_size_le hFlow
+                   exact ⟨hFO, hFT⟩
+                 | none =>
+                   cases hBlk : scanNextTokenIx_dispatchBlockIndicators
+                       { sp with allowDirectives := false, documentEverStarted := true } c with
+                   | error e => rw [hBlk] at h; cases h
+                   | ok blkRes =>
+                     rw [hBlk] at h
+                     cases blkRes with
+                     | some _ =>
+                       cases h
+                       have hBO := scanNextTokenIx_dispatchBlockIndicators_offset_monotonic hBlk
+                       have hBT := scanNextTokenIx_dispatchBlockIndicators_tokens_size_le hBlk
+                       exact ⟨hBO, hBT⟩
+                     | none =>
+                       -- item 47: adjacent-value check (pure, no state change)
+                       cases hAdj : scanNextTokenIx_checkAdjacentValue
+                           { sp with allowDirectives := false, documentEverStarted := true } c with
+                       | error e => rw [hAdj] at h; cases h
+                       | ok _ =>
+                       rw [hAdj] at h
+                       cases hCon : scanNextTokenIx_dispatchContent
+                           { sp with allowDirectives := false, documentEverStarted := true } c with
+                       | error e => rw [hCon] at h; cases h
+                       | ok _ =>
+                         rw [hCon] at h
                          cases h
-                         have hBO := scanNextTokenIx_dispatchBlockIndicators_offset_monotonic hBlk
-                         have hBT := scanNextTokenIx_dispatchBlockIndicators_tokens_size_le hBlk
-                         exact ⟨hBO, hBT⟩
-                       | none =>
-                         -- item 47: adjacent-value check (pure, no state change)
-                         cases hAdj : scanNextTokenIx_checkAdjacentValue
-                             { sp with allowDirectives := false, documentEverStarted := true } c with
-                         | error e => rw [hAdj] at h; cases h
-                         | ok _ =>
-                         rw [hAdj] at h
-                         cases hCon : scanNextTokenIx_dispatchContent
-                             { sp with allowDirectives := false, documentEverStarted := true } c with
-                         | error e => rw [hCon] at h; cases h
-                         | ok _ =>
-                           rw [hCon] at h
-                           cases h
-                           have hCO := scanNextTokenIx_dispatchContent_offset_monotonic hCon
-                           have hCT := scanNextTokenIx_dispatchContent_tokens_size_le hCon
-                           exact ⟨hCO, hCT⟩)
+                         have hCO := scanNextTokenIx_dispatchContent_offset_monotonic hCon
+                         have hCT := scanNextTokenIx_dispatchContent_tokens_size_le hCon
+                         exact ⟨hCO, hCT⟩)
             | (rw [if_neg hAD] at h
                -- sadj := sp; cursor and tokens are sp's
-               cases hChk : scanNextTokenIx_checkBlockFlowIndent sp c with
-               | error e => rw [hChk] at h; cases h
-               | ok _ =>
-                 rw [hChk] at h
-                 cases hFlow : scanNextTokenIx_dispatchFlowIndicators sp c with
-                 | error e => rw [hFlow] at h; cases h
-                 | ok flowRes =>
-                   rw [hFlow] at h
-                   cases flowRes with
-                   | some _ =>
-                     cases h
-                     have hFO := scanNextTokenIx_dispatchFlowIndicators_offset_monotonic hFlow
-                     have hFT := scanNextTokenIx_dispatchFlowIndicators_tokens_size_le hFlow
-                     exact ⟨hFO, hFT⟩
-                   | none =>
-                     cases hBlk : scanNextTokenIx_dispatchBlockIndicators sp c with
-                     | error e => rw [hBlk] at h; cases h
-                     | ok blkRes =>
-                       rw [hBlk] at h
-                       cases blkRes with
-                       | some _ =>
+               cases hFlow : scanNextTokenIx_dispatchFlowIndicators sp c with
+               | error e => rw [hFlow] at h; cases h
+               | ok flowRes =>
+                 rw [hFlow] at h
+                 cases flowRes with
+                 | some _ =>
+                   cases h
+                   have hFO := scanNextTokenIx_dispatchFlowIndicators_offset_monotonic hFlow
+                   have hFT := scanNextTokenIx_dispatchFlowIndicators_tokens_size_le hFlow
+                   exact ⟨hFO, hFT⟩
+                 | none =>
+                   cases hBlk : scanNextTokenIx_dispatchBlockIndicators sp c with
+                   | error e => rw [hBlk] at h; cases h
+                   | ok blkRes =>
+                     rw [hBlk] at h
+                     cases blkRes with
+                     | some _ =>
+                       cases h
+                       have hBO := scanNextTokenIx_dispatchBlockIndicators_offset_monotonic hBlk
+                       have hBT := scanNextTokenIx_dispatchBlockIndicators_tokens_size_le hBlk
+                       exact ⟨hBO, hBT⟩
+                     | none =>
+                       -- item 47: adjacent-value check (pure, no state change)
+                       cases hAdj : scanNextTokenIx_checkAdjacentValue sp c with
+                       | error e => rw [hAdj] at h; cases h
+                       | ok _ =>
+                       rw [hAdj] at h
+                       cases hCon : scanNextTokenIx_dispatchContent sp c with
+                       | error e => rw [hCon] at h; cases h
+                       | ok _ =>
+                         rw [hCon] at h
                          cases h
-                         have hBO := scanNextTokenIx_dispatchBlockIndicators_offset_monotonic hBlk
-                         have hBT := scanNextTokenIx_dispatchBlockIndicators_tokens_size_le hBlk
-                         exact ⟨hBO, hBT⟩
-                       | none =>
-                         -- item 47: adjacent-value check (pure, no state change)
-                         cases hAdj : scanNextTokenIx_checkAdjacentValue sp c with
-                         | error e => rw [hAdj] at h; cases h
-                         | ok _ =>
-                         rw [hAdj] at h
-                         cases hCon : scanNextTokenIx_dispatchContent sp c with
-                         | error e => rw [hCon] at h; cases h
-                         | ok _ =>
-                           rw [hCon] at h
-                           cases h
-                           have hCO := scanNextTokenIx_dispatchContent_offset_monotonic hCon
-                           have hCT := scanNextTokenIx_dispatchContent_tokens_size_le hCon
-                           exact ⟨hCO, hCT⟩)
+                         have hCO := scanNextTokenIx_dispatchContent_offset_monotonic hCon
+                         have hCT := scanNextTokenIx_dispatchContent_tokens_size_le hCon
+                         exact ⟨hCO, hCT⟩)
 
 lemma scanNextTokenIx_offset_monotonic {input : String}
     {s s' : ScannerStateIx input}
@@ -1797,6 +1796,13 @@ lemma scanLoopIx_tokens_size_le {input : String}
               | ok u => exact ⟨u, rfl⟩
             obtain ⟨uDN, hDN⟩ := hDN
             rw [hDN] at h
+            -- §8.1 flow-value floor (item 172): peeled the same way.
+            have hFV : ∃ u, scanLoopIx_checkFlowValueIndent s = .ok u := by
+              cases hx : scanLoopIx_checkFlowValueIndent s with
+              | error e => rw [hx] at h; cases h
+              | ok u => exact ⟨u, rfl⟩
+            obtain ⟨uFV, hFV⟩ := hFV
+            rw [hFV] at h
             -- h : .ok ((unwindIndentsIx s (-1)).emit streamEnd).tokens = .ok ts
             cases h
             -- Goal: s.tokens.size ≤ ((unwindIndentsIx s (-1)).emit streamEnd).tokens.size

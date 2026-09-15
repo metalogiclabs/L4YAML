@@ -1511,6 +1511,9 @@ lemma scanNextToken_preserves_StaleKeyCursorFloor (s s' : ScannerState)
       -- §9.2 dangling-node check (item 133)
       split at h
       · cases h
+      -- §8.1 flow-value floor (item 172)
+      split at h
+      · cases h
       split at h
       · cases h
       · split at h
@@ -1524,75 +1527,73 @@ lemma scanNextToken_preserves_StaleKeyCursorFloor (s s' : ScannerState)
           -- §9.2 bare-document check (item 132)
           split at h
           · cases h
-          · split at h
-            · cases h
-            · rcases h_ad : sp.allowDirectives with _ | _
-              <;> simp only [h_ad, Bool.false_eq_true, ↓reduceIte] at h
-              · generalize h_fi : scanNextToken_dispatchFlowIndicators sp c = fi at h
-                cases fi with
-                | error => cases h
-                | ok fi_opt =>
-                  cases fi_opt with
-                  | some s_fi =>
-                    simp only [Except.ok.injEq, Option.some.injEq] at h; subst h
-                    exact dispatchFlowIndicators_preserves_StaleFloor h_fi
-                      h_peek h_floor_flow
-                  | none =>
-                    generalize h_bi : scanNextToken_dispatchBlockIndicators sp c = bi at h
-                    cases bi with
-                    | error => cases h
-                    | ok bi_opt =>
-                      cases bi_opt with
-                      | some s_bi =>
+          · rcases h_ad : sp.allowDirectives with _ | _
+            <;> simp only [h_ad, Bool.false_eq_true, ↓reduceIte] at h
+            · generalize h_fi : scanNextToken_dispatchFlowIndicators sp c = fi at h
+              cases fi with
+              | error => cases h
+              | ok fi_opt =>
+                cases fi_opt with
+                | some s_fi =>
+                  simp only [Except.ok.injEq, Option.some.injEq] at h; subst h
+                  exact dispatchFlowIndicators_preserves_StaleFloor h_fi
+                    h_peek h_floor_flow
+                | none =>
+                  generalize h_bi : scanNextToken_dispatchBlockIndicators sp c = bi at h
+                  cases bi with
+                  | error => cases h
+                  | ok bi_opt =>
+                    cases bi_opt with
+                    | some s_bi =>
+                      simp only [Except.ok.injEq, Option.some.injEq] at h; subst h
+                      exact dispatchBlockIndicators_preserves_StaleFloor h_bi
+                        h_peek h_inv2
+                    | none =>
+                      generalize h_av : scanNextToken_checkAdjacentValue sp c = av at h
+                      cases av with
+                      | error => cases h
+                      | ok _ =>
+                      generalize h_dc : scanNextToken_dispatchContent sp c = dc at h
+                      cases dc with
+                      | error => cases h
+                      | ok s_dc =>
                         simp only [Except.ok.injEq, Option.some.injEq] at h; subst h
-                        exact dispatchBlockIndicators_preserves_StaleFloor h_bi
-                          h_peek h_inv2
-                      | none =>
-                        generalize h_av : scanNextToken_checkAdjacentValue sp c = av at h
-                        cases av with
-                        | error => cases h
-                        | ok _ =>
-                        generalize h_dc : scanNextToken_dispatchContent sp c = dc at h
-                        cases dc with
-                        | error => cases h
-                        | ok s_dc =>
-                          simp only [Except.ok.injEq, Option.some.injEq] at h; subst h
-                          exact dispatchContent_preserves_StaleFloor h_dc h_peek h_inv2
-              · generalize h_sp2 : (({ sp with allowDirectives := false, documentEverStarted := true } : ScannerState)) = sp2 at h
-                have h_peek2 : sp2.peek? = some c := by rw [← h_sp2]; exact h_peek
-                have h_inv3 : StaleKeyCursorFloor sp2 := by rw [← h_sp2]; exact h_inv2
-                have h_floor_flow2 : sp2.inFlow = true →
-                    sp2.currentIndent < (sp2.col : Int) := by
-                  rw [← h_sp2]; exact h_floor_flow
-                generalize h_fi : scanNextToken_dispatchFlowIndicators sp2 c = fi at h
-                cases fi with
-                | error => cases h
-                | ok fi_opt =>
-                  cases fi_opt with
-                  | some s_fi =>
-                    simp only [Except.ok.injEq, Option.some.injEq] at h; subst h
-                    exact dispatchFlowIndicators_preserves_StaleFloor h_fi
-                      h_peek2 h_floor_flow2
-                  | none =>
-                    generalize h_bi : scanNextToken_dispatchBlockIndicators sp2 c = bi at h
-                    cases bi with
-                    | error => cases h
-                    | ok bi_opt =>
-                      cases bi_opt with
-                      | some s_bi =>
+                        exact dispatchContent_preserves_StaleFloor h_dc h_peek h_inv2
+            · generalize h_sp2 : (({ sp with allowDirectives := false, documentEverStarted := true } : ScannerState)) = sp2 at h
+              have h_peek2 : sp2.peek? = some c := by rw [← h_sp2]; exact h_peek
+              have h_inv3 : StaleKeyCursorFloor sp2 := by rw [← h_sp2]; exact h_inv2
+              have h_floor_flow2 : sp2.inFlow = true →
+                  sp2.currentIndent < (sp2.col : Int) := by
+                rw [← h_sp2]; exact h_floor_flow
+              generalize h_fi : scanNextToken_dispatchFlowIndicators sp2 c = fi at h
+              cases fi with
+              | error => cases h
+              | ok fi_opt =>
+                cases fi_opt with
+                | some s_fi =>
+                  simp only [Except.ok.injEq, Option.some.injEq] at h; subst h
+                  exact dispatchFlowIndicators_preserves_StaleFloor h_fi
+                    h_peek2 h_floor_flow2
+                | none =>
+                  generalize h_bi : scanNextToken_dispatchBlockIndicators sp2 c = bi at h
+                  cases bi with
+                  | error => cases h
+                  | ok bi_opt =>
+                    cases bi_opt with
+                    | some s_bi =>
+                      simp only [Except.ok.injEq, Option.some.injEq] at h; subst h
+                      exact dispatchBlockIndicators_preserves_StaleFloor h_bi
+                        h_peek2 h_inv3
+                    | none =>
+                      generalize h_av : scanNextToken_checkAdjacentValue sp2 c = av at h
+                      cases av with
+                      | error => cases h
+                      | ok _ =>
+                      generalize h_dc : scanNextToken_dispatchContent sp2 c = dc at h
+                      cases dc with
+                      | error => cases h
+                      | ok s_dc =>
                         simp only [Except.ok.injEq, Option.some.injEq] at h; subst h
-                        exact dispatchBlockIndicators_preserves_StaleFloor h_bi
-                          h_peek2 h_inv3
-                      | none =>
-                        generalize h_av : scanNextToken_checkAdjacentValue sp2 c = av at h
-                        cases av with
-                        | error => cases h
-                        | ok _ =>
-                        generalize h_dc : scanNextToken_dispatchContent sp2 c = dc at h
-                        cases dc with
-                        | error => cases h
-                        | ok s_dc =>
-                          simp only [Except.ok.injEq, Option.some.injEq] at h; subst h
-                          exact dispatchContent_preserves_StaleFloor h_dc h_peek2 h_inv3
+                        exact dispatchContent_preserves_StaleFloor h_dc h_peek2 h_inv3
 
 end L4YAML.Proofs.StaleCursorFloor

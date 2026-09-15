@@ -324,7 +324,8 @@ lemma scanNextTokenIx_flow_close_seq_outermost (s : ScannerStateIx input)
       ∧ s'.flowLevel = 0
       ∧ s'.directivesPresent = false
       ∧ s'.peek? = none
-      ∧ scanLoopIx_checkDanglingNode s' = .ok () := by
+      ∧ scanLoopIx_checkDanglingNode s' = .ok ()
+      ∧ scanLoopIx_checkFlowValueIndent s' = .ok () := by
   -- Step 1: preprocessing
   have h_pp : scanNextTokenIx_preprocess s = .ok (some (saveSimpleKeyIx s, ']')) :=
     scanNextTokenIx_preprocess_flow s ']' [] s.cursor.pos.col hcorr h_flow
@@ -344,8 +345,6 @@ lemma scanNextTokenIx_flow_close_seq_outermost (s : ScannerStateIx input)
         { saveSimpleKeyIx s with allowDirectives := false, documentEverStarted := true }
       else saveSimpleKeyIx s := ⟨_, rfl⟩
   -- Step 4: checkBlockFlowIndent for ']'
-  have h_check : scanNextTokenIx_checkBlockFlowIndent s_ad ']' = .ok () :=
-    checkBlockFlowIndent_ok_close_bracket s_ad
   -- Step 5: derive field equalities for s_ad
   have h_ad_fl : s_ad.flowLevel = s.flowLevel := by
     rw [h_s_ad_def]; split <;> exact saveSimpleKeyIx_flowLevel s
@@ -366,7 +365,7 @@ lemma scanNextTokenIx_flow_close_seq_outermost (s : ScannerStateIx input)
     dispatchFlowIndicators_close_bracket s_ad h_fl_pos h_ad_kind
   have h_snt := scanNextTokenIx_via_flow_dispatch s (saveSimpleKeyIx s) s_ad
     (scanFlowSequenceEndIx s_ad) ']'
-    h_pp h_struct h_s_ad_def h_check h_flow_disp
+    h_pp h_struct h_s_ad_def (scanNextTokenIx_checkFlowValueIndent_ok_of_inFlow _ _ h_flow) h_flow_disp
     ((saveSimpleKeyIx_directivesPresent s).trans h_dp)
     (scanNextTokenIx_checkBareDocument_ok_of_inFlow _
       ((saveSimpleKeyIx_inFlow s).trans h_flow))
@@ -390,11 +389,13 @@ lemma scanNextTokenIx_flow_close_seq_outermost (s : ScannerStateIx input)
   -- EOF after the close: h_corr_f gives ScannerSurfCorrIx at ⟨[], col + 1⟩
   have h_s'_peek : (scanFlowSequenceEndIx s_ad).peek? = none :=
     peek_none_of_empty_surfIx (scanFlowSequenceEndIx s_ad) (s_ad.cursor.pos.col + 1) h_corr_f
-  have h_s'_dn : scanLoopIx_checkDanglingNode (scanFlowSequenceEndIx s_ad) = .ok () := by
-    refine scanLoopIx_checkDanglingNode_ok_of_sentinel_stack _ ?_
+  have h_s'_ids : (scanFlowSequenceEndIx s_ad).indents
+      = #[{ column := -1, isSequence := false }] := by
     rw [scanFlowSequenceEndIx_indents s_ad, h_ad_ids]
     exact h_ids
-  exact ⟨scanFlowSequenceEndIx s_ad, h_snt, h_s'_fl, h_s'_dp, h_s'_peek, h_s'_dn⟩
+  exact ⟨scanFlowSequenceEndIx s_ad, h_snt, h_s'_fl, h_s'_dp, h_s'_peek,
+    scanLoopIx_checkDanglingNode_ok_of_sentinel_stack _ h_s'_ids,
+    scanLoopIx_checkFlowValueIndent_ok_of_sentinel_stack _ h_s'_ids⟩
 
 /-! ## §4  `scanNextTokenIx_flow_close_mapping_outermost`
 
@@ -419,7 +420,8 @@ lemma scanNextTokenIx_flow_close_mapping_outermost (s : ScannerStateIx input)
       ∧ s'.flowLevel = 0
       ∧ s'.directivesPresent = false
       ∧ s'.peek? = none
-      ∧ scanLoopIx_checkDanglingNode s' = .ok () := by
+      ∧ scanLoopIx_checkDanglingNode s' = .ok ()
+      ∧ scanLoopIx_checkFlowValueIndent s' = .ok () := by
   have h_pp : scanNextTokenIx_preprocess s = .ok (some (saveSimpleKeyIx s, '}')) :=
     scanNextTokenIx_preprocess_flow s '}' [] s.cursor.pos.col hcorr h_flow
       (by decide) (by decide) (by decide)
@@ -435,8 +437,6 @@ lemma scanNextTokenIx_flow_close_mapping_outermost (s : ScannerStateIx input)
       s_ad = if (saveSimpleKeyIx s).allowDirectives then
         { saveSimpleKeyIx s with allowDirectives := false, documentEverStarted := true }
       else saveSimpleKeyIx s := ⟨_, rfl⟩
-  have h_check : scanNextTokenIx_checkBlockFlowIndent s_ad '}' = .ok () :=
-    checkBlockFlowIndent_ok_close_brace s_ad
   have h_ad_fl : s_ad.flowLevel = s.flowLevel := by
     rw [h_s_ad_def]; split <;> exact saveSimpleKeyIx_flowLevel s
   have h_ad_dp : s_ad.directivesPresent = s.directivesPresent := by
@@ -455,7 +455,7 @@ lemma scanNextTokenIx_flow_close_mapping_outermost (s : ScannerStateIx input)
     dispatchFlowIndicators_close_brace s_ad h_fl_pos h_ad_kind
   have h_snt := scanNextTokenIx_via_flow_dispatch s (saveSimpleKeyIx s) s_ad
     (scanFlowMappingEndIx s_ad) '}'
-    h_pp h_struct h_s_ad_def h_check h_flow_disp
+    h_pp h_struct h_s_ad_def (scanNextTokenIx_checkFlowValueIndent_ok_of_inFlow _ _ h_flow) h_flow_disp
     ((saveSimpleKeyIx_directivesPresent s).trans h_dp)
     (scanNextTokenIx_checkBareDocument_ok_of_inFlow _
       ((saveSimpleKeyIx_inFlow s).trans h_flow))
@@ -476,11 +476,13 @@ lemma scanNextTokenIx_flow_close_mapping_outermost (s : ScannerStateIx input)
     rw [h_dp_f, h_ad_dp]; exact h_dp
   have h_s'_peek : (scanFlowMappingEndIx s_ad).peek? = none :=
     peek_none_of_empty_surfIx (scanFlowMappingEndIx s_ad) (s_ad.cursor.pos.col + 1) h_corr_f
-  have h_s'_dn : scanLoopIx_checkDanglingNode (scanFlowMappingEndIx s_ad) = .ok () := by
-    refine scanLoopIx_checkDanglingNode_ok_of_sentinel_stack _ ?_
+  have h_s'_ids : (scanFlowMappingEndIx s_ad).indents
+      = #[{ column := -1, isSequence := false }] := by
     rw [scanFlowMappingEndIx_indents s_ad, h_ad_ids]
     exact h_ids
-  exact ⟨scanFlowMappingEndIx s_ad, h_snt, h_s'_fl, h_s'_dp, h_s'_peek, h_s'_dn⟩
+  exact ⟨scanFlowMappingEndIx s_ad, h_snt, h_s'_fl, h_s'_dp, h_s'_peek,
+    scanLoopIx_checkDanglingNode_ok_of_sentinel_stack _ h_s'_ids,
+    scanLoopIx_checkFlowValueIndent_ok_of_sentinel_stack _ h_s'_ids⟩
 
 /-! ## §5  `scanNextTokenIx_flow_open_mapping_init`
 
@@ -600,9 +602,7 @@ lemma scanNextTokenIx_flow_open_mapping_init (input : String) (rest : List Char)
     rw [h_ad_ids]
     have : s_pp.indents = #[{ column := -1, isSequence := false }] := h_ids
     rw [this]; rfl
-  -- Step 7: checkBlockFlowIndent passes for `{` at init state
-  have h_check : scanNextTokenIx_checkBlockFlowIndent s_ad '{' = .ok () :=
-    checkBlockFlowIndent_brace_init s_ad h_ad_fl h_ad_ci
+  -- Step 7: the flow-value floor (item 172) is vacuous at the sentinel stack
   -- Step 8: flow dispatch → some (scanFlowMappingStartIx s_ad)
   have h_flow_disp : scanNextTokenIx_dispatchFlowIndicators s_ad '{' =
       .ok (some (scanFlowMappingStartIx s_ad)) :=
@@ -612,7 +612,9 @@ lemma scanNextTokenIx_flow_open_mapping_init (input : String) (rest : List Char)
   -- Step 9: compose via scanNextTokenIx_via_flow_dispatch
   have h_snt := scanNextTokenIx_via_flow_dispatch s₀ s_pp s_ad
     (scanFlowMappingStartIx s_ad) '{'
-    h_pp_eq h_struct h_s_ad_def h_check h_flow_disp h_dp_pp h_bd_pp
+    h_pp_eq h_struct h_s_ad_def
+    (scanNextTokenIx_checkFlowValueIndent_ok_of_sentinel_stack _ _
+      (initIx_indents_sentinel _)) h_flow_disp h_dp_pp h_bd_pp
     (scanNextTokenIx_checkDanglingNode_ok_of_sentinel_stack _ _
       (initIx_indents_sentinel _))
   -- Step 10: extract via scanFlowMappingStartIx_detail
@@ -838,9 +840,7 @@ lemma scanNextTokenIx_flow_open_seq_init (input : String) (rest : List Char)
     rw [h_ad_ids]
     have : s_pp.indents = #[{ column := -1, isSequence := false }] := h_ids
     rw [this]; rfl
-  -- Step 7: checkBlockFlowIndent passes for `[` at init state
-  have h_check : scanNextTokenIx_checkBlockFlowIndent s_ad '[' = .ok () :=
-    checkBlockFlowIndent_bracket_init s_ad h_ad_fl h_ad_ci
+  -- Step 7: the flow-value floor (item 172) is vacuous at the sentinel stack
   -- Step 8: flow dispatch → some (scanFlowSequenceStartIx s_ad)
   have h_flow_disp : scanNextTokenIx_dispatchFlowIndicators s_ad '[' =
       .ok (some (scanFlowSequenceStartIx s_ad)) :=
@@ -850,7 +850,9 @@ lemma scanNextTokenIx_flow_open_seq_init (input : String) (rest : List Char)
   -- Step 9: compose via scanNextTokenIx_via_flow_dispatch
   have h_snt := scanNextTokenIx_via_flow_dispatch s₀ s_pp s_ad
     (scanFlowSequenceStartIx s_ad) '['
-    h_pp_eq h_struct h_s_ad_def h_check h_flow_disp h_dp_pp h_bd_pp
+    h_pp_eq h_struct h_s_ad_def
+    (scanNextTokenIx_checkFlowValueIndent_ok_of_sentinel_stack _ _
+      (initIx_indents_sentinel _)) h_flow_disp h_dp_pp h_bd_pp
     (scanNextTokenIx_checkDanglingNode_ok_of_sentinel_stack _ _
       (initIx_indents_sentinel _))
   -- Step 10: extract via scanFlowSequenceStartIx_detail

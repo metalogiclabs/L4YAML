@@ -165,6 +165,8 @@ lemma scanNextToken_flowStack_step {s s' : ScannerState}
   have h_pre_fl := preprocess_preserves_flowLevel s _ _ h_pre
   -- §9.2 dangling-node check (item 133)
   split at h <;> (try (simp at h; done))
+  -- §8.1 flow-value floor (item 172)
+  split at h <;> (try (simp at h; done))
   split at h <;> (try (simp at h; done))  -- structural Except
   split at h
   · -- structural some
@@ -185,7 +187,6 @@ lemma scanNextToken_flowStack_step {s s' : ScannerState}
         else st).flowLevel = st.flowLevel := by intro st; split <;> rfl
     split at h <;> (try (simp at h; done))  -- checkNoPendingDirectives
     split at h <;> (try (simp at h; done))  -- checkBareDocument (item 132)
-    split at h <;> (try (simp at h; done))  -- checkBlockFlowIndent
     split at h <;> (try (simp at h; done))  -- flow Except
     split at h
     · -- flow some
@@ -369,7 +370,8 @@ lemma scanNextToken_ekStack_step {s s' : ScannerState}
   rename_i s1 c1 h_pre
   have h_pre_st := ScannerEkStack.preprocess_preserves_explicitKeyStack s _ _ h_pre
   have h_pre_fl := preprocess_preserves_flowLevel s _ _ h_pre
-  -- §9.2 dangling-node check (item 133)
+  -- §9.2 dangling-node check (item 133), then the §8.1 flow-value floor (item 172)
+  split at h <;> (try (simp at h; done))
   split at h <;> (try (simp at h; done))
   split at h <;> (try (simp at h; done))
   split at h
@@ -388,7 +390,6 @@ lemma scanNextToken_ekStack_step {s s' : ScannerState}
           { st with allowDirectives := false, documentEverStarted := true }
         else st).flowLevel = st.flowLevel := by intro st; split <;> rfl
     split at h <;> (try (simp at h; done))  -- checkBareDocument (item 132)
-    split at h <;> (try (simp at h; done))
     split at h <;> (try (simp at h; done))
     split at h <;> (try (simp at h; done))
     split at h

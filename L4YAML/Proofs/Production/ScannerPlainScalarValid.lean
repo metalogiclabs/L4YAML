@@ -1252,6 +1252,8 @@ lemma scanNextToken_preserves_PlainScalarsValid :
   have h_peek2 := preprocess_peek s s2 c h_pre
   -- §9.2 dangling-node check (item 133)
   split at h_ok <;> (try (simp at h_ok; done))
+  -- §8.1 flow-value floor (item 172)
+  split at h_ok <;> (try (simp at h_ok; done))
   split at h_ok <;> (try (simp at h_ok; done))
   split at h_ok
   · simp only [Except.ok.injEq, Option.some.injEq] at h_ok; subst h_ok
@@ -1263,8 +1265,6 @@ lemma scanNextToken_preserves_PlainScalarsValid :
     -- Pending-directives check (Fix B)
     split at h_ok <;> (try (simp at h_ok; done))
     -- §9.2 bare-document check (item 132)
-    split at h_ok <;> (try (simp at h_ok; done))
-    -- Block→flow underindent check
     split at h_ok <;> (try (simp at h_ok; done))
     split at h_ok <;> (try (simp at h_ok; done))
     split at h_ok
@@ -1316,6 +1316,8 @@ lemma scanLoop_preserves_PlainScalarsValid
     · split at h_ok <;> try (simp at h_ok; done)
       split at h_ok <;> try (simp at h_ok; done)
       -- §9.2 dangling-node check (item 133)
+      split at h_ok <;> try (simp at h_ok; done)
+      -- §8.1 flow-value floor (item 172)
       split at h_ok <;> try (simp at h_ok; done)
       injection h_ok with h_eq; rw [← h_eq]
       exact finalEmit_preserves_PlainScalarsValid s h_old
@@ -5090,6 +5092,8 @@ lemma scanNextToken_preserves_FlowInv
   have h_peek2 := preprocess_peek s s2 c h_pre
   -- §9.2 dangling-node check (item 133)
   split at h_ok <;> (try (simp at h_ok; done))
+  -- §8.1 flow-value floor (item 172)
+  split at h_ok <;> (try (simp at h_ok; done))
   split at h_ok <;> (try (simp at h_ok; done))
   split at h_ok
   · -- dispatchStructural
@@ -5107,8 +5111,6 @@ lemma scanNextToken_preserves_FlowInv
     -- Pending-directives check (Fix B)
     split at h_ok <;> (try (simp at h_ok; done))
     -- §9.2 bare-document check (item 132)
-    split at h_ok <;> (try (simp at h_ok; done))
-    -- Block→flow underindent check
     split at h_ok <;> (try (simp at h_ok; done))
     split at h_ok <;> (try (simp at h_ok; done))
     split at h_ok
@@ -5174,6 +5176,8 @@ lemma scanLoop_preserves_FlowInv
     · split at h_ok <;> try (simp at h_ok; done)
       split at h_ok <;> try (simp at h_ok; done)
       -- §9.2 dangling-node check (item 133)
+      split at h_ok <;> try (simp at h_ok; done)
+      -- §8.1 flow-value floor (item 172)
       split at h_ok <;> try (simp at h_ok; done)
       injection h_ok with h_eq; rw [← h_eq]
       exact finalEmit_preserves_FlowContextPSV s h_fpsv
@@ -5539,6 +5543,8 @@ lemma scanLoop_FlowBracketsMatched
       split at h_ok <;> try (simp at h_ok; done)
       -- ¬(s.directivesPresent && !s.documentEverStarted)
       -- §9.2 dangling-node check (item 133)
+      split at h_ok <;> try (simp at h_ok; done)
+      -- §8.1 flow-value floor (item 172)
       split at h_ok <;> try (simp at h_ok; done)
       injection h_ok with h_eq; rw [← h_eq]
       -- Goal: FlowBracketsMatched ((unwindIndents s (-1)).emit .streamEnd).tokens

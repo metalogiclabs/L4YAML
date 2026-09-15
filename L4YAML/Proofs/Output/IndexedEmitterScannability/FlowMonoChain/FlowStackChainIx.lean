@@ -571,6 +571,14 @@ lemma scanNextTokenIx_flowStack_step {s s' : ScannerStateIx input}
         obtain ⟨uDN, h_dn⟩ := h_dn
         rw [h_dn] at h
         dsimp only [] at h
+        -- §8.1 flow-value floor (item 172): peeled the same way.
+        have h_fvp : ∃ u, scanNextTokenIx_checkFlowValueIndent s s_pp = .ok u := by
+          cases hx : scanNextTokenIx_checkFlowValueIndent s s_pp with
+          | error e => rw [hx] at h; simp at h
+          | ok u => exact ⟨u, rfl⟩
+        obtain ⟨uFV, h_fvp⟩ := h_fvp
+        rw [h_fvp] at h
+        dsimp only [] at h
         generalize h_ds : scanNextTokenIx_dispatchStructural s_pp c = ds_res at h
         cases ds_res with
         | error e => simp at h
@@ -599,60 +607,55 @@ lemma scanNextTokenIx_flowStack_step {s s' : ScannerStateIx input}
             -- §9.2 bare-document check (item 132): the same shape
             split at h
             · contradiction
-            generalize h_ck : scanNextTokenIx_checkBlockFlowIndent s_dir c = ck_res at h
-            cases ck_res with
+            generalize h_df : scanNextTokenIx_dispatchFlowIndicators s_dir c = df_res at h
+            cases df_res with
             | error e => simp at h
-            | ok _ =>
-              dsimp only [] at h
-              generalize h_df : scanNextTokenIx_dispatchFlowIndicators s_dir c = df_res at h
-              cases df_res with
-              | error e => simp at h
-              | ok df_inner =>
-                cases df_inner with
-                | some s_flow =>
-                  simp only [Except.ok.injEq, Option.some.injEq] at h
-                  subst h
-                  rcases scanNextTokenIx_dispatchFlowIndicators_flowStack_step _ _ c h_df with
-                    ⟨h1, h2⟩ | ⟨h1, h2⟩ | ⟨h1, h2⟩ | ⟨h0, h1, h2⟩
-                  · exact Or.inl ⟨by omega, by rw [h2, h_dir_st, h_pre_st]⟩
-                  · exact Or.inr (Or.inl ⟨by omega, by rw [h2, h_dir_st, h_pre_st]⟩)
-                  · exact Or.inr (Or.inr (Or.inl ⟨by omega,
-                      by rw [h2, h_dir_st, h_pre_st]⟩))
-                  · exact Or.inr (Or.inr (Or.inr ⟨by omega, by omega,
-                      by rw [h2, h_dir_st, h_pre_st]⟩))
-                | none =>
-                  dsimp only [] at h
-                  generalize h_db : scanNextTokenIx_dispatchBlockIndicators s_dir c = db_res at h
-                  cases db_res with
-                  | error e => simp at h
-                  | ok db_inner =>
-                    cases db_inner with
-                    | some s_blk =>
+            | ok df_inner =>
+              cases df_inner with
+              | some s_flow =>
+                simp only [Except.ok.injEq, Option.some.injEq] at h
+                subst h
+                rcases scanNextTokenIx_dispatchFlowIndicators_flowStack_step _ _ c h_df with
+                  ⟨h1, h2⟩ | ⟨h1, h2⟩ | ⟨h1, h2⟩ | ⟨h0, h1, h2⟩
+                · exact Or.inl ⟨by omega, by rw [h2, h_dir_st, h_pre_st]⟩
+                · exact Or.inr (Or.inl ⟨by omega, by rw [h2, h_dir_st, h_pre_st]⟩)
+                · exact Or.inr (Or.inr (Or.inl ⟨by omega,
+                    by rw [h2, h_dir_st, h_pre_st]⟩))
+                · exact Or.inr (Or.inr (Or.inr ⟨by omega, by omega,
+                    by rw [h2, h_dir_st, h_pre_st]⟩))
+              | none =>
+                dsimp only [] at h
+                generalize h_db : scanNextTokenIx_dispatchBlockIndicators s_dir c = db_res at h
+                cases db_res with
+                | error e => simp at h
+                | ok db_inner =>
+                  cases db_inner with
+                  | some s_blk =>
+                    simp only [Except.ok.injEq, Option.some.injEq] at h
+                    subst h
+                    refine Or.inl ⟨?_, ?_⟩
+                    · rw [scanNextTokenIx_dispatchBlockIndicators_preserves_flowLevel
+                          _ c _ h_db, h_dir_fl, h_pre_fl]
+                    · rw [scanNextTokenIx_dispatchBlockIndicators_preserves_flowStack
+                          _ c _ h_db, h_dir_st, h_pre_st]
+                  | none =>
+                    dsimp only [] at h
+                    -- item 47: adjacent-value check (pure, no state change)
+                    generalize h_av : scanNextTokenIx_checkAdjacentValue s_dir c = av_res at h
+                    cases av_res with
+                    | error e => simp at h
+                    | ok _ =>
+                    generalize h_dc : scanNextTokenIx_dispatchContent s_dir c = dc_res at h
+                    cases dc_res with
+                    | error e => simp at h
+                    | ok s_ct =>
                       simp only [Except.ok.injEq, Option.some.injEq] at h
                       subst h
                       refine Or.inl ⟨?_, ?_⟩
-                      · rw [scanNextTokenIx_dispatchBlockIndicators_preserves_flowLevel
-                            _ c _ h_db, h_dir_fl, h_pre_fl]
-                      · rw [scanNextTokenIx_dispatchBlockIndicators_preserves_flowStack
-                            _ c _ h_db, h_dir_st, h_pre_st]
-                    | none =>
-                      dsimp only [] at h
-                      -- item 47: adjacent-value check (pure, no state change)
-                      generalize h_av : scanNextTokenIx_checkAdjacentValue s_dir c = av_res at h
-                      cases av_res with
-                      | error e => simp at h
-                      | ok _ =>
-                      generalize h_dc : scanNextTokenIx_dispatchContent s_dir c = dc_res at h
-                      cases dc_res with
-                      | error e => simp at h
-                      | ok s_ct =>
-                        simp only [Except.ok.injEq, Option.some.injEq] at h
-                        subst h
-                        refine Or.inl ⟨?_, ?_⟩
-                        · rw [scanNextTokenIx_dispatchContent_preserves_flowLevel
-                              _ c _ h_dc, h_dir_fl, h_pre_fl]
-                        · rw [scanNextTokenIx_dispatchContent_preserves_flowStack
-                              _ c _ h_dc, h_dir_st, h_pre_st]
+                      · rw [scanNextTokenIx_dispatchContent_preserves_flowLevel
+                            _ c _ h_dc, h_dir_fl, h_pre_fl]
+                      · rw [scanNextTokenIx_dispatchContent_preserves_flowStack
+                            _ c _ h_dc, h_dir_st, h_pre_st]
 
 /-! ## §5  Chain theorems over `FlowMonoChainIx` -/
 

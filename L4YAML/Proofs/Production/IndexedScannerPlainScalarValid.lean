@@ -4287,6 +4287,14 @@ lemma scanNextTokenIx_preserves_PlainScalarsValidIx {input : String}
         obtain ⟨uDN, h_dn⟩ := h_dn
         rw [h_dn] at h_ok
         dsimp only [] at h_ok
+        -- §8.1 flow-value floor (item 172): peeled the same way.
+        have h_fvp : ∃ u, scanNextTokenIx_checkFlowValueIndent s s_pp = .ok u := by
+          cases hx : scanNextTokenIx_checkFlowValueIndent s s_pp with
+          | error e => rw [hx] at h_ok; simp at h_ok
+          | ok u => exact ⟨u, rfl⟩
+        obtain ⟨uFV, h_fvp⟩ := h_fvp
+        rw [h_fvp] at h_ok
+        dsimp only [] at h_ok
         generalize h_ds : scanNextTokenIx_dispatchStructural s_pp c = ds_res at h_ok
         cases ds_res with
         | error e => simp at h_ok
@@ -4319,52 +4327,47 @@ lemma scanNextTokenIx_preserves_PlainScalarsValidIx {input : String}
               else s_pp) = s_dir at h_ok
             have h_psv_dir : PlainScalarsValidIx s_dir.tokens := by
               rw [← h_dir_def, allowDirectives_update_tokens]; exact h_psv_pp
-            generalize h_ck : scanNextTokenIx_checkBlockFlowIndent s_dir c = ck_res at h_ok
-            cases ck_res with
+            generalize h_df : scanNextTokenIx_dispatchFlowIndicators s_dir c = df_res at h_ok
+            cases df_res with
             | error e => simp at h_ok
-            | ok _ =>
-              dsimp only [] at h_ok
-              generalize h_df : scanNextTokenIx_dispatchFlowIndicators s_dir c = df_res at h_ok
-              cases df_res with
-              | error e => simp at h_ok
-              | ok df_inner =>
-                cases df_inner with
-                | some s_flow =>
-                  simp only [Except.ok.injEq, Option.some.injEq] at h_ok
-                  subst h_ok
-                  exact scanNextTokenIx_dispatchFlowIndicators_preserves_PlainScalarsValidIx
-                    s_dir c s_flow h_df h_psv_dir
-                | none =>
-                  dsimp only [] at h_ok
-                  generalize h_db : scanNextTokenIx_dispatchBlockIndicators s_dir c = db_res at h_ok
-                  cases db_res with
-                  | error e => simp at h_ok
-                  | ok db_inner =>
-                    cases db_inner with
-                    | some s_blk =>
+            | ok df_inner =>
+              cases df_inner with
+              | some s_flow =>
+                simp only [Except.ok.injEq, Option.some.injEq] at h_ok
+                subst h_ok
+                exact scanNextTokenIx_dispatchFlowIndicators_preserves_PlainScalarsValidIx
+                  s_dir c s_flow h_df h_psv_dir
+              | none =>
+                dsimp only [] at h_ok
+                generalize h_db : scanNextTokenIx_dispatchBlockIndicators s_dir c = db_res at h_ok
+                cases db_res with
+                | error e => simp at h_ok
+                | ok db_inner =>
+                  cases db_inner with
+                  | some s_blk =>
+                    simp only [Except.ok.injEq, Option.some.injEq] at h_ok
+                    subst h_ok
+                    exact scanNextTokenIx_dispatchBlockIndicators_preserves_PlainScalarsValidIx
+                      s_dir c s_blk h_db h_psv_dir
+                  | none =>
+                    dsimp only [] at h_ok
+                    -- item 47: adjacent-value check (pure, no state change)
+                    generalize h_av : scanNextTokenIx_checkAdjacentValue s_dir c = av_res at h_ok
+                    cases av_res with
+                    | error e => simp at h_ok
+                    | ok _ =>
+                    generalize h_dc : scanNextTokenIx_dispatchContent s_dir c = dc_res at h_ok
+                    cases dc_res with
+                    | error e => simp at h_ok
+                    | ok s_ct =>
                       simp only [Except.ok.injEq, Option.some.injEq] at h_ok
                       subst h_ok
-                      exact scanNextTokenIx_dispatchBlockIndicators_preserves_PlainScalarsValidIx
-                        s_dir c s_blk h_db h_psv_dir
-                    | none =>
-                      dsimp only [] at h_ok
-                      -- item 47: adjacent-value check (pure, no state change)
-                      generalize h_av : scanNextTokenIx_checkAdjacentValue s_dir c = av_res at h_ok
-                      cases av_res with
-                      | error e => simp at h_ok
-                      | ok _ =>
-                      generalize h_dc : scanNextTokenIx_dispatchContent s_dir c = dc_res at h_ok
-                      cases dc_res with
-                      | error e => simp at h_ok
-                      | ok s_ct =>
-                        simp only [Except.ok.injEq, Option.some.injEq] at h_ok
-                        subst h_ok
-                        have h_peek_pp : s_pp.cursor.peek? = some c :=
-                          scanNextTokenIx_preprocess_peek_eq h_pp
-                        have h_peek_dir : s_dir.cursor.peek? = some c := by
-                          rw [← h_dir_def, allowDirectives_update_cursor]; exact h_peek_pp
-                        exact scanNextTokenIx_dispatchContent_preserves_PlainScalarsValidIx
-                          s_dir c s_ct h_dc h_peek_dir h_psv_dir
+                      have h_peek_pp : s_pp.cursor.peek? = some c :=
+                        scanNextTokenIx_preprocess_peek_eq h_pp
+                      have h_peek_dir : s_dir.cursor.peek? = some c := by
+                        rw [← h_dir_def, allowDirectives_update_cursor]; exact h_peek_pp
+                      exact scanNextTokenIx_dispatchContent_preserves_PlainScalarsValidIx
+                        s_dir c s_ct h_dc h_peek_dir h_psv_dir
 
 /-! **Note (Step 6d.1e.12d)**: `scanNextTokenIx_preserves_FlowContextPSVIx`
     and `_FlowNestingInvIx` previously lived here as theorems taking
@@ -4419,6 +4422,9 @@ lemma scanLoopIx_preserves_PlainScalarsValidIx {input : String}
       · split at h_ok
         · cases h_ok
         -- §9.2 dangling-node check (item 133)
+        split at h_ok
+        · cases h_ok
+        -- §8.1 flow-value floor (item 172)
         split at h_ok
         · cases h_ok
         · simp only [Except.ok.injEq] at h_ok
@@ -6262,6 +6268,14 @@ lemma scanNextTokenIx_preserves_AllKeysPlaceholderInvIx {input : String}
         obtain ⟨uDN, h_dn⟩ := h_dn
         rw [h_dn] at h_ok
         dsimp only [] at h_ok
+        -- §8.1 flow-value floor (item 172): peeled the same way.
+        have h_fvp : ∃ u, scanNextTokenIx_checkFlowValueIndent s s_pp = .ok u := by
+          cases hx : scanNextTokenIx_checkFlowValueIndent s s_pp with
+          | error e => rw [hx] at h_ok; simp at h_ok
+          | ok u => exact ⟨u, rfl⟩
+        obtain ⟨uFV, h_fvp⟩ := h_fvp
+        rw [h_fvp] at h_ok
+        dsimp only [] at h_ok
         generalize h_ds : scanNextTokenIx_dispatchStructural s_pp c = ds_res at h_ok
         cases ds_res with
         | error e => simp at h_ok
@@ -6295,48 +6309,43 @@ lemma scanNextTokenIx_preserves_AllKeysPlaceholderInvIx {input : String}
             have h_akpi_dir : AllKeysPlaceholderInvIx s_dir := by
               rw [← h_dir_def]
               exact allowDirectives_update_AllKeysPlaceholderInvIx s_pp h_akpi_pp
-            generalize h_ck : scanNextTokenIx_checkBlockFlowIndent s_dir c = ck_res at h_ok
-            cases ck_res with
+            generalize h_df : scanNextTokenIx_dispatchFlowIndicators s_dir c = df_res at h_ok
+            cases df_res with
             | error e => simp at h_ok
-            | ok _ =>
-              dsimp only [] at h_ok
-              generalize h_df : scanNextTokenIx_dispatchFlowIndicators s_dir c = df_res at h_ok
-              cases df_res with
-              | error e => simp at h_ok
-              | ok df_inner =>
-                cases df_inner with
-                | some s_flow =>
-                  simp only [Except.ok.injEq, Option.some.injEq] at h_ok
-                  subst h_ok
-                  exact scanNextTokenIx_dispatchFlowIndicators_preserves_AllKeysPlaceholderInvIx
-                    s_dir s_flow c h_akpi_dir h_df
-                | none =>
-                  dsimp only [] at h_ok
-                  generalize h_db : scanNextTokenIx_dispatchBlockIndicators s_dir c = db_res at h_ok
-                  cases db_res with
-                  | error e => simp at h_ok
-                  | ok db_inner =>
-                    cases db_inner with
-                    | some s_blk =>
+            | ok df_inner =>
+              cases df_inner with
+              | some s_flow =>
+                simp only [Except.ok.injEq, Option.some.injEq] at h_ok
+                subst h_ok
+                exact scanNextTokenIx_dispatchFlowIndicators_preserves_AllKeysPlaceholderInvIx
+                  s_dir s_flow c h_akpi_dir h_df
+              | none =>
+                dsimp only [] at h_ok
+                generalize h_db : scanNextTokenIx_dispatchBlockIndicators s_dir c = db_res at h_ok
+                cases db_res with
+                | error e => simp at h_ok
+                | ok db_inner =>
+                  cases db_inner with
+                  | some s_blk =>
+                    simp only [Except.ok.injEq, Option.some.injEq] at h_ok
+                    subst h_ok
+                    exact scanNextTokenIx_dispatchBlockIndicators_preserves_AllKeysPlaceholderInvIx
+                      s_dir s_blk c h_akpi_dir h_db
+                  | none =>
+                    dsimp only [] at h_ok
+                    -- item 47: adjacent-value check (pure, no state change)
+                    generalize h_av : scanNextTokenIx_checkAdjacentValue s_dir c = av_res at h_ok
+                    cases av_res with
+                    | error e => simp at h_ok
+                    | ok _ =>
+                    generalize h_dc : scanNextTokenIx_dispatchContent s_dir c = dc_res at h_ok
+                    cases dc_res with
+                    | error e => simp at h_ok
+                    | ok s_ct =>
                       simp only [Except.ok.injEq, Option.some.injEq] at h_ok
                       subst h_ok
-                      exact scanNextTokenIx_dispatchBlockIndicators_preserves_AllKeysPlaceholderInvIx
-                        s_dir s_blk c h_akpi_dir h_db
-                    | none =>
-                      dsimp only [] at h_ok
-                      -- item 47: adjacent-value check (pure, no state change)
-                      generalize h_av : scanNextTokenIx_checkAdjacentValue s_dir c = av_res at h_ok
-                      cases av_res with
-                      | error e => simp at h_ok
-                      | ok _ =>
-                      generalize h_dc : scanNextTokenIx_dispatchContent s_dir c = dc_res at h_ok
-                      cases dc_res with
-                      | error e => simp at h_ok
-                      | ok s_ct =>
-                        simp only [Except.ok.injEq, Option.some.injEq] at h_ok
-                        subst h_ok
-                        exact scanNextTokenIx_dispatchContent_preserves_AllKeysPlaceholderInvIx
-                          s_dir s_ct c h_akpi_dir h_dc
+                      exact scanNextTokenIx_dispatchContent_preserves_AllKeysPlaceholderInvIx
+                        s_dir s_ct c h_akpi_dir h_dc
 
 /-- Refactored §11i theorem (Step 6d.1e.12d): now threads
     `AllKeysPlaceholderInvIx` and projects `.1` for the sub-dispatcher
@@ -6373,6 +6382,14 @@ lemma scanNextTokenIx_preserves_FlowContextPSVIx {input : String}
           | ok u => exact ⟨u, rfl⟩
         obtain ⟨uDN, h_dn⟩ := h_dn
         rw [h_dn] at h_ok
+        dsimp only [] at h_ok
+        -- §8.1 flow-value floor (item 172): peeled the same way.
+        have h_fvp : ∃ u, scanNextTokenIx_checkFlowValueIndent s s_pp = .ok u := by
+          cases hx : scanNextTokenIx_checkFlowValueIndent s s_pp with
+          | error e => rw [hx] at h_ok; simp at h_ok
+          | ok u => exact ⟨u, rfl⟩
+        obtain ⟨uFV, h_fvp⟩ := h_fvp
+        rw [h_fvp] at h_ok
         dsimp only [] at h_ok
         generalize h_ds : scanNextTokenIx_dispatchStructural s_pp c = ds_res at h_ok
         cases ds_res with
@@ -6414,52 +6431,47 @@ lemma scanNextTokenIx_preserves_FlowContextPSVIx {input : String}
             have h_pl_dir : SimpleKeyPlaceholderInvIx s_dir := by
               rw [← h_dir_def]
               exact allowDirectives_update_SimpleKeyPlaceholderInvIx s_pp h_pl_pp
-            generalize h_ck : scanNextTokenIx_checkBlockFlowIndent s_dir c = ck_res at h_ok
-            cases ck_res with
+            generalize h_df : scanNextTokenIx_dispatchFlowIndicators s_dir c = df_res at h_ok
+            cases df_res with
             | error e => simp at h_ok
-            | ok _ =>
-              dsimp only [] at h_ok
-              generalize h_df : scanNextTokenIx_dispatchFlowIndicators s_dir c = df_res at h_ok
-              cases df_res with
-              | error e => simp at h_ok
-              | ok df_inner =>
-                cases df_inner with
-                | some s_flow =>
-                  simp only [Except.ok.injEq, Option.some.injEq] at h_ok
-                  subst h_ok
-                  exact scanNextTokenIx_dispatchFlowIndicators_preserves_FlowContextPSVIx
-                    s_dir c s_flow h_df h_old_dir h_pl_dir
-                | none =>
-                  dsimp only [] at h_ok
-                  generalize h_db : scanNextTokenIx_dispatchBlockIndicators s_dir c = db_res at h_ok
-                  cases db_res with
-                  | error e => simp at h_ok
-                  | ok db_inner =>
-                    cases db_inner with
-                    | some s_blk =>
+            | ok df_inner =>
+              cases df_inner with
+              | some s_flow =>
+                simp only [Except.ok.injEq, Option.some.injEq] at h_ok
+                subst h_ok
+                exact scanNextTokenIx_dispatchFlowIndicators_preserves_FlowContextPSVIx
+                  s_dir c s_flow h_df h_old_dir h_pl_dir
+              | none =>
+                dsimp only [] at h_ok
+                generalize h_db : scanNextTokenIx_dispatchBlockIndicators s_dir c = db_res at h_ok
+                cases db_res with
+                | error e => simp at h_ok
+                | ok db_inner =>
+                  cases db_inner with
+                  | some s_blk =>
+                    simp only [Except.ok.injEq, Option.some.injEq] at h_ok
+                    subst h_ok
+                    exact scanNextTokenIx_dispatchBlockIndicators_preserves_FlowContextPSVIx
+                      s_dir c s_blk h_db h_old_dir h_pl_dir
+                  | none =>
+                    dsimp only [] at h_ok
+                    -- item 47: adjacent-value check (pure, no state change)
+                    generalize h_av : scanNextTokenIx_checkAdjacentValue s_dir c = av_res at h_ok
+                    cases av_res with
+                    | error e => simp at h_ok
+                    | ok _ =>
+                    generalize h_dc : scanNextTokenIx_dispatchContent s_dir c = dc_res at h_ok
+                    cases dc_res with
+                    | error e => simp at h_ok
+                    | ok s_ct =>
                       simp only [Except.ok.injEq, Option.some.injEq] at h_ok
                       subst h_ok
-                      exact scanNextTokenIx_dispatchBlockIndicators_preserves_FlowContextPSVIx
-                        s_dir c s_blk h_db h_old_dir h_pl_dir
-                    | none =>
-                      dsimp only [] at h_ok
-                      -- item 47: adjacent-value check (pure, no state change)
-                      generalize h_av : scanNextTokenIx_checkAdjacentValue s_dir c = av_res at h_ok
-                      cases av_res with
-                      | error e => simp at h_ok
-                      | ok _ =>
-                      generalize h_dc : scanNextTokenIx_dispatchContent s_dir c = dc_res at h_ok
-                      cases dc_res with
-                      | error e => simp at h_ok
-                      | ok s_ct =>
-                        simp only [Except.ok.injEq, Option.some.injEq] at h_ok
-                        subst h_ok
-                        have h_peek_pp : s_pp.cursor.peek? = some c :=
-                          scanNextTokenIx_preprocess_peek_eq h_pp
-                        have h_peek_dir : s_dir.cursor.peek? = some c := by
-                          rw [← h_dir_def, allowDirectives_update_cursor]; exact h_peek_pp
-                        exact scanNextTokenIx_dispatchContent_preserves_FlowContextPSVIx
-                          s_dir c s_ct h_dc h_peek_dir h_fni_dir h_old_dir
+                      have h_peek_pp : s_pp.cursor.peek? = some c :=
+                        scanNextTokenIx_preprocess_peek_eq h_pp
+                      have h_peek_dir : s_dir.cursor.peek? = some c := by
+                        rw [← h_dir_def, allowDirectives_update_cursor]; exact h_peek_pp
+                      exact scanNextTokenIx_dispatchContent_preserves_FlowContextPSVIx
+                        s_dir c s_ct h_dc h_peek_dir h_fni_dir h_old_dir
 
 /-- Refactored §11i theorem (Step 6d.1e.12d): mirrors
     `_FlowContextPSVIx` above. -/
@@ -6492,6 +6504,14 @@ lemma scanNextTokenIx_preserves_FlowNestingInvIx {input : String}
           | ok u => exact ⟨u, rfl⟩
         obtain ⟨uDN, h_dn⟩ := h_dn
         rw [h_dn] at h_ok
+        dsimp only [] at h_ok
+        -- §8.1 flow-value floor (item 172): peeled the same way.
+        have h_fvp : ∃ u, scanNextTokenIx_checkFlowValueIndent s s_pp = .ok u := by
+          cases hx : scanNextTokenIx_checkFlowValueIndent s s_pp with
+          | error e => rw [hx] at h_ok; simp at h_ok
+          | ok u => exact ⟨u, rfl⟩
+        obtain ⟨uFV, h_fvp⟩ := h_fvp
+        rw [h_fvp] at h_ok
         dsimp only [] at h_ok
         generalize h_ds : scanNextTokenIx_dispatchStructural s_pp c = ds_res at h_ok
         cases ds_res with
@@ -6531,48 +6551,43 @@ lemma scanNextTokenIx_preserves_FlowNestingInvIx {input : String}
             have h_pl_dir : SimpleKeyPlaceholderInvIx s_dir := by
               rw [← h_dir_def]
               exact allowDirectives_update_SimpleKeyPlaceholderInvIx s_pp h_pl_pp
-            generalize h_ck : scanNextTokenIx_checkBlockFlowIndent s_dir c = ck_res at h_ok
-            cases ck_res with
+            generalize h_df : scanNextTokenIx_dispatchFlowIndicators s_dir c = df_res at h_ok
+            cases df_res with
             | error e => simp at h_ok
-            | ok _ =>
-              dsimp only [] at h_ok
-              generalize h_df : scanNextTokenIx_dispatchFlowIndicators s_dir c = df_res at h_ok
-              cases df_res with
-              | error e => simp at h_ok
-              | ok df_inner =>
-                cases df_inner with
-                | some s_flow =>
-                  simp only [Except.ok.injEq, Option.some.injEq] at h_ok
-                  subst h_ok
-                  exact scanNextTokenIx_dispatchFlowIndicators_preserves_FlowNestingInvIx
-                    s_dir c s_flow h_df h_fni_dir h_pl_dir
-                | none =>
-                  dsimp only [] at h_ok
-                  generalize h_db : scanNextTokenIx_dispatchBlockIndicators s_dir c = db_res at h_ok
-                  cases db_res with
-                  | error e => simp at h_ok
-                  | ok db_inner =>
-                    cases db_inner with
-                    | some s_blk =>
+            | ok df_inner =>
+              cases df_inner with
+              | some s_flow =>
+                simp only [Except.ok.injEq, Option.some.injEq] at h_ok
+                subst h_ok
+                exact scanNextTokenIx_dispatchFlowIndicators_preserves_FlowNestingInvIx
+                  s_dir c s_flow h_df h_fni_dir h_pl_dir
+              | none =>
+                dsimp only [] at h_ok
+                generalize h_db : scanNextTokenIx_dispatchBlockIndicators s_dir c = db_res at h_ok
+                cases db_res with
+                | error e => simp at h_ok
+                | ok db_inner =>
+                  cases db_inner with
+                  | some s_blk =>
+                    simp only [Except.ok.injEq, Option.some.injEq] at h_ok
+                    subst h_ok
+                    exact scanNextTokenIx_dispatchBlockIndicators_preserves_FlowNestingInvIx
+                      s_dir c s_blk h_db h_fni_dir h_pl_dir
+                  | none =>
+                    dsimp only [] at h_ok
+                    -- item 47: adjacent-value check (pure, no state change)
+                    generalize h_av : scanNextTokenIx_checkAdjacentValue s_dir c = av_res at h_ok
+                    cases av_res with
+                    | error e => simp at h_ok
+                    | ok _ =>
+                    generalize h_dc : scanNextTokenIx_dispatchContent s_dir c = dc_res at h_ok
+                    cases dc_res with
+                    | error e => simp at h_ok
+                    | ok s_ct =>
                       simp only [Except.ok.injEq, Option.some.injEq] at h_ok
                       subst h_ok
-                      exact scanNextTokenIx_dispatchBlockIndicators_preserves_FlowNestingInvIx
-                        s_dir c s_blk h_db h_fni_dir h_pl_dir
-                    | none =>
-                      dsimp only [] at h_ok
-                      -- item 47: adjacent-value check (pure, no state change)
-                      generalize h_av : scanNextTokenIx_checkAdjacentValue s_dir c = av_res at h_ok
-                      cases av_res with
-                      | error e => simp at h_ok
-                      | ok _ =>
-                      generalize h_dc : scanNextTokenIx_dispatchContent s_dir c = dc_res at h_ok
-                      cases dc_res with
-                      | error e => simp at h_ok
-                      | ok s_ct =>
-                        simp only [Except.ok.injEq, Option.some.injEq] at h_ok
-                        subst h_ok
-                        exact scanNextTokenIx_dispatchContent_preserves_FlowNestingInvIx
-                          s_dir c s_ct h_dc h_fni_dir
+                      exact scanNextTokenIx_dispatchContent_preserves_FlowNestingInvIx
+                        s_dir c s_ct h_dc h_fni_dir
 
 /-- Refactored §11j theorem (Step 6d.1e.12d): threads
     `AllKeysPlaceholderInvIx` through the induction step. The recursive
@@ -6597,6 +6612,9 @@ lemma scanLoopIx_preserves_FlowContextPSVIx {input : String}
       · split at h_ok
         · cases h_ok
         -- §9.2 dangling-node check (item 133)
+        split at h_ok
+        · cases h_ok
+        -- §8.1 flow-value floor (item 172)
         split at h_ok
         · cases h_ok
         · simp only [Except.ok.injEq] at h_ok
@@ -6631,12 +6649,16 @@ lemma scanLoopIx_preserves_FlowNestingInvIx {input : String}
         -- §9.2 dangling-node check (item 133)
         split at h_ok
         · cases h_ok
+        -- §8.1 flow-value floor (item 172)
+        split at h_ok
+        · cases h_ok
         · simp only [Except.ok.injEq] at h_ok
           subst h_ok
           have h_flowEq0 : s.flowLevel = 0 := by
-            -- The dangling-node split (item 133) adds three binders of its
-            -- own, so the flow-level hypothesis is five back.
-            rename_i h_flow0 _ _ _ _
+            -- The dangling-node split (item 133) and the flow-value floor
+            -- split (item 172) both add anonymous binders, so name the
+            -- flow-level hypothesis by its TYPE rather than its position.
+            have h_flow0 : ¬ s.flowLevel > 0 := by assumption
             simp only [Nat.not_lt, Nat.le_zero] at h_flow0
             exact h_flow0
           have h_final := finalEmit_preserves_FlowNestingInvIx s h_fni

@@ -69,7 +69,6 @@ lemma scanNextTokenIx_via_flow_dispatch_filtered_grows
     (_h_struct : scanNextTokenIx_dispatchStructural s_pp c = .ok none)
     (h_ad_eq : s_ad = if s_pp.allowDirectives then
       { s_pp with allowDirectives := false, documentEverStarted := true } else s_pp)
-    (_h_check : scanNextTokenIx_checkBlockFlowIndent s_ad c = .ok ())
     (h_flow : scanNextTokenIx_dispatchFlowIndicators s_ad c = .ok (some s_result)) :
     (s_result.tokens.tokens.filter (fun t => t.token != .placeholder)).size ≥
     (s.tokens.tokens.filter (fun t => t.token != .placeholder)).size + 1 := by
@@ -89,7 +88,6 @@ lemma scanNextTokenIx_via_block_dispatch_filtered_grows
     (_h_struct : scanNextTokenIx_dispatchStructural s_pp c = .ok none)
     (h_ad_eq : s_ad = if s_pp.allowDirectives then
       { s_pp with allowDirectives := false, documentEverStarted := true } else s_pp)
-    (_h_check : scanNextTokenIx_checkBlockFlowIndent s_ad c = .ok ())
     (_h_flow : scanNextTokenIx_dispatchFlowIndicators s_ad c = .ok none)
     (h_block : scanNextTokenIx_dispatchBlockIndicators s_ad c = .ok (some s_result)) :
     (s_result.tokens.tokens.filter (fun t => t.token != .placeholder)).size ≥
@@ -110,7 +108,6 @@ lemma scanNextTokenIx_via_content_dispatch_filtered_grows
     (_h_struct : scanNextTokenIx_dispatchStructural s_pp c = .ok none)
     (h_ad_eq : s_ad = if s_pp.allowDirectives then
       { s_pp with allowDirectives := false, documentEverStarted := true } else s_pp)
-    (_h_check : scanNextTokenIx_checkBlockFlowIndent s_ad c = .ok ())
     (_h_flow : scanNextTokenIx_dispatchFlowIndicators s_ad c = .ok none)
     (_h_block : scanNextTokenIx_dispatchBlockIndicators s_ad c = .ok none)
     (h_content : scanNextTokenIx_dispatchContent s_ad c = .ok s_result) :
@@ -168,8 +165,6 @@ lemma scanNextTokenIx_filtered_grows_in_flow
     else saveSimpleKeyIx s := rfl
   have h_ad_flow : s_ad.inFlow = s.inFlow := by
     simp only [s_ad]; split <;> exact h_sk_flow
-  have h_check : scanNextTokenIx_checkBlockFlowIndent s_ad c = .ok () :=
-    checkBlockFlowIndent_ok_flow _ _ (h_ad_flow ▸ h_flow)
   -- Fix B: pending-directives check passes (dp = false is forced by h_snt's success).
   have h_ndp_ok : scanNextTokenIx_checkNoPendingDirectives (saveSimpleKeyIx s) = .ok () :=
     scanNextTokenIx_checkNoPendingDirectives_ok _
@@ -182,8 +177,9 @@ lemma scanNextTokenIx_filtered_grows_in_flow
     scanNextTokenIx_ok_checkDanglingNode h_pp h_snt
   -- Step 4: unfold scanNextTokenIx using the pinned dispatch info.
   unfold scanNextTokenIx at h_snt
-  simp only [bind, pure, Pure.pure, Except.pure, Except.bind, h_pp, h_dn_ok, h_struct,
-             h_ndp_ok, h_bd_ok, ← hs_ad, h_check] at h_snt
+  simp only [bind, pure, Pure.pure, Except.pure, Except.bind, h_pp, h_dn_ok,
+             scanNextTokenIx_ok_checkFlowValueIndent h_pp h_snt, h_struct,
+             h_ndp_ok, h_bd_ok, ← hs_ad] at h_snt
   -- Step 5: case-analyze on dispatchFlowIndicators result.
   match h_flow_eq : scanNextTokenIx_dispatchFlowIndicators s_ad c with
   | .error _ => rw [h_flow_eq] at h_snt; simp at h_snt
@@ -191,7 +187,7 @@ lemma scanNextTokenIx_filtered_grows_in_flow
     rw [h_flow_eq] at h_snt; simp only at h_snt
     injection h_snt with h_eq; injection h_eq with h_eq; subst h_eq
     have h_grew := scanNextTokenIx_via_flow_dispatch_filtered_grows
-      s _ s_ad s_flow c h_pp h_struct hs_ad h_check h_flow_eq
+      s _ s_ad s_flow c h_pp h_struct hs_ad h_flow_eq
     omega
   | .ok none =>
     rw [h_flow_eq] at h_snt; simp only at h_snt
@@ -202,7 +198,7 @@ lemma scanNextTokenIx_filtered_grows_in_flow
       rw [h_block_eq] at h_snt; simp only at h_snt
       injection h_snt with h_eq; injection h_eq with h_eq; subst h_eq
       have h_grew := scanNextTokenIx_via_block_dispatch_filtered_grows
-        s _ s_ad s_block c h_pp h_struct hs_ad h_check h_flow_eq h_block_eq
+        s _ s_ad s_block c h_pp h_struct hs_ad h_flow_eq h_block_eq
       omega
     | .ok none =>
       rw [h_block_eq] at h_snt; simp only at h_snt
@@ -218,7 +214,7 @@ lemma scanNextTokenIx_filtered_grows_in_flow
           rw [h_cont_eq] at h_snt; simp only at h_snt
           injection h_snt with h_eq; injection h_eq with h_eq; subst h_eq
           have h_grew := scanNextTokenIx_via_content_dispatch_filtered_grows
-            s _ s_ad s_cont c h_pp h_struct hs_ad h_check h_flow_eq h_block_eq h_cont_eq
+            s _ s_ad s_cont c h_pp h_struct hs_ad h_flow_eq h_block_eq h_cont_eq
           omega
 
 end L4YAML.Proofs.Indexed.EmitterScannability.FilteredGrowth

@@ -8967,55 +8967,6 @@ lemma flowKeyRoute_of_root {m : Nat} {sp_start sp_scan sp_prep : SurfPos}
         rw [h_col0] at this
         omega
 
-/-- **§8.1's floor for a flow OPEN, read as a refutation** (item 66).  A
-    `[`/`{` at or left of the enclosing block collection's indent has no
-    `s-l+flow-in-block(n)` derivation, and the scanner refuses it before any
-    dispatch runs — one check, ahead of all three dispatchers. -/
-lemma checkBlockFlowIndent_refutes {s : ScannerState} {c : Char} {u : Unit}
-    (h_noflow : s.inFlow = false) (h_c : c = '[' ∨ c = '{')
-    (h_ci : 0 ≤ s.currentIndent) (h_col : (s.col : Int) ≤ s.currentIndent)
-    (hok : scanNextToken_checkBlockFlowIndent s c = .ok u) : False := by
-  unfold scanNextToken_checkBlockFlowIndent at hok
-  rw [if_pos ?_] at hok
-  · exact absurd hok (by simp)
-  · rcases h_c with rfl | rfl <;> simp [h_noflow, h_ci, h_col]
-
-/-- **The flow open's own under-run** (item 66): the arithmetic that turns the
-    pending's floor into `checkBlockFlowIndent`'s condition.
-
-    The landing ends its `[63] s-indent` run at `j < n`, and the pending's
-    floor says `n ≤ currentIndent + 1` — so the open sits at or left of the
-    floor.  Which `currentIndent` the CHECK reads is preprocessing's answer,
-    not the caller's: the unwind may have popped.  Both of its cases give the
-    same conclusion (`preprocess_indents_or_underIndent`), which is why the
-    refutation needs no fact about the unwind itself. -/
-lemma flowOpen_underRunEnd_refuted {sc s_prep sd : ScannerState} {c : Char} {n j : Nat}
-    {sp_prep sp_mid : SurfPos} {u : Unit}
-    (h_floor : IndentFloor sc n)
-    (hcorr_prep : ScannerSurfCorr s_prep sp_prep)
-    (h_dcol : sd.col = s_prep.col) (h_dind : sd.indents = s_prep.indents)
-    (h_dflow : sd.inFlow = false)
-    (h_c : c = '[' ∨ c = '{')
-    (h_col0 : sp_mid.col = 0)
-    (hj : j < n) (h_ind : SIndent j sp_mid sp_prep)
-    (h_preprocess : scanNextToken_preprocess sc = .ok (some (s_prep, c)))
-    (h_bfi : scanNextToken_checkBlockFlowIndent sd c = .ok u) : False := by
-  have h_colj : sp_prep.col = j := by
-    have := SIndent_col' h_ind; rw [h_col0] at this; omega
-  have h_scol : s_prep.col = j := by rw [← hcorr_prep.col_eq, h_colj]
-  have h_le : (j : Int) ≤ sc.currentIndent := by
-    have hn := h_floor.2
-    unfold minContentIndentOf at hn
-    omega
-  have h_key : (s_prep.col : Int) ≤ s_prep.currentIndent := by
-    rcases preprocess_indents_or_underIndent h_preprocess with h_eq | h
-    · rw [currentIndent_of_indents_eq h_eq, h_scol]; exact h_le
-    · exact h
-  have h_dc : (sd.col : Int) ≤ sd.currentIndent := by
-    rw [h_dcol, currentIndent_of_indents_eq h_dind]; exact h_key
-  exact checkBlockFlowIndent_refutes h_dflow h_c
-    (Int.le_trans (Int.natCast_nonneg sd.col) h_dc) h_dc h_bfi
-
 /-- **…and its TAB half is §6.1's** (item 66).  A tab at or left of the floor
     on a line the preprocessing walk ARRIVED at is `tabInIndentation`, which is
     item 64's `LandingTabFacts` — the same fact, spent one production over: the
@@ -9710,11 +9661,6 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
     -- lemma builds is at a line start (`InteriorGap.white`'s `h_col0`).
     (h_opencol : 0 < sp_open.col)
     (h_fl0 : sc.flowLevel = 0)
-    -- Item 66: §8.1's floor, which every flow open passes through before any
-    -- dispatch runs.  The under-run rides below are its refutation.
-    (h_bfi : scanNextToken_checkBlockFlowIndent (if s_prep.allowDirectives then
-          { s_prep with allowDirectives := false, documentEverStarted := true }
-        else s_prep) c = .ok ())
     -- Item 67: the open writes no indent (`[137]`/`[140]` are not block
     -- structure), which is what carries the pending's floor onto the stack.
     (h_ind' : s'.indents = s_prep.indents)
@@ -10149,16 +10095,16 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
                (Or.inr (inFlow_of_flowLevel_eq h_fl1))
                (nodoc_of_flowLevel_succ h_fl1), hcorr_open,
              fun _ => ⟨.white (GStar.nil _) h_sync h_colon h_opencol, h_real, h_ad⟩⟩
-    · -- Item 66: the run-end half of the under-run is §8.1's own refusal
-      -- (`k:⏎  b:⏎    &x⏎[1]`).  Item 68: and so is the TAB half now — the park
-      -- carries its own column, and a column-0 landing that is not the park is
-      -- a landing that crossed a break, which is `LandingTabFacts`' premise.
+    · -- Item 172: the run-end half of the under-run is no longer the scanner's
+      -- refusal — §8.1's floor is read at the CLOSE now, so the open STEP
+      -- scans (`k:⏎  b:⏎    &x⏎[1]`) and this arm has to build.  The park is
+      -- under-run, so there is nothing to spend: the open rides the opaque
+      -- resume, exactly as item 46 designed it for deferred states — and the
+      -- runtime refuses the input at the next gate (the dangling reading or
+      -- the deferred floor), so no accepted scan ever consults this ride.
+      -- The TAB half is §6.1's own refusal and stands (item 68).
       rcases h_ur with ⟨j, sx, hj, h_ind, _h_ws2, h_end | h_tab⟩
-      -- Item 83: the run's floor is REAL, so both halves refute outright —
-      -- the flow open's LAST two floor-gated drop rides are DELETED.  What
-      -- rides the open now is `pendingFlow`'s opaque resume alone (R3's own).
-      · exact (flowOpen_underRunEnd_refuted h_floor_p hcorr_prep h_dcol h_dind
-          h_dflow h_c h_col02 hj (h_end ▸ h_ind) h_preprocess h_bfi).elim
+      · exact drop_ride
       · exact (flowOpen_underRunTab_refuted h_floor_p h_ltsl2
           (fun h => by rw [h] at h_col02; omega) h_col02 hj h_ind h_tab
           h_c h_preprocess).elim
@@ -10244,8 +10190,8 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
       -- BOTH halves of the open's under-run are refuted here and the arm no
       -- longer rides the drop.
       rcases h_ur with ⟨j, sx, hj, h_ind, _h_ws2, h_end | h_tab⟩
-      · exact (flowOpen_underRunEnd_refuted h_floor_old hcorr_prep h_dcol h_dind
-          h_dflow h_c h_col02 hj (h_end ▸ h_ind) h_preprocess h_bfi).elim
+      · -- Item 172: deferred floor — the open step scans; nothing to spend.
+        exact drop_ride
       · exact (flowOpen_underRunTab_refuted h_floor_old h_ltsl2
           (fun h => by rw [h, h_col59] at h_col02; omega) h_col02 hj h_ind h_tab
           h_c h_preprocess).elim
@@ -10320,8 +10266,8 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
       rcases h_ur with ⟨j, sx, hj, h_ind, _h_ws2, h_end | h_tab⟩
       -- Item 82: the park's floor is REAL now, so both halves of the under-run
       -- refute outright — the two drop rides this arm carried are DELETED.
-      · exact (flowOpen_underRunEnd_refuted h_floor_mv hcorr_prep h_dcol h_dind
-          h_dflow h_c h_col02 hj (h_end ▸ h_ind) h_preprocess h_bfi).elim
+      · -- Item 172: deferred floor — the open step scans; nothing to spend.
+        exact drop_ride
       · exact (flowOpen_underRunTab_refuted h_floor_mv h_ltsl2
           (fun h => by rw [h] at h_col02; omega) h_col02 hj h_ind h_tab
           h_c h_preprocess).elim
@@ -13701,11 +13647,6 @@ lemma accum_step_flow (sc : ScannerState)
     -- dispatches take it now, because it is what refutes the run-end half of a
     -- flow-interior separator's under-run landing.
     (h_str_none : scanNextToken_dispatchStructural s_prep c = .ok none)
-    -- Item 66: §8.1's floor, threaded from `scanNextToken` — the one check
-    -- that runs between the structural dispatch and this one.
-    (h_bfi : scanNextToken_checkBlockFlowIndent (if s_prep.allowDirectives then
-          { s_prep with allowDirectives := false, documentEverStarted := true }
-        else s_prep) c = .ok ())
     (h_dispatch : scanNextToken_dispatchFlowIndicators
         (if s_prep.allowDirectives then
           { s_prep with allowDirectives := false, documentEverStarted := true }
@@ -13797,7 +13738,7 @@ lemma accum_step_flow (sc : ScannerState)
           (by rw [ScannerCorrectness.scanFlowSequenceStart_stack_pushed, Array.size_push,
                   Nat.add_sub_cancel, Array.getElem?_push, if_pos rfl,
                   allowDirectives_update_simpleKey])
-          (Or.inl rfl) (by have := glit_col h_open; omega) h0 h_bfi
+          (Or.inl rfl) (by have := glit_col h_open; omega) h0
           (by rw [L4YAML.Proofs.EmitterScannability.scanFlowSequenceStart_preserves_indents,
                   allowDirectives_update_indents])
           (by rw [ScannerCorrectness.scanFlowSequenceStart_preserves_implicitValueLine,
@@ -13853,7 +13794,7 @@ lemma accum_step_flow (sc : ScannerState)
               (by rw [ScannerCorrectness.scanFlowMappingStart_stack_pushed, Array.size_push,
                       Nat.add_sub_cancel, Array.getElem?_push, if_pos rfl,
                       allowDirectives_update_simpleKey])
-              (Or.inr rfl) (by have := glit_col h_open; omega) h0 h_bfi
+              (Or.inr rfl) (by have := glit_col h_open; omega) h0
               (by rw [L4YAML.Proofs.EmitterScannability.scanFlowMappingStart_preserves_indents,
                       allowDirectives_update_indents])
               (by rw [ScannerCorrectness.scanFlowMappingStart_preserves_implicitValueLine,
@@ -30152,6 +30093,15 @@ lemma scanNextToken_accum_step (sc : ScannerState)
       -- the four dispatchers read it in.
       cases uDN
       dsimp only [] at h_ok
+      -- §8.1 flow-value floor (item 172) — pure check, no state change
+      have h_fv : ∃ u, scanNextToken_checkFlowValueIndent sc s_pre = .ok u := by
+        cases hx : scanNextToken_checkFlowValueIndent sc s_pre with
+        | error e => rw [hx] at h_ok; simp at h_ok
+        | ok u => exact ⟨u, rfl⟩
+      obtain ⟨uFV, h_fv⟩ := h_fv
+      rw [h_fv] at h_ok
+      cases uFV
+      dsimp only [] at h_ok
       -- Capture structural dispatch result for h_not_doc derivation in content branch
       generalize h_str_eq : scanNextToken_dispatchStructural s_pre c_pre = str_res at h_ok
       split at h_ok
@@ -30189,69 +30139,62 @@ lemma scanNextToken_accum_step (sc : ScannerState)
             -- Past structural dispatch: allowDirectives update
             split at h_ok
             · simp at h_ok
-            · -- scanNextToken_checkBlockFlowIndent — pure check, no state change
-              -- (item 66: and its SUCCESS is what refutes the flow open's own
-              -- under-run landing, so the flow step now takes it).
-              rename_i v_bfi h_bfi
-              cases v_bfi
-              split at h_ok
-              · simp at h_ok
-              · split at h_ok
-                · rename_i s_flow_out h_flow_disp
-                  have h := Except.ok.inj h_ok; injection h with h; subst h
-                  obtain ⟨g', bl', fl', sn', q1, q2, q3, q4, q5, q6⟩ :=
-                    accum_step_flow sc sp_start sp_gram sp_block sp_flow sp_scan s_pre s_flow_out c_pre
-                      h_stream h_stack h_flow h_pending h_corr h_interior h_pre h_dn h_str_eq
-                      h_bfi h_flow_disp h_bare h_base
-                  exact ⟨g', bl', fl', sn', false, q1, q2, q3, q4, fun h => Bool.noConfusion h, q5, q6⟩
-                · rename_i h_flow_none
-                  split at h_ok
-                  · simp at h_ok
-                  · split at h_ok
-                    · rename_i s_blk h_blk
-                      have h := Except.ok.inj h_ok; injection h with h; subst h
-                      obtain ⟨g', bl', fl', sn', q1, q2, q3, q4, q5, q6⟩ :=
-                        accum_step_block sc sp_start sp_gram sp_block sp_flow sp_scan s_pre s_blk c_pre
-                          h_stream h_kbc h_scf h_stack h_flow h_pending h_corr h_interior h_pre
-                          h_dn h_str_eq h_blk h_bare h_base h_mono
-                      exact ⟨g', bl', fl', sn', false, q1, q2, q3, q4, fun h => Bool.noConfusion h, q5, q6⟩
-                    · rename_i h_blk_none
-                      -- Item 47: the adjacent-value check between the two dispatches.
+            · split at h_ok
+              · rename_i s_flow_out h_flow_disp
+                have h := Except.ok.inj h_ok; injection h with h; subst h
+                obtain ⟨g', bl', fl', sn', q1, q2, q3, q4, q5, q6⟩ :=
+                  accum_step_flow sc sp_start sp_gram sp_block sp_flow sp_scan s_pre s_flow_out c_pre
+                    h_stream h_stack h_flow h_pending h_corr h_interior h_pre h_dn h_str_eq
+                    h_flow_disp h_bare h_base
+                exact ⟨g', bl', fl', sn', false, q1, q2, q3, q4, fun h => Bool.noConfusion h, q5, q6⟩
+              · rename_i h_flow_none
+                split at h_ok
+                · simp at h_ok
+                · split at h_ok
+                  · rename_i s_blk h_blk
+                    have h := Except.ok.inj h_ok; injection h with h; subst h
+                    obtain ⟨g', bl', fl', sn', q1, q2, q3, q4, q5, q6⟩ :=
+                      accum_step_block sc sp_start sp_gram sp_block sp_flow sp_scan s_pre s_blk c_pre
+                        h_stream h_kbc h_scf h_stack h_flow h_pending h_corr h_interior h_pre
+                        h_dn h_str_eq h_blk h_bare h_base h_mono
+                    exact ⟨g', bl', fl', sn', false, q1, q2, q3, q4, fun h => Bool.noConfusion h, q5, q6⟩
+                  · rename_i h_blk_none
+                    -- Item 47: the adjacent-value check between the two dispatches.
+                    split at h_ok
+                    · simp at h_ok
+                    · rename_i u_adj h_adj
+                      cases u_adj
                       split at h_ok
                       · simp at h_ok
-                      · rename_i u_adj h_adj
-                        cases u_adj
-                        split at h_ok
-                        · simp at h_ok
-                        · -- The two fall-through equations are what `accum_step_content`
-                          -- needs to pin `c` at a content character (§1c''b'').
-                          rename_i s_cnt h_cnt
-                          have h := Except.ok.inj h_ok; injection h with h; subst h
-                        -- Derive h_not_doc: structural dispatch returned none on s_pre,
-                        -- so s_pre is not at a document boundary when col=0.
-                        -- The allowDirectives update preserves col and boundary checks.
-                          have h_not_doc : (if s_pre.allowDirectives then
-                                { s_pre with allowDirectives := false, documentEverStarted := true }
-                              else s_pre).col = 0 →
-                            atDocumentBoundary (if s_pre.allowDirectives then
-                                { s_pre with allowDirectives := false, documentEverStarted := true }
-                              else s_pre) = false := by
-                            split
-                            · intro hcol
-                              have : atDocumentBoundary
-                                { s_pre with allowDirectives := false, documentEverStarted := true }
-                                = atDocumentBoundary s_pre := by
-                                unfold atDocumentBoundary atDocumentStart atDocumentEnd
-                                  ScannerState.peekAt?; rfl
-                              rw [this]
-                              exact dispatchStructural_none_not_doc_boundary h_str_eq hcol
-                            · exact dispatchStructural_none_not_doc_boundary h_str_eq
-                          obtain ⟨g', bl', fl', sn', q1, q2, q3, q4, q5, q6⟩ :=
-                            accum_step_content sc sp_start sp_gram sp_block sp_flow sp_scan s_pre s_cnt c_pre
-                              h_stream h_stack h_flow h_pending h_corr h_interior h_pre h_dn
-                              h_flow_none h_blk_none h_adj h_bare h_base h_mono h_cnt
-                              h_str_eq h_not_doc
-                          exact ⟨g', bl', fl', sn', false, q1, q2, q3, q4, fun h => Bool.noConfusion h, q5, q6⟩
+                      · -- The two fall-through equations are what `accum_step_content`
+                        -- needs to pin `c` at a content character (§1c''b'').
+                        rename_i s_cnt h_cnt
+                        have h := Except.ok.inj h_ok; injection h with h; subst h
+                      -- Derive h_not_doc: structural dispatch returned none on s_pre,
+                      -- so s_pre is not at a document boundary when col=0.
+                      -- The allowDirectives update preserves col and boundary checks.
+                        have h_not_doc : (if s_pre.allowDirectives then
+                              { s_pre with allowDirectives := false, documentEverStarted := true }
+                            else s_pre).col = 0 →
+                          atDocumentBoundary (if s_pre.allowDirectives then
+                              { s_pre with allowDirectives := false, documentEverStarted := true }
+                            else s_pre) = false := by
+                          split
+                          · intro hcol
+                            have : atDocumentBoundary
+                              { s_pre with allowDirectives := false, documentEverStarted := true }
+                              = atDocumentBoundary s_pre := by
+                              unfold atDocumentBoundary atDocumentStart atDocumentEnd
+                                ScannerState.peekAt?; rfl
+                            rw [this]
+                            exact dispatchStructural_none_not_doc_boundary h_str_eq hcol
+                          · exact dispatchStructural_none_not_doc_boundary h_str_eq
+                        obtain ⟨g', bl', fl', sn', q1, q2, q3, q4, q5, q6⟩ :=
+                          accum_step_content sc sp_start sp_gram sp_block sp_flow sp_scan s_pre s_cnt c_pre
+                            h_stream h_stack h_flow h_pending h_corr h_interior h_pre h_dn
+                            h_flow_none h_blk_none h_adj h_bare h_base h_mono h_cnt
+                            h_str_eq h_not_doc
+                        exact ⟨g', bl', fl', sn', false, q1, q2, q3, q4, fun h => Bool.noConfusion h, q5, q6⟩
 
 /-! ## §2 EOF Step: scanNextToken returns none
 
@@ -30288,6 +30231,9 @@ lemma scanNextToken_none_stream (sc : ScannerState)
     · -- §9.2 dangling-node check (item 133)
       split at h_ok
       · simp at h_ok
+      -- §8.1 flow-value floor (item 172)
+      split at h_ok
+      · simp at h_ok
       split at h_ok
       · simp at h_ok
       · split at h_ok
@@ -30301,19 +30247,17 @@ lemma scanNextToken_none_stream (sc : ScannerState)
           · split at h_ok
             · simp at h_ok
             · split at h_ok
-              · simp at h_ok
+              · exact absurd (Except.ok.inj h_ok) nofun
               · split at h_ok
-                · exact absurd (Except.ok.inj h_ok) nofun
+                · simp at h_ok
                 · split at h_ok
-                  · simp at h_ok
-                  · split at h_ok
-                    · exact absurd (Except.ok.inj h_ok) nofun
-                    · -- Item 47: the adjacent-value check between the dispatches.
-                      split at h_ok
+                  · exact absurd (Except.ok.inj h_ok) nofun
+                  · -- Item 47: the adjacent-value check between the dispatches.
+                    split at h_ok
+                    · simp at h_ok
+                    · split at h_ok
                       · simp at h_ok
-                      · split at h_ok
-                        · simp at h_ok
-                        · exact absurd (Except.ok.inj h_ok) nofun
+                      · exact absurd (Except.ok.inj h_ok) nofun
 
 /-! ## §3 scanLoop with Grammar Accumulation
 

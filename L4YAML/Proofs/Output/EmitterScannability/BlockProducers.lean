@@ -101,12 +101,11 @@ lemma scanNextToken_flow_open_mapping_ska (s s' : ScannerState) (rest : List Cha
   let s_ad := if (saveSimpleKey s).allowDirectives then
     { saveSimpleKey s with allowDirectives := false, documentEverStarted := true } else saveSimpleKey s
   have h_ad_flow : s_ad.inFlow = s.inFlow := by simp only [s_ad]; split <;> exact h_sk_flow
-  have h_check := checkBlockFlowIndent_ok_flow s_ad '{' (h_ad_flow ▸ h_flow)
   have h_flow_disp := dispatchFlowIndicators_brace s_ad
-    (checkFlowAdjacency_ok_of_scanNextToken_ok h_pp h_struct rfl h_check
+    (checkFlowAdjacency_ok_of_scanNextToken_ok h_pp h_struct rfl
       (scanNextToken_ok_directivesPresent_false h_pp h_struct h_snt) h_snt)
   have h_snt_eq : scanNextToken s = .ok (some (scanFlowMappingStart s_ad)) :=
-    scanNextToken_via_flow_dispatch _ _ _ _ _ h_pp h_struct rfl h_check h_flow_disp
+    scanNextToken_via_flow_dispatch _ _ _ _ _ h_pp h_struct rfl (scanNextToken_ok_checkFlowValueIndent h_pp h_snt) h_flow_disp
       (scanNextToken_ok_directivesPresent_false h_pp h_struct h_snt)
       (scanNextToken_ok_checkBareDocument h_pp h_struct h_snt)
       (scanNextToken_ok_checkDanglingNode h_pp h_snt)

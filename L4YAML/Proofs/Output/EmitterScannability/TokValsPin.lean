@@ -1647,10 +1647,12 @@ lemma scanFiltered_emitSeq_tokvals
   -- §9.2 dangling-node check (item 133): the same chain gives the stack itself.
   have h_dn₃ : scanLoop_checkDanglingNode s₃ = .ok () :=
     scanLoop_checkDanglingNode_ok_of_sentinel_stack _ (by rw [h_ids₃, h_ids₂, h_ids₁]; rfl)
+  have h_fv₃ : scanLoop_checkFlowValueIndent s₃ = .ok () :=
+    scanLoop_checkFlowValueIndent_ok_of_sentinel_stack _ (by rw [h_ids₃, h_ids₂, h_ids₁]; rfl)
   have h_tok_eq : Scanner.scanFiltered input =
       .ok ((s₃.emit .streamEnd).tokens.filter (fun t => t.val != .placeholder)) :=
     scanFiltered_tokens_eq_of_chain_short_stack input _ s₃ _ rfl h_no_bom
-      h_chain_all h_eof h_fl₃ h_dp₃ h_dn₃
+      h_chain_all h_eof h_fl₃ h_dp₃ h_dn₃ h_fv₃
       (ScanChain.fuel_bound _ _ _ _ rfl h_chain_all h_eof)
       h_indents_small
   have h_tokens_eq : tokens = (s₃.emit .streamEnd).tokens.filter (fun t => t.val != .placeholder) := by
@@ -1734,10 +1736,12 @@ lemma scanFiltered_emitMap_tokvals
   -- §9.2 dangling-node check (item 133): the same chain gives the stack itself.
   have h_dn₃ : scanLoop_checkDanglingNode s₃ = .ok () :=
     scanLoop_checkDanglingNode_ok_of_sentinel_stack _ (by rw [h_ids₃, h_ids₂, h_ids₁]; rfl)
+  have h_fv₃ : scanLoop_checkFlowValueIndent s₃ = .ok () :=
+    scanLoop_checkFlowValueIndent_ok_of_sentinel_stack _ (by rw [h_ids₃, h_ids₂, h_ids₁]; rfl)
   have h_tok_eq : Scanner.scanFiltered input =
       .ok ((s₃.emit .streamEnd).tokens.filter (fun t => t.val != .placeholder)) :=
     scanFiltered_tokens_eq_of_chain_short_stack input _ s₃ _ rfl h_no_bom
-      h_chain_all h_eof h_fl₃ h_dp₃ h_dn₃
+      h_chain_all h_eof h_fl₃ h_dp₃ h_dn₃ h_fv₃
       (ScanChain.fuel_bound _ _ _ _ rfl h_chain_all h_eof)
       h_indents_small
   have h_tokens_eq : tokens = (s₃.emit .streamEnd).tokens.filter (fun t => t.val != .placeholder) := by
@@ -1800,10 +1804,12 @@ lemma scanFiltered_emit_tokvals (v : YamlValue) {inFlow : Bool}
       rw [h_ids₁]; decide
     have h_dn₁ : scanLoop_checkDanglingNode s₁ = .ok () :=
       scanLoop_checkDanglingNode_ok_of_sentinel_stack _ h_ids₁
+    have h_fv₁ : scanLoop_checkFlowValueIndent s₁ = .ok () :=
+      scanLoop_checkFlowValueIndent_ok_of_sentinel_stack _ h_ids₁
     have h_tok_eq : Scanner.scanFiltered (emitScalar sc.content) =
         .ok ((s₁.emit .streamEnd).tokens.filter (fun t => t.val != .placeholder)) :=
       scanFiltered_tokens_eq_of_chain_short_stack (emitScalar sc.content) _ s₁ _ rfl h_no_bom
-        h_chain h_eof h_flow₁ h_dp₁ h_dn₁
+        h_chain h_eof h_flow₁ h_dp₁ h_dn₁ h_fv₁
         (ScanChain.fuel_bound _ _ _ _ rfl h_chain h_eof)
         h_indents_small
     have h_tokens_eq : tokens
@@ -1863,10 +1869,13 @@ lemma scanFiltered_emit_tokvals (v : YamlValue) {inFlow : Bool}
       have h_dn₃ : scanLoop_checkDanglingNode s₃ = .ok () :=
         scanLoop_checkDanglingNode_ok_of_sentinel_stack _
           (by rw [h_ids₃, h_ids₁]; rfl)
+      have h_fv₃ : scanLoop_checkFlowValueIndent s₃ = .ok () :=
+        scanLoop_checkFlowValueIndent_ok_of_sentinel_stack _
+          (by rw [h_ids₃, h_ids₁]; rfl)
       have h_tok_eq : Scanner.scanFiltered (emit (.sequence style items tag anchor)) =
           .ok ((s₃.emit .streamEnd).tokens.filter (fun t => t.val != .placeholder)) :=
         scanFiltered_tokens_eq_of_chain_short_stack (emit (.sequence style items tag anchor))
-          _ s₃ _ rfl h_no_bom h_chain_all h_eof h_fl₃ h_dp₃ h_dn₃
+          _ s₃ _ rfl h_no_bom h_chain_all h_eof h_fl₃ h_dp₃ h_dn₃ h_fv₃
           (ScanChain.fuel_bound _ _ _ _ rfl h_chain_all h_eof)
           h_indents_small
       have h_tokens_eq : tokens
@@ -1944,10 +1953,13 @@ lemma scanFiltered_emit_tokvals (v : YamlValue) {inFlow : Bool}
       have h_dn₃ : scanLoop_checkDanglingNode s₃ = .ok () :=
         scanLoop_checkDanglingNode_ok_of_sentinel_stack _
           (by rw [h_ids₃, h_ids₁]; rfl)
+      have h_fv₃ : scanLoop_checkFlowValueIndent s₃ = .ok () :=
+        scanLoop_checkFlowValueIndent_ok_of_sentinel_stack _
+          (by rw [h_ids₃, h_ids₁]; rfl)
       have h_tok_eq : Scanner.scanFiltered (emit (.mapping style pairs tag anchor)) =
           .ok ((s₃.emit .streamEnd).tokens.filter (fun t => t.val != .placeholder)) :=
         scanFiltered_tokens_eq_of_chain_short_stack (emit (.mapping style pairs tag anchor))
-          _ s₃ _ rfl h_no_bom h_chain_all h_eof h_fl₃ h_dp₃ h_dn₃
+          _ s₃ _ rfl h_no_bom h_chain_all h_eof h_fl₃ h_dp₃ h_dn₃ h_fv₃
           (ScanChain.fuel_bound _ _ _ _ rfl h_chain_all h_eof)
           h_indents_small
       have h_tokens_eq : tokens

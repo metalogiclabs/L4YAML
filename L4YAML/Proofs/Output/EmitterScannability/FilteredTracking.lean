@@ -55,12 +55,13 @@ lemma scanFiltered_tokens_eq_of_chain_short_stack
     (h_fl : s_final.flowLevel = 0)
     (h_dp : s_final.directivesPresent = false)
     (h_dn : scanLoop_checkDanglingNode s_final = .ok ())
+    (h_fv : scanLoop_checkFlowValueIndent s_final = .ok ())
     (h_fuel : n + 1 ≤ (input.utf8ByteSize + 1) * 4)
     (h_stack : s_final.indents.size ≤ 1) :
     Scanner.scanFiltered input =
       .ok ((s_final.emit .streamEnd).tokens.filter (fun t => t.val != .placeholder)) := by
   have h_eq := scanFiltered_of_chain_eq input s₀ s_final n h_s0 h_no_bom h_chain h_eof h_fl h_dp
-    h_dn h_fuel
+    h_dn h_fv h_fuel
   rwa [unwindIndents_noop_short_stack s_final h_stack] at h_eq
 
 /-- `ScanChain` token array monotonicity: tokens array size grows (non-strictly)
@@ -225,7 +226,6 @@ lemma scanNextToken_flow_close_seq_outermost_ext (s : ScannerState)
   let s_ad := if (saveSimpleKey s).allowDirectives then
     { saveSimpleKey s with allowDirectives := false, documentEverStarted := true }
   else saveSimpleKey s
-  have h_check := checkBlockFlowIndent_ok_close_bracket s_ad
   have h_ad_fl : s_ad.flowLevel = s.flowLevel := by
     simp only [s_ad]; split <;> exact saveSimpleKey_preserves_flowLevel s
   have h_ad_dp : s_ad.directivesPresent = s.directivesPresent := by
@@ -244,7 +244,8 @@ lemma scanNextToken_flow_close_seq_outermost_ext (s : ScannerState)
     rw [h_ad_fs]; exact h_kind
   have h_flow_disp := dispatchFlowIndicators_close_bracket_outermost s_ad
     (h_ad_fl ▸ h_fl) h_ad_corr h_ad_kind
-  have h_snt := scanNextToken_via_flow_dispatch _ _ _ _ _ h_pp h_struct rfl h_check h_flow_disp
+  have h_snt := scanNextToken_via_flow_dispatch _ _ _ _ _ h_pp h_struct rfl
+    (scanNextToken_checkFlowValueIndent_ok_of_inFlow _ _ h_flow) h_flow_disp
     ((saveSimpleKey_preserves_directivesPresent s).trans h_dp)
     (scanNextToken_checkBareDocument_ok_of_inFlow _
       ((saveSimpleKey_preserves_inFlow s).trans h_flow))
@@ -324,7 +325,6 @@ lemma scanNextToken_flow_close_mapping_outermost_ext (s : ScannerState)
   let s_ad := if (saveSimpleKey s).allowDirectives then
     { saveSimpleKey s with allowDirectives := false, documentEverStarted := true }
   else saveSimpleKey s
-  have h_check := checkBlockFlowIndent_ok_close_brace s_ad
   have h_ad_fl : s_ad.flowLevel = s.flowLevel := by
     simp only [s_ad]; split <;> exact saveSimpleKey_preserves_flowLevel s
   have h_ad_dp : s_ad.directivesPresent = s.directivesPresent := by
@@ -343,7 +343,8 @@ lemma scanNextToken_flow_close_mapping_outermost_ext (s : ScannerState)
     rw [h_ad_fs]; exact h_kind
   have h_flow_disp := dispatchFlowIndicators_close_brace_outermost s_ad
     (h_ad_fl ▸ h_fl) h_ad_corr h_ad_kind
-  have h_snt := scanNextToken_via_flow_dispatch _ _ _ _ _ h_pp h_struct rfl h_check h_flow_disp
+  have h_snt := scanNextToken_via_flow_dispatch _ _ _ _ _ h_pp h_struct rfl
+    (scanNextToken_checkFlowValueIndent_ok_of_inFlow _ _ h_flow) h_flow_disp
     ((saveSimpleKey_preserves_directivesPresent s).trans h_dp)
     (scanNextToken_checkBareDocument_ok_of_inFlow _
       ((saveSimpleKey_preserves_inFlow s).trans h_flow))

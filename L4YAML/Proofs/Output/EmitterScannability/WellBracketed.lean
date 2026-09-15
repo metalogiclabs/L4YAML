@@ -2834,12 +2834,11 @@ lemma scanNextToken_flow_open_seq_filtered_push (s : ScannerState) (rest : List 
     { saveSimpleKey s with allowDirectives := false, documentEverStarted := true }
   else saveSimpleKey s
   have h_ad_flow : s_ad.inFlow = s.inFlow := by simp only [s_ad]; split <;> exact h_sk_flow
-  have h_check := checkBlockFlowIndent_ok_flow s_ad '[' (h_ad_flow ▸ h_flow)
   have h_flow_disp := dispatchFlowIndicators_bracket s_ad
-    (checkFlowAdjacency_ok_of_scanNextToken_ok h_pp h_struct rfl h_check
+    (checkFlowAdjacency_ok_of_scanNextToken_ok h_pp h_struct rfl
       (scanNextToken_ok_directivesPresent_false h_pp h_struct h_snt) h_snt)
   have h_snt_eq : scanNextToken s = .ok (some (scanFlowSequenceStart s_ad)) :=
-    scanNextToken_via_flow_dispatch _ _ _ _ _ h_pp h_struct rfl h_check h_flow_disp
+    scanNextToken_via_flow_dispatch _ _ _ _ _ h_pp h_struct rfl (scanNextToken_ok_checkFlowValueIndent h_pp h_snt) h_flow_disp
       (scanNextToken_ok_directivesPresent_false h_pp h_struct h_snt)
       (scanNextToken_ok_checkBareDocument h_pp h_struct h_snt)
       (scanNextToken_ok_checkDanglingNode h_pp h_snt)
@@ -2872,12 +2871,11 @@ lemma scanNextToken_flow_open_map_filtered_push (s : ScannerState) (rest : List 
     { saveSimpleKey s with allowDirectives := false, documentEverStarted := true }
   else saveSimpleKey s
   have h_ad_flow : s_ad.inFlow = s.inFlow := by simp only [s_ad]; split <;> exact h_sk_flow
-  have h_check := checkBlockFlowIndent_ok_flow s_ad '{' (h_ad_flow ▸ h_flow)
   have h_flow_disp := dispatchFlowIndicators_brace s_ad
-    (checkFlowAdjacency_ok_of_scanNextToken_ok h_pp h_struct rfl h_check
+    (checkFlowAdjacency_ok_of_scanNextToken_ok h_pp h_struct rfl
       (scanNextToken_ok_directivesPresent_false h_pp h_struct h_snt) h_snt)
   have h_snt_eq : scanNextToken s = .ok (some (scanFlowMappingStart s_ad)) :=
-    scanNextToken_via_flow_dispatch _ _ _ _ _ h_pp h_struct rfl h_check h_flow_disp
+    scanNextToken_via_flow_dispatch _ _ _ _ _ h_pp h_struct rfl (scanNextToken_ok_checkFlowValueIndent h_pp h_snt) h_flow_disp
       (scanNextToken_ok_directivesPresent_false h_pp h_struct h_snt)
       (scanNextToken_ok_checkBareDocument h_pp h_struct h_snt)
       (scanNextToken_ok_checkDanglingNode h_pp h_snt)
@@ -2912,7 +2910,6 @@ lemma scanNextToken_flow_close_seq_filtered_push (s : ScannerState) (rest : List
   let s_ad := if (saveSimpleKey s).allowDirectives then
     { saveSimpleKey s with allowDirectives := false, documentEverStarted := true }
   else saveSimpleKey s
-  have h_check := checkBlockFlowIndent_ok_close_bracket s_ad
   have h_ad_fl : s_ad.flowLevel = s.flowLevel := by
     simp only [s_ad]; split <;> exact saveSimpleKey_preserves_flowLevel s
   have h_ad_fl_ge2 : s_ad.flowLevel ≥ 2 := by rw [h_ad_fl]; exact h_fl_ge2
@@ -2922,7 +2919,7 @@ lemma scanNextToken_flow_close_seq_filtered_push (s : ScannerState) (rest : List
     rw [h_ad_fs]; exact h_kind
   have h_flow_disp := dispatchFlowIndicators_close_bracket_nested s_ad h_ad_fl_ge2 h_ad_kind
   have h_snt_eq : scanNextToken s = .ok (some (scanFlowSequenceEnd s_ad)) :=
-    scanNextToken_via_flow_dispatch _ _ _ _ _ h_pp h_struct rfl h_check h_flow_disp
+    scanNextToken_via_flow_dispatch _ _ _ _ _ h_pp h_struct rfl (scanNextToken_ok_checkFlowValueIndent h_pp h_snt) h_flow_disp
       (scanNextToken_ok_directivesPresent_false h_pp h_struct h_snt)
       (scanNextToken_ok_checkBareDocument h_pp h_struct h_snt)
       (scanNextToken_ok_checkDanglingNode h_pp h_snt)
@@ -2957,7 +2954,6 @@ lemma scanNextToken_flow_close_map_filtered_push (s : ScannerState) (rest : List
   let s_ad := if (saveSimpleKey s).allowDirectives then
     { saveSimpleKey s with allowDirectives := false, documentEverStarted := true }
   else saveSimpleKey s
-  have h_check := checkBlockFlowIndent_ok_close_brace s_ad
   have h_ad_fl : s_ad.flowLevel = s.flowLevel := by
     simp only [s_ad]; split <;> exact saveSimpleKey_preserves_flowLevel s
   have h_ad_fl_ge2 : s_ad.flowLevel ≥ 2 := by rw [h_ad_fl]; exact h_fl_ge2
@@ -2967,7 +2963,7 @@ lemma scanNextToken_flow_close_map_filtered_push (s : ScannerState) (rest : List
     rw [h_ad_fs]; exact h_kind
   have h_flow_disp := dispatchFlowIndicators_close_brace_nested s_ad h_ad_fl_ge2 h_ad_kind
   have h_snt_eq : scanNextToken s = .ok (some (scanFlowMappingEnd s_ad)) :=
-    scanNextToken_via_flow_dispatch _ _ _ _ _ h_pp h_struct rfl h_check h_flow_disp
+    scanNextToken_via_flow_dispatch _ _ _ _ _ h_pp h_struct rfl (scanNextToken_ok_checkFlowValueIndent h_pp h_snt) h_flow_disp
       (scanNextToken_ok_directivesPresent_false h_pp h_struct h_snt)
       (scanNextToken_ok_checkBareDocument h_pp h_struct h_snt)
       (scanNextToken_ok_checkDanglingNode h_pp h_snt)
@@ -3002,10 +2998,9 @@ lemma scanNextToken_flow_scalar_filtered_push (s : ScannerState) (rest : List Ch
   else saveSimpleKey s
   have h_ad_flow : s_ad.inFlow = s.inFlow := by simp only [s_ad]; split <;> exact h_sk_flow
   have h_ad_flow_true : s_ad.inFlow = true := h_ad_flow ▸ h_flow
-  have h_check := checkBlockFlowIndent_ok_flow s_ad '"' h_ad_flow_true
   have h_flow_none : scanNextToken_dispatchFlowIndicators s_ad '"' = .ok none :=
     dispatchFlowIndicators_none _ _ (by decide) (by decide) (by decide) (by decide) (by decide)
-      (checkFlowAdjacency_ok_of_scanNextToken_ok h_pp h_struct rfl h_check
+      (checkFlowAdjacency_ok_of_scanNextToken_ok h_pp h_struct rfl
         (scanNextToken_ok_directivesPresent_false h_pp h_struct h_snt) h_snt)
   have h_block_none : scanNextToken_dispatchBlockIndicators s_ad '"' = .ok none :=
     dispatchBlockIndicators_none_quote _
@@ -3014,7 +3009,7 @@ lemma scanNextToken_flow_scalar_filtered_push (s : ScannerState) (rest : List Ch
     | error e =>
       exfalso
       have h_snt_err := scanNextToken_via_content_dispatch_error
-        _ _ _ _ _ h_pp h_struct rfl h_check h_flow_none h_block_none
+        _ _ _ _ _ h_pp h_struct rfl (scanNextToken_ok_checkFlowValueIndent h_pp h_snt) h_flow_none h_block_none
         (scanNextToken_checkAdjacentValue_ok_of_ne_colon _ (by decide)) h_dc_eq
         (scanNextToken_ok_directivesPresent_false h_pp h_struct h_snt)
         (scanNextToken_ok_checkBareDocument h_pp h_struct h_snt)
@@ -3022,7 +3017,7 @@ lemma scanNextToken_flow_scalar_filtered_push (s : ScannerState) (rest : List Ch
       rw [h_snt_err] at h_snt; exact absurd h_snt (by simp)
     | ok s_dc =>
       have h_snt_eq : scanNextToken s = Except.ok (some s_dc) :=
-        scanNextToken_via_content_dispatch _ _ _ _ _ h_pp h_struct rfl h_check
+        scanNextToken_via_content_dispatch _ _ _ _ _ h_pp h_struct rfl (scanNextToken_ok_checkFlowValueIndent h_pp h_snt)
           h_flow_none h_block_none
           (scanNextToken_checkAdjacentValue_ok_of_ne_colon _ (by decide)) h_dc_eq
           (scanNextToken_ok_directivesPresent_false h_pp h_struct h_snt)
@@ -3086,10 +3081,9 @@ lemma scanNextToken_flow_scalar_filtered_push_content (s : ScannerState)
   else saveSimpleKey s
   have h_ad_flow : s_ad.inFlow = s.inFlow := by simp only [s_ad]; split <;> exact h_sk_flow
   have h_ad_flow_true : s_ad.inFlow = true := h_ad_flow ▸ h_flow
-  have h_check := checkBlockFlowIndent_ok_flow s_ad '"' h_ad_flow_true
   have h_flow_none : scanNextToken_dispatchFlowIndicators s_ad '"' = .ok none :=
     dispatchFlowIndicators_none _ _ (by decide) (by decide) (by decide) (by decide) (by decide)
-      (checkFlowAdjacency_ok_of_scanNextToken_ok h_pp h_struct rfl h_check
+      (checkFlowAdjacency_ok_of_scanNextToken_ok h_pp h_struct rfl
         (scanNextToken_ok_directivesPresent_false h_pp h_struct h_snt) h_snt)
   have h_block_none : scanNextToken_dispatchBlockIndicators s_ad '"' = .ok none :=
     dispatchBlockIndicators_none_quote _
@@ -3098,7 +3092,7 @@ lemma scanNextToken_flow_scalar_filtered_push_content (s : ScannerState)
     | error e =>
       exfalso
       have h_snt_err := scanNextToken_via_content_dispatch_error
-        _ _ _ _ _ h_pp h_struct rfl h_check h_flow_none h_block_none
+        _ _ _ _ _ h_pp h_struct rfl (scanNextToken_ok_checkFlowValueIndent h_pp h_snt) h_flow_none h_block_none
         (scanNextToken_checkAdjacentValue_ok_of_ne_colon _ (by decide)) h_dc_eq
         (scanNextToken_ok_directivesPresent_false h_pp h_struct h_snt)
         (scanNextToken_ok_checkBareDocument h_pp h_struct h_snt)
@@ -3106,7 +3100,7 @@ lemma scanNextToken_flow_scalar_filtered_push_content (s : ScannerState)
       rw [h_snt_err] at h_snt; exact absurd h_snt (by simp)
     | ok s_dc =>
       have h_snt_eq : scanNextToken s = Except.ok (some s_dc) :=
-        scanNextToken_via_content_dispatch _ _ _ _ _ h_pp h_struct rfl h_check
+        scanNextToken_via_content_dispatch _ _ _ _ _ h_pp h_struct rfl (scanNextToken_ok_checkFlowValueIndent h_pp h_snt)
           h_flow_none h_block_none
           (scanNextToken_checkAdjacentValue_ok_of_ne_colon _ (by decide)) h_dc_eq
           (scanNextToken_ok_directivesPresent_false h_pp h_struct h_snt)
@@ -3178,7 +3172,6 @@ lemma scanNextToken_flow_comma_filtered_push (s : ScannerState) (rest : List Cha
   let s_ad := if (saveSimpleKey s).allowDirectives then
     { saveSimpleKey s with allowDirectives := false, documentEverStarted := true }
   else saveSimpleKey s
-  have h_check := checkBlockFlowIndent_ok_comma s_ad
   have h_ad_fl : s_ad.flowLevel = s.flowLevel := by
     simp only [s_ad]; split <;> exact saveSimpleKey_preserves_flowLevel s
   have h_fl_pos : s_ad.flowLevel > 0 := by
@@ -3193,7 +3186,7 @@ lemma scanNextToken_flow_comma_filtered_push (s : ScannerState) (rest : List Cha
   have h_flow_disp := dispatchFlowIndicators_comma s_ad h_fl_pos h_ad_last
   have h_snt_eq : scanNextToken s =
       .ok (some { (s_ad.emit .flowEntry).advance with simpleKeyAllowed := true, explicitKeyLine := none, simpleKey := { possible := false } }) :=
-    scanNextToken_via_flow_dispatch _ _ _ _ _ h_pp h_struct rfl h_check h_flow_disp
+    scanNextToken_via_flow_dispatch _ _ _ _ _ h_pp h_struct rfl (scanNextToken_ok_checkFlowValueIndent h_pp h_snt) h_flow_disp
       (scanNextToken_ok_directivesPresent_false h_pp h_struct h_snt)
       (scanNextToken_ok_checkBareDocument h_pp h_struct h_snt)
       (scanNextToken_ok_checkDanglingNode h_pp h_snt)
@@ -3239,7 +3232,6 @@ lemma scanNextToken_flow_comma_simpleKey (s : ScannerState) (rest : List Char)
   let s_ad := if (saveSimpleKey s).allowDirectives then
     { saveSimpleKey s with allowDirectives := false, documentEverStarted := true }
   else saveSimpleKey s
-  have h_check := checkBlockFlowIndent_ok_comma s_ad
   have h_ad_fl : s_ad.flowLevel = s.flowLevel := by
     simp only [s_ad]; split <;> exact saveSimpleKey_preserves_flowLevel s
   have h_fl_pos : s_ad.flowLevel > 0 := by
@@ -3254,7 +3246,7 @@ lemma scanNextToken_flow_comma_simpleKey (s : ScannerState) (rest : List Char)
   have h_flow_disp := dispatchFlowIndicators_comma s_ad h_fl_pos h_ad_last
   have h_snt_eq : scanNextToken s =
       .ok (some { (s_ad.emit .flowEntry).advance with simpleKeyAllowed := true, explicitKeyLine := none, simpleKey := { possible := false } }) :=
-    scanNextToken_via_flow_dispatch _ _ _ _ _ h_pp h_struct rfl h_check h_flow_disp
+    scanNextToken_via_flow_dispatch _ _ _ _ _ h_pp h_struct rfl (scanNextToken_ok_checkFlowValueIndent h_pp h_snt) h_flow_disp
       (scanNextToken_ok_directivesPresent_false h_pp h_struct h_snt)
       (scanNextToken_ok_checkBareDocument h_pp h_struct h_snt)
       (scanNextToken_ok_checkDanglingNode h_pp h_snt)

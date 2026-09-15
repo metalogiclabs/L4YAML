@@ -1785,6 +1785,9 @@ lemma scanNextToken_preserves_bound_full (s s' : ScannerState)
       -- §9.2 dangling-node check (item 133)
       split at h
       · cases h
+      -- §8.1 flow-value floor (item 172)
+      split at h
+      · cases h
       -- Split on dispatchStructural
       split at h
       · cases h  -- error
@@ -1799,76 +1802,73 @@ lemma scanNextToken_preserves_bound_full (s s' : ScannerState)
           -- §9.2 bare-document check (item 132)
           split at h
           · cases h
-          · -- Outermost match is checkBlockFlowIndent (wrapping the if-expression)
-            split at h
-            · cases h  -- indent error
-            · -- Case-split on allowDirectives to resolve the if-expression
-              rcases h_ad : sp.allowDirectives with _ | _
-              <;> simp only [h_ad, Bool.false_eq_true, ↓reduceIte] at h
-              · -- false case: dispatchers use sp directly
-                generalize h_fi : scanNextToken_dispatchFlowIndicators sp c = fi at h
-                cases fi with
-                | error => cases h
-                | ok fi_opt =>
-                  cases fi_opt with
-                  | some s_fi =>
-                    simp only [Except.ok.injEq, Option.some.injEq] at h; subst h
-                    exact BoundInv.trans h_bi_sp
-                      (dispatchFlowIndicators_preserves_bound sp _ c h_bi_sp_refl h_hend_sp h_fi)
-                  | none =>
-                    generalize h_bk : scanNextToken_dispatchBlockIndicators sp c = bk at h
-                    cases bk with
-                    | error => cases h
-                    | ok bk_opt =>
-                      cases bk_opt with
-                      | some s_bk =>
+          · -- Case-split on allowDirectives to resolve the if-expression
+            rcases h_ad : sp.allowDirectives with _ | _
+            <;> simp only [h_ad, Bool.false_eq_true, ↓reduceIte] at h
+            · -- false case: dispatchers use sp directly
+              generalize h_fi : scanNextToken_dispatchFlowIndicators sp c = fi at h
+              cases fi with
+              | error => cases h
+              | ok fi_opt =>
+                cases fi_opt with
+                | some s_fi =>
+                  simp only [Except.ok.injEq, Option.some.injEq] at h; subst h
+                  exact BoundInv.trans h_bi_sp
+                    (dispatchFlowIndicators_preserves_bound sp _ c h_bi_sp_refl h_hend_sp h_fi)
+                | none =>
+                  generalize h_bk : scanNextToken_dispatchBlockIndicators sp c = bk at h
+                  cases bk with
+                  | error => cases h
+                  | ok bk_opt =>
+                    cases bk_opt with
+                    | some s_bk =>
+                      simp only [Except.ok.injEq, Option.some.injEq] at h; subst h
+                      exact BoundInv.trans h_bi_sp
+                        (dispatchBlockIndicators_preserves_bound sp _ c h_bi_sp_refl h_hend_sp h_bk)
+                    | none =>
+                      -- item 47: adjacent-value check (pure, no state change)
+                      generalize h_av : scanNextToken_checkAdjacentValue sp c = av at h
+                      cases av with
+                      | error => cases h
+                      | ok _ =>
+                      generalize h_dc : scanNextToken_dispatchContent sp c = dc at h
+                      cases dc with
+                      | error => cases h
+                      | ok s_dc =>
                         simp only [Except.ok.injEq, Option.some.injEq] at h; subst h
-                        exact BoundInv.trans h_bi_sp
-                          (dispatchBlockIndicators_preserves_bound sp _ c h_bi_sp_refl h_hend_sp h_bk)
-                      | none =>
-                        -- item 47: adjacent-value check (pure, no state change)
-                        generalize h_av : scanNextToken_checkAdjacentValue sp c = av at h
-                        cases av with
-                        | error => cases h
-                        | ok _ =>
-                        generalize h_dc : scanNextToken_dispatchContent sp c = dc at h
-                        cases dc with
-                        | error => cases h
-                        | ok s_dc =>
-                          simp only [Except.ok.injEq, Option.some.injEq] at h; subst h
-                          exact dispatchContent_preserves_bound s sp _ c h_bi_sp hend h_dc
-              · -- true case: dispatchers use { sp with allowDirectives := false, ... }
-                -- After simp reduces the if, h contains dispatchers applied
-                -- to the struct. Since the struct has the same offset/inputEnd/input
-                -- as sp, all BoundInv results follow from the false case structure.
-                -- We split directly on the dispatch matches in h.
-                have h_bi_sp2 : BoundInv s
-                    { sp with allowDirectives := false, documentEverStarted := true } :=
-                  allowDirectives_toggle_BoundInv h_bi_sp
-                -- The dispatchers in h are applied to the expanded struct.
-                -- Split on them directly.
-                split at h  -- flow dispatcher result
-                · cases h  -- error
-                · split at h  -- flow some/none
-                  · simp only [Except.ok.injEq, Option.some.injEq] at h; subst h
-                    exact BoundInv.trans h_bi_sp2
-                      (dispatchFlowIndicators_preserves_bound _ _ c
-                        (BoundInv.refl _ h_bi_sp2.offset_le h_bi_sp2.isValid)
-                        (by rw [h_bi_sp2.inputEnd_eq, h_bi_sp2.input_eq]; exact hend) ‹_›)
-                  · split at h  -- block dispatcher result
-                    · cases h
-                    · split at h  -- block some/none
-                      · simp only [Except.ok.injEq, Option.some.injEq] at h; subst h
-                        exact BoundInv.trans h_bi_sp2
-                          (dispatchBlockIndicators_preserves_bound _ _ c
-                            (BoundInv.refl _ h_bi_sp2.offset_le h_bi_sp2.isValid)
-                            (by rw [h_bi_sp2.inputEnd_eq, h_bi_sp2.input_eq]; exact hend) ‹_›)
-                      · split at h  -- adjacent-value check (item 47)
+                        exact dispatchContent_preserves_bound s sp _ c h_bi_sp hend h_dc
+            · -- true case: dispatchers use { sp with allowDirectives := false, ... }
+              -- After simp reduces the if, h contains dispatchers applied
+              -- to the struct. Since the struct has the same offset/inputEnd/input
+              -- as sp, all BoundInv results follow from the false case structure.
+              -- We split directly on the dispatch matches in h.
+              have h_bi_sp2 : BoundInv s
+                  { sp with allowDirectives := false, documentEverStarted := true } :=
+                allowDirectives_toggle_BoundInv h_bi_sp
+              -- The dispatchers in h are applied to the expanded struct.
+              -- Split on them directly.
+              split at h  -- flow dispatcher result
+              · cases h  -- error
+              · split at h  -- flow some/none
+                · simp only [Except.ok.injEq, Option.some.injEq] at h; subst h
+                  exact BoundInv.trans h_bi_sp2
+                    (dispatchFlowIndicators_preserves_bound _ _ c
+                      (BoundInv.refl _ h_bi_sp2.offset_le h_bi_sp2.isValid)
+                      (by rw [h_bi_sp2.inputEnd_eq, h_bi_sp2.input_eq]; exact hend) ‹_›)
+                · split at h  -- block dispatcher result
+                  · cases h
+                  · split at h  -- block some/none
+                    · simp only [Except.ok.injEq, Option.some.injEq] at h; subst h
+                      exact BoundInv.trans h_bi_sp2
+                        (dispatchBlockIndicators_preserves_bound _ _ c
+                          (BoundInv.refl _ h_bi_sp2.offset_le h_bi_sp2.isValid)
+                          (by rw [h_bi_sp2.inputEnd_eq, h_bi_sp2.input_eq]; exact hend) ‹_›)
+                    · split at h  -- adjacent-value check (item 47)
+                      · cases h
+                      · split at h  -- content dispatcher result
                         · cases h
-                        · split at h  -- content dispatcher result
-                          · cases h
-                          · simp only [Except.ok.injEq, Option.some.injEq] at h; subst h
-                            exact dispatchContent_preserves_bound s _ _ c h_bi_sp2 hend ‹_›
+                        · simp only [Except.ok.injEq, Option.some.injEq] at h; subst h
+                          exact dispatchContent_preserves_bound s _ _ c h_bi_sp2 hend ‹_›
 
 /-- Wrapper matching the signature used in EmitterScannability. -/
 lemma scanNextToken_preserves_bound (s s' : ScannerState)

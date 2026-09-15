@@ -2033,11 +2033,13 @@ lemma seqRoot_recseqbody
   -- §9.2 dangling-node check (item 133): the same chain gives the stack itself.
   have h_dn₃ : scanLoop_checkDanglingNode s₃ = .ok () :=
     scanLoop_checkDanglingNode_ok_of_sentinel_stack _ (by rw [h_ids₃, h_ids₂, h_ids₁]; rfl)
+  have h_fv₃ : scanLoop_checkFlowValueIndent s₃ = .ok () :=
+    scanLoop_checkFlowValueIndent_ok_of_sentinel_stack _ (by rw [h_ids₃, h_ids₂, h_ids₁]; rfl)
   -- Token equation: tokens = (s₃.emit .streamEnd).tokens.filter p
   have h_tok_eq : Scanner.scanFiltered input =
       .ok ((s₃.emit .streamEnd).tokens.filter p) :=
     scanFiltered_tokens_eq_of_chain_short_stack input _ s₃ _ rfl h_no_bom
-      h_chain_all h_eof h_fl₃ h_dp₃ h_dn₃
+      h_chain_all h_eof h_fl₃ h_dp₃ h_dn₃ h_fv₃
       (ScanChain.fuel_bound _ _ _ _ rfl h_chain_all h_eof)
       h_indents_small
   have h_tokens_eq : tokens = (s₃.emit .streamEnd).tokens.filter p := by
@@ -11782,12 +11784,14 @@ lemma scanFiltered_emitSeq_nonempty_structure
   -- §9.2 dangling-node check (item 133): the same chain gives the stack itself.
   have h_dn₃ : scanLoop_checkDanglingNode s₃ = .ok () :=
     scanLoop_checkDanglingNode_ok_of_sentinel_stack _ (by rw [h_ids₃, h_ids₂, h_ids₁]; rfl)
+  have h_fv₃ : scanLoop_checkFlowValueIndent s₃ = .ok () :=
+    scanLoop_checkFlowValueIndent_ok_of_sentinel_stack _ (by rw [h_ids₃, h_ids₂, h_ids₁]; rfl)
   -- ═══ Token equation: tokens = (s₃.emit .streamEnd).tokens.filter p ═══
   let p := fun (t : Positioned YamlToken) => t.val != .placeholder
   have h_tok_eq : Scanner.scanFiltered input =
       .ok ((s₃.emit .streamEnd).tokens.filter p) :=
     scanFiltered_tokens_eq_of_chain_short_stack input _ s₃ _ rfl h_no_bom
-      h_chain_all h_eof h_fl₃ h_dp₃ h_dn₃
+      h_chain_all h_eof h_fl₃ h_dp₃ h_dn₃ h_fv₃
       (ScanChain.fuel_bound _ _ _ _ rfl h_chain_all h_eof)
       h_indents_small
   -- Extract: tokens = (s₃.emit .streamEnd).tokens.filter p
@@ -12123,12 +12127,14 @@ lemma scanFiltered_emitMap_nonempty_structure
   -- §9.2 dangling-node check (item 133): the same chain gives the stack itself.
   have h_dn₃ : scanLoop_checkDanglingNode s₃ = .ok () :=
     scanLoop_checkDanglingNode_ok_of_sentinel_stack _ (by rw [h_ids₃, h_ids₂, h_ids₁]; rfl)
+  have h_fv₃ : scanLoop_checkFlowValueIndent s₃ = .ok () :=
+    scanLoop_checkFlowValueIndent_ok_of_sentinel_stack _ (by rw [h_ids₃, h_ids₂, h_ids₁]; rfl)
   -- ═══ Token equation: tokens = (s₃.emit .streamEnd).tokens.filter p ═══
   let p := fun (t : Positioned YamlToken) => t.val != .placeholder
   have h_tok_eq : Scanner.scanFiltered input =
       .ok ((s₃.emit .streamEnd).tokens.filter p) :=
     scanFiltered_tokens_eq_of_chain_short_stack input _ s₃ _ rfl h_no_bom
-      h_chain_all h_eof h_fl₃ h_dp₃ h_dn₃
+      h_chain_all h_eof h_fl₃ h_dp₃ h_dn₃ h_fv₃
       (ScanChain.fuel_bound _ _ _ _ rfl h_chain_all h_eof)
       h_indents_small
   -- Extract: tokens = (s₃.emit .streamEnd).tokens.filter p

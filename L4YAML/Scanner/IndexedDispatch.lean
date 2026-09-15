@@ -1729,15 +1729,6 @@ def scanNextTokenIx_dispatchContent {input : String} (s : ScannerStateIx input)
     return { sEmit with simpleKeyAllowed := false }
   throw (.unexpectedChar c s.cursor.pos.line s.cursor.pos.col)
 
-/-- Flow-collection start indent guard (§8.1 [187]). -/
-def scanNextTokenIx_checkBlockFlowIndent {input : String}
-    (s : ScannerStateIx input) (c : Char) : Except ScanError Unit :=
-  if !s.inFlow && s.currentIndent >= 0 && (s.cursor.pos.col : Int) <= s.currentIndent
-      && (c == '[' || c == '{') then
-    .error (.underIndentedFlowContent s.cursor.pos.line s.cursor.pos.col)
-  else
-    .ok ()
-
 /-- §9.1.5 [209]: pending directives require `---` before content.
     Indexed twin of `scanNextToken_checkNoPendingDirectives`. -/
 def scanNextTokenIx_checkNoPendingDirectives {input : String}
@@ -1843,6 +1834,50 @@ def scanLoopIx_checkDanglingNode {input : String}
   | some p => .error (.invalidBareDocument p.line p.col)
   | none => .ok ()
 
+/-- Indexed twin of `L4YAML.Scanner.underIndentedFlowValuePos?` (item 172):
+    §8.1's flow-collection floor, read at the CLOSE — the trailing flow node
+    standing in an AWAITED slot whose open sits at an open level's own column.
+    See the legacy docstring for the reading. -/
+def underIndentedFlowValuePosIx? {input : String} (s : ScannerStateIx input) :
+    Option YamlPos :=
+  if s.inFlow then none
+  else
+    match prevRealIdxIx? s.tokens s.tokens.tokens.size with
+    | none => none
+    | some i =>
+      if !(s.tokens.tokens[i]!.token.isFlowClose) then none
+      else
+        match flowOpenIdxIx? s.tokens i with
+        | none => none
+        | some o =>
+          let st := propsRunStartIx s.tokens o
+          let offered := match prevRealIdxIx? s.tokens st with
+            | some j => s.tokens.tokens[j]!.token.offersNodeSlot
+            | none => false
+          let p := s.tokens.tokens[o]!.start
+          if offered && s.indents.any (fun e => e.column == (p.col : Int)) then
+            some p
+          else none
+
+/-- §8.1's floor mid-stream: indexed twin of
+    `scanNextToken_checkFlowValueIndent`, including item 140's two states —
+    the break off `s_land`, the run off `s_run` before the unwind. -/
+def scanNextTokenIx_checkFlowValueIndent {input : String}
+    (s_run s_land : ScannerStateIx input) : Except ScanError Unit :=
+  if s_land.simpleKeyAllowed then
+    match underIndentedFlowValuePosIx? s_run with
+    | some p => .error (.underIndentedFlowContent p.line p.col)
+    | none => .ok ()
+  else .ok ()
+
+/-- §8.1's floor at the end of input: indexed twin of
+    `scanLoop_checkFlowValueIndent`. -/
+def scanLoopIx_checkFlowValueIndent {input : String}
+    (s : ScannerStateIx input) : Except ScanError Unit :=
+  match underIndentedFlowValuePosIx? s with
+  | some p => .error (.underIndentedFlowContent p.line p.col)
+  | none => .ok ()
+
 /-- §9.2 [211]: a completed node and content on a later line at a column no
     open level stands at, with no marker between them, is a second bare
     document.  Indexed twin of `scanNextToken_checkBareDocument` — see its
@@ -1883,6 +1918,9 @@ def scanNextTokenIx {input : String} (s_run : ScannerStateIx input) :
     -- dispatch — the dangler dies at a `...`/`---` too.  Item 140: the run off
     -- `s_run`, the break off `s`.
     scanNextTokenIx_checkDanglingNode s_run s
+    -- §8.1 (item 172): the awaited flow node's under-indented open, at the
+    -- same gate — the slot-offered complement of the dangling run.
+    scanNextTokenIx_checkFlowValueIndent s_run s
     match ← scanNextTokenIx_dispatchStructural s c with
     | some s' => return some s'
     | none =>
@@ -1891,7 +1929,6 @@ def scanNextTokenIx {input : String} (s_run : ScannerStateIx input) :
       let s := if s.allowDirectives then
         { s with allowDirectives := false, documentEverStarted := true }
       else s
-      scanNextTokenIx_checkBlockFlowIndent s c
       match ← scanNextTokenIx_dispatchFlowIndicators s c with
       | some s' => return some s'
       | none =>
@@ -1919,6 +1956,11 @@ def scanLoopIx {input : String} (s : ScannerStateIx input) (fuel : Nat) :
       else
         -- §9.2 [211] (item 133): the dangling run the stream itself ended.
         match scanLoopIx_checkDanglingNode s with
+        | .error e => .error e
+        | .ok _ =>
+        -- §8.1 (item 172): the awaited flow node's under-indented open,
+        -- with the stream itself as the entry's end.
+        match scanLoopIx_checkFlowValueIndent s with
         | .error e => .error e
         | .ok _ =>
         let s := unwindIndentsIx s (-1)
@@ -2010,6 +2052,9 @@ def scanNextTokenIxWC {input : String} (s_run : ScannerStateIx input) :
     -- dispatch — the dangler dies at a `...`/`---` too.  Item 140: the run off
     -- `s_run`, the break off `s`.
     scanNextTokenIx_checkDanglingNode s_run s
+    -- §8.1 (item 172): the awaited flow node's under-indented open, at the
+    -- same gate — the slot-offered complement of the dangling run.
+    scanNextTokenIx_checkFlowValueIndent s_run s
     match ← scanNextTokenIx_dispatchStructural s c with
     | some s' => return some s'
     | none =>
@@ -2018,7 +2063,6 @@ def scanNextTokenIxWC {input : String} (s_run : ScannerStateIx input) :
       let s := if s.allowDirectives then
         { s with allowDirectives := false, documentEverStarted := true }
       else s
-      scanNextTokenIx_checkBlockFlowIndent s c
       match ← scanNextTokenIx_dispatchFlowIndicators s c with
       | some s' => return some s'
       | none =>
@@ -2053,6 +2097,9 @@ def scanLoopIxWC {input : String} (s : ScannerStateIx input) (fuel : Nat) :
         .error (.directiveWithoutDocument s.cursor.pos.line)
       else
         match scanLoopIx_checkDanglingNode s with
+        | .error e => .error e
+        | .ok _ =>
+        match scanLoopIx_checkFlowValueIndent s with
         | .error e => .error e
         | .ok _ =>
         let s := s.skipToContentSWithComments

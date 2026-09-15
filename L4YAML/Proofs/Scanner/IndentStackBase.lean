@@ -603,6 +603,9 @@ lemma scanNextToken_base {s s' : ScannerState}
       -- §9.2 dangling-node check (item 133)
       split at hok
       · cases hok
+      -- §8.1 flow-value floor (item 172)
+      split at hok
+      · cases hok
       split at hok
       · cases hok
       · split at hok
@@ -613,73 +616,71 @@ lemma scanNextToken_base {s s' : ScannerState}
           -- §9.2 bare-document check (item 132)
           split at hok
           · cases hok
-          · split at hok
-            · cases hok
-            · -- The directive flag's own record update, which the stack
-              -- does not see (`ScannerState.WellFormed`'s conjuncts split the
-              -- same way — see `StaleCursorFloor`'s skeleton).
-              rcases h_ad : sp.allowDirectives with _ | _
-              <;> simp only [h_ad, Bool.false_eq_true, ↓reduceIte] at hok
-              · generalize h_fi : scanNextToken_dispatchFlowIndicators sp c = fi at hok
-                cases fi with
-                | error => cases hok
-                | ok fi_opt =>
-                  cases fi_opt with
-                  | some s_fi =>
-                    simp only [Except.ok.injEq, Option.some.injEq] at hok; subst hok
-                    exact dispatchFlowIndicators_base h_fi h_pp
-                  | none =>
-                    generalize h_bi : scanNextToken_dispatchBlockIndicators sp c = bi at hok
-                    cases bi with
-                    | error => cases hok
-                    | ok bi_opt =>
-                      cases bi_opt with
-                      | some s_bi =>
+          · -- The directive flag's own record update, which the stack
+            -- does not see (`ScannerState.WellFormed`'s conjuncts split the
+            -- same way — see `StaleCursorFloor`'s skeleton).
+            rcases h_ad : sp.allowDirectives with _ | _
+            <;> simp only [h_ad, Bool.false_eq_true, ↓reduceIte] at hok
+            · generalize h_fi : scanNextToken_dispatchFlowIndicators sp c = fi at hok
+              cases fi with
+              | error => cases hok
+              | ok fi_opt =>
+                cases fi_opt with
+                | some s_fi =>
+                  simp only [Except.ok.injEq, Option.some.injEq] at hok; subst hok
+                  exact dispatchFlowIndicators_base h_fi h_pp
+                | none =>
+                  generalize h_bi : scanNextToken_dispatchBlockIndicators sp c = bi at hok
+                  cases bi with
+                  | error => cases hok
+                  | ok bi_opt =>
+                    cases bi_opt with
+                    | some s_bi =>
+                      simp only [Except.ok.injEq, Option.some.injEq] at hok; subst hok
+                      exact dispatchBlockIndicators_base h_bi h_pp
+                    | none =>
+                      generalize h_av : scanNextToken_checkAdjacentValue sp c = av at hok
+                      cases av with
+                      | error => cases hok
+                      | ok _ =>
+                      generalize h_dc : scanNextToken_dispatchContent sp c = dc at hok
+                      cases dc with
+                      | error => cases hok
+                      | ok s_dc =>
                         simp only [Except.ok.injEq, Option.some.injEq] at hok; subst hok
-                        exact dispatchBlockIndicators_base h_bi h_pp
-                      | none =>
-                        generalize h_av : scanNextToken_checkAdjacentValue sp c = av at hok
-                        cases av with
-                        | error => cases hok
-                        | ok _ =>
-                        generalize h_dc : scanNextToken_dispatchContent sp c = dc at hok
-                        cases dc with
-                        | error => cases hok
-                        | ok s_dc =>
-                          simp only [Except.ok.injEq, Option.some.injEq] at hok; subst hok
-                          exact dispatchContent_base h_dc h_pp
-              · generalize h_sp2 :
-                  (({ sp with allowDirectives := false, documentEverStarted := true }
-                    : ScannerState)) = sp2 at hok
-                have h_pp2 : SentinelBase sp2 := by rw [← h_sp2]; exact h_pp
-                generalize h_fi : scanNextToken_dispatchFlowIndicators sp2 c = fi at hok
-                cases fi with
-                | error => cases hok
-                | ok fi_opt =>
-                  cases fi_opt with
-                  | some s_fi =>
-                    simp only [Except.ok.injEq, Option.some.injEq] at hok; subst hok
-                    exact dispatchFlowIndicators_base h_fi h_pp2
-                  | none =>
-                    generalize h_bi : scanNextToken_dispatchBlockIndicators sp2 c = bi at hok
-                    cases bi with
-                    | error => cases hok
-                    | ok bi_opt =>
-                      cases bi_opt with
-                      | some s_bi =>
+                        exact dispatchContent_base h_dc h_pp
+            · generalize h_sp2 :
+                (({ sp with allowDirectives := false, documentEverStarted := true }
+                  : ScannerState)) = sp2 at hok
+              have h_pp2 : SentinelBase sp2 := by rw [← h_sp2]; exact h_pp
+              generalize h_fi : scanNextToken_dispatchFlowIndicators sp2 c = fi at hok
+              cases fi with
+              | error => cases hok
+              | ok fi_opt =>
+                cases fi_opt with
+                | some s_fi =>
+                  simp only [Except.ok.injEq, Option.some.injEq] at hok; subst hok
+                  exact dispatchFlowIndicators_base h_fi h_pp2
+                | none =>
+                  generalize h_bi : scanNextToken_dispatchBlockIndicators sp2 c = bi at hok
+                  cases bi with
+                  | error => cases hok
+                  | ok bi_opt =>
+                    cases bi_opt with
+                    | some s_bi =>
+                      simp only [Except.ok.injEq, Option.some.injEq] at hok; subst hok
+                      exact dispatchBlockIndicators_base h_bi h_pp2
+                    | none =>
+                      generalize h_av : scanNextToken_checkAdjacentValue sp2 c = av at hok
+                      cases av with
+                      | error => cases hok
+                      | ok _ =>
+                      generalize h_dc : scanNextToken_dispatchContent sp2 c = dc at hok
+                      cases dc with
+                      | error => cases hok
+                      | ok s_dc =>
                         simp only [Except.ok.injEq, Option.some.injEq] at hok; subst hok
-                        exact dispatchBlockIndicators_base h_bi h_pp2
-                      | none =>
-                        generalize h_av : scanNextToken_checkAdjacentValue sp2 c = av at hok
-                        cases av with
-                        | error => cases hok
-                        | ok _ =>
-                        generalize h_dc : scanNextToken_dispatchContent sp2 c = dc at hok
-                        cases dc with
-                        | error => cases hok
-                        | ok s_dc =>
-                          simp only [Except.ok.injEq, Option.some.injEq] at hok; subst hok
-                          exact dispatchContent_base h_dc h_pp2
+                        exact dispatchContent_base h_dc h_pp2
 
 /-! ## §6  The seed -/
 

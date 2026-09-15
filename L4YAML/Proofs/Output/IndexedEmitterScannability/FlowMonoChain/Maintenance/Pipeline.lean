@@ -44,10 +44,8 @@ bridge).
   - **§1** — `dispatchStructural` return-value lemmas:
     `_none_flow` (inflow / underindent skip),
     `_none_bracket_init` / `_none_brace_init` (col=0 / no doc marker).
-  - **§2** — `checkBlockFlowIndent` return-value lemmas:
-    `_ok_flow` (inflow), `_bracket_init` / `_brace_init` (top level
-    with currentIndent = -1), `_ok_comma`, `_ok_close_bracket`,
-    `_ok_close_brace`.
+  - **§2** — retired at item 172: the open-side floor check is gone;
+    the flow-value floor's discharge family lives in `FlowMonoChain/Basic`.
   - **§3** — `dispatchFlowIndicators` return-value lemmas:
     `_none` (non-flow-indicator), `_bracket`, `_brace`,
     `_close_bracket` (flowLevel > 0),
@@ -68,7 +66,6 @@ bridge).
   | Section | Legacy lines     | Indexed counterpart                |
   | ------- | ---------------- | ---------------------------------- |
   | §1      | 3735–3747, 4066–4073, 5425–5432 | `dispatchStructural_*` |
-  | §2      | 3750–3756, 4077–4082, 4382–4393, 5119–5123, 5434–5440 | `checkBlockFlowIndent_*` |
   | §3      | 3759–3774, 4085–4088, 5057–5064, 4777–4789 (+4918–4943 → collapsed), 5125–5139 (+5247–5272 → collapsed), 4554–4570 | `dispatchFlowIndicators_*` |
   | §4      | 3777–3788, 4354–4377                | `dispatchBlockIndicators_*` |
   | §5      | 4398–4421                          | `scanFlowEntryIx_ok` |
@@ -142,65 +139,6 @@ lemma dispatchStructural_none_brace_init (s : ScannerStateIx input)
     (h_noDocEnd : atDocumentEndIx s.cursor = false) :
     scanNextTokenIx_dispatchStructural s '{' = .ok none :=
   dispatchStructural_none_non_directive s '{' h_fl h_noDocStart h_noDocEnd (by decide)
-
-/-! ## §2  `checkBlockFlowIndent` return-value lemmas -/
-
-/-- In flow context, the indent guard is vacuous. -/
-lemma checkBlockFlowIndent_ok_flow (s : ScannerStateIx input) (c : Char)
-    (h_flow : s.inFlow = true) :
-    scanNextTokenIx_checkBlockFlowIndent s c = .ok () := by
-  unfold scanNextTokenIx_checkBlockFlowIndent
-  simp only [h_flow, Bool.not_true, Bool.false_and, Bool.false_eq_true, ↓reduceIte]
-
-/-- At initial state (`flowLevel = 0`, `currentIndent = -1`),
-    `checkBlockFlowIndent` passes for `'['` (the indent guard fails
-    because `-1 ≥ 0` is false). -/
-lemma checkBlockFlowIndent_bracket_init (s : ScannerStateIx input)
-    (h_fl : s.flowLevel = 0)
-    (h_indent : s.currentIndent = -1) :
-    scanNextTokenIx_checkBlockFlowIndent s '[' = .ok () := by
-  unfold scanNextTokenIx_checkBlockFlowIndent
-  have h_not_inflow : s.inFlow = false := by
-    unfold ScannerStateIx.inFlow; rw [h_fl]; rfl
-  have h_indent_neg : ¬ (s.currentIndent ≥ (0 : Int)) := by rw [h_indent]; decide
-  simp only [h_not_inflow, Bool.not_false, Bool.true_and, h_indent_neg,
-    decide_false, Bool.false_and, Bool.false_eq_true, ↓reduceIte]
-
-/-- At initial state, `checkBlockFlowIndent` passes for `'{'`. -/
-lemma checkBlockFlowIndent_brace_init (s : ScannerStateIx input)
-    (h_fl : s.flowLevel = 0)
-    (h_indent : s.currentIndent = -1) :
-    scanNextTokenIx_checkBlockFlowIndent s '{' = .ok () := by
-  unfold scanNextTokenIx_checkBlockFlowIndent
-  have h_not_inflow : s.inFlow = false := by
-    unfold ScannerStateIx.inFlow; rw [h_fl]; rfl
-  have h_indent_neg : ¬ (s.currentIndent ≥ (0 : Int)) := by rw [h_indent]; decide
-  simp only [h_not_inflow, Bool.not_false, Bool.true_and, h_indent_neg,
-    decide_false, Bool.false_and, Bool.false_eq_true, ↓reduceIte]
-
-/-- The indent guard fires only on `'['` / `'{'`; for `','` it passes. -/
-lemma checkBlockFlowIndent_ok_comma (s : ScannerStateIx input) :
-    scanNextTokenIx_checkBlockFlowIndent s ',' = .ok () := by
-  unfold scanNextTokenIx_checkBlockFlowIndent
-  simp only [show (',' == '[') = false from by decide,
-    show (',' == '{') = false from by decide, Bool.or_self,
-    Bool.and_false, Bool.false_eq_true, ↓reduceIte]
-
-/-- The indent guard fires only on `'['` / `'{'`; for `']'` it passes. -/
-lemma checkBlockFlowIndent_ok_close_bracket (s : ScannerStateIx input) :
-    scanNextTokenIx_checkBlockFlowIndent s ']' = .ok () := by
-  unfold scanNextTokenIx_checkBlockFlowIndent
-  simp only [show (']' == '[') = false from by decide,
-    show (']' == '{') = false from by decide, Bool.or_self,
-    Bool.and_false, Bool.false_eq_true, ↓reduceIte]
-
-/-- The indent guard fires only on `'['` / `'{'`; for `'}'` it passes. -/
-lemma checkBlockFlowIndent_ok_close_brace (s : ScannerStateIx input) :
-    scanNextTokenIx_checkBlockFlowIndent s '}' = .ok () := by
-  unfold scanNextTokenIx_checkBlockFlowIndent
-  simp only [show ('}' == '[') = false from by decide,
-    show ('}' == '{') = false from by decide, Bool.or_self,
-    Bool.and_false, Bool.false_eq_true, ↓reduceIte]
 
 /-! ## §3  `dispatchFlowIndicators` return-value lemmas -/
 
@@ -374,7 +312,7 @@ lemma scanNextTokenIx_via_content_dispatch
     (h_struct : scanNextTokenIx_dispatchStructural s_pp c = .ok none)
     (h_ad_eq : s_ad = if s_pp.allowDirectives then
       { s_pp with allowDirectives := false, documentEverStarted := true } else s_pp)
-    (h_check : scanNextTokenIx_checkBlockFlowIndent s_ad c = .ok ())
+    (h_fv : scanNextTokenIx_checkFlowValueIndent s s_pp = .ok ())
     (h_flow : scanNextTokenIx_dispatchFlowIndicators s_ad c = .ok none)
     (h_block : scanNextTokenIx_dispatchBlockIndicators s_ad c = .ok none)
     (h_adj : scanNextTokenIx_checkAdjacentValue s_ad c = .ok ())
@@ -387,11 +325,11 @@ lemma scanNextTokenIx_via_content_dispatch
   simp only [bind, Except.bind, pure, Pure.pure, Except.pure]
   rw [h_pp]; dsimp only []
   rw [h_dang]; dsimp only []
+  rw [h_fv]; dsimp only []
   rw [h_struct]; dsimp only []
   rw [scanNextTokenIx_checkNoPendingDirectives_ok _ h_ndp]; dsimp only []
   rw [h_bare]; dsimp only []
   rw [← h_ad_eq]
-  rw [h_check]; dsimp only []
   rw [h_flow]; dsimp only []
   rw [h_block]; dsimp only []
   rw [h_adj]; dsimp only []
@@ -406,7 +344,7 @@ lemma scanNextTokenIx_via_content_dispatch_error
     (h_struct : scanNextTokenIx_dispatchStructural s_pp c = .ok none)
     (h_ad_eq : s_ad = if s_pp.allowDirectives then
       { s_pp with allowDirectives := false, documentEverStarted := true } else s_pp)
-    (h_check : scanNextTokenIx_checkBlockFlowIndent s_ad c = .ok ())
+    (h_fv : scanNextTokenIx_checkFlowValueIndent s s_pp = .ok ())
     (h_flow : scanNextTokenIx_dispatchFlowIndicators s_ad c = .ok none)
     (h_block : scanNextTokenIx_dispatchBlockIndicators s_ad c = .ok none)
     (h_adj : scanNextTokenIx_checkAdjacentValue s_ad c = .ok ())
@@ -419,11 +357,11 @@ lemma scanNextTokenIx_via_content_dispatch_error
   simp only [bind, Except.bind, pure, Pure.pure, Except.pure]
   rw [h_pp]; dsimp only []
   rw [h_dang]; dsimp only []
+  rw [h_fv]; dsimp only []
   rw [h_struct]; dsimp only []
   rw [scanNextTokenIx_checkNoPendingDirectives_ok _ h_ndp]; dsimp only []
   rw [h_bare]; dsimp only []
   rw [← h_ad_eq]
-  rw [h_check]; dsimp only []
   rw [h_flow]; dsimp only []
   rw [h_block]; dsimp only []
   rw [h_adj]; dsimp only []
@@ -439,7 +377,7 @@ lemma scanNextTokenIx_via_block_dispatch
     (h_struct : scanNextTokenIx_dispatchStructural s_pp c = .ok none)
     (h_ad_eq : s_ad = if s_pp.allowDirectives then
       { s_pp with allowDirectives := false, documentEverStarted := true } else s_pp)
-    (h_check : scanNextTokenIx_checkBlockFlowIndent s_ad c = .ok ())
+    (h_fv : scanNextTokenIx_checkFlowValueIndent s s_pp = .ok ())
     (h_flow : scanNextTokenIx_dispatchFlowIndicators s_ad c = .ok none)
     (h_block : scanNextTokenIx_dispatchBlockIndicators s_ad c = .ok (some s_result))
     (h_ndp : s_pp.directivesPresent = false)
@@ -450,11 +388,11 @@ lemma scanNextTokenIx_via_block_dispatch
   simp only [bind, Except.bind, pure, Pure.pure, Except.pure]
   rw [h_pp]; dsimp only []
   rw [h_dang]; dsimp only []
+  rw [h_fv]; dsimp only []
   rw [h_struct]; dsimp only []
   rw [scanNextTokenIx_checkNoPendingDirectives_ok _ h_ndp]; dsimp only []
   rw [h_bare]; dsimp only []
   rw [← h_ad_eq]
-  rw [h_check]; dsimp only []
   rw [h_flow]; dsimp only []
   rw [h_block]
 

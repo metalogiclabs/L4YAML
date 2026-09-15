@@ -864,6 +864,9 @@ lemma scanNextTokenIx_maintains_SKAFIx {input : String}
       -- §9.2 dangling-node check (item 133)
       split at h_next
       · contradiction
+      -- §8.1 flow-value floor (item 172)
+      split at h_next
+      · contradiction
       -- Split on dispatchStructural outcome
       split at h_next
       · contradiction
@@ -901,41 +904,38 @@ lemma scanNextTokenIx_maintains_SKAFIx {input : String}
           -- §9.2 bare-document check (item 132)
           split at h_next
           · contradiction
-          · -- Split on checkBlockFlowIndent
-            split at h_next
+          · split at h_next
             · contradiction
             · split at h_next
-              · contradiction
-              · split at h_next
-                · -- FlowIndicators dispatch produced some s''
-                  rename_i s'' hFlow
-                  simp only [Except.ok.injEq, Option.some.injEq] at h_next
-                  subst h_next
-                  exact scanNextTokenIx_dispatchFlowIndicators_maintains_SKAFIx _ _ _ hFlow
-                    n₀ fl₀ h_s2_tok h_s2_inv h_s2_sync h_fl_post
-                · -- FlowIndicators returned none → BlockIndicators
-                  rename_i hFlowNone
-                  split at h_next
-                  · contradiction
-                  · split at h_next
-                    · -- BlockIndicators dispatch produced some s''
-                      rename_i s'' hBlock
-                      simp only [Except.ok.injEq, Option.some.injEq] at h_next
-                      subst h_next
-                      exact scanNextTokenIx_dispatchBlockIndicators_maintains_SKAFIx _ _ _ hBlock
-                        n₀ fl₀ h_s2_tok h_s2_inv
-                    · -- BlockIndicators returned none → Content
-                      rename_i hBlockNone
-                      -- item 47: adjacent-value check (pure, no state change)
-                      split at h_next
+              · -- FlowIndicators dispatch produced some s''
+                rename_i s'' hFlow
+                simp only [Except.ok.injEq, Option.some.injEq] at h_next
+                subst h_next
+                exact scanNextTokenIx_dispatchFlowIndicators_maintains_SKAFIx _ _ _ hFlow
+                  n₀ fl₀ h_s2_tok h_s2_inv h_s2_sync h_fl_post
+              · -- FlowIndicators returned none → BlockIndicators
+                rename_i hFlowNone
+                split at h_next
+                · contradiction
+                · split at h_next
+                  · -- BlockIndicators dispatch produced some s''
+                    rename_i s'' hBlock
+                    simp only [Except.ok.injEq, Option.some.injEq] at h_next
+                    subst h_next
+                    exact scanNextTokenIx_dispatchBlockIndicators_maintains_SKAFIx _ _ _ hBlock
+                      n₀ fl₀ h_s2_tok h_s2_inv
+                  · -- BlockIndicators returned none → Content
+                    rename_i hBlockNone
+                    -- item 47: adjacent-value check (pure, no state change)
+                    split at h_next
+                    · contradiction
+                    · split at h_next
                       · contradiction
-                      · split at h_next
-                        · contradiction
-                        · rename_i sC hContent
-                          simp only [Except.ok.injEq, Option.some.injEq] at h_next
-                          subst h_next
-                          exact scanNextTokenIx_dispatchContent_maintains_SKAFIx _ _ _ hContent
-                            n₀ fl₀ h_s2_tok h_s2_inv
+                      · rename_i sC hContent
+                        simp only [Except.ok.injEq, Option.some.injEq] at h_next
+                        subst h_next
+                        exact scanNextTokenIx_dispatchContent_maintains_SKAFIx _ _ _ hContent
+                          n₀ fl₀ h_s2_tok h_s2_inv
 
 /-! ## Fix-B pending-directives check helpers (indexed twins of
 `scanNextToken_checkNoPendingDirectives_ok` / `scanNextToken_ok_directivesPresent_false`). -/
@@ -1043,6 +1043,124 @@ lemma scanLoopIx_checkDanglingNode_ok_of_sentinel_stack {input : String}
   unfold scanLoopIx_checkDanglingNode
   rw [danglingNodePosIx?_none_of_sentinel_stack s h]
 
+/-! #### Item 172: the §8.1 flow-value floor's indexed discharge family
+
+Twins of the legacy family in `EmitterScannability/ScanSteps.lean` — the
+reading is `danglingNodePosIx?`'s slot-offered complement and its discharges
+are the same. -/
+
+lemma underIndentedFlowValuePosIx?_none_of_inFlow {input : String}
+    (s : ScannerStateIx input) (h : s.inFlow = true) :
+    underIndentedFlowValuePosIx? s = none := by
+  simp only [underIndentedFlowValuePosIx?, h, ↓reduceIte]
+
+lemma underIndentedFlowValuePosIx?_none_of_sentinel_stack {input : String}
+    (s : ScannerStateIx input)
+    (h : s.indents = #[{ column := -1, isSequence := false }]) :
+    underIndentedFlowValuePosIx? s = none := by
+  have hnone : ∀ n : Nat, s.indents.any (fun e => e.column == (n : Int)) = false := by
+    intro n
+    rw [h, Array.any_eq_false]
+    intro i hi
+    have hi0 : i = 0 := by simp at hi; omega
+    subst hi0
+    simp only [beq_iff_eq]
+    show ¬ ((-1 : Int) = (n : Int))
+    omega
+  unfold underIndentedFlowValuePosIx?
+  split
+  · rfl
+  · split
+    · rfl
+    · split
+      · rfl
+      · split
+        · rfl
+        · simp only [hnone, Bool.and_false, Bool.false_eq_true, ↓reduceIte]
+
+lemma underIndentedFlowValuePosIx?_none_of_no_run {input : String}
+    (s : ScannerStateIx input)
+    (h : trailingNodeRunIx? s.tokens = none) : underIndentedFlowValuePosIx? s = none := by
+  cases hif : s.inFlow with
+  | true => exact underIndentedFlowValuePosIx?_none_of_inFlow s hif
+  | false =>
+    cases hpr : prevRealIdxIx? s.tokens s.tokens.tokens.size with
+    | none => simp [underIndentedFlowValuePosIx?, hif, hpr]
+    | some i =>
+      cases hcl : s.tokens.tokens[i]!.token.isFlowClose with
+      | false => simp [underIndentedFlowValuePosIx?, hif, hpr, hcl]
+      | true =>
+        cases hprop : s.tokens.tokens[i]!.token.isNodeProperty with
+        | true => simp [trailingNodeRunIx?, hpr, hprop] at h
+        | false =>
+          cases hbody : s.tokens.tokens[i]!.token.isNodeBody with
+          | true => simp [trailingNodeRunIx?, hpr, hprop, hbody] at h
+          | false =>
+            cases hfo : flowOpenIdxIx? s.tokens i with
+            | some o => simp [trailingNodeRunIx?, hpr, hprop, hbody, hcl, hfo] at h
+            | none => simp [underIndentedFlowValuePosIx?, hif, hpr, hcl, hfo]
+
+lemma scanNextTokenIx_checkFlowValueIndent_ok_of_none {input : String}
+    (s_run s_land : ScannerStateIx input)
+    (h : underIndentedFlowValuePosIx? s_run = none) :
+    scanNextTokenIx_checkFlowValueIndent s_run s_land = .ok () := by
+  unfold scanNextTokenIx_checkFlowValueIndent
+  rw [h]
+  split <;> rfl
+
+lemma scanNextTokenIx_checkFlowValueIndent_ok_of_keyNotAllowed {input : String}
+    (s_run s_land : ScannerStateIx input)
+    (h : s_land.simpleKeyAllowed = false) :
+    scanNextTokenIx_checkFlowValueIndent s_run s_land = .ok () := by
+  simp only [scanNextTokenIx_checkFlowValueIndent, h, Bool.false_eq_true, ↓reduceIte]
+
+lemma scanNextTokenIx_checkFlowValueIndent_ok_of_inFlow {input : String}
+    (s_run s_land : ScannerStateIx input) (h : s_run.inFlow = true) :
+    scanNextTokenIx_checkFlowValueIndent s_run s_land = .ok () :=
+  scanNextTokenIx_checkFlowValueIndent_ok_of_none s_run s_land
+    (underIndentedFlowValuePosIx?_none_of_inFlow s_run h)
+
+lemma scanNextTokenIx_checkFlowValueIndent_ok_of_sentinel_stack {input : String}
+    (s_run s_land : ScannerStateIx input)
+    (h : s_run.indents = #[{ column := -1, isSequence := false }]) :
+    scanNextTokenIx_checkFlowValueIndent s_run s_land = .ok () :=
+  scanNextTokenIx_checkFlowValueIndent_ok_of_none s_run s_land
+    (underIndentedFlowValuePosIx?_none_of_sentinel_stack s_run h)
+
+lemma scanNextTokenIx_checkFlowValueIndent_ok_of_no_run {input : String}
+    (s_run s_land : ScannerStateIx input)
+    (h : trailingNodeRunIx? s_run.tokens = none) :
+    scanNextTokenIx_checkFlowValueIndent s_run s_land = .ok () :=
+  scanNextTokenIx_checkFlowValueIndent_ok_of_none s_run s_land
+    (underIndentedFlowValuePosIx?_none_of_no_run s_run h)
+
+lemma scanLoopIx_checkFlowValueIndent_ok_of_none {input : String}
+    (s : ScannerStateIx input)
+    (h : underIndentedFlowValuePosIx? s = none) :
+    scanLoopIx_checkFlowValueIndent s = .ok () := by
+  unfold scanLoopIx_checkFlowValueIndent
+  rw [h]
+
+lemma scanLoopIx_checkFlowValueIndent_ok_of_inFlow {input : String}
+    (s : ScannerStateIx input) (h : s.inFlow = true) :
+    scanLoopIx_checkFlowValueIndent s = .ok () :=
+  scanLoopIx_checkFlowValueIndent_ok_of_none s
+    (underIndentedFlowValuePosIx?_none_of_inFlow s h)
+
+lemma scanLoopIx_checkFlowValueIndent_ok_of_sentinel_stack {input : String}
+    (s : ScannerStateIx input)
+    (h : s.indents = #[{ column := -1, isSequence := false }]) :
+    scanLoopIx_checkFlowValueIndent s = .ok () :=
+  scanLoopIx_checkFlowValueIndent_ok_of_none s
+    (underIndentedFlowValuePosIx?_none_of_sentinel_stack s h)
+
+lemma scanLoopIx_checkFlowValueIndent_ok_of_no_run {input : String}
+    (s : ScannerStateIx input) (h : trailingNodeRunIx? s.tokens = none) :
+    scanLoopIx_checkFlowValueIndent s = .ok () :=
+  scanLoopIx_checkFlowValueIndent_ok_of_none s
+    (underIndentedFlowValuePosIx?_none_of_no_run s h)
+
+
 /-- …and wherever nothing behind the cursor completes a node. -/
 lemma scanNextTokenIx_checkBareDocument_ok_of_last {input : String}
     (s : ScannerStateIx input)
@@ -1069,6 +1187,23 @@ lemma scanNextTokenIx_ok_checkDanglingNode {input : String}
       simp only [bind, Except.bind, h_pp, h_dn]
     rw [h_err] at h_snt
     injection h_snt
+/-- Converse extraction for item 172's §8.1 flow-value floor — the dangling
+    check's immediate successor in the indexed spine. -/
+lemma scanNextTokenIx_ok_checkFlowValueIndent {input : String}
+    {s s_pp : ScannerStateIx input} {c : Char} {r : Option (ScannerStateIx input)}
+    (h_pp : scanNextTokenIx_preprocess s = .ok (some (s_pp, c)))
+    (h_snt : scanNextTokenIx s = .ok r) :
+    scanNextTokenIx_checkFlowValueIndent s s_pp = .ok () := by
+  cases h_fv : scanNextTokenIx_checkFlowValueIndent s s_pp with
+  | ok u => cases u; rfl
+  | error e =>
+    exfalso
+    have h_err : scanNextTokenIx s = .error e := by
+      unfold scanNextTokenIx
+      simp only [bind, Except.bind, h_pp,
+        scanNextTokenIx_ok_checkDanglingNode h_pp h_snt, h_fv]
+    rw [h_err] at h_snt
+    injection h_snt
 
 /-- Converse dp extraction (Fix B): if `scanNextTokenIx` succeeded and the
     pipeline reached past structural dispatch, the pending-directives check
@@ -1089,7 +1224,8 @@ lemma scanNextTokenIx_ok_directivesPresent_false {input : String}
         = .error (.directiveWithoutDocument s_pp.cursor.pos.line) := by
       unfold scanNextTokenIx
       simp only [bind, Except.bind, h_pp,
-        scanNextTokenIx_ok_checkDanglingNode h_pp h_snt, h_struct, h_check_err]
+        scanNextTokenIx_ok_checkDanglingNode h_pp h_snt,
+        scanNextTokenIx_ok_checkFlowValueIndent h_pp h_snt, h_struct, h_check_err]
     rw [h_err] at h_snt
     injection h_snt
 
@@ -1109,7 +1245,8 @@ lemma scanNextTokenIx_ok_checkBareDocument {input : String}
     have h_err : scanNextTokenIx s = .error e := by
       unfold scanNextTokenIx
       simp only [bind, Except.bind, h_pp,
-        scanNextTokenIx_ok_checkDanglingNode h_pp h_snt, h_struct,
+        scanNextTokenIx_ok_checkDanglingNode h_pp h_snt,
+        scanNextTokenIx_ok_checkFlowValueIndent h_pp h_snt, h_struct,
         scanNextTokenIx_checkNoPendingDirectives_ok _ h_ndp, h_bd]
     rw [h_err] at h_snt
     injection h_snt

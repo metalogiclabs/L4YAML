@@ -59,6 +59,14 @@ lemma scanNextTokenIx_preserves_ScanInvIx
       obtain ⟨uDN, h_dn⟩ := h_dn
       rw [h_dn] at h_ok
       simp only at h_ok
+      -- §8.1 flow-value floor (item 172): peeled the same way.
+      have h_fvp : ∃ u, scanNextTokenIx_checkFlowValueIndent s sp = .ok u := by
+        cases hx : scanNextTokenIx_checkFlowValueIndent s sp with
+        | error e => rw [hx] at h_ok; cases h_ok
+        | ok u => exact ⟨u, rfl⟩
+      obtain ⟨uFV, h_fvp⟩ := h_fvp
+      rw [h_fvp] at h_ok
+      simp only at h_ok
       cases hStr : scanNextTokenIx_dispatchStructural sp c with
       | error e => rw [hStr] at h_ok; cases h_ok
       | ok structRes =>
@@ -94,76 +102,68 @@ lemma scanNextTokenIx_preserves_ScanInvIx
               refine AllKeysValidIx_mono _ _ h_sp_akv rfl rfl ?_ ?_
               · exact Nat.le_refl _
               · intro i hi; rfl
-            cases hChk : scanNextTokenIx_checkBlockFlowIndent sadj c with
-            | error e => rw [hChk] at h_ok; cases h_ok
-            | ok _ =>
-              rw [hChk] at h_ok
-              cases hFlow : scanNextTokenIx_dispatchFlowIndicators sadj c with
-              | error e => rw [hFlow] at h_ok; cases h_ok
-              | ok flowRes =>
-                rw [hFlow] at h_ok
-                cases flowRes with
-                | some _ =>
-                  cases h_ok
-                  exact scanNextTokenIx_dispatchFlowIndicators_preserves_ScanInvIx h_sadj hFlow
-                | none =>
-                  cases hBlk : scanNextTokenIx_dispatchBlockIndicators sadj c with
-                  | error e => rw [hBlk] at h_ok; cases h_ok
-                  | ok blkRes =>
-                    rw [hBlk] at h_ok
-                    cases blkRes with
-                    | some _ =>
+            cases hFlow : scanNextTokenIx_dispatchFlowIndicators sadj c with
+            | error e => rw [hFlow] at h_ok; cases h_ok
+            | ok flowRes =>
+              rw [hFlow] at h_ok
+              cases flowRes with
+              | some _ =>
+                cases h_ok
+                exact scanNextTokenIx_dispatchFlowIndicators_preserves_ScanInvIx h_sadj hFlow
+              | none =>
+                cases hBlk : scanNextTokenIx_dispatchBlockIndicators sadj c with
+                | error e => rw [hBlk] at h_ok; cases h_ok
+                | ok blkRes =>
+                  rw [hBlk] at h_ok
+                  cases blkRes with
+                  | some _ =>
+                    cases h_ok
+                    exact scanNextTokenIx_dispatchBlockIndicators_preserves_ScanInvIx
+                      h_sadj h_sadj_akv hBlk
+                  | none =>
+                    -- item 47: adjacent-value check (pure, no state change)
+                    cases hAdj : scanNextTokenIx_checkAdjacentValue sadj c with
+                    | error e => rw [hAdj] at h_ok; cases h_ok
+                    | ok _ =>
+                    rw [hAdj] at h_ok
+                    cases hCon : scanNextTokenIx_dispatchContent sadj c with
+                    | error e => rw [hCon] at h_ok; cases h_ok
+                    | ok _ =>
+                      rw [hCon] at h_ok
                       cases h_ok
-                      exact scanNextTokenIx_dispatchBlockIndicators_preserves_ScanInvIx
-                        h_sadj h_sadj_akv hBlk
-                    | none =>
-                      -- item 47: adjacent-value check (pure, no state change)
-                      cases hAdj : scanNextTokenIx_checkAdjacentValue sadj c with
-                      | error e => rw [hAdj] at h_ok; cases h_ok
-                      | ok _ =>
-                      rw [hAdj] at h_ok
-                      cases hCon : scanNextTokenIx_dispatchContent sadj c with
-                      | error e => rw [hCon] at h_ok; cases h_ok
-                      | ok _ =>
-                        rw [hCon] at h_ok
-                        cases h_ok
-                        exact scanNextTokenIx_dispatchContent_preserves_ScanInvIx h_sadj hCon
+                      exact scanNextTokenIx_dispatchContent_preserves_ScanInvIx h_sadj hCon
           · -- allowDirectives = false: sadj = sp
             rw [if_neg hAD] at h_ok
-            cases hChk : scanNextTokenIx_checkBlockFlowIndent sp c with
-            | error e => rw [hChk] at h_ok; cases h_ok
-            | ok _ =>
-              rw [hChk] at h_ok
-              cases hFlow : scanNextTokenIx_dispatchFlowIndicators sp c with
-              | error e => rw [hFlow] at h_ok; cases h_ok
-              | ok flowRes =>
-                rw [hFlow] at h_ok
-                cases flowRes with
-                | some _ =>
-                  cases h_ok
-                  exact scanNextTokenIx_dispatchFlowIndicators_preserves_ScanInvIx h_sp hFlow
-                | none =>
-                  cases hBlk : scanNextTokenIx_dispatchBlockIndicators sp c with
-                  | error e => rw [hBlk] at h_ok; cases h_ok
-                  | ok blkRes =>
-                    rw [hBlk] at h_ok
-                    cases blkRes with
-                    | some _ =>
+            cases hFlow : scanNextTokenIx_dispatchFlowIndicators sp c with
+            | error e => rw [hFlow] at h_ok; cases h_ok
+            | ok flowRes =>
+              rw [hFlow] at h_ok
+              cases flowRes with
+              | some _ =>
+                cases h_ok
+                exact scanNextTokenIx_dispatchFlowIndicators_preserves_ScanInvIx h_sp hFlow
+              | none =>
+                cases hBlk : scanNextTokenIx_dispatchBlockIndicators sp c with
+                | error e => rw [hBlk] at h_ok; cases h_ok
+                | ok blkRes =>
+                  rw [hBlk] at h_ok
+                  cases blkRes with
+                  | some _ =>
+                    cases h_ok
+                    exact scanNextTokenIx_dispatchBlockIndicators_preserves_ScanInvIx
+                      h_sp h_sp_akv hBlk
+                  | none =>
+                    -- item 47: adjacent-value check (pure, no state change)
+                    cases hAdj : scanNextTokenIx_checkAdjacentValue sp c with
+                    | error e => rw [hAdj] at h_ok; cases h_ok
+                    | ok _ =>
+                    rw [hAdj] at h_ok
+                    cases hCon : scanNextTokenIx_dispatchContent sp c with
+                    | error e => rw [hCon] at h_ok; cases h_ok
+                    | ok _ =>
+                      rw [hCon] at h_ok
                       cases h_ok
-                      exact scanNextTokenIx_dispatchBlockIndicators_preserves_ScanInvIx
-                        h_sp h_sp_akv hBlk
-                    | none =>
-                      -- item 47: adjacent-value check (pure, no state change)
-                      cases hAdj : scanNextTokenIx_checkAdjacentValue sp c with
-                      | error e => rw [hAdj] at h_ok; cases h_ok
-                      | ok _ =>
-                      rw [hAdj] at h_ok
-                      cases hCon : scanNextTokenIx_dispatchContent sp c with
-                      | error e => rw [hCon] at h_ok; cases h_ok
-                      | ok _ =>
-                        rw [hCon] at h_ok
-                        cases h_ok
-                        exact scanNextTokenIx_dispatchContent_preserves_ScanInvIx h_sp hCon
+                      exact scanNextTokenIx_dispatchContent_preserves_ScanInvIx h_sp hCon
 
 lemma scanNextTokenIx_preserves_AllKeysValidIx
     {s s' : ScannerStateIx input} (h_akv : AllKeysValidIx s)
@@ -187,6 +187,14 @@ lemma scanNextTokenIx_preserves_AllKeysValidIx
         | ok u => exact ⟨u, rfl⟩
       obtain ⟨uDN, h_dn⟩ := h_dn
       rw [h_dn] at h_ok
+      simp only at h_ok
+      -- §8.1 flow-value floor (item 172): peeled the same way.
+      have h_fvp : ∃ u, scanNextTokenIx_checkFlowValueIndent s sp = .ok u := by
+        cases hx : scanNextTokenIx_checkFlowValueIndent s sp with
+        | error e => rw [hx] at h_ok; cases h_ok
+        | ok u => exact ⟨u, rfl⟩
+      obtain ⟨uFV, h_fvp⟩ := h_fvp
+      rw [h_fvp] at h_ok
       simp only at h_ok
       cases hStr : scanNextTokenIx_dispatchStructural sp c with
       | error e => rw [hStr] at h_ok; cases h_ok
@@ -220,75 +228,67 @@ lemma scanNextTokenIx_preserves_AllKeysValidIx
               refine AllKeysValidIx_mono _ _ h_sp_akv rfl rfl ?_ ?_
               · exact Nat.le_refl _
               · intro i hi; rfl
-            cases hChk : scanNextTokenIx_checkBlockFlowIndent sadj c with
-            | error e => rw [hChk] at h_ok; cases h_ok
-            | ok _ =>
-              rw [hChk] at h_ok
-              cases hFlow : scanNextTokenIx_dispatchFlowIndicators sadj c with
-              | error e => rw [hFlow] at h_ok; cases h_ok
-              | ok flowRes =>
-                rw [hFlow] at h_ok
-                cases flowRes with
-                | some _ =>
-                  cases h_ok
-                  exact scanNextTokenIx_dispatchFlowIndicators_preserves_AllKeysValidIx h_sadj_akv hFlow
-                | none =>
-                  cases hBlk : scanNextTokenIx_dispatchBlockIndicators sadj c with
-                  | error e => rw [hBlk] at h_ok; cases h_ok
-                  | ok blkRes =>
-                    rw [hBlk] at h_ok
-                    cases blkRes with
-                    | some _ =>
+            cases hFlow : scanNextTokenIx_dispatchFlowIndicators sadj c with
+            | error e => rw [hFlow] at h_ok; cases h_ok
+            | ok flowRes =>
+              rw [hFlow] at h_ok
+              cases flowRes with
+              | some _ =>
+                cases h_ok
+                exact scanNextTokenIx_dispatchFlowIndicators_preserves_AllKeysValidIx h_sadj_akv hFlow
+              | none =>
+                cases hBlk : scanNextTokenIx_dispatchBlockIndicators sadj c with
+                | error e => rw [hBlk] at h_ok; cases h_ok
+                | ok blkRes =>
+                  rw [hBlk] at h_ok
+                  cases blkRes with
+                  | some _ =>
+                    cases h_ok
+                    exact scanNextTokenIx_dispatchBlockIndicators_preserves_AllKeysValidIx
+                      h_sadj_akv hBlk
+                  | none =>
+                    -- item 47: adjacent-value check (pure, no state change)
+                    cases hAdj : scanNextTokenIx_checkAdjacentValue sadj c with
+                    | error e => rw [hAdj] at h_ok; cases h_ok
+                    | ok _ =>
+                    rw [hAdj] at h_ok
+                    cases hCon : scanNextTokenIx_dispatchContent sadj c with
+                    | error e => rw [hCon] at h_ok; cases h_ok
+                    | ok _ =>
+                      rw [hCon] at h_ok
                       cases h_ok
-                      exact scanNextTokenIx_dispatchBlockIndicators_preserves_AllKeysValidIx
-                        h_sadj_akv hBlk
-                    | none =>
-                      -- item 47: adjacent-value check (pure, no state change)
-                      cases hAdj : scanNextTokenIx_checkAdjacentValue sadj c with
-                      | error e => rw [hAdj] at h_ok; cases h_ok
-                      | ok _ =>
-                      rw [hAdj] at h_ok
-                      cases hCon : scanNextTokenIx_dispatchContent sadj c with
-                      | error e => rw [hCon] at h_ok; cases h_ok
-                      | ok _ =>
-                        rw [hCon] at h_ok
-                        cases h_ok
-                        exact scanNextTokenIx_dispatchContent_preserves_AllKeysValidIx h_sadj_akv hCon
+                      exact scanNextTokenIx_dispatchContent_preserves_AllKeysValidIx h_sadj_akv hCon
           · rw [if_neg hAD] at h_ok
-            cases hChk : scanNextTokenIx_checkBlockFlowIndent sp c with
-            | error e => rw [hChk] at h_ok; cases h_ok
-            | ok _ =>
-              rw [hChk] at h_ok
-              cases hFlow : scanNextTokenIx_dispatchFlowIndicators sp c with
-              | error e => rw [hFlow] at h_ok; cases h_ok
-              | ok flowRes =>
-                rw [hFlow] at h_ok
-                cases flowRes with
-                | some _ =>
-                  cases h_ok
-                  exact scanNextTokenIx_dispatchFlowIndicators_preserves_AllKeysValidIx h_sp_akv hFlow
-                | none =>
-                  cases hBlk : scanNextTokenIx_dispatchBlockIndicators sp c with
-                  | error e => rw [hBlk] at h_ok; cases h_ok
-                  | ok blkRes =>
-                    rw [hBlk] at h_ok
-                    cases blkRes with
-                    | some _ =>
+            cases hFlow : scanNextTokenIx_dispatchFlowIndicators sp c with
+            | error e => rw [hFlow] at h_ok; cases h_ok
+            | ok flowRes =>
+              rw [hFlow] at h_ok
+              cases flowRes with
+              | some _ =>
+                cases h_ok
+                exact scanNextTokenIx_dispatchFlowIndicators_preserves_AllKeysValidIx h_sp_akv hFlow
+              | none =>
+                cases hBlk : scanNextTokenIx_dispatchBlockIndicators sp c with
+                | error e => rw [hBlk] at h_ok; cases h_ok
+                | ok blkRes =>
+                  rw [hBlk] at h_ok
+                  cases blkRes with
+                  | some _ =>
+                    cases h_ok
+                    exact scanNextTokenIx_dispatchBlockIndicators_preserves_AllKeysValidIx
+                      h_sp_akv hBlk
+                  | none =>
+                    -- item 47: adjacent-value check (pure, no state change)
+                    cases hAdj : scanNextTokenIx_checkAdjacentValue sp c with
+                    | error e => rw [hAdj] at h_ok; cases h_ok
+                    | ok _ =>
+                    rw [hAdj] at h_ok
+                    cases hCon : scanNextTokenIx_dispatchContent sp c with
+                    | error e => rw [hCon] at h_ok; cases h_ok
+                    | ok _ =>
+                      rw [hCon] at h_ok
                       cases h_ok
-                      exact scanNextTokenIx_dispatchBlockIndicators_preserves_AllKeysValidIx
-                        h_sp_akv hBlk
-                    | none =>
-                      -- item 47: adjacent-value check (pure, no state change)
-                      cases hAdj : scanNextTokenIx_checkAdjacentValue sp c with
-                      | error e => rw [hAdj] at h_ok; cases h_ok
-                      | ok _ =>
-                      rw [hAdj] at h_ok
-                      cases hCon : scanNextTokenIx_dispatchContent sp c with
-                      | error e => rw [hCon] at h_ok; cases h_ok
-                      | ok _ =>
-                        rw [hCon] at h_ok
-                        cases h_ok
-                        exact scanNextTokenIx_dispatchContent_preserves_AllKeysValidIx h_sp_akv hCon
+                      exact scanNextTokenIx_dispatchContent_preserves_AllKeysValidIx h_sp_akv hCon
 
 /-! ### §8.10  `scanLoopIx_ordered` — fuel induction proving ScanInvIx
 of the final TokenStream.
@@ -332,6 +332,13 @@ lemma scanLoopIx_ordered {s : ScannerStateIx input} {fuel : Nat}
               | ok u => exact ⟨u, rfl⟩
             obtain ⟨uDN, hDN⟩ := hDN
             rw [hDN] at h_ok
+            -- §8.1 flow-value floor (item 172): peeled the same way.
+            have hFV : ∃ u, scanLoopIx_checkFlowValueIndent s = .ok u := by
+              cases hx : scanLoopIx_checkFlowValueIndent s with
+              | error e => rw [hx] at h_ok; cases h_ok
+              | ok u => exact ⟨u, rfl⟩
+            obtain ⟨uFV, hFV⟩ := hFV
+            rw [hFV] at h_ok
             cases h_ok
             -- ts = ((unwindIndentsIx s (-1)).emit streamEnd).tokens
             -- Apply: unwindIndentsIx preserves ScanInvIx → emit preserves ScanInvIx → extract ordering.

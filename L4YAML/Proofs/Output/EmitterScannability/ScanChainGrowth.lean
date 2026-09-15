@@ -467,8 +467,8 @@ lemma scanNextToken_flow_value (s : ScannerState)
   -- Step 4: checkBlockFlowIndent passes in flow
   have h_ad_flow : s_ad.inFlow = s.inFlow := by
     simp only [s_ad]; split <;> exact h_sk_flow
-  have h_check : scanNextToken_checkBlockFlowIndent s_ad ':' = .ok () :=
-    checkBlockFlowIndent_ok_flow _ _ (h_ad_flow ▸ h_flow)
+  have h_fv : scanNextToken_checkFlowValueIndent s (saveSimpleKey s) = .ok () :=
+    scanNextToken_checkFlowValueIndent_ok_of_inFlow _ _ h_flow
   -- Step 5: isValueCandidate via peekAt? 1 = space fallback.  Item 9d moved this
   -- ahead of the flow dispatch: the adjacency check exempts `:` only while it is
   -- a value indicator, and `isValueCandidate` is exactly that side condition.
@@ -578,7 +578,7 @@ lemma scanNextToken_flow_value (s : ScannerState)
   -- Compose pipeline
   have h_snt : scanNextToken s = .ok (some s_final) :=
     scanNextToken_via_block_dispatch s (saveSimpleKey s) s_ad s_final ':'
-      h_pp h_struct (by rfl) h_check h_flow_none h_block_result
+      h_pp h_struct (by rfl) h_fv h_flow_none h_block_result
       ((saveSimpleKey_preserves_directivesPresent s).trans h_dp)
       (scanNextToken_checkBareDocument_ok_of_inFlow _
         ((saveSimpleKey_preserves_inFlow s).trans h_flow))
@@ -1627,7 +1627,6 @@ lemma scanNextToken_flow_scalar_savedKey (s : ScannerState)
   have h_ad_tokens : s_ad.tokens = (saveSimpleKey s).tokens := by simp only [s_ad]; split <;> rfl
   have h_ad_flow : s_ad.inFlow = s.inFlow := by simp only [s_ad]; split <;> exact h_sk_flow
   have h_ad_flow_true : s_ad.inFlow = true := h_ad_flow ▸ h_flow
-  have h_check := checkBlockFlowIndent_ok_flow s_ad '"' h_ad_flow_true
   have h_flow_none : scanNextToken_dispatchFlowIndicators s_ad '"' = .ok none :=
     dispatchFlowIndicators_none _ _ (by decide) (by decide) (by decide) (by decide) (by decide)
       (checkFlowAdjacency_ok_of_notCompletes (fun t ht =>
@@ -1656,7 +1655,8 @@ lemma scanNextToken_flow_scalar_savedKey (s : ScannerState)
     simp [bind, Except.bind, pure, Except.pure, h_dq_eq, h_sdq_poss]
   have h_snt : scanNextToken s = Except.ok (some
       { s_dq with simpleKey := { s_dq.simpleKey with endLine := s_dq.line } }) :=
-    scanNextToken_via_content_dispatch _ _ _ _ _ h_pp h_struct rfl h_check
+    scanNextToken_via_content_dispatch _ _ _ _ _ h_pp h_struct rfl
+      (scanNextToken_checkFlowValueIndent_ok_of_inFlow _ _ h_flow)
       h_flow_none h_block_none
       (scanNextToken_checkAdjacentValue_ok_of_ne_colon _ (by decide)) h_dc
       ((saveSimpleKey_preserves_directivesPresent s).trans h_dp)
@@ -1716,12 +1716,12 @@ lemma scanNextToken_flow_open_seq_savedKey (s s' : ScannerState) (rest : List Ch
     scanNextToken_preprocess_flow s '[' rest s.col hcorr h_flow (by decide) (by decide) (by decide)
   have h_struct : scanNextToken_dispatchStructural (saveSimpleKey s) '[' = .ok none :=
     dispatchStructural_none_flow _ _ (h_sk_flow ▸ h_flow) (h_sk_indent ▸ h_indent) (h_sk_col ▸ h_col)
-  have h_check := checkBlockFlowIndent_ok_flow s_ad '[' (h_ad_flow ▸ h_flow)
   have h_flow_disp := dispatchFlowIndicators_bracket s_ad
-    (checkFlowAdjacency_ok_of_scanNextToken_ok h_pp h_struct rfl h_check
+    (checkFlowAdjacency_ok_of_scanNextToken_ok h_pp h_struct rfl
       (scanNextToken_ok_directivesPresent_false h_pp h_struct h_snt) h_snt)
   have h_snt_eq : scanNextToken s = .ok (some (scanFlowSequenceStart s_ad)) :=
-    scanNextToken_via_flow_dispatch _ _ _ _ _ h_pp h_struct rfl h_check h_flow_disp
+    scanNextToken_via_flow_dispatch _ _ _ _ _ h_pp h_struct rfl
+      (scanNextToken_ok_checkFlowValueIndent h_pp h_snt) h_flow_disp
       (scanNextToken_ok_directivesPresent_false h_pp h_struct h_snt)
       (scanNextToken_ok_checkBareDocument h_pp h_struct h_snt)
       (scanNextToken_ok_checkDanglingNode h_pp h_snt)
@@ -1760,12 +1760,12 @@ lemma scanNextToken_flow_open_mapping_savedKey (s s' : ScannerState) (rest : Lis
     scanNextToken_preprocess_flow s '{' rest s.col hcorr h_flow (by decide) (by decide) (by decide)
   have h_struct : scanNextToken_dispatchStructural (saveSimpleKey s) '{' = .ok none :=
     dispatchStructural_none_flow _ _ (h_sk_flow ▸ h_flow) (h_sk_indent ▸ h_indent) (h_sk_col ▸ h_col)
-  have h_check := checkBlockFlowIndent_ok_flow s_ad '{' (h_ad_flow ▸ h_flow)
   have h_flow_disp := dispatchFlowIndicators_brace s_ad
-    (checkFlowAdjacency_ok_of_scanNextToken_ok h_pp h_struct rfl h_check
+    (checkFlowAdjacency_ok_of_scanNextToken_ok h_pp h_struct rfl
       (scanNextToken_ok_directivesPresent_false h_pp h_struct h_snt) h_snt)
   have h_snt_eq : scanNextToken s = .ok (some (scanFlowMappingStart s_ad)) :=
-    scanNextToken_via_flow_dispatch _ _ _ _ _ h_pp h_struct rfl h_check h_flow_disp
+    scanNextToken_via_flow_dispatch _ _ _ _ _ h_pp h_struct rfl
+      (scanNextToken_ok_checkFlowValueIndent h_pp h_snt) h_flow_disp
       (scanNextToken_ok_directivesPresent_false h_pp h_struct h_snt)
       (scanNextToken_ok_checkBareDocument h_pp h_struct h_snt)
       (scanNextToken_ok_checkDanglingNode h_pp h_snt)
@@ -3700,7 +3700,7 @@ lemma emit_produces_valid_yaml (v : YamlValue) {inFlow : Bool} (hg : Grammable v
       -- Step 5: Scan ']' (outermost, flowLevel = 1 → 0)
       have h_kind₂ : s₂.flowStack.back? = some true := by
         rw [h_fmc₂.flowStack_eq rfl h_fl₂]; exact h_push₁
-      obtain ⟨s₃, h_snt₃, h_fl₃, h_dp₃, h_peek₃, h_dn₃⟩ :=
+      obtain ⟨s₃, h_snt₃, h_fl₃, h_dp₃, h_peek₃, h_dn₃, h_fv₃⟩ :=
         scanNextToken_flow_close_seq_outermost s₂ h_corr₂ h_inflow₂ h_indent₂ h_col₂
           (by rw [h_fl₂, h_fl₁]) (by rw [h_dp₂, h_dp₁]) h_kind₂
           (by rw [h_ids₂, h_ids₁]; rfl)
@@ -3721,7 +3721,7 @@ lemma emit_produces_valid_yaml (v : YamlValue) {inFlow : Bool} (hg : Grammable v
         (h_chain₂.toScanChain.trans (ScanChain.single h_snt₃))
       -- Apply scanFiltered_of_chain
       exact scanFiltered_of_chain _ _ s₃ _ rfl h_no_bom h_chain_all h_eof h_fl₃ h_dp₃
-        h_dn₃ (ScanChain.fuel_bound _ _ _ _ rfl h_chain_all h_eof)
+        h_dn₃ h_fv₃ (ScanChain.fuel_bound _ _ _ _ rfl h_chain_all h_eof)
   | mapping style pairs tag anchor _ hk hv ihk ihv =>
     -- emit (.mapping style pairs tag anchor) = "{" ++ emitPairList pairs.toList ++ "}"
     change ∃ tokens, scanFiltered ("{" ++ emit.emitPairList pairs.toList ++ "}") = .ok tokens
@@ -3765,7 +3765,7 @@ lemma emit_produces_valid_yaml (v : YamlValue) {inFlow : Bool} (hg : Grammable v
       -- Step 5: Scan '}' (outermost, flowLevel = 1 → 0)
       have h_kind₂ : s₂.flowStack.back? = some false := by
         rw [h_fmc₂.flowStack_eq rfl h_fl₂]; exact h_push₁
-      obtain ⟨s₃, h_snt₃, h_fl₃, h_dp₃, h_peek₃, h_dn₃⟩ :=
+      obtain ⟨s₃, h_snt₃, h_fl₃, h_dp₃, h_peek₃, h_dn₃, h_fv₃⟩ :=
         scanNextToken_flow_close_mapping_outermost s₂ h_corr₂ h_inflow₂ h_indent₂ h_col₂
           (by rw [h_fl₂, h_fl₁]) (by rw [h_dp₂, h_dp₁]) h_kind₂
           (by rw [h_ids₂, h_ids₁]; rfl)
@@ -3786,7 +3786,7 @@ lemma emit_produces_valid_yaml (v : YamlValue) {inFlow : Bool} (hg : Grammable v
         (h_chain₂.toScanChain.trans (ScanChain.single h_snt₃))
       -- Apply scanFiltered_of_chain
       exact scanFiltered_of_chain _ _ s₃ _ rfl h_no_bom h_chain_all h_eof h_fl₃ h_dp₃
-        h_dn₃ (ScanChain.fuel_bound _ _ _ _ rfl h_chain_all h_eof)
+        h_dn₃ h_fv₃ (ScanChain.fuel_bound _ _ _ _ rfl h_chain_all h_eof)
 
 /-! ## §4  Full Pipeline: Emit → Scan → Parse
 

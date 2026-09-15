@@ -976,6 +976,14 @@ lemma scanNextTokenIx_progress {input : String}
       obtain ⟨uDN, hDN⟩ := hDN
       rw [hDN] at h
       simp only at h
+      -- §8.1 flow-value floor (item 172): peeled the same way.
+      have hFV : ∃ u, scanNextTokenIx_checkFlowValueIndent s sp = .ok u := by
+        cases hx : scanNextTokenIx_checkFlowValueIndent s sp with
+        | error e => rw [hx] at h; cases h
+        | ok u => exact ⟨u, rfl⟩
+      obtain ⟨uFV, hFV⟩ := hFV
+      rw [hFV] at h
+      simp only at h
       cases hStr : scanNextTokenIx_dispatchStructural sp c with
       | error e => rw [hStr] at h; cases h
       | ok structRes =>
@@ -1020,78 +1028,69 @@ lemma scanNextTokenIx_progress {input : String}
             -- Reshape the goal so the dispatcher's conclusion lands on it.
             show ({ sp with allowDirectives := false, documentEverStarted := true } :
                     ScannerStateIx input).cursor.pos.offset < s'.cursor.pos.offset
-            cases hChk : scanNextTokenIx_checkBlockFlowIndent
+            cases hFlow : scanNextTokenIx_dispatchFlowIndicators
                 { sp with allowDirectives := false, documentEverStarted := true } c with
-            | error e => rw [hChk] at h; cases h
-            | ok _ =>
-              rw [hChk] at h
-              cases hFlow : scanNextTokenIx_dispatchFlowIndicators
-                  { sp with allowDirectives := false, documentEverStarted := true } c with
-              | error e => rw [hFlow] at h; cases h
-              | ok flowRes =>
-                rw [hFlow] at h
-                cases flowRes with
-                | some _ =>
-                  cases h
-                  exact scanNextTokenIx_dispatchFlowIndicators_offset_gt h_sadj_hm hFlow
-                | none =>
-                  cases hBlk : scanNextTokenIx_dispatchBlockIndicators
-                      { sp with allowDirectives := false, documentEverStarted := true } c with
-                  | error e => rw [hBlk] at h; cases h
-                  | ok blkRes =>
-                    rw [hBlk] at h
-                    cases blkRes with
-                    | some _ =>
+            | error e => rw [hFlow] at h; cases h
+            | ok flowRes =>
+              rw [hFlow] at h
+              cases flowRes with
+              | some _ =>
+                cases h
+                exact scanNextTokenIx_dispatchFlowIndicators_offset_gt h_sadj_hm hFlow
+              | none =>
+                cases hBlk : scanNextTokenIx_dispatchBlockIndicators
+                    { sp with allowDirectives := false, documentEverStarted := true } c with
+                | error e => rw [hBlk] at h; cases h
+                | ok blkRes =>
+                  rw [hBlk] at h
+                  cases blkRes with
+                  | some _ =>
+                    cases h
+                    exact scanNextTokenIx_dispatchBlockIndicators_offset_gt h_sadj_hm hBlk
+                  | none =>
+                    -- item 47: adjacent-value check (pure, no state change)
+                    cases hAdj : scanNextTokenIx_checkAdjacentValue
+                        { sp with allowDirectives := false, documentEverStarted := true } c with
+                    | error e => rw [hAdj] at h; cases h
+                    | ok _ =>
+                    rw [hAdj] at h
+                    cases hCon : scanNextTokenIx_dispatchContent
+                        { sp with allowDirectives := false, documentEverStarted := true } c with
+                    | error e => rw [hCon] at h; cases h
+                    | ok _ =>
+                      rw [hCon] at h
                       cases h
-                      exact scanNextTokenIx_dispatchBlockIndicators_offset_gt h_sadj_hm hBlk
-                    | none =>
-                      -- item 47: adjacent-value check (pure, no state change)
-                      cases hAdj : scanNextTokenIx_checkAdjacentValue
-                          { sp with allowDirectives := false, documentEverStarted := true } c with
-                      | error e => rw [hAdj] at h; cases h
-                      | ok _ =>
-                      rw [hAdj] at h
-                      cases hCon : scanNextTokenIx_dispatchContent
-                          { sp with allowDirectives := false, documentEverStarted := true } c with
-                      | error e => rw [hCon] at h; cases h
-                      | ok _ =>
-                        rw [hCon] at h
-                        cases h
-                        exact scanNextTokenIx_dispatchContent_offset_gt h_sadj_hm h_sadj_pk hCon
+                      exact scanNextTokenIx_dispatchContent_offset_gt h_sadj_hm h_sadj_pk hCon
           · -- Negative case: dispatchers receive `sp` directly.
             rw [if_neg hAD] at h
-            cases hChk : scanNextTokenIx_checkBlockFlowIndent sp c with
-            | error e => rw [hChk] at h; cases h
-            | ok _ =>
-              rw [hChk] at h
-              cases hFlow : scanNextTokenIx_dispatchFlowIndicators sp c with
-              | error e => rw [hFlow] at h; cases h
-              | ok flowRes =>
-                rw [hFlow] at h
-                cases flowRes with
-                | some _ =>
-                  cases h
-                  exact scanNextTokenIx_dispatchFlowIndicators_offset_gt hHm hFlow
-                | none =>
-                  cases hBlk : scanNextTokenIx_dispatchBlockIndicators sp c with
-                  | error e => rw [hBlk] at h; cases h
-                  | ok blkRes =>
-                    rw [hBlk] at h
-                    cases blkRes with
-                    | some _ =>
+            cases hFlow : scanNextTokenIx_dispatchFlowIndicators sp c with
+            | error e => rw [hFlow] at h; cases h
+            | ok flowRes =>
+              rw [hFlow] at h
+              cases flowRes with
+              | some _ =>
+                cases h
+                exact scanNextTokenIx_dispatchFlowIndicators_offset_gt hHm hFlow
+              | none =>
+                cases hBlk : scanNextTokenIx_dispatchBlockIndicators sp c with
+                | error e => rw [hBlk] at h; cases h
+                | ok blkRes =>
+                  rw [hBlk] at h
+                  cases blkRes with
+                  | some _ =>
+                    cases h
+                    exact scanNextTokenIx_dispatchBlockIndicators_offset_gt hHm hBlk
+                  | none =>
+                    -- item 47: adjacent-value check (pure, no state change)
+                    cases hAdj : scanNextTokenIx_checkAdjacentValue sp c with
+                    | error e => rw [hAdj] at h; cases h
+                    | ok _ =>
+                    rw [hAdj] at h
+                    cases hCon : scanNextTokenIx_dispatchContent sp c with
+                    | error e => rw [hCon] at h; cases h
+                    | ok _ =>
+                      rw [hCon] at h
                       cases h
-                      exact scanNextTokenIx_dispatchBlockIndicators_offset_gt hHm hBlk
-                    | none =>
-                      -- item 47: adjacent-value check (pure, no state change)
-                      cases hAdj : scanNextTokenIx_checkAdjacentValue sp c with
-                      | error e => rw [hAdj] at h; cases h
-                      | ok _ =>
-                      rw [hAdj] at h
-                      cases hCon : scanNextTokenIx_dispatchContent sp c with
-                      | error e => rw [hCon] at h; cases h
-                      | ok _ =>
-                        rw [hCon] at h
-                        cases h
-                        exact scanNextTokenIx_dispatchContent_offset_gt hHm hPk hCon
+                      exact scanNextTokenIx_dispatchContent_offset_gt hHm hPk hCon
 
 end L4YAML.Proofs.Indexed.ScannerProgress

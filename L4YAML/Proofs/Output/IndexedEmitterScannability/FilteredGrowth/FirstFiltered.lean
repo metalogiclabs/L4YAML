@@ -106,16 +106,14 @@ lemma scanFlowSequenceStartIx_first_filtered_token (s : ScannerStateIx input)
       else saveSimpleKeyIx s := ⟨_, rfl⟩
   have h_ad_flow : s_ad.inFlow = s.inFlow := by
     rw [h_s_ad_def]; split <;> exact h_sk_flow
-  have h_check : scanNextTokenIx_checkBlockFlowIndent s_ad '[' = .ok () :=
-    checkBlockFlowIndent_ok_flow s_ad '[' (h_ad_flow ▸ h_flow)
   have h_flow_disp : scanNextTokenIx_dispatchFlowIndicators s_ad '[' =
       .ok (some (scanFlowSequenceStartIx s_ad)) :=
     dispatchFlowIndicators_bracket s_ad
-      (checkFlowAdjacencyIx_ok_of_scanNextTokenIx_ok h_pp h_struct h_s_ad_def h_check
+      (checkFlowAdjacencyIx_ok_of_scanNextTokenIx_ok h_pp h_struct h_s_ad_def
         (scanNextTokenIx_ok_directivesPresent_false h_pp h_struct h_snt) h_snt)
   have h_snt_eq := scanNextTokenIx_via_flow_dispatch s (saveSimpleKeyIx s) s_ad
     (scanFlowSequenceStartIx s_ad) '['
-    h_pp h_struct h_s_ad_def h_check h_flow_disp
+    h_pp h_struct h_s_ad_def (scanNextTokenIx_checkFlowValueIndent_ok_of_inFlow _ _ h_flow) h_flow_disp
     (scanNextTokenIx_ok_directivesPresent_false h_pp h_struct h_snt)
     (scanNextTokenIx_ok_checkBareDocument h_pp h_struct h_snt)
     (scanNextTokenIx_ok_checkDanglingNode h_pp h_snt)
@@ -184,16 +182,14 @@ lemma scanFlowMappingStartIx_first_filtered_token (s : ScannerStateIx input)
       else saveSimpleKeyIx s := ⟨_, rfl⟩
   have h_ad_flow : s_ad.inFlow = s.inFlow := by
     rw [h_s_ad_def]; split <;> exact h_sk_flow
-  have h_check : scanNextTokenIx_checkBlockFlowIndent s_ad '{' = .ok () :=
-    checkBlockFlowIndent_ok_flow s_ad '{' (h_ad_flow ▸ h_flow)
   have h_flow_disp : scanNextTokenIx_dispatchFlowIndicators s_ad '{' =
       .ok (some (scanFlowMappingStartIx s_ad)) :=
     dispatchFlowIndicators_brace s_ad
-      (checkFlowAdjacencyIx_ok_of_scanNextTokenIx_ok h_pp h_struct h_s_ad_def h_check
+      (checkFlowAdjacencyIx_ok_of_scanNextTokenIx_ok h_pp h_struct h_s_ad_def
         (scanNextTokenIx_ok_directivesPresent_false h_pp h_struct h_snt) h_snt)
   have h_snt_eq := scanNextTokenIx_via_flow_dispatch s (saveSimpleKeyIx s) s_ad
     (scanFlowMappingStartIx s_ad) '{'
-    h_pp h_struct h_s_ad_def h_check h_flow_disp
+    h_pp h_struct h_s_ad_def (scanNextTokenIx_checkFlowValueIndent_ok_of_inFlow _ _ h_flow) h_flow_disp
     (scanNextTokenIx_ok_directivesPresent_false h_pp h_struct h_snt)
     (scanNextTokenIx_ok_checkBareDocument h_pp h_struct h_snt)
     (scanNextTokenIx_ok_checkDanglingNode h_pp h_snt)
@@ -267,12 +263,10 @@ lemma scanDoubleQuotedIx_first_filtered_token (s : ScannerStateIx input)
   have h_ad_flow : s_ad.inFlow = s.inFlow := by
     rw [h_s_ad_def]; split <;> exact h_sk_flow
   have h_ad_flow_true : s_ad.inFlow = true := h_ad_flow ▸ h_flow
-  have h_check : scanNextTokenIx_checkBlockFlowIndent s_ad '"' = .ok () :=
-    checkBlockFlowIndent_ok_flow s_ad '"' h_ad_flow_true
   have h_flow_none : scanNextTokenIx_dispatchFlowIndicators s_ad '"' = .ok none :=
     dispatchFlowIndicators_none _ _
       (by decide) (by decide) (by decide) (by decide) (by decide)
-      (checkFlowAdjacencyIx_ok_of_scanNextTokenIx_ok h_pp h_struct h_s_ad_def h_check
+      (checkFlowAdjacencyIx_ok_of_scanNextTokenIx_ok h_pp h_struct h_s_ad_def
         (scanNextTokenIx_ok_directivesPresent_false h_pp h_struct h_snt) h_snt)
   have h_block_none : scanNextTokenIx_dispatchBlockIndicators s_ad '"' = .ok none :=
     dispatchBlockIndicators_none_quote _
@@ -283,7 +277,7 @@ lemma scanDoubleQuotedIx_first_filtered_token (s : ScannerStateIx input)
       exfalso
       have h_snt_err := scanNextTokenIx_via_content_dispatch_error
         s (saveSimpleKeyIx s) s_ad '"' e
-        h_pp h_struct h_s_ad_def h_check h_flow_none h_block_none
+        h_pp h_struct h_s_ad_def (scanNextTokenIx_checkFlowValueIndent_ok_of_inFlow _ _ h_flow) h_flow_none h_block_none
         (scanNextTokenIx_checkAdjacentValue_ok_of_ne_colon _ (by decide)) h_dc_eq
         (scanNextTokenIx_ok_directivesPresent_false h_pp h_struct h_snt)
         (scanNextTokenIx_ok_checkBareDocument h_pp h_struct h_snt)
@@ -292,7 +286,7 @@ lemma scanDoubleQuotedIx_first_filtered_token (s : ScannerStateIx input)
     | ok s_dc =>
       have h_snt_eq := scanNextTokenIx_via_content_dispatch
         s (saveSimpleKeyIx s) s_ad s_dc '"'
-        h_pp h_struct h_s_ad_def h_check h_flow_none h_block_none
+        h_pp h_struct h_s_ad_def (scanNextTokenIx_checkFlowValueIndent_ok_of_inFlow _ _ h_flow) h_flow_none h_block_none
         (scanNextTokenIx_checkAdjacentValue_ok_of_ne_colon _ (by decide)) h_dc_eq
         (scanNextTokenIx_ok_directivesPresent_false h_pp h_struct h_snt)
         (scanNextTokenIx_ok_checkBareDocument h_pp h_struct h_snt)

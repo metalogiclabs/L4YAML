@@ -810,18 +810,81 @@ def scanNextToken_dispatchContent (s : ScannerState) (c : Char) :
     let s' ← scanPlainScalar s; return s'
   .error (.unexpectedChar c s.line s.col)
 
-/-- §8.1 [187]: Flow-collection start (`[` or `{`) from a block context must be
-    more indented than the enclosing block collection.  Returns `.ok ()` to
-    continue, or `.error` to reject.  Factored out so `unfold scanNextToken`
-    does not expose `Bool.and` internals to the proof engine. -/
-@[yaml_spec "8.1"]
-def scanNextToken_checkBlockFlowIndent (s : ScannerState) (c : Char) :
-    Except ScanError Unit :=
-  if !s.inFlow && s.currentIndent >= 0 && (s.col : Int) <= s.currentIndent
-      && (c == '[' || c == '{') then
-    .error (.underIndentedFlowContent s.line s.col)
+/-- §8.1's flow-collection floor, read at the CLOSE (item 172): the trailing
+    flow node standing in an AWAITED slot whose open sits at an open level's
+    own column.
+
+    `[196] s-l+block-node` reaches a flow node through `s-l+flow-in-block(n)`,
+    whose `s-separate(n+1)` demands `s-indent(n+1)` across a break — so a flow
+    collection landing AT the awaiting level's column has no derivation as the
+    VALUE.  But the same open can head an implicit KEY of a sibling entry
+    (`[155] c-s-implicit-json-key` is `c-flow-json-node(n/a, block-key)` — no
+    indent parameter), and key-vs-value is not decidable at the open: `k:⏎[1]: b`
+    is `{k: null, [1]: b}` while `k:⏎[1, 2]` derives nothing.  Item 159 measured
+    the same undecidability for the dangling run (`a: 1⏎&p [b]: c` parses), and
+    this reading defers the same way: the key half is resolved by the same-line
+    `:` after the close (`scanValue`, through the simple key the close restores),
+    and what this reports is the half no `:` resolved.
+
+    The reading is `danglingNodePos?`'s complement on the SLOT: that check fires
+    where the slot holder COMPLETES a node (the run belongs to nothing), this one
+    where it OFFERS one (`YamlToken.offersNodeSlot` — the run would be the
+    offered node, and stands at a column the offer cannot reach).  The two are
+    mutually exclusive by that test.  The run must end in a flow CLOSE — the
+    scalar at the same column is `SBlockNode`'s `m = 0` over-approximation
+    (item 107), measured at item 171 as Finding A and sequenced with the
+    grammar's own re-indexing, not here.  The column and the reported position
+    are the OPEN's: a `[96]` run in front of the open belongs to the node, but
+    its column is Finding A's props face (`k:⏎&p [1, 2]` completes at the
+    scanner today), so the open's own landing is what this floor reads —
+    `k:⏎&p⏎[1, 2]` refuses at the open, where the old open-side check refused
+    it. -/
+@[yaml_spec "8.1", yaml_spec "8.2.2" 196 "s-l+block-node"]
+def underIndentedFlowValuePos? (s : ScannerState) : Option YamlPos :=
+  if s.inFlow then none
   else
-    .ok ()
+    match prevRealIdx? s.tokens s.tokens.size with
+    | none => none
+    | some i =>
+      if !(s.tokens[i]!.val.isFlowClose) then none
+      else
+        match flowOpenIdx? s.tokens i with
+        | none => none
+        | some o =>
+          let st := propsRunStart s.tokens o
+          let offered := match prevRealIdx? s.tokens st with
+            | some j => s.tokens[j]!.val.offersNodeSlot
+            | none => false
+          let p := s.tokens[o]!.pos
+          if offered && s.indents.any (fun e => e.column == (p.col : Int)) then
+            some p
+          else none
+
+/-- §8.1's floor mid-stream: the awaited flow node's under-indented open, once
+    a line break has ended the entry it could have keyed.  The same two-state
+    discipline as `scanNextToken_checkDanglingNode` (item 140): the break is
+    `s_land`'s flag, the run is read on `s_run` before preprocessing's unwind
+    pops the level the open sits at.  A same-line follower cannot reach this
+    check wrongly: `validateFlowClose` admits only `:`, comment, or the break
+    after an outermost close, and the `:` resolves the key before any landing
+    is armed. -/
+@[yaml_spec "8.1"]
+def scanNextToken_checkFlowValueIndent (s_run s_land : ScannerState) :
+    Except ScanError Unit :=
+  if s_land.simpleKeyAllowed then
+    match underIndentedFlowValuePos? s_run with
+    | some p => .error (.underIndentedFlowContent p.line p.col)
+    | none => .ok ()
+  else .ok ()
+
+/-- §8.1's floor at the end of input: the same reading, with no break to
+    require — the stream itself ended the entry (`k:⏎[1, 2]`).  Runs beside
+    `scanLoop_checkDanglingNode`. -/
+@[yaml_spec "8.1"]
+def scanLoop_checkFlowValueIndent (s : ScannerState) : Except ScanError Unit :=
+  match underIndentedFlowValuePos? s with
+  | some p => .error (.underIndentedFlowContent p.line p.col)
+  | none => .ok ()
 
 /-- §9.1.5 [209]: directives must be followed by `c-directives-end` (`---`).
     If directives are pending (`directivesPresent`) and ordinary content
@@ -1041,6 +1104,10 @@ def scanNextToken (s_run : ScannerState) : Except ScanError (Option ScannerState
     -- off `s_run` and the break off `s`, because preprocessing's unwind
     -- displaces the run from the array it would be read in (item 140).
     scanNextToken_checkDanglingNode s_run s
+    -- §8.1 (item 172): the AWAITED flow node's under-indented open, at the
+    -- same gate — the slot-offered complement of the dangling run, read at
+    -- the close because the open can head an implicit key instead.
+    scanNextToken_checkFlowValueIndent s_run s
     match ← scanNextToken_dispatchStructural s c with
     | some s' => return some s'
     | none =>
@@ -1055,9 +1122,6 @@ def scanNextToken (s_run : ScannerState) : Except ScanError (Option ScannerState
       let s := if s.allowDirectives then
         { s with allowDirectives := false, documentEverStarted := true }
       else s
-      -- §8.1 [187]: Flow-collection start from block context must be more
-      -- indented than the enclosing block collection.
-      scanNextToken_checkBlockFlowIndent s c
       match ← scanNextToken_dispatchFlowIndicators s c with
       | some s' => return some s'
       | none =>
@@ -1112,6 +1176,11 @@ def scanLoop (s : ScannerState) (fuel : Nat) :
       else
         -- §9.2 [211] (item 133): the dangling run the stream itself ended.
         match scanLoop_checkDanglingNode s with
+        | .error e => .error e
+        | .ok _ =>
+        -- §8.1 (item 172): the awaited flow node's under-indented open,
+        -- with the stream itself as the entry's end.
+        match scanLoop_checkFlowValueIndent s with
         | .error e => .error e
         | .ok _ =>
         -- Close all remaining block contexts and emit final token
@@ -1179,6 +1248,9 @@ def scanLoopFull (s : ScannerState) (fuel : Nat) : Except ScanError ScannerState
         -- none (discarding the updated state) when end-of-input is
         -- reached after comment/whitespace consumption.
         match scanLoop_checkDanglingNode s with
+        | .error e => .error e
+        | .ok _ =>
+        match scanLoop_checkFlowValueIndent s with
         | .error e => .error e
         | .ok _ =>
         let s := match skipToContent s with | .ok s' => s' | .error _ => s

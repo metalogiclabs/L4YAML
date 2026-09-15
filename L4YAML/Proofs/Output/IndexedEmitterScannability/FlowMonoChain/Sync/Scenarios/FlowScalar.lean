@@ -241,8 +241,6 @@ lemma scanNextTokenIx_flow_scanDoubleQuoted (s : ScannerStateIx input)
   have h_ad_flow : s_ad.inFlow = s.inFlow := by
     rw [h_s_ad_def]; split <;> exact h_sk_flow
   have h_ad_flow_true : s_ad.inFlow = true := h_ad_flow ▸ h_flow
-  have h_check : scanNextTokenIx_checkBlockFlowIndent s_ad '"' = .ok () :=
-    checkBlockFlowIndent_ok_flow s_ad '"' h_ad_flow_true
   have h_ad_tokens' : s_ad.tokens = (saveSimpleKeyIx s).tokens := by
     rw [h_s_ad_def]; split <;> rfl
   have h_flow_none : scanNextTokenIx_dispatchFlowIndicators s_ad '"' = .ok none :=
@@ -331,7 +329,7 @@ lemma scanNextTokenIx_flow_scanDoubleQuoted (s : ScannerStateIx input)
     · rename_i heq; rw [h_dq] at heq; exact absurd heq (by simp)
   have h_snt : scanNextTokenIx s = .ok (some s') :=
     scanNextTokenIx_via_content_dispatch s (saveSimpleKeyIx s) s_ad s' '"'
-      h_pp h_struct h_s_ad_def h_check h_flow_none h_block_none
+      h_pp h_struct h_s_ad_def (scanNextTokenIx_checkFlowValueIndent_ok_of_inFlow _ _ h_flow) h_flow_none h_block_none
       (scanNextTokenIx_checkAdjacentValue_ok_of_ne_colon _ (by decide)) h_dc
       ((saveSimpleKeyIx_directivesPresent s).trans h_dp)
       (scanNextTokenIx_checkBareDocument_ok_of_inFlow _

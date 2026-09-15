@@ -205,7 +205,8 @@ lemma scanLoopIx_two_iter {s₀ s₁ : ScannerStateIx input} {fuel : Nat}
     (h_snt1 : scanNextTokenIx s₁ = .ok none)
     (h_flow : s₁.flowLevel = 0)
     (h_dp : s₁.directivesPresent = false)
-    (h_dn : scanLoopIx_checkDanglingNode s₁ = .ok ()) :
+    (h_dn : scanLoopIx_checkDanglingNode s₁ = .ok ())
+    (h_fv : scanLoopIx_checkFlowValueIndent s₁ = .ok ()) :
     ∃ ts, scanLoopIx s₀ fuel = .ok ts := by
   obtain ⟨f, rfl⟩ : ∃ n, fuel = n + 2 := ⟨fuel - 2, by omega⟩
   -- One step: scanLoopIx s₀ (f+2) = scanLoopIx s₁ (f+1).
@@ -220,7 +221,7 @@ lemma scanLoopIx_two_iter {s₀ s₁ : ScannerStateIx input} {fuel : Nat}
     have h_dp_check : ¬ s₁.directivesPresent = true := by
       simp [h_dp]
     rw [if_neg h_dp_check]
-    rw [h_dn]
+    rw [h_dn, h_fv]
     exact ⟨_, rfl⟩
   rw [h1]; exact h2
 
@@ -232,7 +233,8 @@ lemma scanLoopIx_two_iter_eq {s₀ s₁ : ScannerStateIx input} {fuel : Nat}
     (h_snt1 : scanNextTokenIx s₁ = .ok none)
     (h_flow : s₁.flowLevel = 0)
     (h_dp : s₁.directivesPresent = false)
-    (h_dn : scanLoopIx_checkDanglingNode s₁ = .ok ()) :
+    (h_dn : scanLoopIx_checkDanglingNode s₁ = .ok ())
+    (h_fv : scanLoopIx_checkFlowValueIndent s₁ = .ok ()) :
     scanLoopIx s₀ fuel = .ok ((unwindIndentsIx s₁ (-1)).emit YamlToken.streamEnd).tokens := by
   obtain ⟨f, rfl⟩ : ∃ n, fuel = n + 2 := ⟨fuel - 2, by omega⟩
   have h_step : scanLoopIx s₀ (f + 2) = scanLoopIx s₁ (f + 1) := by
@@ -245,7 +247,7 @@ lemma scanLoopIx_two_iter_eq {s₀ s₁ : ScannerStateIx input} {fuel : Nat}
   have h_dp_check : ¬ s₁.directivesPresent = true := by
     simp [h_dp]
   rw [if_neg h_dp_check]
-  rw [h_dn]
+  rw [h_dn, h_fv]
 
 /-- **Terminal step (existential)**: at EOF (and with the no-error
     preconditions on `flowLevel` and `directivesPresent`),
@@ -254,7 +256,8 @@ lemma scanLoopIx_eof {s : ScannerStateIx input}
     (h_snt : scanNextTokenIx s = .ok none)
     (h_fl : s.flowLevel = 0)
     (h_dp : s.directivesPresent = false)
-    (h_dn : scanLoopIx_checkDanglingNode s = .ok ()) :
+    (h_dn : scanLoopIx_checkDanglingNode s = .ok ())
+    (h_fv : scanLoopIx_checkFlowValueIndent s = .ok ()) :
     ∃ ts, scanLoopIx s 1 = .ok ts := by
   unfold scanLoopIx
   rw [h_snt]
@@ -263,7 +266,7 @@ lemma scanLoopIx_eof {s : ScannerStateIx input}
   have h_dp_check : ¬ s.directivesPresent = true := by
     simp [h_dp]
   rw [if_neg h_dp_check]
-  rw [h_dn]
+  rw [h_dn, h_fv]
   exact ⟨_, rfl⟩
 
 /-- **Terminal step (equality)**: at EOF, `scanLoopIx` produces
@@ -273,7 +276,8 @@ lemma scanLoopIx_eof_eq {s : ScannerStateIx input} {fuel : Nat}
     (h_snt : scanNextTokenIx s = .ok none)
     (h_fl : s.flowLevel = 0)
     (h_dp : s.directivesPresent = false)
-    (h_dn : scanLoopIx_checkDanglingNode s = .ok ()) :
+    (h_dn : scanLoopIx_checkDanglingNode s = .ok ())
+    (h_fv : scanLoopIx_checkFlowValueIndent s = .ok ()) :
     scanLoopIx s fuel = .ok ((unwindIndentsIx s (-1)).emit YamlToken.streamEnd).tokens := by
   obtain ⟨f, rfl⟩ : ∃ n, fuel = n + 1 := ⟨fuel - 1, by omega⟩
   unfold scanLoopIx
@@ -283,7 +287,7 @@ lemma scanLoopIx_eof_eq {s : ScannerStateIx input} {fuel : Nat}
   have h_dp_check : ¬ s.directivesPresent = true := by
     simp [h_dp]
   rw [if_neg h_dp_check]
-  rw [h_dn]
+  rw [h_dn, h_fv]
 
 /-! ## §1.3  Surface correspondence (`ScannerSurfCorrIx`)
 
@@ -348,21 +352,16 @@ upstream dispatcher, so control falls through to
     `dispatchContent`. -/
 lemma dispatchContentIx_quote (s : ScannerStateIx input) (c : Char) (hc : c = '"')
     (h_notFlow : s.flowLevel = 0)
-    (h_indent : s.currentIndent = -1)
     (h_noDocStart : atDocumentStartIx s.cursor = false)
     (h_noDocEnd : atDocumentEndIx s.cursor = false) :
     scanNextTokenIx_dispatchStructural s c = .ok none
-    ∧ scanNextTokenIx_checkBlockFlowIndent s c = .ok ()
     ∧ scanNextTokenIx_dispatchFlowIndicators s c = .ok none
     ∧ scanNextTokenIx_dispatchBlockIndicators s c = .ok none := by
   subst hc
-  refine ⟨?_, ?_, ?_, ?_⟩
+  refine ⟨?_, ?_, ?_⟩
   · -- dispatchStructural: '"' doesn't match %, ---, ...
     unfold scanNextTokenIx_dispatchStructural
     simp [ScannerStateIx.inFlow, h_notFlow, h_noDocStart, h_noDocEnd, pure, Except.pure]
-  · -- checkBlockFlowIndent: currentIndent = -1 < 0, condition false
-    unfold scanNextTokenIx_checkBlockFlowIndent
-    simp [ScannerStateIx.inFlow, h_notFlow, h_indent]
   · -- dispatchFlowIndicators: '"' doesn't match [, ], {, }, ,
     unfold scanNextTokenIx_dispatchFlowIndicators
     rw [checkFlowAdjacencyIx_ok_of_notInFlow (by simp [ScannerStateIx.inFlow, h_notFlow])]

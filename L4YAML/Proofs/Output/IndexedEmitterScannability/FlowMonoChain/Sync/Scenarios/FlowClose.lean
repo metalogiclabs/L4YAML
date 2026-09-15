@@ -138,8 +138,6 @@ lemma scanNextTokenIx_flow_close_seq_nested (s : ScannerStateIx input)
         { saveSimpleKeyIx s with allowDirectives := false, documentEverStarted := true }
       else saveSimpleKeyIx s := ⟨_, rfl⟩
   -- Step 4: checkBlockFlowIndent for ']'
-  have h_check : scanNextTokenIx_checkBlockFlowIndent s_ad ']' = .ok () :=
-    checkBlockFlowIndent_ok_close_bracket s_ad
   -- Step 5: derive field equalities for s_ad
   have h_ad_fl : s_ad.flowLevel = s.flowLevel := by
     rw [h_s_ad_def]; split <;> exact saveSimpleKeyIx_flowLevel s
@@ -169,7 +167,7 @@ lemma scanNextTokenIx_flow_close_seq_nested (s : ScannerStateIx input)
   -- Step 7: compose via scanNextTokenIx_via_flow_dispatch
   have h_snt := scanNextTokenIx_via_flow_dispatch s (saveSimpleKeyIx s) s_ad
     (scanFlowSequenceEndIx s_ad) ']'
-    h_pp h_struct h_s_ad_def h_check h_flow_disp
+    h_pp h_struct h_s_ad_def (scanNextTokenIx_checkFlowValueIndent_ok_of_inFlow _ _ h_flow) h_flow_disp
     ((saveSimpleKeyIx_directivesPresent s).trans h_dp)
     (scanNextTokenIx_checkBareDocument_ok_of_inFlow _
       ((saveSimpleKeyIx_inFlow s).trans h_flow))
@@ -344,8 +342,6 @@ lemma scanNextTokenIx_flow_close_mapping_nested (s : ScannerStateIx input)
       s_ad = if (saveSimpleKeyIx s).allowDirectives then
         { saveSimpleKeyIx s with allowDirectives := false, documentEverStarted := true }
       else saveSimpleKeyIx s := ⟨_, rfl⟩
-  have h_check : scanNextTokenIx_checkBlockFlowIndent s_ad '}' = .ok () :=
-    checkBlockFlowIndent_ok_close_brace s_ad
   have h_ad_fl : s_ad.flowLevel = s.flowLevel := by
     rw [h_s_ad_def]; split <;> exact saveSimpleKeyIx_flowLevel s
   have h_ad_dp : s_ad.directivesPresent = s.directivesPresent := by
@@ -372,7 +368,7 @@ lemma scanNextTokenIx_flow_close_mapping_nested (s : ScannerStateIx input)
     dispatchFlowIndicators_close_brace s_ad h_fl_pos h_ad_kind
   have h_snt := scanNextTokenIx_via_flow_dispatch s (saveSimpleKeyIx s) s_ad
     (scanFlowMappingEndIx s_ad) '}'
-    h_pp h_struct h_s_ad_def h_check h_flow_disp
+    h_pp h_struct h_s_ad_def (scanNextTokenIx_checkFlowValueIndent_ok_of_inFlow _ _ h_flow) h_flow_disp
     ((saveSimpleKeyIx_directivesPresent s).trans h_dp)
     (scanNextTokenIx_checkBareDocument_ok_of_inFlow _
       ((saveSimpleKeyIx_inFlow s).trans h_flow))
@@ -542,8 +538,6 @@ lemma scanNextTokenIx_flow_open_mapping_nested (s : ScannerStateIx input)
       else saveSimpleKeyIx s := ⟨_, rfl⟩
   have h_ad_flow : s_ad.inFlow = s.inFlow := by
     rw [h_s_ad_def]; split <;> exact h_sk_flow
-  have h_check : scanNextTokenIx_checkBlockFlowIndent s_ad '{' = .ok () :=
-    checkBlockFlowIndent_ok_flow s_ad '{' (h_ad_flow ▸ h_flow)
   have h_ad_fl : s_ad.flowLevel = s.flowLevel := by
     rw [h_s_ad_def]; split <;> exact saveSimpleKeyIx_flowLevel s
   have h_ad_dp : s_ad.directivesPresent = s.directivesPresent := by
@@ -570,7 +564,7 @@ lemma scanNextTokenIx_flow_open_mapping_nested (s : ScannerStateIx input)
         saveSimpleKeyIx_preserves_completesFalse s h_last t (h_ad_tokens ▸ ht)))
   have h_snt := scanNextTokenIx_via_flow_dispatch s (saveSimpleKeyIx s) s_ad
     (scanFlowMappingStartIx s_ad) '{'
-    h_pp h_struct h_s_ad_def h_check h_flow_disp
+    h_pp h_struct h_s_ad_def (scanNextTokenIx_checkFlowValueIndent_ok_of_inFlow _ _ h_flow) h_flow_disp
     ((saveSimpleKeyIx_directivesPresent s).trans h_dp)
     (scanNextTokenIx_checkBareDocument_ok_of_inFlow _
       ((saveSimpleKeyIx_inFlow s).trans h_flow))

@@ -219,22 +219,17 @@ lemma scanNextToken_eof (s : ScannerState) (h_peek : s.peek? = none) :
 -- flow indicators, block indicators) return none for '"'.
 lemma dispatchContent_quote (s : ScannerState) (c : Char) (hc : c = '"')
     (h_notFlow : s.flowLevel = 0)
-    (h_indent : s.currentIndent = -1)
     (h_noDocStart : atDocumentStart s = false)
     (h_noDocEnd : atDocumentEnd s = false) :
     scanNextToken_dispatchStructural s c = .ok none
-    ∧ scanNextToken_checkBlockFlowIndent s c = .ok ()
     ∧ scanNextToken_dispatchFlowIndicators s c = .ok none
     ∧ scanNextToken_dispatchBlockIndicators s c = .ok none := by
   subst hc
-  refine ⟨?_, ?_, ?_, ?_⟩
+  refine ⟨?_, ?_, ?_⟩
   · -- dispatchStructural: '"' doesn't match %, -, .
     unfold scanNextToken_dispatchStructural
     simp [ScannerState.inFlow, h_notFlow, h_noDocStart, h_noDocEnd,
           pure, Except.pure]
-  · -- checkBlockFlowIndent: currentIndent = -1 < 0, condition false
-    unfold scanNextToken_checkBlockFlowIndent
-    simp [ScannerState.inFlow, h_notFlow, h_indent]
   · -- dispatchFlowIndicators: '"' doesn't match [, ], {, }, ,
     unfold scanNextToken_dispatchFlowIndicators
     rw [checkFlowAdjacency_ok_of_notInFlow (by simp [ScannerState.inFlow, h_notFlow])]
@@ -287,7 +282,8 @@ lemma scanLoop_two_iter {s₀ s₁ : ScannerState} {fuel : Nat}
     (h_snt1 : scanNextToken s₁ = .ok none)
     (h_flow : s₁.flowLevel = 0)
     (h_dp : s₁.directivesPresent = false)
-    (h_dn : scanLoop_checkDanglingNode s₁ = .ok ()) :
+    (h_dn : scanLoop_checkDanglingNode s₁ = .ok ())
+    (h_fv : scanLoop_checkFlowValueIndent s₁ = .ok ()) :
     ∃ toks, scanLoop s₀ fuel = .ok toks := by
   obtain ⟨f, rfl⟩ : ∃ n, fuel = n + 2 := ⟨fuel - 2, by omega⟩
   -- First iteration: scanNextToken s₀ = .ok (some s₁) → recurse
@@ -295,7 +291,7 @@ lemma scanLoop_two_iter {s₀ s₁ : ScannerState} {fuel : Nat}
     simp only [scanLoop, h_snt0]
   -- Second iteration: scanNextToken s₁ = .ok none → checks → ok
   have h2 : ∃ toks, scanLoop s₁ (f + 1) = .ok toks := by
-    simp only [scanLoop, h_snt1, h_flow, h_dp, h_dn]
+    simp only [scanLoop, h_snt1, h_flow, h_dp, h_dn, h_fv]
     exact ⟨_, rfl⟩
   rw [h1]; exact h2
 
@@ -306,10 +302,11 @@ lemma scanLoop_two_iter_eq {s₀ s₁ : ScannerState} {fuel : Nat}
     (h_snt1 : scanNextToken s₁ = .ok none)
     (h_flow : s₁.flowLevel = 0)
     (h_dp : s₁.directivesPresent = false)
-    (h_dn : scanLoop_checkDanglingNode s₁ = .ok ()) :
+    (h_dn : scanLoop_checkDanglingNode s₁ = .ok ())
+    (h_fv : scanLoop_checkFlowValueIndent s₁ = .ok ()) :
     scanLoop s₀ fuel = .ok ((unwindIndents s₁ (-1)).emit .streamEnd).tokens := by
   obtain ⟨f, rfl⟩ : ∃ n, fuel = n + 2 := ⟨fuel - 2, by omega⟩
-  simp only [scanLoop, h_snt0, h_snt1, h_flow, h_dp, h_dn]
+  simp only [scanLoop, h_snt0, h_snt1, h_flow, h_dp, h_dn, h_fv]
   simp (config := { decide := true }) only [ite_false]
 
 -- ═══ scanLoop compositionality ═══
@@ -372,10 +369,11 @@ lemma scanLoop_eof {s : ScannerState}
     (h_snt : scanNextToken s = .ok none)
     (h_fl : s.flowLevel = 0)
     (h_dp : s.directivesPresent = false)
-    (h_dn : scanLoop_checkDanglingNode s = .ok ()) :
+    (h_dn : scanLoop_checkDanglingNode s = .ok ())
+    (h_fv : scanLoop_checkFlowValueIndent s = .ok ()) :
     ∃ toks, scanLoop s 1 = .ok toks := by
   unfold scanLoop; rw [h_snt]
-  simp [show ¬(s.flowLevel > 0) from by omega, h_dp, h_dn]
+  simp [show ¬(s.flowLevel > 0) from by omega, h_dp, h_dn, h_fv]
 
 /-- **Terminal step (equality)**: If `scanNextToken` returns `.ok none` (EOF),
     `scanLoop` produces exactly the unwind+streamEnd tokens. -/
@@ -384,11 +382,12 @@ lemma scanLoop_eof_eq {s : ScannerState} {fuel : Nat}
     (h_snt : scanNextToken s = .ok none)
     (h_fl : s.flowLevel = 0)
     (h_dp : s.directivesPresent = false)
-    (h_dn : scanLoop_checkDanglingNode s = .ok ()) :
+    (h_dn : scanLoop_checkDanglingNode s = .ok ())
+    (h_fv : scanLoop_checkFlowValueIndent s = .ok ()) :
     scanLoop s fuel = .ok ((unwindIndents s (-1)).emit .streamEnd).tokens := by
   obtain ⟨f, rfl⟩ : ∃ n, fuel = n + 1 := ⟨fuel - 1, by omega⟩
   unfold scanLoop; rw [h_snt]
-  simp [show ¬(s.flowLevel > 0) from by omega, h_dp, h_dn]
+  simp [show ¬(s.flowLevel > 0) from by omega, h_dp, h_dn, h_fv]
 
 -- ═══ ScanChain: composition of N successful scanNextToken calls ═══
 
@@ -1193,6 +1192,8 @@ lemma scanNextToken_preserves_sync (s s' : ScannerState)
     rw [h_pre_stack, h_pre_fl]; exact h_sync
   -- §9.2 dangling-node check (item 133)
   split at h_next <;> (try (simp at h_next; done))
+  -- §8.1 flow-value floor (item 172)
+  split at h_next <;> (try (simp at h_next; done))
   split at h_next <;> (try (simp at h_next; done)) -- structural Except
   split at h_next
   · -- structural some
@@ -1220,8 +1221,6 @@ lemma scanNextToken_preserves_sync (s s' : ScannerState)
     -- Pending-directives check (Fix B)
     split at h_next <;> (try (simp at h_next; done))
     -- §9.2 bare-document check (item 132)
-    split at h_next <;> (try (simp at h_next; done))
-    -- checkBlockFlowIndent
     split at h_next <;> (try (simp at h_next; done))
     -- Flow Except
     split at h_next <;> (try (simp at h_next; done))
@@ -1707,6 +1706,9 @@ lemma scanNextToken_maintains_NoOverwriteAt (s s' : ScannerState)
       -- §9.2 dangling-node check (item 133)
       split at h_next
       · contradiction
+      -- §8.1 flow-value floor (item 172)
+      split at h_next
+      · contradiction
       split at h_next
       · contradiction
       · split at h_next
@@ -1733,30 +1735,28 @@ lemma scanNextToken_maintains_NoOverwriteAt (s s' : ScannerState)
           · split at h_next
             · contradiction
             · split at h_next
-              · contradiction
+              · rename_i s'' hFlow
+                simp only [Except.ok.injEq, Option.some.injEq] at h_next
+                subst h_next
+                exact dispatchFlowIndicators_maintains_NoOverwriteAt _ _ _ hFlow m h_s2_m h_s2_inv
               · split at h_next
-                · rename_i s'' hFlow
-                  simp only [Except.ok.injEq, Option.some.injEq] at h_next
-                  subst h_next
-                  exact dispatchFlowIndicators_maintains_NoOverwriteAt _ _ _ hFlow m h_s2_m h_s2_inv
+                · contradiction
                 · split at h_next
-                  · contradiction
-                  · split at h_next
-                    · rename_i s'' hBlock
-                      simp only [Except.ok.injEq, Option.some.injEq] at h_next
-                      subst h_next
-                      exact dispatchBlockIndicators_maintains_NoOverwriteAt _ _ _ hBlock
-                        m h_s2_m h_s2_inv
-                    · -- item 47: adjacent-value check (pure, no state change)
-                      split at h_next
+                  · rename_i s'' hBlock
+                    simp only [Except.ok.injEq, Option.some.injEq] at h_next
+                    subst h_next
+                    exact dispatchBlockIndicators_maintains_NoOverwriteAt _ _ _ hBlock
+                      m h_s2_m h_s2_inv
+                  · -- item 47: adjacent-value check (pure, no state change)
+                    split at h_next
+                    · contradiction
+                    · split at h_next
                       · contradiction
-                      · split at h_next
-                        · contradiction
-                        · rename_i sC hContent
-                          simp only [Except.ok.injEq, Option.some.injEq] at h_next
-                          subst h_next
-                          exact dispatchContent_maintains_NoOverwriteAt _ _ _ hContent
-                            m h_s2_m h_s2_inv
+                      · rename_i sC hContent
+                        simp only [Except.ok.injEq, Option.some.injEq] at h_next
+                        subst h_next
+                        exact dispatchContent_maintains_NoOverwriteAt _ _ _ hContent
+                          m h_s2_m h_s2_inv
 
 /-! ### §D.5  Step-level pointwise preservation -/
 
@@ -2377,6 +2377,9 @@ lemma scanNextToken_maintains_FlowNoOverwriteAt (s s' : ScannerState)
       -- §9.2 dangling-node check (item 133)
       split at h_next
       · contradiction
+      -- §8.1 flow-value floor (item 172)
+      split at h_next
+      · contradiction
       split at h_next
       · contradiction
       · split at h_next
@@ -2403,31 +2406,29 @@ lemma scanNextToken_maintains_FlowNoOverwriteAt (s s' : ScannerState)
           · split at h_next
             · contradiction
             · split at h_next
-              · contradiction
+              · rename_i s'' hFlow
+                simp only [Except.ok.injEq, Option.some.injEq] at h_next
+                subst h_next
+                exact dispatchFlowIndicators_maintains_FlowNoOverwriteAt _ _ _ hFlow
+                  m h_s2_m h_s2_inv
               · split at h_next
-                · rename_i s'' hFlow
-                  simp only [Except.ok.injEq, Option.some.injEq] at h_next
-                  subst h_next
-                  exact dispatchFlowIndicators_maintains_FlowNoOverwriteAt _ _ _ hFlow
-                    m h_s2_m h_s2_inv
+                · contradiction
                 · split at h_next
-                  · contradiction
-                  · split at h_next
-                    · rename_i s'' hBlock
-                      simp only [Except.ok.injEq, Option.some.injEq] at h_next
-                      subst h_next
-                      exact dispatchBlockIndicators_maintains_FlowNoOverwriteAt _ _ _ hBlock
-                        m h_s2_m h_s2_inv
-                    · -- item 47: adjacent-value check (pure, no state change)
-                      split at h_next
+                  · rename_i s'' hBlock
+                    simp only [Except.ok.injEq, Option.some.injEq] at h_next
+                    subst h_next
+                    exact dispatchBlockIndicators_maintains_FlowNoOverwriteAt _ _ _ hBlock
+                      m h_s2_m h_s2_inv
+                  · -- item 47: adjacent-value check (pure, no state change)
+                    split at h_next
+                    · contradiction
+                    · split at h_next
                       · contradiction
-                      · split at h_next
-                        · contradiction
-                        · rename_i sC hContent
-                          simp only [Except.ok.injEq, Option.some.injEq] at h_next
-                          subst h_next
-                          exact dispatchContent_maintains_FlowNoOverwriteAt _ _ _ hContent
-                            m h_s2_m h_s2_inv
+                      · rename_i sC hContent
+                        simp only [Except.ok.injEq, Option.some.injEq] at h_next
+                        subst h_next
+                        exact dispatchContent_maintains_FlowNoOverwriteAt _ _ _ hContent
+                          m h_s2_m h_s2_inv
 
 /-! ### §E.5  Step-level pointwise preservation (with `s.inFlow = true`) -/
 

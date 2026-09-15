@@ -339,8 +339,6 @@ lemma scanNextTokenIx_flow_comma (s : ScannerStateIx input)
         { saveSimpleKeyIx s with allowDirectives := false, documentEverStarted := true }
       else saveSimpleKeyIx s := ⟨_, rfl⟩
   -- Step 4: checkBlockFlowIndent for ','
-  have h_check : scanNextTokenIx_checkBlockFlowIndent s_ad ',' = .ok () :=
-    checkBlockFlowIndent_ok_comma s_ad
   -- Step 5: derive field equalities for s_ad (via case split on h_s_ad_def)
   have h_ad_fl : s_ad.flowLevel = s.flowLevel := by
     rw [h_s_ad_def]; split <;> exact saveSimpleKeyIx_flowLevel s
@@ -377,7 +375,7 @@ lemma scanNextTokenIx_flow_comma (s : ScannerStateIx input)
   -- Step 7: compose via scanNextTokenIx_via_flow_dispatch
   have h_snt := scanNextTokenIx_via_flow_dispatch s (saveSimpleKeyIx s) s_ad
     { (s_ad.emit YamlToken.flowEntry).advance with simpleKeyAllowed := true, explicitKeyLine := none, simpleKey := { possible := false } } ','
-    h_pp h_struct h_s_ad_def h_check h_flow_disp
+    h_pp h_struct h_s_ad_def (scanNextTokenIx_checkFlowValueIndent_ok_of_inFlow _ _ h_flow) h_flow_disp
     ((saveSimpleKeyIx_directivesPresent s).trans h_dp)
     (scanNextTokenIx_checkBareDocument_ok_of_inFlow _
       ((saveSimpleKeyIx_inFlow s).trans h_flow))
