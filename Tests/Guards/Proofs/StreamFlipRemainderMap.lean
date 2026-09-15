@@ -7,7 +7,7 @@ Copyright (c) 2026. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 -/
 
-/-! # The flip's remainder, mapped (DOCS items 171–172)
+/-! # The flip's remainder, mapped (DOCS items 171–173)
 
 Row 19's 1c ends by narrowing `[210]`'s slot (`GOpt SLAnyDocument` →
 `GOpt SLExplicitDocument`), and the narrowing instrument breaks FIVE
@@ -118,6 +118,28 @@ arms must hand after the flip. -/
 #guard pins "a: |\n  x\nb: 1\n" == ("scan-accepted", "+STR +DOC +MAP =VAL :a =VAL |x\\n =VAL :b =VAL :1 -MAP -DOC -STR")
 #guard pins "a:\n- x\n- y\n" == ("scan-accepted", "+STR +DOC +MAP =VAL :a +SEQ =VAL :x =VAL :y -SEQ -MAP -DOC -STR")
 #guard pins "k: v\nw: x\n" == ("scan-accepted", "+STR +DOC +MAP =VAL :k =VAL :v =VAL :w =VAL :x -MAP -DOC -STR")
+
+/-! …and the INDICATOR-headed siblings — the `:`/`?` opened at a still-open
+level's own width, which is what item 173's resume arm at
+`colon_open_map`/`question_open_map` serves.  One mapping each, the empty or
+explicit key consed as the level's next entry — at the root, one level in,
+and on the awaited-value park (`k:⏎: 2` = `{k: null, null: 2}`, the flow twin
+of which is §5's `k:⏎[1]: b`).  References: the SUITE certifies the colon
+family itself — 2JQS is `: a⏎: b` with exactly this one-mapping event list —
+and `[192]`'s `e-node` key alternative is the production; PyYAML is NOT the
+reference here (it refuses every empty implicit key, first entry included —
+its known `[192]` gap), while it parses the `?` siblings with matching
+events.  The dedent-crossing colon sibling (`a:⏎- x⏎: 2`) is the same
+reading at the parser and the swap's RECORDED residue on the proof side: the
+entry parks carry no mapping-lane frames, so that landing keeps the guarded
+fallback until a carrier crosses the `-`'s close. -/
+#guard pins ": 1\n: 2\n" == ("scan-accepted", "+STR +DOC +MAP =VAL : =VAL :1 =VAL : =VAL :2 -MAP -DOC -STR")
+#guard pins "a: 1\n: 2\n" == ("scan-accepted", "+STR +DOC +MAP =VAL :a =VAL :1 =VAL : =VAL :2 -MAP -DOC -STR")
+#guard pins "k:\n  a: 1\n  : 2\n" == ("scan-accepted", "+STR +DOC +MAP =VAL :k +MAP =VAL :a =VAL :1 =VAL : =VAL :2 -MAP -MAP -DOC -STR")
+#guard pins "k:\n: 2\n" == ("scan-accepted", "+STR +DOC +MAP =VAL :k =VAL : =VAL : =VAL :2 -MAP -DOC -STR")
+#guard pins "k:\n? b\n: 2\n" == ("scan-accepted", "+STR +DOC +MAP =VAL :k =VAL : =VAL :b =VAL :2 -MAP -DOC -STR")
+#guard pins "k:\n  ? a\n  : 1\n  ? b\n  : 2\n" == ("scan-accepted", "+STR +DOC +MAP =VAL :k +MAP =VAL :a =VAL :1 =VAL :b =VAL :2 -MAP -MAP -DOC -STR")
+#guard pins "a:\n- x\n: 2\n" == ("scan-accepted", "+STR +DOC +MAP =VAL :a +SEQ =VAL :x -SEQ =VAL : =VAL :2 -MAP -DOC -STR")
 
 /-! …and the landings that are NOT siblings are refused by the scanner —
 §9.2 at the landing (M1), at EOF (M2), or at the `-` (M3 family) — so the
@@ -234,12 +256,12 @@ Per surviving arm, what the pins say it serves and what pays after the flip:
 
 | arm | accepted domain (pinned) | post-flip reading |
 |---|---|---|
-| `rootMapRoute(F)_or_refused` at `h_op = true` (from `colon_open_map`, `question_open_map`, `content_dispatch_routed` ×2) | §1's sibling keys | the resume routes at the open level's frames |
+| `rootMapRoute(F)_or_refused` at `h_op = true` (from `colon_open_map`, `question_open_map`, `content_dispatch_routed` ×2) | §1's sibling keys | the resume routes at the open level's frames — **the two openers CARRY the resume arm as of item 173** (`h_res_land`, first in the cascade), paid by `pendingContent.h_framesS` and `pendingMapValue.h_frames`; what still reaches the guard is a landing whose park pays no face (the dedent-crossing colon sibling `a:⏎- x⏎: 2`, the recorded residue) |
 | `bareNodeRoute_or_refused` at `h_op = true` (from `accum_block_on_closeThenBlock`) | §1's sibling keys and open-sequence entries | same |
 | `content_dispatch_after_close` | §1's siblings after an empty close (`k:⏎a: 1`) | resume at the level the close kept open |
 | the guards at `Or.inr` (parks with no `CompletedTail`) | §4's family is the scalar half of what reaches them | shrinks with 1d's runtime fix; the sibling residue resumes |
 | `topLevelFlowResumeSep_or_refused` fallbacks, `flowKeyRoute_of_root` landing arm | §2's sibling flow keys (item 172's key half) | the key half resumes at the open level; the value half is refused at the gate and the refuted arms cover it |
-| `flowKeyRoute_of_root` no-break arm | the seed/marker/suffix keys (§2's accepted pins) | the `nodoc`/marker/suffix twins, once the skeleton hands the faces it drops (`accum_flow_open_depth0` passes `Or.inr trivial` for `h_nodoc`) |
+| ~~`flowKeyRoute_of_root` no-break arm~~ | the seed key (`[1]: b`) | **PAID by item 173**: the no-break arm's premise carries the virgin park's own `h_nodoc` face beside the column, so `nodocMapRoute` is the arm's only route and the raw `rootMapRoute` application is deleted — the census's `rootMapRoute` holder is gone |
 | `accum_content_pending`'s crossed arms | NONE accepted (§3) | a scanner-side trailing-props refusal (M4 candidate), or the window face carried to the parser boundary |
 | `structural_dispatch_to_pending`, `DocumentProduction.stream_implicit_continue` | n/a — `SLAnyDocument.explicit` wrappers | deleted by the flip itself |
 -/
