@@ -1288,8 +1288,10 @@ def propertyRunHasTagIx {input : String} (s : ScannerStateIx input) : Bool :=
 
 /-- §6.9 [96]: is the property run ending at the cursor already FULL — two
     tokens, which is all `[96]` derives?  (Indexed twin of
-    `L4YAML.Scanner.propertyRunFull`; see its docstring for why the LENGTH
-    reading is what a run crossing a break needs.) -/
+    `L4YAML.Scanner.propertyRunFull`; see its docstring for why the length
+    decides alone in a flow while block context also asks the run's TAIL to
+    share the cursor's line — a tail that closed on an earlier line may be a
+    parent node's completed run, 9KAX's shape.) -/
 def propertyRunFullIx {input : String} (s : ScannerStateIx input) : Bool :=
   match prevRealIdxIx? s.tokens s.tokens.tokens.size with
   | none => false
@@ -1297,7 +1299,11 @@ def propertyRunFullIx {input : String} (s : ScannerStateIx input) : Bool :=
     s.tokens.tokens[i]!.token.isNodeProperty &&
       (match prevRealIdxIx? s.tokens i with
        | none => false
-       | some j => s.tokens.tokens[j]!.token.isNodeProperty)
+       | some j =>
+         s.tokens.tokens[j]!.token.isNodeProperty &&
+           (s.inFlow ||
+             (s.tokens.tokens[i]!.start.line == s.cursor.pos.line &&
+              s.tokens.tokens[j]!.start.line == s.tokens.tokens[i]!.start.line)))
 
 /-- §6.9 [104]: is the cursor directly after a node property?  (Indexed twin of
     `L4YAML.Scanner.lastTokenIsNodeProperty`.) -/

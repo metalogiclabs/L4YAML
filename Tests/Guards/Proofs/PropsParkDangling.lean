@@ -262,28 +262,33 @@ array rather than about the grammar.  A property run's reading transports across
 a BODY push — the walk-back reaches the same run start — but it did not transport
 across a PROPERTY push, because the start moved.
 
-**Item 165 removed the input rather than the lemma.**  `[96]` derives one
-optional anchor and one optional tag, so a run is at most TWO properties long,
-and both §6.9 guards decide by KIND on the current LINE — which is blind to a
-run that crosses a break.  `propertyRunFull` decides by LENGTH and reads the
-RUN, so `&a⏎!t &b x` is refused at the third property, where `TokenParser`
-already refused the document.  With that arm empty the start never moves at a
-park the scanner reaches, and the premise relays through all three pushes. -/
+**Item 165 removed the input rather than the lemma — and item 170 put half of
+it back.**  `[96]` derives one optional anchor and one optional tag, so a run
+is at most TWO properties long, and both §6.9 guards decide by KIND on the
+current LINE — which is blind to a run that crosses a break.  Item 165's
+`propertyRunFull` decided by LENGTH alone and over-refused: a parent node's
+full run beside its mapping's first key's fresh run reads the same way (9KAX,
+found at item 169's matrix re-run).  Item 170 narrows the block reading to the
+cursor's line, so `&a⏎!t &b x` is the PARSER's again and the start DOES move
+at a scanner-reachable park — step 3 below reads `1,0` where step 2 read
+`0,0`.  The premise relays through the BODY and OPEN pushes as before; the
+PROPERTY push returns the moved window (`PropsWindowCross`) and
+`pendingProps.h_routeX` serves it without the verdict
+(`PropsCrossWindowRoute`). -/
 
-#guard scanOk "&a\n!t &b x\n"
-  == "SCAN-ERR L4YAML.ScanError.invalidNodeProperties '&' 1 3"
+#guard scanOk "&a\n!t &b x\n" == "SCAN-OK"
 #guard parseOk "&a\n!t &b x\n"
-  == "PARSE-ERR L4YAML.ScanError.invalidNodeProperties '&' 1 3"
+  == "PARSE-ERR L4YAML.ScanError.invalidBareDocument 1 3"
 
 -- `&a⏎!t &b x`: at step 2 the token run starts at the `&a` on line 0, because
 -- `trailingNodeRun?` walks back over properties and has no line filter.  The
--- third property is where the start would have moved; the walk has no step 3.
+-- third property MOVES the start to the `!t` on line 1 — the crossed window.
 #guard (List.range 5).map (fun n => parkAt "&a\n!t &b x\n" n)
   == ["run=none park=none",
       "run=prop@0,0 pred=no-slot park=none",
       "run=prop@0,0 pred=no-slot park=none",
-      "no-state",
-      "no-state"]
+      "run=prop@1,0 pred=no-slot park=none",
+      "run=prop@1,0 pred=no-slot park=none"]
 
 -- The TWO-property run it stops at is untouched, across a break as on a line.
 #guard (List.range 5).map (fun n => parkAt "&a\n!t x\n" n)
@@ -293,9 +298,8 @@ park the scanner reaches, and the premise relays through all three pushes. -/
       "run=prop@0,0 pred=no-slot park=none",
       "no-state"]
 
--- The same three properties on ONE line were already scanner-refused — §6.9's
--- kind guard reads the line's own run — so what item 165 adds is the same
--- answer where the run crossed a break and the line filter saw one token.
+-- The same three properties on ONE line stay scanner-refused — §6.9's kind
+-- guard reads the line's own run, and item 170's narrowed length gate agrees.
 #guard scanOk "&a !t &b x\n" == "SCAN-ERR L4YAML.ScanError.invalidNodeProperties '&' 0 6"
 
 /-! ## §5  What the next item needs

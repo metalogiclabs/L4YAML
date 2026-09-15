@@ -269,7 +269,8 @@ def propertyRunHasTag (s : ScannerState) : Bool :=
   (s.inFlow && (trailingPropertyRun s.tokens).any YamlToken.isTagProperty) ||
     (trailingPropertyRunOnLine s.tokens s.line).any YamlToken.isTagProperty
 
-/-- **Is the property run ending at the cursor already FULL?** (item 165)
+/-- **Is the property run ending at the cursor already FULL?** (item 165;
+    narrowed at item 170)
 
     `[96] c-ns-properties` is one optional `[101] c-ns-anchor-property` and one
     optional `[97] c-ns-tag-property`, so a run is at most TWO tokens long and a
@@ -277,11 +278,23 @@ def propertyRunHasTag (s : ScannerState) : Bool :=
     KIND, and outside a flow they read the current line's run — which is exactly
     right for `&a !t &b` (refused on the line) and blind to `&a⏎!t &b`, where
     the run crosses a break and the line-filtered reading sees one token.  This
-    one decides by LENGTH and reads the RUN, so where the breaks fall does not
-    change the answer.
+    one decides by LENGTH.
 
-    Every input it refuses is already `[96]`-invalid — two anchors or two tags
-    on one node — and was refused by `TokenParser` one stage later. -/
+    **In block context the run's TAIL must share the cursor's line.**  A full
+    run whose tail closed on an EARLIER line may belong to a PARENT node whose
+    block mapping's first implicit key carries the incoming property —
+    `&a4 !!map⏎&a5 !!str key5: v` (9KAX) is `[96]`-valid twice over, and the
+    two runs stand adjacent in the token array because `l+block-mapping` puts
+    no token between them.  A tail on the CURRENT line has no such reading:
+    `[187]`'s entries each start a line, so a property following a same-line
+    full run joins that run and a third has no derivation.  In a FLOW every
+    node stands behind a structural token (`[`/`{`/`,`/`:`/`?`), so adjacent
+    property tokens are one node's run wherever their breaks fall, and the
+    length alone decides.
+
+    What this refuses `TokenParser` also refuses one stage later; the
+    cross-line block shapes it now defers (`&a !t⏎&b x`) are the parser's,
+    exactly as `&a⏎!t &b x` was before item 165. -/
 @[yaml_spec "6.9" 96 "c-ns-properties"]
 def propertyRunFull (s : ScannerState) : Bool :=
   match prevRealIdx? s.tokens s.tokens.size with
@@ -290,7 +303,11 @@ def propertyRunFull (s : ScannerState) : Bool :=
     s.tokens[i]!.val.isNodeProperty &&
       (match prevRealIdx? s.tokens i with
        | none => false
-       | some j => s.tokens[j]!.val.isNodeProperty)
+       | some j =>
+         s.tokens[j]!.val.isNodeProperty &&
+           (s.inFlow ||
+             (s.tokens[i]!.pos.line == s.line &&
+              s.tokens[j]!.pos.line == s.tokens[i]!.pos.line)))
 
 /-- Is the cursor directly after a node property?  `[104] c-ns-alias-node` is an
     *alternative* to the properties-bearing form of `[161] ns-flow-node`, never

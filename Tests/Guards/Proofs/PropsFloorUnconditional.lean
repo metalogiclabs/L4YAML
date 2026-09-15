@@ -49,7 +49,10 @@ example {sc : ScannerState} {sp_start sp_block sp_scan sp_node sp_p : SurfPos}
     (h_col0 : 0 < sp_scan.col)
     (h_ska : sc.simpleKeyAllowed = false)
     -- Item 138: and the park's directive face.
-    (h_nodir : sc.allowDirectives = false) :
+    (h_nodir : sc.allowDirectives = false)
+    -- Item 170: and the crossed tail window's UNGATED route.
+    (h_routeX : PropsWindowCross sc.tokens →
+      ∀ sp_m, SBlockNode n .blockIn sp_node sp_m → SLYamlStream sp_start sp_m) :
     PendingNode sc false sp_start sp_block sp_scan :=
   PendingNode.pendingProps sp_start sp_block sp_scan true false sp_node sp_p n
     h_sep h_run h_nic h_real (fun _ => h_anchor) (fun h => nomatch h) h_route
@@ -60,7 +63,7 @@ example {sc : ScannerState} {sp_start sp_block sp_scan sp_node sp_p : SurfPos}
     -- Item 114: the five resume faces are optional too — a pin with no
     -- enclosing holdings punts them all.
     (Or.inr trivial) (Or.inr trivial) (Or.inr trivial) (Or.inr trivial)
-    (Or.inr trivial) h_nodir
+    (Or.inr trivial) h_nodir h_routeX
 
 /-! ## §2  The measurement: the floor's transport premises
 

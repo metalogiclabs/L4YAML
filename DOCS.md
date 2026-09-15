@@ -18137,7 +18137,9 @@ suite unmoved.
 > above did not contain the refuting input: it scanned the suite's `src` form
 > (the META files), and the input exists in the matrix checkout's data form.
 > Probe-verified: at the refusal state only the `propertyRunFull` disjunct
-> fires.  The correction is item 169's named next item.
+> fires.  The correction is item 169's named next item — **fixed at item 170**:
+> in block context the gate fires only when all three properties share the
+> cursor's line, and the matrix stands at 402/402 + 282/282 again.
 
 **Then the guard lands, and the table pays as item 160 wrote it.**
 `pendingProps.h_route` takes `danglingNodePos? sc = none`, and building names
@@ -18647,6 +18649,118 @@ incoming property; the shapes item 165 built the gate for (`&a !t &b x`,
 line-reading is the honest discriminator — and what it costs the four proof
 payments the gate funds — is the next item's measurement.
 
+> **Fixed at item 170**, whose measurement also struck one sentence of this
+> item's parking note: the cross-line shapes the narrowed gate defers are
+> scan-clean and PARSER-refused (`invalidBareDocument` at the run's start),
+> not scanner-refused as the note guessed — `TokenParser.validNextToken`'s
+> own §9.2 reading, the same one that always refused `a: 1⏎&p [b]`.
+
+
+### Item 170 (2026-09-15)
+
+**Item 165's `[96]` length gate, narrowed to the line — and the §9.2 relay it
+funded, rebuilt on a route that never needed the verdict.**  Two halves, and
+the second is where the item earned its keep: the parked proof design was not
+hard but FALSE, found by construction and confirmed by the machine before a
+line of it landed.
+
+**The runtime half, as parked and measured.**  In block context
+`propertyRunFull` fires only when the tail property, the property below it,
+and the cursor share ONE line; a flow keeps the length-only reading (every
+flow node stands behind a structural token, so adjacent properties are one
+node's run wherever their breaks fall).  A first design — tail-on-cursor-line
+alone — was measured and refuted before this one: the refusal MOVED from the
+`&` to the `!!str` (the array shape "tail on the line, property below" is
+shared by 9KAX's legal split and `&a⏎!t &b x`), so the discriminator needs
+all three readings.  With the landed gate the matrix returns to **402/402
+event + 282/282 JSON on BOTH pipelines** (err-ok 94 intact), 9KAX emits exact
+events, `&a !t⏎&b x: 1` — the same split one level deeper — parses, and the
+same-line and in-flow thirds stay scanner-refused.  What the gate now DEFERS
+(`&a⏎!t &b x`, `&a !t⏎&b x`, `!t⏎&a !u x`) is the parser's:
+`invalidBareDocument` at the run's start, `validNextToken`'s own §9.2.
+
+**The proof half's parked design, refuted.**  The parking note said: relay
+the verdict as before, `by_cases` on the below-token, and fund the crossed
+case with a new park field carrying `danglingNodePos? sc = none`.  Working
+the payments backward found no producer that could pay such a field, and
+then the reason: **§9.2's walk-back is capped at `[96]`'s arity, so a
+property push SLIDES the window** — the park's verdict and the pushed
+state's read DIFFERENT start columns against the same stack, and neither
+implies the other.  The refuting input is four properties down a staircase:
+`a:⏎!t⏎&b⏎␣␣!s &c x`.  Every landing passes the mid-stream check (each
+window it reads either stands behind the `:`'s slot or off every open
+column), the narrowed gate defers every push, and the scanner accepts the
+whole input — while five tokens in the verdict reads `some(2,0)` (`&b` at
+column 0, AT the open level) and six tokens in it reads `none` (`!s` at
+column 2).  `Scratch/ProbeSlide170.lean` is the trace; the guard pins both
+verdicts.  So `propsPark_dangling_of_prop` as parked — "verdict at `s'`
+implies verdict at `sc`" — is false at a scanner-reachable state, and no
+strengthening of its premises fixes a lemma whose conclusion is false.
+
+**What replaced it costs almost nothing, and the reason is item 139's own
+fallback.**  The gated `h_route` exists so §9.2-dangling parks
+(`a: 1⏎&p b`) never owe a stream reading — but every construction that PAYS
+the route at a landed birth ignores the gate: `bareNodeRoute` is `[211]
+implicitContinue`'s unconditional over-approximate reading (item 110's
+admitted arm), and the marker, suffix, and head contexts hand their own
+slots the same way.  So the crossed window gets the route WITHOUT the
+verdict:
+
+* **`PropsWindowCross ts`** names the window — the array's last real token
+  with a property on a DIFFERENT line directly below it;
+* **`propsPark_dangling_of_prop` returns a disjunction** — the relay where
+  the below-token is no property (item 165's chain, verbatim), the WINDOW
+  where it is, with the gate's own pass supplying the line disagreement;
+* **`pendingProps.h_routeX`** (new last field) is the route behind the
+  window as premise, and the extension arms spend whichever disjunct
+  arrives;
+* **`content_dispatch_routed`'s route premise widens** to
+  `ContentRouteGate s' c ∨ PropsWindowCross s'.tokens` — and every one of
+  its eight providers was ALREADY premise-ignoring (`fun _ =>
+  bareNodeRoute …`, `fun _ => mkroute`, `fun _ => nodocNodeRoute …`, the
+  `---` park's closer) or serves the new arm with the same `bareNodeRoute`
+  its gated arm falls back to (the two `h_route_mid` builders);
+* the six entry/value producers re-hand their own unconditional routes, and
+  the two same-line extensions REFUTE the window
+  (`propsWindowCross_push_refute`: the pushed tail and the token below it
+  share the cursor's line).
+
+`ContentRouteGate` is unchanged; both `_or_refused` refinements and every
+scanner refusal stand as measured.  `propsPark_dangling_of_body` needs
+nothing: a BODY push walks two properties deep, which is exactly one deeper
+than the park's own walk, so its windows already agree.
+
+**Measured at the landed state.**  Build **1159** jobs (+1 for the new
+guard), 0 warnings; suite **4497/4497**; `eventscore` **347/358** with 0
+`event-reject` and 0 `error-miss`; `suiterunner` **869 passed / 0 failed /
+151 skipped**; matrix **402/402 event + 282/282 JSON both pipelines** — the
+item-169 regression closed.  `#print axioms`: the reshaped relay and the new
+refutation lemma are `[propext, Classical.choice, Quot.sound]` and
+`[propext, Quot.sound]`; the consumers keep the standard three plus the
+pre-existing `native_decide` char-class families; no `sorryAx`.  The `[210]`
+flip is **FIVE** errors at the same five lemma definitions.  The raw-route
+consumer census reads **FOUR** holders now: the same three with the same
+counts, plus `accum_content_pending: bareNodeRoute ×2` — the two crossed-arm
+fallbacks the widened `h_route_mid`s serve, applying the SAME construction
+`bareNodeRoute_or_refused_content` already falls back to, so the census
+grew by the two sites this item added deliberately and nothing else.
+
+**Witnessed in `Tests/Guards/Proofs/PropsCrossWindowRoute.lean`** — §1 the
+slide at the runtime (both verdicts, scan-clean, parser refusal), §2 the
+disjunctive relay, the route composition on either disjunct, and the
+extension's refutation at their types, §3 the record.  Three older guards
+carried pins of the length-only refusals and are corrected in the artifact
+that carries them: `PropsRunLengthGate` §1 (cross-line thirds now
+SCAN-OK/PARSE-ERR, the two restored families pinned end to end),
+`PropsParkDangling` §4 (the walk's start MOVES at a reachable park again —
+the pin now shows the move), `PropsRunReadingTransport` (likewise, with the
+relay's answer renamed to the window).
+
+**What remains.**  Nothing new from this item: the extension arms refute the
+window, the births pay it from constructions that predate the item, and the
+runtime is the measured gate alone.  The ledger's next work is R3's standing
+families and R4.
+
 
 ### REMAINING, in order
 
@@ -18664,7 +18778,7 @@ too (items 47–51), so what stands between here
 and Step 5 (the converse) is R3's remaining production work and R4:
 
 ```
-R1 ✓ (44–46) ──→ R2 ✓ (47–51) ──→ R3 (52–169 landed; U2 CLOSED, the collapse gone) ──→ Step 5
+R1 ✓ (44–46) ──→ R2 ✓ (47–51) ──→ R3 (52–170 landed; U2 CLOSED, the collapse gone) ──→ Step 5
                                         └──────→ R4 (implicitContinue + 0 < m) ──┘
 ```
 

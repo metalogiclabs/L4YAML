@@ -116,29 +116,31 @@ example {s s' : ScannerState} {c : Char} {i : Nat}
   rw [← danglingNodePos?_dispatch_body_onProp hok hna hnt hprev hiprop]
   exact h_nd
 
-/-! ### A PROPERTY moves the start — and item 165 empties the arm
+/-! ### A PROPERTY moves the start — the arm item 165 emptied and item 170 REOPENED
 
-`&a⏎!t &b x` was this file's witness: at step 2 the run started at the `&a` on
-line 0, and the THIRD property pushed the start down to the `!t` on line 1, so
-the reading at the park and the reading one push later were readings of
-DIFFERENT tokens.  That is why the premise could not be stated as
+`&a⏎!t &b x` is this file's witness: at step 2 the run starts at the `&a` on
+line 0, and the THIRD property pushes the start down to the `!t` on line 1, so
+the reading at the park and the reading one push later are readings of
+DIFFERENT tokens.  That is why the premise cannot be stated as
 `danglingNodePos? sc = none` and relayed through a run's own extension.
 
-**Item 165 refuses the input instead.**  `[96] c-ns-properties` is one optional
-anchor and one optional tag, so a run is at most TWO properties long — and both
-§6.9 guards decide by KIND on the current LINE, which is blind to a run that
-crosses a break.  `propertyRunFull` decides by LENGTH and reads the RUN, so the
-third property is refused where `TokenParser` already refused the document, and
-the walk stops at step 3.  With the arm empty the start never moves at a park
-the scanner reaches, and the premise relays. -/
+**Item 165 refused the input; item 170 narrowed that gate back** (the
+length-only form read a parent's full run and a fresh key's run as one — 9KAX
+— so in block context it fires only when all three properties share the
+cursor's line).  The cross-line third is the PARSER's again, the start DOES
+move at a scanner-reachable park — step 3 below reads `1,0` where step 2 read
+`0,0` — and the relay serves the moved window by returning it
+(`PropsWindowCross`), which `pendingProps.h_routeX` answers without the
+verdict (`PropsCrossWindowRoute` is that guard). -/
 
 #guard walk "&a\n!t &b x\n" 6
-  == "run=none park=none ; run=prop@0,0 park=none ; run=prop@0,0 park=none ; — ; — ; —"
-#guard scanOk "&a\n!t &b x\n"
-  == "SCAN-ERR L4YAML.ScanError.invalidNodeProperties '&' 1 3"
+  == "run=none park=none ; run=prop@0,0 park=none ; run=prop@0,0 park=none ; \
+run=prop@1,0 park=none ; run=prop@1,0 park=none ; —"
+#guard scanOk "&a\n!t &b x\n" == "SCAN-OK"
+#guard parseOk "&a\n!t &b x\n"
+  == "PARSE-ERR L4YAML.ScanError.invalidBareDocument 1 3"
 
-/-- Where the start WOULD go: the PARK's own last token, not the pushed one.
-    The lemma stands; what item 165 removed is its reachable input. -/
+/-- Where the start goes: the PARK's own last token, not the pushed one. -/
 example {s s' : ScannerState} {c : Char} {i : Nat}
     (hok : scanNextToken_dispatchContent s c = .ok s')
     (hc : c = '&' ∨ c = '!')
@@ -147,14 +149,14 @@ example {s s' : ScannerState} {c : Char} {i : Nat}
     trailingNodeRun? s'.tokens = some (i, prevRealIdx? s.tokens i) :=
   trailingNodeRun?_dispatch_prop_onProp hok hc hprev hiprop
 
-/-- …and the fact that empties it, read off the dispatch that succeeded. -/
+/-- The dispatch's own pass, read back — under item 170's gate this refutes a
+    SAME-LINE below-property, and hands the cross-line window to `h_routeX`. -/
 example {s s' : ScannerState} (hok : scanNextToken_dispatchContent s '&' = .ok s') :
     propertyRunFull s = false :=
   propertyRunFull_false_of_anchor_dispatch hok
 
--- Three properties on ONE line were already refused by §6.9's kind guard; what
--- item 165 adds is the same answer when the run crosses a break.  The TWO-long
--- run both stop at is untouched, on a line or across one.
+-- Three properties on ONE line are refused by §6.9's kind and length guards;
+-- the TWO-long run is untouched, on a line or across one.
 #guard scanOk "&a !t &b x\n"
   == "SCAN-ERR L4YAML.ScanError.invalidNodeProperties '&' 0 6"
 #guard (scanOk "&a !t x\n", parseOk "&a !t x\n") == ("SCAN-OK", "PARSE-OK")

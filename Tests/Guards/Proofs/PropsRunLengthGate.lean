@@ -25,9 +25,16 @@ KIND and, outside a flow, read `trailingPropertyRunOnLine` — the current LINE'
 run.  That is blind to a run crossing a break: at the `&b` of `&a⏎!t &b x` the
 line's run is `[!t]`, which carries no anchor, so the third property was
 accepted and only `TokenParser` refused the document.  `propertyRunFull` decides
-by LENGTH and reads the RUN, so the answer no longer depends on where the run's
-breaks fall — and with the third property refused the walk-back never reaches
-its cap at a park the scanner produces.
+by LENGTH and reads the RUN.
+
+**Item 170 narrowed the block reading back to the cursor's line** — the
+length-only form read a parent's full run, a break, and the first implicit
+KEY's fresh run as ONE run and refused 9KAX — so the cross-line third-property
+shapes are the parser's again, and the walk-back CAN reach its cap at a park
+the scanner produces.  The relay in §2 returns that window
+(`PropsWindowCross`) instead of forcing the verdict through it, and
+`pendingProps.h_routeX` — the route held without the verdict — serves it
+(`PropsCrossWindowRoute` is that story's own guard).
 
 §1 measures the check, §2 the relay it buys, §3 the props arm's own gate — the
 tenth and last of item 161's ten — and §4 the residue that leaves:
@@ -50,29 +57,38 @@ private def parseOk (input : String) : String :=
 
 private def both (input : String) : String × String := (scanOk input, parseOk input)
 
-/-! ## §1  The check: a run is at most two properties long
+/-! ## §1  The check: a SAME-LINE run is at most two properties long
 
-The third property is refused wherever the run's breaks fall, and both pipelines
-agree.  Every input below was already `[96]`-invalid — two anchors or two tags
-on one node — and `TokenParser` refused all four one stage later. -/
+**Item 170 narrowed the block-context reading to the cursor's line.**  A full
+run whose tail closed on an EARLIER line may belong to a PARENT node whose
+mapping's first implicit key carries the incoming property — 9KAX's
+`&a4 !!map⏎&a5 !!str key5: v` is `[96]`-valid twice over and the two runs
+stand adjacent in the array — so the cross-line shapes are the PARSER's now
+(`invalidBareDocument` at the run's start, `TokenParser.validNextToken`'s own
+§9.2), exactly as `a: 1⏎&p [b]` always was.  On one line, and in a flow, the
+length still decides at the scanner. -/
 
--- Across ONE break: the line's run shows one token, the RUN shows two.
+-- Across ONE break: DEFERRED to the parser (the tail is on an earlier line,
+-- and the scanner cannot tell a run continuation from a parent's run beside
+-- a fresh key's — 9KAX below).
 #guard both "&a\n!t &b x\n"
-  == ("SCAN-ERR L4YAML.ScanError.invalidNodeProperties '&' 1 3",
-      "PARSE-ERR L4YAML.ScanError.invalidNodeProperties '&' 1 3")
+  == ("SCAN-OK", "PARSE-ERR L4YAML.ScanError.invalidBareDocument 1 3")
 #guard both "!t\n&a !u x\n"
-  == ("SCAN-ERR L4YAML.ScanError.invalidNodeProperties '!' 1 3",
-      "PARSE-ERR L4YAML.ScanError.invalidNodeProperties '!' 1 3")
--- Across TWO: the line's run is empty at the third property.
+  == ("SCAN-OK", "PARSE-ERR L4YAML.ScanError.invalidBareDocument 1 3")
+-- Across TWO: likewise.
 #guard both "&a\n!t\n&b x\n"
-  == ("SCAN-ERR L4YAML.ScanError.invalidNodeProperties '&' 2 0",
-      "PARSE-ERR L4YAML.ScanError.invalidNodeProperties '&' 2 0")
+  == ("SCAN-OK", "PARSE-ERR L4YAML.ScanError.invalidBareDocument 2 0")
 -- On ONE line, and inside a flow, §6.9's KIND guards already answered — the
 -- length check agrees with them rather than replacing them.
 #guard scanOk "&a !t &b x\n"
   == "SCAN-ERR L4YAML.ScanError.invalidNodeProperties '&' 0 6"
 #guard scanOk "[&a !t &b x]\n"
   == "SCAN-ERR L4YAML.ScanError.invalidNodeProperties '&' 0 7"
+
+-- The families the narrowing RESTORES (both pipelines end to end): a parent
+-- node's FULL run, a break, and the first implicit key's own fresh run.
+#guard both "---\n&a4 !!map\n&a5 !!str key5: value4\n" == ("SCAN-OK", "PARSE-OK")
+#guard both "&a !t\n&b x: 1\n" == ("SCAN-OK", "PARSE-OK")
 
 -- The TWO-property run it stops at is untouched, in every shape: on a line,
 -- across a break in either order, in a flow, and as a mapping value.
@@ -115,7 +131,12 @@ example {sc s_prep : ScannerState} {sp_scan : SurfPos} {c : Char}
       (s_prep.tokens = sc.tokens ∧ s_prep.indents = sc.indents) :=
   propsPark_stale_dangling h_corr h_pre h_noflow_prep h_col0 h_nic h_ska h_dn
 
-/-- The EXTENSION's relay, with §1's check as its one new premise. -/
+/-- The EXTENSION's relay, with §1's check as its one new premise.  **Item 170
+    reshaped it into a disjunction**: under the narrowed gate a property may
+    stand below the run's tail across a break, and there the §9.2 window
+    SLIDES under the push (`PropsWindowCross`'s docstring has the refuting
+    input) — the lemma hands the window back and `pendingProps.h_routeX`
+    serves it without the verdict. -/
 example {sc s_prep s_ad s' : ScannerState} {sp_scan : SurfPos} {c : Char}
     (h_corr : ScannerSurfCorr sc sp_scan)
     (h_pre : scanNextToken_preprocess sc = .ok (some (s_prep, c)))
@@ -124,15 +145,18 @@ example {sc s_prep s_ad s' : ScannerState} {sp_scan : SurfPos} {c : Char}
     (h_nic : sc.needIndentCheck = false) (h_ska : sc.simpleKeyAllowed = false)
     (h_dn : scanNextToken_checkDanglingNode sc s_prep = .ok ())
     (h_prop : ∃ k, prevRealIdx? sc.tokens sc.tokens.size = some k ∧
-      sc.tokens[k]!.val.isNodeProperty = true)
+      sc.tokens[k]!.val.isNodeProperty = true ∧
+      sc.tokens[k]!.pos.line = sc.line)
     (h_ad_tok : s_ad.tokens = s_prep.tokens) (h_ad_ind : s_ad.indents = s_prep.indents)
     (h_ad_flow : s_ad.inFlow = s_prep.inFlow)
+    (h_ad_line : s_ad.line = sc.line)
     (hc : c = '&' ∨ c = '!')
     (h_full : propertyRunFull s_ad = false)
-    (h_dispatch : scanNextToken_dispatchContent s_ad c = .ok s')
-    (h_nd : danglingNodePos? s' = none) : danglingNodePos? sc = none :=
+    (h_dispatch : scanNextToken_dispatchContent s_ad c = .ok s') :
+    (danglingNodePos? s' = none → danglingNodePos? sc = none) ∨
+      PropsWindowCross sc.tokens :=
   propsPark_dangling_of_prop h_corr h_pre h_noflow_sc h_noflow_prep h_col0 h_nic h_ska
-    h_dn h_prop h_ad_tok h_ad_ind h_ad_flow hc h_full h_dispatch h_nd
+    h_dn h_prop h_ad_tok h_ad_ind h_ad_flow h_ad_line hc h_full h_dispatch
 
 /-- …and the CONTENT's, which needs no such premise: a body push leaves the
     walk-back's answer alone (item 160's row, now spendable). -/
@@ -187,7 +211,8 @@ example {sc s_prep s' : ScannerState} {sp_scan : SurfPos} {c : Char}
 /-- `ParkAnchor`'s fourth conjunct for a `[96]` park, read off the fields
     `pendingProps` already carries — the run is non-empty, a non-empty same-line
     run is headed by the last real token, and a real final slot is the one
-    `prevRealIdx?` lands on. -/
+    `prevRealIdx?` lands on.  Item 170: the derivation always held the tail's
+    LINE too and used to drop it; the narrowed gate's relay spends it. -/
 example {sc : ScannerState} {ha ht : Bool} {n : Nat} {sp_p sp_scan : SurfPos}
     (h_real : L4YAML.Proofs.FlowAdjacency.LastTokenReal sc.tokens)
     (h_run : PropsRun n .flowOut ha ht sp_p sp_scan)
@@ -196,7 +221,8 @@ example {sc : ScannerState} {ha ht : Bool} {n : Nat} {sp_p sp_scan : SurfPos}
     (h_tag : ht = true →
       (trailingPropertyRunOnLine sc.tokens sc.line).any YamlToken.isTagProperty = true) :
     ∃ k, prevRealIdx? sc.tokens sc.tokens.size = some k ∧
-      sc.tokens[k]!.val.isNodeProperty = true :=
+      sc.tokens[k]!.val.isNodeProperty = true ∧
+      sc.tokens[k]!.pos.line = sc.line :=
   propsPark_prevReal_prop h_real h_run h_anchor h_tag
 
 -- The two futures the gate exists to separate (item 160's table, unchanged):
@@ -211,7 +237,10 @@ example {sc : ScannerState} {ha ht : Bool} {n : Nat} {sp_p sp_scan : SurfPos}
 item 158 measured what the right disjunct named: not two characters but a
 missing FIELD — `pendingProps` carried no §9.2 face, so at `&`/`!` the landing
 had no reading to hand over.  It has one now, so the gate is the reading, for
-every content character alike. -/
+every content character alike.  (Item 170 widened `content_dispatch_routed`'s
+route PREMISE with `PropsWindowCross` — a different disjunct with a different
+payer: every provider's construction ignores the premise, so the crossed
+window costs nothing there.  The gate itself is unchanged.) -/
 
 example {s' : ScannerState} {c : Char} :
     ContentRouteGate s' c ↔ danglingNodePos? s' = none := Iff.rfl

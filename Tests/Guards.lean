@@ -141,6 +141,7 @@ import Tests.Guards.Proofs.BlockLandingOpenSeq
 import Tests.Guards.Proofs.SeqDedentEntryTail
 import Tests.Guards.Proofs.CompactMapSeqTail
 import Tests.Guards.Proofs.SeqTailResumeFrames
+import Tests.Guards.Proofs.PropsCrossWindowRoute
 import Tests.Guards.Proofs.FlowFrameResumeRider
 import Tests.Guards.Proofs.UnderIndentInvariantMap
 import Tests.Guards.Proofs.ScalarWalkCrossLineFloor
