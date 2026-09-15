@@ -199,9 +199,18 @@ it) and under-counted the holders.
 
 `SLYamlStream.implicitContinue` is unmoved at FIVE `[210]` flip errors, at
 `topLevelFlowResumeSep`, `rootMapRoute`, `rootMapRouteF`, `bareNodeRoute` and
-`structural_dispatch_to_pending`; the raw-route census is unmoved at TWO
-holders.  Neither could move: this item pays a premise, it removes no
-construction site.
+`structural_dispatch_to_pending`; the raw-route census is unmoved at ~~TWO
+holders~~ two `bareNodeRoute` holders.  Neither could move: this item pays a
+premise, it removes no construction site.
+
+> **Corrected by item 167** (2026-09-14).  The census instrument counts all
+> four raw routes and prints THREE holders — `bareNodeRoute` at
+> `bareNodeRoute_or_refused_content` (2 applications) and
+> `content_dispatch_after_close` (1), and `rootMapRoute` at
+> `flowKeyRoute_of_root` (1).  The third has stood since item 56, so "TWO"
+> here and in the log after it is the `bareNodeRoute` half alone, not the
+> census's own total.  Item 167 leaves all three declarations byte-identical
+> and moves neither figure.
 
 What it leaves is two premise paths that asked for the same conjunct, each
 measured against the carriage rather than against nothing:
