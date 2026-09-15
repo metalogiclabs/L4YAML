@@ -29,6 +29,9 @@ The face names the innermost open mapping level and fuses everything below it, s
 it serves the **68** landings that stand on exactly one open level and punts the
 **8** that stand on two.  A stack here is `ResumeFrames (SeqEntryTail sp_start ke)`
 — item 108's parameter on a third bottom — and those eight are what it would buy.
+(Item 169 built that stack, and reading the entry HEAD showed it buys more than
+the eight — see `SeqTailResumeFrames.lean`; this file's fused readings survive as
+the `ks = []` instance.)
 
 §1 pins the family at the runtime, §2 records the censuses, §3 composes the route
 hop by hop and then end to end, §4 says what is paid and what is not. -/
@@ -181,13 +184,18 @@ example {sp_start sp_key sp_ws sp_scan' : SurfPos} {k ke : Nat}
       sp_e h_tail
 
 -- ⑤ **The sibling landing conses and keeps the collection** — the hop 62 of the
--- 68 need, and `seqEntryTail_cons`'s mapping twin.
+-- 68 need.  Since item 169 framed the lane this cons is `resumeMapRouteF` at
+-- the `SeqEntryTail` bottom (the third instantiation of item 108's parameter);
+-- the fused reading here is its `ks = []` instance, closed on the spot.
 example {sp_start sp_land sp_key : SurfPos} {k ke : Nat}
     (h_ind : SIndent k sp_land sp_key)
     (h_seq : ∀ sp_end, SCompactMapTail k sp_land sp_end → SeqEntryTail sp_start ke sp_end) :
     ∀ sp_v, SBlockMapEntry k sp_key sp_v →
     ∀ sp_e, SCompactMapTail k sp_v sp_e → SeqEntryTail sp_start ke sp_e :=
-  seqEntryTail_mapCons h_ind h_seq
+  fun sp_v h_entry sp_e h_tail =>
+    (resumeMapRouteF h_ind
+      (fun sp_end h_t => ResumeFrames.bottom sp_end (h_seq sp_end h_t))
+      sp_v h_entry sp_e h_tail).close
 
 -- ⑦ **…and the dedenting `-` spends it**, closing the level it stood in with an
 -- empty tail and consing its own entry onto the collection underneath — item
@@ -245,7 +253,10 @@ example {sp_start sp_scan sp_key sp_ws sp_val sp_park sp_land sp_key2 sp_ws2 sp_
     fun sp_m h_c sp_e h_tail => f3 sp_m (h_node sp_m h_c) sp_e h_tail
   have f5 : ∀ sp_v, SBlockMapEntry (n+1+w) sp_key2 sp_v →
       ∀ sp_e, SCompactMapTail (n+1+w) sp_v sp_e → SeqEntryTail sp_start n sp_e :=
-    seqEntryTail_mapCons h_ind2 (f4 sp_land h_ssl)
+    fun sp_v h_entry sp_e h_tail =>
+      (resumeMapRouteF h_ind2
+        (fun sp_end h_t => ResumeFrames.bottom sp_end (f4 sp_land h_ssl sp_end h_t))
+        sp_v h_entry sp_e h_tail).close
   have f6 : ∀ sp_m, SSLComments sp_park2 sp_m →
       ∀ sp_e, SCompactMapTail (n+1+w) sp_m sp_e → SeqEntryTail sp_start n sp_e :=
     fun sp_m h_c sp_e h_tail =>
@@ -272,8 +283,10 @@ three of its content parks; the ROOT arm has no such parameter at all — a
 
 What is punted, in the corpus's own numbers: the **8** landings that stand on two
 open mapping levels (§1's fourth shape), which want
-`ResumeFrames (SeqEntryTail sp_start ke)` in place of one width; and — from item
-167 — the sequence-crossing dedent the corpus does not contain at all.
+`ResumeFrames (SeqEntryTail sp_start ke)` in place of one width (item 169 built
+it — `SeqTailResumeFrames.lean` carries them, plus the alone-headed entry this
+file's compact hop ② never reached); and — from item 167 — the
+sequence-crossing dedent the corpus does not contain at all.
 
 The `[210]` flip still reports FIVE errors at the same five lemma definitions:
 this item narrows a route's DOMAIN, as item 167 did, and removes no construction

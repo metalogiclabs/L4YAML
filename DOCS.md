@@ -18122,12 +18122,22 @@ LINE's run.  That reading is blind to a run crossing a break: at the `&b` of
 property was accepted and only `TokenParser` refused the document.
 `propertyRunFull` decides by LENGTH and reads the RUN, so where the run's breaks
 fall no longer changes the answer — and with the third property refused, the
-walk-back never reaches its cap at a park the scanner produces.  Every input it
-refuses is already `[96]`-invalid: two anchors or two tags on one node.  It
+walk-back never reaches its cap at a park the scanner produces.  ~~Every input it
+refuses is already `[96]`-invalid: two anchors or two tags on one node.~~  It
 costs ONE definition on each pipeline and one disjunct on each of the four
 property guards, and it fires on **nothing**: 0 of 847 `.yaml` files (the repo's
 143 and the suite's 704), with `eventscore`, `suiterunner` and the 4497-check
 suite unmoved.
+
+> **Refuted by item 169's matrix re-run.**  A FULL run for a parent node
+> followed across the break by a fresh run for its block mapping's first
+> implicit key is `[96]`-valid twice over, and the gate reads the two runs as
+> one: **9KAX** (`&a4 !!map⏎&a5 !!str key5: value4`) now rejects on both
+> pipelines — matrix 402/402 → 401/402, JSON 282/282 → 281/282.  The census
+> above did not contain the refuting input: it scanned the suite's `src` form
+> (the META files), and the input exists in the matrix checkout's data form.
+> Probe-verified: at the refusal state only the `propertyRunFull` disjunct
+> fires.  The correction is item 169's named next item.
 
 **Then the guard lands, and the table pays as item 160 wrote it.**
 `pendingProps.h_route` takes `danglingNodePos? sc = none`, and building names
@@ -18514,6 +18524,129 @@ third lane, with `resumeAt` in place of this item's equality test.  With that,
 completed node, at collections no park names, and at the sequence-crossing dedent
 the corpus does not contain.
 
+> **Corrected by item 169**, which read the census's other axis.  The count this
+> item served is **67**, not 68: one of the one-level landings closes an entry
+> whose `-` stands ALONE on its line (`examples/2/example-2.4.yaml`), so its key
+> LANDS and the compact branch that carries this item's face never runs.  And the
+> forecast's `resumeAt` was wrong in the detail — all eight two-level landings
+> come back at the collection's own width, so the framed lane's one consumer
+> CLOSES the list whole and no membership is ever tested.
+
+
+### Item 169 (2026-09-15)
+
+**The framed sequence lane — and the axis item 168's census did not read.**
+Item 168 split the corpus's 76 dedenting landings by DROP DEPTH (68 on one open
+mapping level, 8 on two) and paid the branch that depth named: the compact key
+on the `-`'s own line, one level deep.  Drop depth and ENTRY HEAD are
+independent readings, and reading both at once
+(`Scratch/CensusEntryHead.lean`) re-sizes what landed:
+
+    d1compact=67  d1alone=1  d1unk=0
+    d2compact=3   d2alone=5  d2unk=0
+
+The fused face reached **67 of 76**.  The one it missed at depth one is
+`examples/2/example-2.4.yaml` — an entry whose `-` stands ALONE on its line, so
+`[185]` reaches its mapping through `s-l+block-node`, the key crosses a break
+and LANDS, and `entryKeyPack_of_dispatch`'s compact branch (the only payer)
+never runs.  The eight at depth two are all
+`drop=[2M,4M] at=[0S] pen=value` (`Scratch/CensusDrop2.lean`): three compact
+heads in [anchors-aliases.yaml](examples/other/anchors-aliases.yaml)
+(`- step:⏎␣␣␣␣instrument: x`), five landed heads in
+[anchors-aliases2.yaml](examples/other/anchors-aliases2.yaml)
+(`-⏎␣␣step:⏎␣␣␣␣instrument: x`).
+
+**One move pays all nine.**  The face becomes
+`ResumeFrames (SeqEntryTail sp_start ke)` — item 108's bottom parameter on a
+THIRD lane, beside the stream and the explicit value line — and `ks` lists the
+still-open mapping levels between the innermost one and the collection.  The
+fused readings survive as the `ks = []` instance, so no producer got weaker;
+`ImplicitKeyPack`'s fourth twin, `pendingMapValue.h_seqF`,
+`pendingContent.h_seqF`, `ResumeKeyCtx` and both dispatchers' parameters
+re-type in place.
+
+**What pays and what punts.**  `entryKeyPack_of_dispatch` gains `h_nodeSF` —
+the LANDED key's sequence face, at `≤ n` where the pack faces carry `< kk`,
+because that list may include `n` itself — and spends it at its landed branch
+through the same `nestedBlockMap` composition as item 99's `h_nodeF`.  The two
+`pendingBlock` dispatch arms and the root site pay it from `h_close_entry_old`
+read through `SBlockIndented.node` with the frames bottomed: that one
+constructor application is the landed head's whole difference from the compact
+one.  `accum_content_on_pendingMapValue_indented` pays it with its own level
+consed on (`ResumeFrames.level`), which is the hop that reaches a mapping two
+levels inside the entry; its ROOT twin punts, because a `pendingMapValue` at
+index 0 is the root mapping's value and no sequence entry encloses it.
+`content_dispatch_routed`'s resuming context conses through `resumeMapRouteF`
+at the `SeqEntryTail` bottom — the third instantiation of item 108's parameter
+— so **`seqEntryTail_mapCons` is DELETED**: the lane stopped needing a lemma of
+its own, and the item's whole declaration delta is that one deletion.
+
+**No cover rides this lane, and that is a difference in KIND from item 148's
+frames.**  `resumeAt` funds a membership test; this lane's only consumer is a
+`-` landing back at the collection's own width, and that landing closes every
+level (`ResumeFrames.close`) — no width is compared, so there is nothing for a
+cover to pay for.  Item 168's forecast named `resumeAt`; the eight landings'
+own shape (`at=[0S]`, every one) says close-only.
+
+**Coverage, in the corpus's numbers: 67 + 1 + 8 = 76 of 76** dedenting landings
+now have their producer path.  What is left on this lane is item 167's
+sequence-crossing dedent, which the corpus does not contain at all.
+
+**A green build is not evidence here** — every field is `∨ True` — and the
+composition that witnesses the wiring is
+`Tests/Guards/Proofs/SeqTailResumeFrames.lean`: §1 pins the three newly-reached
+families at the runtime, §3 states the five hops at their own types and then
+the whole of `- a:⏎␣␣␣␣b: 1⏎- c` in one term — the compact key whose value is
+itself a mapping, the inner key landing one level deeper, and the dedenting `-`
+coming back through both open levels to the collection.
+`CompactMapSeqTail.lean`'s two `seqEntryTail_mapCons` uses are restated as
+`resumeMapRouteF` at the bottomed frames, closed on the spot — the fused hop is
+the framed one's `ks = []` instance, spelled out.
+
+**Found while re-running a gate the recent items skipped: item 165's
+`propertyRunFull` over-refuses, and the matrix caught it.**  The full matrix —
+not re-run since the arc's items started quoting `eventscore`/`suiterunner`
+alone — reads **401/402 event + 281/282 JSON on BOTH pipelines**, one `reject`
+each: **9KAX**, whose fourth document is `&a4 !!map⏎&a5 !!str key5: value4`.
+That is a FULL property run for the parent node, a break, and a fresh run for
+the mapping's first implicit key — `[96]`-valid twice over — and the length
+gate reads the two runs as one because nothing structural stands between them
+in the token array.  Probed, not pattern-matched: at the refusal state
+`propertyRunHasAnchor = false`, `propertyFollowerOk = true`,
+`propertyRunFull = true` — the item-165 disjunct alone fires, so the pre-165
+scanner accepted this input and the parser read it correctly (the matrix stood
+at 402/402 + 282/282 through item 127, the last time it was quoted).  Item
+165's "fires on nothing: 0 of 847 files" census scanned the repo and the
+suite's `src` form — the META files — and the refuting input exists only in the
+matrix checkout's data form.  This item changes no runtime and neither
+introduced nor can fix the regression; the fix is the NEXT item.
+
+**Measured at the landed state.**  Build **1158** jobs (+1 for the new guard),
+0 warnings; suite **4497/4497** with Production Coverage **814/814** over
+211/211; `eventscore` **347/358** with 0 `event-reject` and 0 `error-miss`;
+`suiterunner` **869 passed / 0 failed / 151 skipped**; matrix **401/402 event +
+281/282 JSON both pipelines** (the 9KAX regression above — item 165's, standing
+since it landed); import closure 228 modules over 355 reflection imports;
+reflection index 20/230/249/355; 25 whitelisted `theorem` capstones; the
+annotation verifier's same **19** pre-existing name mismatches at 100%
+coverage.  `#print axioms` over the re-typed lemmas reports the standard three
+plus the pre-existing `native_decide` char-class families; no `sorryAx`, and
+the diff adds no `native_decide`.  The `[210]` flip is **FIVE** errors at the
+same five lemma definitions (`topLevelFlowResumeSep`, `rootMapRoute`,
+`rootMapRouteF`, `bareNodeRoute`, `structural_dispatch_to_pending`) and the
+raw-route consumer census the same **THREE** holders with the same counts
+(`bareNodeRoute_or_refused_content` ×2, `content_dispatch_after_close` ×1,
+`flowKeyRoute_of_root` ×1) — this item narrows a route's DOMAIN and removes no
+construction site.
+
+**What remains, in one.**  Item 165's gate, corrected: `propertyRunFull` must
+not read a parent's completed run and a key's fresh run as one.  The legal
+split 9KAX exhibits has the full run's TAIL on an earlier line than the
+incoming property; the shapes item 165 built the gate for (`&a !t &b x`,
+`&a⏎!t &b x`) both have the run's tail on the CURRENT line.  Whether that
+line-reading is the honest discriminator — and what it costs the four proof
+payments the gate funds — is the next item's measurement.
+
 
 ### REMAINING, in order
 
@@ -18531,7 +18664,7 @@ too (items 47–51), so what stands between here
 and Step 5 (the converse) is R3's remaining production work and R4:
 
 ```
-R1 ✓ (44–46) ──→ R2 ✓ (47–51) ──→ R3 (52–168 landed; U2 CLOSED, the collapse gone) ──→ Step 5
+R1 ✓ (44–46) ──→ R2 ✓ (47–51) ──→ R3 (52–169 landed; U2 CLOSED, the collapse gone) ──→ Step 5
                                         └──────→ R4 (implicitContinue + 0 < m) ──┘
 ```
 
