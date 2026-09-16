@@ -91,10 +91,10 @@ example {sc s_prep : ScannerState} {c : Char} {sp_start sp_scan sp_prep : SurfPo
         ∀ sp_e : SurfPos, SCompactMapTail k sp_v sp_e →
         ResumeFrames (ExplValueLine sp_start nv) ks sp_e) ∨ True)) ∨ True :=
   -- Item 136: the head face rides beside the suffix one; this pin is about the
-  -- park's flag, so both punt here.
+  -- park's flag, so both punt here — and so does item 176's resume face.
   flowKeyRoute_of_root (m := 0) (Or.inr trivial) h_noflow h_park h_close h_dn h_corr
     hcorr_prep h_preprocess (Or.inr trivial) (Or.inr trivial) h_bare h_base
-    (Or.inr trivial)
+    (Or.inr trivial) (Or.inr trivial)
 
 /-- The ENTRY's version, whose compact arm crosses no break and so spends the
     park's flag directly.  Its route and the width to measure it against travel

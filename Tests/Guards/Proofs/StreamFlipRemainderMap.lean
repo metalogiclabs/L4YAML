@@ -7,7 +7,7 @@ Copyright (c) 2026. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 -/
 
-/-! # The flip's remainder, mapped (DOCS items 171–175)
+/-! # The flip's remainder, mapped (DOCS items 171–176)
 
 Row 19's 1c ends by narrowing `[210]`'s slot (`GOpt SLAnyDocument` →
 `GOpt SLExplicitDocument`), and the narrowing instrument breaks FIVE
@@ -158,7 +158,21 @@ flow open whose close a same-line `:` resolves — is the sibling entry, accepte
 with the resume reading in both pipelines.  The VALUE half is refused at the
 break or EOF gate: `invalidBareDocument` where the run's slot holder completes
 a node (§9.2's own reading through the close, item 159's walk-back), and the
-more-indented interior refuses by column exactly as before (item 145). -/
+more-indented interior refuses by column exactly as before (item 145).
+
+**Item 176 pays the key half on the proof side.**  `flowKeyRoute_of_root`'s
+landing arm takes the park's still-open mapping levels (`h_mapF`, the shape
+the `:`/`?` openers took at item 173) and spends the RESUME first — the
+sibling flow key conses onto the level's own tail (`resumeMapRoute`) instead
+of falling to `rootMapRoute_or_refused`'s bare second document — paid by
+`pendingContent.h_framesS` and `pendingBlockContent.h_closeF` (read at the
+empty tail, item 110's own spend) through the flow open's landing.  And the
+entries-level TWIN rides on every arm now — item 120's punt-gate ("the bare
+flow key at a level's own column is §8.1-refused") expired at item 172 — so
+the park made after the flow-keyed entry's value offers the NEXT landing the
+same resume: the chains below are one mapping end to end, on both the flow
+lane (`[2]: b`) and the block lane (`c: 2`, through `flowKeyPack_of_close` →
+`pendingMapValue.h_frames` → items 109/151's content machinery). -/
 
 #guard pins "a: 1\n[1]: b\n" == ("scan-accepted", "+STR +DOC +MAP =VAL :a =VAL :1 +SEQ [] =VAL :1 -SEQ =VAL :b -MAP -DOC -STR")
 #guard pins "a: 1\n{x: y}: b\n" == ("scan-accepted", "+STR +DOC +MAP =VAL :a =VAL :1 +MAP {} =VAL :x =VAL :y -MAP =VAL :b -MAP -DOC -STR")
@@ -169,6 +183,50 @@ more-indented interior refuses by column exactly as before (item 145). -/
 #guard pins "\"x\"\n[1, 2]\n" == ("scan-refused L4YAML.ScanError.invalidBareDocument 1 0", "ERR L4YAML.ScanError.invalidBareDocument 1 0")
 #guard pins "k:\n  \"a\"\n  [1, 2]\n" == ("scan-refused L4YAML.ScanError.invalidBareDocument 2 2", "ERR L4YAML.ScanError.invalidBareDocument 2 2")
 #guard pins "k:\n  \"a\"\n    [1, 2]\n" == ("scan-refused L4YAML.ScanError.invalidBareDocument 2 4", "ERR L4YAML.ScanError.invalidBareDocument 2 4")
+
+/-! Item 176's paid families, park by park: the explicit entry's completed
+value, the block-scalar value, the sequence dedent (`h_closeF` at the empty
+tail), and the anchored value all land the sibling flow key through the new
+resume arm.  PyYAML (6.x, `yaml.parse`) parses every one of these with
+matching events. -/
+#guard pins "? a\n: 1\n[1]: b\n" == ("scan-accepted", "+STR +DOC +MAP =VAL :a =VAL :1 +SEQ [] =VAL :1 -SEQ =VAL :b -MAP -DOC -STR")
+#guard pins "a: |\n  x\n[1]: b\n" == ("scan-accepted", "+STR +DOC +MAP =VAL :a =VAL |x\\n +SEQ [] =VAL :1 -SEQ =VAL :b -MAP -DOC -STR")
+#guard pins "k:\n  - x\n[1]: b\n" == ("scan-accepted", "+STR +DOC +MAP =VAL :k +SEQ =VAL :x -SEQ +SEQ [] =VAL :1 -SEQ =VAL :b -MAP -DOC -STR")
+#guard pins "a: &x 1\n[1]: b\n" == ("scan-accepted", "+STR +DOC +MAP =VAL :a =VAL &x :1 +SEQ [] =VAL :1 -SEQ =VAL :b -MAP -DOC -STR")
+#guard pins "a: 1\n[1]:\n  c: d\n" == ("scan-accepted", "+STR +DOC +MAP =VAL :a =VAL :1 +SEQ [] =VAL :1 -SEQ +MAP =VAL :c =VAL :d -MAP -MAP -DOC -STR")
+
+/-! …and the CHAINS the entries-level twin buys: the entry after the
+flow-keyed one resumes too, on either lane.  The `...` chain rides the named
+PyYAML suffix gap (item 175: PyYAML refuses ANY bare document after a `...`
+suffix), so `[210]`'s text is the reference there; PyYAML parses the rest
+with matching events. -/
+#guard pins "a: 1\n[1]: b\nc: 2\n" == ("scan-accepted", "+STR +DOC +MAP =VAL :a =VAL :1 +SEQ [] =VAL :1 -SEQ =VAL :b =VAL :c =VAL :2 -MAP -DOC -STR")
+#guard pins "[1]: a\n[2]: b\nc: 3\n" == ("scan-accepted", "+STR +DOC +MAP +SEQ [] =VAL :1 -SEQ =VAL :a +SEQ [] =VAL :2 -SEQ =VAL :b =VAL :c =VAL :3 -MAP -DOC -STR")
+#guard pins "[1]: a\nb: 2\nc: 3\n" == ("scan-accepted", "+STR +DOC +MAP +SEQ [] =VAL :1 -SEQ =VAL :a =VAL :b =VAL :2 =VAL :c =VAL :3 -MAP -DOC -STR")
+#guard pins "a: 1\n[1, 2]: b\nc: 2\n" == ("scan-accepted", "+STR +DOC +MAP =VAL :a =VAL :1 +SEQ [] =VAL :1 =VAL :2 -SEQ =VAL :b =VAL :c =VAL :2 -MAP -DOC -STR")
+#guard pins "k:\n  a: 1\n  [1]: b\n  c: 2\n" == ("scan-accepted", "+STR +DOC +MAP =VAL :k +MAP =VAL :a =VAL :1 +SEQ [] =VAL :1 -SEQ =VAL :b =VAL :c =VAL :2 -MAP -MAP -DOC -STR")
+#guard pins "...\n[1]: b\nc: 2\n" == ("scan-accepted", "+STR +DOC +MAP +SEQ [] =VAL :1 -SEQ =VAL :b =VAL :c =VAL :2 -MAP -DOC -STR")
+
+/-! Item 176's measured punts, each with its location: the marker-seed chain
+(`flowKeyRoute_of_open`'s twins stay punts — the `c: 2` landing keeps the
+guarded fallback until that boundary pays); the seq-spaces sibling (the
+`pendingBlockContent n = 0` park's `h_closeF` bound `k' < n` cannot list the
+level, item 173's dedent residue one lane over); and the awaited-value park's
+sibling (`k:⏎[1]: b` — the `pendingMapValue` arm reads the collection NESTED
+in the value slot at `m = 0`, the encoding admission Finding A pairs with
+1d's re-indexing, so the honest sibling reading moves with that pair). -/
+#guard pins "---\n[1]: b\nc: 2\n" == ("scan-accepted", "+STR +DOC --- +MAP +SEQ [] =VAL :1 -SEQ =VAL :b =VAL :c =VAL :2 -MAP -DOC -STR")
+#guard pins "a:\n- x\n[1]: b\n" == ("scan-accepted", "+STR +DOC +MAP =VAL :a +SEQ =VAL :x -SEQ +SEQ [] =VAL :1 -SEQ =VAL :b -MAP -DOC -STR")
+#guard pins "k:\n[1]: b\n" == ("scan-accepted", "+STR +DOC +MAP =VAL :k =VAL : +SEQ [] =VAL :1 -SEQ =VAL :b -MAP -DOC -STR")
+#guard pins "k:\n[1]: b\nc: 2\n" == ("scan-accepted", "+STR +DOC +MAP =VAL :k =VAL : +SEQ [] =VAL :1 -SEQ =VAL :b =VAL :c =VAL :2 -MAP -DOC -STR")
+
+/-! …and the boundaries: the value half refuses at the same parks the key
+half now resumes through, and the flow key at the SEQUENCE's own width is
+§8.2.1's key-at-sequence-column refusal.  PyYAML refuses all four. -/
+#guard pins "a: |\n  x\n[1, 2]\n" == ("scan-EOF-refused L4YAML.ScanError.invalidBareDocument 2 0", "ERR L4YAML.ScanError.invalidBareDocument 2 0")
+#guard pins "? a\n: 1\n[1, 2]\n" == ("scan-EOF-refused L4YAML.ScanError.invalidBareDocument 2 0", "ERR L4YAML.ScanError.invalidBareDocument 2 0")
+#guard pins "a:\n- x\n[1, 2]\n" == ("scan-EOF-refused L4YAML.ScanError.invalidBareDocument 2 0", "ERR L4YAML.ScanError.invalidBareDocument 2 0")
+#guard pins "k:\n  - x\n  [1]: b\n" == ("scan-refused L4YAML.ScanError.trailingContent 2 2", "ERR L4YAML.ScanError.trailingContent 2 2")
 
 /-! The routes the flow lane's park DOES spend — the seed (`nodoc`), the
 marker, the suffix — are the flip-legal twins, and their inputs accept. -/
@@ -365,7 +423,7 @@ Per surviving arm, what the pins say it serves and what pays after the flip:
 | the guards at `Or.inr` (parks with no `CompletedTail`) | §4's family is the scalar half of what reaches them; `bareNodeRoute_or_refused_content`'s two arms' LIVE payers are `pendingFlow`'s break-crossed landings alone (measured at item 174: `pendingContent`/`pendingBlockContent` pay `Or.inl` and refute, the marker parks exit on their own arms) | shrinks with 1d's runtime fix and R3's `pendingFlow` deletion; the sibling residue resumes |
 | `accum_content_pending`'s pendingProps landing (via `content_dispatch_after_close`) | §3b's rides — the sentinel run's break-crossed node (`&p⏎b`, `&p⏎b: 1`, `&p⏎|⏎  x`) read as propsEmpty + a bare second document | **PAID by item 174**: `PropsRideRoute` carries the park's route + run, `content_dispatch_routed` assembles `[161]`/`[198]`/`[196]`'s props slots, and the enclosing-level park (`0 < n`) keeps propsEmpty + resume; residues = the indented-enclosing/two-park/alias punts pinned in §3b |
 | `accum_block_pending`'s pendingProps landing (via `accum_block_on_closeThenBlock`) | §3b's indicator rides — the sentinel run's break-crossed `-`/`?`/`:` (`&p⏎- a`, `&p⏎? x⏎: v`, `&p⏎: v`) read as propsEmpty + a bare second document | **PAID by item 175**: `PropsNodeRoute` (the ride's landing half) rides the same park route into `[196]`'s slot — `propsSeqRoute` at the `-` arm's entries, `propsMapRoute(F)` as the openers' fifth cascade arm; the flow-open twin was paid on the FLOW lane at items 9h/12 (174's punt row for it struck at 175), and the enclosing-level park (`0 < n`) keeps propsEmpty + resume |
-| `topLevelFlowResumeSep_or_refused` fallbacks, `flowKeyRoute_of_root` landing arm | §2's sibling flow keys (item 172's key half) | the key half resumes at the open level; the value half is refused at the gate and the refuted arms cover it |
+| `topLevelFlowResumeSep_or_refused` fallbacks, `flowKeyRoute_of_root` landing arm | §2's sibling flow keys (item 172's key half) | the key half **RESUMES as of item 176** (`h_mapF` at the landing arm, `resumeMapRoute` first in the cascade, paid by `pendingContent.h_framesS`/`pendingBlockContent.h_closeF`; the entries-level twin rides every arm, so the chains resume too); the value half is refused at the gate and the refuted arms cover it; what still reaches the fallback is a landing whose park pays no face (the marker-seed chain at `flowKeyRoute_of_open`'s twins, the seq-spaces sibling, §2's recorded punts) |
 | ~~`flowKeyRoute_of_root` no-break arm~~ | the seed key (`[1]: b`) | **PAID by item 173**: the no-break arm's premise carries the virgin park's own `h_nodoc` face beside the column, so `nodocMapRoute` is the arm's only route and the raw `rootMapRoute` application is deleted — the census's `rootMapRoute` holder is gone |
 | `accum_content_pending`'s crossed arms | NONE accepted (§3) | a scanner-side trailing-props refusal (M4 candidate), or the window face carried to the parser boundary |
 | `structural_dispatch_to_pending`, `DocumentProduction.stream_implicit_continue` | n/a — `SLAnyDocument.explicit` wrappers | deleted by the flip itself |

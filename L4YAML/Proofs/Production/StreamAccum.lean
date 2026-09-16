@@ -9006,7 +9006,19 @@ lemma flowKeyRoute_of_root {m : Nat} {sp_start sp_scan sp_prep : SurfPos}
     -- down.  §9.2's landing refusal spends it to read the dedent exemption
     -- off the landing's column instead of splitting on it.
     (h_base : IndentStackBase.SentinelBase sc)
-    (h_tail143 : CompletedTail sc ∨ True) :
+    (h_tail143 : CompletedTail sc ∨ True)
+    -- **Item 176 (LAST, so the existing argument order stands): the closed
+    -- park's still-open MAPPING levels**, read at the landing's width exactly
+    -- as the `:`/`?` openers read theirs (item 173).  A width in the list
+    -- makes the mapping this collection keys that level's own next entry —
+    -- the sibling flow key (`a: 1⏎[1]: b` is ONE mapping, item 172's key
+    -- half) — so the route conses onto the level's tail instead of appending
+    -- a bare document over the folded stream.  The payers are
+    -- `pendingContent.h_framesS` and `pendingBlockContent.h_closeF` (read at
+    -- the empty tail); every other caller punts.
+    (h_mapF : (∃ ks : List Nat,
+      ∀ sp_m : SurfPos, SSLComments sp_scan sp_m →
+      ResumeFrames (SLYamlStream sp_start) ks sp_m) ∨ True) :
     (∃ (k : Nat) (sp_key : SurfPos),
       (∀ sp_v, SBlockMapEntry k sp_key sp_v → SLYamlStream sp_start sp_v) ∧
       (∀ sp_end, SFlowContent m .flowOut sp_prep sp_end →
@@ -9055,15 +9067,49 @@ lemma flowKeyRoute_of_root {m : Nat} {sp_start sp_scan sp_prep : SurfPos}
       have h_ref_land : BareLandingFacts sc s_prep c ∨ True :=
         h_tail143.imp (fun h_tl =>
           ⟨h_bare, h_preprocess, h_noflow, h_ska_land, h_tl, h_base⟩) id
+      -- ═══ Item 176: the landing's RESUME face, first — a width in the
+      -- park's list makes the mapping this collection keys that level's own
+      -- next entry (`a: 1⏎[1]: b` is ONE mapping), the sibling reading item
+      -- 172's deferred floor accepts.  Membership decides, as at
+      -- `resumectx_of_landing` and the `:`/`?` openers (item 173). ═══
+      have h_res_land : (∃ ks' : List Nat, (∀ k' ∈ ks', k' < w) ∧
+          ∀ sp_end : SurfPos, SCompactMapTail w sp_mid sp_end →
+            ResumeFrames (SLYamlStream sp_start) ks' sp_end) ∨ True := by
+        rcases h_mapF with ⟨ks, fS⟩ | _
+        · by_cases hmem : w ∈ ks
+          · obtain ⟨ks', h_w, cont⟩ := (fS sp_mid h_land.1).resumeAt hmem
+            exact Or.inl ⟨ks', h_w.lt, cont⟩
+          · exact Or.inr trivial
+        · exact Or.inr trivial
       refine Or.inl ⟨w, sp_prep,
-        (match h_sfx, h_nodoc with
-         | Or.inl sfx, _ => suffixMapRoute h_land.2.1 (sfx sp_mid h_land.1) h_ind'
-         | Or.inr _, Or.inl nd => nodocMapRoute h_land.2.1 (nd sp_mid h_land.1) h_ind'
-         | Or.inr _, Or.inr _ =>
+        (match h_res_land, h_sfx, h_nodoc with
+         | Or.inl ⟨_, _, cont⟩, _, _ => resumeMapRoute h_ind' cont
+         | Or.inr _, Or.inl sfx, _ => suffixMapRoute h_land.2.1 (sfx sp_mid h_land.1) h_ind'
+         | Or.inr _, Or.inr _, Or.inl nd => nodocMapRoute h_land.2.1 (nd sp_mid h_land.1) h_ind'
+         | Or.inr _, Or.inr _, Or.inr _ =>
              rootMapRoute_or_refused h_ref_land h_land.2.1
                (h_close (dangling_none_of_check h_dn h_ska_land) sp_mid h_land.1) h_ind'),
         flowKeyHead, ?_,
-        Or.inr trivial, Or.inr trivial, Or.inr trivial⟩
+        Or.inr trivial,
+        -- Item 176: the entries-level twin rides on EVERY arm now — item
+        -- 120's punt-gate ("the bare flow key at a level's own column is
+        -- §8.1-refused") expired at item 172 — so the park made after this
+        -- key's value offers the NEXT landing the same resume
+        -- (`a: 1⏎[1]: b⏎c: 2`, `...⏎[1]: b⏎c: 2`).
+        (match h_res_land, h_sfx, h_nodoc with
+         | Or.inl ⟨ks', h_lt, cont⟩, _, _ =>
+             Or.inl ⟨ks', h_lt, resumeMapRouteF h_ind' cont⟩
+         | Or.inr _, Or.inl sfx, _ =>
+             Or.inl ⟨[], fun _ h => absurd h (List.not_mem_nil),
+               suffixMapRouteF h_land.2.1 (sfx sp_mid h_land.1) h_ind'⟩
+         | Or.inr _, Or.inr _, Or.inl nd =>
+             Or.inl ⟨[], fun _ h => absurd h (List.not_mem_nil),
+               nodocMapRouteF h_land.2.1 (nd sp_mid h_land.1) h_ind'⟩
+         | Or.inr _, Or.inr _, Or.inr _ =>
+             Or.inl ⟨[], fun _ h => absurd h (List.not_mem_nil),
+               rootMapRouteF_or_refused h_ref_land h_land.2.1
+                 (h_close (dangling_none_of_check h_dn h_ska_land) sp_mid h_land.1) h_ind'⟩),
+        Or.inr trivial⟩
       rw [landing_or_park_save h_noflow h_land.2.2 h_park h_preprocess,
         ← hcorr_prep.col_eq]
       have := SIndent_col' h_ind'
@@ -9085,7 +9131,15 @@ lemma flowKeyRoute_of_root {m : Nat} {sp_start sp_scan sp_prep : SurfPos}
         refine Or.inl ⟨w, sp_prep,
           nodocMapRoute h_col0.1
             (h_col0.2 sp_scan (sslComments_refl_of_col0 h_col0.1)) h_ind',
-          flowKeyHead, ?_, Or.inr trivial, Or.inr trivial, Or.inr trivial⟩
+          flowKeyHead, ?_, Or.inr trivial,
+          -- Item 176: the seed key's entries-level twin — the mapping this
+          -- collection keys is the stream's FIRST document, and the park
+          -- made after its value offers the next landing the level's own
+          -- resume (`[1]: a⏎[2]: b`, `[1]: a⏎b: 2⏎c: 3`).
+          Or.inl ⟨[], fun _ h => absurd h (List.not_mem_nil),
+            nodocMapRouteF h_col0.1
+              (h_col0.2 sp_scan (sslComments_refl_of_col0 h_col0.1)) h_ind'⟩,
+          Or.inr trivial⟩
         rw [(preprocess_saved_key_col h_sk h_noflow h_preprocess).2, ← hcorr_prep.col_eq]
         have := SIndent_col' h_ind'
         rw [h_col0.1] at this
@@ -9951,6 +10005,14 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
       -- `pendingFlow`'s tail is a block indicator and the two marker parks take
       -- their own arms above this one.
       (CompletedTail sc ∨ True) →
+      -- Item 176: the park's still-open MAPPING levels, on their way to the
+      -- flow open's key route — the sibling flow key resumes the level the
+      -- landing's width names (`a: 1⏎[1]: b`, item 172's key half).  The two
+      -- content parks pay (`h_framesS`, `h_closeF` at the empty tail); the
+      -- marker parks take their own arms and `pendingFlow` has nothing.
+      ((∃ ks : List Nat,
+        ∀ sp_m : SurfPos, SSLComments sp_scan sp_m →
+        ResumeFrames (SLYamlStream sp_start) ks sp_m) ∨ True) →
       ∃ sp_gram' sp_block' sp_flow' sp_scan',
         SLYamlStream sp_start sp_gram' ∧
         BlockStack sp_gram' sp_block' ∧
@@ -9960,7 +10022,7 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
         ((1 : Nat) ≥ 1 →
           InteriorGap s' (tailOf s'.tokens) sp_flow' sp_scan' ∧
           LastTokenReal s'.tokens ∧ s'.allowDirectives = false) := by
-    intro h_close h_nobreak h_sfx h_tail143
+    intro h_close h_nobreak h_sfx h_tail143 h_mapF176
     rcases preprocess_flow_thread sc sp_scan sp_prep s_prep c h_corr hcorr_prep h_preprocess
         h_noflow_prep h_park with
       ⟨sp_mid, h_ssl, hws, h_ska⟩ | ⟨hcol, hws⟩
@@ -9988,7 +10050,8 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
                -- LANDING reading applies here — this branch is the one that
                -- crossed a break, and the other never reaches `mk`.
                flowKeyRoute_of_root (Or.inr trivial) h_noflow_prep h_park h_close h_dn h_corr
-                 hcorr_prep h_preprocess h_sfx (Or.inr trivial) h_bare h_base h_tail143,
+                 hcorr_prep h_preprocess h_sfx (Or.inr trivial) h_bare h_base h_tail143
+                 h_mapF176,
                Or.inr trivial⟩),
              PendingNode.noPending sp_start sp_open (Or.inr (inFlow_of_flowLevel_eq h_fl1))
                (Or.inr (inFlow_of_flowLevel_eq h_fl1))
@@ -10076,17 +10139,21 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
                h_corr hcorr_prep h_preprocess (Or.inr trivial)
                (Or.inl (fun sp_m h_ssl =>
                  ssl_comments_extend_prefixes (h_nodoc h_scflow) h_ssl))
-               h_bare h_base (Or.inr trivial),
+               h_bare h_base (Or.inr trivial) (Or.inr trivial),
              Or.inr trivial⟩),
            PendingNode.noPending sp_start sp_open (Or.inr (inFlow_of_flowLevel_eq h_fl1))
                (Or.inr (inFlow_of_flowLevel_eq h_fl1))
                (nodoc_of_flowLevel_succ h_fl1), hcorr_open, fun _ => ⟨.white (GStar.nil _) h_sync h_colon h_opencol, h_real, h_ad⟩⟩
-  | pendingContent _ _ _ h_line _ _ _ _ _ _ _ _ h_tail143 =>
+  | pendingContent _ _ _ h_line _ _ _ _ _ h_frS176 _ _ h_tail143 =>
     -- Item 37: §7.5's set weakens to item 10's here, exactly as `[204]`'s does.
     -- Item 143: …and this park's producer finished a node, so it PAYS §9.2's
     -- tail reading (`"x"⏎[1, 2]`, `a⏎# c⏎[1, 2]`).
+    -- Item 176: …and its still-open mapping levels, for the sibling flow-key
+    -- resume (`a: 1⏎[1]: b`); the cover the field carries is forgotten at
+    -- this door, as at the openers (item 173).
     exact main h_close_pending (refuted (h_line.imp id LineNodeStop.toLineNoOpen))
       (Or.inr trivial) (Or.inl h_tail143)
+      (h_frS176.imp (fun ⟨ks, _, f⟩ => ⟨ks, f⟩) id)
   | pendingDocEnd _ _ _ h_line h_marker _ =>
     -- Item 36: `[204]`'s suffix set weakens to item 10's at the CONSUMER.
     -- ═══ Item 118: the `...` park pays the flow open's suffix face — the
@@ -10102,13 +10169,22 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
       -- Item 143: the `...` park takes its own arm above, so the tail is not
       -- owed here — and a document suffix is not a completed flow value.
       (Or.inr trivial)
-  | pendingBlockContent _ _ _ _ h_line _ _ _ _ _ _ _ _ h_tail143 =>
+      -- Item 176: a `...` park keeps no mapping level open — the suffix
+      -- closed the document — so the suffix face above is the honest route.
+      (Or.inr trivial)
+  | pendingBlockContent _ _ _ n176 h_line _ _ _ _ _ _ h_closeF176 _ h_tail143 =>
+    -- Item 176: the entry-level face read at the EMPTY tail is the
+    -- landing-level face (item 110's own spend), so `k:⏎  - x⏎[1]: b`
+    -- resumes the level the sequence stands in.
     exact main h_close_pending (refuted (h_line.imp id LineNodeStop.toLineNoOpen))
       (Or.inr trivial) (Or.inl h_tail143)
+      (h_closeF176.imp (fun ⟨ks, _, _, closeF⟩ =>
+        ⟨ks, fun sp_m h_ssl => closeF sp_m h_ssl sp_m (SCompactSeqTail.nil n176 sp_m)⟩) id)
   | pendingFlow =>
     -- The deferred state: its own closing strategy is the drop, and the flow
     -- node opened here keeps riding it (β.5 retires this with pendingFlow, R3).
     exact main h_close_pending opaque_resume (Or.inr trivial) (Or.inr trivial)
+      (Or.inr trivial)
   | pendingProps _ _ _ ha ht sp_node sp_p n h_sep_run h_run h_nic_p h_real_p h_anchor_p h_tag_p
       h_route h_pkey h_floor_p h_col0_p h_ncol_p h_ska_p h_kslot_p =>
     -- Items 9h/10, site 5's legal inhabitant: the held `[96]` run rides INTO

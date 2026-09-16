@@ -19276,6 +19276,96 @@ residues — none blocks the flip's remainder accounting, and the two-park
 chain's fix is located (extend the run across the break with
 `SSeparateLines.commented` where the no-break arm uses `.inline`).
 
+### Item 176 (2026-09-15)
+
+**The flow lane's hardening — the sibling flow key RESUMES, and item 120's
+punt-gate expired.**  Item 171's sequencing parked this row behind Finding B
+("hardening `topLevelFlowResumeSep_or_refused` or `flowKeyRoute_of_root`
+against today's verdicts would enshrine the over-refusal and be paid twice"),
+and item 172 unblocked it.  With the deferred floor's verdicts honest, the
+KEY half's landings are accepted sibling entries — and the proof still read
+every one as a fresh bare document over the folded stream, through
+`flowKeyRoute_of_root`'s landing fallback: the flow lane's copy of the
+reading items 109 and 173 drained on the block lane.  Pure proof work, NO
+runtime change.
+
+**Measured before building** (19 inputs, both pipelines, PyYAML
+cross-checked), the families sort three ways:
+
+* **Accepted, payable** — the sibling flow key through the CONTENT parks
+  (`a: 1⏎[1]: b` and its `{x: y}`-keyed and multi-element twins, the explicit
+  entry's `? a⏎: 1⏎[1]: b`, the block scalar's `a: |⏎  x⏎[1]: b`, the
+  sequence dedent's `k:⏎  - x⏎[1]: b`, the anchored `a: &x 1⏎[1]: b`, the
+  nested-value `a: 1⏎[1]:⏎  c: d`) and the CHAINS after the flow-keyed entry
+  on either lane (`a: 1⏎[1]: b⏎c: 2`, `[1]: a⏎[2]: b⏎c: 3`,
+  `[1]: a⏎b: 2⏎c: 3`, `k:⏎  a: 1⏎  [1]: b⏎  c: 2`, `...⏎[1]: b⏎c: 2`).
+  PyYAML parses all of them with matching events except the suffix chain,
+  which rides item 175's named suffix gap (`[210]`'s text is the reference
+  there).
+* **Refused** — the VALUE halves at the same parks (`a: |⏎  x⏎[1, 2]`,
+  `? a⏎: 1⏎[1, 2]`, `a:⏎- x⏎[1, 2]` — `invalidBareDocument 2 0`) and the
+  flow key at the sequence's own width (`k:⏎  - x⏎  [1]: b` —
+  `trailingContent 2 2`, §8.2.1's key-at-sequence-column).  The value
+  fallback's accepted domain stays EMPTY, exactly as item 171 measured it,
+  so `topLevelFlowResumeSep_or_refused` keeps its guarded reading unchanged.
+* **Accepted, punted — each with its location**: the marker-seed chain
+  (`---⏎[1]: b⏎c: 2` — `flowKeyRoute_of_open`'s twins stay punts, the
+  marker-lane boundary); the seq-spaces sibling (`a:⏎- x⏎[1]: b` — the
+  `pendingBlockContent n = 0` park's `k' < n` bound cannot list the level,
+  item 173's dedent residue one lane over); and the awaited-value park's
+  sibling (`k:⏎[1]: b` = `{k: null, [1]: b}` — the `pendingMapValue` arm
+  reads the collection NESTED in the value slot at `m = 0`, Finding A's
+  encoding admission, so its honest sibling reading moves with 1d's pair).
+
+**The swap.**  `flowKeyRoute_of_root` takes the closed park's still-open
+mapping levels (`h_mapF`, the `:`/`?` openers' item-173 premise verbatim) and
+its landing arm spends the RESUME first — membership at the landing's width,
+`resumeMapRoute` onto the level's own tail — leaving
+`rootMapRoute_or_refused` only the landings no face claims.  **And the
+entries-level TWIN rides on every arm now**: the punt-gate item 120 recorded
+in this very lemma ("the bare flow key at a level's own column is
+§8.1-refused") expired at item 172, so the landing arm pays
+`resumeMapRouteF`/`suffixMapRouteF`/`nodocMapRouteF`/`rootMapRouteF_or_refused`
+and the no-break arm `nodocMapRouteF` — the park made after the flow-keyed
+entry's value carries the level's frames through `flowKeyPack_of_close`'s
+existing item-120 threading, which is what makes the chains one mapping end
+to end on both lanes (the block-lane `c: 2` resumes through items 109/151's
+content machinery with no further work).  Payers: `pendingContent.h_framesS`
+(cover forgotten at the door, as at the openers) and
+`pendingBlockContent.h_closeF` read at the EMPTY tail (item 110's own
+spend), through `accum_flow_open_depth0`'s `main`; the `...` park's suffix
+face is already the honest route, and the marker/deferred parks punt.
+
+**Measured at the landed state.**  Full `lake build` **1160** jobs, ZERO
+warnings; suite **4498/4498** with Production Coverage Analysis **815/815**;
+`eventscore` **347/358** with 0 `event-reject` and 0 `error-miss`;
+`suiterunner` **869 / 0 / 151**; matrix **402/402 event + 282/282 JSON, both
+pipelines**; `check-import-closure.sh` (228 modules, 355 imports),
+`check-reflection-index.sh` (20/230/249/355), `check-theorem-keyword.sh`
+(25 capstones) OK.  The `[210]` flip instrument reports **FIVE** errors at
+the same five definitions
+(`topLevelFlowResumeSep`/`rootMapRoute`/`rootMapRouteF`/`bareNodeRoute`/
+`structural_dispatch_to_pending`, 4179/5458/5481/5650/7102), applied and
+restored (`git diff` empty AND `git status` clean), and NONE at the new
+resume arms.  The raw-route census keeps its **THREE** holders with the same
+counts, and `flowKeyRoute_of_root` joins the resume consumers
+(`resumeMapRoute`=1, `resumeMapRouteF`=1, `suffixMapRouteF`=1,
+`nodocMapRouteF`=2, `rootMapRouteF_or_refused`=1) beside the two openers and
+the content cascade.  L4YAML declarations **7963 → 7963** (the item adds
+premises, not lemmas); `#guard`s **7041 → 7060** (the remainder-map guard
+104 → 123).  `#print axioms` over the reworked
+`flowKeyRoute_of_root`, `accum_flow_open_depth0`, `flowKeyPack_of_close` and
+the five spent routes: the standard three at most, `resumeMapRouteF`
+axiom-free — **no** `sorryAx`.
+
+**What remains, in the map's order.**  Finding A's runtime floor paired with
+1d's re-indexing; the crossed-window arms' scanner-side reading or their
+carried face; then the `[210]` flip.  This item's recorded punts (the
+marker-lane twins at `flowKeyRoute_of_open`, the `n = 0` entry bound, the
+`pendingMapValue` arm's `m = 0` nesting) are enclosing-boundary or 1d-paired
+residues, not flip-accounting blockers.
+
+
 ### REMAINING, in order
 
 The per-item history is the closure log above; this section lists only the
@@ -19292,7 +19382,7 @@ too (items 47–51), so what stands between here
 and Step 5 (the converse) is R3's remaining production work and R4:
 
 ```
-R1 ✓ (44–46) ──→ R2 ✓ (47–51) ──→ R3 (52–175 landed; U2 CLOSED, the collapse gone) ──→ Step 5
+R1 ✓ (44–46) ──→ R2 ✓ (47–51) ──→ R3 (52–176 landed; U2 CLOSED, the collapse gone) ──→ Step 5
                                         └──────→ R4 (implicitContinue + 0 < m) ──┘
 ```
 
