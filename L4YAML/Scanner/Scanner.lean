@@ -967,10 +967,16 @@ def scanNextToken_checkBareDocument (s : ScannerState) :
     more than the column the level itself stands at (**Finding A**, item 177 —
     the runtime half of `SBlockNode`'s `m = 0` over-approximation, item 107).
     So a props-less scalar or alias run at the column refuses whether a slot is
-    offered or not — `a:⏎b`, `?⏎b⏎: v`, `-⏎b`, `k:⏎|⏎ x` — and the exemption
-    keeps only the run shapes some other reading owns: a `[96]`-headed run
-    (`k:⏎&x a`, the parser's own trailing-content refusal) and the flow-close
-    tail (`k:⏎[1, 2]`, `underIndentedFlowValuePos?`'s floor, item 172).  What
+    offered or not — `a:⏎b`, `?⏎b⏎: v`, `-⏎b`, `k:⏎|⏎ x`.  A `[96]`-headed run
+    at the column refuses for the same reason (item 178): the properties
+    themselves sit inside the same alternatives, behind the same
+    `s-separate(n+1)`, so `k:⏎&x a`, `-⏎&x a`, `?⏎&x a` and the props-headed
+    flow tail `k:⏎&x [1]⏎: b` have no derivation either — the first held the
+    parser's trailing-content refusal, the `-`/`?` faces were accepted
+    outright, and all of them are refused by PyYAML's scanner.  The exemption
+    keeps only the run shape another reading owns: the props-less flow-close
+    tail (`k:⏎[1, 2]`, `underIndentedFlowValuePos?`'s floor, item 172, and the
+    sibling flow key `k:⏎[1]: b`, which no break-ended run ever presents).  What
     stays legal is the strictly deeper landing (`a:⏎ b` is `{a: b}`) and the
     seq-spaces entries, which arrive as `-` indicators rather than as runs
     (`a:⏎- b`).  What never had a slot is a run behind a finished one
@@ -991,7 +997,8 @@ def danglingNodePos? (s : ScannerState) : Option YamlPos :=
       let offered := match pred with
         | some j => s.tokens[j]!.val.offersNodeSlot
         | none => false
-      if offered && !(s.tokens[st]!.val.isNodeBody) then none
+      if offered && !(s.tokens[st]!.val.isNodeBody)
+          && !(s.tokens[st]!.val.isNodeProperty) then none
       else
         let p := s.tokens[st]!.pos
         if s.indents.any (fun e => e.column == (p.col : Int)) then some p else none

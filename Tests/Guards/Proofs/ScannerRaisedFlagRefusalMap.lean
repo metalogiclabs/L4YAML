@@ -248,9 +248,9 @@ private def scannerRefuses (input : String) : Bool :=
 
 -- §6 The valid boundary each mechanism must not cross.
 -- M2's exempt structural predecessors (`.value`, `.key`, `.blockEntry`):
--- their equal-column readings REFUSE as of item 177 (Finding A's floor — the
--- narrowed exemption keeps only props-headed runs and flow-close tails), so
--- the boundary here is the strictly deeper twins, which stay the slots' own:
+-- their equal-column readings REFUSE as of items 177/178 (Finding A's floor —
+-- the narrowed exemption keeps only props-less flow-close tails), so the
+-- boundary here is the strictly deeper twins, which stay the slots' own:
 #guard scannerRefuses "a:\nb\n"
 #guard scannerRefuses "?\nb\n: v\n"
 #guard scannerRefuses "-\nb\n"
@@ -320,13 +320,16 @@ private def scannerRefuses (input : String) : Bool :=
 #guard accepts "a: 1\n\"q\": 2\nb: 3\n"
 #guard accepts "- a\n- b\n"
 
-/-! §7 One pipeline-refused shape rides OUTSIDE the §9.2 family: the
-props-only run whose structural predecessor is `.value`
-(`a:⏎&p⏎- y`) is refused downstream as `trailing content`, not as
-`invalidBareDocument`, while `&p⏎c: 2` (the root twin) is a legal
-anchored mapping.  M2's `.value` exemption therefore leaves it to the
-parser, and whichever item lands M2 inherits it as a named residue. -/
-#guard scansClean "a:\n&p\n- y\n"
+/-! §7 The props-only run whose structural predecessor is `.value`
+(`a:⏎&p⏎- y`) refuses at §9.2's own check as of item 178 — the residue
+this section recorded is paid: the properties stand at the awaiting
+level's own column, behind the same `s-separate(n+1)` every scalar
+alternative spends, so the slot-offered exemption no longer covers a
+`[96]`-headed run and the refusal moved up from the parser's
+`trailing content` to `invalidBareDocument` at the run's start.  The
+root twin `&p⏎c: 2` stays a legal anchored mapping: its predecessor
+offers no slot and no level is open at its column. -/
+#guard !scansClean "a:\n&p\n- y\n"
 #guard refuses "a:\n&p\n- y\n"
 #guard accepts "&p\nc: 2\n"
 

@@ -65,24 +65,39 @@ private def parseOk (input : String) : String :=
   | .ok _ => "PARSE-OK"
   | .error e => s!"PARSE-ERR {repr e}"
 
-/-! ## §1  The slide, at the runtime
+/-! ## §1  The slide, at the runtime — and item 178's floor in front of it
 
-`a:⏎!t⏎&b⏎␣␣!s &c x` — every landing passes §9.2's mid-stream check (each
-read window either stands behind the `:`'s slot or off every open column), the
-gate defers every `&`/`!` (no window is three-on-a-line), and the SCANNER
-accepts the whole input; `TokenParser` refuses it.  Five tokens in, the array
-ends `[.., &b, !s]` and the window starts at `&b` — column 0, AT the open
-level.  One property push later it ends `[.., !s, &c]` and starts at `!s` —
-column 2, at no level.  So `danglingNodePos? s' = none` holds while
-`danglingNodePos? sc = none` is FALSE, and no lemma can relay the second from
-the first: the park's `h_route` premise is unreachable and its `h_routeX` is
-what the extension spends. -/
+When this file was written (item 170), `a:⏎!t⏎&b⏎␣␣!s &c x` scanned clean:
+every landing passed §9.2's mid-stream check, the gate deferred every `&`/`!`,
+and only `TokenParser` refused.  Five tokens in, the array ended `[.., &b, !s]`
+and the window started at `&b` — column 0, AT the open level; one property
+push later it started at `!s` — column 2, at no level.  So the pushed state's
+verdict could not relay the park's, which is why `h_routeX` carries the window
+instead.
 
-#guard dangAt "a:\n!t\n&b\n  !s &c x\n" 5 == "some(2,0)"
-#guard dangAt "a:\n!t\n&b\n  !s &c x\n" 6 == "none"
-#guard scanOk "a:\n!t\n&b\n  !s &c x\n" == "SCAN-OK"
+Item 178's floor now stands IN FRONT of the slide for this family: the first
+property lands at the awaiting level's own column, and the first BREAK after
+it is `danglingNodePos?`'s own refusal (the slot-offered exemption no longer
+covers a `[96]`-headed run), so the scan dies three tokens in — at the same
+run start `TokenParser` used to name — and the sliding windows behind it are
+no longer reachable states.  The verdict three tokens in is still the some
+the relay could not carry, pinned below; what survives for the crossed-window
+arms is the family with no offered slot in front — the ROOT's
+(`&a⏎!t &b x`), where §9.2 reads `none` at every window (no level is open)
+and the route never needed a verdict at all.  That shrinkage is the
+crossed-window arms' own ledger row's to spend, not this file's. -/
+
+#guard dangAt "a:\n!t\n&b\n  !s &c x\n" 3 == "some(1,0)"
+#guard dangAt "a:\n!t\n&b\n  !s &c x\n" 5 == "no-state"
+#guard scanOk "a:\n!t\n&b\n  !s &c x\n"
+  == "SCAN-ERR L4YAML.ScanError.invalidBareDocument 1 0"
 #guard parseOk "a:\n!t\n&b\n  !s &c x\n"
-  == "PARSE-ERR L4YAML.ScanError.trailingContent 1 0"
+  == "PARSE-ERR L4YAML.ScanError.invalidBareDocument 1 0"
+#guard dangAt "&a\n!t &b x\n" 2 == "none"
+#guard dangAt "&a\n!t &b x\n" 4 == "none"
+#guard scanOk "&a\n!t &b x\n" == "SCAN-OK"
+#guard parseOk "&a\n!t &b x\n"
+  == "PARSE-ERR L4YAML.ScanError.invalidBareDocument 1 3"
 
 /-! ## §2  The pieces, at the proof's own types -/
 
