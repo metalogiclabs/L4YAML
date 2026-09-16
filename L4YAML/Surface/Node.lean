@@ -139,9 +139,20 @@ mutual
         SIndent m s s₁ →
         SCompactMap (n + 1 + m) s₁ s' →
         SBlockIndented n c s s'
-    /-- Regular block node. -/
+    /-- Regular block node.
+
+        **The node index is `n + 1`, not `n`** (item 179).  `[185]`'s
+        alternative is `s-l+block-node(n,c)` at the SPEC's parameter, and
+        `SBlockNode` is the one type in this tree indexed `n_lean = n_spec + 1`
+        (`SLBareDocument`'s convention, stated on `[198]`'s docstring above) —
+        `SBlockIndented`'s own `n` is the raw entry column, so the crossing
+        adds the one.  Written `n` this arm fed the node's separators and
+        collections an index one too small, which is what admitted the
+        at-column value readings (`k:⏎a`, the equal-width nested map) the
+        runtime refuses — item 107's `m = 0` families, Finding A's encoding
+        half. -/
     | node (n : Nat) (c : YamlContext) (s s' : SurfPos) :
-        SBlockNode n c s s' →
+        SBlockNode (n + 1) c s s' →
         SBlockIndented n c s s'
     /-- Empty node + comments. -/
     | empty (n : Nat) (c : YamlContext) (s s' : SurfPos) :
@@ -192,11 +203,16 @@ mutual
         GLit '?' s s₁ →
         SBlockIndented n .blockOut s₁ s' →
         SBlockMapEntry n s s'
-    /-- [189] Implicit key + ':' + block node. -/
+    /-- [189] Implicit key + ':' + block node.
+
+        The value's node index is `n + 1` for the same reason as
+        `SBlockIndented.node`'s (item 179): the implicit value production
+        spends `s-l+block-node(n, block-out)` at the spec's parameter, and
+        `n_lean = n_spec + 1` on `SBlockNode` alone. -/
     | implicitKeyNode (n : Nat) (s s₁ s₂ s' : SurfPos) :
         SImplicitKey s s₁ →
         GLit ':' s₁ s₂ →
-        SBlockNode n .blockOut s₂ s' →
+        SBlockNode (n + 1) .blockOut s₂ s' →
         SBlockMapEntry n s s'
     /-- [189] Implicit key + ':' + empty value (comments). -/
     | implicitKeyEmpty (n : Nat) (s s₁ s₂ s' : SurfPos) :
@@ -204,10 +220,11 @@ mutual
         GLit ':' s₁ s₂ →
         SSLComments s₂ s' →
         SBlockMapEntry n s s'
-    /-- [189] Empty key + ':' + block node. -/
+    /-- [189] Empty key + ':' + block node.  The value's node index is `n + 1`,
+        as on `implicitKeyNode` (item 179). -/
     | emptyKeyNode (n : Nat) (s s₁ s' : SurfPos) :
         GLit ':' s s₁ →
-        SBlockNode n .blockOut s₁ s' →
+        SBlockNode (n + 1) .blockOut s₁ s' →
         SBlockMapEntry n s s'
     /-- [189] Empty key + ':' + comments. -/
     | emptyKeyEmpty (n : Nat) (s s₁ s' : SurfPos) :

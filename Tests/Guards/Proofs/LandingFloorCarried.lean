@@ -263,7 +263,7 @@ What it leaves, in the order the dedent punt needs it:
   `k`, which a dedent landing at `w < k` cannot use — so the pack's field is
   what makes the conjunct spendable rather than merely true.
 * **U3's spend.**  `entryKeyPack_of_dispatch`'s `h_dframes` is still the widths
-  alone; the two `accum_content_on_pendingMapValue*` relays project the route
+  alone; the `accum_content_on_pendingMapValue*` relay (one lemma since item 179) project the route
   and drop the cover at seven places.  Widening it and spending
   `preprocess_landing_mem_or_seq` at the dedent branch also wants item 146's
   base residue there — **5** declarations, **10**

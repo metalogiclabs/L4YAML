@@ -7,7 +7,7 @@ Copyright (c) 2026. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 -/
 
-/-! # The flip's remainder, mapped (DOCS items 171–178)
+/-! # The flip's remainder, mapped (DOCS items 171–179)
 
 Row 19's 1c ends by narrowing `[210]`'s slot (`GOpt SLAnyDocument` →
 `GOpt SLExplicitDocument`), and the narrowing instrument breaks FIVE
@@ -55,11 +55,20 @@ which it accepts against `[199]`'s own `s-separate(n+1)` — item 177's one
 named PyYAML gap, and the props-headed twin `k:⏎&x |⏎ x` is refused even
 there (the `&x` is what PyYAML's scanner trips on); the one suite case in
 any family is G9HC (`seq:⏎&anchor⏎- a`), an error case whose refusal moves
-stage only.  What remains 1d's
-is the ENCODING half of the same floor: `SBlockNode.blockSeq`/`blockMap`
-still admit `m = 0` (item 107, `BlockCollectionWidthFloor.lean`), so the
-equal-width landing keeps a derivation the parser's sibling reading has no
-use for until the re-indexing lands.  The FLOW half was never this floor's:
+stage only.  **Item 179 landed the ENCODING half** — `SBlockNode` reads
+`n_lean = n_spec + 1` through the three crossings that used to feed it raw
+columns, `nestedBlockMap`'s `n ≤ k` is the spec's own strict floor at that
+convention, and the equal-width landing's second derivation is gone
+(`BlockCollectionWidthFloor.lean` §§4–5).  The runtime did not move at 179,
+so every pin below is unchanged; what 179 leaves for the flip is one
+acceptance that now survives ONLY through `[211]`'s bare continuation:
+`k: &x⏎a` — the run parks DEEPER than the awaiting level (legal), the
+content lands AT the level's column, and the attached reading
+(`{k: &x a}`, the events pipeline's own) died with the re-index, so the
+derivation left is the second-document over-approximation the flip deletes.
+PyYAML refuses it; the run-start check cannot see it (the run is legal where
+it stands); it joins the crossed-window arms on the flip's own prerequisite
+list.  The FLOW half was never this floor's:
 a flow node standing in the awaited slot at column `n` is item 172's refusal
 (`underIndentedFlowContent`, §5), and the two readings stay disjoint by the
 run's tail.
@@ -230,9 +239,10 @@ with matching events. -/
 guarded fallback until that boundary pays); the seq-spaces sibling (the
 `pendingBlockContent n = 0` park's `h_closeF` bound `k' < n` cannot list the
 level, item 173's dedent residue one lane over); and the awaited-value park's
-sibling (`k:⏎[1]: b` — the `pendingMapValue` arm reads the collection NESTED
-in the value slot at `m = 0`, the encoding admission Finding A pairs with
-1d's re-indexing, so the honest sibling reading moves with that pair). -/
+sibling (`k:⏎[1]: b` — the nested `m = 0` reading the `pendingMapValue` arm
+used to spend died with item 179's re-indexing; the landing now falls past
+the strict split to the guarded fallback, and the honest sibling reading —
+the one the events above already emit — stays the punt's own to pay). -/
 #guard pins "---\n[1]: b\nc: 2\n" == ("scan-accepted", "+STR +DOC --- +MAP +SEQ [] =VAL :1 -SEQ =VAL :b =VAL :c =VAL :2 -MAP -DOC -STR")
 #guard pins "a:\n- x\n[1]: b\n" == ("scan-accepted", "+STR +DOC +MAP =VAL :a +SEQ =VAL :x -SEQ +SEQ [] =VAL :1 -SEQ =VAL :b -MAP -DOC -STR")
 #guard pins "k:\n[1]: b\n" == ("scan-accepted", "+STR +DOC +MAP =VAL :k =VAL : +SEQ [] =VAL :1 -SEQ =VAL :b -MAP -DOC -STR")

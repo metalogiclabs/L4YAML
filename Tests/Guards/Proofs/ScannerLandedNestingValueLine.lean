@@ -139,13 +139,14 @@ example {sp_start sp_scan : SurfPos} {n : Nat}
     (h_expl : (∃ sp_q : SurfPos, GLit '?' sp_q sp_scan ∧
       ∀ sp_v : SurfPos, SBlockMapEntry n sp_q sp_v →
         SLYamlStream sp_start sp_v) ∨ True)
+    -- Item 179: the awaited key node reads at the SHIFTED index.
     (h_kslot : (∃ nv : Nat,
-      ∀ sp_m : SurfPos, SBlockNode n .blockIn sp_scan sp_m →
+      ∀ sp_m : SurfPos, SBlockNode (n + 1) .blockIn sp_scan sp_m →
       ∀ sp_i sp_c : SurfPos, SIndent nv sp_m sp_i → GLit ':' sp_i sp_c →
       ∀ sp_v : SurfPos, SBlockIndented nv .blockOut sp_c sp_v →
       SLYamlStream sp_start sp_v) ∨ True) :
     (∃ nv : Nat,
-      ∀ sp_m : SurfPos, SBlockNode n .blockIn sp_scan sp_m →
+      ∀ sp_m : SurfPos, SBlockNode (n + 1) .blockIn sp_scan sp_m →
       ∀ sp_i sp_c : SurfPos, SIndent nv sp_m sp_i → GLit ':' sp_i sp_c →
       ∀ sp_v : SurfPos, SBlockIndented nv .blockOut sp_c sp_v →
       SLYamlStream sp_start sp_v) ∨ True :=
@@ -160,7 +161,7 @@ example {sp_start sp_scan sp_q : SurfPos} {n : Nat}
     (route : ∀ sp_v : SurfPos, SBlockMapEntry n sp_q sp_v →
       SLYamlStream sp_start sp_v) :
     ∃ nv : Nat,
-      ∀ sp_m : SurfPos, SBlockNode n .blockIn sp_scan sp_m →
+      ∀ sp_m : SurfPos, SBlockNode (n + 1) .blockIn sp_scan sp_m →
       ∀ sp_i sp_c : SurfPos, SIndent nv sp_m sp_i → GLit ':' sp_i sp_c →
       ∀ sp_v : SurfPos, SBlockIndented nv .blockOut sp_c sp_v →
       SLYamlStream sp_start sp_v :=

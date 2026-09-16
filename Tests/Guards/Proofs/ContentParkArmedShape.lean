@@ -64,7 +64,8 @@ example {sc s_prep s' : ScannerState} {k : Nat}
         (if s_prep.allowDirectives then
           { s_prep with allowDirectives := false, documentEverStarted := true }
         else s_prep) ':' = .ok (some s')) :
-    IndentFloor s' k ∨ True :=
+    -- Item 179: at the SHIFTED index — the push is at the key's column.
+    IndentFloor s' (k + 1) ∨ True :=
   Or.inl (implicit_key_floor h_poss h_kcol h_inh h_kline h_behind h_noflow
     h_preprocess h_dispatch)
 

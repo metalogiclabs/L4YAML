@@ -57,7 +57,8 @@ example {sc s_prep s' : ScannerState} {sp_prep sp_scan : SurfPos} {k : Nat}
         (if s_prep.allowDirectives then
           { s_prep with allowDirectives := false, documentEverStarted := true }
         else s_prep) ':' = .ok (some s')) :
-    IndentFloor s' k :=
+    -- Item 179: at the SHIFTED index.
+    IndentFloor s' (k + 1) :=
   indicator_floor_colon_at_col_of_save hcol_prep hcorr_prep h_noflow_disp
     (h_arm h_col h_noflow).2 h_preprocess h_dispatch
 
@@ -78,7 +79,8 @@ example {sc s_prep s' : ScannerState} {sp_prep : SurfPos} {k : Nat}
         (if s_prep.allowDirectives then
           { s_prep with allowDirectives := false, documentEverStarted := true }
         else s_prep) ':' = .ok (some s')) :
-    IndentFloor s' k :=
+    -- Item 179: at the SHIFTED index.
+    IndentFloor s' (k + 1) :=
   indicator_floor_colon_at_col hcol_prep hcorr_prep h_noflow_disp h_sk
     h_preprocess h_dispatch
 

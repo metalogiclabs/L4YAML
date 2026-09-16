@@ -275,6 +275,7 @@ example {sp_start sp_land sp_key : SurfPos} {k nv : Nat}
   as before; `PropsKeyPack` carries no resume twin to spend.  (CLOSED by item
   111: the pack gains items 99/108's twins and `h_props_key` resumes first.)
 * The block-scalar value arms of the two `accum_content_on_pendingMapValue`
+  (one lemma since item 179)
   lemmas punt their frames: the node there is complete at the park rather than
   at the landing, so the transport face does not apply unchanged.  (CLOSED by
   item 112 — item 95's absorption closure re-reads the node TO the landing and

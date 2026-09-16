@@ -157,7 +157,8 @@ example {sp_start sp_p sp_prep sp_scan' : SurfPos} {k : Nat} {ks : List Nat}
       ResumeFrames (SLYamlStream sp_start) ks sp_e)
     (h_ik : SImplicitKey sp_p sp_prep)
     (h_lit : GLit ':' sp_prep sp_scan') :
-    ∀ sp_mid : SurfPos, SBlockNode k .blockIn sp_scan' sp_mid →
+    -- Item 179: the entry's value reads at the SHIFTED index.
+    ∀ sp_mid : SurfPos, SBlockNode (k + 1) .blockIn sp_scan' sp_mid →
     ResumeFrames (SLYamlStream sp_start) (k :: ks) sp_mid :=
   fun sp_mid h_node =>
     ResumeFrames.level k ks sp_mid h_lt
@@ -185,6 +186,7 @@ example {sp_start sp_p sp_prep sp_scan' : SurfPos} {k : Nat} {ks : List Nat}
   (CLOSED by item 114 — five resume faces on the park, paid by the entry and
   mapping producers and spent at every value completion and at the landing.)
 * The block-scalar value arms of the two `accum_content_on_pendingMapValue`
+  (one lemma since item 179)
   lemmas (item 109's residue — CLOSED by item 112, the node re-read to the
   landing).
 * The construction sites: `SLYamlStream.implicitContinue` still takes

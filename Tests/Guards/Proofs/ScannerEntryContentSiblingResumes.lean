@@ -99,7 +99,9 @@ content scan just completed — the SAME wrap the park's `h_closable_entry`
 already makes, so the field is free wherever that closure is. -/
 
 example {sp_start sp_scan sp_park : SurfPos} {n : Nat} {ks : List Nat}
-    (build : ∀ sp_mid, SSLComments sp_park sp_mid → SBlockNode n .blockIn sp_scan sp_mid)
+    -- Item 179: the completed node reads at the SHIFTED index; the entry
+    -- slot and the tail stay at the raw column.
+    (build : ∀ sp_mid, SSLComments sp_park sp_mid → SBlockNode (n + 1) .blockIn sp_scan sp_mid)
     (closeF : ∀ sp_mid, SBlockIndented n .blockIn sp_scan sp_mid →
       ∀ sp_end, SCompactSeqTail n sp_mid sp_end →
       ResumeFrames (SLYamlStream sp_start) ks sp_end) :
@@ -183,6 +185,7 @@ example {sc s_prep : ScannerState} {c : Char}
   plain `b`, and what stays root-parked in it is the props-decorated VALUE
   completion's `pendingContent` faces, one of item 109's punting producers.)
 * The block-scalar value arms of the two `accum_content_on_pendingMapValue`
+  (one lemma since item 179)
   lemmas (CLOSED by item 112 — the node re-read to the landing), and the BLOCK
   dispatch's own `pendingBlockContent` arm
   (`accum_block_on_pendingBlockContent`) — this item, like item 109, is the

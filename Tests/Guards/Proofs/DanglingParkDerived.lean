@@ -215,7 +215,10 @@ Item 141 priced the conclusion-disjunct shape at 19 → 28 → 32 over three wav
 consumers are the same five, one site each, and they are the last four rows
 above plus `accum_content_pending`'s own.  The premise shape reaches 32 in one
 wave because it never widens a conclusion — which is why it is the shape this
-file records. -/
+file records.  (The counts are the tree item 160 measured; item 179 deleted
+`accum_content_on_pendingMapValue` and `accum_content_on_pendingBlock` — the
+root instances of their indented twins — so those rows' faces are the twins'
+arms now.) -/
 
 /-! ## §5  The wall, re-confirmed
 

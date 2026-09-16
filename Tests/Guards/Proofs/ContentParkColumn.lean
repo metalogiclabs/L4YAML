@@ -99,7 +99,8 @@ example {sc s_prep s' : ScannerState} {sp_prep sp_scan : SurfPos} {k : Nat}
         (if s_prep.allowDirectives then
           { s_prep with allowDirectives := false, documentEverStarted := true }
         else s_prep) ':' = .ok (some s')) :
-    IndentFloor s' k :=
+    -- Item 179: the floor reads at the SHIFTED index, off the same save.
+    IndentFloor s' (k + 1) :=
   indicator_floor_colon_at_col_of_save hcol_prep hcorr_prep h_noflow_disp
     (landing_or_park_save h_noflow h_larm h_park h_preprocess) h_preprocess h_dispatch
 

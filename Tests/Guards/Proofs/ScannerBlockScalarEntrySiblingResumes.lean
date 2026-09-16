@@ -11,7 +11,8 @@ Released under Apache 2.0 license as described in the file LICENSE.
 
 Item 112 paid the MAPPING-value block-scalar arms with item 95's absorption
 closure — the scalar re-read TO the landing.  The sequence side still dropped
-its park: `accum_content_on_pendingBlock`'s block-scalar arms closed the entry
+its park: `accum_content_on_pendingBlock`'s (since item 179, the indented
+lemma's) block-scalar arms closed the entry
 and parked plain `pendingContent`, so `- |⏎  x⏎- y`'s second `-` could only
 re-open through `[211]`'s bare-document continuation, and
 `k:⏎  - |⏎    x⏎b: 2`'s landing could not pop to `k`'s level.  The runtime
@@ -127,9 +128,11 @@ entries-level one — the pair `pendingBlockContent` was built to carry
 (item 99), which the block-scalar arm could not fill before. -/
 
 example {sp_scan sp_prep sp_scan' : SurfPos} {n : Nat}
-    (h_sep : SSeparate n .blockIn sp_scan sp_prep)
+    -- Item 179: the scalar and its separator read at the SHIFTED index; the
+    -- entry slot stays raw.
+    (h_sep : SSeparate (n + 1) .blockIn sp_scan sp_prep)
     (cl : ∀ sp_mid : SurfPos, SSLComments sp_scan' sp_mid →
-      SCLLiteral n sp_prep sp_mid ∨ SCLFolded n sp_prep sp_mid) :
+      SCLLiteral (n + 1) sp_prep sp_mid ∨ SCLFolded (n + 1) sp_prep sp_mid) :
     ∀ sp_mid : SurfPos, SSLComments sp_scan' sp_mid →
       SBlockIndented n .blockIn sp_scan sp_mid :=
   fun sp_mid h_ssl =>
@@ -149,7 +152,7 @@ example {sp_start sp_scan sp_scan' : SurfPos} {n : Nat}
     (h_close_entry_old : ∀ sp : SurfPos, SBlockIndented n .blockIn sp_scan sp →
       ∀ sp_end : SurfPos, SCompactSeqTail n sp sp_end → SLYamlStream sp_start sp_end)
     (h_nodeAt : ∀ sp_m : SurfPos, SSLComments sp_scan' sp_m →
-      SBlockNode n .blockIn sp_scan sp_m) :
+      SBlockNode (n + 1) .blockIn sp_scan sp_m) :
     ∀ sp_mid : SurfPos, SSLComments sp_scan' sp_mid →
     ∀ sp_end : SurfPos, SCompactSeqTail n sp_mid sp_end →
     SLYamlStream sp_start sp_end :=
@@ -172,7 +175,7 @@ example {sp_start sp_scan sp_scan' : SurfPos} {n nv : Nat}
       ∀ sp_v : SurfPos, SBlockIndented nv .blockOut sp_c sp_v →
       SLYamlStream sp_start sp_v)
     (h_nodeAt : ∀ sp_m : SurfPos, SSLComments sp_scan' sp_m →
-      SBlockNode n .blockIn sp_scan sp_m) :
+      SBlockNode (n + 1) .blockIn sp_scan sp_m) :
     -- The entry-level pack (what the arm now pays) …
     (∀ sp_m : SurfPos, SSLComments sp_scan' sp_m →
      ∀ sp_e : SurfPos, SCompactSeqTail n sp_m sp_e →
@@ -210,7 +213,7 @@ example {sp_start sp_scan sp_scan' : SurfPos} {n : Nat} {ks : List Nat}
       ∀ sp_end : SurfPos, SCompactSeqTail n sp_mid sp_end →
       ResumeFrames (SLYamlStream sp_start) ks sp_end)
     (h_nodeAt : ∀ sp_m : SurfPos, SSLComments sp_scan' sp_m →
-      SBlockNode n .blockIn sp_scan sp_m) :
+      SBlockNode (n + 1) .blockIn sp_scan sp_m) :
     ∀ sp_mid : SurfPos, SSLComments sp_scan' sp_mid →
     ∀ sp_end : SurfPos, SCompactSeqTail n sp_mid sp_end →
     ResumeFrames (SLYamlStream sp_start) ks sp_end :=

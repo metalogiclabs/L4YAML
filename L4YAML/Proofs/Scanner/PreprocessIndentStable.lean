@@ -467,6 +467,28 @@ def IndentFloor (sc : ScannerState) (n : Nat) : Prop :=
 lemma IndentFloor.zero {sc : ScannerState} (h : sc.needIndentCheck = false) :
     IndentFloor sc 0 := ⟨h, Nat.zero_le _⟩
 
+/-- A floor measured at the SHIFTED index (item 179) still admits every reading
+    the raw index made: `SBlockNode`'s `n_lean = n_spec + 1` convention puts the
+    awaited node one above the entry column, and the entry-column reads weaken
+    to it. -/
+lemma IndentFloor.of_succ {sc : ScannerState} {n : Nat}
+    (h : IndentFloor sc (n + 1)) : IndentFloor sc n :=
+  ⟨h.1, Nat.le_of_succ_le h.2⟩
+
+/-- The carried inequality, in the SHIFTED floor's shape (item 179): a stack
+    top at or above the entry column admits the awaited node's index, because
+    the scalar floor is the top plus one. -/
+lemma succ_le_minContentIndentOf_of_int_le {n : Nat} {s : ScannerState}
+    (h : (n : Int) ≤ s.currentIndent) : n + 1 ≤ minContentIndentOf s := by
+  unfold minContentIndentOf; omega
+
+/-- `IndentFloor` at the shifted index, off the same push fact the raw floor
+    spent (item 179). -/
+lemma IndentFloor.succ_of_int_le {sc : ScannerState} {n : Nat}
+    (h_nic : sc.needIndentCheck = false) (h : (n : Int) ≤ sc.currentIndent) :
+    IndentFloor sc (n + 1) :=
+  ⟨h_nic, succ_le_minContentIndentOf_of_int_le h⟩
+
 /-- **The floor's transport** (item 27): a step that leaves the indent stack
     alone carries the pending's measurement forward verbatim, and a pending
     that never had one still has none.  Every re-park in the accumulator goes

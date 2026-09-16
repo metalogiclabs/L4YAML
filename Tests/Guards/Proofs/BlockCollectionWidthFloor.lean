@@ -35,6 +35,9 @@ over-approximation:
 `seq-spaces` collides at exactly the two indices that matter.  So `0 < m` is not
 a one-line tightening of a parameter — it is a re-indexing of `SBlockNode`, and
 the plan row that reads "4 construction sites" is pricing the wrong thing.
+**Item 179 landed that re-indexing** — three crossings add the one
+(`SBlockIndented.node`, `implicitKeyNode`, `emptyKeyNode`), and §§4–5 below
+read the same terms at the landed convention.
 
 Everything below is either a RUNTIME pin (no runtime file is touched at this
 item) or a TERM whose elaboration is the fact. -/
@@ -108,13 +111,17 @@ example {s s₂ s' : SurfPos} (h_ssl : SSLComments s s₂)
     index 0 for as long as the index expression is `n + m` over `Nat`. -/
 example : ¬ ∃ m : Nat, 0 < m ∧ 0 + m = 0 := by omega
 
-/-! ## §4 The over-approximation itself
+/-! ## §4 The over-approximation — RETIRED by the convention (item 179)
 
 `nestedBlockMap`'s side condition is `n ≤ k` — item 39's, and the whole content
-of the landed/dedent split at `entryKeyPack_of_dispatch`.  At `k = n` it is
-still satisfied, and what comes out is a mapping nested inside its enclosing
-entry at that entry's own width: the derivation the parser's SIBLING reading
-has no use for.  This is the term, and it needs nothing but `Nat.le_refl`. -/
+of the landed/dedent split at `entryKeyPack_of_dispatch`.  With `SBlockNode`'s
+index shifted, `n` in that slot names the spec's `n - 1`, so `n ≤ k` READS as
+the spec's own strict floor `n_spec < k`.  The equal-width landing no longer
+reaches it at all: an entry at raw column `e` awaits its node at `e + 1`, so a
+landing at `k = e` fails `e + 1 ≤ k` and joins the dedent branch — the sibling
+reading, which is the parser's.  The `Nat.le_refl` term below still
+elaborates, and what it now constructs is honest: entries exactly one
+spec-level deeper than the slot's index — the root's own shape. -/
 
 example {n : Nat} {s s₂ s' : SurfPos} (h_ssl : SSLComments s s₂)
     (h_entries : SBlockMapEntries n s₂ s') : SBlockNode n .blockIn s s' :=
@@ -127,17 +134,20 @@ example {n k : Nat} (hlt : n < k) {s s₂ s' : SurfPos} (h_ssl : SSLComments s s
     (h_entries : SBlockMapEntries k s₂ s') : SBlockNode n .blockIn s s' :=
   nestedBlockMap (Nat.le_of_lt hlt) h_ssl h_entries
 
-/-! ## §5 The price
+/-! ## §5 The price — PAID (item 179)
 
 Tightening `m` means giving the two collection constructors a FLOOR on their
-entries' width.  Written honestly the floor is `n < E` for a mapping and for a
-block-in sequence, and `n ≤ E` for a block-out one — the `-1` the spec spends on
-seq-spaces, and the reason `?⏎- a` is legal at all.  Both floors are false at
-the root, whose spec index is `-1` and whose Lean index is `0`; so the root
-needs an index this encoding does not have, and the tightening is a re-indexing
-of `SBlockNode` (`n_lean = n_spec + 1` uniformly — the convention `[198]`'s own
-docstring already states and these three constructors do not follow), not a
-side condition on four call sites. -/
+entries' width, and the convention pays it with no side condition at all: at
+`n_lean = n_spec + 1` uniformly, a block-in collection's `n + m` entries sit
+at or above `n = n_spec + 1 > n_spec` even at `m = 0`, a block-out sequence's
+`seqSpaces n .blockOut + m = (n - 1) + m` sits at or above the spec's
+`seq-spaces` value (the `-1` that keeps `?⏎- a` legal), and the ROOT is
+`SBlockNode 0` — the spec's `-1` — whose entries at column 0 are the honest
+`m = 0`.  What carried the price was not these constructors but the three
+CROSSINGS that feed them raw columns, and the proof surface behind them
+(item 179's ledger row has the census: 75 sites, 13 definitions, all in
+`StreamAccum`).  `widthFloor` below is the floor §5 originally asked for,
+kept as the arithmetic the convention now provides for free. -/
 
 /-- The floors, as they would have to read. -/
 private def widthFloor (n : Nat) (c : YamlContext) : Nat :=

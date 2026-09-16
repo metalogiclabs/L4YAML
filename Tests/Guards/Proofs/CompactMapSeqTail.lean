@@ -175,7 +175,8 @@ example {sp_start sp_key sp_ws sp_scan' : SurfPos} {k ke : Nat}
     (h_routeS : ∀ sp_v, SBlockMapEntry k sp_key sp_v →
       ∀ sp_e, SCompactMapTail k sp_v sp_e → SeqEntryTail sp_start ke sp_e)
     (h_ik : SImplicitKey sp_key sp_ws) (h_lit : GLit ':' sp_ws sp_scan') :
-    ∀ sp_mid, SBlockNode k .blockIn sp_scan' sp_mid →
+    -- Item 179: the entry's value reads at the SHIFTED index.
+    ∀ sp_mid, SBlockNode (k + 1) .blockIn sp_scan' sp_mid →
       ∀ sp_e, SCompactMapTail k sp_mid sp_e → SeqEntryTail sp_start ke sp_e :=
   fun sp_v h_node sp_e h_tail =>
     h_routeS sp_v
@@ -224,12 +225,12 @@ example {sp_start sp_scan sp_key sp_ws sp_val sp_park sp_land sp_key2 sp_ws2 sp_
     -- `a: X` on the indicator's own line
     (h_ind : SIndent w sp_scan sp_key)
     (h_ik : SImplicitKey sp_key sp_ws) (h_lit : GLit ':' sp_ws sp_val)
-    (h_node : ∀ sp_m, SSLComments sp_park sp_m → SBlockNode (n+1+w) .blockIn sp_val sp_m)
+    (h_node : ∀ sp_m, SSLComments sp_park sp_m → SBlockNode (n+1+w+1) .blockIn sp_val sp_m)
     -- `b: Y` — the SIBLING landing inside the same `[187]`
     (h_ssl : SSLComments sp_park sp_land)
     (h_ind2 : SIndent (n+1+w) sp_land sp_key2)
     (h_ik2 : SImplicitKey sp_key2 sp_ws2) (h_lit2 : GLit ':' sp_ws2 sp_val2)
-    (h_node2 : ∀ sp_m, SSLComments sp_park2 sp_m → SBlockNode (n+1+w) .blockIn sp_val2 sp_m)
+    (h_node2 : ∀ sp_m, SSLComments sp_park2 sp_m → SBlockNode (n+1+w+1) .blockIn sp_val2 sp_m)
     -- `- c` — the dedent, back at the collection's own width
     (h_ssl2 : SSLComments sp_park2 sp_mid)
     (h_ind3 : SIndent n sp_mid sp_sc) (h_dash : GLit '-' sp_sc sp_scan')
@@ -243,7 +244,7 @@ example {sp_start sp_scan sp_key sp_ws sp_val sp_park sp_land sp_key2 sp_ws2 sp_
     fun sp_v h_entry sp_e h_tail =>
       f1 sp_e (SBlockIndented.compactMap n .blockIn w sp_scan sp_key sp_e h_ind
         (SCompactMap.mk (n+1+w) sp_key sp_v sp_e h_entry h_tail))
-  have f3 : ∀ sp_m, SBlockNode (n+1+w) .blockIn sp_val sp_m →
+  have f3 : ∀ sp_m, SBlockNode (n+1+w+1) .blockIn sp_val sp_m →
       ∀ sp_e, SCompactMapTail (n+1+w) sp_m sp_e → SeqEntryTail sp_start n sp_e :=
     fun sp_m h_nd sp_e h_tail =>
       f2 sp_m (SBlockMapEntry.implicitKeyNode (n+1+w) sp_key sp_ws sp_val sp_m h_ik h_lit

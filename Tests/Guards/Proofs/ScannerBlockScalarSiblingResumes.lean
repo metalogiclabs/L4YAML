@@ -15,7 +15,8 @@ transported — `[196]`'s flow-in-block ends with `s-l-comments`, so
 `SBlockNode.flowInBlock` takes the walk as a constructor argument.  A block
 scalar has no such tail: `[170]`/`[174]` end inside their own
 `l-chomped-empty`, the node is complete at the PARK, and both
-`accum_content_on_pendingMapValue` lemmas' block-scalar arms punted every
+`accum_content_on_pendingMapValue` lemmas' (one lemma since item 179 —
+the root instance folded into the indented twin) block-scalar arms punted every
 landing face — `a: |⏎  x⏎c: d`'s `c` could still only re-enter as a second
 bare document.
 
@@ -158,8 +159,9 @@ example {sp_start sp_q sp_scan sp_scan' : SurfPos}
     (h_qlit : GLit '?' sp_q sp_scan)
     (route : ∀ sp_v : SurfPos, SBlockMapEntry 0 sp_q sp_v →
       SLYamlStream sp_start sp_v)
+    -- Item 179: the key node reads at the SHIFTED index.
     (h_nodeAt : ∀ sp_m : SurfPos, SSLComments sp_scan' sp_m →
-      SBlockNode 0 .blockIn sp_scan sp_m) :
+      SBlockNode (0 + 1) .blockIn sp_scan sp_m) :
     ∀ sp_m sp_i sp_c : SurfPos, SSLComments sp_scan' sp_m →
       SIndent 0 sp_m sp_i → GLit ':' sp_i sp_c →
       ∀ sp_v : SurfPos, SBlockIndented 0 .blockOut sp_c sp_v →
@@ -190,7 +192,7 @@ example {sp_start sp_scan sp_scan' : SurfPos} {n : Nat}
 /-! ## §6 What this item does NOT close
 
 * The SEQUENCE side.  `accum_content_on_pendingBlock`'s block-scalar arms
-  (root and indented) close the entry and park `pendingContent` with every
+  (root and indented; one lemma since item 179) close the entry and park `pendingContent` with every
   landing face punted, so `- |⏎  x⏎- y` and `k:⏎  - |⏎    x⏎  - y` (both
   runtime-accepted, ONE sequence) still re-open.  Two carriers wait there:
   an entry SIBLING rides the entries chain (`pendingBlockContent`'s park,

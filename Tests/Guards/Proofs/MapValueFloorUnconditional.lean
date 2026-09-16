@@ -27,11 +27,13 @@ open L4YAML.Proofs.PreprocessIndentStable L4YAML.Proofs.FlowAdjacency
 
 /-! ## §1  The field and its feeder are unconditional -/
 
-/-- Building the pending demands a REAL floor — no `Or.inl` in sight. -/
+/-- Building the pending demands a REAL floor — no `Or.inl` in sight.
+    Item 179: the awaited node and the floor both read at the SHIFTED index
+    `n + 1`, `n` staying the entry column. -/
 example {sc : ScannerState} {sp_start sp_block sp_scan : SurfPos} {n : Nat}
-    (h_close : ∀ sp_mid, SBlockNode n .blockIn sp_scan sp_mid →
+    (h_close : ∀ sp_mid, SBlockNode (n + 1) .blockIn sp_scan sp_mid →
       SLYamlStream sp_start sp_mid)
-    (h_floor : IndentFloor sc n)
+    (h_floor : IndentFloor sc (n + 1))
     (h_nic : sc.needIndentCheck = false)
     (h_real : LastTokenReal sc.tokens)
     (h_sk : sc.simpleKeyAllowed = true)

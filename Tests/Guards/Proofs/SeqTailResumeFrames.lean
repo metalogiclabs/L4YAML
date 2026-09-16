@@ -135,7 +135,8 @@ then the two-level family whole. -/
 example {sp_start sp_scan : SurfPos} {n : Nat}
     (h : ∀ sp_mid, SBlockIndented n .blockIn sp_scan sp_mid →
       SeqEntryTail sp_start n sp_mid) :
-    ∀ sp_m, SBlockNode n .blockIn sp_scan sp_m →
+    -- Item 179: the entry's node reads at the SHIFTED index.
+    ∀ sp_m, SBlockNode (n + 1) .blockIn sp_scan sp_m →
       ResumeFrames (SeqEntryTail sp_start n) [] sp_m :=
   fun sp_m h_bn =>
     ResumeFrames.bottom sp_m (h sp_m (SBlockIndented.node n .blockIn sp_scan sp_m h_bn))
@@ -216,11 +217,12 @@ example {sp_start sp_scan sp_key sp_ws sp_val sp_land sp_key2 sp_ws2 sp_val2
     (h_ind : SIndent w sp_scan sp_key)
     (h_ik : SImplicitKey sp_key sp_ws) (h_lit : GLit ':' sp_ws sp_val)
     -- `b: 1` — the inner mapping the value turns out to be, one level deeper
-    (hn1w2 : n + 1 + w ≤ w2)
+    -- (item 179: STRICTLY deeper than the compact entry's column)
+    (hn1w2 : n + 1 + w + 1 ≤ w2)
     (h_ssl : SSLComments sp_val sp_land)
     (h_ind2 : SIndent w2 sp_land sp_key2)
     (h_ik2 : SImplicitKey sp_key2 sp_ws2) (h_lit2 : GLit ':' sp_ws2 sp_val2)
-    (h_node2 : ∀ sp_m, SSLComments sp_park2 sp_m → SBlockNode w2 .blockIn sp_val2 sp_m)
+    (h_node2 : ∀ sp_m, SSLComments sp_park2 sp_m → SBlockNode (w2 + 1) .blockIn sp_val2 sp_m)
     -- `- c` — the dedent, back at the collection's own width, TWO levels down
     (h_ssl2 : SSLComments sp_park2 sp_mid)
     (h_ind3 : SIndent n sp_mid sp_sc) (h_dash : GLit '-' sp_sc sp_scan')
@@ -239,14 +241,14 @@ example {sp_start sp_scan sp_key sp_ws sp_val sp_land sp_key2 sp_ws2 sp_val2
         (f1 sp_e (SBlockIndented.compactMap n .blockIn w sp_scan sp_key sp_e h_ind
           (SCompactMap.mk (n+1+w) sp_key sp_v sp_e h_entry h_tail)))
   -- ③ the `:` parks the value — `pendingMapValue (n+1+w)`'s `h_seqF`
-  have f3 : ∀ sp_m, SBlockNode (n+1+w) .blockIn sp_val sp_m →
+  have f3 : ∀ sp_m, SBlockNode (n+1+w+1) .blockIn sp_val sp_m →
       ∀ sp_e, SCompactMapTail (n+1+w) sp_m sp_e →
       ResumeFrames (SeqEntryTail sp_start n) [] sp_e :=
     fun sp_m h_nd sp_e h_tail =>
       f2 sp_m (SBlockMapEntry.implicitKeyNode (n+1+w) sp_key sp_ws sp_val sp_m h_ik h_lit
         (SBlockNode_blockIn_to_blockOut h_nd)) sp_e h_tail
   -- ④ hop Ⓑ: the park conses its own level onto the frames
-  have f4 : ∀ sp_m, SBlockNode (n+1+w) .blockIn sp_val sp_m →
+  have f4 : ∀ sp_m, SBlockNode (n+1+w+1) .blockIn sp_val sp_m →
       ResumeFrames (SeqEntryTail sp_start n) [n+1+w] sp_m :=
     fun sp_m h_bn =>
       ResumeFrames.level (n+1+w) [] sp_m (by simp)
@@ -259,7 +261,7 @@ example {sp_start sp_scan sp_key sp_ws sp_val sp_land sp_key2 sp_ws2 sp_val2
       f4 sp_e (nestedBlockMap hn1w2 h_ssl
         (SBlockMapEntries_of_compactTail h_ind2 h_entry h_tail))
   -- ⑥ `b:` parks ITS value in turn — the inner `pendingMapValue`'s `h_seqF`
-  have f6 : ∀ sp_m, SBlockNode w2 .blockIn sp_val2 sp_m →
+  have f6 : ∀ sp_m, SBlockNode (w2 + 1) .blockIn sp_val2 sp_m →
       ∀ sp_e, SCompactMapTail w2 sp_m sp_e →
       ResumeFrames (SeqEntryTail sp_start n) [n+1+w] sp_e :=
     fun sp_m h_nd sp_e h_tail =>
