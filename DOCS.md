@@ -19062,6 +19062,114 @@ three `bareNodeRoute` holders: `content_dispatch_after_close` and
 then the flow lane's hardening, Finding A's floor with 1d, and the flip.
 
 
+### Item 174 (2026-09-15)
+
+**The props ride across the break.**  The map's node-side row, MEASURED
+first — and the measurement moved the item off the ledger's sketch and onto
+the one dishonest reading that was actually payable.
+
+**What the probe refuted.**  The ledger sketched this item as
+"`content_dispatch_after_close` + `bareNodeRoute_or_refused_content` resume
+at the level the close kept open (`k:⏎a: 1`'s family)".  Probing the arms'
+domains (`Scratch/Probe174.lean`, 20+23 families, both pipelines) and walking
+the three callers refuted all three clauses:
+
+* **`k:⏎a: 1`'s entry-level sibling resumes ALREADY** — items 109/151 thread
+  `resumectx_of_landing` at all three `content_dispatch_after_close` callers
+  (the `pendingBlock`/`pendingMapValue` dedent arms and the `pendingProps`
+  break-crossed arm), and the implicit-key producer fills
+  `pendingMapValue.h_frames` from the pack — so the named family was paid
+  before this item began, and §1's pins were already its record.
+* **`content_dispatch_after_close`'s raw `bareNodeRoute` serves, on accepted
+  inputs, exactly Finding A's scalar family** (`k:⏎a` = `{k: a}`, its
+  `pendingMapValue` caller) — 1d's pair, not this item's.  The `pendingBlock`
+  caller's node landings are scanner-refused (`a:⏎  -⏎b`, `a:⏎- x⏎b` —
+  `invalidBareDocument` at EOF), with the refutation faces a later item's.
+* **`bareNodeRoute_or_refused_content`'s two fallback arms' live payers are
+  `pendingFlow`'s break-crossed landings alone**: `pendingContent` and
+  `pendingBlockContent` pay `Or.inl` (their `CompletedTail` is a park FIELD,
+  unconditional since item 139) and both arms refute; the marker parks exit
+  on their own suffix/marker arms.  That holder is R3's (`pendingFlow`'s
+  deletion), not narrowable one arm at a time.
+
+**What it found dishonest and payable: the `pendingProps` caller.**  A
+sentinel-level `[96]` park's break-crossed landing closed the run as
+`propsEmpty` — an anchored-EMPTY first document — and routed the landed node
+as a SECOND bare document over it.  The runtime reads `&p⏎b` as ONE anchored
+scalar (`=VAL &p :b`) and `&p⏎b: 1` as ONE anchored mapping (`+MAP &p`),
+because `[161] ns-flow-node`'s props alternative separates properties from
+content with `s-separate(n,c)` = `s-separate-lines` in every non-key
+context — **the break is inside the node**.  PyYAML agrees on the whole
+content family, including the asymmetry that certifies the slot: the
+same-line `&p b: 1` anchors the KEY (`+MAP =VAL &p :b`, both parsers) where
+the break-crossed `&p⏎b: 1` anchors the MAPPING — `[196]
+s-l+block-collection`'s own optional `( s-separate c-ns-properties )`,
+consumed here for the first time.
+
+**The swap.**  `PropsRideRoute` packages the park's fields at its route
+index 0 — the route (gate paid at the landing), the leading separator, the
+run as `[96]`, and the crossed break twice (as `s-l-comments` to the landing
+for `[196]`, and as a full `s-separate-lines` to the content for
+`[161]`/`[198]`).  `content_dispatch_routed` takes it as the SIXTH context
+(punted by every other caller):
+
+* the two `pendingContent` constructions assemble the node WITH the run —
+  `SFlowNode.propsContent` on the flow side (the alias arm keeps the
+  fallback; `&p⏎*p` is parser-refused), `GOpt.some` in `[198]`'s slot on the
+  block-scalar side (`&p⏎|⏎  x` = `=VAL &p |x\n`) — and the closure
+  re-enters by the RUN's route instead of `bareNodeRoute`;
+* the key cascade gains a props arm between the marker and the root:
+  `propsMapRoute`/`propsMapRouteF` spend the landed entry into `[196]`'s
+  slot through the same route (`ks = []` as at the root), so `&p⏎b: 1`
+  chains and re-parks like any implicit key;
+* `props_linesLift` is the one-page conversion `[96]` needs to sit in a
+  `.blockIn` slot — the embedded separate is `s-separate-lines` on both
+  sides, by defeq.
+
+The ride bottoms in `pendingProps.h_route`, so the seed, the marker and the
+suffix parks ride identically for free (`---⏎&p⏎b`, `...⏎&p⏎b` — pinned),
+and the explicit value's park is the same `n = 0` swap (`? k⏎: &p⏎b` =
+`{k: &p b}`; PyYAML refuses that one at its simple-key scanner — a PyYAML
+gap like `[192]`'s, and the production text is the reference).  The
+ENCLOSING-level park (`0 < n`) keeps the propsEmpty close — the honest
+reading where the landing resumes a sibling level (`k:⏎  a: &p⏎c: 2`,
+`k:⏎  a: &p⏎  c: d`, both pinned as boundaries).
+
+**Recorded punts, each with the fallback still standing and its pin in
+§3b:** the INDICATOR-headed rides (`&p⏎- a`, `&p⏎? x⏎: v`, `&p⏎: v` — block
+dispatches, the openers' own future arm), the flow-open ride (`&p⏎[1, 2]` —
+the flow lane's), the indented enclosing ride (`k:⏎  a: &p⏎    c: d`), the
+two-park chain (`!t⏎&q b` — one `[96]` run whose internal separate crossed
+the break), and the alias landing (`&p⏎*p`, scan-accepted and
+parser-refused).
+
+**Measured at the landed state.**  Full `lake build` **1160** jobs, ZERO
+warnings; suite **4498/4498** with Production Coverage Analysis **815/815**;
+`eventscore` **347/358** with 0 `event-reject` and 0 `error-miss`;
+`suiterunner` **869 / 0 / 151**; matrix **402/402 event + 282/282 JSON, both
+pipelines** — no runtime change, re-run anyway.  The `[210]` flip instrument
+still reports **FIVE** errors at the same five definitions
+(4179/5458/5481/5650/7062 — applied and restored this session), and NONE at
+the new routes: the ride is flip-legal.  The whole-module census
+(`Scratch/Census174.lean`) holds at **3** raw holders — each now named with
+its gate (1d / R3 / the crossed arms' scanner-side reading) — and its new
+half shows the ride's consumers: `content_dispatch_routed` applies
+`propsMapRoute`/`propsMapRouteF`/`props_linesLift`, and
+`accum_content_pending` pays the `PropsRideRoute` context.  Declarations
+**7956 → 7960** (the context def, the two routes, the lift); `#guard`s
+**6999 → 7022** (the twenty-three §3b pins).  `#print axioms` over the
+seventeen touched lemmas shows
+`propext`/`Classical.choice`/`Quot.sound` plus the standing `native_decide`
+axioms of the `dispatchBlock*_full_prod`/scalar byte-witnesses those lemmas
+have always applied — **no** `sorryAx`.
+
+**What remains, in the map's order.**  The block-indicator and flow-open
+rides (§3b's punts, at the openers and the flow lane), then the flow lane's
+hardening, Finding A's floor with 1d, and the flip.  The census's three raw
+holders are all GATED now: `content_dispatch_after_close` on 1d,
+`bareNodeRoute_or_refused_content` on R3's `pendingFlow` deletion, the
+crossed arms on their scanner-side reading (M4 candidate).
+
 ### REMAINING, in order
 
 The per-item history is the closure log above; this section lists only the
@@ -19078,7 +19186,7 @@ too (items 47–51), so what stands between here
 and Step 5 (the converse) is R3's remaining production work and R4:
 
 ```
-R1 ✓ (44–46) ──→ R2 ✓ (47–51) ──→ R3 (52–173 landed; U2 CLOSED, the collapse gone) ──→ Step 5
+R1 ✓ (44–46) ──→ R2 ✓ (47–51) ──→ R3 (52–174 landed; U2 CLOSED, the collapse gone) ──→ Step 5
                                         └──────→ R4 (implicitContinue + 0 < m) ──┘
 ```
 

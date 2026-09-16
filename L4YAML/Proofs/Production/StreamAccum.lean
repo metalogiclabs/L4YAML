@@ -245,6 +245,17 @@ lemma PropsRun.toPropertiesBlockIn {n : Nat} {ha ht : Bool} {s s' : SurfPos}
   | tagThenAnchor _ _ _ _ ht hsep ha =>
       exact .tagFirst _ _ _ _ _ ht (.some _ _ (.mk _ _ _ hsep ha))
 
+/-- The same conversion stated on `[96]` itself (item 174): a properties
+    reading at `.flowOut` re-reads at `.blockIn` because the embedded
+    `s-separate` is `s-separate-lines` in both, by defeq.  This is what puts a
+    held run into `[196] s-l+block-collection`'s own slot, where
+    `PropsRun.toPropertiesBlockIn` above serves `[198]`'s. -/
+lemma props_linesLift {n : Nat} {s s' : SurfPos}
+    (h : SCNsProperties n .flowOut s s') : SCNsProperties n .blockIn s s' := by
+  cases h with
+  | tagFirst _ _ ht hopt => exact .tagFirst _ _ _ _ _ ht hopt
+  | anchorFirst _ _ ha hopt => exact .anchorFirst _ _ _ _ _ ha hopt
+
 /-! ### The resume frames (item 99)
 
     A DEDENT landing ends the awaited entry and CONTINUES an enclosing
@@ -5812,6 +5823,73 @@ lemma markerMapRouteF {sp_start sp_land sp_key : SurfPos} {k : Nat}
       ResumeFrames.bottom sp_e
         (route sp_e (rootBlockMap k h_ssl
           (SBlockMapEntries_of_compactTail h_ind h_entry h_tail)))
+
+/-- **The held `[96]` run behind a landing, read as the landed node's own
+    properties** (item 174) — the props park's break-crossed content is the
+    RUN's node, not an anchored-empty document followed by a bare second one.
+
+    `[161] ns-flow-node`'s third alternative is `c-ns-properties(n,c)
+    s-separate(n,c) ns-flow-content(n,c)`, and `s-separate` in every non-key
+    context is `s-separate-lines` — the break is INSIDE the node.  So `&p⏎b`
+    is ONE anchored scalar (`=VAL &p :b`), `&p⏎|⏎  x` puts the run in
+    `[198]`'s own slot, and `&p⏎b: 1` is `+MAP &p` through `[196]
+    s-l+block-collection`'s optional properties — the MAPPING's anchor, where
+    the same-line `&p b: 1` anchors the KEY (PyYAML agrees on both).  The
+    reading bottoms in the park's own `h_route`, so the seed, marker and
+    suffix parks all ride identically (`---⏎&p⏎b`, `...⏎&p⏎b`), and row 19's
+    1c never sees it: no implicit continuation is spent.
+
+    The pieces are the park's fields at its route index `0` plus the crossed
+    break, stated twice at the door: `SSLComments` to the LANDING for the
+    collection slot (whose entries begin at the line start), and a full
+    `s-separate-lines` to the CONTENT for `[161]`/`[198]` (whose node begins
+    past the landing's whites). -/
+def PropsRideRoute (sp_start sp_land sp_prep : SurfPos) : Prop :=
+  ∃ sp_node sp_p sp_run : SurfPos,
+    (∀ sp, SBlockNode 0 .blockIn sp_node sp → SLYamlStream sp_start sp) ∧
+    SSeparateLines 0 sp_node sp_p ∧
+    SCNsProperties 0 .flowOut sp_p sp_run ∧
+    SSLComments sp_run sp_land ∧
+    SSeparateLines 0 sp_run sp_prep
+
+/-- **`rootMapRoute`'s PROPS twin** (item 174): the same landing coordinates
+    spent into `[196] s-l+block-collection`'s properties slot — its first
+    consumer.  The crossed break is the production's `s-l-comments`, the held
+    run its optional `( s-separate c-ns-properties )`, and the mapping the
+    landed key opens is the RUN's own node, re-entering by the park's route
+    instead of `[211]`'s implicit continuation. -/
+lemma propsMapRoute {sp_start sp_land sp_prep sp_key : SurfPos} {k : Nat}
+    (h_pr : PropsRideRoute sp_start sp_land sp_prep)
+    (h_ind : SIndent k sp_land sp_key) :
+    ∀ sp_v, SBlockMapEntry k sp_key sp_v → SLYamlStream sp_start sp_v :=
+  fun sp_v h_entry =>
+    match h_pr with
+    | ⟨sp_node, sp_p, sp_run, route, h_sepL, h_props, h_ssl, _⟩ =>
+      route sp_v (SBlockNode.blockMap 0 .blockIn k sp_node sp_run sp_land sp_v
+        (GOpt.some sp_node sp_run (GSeq.mk sp_node sp_p sp_run h_sepL
+          (props_linesLift h_props)))
+        h_ssl
+        (by simpa using SBlockMapEntries.single k sp_land sp_key sp_v h_ind h_entry))
+
+/-- **`propsMapRoute` at the ENTRIES level** — `rootMapRouteF`'s twin, the
+    same substitution: the frames bottom out in the run's node through the
+    park's route.  `ks = []` as at the root always: nothing is open below the
+    document the run decorates. -/
+lemma propsMapRouteF {sp_start sp_land sp_prep sp_key : SurfPos} {k : Nat}
+    (h_pr : PropsRideRoute sp_start sp_land sp_prep)
+    (h_ind : SIndent k sp_land sp_key) :
+    ∀ sp_v, SBlockMapEntry k sp_key sp_v →
+    ∀ sp_e, SCompactMapTail k sp_v sp_e →
+    ResumeFrames (SLYamlStream sp_start) [] sp_e :=
+  fun _sp_v h_entry sp_e h_tail =>
+    match h_pr with
+    | ⟨sp_node, sp_p, sp_run, route, h_sepL, h_props, h_ssl, _⟩ =>
+      ResumeFrames.bottom sp_e
+        (route sp_e (SBlockNode.blockMap 0 .blockIn k sp_node sp_run sp_land sp_e
+          (GOpt.some sp_node sp_run (GSeq.mk sp_node sp_p sp_run h_sepL
+            (props_linesLift h_props)))
+          h_ssl
+          (by simpa using SBlockMapEntries_of_compactTail h_ind h_entry h_tail)))
 
 /-- **`rootMapRoute`'s RESUME instance** (item 109): the landed key CONTINUES an
     open width-`k` level instead of opening a root mapping under a fresh bare
@@ -24022,7 +24100,20 @@ lemma content_dispatch_routed
     -- state (the landing's own is `s_prep`) and rides explicitly, because a
     -- caller with nothing to say leaves it uninferrable.
     (sc : ScannerState)
-    (h_ref : BareLandingFacts sc s_prep c ∨ True) :
+    (h_ref : BareLandingFacts sc s_prep c ∨ True)
+    -- **Item 174: the held `[96]` run behind this landing.**  A SENTINEL-level
+    -- props park's break-crossed content is the RUN's OWN node — `&p⏎b` is
+    -- `=VAL &p :b`, `&p⏎|⏎  x` fills `[198]`'s slot, and `&p⏎b: 1` is
+    -- `+MAP &p` through `[196]`'s collection properties — re-entering by the
+    -- park's route.  The key facts ride as on the four contexts above; only
+    -- the props landing whose route index is 0 pays, and the enclosing-level
+    -- park keeps its propsEmpty close (the honest reading where a sibling
+    -- landing resumes, `k:⏎  a: &p⏎  c: d`).
+    (h_propsctx : ((∃ (k : Nat) (sp_land : SurfPos),
+        sp_land.col = 0 ∧ PropsRideRoute sp_start sp_land sp_prep ∧
+        SIndent k sp_land sp_prep) ∧
+      s_prep.simpleKey.possible = true ∧
+      s_prep.simpleKey.pos = s_prep.currentPos) ∨ True) :
     ∃ sp_gram' sp_block' sp_flow' sp_scan',
       SLYamlStream sp_start sp_gram' ∧
       BlockStack sp_gram' sp_block' ∧
@@ -24447,6 +24538,24 @@ lemma content_dispatch_routed
                 -- Item 168: no sequence entry encloses this context's document.
                 (Or.inr trivial)
             | inr _ =>
+            cases h_propsctx with
+            -- Item 174: the PROPS context — the mapping this key heads is the
+            -- held run's own node, through `[196]`'s properties slot, so
+            -- `&p⏎b: 1` is `+MAP &p` instead of an anchored-empty document
+            -- with a bare second one after it.  `ks = []` as at the root, and
+            -- no explicit frame stands over the run's document.
+            | inl hpr =>
+              obtain ⟨⟨k, sp_land, hcol0, h_pr_land, h_ind⟩, _h_sk_poss, h_sk_pos⟩ := hpr
+              exact h_build k sp_land hcol0 h_ind h_sk_pos
+                (propsMapRoute h_pr_land h_ind)
+                (Or.inl ⟨[], fun _ h => absurd h (List.not_mem_nil),
+                  -- Item 148: no park to inherit from, as at the suffix arm above.
+                  Or.inr trivial,
+                  propsMapRouteF h_pr_land h_ind⟩)
+                (Or.inr trivial)
+                -- Item 168: no sequence entry encloses this context's document.
+                (Or.inr trivial)
+            | inr _ =>
             cases h_keyctx with
             | inr _ => exact Or.inr KeyPackPunt.noKeyContext
             | inl hctx =>
@@ -24479,7 +24588,21 @@ lemma content_dispatch_routed
              PendingNode.pendingContent sp_start sp_res sp_scan' h_line
                (fun h_nd sp_mid h_ssl =>
                  have h_ssl_ext := white_prepend_SSLComments h_trailing_ws h_ssl
-                 h_route (Or.inl h_nd) sp_mid (flowInBlock_blockNode h_sep h_flow h_ssl_ext))
+                 -- Item 174: with the ride context paid, the landed content is
+                 -- the held run's OWN node — `[161]`'s props alternative — and
+                 -- the closure re-enters by the run's route (`&p⏎b` is
+                 -- `=VAL &p :b`).  The alias arm keeps the fallback (`&p⏎*x`
+                 -- is §9.2-refused at the landing), and so does every caller
+                 -- that pays no context.
+                 match h_propsctx, h_flow with
+                 | Or.inl ⟨⟨_, _, _, ⟨sp_np, sp_pp, sp_rp, routeP, h_sepP, h_propsP, _,
+                     h_sepB⟩, _⟩, _, _⟩, SFlowNode.content _ _ _ _ h_fc =>
+                     routeP sp_mid (flowInBlock_blockNode h_sepP
+                       (SFlowNode.propsContent 0 .flowOut sp_pp sp_rp sp_prep sp_gram
+                         h_propsP h_sepB h_fc)
+                       h_ssl_ext)
+                 | _, _ =>
+                     h_route (Or.inl h_nd) sp_mid (flowInBlock_blockNode h_sep h_flow h_ssl_ext))
                h_key
                (stale_of_dispatch h_dispatch hna hnt
                  (by split <;> show s_prep.needIndentCheck = false <;> exact h_nic_prep)
@@ -24510,10 +24633,25 @@ lemma content_dispatch_routed
              BlockStack.nil sp_res, FlowStackB.nil sp_res .sep,
              PendingNode.pendingContent sp_start sp_res sp_scan' h_line
                (fun h_nd sp_mid h_ssl =>
-                 h_route (Or.inl h_nd) sp_mid
-                   ((h_absorb95 sp_mid h_ssl).elim
-                     (fun h_lit => literal_blockNode h_sep (GOpt.none sp_prep) h_lit)
-                     (fun h_fld => folded_blockNode h_sep (GOpt.none sp_prep) h_fld)))
+                 -- Item 174: the ride's `[198]` half — the held run fills the
+                 -- block scalar's own properties slot (`&p⏎|⏎  x` is
+                 -- `=VAL &p |x\n`), through the run's route.
+                 match h_propsctx with
+                 | Or.inl ⟨⟨_, _, _, ⟨sp_np, sp_pp, sp_rp, routeP, h_sepP, h_propsP, _,
+                     h_sepB⟩, _⟩, _, _⟩ =>
+                     routeP sp_mid
+                       ((h_absorb95 sp_mid h_ssl).elim
+                         (fun h_lit => literal_blockNode h_sepP
+                           (GOpt.some sp_pp sp_prep (GSeq.mk sp_pp sp_rp sp_prep
+                             (props_linesLift h_propsP) h_sepB)) h_lit)
+                         (fun h_fld => folded_blockNode h_sepP
+                           (GOpt.some sp_pp sp_prep (GSeq.mk sp_pp sp_rp sp_prep
+                             (props_linesLift h_propsP) h_sepB)) h_fld))
+                 | Or.inr _ =>
+                     h_route (Or.inl h_nd) sp_mid
+                       ((h_absorb95 sp_mid h_ssl).elim
+                         (fun h_lit => literal_blockNode h_sep (GOpt.none sp_prep) h_lit)
+                         (fun h_fld => folded_blockNode h_sep (GOpt.none sp_prep) h_fld)))
                h_key
                (stale_of_dispatch h_dispatch hna hnt
                  (by split <;> show s_prep.needIndentCheck = false <;> exact h_nic_prep)
@@ -24591,7 +24729,16 @@ lemma content_dispatch_after_close
     -- Item 144: forwarded, and ALWAYS `Or.inr` at the three call sites — see
     -- the note on `bareNodeRoute` in the body below.
     (sc : ScannerState)
-    (h_ref : BareLandingFacts sc s_prep c ∨ True) :
+    (h_ref : BareLandingFacts sc s_prep c ∨ True)
+    -- Item 174: forwarded — the props landing is one of this lemma's three
+    -- callers, and the SENTINEL-indexed park is the one that pays.  The ride
+    -- re-enters by the park's own route, so the bare-document route below is
+    -- never spent where the context is paid.
+    (h_propsctx : ((∃ (k : Nat) (sp_land : SurfPos),
+        sp_land.col = 0 ∧ PropsRideRoute sp_start sp_land sp_prep ∧
+        SIndent k sp_land sp_prep) ∧
+      s_prep.simpleKey.possible = true ∧
+      s_prep.simpleKey.pos = s_prep.currentPos) ∨ True) :
     ∃ sp_gram' sp_block' sp_flow' sp_scan',
       SLYamlStream sp_start sp_gram' ∧
       BlockStack sp_gram' sp_block' ∧
@@ -24626,7 +24773,7 @@ lemma content_dispatch_after_close
     -- the landing's column.  All three inputs parse.  What is left here is a
     -- ROUTE — the enclosing park's own — and not a refutation of any kind.
     (fun _ => bareNodeRoute h_stream_block)
-    h_keyctx h_resumectx h_suffixctx h_nodocctx h_markerctx sc h_ref
+    h_keyctx h_resumectx h_suffixctx h_nodocctx h_markerctx sc h_ref h_propsctx
 
 -- Content dispatch with noPending: build separate lines + grammar evidence.
 lemma accum_content_on_noPending
@@ -24698,6 +24845,8 @@ lemma accum_content_on_noPending
       -- Item 144: the virgin park finished no node, so §9.2's second conjunct
       -- has nothing to read and the refusal stands aside by its own reading.
       sc (Or.inr trivial)
+      -- Item 174: no held run stands behind a virgin park.
+      (Or.inr trivial)
   · obtain ⟨sp_sep, h_sep, hcorr_sep⟩ :=
       preprocess_some_separate_0_anyCol sc sp_block s_prep c h_corr h_preprocess
     have hsp_eq := ScannerSurfCorr_unique hcorr_prep hcorr_sep; subst hsp_eq
@@ -24709,6 +24858,8 @@ lemma accum_content_on_noPending
       -- Item 144: the virgin park finished no node, so §9.2's second conjunct
       -- has nothing to read and the refusal stands aside by its own reading.
       sc (Or.inr trivial)
+      -- Item 174: no held run stands behind a virgin park.
+      (Or.inr trivial)
 
 -- Content dispatch with pendingBlock: compose content inside block entry.
 lemma accum_content_on_pendingBlock
@@ -26086,6 +26237,8 @@ lemma accum_content_on_pendingBlock_indented
       -- excludes — §9.2 stands aside here on its token reading, and on the
       -- indent stack too (`k:⏎␣␣-⏎␣␣␣␣b` lands at `sz=3`).
       sc (Or.inr trivial)
+      -- Item 174: no held run stands behind a `-` park.
+      (Or.inr trivial)
 
 -- Item 13: content after the empty-key `:` — the mapping value.  A verbatim
 -- clone of `accum_content_on_pendingBlock` with `h_close` in the entry
@@ -27353,6 +27506,8 @@ lemma accum_content_on_pendingMapValue_indented
       (Or.inr trivial) (Or.inr trivial) (Or.inr trivial)
       -- Item 144: a `:` park's tail is `value`, excluded for the same reason.
       sc (Or.inr trivial)
+      -- Item 174: no held run stands behind a `:` park.
+      (Or.inr trivial)
 
 -- Helper: handles all PendingNode cases for content dispatch given stream at sp_block.
 lemma accum_content_pending (sc : ScannerState)
@@ -27641,6 +27796,8 @@ lemma accum_content_pending (sc : ScannerState)
           (Or.inr trivial) (Or.inr trivial)
           (markerctx_of_landing hcol_mid h_ws h_ssl h_preprocess (Or.inl h_mk_on))
           sc h_ref_land
+          -- Item 174: the run's ride is the PARK arm's to pay, above.
+          (Or.inr trivial)
       have h_sep := SSeparateLines.inline 0 sp_mid sp_prep
         (GStar_SSWhite_to_SSeparateInLine sp_mid sp_prep h_ws)
       -- Item 117: a `...` park routes the completed node into the open arm's
@@ -27686,6 +27843,8 @@ lemma accum_content_pending (sc : ScannerState)
         -- root fallback's sentinel half out of the KEY cascade — the node-route
         -- guard two lines above, read at the mapping this content may head. ═══
         sc h_ref_land
+        -- Item 174: the run's ride is the PARK arm's to pay, above.
+        (Or.inr trivial)
     · -- col≠0: use anyCol, close pending if SSLComments available.
       obtain ⟨sp_mid, sp_ws, sp_prep2, h_disj, h_ws, h_cmt, hcorr_prep2, h_pk, _⟩ :=
         preprocess_some_ssl_comments_anyCol sc sp_scan s_prep c h_corr h_preprocess
@@ -27758,6 +27917,8 @@ lemma accum_content_pending (sc : ScannerState)
             (Or.inr trivial) (Or.inr trivial)
             (markerctx_of_landing hcol_mid.1 h_ws h_ssl h_preprocess (Or.inl h_mk_on))
             sc h_ref_land
+            -- Item 174: the run's ride is the PARK arm's to pay, above.
+            (Or.inr trivial)
         have h_sep := SSeparateLines.inline 0 sp_mid sp_prep
           (GStar_SSWhite_to_SSeparateInLine sp_mid sp_prep h_ws)
         -- Item 117: as at the column-0 landing.
@@ -27792,6 +27953,8 @@ lemma accum_content_pending (sc : ScannerState)
           (Or.inr trivial) (Or.inr trivial)
           -- Item 144: as at the column-0 landing.
           sc h_ref_land
+          -- Item 174: the run's ride is the PARK arm's to pay, above.
+          (Or.inr trivial)
       | inr h_mid =>
         exact h_noBreak hcol sp_ws (h_mid.1 ▸ h_ws) h_pk h_mid.2.1 h_mid.2.2.2
   cases h_pending with
@@ -27965,6 +28128,8 @@ lemma accum_content_pending (sc : ScannerState)
       -- Item 144: and with no key context there is no root arm to guard; the
       -- marker park's tail is a `.documentStart` token besides.
       sc (Or.inr trivial)
+      -- Item 174: no held run stands behind a `---` park.
+      (Or.inr trivial)
   | pendingFlow _ =>
     -- `pendingFlow` carries no line fact to read — the escape is what
     -- produces it, and it narrows only by the constructor's own elimination
@@ -28076,6 +28241,43 @@ lemma accum_content_pending (sc : ScannerState)
             (by rw [← h_scolw]; exact h_floor) h_fl
             (IndentStackCover.preprocess_cover h_preprocess h_cv0) hmemw h_ww)
         · exact Or.inr trivial
+      -- ═══ Item 174: the SENTINEL-indexed run RIDES — the landed content is
+      -- the run's OWN node (`&p⏎b` = `=VAL &p :b`, `&p⏎b: 1` = `+MAP &p`,
+      -- `&p⏎|⏎  x` = `=VAL &p |x\n`), through the park's route, which is the
+      -- seed's, the marker's or the suffix's own slot and never `[211]`'s
+      -- implicit continuation.  The enclosing-level park (`0 < n`) keeps the
+      -- propsEmpty close — the honest reading where the landing resumes a
+      -- sibling level (`k:⏎  a: &p⏎  c: d`) — and its bare-node fallback is
+      -- the recorded residue, with the indented enclosing ride
+      -- (`k:⏎  a: &p⏎    c: d`).  The key facts come from the landing's own
+      -- context product, so the ride and the pack agree on the save. ═══
+      have h_ride : ((∃ (k : Nat) (sp_land : SurfPos),
+          sp_land.col = 0 ∧ PropsRideRoute sp_start sp_land sp_prep ∧
+          SIndent k sp_land sp_prep) ∧
+        s_prep.simpleKey.possible = true ∧
+        s_prep.simpleKey.pos = s_prep.currentPos) ∨ True := by
+        rcases Nat.eq_zero_or_pos n with hn | _
+        · subst hn
+          cases h_keyctx with
+          | inr _ => exact Or.inr trivial
+          | inl hkc =>
+            rcases gstar_white_sIndent_or_tab h_ws with ⟨kk, h_indk⟩ | _
+            · refine Or.inl ⟨⟨kk, sp_mid, hcol_mid.1,
+                ⟨sp_node, sp_p, sp_scan,
+                 fun sp h_bn => h_route (dangling_none_of_check h_dn
+                   (landing_or_park_ska h_noflow_prep hcol_mid.2 (Or.inr h_col0_p)
+                     h_preprocess)) sp h_bn,
+                 h_sep_run, h_run.toProperties, h_ssl,
+                 SSeparateLines.commented 0 sp_scan sp_mid sp_prep h_ssl
+                   (SFlowLinePrefix.mk 0 sp_mid sp_mid sp_prep (SIndent.zero sp_mid)
+                     (match SIndent_gives_GStar_SSWhite h_indk with
+                      | GStar.nil _ => GOpt.none _
+                      | GStar.cons a b c' hfirst hrest =>
+                          GOpt.some a c' (SSeparateInLine.whites a c'
+                            (GPlus.mk a b c' hfirst hrest))))⟩,
+                h_indk⟩, hkc.2.1, hkc.2.2⟩
+            · exact Or.inr trivial
+        · exact Or.inr trivial
       exact content_dispatch_after_close sp_start sp_mid s_prep s' c sp_prep sp_scan'
         h_stream_mid h_sep (nic_false_of_flow_disp h_preprocess h_flow_disp)
         hcorr_prep hcorr_result h_not_doc
@@ -28096,6 +28298,8 @@ lemma accum_content_pending (sc : ScannerState)
           -- those.  This is the one of the three `after_close` callers whose
           -- emptiness is NOT the indent stack's doing.
           sc (Or.inr trivial)
+          -- Item 174: and the ONE caller that pays the ride.
+          h_ride
     | inr h_mid =>
       obtain ⟨h_mid_eq, h_facts0, h_indents0, h_stale0⟩ := h_mid
       obtain ⟨h_line_pp, h_nic_pp, h_lastr, h_penr⟩ := h_facts0 h_nic_p h_real_p
