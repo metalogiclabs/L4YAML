@@ -5852,19 +5852,39 @@ def PropsRideRoute (sp_start sp_land sp_prep : SurfPos) : Prop :=
     SSLComments sp_run sp_land ∧
     SSeparateLines 0 sp_run sp_prep
 
+/-- The collection-slot HALF of `PropsRideRoute` — the four conjuncts `[196]
+    s-l+block-collection`'s optional-properties slot consumes: the park's
+    route, the run's lead separator, the run, and the crossed break as the
+    landing's own `s-l-comments`.  The INDICATOR lane pays this form directly
+    (item 175): a landed `-`/`?`/`:` spends only the landing half, because the
+    collection it opens puts its entries at the line start.  The content
+    lane's `PropsRideRoute` extends it with the run→content
+    `s-separate-lines` that `[161]`/`[198]` also consume. -/
+def PropsNodeRoute (sp_start sp_land : SurfPos) : Prop :=
+  ∃ sp_node sp_p sp_run : SurfPos,
+    (∀ sp, SBlockNode 0 .blockIn sp_node sp → SLYamlStream sp_start sp) ∧
+    SSeparateLines 0 sp_node sp_p ∧
+    SCNsProperties 0 .flowOut sp_p sp_run ∧
+    SSLComments sp_run sp_land
+
+lemma PropsRideRoute.toNodeRoute {sp_start sp_land sp_prep : SurfPos} :
+    PropsRideRoute sp_start sp_land sp_prep → PropsNodeRoute sp_start sp_land
+  | ⟨sp_node, sp_p, sp_run, route, h_sepL, h_props, h_ssl, _⟩ =>
+    ⟨sp_node, sp_p, sp_run, route, h_sepL, h_props, h_ssl⟩
+
 /-- **`rootMapRoute`'s PROPS twin** (item 174): the same landing coordinates
     spent into `[196] s-l+block-collection`'s properties slot — its first
     consumer.  The crossed break is the production's `s-l-comments`, the held
     run its optional `( s-separate c-ns-properties )`, and the mapping the
     landed key opens is the RUN's own node, re-entering by the park's route
     instead of `[211]`'s implicit continuation. -/
-lemma propsMapRoute {sp_start sp_land sp_prep sp_key : SurfPos} {k : Nat}
-    (h_pr : PropsRideRoute sp_start sp_land sp_prep)
+lemma propsMapRoute {sp_start sp_land sp_key : SurfPos} {k : Nat}
+    (h_pn : PropsNodeRoute sp_start sp_land)
     (h_ind : SIndent k sp_land sp_key) :
     ∀ sp_v, SBlockMapEntry k sp_key sp_v → SLYamlStream sp_start sp_v :=
   fun sp_v h_entry =>
-    match h_pr with
-    | ⟨sp_node, sp_p, sp_run, route, h_sepL, h_props, h_ssl, _⟩ =>
+    match h_pn with
+    | ⟨sp_node, sp_p, sp_run, route, h_sepL, h_props, h_ssl⟩ =>
       route sp_v (SBlockNode.blockMap 0 .blockIn k sp_node sp_run sp_land sp_v
         (GOpt.some sp_node sp_run (GSeq.mk sp_node sp_p sp_run h_sepL
           (props_linesLift h_props)))
@@ -5875,21 +5895,41 @@ lemma propsMapRoute {sp_start sp_land sp_prep sp_key : SurfPos} {k : Nat}
     same substitution: the frames bottom out in the run's node through the
     park's route.  `ks = []` as at the root always: nothing is open below the
     document the run decorates. -/
-lemma propsMapRouteF {sp_start sp_land sp_prep sp_key : SurfPos} {k : Nat}
-    (h_pr : PropsRideRoute sp_start sp_land sp_prep)
+lemma propsMapRouteF {sp_start sp_land sp_key : SurfPos} {k : Nat}
+    (h_pn : PropsNodeRoute sp_start sp_land)
     (h_ind : SIndent k sp_land sp_key) :
     ∀ sp_v, SBlockMapEntry k sp_key sp_v →
     ∀ sp_e, SCompactMapTail k sp_v sp_e →
     ResumeFrames (SLYamlStream sp_start) [] sp_e :=
   fun _sp_v h_entry sp_e h_tail =>
-    match h_pr with
-    | ⟨sp_node, sp_p, sp_run, route, h_sepL, h_props, h_ssl, _⟩ =>
+    match h_pn with
+    | ⟨sp_node, sp_p, sp_run, route, h_sepL, h_props, h_ssl⟩ =>
       ResumeFrames.bottom sp_e
         (route sp_e (SBlockNode.blockMap 0 .blockIn k sp_node sp_run sp_land sp_e
           (GOpt.some sp_node sp_run (GSeq.mk sp_node sp_p sp_run h_sepL
             (props_linesLift h_props)))
           h_ssl
           (by simpa using SBlockMapEntries_of_compactTail h_ind h_entry h_tail)))
+
+/-- **`markerSeqRoute`'s PROPS twin** (item 175): the sequence the landed `-`
+    opens is the held run's own collection — `[196] s-l+block-collection`'s
+    optional properties on the SEQ lane, so `&p⏎- a` is `+SEQ &p` where the
+    same-line `&p - a` is scanner-refused (`[200]` separates a node's
+    properties from its collection with `s-l-comments`; PyYAML reads both the
+    same way).  Stated over the entries, as the marker twin is: the crossed
+    break is the collection's own `s-l-comments`, so a node already built at
+    the landing could no longer absorb it. -/
+lemma propsSeqRoute {sp_start sp_land : SurfPos} {k : Nat}
+    (h_pn : PropsNodeRoute sp_start sp_land) :
+    ∀ sp_e, SBlockSeqEntries k sp_land sp_e → SLYamlStream sp_start sp_e :=
+  fun sp_e h_entries =>
+    match h_pn with
+    | ⟨sp_node, sp_p, sp_run, route, h_sepL, h_props, h_ssl⟩ =>
+      route sp_e (SBlockNode.blockSeq 0 .blockIn k sp_node sp_run sp_land sp_e
+        (GOpt.some sp_node sp_run (GSeq.mk sp_node sp_p sp_run h_sepL
+          (props_linesLift h_props)))
+        h_ssl
+        (by simpa [seqSpaces] using h_entries))
 
 /-- **`rootMapRoute`'s RESUME instance** (item 109): the landed key CONTINUES an
     open width-`k` level instead of opening a root mapping under a fresh bare
@@ -16568,7 +16608,15 @@ lemma colon_open_map {sc : ScannerState} (sp_start sp_land sp_ind : SurfPos) (k 
     -- Item 147: the landing's own cover, measured by `indicator_cover_at_col`
     -- at the caller (which holds the walk that armed the unwind) and handed to
     -- the frames field below.
-    (h_cov_in : IndentStackCover.Covered k [k] s' ∨ True) :
+    (h_cov_in : IndentStackCover.Covered k [k] s' ∨ True)
+    -- **Item 175 (LAST, so the existing argument order stands): the landing's
+    -- PROPS arm** — when the park behind this landing is a sentinel-level
+    -- `[96]` run, the entry this `:` opens heads the RUN's own collection
+    -- (`&p⏎: v` is `+MAP &p` with an empty key — `[196]`'s optional
+    -- properties, the MAPPING's anchor), so the route spends the park's own
+    -- route instead of closing the run `propsEmpty` and appending a bare
+    -- document over it.
+    (h_pr_land : PropsNodeRoute sp_start sp_land ∨ True) :
     ∃ sp_gram' sp_block' sp_flow' sp_scan',
       SLYamlStream sp_start sp_gram' ∧
       BlockStack sp_gram' sp_block' ∧
@@ -16597,14 +16645,17 @@ lemma colon_open_map {sc : ScannerState} (sp_start sp_land sp_ind : SurfPos) (k 
   -- claims.
   have h_routeE : ∀ sp_v, SBlockMapEntry k sp_ind sp_v →
       SLYamlStream sp_start sp_v :=
-    match h_res_land, h_sfx_land, h_nodoc_land, h_mk_land with
-    | Or.inl ⟨_, _, cont⟩, _, _, _ => resumeMapRoute h_ind cont
-    | Or.inr _, Or.inl sfxrun, _, _ => suffixMapRoute hcol_land sfxrun h_ind
-    | Or.inr _, Or.inr _, Or.inl nodoc, _ => nodocMapRoute hcol_land nodoc h_ind
-    | Or.inr _, Or.inr _, Or.inr _, Or.inl mk => markerMapRoute mk h_ind
+    match h_res_land, h_sfx_land, h_nodoc_land, h_mk_land, h_pr_land with
+    | Or.inl ⟨_, _, cont⟩, _, _, _, _ => resumeMapRoute h_ind cont
+    | Or.inr _, Or.inl sfxrun, _, _, _ => suffixMapRoute hcol_land sfxrun h_ind
+    | Or.inr _, Or.inr _, Or.inl nodoc, _, _ => nodocMapRoute hcol_land nodoc h_ind
+    | Or.inr _, Or.inr _, Or.inr _, Or.inl mk, _ => markerMapRoute mk h_ind
+    -- Item 175: the PROPS arm, fifth — the entry heads the held run's own
+    -- collection through `[196]`'s slot and the park's route.
+    | Or.inr _, Or.inr _, Or.inr _, Or.inr _, Or.inl pn => propsMapRoute pn h_ind
     -- Item 142: the fallback, with §9.2's landing refusal taken out of its
     -- domain.
-    | Or.inr _, Or.inr _, Or.inr _, Or.inr _ =>
+    | Or.inr _, Or.inr _, Or.inr _, Or.inr _, Or.inr _ =>
         rootMapRoute_or_refused h_ref_land hcol_land h_stream_land h_ind
   -- Item 173: the entries-level twin carries the RESUMED level's own `ks`, so
   -- the park this opener makes offers the next landing the same resume this
@@ -16619,22 +16670,26 @@ lemma colon_open_map {sc : ScannerState} (sp_start sp_land sp_ind : SurfPos) (k 
         ∀ sp_v, SBlockMapEntry k sp_ind sp_v →
         ∀ sp_e, SCompactMapTail k sp_v sp_e →
         ResumeFrames (SLYamlStream sp_start) ks sp_e :=
-    match h_res_land, h_sfx_land, h_nodoc_land, h_mk_land with
-    | Or.inl ⟨ks, h_lt, cont⟩, _, _, _ =>
+    match h_res_land, h_sfx_land, h_nodoc_land, h_mk_land, h_pr_land with
+    | Or.inl ⟨ks, h_lt, cont⟩, _, _, _, _ =>
         ⟨ks, h_lt, Or.inr trivial, resumeMapRouteF h_ind cont⟩
-    | Or.inr _, Or.inl sfxrun, _, _ =>
+    | Or.inr _, Or.inl sfxrun, _, _, _ =>
         ⟨[], fun _ h => absurd h (List.not_mem_nil),
           h_cov_in.imp (fun h => ⟨k, ⟨Nat.le_refl k, by simp⟩, h⟩) id,
           suffixMapRouteF hcol_land sfxrun h_ind⟩
-    | Or.inr _, Or.inr _, Or.inl nodoc, _ =>
+    | Or.inr _, Or.inr _, Or.inl nodoc, _, _ =>
         ⟨[], fun _ h => absurd h (List.not_mem_nil),
           h_cov_in.imp (fun h => ⟨k, ⟨Nat.le_refl k, by simp⟩, h⟩) id,
           nodocMapRouteF hcol_land nodoc h_ind⟩
-    | Or.inr _, Or.inr _, Or.inr _, Or.inl mk =>
+    | Or.inr _, Or.inr _, Or.inr _, Or.inl mk, _ =>
         ⟨[], fun _ h => absurd h (List.not_mem_nil),
           h_cov_in.imp (fun h => ⟨k, ⟨Nat.le_refl k, by simp⟩, h⟩) id,
           markerMapRouteF mk h_ind⟩
-    | Or.inr _, Or.inr _, Or.inr _, Or.inr _ =>
+    | Or.inr _, Or.inr _, Or.inr _, Or.inr _, Or.inl pn =>
+        ⟨[], fun _ h => absurd h (List.not_mem_nil),
+          h_cov_in.imp (fun h => ⟨k, ⟨Nat.le_refl k, by simp⟩, h⟩) id,
+          propsMapRouteF pn h_ind⟩
+    | Or.inr _, Or.inr _, Or.inr _, Or.inr _, Or.inr _ =>
         ⟨[], fun _ h => absurd h (List.not_mem_nil),
           h_cov_in.imp (fun h => ⟨k, ⟨Nat.le_refl k, by simp⟩, h⟩) id,
           rootMapRouteF_or_refused h_ref_land hcol_land h_stream_land h_ind⟩
@@ -16755,7 +16810,12 @@ lemma question_open_map {sc : ScannerState} (sp_start sp_land sp_ind : SurfPos) 
     -- statement about the stack rather than a vacuity: it says the `?`'s push
     -- left nothing at or right of `k + 1`.  That is where the value-line floor
     -- has to stand, the `?`'s own level being deliberately not a frame.
-    (h_cov_nil : IndentStackCover.Covered (k + 1) [] s' ∨ True) :
+    (h_cov_nil : IndentStackCover.Covered (k + 1) [] s' ∨ True)
+    -- **Item 175 (LAST): the landing's PROPS arm**, as at `colon_open_map` —
+    -- the explicit entry this `?` opens heads the held run's own collection
+    -- (`&p⏎? x⏎: v` is `+MAP &p` — `[196]`'s optional properties, the
+    -- MAPPING's anchor), through the park's route.
+    (h_pr_land : PropsNodeRoute sp_start sp_land ∨ True) :
     ∃ sp_gram' sp_block' sp_flow' sp_scan',
       SLYamlStream sp_start sp_gram' ∧
       BlockStack sp_gram' sp_block' ∧
@@ -16781,15 +16841,18 @@ lemma question_open_map {sc : ScannerState} (sp_start sp_land sp_ind : SurfPos) 
   -- here before the twins existed.
   have h_route51 : ∀ sp_k, SBlockMapEntry k sp_ind sp_k →
       SLYamlStream sp_start sp_k :=
-    match h_res_land, h_sfx_land, h_nodoc_land, h_mk_land with
+    match h_res_land, h_sfx_land, h_nodoc_land, h_mk_land, h_pr_land with
     -- Item 173: the RESUME arm first, as at the content cascade.
-    | Or.inl ⟨_, _, cont⟩, _, _, _ => resumeMapRoute h_ind cont
-    | Or.inr _, Or.inl sfxrun, _, _ => suffixMapRoute hcol_land sfxrun h_ind
-    | Or.inr _, Or.inr _, Or.inl nodoc, _ => nodocMapRoute hcol_land nodoc h_ind
-    | Or.inr _, Or.inr _, Or.inr _, Or.inl mk => markerMapRoute mk h_ind
+    | Or.inl ⟨_, _, cont⟩, _, _, _, _ => resumeMapRoute h_ind cont
+    | Or.inr _, Or.inl sfxrun, _, _, _ => suffixMapRoute hcol_land sfxrun h_ind
+    | Or.inr _, Or.inr _, Or.inl nodoc, _, _ => nodocMapRoute hcol_land nodoc h_ind
+    | Or.inr _, Or.inr _, Or.inr _, Or.inl mk, _ => markerMapRoute mk h_ind
+    -- Item 175: the PROPS arm, fifth — the explicit entry heads the held
+    -- run's own collection through `[196]`'s slot and the park's route.
+    | Or.inr _, Or.inr _, Or.inr _, Or.inr _, Or.inl pn => propsMapRoute pn h_ind
     -- Item 142: the fallback, with §9.2's landing refusal taken out of its
     -- domain.
-    | Or.inr _, Or.inr _, Or.inr _, Or.inr _ =>
+    | Or.inr _, Or.inr _, Or.inr _, Or.inr _, Or.inr _ =>
         rootMapRoute_or_refused h_ref_land hcol_land h_stream_land h_ind
   -- Item 173: the entries-level twin, packaged with the resumed level's own
   -- `ks` and the root arms' cover — as at `colon_open_map` (the resume arm
@@ -16801,22 +16864,26 @@ lemma question_open_map {sc : ScannerState} (sp_start sp_land sp_ind : SurfPos) 
         ∀ sp_v, SBlockMapEntry k sp_ind sp_v →
         ∀ sp_e, SCompactMapTail k sp_v sp_e →
         ResumeFrames (SLYamlStream sp_start) ks sp_e :=
-    match h_res_land, h_sfx_land, h_nodoc_land, h_mk_land with
-    | Or.inl ⟨ks, h_lt, cont⟩, _, _, _ =>
+    match h_res_land, h_sfx_land, h_nodoc_land, h_mk_land, h_pr_land with
+    | Or.inl ⟨ks, h_lt, cont⟩, _, _, _, _ =>
         ⟨ks, h_lt, Or.inr trivial, resumeMapRouteF h_ind cont⟩
-    | Or.inr _, Or.inl sfxrun, _, _ =>
+    | Or.inr _, Or.inl sfxrun, _, _, _ =>
         ⟨[], fun _ h => absurd h (List.not_mem_nil),
           h_cov_in.imp (fun h => ⟨k, ⟨Nat.le_refl k, by simp⟩, h⟩) id,
           suffixMapRouteF hcol_land sfxrun h_ind⟩
-    | Or.inr _, Or.inr _, Or.inl nodoc, _ =>
+    | Or.inr _, Or.inr _, Or.inl nodoc, _, _ =>
         ⟨[], fun _ h => absurd h (List.not_mem_nil),
           h_cov_in.imp (fun h => ⟨k, ⟨Nat.le_refl k, by simp⟩, h⟩) id,
           nodocMapRouteF hcol_land nodoc h_ind⟩
-    | Or.inr _, Or.inr _, Or.inr _, Or.inl mk =>
+    | Or.inr _, Or.inr _, Or.inr _, Or.inl mk, _ =>
         ⟨[], fun _ h => absurd h (List.not_mem_nil),
           h_cov_in.imp (fun h => ⟨k, ⟨Nat.le_refl k, by simp⟩, h⟩) id,
           markerMapRouteF mk h_ind⟩
-    | Or.inr _, Or.inr _, Or.inr _, Or.inr _ =>
+    | Or.inr _, Or.inr _, Or.inr _, Or.inr _, Or.inl pn =>
+        ⟨[], fun _ h => absurd h (List.not_mem_nil),
+          h_cov_in.imp (fun h => ⟨k, ⟨Nat.le_refl k, by simp⟩, h⟩) id,
+          propsMapRouteF pn h_ind⟩
+    | Or.inr _, Or.inr _, Or.inr _, Or.inr _, Or.inr _ =>
         ⟨[], fun _ h => absurd h (List.not_mem_nil),
           h_cov_in.imp (fun h => ⟨k, ⟨Nat.le_refl k, by simp⟩, h⟩) id,
           rootMapRouteF_or_refused h_ref_land hcol_land h_stream_land h_ind⟩
@@ -17334,7 +17401,11 @@ lemma indicator_open_map {sc : ScannerState}
     -- line start pays: a landing that crossed nothing floored nothing, and its
     -- opener keeps the frames it already carries.
     (h_cov : (IndentStackMono.Mono sc ∧ IndentStackBase.SentinelBase sc ∧
-      s_prep.currentIndent ≤ (s_prep.col : Int)) ∨ True) :
+      s_prep.currentIndent ≤ (s_prep.col : Int)) ∨ True)
+    -- Item 175: the landing's PROPS arm, handed through to whichever opener
+    -- the indicator selects — the entry heads the held sentinel run's own
+    -- collection through `[196]`'s slot and the park's route.
+    (h_pr_land : PropsNodeRoute sp_start sp_land ∨ True) :
     ∃ sp_gram' sp_block' sp_flow' sp_scan',
       SLYamlStream sp_start sp_gram' ∧
       BlockStack sp_gram' sp_block' ∧
@@ -17367,6 +17438,7 @@ lemma indicator_open_map {sc : ScannerState}
       hpeek h_noflow_disp h_nic_disp h_dispatch (h_src rfl) h_sfx_land h_nodoc_land
       h_mk_land h_res_land h_ref_land
       ((h_cov_in ':' (Or.inl rfl) h_preprocess h_dispatch).imp And.left id)
+      h_pr_land
   | inr h =>
     subst h
     exact question_open_map sp_start sp_land sp_ind k s_prep s' sp_scan' h_stream_land
@@ -17379,6 +17451,7 @@ lemma indicator_open_map {sc : ScannerState}
       -- Item 150: the value-line seed, off the same measurement — the `?`'s own
       -- level is the top, so nothing stands at or right of `k + 1`.
       ((h_cov_in '?' (Or.inr rfl) h_preprocess h_dispatch).imp And.right id)
+      h_pr_land
 
 /-- The head IS `[188]`, arm for arm: the plain head is `[193]`'s YAML key
     directly (`SNsPlain 0 .blockKey` IS `SNsPlainOneLine .blockKey`), a flow
@@ -18413,6 +18486,8 @@ lemma accum_block_on_noPending
           -- and this lemma does not split on the column — so the cover punts
           -- here and the `noPending` opener keeps the frames it already pays.
           (Or.inr trivial)
+          -- Item 175: a virgin park holds no property run.
+          (Or.inr trivial)
       -- Item 125: the `:`'s own stamp source, decided here (see
       -- `accum_block_on_closeThenBlock`); the `?` never reads it.
       refine hcv.elim (fun hc_colon => ?_) (fun hc_q => ?_)
@@ -18573,7 +18648,20 @@ lemma accum_block_on_closeThenBlock
     -- punts its cover, the recorded residue); every other caller punts.
     (h_mapF : (∃ ks : List Nat,
       ∀ sp_m : SurfPos, SSLComments sp_scan sp_m →
-      ResumeFrames (SLYamlStream sp_start) ks sp_m) ∨ True) :
+      ResumeFrames (SLYamlStream sp_start) ks sp_m) ∨ True)
+    -- **Item 175 (LAST): the closed park's held `[96]` RUN, read as the landed
+    -- collection's own properties.**  A sentinel-level props park's
+    -- break-crossed `-`/`?`/`:` opens the RUN's collection — `[196]
+    -- s-l+block-collection`'s optional properties, the COLLECTION's anchor
+    -- (`&p⏎- a` = `+SEQ &p`, `&p⏎? x⏎: v` and `&p⏎: v` = `+MAP &p`) — so the
+    -- routes below spend the park's own route instead of closing the run
+    -- `propsEmpty` and appending a bare document.  The gate is the park's
+    -- (§9.2's dangling refusal), discharged here at the landing exactly as
+    -- the close's own is; `pendingProps`' caller pays at `n = 0`, and the
+    -- ENCLOSING park keeps the propsEmpty close — the honest reading there.
+    (h_pr : (danglingNodePos? sc = none →
+      ∀ sp_m, SSLComments sp_scan sp_m → PropsNodeRoute sp_start sp_m) ∨
+      True) :
     ∃ sp_gram' sp_block' sp_flow' sp_scan',
       SLYamlStream sp_start sp_gram' ∧
       BlockStack sp_gram' sp_block' ∧
@@ -18728,6 +18816,12 @@ lemma accum_block_on_closeThenBlock
     match h_mk with
     | Or.inl mk => Or.inl (mk sp_mid h_ssl)
     | Or.inr _ => Or.inr trivial
+  -- Item 175: and the props arm — its gate is the break in hand, exactly as
+  -- the close's own was (`h_nd_land` above).
+  have h_pr_land : PropsNodeRoute sp_start sp_mid ∨ True :=
+    match h_pr with
+    | Or.inl pr => Or.inl (pr h_nd_land sp_mid h_ssl)
+    | Or.inr _ => Or.inr trivial
   -- Item 22: the whites before the indicator are the collection's own
   -- indentation; `nil` is `k = 0`, and only a tab still defers.
   have h_eq := h_pk.resolve_right (by simp [preprocess_some_peek h_preprocess])
@@ -18795,9 +18889,13 @@ lemma accum_block_on_closeThenBlock
     -- other park keeps the node route it had. ═══
     have h_seqRoute : ∀ sp_e, SBlockSeqEntries k sp_mid sp_e →
         SLYamlStream sp_start sp_e :=
-      match h_mk_land with
-      | Or.inl mk => fun sp_e h_ent => markerSeqRoute mk sp_e h_ent
-      | Or.inr _ => fun sp_e h_ent => h_docRoute sp_e (rootBlockSeq k h_ssl_zero h_ent)
+      match h_mk_land, h_pr_land with
+      | Or.inl mk, _ => fun sp_e h_ent => markerSeqRoute mk sp_e h_ent
+      -- Item 175: the sequence the landed `-` opens is the held run's own
+      -- collection — `[196]`'s slot on the SEQ lane, through the park's route.
+      | Or.inr _, Or.inl pn => fun sp_e h_ent => propsSeqRoute pn sp_e h_ent
+      | Or.inr _, Or.inr _ =>
+          fun sp_e h_ent => h_docRoute sp_e (rootBlockSeq k h_ssl_zero h_ent)
     -- ═══ **Item 155: the sequence's own resume frames.**  Item 99 paid the
     -- BOTTOMED reading here — nothing open below, `ks = []` — and that is the
     -- honest statement when the park this landing closed awaited no node.
@@ -18932,6 +19030,8 @@ lemma accum_block_on_closeThenBlock
             · exact Or.inr trivial
             · exact Or.inl ⟨h_mono, h_base,
                 landing_floor_of_arm h_noflow h_larm hc0 h_base h_preprocess⟩)
+          -- Item 175: the props arm, read above at the same landing.
+          h_pr_land
       by_cases hc_colon : c = ':'
       · subst hc_colon
         -- Item 51: an explicit-value pack fires on the `:` at its OWN column —
@@ -19356,7 +19456,9 @@ lemma accum_block_on_pendingContent
         -- way, and passing it keeps the two branches one statement.
         h_seqLanding
         -- Item 173: the park's mapping levels, for the sibling `:` resume.
-        h_mapF109)
+        h_mapF109
+        -- Item 175: a content park holds no property run.
+        (Or.inr trivial))
       hcorr_prep hcorr_result h_corr h_noflow h_preprocess h_dispatch
   · -- Item 37: `c ≠ ':'` at a park that follows a complete node — §7.5 left
     -- the rest of the line at `NodeStop`, and neither remaining indicator is
@@ -19375,6 +19477,8 @@ lemma accum_block_on_pendingContent
       h_seqLanding
       -- Item 173: the park's mapping levels, for the sibling `?` resume.
       h_mapF109
+      -- Item 175: a content park holds no property run.
+      (Or.inr trivial)
 
 -- Block dispatch with pendingBlockContent: accumulate entries via h_entry_old.
 -- Item 22: the entry index `n` is the pending's own, not a hardcoded 0 — a
@@ -19564,6 +19668,8 @@ lemma accum_block_on_pendingBlockContent
           -- Item 173: the landing here is a `-`, which the resume face's
           -- `:`/`?` arm never reads — this park's mapping lane has no carrier.
           (Or.inr trivial)
+          -- Item 175: an entry-content park holds no property run.
+          (Or.inr trivial)
     · -- c ≠ '-' at the landing: a ':' opens `[189]`'s empty-key entry there
       -- (item 13), a '?' opens `[186]`'s explicit-key one (item 20) — one arm.
       by_cases hcv : c = ':' ∨ c = '?'
@@ -19599,6 +19705,8 @@ lemma accum_block_on_pendingBlockContent
               · exact Or.inr trivial
               · exact Or.inl ⟨h_mono, h_base,
                   landing_floor_of_arm h_noflow h_larm hc0 h_base h_preprocess⟩)
+            -- Item 175: a content park holds no property run.
+            (Or.inr trivial)
         -- Item 92: the frame's VALUE line fires on the `:` at its own column
         -- (`[190]`'s `s-indent(nv)` is exact) — the parked content closes as
         -- the compact KEY with a nil tail (`? - a⏎: - w`); any other shape
@@ -19894,6 +20002,8 @@ lemma accum_block_on_pendingBlock
           -- Item 173: a `-` landing again — the mapping resume has no reader
           -- on this path and no carrier at this park.
           (Or.inr trivial)
+          -- Item 175: an entry park holds no property run.
+          (Or.inr trivial)
   · -- c ≠ '-' at the landing: a ':' opens `[189]`'s empty-key entry there
     -- (item 13), a '?' opens `[186]`'s explicit-key one (item 20) — one arm.
     by_cases hcv : c = ':' ∨ c = '?'
@@ -19928,6 +20038,8 @@ lemma accum_block_on_pendingBlock
             · exact Or.inr trivial
             · exact Or.inl ⟨h_mono, h_base,
                 landing_floor_of_arm h_noflow h_larm hc0 h_base h_preprocess⟩)
+          -- Item 175: an entry park holds no property run.
+          (Or.inr trivial)
       -- Item 92: the frame's VALUE line fires on the `:` at its own column —
       -- the awaited entry closes empty into the compact KEY (`? -⏎: - w`);
       -- any other shape falls back to the generic close-and-reopen.
@@ -20172,8 +20284,9 @@ lemma accum_block_pending (sc : ScannerState)
       -- Item 142: a `...` marker does not complete a value, so §9.2's check
       -- stands aside here by its own reading and this park pays nothing.
       -- Item 173: nothing is open across a `...` either — no resume carrier.
+      -- Item 175: a marker park holds no property run.
       h_bare h_dn h_base h_mono (Or.inr trivial) (Or.inr trivial) (Or.inr trivial)
-      (Or.inr trivial)
+      (Or.inr trivial) (Or.inr trivial)
   | pendingDocStart _ _ _ h_doc_route h_nic48 h_real48 h_ds48 h_arm77 =>
     -- ═══ Item 48: the marker still on the line refutes all three indicators
     -- — B1/B2's `docStartOnLine` for `-`/`?`, B4 for `:` — so the arm's
@@ -20197,8 +20310,9 @@ lemma accum_block_pending (sc : ScannerState)
       -- Item 142: `---` is not a completed value either, and the marker arm
       -- above takes this landing anyway.
       -- Item 173: a marker park keeps no level open — no resume carrier.
+      -- Item 175: a marker park holds no property run either.
       h_bare h_dn h_base h_mono (Or.inr trivial) (Or.inr trivial) (Or.inr trivial)
-      (Or.inr trivial)
+      (Or.inr trivial) (Or.inr trivial)
   | pendingContent _ _ _ h_line _ h_key h_stale47 h_vpack51 h_arm77 h_framesS109 _ _
       h_tail139 _ h_seqF168 =>
     -- Item 15: the same-line `:` may fire the implicit-key coupling.
@@ -20214,14 +20328,30 @@ lemma accum_block_pending (sc : ScannerState)
       h_noflow h_kbc h_scf h_stale47 h_arm77 h_preprocess h_dispatch h_bare h_dn h_base h_mono
       h_tail139 h_seqF168
       (h_framesS109.imp (fun ⟨ks, _, fS⟩ => ⟨ks, fS⟩) id)
-  | pendingProps _ _ _ ha ht _ sp_p _ h_sep_p h_run h_nic48 h_real48 h_anchor48 h_tag48 _ h_key48 _
-      h_col0_p _ h_ska79 h_kslot91 =>
+  | pendingProps _ _ _ ha ht sp_node sp_p n_p h_sep_p h_run h_nic48 h_real48 h_anchor48 h_tag48
+      h_route48 h_key48 _ h_col0_p _ h_ska79 h_kslot91 =>
     -- ═══ Item 48: a `-`/`?` behind a parked property run is refused by the
     -- scanner (`[200]` separates a node's properties from its collection),
     -- and the run's own trailing-token fact is the check's read.  Item 49:
     -- the `:` COMPOSES — the run is `[161]`'s props-only yaml node read as
     -- `[193]`'s implicit key (`&a : b`), fired through the pack; only a
     -- pack-less park still escapes. ═══
+    -- ═══ Item 175: and the BREAK-CROSSED landing rides.  At the sentinel
+    -- park the landed `-`/`?`/`:` opens the RUN's own collection (`[196]`'s
+    -- optional properties — `&p⏎- a` = `+SEQ &p`, `&p⏎? x⏎: v` and `&p⏎: v`
+    -- = `+MAP &p`, the COLLECTION's anchor, where the same-line forms are
+    -- refused or key-anchored).  The context is the park's own fields at
+    -- route index 0, its gate the route's own; the ENCLOSING park (`0 < n`)
+    -- keeps the propsEmpty close — the honest reading there. ═══
+    have h_pr175 : (danglingNodePos? sc = none →
+        ∀ sp_m, SSLComments sp_scan sp_m → PropsNodeRoute sp_start sp_m) ∨
+        True := by
+      rcases Nat.eq_zero_or_pos n_p with hn | _
+      · subst hn
+        exact Or.inl (fun h_nd sp_m h_ssl =>
+          ⟨sp_node, sp_p, sp_scan, fun sp h_bn => h_route48 h_nd sp h_bn,
+           h_sep_p, h_run.toProperties, h_ssl⟩)
+      · exact Or.inr trivial
     by_cases hc48 : c = ':'
     · subst hc48
       exact colon_fires_props_key sc sp_start sp_block sp_p sp_scan s_prep s'
@@ -20244,7 +20374,10 @@ lemma accum_block_pending (sc : ScannerState)
           -- Item 142: a parked `[96]` run's last token is a PROPERTY, which
           -- `completesFlowValue` excludes — item 139's `Or.inr`, re-read here.
           -- Item 173: a `[96]` park carries no mapping-lane frames field.
-          (Or.inr trivial) (Or.inr trivial) (Or.inr trivial) (Or.inr trivial))
+          (Or.inr trivial) (Or.inr trivial) (Or.inr trivial) (Or.inr trivial)
+          -- Item 175: the ride, where the landed `:` crossed the break at the
+          -- sentinel park (`&p⏎: v` = `+MAP &p`).
+          h_pr175)
         hcorr_prep hcorr_result h_corr h_noflow h_preprocess h_dispatch
     · have h_prop : lastTokenIsNodePropertyOnLine sc.tokens sc.line = true := by
         rcases PropsRun.ha_or_ht h_run with hha | hht
@@ -20259,6 +20392,10 @@ lemma accum_block_pending (sc : ScannerState)
         (Or.inr trivial) (Or.inr trivial) hcorr_prep hcorr_result h_corr h_noflow (Or.inr h_col0_p)
         h_preprocess h_dispatch (Or.inr trivial) (Or.inr trivial) h_bare h_dn h_base h_mono
         (Or.inr trivial) (Or.inr trivial) (Or.inr trivial) (Or.inr trivial)
+        -- Item 175: the ride, where the landed `-`/`?` crossed the break at
+        -- the sentinel park (`&p⏎- a` = `+SEQ &p`, `&p⏎? x⏎: v` = `+MAP &p`);
+        -- the same-line escape is refuted above.
+        h_pr175
   | pendingFlow _ _ _ _ h_arm77 =>
     exact accum_block_on_closeThenBlock sc sp_start sp_block sp_scan s_prep s' c sp_prep sp_scan'
       h_close_pending (fun _ _ => h_stream_block) (Or.inr trivial) (Or.inr trivial) hcorr_prep
@@ -20268,7 +20405,9 @@ lemma accum_block_pending (sc : ScannerState)
       -- token behind it is a `-`, `?` or `:` — the third place item 102's
       -- split keeps `completesFlowValue` false by construction.
       -- Item 173: the deferred state has nothing to spend here either.
+      -- Item 175: and no property run.
       (Or.inr trivial) (Or.inr trivial) (Or.inr trivial) (Or.inr trivial)
+      (Or.inr trivial)
   | pendingMapValue _ _ _ nmv _ _ h_nic48 h_real48 h_ivl48 h_expl51 h_vslot51 h_sk58 _ _
       h_kslot93 h_closeF155 h_frames173 =>
     -- ═══ Item 48: an IMPLICIT `:` stamped its line, and B1/B2/B3 all read
@@ -20308,6 +20447,8 @@ lemma accum_block_pending (sc : ScannerState)
         -- still-open levels resume (`k:⏎: 2` = `{k: null, null: 2}`, one
         -- mapping).  The cover the field carries is forgotten at the door.
         (h_frames173.imp (fun ⟨ks, _, fS⟩ => ⟨ks, fS⟩) id)
+        -- Item 175: a value park holds no property run.
+        (Or.inr trivial)
     · exact accum_block_on_closeThenBlock sc sp_start sp_block sp_scan s_prep s' c sp_prep sp_scan'
         h_close_pending (fun _ _ => h_stream_block)
         (match h_expl51 with
@@ -20343,6 +20484,8 @@ lemma accum_block_pending (sc : ScannerState)
         (h_closeF155.imp (fun h => ⟨nmv, h⟩) id) (Or.inr trivial)
         -- Item 173: the explicit twin pays the same resume field.
         (h_frames173.imp (fun ⟨ks, _, fS⟩ => ⟨ks, fS⟩) id)
+        -- Item 175: the explicit twin holds no property run either.
+        (Or.inr trivial)
   | pendingBlockContent _ _ _ n_old h_line _h_closable h_entry_old h_key_old h_stale47 h_arm77
       h_kslot92 _ _ h_tail139 h_seqF167 =>
     -- Item 22: the pending's own entry index rides through; the `n ≠ 0`
@@ -24547,11 +24690,11 @@ lemma content_dispatch_routed
             | inl hpr =>
               obtain ⟨⟨k, sp_land, hcol0, h_pr_land, h_ind⟩, _h_sk_poss, h_sk_pos⟩ := hpr
               exact h_build k sp_land hcol0 h_ind h_sk_pos
-                (propsMapRoute h_pr_land h_ind)
+                (propsMapRoute (PropsRideRoute.toNodeRoute h_pr_land) h_ind)
                 (Or.inl ⟨[], fun _ h => absurd h (List.not_mem_nil),
                   -- Item 148: no park to inherit from, as at the suffix arm above.
                   Or.inr trivial,
-                  propsMapRouteF h_pr_land h_ind⟩)
+                  propsMapRouteF (PropsRideRoute.toNodeRoute h_pr_land) h_ind⟩)
                 (Or.inr trivial)
                 -- Item 168: no sequence entry encloses this context's document.
                 (Or.inr trivial)

@@ -7,7 +7,7 @@ Copyright (c) 2026. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 -/
 
-/-! # The flip's remainder, mapped (DOCS items 171–174)
+/-! # The flip's remainder, mapped (DOCS items 171–175)
 
 Row 19's 1c ends by narrowing `[210]`'s slot (`GOpt SLAnyDocument` →
 `GOpt SLExplicitDocument`), and the narrowing instrument breaks FIVE
@@ -190,7 +190,7 @@ arms' whole domain. -/
 #guard pins "a:\n!t\n&b\n  !s &c x\n" == ("scan-accepted", "ERR L4YAML.ScanError.trailingContent 1 0")
 #guard pins "&a\n!t &b x\n" == ("scan-accepted", "ERR L4YAML.ScanError.invalidBareDocument 1 3")
 
-/-! ## §3b  Item 174 — the props ride across the break
+/-! ## §3b  Items 174–175 — the props ride across the break
 
 `[161] ns-flow-node`'s third alternative separates the properties from the
 content with `s-separate(n,c)`, which is `s-separate-lines` in every non-key
@@ -206,12 +206,33 @@ identically, and the explicit value's park (`? k⏎: &p⏎b` = `{k: &p b}`) is
 the same `n = 0` swap — there PyYAML refuses at its simple-key scanner, a
 PyYAML-side gap like `[192]`'s.
 
-Item 174 pays the CONTENT-dispatch rides at the sentinel-indexed park.
-Recorded punts, each with the fallback still standing: the INDICATOR-headed
-rides (`&p⏎- a`, `&p⏎? x⏎: v`, `&p⏎: v` — block dispatches), the flow-open
-ride (`&p⏎[1, 2]` — the flow lane's), the enclosing-level indented ride
-(`k:⏎  a: &p⏎    c: d`), the two-park chain (`!t⏎&q b`, one `[96]` run whose
-internal separate crossed the break), and the alias landing (`&p⏎*p`,
+Item 174 paid the CONTENT-dispatch rides at the sentinel-indexed park.
+**Item 175 paid the INDICATOR-dispatch rides**: a landed `-`/`?`/`:` opens
+the RUN's own collection — `[196]`'s optional properties again, the
+COLLECTION's anchor (`&p⏎- a` = `+SEQ &p`, where the same-line `&p - a` is
+scanner-refused; `&p⏎? x⏎: v` and `&p⏎: v` = `+MAP &p`) — through the same
+park route, carried as `PropsNodeRoute` (the ride's landing half): the FIFTH
+arm of the `:`/`?` openers' cascades and the `-` arm's entries route
+(`propsSeqRoute`).  PyYAML agrees on every accepted family below except its
+three known gaps: the empty implicit key (`&p⏎: v` — `[192]`, the suite's
+2JQS lineage is the reference), the explicit value's simple key
+(`? k⏎: &p⏎…`), and ANY bare document after a `...` suffix (it refuses the
+anchor-free `a: 1⏎...⏎b: 2` identically — `[210]`'s
+`l-document-suffix+ l-any-document?` is the reference).
+
+**Item 175 also STRUCK one of item 174's punt rows**: the flow-open ride
+(`&p⏎[1, 2]`) was never on the fallback — `accum_flow_open_depth0`'s
+`pendingProps` arm has ridden the run into the flow node (break or not,
+`SFlowNode.propsContent` through the park's route) since items 9h/12, and
+its only other branch serves under-run parks, which cannot exist at `n = 0`.
+
+Recorded punts, each with the fallback still standing: the ENCLOSING-level
+indented rides (`k:⏎  a: &p⏎    c: d`, `k:⏎  a: &p⏎  - w` — the ride pays
+`n = 0` only), the two-park chain (`!t⏎&q b` and its break variants — one
+`[96]` run whose internal separate crossed the break; the run-extension arm
+is the NO-BREAK branch's, measured at item 175), the enclosing park's col-0
+sibling `:` (`k:⏎  a: &p⏎: v` — a `[96]` park carries no mapping-lane
+frames, item 173's recorded residue), and the alias landing (`&p⏎*p`,
 scan-accepted and parser-refused).  The enclosing-level park's dedented
 landing keeps `propsEmpty` + the sibling resume — the honest reading there
 (`k:⏎  a: &p⏎c: 2`, `k:⏎  a: &p⏎  c: d`). -/
@@ -235,17 +256,42 @@ landing keeps `propsEmpty` + the sibling resume — the honest reading there
 -- resumes — the honest reading the ride must NOT displace
 #guard pins "k:\n  a: &p\nc: 2\n" == ("scan-accepted", "+STR +DOC +MAP =VAL :k +MAP =VAL :a =VAL &p : -MAP =VAL :c =VAL :2 -MAP -DOC -STR")
 #guard pins "k:\n  a: &p\n  c: d\n" == ("scan-accepted", "+STR +DOC +MAP =VAL :k +MAP =VAL :a =VAL &p : =VAL :c =VAL :d -MAP -MAP -DOC -STR")
--- the recorded punts (all accepted, still on the fallback readings)
-#guard pins "k:\n  a: &p\n    c: d\n" == ("scan-accepted", "+STR +DOC +MAP =VAL :k +MAP =VAL :a +MAP &p =VAL :c =VAL :d -MAP -MAP -MAP -DOC -STR")
-#guard pins "!t\n&q b\n" == ("scan-accepted", "+STR +DOC =VAL &q <!t> :b -DOC -STR")
-#guard pins "&p\n[1, 2]\n" == ("scan-accepted", "+STR +DOC +SEQ [] &p =VAL :1 =VAL :2 -SEQ -DOC -STR")
+-- item 175's paid rides: the landed `-`/`?`/`:` at the sentinel park opens
+-- the run's own collection (multi-entry, indented, comment-interleaved,
+-- valueless explicit key, tag, and two-half runs included)
 #guard pins "&p\n- a\n" == ("scan-accepted", "+STR +DOC +SEQ &p =VAL :a -SEQ -DOC -STR")
 #guard pins "&p\n? x\n: v\n" == ("scan-accepted", "+STR +DOC +MAP &p =VAL :x =VAL :v -MAP -DOC -STR")
 #guard pins "&p\n: v\n" == ("scan-accepted", "+STR +DOC +MAP &p =VAL : =VAL :v -MAP -DOC -STR")
+#guard pins "&p\n- a\n- b\n" == ("scan-accepted", "+STR +DOC +SEQ &p =VAL :a =VAL :b -SEQ -DOC -STR")
+#guard pins "&p\n  - a\n" == ("scan-accepted", "+STR +DOC +SEQ &p =VAL :a -SEQ -DOC -STR")
+#guard pins "&p\n# c\n- a\n" == ("scan-accepted", "+STR +DOC +SEQ &p =VAL :a -SEQ -DOC -STR")
+#guard pins "&p\n? x\n" == ("scan-accepted", "+STR +DOC +MAP &p =VAL :x =VAL : -MAP -DOC -STR")
+#guard pins "!t\n- a\n" == ("scan-accepted", "+STR +DOC +SEQ <!t> =VAL :a -SEQ -DOC -STR")
+#guard pins "&p !t\n? x\n: v\n" == ("scan-accepted", "+STR +DOC +MAP &p <!t> =VAL :x =VAL :v -MAP -DOC -STR")
+-- …and through the marker's, the suffix's and the explicit value's routes
+#guard pins "---\n&p\n- a\n" == ("scan-accepted", "+STR +DOC --- +SEQ &p =VAL :a -SEQ -DOC -STR")
+#guard pins "a: 1\n...\n&p\n- a\n" == ("scan-accepted", "+STR +DOC +MAP =VAL :a =VAL :1 -MAP -DOC ... +DOC +SEQ &p =VAL :a -SEQ -DOC -STR")
+#guard pins "---\n&p\n: v\n" == ("scan-accepted", "+STR +DOC --- +MAP &p =VAL : =VAL :v -MAP -DOC -STR")
+#guard pins "? k\n: &p\n- w\n" == ("scan-accepted", "+STR +DOC +MAP =VAL :k +SEQ &p =VAL :w -SEQ -MAP -DOC -STR")
+#guard pins "---\n&p\n? x\n: v\n" == ("scan-accepted", "+STR +DOC --- +MAP &p =VAL :x =VAL :v -MAP -DOC -STR")
+-- the flow-open ride, paid on the FLOW lane since items 9h/12 (item 174's
+-- punt row for it was wrong; struck at item 175)
+#guard pins "&p\n[1, 2]\n" == ("scan-accepted", "+STR +DOC +SEQ [] &p =VAL :1 =VAL :2 -SEQ -DOC -STR")
+#guard pins "---\n&p\n[1]\n" == ("scan-accepted", "+STR +DOC --- +SEQ [] &p =VAL :1 -SEQ -DOC -STR")
+-- the recorded punts (all accepted, still on the fallback readings)
+#guard pins "k:\n  a: &p\n    c: d\n" == ("scan-accepted", "+STR +DOC +MAP =VAL :k +MAP =VAL :a +MAP &p =VAL :c =VAL :d -MAP -MAP -MAP -DOC -STR")
+#guard pins "k:\n  a: &p\n  - w\n" == ("scan-accepted", "+STR +DOC +MAP =VAL :k +MAP =VAL :a +SEQ &p =VAL :w -SEQ -MAP -MAP -DOC -STR")
+#guard pins "k:\n  a: &p\n: v\n" == ("scan-accepted", "+STR +DOC +MAP =VAL :k +MAP =VAL :a =VAL &p : -MAP =VAL : =VAL :v -MAP -DOC -STR")
+#guard pins "!t\n&q b\n" == ("scan-accepted", "+STR +DOC =VAL &q <!t> :b -DOC -STR")
+#guard pins "&p\n!t b\n" == ("scan-accepted", "+STR +DOC =VAL &p <!t> :b -DOC -STR")
+#guard pins "!t\n&q\nb\n" == ("scan-accepted", "+STR +DOC =VAL &q <!t> :b -DOC -STR")
+#guard pins "!t\n&q\n- a\n" == ("scan-accepted", "+STR +DOC +SEQ &q <!t> =VAL :a -SEQ -DOC -STR")
 -- the refused shapes beside them
 #guard pins "&p\nb\nc: 1\n" == ("scan-refused L4YAML.ScanError.invalidImplicitKey 2", "ERR L4YAML.ScanError.invalidImplicitKey 2")
 #guard pins "&p\n&q b\n" == ("scan-accepted", "ERR L4YAML.ScanError.duplicateAnchor 1")
 #guard pins "&p\n*p\n" == ("scan-accepted", "ERR L4YAML.ScanError.invalidBareDocument 1 0")
+#guard pins "k:\n  a: &p\n- w\n" == ("scan-refused L4YAML.ScanError.invalidBareDocument 2 0", "ERR L4YAML.ScanError.invalidBareDocument 2 0")
+#guard pins "? k\n: &p\n[1]\n" == ("scan-EOF-refused L4YAML.ScanError.underIndentedFlowContent 2 0", "ERR L4YAML.ScanError.underIndentedFlowContent 2 0")
 
 /-! ## §4  Finding A — the value at its own level's column (1d's runtime face)
 
@@ -313,11 +359,12 @@ Per surviving arm, what the pins say it serves and what pays after the flip:
 
 | arm | accepted domain (pinned) | post-flip reading |
 |---|---|---|
-| `rootMapRoute(F)_or_refused` at `h_op = true` (from `colon_open_map`, `question_open_map`, `content_dispatch_routed` ×2) | §1's sibling keys | the resume routes at the open level's frames — **the two openers CARRY the resume arm as of item 173** (`h_res_land`, first in the cascade), paid by `pendingContent.h_framesS` and `pendingMapValue.h_frames`; what still reaches the guard is a landing whose park pays no face (the dedent-crossing colon sibling `a:⏎- x⏎: 2`, the recorded residue) |
+| `rootMapRoute(F)_or_refused` at `h_op = true` (from `colon_open_map`, `question_open_map`, `content_dispatch_routed` ×2) | §1's sibling keys | the resume routes at the open level's frames — **the two openers CARRY the resume arm as of item 173** (`h_res_land`, first in the cascade) **and the props arm as of item 175** (`h_pr_land`, fifth — the sentinel `[96]` park's landed `:`/`?` heads the RUN's collection), paid by `pendingContent.h_framesS`, `pendingMapValue.h_frames` and `pendingProps.h_route`; what still reaches the guard is a landing whose park pays no face (the dedent-crossing colon sibling `a:⏎- x⏎: 2` and §3b's enclosing-park residues, the recorded ones) |
 | `bareNodeRoute_or_refused` at `h_op = true` (from `accum_block_on_closeThenBlock`) | §1's sibling keys and open-sequence entries | same |
 | `content_dispatch_after_close` | §1's siblings after an empty close (`k:⏎a: 1`) resume ALREADY (items 109/151 — the entry route threads `resumectx_of_landing` at all three callers, measured at item 174); what the raw route itself still serves is §4's scalar family (`k:⏎a`, its pendingMapValue caller) and §3b's rides | the sibling half is PAID; §4's half is 1d's; ~~the props half~~ **PAID by item 174** (the ride context bypasses the route at the sentinel park) |
 | the guards at `Or.inr` (parks with no `CompletedTail`) | §4's family is the scalar half of what reaches them; `bareNodeRoute_or_refused_content`'s two arms' LIVE payers are `pendingFlow`'s break-crossed landings alone (measured at item 174: `pendingContent`/`pendingBlockContent` pay `Or.inl` and refute, the marker parks exit on their own arms) | shrinks with 1d's runtime fix and R3's `pendingFlow` deletion; the sibling residue resumes |
-| `accum_content_pending`'s pendingProps landing (via `content_dispatch_after_close`) | §3b's rides — the sentinel run's break-crossed node (`&p⏎b`, `&p⏎b: 1`, `&p⏎|⏎  x`) read as propsEmpty + a bare second document | **PAID by item 174**: `PropsRideRoute` carries the park's route + run, `content_dispatch_routed` assembles `[161]`/`[198]`/`[196]`'s props slots, and the enclosing-level park (`0 < n`) keeps propsEmpty + resume; residues = the indicator/flow-open/indented-enclosing/two-park/alias punts pinned in §3b |
+| `accum_content_pending`'s pendingProps landing (via `content_dispatch_after_close`) | §3b's rides — the sentinel run's break-crossed node (`&p⏎b`, `&p⏎b: 1`, `&p⏎|⏎  x`) read as propsEmpty + a bare second document | **PAID by item 174**: `PropsRideRoute` carries the park's route + run, `content_dispatch_routed` assembles `[161]`/`[198]`/`[196]`'s props slots, and the enclosing-level park (`0 < n`) keeps propsEmpty + resume; residues = the indented-enclosing/two-park/alias punts pinned in §3b |
+| `accum_block_pending`'s pendingProps landing (via `accum_block_on_closeThenBlock`) | §3b's indicator rides — the sentinel run's break-crossed `-`/`?`/`:` (`&p⏎- a`, `&p⏎? x⏎: v`, `&p⏎: v`) read as propsEmpty + a bare second document | **PAID by item 175**: `PropsNodeRoute` (the ride's landing half) rides the same park route into `[196]`'s slot — `propsSeqRoute` at the `-` arm's entries, `propsMapRoute(F)` as the openers' fifth cascade arm; the flow-open twin was paid on the FLOW lane at items 9h/12 (174's punt row for it struck at 175), and the enclosing-level park (`0 < n`) keeps propsEmpty + resume |
 | `topLevelFlowResumeSep_or_refused` fallbacks, `flowKeyRoute_of_root` landing arm | §2's sibling flow keys (item 172's key half) | the key half resumes at the open level; the value half is refused at the gate and the refuted arms cover it |
 | ~~`flowKeyRoute_of_root` no-break arm~~ | the seed key (`[1]: b`) | **PAID by item 173**: the no-break arm's premise carries the virgin park's own `h_nodoc` face beside the column, so `nodocMapRoute` is the arm's only route and the raw `rootMapRoute` application is deleted — the census's `rootMapRoute` holder is gone |
 | `accum_content_pending`'s crossed arms | NONE accepted (§3) | a scanner-side trailing-props refusal (M4 candidate), or the window face carried to the parser boundary |
