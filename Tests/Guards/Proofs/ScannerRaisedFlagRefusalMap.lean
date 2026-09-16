@@ -247,15 +247,20 @@ private def scannerRefuses (input : String) : Bool :=
 #guard scannerRefuses "a: 1\n%YAML 1.2\n--- b\n"
 
 -- §6 The valid boundary each mechanism must not cross.
--- M2's three exempt structural predecessors — the equal-column VALUE
--- readings (`.value`, `.key`, `.blockEntry`):
-#guard emits "a:\nb\n"
+-- M2's exempt structural predecessors (`.value`, `.key`, `.blockEntry`):
+-- their equal-column readings REFUSE as of item 177 (Finding A's floor — the
+-- narrowed exemption keeps only props-headed runs and flow-close tails), so
+-- the boundary here is the strictly deeper twins, which stay the slots' own:
+#guard scannerRefuses "a:\nb\n"
+#guard scannerRefuses "?\nb\n: v\n"
+#guard scannerRefuses "-\nb\n"
+#guard scannerRefuses "a:\nb\nc: 2\n"
+#guard emits "a:\n b\n"
   ["+STR", "+DOC", "+MAP", "=VAL :a", "=VAL :b", "-MAP", "-DOC", "-STR"]
-#guard emits "?\nb\n: v\n"
+#guard emits "?\n b\n: v\n"
   ["+STR", "+DOC", "+MAP", "=VAL :b", "=VAL :v", "-MAP", "-DOC", "-STR"]
-#guard emits "-\nb\n"
+#guard emits "-\n b\n"
   ["+STR", "+DOC", "+SEQ", "=VAL :b", "-SEQ", "-DOC", "-STR"]
-#guard accepts "a:\nb\nc: 2\n"
 -- M3's two legal readings — the awaited value (with and without a
 -- property run) and the continuing same-indent sequence (including the
 -- level pops the back-scan must survive):

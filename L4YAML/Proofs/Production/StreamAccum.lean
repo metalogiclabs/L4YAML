@@ -12146,7 +12146,7 @@ lemma danglingPark_of_dispatch {s s' : ScannerState} {c : Char}
   rw [h_noflow]
   simp only [Bool.false_eq_true, ↓reduceIte]
   rw [h_run]
-  simp only [h_pred, Bool.false_eq_true, ↓reduceIte]
+  simp only [h_pred]
   rw [h_pos, h_ind]
   show (if (s.indents.any fun e => e.column == (s.col : Int)) then some s.currentPos
         else none) = some s.currentPos

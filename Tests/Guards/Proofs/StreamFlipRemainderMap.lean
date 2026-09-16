@@ -7,7 +7,7 @@ Copyright (c) 2026. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 -/
 
-/-! # The flip's remainder, mapped (DOCS items 171–176)
+/-! # The flip's remainder, mapped (DOCS items 171–177)
 
 Row 19's 1c ends by narrowing `[210]`'s slot (`GOpt SLAnyDocument` →
 `GOpt SLExplicitDocument`), and the narrowing instrument breaks FIVE
@@ -29,22 +29,29 @@ This file pins the INPUT families those arms serve, at the runtime, one
 loudly.  Item 171 measured the map and named two findings; item 172 closed the
 second, and the pins below are the map at the CLOSED state:
 
-**The value that lands at its own level's column (§4) is an over-acceptance,
-and it is 1d's runtime face.**  A scalar landing at exactly the column of the
-level whose value is awaited is read as that value (`k:⏎a` = `{k: a}`, plain,
-quoted, and block forms, at any depth, in implicit and explicit entries
-alike).  `[201] seq-spaces` exempts only the sequence (`k:⏎- a` is the spec's
-own), and the scalar forms need `s-separate(n+1)`'s line-crossing branch,
-whose `s-flow-line-prefix(n+1)` demands `s-indent(n+1)` — column `n` fails it.
-PyYAML (6.x, `yaml.parse`, event level) refuses the plain and quoted forms at
-its scanner ("could not find expected ':'") and accepts the block-scalar
-header form; no yaml-test-suite case covers any of them.  This is the same
-`m = 0` the encoding admits at `SBlockNode.blockSeq`/`blockMap` (item 107,
-`BlockCollectionWidthFloor.lean`): the runtime and the grammar over-approximate
-TOGETHER, which is why the matrix cannot see either half.  The FLOW half of
-this floor is NOT part of the finding: a flow node standing in the awaited
-slot at column `n` is refused (`underIndentedFlowContent`, §5) — the scalar
-faces alone move with 1d's re-indexing.
+**The value at its own level's column (§4) is REFUSED as of item 177 —
+Finding A's runtime floor.**  Every alternative of `[196] s-l+block-node(n,c)`
+and `[185] s-l+block-indented(n,c)` that a scalar or alias can head spends
+`s-separate(n+1)`, whose line-crossing branch demands `s-indent(n+1)` —
+column `n` fails it — so a props-less scalar or alias run standing at an open
+level's own column refuses at the scanner (`danglingNodePos?`, whose
+slot-offered exemption item 177 narrowed to the run shapes other readings
+own), with the same `invalidBareDocument` constructor and run-start position
+the slot-LESS twin `a: 1⏎b` has always gotten.  The refusal covers plain,
+quoted, and block-scalar forms and the alias, at any depth, mid-stream, and
+in implicit and explicit entries alike; `[201] seq-spaces` keeps the sequence
+(`k:⏎- a` arrives as a `-` indicator, not a run).  PyYAML (6.x, `yaml.parse`,
+event level) refuses every one of these at its scanner ("could not find
+expected ':'") EXCEPT the block-scalar header forms (`k:⏎|⏎ x`), which it
+accepts against `[199]`'s own `s-separate(n+1)` — the item's one named PyYAML
+gap; no yaml-test-suite case decides any of the families.  What remains 1d's
+is the ENCODING half of the same floor: `SBlockNode.blockSeq`/`blockMap`
+still admit `m = 0` (item 107, `BlockCollectionWidthFloor.lean`), so the
+equal-width landing keeps a derivation the parser's sibling reading has no
+use for until the re-indexing lands.  The FLOW half was never this floor's:
+a flow node standing in the awaited slot at column `n` is item 172's refusal
+(`underIndentedFlowContent`, §5), and the two readings stay disjoint by the
+run's tail.
 
 **The sibling implicit flow key (§5) is item 172's fix.**  `c-s-implicit-json-key`
 is `c-flow-json-node(n/a, block-key)` — the flow key carries no indent
@@ -351,28 +358,44 @@ landing keeps `propsEmpty` + the sibling resume — the honest reading there
 #guard pins "k:\n  a: &p\n- w\n" == ("scan-refused L4YAML.ScanError.invalidBareDocument 2 0", "ERR L4YAML.ScanError.invalidBareDocument 2 0")
 #guard pins "? k\n: &p\n[1]\n" == ("scan-EOF-refused L4YAML.ScanError.underIndentedFlowContent 2 0", "ERR L4YAML.ScanError.underIndentedFlowContent 2 0")
 
-/-! ## §4  Finding A — the value at its own level's column (1d's runtime face)
+/-! ## §4  Finding A — the value at its own level's column (REFUSED, item 177)
 
-Six accepted readings the references dispute (PyYAML refuses B1/B2/B6/B7/B9 at
-its scanner; the block-scalar header B10 it accepts, and no suite case decides
-it), and the boundaries that show the shape: props at the same column are
-PARSER-refused, a column BELOW the awaiting level refuses at the scanner, and
-the FLOW node at the column is refused by the deferred floor (§5) — the
-over-acceptance is the scalar forms' alone. -/
+The runtime floor, landed: the six §4 families items 171–176 pinned as
+accepted readings now refuse at the scanner, with the slot-less twin's own
+constructor at the run's start — mid-stream where a break ends the run, at
+EOF where the stream does.  PyYAML refuses all but the block-scalar headers
+(the named gap); no suite case decides any of them.  The `?`/`-`/`:` faces of
+the same exemption (`?⏎b⏎: v`, `-⏎b`, `:⏎a`) and the mid-stream chain
+(`k:⏎b⏎: 2`, which read as `{k: b, null: 2}`) refuse the same way. -/
 
-#guard pins "k:\na\n" == ("scan-accepted", "+STR +DOC +MAP =VAL :k =VAL :a -MAP -DOC -STR")
-#guard pins "k:\n\"a\"\n" == ("scan-accepted", "+STR +DOC +MAP =VAL :k =VAL \"a -MAP -DOC -STR")
-#guard pins "k:\n  m:\n  a\n" == ("scan-accepted", "+STR +DOC +MAP =VAL :k +MAP =VAL :m =VAL :a -MAP -MAP -DOC -STR")
-#guard pins "k:\na\nb: 2\n" == ("scan-accepted", "+STR +DOC +MAP =VAL :k =VAL :a =VAL :b =VAL :2 -MAP -DOC -STR")
-#guard pins "? k\n:\na\n" == ("scan-accepted", "+STR +DOC +MAP =VAL :k =VAL :a -MAP -DOC -STR")
-#guard pins "k:\n|\n x\n" == ("scan-accepted", "+STR +DOC +MAP =VAL :k =VAL |x\\n -MAP -DOC -STR")
--- the boundaries: properties at the column are refused one stage later, a
--- deeper await is refused at EOF, and the sequence is the spec's own exemption
+#guard pins "k:\na\n" == ("scan-EOF-refused L4YAML.ScanError.invalidBareDocument 1 0", "ERR L4YAML.ScanError.invalidBareDocument 1 0")
+#guard pins "k:\n\"a\"\n" == ("scan-EOF-refused L4YAML.ScanError.invalidBareDocument 1 0", "ERR L4YAML.ScanError.invalidBareDocument 1 0")
+#guard pins "k:\n'a'\n" == ("scan-EOF-refused L4YAML.ScanError.invalidBareDocument 1 0", "ERR L4YAML.ScanError.invalidBareDocument 1 0")
+#guard pins "k:\n  m:\n  a\n" == ("scan-EOF-refused L4YAML.ScanError.invalidBareDocument 2 2", "ERR L4YAML.ScanError.invalidBareDocument 2 2")
+#guard pins "k:\na\nb: 2\n" == ("scan-refused L4YAML.ScanError.invalidBareDocument 1 0", "ERR L4YAML.ScanError.invalidBareDocument 1 0")
+#guard pins "? k\n:\na\n" == ("scan-EOF-refused L4YAML.ScanError.invalidBareDocument 2 0", "ERR L4YAML.ScanError.invalidBareDocument 2 0")
+#guard pins "k:\n|\n x\n" == ("scan-EOF-refused L4YAML.ScanError.invalidBareDocument 1 0", "ERR L4YAML.ScanError.invalidBareDocument 1 0")
+#guard pins "k:\n>\n x\n" == ("scan-EOF-refused L4YAML.ScanError.invalidBareDocument 1 0", "ERR L4YAML.ScanError.invalidBareDocument 1 0")
+#guard pins "x: &a 1\nk:\n*a\n" == ("scan-EOF-refused L4YAML.ScanError.invalidBareDocument 2 0", "ERR L4YAML.ScanError.invalidBareDocument 2 0")
+#guard pins "k:\na\n b\n" == ("scan-EOF-refused L4YAML.ScanError.invalidBareDocument 1 0", "ERR L4YAML.ScanError.invalidBareDocument 1 0")
+#guard pins "?\nb\n: v\n" == ("scan-refused L4YAML.ScanError.invalidBareDocument 1 0", "ERR L4YAML.ScanError.invalidBareDocument 1 0")
+#guard pins "-\nb\n" == ("scan-EOF-refused L4YAML.ScanError.invalidBareDocument 1 0", "ERR L4YAML.ScanError.invalidBareDocument 1 0")
+#guard pins ":\na\n" == ("scan-EOF-refused L4YAML.ScanError.invalidBareDocument 1 0", "ERR L4YAML.ScanError.invalidBareDocument 1 0")
+#guard pins "k:\nb\n: 2\n" == ("scan-refused L4YAML.ScanError.invalidBareDocument 1 0", "ERR L4YAML.ScanError.invalidBareDocument 1 0")
+-- the boundaries: properties at the column are refused one stage later (the
+-- exemption's surviving half), a deeper await is refused at EOF, the sequence
+-- is the spec's own exemption, and the strictly deeper landing is the value
 #guard pins "k:\n&x a\n" == ("scan-accepted", "ERR L4YAML.ScanError.trailingContent 1 0")
 #guard pins "k:\n!t a\n" == ("scan-accepted", "ERR L4YAML.ScanError.trailingContent 1 0")
 #guard pins "k:\n  m:\na\n" == ("scan-EOF-refused L4YAML.ScanError.invalidBareDocument 2 0", "ERR L4YAML.ScanError.invalidBareDocument 2 0")
 #guard pins "- k:\na\n" == ("scan-EOF-refused L4YAML.ScanError.invalidBareDocument 1 0", "ERR L4YAML.ScanError.invalidBareDocument 1 0")
 #guard pins "k:\n- a\n" == ("scan-accepted", "+STR +DOC +MAP =VAL :k +SEQ =VAL :a -SEQ -MAP -DOC -STR")
+#guard pins "k:\n a\n" == ("scan-accepted", "+STR +DOC +MAP =VAL :k =VAL :a -MAP -DOC -STR")
+#guard pins "?\n a\n: v\n" == ("scan-accepted", "+STR +DOC +MAP =VAL :a =VAL :v -MAP -DOC -STR")
+#guard pins "-\n b\n" == ("scan-accepted", "+STR +DOC +SEQ =VAL :b -SEQ -DOC -STR")
+#guard pins "-\n- a\n" == ("scan-accepted", "+STR +DOC +SEQ =VAL : =VAL :a -SEQ -DOC -STR")
+#guard pins "k: x\n y\n" == ("scan-accepted", "+STR +DOC +MAP =VAL :k =VAL :x y -MAP -DOC -STR")
+#guard pins "---\na\n" == ("scan-accepted", "+STR +DOC --- =VAL :a -DOC -STR")
 
 /-! ## §5  Item 172 — §8.1's floor at the close
 
@@ -386,7 +409,8 @@ slot-OFFERED landing refuses as `underIndentedFlowContent` at the OPEN's own
 position (`underIndentedFlowValuePos?` reads the close's matching open,
 `flowOpenIdx?`, and the open's column against the open levels — the
 `[96]`-transparent slot holder decides offered-vs-completed, so the props face
-`k:⏎&p [1, 2]` keeps its Finding-A reading), and a break kills the key exactly
+`k:⏎&p [1, 2]` keeps §4's props boundary, the parser's own refusal), and a
+break kills the key exactly
 where §7.4's single-line rule says it dies.  The seq sibling refuses at the
 resolving `:` (§8.2.1's key-at-sequence-column), the glued `:` at the
 adjacent-value check (item 47), and the under-indented INTERIOR line at §8.1's
@@ -419,8 +443,8 @@ Per surviving arm, what the pins say it serves and what pays after the flip:
 |---|---|---|
 | `rootMapRoute(F)_or_refused` at `h_op = true` (from `colon_open_map`, `question_open_map`, `content_dispatch_routed` ×2) | §1's sibling keys | the resume routes at the open level's frames — **the two openers CARRY the resume arm as of item 173** (`h_res_land`, first in the cascade) **and the props arm as of item 175** (`h_pr_land`, fifth — the sentinel `[96]` park's landed `:`/`?` heads the RUN's collection), paid by `pendingContent.h_framesS`, `pendingMapValue.h_frames` and `pendingProps.h_route`; what still reaches the guard is a landing whose park pays no face (the dedent-crossing colon sibling `a:⏎- x⏎: 2` and §3b's enclosing-park residues, the recorded ones) |
 | `bareNodeRoute_or_refused` at `h_op = true` (from `accum_block_on_closeThenBlock`) | §1's sibling keys and open-sequence entries | same |
-| `content_dispatch_after_close` | §1's siblings after an empty close (`k:⏎a: 1`) resume ALREADY (items 109/151 — the entry route threads `resumectx_of_landing` at all three callers, measured at item 174); what the raw route itself still serves is §4's scalar family (`k:⏎a`, its pendingMapValue caller) and §3b's rides | the sibling half is PAID; §4's half is 1d's; ~~the props half~~ **PAID by item 174** (the ride context bypasses the route at the sentinel park) |
-| the guards at `Or.inr` (parks with no `CompletedTail`) | §4's family is the scalar half of what reaches them; `bareNodeRoute_or_refused_content`'s two arms' LIVE payers are `pendingFlow`'s break-crossed landings alone (measured at item 174: `pendingContent`/`pendingBlockContent` pay `Or.inl` and refute, the marker parks exit on their own arms) | shrinks with 1d's runtime fix and R3's `pendingFlow` deletion; the sibling residue resumes |
+| `content_dispatch_after_close` | §1's siblings after an empty close (`k:⏎a: 1`) resume ALREADY (items 109/151 — the entry route threads `resumectx_of_landing` at all three callers, measured at item 174); ~~§4's scalar family (`k:⏎a`, its pendingMapValue caller)~~ **REFUSED at the scanner as of item 177**, so what the raw route itself still serves is §3b's rides | the sibling half is PAID; §4's half is REFUSED; ~~the props half~~ **PAID by item 174** (the ride context bypasses the route at the sentinel park) |
+| the guards at `Or.inr` (parks with no `CompletedTail`) | ~~§4's family is the scalar half of what reaches them~~ — refused at the scanner as of item 177; `bareNodeRoute_or_refused_content`'s two arms' LIVE payers are `pendingFlow`'s break-crossed landings alone (measured at item 174: `pendingContent`/`pendingBlockContent` pay `Or.inl` and refute, the marker parks exit on their own arms) | shrinks further with R3's `pendingFlow` deletion; the sibling residue resumes |
 | `accum_content_pending`'s pendingProps landing (via `content_dispatch_after_close`) | §3b's rides — the sentinel run's break-crossed node (`&p⏎b`, `&p⏎b: 1`, `&p⏎|⏎  x`) read as propsEmpty + a bare second document | **PAID by item 174**: `PropsRideRoute` carries the park's route + run, `content_dispatch_routed` assembles `[161]`/`[198]`/`[196]`'s props slots, and the enclosing-level park (`0 < n`) keeps propsEmpty + resume; residues = the indented-enclosing/two-park/alias punts pinned in §3b |
 | `accum_block_pending`'s pendingProps landing (via `accum_block_on_closeThenBlock`) | §3b's indicator rides — the sentinel run's break-crossed `-`/`?`/`:` (`&p⏎- a`, `&p⏎? x⏎: v`, `&p⏎: v`) read as propsEmpty + a bare second document | **PAID by item 175**: `PropsNodeRoute` (the ride's landing half) rides the same park route into `[196]`'s slot — `propsSeqRoute` at the `-` arm's entries, `propsMapRoute(F)` as the openers' fifth cascade arm; the flow-open twin was paid on the FLOW lane at items 9h/12 (174's punt row for it struck at 175), and the enclosing-level park (`0 < n`) keeps propsEmpty + resume |
 | `topLevelFlowResumeSep_or_refused` fallbacks, `flowKeyRoute_of_root` landing arm | §2's sibling flow keys (item 172's key half) | the key half **RESUMES as of item 176** (`h_mapF` at the landing arm, `resumeMapRoute` first in the cascade, paid by `pendingContent.h_framesS`/`pendingBlockContent.h_closeF`; the entries-level twin rides every arm, so the chains resume too); the value half is refused at the gate and the refuted arms cover it; what still reaches the fallback is a landing whose park pays no face (the marker-seed chain at `flowKeyRoute_of_open`'s twins, the seq-spaces sibling, §2's recorded punts) |

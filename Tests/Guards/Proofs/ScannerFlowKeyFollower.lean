@@ -109,6 +109,8 @@ inside one — is unaffected, and so is every `?` in block context. -/
 #guard bothAccept "?\n"                           -- block: `?` at end of input
 #guard bothAccept "? a\n: b\n"
 #guard bothAccept "? [a, b]\n: c\n"
-#guard bothAccept "- ?\n  a\n"
+-- the compact `?`'s break-crossed key content, one column past the `?` (its
+-- equal-column twin `- ?⏎  a` refuses at item 177's floor, not at the `?`)
+#guard bothAccept "- ?\n   a\n"
 
 end Tests.Guards.ScannerFlowKeyFollower

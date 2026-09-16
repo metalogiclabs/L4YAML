@@ -1809,7 +1809,7 @@ def danglingNodePosIx? {input : String} (s : ScannerStateIx input) :
       let offered := match pred with
         | some j => s.tokens.tokens[j]!.token.offersNodeSlot
         | none => false
-      if offered then none
+      if offered && !(s.tokens.tokens[st]!.token.isNodeBody) then none
       else
         let p := s.tokens.tokens[st]!.start
         if s.indents.any (fun e => e.column == (p.col : Int)) then some p else none

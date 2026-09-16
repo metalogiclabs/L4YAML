@@ -831,9 +831,9 @@ def scanNextToken_dispatchContent (s : ScannerState) (c : Char) :
     where it OFFERS one (`YamlToken.offersNodeSlot` — the run would be the
     offered node, and stands at a column the offer cannot reach).  The two are
     mutually exclusive by that test.  The run must end in a flow CLOSE — the
-    scalar at the same column is `SBlockNode`'s `m = 0` over-approximation
-    (item 107), measured at item 171 as Finding A and sequenced with the
-    grammar's own re-indexing, not here.  The column and the reported position
+    scalar at the same column is Finding A's block face, refused by
+    `danglingNodePos?`'s own floor (item 177), and the two readings stay
+    disjoint by the run's tail.  The column and the reported position
     are the OPEN's: a `[96]` run in front of the open belongs to the node, but
     its column is Finding A's props face (`k:⏎&p [1, 2]` completes at the
     scanner today), so the open's own landing is what this floor reads —
@@ -960,9 +960,20 @@ def scanNextToken_checkBareDocument (s : ScannerState) :
     production for it, and the parser refuses it as `invalidBareDocument`.
 
     The three predecessors that DO offer a slot are `YamlToken.offersNodeSlot`'s
-    — `:`, `?` and `-` — and they are what keeps the equal-column value
-    readings legal: `a:⏎b` is `{a: b}`, `?⏎b⏎: v` is the explicit key's content,
-    `-⏎b` is the entry's.  What has no slot is a run behind a finished one
+    — `:`, `?` and `-` — but the slot they offer cannot reach the level's own
+    column either: every alternative of `[196] s-l+block-node(n,c)` and `[185]
+    s-l+block-indented(n,c)` that a scalar or alias can head spends
+    `s-separate(n+1)`, whose line-crossing branch demands `s-indent(n+1)`, one
+    more than the column the level itself stands at (**Finding A**, item 177 —
+    the runtime half of `SBlockNode`'s `m = 0` over-approximation, item 107).
+    So a props-less scalar or alias run at the column refuses whether a slot is
+    offered or not — `a:⏎b`, `?⏎b⏎: v`, `-⏎b`, `k:⏎|⏎ x` — and the exemption
+    keeps only the run shapes some other reading owns: a `[96]`-headed run
+    (`k:⏎&x a`, the parser's own trailing-content refusal) and the flow-close
+    tail (`k:⏎[1, 2]`, `underIndentedFlowValuePos?`'s floor, item 172).  What
+    stays legal is the strictly deeper landing (`a:⏎ b` is `{a: b}`) and the
+    seq-spaces entries, which arrive as `-` indicators rather than as runs
+    (`a:⏎- b`).  What never had a slot is a run behind a finished one
     (`a: 1⏎b`), behind a flow close (`k: [1, 2]⏎b`) or behind another dangler.
 
     The position reported is the RUN's start, not the cursor's, because that is
@@ -980,7 +991,7 @@ def danglingNodePos? (s : ScannerState) : Option YamlPos :=
       let offered := match pred with
         | some j => s.tokens[j]!.val.offersNodeSlot
         | none => false
-      if offered then none
+      if offered && !(s.tokens[st]!.val.isNodeBody) then none
       else
         let p := s.tokens[st]!.pos
         if s.indents.any (fun e => e.column == (p.col : Int)) then some p else none

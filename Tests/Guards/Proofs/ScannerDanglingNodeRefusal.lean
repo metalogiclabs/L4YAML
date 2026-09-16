@@ -161,16 +161,29 @@ private def scannerRefuses (input : String) : Bool :=
 #guard scannerRefuses "k:\n  a: |\n  x\n"
 #guard scannerRefuses "-\n  a: |\n  x\n"
 
-/-! ## §3  The boundary the check must not cross -/
+/-! ## §3  The boundary the check must not cross
 
--- The three predecessors that offer a slot, at the equal column.
-#guard emits "a:\nb\n"
+Item 177 MOVED this boundary: the three offered predecessors' equal-column
+readings (`a:⏎b` = `{a: b}`, `?⏎b⏎: v`, `-⏎b`) were the slot exemption's own
+over-acceptances — `s-separate(n+1)` cannot reach the level's column — and
+they now refuse with the slot-less family's constructor and position.  What
+the exemption keeps is the run shapes other readings own (a props-headed run,
+a flow-close tail), and the boundary the check must not cross is the rest of
+this section: keys the flag still allows, absorbed continuations, and every
+strictly deeper landing. -/
+
+-- The three offered predecessors, at the equal column: refused as of item 177.
+#guard scannerRefuses "a:\nb\n"
+#guard scannerRefuses "?\nb\n: v\n"
+#guard scannerRefuses "-\nb\n"
+#guard scannerRefuses "a:\nb\nc: 2\n"
+-- …and their strictly deeper twins stay the offered slot's own values.
+#guard emits "a:\n b\n"
   ["+STR", "+DOC", "+MAP", "=VAL :a", "=VAL :b", "-MAP", "-DOC", "-STR"]
-#guard emits "?\nb\n: v\n"
+#guard emits "?\n b\n: v\n"
   ["+STR", "+DOC", "+MAP", "=VAL :b", "=VAL :v", "-MAP", "-DOC", "-STR"]
-#guard emits "-\nb\n"
+#guard emits "-\n b\n"
   ["+STR", "+DOC", "+SEQ", "=VAL :b", "-SEQ", "-DOC", "-STR"]
-#guard accepts "a:\nb\nc: 2\n"
 
 -- A run still on its own line may yet become a key: the flag is down.
 #guard accepts "a: 1\nb: 2\n"

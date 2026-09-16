@@ -113,21 +113,40 @@ guard and recorded the residue as "row 19's 1c residue for the indented family �
 the face reads `none` at all three of that lemma's callers, so it can never
 refute them, and the three inputs are VALID.
 
-The reason is structural, not a measurement, and it holds at the type: a
-predecessor that OFFERS the run a slot makes `danglingNodePos?` read `none`
-outright.  `content_dispatch_after_close`'s three callers park on
-`pendingBlock`, `pendingMapValue` and `pendingProps` — a `-`, a `:` and a
-property run — and the first two are `offersNodeSlot`'s own members. -/
+The reason is structural, not a measurement, and it holds at the type — with
+item 177's floor it is the COLUMN's, not the slot's: the three callers park at
+landings indented strictly past every open level (the witness rows below read
+`op=false`), and a run whose column names no open level reads `none` on either
+side of the exemption.  The slot's own exemption survives only for the run
+shapes other readings refuse (a `[96]`-headed run is the parser's
+`trailingContent`, a flow-close tail is item 172's floor), because the offered
+slot cannot reach the level's own column — `s-separate(n+1)`, Finding A's
+floor. -/
 
-example (s : ScannerState) (h_noflow : s.inFlow = false) {st j : Nat}
-    (h_run : trailingNodeRun? s.tokens = some (st, some j))
-    (h_slot : s.tokens[j]!.val.offersNodeSlot = true) :
+example (s : ScannerState) (h_noflow : s.inFlow = false) {st : Nat}
+    {pred : Option Nat}
+    (h_run : trailingNodeRun? s.tokens = some (st, pred))
+    (h_col : (s.indents.any fun e =>
+      e.column == ((s.tokens[st]!.pos).col : Int)) = false) :
     danglingNodePos? s = none := by
   unfold danglingNodePos?
   rw [h_noflow]
   simp only [Bool.false_eq_true, ↓reduceIte]
   rw [h_run]
-  simp [h_slot]
+  simp only [h_col, Bool.false_eq_true, ↓reduceIte, ite_self]
+
+-- …and the exemption's surviving half, at the type: an offered run that is
+-- not a bare node body (a property run — the parser's own refusal ground).
+example (s : ScannerState) (h_noflow : s.inFlow = false) {st j : Nat}
+    (h_run : trailingNodeRun? s.tokens = some (st, some j))
+    (h_slot : s.tokens[j]!.val.offersNodeSlot = true)
+    (h_prop : s.tokens[st]!.val.isNodeBody = false) :
+    danglingNodePos? s = none := by
+  unfold danglingNodePos?
+  rw [h_noflow]
+  simp only [Bool.false_eq_true, ↓reduceIte]
+  rw [h_run]
+  simp [h_slot, h_prop]
 
 -- The three witnesses, at their landings.  Two fail BOTH of the lemma's
 -- premises (the landing is indented past every open level, and the last real

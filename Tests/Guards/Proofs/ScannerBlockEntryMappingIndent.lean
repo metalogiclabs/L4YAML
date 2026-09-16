@@ -227,9 +227,11 @@ private def accepts (input : String) : Bool :=
 #guard accepts "a:\n  - x\n  - y\n"
 #guard accepts "a:\n- x\n  - y\n"
 
--- A sequence's own column is `atSequenceIndent`'s, not this check's.
+-- A sequence's own column is `atSequenceIndent`'s, not this check's.  The
+-- equal-column entry value refuses as of item 177 (Finding A's floor,
+-- `invalidBareDocument` at the run) — still not this check's constructor.
 #guard accepts "- a\n- b\n"
-#guard accepts "-\nb\n"
+#guard saysAlike "-\nb\n" 1 0
 
 -- `?` and `:` at the mapping's column open new ENTRIES: M3 is `-` alone.
 #guard emits "a: 1\n? k\n: v\n"
