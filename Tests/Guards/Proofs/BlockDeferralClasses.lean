@@ -7,7 +7,7 @@ Copyright (c) 2026. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 -/
 
-/-! # The block-indicator escape, by CLASS and by ROUTE (DOCS items 184–187)
+/-! # The block-indicator escape, by CLASS and by ROUTE (DOCS items 184–188)
 
 `block_dispatch_deferred` is `PendingNode.pendingFlow`'s only producer, so
 R3 — row 12's β.5 deletion — is the emptying of this escape.  Its applications
@@ -27,7 +27,7 @@ wrapper's deletion rather than a total drifting:
 | wrapper | applications | what reaches it | what empties it |
 |---|---|---|---|
 | `_stamp_offcol` | **3** in 3 definitions | the park HAS a value pack, at `nv`, and the landing is at `k ≠ nv` | a reason the two indices agree — `[187]`'s `s-indent(n)` is exact |
-| `_stamp_nopack` | **3** in 3 definitions | the park carries no value pack at all, and its register is LIVE | a CARRIER: the `?` frame's value slot at the landing's column, U2's residue proper — priced at item 186 (§5), RE-priced at item 187 (§6) |
+| `_stamp_nopack` | **3** in 3 definitions | the park carries no value pack at all, and its register is LIVE | a CARRIER: the `?` frame's value slot at the landing's column, U2's residue proper — priced at item 186 (§5), RE-priced at item 187 (§6), and its first DOMAIN paid at item 188 (§7) |
 | `_stamp_compact` | **2** in 2 definitions | the fill is COMPACT, and `[189]`'s value is `s-l+block-node`, so the face cannot stand in for the stamp | the stamp, or a refutation |
 | `_inline` | **2** in 2 definitions | the mid-line indicator (`inline_residue_of_landing`) | `KeyPackPunt`'s two surviving reasons (item 102) |
 | bare | **1** | `pendingFlow`'s own arm, which this escape PRODUCES | the constructor (item 35's structural note) |
@@ -66,6 +66,17 @@ reads the explicit-key register LIVE, and `ekl_dis_eq_park` carries that
 reading back to the park the carrier would have to be paid at.  `_h_park` is
 that fact, and it is what refutes the cheap carrier item 186 priced.  §6 pins
 the re-pricing, the census that re-derives it, and the class's own inputs.
+
+**And the first of the eight is PAID** (item 188).  The family §6 measured as
+STARVED — a `?` frame whose key is a LANDED sequence — is derivable, through
+the alternative of `[185]` that item 92 named and set aside: `s-l+block-node`,
+where `seq-spaces(nv + 1, block-out) = nv` lets the entries sit at the frame's
+OWN column.  `slotLandedSeq` is that derivation and `pendingBlock.h_kslot` now
+carries the frame's value line across the landing, so the landed `:` fires
+`colon_open_map_explicit` where it used to escape.  **No wrapper count moves**,
+and that is the point: a payment against an escape narrows a DOMAIN, and every
+instrument in this file that counts SITES is blind to it.  §7 pins the
+derivation, the inhabitation of its guard, and the family at the runtime.
 
 **None of the classes that REMAIN is refutable.**  §2's family is accepted by the
 scanner and read identically by PyYAML 6.0.3 at the event level; §3's is the
@@ -448,10 +459,10 @@ than discharging it, and there it is the PACK that must be paid.
 **The class's inputs, and they are STARVED rather than false.**  A `?` frame
 whose KEY is filled by a LANDED block indicator — the seq-spaces alternative of
 `[188]`'s `s-l+block-indented`, which `accum_block_on_closeThenBlock`'s dash arm
-punts in as many words — is accepted, and its `:` is class A with the register
+punted in as many words — is accepted, and its `:` is class A with the register
 LIVE.  The parser reads the sequence as the frame's key, so the production the
-pack asks for EXISTS; what is missing is the derivation, and the datum for it is
-already at that arm in `h_vslot`'s inner pack.
+pack asks for EXISTS; what was missing is the derivation, and the datum for it
+was already at that arm in `h_vslot`'s inner pack.  Item 188 wrote it; §7.
 
 The rows below pin the family at the scanner and at both event pipelines, and
 `classAReg` pins the register the branch reads — `(explicitKeyLine,
@@ -483,15 +494,19 @@ private def classAReg (input : String) : Option (Option Nat × Int × Nat) :=
   go ((ScannerState.mk' input).emit .streamStart) 200
 
 -- The seq-spaces KEY of an explicit frame: the `-` LANDS, so the fill is not
--- compact and the frame's value line stays with the deferral.
+-- compact ~~and the frame's value line stays with the deferral~~ — item 188
+-- derives it through `[185]`'s OTHER alternative and these five rows are paid
+-- (§7).  They stay here because they are also the register's own family.
 #guard pins "?\n-\n: w\n" == ("scan-accepted", "+STR +DOC +MAP +SEQ =VAL : -SEQ =VAL :w -MAP -DOC -STR")
 #guard pins "?\n- a\n: w\n" == ("scan-accepted", "+STR +DOC +MAP +SEQ =VAL :a -SEQ =VAL :w -MAP -DOC -STR")
 #guard pins "?\n- a\n: - w\n" == ("scan-accepted", "+STR +DOC +MAP +SEQ =VAL :a -SEQ +SEQ =VAL :w -SEQ -MAP -DOC -STR")
 #guard pins "?\n- a\n- b\n: w\n" == ("scan-accepted", "+STR +DOC +MAP +SEQ =VAL :a =VAL :b -SEQ =VAL :w -MAP -DOC -STR")
 #guard pins "?\n  - a\n: w\n" == ("scan-accepted", "+STR +DOC +MAP +SEQ =VAL :a -SEQ =VAL :w -MAP -DOC -STR")
 
--- The COMPACT fill at the same coordinate, whose pack IS paid
--- (`compact_open_map`): so the deferral is the LANDING, not the sequence.
+-- The COMPACT fill at the same coordinate, whose pack was already paid
+-- (`compact_open_map`) — ~~so the deferral is the LANDING, not the
+-- sequence~~.  Item 188: it was the landing, and the landing is paid now;
+-- this row is the twin the derivation was modeled on.
 #guard pins "? -\n: - w\n" == ("scan-accepted", "+STR +DOC +MAP +SEQ =VAL : -SEQ +SEQ =VAL :w -SEQ -MAP -DOC -STR")
 
 -- The props ride at an indented landing — `content_dispatch_routed`'s own
@@ -521,5 +536,136 @@ private def classAReg (input : String) : Option (Option Nat × Int × Nat) :=
 #guard classAReg "? a: b\n" == none
 #guard classAReg "k:\n  :\nb: 2\n" == none
 #guard classAReg "? a\n: b\n" == some (some 0, 0, 0)
+
+/-! ## §7  The starved family, DERIVED (item 188)
+
+§6 named the carrier: `[185] s-l+block-indented`'s `s-l+block-node`
+alternative, filled by the collection a LANDED `-` opens.  It is one lemma.
+
+**What the `-1` buys.**  `SBlockIndented.node` crosses to `SBlockNode (nv + 1)`
+(item 179's shift), and `seq-spaces(nv + 1, block-out) = nv` — so `[183]`'s
+auto-detected `m` may be ZERO and the entries may sit at the frame's OWN
+column.  That is the whole of `?⏎-⏎: w`: a `?` at column 0 and a `-` at column
+0.  The block-IN reading has no such case (`seq-spaces(n, block-in) = n`, so
+`nestedBlockSeq` needs `m` to cover the gap), which is why the compact
+alternative item 92 paid could not serve a landing and why this is a second
+lemma rather than a reuse. -/
+
+example {sp sp₂ sp' : SurfPos} (h_ssl : SSLComments sp sp₂)
+    (h_entries : SBlockSeqEntries 0 sp₂ sp') :
+    SBlockIndented 0 .blockOut sp sp' :=
+  slotLandedSeq (Nat.le_refl 0) h_ssl h_entries
+
+/-- …and at an INDENTED landing, which is the same lemma's `0 < m`
+    (`?⏎  - a⏎: w`, `- ?⏎  - a⏎  : w`). -/
+example {sp sp₂ sp' : SurfPos} (h_ssl : SSLComments sp sp₂)
+    (h_entries : SBlockSeqEntries 2 sp₂ sp') :
+    SBlockIndented 0 .blockOut sp sp' :=
+  slotLandedSeq (by omega) h_ssl h_entries
+
+/-! **The guard, INHABITED.**  A derivation nothing can reach is not a payment
+(§9 — force inhabitation before pricing proofs about a definition), and what
+the dash arm's payment reads is the closed park's `h_vslot` with a REAL inner
+pack.  Exactly one park can hand it one: `pendingMapValue` on its explicit
+branch, whose `h_expl` is the `?` frame's own route.  The composition below is
+`accum_block_pending`'s, stated with **no `∨ True` anywhere in the
+conclusion** — so it cannot be satisfied by punting. -/
+
+example {sp_start sp_scan sp_q : SurfPos} {nmv : Nat}
+    (h_qlit : GLit '?' sp_q sp_scan)
+    (route : ∀ sp_v : SurfPos, SBlockMapEntry nmv sp_q sp_v →
+      SLYamlStream sp_start sp_v) :
+    ∀ sp_m : SurfPos, SBlockIndented nmv .blockOut sp_scan sp_m →
+    ∀ sp_i sp_c : SurfPos, SIndent nmv sp_m sp_i → GLit ':' sp_i sp_c →
+    ∀ sp_v : SurfPos, SBlockIndented nmv .blockOut sp_c sp_v →
+    SLYamlStream sp_start sp_v :=
+  fun sp_m h_key sp_i sp_c h_iv h_lit sp_v h_sbi =>
+    route sp_v (SBlockMapEntry.explicit nmv sp_q sp_scan sp_m sp_i sp_c sp_v
+      h_qlit h_key h_iv h_lit h_sbi)
+
+/-! …and the two composed: the frame's route, across the landed sequence, is
+the value-line pack `pendingBlock.h_kslot` carries.  This is the payment at
+`accum_block_on_closeThenBlock`'s dash arm, re-derived here from its own
+hypotheses — again with no punt alternative in the conclusion. -/
+
+example {sp_start sp_scan sp_mid sp_i0 sp_scan' sp_q : SurfPos} {nv k : Nat}
+    (hnk : nv ≤ k) (h_ssl : SSLComments sp_scan sp_mid)
+    (h_ind : SIndent k sp_mid sp_i0) (h_dash : GLit '-' sp_i0 sp_scan')
+    (h_gnot : GNot SNsChar sp_scan')
+    (h_qlit : GLit '?' sp_q sp_scan)
+    (route : ∀ sp_v : SurfPos, SBlockMapEntry nv sp_q sp_v →
+      SLYamlStream sp_start sp_v) :
+    ∀ sp_m : SurfPos, SBlockIndented k .blockIn sp_scan' sp_m →
+    ∀ sp_e : SurfPos, SCompactSeqTail k sp_m sp_e →
+    ∀ sp_i sp_c : SurfPos, SIndent nv sp_e sp_i → GLit ':' sp_i sp_c →
+    ∀ sp_v : SurfPos, SBlockIndented nv .blockOut sp_c sp_v →
+    SLYamlStream sp_start sp_v :=
+  fun _ h_indented sp_e h_tail sp_i sp_c h_iv h_lit sp_v h_sbi =>
+    route sp_v (SBlockMapEntry.explicit nv sp_q sp_scan sp_e sp_i sp_c sp_v
+      h_qlit
+      (slotLandedSeq hnk h_ssl
+        (Proofs.NodeProduction.SBlockSeqEntries_of_compactTail
+          h_ind h_dash h_gnot h_indented h_tail))
+      h_iv h_lit h_sbi)
+
+/-! **The family, at the runtime.**  §6's five rows are the ones the derivation
+was written for; these five extend the shapes it has to cover — a nested
+collection, a frame at a NON-ZERO index (`nv = 2`, twice), a second frame after
+the first, and a sibling entry after the frame's value.  The `-SEQ` immediately
+before the frame's `=VAL :w` is the sequence being read AS the key, which is
+the reading the pack asserts.  These rows pin the RUNTIME: which of them the
+payment reaches depends on the route field each park carries, and no event
+string can say that. -/
+
+#guard pins "?\n-\n  - b\n: w\n" == ("scan-accepted", "+STR +DOC +MAP +SEQ +SEQ =VAL :b -SEQ -SEQ =VAL :w -MAP -DOC -STR")
+#guard pins "a:\n  ?\n  - x\n  : w\n" == ("scan-accepted", "+STR +DOC +MAP =VAL :a +MAP +SEQ =VAL :x -SEQ =VAL :w -MAP -MAP -DOC -STR")
+#guard pins "- ?\n  - a\n  : w\n" == ("scan-accepted", "+STR +DOC +SEQ +MAP +SEQ =VAL :a -SEQ =VAL :w -MAP -SEQ -DOC -STR")
+#guard pins "?\n- a\n?\n- b\n" == ("scan-accepted", "+STR +DOC +MAP +SEQ =VAL :a -SEQ =VAL : +SEQ =VAL :b -SEQ =VAL : -MAP -DOC -STR")
+#guard pins "?\n- a\n: w\nx: 1\n" == ("scan-accepted", "+STR +DOC +MAP +SEQ =VAL :a -SEQ =VAL :w =VAL :x =VAL :1 -MAP -DOC -STR")
+
+/-! **The family's BOUNDARY, and it is the scanner's rather than the proof's.**
+A landing LEFT of the frame is refused outright, so `nv ≤ k`'s failing side has
+no input here to serve; and a frame whose key slot is already FILLED on the
+`?` line takes no landed sequence at all.  Neither is a case the derivation
+declines — they never reach it. -/
+
+#guard pins "a:\n  ?\n- x\n: w\n" == ("scan-refused L4YAML.ScanError.invalidBareDocument 2 0", "ERR L4YAML.ScanError.invalidBareDocument 2 0")
+#guard pins "? k\n- a\n: w\n" == ("scan-refused L4YAML.ScanError.invalidBareDocument 1 0", "ERR L4YAML.ScanError.invalidBareDocument 1 0")
+
+/-! **The MAPPING twin, named and NOT paid.**  The same slot filled by a landed
+MAPPING is a different input class, and the runtime splits it where the
+sequence's does not: at column 0 the frame closes empty and the map is a
+sibling (`?⏎k: v⏎: w` reads `=VAL : =VAL :` then `k: v`), while INDENTED it IS
+the key (`?⏎  k: v⏎: w` reads `+MAP +MAP … -MAP =VAL :w`).  So the twin exists
+but only above the frame's column — `[185]`'s `blockMap` alternative, where
+`l+block-mapping(n)` has no `seq-spaces` and cannot reach down a column.  That
+asymmetry is the whole reason the sequence needed its own lemma, and it is why
+the twin is a separate item rather than a generalization of this one. -/
+
+#guard pins "?\nk: v\n: w\n" == ("scan-accepted", "+STR +DOC +MAP =VAL : =VAL : =VAL :k =VAL :v =VAL : =VAL :w -MAP -DOC -STR")
+#guard pins "?\n  k: v\n: w\n" == ("scan-accepted", "+STR +DOC +MAP +MAP =VAL :k =VAL :v -MAP =VAL :w -MAP -DOC -STR")
+
+/-! **And what the SITE instrument says — measured on both sides of the
+payment.**  Delete `pendingBlock.h_kslot`'s `∨ True` and build, at `f0adfcc8`
+and at this commit:
+
+| | sites | declarations | errors |
+|---|---|---|---|
+| before item 188 | **11** | **7** | **21** |
+| after item 188 | **11** | **7** | **24** |
+
+Same eleven sites both times (`accum_flow_open_depth0` ×2,
+`accum_block_on_noPending`, `accum_block_on_closeThenBlock` ×2,
+`…_pendingBlockContent`, `…_pendingBlock` ×3, `accum_block_pending`,
+`accum_content_pending`), because a CONDITIONAL payment is still a site the
+flip breaks — its punt fallback survives.  And the error count moved **three
+the wrong way**: a bare `Or.inr trivial` costs one error, the `match` that
+replaced it costs four.
+
+So the instrument that priced item 186 is worse than blind to item 188 — it
+reports the payment as a regression.  That is §9's rule read from the other
+side: **a count of sites is blind to a domain, and a count of errors is not
+even monotone in it.**  What moved is one producer's arm, and the evidence for
+it is the three examples above and the rows beside them, not this table. -/
 
 end L4YAML.Tests.Guards.BlockDeferralClasses

@@ -20778,6 +20778,139 @@ arm.  Only then item 183's flip order — the two REFUTABLE halves at the flow
 open, the three MISSING ROUTES, the flip.  And the parked Ix Step-1
 composition, on the Ix track's own clock.
 
+### Item 188 (2026-09-17)
+
+**The starved family DERIVED — `[185]`'s other alternative — and an instrument
+that reports the payment as a REGRESSION.**
+
+Item 187 diagnosed `_stamp_nopack` as STARVED rather than false and named what
+starves it: a `?` frame whose key is a LANDED sequence, the seq-spaces
+alternative of `[188]`'s `s-l+block-indented`, with the datum already at
+`accum_block_on_closeThenBlock`'s dash arm inside `h_vslot`'s inner pack.  This
+item wrote the derivation.  It is one lemma and one argument, and it typechecked
+on the first build.
+
+**The `-1` is the whole of it.**  `SBlockIndented.node` crosses to `SBlockNode
+(nv + 1)` (item 179's shift) and `seq-spaces(nv + 1, block-out) = nv`, so
+`[183]`'s auto-detected `m` may be ZERO and the entries may sit at the frame's
+OWN column.  That is exactly `?⏎-⏎: w` — a `?` at column 0 and a `-` at column 0
+— and no block-IN reading admits it, because `seq-spaces(n, block-in) = n` and
+`nestedBlockSeq`'s `m` has to cover the gap.  `slotLandedSeq` is that
+derivation; `#print axioms` gives `[propext, Quot.sound]` and nothing else.  The
+payment at the dash arm is `pendingBlock.h_kslot := Or.inl …` whenever the
+closed park's slot carries an inner pack and `nv ≤ k`.
+
+**And item 92 had already written the other half of the same field.**  The
+INLINE arm of the same lemma pays that same field from that same `h_vslot`
+inner pack, through `SBlockIndented.compactSeq` — `[185]`'s COMPACT alternative
+— and the field's own docstring recorded the landed one as "the
+`s-l+block-node` alternative, not this one, and stays deferred".  Two
+alternatives of one production stood as a paid case and a deferred one for 96
+items, and what kept them apart was a sentence describing the second where it
+was skipped instead of a build attempting it.  §1's rule, at its own cost: a
+reading of the source said the alternative could not serve, and the compiler
+said it could.  Both docstrings and the escape's section now carry the
+correction.
+
+**The guard is INHABITED, which is the half that could have been vacuous.**  A
+payment guarded by a hypothesis nothing supplies is not a payment (§9 — force
+inhabitation before pricing proofs about a definition), and the dash arm's
+guard is the closed park's `h_vslot` carrying a REAL inner pack.  Exactly one
+of `accum_block_pending`'s ten arms can hand it one — `pendingMapValue` on its
+explicit branch, whose `h_expl` is the `?` frame's own route; the other nine
+pass `Or.inr trivial`.  `BlockDeferralClasses` §7 pins that composition and the
+payment built on it with **no `∨ True` anywhere in either conclusion**, so
+neither can be satisfied by punting.
+
+**The instrument reports the payment as a REGRESSION, and that is this item's
+general finding.**  Delete `pendingBlock.h_kslot`'s `∨ True` and build, once at item 187's landed
+state and once here:
+
+| | sites | declarations | errors |
+|---|---|---|---|
+| before item 188 | **11** | **7** | **21** |
+| after item 188 | **11** | **7** | **24** |
+
+The same eleven sites in the same seven declarations both times — a CONDITIONAL
+payment is still a site the flip breaks, because its punt fallback survives —
+and the error count moves **three the wrong way**, since a bare `Or.inr
+trivial` costs one error and the `match` that replaced it costs four.  Item 187
+established that an error count is a ring rather than a bill; this is the
+sharper statement and it runs the other way: **a site count is blind to a
+domain, and an error count is not even monotone in it.**  `FlipConsumerSurface`
+says the same from its own side — every lane unmoved, which is the expected
+reading and is therefore evidence of nothing either way.  That census will
+register R3's progress only at the step where an arm becomes UNREACHABLE and
+its wrapper is deleted.
+
+**The family, and the two refusals that bound it.**  §6's five rows are what
+the derivation was written for; §7 adds the shapes it has to cover, and the
+`-SEQ` immediately before the frame's `=VAL :w` is the sequence being read AS
+the key:
+
+| input | verdict | events |
+|---|---|---|
+| `?⏎-⏎  - b⏎: w` | accepted | `+MAP +SEQ +SEQ =VAL :b -SEQ -SEQ =VAL :w -MAP` |
+| `a:⏎  ?⏎  - x⏎  : w` | accepted | `+MAP =VAL :a +MAP +SEQ =VAL :x -SEQ =VAL :w -MAP -MAP` |
+| `- ?⏎  - a⏎  : w` | accepted | `+SEQ +MAP +SEQ =VAL :a -SEQ =VAL :w -MAP -SEQ` |
+| `?⏎- a⏎?⏎- b` | accepted | `+MAP +SEQ =VAL :a -SEQ =VAL : +SEQ =VAL :b -SEQ =VAL : -MAP` |
+| `?⏎- a⏎: w⏎x: 1` | accepted | `+MAP +SEQ =VAL :a -SEQ =VAL :w =VAL :x =VAL :1 -MAP` |
+| `a:⏎  ?⏎- x⏎: w` | **refused** `invalidBareDocument 2 0` | — |
+| `? k⏎- a⏎: w` | **refused** `invalidBareDocument 1 0` | — |
+
+The two refusals are the family's edges and they are the SCANNER's: a landing
+left of the frame is refused outright, so `nv ≤ k`'s failing side has no input
+to serve here, and a frame whose key slot is already filled on the `?` line
+takes no landed sequence at all.  Neither is a case the derivation declines —
+they never reach it.  (These rows pin the runtime.  Which of them the payment
+reaches depends on the route field each park carries, and no event string can
+say that; the two `example`s are what say it.)
+
+**The MAPPING twin: named, measured, and NOT paid.**  The same slot filled by a
+landed MAPPING is a different input class, and the runtime splits it where the
+sequence's does not — at column 0 the frame closes empty and the map is a
+sibling (`?⏎k: v⏎: w` reads `=VAL : =VAL :` and then `k: v`), while INDENTED it
+IS the key (`?⏎  k: v⏎: w` reads `+MAP +MAP … -MAP =VAL :w`).  So the twin
+exists but only ABOVE the frame's column: `[185]`'s `blockMap` alternative goes
+through `l+block-mapping(n)`, which has no `seq-spaces` and cannot reach down a
+column.  That asymmetry is why the sequence needed its own lemma, and it is why
+the twin is a separate item rather than a generalization of this one.
+
+**Measured at the landed state.**  Full `lake build` **1162** jobs and
+`Tests.Guards`/`Tests.Reflections` **735**, ZERO warnings in both; suite
+**4520/4520** with Production Coverage Analysis **837/837**; `eventscore`
+**347/358** (95 error-ok, 0 error-miss, 0 event-reject); `suiterunner` **869 /
+0 / 151**; `matrix_score.py` over the 402-leaf data form on BOTH pipelines,
+**402/402 event** (`pass` 308, `err-ok` 94) and **282/282 JSON** (`pass` 279,
+`err-ok` 3, `skip` 120), splits identical to 176–187; the `[210]` flip
+instrument at **FIVE** errors at the same five definitions
+(`topLevelFlowResumeSep`, `rootMapRoute`, `rootMapRouteF`, `bareNodeRoute`,
+`structural_dispatch_to_pending`), applied and restored clean; the consumer
+census unmoved on every lane, DEFERRAL still **11 applications across 4
+definitions**; `#print axioms` over `slotLandedSeq` (`propext`, `Quot.sound`)
+and the four consumers, no `sorryAx`; checkers 228/355, 20/230/249/355, 25
+capstones, and the annotation verifier at 100 % coverage with its same **19**
+pre-existing name mismatches.  Declarations **8035 → 8036** (+1), `#guard`s
+**7243 → 7252** (+9, §7's rows), test files **621**, unchanged.
+
+*(The three count instruments, stated so the series is re-derivable rather than
+remembered: `grep -rhE '^(lemma|theorem|def) ' --include='*.lean' L4YAML/`,
+`grep -rhE '#guard ' --include='*.lean' Tests/`, and `find Tests -name '*.lean'`.
+Each is scoped to a directory this file is not in, which is what keeps item
+187's self-matching-grep hazard away from them.)*
+
+**What remains.**  `_stamp_nopack` is still 3 sites and the surface is still
+**31 punt alternatives across 16 declarations, 8 of them constructor fields** —
+one of the eight now has a paid arm, and the honest statement of the progress
+is that the arm's DOMAIN shrank, not that any count did.  The next question on
+this field is the MAPPING twin above, at `[185]`'s `blockMap` alternative and
+only above the frame's column.  Then **the COUPLING** for `_stamp_offcol` (3
+sites), **the REFUTATION** for `_stamp_compact` (2 sites, measured empty),
+**`KeyPackPunt`'s two reasons**, then the `pendingFlow` constructor and its arm.
+Only then item 183's flip order — the two REFUTABLE halves at the flow open, the
+three MISSING ROUTES, the flip.  And the parked Ix Step-1 composition, on the Ix
+track's own clock.
+
 ### REMAINING, in order
 
 The per-item history is the closure log above; this section lists only the

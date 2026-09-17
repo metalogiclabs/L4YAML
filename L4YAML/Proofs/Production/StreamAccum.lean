@@ -1777,9 +1777,14 @@ inductive PendingNode (sc : ScannerState) : Bool → SurfPos → SurfPos → Sur
       -- `[190] s-indent(nv) ':' s-l+block-indented(nv, block-out)` value
       -- line.  Paid by the compact fill of an open `?`/explicit-`:` slot
       -- (`? - a⏎: - w`), by a sibling/nested/inline `-` from the previous
-      -- park's own pack, and punted by the landed producers (a landed `-`
+      -- park's own pack, ~~and punted by the landed producers (a landed `-`
       -- opens `[183]` under no frame; `?⏎- a⏎: - w`'s seq-spaces KEY is the
-      -- `s-l+block-node` alternative, not this one, and stays deferred).
+      -- `s-l+block-node` alternative, not this one, and stays deferred)~~ —
+      -- and, since item 188, by the LANDED `-` off the same slot, through
+      -- exactly that `s-l+block-node` alternative (`slotLandedSeq`).  The two
+      -- alternatives of `[185]` are the two arms of one lemma, not a paid
+      -- case and a deferred one.  What still punts is a landed `-` off a park
+      -- with no slot at all, or one left of the frame's own index.
       (h_kslot : (∃ nv : Nat,
         ∀ sp_m : SurfPos, SBlockIndented n .blockIn sp_scan sp_m →
         ∀ sp_e : SurfPos, SCompactSeqTail n sp_m sp_e →
@@ -16376,6 +16381,34 @@ lemma rootBlockSeq (k : Nat) {s s₂ s' : SurfPos}
     SBlockNode 0 .blockIn s s' :=
   nestedBlockSeq (Nat.zero_le k) h_ssl h_entries
 
+/-- **An open `[185]` slot filled by a LANDED sequence — `seq-spaces` at work**
+    (item 188).
+
+    `nestedBlockSeq` and `rootBlockSeq` build the `.blockIn` collection an
+    ENTRY awaits.  This is the `.blockOut` one a `?` frame's key slot (or an
+    explicit `:`'s value slot) awaits, and the two differ by exactly the
+    production `[183]`'s index is read through: `[185]`'s `s-l+block-node(nv,
+    block-out)` crosses to `SBlockNode (nv + 1)` (`SBlockIndented.node`, item
+    179), and `seq-spaces(nv + 1, block-out) = nv` — so the entries may sit at
+    the frame's OWN width, one column left of where the block-in reading would
+    put them.  That is the whole content of the `-1`: `?⏎-⏎: w` and
+    `?⏎- a⏎: w` land their `-` at column 0 under a `?` at column 0, and
+    nothing but this alternative admits them.
+
+    The side condition is `nv ≤ k` — `m` may not go negative — and it is the
+    same split `nestedBlockSeq` makes, taken one index to the left.  A landing
+    strictly inside the frame (`?⏎  - a⏎: w`) is the `0 < m` case; a landing
+    left of it has no reading here and keeps the deferral. -/
+lemma slotLandedSeq {nv k : Nat} (hnk : nv ≤ k) {s s₂ s' : SurfPos}
+    (h_ssl : SSLComments s s₂) (h_entries : SBlockSeqEntries k s₂ s') :
+    SBlockIndented nv .blockOut s s' :=
+  SBlockIndented.node nv .blockOut s s'
+    (SBlockNode.blockSeq (nv + 1) .blockOut (k - nv) s s s₂ s' (GOpt.none s) h_ssl
+      (by
+        have h : seqSpaces (nv + 1) .blockOut + (k - nv) = k := by
+          simp only [seqSpaces]; omega
+        rw [h]; exact h_entries))
+
 /-- **`rootBlockSeq`'s MARKER route** (item 137): the sequence the landed `-`
     opens is the `---` document's own content, so the entries go into
     `[199] s-l+block-collection`'s slot behind the landing's comments rather
@@ -19301,6 +19334,14 @@ lemma block_dispatch_deferred
       discharging it, and the producers owe the PACK.  The carrier's surface is
       **31 punt alternatives across 16 declarations, 8 of them constructor
       fields**, re-derived by the pack's own tail rather than by a site count.
+      **Item 188 paid the first of the eight**: the family item 187 measured as
+      STARVED — a `?` frame whose key is a LANDED sequence — is derivable after
+      all, through `[185]`'s `s-l+block-node` alternative at `seq-spaces`'
+      one-column-left index (`slotLandedSeq`), and `pendingBlock.h_kslot` now
+      carries the frame's value line across it.  None of the three sites goes
+      away: what shrinks is the DOMAIN each still covers, which is the only
+      thing an escape's payment ever moves (§9 — a price is a domain, and the
+      site count is blind to this).
     * `block_dispatch_deferred_stamp_compact` (2) — the step crossed no break
       and the park is an open `[185]` slot, so `compact_open_map` is the route
       and it needs the STAMP: `[189]`'s value is `s-l+block-node`, which has
@@ -20152,9 +20193,31 @@ lemma accum_block_on_closeThenBlock
              -- `[183]` sequence under no frame.  When the closed pending was a
              -- `?` park this is `?⏎- a⏎: - w`'s seq-spaces KEY — the
              -- `s-l+block-node` alternative of `[185]`, not the compact one —
-             -- and its value line stays with the deferral (the kind's own
-             -- residue; `h_vpack` here bakes the e-node key and cannot serve).
-             (Or.inr trivial)
+             -- ~~and its value line stays with the deferral (the kind's own
+             -- residue; `h_vpack` here bakes the e-node key and cannot serve).~~
+             -- ═══ **Item 188: the frame's key is what this `-` opens, and the
+             -- SLOT is what serves it.**  `h_vpack` does bake the `e-node` key
+             -- and item 92 was right about that field; the reading it named as
+             -- deferred is not that field's, it is `h_vslot`'s — the OPEN
+             -- `[185]` slot the `?` park carries, whose inner pack is the
+             -- frame's `[190] s-indent(nv) ':' s-l+block-indented(nv,
+             -- block-out)` value line.  `slotLandedSeq` fills the slot with
+             -- the collection this `-` opens, at `seq-spaces`' one-column-left
+             -- index, and the pack then rides on the new park as its own
+             -- value-line twin — which is what the landed `:` spends at
+             -- `accum_block_on_pendingBlock` (`?⏎-⏎: w`, `?⏎- a⏎: w`,
+             -- `?⏎  - a⏎: w`, and through the sibling arm `?⏎- a⏎- b⏎: w`).
+             -- A slot with no inner pack, or a landing LEFT of the frame,
+             -- keeps the deferral. ═══
+             (match h_vslot with
+              | Or.inl ⟨nv, _, _, _, _, _, Or.inl hkv⟩ =>
+                  if hnk : nv ≤ k then
+                    Or.inl ⟨nv, fun _ h_indented sp_e h_tail =>
+                      hkv sp_e (slotLandedSeq hnk h_ssl
+                        (SBlockSeqEntries_of_compactTail h_ind h_dash h_gnot
+                          h_indented h_tail))⟩
+                  else Or.inr trivial
+              | _ => Or.inr trivial)
              -- Item 99: the resume frames — the entry and the tail close the
              -- root sequence over the same closed prefix.
              -- **Item 155: …and the level the closed park awaited a node for,

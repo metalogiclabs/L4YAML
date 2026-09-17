@@ -227,7 +227,16 @@ Item 187 left the counts where they are and re-priced what emptying the
 surface of **31 pack punts across 16 declarations** — the count this census
 cannot see, because the punts are a field's alternative rather than a
 definition's application.  The two instruments are complements, and
-`BlockDeferralClasses` §6 carries the one this file does not. -/
+`BlockDeferralClasses` §6 carries the one this file does not.
+
+Item 188 PAID the first of those 31 — the `?` frame's key, filled by a landed
+sequence — and the counts below do not move by so much as a row.  That is the
+expected reading and the reason to state it: a payment against an escape
+narrows the DOMAIN of a stuck arm, and an arm with a narrower domain is still
+an arm.  This census will register R3's progress only at the step where an arm
+becomes unreachable and its wrapper is deleted; until then a flat table here is
+evidence of nothing either way, and `BlockDeferralClasses` §7 carries what the
+step actually bought. -/
 
 /-! ## The gate
 
