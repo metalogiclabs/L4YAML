@@ -7,7 +7,7 @@ Copyright (c) 2026. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 -/
 
-/-! # The block-indicator escape, by CLASS and by ROUTE (DOCS items 184–188)
+/-! # The block-indicator escape, by CLASS and by ROUTE (DOCS items 184–189)
 
 `block_dispatch_deferred` is `PendingNode.pendingFlow`'s only producer, so
 R3 — row 12's β.5 deletion — is the emptying of this escape.  Its applications
@@ -26,7 +26,7 @@ wrapper's deletion rather than a total drifting:
 
 | wrapper | applications | what reaches it | what empties it |
 |---|---|---|---|
-| `_stamp_offcol` | **3** in 3 definitions | the park HAS a value pack, at `nv`, and the landing is at `k ≠ nv` | a reason the two indices agree — `[187]`'s `s-indent(n)` is exact |
+| `_stamp_offcol` | **3** in 3 definitions | the park HAS a value pack, at `nv`, and the landing is at `k ≠ nv` | a reason the two indices agree — `[187]`'s `s-indent(n)` is exact.  **Item 189 (§8) paid its first domain**: where `nv ≠ k` because the park holds TWO frames and offered the inner one, the landing now reads the outer one from `h_vpackUp` |
 | `_stamp_nopack` | **3** in 3 definitions | the park carries no value pack at all, and its register is LIVE | a CARRIER: the `?` frame's value slot at the landing's column, U2's residue proper — priced at item 186 (§5), RE-priced at item 187 (§6), and its first DOMAIN paid at item 188 (§7) |
 | `_stamp_compact` | **2** in 2 definitions | the fill is COMPACT, and `[189]`'s value is `s-l+block-node`, so the face cannot stand in for the stamp | the stamp, or a refutation |
 | `_inline` | **2** in 2 definitions | the mid-line indicator (`inline_residue_of_landing`) | `KeyPackPunt`'s two surviving reasons (item 102) |
@@ -77,6 +77,20 @@ carries the frame's value line across the landing, so the landed `:` fires
 and that is the point: a payment against an escape narrows a DOMAIN, and every
 instrument in this file that counts SITES is blind to it.  §7 pins the
 derivation, the inhabitation of its guard, and the family at the runtime.
+
+**And the MAPPING twin of it, where the funder was SHADOWED rather than
+missing** (item 189).  The same slot filled by a landed MAPPING needs `[185]`'s
+other crossing — `slotLandedMap`, at `nv + 1 ≤ k`, one column right of the
+sequence's bound because `[187] l+block-mapping(n)` carries no `seq-spaces`.
+But unlike the dash arm, the park the landed `?` opens ALREADY had a funder:
+its own `[187]` frame, in `h_expl`.  `?⏎  ?⏎: w` holds two frames at once, at
+columns 2 and 0, and the landed `:` is on the outer one — while
+`explFrameValueLine` reads the two as ONE datum and prefers the park's own, so
+the index offered was always the inner frame's and the consumer's `nv = k`
+split correctly rejected it.  That is `_stamp_offcol`, and the shadowing is a
+POLICY: swapping the two arms builds green.  Item 189 splits them at the one
+place that knows the landing's column, and `_stamp_offcol` loses its first
+domain.  §8 pins the bound, the composition, the family and the boundaries.
 
 **None of the classes that REMAIN is refutable.**  §2's family is accepted by the
 scanner and read identically by PyYAML 6.0.3 at the event level; §3's is the
@@ -632,15 +646,16 @@ declines — they never reach it. -/
 #guard pins "a:\n  ?\n- x\n: w\n" == ("scan-refused L4YAML.ScanError.invalidBareDocument 2 0", "ERR L4YAML.ScanError.invalidBareDocument 2 0")
 #guard pins "? k\n- a\n: w\n" == ("scan-refused L4YAML.ScanError.invalidBareDocument 1 0", "ERR L4YAML.ScanError.invalidBareDocument 1 0")
 
-/-! **The MAPPING twin, named and NOT paid.**  The same slot filled by a landed
-MAPPING is a different input class, and the runtime splits it where the
-sequence's does not: at column 0 the frame closes empty and the map is a
-sibling (`?⏎k: v⏎: w` reads `=VAL : =VAL :` then `k: v`), while INDENTED it IS
-the key (`?⏎  k: v⏎: w` reads `+MAP +MAP … -MAP =VAL :w`).  So the twin exists
-but only above the frame's column — `[185]`'s `blockMap` alternative, where
-`l+block-mapping(n)` has no `seq-spaces` and cannot reach down a column.  That
-asymmetry is the whole reason the sequence needed its own lemma, and it is why
-the twin is a separate item rather than a generalization of this one. -/
+/-! **The MAPPING twin, named** ~~and NOT paid~~ — **paid at item 189, §8**.  The
+same slot filled by a landed MAPPING is a different input class, and the
+runtime splits it where the sequence's does not: at column 0 the frame closes
+empty and the map is a sibling (`?⏎k: v⏎: w` reads `=VAL : =VAL :` then
+`k: v`), while INDENTED it IS the key (`?⏎  k: v⏎: w` reads
+`+MAP +MAP … -MAP =VAL :w`).  So the twin exists but only above the frame's
+column — `[185]`'s `blockMap` alternative, where `l+block-mapping(n)` has no
+`seq-spaces` and cannot reach down a column.  That asymmetry is the whole
+reason the sequence needed its own lemma, and it is why the twin is a separate
+item rather than a generalization of this one. -/
 
 #guard pins "?\nk: v\n: w\n" == ("scan-accepted", "+STR +DOC +MAP =VAL : =VAL : =VAL :k =VAL :v =VAL : =VAL :w -MAP -DOC -STR")
 #guard pins "?\n  k: v\n: w\n" == ("scan-accepted", "+STR +DOC +MAP +MAP =VAL :k =VAL :v -MAP =VAL :w -MAP -DOC -STR")
@@ -667,5 +682,115 @@ reports the payment as a regression.  That is §9's rule read from the other
 side: **a count of sites is blind to a domain, and a count of errors is not
 even monotone in it.**  What moved is one producer's arm, and the evidence for
 it is the three examples above and the rows beside them, not this table. -/
+
+/-! ## §8  The MAPPING twin, PAID — and the funder that was shadowed (item 189)
+
+§7 left the twin named and unpaid, on the reading that it is a separate
+production.  It is: `[185]`'s `s-l+block-node` alternative crosses to
+`SBlockNode (nv + 1)` for the mapping exactly as for the sequence, but `[187]
+l+block-mapping(n)` is opened at `n + m` with NO `seq-spaces` in front of it —
+that function belongs to `[183]` alone.  So the entries start at `nv + 1` and
+the side condition is `nv + 1 ≤ k`, **one column right of `slotLandedSeq`'s
+`nv ≤ k`**, and the runtime draws the same line: `?⏎  ?⏎: w` nests, `?⏎?⏎: w`
+fuses the two `?`s into ONE entry.
+
+The two bounds at the frame's own column, which is where they differ: -/
+
+example : (0 : Nat) ≤ 0 := Nat.le_refl 0
+example : ¬ ((0 : Nat) + 1 ≤ 0) := by omega
+
+example {sp sp₂ sp' : SurfPos} (h_ssl : SSLComments sp sp₂)
+    (h_entries : SBlockMapEntries 1 sp₂ sp') :
+    SBlockIndented 0 .blockOut sp sp' :=
+  slotLandedMap (Nat.le_refl 1) h_ssl h_entries
+
+/-- …and at the measured landing, `?⏎  ?⏎: w`'s `nv = 0, k = 2`. -/
+example {sp sp₂ sp' : SurfPos} (h_ssl : SSLComments sp sp₂)
+    (h_entries : SBlockMapEntries 2 sp₂ sp') :
+    SBlockIndented 0 .blockOut sp sp' :=
+  slotLandedMap (by omega) h_ssl h_entries
+
+/-! **What had to move for the twin to land, and it was not a production.**
+The landed `?` opens a park that carries its OWN `[187]` frame in `h_expl`, so
+unlike item 188's dash arm there was already a funder in place — at the WRONG
+index.  `?⏎  ?⏎: w` has two frames open at once, the inner `?` at column 2 and
+the outer at 0, and the landed `:` is on the outer one; `explFrameValueLine`
+read the park's two funders as ONE datum (`h_expl` first, `h_kslot` only as its
+`Or.inr` fallback), so the index offered was always the inner frame's and the
+consumer's `nv = k` split correctly rejected it — item 185's `_stamp_offcol`.
+
+That the shadowing was a POLICY and not a constraint is machine-checked rather
+than argued: swapping `explFrameValueLine`'s two arms (take `h_kslot` first,
+`h_expl` as the fallback) builds **green, 0 errors**, so every consumer accepts
+either funder.  Item 189 therefore splits them at the one place that knows the
+landing's column — `accum_block_on_closeThenBlock`, which now takes `h_vpackUp`
+beside `h_vpack` and tries the park's own pack at `k` first and the frame above
+it second.
+
+**The composition, with no `∨ True` in the conclusion.**  The landed `?`'s
+entry, folded into the outer frame's key slot through `slotLandedMap`, is the
+value-line pack `pendingMapValue.h_kslot` carries — `question_open_map`'s
+payment re-derived here from its own hypotheses. -/
+
+example {sp_start sp_scan sp_mid sp_ind sp_scan' sp_q : SurfPos} {nv k : Nat}
+    (hnk : nv + 1 ≤ k) (h_ssl : SSLComments sp_scan sp_mid)
+    (h_ind : SIndent k sp_mid sp_ind) (h_qlit : GLit '?' sp_ind sp_scan')
+    (h_qlit0 : GLit '?' sp_q sp_scan)
+    (route : ∀ sp_v : SurfPos, SBlockMapEntry nv sp_q sp_v →
+      SLYamlStream sp_start sp_v) :
+    ∀ sp_m : SurfPos, SBlockNode (k + 1) .blockIn sp_scan' sp_m →
+    ∀ sp_i sp_c : SurfPos, SIndent nv sp_m sp_i → GLit ':' sp_i sp_c →
+    ∀ sp_v : SurfPos, SBlockIndented nv .blockOut sp_c sp_v →
+    SLYamlStream sp_start sp_v :=
+  fun sp_m h_node sp_i sp_c h_iv h_clit sp_v h_sbi =>
+    route sp_v (SBlockMapEntry.explicit nv sp_q sp_scan sp_m sp_i sp_c sp_v
+      h_qlit0
+      (slotLandedMap hnk h_ssl
+        (SBlockMapEntries.single k sp_mid sp_ind sp_m h_ind
+          (SBlockMapEntry.explicitEmpty k sp_ind sp_scan' sp_m h_qlit
+            (SBlockIndented.node k .blockOut sp_scan' sp_m
+              (Proofs.NodeProduction.SBlockNode_blockIn_to_blockOut h_node)))))
+      h_iv h_clit h_sbi)
+
+/-! **The family, at the runtime.**  The `?` route and the implicit-key route
+both reach the indented mapping; the two-entry key is the `SCompactMapTail`
+shape the park's own resume face carries rather than this field's. -/
+
+#guard pins "?\n  ?\n: w\n" == ("scan-accepted", "+STR +DOC +MAP +MAP =VAL : =VAL : -MAP =VAL :w -MAP -DOC -STR")
+#guard pins "?\n  ? a\n: w\n" == ("scan-accepted", "+STR +DOC +MAP +MAP =VAL :a =VAL : -MAP =VAL :w -MAP -DOC -STR")
+#guard pins "?\n  ? a\n  : b\n: w\n" == ("scan-accepted", "+STR +DOC +MAP +MAP =VAL :a =VAL :b -MAP =VAL :w -MAP -DOC -STR")
+#guard pins "?\n  ? a\n  ? b\n: w\n" == ("scan-accepted", "+STR +DOC +MAP +MAP =VAL :a =VAL : =VAL :b =VAL : -MAP =VAL :w -MAP -DOC -STR")
+
+/-! **The boundaries, and both are the scanner's.**  At the frame's own column
+the two `?`s FUSE rather than nest, so `nv + 1 ≤ k`'s failing side has no input
+to serve; a `:` strictly inside the frame is refused outright, which is why
+only the `?` opener of `indicator_open_map` can spend the new carrier; and a
+frame whose key slot is already filled on the `?` line takes no landed mapping
+(the `?` there is read as plain-scalar continuation, not an indicator). -/
+
+#guard pins "?\n?\n: w\n" == ("scan-accepted", "+STR +DOC +MAP =VAL : =VAL :w -MAP -DOC -STR")
+#guard pins "?\n  : a\n: w\n" == ("scan-refused L4YAML.ScanError.misindentedExplicitValue 1 2 0", "ERR L4YAML.ScanError.misindentedExplicitValue 1 2 0")
+#guard pins "? k\n  ? a\n: w\n" == ("scan-accepted", "+STR +DOC +MAP =VAL :k ? a =VAL :w -MAP -DOC -STR")
+
+/-! **And the SITE instrument again, on the field this item pays.**  Delete
+`pendingMapValue.h_kslot`'s `∨ True` and build, at `3a0e4a33` and at this
+commit:
+
+| | declarations | errors |
+|---|---|---|
+| before item 189 | **9** | **14** |
+| after item 189 | **9** | **17** |
+
+The same nine both times (`question_open_map`, `colon_open_map`,
+`colon_open_map_explicit`, `colon_open_map_implicit`, `colon_open_map_props`,
+`compact_open_map`, `accum_block_pending`, `accum_content_pending`,
+`accum_flow_open_depth0`), and the errors up three — `question_open_map` alone
+goes 1 → 3 because a `match` costs more to break than an `Or.inr trivial`.
+
+Item 188 found that on `pendingBlock.h_kslot` and called it a warning; item 189
+ran it on a DIFFERENT field and got the same shape, so it is the instrument's
+behavior and not that payment's accident.  **A punt count is a count of
+producers, not of inputs**, and a producer that pays conditionally is still a
+producer the flip breaks. -/
 
 end L4YAML.Tests.Guards.BlockDeferralClasses

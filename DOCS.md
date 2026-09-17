@@ -5516,8 +5516,8 @@ lives in [README.md](README.md) and is not duplicated here.)
 
 ### Next actions, in order
 
-Priority is **shipped-behaviour correctness first, proof completeness
-second**. The behaviour half is done: the indexed pipeline — the one consumers
+Priority is **shipped-behavior correctness first, proof completeness
+second**. The behavior half is done: the indexed pipeline — the one consumers
 actually call — scores identically to legacy on all three matrix axes (items
 1–7, closed 2026-08-06), and item 18 (closed 2026-08-11) took the top of this
 table ahead of the proof rows for the four days it was open, because silent
@@ -8274,7 +8274,7 @@ over by a VALUE and refused in front of a KEY, at three columns and in a compact
 entry, with the reported position), the head's totality (the block scalar's `:`
 opens a SECOND entry; the alias key composes at a park that offers a frame and
 is scanner-refused at the root), and the shapes the surviving reasons name.  It
-pins runtime behaviour only: an escape is silent, so no observation can say
+pins runtime behavior only: an escape is silent, so no observation can say
 which arm an input takes.
 
 ### Item 66 (2026-09-04)
@@ -20911,6 +20911,121 @@ Only then item 183's flip order — the two REFUTABLE halves at the flow open, t
 three MISSING ROUTES, the flip.  And the parked Ix Step-1 composition, on the Ix
 track's own clock.
 
+### Item 189 (2026-09-17)
+
+**THE MAPPING TWIN PAID, AND A FUNDER THAT WAS SHADOWED RATHER THAN MISSING.**
+Branch `fix-a-grammar-completeness`, on top of item 188's `3a0e4a33`.
+
+**The production, and the column where it stops.**  `[185]`'s `s-l+block-node`
+alternative crosses to `SBlockNode (nv + 1)` for a mapping exactly as it does
+for a sequence, but `[187] l+block-mapping(n)` is opened at `n + m` with NO
+`seq-spaces` in front of it — that function belongs to `[183]` alone.  So the
+entries start at `nv + 1`, `slotLandedMap`'s side condition is `nv + 1 ≤ k`,
+**one column right of `slotLandedSeq`'s `nv ≤ k`**, and the twin exists only
+STRICTLY INSIDE the frame.  The runtime draws the same line, measured before
+anything was written: `?⏎  ?⏎: w` reads `+MAP +MAP =VAL : =VAL : -MAP =VAL :w
+-MAP` — the indented mapping IS the key — while `?⏎?⏎: w` at the frame's own
+column does not nest at all, the two `?`s fusing into ONE entry (`+MAP =VAL :
+=VAL :w -MAP`).  `slotLandedMap` depends on `[propext, Quot.sound]` and
+typechecked on the first build, as its twin did.
+
+**Where it had to go, and why that was not item 188's site.**  The dash arm's
+payment worked because the park a landed `-` opens carries NO frame of its own,
+so `pendingBlock.h_kslot` was free.  The park a landed `?` opens carries one:
+`question_open_map` pays `h_expl` with the `[187]` entry that `?` heads.  And
+`?⏎  ?⏎: w` has TWO frames open at once — the inner `?` at column 2 and the
+outer at 0 — while the landed `:` is on the outer.  `explFrameValueLine` reads
+a park's two funders (`h_expl`, `h_kslot`) as ONE datum and answers with the
+park's own, so the index that reached the consumer was always the inner
+frame's, and the consumer's `by_cases nv = k` correctly rejected it.  That is
+`block_dispatch_deferred_stamp_offcol`, exactly as item 185 named it: "the park
+HAS a value pack, at `nv`, and the landing is at `k ≠ nv`."
+
+**The measurement that settled it.**  Whether the shadowing was a constraint or
+a policy is not a question to read off source: swap `explFrameValueLine`'s two
+arms — take `h_kslot` first, `h_expl` as the fallback — and build.  **Green, 0
+errors.**  Every consumer accepts either funder, so the preference is a policy,
+and the datum that decides which one is needed is the LANDING's column, which
+neither producer has.  Item 189 therefore splits the two at the one place that
+does: `accum_block_on_closeThenBlock` now takes `h_vpackUp` beside `h_vpack`
+and tries the park's own pack at `k` first, the frame above it second.  Where
+only one frame is open the behavior is unchanged, which is what the unchanged
+suite verdicts say.
+
+**What landed.**  `slotLandedMap` beside `slotLandedSeq`; one new optional
+parameter on `question_open_map` (the level-up frame's route over
+`SBlockMapEntry k sp_ind sp_v`, folded into its own `explicitEmpty` entry to
+pay `pendingMapValue.h_kslot`, which had punted since item 93); the same
+parameter threaded through `indicator_open_map`, where only the `?` half can
+spend it; `h_vpackUp` on `accum_block_on_closeThenBlock`, spent at the `:` arm
+through one `h_upPack` read at `k` so that all four fallbacks share one answer;
+the `?`/`:` arm of that lemma filling the outer key slot with the landed
+mapping via `slotLandedMap`; and the payer at the block cascade's
+`pendingMapValue` face branch, handing `h_kslot93` up.  Ten other call sites
+punt explicitly rather than by default — the census instruments count punt
+alternatives, so a defaulted parameter would hide from them.
+
+**Only the `?` opener can spend the carrier, and the scanner says so.**  A `:`
+strictly inside an open `?` frame is refused at the landing itself —
+`?⏎  : a⏎: w` → `misindentedExplicitValue 1 2 0` — so `colon_open_map` has no
+input for it.  And a frame whose key slot is already filled on the `?` line
+takes no landed mapping: `? k⏎  ? a⏎: w` reads `=VAL :k ? a`, a folded plain
+scalar, the `?` on line 2 not being an indicator at all.  Both are measured,
+not argued.
+
+**The site instrument, run again on a different field.**  Delete
+`pendingMapValue.h_kslot`'s `∨ True` and build, at `3a0e4a33` and at this
+commit:
+
+| | declarations | errors |
+|---|---|---|
+| before item 189 | **9** | **14** |
+| after item 189 | **9** | **17** |
+
+The same nine both times (`question_open_map`, `colon_open_map`,
+`colon_open_map_explicit`, `colon_open_map_implicit`, `colon_open_map_props`,
+`compact_open_map`, `accum_block_pending`, `accum_content_pending`,
+`accum_flow_open_depth0`), and the errors up three — `question_open_map` alone
+goes 1 → 3, because a `match` costs more to break than an `Or.inr trivial`.
+Item 188 found that on `pendingBlock.h_kslot` and recorded it as a warning;
+item 189 ran it on a DIFFERENT field and got the same shape, so **it is the
+instrument's behavior and not that payment's accident**.  A punt count is a
+count of PRODUCERS, not of inputs, and a producer that pays conditionally is
+still a producer the flip breaks.  `FlipConsumerSurface`'s four lanes do not
+move either, for a third reason: a new punting PARAMETER is neither an
+application of the escape nor a pack punt, so that census cannot see this item
+at all.
+
+**Gates, all green at this commit.**  Full build **1162** jobs and the guards
+target, ZERO warnings; `scripts/run-all-tests.sh` **4520/4520** with Production
+Coverage Analysis **837/837**; `eventscore` **347/358** (95 error-ok, 0
+error-miss, 0 event-reject); `suiterunner` **869 / 0 / 151**;
+`matrix_score.py` over the 402-leaf data form on BOTH pipelines, **402/402
+event** (`pass` 308, `err-ok` 94) and **282/282 JSON** (`pass` 279, `err-ok` 3,
+`skip` 120), splits identical to 176–188; the `[210]` flip instrument at
+**FIVE** errors at the same five definitions (`topLevelFlowResumeSep`,
+`rootMapRoute`, `rootMapRouteF`, `bareNodeRoute`,
+`structural_dispatch_to_pending`), applied and restored clean; `#print axioms`
+over `slotLandedMap` (`propext`, `Quot.sound`) and the four threaded consumers,
+no `sorryAx`; checkers 228/355, 20/230/249/355, 25 capstones, and the
+annotation verifier at 100 % coverage with its same **19** pre-existing name
+mismatches.  Declarations **8036 → 8037** (+1), `#guard`s **7252 → 7259** (+7,
+§8's rows), test files **621**, unchanged.
+
+**What remains.**  `_stamp_offcol` is still 3 sites and `_stamp_nopack` still
+3; the surface is still **31 punt alternatives across 16 declarations, 8 of
+them constructor fields**, two of which now have a paid arm.  The honest
+statement of the progress is again that a DOMAIN shrank and no count did.  The
+next questions on `_stamp_offcol` are the OTHER shapes of `nv ≠ k` — a dedent
+landing inside a key, and the content-lane routes item 189 measured nothing
+about and left punting at four sites (`accum_block_on_pendingContent`,
+`…_pendingBlockContent`, `…_pendingBlock` twice).  Then **the REFUTATION** for
+`_stamp_compact` (2 sites, measured empty), **`KeyPackPunt`'s two reasons**
+(`dedent` 7/5 and `noKeyContext` 6/5, possibly a phantom), then the
+`pendingFlow` constructor and its arm.  Only then item 183's flip order — the
+two REFUTABLE halves at the flow open, the three MISSING ROUTES, the flip.  And
+the parked Ix Step-1 composition, on the Ix track's own clock.
+
 ### REMAINING, in order
 
 The per-item history is the closure log above; this section lists only the
@@ -21666,7 +21781,7 @@ Step 0 (the scanner audit for directive handling) and Fix B (eliminating
 at :186). Two of its constructors (`single`, `suffixContinue`) correspond
 directly to YAML 1.2.2 §9.1 production [211]. The other three are
 **over-approximations**; two were added during the v0.4.6 `scan_strict` proof
-to absorb scanner behaviour that did not map cleanly onto a spec production,
+to absorb scanner behavior that did not map cleanly onto a spec production,
 and the third has been latent since the constructor was written:
 
 - **`directiveDrop`** — absorbed orphaned directives (`%YAML 1.2` with no
@@ -22167,7 +22282,7 @@ input plus one `,`.
 `[? , {b: c}]` emits no `key` token for the nested mapping's `b`, because
 `explicitKeyLine` survives the `,` and suppresses `saveSimpleKey` for the rest of
 the line; `[a , {b: c}]` does emit it.  Both parse correctly (`[{"null":null},{"b":"c"}]`),
-so this is not a defect in the shipped behaviour, but β.3's accumulation will
+so this is not a defect in the shipped behavior, but β.3's accumulation will
 have to accept both shapes at a flow-map entry.
 
 #### Item 9h — an alias node ends its node (closed 2026-08-08); and site 5 is NOT vacuous
@@ -22940,7 +23055,7 @@ by the wrong dimension).
 #### Item 10 — the `?` arm's PRODUCER: a guard read forward (closed 2026-08-08)
 
 Item 9l left site 2's `?` arm with one bullet: its producer.  Building it
-changed no definition and no scanner behaviour.  What it needed was a reading of
+changed no definition and no scanner behavior.  What it needed was a reading of
 a coupling the file had, stated in a direction the file did not.
 
 **Every token-history coupling in the file concluded a `≠`.**  `tailOf_ne_value`
@@ -23249,7 +23364,7 @@ re-enables simple keys and clears the explicit-key line, preprocessing's
 `saveSimpleKey` overwrites the pending key before any dispatch can read it —
 confirmed by the token dump, where `{a: b, : c}`'s second `:` resolves a
 reservation pushed *after* the `flowEntry`, not the stale one.  So clearing it in
-`scanFlowEntry` is behaviour-preserving.  Built in both pipelines and measured:
+`scanFlowEntry` is behavior-preserving.  Built in both pipelines and measured:
 all **351** `yaml-test-suite` sources byte-identical.  It was reverted with the
 strictening — its own ripple is the `SimpleKeyAbove` / `SimpleKeyAboveFloor` /
 `AllKeysValid` family (6 sites), which has to move from "the comma PRESERVES the
@@ -23351,7 +23466,7 @@ majority.  All of that is reverted: threading the boundary through five
 `emitPairList_scans_nonempty` off the plain `EmitScansInFlow`, is a pass of its
 own.
 
-Reflection **631** (a behaviour change's price is invariant ripple plus SHAPE
+Reflection **631** (a behavior change's price is invariant ripple plus SHAPE
 ripple, and only the second one scales).
 
 #### Item 9r — the strictening LANDS, with the whole threading (2026-08-09)
@@ -24295,7 +24410,7 @@ pipelines and still defers: every content reading in `StreamAccum.lean` is
 stated at indent 0 (`dispatchContent_evidence` concludes `SFlowNode 0 .flowOut`,
 `SCLLiteral 0`, `SCLFolded 0`), and lifting those to the entry's own index is
 the next item.  §5 of the guard file pins those shapes so the residue is
-recorded as behaviour, not just as prose.
+recorded as behavior, not just as prose.
 
 **Validation.**  Full `lake build` green (963 targets, ZERO warnings);
 `Tests.Guards` 212 jobs (the new pin file); `Tests.Reflections` 422 jobs (new
@@ -24742,7 +24857,7 @@ settles fourteen of the sixteen in one line.  The whole blockage is **one
 state** — `emitPairList_scans_nonempty`'s recursion tail, where `scanFlowEntry`
 leaves a DEAD pending simple key that falsifies `SimpleKeyAboveFloor` and so
 every prefix-preservation lemma in the tower.  Clearing it at the `,` is
-behaviour-preserving (351/351 byte-identical, both pipelines) and unblocks
+behavior-preserving (351/351 byte-identical, both pipelines) and unblocks
 everything, at the cost of a 6-site ripple in the `SimpleKeyAbove` /
 `AllKeysValid` family.  Site 2 is unchanged: `StreamAccum.lean` is still at two
 `sorry`s.

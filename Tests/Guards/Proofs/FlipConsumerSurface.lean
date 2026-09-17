@@ -236,7 +236,15 @@ narrows the DOMAIN of a stuck arm, and an arm with a narrower domain is still
 an arm.  This census will register R3's progress only at the step where an arm
 becomes unreachable and its wrapper is deleted; until then a flat table here is
 evidence of nothing either way, and `BlockDeferralClasses` §7 carries what the
-step actually bought. -/
+step actually bought.
+
+Item 189 paid the second — the same slot filled by a landed MAPPING, where the
+obstacle was not a missing carrier but a SHADOWED one — and again no lane
+moves.  It adds one optional parameter to `accum_block_on_closeThenBlock` and
+one to the two map openers, which this census does not count either: the DEFERRAL
+lane counts applications of the escape, and a new punting parameter is neither
+an application nor a pack punt.  `BlockDeferralClasses` §8 carries the
+measurement, including the arm-swap that shows the shadowing was a policy. -/
 
 /-! ## The gate
 
