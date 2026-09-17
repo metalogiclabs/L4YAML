@@ -2013,6 +2013,90 @@ lemma scanValue_stamp_of_key {s s' : ScannerState}
           if_neg (by simp : ¬((false : Bool) = true))]
         rw [scanValue_epilogue_line h_peek]
 
+/-- **A key that SURVIVES the clear: the `:` STAMPS** (item 185).
+
+    `scanValue_stamp_of_key` above asks for the key's three coordinates
+    because it reconstructs the survival from them
+    (`scanValueClearKey_keeps_key`).  The field `explicitValue` actually reads
+    is the CLEARED state's, and that is decidable on the dispatch state like
+    the other two conjuncts — so this is the same discriminator with its
+    premise taken where the definition takes it, and it is what makes item
+    125's split TOTAL rather than two thirds of one. -/
+lemma scanValue_stamp_of_cleared_key {s s' : ScannerState}
+    (h : scanValue s = .ok s') (h_noflow : s.inFlow = false)
+    (h_peek : s.peek? = some ':')
+    (h_poss : (scanValueClearKey s).simpleKey.possible = true) :
+    s'.implicitValueLine = some s'.line := by
+  unfold scanValue at h
+  simp only [bind, Except.bind] at h
+  split at h
+  · cases h
+  · split at h
+    · cases h
+    · split at h
+      · cases h
+      · have h' := Except.ok.inj h
+        subst h'
+        show (if s.inFlow || _ then _ else some s.line) = _
+        rw [h_noflow, h_poss]
+        simp only [Bool.not_true, Bool.false_and, Bool.and_false, Bool.false_or,
+          if_neg (by simp : ¬((false : Bool) = true))]
+        rw [scanValue_epilogue_line h_peek]
+
+/-- **§8.2.2 [197] read BACKWARDS** (item 185): a block `:` that the validate
+    ADMITS with a live `?` register and no surviving key stands at the
+    mapping's own indent and off the `?`'s line.
+
+    The two throws are the spec's own `l-block-map-explicit-value(n) =
+    s-indent(n) ':' …`: the `l-` prefix puts the `:` on a line of its own, and
+    `s-indent(n)` is exact.  A consumer that has just refuted all three
+    `explicitValue` alternatives knows this `:` IS the explicit value, so it
+    also knows the two coordinates the scanner already tested for it. -/
+lemma scanValueValidate_explicit_at_indent {s : ScannerState} {ekLine : Nat}
+    (h : scanValueValidate s = .ok ())
+    (h_noflow : s.inFlow = false)
+    (h_ek : s.explicitKeyLine = some ekLine)
+    (h_poss : s.simpleKey.possible = false) :
+    s.line ≠ ekLine ∧ (s.col : Int) = s.currentIndent := by
+  unfold scanValueValidate at h
+  simp only [bind, Except.bind, h_ek, h_poss, h_noflow, Bool.false_and,
+    Bool.not_false, Bool.and_true, Bool.and_self,
+    if_neg (by simp : ¬((false : Bool) = true))] at h
+  rw [if_pos trivial] at h
+  have hline : s.line ≠ ekLine := by
+    intro hl
+    rw [if_pos (by simp [hl])] at h
+    simp at h
+  rw [if_neg (by simp [hline])] at h
+  refine ⟨hline, ?_⟩
+  by_cases hne : (s.col : Int) = s.currentIndent
+  · exact hne
+  · rw [if_pos (by simp [hne])] at h
+    simp at h
+
+/-- The same, read off a `:` dispatch that SUCCEEDED (item 185). -/
+lemma scanValue_explicit_at_indent {s s' : ScannerState} {ekLine : Nat}
+    (h : scanValue s = .ok s') (h_noflow : s.inFlow = false)
+    (h_ek : s.explicitKeyLine = some ekLine)
+    (h_poss : (scanValueClearKey s).simpleKey.possible = false) :
+    s.line ≠ ekLine ∧ (s.col : Int) = s.currentIndent := by
+  have h_val : scanValueValidate (scanValueClearKey s) = .ok () := by
+    unfold scanValue at h
+    simp only [bind, Except.bind] at h
+    split at h
+    · cases h
+    · rename_i u hv
+      cases u
+      exact hv
+  obtain ⟨hcol, hind, hflow, _, hekl, hline, _⟩ :=
+    L4YAML.Proofs.PreprocessIndentStable.scanValueClearKey_fields s
+  have h_ci : (scanValueClearKey s).currentIndent = s.currentIndent :=
+    L4YAML.Proofs.PreprocessIndentStable.currentIndent_of_indents_eq hind
+  have := scanValueValidate_explicit_at_indent (ekLine := ekLine) h_val
+    (by rw [hflow]; exact h_noflow) (by rw [hekl]; exact h_ek) h_poss
+  rw [hline, hcol, h_ci] at this
+  exact this
+
 /-- **The pending `?` is consumed (or absent) at any `:` whose resolved
     coordinate does not exceed the frame's column** — every arm of the
     epilogue's `explicitKeyLine` rule lands on `none`. -/

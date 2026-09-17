@@ -48,13 +48,17 @@ that reaches a raw route reaches it through that park among others, so the
 deferral's own census is pinned here beside the flip's — R3's deletion is what
 empties these arms, and the two numbers move together.
 
-**By CLASS, since item 184.**  The deferral's twelve applications are
-partitioned in the source by the branch that reaches them — the undecided
-stamp source (**9**), the mid-line inline residue (**2**), and `pendingFlow`'s
-own arm (**1**) — so the DEFERRAL lane counts three names rather than one and
-a class emptying shows as a wrapper leaving the list.  The PACK PUNT lane
-beside it counts what empties the inline class: `KeyPackPunt`'s two surviving
-reasons.  Both partitions and the input families they serve are documented at
+**By CLASS, since item 184; by ROUTE, since item 185.**  The deferral's twelve
+applications are partitioned in the source by the branch that reaches them.
+Item 184 read three classes — the undecided stamp source (**9**), the mid-line
+inline residue (**2**), and `pendingFlow`'s own arm (**1**).  Item 185 measured
+the nine and found them three QUESTIONS with three different prices: the park's
+pack stands off the landing's column (**3**), the park carries no pack at all
+(**4**), or the fill is COMPACT and the stamp is the only thing that funds it
+(**2**).  So the DEFERRAL lane counts five names rather than one and a class
+emptying shows as a wrapper leaving the list.  The PACK PUNT lane beside it
+counts what empties the inline class: `KeyPackPunt`'s two surviving reasons.
+Both partitions and the input families they serve are documented at
 [`BlockDeferralClasses`](BlockDeferralClasses.lean). -/
 
 namespace L4YAML.Tests.Guards.FlipConsumerSurface
@@ -92,15 +96,19 @@ def guards : List Name :=
    `bareNodeRoute_or_refused, `bareNodeRoute_or_refused_content,
    `topLevelFlowResumeSep_or_refused]
 
-/-- `pendingFlow`'s only producer, and the two wrappers that partition its
-    applications by the branch that reaches them (item 184): the undecided
-    stamp source, the mid-line inline residue, and — through the bare name —
-    `pendingFlow`'s own arm, which the escape produces and which goes with the
-    constructor.  The counts here are the DOMAIN's three classes, so a class
+/-- `pendingFlow`'s only producer, and the four wrappers that partition its
+    applications by the branch that reaches them (items 184–185): the stamp
+    source's three ROUTES — the pack off the landing's column, no pack at all,
+    and the compact fill — the mid-line inline residue, and, through the bare
+    name, `pendingFlow`'s own arm, which the escape produces and which goes
+    with the constructor.  The counts here are the DOMAIN's classes, so a class
     emptying shows as a wrapper leaving the list rather than as a total
     drifting. -/
 def deferral : List Name :=
-  [`block_dispatch_deferred, `block_dispatch_deferred_stamp,
+  [`block_dispatch_deferred,
+   `block_dispatch_deferred_stamp_offcol,
+   `block_dispatch_deferred_stamp_nopack,
+   `block_dispatch_deferred_stamp_compact,
    `block_dispatch_deferred_inline]
 
 /-- What empties the inline-residue class: the implicit-key pack's two
@@ -195,7 +203,14 @@ whose arms have nothing to pay the landing faces WITH, so it keeps the guards'
 fallback arms alive wherever it can reach them.  Pinning it here is what makes
 that dependency checkable rather than remembered: R3's deletion empties arms
 this census counts, and a change to either number should be read against the
-other. -/
+other.
+
+The rows below are the DOMAIN's shape, not the module's: each landed-`:`
+consumer contributes one `offcol` and one `nopack` because its `by_cases` on
+the park's pack has exactly those two stuck arms, and the two consumers with a
+compact-fill arm contribute a `compact` each.  `accum_block_on_noPending` is
+the asymmetric row — a virgin park holds no pack, so it has a `nopack` and
+nothing else. -/
 
 /-! ## The gate
 
@@ -214,10 +229,10 @@ All three lanes, in one walk of the module. -/
        "flowKeyRoute_of_root: rootMapRoute_or_refused=1 rootMapRouteF_or_refused=1",
        "question_open_map: rootMapRoute_or_refused=1 rootMapRouteF_or_refused=1"]⟩,
     ⟨⟨"DEFERRAL", deferral, deferral.map (ns ++ ·)⟩,
-      ["accum_block_on_closeThenBlock: block_dispatch_deferred_stamp=3 block_dispatch_deferred_inline=1",
-       "accum_block_on_noPending: block_dispatch_deferred_stamp=1",
-       "accum_block_on_pendingBlock: block_dispatch_deferred_stamp=3",
-       "accum_block_on_pendingBlockContent: block_dispatch_deferred_stamp=2 block_dispatch_deferred_inline=1",
+      ["accum_block_on_closeThenBlock: block_dispatch_deferred_stamp_offcol=1 block_dispatch_deferred_stamp_nopack=1 block_dispatch_deferred_stamp_compact=1 block_dispatch_deferred_inline=1",
+       "accum_block_on_noPending: block_dispatch_deferred_stamp_nopack=1",
+       "accum_block_on_pendingBlock: block_dispatch_deferred_stamp_offcol=1 block_dispatch_deferred_stamp_nopack=1 block_dispatch_deferred_stamp_compact=1",
+       "accum_block_on_pendingBlockContent: block_dispatch_deferred_stamp_offcol=1 block_dispatch_deferred_stamp_nopack=1 block_dispatch_deferred_inline=1",
        "accum_content_pending: block_dispatch_deferred=1"]⟩,
     ⟨⟨"PACK PUNT", packPunt,
        [ns ++ `keyPackPunt_transport,

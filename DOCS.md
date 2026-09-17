@@ -20270,10 +20270,18 @@ what says it was not passing vacuously.
 
 **Class A — the undecided stamp source, NINE of the twelve.**  Item 125 left
 this as "a live register at the landing's own column with no pack at that
-column", and what the branch means is sharper than that: the state holds a
+column", and what the branch means is sharper than that: ~~the state holds a
 live `explicitKeyLine` AND stands at `explicitKeyCol`, so the `:` is `[197]
 l-block-map-explicit-value`'s own and the GENERIC reopen — which stamps — is
-not merely unavailable but WRONG.  The route it wants is the `?` frame's value
+not merely unavailable but WRONG.~~ **Struck 2026-09-17 by
+[item 185](#item-185-2026-09-17)**: those two coordinates do not say that.
+`explicitValue` has a THIRD conjunct — the saved key that survives
+`scanValueClearKey` — and with it true the `:` stamps and the generic reopen is
+available after all, so the sentence held of every input measured and not of
+the branch as written.  Item 185 adds the missing alternative, after which the
+branch's premise IS `explicitValue = true` and the sentence is true as stated.
+Also struck: Class A is THREE questions, not one (item 185's 3/4/2), and the
+three classes named here overlap at two sites.  The route it wants is the `?` frame's value
 slot at the landing's column, which is U2's residue.  Its live family is
 pinned at `BlockDeferralClasses` §2, and it has TWO coordinates neither of
 which carries it alone — both read off `ParkFaceCoupling` §3, which is the
@@ -20350,6 +20358,165 @@ then **`KeyPackPunt`'s two reasons** (Class B), then the constructor and its
 arm (Class C).  Only then the flip's own order from item 183 — the two
 REFUTABLE halves at the flow open, the three MISSING ROUTES, the flip.  And
 the parked Ix Step-1 composition, on the Ix track's own clock.
+**Corrected 2026-09-17 by [item 185](#item-185-2026-09-17)**: Class A is not
+one question but THREE, priced separately, and the classes above overlap at
+two sites rather than partitioning the input.
+
+### Item 185 (2026-09-17)
+
+**Class A's NINE are three questions with three prices — and the split that
+named them was two thirds of a total one.**
+
+Item 184 put U2's residue first and priced it at nine applications.  §9's rule
+applies to a class exactly as it applies to an escape: enumerate what still
+exits, by measurement, before writing a number.  Doing that to the nine found
+three different missing things, and found the branch that reaches them stated
+more weakly than the reading it was named for.
+
+**The discriminator was incomplete, and that is why the branch had nothing to
+spend.**  `scanValue` computes
+
+    explicitValue = s_kc.explicitKeyLine.isSome && !s_kc.simpleKey.possible
+                      && (s.inFlow || (s.col : Int) == s_kc.explicitKeyCol)
+
+with `s_kc = scanValueClearKey s`.  Item 125's split reads the FIRST and the
+THIRD conjunct.  The middle one — the saved key that SURVIVES the clear — is a
+field of the same state, decidable there like the other two, and leaving it out
+did not make the escape's branch smaller: it made it UNNAMED.  The negation of
+a two-alternative disjunction is strictly weaker than `explicitValue = true`,
+so the branch could not be spent even where every input in it satisfies the
+stronger statement.  `scanValue_stamp_of_cleared_key` supplies the third
+alternative (`scanValue_stamp_of_key`'s proof with its premise taken where the
+definition takes it, so it needs one hypothesis rather than three), and
+`scanValue_stamp_of_src` now joins all three.
+
+**What the third alternative is WORTH, measured before it was spent.**  At the
+runtime it removes NOTHING: over 5 186 accepted three-line programs, the number
+carrying a class-A landed `:` is **1 412 under item 125's split and 1 412 under
+the widened one**.  So this is not a domain narrowing and is not recorded as
+one.  What it buys is that the negation is now exactly `explicitValue = true` —
+the `:` IS `[197] l-block-map-explicit-value`'s own — and THAT is spendable:
+the scanner admitted the dispatch, so §8.2.2 [197]'s own two tests already
+passed, and `explicit_at_indent_of_dispatch` reads them back off the same
+state — the `:` stands off the `?`'s line and at `s-indent(n)`,
+`(col : Int) = currentIndent`.  All nine sites now PRODUCE that equation, so
+the datum a route into the `?` frame's value slot has to land on is known
+present at every one of them rather than at the ones a reading happened to
+check.
+
+**The nine, partitioned in the code: 3 / 4 / 2.**  Each landed-`:` consumer
+splits again on the park's value pack (`h_vpack`/`h_kslot`), and that
+`by_cases` has exactly two stuck arms; the two consumers with a compact-fill
+arm have a third.  Three wrappers replace one, each carrying its branch's own
+evidence:
+
+| wrapper | applications | holders | what empties it |
+|---|---|---|---|
+| `_stamp_offcol` | **3** | `closeThenBlock`, `pendingBlock`, `pendingBlockContent` | a reason `nv = k` — the park's pack index and the landing's column |
+| `_stamp_nopack` | **4** | the same three, plus `noPending` | a CARRIER — the `?` frame's value slot at the landing's column |
+| `_stamp_compact` | **2** | `closeThenBlock`, `pendingBlock` | the stamp itself, or a refutation |
+
+`FlipConsumerSurface`'s DEFERRAL lane counts five names now and was re-pinned
+with the rows PREDICTED from the split before the build; it went green on the
+first run, which is what says the 3/4/2 was derived rather than read off the
+result.
+
+**The classes OVERLAP; only the sites are partitioned.**  `_stamp_compact`'s
+two sites hold `inline_residue_of_landing`'s conclusion as well, and the
+wrapper takes BOTH premises, so the elaborator certifies the overlap.  Item
+184's three "classes" are three branches of the proof, not three disjoint sets
+of inputs, and a wrapper's number is a count of SITES.  Its record is corrected
+in place above.
+
+**The three routes want three different things, and they price differently.**
+
+* **`_stamp_offcol` (3) is a COUPLING, not a carrier.**  The park HAS the
+  value pack; `colon_open_map_explicit` fires only at `nv = k` because
+  `[187]`'s `s-indent(n)` is exact.  What is missing is a reason the pack's
+  index and the landing's column agree.  The scanner now hands
+  `col = currentIndent` at every site, so the shape of the payment is a
+  scanner↔surface fact about the pack's index and the indent stack — U3's
+  lane, not U2's, and the producers it touches are the ones that PAY the
+  pack rather than the ones that read it.
+* **`_stamp_nopack` (4) is the class with NOTHING to carry.**  The field's
+  other alternative is `True`, so the branch has no proposition to hand a
+  wrapper and no discriminator an elaborator can check — the census row is its
+  only instrument, which is the same signature R646 reads on a possible
+  phantom, here for a different reason.  `accum_block_on_noPending`'s site is
+  in it by construction: a virgin park holds no pack.  This is U2's residue
+  proper and its price is a CARRIER on the park.
+* **`_stamp_compact` (2) cannot be paid with a face at all.**  `[189]
+  c-l-block-map-implicit-value`'s value is `s-l+block-node`, which has no
+  compact alternative and opens no `[188]` entry of its own, so
+  `compact_open_map`'s `:` branch needs the stamp and the `?` branch's face
+  cannot stand in for it (the file has said so since item 101).  So this class
+  empties by REFUTATION or not at all — and the runtime says it is empty.
+
+**The compact route is EMPTY at every input two instruments could build.**
+Only a `:` reaches those two sites — the consumers' `hcv.elim` discharges the
+`?` arm by `absurd` and the `-` is handled before the split — so the shape is a
+MID-LINE `:` standing at a live `explicitKeyCol`.  A sweep of **35 937**
+three-line programs over a 33-fragment line alphabet accepts 5 186, of which
+1 412 carry a landed class-A `:` and **zero** carry a compact one; all **351**
+`yaml-test-suite` sources carry **zero of either**.  The refusals are §8.2.2
+[197]'s own indent test (`misindentedExplicitValue`), and the `?`/`-`
+neighbours at the identical coordinate are accepted — which is what says the
+refusal belongs to the `:` and not to the column.  That is an emptiness
+MEASURED, not proved, so `_stamp_compact` is recorded as a refutation TARGET
+and the wrapper stays until a proof replaces the measurement.
+
+**And the whole class is invisible to the suite.**  Zero of the 351 sources
+reaches class A at all, landed or compact.  R3's remaining domain has no
+representative in the corpus that has driven 184 items of this row, which is
+the honest explanation of how an escape this size survived them — and the
+reason its family is hand-built at `BlockDeferralClasses` §2 and §4.
+
+**No runtime.**  Four new proof lemmas, three wrappers replacing one, and the
+nine sites re-aimed; no route, no field, no production and no scanner
+definition changed.  Widening the discriminator touched 15 consumer sites
+mechanically and cost nothing else: every error the builds reported was in the
+new text — the wrapper whose premise was being replaced, a `push_neg` this
+project has no Mathlib for, and a conjunct destructured one level too shallow —
+and not one of the 15 widened sites failed.
+
+**Measured at the landed state.**  Full `lake build` **1162** jobs and
+`Tests.Guards`/`Tests.Reflections` **735**, ZERO warnings in both; suite
+**4520/4520** with Production Coverage Analysis **837/837**; `eventscore`
+**347/358** (252 event-pass, 11 event-diff, 0 event-reject, 95 error-ok, 0
+error-miss); `suiterunner` **869 / 0 / 151**; `matrix_score.py` over the
+402-leaf data form on BOTH pipelines, **402/402 event + 282/282 JSON** with the
+splits identical to 176–184 (`err-ok` 94 / `pass` 308; JSON `err-ok` 3 / `pass`
+279 / `skip` 120); the `[210]` flip instrument at **FIVE** errors at the same
+five lines (4190, 5470, 5493, 5662, 7114), applied and restored clean; the
+raw-route census **TWO** holders and the consumer census **8 / 15**, both
+unchanged; `#print axioms` over the four new lemmas, the three wrappers and the
+five consumers, no `sorryAx` (the new lemmas carry only `propext`,
+`Classical.choice`, `Quot.sound`); checkers 228/355, 20/230/249/355, 25
+capstones, and the annotation verifier at 100 % coverage with its same **19**
+pre-existing name mismatches.  Declarations **8025 → 8031** (+6: four lemmas,
+and three wrappers replacing one), counted as
+`grep -rhoE "^(lemma|theorem|def) " --include='*.lean' L4YAML/`; `#guard`s
+**7208 → 7216** (+8, §4's rows), counted as
+`grep -rhoE "^#guard\b" --include='*.lean' Tests/`; test files **621**,
+unchanged.
+
+**A correction to this item's own instrument.**  The first run of the flip
+patch reported ZERO errors.  The patch was fine; the reading was not — the grep
+put `error` after the `line:col` and Lean prints it before, so the filter
+matched nothing and a broken filter read as a clean build.  §8's rule caught
+it: an inconclusive result is not a negative one, and a zero where five were
+expected is a claim about the instrument first.  The re-run reads the same five
+definitions and lines as items 183 and 184.
+
+**What remains, in the map's order.**  R3's deletion, still a row, but now
+three payments rather than one: **the CARRIER** for `_stamp_nopack` (4 sites,
+U2's residue proper), **the COUPLING** for `_stamp_offcol` (3 sites, the pack's
+index against the indent stack), and **the REFUTATION** for `_stamp_compact`
+(2 sites, whose family two instruments read as empty).  Then
+**`KeyPackPunt`'s two reasons** (the inline class), then the constructor and
+its arm.  Only then the flip's own order from item 183 — the two REFUTABLE
+halves at the flow open, the three MISSING ROUTES, the flip.  And the parked Ix
+Step-1 composition, on the Ix track's own clock.
 
 ### REMAINING, in order
 

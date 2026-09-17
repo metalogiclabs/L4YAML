@@ -17249,22 +17249,63 @@ lemma scanValue_ok_park_facts {s s' : ScannerState}
               hp_line, hck_line]
 
 /-- **The stamp is REAL when the `:` could not consume an explicit pair**
-    (item 125): item 124's two line-free `scanValue` discriminators, joined in
-    the disjunctive form the landed-`:` consumers decide by classical case
-    split on their own dispatch state.  A `:` whose state has no live
-    `explicitKeyLine`, or whose column differs from `explicitKeyCol`, computed
-    `explicitValue = false` and stamped its line — which is what pays
-    `pendingMapValue.h_ivl`'s left disjunct outright. -/
+    (item 125): item 124's line-free `scanValue` discriminators, joined in the
+    disjunctive form the landed-`:` consumers decide by classical case split on
+    their own dispatch state.  A `:` whose state has no live `explicitKeyLine`,
+    whose saved key SURVIVES the clear, or whose column differs from
+    `explicitKeyCol`, computed `explicitValue = false` and stamped its line —
+    which is what pays `pendingMapValue.h_ivl`'s left disjunct outright.
+
+    **Item 185: the middle alternative, and why it makes the split TOTAL.**
+    `explicitValue` is a conjunction of three tests, and item 125 read the
+    first and the third.  The second — the key the CLEAR leaves standing — is
+    a field of the same state and decidable there like the others, so leaving
+    it out did not make the escape's branch smaller, it made it UNNAMED: the
+    negation of the two-alternative form is weaker than `explicitValue = true`
+    and could not be spent.  With all three the negation IS
+    `explicitValue = true`, which is what `explicit_at_indent_of_dispatch`
+    below then reads the scanner's own `s-indent(n)` test off. -/
 lemma scanValue_stamp_of_src {s s' : ScannerState}
     (h : scanValue s = .ok s') (h_noflow : s.inFlow = false)
     (h_peek : s.peek? = some ':')
-    (h_src : s.explicitKeyLine = none ∨ (s.col : Int) ≠ s.explicitKeyCol) :
+    (h_src : s.explicitKeyLine = none ∨
+      (scanValueClearKey s).simpleKey.possible = true ∨
+      (s.col : Int) ≠ s.explicitKeyCol) :
     s'.implicitValueLine = some s'.line :=
   h_src.elim
     (fun h_ek =>
       (ExplicitKeyCoupling.scanValue_ok_of_ekl_none h h_noflow h_peek h_ek).1)
-    (fun h_ne =>
-      ExplicitKeyCoupling.scanValue_stamp_of_col_ne h h_noflow h_peek h_ne)
+    (fun h_rest => h_rest.elim
+      (fun h_key =>
+        ExplicitKeyCoupling.scanValue_stamp_of_cleared_key h h_noflow h_peek h_key)
+      (fun h_ne =>
+        ExplicitKeyCoupling.scanValue_stamp_of_col_ne h h_noflow h_peek h_ne))
+
+/-- **What the escape's stamp-source branch KNOWS** (item 185): the three
+    alternatives refuted, the `:` is `[197] l-block-map-explicit-value`'s own —
+    and the scanner admitted it, so `s-indent(n)` already holds at the dispatch
+    state's own column.
+
+    This is the branch's residue stated as data rather than as a negation.  It
+    is what a route into the `?` frame's value slot has to land on, and having
+    every deferral site produce it is what says the datum is THERE at all of
+    them rather than at the ones a reading happened to check. -/
+lemma explicit_at_indent_of_dispatch {s_dis s' : ScannerState}
+    (h_dispatch : scanNextToken_dispatchBlockIndicators s_dis ':' = .ok (some s'))
+    (h_noflow : s_dis.inFlow = false)
+    (h_src : ¬(s_dis.explicitKeyLine = none ∨
+      (scanValueClearKey s_dis).simpleKey.possible = true ∨
+      (s_dis.col : Int) ≠ s_dis.explicitKeyCol)) :
+    (s_dis.col : Int) = s_dis.currentIndent := by
+  have h_key : (scanValueClearKey s_dis).simpleKey.possible = false := by
+    cases h : (scanValueClearKey s_dis).simpleKey.possible
+    · rfl
+    · exact absurd (Or.inr (Or.inl h)) h_src
+  cases h_ekl : s_dis.explicitKeyLine with
+  | none => exact absurd (Or.inl h_ekl) h_src
+  | some ekLine =>
+    exact (ExplicitKeyCoupling.scanValue_explicit_at_indent
+      (dispatchBlock_colon_scanValue h_dispatch) h_noflow h_ekl h_key).2
 
 -- The col-0 `:` producer (item 13): from a stream already closed at the
 -- line start, the value indicator opens an EMPTY-KEY block mapping and
@@ -17391,6 +17432,9 @@ lemma colon_open_map {sc : ScannerState} (sp_start sp_land sp_ind : SurfPos) (k 
     (h_src : (if s_prep.allowDirectives then
         { s_prep with allowDirectives := false, documentEverStarted := true }
       else s_prep).explicitKeyLine = none ∨
+      (scanValueClearKey (if s_prep.allowDirectives then
+        { s_prep with allowDirectives := false, documentEverStarted := true }
+      else s_prep)).simpleKey.possible = true ∨
       ((if s_prep.allowDirectives then
         { s_prep with allowDirectives := false, documentEverStarted := true }
       else s_prep).col : Int) ≠ (if s_prep.allowDirectives then
@@ -17983,6 +18027,9 @@ lemma compact_open_map (sp_start sp_entry sp_ind : SurfPos) (n m : Nat)
     (h_src : c = ':' → (if s_prep.allowDirectives then
         { s_prep with allowDirectives := false, documentEverStarted := true }
       else s_prep).explicitKeyLine = none ∨
+      (scanValueClearKey (if s_prep.allowDirectives then
+        { s_prep with allowDirectives := false, documentEverStarted := true }
+      else s_prep)).simpleKey.possible = true ∨
       ((if s_prep.allowDirectives then
         { s_prep with allowDirectives := false, documentEverStarted := true }
       else s_prep).col : Int) ≠ (if s_prep.allowDirectives then
@@ -18190,6 +18237,9 @@ lemma indicator_open_map {sc : ScannerState}
     (h_src : c = ':' → (if s_prep.allowDirectives then
         { s_prep with allowDirectives := false, documentEverStarted := true }
       else s_prep).explicitKeyLine = none ∨
+      (scanValueClearKey (if s_prep.allowDirectives then
+        { s_prep with allowDirectives := false, documentEverStarted := true }
+      else s_prep)).simpleKey.possible = true ∨
       ((if s_prep.allowDirectives then
         { s_prep with allowDirectives := false, documentEverStarted := true }
       else s_prep).col : Int) ≠ (if s_prep.allowDirectives then
@@ -19148,46 +19198,125 @@ lemma block_dispatch_deferred
    PendingNode.pendingFlow sp_start sp_X sp_scan' h_stream h_arm h_nodir,
    hcorr⟩
 
-/-! #### The escape's three classes, named (item 184)
+/-! #### The escape's classes, named (items 184–185)
 
     `block_dispatch_deferred` has twelve applications across five consumer
     lemmas, and the number says nothing about what still exits through it: an
     escape's price is its DOMAIN, and the site count is independent of that in
-    both directions (Reflection 645).  The two wrappers below partition the
+    both directions (Reflection 645).  The wrappers below partition the
     applications by the branch that sends them there, and each carries THAT
     branch's own evidence, so the partition is checked by the elaborator
     rather than read off the source — and a class emptying is a wrapper's
     deletion rather than a number moving.
 
-    * `block_dispatch_deferred_stamp` — item 125's undecided stamp source.
-      The dispatch state holds a live `explicitKeyLine` AND stands at
-      `explicitKeyCol`, so the `:` is `[197] l-block-map-explicit-value`'s own
-      and the GENERIC reopen — which stamps — is not merely unavailable but
-      wrong.  What the branch wants is the `?` frame's value slot at the
-      landing's own column, which a park carries only when a pack reached it:
-      U2's residue, whose scanner-ACCEPTED inputs are pinned at
-      `ParkFaceCoupling` §3.
-    * `block_dispatch_deferred_inline` — the inline residue.  The park is off
-      column 0 and the step crossed no break, so the `:` is a MID-LINE one and
-      the residue is the implicit-key pack's punt (item 102), whose surviving
-      reasons are `KeyPackPunt.dedent` and `.noKeyContext`.
-    * `block_dispatch_deferred` itself — `pendingFlow`'s own arm, which this
-      escape PRODUCES.  It cannot close while the escape stands and goes with
-      the constructor (item 35's structural note). -/
+    **Item 184** named three classes: the undecided stamp source (9), the
+    inline residue (2) and `pendingFlow`'s own arm (1).  **Item 185** measured
+    the NINE and found them three questions, not one — the consumer splits
+    again on the park's value pack, and the two compact sites take a different
+    route entirely:
 
-/-- **The escape's stamp-source class** (item 184): item 125's split, taken on
-    its negative side.  The premise is the branch's own hypothesis, so the
-    class is a statement about the state the dispatch reads rather than a
-    label — when the coupling that refutes it lands, this wrapper is what
-    disappears. -/
-lemma block_dispatch_deferred_stamp
+    * `block_dispatch_deferred_stamp_offcol` (3) — the park HAS a value pack,
+      at index `nv`, and the landing is at `k ≠ nv`.  `colon_open_map_explicit`
+      is the route and it is exact at `[187]`'s `s-indent(n)`, so what is
+      missing is a reason the two indices agree.
+    * `block_dispatch_deferred_stamp_nopack` (4) — the park carries no value
+      pack at all.  This is the class with NOTHING to carry: the field's other
+      alternative is `True`, so no proposition distinguishes these sites and
+      the census is their only instrument.  `accum_block_on_noPending`'s
+      site is here by construction — a virgin park has no pack to hold.
+    * `block_dispatch_deferred_stamp_compact` (2) — the step crossed no break
+      and the park is an open `[185]` slot, so `compact_open_map` is the route
+      and it needs the STAMP: `[189]`'s value is `s-l+block-node`, which has
+      no compact alternative, so the face cannot stand in for it.  These two
+      sites carry the INLINE RESIDUE as well, which is what says the classes
+      of item 184 overlap rather than partition the input.
+    * `block_dispatch_deferred_inline` (2) — the inline residue alone.  The
+      park is off column 0 and the step crossed no break, so the `:` is a
+      MID-LINE one and the residue is the implicit-key pack's punt (item 102),
+      whose surviving reasons are `KeyPackPunt.dedent` and `.noKeyContext`.
+    * `block_dispatch_deferred` itself (1) — `pendingFlow`'s own arm, which
+      this escape PRODUCES.  It cannot close while the escape stands and goes
+      with the constructor (item 35's structural note).
+
+    **What the three stamp wrappers share** is item 185's sharpened premise.
+    The dispatch state's `explicitValue` is TRUE — all three of `scanValue`'s
+    alternatives refuted, not two of them — so the `:` IS `[197]
+    l-block-map-explicit-value`'s own, and the scanner ADMITTED it, which by
+    `explicit_at_indent_of_dispatch` means `s-indent(n)` already holds at the
+    dispatch state's column.  Every site produces that equation, so the datum
+    a route into the `?` frame's value slot has to land on is known to be
+    present at all of them. -/
+
+/-- **The escape's stamp source, the park's pack OFF the landing's column**
+    (item 185).  The consumer found a value pack at `nv` and the landing is at
+    `k`; `colon_open_map_explicit` fires only when they agree, because
+    `[187]`'s `s-indent(n)` is exact.  The disequality is the branch's own,
+    so this class empties exactly when something makes the two indices meet. -/
+lemma block_dispatch_deferred_stamp_offcol
+    (sp_start sp_X sp_scan' : SurfPos) (s' : ScannerState) {s_dis : ScannerState}
+    {nv k : Nat}
+    (h_stream : SLYamlStream sp_start sp_X)
+    (h_arm : s'.simpleKeyAllowed = true ∨ 0 < sp_scan'.col)
+    (hcorr : ScannerSurfCorr s' sp_scan')
+    (h_nodir : s'.allowDirectives = false)
+    (_h_src : ¬(s_dis.explicitKeyLine = none ∨
+      (scanValueClearKey s_dis).simpleKey.possible = true ∨
+      (s_dis.col : Int) ≠ s_dis.explicitKeyCol))
+    (_h_indent : (s_dis.col : Int) = s_dis.currentIndent)
+    (_h_ne : nv ≠ k) :
+    ∃ sp_gram' sp_block' sp_flow' sp_scan',
+      SLYamlStream sp_start sp_gram' ∧
+      BlockStack sp_gram' sp_block' ∧
+      FlowStackB sp_start 0 0 none 0 #[] #[] .sep sp_block' sp_flow' ∧
+      PendingNode s' false sp_start sp_flow' sp_scan' ∧
+      ScannerSurfCorr s' sp_scan' :=
+  block_dispatch_deferred sp_start sp_X sp_scan' s' h_stream h_arm hcorr h_nodir
+
+/-- **The escape's stamp source with NO pack at the park** (item 185): the
+    class that carries nothing.  `h_vpack`/`h_kslot`'s other alternative is
+    `True`, so the branch has no proposition to hand a wrapper and the census
+    row is the only instrument that can re-derive this count.  What empties it
+    is a CARRIER — a face on the park saying the `?` frame's value slot stands
+    open at the landing's column — which is U2's residue proper. -/
+lemma block_dispatch_deferred_stamp_nopack
     (sp_start sp_X sp_scan' : SurfPos) (s' : ScannerState) {s_dis : ScannerState}
     (h_stream : SLYamlStream sp_start sp_X)
     (h_arm : s'.simpleKeyAllowed = true ∨ 0 < sp_scan'.col)
     (hcorr : ScannerSurfCorr s' sp_scan')
     (h_nodir : s'.allowDirectives = false)
     (_h_src : ¬(s_dis.explicitKeyLine = none ∨
-      (s_dis.col : Int) ≠ s_dis.explicitKeyCol)) :
+      (scanValueClearKey s_dis).simpleKey.possible = true ∨
+      (s_dis.col : Int) ≠ s_dis.explicitKeyCol))
+    (_h_indent : (s_dis.col : Int) = s_dis.currentIndent) :
+    ∃ sp_gram' sp_block' sp_flow' sp_scan',
+      SLYamlStream sp_start sp_gram' ∧
+      BlockStack sp_gram' sp_block' ∧
+      FlowStackB sp_start 0 0 none 0 #[] #[] .sep sp_block' sp_flow' ∧
+      PendingNode s' false sp_start sp_flow' sp_scan' ∧
+      ScannerSurfCorr s' sp_scan' :=
+  block_dispatch_deferred sp_start sp_X sp_scan' s' h_stream h_arm hcorr h_nodir
+
+/-- **The escape's stamp source at a COMPACT fill** (item 185): the `:` on the
+    park's own line, where `compact_open_map` is the route.  That route cannot
+    pay the face instead — `[189] c-l-block-map-implicit-value`'s value is
+    `s-l+block-node`, which has no compact alternative and opens no `[188]`
+    entry of its own — so the stamp is not a convenience here but the only
+    thing that funds the park.
+
+    The premise records BOTH discriminators: these two sites satisfy the
+    inline residue's as well, so item 184's classes overlap at them. -/
+lemma block_dispatch_deferred_stamp_compact
+    (sp_start sp_X sp_scan' : SurfPos) (s' : ScannerState) {s_dis : ScannerState}
+    {sp_park : SurfPos} {c : Char}
+    (h_stream : SLYamlStream sp_start sp_X)
+    (h_arm : s'.simpleKeyAllowed = true ∨ 0 < sp_scan'.col)
+    (hcorr : ScannerSurfCorr s' sp_scan')
+    (h_nodir : s'.allowDirectives = false)
+    (_h_src : ¬(s_dis.explicitKeyLine = none ∨
+      (scanValueClearKey s_dis).simpleKey.possible = true ∨
+      (s_dis.col : Int) ≠ s_dis.explicitKeyCol))
+    (_h_indent : (s_dis.col : Int) = s_dis.currentIndent)
+    (_h_res : InlineResidue sp_park c) :
     ∃ sp_gram' sp_block' sp_flow' sp_scan',
       SLYamlStream sp_start sp_gram' ∧
       BlockStack sp_gram' sp_block' ∧
@@ -19346,6 +19475,9 @@ lemma accum_block_on_noPending
     · have h_open := fun (h_src : c = ':' → (if s_prep.allowDirectives then
               { s_prep with allowDirectives := false, documentEverStarted := true }
             else s_prep).explicitKeyLine = none ∨
+            (scanValueClearKey (if s_prep.allowDirectives then
+              { s_prep with allowDirectives := false, documentEverStarted := true }
+            else s_prep)).simpleKey.possible = true ∨
             ((if s_prep.allowDirectives then
               { s_prep with allowDirectives := false, documentEverStarted := true }
             else s_prep).col : Int) ≠ (if s_prep.allowDirectives then
@@ -19389,16 +19521,23 @@ lemma accum_block_on_noPending
       · by_cases h_src : (if s_prep.allowDirectives then
             { s_prep with allowDirectives := false, documentEverStarted := true }
           else s_prep).explicitKeyLine = none ∨
+          (scanValueClearKey (if s_prep.allowDirectives then
+            { s_prep with allowDirectives := false, documentEverStarted := true }
+          else s_prep)).simpleKey.possible = true ∨
           ((if s_prep.allowDirectives then
             { s_prep with allowDirectives := false, documentEverStarted := true }
           else s_prep).col : Int) ≠ (if s_prep.allowDirectives then
             { s_prep with allowDirectives := false, documentEverStarted := true }
           else s_prep).explicitKeyCol
         · exact h_open (fun _ => h_src)
-        · exact block_dispatch_deferred_stamp sp_start sp_mid sp_scan' s'
+        · -- Item 185: a virgin park holds no value pack, so this site is
+          -- `nopack` by construction rather than by a branch.
+          exact block_dispatch_deferred_stamp_nopack sp_start sp_mid sp_scan' s'
             (ssl_comments_extend_stream sp_start sp_block _ h_stream_block h_ssl_pre)
             (Or.inl (block_indicator_arm h_dispatch)) hcorr_result
             (nodir_of_block_dispatch h_dispatch) h_src
+            (explicit_at_indent_of_dispatch (hc_colon ▸ h_dispatch)
+              (noflow_disp_of_noflow h_noflow) h_src)
       · exact h_open (fun h => absurd (hc_q.symm.trans h) (by decide))
     · exact (block_indicator_exhausted h_dispatch hc hcv).elim
 
@@ -19648,6 +19787,9 @@ lemma accum_block_on_closeThenBlock
         · have h_fill := fun (h_src : c = ':' → (if s_prep.allowDirectives then
                 { s_prep with allowDirectives := false, documentEverStarted := true }
               else s_prep).explicitKeyLine = none ∨
+              (scanValueClearKey (if s_prep.allowDirectives then
+                { s_prep with allowDirectives := false, documentEverStarted := true }
+              else s_prep)).simpleKey.possible = true ∨
               ((if s_prep.allowDirectives then
                 { s_prep with allowDirectives := false, documentEverStarted := true }
               else s_prep).col : Int) ≠ (if s_prep.allowDirectives then
@@ -19666,15 +19808,25 @@ lemma accum_block_on_closeThenBlock
           · by_cases h_src : (if s_prep.allowDirectives then
                 { s_prep with allowDirectives := false, documentEverStarted := true }
               else s_prep).explicitKeyLine = none ∨
+              (scanValueClearKey (if s_prep.allowDirectives then
+                { s_prep with allowDirectives := false, documentEverStarted := true }
+              else s_prep)).simpleKey.possible = true ∨
               ((if s_prep.allowDirectives then
                 { s_prep with allowDirectives := false, documentEverStarted := true }
               else s_prep).col : Int) ≠ (if s_prep.allowDirectives then
                 { s_prep with allowDirectives := false, documentEverStarted := true }
               else s_prep).explicitKeyCol
             · exact h_fill (fun _ => h_src)
-            · exact block_dispatch_deferred_stamp sp_start sp_a sp_scan' s' h_stream_a
+            · -- Item 185: the COMPACT fill, which also holds the inline
+              -- residue — the two classes overlap here.
+              exact block_dispatch_deferred_stamp_compact sp_start sp_a sp_scan' s'
+                h_stream_a
                 (Or.inl (block_indicator_arm h_dispatch)) hcorr_result
                 (nodir_of_block_dispatch h_dispatch) h_src
+                (explicit_at_indent_of_dispatch (hc_colon ▸ h_dispatch)
+                  (noflow_disp_of_noflow h_noflow) h_src)
+                (inline_residue_of_landing ⟨rfl, h_col_ne⟩ hws h_pk hcorr_prep
+                  (preprocess_some_peek h_preprocess))
           · exact h_fill (fun h => absurd (hc_q.symm.trans h) (by decide))
         · exact (block_indicator_exhausted h_dispatch hc hcv).elim
     · have h_res := inline_residue_of_landing ⟨h_mid.1, h_mid.2.1⟩ hws h_pk hcorr_prep
@@ -19905,6 +20057,9 @@ lemma accum_block_on_closeThenBlock
     · have h_generic := fun (h_src : c = ':' → (if s_prep.allowDirectives then
             { s_prep with allowDirectives := false, documentEverStarted := true }
           else s_prep).explicitKeyLine = none ∨
+          (scanValueClearKey (if s_prep.allowDirectives then
+            { s_prep with allowDirectives := false, documentEverStarted := true }
+          else s_prep)).simpleKey.possible = true ∨
           ((if s_prep.allowDirectives then
             { s_prep with allowDirectives := false, documentEverStarted := true }
           else s_prep).col : Int) ≠ (if s_prep.allowDirectives then
@@ -19963,6 +20118,9 @@ lemma accum_block_on_closeThenBlock
         by_cases h_src : (if s_prep.allowDirectives then
             { s_prep with allowDirectives := false, documentEverStarted := true }
           else s_prep).explicitKeyLine = none ∨
+          (scanValueClearKey (if s_prep.allowDirectives then
+            { s_prep with allowDirectives := false, documentEverStarted := true }
+          else s_prep)).simpleKey.possible = true ∨
           ((if s_prep.allowDirectives then
             { s_prep with allowDirectives := false, documentEverStarted := true }
           else s_prep).col : Int) ≠ (if s_prep.allowDirectives then
@@ -19978,12 +20136,20 @@ lemma accum_block_on_closeThenBlock
           · by_cases hknv : nv = k
             · subst hknv
               exact h_explicit hvp
-            · exact block_dispatch_deferred_stamp sp_start sp_mid sp_scan' s' h_stream_new
+            · -- Item 185: the pack is OFF the landing's column.
+              exact block_dispatch_deferred_stamp_offcol sp_start sp_mid sp_scan' s'
+                h_stream_new
                 (Or.inl (block_indicator_arm h_dispatch)) hcorr_result
                 (nodir_of_block_dispatch h_dispatch) h_src
-          · exact block_dispatch_deferred_stamp sp_start sp_mid sp_scan' s' h_stream_new
+                (explicit_at_indent_of_dispatch h_dispatch
+                  (noflow_disp_of_noflow h_noflow) h_src) hknv
+          · -- Item 185: the park carries NO pack.
+            exact block_dispatch_deferred_stamp_nopack sp_start sp_mid sp_scan' s'
+              h_stream_new
               (Or.inl (block_indicator_arm h_dispatch)) hcorr_result
               (nodir_of_block_dispatch h_dispatch) h_src
+              (explicit_at_indent_of_dispatch h_dispatch
+                (noflow_disp_of_noflow h_noflow) h_src)
       · exact h_generic (fun h => absurd h hc_colon)
     · exact (block_indicator_exhausted h_dispatch hc hcv).elim
 
@@ -20575,6 +20741,9 @@ lemma accum_block_on_pendingBlockContent
       · have h_gen := fun (h_src : c = ':' → (if s_prep.allowDirectives then
               { s_prep with allowDirectives := false, documentEverStarted := true }
             else s_prep).explicitKeyLine = none ∨
+            (scanValueClearKey (if s_prep.allowDirectives then
+              { s_prep with allowDirectives := false, documentEverStarted := true }
+            else s_prep)).simpleKey.possible = true ∨
             ((if s_prep.allowDirectives then
               { s_prep with allowDirectives := false, documentEverStarted := true }
             else s_prep).col : Int) ≠ (if s_prep.allowDirectives then
@@ -20637,6 +20806,9 @@ lemma accum_block_on_pendingBlockContent
           by_cases h_src : (if s_prep.allowDirectives then
               { s_prep with allowDirectives := false, documentEverStarted := true }
             else s_prep).explicitKeyLine = none ∨
+            (scanValueClearKey (if s_prep.allowDirectives then
+              { s_prep with allowDirectives := false, documentEverStarted := true }
+            else s_prep)).simpleKey.possible = true ∨
             ((if s_prep.allowDirectives then
               { s_prep with allowDirectives := false, documentEverStarted := true }
             else s_prep).col : Int) ≠ (if s_prep.allowDirectives then
@@ -20652,14 +20824,20 @@ lemma accum_block_on_pendingBlockContent
             · by_cases hknv : nv = k
               · subst hknv
                 exact h_explicit kslot
-              · exact block_dispatch_deferred_stamp sp_start sp_mid sp_scan' s'
+              · -- Item 185: the pack is OFF the landing's column.
+                exact block_dispatch_deferred_stamp_offcol sp_start sp_mid sp_scan' s'
                   (h_close_pending h_nd_land _ h_ssl)
                   (Or.inl (block_indicator_arm h_dispatch)) hcorr_result
                   (nodir_of_block_dispatch h_dispatch) h_src
-            · exact block_dispatch_deferred_stamp sp_start sp_mid sp_scan' s'
+                  (explicit_at_indent_of_dispatch h_dispatch
+                    (noflow_disp_of_noflow h_noflow) h_src) hknv
+            · -- Item 185: the park carries NO pack.
+              exact block_dispatch_deferred_stamp_nopack sp_start sp_mid sp_scan' s'
                 (h_close_pending h_nd_land _ h_ssl)
                 (Or.inl (block_indicator_arm h_dispatch)) hcorr_result
                 (nodir_of_block_dispatch h_dispatch) h_src
+                (explicit_at_indent_of_dispatch h_dispatch
+                  (noflow_disp_of_noflow h_noflow) h_src)
         · exact h_gen (fun h => absurd h hc_colon)
       · exact (block_indicator_exhausted h_dispatch hc hcv).elim
   by_cases hc0 : c = ':'
@@ -20909,6 +21087,9 @@ lemma accum_block_on_pendingBlock
     · have h_gen := fun (h_src : c = ':' → (if s_prep.allowDirectives then
             { s_prep with allowDirectives := false, documentEverStarted := true }
           else s_prep).explicitKeyLine = none ∨
+          (scanValueClearKey (if s_prep.allowDirectives then
+            { s_prep with allowDirectives := false, documentEverStarted := true }
+          else s_prep)).simpleKey.possible = true ∨
           ((if s_prep.allowDirectives then
             { s_prep with allowDirectives := false, documentEverStarted := true }
           else s_prep).col : Int) ≠ (if s_prep.allowDirectives then
@@ -20969,6 +21150,9 @@ lemma accum_block_on_pendingBlock
         by_cases h_src : (if s_prep.allowDirectives then
             { s_prep with allowDirectives := false, documentEverStarted := true }
           else s_prep).explicitKeyLine = none ∨
+          (scanValueClearKey (if s_prep.allowDirectives then
+            { s_prep with allowDirectives := false, documentEverStarted := true }
+          else s_prep)).simpleKey.possible = true ∨
           ((if s_prep.allowDirectives then
             { s_prep with allowDirectives := false, documentEverStarted := true }
           else s_prep).col : Int) ≠ (if s_prep.allowDirectives then
@@ -20984,14 +21168,20 @@ lemma accum_block_on_pendingBlock
           · by_cases hknv : nv = k
             · subst hknv
               exact h_explicit kslot
-            · exact block_dispatch_deferred_stamp sp_start sp_mid sp_scan' s'
+            · -- Item 185: the pack is OFF the landing's column.
+              exact block_dispatch_deferred_stamp_offcol sp_start sp_mid sp_scan' s'
                 (h_close_pending h_nd_land _ h_ssl)
                 (Or.inl (block_indicator_arm h_dispatch)) hcorr_result
                 (nodir_of_block_dispatch h_dispatch) h_src
-          · exact block_dispatch_deferred_stamp sp_start sp_mid sp_scan' s'
+                (explicit_at_indent_of_dispatch h_dispatch
+                  (noflow_disp_of_noflow h_noflow) h_src) hknv
+          · -- Item 185: the park carries NO pack.
+            exact block_dispatch_deferred_stamp_nopack sp_start sp_mid sp_scan' s'
               (h_close_pending h_nd_land _ h_ssl)
               (Or.inl (block_indicator_arm h_dispatch)) hcorr_result
               (nodir_of_block_dispatch h_dispatch) h_src
+              (explicit_at_indent_of_dispatch h_dispatch
+                (noflow_disp_of_noflow h_noflow) h_src)
       · exact h_gen (fun h => absurd h hc_colon)
     · exact (block_indicator_exhausted h_dispatch hc hcv).elim
   -- ═══ THE INLINE RESIDUE: the COMPACT collection (item 33) ═══
@@ -21003,7 +21193,7 @@ lemma accum_block_on_pendingBlock
   -- the indicator is their `s-indent(m)`, read by the same splitter item 22
   -- uses at a landing, and the collection it opens sits at `n+1+m`: `n` for
   -- the entry, one for its indicator, `m` for the run.
-  obtain ⟨h_mid_eq, _⟩ := h_inline
+  obtain ⟨h_mid_eq, h_col_ne⟩ := h_inline
   subst h_mid_eq
   have h_close_old : ∀ sp, SBlockIndented n .blockIn sp_mid sp →
       SLYamlStream sp_start sp :=
@@ -21068,6 +21258,9 @@ lemma accum_block_on_pendingBlock
         have h_fill := fun (h_src : c = ':' → (if s_prep.allowDirectives then
               { s_prep with allowDirectives := false, documentEverStarted := true }
             else s_prep).explicitKeyLine = none ∨
+            (scanValueClearKey (if s_prep.allowDirectives then
+              { s_prep with allowDirectives := false, documentEverStarted := true }
+            else s_prep)).simpleKey.possible = true ∨
             ((if s_prep.allowDirectives then
               { s_prep with allowDirectives := false, documentEverStarted := true }
             else s_prep).col : Int) ≠ (if s_prep.allowDirectives then
@@ -21085,15 +21278,25 @@ lemma accum_block_on_pendingBlock
         · by_cases h_src : (if s_prep.allowDirectives then
               { s_prep with allowDirectives := false, documentEverStarted := true }
             else s_prep).explicitKeyLine = none ∨
+            (scanValueClearKey (if s_prep.allowDirectives then
+              { s_prep with allowDirectives := false, documentEverStarted := true }
+            else s_prep)).simpleKey.possible = true ∨
             ((if s_prep.allowDirectives then
               { s_prep with allowDirectives := false, documentEverStarted := true }
             else s_prep).col : Int) ≠ (if s_prep.allowDirectives then
               { s_prep with allowDirectives := false, documentEverStarted := true }
             else s_prep).explicitKeyCol
           · exact h_fill (fun _ => h_src)
-          · exact block_dispatch_deferred_stamp sp_start sp_block sp_scan' s' h_stream_block
+          · -- Item 185: the COMPACT fill, which also holds the inline
+            -- residue — the two classes overlap here.
+            exact block_dispatch_deferred_stamp_compact sp_start sp_block sp_scan' s'
+              h_stream_block
               (Or.inl (block_indicator_arm h_dispatch)) hcorr_result
               (nodir_of_block_dispatch h_dispatch) h_src
+              (explicit_at_indent_of_dispatch (hc_colon ▸ h_dispatch)
+                (noflow_disp_of_noflow h_noflow) h_src)
+              (inline_residue_of_landing ⟨rfl, h_col_ne.1⟩ hws h_pk hcorr_prep
+                (preprocess_some_peek h_preprocess))
         · exact h_fill (fun h => absurd (hc_q.symm.trans h) (by decide))
       · exact (block_indicator_exhausted h_dispatch hc hcv).elim
   · -- The TAB, one production down (items 33/34).  `[185]`'s `s-indent(m)` is

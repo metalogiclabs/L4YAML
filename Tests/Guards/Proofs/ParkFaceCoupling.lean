@@ -83,14 +83,32 @@ example {sc : ScannerState} {sp_start sp_block sp_scan : SurfPos}
 
 /-! ## §2  The consumer's own discriminator
 
-The landed `:` reads its dispatch state, not the park: no live register, or a
-column that differs, means the epilogue stamped. -/
+The landed `:` reads its dispatch state, not the park: no live register, a
+saved key that SURVIVES the clear, or a column that differs, means the
+epilogue stamped.
+
+**Item 185 widened this to three alternatives.**  `explicitValue` is a
+conjunction of three tests and item 125 read the first and the third, which
+left the consumers' branch weaker than `explicitValue = true` and so unable to
+spend the reading it named.  The middle alternative is a field of the same
+state, decidable there like the others, so the split is now TOTAL: its negation
+is exactly `explicitValue = true`. -/
 
 example : ∀ {s s' : ScannerState},
     scanValue s = .ok s' → s.inFlow = false → s.peek? = some ':' →
-    (s.explicitKeyLine = none ∨ (s.col : Int) ≠ s.explicitKeyCol) →
+    (s.explicitKeyLine = none ∨
+      (scanValueClearKey s).simpleKey.possible = true ∨
+      (s.col : Int) ≠ s.explicitKeyCol) →
     s'.implicitValueLine = some s'.line :=
   fun h1 h2 h3 h4 => L4YAML.Proofs.StreamAccum.scanValue_stamp_of_src h1 h2 h3 h4
+
+/-- …and the third alternative on its own, which is what makes it total. -/
+example : ∀ {s s' : ScannerState},
+    scanValue s = .ok s' → s.inFlow = false → s.peek? = some ':' →
+    (scanValueClearKey s).simpleKey.possible = true →
+    s'.implicitValueLine = some s'.line :=
+  fun h1 h2 h3 h4 =>
+    L4YAML.Proofs.ExplicitKeyCoupling.scanValue_stamp_of_cleared_key h1 h2 h3 h4
 
 /-! ## §3  The families, on both pipelines -/
 
