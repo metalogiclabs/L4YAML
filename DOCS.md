@@ -20413,7 +20413,7 @@ evidence:
 | wrapper | applications | holders | what empties it |
 |---|---|---|---|
 | `_stamp_offcol` | **3** | `closeThenBlock`, `pendingBlock`, `pendingBlockContent` | a reason `nv = k` — the park's pack index and the landing's column |
-| `_stamp_nopack` | **4** | the same three, plus `noPending` | a CARRIER — the `?` frame's value slot at the landing's column |
+| `_stamp_nopack` | **4** (→ **3** at item 186: `noPending`'s site was refutable) | the same three, plus `noPending` | a CARRIER — the `?` frame's value slot at the landing's column |
 | `_stamp_compact` | **2** | `closeThenBlock`, `pendingBlock` | the stamp itself, or a refutation |
 
 `FlipConsumerSurface`'s DEFERRAL lane counts five names now and was re-pinned
@@ -20442,9 +20442,13 @@ in place above.
   other alternative is `True`, so the branch has no proposition to hand a
   wrapper and no discriminator an elaborator can check — the census row is its
   only instrument, which is the same signature R646 reads on a possible
-  phantom, here for a different reason.  `accum_block_on_noPending`'s site is
-  in it by construction: a virgin park holds no pack.  This is U2's residue
-  proper and its price is a CARRIER on the park.
+  phantom, here for a different reason.  ~~`accum_block_on_noPending`'s site is
+  in it by construction: a virgin park holds no pack.~~  **Corrected at item
+  186**: that site was not in the class at all.  The sentence is true and beside
+  the point — the site was there because item 125's case split ran at a park
+  that can DECIDE the stamp source, and `noPending.h_noek` now does.  Three
+  sites remain.  This is U2's residue proper and its price is a CARRIER on the
+  park.
 * **`_stamp_compact` (2) cannot be paid with a face at all.**  `[189]
   c-l-block-map-implicit-value`'s value is `s-l+block-node`, which has no
   compact alternative and opens no `[188]` entry of its own, so
@@ -20517,6 +20521,130 @@ index against the indent stack), and **the REFUTATION** for `_stamp_compact`
 its arm.  Only then the flip's own order from item 183 — the two REFUTABLE
 halves at the flow open, the three MISSING ROUTES, the flip.  And the parked Ix
 Step-1 composition, on the Ix track's own clock.
+
+*(Item 186 re-measured the first of those three before spending on it: the
+CARRIER's sites are **3**, not 4 — the fourth was refutable and is paid.  The
+table above is left as written and this is the pointer to the correction, in
+the shape §9 asks for: a plan sentence is re-measured before it is spent.)*
+
+### Item 186 (2026-09-17)
+
+**The CARRIER priced, and the site that was not in the class at all.**
+
+Item 185 put `_stamp_nopack` first at four sites and called it U2's residue
+proper: the class with nothing to carry, whose only instrument is a census row.
+§9's rule for a missing carrier is that its price is the PRODUCERS touched, not
+the one goal, so this item measured the producers before writing any number —
+and the measurement found one of the four sites had no carrier question in it.
+
+**The fourth site was a branch, not a class.**  `accum_block_on_noPending`'s
+site was in `_stamp_nopack` "by construction — a virgin park has no pack to
+hold".  That reading is true and beside the point: the site was there because
+item 125's `by_cases` on the stamp source ran at a park that can DECIDE it.  A
+block-context `noPending` is the stream's seed — item 116 counted the
+constructor's eight producers and the other seven are flow-interior — so
+nothing behind it has been scanned, and `scanKey` is the only writer that makes
+`explicitKeyLine` live.  The new field `noPending.h_noek`
+(`sc.inFlow = false → sc.explicitKeyLine = none`) states exactly that, and the
+eight producers pay it by the SAME split that pays `h_nodoc`: the seed writes
+`none` in `ScannerState.mk'` and the emission and §5.2's BOM advance carry it
+(`advance_preserves_explicitKeyLine`), while the seven flow sites refute the
+premise with the `inFlow_of_flowLevel_eq h_fl1` they already hold
+(`noek_of_flowLevel_succ`, `nodoc_of_flowLevel_succ`'s twin).  At the consumer
+the `by_cases` is gone: `preprocess_preserves_explicitKey` carries the register
+to the landing, `ekl_disp_of_ekl` through the directive normalization, and the
+`:` takes the keyless opener outright.
+
+**Measured before it was paid.**  A sweep of 35 937 three-line programs accepts
+5 186 and carries **1 440** class-A `:` dispatches; **ZERO** of them stand
+behind a virgin park, and zero stand at a park whose `documentEverStarted` is
+false — two independent readings of the same emptiness, one structural and one
+the flag item 135 deleted from this constructor as uncashable.  The runtime
+also shows the field's consequence directly: with the register dead the `:`
+STAMPS, so `: - w` — a same-line block collection after a landed `:` off a
+virgin park — is REFUSED (`sameLineBlockCollection 0 2`), while `: b` and `:`
+are accepted.  `BlockDeferralClasses` §5 pins the field, the seven rows, and
+the price below.
+
+**What the class-A parks actually are, and what that measurement is NOT.**  The
+same probe reads each class-A `:` by the token its park stands behind: `scalar`
+895, `flowSequenceEnd` 232, `flowMappingEnd` 149, `key` 149, `value` 10,
+`blockEntry` 5.  That is the distribution of class A, **not** of the nopack
+branch: which branch a site takes is decided by whether the park's PRODUCER
+paid the pack, and no runtime reading can see that — the flow closes, for
+instance, pay theirs through `flowVPack_of_close`.  Recorded here as a park
+census with its limit stated, because the temptation to read it as the class's
+domain is exactly the error §8 warns about.
+
+**The carrier's price, by a narrowing patch.**  Replace the pack field's
+`∨ True` with `∨ sc.explicitKeyLine = none` — the one alternative a consumer at
+class A can refute — and build.  Three fields, three builds of ~30 s, **29
+errors**: **23 payments across 8 producing definitions**, four transport sites
+at the two dispatchers, and `flowVPack_of_close` to re-type.
+
+| field | payments | the definitions that can no longer punt |
+|---|---|---|
+| `pendingContent.h_vpack` | **10** | `content_dispatch_routed` ×2, `accum_content_on_pendingMapValue_indented` ×3, `accum_content_pending` ×5 |
+| `pendingBlock.h_kslot` | **7** | `accum_block_on_noPending`, `…_closeThenBlock` ×2, `…_pendingBlock` ×3, `…_pendingBlockContent` |
+| `pendingBlockContent.h_kslot` | **6** | `accum_content_on_pendingBlock_indented` ×3, `accum_content_pending` ×3 |
+
+So the carrier is an **invariant strengthening across the park producers**, not
+a lemma at the consumer — and `scanValue`'s own `ekl` says why a producer
+cannot simply pay the register alternative instead:
+
+    let ekl : Option Nat :=
+      if explicitValue then none
+      else if !s.inFlow
+          && (if s_kc.simpleKey.possible then (s_kc.simpleKey.pos.col : Int)
+              else (s.col : Int)) > s_kc.explicitKeyCol then
+        s_kc.explicitKeyLine
+      else none
+
+The register survives a `:` only where the `:` stands strictly DEEPER than
+`explicitKeyCol` — which is exactly the case where the `[187]` frame is still
+open and a pack is owed.  A second instrument agrees on where the chain starts:
+`Scratch/CensusPackPayers.lean` reads, at every construction of a pack-carrying
+park, the argument at the field's own position (resolved from the constructor's
+telescope, not a hand-typed index) and reports **`pendingMapValue.h_expl` — the
+`[187]` frame face every pack derives from — PAID by exactly one producer
+(`question_open_map`), threaded by one (`compact_open_map`), punted by four
+(`colon_open_map`, `_explicit`, `_implicit`, `_props`)**.
+
+**What the item changed.**  One field, two payer lemmas
+(`noek_of_flowLevel_succ`, and the seed's own proof), two transport lemmas
+(`noflow_park_of_noflow`, `ekl_disp_of_ekl`), one consumer parameter and its
+caller, and the site.  No runtime, no route, no production.  Two arity-pinning
+guards (`ScannerNoDocStartedCarrier`, `StreamRouteSwapSurface`) failed on the
+new field and were updated — which is the gate doing its job, and where the
+register face is now pinned beside the document face.
+
+**Measured at the landed state.**  Full `lake build` **1162** jobs and
+`Tests.Guards`/`Tests.Reflections` **735**, ZERO warnings in both; suite
+**4520/4520** with Production Coverage Analysis **837/837**; `eventscore`
+**347/358** (252 event-pass, 11 event-diff, 0 event-reject, 95 error-ok, 0
+error-miss); `suiterunner` **869 / 0 / 151**; `matrix_score.py` over the
+402-leaf data form on BOTH pipelines, **402/402 event + 282/282 JSON** with the
+splits identical to 176–185 (`err-ok` 94 / `pass` 308; JSON `err-ok` 3 / `pass`
+279 / `skip` 120); the `[210]` flip instrument at **FIVE** errors at the same
+five definitions (`topLevelFlowResumeSep`, `rootMapRoute`, `rootMapRouteF`,
+`bareNodeRoute`, `structural_dispatch_to_pending`), applied and restored clean;
+the raw-route census **TWO** holders, unchanged, and the consumer census
+**8 / 15** on its RAW and GUARD lanes with the DEFERRAL lane moving as intended
+— **12 applications across 5 definitions → 11 across 4**; `#print axioms` over
+the new lemmas and the five consumers, no `sorryAx`; checkers 228/355,
+20/230/249/355, 25 capstones, and the annotation verifier at 100 % coverage
+with its same **19** pre-existing name mismatches.  Declarations
+**8031 → 8034** (+3), `#guard`s **7216 → 7223** (+7, §5's rows), test files
+**621**, unchanged.
+
+**What remains.**  The CARRIER is now **3 sites** and priced: 23 payments over
+8 definitions, an invariant strengthening rather than a lemma.  Then **the
+COUPLING** for `_stamp_offcol` (3 sites, the pack's index against the indent
+stack), and **the REFUTATION** for `_stamp_compact` (2 sites, measured empty).
+Then **`KeyPackPunt`'s two reasons** (the inline class), then the constructor
+and its arm.  Only then item 183's flip order — the two REFUTABLE halves at the
+flow open, the three MISSING ROUTES, the flip.  And the parked Ix Step-1
+composition, on the Ix track's own clock.
 
 ### REMAINING, in order
 

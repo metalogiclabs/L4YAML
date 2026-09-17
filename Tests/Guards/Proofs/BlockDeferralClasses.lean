@@ -7,13 +7,14 @@ Copyright (c) 2026. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 -/
 
-/-! # The block-indicator escape, by CLASS and by ROUTE (DOCS items 184–185)
+/-! # The block-indicator escape, by CLASS and by ROUTE (DOCS items 184–186)
 
 `block_dispatch_deferred` is `PendingNode.pendingFlow`'s only producer, so
 R3 — row 12's β.5 deletion — is the emptying of this escape.  Its applications
-have been counted since item 183 (`FlipConsumerSurface`, FIVE definitions and
-TWELVE applications), and the count is not the price: an escape's price is its
-DOMAIN, and the two are independent in both directions (Reflection 645).
+have been counted since item 183 (`FlipConsumerSurface`, FOUR definitions and
+ELEVEN applications — five and twelve before item 186), and the count is not
+the price: an escape's price is its DOMAIN, and the two are independent in both
+directions (Reflection 645).
 
 Item 184 partitioned the twelve by the branch that reaches them, in the CODE
 rather than in prose, and read 9 stamp / 2 inline / 1 bare.  Item 185 measured
@@ -26,7 +27,7 @@ wrapper's deletion rather than a total drifting:
 | wrapper | applications | what reaches it | what empties it |
 |---|---|---|---|
 | `_stamp_offcol` | **3** in 3 definitions | the park HAS a value pack, at `nv`, and the landing is at `k ≠ nv` | a reason the two indices agree — `[187]`'s `s-indent(n)` is exact |
-| `_stamp_nopack` | **4** in 4 definitions | the park carries no value pack at all | a CARRIER: the `?` frame's value slot at the landing's column, U2's residue proper |
+| `_stamp_nopack` | **3** in 3 definitions | the park carries no value pack at all | a CARRIER: the `?` frame's value slot at the landing's column, U2's residue proper — priced at item 186 (§5) |
 | `_stamp_compact` | **2** in 2 definitions | the fill is COMPACT, and `[189]`'s value is `s-l+block-node`, so the face cannot stand in for the stamp | the stamp, or a refutation |
 | `_inline` | **2** in 2 definitions | the mid-line indicator (`inline_residue_of_landing`) | `KeyPackPunt`'s two surviving reasons (item 102) |
 | bare | **1** | `pendingFlow`'s own arm, which this escape PRODUCES | the constructor (item 35's structural note) |
@@ -48,7 +49,17 @@ one of the nine sites produces that equation, so the datum a route into the `?`
 frame's value slot has to land on is known present at ALL of them rather than
 at the ones a reading happened to check.
 
-**None of the live classes is REFUTABLE.**  §2's family is accepted by the
+**One of them WAS refutable, and item 186 spent it.**  `_stamp_nopack` stood
+at four sites, the fourth being `accum_block_on_noPending`'s — which item 185
+read as "in the class by construction", a virgin park having no pack to hold.
+It was not in the class at all: a `noPending` park in block context is the
+stream's seed (item 116 counted the constructor's eight producers and the other
+seven are flow-interior), so nothing behind it has been scanned and the
+explicit-key register is dead.  `noPending.h_noek` states that, the eight
+producers pay it the way they pay `h_nodoc`, and the landed `:` now DECIDES its
+stamp source where it used to split on it.  §5 pins the field and the family.
+
+**None of the classes that REMAIN is refutable.**  §2's family is accepted by the
 scanner and read identically by PyYAML 6.0.3 at the event level; §3's is the
 implicit-key pack's punt, whose own price this file pins beside it.  §4 is the
 compact route, whose own family the runtime refuses at every input a sweep of
@@ -325,5 +336,57 @@ the column. -/
 #guard pins "? : a\n: b\n" == ("scan-accepted", "+STR +DOC +MAP +MAP =VAL : =VAL :a -MAP =VAL :b -MAP -DOC -STR")
 #guard pins "? ? a\n: b\n" == ("scan-accepted", "+STR +DOC +MAP +MAP =VAL :a =VAL : -MAP =VAL :b -MAP -DOC -STR")
 #guard pins "? - a\n: b\n" == ("scan-accepted", "+STR +DOC +MAP +SEQ =VAL :a -SEQ =VAL :b -MAP -DOC -STR")
+
+/-! ## §5  The site item 186 paid out, and the carrier's price for the rest
+
+The virgin park's register face, pinned as DATA: were `h_noek` to lose its
+premise or its conclusion, the `have`'s explicit type would stop elaborating. -/
+
+example {sc : ScannerState} {sp_start sp : SurfPos}
+    (h : PendingNode sc false sp_start sp sp) : True := by
+  cases h with
+  | noPending _ _ _ _ _ h_noek =>
+    have : sc.inFlow = false → sc.explicitKeyLine = none := h_noek
+    trivial
+  | _ => trivial
+
+/-! The family behind it.  A `:` landing off a virgin park is the shape the
+fourth site used to defer; with the register dead the `:` takes the keyless
+opener, and — since `explicitValue` is then FALSE — `scanValue`'s epilogue
+STAMPS.  The stamp is visible at the runtime: a same-line block collection
+after that `:` is refused (§8.2.2 [194]), which is the field's own consequence
+rather than a separate reading.  A comment prefix ahead of the landing leaves
+the park virgin and changes nothing; the `---` row is the MARKER park's
+neighbour, parked by `pendingDocStart` rather than by this constructor, and is
+here as the boundary of the family and not as a case of it. -/
+
+#guard pins ": b\n" == ("scan-accepted", "+STR +DOC +MAP =VAL : =VAL :b -MAP -DOC -STR")
+#guard pins ":\n" == ("scan-accepted", "+STR +DOC +MAP =VAL : =VAL : -MAP -DOC -STR")
+#guard pins ": - w\n" == ("scan-refused L4YAML.ScanError.sameLineBlockCollection 0 2", "ERR L4YAML.ScanError.sameLineBlockCollection 0 2")
+#guard pins "# c\n: b\n" == ("scan-accepted", "+STR +DOC +MAP =VAL : =VAL :b -MAP -DOC -STR")
+#guard pins "%YAML 1.2\n---\n: b\n" == ("scan-accepted", "+STR +DOC --- +MAP =VAL : =VAL :b -MAP -DOC -STR")
+
+-- The other two indicators off the same park, which never read the register.
+#guard pins "- a\n" == ("scan-accepted", "+STR +DOC +SEQ =VAL :a -SEQ -DOC -STR")
+#guard pins "? a\n" == ("scan-accepted", "+STR +DOC +MAP =VAL :a =VAL : -MAP -DOC -STR")
+
+/-! **What the three remaining sites cost, measured rather than guessed.**  The
+carrier they want is the `?` frame's value slot, and the instrument that prices
+it is a NARROWING patch: replace the pack field's `∨ True` with
+`∨ sc.explicitKeyLine = none` — the one alternative a consumer at class A can
+refute — and build.  Three fields, three builds, and the producers that can no
+longer punt are **23 payments across 8 definitions**: `pendingBlock.h_kslot`
+7 (in `accum_block_on_noPending`, `…_closeThenBlock` ×2, `…_pendingBlock` ×3,
+`…_pendingBlockContent`), `pendingBlockContent.h_kslot` 6
+(`accum_content_on_pendingBlock_indented` ×3, `accum_content_pending` ×3), and
+`pendingContent.h_vpack` 10 (`content_dispatch_routed` ×2,
+`accum_content_on_pendingMapValue_indented` ×3, `accum_content_pending` ×5),
+plus `flowVPack_of_close` to re-type and four transport sites at the two
+dispatchers (29 errors in all, over three builds of ~30 s each).  So the carrier is an invariant strengthening across the park
+producers, not a lemma at the consumer — and `scanValue`'s own `ekl` says why a
+producer cannot simply pay the register alternative instead: the register
+survives a `:` only where the `:` stands strictly DEEPER than `explicitKeyCol`,
+which is exactly the case where the `[187]` frame is still open and a pack is
+owed. -/
 
 end L4YAML.Tests.Guards.BlockDeferralClasses

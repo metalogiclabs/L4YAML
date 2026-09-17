@@ -129,22 +129,37 @@ document prefixes and nothing else behind it.  The field is MANDATORY — no
 seed pays, the seven flow sites refute.  (Item 135 dropped the second
 premise, `documentEverStarted = false`; the block-context park IS the seed,
 so the flag added nothing the `inFlow` premise did not already carry, and
-asking for it made the field uncashable at every consumer.) -/
+asking for it made the field uncashable at every consumer.)
+
+**Item 186 added the SCANNER-side twin.**  `h_noek` says the same thing about
+the same eight producers on the other side of the coupling: behind a virgin
+block-context park nothing has been scanned, so the explicit-key register is
+dead.  It is paid by the same split — the seed writes `none` in
+`ScannerState.mk'`, the seven flow sites refute the premise — and what it buys
+is a REFUTATION at the landed `:`, which used to split on a stamp source it
+could not decide and now reads it off the park.  See `BlockDeferralClasses`
+§5. -/
 
 example {sc : ScannerState} {sp_start sp : SurfPos}
     (h_col : sp.col = 0 ∨ sc.inFlow = true)
     (h_arm : sc.simpleKeyAllowed = true ∨ sc.inFlow = true)
-    (h_nodoc : sc.inFlow = false → GStar SLDocumentPrefix sp_start sp) :
+    (h_nodoc : sc.inFlow = false → GStar SLDocumentPrefix sp_start sp)
+    (h_noek : sc.inFlow = false → sc.explicitKeyLine = none) :
     PendingNode sc false sp_start sp sp :=
-  PendingNode.noPending sp_start sp h_col h_arm h_nodoc
+  PendingNode.noPending sp_start sp h_col h_arm h_nodoc h_noek
 
 -- The flow producers' payment is the refutation, from the one fact all
 -- seven sites hold: depth ≥ 1 makes the face's `inFlow = false` premise
--- refute itself.
+-- refute itself — and it pays BOTH faces, which is what says the two fields
+-- have the same producer split rather than merely the same shape.
 example {sc : ScannerState} {n : Nat} {sp_start sp : SurfPos}
     (h_fl1 : sc.flowLevel = n + 1) :
     sc.inFlow = false → GStar SLDocumentPrefix sp_start sp :=
   nodoc_of_flowLevel_succ h_fl1
+
+example {sc : ScannerState} {n : Nat} (h_fl1 : sc.flowLevel = n + 1) :
+    sc.inFlow = false → sc.explicitKeyLine = none :=
+  noek_of_flowLevel_succ h_fl1
 
 /-! ## §3 The seed's payment
 

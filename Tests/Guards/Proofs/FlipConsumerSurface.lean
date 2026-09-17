@@ -48,7 +48,7 @@ that reaches a raw route reaches it through that park among others, so the
 deferral's own census is pinned here beside the flip's — R3's deletion is what
 empties these arms, and the two numbers move together.
 
-**By CLASS, since item 184; by ROUTE, since item 185.**  The deferral's twelve
+**By CLASS, since item 184; by ROUTE, since item 185.**  The deferral's
 applications are partitioned in the source by the branch that reaches them.
 Item 184 read three classes — the undecided stamp source (**9**), the mid-line
 inline residue (**2**), and `pendingFlow`'s own arm (**1**).  Item 185 measured
@@ -59,7 +59,15 @@ pack stands off the landing's column (**3**), the park carries no pack at all
 emptying shows as a wrapper leaving the list.  The PACK PUNT lane beside it
 counts what empties the inline class: `KeyPackPunt`'s two surviving reasons.
 Both partitions and the input families they serve are documented at
-[`BlockDeferralClasses`](BlockDeferralClasses.lean). -/
+[`BlockDeferralClasses`](BlockDeferralClasses.lean).
+
+**Item 186 took the first site out, and a whole ROW with it.**  Twelve
+applications across five consumer lemmas are now **ELEVEN across FOUR**:
+`accum_block_on_noPending` reached the escape once, on the undecided stamp
+source, and `noPending`'s new `h_noek` — a virgin block-context park is the
+stream's seed, so its explicit-key register is dead — decides that source
+instead of splitting on it.  A row leaving this census is what a class
+emptying looks like, which is the shape item 184 built the lane for. -/
 
 namespace L4YAML.Tests.Guards.FlipConsumerSurface
 
@@ -197,7 +205,8 @@ Each `rootMapRoute_or_refused` row is paired with its entries-level twin
 
 /-! ## §3  The deferral beside it
 
-FIVE definitions, TWELVE applications.  `pendingFlow` is not a `[210]`
+FOUR definitions, ELEVEN applications (item 186 — five and twelve before it).
+`pendingFlow` is not a `[210]`
 construction site and never appears in the flip's five errors — it is the park
 whose arms have nothing to pay the landing faces WITH, so it keeps the guards'
 fallback arms alive wherever it can reach them.  Pinning it here is what makes
@@ -208,9 +217,10 @@ other.
 The rows below are the DOMAIN's shape, not the module's: each landed-`:`
 consumer contributes one `offcol` and one `nopack` because its `by_cases` on
 the park's pack has exactly those two stuck arms, and the two consumers with a
-compact-fill arm contribute a `compact` each.  `accum_block_on_noPending` is
-the asymmetric row — a virgin park holds no pack, so it has a `nopack` and
-nothing else. -/
+compact-fill arm contribute a `compact` each.  The asymmetric row was
+`accum_block_on_noPending`'s, and item 186 removed it: that park carries no
+pack because it carries nothing at all, and the register face it does carry
+now says the class-A branch cannot reach it. -/
 
 /-! ## The gate
 
@@ -230,7 +240,6 @@ All three lanes, in one walk of the module. -/
        "question_open_map: rootMapRoute_or_refused=1 rootMapRouteF_or_refused=1"]⟩,
     ⟨⟨"DEFERRAL", deferral, deferral.map (ns ++ ·)⟩,
       ["accum_block_on_closeThenBlock: block_dispatch_deferred_stamp_offcol=1 block_dispatch_deferred_stamp_nopack=1 block_dispatch_deferred_stamp_compact=1 block_dispatch_deferred_inline=1",
-       "accum_block_on_noPending: block_dispatch_deferred_stamp_nopack=1",
        "accum_block_on_pendingBlock: block_dispatch_deferred_stamp_offcol=1 block_dispatch_deferred_stamp_nopack=1 block_dispatch_deferred_stamp_compact=1",
        "accum_block_on_pendingBlockContent: block_dispatch_deferred_stamp_offcol=1 block_dispatch_deferred_stamp_nopack=1 block_dispatch_deferred_inline=1",
        "accum_content_pending: block_dispatch_deferred=1"]⟩,

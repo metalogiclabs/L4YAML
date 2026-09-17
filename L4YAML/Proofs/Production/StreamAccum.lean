@@ -1018,6 +1018,15 @@ lemma nodoc_of_flowLevel_succ {sc : ScannerState} {n : Nat} {sp_start sp : SurfP
     sc.inFlow = false → GStar SLDocumentPrefix sp_start sp :=
   fun hnf => (Bool.noConfusion (hnf ▸ inFlow_of_flowLevel_eq h) : GStar _ sp_start sp)
 
+/-- The flow producers' `h_noek` (item 186), `nodoc_of_flowLevel_succ`'s twin
+    on the scanner side: the seven sites refute the field's `inFlow = false`
+    premise with the depth they already hold, so the register face costs them
+    the same nothing the document face does. -/
+lemma noek_of_flowLevel_succ {sc : ScannerState} {n : Nat}
+    (h : sc.flowLevel = n + 1) :
+    sc.inFlow = false → sc.explicitKeyLine = none :=
+  fun hnf => (Bool.noConfusion (hnf ▸ inFlow_of_flowLevel_eq h) : sc.explicitKeyLine = none)
+
 -- ~~**The `[96]` tail window that CROSSED a break**~~ (`PropsWindowCross`,
 -- item 170) is DELETED at item 181.  It named the array whose last real token
 -- has a PROPERTY on a different line directly below it — the configuration
@@ -1096,7 +1105,27 @@ inductive PendingNode (sc : ScannerState) : Bool → SurfPos → SurfPos → Sur
       -- A premise no producer spends and no consumer can discharge is a field
       -- that cannot be cashed; dropping it costs nothing and pays
       -- `accum_block_on_noPending`'s two root-sequence routes.
-      (h_nodoc : sc.inFlow = false → GStar SLDocumentPrefix sp_start sp) :
+      (h_nodoc : sc.inFlow = false → GStar SLDocumentPrefix sp_start sp)
+      -- **`h_noek` — a virgin block-context park has NO explicit key open**
+      -- (item 186, LAST so the patterns naming the older fields still bind
+      -- them).  `h_nodoc`'s scanner-side twin, and paid by the same split of
+      -- the SAME eight producers: the seven flow-interior sites refute
+      -- `inFlow = false` with the `inFlow_of_flowLevel_eq h_fl1` they already
+      -- hand `h_col` and `h_arm`, and the seed pays the real witness —
+      -- `ScannerState.mk'` writes `none` and neither the `streamStart`
+      -- emission nor §5.2's BOM advance touches the register.
+      --
+      -- What it buys is a REFUTATION.  `scanKey` is the register's only
+      -- writer that makes it live — `[191]`'s `?` — and `scanValue` only ever
+      -- carries it forward or clears it, so the escape's class-A branch (a
+      -- landed `:` whose dispatch state holds a LIVE register at its own
+      -- column) cannot stand on a park behind which nothing has been scanned.
+      -- Item 185 left that branch here as `_stamp_nopack`'s fourth site, the
+      -- one it read as "in the class by construction"; this field discharges
+      -- it instead, and item 186 measured the emptiness before paying for it
+      -- (1 440 class-A `:` dispatches over the sweep corpus, ZERO of them
+      -- behind a virgin park).
+      (h_noek : sc.inFlow = false → sc.explicitKeyLine = none) :
       PendingNode sc false sp_start sp sp
   /-- Content token scanned (scalar, anchor, alias, tag).
       The gap sp_block → sp_scan contains SSeparate + content.
@@ -10088,7 +10117,7 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
                Or.inr trivial⟩),
              PendingNode.noPending sp_start sp_open (Or.inr (inFlow_of_flowLevel_eq h_fl1))
                (Or.inr (inFlow_of_flowLevel_eq h_fl1))
-               (nodoc_of_flowLevel_succ h_fl1), hcorr_open, fun _ => ⟨.white (GStar.nil _) h_sync h_colon h_opencol, h_real, h_ad⟩⟩
+               (nodoc_of_flowLevel_succ h_fl1) (noek_of_flowLevel_succ h_fl1), hcorr_open, fun _ => ⟨.white (GStar.nil _) h_sync h_colon h_opencol, h_real, h_ad⟩⟩
     · exact h_nobreak hcol hws
   -- The completed constructs cannot reach a same-line `[`/`{`: their producers'
   -- trailing validation left the rest of the line inert (`h_line`), and the
@@ -10126,7 +10155,7 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
        dropClose h_stream_block sp_ne sp_m h_ssl)),
      PendingNode.noPending sp_start sp_open (Or.inr (inFlow_of_flowLevel_eq h_fl1))
                (Or.inr (inFlow_of_flowLevel_eq h_fl1))
-               (nodoc_of_flowLevel_succ h_fl1), hcorr_open,
+               (nodoc_of_flowLevel_succ h_fl1) (noek_of_flowLevel_succ h_fl1), hcorr_open,
      fun _ => ⟨.white (GStar.nil _) h_sync h_colon h_opencol, h_real, h_ad⟩⟩
   have opaque_resume : sp_scan.col ≠ 0 → GStar SSWhite sp_scan sp_prep →
       ∃ sp_gram' sp_block' sp_flow' sp_scan',
@@ -10176,7 +10205,7 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
              Or.inr trivial⟩),
            PendingNode.noPending sp_start sp_open (Or.inr (inFlow_of_flowLevel_eq h_fl1))
                (Or.inr (inFlow_of_flowLevel_eq h_fl1))
-               (nodoc_of_flowLevel_succ h_fl1), hcorr_open, fun _ => ⟨.white (GStar.nil _) h_sync h_colon h_opencol, h_real, h_ad⟩⟩
+               (nodoc_of_flowLevel_succ h_fl1) (noek_of_flowLevel_succ h_fl1), hcorr_open, fun _ => ⟨.white (GStar.nil _) h_sync h_colon h_opencol, h_real, h_ad⟩⟩
   | pendingContent _ _ _ h_line _ _ _ _ _ h_frS176 _ _ h_tail143 =>
     -- Item 37: §7.5's set weakens to item 10's here, exactly as `[204]`'s does.
     -- Item 143: …and this park's producer finished a node, so it PAYS §9.2's
@@ -10332,7 +10361,7 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
                 | Or.inr _ => Or.inr trivial)⟩),
              PendingNode.noPending sp_start sp_open (Or.inr (inFlow_of_flowLevel_eq h_fl1))
                (Or.inr (inFlow_of_flowLevel_eq h_fl1))
-               (nodoc_of_flowLevel_succ h_fl1), hcorr_open,
+               (nodoc_of_flowLevel_succ h_fl1) (noek_of_flowLevel_succ h_fl1), hcorr_open,
              fun _ => ⟨.white (GStar.nil _) h_sync h_colon h_opencol, h_real, h_ad⟩⟩
     · -- Item 172: the run-end half of the under-run is no longer the scanner's
       -- refusal — §8.1's floor is read at the CLOSE now, so the open STEP
@@ -10371,7 +10400,7 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
              Or.inr trivial⟩),
            PendingNode.noPending sp_start sp_open (Or.inr (inFlow_of_flowLevel_eq h_fl1))
                (Or.inr (inFlow_of_flowLevel_eq h_fl1))
-               (nodoc_of_flowLevel_succ h_fl1), hcorr_open, fun _ => ⟨.white (GStar.nil _) h_sync h_colon h_opencol, h_real, h_ad⟩⟩
+               (nodoc_of_flowLevel_succ h_fl1) (noek_of_flowLevel_succ h_fl1), hcorr_open, fun _ => ⟨.white (GStar.nil _) h_sync h_colon h_opencol, h_real, h_ad⟩⟩
   | pendingBlock _ _ _ n_old h_close _ h_floor_old h_sk_old h_col59 h_kslot_old =>
     -- Item 46: the stack opens at the ENTRY's index, so the resume's node
     -- fits `flowInBlock n_old` and `  - [1]` composes.  Item 66: the landing
@@ -10424,7 +10453,7 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
                 | Or.inr _ => Or.inr trivial)⟩),
              PendingNode.noPending sp_start sp_open (Or.inr (inFlow_of_flowLevel_eq h_fl1))
                (Or.inr (inFlow_of_flowLevel_eq h_fl1))
-               (nodoc_of_flowLevel_succ h_fl1), hcorr_open, fun _ => ⟨.white (GStar.nil _) h_sync h_colon h_opencol, h_real, h_ad⟩⟩
+               (nodoc_of_flowLevel_succ h_fl1) (noek_of_flowLevel_succ h_fl1), hcorr_open, fun _ => ⟨.white (GStar.nil _) h_sync h_colon h_opencol, h_real, h_ad⟩⟩
     · -- Item 73: `pendingBlock`'s floor is a measurement now, not an option, so
       -- BOTH halves of the open's under-run are refuted here and the arm no
       -- longer rides the drop.
@@ -10499,7 +10528,7 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
                 | Or.inr _, Or.inr _ => Or.inr trivial)⟩),
              PendingNode.noPending sp_start sp_open (Or.inr (inFlow_of_flowLevel_eq h_fl1))
                (Or.inr (inFlow_of_flowLevel_eq h_fl1))
-               (nodoc_of_flowLevel_succ h_fl1), hcorr_open, fun _ => ⟨.white (GStar.nil _) h_sync h_colon h_opencol, h_real, h_ad⟩⟩
+               (nodoc_of_flowLevel_succ h_fl1) (noek_of_flowLevel_succ h_fl1), hcorr_open, fun _ => ⟨.white (GStar.nil _) h_sync h_colon h_opencol, h_real, h_ad⟩⟩
     · -- Item 66: the run-end half is §8.1's refusal (`k:⏎  a:⏎[1]`).  Item 68:
       -- and the TAB half is §6.1's, for `pendingProps`' reason.
       rcases h_ur with ⟨j, sx, hj, h_ind, _h_ws2, h_end | h_tab⟩
@@ -16423,6 +16452,25 @@ lemma noflow_disp_of_noflow {s_prep : ScannerState} (h : s_prep.inFlow = false) 
   · exact h
   · exact h
 
+/-- Preprocessing writes no flow level, so the PARK's flag is the landing's
+    (item 186) — the direction `h_scflow` reads at the lemmas that carry one,
+    packaged for the consumers that hold the dispatch equation instead. -/
+lemma noflow_park_of_noflow {sc s_prep : ScannerState} {c : Char}
+    (h : scanNextToken_preprocess sc = .ok (some (s_prep, c)))
+    (hnf : s_prep.inFlow = false) : sc.inFlow = false := by
+  unfold ScannerState.inFlow at hnf ⊢
+  rw [← preprocess_preserves_flowLevel sc s_prep c h]; exact hnf
+
+/-- The directive normalization carries the explicit-key register (item 186):
+    neither branch writes it, so a landing's `none` is the dispatch state's. -/
+lemma ekl_disp_of_ekl {s_prep : ScannerState} (h : s_prep.explicitKeyLine = none) :
+    (if s_prep.allowDirectives then
+      { s_prep with allowDirectives := false, documentEverStarted := true }
+    else s_prep).explicitKeyLine = none := by
+  split
+  · exact h
+  · exact h
+
 /-- The indicator dispatch's own `!inFlow` guard, run back to the flag: shared
     by both floors (items 27/28), which each need the post-update state's
     `needIndentCheck` and can only observe `inFlow` on it. -/
@@ -19198,9 +19246,9 @@ lemma block_dispatch_deferred
    PendingNode.pendingFlow sp_start sp_X sp_scan' h_stream h_arm h_nodir,
    hcorr⟩
 
-/-! #### The escape's classes, named (items 184–185)
+/-! #### The escape's classes, named (items 184–186)
 
-    `block_dispatch_deferred` has twelve applications across five consumer
+    `block_dispatch_deferred` has ELEVEN applications across FOUR consumer
     lemmas, and the number says nothing about what still exits through it: an
     escape's price is its DOMAIN, and the site count is independent of that in
     both directions (Reflection 645).  The wrappers below partition the
@@ -19219,11 +19267,17 @@ lemma block_dispatch_deferred
       at index `nv`, and the landing is at `k ≠ nv`.  `colon_open_map_explicit`
       is the route and it is exact at `[187]`'s `s-indent(n)`, so what is
       missing is a reason the two indices agree.
-    * `block_dispatch_deferred_stamp_nopack` (4) — the park carries no value
+    * `block_dispatch_deferred_stamp_nopack` (3) — the park carries no value
       pack at all.  This is the class with NOTHING to carry: the field's other
       alternative is `True`, so no proposition distinguishes these sites and
-      the census is their only instrument.  `accum_block_on_noPending`'s
-      site is here by construction — a virgin park has no pack to hold.
+      the census is their only instrument.  **Item 186 paid the fourth site
+      out**: the virgin park item 185 read as "in the class by construction"
+      was not in the class at all — a `noPending` park in block context is the
+      stream's seed, its new `h_noek` says the explicit-key register is dead
+      there, and the landed `:` now DECIDES its stamp source instead of
+      splitting on it.  What empties the three that remain is a CARRIER, and
+      item 186 priced it: making the pack conditional on that same register
+      costs 23 payments across 8 producing definitions.
     * `block_dispatch_deferred_stamp_compact` (2) — the step crossed no break
       and the park is an open `[185]` slot, so `compact_open_map` is the route
       and it needs the STAMP: `[189]`'s value is `s-l+block-node`, which has
@@ -19277,7 +19331,20 @@ lemma block_dispatch_deferred_stamp_offcol
     `True`, so the branch has no proposition to hand a wrapper and the census
     row is the only instrument that can re-derive this count.  What empties it
     is a CARRIER — a face on the park saying the `?` frame's value slot stands
-    open at the landing's column — which is U2's residue proper. -/
+    open at the landing's column — which is U2's residue proper.
+
+    **Item 186 priced that carrier and paid one site out of the class.**  The
+    price: make the pack conditional on the scanner's own register
+    (`… ∨ sc.explicitKeyLine = none`) and the producers that can no longer
+    punt are **23 payments across 8 definitions** — 7 at `pendingBlock.h_kslot`,
+    6 at `pendingBlockContent.h_kslot`, 10 at `pendingContent.h_vpack` — plus
+    four transport sites at the two dispatchers and `flowVPack_of_close`.  That is an invariant
+    strengthening across the park producers, not a lemma at the consumer, and
+    `scanValue`'s own `ekl` says why: the register survives a `:` only where
+    the `:` stands strictly deeper than `explicitKeyCol`, which is exactly the
+    case where the `[187]` frame is still open and a pack is owed.  The site
+    that DID pay was `accum_block_on_noPending`'s, where the park's own
+    `h_noek` refutes the branch outright. -/
 lemma block_dispatch_deferred_stamp_nopack
     (sp_start sp_X sp_scan' : SurfPos) (s' : ScannerState) {s_dis : ScannerState}
     (h_stream : SLYamlStream sp_start sp_X)
@@ -19369,6 +19436,12 @@ lemma accum_block_on_noPending
     -- implicit continuation this arm used to spend restarts a stream that has
     -- started nothing.
     (h_nodoc : sc.inFlow = false → GStar SLDocumentPrefix sp_start sp_block)
+    -- **Item 186: the park's own `h_noek`.**  A block-context `noPending` is
+    -- the stream's seed, so nothing behind it has been scanned and the
+    -- explicit-key register is dead.  That is what decides the landed `:`'s
+    -- stamp source here outright — see the `:` arm below, where item 125's
+    -- case split turns out to have had nothing to decide.
+    (h_noek : sc.inFlow = false → sc.explicitKeyLine = none)
     (h_noflow : s_prep.inFlow = false)
     (h_preprocess : scanNextToken_preprocess sc = .ok (some (s_prep, c)))
     (h_dispatch : scanNextToken_dispatchBlockIndicators
@@ -19515,30 +19588,19 @@ lemma accum_block_on_noPending
           (Or.inr trivial)
           -- Item 175: a virgin park holds no property run.
           (Or.inr trivial)
-      -- Item 125: the `:`'s own stamp source, decided here (see
-      -- `accum_block_on_closeThenBlock`); the `?` never reads it.
-      refine hcv.elim (fun hc_colon => ?_) (fun hc_q => ?_)
-      · by_cases h_src : (if s_prep.allowDirectives then
-            { s_prep with allowDirectives := false, documentEverStarted := true }
-          else s_prep).explicitKeyLine = none ∨
-          (scanValueClearKey (if s_prep.allowDirectives then
-            { s_prep with allowDirectives := false, documentEverStarted := true }
-          else s_prep)).simpleKey.possible = true ∨
-          ((if s_prep.allowDirectives then
-            { s_prep with allowDirectives := false, documentEverStarted := true }
-          else s_prep).col : Int) ≠ (if s_prep.allowDirectives then
-            { s_prep with allowDirectives := false, documentEverStarted := true }
-          else s_prep).explicitKeyCol
-        · exact h_open (fun _ => h_src)
-        · -- Item 185: a virgin park holds no value pack, so this site is
-          -- `nopack` by construction rather than by a branch.
-          exact block_dispatch_deferred_stamp_nopack sp_start sp_mid sp_scan' s'
-            (ssl_comments_extend_stream sp_start sp_block _ h_stream_block h_ssl_pre)
-            (Or.inl (block_indicator_arm h_dispatch)) hcorr_result
-            (nodir_of_block_dispatch h_dispatch) h_src
-            (explicit_at_indent_of_dispatch (hc_colon ▸ h_dispatch)
-              (noflow_disp_of_noflow h_noflow) h_src)
-      · exact h_open (fun h => absurd (hc_q.symm.trans h) (by decide))
+      -- ═══ Item 186: the `:`'s stamp source is DECIDED here, not split on.
+      -- A virgin block-context park is the stream's seed (item 116 counted the
+      -- constructor's producers and the other seven are flow-interior), so its
+      -- `h_noek` says the explicit-key register is dead, and preprocessing
+      -- carries it to the landing unchanged.  The first alternative therefore
+      -- HOLDS at every landing off this park: item 125's case split had nothing
+      -- to decide, and item 185's fourth `_stamp_nopack` site — the one it read
+      -- as "in the class by construction" — was that undecided branch and not
+      -- a missing carrier.  Measured before it was paid: 1 440 class-A `:`
+      -- dispatches over the sweep corpus, ZERO of them behind a virgin park. ═══
+      exact h_open (fun _ => Or.inl (ekl_disp_of_ekl
+        ((ExplicitKeyCoupling.preprocess_preserves_explicitKey sc s_prep c h_preprocess).1.trans
+          (h_noek (noflow_park_of_noflow h_preprocess h_noflow)))))
     · exact (block_indicator_exhausted h_dispatch hc hcv).elim
 
 -- Block dispatch after closing old pending: '-' at col=0 opens new block sequence.
@@ -21358,10 +21420,10 @@ lemma accum_block_pending (sc : ScannerState)
       ∀ sp_mid, SSLComments sp_scan sp_mid → SLYamlStream sp_start sp_mid :=
     fun h_nd sp_mid h_ssl => h_pending.close_with_ssl h_stream_block h_nd h_ssl
   cases h_pending with
-  | noPending _ _ h_col h_arm h_nodoc =>
+  | noPending _ _ h_col h_arm h_nodoc h_noek =>
     exact accum_block_on_noPending sc sp_start sp_block s_prep s' c sp_prep sp_scan'
-      h_stream_block hcorr_prep hcorr_result h_corr h_col h_arm h_nodoc h_noflow h_preprocess
-      h_dispatch
+      h_stream_block hcorr_prep hcorr_result h_corr h_col h_arm h_nodoc h_noek h_noflow
+      h_preprocess h_dispatch
   | pendingDocEnd _ _ _ h_line h_marker h_arm77 =>
     -- Item 36: `[204] l-document-suffix` ends the marker with `s-l-comments`,
     -- so a `-`/`?`/`:` on the marker's own line is a state the scanner refuses
@@ -31116,7 +31178,20 @@ lemma scan_content_gives_stream_v2
       -- Item 116: the seed's `h_nodoc` is the real payment — the witness is
       -- `initial_stream_and_prefix`'s own last conjunct, and the premise is
       -- ignored because the seed holds it unconditionally.
-      (fun _ => h_prefix))
+      (fun _ => h_prefix)
+      -- Item 186: and the seed's `h_noek`, paid the way `h_arm` is —
+      -- `ScannerState.mk'` writes the register `none`, the `streamStart`
+      -- emission carries it, and §5.2's BOM advance carries it too.
+      (fun _ => by
+        have h_emit : ((ScannerState.mk' input).emit YamlToken.streamStart).explicitKeyLine
+            = none := by simp [ScannerState.emit, ScannerState.mk']
+        split
+        · show ({ (((ScannerState.mk' input).emit YamlToken.streamStart)).advance with
+              col := 0 } : ScannerState).explicitKeyLine = none
+          show (((ScannerState.mk' input).emit YamlToken.streamStart)).advance.explicitKeyLine
+            = none
+          rw [ExplicitKeyCoupling.advance_preserves_explicitKeyLine]; exact h_emit
+        · exact h_emit))
     (fun hb => Bool.noConfusion hb) h_corr
     (fun hge => absurd hge (by
       -- the seed scanner is at flow level 0, so the flow-interior conjunct is vacuous

@@ -198,9 +198,11 @@ comes, and the field becomes spendable. -/
 example {sc : ScannerState} {sp_start sp : SurfPos}
     (h_col : sp.col = 0 ∨ sc.inFlow = true)
     (h_arm : sc.simpleKeyAllowed = true ∨ sc.inFlow = true)
-    (h_nodoc : sc.inFlow = false → GStar SLDocumentPrefix sp_start sp) :
+    (h_nodoc : sc.inFlow = false → GStar SLDocumentPrefix sp_start sp)
+    -- Item 186: and the register face, the same premise on the scanner side.
+    (h_noek : sc.inFlow = false → sc.explicitKeyLine = none) :
     PendingNode sc false sp_start sp sp :=
-  PendingNode.noPending sp_start sp h_col h_arm h_nodoc
+  PendingNode.noPending sp_start sp h_col h_arm h_nodoc h_noek
 
 -- The flow producers pay exactly as before, from the one fact all seven hold.
 example {sc : ScannerState} {n : Nat} {sp_start sp : SurfPos}
