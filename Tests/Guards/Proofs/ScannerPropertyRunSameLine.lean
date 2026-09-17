@@ -59,6 +59,11 @@ private def rejects9k (input : String) (c : Char) (line col : Nat) : Bool :=
                      some (.invalidNodeProperties c line col))
 
 /-- Both pipelines accept `input`. -/
+private def scanOkP (input : String) : String :=
+  match Scanner.scan input with
+  | .ok _ => "SCAN-OK"
+  | .error e => s!"SCAN-ERR {repr e}"
+
 private def bothAccept (input : String) : Bool := verdicts input == (none, none)
 
 /-! ## §1  A second anchor on the line
@@ -109,8 +114,21 @@ the two property tokens on DIFFERENT lines, which is not a coincidence but
 #guard bothAccept "alias1: &alias1 x\ntop3: &node3\n  *alias1 : scalar3\n"
 #guard bothAccept "&node3\n*node3 : scalar3\n"
 #guard bothAccept "&a\n- x\n"                     -- a block sequence under a property
-#guard bothAccept "&a\n&b: v\n"                   -- a block mapping under a property
-#guard bothAccept "- &a\n  &b: v\n"
+#guard bothAccept "&a\n&b k: v\n"                 -- a block mapping under a property,
+                                                  -- its first key anchored
+#guard bothAccept "- &a\n  &b k: v\n"
+-- Item 180: the two pins above used to read `&b: v` — but `:` IS an
+-- `ns-anchor-char` (`[102]` excludes only the flow indicators), so `&b:` is
+-- the anchor NAMED `b:` and the line is a SECOND anchor with a naked scalar —
+-- two anchors, one `[96]` run, no derivation.  The old acceptance silently
+-- DROPPED the first anchor; the crossed-block clause refuses at the second
+-- anchor's own position.  (PyYAML accepts because its anchor charset is
+-- narrower than `[102]` — it reads `&b` + an empty key — a PyYAML-side
+-- divergence, and the production text is the reference.)
+#guard scanOkP "&a\n&b: v\n"
+  == "SCAN-ERR L4YAML.ScanError.invalidBareDocument 1 0"
+#guard scanOkP "- &a\n  &b: v\n"
+  == "SCAN-ERR L4YAML.ScanError.invalidBareDocument 1 2"
 
 /-! ## §5  The two disjuncts are incomparable
 

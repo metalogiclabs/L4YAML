@@ -127,13 +127,17 @@ example (s : ScannerState) (h_noflow : s.inFlow = false) {st : Nat}
     {pred : Option Nat}
     (h_run : trailingNodeRun? s.tokens = some (st, pred))
     (h_col : (s.indents.any fun e =>
-      e.column == ((s.tokens[st]!.pos).col : Int)) = false) :
+      e.column == ((s.tokens[st]!.pos).col : Int)) = false)
+    -- Item 180: the column reading is no longer the whole verdict — the
+    -- crossed-block clause reads the trailing block at ANY column, so its
+    -- own `none` rides as a premise here.
+    (hx : crossedPropsExcessPos? s.tokens = none) :
     danglingNodePos? s = none := by
   unfold danglingNodePos?
   rw [h_noflow]
   simp only [Bool.false_eq_true, ↓reduceIte]
   rw [h_run]
-  simp only [h_col, Bool.false_eq_true, ↓reduceIte, ite_self]
+  simp only [h_col, Bool.false_eq_true, ↓reduceIte, ite_self, hx]
 
 -- …and the exemption's surviving half, at the type: an offered run whose
 -- start is neither a node body nor a property (item 178) — the props-less

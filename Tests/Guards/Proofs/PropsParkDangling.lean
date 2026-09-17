@@ -277,19 +277,24 @@ PROPERTY push returns the moved window (`PropsWindowCross`) and
 `pendingProps.h_routeX` serves it without the verdict
 (`PropsCrossWindowRoute`). -/
 
-#guard scanOk "&a\n!t &b x\n" == "SCAN-OK"
+-- Item 180: the crossed-block clause refuses the family at the SCANNER now
+-- (EOF), at the position the parser reported.
+#guard scanOk "&a\n!t &b x\n"
+  == "SCAN-ERR L4YAML.ScanError.invalidBareDocument 1 3"
 #guard parseOk "&a\n!t &b x\n"
   == "PARSE-ERR L4YAML.ScanError.invalidBareDocument 1 3"
 
 -- `&a⏎!t &b x`: at step 2 the token run starts at the `&a` on line 0, because
 -- `trailingNodeRun?` walks back over properties and has no line filter.  The
--- third property MOVES the start to the `!t` on line 1 — the crossed window.
+-- third property MOVES the start to the `!t` on line 1 — the crossed window —
+-- and (item 180) the over-full block reads as the EXCESS property's position,
+-- so the park is SOME from the `&b` on.
 #guard (List.range 5).map (fun n => parkAt "&a\n!t &b x\n" n)
   == ["run=none park=none",
       "run=prop@0,0 pred=no-slot park=none",
       "run=prop@0,0 pred=no-slot park=none",
-      "run=prop@1,0 pred=no-slot park=none",
-      "run=prop@1,0 pred=no-slot park=none"]
+      "run=prop@1,0 pred=no-slot park=1,3",
+      "run=prop@1,0 pred=no-slot park=1,3"]
 
 -- The TWO-property run it stops at is untouched, across a break as on a line.
 #guard (List.range 5).map (fun n => parkAt "&a\n!t x\n" n)

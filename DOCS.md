@@ -19711,11 +19711,143 @@ cp failed silently, the build log went nowhere, and the flip stayed APPLIED
 until `git checkout` — clone gate scripts with targeted substitutions and
 path-check them before running.
 
-**What remains, in the map's order.**  The crossed-window arms' scanner-side
+**What remains, in the map's order.**  ~~The crossed-window arms' scanner-side
 reading or their carried face (their whole domain is the root family,
-`&a⏎!t &b x`); the `k: &x⏎a`-family runtime floor (a flip prerequisite now);
-then the `[210]` flip.
+`&a⏎!t &b x`)~~ — **DONE by item 180** (the scanner-side reading; the arms'
+retirement is the follow-up); the `k: &x⏎a`-family runtime floor (a flip
+prerequisite now); then the `[210]` flip.
 
+
+### Item 180 (2026-09-16)
+
+**§9.2's FOURTH reading — the crossed over-full property block — and the
+crossed-window arms' scanner-reachable domain is EMPTY.**  The M4 candidate
+the census named at item 174, landed not as a new check but as a widening of
+`danglingNodePos?` (and its indexed twin): the readers gain a fourth clause,
+`crossedPropsExcessPos?`, checked AFTER the at-level reading so every position
+they reported before this item is unchanged.
+
+**The reading.**  `[96] c-ns-properties` admits one anchor and one tag, so an
+ADJACENT block of property tokens holding two of one kind is never one run.
+It can still be TWO runs — `[200]`'s collection properties, a break, then the
+first KEY's own run — but that split resolves on the KEY's OWN LINE (a
+block-key context admits no break), so at a line end the discrimination is
+over: a trailing run whose adjacent block duplicates a kind has no derivation,
+whatever follows.  `propsBlockScanLoop` walks the block UNCAPPED (the
+`trailingPropertyRun` cap is the legal run's arity, and this reader exists to
+see past it), and the excess — the first token, in token order, whose kind
+repeats — is the position `TokenParser.validNextToken` reports for these
+inputs, so the twelve parser-refused shapes in the item's battery move stage
+with the constructor AND position byte-identical (`&a⏎!t &b x` at `1,3`,
+`&a !t⏎&b x` at `1,0`, `!t⏎&a !u x`, `&a⏎!t⏎&b x`, `&a⏎!t &b⏎x: 1`,
+`---`/`...`/depth/`- ` variants, the no-body `&a⏎!t &b` at EOF).  The
+same-line thirds never get this far — the push guards refuse them at the
+character — so the clause catches exactly the families whose internal
+separation CROSSED a break: `PropsWindowCross`, read by the runtime.
+
+**Measured before building, against PyYAML (6.x, `yaml.parse`).**  A
+33-input battery: the SPLIT family is accepted by both with identical
+readings (`&a⏎!t &b x: 1` = `+MAP &a` with the key decorated `!t &b`,
+`&a⏎&k k: 1`, `!t⏎&a !u x: 1`, `&outer⏎&inner b: 1` — the healing that
+makes a push-time refusal UNSOUND and fixes the check point at the break);
+the one-run internal-break family is untouched (`!t⏎&q b`, `!t⏎&q⏎b` — one
+decorated scalar, both parsers); and every input the clause refuses, PyYAML
+refuses.  THREE readings move beyond stage:
+
+* `&p⏎&q b` (and kin): the parser called it `duplicateAnchor` — there is no
+  duplicate NAME; it meant a second anchor on one node — and the message
+  upgrades to the family's own `invalidBareDocument` at the second anchor.
+* **Two silent-loss over-acceptances FIXED**: `&outer⏎&inner⏎b: 1` parsed as
+  `+MAP &inner` — `&outer` VANISHED from the events — and `!t⏎!u` parsed as
+  `=VAL <!u> :` with the `!t` dropped.  Both now refuse where PyYAML always
+  did.
+* `&a⏎&b: v` (a `bothAccept` pin in `ScannerPropertyRunSameLine` §4): `:` IS
+  an `ns-anchor-char` (`[102]` excludes only flow indicators), so `&b:` is
+  the anchor NAMED `b:` and the line is a second anchor with a naked scalar
+  — the old acceptance dropped `&a`.  PyYAML accepts because its anchor
+  charset is narrower than `[102]` (it reads `&b` + an empty key) — a
+  PyYAML-side divergence, recorded at the pin; the production text is the
+  reference.
+
+**The proof surface, by tree:**
+
+* **StreamAccum.**  `danglingNodePos?_congr` carries the clause's equality as
+  a fifth premise, paid by two mirrors (`crossedPropsExcessPos?_push_body_onProp`,
+  `_flowClose_reads_park` — the close↔park coupling `ParkAnchor.dangling_eq`
+  rides is why the close ARM exists: without it the coupling is false at an
+  over-full park).  The `[96]` extension's relay
+  (`propsPark_dangling_of_prop`) uses the new `danglingNodePos?_none_mono`:
+  the crossed reading travels ONE way across a property push — a duplicate
+  below survives the push (`crossedPropsExcessPos?_push_prop_mono`) — and one
+  way is all the relay's conclusion asks, so NO reading of the pushed token's
+  kind is needed.  Kit: `prevRealIdx?_gap`, `propsBlockScanLoop_succ` (the
+  step equation the lemmas rewrite with), `_congr_below`, `_skip_gap`,
+  `_excess_lt`.
+* **The scannability trees.**  The sentinel discharge is no longer free — the
+  clause reads no column — so `danglingNodePos?_none_of_sentinel` and the
+  four check wrappers carry the clause's own `none`, paid by a no-props kit
+  (an emitted stream holds NO property token: the canonical emitter writes no
+  `&`/`!` at all, aliases included — `no_props_of_filtered_pin(_list)`,
+  `crossedPropsExcessIdx?_none_of_no_props`, per-shape bridges off the
+  `.val`-run pins, `emitTokVals`-level facts off the EXISTING
+  `emitTokVals_flowClean`).  Where a structure lemma HOLDS acceptance, the
+  checks are read off it instead: `scanLoop_checks_of_scanFiltered_ok` (the
+  inversion — `ScanChain.scanLoop_eq` is the plain loop equality that lets
+  ERRORS ride the replay), spent at the five `h_scan`-carrying sites in
+  `NonemptyStructure`/`ScannerSpanLocality`/`DeepNavigator`.
+* **`emit_produces_valid_yaml` MOVED** (`ScanChainGrowth` → `TokValsPin`).
+  Its seq/map closes discharged §9.2 from the sentinel stack alone; the
+  clause reads content the weak `EmitListScansInFlow` products cannot see,
+  and the value-determined pins can — `emit_scans_tokvals` is universal over
+  `Grammable` — so Step 1 now rides the pinned replay
+  (`scanFiltered_emitSeq_ok`/`_emitMap_ok`, the §F chains stopped at their
+  own `h_tok_eq`).
+* **The INDEXED twin is PARKED.**  `emit_produces_valid_yamlIx` (zero
+  consumers, the Ix track's ⏳ SS3 scaffold) rode the same weak route; the
+  indexed tree has no tokvals track yet, so the Endpoint close lemmas now
+  carry the no-props hypothesis honestly and the composition waits for the
+  Ix pins (or the no-props threading through `EmitScansInFlowIx` — both
+  routes priced in the file header note).  Everything else in the Ix tree —
+  `scan_accepts_emitScalarIx`, `scanFilteredIx_emitScalar_eq`, every §1–§3
+  brick — stands, discharged from the scalar pins and the init states.
+
+**What this buys the flip.**  The crossed-window arms' whole
+scanner-reachable domain is EMPTY: at the crossed extension the pushed
+property makes THREE adjacent properties — two of one kind by pigeonhole —
+so the widened verdict is `some` and the extension's gated route premise
+refutes; at the checks the family is refused outright.  The retirement —
+delete `pendingProps.h_routeX`, turn the two `bareNodeRoute` payments in
+`accum_content_pending`'s `h_route_mid` builders into refutations, narrow
+`content_dispatch_routed`'s route premise back to `ContentRouteGate` alone —
+is the crossed arms' own follow-up item, pure proof work now.  The flip's
+prerequisite list keeps ONE runtime entry: the `k: &x⏎a` acceptance.
+
+**Measured at the landed state.**  Full `lake build` **1160** jobs +
+`Tests.Guards`/`Tests.Reflections` **733**, ZERO warnings; suite Verified
+**4508/4508** (7103 → **7105** `#guard`s, the new-refusal pins) with
+Production Coverage Analysis **825/825**; `eventscore` **347/358** (252
+event-pass, 11 event-diff, **0** event-reject, 95 error-ok, **0**
+error-miss) — IDENTICAL to 179, no suite case moved verdict; `suiterunner`
+**869 / 0 / 151**; matrix **402/402 event + 282/282 JSON, both pipelines**,
+splits identical to 176–179; the `[210]` flip instrument reports **FIVE**
+errors at the same five definitions at the SAME positions
+(4201/5481/5504/5673/7125 — the whole item moved none of the flip's
+surface), applied and restored clean; raw-route census **THREE** holders at
+their exact item-176 counts (`accum_content_pending: bareNodeRoute ×2` now
+gated on the EMPTY crossed domain) and the resume consumers unchanged;
+`#print axioms` over the dangling family, the new mono/mirror/kit lemmas,
+the inversion, the relocated Step 1 and `accum_content_pending`: standard
+three at most, `dangling_none_of_check`/`_none_of_inFlow`/`_none_of_no_run`
+(both pipelines) at `propext` alone, the standing `native_decide` profile,
+**no** `sorryAx`; checkers 228/355, 20/230/249/355, 25 capstones.
+Declarations **7965 → 8004** (the six runtime defs across the two pipelines
+and the proof kit).
+
+**What remains, in the map's order.**  The crossed-window arms' RETIREMENT
+(h_routeX and the two raw payments — refutations from the widened verdict);
+the `k: &x⏎a`-family runtime floor (the flip's last runtime prerequisite);
+then the `[210]` flip.  And the parked Ix Step-1 composition, on the Ix
+track's own clock.
 
 ### REMAINING, in order
 
@@ -19733,7 +19865,7 @@ too (items 47–51), so what stands between here
 and Step 5 (the converse) is R3's remaining production work and R4:
 
 ```
-R1 ✓ (44–46) ──→ R2 ✓ (47–51) ──→ R3 (52–179 landed; U2 CLOSED, the collapse gone) ──→ Step 5
+R1 ✓ (44–46) ──→ R2 ✓ (47–51) ──→ R3 (52–180 landed; U2 CLOSED, the collapse gone) ──→ Step 5
                                         └──────→ R4 (implicitContinue + 0 < m) ──┘
 ```
 
@@ -19772,8 +19904,10 @@ the dedent branch item 99 built — exactly the "somewhere" this paragraph
 asked for — and `nestedBlockMap`'s `n ≤ k` reads as the spec's own strict
 floor at the shifted convention, so carrying `0 < m` is no longer a separate
 tightening at all.  What R4 still owes is `[210]`'s narrowing itself, whose
-prerequisites are the crossed-window arms' root family and the `k: &x⏎a`
-acceptance (item 179's residual).
+prerequisites are ~~the crossed-window arms' root family and~~ the `k: &x⏎a`
+acceptance (item 179's residual) — **the crossed-window family refuses at the
+scanner as of item 180**, leaving `k: &x⏎a` the one runtime prerequisite,
+plus the arms' proof-side retirement.
 
 **The structural fact the plan hangs on** (measured at item 35): `pendingFlow`
 has exactly one producer — `block_dispatch_deferred` itself — and carries only

@@ -1798,7 +1798,52 @@ def trailingNodeRunIx? {input : String} (ts : Indexed.TokenStream input) :
         some (st, prevRealIdxIx? ts st)
     else none
 
-/-- Indexed twin of `L4YAML.Scanner.danglingNodePos?`. -/
+/-- Indexed twin of `L4YAML.Scanner.propsBlockScanLoop` (item 180). -/
+@[yaml_spec "6.9" 96 "c-ns-properties"]
+def propsBlockScanLoopIx {input : String} (ts : Indexed.TokenStream input) :
+    Nat → Bool × Bool × Option Nat
+  | 0 => (false, false, none)
+  | j + 1 =>
+    let t := ts.tokens[j]!.token
+    if t == .placeholder then propsBlockScanLoopIx ts j
+    else if t.isNodeProperty then
+      let (a, tg, e) := propsBlockScanLoopIx ts j
+      let e' := match e with
+        | some k => some k
+        | none =>
+          if t.isAnchorProperty && a then some j
+          else if t.isTagProperty && tg then some j
+          else none
+      (a || t.isAnchorProperty, tg || t.isTagProperty, e')
+    else (false, false, none)
+
+/-- Indexed twin of `L4YAML.Scanner.crossedPropsExcessIdx?` (item 180). -/
+@[yaml_spec "6.9" 96 "c-ns-properties", yaml_spec "9.2" 211 "l-yaml-stream"]
+def crossedPropsExcessIdxIx? {input : String} (ts : Indexed.TokenStream input) :
+    Option Nat :=
+  match prevRealIdxIx? ts ts.tokens.size with
+  | none => none
+  | some i =>
+    let t := ts.tokens[i]!.token
+    if t.isNodeProperty then (propsBlockScanLoopIx ts (i + 1)).2.2
+    else if t.isNodeBody then (propsBlockScanLoopIx ts i).2.2
+    else if t.isFlowClose then
+      match flowOpenIdxIx? ts i with
+      | none => none
+      | some o => (propsBlockScanLoopIx ts o).2.2
+    else none
+
+/-- Indexed twin of `L4YAML.Scanner.crossedPropsExcessPos?` (item 180). -/
+@[yaml_spec "6.9" 96 "c-ns-properties", yaml_spec "9.2" 211 "l-yaml-stream"]
+def crossedPropsExcessPosIx? {input : String} (ts : Indexed.TokenStream input) :
+    Option YamlPos :=
+  match crossedPropsExcessIdxIx? ts with
+  | some j => some ts.tokens[j]!.start
+  | none => none
+
+/-- Indexed twin of `L4YAML.Scanner.danglingNodePos?`, item 180's crossed
+    over-full property block included — the legacy docstring has the four
+    readings. -/
 def danglingNodePosIx? {input : String} (s : ScannerStateIx input) :
     Option YamlPos :=
   if s.inFlow then none
@@ -1813,7 +1858,8 @@ def danglingNodePosIx? {input : String} (s : ScannerStateIx input) :
           && !(s.tokens.tokens[st]!.token.isNodeProperty) then none
       else
         let p := s.tokens.tokens[st]!.start
-        if s.indents.any (fun e => e.column == (p.col : Int)) then some p else none
+        if s.indents.any (fun e => e.column == (p.col : Int)) then some p
+        else crossedPropsExcessPosIx? s.tokens
 
 /-- §9.2 [211] mid-stream: indexed twin of
     `scanNextToken_checkDanglingNode`, including item 140's two states — the

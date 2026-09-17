@@ -167,7 +167,9 @@ lemma scanFiltered_emitScalar_vals (content : String) (tokens : Array (Positione
   have h_scan_raw : scan (emitScalar content) =
       .ok (s₁.emit .streamEnd).tokens := by
     rw [h_scan_eq, scanLoop_two_iter_eq h_fuel h_snt1 h_snt2 h_flow1 h_dp1
-      (scanLoop_checkDanglingNode_ok_of_sentinel_stack _ h_ids1)
+      (scanLoop_checkDanglingNode_ok_of_sentinel_stack _ h_ids1
+        (crossedPropsExcessIdx?_none_of_no_props (no_props_of_filtered_pin h_filt1
+          (by intro v hv; simp [Array.mem_def] at hv; rcases hv with rfl | rfl <;> rfl))))
       (scanLoop_checkFlowValueIndent_ok_of_sentinel_stack _ h_ids1), h_uwi]
   have h_tokens_eq : tokens = (s₁.emit .streamEnd).tokens.filter
       (fun t => t.val != .placeholder) := by

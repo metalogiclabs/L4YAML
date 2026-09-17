@@ -96,6 +96,80 @@ lemma scanFiltered_of_chain (input : String)
   simp only [scanFiltered, h_scan, h_loop_fuel]
   exact ⟨_, rfl⟩
 
+/-- The loop consumes the chain deterministically, whatever comes after —
+    stated as a plain `scanLoop` equality so ERRORS ride it too (item 180's
+    inversion needs the error direction). -/
+lemma ScanChain.scanLoop_eq {s s' : ScannerState} {n fuel : Nat}
+    (h_chain : ScanChain s n s') :
+    scanLoop s (fuel + n) = scanLoop s' fuel := by
+  induction h_chain with
+  | zero => rfl
+  | @step s s_mid s'' k h_snt h_rest ih =>
+    have h : fuel + (k + 1) = (fuel + k) + 1 := by omega
+    rw [h]
+    show scanLoop s ((fuel + k) + 1) = scanLoop s'' fuel
+    have hstep : scanLoop s ((fuel + k) + 1) = scanLoop s_mid (fuel + k) := by
+      simp only [scanLoop]
+      rw [h_snt]
+    rw [hstep]
+    exact ih
+
+/-- **Item 180's inversion**: on an ACCEPTED scan, the two EOF checks passed
+    at the chain's final state.  The structure lemmas hold acceptance as a
+    hypothesis and used to re-PROVE the checks from the sentinel stack alone;
+    the crossed-block clause reads content the sentinel does not see, and this
+    reads the verdicts off the acceptance instead. -/
+lemma scanLoop_checks_of_scanFiltered_ok (input : String)
+    (s₀ s_final : ScannerState) (n : Nat)
+    (h_s0 : s₀ = (ScannerState.mk' input).emit .streamStart)
+    (h_no_bom : (ScannerState.mk' input).peek? ≠ some '\uFEFF')
+    (h_chain : ScanChain s₀ n s_final)
+    (h_eof : scanNextToken s_final = .ok none)
+    (h_fl : s_final.flowLevel = 0)
+    (h_dp : s_final.directivesPresent = false)
+    (h_fuel : n + 1 ≤ (input.utf8ByteSize + 1) * 4)
+    {tokens : Array (Positioned YamlToken)}
+    (h_ok : Scanner.scanFiltered input = .ok tokens) :
+    scanLoop_checkDanglingNode s_final = .ok ()
+      ∧ scanLoop_checkFlowValueIndent s_final = .ok () := by
+  -- acceptance descends to the raw scan
+  obtain ⟨raw, h_raw⟩ : ∃ raw, scan input = .ok raw := by
+    unfold Scanner.scanFiltered at h_ok
+    cases h : scan input with
+    | ok raw => exact ⟨raw, rfl⟩
+    | error e => rw [h] at h_ok; cases h_ok
+  -- the raw scan is the loop, and the loop is the chain then the EOF step
+  have h_scan_loop : scan input = scanLoop s₀ ((input.utf8ByteSize + 1) * 4) := by
+    unfold scan; subst h_s0; dsimp only []
+    have h_pk := show ((ScannerState.mk' input).emit .streamStart).peek?
+        = (ScannerState.mk' input).peek? from rfl
+    rw [h_pk]
+    split
+    · exact absurd ‹_› h_no_bom
+    · rfl
+  have h_split : (input.utf8ByteSize + 1) * 4
+      = ((input.utf8ByteSize + 1) * 4 - n) + n := by omega
+  have h_final_loop : scanLoop s_final ((input.utf8ByteSize + 1) * 4 - n) = .ok raw := by
+    rw [← h_chain.scanLoop_eq, ← h_split, ← h_scan_loop]
+    exact h_raw
+  -- the final fuel is positive, so the loop is at its EOF arm: the checks decide
+  obtain ⟨f, hf⟩ : ∃ f, (input.utf8ByteSize + 1) * 4 - n = f + 1 :=
+    ⟨(input.utf8ByteSize + 1) * 4 - n - 1, by omega⟩
+  rw [hf] at h_final_loop
+  unfold scanLoop at h_final_loop
+  rw [h_eof] at h_final_loop
+  dsimp only [] at h_final_loop
+  rw [if_neg (show ¬(s_final.flowLevel > 0) from by omega)] at h_final_loop
+  rw [if_neg (by rw [h_dp]; exact Bool.false_ne_true)] at h_final_loop
+  cases h_dn : scanLoop_checkDanglingNode s_final with
+  | error e => rw [h_dn] at h_final_loop; cases h_final_loop
+  | ok u =>
+    cases u
+    rw [h_dn] at h_final_loop
+    cases h_fv : scanLoop_checkFlowValueIndent s_final with
+    | error e => rw [h_fv] at h_final_loop; cases h_final_loop
+    | ok w => cases w; exact ⟨rfl, rfl⟩
+
 /-- **Equality version**: gives the exact filtered token array from a ScanChain.
     The output is the filtered version of the chain's final state tokens
     plus `streamEnd`, after unwinding indents. -/
@@ -205,10 +279,133 @@ lemma danglingNodePos?_none_of_inFlow (s : ScannerState) (h : s.inFlow = true) :
     danglingNodePos? s = none := by
   simp only [danglingNodePos?, h, ↓reduceIte]
 
+/-! Item 180's crossed-block clause fires at ANY column, the sentinel's
+    included — that is the whole point of the fourth reading — so the
+    sentinel discharge now carries the clause's own `none` as a premise,
+    and the kit below produces it from the local token facts the sites
+    already track: an emitted array never holds two same-kind properties
+    in one adjacent block (the canonical emitter writes no `&`/`!` at
+    all), and each site knows the one token that ends its block. -/
+
+/-- The block scan reports nothing over an array with no property tokens at
+    all — the emitted arrays' case (the canonical emitter writes no `&`/`!`),
+    stated over `getElem!` so out-of-range indices need no side condition. -/
+lemma propsBlockScanLoop_no_props {tokens : Array (Positioned YamlToken)}
+    (h : ∀ j : Nat, tokens[j]!.val.isNodeProperty = false) :
+    ∀ n, propsBlockScanLoop tokens n = (false, false, none) := by
+  intro n
+  induction n with
+  | zero => rfl
+  | succ m ih =>
+    unfold propsBlockScanLoop
+    simp only [h m, Bool.false_eq_true, ↓reduceIte]
+    split
+    · exact ih
+    · rfl
+
+/-- …so the trailing block has no excess there either, whatever arm the
+    trailing run takes. -/
+lemma crossedPropsExcessIdx?_none_of_no_props {tokens : Array (Positioned YamlToken)}
+    (h : ∀ j : Nat, tokens[j]!.val.isNodeProperty = false) :
+    crossedPropsExcessIdx? tokens = none := by
+  unfold crossedPropsExcessIdx?
+  split
+  · rfl
+  · rename_i i _
+    simp only [h i, Bool.false_eq_true, ↓reduceIte,
+      propsBlockScanLoop_no_props h]
+    split
+    · rfl
+    · split <;> first | rfl | (split <;> rfl)
+
+/-- The stream's seed has one real token, and `streamStart` is no property. -/
+lemma crossedPropsExcessIdx?_init (input : String) :
+    crossedPropsExcessIdx? ((ScannerState.mk' input).emit .streamStart).tokens = none := rfl
+
+/-- The clause's position reading is `none` exactly where its index is. -/
+lemma crossedPropsExcessPos?_none {tokens : Array (Positioned YamlToken)}
+    (h : crossedPropsExcessIdx? tokens = none) :
+    crossedPropsExcessPos? tokens = none := by
+  unfold crossedPropsExcessPos?; rw [h]
+
+/-- The no-props reading survives any non-property push. -/
+lemma no_props_push {tokens : Array (Positioned YamlToken)} {p : Positioned YamlToken}
+    (h : ∀ j : Nat, tokens[j]!.val.isNodeProperty = false)
+    (hp : p.val.isNodeProperty = false) :
+    ∀ j : Nat, (tokens.push p)[j]!.val.isNodeProperty = false := by
+  intro j
+  by_cases hj : j < tokens.size
+  · rw [getElem!_pos _ j (by rw [Array.size_push]; omega), Array.getElem_push_lt hj]
+    have := h j
+    rwa [getElem!_pos _ j hj] at this
+  · by_cases hj' : j = tokens.size
+    · subst hj'
+      rw [getElem!_pos _ _ (by rw [Array.size_push]; omega), Array.getElem_push_eq]
+      exact hp
+    · rw [getElem!_neg _ _ (by rw [Array.size_push]; omega)]
+      decide
+
+/-- …and the two placeholder reservations a key save may push. -/
+lemma no_props_saveSimpleKey {s : ScannerState}
+    (h : ∀ j : Nat, s.tokens[j]!.val.isNodeProperty = false) :
+    ∀ j : Nat, (saveSimpleKey s).tokens[j]!.val.isNodeProperty = false := by
+  unfold saveSimpleKey
+  split
+  · exact h
+  · split
+    · exact no_props_push (no_props_push h rfl) rfl
+    · exact h
+
+/-- A FILTERED `.val`-run pin bounds the unfiltered array's properties: a
+    placeholder is no property, and everything else survives the filter into
+    the pinned run. -/
+lemma no_props_of_filtered_pin {tokens : Array (Positioned YamlToken)}
+    {vs : Array YamlToken}
+    (h_pin : (tokens.filter (fun t => t.val != .placeholder)).map (·.val) = vs)
+    (h_vs : ∀ v ∈ vs, v.isNodeProperty = false) :
+    ∀ j : Nat, tokens[j]!.val.isNodeProperty = false := by
+  intro j
+  by_cases hj : j < tokens.size
+  · rw [getElem!_pos tokens j hj]
+    by_cases hph : tokens[j].val = .placeholder
+    · rw [hph]; rfl
+    · refine h_vs _ ?_
+      rw [← h_pin]
+      refine Array.mem_map.mpr ⟨tokens[j], ?_, rfl⟩
+      refine Array.mem_filter.mpr ⟨Array.getElem_mem hj, ?_⟩
+      simpa using hph
+  · rw [getElem!_neg tokens j hj]
+    decide
+
+/-- The same bridge from a LIST-level pin — the shape the §F whole-array
+    wrappers hold their runs in. -/
+lemma no_props_of_filtered_pin_list {tokens : Array (Positioned YamlToken)}
+    {l : List YamlToken}
+    (h_pin : (tokens.filter (fun t => t.val != .placeholder)).toList.map (·.val) = l)
+    (h_l : ∀ v ∈ l, v.isNodeProperty = false) :
+    ∀ j : Nat, tokens[j]!.val.isNodeProperty = false := by
+  intro j
+  by_cases hj : j < tokens.size
+  · rw [getElem!_pos tokens j hj]
+    by_cases hph : tokens[j].val = .placeholder
+    · rw [hph]; rfl
+    · refine h_l _ ?_
+      rw [← h_pin]
+      refine List.mem_map.mpr ⟨tokens[j], ?_, rfl⟩
+      have : tokens[j] ∈ tokens.filter (fun t => t.val != .placeholder) :=
+        Array.mem_filter.mpr ⟨Array.getElem_mem hj, by simpa using hph⟩
+      simpa using this
+  · rw [getElem!_neg tokens j hj]
+    decide
+
 /-- …and wherever the indent stack holds nothing but its sentinel: a token's
-    column is a `Nat`, so it can never equal a negative entry. -/
+    column is a `Nat`, so it can never equal a negative entry.  Item 180: the
+    crossed-block clause reads no column, so the sentinel no longer closes it —
+    the clause's own `none` is the second premise, produced by the kit above
+    from each site's token facts. -/
 lemma danglingNodePos?_none_of_sentinel (s : ScannerState)
-    (h : ∀ e ∈ s.indents, e.column < 0) : danglingNodePos? s = none := by
+    (h : ∀ e ∈ s.indents, e.column < 0)
+    (hx : crossedPropsExcessIdx? s.tokens = none) : danglingNodePos? s = none := by
   have hnone : ∀ n : Nat, s.indents.any (fun e => e.column == (n : Int)) = false := by
     intro n
     rw [Array.any_eq_false]
@@ -217,7 +414,8 @@ lemma danglingNodePos?_none_of_sentinel (s : ScannerState)
     simp only [beq_iff_eq]
     omega
   unfold danglingNodePos?
-  simp only [hnone, Bool.false_eq_true, ↓reduceIte, ite_self]
+  simp only [hnone, Bool.false_eq_true, ↓reduceIte, ite_self,
+    crossedPropsExcessPos?_none hx]
   split
   · rfl
   · split <;> rfl
@@ -249,10 +447,11 @@ lemma scanNextToken_checkDanglingNode_ok_of_inFlow (s_run s_land : ScannerState)
   split <;> rfl
 
 lemma scanNextToken_checkDanglingNode_ok_of_sentinel (s_run s_land : ScannerState)
-    (h : ∀ e ∈ s_run.indents, e.column < 0) :
+    (h : ∀ e ∈ s_run.indents, e.column < 0)
+    (hx : crossedPropsExcessIdx? s_run.tokens = none) :
     scanNextToken_checkDanglingNode s_run s_land = .ok () := by
   unfold scanNextToken_checkDanglingNode
-  rw [danglingNodePos?_none_of_sentinel s_run h]
+  rw [danglingNodePos?_none_of_sentinel s_run h hx]
   split <;> rfl
 
 /-- …and on a run's own line, where the flag is down and a `:` may still
@@ -268,10 +467,11 @@ lemma scanLoop_checkDanglingNode_ok_of_inFlow (s : ScannerState)
   rw [danglingNodePos?_none_of_inFlow s h]
 
 lemma scanLoop_checkDanglingNode_ok_of_sentinel (s : ScannerState)
-    (h : ∀ e ∈ s.indents, e.column < 0) :
+    (h : ∀ e ∈ s.indents, e.column < 0)
+    (hx : crossedPropsExcessIdx? s.tokens = none) :
     scanLoop_checkDanglingNode s = .ok () := by
   unfold scanLoop_checkDanglingNode
-  rw [danglingNodePos?_none_of_sentinel s h]
+  rw [danglingNodePos?_none_of_sentinel s h hx]
 
 /-- A token array whose last token heads no node run — not a `[96]` property,
     not a one-token body, and not a flow COLLECTION's close — ends in no node
@@ -325,14 +525,17 @@ lemma sentinel_only_columns_neg {s : ScannerState}
   decide
 
 lemma scanNextToken_checkDanglingNode_ok_of_sentinel_stack (s_run s_land : ScannerState)
-    (h : s_run.indents = #[{ column := -1, isSequence := false }]) :
+    (h : s_run.indents = #[{ column := -1, isSequence := false }])
+    (hx : crossedPropsExcessIdx? s_run.tokens = none) :
     scanNextToken_checkDanglingNode s_run s_land = .ok () :=
-  scanNextToken_checkDanglingNode_ok_of_sentinel s_run s_land (sentinel_only_columns_neg h)
+  scanNextToken_checkDanglingNode_ok_of_sentinel s_run s_land
+    (sentinel_only_columns_neg h) hx
 
 lemma scanLoop_checkDanglingNode_ok_of_sentinel_stack (s : ScannerState)
-    (h : s.indents = #[{ column := -1, isSequence := false }]) :
+    (h : s.indents = #[{ column := -1, isSequence := false }])
+    (hx : crossedPropsExcessIdx? s.tokens = none) :
     scanLoop_checkDanglingNode s = .ok () :=
-  scanLoop_checkDanglingNode_ok_of_sentinel s (sentinel_only_columns_neg h)
+  scanLoop_checkDanglingNode_ok_of_sentinel s (sentinel_only_columns_neg h) hx
 
 /-! #### Item 172: the §8.1 flow-value floor's discharge family
 
@@ -2248,8 +2451,10 @@ lemma scanNextToken_emitScalar_init (content : String) :
   unfold scanNextToken
   simp only [bind, Except.bind, h_pp_eq]
   simp only [h_disp_s]
-  -- §9.2 dangling-node check (item 133): the stack is the sentinel alone.
-  simp only [scanNextToken_checkDanglingNode_ok_of_sentinel_stack _ _ (init_indents_sentinel _)]
+  -- §9.2 dangling-node check (item 133): the stack is the sentinel alone —
+  -- and (item 180) the seed's one real token is no property.
+  simp only [scanNextToken_checkDanglingNode_ok_of_sentinel_stack _ _
+    (init_indents_sentinel _) (crossedPropsExcessIdx?_init _)]
   -- §8.1 flow-value floor (item 172): the same sentinel discharge.
   simp only [scanNextToken_checkFlowValueIndent_ok_of_sentinel_stack _ _ (init_indents_sentinel _)]
   -- Pending-directives check (Fix B): passes since s_pp has no pending directives.
@@ -2272,8 +2477,13 @@ lemma scan_accepts_emitScalar (content : String) :
     obtain ⟨toks, h⟩ := h
     exact ⟨toks.filter fun t => t.val != .placeholder, by rw [h]⟩
   -- First scanNextToken: dispatches to scanDoubleQuoted, succeeds
-  obtain ⟨s₁, h_snt1, h_peek1, h_flow1, h_dp1, _h_tok1, h_ids1, _⟩ :=
+  obtain ⟨s₁, h_snt1, h_peek1, h_flow1, h_dp1, _h_tok1, h_ids1, h_filt1⟩ :=
     scanNextToken_emitScalar_init content
+  -- Item 180: the filtered run holds no property token, so the crossed-block
+  -- clause reads none at the final state.
+  have h_np1 : crossedPropsExcessIdx? s₁.tokens = none :=
+    crossedPropsExcessIdx?_none_of_no_props (no_props_of_filtered_pin h_filt1
+      (by intro v hv; simp [Array.mem_def] at hv; rcases hv with rfl | rfl <;> rfl))
   -- Second scanNextToken: EOF → .ok none
   have h_snt2 : scanNextToken s₁ = .ok none := scanNextToken_eof s₁ h_peek1
   have h_size := emitScalar_utf8ByteSize_ge content
@@ -2297,7 +2507,7 @@ lemma scan_accepts_emitScalar (content : String) :
     split <;> first | exact absurd ‹_› (by decide) | rfl
   rw [h_scan_eq]
   exact scanLoop_two_iter h_fuel h_snt1 h_snt2 h_flow1 h_dp1
-    (scanLoop_checkDanglingNode_ok_of_sentinel_stack _ h_ids1)
+    (scanLoop_checkDanglingNode_ok_of_sentinel_stack _ h_ids1 h_np1)
     (scanLoop_checkFlowValueIndent_ok_of_sentinel_stack _ h_ids1)
 
 -- ═══ Flow collection scanner acceptance ═══
@@ -2972,7 +3182,8 @@ lemma scanNextToken_flow_open_init (input : String) (rest : List Char)
   -- Step 8: compose through scanNextToken
   have h_snt : scanNextToken s₀ = .ok (some (scanFlowSequenceStart s_ad)) :=
     scanNextToken_via_flow_dispatch _ _ _ _ _ h_pp_eq h_struct rfl (scanNextToken_checkFlowValueIndent_ok_of_sentinel_stack _ _ rfl) h_flow h_dp_pp
-      h_bd_pp (scanNextToken_checkDanglingNode_ok_of_sentinel_stack _ _ (init_indents_sentinel _))
+      h_bd_pp (scanNextToken_checkDanglingNode_ok_of_sentinel_stack _ _
+        (init_indents_sentinel _) (crossedPropsExcessIdx?_init _))
   -- Step 9: field properties of scanFlowSequenceStart s_ad
   have h_ad_col : s_ad.col = 0 := by
     simp only [s_ad]; split <;> exact h_col_pp
@@ -3886,7 +4097,10 @@ lemma scanNextToken_flow_close_seq_outermost (s : ScannerState)
     (h_dp : s.directivesPresent = false)
     (h_kind : s.flowStack.back? = some true)
     -- Item 159: the close's own run reading is now the stack's business.
-    (h_ids : s.indents = #[{ column := -1, isSequence := false }]) :
+    (h_ids : s.indents = #[{ column := -1, isSequence := false }])
+    -- Item 180: …and the crossed-block clause reads the array, which an
+    -- emitted stream keeps property-free.
+    (h_np : ∀ j : Nat, s.tokens[j]!.val.isNodeProperty = false) :
     ∃ s', scanNextToken s = .ok (some s')
       ∧ s'.flowLevel = 0
       ∧ s'.directivesPresent = false
@@ -3955,8 +4169,22 @@ lemma scanNextToken_flow_close_seq_outermost (s : ScannerState)
       simp only [s_ad]; split <;> exact saveSimpleKey_preserves_indents s
     rw [scanFlowSequenceEnd_preserves_indents s_ad, h_ad_ids]
     exact h_ids
+  -- Item 180: the result array is the input's plus reservations and the
+  -- close token — none of them a property.
+  have h_np_res : crossedPropsExcessIdx? (scanFlowSequenceEnd s_ad).tokens = none := by
+    have h_ad_toks : s_ad.tokens = (saveSimpleKey s).tokens := by
+      simp only [s_ad]; split <;> rfl
+    have h_res_toks : (scanFlowSequenceEnd s_ad).tokens
+        = s_ad.tokens.push { pos := s_ad.currentPos, val := .flowSequenceEnd } := by
+      unfold scanFlowSequenceEnd
+      dsimp only []
+      rw [ScannerCorrectness.advance_preserves_tokens (s_ad.emit .flowSequenceEnd)]
+      unfold ScannerState.emit; rfl
+    rw [h_res_toks, h_ad_toks]
+    exact crossedPropsExcessIdx?_none_of_no_props
+      (no_props_push (no_props_saveSimpleKey h_np) rfl)
   exact ⟨scanFlowSequenceEnd s_ad, h_snt, h_result_fl, h_result_dp, h_result_eof,
-    scanLoop_checkDanglingNode_ok_of_sentinel_stack _ h_result_ids,
+    scanLoop_checkDanglingNode_ok_of_sentinel_stack _ h_result_ids h_np_res,
     scanLoop_checkFlowValueIndent_ok_of_sentinel_stack _ h_result_ids⟩
 
 -- ═══ Flow mapping: scanFlowMappingStart / scanFlowMappingEnd ═══
@@ -4269,7 +4497,10 @@ lemma scanNextToken_flow_close_mapping_outermost (s : ScannerState)
     (h_dp : s.directivesPresent = false)
     (h_kind : s.flowStack.back? = some false)
     -- Item 159: the close's own run reading is now the stack's business.
-    (h_ids : s.indents = #[{ column := -1, isSequence := false }]) :
+    (h_ids : s.indents = #[{ column := -1, isSequence := false }])
+    -- Item 180: …and the crossed-block clause reads the array, which an
+    -- emitted stream keeps property-free.
+    (h_np : ∀ j : Nat, s.tokens[j]!.val.isNodeProperty = false) :
     ∃ s', scanNextToken s = .ok (some s')
       ∧ s'.flowLevel = 0
       ∧ s'.directivesPresent = false
@@ -4333,8 +4564,22 @@ lemma scanNextToken_flow_close_mapping_outermost (s : ScannerState)
       simp only [s_ad]; split <;> exact saveSimpleKey_preserves_indents s
     rw [scanFlowMappingEnd_preserves_indents s_ad, h_ad_ids]
     exact h_ids
+  -- Item 180: the result array is the input's plus reservations and the
+  -- close token — none of them a property.
+  have h_np_res : crossedPropsExcessIdx? (scanFlowMappingEnd s_ad).tokens = none := by
+    have h_ad_toks : s_ad.tokens = (saveSimpleKey s).tokens := by
+      simp only [s_ad]; split <;> rfl
+    have h_res_toks : (scanFlowMappingEnd s_ad).tokens
+        = s_ad.tokens.push { pos := s_ad.currentPos, val := .flowMappingEnd } := by
+      unfold scanFlowMappingEnd
+      dsimp only []
+      rw [ScannerCorrectness.advance_preserves_tokens (s_ad.emit .flowMappingEnd)]
+      unfold ScannerState.emit; rfl
+    rw [h_res_toks, h_ad_toks]
+    exact crossedPropsExcessIdx?_none_of_no_props
+      (no_props_push (no_props_saveSimpleKey h_np) rfl)
   exact ⟨scanFlowMappingEnd s_ad, h_snt, h_result_fl, h_result_dp, h_result_eof,
-    scanLoop_checkDanglingNode_ok_of_sentinel_stack _ h_result_ids,
+    scanLoop_checkDanglingNode_ok_of_sentinel_stack _ h_result_ids h_np_res,
     scanLoop_checkFlowValueIndent_ok_of_sentinel_stack _ h_result_ids⟩
 
 -- Nested flow open for `{`
@@ -4578,7 +4823,8 @@ lemma scanNextToken_flow_open_mapping_init (input : String) (rest : List Char)
   -- Step 8: compose through scanNextToken
   have h_snt : scanNextToken s₀ = .ok (some (scanFlowMappingStart s_ad)) :=
     scanNextToken_via_flow_dispatch _ _ _ _ _ h_pp_eq h_struct rfl (scanNextToken_checkFlowValueIndent_ok_of_sentinel_stack _ _ rfl) h_flow h_dp_pp
-      h_bd_pp (scanNextToken_checkDanglingNode_ok_of_sentinel_stack _ _ (init_indents_sentinel _))
+      h_bd_pp (scanNextToken_checkDanglingNode_ok_of_sentinel_stack _ _
+        (init_indents_sentinel _) (crossedPropsExcessIdx?_init _))
   -- Step 9: field properties of scanFlowMappingStart s_ad
   have h_ad_col : s_ad.col = 0 := by
     simp only [s_ad]; split <;> exact h_col_pp

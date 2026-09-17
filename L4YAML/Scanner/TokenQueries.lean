@@ -202,6 +202,81 @@ def trailingNodeRun? (tokens : Array (Positioned YamlToken)) :
         some (st, prevRealIdx? tokens st)
     else none
 
+/-! ### The crossed over-full property block (§9.2's fourth dangler, item 180)
+
+    `[96] c-ns-properties` admits at most one anchor and one tag, so an
+    ADJACENT block of property tokens holding two of one kind is never one
+    run.  It can still be TWO runs — `[200] s-l+block-collection`'s optional
+    properties, a break, then the first KEY's own run (`&a⏎!t &b x: 1` is
+    `+MAP &a` with the key decorated `!t &b`) — but that split requires the
+    excess run to resolve as an implicit key ON ITS OWN LINE, because a
+    block-key context admits no break.  So at a line END the discrimination
+    is over: a trailing run whose adjacent property block duplicates a kind
+    has no derivation, whatever follows (measured against PyYAML 6.x at
+    `yaml.parse` level, item 180's battery).  The same-line thirds never get
+    this far — the push guards (`propertyRunHasAnchor`/`propertyRunHasTag`,
+    items 9e/9k) refuse them at the character — so what this walk catches is
+    exactly the block whose internal separation CROSSED a break, the window
+    `PropsWindowCross` names on the proof side.
+
+    The walk is uncapped, unlike `trailingPropertyRun`'s two lookbacks: the
+    cap there is the LEGAL run's arity, and this reader exists to see past
+    it.  It is structurally recursive on the index, so it is total. -/
+
+/-- Scanning DOWN the adjacent property block that ends just below index `i`
+    (placeholders skipped, ended by the first real non-property):
+    `(hasAnchor, hasTag, excess)` where `excess` is the LOWEST-then-first
+    index whose property kind already occurs below it — the first token, in
+    token order, at which the block stops being one `[96]` run.  That is the
+    position `TokenParser.validNextToken` reports for these inputs. -/
+@[yaml_spec "6.9" 96 "c-ns-properties"]
+def propsBlockScanLoop (tokens : Array (Positioned YamlToken)) :
+    Nat → Bool × Bool × Option Nat
+  | 0 => (false, false, none)
+  | j + 1 =>
+    let t := tokens[j]!.val
+    if t == .placeholder then propsBlockScanLoop tokens j
+    else if t.isNodeProperty then
+      let (a, tg, e) := propsBlockScanLoop tokens j
+      let e' := match e with
+        | some k => some k
+        | none =>
+          if t.isAnchorProperty && a then some j
+          else if t.isTagProperty && tg then some j
+          else none
+      (a || t.isAnchorProperty, tg || t.isTagProperty, e')
+    else (false, false, none)
+
+/-- The excess property of the TRAILING run's adjacent block, if any: the
+    block is read behind a property tail, behind a one-token body, or behind
+    a flow close's own OPEN (the same three arms as `trailingNodeRun?`, item
+    159's reading of `[161] ns-flow-node`).  `none` wherever the trailing
+    block is one `[96]` run — one anchor and one tag at most, in either
+    order, across any breaks (`!t⏎&q b` stays a single decorated scalar). -/
+@[yaml_spec "6.9" 96 "c-ns-properties", yaml_spec "9.2" 211 "l-yaml-stream"]
+def crossedPropsExcessIdx? (tokens : Array (Positioned YamlToken)) : Option Nat :=
+  match prevRealIdx? tokens tokens.size with
+  | none => none
+  | some i =>
+    let t := tokens[i]!.val
+    if t.isNodeProperty then (propsBlockScanLoop tokens (i + 1)).2.2
+    else if t.isNodeBody then (propsBlockScanLoop tokens i).2.2
+    else if t.isFlowClose then
+      match flowOpenIdx? tokens i with
+      | none => none
+      | some o => (propsBlockScanLoop tokens o).2.2
+    else none
+
+/-- `crossedPropsExcessIdx?` read as the POSITION the refusal reports — the
+    excess property's own, which is where `TokenParser.validNextToken` reports
+    the same inputs.  Named so the verdict's congruence lemmas can speak about
+    the clause as one reading. -/
+@[yaml_spec "6.9" 96 "c-ns-properties", yaml_spec "9.2" 211 "l-yaml-stream"]
+def crossedPropsExcessPos? (tokens : Array (Positioned YamlToken)) : Option YamlPos :=
+  match crossedPropsExcessIdx? tokens with
+  | some j => some tokens[j]!.pos
+  | none => none
+
 /-! ### The `-` at a block mapping's own column (§9.2's third dangler) -/
 
 /-- The index of the real token that HOLDS THE SLOT the trailing node run would

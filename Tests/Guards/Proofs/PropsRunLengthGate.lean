@@ -68,16 +68,21 @@ stand adjacent in the array — so the cross-line shapes are the PARSER's now
 §9.2), exactly as `a: 1⏎&p [b]` always was.  On one line, and in a flow, the
 length still decides at the scanner. -/
 
--- Across ONE break: DEFERRED to the parser (the tail is on an earlier line,
+-- Across ONE break: the PUSH still defers (the tail is on an earlier line,
 -- and the scanner cannot tell a run continuation from a parent's run beside
--- a fresh key's — 9KAX below).
+-- a fresh key's — 9KAX below), but item 180's crossed-block clause refuses
+-- the still-unresolved block at the next landing or EOF — at the same
+-- position the parser reported, so the refusal moved STAGE only.
 #guard both "&a\n!t &b x\n"
-  == ("SCAN-OK", "PARSE-ERR L4YAML.ScanError.invalidBareDocument 1 3")
+  == ("SCAN-ERR L4YAML.ScanError.invalidBareDocument 1 3",
+      "PARSE-ERR L4YAML.ScanError.invalidBareDocument 1 3")
 #guard both "!t\n&a !u x\n"
-  == ("SCAN-OK", "PARSE-ERR L4YAML.ScanError.invalidBareDocument 1 3")
+  == ("SCAN-ERR L4YAML.ScanError.invalidBareDocument 1 3",
+      "PARSE-ERR L4YAML.ScanError.invalidBareDocument 1 3")
 -- Across TWO: likewise.
 #guard both "&a\n!t\n&b x\n"
-  == ("SCAN-OK", "PARSE-ERR L4YAML.ScanError.invalidBareDocument 2 0")
+  == ("SCAN-ERR L4YAML.ScanError.invalidBareDocument 2 0",
+      "PARSE-ERR L4YAML.ScanError.invalidBareDocument 2 0")
 -- On ONE line, and inside a flow, §6.9's KIND guards already answered — the
 -- length check agrees with them rather than replacing them.
 #guard scanOk "&a !t &b x\n"

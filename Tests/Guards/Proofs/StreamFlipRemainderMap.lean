@@ -7,7 +7,7 @@ Copyright (c) 2026. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 -/
 
-/-! # The flip's remainder, mapped (DOCS items 171–179)
+/-! # The flip's remainder, mapped (DOCS items 171–180)
 
 Row 19's 1c ends by narrowing `[210]`'s slot (`GOpt SLAnyDocument` →
 `GOpt SLExplicitDocument`), and the narrowing instrument breaks FIVE
@@ -21,7 +21,8 @@ itself deletes.  Every consumer arm that still reaches a raw route is one of:
   landing resting ON an open level),
 * `flowKeyRoute_of_root`'s no-break arm,
 * `content_dispatch_after_close`'s route,
-* `accum_content_pending`'s two crossed-window arms (item 170's), and
+* `accum_content_pending`'s two crossed-window arms (item 170's; their
+  scanner-reachable domain is EMPTY as of item 180 — §3), and
 * `bareNodeRoute_or_refused_content`'s two fallback arms.
 
 This file pins the INPUT families those arms serve, at the runtime, one
@@ -67,8 +68,10 @@ content lands AT the level's column, and the attached reading
 (`{k: &x a}`, the events pipeline's own) died with the re-index, so the
 derivation left is the second-document over-approximation the flip deletes.
 PyYAML refuses it; the run-start check cannot see it (the run is legal where
-it stands); it joins the crossed-window arms on the flip's own prerequisite
-list.  The FLOW half was never this floor's:
+it stands); it joins ~~the crossed-window arms on~~ the flip's own prerequisite
+list — **the crossed-window arms left it at item 180** (their family refuses
+at the scanner now), so `k: &x⏎a` is the list's LAST runtime entry.  The FLOW
+half was never this floor's:
 a flow node standing in the awaited slot at column `n` is item 172's refusal
 (`underIndentedFlowContent`, §5), and the two readings stay disjoint by the
 run's tail.
@@ -274,11 +277,19 @@ window pins are `PropsCrossWindowRoute.lean`'s; the two families here are the
 arms' whole domain.  Item 178 moved the OFFERED family's refusal into the
 scanner — the window's first property stands at the awaiting level's own
 column, which is now `danglingNodePos?`'s own reading at the first break —
-so the crossed window is never reached there any more; the root family, whose
-window has no offered slot, keeps the parser's refusal. -/
+so the crossed window is never reached there any more; ~~the root family,
+whose window has no offered slot, keeps the parser's refusal~~ — **item 180
+moved it to the scanner too**: the crossed-block clause reads the over-full
+trailing block at the checks, so the arms' whole scanner-reachable domain is
+EMPTY, and the pins below show both families scanner-refused at the positions
+the parser used to report. -/
 
 #guard pins "a:\n!t\n&b\n  !s &c x\n" == ("scan-refused L4YAML.ScanError.invalidBareDocument 1 0", "ERR L4YAML.ScanError.invalidBareDocument 1 0")
-#guard pins "&a\n!t &b x\n" == ("scan-accepted", "ERR L4YAML.ScanError.invalidBareDocument 1 3")
+-- Item 180: the ROOT family refuses at the SCANNER now — the crossed-block
+-- clause reads the over-full trailing block at the EOF check, at the excess
+-- property's own position, which is exactly where the parser reported.  The
+-- crossed-window arms' scanner-reachable domain is EMPTY.
+#guard pins "&a\n!t &b x\n" == ("scan-EOF-refused L4YAML.ScanError.invalidBareDocument 1 3", "ERR L4YAML.ScanError.invalidBareDocument 1 3")
 
 /-! ## §3b  Items 174–175 — the props ride across the break
 
@@ -378,7 +389,11 @@ landing keeps `propsEmpty` + the sibling resume — the honest reading there
 #guard pins "!t\n&q\n- a\n" == ("scan-accepted", "+STR +DOC +SEQ &q <!t> =VAL :a -SEQ -DOC -STR")
 -- the refused shapes beside them
 #guard pins "&p\nb\nc: 1\n" == ("scan-refused L4YAML.ScanError.invalidImplicitKey 2", "ERR L4YAML.ScanError.invalidImplicitKey 2")
-#guard pins "&p\n&q b\n" == ("scan-accepted", "ERR L4YAML.ScanError.duplicateAnchor 1")
+-- Item 180: the anchor-anchor pair moves to the same scanner refusal — and
+-- its MESSAGE upgrades from the parser's `duplicateAnchor` (there is no
+-- duplicate NAME; it meant a second anchor for one node) to the family's own
+-- `invalidBareDocument` at the second anchor, PyYAML's reading of the shape.
+#guard pins "&p\n&q b\n" == ("scan-EOF-refused L4YAML.ScanError.invalidBareDocument 1 0", "ERR L4YAML.ScanError.invalidBareDocument 1 0")
 #guard pins "&p\n*p\n" == ("scan-accepted", "ERR L4YAML.ScanError.invalidBareDocument 1 0")
 #guard pins "k:\n  a: &p\n- w\n" == ("scan-refused L4YAML.ScanError.invalidBareDocument 2 0", "ERR L4YAML.ScanError.invalidBareDocument 2 0")
 #guard pins "? k\n: &p\n[1]\n" == ("scan-EOF-refused L4YAML.ScanError.underIndentedFlowContent 2 0", "ERR L4YAML.ScanError.underIndentedFlowContent 2 0")
@@ -495,7 +510,7 @@ Per surviving arm, what the pins say it serves and what pays after the flip:
 | `accum_block_pending`'s pendingProps landing (via `accum_block_on_closeThenBlock`) | §3b's indicator rides — the sentinel run's break-crossed `-`/`?`/`:` (`&p⏎- a`, `&p⏎? x⏎: v`, `&p⏎: v`) read as propsEmpty + a bare second document | **PAID by item 175**: `PropsNodeRoute` (the ride's landing half) rides the same park route into `[196]`'s slot — `propsSeqRoute` at the `-` arm's entries, `propsMapRoute(F)` as the openers' fifth cascade arm; the flow-open twin was paid on the FLOW lane at items 9h/12 (174's punt row for it struck at 175), and the enclosing-level park (`0 < n`) keeps propsEmpty + resume |
 | `topLevelFlowResumeSep_or_refused` fallbacks, `flowKeyRoute_of_root` landing arm | §2's sibling flow keys (item 172's key half) | the key half **RESUMES as of item 176** (`h_mapF` at the landing arm, `resumeMapRoute` first in the cascade, paid by `pendingContent.h_framesS`/`pendingBlockContent.h_closeF`; the entries-level twin rides every arm, so the chains resume too); the value half is refused at the gate and the refuted arms cover it; what still reaches the fallback is a landing whose park pays no face (the marker-seed chain at `flowKeyRoute_of_open`'s twins, the seq-spaces sibling, §2's recorded punts) |
 | ~~`flowKeyRoute_of_root` no-break arm~~ | the seed key (`[1]: b`) | **PAID by item 173**: the no-break arm's premise carries the virgin park's own `h_nodoc` face beside the column, so `nodocMapRoute` is the arm's only route and the raw `rootMapRoute` application is deleted — the census's `rootMapRoute` holder is gone |
-| `accum_content_pending`'s crossed arms | NONE accepted (§3) | a scanner-side trailing-props refusal (M4 candidate), or the window face carried to the parser boundary |
+| `accum_content_pending`'s crossed arms | NONE accepted (§3) — **and NONE scanner-reachable as of item 180**: the crossed-block clause (`crossedPropsExcessPos?`, §9.2's fourth reading) refuses the root family at the next landing or EOF, at the excess property's own position | the arms refute from the widened verdict — the retirement of `h_routeX` and the two `bareNodeRoute` payments is the crossed arms' own follow-up item |
 | `structural_dispatch_to_pending`, `DocumentProduction.stream_implicit_continue` | n/a — `SLAnyDocument.explicit` wrappers | deleted by the flip itself |
 -/
 

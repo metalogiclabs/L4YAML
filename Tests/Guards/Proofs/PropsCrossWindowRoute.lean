@@ -94,8 +94,13 @@ crossed-window arms' own ledger row's to spend, not this file's. -/
 #guard parseOk "a:\n!t\n&b\n  !s &c x\n"
   == "PARSE-ERR L4YAML.ScanError.invalidBareDocument 1 0"
 #guard dangAt "&a\n!t &b x\n" 2 == "none"
-#guard dangAt "&a\n!t &b x\n" 4 == "none"
-#guard scanOk "&a\n!t &b x\n" == "SCAN-OK"
+-- Item 180: the crossed-block clause reads the excess property, so the
+-- verdict four tokens in is SOME at `&b` — and the whole family refuses at
+-- the SCANNER now (EOF, same constructor and position the parser reported).
+-- The crossed-window arms' scanner-reachable domain is EMPTY.
+#guard dangAt "&a\n!t &b x\n" 4 == "some(1,3)"
+#guard scanOk "&a\n!t &b x\n"
+  == "SCAN-ERR L4YAML.ScanError.invalidBareDocument 1 3"
 #guard parseOk "&a\n!t &b x\n"
   == "PARSE-ERR L4YAML.ScanError.invalidBareDocument 1 3"
 

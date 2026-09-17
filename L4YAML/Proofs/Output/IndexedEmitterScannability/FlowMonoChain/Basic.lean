@@ -971,11 +971,114 @@ lemma scanNextTokenIx_checkDanglingNode_ok_of_inFlow {input : String}
   rw [if_pos h]
   split <;> rfl
 
-/-- …and wherever the indent stack is its sentinel alone: a token's column is a
-    `Nat`, so it never equals `-1`. -/
+/-! Item 180's crossed-block clause fires at ANY column — the indexed twins
+    of the legacy kit in `EmitterScannability/ScanSteps.lean`. -/
+
+/-- The clause's position reading is `none` exactly where its index is. -/
+lemma crossedPropsExcessPosIx?_none {input : String}
+    {ts : Indexed.TokenStream input}
+    (h : crossedPropsExcessIdxIx? ts = none) :
+    crossedPropsExcessPosIx? ts = none := by
+  unfold crossedPropsExcessPosIx?; rw [h]
+
+/-- The block scan reports nothing over a stream with no property tokens. -/
+lemma propsBlockScanLoopIx_no_props {input : String}
+    {ts : Indexed.TokenStream input}
+    (h : ∀ j : Nat, ts.tokens[j]!.token.isNodeProperty = false) :
+    ∀ n, propsBlockScanLoopIx ts n = (false, false, none) := by
+  intro n
+  induction n with
+  | zero => rfl
+  | succ m ih =>
+    unfold propsBlockScanLoopIx
+    simp only [h m, Bool.false_eq_true, ↓reduceIte]
+    split
+    · exact ih
+    · rfl
+
+/-- …so the trailing block has no excess there either. -/
+lemma crossedPropsExcessIdxIx?_none_of_no_props {input : String}
+    {ts : Indexed.TokenStream input}
+    (h : ∀ j : Nat, ts.tokens[j]!.token.isNodeProperty = false) :
+    crossedPropsExcessIdxIx? ts = none := by
+  unfold crossedPropsExcessIdxIx?
+  split
+  · rfl
+  · rename_i i _
+    simp only [h i, Bool.false_eq_true, ↓reduceIte,
+      propsBlockScanLoopIx_no_props h]
+    split
+    · rfl
+    · split <;> first | rfl | (split <;> rfl)
+
+/-- The stream's seed has one real token, and `streamStart` is no property. -/
+lemma crossedPropsExcessIdxIx?_init (input : String) :
+    crossedPropsExcessIdxIx?
+      ((ScannerStateIx.mk' input).emit YamlToken.streamStart).tokens = none := rfl
+
+/-- The no-props reading survives any non-property push. -/
+lemma no_props_pushIx {input : String} {ts : Indexed.TokenStream input}
+    {p : Indexed.IxToken input}
+    (h : ∀ j : Nat, ts.tokens[j]!.token.isNodeProperty = false)
+    (hp : p.token.isNodeProperty = false) :
+    ∀ j : Nat, (ts.tokens.push p)[j]!.token.isNodeProperty = false := by
+  intro j
+  by_cases hj : j < ts.tokens.size
+  · rw [getElem!_pos _ j (by rw [Array.size_push]; omega), Array.getElem_push_lt hj]
+    have := h j
+    rwa [getElem!_pos _ j hj] at this
+  · by_cases hj' : j = ts.tokens.size
+    · subst hj'
+      rw [getElem!_pos _ _ (by rw [Array.size_push]; omega), Array.getElem_push_eq]
+      exact hp
+    · rw [getElem!_neg (ts.tokens.push p) j (by rw [Array.size_push]; omega)]
+      rfl
+
+/-- A FILTERED delta pin bounds the stream's properties: placeholders are no
+    properties, and everything else survives the filter into the pinned run. -/
+lemma no_props_of_filtered_pushIx {input : String} {ts : Indexed.TokenStream input}
+    {base : Array (Indexed.IxToken input)} {tok : Indexed.IxToken input}
+    (h_pin : ts.tokens.filter (fun t => t.token != .placeholder) = base.push tok)
+    (h_base : ∀ t ∈ base, t.token.isNodeProperty = false)
+    (h_tok : tok.token.isNodeProperty = false) :
+    ∀ j : Nat, ts.tokens[j]!.token.isNodeProperty = false := by
+  intro j
+  by_cases hj : j < ts.tokens.size
+  · rw [getElem!_pos ts.tokens j hj]
+    by_cases hph : ts.tokens[j].token = .placeholder
+    · rw [hph]; rfl
+    · have h_mem : ts.tokens[j] ∈ base.push tok := by
+        rw [← h_pin]
+        refine Array.mem_filter.mpr ⟨Array.getElem_mem hj, ?_⟩
+        simpa using hph
+      rcases Array.mem_push.mp h_mem with h_in | rfl
+      · exact h_base _ h_in
+      · exact h_tok
+  · rw [getElem!_neg ts.tokens j hj]
+    rfl
+
+/-- `emit` pushes one token of the given value: the no-props reading rides. -/
+lemma no_props_emitIx {input : String} {s : ScannerStateIx input} {tok : YamlToken}
+    (h : ∀ j : Nat, s.tokens.tokens[j]!.token.isNodeProperty = false)
+    (ht : tok.isNodeProperty = false) :
+    ∀ j : Nat, (s.emit tok).tokens.tokens[j]!.token.isNodeProperty = false :=
+  no_props_pushIx h ht
+
+/-- …and a key save reserves at most two placeholders. -/
+lemma no_props_saveSimpleKeyIx {input : String} {s : ScannerStateIx input}
+    (h : ∀ j : Nat, s.tokens.tokens[j]!.token.isNodeProperty = false) :
+    ∀ j : Nat, (saveSimpleKeyIx s).tokens.tokens[j]!.token.isNodeProperty = false := by
+  unfold saveSimpleKeyIx
+  split
+  · exact h
+  · split
+    · exact no_props_emitIx (no_props_emitIx h rfl) rfl
+    · exact h
+
 lemma danglingNodePosIx?_none_of_sentinel_stack {input : String}
     (s : ScannerStateIx input)
-    (h : s.indents = #[{ column := -1, isSequence := false }]) :
+    (h : s.indents = #[{ column := -1, isSequence := false }])
+    (hx : crossedPropsExcessIdxIx? s.tokens = none) :
     danglingNodePosIx? s = none := by
   have hnone : ∀ n : Nat, s.indents.any (fun e => e.column == (n : Int)) = false := by
     intro n
@@ -987,17 +1090,19 @@ lemma danglingNodePosIx?_none_of_sentinel_stack {input : String}
     show ¬ ((-1 : Int) = (n : Int))
     omega
   unfold danglingNodePosIx?
-  simp only [hnone, Bool.false_eq_true, ↓reduceIte, ite_self]
+  simp only [hnone, Bool.false_eq_true, ↓reduceIte, ite_self,
+    crossedPropsExcessPosIx?_none hx]
   split
   · rfl
   · split <;> rfl
 
 lemma scanNextTokenIx_checkDanglingNode_ok_of_sentinel_stack {input : String}
     (s_run s_land : ScannerStateIx input)
-    (h : s_run.indents = #[{ column := -1, isSequence := false }]) :
+    (h : s_run.indents = #[{ column := -1, isSequence := false }])
+    (hx : crossedPropsExcessIdxIx? s_run.tokens = none) :
     scanNextTokenIx_checkDanglingNode s_run s_land = .ok () := by
   unfold scanNextTokenIx_checkDanglingNode
-  rw [danglingNodePosIx?_none_of_sentinel_stack s_run h]
+  rw [danglingNodePosIx?_none_of_sentinel_stack s_run h hx]
   split <;> rfl
 
 /-- Indexed twin of `trailingNodeRun?_push_none`: a stream whose last token
@@ -1038,10 +1143,11 @@ lemma scanLoopIx_checkDanglingNode_ok_of_no_run {input : String}
 
 lemma scanLoopIx_checkDanglingNode_ok_of_sentinel_stack {input : String}
     (s : ScannerStateIx input)
-    (h : s.indents = #[{ column := -1, isSequence := false }]) :
+    (h : s.indents = #[{ column := -1, isSequence := false }])
+    (hx : crossedPropsExcessIdxIx? s.tokens = none) :
     scanLoopIx_checkDanglingNode s = .ok () := by
   unfold scanLoopIx_checkDanglingNode
-  rw [danglingNodePosIx?_none_of_sentinel_stack s h]
+  rw [danglingNodePosIx?_none_of_sentinel_stack s h hx]
 
 /-! #### Item 172: the §8.1 flow-value floor's indexed discharge family
 

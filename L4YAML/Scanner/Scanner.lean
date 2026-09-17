@@ -985,6 +985,21 @@ def scanNextToken_checkBareDocument (s : ScannerState) :
     The position reported is the RUN's start, not the cursor's, because that is
     where the offending node begins and where the parser reports.
 
+    **The fourth reading is the crossed over-full property block** (item 180):
+    a trailing run whose ADJACENT property block holds two anchors or two tags
+    is not one `[96]` run, and at a line end the collection split that could
+    have licensed it (`&a⏎!t &b x: 1`, the key resolved on its own line) is no
+    longer available — so `&a⏎!t &b x` and its `-`-less kin have no derivation
+    at ANY column, the sentinel included.  The parser refuses the same inputs
+    one layer down at the EXCESS property — the first token, in token order,
+    whose kind repeats in the block — and `crossedPropsExcessIdx?` reports
+    exactly that index, so the refusal moves without moving its position
+    (`&a⏎!t &b x` at `1,3`; the anchor-anchor pair `&p⏎&q b`, which the parser
+    called `duplicateAnchor`, now reads `invalidBareDocument` at the second
+    anchor — recorded, item 180).  The clause is checked AFTER the at-level
+    reading, so every position this function reported before item 180 is
+    unchanged.
+
     This reads the token array alone.  A property run's placeholders are never
     rewritten while the run is unresolved, so the run is visible there and no
     new state field is needed. -/
@@ -1001,7 +1016,8 @@ def danglingNodePos? (s : ScannerState) : Option YamlPos :=
           && !(s.tokens[st]!.val.isNodeProperty) then none
       else
         let p := s.tokens[st]!.pos
-        if s.indents.any (fun e => e.column == (p.col : Int)) then some p else none
+        if s.indents.any (fun e => e.column == (p.col : Int)) then some p
+        else crossedPropsExcessPos? s.tokens
 
 /-- §9.2 [211] mid-stream: the dangling run, once a line break has ended it.
 

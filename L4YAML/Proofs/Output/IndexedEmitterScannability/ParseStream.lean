@@ -237,6 +237,19 @@ lemma scanFilteredIx_emitScalar_eq (content : String) :
   -- Pull the full SS2/SS3 chain into focus.
   obtain ⟨s₁, h_snt1, h_peek1, h_flow1, h_dp1, h_ids1, tok_scalar,
           h_tok_val, h_filt1⟩ := scanNextTokenIx_emitScalar_init content
+  -- Item 180: the pinned run is property-free.
+  have h_np1 : crossedPropsExcessIdxIx? s₁.tokens = none :=
+    crossedPropsExcessIdxIx?_none_of_no_props
+      (no_props_of_filtered_pushIx h_filt1
+        (by
+          intro t ht
+          have h1 := (Array.mem_filter.mp ht).1
+          rcases Array.mem_push.mp h1 with h_in | rfl
+          · exact absurd h_in (by
+              show ¬ t ∈ (Indexed.TokenStream.empty (emitScalar content)).tokens
+              simp [Indexed.TokenStream.empty])
+          · rfl)
+        (by rw [h_tok_val]; rfl))
   have h_size := emitScalar_utf8ByteSize_ge content
   have h_fuel : ((emitScalar content).utf8ByteSize + 1) * 4 ≥ 2 := by omega
   -- BOM check: first char is '"', not '﻿'.
@@ -276,7 +289,7 @@ lemma scanFilteredIx_emitScalar_eq (content : String) :
   -- Apply scanFilteredIx_of_chain_eq for the explicit filtered token equality.
   have h_eq := scanFilteredIx_of_chain_eq (emitScalar content)
     _ s₁ 1 rfl h_no_bom h_chain h_snt2 h_flow1 h_dp1
-    (scanLoopIx_checkDanglingNode_ok_of_sentinel_stack _ h_ids1)
+    (scanLoopIx_checkDanglingNode_ok_of_sentinel_stack _ h_ids1 h_np1)
     (scanLoopIx_checkFlowValueIndent_ok_of_sentinel_stack _ h_ids1) (by omega)
   -- Compute the filtered array step by step.
   -- Step 1: substitute unwindIndentsIx s₁ (-1) = s₁ in h_eq.

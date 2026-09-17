@@ -172,11 +172,14 @@ example : YamlToken.isFlowOpen .flowSequenceStart = true := rfl
 example : YamlToken.isFlowOpen .flowMappingStart = true := rfl
 
 -- …and what replaces it: at the sentinel alone every column is negative and a
--- token's column is a `Nat`, so no run can be dangling however it is read.
+-- token's column is a `Nat`, so no run can be dangling BY COLUMN however it
+-- is read — item 180's crossed-block clause reads no column, so its own
+-- `none` rides as a second premise.
 example (s : ScannerState)
-    (h : s.indents = #[{ column := -1, isSequence := false }]) :
+    (h : s.indents = #[{ column := -1, isSequence := false }])
+    (hx : crossedPropsExcessIdx? s.tokens = none) :
     scanLoop_checkDanglingNode s = .ok () :=
-  scanLoop_checkDanglingNode_ok_of_sentinel_stack s h
+  scanLoop_checkDanglingNode_ok_of_sentinel_stack s h hx
 
 /-! ## §5  What the next item needs
 

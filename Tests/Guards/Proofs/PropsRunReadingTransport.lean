@@ -133,10 +133,13 @@ move at a scanner-reachable park — step 3 below reads `1,0` where step 2 read
 (`PropsWindowCross`), which `pendingProps.h_routeX` answers without the
 verdict (`PropsCrossWindowRoute` is that guard). -/
 
+-- Item 180: the crossed-block clause reads the over-full block as SOME from
+-- the excess property on, and the family refuses at the scanner (EOF).
 #guard walk "&a\n!t &b x\n" 6
   == "run=none park=none ; run=prop@0,0 park=none ; run=prop@0,0 park=none ; \
-run=prop@1,0 park=none ; run=prop@1,0 park=none ; —"
-#guard scanOk "&a\n!t &b x\n" == "SCAN-OK"
+run=prop@1,0 park=1,3 ; run=prop@1,0 park=1,3 ; —"
+#guard scanOk "&a\n!t &b x\n"
+  == "SCAN-ERR L4YAML.ScanError.invalidBareDocument 1 3"
 #guard parseOk "&a\n!t &b x\n"
   == "PARSE-ERR L4YAML.ScanError.invalidBareDocument 1 3"
 
@@ -198,9 +201,12 @@ by an agreement on a PREFIX, which is what all three pushes above are. -/
 example {s t : ScannerState}
     (hflow : s.inFlow = t.inFlow) (hind : s.indents = t.indents)
     (hrun : trailingNodeRun? s.tokens = trailingNodeRun? t.tokens)
-    (hagree : ∀ j, j < t.tokens.size → s.tokens[j]! = t.tokens[j]!) :
+    (hagree : ∀ j, j < t.tokens.size → s.tokens[j]! = t.tokens[j]!)
+    -- Item 180: the crossed-block clause reads the whole trailing block, so
+    -- its own equality rides as a fifth premise.
+    (hx : crossedPropsExcessPos? s.tokens = crossedPropsExcessPos? t.tokens) :
     danglingNodePos? s = danglingNodePos? t :=
-  danglingNodePos?_congr hflow hind hrun hagree
+  danglingNodePos?_congr hflow hind hrun hagree hx
 
 example {ts : Array (Positioned YamlToken)} {st : Nat} {pred : Option Nat}
     (h : trailingNodeRun? ts = some (st, pred)) :

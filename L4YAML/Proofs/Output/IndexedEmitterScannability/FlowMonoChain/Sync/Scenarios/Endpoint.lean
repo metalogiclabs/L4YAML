@@ -319,7 +319,10 @@ lemma scanNextTokenIx_flow_close_seq_outermost (s : ScannerStateIx input)
     -- Item 159: a `]`/`}` no longer ends the stream in NO run — the run is read
     -- back to the matching open — so the check is discharged by the indent
     -- stack the emitter's output stands on, the sentinel alone.
-    (h_ids : s.indents = #[{ column := -1, isSequence := false }]) :
+    (h_ids : s.indents = #[{ column := -1, isSequence := false }])
+    -- Item 180: …and the crossed-block clause reads the array, which an
+    -- emitted stream keeps property-free.
+    (h_np : ∀ j : Nat, s.tokens.tokens[j]!.token.isNodeProperty = false) :
     ∃ s', scanNextTokenIx s = .ok (some s')
       ∧ s'.flowLevel = 0
       ∧ s'.directivesPresent = false
@@ -393,8 +396,17 @@ lemma scanNextTokenIx_flow_close_seq_outermost (s : ScannerStateIx input)
       = #[{ column := -1, isSequence := false }] := by
     rw [scanFlowSequenceEndIx_indents s_ad, h_ad_ids]
     exact h_ids
+  -- Item 180: the result array is the input's plus reservations and the
+  -- close token — none of them a property.
+  have h_np_res : crossedPropsExcessIdxIx? (scanFlowSequenceEndIx s_ad).tokens = none := by
+    refine crossedPropsExcessIdxIx?_none_of_no_props ?_
+    have h_ad : ∀ j : Nat, s_ad.tokens.tokens[j]!.token.isNodeProperty = false := by
+      have h_sk := no_props_saveSimpleKeyIx h_np
+      rw [h_s_ad_def]
+      split <;> exact h_sk
+    exact no_props_emitIx h_ad rfl
   exact ⟨scanFlowSequenceEndIx s_ad, h_snt, h_s'_fl, h_s'_dp, h_s'_peek,
-    scanLoopIx_checkDanglingNode_ok_of_sentinel_stack _ h_s'_ids,
+    scanLoopIx_checkDanglingNode_ok_of_sentinel_stack _ h_s'_ids h_np_res,
     scanLoopIx_checkFlowValueIndent_ok_of_sentinel_stack _ h_s'_ids⟩
 
 /-! ## §4  `scanNextTokenIx_flow_close_mapping_outermost`
@@ -415,7 +427,9 @@ lemma scanNextTokenIx_flow_close_mapping_outermost (s : ScannerStateIx input)
     -- Item 159: a `]`/`}` no longer ends the stream in NO run — the run is read
     -- back to the matching open — so the check is discharged by the indent
     -- stack the emitter's output stands on, the sentinel alone.
-    (h_ids : s.indents = #[{ column := -1, isSequence := false }]) :
+    (h_ids : s.indents = #[{ column := -1, isSequence := false }])
+    -- Item 180: as at the sequence close.
+    (h_np : ∀ j : Nat, s.tokens.tokens[j]!.token.isNodeProperty = false) :
     ∃ s', scanNextTokenIx s = .ok (some s')
       ∧ s'.flowLevel = 0
       ∧ s'.directivesPresent = false
@@ -480,8 +494,16 @@ lemma scanNextTokenIx_flow_close_mapping_outermost (s : ScannerStateIx input)
       = #[{ column := -1, isSequence := false }] := by
     rw [scanFlowMappingEndIx_indents s_ad, h_ad_ids]
     exact h_ids
+  -- Item 180: as at the sequence close.
+  have h_np_res : crossedPropsExcessIdxIx? (scanFlowMappingEndIx s_ad).tokens = none := by
+    refine crossedPropsExcessIdxIx?_none_of_no_props ?_
+    have h_ad : ∀ j : Nat, s_ad.tokens.tokens[j]!.token.isNodeProperty = false := by
+      have h_sk := no_props_saveSimpleKeyIx h_np
+      rw [h_s_ad_def]
+      split <;> exact h_sk
+    exact no_props_emitIx h_ad rfl
   exact ⟨scanFlowMappingEndIx s_ad, h_snt, h_s'_fl, h_s'_dp, h_s'_peek,
-    scanLoopIx_checkDanglingNode_ok_of_sentinel_stack _ h_s'_ids,
+    scanLoopIx_checkDanglingNode_ok_of_sentinel_stack _ h_s'_ids h_np_res,
     scanLoopIx_checkFlowValueIndent_ok_of_sentinel_stack _ h_s'_ids⟩
 
 /-! ## §5  `scanNextTokenIx_flow_open_mapping_init`
@@ -616,7 +638,7 @@ lemma scanNextTokenIx_flow_open_mapping_init (input : String) (rest : List Char)
     (scanNextTokenIx_checkFlowValueIndent_ok_of_sentinel_stack _ _
       (initIx_indents_sentinel _)) h_flow_disp h_dp_pp h_bd_pp
     (scanNextTokenIx_checkDanglingNode_ok_of_sentinel_stack _ _
-      (initIx_indents_sentinel _))
+      (initIx_indents_sentinel _) (crossedPropsExcessIdxIx?_init _))
   -- Step 10: extract via scanFlowMappingStartIx_detail
   have h_ad_corr : ScannerSurfCorrIx s_ad ⟨'{' :: rest, s_ad.cursor.pos.col⟩ := by
     refine ⟨?_, ?_, ?_, ?_⟩
@@ -854,7 +876,7 @@ lemma scanNextTokenIx_flow_open_seq_init (input : String) (rest : List Char)
     (scanNextTokenIx_checkFlowValueIndent_ok_of_sentinel_stack _ _
       (initIx_indents_sentinel _)) h_flow_disp h_dp_pp h_bd_pp
     (scanNextTokenIx_checkDanglingNode_ok_of_sentinel_stack _ _
-      (initIx_indents_sentinel _))
+      (initIx_indents_sentinel _) (crossedPropsExcessIdxIx?_init _))
   -- Step 10: extract via scanFlowSequenceStartIx_detail
   have h_ad_corr : ScannerSurfCorrIx s_ad ⟨'[' :: rest, s_ad.cursor.pos.col⟩ := by
     refine ⟨?_, ?_, ?_, ?_⟩

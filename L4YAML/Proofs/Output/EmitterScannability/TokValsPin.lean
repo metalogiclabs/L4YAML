@@ -1595,6 +1595,75 @@ lemma emit_scans_saved_key_tokvals (v : YamlValue) {inFlow : Bool}
     (hg : Grammable v inFlow) : EmitScansSavedKeyTokVals v :=
   (emit_scans_tokvals_both v hg).2
 
+/-! ## E2. Item 180: the wrappers' close states are property-free
+
+The crossed-block clause of `danglingNodePos?` reads the trailing adjacent
+property block, and the §F wrappers' arrays are pinned to flow-clean runs —
+no `.anchor`/`.tag` anywhere — so the clause is silent and the sentinel
+discharge's new premise is paid from the pins. -/
+
+/-- A flow-clean token is no `[96]` property. -/
+lemma flowCleanTok_not_prop {t : YamlToken} (h : FlowCleanTok t = true) :
+    t.isNodeProperty = false := by
+  cases t <;> simp_all [FlowCleanTok, YamlToken.isNodeProperty]
+
+/-- A flow-sequence body run holds no property token. -/
+lemma seqTokVals_no_props (items : List YamlValue) :
+    ∀ t ∈ emitTokVals.seqTokVals items, t.isNodeProperty = false := by
+  intro t ht
+  refine flowCleanTok_not_prop
+    (emitTokVals_flowClean (.sequence .flow items.toArray) t ?_)
+  have h_eq : emitTokVals (.sequence .flow items.toArray)
+      = .flowSequenceStart :: (emitTokVals.seqTokVals items ++ [.flowSequenceEnd]) := by
+    simp [emitTokVals]
+  rw [h_eq]
+  exact List.mem_cons_of_mem _ (List.mem_append_left _ ht)
+
+/-- A flow-mapping body run holds no property token. -/
+lemma mapTokVals_no_props (pairs : List (YamlValue × YamlValue)) :
+    ∀ t ∈ emitTokVals.mapTokVals pairs, t.isNodeProperty = false := by
+  intro t ht
+  refine flowCleanTok_not_prop
+    (emitTokVals_flowClean (.mapping .flow pairs.toArray) t ?_)
+  have h_eq : emitTokVals (.mapping .flow pairs.toArray)
+      = .flowMappingStart :: (emitTokVals.mapTokVals pairs ++ [.flowMappingEnd]) := by
+    simp [emitTokVals]
+  rw [h_eq]
+  exact List.mem_cons_of_mem _ (List.mem_append_left _ ht)
+
+/-- The §F close states' arrays, read as excess-free from their pins. -/
+lemma crossedPropsExcess_none_of_close_pin
+    {s₃tok s₂tok s₁tok : Array (Positioned YamlToken)}
+    {block : List (Positioned YamlToken)} {tok : Positioned YamlToken}
+    {openTok closeTok : YamlToken} {body : List YamlToken}
+    (h_filt₃ : s₃tok.filter (fun t => t.val != .placeholder)
+        = (s₂tok.filter (fun t => t.val != .placeholder)).push tok)
+    (h_block : (s₂tok.filter (fun t => t.val != .placeholder)).toList
+        = (s₁tok.filter (fun t => t.val != .placeholder)).toList ++ block)
+    (h_filt₁ : (s₁tok.filter (fun t => t.val != .placeholder)).map (·.val)
+        = #[.streamStart, openTok])
+    (h_pin : block.map (·.val) = body)
+    (h_tok : tok.val = closeTok)
+    (h_open : openTok.isNodeProperty = false)
+    (h_close : closeTok.isNodeProperty = false)
+    (h_body : ∀ v ∈ body, v.isNodeProperty = false) :
+    crossedPropsExcessIdx? s₃tok = none := by
+  refine crossedPropsExcessIdx?_none_of_no_props (no_props_of_filtered_pin_list
+    (l := [YamlToken.streamStart, openTok] ++ (body ++ [closeTok])) ?_ ?_)
+  · rw [h_filt₃]
+    simp only [Array.toList_push, List.map_append, List.map_cons, List.map_nil]
+    rw [h_block]
+    simp only [List.map_append]
+    rw [h_pin, h_tok, ← Array.toList_map, h_filt₁]
+    rfl
+  · intro v hv
+    simp only [List.mem_append, List.mem_cons, List.not_mem_nil, or_false] at hv
+    rcases hv with (rfl | rfl) | (hb | rfl)
+    · rfl
+    · exact h_open
+    · exact h_body v hb
+    · exact h_close
+
 /-! ## F. Whole-array wrappers
 
 Chain replays open_init → body → outermost close →
@@ -1644,9 +1713,15 @@ lemma scanFiltered_emitSeq_tokvals
     unfold ScannerState.emit ScannerState.mk'
     dsimp only []
     decide
-  -- §9.2 dangling-node check (item 133): the same chain gives the stack itself.
+  -- §9.2 dangling-node check (item 133): the same chain gives the stack itself
+  -- — and (item 180) the pinned run is property-free.
+  have h_np₃ : crossedPropsExcessIdx? s₃.tokens = none :=
+    crossedPropsExcess_none_of_close_pin h_filt₃ h_block_eq₂
+      (by rw [h_filt₁]) h_pin h_tok_fse_val rfl rfl
+      (seqTokVals_no_props items)
   have h_dn₃ : scanLoop_checkDanglingNode s₃ = .ok () :=
-    scanLoop_checkDanglingNode_ok_of_sentinel_stack _ (by rw [h_ids₃, h_ids₂, h_ids₁]; rfl)
+    scanLoop_checkDanglingNode_ok_of_sentinel_stack _
+      (by rw [h_ids₃, h_ids₂, h_ids₁]; rfl) h_np₃
   have h_fv₃ : scanLoop_checkFlowValueIndent s₃ = .ok () :=
     scanLoop_checkFlowValueIndent_ok_of_sentinel_stack _ (by rw [h_ids₃, h_ids₂, h_ids₁]; rfl)
   have h_tok_eq : Scanner.scanFiltered input =
@@ -1733,9 +1808,15 @@ lemma scanFiltered_emitMap_tokvals
     unfold ScannerState.emit ScannerState.mk'
     dsimp only []
     decide
-  -- §9.2 dangling-node check (item 133): the same chain gives the stack itself.
+  -- §9.2 dangling-node check (item 133): the same chain gives the stack itself
+  -- — and (item 180) the pinned run is property-free.
+  have h_np₃ : crossedPropsExcessIdx? s₃.tokens = none :=
+    crossedPropsExcess_none_of_close_pin h_filt₃ h_block_eq₂
+      (by rw [h_filt₁]) h_pin h_tok_fme_val rfl rfl
+      (mapTokVals_no_props pairs)
   have h_dn₃ : scanLoop_checkDanglingNode s₃ = .ok () :=
-    scanLoop_checkDanglingNode_ok_of_sentinel_stack _ (by rw [h_ids₃, h_ids₂, h_ids₁]; rfl)
+    scanLoop_checkDanglingNode_ok_of_sentinel_stack _
+      (by rw [h_ids₃, h_ids₂, h_ids₁]; rfl) h_np₃
   have h_fv₃ : scanLoop_checkFlowValueIndent s₃ = .ok () :=
     scanLoop_checkFlowValueIndent_ok_of_sentinel_stack _ (by rw [h_ids₃, h_ids₂, h_ids₁]; rfl)
   have h_tok_eq : Scanner.scanFiltered input =
@@ -1804,6 +1885,8 @@ lemma scanFiltered_emit_tokvals (v : YamlValue) {inFlow : Bool}
       rw [h_ids₁]; decide
     have h_dn₁ : scanLoop_checkDanglingNode s₁ = .ok () :=
       scanLoop_checkDanglingNode_ok_of_sentinel_stack _ h_ids₁
+        (crossedPropsExcessIdx?_none_of_no_props (no_props_of_filtered_pin h_filt₁
+          (by intro v hv; simp [Array.mem_def] at hv; rcases hv with rfl | rfl <;> rfl)))
     have h_fv₁ : scanLoop_checkFlowValueIndent s₁ = .ok () :=
       scanLoop_checkFlowValueIndent_ok_of_sentinel_stack _ h_ids₁
     have h_tok_eq : Scanner.scanFiltered (emitScalar sc.content) =
@@ -1866,9 +1949,13 @@ lemma scanFiltered_emit_tokvals (v : YamlValue) {inFlow : Bool}
         unfold ScannerState.emit ScannerState.mk'
         dsimp only []
         decide
+      have h_np₃ : crossedPropsExcessIdx? s₃.tokens = none :=
+        crossedPropsExcess_none_of_close_pin (s₁tok := s₁.tokens) (block := []) (body := [])
+          h_filt₃ (by simp) (by rw [h_filt₁]) rfl h_tok_fse_val rfl rfl
+          (by intro v hv; cases hv)
       have h_dn₃ : scanLoop_checkDanglingNode s₃ = .ok () :=
         scanLoop_checkDanglingNode_ok_of_sentinel_stack _
-          (by rw [h_ids₃, h_ids₁]; rfl)
+          (by rw [h_ids₃, h_ids₁]; rfl) h_np₃
       have h_fv₃ : scanLoop_checkFlowValueIndent s₃ = .ok () :=
         scanLoop_checkFlowValueIndent_ok_of_sentinel_stack _
           (by rw [h_ids₃, h_ids₁]; rfl)
@@ -1950,9 +2037,13 @@ lemma scanFiltered_emit_tokvals (v : YamlValue) {inFlow : Bool}
         unfold ScannerState.emit ScannerState.mk'
         dsimp only []
         decide
+      have h_np₃ : crossedPropsExcessIdx? s₃.tokens = none :=
+        crossedPropsExcess_none_of_close_pin (s₁tok := s₁.tokens) (block := []) (body := [])
+          h_filt₃ (by simp) (by rw [h_filt₁]) rfl h_tok_fme_val rfl rfl
+          (by intro v hv; cases hv)
       have h_dn₃ : scanLoop_checkDanglingNode s₃ = .ok () :=
         scanLoop_checkDanglingNode_ok_of_sentinel_stack _
-          (by rw [h_ids₃, h_ids₁]; rfl)
+          (by rw [h_ids₃, h_ids₁]; rfl) h_np₃
       have h_fv₃ : scanLoop_checkFlowValueIndent s₃ = .ok () :=
         scanLoop_checkFlowValueIndent_ok_of_sentinel_stack _
           (by rw [h_ids₃, h_ids₁]; rfl)
@@ -2008,6 +2099,178 @@ lemma scanFiltered_emit_tokvals (v : YamlValue) {inFlow : Bool}
       have h_main := scanFiltered_emitMap_tokvals pairs.toList h_ne h_all_k h_all_v tokens h_scan'
       rw [h_main]
       simp [emitTokVals]
+
+
+/-! ## G. Item 180: acceptance riders and the relocated Step-1 theorem
+
+`emit_produces_valid_yaml` lived in `ScanChainGrowth.lean` on the weak chain
+products, whose close steps cannot see that the scanned run is property-free —
+which §9.2's crossed-block clause now asks.  The value-determined pins can,
+so the theorem rides them: the two riders below are the §F replays stopped at
+their own `h_tok_eq`. -/
+
+/-- The §F sequence replay, packaged as ACCEPTANCE. -/
+lemma scanFiltered_emitSeq_ok
+    (items : List YamlValue) (h_ne : items ≠ [])
+    (h_all : ∀ v ∈ items, EmitScansTokVals v) :
+    ∃ tokens, Scanner.scanFiltered ("[" ++ emit.emitList items ++ "]")
+      = .ok tokens := by
+  let input := "[" ++ emit.emitList items ++ "]"
+  have h_toList : input.toList = '[' :: (emit.emitList items).toList ++ [']'] := by
+    simp only [input, String.toList_append]; rfl
+  -- ═══ Step 1: open bracket → s₁ ═══
+  obtain ⟨s₁, h_snt₁, h_corr₁, h_fl₁, h_dp₁, h_ids₁, h_col₁,
+          h_inflow₁, h_indent₁, h_ek₁, h_line₁, h_atol₁, h_endline₁, _h_sk₁, h_filt₁,
+          h_sync₁, _h_ska₁, _h_ssv₁, h_last_s₁, h_push₁⟩ :=
+    scanNextToken_flow_open_init input ((emit.emitList items).toList ++ [']']) h_toList
+  -- ═══ Step 2: body scan via emitList_scans_tokvals → s₂ and body block ═══
+  obtain ⟨_n₂, s₂, block, h_chain₂, h_corr₂, h_fl₂, h_dp₂, h_ids₂, _h_ek₂, h_col₂, h_inflow₂,
+          h_indent₂, _h_line₂, _h_atol₂, _h_endline₂, _h_stack₂, h_fmc₂, h_block_eq₂, h_pin⟩ :=
+    emitList_scans_tokvals items h_ne h_all s₁ [']']
+      h_corr₁ h_inflow₁ (by rw [h_fl₁]; omega) h_indent₁ (by rw [h_col₁]; omega)
+      h_ek₁ (h_line₁ ▸ h_atol₁) h_endline₁ h_sync₁ h_dp₁ h_last_s₁
+  -- ═══ Step 3: close bracket → s₃ ═══
+  obtain ⟨s₃, h_snt₃, h_fl₃, h_dp₃, h_peek₃, h_ids₃, ⟨tok_fse, h_tok_fse_val, h_filt₃⟩⟩ :=
+    scanNextToken_flow_close_seq_outermost_ext s₂ h_corr₂ h_inflow₂ h_indent₂ h_col₂
+      (by rw [h_fl₂, h_fl₁]) (by rw [h_dp₂, h_dp₁])
+      (by rw [h_fmc₂.flowStack_eq rfl h_fl₂]; exact h_push₁)
+  -- ═══ Step 4: chain composition + token equation ═══
+  have h_eof : scanNextToken s₃ = .ok none := scanNextToken_eof s₃ h_peek₃
+  have h_chain_all := (ScanChain.single h_snt₁).trans
+    (h_chain₂.toScanChain.trans (ScanChain.single h_snt₃))
+  have h_no_bom : (ScannerState.mk' input).peek? ≠ some '﻿' := by
+    have h_chars := chars_from_zero_toList input
+    rw [h_toList] at h_chars
+    have h_corr0 := initial_corr input _ h_chars
+    have ⟨h_pk, _⟩ := peek_of_chars_cons _ '[' ((emit.emitList items).toList ++ [']']) 0 h_corr0
+    rw [h_pk]; decide
+  have h_indents_small : s₃.indents.size ≤ 1 := by
+    rw [h_ids₃, h_ids₂, h_ids₁]
+    unfold ScannerState.emit ScannerState.mk'
+    dsimp only []
+    decide
+  -- §9.2 dangling-node check (item 133): the same chain gives the stack itself
+  -- — and (item 180) the pinned run is property-free.
+  have h_np₃ : crossedPropsExcessIdx? s₃.tokens = none :=
+    crossedPropsExcess_none_of_close_pin h_filt₃ h_block_eq₂
+      (by rw [h_filt₁]) h_pin h_tok_fse_val rfl rfl
+      (seqTokVals_no_props items)
+  have h_dn₃ : scanLoop_checkDanglingNode s₃ = .ok () :=
+    scanLoop_checkDanglingNode_ok_of_sentinel_stack _
+      (by rw [h_ids₃, h_ids₂, h_ids₁]; rfl) h_np₃
+  have h_fv₃ : scanLoop_checkFlowValueIndent s₃ = .ok () :=
+    scanLoop_checkFlowValueIndent_ok_of_sentinel_stack _ (by rw [h_ids₃, h_ids₂, h_ids₁]; rfl)
+  have h_tok_eq : Scanner.scanFiltered input =
+      .ok ((s₃.emit .streamEnd).tokens.filter (fun t => t.val != .placeholder)) :=
+    scanFiltered_tokens_eq_of_chain_short_stack input _ s₃ _ rfl h_no_bom
+      h_chain_all h_eof h_fl₃ h_dp₃ h_dn₃ h_fv₃
+      (ScanChain.fuel_bound _ _ _ _ rfl h_chain_all h_eof)
+      h_indents_small
+  exact ⟨_, h_tok_eq⟩
+
+/-- The §F mapping replay, packaged as ACCEPTANCE. -/
+lemma scanFiltered_emitMap_ok
+    (pairs : List (YamlValue × YamlValue)) (h_ne : pairs ≠ [])
+    (h_all_k : ∀ p ∈ pairs, EmitScansSavedKeyTokVals p.1)
+    (h_all_v : ∀ p ∈ pairs, EmitScansTokVals p.2) :
+    ∃ tokens, Scanner.scanFiltered ("{" ++ emit.emitPairList pairs ++ "}")
+      = .ok tokens := by
+  let input := "{" ++ emit.emitPairList pairs ++ "}"
+  have h_toList : input.toList = '{' :: (emit.emitPairList pairs).toList ++ ['}'] := by
+    simp only [input, String.toList_append]; rfl
+  -- ═══ Step 1: open brace → s₁ ═══
+  obtain ⟨s₁, h_snt₁, h_corr₁, h_fl₁, h_dp₁, h_ids₁, h_col₁,
+          h_inflow₁, h_indent₁, h_ek₁, h_line₁, h_atol₁, h_endline₁, _h_sk₁, h_filt₁,
+          h_sync₁, h_ska₁, _h_ssv₁, h_last_s₁, h_push₁⟩ :=
+    scanNextToken_flow_open_mapping_init input ((emit.emitPairList pairs).toList ++ ['}']) h_toList
+  -- ═══ Step 2: body scan via emitPairList_scans_tokvals → s₂ and body block ═══
+  obtain ⟨_n₂, s₂, block, h_chain₂, h_corr₂, h_fl₂, h_dp₂, h_ids₂, _h_ek₂, h_col₂, h_inflow₂,
+          h_indent₂, _h_line₂, _h_atol₂, _h_endline₂, _h_stack₂, h_fmc₂, h_block_eq₂, h_pin, _h_n3⟩ :=
+    emitPairList_scans_tokvals pairs h_ne h_all_k h_all_v s₁ ['}']
+      h_corr₁ h_inflow₁ (by rw [h_fl₁]; omega) h_indent₁ (by rw [h_col₁]; omega)
+      h_ek₁ (h_line₁ ▸ h_atol₁) h_endline₁ h_ska₁ h_sync₁ h_dp₁ h_last_s₁ h_push₁.2.2
+  -- ═══ Step 3: close brace → s₃ ═══
+  obtain ⟨s₃, h_snt₃, h_fl₃, h_dp₃, h_peek₃, h_ids₃, ⟨tok_fme, h_tok_fme_val, h_filt₃⟩⟩ :=
+    scanNextToken_flow_close_mapping_outermost_ext s₂ h_corr₂ h_inflow₂ h_indent₂ h_col₂
+      (by rw [h_fl₂, h_fl₁]) (by rw [h_dp₂, h_dp₁])
+      (by rw [h_fmc₂.flowStack_eq rfl h_fl₂]; exact h_push₁.1)
+  -- ═══ Step 4: chain composition + token equation ═══
+  have h_eof : scanNextToken s₃ = .ok none := scanNextToken_eof s₃ h_peek₃
+  have h_chain_all := (ScanChain.single h_snt₁).trans
+    (h_chain₂.toScanChain.trans (ScanChain.single h_snt₃))
+  have h_no_bom : (ScannerState.mk' input).peek? ≠ some '﻿' := by
+    have h_chars := chars_from_zero_toList input
+    rw [h_toList] at h_chars
+    have h_corr0 := initial_corr input _ h_chars
+    have ⟨h_pk, _⟩ :=
+      peek_of_chars_cons _ '{' ((emit.emitPairList pairs).toList ++ ['}']) 0 h_corr0
+    rw [h_pk]; decide
+  have h_indents_small : s₃.indents.size ≤ 1 := by
+    rw [h_ids₃, h_ids₂, h_ids₁]
+    unfold ScannerState.emit ScannerState.mk'
+    dsimp only []
+    decide
+  -- §9.2 dangling-node check (item 133): the same chain gives the stack itself
+  -- — and (item 180) the pinned run is property-free.
+  have h_np₃ : crossedPropsExcessIdx? s₃.tokens = none :=
+    crossedPropsExcess_none_of_close_pin h_filt₃ h_block_eq₂
+      (by rw [h_filt₁]) h_pin h_tok_fme_val rfl rfl
+      (mapTokVals_no_props pairs)
+  have h_dn₃ : scanLoop_checkDanglingNode s₃ = .ok () :=
+    scanLoop_checkDanglingNode_ok_of_sentinel_stack _
+      (by rw [h_ids₃, h_ids₂, h_ids₁]; rfl) h_np₃
+  have h_fv₃ : scanLoop_checkFlowValueIndent s₃ = .ok () :=
+    scanLoop_checkFlowValueIndent_ok_of_sentinel_stack _ (by rw [h_ids₃, h_ids₂, h_ids₁]; rfl)
+  have h_tok_eq : Scanner.scanFiltered input =
+      .ok ((s₃.emit .streamEnd).tokens.filter (fun t => t.val != .placeholder)) :=
+    scanFiltered_tokens_eq_of_chain_short_stack input _ s₃ _ rfl h_no_bom
+      h_chain_all h_eof h_fl₃ h_dp₃ h_dn₃ h_fv₃
+      (ScanChain.fuel_bound _ _ _ _ rfl h_chain_all h_eof)
+      h_indents_small
+  exact ⟨_, h_tok_eq⟩
+
+/-- **Main theorem** (Step 1 of the universal round-trip): the scanner accepts
+    any canonical emitter output.  Relocated from `ScanChainGrowth.lean` at
+    item 180 — see the section header above. -/
+lemma emit_produces_valid_yaml (v : YamlValue) {inFlow : Bool}
+    (hg : Grammable v inFlow) :
+    ∃ tokens, Scanner.scanFiltered (emit v) = .ok tokens := by
+  cases hg with
+  | scalar sc iF hsc => exact scan_accepts_emitScalar sc.content
+  | sequence style items tag anchor iF h =>
+    change ∃ tokens,
+      Scanner.scanFiltered ("[" ++ emit.emitList items.toList ++ "]") = .ok tokens
+    match h_list : items.toList with
+    | [] =>
+      simp only [emit.emitList]
+      exact scanFiltered_exists_of_isOk (by native_decide)
+    | w :: ws =>
+      have h_all : ∀ u ∈ items.toList, EmitScansTokVals u := fun u hu => by
+        have ⟨i, hi, h_eq⟩ := List.getElem_of_mem hu
+        have h_sz : i < items.size := by rwa [Array.length_toList] at hi
+        exact h_eq ▸ emit_scans_tokvals _ (h ⟨i, h_sz⟩)
+      have h_ne : items.toList ≠ [] := by rw [h_list]; exact List.cons_ne_nil _ _
+      rw [← h_list]
+      exact scanFiltered_emitSeq_ok items.toList h_ne h_all
+  | mapping style pairs tag anchor iF hk hv =>
+    change ∃ tokens,
+      Scanner.scanFiltered ("{" ++ emit.emitPairList pairs.toList ++ "}") = .ok tokens
+    match h_list : pairs.toList with
+    | [] =>
+      simp only [emit.emitPairList]
+      exact scanFiltered_exists_of_isOk (by native_decide)
+    | p :: ps =>
+      have h_all_k : ∀ q ∈ pairs.toList, EmitScansSavedKeyTokVals q.1 := fun q hq => by
+        have ⟨i, hi, h_eq⟩ := List.getElem_of_mem hq
+        have h_sz : i < pairs.size := by rwa [Array.length_toList] at hi
+        exact h_eq ▸ emit_scans_saved_key_tokvals _ (hk ⟨i, h_sz⟩)
+      have h_all_v : ∀ q ∈ pairs.toList, EmitScansTokVals q.2 := fun q hq => by
+        have ⟨i, hi, h_eq⟩ := List.getElem_of_mem hq
+        have h_sz : i < pairs.size := by rwa [Array.length_toList] at hi
+        exact h_eq ▸ emit_scans_tokvals _ (hv ⟨i, h_sz⟩)
+      have h_ne : pairs.toList ≠ [] := by rw [h_list]; exact List.cons_ne_nil _ _
+      rw [← h_list]
+      exact scanFiltered_emitMap_ok pairs.toList h_ne h_all_k h_all_v
 
 /-! ## Axiom audit -/
 

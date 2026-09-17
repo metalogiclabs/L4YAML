@@ -158,7 +158,9 @@ example (s_run s_land : ScannerState) (h : s_run.inFlow = true) :
     either (`unwindIndentsLoop` wants `1 < indents.size`), so this is the half of
     the domain where item 140 changes nothing at all. -/
 example (s_run s_land : ScannerState)
-    (h : s_run.indents = #[{ column := -1, isSequence := false }]) :
+    (h : s_run.indents = #[{ column := -1, isSequence := false }])
+    -- Item 180: the crossed-block clause reads no column; its `none` rides.
+    (hx : crossedPropsExcessIdx? s_run.tokens = none) :
     scanNextToken_checkDanglingNode s_run s_land = .ok () := by
   have hneg : ∀ e ∈ s_run.indents, e.column < 0 := by
     intro e he
@@ -173,9 +175,13 @@ example (s_run s_land : ScannerState)
     have := hneg s_run.indents[i] (Array.getElem_mem hi)
     simp only [beq_iff_eq]
     omega
+  -- Item 180: the crossed-block clause reads no column, so its own `none`
+  -- (the `hx` this example now takes) closes the fourth reading.
+  have hxp : crossedPropsExcessPos? s_run.tokens = none := by
+    unfold crossedPropsExcessPos?; rw [hx]
   have hnone : danglingNodePos? s_run = none := by
     unfold danglingNodePos?
-    simp only [hany, Bool.false_eq_true, ↓reduceIte, ite_self]
+    simp only [hany, Bool.false_eq_true, ↓reduceIte, ite_self, hxp]
     split
     · rfl
     · split <;> rfl

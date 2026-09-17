@@ -252,8 +252,12 @@ lemma scanFiltered_emitScalar_content (content : String) (tokens : Array (Positi
     (h_scan : scanFiltered (emitScalar content) = .ok tokens) :
     ∃ i, i < tokens.size ∧ tokens[i]!.val = .scalar content .doubleQuoted := by
   -- Get scanner state with token membership
-  obtain ⟨s₁, h_snt1, h_peek1, h_flow1, h_dp1, ⟨tok, h_tok_mem, h_tok_val⟩, h_ids1, _⟩ :=
+  obtain ⟨s₁, h_snt1, h_peek1, h_flow1, h_dp1, ⟨tok, h_tok_mem, h_tok_val⟩, h_ids1, h_filt1⟩ :=
     scanNextToken_emitScalar_init content
+  -- Item 180: the pinned run holds no property token.
+  have h_np1 : crossedPropsExcessIdx? s₁.tokens = none :=
+    crossedPropsExcessIdx?_none_of_no_props (no_props_of_filtered_pin h_filt1
+      (by intro v hv; simp [Array.mem_def] at hv; rcases hv with rfl | rfl <;> rfl))
   have h_snt2 : scanNextToken s₁ = .ok none := scanNextToken_eof s₁ h_peek1
   -- Compute the raw scan result
   have h_size := emitScalar_utf8ByteSize_ge content
@@ -274,7 +278,7 @@ lemma scanFiltered_emitScalar_content (content : String) (tokens : Array (Positi
     split <;> first | exact absurd ‹_› (by decide) | rfl
   -- Get concrete token array via scanLoop_two_iter_eq
   have h_loop_eq := scanLoop_two_iter_eq h_fuel h_snt1 h_snt2 h_flow1 h_dp1
-    (scanLoop_checkDanglingNode_ok_of_sentinel_stack _ h_ids1)
+    (scanLoop_checkDanglingNode_ok_of_sentinel_stack _ h_ids1 h_np1)
     (scanLoop_checkFlowValueIndent_ok_of_sentinel_stack _ h_ids1)
   -- The raw scan result is ((unwindIndents s₁ (-1)).emit .streamEnd).tokens
   have h_scan_raw : scan (emitScalar content) =
