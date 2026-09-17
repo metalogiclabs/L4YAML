@@ -244,7 +244,20 @@ moves.  It adds one optional parameter to `accum_block_on_closeThenBlock` and
 one to the two map openers, which this census does not count either: the DEFERRAL
 lane counts applications of the escape, and a new punting parameter is neither
 an application nor a pack punt.  `BlockDeferralClasses` §8 carries the
-measurement, including the arm-swap that shows the shadowing was a policy. -/
+measurement, including the arm-swap that shows the shadowing was a policy.
+
+Item 190 paid the COMPACT twin at the remaining two `_stamp_offcol` sites, and
+this census stays flat for a THIRD reason worth separating from the other two.
+It is not that the payment is small: the item adds a constructor field to
+`pendingMapValue`, `pendingBlock` and `pendingBlockContent`, and touches every
+producer of all three.  It is that none of what it adds is in any lane's
+vocabulary — a new punting FIELD is not an application of the escape and not a
+`KeyPackPunt` constructor, so all three lanes are blind to constructor growth
+by construction.  The instrument that does see it is the per-field flip, and
+`BlockDeferralClasses` §9 carries four readings of it taken at one commit: each
+new field against the field it twins.  A census reports the surface it was
+built to report, and saying which questions it cannot answer is part of
+reporting it. -/
 
 /-! ## The gate
 

@@ -7,7 +7,7 @@ Copyright (c) 2026. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 -/
 
-/-! # The block-indicator escape, by CLASS and by ROUTE (DOCS items 184–189)
+/-! # The block-indicator escape, by CLASS and by ROUTE (DOCS items 184–190)
 
 `block_dispatch_deferred` is `PendingNode.pendingFlow`'s only producer, so
 R3 — row 12's β.5 deletion — is the emptying of this escape.  Its applications
@@ -26,7 +26,7 @@ wrapper's deletion rather than a total drifting:
 
 | wrapper | applications | what reaches it | what empties it |
 |---|---|---|---|
-| `_stamp_offcol` | **3** in 3 definitions | the park HAS a value pack, at `nv`, and the landing is at `k ≠ nv` | a reason the two indices agree — `[187]`'s `s-indent(n)` is exact.  **Item 189 (§8) paid its first domain**: where `nv ≠ k` because the park holds TWO frames and offered the inner one, the landing now reads the outer one from `h_vpackUp` |
+| `_stamp_offcol` | **3** in 3 definitions | the park HAS a value pack, at `nv`, and the landing is at `k ≠ nv` | a reason the two indices agree — `[187]`'s `s-indent(n)` is exact.  **Item 189 (§8) paid its first domain** and **item 190 (§9) the other two sites'**: where `nv ≠ k` because the park holds TWO frames and offered the inner one, the landing now reads the outer one — from `h_vpackUp` at the landed `?`, from `h_kslotUp` at the compact one.  What is left is a landing TWO frames up |
 | `_stamp_nopack` | **3** in 3 definitions | the park carries no value pack at all, and its register is LIVE | a CARRIER: the `?` frame's value slot at the landing's column, U2's residue proper — priced at item 186 (§5), RE-priced at item 187 (§6), and its first DOMAIN paid at item 188 (§7) |
 | `_stamp_compact` | **2** in 2 definitions | the fill is COMPACT, and `[189]`'s value is `s-l+block-node`, so the face cannot stand in for the stamp | the stamp, or a refutation |
 | `_inline` | **2** in 2 definitions | the mid-line indicator (`inline_residue_of_landing`) | `KeyPackPunt`'s two surviving reasons (item 102) |
@@ -91,6 +91,19 @@ split correctly rejected it.  That is `_stamp_offcol`, and the shadowing is a
 POLICY: swapping the two arms builds green.  Item 189 splits them at the one
 place that knows the landing's column, and `_stamp_offcol` loses its first
 domain.  §8 pins the bound, the composition, the family and the boundaries.
+
+**And the COMPACT twin of THAT, where the funder was narrowed by its
+PRODUCTION** (item 190).  The same two frames are reached by a same-line `-`,
+which lands on the OTHER two `_stamp_offcol` sites, and item 189's payment does
+not arrive there: `pendingMapValue.h_kslot` is premised on the AWAITED NODE —
+`[195]`'s `s-l+block-node`, all that production admits — while a compact fill
+is `[186]`'s SLOT, which no `SBlockNode` names.  One field was serving two
+productions at their INTERSECTION and the `?`-headed payer had to narrow itself
+to fit.  Splitting it by production (`h_explUp`) and carrying the result to the
+landing (`h_kslotUp`) pays both sites; what still exits is a landing TWO frames
+up, which a second field cannot reach.  §9 pins the composition, the family,
+that boundary, and the four flip readings that locate the new fields against
+the ones they twin.
 
 **None of the classes that REMAIN is refutable.**  §2's family is accepted by the
 scanner and read identically by PyYAML 6.0.3 at the event level; §3's is the
@@ -792,5 +805,111 @@ ran it on a DIFFERENT field and got the same shape, so it is the instrument's
 behavior and not that payment's accident.  **A punt count is a count of
 producers, not of inputs**, and a producer that pays conditionally is still a
 producer the flip breaks. -/
+
+/-! ## §9  The COMPACT twin, and a funder narrowed by its PRODUCTION (item 190)
+
+§8 paid the shape of `_stamp_offcol` where the park's two frames are reached by
+a LANDED `?`.  The same two frames are reached by a COMPACT one, and there the
+payment of §8 does not arrive — measured first, at the runtime:
+
+| input | events | which frame the landed `:` is on |
+|---|---|---|
+| `? - a⏎: - w` | `+MAP +SEQ =VAL :a -SEQ +SEQ =VAL :w -SEQ -MAP` | the park's OWN — item 92's `h_kslot`, unchanged |
+| `?⏎  ? -⏎: w` | `+MAP +MAP +SEQ =VAL : -SEQ =VAL : -MAP =VAL :w -MAP` | **one frame UP** — `_stamp_offcol` until this item |
+| `?⏎  ? - a⏎: w` | `+MAP +MAP +SEQ =VAL :a -SEQ =VAL : -MAP =VAL :w -MAP` | the same, with the entry's content arrived |
+
+**And the funder was there, at the wrong PRODUCTION.**  Item 189 gave the park
+the outer frame's line in `pendingMapValue.h_kslot`, whose premise is the
+AWAITED NODE: `SBlockNode (n + 1) .blockIn`, which is what `[195]
+c-l-block-map-implicit-value` admits and all it admits.  What fills the inner
+`?`'s key here is `[186]`'s SLOT — `[185] s-l+block-indented`, whose
+`ns-l-compact-sequence` alternative has no `SBlockNode` to name it at all.  So
+one field was serving two productions and was typed at their INTERSECTION, and
+the `?`-headed payer had to narrow itself (`SBlockIndented.node`) to fit.  That
+is not the item-189 shadowing again: nothing preferred the wrong funder here,
+the right one could not be STATED.  `h_explUp` is the field split out by
+production — `h_expl`'s twin, the entry route composed against the line of the
+entry the park stands inside — and it carries its own `?` literal so a consumer
+holding a slot fill can build `[188]`'s `explicitEmpty` from it.
+
+The composition, end to end, with no `∨ True` in the conclusion: -/
+
+/-- The inner `?` at `nv` heads `[187]`'s entry; the compact `-` fills its key
+    slot at `nv + 1 + m`; the entry closes EMPTY around that fill — `[188]`'s
+    `explicitEmpty`, the `e-node` value the inner frame never got — and the
+    OUTER entry's value line follows at `nvU`.  This is `pendingBlock.h_kslotUp`
+    as the inline arm builds it, with `h_explUp`'s payment inlined. -/
+example {nv m nvU : Nat}
+    {sp_start sp_q sp_scan sp_sc sp_scan' sp_m sp_e sp_i sp_c sp_v : SurfPos}
+    (h_qlit : GLit '?' sp_q sp_scan)
+    (up : ∀ sp_w : SurfPos, SBlockMapEntry nv sp_q sp_w →
+      ∀ sp_i sp_c : SurfPos, SIndent nvU sp_w sp_i → GLit ':' sp_i sp_c →
+      ∀ sp_x : SurfPos, SBlockIndented nvU .blockOut sp_c sp_x →
+      SLYamlStream sp_start sp_x)
+    (h_ind : SIndent m sp_scan sp_sc)
+    (h_dash : GLit '-' sp_sc sp_scan') (h_gnot : GNot SNsChar sp_scan')
+    (h_bi : SBlockIndented (nv + 1 + m) .blockIn sp_scan' sp_m)
+    (h_tail : SCompactSeqTail (nv + 1 + m) sp_m sp_e)
+    (h_iv : SIndent nvU sp_e sp_i) (h_lit : GLit ':' sp_i sp_c)
+    (h_sbi : SBlockIndented nvU .blockOut sp_c sp_v) :
+    SLYamlStream sp_start sp_v :=
+  up sp_e
+    (SBlockMapEntry.explicitEmpty nv sp_q sp_scan sp_e h_qlit
+      (SBlockIndented.compactSeq nv .blockOut m sp_scan sp_sc sp_e h_ind
+        (SCompactSeq.mk (nv + 1 + m) sp_sc sp_scan' sp_m sp_e
+          h_dash h_gnot h_bi h_tail)))
+    sp_i sp_c h_iv h_lit sp_v h_sbi
+
+/-! **The family, at the runtime.**  Both lanes of the escape's two remaining
+`_stamp_offcol` sites — the awaited entry (`accum_block_on_pendingBlock`) and
+the entry with content (`accum_block_on_pendingBlockContent`) — and the four
+relays that carry the field onto the parks a sibling or a nested collection
+opens. -/
+
+#guard pins "?\n  ? -\n: w\n" == ("scan-accepted", "+STR +DOC +MAP +MAP +SEQ =VAL : -SEQ =VAL : -MAP =VAL :w -MAP -DOC -STR")
+#guard pins "?\n  ? - a\n: w\n" == ("scan-accepted", "+STR +DOC +MAP +MAP +SEQ =VAL :a -SEQ =VAL : -MAP =VAL :w -MAP -DOC -STR")
+#guard pins "? ? -\n: w\n" == ("scan-accepted", "+STR +DOC +MAP +MAP +SEQ =VAL : -SEQ =VAL : -MAP =VAL :w -MAP -DOC -STR")
+#guard pins "?\n  ? - a\n    - b\n: w\n" == ("scan-accepted", "+STR +DOC +MAP +MAP +SEQ =VAL :a =VAL :b -SEQ =VAL : -MAP =VAL :w -MAP -DOC -STR")
+#guard pins "?\n  ? - - a\n: w\n" == ("scan-accepted", "+STR +DOC +MAP +MAP +SEQ +SEQ =VAL :a -SEQ -SEQ =VAL : -MAP =VAL :w -MAP -DOC -STR")
+#guard pins "?\n  ?\n  - a\n: w\n" == ("scan-accepted", "+STR +DOC +MAP +MAP +SEQ =VAL :a -SEQ =VAL : -MAP =VAL :w -MAP -DOC -STR")
+
+/-! **The boundary, and it is the payment's own shape rather than the
+runtime's.**  A second field names ONE frame above the park, so a landing TWO
+frames up is still off-column — and the runtime has that input.  Both of the
+following are accepted; the first is paid by this item and the second is what
+`_stamp_offcol` still covers, which is the honest statement of what a
+two-field split buys and where a LIST would be needed instead. -/
+
+#guard pins "?\n  ?\n    ? -\n  : v\n: w\n" == ("scan-accepted", "+STR +DOC +MAP +MAP +MAP +SEQ =VAL : -SEQ =VAL : -MAP =VAL :v -MAP =VAL :w -MAP -DOC -STR")
+#guard pins "?\n  ?\n    ? -\n: w\n" == ("scan-accepted", "+STR +DOC +MAP +MAP +MAP +SEQ =VAL : -SEQ =VAL : -MAP =VAL : -MAP =VAL :w -MAP -DOC -STR")
+
+/-! …and at the frame's OWN column the two `?`s fuse rather than nest, so the
+single-frame reading is all there is and nothing about it moves: -/
+
+#guard pins "?\n? -\n: w\n" == ("scan-accepted", "+STR +DOC +MAP =VAL : =VAL : +SEQ =VAL : -SEQ =VAL :w -MAP -DOC -STR")
+#guard pins "? - a\n: - w\n" == ("scan-accepted", "+STR +DOC +MAP +SEQ =VAL :a -SEQ +SEQ =VAL :w -SEQ -MAP -DOC -STR")
+
+/-! **The SITE instrument, on both new fields and on the one each twins.**
+Delete the field's `∨ True` and build, all four readings taken at this commit
+so the pairs are comparable:
+
+| field | declarations | errors |
+|---|---|---|
+| `pendingMapValue.h_kslot` (item 189's) | 9 | 17 |
+| `pendingMapValue.h_explUp` (new) | **7** | **9** |
+| `pendingBlock.h_kslot` (item 92's) | 7 | 24 |
+| `pendingBlock.h_kslotUp` (new) | **6** | **22** |
+
+Each twin's surface is strictly SMALLER than the field it twins, and in the
+`pendingBlock` pair the difference is exactly one declaration —
+`accum_flow_open_depth0`, the flow-open relay, which reads `h_kslot` and which
+item 190 did not thread.  That is the instrument answering a question the site
+counts cannot: the new field is not yet everywhere its twin is, and the missing
+place is named rather than guessed.
+
+The escape's own wrapper counts do not move — `_stamp_offcol` is still 3 sites
+in 3 definitions — for the reason items 188 and 189 both recorded: a payment
+against an escape narrows a DOMAIN, and every instrument in this file that
+counts SITES is blind to it. -/
 
 end L4YAML.Tests.Guards.BlockDeferralClasses

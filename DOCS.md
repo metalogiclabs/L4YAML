@@ -21026,6 +21026,124 @@ about and left punting at four sites (`accum_block_on_pendingContent`,
 two REFUTABLE halves at the flow open, the three MISSING ROUTES, the flip.  And
 the parked Ix Step-1 composition, on the Ix track's own clock.
 
+### Item 190 (2026-09-17)
+
+**THE COMPACT TWIN PAID, AND A FUNDER NARROWED BY ITS PRODUCTION.**
+Branch `fix-a-grammar-completeness`, on top of item 189's `daa5464d`.
+
+**The domain, measured before anything was written.**  Item 189 named the next
+question as `_stamp_offcol`'s other `nv ≠ k` shapes and the four content-lane
+routes it left punting.  Both remaining sites are reached by the SAME two-frame
+family item 189 paid, one production over — the inner `?`'s key filled by a
+same-line `-` instead of by a landed node — and the runtime has the inputs:
+
+| input | events |
+|---|---|
+| `?⏎  ? -⏎: w` | `+MAP +MAP +SEQ =VAL : -SEQ =VAL : -MAP =VAL :w -MAP` |
+| `?⏎  ? - a⏎: w` | `+MAP +MAP +SEQ =VAL :a -SEQ =VAL : -MAP =VAL :w -MAP` |
+| `? ? - a⏎: w` | the same — the compact nesting reads identically |
+
+The inner `?` at column 2 heads a mapping whose KEY is the sequence; the `: w`
+at column 0 is the OUTER frame's value.  So the park's own frame is at 2, the
+landing at 0, and `accum_block_on_pendingBlock` /
+`…_pendingBlockContent` deferred exactly as item 185 described.
+
+**The obstacle was neither missing nor shadowed — the funder could not be
+STATED.**  Item 189 gave the park the outer frame's line in
+`pendingMapValue.h_kslot`, whose premise is the AWAITED NODE: `SBlockNode
+(n + 1) .blockIn`, which is what `[195] c-l-block-map-implicit-value` admits
+and all it admits.  What fills the inner `?`'s key here is `[186]`'s SLOT —
+`[185] s-l+block-indented`, whose `ns-l-compact-sequence` alternative no
+`SBlockNode` names.  One field was serving two productions and was typed at
+their INTERSECTION, so the `?`-headed payer had to narrow itself
+(`SBlockIndented.node`) to fit and lost the compact alternatives on the way in.
+Widening that one premise was tried first and is NOT the fix: it builds with
+eight errors at eight sites, and two of them are
+`SBlockMapEntry.implicitKeyNode`, whose value slot really is `s-l+block-node` —
+the intersection was not an accident.
+The fix is to split the field by production.
+
+**What landed.**  `pendingMapValue.h_explUp` — `h_expl`'s twin, the entry route
+THIS `?` heads composed against the value line of the entry the park stands
+INSIDE, carrying its own `?` literal so a consumer holding a slot fill can build
+`[188]`'s `explicitEmpty` from it; paid by `question_open_map` from the same
+`h_kslot_up` item 189 added, and punted by the other five producers.  A matching
+component on `accum_block_on_closeThenBlock`'s `h_vslot`, composed once at the
+block cascade.  `pendingBlock.h_kslotUp` and `pendingBlockContent.h_kslotUp`,
+`h_kslot`'s twins, paid at the compact fill and at the LANDED `-` (the same
+`slotLandedSeq` crossing item 188 built, with the other frame's line after it),
+and relayed by the sibling, nested and inline-nested producers exactly as
+`h_kslot` is.  `accum_content_on_pendingBlock_indented` gained the parameter so
+the entry-CONTENT lane is paid too.  Both `_stamp_offcol` sites now read one
+`h_upSpend` at the landing's column and try it in all four fallbacks, so where
+only one frame is open nothing changes — which is what the unchanged suite
+verdicts say.
+
+**The boundary is the payment's own shape, and the runtime has that input
+too.**  A second field names ONE frame above the park.  `?⏎  ?⏎    ? -⏎  : v⏎: w`
+lands on that frame and is paid; `?⏎  ?⏎    ? -⏎: w` lands TWO frames up, is
+accepted by the scanner, and still exits through `_stamp_offcol`.  A LIST would
+reach it; a second field cannot.  That is the honest statement of what this
+item bought.
+
+**The site instrument, four readings at one commit.**  Delete the field's
+`∨ True` and build:
+
+| field | declarations | errors |
+|---|---|---|
+| `pendingMapValue.h_kslot` (item 189's) | 9 | 17 |
+| `pendingMapValue.h_explUp` (new) | **7** | **9** |
+| `pendingBlock.h_kslot` (item 92's) | 7 | 24 |
+| `pendingBlock.h_kslotUp` (new) | **6** | **22** |
+
+Each twin's surface is strictly smaller than the field it twins, and in the
+`pendingBlock` pair the difference is exactly ONE declaration —
+`accum_flow_open_depth0`, the flow-open relay, which reads `h_kslot` and which
+this item did not thread.  The instrument names the missing place instead of
+leaving it to be guessed at.  `FlipConsumerSurface` stays flat for a third
+reason: a new punting FIELD is neither an escape application nor a `KeyPackPunt`
+constructor, so all three of its lanes are blind to constructor growth by
+construction — which the file now says of itself.
+
+**A gotcha worth the line.**  `cases … with` alternatives may name a PREFIX of a
+constructor's fields, so adding a LAST field to `PendingNode` broke no pattern
+match at all — across the three additions thirteen producers errored and not
+one destructure did.  That is why a LAST field is the cheap move here, and why
+the PRODUCER count is the thing to price.
+
+**Gates, all green at this commit.**  Full build **1162** jobs including the
+guards libraries, ZERO warnings; `scripts/run-all-tests.sh` **4520/4520** with
+Production Coverage Analysis **837/837**; `eventscore` **347/358** (252
+event-pass, 95 error-ok, 0 error-miss, 0 event-reject); `suiterunner`
+**869 / 0 / 151**; `matrix_score.py` over the 402-leaf data form on BOTH
+pipelines, **402/402 event** (`pass` 308, `err-ok` 94) and **282/282 JSON**
+(`pass` 279, `err-ok` 3, `skip` 120), splits identical to 176–189; the `[210]`
+flip instrument at **FIVE** errors at the same five definitions
+(`topLevelFlowResumeSep`, `rootMapRoute`, `rootMapRouteF`, `bareNodeRoute`,
+`structural_dispatch_to_pending`), applied and restored clean; `#print axioms`
+over the seven threaded consumers, no `sorryAx`; checkers 228/355, 20/230/249/355,
+25 capstones, and the annotation verifier at 100 % coverage with its same **19**
+pre-existing name mismatches.  Counts, by
+`grep -rhoE '^ *(private )?(lemma|theorem|def|abbrev|instance|structure|inductive|class) ' L4YAML/`
+and `grep -rho '#guard' Tests/ L4YAML/` at `daa5464d` and here — a broader
+census than the rows above 190 used, so read the DELTA and not the totals:
+declarations **8624 → 8624** (**+0**, the first payment in this series that adds
+no declaration at all — only constructor fields), `#guard`s **7867 → 7877**
+(+10, §9's rows), test files **621**, unchanged.
+
+**What remains.**  `_stamp_offcol` is still 3 sites and `_stamp_nopack` still 3;
+the surface is still **31 punt alternatives across 16 declarations, 8 of them
+constructor fields**, three of which now have a paid arm.  A DOMAIN shrank and
+no count did, for the third item running.  What still exits `_stamp_offcol` is
+a landing two or more frames above the park — measured, accepted, and needing a
+LIST rather than a field — plus the flow-open relay the instrument named.  Then
+**the REFUTATION** for `_stamp_compact` (2 sites, measured empty),
+**`KeyPackPunt`'s two reasons** (`dedent` 7/5 and `noKeyContext` 6/5, possibly a
+phantom), then the `pendingFlow` constructor and its arm.  Only then item 183's
+flip order — the two REFUTABLE halves at the flow open, the three MISSING
+ROUTES, the flip.  And the parked Ix Step-1 composition, on the Ix track's own
+clock.
+
 ### REMAINING, in order
 
 The per-item history is the closure log above; this section lists only the

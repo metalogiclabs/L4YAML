@@ -52,6 +52,8 @@ example {sc : ScannerState} {sp_start sp_block sp_scan : SurfPos} {n : Nat}
     (Or.inr trivial) (Or.inr trivial) h_nodir
     -- Item 168: this guard is about the FLOOR; the sequence face punts.
     (Or.inr trivial)
+    -- Item 190: and so does the entry route's up-frame twin.
+    (Or.inr trivial)
 
 /-- ...and `colon_open_map_implicit`'s slot asks for exactly that. -/
 example {s' : ScannerState} {k : Nat} (h : IndentFloor s' k) :
