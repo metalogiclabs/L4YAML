@@ -11842,16 +11842,20 @@ lemma crossedPropsExcessPos?_push_body_onProp {ts : Array (Positioned YamlToken)
     — and `trailingNodeRun?_bounds` says those slots are below the array the
     reading was taken on.  Item 180: the crossed-block clause reads the whole
     trailing block, so its own equality rides as the fifth premise, paid by the
-    kit above. -/
+    kit above.  Item 182: the break-crossing clause reads the run's own
+    interior — the tokens BETWEEN the start and the end — so its equality rides
+    as the sixth, and it is the premise a body push cannot pay. -/
 lemma danglingNodePos?_congr {s t : ScannerState}
     (hflow : s.inFlow = t.inFlow)
     (hind : s.indents = t.indents)
     (hrun : trailingNodeRun? s.tokens = trailingNodeRun? t.tokens)
     (hagree : ∀ j, j < t.tokens.size → s.tokens[j]! = t.tokens[j]!)
-    (hx : crossedPropsExcessPos? s.tokens = crossedPropsExcessPos? t.tokens) :
+    (hx : crossedPropsExcessPos? s.tokens = crossedPropsExcessPos? t.tokens)
+    (hlc : runLineCrossPos? s.tokens = runLineCrossPos? t.tokens) :
     danglingNodePos? s = danglingNodePos? t := by
   unfold danglingNodePos?
   rw [hflow, hind, hrun, hx]
+  simp only [runLineCrossDanglingPos?, hlc]
   cases hf : t.inFlow with
   | true => simp only [↓reduceIte]
   | false =>
@@ -12213,16 +12217,228 @@ lemma crossedPropsExcessPos?_push_prop_three {ts : Array (Positioned YamlToken)}
   rw [hscan]
   exact propsBlockScanLoop_two_props hkp hj hjp
 
+/-! ### Item 182's kit — the block's own break crossing
+
+The fifth clause reads the SAME adjacent property block the fourth one does,
+through the same three arms, so its kit is item 180's kit again: a one-step
+equation, a congruence below the index, and a placeholder gap that collapses
+to its floor.  What differs is the body arm, where the block reading is
+followed by a SECOND reading — the props→body crossing — which is the only
+thing a body push can add. -/
+
+/-- The walk's one-step equation, with the recursive value projected. -/
+lemma propsBlockLineCrossLoop_succ (ts : Array (Positioned YamlToken)) (m : Nat) :
+    propsBlockLineCrossLoop ts (m + 1) =
+      if (ts[m]!.val == YamlToken.placeholder) = true then propsBlockLineCrossLoop ts m
+      else if ts[m]!.val.isNodeProperty = true then
+        (match propsBlockLineCrossLoop ts m with
+         | some q => some q
+         | none =>
+           match prevRealIdx? ts m with
+           | some p =>
+             if ts[p]!.val.isNodeProperty && ts[p]!.pos.line < ts[m]!.pos.line then
+               some ts[m]!.pos
+             else none
+           | none => none)
+      else none := by
+  cases hE : propsBlockLineCrossLoop ts m with
+  | none => simp only [propsBlockLineCrossLoop, hE]; rfl
+  | some q => simp only [propsBlockLineCrossLoop, hE]
+
+/-- The walk reads slots strictly below its index, and equally. -/
+lemma propsBlockLineCrossLoop_congr_below {a b : Array (Positioned YamlToken)} :
+    ∀ n, (∀ j, j < n → a[j]! = b[j]!) →
+      propsBlockLineCrossLoop a n = propsBlockLineCrossLoop b n := by
+  intro n
+  induction n with
+  | zero => intro _; rfl
+  | succ m ih =>
+    intro hag
+    rw [propsBlockLineCrossLoop_succ, propsBlockLineCrossLoop_succ,
+      hag m (Nat.lt_succ_self m), ih (fun j hj => hag j (by omega)),
+      prevRealIdx?_congr_below hag m (Nat.le_succ m)]
+    cases hp : prevRealIdx? b m with
+    | none => rfl
+    | some p =>
+      simp only []
+      rw [hag p (by have := prevRealIdx?_lt hp; omega)]
+
+/-- …and a placeholder gap collapses it to the gap's floor. -/
+lemma propsBlockLineCrossLoop_skip_gap {ts : Array (Positioned YamlToken)} {k : Nat} :
+    ∀ n, k < n →
+      (∀ m, k < m → m < n → (ts[m]!.val == YamlToken.placeholder) = true) →
+      propsBlockLineCrossLoop ts n = propsBlockLineCrossLoop ts (k + 1) := by
+  intro n
+  induction n with
+  | zero => intro h; omega
+  | succ q ih =>
+    intro hkq hph
+    by_cases hq : q = k
+    · subst hq; rfl
+    · have hkq' : k < q := by omega
+      rw [propsBlockLineCrossLoop_succ, if_pos (hph q hkq' (Nat.lt_succ_self q))]
+      exact ih hkq' (fun m hm hmq => hph m hm (by omega))
+
+/-- **The body push can only ADD a crossing** (item 182).  The block below the
+    pushed body is the park's own block, read from the same index across the
+    reservation gap, so the park's crossing is the pushed state's FIRST
+    reading — and the props→body crossing the push may create is the second.
+    `none` therefore travels back to the park, and nothing travels forward:
+    `k: &x⏎a` is the push that makes a clean park dangle. -/
+lemma runLineCrossPos?_push_body_onProp {ts : Array (Positioned YamlToken)}
+    {p : Positioned YamlToken} {i : Nat}
+    (hb : p.val.isNodeBody = true)
+    (hprev : prevRealIdx? ts ts.size = some i)
+    (hiprop : ts[i]!.val.isNodeProperty = true) :
+    runLineCrossPos? ts = none ∨ runLineCrossPos? ts = runLineCrossPos? (ts.push p) := by
+  have hph : (p.val == YamlToken.placeholder) = false := by
+    cases hv : p.val <;> simp_all [YamlToken.isNodeBody]
+  have hp : p.val.isNodeProperty = false := by
+    cases hv : p.val <;> simp_all [YamlToken.isNodeBody, YamlToken.isNodeProperty]
+  have hi : i < ts.size := prevRealIdx?_lt hprev
+  have hget : (ts.push p)[ts.size]! = p := by simp [Array.getElem_push]
+  have hlast : prevRealIdx? (ts.push p) (ts.push p).size = some ts.size := by
+    have hsz' : (ts.push p).size = ts.size + 1 := Array.size_push ..
+    rw [hsz']
+    show (if (ts.push p)[ts.size]!.val == .placeholder then
+            prevRealIdx? (ts.push p) ts.size else some ts.size) = some ts.size
+    rw [hget, hph]; rfl
+  have hloop : propsBlockLineCrossLoop (ts.push p) ts.size
+      = propsBlockLineCrossLoop ts (i + 1) := by
+    have hcongr : propsBlockLineCrossLoop (ts.push p) (i + 1)
+        = propsBlockLineCrossLoop ts (i + 1) :=
+      propsBlockLineCrossLoop_congr_below _ (fun j hj => push_getElem!_below j (by omega))
+    by_cases hii : i + 1 = ts.size
+    · rw [← hii]; exact hcongr
+    · have hgap : ∀ m, i < m → m < ts.size →
+          ((ts.push p)[m]!.val == YamlToken.placeholder) = true := by
+        intro m him hms
+        rw [push_getElem!_below m hms]
+        exact prevRealIdx?_gap hprev m him hms
+      rw [propsBlockLineCrossLoop_skip_gap ts.size (by omega) hgap]
+      exact hcongr
+  have hpark : runLineCrossPos? ts = propsBlockLineCrossLoop ts (i + 1) := by
+    unfold runLineCrossPos?
+    rw [hprev]
+    simp only [hiprop, ↓reduceIte]
+  cases hq : propsBlockLineCrossLoop ts (i + 1) with
+  | none => exact Or.inl (by rw [hpark, hq])
+  | some q =>
+    refine Or.inr ?_
+    rw [hpark, hq]
+    unfold runLineCrossPos?
+    rw [hlast]
+    simp only [hget, hp, hb, Bool.false_eq_true, ↓reduceIte, hloop, hq]
+
+/-- **The property push can only ADD a crossing either** (item 182), and for
+    the same reason: the block below the pushed property collapses across the
+    reservation gap to the park's own, so the park's crossing is the pushed
+    state's first reading and the pushed property's own is the second. -/
+lemma runLineCrossPos?_push_prop_onProp {ts : Array (Positioned YamlToken)}
+    {p : Positioned YamlToken} {k : Nat}
+    (hp : p.val.isNodeProperty = true)
+    (hk : prevRealIdx? ts ts.size = some k)
+    (hkp : ts[k]!.val.isNodeProperty = true) :
+    runLineCrossPos? ts = none ∨ runLineCrossPos? ts = runLineCrossPos? (ts.push p) := by
+  have hph : (p.val == YamlToken.placeholder) = false := by
+    cases hv : p.val <;> simp_all [YamlToken.isNodeProperty]
+  have hkk : k < ts.size := prevRealIdx?_lt hk
+  have hget : (ts.push p)[ts.size]! = p := by simp [Array.getElem_push]
+  have hlast : prevRealIdx? (ts.push p) (ts.push p).size = some ts.size := by
+    have hsz' : (ts.push p).size = ts.size + 1 := Array.size_push ..
+    rw [hsz']
+    show (if (ts.push p)[ts.size]!.val == .placeholder then
+            prevRealIdx? (ts.push p) ts.size else some ts.size) = some ts.size
+    rw [hget, hph]; rfl
+  have hloop : propsBlockLineCrossLoop (ts.push p) ts.size
+      = propsBlockLineCrossLoop ts (k + 1) := by
+    have hcongr : propsBlockLineCrossLoop (ts.push p) (k + 1)
+        = propsBlockLineCrossLoop ts (k + 1) :=
+      propsBlockLineCrossLoop_congr_below _ (fun j hj => push_getElem!_below j (by omega))
+    by_cases hkk' : k + 1 = ts.size
+    · rw [← hkk']; exact hcongr
+    · have hgap : ∀ m, k < m → m < ts.size →
+          ((ts.push p)[m]!.val == YamlToken.placeholder) = true := by
+        intro m hkm hms
+        rw [push_getElem!_below m hms]
+        exact prevRealIdx?_gap hk m hkm hms
+      rw [propsBlockLineCrossLoop_skip_gap ts.size (by omega) hgap]
+      exact hcongr
+  have hpark : runLineCrossPos? ts = propsBlockLineCrossLoop ts (k + 1) := by
+    unfold runLineCrossPos?
+    rw [hk]
+    simp only [hkp, ↓reduceIte]
+  cases hq : propsBlockLineCrossLoop ts (k + 1) with
+  | none => exact Or.inl (by rw [hpark, hq])
+  | some q =>
+    refine Or.inr ?_
+    rw [hpark, hq]
+    unfold runLineCrossPos?
+    rw [hlast]
+    simp only [hget, hp, ↓reduceIte]
+    rw [propsBlockLineCrossLoop_succ, if_neg (by rw [hget, hph]; simp),
+      if_pos (by rw [hget]; exact hp)]
+    simp only [hloop, hq]
+
+/-- …and a flow close read back to its park — item 182's twin of
+    `crossedPropsExcessPos?_flowClose_reads_park`.  Reading the block at the
+    CLOSE is exactly what makes this an EQUALITY: the close's arm walks back
+    to its own open and finds the park's properties there. -/
+lemma runLineCrossPos?_flowClose_reads_park
+    {a b : Array (Positioned YamlToken)} {i k : Nat}
+    (hagree : ∀ j, j < b.size → a[j]! = b[j]!)
+    (hbprev : prevRealIdx? b b.size = some k)
+    (hbprop : b[k]!.val.isNodeProperty = true)
+    (halast : prevRealIdx? a a.size = some i)
+    (haclose : a[i]!.val.isFlowClose = true)
+    (haopen : flowOpenIdx? a i = some b.size) :
+    runLineCrossPos? a = runLineCrossPos? b := by
+  have hnp := isFlowClose_not_isNodeProperty haclose
+  have hnb := isFlowClose_not_isNodeBody haclose
+  have hk : k < b.size := prevRealIdx?_lt hbprev
+  have hloop : propsBlockLineCrossLoop a b.size = propsBlockLineCrossLoop b (k + 1) := by
+    have hcongr : propsBlockLineCrossLoop a (k + 1) = propsBlockLineCrossLoop b (k + 1) :=
+      propsBlockLineCrossLoop_congr_below _ (fun j hj => hagree j (by omega))
+    by_cases hkk : k + 1 = b.size
+    · rw [← hkk]; exact hcongr
+    · have hgap : ∀ m, k < m → m < b.size →
+          (a[m]!.val == YamlToken.placeholder) = true := by
+        intro m hkm hms
+        rw [hagree m hms]
+        exact prevRealIdx?_gap hbprev m hkm hms
+      rw [propsBlockLineCrossLoop_skip_gap b.size (by omega) hgap]
+      exact hcongr
+  unfold runLineCrossPos?
+  rw [halast, hbprev]
+  simp only [hnp, hnb, hbprop, Bool.false_eq_true, ↓reduceIte, haclose, haopen, hloop]
+
+/-- The clause the verdict spends transports on either horn: the TARGET's
+    reading is `none` outright, or it is the source's own — and in the second
+    case the column test is the same test, so the verdict's `none` carries. -/
+lemma runLineCrossDanglingPos?_none_of {a b : Array (Positioned YamlToken)}
+    {ind : Array IndentEntry}
+    (h : runLineCrossPos? b = none ∨ runLineCrossPos? b = runLineCrossPos? a) :
+    runLineCrossDanglingPos? a ind = none → runLineCrossDanglingPos? b ind = none := by
+  intro ha
+  unfold runLineCrossDanglingPos? at ha ⊢
+  rcases h with h | h
+  · rw [h]
+  · rw [h]; exact ha
+
 /-- `danglingNodePos?_congr`, weakened to the `none` direction — what the
     `[96]` extension's relay can pay when the crossed reading only travels
-    one way (item 180). -/
+    one way (item 180), and what item 182's break-crossing reading leaves of
+    the body relay: the push can only ADD a crossing, so `none` travels back
+    to the park and nothing travels forward. -/
 lemma danglingNodePos?_none_mono {s t : ScannerState}
     (hflow : s.inFlow = t.inFlow)
     (hind : s.indents = t.indents)
     (hrun : trailingNodeRun? s.tokens = trailingNodeRun? t.tokens)
     (hagree : ∀ j, j < t.tokens.size → s.tokens[j]! = t.tokens[j]!)
     (hx : crossedPropsExcessPos? s.tokens = none →
-      crossedPropsExcessPos? t.tokens = none) :
+      crossedPropsExcessPos? t.tokens = none)
+    (hlc : runLineCrossPos? t.tokens = none ∨
+      runLineCrossPos? t.tokens = runLineCrossPos? s.tokens) :
     danglingNodePos? s = none → danglingNodePos? t = none := by
   intro h
   unfold danglingNodePos? at h ⊢
@@ -12252,7 +12468,12 @@ lemma danglingNodePos?_none_mono {s t : ScannerState}
         · exact absurd h (by simp)
         · rename_i hc2
           rw [if_neg hc2]
-          exact hx h
+          cases hcx : crossedPropsExcessPos? s.tokens with
+          | some q => simp only [hcx] at h; exact absurd h (by simp)
+          | none =>
+            simp only [hcx] at h
+            simp only [hx hcx]
+            exact runLineCrossDanglingPos?_none_of hlc h
       | some j =>
         dsimp only [] at h ⊢
         simp only [hj_eq j rfl] at h
@@ -12265,7 +12486,12 @@ lemma danglingNodePos?_none_mono {s t : ScannerState}
           · exact absurd h (by simp)
           · rename_i hc2
             rw [if_neg hc2]
-            exact hx h
+            cases hcx : crossedPropsExcessPos? s.tokens with
+            | some q => simp only [hcx] at h; exact absurd h (by simp)
+            | none =>
+              simp only [hcx] at h
+              simp only [hx hcx]
+              exact runLineCrossDanglingPos?_none_of hlc h
 
 /-- **The crossed block REFUSES, at whatever column** (item 181) — a trailing
     run that starts on a property reaches §9.2's fourth clause whatever the
@@ -12287,7 +12513,9 @@ lemma danglingNodePos?_ne_none_of_crossed {s : ScannerState} {st : Nat}
   rw [if_neg (by simp [hstp])]
   split
   · simp
-  · exact hx
+  · cases hcx : crossedPropsExcessPos? s.tokens with
+    | none => exact absurd hcx hx
+    | some q => simp
 
 /-- …and a flow close read back to its park — item 180's twin of
     `trailingNodeRun?_flowClose_reads_park`. -/
@@ -12350,23 +12578,31 @@ lemma trailingNodeRun?_dispatch_prop_onProp {s s' : ScannerState} {c : Char} {i 
   rw [htok]
   exact trailingNodeRun?_push_prop_onProp ht hprev hiprop
 
-/-- **The body push, at the scanner state** — §9.2's verdict is UNCHANGED when
-    a held `[96]` run takes its own content.  The ride into `[161]`'s
-    `propsContent` carries the park's refusal with it. -/
+/-- **The body push, at the scanner state** — the ride into `[161]`'s
+    `propsContent` carries the park's refusal with it.
+
+    **Item 182 weakens this from an equality to the `none` direction**, and the
+    weakening is the item's own reading: the content the park takes may be the
+    token that STARTS a line, and then the pushed state is refused where the
+    park was clean (`k: &x⏎a`, the whole family).  The park's `some` still
+    reaches the push — the run's start does not move and the crossed block
+    does not shrink — so `none` travels back, which is the direction the route
+    gate asks for. -/
 lemma danglingNodePos?_dispatch_body_onProp {s s' : ScannerState} {c : Char} {i : Nat}
     (hok : scanNextToken_dispatchContent s c = .ok s')
     (hna : c ≠ '&') (hnt : c ≠ '!')
     (hprev : prevRealIdx? s.tokens s.tokens.size = some i)
     (hiprop : s.tokens[i]!.val.isNodeProperty = true) :
-    danglingNodePos? s' = danglingNodePos? s := by
+    danglingNodePos? s' = none → danglingNodePos? s = none := by
   obtain ⟨t, ht, htok⟩ := dispatchContent_tokens_push hok hna hnt
-  refine danglingNodePos?_congr ?_ (IndentStackBase.dispatchContent_preserves_indents hok)
-    ?_ ?_ ?_
+  refine danglingNodePos?_none_mono ?_
+    (IndentStackBase.dispatchContent_preserves_indents hok) ?_ ?_ ?_ ?_
   · unfold ScannerState.inFlow
     rw [ScannerCorrectness.dispatchContent_preserves_flowLevel _ c _ hok]
   · rw [htok]; exact trailingNodeRun?_push_body_onProp ht hprev hiprop
   · rw [htok]; exact push_getElem!_below
-  · rw [htok]; exact crossedPropsExcessPos?_push_body_onProp ht hprev hiprop
+  · rw [htok, crossedPropsExcessPos?_push_body_onProp ht hprev hiprop]; exact id
+  · rw [htok]; exact runLineCrossPos?_push_body_onProp ht hprev hiprop
 
 /-- **§9.2's verdict at a depth-0 flow close is the PARK's**, from the hold
     alone.  Item 160 measured this equality on the scanner and proved it from a
@@ -12390,11 +12626,14 @@ lemma danglingNodePos?_flowClose_reads_park
     (hclose : s_cl.tokens[i]!.val.isFlowClose = true)
     (hi : i = s_bc.tokens.size) :
     danglingNodePos? s_cl = danglingNodePos? s_park := by
-  refine danglingNodePos?_congr hflow hind ?_ hpark ?_
+  refine danglingNodePos?_congr hflow hind ?_ hpark ?_ ?_
   · refine trailingNodeRun?_flowClose_reads_park hpark hkprev hkprop hlast hclose ?_
     rw [hi]
     exact hheld.flowOpenIdx? hbc
   · refine crossedPropsExcessPos?_flowClose_reads_park hpark hkprev hkprop hlast hclose ?_
+    rw [hi]
+    exact hheld.flowOpenIdx? hbc
+  · refine runLineCrossPos?_flowClose_reads_park hpark hkprev hkprop hlast hclose ?_
     rw [hi]
     exact hheld.flowOpenIdx? hbc
 
@@ -12445,7 +12684,7 @@ lemma danglingNodePos?_congr_fields {a b : ScannerState}
     (hind : a.indents = b.indents) :
     danglingNodePos? a = danglingNodePos? b :=
   danglingNodePos?_congr hflow hind (by rw [htok]) (fun j _ => by rw [htok])
-    (by rw [htok])
+    (by rw [htok]) (by rw [htok])
 
 /-- **The landing's two arms, read for a `[96]` park** (item 165) — either
     §9.2's mid-stream check already fired on the park, or nothing between the
@@ -12591,6 +12830,7 @@ lemma propsPark_dangling_of_prop {sc s_prep s_ad s' : ScannerState}
             hrun_ad.symm)
           (by rw [hpush]; exact push_getElem!_below)
           (by rw [hpush]; exact crossedPropsExcessPos?_push_prop_mono ht hk_ad hkp_ad)
+          (by rw [hpush]; exact runLineCrossPos?_push_prop_onProp ht hk_ad hkp_ad)
       have h2 : danglingNodePos? s_ad = danglingNodePos? sc :=
         danglingNodePos?_congr_fields
           (by rw [h_ad_flow, h_noflow_prep, h_noflow_sc]) htok (h_ad_ind.trans h_ind)
@@ -12668,7 +12908,9 @@ lemma danglingPark_of_dispatch {s s' : ScannerState} {c : Char}
   simp only [h_pred]
   rw [h_pos, h_ind]
   show (if (s.indents.any fun e => e.column == (s.col : Int)) then some s.currentPos
-        else crossedPropsExcessPos? s'.tokens) = some s.currentPos
+        else match crossedPropsExcessPos? s'.tokens with
+          | some q => some q
+          | none => runLineCrossDanglingPos? s'.tokens s.indents) = some s.currentPos
   rw [h_op]
   rfl
 

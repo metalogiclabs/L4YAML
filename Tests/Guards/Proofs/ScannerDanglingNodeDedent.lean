@@ -179,9 +179,16 @@ example (s_run s_land : ScannerState)
   -- (the `hx` this example now takes) closes the fourth reading.
   have hxp : crossedPropsExcessPos? s_run.tokens = none := by
     unfold crossedPropsExcessPos?; rw [hx]
+  -- Item 182: the break-crossing clause keeps its crossing only AT a level's
+  -- own column, so the sentinel stack closes the fifth reading on its own.
+  have hlc : runLineCrossDanglingPos? s_run.tokens s_run.indents = none := by
+    unfold runLineCrossDanglingPos?
+    cases hq : runLineCrossPos? s_run.tokens with
+    | none => rfl
+    | some q => simp [hany q.col]
   have hnone : danglingNodePos? s_run = none := by
     unfold danglingNodePos?
-    simp only [hany, Bool.false_eq_true, ↓reduceIte, ite_self, hxp]
+    simp only [hany, Bool.false_eq_true, ↓reduceIte, ite_self, hxp, hlc]
     split
     · rfl
     · split <;> rfl

@@ -1000,6 +1000,25 @@ def scanNextToken_checkBareDocument (s : ScannerState) :
     reading, so every position this function reported before item 180 is
     unchanged.
 
+    **The fifth reading is the run that crosses a break BELOW its start**
+    (item 182).  The first three readings are taken at the run's START, and a
+    run may start where no level stands and cross the break INSIDE itself: in
+    `k: &x⏎a` the `&x` sits legally at column 3 and it is the CONTENT that
+    lands at the mapping's own column.  `[96]`'s properties and the content
+    they decorate are separated by the same `s-separate(n+1)` the first
+    readings spend, so the token that starts the run's second line has no
+    derivation at an open level's own column either — `k: &x⏎a`, `- &x⏎a`,
+    `? &x⏎a`, `k: !t⏎a`, and the tag-headed suite case H7J7
+    (`key: &x⏎!!map⏎␣␣a: b`), whose refusal moves from the parser's
+    `trailingContent` to here, at the same position.  `runLineCrossPos?`
+    reports that token's own position, which is where PyYAML's scanner reports
+    the same inputs; the block-scalar form `k: &x⏎|⏎␣x` is refused here and
+    accepted there, item 177's one named PyYAML gap read one step over.  The
+    clause is checked LAST, so every position this function reported before
+    item 182 is unchanged.  What keeps `k: &x⏎b: 2` is the check's own gate:
+    the run has not been ended by a break while its `:` is still to come, and
+    `simpleKeyAllowed` is down there — the same gate that keeps `a: 1⏎b: 2`.
+
     This reads the token array alone.  A property run's placeholders are never
     rewritten while the run is unresolved, so the run is visible there and no
     new state field is needed. -/
@@ -1017,7 +1036,10 @@ def danglingNodePos? (s : ScannerState) : Option YamlPos :=
       else
         let p := s.tokens[st]!.pos
         if s.indents.any (fun e => e.column == (p.col : Int)) then some p
-        else crossedPropsExcessPos? s.tokens
+        else
+          match crossedPropsExcessPos? s.tokens with
+          | some q => some q
+          | none => runLineCrossDanglingPos? s.tokens s.indents
 
 /-- §9.2 [211] mid-stream: the dangling run, once a line break has ended it.
 

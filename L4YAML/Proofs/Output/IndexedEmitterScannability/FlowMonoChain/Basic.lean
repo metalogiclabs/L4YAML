@@ -981,6 +981,18 @@ lemma crossedPropsExcessPosIx?_none {input : String}
     crossedPropsExcessPosIx? ts = none := by
   unfold crossedPropsExcessPosIx?; rw [h]
 
+/-- Indexed twin of `runLineCrossDanglingPos?_none_of_no_level` (item 182):
+    the break-crossing clause keeps its crossing only AT an open level's own
+    column. -/
+lemma runLineCrossDanglingPosIx?_none_of_no_level {input : String}
+    {ts : Indexed.TokenStream input} {indents : Array IndentEntryIx}
+    (h : ∀ n : Nat, indents.any (fun e => e.column == (n : Int)) = false) :
+    runLineCrossDanglingPosIx? ts indents = none := by
+  unfold runLineCrossDanglingPosIx?
+  cases hq : runLineCrossPosIx? ts with
+  | none => rfl
+  | some q => simp [h q.col]
+
 /-- The block scan reports nothing over a stream with no property tokens. -/
 lemma propsBlockScanLoopIx_no_props {input : String}
     {ts : Indexed.TokenStream input}
@@ -1091,7 +1103,7 @@ lemma danglingNodePosIx?_none_of_sentinel_stack {input : String}
     omega
   unfold danglingNodePosIx?
   simp only [hnone, Bool.false_eq_true, ↓reduceIte, ite_self,
-    crossedPropsExcessPosIx?_none hx]
+    crossedPropsExcessPosIx?_none hx, runLineCrossDanglingPosIx?_none_of_no_level hnone]
   split
   · rfl
   · split <;> rfl

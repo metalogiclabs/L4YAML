@@ -106,15 +106,20 @@ the same start, which is why §9.2's refusal rides a run into its own node. -/
 run=body@0,3 park=none ; run=prop@1,0 park=1,0 ; run=prop@1,0 park=1,0 ; —"
 
 /-- The relay in the shape its consumer needs: a park's verdict is recovered
-    from the verdict one BODY push later. -/
+    from the verdict one BODY push later.
+
+    **Item 182 made this an implication rather than an equality**, and the
+    direction that went is the one no consumer asked for: the content a park
+    takes may be the token that STARTS a line, and then the pushed state is
+    refused where the park was clean (`k: &x⏎a`).  What survives is exactly
+    this — the park's own `none`, recovered from the push's. -/
 example {s s' : ScannerState} {c : Char} {i : Nat}
     (hok : scanNextToken_dispatchContent s c = .ok s')
     (hna : c ≠ '&') (hnt : c ≠ '!')
     (hprev : prevRealIdx? s.tokens s.tokens.size = some i)
     (hiprop : s.tokens[i]!.val.isNodeProperty = true)
-    (h_nd : danglingNodePos? s' = none) : danglingNodePos? s = none := by
-  rw [← danglingNodePos?_dispatch_body_onProp hok hna hnt hprev hiprop]
-  exact h_nd
+    (h_nd : danglingNodePos? s' = none) : danglingNodePos? s = none :=
+  danglingNodePos?_dispatch_body_onProp hok hna hnt hprev hiprop h_nd
 
 /-! ### A PROPERTY moves the start — the arm item 165 emptied and item 170 REOPENED
 
@@ -210,10 +215,14 @@ example {s t : ScannerState}
     (hrun : trailingNodeRun? s.tokens = trailingNodeRun? t.tokens)
     (hagree : ∀ j, j < t.tokens.size → s.tokens[j]! = t.tokens[j]!)
     -- Item 180: the crossed-block clause reads the whole trailing block, so
-    -- its own equality rides as a fifth premise.
-    (hx : crossedPropsExcessPos? s.tokens = crossedPropsExcessPos? t.tokens) :
+    -- its own equality rides as a fifth premise.  Item 182: the break-crossing
+    -- clause reads the block's own INTERIOR, so its equality is the sixth —
+    -- and it is the premise a body push cannot pay, which is why the body
+    -- relay below is an implication now rather than an equality.
+    (hx : crossedPropsExcessPos? s.tokens = crossedPropsExcessPos? t.tokens)
+    (hlc : runLineCrossPos? s.tokens = runLineCrossPos? t.tokens) :
     danglingNodePos? s = danglingNodePos? t :=
-  danglingNodePos?_congr hflow hind hrun hagree hx
+  danglingNodePos?_congr hflow hind hrun hagree hx hlc
 
 example {ts : Array (Positioned YamlToken)} {st : Nat} {pred : Option Nat}
     (h : trailingNodeRun? ts = some (st, pred)) :

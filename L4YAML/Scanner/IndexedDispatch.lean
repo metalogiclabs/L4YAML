@@ -1841,9 +1841,64 @@ def crossedPropsExcessPosIx? {input : String} (ts : Indexed.TokenStream input) :
   | some j => some ts.tokens[j]!.start
   | none => none
 
+/-- Indexed twin of `L4YAML.Scanner.propsBlockLineCrossLoop` (item 182). -/
+@[yaml_spec "6.7" 80 "s-separate(n,c)", yaml_spec "6.9" 96 "c-ns-properties"]
+def propsBlockLineCrossLoopIx {input : String} (ts : Indexed.TokenStream input) :
+    Nat → Option YamlPos
+  | 0 => none
+  | j + 1 =>
+    let t := ts.tokens[j]!.token
+    if t == .placeholder then propsBlockLineCrossLoopIx ts j
+    else if t.isNodeProperty then
+      match propsBlockLineCrossLoopIx ts j with
+      | some q => some q
+      | none =>
+        match prevRealIdxIx? ts j with
+        | some p =>
+          if ts.tokens[p]!.token.isNodeProperty &&
+              ts.tokens[p]!.start.line < ts.tokens[j]!.start.line then
+            some ts.tokens[j]!.start
+          else none
+        | none => none
+    else none
+
+/-- Indexed twin of `L4YAML.Scanner.runLineCrossPos?` (item 182). -/
+@[yaml_spec "6.7" 80 "s-separate(n,c)", yaml_spec "9.2" 211 "l-yaml-stream"]
+def runLineCrossPosIx? {input : String} (ts : Indexed.TokenStream input) :
+    Option YamlPos :=
+  match prevRealIdxIx? ts ts.tokens.size with
+  | none => none
+  | some i =>
+    let t := ts.tokens[i]!.token
+    if t.isNodeProperty then propsBlockLineCrossLoopIx ts (i + 1)
+    else if t.isNodeBody then
+      match propsBlockLineCrossLoopIx ts i with
+      | some q => some q
+      | none =>
+        match prevRealIdxIx? ts i with
+        | some p =>
+          if ts.tokens[p]!.token.isNodeProperty &&
+              ts.tokens[p]!.start.line < ts.tokens[i]!.start.line then
+            some ts.tokens[i]!.start
+          else none
+        | none => none
+    else if t.isFlowClose then
+      match flowOpenIdxIx? ts i with
+      | none => none
+      | some o => propsBlockLineCrossLoopIx ts o
+    else none
+
+/-- Indexed twin of `L4YAML.Scanner.runLineCrossDanglingPos?` (item 182). -/
+@[yaml_spec "6.7" 80 "s-separate(n,c)", yaml_spec "9.2" 211 "l-yaml-stream"]
+def runLineCrossDanglingPosIx? {input : String} (ts : Indexed.TokenStream input)
+    (indents : Array IndentEntryIx) : Option YamlPos :=
+  match runLineCrossPosIx? ts with
+  | some q => if indents.any (fun e => e.column == (q.col : Int)) then some q else none
+  | none => none
+
 /-- Indexed twin of `L4YAML.Scanner.danglingNodePos?`, item 180's crossed
-    over-full property block included — the legacy docstring has the four
-    readings. -/
+    over-full property block and item 182's break-crossing run included — the
+    legacy docstring has the five readings. -/
 def danglingNodePosIx? {input : String} (s : ScannerStateIx input) :
     Option YamlPos :=
   if s.inFlow then none
@@ -1859,7 +1914,10 @@ def danglingNodePosIx? {input : String} (s : ScannerStateIx input) :
       else
         let p := s.tokens.tokens[st]!.start
         if s.indents.any (fun e => e.column == (p.col : Int)) then some p
-        else crossedPropsExcessPosIx? s.tokens
+        else
+          match crossedPropsExcessPosIx? s.tokens with
+          | some q => some q
+          | none => runLineCrossDanglingPosIx? s.tokens s.indents
 
 /-- §9.2 [211] mid-stream: indexed twin of
     `scanNextToken_checkDanglingNode`, including item 140's two states — the

@@ -278,6 +278,94 @@ def crossedPropsExcessPos? (tokens : Array (Positioned YamlToken)) : Option Yaml
   | some j => some tokens[j]!.pos
   | none => none
 
+/-! ### The run that crosses a break BELOW its start (§9.2's fifth dangler,
+    item 182)
+
+    Items 177 and 178 read Finding A at the run's START: a scalar, alias or
+    `[96]`-headed run standing at an open level's own column has no
+    derivation, because every alternative of `[196] s-l+block-node(n,c)` and
+    `[185] s-l+block-indented(n,c)` it can head spends `s-separate(n+1)`,
+    whose line-crossing branch demands `s-indent(n+1)`.
+
+    The same separator sits INSIDE the run, between `[96]`'s properties and
+    the content they decorate — and a run may start legally and cross there:
+    in `k: &x⏎a` the `&x` is at column 3, where no level stands, and it is the
+    CONTENT that lands at the mapping's own column 0.  The run-start reading
+    cannot see it; this one reads the first token of the run that STARTS a
+    line, which is where the crossed `s-separate(n+1)` is spent. -/
+
+/-- Scanning DOWN the adjacent property block that ends just below index `i`
+    (placeholders skipped, ended by the first real non-property): the position
+    of the FIRST property, in token order, whose own real predecessor is a
+    property on an EARLIER line.  That is `[96]`'s internal separation spent
+    across a break, and the walk needs no block boundary of its own — the
+    predecessor test ends it. -/
+@[yaml_spec "6.7" 80 "s-separate(n,c)", yaml_spec "6.9" 96 "c-ns-properties"]
+def propsBlockLineCrossLoop (tokens : Array (Positioned YamlToken)) :
+    Nat → Option YamlPos
+  | 0 => none
+  | j + 1 =>
+    let t := tokens[j]!.val
+    if t == .placeholder then propsBlockLineCrossLoop tokens j
+    else if t.isNodeProperty then
+      match propsBlockLineCrossLoop tokens j with
+      | some q => some q
+      | none =>
+        match prevRealIdx? tokens j with
+        | some p =>
+          if tokens[p]!.val.isNodeProperty && tokens[p]!.pos.line < tokens[j]!.pos.line then
+            some tokens[j]!.pos
+          else none
+        | none => none
+    else none
+
+/-- The trailing run's own break crossing: the position of the first token, in
+    token order, that starts a line the run did not start on.  The three arms
+    are `crossedPropsExcessIdx?`'s — a property tail, a one-token body, a flow
+    close read back to its own open — because the block this reads is the same
+    block, and reading it at the CLOSE is what keeps the park's verdict and
+    the close's the same one.
+
+    The block's internal crossing comes first, in token order; the body's own
+    crossing is the second reading and belongs to the body arm alone.  A flow
+    collection's INTERIOR is not read here: §8.1's floor owns it
+    (`underIndentedFlowContent`, item 172), and a flow node standing in an
+    awaited slot is that reading's too. -/
+@[yaml_spec "6.7" 80 "s-separate(n,c)", yaml_spec "9.2" 211 "l-yaml-stream"]
+def runLineCrossPos? (tokens : Array (Positioned YamlToken)) : Option YamlPos :=
+  match prevRealIdx? tokens tokens.size with
+  | none => none
+  | some i =>
+    let t := tokens[i]!.val
+    if t.isNodeProperty then propsBlockLineCrossLoop tokens (i + 1)
+    else if t.isNodeBody then
+      match propsBlockLineCrossLoop tokens i with
+      | some q => some q
+      | none =>
+        match prevRealIdx? tokens i with
+        | some p =>
+          if tokens[p]!.val.isNodeProperty && tokens[p]!.pos.line < tokens[i]!.pos.line then
+            some tokens[i]!.pos
+          else none
+        | none => none
+    else if t.isFlowClose then
+      match flowOpenIdx? tokens i with
+      | none => none
+      | some o => propsBlockLineCrossLoop tokens o
+    else none
+
+/-- `runLineCrossPos?` read as the POSITION the refusal reports: the crossing
+    token's own, kept only where it lands at an open level's own column —
+    which is where `s-indent(n+1)` fails and where PyYAML's scanner reports
+    the same inputs.  Named so the verdict's `none` lemmas can speak about the
+    clause as one reading, the way `crossedPropsExcessPos?` is. -/
+@[yaml_spec "6.7" 80 "s-separate(n,c)", yaml_spec "9.2" 211 "l-yaml-stream"]
+def runLineCrossDanglingPos? (tokens : Array (Positioned YamlToken))
+    (indents : Array IndentEntry) : Option YamlPos :=
+  match runLineCrossPos? tokens with
+  | some q => if indents.any (fun e => e.column == (q.col : Int)) then some q else none
+  | none => none
+
 /-! ### The `-` at a block mapping's own column (§9.2's third dangler) -/
 
 /-- The index of the real token that HOLDS THE SLOT the trailing node run would

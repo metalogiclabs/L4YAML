@@ -7,7 +7,7 @@ Copyright (c) 2026. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 -/
 
-/-! # The flip's remainder, mapped (DOCS items 171–180)
+/-! # The flip's remainder, mapped (DOCS items 171–182)
 
 Row 19's 1c ends by narrowing `[210]`'s slot (`GOpt SLAnyDocument` →
 `GOpt SLExplicitDocument`), and the narrowing instrument breaks FIVE
@@ -70,7 +70,10 @@ derivation left is the second-document over-approximation the flip deletes.
 PyYAML refuses it; the run-start check cannot see it (the run is legal where
 it stands); it joins ~~the crossed-window arms on~~ the flip's own prerequisite
 list — **the crossed-window arms left it at item 180** (their family refuses
-at the scanner now), so `k: &x⏎a` is the list's LAST runtime entry.  The FLOW
+at the scanner now), so `k: &x⏎a` is the list's LAST runtime entry.
+**Item 182 spends it** (§4b): the reading is taken between `[96]`'s
+properties and the content they decorate rather than in FRONT of the run,
+and the flip's prerequisite list is EMPTY.  The FLOW
 half was never this floor's:
 a flow node standing in the awaited slot at column `n` is item 172's refusal
 (`underIndentedFlowContent`, §5), and the two readings stay disjoint by the
@@ -355,7 +358,12 @@ landing keeps `propsEmpty` + the sibling resume — the honest reading there
 -- …through the marker's, the suffix's and the explicit value's own routes
 #guard pins "---\n&p\nb\n" == ("scan-accepted", "+STR +DOC --- =VAL &p :b -DOC -STR")
 #guard pins "a: 1\n...\n&p\nb\n" == ("scan-accepted", "+STR +DOC +MAP =VAL :a =VAL :1 -MAP -DOC ... +DOC =VAL &p :b -DOC -STR")
-#guard pins "? k\n: &p\nb\n" == ("scan-accepted", "+STR +DOC +MAP =VAL :k =VAL &p :b -MAP -DOC -STR")
+-- Item 182: this ride's own input is REFUSED now — the props park at the
+-- explicit value's column 2 and the content lands at the mapping's own 0, so
+-- the run crosses the break BELOW its start (§4b).  PyYAML refuses it at the
+-- same `2,0`; the ride the arm serves is the deeper landing beside it.
+#guard pins "? k\n: &p\nb\n" == ("scan-EOF-refused L4YAML.ScanError.invalidBareDocument 2 0", "ERR L4YAML.ScanError.invalidBareDocument 2 0")
+#guard pins "? k\n: &p\n b\n" == ("scan-accepted", "+STR +DOC +MAP =VAL :k =VAL &p :b -MAP -DOC -STR")
 -- the boundary: the enclosing-level park closes propsEmpty and the landing
 -- resumes — the honest reading the ride must NOT displace
 #guard pins "k:\n  a: &p\nc: 2\n" == ("scan-accepted", "+STR +DOC +MAP =VAL :k +MAP =VAL :a =VAL &p : -MAP =VAL :c =VAL :2 -MAP -DOC -STR")
@@ -458,6 +466,80 @@ the same exemption (`?⏎b⏎: v`, `-⏎b`, `:⏎a`) and the mid-stream chain
 #guard pins "-\n- a\n" == ("scan-accepted", "+STR +DOC +SEQ =VAL : =VAL :a -SEQ -DOC -STR")
 #guard pins "k: x\n y\n" == ("scan-accepted", "+STR +DOC +MAP =VAL :k =VAL :x y -MAP -DOC -STR")
 #guard pins "---\na\n" == ("scan-accepted", "+STR +DOC --- =VAL :a -DOC -STR")
+
+/-! ## §4b  Item 182 — the run that crosses the break BELOW its start
+
+§4's readings are all taken at the run's START, and a run may start where no
+level stands and cross the break INSIDE itself: in `k: &x⏎a` the `&x` sits
+legally at column 3 and it is the CONTENT that lands at the mapping's own
+column.  `[96]`'s properties and the content they decorate are separated by
+the same `s-separate(n+1)` §4 spends, so the token that starts the run's next
+line has no derivation at an open level's column either.  `runLineCrossPos?`
+reads it through `crossedPropsExcessIdx?`'s own three arms — a property tail,
+a one-token body, a flow close read back to its open — so the property
+BLOCK's internal crossing is seen at the close too, which is what keeps a
+park's verdict and its collection's the same one.
+
+PyYAML refuses every family below at the crossing token's own position, the
+position pinned here, with ONE exception: the block-scalar form
+`k: &x⏎|⏎␣x`, which it accepts against `[199]`'s own `s-separate(n+1)` —
+item 177's named PyYAML gap, read one step over.  The suite decides one of
+them: **H7J7** (`node-anchor-not-indented`, `key: &x⏎!!map⏎␣␣a: b`), an
+error case whose refusal moves from the parser's `trailingContent` to the
+scanner at the same `1,0`.  The one VALID suite entry in the reading's
+neighbourhood is 6KGN (`---⏎a: &anchor⏎b: *anchor`), and it is untouched:
+the check is gated on a break having ENDED the run, and `b`'s `:` is still
+to come on `b`'s own line — the same gate that keeps `a: 1⏎b: 2`. -/
+
+-- the content at the level's column, through every body style and both
+-- indicator faces, at the root and one level in
+#guard pins "k: &x\na\n" == ("scan-EOF-refused L4YAML.ScanError.invalidBareDocument 1 0", "ERR L4YAML.ScanError.invalidBareDocument 1 0")
+#guard pins "k: &x !t\na\n" == ("scan-EOF-refused L4YAML.ScanError.invalidBareDocument 1 0", "ERR L4YAML.ScanError.invalidBareDocument 1 0")
+#guard pins "k: !t\na\n" == ("scan-EOF-refused L4YAML.ScanError.invalidBareDocument 1 0", "ERR L4YAML.ScanError.invalidBareDocument 1 0")
+#guard pins "k: &x\n\"a\"\n" == ("scan-EOF-refused L4YAML.ScanError.invalidBareDocument 1 0", "ERR L4YAML.ScanError.invalidBareDocument 1 0")
+#guard pins "k: &x\n'a'\n" == ("scan-EOF-refused L4YAML.ScanError.invalidBareDocument 1 0", "ERR L4YAML.ScanError.invalidBareDocument 1 0")
+#guard pins "k: &x\n|\n x\n" == ("scan-EOF-refused L4YAML.ScanError.invalidBareDocument 1 0", "ERR L4YAML.ScanError.invalidBareDocument 1 0")
+#guard pins "- &x\na\n" == ("scan-EOF-refused L4YAML.ScanError.invalidBareDocument 1 0", "ERR L4YAML.ScanError.invalidBareDocument 1 0")
+#guard pins "? &x\na\n" == ("scan-EOF-refused L4YAML.ScanError.invalidBareDocument 1 0", "ERR L4YAML.ScanError.invalidBareDocument 1 0")
+#guard pins "? &x\na\n: v\n" == ("scan-refused L4YAML.ScanError.invalidBareDocument 1 0", "ERR L4YAML.ScanError.invalidBareDocument 1 0")
+#guard pins ": &x\na\n" == ("scan-EOF-refused L4YAML.ScanError.invalidBareDocument 1 0", "ERR L4YAML.ScanError.invalidBareDocument 1 0")
+#guard pins "m:\n  k: &x\n  a\n" == ("scan-EOF-refused L4YAML.ScanError.invalidBareDocument 2 2", "ERR L4YAML.ScanError.invalidBareDocument 2 2")
+#guard pins "- - &x\n  a\n" == ("scan-EOF-refused L4YAML.ScanError.invalidBareDocument 1 2", "ERR L4YAML.ScanError.invalidBareDocument 1 2")
+#guard pins "k:\n  m: &x\n  a\n" == ("scan-EOF-refused L4YAML.ScanError.invalidBareDocument 2 2", "ERR L4YAML.ScanError.invalidBareDocument 2 2")
+-- the mid-stream faces: a sibling behind the crossing, the explicit value's
+-- `:` on its own line, and the plain scalar's own continuation
+#guard pins "k: &x\na\nb: 2\n" == ("scan-refused L4YAML.ScanError.invalidBareDocument 1 0", "ERR L4YAML.ScanError.invalidBareDocument 1 0")
+#guard pins "k: &x\nb\n: 2\n" == ("scan-refused L4YAML.ScanError.invalidBareDocument 1 0", "ERR L4YAML.ScanError.invalidBareDocument 1 0")
+#guard pins "k: &x\na\n b\n" == ("scan-EOF-refused L4YAML.ScanError.invalidBareDocument 1 0", "ERR L4YAML.ScanError.invalidBareDocument 1 0")
+-- …and the PROPERTY that starts the line, which `[96]`'s own internal
+-- separation refuses: the block reading comes first, in token order, and the
+-- flow arm reads it at the CLOSE (`k: &a⏎!t [1]`, where §8.1's floor sees
+-- nothing because the OPEN sits at column 3)
+#guard pins "k: &x\n!t a\n" == ("scan-EOF-refused L4YAML.ScanError.invalidBareDocument 1 0", "ERR L4YAML.ScanError.invalidBareDocument 1 0")
+#guard pins "k: &x\n!t\na\n" == ("scan-refused L4YAML.ScanError.invalidBareDocument 1 0", "ERR L4YAML.ScanError.invalidBareDocument 1 0")
+#guard pins "k: !t\n&x a\n" == ("scan-EOF-refused L4YAML.ScanError.invalidBareDocument 1 0", "ERR L4YAML.ScanError.invalidBareDocument 1 0")
+#guard pins "k: &a\n!t [1]\n" == ("scan-EOF-refused L4YAML.ScanError.invalidBareDocument 1 0", "ERR L4YAML.ScanError.invalidBareDocument 1 0")
+-- the suite's own case: `node-anchor-not-indented`, moved from the parser
+#guard pins "key: &x\n!!map\n  a: b\n" == ("scan-refused L4YAML.ScanError.invalidBareDocument 1 0", "ERR L4YAML.ScanError.invalidBareDocument 1 0")
+-- …and what the reading must NOT take: the same line, the strictly deeper
+-- landing at every depth, the sibling key the gate keeps (6KGN's shape), the
+-- seq-spaces entry, the sibling FLOW key, the props-less flow tails (item
+-- 172's floor), the ROOT and marker runs (no level at their column), and the
+-- two-park chain
+#guard pins "k: &x a\n" == ("scan-accepted", "+STR +DOC +MAP =VAL :k =VAL &x :a -MAP -DOC -STR")
+#guard pins "k: &x\n a\n" == ("scan-accepted", "+STR +DOC +MAP =VAL :k =VAL &x :a -MAP -DOC -STR")
+#guard pins "k: &x\n  a\n" == ("scan-accepted", "+STR +DOC +MAP =VAL :k =VAL &x :a -MAP -DOC -STR")
+#guard pins "k: &x\nb: 2\n" == ("scan-accepted", "+STR +DOC +MAP =VAL :k =VAL &x : =VAL :b =VAL :2 -MAP -DOC -STR")
+#guard pins "k: &x\n- a\n" == ("scan-accepted", "+STR +DOC +MAP =VAL :k +SEQ &x =VAL :a -SEQ -MAP -DOC -STR")
+#guard pins "m:\n  k: &x\n   a\n" == ("scan-accepted", "+STR +DOC +MAP =VAL :m +MAP =VAL :k =VAL &x :a -MAP -MAP -DOC -STR")
+#guard pins "? k\n: &p\n b\n" == ("scan-accepted", "+STR +DOC +MAP =VAL :k =VAL &p :b -MAP -DOC -STR")
+#guard pins "k: &a\n!t [1]: b\n" == ("scan-accepted", "+STR +DOC +MAP =VAL :k =VAL &a : +SEQ [] <!t> =VAL :1 -SEQ =VAL :b -MAP -DOC -STR")
+#guard pins "k: &a !t\n[1]\n" == ("scan-EOF-refused L4YAML.ScanError.underIndentedFlowContent 1 0", "ERR L4YAML.ScanError.underIndentedFlowContent 1 0")
+#guard pins "k: &x\n[1]\n" == ("scan-EOF-refused L4YAML.ScanError.underIndentedFlowContent 1 0", "ERR L4YAML.ScanError.underIndentedFlowContent 1 0")
+#guard pins "&x\na\n" == ("scan-accepted", "+STR +DOC =VAL &x :a -DOC -STR")
+#guard pins "---\n&x\na\n" == ("scan-accepted", "+STR +DOC --- =VAL &x :a -DOC -STR")
+#guard pins "!t\n&q\nb\n" == ("scan-accepted", "+STR +DOC =VAL &q <!t> :b -DOC -STR")
+#guard pins "---\na: &anchor\nb: *anchor\n" == ("scan-accepted", "+STR +DOC --- +MAP =VAL :a =VAL &anchor : =VAL :b =ALI *anchor -MAP -DOC -STR")
 
 /-! ## §5  Item 172 — §8.1's floor at the close
 

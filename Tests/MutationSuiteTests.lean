@@ -353,8 +353,13 @@ def testColonNospaceLeniencies (state : IO.Ref TestCollector) : IO Unit := do
   setCategory state "LENIENT: colon-nospace"
 
   -- Source: 6KGN:0 `---\na: &anchor\nb: *anchor\n`
-  -- Mutation: remove space after `:` on line 2
-  mustParse state "6KGN:0 b:*anchor no space (LENIENT: libyaml rejects)"
+  -- Mutation: remove space after `:` on line 2.
+  -- The leniency CLOSED at item 182: without the space, `b:*anchor` is one
+  -- plain scalar rather than a key, so it is the `&anchor` run's own CONTENT
+  -- landing at the mapping's column — §9.2's break-crossing reading, which
+  -- refuses it at `2,0`.  libyaml and PyYAML both reject it there too, so
+  -- this row moves from LENIENT to agreement.
+  mustReject state "6KGN:0 b:*anchor no space (BOTH_REJECT)"
     "---\na: &anchor\nb:*anchor\n"
 
   -- Source: 7Z25:0 multi-doc with key:value

@@ -328,6 +328,18 @@ lemma crossedPropsExcessPos?_none {tokens : Array (Positioned YamlToken)}
     crossedPropsExcessPos? tokens = none := by
   unfold crossedPropsExcessPos?; rw [h]
 
+/-- The break-crossing clause (item 182) keeps its crossing only AT an open
+    level's own column, so it is `none` wherever no entry carries a column a
+    token could stand at — the sentinel stack included. -/
+lemma runLineCrossDanglingPos?_none_of_no_level {tokens : Array (Positioned YamlToken)}
+    {indents : Array IndentEntry}
+    (h : ∀ n : Nat, indents.any (fun e => e.column == (n : Int)) = false) :
+    runLineCrossDanglingPos? tokens indents = none := by
+  unfold runLineCrossDanglingPos?
+  cases hq : runLineCrossPos? tokens with
+  | none => rfl
+  | some q => simp [h q.col]
+
 /-- The no-props reading survives any non-property push. -/
 lemma no_props_push {tokens : Array (Positioned YamlToken)} {p : Positioned YamlToken}
     (h : ∀ j : Nat, tokens[j]!.val.isNodeProperty = false)
@@ -415,7 +427,7 @@ lemma danglingNodePos?_none_of_sentinel (s : ScannerState)
     omega
   unfold danglingNodePos?
   simp only [hnone, Bool.false_eq_true, ↓reduceIte, ite_self,
-    crossedPropsExcessPos?_none hx]
+    crossedPropsExcessPos?_none hx, runLineCrossDanglingPos?_none_of_no_level hnone]
   split
   · rfl
   · split <;> rfl
