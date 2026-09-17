@@ -7,7 +7,7 @@ Copyright (c) 2026. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 -/
 
-/-! # The block-indicator escape, by CLASS and by ROUTE (DOCS items 184–186)
+/-! # The block-indicator escape, by CLASS and by ROUTE (DOCS items 184–187)
 
 `block_dispatch_deferred` is `PendingNode.pendingFlow`'s only producer, so
 R3 — row 12's β.5 deletion — is the emptying of this escape.  Its applications
@@ -27,7 +27,7 @@ wrapper's deletion rather than a total drifting:
 | wrapper | applications | what reaches it | what empties it |
 |---|---|---|---|
 | `_stamp_offcol` | **3** in 3 definitions | the park HAS a value pack, at `nv`, and the landing is at `k ≠ nv` | a reason the two indices agree — `[187]`'s `s-indent(n)` is exact |
-| `_stamp_nopack` | **3** in 3 definitions | the park carries no value pack at all | a CARRIER: the `?` frame's value slot at the landing's column, U2's residue proper — priced at item 186 (§5) |
+| `_stamp_nopack` | **3** in 3 definitions | the park carries no value pack at all, and its register is LIVE | a CARRIER: the `?` frame's value slot at the landing's column, U2's residue proper — priced at item 186 (§5), RE-priced at item 187 (§6) |
 | `_stamp_compact` | **2** in 2 definitions | the fill is COMPACT, and `[189]`'s value is `s-l+block-node`, so the face cannot stand in for the stamp | the stamp, or a refutation |
 | `_inline` | **2** in 2 definitions | the mid-line indicator (`inline_residue_of_landing`) | `KeyPackPunt`'s two surviving reasons (item 102) |
 | bare | **1** | `pendingFlow`'s own arm, which this escape PRODUCES | the constructor (item 35's structural note) |
@@ -58,6 +58,14 @@ seven are flow-interior), so nothing behind it has been scanned and the
 explicit-key register is dead.  `noPending.h_noek` states that, the eight
 producers pay it the way they pay `h_nodoc`, and the landed `:` now DECIDES its
 stamp source where it used to split on it.  §5 pins the field and the family.
+
+**The three that remain now carry a proposition of their own** (item 187).
+Item 185 read this class as having none — "the field's other alternative is
+`True`" — and that is true of the PACK and false of the branch: the branch
+reads the explicit-key register LIVE, and `ekl_dis_eq_park` carries that
+reading back to the park the carrier would have to be paid at.  `_h_park` is
+that fact, and it is what refutes the cheap carrier item 186 priced.  §6 pins
+the re-pricing, the census that re-derives it, and the class's own inputs.
 
 **None of the classes that REMAIN is refutable.**  §2's family is accepted by the
 scanner and read identically by PyYAML 6.0.3 at the event level; §3's is the
@@ -139,16 +147,18 @@ example (sp_start sp_X sp_scan' : SurfPos) (s' s_dis : ScannerState) (nv k : Nat
   block_dispatch_deferred_stamp_offcol sp_start sp_X sp_scan' s' h_stream h_arm
     hcorr h_nodir h_src h_indent h_ne
 
-/-- `nopack`: the same, with NOTHING about the pack.  The field's other
-    alternative is `True`, so there is no proposition to carry and the census
-    row is this class's only instrument. -/
-example (sp_start sp_X sp_scan' : SurfPos) (s' s_dis : ScannerState)
+/-- `nopack`: nothing about the pack — and, since item 187, the PARK's own
+    register, read LIVE.  That is the class's proposition: it is what says the
+    `?` frame is open where the pack is missing, and so what refutes the cheap
+    carrier (`… ∨ explicitKeyLine = none` is false at every site here). -/
+example (sp_start sp_X sp_scan' : SurfPos) (s' sc s_dis : ScannerState)
     (h_stream : SLYamlStream sp_start sp_X)
     (h_arm : s'.simpleKeyAllowed = true ∨ 0 < sp_scan'.col)
     (hcorr : ScannerSurfCorr s' sp_scan')
     (h_nodir : s'.allowDirectives = false)
     (h_src : StampBranch s_dis)
-    (h_indent : (s_dis.col : Int) = s_dis.currentIndent) :
+    (h_indent : (s_dis.col : Int) = s_dis.currentIndent)
+    (h_park : sc.explicitKeyLine ≠ none) :
     ∃ sp_gram' sp_block' sp_flow' sp_scan'',
       SLYamlStream sp_start sp_gram' ∧
       BlockStack sp_gram' sp_block' ∧
@@ -156,7 +166,17 @@ example (sp_start sp_X sp_scan' : SurfPos) (s' s_dis : ScannerState)
       PendingNode s' false sp_start sp_flow' sp_scan'' ∧
       ScannerSurfCorr s' sp_scan'' :=
   block_dispatch_deferred_stamp_nopack sp_start sp_X sp_scan' s' h_stream h_arm
-    hcorr h_nodir h_src h_indent
+    hcorr h_nodir h_src h_indent h_park
+
+/-- …and the transport that produces it at each of the three sites: the branch
+    reads the register on the DISPATCH state, and the park is where a carrier
+    would have to be paid. -/
+example {sc s_prep : ScannerState} {c : Char}
+    (h : scanNextToken_preprocess sc = .ok (some (s_prep, c))) :
+    (if s_prep.allowDirectives then
+      { s_prep with allowDirectives := false, documentEverStarted := true }
+    else s_prep).explicitKeyLine = sc.explicitKeyLine :=
+  ekl_dis_eq_park h
 
 /-- `compact`: the stamp branch AND the inline residue, which is what says the
     two classes overlap at these two sites. -/
@@ -371,22 +391,135 @@ here as the boundary of the family and not as a case of it. -/
 #guard pins "? a\n" == ("scan-accepted", "+STR +DOC +MAP =VAL :a =VAL : -MAP -DOC -STR")
 
 /-! **What the three remaining sites cost, measured rather than guessed.**  The
-carrier they want is the `?` frame's value slot, and the instrument that prices
-it is a NARROWING patch: replace the pack field's `∨ True` with
-`∨ sc.explicitKeyLine = none` — the one alternative a consumer at class A can
-refute — and build.  Three fields, three builds, and the producers that can no
-longer punt are **23 payments across 8 definitions**: `pendingBlock.h_kslot`
-7 (in `accum_block_on_noPending`, `…_closeThenBlock` ×2, `…_pendingBlock` ×3,
-`…_pendingBlockContent`), `pendingBlockContent.h_kslot` 6
-(`accum_content_on_pendingBlock_indented` ×3, `accum_content_pending` ×3), and
-`pendingContent.h_vpack` 10 (`content_dispatch_routed` ×2,
-`accum_content_on_pendingMapValue_indented` ×3, `accum_content_pending` ×5),
-plus `flowVPack_of_close` to re-type and four transport sites at the two
-dispatchers (29 errors in all, over three builds of ~30 s each).  So the carrier is an invariant strengthening across the park
-producers, not a lemma at the consumer — and `scanValue`'s own `ekl` says why a
-producer cannot simply pay the register alternative instead: the register
-survives a `:` only where the `:` stands strictly DEEPER than `explicitKeyCol`,
-which is exactly the case where the `[187]` frame is still open and a pack is
-owed. -/
+carrier they want is the `?` frame's value slot, and the instrument item 186
+priced it with is a NARROWING patch: replace the pack field's `∨ True` with
+`∨ sc.explicitKeyLine = none` and build.  Three fields, three builds of ~30 s,
+**29 errors**: `pendingBlock.h_kslot` 7 (in `accum_block_on_noPending`,
+`…_closeThenBlock` ×2, `…_pendingBlock` ×3, `…_pendingBlockContent`),
+`pendingBlockContent.h_kslot` 6 (`accum_content_on_pendingBlock_indented` ×3,
+`accum_content_pending` ×3), `pendingContent.h_vpack` 10
+(`content_dispatch_routed` ×2, `accum_content_on_pendingMapValue_indented` ×3,
+`accum_content_pending` ×5), plus `flowVPack_of_close` to re-type and four
+transport sites at the two dispatchers.
+
+~~So the carrier is an invariant strengthening across the park producers, and
+that is its price: 23 payments across 8 definitions.~~  **Item 187 measured the
+price and it is neither the number nor the shape** — §6 carries the correction
+and the instrument that produced it. -/
+
+/-! ## §6  The carrier RE-PRICED, and the class's own inputs (item 187)
+
+Item 186's 29 errors are the FIRST RING of a closure, not a bill.  Two
+measurements say so, and both are re-derivable.
+
+**The instrument.**  Pay two of the 29 — one `-` site and one content site —
+with the transports that already exist (`dispatchContent_preserves_explicitKeyLine`,
+`scanBlockEntry_preserves_explicitKey` through `dispatchBlockIndicators_dash_scan`,
+both under `ExplicitKeyCoupling`) and rebuild.  Neither discharges: the
+`Or.inr` they thread has type `True`, because the pack is RESTATED at the
+consumer lemmas' own signatures and fed by four MORE punting fields.  So a
+site count over one ring under-prices, and the census that re-derives the
+carrier's surface is the pack's own tail —
+
+    grep 'SLYamlStream sp_start sp_v) ∨ True)' StreamAccum.lean
+
+reads **31 punt alternatives across 16 declarations**, of which **8 are
+constructor fields** (`pendingContent.h_vpack`, `pendingProps.h_kslot` and
+`h_kslotE`, `pendingBlockContent.h_kslot`, `pendingBlock.h_kslot`,
+`pendingMapValue.h_expl`, `h_vslot` and `h_kslot`) and 23 are restatements on
+`flowVPack_of_close`, `explFrameValueLine`, `flowKeyRoute_of_open`,
+`entryKeyPack_of_dispatch`, `entryPropsKeyPack_of_dispatch` and the five
+consumers.  A number no instrument can re-derive is a guess; this one is one
+grep whose pattern is the proposition itself.
+
+The command lives HERE and not in the file it searches, because it read **32**
+the first time: a pattern quoted inside its own search space becomes one of its
+own hits, and the thirty-second match was the sentence recording the
+thirty-one.  `StreamAccum`'s docstring therefore names this section instead of
+repeating the pattern.
+
+**And the register is the wrong carrier, not merely an expensive one.**  §1's
+`_h_park` states why: at every site in this class the branch reads
+`explicitKeyLine ≠ none`, and `ekl_dis_eq_park` carries that reading back to
+the park.  So `… ∨ sc.explicitKeyLine = none` is FALSE wherever the class
+stands; narrowing the punt relocates the obligation onto the producers rather
+than discharging it, and there it is the PACK that must be paid.
+
+**The class's inputs, and they are STARVED rather than false.**  A `?` frame
+whose KEY is filled by a LANDED block indicator — the seq-spaces alternative of
+`[188]`'s `s-l+block-indented`, which `accum_block_on_closeThenBlock`'s dash arm
+punts in as many words — is accepted, and its `:` is class A with the register
+LIVE.  The parser reads the sequence as the frame's key, so the production the
+pack asks for EXISTS; what is missing is the derivation, and the datum for it is
+already at that arm in `h_vslot`'s inner pack.
+
+The rows below pin the family at the scanner and at both event pipelines, and
+`classAReg` pins the register the branch reads — `(explicitKeyLine,
+explicitKeyCol, col)` at the first class-A `:`, or `none` where there is no such
+dispatch.  The last four rows are the NEGATIVE control: a reader that answered
+`some` everywhere would pin nothing. -/
+
+/-- The explicit-key register at the FIRST class-A `:` dispatch, read exactly as
+    the escape's branch reads it (item 125's three alternatives, all refuted). -/
+private def classAReg (input : String) : Option (Option Nat × Int × Nat) :=
+  let rec go (s : ScannerState) (fuel : Nat) : Option (Option Nat × Int × Nat) :=
+    match fuel with
+    | 0 => none
+    | fuel' + 1 =>
+      match scanNextToken_preprocess s with
+      | .ok (some (s_prep, c)) =>
+        let s_dis := if s_prep.allowDirectives then
+          { s_prep with allowDirectives := false, documentEverStarted := true }
+        else s_prep
+        if c == ':' && !s_dis.inFlow && s_dis.explicitKeyLine != none
+            && !(scanValueClearKey s_dis).simpleKey.possible
+            && (s_dis.col : Int) == s_dis.explicitKeyCol then
+          some (s_dis.explicitKeyLine, s_dis.explicitKeyCol, s_dis.col)
+        else
+          match scanNextToken s with
+          | .ok (some s') => go s' fuel'
+          | _ => none
+      | _ => none
+  go ((ScannerState.mk' input).emit .streamStart) 200
+
+-- The seq-spaces KEY of an explicit frame: the `-` LANDS, so the fill is not
+-- compact and the frame's value line stays with the deferral.
+#guard pins "?\n-\n: w\n" == ("scan-accepted", "+STR +DOC +MAP +SEQ =VAL : -SEQ =VAL :w -MAP -DOC -STR")
+#guard pins "?\n- a\n: w\n" == ("scan-accepted", "+STR +DOC +MAP +SEQ =VAL :a -SEQ =VAL :w -MAP -DOC -STR")
+#guard pins "?\n- a\n: - w\n" == ("scan-accepted", "+STR +DOC +MAP +SEQ =VAL :a -SEQ +SEQ =VAL :w -SEQ -MAP -DOC -STR")
+#guard pins "?\n- a\n- b\n: w\n" == ("scan-accepted", "+STR +DOC +MAP +SEQ =VAL :a =VAL :b -SEQ =VAL :w -MAP -DOC -STR")
+#guard pins "?\n  - a\n: w\n" == ("scan-accepted", "+STR +DOC +MAP +SEQ =VAL :a -SEQ =VAL :w -MAP -DOC -STR")
+
+-- The COMPACT fill at the same coordinate, whose pack IS paid
+-- (`compact_open_map`): so the deferral is the LANDING, not the sequence.
+#guard pins "? -\n: - w\n" == ("scan-accepted", "+STR +DOC +MAP +SEQ =VAL : -SEQ +SEQ =VAL :w -SEQ -MAP -DOC -STR")
+
+-- The props ride at an indented landing — `content_dispatch_routed`'s own
+-- fresh punt standing in front of a class-A `:`.
+#guard pins "?\n  &p a\n: w\n" == ("scan-accepted", "+STR +DOC +MAP =VAL &p :a =VAL :w -MAP -DOC -STR")
+
+-- …and the same ride at column 0, which §9.2 REFUSES at the landing: the
+-- dispatch is reached, so the register reads the same, but no production is
+-- owed.  That is the boundary of the family, not a case of it.
+#guard pins "?\na\n: w\n" == ("scan-refused L4YAML.ScanError.invalidBareDocument 1 0", "ERR L4YAML.ScanError.invalidBareDocument 1 0")
+
+-- The register the branch reads: LIVE at the frame's own column, at every row.
+#guard classAReg "?\n-\n: w\n" == some (some 0, 0, 0)
+#guard classAReg "?\n- a\n: w\n" == some (some 0, 0, 0)
+#guard classAReg "?\n- a\n: - w\n" == some (some 0, 0, 0)
+#guard classAReg "?\n- a\n- b\n: w\n" == some (some 0, 0, 0)
+#guard classAReg "?\n  - a\n: w\n" == some (some 0, 0, 0)
+#guard classAReg "? -\n: - w\n" == some (some 0, 0, 0)
+#guard classAReg "?\n  &p a\n: w\n" == some (some 0, 0, 0)
+#guard classAReg "?\na\n: w\n" == some (some 0, 0, 0)
+
+-- The NEGATIVE control: no `?` frame, a `:` off the frame's column, and §3's
+-- dedent input — all three read `none`, so the rows above are a reading and
+-- not a constant.  The last is `? a⏎: b`, which IS class A: the discriminator
+-- is the frame, not the landing's shape.
+#guard classAReg "a: 1\n" == none
+#guard classAReg "? a: b\n" == none
+#guard classAReg "k:\n  :\nb: 2\n" == none
+#guard classAReg "? a\n: b\n" == some (some 0, 0, 0)
 
 end L4YAML.Tests.Guards.BlockDeferralClasses

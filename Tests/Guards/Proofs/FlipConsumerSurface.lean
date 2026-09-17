@@ -220,7 +220,14 @@ the park's pack has exactly those two stuck arms, and the two consumers with a
 compact-fill arm contribute a `compact` each.  The asymmetric row was
 `accum_block_on_noPending`'s, and item 186 removed it: that park carries no
 pack because it carries nothing at all, and the register face it does carry
-now says the class-A branch cannot reach it. -/
+now says the class-A branch cannot reach it.
+
+Item 187 left the counts where they are and re-priced what emptying the
+`nopack` row would cost: not the 23 payments a one-ring flip reported, but a
+surface of **31 pack punts across 16 declarations** — the count this census
+cannot see, because the punts are a field's alternative rather than a
+definition's application.  The two instruments are complements, and
+`BlockDeferralClasses` §6 carries the one this file does not. -/
 
 /-! ## The gate
 

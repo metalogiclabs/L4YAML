@@ -20577,9 +20577,12 @@ census with its limit stated, because the temptation to read it as the class's
 domain is exactly the error §8 warns about.
 
 **The carrier's price, by a narrowing patch.**  Replace the pack field's
-`∨ True` with `∨ sc.explicitKeyLine = none` — the one alternative a consumer at
-class A can refute — and build.  Three fields, three builds of ~30 s, **29
-errors**: **23 payments across 8 producing definitions**, four transport sites
+`∨ True` with `∨ sc.explicitKeyLine = none` — ~~the one alternative a consumer at
+class A can refute~~ (**item 187: the alternative a consumer at class A can
+refute is the only one the PRODUCERS cannot pay** — see that item's record) —
+and build.  Three fields, three builds of ~30 s, **29
+errors**: ~~**23 payments across 8 producing definitions**~~ (item 187: 29
+errors is the FIRST RING, not the bill), four transport sites
 at the two dispatchers, and `flowVPack_of_close` to re-type.
 
 | field | payments | the definitions that can no longer punt |
@@ -20589,8 +20592,11 @@ at the two dispatchers, and `flowVPack_of_close` to re-type.
 | `pendingBlockContent.h_kslot` | **6** | `accum_content_on_pendingBlock_indented` ×3, `accum_content_pending` ×3 |
 
 So the carrier is an **invariant strengthening across the park producers**, not
-a lemma at the consumer — and `scanValue`'s own `ekl` says why a producer
-cannot simply pay the register alternative instead:
+a lemma at the consumer — ~~and `scanValue`'s own `ekl` says why a producer
+cannot simply pay the register alternative instead:~~  **Item 187 found the
+strengthening unpayable in this shape: at every site in the class the register
+is LIVE, so the alternative is false exactly where it would have to fire.**
+`scanValue`'s `ekl` is still the reason a producer cannot pay it:
 
     let ekl : Option Nat :=
       if explicitValue then none
@@ -20637,13 +20643,139 @@ with its same **19** pre-existing name mismatches.  Declarations
 **8031 → 8034** (+3), `#guard`s **7216 → 7223** (+7, §5's rows), test files
 **621**, unchanged.
 
-**What remains.**  The CARRIER is now **3 sites** and priced: 23 payments over
-8 definitions, an invariant strengthening rather than a lemma.  Then **the
+**What remains.**  The CARRIER is now **3 sites** and ~~priced: 23 payments over
+8 definitions, an invariant strengthening rather than a lemma~~ — **item 187
+re-measured that price and it is neither the number nor the shape; see the next
+record.**  Then **the
 COUPLING** for `_stamp_offcol` (3 sites, the pack's index against the indent
 stack), and **the REFUTATION** for `_stamp_compact` (2 sites, measured empty).
 Then **`KeyPackPunt`'s two reasons** (the inline class), then the constructor
 and its arm.  Only then item 183's flip order — the two REFUTABLE halves at the
 flow open, the three MISSING ROUTES, the flip.  And the parked Ix Step-1
+composition, on the Ix track's own clock.
+
+### Item 187 (2026-09-17)
+
+**The carrier RE-PRICED: a flip's error count is a RING, not a bill — and the
+register is FALSE exactly where the class stands.**
+
+Item 186 ended by pricing `_stamp_nopack`'s carrier at "23 payments across 8
+producing definitions", read off a narrowing patch's 29 errors.  §9's rule for
+a stuck goal is that it has three diagnoses — FALSE, STARVED, HARD — and they
+price differently; item 186 counted the sites and did not run the diagnosis.
+This item ran it.  Both halves of the price were wrong, and the two are
+independent errors.
+
+**The register cannot be this class's carrier, and the class's own branch says
+so.**  Every site in `_stamp_nopack` stands under `_h_src`, which reads
+`s_dis.explicitKeyLine ≠ none` on the dispatch state.  Preprocessing writes
+neither explicit-key field and the directive normalization writes neither, so
+that reading transports back to the PARK — the new `ekl_dis_eq_park`.  The
+punt's proposed alternative is `sc.explicitKeyLine = none`, which is therefore
+FALSE at every park this class stands behind.  Narrowing the field does not
+discharge the class; it relocates the obligation onto the producers, where the
+only disjunct left is the PACK.  The wrapper now carries that fact as `_h_park`
+and the three sites produce it, so what item 185 recorded as "the class with
+NOTHING to carry" has a proposition after all — just not the one a carrier
+could spend.
+
+**And 29 errors was the first ring.**  Pay two of the 29 — one `-` site and one
+content site — with the transports that already exist
+(`ExplicitKeyCoupling.dispatchContent_preserves_explicitKeyLine`, and
+`scanBlockEntry_preserves_explicitKey` through
+`dispatchBlockIndicators_dash_scan`, whose `'-'` specialization the elaborator
+accepted at the site it was applied to; a source reading puts the other five
+block punts in the same `c = '-'` arm and that half is a reading, not a
+compiler fact) and rebuild: **neither discharges.**  The `Or.inr` each one threads has type
+`True`, because the pack is RESTATED at the consumer lemmas' own signatures and
+fed by four MORE punting fields (`pendingProps.h_kslot` at one of them).  So an
+application count over one ring under-prices, and the census that re-derives the
+carrier's surface is the pack's own tail:
+
+    grep 'SLYamlStream sp_start sp_v) ∨ True)' L4YAML/Proofs/Production/StreamAccum.lean
+
+**31 punt alternatives across 16 declarations**, of which **8 are constructor
+fields** — `pendingContent.h_vpack`, `pendingProps.h_kslot`/`h_kslotE`,
+`pendingBlockContent.h_kslot`, `pendingBlock.h_kslot`,
+`pendingMapValue.h_expl`/`h_vslot`/`h_kslot` — and 23 are restatements on
+`flowVPack_of_close`, `explFrameValueLine`, `flowKeyRoute_of_open`,
+`entryKeyPack_of_dispatch`, `entryPropsKeyPack_of_dispatch` and the five
+consumers.  Item 186's three fields are three of the eight.
+
+*(The census read **32** the first time, and the thirty-second match was the
+sentence recording the thirty-one: a pattern written into the file it searches
+becomes one of its own hits.  The command therefore lives in
+`BlockDeferralClasses` §6 and `StreamAccum`'s docstring names that section
+rather than repeating the pattern.  §8's rule again — the instrument has to be
+interrogable, and this one was interrogated by asking which lines the number
+came from.)*
+
+**The diagnosis is STARVED, and the inputs name what starves it.**  A `?` frame
+whose KEY is filled by a LANDED block indicator — the seq-spaces alternative of
+`[188]`'s `s-l+block-indented` — is ACCEPTED, and its `:` is class A with the
+register live at the frame's own column:
+
+| input | verdict | events | register at the class-A `:` |
+|---|---|---|---|
+| `?⏎-⏎: w` | accepted | `+MAP +SEQ =VAL : -SEQ =VAL :w -MAP` | `(some 0, 0, 0)` |
+| `?⏎- a⏎: w` | accepted | `+MAP +SEQ =VAL :a -SEQ =VAL :w -MAP` | `(some 0, 0, 0)` |
+| `?⏎- a⏎: - w` | accepted | `+MAP +SEQ =VAL :a -SEQ +SEQ =VAL :w -SEQ -MAP` | `(some 0, 0, 0)` |
+| `?⏎  &p a⏎: w` | accepted | `+MAP =VAL &p :a =VAL :w -MAP` | `(some 0, 0, 0)` |
+| `?⏎a⏎: w` | **refused** `invalidBareDocument 1 0` | — | `(some 0, 0, 0)` |
+
+The parser reads the landed sequence AS the frame's key, so the production the
+pack asks for exists; what is missing is the derivation.  The obligation is
+true and unproved — starved — and the datum is already at
+`accum_block_on_closeThenBlock`'s dash arm, in `h_vslot`'s inner pack (the
+frame's value line, `[190] s-indent(nv) ':' s-l+block-indented(nv, block-out)`).
+What the arm builds today is the document route (`h_entryTail`), not the
+frame's KEY node.  The last row is the family's BOUNDARY, not a case of it:
+§9.2 refuses a landed scalar at column 0 under a frame, so the dispatch is
+reached and no production is owed — which is why the props ride's own fresh
+punt is measured at an INDENTED landing instead.
+
+**The reader is a reading, not a constant.**  `classAReg` returns `none` for
+`a: 1`, for `? a: b` (the `:` is off the frame's column) and for §3's dedent
+input `k:⏎  :⏎b: 2`, and `some (some 0, 0, 0)` for `? a⏎: b` — so the
+discriminator is the FRAME, not the landing's shape.  Without those four rows
+the eight above would pin nothing.
+
+**What the item changed.**  One transport lemma (`ekl_dis_eq_park`, the
+equation `ekl_disp_of_ekl` was the `none` half of), one premise on
+`block_dispatch_deferred_stamp_nopack` and its three applications, and
+`BlockDeferralClasses` §6 — the census, the re-pricing, the twelve rows and the
+`classAReg` reader.  No runtime, no route, no production; the wrapper counts do
+not move.  Item 186's record, its wrapper docstring, the escape's section
+docstring, §5 of the guards file and `FlipConsumerSurface`'s §3 all carry the
+correction where the error is, not only here.
+
+**Measured at the landed state.**  Full `lake build` **1162** jobs and
+`Tests.Guards`/`Tests.Reflections` **735**, ZERO warnings in both; suite
+**4520/4520** with Production Coverage Analysis **837/837**; `eventscore`
+**347/358** (252 event-pass, 11 event-diff, 0 event-reject, 95 error-ok, 0
+error-miss); `suiterunner` **869 / 0 / 151**; `matrix_score.py` over the
+402-leaf data form on BOTH pipelines, **402/402 event + 282/282 JSON** with the
+splits identical to 176–186; the `[210]` flip instrument at **FIVE** errors at
+the same five definitions, applied and restored clean; the raw-route census
+**TWO** holders and the consumer census **8 / 15** on its RAW and GUARD lanes
+with the DEFERRAL lane unchanged at **11 applications across 4 definitions**;
+`#print axioms` over the new lemma and the three consumers, no `sorryAx`;
+checkers 228/355, 20/230/249/355, 25 capstones, and the annotation verifier at
+100 % coverage with its same **19** pre-existing name mismatches.  Declarations
+**8034 → 8035** (+1), `#guard`s **7223 → 7243** (+20, §6's rows: eight at the
+family and twelve at the register reader, four of those the negative control),
+test files **621**, unchanged.
+
+**What remains.**  The CARRIER is 3 sites, and its price is now stated as a
+surface rather than a count: **31 punt alternatives across 16 declarations, 8 of
+them constructor fields**, with the register ruled OUT as the carrier and the
+seq-spaces KEY of `[188]` named as what must be derived instead.  The next
+item's question is that derivation at `accum_block_on_closeThenBlock`'s dash
+arm, where `h_vslot`'s inner pack already stands.  Then **the COUPLING** for
+`_stamp_offcol` (3 sites), **the REFUTATION** for `_stamp_compact` (2 sites,
+measured empty), **`KeyPackPunt`'s two reasons**, then the constructor and its
+arm.  Only then item 183's flip order — the two REFUTABLE halves at the flow
+open, the three MISSING ROUTES, the flip.  And the parked Ix Step-1
 composition, on the Ix track's own clock.
 
 ### REMAINING, in order

@@ -16471,6 +16471,26 @@ lemma ekl_disp_of_ekl {s_prep : ScannerState} (h : s_prep.explicitKeyLine = none
   · exact h
   · exact h
 
+/-- **The register a landing READS is the register its PARK carries** (item
+    187).  Preprocessing writes neither explicit-key field and the directive
+    normalization writes neither, so the dispatch state's reading transports
+    back to the park's own state.  `ekl_disp_of_ekl` is this equation's `none`
+    half; the equation itself is what a branch that reads the register LIVE
+    needs, because "the `?` frame is open" is a fact about the PARK and only
+    the dispatch state states it. -/
+lemma ekl_dis_eq_park {sc s_prep : ScannerState} {c : Char}
+    (h : scanNextToken_preprocess sc = .ok (some (s_prep, c))) :
+    (if s_prep.allowDirectives then
+      { s_prep with allowDirectives := false, documentEverStarted := true }
+    else s_prep).explicitKeyLine = sc.explicitKeyLine := by
+  have h_norm : (if s_prep.allowDirectives then
+      { s_prep with allowDirectives := false, documentEverStarted := true }
+    else s_prep).explicitKeyLine = s_prep.explicitKeyLine := by
+    split
+    · rfl
+    · rfl
+  exact h_norm.trans (ExplicitKeyCoupling.preprocess_preserves_explicitKey sc s_prep c h).1
+
 /-- The indicator dispatch's own `!inFlow` guard, run back to the flag: shared
     by both floors (items 27/28), which each need the post-update state's
     `needIndentCheck` and can only observe `inFlow` on it. -/
@@ -19246,7 +19266,7 @@ lemma block_dispatch_deferred
    PendingNode.pendingFlow sp_start sp_X sp_scan' h_stream h_arm h_nodir,
    hcorr⟩
 
-/-! #### The escape's classes, named (items 184–186)
+/-! #### The escape's classes, named (items 184–187)
 
     `block_dispatch_deferred` has ELEVEN applications across FOUR consumer
     lemmas, and the number says nothing about what still exits through it: an
@@ -19268,16 +19288,19 @@ lemma block_dispatch_deferred
       is the route and it is exact at `[187]`'s `s-indent(n)`, so what is
       missing is a reason the two indices agree.
     * `block_dispatch_deferred_stamp_nopack` (3) — the park carries no value
-      pack at all.  This is the class with NOTHING to carry: the field's other
-      alternative is `True`, so no proposition distinguishes these sites and
-      the census is their only instrument.  **Item 186 paid the fourth site
-      out**: the virgin park item 185 read as "in the class by construction"
-      was not in the class at all — a `noPending` park in block context is the
-      stream's seed, its new `h_noek` says the explicit-key register is dead
-      there, and the landed `:` now DECIDES its stamp source instead of
-      splitting on it.  What empties the three that remain is a CARRIER, and
-      item 186 priced it: making the pack conditional on that same register
-      costs 23 payments across 8 producing definitions.
+      pack at all.  **Item 186 paid the fourth site out**: the virgin park item
+      185 read as "in the class by construction" was not in the class at all —
+      a `noPending` park in block context is the stream's seed, its new
+      `h_noek` says the explicit-key register is dead there, and the landed `:`
+      now DECIDES its stamp source instead of splitting on it.  **Item 187 gave
+      the three that remain a proposition of their own** (`_h_park`): the
+      branch reads the register LIVE, and `ekl_dis_eq_park` carries that
+      reading back to the park.  That is also what refutes the cheap carrier —
+      `… ∨ sc.explicitKeyLine = none` is FALSE wherever this class stands, so
+      narrowing the punt relocates the obligation to the producers instead of
+      discharging it, and the producers owe the PACK.  The carrier's surface is
+      **31 punt alternatives across 16 declarations, 8 of them constructor
+      fields**, re-derived by the pack's own tail rather than by a site count.
     * `block_dispatch_deferred_stamp_compact` (2) — the step crossed no break
       and the park is an open `[185]` slot, so `compact_open_map` is the route
       and it needs the STAMP: `[189]`'s value is `s-l+block-node`, which has
@@ -19327,26 +19350,46 @@ lemma block_dispatch_deferred_stamp_offcol
   block_dispatch_deferred sp_start sp_X sp_scan' s' h_stream h_arm hcorr h_nodir
 
 /-- **The escape's stamp source with NO pack at the park** (item 185): the
-    class that carries nothing.  `h_vpack`/`h_kslot`'s other alternative is
-    `True`, so the branch has no proposition to hand a wrapper and the census
-    row is the only instrument that can re-derive this count.  What empties it
-    is a CARRIER — a face on the park saying the `?` frame's value slot stands
-    open at the landing's column — which is U2's residue proper.
+    class whose park carries no value pack.  What empties it is a CARRIER — a
+    face on the park saying the `?` frame's value slot stands open at the
+    landing's column — which is U2's residue proper.
 
-    **Item 186 priced that carrier and paid one site out of the class.**  The
-    price: make the pack conditional on the scanner's own register
-    (`… ∨ sc.explicitKeyLine = none`) and the producers that can no longer
-    punt are **23 payments across 8 definitions** — 7 at `pendingBlock.h_kslot`,
-    6 at `pendingBlockContent.h_kslot`, 10 at `pendingContent.h_vpack` — plus
-    four transport sites at the two dispatchers and `flowVPack_of_close`.  That is an invariant
-    strengthening across the park producers, not a lemma at the consumer, and
-    `scanValue`'s own `ekl` says why: the register survives a `:` only where
-    the `:` stands strictly deeper than `explicitKeyCol`, which is exactly the
-    case where the `[187]` frame is still open and a pack is owed.  The site
-    that DID pay was `accum_block_on_noPending`'s, where the park's own
-    `h_noek` refutes the branch outright. -/
+    **Item 186 read that carrier as the scanner's register and priced it at 23
+    payments; item 187 measured the price and it is not that.**  ~~Making the
+    pack conditional on `… ∨ sc.explicitKeyLine = none` costs 23 payments
+    across 8 definitions.~~  That patch's 29 errors are the FIRST RING, not the
+    bill: the pack is restated at the consumers' own signatures and fed by four
+    MORE punting fields, so the census that re-derives the surface is a grep for
+    the pack's own type tail (the command is in `BlockDeferralClasses` §6, which
+    is where it can be WRITTEN without matching itself — a pattern quoted inside
+    the file it searches becomes one of its own hits).  It reads **31 punt
+    alternatives across 16 declarations**, of which **8 are constructor fields**
+    (`pendingContent.h_vpack`, `pendingProps.h_kslot`/`h_kslotE`,
+    `pendingBlockContent.h_kslot`, `pendingBlock.h_kslot`,
+    `pendingMapValue.h_expl`/`h_vslot`/`h_kslot`) and 23 are restatements.
+
+    **And the register cannot be the carrier at all**, which `_h_park` below now
+    states: at every site in this class the branch reads `explicitKeyLine ≠
+    none` on the dispatch state, `ekl_dis_eq_park` carries that back to the
+    park, so the punt's register alternative is FALSE wherever this class
+    stands.  The narrowing therefore relocates the obligation to the producers
+    instead of discharging it, and at the producers it is the PACK that must be
+    paid.  Two accepted inputs say the obligation is true and unproved rather
+    than false — `?⏎-⏎: w` and `?⏎- a⏎: w` park on a `blockEntry`/`scalar` with
+    `explicitKeyLine = some 0`, `explicitKeyCol = 0`, and the parser reads the
+    seq-spaces sequence as the frame's KEY (`+MAP +SEQ =VAL : -SEQ =VAL :w
+    -MAP`).  So the carrier is the seq-spaces alternative of `[188]`'s
+    `s-l+block-indented` at `accum_block_on_closeThenBlock`'s dash arm, which
+    already holds the value line it needs in `h_vslot`'s inner pack.
+    `BlockDeferralClasses` §6 pins the family and the census.
+
+    The one site that DID pay was `accum_block_on_noPending`'s (item 186),
+    where the park's own `h_noek` refutes the branch outright — a virgin park's
+    register is dead, which is the one configuration this class cannot
+    reach. -/
 lemma block_dispatch_deferred_stamp_nopack
-    (sp_start sp_X sp_scan' : SurfPos) (s' : ScannerState) {s_dis : ScannerState}
+    (sp_start sp_X sp_scan' : SurfPos) (s' : ScannerState)
+    {sc s_dis : ScannerState}
     (h_stream : SLYamlStream sp_start sp_X)
     (h_arm : s'.simpleKeyAllowed = true ∨ 0 < sp_scan'.col)
     (hcorr : ScannerSurfCorr s' sp_scan')
@@ -19354,7 +19397,14 @@ lemma block_dispatch_deferred_stamp_nopack
     (_h_src : ¬(s_dis.explicitKeyLine = none ∨
       (scanValueClearKey s_dis).simpleKey.possible = true ∨
       (s_dis.col : Int) ≠ s_dis.explicitKeyCol))
-    (_h_indent : (s_dis.col : Int) = s_dis.currentIndent) :
+    (_h_indent : (s_dis.col : Int) = s_dis.currentIndent)
+    -- **Item 187: the PARK's register, LIVE** (LAST, so the existing
+    -- applications' positional arguments still bind).  The branch reads the
+    -- register on the dispatch state; this is the same reading on the state
+    -- the park names, which is where a carrier would have to be paid.  It is
+    -- what refutes the cheap carrier: `… ∨ sc.explicitKeyLine = none` is false
+    -- at every site in this class, so the class's price is the PACK.
+    (_h_park : sc.explicitKeyLine ≠ none) :
     ∃ sp_gram' sp_block' sp_flow' sp_scan',
       SLYamlStream sp_start sp_gram' ∧
       BlockStack sp_gram' sp_block' ∧
@@ -20212,6 +20262,7 @@ lemma accum_block_on_closeThenBlock
               (nodir_of_block_dispatch h_dispatch) h_src
               (explicit_at_indent_of_dispatch h_dispatch
                 (noflow_disp_of_noflow h_noflow) h_src)
+              (fun h => h_src (Or.inl ((ekl_dis_eq_park h_preprocess).trans h)))
       · exact h_generic (fun h => absurd h hc_colon)
     · exact (block_indicator_exhausted h_dispatch hc hcv).elim
 
@@ -20900,6 +20951,7 @@ lemma accum_block_on_pendingBlockContent
                 (nodir_of_block_dispatch h_dispatch) h_src
                 (explicit_at_indent_of_dispatch h_dispatch
                   (noflow_disp_of_noflow h_noflow) h_src)
+                (fun h => h_src (Or.inl ((ekl_dis_eq_park h_preprocess).trans h)))
         · exact h_gen (fun h => absurd h hc_colon)
       · exact (block_indicator_exhausted h_dispatch hc hcv).elim
   by_cases hc0 : c = ':'
@@ -21244,6 +21296,7 @@ lemma accum_block_on_pendingBlock
               (nodir_of_block_dispatch h_dispatch) h_src
               (explicit_at_indent_of_dispatch h_dispatch
                 (noflow_disp_of_noflow h_noflow) h_src)
+              (fun h => h_src (Or.inl ((ekl_dis_eq_park h_preprocess).trans h)))
       · exact h_gen (fun h => absurd h hc_colon)
     · exact (block_indicator_exhausted h_dispatch hc hcv).elim
   -- ═══ THE INLINE RESIDUE: the COMPACT collection (item 33) ═══
