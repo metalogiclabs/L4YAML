@@ -7,7 +7,7 @@ Copyright (c) 2026. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 -/
 
-/-! # The flip's remainder, mapped (DOCS items 171–182)
+/-! # The flip's remainder, mapped (DOCS items 171–183)
 
 Row 19's 1c ends by narrowing `[210]`'s slot (`GOpt SLAnyDocument` →
 `GOpt SLExplicitDocument`), and the narrowing instrument breaks FIVE
@@ -27,7 +27,11 @@ itself deletes.  Every consumer arm that still reaches a raw route is one of:
 
 This file pins the INPUT families those arms serve, at the runtime, one
 `#guard` per family — so the map is measured, and any runtime move flips it
-loudly.  Item 171 measured the map and named two findings; item 172 closed the
+loudly.  Its DEFINITION-side twin is
+`Tests/Guards/Proofs/FlipConsumerSurface.lean` (item 183), which pins who still
+reaches a raw route — 8 definitions, 15 applications — and the deferral beside
+it; the two move together and neither is the flip instrument's own five, which
+count the flip's WORK and not its remainder.  Item 171 measured the map and named two findings; item 172 closed the
 second, and the pins below are the map at the CLOSED state:
 
 **The value at its own level's column (§4) is REFUSED as of item 177 —
@@ -581,6 +585,57 @@ in-flow check — each the anchored twin's own verdict at the same mechanism. -/
 #guard pins "a: 1\n[1,\n2]: b\n" == ("scan-refused L4YAML.ScanError.underIndentedFlowContent 2 0", "ERR L4YAML.ScanError.underIndentedFlowContent 2 0")
 #guard pins "a: 1\n&p [1,\n2]: b\n" == ("scan-refused L4YAML.ScanError.underIndentedFlowContent 2 0", "ERR L4YAML.ScanError.underIndentedFlowContent 2 0")
 
+/-! ## §5b  Item 183 — the flow open's domain, by PARK
+
+`accum_flow_open_depth0` is the one holder of
+`topLevelFlowResumeSep_or_refused`, and its nine park arms split three ways.
+Six route WITHOUT the guard — `noPending` through `nodocFlowResumeSep` (item
+136), `pendingDocStart` through the marker's own content slot (item 56, which
+is also where a `%YAML` directive's stream arrives, its `---` leaving the same
+park), `pendingDocEnd` through `suffixFlowResumeSep` (item 118), `pendingProps`
+through the park's own route (items 9h/12/165), and `pendingBlock` /
+`pendingMapValue` through the opaque resume at a nonzero index (item 24).  What
+reaches the guard is `pendingContent`, `pendingBlockContent` — and `pendingFlow`.
+
+**The two content parks' domain is scanner-REFUSED**, at `h_op = true` as at
+`h_op = false`: a depth-0 `[`/`{` across a break behind a completed value is
+§9.2's dangling run, refused at the run's own start.  That is measured below,
+not forecast, and PyYAML 6.0.3 (`yaml.parse`) refuses every one of them at the
+same line and column ("could not find expected ':'", or "expected
+'<document start>'" where no level is open).  So the guard's LIVE payer at this
+door is `pendingFlow` alone — the same state
+`bareNodeRoute_or_refused_content`'s arms reached at item 174 — and what the
+two content halves want is the item-157 treatment on the FLOW lane: a gate on
+the frame's value route, refuted at the close.
+
+The `...` rows follow `[211]`'s own `l-document-suffix+ l-document-prefix*
+l-any-document?`, whose document slot admits a bare one; PyYAML requires a
+`---` there, which is item 175's named suffix gap and not this item's. -/
+
+-- paid arms: the six park constructors that never reach the guard
+#guard pins "[1, 2]\n" == ("scan-accepted", "+STR +DOC +SEQ [] =VAL :1 =VAL :2 -SEQ -DOC -STR")
+#guard pins "# c\n[1, 2]\n" == ("scan-accepted", "+STR +DOC +SEQ [] =VAL :1 =VAL :2 -SEQ -DOC -STR")
+#guard pins "[1]: b\n" == ("scan-accepted", "+STR +DOC +MAP +SEQ [] =VAL :1 -SEQ =VAL :b -MAP -DOC -STR")
+#guard pins "---\n[1, 2]\n" == ("scan-accepted", "+STR +DOC --- +SEQ [] =VAL :1 =VAL :2 -SEQ -DOC -STR")
+#guard pins "%YAML 1.2\n---\n[1, 2]\n" == ("scan-accepted", "+STR +DOC --- +SEQ [] =VAL :1 =VAL :2 -SEQ -DOC -STR")
+#guard pins "---\n[1]: b\n" == ("scan-accepted", "+STR +DOC --- +MAP +SEQ [] =VAL :1 -SEQ =VAL :b -MAP -DOC -STR")
+#guard pins "...\n[1, 2]\n" == ("scan-accepted", "+STR +DOC +SEQ [] =VAL :1 =VAL :2 -SEQ -DOC -STR")
+#guard pins "a: 1\n...\n[1, 2]\n" == ("scan-accepted", "+STR +DOC +MAP =VAL :a =VAL :1 -MAP -DOC ... +DOC +SEQ [] =VAL :1 =VAL :2 -SEQ -DOC -STR")
+#guard pins "...\n[1]: b\n" == ("scan-accepted", "+STR +DOC +MAP +SEQ [] =VAL :1 -SEQ =VAL :b -MAP -DOC -STR")
+#guard pins "&p [1, 2]\n" == ("scan-accepted", "+STR +DOC +SEQ [] &p =VAL :1 =VAL :2 -SEQ -DOC -STR")
+#guard pins "k: &p\n  [1, 2]\n" == ("scan-accepted", "+STR +DOC +MAP =VAL :k +SEQ [] &p =VAL :1 =VAL :2 -SEQ -MAP -DOC -STR")
+-- the two content parks: every member REFUSED, at the bracket's own position
+#guard pins "a: 1\n[1, 2]\n" == ("scan-EOF-refused L4YAML.ScanError.invalidBareDocument 1 0", "ERR L4YAML.ScanError.invalidBareDocument 1 0")
+#guard pins "- a\n[1, 2]\n" == ("scan-EOF-refused L4YAML.ScanError.invalidBareDocument 1 0", "ERR L4YAML.ScanError.invalidBareDocument 1 0")
+#guard pins "k:\n  a: 1\n  [1, 2]\n" == ("scan-EOF-refused L4YAML.ScanError.invalidBareDocument 2 2", "ERR L4YAML.ScanError.invalidBareDocument 2 2")
+#guard pins "a: 1\n{x: 1}\n" == ("scan-EOF-refused L4YAML.ScanError.invalidBareDocument 1 0", "ERR L4YAML.ScanError.invalidBareDocument 1 0")
+#guard pins "- a\n- b\n[1, 2]\n" == ("scan-EOF-refused L4YAML.ScanError.invalidBareDocument 2 0", "ERR L4YAML.ScanError.invalidBareDocument 2 0")
+#guard pins "\"x\"\n[1, 2]\n" == ("scan-refused L4YAML.ScanError.invalidBareDocument 1 0", "ERR L4YAML.ScanError.invalidBareDocument 1 0")
+#guard pins "a: 1\n# c\n[1, 2]\n" == ("scan-EOF-refused L4YAML.ScanError.invalidBareDocument 2 0", "ERR L4YAML.ScanError.invalidBareDocument 2 0")
+-- …and the KEY half at the same park is accepted and resumes (item 176), which
+-- is what says the refusals above are the VALUE reading and not the door
+#guard pins "a: 1\n[1]: b\n" == ("scan-accepted", "+STR +DOC +MAP =VAL :a =VAL :1 +SEQ [] =VAL :1 -SEQ =VAL :b -MAP -DOC -STR")
+
 /-! ## §6  The record
 
 Per surviving arm, what the pins say it serves and what pays after the flip:
@@ -593,7 +648,7 @@ Per surviving arm, what the pins say it serves and what pays after the flip:
 | the guards at `Or.inr` (parks with no `CompletedTail`) | ~~§4's family is the scalar half of what reaches them~~ — refused at the scanner as of item 177; `bareNodeRoute_or_refused_content`'s two arms' LIVE payers are `pendingFlow`'s break-crossed landings alone (measured at item 174: `pendingContent`/`pendingBlockContent` pay `Or.inl` and refute, the marker parks exit on their own arms) | shrinks further with R3's `pendingFlow` deletion; the sibling residue resumes |
 | `accum_content_pending`'s pendingProps landing (via `content_dispatch_after_close`) | §3b's rides — the sentinel run's break-crossed node (`&p⏎b`, `&p⏎b: 1`, `&p⏎|⏎  x`) read as propsEmpty + a bare second document | **PAID by item 174**: `PropsRideRoute` carries the park's route + run, `content_dispatch_routed` assembles `[161]`/`[198]`/`[196]`'s props slots, and the enclosing-level park (`0 < n`) keeps propsEmpty + resume; residues = the indented-enclosing/two-park/alias punts pinned in §3b |
 | `accum_block_pending`'s pendingProps landing (via `accum_block_on_closeThenBlock`) | §3b's indicator rides — the sentinel run's break-crossed `-`/`?`/`:` (`&p⏎- a`, `&p⏎? x⏎: v`, `&p⏎: v`) read as propsEmpty + a bare second document | **PAID by item 175**: `PropsNodeRoute` (the ride's landing half) rides the same park route into `[196]`'s slot — `propsSeqRoute` at the `-` arm's entries, `propsMapRoute(F)` as the openers' fifth cascade arm; the flow-open twin was paid on the FLOW lane at items 9h/12 (174's punt row for it struck at 175), and the enclosing-level park (`0 < n`) keeps propsEmpty + resume |
-| `topLevelFlowResumeSep_or_refused` fallbacks, `flowKeyRoute_of_root` landing arm | §2's sibling flow keys (item 172's key half) | the key half **RESUMES as of item 176** (`h_mapF` at the landing arm, `resumeMapRoute` first in the cascade, paid by `pendingContent.h_framesS`/`pendingBlockContent.h_closeF`; the entries-level twin rides every arm, so the chains resume too); the value half is refused at the gate and the refuted arms cover it; what still reaches the fallback is a landing whose park pays no face (the marker-seed chain at `flowKeyRoute_of_open`'s twins, the seq-spaces sibling, §2's recorded punts) |
+| `topLevelFlowResumeSep_or_refused` fallbacks, `flowKeyRoute_of_root` landing arm | §2's sibling flow keys (item 172's key half); **and §5b measures the COLLECTION route's own domain park by park** — six of the nine park arms route without the guard, the two content parks' inputs are scanner-refused at the bracket (PyYAML agrees at every position), so the guard's live payer at this door is `pendingFlow` alone | the key half **RESUMES as of item 176** (`h_mapF` at the landing arm, `resumeMapRoute` first in the cascade, paid by `pendingContent.h_framesS`/`pendingBlockContent.h_closeF`; the entries-level twin rides every arm, so the chains resume too); the value half is refused at the gate and the refuted arms cover it; what still reaches the fallback is a landing whose park pays no face (the marker-seed chain at `flowKeyRoute_of_open`'s twins, the seq-spaces sibling, §2's recorded punts) |
 | ~~`flowKeyRoute_of_root` no-break arm~~ | the seed key (`[1]: b`) | **PAID by item 173**: the no-break arm's premise carries the virgin park's own `h_nodoc` face beside the column, so `nodocMapRoute` is the arm's only route and the raw `rootMapRoute` application is deleted — the census's `rootMapRoute` holder is gone |
 | ~~`accum_content_pending`'s crossed arms~~ | NONE accepted (§3) — **and NONE scanner-reachable as of item 180**: the crossed-block clause (`crossedPropsExcessPos?`, §9.2's fourth reading) refuses the root family at the next landing or EOF, at the excess property's own position | **DELETED by item 181**: the pushed property is the third of an adjacent block, so the widened verdict is `some` and the relay's premise refutes — `h_routeX`, `PropsWindowCross` and the two raw `bareNodeRoute` payments are gone |
 | `structural_dispatch_to_pending`, `DocumentProduction.stream_implicit_continue` | n/a — `SLAnyDocument.explicit` wrappers | deleted by the flip itself |
