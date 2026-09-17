@@ -18725,6 +18725,17 @@ verdict:
   (`propsWindowCross_push_refute`: the pushed tail and the token below it
   share the cursor's line).
 
+> **RETIRED by item 181** (2026-09-16).  Every bullet above is DELETED:
+> `PropsWindowCross`, `propsWindowCross_push_refute`,
+> `pendingProps.h_routeX` and its six payments, the relay's disjunct and
+> `content_dispatch_routed`'s widened premise.  The reading that kept the
+> family scanner-reachable is gone (items 178 and 180), and with the domain
+> empty the relay holds by REFUTATION: a property push onto a crossed window
+> makes three adjacent properties, which `[96]` cannot derive.  What this
+> note still records correctly is the slide itself, and that no
+> strengthening of premises could have fixed the conclusion — the fix was to
+> the runtime's reach, not to the lemma.
+
 `ContentRouteGate` is unchanged; both `_or_refused` refinements and every
 scanner refusal stand as measured.  `propsPark_dangling_of_body` needs
 nothing: a BODY push walks two properties deep, which is exactly one deeper
@@ -19843,11 +19854,103 @@ three at most, `dangling_none_of_check`/`_none_of_inFlow`/`_none_of_no_run`
 Declarations **7965 → 8004** (the six runtime defs across the two pipelines
 and the proof kit).
 
-**What remains, in the map's order.**  The crossed-window arms' RETIREMENT
-(h_routeX and the two raw payments — refutations from the widened verdict);
-the `k: &x⏎a`-family runtime floor (the flip's last runtime prerequisite);
-then the `[210]` flip.  And the parked Ix Step-1 composition, on the Ix
-track's own clock.
+**What remains, in the map's order.**  ~~The crossed-window arms' RETIREMENT
+(h_routeX and the two raw payments — refutations from the widened verdict)~~
+— **LANDED, item 181**; the `k: &x⏎a`-family runtime floor (the flip's last
+runtime prerequisite); then the `[210]` flip.  And the parked Ix Step-1
+composition, on the Ix track's own clock.
+
+### Item 181 (2026-09-16)
+
+**The crossed-window arms, RETIRED** — item 180's proof half, and the first
+item in this row whose whole content is a DELETION.  Item 180 moved the
+crossed over-full property block's refusal into the scanner; this one spends
+the shrinkage: `PropsWindowCross`, `propsWindowCross_push_refute` and
+`pendingProps.h_routeX` are gone, with the six payments the field cost, and
+`content_dispatch_routed`'s route premise is `ContentRouteGate` alone again.
+ZERO runtime code: the one runtime edit is a docstring sentence in
+`TokenQueries.lean` that named a now-deleted declaration.
+
+**The pigeonhole.**  `[96] c-ns-properties` admits one anchor and one tag, so
+THREE adjacent property tokens always duplicate a kind.  A property push onto
+a crossed window makes exactly three — the window's below-token, the park's
+tail, and the pushed one — so §9.2's fourth clause reads an excess and
+`danglingNodePos?` returns `some`.  Measured first
+(`Scratch/Probe181.lean`): all EIGHT kind assignments report an excess, with
+and without placeholder gaps, and the two-property controls stay `none`
+exactly when the kinds differ; then pinned exhaustively in the guard
+(`PropsCrossWindowRoute` §2, 12 new `#guard`s).
+
+**The shape is the point.**  Item 170 read the slide correctly — §9.2's
+walk-back is capped at `[96]`'s arity, so the window moves under a property
+push and the two verdicts are readings of different columns — and concluded
+that `propsPark_dangling_of_prop`'s conclusion was FALSE at a
+scanner-reachable state, so no strengthening of premises could fix it.  That
+was true when written.  What it did not ask is whether the state stays
+reachable: items 178 and 180 refused both halves of the window's domain at
+the scanner, and with the domain empty the relay holds *vacuously* —
+its own premise is what fails in the branch that could not transport.  A
+transport lemma that cannot be proved is a question about its SOURCE states,
+not only about the target; the bypass is worth building only after the
+reachability is measured.  Item 170's bypass was not wasted (the family
+scanned clean then), but its retirement is what the two runtime items were
+for.
+
+**The kit** (six lemmas, `StreamAccum`): `not_placeholder_of_isNodeProperty`
+and `isAnchor_or_isTag_of_isNodeProperty` (the two holes);
+`propsBlockScanLoop_two_props` — past a property and the property below it
+the scan has an excess OR both flags, which is the half that does not depend
+on what comes next; `propsBlockScanLoop_excess_of_saturated` — a third
+closes it; `crossedPropsExcessPos?_push_prop_three` — the two composed at the
+pushed array, reusing `_push_prop_mono`'s own reduction;
+`danglingNodePos?_ne_none_of_crossed` — a run that STARTS on a property
+clears the slot exemption, so BOTH remaining branches report and an excess is
+a verdict at whatever column.
+
+**What the deletion takes with it.**  `propsPark_dangling_of_prop` loses its
+disjunct AND two premises — `propertyRunFull s_ad = false` and the tail's
+`pos.line = sc.line` conjunct, both of which existed only to establish the
+window's line disagreement — so it is now premise-for-premise
+`propsPark_dangling_of_body`'s twin.  Two residues, recorded rather than
+chased: `propertyRunFull_false_of_anchor_dispatch`/`_tag_dispatch` have no
+production consumer left (pinned in `PropsRunLengthGate` §1 and
+`PropsRunReadingTransport`), and `propsPark_prevReal_prop`'s line conjunct is
+now weakened away at both of its call sites (pinned in `PropsRunLengthGate`
+§3).  Neither is vestigial by the produce-cost test: both are read off runs
+the callers already hold.
+
+**What it buys the flip.**  `accum_content_pending`'s two raw `bareNodeRoute`
+applications — the crossed arms — are gone, so the raw-route census drops
+from **THREE** holders to **TWO** (`bareNodeRoute_or_refused_content` ×2,
+`content_dispatch_after_close` ×1, both at their item-176 counts).  At the
+content landing the refined route is now the ONLY construction, which is what
+`StreamFlipRemainderMap`'s table row said the retirement would buy.
+
+**Measured at the landed state.**  Full `lake build` **1160** jobs +
+`Tests.Guards`/`Tests.Reflections` **733**, ZERO warnings; suite Verified
+**4508/4508** with Production Coverage Analysis **825/825**; `eventscore`
+**347/358** (252 event-pass, 11 event-diff, **0** event-reject, 95 error-ok,
+**0** error-miss); `suiterunner` **869 / 0 / 151**; matrix **402/402 event +
+282/282 JSON, both pipelines** with splits identical to 176–180 (the item
+changes no runtime code, and the matrix was run anyway rather than argued
+from the diff); the `[210]` flip instrument reports **FIVE** errors at the
+same five definitions, now at 4190/5470/5493/5662/7114 — each exactly 11
+lines above item 180's, which is the `PropsWindowCross` block's own size —
+applied and restored clean; `#print axioms` over the new kit, the retired
+relay and the four route consumers: the new lemmas at `propext` /
+`[propext, Quot.sound]`, the consumers at the standard three plus the
+standing `native_decide` profile, **no** `sorryAx`; checkers 228/355,
+20/230/249/355, 25 capstones.  Declarations **8004 → 8008** (+6 kit, −1 def,
+−1 lemma), counted as
+`grep -rhoE "^(lemma|theorem|def) " --include='*.lean' L4YAML/`; `#guard`s
+**7118 → 7130** (+12, the pigeonhole pins) counted as
+`grep -rhoE "^#guard\b" --include='*.lean' Tests/` — the convention is named
+here because the earlier rows' figures were taken under an unrecorded one and
+sit 13 below this at the same trees.
+
+**What remains, in the map's order.**  The `k: &x⏎a`-family runtime floor —
+the flip's LAST prerequisite of any kind — then the `[210]` flip itself.  And
+the parked Ix Step-1 composition, on the Ix track's own clock.
 
 ### REMAINING, in order
 
@@ -19865,7 +19968,7 @@ too (items 47–51), so what stands between here
 and Step 5 (the converse) is R3's remaining production work and R4:
 
 ```
-R1 ✓ (44–46) ──→ R2 ✓ (47–51) ──→ R3 (52–180 landed; U2 CLOSED, the collapse gone) ──→ Step 5
+R1 ✓ (44–46) ──→ R2 ✓ (47–51) ──→ R3 (52–181 landed; U2 CLOSED, the collapse gone) ──→ Step 5
                                         └──────→ R4 (implicitContinue + 0 < m) ──┘
 ```
 
@@ -19907,7 +20010,9 @@ tightening at all.  What R4 still owes is `[210]`'s narrowing itself, whose
 prerequisites are ~~the crossed-window arms' root family and~~ the `k: &x⏎a`
 acceptance (item 179's residual) — **the crossed-window family refuses at the
 scanner as of item 180**, leaving `k: &x⏎a` the one runtime prerequisite,
-plus the arms' proof-side retirement.
+~~plus the arms' proof-side retirement~~ — **that landed
+at item 181**, so `k: &x⏎a` is the only prerequisite of any kind that is
+left.
 
 **The structural fact the plan hangs on** (measured at item 35): `pendingFlow`
 has exactly one producer — `block_dispatch_deferred` itself — and carries only

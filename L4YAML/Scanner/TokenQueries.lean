@@ -216,8 +216,9 @@ def trailingNodeRun? (tokens : Array (Positioned YamlToken)) :
     `yaml.parse` level, item 180's battery).  The same-line thirds never get
     this far — the push guards (`propertyRunHasAnchor`/`propertyRunHasTag`,
     items 9e/9k) refuse them at the character — so what this walk catches is
-    exactly the block whose internal separation CROSSED a break, the window
-    `PropsWindowCross` names on the proof side.
+    exactly the block whose internal separation CROSSED a break.  That is the
+    configuration the proof side used to carry a second stream route for, and
+    reading it here is what retired the route (item 181).
 
     The walk is uncapped, unlike `trailingPropertyRun`'s two lookbacks: the
     cap there is the LEGAL run's arity, and this reader exists to see past

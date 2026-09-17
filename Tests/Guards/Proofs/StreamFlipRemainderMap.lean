@@ -268,13 +268,16 @@ marker, the suffix — are the flip-legal twins, and their inputs accept. -/
 #guard pins "a: 1\n...\n[1]: b\n" == ("scan-accepted", "+STR +DOC +MAP =VAL :a =VAL :1 -MAP -DOC ... +DOC +MAP +SEQ [] =VAL :1 -SEQ =VAL :b -MAP -DOC -STR")
 #guard pins "a: 1\n...\n[1, 2]\n" == ("scan-accepted", "+STR +DOC +MAP =VAL :a =VAL :1 -MAP -DOC ... +DOC +SEQ [] =VAL :1 =VAL :2 -SEQ -DOC -STR")
 
-/-! ## §3  The crossed-props arms serve only parser-refused inputs
+/-! ## §3  The crossed-props arms — DELETED at item 181
 
-`accum_content_pending`'s two `PropsWindowCross` fallbacks (item 170) apply the
-raw route behind a window premise whose every scanner-reachable input the
+`accum_content_pending`'s two `PropsWindowCross` fallbacks (item 170) applied
+the raw route behind a window premise whose every scanner-reachable input the
 parser refuses — `TokenParser.validNextToken`'s own §9.2 reading.  The full
-window pins are `PropsCrossWindowRoute.lean`'s; the two families here are the
-arms' whole domain.  Item 178 moved the OFFERED family's refusal into the
+window pins are `PropsCrossWindowRoute.lean`'s; the two families here were the
+arms' whole domain, and **item 181 deletes the arms** now that the scanner
+refuses both: the window, the park field that carried its route
+(`pendingProps.h_routeX`) and the two raw `bareNodeRoute` applications go
+together, and the raw-route census drops from THREE holders to TWO.  Item 178 moved the OFFERED family's refusal into the
 scanner — the window's first property stands at the awaiting level's own
 column, which is now `danglingNodePos?`'s own reading at the first break —
 so the crossed window is never reached there any more; ~~the root family,
@@ -510,7 +513,7 @@ Per surviving arm, what the pins say it serves and what pays after the flip:
 | `accum_block_pending`'s pendingProps landing (via `accum_block_on_closeThenBlock`) | §3b's indicator rides — the sentinel run's break-crossed `-`/`?`/`:` (`&p⏎- a`, `&p⏎? x⏎: v`, `&p⏎: v`) read as propsEmpty + a bare second document | **PAID by item 175**: `PropsNodeRoute` (the ride's landing half) rides the same park route into `[196]`'s slot — `propsSeqRoute` at the `-` arm's entries, `propsMapRoute(F)` as the openers' fifth cascade arm; the flow-open twin was paid on the FLOW lane at items 9h/12 (174's punt row for it struck at 175), and the enclosing-level park (`0 < n`) keeps propsEmpty + resume |
 | `topLevelFlowResumeSep_or_refused` fallbacks, `flowKeyRoute_of_root` landing arm | §2's sibling flow keys (item 172's key half) | the key half **RESUMES as of item 176** (`h_mapF` at the landing arm, `resumeMapRoute` first in the cascade, paid by `pendingContent.h_framesS`/`pendingBlockContent.h_closeF`; the entries-level twin rides every arm, so the chains resume too); the value half is refused at the gate and the refuted arms cover it; what still reaches the fallback is a landing whose park pays no face (the marker-seed chain at `flowKeyRoute_of_open`'s twins, the seq-spaces sibling, §2's recorded punts) |
 | ~~`flowKeyRoute_of_root` no-break arm~~ | the seed key (`[1]: b`) | **PAID by item 173**: the no-break arm's premise carries the virgin park's own `h_nodoc` face beside the column, so `nodocMapRoute` is the arm's only route and the raw `rootMapRoute` application is deleted — the census's `rootMapRoute` holder is gone |
-| `accum_content_pending`'s crossed arms | NONE accepted (§3) — **and NONE scanner-reachable as of item 180**: the crossed-block clause (`crossedPropsExcessPos?`, §9.2's fourth reading) refuses the root family at the next landing or EOF, at the excess property's own position | the arms refute from the widened verdict — the retirement of `h_routeX` and the two `bareNodeRoute` payments is the crossed arms' own follow-up item |
+| ~~`accum_content_pending`'s crossed arms~~ | NONE accepted (§3) — **and NONE scanner-reachable as of item 180**: the crossed-block clause (`crossedPropsExcessPos?`, §9.2's fourth reading) refuses the root family at the next landing or EOF, at the excess property's own position | **DELETED by item 181**: the pushed property is the third of an adjacent block, so the widened verdict is `some` and the relay's premise refutes — `h_routeX`, `PropsWindowCross` and the two raw `bareNodeRoute` payments are gone |
 | `structural_dispatch_to_pending`, `DocumentProduction.stream_implicit_continue` | n/a — `SLAnyDocument.explicit` wrappers | deleted by the flip itself |
 -/
 

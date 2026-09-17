@@ -1018,29 +1018,24 @@ lemma nodoc_of_flowLevel_succ {sc : ScannerState} {n : Nat} {sp_start sp : SurfP
     sc.inFlow = false → GStar SLDocumentPrefix sp_start sp :=
   fun hnf => (Bool.noConfusion (hnf ▸ inFlow_of_flowLevel_eq h) : GStar _ sp_start sp)
 
-/-- **The `[96]` tail window that CROSSED a break** (item 170) — the array's
-    last real token with a PROPERTY on a DIFFERENT line directly below it.
-    Named once for the three places that speak about it: the narrowed length
-    gate defers on it (a full run's tail on an earlier line may be a parent
-    node's, 9KAX), `propsPark_dangling_of_prop` hands it back when the §9.2
-    verdict cannot be carried through a property push, and
-    `pendingProps.h_routeX` is the route held UNGATED for exactly this window.
-
-    Why the verdict cannot be carried: `danglingNodePos?`'s walk-back is
-    capped at `[96]`'s own arity, so a property push SLIDES the window one
-    token — and the two windows read DIFFERENT start columns against the same
-    indent stack.  `a:⏎!t⏎&b⏎␣␣!s &c x` reads `some` at the `[.., &b, !s]`
-    park (`&b`'s column 0 sits at the open level) and `none` one push later
-    (`!s`'s column 2 does not), so neither verdict implies the other
-    (`Scratch/ProbeSlide170.lean`; pinned in
-    `Tests/Guards/Proofs/PropsCrossWindowRoute.lean`).  The route must
-    therefore come from a reading that never needed the verdict — the park's
-    landed birth, whose `bareNodeRoute`/marker/suffix readings are
-    unconditional. -/
-def PropsWindowCross (ts : Array (Positioned YamlToken)) : Prop :=
-  ∃ k j, prevRealIdx? ts ts.size = some k ∧ prevRealIdx? ts k = some j ∧
-    ts[j]!.val.isNodeProperty = true ∧ ts[j]!.pos.line ≠ ts[k]!.pos.line
-
+-- ~~**The `[96]` tail window that CROSSED a break**~~ (`PropsWindowCross`,
+-- item 170) is DELETED at item 181.  It named the array whose last real token
+-- has a PROPERTY on a different line directly below it — the configuration
+-- where §9.2's verdict could not be relayed across a property push, because
+-- the walk-back is capped at `[96]`'s arity and so SLIDES one token, and the
+-- two windows read different start columns against the same indent stack
+-- (`a:⏎!t⏎&b⏎␣␣!s &c x`, `Scratch/ProbeSlide170.lean`).  Three declarations
+-- spoke about it: the narrowed length gate (which defers on it still, by its
+-- own reading), `propsPark_dangling_of_prop` (which handed it back), and
+-- `pendingProps.h_routeX` (which carried a route for it).
+--
+-- What removes it is not a better relay but an emptier domain: a property
+-- pushed onto such a window makes THREE adjacent properties, `[96]` admits
+-- one anchor and one tag, and §9.2's fourth clause (item 180) refuses the
+-- duplicate.  So the states the window named are scanner-refused, the relay's
+-- premise is false there, and no route is owed
+-- (`crossedPropsExcessPos?_push_prop_three`; pinned in
+-- `Tests/Guards/Proofs/PropsCrossWindowRoute.lean`).
 
 inductive PendingNode (sc : ScannerState) : Bool → SurfPos → SurfPos → SurfPos → Prop where
   /-- No pending gap. Block stack top and scanner at same position.
@@ -1439,21 +1434,15 @@ inductive PendingNode (sc : ScannerState) : Bool → SurfPos → SurfPos → Sur
           IndentStackCover.Covered lo ks sc) ∨ True) ∧
         ∀ sp_m : SurfPos, SBlockNode n .blockIn sp_node sp_m →
         ResumeFrames (ExplValueLine sp_start nv) ks sp_m) ∨ True)
-      (h_nodir : sc.allowDirectives = false)
-      -- **Item 170 (LAST, same reason) — the CROSS-WINDOW route.**  Where the
-      -- park's tail window crossed a break — a property on an EARLIER line
-      -- directly below the tail — `h_route` above is unreachable: §9.2's
-      -- walk-back window SLIDES under a property push, so the verdict its
-      -- gate asks for cannot be relayed from the extension's own
-      -- (`PropsWindowCross`'s docstring has the refuting input).  This field
-      -- is the SAME route with the gate dropped for exactly that window.
-      -- Every producer pays it for free: the landed births' readings
-      -- (`bareNodeRoute`, the marker's and suffix's slots) never needed the
-      -- verdict, the entry/value producers' routes are unconditional
-      -- already, and a same-line extension REFUTES the window — its pushed
-      -- tail and the token below it share the cursor's line.
-      (h_routeX : PropsWindowCross sc.tokens →
-        ∀ sp_m, SBlockNode n .blockIn sp_node sp_m → SLYamlStream sp_start sp_m) :
+      -- ~~**Item 170 (LAST, same reason) — the CROSS-WINDOW route.**~~
+      -- **RETIRED at item 181.**  The field carried the route for the window
+      -- where §9.2's verdict could not be relayed across a property push (the
+      -- walk-back SLIDES, so the two readings name different columns).  That
+      -- window is now a refusal: three adjacent properties hold a duplicate
+      -- kind, and `danglingNodePos?`'s fourth clause reads it — so the arm
+      -- that would have spent this field is the arm whose own premise is
+      -- false.  `h_route` alone carries the run.
+      (h_nodir : sc.allowDirectives = false) :
       PendingNode sc false sp_start sp_block sp_scan
   /-- Document end `...` scanned. The gap contains SCDocumentEnd.
       Awaiting SSLComments to form SLDocumentSuffix.
@@ -12096,6 +12085,134 @@ lemma crossedPropsExcessPos?_push_prop_mono {ts : Array (Positioned YamlToken)}
     rw [← hscan]
     exact hE
 
+/-- A property token is not a placeholder. -/
+lemma not_placeholder_of_isNodeProperty {t : YamlToken} (h : t.isNodeProperty = true) :
+    (t == YamlToken.placeholder) = false := by
+  cases t <;> simp_all [YamlToken.isNodeProperty]
+
+/-- A property is an anchor or a tag — `[96]`'s two halves, and the pigeonhole's
+    two holes. -/
+lemma isAnchor_or_isTag_of_isNodeProperty {t : YamlToken} (h : t.isNodeProperty = true) :
+    t.isAnchorProperty = true ∨ t.isTagProperty = true := by
+  by_cases ha : t.isAnchorProperty = true
+  · exact Or.inl ha
+  · exact Or.inr (isTagProperty_of_isNodeProperty h (by simpa using ha))
+
+/-- **TWO adjacent properties SATURATE the block** (item 181): past a property
+    and the property directly below it, the scan has either already found its
+    excess or holds BOTH `[96]` flags — because two properties that are not a
+    duplicate are one of each kind.  This is the half of the pigeonhole that
+    does not depend on what comes next. -/
+lemma propsBlockScanLoop_two_props {ts : Array (Positioned YamlToken)} {k j : Nat}
+    (hkp : ts[k]!.val.isNodeProperty = true)
+    (hj : prevRealIdx? ts k = some j)
+    (hjp : ts[j]!.val.isNodeProperty = true) :
+    (propsBlockScanLoop ts (k + 1)).2.2 ≠ none ∨
+      ((propsBlockScanLoop ts (k + 1)).1 = true ∧
+        (propsBlockScanLoop ts (k + 1)).2.1 = true) := by
+  -- the scan below `k` reaches `j`'s own step: the gap between them is
+  -- placeholders, which the walk skips.
+  have hjk : j < k := prevRealIdx?_lt hj
+  have hbelow : propsBlockScanLoop ts k = propsBlockScanLoop ts (j + 1) :=
+    propsBlockScanLoop_skip_gap k hjk (fun m hm hmk => prevRealIdx?_gap hj m hm hmk)
+  have hj_flag : (propsBlockScanLoop ts k).1 = true ∨ (propsBlockScanLoop ts k).2.1 = true := by
+    rw [hbelow, propsBlockScanLoop_succ, if_neg (by simp [not_placeholder_of_isNodeProperty hjp]),
+      if_pos hjp]
+    rcases isAnchor_or_isTag_of_isNodeProperty hjp with h | h
+    · exact Or.inl (by simp [h])
+    · exact Or.inr (by simp [h])
+  rw [propsBlockScanLoop_succ, if_neg (by simp [not_placeholder_of_isNodeProperty hkp]),
+    if_pos hkp]
+  dsimp only []
+  cases hE : (propsBlockScanLoop ts k).2.2 with
+  | some x => exact Or.inl (by simp)
+  | none =>
+    -- no duplicate below `k`, so `k`'s own kind must be the one `j` did not
+    -- carry — and then both flags are up.
+    rcases isAnchor_or_isTag_of_isNodeProperty hkp with hA | hT
+    · cases hdup : (propsBlockScanLoop ts k).1 with
+      | true => exact Or.inl (by simp [hA])
+      | false =>
+        have htg : (propsBlockScanLoop ts k).2.1 = true := by
+          rcases hj_flag with h | h
+          · rw [hdup] at h; exact absurd h (by simp)
+          · exact h
+        exact Or.inr ⟨by simp [hA], by simp [htg]⟩
+    · cases hdup : (propsBlockScanLoop ts k).2.1 with
+      | true => exact Or.inl (by simp [hT])
+      | false =>
+        have hanc : (propsBlockScanLoop ts k).1 = true := by
+          rcases hj_flag with h | h
+          · exact h
+          · rw [hdup] at h; exact absurd h (by simp)
+        exact Or.inr ⟨by simp [hanc], by simp [hT]⟩
+
+/-- …and a THIRD property closes it: a saturated block plus one more token of
+    either kind is a duplicate (item 181). -/
+lemma propsBlockScanLoop_excess_of_saturated {ts : Array (Positioned YamlToken)} {m : Nat}
+    (hmp : ts[m]!.val.isNodeProperty = true)
+    (h : (propsBlockScanLoop ts m).2.2 ≠ none ∨
+      ((propsBlockScanLoop ts m).1 = true ∧ (propsBlockScanLoop ts m).2.1 = true)) :
+    (propsBlockScanLoop ts (m + 1)).2.2 ≠ none := by
+  rw [propsBlockScanLoop_succ, if_neg (by simp [not_placeholder_of_isNodeProperty hmp]),
+    if_pos hmp]
+  dsimp only []
+  rcases h with hE | ⟨hA, hT⟩
+  · cases hE' : (propsBlockScanLoop ts m).2.2 with
+    | some x => simp
+    | none => exact absurd hE' hE
+  · cases hE' : (propsBlockScanLoop ts m).2.2 with
+    | some x => simp
+    | none =>
+      rcases isAnchor_or_isTag_of_isNodeProperty hmp with h | h
+      · simp [h, hA]
+      · simp [h, hT]
+
+/-- **The crossed extension's verdict, at the token array** (item 181) — a
+    property pushed onto a tail whose own predecessor is a property makes THREE
+    adjacent properties, and three are never one `[96]` run.  This is what
+    empties the crossed-window arms: the window they were held for is exactly
+    the configuration this refuses. -/
+lemma crossedPropsExcessPos?_push_prop_three {ts : Array (Positioned YamlToken)}
+    {p : Positioned YamlToken} {k j : Nat}
+    (hp : p.val.isNodeProperty = true)
+    (hk : prevRealIdx? ts ts.size = some k)
+    (hkp : ts[k]!.val.isNodeProperty = true)
+    (hj : prevRealIdx? ts k = some j)
+    (hjp : ts[j]!.val.isNodeProperty = true) :
+    crossedPropsExcessPos? (ts.push p) ≠ none := by
+  rw [Ne, crossedPropsExcessPos?_none_iff]
+  have hph : (p.val == YamlToken.placeholder) = false := not_placeholder_of_isNodeProperty hp
+  have hkk : k < ts.size := prevRealIdx?_lt hk
+  have hget : (ts.push p)[ts.size]! = p := by simp [Array.getElem_push]
+  have hlast : prevRealIdx? (ts.push p) (ts.push p).size = some ts.size := by
+    have hsz' : (ts.push p).size = ts.size + 1 := Array.size_push ..
+    rw [hsz']
+    show (if (ts.push p)[ts.size]!.val == .placeholder then
+            prevRealIdx? (ts.push p) ts.size else some ts.size) = some ts.size
+    rw [hget, hph]; rfl
+  -- the pushed array's scan below the top is the park's own
+  have hscan : propsBlockScanLoop (ts.push p) ts.size
+      = propsBlockScanLoop ts (k + 1) := by
+    have hcongr : propsBlockScanLoop (ts.push p) (k + 1)
+        = propsBlockScanLoop ts (k + 1) :=
+      propsBlockScanLoop_congr_below _ (fun q hq => push_getElem!_below q (by omega))
+    by_cases hkk' : k + 1 = ts.size
+    · rw [← hkk']; exact hcongr
+    · have hgap : ∀ m, k < m → m < ts.size →
+          ((ts.push p)[m]!.val == YamlToken.placeholder) = true := by
+        intro m hkm hms
+        rw [push_getElem!_below m hms]
+        exact prevRealIdx?_gap hk m hkm hms
+      rw [propsBlockScanLoop_skip_gap ts.size (by omega) hgap]
+      exact hcongr
+  unfold crossedPropsExcessIdx?
+  rw [hlast]
+  simp only [hget, hp, ↓reduceIte]
+  refine propsBlockScanLoop_excess_of_saturated (by rw [hget]; exact hp) ?_
+  rw [hscan]
+  exact propsBlockScanLoop_two_props hkp hj hjp
+
 /-- `danglingNodePos?_congr`, weakened to the `none` direction — what the
     `[96]` extension's relay can pay when the crossed reading only travels
     one way (item 180). -/
@@ -12149,6 +12266,28 @@ lemma danglingNodePos?_none_mono {s t : ScannerState}
           · rename_i hc2
             rw [if_neg hc2]
             exact hx h
+
+/-- **The crossed block REFUSES, at whatever column** (item 181) — a trailing
+    run that starts on a property reaches §9.2's fourth clause whatever the
+    indent stack says: the slot exemption reads `!isNodeProperty` and so cannot
+    fire, and the at-level branch reports the run's own start.  So an excess in
+    the block is a verdict either way.  This is the step from
+    `crossedPropsExcessPos?_push_prop_three` to the refutation the crossed arms
+    are retired by. -/
+lemma danglingNodePos?_ne_none_of_crossed {s : ScannerState} {st : Nat}
+    {pred : Option Nat}
+    (hflow : s.inFlow = false)
+    (hrun : trailingNodeRun? s.tokens = some (st, pred))
+    (hstp : s.tokens[st]!.val.isNodeProperty = true)
+    (hx : crossedPropsExcessPos? s.tokens ≠ none) :
+    danglingNodePos? s ≠ none := by
+  unfold danglingNodePos?
+  rw [hflow]
+  simp only [Bool.false_eq_true, ↓reduceIte, hrun]
+  rw [if_neg (by simp [hstp])]
+  split
+  · simp
+  · exact hx
 
 /-- …and a flow close read back to its park — item 180's twin of
     `trailingNodeRun?_flowClose_reads_park`. -/
@@ -12367,16 +12506,23 @@ lemma propsPark_dangling_of_body {sc s_prep s_ad s' : ScannerState}
     exact h_nd
 
 /-- **…and the run's own EXTENSION** (item 160's property row, spent with item
-    165's length check, RESHAPED at item 170).  The start moves only where the
-    walk-back hits its cap.  Under the narrowed gate the dispatch's own guard
-    no longer says the cap is unreached: a full run whose tail closed on an
-    EARLIER line is deferred to the parser (9KAX), so the token below the
-    run's tail may be a property after all — and there the §9.2 windows before
-    and after the push read DIFFERENT start columns, so no relay exists in
-    either direction (`Scratch/ProbeSlide170.lean`).  The lemma therefore
-    returns what it finds: the relay where the below-token is no property,
-    and the NAMED window otherwise — which `pendingProps.h_routeX` serves
-    without the verdict. -/
+    165's length check, RESHAPED at item 170, RETIRED to a plain relay at item
+    181).  The start moves only where the walk-back hits its cap, and under the
+    narrowed length gate the dispatch's own guard no longer says the cap is
+    unreached: a full run whose tail closed on an EARLIER line is deferred to
+    the parser (9KAX), so the token below the run's tail may be a property
+    after all — and there the §9.2 windows before and after the push read
+    DIFFERENT start columns, so no relay by TRANSPORT exists in either
+    direction (`Scratch/ProbeSlide170.lean`).
+
+    **The relay holds anyway, because that branch has no states** (item 181).
+    A property below the tail plus the pushed one makes THREE adjacent
+    properties, and `[96]` admits one anchor and one tag — so by pigeonhole the
+    block holds a duplicate, §9.2's fourth clause reports it, and
+    `danglingNodePos? s'` is `some`.  The premise the relay asks for is
+    refuted, not transported: the conclusion is vacuous exactly where the
+    transport was false.  That is what retires `PropsWindowCross` and
+    `pendingProps.h_routeX` with it — the crossed window's whole domain. -/
 lemma propsPark_dangling_of_prop {sc s_prep s_ad s' : ScannerState}
     {sp_scan : SurfPos} {c : Char}
     (h_corr : ScannerSurfCorr sc sp_scan)
@@ -12388,41 +12534,36 @@ lemma propsPark_dangling_of_prop {sc s_prep s_ad s' : ScannerState}
     (h_ska : sc.simpleKeyAllowed = false)
     (h_dn : scanNextToken_checkDanglingNode sc s_prep = .ok ())
     (h_prop : ∃ k, prevRealIdx? sc.tokens sc.tokens.size = some k ∧
-      sc.tokens[k]!.val.isNodeProperty = true ∧
-      -- Item 170: the run's tail is on the park's line — what keeps the
-      -- narrowed length gate reading THIS run's tail at all.
-      sc.tokens[k]!.pos.line = sc.line)
+      sc.tokens[k]!.val.isNodeProperty = true)
     (h_ad_tok : s_ad.tokens = s_prep.tokens)
     (h_ad_ind : s_ad.indents = s_prep.indents)
     (h_ad_flow : s_ad.inFlow = s_prep.inFlow)
-    (h_ad_line : s_ad.line = sc.line)
     (hc : c = '&' ∨ c = '!')
-    (h_full : propertyRunFull s_ad = false)
     (h_dispatch : scanNextToken_dispatchContent s_ad c = .ok s') :
-    (danglingNodePos? s' = none → danglingNodePos? sc = none) ∨
-      PropsWindowCross sc.tokens := by
+    danglingNodePos? s' = none → danglingNodePos? sc = none := by
   rcases propsPark_stale_dangling h_corr h_pre h_noflow_prep h_col0 h_nic h_ska h_dn with
     h | ⟨h_tok, h_ind⟩
-  · exact Or.inl (fun _ => h)
-  · obtain ⟨k, hk, hkp, hkl⟩ := h_prop
+  · exact fun _ => h
+  · obtain ⟨k, hk, hkp⟩ := h_prop
     have htok : s_ad.tokens = sc.tokens := h_ad_tok.trans h_tok
     have hk_ad : prevRealIdx? s_ad.tokens s_ad.tokens.size = some k := by rw [htok]; exact hk
     have hkp_ad : s_ad.tokens[k]!.val.isNodeProperty = true := by rw [htok]; exact hkp
-    have hkl_ad : s_ad.tokens[k]!.pos.line = s_ad.line := by rw [htok, h_ad_line]; exact hkl
     by_cases hbelow : ∃ j, prevRealIdx? s_ad.tokens k = some j ∧
         s_ad.tokens[j]!.val.isNodeProperty = true
-    · -- The crossed window: the below-token is a property, and the gate's
-      -- pass says it is on another line — hand the window back whole.
+    · -- Item 181: the crossed window, REFUTED.  The pushed property is the
+      -- third of an adjacent block, so a kind repeats and the fourth clause
+      -- reads it — `danglingNodePos? s'` is `some` and the premise is false.
       obtain ⟨j, hj, hjp⟩ := hbelow
-      refine Or.inr ⟨k, j, hk, by rw [← htok]; exact hj, by rw [← htok]; exact hjp, ?_⟩
-      have hflow_ad : s_ad.inFlow = false := by rw [h_ad_flow]; exact h_noflow_prep
-      intro h_eq
-      rw [← htok] at h_eq
-      unfold propertyRunFull at h_full
-      rw [hk_ad] at h_full
-      simp only [hkp_ad, hkl_ad, beq_self_eq_true, Bool.true_and] at h_full
-      rw [hj] at h_full
-      simp [hjp, hflow_ad, h_eq, hkl_ad] at h_full
+      obtain ⟨t, ht, hpush⟩ := dispatchContent_tokens_push_prop h_dispatch hc
+      intro h_nd
+      exact absurd h_nd (danglingNodePos?_ne_none_of_crossed
+        (by have h_fl : s'.inFlow = s_ad.inFlow := by
+              unfold ScannerState.inFlow
+              rw [ScannerCorrectness.dispatchContent_preserves_flowLevel _ c _ h_dispatch]
+            rw [h_fl, h_ad_flow]; exact h_noflow_prep)
+        (trailingNodeRun?_dispatch_prop_onProp h_dispatch hc hk_ad hkp_ad)
+        (by rw [hpush, push_getElem!_below k (prevRealIdx?_lt hk_ad)]; exact hkp_ad)
+        (by rw [hpush]; exact crossedPropsExcessPos?_push_prop_three ht hk_ad hkp_ad hj hjp))
     · -- The relay: no property below the tail, so the push does not move the
       -- walk-back's start and the verdict carries verbatim (item 165's chain).
       have hno : ∀ j, prevRealIdx? s_ad.tokens k = some j →
@@ -12453,7 +12594,7 @@ lemma propsPark_dangling_of_prop {sc s_prep s_ad s' : ScannerState}
       have h2 : danglingNodePos? s_ad = danglingNodePos? sc :=
         danglingNodePos?_congr_fields
           (by rw [h_ad_flow, h_noflow_prep, h_noflow_sc]) htok (h_ad_ind.trans h_ind)
-      exact Or.inl (fun h_nd => by rw [← h2]; exact h1 h_nd)
+      exact fun h_nd => by rw [← h2]; exact h1 h_nd
 
 lemma completesFlowValue_not_offersNodeSlot {t : YamlToken}
     (h : t.completesFlowValue = true) : t.offersNodeSlot = false := by
@@ -13211,29 +13352,10 @@ lemma prevRealIdx?_push_top {ts : Array (Positioned YamlToken)}
   rw [push_getElem!_top]
   simp [hp]
 
-/-- **A same-line extension REFUTES the crossed window** (item 170): the token
-    it pushes and the run token directly below it share the cursor's line, so
-    the extended park's `h_routeX` premise is false and the field is free. -/
-lemma propsWindowCross_push_refute {s_ad s' sc : ScannerState}
-    {p : Positioned YamlToken}
-    (htok_ad : s_ad.tokens = sc.tokens)
-    (h_tokens : s'.tokens = s_ad.tokens.push p)
-    (hp_real : p.val ≠ .placeholder)
-    (hp_line : p.pos.line = sc.line)
-    (h_prop : ∃ k, prevRealIdx? sc.tokens sc.tokens.size = some k ∧
-      sc.tokens[k]!.val.isNodeProperty = true ∧
-      sc.tokens[k]!.pos.line = sc.line) :
-    ¬ PropsWindowCross s'.tokens := by
-  rintro ⟨k2, j2, hk2, hj2, -, hjl2⟩
-  obtain ⟨kk, hkk, -, hkkl⟩ := h_prop
-  have hsz : s_ad.tokens.size = sc.tokens.size := by rw [htok_ad]
-  rw [h_tokens, Array.size_push, prevRealIdx?_push_top hp_real] at hk2
-  obtain rfl : s_ad.tokens.size = k2 := Option.some.inj hk2
-  rw [h_tokens, prevRealIdx?_push _ (Nat.le_refl _), htok_ad, hkk] at hj2
-  obtain rfl : kk = j2 := Option.some.inj hj2
-  have hkk_lt : kk < s_ad.tokens.size := by rw [hsz]; exact prevRealIdx?_lt hkk
-  rw [h_tokens, push_getElem!_below kk hkk_lt, htok_ad, push_getElem!_top] at hjl2
-  exact hjl2 (hkkl.trans hp_line.symm)
+-- ~~`propsWindowCross_push_refute`~~ (item 170) is DELETED with the field it
+-- discharged (item 181): a same-line extension refuted the crossed window by
+-- its LINE, and the window itself is gone — what the same states now meet is
+-- `danglingNodePos?`'s fourth clause, which refuses them by their KINDS.
 
 /-- A step that writes no token at all carries the anchor. -/
 lemma ParkAnchor.congr {sc0 s s' : ScannerState} {d : Nat} (h : ParkAnchor sc0 s d)
@@ -24662,12 +24784,12 @@ lemma content_dispatch_routed
     -- still names `&`/`!`, and what it names there is the missing FIELD: the
     -- props park below has no reading to hand over.
     --
-    -- **Item 170 widened the premise** with the crossed tail window: the
-    -- props park's `h_routeX` needs the route WITHOUT the verdict there, and
-    -- every provider's construction never read the premise anyway — the
-    -- refutable half lives one level up, in `bareNodeRoute_or_refused_content`,
-    -- whose refutations both spend the GATE disjunct alone.
-    (h_route : ContentRouteGate s' c ∨ PropsWindowCross s'.tokens →
+    -- ~~**Item 170 widened the premise** with the crossed tail window.~~
+    -- **Item 181 narrowed it back.**  The widening existed so the props park
+    -- could hold a route for the window where §9.2's verdict is unrelayable;
+    -- §9.2 refuses that window itself now (item 180's fourth clause), so the
+    -- gate is the whole premise again.
+    (h_route : ContentRouteGate s' c →
       ∀ sp_m, SBlockNode 0 .blockIn sp_anchor sp_m →
       SLYamlStream sp_start sp_m)
     (h_keyctx : ((∃ (k : Nat) (sp_land : SurfPos),
@@ -24938,7 +25060,7 @@ lemma content_dispatch_routed
                -- Item 165: the park's own §9.2 verdict, deferred to its
                -- consumer — which is the gate itself, now that the right
                -- disjunct is gone.
-               (fun h_nd => h_route (Or.inl h_nd))
+               (fun h_nd => h_route h_nd)
                (h_props_key sp_scan'
                  (SCNsProperties.anchorFirst 0 .blockKey sp_prep sp_scan' sp_scan'
                    ha_ev (GOpt.none sp_scan'))
@@ -24953,11 +25075,7 @@ lemma content_dispatch_routed
                -- is bare-document content), so all five faces punt for free.
                (Or.inr trivial) (Or.inr trivial) (Or.inr trivial)
                (Or.inr trivial) (Or.inr trivial)
-               (nodir_of_content_dispatch h_dispatch)
-               -- Item 170: the landed birth's route never read the verdict
-               -- (`fun _ =>` at every provider), so the crossed window rides
-               -- the same term.
-               (fun cross => h_route (Or.inr cross)),
+               (nodir_of_content_dispatch h_dispatch),
              hcorr_result⟩
     | inr h =>
       subst h
@@ -24976,7 +25094,7 @@ lemma content_dispatch_routed
                (fun h => nomatch h)
                (fun _ => h_any YamlToken.isTagProperty
                  (by simp [YamlToken.isTagProperty]))
-               (fun h_nd => h_route (Or.inl h_nd))
+               (fun h_nd => h_route h_nd)
                (h_props_key sp_scan'
                  (SCNsProperties.tagFirst 0 .blockKey sp_prep sp_scan' sp_scan'
                    ht_ev (GOpt.none sp_scan'))
@@ -24990,10 +25108,7 @@ lemma content_dispatch_routed
                -- VALUE is `§9.2`-refused, so the faces punt for free.
                (Or.inr trivial) (Or.inr trivial) (Or.inr trivial)
                (Or.inr trivial) (Or.inr trivial)
-               (nodir_of_content_dispatch h_dispatch)
-               -- Item 170: as at the `&` arm — the birth's route never read
-               -- the verdict, so the crossed window rides the same term.
-               (fun cross => h_route (Or.inr cross)),
+               (nodir_of_content_dispatch h_dispatch),
              hcorr_result⟩
   · have hna : c ≠ '&' := fun h => hprops (Or.inl h)
     have hnt : c ≠ '!' := fun h => hprops (Or.inr h)
@@ -25220,7 +25335,7 @@ lemma content_dispatch_routed
                          h_propsP h_sepB h_fc)
                        h_ssl_ext)
                  | _, _ =>
-                     h_route (Or.inl h_nd) sp_mid (flowInBlock_blockNode h_sep h_flow h_ssl_ext))
+                     h_route h_nd sp_mid (flowInBlock_blockNode h_sep h_flow h_ssl_ext))
                h_key
                (stale_of_dispatch h_dispatch hna hnt
                  (by split <;> show s_prep.needIndentCheck = false <;> exact h_nic_prep)
@@ -25266,7 +25381,7 @@ lemma content_dispatch_routed
                            (GOpt.some sp_pp sp_prep (GSeq.mk sp_pp sp_rp sp_prep
                              (props_linesLift h_propsP) h_sepB)) h_fld))
                  | Or.inr _ =>
-                     h_route (Or.inl h_nd) sp_mid
+                     h_route h_nd sp_mid
                        ((h_absorb95 sp_mid h_ssl).elim
                          (fun h_lit => literal_blockNode h_sep (GOpt.none sp_prep) h_lit)
                          (fun h_fld => folded_blockNode h_sep (GOpt.none sp_prep) h_fld)))
@@ -26265,11 +26380,7 @@ lemma accum_content_on_pendingBlock_indented
              -- Item 114: the node-domain pair is the MAPPING producers' —
              -- this park's completion takes the entries-chain park instead.
              (Or.inr trivial) (Or.inr trivial)
-             (nodir_of_content_dispatch h_dispatch)
-             -- Item 170: the entry's route never read the verdict, so the
-             -- crossed window rides the same term.
-             (fun _ sp_m h_bn => h_close_old sp_m
-               (SBlockIndented.node n .blockIn sp_scan sp_m h_bn)),
+             (nodir_of_content_dispatch h_dispatch),
            hcorr_result⟩
   · -- Item 26: `  - |` — `[198]`'s block scalar at the ENTRY's index.  The
     -- node is complete where the scanner stopped ([170]'s `l-chomped-empty`
@@ -26962,10 +27073,7 @@ lemma accum_content_on_pendingMapValue_indented
                     ⟨lo, _, hb, h_cov_step lo ks hc⟩) id,
                   closeFV⟩
               | Or.inr _ => Or.inr trivial)
-             (nodir_of_content_dispatch h_dispatch)
-             -- Item 170: the value slot's route never read the verdict, so
-             -- the crossed window rides the same term.
-             (fun _ => h_close_old),
+             (nodir_of_content_dispatch h_dispatch),
            hcorr_result⟩
   · -- Item 26: `  a: |`, `  : |`, `  ? |` — the mapping twin of the sequence
     -- entry's block-scalar value, closing at the entry's own index.
@@ -27532,7 +27640,7 @@ lemma accum_content_pending (sc : ScannerState)
       -- own slot; every other park keeps the bare-document route
       -- (`content_dispatch_after_close`'s, written out here because the
       -- route is now the one thing the two cases do differently).
-      have h_route_mid : ContentRouteGate s' c ∨ PropsWindowCross s'.tokens → ∀ sp_m,
+      have h_route_mid : ContentRouteGate s' c → ∀ sp_m,
           SBlockNode 0 .blockIn sp_mid sp_m → SLYamlStream sp_start sp_m :=
         fun h_gate =>
         match h_sfx with
@@ -27543,14 +27651,12 @@ lemma accum_content_pending (sc : ScannerState)
         -- **Item 157 takes the OTHER half out** — the landing that rests ON an
         -- open level makes a dangling run, and the park's face says the next
         -- landing already refused it.  What is left of the route's domain is
-        -- the gate's property disjunct.  Item 170: the crossed-window arm
-        -- skips the refinement — `bareNodeRoute` never read the gate. ═══
+        -- the gate's property disjunct.  ~~Item 170: the crossed-window arm
+        -- skips the refinement.~~  **Item 181: there is no crossed-window arm**
+        -- — the refinement is the route's only construction again. ═══
         | Or.inr _ =>
-            match h_gate with
-            | Or.inl h_gate =>
-                bareNodeRoute_or_refused_content h_stream_mid h_bare h_preprocess
-                  h_noflow_prep h_ska h_base h_tail139 h_dispatch h_noflow_s' h_gate
-            | Or.inr _ => bareNodeRoute h_stream_mid
+            bareNodeRoute_or_refused_content h_stream_mid h_bare h_preprocess
+              h_noflow_prep h_ska h_base h_tail139 h_dispatch h_noflow_s' h_gate
       exact content_dispatch_routed sp_start sp_mid sp_mid s_prep s' c sp_prep sp_scan'
         h_stream_mid h_sep (nic_false_of_flow_disp h_preprocess h_flow_disp)
         hcorr_prep hcorr_result h_not_doc
@@ -27650,7 +27756,7 @@ lemma accum_content_pending (sc : ScannerState)
         have h_sep := SSeparateLines.inline 0 sp_mid sp_prep
           (GStar_SSWhite_to_SSeparateInLine sp_mid sp_prep h_ws)
         -- Item 117: as at the column-0 landing.
-        have h_route_mid : ContentRouteGate s' c ∨ PropsWindowCross s'.tokens → ∀ sp_m,
+        have h_route_mid : ContentRouteGate s' c → ∀ sp_m,
             SBlockNode 0 .blockIn sp_mid sp_m → SLYamlStream sp_start sp_m :=
           fun h_gate =>
           match h_sfx with
@@ -27658,14 +27764,11 @@ lemma accum_content_pending (sc : ScannerState)
           -- ═══ Item 139: as at the column-0 landing, with the flag off the WALK
           -- instead of off the park — this branch crossed the break that re-arms
           -- it, which is item 76's own datum read at the flag.  **Item 157 takes
-          -- the open-level half out here too.**  Item 170: the crossed-window
-          -- arm skips the refinement — `bareNodeRoute` never read the gate. ═══
+          -- the open-level half out here too.**  ~~Item 170: the crossed-window
+          -- arm skips the refinement.~~  **Item 181: the arm is gone.** ═══
           | Or.inr _ =>
-              match h_gate with
-              | Or.inl h_gate =>
-                  bareNodeRoute_or_refused_content h_stream_mid h_bare h_preprocess
-                    h_noflow_prep h_ska h_base h_tail139 h_dispatch h_noflow_s' h_gate
-              | Or.inr _ => bareNodeRoute h_stream_mid
+              bareNodeRoute_or_refused_content h_stream_mid h_bare h_preprocess
+                h_noflow_prep h_ska h_base h_tail139 h_dispatch h_noflow_s' h_gate
         exact content_dispatch_routed sp_start sp_mid sp_mid s_prep s' c sp_prep sp_scan'
           h_stream_mid h_sep (nic_false_of_flow_disp h_preprocess h_flow_disp)
           hcorr_prep hcorr_result h_not_doc
@@ -27878,7 +27981,7 @@ lemma accum_content_pending (sc : ScannerState)
         (nodir_of_content_dispatch h_dispatch))
   | pendingProps _ _ _ ha ht sp_node sp_p n h_sep_run h_run h_nic_p h_real_p h_anchor_p h_tag_p
       h_route h_key_p h_floor_p h_col0_p h_ncol_p h_ska_p h_kslot_p
-      h_routeE_p h_kslotE_p h_closeFE_p h_closeFS_p h_closeFVS_p _h_nodir_p h_routeX_p =>
+      h_routeE_p h_kslotE_p h_closeFE_p h_closeFS_p h_closeFVS_p _h_nodir_p =>
     -- ═══ Item 12: a held depth-0 run meets a CONTENT character — the
     -- content-dispatch escape RETIRES.  Across a break the run closes as
     -- `propsEmpty` (the parked couplings go stale with the line, and are not
@@ -28078,10 +28181,12 @@ lemma accum_content_pending (sc : ScannerState)
       -- has to hand it back.  This arm can: it wrote neither a token nor an
       -- indent between the park and the dispatch, so all three relays below
       -- reduce to the park's own `[96]` tail.
+      -- Item 181: the relay reads the tail's KIND alone now — the line
+      -- conjunct was the crossed window's premise, and the window is gone.
       have h_prop_park : ∃ k, prevRealIdx? sc.tokens sc.tokens.size = some k ∧
-          sc.tokens[k]!.val.isNodeProperty = true ∧
-          sc.tokens[k]!.pos.line = sc.line :=
-        propsPark_prevReal_prop h_real_p h_run h_anchor_p h_tag_p
+          sc.tokens[k]!.val.isNodeProperty = true := by
+        obtain ⟨k, hk, hkp, -⟩ := propsPark_prevReal_prop h_real_p h_run h_anchor_p h_tag_p
+        exact ⟨k, hk, hkp⟩
       have h_noflow_sc : sc.inFlow = false := by
         unfold ScannerState.inFlow; rw [h_fl0]; simp
       have h_ad_ind0 : (if s_prep.allowDirectives then
@@ -28094,20 +28199,16 @@ lemma accum_content_pending (sc : ScannerState)
       · -- ═══ `&` on the run's line: EXTEND (the guard says no anchor held) ═══
         subst hamp
         -- Item 165: the EXTENSION's relay, off the `[96]` length check the
-        -- dispatch itself passed.  **Item 170: the relay is now a disjunction**
-        -- — where the park's own tail window crossed a break, §9.2's verdict
-        -- cannot be carried through the push (the window SLIDES,
-        -- `PropsWindowCross`'s docstring), and the route comes from the park's
-        -- `h_routeX` instead, which never needed it.
+        -- dispatch itself passed.  ~~Item 170: the relay is now a
+        -- disjunction.~~  **Item 181: it is a relay again** — the crossed
+        -- window's branch makes three adjacent properties and §9.2's fourth
+        -- clause refuses it, so the relay's own premise is what fails there
+        -- and no second route is owed.
         have h_route_new : danglingNodePos? s' = none →
             ∀ sp_m, SBlockNode n .blockIn sp_node sp_m → SLYamlStream sp_start sp_m :=
-          match propsPark_dangling_of_prop h_corr h_preprocess h_noflow_sc
+          fun h_nd => h_route (propsPark_dangling_of_prop h_corr h_preprocess h_noflow_sc
             h_noflow_prep h_col0_p h_nic_p h_ska_p h_dn h_prop_park h_ad_toks h_ad_ind0
-            h_ad_flow0 (h_ad_line.trans h_line_pp) (Or.inl rfl)
-            (propertyRunFull_false_of_anchor_dispatch h_dispatch)
-            h_dispatch with
-          | Or.inl h_nd_rel => fun h_nd => h_route (h_nd_rel h_nd)
-          | Or.inr h_cross => fun _ => h_routeX_p h_cross
+            h_ad_flow0 (Or.inl rfl) h_dispatch h_nd)
         have h_guard := propertyRunHasAnchor_false_of_dispatch h_dispatch
         unfold propertyRunHasAnchor at h_guard
         rw [Bool.or_eq_false_iff] at h_guard
@@ -28239,26 +28340,17 @@ lemma accum_content_pending (sc : ScannerState)
                    (h_closeFVS_p.imp (fun ⟨nv, ks, h_cov, r⟩ => ⟨nv, ks,
                      h_cov.imp (fun ⟨lo, m, hb, hc⟩ => ⟨lo, m, hb, h_cov_step lo ks hc⟩) id,
                      r⟩) id)
-                 (nodir_of_content_dispatch h_dispatch)
-                 -- Item 170: a same-line extension refutes the crossed window
-                 -- — the pushed anchor and the run's tail share the line.
-                 (fun cross => absurd cross (propsWindowCross_push_refute
-                   (h_ad_toks.trans (h_stale0 h_nic_p h_ska_p).2.1) h_tokens
-                   (by simp) (by exact h_ad_line.trans h_line_pp) h_prop_park)),
+                 (nodir_of_content_dispatch h_dispatch),
                hcorr_result⟩
       · by_cases hbang : c = '!'
         · -- ═══ `!` on the run's line: the mirror ═══
           subst hbang
-          -- Item 170: the disjunctive relay, as at the `&` arm.
+          -- Item 181: the plain relay, as at the `&` arm.
           have h_route_new : danglingNodePos? s' = none →
               ∀ sp_m, SBlockNode n .blockIn sp_node sp_m → SLYamlStream sp_start sp_m :=
-            match propsPark_dangling_of_prop h_corr h_preprocess h_noflow_sc
+            fun h_nd => h_route (propsPark_dangling_of_prop h_corr h_preprocess h_noflow_sc
               h_noflow_prep h_col0_p h_nic_p h_ska_p h_dn h_prop_park h_ad_toks h_ad_ind0
-              h_ad_flow0 (h_ad_line.trans h_line_pp) (Or.inr rfl)
-              (propertyRunFull_false_of_tag_dispatch h_dispatch)
-              h_dispatch with
-            | Or.inl h_nd_rel => fun h_nd => h_route (h_nd_rel h_nd)
-            | Or.inr h_cross => fun _ => h_routeX_p h_cross
+              h_ad_flow0 (Or.inr rfl) h_dispatch h_nd)
           have h_guard := propertyRunHasTag_false_of_dispatch h_dispatch
           unfold propertyRunHasTag at h_guard
           rw [Bool.or_eq_false_iff] at h_guard
@@ -28382,12 +28474,7 @@ lemma accum_content_pending (sc : ScannerState)
                      (h_closeFVS_p.imp (fun ⟨nv, ks, h_cov, r⟩ => ⟨nv, ks,
                        h_cov.imp (fun ⟨lo, m, hb, hc⟩ => ⟨lo, m, hb, h_cov_step lo ks hc⟩) id,
                        r⟩) id)
-                   (nodir_of_content_dispatch h_dispatch)
-                   -- Item 170: a same-line extension refutes the crossed
-                   -- window, as at the `&` arm.
-                   (fun cross => absurd cross (propsWindowCross_push_refute
-                     (h_ad_toks.trans (h_stale0 h_nic_p h_ska_p).2.1) h_tokens
-                     (by simp) (by exact h_ad_line.trans h_line_pp) h_prop_park)),
+                   (nodir_of_content_dispatch h_dispatch),
                  hcorr_result⟩
         · by_cases hstar : c = '*'
           · -- ═══ `*` on the run's line: REFUTED (items 9e/9k) ═══
@@ -28419,7 +28506,7 @@ lemma accum_content_pending (sc : ScannerState)
             have h_nd_rel : danglingNodePos? s' = none → danglingNodePos? sc = none :=
               fun h_nd => propsPark_dangling_of_body h_corr h_preprocess h_noflow_sc
                 h_noflow_prep h_col0_p h_nic_p h_ska_p h_dn
-                (h_prop_park.imp (fun _ h => ⟨h.1, h.2.1⟩)) h_ad_toks h_ad_ind0
+                h_prop_park h_ad_toks h_ad_ind0
                 h_ad_flow0 hamp hbang h_dispatch h_nd
             have h_line := col0_or_lineStop
               (dispatchContent_restNodeStop h_flow_disp hamp hbang hcorr_result.end_eq h_dispatch)

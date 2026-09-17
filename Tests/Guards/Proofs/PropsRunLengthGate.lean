@@ -31,10 +31,13 @@ by LENGTH and reads the RUN.
 length-only form read a parent's full run, a break, and the first implicit
 KEY's fresh run as ONE run and refused 9KAX — so the cross-line third-property
 shapes are the parser's again, and the walk-back CAN reach its cap at a park
-the scanner produces.  The relay in §2 returns that window
+the scanner produces.  ~~The relay in §2 returns that window
 (`PropsWindowCross`) instead of forcing the verdict through it, and
-`pendingProps.h_routeX` — the route held without the verdict — serves it
-(`PropsCrossWindowRoute` is that story's own guard).
+`pendingProps.h_routeX` — the route held without the verdict — serves it.~~
+**Item 181: the window's states are scanner-refused** (§9.2's fourth clause,
+item 180), so §2's relay is a plain implication again and the route it would
+have needed is owed by nobody (`PropsCrossWindowRoute` is that story's own
+guard).
 
 §1 measures the check, §2 the relay it buys, §3 the props arm's own gate — the
 tenth and last of item 161's ten — and §4 the residue that leaves:
@@ -136,12 +139,14 @@ example {sc s_prep : ScannerState} {sp_scan : SurfPos} {c : Char}
       (s_prep.tokens = sc.tokens ∧ s_prep.indents = sc.indents) :=
   propsPark_stale_dangling h_corr h_pre h_noflow_prep h_col0 h_nic h_ska h_dn
 
-/-- The EXTENSION's relay, with §1's check as its one new premise.  **Item 170
-    reshaped it into a disjunction**: under the narrowed gate a property may
-    stand below the run's tail across a break, and there the §9.2 window
-    SLIDES under the push (`PropsWindowCross`'s docstring has the refuting
-    input) — the lemma hands the window back and `pendingProps.h_routeX`
-    serves it without the verdict. -/
+/-- The EXTENSION's relay.  ~~Item 170 reshaped it into a disjunction~~ —
+    under the narrowed gate a property may stand below the run's tail across a
+    break, and there the §9.2 window SLIDES under the push, so the verdict
+    could not be transported and the lemma handed the window back.  **Item 181
+    made it a relay again, and took two premises off with the disjunct**: §9.2
+    refuses the crossed block itself now (item 180), so the branch that could
+    not transport is the branch whose own premise is false — and neither the
+    length check nor the tail's LINE is read any more. -/
 example {sc s_prep s_ad s' : ScannerState} {sp_scan : SurfPos} {c : Char}
     (h_corr : ScannerSurfCorr sc sp_scan)
     (h_pre : scanNextToken_preprocess sc = .ok (some (s_prep, c)))
@@ -150,18 +155,14 @@ example {sc s_prep s_ad s' : ScannerState} {sp_scan : SurfPos} {c : Char}
     (h_nic : sc.needIndentCheck = false) (h_ska : sc.simpleKeyAllowed = false)
     (h_dn : scanNextToken_checkDanglingNode sc s_prep = .ok ())
     (h_prop : ∃ k, prevRealIdx? sc.tokens sc.tokens.size = some k ∧
-      sc.tokens[k]!.val.isNodeProperty = true ∧
-      sc.tokens[k]!.pos.line = sc.line)
+      sc.tokens[k]!.val.isNodeProperty = true)
     (h_ad_tok : s_ad.tokens = s_prep.tokens) (h_ad_ind : s_ad.indents = s_prep.indents)
     (h_ad_flow : s_ad.inFlow = s_prep.inFlow)
-    (h_ad_line : s_ad.line = sc.line)
     (hc : c = '&' ∨ c = '!')
-    (h_full : propertyRunFull s_ad = false)
     (h_dispatch : scanNextToken_dispatchContent s_ad c = .ok s') :
-    (danglingNodePos? s' = none → danglingNodePos? sc = none) ∨
-      PropsWindowCross sc.tokens :=
+    danglingNodePos? s' = none → danglingNodePos? sc = none :=
   propsPark_dangling_of_prop h_corr h_pre h_noflow_sc h_noflow_prep h_col0 h_nic h_ska
-    h_dn h_prop h_ad_tok h_ad_ind h_ad_flow h_ad_line hc h_full h_dispatch
+    h_dn h_prop h_ad_tok h_ad_ind h_ad_flow hc h_dispatch
 
 /-- …and the CONTENT's, which needs no such premise: a body push leaves the
     walk-back's answer alone (item 160's row, now spendable). -/
@@ -217,7 +218,8 @@ example {sc s_prep s' : ScannerState} {sp_scan : SurfPos} {c : Char}
     `pendingProps` already carries — the run is non-empty, a non-empty same-line
     run is headed by the last real token, and a real final slot is the one
     `prevRealIdx?` lands on.  Item 170: the derivation always held the tail's
-    LINE too and used to drop it; the narrowed gate's relay spends it. -/
+    LINE too and used to drop it; the narrowed gate's relay spent it — and
+    item 181's relay no longer does, so the conjunct is pinned here alone. -/
 example {sc : ScannerState} {ha ht : Bool} {n : Nat} {sp_p sp_scan : SurfPos}
     (h_real : L4YAML.Proofs.FlowAdjacency.LastTokenReal sc.tokens)
     (h_run : PropsRun n .flowOut ha ht sp_p sp_scan)
@@ -242,10 +244,11 @@ example {sc : ScannerState} {ha ht : Bool} {n : Nat} {sp_p sp_scan : SurfPos}
 item 158 measured what the right disjunct named: not two characters but a
 missing FIELD — `pendingProps` carried no §9.2 face, so at `&`/`!` the landing
 had no reading to hand over.  It has one now, so the gate is the reading, for
-every content character alike.  (Item 170 widened `content_dispatch_routed`'s
-route PREMISE with `PropsWindowCross` — a different disjunct with a different
-payer: every provider's construction ignores the premise, so the crossed
-window costs nothing there.  The gate itself is unchanged.) -/
+every content character alike.  (~~Item 170 widened `content_dispatch_routed`'s
+route PREMISE with `PropsWindowCross`~~ — a different disjunct with a different
+payer, and **item 181 narrowed it back**: §9.2 refuses the crossed window
+itself, so the premise is the gate alone again.  The gate itself was never
+moved by either.) -/
 
 example {s' : ScannerState} {c : Char} :
     ContentRouteGate s' c ↔ danglingNodePos? s' = none := Iff.rfl

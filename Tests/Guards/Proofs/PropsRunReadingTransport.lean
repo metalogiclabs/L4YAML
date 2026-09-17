@@ -127,11 +127,16 @@ DIFFERENT tokens.  That is why the premise cannot be stated as
 **Item 165 refused the input; item 170 narrowed that gate back** (the
 length-only form read a parent's full run and a fresh key's run as one — 9KAX
 — so in block context it fires only when all three properties share the
-cursor's line).  The cross-line third is the PARSER's again, the start DOES
-move at a scanner-reachable park — step 3 below reads `1,0` where step 2 read
-`0,0` — and the relay serves the moved window by returning it
+cursor's line).  The cross-line third is the PARSER's again, and the start
+DOES move at a scanner-reachable park — step 3 below reads `1,0` where step 2
+read `0,0`.  ~~The relay serves the moved window by returning it
 (`PropsWindowCross`), which `pendingProps.h_routeX` answers without the
-verdict (`PropsCrossWindowRoute` is that guard). -/
+verdict.~~  **Item 181: the moved window is a REFUSAL** — the third property
+makes three adjacent, `[96]` admits one anchor and one tag, and §9.2's fourth
+clause (item 180) reads the duplicate, which the park column below shows as
+`park=1,3`.  So the relay is a plain implication whose premise is false there,
+and both the window and the route are deleted (`PropsCrossWindowRoute` is that
+guard). -/
 
 -- Item 180: the crossed-block clause reads the over-full block as SOME from
 -- the excess property on, and the family refuses at the scanner (EOF).
@@ -153,7 +158,9 @@ example {s s' : ScannerState} {c : Char} {i : Nat}
   trailingNodeRun?_dispatch_prop_onProp hok hc hprev hiprop
 
 /-- The dispatch's own pass, read back — under item 170's gate this refutes a
-    SAME-LINE below-property, and hands the cross-line window to `h_routeX`. -/
+    SAME-LINE below-property, and item 170 spent it on the cross-line window.
+    Item 181 retires that spend (the window refuses on its KINDS, with no line
+    read at all), so this reading is pinned here and nowhere else. -/
 example {s s' : ScannerState} (hok : scanNextToken_dispatchContent s '&' = .ok s') :
     propertyRunFull s = false :=
   propertyRunFull_false_of_anchor_dispatch hok

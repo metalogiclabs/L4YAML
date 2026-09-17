@@ -272,9 +272,12 @@ full run beside its mapping's first key's fresh run reads the same way (9KAX,
 found at item 169's matrix re-run).  Item 170 narrows the block reading to the
 cursor's line, so `&a⏎!t &b x` is the PARSER's again and the start DOES move
 at a scanner-reachable park — step 3 below reads `1,0` where step 2 read
-`0,0`.  The premise relays through the BODY and OPEN pushes as before; the
+`0,0`.  The premise relays through the BODY and OPEN pushes as before; ~~the
 PROPERTY push returns the moved window (`PropsWindowCross`) and
-`pendingProps.h_routeX` serves it without the verdict
+`pendingProps.h_routeX` serves it without the verdict~~ — **item 181: the
+PROPERTY push REFUTES**, because the pushed token is the third of an adjacent
+property block and §9.2's fourth clause reads the duplicate kind, so the
+relay's own premise is false there and the window is deleted
 (`PropsCrossWindowRoute`). -/
 
 -- Item 180: the crossed-block clause refuses the family at the SCANNER now
