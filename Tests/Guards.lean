@@ -137,6 +137,7 @@ import Tests.Guards.Proofs.FlowParkAnchor
 import Tests.Guards.Proofs.FlowGateGeneration
 import Tests.Guards.Proofs.FlowReservationFloor
 import Tests.Guards.Proofs.FlipConsumerSurface
+import Tests.Guards.Proofs.BlockDeferralClasses
 import Tests.Guards.Proofs.PropsRunLengthGate
 import Tests.Guards.Proofs.BlockLandingOpenSeq
 import Tests.Guards.Proofs.SeqDedentEntryTail

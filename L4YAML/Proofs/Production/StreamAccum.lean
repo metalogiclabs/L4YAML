@@ -19148,6 +19148,74 @@ lemma block_dispatch_deferred
    PendingNode.pendingFlow sp_start sp_X sp_scan' h_stream h_arm h_nodir,
    hcorr⟩
 
+/-! #### The escape's three classes, named (item 184)
+
+    `block_dispatch_deferred` has twelve applications across five consumer
+    lemmas, and the number says nothing about what still exits through it: an
+    escape's price is its DOMAIN, and the site count is independent of that in
+    both directions (Reflection 645).  The two wrappers below partition the
+    applications by the branch that sends them there, and each carries THAT
+    branch's own evidence, so the partition is checked by the elaborator
+    rather than read off the source — and a class emptying is a wrapper's
+    deletion rather than a number moving.
+
+    * `block_dispatch_deferred_stamp` — item 125's undecided stamp source.
+      The dispatch state holds a live `explicitKeyLine` AND stands at
+      `explicitKeyCol`, so the `:` is `[197] l-block-map-explicit-value`'s own
+      and the GENERIC reopen — which stamps — is not merely unavailable but
+      wrong.  What the branch wants is the `?` frame's value slot at the
+      landing's own column, which a park carries only when a pack reached it:
+      U2's residue, whose scanner-ACCEPTED inputs are pinned at
+      `ParkFaceCoupling` §3.
+    * `block_dispatch_deferred_inline` — the inline residue.  The park is off
+      column 0 and the step crossed no break, so the `:` is a MID-LINE one and
+      the residue is the implicit-key pack's punt (item 102), whose surviving
+      reasons are `KeyPackPunt.dedent` and `.noKeyContext`.
+    * `block_dispatch_deferred` itself — `pendingFlow`'s own arm, which this
+      escape PRODUCES.  It cannot close while the escape stands and goes with
+      the constructor (item 35's structural note). -/
+
+/-- **The escape's stamp-source class** (item 184): item 125's split, taken on
+    its negative side.  The premise is the branch's own hypothesis, so the
+    class is a statement about the state the dispatch reads rather than a
+    label — when the coupling that refutes it lands, this wrapper is what
+    disappears. -/
+lemma block_dispatch_deferred_stamp
+    (sp_start sp_X sp_scan' : SurfPos) (s' : ScannerState) {s_dis : ScannerState}
+    (h_stream : SLYamlStream sp_start sp_X)
+    (h_arm : s'.simpleKeyAllowed = true ∨ 0 < sp_scan'.col)
+    (hcorr : ScannerSurfCorr s' sp_scan')
+    (h_nodir : s'.allowDirectives = false)
+    (_h_src : ¬(s_dis.explicitKeyLine = none ∨
+      (s_dis.col : Int) ≠ s_dis.explicitKeyCol)) :
+    ∃ sp_gram' sp_block' sp_flow' sp_scan',
+      SLYamlStream sp_start sp_gram' ∧
+      BlockStack sp_gram' sp_block' ∧
+      FlowStackB sp_start 0 0 none 0 #[] #[] .sep sp_block' sp_flow' ∧
+      PendingNode s' false sp_start sp_flow' sp_scan' ∧
+      ScannerSurfCorr s' sp_scan' :=
+  block_dispatch_deferred sp_start sp_X sp_scan' s' h_stream h_arm hcorr h_nodir
+
+/-- **The escape's inline-residue class** (item 184): the mid-line indicator,
+    carrying `inline_residue_of_landing`'s own conclusion.  Item 102 measured
+    this class as the implicit-key pack's punt rather than a shape of its own,
+    so what empties it is `KeyPackPunt`'s two surviving reasons. -/
+lemma block_dispatch_deferred_inline
+    (sp_start sp_X sp_scan' : SurfPos) (s' : ScannerState)
+    {sp_park : SurfPos} {c : Char}
+    (h_stream : SLYamlStream sp_start sp_X)
+    (h_arm : s'.simpleKeyAllowed = true ∨ 0 < sp_scan'.col)
+    (hcorr : ScannerSurfCorr s' sp_scan')
+    (h_nodir : s'.allowDirectives = false)
+    (_h_res : InlineResidue sp_park c) :
+    ∃ sp_gram' sp_block' sp_flow' sp_scan',
+      SLYamlStream sp_start sp_gram' ∧
+      BlockStack sp_gram' sp_block' ∧
+      FlowStackB sp_start 0 0 none 0 #[] #[] .sep sp_block' sp_flow' ∧
+      PendingNode s' false sp_start sp_flow' sp_scan' ∧
+      ScannerSurfCorr s' sp_scan' :=
+  block_dispatch_deferred sp_start sp_X sp_scan' s' h_stream h_arm hcorr h_nodir
+
 -- Block dispatch with noPending: fresh block entry.
 -- Handles '-' at the LANDING with full closures; the remaining branches
 -- delegate to block_dispatch_deferred.
@@ -19327,10 +19395,10 @@ lemma accum_block_on_noPending
             { s_prep with allowDirectives := false, documentEverStarted := true }
           else s_prep).explicitKeyCol
         · exact h_open (fun _ => h_src)
-        · exact block_dispatch_deferred sp_start sp_mid sp_scan' s'
+        · exact block_dispatch_deferred_stamp sp_start sp_mid sp_scan' s'
             (ssl_comments_extend_stream sp_start sp_block _ h_stream_block h_ssl_pre)
             (Or.inl (block_indicator_arm h_dispatch)) hcorr_result
-            (nodir_of_block_dispatch h_dispatch)
+            (nodir_of_block_dispatch h_dispatch) h_src
       · exact h_open (fun h => absurd (hc_q.symm.trans h) (by decide))
     · exact (block_indicator_exhausted h_dispatch hc hcv).elim
 
@@ -19604,16 +19672,17 @@ lemma accum_block_on_closeThenBlock
                 { s_prep with allowDirectives := false, documentEverStarted := true }
               else s_prep).explicitKeyCol
             · exact h_fill (fun _ => h_src)
-            · exact block_dispatch_deferred sp_start sp_a sp_scan' s' h_stream_a
+            · exact block_dispatch_deferred_stamp sp_start sp_a sp_scan' s' h_stream_a
                 (Or.inl (block_indicator_arm h_dispatch)) hcorr_result
-                (nodir_of_block_dispatch h_dispatch)
+                (nodir_of_block_dispatch h_dispatch) h_src
           · exact h_fill (fun h => absurd (hc_q.symm.trans h) (by decide))
         · exact (block_indicator_exhausted h_dispatch hc hcv).elim
-    · exact block_dispatch_deferred sp_start sp_block_ctx sp_scan' s'
-        (h_stream_fallback (inline_residue_of_landing ⟨h_mid.1, h_mid.2.1⟩ hws h_pk hcorr_prep
-          (preprocess_some_peek h_preprocess)) h_mid.2.2)
+    · have h_res := inline_residue_of_landing ⟨h_mid.1, h_mid.2.1⟩ hws h_pk hcorr_prep
+        (preprocess_some_peek h_preprocess)
+      exact block_dispatch_deferred_inline sp_start sp_block_ctx sp_scan' s'
+        (h_stream_fallback h_res h_mid.2.2)
         (Or.inl (block_indicator_arm h_dispatch)) hcorr_result
-        (nodir_of_block_dispatch h_dispatch)
+        (nodir_of_block_dispatch h_dispatch) h_res
   obtain ⟨h_ssl, hcol_mid, h_larm⟩ := h_landed
   -- Item 142: the flag §9.2 reads, from the park's own arm or from the break
   -- the landing crossed — `landing_or_park_save`'s twin, and the last of the
@@ -19909,12 +19978,12 @@ lemma accum_block_on_closeThenBlock
           · by_cases hknv : nv = k
             · subst hknv
               exact h_explicit hvp
-            · exact block_dispatch_deferred sp_start sp_mid sp_scan' s' h_stream_new
+            · exact block_dispatch_deferred_stamp sp_start sp_mid sp_scan' s' h_stream_new
                 (Or.inl (block_indicator_arm h_dispatch)) hcorr_result
-                (nodir_of_block_dispatch h_dispatch)
-          · exact block_dispatch_deferred sp_start sp_mid sp_scan' s' h_stream_new
+                (nodir_of_block_dispatch h_dispatch) h_src
+          · exact block_dispatch_deferred_stamp sp_start sp_mid sp_scan' s' h_stream_new
               (Or.inl (block_indicator_arm h_dispatch)) hcorr_result
-              (nodir_of_block_dispatch h_dispatch)
+              (nodir_of_block_dispatch h_dispatch) h_src
       · exact h_generic (fun h => absurd h hc_colon)
     · exact (block_indicator_exhausted h_dispatch hc hcv).elim
 
@@ -20411,12 +20480,13 @@ lemma accum_block_on_pendingBlockContent
     have hsp_sc_eq := ScannerSurfCorr_unique hcorr_sc hcorr_prep
     subst hsp_sc_eq
     refine h_land.elim (fun h_landed => ?_) (fun h_mid =>
-      block_dispatch_deferred sp_start sp_block_ctx sp_scan' s'
-        (h_stream_fallback (nodeStop_residue_is_colon h_line (block_indicator_char h_dispatch)
-          (inline_residue_of_landing ⟨h_mid.1, h_mid.2.1⟩ hws h_pk hcorr_prep
-            (preprocess_some_peek h_preprocess))) h_mid.2.2)
+      have h_res := nodeStop_residue_is_colon h_line (block_indicator_char h_dispatch)
+        (inline_residue_of_landing ⟨h_mid.1, h_mid.2.1⟩ hws h_pk hcorr_prep
+          (preprocess_some_peek h_preprocess))
+      block_dispatch_deferred_inline sp_start sp_block_ctx sp_scan' s'
+        (h_stream_fallback h_res h_mid.2.2)
         (Or.inl (block_indicator_arm h_dispatch)) hcorr_result
-        (nodir_of_block_dispatch h_dispatch))
+        (nodir_of_block_dispatch h_dispatch) h_res)
     obtain ⟨h_ssl, hcol_mid, h_larm⟩ := h_landed
     -- Item 157: the park's face, paid off the same flag the landing's save
     -- and §9.2's route refusal both read.
@@ -20582,14 +20652,14 @@ lemma accum_block_on_pendingBlockContent
             · by_cases hknv : nv = k
               · subst hknv
                 exact h_explicit kslot
-              · exact block_dispatch_deferred sp_start sp_mid sp_scan' s'
+              · exact block_dispatch_deferred_stamp sp_start sp_mid sp_scan' s'
                   (h_close_pending h_nd_land _ h_ssl)
                   (Or.inl (block_indicator_arm h_dispatch)) hcorr_result
-                  (nodir_of_block_dispatch h_dispatch)
-            · exact block_dispatch_deferred sp_start sp_mid sp_scan' s'
+                  (nodir_of_block_dispatch h_dispatch) h_src
+            · exact block_dispatch_deferred_stamp sp_start sp_mid sp_scan' s'
                 (h_close_pending h_nd_land _ h_ssl)
                 (Or.inl (block_indicator_arm h_dispatch)) hcorr_result
-                (nodir_of_block_dispatch h_dispatch)
+                (nodir_of_block_dispatch h_dispatch) h_src
         · exact h_gen (fun h => absurd h hc_colon)
       · exact (block_indicator_exhausted h_dispatch hc hcv).elim
   by_cases hc0 : c = ':'
@@ -20914,14 +20984,14 @@ lemma accum_block_on_pendingBlock
           · by_cases hknv : nv = k
             · subst hknv
               exact h_explicit kslot
-            · exact block_dispatch_deferred sp_start sp_mid sp_scan' s'
+            · exact block_dispatch_deferred_stamp sp_start sp_mid sp_scan' s'
                 (h_close_pending h_nd_land _ h_ssl)
                 (Or.inl (block_indicator_arm h_dispatch)) hcorr_result
-                (nodir_of_block_dispatch h_dispatch)
-          · exact block_dispatch_deferred sp_start sp_mid sp_scan' s'
+                (nodir_of_block_dispatch h_dispatch) h_src
+          · exact block_dispatch_deferred_stamp sp_start sp_mid sp_scan' s'
               (h_close_pending h_nd_land _ h_ssl)
               (Or.inl (block_indicator_arm h_dispatch)) hcorr_result
-              (nodir_of_block_dispatch h_dispatch)
+              (nodir_of_block_dispatch h_dispatch) h_src
       · exact h_gen (fun h => absurd h hc_colon)
     · exact (block_indicator_exhausted h_dispatch hc hcv).elim
   -- ═══ THE INLINE RESIDUE: the COMPACT collection (item 33) ═══
@@ -21021,9 +21091,9 @@ lemma accum_block_on_pendingBlock
               { s_prep with allowDirectives := false, documentEverStarted := true }
             else s_prep).explicitKeyCol
           · exact h_fill (fun _ => h_src)
-          · exact block_dispatch_deferred sp_start sp_block sp_scan' s' h_stream_block
+          · exact block_dispatch_deferred_stamp sp_start sp_block sp_scan' s' h_stream_block
               (Or.inl (block_indicator_arm h_dispatch)) hcorr_result
-              (nodir_of_block_dispatch h_dispatch)
+              (nodir_of_block_dispatch h_dispatch) h_src
         · exact h_fill (fun h => absurd (hc_q.symm.trans h) (by decide))
       · exact (block_indicator_exhausted h_dispatch hc hcv).elim
   · -- The TAB, one production down (items 33/34).  `[185]`'s `s-indent(m)` is

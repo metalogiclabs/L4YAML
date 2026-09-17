@@ -46,7 +46,16 @@ construction (the token behind it is a `-`/`?`/`:`), it carries no suffix run,
 no marker route, no document-prefix witness and no resume frames.  Every door
 that reaches a raw route reaches it through that park among others, so the
 deferral's own census is pinned here beside the flip's — R3's deletion is what
-empties these arms, and the two numbers move together. -/
+empties these arms, and the two numbers move together.
+
+**By CLASS, since item 184.**  The deferral's twelve applications are
+partitioned in the source by the branch that reaches them — the undecided
+stamp source (**9**), the mid-line inline residue (**2**), and `pendingFlow`'s
+own arm (**1**) — so the DEFERRAL lane counts three names rather than one and
+a class emptying shows as a wrapper leaving the list.  The PACK PUNT lane
+beside it counts what empties the inline class: `KeyPackPunt`'s two surviving
+reasons.  Both partitions and the input families they serve are documented at
+[`BlockDeferralClasses`](BlockDeferralClasses.lean). -/
 
 namespace L4YAML.Tests.Guards.FlipConsumerSurface
 
@@ -83,8 +92,25 @@ def guards : List Name :=
    `bareNodeRoute_or_refused, `bareNodeRoute_or_refused_content,
    `topLevelFlowResumeSep_or_refused]
 
-/-- `pendingFlow`'s only producer. -/
-def deferral : List Name := [`block_dispatch_deferred]
+/-- `pendingFlow`'s only producer, and the two wrappers that partition its
+    applications by the branch that reaches them (item 184): the undecided
+    stamp source, the mid-line inline residue, and — through the bare name —
+    `pendingFlow`'s own arm, which the escape produces and which goes with the
+    constructor.  The counts here are the DOMAIN's three classes, so a class
+    emptying shows as a wrapper leaving the list rather than as a total
+    drifting. -/
+def deferral : List Name :=
+  [`block_dispatch_deferred, `block_dispatch_deferred_stamp,
+   `block_dispatch_deferred_inline]
+
+/-- What empties the inline-residue class: the implicit-key pack's two
+    surviving punt reasons (item 102 — the mid-line `:` composes whenever
+    `colon_fires_implicit_key` gets a pack, so the residue IS the punt).  The
+    other two reasons are refuted at their consumers and have no producer
+    left.  `keyPackPunt_transport` is skipped for the same reason the wrappers
+    are: it re-WRITES a reason it was handed rather than spending one. -/
+def packPunt : List Name :=
+  [`KeyPackPunt.dedent, `KeyPackPunt.noKeyContext]
 
 /-- One census: the targets counted, and the definitions where the term is
     WRITTEN rather than spent, excluded. -/
@@ -188,10 +214,22 @@ All three lanes, in one walk of the module. -/
        "flowKeyRoute_of_root: rootMapRoute_or_refused=1 rootMapRouteF_or_refused=1",
        "question_open_map: rootMapRoute_or_refused=1 rootMapRouteF_or_refused=1"]⟩,
     ⟨⟨"DEFERRAL", deferral, deferral.map (ns ++ ·)⟩,
-      ["accum_block_on_closeThenBlock: block_dispatch_deferred=4",
-       "accum_block_on_noPending: block_dispatch_deferred=1",
-       "accum_block_on_pendingBlock: block_dispatch_deferred=3",
-       "accum_block_on_pendingBlockContent: block_dispatch_deferred=3",
-       "accum_content_pending: block_dispatch_deferred=1"]⟩]
+      ["accum_block_on_closeThenBlock: block_dispatch_deferred_stamp=3 block_dispatch_deferred_inline=1",
+       "accum_block_on_noPending: block_dispatch_deferred_stamp=1",
+       "accum_block_on_pendingBlock: block_dispatch_deferred_stamp=3",
+       "accum_block_on_pendingBlockContent: block_dispatch_deferred_stamp=2 block_dispatch_deferred_inline=1",
+       "accum_content_pending: block_dispatch_deferred=1"]⟩,
+    ⟨⟨"PACK PUNT", packPunt,
+       [ns ++ `keyPackPunt_transport,
+        -- the type's own generated eliminators, which mention every
+        -- constructor by construction and spend none
+        ns ++ `KeyPackPunt.casesOn, ns ++ `KeyPackPunt.recOn]⟩,
+      ["accum_flow_open_depth0: KeyPackPunt.dedent=1 KeyPackPunt.noKeyContext=1",
+       "colon_fires_implicit_key: KeyPackPunt.dedent=1 KeyPackPunt.noKeyContext=1",
+       "colon_fires_props_key: KeyPackPunt.dedent=1 KeyPackPunt.noKeyContext=1",
+       "content_dispatch_routed: KeyPackPunt.noKeyContext=2",
+       "entryKeyPack_of_dispatch: KeyPackPunt.dedent=2",
+       "entryPropsKeyPack_of_dispatch: KeyPackPunt.dedent=2",
+       "flowKeyPack_of_close: KeyPackPunt.noKeyContext=1"]⟩]
 
 end L4YAML.Tests.Guards.FlipConsumerSurface

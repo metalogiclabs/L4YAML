@@ -20231,6 +20231,125 @@ unchanged, counted as
 row, and that is this item's correction to the plan), then the two REFUTABLE
 halves at the flow open, then the three MISSING ROUTES, then the flip.  And
 the parked Ix Step-1 composition, on the Ix track's own clock.
+**`pendingFlow` first is right and is not one item** — [item
+184](#item-184-2026-09-17) prices it by its own domain: three classes,
+**9 / 2 / 1**, and neither of the two live ones is refutable.
+
+### Item 184 (2026-09-17)
+
+**`pendingFlow`'s deletion, PRICED by its domain — the escape's twelve
+applications are THREE classes, the partition is in the CODE, and the deletion
+is a ROW rather than an item.**
+
+Item 183 put `pendingFlow` first in the flip's order and priced the flip, not
+the prerequisite.  §9's rule for an escape hatch is to enumerate the input
+classes that still exit through it, by measurement, before writing any number,
+and R645 is the reason: the site count and the domain are independent in both
+directions.  This item does that enumeration and leaves it machine-readable.
+
+**The partition, checked by the elaborator rather than read off the source.**
+Two wrappers now stand between the consumers and the escape, each carrying the
+branch's own hypothesis —
+`block_dispatch_deferred_stamp` takes item 125's classical split on its
+NEGATIVE side (`¬(explicitKeyLine = none ∨ col ≠ explicitKeyCol)`) and
+`block_dispatch_deferred_inline` takes `inline_residue_of_landing`'s own
+conclusion — so a site reaches a class only by PRODUCING that class's evidence.
+Every one of the twelve compiled at the wrapper that names it, each passing the
+hypothesis its own branch already held, and the split is **9 / 2 / 1**:
+
+| class | applications | holders |
+|---|---|---|
+| `_stamp` | **9** | `accum_block_on_closeThenBlock` 3, `accum_block_on_pendingBlock` 3, `accum_block_on_pendingBlockContent` 2, `accum_block_on_noPending` 1 |
+| `_inline` | **2** | `accum_block_on_closeThenBlock` 1, `accum_block_on_pendingBlockContent` 1 |
+| bare | **1** | `accum_content_pending` — `pendingFlow`'s own arm |
+
+`FlipConsumerSurface`'s DEFERRAL lane counts three names now instead of one,
+so a class emptying shows as a wrapper leaving the list rather than as a total
+drifting — and the gate fired on the very first build of this item, which is
+what says it was not passing vacuously.
+
+**Class A — the undecided stamp source, NINE of the twelve.**  Item 125 left
+this as "a live register at the landing's own column with no pack at that
+column", and what the branch means is sharper than that: the state holds a
+live `explicitKeyLine` AND stands at `explicitKeyCol`, so the `:` is `[197]
+l-block-map-explicit-value`'s own and the GENERIC reopen — which stamps — is
+not merely unavailable but WRONG.  The route it wants is the `?` frame's value
+slot at the landing's column, which is U2's residue.  Its live family is
+pinned at `BlockDeferralClasses` §2, and it has TWO coordinates neither of
+which carries it alone — both read off `ParkFaceCoupling` §3, which is the
+artifact that says which side of the line an input is on.  The key must be a
+FLOW collection: the PLAIN key `? a⏎: b: c` is pinned there as a face PAYER.
+And the value must be the SAME-LINE compact fill: `? [a]⏎: v` is pinned there
+as composing, and item 96 closed the flow key's value-LINE face at
+`? [1]⏎: - w`.  `? [a]⏎: b: c` and `? {x: y}⏎: b: c` are where the two meet —
+§3's two residue rows.  The family's width is measured here and is acceptance
+only, not a claim about which arm each takes: `? [a, b]⏎: c: d`,
+`? [[a]]⏎: b: c`, `? [a]⏎: b: c⏎  d: e`, `- ? [a]⏎  : b: c`,
+`k:⏎  ? [a]⏎  : b: c` and `? [a]⏎: ? x⏎  : y` are all scanner-accepted with
+both pipelines agreeing.
+
+**Class B — the inline residue, TWO, and its price measured two ways that
+agree.**  Item 102 measured this class as the implicit-key pack's punt rather
+than a shape of its own — the mid-line `:` composes whenever
+`colon_fires_implicit_key` gets a pack — so what empties it is `KeyPackPunt`'s
+two surviving reasons, and those have a price of their own.  Deleting each
+constructor and building breaks exactly: **`dedent` 7 applications in 5
+definitions** (`entryKeyPack_of_dispatch` 2, `entryPropsKeyPack_of_dispatch` 2,
+and `accum_flow_open_depth0` / `colon_fires_implicit_key` /
+`colon_fires_props_key` 1 each) and **`noKeyContext` 6 in 5**
+(`flowKeyPack_of_close` 1, `content_dispatch_routed` 2, and the same three
+consumers 1 each).  `FlipConsumerSurface`'s new PACK PUNT lane reads the same
+rows from the elaborated environment — a narrowing patch and an environment
+census, agreeing row for row, and the census is what makes the number
+re-derivable at every future item rather than remembered from this one.
+`noKeyContext` still has no NAMED input (item 102 left it "a frame class rather
+than a construct"), which by R646 is the signature of a branch that may be a
+phantom; `dedent`'s is `k:⏎  :⏎b: 2`.
+
+**Class C — `pendingFlow`'s own arm, ONE** — the escape's self-perpetuation,
+which item 35's structural note already said goes with the constructor.
+
+**Neither live class is REFUTABLE, and that is the item's finding.**  Every
+input in Class A's family is scanner-accepted, both pipelines agreeing, and
+PyYAML 6.0.3 (`yaml.parse`) reads all of them with the same event shape —
+including the odd `? [a]: b`, where the same-line `:` makes the key implicit
+and the `?` entry closes empty.  Class B's own named input is accepted too.
+(The reference for `k:⏎  :⏎b: 2` is the suite, not PyYAML: its inner entry has
+an empty implicit key and PyYAML refuses every one of those — item 173's
+recorded `[192]` gap.)  So R3's deletion is not one payment and not a
+refutation: it is **U2's residue (9) then the pack punt's two reasons (2),
+after which the constructor and its arm go together (1)**.
+
+**No runtime, no proof.**  The two wrappers apply `block_dispatch_deferred`
+and nothing else; no route, no field and no production changed.  The
+declaration count moves by the two wrappers alone.
+
+**Measured at the landed state.**  Full `lake build` **1161 → 1162** jobs +
+`Tests.Guards`/`Tests.Reflections` **734 → 735** (the one new guard file), ZERO
+warnings in both; suite **4520/4520** with Production Coverage Analysis
+**837/837**; `eventscore` **347/358** (252 event-pass, 11 event-diff, 0
+event-reject, 95 error-ok, 0 error-miss); `suiterunner` **869 / 0 / 151**;
+`matrix_score.py` over the 402-leaf data form on BOTH pipelines, **402/402
+event + 282/282 JSON** with the splits identical to 176–183 (`err-ok` 94 /
+`pass` 308; JSON `err-ok` 3 / `pass` 279 / `skip` 120) — no runtime change,
+re-run anyway; the `[210]` flip instrument at **FIVE** errors at the same five
+definitions and lines, applied and restored clean; the raw-route census **TWO**
+holders and the consumer census **8 / 15**, both unchanged — the flip's price
+does not move because nothing this item touched is on a route; `#print axioms`
+over the two wrappers and the five consumers, no `sorryAx`; checkers 228/355,
+20/230/249/355, 25 capstones, and the annotation verifier at 100 % coverage
+with its same **19** pre-existing name mismatches.  Declarations **8023 →
+8025** (+2, the two wrappers and nothing else), counted as
+`grep -rhoE "^(lemma|theorem|def) " --include='*.lean' L4YAML/`; `#guard`s
+**7185 → 7208** (+23, the new guard's two sections), counted as
+`grep -rhoE "^#guard\b" --include='*.lean' Tests/`; test files **620 → 621**.
+
+**What remains, in the map's order.**  R3's deletion, now a row of its own:
+**U2's residue** (Class A — the flow key's same-line compact explicit value),
+then **`KeyPackPunt`'s two reasons** (Class B), then the constructor and its
+arm (Class C).  Only then the flip's own order from item 183 — the two
+REFUTABLE halves at the flow open, the three MISSING ROUTES, the flip.  And
+the parked Ix Step-1 composition, on the Ix track's own clock.
 
 ### REMAINING, in order
 
@@ -20639,6 +20758,14 @@ that reaches each:
   item 37's `nodeStop_residue_is_colon` — and the third is `pendingFlow`'s own
   arm, which cannot close while the escape is what produces the pending, and
   goes with the constructor.
+  **The classification held; the COUNT did not** — corrected 2026-09-17 by
+  [item 184](#item-184-2026-09-17), which re-measured it: the escape stands at
+  **TWELVE** applications and they are THREE questions, not two — item 125's
+  `by_cases` added a class after this paragraph was written, and that class is
+  the largest of the three.  The partition is in the code now
+  (`block_dispatch_deferred_stamp` **9** / `block_dispatch_deferred_inline`
+  **2** / the bare escape **1**) and pinned by `FlipConsumerSurface`'s DEFERRAL
+  lane, so the number cannot go stale again without a gate firing.
 
   **And the inline residue's own count** (2026-09-06, after item 102), which
   is what the two sites are made of rather than what they are called.  The
