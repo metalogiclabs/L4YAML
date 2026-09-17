@@ -257,7 +257,20 @@ by construction.  The instrument that does see it is the per-field flip, and
 `BlockDeferralClasses` §9 carries four readings of it taken at one commit: each
 new field against the field it twins.  A census reports the surface it was
 built to report, and saying which questions it cannot answer is part of
-reporting it. -/
+reporting it.
+
+Item 191 paid the residue item 190 named — a landing two or more frames up —
+and this census is flat again, now for a FOURTH reason, and it is the sharpest
+of them.  The item adds no application, no parameter and no field: it changes
+the TYPE of three fields item 190 already added, from `∃ nv` to `∃ ns : List Nat`
+with a membership test at the landing.  Every lane here counts occurrences of
+something, and a generalization in place occurs nowhere.  Even the per-field
+flip cannot see it — re-run at this commit, `pendingMapValue.h_explUp` reads
+7 declarations / 9 errors and `pendingBlock.h_kslotUp` reads 6 / 22, both
+exactly item 190's numbers, because widening a field moves no PUNT.  What does
+see it is the composed derivation: `BlockDeferralClasses` §10 builds the chain
+through two `?` landings and answers two different landings from ONE funder,
+which is the thing `∃ nv` cannot do and the thing no count reports. -/
 
 /-! ## The gate
 

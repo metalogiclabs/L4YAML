@@ -21136,13 +21136,140 @@ the surface is still **31 punt alternatives across 16 declarations, 8 of them
 constructor fields**, three of which now have a paid arm.  A DOMAIN shrank and
 no count did, for the third item running.  What still exits `_stamp_offcol` is
 a landing two or more frames above the park — measured, accepted, and needing a
-LIST rather than a field — plus the flow-open relay the instrument named.  Then
+LIST rather than a field (**paid at [item 191](#item-191-2026-09-17)**) — plus
+the flow-open relay the instrument named.  Then
 **the REFUTATION** for `_stamp_compact` (2 sites, measured empty),
 **`KeyPackPunt`'s two reasons** (`dedent` 7/5 and `noKeyContext` 6/5, possibly a
 phantom), then the `pendingFlow` constructor and its arm.  Only then item 183's
 flip order — the two REFUTABLE halves at the flow open, the three MISSING
 ROUTES, the flip.  And the parked Ix Step-1 composition, on the Ix track's own
 clock.
+
+### Item 191 (2026-09-17)
+
+**THE CHAIN, AND A PAYMENT THAT DID NOT COMPOSE.**
+Branch `fix-a-grammar-completeness`, on top of item 190's `2f3f01fd`.
+
+**The domain, measured first, and it is a ladder rather than an input.**  Item
+190 named its own residue — a landing two frames above the park — and the plan
+row asked for the LIST to be priced against the three constructors before
+anything was built.  The measurement came first, and it settles the shape
+immediately: the family has no largest member.
+
+| input | where the landed `:` is |
+|---|---|
+| `?⏎  ? -⏎: w` | ONE frame up — item 190 |
+| `?⏎  ?⏎    ? -⏎  : v⏎: w` | one frame up, with a THIRD frame open above it |
+| `?⏎  ?⏎    ? -⏎: w` | **TWO** frames up |
+| `?⏎  ?⏎    ?⏎      ? -⏎: w` | **THREE** |
+| `?⏎  ?⏎    ?⏎      ?⏎        ? -⏎: w` | **FOUR** |
+
+Every rung is `scan-accepted` and reads one `-MAP` deeper, and the intermediate
+frames need not be empty (`?⏎  ?⏎    ? -⏎    x: y⏎: w` is accepted with the
+middle key a two-entry mapping).  So no fixed number of fields reaches the
+family, and the question the plan row asked — list or fields — has only one
+answer.  Both the compact lane (item 190) and the mapping lane (item 189) have
+the residue: `?⏎  ?⏎    ?⏎: w` is accepted too.
+
+**The obstacle was a FOURTH kind, and the cheapest of the four.**  Item 188's
+was a MISSING carrier, item 189's a SHADOWED one, item 190's a funder that could
+not be STATED.  Here nothing was wrong with the statement: item 190's field
+reads `∃ nv` and never tied `nv` to the nearest frame, so its TYPE already
+admitted any ancestor.  What did not happen was the PAYMENT.  At a landed `?`
+the crossing composed the closed park's OWN frame and dropped whatever that park
+was already holding above it, so the chain restarted at every level and never
+had more than one link.  **A relay that does not compose is its own diagnosis**
+— and it is worth separating from the other three because it is the only one of
+them that costs no production, no premise and no new field.
+
+**Why the list is cheap, which is what a price should have been read off.**
+The crossing is `slotLandedMap`, and its side condition `nv + 1 ≤ k` weighs the
+PARK's index against the LANDING's.  It says nothing about which ancestor's `:`
+line is owed after the fill — so the identical term carries every ancestor at
+once, and consing needs no per-element bound.  `slotChainMap` is that
+observation with a name: one lemma, three lines, and it is what the `?` landing
+now spends.  Reading that side condition BEFORE pricing would have answered
+"list or fields" without building anything.
+
+**What landed.**  `pendingMapValue.h_explUp`, `pendingBlock.h_kslotUp` and
+`pendingBlockContent.h_kslotUp` — item 190's three fields — go from `∃ nv` to
+`∃ ns : List Nat, ∀ nv ∈ ns`, as does the eighth component of
+`accum_block_on_closeThenBlock`'s `h_vslot`, the `h_kslotUp` parameter of both
+landed-`-` consumers and `accum_content_on_pendingBlock_indented`'s
+`h_kslotUp_old`.  `indicator_open_map` and `question_open_map` take a NEW
+`h_explUp_chain` parameter beside item 189's `h_kslot_up` rather than widening
+it: `h_kslot_up` funds `h_kslot`, whose premise is `[195]`'s awaited node and
+whose single index is right for that production, so the mapping lane is left
+exactly as item 189 built it.  At the `?` landing the chain is `nv :: nsU` — the
+closed park's own frame consed onto what it was carrying — through
+`slotChainMap`; the two landed-`-` consumers decide `k ∈ nsU` instead of item
+190's `nvU = k`; the seven relays pass the list through unchanged.
+
+**What the instruments say, and the most useful reading is a NEGATIVE one.**
+Every counting instrument in the repository is blind to this item, and for a
+reason sharper than the three before it.  `FlipConsumerSurface`'s four lanes
+count occurrences — applications, guards, deferrals, pack punts — and a
+generalization IN PLACE occurs nowhere.  The per-field flip cannot see it
+either, re-run at this commit:
+
+| field / parameter | declarations | errors |
+|---|---|---|
+| `pendingMapValue.h_explUp` | 7 | 9 |
+| `pendingBlock.h_kslotUp` | 6 | 22 |
+| `pendingBlockContent.h_kslotUp` | 3 | 13 |
+| `indicator_open_map.h_kslot_up` (item 189's nearest frame) | 5 | 8 |
+| `indicator_open_map.h_explUp_chain` (item 191's chain) | 5 | 13 |
+
+The first two are item 190's numbers to the digit, because **widening a field
+moves no PUNT** — which is the honest statement that this item's cost was
+essentially zero and its instrument budget is spent elsewhere.  The pair at the
+bottom is the reading that does carry information: the chain reaches exactly the
+five declarations item 189's nearest-frame funder reaches, with the same three
+parks (`accum_block_on_noPending`, `accum_block_on_pendingBlock`,
+`accum_block_on_pendingBlockContent`) unpaid — so the instrument names where the
+chain is not yet threaded rather than leaving it to be guessed at, exactly as
+item 190's pair named `accum_flow_open_depth0`.
+
+**Non-vacuity is carried by a derivation, not by a count.**
+`BlockDeferralClasses` §10 builds the chain through TWO `?` landings using the
+pipeline's own `slotChainMap` twice — root frame, `explicitEmpty` re-read as the
+park's slot, then the cons — and then answers TWO different landings from ONE
+funder, which is precisely what `∃ nv` cannot do.  Beside it, a
+`fail_if_success` turns the claimed failure into something the file checks: a
+single-index funder does not elaborate at the other landing's index.
+
+**Gates.**  Full build **1162** jobs + guards, ZERO warnings; `run-all-tests.sh`
+**4520/4520** with Production Coverage **837/837**; `eventscore` **347/358**
+(252 event-pass, 95 error-ok, 0 error-miss, 0 event-reject); `suiterunner`
+**869 / 0 / 151**; `matrix_score.py` over the 402-leaf data form on BOTH
+pipelines, **402/402 event** (`pass` 308, `err-ok` 94) and **282/282 JSON**
+(`pass` 279, `err-ok` 3, `skip` 120), splits identical to 176–190; the `[210]`
+flip at **FIVE** errors at the same five definitions (`topLevelFlowResumeSep`,
+`rootMapRoute`, `rootMapRouteF`, `bareNodeRoute`,
+`structural_dispatch_to_pending`), applied and restored clean; `#print axioms`
+over `slotChainMap` and the nine threaded consumers, no `sorryAx`
+(`slotChainMap` itself is `[propext, Quot.sound]`); checkers 228/355,
+20/230/249/355, 25 capstones, annotation verifier 100 % coverage with the same
+**19** pre-existing name mismatches.  Counts, by
+`grep -rhoE '^ *(private )?(lemma|theorem|def|abbrev|instance|structure|inductive|class) ' L4YAML/`
+and `grep -rho '#guard' Tests/ L4YAML/` at `2f3f01fd` and here: declarations
+**8624 → 8625** (+1, `slotChainMap`), `#guard`s **7877 → 7883** (+6), test files
+**621**, unchanged.
+
+**What remains.**  `_stamp_offcol` is still 3 sites and `_stamp_nopack` still 3;
+a DOMAIN shrank and no count did, for the fourth item running.  What the
+instrument now names, in order: the **flow-open relay** (`accum_flow_open_depth0`
+reads `h_kslot`, not its twin), then the **three parks the chain is not threaded
+to** — `accum_block_on_noPending`, `accum_block_on_pendingBlock`,
+`accum_block_on_pendingBlockContent`, the same three item 189's funder does not
+reach — then the **mapping lane's own chain** (`h_kslot` + `explFrameValueLine` +
+`h_vpackUp`, whose residue `?⏎  ?⏎    ?⏎: w` is measured and accepted), then the
+three PROPS-lane content producers.  Then **the REFUTATION** for
+`_stamp_compact` (2 sites, measured empty), **`KeyPackPunt`'s two reasons**
+(`dedent` 7/5 and `noKeyContext` 6/5, possibly a phantom), then the
+`pendingFlow` constructor and its arm.  Only then item 183's flip order — the
+two REFUTABLE halves at the flow open, the three MISSING ROUTES, the flip.  And
+the parked Ix Step-1 composition, on the Ix track's own clock.
 
 ### REMAINING, in order
 

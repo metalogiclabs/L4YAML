@@ -7,7 +7,7 @@ Copyright (c) 2026. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 -/
 
-/-! # The block-indicator escape, by CLASS and by ROUTE (DOCS items 184–190)
+/-! # The block-indicator escape, by CLASS and by ROUTE (DOCS items 184–191)
 
 `block_dispatch_deferred` is `PendingNode.pendingFlow`'s only producer, so
 R3 — row 12's β.5 deletion — is the emptying of this escape.  Its applications
@@ -26,7 +26,7 @@ wrapper's deletion rather than a total drifting:
 
 | wrapper | applications | what reaches it | what empties it |
 |---|---|---|---|
-| `_stamp_offcol` | **3** in 3 definitions | the park HAS a value pack, at `nv`, and the landing is at `k ≠ nv` | a reason the two indices agree — `[187]`'s `s-indent(n)` is exact.  **Item 189 (§8) paid its first domain** and **item 190 (§9) the other two sites'**: where `nv ≠ k` because the park holds TWO frames and offered the inner one, the landing now reads the outer one — from `h_vpackUp` at the landed `?`, from `h_kslotUp` at the compact one.  What is left is a landing TWO frames up |
+| `_stamp_offcol` | **3** in 3 definitions | the park HAS a value pack, at `nv`, and the landing is at `k ≠ nv` | a reason the two indices agree — `[187]`'s `s-indent(n)` is exact.  **Item 189 (§8) paid its first domain** and **item 190 (§9) the other two sites'**: where `nv ≠ k` because the park holds TWO frames and offered the inner one, the landing now reads the outer one — from `h_vpackUp` at the landed `?`, from `h_kslotUp` at the compact one.  ~~What is left is a landing TWO frames up~~ — **item 191 (§10) paid that too**, by carrying the ancestors as a LIST instead of naming one |
 | `_stamp_nopack` | **3** in 3 definitions | the park carries no value pack at all, and its register is LIVE | a CARRIER: the `?` frame's value slot at the landing's column, U2's residue proper — priced at item 186 (§5), RE-priced at item 187 (§6), and its first DOMAIN paid at item 188 (§7) |
 | `_stamp_compact` | **2** in 2 definitions | the fill is COMPACT, and `[189]`'s value is `s-l+block-node`, so the face cannot stand in for the stamp | the stamp, or a refutation |
 | `_inline` | **2** in 2 definitions | the mid-line indicator (`inline_residue_of_landing`) | `KeyPackPunt`'s two surviving reasons (item 102) |
@@ -876,9 +876,10 @@ opens. -/
 /-! **The boundary, and it is the payment's own shape rather than the
 runtime's.**  A second field names ONE frame above the park, so a landing TWO
 frames up is still off-column — and the runtime has that input.  Both of the
-following are accepted; the first is paid by this item and the second is what
-`_stamp_offcol` still covers, which is the honest statement of what a
-two-field split buys and where a LIST would be needed instead. -/
+following are accepted; the first is paid by this item and the second is
+~~what `_stamp_offcol` still covers~~ — **§10 pays it**; the sentence stands as
+written because naming where a LIST would be needed is what made item 191
+cheap. -/
 
 #guard pins "?\n  ?\n    ? -\n  : v\n: w\n" == ("scan-accepted", "+STR +DOC +MAP +MAP +MAP +SEQ =VAL : -SEQ =VAL : -MAP =VAL :v -MAP =VAL :w -MAP -DOC -STR")
 #guard pins "?\n  ?\n    ? -\n: w\n" == ("scan-accepted", "+STR +DOC +MAP +MAP +MAP +SEQ =VAL : -SEQ =VAL : -MAP =VAL : -MAP =VAL :w -MAP -DOC -STR")
@@ -911,5 +912,141 @@ The escape's own wrapper counts do not move — `_stamp_offcol` is still 3 sites
 in 3 definitions — for the reason items 188 and 189 both recorded: a payment
 against an escape narrows a DOMAIN, and every instrument in this file that
 counts SITES is blind to it. -/
+
+
+/-! ## §10  The chain, and a payment that did not COMPOSE (item 191)
+
+§9 closed with a boundary it named for itself: a field that reaches ONE frame
+above the park leaves a landing TWO frames up in the escape.  Measured first,
+the family is not a single input but a ladder, and it does not stop:
+
+| input | events | where the landed `:` is |
+|---|---|---|
+| `?⏎  ? -⏎: w` | `+MAP +MAP +SEQ =VAL : -SEQ =VAL : -MAP =VAL :w -MAP` | ONE frame up — item 190 |
+| `?⏎  ?⏎    ? -⏎  : v⏎: w` | `… =VAL : -MAP =VAL :v -MAP =VAL :w -MAP` | one frame up, with a third frame open above it |
+| `?⏎  ?⏎    ? -⏎: w` | `… =VAL : -MAP =VAL : -MAP =VAL :w -MAP` | **TWO** frames up |
+| `?⏎  ?⏎    ?⏎      ? -⏎: w` | `… =VAL : -MAP =VAL : -MAP =VAL : -MAP =VAL :w -MAP` | **THREE** |
+| `?⏎  ?⏎    ?⏎      ?⏎        ? -⏎: w` | one `-MAP` deeper again | **FOUR** |
+
+**And the obstacle was none of the three this series has met.**  Item 188's was
+a MISSING carrier, item 189's a SHADOWED one, item 190's a funder that could not
+be STATED.  Here the field's own TYPE already admitted any ancestor — item 190
+wrote `∃ nv` and never tied `nv` to the nearest frame — so nothing about the
+statement was wrong.  What did not happen was the PAYMENT: at a landed `?` the
+crossing composed the closed park's own frame and dropped what that park was
+already holding above it, so the chain restarted at every level and only ever
+had one link.  **A relay that does not compose is its own diagnosis**, and it is
+the cheapest of the four: no production, no new premise, one `::`.
+
+The reason it is cheap is worth stating, because it is what a price should have
+been read off in advance.  The crossing is `slotLandedMap`, whose side condition
+`nv + 1 ≤ k` reads the PARK's index against the LANDING's; it says nothing about
+which ancestor's `:` line is owed after the fill.  So one term carries every
+ancestor at once and the list needs no per-element bound — `slotChainMap` is
+that observation with a name, and it is what the `?` landing now spends. -/
+
+/-- **The chain BUILT, two `?` landings deep, through the pipeline's own
+    `slotChainMap`.**  The root frame's line crosses into the park the middle
+    `?` opens (a one-element list — item 189's step); that park's slot re-reads
+    it through `[188]`'s `explicitEmpty`, which is what `h_vslot`'s eighth
+    component carries; and the second landing CONSES its own frame onto it.
+    Item 190's payment is this term with the second branch deleted. -/
+example {n₀ n₁ n₂ : Nat}
+    {sp_start sp_scan₀ sp_mid₁ sp_q₁ sp_scan₁ sp_mid₂ sp_q₂ : SurfPos}
+    (hle₁ : n₀ + 1 ≤ n₁) (hle₂ : n₁ + 1 ≤ n₂)
+    (hkv₀ : ∀ sp_m : SurfPos, SBlockIndented n₀ .blockOut sp_scan₀ sp_m →
+      ExplValueLine sp_start n₀ sp_m)
+    (h_ssl₁ : SSLComments sp_scan₀ sp_mid₁) (h_ind₁ : SIndent n₁ sp_mid₁ sp_q₁)
+    (h_q₁ : GLit '?' sp_q₁ sp_scan₁)
+    (hkv₁ : ∀ sp_m : SurfPos, SBlockIndented n₁ .blockOut sp_scan₁ sp_m →
+      ExplValueLine sp_start n₁ sp_m)
+    (h_ssl₂ : SSLComments sp_scan₁ sp_mid₂) (h_ind₂ : SIndent n₂ sp_mid₂ sp_q₂) :
+    ∀ nv ∈ [n₁, n₀], ∀ sp_v : SurfPos, SBlockMapEntry n₂ sp_q₂ sp_v →
+      ExplValueLine sp_start nv sp_v :=
+  have chain₁ : ∀ nv ∈ [n₀], ∀ sp_v : SurfPos, SBlockMapEntry n₁ sp_q₁ sp_v →
+      ExplValueLine sp_start nv sp_v :=
+    slotChainMap hle₁ h_ssl₁ h_ind₁ (by
+      rintro nvX hmem
+      rcases List.mem_cons.mp hmem with rfl | hmem'
+      · exact hkv₀
+      · exact absurd hmem' (List.not_mem_nil))
+  have slot₁ : ∀ nv ∈ [n₀], ∀ sp_m : SurfPos,
+      SBlockIndented n₁ .blockOut sp_scan₁ sp_m → ExplValueLine sp_start nv sp_m :=
+    fun nvX hmem sp_m h_bo =>
+      chain₁ nvX hmem sp_m
+        (SBlockMapEntry.explicitEmpty n₁ sp_q₁ sp_scan₁ sp_m h_q₁ h_bo)
+  slotChainMap hle₂ h_ssl₂ h_ind₂ (by
+    rintro nvX hmem
+    rcases List.mem_cons.mp hmem with rfl | hmem'
+    · exact hkv₁
+    · exact slot₁ nvX hmem')
+
+/-- **ONE funder, TWO landings** — which is the whole difference, and which
+    `∃ nv` cannot state.  The compact fill is built once; the same chain then
+    answers the `:` at the outer frame's column and at the middle one's, and the
+    two accepted inputs above differ in nothing else. -/
+example {k n₀ n₁ m : Nat}
+    {sp_start sp_q sp_scan sp_sc sp_scan' sp_m sp_e : SurfPos}
+    {sp_i0 sp_c0 sp_v0 sp_i1 sp_c1 sp_v1 : SurfPos}
+    (h_qlit : GLit '?' sp_q sp_scan)
+    (up : ∀ nv ∈ [n₁, n₀], ∀ sp_w : SurfPos, SBlockMapEntry k sp_q sp_w →
+      ExplValueLine sp_start nv sp_w)
+    (h_ind : SIndent m sp_scan sp_sc)
+    (h_dash : GLit '-' sp_sc sp_scan') (h_gnot : GNot SNsChar sp_scan')
+    (h_bi : SBlockIndented (k + 1 + m) .blockIn sp_scan' sp_m)
+    (h_tail : SCompactSeqTail (k + 1 + m) sp_m sp_e)
+    (h_iv0 : SIndent n₀ sp_e sp_i0) (h_lit0 : GLit ':' sp_i0 sp_c0)
+    (h_sbi0 : SBlockIndented n₀ .blockOut sp_c0 sp_v0)
+    (h_iv1 : SIndent n₁ sp_e sp_i1) (h_lit1 : GLit ':' sp_i1 sp_c1)
+    (h_sbi1 : SBlockIndented n₁ .blockOut sp_c1 sp_v1) :
+    SLYamlStream sp_start sp_v0 ∧ SLYamlStream sp_start sp_v1 := by
+  have fill : SBlockMapEntry k sp_q sp_e :=
+    SBlockMapEntry.explicitEmpty k sp_q sp_scan sp_e h_qlit
+      (SBlockIndented.compactSeq k .blockOut m sp_scan sp_sc sp_e h_ind
+        (SCompactSeq.mk (k + 1 + m) sp_sc sp_scan' sp_m sp_e h_dash h_gnot h_bi h_tail))
+  exact ⟨up n₀ (by simp) sp_e fill sp_i0 sp_c0 h_iv0 h_lit0 sp_v0 h_sbi0,
+         up n₁ (by simp) sp_e fill sp_i1 sp_c1 h_iv1 h_lit1 sp_v1 h_sbi1⟩
+
+/-- …and the single-index shape verifiably does NOT reach the other landing.
+    The funder answers at one index and the `:` here stands at another, so the
+    application does not even elaborate — `fail_if_success` makes that a fact
+    this file checks rather than a sentence the record asserts. -/
+example {k n₁ m : Nat}
+    {sp_start sp_q sp_scan sp_sc sp_scan' sp_m sp_e sp_i0 sp_c0 sp_v0 : SurfPos}
+    (h_qlit : GLit '?' sp_q sp_scan)
+    -- underscored because the only use is inside `fail_if_success`, which
+    -- discards the term it elaborates
+    (_up : ∀ sp_w : SurfPos, SBlockMapEntry k sp_q sp_w →
+      ExplValueLine sp_start n₁ sp_w)
+    (h_ind : SIndent m sp_scan sp_sc)
+    (h_dash : GLit '-' sp_sc sp_scan') (h_gnot : GNot SNsChar sp_scan')
+    (h_bi : SBlockIndented (k + 1 + m) .blockIn sp_scan' sp_m)
+    (h_tail : SCompactSeqTail (k + 1 + m) sp_m sp_e)
+    (_h_iv0 : SIndent (n₁ + 1) sp_e sp_i0) (_h_lit0 : GLit ':' sp_i0 sp_c0)
+    (_h_sbi0 : SBlockIndented (n₁ + 1) .blockOut sp_c0 sp_v0) : True := by
+  have fill : SBlockMapEntry k sp_q sp_e :=
+    SBlockMapEntry.explicitEmpty k sp_q sp_scan sp_e h_qlit
+      (SBlockIndented.compactSeq k .blockOut m sp_scan sp_sc sp_e h_ind
+        (SCompactSeq.mk (k + 1 + m) sp_sc sp_scan' sp_m sp_e h_dash h_gnot h_bi h_tail))
+  fail_if_success
+    have : SLYamlStream sp_start sp_v0 :=
+      _up sp_e fill sp_i0 sp_c0 _h_iv0 _h_lit0 sp_v0 _h_sbi0
+  trivial
+
+/-! **The ladder, at the runtime.**  Each rung adds one `?` frame and leaves the
+`:` at column 0, so the landing climbs one more frame per row and the family has
+no largest member — which is why the payment had to be a list rather than a
+second field, and then a third. -/
+
+#guard pins "?\n  ?\n    ? -\n: w\n" == ("scan-accepted", "+STR +DOC +MAP +MAP +MAP +SEQ =VAL : -SEQ =VAL : -MAP =VAL : -MAP =VAL :w -MAP -DOC -STR")
+#guard pins "?\n  ?\n    ?\n      ? -\n: w\n" == ("scan-accepted", "+STR +DOC +MAP +MAP +MAP +MAP +SEQ =VAL : -SEQ =VAL : -MAP =VAL : -MAP =VAL : -MAP =VAL :w -MAP -DOC -STR")
+#guard pins "?\n  ?\n    ?\n      ?\n        ? -\n: w\n" == ("scan-accepted", "+STR +DOC +MAP +MAP +MAP +MAP +MAP +SEQ =VAL : -SEQ =VAL : -MAP =VAL : -MAP =VAL : -MAP =VAL : -MAP =VAL :w -MAP -DOC -STR")
+#guard pins "?\n  ?\n    ? - a\n: w\n" == ("scan-accepted", "+STR +DOC +MAP +MAP +MAP +SEQ =VAL :a -SEQ =VAL : -MAP =VAL : -MAP =VAL :w -MAP -DOC -STR")
+#guard pins "?\n  ?\n    ? - a\n  : v\n: w\n" == ("scan-accepted", "+STR +DOC +MAP +MAP +MAP +SEQ =VAL :a -SEQ =VAL : -MAP =VAL :v -MAP =VAL :w -MAP -DOC -STR")
+
+/-! …and the intermediate frames need not be empty, which is what says the list
+carries a real chain rather than a run of the same frame repeated: -/
+
+#guard pins "?\n  ?\n    ? -\n    x: y\n: w\n" == ("scan-accepted", "+STR +DOC +MAP +MAP +MAP +SEQ =VAL : -SEQ =VAL : =VAL :x =VAL :y -MAP =VAL : -MAP =VAL :w -MAP -DOC -STR")
 
 end L4YAML.Tests.Guards.BlockDeferralClasses

@@ -1704,7 +1704,17 @@ inductive PendingNode (sc : ScannerState) : Bool → SurfPos → SurfPos → Sur
       -- the closure is the landing's comments rather than the awaited slot.
       -- Relayed from `pendingBlock` by every entry-content producer that
       -- relays `h_kslot`; the landed ones punt (`?⏎  ? - a⏎: w`).
-      (h_kslotUp : (∃ nv : Nat,
+      --
+      -- **Item 191: a LIST of indices, because a park has a CHAIN of
+      -- ancestors.**  Item 190 wrote `∃ nv` and reached exactly one frame up;
+      -- `?⏎  ?⏎    ? -⏎: w` lands two up and `?⏎  ?⏎    ? -⏎  : v⏎: w` lands
+      -- one up, both accepted — so which ancestor the `:` is on is not known
+      -- where this field is paid, and naming one of them chooses wrong at the
+      -- other input.  The list is what the payment already builds anyway: the
+      -- `?` landing's `slotLandedMap` step is the SAME term for every ancestor
+      -- (its side condition `nv + 1 ≤ k` is about the park's own index and the
+      -- landing's, not about the ancestor), so consing costs no new bound.
+      (h_kslotUp : (∃ ns : List Nat, ∀ nv ∈ ns,
         ∀ sp_m : SurfPos, SSLComments sp_scan sp_m →
         ∀ sp_e : SurfPos, SCompactSeqTail n sp_m sp_e →
         ∀ sp_i sp_c : SurfPos, SIndent nv sp_e sp_i → GLit ':' sp_i sp_c →
@@ -1845,8 +1855,12 @@ inductive PendingNode (sc : ScannerState) : Bool → SurfPos → SurfPos → Sur
       -- inner `?` at 2, the outer at 0), so they cannot share one `∃ nv` —
       -- item 189's split, one production down.  Paid by the COMPACT fill off
       -- `pendingMapValue.h_explUp`; every landed producer punts, its `[183]`
-      -- standing under at most the one frame `h_kslot` already names. ═══
-      (h_kslotUp : (∃ nv : Nat,
+      -- standing under at most the one frame `h_kslot` already names.
+      --
+      -- **Item 191: a LIST, for the reason given on `pendingBlockContent`'s
+      -- twin** — the ancestors above a park are a chain, and the landing picks
+      -- one of them. ═══
+      (h_kslotUp : (∃ ns : List Nat, ∀ nv ∈ ns,
         ∀ sp_m : SurfPos, SBlockIndented n .blockIn sp_scan sp_m →
         ∀ sp_e : SurfPos, SCompactSeqTail n sp_m sp_e →
         ∀ sp_i sp_c : SurfPos, SIndent nv sp_e sp_i → GLit ':' sp_i sp_c →
@@ -2105,9 +2119,16 @@ inductive PendingNode (sc : ScannerState) : Bool → SurfPos → SurfPos → Sur
       -- stands INSIDE, carrying its own `?` literal so a consumer can build
       -- `[188]`'s `explicitEmpty` from the slot it just filled.  Paid by
       -- `question_open_map` from the same `h_kslot_up` item 189 added; every
-      -- other producer punts. ═══
-      (h_explUp : (∃ (sp_q : SurfPos) (nv : Nat), GLit '?' sp_q sp_scan ∧
-        ∀ sp_v : SurfPos, SBlockMapEntry n sp_q sp_v →
+      -- other producer punts.
+      --
+      -- **Item 191: the index is a LIST.**  The field's TYPE already admitted
+      -- any ancestor — `nv` was never tied to the nearest one — so what stopped
+      -- `?⏎  ?⏎    ? -⏎: w` was not the statement but the PAYMENT: the `?`
+      -- landing composed the park's own frame and dropped what the park was
+      -- already carrying above it.  Both readings are now consed and the
+      -- consumer decides membership at the landing's column. ═══
+      (h_explUp : (∃ (sp_q : SurfPos) (ns : List Nat), GLit '?' sp_q sp_scan ∧
+        ∀ nv ∈ ns, ∀ sp_v : SurfPos, SBlockMapEntry n sp_q sp_v →
         ∀ sp_i sp_c : SurfPos, SIndent nv sp_v sp_i → GLit ':' sp_i sp_c →
         ∀ sp_w : SurfPos, SBlockIndented nv .blockOut sp_c sp_w →
         SLYamlStream sp_start sp_w) ∨ True) :
@@ -16502,6 +16523,33 @@ lemma slotLandedMap {nv k : Nat} (hnk : nv + 1 ≤ k) {s s₂ s' : SurfPos}
         have h : (nv + 1) + (k - (nv + 1)) = k := by omega
         rw [h]; exact h_entries))
 
+/-- **The ancestor CHAIN crosses a landed `?` in one term** (item 191).
+
+    `slotLandedMap` fills the closed park's still-open `[185]` key slot with the
+    `[187]` mapping this landing opens, and its side condition `nv + 1 ≤ k` reads
+    the PARK's index against the LANDING's — it says nothing about which frame's
+    `:` line is owed after the fill.  So the identical crossing carries every
+    ancestor the park was already holding, and the new park leaves the landing
+    with the whole chain rather than with the nearest frame alone.
+
+    That is the step item 190's payment dropped, and dropping it is what
+    `?⏎  ?⏎    ? -⏎: w` measured: the `:` there lands TWO frames up, while
+    `?⏎  ?⏎    ? -⏎  : v⏎: w` lands one, and the two inputs differ only in where
+    the `:` stands — so no payment that names a single ancestor can serve both.
+    The list is the cheap shape precisely because this lemma's side condition is
+    indifferent to it. -/
+lemma slotChainMap {sp_start sp_scan sp_mid sp_ind : SurfPos} {nv k : Nat}
+    {ns : List Nat} (hnk : nv + 1 ≤ k)
+    (h_ssl : SSLComments sp_scan sp_mid) (h_ind : SIndent k sp_mid sp_ind)
+    (up : ∀ nvX ∈ ns, ∀ sp_m : SurfPos, SBlockIndented nv .blockOut sp_scan sp_m →
+      ExplValueLine sp_start nvX sp_m) :
+    ∀ nvX ∈ ns, ∀ sp_v : SurfPos, SBlockMapEntry k sp_ind sp_v →
+      ExplValueLine sp_start nvX sp_v :=
+  fun nvX hmem sp_v h_entry =>
+    up nvX hmem sp_v
+      (slotLandedMap hnk h_ssl
+        (SBlockMapEntries.single k sp_mid sp_ind sp_v h_ind h_entry))
+
 /-- **`rootBlockSeq`'s MARKER route** (item 137): the sequence the landed `-`
     opens is the `---` document's own content, so the entries go into
     `[199] s-l+block-collection`'s slot behind the landing's comments rather
@@ -17898,6 +17946,19 @@ lemma question_open_map {sc : ScannerState} (sp_start sp_land sp_ind : SurfPos) 
       ∀ sp_v : SurfPos, SBlockMapEntry k sp_ind sp_v →
       ∀ sp_i sp_c : SurfPos, SIndent nv sp_v sp_i → GLit ':' sp_i sp_c →
       ∀ sp_w : SurfPos, SBlockIndented nv .blockOut sp_c sp_w →
+      SLYamlStream sp_start sp_w) ∨ True)
+    -- ═══ **Item 191 (LAST): the whole ANCESTOR CHAIN, beside item 189's
+    -- nearest frame.**  `h_kslot_up` funds `h_kslot`, whose premise is the
+    -- awaited block node and whose index is one `∃ nv`; that is the right
+    -- shape for `[195]`'s value slot and the wrong one for a park with several
+    -- open `?` frames above it, which is what `?⏎  ?⏎    ? -⏎: w` builds.  The
+    -- chain is carried separately rather than by widening `h_kslot_up`, so
+    -- item 189's mapping lane is untouched and the compact lane's `h_explUp`
+    -- gets every ancestor the caller could compose. ═══
+    (h_explUp_chain : (∃ ns : List Nat, ∀ nv ∈ ns,
+      ∀ sp_v : SurfPos, SBlockMapEntry k sp_ind sp_v →
+      ∀ sp_i sp_c : SurfPos, SIndent nv sp_v sp_i → GLit ':' sp_i sp_c →
+      ∀ sp_w : SurfPos, SBlockIndented nv .blockOut sp_c sp_w →
       SLYamlStream sp_start sp_w) ∨ True) :
     ∃ sp_gram' sp_block' sp_flow' sp_scan',
       SLYamlStream sp_start sp_gram' ∧
@@ -18072,9 +18133,13 @@ lemma question_open_map {sc : ScannerState} (sp_start sp_land sp_ind : SurfPos) 
            -- which is all `[195]` admits; this field keeps the entry route
            -- whole, so a consumer holding `[186]`'s slot fill — the compact
            -- `-`/`?`/`:` on this very line — can close this `?` entry EMPTY
-           -- around it and reach the outer frame's line (`?⏎  ? -⏎: w`). ═══
-           (match h_kslot_up with
-            | Or.inl ⟨nv, up⟩ => Or.inl ⟨sp_ind, nv, h_lit, up⟩
+           -- around it and reach the outer frame's line (`?⏎  ? -⏎: w`).
+           --
+           -- **Item 191: off the CHAIN, not off `h_kslot_up`.**  The entry
+           -- route is the same for every ancestor — only the index of the `:`
+           -- line that follows it differs — so the whole list rides one term.
+           (match h_explUp_chain with
+            | Or.inl ⟨ns, up⟩ => Or.inl ⟨sp_ind, ns, h_lit, up⟩
             | Or.inr _ => Or.inr trivial),
          hcorr_result⟩
 
@@ -18534,6 +18599,13 @@ lemma indicator_open_map {sc : ScannerState}
       ∀ sp_v : SurfPos, SBlockMapEntry k sp_ind sp_v →
       ∀ sp_i sp_c : SurfPos, SIndent nv sp_v sp_i → GLit ':' sp_i sp_c →
       ∀ sp_w : SurfPos, SBlockIndented nv .blockOut sp_c sp_w →
+      SLYamlStream sp_start sp_w) ∨ True)
+    -- **Item 191 (LAST): the ancestor CHAIN beside it**, handed to the `?`
+    -- opener for the same reason and with the same restriction.
+    (h_explUp_chain : (∃ ns : List Nat, ∀ nv ∈ ns,
+      ∀ sp_v : SurfPos, SBlockMapEntry k sp_ind sp_v →
+      ∀ sp_i sp_c : SurfPos, SIndent nv sp_v sp_i → GLit ':' sp_i sp_c →
+      ∀ sp_w : SurfPos, SBlockIndented nv .blockOut sp_c sp_w →
       SLYamlStream sp_start sp_w) ∨ True) :
     ∃ sp_gram' sp_block' sp_flow' sp_scan',
       SLYamlStream sp_start sp_gram' ∧
@@ -18580,7 +18652,7 @@ lemma indicator_open_map {sc : ScannerState}
       -- Item 150: the value-line seed, off the same measurement — the `?`'s own
       -- level is the top, so nothing stands at or right of `k + 1`.
       ((h_cov_in '?' (Or.inr rfl) h_preprocess h_dispatch).imp And.right id)
-      h_pr_land h_kslot_up
+      h_pr_land h_kslot_up h_explUp_chain
 
 /-- The head IS `[188]`, arm for arm: the plain head is `[193]`'s YAML key
     directly (`SNsPlain 0 .blockKey` IS `SNsPlainOneLine .blockKey`), a flow
@@ -19494,9 +19566,24 @@ lemma block_dispatch_deferred
       typed at the intersection of two productions.  `pendingMapValue.h_explUp`
       splits it by production, `pendingBlock`/`pendingBlockContent.h_kslotUp`
       carry it to the landing, and the two sites now try the frame ABOVE the
-      park's own before deferring.  What still exits here is a landing TWO or
+      park's own before deferring.  ~~What still exits here is a landing TWO or
       more frames up (`?⏎  ?⏎    ? -⏎: w`, accepted), which a second field
-      cannot reach and a LIST would.
+      cannot reach and a LIST would.~~  **Item 191 made it that list**, and the
+      obstacle there was a fourth kind again: not a missing carrier, not a
+      shadowed one, not one that could not be stated — item 190's field already
+      admitted ANY ancestor, since its `∃ nv` was never tied to the nearest
+      frame.  What did not happen was the payment.  At a landed `?` the crossing
+      composed the closed park's own frame and DROPPED what that park was
+      holding above it, so the chain restarted at every level; the ladder
+      `?⏎  ?⏎    ? -⏎: w`, one `?` deeper, one deeper again is accepted at every
+      rung and has no largest member, so no fixed number of fields reaches it.
+      `slotChainMap` is the crossing read once and for all: `slotLandedMap`'s
+      side condition `nv + 1 ≤ k` weighs the PARK's index against the LANDING's
+      and is indifferent to which ancestor's `:` follows, so one term carries
+      the whole list and the cons needs no new bound.  What still exits this
+      wrapper is the shapes the three `_stamp_offcol` parks do not pay the chain
+      to at all — the flow-open relay, and the two entry parks the instrument
+      names beside `accum_block_on_noPending`.
     * `block_dispatch_deferred_stamp_nopack` (3) — the park carries no value
       pack at all.  **Item 186 paid the fourth site out**: the virgin park item
       185 read as "in the class by construction" was not in the class at all —
@@ -19862,6 +19949,9 @@ lemma accum_block_on_noPending
           -- block context is the stream's seed, the same reading that took its
           -- `:` out of the escape at item 186.
           (Or.inr trivial)
+          -- Item 191: and no chain of frames above it either, for the same
+          -- reading.
+          (Or.inr trivial)
       -- ═══ Item 186: the `:`'s stamp source is DECIDED here, not split on.
       -- A virgin block-context park is the stream's seed (item 116 counted the
       -- constructor's producers and the other seven are flow-interior), so its
@@ -19938,7 +20028,10 @@ lemma accum_block_on_closeThenBlock
         ∀ sp_i sp_c : SurfPos, SIndent nv sp_m sp_i → GLit ':' sp_i sp_c →
         ∀ sp_v : SurfPos, SBlockIndented nv .blockOut sp_c sp_v →
         SLYamlStream sp_start sp_v) ∨ True) ∧
-      ((∃ nvU : Nat, ∀ sp_m : SurfPos, SBlockIndented nv .blockOut sp_scan sp_m →
+      -- **Item 191: a LIST of ancestors** — the park may stand inside several
+      -- open `?` frames at once and the landing names one of them.
+      ((∃ nsU : List Nat, ∀ nvU ∈ nsU,
+        ∀ sp_m : SurfPos, SBlockIndented nv .blockOut sp_scan sp_m →
         ∀ sp_i sp_c : SurfPos, SIndent nvU sp_m sp_i → GLit ':' sp_i sp_c →
         ∀ sp_v : SurfPos, SBlockIndented nvU .blockOut sp_c sp_v →
         SLYamlStream sp_start sp_v) ∨ True)) ∨ True)
@@ -20155,10 +20248,12 @@ lemma accum_block_on_closeThenBlock
                  -- up (`?⏎  ? -⏎: w`).  Same term, different continuation —
                  -- which is the whole content of item 189's split, one
                  -- production down. ═══
+                 -- Item 191: and the whole list rides it — the fill term is
+                 -- the same for every ancestor.
                  (match hkvUp with
-                  | Or.inl ⟨nvU, kvU⟩ => Or.inl ⟨nvU,
-                      fun sp_m h_bi sp_e h_tail sp_i sp_c h_iv h_lit sp_v h_sbi =>
-                        kvU sp_e
+                  | Or.inl ⟨nsU, kvU⟩ => Or.inl ⟨nsU,
+                      fun nvU hmem sp_m h_bi sp_e h_tail sp_i sp_c h_iv h_lit sp_v h_sbi =>
+                        kvU nvU hmem sp_e
                           (SBlockIndented.compactSeq nv .blockOut m sp_mid _ sp_e h_ind
                             (SCompactSeq.mk (nv + 1 + m) _ sp_scan' sp_m sp_e
                               h_dash2 h_gnot2 h_bi h_tail))
@@ -20461,10 +20556,12 @@ lemma accum_block_on_closeThenBlock
              -- stands inside.  Same carrier, same bound — what differs is only
              -- which `:` is owed. ═══
              (match h_vslot with
-              | Or.inl ⟨nv, _, _, _, _, _, _, Or.inl ⟨nvU, hkvU⟩⟩ =>
+              | Or.inl ⟨nv, _, _, _, _, _, _, Or.inl ⟨nsU, hkvU⟩⟩ =>
                   if hnk : nv ≤ k then
-                    Or.inl ⟨nvU, fun _ h_indented sp_e h_tail =>
-                      hkvU sp_e (slotLandedSeq hnk h_ssl
+                    -- Item 191: the crossing is indifferent to WHICH ancestor's
+                    -- line follows, so the whole list rides one term.
+                    Or.inl ⟨nsU, fun nvU hmem _ h_indented sp_e h_tail =>
+                      hkvU nvU hmem sp_e (slotLandedSeq hnk h_ssl
                         (SBlockSeqEntries_of_compactTail h_ind h_dash h_gnot
                           h_indented h_tail))⟩
                   else Or.inr trivial
@@ -20522,6 +20619,37 @@ lemma accum_block_on_closeThenBlock
                      (slotLandedMap hnk h_ssl
                        (SBlockMapEntries.single k sp_mid _ sp_v h_ind h_entry))
                      sp_i sp_c h_iv h_clit sp_w h_sbi⟩
+               else Or.inr trivial
+           | _ => Or.inr trivial)
+          -- ═══ **Item 191: and the park's WHOLE chain, consed at this step.**
+          -- The crossing above is `slotLandedMap hnk` and its side condition
+          -- reads the park's own index against the landing's — it says nothing
+          -- about which ancestor's `:` line follows, so the identical term
+          -- carries every one of them.  The new park therefore leaves this
+          -- landing holding its own frame AND everything the closed park was
+          -- already holding above it, which is the step item 190's payment
+          -- dropped: `?⏎  ?⏎    ? -⏎: w` lands two frames up and
+          -- `?⏎  ?⏎    ? -⏎  : v⏎: w` one, and the two inputs differ only in
+          -- where the `:` stands. ═══
+          (match h_vslot with
+           | Or.inl ⟨nv, _, _, _, _, _, hkv, hkvUp⟩ =>
+               if hnk : nv + 1 ≤ k then
+                 match hkv, hkvUp with
+                 | Or.inl kv, Or.inl ⟨nsU, kvU⟩ =>
+                     Or.inl ⟨nv :: nsU, slotChainMap hnk h_ssl h_ind (by
+                       rintro nvX hmem
+                       rcases List.mem_cons.mp hmem with rfl | hmem'
+                       · exact kv
+                       · exact kvU nvX hmem')⟩
+                 | Or.inl kv, Or.inr _ =>
+                     Or.inl ⟨[nv], slotChainMap hnk h_ssl h_ind (by
+                       rintro nvX hmem
+                       rcases List.mem_cons.mp hmem with rfl | hmem'
+                       · exact kv
+                       · exact absurd hmem' (List.not_mem_nil))⟩
+                 | Or.inr _, Or.inl ⟨nsU, kvU⟩ =>
+                     Or.inl ⟨nsU, slotChainMap hnk h_ssl h_ind kvU⟩
+                 | Or.inr _, Or.inr _ => Or.inr trivial
                else Or.inr trivial
            | _ => Or.inr trivial)
       by_cases hc_colon : c = ':'
@@ -21092,7 +21220,9 @@ lemma accum_block_on_pendingBlockContent
     -- `h_kslot`'s twin at the outer `?`'s column.  The `_stamp_offcol` branch
     -- below tries the park's own frame at `k` first and this one after, so a
     -- park inside a single frame behaves exactly as before.
-    (h_kslotUp : (∃ nv : Nat,
+    -- **Item 191: a LIST of ancestors**, and the `_stamp_offcol` branch decides
+    -- membership at the landing's own column.
+    (h_kslotUp : (∃ ns : List Nat, ∀ nv ∈ ns,
       ∀ sp_m : SurfPos, SSLComments sp_scan sp_m →
       ∀ sp_e : SurfPos, SCompactSeqTail n sp_m sp_e →
       ∀ sp_i sp_c : SurfPos, SIndent nv sp_e sp_i → GLit ':' sp_i sp_c →
@@ -21190,9 +21320,9 @@ lemma accum_block_on_pendingBlockContent
                  -- Item 190: the second frame rides the sibling too — the cons
                  -- is the same, only the line owed after it differs.
                  (match h_kslotUp with
-                  | Or.inl ⟨nv, kslot⟩ => Or.inl ⟨nv,
-                      fun sp_m h_bi sp_e h_tail sp_i sp_c h_iv h_lit sp_v h_sbi =>
-                        kslot sp_mid h_ssl sp_e
+                  | Or.inl ⟨ns, kslot⟩ => Or.inl ⟨ns,
+                      fun nv hmem sp_m h_bi sp_e h_tail sp_i sp_c h_iv h_lit sp_v h_sbi =>
+                        kslot nv hmem sp_mid h_ssl sp_e
                           (SCompactSeqTail.cons k sp_mid _ sp_scan' sp_m sp_e
                             h_ind h_dash2 h_gnot2 h_bi h_tail)
                           sp_i sp_c h_iv h_lit sp_v h_sbi⟩
@@ -21269,6 +21399,8 @@ lemma accum_block_on_pendingBlockContent
             -- family item 189 measured parks on a VALUE park, so this route was
             -- not measured and punts.
             (Or.inr trivial)
+            -- Item 191: and its chain with it, unmeasured for the same reason.
+            (Or.inr trivial)
         -- Item 92: the frame's VALUE line fires on the `:` at its own column
         -- (`[190]`'s `s-indent(nv)` is exact) — the parked content closes as
         -- the compact KEY with a nil tail (`? - a⏎: - w`); any other shape
@@ -21306,9 +21438,11 @@ lemma accum_block_on_pendingBlockContent
               ∀ sp_i sp_c : SurfPos, SIndent k sp_e sp_i → GLit ':' sp_i sp_c →
               ∀ sp_v : SurfPos, SBlockIndented k .blockOut sp_c sp_v →
               SLYamlStream sp_start sp_v) ∨ True := by
-            rcases h_kslotUp with ⟨nvU, upU⟩ | _
-            · by_cases hU : nvU = k
-              · subst hU; exact Or.inl upU
+            -- Item 191: the list is decided by MEMBERSHIP at the landing's
+            -- own column — item 190's `nvU = k` was the one-element case.
+            rcases h_kslotUp with ⟨nsU, upU⟩ | _
+            · by_cases hU : k ∈ nsU
+              · exact Or.inl (upU k hU)
               · exact Or.inr trivial
             · exact Or.inr trivial
           -- Item 125: the landed `:` decides its stamp source, as at
@@ -21423,7 +21557,8 @@ lemma accum_block_on_pendingBlock
     -- **Item 190 (LAST): the park's SECOND frame** (`pendingBlock.h_kslotUp`),
     -- `h_kslot`'s twin at the outer `?`'s column — tried at `k` after the
     -- park's own, so a park inside a single frame behaves exactly as before.
-    (h_kslotUp : (∃ nv : Nat,
+    -- **Item 191: a LIST of ancestors**, decided at the landing's own column.
+    (h_kslotUp : (∃ ns : List Nat, ∀ nv ∈ ns,
       ∀ sp_m : SurfPos, SBlockIndented n .blockIn sp_scan sp_m →
       ∀ sp_e : SurfPos, SCompactSeqTail n sp_m sp_e →
       ∀ sp_i sp_c : SurfPos, SIndent nv sp_e sp_i → GLit ':' sp_i sp_c →
@@ -21508,9 +21643,9 @@ lemma accum_block_on_pendingBlock
                (nodir_of_block_dispatch h_dispatch) (Or.inr trivial)
                -- Item 190: the empty sibling carries the second frame too.
                (match h_kslotUp with
-                | Or.inl ⟨nv, kslot⟩ => Or.inl ⟨nv,
-                    fun sp_m h_bi sp_e h_tail sp_i sp_c h_iv h_lit sp_v h_sbi =>
-                      kslot sp_mid h_node_old sp_e
+                | Or.inl ⟨ns, kslot⟩ => Or.inl ⟨ns,
+                    fun nv hmem sp_m h_bi sp_e h_tail sp_i sp_c h_iv h_lit sp_v h_sbi =>
+                      kslot nv hmem sp_mid h_node_old sp_e
                         (SCompactSeqTail.cons k sp_mid _ sp_scan' sp_m sp_e
                           h_ind h_dash2 h_gnot2 h_bi h_tail)
                         sp_i sp_c h_iv h_lit sp_v h_sbi⟩
@@ -21595,9 +21730,9 @@ lemma accum_block_on_pendingBlock
                            h_indented h_tail)))⟩)
                  -- Item 190: and the second frame, folded at the same nil.
                  (match h_kslotUp with
-                  | Or.inl ⟨nv, kslot⟩ => Or.inl ⟨nv,
-                      fun sp_m h_bi sp_e h_tail sp_i sp_c h_iv h_lit sp_v h_sbi =>
-                        kslot sp_e
+                  | Or.inl ⟨ns, kslot⟩ => Or.inl ⟨ns,
+                      fun nv hmem sp_m h_bi sp_e h_tail sp_i sp_c h_iv h_lit sp_v h_sbi =>
+                        kslot nv hmem sp_e
                           (SBlockIndented.node n .blockIn sp_scan sp_e
                             (nestedBlockSeq hlt h_ssl
                               (SBlockSeqEntries_of_compactTail h_ind h_dash2 h_gnot2
@@ -21674,6 +21809,8 @@ lemma accum_block_on_pendingBlock
           -- Item 189: this is the SEQUENCE entry park — the family item 189
           -- measured lands on a value park, so this route is unmeasured.
           (Or.inr trivial)
+          -- Item 191: and its chain, for the same reason.
+          (Or.inr trivial)
       -- Item 92: the frame's VALUE line fires on the `:` at its own column —
       -- the awaited entry closes empty into the compact KEY (`? -⏎: - w`);
       -- any other shape falls back to the generic close-and-reopen.
@@ -21707,9 +21844,10 @@ lemma accum_block_on_pendingBlock
             ∀ sp_i sp_c : SurfPos, SIndent k sp_e sp_i → GLit ':' sp_i sp_c →
             ∀ sp_v : SurfPos, SBlockIndented k .blockOut sp_c sp_v →
             SLYamlStream sp_start sp_v) ∨ True := by
-          rcases h_kslotUp with ⟨nvU, upU⟩ | _
-          · by_cases hU : nvU = k
-            · subst hU; exact Or.inl upU
+          -- Item 191: decided by MEMBERSHIP, as on the content twin.
+          rcases h_kslotUp with ⟨nsU, upU⟩ | _
+          · by_cases hU : k ∈ nsU
+            · exact Or.inl (upU k hU)
             · exact Or.inr trivial
           · exact Or.inr trivial
         -- Item 125: the landed `:` decides its stamp source, as at
@@ -21828,9 +21966,9 @@ lemma accum_block_on_pendingBlock
                (nodir_of_block_dispatch h_dispatch) (Or.inr trivial)
                -- Item 190: the second frame rides the inner compact too.
                (match h_kslotUp with
-                | Or.inl ⟨nv, kslot⟩ => Or.inl ⟨nv,
-                    fun sp_m h_bi sp_e h_tail sp_i sp_c h_iv h_lit sp_v h_sbi =>
-                      kslot sp_e
+                | Or.inl ⟨ns, kslot⟩ => Or.inl ⟨ns,
+                    fun nv hmem sp_m h_bi sp_e h_tail sp_i sp_c h_iv h_lit sp_v h_sbi =>
+                      kslot nv hmem sp_e
                         (SBlockIndented.compactSeq n .blockIn m sp_mid sp_sc sp_e h_ind
                           (SCompactSeq.mk (n + 1 + m) sp_sc sp_scan' sp_m sp_e
                             h_dash2 h_gnot2 h_bi h_tail))
@@ -22185,9 +22323,10 @@ lemma accum_block_pending (sc : ScannerState)
              -- `explicitEmpty`, the `e-node` value the inner frame never got —
              -- and the outer `:` line follows (`?⏎  ? -⏎: w`). ═══
              (match h_explUp190 with
-              | Or.inl ⟨sp_q, nvU, h_qlit, up⟩ => Or.inl ⟨nvU,
-                  fun sp_m h_bo sp_i sp_c h_iv h_lit sp_v h_sbi =>
-                    up sp_m (SBlockMapEntry.explicitEmpty nmv sp_q sp_scan sp_m h_qlit h_bo)
+              | Or.inl ⟨sp_q, nsU, h_qlit, up⟩ => Or.inl ⟨nsU,
+                  fun nvU hmem sp_m h_bo sp_i sp_c h_iv h_lit sp_v h_sbi =>
+                    up nvU hmem sp_m
+                      (SBlockMapEntry.explicitEmpty nmv sp_q sp_scan sp_m h_qlit h_bo)
                       sp_i sp_c h_iv h_lit sp_v h_sbi⟩
               | Or.inr _ => Or.inr trivial)⟩
          | Or.inr _ => Or.inr trivial)
@@ -27231,7 +27370,8 @@ lemma accum_content_on_pendingBlock_indented
     -- transported onto whatever this content step parks exactly as `h_kslot_old`
     -- is — one term written twice, differing only in which entry's `:` line is
     -- owed after the fill (`?⏎  ? - a⏎: w`).
-    (h_kslotUp_old : (∃ nv : Nat,
+    -- Item 191: a LIST, relayed whole.
+    (h_kslotUp_old : (∃ ns : List Nat, ∀ nv ∈ ns,
       ∀ sp_m : SurfPos, SBlockIndented n .blockIn sp_scan sp_m →
       ∀ sp_e : SurfPos, SCompactSeqTail n sp_m sp_e →
       ∀ sp_i sp_c : SurfPos, SIndent nv sp_e sp_i → GLit ':' sp_i sp_c →
@@ -27397,9 +27537,9 @@ lemma accum_content_on_pendingBlock_indented
               | Or.inr _ => Or.inr trivial)
              -- Item 190: the park's second frame rides the same fold.
              (match h_kslotUp_old with
-              | Or.inl ⟨nv, kslot⟩ => Or.inl ⟨nv,
-                  fun sp_m h_ssl sp_e h_tail sp_i sp_c h_iv h_lit sp_v h_sbi =>
-                    kslot sp_m
+              | Or.inl ⟨ns, kslot⟩ => Or.inl ⟨ns,
+                  fun nv hmem sp_m h_ssl sp_e h_tail sp_i sp_c h_iv h_lit sp_v h_sbi =>
+                    kslot nv hmem sp_m
                       (SBlockIndented.node n .blockIn sp_scan sp_m
                         (SBlockNode.flowInBlock (n + 1) .blockIn sp_scan sp_prep sp_gram sp_m
                           h_sep_all (h_flow_all (n + 1))
@@ -27616,9 +27756,9 @@ lemma accum_content_on_pendingBlock_indented
               | Or.inr _ => Or.inr trivial)
              -- Item 190: the park's second frame rides the same fold.
              (match h_kslotUp_old with
-              | Or.inl ⟨nv, kslot⟩ => Or.inl ⟨nv,
-                  fun sp_m h_ssl sp_e h_tail sp_i sp_c h_iv h_lit sp_v h_sbi =>
-                    kslot sp_m
+              | Or.inl ⟨ns, kslot⟩ => Or.inl ⟨ns,
+                  fun nv hmem sp_m h_ssl sp_e h_tail sp_i sp_c h_iv h_lit sp_v h_sbi =>
+                    kslot nv hmem sp_m
                       (SBlockIndented.node n .blockIn sp_scan sp_m
                         (h_nodeAt sp_m h_ssl))
                       sp_e h_tail sp_i sp_c h_iv h_lit sp_v h_sbi⟩
@@ -27760,9 +27900,9 @@ lemma accum_content_on_pendingBlock_indented
               | Or.inr _ => Or.inr trivial)
              -- Item 190: the park's second frame rides the same fold.
              (match h_kslotUp_old with
-              | Or.inl ⟨nv, kslot⟩ => Or.inl ⟨nv,
-                  fun sp_m h_ssl sp_e h_tail sp_i sp_c h_iv h_lit sp_v h_sbi =>
-                    kslot sp_m
+              | Or.inl ⟨ns, kslot⟩ => Or.inl ⟨ns,
+                  fun nv hmem sp_m h_ssl sp_e h_tail sp_i sp_c h_iv h_lit sp_v h_sbi =>
+                    kslot nv hmem sp_m
                       (SBlockIndented.node n .blockIn sp_scan sp_m
                         (SBlockNode.flowInBlock (n + 1) .blockIn sp_scan sp_prep sp_gramf sp_m
                           h_sep_all h_node_f
