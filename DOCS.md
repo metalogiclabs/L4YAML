@@ -22322,6 +22322,122 @@ stream-bottomed.  The census above does not reach it — it runs over the park
 constructors, and that one is a lemma conclusion — which is worth recording as
 the census's own boundary.
 
+### Item 199 (2026-09-18)
+
+**THE ROW THAT CLOSED THE CENSUS.**  Branch `fix-a-grammar-completeness`, on top
+of item 198's `a6868539`.
+
+**Re-running the plan sentence.**  Item 198's list opened with *the props lane's
+ENTRY face — `h_closeFE` is the one row still reading `—` in the census*.
+Measured before spending:
+
+| the sentence | measured | verdict |
+|---|---|---|
+| `h_closeFE` is the last one-sided face | the census re-run at `a6868539` reads it as the only `ONE-SIDED` row | **right** |
+| it is why the three `pendingProps`-relayed entry-content producers punt `pendingBlockContent.h_closeFV` | the three punts are in `accum_content_pending`'s `pendingProps` arm and read `h_closeFE_k`, which has no twin | **right** |
+| (unforecast) the price | `h_closeFE` has **one** producer, `accum_content_on_pendingBlock_indented`, which pays it from `pendingBlock.h_closeF` — and item 198 put `h_closeFV_old` on that very lemma | **+1 constructor field, +0 relay parameters** |
+
+**THE CHEAPEST ITEM IN THE LANE, AND ITS OWN PREDECESSOR IS WHY.**  Item 198
+threaded `h_closeFV_old` into `accum_content_on_pendingBlock_indented` in order
+to pay `pendingBlockContent.h_closeFV` at the three producers off a
+`pendingBlock`.  The props lane's entry face is paid by the SAME lemma from the
+SAME parameter, so this item is one constructor field wide: `h_closeFEV` on
+`pendingProps`, paid at the one producer that pays `h_closeFE`, relayed
+verbatim at the two props-to-props extensions, punted at the three
+sentinel-level producers that stand under no entry.  **Net +0 definitions, +0
+lemma parameters, +1 constructor field.**  Declarations unchanged at **8570**.
+
+**The census closes.**  Re-derived by the same twelve-line script over the
+inductive, before and after:
+
+| park | stream | value-line (198) | value-line (199) |
+|---|---|---|---|
+| `pendingContent` | 1 | 1 | 1 |
+| `pendingProps` | 2 | **1** | **2** |
+| `pendingBlockContent` | 1 | 1 | 1 |
+| `pendingBlock` | 1 | 1 | 1 |
+| `pendingMapValue` | 2 | 2 | 2 |
+| **TOTAL** | **7** | **6** | **7** |
+
+Every `ResumeFrames`-carrying face in the park family now holds both bottoms.
+Items 197–199 are one finding worked three times: 197 named the asymmetry at one
+cascade, 198 turned it into a census and closed two rows, 199 closed the last.
+
+**A GUARD THAT COUNTED THE FACES CAUGHT THE LAST ROW.**  The full build broke at
+`Tests/Guards/Proofs/PropsFloorUnconditional.lean`, whose pin says *the FIVE
+resume faces are optional too* and passes five `Or.inr trivial` — so adding the
+sixth made it a type error rather than a silent pass.  That is
+`check-doc-pins`' rule holding inside a proof file: **a pin that names a COUNT
+fails when the count moves; a pin that names none would have absorbed the field
+and reported nothing.**  Updated to six, with the reason.
+
+**Two blind spots of the FLIP, one of them new.**  Flipping `h_closeFEV` reads
+**1 binder / 7 lines / 10 errors** across 5 of its 6 producers: the two
+props-to-props extensions relay the field VERBATIM, and deleting a `∨ True`
+errors only where the disjunction is BUILT or DESTRUCTED, never where it is
+passed through.  So a flip's site count under-reports a field's producers by
+exactly its verbatim relays — beside item 198's finding that its LINE count
+over-reports when a punt becomes a multi-line payment.  Neither direction is a
+defect of the instrument; both are reasons not to read a flip as a census.
+
+**Non-vacuity, machine-checked.**  `BlockDeferralClasses` §18 states the
+specialization (`n = ne + 1` with `n = k + 1` gives `ne = k`, which is the whole
+step because the field carries no cover) with a `fail_if_success` showing there
+is nothing to specialize without the equation; the fold (the props run's node
+into the entry-content park's face) as its own `example`; and a
+`fail_if_success` showing the stream-bottomed `h_closeFE` cannot be relayed
+through that same fold, which is why it was never the answer.  From there §17
+carries it unchanged.
+
+**The domain, measured before the field was priced.**  Item 198's family with a
+`[96]` property run on the entry's node: eight accepted inputs across anchor,
+tag and anchor+tag runs, both indicators, both readings, and the node-on-the-
+next-line shape the ENTRY face is named for; two controls refused as
+`trailingContent` before any dispatch runs, and the mapping-VALUE lane accepted
+as it has been since item 99.  All pinned in §18.  **Zero runtime edits** — the
+events are byte-identical, the properties ride and nothing else moves.
+
+**Gates.**  Full build **1162** jobs, ZERO warnings; `run-all-tests.sh`
+**4520/4520** (`adversarialinstantiation` **2441/2441**), Production Coverage
+**837/837**; `eventscore` **347/358** (252 event-pass, 11 event-diff, 0
+event-reject, 95 error-ok, 0 error-miss); `suiterunner` **869 / 0 / 151**;
+`matrix_score.py` over the 402-leaf data form on BOTH pipelines, **402/402
+event** (`pass` 308, `err-ok` 94) and **282/282 JSON** (`pass` 279, `err-ok` 3,
+`skip` 120), splits identical to 176–198, pre-flight error-marker count **95**;
+the `[210]` flip at **FIVE** errors, StreamAccum **4444**, **5724**, **5747**,
+**5916**, **7404** — the same five sites as items 194–198, each moved by exactly
+**+21**, the size of this item's field block — applied and restored clean;
+`#print axioms` over `accum_content_on_pendingBlock_indented`,
+`accum_content_pending`, `accum_block_on_closeThenBlock`, `accum_block_pending`
+and `resumeFrameRoute`, no `sorryAx`; checkers 228/355, 20/230/249/355, 25
+capstones, annotation verifier 100 % coverage (211/211 rules) with the same
+**19** pre-existing name mismatches.
+
+**Counts, at `a6868539` and here, each under the recipe that produced it** —
+declarations `grep -rhoE "^(private )?(lemma|theorem|def|abbrev|instance|structure|inductive|class) " L4YAML`:
+**8570 → 8570** (+0); `#guard` tokens `grep -rho "#guard" L4YAML Tests`:
+**7996 → 8006** (+10); test files `find Tests -name '*.lean'`: **621**,
+unchanged.  Diffstat: 3 files, 216 insertions / 22 deletions.
+
+**What remains.**  The census is closed, so the next items are not census rows.
+In order: the **COMPACT arms** items 198–199 punted with their domains named —
+the `- - a` crossing at `accum_block_on_closeThenBlock` (a `[185]` compactSeq
+rather than a tail cons) and the `? - a` inline fill, neither measured.  Then
+`main`'s flow-open lane (`pendingContent`, `pendingBlockContent` — a LANE, not a
+field, still unmeasured).  Then **the REFUTATION** for `_stamp_compact` (2
+sites, measured empty), **`KeyPackPunt`'s two reasons** (`dedent` 7/5 and
+`noKeyContext` 6/5, possibly a phantom), then the `pendingFlow` constructor and
+its arm.  Only then item 183's flip order.  And the parked Ix Step-1
+composition, on the Ix track's own clock.
+
+**And the census's boundary is now the open question.**  It runs over park
+CONSTRUCTORS, so it says nothing about lemma CONCLUSIONS —
+`flowKeyRoute_of_root` still carries a value-line-bottomed resume conjunct and
+punts it because its own input `h_mapF` (item 176) is stream-bottomed.  Item
+197 named it, items 198 and 199 both recorded that the instrument does not
+reach it, and it is still not measured.  **A census over conclusions is the
+instrument that would find it, and nobody has built one.**
+
 ### REMAINING, in order
 
 The per-item history is the closure log above; this section lists only the

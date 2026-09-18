@@ -1542,7 +1542,28 @@ inductive PendingNode (sc : ScannerState) : Bool → SurfPos → SurfPos → Sur
       -- kind, and `danglingNodePos?`'s fourth clause reads it — so the arm
       -- that would have spent this field is the arm whose own premise is
       -- false.  `h_route` alone carries the run.
-      (h_nodir : sc.allowDirectives = false) :
+      (h_nodir : sc.allowDirectives = false)
+      -- ═══ **Item 199 — `h_closeFE`'s twin at the VALUE-LINE bottom** (LAST, so
+      -- the patterns naming the older fields still bind them).  Item 198's
+      -- census left this the ONE face in the whole park family carrying a
+      -- stream bottom with nothing beside it: the props park's NODE face has
+      -- had its pair since item 153 (`h_closeF`/`h_closeFV`), and its ENTRY
+      -- face — the awaited node, then the enclosing collection's tail at
+      -- `ne`, then the still-open mapping levels — had only the stream.
+      --
+      -- It costs no new relay.  `h_closeFE`'s single producer is
+      -- `accum_content_on_pendingBlock_indented`, which pays it from
+      -- `pendingBlock.h_closeF`; item 198 gave that same lemma
+      -- `h_closeFV_old`, so this field is paid from a parameter that is
+      -- already in scope and the item is one constructor field wide.
+      --
+      -- Spent at `accum_content_pending`'s `pendingProps` arm, where item 198
+      -- punted `pendingBlockContent.h_closeFV` at all three entry-content
+      -- producers for want of exactly this. ═══
+      (h_closeFEV : (∃ (ne nv : Nat) (ks : List Nat), n = ne + 1 ∧
+        ∀ sp_m : SurfPos, SBlockNode n .blockIn sp_node sp_m →
+        ∀ sp_end : SurfPos, SCompactSeqTail ne sp_m sp_end →
+        ResumeFrames (ExplValueLine sp_start nv) ks sp_end) ∨ True) :
       PendingNode sc false sp_start sp_block sp_scan
   /-- Document end `...` scanned. The gap contains SCDocumentEnd.
       Awaiting SSLComments to form SLDocumentSuffix.
@@ -27079,7 +27100,11 @@ lemma content_dispatch_routed
                -- is bare-document content), so all five faces punt for free.
                (Or.inr trivial) (Or.inr trivial) (Or.inr trivial)
                (Or.inr trivial) (Or.inr trivial)
-               (nodir_of_content_dispatch h_dispatch),
+               (nodir_of_content_dispatch h_dispatch)
+               -- Item 199: a sentinel-level props park stands under no entry, so it has
+               -- no ENTRY face to bottom — `h_closeFE` is punted here for the same
+               -- reason and by the same producer.
+               (Or.inr trivial),
              hcorr_result⟩
     | inr h =>
       subst h
@@ -27112,7 +27137,11 @@ lemma content_dispatch_routed
                -- VALUE is `§9.2`-refused, so the faces punt for free.
                (Or.inr trivial) (Or.inr trivial) (Or.inr trivial)
                (Or.inr trivial) (Or.inr trivial)
-               (nodir_of_content_dispatch h_dispatch),
+               (nodir_of_content_dispatch h_dispatch)
+               -- Item 199: a sentinel-level props park stands under no entry, so it has
+               -- no ENTRY face to bottom — `h_closeFE` is punted here for the same
+               -- reason and by the same producer.
+               (Or.inr trivial),
              hcorr_result⟩
   · have hna : c ≠ '&' := fun h => hprops (Or.inl h)
     have hnt : c ≠ '!' := fun h => hprops (Or.inr h)
@@ -28427,7 +28456,18 @@ lemma accum_content_on_pendingBlock_indented
              -- Item 114: the node-domain pair is the MAPPING producers' —
              -- this park's completion takes the entries-chain park instead.
              (Or.inr trivial) (Or.inr trivial)
-             (nodir_of_content_dispatch h_dispatch),
+             (nodir_of_content_dispatch h_dispatch)
+             -- **Item 199: the ENTRY face at the VALUE-LINE bottom**, from the
+             -- parameter item 198 put in scope.  Same fold as `h_closeFE` above —
+             -- the props run's node wraps into the entry and the collection's tail
+             -- rides — with the stack standing on the enclosing `?`'s unpaid line
+             -- instead of the finished stream.
+             (match h_closeFV_old with
+              | Or.inl ⟨nv, ks, closeFV⟩ => Or.inl ⟨n, nv, ks, rfl,
+                  fun sp_m h_bn sp_end h_tail =>
+                    closeFV sp_m (SBlockIndented.node n .blockIn sp_scan sp_m h_bn)
+                      sp_end h_tail⟩
+              | Or.inr _ => Or.inr trivial),
            hcorr_result⟩
   · -- Item 26: `  - |` — `[198]`'s block scalar at the ENTRY's index.  The
     -- node is complete where the scanner stopped ([170]'s `l-chomped-empty`
@@ -29168,7 +29208,11 @@ lemma accum_content_on_pendingMapValue_indented
                     ⟨lo, _, hb, h_cov_step lo ks hc⟩) id,
                   closeFV⟩
               | Or.inr _ => Or.inr trivial)
-             (nodir_of_content_dispatch h_dispatch),
+             (nodir_of_content_dispatch h_dispatch)
+             -- Item 199: a sentinel-level props park stands under no entry, so it has
+             -- no ENTRY face to bottom — `h_closeFE` is punted here for the same
+             -- reason and by the same producer.
+             (Or.inr trivial),
            hcorr_result⟩
   · -- Item 26: `  a: |`, `  : |`, `  ? |` — the mapping twin of the sequence
     -- entry's block-scalar value, closing at the entry's own index.
@@ -30082,7 +30126,7 @@ lemma accum_content_pending (sc : ScannerState)
         (nodir_of_content_dispatch h_dispatch))
   | pendingProps _ _ _ ha ht sp_node sp_p n h_sep_run h_run h_nic_p h_real_p h_anchor_p h_tag_p
       h_route h_key_p h_floor_p h_col0_p h_ncol_p h_ska_p h_kslot_p
-      h_routeE_p h_kslotE_p h_closeFE_p h_closeFS_p h_closeFVS_p _h_nodir_p =>
+      h_routeE_p h_kslotE_p h_closeFE_p h_closeFS_p h_closeFVS_p _h_nodir_p h_closeFEV_p =>
     -- ═══ Item 12: a held depth-0 run meets a CONTENT character — the
     -- content-dispatch escape RETIRES.  Across a break the run closes as
     -- `propsEmpty` (the parked couplings go stale with the line, and are not
@@ -30441,7 +30485,10 @@ lemma accum_content_pending (sc : ScannerState)
                    (h_closeFVS_p.imp (fun ⟨nv, ks, h_cov, r⟩ => ⟨nv, ks,
                      h_cov.imp (fun ⟨lo, m, hb, hc⟩ => ⟨lo, m, hb, h_cov_step lo ks hc⟩) id,
                      r⟩) id)
-                 (nodir_of_content_dispatch h_dispatch),
+                 (nodir_of_content_dispatch h_dispatch)
+                 -- Item 199: the ENTRY face's value-line twin steps with it — the field
+                 -- carries no cover, so the step is the identity.
+                 h_closeFEV_p,
                hcorr_result⟩
       · by_cases hbang : c = '!'
         · -- ═══ `!` on the run's line: the mirror ═══
@@ -30575,7 +30622,10 @@ lemma accum_content_pending (sc : ScannerState)
                      (h_closeFVS_p.imp (fun ⟨nv, ks, h_cov, r⟩ => ⟨nv, ks,
                        h_cov.imp (fun ⟨lo, m, hb, hc⟩ => ⟨lo, m, hb, h_cov_step lo ks hc⟩) id,
                        r⟩) id)
-                   (nodir_of_content_dispatch h_dispatch),
+                   (nodir_of_content_dispatch h_dispatch)
+                   -- Item 199: the ENTRY face's value-line twin steps with it — the field
+                   -- carries no cover, so the step is the identity.
+                   h_closeFEV_p,
                  hcorr_result⟩
         · by_cases hstar : c = '*'
           · -- ═══ `*` on the run's line: REFUTED (items 9e/9k) ═══
@@ -30974,6 +31024,18 @@ lemma accum_content_pending (sc : ScannerState)
                 · obtain rfl : ne = k := by omega
                   exact Or.inl ⟨ks, h_lt, h_cv, r⟩
                 · exact Or.inr trivial
+              -- Item 199: and the same specialization at the VALUE-LINE bottom.
+              -- The park's `ne` is the enclosing collection's width and the
+              -- landing names it; the field carries no cover, so `ne = k` is
+              -- the whole step.
+              have h_closeFEV_k : (∃ (nv : Nat) (ks : List Nat),
+                  ∀ sp_m : SurfPos, SBlockNode (k + 1) .blockIn sp_node sp_m →
+                  ∀ sp_end : SurfPos, SCompactSeqTail k sp_m sp_end →
+                  ResumeFrames (ExplValueLine sp_start nv) ks sp_end) ∨ True := by
+                rcases h_closeFEV_p with ⟨ne, nv, ks, hne, r⟩ | _
+                · obtain rfl : ne = k := by omega
+                  exact Or.inl ⟨nv, ks, r⟩
+                · exact Or.inr trivial
               -- One question, one deferral: is there a reading of this value at
               -- EVERY index?  Both negative answers — a block-scalar header and
               -- a step that crossed a break — are already-named families.
@@ -31124,13 +31186,18 @@ lemma accum_content_pending (sc : ScannerState)
                            -- Item 190: UNMEASURED at the decorated content
                            -- dispatch, as at the two plain ones above.
                            (Or.inr trivial)
-                           -- ═══ **Item 198: the PROPS lane's entry face has no value-line twin.**
-                           -- This producer relays `pendingProps.h_closeFE`, and that field —
-                           -- alone among the four `ResumeFrames` faces the props park carries —
-                           -- is stream-bottomed with nothing beside it (`h_closeF`/`h_closeFV`
-                           -- are the NODE face's pair).  The residue is one field up, and it is
-                           -- the last one-sided face in the census. ═══
-                           (Or.inr trivial),
+                           -- ═══ ~~**Item 198: the PROPS lane's entry face has no
+                           -- value-line twin.**~~  **Item 199 gave it one.**  The
+                           -- field is `pendingProps.h_closeFEV`, paid at the one
+                           -- producer that pays `h_closeFE` from the parameter item
+                           -- 198 had already put in scope there, and it folds through
+                           -- this step exactly as the stream face above does
+                           -- (`?⏎  ?⏎    - &p a⏎  ? b⏎: w`). ═══
+                           (match h_closeFEV_k with
+                            | Or.inl ⟨nv, ks, closeFEV⟩ => Or.inl ⟨nv, ks,
+                                fun sp_mid h_ssl sp_end h_tail =>
+                                  closeFEV sp_mid (h_nodeAt sp_mid h_ssl) sp_end h_tail⟩
+                            | Or.inr _ => Or.inr trivial),
                          hcorr_result⟩
                 | inr _ =>
                   exact ⟨sp_block, sp_block, sp_block, sp_scan', h_stream_block,
@@ -31233,8 +31300,12 @@ lemma accum_content_pending (sc : ScannerState)
                            -- Item 190: UNMEASURED at the decorated content
                            -- dispatch, as at the two plain ones above.
                            (Or.inr trivial)
-                           -- Item 198: as above — the props lane's entry face, one-sided.
-                           (Or.inr trivial),
+                           -- Item 199: as above — the same fold, the same field.
+                           (match h_closeFEV_k with
+                            | Or.inl ⟨nv, ks, closeFEV⟩ => Or.inl ⟨nv, ks,
+                                fun sp_mid h_ssl sp_end h_tail =>
+                                  closeFEV sp_mid (h_nodeAt sp_mid h_ssl) sp_end h_tail⟩
+                            | Or.inr _ => Or.inr trivial),
                          hcorr_result⟩
                 | inr _ =>
                   exact ⟨sp_block, sp_block, sp_block, sp_scan', h_stream_block,
@@ -31338,8 +31409,12 @@ lemma accum_content_pending (sc : ScannerState)
                            -- Item 190: UNMEASURED at the decorated content
                            -- dispatch, as at the two plain ones above.
                            (Or.inr trivial)
-                           -- Item 198: as above — the props lane's entry face, one-sided.
-                           (Or.inr trivial),
+                           -- Item 199: as above — the same fold, the same field.
+                           (match h_closeFEV_k with
+                            | Or.inl ⟨nv, ks, closeFEV⟩ => Or.inl ⟨nv, ks,
+                                fun sp_mid h_ssl sp_end h_tail =>
+                                  closeFEV sp_mid (h_nodeAt sp_mid h_ssl) sp_end h_tail⟩
+                            | Or.inr _ => Or.inr trivial),
                          hcorr_result⟩
                 | inr _ =>
                   exact ⟨sp_block, sp_block, sp_block, sp_scan', h_stream_block,

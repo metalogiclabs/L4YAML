@@ -59,9 +59,10 @@ example {sc : ScannerState} {sp_start sp_block sp_scan sp_node sp_p : SurfPos}
     (Or.inr KeyPackPunt.noKeyContext) h_floor h_col0 (Or.inr trivial) h_ska
     (Or.inr trivial)
     -- Item 114: the five resume faces are optional too — a pin with no
-    -- enclosing holdings punts them all.
+    -- enclosing holdings punts them all.  Item 199: SIX, since the entry face
+    -- got its value-line twin and the census closed.
     (Or.inr trivial) (Or.inr trivial) (Or.inr trivial) (Or.inr trivial)
-    (Or.inr trivial) h_nodir
+    (Or.inr trivial) h_nodir (Or.inr trivial)
 
 /-! ## §2  The measurement: the floor's transport premises
 

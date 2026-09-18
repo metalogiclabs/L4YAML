@@ -7,7 +7,7 @@ Copyright (c) 2026. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 -/
 
-/-! # The block-indicator escape, by CLASS and by ROUTE (DOCS items 184–198)
+/-! # The block-indicator escape, by CLASS and by ROUTE (DOCS items 184–199)
 
 `block_dispatch_deferred` is `PendingNode.pendingFlow`'s only producer, so
 R3 — row 12's β.5 deletion — is the emptying of this escape.  Its applications
@@ -2285,5 +2285,123 @@ the finished stream and which item 99 has served all along: -/
 rather than rediscovering it: the props lane's ENTRY face (`h_closeFE`) is the
 last one-sided row in the census above, so the three entry-content producers
 that relay it punt the new field. -/
+
+/-! ## §18  The row that closed the census (item 199)
+
+Item 198's census left exactly one face carrying a stream bottom with nothing
+beside it — `pendingProps.h_closeFE`, the props park's ENTRY face (the awaited
+node, then the enclosing collection's tail at `ne`, then the still-open mapping
+levels).  Its NODE face has had its pair since item 153.  With
+`h_closeFEV` the census reads:
+
+| park | stream | value-line |
+|---|---|---|
+| `pendingContent` | 1 | 1 |
+| `pendingProps` | 2 | 2 |
+| `pendingBlockContent` | 1 | 1 |
+| `pendingBlock` | 1 | 1 |
+| `pendingMapValue` | 2 | 2 |
+| **TOTAL** | **7** | **7** |
+
+**The item cost one constructor field and no relay.**  `h_closeFE`'s single
+producer is `accum_content_on_pendingBlock_indented`, which pays it from
+`pendingBlock.h_closeF`; item 198 gave that same lemma `h_closeFV_old`, so the
+twin is paid from a parameter already in scope.  Two of the field's six
+producers are verbatim RELAYS, and a flip cannot see them: deleting the
+`∨ True` errors where the disjunction is built or destructed, not where the
+field is passed through, so the flip reads 5 sites of 6.
+
+**§18.1 — the specialization is the field's own side condition.**  The park
+carries `n = ne + 1`; the landing names `k` with `n = k + 1`; the field carries
+no cover, so `ne = k` is the whole step: -/
+
+example {sp_start sp_node : SurfPos} {n ne k nv : Nat} {ks : List Nat}
+    (hne : n = ne + 1) (hk : n = k + 1)
+    (r : ∀ sp_m : SurfPos, SBlockNode n .blockIn sp_node sp_m →
+      ∀ sp_end : SurfPos, SCompactSeqTail ne sp_m sp_end →
+      ResumeFrames (ExplValueLine sp_start nv) ks sp_end) :
+    ∀ sp_m : SurfPos, SBlockNode (k + 1) .blockIn sp_node sp_m →
+      ∀ sp_end : SurfPos, SCompactSeqTail k sp_m sp_end →
+      ResumeFrames (ExplValueLine sp_start nv) ks sp_end := by
+  obtain rfl : ne = k := by omega
+  subst hk
+  exact r
+
+/-! …and without the equation there is nothing to specialize: -/
+
+example {sp_start sp_node : SurfPos} {n ne _k nv : Nat} {ks : List Nat}
+    (_r : ∀ sp_m : SurfPos, SBlockNode n .blockIn sp_node sp_m →
+      ∀ sp_end : SurfPos, SCompactSeqTail ne sp_m sp_end →
+      ResumeFrames (ExplValueLine sp_start nv) ks sp_end) : True := by
+  fail_if_success
+    have : ∀ sp_m : SurfPos, SBlockNode (_k + 1) .blockIn sp_node sp_m →
+        ∀ sp_end : SurfPos, SCompactSeqTail _k sp_m sp_end →
+        ResumeFrames (ExplValueLine sp_start nv) ks sp_end := _r
+  trivial
+
+/-! **§18.2 — the fold**, which is the stream face's verbatim: the props run's
+node goes into the entry-content park's face, and what the stack stands on is
+all that differs. -/
+
+example {sp_start sp_node sp_scan' : SurfPos} {k nv : Nat} {ks : List Nat}
+    (closeFEV : ∀ sp_m : SurfPos, SBlockNode (k + 1) .blockIn sp_node sp_m →
+      ∀ sp_end : SurfPos, SCompactSeqTail k sp_m sp_end →
+      ResumeFrames (ExplValueLine sp_start nv) ks sp_end)
+    (h_nodeAt : ∀ sp_mid : SurfPos, SSLComments sp_scan' sp_mid →
+      SBlockNode (k + 1) .blockIn sp_node sp_mid) :
+    ∀ sp_mid : SurfPos, SSLComments sp_scan' sp_mid →
+      ∀ sp_end : SurfPos, SCompactSeqTail k sp_mid sp_end →
+        ResumeFrames (ExplValueLine sp_start nv) ks sp_end :=
+  fun sp_mid h_ssl sp_end h_tail => closeFEV sp_mid (h_nodeAt sp_mid h_ssl) sp_end h_tail
+
+/-! **§18.3 — and the stream-bottomed entry face cannot stand in for it**, which
+is why relaying `h_closeFE` through the same fold was never the answer: -/
+
+example {sp_start sp_node sp_scan' : SurfPos} {k _nv : Nat} {ks : List Nat}
+    (_closeFE : ∀ sp_m : SurfPos, SBlockNode (k + 1) .blockIn sp_node sp_m →
+      ∀ sp_end : SurfPos, SCompactSeqTail k sp_m sp_end →
+      ResumeFrames (SLYamlStream sp_start) ks sp_end)
+    (_h_nodeAt : ∀ sp_mid : SurfPos, SSLComments sp_scan' sp_mid →
+      SBlockNode (k + 1) .blockIn sp_node sp_mid) : True := by
+  fail_if_success
+    have : ∀ sp_mid : SurfPos, SSLComments sp_scan' sp_mid →
+        ∀ sp_end : SurfPos, SCompactSeqTail k sp_mid sp_end →
+          ResumeFrames (ExplValueLine sp_start _nv) ks sp_end :=
+      fun sp_mid h_ssl sp_end h_tail => _closeFE sp_mid (_h_nodeAt sp_mid h_ssl) sp_end h_tail
+  trivial
+
+/-! From there §17 carries it: the park's collection closes on the landing's
+comments with a `nil` tail, `resumeAt` pops the levels the dedent ended, and
+`resumeFrameRoute` (item 197) routes the opener's entry into the level with the
+enclosing frame's line still owed.
+
+**The domain**, measured before the field was priced — item 198's family with a
+`[96]` property run on the entry's node, at both indicators and both readings: -/
+
+#guard pins "?\n  ?\n    - &p a\n  ? b\n: w\n" == ("scan-accepted", "+STR +DOC +MAP +MAP +SEQ =VAL &p :a -SEQ =VAL : =VAL :b =VAL : -MAP =VAL :w -MAP -DOC -STR")
+#guard pins "?\n  ?\n    - &p a\n  : c\n: w\n" == ("scan-accepted", "+STR +DOC +MAP +MAP +SEQ =VAL &p :a -SEQ =VAL :c -MAP =VAL :w -MAP -DOC -STR")
+#guard pins "?\n  ?\n    - &p a\n: w\n" == ("scan-accepted", "+STR +DOC +MAP +MAP +SEQ =VAL &p :a -SEQ =VAL : -MAP =VAL :w -MAP -DOC -STR")
+#guard pins "?\n  - &p a\n: w\n" == ("scan-accepted", "+STR +DOC +MAP +SEQ =VAL &p :a -SEQ =VAL :w -MAP -DOC -STR")
+
+/-! …with a TAG run, and with both, since the park's `ha`/`ht` are independent
+indices and the field is stated over neither: -/
+
+#guard pins "?\n  ?\n    - !!str a\n  ? b\n: w\n" == ("scan-accepted", "+STR +DOC +MAP +MAP +SEQ =VAL <tag:yaml.org,2002:str> :a -SEQ =VAL : =VAL :b =VAL : -MAP =VAL :w -MAP -DOC -STR")
+#guard pins "?\n  ?\n    - &p !!str a\n  ? b\n: w\n" == ("scan-accepted", "+STR +DOC +MAP +MAP +SEQ =VAL &p <tag:yaml.org,2002:str> :a -SEQ =VAL : =VAL :b =VAL : -MAP =VAL :w -MAP -DOC -STR")
+
+/-! …and with the node on the NEXT line, which is the shape the ENTRY face is
+named for — the run parks, the node arrives across a break, and the entry is
+still the one the collection owes: -/
+
+#guard pins "?\n  ?\n    - &p\n      a\n  ? b\n: w\n" == ("scan-accepted", "+STR +DOC +MAP +MAP +SEQ =VAL &p :a -SEQ =VAL : =VAL :b =VAL : -MAP =VAL :w -MAP -DOC -STR")
+#guard pins "?\n  ?\n    - &p\n  ? b\n: w\n" == ("scan-accepted", "+STR +DOC +MAP +MAP +SEQ =VAL &p : -SEQ =VAL : =VAL :b =VAL : -MAP =VAL :w -MAP -DOC -STR")
+
+/-! The CONTROLS: the same run with no open frame is refused before any dispatch
+runs, the mapping-VALUE lane is the accepted one item 99 has served all along,
+and the undecorated row is item 198's, unchanged — the properties ride and
+nothing else moves: -/
+
+#guard pins "- &p a\nb: 2\n" == ("scan-refused L4YAML.ScanError.trailingContent 1 0", "ERR L4YAML.ScanError.trailingContent 1 0")
+#guard pins "k:\n  - &p a\nb: 2\n" == ("scan-accepted", "+STR +DOC +MAP =VAL :k +SEQ =VAL &p :a -SEQ =VAL :b =VAL :2 -MAP -DOC -STR")
 
 end L4YAML.Tests.Guards.BlockDeferralClasses
