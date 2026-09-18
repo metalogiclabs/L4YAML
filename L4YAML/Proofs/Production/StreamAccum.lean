@@ -21396,7 +21396,20 @@ lemma accum_block_on_pendingBlockContent
       ∀ sp_e : SurfPos, SCompactSeqTail n sp_m sp_e →
       ∀ sp_i sp_c : SurfPos, SIndent nv sp_e sp_i → GLit ':' sp_i sp_c →
       ∀ sp_v : SurfPos, SBlockIndented nv .blockOut sp_c sp_v →
-      SLYamlStream sp_start sp_v) ∨ True) :
+      SLYamlStream sp_start sp_v) ∨ True)
+    -- **Item 194 (LAST): the park's OWN resume frames** (`pendingBlockContent.h_closeF`,
+    -- item 99), threaded here for the first time.  Item 173 added the `:`/`?`
+    -- opener's resume arm and punted it at this call with "no mapping-lane
+    -- field carries it here"; the park has carried one since item 99, and the
+    -- only thing between the two was this parameter list.  The landing's own
+    -- width decides membership, exactly as at the `_stamp_offcol` branch, and
+    -- `ResumeFrames.resumeAt` pops the levels the dedent ended.
+    (h_closeF_old : (∃ ks : List Nat, (∀ k' ∈ ks, k' < n) ∧
+      ((∃ lo : Nat, IndentStackCover.Floor lo n ks ∧
+        IndentStackCover.Covered lo ks sc) ∨ True) ∧
+      ∀ sp_mid : SurfPos, SSLComments sp_scan sp_mid →
+      ∀ sp_end : SurfPos, SCompactSeqTail n sp_mid sp_end →
+      ResumeFrames (SLYamlStream sp_start) ks sp_end) ∨ True) :
     ∃ sp_gram' sp_block' sp_flow' sp_scan',
       SLYamlStream sp_start sp_gram' ∧
       BlockStack sp_gram' sp_block' ∧
@@ -21542,11 +21555,34 @@ lemma accum_block_on_pendingBlockContent
             (nic_false_of_indicator_noflow h_preprocess (noflow_disp_of_noflow h_noflow))
             h_dispatch h_preprocess h_src (Or.inr trivial) (Or.inr trivial)
             (Or.inr trivial)
-            -- Item 173: this park's open levels are the sequence lane's
+            -- ═══ Item 173: this park's open levels are the sequence lane's
             -- (`h_seqF`); the mapping level a dedented sibling would resume
-            -- (`a:⏎- x⏎: 2`) sits behind the collection's own close, and no
-            -- mapping-lane field carries it here — the recorded residue.
-            (Or.inr trivial)
+            -- (`a:⏎- x⏎: 2`) sits behind the collection's own close, and
+            -- ~~no mapping-lane field carries it here — the recorded residue.~~
+            --
+            -- **Item 194: one does, and has since item 99.**  `h_closeF` is the
+            -- park's resume stack read at the entry level; at the EMPTY tail it
+            -- is the landing-level face (item 110's own spend), and the dedent
+            -- this arm receives lands at one of its widths — a width matching no
+            -- open level is `trailingContent`, refused before any dispatch runs,
+            -- so the arm decides membership per input and defers the case it can
+            -- no longer receive.  What the carrier could not express is the
+            -- bottom: `ResumeFrames (SLYamlStream sp_start)` says the stream is
+            -- COMPLETE once the levels close, which is true of a landing at the
+            -- outermost mapping (`?⏎  ?⏎    - a⏎? b⏎: w`, the root's second
+            -- entry) and false of one inside a still-open `?` frame
+            -- (`?⏎  ?⏎    - a⏎  ? b⏎: w`, where the root's `: w` is owed
+            -- underneath) — that lane wants `ResumeFrames (ExplValueLine …)`,
+            -- which this parameter's type cannot take.  The residue is a BOTTOM,
+            -- not a missing field. ═══
+            (by
+              rcases h_closeF_old with ⟨ks, _, _, closeF⟩ | _
+              · by_cases hmem : k ∈ ks
+                · obtain ⟨ks', hw, cont⟩ :=
+                    (closeF sp_mid h_ssl sp_mid (SCompactSeqTail.nil n sp_mid)).resumeAt hmem
+                  exact Or.inl ⟨ks', hw.lt, cont⟩
+                · exact Or.inr trivial
+              · exact Or.inr trivial)
             -- Item 142: this park finished a node, so it PAYS §9.2's refusal —
             -- the landing's flag comes from the park's own arm or the break it
             -- crossed (`landing_or_park_ska`).
@@ -22555,7 +22591,7 @@ lemma accum_block_pending (sc : ScannerState)
         -- Item 175: the explicit twin holds no property run either.
         (Or.inr trivial)
   | pendingBlockContent _ _ _ n_old h_line _h_closable h_entry_old h_key_old h_stale47 h_arm77
-      h_kslot92 _ _ h_tail139 h_seqF167 h_kslotUp190 =>
+      h_kslot92 h_closeF99 _ h_tail139 h_seqF167 h_kslotUp190 =>
     -- Item 22: the pending's own entry index rides through; the `n ≠ 0`
     -- deferral this arm used to open is gone with it.
     -- Item 37: and what is left of the escape is `[154]`'s `:`.
@@ -22565,6 +22601,9 @@ lemma accum_block_pending (sc : ScannerState)
       h_arm77 h_preprocess h_dispatch h_bare h_dn h_base h_mono h_tail139 h_seqF167
       -- Item 190: the park's second frame, relayed as its first is.
       h_kslotUp190
+      -- Item 194: and the park's resume stack, which the `:`/`?` opener's own
+      -- resume arm has been waiting for since item 173.
+      h_closeF99
   | pendingBlock _ _ _ n_old _h_close h_close_entry_old _h_floor h_sk_old h_col_old h_kslot92
       _ _ h_seqF167 h_kslotUp190 =>
     exact accum_block_on_pendingBlock sc sp_start sp_block sp_block sp_scan s_prep s' c sp_prep

@@ -21572,6 +21572,132 @@ named by this item and not measured by it.  Then **the REFUTATION** for
 constructor and its arm.  Only then item 183's flip order.  And the parked Ix
 Step-1 composition, on the Ix track's own clock.
 
+### Item 194 (2026-09-18)
+
+**THE CARRIER WAS ALREADY A PARAMETER.**  Branch `fix-a-grammar-completeness`,
+on top of item 193's `ffc5ef65`.
+
+**The two asks, measured before anything was written.**  Item 193 handed forward
+one line with two asks inside it, and the sweep separates them the way item 193's
+own sweep separated three parks:
+
+| ask | the family, at the runtime | verdict |
+|---|---|---|
+| `accum_block_on_pendingBlockContent`'s DEDENT lane wants the enclosing mapping's still-open tail | `k:⏎  j:⏎    - a⏎? b` and the same with the `?` at column 2 are BOTH accepted — two landings off one park, two levels popped or one; columns 3 and 4 are `trailingContent` | **PAID** |
+| `indicator_open_map`'s duplicated pair wants `pendingMapValue.h_kslot` widened to a chain | `?⏎  ?⏎    ?⏎: w` takes the `:` at column 0, 2 AND 4; a fourth `?` frame adds a fourth landing | measured, unbounded, and the NEXT item |
+
+**The finding is a SEVENTH kind: the carrier was already a parameter.**  After
+188 MISSING, 189 SHADOWED, 190 UNSTATABLE, 191 NOT-COMPOSED, 192
+RETIRED-A-PARAMETER and 193 THE-TWIN-THAT-IS-NOT-A-TWIN.  Item 193's refutation
+ended by naming what the starved lane wants — *the enclosing mapping's
+still-open tail, the MAPPING lane's carrier, not this park's frames*.  At the
+very same call, twenty items earlier, item 173 had already added that parameter
+(`indicator_open_map.h_res_land`, the opener's resume arm) and punted it with
+*no mapping-lane field carries it here*.  The park has carried one since item 99
+— `pendingBlockContent.h_closeF`, the resume stack read at the entry level,
+which at the EMPTY tail is the landing-level face by item 110's own spend.  What
+stood between the two for twenty items was
+`accum_block_on_pendingBlockContent`'s parameter list.  **A punt's comment names
+what is MISSING; it does not survey what EXISTS** — and neither sentence was
+wrong when written, which is exactly why neither was re-read.  Before pricing a
+carrier, read the consumer's own binder list and the park's own fields.
+
+**What landed.**
+
+* `accum_block_on_pendingBlockContent` takes `h_closeF_old` (LAST, so the
+  positional call keeps binding), and `accum_block_pending` threads
+  `pendingBlockContent.h_closeF` into it — the field's first consumer.
+* The `:`/`?` arm pays `indicator_open_map.h_res_land` from it: the stack read
+  at the empty sequence tail, `by_cases` on `k ∈ ks`, and
+  `ResumeFrames.resumeAt` to pop the levels the dedent ended.  The non-member
+  branch defers an input the scanner refuses before any dispatch runs, which is
+  what the sweep's `trailingContent` rows say.
+* Item 173's residue sentence struck in place and replaced with the measured
+  one; `BlockDeferralClasses` §13 carries the derivations and 13 new pins.
+
+**The residue is a BOTTOM, not a missing field.**  `h_res_land`'s type bottoms
+its stack at `SLYamlStream sp_start` — the stream is COMPLETE once the levels
+close.  That is true of a dedent to the outermost mapping (`?⏎  ?⏎    - a⏎? b⏎: w`
+gives the root a second entry) and false of one landing inside a still-open `?`
+frame (`?⏎  ?⏎    - a⏎  ? b⏎: w` leaves the root's `: w` owed underneath), which
+wants `ResumeFrames (ExplValueLine …)` instead.  The same bottom blocks the
+FIELD upstream, so one fact accounts for both punts.  No wrapper count moved:
+`_stamp_offcol` is still 3 sites and `_stamp_nopack` still 3, for the seventh
+item running — this is item 173's arm, not a `_stamp_*` site.
+
+**The instrument, refined rather than repeated.**  Item 193 read a field's flip
+as counting PRODUCERS.  It counts every site whose TERM changes type, which is
+the producers that punt it AND the relays that pass it on — and item 193's item
+added no relay, so the distinction did not show.  It shows here:
+`pendingBlockContent.h_closeF` reads **3 declarations / 21 errors** at
+`ffc5ef65` and **4 / 22** now, the new declaration being `accum_block_pending`.
+The payment's own surface is the parameter, which did not exist at the parent:
+`h_closeF_old` reads **2 / 2**, one in the lemma and one at the caller.  A count
+that moved because the item introduced a new KIND of site is not evidence of
+reach.
+
+**GOTCHAS.**
+
+* Two parameters named `h_closeF_old` exist (`accum_content_pending`'s is the
+  other), and two constructor fields named `h_closeF` differ only in their
+  third line (`SSLComments sp_scan sp_mid` vs `SBlockIndented n .blockIn`).
+  Item 192's substring gotcha and item 193's field-vs-parameter one, both again:
+  every flip in this item had to name its occurrence.
+* The flip harness reports "SYNTAX ERROR — the flip measured nothing" whenever
+  the first error says `Unknown identifier`.  Here that string is the CORRECT
+  signal: deleting the `∨ True` breaks the `rcases … | _` pattern, so the
+  binder it introduced goes unknown.  Read the error's line before believing the
+  heuristic.
+* `ResumeFrames` takes its bottom as a PARAMETER (`P : SurfPos → Prop`), so the
+  two lanes are one inductive and `resumeAt` serves both.  That is what makes
+  the residue statable as a bottom rather than as a missing production — and
+  what makes it invisible to a reader who checks only that a `ResumeFrames`
+  field exists.
+
+**Non-vacuity is a derivation with TWO positive controls.**
+`BlockDeferralClasses` §13 builds the arm's payload from a `h_closeF`-shaped
+hypothesis through `resumeAt`, and answers TWO landing widths from ONE stack
+(`[2, 0]`, popping two levels or one).  Beside it, `resumeAt` is applied to a
+value-line-bottomed stack and succeeds — so the `fail_if_success` that follows,
+handing that result to the arm's slot, refuses on the BOTTOM and not on the
+crossing.  The 13 pins carry the accepted family, the `:` half, item 173's own
+recorded input, the two refused columns the membership branch defers, and the
+second ask's three landings.
+
+**Gates.**  Full build **1162** jobs + guards, ZERO warnings; `run-all-tests.sh`
+**4520/4520** (`adversarialinstantiation` **2441/2441** inside it), Production
+Coverage **837/837**; `eventscore` **347/358** (252 event-pass, 95 error-ok, 0
+error-miss, 0 event-reject); `suiterunner` **869 / 0 / 151**; `matrix_score.py`
+over the 402-leaf data form on BOTH pipelines, **402/402 event** (`pass` 308,
+`err-ok` 94) and **282/282 JSON** (`pass` 279, `err-ok` 3, `skip` 120), splits
+identical to 176–193; the `[210]` flip at **FIVE** errors at the same five
+definitions, applied and restored clean; `#print axioms` over
+`ResumeFrames.resumeAt` and six threaded consumers, no `sorryAx` (`resumeAt`
+itself is `[propext]`); checkers 228/355, 20/230/249/355, 25 capstones,
+annotation verifier 100 % coverage (211/211 rules) with the same **19**
+pre-existing name mismatches.  Counts at `ffc5ef65` and here (the ledger's own
+recipe, `grep -rhoE '^ *(private )?(lemma|theorem|def|abbrev|instance|structure|inductive|class) ' L4YAML/`
+and `grep -rho '#guard' Tests/ L4YAML/`, neither with `--include` — adding one
+drops 6 guards and 8 declarations, so the two spellings are not comparable):
+declarations **8629**, unchanged (the item added no definition); `#guard`s
+**7912 → 7925** (+13); test files **621**, unchanged.
+
+**What remains.**  In order: the **second ask** — widen `pendingMapValue.h_kslot`
+from one `∃ nv` to a chain, which retires `indicator_open_map`'s duplicated pair
+(`h_kslot_up` and `h_explUp_chain` have literally the same type); its domain is
+measured and pinned, its price is the field's own producer census.  Then the
+**value-line bottom** this item named: `h_res_land` at
+`ResumeFrames (ExplValueLine …)`, which serves the dedent inside a still-open
+`?` frame and wants the field widened as well as the parameter.  Then the three
+PROPS-lane content producers, and `main`'s flow-open lane, which carries no
+value route at all (`pendingContent`, `pendingBlockContent` — a LANE, not a
+field, and still unmeasured).  Then the compact/INLINE arm of
+`accum_block_on_pendingBlock`, named by item 193 and measured by neither.  Then
+**the REFUTATION** for `_stamp_compact` (2 sites, measured empty),
+**`KeyPackPunt`'s two reasons** (`dedent` 7/5 and `noKeyContext` 6/5, possibly a
+phantom), then the `pendingFlow` constructor and its arm.  Only then item 183's
+flip order.  And the parked Ix Step-1 composition, on the Ix track's own clock.
+
 ### REMAINING, in order
 
 The per-item history is the closure log above; this section lists only the

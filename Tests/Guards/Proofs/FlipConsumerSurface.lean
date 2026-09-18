@@ -309,7 +309,21 @@ true when written and went stale one item later: item 192 made
 `accum_flow_open_depth0` a consumer of the field (0 → 3 mentions of the binder)
 and re-ran the two FLOW fields instead of this pair, so the stale number rode
 forward into item 192's entry as "flat".  The reading at both `a16a5566` and
-here is 7 / 23. -/
+here is 7 / 23.
+
+Item 194 paid a punt that had waited on a PARAMETER LIST rather than on a
+carrier, and its numbers refine item 193's sentence rather than repeating it.
+The field surface is NOT flat this time: `pendingBlockContent.h_closeF` reads
+3 declarations / 21 errors at `ffc5ef65` and **4 / 22** here, the new one being
+`accum_block_pending` — the `match` that binds the field and hands it to the
+lemma.  So a field's flip counts every site whose TERM changes type, which is
+the producers that punt it AND the relays that pass it on; item 193 observed the
+first half, because the item it was measuring added no relay.  The payment's own
+surface is the parameter, which did not exist at the parent: `h_closeF_old` on
+`accum_block_on_pendingBlockContent` reads **2 declarations / 2 errors**, one in
+the lemma (the payment) and one at the caller.  A number that jumped because the
+item introduced a new KIND of site is not evidence of reach, and the reach here
+is the guards file's §13, not either count. -/
 
 /-! ## The gate
 

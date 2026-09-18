@@ -7,7 +7,7 @@ Copyright (c) 2026. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 -/
 
-/-! # The block-indicator escape, by CLASS and by ROUTE (DOCS items 184–193)
+/-! # The block-indicator escape, by CLASS and by ROUTE (DOCS items 184–194)
 
 `block_dispatch_deferred` is `PendingNode.pendingFlow`'s only producer, so
 R3 — row 12's β.5 deletion — is the emptying of this escape.  Its applications
@@ -1350,5 +1350,163 @@ opens heads the stream's first document and stands inside nothing: -/
 
 #guard pins "? a\n: w\n" == ("scan-accepted", "+STR +DOC +MAP =VAL :a =VAL :w -MAP -DOC -STR")
 #guard pins "---\n? a\n: w\n" == ("scan-accepted", "+STR +DOC --- +MAP =VAL :a =VAL :w -MAP -DOC -STR")
+
+/-! ## §13  The carrier that was already a parameter (item 194)
+
+§12's middle row ended by naming what the starved lane wants: *the enclosing
+mapping's still-open tail — the MAPPING lane's carrier, not this park's frames.*
+At the very same call, twenty items earlier, item 173 had already added that
+parameter — `indicator_open_map.h_res_land`, the opener's resume arm — and
+punted it with the words *no mapping-lane field carries it here*.  The park has
+carried one since item 99 (`pendingBlockContent.h_closeF`, the resume stack read
+at the entry level, which at the EMPTY tail is the landing-level face by item
+110's own spend).  What stood between the two for twenty items was
+`accum_block_on_pendingBlockContent`'s parameter list.
+
+**The seventh diagnosis in this series: THE CARRIER WAS ALREADY A PARAMETER.**
+After 188 MISSING, 189 SHADOWED, 190 UNSTATABLE, 191 NOT-COMPOSED, 192
+RETIRED-A-PARAMETER and 193 THE-TWIN-THAT-IS-NOT-A-TWIN.  A punt's comment names
+what is MISSING; it does not survey what EXISTS, and neither sentence was wrong
+when written — item 173's arm and item 99's field simply never appeared in one
+signature.  Before pricing a carrier, read the consumer's own binder list and
+the park's own fields; the price here was one parameter and one
+`ResumeFrames.resumeAt`, not a production.
+
+| the two asks §12 handed forward | measured at the runtime | verdict |
+|---|---|---|
+| the DEDENT lane wants the enclosing mapping's tail | `k:⏎  j:⏎    - a⏎? b` and `…⏎  ? b` both accepted — TWO landings off one park, and columns 3 and 4 are `trailingContent` | **PAID** from `h_closeF` via `resumeAt`, for the landings the stack's bottom admits |
+| `indicator_open_map`'s duplicated pair wants `pendingMapValue.h_kslot` widened | `?⏎  ?⏎    ?⏎: w` takes the `:` at 0, 2 AND 4; a fourth frame adds a fourth | NOT this item — the domain is an unbounded chain, so the widening is warranted and priced by its own census |
+
+**The residue is a BOTTOM, not a missing field.**  `h_res_land`'s type bottoms
+its stack at `SLYamlStream sp_start`, which says the stream is COMPLETE once the
+levels close.  That is true of a dedent to the outermost mapping — `?⏎  ?⏎
+- a⏎? b⏎: w` gives the root a second entry — and false of one landing inside a
+still-open `?` frame, where `?⏎  ?⏎    - a⏎  ? b⏎: w` leaves the root's `: w`
+owed underneath and wants `ResumeFrames (ExplValueLine …)` instead.  The same
+bottom blocks the field upstream, so one fact accounts for both punts.  No
+wrapper count moved: this is item 173's arm, not a `_stamp_*` site. -/
+
+/-- **The dedent's crossing, in the shape the payment builds it.**  The park's
+    resume stack read at the EMPTY sequence tail is the landing-level face; the
+    landing's own width is a member of it by the scanner's own unwind (a width
+    matching no open level is `trailingContent`, refused before any dispatch
+    runs); and `resumeAt` pops the levels the dedent ended, handing back exactly
+    the opener's resume arm — widths bounded by the landing, continuation from
+    the landing's own mapping tail. -/
+example {n k : Nat} {sp_start sp_scan sp_mid : SurfPos} {ks : List Nat}
+    (h_ssl : SSLComments sp_scan sp_mid)
+    (closeF : ∀ sp_m : SurfPos, SSLComments sp_scan sp_m →
+      ∀ sp_e : SurfPos, SCompactSeqTail n sp_m sp_e →
+      ResumeFrames (SLYamlStream sp_start) ks sp_e)
+    (hmem : k ∈ ks) :
+    ∃ ks' : List Nat, (∀ k' ∈ ks', k' < k) ∧
+      ∀ sp_end : SurfPos, SCompactMapTail k sp_mid sp_end →
+        ResumeFrames (SLYamlStream sp_start) ks' sp_end :=
+  let ⟨ks', hw, cont⟩ :=
+    (closeF sp_mid h_ssl sp_mid (SCompactSeqTail.nil n sp_mid)).resumeAt hmem
+  ⟨ks', hw.lt, cont⟩
+
+/-- **ONE stack, TWO landings** — `k:⏎  j:⏎    - a⏎? b` pops two levels and
+    `k:⏎  j:⏎    - a⏎  ? b` pops one, off the same park and the same field.  A
+    carrier naming a single level answers one of them and chooses wrong at the
+    other, which is why the park's frames were a LIST from item 99 onward and
+    why the arm decides membership at the landing's own column. -/
+example {n : Nat} {sp_start sp_scan sp_mid : SurfPos}
+    (h_ssl : SSLComments sp_scan sp_mid)
+    (closeF : ∀ sp_m : SurfPos, SSLComments sp_scan sp_m →
+      ∀ sp_e : SurfPos, SCompactSeqTail n sp_m sp_e →
+      ResumeFrames (SLYamlStream sp_start) [2, 0] sp_e) :
+    (∃ ks' : List Nat, (∀ k' ∈ ks', k' < 2) ∧
+        ∀ sp_end : SurfPos, SCompactMapTail 2 sp_mid sp_end →
+          ResumeFrames (SLYamlStream sp_start) ks' sp_end) ∧
+    (∃ ks' : List Nat, (∀ k' ∈ ks', k' < 0) ∧
+        ∀ sp_end : SurfPos, SCompactMapTail 0 sp_mid sp_end →
+          ResumeFrames (SLYamlStream sp_start) ks' sp_end) :=
+  let stack := closeF sp_mid h_ssl sp_mid (SCompactSeqTail.nil n sp_mid)
+  ⟨let ⟨ks', hw, cont⟩ := stack.resumeAt (by simp); ⟨ks', hw.lt, cont⟩,
+   let ⟨ks', hw, cont⟩ := stack.resumeAt (by simp); ⟨ks', hw.lt, cont⟩⟩
+
+/-- …and the residue is the BOTTOM.  Both controls are positive: `resumeAt`
+    pops a value-line-bottomed stack exactly as it pops a stream-bottomed one,
+    so the refusal below is not about the crossing.  What the arm cannot do is
+    hand the result to `h_res_land`, whose type fixes the bottom at the finished
+    stream — and committing the `?` entry to its `e-node` value is precisely
+    what a landing inside a still-open frame must not do (`ResumeFrames`' own
+    docstring, item 108). -/
+example {n k nv : Nat} {sp_start sp_scan sp_mid : SurfPos} {ks : List Nat}
+    -- underscored because the second control's only use is inside
+    -- `fail_if_success`, which discards the term it elaborates
+    (_h_ssl : SSLComments sp_scan sp_mid)
+    (_closeS : ∀ sp_m : SurfPos, SSLComments sp_scan sp_m →
+      ∀ sp_e : SurfPos, SCompactSeqTail n sp_m sp_e →
+      ResumeFrames (SLYamlStream sp_start) ks sp_e)
+    (_closeV : ∀ sp_m : SurfPos, SSLComments sp_scan sp_m →
+      ∀ sp_e : SurfPos, SCompactSeqTail n sp_m sp_e →
+      ResumeFrames (ExplValueLine sp_start nv) ks sp_e)
+    (_hmem : k ∈ ks) :
+    True := by
+  -- control A: the stream-bottomed stack fills the arm
+  have _okS : ∃ ks' : List Nat, (∀ k' ∈ ks', k' < k) ∧
+      ∀ sp_end : SurfPos, SCompactMapTail k sp_mid sp_end →
+        ResumeFrames (SLYamlStream sp_start) ks' sp_end :=
+    let ⟨ks', hw, cont⟩ :=
+      (_closeS sp_mid _h_ssl sp_mid (SCompactSeqTail.nil n sp_mid)).resumeAt _hmem
+    ⟨ks', hw.lt, cont⟩
+  -- control B: the value-line-bottomed stack pops just as well, at its own bottom
+  have _okV : ∃ ks' : List Nat, (∀ k' ∈ ks', k' < k) ∧
+      ∀ sp_end : SurfPos, SCompactMapTail k sp_mid sp_end →
+        ResumeFrames (ExplValueLine sp_start nv) ks' sp_end :=
+    let ⟨ks', hw, cont⟩ :=
+      (_closeV sp_mid _h_ssl sp_mid (SCompactSeqTail.nil n sp_mid)).resumeAt _hmem
+    ⟨ks', hw.lt, cont⟩
+  fail_if_success
+    have : ∃ ks' : List Nat, (∀ k' ∈ ks', k' < k) ∧
+        ∀ sp_end : SurfPos, SCompactMapTail k sp_mid sp_end →
+          ResumeFrames (SLYamlStream sp_start) ks' sp_end :=
+      let ⟨ks', hw, cont⟩ :=
+        (_closeV sp_mid _h_ssl sp_mid (SCompactSeqTail.nil n sp_mid)).resumeAt _hmem
+      ⟨ks', hw.lt, cont⟩
+  trivial
+
+/-! **The paid family, at the runtime.**  One open mapping level below the
+sequence, then two — and with two, the `?` lands on either of them.  This is the
+`∃ ks` the arm reads and the reason it reads a list: -/
+
+#guard pins "k:\n  - a\n? b\n" == ("scan-accepted", "+STR +DOC +MAP =VAL :k +SEQ =VAL :a -SEQ =VAL :b =VAL : -MAP -DOC -STR")
+#guard pins "k:\n  j:\n    - a\n? b\n" == ("scan-accepted", "+STR +DOC +MAP =VAL :k +MAP =VAL :j +SEQ =VAL :a -SEQ -MAP =VAL :b =VAL : -MAP -DOC -STR")
+#guard pins "k:\n  j:\n    - a\n  ? b\n" == ("scan-accepted", "+STR +DOC +MAP =VAL :k +MAP =VAL :j +SEQ =VAL :a -SEQ =VAL :b =VAL : -MAP -MAP -DOC -STR")
+
+/-! …the `:` half of the same arm takes the same two widths (`[189]`'s empty-key
+entry where the `?` opens `[188]`'s explicit one), and item 173's own recorded
+input is the one-level case: -/
+
+#guard pins "k:\n  - a\n: b\n" == ("scan-accepted", "+STR +DOC +MAP =VAL :k +SEQ =VAL :a -SEQ =VAL : =VAL :b -MAP -DOC -STR")
+#guard pins "k:\n  j:\n    - a\n  : b\n" == ("scan-accepted", "+STR +DOC +MAP =VAL :k +MAP =VAL :j +SEQ =VAL :a -SEQ =VAL : =VAL :b -MAP -MAP -DOC -STR")
+#guard pins "a:\n- x\n: 2\n" == ("scan-accepted", "+STR +DOC +MAP =VAL :a +SEQ =VAL :x -SEQ =VAL : =VAL :2 -MAP -DOC -STR")
+
+/-! …and the `by_cases` on membership defers exactly the columns the scanner
+refuses before any dispatch runs, which is what makes the non-member branch a
+deferral of nothing: -/
+
+#guard pins "k:\n  j:\n    - a\n   ? b\n" == ("scan-refused L4YAML.ScanError.trailingContent 3 3", "ERR L4YAML.ScanError.trailingContent 3 3")
+#guard pins "k:\n  j:\n    - a\n    ? b\n" == ("scan-refused L4YAML.ScanError.trailingContent 3 4", "ERR L4YAML.ScanError.trailingContent 3 4")
+
+/-! **The bottom, as a pair.**  The same three lines under `?` frames: a landing
+at the OUTERMOST mapping gives the root a second entry and ends the stream —
+served — while §12's row at column 2 leaves the root's `: w` owed and wants the
+value-line bottom this parameter cannot take: -/
+
+#guard pins "?\n  ?\n    - a\n? b\n: w\n" == ("scan-accepted", "+STR +DOC +MAP +MAP +SEQ =VAL :a -SEQ =VAL : -MAP =VAL : =VAL :b =VAL :w -MAP -DOC -STR")
+
+/-! **The second ask, measured and handed forward.**  `pendingMapValue.h_kslot`
+is one `∃ nv`; the park's `?` stands inside an unbounded list of frames and the
+`:` may land on any of them.  Three landings at three levels, four at four —
+pinned here so the next item prices a widening it has measured rather than one
+the record asserts: -/
+
+#guard pins "?\n  ?\n    ?\n: w\n" == ("scan-accepted", "+STR +DOC +MAP +MAP +MAP =VAL : =VAL : -MAP =VAL : -MAP =VAL :w -MAP -DOC -STR")
+#guard pins "?\n  ?\n    ?\n  : w\n" == ("scan-accepted", "+STR +DOC +MAP +MAP +MAP =VAL : =VAL : -MAP =VAL :w -MAP =VAL : -MAP -DOC -STR")
+#guard pins "?\n  ?\n    ?\n    : w\n" == ("scan-accepted", "+STR +DOC +MAP +MAP +MAP =VAL : =VAL :w -MAP =VAL : -MAP =VAL : -MAP -DOC -STR")
+#guard pins "?\n  ?\n    ?\n      ?\n      : w\n" == ("scan-accepted", "+STR +DOC +MAP +MAP +MAP +MAP =VAL : =VAL :w -MAP =VAL : -MAP =VAL : -MAP =VAL : -MAP -DOC -STR")
 
 end L4YAML.Tests.Guards.BlockDeferralClasses
