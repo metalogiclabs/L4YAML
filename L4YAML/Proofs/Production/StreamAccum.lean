@@ -22540,21 +22540,45 @@ lemma accum_block_pending (sc : ScannerState)
         -- type, so the chain absorbs them both and the landing decides by
         -- membership.  `h_expl51` is this `?`'s own entry at `nmv`; item 93's
         -- `h_kslot93` is the frame it stands inside (`?⏎  ?⏎: w` — inner at 2,
-        -- outer at 0), and either may be the one the landed `:` is on. ═══
+        -- outer at 0), and either may be the one the landed `:` is on.
+        --
+        -- **Item 195: and the THIRD funder, which the park has carried since
+        -- item 191.**  `h_kslot93` is one `∃ nv` and names the NEAREST
+        -- ancestor; `h_explUp190` is the whole chain above this park, and at
+        -- three open frames the landed `:` may be on a further one
+        -- (`?⏎  ?⏎    ?⏎: w` takes the `:` at 0, 2 AND 4, and `h_kslot93`
+        -- holds 2).  The flow lane unions all three since item 192; this lane
+        -- read two of them.  The reading is the same `[188]` `explicitEmpty`
+        -- the slot lane already spends `h_explUp` through, with the KEY empty
+        -- on the landing's comments instead of filled — the entry never got
+        -- its value, and the ancestor's `:` line follows. ═══
         (frameChainUnion
-          (match h_expl51 with
-           | Or.inl ⟨sp_q, h_qlit, route⟩ => Or.inl ⟨[nmv], frameChainOne (a := nmv)
-               (fun sp_m sp_i sp_c h_ssl h_ind h_lit sp_v h_sbi =>
-                 route sp_v (SBlockMapEntry.explicit nmv sp_q sp_scan sp_m sp_i sp_c sp_v
-                   h_qlit (SBlockIndented.empty nmv .blockOut sp_scan sp_m h_ssl)
-                   h_ind h_lit h_sbi))⟩
-           | Or.inr _ => Or.inr trivial)
-          -- Item 93: the explicit-`:` twin of the branch above.
-          (match h_kslot93 with
-           | Or.inl ⟨nv, kslot⟩ => Or.inl ⟨[nv], frameChainOne (a := nv)
-               (fun sp_m sp_i sp_c h_ssl h_ind h_lit sp_v h_sbi =>
-                 kslot sp_m (SBlockNode.emptyNode (nmv + 1) .blockIn sp_scan sp_m h_ssl)
-                   sp_i sp_c h_ind h_lit sp_v h_sbi)⟩
+          (frameChainUnion
+            (match h_expl51 with
+             | Or.inl ⟨sp_q, h_qlit, route⟩ => Or.inl ⟨[nmv], frameChainOne (a := nmv)
+                 (fun sp_m sp_i sp_c h_ssl h_ind h_lit sp_v h_sbi =>
+                   route sp_v (SBlockMapEntry.explicit nmv sp_q sp_scan sp_m sp_i sp_c sp_v
+                     h_qlit (SBlockIndented.empty nmv .blockOut sp_scan sp_m h_ssl)
+                     h_ind h_lit h_sbi))⟩
+             | Or.inr _ => Or.inr trivial)
+            -- Item 93: the explicit-`:` twin of the branch above.
+            (match h_kslot93 with
+             | Or.inl ⟨nv, kslot⟩ => Or.inl ⟨[nv], frameChainOne (a := nv)
+                 (fun sp_m sp_i sp_c h_ssl h_ind h_lit sp_v h_sbi =>
+                   kslot sp_m (SBlockNode.emptyNode (nmv + 1) .blockIn sp_scan sp_m h_ssl)
+                     sp_i sp_c h_ind h_lit sp_v h_sbi)⟩
+             | Or.inr _ => Or.inr trivial))
+          -- Items 190–191: the ancestors, reached by closing THIS `?`'s entry
+          -- empty around a key that never arrived — the flow lane's own
+          -- payment (item 192) with `SBlockIndented.empty` where it fills the
+          -- key with a collection.
+          (match h_explUp190 with
+           | Or.inl ⟨sp_q, nsU, h_qlit, up⟩ => Or.inl ⟨nsU, fun nvU hmem =>
+               fun sp_m sp_i sp_c h_ssl h_ind h_lit sp_v h_sbi =>
+                 up nvU hmem sp_m
+                   (SBlockMapEntry.explicitEmpty nmv sp_q sp_scan sp_m h_qlit
+                     (SBlockIndented.empty nmv .blockOut sp_scan sp_m h_ssl))
+                   sp_i sp_c h_ind h_lit sp_v h_sbi⟩
            | Or.inr _ => Or.inr trivial))
         (match h_vslot51 with
          | Or.inl hvs => Or.inl ⟨nmv, sp_block, h_stream_block, h_sk58, hvs.1, hvs.2,

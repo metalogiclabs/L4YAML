@@ -21684,8 +21684,12 @@ declarations **8629**, unchanged (the item added no definition); `#guard`s
 
 **What remains.**  In order: the **second ask** — widen `pendingMapValue.h_kslot`
 from one `∃ nv` to a chain, which retires `indicator_open_map`'s duplicated pair
-(`h_kslot_up` and `h_explUp_chain` have literally the same type); its domain is
-measured and pinned, its price is the field's own producer census.  Then the
+(~~`h_kslot_up` and `h_explUp_chain` have literally the same type~~ — **corrected
+by item 195**: they share a BODY under two different index quantifiers, and the
+relation that prices the retirement is CONTAINMENT, not equality); its domain is
+measured and pinned, ~~its price is the field's own producer census~~ — **item
+195 measured that census and it is a RE-INDEX, not a field: 6 declarations per
+wave and a third wave into `entryKeyPack_of_dispatch`**.  Then the
 **value-line bottom** this item named: `h_res_land` at
 `ResumeFrames (ExplValueLine …)`, which serves the dedent inside a still-open
 `?` frame and wants the field widened as well as the parameter.  Then the three
@@ -21694,6 +21698,146 @@ value route at all (`pendingContent`, `pendingBlockContent` — a LANE, not a
 field, and still unmeasured).  Then the compact/INLINE arm of
 `accum_block_on_pendingBlock`, named by item 193 and measured by neither.  Then
 **the REFUTATION** for `_stamp_compact` (2 sites, measured empty),
+**`KeyPackPunt`'s two reasons** (`dedent` 7/5 and `noKeyContext` 6/5, possibly a
+phantom), then the `pendingFlow` constructor and its arm.  Only then item 183's
+flip order.  And the parked Ix Step-1 composition, on the Ix track's own clock.
+
+### Item 195 (2026-09-18)
+
+**THE CARRIER WAS ALREADY A FIELD — AND THE INSTRUMENT THAT WOULD HAVE PRICED
+THE FIX MEASURED A DIFFERENT QUESTION.**  Branch `fix-a-grammar-completeness`,
+on top of item 194's `f113d701`.
+
+**Re-running the plan sentence, which is §3's *check state* applied to our own
+ledger.**  Item 194 handed this item one line: *widen `pendingMapValue.h_kslot`
+from one `∃ nv` to a chain, which retires `indicator_open_map`'s duplicated pair
+(`h_kslot_up` and `h_explUp_chain` have literally the same type); its price is
+the field's own producer census.*  Every clause of it was checked before
+anything was written, and three of them moved:
+
+| the sentence | measured | verdict |
+|---|---|---|
+| the pair has "literally the same type" | `∃ nv : Nat, BODY nv` vs `∃ ns : List Nat, ∀ nv ∈ ns, BODY nv` — the same BODY under two index quantifiers | **CONTAINMENT, not equality.**  All four callers pay `⟨nv, …⟩` to the first and `nv :: nsU` to the second, or punt both |
+| the price is "the field's own producer census" | flip **9** declarations / 16 errors; widen wave 1 **6** / 22; wave 2 **6** / 34, reaching `entryKeyPack_of_dispatch.h_nodeV`, `h_compact`'s third conjunct and `h_ivl`'s face | **a RE-INDEX of a signature**, not a field's census |
+| the widening is what the block lane's landing wants | the park has carried the whole chain in `h_explUp` since item 191, and the flow lane has unioned all three funders since item 192 | **the block lane needed ONE argument**, not a re-index |
+
+**THE FINDING IS THE SEVENTH KIND AGAIN, ONE FIELD OVER.**  After 188 MISSING,
+189 SHADOWED, 190 UNSTATABLE, 191 NOT-COMPOSED, 192 RETIRED-A-PARAMETER, 193
+THE-TWIN-THAT-IS-NOT-A-TWIN and 194 THE-CARRIER-WAS-ALREADY-A-PARAMETER: here it
+was already a FIELD.  `accum_block_pending`'s explicit `pendingMapValue` branch
+built its `h_vpack` from TWO funders — the park's own frame (`h_expl51`, at
+`nmv`) and item 93's nearest ancestor (`h_kslot93`, one `∃ nv`) — while binding
+`h_explUp190`, the whole chain above the park, and spending it only on the SLOT
+lane next door.  Item 192 unioned all three in the FLOW lane and did not revisit
+this one.  **Twice in a row the price of a punt was a carrier already in scope**,
+and both times the punt's comment named what was missing without surveying what
+was there.
+
+**What landed.**  One argument, at
+[StreamAccum.lean:22544](L4YAML/Proofs/Production/StreamAccum.lean): the
+two-funder `frameChainUnion` becomes a three-funder one, the third being
+`h_explUp190` composed through `[188]`'s `explicitEmpty` with
+`SBlockIndented.empty` on the landing's comments — this `?`'s entry closed empty
+around a key that never arrived, after which the ancestor's `s-indent(nv) ':'`
+line follows.  That is the flow lane's own item-192 payment with `.empty` where
+it fills the key with a collection.  No field, no lemma parameter, no
+declaration: `+0` definitions.
+
+**The domain, measured before anything was written.**  The ladder of BARE `?`
+parks is this arm's family — a `?` with nothing after it parks
+`pendingMapValue`, where `? a` parks the content instead:
+
+| input | accepted landings | the park's three funders |
+|---|---|---|
+| `?⏎  ?⏎<c>: w` | 0, 2 | own `[2]`, nearest `[0]`, chain `[0]` — the two-way union was already complete |
+| `?⏎  ?⏎    ?⏎<c>: w` | 0, 2, 4 | own `[4]`, nearest `[2]`, chain `[2, 0]` — **0 was missed** |
+| `?⏎  ?⏎    ?⏎      ?⏎<c>: w` | 0, 2, 4, 6 | own `[6]`, nearest `[4]`, chain `[4, 2, 0]` — **0 and 2 were missed** |
+
+The columns between are `trailingContent` and the column past the deepest frame
+is `misindentedExplicitValue`, both refused before any dispatch runs — which is
+what makes the membership branch a deferral of nothing.  This is why item 189
+could pay the two-level family and the deeper ones stayed: at two frames the
+nearest ancestor IS the whole chain.
+
+**TWO INSTRUMENTS, TWO QUESTIONS — and the flip is not a widening's price.**  A
+FLIP deletes a field's `∨ True` and counts who can no longer punt; a WIDENING
+leaves the escape in place, so `Or.inr trivial` still typechecks and only the
+sites whose TERM changes type move.  On `pendingMapValue.h_kslot` the two
+readings differ by exactly the three PUNTERS — `colon_open_map`,
+`colon_open_map_explicit`, `compact_open_map` — so the flip over-states a
+widening's surface by 50 % here.  And the widen census has a wave structure the
+flip does not: **a widen census reports ONE WAVE, and a relay boundary hides the
+next.**  Wave 1's sixth declaration was the relay `accum_content_pending`, whose
+single error was the field handed to a still-narrow LEMMA PARAMETER; widening
+that parameter fixed the relay and put
+`accum_content_on_pendingMapValue_indented` in its place with 13 errors, two of
+which are `explFrameValueLine` feeding the two pack lemmas.  A widen count is a
+price only when it has been iterated to a fixpoint.
+
+**GOTCHAS.**
+
+* `flip.py`'s anchor takes the LAST `(` in the span, which is the wrong paren for
+  a binder whose type opens with a telescope — `(h_explUp : (∃ (sp_q : SurfPos)
+  (ns : List Nat), …` selects `(ns : List Nat)`.  Anchor on `(h_explUp : (` and
+  stop there.
+* `?⏎  ?⏎    ? a⏎: w` is NOT this arm's family, though it reads as the same
+  ladder: `? a` puts the key on the line, so the park at the landing is
+  `pendingContent` and the lane is the one item 192 widened.  The bare `?` is the
+  discriminator, and it is invisible in the event stream.
+* `explFrameValueLine` still stands, and its own docstring has recorded since
+  item 189 that its preference "shadows the second" and "is one shape of
+  `block_dispatch_deferred_stamp_offcol`".  Item 192 un-did that preference at
+  the sites where two funders meet in a `match`; the LEMMA is still a single
+  answer, and it is what wave 3 would reach.
+* The `h_vpack` lane and the `h_vslot` lane of the same branch read the same
+  field to different ends — `h_explUp190` was already spent, twenty lines down,
+  on the slot.  A binder that appears in the pattern is not evidence the lane you
+  are reading uses it.
+
+**Non-vacuity is arithmetic the escape's own premise reads.**
+`block_dispatch_deferred_stamp_offcol` takes `k ∉ ns` since item 192, so the
+payment's effect is membership in the list handed over, and `BlockDeferralClasses`
+§14 states it as six `#guard`s over `[6] ++ [4]` and `[6] ++ [4] ++ [4, 2, 0]`
+— the two-way union misses 0 and 2, the three-way contains all four accepted
+landings.  Beside them the composition is derived (the third funder's payload,
+built from an `h_explUp`-shaped hypothesis), answered at TWO members of one
+chain, and then refused: two `fail_if_success` blocks hand the landing at 2 to
+`h_kslot93`'s carrier and to `h_expl51`'s, at the ladder's own widths, after both
+have been built as positive controls at 4 and 6.  The refusal is about the index
+being fixed in each carrier's TYPE — the same fact the `#guard`s state about the
+list.
+
+**Gates.**  Full build **1162** jobs + guards, ZERO warnings; `run-all-tests.sh`
+**4520/4520** (`adversarialinstantiation` **2441/2441**), Production Coverage
+**837/837**; `eventscore` **347/358** (252 event-pass, 95 error-ok, 0 error-miss,
+0 event-reject); `suiterunner` **869 / 0 / 151**; `matrix_score.py` over the
+402-leaf data form on BOTH pipelines, **402/402 event** (`pass` 308, `err-ok` 94)
+and **282/282 JSON** (`pass` 279, `err-ok` 3, `skip` 120), splits identical to
+176–194; the `[210]` flip at **FIVE** errors, StreamAccum **4365**, **5645**,
+**5668**, **5837**, **7301** — the same five sites as item 194 at unmoved lines,
+this item's insertion standing at 22544, past all of them — applied and restored
+clean; `#print axioms` over `accum_block_pending`, `frameChainUnion` and four
+neighbors, no `sorryAx` (`frameChainUnion` itself is `[propext]`); checkers
+228/355, 20/230/249/355, 25 capstones,
+annotation verifier 100 % coverage (211/211 rules) with the same **19**
+pre-existing name mismatches.  Counts at `f113d701` and here (the ledger's own
+recipe, neither `grep` with `--include`): declarations **8629**, unchanged (the
+item added no definition); `#guard`s **7925 → 7945** (+20); test files **621**,
+unchanged.  The +20 is 19 guards and one PROSE occurrence — the recipe counts
+`#guard` tokens, and §14's docstring quotes one of its own.
+
+**What remains.**  In order: **the `h_kslot` re-index**, now priced rather than
+forecast — 6 declarations per wave with a third wave into
+`entryKeyPack_of_dispatch.h_nodeV`, `h_compact`'s third conjunct and `h_ivl`'s
+face, and `explFrameValueLine`'s single answer at the middle of it; its domain is
+the AWAITED-NODE lane (a `?` whose key arrives, landing further up), pinned in
+§14, and the payment that ends it is `h_kslot_up`'s retirement from
+`question_open_map` and `indicator_open_map`.  Then the **value-line bottom**
+item 194 named (`h_res_land` at `ResumeFrames (ExplValueLine …)`).  Then the
+three PROPS-lane content producers, and `main`'s flow-open lane (`pendingContent`,
+`pendingBlockContent` — a LANE, not a field, still unmeasured).  Then the
+compact/INLINE arm of `accum_block_on_pendingBlock`, measured by none of 193–195.
+Then **the REFUTATION** for `_stamp_compact` (2 sites, measured empty),
 **`KeyPackPunt`'s two reasons** (`dedent` 7/5 and `noKeyContext` 6/5, possibly a
 phantom), then the `pendingFlow` constructor and its arm.  Only then item 183's
 flip order.  And the parked Ix Step-1 composition, on the Ix track's own clock.

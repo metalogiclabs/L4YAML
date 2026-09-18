@@ -323,7 +323,33 @@ surface is the parameter, which did not exist at the parent: `h_closeF_old` on
 `accum_block_on_pendingBlockContent` reads **2 declarations / 2 errors**, one in
 the lemma (the payment) and one at the caller.  A number that jumped because the
 item introduced a new KIND of site is not evidence of reach, and the reach here
-is the guards file's §13, not either count. -/
+is the guards file's §13, not either count.
+
+Item 195 separates two instruments that had been read as one, and then finds the
+DECLARATION count blind to its own payment.
+
+A FLIP deletes a field's `∨ True` and counts who can no longer punt.  A WIDENING
+(`∃ nv : Nat` → `∃ ns : List Nat, ∀ nv ∈ ns`) leaves the escape in place, so
+`Or.inr trivial` still elaborates and only the sites whose TERM changes type
+move.  On `pendingMapValue.h_kslot` at `f113d701` the flip reads **9
+declarations / 16 errors** and the widening **6 / 22**; the difference is exactly
+the three PUNTERS (`colon_open_map`, `colon_open_map_explicit`,
+`compact_open_map`), so a flip over-states a widening's surface — here by half.
+The widening also has a wave structure the flip has not: its sixth declaration
+was the RELAY `accum_content_pending`, whose one error was the field handed to a
+still-narrow lemma parameter, and widening that parameter swapped in
+`accum_content_on_pendingMapValue_indented` at 13 errors while the count stayed
+at 6.  **A widen census reports one wave; a relay boundary hides the next**, and
+the count is a price only once it is iterated to a fixpoint.
+
+And this item's own payment is invisible to the declaration count.
+`pendingMapValue.h_explUp` reads **8 declarations / 10 errors** at `f113d701` and
+**8 / 11** here — flat where item 194's field moved 3 → 4 — because the new site
+sits INSIDE `accum_block_pending`, which the field already reached on the slot
+lane twenty lines away.  A declaration census answers "which proofs read this
+field", not "which of their lanes do"; a lane that was never served is
+indistinguishable in it from one that was.  The payment's reach is §14's
+membership arithmetic, not this count. -/
 
 /-! ## The gate
 

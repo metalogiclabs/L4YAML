@@ -7,7 +7,7 @@ Copyright (c) 2026. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 -/
 
-/-! # The block-indicator escape, by CLASS and by ROUTE (DOCS items 184–194)
+/-! # The block-indicator escape, by CLASS and by ROUTE (DOCS items 184–195)
 
 `block_dispatch_deferred` is `PendingNode.pendingFlow`'s only producer, so
 R3 — row 12's β.5 deletion — is the emptying of this escape.  Its applications
@@ -1508,5 +1508,205 @@ the record asserts: -/
 #guard pins "?\n  ?\n    ?\n  : w\n" == ("scan-accepted", "+STR +DOC +MAP +MAP +MAP =VAL : =VAL : -MAP =VAL :w -MAP =VAL : -MAP -DOC -STR")
 #guard pins "?\n  ?\n    ?\n    : w\n" == ("scan-accepted", "+STR +DOC +MAP +MAP +MAP =VAL : =VAL :w -MAP =VAL : -MAP =VAL : -MAP -DOC -STR")
 #guard pins "?\n  ?\n    ?\n      ?\n      : w\n" == ("scan-accepted", "+STR +DOC +MAP +MAP +MAP +MAP =VAL : =VAL :w -MAP =VAL : -MAP =VAL : -MAP =VAL : -MAP -DOC -STR")
+
+/-! ## §14  The carrier was already a FIELD — and two instruments that disagree
+       (item 195)
+
+§13 handed this item one sentence: *widen `pendingMapValue.h_kslot` from one
+`∃ nv` to a chain, which retires `indicator_open_map`'s duplicated pair
+(`h_kslot_up` and `h_explUp_chain` have literally the same type)*.  Re-running
+the measurement that sentence rests on — §9's own rule, applied to our own plan
+— corrects it twice and then makes it unnecessary.
+
+**The pair does not have the same type.**  `question_open_map.h_kslot_up` is
+`∃ nv : Nat, BODY nv`; `h_explUp_chain` is `∃ ns : List Nat, ∀ nv ∈ ns, BODY nv`,
+the *same BODY* under a different index quantifier.  The relation between them is
+not equality but CONTAINMENT, and it holds at every one of the four call sites:
+`accum_block_on_closeThenBlock` and `accum_block_on_pendingBlock` pay
+`⟨nv, …⟩` to the first and `nv :: nsU` to the second, and `accum_block_on_noPending`
+and `accum_block_on_pendingBlockContent` punt both.  A type equality between
+neighboring carriers is item 192's price signal; a CONTAINMENT is a different
+signal, and it says the narrow carrier is redundant rather than that the wide one
+is cheap.
+
+**Two instruments, two different questions, and the flip is not the widening's
+price.**  A FLIP deletes a field's `∨ True` and counts who can no longer punt;
+a WIDENING leaves the escape in place, so `Or.inr trivial` still typechecks and
+only the sites whose TERM changes type move.  Measured on this very field:
+
+| instrument | declarations | errors | the difference |
+|---|---|---|---|
+| flip `pendingMapValue.h_kslot` | **9** | 16 | + `colon_open_map`, `colon_open_map_explicit`, `compact_open_map` |
+| widen it, wave 1 | **6** | 22 | those three are PUNTERS and survive a widening |
+| widen it, wave 2 | **6** | 34 | the relay `accum_content_pending` is fixed and `accum_content_on_pendingMapValue_indented` takes its place |
+
+Wave 2 is not the end: that lemma feeds `explFrameValueLine` into
+`entryKeyPack_of_dispatch.h_nodeV`, `h_compact`'s third conjunct and `h_ivl`'s
+face — all three the same `∃ nv` body — so the widening is a RE-INDEX of a
+signature, not a field's producer census.  **A widen census reports ONE WAVE; a
+relay boundary hides the next**, and the count must be iterated to a fixpoint
+before it is a price.
+
+**And the block lane does not need it.**  What the widening was *for* is that a
+landed `:` should reach every ancestor the park holds.  The park already holds
+them: `h_explUp` has carried the whole chain since item 191, and the flow lane
+has unioned all three funders since item 192.  `accum_block_pending`'s explicit
+`pendingMapValue` branch unioned TWO — its own frame (`h_expl51`) and item 93's
+nearest ancestor (`h_kslot93`) — and read the third only on the SLOT lane.  So
+the seventh diagnosis again, one field over: **a punt's comment names what is
+missing, it does not survey what exists** — item 194's lesson, and the carrier
+this time was a field rather than a parameter. -/
+
+/-- **The third funder, in the shape the payment builds it.**  `h_explUp` is
+    premised on `[188]`'s ENTRY rather than on the awaited node, and the landing
+    supplies the entry: this `?`'s own entry closed EMPTY around a key that never
+    arrived — `SBlockIndented.empty` on the landing's comments, `explicitEmpty`'s
+    `e-node` value — after which the ancestor's `s-indent(nv) ':'` line follows.
+    That is the flow lane's item-192 payment with `.empty` where it fills the key
+    with a collection. -/
+example {nmv : Nat} {sp_start sp_scan sp_q : SurfPos} {nsU : List Nat}
+    (h_qlit : GLit '?' sp_q sp_scan)
+    (up : ∀ nv ∈ nsU, ∀ sp_v : SurfPos, SBlockMapEntry nmv sp_q sp_v →
+      ∀ sp_i sp_c : SurfPos, SIndent nv sp_v sp_i → GLit ':' sp_i sp_c →
+      ∀ sp_w : SurfPos, SBlockIndented nv .blockOut sp_c sp_w →
+      SLYamlStream sp_start sp_w) :
+    ∀ nv ∈ nsU, ∀ sp_m sp_i sp_c : SurfPos,
+      SSLComments sp_scan sp_m → SIndent nv sp_m sp_i → GLit ':' sp_i sp_c →
+      ∀ sp_v : SurfPos, SBlockIndented nv .blockOut sp_c sp_v →
+      SLYamlStream sp_start sp_v :=
+  fun nvU hmem sp_m sp_i sp_c h_ssl h_ind h_lit sp_v h_sbi =>
+    up nvU hmem sp_m
+      (SBlockMapEntry.explicitEmpty nmv sp_q sp_scan sp_m h_qlit
+        (SBlockIndented.empty nmv .blockOut sp_scan sp_m h_ssl))
+      sp_i sp_c h_ind h_lit sp_v h_sbi
+
+/-- **Two ancestors off ONE chain**, which is what the two singletons could not
+    do between them: the same term answers at every member, and the landing picks
+    by its own column. -/
+example {nmv : Nat} {sp_start sp_scan sp_q : SurfPos}
+    (h_qlit : GLit '?' sp_q sp_scan)
+    (up : ∀ nv ∈ [2, 0], ∀ sp_v : SurfPos, SBlockMapEntry nmv sp_q sp_v →
+      ∀ sp_i sp_c : SurfPos, SIndent nv sp_v sp_i → GLit ':' sp_i sp_c →
+      ∀ sp_w : SurfPos, SBlockIndented nv .blockOut sp_c sp_w →
+      SLYamlStream sp_start sp_w) :
+    (∀ sp_m sp_i sp_c : SurfPos,
+      SSLComments sp_scan sp_m → SIndent 2 sp_m sp_i → GLit ':' sp_i sp_c →
+      ∀ sp_v : SurfPos, SBlockIndented 2 .blockOut sp_c sp_v →
+      SLYamlStream sp_start sp_v) ∧
+    (∀ sp_m sp_i sp_c : SurfPos,
+      SSLComments sp_scan sp_m → SIndent 0 sp_m sp_i → GLit ':' sp_i sp_c →
+      ∀ sp_v : SurfPos, SBlockIndented 0 .blockOut sp_c sp_v →
+      SLYamlStream sp_start sp_v) :=
+  ⟨fun sp_m sp_i sp_c h_ssl h_ind h_lit sp_v h_sbi =>
+     up 2 (by simp) sp_m
+       (SBlockMapEntry.explicitEmpty nmv sp_q sp_scan sp_m h_qlit
+         (SBlockIndented.empty nmv .blockOut sp_scan sp_m h_ssl))
+       sp_i sp_c h_ind h_lit sp_v h_sbi,
+   fun sp_m sp_i sp_c h_ssl h_ind h_lit sp_v h_sbi =>
+     up 0 (by simp) sp_m
+       (SBlockMapEntry.explicitEmpty nmv sp_q sp_scan sp_m h_qlit
+         (SBlockIndented.empty nmv .blockOut sp_scan sp_m h_ssl))
+       sp_i sp_c h_ind h_lit sp_v h_sbi⟩
+
+/-- **The two funders that were already there cannot answer at a third index**,
+    stated at the ladder's own widths so the refusal names an accepted landing
+    rather than a variable.  The park is the innermost of four frames: its own
+    entry stands at 6, item 93's field names 4, and `?⏎  ?⏎    ?⏎      ?⏎  : w`
+    puts the `:` at 2.  Both controls build; the third does not, and not for want
+    of a composition — the index is fixed in each carrier's TYPE, which is the
+    same fact `#guard !((2 : Nat) ∈ ([6] ++ [4]))` states about the list they
+    hand over. -/
+example {sp_start sp_scan sp_q : SurfPos}
+    -- underscored: the controls' only further use is inside `fail_if_success`,
+    -- which discards the term it elaborates
+    (_h_qlit : GLit '?' sp_q sp_scan)
+    (_route : ∀ sp_v : SurfPos, SBlockMapEntry 6 sp_q sp_v →
+      SLYamlStream sp_start sp_v)
+    (_kslot : ∀ sp_m : SurfPos, SBlockNode 7 .blockIn sp_scan sp_m →
+      ∀ sp_i sp_c : SurfPos, SIndent 4 sp_m sp_i → GLit ':' sp_i sp_c →
+      ∀ sp_v : SurfPos, SBlockIndented 4 .blockOut sp_c sp_v →
+      SLYamlStream sp_start sp_v) :
+    True := by
+  -- control A: the park's OWN frame answers at 6
+  have _okOwn : ∀ sp_m sp_i sp_c : SurfPos,
+      SSLComments sp_scan sp_m → SIndent 6 sp_m sp_i → GLit ':' sp_i sp_c →
+      ∀ sp_v : SurfPos, SBlockIndented 6 .blockOut sp_c sp_v →
+      SLYamlStream sp_start sp_v :=
+    fun sp_m sp_i sp_c h_ssl h_ind h_lit sp_v h_sbi =>
+      _route sp_v (SBlockMapEntry.explicit 6 sp_q sp_scan sp_m sp_i sp_c sp_v _h_qlit
+        (SBlockIndented.empty 6 .blockOut sp_scan sp_m h_ssl) h_ind h_lit h_sbi)
+  -- control B: item 93's field answers at the ONE ancestor it names, 4
+  have _okUp : ∀ sp_m sp_i sp_c : SurfPos,
+      SSLComments sp_scan sp_m → SIndent 4 sp_m sp_i → GLit ':' sp_i sp_c →
+      ∀ sp_v : SurfPos, SBlockIndented 4 .blockOut sp_c sp_v →
+      SLYamlStream sp_start sp_v :=
+    fun sp_m sp_i sp_c h_ssl h_ind h_lit sp_v h_sbi =>
+      _kslot sp_m (SBlockNode.emptyNode 7 .blockIn sp_scan sp_m h_ssl)
+        sp_i sp_c h_ind h_lit sp_v h_sbi
+  -- and neither reaches 2, the landing one frame further out
+  fail_if_success
+    have : ∀ sp_m sp_i sp_c : SurfPos,
+        SSLComments sp_scan sp_m → SIndent 2 sp_m sp_i → GLit ':' sp_i sp_c →
+        ∀ sp_v : SurfPos, SBlockIndented 2 .blockOut sp_c sp_v →
+        SLYamlStream sp_start sp_v :=
+      fun sp_m sp_i sp_c h_ssl h_ind h_lit sp_v h_sbi =>
+        _kslot sp_m (SBlockNode.emptyNode 7 .blockIn sp_scan sp_m h_ssl)
+          sp_i sp_c h_ind h_lit sp_v h_sbi
+  fail_if_success
+    have : ∀ sp_m sp_i sp_c : SurfPos,
+        SSLComments sp_scan sp_m → SIndent 2 sp_m sp_i → GLit ':' sp_i sp_c →
+        ∀ sp_v : SurfPos, SBlockIndented 2 .blockOut sp_c sp_v →
+        SLYamlStream sp_start sp_v :=
+      fun sp_m sp_i sp_c h_ssl h_ind h_lit sp_v h_sbi =>
+        _route sp_v (SBlockMapEntry.explicit 6 sp_q sp_scan sp_m sp_i sp_c sp_v _h_qlit
+          (SBlockIndented.empty 6 .blockOut sp_scan sp_m h_ssl) h_ind h_lit h_sbi)
+  trivial
+
+/-! **What the escape's premise reads is MEMBERSHIP**, so the payment's effect is
+arithmetic on the list it hands over — `block_dispatch_deferred_stamp_offcol`
+takes `k ∉ ns` since item 192.  At the innermost park of the four-level ladder
+the park's own frame is 6, item 93's nearest ancestor is 4, and the chain above
+it is `[4, 2, 0]`; the landings the runtime accepts are 0, 2, 4 and 6: -/
+
+#guard !((0 : Nat) ∈ ([6] ++ [4] : List Nat))
+#guard !((2 : Nat) ∈ ([6] ++ [4] : List Nat))
+#guard (0 : Nat) ∈ ([6] ++ [4] ++ [4, 2, 0] : List Nat)
+#guard (2 : Nat) ∈ ([6] ++ [4] ++ [4, 2, 0] : List Nat)
+#guard (4 : Nat) ∈ ([6] ++ [4] ++ [4, 2, 0] : List Nat)
+#guard (6 : Nat) ∈ ([6] ++ [4] ++ [4, 2, 0] : List Nat)
+
+/-! …and those four landings are exactly the accepted ones.  The ladder of bare
+`?` parks is this arm's own family — a `?` with nothing after it parks
+`pendingMapValue`, where a `? a` parks the content instead: -/
+
+#guard pins "?\n  ?\n    ?\n      ?\n: w\n" == ("scan-accepted", "+STR +DOC +MAP +MAP +MAP +MAP =VAL : =VAL : -MAP =VAL : -MAP =VAL : -MAP =VAL :w -MAP -DOC -STR")
+#guard pins "?\n  ?\n    ?\n      ?\n  : w\n" == ("scan-accepted", "+STR +DOC +MAP +MAP +MAP +MAP =VAL : =VAL : -MAP =VAL : -MAP =VAL :w -MAP =VAL : -MAP -DOC -STR")
+#guard pins "?\n  ?\n    ?\n      ?\n    : w\n" == ("scan-accepted", "+STR +DOC +MAP +MAP +MAP +MAP =VAL : =VAL : -MAP =VAL :w -MAP =VAL : -MAP =VAL : -MAP -DOC -STR")
+
+/-! …the columns between them are refused before any dispatch runs, which is what
+makes the membership branch a deferral of nothing, and the column past the
+deepest frame is refused by §8.2.2's own check: -/
+
+#guard pins "?\n  ?\n    ?\n      ?\n   : w\n" == ("scan-refused L4YAML.ScanError.trailingContent 4 3", "ERR L4YAML.ScanError.trailingContent 4 3")
+#guard pins "?\n  ?\n    ?\n      ?\n        : w\n" == ("scan-refused L4YAML.ScanError.misindentedExplicitValue 4 8 6", "ERR L4YAML.ScanError.misindentedExplicitValue 4 8 6")
+
+/-! …and the two-level base case, where the two-way union was already complete —
+the park's own frame and the single ancestor are the whole chain, which is why
+this family was paid at item 189 and the deeper ones were not: -/
+
+#guard pins "?\n  ?\n: w\n" == ("scan-accepted", "+STR +DOC +MAP +MAP =VAL : =VAL : -MAP =VAL :w -MAP -DOC -STR")
+#guard pins "?\n  ?\n  : w\n" == ("scan-accepted", "+STR +DOC +MAP +MAP =VAL : =VAL :w -MAP =VAL : -MAP -DOC -STR")
+
+/-! **The widening's own domain is NOT empty**, and this item does not claim it
+is: the AWAITED-NODE lane — a `?` whose key arrives and whose landing is further
+up — is the content park's, and `h_kslot`'s premise is that node.  Pinned here
+so the re-index, when it is priced, is priced against a measured family: -/
+
+#guard pins "?\n  ?\n    ? a\n: w\n" == ("scan-accepted", "+STR +DOC +MAP +MAP +MAP =VAL :a =VAL : -MAP =VAL : -MAP =VAL :w -MAP -DOC -STR")
+#guard pins "?\n  ?\n    ? a\n  : w\n" == ("scan-accepted", "+STR +DOC +MAP +MAP +MAP =VAL :a =VAL : -MAP =VAL :w -MAP =VAL : -MAP -DOC -STR")
+#guard pins "?\n  ?\n    ? a\n    : w\n" == ("scan-accepted", "+STR +DOC +MAP +MAP +MAP =VAL :a =VAL :w -MAP =VAL : -MAP =VAL : -MAP -DOC -STR")
+#guard pins "?\n  ?\n    ? a\n   : w\n" == ("scan-refused L4YAML.ScanError.trailingContent 3 3", "ERR L4YAML.ScanError.trailingContent 3 3")
+#guard pins "?\n  ?\n    ?\n      a\n: w\n" == ("scan-accepted", "+STR +DOC +MAP +MAP +MAP =VAL :a =VAL : -MAP =VAL : -MAP =VAL :w -MAP -DOC -STR")
+#guard pins "?\n  ?\n    ?\n      a\n  : w\n" == ("scan-accepted", "+STR +DOC +MAP +MAP +MAP =VAL :a =VAL : -MAP =VAL :w -MAP =VAL : -MAP -DOC -STR")
 
 end L4YAML.Tests.Guards.BlockDeferralClasses
