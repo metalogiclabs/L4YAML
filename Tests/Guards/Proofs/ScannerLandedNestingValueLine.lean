@@ -132,20 +132,22 @@ private def refuses (input : String) : Bool :=
 The twin is a derivation from the park's own explicit frame: fold the awaited
 KEY node into `[186]`'s key slot, take `s-indent(n) ':'` and the value, hand
 the finished `[188]` entry to the route the `?` producer already pays.  The
-`Or.inr` argument is the park's own `h_kslot`, for a park whose frame is a
-level up — so the two funders are one datum. -/
+second argument is the park's own `h_kslot`, the frames it stands INSIDE —
+~~so the two funders are one datum~~ and since item 196 both of them leave
+together, as a chain the landing picks from by column. -/
 
 example {sp_start sp_scan : SurfPos} {n : Nat}
     (h_expl : (∃ sp_q : SurfPos, GLit '?' sp_q sp_scan ∧
       ∀ sp_v : SurfPos, SBlockMapEntry n sp_q sp_v →
         SLYamlStream sp_start sp_v) ∨ True)
     -- Item 179: the awaited key node reads at the SHIFTED index.
-    (h_kslot : (∃ nv : Nat,
+    -- Item 196: and the ancestor index is a LIST.
+    (h_kslot : (∃ ns : List Nat, ∀ nv ∈ ns,
       ∀ sp_m : SurfPos, SBlockNode (n + 1) .blockIn sp_scan sp_m →
       ∀ sp_i sp_c : SurfPos, SIndent nv sp_m sp_i → GLit ':' sp_i sp_c →
       ∀ sp_v : SurfPos, SBlockIndented nv .blockOut sp_c sp_v →
       SLYamlStream sp_start sp_v) ∨ True) :
-    (∃ nv : Nat,
+    (∃ ns : List Nat, ∀ nv ∈ ns,
       ∀ sp_m : SurfPos, SBlockNode (n + 1) .blockIn sp_scan sp_m →
       ∀ sp_i sp_c : SurfPos, SIndent nv sp_m sp_i → GLit ':' sp_i sp_c →
       ∀ sp_v : SurfPos, SBlockIndented nv .blockOut sp_c sp_v →

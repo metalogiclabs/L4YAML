@@ -76,7 +76,8 @@ example {sc s_prep : ScannerState} {c : Char} {sp_start sp_scan sp_prep : SurfPo
       (∀ sp_end, SFlowContent 0 .flowOut sp_prep sp_end →
         ImplicitKeyHead sp_key sp_end ∨ True) ∧
       s_prep.simpleKey.pos.col = k ∧
-      ((∃ nv : Nat,
+      -- Item 196: the value-line pair is a CHAIN, in step with the pack.
+      ((∃ ns : List Nat, ∀ nv ∈ ns,
         ∀ sp_v : SurfPos, SBlockMapEntry k sp_key sp_v →
         ∀ sp_e : SurfPos, SCompactMapTail k sp_v sp_e →
         ∀ sp_i sp_c : SurfPos, SIndent nv sp_e sp_i → GLit ':' sp_i sp_c →
@@ -114,7 +115,8 @@ example {n : Nat} {sc s_prep : ScannerState} {c : Char}
       (∀ sp_end, SFlowContent 0 .flowOut sp_prep sp_end →
         ImplicitKeyHead sp_key sp_end ∨ True) ∧
       s_prep.simpleKey.pos.col = k ∧
-      ((∃ nv : Nat,
+      -- Item 196: the value-line pair is a CHAIN, in step with the pack.
+      ((∃ ns : List Nat, ∀ nv ∈ ns,
         ∀ sp_v : SurfPos, SBlockMapEntry k sp_key sp_v →
         ∀ sp_e : SurfPos, SCompactMapTail k sp_v sp_e →
         ∀ sp_i sp_c : SurfPos, SIndent nv sp_e sp_i → GLit ':' sp_i sp_c →

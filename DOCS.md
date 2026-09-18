@@ -21826,13 +21826,20 @@ item added no definition); `#guard`s **7925 → 7945** (+20); test files **621**
 unchanged.  The +20 is 19 guards and one PROSE occurrence — the recipe counts
 `#guard` tokens, and §14's docstring quotes one of its own.
 
-**What remains.**  In order: **the `h_kslot` re-index**, now priced rather than
+**What remains.**  In order: **the `h_kslot` re-index**, ~~now priced rather than
 forecast — 6 declarations per wave with a third wave into
 `entryKeyPack_of_dispatch.h_nodeV`, `h_compact`'s third conjunct and `h_ivl`'s
-face, and `explFrameValueLine`'s single answer at the middle of it; its domain is
-the AWAITED-NODE lane (a `?` whose key arrives, landing further up), pinned in
-§14, and the payment that ends it is `h_kslot_up`'s retirement from
-`question_open_map` and `indicator_open_map`.  Then the **value-line bottom**
+face~~ — **corrected by item 196: that was not a price, it was a lap.**  The
+three "waves" are arcs of one CYCLE (field → `explFrameValueLine` → `h_nodeV` →
+`ImplicitKeyPack` → the two `colon_open_map_*` producers → field), so six
+declarations is what a frontier on a cycle always reads; the fixpoint is
+13 declarations / 56 errors at nine binders, and the build found three more
+binders no census named.  The named destinations were right, and
+`explFrameValueLine`'s single answer at the middle of it is the item — but it is
+the SHADOW that costs, not the index: its `h_kslot` arm is dead wherever `h_expl`
+is paid.  Its domain is the AWAITED-NODE lane (a `?` whose key arrives, landing
+further up), pinned in §14, and the payment that ends it is `h_kslot_up`'s
+retirement from `question_open_map` and `indicator_open_map`.  Then the **value-line bottom**
 item 194 named (`h_res_land` at `ResumeFrames (ExplValueLine …)`).  Then the
 three PROPS-lane content producers, and `main`'s flow-open lane (`pendingContent`,
 `pendingBlockContent` — a LANE, not a field, still unmeasured).  Then the
@@ -21841,6 +21848,173 @@ Then **the REFUTATION** for `_stamp_compact` (2 sites, measured empty),
 **`KeyPackPunt`'s two reasons** (`dedent` 7/5 and `noKeyContext` 6/5, possibly a
 phantom), then the `pendingFlow` constructor and its arm.  Only then item 183's
 flip order.  And the parked Ix Step-1 composition, on the Ix track's own clock.
+
+### Item 196 (2026-09-18)
+
+**THE PRICE WAS NOT A PRICE, IT WAS A LAP — AND WHAT COST THE DEFERRALS WAS A
+SHADOW, NOT AN INDEX.**  Branch `fix-a-grammar-completeness`, on top of item
+195's `c23541c3`.
+
+**Re-running the plan sentence, §3's *check state* applied to our own ledger.**
+Item 195 handed this item a priced line: *the `h_kslot` re-index — 6
+declarations per wave with a third wave into `entryKeyPack_of_dispatch.h_nodeV`,
+`h_compact`'s third conjunct and `h_ivl`'s face, and `explFrameValueLine`'s
+single answer at the middle of it; the payment that ends it is `h_kslot_up`'s
+retirement*.  The destinations were right and the payment was right.  The
+PRICE was a lap around a cycle, and the reason the widening was needed was one
+level off:
+
+| the sentence | measured | verdict |
+|---|---|---|
+| "6 declarations per wave, with a third wave" | the field feeds `explFrameValueLine`, whose answer feeds `h_nodeV`, which feeds `ImplicitKeyPack`, which feeds `colon_open_map_implicit`/`_props`, which pay the field | **a CYCLE.**  Six is what a frontier on a cycle always reads; the waves were arcs |
+| "the re-index is what a landing wants" | `explFrameValueLine` answers with ONE funder and `h_expl` is paid at every `?` park, so its `h_kslot` arm is DEAD | **the SHADOW costs**, and widening a field whose one reader discards it buys nothing |
+| the fixpoint is the loop | nine binders chosen by following the loop: **13 declarations / 56 errors**; the build then named three more the census could not | **found by BUILDING, not by censusing** |
+
+**THE SHADOW WAS A POLICY, AND ITS OWN DOCSTRING SAID SO SINCE ITEM 189.**
+`explFrameValueLine` takes the park's own `[187]` entry (`h_expl`) and the frames
+it stands inside (`h_kslot`) and answers with one — recorded there as "shadows
+the second … one shape of `block_dispatch_deferred_stamp_offcol`", together with
+a measurement: *swapping the two arms builds green*.  Item 196 **re-ran that
+measurement rather than spending on it** (§9: a forecast copied forward is still
+one measurement).  Still green — zero declarations, zero errors — which is what
+a policy looks like from inside.  Seven items quoted the sentence; none had
+re-run it since.
+
+**What landed.**  `explFrameValueLine` returns `frameChainUnion` of both funders
+— item 192's combinator, whose own docstring already named this site — and the
+mapping value-line carrier is re-indexed from `∃ nv` to `∃ ns, ∀ nv ∈ ns` all the
+way round the loop.  `question_open_map` then pays `pendingMapValue.h_kslot` from
+`h_explUp_chain` instead of `h_kslot_up`: the composition that turns an entry
+route into the awaited-node reading narrows a LIST exactly as it narrowed one
+index, so **`h_kslot_up` retires from `question_open_map` and `indicator_open_map`
+and from all four of their call sites** — item 194's duplicated pair, gone.  A
+fifth copy of the shadow was found spelled out inline in
+`accum_content_on_pendingMapValue_indented` (the lemma's body verbatim) and is
+now a call to it.  **Net −1 lemma parameter, −4 arguments, +0 definitions.**
+
+**The carrier, and the twelve binders the loop actually reaches.**  Nine were
+chosen by following the cycle (`ImplicitKeyPack`'s value-line conjunct,
+`pendingMapValue.h_kslot`, `explFrameValueLine`'s parameter AND conclusion, the
+two `colon_open_map_*` parameters, both packs' `h_nodeV`,
+`accum_content_on_pendingMapValue_indented.h_kslot`); the build then demanded
+`PropsKeyPack`'s conjunct, `pendingProps.h_kslot`, the flow frame's `key` pair,
+`flow_open.h_compact_pair`, both packs' `h_compact` third conjunct and `h_ivl`
+face, and two local `h_split`/`h_ivl_pack` restatements.
+
+**TWO CORRECTIONS TO THE INSTRUMENT, both of them about the target list rather
+than the field.**
+
+* **A wave census cannot see a loop.**  It reports a frontier, and a frontier on
+  a cycle is the same size every time — items 193–195 each read six and each
+  priced "the next wave".  There is no partial re-index either: the narrow and
+  the wide shape cannot both feed one conjunct, so the loop closes in one edit or
+  none.
+* **A target list is a hypothesis, and it errs in BOTH directions.**  Adding the
+  two block-lane parameters that look like they belong
+  (`accum_block_on_pendingBlock`, `accum_block_on_pendingBlockContent`) read 15
+  declarations; the reduced run proves the loop never forced them — they read
+  `pendingBlock.h_kslot`, a different premise on the SEQUENCE lane, and including
+  them manufactures surface.  Under-naming is the other direction and the
+  expensive one: six binders only announced themselves when the build reached
+  them.
+
+**AND A LANE THAT NEVER ASKED FOR THE CHAIN PAYS ANYWAY.**
+`accum_content_on_pendingBlock_indented` has no `?` frame of its own and wants
+nothing from this item; it funds `ImplicitKeyPack`'s conjunct from the sequence
+lane's still-narrow field, so it wraps a one-element chain at nine sites — 30 of
+the 56 errors in one declaration.  **A shared carrier's re-index is not scoped by
+the lane that needs it**, which is a cost the flip and the widen instruments both
+report as zero.
+
+**The domain, measured before anything was written.**  The shadow's family is
+NOT §14's bare-`?` ladder: a key ARRIVES (`a: b` inside the innermost `?`'s key
+slot), which is what puts the landing on `entryKeyPack_of_dispatch`'s landed
+branch and makes `explFrameValueLine`'s result the datum the `:` reads.
+
+| input | accepted value-line landings | the two funders in scope |
+|---|---|---|
+| `?⏎  a: b⏎<c>: w` | 0 | own `[0]` — complete, no shadow |
+| `?⏎  ?⏎    a: b⏎<c>: w` | 0, 2 | own `[2]`, ancestor `[0]` — **the shadow dropped 0** |
+| `?⏎  ?⏎    ?⏎      a: b⏎<c>: w` | 0, 2, 4 | own `[4]`, nearest `[2]` — the union of two still misses 0 |
+| `?⏎  ?⏎    ?⏎      ?⏎        a: b⏎<c>: w` | 0, 2, 4, 6 | own `[6]`, nearest `[4]` — misses 0 and 2 |
+
+**The shadow's domain opens at TWO frames**, one rung shallower than item 195's
+chain did, and the chain is what the rungs below need — which is why the field
+had to become a list and not merely a pair.
+
+**GOTCHAS.**
+
+* **The KEY's own column is a different reading**, and the ladder hides it: at
+  `2k` the `:` is a SIBLING entry inside the mapping the key opened (`=VAL :
+  =VAL :w` within the inner `+MAP`), not any frame's value line.  The value-line
+  landings are the `?` columns 0, 2, …, 2(k−1) and nothing else; a payment
+  counted against `2k` is counted against an input this branch never sees.
+* **The columns between frames refuse with TWO different errors.**  Inside the
+  ladder it is `trailingContent`; one level past the deepest frame it is
+  `invalidBareDocument` — §9.2's check, not §8.2.2's, because no open frame is
+  left for the `:` to be misindented against.  §15 pins both.
+* A local `have` can carry a copy of a widened type with no binder to grep for:
+  `accum_content_on_pendingMapValue_indented` holds two (`h_ivl_pack`,
+  `h_compact_vslot`) that restate the pack's conjunct and answer it from `h_expl`
+  alone — two more shadows, invisible to every census because they are not
+  parameters.
+* `frameChainOne (a := nv)` is the whole repair wherever a still-narrow funder
+  now meets a chain; it appears at fifteen sites in this item and each one is a
+  lane the item does not otherwise touch.
+
+**Non-vacuity is arithmetic the escape's own premise reads.**
+`block_dispatch_deferred_stamp_offcol` takes `k ∉ ns` since item 192, so the
+payment's effect is membership in the list handed over.  `BlockDeferralClasses`
+§15 states it at the three-frame ladder — the shadow handed `[4]`, the union
+hands `[4] ++ [2, 0]`, and the accepted landings are 4, 2 and 0 — beside the
+derivation (`h_explUp_chain`'s entry route narrowed to the awaited node, which is
+`h_kslot_up`'s retirement at its type), a union answering at THREE members of one
+list, and a control at 4 with two `fail_if_success` blocks at 2 and 0 showing the
+single answer's index is fixed in its TYPE.
+
+**Gates.**  Full build **1162** jobs + guards, ZERO warnings; `run-all-tests.sh`
+**4520/4520** (`adversarialinstantiation` **2441/2441**), Production Coverage
+**837/837**; `eventscore` **347/358** (252 event-pass, 95 error-ok, 0 error-miss,
+0 event-reject); `suiterunner` **869 / 0 / 151**; `matrix_score.py` over the
+402-leaf data form on BOTH pipelines, **402/402 event** (`pass` 308, `err-ok` 94)
+and **282/282 JSON** (`pass` 279, `err-ok` 3, `skip` 120), splits identical to
+176–195; the `[210]` flip at **FIVE** errors, StreamAccum **4379**, **5659**, **5682**,
+**5851**, **7322** — the same five sites as items 194/195 at lines this item's
+insertions moved — applied and restored clean; `#print axioms` over
+`explFrameValueLine`, `frameChainUnion`, `question_open_map`,
+`indicator_open_map`, both packs, `colon_open_map_implicit` and
+`accum_content_on_pendingMapValue_indented`, no `sorryAx` (`frameChainUnion` is
+`[propext]`, `explFrameValueLine` `[propext, Quot.sound]`); checkers 228/355,
+20/230/249/355, 25 capstones, annotation verifier 100 % coverage (211/211 rules)
+with the same **19** pre-existing name mismatches.
+
+**Counts, at `c23541c3` and here, each under the recipe that produced it** —
+declarations `grep -rhoE "^(private )?(lemma|theorem|def|abbrev|instance|structure|inductive|class) " L4YAML`:
+**8569**, unchanged, since the item added no definition and removed no lemma;
+`#guard` tokens `grep -rho "#guard" L4YAML Tests`: **7945 → 7967** (+22, being
+§15's 21 guards plus one prose occurrence — the recipe counts tokens); test files
+`find Tests -name '*.lean'`: **621**, unchanged.  The declaration figure items
+191–195 recorded (**8629**) came from a recipe this item could not reproduce from
+what the ledger writes down, so both endpoints are stated here under a recipe
+that is written out in full; the DELTA is what the row claims, and it is zero
+either way.
+
+**What remains.**  In order: the **value-line bottom** item 194 named
+(`h_res_land` at `ResumeFrames (ExplValueLine …)`).  Then the three PROPS-lane
+content producers, and `main`'s flow-open lane (`pendingContent`,
+`pendingBlockContent` — a LANE, not a field, still unmeasured).  Then the
+compact/INLINE arm of `accum_block_on_pendingBlock`, measured by none of 193–196.
+Then **the REFUTATION** for `_stamp_compact` (2 sites, measured empty),
+**`KeyPackPunt`'s two reasons** (`dedent` 7/5 and `noKeyContext` 6/5, possibly a
+phantom), then the `pendingFlow` constructor and its arm.  Only then item 183's
+flip order.  And the parked Ix Step-1 composition, on the Ix track's own clock.
+
+**And one thing this item did NOT do**, named so it is not rediscovered as a
+finding: the SEQUENCE lane still carries `h_kslot` and `h_kslotUp` as a pair on
+`pendingBlock` and `pendingBlockContent`, at `accum_block_on_pendingBlock` and
+`accum_block_on_pendingBlockContent`.  That pair is the same shape item 194
+flagged and item 196 retired on the mapping lane, and the measurement above says
+it is NOT on this loop — it is its own, and its price is its own.
 
 ### REMAINING, in order
 
