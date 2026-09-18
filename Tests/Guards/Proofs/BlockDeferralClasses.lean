@@ -7,7 +7,7 @@ Copyright (c) 2026. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 -/
 
-/-! # The block-indicator escape, by CLASS and by ROUTE (DOCS items 184–196)
+/-! # The block-indicator escape, by CLASS and by ROUTE (DOCS items 184–197)
 
 `block_dispatch_deferred` is `PendingNode.pendingFlow`'s only producer, so
 R3 — row 12's β.5 deletion — is the emptying of this escape.  Its applications
@@ -1933,5 +1933,207 @@ had to widen with the rest — a decorated key inside nested `?` frames lands th
 same way: -/
 
 #guard pins "?\n  ?\n    &p a: b\n: w\n" == ("scan-accepted", "+STR +DOC +MAP +MAP +MAP =VAL &p :a =VAL :b -MAP =VAL : -MAP =VAL :w -MAP -DOC -STR")
+
+/-! ## §16  The twin existed at the NEIGHBORING CASCADE (item 197)
+
+Item 194's §13 closed by naming its residue precisely: *`h_res_land`'s type
+bottoms its stack at `SLYamlStream sp_start`… a landing inside a still-open `?`
+frame wants `ResumeFrames (ExplValueLine …)` instead.  The residue is a BOTTOM,
+not a missing field.*  Item 196 put it first on the remaining list.  Re-running
+the measurement that sentence rests on — §9's rule, applied to our own plan —
+leaves the diagnosis standing and splits the residue in two.
+
+**The eighth diagnosis: THE SAME PARK, THE SAME QUESTION, TWO LANDING CASCADES,
+AND ONLY ONE OF THEM TOOK BOTH BOTTOMS.**  After 188 MISSING, 189 SHADOWED, 190
+UNSTATABLE, 191 NOT-COMPOSED, 192 RETIRED-A-PARAMETER, 193
+THE-TWIN-THAT-IS-NOT-A-TWIN, 194 ALREADY-A-PARAMETER and 195 ALREADY-A-FIELD.
+`pendingContent` carries BOTH resume faces — `h_framesS` at the stream and
+`h_framesV` at the frame's value line (item 108) — and the CONTENT dispatch's key
+pack has taken both ever since: `entryKeyPack_of_dispatch` binds
+`h_dframes`/`h_dframesV` as a PAIR and pops them with the very same
+`ResumeFrames.resumeAt`, which is what lets its dedent branch hand the pack a
+real value-line twin.  Sixty-five items later the BLOCK dispatch's `:`/`?`
+landing got `h_res_land` — **one** bottom, paid from `h_framesS` alone — and
+`accum_block_on_closeThenBlock` has carried a one-sided `h_mapF` since.  The
+field the residue wanted was on the park, was paid, and was already being spent
+one cascade over.
+
+**The ASYMMETRY is the finding, and no instrument in this file can see it.**
+The FLIP counts a field's sites, and `h_framesV` has sites.
+`FlipConsumerSurface` counts the escape's applications, and this moves none.
+What names it is a COMPARISON of two parameter lists that answer the same
+question about the same park — and nothing derives one from the other, so the
+check has to be made deliberately.  Item 193's punt pointed straight at it
+(*the MAPPING lane's carrier, not this park's frames*) and read as naming a
+field that does not exist, because the lane it is written on is the SEQUENCE
+lane, where it does not.
+
+| the ask item 194 handed forward | measured here | verdict |
+|---|---|---|
+| the dedent into a still-open frame wants the value-line bottom | `?⏎  ?⏎    a: b⏎  ? c⏎: w` and `?⏎  ?⏎    - a⏎  ? b⏎: w` both accepted, both leaving the root's `: w` owed | **the bottom is right** |
+| one residue | TWO — the MAPPING lane has the carrier (`pendingContent.h_framesV`, `pendingMapValue.h_framesV`), the SEQUENCE lane has none | **PAID on the mapping lane**; the sequence lane is a constructor field and its own item |
+| only the `?` opener can spend a value-line carrier (item 196's note) | that note is about the NESTED reading, whose side condition is `nv + 1 ≤ k`.  The DEDENT reading admits the `:` too: `?⏎  ?⏎    a: b⏎  : c⏎  : d⏎: w` spends the frame's own line at the first `:` and opens a SIBLING entry at the second | **both openers take the arm** |
+
+**And item 93's punt at `colon_open_map` read the field's question backwards.**
+It said *a `[189]` empty-key entry's value is `s-l+block-node` — no compact
+mapping heads an explicit key from this park*, which is a fact about frames this
+park's entry would HEAD.  `h_kslot` asks only for a `:` line still owed once the
+awaited value completes, and a frame the park stands INSIDE owes exactly that.
+Same shape as item 194's correction, on a different field: a punt names what is
+missing and does not survey what the field means. -/
+
+/-- **The landing hop, at the value-line bottom** — item 173's term verbatim,
+    at the other instance of `ResumeFrames`' own parameter.  `resumeAt` was
+    written bottom-polymorphic at item 108 and has been available at this
+    instance ever since; what was missing was a parameter to hand the result
+    to. -/
+example {k nv : Nat} {sp_start sp_scan sp_land : SurfPos} {ks : List Nat}
+    (framesV : ∀ sp_mid : SurfPos, SSLComments sp_scan sp_mid →
+      ResumeFrames (ExplValueLine sp_start nv) ks sp_mid)
+    (h_ssl : SSLComments sp_scan sp_land) (hmem : k ∈ ks) :
+    ∃ ks' : List Nat, (∀ k' ∈ ks', k' < k) ∧
+      ∀ sp_end : SurfPos, SCompactMapTail k sp_land sp_end →
+        ResumeFrames (ExplValueLine sp_start nv) ks' sp_end :=
+  let ⟨ks', hw, cont⟩ := (framesV sp_land h_ssl).resumeAt hmem
+  ⟨ks', hw.lt, cont⟩
+
+/-- **…and the spend**: the landed entry conses onto the resumed level, the
+    levels below close, and what is reached is the frame's unpaid value line —
+    which is `h_explUp_chain`'s body at one member, and so `pendingMapValue`'s
+    `h_kslot` at one member.  `resumeFrameRoute` is item 109's route with the
+    bottom taken as a parameter, exactly as `resumeMapRouteF` already was. -/
+example {k nv : Nat} {sp_start sp_land sp_key : SurfPos} {ks : List Nat}
+    (h_ind : SIndent k sp_land sp_key)
+    (cont : ∀ sp_end : SurfPos, SCompactMapTail k sp_land sp_end →
+      ResumeFrames (ExplValueLine sp_start nv) ks sp_end) :
+    ∀ sp_v : SurfPos, SBlockMapEntry k sp_key sp_v →
+      ∀ sp_i sp_c : SurfPos, SIndent nv sp_v sp_i → GLit ':' sp_i sp_c →
+      ∀ sp_w : SurfPos, SBlockIndented nv .blockOut sp_c sp_w →
+      SLYamlStream sp_start sp_w :=
+  resumeFrameRoute h_ind cont
+
+/-- **The `:` half at its own entry**, which item 93 punted: the empty-key entry
+    `[189]` opens completes with the awaited value, and the value line owed
+    underneath is the frame the resumed level stands in. -/
+example {k nv : Nat} {sp_start sp_land sp_ind sp_scan' : SurfPos} {ks : List Nat}
+    (h_ind : SIndent k sp_land sp_ind) (h_lit : GLit ':' sp_ind sp_scan')
+    (cont : ∀ sp_end : SurfPos, SCompactMapTail k sp_land sp_end →
+      ResumeFrames (ExplValueLine sp_start nv) ks sp_end) :
+    ∀ sp_m : SurfPos, SBlockNode (k + 1) .blockIn sp_scan' sp_m →
+      ∀ sp_i sp_c : SurfPos, SIndent nv sp_m sp_i → GLit ':' sp_i sp_c →
+      ∀ sp_v : SurfPos, SBlockIndented nv .blockOut sp_c sp_v →
+      SLYamlStream sp_start sp_v :=
+  fun sp_m h_node =>
+    resumeFrameRoute h_ind cont sp_m
+      (SBlockMapEntry.emptyKeyNode k sp_ind sp_scan' sp_m h_lit
+        (L4YAML.Proofs.NodeProduction.SBlockNode_blockIn_to_blockOut h_node))
+
+/-- **The bottom is what decides, and the controls are both positive.**  The two
+    stacks differ in nothing but `ResumeFrames`' parameter, and both pop and
+    both route; what the STREAM-bottomed one cannot do is answer with a value
+    line, because closing it commits the `?` entry to its `e-node` value
+    (`ResumeFrames`' own docstring, item 108).  That is the whole content of
+    item 194's "the residue is a BOTTOM", stated so this file checks it. -/
+example {k nv : Nat} {sp_start sp_land sp_key : SurfPos} {ks : List Nat}
+    -- underscored because the second control's only use is inside
+    -- `fail_if_success`, which discards the term it elaborates
+    (_h_ind : SIndent k sp_land sp_key)
+    (_contS : ∀ sp_end : SurfPos, SCompactMapTail k sp_land sp_end →
+      ResumeFrames (SLYamlStream sp_start) ks sp_end)
+    (_contV : ∀ sp_end : SurfPos, SCompactMapTail k sp_land sp_end →
+      ResumeFrames (ExplValueLine sp_start nv) ks sp_end) :
+    True := by
+  -- control A: the stream-bottomed stack routes the entry, which is item 173
+  have _okS : ∀ sp_v : SurfPos, SBlockMapEntry k sp_key sp_v →
+      SLYamlStream sp_start sp_v :=
+    resumeFrameRoute _h_ind _contS
+  -- control B: the value-line-bottomed stack routes it just as well, to its
+  -- own bottom — so the refusal below is not about the route
+  have _okV : ∀ sp_v : SurfPos, SBlockMapEntry k sp_key sp_v →
+      ExplValueLine sp_start nv sp_v :=
+    resumeFrameRoute _h_ind _contV
+  fail_if_success
+    have : ∀ sp_v : SurfPos, SBlockMapEntry k sp_key sp_v →
+        ExplValueLine sp_start nv sp_v :=
+      resumeFrameRoute _h_ind _contS
+  trivial
+
+/-- **The union answers at BOTH readings, and neither alone answers at both.**
+    `question_open_map` composes the nested chain a caller filled in
+    (`h_explUp_chain`) with the dedent reading this item adds, and the landed
+    `:` decides by membership — so a park reached by either route carries what
+    the other would have carried.  Stated at the three-frame ladder: the nested
+    caller hands `[4]`, the dedent arm hands `0`, and the union answers at
+    both. -/
+example {k : Nat} {sp_start sp_land sp_ind : SurfPos} {ks : List Nat}
+    (h_ind : SIndent k sp_land sp_ind)
+    (nested : ∀ nv ∈ [4], ∀ sp_v : SurfPos, SBlockMapEntry k sp_ind sp_v →
+      ExplValueLine sp_start nv sp_v)
+    (cont : ∀ sp_end : SurfPos, SCompactMapTail k sp_land sp_end →
+      ResumeFrames (ExplValueLine sp_start 0) ks sp_end) :
+    (∃ ns : List Nat, ∀ nv ∈ ns, ∀ sp_v : SurfPos, SBlockMapEntry k sp_ind sp_v →
+      ExplValueLine sp_start nv sp_v) ∨ True :=
+  frameChainUnion (Or.inl ⟨[4], nested⟩)
+    (Or.inl ⟨[0], frameChainOne (a := 0) (resumeFrameRoute h_ind cont)⟩)
+
+/-- …and the membership that makes the union load-bearing: the nested chain
+    alone cannot answer at the dedent's index, and the dedent chain alone cannot
+    answer at the nested one.  `#guard`s below state the same arithmetic the
+    `by simp` membership proofs discharge inside the openers. -/
+example {k : Nat} {sp_start sp_ind : SurfPos}
+    (chain : ∀ nv ∈ ([4] ++ [0] : List Nat), ∀ sp_v : SurfPos,
+      SBlockMapEntry k sp_ind sp_v → ExplValueLine sp_start nv sp_v) :
+    (∀ sp_v : SurfPos, SBlockMapEntry k sp_ind sp_v → ExplValueLine sp_start 4 sp_v) ∧
+    (∀ sp_v : SurfPos, SBlockMapEntry k sp_ind sp_v → ExplValueLine sp_start 0 sp_v) :=
+  ⟨chain 4 (by simp), chain 0 (by simp)⟩
+
+#guard !((0 : Nat) ∈ ([4] : List Nat))
+#guard !((4 : Nat) ∈ ([0] : List Nat))
+#guard (0 : Nat) ∈ ([4] ++ [0] : List Nat)
+#guard (4 : Nat) ∈ ([4] ++ [0] : List Nat)
+
+/-! **The PAID family, at the runtime.**  A mapping-lane park whose content has
+arrived, dedenting to a still-open level that stands inside an outer `?` frame.
+The landing's entry joins that level (`=VAL :c` inside the inner `+MAP`) and the
+root's `: w` is spent AFTER the level closes — which is the reading
+`ResumeFrames (ExplValueLine …)` states and the stream bottom cannot: -/
+
+#guard pins "?\n  ?\n    a: b\n  ? c\n: w\n" == ("scan-accepted", "+STR +DOC +MAP +MAP +MAP =VAL :a =VAL :b -MAP =VAL : =VAL :c =VAL : -MAP =VAL :w -MAP -DOC -STR")
+#guard pins "?\n  ?\n    ?\n      a: b\n  ? c\n: w\n" == ("scan-accepted", "+STR +DOC +MAP +MAP +MAP +MAP =VAL :a =VAL :b -MAP =VAL : -MAP =VAL : =VAL :c =VAL : -MAP =VAL :w -MAP -DOC -STR")
+#guard pins "?\n  ?\n    ?\n      a: b\n    ? c\n: w\n" == ("scan-accepted", "+STR +DOC +MAP +MAP +MAP +MAP =VAL :a =VAL :b -MAP =VAL : =VAL :c =VAL : -MAP =VAL : -MAP =VAL :w -MAP -DOC -STR")
+-- …and a level that is a plain `k:` rather than a `?` chains onto the same
+-- bottom, so the arm is not a `?`-ladder reading.
+#guard pins "?\n  k:\n    a: b\n  ? c\n: w\n" == ("scan-accepted", "+STR +DOC +MAP +MAP =VAL :k +MAP =VAL :a =VAL :b -MAP =VAL :c =VAL : -MAP =VAL :w -MAP -DOC -STR")
+
+/-! **The `:` half has its own inputs**, which is why both openers take the arm.
+The FIRST `:` at the frame's column is the frame's own value line — item 51's
+`colon_open_map_explicit`, not this arm — and the SECOND is a sibling entry in
+the level the frame keyed, with the root's line still owed underneath: -/
+
+#guard pins "?\n  ?\n    a: b\n  : c\n: w\n" == ("scan-accepted", "+STR +DOC +MAP +MAP +MAP =VAL :a =VAL :b -MAP =VAL :c -MAP =VAL :w -MAP -DOC -STR")
+#guard pins "?\n  ?\n    a: b\n  : c\n  : d\n: w\n" == ("scan-accepted", "+STR +DOC +MAP +MAP +MAP =VAL :a =VAL :b -MAP =VAL :c =VAL : =VAL :d -MAP =VAL :w -MAP -DOC -STR")
+#guard pins "?\n  ?\n    a: b\n  ? c\n  : d\n: w\n" == ("scan-accepted", "+STR +DOC +MAP +MAP +MAP =VAL :a =VAL :b -MAP =VAL : =VAL :c =VAL :d -MAP =VAL :w -MAP -DOC -STR")
+
+/-! **The SERVED row, unchanged** — a landing at the outermost mapping gives the
+root a second entry and ends the stream, which is the bottom item 173 already
+pays.  The two rows differ in the landing's column alone: -/
+
+#guard pins "?\n  ?\n    a: b\n? c\n: w\n" == ("scan-accepted", "+STR +DOC +MAP +MAP +MAP =VAL :a =VAL :b -MAP =VAL : -MAP =VAL : =VAL :c =VAL :w -MAP -DOC -STR")
+
+/-! …and the columns between the levels are refused before any dispatch runs, so
+the membership branch defers nothing: -/
+
+#guard pins "?\n  ?\n    a: b\n   ? c\n: w\n" == ("scan-refused L4YAML.ScanError.trailingContent 3 3", "ERR L4YAML.ScanError.trailingContent 3 3")
+#guard pins "?\n  ?\n    a: b\n ? c\n: w\n" == ("scan-refused L4YAML.ScanError.trailingContent 3 1", "ERR L4YAML.ScanError.trailingContent 3 1")
+
+/-! **The half this item does NOT pay**, pinned so the next one measures it
+rather than rediscovering it.  The same shape off a SEQUENCE-lane park:
+`pendingBlockContent` carries `h_closeF` (stream-bottomed, item 99) and
+`h_kslotUp` (value-line-bottomed with NO level on top — the `ks = []` reading,
+item 191), and what this landing needs is the value-line bottom with the levels
+between.  That is a constructor field on `pendingBlock` and
+`pendingBlockContent`, priced by its own census: -/
+
+#guard pins "?\n  ?\n    - a\n  ? b\n: w\n" == ("scan-accepted", "+STR +DOC +MAP +MAP +SEQ =VAL :a -SEQ =VAL : =VAL :b =VAL : -MAP =VAL :w -MAP -DOC -STR")
 
 end L4YAML.Tests.Guards.BlockDeferralClasses

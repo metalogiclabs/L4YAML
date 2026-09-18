@@ -22000,7 +22000,11 @@ that is written out in full; the DELTA is what the row claims, and it is zero
 either way.
 
 **What remains.**  In order: the **value-line bottom** item 194 named
-(`h_res_land` at `ResumeFrames (ExplValueLine …)`).  Then the three PROPS-lane
+(`h_res_land` at `ResumeFrames (ExplValueLine …)`) — **corrected by item 197:
+that is TWO residues, not one.  The mapping lane's carrier already existed
+(`pendingContent.h_framesV`, paid since item 108 and already spent at the
+CONTENT dispatch's own landing) and is PAID; the sequence lane needs a
+constructor field and is still open.**  Then the three PROPS-lane
 content producers, and `main`'s flow-open lane (`pendingContent`,
 `pendingBlockContent` — a LANE, not a field, still unmeasured).  Then the
 compact/INLINE arm of `accum_block_on_pendingBlock`, measured by none of 193–196.
@@ -22015,6 +22019,139 @@ finding: the SEQUENCE lane still carries `h_kslot` and `h_kslotUp` as a pair on
 `accum_block_on_pendingBlockContent`.  That pair is the same shape item 194
 flagged and item 196 retired on the mapping lane, and the measurement above says
 it is NOT on this loop — it is its own, and its price is its own.
+
+### Item 197 (2026-09-18)
+
+**THE TWIN EXISTED AT THE NEIGHBORING CASCADE.**  Branch
+`fix-a-grammar-completeness`, on top of item 196's `39e42187`.
+
+**Re-running the plan sentence.**  Item 196's list opened with *the value-line
+bottom item 194 named (`h_res_land` at `ResumeFrames (ExplValueLine …)`)*.  The
+diagnosis stands: `h_res_land` bottoms its stack at `SLYamlStream sp_start`,
+which is what a dedent to the OUTERMOST mapping reaches, and a landing that
+stops INSIDE a still-open `?` frame reaches the frame's unpaid value line
+instead.  What the sentence had as one residue is two, and they are priced
+differently:
+
+| the sentence | measured | verdict |
+|---|---|---|
+| "the residue is a BOTTOM" | `?⏎  ?⏎    a: b⏎  ? c⏎: w` and `?⏎  ?⏎    - a⏎  ? b⏎: w` are both accepted and both leave the root's `: w` owed under the resumed level | **right, and unchanged** |
+| one residue, one price | the MAPPING lane's carrier is `pendingContent.h_framesV`/`pendingMapValue.h_framesV` — **paid since item 108**; the SEQUENCE lane has no such field at all | **TWO residues.**  One costs a parameter per relay, the other two constructor fields |
+| "only the `?` opener can spend a value-line carrier" (item 196's note on `h_explUp_chain`) | that note is about the NESTED reading, whose side condition is `nv + 1 ≤ k`.  The DEDENT reading admits the `:` too — in `?⏎  ?⏎    a: b⏎  : c⏎  : d⏎: w` the first `:` is the frame's own value line and the second is a SIBLING entry | **both openers take the arm** |
+
+**TWO LANDING CASCADES ASK THE SAME PARK THE SAME QUESTION, AND ONLY ONE TOOK
+BOTH BOTTOMS.**  `pendingContent` carries `h_framesS` (stream) and `h_framesV`
+(the frame's value line) side by side since item 108, and the **CONTENT**
+dispatch's key pack has taken both ever since — `entryKeyPack_of_dispatch` binds
+`h_dframes`/`h_dframesV` as a pair, pops them with the same
+`ResumeFrames.resumeAt`, and its dedent branch hands the pack a real value-line
+twin.  Sixty-five items later item 173 gave the **BLOCK** dispatch's `:`/`?`
+landing `h_res_land` — one bottom, paid from `h_framesS` alone — and
+`accum_block_on_closeThenBlock` has carried a one-sided `h_mapF` since.  The
+field the residue wanted was on the park, was paid, and was being spent one
+cascade over.
+
+**The asymmetry is the finding, and no instrument here can see it.**  The FLIP
+counts a field's sites and `h_framesV` has sites; `FlipConsumerSurface` counts
+the escape's applications and this moves none.  What names it is a COMPARISON of
+two parameter lists answering the same question about the same park, and nothing
+derives one from the other — so the check has to be made deliberately.  Item
+193's punt pointed straight at it (*the MAPPING lane's carrier, not this park's
+frames*) and read as naming a field that does not exist, because the lane it is
+written on is the SEQUENCE lane, where it does not.
+
+**And item 93's punt at `colon_open_map` read the field's question backwards.**
+It said *a `[189]` empty-key entry's value is `s-l+block-node` — no compact
+mapping heads an explicit key from this park*, which is a fact about frames this
+park's entry would HEAD.  `h_kslot` asks only for a `:` line still owed once the
+awaited value completes, and a frame the park stands INSIDE owes exactly that.
+Same correction as item 194's, on a different field: a punt names what is
+missing and does not survey what the field means.
+
+**What landed.**  `resumeMapRoute`'s bottom becomes a parameter
+(`resumeFrameRoute`, the only new declaration — `resumeMapRoute` is now its
+stream instance and every call site is untouched), mirroring what item 108 had
+already done for `resumeMapRouteF` and `ResumeFrames.resumeAt`.  One arm,
+`h_resV_land`, is added to `indicator_open_map`, `colon_open_map` and
+`question_open_map`; one relay parameter, `h_mapFV`, to
+`accum_block_on_closeThenBlock` and `accum_block_on_pendingContent`.  It is paid
+from `pendingContent.h_framesV` and `pendingMapValue.h_framesV`, and it is
+SPENT — where `h_res_land` pays the entry ROUTE — on the park's value-line
+CHAIN: `colon_open_map` now pays `h_kslot`, `h_closeFV` and `h_framesV` where
+item 93 and item 108 punted all three, and `question_open_map` unions the arm
+into `h_explUp_chain` (`frameChainUnion`, item 192) so that `h_kslot` and
+`h_explUp` carry the nested reading and the dedent reading in ONE list and the
+landed `:` still picks by column.  **Net +1 definition, +5 lemma parameters, +0
+constructor fields.**
+
+**The instruments.**  The FLIP on `h_resV_land` (delete `∨ True` from the three
+binders) reads **3 binders / 8 sites** — four `indicator_open_map` call sites and
+four in-lemma spends.  The FLIP on `h_mapFV` reads **2 binders / 10 sites** (13
+errors, 3 of them cascading `⟨…⟩` elaboration failures at the same lines).
+Neither instrument could have found the item: both count a field's SITES, and
+`h_framesV` had sites at the other cascade the whole time.
+
+**Non-vacuity is the BOTTOM, and it is machine-checked both ways.**
+`BlockDeferralClasses` §16 states the hop and the spend at their types, with two
+POSITIVE controls — the stream-bottomed stack routes the entry (item 173) and
+the value-line-bottomed one routes it to its own bottom — and a
+`fail_if_success` showing the stream-bottomed stack cannot answer with a value
+line, which is exactly item 194's "the residue is a BOTTOM" turned into
+something the file checks.  Beside it, the union answering at TWO members (`[4]`
+from the nested caller, `[0]` from the dedent arm) with `#guard`s on the
+membership arithmetic that makes the union load-bearing: `0 ∉ [4]` and
+`4 ∉ [0]`.
+
+**Gates.**  Full build **1162** jobs + guards, ZERO warnings; `run-all-tests.sh`
+**4520/4520** (`adversarialinstantiation` **2441/2441**), Production Coverage
+**837/837**; `eventscore` **347/358** (252 event-pass, 95 error-ok, 0 error-miss,
+0 event-reject); `suiterunner` **869 / 0 / 151**; `matrix_score.py` over the
+402-leaf data form on BOTH pipelines, **402/402 event** (`pass` 308, `err-ok` 94)
+and **282/282 JSON** (`pass` 279, `err-ok` 3, `skip` 120), splits identical to
+176–196; the `[210]` flip at **FIVE** errors, StreamAccum **4379**, **5659**,
+**5682**, **5851**, **7339** — the same five sites as items 194–196, the fifth at
+a line this item's insertion moved by 17 — applied and restored clean;
+`#print axioms` over `resumeFrameRoute`, `resumeMapRoute`, `colon_open_map`,
+`question_open_map`, `indicator_open_map`, `accum_block_on_closeThenBlock`,
+`accum_block_on_pendingContent` and `accum_block_pending`, no `sorryAx`
+(`resumeFrameRoute` depends on no axioms at all); checkers 228/355,
+20/230/249/355, 25 capstones, annotation verifier 100 % coverage (211/211 rules)
+with the same **19** pre-existing name mismatches.
+
+**A measurement that was inconclusive before it was conclusive.**  The first
+`matrix_score.py` run read `309/402` — and the cause was the DATA, not the
+proof: the checkout it was pointed at held 2 `error` marker files instead of 95,
+so 93 correctly-rejected inputs scored as `reject`.  §8's rule — *an
+inconclusive result is not a negative one* — and the second, complete checkout
+reproduces 402/402 exactly.  Recorded because the failure mode is silent: the
+script reports a score either way.
+
+**Counts, at `39e42187` and here, each under the recipe that produced it** —
+declarations `grep -rhoE "^(private )?(lemma|theorem|def|abbrev|instance|structure|inductive|class) " L4YAML`:
+**8569 → 8570** (+1, `resumeFrameRoute`); `#guard` tokens
+`grep -rho "#guard" L4YAML Tests`: **7967 → 7983** (+16); test files
+`find Tests -name '*.lean'`: **621**, unchanged.
+
+**What remains.**  In order: the **sequence lane's half of this same residue** —
+`pendingBlock` and `pendingBlockContent` need a value-line-bottomed resume field
+(`h_closeFV`, mirroring `pendingMapValue`'s) before
+`accum_block_on_pendingBlockContent` can pay the arm this item built; the input
+is `?⏎  ?⏎    - a⏎  ? b⏎: w`, pinned in §16, and the price is a constructor field
+on two constructors (6 and 9 applications respectively) plus the relay.  Then the
+three PROPS-lane content producers, and `main`'s flow-open lane (`pendingContent`,
+`pendingBlockContent` — a LANE, not a field, still unmeasured).  Then the
+compact/INLINE arm of `accum_block_on_pendingBlock`, measured by none of 193–197.
+Then **the REFUTATION** for `_stamp_compact` (2 sites, measured empty),
+**`KeyPackPunt`'s two reasons** (`dedent` 7/5 and `noKeyContext` 6/5, possibly a
+phantom), then the `pendingFlow` constructor and its arm.  Only then item 183's
+flip order.  And the parked Ix Step-1 composition, on the Ix track's own clock.
+
+**And a THIRD site of the same shape, named so it is not rediscovered.**
+`flowKeyRoute_of_root`'s conclusion already carries a value-line-bottomed resume
+conjunct (`∃ nv ks, … ResumeFrames (ExplValueLine sp_start nv) ks sp_e`) and
+punts it, because its own input `h_mapF` (item 176) is stream-bottomed.  That is
+the FLOW key lane's copy of this item, it has the same fix, and it is not
+measured here.
 
 ### REMAINING, in order
 
