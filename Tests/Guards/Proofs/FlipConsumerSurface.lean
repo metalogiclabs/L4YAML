@@ -286,7 +286,30 @@ per SITE where it used to break every branch.  Item 188 warned that an error
 count is not monotone in the domain; this says something narrower and sharper —
 an error count is not comparable across a change that alters how the punts are
 nested.  Declaration counts still are, which is why they are the number to
-carry forward. -/
+carry forward.
+
+Item 193 threaded the chain to the entry park's landed `?`, and this census is
+flat a SIXTH time for item 191's reason.  What is new is that the per-field flip
+was flat for a reason of its own, and the reason is worth separating from the
+five readings before it: **a constructor FIELD's flip and the LEMMA PARAMETER
+that carries it are two different surfaces.**  The field's flip deletes an
+optional constructor argument, so what errors is the PRODUCERS — every site that
+builds the constructor and must now supply the datum.  The parameter's flip
+deletes an optional argument of a consuming lemma, so what errors is the uses
+INSIDE it.  A payment that adds a consumer therefore moves the second and leaves
+the first exactly where it was: `pendingBlock.h_kslotUp` reads 7 declarations /
+23 errors at this commit and 7 / 23 at the parent, while the parameter of the
+same name on `accum_block_on_pendingBlock` goes 5 → **6** errors over the two
+declarations it reaches — 4 → 5 inside that lemma itself.  Five items of "the
+census is flat" were all taken on the producer surface.
+
+And one correction to our own record, found by re-running rather than by
+reading.  Item 191's table reports `pendingBlock.h_kslotUp` at 6 / 22.  That was
+true when written and went stale one item later: item 192 made
+`accum_flow_open_depth0` a consumer of the field (0 → 3 mentions of the binder)
+and re-ran the two FLOW fields instead of this pair, so the stale number rode
+forward into item 192's entry as "flat".  The reading at both `a16a5566` and
+here is 7 / 23. -/
 
 /-! ## The gate
 

@@ -7,7 +7,7 @@ Copyright (c) 2026. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 -/
 
-/-! # The block-indicator escape, by CLASS and by ROUTE (DOCS items 184–191)
+/-! # The block-indicator escape, by CLASS and by ROUTE (DOCS items 184–193)
 
 `block_dispatch_deferred` is `PendingNode.pendingFlow`'s only producer, so
 R3 — row 12's β.5 deletion — is the emptying of this escape.  Its applications
@@ -26,7 +26,7 @@ wrapper's deletion rather than a total drifting:
 
 | wrapper | applications | what reaches it | what empties it |
 |---|---|---|---|
-| `_stamp_offcol` | **3** in 3 definitions | the park HAS a value pack, at `nv`, and the landing is at `k ≠ nv` | a reason the two indices agree — `[187]`'s `s-indent(n)` is exact.  **Item 189 (§8) paid its first domain** and **item 190 (§9) the other two sites'**: where `nv ≠ k` because the park holds TWO frames and offered the inner one, the landing now reads the outer one — from `h_vpackUp` at the landed `?`, from `h_kslotUp` at the compact one.  ~~What is left is a landing TWO frames up~~ — **item 191 (§10) paid that too**, by carrying the ancestors as a LIST instead of naming one |
+| `_stamp_offcol` | **3** in 3 definitions | the park HAS a value pack, at `nv`, and the landing is at `k ≠ nv` | a reason the two indices agree — `[187]`'s `s-indent(n)` is exact.  **Item 189 (§8) paid its first domain** and **item 190 (§9) the other two sites'**: where `nv ≠ k` because the park holds TWO frames and offered the inner one, the landing now reads the outer one — from `h_vpackUp` at the landed `?`, from `h_kslotUp` at the compact one.  ~~What is left is a landing TWO frames up~~ — **item 191 (§10) paid that too**, by carrying the ancestors as a LIST instead of naming one; **item 192 (§11)** carried the list across a flow CONSTRUCT, and **item 193 (§12)** across an awaited SEQUENCE ENTRY at the landed `?` |
 | `_stamp_nopack` | **3** in 3 definitions | the park carries no value pack at all, and its register is LIVE | a CARRIER: the `?` frame's value slot at the landing's column, U2's residue proper — priced at item 186 (§5), RE-priced at item 187 (§6), and its first DOMAIN paid at item 188 (§7) |
 | `_stamp_compact` | **2** in 2 definitions | the fill is COMPACT, and `[189]`'s value is `s-l+block-node`, so the face cannot stand in for the stamp | the stamp, or a refutation |
 | `_inline` | **2** in 2 definitions | the mid-line indicator (`inline_residue_of_landing`) | `KeyPackPunt`'s two surviving reasons (item 102) |
@@ -1192,5 +1192,163 @@ these are the inputs the un-shadowing above is for: -/
 is what says the compact tail the crossing spends is real: -/
 
 #guard pins "?\n  ? - [1]\n    - b\n: w\n" == ("scan-accepted", "+STR +DOC +MAP +MAP +SEQ +SEQ [] =VAL :1 -SEQ =VAL :b -SEQ =VAL : -MAP =VAL :w -MAP -DOC -STR")
+
+/-! ## §12  Three punts that are three questions (item 193)
+
+§11 left the chain unthreaded at the three parks item 191's instrument named
+beside `accum_block_on_noPending`.  They are one line in the record and one
+`(Or.inr trivial)` each in the source, and the sixth diagnosis in this series is
+that **they are not one question — their DOMAINS lie on opposite sides of the
+crossing that pays the first of them**, and only a column sweep at the runtime
+separates them.  The three sites pattern-match alike; nothing in the source
+says so.
+
+| park | where the `?` may stand | what the landing needs | verdict |
+|---|---|---|---|
+| `accum_block_on_pendingBlock` (`-` awaiting its node at `n`) | `k ≥ n + 1`, unbounded (`k ≤ n` is `trailingContent`, `k = 0` dedents out) | the `?`'s mapping IS the awaited node | **PAID** — `entryChainMap` |
+| `accum_block_on_pendingBlockContent` (entry content complete at `n`) | a DEDENT only: `k = 0`, or an enclosing mapping's own column | the enclosing mapping's still-open TAIL — the `?` is a SIBLING, not this entry's node | STARVED, and the carrier named |
+| `accum_block_on_noPending` (the stream's seed) | anywhere; there is no frame above it at all | nothing — `h_nodoc` says the region behind it is `[202]`'s prefixes | EMPTY by the park's own field |
+
+The middle row is the finding.  With the `-` at column 2, a `?` at column 1 or 2
+is refused outright, and every column to the RIGHT of completed entry content is
+either folded into the multi-line plain scalar (`a`, `&p a`, `!!str a` — the
+scanner never dispatches an indicator at all) or refused by §9.2 as bare
+document content (`"a"`, `'a'`, `[1]`, `{x: y}`).  So `entryChainMap`'s side
+condition `n + 1 ≤ k`, which is exactly where the runtime draws the line at the
+park next door, is FALSE at every input this park can reach.  A punt whose twin
+has just been paid is not thereby nearly paid.
+
+**The instruments, and a correction to our own record.**  A constructor FIELD's
+flip and the LEMMA PARAMETER that carries it are two different surfaces, and
+five items of flat readings were taken on the first.  `pendingBlock.h_kslotUp`'s
+field flip reads 7 declarations / 23 errors here and 7 / 23 at the parent commit
+— flat, a sixth time, because a field's flip counts PRODUCERS.  The parameter of
+the same name on `accum_block_on_pendingBlock` reads 4 → **5** errors IN THAT
+LEMMA (5 → 6 over the two declarations it reaches) across this
+item, and that is the payment: a new consumer inside the lemma.  Separately, the
+ledger's `6 / 22` for the field (item 191's table) went stale at item 192, which
+made `accum_flow_open_depth0` a consumer of it (0 → 3 mentions of the binder)
+and re-ran the two flow fields instead of this pair.  7 / 23 is the number. -/
+
+/-- **The chain crossing an AWAITED SEQUENCE ENTRY**, in the shape the payment
+    builds it.  The park is a `-` whose `s-l+block-indented(n, block-in)` node
+    has not arrived; it holds the value line of the frame its collection FILLS
+    and the chain of frames that collection stands INSIDE; and what arrives is
+    the `[187]` mapping the landed `?` opens.  One `entryChainMap` carries both
+    readings, for the reason `slotChainMap` carries its own: the side condition
+    weighs the PARK's index against the LANDING's and is silent about which
+    ancestor's `:` follows. -/
+example {n k n₀ n₁ : Nat} {sp_start sp_scan sp_mid sp_ind : SurfPos}
+    (hnk : n + 1 ≤ k)
+    (h_ssl : SSLComments sp_scan sp_mid) (h_ind : SIndent k sp_mid sp_ind)
+    (kslot : ∀ sp_m : SurfPos, SBlockIndented n .blockIn sp_scan sp_m →
+      ∀ sp_e : SurfPos, SCompactSeqTail n sp_m sp_e → ExplValueLine sp_start n₀ sp_e)
+    (up : ∀ nv ∈ [n₁], ∀ sp_m : SurfPos, SBlockIndented n .blockIn sp_scan sp_m →
+      ∀ sp_e : SurfPos, SCompactSeqTail n sp_m sp_e → ExplValueLine sp_start nv sp_e) :
+    ∀ nv ∈ [n₀, n₁], ∀ sp_v : SurfPos, SBlockMapEntry k sp_ind sp_v →
+      ExplValueLine sp_start nv sp_v :=
+  entryChainMap hnk h_ssl h_ind (frameChainCons (a := n₀) kslot up)
+
+/-- **ONE crossing, TWO landings**, through the pipeline's own term — the whole
+    content of the payment, and the thing the `∃ nv` this field replaced cannot
+    do.  `?⏎  ?⏎    -⏎      ? a⏎: w` lands two frames up and
+    `?⏎  ?⏎    -⏎      ? a⏎  : v` lands one; the two inputs differ in nothing but
+    where the `:` stands, and the entry is crossed once for both. -/
+example {n k n₀ n₁ : Nat} {sp_start sp_scan sp_mid sp_ind sp_v : SurfPos}
+    {sp_i0 sp_c0 sp_w0 sp_i1 sp_c1 sp_w1 : SurfPos}
+    (hnk : n + 1 ≤ k)
+    (h_ssl : SSLComments sp_scan sp_mid) (h_ind : SIndent k sp_mid sp_ind)
+    (chain : ∀ nv ∈ [n₀, n₁], ∀ sp_m : SurfPos, SBlockIndented n .blockIn sp_scan sp_m →
+      ∀ sp_e : SurfPos, SCompactSeqTail n sp_m sp_e → ExplValueLine sp_start nv sp_e)
+    (h_entry : SBlockMapEntry k sp_ind sp_v)
+    (h_iv0 : SIndent n₀ sp_v sp_i0) (h_lit0 : GLit ':' sp_i0 sp_c0)
+    (h_sbi0 : SBlockIndented n₀ .blockOut sp_c0 sp_w0)
+    (h_iv1 : SIndent n₁ sp_v sp_i1) (h_lit1 : GLit ':' sp_i1 sp_c1)
+    (h_sbi1 : SBlockIndented n₁ .blockOut sp_c1 sp_w1) :
+    SLYamlStream sp_start sp_w0 ∧ SLYamlStream sp_start sp_w1 :=
+  let carried := entryChainMap hnk h_ssl h_ind chain
+  ⟨carried n₀ (by simp) sp_v h_entry sp_i0 sp_c0 h_iv0 h_lit0 sp_w0 h_sbi0,
+   carried n₁ (by simp) sp_v h_entry sp_i1 sp_c1 h_iv1 h_lit1 sp_w1 h_sbi1⟩
+
+/-- …and item 191's crossing verifiably does NOT serve this park, which is why
+    the item needed one of its own.  `slotChainMap` fills a `[185]` KEY slot —
+    `SBlockIndented nv .blockOut` with nothing owed behind it — where an awaited
+    ENTRY is `.blockIn` with the collection's remaining tail still to close.
+    `fail_if_success` makes that a fact this file checks rather than a sentence
+    the record asserts. -/
+example {n k n₀ : Nat} {sp_start sp_scan sp_mid sp_ind : SurfPos}
+    -- underscored because the only use is inside `fail_if_success`, which
+    -- discards the term it elaborates
+    (_hnk : n + 1 ≤ k)
+    (_h_ssl : SSLComments sp_scan sp_mid) (_h_ind : SIndent k sp_mid sp_ind)
+    (_chain : ∀ nv ∈ [n₀], ∀ sp_m : SurfPos, SBlockIndented n .blockIn sp_scan sp_m →
+      ∀ sp_e : SurfPos, SCompactSeqTail n sp_m sp_e → ExplValueLine sp_start nv sp_e) :
+    True := by
+  -- the POSITIVE control, so the refusal below is about the crossing and not
+  -- about the goal being unreachable from these hypotheses at all
+  have _ok : ∀ nv ∈ [n₀], ∀ sp_v : SurfPos, SBlockMapEntry k sp_ind sp_v →
+      ExplValueLine sp_start nv sp_v :=
+    entryChainMap _hnk _h_ssl _h_ind _chain
+  fail_if_success
+    have : ∀ nv ∈ [n₀], ∀ sp_v : SurfPos, SBlockMapEntry k sp_ind sp_v →
+        ExplValueLine sp_start nv sp_v :=
+      slotChainMap _hnk _h_ssl _h_ind _chain
+  trivial
+
+/-! **The paid ladder, at the runtime.**  Each rung adds one `?` frame around
+the `-` whose node the landed `?` supplies, and leaves the `:` at column 0 — so
+the landing climbs one more frame per row, exactly as in §10 and §11. -/
+
+#guard pins "?\n  -\n    ? a\n: w\n" == ("scan-accepted", "+STR +DOC +MAP +SEQ +MAP =VAL :a =VAL : -MAP -SEQ =VAL :w -MAP -DOC -STR")
+#guard pins "?\n  ?\n    -\n      ? a\n: w\n" == ("scan-accepted", "+STR +DOC +MAP +MAP +SEQ +MAP =VAL :a =VAL : -MAP -SEQ =VAL : -MAP =VAL :w -MAP -DOC -STR")
+#guard pins "?\n  ?\n    ?\n      -\n        ? a\n: w\n" == ("scan-accepted", "+STR +DOC +MAP +MAP +MAP +SEQ +MAP =VAL :a =VAL : -MAP -SEQ =VAL : -MAP =VAL : -MAP =VAL :w -MAP -DOC -STR")
+
+/-! …and the `:` may land on any frame in the chain, which is what says the
+list is not a longer way of writing one index: -/
+
+#guard pins "?\n  ?\n    -\n      ? a\n  : v\n" == ("scan-accepted", "+STR +DOC +MAP +MAP +SEQ +MAP =VAL :a =VAL : -MAP -SEQ =VAL :v -MAP =VAL : -MAP -DOC -STR")
+#guard pins "?\n  -\n    ? a\n    : v\n" == ("scan-accepted", "+STR +DOC +MAP +SEQ +MAP =VAL :a =VAL :v -MAP -SEQ =VAL : -MAP -DOC -STR")
+
+/-! **`entryChainMap`'s side condition IS the runtime's own line.**  The `-` is
+at column 2, so `n + 1 ≤ k` admits column 3 and rightward and nothing else —
+and the scanner refuses columns 1 and 2 rather than reading them some other
+way: -/
+
+#guard pins "?\n  -\n   ? a\n: w\n" == ("scan-accepted", "+STR +DOC +MAP +SEQ +MAP =VAL :a =VAL : -MAP -SEQ =VAL :w -MAP -DOC -STR")
+#guard pins "?\n  -\n  ? a\n: w\n" == ("scan-refused L4YAML.ScanError.trailingContent 2 2", "ERR L4YAML.ScanError.trailingContent 2 2")
+#guard pins "?\n  -\n ? a\n: w\n" == ("scan-refused L4YAML.ScanError.trailingContent 2 1", "ERR L4YAML.ScanError.trailingContent 2 1")
+
+/-! …the COMPACT twins read the same at the runtime, and they are a different
+SITE: `indicator_open_map` takes a landing at a line start, so a `?` on the
+dash's own line arrives on this lemma's inline arm instead.  Pinned here so the
+next item measures the arm rather than assuming the family: -/
+
+#guard pins "?\n  - ? a\n: w\n" == ("scan-accepted", "+STR +DOC +MAP +SEQ +MAP =VAL :a =VAL : -MAP -SEQ =VAL :w -MAP -DOC -STR")
+#guard pins "?\n  ?\n    - ? a\n: w\n" == ("scan-accepted", "+STR +DOC +MAP +MAP +SEQ +MAP =VAL :a =VAL : -MAP -SEQ =VAL : -MAP =VAL :w -MAP -DOC -STR")
+#guard pins "?\n  ?\n    ?\n      - ? a\n: w\n" == ("scan-accepted", "+STR +DOC +MAP +MAP +MAP +SEQ +MAP =VAL :a =VAL : -MAP -SEQ =VAL : -MAP =VAL : -MAP =VAL :w -MAP -DOC -STR")
+
+/-! **The middle row of the table, measured.**  Off a park whose entry content
+has arrived, the only `?` the scanner dispatches is a DEDENT — to an enclosing
+mapping's own column, where the `?` is that mapping's next entry and not this
+entry's node: -/
+
+#guard pins "?\n  ?\n    - a\n  ? b\n: w\n" == ("scan-accepted", "+STR +DOC +MAP +MAP +SEQ =VAL :a -SEQ =VAL : =VAL :b =VAL : -MAP =VAL :w -MAP -DOC -STR")
+#guard pins "?\n  ?\n    - a\n    ? b\n  : v\n" == ("scan-refused L4YAML.ScanError.trailingContent 3 4", "ERR L4YAML.ScanError.trailingContent 3 4")
+#guard pins "?\n  ?\n    - a\n   ? b\n: w\n" == ("scan-refused L4YAML.ScanError.trailingContent 3 3", "ERR L4YAML.ScanError.trailingContent 3 3")
+
+/-! …and to the RIGHT of the content there is no `?` indicator at all — a plain
+head folds it into the scalar, a non-plain one refuses.  Both readings say the
+same thing: `n + 1 ≤ k` has no instance at this park: -/
+
+#guard pins "?\n  - a\n    ? b\n: w\n" == ("scan-accepted", "+STR +DOC +MAP +SEQ =VAL :a ? b -SEQ =VAL :w -MAP -DOC -STR")
+#guard pins "?\n  - &p a\n    ? b\n: w\n" == ("scan-accepted", "+STR +DOC +MAP +SEQ =VAL &p :a ? b -SEQ =VAL :w -MAP -DOC -STR")
+#guard pins "?\n  - \"a\"\n    ? b\n: w\n" == ("scan-refused L4YAML.ScanError.invalidBareDocument 2 4", "ERR L4YAML.ScanError.invalidBareDocument 2 4")
+#guard pins "?\n  - [1]\n    ? b\n: w\n" == ("scan-refused L4YAML.ScanError.invalidBareDocument 2 4", "ERR L4YAML.ScanError.invalidBareDocument 2 4")
+
+/-! …and the third row: a virgin block-context park is the seed, so the `?` it
+opens heads the stream's first document and stands inside nothing: -/
+
+#guard pins "? a\n: w\n" == ("scan-accepted", "+STR +DOC +MAP =VAL :a =VAL :w -MAP -DOC -STR")
+#guard pins "---\n? a\n: w\n" == ("scan-accepted", "+STR +DOC --- +MAP =VAL :a =VAL :w -MAP -DOC -STR")
 
 end L4YAML.Tests.Guards.BlockDeferralClasses

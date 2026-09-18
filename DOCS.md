@@ -21422,6 +21422,156 @@ measured empty), **`KeyPackPunt`'s two reasons** (`dedent` 7/5 and
 its arm.  Only then item 183's flip order.  And the parked Ix Step-1
 composition, on the Ix track's own clock.
 
+### Item 193 (2026-09-17)
+
+**THREE PUNTS THAT WERE THREE QUESTIONS, AND AN INSTRUMENT POINTED AT THE WRONG
+SURFACE.**  Branch `fix-a-grammar-completeness`, on top of item 192's
+`a16a5566`.
+
+**The domain, measured first, one park at a time — and that is the item.**
+Items 191 and 192 both named the same next step, "the three parks the chain is
+not threaded to": `accum_block_on_noPending`, `accum_block_on_pendingBlock` and
+`accum_block_on_pendingBlockContent`, one `(Or.inr trivial)` each at
+`indicator_open_map`'s two ancestor fields, all three commented "unmeasured".
+They read as one job.  Sweeping the `?`'s column at the runtime, park by park,
+says they are three:
+
+| park | `?` columns the scanner dispatches | what the landing needs | verdict |
+|---|---|---|---|
+| `accum_block_on_pendingBlock` (a `-` awaiting its node at `n`) | `k ≥ n + 1`, unbounded; `k ∈ {1, 2}` is `trailingContent`, `k = 0` dedents out | the `?`'s `[187]` mapping IS the awaited node | **PAID** |
+| `accum_block_on_pendingBlockContent` (entry content complete at `n`) | a DEDENT only — `k = 0`, or an enclosing mapping's own column | the ENCLOSING mapping's still-open tail | STARVED, carrier named |
+| `accum_block_on_noPending` (the stream's seed) | any column; nothing stands above it | nothing | EMPTY by `h_nodoc` |
+
+The paid family is a ladder with no largest member — `?⏎  -⏎    ? a⏎: w` lands
+one frame up, `?⏎  ?⏎    -⏎      ? a⏎: w` two, `?⏎  ?⏎    ?⏎      -⏎        ? a⏎: w`
+three — and the `:` may land on any frame in it (`?⏎  ?⏎    -⏎      ? a⏎  : v`
+takes the middle one), which is what says a list is not a longer way of writing
+one index.
+
+**The finding is a SIXTH kind: the twin that is not a twin.**  After 188
+MISSING, 189 SHADOWED, 190 UNSTATABLE, 191 NOT-COMPOSED and 192
+RETIRED-A-PARAMETER — here two punts sit in sibling lemmas, match on the same
+two fields, carry the same comment, and their DOMAINS lie on opposite sides of
+one side condition.  `entryChainMap` pays the first at `n + 1 ≤ k`; at the
+second that inequality has **no instance at all**.  Off a park whose entry
+content has arrived, a `?` to the right of the content is either folded into the
+multi-line plain scalar (`a`, `&p a`, `!!str a` — the scanner never dispatches
+an indicator) or refused by §9.2 as bare-document content (`"a"`, `'a'`, `[1]`,
+`{x: y}`), and at or left of the `-` it is `trailingContent`.  What is left is a
+dedent, where the `?` is the enclosing mapping's next ENTRY rather than this
+entry's node — a different carrier, and the MAPPING lane's.  **Two sites that
+pattern-match alike can have disjoint domains, and only a column sweep separates
+them**; the source says nothing about it, and neither did three consecutive
+plan sentences.
+
+**What landed.**
+
+* `entryChainMap` — the chain crossing an AWAITED SEQUENCE ENTRY, beside item
+  191's `slotChainMap` (which crosses a `[185]` KEY slot).  The `?`'s mapping
+  becomes the entry's node through `nestedBlockMap` at the shifted index, the
+  collection's tail closes at `nil` behind it, and the side condition `n + 1 ≤ k`
+  weighs the PARK's index against the LANDING's — silent about which ancestor's
+  `:` follows, so one term carries the whole list.  **Its side condition is the
+  runtime's own line**, measured rather than assumed: with the `-` at column 2,
+  column 3 and rightward nest and columns 1 and 2 are refused.
+* `accum_block_on_pendingBlock`'s two punts PAID — the nearest frame to item
+  189's field (`h_kslot` as a one-element chain) and the whole chain to item
+  191's (`h_kslot` consed onto `h_kslotUp`), the two narrowings
+  `question_open_map` spends them through.
+* The other two punts KEPT, with their domains written into the source in place
+  of "unmeasured": the dedent lane's carrier named at `pendingBlockContent`, and
+  `h_nodoc` named at `noPending` as the field that makes its chain empty rather
+  than unknown.
+* `BlockDeferralClasses` §12 — the table above, the crossing built in the
+  payment's shape, ONE crossing answering TWO landings, a `fail_if_success` with
+  a POSITIVE CONTROL beside it, and 20 `#guard pins` rows.
+
+**The instruments, and a correction to our own record.**  A constructor FIELD's
+flip and the LEMMA PARAMETER that carries it are two different surfaces, and the
+five "the census is flat" readings of items 189–192 were all taken on the first:
+
+| flip | declarations | errors | what it counts |
+|---|---|---|---|
+| `pendingBlock.h_kslotUp` (field) | 7 → 7 | 23 → 23 | PRODUCERS — every site building the constructor |
+| `accum_block_on_pendingBlock.h_kslotUp` (parameter) | 2 → 2 | 5 → **6** (4 → 5 inside the lemma) | uses INSIDE the lemma |
+| `pendingBlockContent.h_kslotUp` (field) | 3 | 13 | unchanged; this item pays nothing there |
+
+The parameter's move is the payment: a new consumer inside the lemma.  A field's
+flip cannot see one, by construction.  **And the ledger's `6 / 22` for the field
+was stale**: it was measured at item 191 and true then; item 192 made
+`accum_flow_open_depth0` a consumer of the field (0 → 3 mentions of the binder)
+and re-ran the two FLOW fields instead of this pair, so the number rode forward
+into item 192's entry as "flat".  Re-measured at `a16a5566` and here, it is
+**7 / 23** at both.  §3's *check state* applies to our own instruments.
+
+**GOTCHAS.**
+
+* A field and the lemma parameter that carries it have the SAME NAME, and the
+  4-space anchor is a substring of the 6-space one — item 192's substring
+  gotcha, one level up.  Flipping the field and reading the consumer's error
+  lines is how it was caught: the payment's own `match` was *absent* from the
+  flip's error list, which looks like a dead payment and is actually the wrong
+  instrument.
+* `h_kslotUp`'s docstring says "every landed producer punts" — item 190's
+  sentence, superseded by item 191, which pays it from `h_vslot`'s chain at
+  `accum_block_on_closeThenBlock`.  Pricing the two-frames-up rung off that
+  sentence would have priced a producer that already exists.  Read the code, not
+  the field's own comment.
+* `indicator_open_map` takes a landing at a LINE START, so the compact twins
+  (`?⏎  - ? a⏎: w`, accepted and reading identically) arrive on the lemma's
+  INLINE arm and are not in this punt's domain.  A family that reads the same at
+  the runtime is not thereby the same SITE.
+* `indicator_open_map.h_kslot_up` and `h_explUp_chain` have literally the same
+  type — item 192's price signal, a third time.  They are NOT retirable here:
+  `question_open_map` spends them through two different narrowings
+  (`pendingMapValue.h_kslot`, premised on the awaited block node, and
+  `h_explUp`, which keeps the entry route whole), and only widening the first to
+  a chain retires the duplication.  That is the mapping lane's item, and this is
+  the checkable hand-off to it.
+
+**Non-vacuity is a derivation with a control, not a count.**
+`BlockDeferralClasses` §12 builds the crossing through `entryChainMap` and
+answers the `:` at TWO different ancestor indices from one entry.  Beside it,
+`fail_if_success` shows item 191's `slotChainMap` does NOT elaborate in the same
+position — the awaited entry is `.blockIn` with a tail still owed where a key
+slot is `.blockOut` with nothing behind it — and a POSITIVE CONTROL
+(`entryChainMap` at the same hypotheses, which does elaborate) sits immediately
+above, so the refusal is about the crossing rather than about the goal being
+unreachable from those hypotheses at all.
+
+**Gates.**  Full build **1162** jobs + guards, ZERO warnings; `run-all-tests.sh`
+**4520/4520** (`adversarialinstantiation` **2441/2441** inside it), Production
+Coverage **837/837**; `eventscore` **347/358** (252 event-pass, 95 error-ok, 0
+error-miss, 0 event-reject); `suiterunner` **869 / 0 / 151**; `matrix_score.py`
+over the 402-leaf data form on BOTH pipelines, **402/402 event** (`pass` 308,
+`err-ok` 94) and **282/282 JSON** (`pass` 279, `err-ok` 3, `skip` 120), splits
+identical to 176–192; the `[210]` flip at **FIVE** errors at the same five
+definitions (`topLevelFlowResumeSep`, `rootMapRoute`, `rootMapRouteF`,
+`bareNodeRoute`, `structural_dispatch_to_pending`), applied and restored clean;
+`#print axioms` over `entryChainMap` and eight threaded consumers, no `sorryAx`
+(`entryChainMap` itself is `[propext]`); checkers 228/355, 20/230/249/355, 25
+capstones, annotation verifier 100 % coverage (211/211 rules) with the same
+**19** pre-existing name mismatches.  Counts at `a16a5566` and here:
+declarations **8628 → 8629** (+1, `entryChainMap`), `#guard`s **7892 → 7912**
+(+20), test files **621**, unchanged.
+
+**What remains.**  `_stamp_offcol` is still 3 sites and `_stamp_nopack` still 3;
+a DOMAIN shrank and no count did, for the sixth item running.  In order: the
+**MAPPING lane's own chain** — `h_kslot` + `explFrameValueLine`, which is now
+TWO asks rather than one, because `accum_block_on_pendingBlockContent`'s dedent
+lane wants the enclosing mapping's still-open tail and
+`indicator_open_map`'s duplicated pair wants `pendingMapValue.h_kslot` widened;
+measure the residue `?⏎  ?⏎    ?⏎: w` and the dedent family
+`?⏎  ?⏎    - a⏎  ? b⏎: w` together.  Then the three PROPS-lane content
+producers, and `main`'s flow-open lane, which carries no value route at all
+(`pendingContent`, `pendingBlockContent` — a LANE, not a field, and still
+unmeasured).  Then the compact/INLINE arm of `accum_block_on_pendingBlock`,
+named by this item and not measured by it.  Then **the REFUTATION** for
+`_stamp_compact` (2 sites, measured empty), **`KeyPackPunt`'s two reasons**
+(`dedent` 7/5 and `noKeyContext` 6/5, possibly a phantom), then the `pendingFlow`
+constructor and its arm.  Only then item 183's flip order.  And the parked Ix
+Step-1 composition, on the Ix track's own clock.
+
 ### REMAINING, in order
 
 The per-item history is the closure log above; this section lists only the

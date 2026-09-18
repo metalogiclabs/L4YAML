@@ -16667,6 +16667,40 @@ lemma slotChainMap {sp_start sp_scan sp_mid sp_ind : SurfPos} {nv k : Nat}
       (slotLandedMap hnk h_ssl
         (SBlockMapEntries.single k sp_mid sp_ind sp_v h_ind h_entry))
 
+/-- **The same chain crossing a landed `?` that fills an AWAITED SEQUENCE
+    ENTRY** (item 193).
+
+    `slotChainMap` crosses a `?` landing that fills a still-open `[185]` KEY
+    slot — the frame's own.  This is the crossing where what stands open is a
+    `[184] c-l-block-seq-entry(n)` instead: the `-` has been read, its
+    `s-l+block-indented(n, block-in)` node is still awaited, and the `[187]`
+    mapping this landing opens IS that node (`nestedBlockMap` at the entry's
+    shifted index, item 179) with the collection's remaining tail closing
+    behind it at `nil`.
+
+    **The side condition `n + 1 ≤ k` is the runtime's own line**, measured
+    rather than assumed: with the `-` at column 2 under a `?` at 0, a `?` at
+    column 0 dedents out of the sequence entirely, columns 1 and 2 are refused
+    (`trailing content at line 2`), and every column from 3 rightward nests —
+    `?⏎  -⏎   ? a⏎: w` through `?⏎  -⏎       ? a⏎: w` all read
+    `+SEQ +MAP … -MAP -SEQ` with the outer `:` landing.  As at `slotChainMap`,
+    the condition weighs the PARK's index against the LANDING's and says
+    nothing about which ancestor's `:` line follows, so the identical term
+    carries every ancestor the park was holding. -/
+lemma entryChainMap {sp_start sp_scan sp_mid sp_ind : SurfPos} {n k : Nat}
+    {ns : List Nat} (hnk : n + 1 ≤ k)
+    (h_ssl : SSLComments sp_scan sp_mid) (h_ind : SIndent k sp_mid sp_ind)
+    (up : ∀ nvX ∈ ns, ∀ sp_m : SurfPos, SBlockIndented n .blockIn sp_scan sp_m →
+      ∀ sp_e : SurfPos, SCompactSeqTail n sp_m sp_e → ExplValueLine sp_start nvX sp_e) :
+    ∀ nvX ∈ ns, ∀ sp_v : SurfPos, SBlockMapEntry k sp_ind sp_v →
+      ExplValueLine sp_start nvX sp_v :=
+  fun nvX hmem sp_v h_entry =>
+    up nvX hmem sp_v
+      (SBlockIndented.node n .blockIn sp_scan sp_v
+        (nestedBlockMap hnk h_ssl
+          (SBlockMapEntries.single k sp_mid sp_ind sp_v h_ind h_entry)))
+      sp_v (SCompactSeqTail.nil n sp_v)
+
 /-- **`rootBlockSeq`'s MARKER route** (item 137): the sequence the landed `-`
     opens is the `---` document's own content, so the entries go into
     `[199] s-l+block-collection`'s slot behind the landing's comments rather
@@ -19713,10 +19747,23 @@ lemma block_dispatch_deferred
       — so the chain absorbed the split, the landing decides `k ∈ ns` once
       instead of casing twice, and the four fallbacks became two.  The same
       reading un-shadows the three content producers and the flow open's value
-      arm, whose `match`es answered with the first funder of two.  What still
+      arm, whose `match`es answered with the first funder of two.  ~~What still
       exits is the two entry parks the item-191 instrument names beside
-      `accum_block_on_noPending`, and the parks whose flow open carries no value
-      route at all (`main`'s lane: `pendingContent`, `pendingBlockContent`).
+      `accum_block_on_noPending`.~~  **Item 193 measured those three and found
+      them THREE QUESTIONS**, which is the sixth kind after 188/189/190/191/192:
+      the punts pattern-match alike and their domains lie on opposite sides of
+      one side condition.  `accum_block_on_pendingBlock` is PAID — the `?` this
+      landing opens is the awaited entry's own node, `entryChainMap` crosses it,
+      and the runtime admits exactly the columns `n + 1 ≤ k` admits (`?⏎  -⏎
+      ? a⏎: w` at 3 and rightward; 1 and 2 are `trailingContent`).
+      `accum_block_on_pendingBlockContent` cannot use that crossing at all: off
+      a park whose content has arrived, the only `?` the scanner dispatches is a
+      DEDENT, so `n + 1 ≤ k` is false at every input it can reach and what would
+      serve it is the enclosing mapping's still-open tail — the MAPPING lane's
+      carrier.  `accum_block_on_noPending`'s chain is EMPTY by `h_nodoc` rather
+      than unknown.  What still exits here is that dedent lane and the parks
+      whose flow open carries no value route at all (`main`'s lane:
+      `pendingContent`, `pendingBlockContent`).
     * `block_dispatch_deferred_stamp_nopack` (3) — the park carries no value
       pack at all.  **Item 186 paid the fourth site out**: the virgin park item
       185 read as "in the class by construction" was not in the class at all —
@@ -20088,8 +20135,17 @@ lemma accum_block_on_noPending
           -- block context is the stream's seed, the same reading that took its
           -- `:` out of the escape at item 186.
           (Or.inr trivial)
-          -- Item 191: and no chain of frames above it either, for the same
-          -- reading.
+          -- ═══ Item 191: and no chain of frames above it either, for the same
+          -- reading.  **Item 193 names the field that settles it**: `h_nodoc`
+          -- says the region behind a block-context park of this constructor is
+          -- `[202]`'s prefixes and nothing else, so no `[187]` frame has been
+          -- opened and the chain here is EMPTY, not unknown.  The punt is
+          -- therefore the complete answer rather than a deferral — and the
+          -- instrument cannot say so, because `Or.inl ⟨[], _⟩` and
+          -- `Or.inr trivial` are the same term to every consumer: paying the
+          -- empty list would move this declaration off the flip's list while
+          -- changing nothing a landing can read.  Which is why the reading is
+          -- recorded here instead. ═══
           (Or.inr trivial)
       -- ═══ Item 186: the `:`'s stamp source is DECIDED here, not split on.
       -- A virgin block-context park is the stream's seed (item 116 counted the
@@ -21505,12 +21561,25 @@ lemma accum_block_on_pendingBlockContent
                   landing_floor_of_arm h_noflow h_larm hc0 h_base h_preprocess⟩)
             -- Item 175: a content park holds no property run.
             (Or.inr trivial)
-            -- Item 189: the frame this park stands in reaches the landing
-            -- through `h_vpack`, which the `:` arm below already spends; the
-            -- family item 189 measured parks on a VALUE park, so this route was
-            -- not measured and punts.
+            -- ═══ **Item 193: MEASURED, and the crossing that pays the twin
+            -- site cannot reach this one.**  ~~The family item 189 measured
+            -- parks on a VALUE park, so this route was not measured.~~  It is
+            -- measured now, and the answer is a shape rather than a family:
+            -- this park's `?` indicator has NO nesting reading at all.  With
+            -- the `-` at column 2, a `?` at column 1 or 2 is `trailingContent`
+            -- and every column to the RIGHT of the entry's content is either
+            -- folded into the multi-line plain scalar (`a`, `&p a`, `!!str a` —
+            -- the scanner never dispatches an indicator) or refused by §9.2 as
+            -- bare-document content (`"a"`, `'a'`, `[1]`, `{x: y}`).  What is
+            -- left is a DEDENT, to column 0 or to an enclosing mapping's own
+            -- column (`?⏎  ?⏎    - a⏎  ? b⏎: w`, accepted) — and
+            -- `entryChainMap`'s side condition `n + 1 ≤ k`, which pays
+            -- `accum_block_on_pendingBlock` next door, is false at every one of
+            -- them.  The `?` there is not this entry's node but a SIBLING in
+            -- the mapping the collection stands in, so what would serve it is
+            -- that mapping's still-open tail — the MAPPING lane's carrier, not
+            -- this park's frames.  The punt stays, with its domain named. ═══
             (Or.inr trivial)
-            -- Item 191: and its chain with it, unmeasured for the same reason.
             (Or.inr trivial)
         -- Item 92: the frame's VALUE line fires on the `:` at its own column
         -- (`[190]`'s `s-indent(nv)` is exact) — the parked content closes as
@@ -21922,11 +21991,40 @@ lemma accum_block_on_pendingBlock
                 landing_floor_of_arm h_noflow h_larm hc0 h_base h_preprocess⟩)
           -- Item 175: an entry park holds no property run.
           (Or.inr trivial)
-          -- Item 189: this is the SEQUENCE entry park — the family item 189
-          -- measured lands on a value park, so this route is unmeasured.
-          (Or.inr trivial)
-          -- Item 191: and its chain, for the same reason.
-          (Or.inr trivial)
+          -- ═══ **Item 193: the awaited ENTRY takes the `?`'s mapping as its
+          -- node, and the park's frames ride across it.**  ~~The family item
+          -- 189 measured lands on a value park, so this route is
+          -- unmeasured.~~  It is measured now, and it is a ladder with no
+          -- largest member: `?⏎  -⏎    ? a⏎: w` lands one frame up,
+          -- `?⏎  ?⏎    -⏎      ? a⏎: w` two, `?⏎  ?⏎    ?⏎      -⏎        ? a⏎: w`
+          -- three.  (The compact twins `?⏎  - ? a⏎: w` read the same at the
+          -- runtime but arrive on the INLINE arm of this lemma, not here —
+          -- `indicator_open_map` takes a landing at a line start.)  The
+          -- crossing is `entryChainMap`, whose side condition `n + 1 ≤ k` is
+          -- where the runtime itself draws the line (columns 1 and 2 under a
+          -- `-` at 2 are `trailing content`; column 0 dedents out of the
+          -- sequence and is the OTHER lane).  The nearest frame goes to item
+          -- 189's field and the whole chain to item 191's, the two narrowings
+          -- `question_open_map` spends them through. ═══
+          (if hnk : n + 1 ≤ k then
+            match h_kslot with
+            | Or.inl ⟨nv, kslot⟩ =>
+                Or.inl ⟨nv, entryChainMap (ns := [nv]) hnk h_ssl h_ind
+                  (frameChainOne (a := nv) kslot) nv (by simp)⟩
+            | Or.inr _ => Or.inr trivial
+          else Or.inr trivial)
+          (if hnk : n + 1 ≤ k then
+            match h_kslot, h_kslotUp with
+            | Or.inl ⟨nv, kslot⟩, Or.inl ⟨nsU, kslotU⟩ =>
+                Or.inl ⟨nv :: nsU, entryChainMap hnk h_ssl h_ind
+                  (frameChainCons (a := nv) kslot kslotU)⟩
+            | Or.inl ⟨nv, kslot⟩, Or.inr _ =>
+                Or.inl ⟨[nv], entryChainMap hnk h_ssl h_ind
+                  (frameChainOne (a := nv) kslot)⟩
+            | Or.inr _, Or.inl ⟨nsU, kslotU⟩ =>
+                Or.inl ⟨nsU, entryChainMap hnk h_ssl h_ind kslotU⟩
+            | Or.inr _, Or.inr _ => Or.inr trivial
+          else Or.inr trivial)
       -- Item 92: the frame's VALUE line fires on the `:` at its own column —
       -- the awaited entry closes empty into the compact KEY (`? -⏎: - w`);
       -- any other shape falls back to the generic close-and-reopen.
