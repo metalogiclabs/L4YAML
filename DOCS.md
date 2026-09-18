@@ -21271,6 +21271,157 @@ three PROPS-lane content producers.  Then **the REFUTATION** for
 two REFUTABLE halves at the flow open, the three MISSING ROUTES, the flip.  And
 the parked Ix Step-1 composition, on the Ix track's own clock.
 
+### Item 192 (2026-09-17)
+
+**THE RELAY THAT CROSSED A CONSTRUCT, AND A PAYMENT THAT RETIRED A PARAMETER.**
+Branch `fix-a-grammar-completeness`, on top of item 191's `8093a2c2`.
+
+**The domain, measured first, and it is item 191's ladder with a collection in
+the node's place.**  Item 191's instrument named the flow-open relay as the next
+place the chain is not threaded to.  Before anything was written, the family was
+built and run:
+
+| input | events | where the landed `:` is |
+|---|---|---|
+| `? - [1]: b` | `+MAP +SEQ +MAP +SEQ [] =VAL :1 -SEQ =VAL :b -MAP -SEQ =VAL : -MAP` | the park's OWN frame — item 92 |
+| `?⏎  ? - [1]⏎: w` | `+MAP +MAP +SEQ +SEQ [] =VAL :1 -SEQ -SEQ =VAL : -MAP =VAL :w -MAP` | **ONE frame up** |
+| `?⏎  ?⏎    ? - [1]⏎: w` | one `-MAP` deeper | **TWO** frames up |
+| `?⏎  ?⏎    ?⏎      ? - [1]⏎: w` | deeper again | **THREE** |
+| `?⏎  ? [1]⏎: w` | `+MAP +MAP +SEQ [] =VAL :1 -SEQ =VAL : -MAP =VAL :w -MAP` | one up, the VALUE park's lane |
+| `?⏎  ? a: b⏎: w` | `+MAP +MAP +MAP =VAL :a =VAL :b -MAP =VAL : -MAP =VAL :w -MAP` | one up, the CONTENT park's lane |
+
+Every rung accepted, in all three park lanes; a flow MAPPING in the node's place
+(`?⏎  ? - {a: b}⏎: w`) reads the same, so the lane is the collection's rather
+than the bracket's.
+
+**The finding is a FIFTH kind, and it is the one that costs negative.**  After
+188 MISSING, 189 SHADOWED, 190 UNSTATABLE and 191 NOT-COMPOSED: here the payment
+**retired a parameter**.  Item 189 gave `accum_block_on_closeThenBlock` an
+`h_vpackUp` beside its `h_vpack` so a park nested in two frames could offer the
+landing a second candidate.  The two parameters had the **same type** — and
+offering a second candidate is exactly what a list does for arbitrarily many —
+so widening `h_vpack` to the chain absorbs the split outright: the landing
+decides `k ∈ ns` once instead of casing twice, the four fallbacks become two,
+and item 189's parameter goes with its ten punts and its one payer.  **The price
+signal to read first is therefore a TYPE EQUALITY between neighboring
+carriers**, not a count: where one is found, a chain payment is a simplification
+rather than a growth.
+
+**What the relay needed was a carrier that survives a CONSTRUCT boundary.**  The
+block lane's chain lives on the park; a flow collection standing in the entry's
+node slot hands the park off and takes it back, so the chain had to ride
+`FlowBaseRoutes.vslot` across the brackets, `flowVPack_of_close` out of them and
+`pendingContent.h_vpack` into the landing.  All three carried one index, which
+is why `?⏎  ? - [1]⏎: w` exited through `_stamp_offcol` while its block twin
+`?⏎  ? -⏎: w` was paid at item 190.  All three are lists now.
+
+**What landed.**
+
+- `FlowBaseRoutes.vslot`, `flowVPack_of_close`, `pendingContent.h_vpack`,
+  `accum_block_on_closeThenBlock.h_vpack` and
+  `accum_block_on_pendingContent.h_vpack`: `∃ nv` → `∃ ns : List Nat, ∀ nv ∈ ns`.
+- `accum_block_on_closeThenBlock`'s `h_vpackUp` **deleted**, its ten punts with
+  it, its one payer (`accum_block_pending`'s explicit `pendingMapValue` branch)
+  appending into `h_vpack` instead.
+- `block_dispatch_deferred_stamp_offcol`'s premise `nv ≠ k` → **`k ∉ ns`** — the
+  honest statement of what is left, now that a park's holding is a chain.  The
+  two entry-park deferrals carry the list they missed on (`nv :: nsU`) rather
+  than their own frame alone, so the class records the strongest fact its branch
+  has.
+- The three flow-open arms bind the chain fields the pattern had left unnamed
+  and pay them: `pendingBlock` from `h_kslotUp`, `pendingMapValue` from
+  `h_explUp` through `[188]`'s `explicitEmpty`, `pendingProps` from `h_kslot`.
+- **Three more shadowings un-done.**  `explFrameValueLine`'s preference (item
+  189's finding) is spelled out by hand wherever two funders meet in a `match`
+  that answers with the first — the flow open's value arm and the three content
+  producers of `accum_content_on_pendingMapValue_indented` — and each preference
+  is wrong at an accepted input.  `frameChainUnion` is that observation with a
+  name: two optional funders, one chain, neither body written twice.
+- `frameChainOne` / `frameChainCons` / `frameChainUnion` (+3 declarations, all
+  `[propext]`), the only three shapes a chain producer ever builds.
+
+**The instruments, and a caution about reading one across a refactor.**  The
+per-field flip's DECLARATION counts hold — `FlowBaseRoutes.vslot` 3 before and
+after, `pendingContent.h_vpack` 5 before and after — reproducing item 191's
+"widening a field moves no punt" for a third time.  Its ERROR counts FALL,
+17 → 11 and 35 → 23, after a payment that strictly added reach.  The cause is
+the combinator: `frameChainUnion`'s argument type does not mention the field, so
+punts that used to sit in a preference `match`'s branches now sit inside the
+helper's arguments, and flipping the field breaks one result position per SITE
+where it used to break every branch.  Item 188 said an error count is not
+monotone in the domain; this says something narrower and sharper — **an error
+count is not comparable across a change that alters how the punts are nested**,
+and declaration counts are the number to carry forward.  The parameter's own
+flip (`accum_block_on_closeThenBlock.h_vpack`) reads **5 declarations / 17
+errors**: `accum_block_pending` 11, the lemma's own `rcases` 2, and one each at
+the three `accum_block_on_*` callers.
+
+**GOTCHAS.**
+
+- **A flip anchor that is a SUBSTRING of a deeper-indented one measures the
+  wrong declaration, and reports a plausible number.**  `"␣␣␣␣(h_vpack : …"`
+  (the parameter, four spaces) occurs inside `"␣␣␣␣␣␣(h_vpack : …"` (the
+  constructor field, six), so the parameter's flip silently re-measured the
+  FIELD and returned 5/23 — identical to the field's own reading, which looked
+  like the finding "field and parameter have one surface".  Anchor on the line
+  START (`\n` + the indent) and assert the occurrence count before flipping.
+- **An `Unknown identifier` first error is NOT automatically a syntax failure.**
+  Item 191's heuristic — a flip whose first error is `unexpected token` or
+  `Unknown identifier` measured nothing — over-fires when the flipped field is
+  destructured by its own consumer: `rcases h_vpack with ⟨ns, hvp⟩ | _` loses
+  its second alternative, so the first error names `ns`, unbound, inside a
+  tactic block.  Check whether the identifier is one the flip's own consumer
+  binds before discarding the run.
+- **Wrapping an existing lambda in a helper needs the lambda's own closing
+  paren, and the failure does not look like a paren failure.**  Three rewrites
+  that turned `Or.inl ⟨nv, fun … => body⟩` into
+  `Or.inl ⟨[nv], frameChainOne (a := nv) (fun … => body)⟩` dropped the new `)`;
+  the result was not a parse error but an **application type mismatch reporting
+  the combinator as partially applied**, with a cascade that pointed at a
+  neighboring declaration.  A paren-balance walk over the changed blocks found
+  all three in one pass; reading them found one.
+
+**Non-vacuity is a derivation, not a count.**  `BlockDeferralClasses` §11 builds
+the crossing in the shape the relay builds it — the park's own frame and the
+chain above it, both wrapped in the same `SBlockNode.flowInBlock` term — shows
+ONE crossing answering TWO landings, and pins with `fail_if_success` that a
+single-index carrier does not elaborate at the other landing's index.  Nine
+`#guard pins` rows carry the measured ladder and the three lanes.
+
+**Gates.**  Full build **1162** jobs + guards, ZERO warnings; `run-all-tests.sh`
+**2079/2079** plus `adversarialinstantiation` **2441/2441** = the ledger's
+**4520/4520**, with Production Coverage **837/837**; `eventscore` **347/358**
+(252 event-pass, 95 error-ok, 0 error-miss, 0 event-reject); `suiterunner`
+**869 / 0 / 151**; `matrix_score.py` over the 402-leaf data form on BOTH
+pipelines, **402/402 event** (`pass` 308, `err-ok` 94) and **282/282 JSON**
+(`pass` 279, `err-ok` 3, `skip` 120), splits identical to 176–191; the `[210]`
+flip at **FIVE** errors at the same five definitions (`topLevelFlowResumeSep`,
+`rootMapRoute`, `rootMapRouteF`, `bareNodeRoute`,
+`structural_dispatch_to_pending`), applied and restored clean; `#print axioms`
+over the three new helpers and ten threaded consumers, no `sorryAx` (the helpers
+are `[propext]`); checkers 228/355, 20/230/249/355, 25 capstones, annotation
+verifier 100 % coverage (211/211 rules) with the same **19** pre-existing name
+mismatches.  Counts at `8093a2c2` and here: declarations **8625 → 8628** (+3,
+the three chain helpers), `#guard`s **7883 → 7892** (+9), test files **621**,
+unchanged.
+
+**What remains.**  `_stamp_offcol` is still 3 sites and `_stamp_nopack` still 3;
+a DOMAIN shrank and no count did, for the fifth item running.  In order: the
+**three parks the chain is not threaded to** — `accum_block_on_noPending`,
+`accum_block_on_pendingBlock`, `accum_block_on_pendingBlockContent`, named by
+item 191's instrument pair — then the **mapping lane's own chain** (`h_kslot` +
+`explFrameValueLine`, residue `?⏎  ?⏎    ?⏎: w`, measured and accepted), then
+the three PROPS-lane content producers.  **New, and named by this item:** the
+flow open's OTHER park lane carries no value route at all — `main`'s
+parks (`pendingContent`, `pendingBlockContent`) take a shared skeleton with no
+`vslot` argument, so a flow collection opened off a completed node hands the
+landing nothing.  That is a lane rather than a field and should be measured
+before it is priced.  Then **the REFUTATION** for `_stamp_compact` (2 sites,
+measured empty), **`KeyPackPunt`'s two reasons** (`dedent` 7/5 and
+`noKeyContext` 6/5, possibly a phantom), then the `pendingFlow` constructor and
+its arm.  Only then item 183's flip order.  And the parked Ix Step-1
+composition, on the Ix track's own clock.
+
 ### REMAINING, in order
 
 The per-item history is the closure log above; this section lists only the

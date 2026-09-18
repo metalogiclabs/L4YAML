@@ -166,16 +166,23 @@ example {s s' : ScannerState}
     s'.implicitValueLine = some s'.line :=
   scanValue_stamp_of_src h h_noflow h_peek h_src
 
-/-- `offcol`: the pack's index and the landing's, and the disequality between
-    them — `colon_open_map_explicit` fires only when they agree. -/
-example (sp_start sp_X sp_scan' : SurfPos) (s' s_dis : ScannerState) (nv k : Nat)
+/-- `offcol`: the frames the park holds and the landing's column, and the
+    NON-MEMBERSHIP between them — `colon_open_map_explicit` fires only at a
+    frame whose index the landing matches.
+
+    **Item 192: `k ∉ ns`, not `nv ≠ k`.**  Item 185 wrote the premise against
+    the one index a park could name; items 189–191 made the holding a chain,
+    and the honest statement of what is left is that the landing is on NONE of
+    the frames the park is standing inside. -/
+example (sp_start sp_X sp_scan' : SurfPos) (s' s_dis : ScannerState)
+    (ns : List Nat) (k : Nat)
     (h_stream : SLYamlStream sp_start sp_X)
     (h_arm : s'.simpleKeyAllowed = true ∨ 0 < sp_scan'.col)
     (hcorr : ScannerSurfCorr s' sp_scan')
     (h_nodir : s'.allowDirectives = false)
     (h_src : StampBranch s_dis)
     (h_indent : (s_dis.col : Int) = s_dis.currentIndent)
-    (h_ne : nv ≠ k) :
+    (h_ne : k ∉ ns) :
     ∃ sp_gram' sp_block' sp_flow' sp_scan'',
       SLYamlStream sp_start sp_gram' ∧
       BlockStack sp_gram' sp_block' ∧
@@ -1048,5 +1055,142 @@ second field, and then a third. -/
 carries a real chain rather than a run of the same frame repeated: -/
 
 #guard pins "?\n  ?\n    ? -\n    x: y\n: w\n" == ("scan-accepted", "+STR +DOC +MAP +MAP +MAP +SEQ =VAL : -SEQ =VAL : =VAL :x =VAL :y -MAP =VAL : -MAP =VAL :w -MAP -DOC -STR")
+
+
+/-! ## §11  The relay that did not compose ACROSS a construct (item 192)
+
+§10 made the park's holding a chain and paid the block lane's landings.  The
+step it did not touch is the one where the entry's node is a FLOW collection.
+There the chain has to survive a construct boundary: the open
+(`accum_flow_open_depth0`) reads what the park holds and hands it across the
+brackets on `FlowBaseRoutes.vslot`, the close (`flowVPack_of_close`) hands it to
+the park it re-parks as (`pendingContent.h_vpack`), and the landed `:` spends it
+at `accum_block_on_closeThenBlock`.  All three carried ONE index, so the relay
+delivered the park's own frame and dropped every ancestor.
+
+Measured first, the flow family is the block family with a collection in the
+node's place, and it is the same ladder in all three park lanes:
+
+| input | where the landed `:` is | lane |
+|---|---|---|
+| `? - [1]: b` | the park's OWN frame — item 92 | entry |
+| `?⏎  ? - [1]⏎: w` | ONE frame up | entry (`pendingBlock`) |
+| `?⏎  ?⏎    ? - [1]⏎: w` | **TWO** frames up | entry |
+| `?⏎  ? [1]⏎: w` | one up | value (`pendingMapValue`) |
+| `?⏎  ? a: b⏎: w` | one up | content |
+
+**And the finding is a FIFTH kind, after 188 MISSING / 189 SHADOWED / 190
+UNSTATABLE / 191 NOT COMPOSED: paying the chain RETIRED a parameter.**  Item 189
+gave `accum_block_on_closeThenBlock` an `h_vpackUp` beside `h_vpack` so that a
+park nested in two frames could offer the landing two candidates instead of one.
+The two parameters had the **same type** — offering a second candidate is
+exactly what a list does for arbitrarily many — so the carrier that pays the
+chain absorbs the split: `h_vpack` becomes the list, the landing decides `k ∈ ns`
+once instead of casing twice, the four fallbacks become two, and item 189's
+second parameter is deleted with its ten punts.  The price signal to read first
+is therefore not a count but a TYPE EQUALITY between two neighboring carriers:
+where one is found, a chain payment is a simplification rather than a growth.
+
+The same reading un-shadows three more sites.  `explFrameValueLine`'s preference
+(item 189's finding) is spelled out by hand wherever two funders meet in a
+`match` that answers with the first — the flow open's value arm and the three
+content producers of `accum_content_on_pendingMapValue_indented` — and each of
+those preferences is wrong at an accepted input (`?⏎  ? [1]⏎: w`,
+`?⏎  ? a: b⏎: w`, both landing on the OUTER frame).  `frameChainUnion` is the
+observation with a name: two optional funders, one chain, neither body written
+twice. -/
+
+/-- **The chain CROSSING a flow collection**, in the shape the relay builds it.
+    The park is a `-` entry awaiting its node; it holds the value line of the
+    frame its collection FILLS and the chain of frames it stands INSIDE; and
+    what arrives is a completed flow collection.  The wrap is the SAME term at
+    every index — that is why one union carries both readings across the
+    brackets, and why the arm that read `h_kslot` alone was dropping a datum
+    already in scope rather than one it lacked. -/
+example {n n₀ n₁ : Nat} {sp_start sp_scan sp_prep : SurfPos}
+    (kslot : ∀ sp_m : SurfPos, SBlockIndented n .blockIn sp_scan sp_m →
+      ∀ sp_e : SurfPos, SCompactSeqTail n sp_m sp_e → ExplValueLine sp_start n₀ sp_e)
+    (up : ∀ nv ∈ [n₁], ∀ sp_m : SurfPos, SBlockIndented n .blockIn sp_scan sp_m →
+      ∀ sp_e : SurfPos, SCompactSeqTail n sp_m sp_e → ExplValueLine sp_start nv sp_e)
+    (h_sep : SSeparate (n + 1) .flowOut sp_scan sp_prep) :
+    ∀ nv ∈ [n₀, n₁], ∀ sp_end sp_m : SurfPos,
+      SFlowContent (n + 1) .flowOut sp_prep sp_end →
+      SSLComments sp_end sp_m → ExplValueLine sp_start nv sp_m :=
+  frameChainCons (a := n₀)
+    (fun sp_end sp_m h_content h_ssl =>
+      kslot sp_m
+        (SBlockIndented.node n .blockIn sp_scan sp_m
+          (SBlockNode.flowInBlock (n + 1) .blockIn sp_scan sp_prep sp_end sp_m
+            h_sep (SFlowNode.content _ _ _ _ h_content) h_ssl))
+        sp_m (SCompactSeqTail.nil n sp_m))
+    (fun nvX hmem sp_end sp_m h_content h_ssl =>
+      up nvX hmem sp_m
+        (SBlockIndented.node n .blockIn sp_scan sp_m
+          (SBlockNode.flowInBlock (n + 1) .blockIn sp_scan sp_prep sp_end sp_m
+            h_sep (SFlowNode.content _ _ _ _ h_content) h_ssl))
+        sp_m (SCompactSeqTail.nil n sp_m))
+
+/-- **ONE crossing, TWO landings** — the thing a single-index `vslot` cannot do,
+    and the whole content of the payment.  The collection is closed once; the
+    chain it carried out then answers the `:` at the entry's own frame and at
+    the ancestor's, and `?⏎  ? - [1]: b` / `?⏎  ? - [1]⏎: w` differ in nothing
+    else. -/
+example {n₀ n₁ : Nat} {sp_start sp_m : SurfPos}
+    {sp_i0 sp_c0 sp_v0 sp_i1 sp_c1 sp_v1 : SurfPos}
+    (carried : ∀ nv ∈ [n₀, n₁], ExplValueLine sp_start nv sp_m)
+    (h_iv0 : SIndent n₀ sp_m sp_i0) (h_lit0 : GLit ':' sp_i0 sp_c0)
+    (h_sbi0 : SBlockIndented n₀ .blockOut sp_c0 sp_v0)
+    (h_iv1 : SIndent n₁ sp_m sp_i1) (h_lit1 : GLit ':' sp_i1 sp_c1)
+    (h_sbi1 : SBlockIndented n₁ .blockOut sp_c1 sp_v1) :
+    SLYamlStream sp_start sp_v0 ∧ SLYamlStream sp_start sp_v1 :=
+  ⟨carried n₀ (by simp) sp_i0 sp_c0 h_iv0 h_lit0 sp_v0 h_sbi0,
+   carried n₁ (by simp) sp_i1 sp_c1 h_iv1 h_lit1 sp_v1 h_sbi1⟩
+
+/-- …and the shape the relay carried BEFORE this item verifiably does not reach
+    the second landing.  A `vslot` that names one index answers at that index;
+    the `:` here stands at another, so the application does not elaborate.
+    `fail_if_success` makes the failure a fact this file checks rather than a
+    sentence the record asserts. -/
+example {n₀ : Nat} {sp_start sp_m sp_i1 sp_c1 sp_v1 : SurfPos}
+    -- underscored because the only use is inside `fail_if_success`, which
+    -- discards the term it elaborates
+    (_carried : ExplValueLine sp_start n₀ sp_m)
+    (_h_iv1 : SIndent (n₀ + 1) sp_m sp_i1) (_h_lit1 : GLit ':' sp_i1 sp_c1)
+    (_h_sbi1 : SBlockIndented (n₀ + 1) .blockOut sp_c1 sp_v1) : True := by
+  fail_if_success
+    have : SLYamlStream sp_start sp_v1 :=
+      _carried sp_i1 sp_c1 _h_iv1 _h_lit1 sp_v1 _h_sbi1
+  trivial
+
+/-! **The flow ladder, at the runtime.**  Each rung adds one `?` frame around a
+`-` entry whose node is a flow collection, and leaves the `:` at column 0 — so
+the landing climbs one more frame per row here exactly as it does in §10's
+block family, and the collection in the node's place changes nothing about
+where the `:` lands. -/
+
+#guard pins "? - [1]: b\n" == ("scan-accepted", "+STR +DOC +MAP +SEQ +MAP +SEQ [] =VAL :1 -SEQ =VAL :b -MAP -SEQ =VAL : -MAP -DOC -STR")
+#guard pins "?\n  ? - [1]\n: w\n" == ("scan-accepted", "+STR +DOC +MAP +MAP +SEQ +SEQ [] =VAL :1 -SEQ -SEQ =VAL : -MAP =VAL :w -MAP -DOC -STR")
+#guard pins "?\n  ?\n    ? - [1]\n: w\n" == ("scan-accepted", "+STR +DOC +MAP +MAP +MAP +SEQ +SEQ [] =VAL :1 -SEQ -SEQ =VAL : -MAP =VAL : -MAP =VAL :w -MAP -DOC -STR")
+#guard pins "?\n  ?\n    ?\n      ? - [1]\n: w\n" == ("scan-accepted", "+STR +DOC +MAP +MAP +MAP +MAP +SEQ +SEQ [] =VAL :1 -SEQ -SEQ =VAL : -MAP =VAL : -MAP =VAL : -MAP =VAL :w -MAP -DOC -STR")
+
+/-! …a flow MAPPING in the node's place reads the same, so the lane is the
+collection's, not the bracket's: -/
+
+#guard pins "?\n  ? - {a: b}\n: w\n" == ("scan-accepted", "+STR +DOC +MAP +MAP +SEQ +MAP {} =VAL :a =VAL :b -MAP -SEQ =VAL : -MAP =VAL :w -MAP -DOC -STR")
+
+/-! …and the other two park lanes carry the same family — the value park
+(`pendingMapValue`, the collection IS the `?`'s key) and the content park
+(`accum_content_on_pendingMapValue_indented`, the key content already arrived).
+Both were answering with the inner frame where the landing is on the outer, so
+these are the inputs the un-shadowing above is for: -/
+
+#guard pins "?\n  ? [1]\n: w\n" == ("scan-accepted", "+STR +DOC +MAP +MAP +SEQ [] =VAL :1 -SEQ =VAL : -MAP =VAL :w -MAP -DOC -STR")
+#guard pins "?\n  ?\n    ? [1]\n: w\n" == ("scan-accepted", "+STR +DOC +MAP +MAP +MAP +SEQ [] =VAL :1 -SEQ =VAL : -MAP =VAL : -MAP =VAL :w -MAP -DOC -STR")
+#guard pins "?\n  ? a: b\n: w\n" == ("scan-accepted", "+STR +DOC +MAP +MAP +MAP =VAL :a =VAL :b -MAP =VAL : -MAP =VAL :w -MAP -DOC -STR")
+
+/-! …and the entry's collection need not be the last thing on its level, which
+is what says the compact tail the crossing spends is real: -/
+
+#guard pins "?\n  ? - [1]\n    - b\n: w\n" == ("scan-accepted", "+STR +DOC +MAP +MAP +SEQ +SEQ [] =VAL :1 -SEQ =VAL :b -SEQ =VAL : -MAP =VAL :w -MAP -DOC -STR")
 
 end L4YAML.Tests.Guards.BlockDeferralClasses

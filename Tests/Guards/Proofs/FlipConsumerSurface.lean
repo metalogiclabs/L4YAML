@@ -270,7 +270,23 @@ flip cannot see it — re-run at this commit, `pendingMapValue.h_explUp` reads
 exactly item 190's numbers, because widening a field moves no PUNT.  What does
 see it is the composed derivation: `BlockDeferralClasses` §10 builds the chain
 through two `?` landings and answers two different landings from ONE funder,
-which is the thing `∃ nv` cannot do and the thing no count reports. -/
+which is the thing `∃ nv` cannot do and the thing no count reports.
+
+Item 192 carried the chain across a CONSTRUCT — the flow open, close and the
+park it re-parks as — and this census is flat a FIFTH time, for item 191's
+reason.  What is new is at the other instrument, and it is a caution about
+reading it across a refactor.  The per-field flip's DECLARATION counts hold
+(`FlowBaseRoutes.vslot` 3, `pendingContent.h_vpack` 5, unchanged by the
+widening) but its ERROR counts FALL — 17 → 11 and 35 → 23 — after a payment
+that strictly added reach.  The cause is that the item introduces a combinator
+(`frameChainUnion`), and a combinator's argument type does not mention the
+field: the punts that used to sit in a preference `match`'s branches now sit
+inside the helper's arguments, so flipping the field breaks one result position
+per SITE where it used to break every branch.  Item 188 warned that an error
+count is not monotone in the domain; this says something narrower and sharper —
+an error count is not comparable across a change that alters how the punts are
+nested.  Declaration counts still are, which is why they are the number to
+carry forward. -/
 
 /-! ## The gate
 
