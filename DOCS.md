@@ -22137,7 +22137,9 @@ declarations `grep -rhoE "^(private )?(lemma|theorem|def|abbrev|instance|structu
 (`h_closeFV`, mirroring `pendingMapValue`'s) before
 `accum_block_on_pendingBlockContent` can pay the arm this item built; the input
 is `?⏎  ?⏎    - a⏎  ? b⏎: w`, pinned in §16, and the price is a constructor field
-on two constructors (6 and 9 applications respectively) plus the relay.  Then the
+on two constructors (6 and ~~9~~ **7 — corrected by item 198: the 9 was a grep
+of the literal and counted a docstring and a `Tests/Reflections.lean` prose
+line**, applications respectively) plus the relay.  Then the
 three PROPS-lane content producers, and `main`'s flow-open lane (`pendingContent`,
 `pendingBlockContent` — a LANE, not a field, still unmeasured).  Then the
 compact/INLINE arm of `accum_block_on_pendingBlock`, measured by none of 193–197.
@@ -22152,6 +22154,173 @@ conjunct (`∃ nv ks, … ResumeFrames (ExplValueLine sp_start nv) ks sp_e`) and
 punts it, because its own input `h_mapF` (item 176) is stream-bottomed.  That is
 the FLOW key lane's copy of this item, it has the same fix, and it is not
 measured here.
+
+### Item 198 (2026-09-18)
+
+**THE CENSUS WAS THE INSTRUMENT ITEM 197 COULD NOT BUILD.**  Branch
+`fix-a-grammar-completeness`, on top of item 197's `68791f9f`.
+
+**Re-running the plan sentence.**  Item 197's list opened with *the sequence
+lane's half of this same residue* and priced it at *a constructor field on two
+constructors (6 and 9 applications respectively) plus the relay*.  Measured
+before spending:
+
+| the sentence | measured | verdict |
+|---|---|---|
+| the residue is on `pendingBlock` and `pendingBlockContent` | both parks carry `h_closeF` (stream) and `h_kslotUp` (value line, FLAT), and neither is the wanted shape | **right** |
+| "6 and 9 applications" | `PendingNode.pendingBlockContent` **6**, `PendingNode.pendingBlock` **7** — the 9 counted a docstring at StreamAccum 16422 and a prose line in `Tests/Reflections.lean` | **7, not 9.**  §9's *price by signatures, not by grepping the literal*, on our own forecast.  Corrected in item 197's entry |
+| the price is "two constructor fields plus the relay" | the relay is FOUR parameters, because the stack has to cross `accum_block_on_closeThenBlock` (`h_valFV`) as well as the three park relays | **one door more than forecast** |
+
+**AND THE ASYMMETRY IS NOT A PAIR, IT IS A LANE — WHICH MAKES IT COUNTABLE.**
+Item 197 found the CONTENT dispatch taking both bottoms and the BLOCK dispatch
+taking one, and recorded that *no instrument here can see it*.  Run over the
+park constructors instead of over one cascade, the same question is a CENSUS,
+and a census is re-derivable at every item:
+
+| face | stream bottom | value-line bottom |
+|---|---|---|
+| `pendingContent` | `h_framesS` (99) | `h_framesV` (108) |
+| `pendingMapValue`, dedent face | `h_frames` (99) | `h_framesV` (108) |
+| `pendingMapValue`, close face | `h_closeF` (99) | `h_closeFV` (108) |
+| `pendingProps`, node face | `h_closeF` (153) | `h_closeFV` (153) |
+| `pendingProps`, ENTRY face | `h_closeFE` (155) | — **still open** |
+| `pendingBlock` | `h_closeF` (99/155) | — → **paid here** |
+| `pendingBlockContent` | `h_closeF` (99/155) | — → **paid here** |
+| relay `h_valF` (155) | ✓ | — → **paid here** |
+| relay `h_mapF` (173) | ✓ | `h_mapFV` (197) |
+
+Every MAPPING-lane face carried both bottoms.  Every SEQUENCE-lane face carried
+one.  The census is a twelve-line script over the inductive — *stream-bottomed
+fields vs value-line-bottomed fields, per constructor* — and it reads **3
+one-sided rows before this item, 1 after**.  That is the thing item 197 said
+nothing could re-derive, and what changed is only where the question is asked:
+a FLIP counts one field's sites, a cascade comparison counts two parameter
+lists, and neither generalizes; the census counts the SHAPE across every park
+that carries the type at all, and the missing rows are its output.
+
+**THE FIELD WAS ONE DOOR AWAY, AND THE DOOR WAS BOUND TO `_`.**  Item 155's
+`h_valF` is the only place the mapping lane's stack crosses into the sequence
+lane — the closed value park's awaited node, read as frames, which the landed
+`-` turns into the new `pendingBlock`'s frames.  It is stream-bottomed, and a
+FLIP shows it is paid at exactly **2 of its 11 call sites**, both in
+`accum_block_pending`'s `pendingMapValue` branches, both from `h_closeF155`.
+In those same two patterns `pendingMapValue.h_closeFV` — the identical stack
+under the enclosing `?`'s unpaid line, carried since item 108 — sits bound to
+`_`.  Item 197's lesson, one production down: **read the neighbouring FIELD,
+not just the neighbouring cascade.**
+
+**What landed.**  Two constructor fields (`pendingBlock.h_closeFV`,
+`pendingBlockContent.h_closeFV`) and four relay parameters (`h_valFV` on
+`accum_block_on_closeThenBlock`; `h_closeFV_old` on
+`accum_block_on_pendingBlockContent`, `accum_block_on_pendingBlock` and
+`accum_content_on_pendingBlock_indented`).  The chain runs
+`pendingMapValue.h_closeFV` → `h_valFV` → `h_seqFramesV` →
+`pendingBlock.h_closeFV` → `pendingBlockContent.h_closeFV` → `h_mapFV`, and it
+retires **both** of item 197's punts — at
+`accum_block_on_pendingBlockContent` and at `accum_block_on_pendingBlock` — with
+the `resumeAt` hop item 108 made bottom-indifferent and item 197's
+`resumeFrameRoute` as the consumer.  **Net +0 definitions, +4 lemma parameters,
++2 constructor fields**; declarations unchanged at **8570**.
+
+**Two things the fields deliberately do NOT carry.**  `h_closeF`'s COVER and its
+width bound are absent from both new fields, because the door they are spent at
+(`h_mapFV`, item 197) asks for neither — a field that asks its payer for more
+than its consumer reads is a field nobody can pay.  And the value-line face's
+widths already run to the park's own level inclusive (item 150's stagger), so
+the crossing that conses `nv ::` on the stream face moves the list unchanged
+here.
+
+**`h_kslotUp` is not this field under another name**, and `BlockDeferralClasses`
+§17 checks it both ways.  That field (items 190/191) answers a LIST of ancestor
+frames DIRECTLY — exactly the `ks = []` reading, which converts to and from a
+bare `ExplValueLine` — and a LEVEL is not reachable from it
+(`fail_if_success`).  Neither subsumes the other: one generalizes over
+ancestors, the other over the levels below them.  The landings that need the
+levels are the ones where the dedent opens a SIBLING in an intervening mapping:
+in `?⏎  ?⏎    - a⏎  ? b⏎: w` the `?` at column 2 is a sibling in the mapping the
+collection stands in, so that mapping's tail is owed before the outer frame's
+`: w`.
+
+**The domain, measured before the field was priced.**  Twelve accepted inputs
+across both parks (entry-content `- a` and empty-entry `-`), both indicators
+(`?` and `:`), both readings (a sibling inside an intervening mapping, and a
+dedent straight to the frame's own value line) and two nesting depths; three
+controls, two of them `trailingContent`-refused before any dispatch runs and
+one the mapping-VALUE lane that item 99 has served all along.  All pinned in
+§17.  Zero runtime edits: the events are byte-identical before and after.
+
+**Non-vacuity, machine-checked.**  §17 states the hop (`resumeAt` over a
+`nil`-tailed collection close) and the spend (`resumeFrameRoute` at the
+`ExplValueLine` bottom) at their types, with positive controls on both sides —
+each stack answers its own bottom — and a `fail_if_success` showing the
+stream-bottomed one cannot answer the frame's line, which is item 194's finding
+re-checked on the lane that lacked the field.  The crossing itself (`h_valFV` →
+the new `pendingBlock` field, via `nestedBlockSeq`) is stated as its own
+`example`.
+
+**The instruments.**  FLIP on the two new constructor fields: **2 binders / 22
+lines / 28 errors**.  FLIP on `h_valFV`: **1 binder / 14 lines / 17 errors**
+(11 call sites + 3 in-lemma spend lines).  FLIP on `h_valF` itself, run as the
+measurement that found the payer: **1 binder / 17 lines**, of which the argument
+text reads `(Or.inr trivial)` at 9 and a real payment at 2.  **And a recorded
+NON-finding, measured rather than assumed: the FLIP on item 197's `h_resV_land`
+reads 3 binders / **12** error lines here against item 197's **8**, and the four
+call sites and four in-lemma spends behind them are the SAME EIGHT** — two of
+the four call-site arguments are now multi-line `by` blocks where they were
+one-line `(Or.inr trivial)`, so the count grew with the payment's TEXT and not
+with its reach.  A flip counts a field's sites, both sites this item pays were
+already there as punts, and a flip's line count is not even a stable proxy for
+its site count.  The census above is the instrument that does move, from 3
+one-sided rows to 1.
+
+**Gates.**  Full build **1162** jobs, ZERO warnings; `run-all-tests.sh`
+**4520/4520** (`adversarialinstantiation` **2441/2441**), Production Coverage
+**837/837**; `eventscore` **347/358** (252 event-pass, 95 error-ok, 0
+error-miss, 0 event-reject); `suiterunner` **869 / 0 / 151**; `matrix_score.py`
+over the 402-leaf data form on BOTH pipelines, **402/402 event** (`pass` 308,
+`err-ok` 94) and **282/282 JSON** (`pass` 279, `err-ok` 3, `skip` 120), splits
+identical to 176–197, with item 197's pre-flight run first
+(`find <data> -maxdepth 3 -name error | wc -l` = **95**, and note the marker
+count is 79 at `-maxdepth 3` from the REPOSITORY root — the check is against the
+`data/` directory the script is pointed at); the `[210]` flip at **FIVE**
+errors, StreamAccum **4423**, **5703**, **5726**, **5895**, **7383** — the same
+five sites as items 194–197, each moved by exactly **+44**, the size of the two
+constructor-field insertions above them — applied and restored clean;
+`#print axioms` over `accum_block_on_closeThenBlock`,
+`accum_block_on_pendingBlock`, `accum_block_on_pendingBlockContent`,
+`accum_content_on_pendingBlock_indented`, `accum_block_pending`,
+`accum_content_pending`, `resumeFrameRoute`, `colon_open_map`,
+`question_open_map` and `indicator_open_map`, no `sorryAx`; checkers 228/355,
+20/230/249/355, 25 capstones, annotation verifier 100 % coverage (211/211 rules)
+with the same **19** pre-existing name mismatches.
+
+**Counts, at `68791f9f` and here, each under the recipe that produced it** —
+declarations `grep -rhoE "^(private )?(lemma|theorem|def|abbrev|instance|structure|inductive|class) " L4YAML`:
+**8570 → 8570** (+0 — this item adds no declaration, only fields and
+parameters); `#guard` tokens `grep -rho "#guard" L4YAML Tests`: **7983 → 7996**
+(+13); test files `find Tests -name '*.lean'`: **621**, unchanged.  Diffstat: 2
+files, 436 insertions / 36 deletions.
+
+**What remains.**  In order: the **props lane's ENTRY face** — `h_closeFE` is
+the one row still reading `—` in the census, and it is why the three
+entry-content producers that relay it (`accum_content_pending`'s `pendingProps`
+arm) punt the new field where the three off a `pendingBlock` pay it.  Then the
+COMPACT arms this item punted with their domains named: the `- - a` crossing at
+`accum_block_on_closeThenBlock` (a `[185]` compactSeq rather than a tail cons)
+and the `? - a` inline fill, neither measured.  Then `main`'s flow-open lane
+(`pendingContent`, `pendingBlockContent` — a LANE, not a field, still
+unmeasured).  Then **the REFUTATION** for `_stamp_compact` (2 sites, measured
+empty), **`KeyPackPunt`'s two reasons** (`dedent` 7/5 and `noKeyContext` 6/5,
+possibly a phantom), then the `pendingFlow` constructor and its arm.  Only then
+item 183's flip order.  And the parked Ix Step-1 composition, on the Ix track's
+own clock.
+
+**The third site named by item 197 is still not measured.**
+`flowKeyRoute_of_root`'s conclusion carries a value-line-bottomed resume
+conjunct and punts it because its own input `h_mapF` (item 176) is
+stream-bottomed.  The census above does not reach it — it runs over the park
+constructors, and that one is a lemma conclusion — which is worth recording as
+the census's own boundary.
 
 ### REMAINING, in order
 

@@ -7,7 +7,7 @@ Copyright (c) 2026. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 -/
 
-/-! # The block-indicator escape, by CLASS and by ROUTE (DOCS items 184–197)
+/-! # The block-indicator escape, by CLASS and by ROUTE (DOCS items 184–198)
 
 `block_dispatch_deferred` is `PendingNode.pendingFlow`'s only producer, so
 R3 — row 12's β.5 deletion — is the emptying of this escape.  Its applications
@@ -2135,5 +2135,155 @@ between.  That is a constructor field on `pendingBlock` and
 `pendingBlockContent`, priced by its own census: -/
 
 #guard pins "?\n  ?\n    - a\n  ? b\n: w\n" == ("scan-accepted", "+STR +DOC +MAP +MAP +SEQ =VAL :a -SEQ =VAL : =VAL :b =VAL : -MAP =VAL :w -MAP -DOC -STR")
+
+/-! ## §17  The lane that carried one bottom (item 198)
+
+Item 197 found the CONTENT dispatch's key pack taking both bottoms since item
+108 while the BLOCK dispatch's landing took one, and named the sequence lane's
+half of the residue as the next item.  Measured, that half is a LANE, and the
+asymmetry is a census rather than a pair:
+
+| face | stream bottom | value-line bottom |
+|---|---|---|
+| `pendingContent` | `h_framesS` (99) | `h_framesV` (108) |
+| `pendingMapValue`, dedent face | `h_frames` (99) | `h_framesV` (108) |
+| `pendingMapValue`, close face | `h_closeF` (99) | `h_closeFV` (108) |
+| `pendingProps`, node face | `h_closeF` (153) | `h_closeFV` (153) |
+| `pendingProps`, ENTRY face | `h_closeFE` (155) | — |
+| `pendingBlock` | `h_closeF` (99/155) | — **until item 198** |
+| `pendingBlockContent` | `h_closeF` (99/155) | — **until item 198** |
+| relay `h_valF` (155) | ✓ | — **until item 198** |
+| relay `h_mapF` (173) | ✓ | `h_mapFV` (197) |
+
+Every MAPPING-lane face carries both.  Every SEQUENCE-lane face carried one.
+And the door the mapping lane's stack crosses INTO the sequence lane — item
+155's `h_valF`, the closed value park's awaited node read as frames — is
+stream-bottomed, while both of its payers hold `pendingMapValue.h_closeFV`
+in the same pattern, bound to `_`.  Unlike item 197's finding this one an
+instrument CAN re-derive: it is a census over the park constructors, and the
+one row still reading `—` is named in it.
+
+**§17.1 — the hop.**  The park's collection closes on the landing's comments
+with a `nil` tail, and `resumeAt` — indifferent to the bottom since item 108 —
+pops the levels the dedent ended: -/
+
+example {sp_start sp_scan sp_land : SurfPos} {n k nv : Nat} {ks : List Nat}
+    (closeFV : ∀ sp_mid : SurfPos, SSLComments sp_scan sp_mid →
+      ∀ sp_end : SurfPos, SCompactSeqTail n sp_mid sp_end →
+      ResumeFrames (ExplValueLine sp_start nv) ks sp_end)
+    (h_ssl : SSLComments sp_scan sp_land) (hmem : k ∈ ks) :
+    ∃ ks' : List Nat, (∀ k' ∈ ks', k' < k) ∧
+      ∀ sp_end : SurfPos, SCompactMapTail k sp_land sp_end →
+        ResumeFrames (ExplValueLine sp_start nv) ks' sp_end := by
+  obtain ⟨ks', h_w, cont⟩ :=
+    (closeFV sp_land h_ssl sp_land (SCompactSeqTail.nil n sp_land)).resumeAt hmem
+  exact ⟨ks', h_w.lt, cont⟩
+
+/-! **§17.2 — the spend**, which is item 197's route read at this bottom.  The
+opener's entry lands in the level, and what is still owed underneath is the
+enclosing frame's `s-indent(nv) ':'` line rather than the finished stream: -/
+
+example {sp_start sp_land sp_key : SurfPos} {k nv : Nat} {ks : List Nat}
+    (h_ind : SIndent k sp_land sp_key)
+    (cont : ∀ sp_end : SurfPos, SCompactMapTail k sp_land sp_end →
+      ResumeFrames (ExplValueLine sp_start nv) ks sp_end) :
+    ∀ sp_v : SurfPos, SBlockMapEntry k sp_key sp_v → ExplValueLine sp_start nv sp_v :=
+  resumeFrameRoute h_ind cont
+
+/-! **§17.3 — the residue is the BOTTOM**, positive controls first: each stack
+answers its own, and the stream-bottomed one cannot answer the frame's line.
+This is item 194's finding, re-checked on the lane that lacked the field. -/
+
+example {sp_start sp_land : SurfPos} {ks : List Nat}
+    (hS : ResumeFrames (SLYamlStream sp_start) ks sp_land) :
+    SLYamlStream sp_start sp_land := hS.close
+
+example {sp_start sp_land : SurfPos} {nv : Nat} {ks : List Nat}
+    (hV : ResumeFrames (ExplValueLine sp_start nv) ks sp_land) :
+    ExplValueLine sp_start nv sp_land := hV.close
+
+example {sp_start sp_land : SurfPos} {_nv : Nat} {ks : List Nat}
+    (_hS : ResumeFrames (SLYamlStream sp_start) ks sp_land) : True := by
+  fail_if_success
+    have : ExplValueLine sp_start _nv sp_land := _hS.close
+  trivial
+
+/-! **§17.4 — and `h_kslotUp` is not this field under another name.**  That
+field (items 190/191) answers a LIST of ancestor frames DIRECTLY, which is
+exactly the `ks = []` reading — it converts both ways — and a LEVEL is not
+reachable from it.  Neither field subsumes the other: one generalizes over
+ancestors, the other over the levels below them. -/
+
+example {sp_start sp_land : SurfPos} {nv : Nat} (h : ExplValueLine sp_start nv sp_land) :
+    ResumeFrames (ExplValueLine sp_start nv) [] sp_land :=
+  ResumeFrames.bottom sp_land h
+
+example {sp_start sp_land : SurfPos} {nv : Nat}
+    (h : ResumeFrames (ExplValueLine sp_start nv) [] sp_land) :
+    ExplValueLine sp_start nv sp_land := h.close
+
+example {sp_start sp_land : SurfPos} {_k nv : Nat} {_ks : List Nat}
+    (_h : ExplValueLine sp_start nv sp_land) : True := by
+  fail_if_success
+    have : ResumeFrames (ExplValueLine sp_start nv) (_k :: _ks) sp_land :=
+      ResumeFrames.bottom sp_land _h
+  trivial
+
+/-! **§17.5 — the crossing itself**, `h_valFV` → the new `pendingBlock` field.
+The landed `-` opens the collection that FILLS the closed park's awaited node,
+and the value-line face's widths already run to the park's own level inclusive
+(item 150's stagger) — so unlike `h_closeF`'s crossing, which conses `nv ::`,
+this one moves the list unchanged: -/
+
+example {sp_start sp_scan sp_land sp_key sp_scan' : SurfPos} {n k nv : Nat} {ks : List Nat}
+    (closeFV : ∀ sp_mid : SurfPos, SBlockNode (n + 1) .blockIn sp_scan sp_mid →
+      ResumeFrames (ExplValueLine sp_start nv) ks sp_mid)
+    (hnk : n < k) (h_ssl : SSLComments sp_scan sp_land)
+    (h_ind : SIndent k sp_land sp_key) (h_dash : GLit '-' sp_key sp_scan')
+    (h_gnot : GNot SNsChar sp_scan') :
+    ∀ sp_mid : SurfPos, SBlockIndented k .blockIn sp_scan' sp_mid →
+      ∀ sp_end : SurfPos, SCompactSeqTail k sp_mid sp_end →
+        ResumeFrames (ExplValueLine sp_start nv) ks sp_end :=
+  fun _ h_indented sp_end h_tail =>
+    closeFV sp_end (nestedBlockSeq hnk h_ssl
+      (L4YAML.Proofs.NodeProduction.SBlockSeqEntries_of_compactTail
+        h_ind h_dash h_gnot h_indented h_tail))
+
+/-! **The domain, measured before the field was priced.**  The landing is a
+SIBLING inside the mapping the collection stands in, at both indicators and on
+both parks — the entry-content park (`- a`) and the empty-entry park (`-`): -/
+
+#guard pins "?\n  ?\n    - a\n  ? b\n: w\n" == ("scan-accepted", "+STR +DOC +MAP +MAP +SEQ =VAL :a -SEQ =VAL : =VAL :b =VAL : -MAP =VAL :w -MAP -DOC -STR")
+#guard pins "?\n  ?\n    - a\n  : c\n: w\n" == ("scan-accepted", "+STR +DOC +MAP +MAP +SEQ =VAL :a -SEQ =VAL :c -MAP =VAL :w -MAP -DOC -STR")
+#guard pins "?\n  ?\n    -\n  ? b\n: w\n" == ("scan-accepted", "+STR +DOC +MAP +MAP +SEQ =VAL : -SEQ =VAL : =VAL :b =VAL : -MAP =VAL :w -MAP -DOC -STR")
+#guard pins "?\n  ?\n    -\n  : c\n: w\n" == ("scan-accepted", "+STR +DOC +MAP +MAP +SEQ =VAL : -SEQ =VAL :c -MAP =VAL :w -MAP -DOC -STR")
+
+/-! …the DEDENT straight to the outermost frame, where the landing's own line
+is the frame's value line and the stack is the `ks = []` reading: -/
+
+#guard pins "?\n  ?\n    - a\n? b\n: w\n" == ("scan-accepted", "+STR +DOC +MAP +MAP +SEQ =VAL :a -SEQ =VAL : -MAP =VAL : =VAL :b =VAL :w -MAP -DOC -STR")
+#guard pins "?\n  ?\n    - a\n: w\n" == ("scan-accepted", "+STR +DOC +MAP +MAP +SEQ =VAL :a -SEQ =VAL : -MAP =VAL :w -MAP -DOC -STR")
+#guard pins "?\n  - a\n: w\n" == ("scan-accepted", "+STR +DOC +MAP +SEQ =VAL :a -SEQ =VAL :w -MAP -DOC -STR")
+#guard pins "?\n  -\n: w\n" == ("scan-accepted", "+STR +DOC +MAP +SEQ =VAL : -SEQ =VAL :w -MAP -DOC -STR")
+
+/-! …and the DEPTH, which is why the stack is a list and not an index — one
+landing pops two levels, the other one: -/
+
+#guard pins "?\n  ?\n    ?\n      - a\n? b\n: w\n" == ("scan-accepted", "+STR +DOC +MAP +MAP +MAP +SEQ =VAL :a -SEQ =VAL : -MAP =VAL : -MAP =VAL : =VAL :b =VAL :w -MAP -DOC -STR")
+#guard pins "?\n  ?\n    ?\n      - a\n    ? b\n  : v\n: w\n" == ("scan-accepted", "+STR +DOC +MAP +MAP +MAP +SEQ =VAL :a -SEQ =VAL : =VAL :b =VAL : -MAP =VAL :v -MAP =VAL :w -MAP -DOC -STR")
+
+/-! The CONTROLS: the same shape with no open frame at all is refused before any
+dispatch runs, so the arm's membership branch defers nothing the runtime can
+reach — and the one accepted control is the mapping-VALUE lane, whose bottom is
+the finished stream and which item 99 has served all along: -/
+
+#guard pins "- a\nb: 2\n" == ("scan-refused L4YAML.ScanError.trailingContent 1 0", "ERR L4YAML.ScanError.trailingContent 1 0")
+#guard pins "- a\n? b\n: w\n" == ("scan-refused L4YAML.ScanError.trailingContent 1 0", "ERR L4YAML.ScanError.trailingContent 1 0")
+#guard pins "k:\n  - a\nb: 2\n" == ("scan-accepted", "+STR +DOC +MAP =VAL :k +SEQ =VAL :a -SEQ =VAL :b =VAL :2 -MAP -DOC -STR")
+
+/-! **The row this item does NOT pay**, pinned so the next one measures it
+rather than rediscovering it: the props lane's ENTRY face (`h_closeFE`) is the
+last one-sided row in the census above, so the three entry-content producers
+that relay it punt the new field. -/
 
 end L4YAML.Tests.Guards.BlockDeferralClasses
