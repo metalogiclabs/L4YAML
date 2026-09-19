@@ -3159,12 +3159,23 @@ Paying the seven settles which is which, and all seven do pay:
 
 So the first ring closes at 7 + 8 = 15, and two of the seven leave a premise
 owed.  That premise — `sp_scan.col = 0 → sc.needIndentCheck = true`, item 154's
-field read at the BLOCK landing — has **12** application sites, of which 5 pay
+field read at the BLOCK landing — has ~~**12**~~ application sites, of which 5 pay
 by refuting the hypothesis from a column field the park already carries
 (`pendingProps.h_col0`, `pendingMapValue.h_col0`, `pendingBlock.h_col`).  The
 other 7 need the field on `pendingContent` (whose own is an OPTION,
 ~~17 producers to make unconditional~~), `pendingDocEnd` (1), `pendingDocStart`
 (~~4~~), `pendingFlow` (~~10~~) and `pendingBlockContent` (6).
+
+> **Corrected at item 210 (§29), the last unmeasured number in this
+> paragraph.**  `scripts/landing_nic0_price.py` prices the premise the way
+> `park_nic0_price.py` prices the field: **15 sites across 4 declarations**, not
+> 12.  The **5** is exactly right and the three parks named are the three; what
+> the reading missed is the RELAY — three sites where a landing arm hands the
+> premise to another landing arm and no park stands at all.  `12 = 15 - 3`, so
+> the number is a correct census of the park-FACING payments and a wrong one of
+> the premise's own sites.  The ring itself was closed in passing at item 208,
+> which printed this very census ("fifteen call sites") without matching it to
+> the forecast it discharged.
 
 **All five carry it now, required** — `pendingFlow` at item 206, the other four
 at item 207 — so the twenty-two producers of this ring are paid and the second
@@ -3546,7 +3557,14 @@ example {sp sp' : SurfPos} (h : SCDirectivesEnd sp sp') : sp'.col = 3 :=
 §24.1 wrote the `-`'s whole payment chain with `h_nic0` as a HYPOTHESIS,
 because no park supplied it.  Eight of the nine `false`-indexed parks supply it
 now — five by the field, three by refuting the premise from a column they
-already carry — so the chain starts from a park. -/
+already carry — so the chain starts from a park.
+
+**Measured at item 210 (§29): production never takes the saving.**  The reader
+is applied nowhere but here.  The landing's case analysis is forced by ARM
+SELECTION — the dispatcher must know which park it holds to choose which of the
+five consumers to call — and once it has cased, the arm's own field is in hand.
+The capability below is real; what it was built to remove is a split the landing
+makes for another reason. -/
 
 example {sc s_prep s' : ScannerState}
     {sp_start sp_block sp_scan sp_land sp_prep : SurfPos} {k : Nat}
@@ -4078,5 +4096,189 @@ private def prep209 : List String :=
 -- own `(0,0)`, which is the equality the class was read as holding inline.
 #guard prepRows "? - a\n: w\n"
     == [(true, 0, -1), (true, 2, 0), (true, 4, 2), (false, 0, 0), (true, 2, 0)]
+
+/-! ## §29  The landing ring, RE-DERIVED — and the number was a census of a
+different OBJECT (item 210)
+
+Item 205 recorded the block landing's half of `_stamp_compact`'s carrier chain
+in one sentence, and every number in that sentence has since been re-derived by
+an instrument except one:
+
+> That premise — `sp_scan.col = 0 → sc.needIndentCheck = true`, item 154's field
+> read at the BLOCK landing — has **12** application sites, of which 5 pay by
+> refuting the hypothesis from a column field the park already carries.
+
+The **12** rode five NEXT lists verbatim — 205, 206, 207, 208, 209 — as the ring
+still to pay.  `scripts/landing_nic0_price.py` is the instrument it never had:
+it splices a SECOND copy of the premise into a landing consumer's signature,
+rebuilds, and groups the failures by the declaration containing them, which is
+`park_top_price.py`'s method one ring further out.  **The census is 15 sites
+across 4 declarations**, and the five per-lemma runs sum to the blanket one,
+which is the instrument's own control.
+
+| probed consumer | sites | where they sit |
+|---|---|---|
+| `accum_block_on_closeThenBlock` | **11** | 7 in `accum_block_pending`, 2 in `…_pendingContent`, 1 in `…_pendingBlockContent`, 1 in `…_pendingBlock` |
+| `accum_block_on_noPending` | 1 | `accum_block_pending` |
+| `accum_block_on_pendingContent` | 1 | `accum_block_pending` |
+| `accum_block_on_pendingBlockContent` | 1 | `accum_block_pending` |
+| `accum_block_on_pendingBlock` | 1 | `accum_block_pending` |
+
+**The 5 is exactly right; the 12 is a census of a different object.**  `payers`
+splits the fifteen by what each site spends:
+
+| payment | sites |
+|---|---|
+| a COLUMN refutation — `nic0_of_col_pos` off `pendingProps.h_col0` (2), `pendingMapValue.h_col0` (2), `pendingBlock.h_col` (1) | **5** |
+| the PARK's own field — `pendingDocEnd`, `pendingDocStart`, `pendingContent`, `pendingFlow`, `pendingBlockContent`, one each | **5** |
+| a RELAY — a landing arm handing its OWN premise to another landing arm | **3** |
+| another route — `noPending`'s `h_ntop`, `pendingBlock`'s `h_floor208`: the two arms that take no flag at all | **2** |
+
+Item 205's five are the five, and the three parks it named are the three.  What
+a park census cannot see is the RELAY: **12 = 15 − 3, and the three missing
+sites are exactly the ones where no park stands.**  A consumer calling a
+consumer holds a premise, not a `PendingNode`, so the 12 is a correct count of
+the park-FACING payments and a wrong one of the premise's own sites.  That is
+[item 209]'s lesson taken the other way round — there the unit was right and the
+object wrong; here the object is a park under both readings, and the premise's
+sites are not parks.
+
+**The ring closed two items before the ledger said so.**  Item 208 threaded this
+premise through the consumers in order to pay two of ring 1's seven producers,
+and printed what it cost: *"a premise threaded through five consumer lemmas and
+fifteen call sites, and nothing else."*  That fifteen is this census — published
+by the item that discharged the forecast, and never matched to it.  Thirteen of
+the fifteen pay the flag today and the other two take no flag.
+
+**The control is the `drop` mode**: rename the premise in each carrier's
+signature, leaving its arity alone, and the body stops compiling at **9** sites
+— 6 `dash_landing_floor` applications and 3 relays, across the three consumers
+that carry it (3 / 2 / 4).  Nothing here is a premise its consumer does not
+read, which is item 197's rule asked of a premise instead of a field.
+
+**And `PendingNode.nic0` is spent nowhere in production.**  Item 207 built the
+reader so that `dash_landing_floor` would be "spendable at a block landing
+without asking which park it is standing off"; the capability is real and §26.2
+exercises it, but the landing never takes the saving, because its case split is
+forced by ARM SELECTION rather than by the flag — the dispatcher must know which
+park it holds to pick which of the five consumers to call, and once it does, the
+arm's own field is in hand.  A reader that removes a case analysis is worth what
+that case analysis costs, and a split you must make anyway is free.
+
+### §29.1  The fifth column refutation, at the site outside the dispatcher
+
+Four of the five refuting payments sit in `accum_block_pending`, where the park
+has just been `cases`d.  The fifth is at `accum_block_on_pendingBlock`'s relay,
+and it is the site that makes the two censuses differ: a park is in hand there,
+but the consumer being called is another landing arm. -/
+
+section Item210
+open L4YAML.Proofs L4YAML.Proofs.IndentStackCover
+
+example {sc s_prep : ScannerState} {sp_scan : SurfPos} {c : Char} {n : Nat}
+    (h_col_old : sp_scan.col = n + 1)
+    (h_noflow : s_prep.inFlow = false)
+    (h_larm : sp_scan.col ≠ 0 → s_prep.inFlow = false →
+      s_prep.simpleKey.possible = true ∧ s_prep.simpleKey.pos.col = s_prep.col ∧
+      s_prep.simpleKeyAllowed = true ∧
+      (s_prep.currentIndent ≤ (s_prep.col : Int) ∨ s_prep.indents.size ≤ 1))
+    (h_base : IndentStackBase.SentinelBase sc)
+    (h_preprocess : scanNextToken_preprocess sc = .ok (some (s_prep, c))) :
+    s_prep.currentIndent ≤ (s_prep.col : Int) :=
+  dash_landing_floor h_noflow h_larm (nic0_of_col_pos (by omega)) h_base
+    h_preprocess
+
+/-! …and the arm that takes no flag takes none because no column can answer it:
+`noPending`'s own field puts a block-context virgin park AT column 0, which is
+where `nic0_of_col_pos`' hypothesis is false rather than vacuous.  §26.3 states
+the first half; this is why the second half cannot be had. -/
+
+example {sp : SurfPos} (h : sp.col = 0) : ¬ (0 < sp.col) := by omega
+
+/-! ### §29.2  The same claim at the RUNTIME, read AT THE LANDING
+
+§25.3 and §26.4 asked *is any park at a line start with the check down?* of every
+park the scanner makes.  This item's object is narrower and so is its reading
+point: the premise is supplied only where a BLOCK INDICATOR lands, so `landRow`
+asks it there — the park's own `(col, needIndentCheck)` at each step whose
+preprocessed dispatch character is `-`, `?` or `:`, and nowhere else.
+
+Three numbers per shape, and the middle one is what makes it a check: the
+landings, those standing off a park at column 0 — where the flag's hypothesis is
+LIVE and `landing_floor_of_arm` gives nothing — and those of THOSE with the
+check armed.  The claim is that the second and third are equal; the control is
+that the second is not zero. -/
+
+/-- `(park col, park check, dispatch char)` at every block-indicator landing. -/
+private def landRows (input : String) : List (Nat × Bool × Char) :=
+  let rec go (s : ScannerState) (fuel : Nat) (acc : List (Nat × Bool × Char)) :
+      List (Nat × Bool × Char) :=
+    match fuel with
+    | 0 => acc.reverse
+    | fuel' + 1 =>
+      let acc' := match scanNextToken_preprocess s with
+        | .ok (some (_, c)) =>
+          if c == '-' || c == '?' || c == ':' then
+            (s.col, s.needIndentCheck, c) :: acc
+          else acc
+        | _ => acc
+      match scanNextToken s with
+      | .ok (some s') => go s' fuel' acc'
+      | _ => acc'.reverse
+  go ((ScannerState.mk' input).emit .streamStart) 200 []
+
+/-- `(landings, off a column-0 park, of those ARMED)`. -/
+private def landRow (input : String) : Nat × Nat × Nat :=
+  let rs := landRows input
+  let zero := rs.filter (fun r => r.1 == 0)
+  (rs.length, zero.length, (zero.filter (fun r => r.2.1)).length)
+
+-- The three block indicators off parks inside a line, and off parks at one.
+#guard landRow "- a\n- b\n" == (2, 1, 1)
+#guard landRow "- - a\n" == (2, 1, 1)
+#guard landRow "? a\n: b\n" == (2, 1, 1)
+#guard landRow "k:\n  - a\n- b\n" == (3, 0, 0)
+-- A block scalar is the content scan that reaches a line start; a block
+-- indicator landing behind one is where the flag is asked and answered.
+#guard landRow "a: |\n  x\n- b\n" == (2, 1, 1)
+#guard landRow "a: |\n  x\nb: 2\n" == (2, 0, 0)
+#guard landRow "|\n x\n- a\n" == (1, 1, 1)
+#guard landRow "- |\n  x\n- b\n" == (2, 2, 2)
+#guard landRow "a: >\n  x\n- b\n" == (2, 1, 1)
+#guard landRow "? a\n: |\n  x\n? b\n: c\n" == (4, 2, 2)
+-- The markers, a flow run, a compact fill, a dedent ladder, a quoted scalar.
+#guard landRow "---\n- a\n" == (2, 1, 1)
+#guard landRow "...\n- a\n" == (1, 0, 0)
+#guard landRow "? - a\n: w\n" == (3, 1, 1)
+#guard landRow "-\n  -\n- b\n" == (3, 1, 1)
+#guard landRow "a: [1, 2]\n- b\n" == (2, 0, 0)
+#guard landRow "? [a]\n: b: c\n" == (3, 1, 1)
+#guard landRow "a: \"x\"\n- b\n" == (2, 0, 0)
+#guard landRow "k:\n  :\nb: 2\n" == (3, 0, 0)
+
+private def land210 : List String :=
+  ["- a\n- b\n", "- - a\n", "? a\n: b\n", "k:\n  - a\n- b\n",
+   "a: |\n  x\n- b\n", "a: |\n  x\nb: 2\n", "|\n x\n- a\n",
+   "---\n- a\n", "...\n- a\n", "? - a\n: w\n", "-\n  -\n- b\n",
+   "a: [1, 2]\n- b\n", "? [a]\n: b: c\n", "a: \"x\"\n- b\n",
+   "- |\n  x\n- b\n", "k:\n  :\nb: 2\n", "a: >\n  x\n- b\n",
+   "? a\n: |\n  x\n? b\n: c\n"]
+
+-- THE CLAIM: every landing off a park at a line start finds the check ARMED.
+#guard land210.all (fun i => (landRow i).2.1 == (landRow i).2.2)
+-- THE CONTROL: the hypothesis is LIVE — fourteen of the forty-one landings
+-- stand off a column-0 park, so the claim is not passing vacuously…
+#guard (land210.map (fun i => (landRow i).2.1)).sum == 14
+#guard (land210.map (fun i => (landRow i).2.2)).sum == 14
+-- …and the other twenty-seven stand inside a line, which is the half the five
+-- column refutations pay.
+#guard (land210.map (fun i => (landRow i).1)).sum == 41
+#guard land210.length == 18
+-- The row read out in full: one shape holding BOTH halves — a `:` landing off a
+-- park at column 1 with the check DOWN (so a check-down park is reachable) and
+-- a `-` landing off a park at column 0 with it UP.
+#guard landRows "a: |\n  x\n- b\n" == [(1, false, ':'), (0, true, '-')]
+
+end Item210
 
 end L4YAML.Tests.Guards.BlockDeferralClasses

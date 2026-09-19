@@ -23316,13 +23316,23 @@ hypothesis is the column being non-zero — so it is not a weaker floor, it is n
 floor (`BlockDeferralClasses` §24.2).  That is exactly why item 154 made the
 flag a field on `pendingContent`, and exactly why the block landings now need
 one too.  Read at the BLOCK landing, `sp_scan.col = 0 → sc.needIndentCheck =
-true` has **12** application sites, of which **5** pay by refuting the
+true` has ~~**12**~~ application sites, of which **5** pay by refuting the
 hypothesis from a column field the park already carries
 (`pendingProps.h_col0`, `pendingMapValue.h_col0`, `pendingBlock.h_col`).  The
 other seven need the field on `pendingContent` — whose own is an OPTION,
 ~~**17** producers to make unconditional~~ — and on `pendingDocEnd` (**1**),
 `pendingDocStart` (~~**4**~~), `pendingFlow` (~~**10**~~) and
 `pendingBlockContent` (**6**).
+
+> **Corrected at [item 210](#item-210-2026-09-19)** — the last number in this
+> entry that no instrument had re-derived, and the one its own NEXT list carried
+> forward five times.  `scripts/landing_nic0_price.py`: **15** sites across
+> **4** declarations, not 12.  The **5** is exact and the three parks named are
+> the three; what a park census cannot see is the RELAY — three sites where a
+> landing arm hands the premise to another landing arm and no park stands at
+> all, so `12 = 15 − 3`.  The ring itself closed at
+> [item 208](#item-208-2026-09-19), which printed this census ("fifteen call
+> sites") without matching it to the forecast it discharged.
 
 **~~And that ring does not close: it re-enters the escape.~~**  One of
 `pendingFlow`'s producers is `block_dispatch_deferred` itself.  The escape
@@ -23418,7 +23428,8 @@ landing sites → the 7 producers, and then the wrapper goes.
 **Corrected at [item 206](#item-206-2026-09-19)**: `pendingFlow`'s field was
 paid there and is no longer ahead of anything; the remaining ring is
 `pendingContent` (12) → `pendingDocEnd`/`pendingDocStart`/`pendingBlockContent`
-(9) → the 12 landing sites → the 7 producers.  `pendingFlow`'s constructor and
+(9) → the ~~12~~ landing sites → the 7 producers.  **The "12 landing sites" is 15, and the ring closed at item 208** — re-derived at [item 210](#item-210-2026-09-19), `scripts/landing_nic0_price.py`.
+`pendingFlow`'s constructor and
 arm remain a prerequisite of item 183's flip order, for item 183's OWN reason
 (`CompletedTail` is false at that park), which this item does not touch.
 Unchanged behind that: **`KeyPackPunt`'s two reasons** (`dedent` 7/5,
@@ -23577,7 +23588,7 @@ is right and the 18 is not.**  Sixteen sit behind a content dispatch (two of
 `pendingContent`'s twelve are FLOW-indicator dispatches and three more parks are
 structural), and of those sixteen `content_park_nic_any` pays thirteen — the
 other three keep item 154's narrower term.  The forecast counted parks and read
-off a dispatcher; the split is 13 / 3 / 5.  After that ring: the 12 landing sites, the 7 producers of
+off a dispatcher; the split is 13 / 3 / 5.  After that ring: the ~~12~~ landing sites, the 7 producers of
 item 205, and the wrapper goes.  Unchanged behind it: **`KeyPackPunt`'s two
 reasons** (`dedent` 7/5, `noKeyContext` 6/5, possibly a phantom), item 183's
 flip order, and the parked Ix Step-1 composition on the Ix track's own clock.
@@ -23870,7 +23881,7 @@ payer), `pendingMapValue`'s top field (6 producers), and a dispatch-floor
 premise on the six `*_open_map` lemmas whose own ring is NOT yet measured —
 that census is item 209's first act, not its assumption.  Making
 `h_park_top` required is what lets the compact refutation fire.  After that:
-the 12 landing sites and the wrapper goes; then **`KeyPackPunt`'s two reasons**
+the ~~12~~ landing sites and the wrapper goes; then **`KeyPackPunt`'s two reasons**
 (`dedent` 7/5, `noKeyContext` 6/5, possibly a phantom), item 183's flip order
 (`pendingFlow`'s constructor and arm first, for item 183's OWN reason), and the
 parked Ix Step-1 composition on the Ix track's own clock.  Still open from item
@@ -23995,14 +24006,25 @@ Both halves asserted, so neither can pass vacuously.
 event** (308 pass, 94 err-ok) and **282/282 JSON** (279 pass, 3 err-ok, 120
 skip) on BOTH the legacy and the indexed pipelines.
 
+> **The `[210]` flip's five line numbers, corrected at
+> [item 210](#item-210-2026-09-19).**  This item ran the flip gate and recorded
+> **4619 / 5899 / 5922 / 6091 / 7643**, predicted and confirmed against the tree
+> it ran on.  Two lines went in above the first site afterwards (the comment at
+> `StreamAccum.lean:1738`), so the COMMITTED tree's sites are
+> **4621 / 5901 / 5924 / 6093 / 7645** — re-run at item 210 against a
+> `StreamAccum.lean` byte-identical to this item's own final copy.  A gate run
+> before an item's last edit records numbers for a tree nobody committed.
+
 **Counts.**  Declarations `grep -rhoE "^(private )?(lemma|theorem|def|abbrev|instance|structure|inductive|class) " L4YAML`: **8593 → 8594**
 (+2 — `indicator_top_kv_at_col`, `compact_deferral_refuted` — and −1, the
 deleted wrapper); `#guard` tokens `grep -rho "#guard" L4YAML Tests`:
 **8109 → 8129** (+20, §28.3); test files `find Tests -name '*.lean'`:
 **624 → 624**.  Zero runtime edits.
 
-**What remains.**  The 12 landing sites, and then the wrapper goes — that is
+**What remains.**  ~~The 12 landing sites, and then the wrapper goes~~ — that is
 the next item and its price is the one number this item did not re-derive.
+**Re-derived at [item 210](#item-210-2026-09-19): the number is 15, the ring was
+closed at item 208, and the wrapper went here without it.**
 After that: **`KeyPackPunt`'s two reasons** (`dedent` 7/5, `noKeyContext` 6/5,
 possibly a phantom), item 183's flip order (`pendingFlow`'s constructor and arm
 first, for item 183's OWN reason: `CompletedTail` is FALSE at that park by
@@ -24024,6 +24046,158 @@ of the lesson — it named both gaps in its refutation, and the second one (a
 datum proved upstream and discarded by its reader) sat unspent for five items
 because nothing indexed it.  **A gap named in a comment is a measurement
 nobody has scheduled.**
+
+
+### Item 210 (2026-09-19)
+
+**A FORECAST IS DISCHARGED BY A MEASUREMENT, NOT BY THE WORK THAT HAPPENS TO DO
+IT.**  Item 209's NEXT named one thing and said exactly what it was worth:
+*"the 12 landing sites, and then the wrapper goes — that is the next item and
+its price is the one number this item did not re-derive."*  Re-deriving it is
+the whole of this item.  The number moved, the ring turned out to have closed
+two items ago, and the two instruments that would have said so had both stopped
+working — each broken by the item whose change they were built to measure.
+
+**The number is 15.**  `scripts/landing_nic0_price.py` (NEW) prices item 154's
+flag where the landing reads it, by the method `park_top_price.py` uses for the
+park top: splice a SECOND copy of the premise into a landing consumer's
+signature, rebuild, collapse cascades onto the nearest preceding application,
+group by the declaration containing them.  **15 sites across 4 declarations**,
+and the five per-lemma runs sum to the blanket one — 11 + 1 + 1 + 1 + 1 — which
+is the census's own control.
+
+**The 5 is exactly right, and the 12 is a correct census of a different
+object.**  The `payers` split:
+
+| payment | sites |
+|---|---|
+| a COLUMN refutation — `nic0_of_col_pos` off `pendingProps.h_col0` (2), `pendingMapValue.h_col0` (2), `pendingBlock.h_col` (1) | **5** |
+| the PARK's own field — `pendingDocEnd`, `pendingDocStart`, `pendingContent`, `pendingFlow`, `pendingBlockContent`, one each | **5** |
+| a RELAY — a landing arm handing its OWN premise to another landing arm | **3** |
+| another route — `noPending`'s `h_ntop`, `pendingBlock`'s `h_floor208`: the two arms that take no flag | **2** |
+
+Item 205's five are the five and the three parks it named are the three.  What
+a park census cannot see is the RELAY: **12 = 15 − 3**, and the three missing
+sites are exactly the ones where no park stands.  A consumer calling a consumer
+holds a premise, not a `PendingNode` — so the 12 counts the park-FACING
+payments correctly and the premise's own sites wrongly.  That is
+[item 209](#item-209-2026-09-19)'s lesson taken the other way round: there the
+unit was right and the object wrong; here the object is a park under both
+readings, and the premise's sites are not parks.
+
+**And the ring closed at [item 208](#item-208-2026-09-19).**  Paying two of ring
+1's seven producers needed this premise, so item 208 threaded it through the
+consumers and printed the cost in one clause — *"a premise threaded through five
+consumer lemmas and fifteen call sites, and nothing else"* — which is this
+census, published by the item that discharged the forecast and never matched to
+it.  Thirteen of the fifteen pay the flag today; the other two take no flag,
+because `noPending`'s own field puts a virgin park AT column 0 (no column can
+answer there) and `pendingBlock`'s puts it at `n + 1` (nothing to answer).  The
+`drop` mode is the load-bearing control: rename the premise in each carrier's
+signature and the bodies stop compiling at **9** sites — 3 / 2 / 4, six
+`dash_landing_floor` applications and three relays — so nothing here is a
+premise its consumer does not read.
+
+**Two instruments had rotted, and each was broken by the item that changed what
+it measures.**  `park_nic0_price.py sites` is the mode that threads the flag
+through the escape and lands on its application sites.
+
+* **Item 209 broke it by deleting a wrapper.**  The mode's control asserted
+  `(n_sig, n_park, n_call) == (5, 1, 4)` — the escape plus its four wrappers —
+  and `_stamp_compact`'s deletion made it `(4, 1, 3)`, so the assertion fired
+  and the mode could not run at all.  Repaired to pin the RELATION the splice
+  must satisfy (one signature per wrapper plus the escape's own, one call per
+  wrapper, one park application), which survives any number of wrappers.
+  **A count the campaign is actively moving is the one thing a control must not
+  pin.**
+* **Item 208 broke it the same day it built the fix it broke it with.**  The
+  cascade collapse item 208 added — anchor each error on the nearest preceding
+  CONSTRUCTOR application — is right for the park modes and wrong for this one,
+  whose failures land at the ESCAPE's applications: all nine went behind the
+  single `PendingNode.pendingFlow` inside the escape and the mode reported a
+  census of **1**.  The anchor now follows the mode.
+
+Repaired, it reproduces the deletion from cold: **9 applications across 4
+consumer lemmas** — 3 `accum_block_on_closeThenBlock`, 3
+`…_pendingBlockContent`, 2 `…_pendingBlock`, 1 `accum_content_pending` —
+independently re-deriving `FlipConsumerSurface`'s count and
+`block_dispatch_deferred`'s own docstring at the post-item-209 tree.  And
+`payers` had silently absorbed a second ring: its total was 22 at item 207 and
+reads **27** now, because items 208/209 paid the flag at the LANDING with the
+same three terms.  Split by the declaration a site sits in, ring 2 reproduces at
+**21** and the landing's own payments are **5** — the same five the new
+instrument counts, from a different direction.  Two instruments, one number, as
+item 205 required.
+
+**The runtime says it at the landing, which is where the premise is spent**
+(`BlockDeferralClasses` §29.2, 24 new `#guard`s).  §25.3 and §26.4 asked *is any
+park at a line start with the check down?* of every park the scanner makes;
+this item's object is narrower, so `landRow` asks it only where a BLOCK
+INDICATOR lands — the park's own `(col, needIndentCheck)` at each step whose
+preprocessed dispatch character is `-`, `?` or `:`.  Over 18 shapes: **41**
+landings, **14** of them off a park at column 0 — where the flag's hypothesis is
+LIVE and `landing_floor_of_arm` gives nothing — and **14** of those 14 with the
+check ARMED.  Both halves asserted, and one row carries both: `a: |⏎  x⏎- b`
+reads `[(1, false, ':'), (0, true, '-')]`, a check-down park that is NOT at a
+line start beside a column-0 park that IS armed.
+
+**`PendingNode.nic0` is spent nowhere in production.**  Item 207 built the reader
+so `dash_landing_floor` would be spendable "without asking which park it is
+standing off"; the capability is real and §26.2 exercises it, but the landing
+never takes the saving — its case split is forced by ARM SELECTION, since the
+dispatcher must know which park it holds to choose which of the five consumers
+to call, and once it has cased, the arm's own field is in hand.  **A reader that
+removes a case analysis is worth what that case analysis costs, and a split you
+must make anyway is free.**
+
+**Gates.**  `lake build` **1165** jobs, zero warnings; `scripts/run-all-tests.sh`
+**4520/4520**; `lake exe eventscore` **347/358** (252 event-pass, 95 error-ok, 0
+error-miss, 0 event-reject); `lake exe suiterunner` **869 passed / 0 failed /
+151 skipped**; `scripts/matrix_score.py --axis both --only L4YAML` **402/402
+event** (308 pass, 94 err-ok) and **282/282 JSON** (279 pass, 3 err-ok, 120
+skip) on BOTH pipelines; the `[210]` flip **FIVE** errors at **4621 / 5901 /
+5924 / 6093 / 7645** — UNMOVED, and predictably so: this item edits no file
+under `L4YAML/` at all, so the only forecast available was "the committed
+tree's sites, whatever they are", and running it is what found item 209's record
+two lines short (corrected above).  Restore rebuilt clean; `#print axioms` over
+the five lemmas §29 exercises shows no `sorryAx`; import closure **228/355**,
+reflection index **20/230/249/355**, **25** whitelisted capstones, annotations
+100 % (211/211) with the standing **19** name mismatches.
+
+**Counts.**  Declarations
+`grep -rhoE "^(private )?(lemma|theorem|def|abbrev|instance|structure|inductive|class) " L4YAML`:
+**8594 → 8594** (a measurement item adds no production declaration); `#guard`
+tokens `grep -rho "#guard" L4YAML Tests`: **8129 → 8153** (+24, §29.2); test
+files `find Tests -name '*.lean'`: **624 → 624**.  Zero runtime edits, and zero
+edits under `L4YAML/`.
+
+**What remains.**  The landing ring is closed and the chain item 205 drew is
+spent to its end.  Next is **`KeyPackPunt`'s two reasons** — `_inline`'s class,
+recorded at `dedent` 7/5 and `noKeyContext` 6/5 with the note "possibly a
+phantom", and both numbers are readings that this item's own lesson says to
+re-derive before spending on them.  Behind it: item 183's flip order
+(`pendingFlow`'s constructor and arm first, for item 183's OWN reason —
+`CompletedTail` is FALSE at that park by construction), and the parked Ix Step-1
+composition on the Ix track's own clock.  Still open from item 201: a census
+that follows a conjunct's VALUE through the relays that carry it — which this
+item makes concrete, since a relay is exactly what the landing census could not
+see — and the unattributed-site pins the 198/200/201 censuses still lack.
+
+**The instrument ledger, twelve rows, and the twelfth MEASURES THE LEDGER.**
+Park constructors (198), application sites (200), lemma conclusions (201), the
+same with a key that works (202), indices (203), the runtime's own state (204),
+the transitive ring of a carrier (205), the same closure with its last ring paid
+(206), the ring's payers against a forecast (207), the instruments themselves
+(208), the object a carrier's consumer reads (209) — and now the plan's own
+remaining list, re-derived against the tree.  **The rule this item adds: an
+instrument is an artifact, and the item that changes what it measures is the
+item that must re-run it.**  Both repairs here were made by items 208 and 209 to
+their own measuring equipment, in passing, and neither was noticed because
+nothing re-ran the mode.  The matching half is the forecast: item 208 PAID the
+ring this item was scheduled to pay and printed the census while doing it, and
+the ledger went on listing it as open for two more items — because a NEXT list
+is copied forward by hand and a number is only discharged when someone matches
+it to the measurement that answered it.
 
 
 ### REMAINING, in order

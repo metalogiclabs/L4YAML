@@ -29,9 +29,17 @@ for it except `pendingDocEnd` and `pendingBlockContent`):
 every count above is now DISCHARGED and a re-run of any mode prices a SECOND
 field rather than the first.  That is the mode's own control: the census is
 stable across the payment, and all five reproduce.  `sites` is the other
-control: it threads the premise through the escape and its four wrappers and
-lands on the ELEVEN application sites across FOUR consumer lemmas, reproducing
-from cold the count `block_dispatch_deferred`'s own docstring records.
+control: it threads the premise through the escape and each of its wrappers and
+lands on the escape's own application sites, reproducing from cold the count
+`block_dispatch_deferred`'s docstring records -- ELEVEN across FOUR consumer
+lemmas when item 206 built it, and **NINE across FOUR** since item 209 deleted
+`_stamp_compact` (3 `accum_block_on_closeThenBlock`, 3
+`..._pendingBlockContent`, 2 `..._pendingBlock`, 1 `accum_content_pending`).
+
+Item 210 repaired this mode twice over: item 208's cascade collapse anchored its
+failures on a constructor literal and reported 9 sites as 1, and item 209's
+deletion fired a control that pinned the wrapper COUNT.  Neither item re-ran it.
+A count the campaign is moving is the one thing a control must not pin.
 
 `payers` (item 207) splits the paid ring by the TERM each site spends, which is
 the number item 206 forecast and got wrong: it predicted `content_park_nic_any`
@@ -45,7 +53,7 @@ Usage:
     python3 scripts/park_nic0_price.py pendingFlow
     python3 scripts/park_nic0_price.py all
     python3 scripts/park_nic0_price.py escape     # the field + the escape's premise
-    python3 scripts/park_nic0_price.py sites      # threaded to the 11 application sites
+    python3 scripts/park_nic0_price.py sites      # threaded to the escape's own sites
     python3 scripts/park_nic0_price.py payers     # the paid ring, split by term
 """
 import re
@@ -73,10 +81,10 @@ ESCAPE_ANCHOR = "    (h_nic0 : sp_scan'.col = 0 → s'.needIndentCheck = true) :
 ESCAPE_PROBE = ("    -- NIC0 PROBE (scripts/park_nic0_price.py)\n"
                 "    (h_nic0_probe : sp_scan'.col = 0 → s'.needIndentCheck = true)\n")
 
-# `sites` mode threads the premise mechanically through the escape AND its four
-# wrappers, so the failures land at the ELEVEN application sites rather than at
-# the five signatures between them.  One build sees one ring; this is the ring
-# after `escape`'s.
+# `sites` mode threads the premise mechanically through the escape AND each of
+# its wrappers, so the failures land at the escape's application sites rather
+# than at the signatures between them.  One build sees one ring; this is the
+# ring after `escape`'s.
 WRAP_ANCHOR = "    (h_nic0 : sp_scan'.col = 0 → s'.needIndentCheck = true)"
 WRAP_PROBE = "    (h_nic0_probe : sp_scan'.col = 0 → s'.needIndentCheck = true)"
 # Post-item-206: the real `h_nic0` is threaded through both, so the probe's
@@ -119,7 +127,7 @@ def apply_probe(lines, which):
         assert len(idx) == 1, idx
         out[idx[0]] = ESCAPE_PROBE + ESCAPE_ANCHOR
     if which == "sites":
-        # The escape's own signature, then each wrapper's, then the two calls.
+        # The escape's own signature, then each wrapper's, then the calls.
         n_sig = n_park = n_call = 0
         for i, l in enumerate(out):
             if l == WRAP_ANCHOR + " :":
@@ -130,7 +138,18 @@ def apply_probe(lines, which):
                 out[i] = PARK_CALL[:-1] + " h_nic0_probe,"; n_park += 1
             elif l == ESCAPE_CALL:
                 out[i] = ESCAPE_CALL + " h_nic0_probe"; n_call += 1
-        assert (n_sig, n_park, n_call) == (5, 1, 4), (n_sig, n_park, n_call)
+        # **Item 210: pin the RELATION, not the literal.**  This control read
+        # `(n_sig, n_park, n_call) == (5, 1, 4)` — the escape plus its four
+        # wrappers — and item 209 deleted `_stamp_compact`, so the assertion
+        # fired and the mode could not run at all.  A count the campaign is
+        # actively moving is the one thing a control must not pin: every wrapper
+        # contributes one signature and one call, the escape contributes the
+        # remaining signature and the single `pendingFlow` application, and that
+        # holds however many wrappers are left.
+        assert n_park == 1 and n_call >= 1 and n_sig == n_call + 1, (
+            f"splice landed on {n_sig} signatures, {n_park} park applications "
+            f"and {n_call} escape calls; expected one signature per wrapper "
+            f"plus the escape's own, one call per wrapper, and one park")
     return out, sorted(targets)
 
 
@@ -146,6 +165,16 @@ def enclosing_decl(lines, lineno):
 # `payers` mode: the three terms a paid site can spend, matched at APPLICATION
 # position (an open paren before the name) so the declarations and the prose
 # that names them are not counted.
+
+# The block dispatch's landing arms and the dispatcher that cases the park.  A
+# flag payment inside one of these is the LANDING's (item 210's census), not a
+# park producer's (item 207's ring 2).
+LANDING_DECLS = {
+    "accum_block_pending", "accum_block_on_noPending",
+    "accum_block_on_closeThenBlock", "accum_block_on_pendingContent",
+    "accum_block_on_pendingBlockContent", "accum_block_on_pendingBlock",
+}
+
 PAYERS = [
     ("content_park_nic_any", re.compile(r"\(content_park_nic_any\b")),
     ("content_park_nic", re.compile(r"\(content_park_nic hbs\b")),
@@ -171,9 +200,18 @@ def payers_census():
         print(f"  {len(hits):3d}  {name}")
         for decl, n in sorted(by_decl.items(), key=lambda kv: (-kv[1], kv[0])):
             print(f"         {n:3d}  {decl}")
-    # The escape's own site (item 206) rides in `content_park_nic_any`'s count;
-    # ring 2 proper is the remaining twenty-one.
-    print(f"\nring 2 (total minus the escape's own site): {total - 1}")
+    # **Item 210: the total spans TWO rings now, so the mode splits them.**
+    # Item 207 printed `total - 1` and called the remainder ring 2, which was
+    # true while every site in the file was a park PRODUCER.  Items 208 and 209
+    # paid the flag at the block LANDING too, and those payments spend the same
+    # three terms — so the undifferentiated total silently absorbed a second
+    # ring.  The split is by the declaration a site sits in: a landing consumer
+    # or the dispatcher that cases the park, against everything else.
+    landing = sum(1 for hits in census.values() for _, decl in hits
+                  if decl in LANDING_DECLS)
+    print(f"\nring 2, the park PRODUCERS (total minus the landing's payments "
+          f"and the escape's own site): {total - landing - 1}")
+    print(f"the LANDING's own payments (item 210's ring): {landing}")
 
 
 def main():
@@ -193,7 +231,8 @@ def main():
         TARGET.write_text("\n".join(patched))
         print(f"probe: {which} -> {', '.join(names)}"
               + (" + block_dispatch_deferred premise" if which == "escape"
-                 else " + escape + 4 wrappers threaded" if which == "sites" else ""))
+                 else " + escape and every wrapper threaded" if which == "sites"
+                 else ""))
         proc = subprocess.run(
             ["lake", "env", "lean", str(TARGET.relative_to(ROOT))],
             cwd=ROOT, capture_output=True, text=True,
@@ -218,8 +257,23 @@ def main():
     # arguments are `by` blocks reports one failure per broken block, which is
     # how `noPending` read 11 for a census of 8 (`park_top_price.py`).  Anchor
     # each error on the nearest preceding APPLICATION and print what collapsed.
-    anchors = [(i + 1, n) for i, line in enumerate(patched) for n in names
-               if f"PendingNode.{n}" in line]
+    # **Item 210: the collapse needs the anchor the MODE is measuring.**  In
+    # `sites` the failures land at the ESCAPE's application sites, not at
+    # constructor applications, so a constructor-literal anchor list put all
+    # nine of them behind the single `PendingNode.pendingFlow` inside the escape
+    # and reported a census of 1.  The collapse item 208 added to fix
+    # `noPending`'s cascade broke this mode the same day, and nothing re-ran it.
+    if which == "sites":
+        esc = re.compile(r"(^|[ (⟨])block_dispatch_deferred\w*\b")
+        anchors = [(i + 1, "block_dispatch_deferred")
+                   for i, line in enumerate(patched)
+                   if esc.search(line) and "`" not in line
+                   and not re.match(r"^(private )?lemma ", line)
+                   and not line.lstrip().startswith("--")]
+    else:
+        anchors = [(i + 1, f"PendingNode.{n}")
+                   for i, line in enumerate(patched) for n in names
+                   if f"PendingNode.{n}" in line]
     groups, unanchored = {}, []
     for raw in sorted(census):
         prior = [a for a in anchors if a[0] <= raw]
@@ -242,7 +296,7 @@ def main():
               f"({sum(len(h) - 1 for h in cascaded.values())} errors were not "
               f"producers):")
         for (aline, n), hits in sorted(cascaded.items()):
-            print(f"  L{aline}  PendingNode.{n}  <- errors at "
+            print(f"  L{aline}  {n}  <- errors at "
                   + ", ".join(map(str, hits)))
     if unanchored:
         print(f"\nUNANCHORED ({len(unanchored)}): no constructor literal precedes "

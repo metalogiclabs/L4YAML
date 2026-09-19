@@ -69,7 +69,17 @@ whose class is refuted, and with it two of the eleven):
 source, and `noPending`'s new `h_noek` — a virgin block-context park is the
 stream's seed, so its explicit-key register is dead — decides that source
 instead of splitting on it.  A row leaving this census is what a class
-emptying looks like, which is the shape item 184 built the lane for. -/
+emptying looks like, which is the shape item 184 built the lane for.
+
+**Re-derived from cold at item 210**, independently of this module:
+`scripts/park_nic0_price.py sites` threads a premise through the escape and each
+of its wrappers and reads the census off the failures — **9 applications across
+4 consumer lemmas**, 3 `accum_block_on_closeThenBlock`, 3
+`…_pendingBlockContent`, 2 `…_pendingBlock`, 1 `accum_content_pending`.  That
+mode had been broken since item 209 (a control pinning the wrapper COUNT) and
+mis-anchored since item 208 (a cascade collapse built for the park modes), so
+the deletion this docstring records went two items without an instrument able to
+confirm it. -/
 
 namespace L4YAML.Tests.Guards.FlipConsumerSurface
 
