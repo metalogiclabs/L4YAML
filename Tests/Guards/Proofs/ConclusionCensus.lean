@@ -33,12 +33,35 @@ carries both (`FlowBaseRoutes.key`, 5, excluded below as a projection).
 **Conclusion-level optionality in this module is the flow-key lane and nothing
 else.**
 
-**All six unpaid rows are the RELAY blind spot below** (item 203).  Item 202
-read seven, of which exactly one was unpaid and not a relay —
-`flowKeyRoute_of_open`'s value-line resume — and item 203 paid it: no
-conclusion conjunct in this module is now both unpaid and unhidden by a relay,
-so the first column's remainder is entirely the instrument's own blind spot and
-not the file's.
+~~**All six unpaid rows are the RELAY blind spot below** (item 203).~~  Item
+202 read seven, of which exactly one was unpaid and not a relay —
+`flowKeyRoute_of_open`'s value-line resume — and item 203 paid it.  ~~So the
+first column's remainder is entirely the instrument's own blind spot and not
+the file's.~~  **Measured at item 212 and false.**  Narrowing the four
+single-conjunct rows to `_ ∨ False` and building reads FOUR different
+mechanisms, not one — and one of them is a decline:
+
+* `scanValue_ok_park_facts` **DECLINES**, at StreamAccum `L18463`, on one
+  branch of a `split`.  It is not relayed at all; its `Or.inl` and its
+  `Or.inr` are both written in its own proof and both land in the `un` column
+  — which is item 202's KEY, a third time, and not the relay.  **The number
+  that refutes the sentence above is `un=1,1` in the pin below, put there to
+  catch exactly this and read by nobody.**
+* `back_col` relays a structure FIELD of `KmSound`, so what decides it is
+  every site that BUILDS a `KmSound` — items 198 and 200's census, not this
+  one's.
+* `close_col_of_base` relays `back_col` with `Or.imp` and is repaired by
+  narrowing `back_col` alongside it: it pays exactly when `back_col` does, and
+  nothing here can say whether that is.
+* `flowKeyHead` relays into `flowNode_toBlockKey`, which is in
+  `FlowKeyLift` — **another module**, which `subjects` filters out by
+  construction.  The census cannot follow it however hard it looks.
+
+The supply direction now has its own instrument
+(`Tests/Guards/Proofs/RelaySupplyCensus.lean`, item 212), which follows a
+`have` through its beta-redex and a case split into its alternatives.  The
+CONCLUSION direction — these four — is still followed by hand, by narrowing
+and building.
 
 ## The key, and why item 202 had to correct it
 
@@ -63,12 +86,17 @@ more of its sites.
 
 * A conjunct **relayed** with `Or.imp` (`h.imp f id`), or discharged by passing
   a lemma whose own conclusion is the `∨ True`, writes no literal `Or.inl` or
-  `Or.inr` and reads `inl=0 inr=0` — neither paid nor punted.  `flowKeyHead`,
+  `Or.inr` and reads `inl=0 inr=0` — neither paid nor punted.  ~~`flowKeyHead`,
   `back_col`, `close_col_of_base` and `scanValue_ok_park_facts` are the first
-  kind and the two `head` conjuncts are the second, and all six DO pay.  This
-  is the same blind spot item 199 measured in the `[210]` flip, in a second
-  instrument: **a relay is invisible to anything that counts terms**, because
-  it writes the answer down once and the writing is not at either end.
+  kind and the two `head` conjuncts are the second, and all six DO pay.~~
+  **Item 212: three kinds, not one, and `scanValue_ok_park_facts` is not
+  relayed and does not pay — see the correction above.**  The blind spot
+  itself is real, and is the same one item 199 measured in the `[210]` flip, in
+  a second instrument: **a relay is invisible to anything that counts terms**,
+  because it writes the answer down once and the writing is not at either end.
+  Its SIZE is now measured rather than described: 345 of the module's 659
+  optional-premise supply edges, 52 %, are decided somewhere other than the
+  site that writes them (`RelaySupplyCensus`).
 * `inr` counts punt SITES, not "always punted".  A payment that keeps a
   fallback arm — every payment made through a `match` on an optional premise —
   leaves the `inr` count exactly where it was.  Item 201's own payment moved
