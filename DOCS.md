@@ -22567,7 +22567,12 @@ unchanged.  Diffstat: 2 files, 218 insertions / 9 deletions.
 are payable and inert, and they stay punted until something gives their sites a
 stack-shaped source.  In order: **`main`'s flow-open lane** (`pendingContent`,
 `pendingBlockContent`), now half-measured — the census says what its two close
-sites can and cannot pay, and says nothing about the rest of the lane.  Then
+sites can and cannot pay, and says nothing about the rest of the lane.
+**Item 201 measured the rest, and the sentence this list inherited from item 193
+— ~~*the lane carries no value route at all*~~ — is wrong about the LANE:
+`FlowBaseRoutes.vslot` is PAID at three of its seven open sites.  What is true is narrower — the
+shared landing those two parks go through punts it, and for a reason that is the
+PARK's shape rather than a missing field.**  Then
 **the REFUTATION** for `_stamp_compact` (2 sites, measured empty),
 **`KeyPackPunt`'s two reasons** (`dedent` 7/5 and `noKeyContext` 6/5, possibly a
 phantom), then the `pendingFlow` constructor and its arm.  Only then item 183's
@@ -22579,7 +22584,178 @@ APPLICATION SITES.  Neither runs over lemma CONCLUSIONS, so
 `flowKeyRoute_of_root` — which carries a value-line-bottomed resume conjunct and
 punts it because its own input `h_mapF` (item 176) is stream-bottomed — is still
 unmeasured across items 197–200.  **A census over conclusions is the instrument
-that would find it, and nobody has built one.**
+that would find it, and nobody has built one.**  — **built at item 201**
+(`Tests/Guards/Proofs/ConclusionCensus.lean`), which found it to be a class of
+TWO and paid both of `flowKeyRoute_of_root`'s never-paid conjuncts.
+
+### Item 201 (2026-09-18)
+
+**THE CENSUS OVER CONCLUSIONS, AND THE LANE THAT WAS TWO ROWS.**  Branch
+`fix-a-grammar-completeness`, on top of item 200's `123e3313`.
+
+**Re-running the plan sentence — which has ridden eight items.**  Item 200's
+list opened with *`main`'s flow-open lane (`pendingContent`,
+`pendingBlockContent`), now half-measured*, and the sentence behind it has been
+copied forward unchanged since item 193: *`main`'s flow-open lane, which
+carries no value route at all (`pendingContent`, `pendingBlockContent` — a
+LANE, not a field, and still unmeasured)*.  Measured before spending, by a
+census over the lane's seven open sites:
+
+| the sentence | measured | verdict |
+|---|---|---|
+| the lane is `pendingContent`, `pendingBlockContent` | the lane is `accum_flow_open_depth0`, whose NINE arms include those two; its `mk` sites are **7** | a LANE indeed, and bigger than the two |
+| it carries no value route at all | `FlowBaseRoutes.vslot` is **paid at 3 of 7** — `pendingProps`, `pendingBlock`, `pendingMapValue` | **wrong about the LANE** |
+| … (the narrower reading) | the SHARED landing the two content parks go through punts it, and `main` has no parameter for one | **right about those parks** |
+| (unforecast) why | every payer pays it the same way — the park holds an OPEN NODE SLOT and the collection FILLS it.  A content park has completed its node, so the collection would be a SECOND node in the `?` key, which §9.2 refuses | **not a missing field** |
+
+So the lane's `vslot` punt is measured and LEFT, with the measurement written
+beside it.  What the measurement turned up instead is one row down.
+
+**THE INSTRUMENT: A CENSUS OVER CONCLUSIONS.**  Items 198 and 199 asked each
+park CONSTRUCTOR whether it carried both bottoms; item 200 asked their
+APPLICATION SITES which fields they paid.  All three items closed with the same
+sentence — *a census over conclusions is the instrument that would find it, and
+nobody has built one*.  Built here, and landed as a GATE rather than a
+scratch script (`Tests/Guards/Proofs/ConclusionCensus.lean`): split each
+constant's type into its binder telescope and its CONCLUSION, collect the
+`_ ∨ True` components of the conclusion, and read the value for an `Or.inl` and
+an `Or.inr` of each.  Over `StreamAccum`:
+
+| | lemmas | conclusion conjuncts | with a paying arm | never paid |
+|---|---|---|---|---|
+| at `123e3313` | 16 | 24 | **13** | **11** |
+| here | 16 | 24 | **15** | **9** |
+
+**And its first reading is a structural fact nobody had stated.**  Three
+constants carry more than one optional conjunct, and they are one lemma seen
+three ways: `flowKeyRoute_of_open` (5), `flowKeyRoute_of_root` (5) and the field
+that carries both (`FlowBaseRoutes.key`, 5).  **Conclusion-level optionality in
+this module is the flow-key lane and nothing else** — which is why items 197–200
+kept arriving at `flowKeyRoute_of_root` from four different directions and none
+of their instruments could say whether it was one site or a class.  It is a
+class of two.
+
+**ITEM 200'S LESSON AT THE CONCLUSION LEVEL.**  Of `flowKeyRoute_of_root`'s
+five, two read `inl=0`: item 96's value-line PAIR and item 120's value-line
+RESUME (the conjunct item 197 named and items 198–200 each recorded as out of
+reach).  The pair's recorded reason reads *the ROOT's entry has no enclosing
+value line — its sibling `: v` is `[187]`'s own next entry, not a `[188]` close*,
+and that is true of the `rootMapRoute` arm it was written at and no longer true
+of the LEMMA: item 176 gave it a RESUME arm, and a mapping keyed at a level the
+park names can stand inside a `?` frame.  Item 197 read the neighbouring
+CASCADE, 198 the neighbouring FIELD, 200 the neighbouring field's PAYMENT TERM;
+this reads the lemma's own CONCLUSION, and finds a reason that describes one
+arm of four.
+
+**Both are paid, off ONE new premise.**  `flowKeyRoute_of_root` gains the
+value-line-bottomed twin of item 176's `h_mapF` (`h_mapFV`, last, so the
+argument order stands), and:
+
+* the RESUME is item 176's landing spend verbatim, one bottom over —
+  `ResumeFrames` is bottom-polymorphic since item 108 and `resumeAt` gates on
+  MEMBERSHIP, not on the bottom, so `resumeMapRouteF` (already bottom-parametric)
+  carries it across the keyed entry unchanged;
+* the PAIR is that resume's own bottom, by `ResumeFrames.close` — **at ANY
+  stack**, which is exactly the difference from item 200's three
+  measured-and-left punts.  Those were payable only at `ks = []`, where the
+  consumer's `resumeAt` gate can spend nothing; this one is paid at the stack
+  the park was holding.
+
+The funders are the fields already on the two content parks —
+`pendingContent.h_framesV` (paid since item 108, and bound to `_` at this very
+arm until now, which is item 198's finding a third time) and
+`pendingBlockContent.h_closeFV` (built at item 198, reaching the flow open for
+the first time).  **Net +0 definitions** — declarations unchanged at **8570** —
++1 lemma parameter, +1 relay parameter on the lane's shared landing, +0
+constructor fields.
+
+**Non-vacuity, machine-checked** (`BlockDeferralClasses` §20).  §20.1 is item
+197's sentence as a refutation — the STREAM-bottomed input cannot stand in for
+the value-line conjunct; §20.2 is the resume, paid, off a `[k]` stack that names
+the landing width; §20.3 is the pair off the same source by `close`, beside a
+`fail_if_success` that the stream-bottomed twin item 176 already pays cannot
+close to a value line through the same term.  Both refutations were run with
+the bottom SWAPPED as a positive control, and both then reported *the tactic
+provided to `fail_if_success` succeeded but was expected to fail* — so neither
+is vacuous, and neither hides an inner `by` (item 200's gotcha).
+
+**The instrument's two blind spots, measured rather than assumed.**  An
+instrument that counts syntax misses what syntax hides, and this one misses two
+things in opposite directions.  (i) A conjunct RELAYED with `Or.imp` writes no
+literal `Or.inl` or `Or.inr` and reads `inl=0 inr=0` — `flowKeyHead`,
+`back_col`, `close_col_of_base` and `scanValue_ok_park_facts` are exactly that,
+and all four DO pay.  **That is item 199's blind spot in a second instrument**:
+a relay is invisible to anything that counts terms, because it writes the answer
+once and the writing is at neither end.  (ii) The `inr` column counts punt
+SITES, not *always punted*: a payment made through a `match` on an optional
+premise leaves a fallback arm standing, and this item's own payment moved both
+rows `inl=0 → inl=1` with `inr=2 → inr=2`.  **So the number to read is the
+first column**, and the gate pins both.
+
+**The domain, measured at the runtime before the payment was priced.**  A flow
+collection keying a level that stands inside a still-open `?` frame —
+`?⏎  a: 1⏎  [1]: b⏎: w` and its mapping twin `{x: y}: b`, with a sibling entry
+after it (`d: 3`) and at two rungs (`?⏎  ?⏎    a: 1⏎    [1]: b⏎  j: 2⏎: w`), all
+accepted; the BLOCK twin `?⏎  a: 1⏎  c: b⏎: w`, paid since item 192, which is
+what says the flow lane was the one missing; and the controls — the same
+collection with no frame (`a: 1⏎[1]: b`, item 176's row, unmoved) and the
+CONTENT-park shapes that reach this landing with no level to key
+(`"x"⏎[1, 2]`, `? "x"⏎  [1]⏎: v`, `?⏎  k:⏎    - x⏎  [1]⏎: w`), all refused as
+`invalidBareDocument` — which is what `vslot` stays punted for.  **Zero runtime
+edits**; the matrix binaries were not rebuilt.
+
+**Gates.**  Full build **1163** jobs (1162 + the new census module), ZERO
+warnings; `run-all-tests.sh` **4520/4520** (`adversarialinstantiation`
+**2441/2441**), Production Coverage **837/837**; `eventscore` **347/358** (252
+event-pass, 11 event-diff, 0 event-reject, 95 error-ok, 0 error-miss);
+`suiterunner` **869 / 0 / 151**; `matrix_score.py` over the 402-leaf data form
+on BOTH pipelines, **402/402 event** (`pass` 308, `err-ok` 94) and **282/282
+JSON** (`pass` 279, `err-ok` 3, `skip` 120), splits identical to 176–200,
+pre-flight error-marker count **95** (`find data -name error`); the `[210]` flip
+at **FIVE** errors, StreamAccum **4444**, **5724**, **5747**, **5916**, **7404**
+— the same five sites since item 194, at line numbers UNMOVED from items
+199–200 because this item added no line above 9273 (predicted before the run and
+confirmed by it) — applied and restored, with `lake build` before the next
+measurement (item 200's olean gotcha); `#print axioms` over
+`flowKeyRoute_of_root`, `flowKeyRoute_of_open`, `accum_flow_open_depth0`,
+`accum_step_flow`, `flowKeyPack_of_close`, `flowVPack_of_close` and
+`resumeMapRouteF`, no `sorryAx`; checkers 228/355, 20/230/249/355, 25 capstones,
+annotation verifier 100 % coverage (211/211 rules) with the same **19**
+pre-existing name mismatches.  **And the new gate's own negative control**: the
+census re-pinned at item 200's numbers throws, so it would have caught this
+payment's absence.
+
+**Counts, at `123e3313` and here, each under the recipe that produced it** —
+declarations `grep -rhoE "^(private )?(lemma|theorem|def|abbrev|instance|structure|inductive|class) " L4YAML`:
+**8570 → 8570** (+0); `#guard` tokens `grep -rho "#guard" L4YAML Tests`:
+**8020 → 8030** (+10); test files `find Tests -name '*.lean'`: **621 → 622**
+(+1, the census).  The LANE census's own recipe, for re-derivation: the `mk`/
+`mkv` applications inside `accum_flow_open_depth0` (**7**), with the third
+component of each `FlowBaseRoutes` bundle read positionally — `vslot` paid at
+`pendingProps`, `pendingBlock`, `pendingMapValue` and punted at the shared
+landing, the `noPending` arm, the `pendingDocStart` arm and `pendingFlow`'s drop
+ride.  Diffstat: 4 files changed + 1 added, 230 insertions / 13 deletions.
+
+**What remains.**  The lane is measured and its `vslot` punt is NOT a work item
+— it is refused at §9.2 for the parks that reach it, and stays punted until a
+park with an open node slot reaches that landing.  `flowKeyRoute_of_OPEN`'s four
+never-paid conjuncts ARE the next row, and the census now states them: its
+LANDING arm punts three (pair, stream resume, value-line resume) and its compact
+arm two, with the recorded reason *both arms' routes end in the closed stream*
+— a claim about the file, of exactly the kind items 197–201 have now found stale
+four times, and unmeasured.  Then **the REFUTATION** for `_stamp_compact` (2
+sites, measured empty), **`KeyPackPunt`'s two reasons** (`dedent` 7/5 and
+`noKeyContext` 6/5, possibly a phantom), then the `pendingFlow` constructor and
+its arm.  Only then item 183's flip order.  And the parked Ix Step-1
+composition, on the Ix track's own clock.
+
+**And the instrument that is now missing.**  Three censuses run: over park
+CONSTRUCTORS (198), over their APPLICATION SITES (200), over lemma CONCLUSIONS
+(201).  All three count TERMS, and all three are blind to a relay — measured
+here, and measured at item 199 in the flip.  **Four instruments, one blind spot,
+and it is the one that hides a producer.**  What would see through it is a
+census that follows a conjunct's VALUE through the relays that carry it, and
+nobody has built one.
 
 ### REMAINING, in order
 

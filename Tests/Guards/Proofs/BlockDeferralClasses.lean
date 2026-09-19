@@ -7,7 +7,7 @@ Copyright (c) 2026. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 -/
 
-/-! # The block-indicator escape, by CLASS and by ROUTE (DOCS items 184–200)
+/-! # The block-indicator escape, by CLASS and by ROUTE (DOCS items 184–201)
 
 `block_dispatch_deferred` is `PendingNode.pendingFlow`'s only producer, so
 R3 — row 12's β.5 deletion — is the emptying of this escape.  Its applications
@@ -2571,5 +2571,134 @@ accepted reading it has always had — the payment rides and nothing moves: -/
 
 #guard pins "- - a\nb: 2\n" == ("scan-refused L4YAML.ScanError.trailingContent 1 0", "ERR L4YAML.ScanError.trailingContent 1 0")
 #guard pins "k:\n  - - a\n" == ("scan-accepted", "+STR +DOC +MAP =VAL :k +SEQ +SEQ =VAL :a -SEQ -SEQ -MAP -DOC -STR")
+
+/-! ## §20  The census over CONCLUSIONS (item 201)
+
+Items 198–200 ran two censuses over the park family: 198's over park
+CONSTRUCTORS, 200's over their APPLICATION SITES.  Both items recorded that
+neither reaches a lemma's own CONCLUSION, and both named the same unmeasured
+row — `flowKeyRoute_of_root`, which carries a value-line-bottomed resume
+conjunct and punts it.  **A census over conclusions is the instrument that
+would find it, and nobody has built one.**  This is that instrument
+(`Tests/Guards/Proofs/ConclusionCensus.lean`, gated on its own pinned rows): split each constant's type into its binder telescope and its
+conclusion, collect the `… ∨ True` components of the CONCLUSION, and read the
+value for an `Or.inl` and an `Or.inr` of each.  Over `StreamAccum` it reads
+**16 lemmas / 24 conclusion conjuncts**, and it moved here:
+
+| | conjuncts with a paying arm | never paid |
+|---|---|---|
+| at `123e3313` | **13** | **11** |
+| here | **15** | **9** |
+
+**And the two it moved are the whole finding.**  The census's three
+multi-conjunct rows are `flowKeyRoute_of_open` (5), `flowKeyRoute_of_root` (5)
+and the field that carries them (`FlowBaseRoutes.key`, 5) — conclusion-level
+optionality in this module is the flow-key lane and nothing else.  Of
+`flowKeyRoute_of_root`'s five, two read `inl=0`: the value-line PAIR (item 96's)
+and the value-line RESUME (item 120's, item 197's named non-finding).  Both are
+paid here, off ONE new premise.
+
+**The punt's recorded reason was a claim about the file, and went stale** —
+item 200's lesson at the conclusion level.  The pair's reason reads *the ROOT's
+entry has no enclosing value line — its sibling `: v` is `[187]`'s own next
+entry, not a `[188]` close*, which is true of the `rootMapRoute` arm it was
+written at and no longer true of the LEMMA: item 176 gave it a RESUME arm, and
+a mapping keyed at a level the park names can stand inside a `?` frame.
+`?⏎  a: 1⏎  [1]: b⏎: w` is accepted, keys the width-2 level, and still owes the
+frame's `: w`.
+
+**§20.1 — what the stream bottom cannot do.**  Item 197's sentence, machine-
+checked: the input `flowKeyRoute_of_root` had is `ResumeFrames` at the STREAM
+bottom, and no amount of it is the value line. -/
+
+example {sp_start sp_scan : SurfPos} {_nv : Nat} {ks : List Nat}
+    (_fS : ∀ sp_m : SurfPos, SSLComments sp_scan sp_m →
+      ResumeFrames (SLYamlStream sp_start) ks sp_m) : True := by
+  fail_if_success
+    have : ∀ sp_m : SurfPos, SSLComments sp_scan sp_m →
+        ResumeFrames (ExplValueLine sp_start _nv) ks sp_m :=
+      _fS
+  trivial
+
+/-! **§20.2 — the resume, paid.**  `ResumeFrames` is bottom-polymorphic since
+item 108 and `resumeAt` gates on MEMBERSHIP, not on the bottom — so the
+value-line twin of item 176's landing spend is that spend verbatim, one bottom
+over, and `resumeMapRouteF` (already bottom-parametric) carries it across the
+keyed entry. -/
+
+example {sp_start sp_mid sp_key : SurfPos} {nv w : Nat} {ks : List Nat}
+    (hmem : w ∈ ks)
+    (h_ind : SIndent w sp_mid sp_key)
+    (fV : ResumeFrames (ExplValueLine sp_start nv) ks sp_mid) :
+    ∃ (nv : Nat) (ks' : List Nat), (∀ k' ∈ ks', k' < w) ∧
+      ∀ sp_v : SurfPos, SBlockMapEntry w sp_key sp_v →
+      ∀ sp_e : SurfPos, SCompactMapTail w sp_v sp_e →
+      ResumeFrames (ExplValueLine sp_start nv) ks' sp_e :=
+  match fV.resumeAt hmem with
+  | ⟨ks', h_w, cont⟩ => ⟨nv, ks', h_w.lt, resumeMapRouteF h_ind cont⟩
+
+/-! **§20.3 — and the PAIR is the resume's own bottom**, which is the second
+conjunct for free: `ResumeFrames.close` runs every level down with its empty
+tail and reaches whatever the bottom owes, **at any stack**.  That is the
+difference from item 200's three measured-and-left punts — those were payable
+only at `ks = []`, where the consumer's `resumeAt` gate can spend nothing; this
+one is paid at the stack the park was holding. -/
+
+example {sp_start sp_mid sp_key : SurfPos} {nv w : Nat} {ks : List Nat}
+    (hmem : w ∈ ks)
+    (h_ind : SIndent w sp_mid sp_key)
+    (fV : ResumeFrames (ExplValueLine sp_start nv) ks sp_mid) :
+    ∃ ns : List Nat, ∀ nv ∈ ns,
+      ∀ sp_v : SurfPos, SBlockMapEntry w sp_key sp_v →
+      ∀ sp_e : SurfPos, SCompactMapTail w sp_v sp_e →
+      ∀ sp_i sp_c : SurfPos, SIndent nv sp_e sp_i → GLit ':' sp_i sp_c →
+      ∀ sp_w : SurfPos, SBlockIndented nv .blockOut sp_c sp_w →
+      SLYamlStream sp_start sp_w :=
+  match fV.resumeAt hmem with
+  | ⟨_ks', _, cont⟩ =>
+      ⟨[nv], frameChainOne (a := nv)
+        (fun sp_v h_entry sp_e h_tail =>
+          (resumeMapRouteF h_ind cont sp_v h_entry sp_e h_tail).close)⟩
+
+/-! …and the STREAM-bottomed twin beside it, which item 176 already pays, cannot
+close to a value line through the same term — so the pair needed the new
+premise and not a re-reading of the old one: -/
+
+example {sp_start sp_mid sp_key : SurfPos} {_nv w : Nat} {ks' : List Nat}
+    (_h_ind : SIndent w sp_mid sp_key)
+    (_cont : ∀ sp_e : SurfPos, SCompactMapTail w sp_mid sp_e →
+      ResumeFrames (SLYamlStream sp_start) ks' sp_e) : True := by
+  fail_if_success
+    have : ∀ sp_v : SurfPos, SBlockMapEntry w sp_key sp_v →
+        ∀ sp_e : SurfPos, SCompactMapTail w sp_v sp_e →
+        ExplValueLine sp_start _nv sp_e :=
+      fun sp_v h_entry sp_e h_tail =>
+        (resumeMapRouteF _h_ind _cont sp_v h_entry sp_e h_tail).close
+  trivial
+
+/-! **The domain**, measured at the runtime before the payment was priced — a
+flow collection keying a level that stands inside a still-open `?` frame, at
+one rung and at two, with a sibling entry after it and with a dedent between
+it and the frame's `:`; the mapping twin of the same shape; and the BLOCK twin,
+which has been paid since item 192 and is what says the flow lane was the one
+missing: -/
+
+#guard pins "?\n  a: 1\n  [1]: b\n: w\n" == ("scan-accepted", "+STR +DOC +MAP +MAP =VAL :a =VAL :1 +SEQ [] =VAL :1 -SEQ =VAL :b -MAP =VAL :w -MAP -DOC -STR")
+#guard pins "?\n  a: 1\n  {x: y}: b\n: w\n" == ("scan-accepted", "+STR +DOC +MAP +MAP =VAL :a =VAL :1 +MAP {} =VAL :x =VAL :y -MAP =VAL :b -MAP =VAL :w -MAP -DOC -STR")
+#guard pins "?\n  a: 1\n  [1]: b\n  d: 3\n: w\n" == ("scan-accepted", "+STR +DOC +MAP +MAP =VAL :a =VAL :1 +SEQ [] =VAL :1 -SEQ =VAL :b =VAL :d =VAL :3 -MAP =VAL :w -MAP -DOC -STR")
+#guard pins "?\n  ?\n    a: 1\n    [1]: b\n  j: 2\n: w\n" == ("scan-accepted", "+STR +DOC +MAP +MAP +MAP =VAL :a =VAL :1 +SEQ [] =VAL :1 -SEQ =VAL :b -MAP =VAL : =VAL :j =VAL :2 -MAP =VAL :w -MAP -DOC -STR")
+#guard pins "?\n  a: 1\n  c: b\n: w\n" == ("scan-accepted", "+STR +DOC +MAP +MAP =VAL :a =VAL :1 =VAL :c =VAL :b -MAP =VAL :w -MAP -DOC -STR")
+
+/-! …and the CONTROLS.  Without the frame the same collection keys the root's
+own mapping, which is item 176's row and unmoved; and the shapes that reach
+this landing with a CONTENT park and no level to key are refused at §9.2 before
+any of this runs — which is what `FlowBaseRoutes.vslot` stays punted for at the
+shared landing, measured and left: -/
+
+#guard pins "a: 1\n[1]: b\n" == ("scan-accepted", "+STR +DOC +MAP =VAL :a =VAL :1 +SEQ [] =VAL :1 -SEQ =VAL :b -MAP -DOC -STR")
+#guard pins "a: 1\n[1]: b\nc: 2\n" == ("scan-accepted", "+STR +DOC +MAP =VAL :a =VAL :1 +SEQ [] =VAL :1 -SEQ =VAL :b =VAL :c =VAL :2 -MAP -DOC -STR")
+#guard pins "\"x\"\n[1, 2]\n" == ("scan-refused L4YAML.ScanError.invalidBareDocument 1 0", "ERR L4YAML.ScanError.invalidBareDocument 1 0")
+#guard pins "? \"x\"\n  [1]\n: v\n" == ("scan-refused L4YAML.ScanError.invalidBareDocument 1 2", "ERR L4YAML.ScanError.invalidBareDocument 1 2")
+#guard pins "?\n  k:\n    - x\n  [1]\n: w\n" == ("scan-refused L4YAML.ScanError.invalidBareDocument 3 2", "ERR L4YAML.ScanError.invalidBareDocument 3 2")
 
 end L4YAML.Tests.Guards.BlockDeferralClasses

@@ -3,6 +3,7 @@ import Tests.Guards.Parity.IndexedScanAndParse
 import Tests.Guards.Proofs.BlockCollectionWidthFloor
 import Tests.Guards.Proofs.BodySuccSeqDiscriminator
 import Tests.Guards.Proofs.CommentRoundTrip
+import Tests.Guards.Proofs.ConclusionCensus
 import Tests.Guards.Proofs.ContentParkColumn
 import Tests.Guards.Proofs.DescendIHProjectionProbe
 import Tests.Guards.Proofs.DumpRoundTrip

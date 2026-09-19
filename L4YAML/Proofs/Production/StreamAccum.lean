@@ -9326,7 +9326,21 @@ lemma flowKeyRoute_of_root {m : Nat} {sp_start sp_scan sp_prep : SurfPos}
     -- the empty tail); every other caller punts.
     (h_mapF : (∃ ks : List Nat,
       ∀ sp_m : SurfPos, SSLComments sp_scan sp_m →
-      ResumeFrames (SLYamlStream sp_start) ks sp_m) ∨ True) :
+      ResumeFrames (SLYamlStream sp_start) ks sp_m) ∨ True)
+    -- **Item 201: and the VALUE-LINE-bottomed twin beside it, which is what
+    -- the conclusion's own two punts were waiting for.**  Item 176 gave this
+    -- lemma the park's still-open mapping levels at the STREAM bottom, and the
+    -- two conjuncts below that ask for the same levels under an open `[186]`
+    -- explicit key stayed punted for the recorded reason that *the ROOT's
+    -- entry has no enclosing value line* — true of the `rootMapRoute` arm the
+    -- reason was written at, and no longer true of the lemma: item 176's
+    -- RESUME arm keys a mapping at a level the park names, and that level can
+    -- stand inside a `?` frame (`?⏎  a: 1⏎  [1]: b⏎: w`, accepted).  The
+    -- payers are `pendingContent.h_framesV` and `pendingBlockContent.h_closeFV`
+    -- (read at the empty tail), exactly as `h_mapF`'s are their stream twins.
+    (h_mapFV : (∃ (nv : Nat) (ks : List Nat),
+      ∀ sp_m : SurfPos, SSLComments sp_scan sp_m →
+      ResumeFrames (ExplValueLine sp_start nv) ks sp_m) ∨ True) :
     (∃ (k : Nat) (sp_key : SurfPos),
       (∀ sp_v, SBlockMapEntry k sp_key sp_v → SLYamlStream sp_start sp_v) ∧
       (∀ sp_end, SFlowContent m .flowOut sp_prep sp_end →
@@ -9389,6 +9403,21 @@ lemma flowKeyRoute_of_root {m : Nat} {sp_start sp_scan sp_prep : SurfPos}
             exact Or.inl ⟨ks', h_w.lt, cont⟩
           · exact Or.inr trivial
         · exact Or.inr trivial
+      -- ═══ **Item 201: the landing's value-line resume, the same spend one
+      -- bottom over.**  `ResumeFrames` is bottom-polymorphic (item 108) and
+      -- `resumeAt` gates on MEMBERSHIP, not on the bottom — so the twin is
+      -- `h_res_land` verbatim at `ExplValueLine sp_start nv`, and the frame
+      -- that survives the landing is the `?` the collection's level stands
+      -- inside. ═══
+      have h_resV_land : (∃ (nv : Nat) (ks' : List Nat), (∀ k' ∈ ks', k' < w) ∧
+          ∀ sp_end : SurfPos, SCompactMapTail w sp_mid sp_end →
+            ResumeFrames (ExplValueLine sp_start nv) ks' sp_end) ∨ True := by
+        rcases h_mapFV with ⟨nv, ks, fV⟩ | _
+        · by_cases hmem : w ∈ ks
+          · obtain ⟨ks', h_w, cont⟩ := (fV sp_mid h_land.1).resumeAt hmem
+            exact Or.inl ⟨nv, ks', h_w.lt, cont⟩
+          · exact Or.inr trivial
+        · exact Or.inr trivial
       refine Or.inl ⟨w, sp_prep,
         (match h_res_land, h_sfx, h_nodoc with
          | Or.inl ⟨_, _, cont⟩, _, _ => resumeMapRoute h_ind' cont
@@ -9398,7 +9427,19 @@ lemma flowKeyRoute_of_root {m : Nat} {sp_start sp_scan sp_prep : SurfPos}
              rootMapRoute_or_refused h_ref_land h_land.2.1
                (h_close (dangling_none_of_check h_dn h_ska_land) sp_mid h_land.1) h_ind'),
         flowKeyHead, ?_,
-        Or.inr trivial,
+        -- **Item 201: the value-line PAIR, closed off the resume below.**
+        -- `ResumeFrames.close` runs every level down with its empty tail and
+        -- reaches whatever the bottom owes, at ANY stack — so the pair is the
+        -- twin's own bottom and costs no second premise (`?⏎  a: 1⏎  [1]: b⏎: w`
+        -- resolves the collection's entry and still owes the `?`'s `: w`).
+        -- The chain is one rung here for item 196's reason: this lemma names
+        -- one frame, and the ancestors above it ride the park's own list.
+        (match h_resV_land with
+         | Or.inl ⟨nv, _, _, cont⟩ =>
+             Or.inl ⟨[nv], frameChainOne (a := nv)
+               (fun sp_v h_entry sp_e h_tail =>
+                 (resumeMapRouteF h_ind' cont sp_v h_entry sp_e h_tail).close)⟩
+         | Or.inr _ => Or.inr trivial),
         -- Item 176: the entries-level twin rides on EVERY arm now — item
         -- 120's punt-gate ("the bare flow key at a level's own column is
         -- §8.1-refused") expired at item 172 — so the park made after this
@@ -9417,7 +9458,15 @@ lemma flowKeyRoute_of_root {m : Nat} {sp_start sp_scan sp_prep : SurfPos}
              Or.inl ⟨[], fun _ h => absurd h (List.not_mem_nil),
                rootMapRouteF_or_refused h_ref_land h_land.2.1
                  (h_close (dangling_none_of_check h_dn h_ska_land) sp_mid h_land.1) h_ind'⟩),
-        Or.inr trivial⟩
+        -- **Item 201: and the VALUE-LINE twin of the line above**, off the
+        -- park's own `h_framesV`/`h_closeFV` rather than off `h_mapF` — which
+        -- is why item 197 could name this conjunct and not pay it: the input
+        -- it had was stream-bottomed, and a stream bottom cannot be widened
+        -- into a value line (§19.3's refusal at `BlockDeferralClasses`).
+        (match h_resV_land with
+         | Or.inl ⟨nv, ks', h_lt, cont⟩ =>
+             Or.inl ⟨nv, ks', h_lt, resumeMapRouteF h_ind' cont⟩
+         | Or.inr _ => Or.inr trivial)⟩
       rw [landing_or_park_save h_noflow h_land.2.2 h_park h_preprocess,
         ← hcorr_prep.col_eq]
       have := SIndent_col' h_ind'
@@ -10337,6 +10386,15 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
       ((∃ ks : List Nat,
         ∀ sp_m : SurfPos, SSLComments sp_scan sp_m →
         ResumeFrames (SLYamlStream sp_start) ks sp_m) ∨ True) →
+      -- **Item 201: the same levels under an open `[186]` explicit key.**  The
+      -- shared landing hands `flowKeyRoute_of_root` both bottoms now, so a
+      -- collection that keys a level standing inside a `?` frame carries that
+      -- frame's value line across the bracket (`?⏎  a: 1⏎  [1]: b⏎: w`).  The
+      -- two content parks pay (`h_framesV`, `h_closeFV` at the empty tail);
+      -- the marker parks take their own arms and `pendingFlow` has nothing.
+      ((∃ (nv : Nat) (ks : List Nat),
+        ∀ sp_m : SurfPos, SSLComments sp_scan sp_m →
+        ResumeFrames (ExplValueLine sp_start nv) ks sp_m) ∨ True) →
       ∃ sp_gram' sp_block' sp_flow' sp_scan',
         SLYamlStream sp_start sp_gram' ∧
         BlockStack sp_gram' sp_block' ∧
@@ -10346,7 +10404,7 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
         ((1 : Nat) ≥ 1 →
           InteriorGap s' (tailOf s'.tokens) sp_flow' sp_scan' ∧
           LastTokenReal s'.tokens ∧ s'.allowDirectives = false) := by
-    intro h_close h_nobreak h_sfx h_tail143 h_mapF176
+    intro h_close h_nobreak h_sfx h_tail143 h_mapF176 h_mapFV201
     rcases preprocess_flow_thread sc sp_scan sp_prep s_prep c h_corr hcorr_prep h_preprocess
         h_noflow_prep h_park with
       ⟨sp_mid, h_ssl, hws, h_ska⟩ | ⟨hcol, hws⟩
@@ -10375,7 +10433,23 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
                -- crossed a break, and the other never reaches `mk`.
                flowKeyRoute_of_root (Or.inr trivial) h_noflow_prep h_park h_close h_dn h_corr
                  hcorr_prep h_preprocess h_sfx (Or.inr trivial) h_bare h_base h_tail143
-                 h_mapF176,
+                 h_mapF176 h_mapFV201,
+               -- **Item 201: `vslot` stays punted here, and the reason is the
+               -- PARK's shape rather than a missing field.**  The lane's seven
+               -- open sites pay the frame's explicit-key route at three
+               -- (`pendingProps`, `pendingBlock`, `pendingMapValue`) and punt
+               -- it at four, and every payer pays it the same way: the park
+               -- holds an OPEN NODE SLOT and the collection FILLS it, so the
+               -- park's own value line wraps `SBlockNode.flowInBlock` and
+               -- comes out as the `?`'s key.  A park this arm serves has
+               -- already completed its node, so the collection after the break
+               -- is a SECOND node in the key — which §9.2 refuses before any
+               -- of this runs (`? "x"⏎  [1]⏎: v`, `?⏎  k:⏎    - x⏎  [1]⏎: w`,
+               -- pinned at `BlockDeferralClasses` §20).  So this punt is not a
+               -- gap of the same kind as the two paid above, and the sentence
+               -- carried from item 193 — *`main`'s flow-open lane carries no
+               -- value route at all* — is wrong about the LANE and right about
+               -- these parks.
                Or.inr trivial⟩),
              PendingNode.noPending sp_start sp_open (Or.inr (inFlow_of_flowLevel_eq h_fl1))
                (Or.inr (inFlow_of_flowLevel_eq h_fl1))
@@ -10463,21 +10537,26 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
                h_corr hcorr_prep h_preprocess (Or.inr trivial)
                (Or.inl (fun sp_m h_ssl =>
                  ssl_comments_extend_prefixes (h_nodoc h_scflow) h_ssl))
-               h_bare h_base (Or.inr trivial) (Or.inr trivial),
+               h_bare h_base (Or.inr trivial) (Or.inr trivial) (Or.inr trivial),
              Or.inr trivial⟩),
            PendingNode.noPending sp_start sp_open (Or.inr (inFlow_of_flowLevel_eq h_fl1))
                (Or.inr (inFlow_of_flowLevel_eq h_fl1))
                (nodoc_of_flowLevel_succ h_fl1) (noek_of_flowLevel_succ h_fl1), hcorr_open, fun _ => ⟨.white (GStar.nil _) h_sync h_colon h_opencol, h_real, h_ad⟩⟩
-  | pendingContent _ _ _ h_line _ _ _ _ _ h_frS176 _ _ h_tail143 =>
+  | pendingContent _ _ _ h_line _ _ _ _ _ h_frS176 h_frV201 _ h_tail143 =>
     -- Item 37: §7.5's set weakens to item 10's here, exactly as `[204]`'s does.
     -- Item 143: …and this park's producer finished a node, so it PAYS §9.2's
     -- tail reading (`"x"⏎[1, 2]`, `a⏎# c⏎[1, 2]`).
     -- Item 176: …and its still-open mapping levels, for the sibling flow-key
     -- resume (`a: 1⏎[1]: b`); the cover the field carries is forgotten at
     -- this door, as at the openers (item 173).
+    -- Item 201: …and the same levels under an open `?`, which is the field
+    -- item 198's census found bound to `_` right here (`h_framesV`, paid since
+    -- item 108): `?⏎  a: 1⏎  [1]: b⏎: w` keys the level the landing names and
+    -- still owes the frame's `: w`.
     exact main h_close_pending (refuted (h_line.imp id LineNodeStop.toLineNoOpen))
       (Or.inr trivial) (Or.inl h_tail143)
       (h_frS176.imp (fun ⟨ks, _, f⟩ => ⟨ks, f⟩) id)
+      (h_frV201.imp (fun ⟨nv, ks, _, f⟩ => ⟨nv, ks, f⟩) id)
   | pendingDocEnd _ _ _ h_line h_marker _ =>
     -- Item 36: `[204]`'s suffix set weakens to item 10's at the CONSUMER.
     -- ═══ Item 118: the `...` park pays the flow open's suffix face — the
@@ -10495,8 +10574,10 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
       (Or.inr trivial)
       -- Item 176: a `...` park keeps no mapping level open — the suffix
       -- closed the document — so the suffix face above is the honest route.
-      (Or.inr trivial)
-  | pendingBlockContent _ _ _ n176 h_line _ _ _ _ _ _ h_closeF176 _ h_tail143 =>
+      -- Item 201: and no `?` frame stands over a closed document either.
+      (Or.inr trivial) (Or.inr trivial)
+  | pendingBlockContent _ _ _ n176 h_line _ _ _ _ _ _ h_closeF176 _ h_tail143 _ _
+      h_cFV201 =>
     -- Item 176: the entry-level face read at the EMPTY tail is the
     -- landing-level face (item 110's own spend), so `k:⏎  - x⏎[1]: b`
     -- resumes the level the sequence stands in.
@@ -10504,11 +10585,16 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
       (Or.inr trivial) (Or.inl h_tail143)
       (h_closeF176.imp (fun ⟨ks, _, _, closeF⟩ =>
         ⟨ks, fun sp_m h_ssl => closeF sp_m h_ssl sp_m (SCompactSeqTail.nil n176 sp_m)⟩) id)
+      -- Item 201: item 197's own field, at the same empty tail — the sequence
+      -- lane's value-line resume (`h_closeFV`, built at item 198) reaches the
+      -- flow open for the first time here.
+      (h_cFV201.imp (fun ⟨nv, ks, closeFV⟩ =>
+        ⟨nv, ks, fun sp_m h_ssl => closeFV sp_m h_ssl sp_m (SCompactSeqTail.nil n176 sp_m)⟩) id)
   | pendingFlow =>
     -- The deferred state: its own closing strategy is the drop, and the flow
     -- node opened here keeps riding it (β.5 retires this with pendingFlow, R3).
     exact main h_close_pending opaque_resume (Or.inr trivial) (Or.inr trivial)
-      (Or.inr trivial)
+      (Or.inr trivial) (Or.inr trivial)
   | pendingProps _ _ _ ha ht sp_node sp_p n h_sep_run h_run h_nic_p h_real_p h_anchor_p h_tag_p
       h_route h_pkey h_floor_p h_col0_p h_ncol_p h_ska_p h_kslot_p =>
     -- Items 9h/10, site 5's legal inhabitant: the held `[96]` run rides INTO
