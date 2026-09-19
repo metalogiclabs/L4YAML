@@ -23891,6 +23891,141 @@ side — a number an instrument DID produce is not thereby a measurement, and th
 only way to find out is to make it print what it counted.
 
 
+### Item 209 (2026-09-19)
+
+**RING 1'S SEVENTH ARM IS PAID, `pendingBlock.h_park_top` IS REQUIRED, AND
+`block_dispatch_deferred_stamp_compact` IS DELETED** — the escape family loses
+a wrapper and two of its eleven sites, and what deletes them is item 204's own
+refutation, fired at last.  Item 208's NEXT carried one instruction ahead of
+the work: *the six `*_open_map` lemmas' own ring is NOT measured, and that
+census is item 209's first act, not its assumption.*  It was the first act.  It
+moved two numbers, and the larger of the two cut the item in half.
+
+**A price is a claim about an OBJECT as much as about a unit.**  Item 208
+priced the compact fill's carrier at **1** payer → a top field on
+`pendingMapValue` with **6** producers → an unmeasured ring.  The **6** is the
+right answer to "how many sites build this constructor" and the wrong answer to
+"how many sites owe this carrier", because the consumer does not read a field:
+the compact fill reads the top only where there IS a slot to fill, and
+`h_vslot`'s left disjunct is where the slot is stated.  So the honest carrier is
+a CONJUNCT on that disjunct, and a new instrument
+(`scripts/mv_slot_top_price.py`) prices it at **3** — `question_open_map`,
+`colon_open_map_explicit`, `compact_open_map`.  That is item 197's rule (*a
+field that asks its payer for more than its consumer reads is a field nobody
+can pay*) run backwards, as a pricing rule.
+
+**The three that fall away are the three that would have been hardest**, and
+the reason was already written down one field over.  `colon_open_map`,
+`colon_open_map_implicit` and `colon_open_map_props` pay `h_vslot` nothing —
+item 125 recorded why: `[189]`'s value is `s-l+block-node`, which has no
+compact alternative, so there is no slot for a compact `-`/`?`/`:` to fill.
+The same grammar fact makes their `scanValuePrepare` push at the KEY's column
+rather than the indicator's, which is the one shape whose top needs a premise
+STRONGER than the dispatch floor — and a further ring on `pendingContent` and
+`pendingProps` to fund it.  **The item that priced the carrier over all six
+producers was pricing the two rings it did not need.**
+
+**Ring 3, measured** (`scripts/open_map_price.py`, NEW): **6** call sites
+across **4** declarations for the three producers that owe — 20 raw errors, 11
+of them cascades — against **9** across **6** had the carrier been a field.
+Item 208's sentence "not one of those six holds the dispatch floor" is true of
+the six and misses what sits above two of them: `indicator_open_map` has
+carried `s_prep.currentIndent ≤ s_prep.col` since item 147, as the third
+conjunct of the OPTIONAL `h_cov` bundle, and the option's right arm is the park
+AT a line start — which item 208 closed at every one of its four callers.  The
+floor stops being a bundle's passenger and becomes a required premise.
+
+**Every payment in ring 3 is item 208's own field spent one lemma further
+out.**
+
+| caller | what pays the dispatch floor |
+|---|---|
+| `accum_block_on_noPending` → `indicator_open_map` | `noPending.h_ntop` — the seed's empty stack |
+| `accum_block_on_closeThenBlock` → `indicator_open_map`, `colon_open_map_explicit` | `dash_landing_floor` off item 207's `h_nic0` |
+| `accum_block_on_pendingBlockContent` → both | the same |
+| `accum_block_on_pendingBlock` → both | `landing_floor_of_arm` — the park is at `n + 1`, never at a line start |
+| `accum_block_on_closeThenBlock` → `compact_open_map` | the SLOT's own top, the new `h_vslot` conjunct |
+| `accum_block_on_pendingBlock` → `compact_open_map` | `pendingBlock.h_park_top`, now required |
+
+The last two close the chain on itself: the carrier the compact fill spends is
+the carrier the compact fill's own park hands on, one park later.  One new
+lemma carries all six — `indicator_top_kv_at_col`,
+`indicator_top_dash_at_col`'s twin on `[187]`'s and `[196]`'s openers, with
+`landing_or_park_save`'s fresh save deciding that the `:`'s push is at its own
+column.
+
+**The seventh arm, and the class it was bought to empty.**  With the conjunct
+in hand the compact fill reads its floor off the slot exactly as the inline arm
+at `accum_block_on_pendingBlock` reads its off the park — no break was crossed,
+so `dash_dispatch_floor`'s PARK disjunct is the live one — and
+`pendingBlock.h_park_top` becomes REQUIRED, all seven producers paying.  That
+is what makes `compact_deferral_refuted` firable.  Item 204 PROVED that
+refutation and could spend neither of its two missing facts; both are here now:
+
+* the park's own stack top — ring 1's seventh arm, and
+* `s_prep.indents = sc.indents` on a break-less step — **item 204's second
+  finding, a datum proved by `preprocess_some_ssl_comments_anyCol` and dropped
+  by `preprocess_some_ssl_comments_landing` when it repackaged.**  The
+  splitter's mid arm carries it again, which cost one conjunct and two
+  projections.
+
+`[197]`'s test is `col = currentIndent`; at a compact fill the park stands one
+column past its entry's index, the white run only moves the indicator further
+right, and the stack is the park's own — so `currentIndent ≤ n < n + 1 ≤ col`
+and the branch is entered on an equation nothing satisfies.  Both sites are now
+`(compact_deferral_refuted …).elim`, the wrapper is deleted, and
+`FlipConsumerSurface`'s DEFERRAL census reports the shape its own docstring
+predicted for an emptying class: **the wrapper leaves the list.**
+
+**The runtime says the same thing, and says it discriminatingly**
+(`BlockDeferralClasses` §28.3, 20 new `#guard`s).  §27.3 read
+`(col, currentIndent)` at every state a scan REACHES and found the dispatch
+floor everywhere; the refutation needs the STRICT form, and only where
+preprocessing stayed on the line.  `prepRow` reads the PREPROCESSED state at
+every dispatch and splits by whether the walk crossed a line: over 14 shapes,
+**50** same-line dispatches, **50** of them strictly floored, and **15**
+crossed dispatches of which **12** are EQUAL — the configuration `[197]`'s test
+is satisfiable at, and the one the compact class was read as holding inline.
+Both halves asserted, so neither can pass vacuously.
+
+**Gates.**  `lake build` **1165** jobs, zero warnings; `scripts/run-all-tests.sh`
+**4520/4520**; `lake exe eventscore` **347/358** (252 event-pass, 95 error-ok,
+0 error-miss, 0 event-reject); `lake exe suiterunner` **869 passed / 0 failed /
+151 skipped**; `scripts/matrix_score.py --axis both --only L4YAML` **402/402
+event** (308 pass, 94 err-ok) and **282/282 JSON** (279 pass, 3 err-ok, 120
+skip) on BOTH the legacy and the indexed pipelines.
+
+**Counts.**  Declarations `grep -rhoE "^(private )?(lemma|theorem|def|abbrev|instance|structure|inductive|class) " L4YAML`: **8593 → 8594**
+(+2 — `indicator_top_kv_at_col`, `compact_deferral_refuted` — and −1, the
+deleted wrapper); `#guard` tokens `grep -rho "#guard" L4YAML Tests`:
+**8109 → 8129** (+20, §28.3); test files `find Tests -name '*.lean'`:
+**624 → 624**.  Zero runtime edits.
+
+**What remains.**  The 12 landing sites, and then the wrapper goes — that is
+the next item and its price is the one number this item did not re-derive.
+After that: **`KeyPackPunt`'s two reasons** (`dedent` 7/5, `noKeyContext` 6/5,
+possibly a phantom), item 183's flip order (`pendingFlow`'s constructor and arm
+first, for item 183's OWN reason: `CompletedTail` is FALSE at that park by
+construction), and the parked Ix Step-1 composition on the Ix track's own
+clock.  Still open from item 201: a census that follows a conjunct's VALUE
+through the relays that carry it, and the unattributed-site pins the 198/200/201
+censuses still lack.
+
+**The instrument ledger, eleven rows, and the eleventh asks what an instrument
+is pointed AT.**  Item 208 found that an instrument's UNIT is part of its claim
+— a number that counts the compiler's complaints is counting a proof's prose.
+This item is the same screw one turn further: the unit was right (producers,
+collapsed correctly) and the OBJECT was wrong.  **A carrier is priced by the
+producers of the thing its CONSUMER reads, and a constructor is not that thing
+whenever the consumer reads a disjunct.**  The check is cheap and this item is
+the recipe: before pricing a carrier, write down which premise the consumer
+destructures, and price THAT.  Item 204's two-finding record is the other half
+of the lesson — it named both gaps in its refutation, and the second one (a
+datum proved upstream and discarded by its reader) sat unspent for five items
+because nothing indexed it.  **A gap named in a comment is a measurement
+nobody has scheduled.**
+
+
 ### REMAINING, in order
 
 The per-item history is the closure log above; this section lists only the
@@ -23966,8 +24101,9 @@ reason for the same order**: `_stamp_compact`'s carrier needs a field on
 `block_dispatch_deferred` itself — so the escape's own park has to go before
 the carrier that would empty the escape can be paid.~~  **Withdrawn at
 [item 206](#item-206-2026-09-19)**, which paid that field: the escape's park
-carries it now, at all eleven of the escape's entrances, so it imposes no order
-at all.  The order above stands on item 183's reason alone.
+carries it now, at all eleven of the escape's entrances (**nine since
+[item 209](#item-209-2026-09-19)** deleted the compact wrapper), so it imposes
+no order at all.  The order above stands on item 183's reason alone.
 
 **The structural fact the plan hangs on** (measured at item 35): `pendingFlow`
 has exactly one producer — `block_dispatch_deferred` itself — and carries only

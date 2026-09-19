@@ -62,7 +62,9 @@ Both partitions and the input families they serve are documented at
 [`BlockDeferralClasses`](BlockDeferralClasses.lean).
 
 **Item 186 took the first site out, and a whole ROW with it.**  Twelve
-applications across five consumer lemmas are now **ELEVEN across FOUR**:
+applications across five consumer lemmas are now ~~**ELEVEN across FOUR**~~
+**NINE across FOUR** (item 209 deleted `block_dispatch_deferred_stamp_compact`,
+whose class is refuted, and with it two of the eleven):
 `accum_block_on_noPending` reached the escape once, on the undecided stamp
 source, and `noPending`'s new `h_noek` — a virgin block-context park is the
 stream's seed, so its explicit-key register is dead — decides that source
@@ -116,7 +118,10 @@ def deferral : List Name :=
   [`block_dispatch_deferred,
    `block_dispatch_deferred_stamp_offcol,
    `block_dispatch_deferred_stamp_nopack,
-   `block_dispatch_deferred_stamp_compact,
+   -- ~~`block_dispatch_deferred_stamp_compact`~~ — **the wrapper LEFT the list
+   -- at item 209**, which is the shape the docstring above named: a class does
+   -- not empty by its total drifting, it empties by its wrapper going away.
+   -- Both of its sites are now `compact_deferral_refuted … |>.elim`.
    `block_dispatch_deferred_inline]
 
 /-- What empties the inline-residue class: the implicit-key pack's two
@@ -205,7 +210,8 @@ Each `rootMapRoute_or_refused` row is paired with its entries-level twin
 
 /-! ## §3  The deferral beside it
 
-FOUR definitions, ELEVEN applications (item 186 — five and twelve before it).
+FOUR definitions, ~~ELEVEN~~ **NINE** applications (item 186 — five and twelve
+before it; item 209 — the compact wrapper's two, refuted and gone).
 `pendingFlow` is not a `[210]`
 construction site and never appears in the flip's five errors — it is the park
 whose arms have nothing to pay the landing faces WITH, so it keeps the guards'
@@ -368,8 +374,8 @@ All three lanes, in one walk of the module. -/
        "flowKeyRoute_of_root: rootMapRoute_or_refused=1 rootMapRouteF_or_refused=1",
        "question_open_map: rootMapRoute_or_refused=1 rootMapRouteF_or_refused=1"]⟩,
     ⟨⟨"DEFERRAL", deferral, deferral.map (ns ++ ·)⟩,
-      ["accum_block_on_closeThenBlock: block_dispatch_deferred_stamp_offcol=1 block_dispatch_deferred_stamp_nopack=1 block_dispatch_deferred_stamp_compact=1 block_dispatch_deferred_inline=1",
-       "accum_block_on_pendingBlock: block_dispatch_deferred_stamp_offcol=1 block_dispatch_deferred_stamp_nopack=1 block_dispatch_deferred_stamp_compact=1",
+      ["accum_block_on_closeThenBlock: block_dispatch_deferred_stamp_offcol=1 block_dispatch_deferred_stamp_nopack=1 block_dispatch_deferred_inline=1",
+       "accum_block_on_pendingBlock: block_dispatch_deferred_stamp_offcol=1 block_dispatch_deferred_stamp_nopack=1",
        "accum_block_on_pendingBlockContent: block_dispatch_deferred_stamp_offcol=1 block_dispatch_deferred_stamp_nopack=1 block_dispatch_deferred_inline=1",
        "accum_content_pending: block_dispatch_deferred=1"]⟩,
     ⟨⟨"PACK PUNT", packPunt,

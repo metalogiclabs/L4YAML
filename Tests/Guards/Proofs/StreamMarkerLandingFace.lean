@@ -53,7 +53,8 @@ terms gives `accum_block_on_closeThenBlock` from `rootBlockSeq = 3` to
 `content_dispatch_routed = 3` to `= 5`, and `colon_open_map`,
 `question_open_map` and `content_dispatch_routed` each gaining the `marker`
 twins beside the `root`, `suffix` and `nodoc` ones.  The `implicitContinue`
-application count is UNMOVED at eleven and the constructor flip still gives
+application count is UNMOVED at eleven (NINE since item 209) and the
+constructor flip still gives
 nine errors at the same nine lemmas: this item moves callers, it deletes no
 site.  What it does delete is a family — `pendingDocStart` no longer reaches
 any fallback arm from any landing.

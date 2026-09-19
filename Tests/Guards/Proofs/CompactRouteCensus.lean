@@ -3,6 +3,14 @@ import L4YAML.Scanner.Scanner
 /-!
 # The COMPACT route's emptiness, re-measured at the runtime (item 204)
 
+> **ITEM 209: the route is GONE.**  `block_dispatch_deferred_stamp_compact` is
+> deleted and both of its sites are `compact_deferral_refuted … |>.elim`.  What
+> this module measured is therefore no longer a property of a live escape
+> class; it is the corpus evidence that stood behind the refutation while the
+> refutation was unspendable, and it stays as that.  The proof's own runtime
+> reading is `BlockDeferralClasses` §28.3, which measures the STRICT floor at
+> the preprocessed state — the fact `[197]`'s equation needs and never gets.
+
 `block_dispatch_deferred_stamp_compact`'s two sites are reached by a `:` whose
 dispatch state has the stamp source UNDECIDED — the explicit-key register live,
 the cleared key not surviving, and the `:` standing at `explicitKeyCol` — and

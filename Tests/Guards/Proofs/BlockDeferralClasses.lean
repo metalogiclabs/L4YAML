@@ -12,7 +12,8 @@ Released under Apache 2.0 license as described in the file LICENSE.
 `block_dispatch_deferred` is `PendingNode.pendingFlow`'s only producer, so
 R3 — row 12's β.5 deletion — is the emptying of this escape.  Its applications
 have been counted since item 183 (`FlipConsumerSurface`, FOUR definitions and
-ELEVEN applications — five and twelve before item 186), and the count is not
+~~ELEVEN~~ **NINE** applications — five and twelve before item 186, eleven
+before item 209 refuted the compact class), and the count is not
 the price: an escape's price is its DOMAIN, and the two are independent in both
 directions (Reflection 645).
 
@@ -225,26 +226,14 @@ example {sc s_prep : ScannerState} {c : Char}
     else s_prep).explicitKeyLine = sc.explicitKeyLine :=
   ekl_dis_eq_park h
 
-/-- `compact`: the stamp branch AND the inline residue, which is what says the
-    two classes overlap at these two sites. -/
-example (sp_start sp_X sp_scan' sp_park : SurfPos) (s' s_dis : ScannerState)
-    (c : Char)
-    (h_stream : SLYamlStream sp_start sp_X)
-    (h_arm : s'.simpleKeyAllowed = true ∨ 0 < sp_scan'.col)
-    (hcorr : ScannerSurfCorr s' sp_scan')
-    (h_nodir : s'.allowDirectives = false)
-    (h_src : StampBranch s_dis)
-    (h_indent : (s_dis.col : Int) = s_dis.currentIndent)
-    (h_res : InlineResidue sp_park c)
-    (h_nic0 : sp_scan'.col = 0 → s'.needIndentCheck = true) :
-    ∃ sp_gram' sp_block' sp_flow' sp_scan'',
-      SLYamlStream sp_start sp_gram' ∧
-      BlockStack sp_gram' sp_block' ∧
-      FlowStackB sp_start 0 0 none 0 #[] #[] .sep sp_block' sp_flow' ∧
-      PendingNode s' false sp_start sp_flow' sp_scan'' ∧
-      ScannerSurfCorr s' sp_scan'' :=
-  block_dispatch_deferred_stamp_compact sp_start sp_X sp_scan' s' h_stream h_arm
-    hcorr h_nodir h_src h_indent h_res h_nic0
+/-! ~~`compact`: the stamp branch AND the inline residue, which is what says the
+    two classes overlap at these two sites.~~  **Item 209 deleted the wrapper**
+    — the overlap was real and the class was empty, so what stands in its place
+    is the refutation rather than a pin of its premise.  The two facts item 204
+    could not spend are `pendingBlock.h_park_top` (ring 1's seventh arm) and the
+    mid-line step's stack, which `preprocess_some_ssl_comments_landing` now
+    carries; §28 pins both. -/
+
 
 /-- The inline class's premise is `inline_residue_of_landing`'s conclusion: the
     park is off column 0 and only `s-white` stands between it and the
@@ -3035,13 +3024,17 @@ open L4YAML.Proofs.PreprocessIndentStable L4YAML.Proofs.CouplingBridge
 open L4YAML.Proofs.TabIndentBridge L4YAML.Proofs.IndentStackCover
 
 /-! ### §23.1  The refutation, PROVED — to exactly one premise
+~~(stated here)~~ — **MOVED INTO PRODUCTION at item 209 and SPENT**
 
 Stated over what the two sites already produce: `inline_residue_of_landing`'s
 own four arguments, the park's column, the stack surviving the break-less step,
-and `explicit_at_indent_of_dispatch`'s equation at the dispatch state.  The one
-premise the sites do NOT hold is `h_top`. -/
+and `explicit_at_indent_of_dispatch`'s equation at the dispatch state.  ~~The
+one premise the sites do NOT hold is `h_top`.~~  **They hold it now**, and they
+hold `h_stable` too — item 204 named both gaps and item 209 closed both, so the
+lemma lives in `StreamAccum` beside the escape it empties and the two sites end
+in `.elim`.  What stays here is the pin that it is the SAME statement. -/
 
-lemma compact_deferral_refuted {sc s_prep : ScannerState}
+example {sc s_prep : ScannerState}
     {sp_scan sp_mid sp_ws sp_p : SurfPos} {n : Nat} {c : Char}
     (h_mid : sp_mid = sp_scan ∧ sp_scan.col ≠ 0)
     (hws : GStar SSWhite sp_mid sp_ws)
@@ -3050,32 +3043,18 @@ lemma compact_deferral_refuted {sc s_prep : ScannerState}
     (hpeek : s_prep.peek? = some c)
     -- the park's own column: the entry index plus the indicator
     (h_col_old : sp_scan.col = n + 1)
-    -- the break-less step: `preprocess_some_ssl_comments_anyCol` PROVES this and
-    -- `…_landing` drops it on the floor when it repackages (item 204's second
-    -- finding — a datum proved upstream and discarded by its own reader, which
-    -- is what `explicit_at_indent_of_dispatch` does to `s.line ≠ ekLine`)
+    -- the break-less step, which `preprocess_some_ssl_comments_landing` carries
+    -- since item 209 (item 204's second finding: a datum proved upstream and
+    -- discarded by its own reader)
     (h_stable : s_prep.indents = sc.indents)
-    -- **THE CARRIER, and the whole price of this class**
+    -- **THE CARRIER** — `pendingBlock.h_park_top`, required since item 209
     (h_top : sc.currentIndent ≤ (n : Int))
     (h_indent : ((if s_prep.allowDirectives then
         { s_prep with allowDirectives := false, documentEverStarted := true }
       else s_prep).col : Int) = (if s_prep.allowDirectives then
         { s_prep with allowDirectives := false, documentEverStarted := true }
-      else s_prep).currentIndent) : False := by
-  have h_eq : sp_p = sp_ws := h_pk.resolve_right (by simp [hpeek])
-  have h_upd_col : (if s_prep.allowDirectives then
-      { s_prep with allowDirectives := false, documentEverStarted := true }
-    else s_prep).col = s_prep.col := by split <;> rfl
-  have h_upd_ind : (if s_prep.allowDirectives then
-      { s_prep with allowDirectives := false, documentEverStarted := true }
-    else s_prep).indents = s_prep.indents := by split <;> rfl
-  rw [h_upd_col, currentIndent_of_indents_eq h_upd_ind] at h_indent
-  obtain ⟨ws, _, _, hcol⟩ := gstar_sswhite_run (h_mid.1 ▸ hws)
-  have h1 : sp_p.col = s_prep.col := hcorr.col_eq
-  have h2 : s_prep.currentIndent = sc.currentIndent :=
-    currentIndent_of_indents_eq h_stable
-  rw [h_eq] at h1
-  omega
+      else s_prep).currentIndent) : False :=
+  compact_deferral_refuted h_mid hws h_pk hcorr hpeek h_col_old h_stable h_top h_indent
 
 /-! ### §23.2  The carrier is LOAD-BEARING
 
@@ -3176,7 +3155,7 @@ Paying the seven settles which is which, and all seven do pay:
 | `accum_block_on_noPending` | a new `h_ntop` on `noPending`: 8 producers, 7 refuting `inFlow = false` as they already do for `h_col`/`h_arm`/`h_noek`, and the seed paying `mk'`'s empty stack | **LANDED at item 208** — and the 8 is an instrument's now (§27) |
 | `accum_block_on_closeThenBlock`, landed | `dash_landing_floor` — free off a park off a line start, and item 154's `h_nic0` at a park on one | **PAID at item 208**, off item 207's field |
 | `accum_block_on_pendingBlockContent`, landed | the same | **PAID at item 208** |
-| `accum_block_on_closeThenBlock`, compact fill | ~~`pendingMapValue.h_vslot`'s own conjunct (item 204's other six)~~ | ~~not measured here~~ — **MEASURED at item 208** and it is not one number but three: 1 payer, then a 6-producer field, then a ring under that (§27) |
+| `accum_block_on_closeThenBlock`, compact fill | ~~`pendingMapValue.h_vslot`'s own conjunct (item 204's other six)~~ | ~~not measured here~~ — **MEASURED at item 208** (1 payer, then a ~~6~~-producer field, then a ring under that, §27) and **PAID at item 209**, where the field's price turned out to be **3** and the ring **6** (§28).  Item 204's phrase was right after all: the conjunct IS `h_vslot`'s |
 
 So the first ring closes at 7 + 8 = 15, and two of the seven leave a premise
 owed.  That premise — `sp_scan.col = 0 → sc.needIndentCheck = true`, item 154's
@@ -3331,12 +3310,14 @@ recorded the re-entry as the price.  The re-entry is real; the price was not.
 
 `PendingNode.pendingFlow` now carries item 154's flag
 (`sp_scan.col = 0 → sc.needIndentCheck = true`), REQUIRED rather than optional,
-and all ELEVEN of the escape's application sites pay it:
+and all ELEVEN of the escape's application sites pay it (**NINE since item
+209**, which refuted `_stamp_compact`'s class and deleted the wrapper — its two
+sites were block-indicator ones, so the split below becomes 8 + 1):
 
 | entrance                                    | sites | pays with |
 |---------------------------------------------|-------|-----------|
 | `_stamp_offcol` / `_stamp_nopack`            | 3 + 3 | `nic0_of_block_dispatch` |
-| `_stamp_compact` / `_inline`                 | 2 + 2 | `nic0_of_block_dispatch` |
+| ~~`_stamp_compact`~~ / `_inline`             | ~~2~~ + 2 | `nic0_of_block_dispatch` |
 | `block_dispatch_deferred` itself             | 1     | `content_park_nic_any` |
 
 Ten of the eleven are BLOCK-indicator dispatches, and a block indicator is one
@@ -3680,7 +3661,7 @@ item 204 proved `block_dispatch_deferred_stamp_compact`'s class FALSE without.
 | ring 1's producers | 7 | **7** | — (`scripts/park_top_price.py ring1`) |
 | `noPending`'s producers | 8 | **8** | right number, never re-derived; the naive census says **11** |
 | the blanket closure floor | 52 | **49** | the same three errors, counted as producers |
-| the compact fill's price | "item 204's other six" | **1** payer → a field with **6** producers | two different questions, one number |
+| the compact fill's price | "item 204's other six" | **1** payer → a field with **6** producers | two different questions, one number (and the **6** is itself corrected to **3** at §28: it priced a field where the carrier is a conjunct) |
 
 **An error is not a producer.**  A constructor application whose arguments are
 `by` blocks reports one failure per broken block, so the raw error list counts
@@ -3709,11 +3690,21 @@ stack the `-` pushes onto is the SLOT's — a number neither the landing nor thi
 park states.  Its price is three rings and all three are measured:
 `scripts/vslot_top_price.py` says **1** payer (`accum_block_pending`'s relay,
 whose raw error list reads five and whose four extras are arms of one tuple);
-that payer needs a top field on `pendingMapValue`, **6** producers, one in each
-`*_open_map` lemma (`scripts/park_top_price.py pendingMapValue`); and not one
-of those six holds the dispatch floor such a field would be built from.  So
-`h_park_top` lands as an OPTION — item 154's shape, for item 154's reason — and
-the arm lands with the ring below it. -/
+that payer needs a top field on `pendingMapValue`, ~~**6** producers, one in
+each `*_open_map` lemma~~ (`scripts/park_top_price.py pendingMapValue`); and
+not one of those six holds the dispatch floor such a field would be built from.
+So `h_park_top` lands as an OPTION — item 154's shape, for item 154's reason —
+and the arm lands with the ring below it.
+
+**Corrected at item 209 (§28).**  The **6** prices a FIELD, and the honest
+carrier is a CONJUNCT on `h_vslot` — read only where there is a slot to fill,
+paid only by the producers that open one, which is **3**
+(`scripts/mv_slot_top_price.py`).  The two that fall away are the implicit-key
+openers, whose push is at the KEY's column rather than the indicator's: the
+price that vanished is also the hardest part of the price that stayed.  Ring 3
+under them is **6** call sites in 4 declarations
+(`scripts/open_map_price.py`) — **9** in 6 if the field is asked of all six
+producers, which is the number a field would have cost. -/
 
 section Item208
 open L4YAML.Proofs L4YAML.Proofs.IndentStackCover
@@ -3863,5 +3854,229 @@ private def punted208 : List String :=
 -- first token is scanned the indent stack is EMPTY and `currentIndent` is -1.
 #guard ((ScannerState.mk' "k:\n  - a\n- b\n").emit .streamStart).currentIndent == -1
 #guard (topStates "k:\n  - a\n- b\n").head? == some (1, -1)
+
+/-! ## §28  The FIRST ring's SEVENTH arm, and the CLASS that goes with it
+    (item 209)
+
+§27 paid six of ring 1's seven and priced the seventh at three rings.  This
+item pays it, makes `pendingBlock.h_park_top` REQUIRED, and spends the number
+on what item 204 bought it for: `block_dispatch_deferred_stamp_compact` is
+DELETED, its two sites replaced by `compact_deferral_refuted … |>.elim`.
+
+**Two of §27's numbers moved, and both moved the same way §27's own did — the
+instrument answered a question nobody had asked.**
+
+| what | §27 recorded | instrument | why it moved |
+|---|---|---|---|
+| the field on `pendingMapValue` | **6** producers | **3** | the **6** prices a FIELD; the carrier is a CONJUNCT on `h_vslot`, read only where there is a slot and paid only by the openers that make one (`scripts/mv_slot_top_price.py`) |
+| the ring under it | "not one of the six holds the floor" | **6** call sites in 4 declarations | true of the six as stated, and the relay above two of them has held the floor since item 147 — inside `h_cov`, as an option (`scripts/open_map_price.py`) |
+
+The three that owe nothing are `colon_open_map`, `colon_open_map_implicit` and
+`colon_open_map_props` — `[189]`'s keyless `:` and the two implicit-key
+openers, which item 125 already recorded as paying `h_vslot` no slot at all
+because `s-l+block-node` has no compact alternative.  They are also exactly the
+two whose `scanValuePrepare` pushes at the KEY's column rather than the
+indicator's, and so the only two whose top would need a premise stronger than
+the dispatch floor.  **The price that fell away was the hard part of the price
+that stayed**, and the reason is a fact about the grammar that was already
+written down one field over.
+
+**Ring 3, and every payment in it is item 208's own field spent one lemma
+further out.**
+
+| caller | what pays the dispatch floor |
+|---|---|
+| `accum_block_on_noPending` → `indicator_open_map` | `noPending.h_ntop` — the seed's empty stack |
+| `accum_block_on_closeThenBlock` → `indicator_open_map`, `colon_open_map_explicit` | `dash_landing_floor` off item 207's `h_nic0` |
+| `accum_block_on_pendingBlockContent` → both | the same |
+| `accum_block_on_pendingBlock` → both | `landing_floor_of_arm` — the park is at `n + 1`, never at a line start |
+| `accum_block_on_closeThenBlock` → `compact_open_map` | the SLOT's own top, the new `h_vslot` conjunct |
+| `accum_block_on_pendingBlock` → `compact_open_map` | `pendingBlock.h_park_top`, now required |
+
+The last two are the chain closing on itself: the carrier that the compact fill
+spends is the carrier the compact fill's own park hands on.
+
+**And what it buys.**  `h_park_top` required makes `compact_deferral_refuted`
+firable, and firing it deletes a wrapper.  Item 204 proved that refutation and
+could spend neither of its two missing facts; §28.1 is the pair, §28.2 is the
+class, §28.3 is the same claim at the runtime. -/
+
+section Item209
+open L4YAML.Proofs L4YAML.Proofs.IndentStackCover
+
+/-! ### §28.1  The two facts item 204 could not spend
+
+The first is ring 1's seventh arm.  The second is a conjunct
+`preprocess_some_ssl_comments_anyCol` has always concluded and
+`preprocess_some_ssl_comments_landing` dropped when it repackaged — item 204's
+own second finding, a datum proved upstream and discarded by its reader. -/
+
+/-- The seventh arm: an inline `-` off an open slot, its top read off the
+    slot's.  No break was crossed, so `dash_dispatch_floor`'s PARK disjunct is
+    the live one and the slot's bound is the dispatch's floor a fortiori. -/
+example {sc s_prep s' : ScannerState} {sp_scan sp_prep : SurfPos} {nv m : Nat}
+    (h_slot_top : sc.currentIndent ≤ (nv : Int))
+    (h_col_vslot : sp_scan.col = nv + 1)
+    (h_ind : SIndent m sp_scan sp_prep)
+    (h_base : IndentStackBase.SentinelBase sc)
+    (hcorr_prep : ScannerSurfCorr s_prep sp_prep)
+    (h_preprocess : scanNextToken_preprocess sc = .ok (some (s_prep, '-')))
+    (h_dispatch : scanNextToken_dispatchBlockIndicators
+        (if s_prep.allowDirectives then
+          { s_prep with allowDirectives := false, documentEverStarted := true }
+        else s_prep) '-' = .ok (some s')) :
+    s'.currentIndent ≤ ((nv + 1 + m : Nat) : Int) :=
+  indicator_top_dash_at_col (by have := SIndent_col h_ind; omega) hcorr_prep
+    (dash_dispatch_floor h_base
+      (by have hc := (hcorr_prep.col_eq).symm; have := SIndent_col h_ind; omega)
+      h_preprocess)
+    h_dispatch
+
+/-- The same reading at the `?`/`:` openers, which is what `pendingMapValue`'s
+    own conjunct is built from: `[187]`'s push is at the indicator's column and
+    `[196]`'s at the key's, and a FRESH save makes them the same column. -/
+example {s_prep s' : ScannerState} {sp_prep : SurfPos} {k : Nat} {c : Char}
+    (hc : c = ':' ∨ c = '?')
+    (hcol_prep : sp_prep.col = k)
+    (hcorr_prep : ScannerSurfCorr s_prep sp_prep)
+    (h_save : s_prep.simpleKey.pos.col = s_prep.col)
+    (h_noflow : (if s_prep.allowDirectives then
+        { s_prep with allowDirectives := false, documentEverStarted := true }
+      else s_prep).inFlow = false)
+    (h_fl : s_prep.currentIndent ≤ (s_prep.col : Int))
+    (h_dispatch : scanNextToken_dispatchBlockIndicators
+        (if s_prep.allowDirectives then
+          { s_prep with allowDirectives := false, documentEverStarted := true }
+        else s_prep) c = .ok (some s')) :
+    s'.currentIndent ≤ (k : Int) :=
+  indicator_top_kv_at_col hc hcol_prep hcorr_prep h_save h_noflow h_fl h_dispatch
+
+/-- The dropped conjunct, recovered: with the park's flag down, the landing
+    splitter now says EITHER a break was crossed — a column-0 landing — OR the
+    stack the dispatch reads is the park's own, untouched.  That second arm is
+    the fact `compact_deferral_refuted` spends, and until this item the
+    splitter's mid arm dropped it on the floor. -/
+example {sc s_prep : ScannerState} {sp : SurfPos} {c : Char}
+    (hcorr : ScannerSurfCorr sc sp)
+    (hok : scanNextToken_preprocess sc = .ok (some (s_prep, c)))
+    (h_nic : sc.needIndentCheck = false) :
+    (∃ sp_mid, SSLComments sp sp_mid ∧ sp_mid.col = 0) ∨
+      s_prep.indents = sc.indents := by
+  obtain ⟨sp_mid, _, _, h_disj, _, _, _, _⟩ :=
+    preprocess_some_ssl_comments_landing sc sp s_prep c hcorr hok
+  rcases h_disj with ⟨h_ssl, h_c0, _⟩ | ⟨_, _, _, h_ids⟩
+  · exact Or.inl ⟨sp_mid, h_ssl, h_c0⟩
+  · exact Or.inr (h_ids h_nic)
+
+/-! ### §28.2  The class is EMPTY, and the emptiness is a PROOF
+
+`[197]`'s test is `col = currentIndent`.  At a compact fill the park stands one
+column past its entry's index, the white run only moves the indicator further
+right, and the step crossed no break — so the stack is the park's own and its
+top is at or left of the index.  `currentIndent ≤ n < n + 1 ≤ col`, and the
+branch is entered on an equation nothing satisfies. -/
+
+example {sc s_prep : ScannerState}
+    {sp_scan sp_mid sp_ws sp_p : SurfPos} {n : Nat} {c : Char}
+    (h_mid : sp_mid = sp_scan ∧ sp_scan.col ≠ 0)
+    (hws : GStar SSWhite sp_mid sp_ws)
+    (h_pk : sp_p = sp_ws ∨ s_prep.peek? = none)
+    (hcorr : ScannerSurfCorr s_prep sp_p)
+    (hpeek : s_prep.peek? = some c)
+    (h_col_old : sp_scan.col = n + 1)
+    (h_stable : s_prep.indents = sc.indents)
+    (h_top : sc.currentIndent ≤ (n : Int))
+    (h_indent : ((if s_prep.allowDirectives then
+        { s_prep with allowDirectives := false, documentEverStarted := true }
+      else s_prep).col : Int) = (if s_prep.allowDirectives then
+        { s_prep with allowDirectives := false, documentEverStarted := true }
+      else s_prep).currentIndent) : False :=
+  compact_deferral_refuted h_mid hws h_pk hcorr hpeek h_col_old h_stable h_top
+    h_indent
+
+/-- …and the arithmetic is NOT vacuous: drop `h_top` and the same three facts
+    are satisfiable, which is §23.2's model restated at the number this item
+    supplies. -/
+example : ¬ (∀ (ci : Int) (col n : Nat),
+    col = n + 1 → (col : Int) = ci → False) := by
+  intro h; exact h 1 1 0 rfl rfl
+
+end Item209
+
+/-! ### §28.3  The same claim at the RUNTIME
+
+§27.3 read the pair `(col, currentIndent)` at every state a scan REACHES and
+found the dispatch floor `currentIndent ≤ col` everywhere.  This item's
+refutation needs the STRICT form, and only where preprocessing stayed on the
+line — which is what makes the measurement discriminating rather than a
+restatement.
+
+`prepRow` reads the PREPROCESSED state at every dispatch and splits the steps
+by whether the walk crossed a line.  Two numbers per shape, and they answer
+opposite questions: on same-line steps the top is STRICTLY left of the column,
+every time; on crossed steps it is often EQUAL, which is the configuration
+`[197]`'s test is satisfiable at and the one the compact class was read as. -/
+
+/-- `(sameLine, s_prep.col, s_prep.currentIndent)` at every dispatch. -/
+private def prepRows (input : String) : List (Bool × Nat × Int) :=
+  let rec go (s : ScannerState) (fuel : Nat) (acc : List (Bool × Nat × Int)) :
+      List (Bool × Nat × Int) :=
+    match fuel with
+    | 0 => acc.reverse
+    | fuel' + 1 =>
+      let acc' := match scanNextToken_preprocess s with
+        | .ok (some (sp, _)) => (sp.line == s.line, sp.col, sp.currentIndent) :: acc
+        | _ => acc
+      match scanNextToken s with
+      | .ok (some s') => go s' fuel' acc'
+      | _ => acc'.reverse
+  go ((ScannerState.mk' input).emit .streamStart) 200 []
+
+/-- `(same-line steps, of those STRICT, crossed steps, of those EQUAL)`. -/
+private def prepRow (input : String) : Nat × Nat × Nat × Nat :=
+  let rs := prepRows input
+  let same := rs.filter (fun r => r.1)
+  let cross := rs.filter (fun r => !r.1)
+  (same.length, (same.filter (fun r => r.2.2 < (r.2.1 : Int))).length,
+   cross.length, (cross.filter (fun r => r.2.2 == (r.2.1 : Int))).length)
+
+-- The three compact fills §27 punted and this item pays.
+#guard prepRow "? - a\n: w\n" == (4, 4, 1, 1)
+#guard prepRow "? ? b\n: w\n" == (4, 4, 1, 1)
+#guard prepRow "? - a\n: - w\n" == (5, 5, 1, 1)
+-- The six arms §27 paid.
+#guard prepRow "- a\n- b\n" == (3, 3, 1, 1)
+#guard prepRow "- - a\n" == (3, 3, 0, 0)
+#guard prepRow "  - a\n  - b\n" == (3, 3, 1, 1)
+#guard prepRow "a: \"x\"\n- b\n" == (3, 3, 1, 1)
+#guard prepRow "- \"x\"\n- b\n" == (3, 3, 1, 1)
+#guard prepRow "---\n- a\n" == (2, 2, 1, 0)
+-- Dedents, a flow run with no unwind at all, and the landed explicit `:`.
+#guard prepRow "k:\n  - a\n- b\n" == (3, 3, 2, 1)
+#guard prepRow "-\n  -\n- b\n" == (2, 2, 2, 1)
+#guard prepRow "a: [1, 2]\n" == (7, 7, 0, 0)
+#guard prepRow "? a\n: b\n" == (3, 3, 1, 1)
+#guard prepRow "? - a\n  - b\n: w\n" == (5, 5, 2, 2)
+
+private def prep209 : List String :=
+  ["? - a\n: w\n", "? ? b\n: w\n", "? - a\n: - w\n", "- a\n- b\n", "- - a\n",
+   "  - a\n  - b\n", "a: \"x\"\n- b\n", "- \"x\"\n- b\n", "---\n- a\n",
+   "k:\n  - a\n- b\n", "-\n  -\n- b\n", "a: [1, 2]\n", "? a\n: b\n",
+   "? - a\n  - b\n: w\n"]
+
+-- THE CLAIM: every same-line dispatch has its top STRICTLY left of its column.
+#guard prep209.all (fun i => (prepRow i).1 == (prepRow i).2.1)
+-- THE CONTROL: equality DOES occur — on crossed steps, twelve times over the
+-- corpus — so the strict claim is a discrimination and not a tautology.
+#guard (prep209.map (fun i => (prepRow i).2.2.2)).sum == 12
+-- …and the corpus really reaches both kinds of step.
+#guard (prep209.map (fun i => (prepRow i).1)).sum == 50
+#guard (prep209.map (fun i => (prepRow i).2.2.1)).sum == 15
+#guard prep209.length == 14
+-- The one row read out in full: the `? - a` fill's three same-line dispatches
+-- at `(0,-1)`, `(2,0)`, `(4,2)` — each strictly floored — and the landing's
+-- own `(0,0)`, which is the equality the class was read as holding inline.
+#guard prepRows "? - a\n: w\n"
+    == [(true, 0, -1), (true, 2, 0), (true, 4, 2), (false, 0, 0), (true, 2, 0)]
 
 end L4YAML.Tests.Guards.BlockDeferralClasses
