@@ -22421,8 +22421,10 @@ unchanged.  Diffstat: 3 files, 216 insertions / 22 deletions.
 
 **What remains.**  The census is closed, so the next items are not census rows.
 In order: the **COMPACT arms** items 198–199 punted with their domains named —
-the `- - a` crossing at `accum_block_on_closeThenBlock` (a `[185]` compactSeq
-rather than a tail cons) and the `? - a` inline fill, neither measured.  Then
+the `- - a` crossing at ~~`accum_block_on_closeThenBlock`~~
+**`accum_block_on_pendingBlock`** (a `[185]` compactSeq rather than a tail
+cons; `closeThenBlock` carries the `? - a` FILL, and item 200 measured which
+lemma holds which) and the `? - a` inline fill, neither measured.  Then
 `main`'s flow-open lane (`pendingContent`, `pendingBlockContent` — a LANE, not a
 field, still unmeasured).  Then **the REFUTATION** for `_stamp_compact` (2
 sites, measured empty), **`KeyPackPunt`'s two reasons** (`dedent` 7/5 and
@@ -22437,6 +22439,147 @@ punts it because its own input `h_mapF` (item 176) is stream-bottomed.  Item
 197 named it, items 198 and 199 both recorded that the instrument does not
 reach it, and it is still not measured.  **A census over conclusions is the
 instrument that would find it, and nobody has built one.**
+
+### Item 200 (2026-09-18)
+
+**PAYABLE IS NOT INFORMATIVE.**  Branch `fix-a-grammar-completeness`, on top of
+item 199's `df6b3e15`.
+
+**Re-running the plan sentence.**  Item 199's list opened with *the COMPACT
+arms items 198–199 punted with their domains named — the `- - a` crossing at
+`accum_block_on_closeThenBlock` (a `[185]` compactSeq rather than a tail cons)
+and the `? - a` inline fill, neither measured*.  Measured before spending:
+
+| the sentence | measured | verdict |
+|---|---|---|
+| the `- - a` crossing is at `accum_block_on_closeThenBlock` | it is at **`accum_block_on_pendingBlock`**; `closeThenBlock` carries the `? - a` FILL | **wrong lemma**, corrected here |
+| the crossing is a `[185]` compactSeq rather than a tail cons | true — and the compactSeq fold is written **twelve lines above the punt**, for `h_kslot` | **right, and it was already paid** |
+| neither is measured | both are, here: 14 accepted shapes and one refused control (`BlockDeferralClasses` §19) | — |
+| (unforecast) how many such punts exist | **four**, of which items 198–199 named two | the instrument found the other two |
+
+**THE INSTRUMENT: an IMPLICATION CENSUS over SITES.**  Items 198–199 asked each
+park CONSTRUCTOR whether it carried both bottoms.  This asks the SITES a
+different question.  Several of the park's fields stand in an implication —
+one IS the other at `ks = []`, because `ResumeFrames P [] sp` is `P sp` under
+one constructor — so wherever a site pays the stronger and punts the weaker,
+the punt is payable by construction: no new datum, no new parameter, no
+measurement.  The pairs over the park family are `h_kslot`/`h_closeFV` (on
+`pendingBlock` and on `pendingBlockContent`), `h_kslotE`/`h_closeFEV`, and
+`h_vpack`/`h_framesV`.  Re-derived from the constructor telescopes and the
+application sites, positionally (the field ORDER is read from the inductive,
+so the census survives any field added LAST):
+
+| pair | sites | pays A, punts B |
+|---|---|---|
+| `pendingBlock` `h_kslot`/`h_closeFV` | 7 | **2** → 1 |
+| `pendingBlockContent` `h_kslot`/`h_closeFV` | 6 | 0 |
+| `pendingProps` `h_kslotE`/`h_closeFEV` | 6 | 0 |
+| `pendingMapValue` `h_kslot`/`h_closeFV` | 6 | 0 |
+| `pendingContent` `h_vpack`/`h_framesV` | 12 | **2** |
+| **TOTAL** | **37** | **4** → 3 |
+
+**The two rows nobody had named are in `accum_step_flow`** — the flow
+collection's close, parking `pendingContent` with `h_vpack` paid and
+`h_framesV` punted.  That is `main`'s flow-open lane, the NEXT entry on item
+199's list, and the census reaches it one item early.
+
+**AND THREE OF THE FOUR ARE NOT WORTH PAYING.**  A payable punt is not a
+spendable payment.  At three of the four sites the only available payment is
+`ks = []` — the park's own `h_kslot`/`h_vpack` restated under
+`ResumeFrames.bottom` — and item 155 had already written why that buys nothing:
+*the lane's cover is unspendable: `ResumeFrames.resumeAt` gates on `j ∈ ks`, so
+a landing can pop to no width an empty list names.*  Machine-checked in §19.2
+with a positive control (a `[k]` stack pops to exactly
+`indicator_open_map`'s `h_resV_land`) and a `fail_if_success` (a `[]` stack
+hands back the frame's value line AT the landing, and the consumer needs it
+past the level's remaining tail).  The two `resumeAt` spends are the only
+eliminators a value-line stack has in this file; every other reader relays it
+verbatim into the next park.  **So the three punts stay, with the measurement
+written beside them** — a restatement would have turned a visible punt into an
+invisible non-payment and cost the census the signal that found it.
+
+**The fourth is paid, and the difference is its SOURCE.**  The nested compact
+`-` parks a `pendingBlock` at `n + 1 + m` inside the outer park's entry, and
+the outer park's own `h_closeFV` — item 198's field — is in scope with whatever
+`ks` it was paid at.  The crossing is the fold `h_kslot` uses twelve lines
+above: the inner entry and its tail become the OUTER park's `[185]` slot, the
+outer tail is `nil`.  The relay carries the outer stack's `ks`, so it is
+spendable exactly when its source is.  **Net +0 definitions, +0 lemma
+parameters, +0 constructor fields** — declarations unchanged at **8570**, and
+the only code added is one `match`.
+
+**ITEM 197'S LESSON, ONE LEVEL FURTHER DOWN.**  Item 197 read a neighbouring
+CASCADE and missed the field beside it; item 198 read the neighbouring FIELD
+and found it bound to `_`.  This item read the neighbouring field's PAYMENT
+TERM — the punt's stated reason (*the crossing is a `[185]` compactSeq rather
+than a tail cons*) was a correct description of a crossing the file already
+performed, three lines up, for a field with the same domain.  A punt's
+recorded reason is a claim about the file and goes stale like any other.
+
+**Two instruments, one number.**  The FLIP on `pendingBlock.h_closeFV` reads
+**15 errors / 12 lines** at `df6b3e15` and **17 / 13** here: it moved by exactly
+the one site the census reported, which is the cross-check that the two
+instruments measure the same thing from opposite ends.  (A flip still cannot be
+read as a census — items 198 and 199 measured both of its blind spots.)
+
+**Non-vacuity, machine-checked.**  §19.1 states the implication at both pairs
+and pins that an empty ancestor list names nothing; §19.2 is the
+control/refutation pair above; §19.3 gives the paid crossing as its own
+`example` and a `fail_if_success` that the STREAM-bottomed field beside it
+cannot stand in through the same fold — which is why item 198's field was the
+one this crossing needed and `h_closeF` was never the answer.
+
+**The domain, measured before the payment was priced.**  The nested compact `-`
+at the root, with a sibling, and with the two things that give the field
+something to carry — a still-open MAPPING level underneath it (`k:⏎  - - a⏎b:
+2`) and a still-open `?` FRAME (`? - - a⏎: w`, `?⏎  k:⏎    - - a⏎  j: 2⏎: w`);
+the three shapes whose punts this item measured and LEFT (`? - a⏎: w`,
+`? {x: y}⏎: w`); and the controls — the nested compact under no frame and no
+level refused as `trailingContent` before any dispatch runs, the same
+collection under a mapping key accepted as always.  **Zero runtime edits** —
+the matrix binaries were not even rebuilt by `lake build`, which is the
+sharpest statement of that available.
+
+**Gates.**  Full build **1162** jobs, ZERO warnings; `run-all-tests.sh`
+**4520/4520** (`adversarialinstantiation` **2441/2441**), Production Coverage
+**837/837**; `eventscore` **347/358** (252 event-pass, 11 event-diff, 0
+event-reject, 95 error-ok, 0 error-miss); `suiterunner` **869 / 0 / 151**;
+`matrix_score.py` over the 402-leaf data form on BOTH pipelines, **402/402
+event** (`pass` 308, `err-ok` 94) and **282/282 JSON** (`pass` 279, `err-ok` 3,
+`skip` 120), splits identical to 176–199, pre-flight error-marker count **95**
+(at `<checkout>/data`, item 199's gotcha); the `[210]` flip at **FIVE** errors,
+StreamAccum **4444**, **5724**, **5747**, **5916**, **7404** — the same five
+sites as items 194–199, at line numbers UNMOVED from item 199 because this item
+added no line above 15000 (a prediction made before the run and confirmed by
+it) — applied and restored clean; `#print axioms` over `accum_block_on_pendingBlock`,
+`accum_block_on_closeThenBlock`, `accum_step_flow`, `accum_block_pending` and
+`resumeFrameRoute`, no `sorryAx`; checkers 228/355, 20/230/249/355, 25
+capstones, annotation verifier 100 % coverage (211/211 rules) with the same
+**19** pre-existing name mismatches.
+
+**Counts, at `df6b3e15` and here, each under the recipe that produced it** —
+declarations `grep -rhoE "^(private )?(lemma|theorem|def|abbrev|instance|structure|inductive|class) " L4YAML`:
+**8570 → 8570** (+0); `#guard` tokens `grep -rho "#guard" L4YAML Tests`:
+**8006 → 8020** (+14); test files `find Tests -name '*.lean'`: **621**,
+unchanged.  Diffstat: 2 files, 218 insertions / 9 deletions.
+
+**What remains.**  The three measured-and-left punts are NOT work items — they
+are payable and inert, and they stay punted until something gives their sites a
+stack-shaped source.  In order: **`main`'s flow-open lane** (`pendingContent`,
+`pendingBlockContent`), now half-measured — the census says what its two close
+sites can and cannot pay, and says nothing about the rest of the lane.  Then
+**the REFUTATION** for `_stamp_compact` (2 sites, measured empty),
+**`KeyPackPunt`'s two reasons** (`dedent` 7/5 and `noKeyContext` 6/5, possibly a
+phantom), then the `pendingFlow` constructor and its arm.  Only then item 183's
+flip order.  And the parked Ix Step-1 composition, on the Ix track's own clock.
+
+**The open instrument is unchanged, and now has a second name.**  Both censuses
+run over the park family: item 198's over CONSTRUCTORS, this one over their
+APPLICATION SITES.  Neither runs over lemma CONCLUSIONS, so
+`flowKeyRoute_of_root` — which carries a value-line-bottomed resume conjunct and
+punts it because its own input `h_mapF` (item 176) is stream-bottomed — is still
+unmeasured across items 197–200.  **A census over conclusions is the instrument
+that would find it, and nobody has built one.**
 
 ### REMAINING, in order
 

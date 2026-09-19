@@ -7,7 +7,7 @@ Copyright (c) 2026. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 -/
 
-/-! # The block-indicator escape, by CLASS and by ROUTE (DOCS items 184–199)
+/-! # The block-indicator escape, by CLASS and by ROUTE (DOCS items 184–200)
 
 `block_dispatch_deferred` is `PendingNode.pendingFlow`'s only producer, so
 R3 — row 12's β.5 deletion — is the emptying of this escape.  Its applications
@@ -2403,5 +2403,173 @@ nothing else moves: -/
 
 #guard pins "- &p a\nb: 2\n" == ("scan-refused L4YAML.ScanError.trailingContent 1 0", "ERR L4YAML.ScanError.trailingContent 1 0")
 #guard pins "k:\n  - &p a\nb: 2\n" == ("scan-accepted", "+STR +DOC +MAP =VAL :k +SEQ =VAL &p :a -SEQ =VAL :b =VAL :2 -MAP -DOC -STR")
+
+/-! ## §19  Payable is not informative (item 200)
+
+Items 198 and 199 closed the bottom census by asking each park CONSTRUCTOR
+whether it carried both bottoms.  This item asks the SITES a different
+question.  Several of the park's fields stand in an implication: one is the
+other at `ks = []`, because `ResumeFrames P [] sp` is `P sp` under one
+constructor.  Wherever a site pays the stronger and punts the weaker, the punt
+is payable by construction — no new datum, no new parameter, no measurement.
+Over the park family the pairs are `h_kslot`/`h_closeFV` (on `pendingBlock` and
+on `pendingBlockContent`), `h_kslotE`/`h_closeFEV`, and `h_vpack`/`h_framesV`,
+and at `df6b3e15` they read FOUR such sites:
+
+| site | pair | payable from | paid here |
+|---|---|---|---|
+| `accum_block_on_pendingBlock` (`- - a`) | `h_kslot`/`h_closeFV` | the enclosing park's OWN stack | **yes** |
+| `accum_block_on_closeThenBlock` (`? - a`) | `h_kslot`/`h_closeFV` | `ks = []` only | no |
+| `accum_step_flow` (`[a]` close) | `h_vpack`/`h_framesV` | `ks = []` only | no |
+| `accum_step_flow` (`{x: y}` close) | `h_vpack`/`h_framesV` | `ks = []` only | no |
+
+Items 198 and 199 named the first two and neither of the last two; the flow
+lane was the NEXT entry on item 199's list and the census reaches it one item
+early.  **But payable is not informative.**  Three of the four can only be paid
+by restating a field the park already carries, and the one door that spends a
+value-line stack cannot use the result.  So only the first is paid, and the
+other three punts keep their `Or.inr trivial` with the measurement written
+beside them — a restatement would hide the gap from the very instrument that
+found it.
+
+**§19.1 — the implication.**  `pendingBlock.h_kslot` IS `h_closeFV` at
+`ks = []`: the payload is `ExplValueLine` spelled out, and `ResumeFrames.bottom`
+is the whole step. -/
+
+example {sp_start sp_scan : SurfPos} {n nv : Nat}
+    (kslot : ∀ sp_m : SurfPos, SBlockIndented n .blockIn sp_scan sp_m →
+      ∀ sp_e : SurfPos, SCompactSeqTail n sp_m sp_e →
+      ∀ sp_i sp_c : SurfPos, SIndent nv sp_e sp_i → GLit ':' sp_i sp_c →
+      ∀ sp_v : SurfPos, SBlockIndented nv .blockOut sp_c sp_v →
+      SLYamlStream sp_start sp_v) :
+    ∃ (nv : Nat) (ks : List Nat),
+      ∀ sp_mid : SurfPos, SBlockIndented n .blockIn sp_scan sp_mid →
+      ∀ sp_end : SurfPos, SCompactSeqTail n sp_mid sp_end →
+      ResumeFrames (ExplValueLine sp_start nv) ks sp_end :=
+  ⟨nv, [], fun sp_mid h_bi sp_end h_tail =>
+    ResumeFrames.bottom sp_end (kslot sp_mid h_bi sp_end h_tail)⟩
+
+/-! …and the flow lane's pair is the same implication with the ancestor LIST in
+front of it (item 191's shape): the list is where it is decided, not the
+payload. -/
+
+example {sp_start sp_scan : SurfPos} {ns : List Nat} {nv : Nat} (hmem : nv ∈ ns)
+    (vpack : ∀ nv ∈ ns, ∀ sp_mid sp_i sp_c : SurfPos, SSLComments sp_scan sp_mid →
+      SIndent nv sp_mid sp_i → GLit ':' sp_i sp_c →
+      ∀ sp_v : SurfPos, SBlockIndented nv .blockOut sp_c sp_v →
+      SLYamlStream sp_start sp_v) :
+    ∃ (nv : Nat) (ks : List Nat),
+      ∀ sp_mid : SurfPos, SSLComments sp_scan sp_mid →
+      ResumeFrames (ExplValueLine sp_start nv) ks sp_mid :=
+  ⟨nv, [], fun sp_mid h_ssl =>
+    ResumeFrames.bottom sp_mid
+      (fun sp_i sp_c h_iv h_lit sp_v h_sbi =>
+        vpack nv hmem sp_mid sp_i sp_c h_ssl h_iv h_lit sp_v h_sbi)⟩
+
+example (k : Nat) : k ∉ ([] : List Nat) := by simp
+
+/-! **§19.2 — and the consumers gate on MEMBERSHIP**, which is what makes those
+payments worthless.  Item 155 wrote the sentence for the stream bottom — *the
+lane's cover is unspendable: `ResumeFrames.resumeAt` gates on `j ∈ ks`, so a
+landing can pop to no width an empty list names* — and it holds verbatim here.
+The POSITIVE CONTROL first: a stack that names the landing width pops to
+exactly the shape `indicator_open_map`'s `h_resV_land` asks for. -/
+
+example {sp_start sp_mid : SurfPos} {nv k : Nat}
+    (fV : ResumeFrames (ExplValueLine sp_start nv) [k] sp_mid) :
+    ∃ (nv : Nat) (ks : List Nat), (∀ k' ∈ ks, k' < k) ∧
+      ∀ sp_end : SurfPos, SCompactMapTail k sp_mid sp_end →
+        ResumeFrames (ExplValueLine sp_start nv) ks sp_end :=
+  match fV.resumeAt (List.mem_singleton.mpr rfl) with
+  | ⟨ks', h_w, cont⟩ => ⟨nv, ks', h_w.lt, cont⟩
+
+/-! …and the refutation: an empty stack hands back the frame's value line AT
+the landing, and the consumer needs that line past the level's REMAINING TAIL.
+Nothing carries it across — so a `ks = []` payment cannot change either spend's
+outcome, and the two spends are the only eliminators a value-line stack has in
+this file (every other reader relays it verbatim into the next park). -/
+
+example {sp_start sp_mid : SurfPos} {nv _k : Nat}
+    (_fV : ResumeFrames (ExplValueLine sp_start nv) [] sp_mid) : True := by
+  fail_if_success
+    exact (⟨nv, [], fun _ h => absurd h (by simp),
+      fun sp_end _h_tail => ResumeFrames.bottom sp_end _fV.close⟩ :
+      ∃ (nv : Nat) (ks : List Nat), (∀ k' ∈ ks, k' < _k) ∧
+        ∀ sp_end : SurfPos, SCompactMapTail _k sp_mid sp_end →
+          ResumeFrames (ExplValueLine sp_start nv) ks sp_end)
+  trivial
+
+/-! **§19.3 — the one payment that carries something.**  The nested compact `-`
+(`- - a`) parks a `pendingBlock` at `n + 1 + m` inside the outer park's entry,
+and the outer park's own `h_closeFV` is in scope with whatever `ks` it was paid
+at.  The crossing is the `[185]` compactSeq fold `h_kslot` already used twelve
+lines above: the inner entry and its tail become the OUTER park's slot, and the
+outer tail is `nil`. -/
+
+example {sp_start sp_scan sp_sc sp_scan' : SurfPos} {n m nv : Nat} {ks : List Nat}
+    (h_ind : SIndent m sp_scan sp_sc)
+    (h_dash2 : GLit '-' sp_sc sp_scan') (h_gnot2 : GNot SNsChar sp_scan')
+    (closeFV : ∀ sp_mid : SurfPos, SBlockIndented n .blockIn sp_scan sp_mid →
+      ∀ sp_end : SurfPos, SCompactSeqTail n sp_mid sp_end →
+      ResumeFrames (ExplValueLine sp_start nv) ks sp_end) :
+    ∀ sp_m : SurfPos, SBlockIndented (n + 1 + m) .blockIn sp_scan' sp_m →
+      ∀ sp_e : SurfPos, SCompactSeqTail (n + 1 + m) sp_m sp_e →
+      ResumeFrames (ExplValueLine sp_start nv) ks sp_e :=
+  fun sp_m h_bi sp_e h_tail =>
+    closeFV sp_e
+      (SBlockIndented.compactSeq n .blockIn m sp_scan sp_sc sp_e h_ind
+        (SCompactSeq.mk (n + 1 + m) sp_sc sp_scan' sp_m sp_e h_dash2 h_gnot2 h_bi h_tail))
+      sp_e (SCompactSeqTail.nil n sp_e)
+
+/-! …and the STREAM-bottomed field beside it cannot stand in, through the same
+fold — which is why item 198's field was the one this crossing needed and
+`h_closeF` was never the answer: -/
+
+example {sp_start sp_scan sp_sc sp_scan' : SurfPos} {n m _nv : Nat} {ks : List Nat}
+    (_h_ind : SIndent m sp_scan sp_sc)
+    (_h_dash2 : GLit '-' sp_sc sp_scan') (_h_gnot2 : GNot SNsChar sp_scan')
+    (_closeF : ∀ sp_mid : SurfPos, SBlockIndented n .blockIn sp_scan sp_mid →
+      ∀ sp_end : SurfPos, SCompactSeqTail n sp_mid sp_end →
+      ResumeFrames (SLYamlStream sp_start) ks sp_end) : True := by
+  fail_if_success
+    have : ∀ sp_m : SurfPos, SBlockIndented (n + 1 + m) .blockIn sp_scan' sp_m →
+        ∀ sp_e : SurfPos, SCompactSeqTail (n + 1 + m) sp_m sp_e →
+        ResumeFrames (ExplValueLine sp_start _nv) ks sp_e :=
+      fun sp_m h_bi sp_e h_tail =>
+        _closeF sp_e
+          (SBlockIndented.compactSeq n .blockIn m sp_scan sp_sc sp_e _h_ind
+            (SCompactSeq.mk (n + 1 + m) sp_sc sp_scan' sp_m sp_e _h_dash2 _h_gnot2
+              h_bi h_tail))
+          sp_e (SCompactSeqTail.nil n sp_e)
+  trivial
+
+/-! **The domain**, measured before the payment was priced.  The nested compact
+`-` at the root, with a sibling, and with the two things that give the field
+something to carry — a still-open MAPPING level underneath it, and a still-open
+`?` FRAME: -/
+
+#guard pins "- - a\n" == ("scan-accepted", "+STR +DOC +SEQ +SEQ =VAL :a -SEQ -SEQ -DOC -STR")
+#guard pins "- - a\n- b\n" == ("scan-accepted", "+STR +DOC +SEQ +SEQ =VAL :a -SEQ =VAL :b -SEQ -DOC -STR")
+#guard pins "- - a\n  - b\n" == ("scan-accepted", "+STR +DOC +SEQ +SEQ =VAL :a =VAL :b -SEQ -SEQ -DOC -STR")
+#guard pins "k:\n  - - a\nb: 2\n" == ("scan-accepted", "+STR +DOC +MAP =VAL :k +SEQ +SEQ =VAL :a -SEQ -SEQ =VAL :b =VAL :2 -MAP -DOC -STR")
+#guard pins "? - - a\n: w\n" == ("scan-accepted", "+STR +DOC +MAP +SEQ +SEQ =VAL :a -SEQ -SEQ =VAL :w -MAP -DOC -STR")
+#guard pins "? - - a\n  - b\n: w\n" == ("scan-accepted", "+STR +DOC +MAP +SEQ +SEQ =VAL :a -SEQ =VAL :b -SEQ =VAL :w -MAP -DOC -STR")
+#guard pins "?\n  - - a\n: w\n" == ("scan-accepted", "+STR +DOC +MAP +SEQ +SEQ =VAL :a -SEQ -SEQ =VAL :w -MAP -DOC -STR")
+#guard pins "?\n  k:\n    - - a\n  j: 2\n: w\n" == ("scan-accepted", "+STR +DOC +MAP +MAP =VAL :k +SEQ +SEQ =VAL :a -SEQ -SEQ =VAL :j =VAL :2 -MAP =VAL :w -MAP -DOC -STR")
+
+/-! …the three shapes whose punts this item measured and LEFT — the compact
+fill alone, and the two flow closes inside an open frame: -/
+
+#guard pins "? - a\n: w\n" == ("scan-accepted", "+STR +DOC +MAP +SEQ =VAL :a -SEQ =VAL :w -MAP -DOC -STR")
+#guard pins "? - a\n  - b\n: w\n" == ("scan-accepted", "+STR +DOC +MAP +SEQ =VAL :a =VAL :b -SEQ =VAL :w -MAP -DOC -STR")
+#guard pins "? : a\n: w\n" == ("scan-accepted", "+STR +DOC +MAP +MAP =VAL : =VAL :a -MAP =VAL :w -MAP -DOC -STR")
+#guard pins "? {x: y}\n: w\n" == ("scan-accepted", "+STR +DOC +MAP +MAP {} =VAL :x =VAL :y -MAP =VAL :w -MAP -DOC -STR")
+
+/-! …and the CONTROLS: the nested compact with no frame and no level is refused
+before any dispatch runs, and the same collection under a mapping key is the
+accepted reading it has always had — the payment rides and nothing moves: -/
+
+#guard pins "- - a\nb: 2\n" == ("scan-refused L4YAML.ScanError.trailingContent 1 0", "ERR L4YAML.ScanError.trailingContent 1 0")
+#guard pins "k:\n  - - a\n" == ("scan-accepted", "+STR +DOC +MAP =VAL :k +SEQ +SEQ =VAL :a -SEQ -SEQ -MAP -DOC -STR")
 
 end L4YAML.Tests.Guards.BlockDeferralClasses

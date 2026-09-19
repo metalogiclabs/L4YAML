@@ -15436,6 +15436,12 @@ lemma accum_step_flow (sc : ScannerState)
                       (flowVPack_of_close resume.vslot
                         (SFlowContent.flowSeq _ _ _ _ h_seq))
                       (Or.inr (by have := glit_col h_close_lit; omega))
+                      -- Item 200: `h_framesS`/`h_framesV`.  The value-line half is
+                      -- PAYABLE here — `h_vpack` above is `h_framesV` at `ks = []`
+                      -- once a member of its ancestor list is named — and not
+                      -- informative: an empty stack is `h_vpack` restated, and
+                      -- `resumeAt` gates on membership.  The flow close reaches no
+                      -- stack-shaped source for either bottom.
                       (Or.inr trivial) (Or.inr trivial)
                     ((ScannerAllowDirectives.scanFlowSequenceEnd_preserves_allowDirectives _).trans h_ad_false)
                     (staleNodeTail_scanFlowSequenceEnd s_ad).toCompletedTail
@@ -15626,6 +15632,8 @@ lemma accum_step_flow (sc : ScannerState)
                         (flowVPack_of_close resume.vslot
                           (SFlowContent.flowMap _ _ _ _ h_map))
                       (Or.inr (by have := glit_col h_close_lit; omega))
+                      -- Item 200: as at the sequence close above — payable at
+                      -- `ks = []` off `h_vpack`, and a restatement if paid.
                       (Or.inr trivial) (Or.inr trivial)
                         ((ScannerAllowDirectives.scanFlowMappingEnd_preserves_allowDirectives _).trans h_ad_false)
                         (staleNodeTail_scanFlowMappingEnd s_ad).toCompletedTail
@@ -20710,10 +20718,24 @@ lemma accum_block_on_closeThenBlock
                               h_dash2 h_gnot2 h_bi h_tail))
                           sp_i sp_c h_iv h_lit sp_v h_sbi⟩
                   | Or.inr _ => Or.inr trivial)
-                 -- Item 198: the COMPACT fill (`? - a`) does not close the park, so the
-                 -- relay this field is paid from — the closed park's awaited node — has
-                 -- not been reached.  `h_kslot`/`h_kslotUp` above carry the frame's own
-                 -- lines directly, which is what this shape needs and all it needs.
+                 -- ═══ **Item 198: the COMPACT fill (`? - a`) does not close the
+                 -- park, so the relay this field is paid from — the closed park's
+                 -- awaited node — has not been reached.  `h_kslot`/`h_kslotUp`
+                 -- above carry the frame's own lines directly, which is what this
+                 -- shape needs and all it needs.**
+                 --
+                 -- **Item 200 measured what the punt is worth.**  The field IS
+                 -- payable here: `h_kslot` is this very field at `ks = []`
+                 -- (`ResumeFrames.bottom` over `ExplValueLine`), and the term is
+                 -- written directly above.  It is payable and NOT informative —
+                 -- the empty stack is the park's own `h_kslot` restated, and the
+                 -- two doors that spend a value-line stack both gate on
+                 -- `ResumeFrames.resumeAt`'s `k ∈ ks`, which no empty list
+                 -- satisfies (item 155's sentence, machine-checked in
+                 -- `BlockDeferralClasses` §19.2).  The punt stays, because a
+                 -- restatement hides the gap from the census that found it; what
+                 -- would pay it for real is a stack-shaped source, and the mid-line
+                 -- arm reaches none (`h_mapFV` is `SSLComments`-domained). ═══
                  (Or.inr trivial),
                hcorr_result⟩
       · by_cases hcv : c = ':' ∨ c = '?'
@@ -22644,10 +22666,29 @@ lemma accum_block_on_pendingBlock
                         sp_e (SCompactSeqTail.nil n sp_e)
                         sp_i sp_c h_iv h_lit sp_v h_sbi⟩
                 | Or.inr _ => Or.inr trivial)
-               -- Item 198: the COMPACT nested `-` (`- - a`) — the park's field speaks of
-               -- the entry at `n`, this collection is at `n + 1 + m`, and the crossing
-               -- is a `[185]` compactSeq rather than a tail cons.  Not measured here.
-               (Or.inr trivial),
+               -- ═══ ~~**Item 198: the COMPACT nested `-` (`- - a`) — the park's
+               -- field speaks of the entry at `n`, this collection is at
+               -- `n + 1 + m`, and the crossing is a `[185]` compactSeq rather
+               -- than a tail cons.  Not measured here.**~~  **Item 200 pays it
+               -- with the crossing written twelve lines above.**  `h_kslot` and
+               -- `h_kslotUp` cross to this park by folding the inner entry and
+               -- its tail into the OUTER park's own `[185]` slot
+               -- (`SBlockIndented.compactSeq` + a `nil` outer tail); the
+               -- value-line STACK crosses on the identical term, because the
+               -- outer park's `h_closeFV_old` has the same domain `h_kslot`
+               -- does and differs only in what it hands back.  The relay
+               -- carries the outer stack's own `ks` — which is what makes this
+               -- payment spendable, the empty list being unspendable at
+               -- `resumeAt`'s membership gate (item 155). ═══
+               (match h_closeFV_old with
+                | Or.inl ⟨nv, ks, closeFV⟩ => Or.inl ⟨nv, ks,
+                    fun sp_m h_bi sp_e h_tail =>
+                      closeFV sp_e
+                        (SBlockIndented.compactSeq n .blockIn m sp_mid sp_sc sp_e h_ind
+                          (SCompactSeq.mk (n + 1 + m) sp_sc sp_scan' sp_m sp_e
+                            h_dash2 h_gnot2 h_bi h_tail))
+                        sp_e (SCompactSeqTail.nil n sp_e)⟩
+                | Or.inr _ => Or.inr trivial),
              hcorr_result⟩
     · by_cases hcv : c = ':' ∨ c = '?'
       · -- `- : a` and `- ? a`: `[195] ns-l-compact-mapping`, the same two
