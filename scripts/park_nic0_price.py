@@ -25,18 +25,28 @@ for it except `pendingDocEnd` and `pendingBlockContent`):
     pendingFlow           1       /  1                (item 205 read 10)  -- PAID
     pendingBlockContent   6       /  2
 
-`pendingFlow`'s field LANDED at item 206, so its `1` is now discharged and a
-re-run of that mode prices a SECOND field rather than the first.  `sites`
-remains the control: it threads the premise through the escape and its four
-wrappers and lands on the ELEVEN application sites across FOUR consumer
-lemmas, reproducing from cold the count `block_dispatch_deferred`'s own
-docstring records.
+`pendingFlow`'s field LANDED at item 206 and the other four at item 207, so
+every count above is now DISCHARGED and a re-run of any mode prices a SECOND
+field rather than the first.  That is the mode's own control: the census is
+stable across the payment, and all five reproduce.  `sites` is the other
+control: it threads the premise through the escape and its four wrappers and
+lands on the ELEVEN application sites across FOUR consumer lemmas, reproducing
+from cold the count `block_dispatch_deferred`'s own docstring records.
+
+`payers` (item 207) splits the paid ring by the TERM each site spends, which is
+the number item 206 forecast and got wrong: it predicted `content_park_nic_any`
+at eighteen sites, and the split is 13 / 3 / 5.
+
+    content_park_nic_any   14   (13 ring-2 + 1 the escape's own, item 206)
+    content_park_nic        3   (item 154's, block-scalar arms, unchanged)
+    nic0_of_col_pos         5   (2 flow closes + 3 marker parks)
 
 Usage:
     python3 scripts/park_nic0_price.py pendingFlow
     python3 scripts/park_nic0_price.py all
     python3 scripts/park_nic0_price.py escape     # the field + the escape's premise
     python3 scripts/park_nic0_price.py sites      # threaded to the 11 application sites
+    python3 scripts/park_nic0_price.py payers     # the paid ring, split by term
 """
 import re
 import shutil
@@ -132,10 +142,47 @@ def enclosing_decl(lines, lineno):
     return decl
 
 
+# `payers` mode: the three terms a paid site can spend, matched at APPLICATION
+# position (an open paren before the name) so the declarations and the prose
+# that names them are not counted.
+PAYERS = [
+    ("content_park_nic_any", re.compile(r"\(content_park_nic_any\b")),
+    ("content_park_nic", re.compile(r"\(content_park_nic hbs\b")),
+    ("nic0_of_col_pos", re.compile(r"\(nic0_of_col_pos\b")),
+]
+
+
+def payers_census():
+    """Split the PAID ring by the term each site spends (item 207)."""
+    lines = TARGET.read_text().split("\n")
+    census = {name: [] for name, _ in PAYERS}
+    for i, line in enumerate(lines):
+        for name, pat in PAYERS:
+            if pat.search(line):
+                census[name].append((i + 1, enclosing_decl(lines, i + 1)))
+    total = sum(len(v) for v in census.values())
+    print(f"paid sites: {total}\n")
+    for name, hits in census.items():
+        by_decl = {}
+        for ln, decl in hits:
+            by_decl.setdefault(decl, 0)
+            by_decl[decl] += 1
+        print(f"  {len(hits):3d}  {name}")
+        for decl, n in sorted(by_decl.items(), key=lambda kv: (-kv[1], kv[0])):
+            print(f"         {n:3d}  {decl}")
+    # The escape's own site (item 206) rides in `content_park_nic_any`'s count;
+    # ring 2 proper is the remaining twenty-one.
+    print(f"\nring 2 (total minus the escape's own site): {total - 1}")
+
+
 def main():
     which = sys.argv[1] if len(sys.argv) > 1 else "pendingFlow"
+    if which == "payers":
+        payers_census()
+        return
     if which not in PARKS + ["all", "escape", "sites"]:
-        sys.exit(f"usage: park_nic0_price.py [{'|'.join(PARKS)}|all|escape|sites]")
+        sys.exit(f"usage: park_nic0_price.py "
+                 f"[{'|'.join(PARKS)}|all|escape|sites|payers]")
 
     original = TARGET.read_text()
     backup = TARGET.with_suffix(".lean.nic0-bak")

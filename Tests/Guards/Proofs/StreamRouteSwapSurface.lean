@@ -150,10 +150,13 @@ example {sc : ScannerState} {sp_start sp_block sp_scan : SurfPos}
     (h_arm : sc.simpleKeyAllowed = true ∨ 0 < sp_scan.col)
     -- Item 138: and the park's directive face — `scanDocumentStart` clears the
     -- flag, so a `---` park is not directive-eligible.
-    (h_nodir : sc.allowDirectives = false) :
+    (h_nodir : sc.allowDirectives = false)
+    -- Item 207: and the park's own indent check, which both producers pay from
+    -- `[203]`'s three columns.
+    (h_nic0 : sp_scan.col = 0 → sc.needIndentCheck = true) :
     PendingNode sc false sp_start sp_block sp_scan :=
   PendingNode.pendingDocStart sp_start sp_block sp_scan h_doc_route
-    h_nic h_real h_marker_tail h_arm h_nodir
+    h_nic h_real h_marker_tail h_arm h_nodir h_nic0
 
 -- The `[208]` producer's own payment: `l-explicit-document` is what the
 -- implicit continuation takes, so this arm spends the constructor and stays

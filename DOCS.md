@@ -23206,8 +23206,13 @@ move this item; the uncertainty does.**
 **Corrected at [item 205](#item-205-2026-09-18).**  The seven are right and all
 seven pay — item 205 paid every one and the compiler accepted them.  What the
 number leaves out is the PREMISE five of them pay from, whose own producers are
-the next ring: the closure is **52 sites across 20 declarations**, and it does
-not terminate, because one of its members is `block_dispatch_deferred` itself.
+the next ring: the closure is **52 sites across 20 declarations**, and ~~it does
+not terminate, because one of its members is `block_dispatch_deferred`
+itself.~~  **It terminates at ring 2.**  `block_dispatch_deferred` being a
+member is a fact about where the price falls, not about whether it can be paid
+([item 206](#item-206-2026-09-19) paid that member); the ring below it is
+**21** producers and [item 207](#item-207-2026-09-19) paid all of them, so what
+is left of the closure is ring 1's fifteen.
 
 **The controls, all four firing.**  The census re-pinned at
 `reachedAccepted = 1` throws.  Dropping `InlineResidue`'s conjunct alone takes
@@ -23562,9 +23567,14 @@ a prerequisite of item 183's flip order for item 183's OWN reason
 (`CompletedTail` is FALSE at that park by construction), untouched here.  The
 carrier's second ring now stands at **21** producers — `pendingContent` (12),
 `pendingDocStart` (2), `pendingDocEnd` (1), `pendingBlockContent` (6) — and
-`content_park_nic_any` is the term that would pay the eighteen of them that sit
-behind a content dispatch, which is the next item's measurement rather than
-this one's claim.  After that ring: the 12 landing sites, the 7 producers of
+~~`content_park_nic_any` is the term that would pay the eighteen of them that
+sit behind a content dispatch~~, which is the next item's measurement rather
+than this one's claim.  **Measured at [item 207](#item-207-2026-09-19): the 21
+is right and the 18 is not.**  Sixteen sit behind a content dispatch (two of
+`pendingContent`'s twelve are FLOW-indicator dispatches and three more parks are
+structural), and of those sixteen `content_park_nic_any` pays thirteen — the
+other three keep item 154's narrower term.  The forecast counted parks and read
+off a dispatcher; the split is 13 / 3 / 5.  After that ring: the 12 landing sites, the 7 producers of
 item 205, and the wrapper goes.  Unchanged behind it: **`KeyPackPunt`'s two
 reasons** (`dedent` 7/5, `noKeyContext` 6/5, possibly a phantom), item 183's
 flip order, and the parked Ix Step-1 composition on the Ix track's own clock.
@@ -23583,6 +23593,165 @@ instrument for exactly this and then answered the last ring from the ring's
 shape; a shape tells you where the price falls and never how much it is.  Here
 it was ten vacuities and one lemma that had been waiting since item 154 for its
 arm to name a character.
+
+
+### Item 207 (2026-09-19)
+
+**A COMMENT THAT SAYS WHY A SITE PUNTS IS USUALLY THE PROOF THAT IT PAYS.**
+Item 206's NEXT was the carrier's second ring — item 154's flag
+(`sp_scan.col = 0 → sc.needIndentCheck = true`) asked of the four block-context
+parks that do not yet carry it — recorded at **21** producers with the forecast
+that `content_park_nic_any` would pay "the eighteen of them that sit behind a
+content dispatch".  The 21 reproduces at the paid tree.  The 18 was a reading,
+and the split the instrument returns is **13 / 3 / 5**.
+
+**The ring is PAID, at all twenty-one, and the premise is REQUIRED at every
+park that carries it.**  `pendingContent`'s field was an OPTION
+(`… ∨ True`) since item 154; it is unconditional now, and
+`pendingBlockContent`, `pendingDocStart` and `pendingDocEnd` carry the same
+field for the first time:
+
+| park                  | producers | pays with |
+|-----------------------|-----------|-----------|
+| `pendingContent`      | 12 | 7 × `content_park_nic_any`, 3 × `content_park_nic`, 2 × `nic0_of_col_pos` |
+| `pendingBlockContent` | 6  | 6 × `content_park_nic_any` |
+| `pendingDocStart`     | 2  | 2 × `nic0_of_col_pos` off `scDirectivesEnd_col` |
+| `pendingDocEnd`       | 1  | 1 × `nic0_of_col_pos` off `scDocumentEnd_col` |
+
+**Sixteen sit behind a content dispatch, not eighteen.**  Two of
+`pendingContent`'s twelve are in `accum_step_flow`, whose dispatch is
+`scanNextToken_dispatchFlowIndicators` — a `]` or a `}` closing a flow
+collection, not a content scan at all — and the three marker producers sit
+behind `scanNextToken_dispatchStructural`.  The forecast counted PARKS and read
+off a DISPATCHER, which is the same class of error item 206 corrected one ring
+up: a number belongs to the thing it was measured on.
+
+**And of the sixteen, `content_park_nic_any` pays thirteen.**  The other three
+are the block-scalar arms, which have held item 154's narrower term since item
+154 and keep it — that lemma takes the character and spends one hypothesis
+fewer for it, so neither subsumes the other at a call site (item 206's own note
+on the two).  What this item removed there is the `Or.inl`, not the term.
+
+**The five free payments were free for a reason already written into the
+file.**  Each of the five `nic0_of_col_pos` sites carried a comment saying the
+park stands inside a line — *"a `...` park's producers all end on the marker's
+own line"*, *"a `---` park ends on the marker, inside its line"* — written as
+the reason to PUNT.  It is the reason to PAY.  `[203] c-directives-end` and
+`[204] c-document-end` spend three columns from a line start (`scDirectivesEnd_col`,
+`scDocumentEnd_col`, two `cases … ; rfl` lemmas), a flow close spends one
+(`glit_col`), and the premise is asked only at column 0.  `nic0_of_col_pos` is
+the vacuity, named once.
+
+**What the ring buys is a reader with no case analysis in it.**
+`PendingNode.nic0` answers the flag from a bare park, the way
+`PendingNode.arm_or_col` (item 78) answers the save: **eight of the nine
+`false`-indexed constructors** discharge it — five from the field (items
+154/206/207), three by refuting the premise from a column they already carry
+(`pendingProps.h_col0`, `pendingBlock.h_col`, `pendingMapValue.h_col0`).  So
+item 205's `dash_landing_floor` is spendable at a block landing without asking
+which park it is standing off, and §24.1's payment chain now starts from a park
+instead of from an assumed hypothesis (`BlockDeferralClasses` §26.2).
+
+**The ninth arm is named rather than hidden, and it is not a gap.**
+`noPending`'s own `h_col` says a block-context virgin park IS at column 0, so
+there the flag's hypothesis is SATISFIED rather than refuted and no column can
+answer it — the one park of the nine where a field would be needed.  That is
+also the park item 205's ring 1 pays by a different route entirely
+(`noPending.h_ntop`, its own eight producers), so the reader's premise is the
+split the landing consumers already have.  Pinned as a one-line `example`
+(§26.3), because "the reader is total" would otherwise be a claim about nine
+constructors with no witness for the ninth.
+
+**The field is load-bearing.**  `accum_content_pending`'s `h_pay_col0` split on
+the optional flag and returned `Or.inr trivial` on the punt branch; with the
+premise required the split is gone and the branch builds a real
+`dedent_cover_of_floor` behind EVERY park, not only behind `pendingContent`'s
+block-scalar producers.  The inline floor it computed there is
+`park_col0_floor` — the lemma item 205 lifted OUT of exactly this branch so the
+block landings could spend it — so the term comes back and replaces its own
+source, and the branch has no punt left to take.
+
+**The instrument, and its own control.**  `scripts/park_nic0_price.py` gains a
+`payers` mode: it splits the PAID ring by the term each site spends, matched at
+application position, and reports 14 / 3 / 5 — the fourteenth
+`content_park_nic_any` being the escape's own site from item 206, so ring 2
+proper is the remaining **21**.  The per-park modes are their own control:
+re-run on the paid tree they add a SECOND field and reproduce 12 / 6 / 2 / 1 / 1
+unchanged, which is the census surviving the payment it priced.
+
+**The runtime census is SPLIT, because the claim is.**  `BlockDeferralClasses`
+§26.4 runs item 206's `parkRow` over sixteen shapes in two halves, and the
+division is the check: the parks that pay by a COLUMN must produce no column-0
+park at all, and the parks that pay by a TERM must produce some.  Measured —
+**six** shapes whose content scan reaches a line start (root, mapping-value and
+entry-level block scalars, one under a `---`, one before a `...`, one in an
+explicit key) produce exactly one column-0 park each, total **6**; **ten**
+shapes spanning the two markers, a directive document, both flow closes, a
+flow-in-block value, a quoted entry and the two block indicators produce
+**0**.  The invariant — no park at a line start with the check down — holds on
+all sixteen, and both totals are asserted, so neither half can start passing
+vacuously.
+
+**Measured at the landed state.**  Full `lake build` **1165** jobs, ZERO
+warnings; `run-all-tests.sh` **4520/4520**; `eventscore` **347/358** (252
+event-pass, 95 error-ok, 0 error-miss, 0 event-reject); `suiterunner`
+**869 / 0 / 151**; `matrix_score.py` over the 402-leaf data form on BOTH
+pipelines, **402/402 event** (pass 308, err-ok 94) + **282/282 JSON** (pass
+279, err-ok 3, skip 120); the `[210]` flip at **FIVE** errors, **all
+UNMOVED**, and the shift predicted to the line before the run a second time —
+the six hunks above the first four sites sum to **+86** and one more hunk
+(the `...` park's payment) stands between them and the fifth, so **4455 →
+4541, 5735 → 5821, 5758 → 5844, 5927 → 6013, 7469 → 7558**, and that is what
+the build printed.  Applied and restored with a clean rebuild; `#print axioms`
+over the four new declarations and the eleven others the item moved or newly
+spends,
+no `sorryAx` (the `native_decide` axioms under the four content-dispatch
+accumulation lemmas are the standing character-class decisions, unchanged); checkers **228/355**,
+**20/230/249/355**, **25** capstones, and the annotation verifier at 100 %
+(211/211) with its same **19** standing name mismatches.
+
+**Counts, at `675e983b` and here, each under the recipe that produced it** —
+declarations
+`grep -rhoE "^(private )?(lemma|theorem|def|abbrev|instance|structure|inductive|class) " L4YAML`:
+**8588 → 8592** (+4: `nic0_of_col_pos`, `scDocumentEnd_col`,
+`scDirectivesEnd_col`, `PendingNode.nic0`); `#guard` tokens
+`grep -rho "#guard" L4YAML Tests`: **8071 → 8092** (+21: §26.4's sixteen rows
+and its five aggregates); test files `find Tests -name '*.lean'`: **624 →
+624**.  Zero runtime edits.
+
+**What remains.**  The second ring is closed, so what stands between here and
+`_stamp_compact`'s refutation is ring 1 and nothing else: `pendingBlock`'s
+`h_park_top`, **7** producers re-derivable by `scripts/park_top_price.py
+ring1`.  Two of the seven are the ones this item unblocks — §24's table has
+`accum_block_on_closeThenBlock` landed and `accum_block_on_pendingBlockContent`
+landed marked **open** on `dash_landing_floor`, whose missing premise is
+exactly what `PendingNode.nic0` now supplies.  Three more are already closed
+off `landing_floor_of_arm` or the park's own field.  The sixth needs a field on
+`noPending`, and item 205 read its producers at **8** without running an
+instrument over it — that number is a reading and the next item should
+re-derive it before spending on it, which is item 206's rule applied to item
+205's other forecast.  The seventh, the compact fill, item 205 recorded as
+"not measured here".  Landing ring 1 is the next item, and it is the one that
+deletes the two `_stamp_compact` sites.  After that: the wrapper's
+remaining classes, **`KeyPackPunt`'s two reasons** (`dedent` 7/5,
+`noKeyContext` 6/5, possibly a phantom), item 183's flip order, and the parked
+Ix Step-1 composition on the Ix track's own clock.  Still open from item 201: a
+census that follows a conjunct's VALUE through the relays that carry it, and
+the unattributed-site pins the 198/200/201 censuses still lack.
+
+**The instrument ledger, nine rows, and the ninth is the eighth's FORECAST
+audited.**  Park constructors (198), application sites (200), lemma conclusions
+(201), the same with a key that works (202), indices (203), the runtime's own
+state (204), the transitive ring of a carrier (205), the same closure with its
+last ring paid (206) — and now the same ring's payers, which is the first
+census this project has run against a number it had itself forecast one item
+earlier.  **The rule this item adds: a punt's own comment is evidence, and the
+sentence that explains why a site cannot pay is usually the proof that it
+can.**  Five of the twenty-one payments were sitting in the file as prose,
+written as reasons to leave a slot empty, and each of them is a one-line term.
+Item 206 learned that a shape tells you where a price falls and never how much;
+this item is the same lesson read backwards — a reason recorded for a punt is a
+measurement nobody spent.
 
 
 ### REMAINING, in order

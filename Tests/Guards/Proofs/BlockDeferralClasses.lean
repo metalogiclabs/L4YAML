@@ -3135,7 +3135,9 @@ then priced and began paying.
 seven pay — item 205 paid them and the compiler accepted every one.  What the
 count does not include is the PREMISE five of them pay from, whose own
 producers are the next ring; the closure is **52 sites across 20 declarations**,
-and it does not terminate.  See §24.  What this item removes is the uncertainty, not the
+~~and it does not terminate.~~  **It terminates at ring 2** — item 206 paid the
+member that re-enters the escape and item 207 paid the twenty-one below it, so
+what is left is ring 1's fifteen.  See §24, §25, §26.  What this item removes is the uncertainty, not the
 wrapper: the class's emptiness is re-derivable, its cause is one error, its
 refutation is machine-checked, and its remaining cost is counted rather than
 estimated.
@@ -3184,6 +3186,10 @@ by refuting the hypothesis from a column field the park already carries
 other 7 need the field on `pendingContent` (whose own is an OPTION,
 ~~17 producers to make unconditional~~), `pendingDocEnd` (1), `pendingDocStart`
 (~~4~~), `pendingFlow` (~~10~~) and `pendingBlockContent` (6).
+
+**All five carry it now, required** — `pendingFlow` at item 206, the other four
+at item 207 — so the twenty-two producers of this ring are paid and the second
+ring is closed.  See §26.
 
 **~~And that ring does not close.~~**  One of `pendingFlow`'s producers is
 `block_dispatch_deferred` itself — the escape being retired parks `pendingFlow`,
@@ -3467,5 +3473,195 @@ private def corpus206 : List String :=
 -- …and the non-vacuity, as a number: twelve inputs, five column-0 parks.
 #guard corpus206.length == 12
 #guard (corpus206.map (fun i => (parkRow i).2.1)).sum == 5
+
+/-! ## §26  The second ring CLOSES (item 207)
+
+§25 paid the ring that re-enters the escape and left the one BELOW it: item 154's
+flag, asked of the four remaining block-context parks.  Item 206 recorded that
+ring at **21** producers and forecast that `content_park_nic_any` — the term §25
+built — would pay "the eighteen of them that sit behind a content dispatch".
+The 21 is right, re-derived here at the paid tree.  The 18 was a reading, and
+the instrument disagrees with it twice over.
+
+| park | producers | pays with |
+|---|---|---|
+| `pendingContent` | 12 | 7 × `content_park_nic_any`, 3 × `content_park_nic` (item 154's, unchanged), 2 × `nic0_of_col_pos` |
+| `pendingBlockContent` | 6 | 6 × `content_park_nic_any` |
+| `pendingDocStart` | 2 | 2 × `nic0_of_col_pos` off `scDirectivesEnd_col` |
+| `pendingDocEnd` | 1 | 1 × `nic0_of_col_pos` off `scDocumentEnd_col` |
+
+**Sixteen sit behind a content dispatch, not eighteen.**  Two of
+`pendingContent`'s twelve are in `accum_step_flow`, whose dispatch is
+`scanNextToken_dispatchFlowIndicators` — a `]` or a `}` closing a flow
+collection, not a content scan at all — and three more parks (the markers) sit
+behind `scanNextToken_dispatchStructural`.  The forecast counted parks and read
+off a dispatcher.
+
+**And of the sixteen, `content_park_nic_any` pays thirteen.**  The other three
+are the block-scalar arms, which have held item 154's narrower term since item
+154 and keep it: that lemma takes the character and spends one hypothesis fewer
+for it, so neither lemma subsumes the other at a call site (§25's own note).
+What item 207 removed there is the `Or.inl`, not the term.
+
+**The five that are free were free for a reason already written down.**  Each of
+the five `nic0_of_col_pos` sites had a comment saying the park stands inside a
+line — "a `...` park's producers all end on the marker's own line", "a `---`
+park ends on the marker, inside its line" — written as the reason to PUNT.  It
+is the reason to PAY: `[203]`/`[204]` spend three columns and a flow close
+spends one, so the premise is asked of nothing there.
+
+### §26.1  The three payments, at the exact hypotheses each site holds -/
+
+section Item207
+
+open L4YAML.Proofs L4YAML.Proofs.IndentStackCover L4YAML.Proofs.LineOpenGuard
+
+/-- The thirteen content-dispatch sites — §25's term, one ring down. -/
+example {s_prep s' : ScannerState} {sp_scan' : SurfPos} {c : Char}
+    (hpeek : s_prep.peek? = some c)
+    (h_flow_disp : (if s_prep.allowDirectives then
+          { s_prep with allowDirectives := false, documentEverStarted := true }
+        else s_prep).inFlow = false)
+    (h_not_doc : (if s_prep.allowDirectives then
+          { s_prep with allowDirectives := false, documentEverStarted := true }
+        else s_prep).col = 0 →
+      atDocumentBoundary (if s_prep.allowDirectives then
+          { s_prep with allowDirectives := false, documentEverStarted := true }
+        else s_prep) = false)
+    (h_dispatch : scanNextToken_dispatchContent
+        (if s_prep.allowDirectives then
+          { s_prep with allowDirectives := false, documentEverStarted := true }
+        else s_prep) c = .ok s')
+    (hcorr_result : ScannerSurfCorr s' sp_scan') :
+    sp_scan'.col = 0 → s'.needIndentCheck = true :=
+  content_park_nic_any hpeek h_flow_disp h_not_doc h_dispatch hcorr_result
+
+/-- The two FLOW closes, which are not content dispatches: the `]` is one
+    literal, and one literal is one column. -/
+example {sc : ScannerState} {sp sp' : SurfPos} (h_close_lit : GLit ']' sp sp') :
+    sp'.col = 0 → sc.needIndentCheck = true :=
+  nic0_of_col_pos (by have := glit_col h_close_lit; omega)
+
+/-- The `...` park, paid from the field it ALREADY carries — the wrapper pin
+    for the constructor as well as the payment, so a signature drift fails
+    here. -/
+example {sc : ScannerState} {sp_start sp_block sp_scan : SurfPos}
+    (h_line : sp_scan.col = 0 ∨ LineTailSuffix sp_scan.chars)
+    (h_marker : SCDocumentEnd sp_block sp_scan)
+    (h_arm : sc.simpleKeyAllowed = true ∨ 0 < sp_scan.col) :
+    PendingNode sc false sp_start sp_block sp_scan :=
+  PendingNode.pendingDocEnd sp_start sp_block sp_scan h_line h_marker h_arm
+    (nic0_of_col_pos (by rw [scDocumentEnd_col h_marker]; omega))
+
+/-- …and the `---` park, whose marker its producers hold but the constructor
+    does not keep, which is why the field is stated rather than derived. -/
+example {sp sp' : SurfPos} (h : SCDirectivesEnd sp sp') : sp'.col = 3 :=
+  scDirectivesEnd_col h
+
+/-! ### §26.2  What the ring buys: a reader with no case analysis in it
+
+§24.1 wrote the `-`'s whole payment chain with `h_nic0` as a HYPOTHESIS,
+because no park supplied it.  Eight of the nine `false`-indexed parks supply it
+now — five by the field, three by refuting the premise from a column they
+already carry — so the chain starts from a park. -/
+
+example {sc s_prep s' : ScannerState}
+    {sp_start sp_block sp_scan sp_land sp_prep : SurfPos} {k : Nat}
+    (h_noflow : s_prep.inFlow = false)
+    (h_larm : sp_scan.col ≠ 0 → s_prep.inFlow = false →
+      s_prep.simpleKey.possible = true ∧ s_prep.simpleKey.pos.col = s_prep.col ∧
+      s_prep.simpleKeyAllowed = true ∧
+      (s_prep.currentIndent ≤ (s_prep.col : Int) ∨ s_prep.indents.size ≤ 1))
+    (h_park : PendingNode sc false sp_start sp_block sp_scan)
+    -- The ninth park, named rather than hidden: `noPending` is where ring 1
+    -- pays by its own route (`h_ntop`, eight producers).
+    (h_virgin : sp_block = sp_scan → sp_scan.col = 0 → sc.needIndentCheck = true)
+    (h_base : IndentStackBase.SentinelBase sc)
+    (h_preprocess : scanNextToken_preprocess sc = .ok (some (s_prep, '-')))
+    (hcol_land : sp_land.col = 0)
+    (h_ind : SIndent k sp_land sp_prep)
+    (hcorr_prep : ScannerSurfCorr s_prep sp_prep)
+    (h_dispatch : scanNextToken_dispatchBlockIndicators
+        (if s_prep.allowDirectives then
+          { s_prep with allowDirectives := false, documentEverStarted := true }
+        else s_prep) '-' = .ok (some s')) :
+    s'.currentIndent ≤ (k : Int) :=
+  indicator_top_dash hcol_land h_ind hcorr_prep
+    (dash_landing_floor h_noflow h_larm (h_park.nic0 h_virgin) h_base h_preprocess)
+    h_dispatch
+
+/-! ### §26.3  Why `noPending` is the arm that stays open
+
+The reader's premise is not a gap in the measurement, it is the measurement.  A
+block-context virgin park is AT column 0 by its own field, so the flag's
+hypothesis there is SATISFIED rather than refuted — the one park of the nine
+where no column can answer and a field would have to.  That is also the park
+§24's table pays through `noPending.h_ntop` instead, so nothing is waiting on
+this. -/
+
+example {sc : ScannerState} {sp : SurfPos}
+    (h_noflow : sc.inFlow = false)
+    (h_col : sp.col = 0 ∨ sc.inFlow = true) : sp.col = 0 :=
+  h_col.resolve_right (by rw [h_noflow]; simp)
+
+/-- …and the premise the five field-carrying parks answer is not free either:
+    a state at column 0 with the check DOWN exists, so `nic0_of_col_pos` cannot
+    be strengthened into a term that needs no column. -/
+example : ∃ s : ScannerState, s.col = 0 ∧ s.needIndentCheck = false :=
+  ⟨{ ScannerState.mk' "x" with needIndentCheck := false }, rfl, rfl⟩
+
+end Item207
+
+/-! ### §26.4  The same claim at the RUNTIME, split by whether it is ASKED
+
+Item 206's §25.3 asked one question of twelve shapes.  This item's claim divides
+them, and the division is the check: the parks that pay by a COLUMN must
+produce no column-0 park at all, and the parks that pay by a TERM must produce
+some.  Both totals are asserted, so neither half can start passing vacuously.
+
+`parkRow` is §25.3's, unchanged: `(parks, parks at column 0, no park at a line
+start with the check down)`. -/
+
+-- ASKED: six shapes whose content scan reaches a line start — the root and
+-- mapping-value block scalars, the entry-level one, one under a `---`, one
+-- before a `...`, and one in an explicit key.  Exactly one column-0 park each.
+private def asked207 : List String :=
+  ["a: |\n  x\nb: 2\n", "- |\n  x\n- b\n", "---\na: |\n  x\nb: 2\n",
+   "k:\n  - |\n    x\n  - y\n", "a: |\n  x\n...\n", "? |\n  x\n: b\n"]
+
+#guard parkRow "a: |\n  x\nb: 2\n" == (6, 1, true)
+#guard parkRow "- |\n  x\n- b\n" == (4, 1, true)
+#guard parkRow "---\na: |\n  x\nb: 2\n" == (7, 1, true)
+#guard parkRow "k:\n  - |\n    x\n  - y\n" == (6, 1, true)
+#guard parkRow "a: |\n  x\n...\n" == (4, 1, true)
+#guard parkRow "? |\n  x\n: b\n" == (4, 1, true)
+
+-- VACUOUS: ten shapes covering the three dispatchers whose parks pay by a
+-- column — the two markers and a directive document (structural), the flow
+-- closes (flow indicators), the quoted entry and the two indicators.  No
+-- column-0 park anywhere.
+private def vacuous207 : List String :=
+  ["---\na: 1\n", "a: 1\n...\n", "a: 1\n...\n---\nb: 2\n", "%YAML 1.2\n---\na: 1\n",
+   "[1, 2]\n", "{a: b}\n", "a: [1, 2]\nb: 3\n", "- \"x\"\n- y\n",
+   "? a\n: b\n", "- - a\n- b\n"]
+
+#guard parkRow "---\na: 1\n" == (4, 0, true)
+#guard parkRow "a: 1\n...\n" == (4, 0, true)
+#guard parkRow "a: 1\n...\n---\nb: 2\n" == (8, 0, true)
+#guard parkRow "%YAML 1.2\n---\na: 1\n" == (5, 0, true)
+#guard parkRow "[1, 2]\n" == (5, 0, true)
+#guard parkRow "{a: b}\n" == (5, 0, true)
+#guard parkRow "a: [1, 2]\nb: 3\n" == (10, 0, true)
+#guard parkRow "- \"x\"\n- y\n" == (4, 0, true)
+#guard parkRow "? a\n: b\n" == (4, 0, true)
+#guard parkRow "- - a\n- b\n" == (5, 0, true)
+
+-- The invariant over both halves…
+#guard (asked207 ++ vacuous207).all (fun i => (parkRow i).2.2)
+-- …and the division, as two numbers that cannot both drift.
+#guard asked207.length == 6
+#guard vacuous207.length == 10
+#guard (asked207.map (fun i => (parkRow i).2.1)).sum == 6
+#guard (vacuous207.map (fun i => (parkRow i).2.1)).sum == 0
 
 end L4YAML.Tests.Guards.BlockDeferralClasses

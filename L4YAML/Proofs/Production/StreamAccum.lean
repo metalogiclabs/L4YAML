@@ -1310,12 +1310,23 @@ inductive PendingNode (sc : ScannerState) : Bool → SurfPos → SurfPos → Sur
       -- preprocessing's unwind, the unwind runs on this flag, and the flag is
       -- the park's to state.
       --
-      -- Only the block scalar pays, and it is the only producer that can be
+      -- ~~Only the block scalar pays, and it is the only producer that can be
       -- asked: `[170]`/`[174]` is the one content scan that reaches column 0
       -- (item 77's note on `dispatchContent_col_pos_or_armed`), and it reaches
       -- it by consuming the break that arms the check.  The other producers
-      -- punt into a premise none of their parks can satisfy.
-      (h_nic0 : (sp_scan.col = 0 → sc.needIndentCheck = true) ∨ True)
+      -- punt into a premise none of their parks can satisfy.~~
+      --
+      -- **REQUIRED since item 207, and the paragraph above was a reading of
+      -- item 77's note rather than a measurement of it.**  What that note says
+      -- is that `dispatchContent_col_pos_or_armed` hands back a COLUMN for
+      -- every content arm but one; it does not say the remaining arm is the
+      -- only one that can answer this question, and the other direction of the
+      -- disjunct answers it just as well — a park OFF a line start satisfies
+      -- the premise vacuously.  Item 206 made the case analysis total
+      -- (`dispatchContent_nic_or_col_any`), and `content_park_nic_any` is the
+      -- resulting term: the same five arguments `h_arm` is already paid with,
+      -- at every one of this park's producers.
+      (h_nic0 : sp_scan.col = 0 → sc.needIndentCheck = true)
       -- **Item 168 — the enclosing SEQUENCE's tail, across the compact-mapping
       -- cascade** (LAST, so the patterns naming the older fields still bind
       -- them).  Item 167 gave the two ENTRY parks this face; the corpus's own
@@ -1584,7 +1595,14 @@ inductive PendingNode (sc : ScannerState) : Bool → SurfPos → SurfPos → Sur
       (h_marker : SCDocumentEnd sp_block sp_scan)
       -- Item 77: `scanDocumentEnd` re-arms (`simpleKeyAllowed := true`), so the
       -- `...`-park funds a landed `:` unconditionally.
-      (h_arm : sc.simpleKeyAllowed = true ∨ 0 < sp_scan.col) :
+      (h_arm : sc.simpleKeyAllowed = true ∨ 0 < sp_scan.col)
+      -- **Item 207 — the park's own INDENT CHECK** (LAST, same reason), and
+      -- here it is the marker's own width: `[204] c-document-end` consumes
+      -- three characters from column 0, so `h_marker` above already says this
+      -- park stands at column 3 and the premise is asked of nothing.  The
+      -- field exists so the LANDING does not have to case-split on which park
+      -- it is standing off — one reading, every block-context park.
+      (h_nic0 : sp_scan.col = 0 → sc.needIndentCheck = true) :
       PendingNode sc false sp_start sp_block sp_scan
   /-- Document start `---` scanned. The gap contains SCDirectivesEnd
       (possibly preceded by directives). Awaiting content or SSLComments
@@ -1623,7 +1641,13 @@ inductive PendingNode (sc : ScannerState) : Bool → SurfPos → SurfPos → Sur
         t.val = .documentStart ∧ t.pos.line = sc.line)
       -- Item 77: `scanDocumentStart` re-arms too.
       (h_arm : sc.simpleKeyAllowed = true ∨ 0 < sp_scan.col)
-      (h_nodir : sc.allowDirectives = false) :
+      (h_nodir : sc.allowDirectives = false)
+      -- **Item 207 — the park's own INDENT CHECK** (LAST, same reason).  The
+      -- `...` park reads its column off `h_marker`; this one carries no such
+      -- evidence, so the width `[203] c-directives-end` spends is stated as
+      -- the field and measured at the two producers, which is where the
+      -- marker scan is in hand.
+      (h_nic0 : sp_scan.col = 0 → sc.needIndentCheck = true) :
       PendingNode sc false sp_start sp_block sp_scan
   /-- Directive `%` scanned. The gap contains directive content.
       Awaiting next `%` (accumulate) or `---` (form directive document).
@@ -1846,7 +1870,17 @@ inductive PendingNode (sc : ScannerState) : Bool → SurfPos → SurfPos → Sur
       (h_closeFV : (∃ (nv : Nat) (ks : List Nat),
         ∀ sp_mid : SurfPos, SSLComments sp_scan sp_mid →
         ∀ sp_end : SurfPos, SCompactSeqTail n sp_mid sp_end →
-        ResumeFrames (ExplValueLine sp_start nv) ks sp_end) ∨ True) :
+        ResumeFrames (ExplValueLine sp_start nv) ks sp_end) ∨ True)
+      -- **Item 207 — the park's own INDENT CHECK** (LAST, so the patterns
+      -- naming the older fields still bind them), `pendingContent.h_nic0`'s
+      -- twin at the ENTRY-level park.  The two constructors have the same
+      -- producers with the same evidence in hand — an entry-content park is a
+      -- content dispatch that landed inside a `[184]`/`[185]` slot — so the
+      -- field is the same and pays the same way, by `content_park_nic_any`.
+      -- Ring 2 of item 204's carrier needs it HERE as well as on the content
+      -- park: `accum_block_on_pendingBlockContent`'s landed arm reads
+      -- `dash_landing_floor` off this park.
+      (h_nic0 : sp_scan.col = 0 → sc.needIndentCheck = true) :
       PendingNode sc false sp_start sp_block sp_scan
   /-- Block indicator scanned (`-`, `?`, `:`).
       The gap sp_block → sp_scan contains the indicator character.
@@ -2280,6 +2314,58 @@ inductive PendingNode (sc : ScannerState) : Bool → SurfPos → SurfPos → Sur
         ∀ sp_w : SurfPos, SBlockIndented nv .blockOut sp_c sp_w →
         SLYamlStream sp_start sp_w) ∨ True) :
       PendingNode sc false sp_start sp_block sp_scan
+
+/-- **The flag's vacuous half, named** (item 207).
+
+    `pendingContent.h_nic0` and its three twins are asked only of a park AT a
+    line start, so a producer that spent a column has already answered them.
+    Five of the twenty-one ring-2 producers pay this way — the two flow
+    closes, whose `]`/`}` is one character, and the three marker parks, whose
+    `---`/`...` is three — and it is the same reading `h_arm`'s right disjunct
+    is discharged with at those same sites. -/
+lemma nic0_of_col_pos {sc : ScannerState} {sp_scan : SurfPos}
+    (h : 0 < sp_scan.col) : sp_scan.col = 0 → sc.needIndentCheck = true :=
+  fun hc0 => absurd hc0 (by omega)
+
+/-- `[204] c-document-end` spends three columns from a line start (item 207). -/
+lemma scDocumentEnd_col {sp sp' : SurfPos} (h : SCDocumentEnd sp sp') :
+    sp'.col = 3 := by cases h; rfl
+
+/-- …and so does `[203] c-directives-end`. -/
+lemma scDirectivesEnd_col {sp sp' : SurfPos} (h : SCDirectivesEnd sp sp') :
+    sp'.col = 3 := by cases h; rfl
+
+/-- **Every block-context park but one answers the INDENT CHECK** (item 207) —
+    the nine `false`-indexed constructors, read as one datum, the way
+    `arm_or_col` below reads the save.
+
+    Five of the nine carry the flag as a field (items 154/206/207:
+    `pendingContent`, `pendingBlockContent`, the two marker parks and
+    `pendingFlow`); three refute the hypothesis outright from a column they
+    already carry (`pendingProps.h_col0`, `pendingBlock.h_col`,
+    `pendingMapValue.h_col0`).  The ninth is `noPending`, whose `h_col` says a
+    block-context virgin park IS at column 0 — so there the question is not
+    vacuous and no field answers it, which is why the premise names that park
+    instead of hiding it.  That is also the park item 205's ring 1 pays by a
+    different route (`noPending.h_ntop`, its own eight producers), so the split
+    here is the one the landing consumers already have.
+
+    This is what makes `dash_landing_floor` spendable at a block landing
+    without a case analysis on which park it is standing off. -/
+lemma PendingNode.nic0 {sc : ScannerState} {sp_start sp_block sp_scan : SurfPos}
+    (h_virgin : sp_block = sp_scan → sp_scan.col = 0 → sc.needIndentCheck = true)
+    (h : PendingNode sc false sp_start sp_block sp_scan) :
+    sp_scan.col = 0 → sc.needIndentCheck = true := by
+  cases h with
+  | noPending => exact h_virgin rfl
+  | pendingContent => assumption
+  | pendingBlockContent => assumption
+  | pendingDocEnd => assumption
+  | pendingDocStart => assumption
+  | pendingFlow => assumption
+  | pendingProps => exact fun hc => absurd hc (by omega)
+  | pendingBlock => exact fun hc => absurd hc (by omega)
+  | pendingMapValue => exact fun hc => absurd hc (by omega)
 
 /-- **Every block-context park either carries the save or is inside a line**
     (item 78) — the nine `false`-indexed constructors, read as one datum.
@@ -7446,7 +7532,10 @@ lemma structural_dispatch_to_pending
     obtain ⟨sp', h_marker, hcorr'⟩ := scanDocumentEnd_prod s_prep sp hcorr rest hchars hcol s' hde
     exact ⟨sp', false, hcol, PendingNode.pendingDocEnd sp_start sp sp'
              (Or.inr ((scanDocumentEnd_restTailSuffix hcorr'.end_eq hde).to_surface hcorr'))
-             h_marker (Or.inl (scanDocumentEnd_simpleKeyAllowed hde)),
+             h_marker (Or.inl (scanDocumentEnd_simpleKeyAllowed hde))
+             -- Item 207: `[204]`'s three columns, read off the marker the park
+             -- already carries.
+             (nic0_of_col_pos (by rw [scDocumentEnd_col h_marker]; omega)),
            fun h => Bool.noConfusion h, hcorr'⟩
   -- Proof of doc_start_tac
   intro hat hcol_s h_eq; subst h_eq
@@ -7472,7 +7561,10 @@ lemma structural_dispatch_to_pending
       hpark.1 hpark.2.1 hpark.2.2 (Or.inl (scanDocumentStart_simpleKeyAllowed _))
       -- Item 138: `scanDocumentStart` clears the flag itself (§9.1.2), so a
       -- `---` park is not directive-eligible and says so definitionally.
-      rfl,
+      rfl
+      -- Item 207: and `[203]`'s three columns, off the marker this producer
+      -- built but the park does not keep.
+      (nic0_of_col_pos (by rw [scDirectivesEnd_col h_marker]; omega)),
     fun h => Bool.noConfusion h, hcorr'⟩
 
 -- Every `.ok (some _)` branch of `scanNextToken_dispatchStructural` requires
@@ -7639,7 +7731,10 @@ lemma structural_dispatch_after_directives
       hpark.1 hpark.2.1 hpark.2.2 (Or.inl (scanDocumentStart_simpleKeyAllowed _))
       -- Item 138: `scanDocumentStart` clears the flag itself (§9.1.2), so a
       -- `---` park is not directive-eligible and says so definitionally.
-      rfl,
+      rfl
+      -- Item 207: and `[203]`'s three columns, off the marker this producer
+      -- built but the park does not keep.
+      (nic0_of_col_pos (by rw [scDirectivesEnd_col h_marker]; omega)),
     fun h => Bool.noConfusion h, hcorr'⟩
 
 -- Helper (4f.3): gap closure + dispatch → PendingNode at SSLComments midpoint.
@@ -15755,9 +15850,11 @@ lemma accum_step_flow (sc : ScannerState)
                       (Or.inr trivial) (Or.inr trivial)
                     ((ScannerAllowDirectives.scanFlowSequenceEnd_preserves_allowDirectives _).trans h_ad_false)
                     (staleNodeTail_scanFlowSequenceEnd s_ad).toCompletedTail
-                    -- Item 154: this scan cannot park at column 0 (item 77's note), so the
-                    -- premise the field states is one none of its parks reaches.
-                    (Or.inr trivial) (Or.inr trivial)),
+                    -- **Item 207: and the park's own indent check, from the OTHER side.**  The
+                    -- close spends a column (`glit_col`), so this park stands off a line start
+                    -- and the flag is not asked of it — the same reading `h_arm`'s `Or.inr`
+                    -- above is paid with.
+                    (nic0_of_col_pos (by have := glit_col h_close_lit; omega)) (Or.inr trivial)),
                   hcorr_tok, fun h => absurd h (by omega)⟩
               · -- mapBase + ']': kind-mismatched close (`{a]`). REFUTED (9a+9b(i)):
                 -- the scanner only reaches this dispatch with `flowStack.back? =
@@ -15947,9 +16044,11 @@ lemma accum_step_flow (sc : ScannerState)
                       (Or.inr trivial) (Or.inr trivial)
                         ((ScannerAllowDirectives.scanFlowMappingEnd_preserves_allowDirectives _).trans h_ad_false)
                         (staleNodeTail_scanFlowMappingEnd s_ad).toCompletedTail
-                        -- Item 154: this scan cannot park at column 0 (item 77's note), so the
-                        -- premise the field states is one none of its parks reaches.
-                        (Or.inr trivial) (Or.inr trivial)),
+                        -- **Item 207: and the park's own indent check, from the OTHER side.**  The
+                        -- close spends a column (`glit_col`), so this park stands off a line start
+                        -- and the flag is not asked of it — the same reading `h_arm`'s `Or.inr`
+                        -- above is paid with.
+                        (nic0_of_col_pos (by have := glit_col h_close_lit; omega)) (Or.inr trivial)),
                       hcorr_tok, fun h => absurd h (by omega)⟩
                   · -- seqNest + '}': kind-mismatched close (`[a}` nested). REFUTED.
                     simp at h_back
@@ -27902,9 +28001,11 @@ lemma content_dispatch_routed
                (Or.inr trivial) (Or.inr trivial)
                (nodir_of_content_dispatch h_dispatch)
                (completedTail_of_dispatch h_dispatch hna hnt)
-               -- Item 154: this scan cannot park at column 0 (item 77's note), so the
-               -- premise the field states is one none of its parks reaches.
-               (Or.inr trivial) (Or.inr trivial),
+               -- **Item 207: and the park's own indent check.**  `content_park_nic_any` is
+               -- `h_arm`'s own five arguments read for the FLAG instead of the save:
+               -- the dispatch either arms the check or spends a column, and a park at a
+               -- line start is the first case (item 206's `dispatchContent_nic_or_col_any`).
+               (content_park_nic_any hpeek h_flow_disp h_not_doc h_dispatch hcorr_result) (Or.inr trivial),
              hcorr_result⟩
     | inr h_bs0 =>
       obtain ⟨_, hbs⟩ := h_bs0
@@ -27954,7 +28055,7 @@ lemma content_dispatch_routed
                -- **Item 154: and the park's own indent check.**  `[170]`/`[174]`'s body
                -- begins past a `b-break`, so a park this scan leaves at column 0 has the
                -- check ARMED — which is the floor a landing off it needs.
-               (Or.inl (content_park_nic hbs hpeek h_dispatch hcorr_result)) (Or.inr trivial),
+               (content_park_nic hbs hpeek h_dispatch hcorr_result) (Or.inr trivial),
              hcorr_result⟩
 
 /-- The bare-document instance of `content_dispatch_routed` — the node anchors
@@ -28841,7 +28942,12 @@ lemma accum_content_on_pendingBlock_indented
                         (SBlockNode.flowInBlock (n + 1) .blockIn sp_scan sp_prep sp_gram sp_final
                           h_sep_all (h_flow_all (n + 1))
                           (white_prepend_SSLComments h_trailing_ws h_ssl)))⟩
-              | Or.inr _ => Or.inr trivial),
+              | Or.inr _ => Or.inr trivial)
+              -- **Item 207: and the park's own indent check.**  The entry-level park
+              -- is the same content dispatch one slot in, so the same five arguments
+              -- `h_arm` is paid with answer the flag too.
+              (content_park_nic_any (preprocess_some_peek h_preprocess)
+                h_flow_disp h_not_doc h_dispatch hcorr_result),
            hcorr_result⟩
   · -- Item 24: the run parks at the ENTRY's index.  Item 114: and the entry's
     -- own holdings park WITH it — the chain, the frame's pack, and the resume
@@ -29077,7 +29183,12 @@ lemma accum_content_on_pendingBlock_indented
                     closeFV sp_final
                       (SBlockIndented.node n .blockIn sp_scan sp_final
                         (h_nodeAt sp_final h_ssl))⟩
-              | Or.inr _ => Or.inr trivial),
+              | Or.inr _ => Or.inr trivial)
+              -- **Item 207: and the park's own indent check.**  The entry-level park
+              -- is the same content dispatch one slot in, so the same five arguments
+              -- `h_arm` is paid with answer the flag too.
+              (content_park_nic_any (preprocess_some_peek h_preprocess)
+                h_flow_disp h_not_doc h_dispatch hcorr_result),
            hcorr_result⟩
   · -- Items 53/54: the entry's MULTI-LINE value (quoted or plain), read at
     -- the entry's own index; arm 1's park with the fixed-index node.
@@ -29233,7 +29344,12 @@ lemma accum_content_on_pendingBlock_indented
                         (SBlockNode.flowInBlock (n + 1) .blockIn sp_scan sp_prep sp_gramf sp_final
                           h_sep_all h_node_f
                           (white_prepend_SSLComments h_tws_f h_ssl)))⟩
-              | Or.inr _ => Or.inr trivial),
+              | Or.inr _ => Or.inr trivial)
+              -- **Item 207: and the park's own indent check.**  The entry-level park
+              -- is the same content dispatch one slot in, so the same five arguments
+              -- `h_arm` is paid with answer the flag too.
+              (content_park_nic_any (preprocess_some_peek h_preprocess)
+                h_flow_disp h_not_doc h_dispatch hcorr_result),
            hcorr_result⟩
   · -- Item 99: the DEDENT drains.  The landing ended this entry, so the
     -- pending's own closure closes it EMPTY (`[185]`'s comment form), and
@@ -29634,9 +29750,12 @@ lemma accum_content_on_pendingMapValue_indented
               | Or.inr _ => Or.inr trivial)
              (nodir_of_content_dispatch h_dispatch)
              (completedTail_of_dispatch h_dispatch hna hnt)
-             -- Item 154: this scan cannot park at column 0 (item 77's note), so the
-             -- premise the field states is one none of its parks reaches.
-             (Or.inr trivial) -- Item 168: the flow/plain arm's own, off the same node the closure
+             -- **Item 207: and the park's own indent check.**  `content_park_nic_any` is
+             -- `h_arm`'s own five arguments read for the FLAG instead of the save:
+             -- the dispatch either arms the check or spends a column, and a park at a
+             -- line start is the first case (item 206's `dispatchContent_nic_or_col_any`).
+             (content_park_nic_any (preprocess_some_peek h_preprocess)
+               h_flow_disp h_not_doc h_dispatch hcorr_result) -- Item 168: the flow/plain arm's own, off the same node the closure
              -- above folds in.
              (match h_seqF168 with
               | Or.inl ⟨ke, ks, h_ltq, seqF⟩ => Or.inl ⟨ke, n, ks, h_ltq,
@@ -29810,7 +29929,7 @@ lemma accum_content_on_pendingMapValue_indented
              -- **Item 154: and the park's own indent check.**  `[170]`/`[174]`'s body
              -- begins past a `b-break`, so a park this scan leaves at column 0 has the
              -- check ARMED — which is the floor a landing off it needs.
-             (Or.inl (content_park_nic hbs (preprocess_some_peek h_preprocess) h_dispatch hcorr_result)) -- Item 168: the block-scalar arm's own, off the node re-read to the
+             (content_park_nic hbs (preprocess_some_peek h_preprocess) h_dispatch hcorr_result) -- Item 168: the block-scalar arm's own, off the node re-read to the
              -- landing (`h_nodeAt`) exactly as the closure above reads it.
              (match h_seqF168 with
               | Or.inl ⟨ke, ks, h_ltq, seqF⟩ => Or.inl ⟨ke, n, ks, h_ltq,
@@ -29919,9 +30038,12 @@ lemma accum_content_on_pendingMapValue_indented
               | Or.inr _ => Or.inr trivial)
              (nodir_of_content_dispatch h_dispatch)
              (completedTail_of_dispatch h_dispatch hna hnt)
-             -- Item 154: this scan cannot park at column 0 (item 77's note), so the
-             -- premise the field states is one none of its parks reaches.
-             (Or.inr trivial) -- **Item 168: the sequence face, carried onto the content park.**  The
+             -- **Item 207: and the park's own indent check.**  `content_park_nic_any` is
+             -- `h_arm`'s own five arguments read for the FLAG instead of the save:
+             -- the dispatch either arms the check or spends a column, and a park at a
+             -- line start is the first case (item 206's `dispatchContent_nic_or_col_any`).
+             (content_park_nic_any (preprocess_some_peek h_preprocess)
+               h_flow_disp h_not_doc h_dispatch hcorr_result) -- **Item 168: the sequence face, carried onto the content park.**  The
              -- same node the closure above folds in, ending at the enclosing
              -- collection's tail rather than at the stream; `n` is the level
              -- this park's entry stands in, and its tail rides so a sibling
@@ -30170,11 +30292,18 @@ lemma accum_content_pending (sc : ScannerState)
         -- below is the one landing that cannot floor itself: item 147's reading
         -- comes off a walk that crossed a break, and a park already at a line
         -- start crosses none.  The unwind that IS the floor runs on this flag,
-        -- so the park states it and the arm spends it.  `pendingContent` pays,
+        -- so the park states it and the arm spends it.  ~~`pendingContent` pays,
         -- from its block-scalar producers; the other four parks punt, and their
         -- punts name a premise none of their producers can reach column 0 to
-        -- satisfy.
-        (h_nic0 : (sp_scan.col = 0 → sc.needIndentCheck = true) ∨ True)
+        -- satisfy.~~
+        --
+        -- **REQUIRED since item 207: all five parks pay.**  The sentence struck
+        -- above was a claim about producers, and the instrument disagreed with
+        -- it at twenty of twenty-one: every content-dispatch producer answers
+        -- by `content_park_nic_any`, and the flow closes and the two markers
+        -- answer by the columns they spend.  The arm below is unconditional now
+        -- and `park_col0_floor` is what it spends.
+        (h_nic0 : sp_scan.col = 0 → sc.needIndentCheck = true)
         -- **Item 168: and the park's SEQUENCE face.**  The same shape as
         -- `h_fS`, one level wide and bottomed at the enclosing `[183]` instead
         -- of at the stream: closing is what commits that collection's tail, and
@@ -30251,25 +30380,16 @@ lemma accum_content_pending (sc : ScannerState)
           ((∃ lo : Nat, IndentStackCover.Floor lo w (w :: ksw') ∧
             IndentStackCover.Covered lo (w :: ksw') s_prep) ∨ True) := by
         intro w ksw ksw' h_cv hmemw h_ww h_scolw
-        rcases h_nic0 with h_armed | _
-        · rcases h_cv with ⟨lo, _, h_fl, h_cv0⟩ | _
-          · obtain ⟨_, s_skip, hsk, _, _⟩ := preprocess_save_elim h_preprocess
-            have h_floor : s_prep.currentIndent ≤ (s_prep.col : Int) := by
-              rcases IndentStackCover.preprocess_top_le_col_of_armed hsk
-                  (by have hsc := h_scflow
-                      unfold ScannerState.inFlow at hsc ⊢
-                      rw [ScannerCorrectness.skipToContent_preserves_flowLevel sc s_skip hsk]
-                      exact hsc)
-                  (skipToContentLoop_needIndentCheck_mono sc s_skip _ hsk (h_armed hcol))
-                  h_preprocess with h | h
-              · exact h
-              · rw [(IndentStackBase.preprocess_base h_preprocess h_base).currentIndent_of_size_le_one h]
-                omega
-            exact Or.inl (dedent_cover_of_floor
-              (IndentStackMono.preprocess_mono h_preprocess h_mono)
-              (by rw [← h_scolw]; exact h_floor) h_fl
-              (IndentStackCover.preprocess_cover h_preprocess h_cv0) hmemw h_ww)
-          · exact Or.inr trivial
+        -- Item 207: the floor this branch computed inline is `park_col0_floor`,
+        -- which item 205 lifted OUT of here so the block landings could spend
+        -- it too.  With the field required it comes back to replace its own
+        -- source, and the arm has no punt left.
+        rcases h_cv with ⟨lo, _, h_fl, h_cv0⟩ | _
+        · exact Or.inl (dedent_cover_of_floor
+            (IndentStackMono.preprocess_mono h_preprocess h_mono)
+            (by rw [← h_scolw]
+                exact park_col0_floor h_scflow (h_nic0 hcol) h_base h_preprocess) h_fl
+            (IndentStackCover.preprocess_cover h_preprocess h_cv0) hmemw h_ww)
         · exact Or.inr trivial
       -- ═══ Item 137: a `---` park's landing hands the node to the MARKER's own
       -- document.  The anchor moves from the landing back to the park —
@@ -30468,7 +30588,7 @@ lemma accum_content_pending (sc : ScannerState)
       (Or.inl (h_arm76.resolve_right (by rw [h_scflow]; simp)))
       h_not_doc h_flow_disp h_dispatch
       (h_nodoc h_scflow)
-  | pendingDocEnd _ _ _ h_line h_marker _ =>
+  | pendingDocEnd _ _ _ h_line h_marker _ h_nic0E =>
     -- ═══ Item 42: the no-break arm is EMPTY.  `[204]` stops the marker's line
     -- at a break or a `#`, and the content dispatch returns `.ok` on neither
     -- (`...#foo` never scans a marker at all — `[206] c-forbidden` wants a
@@ -30491,8 +30611,11 @@ lemma accum_content_pending (sc : ScannerState)
       -- Item 139: a `...` park's tail is a `.documentEnd` token, which
       -- `completesFlowValue` excludes — §9.2's landing refusal stands aside.
       (Or.inr trivial)
-      -- Item 154: a `...` park's producers all end on the marker's own line.
-      (Or.inr trivial)
+      -- ~~Item 154: a `...` park's producers all end on the marker's own
+      -- line.~~  **Item 207: and that is the payment, not the punt.**  The
+      -- marker is three columns wide, so the park is off a line start and the
+      -- field says so.
+      h_nic0E
       -- Item 168: this park stands inside no compact mapping of its own.
       (Or.inr trivial)
       (fun hcol sp_ws h_ws h_pk _ _ =>
@@ -30537,7 +30660,7 @@ lemma accum_content_pending (sc : ScannerState)
     exact absurd h_adj
       (checkAdjacentValue_refutes_stale (h_stale h_res) h_flow_disp h_pay h_pay_sk)
   | pendingBlockContent _ _ _ n h_line _h_closable _h_closable_entry _h_key h_stale _
-      _h_kslot h_closeF110 _ h_tail139b =>
+      _h_kslot h_closeF110 _ h_tail139b _ _ _ h_nic0B =>
     -- ═══ Item 47: same rung, entry-parked (`- "a" :b`) — same refutation. ═══
     --
     -- ═══ Item 110: and the landing arms get this park's frames, from the
@@ -30565,9 +30688,11 @@ lemma accum_content_pending (sc : ScannerState)
       -- Item 139: the entry-level content park pays the same face, for the
       -- same reason and off the same producers.
       (Or.inl h_tail139b)
-      -- Item 154: `pendingBlockContent`'s producers are entry scans, not block
-      -- scalars; none of them parks at column 0.
-      (Or.inr trivial)
+      -- ~~Item 154: `pendingBlockContent`'s producers are entry scans, not
+      -- block scalars; none of them parks at column 0.~~  **Item 207: they are
+      -- entry scans, and an entry scan is a CONTENT dispatch one slot in —
+      -- which is what pays, whether or not it parks at column 0.**
+      h_nic0B
       -- Item 168: `pendingBlockContent`'s own sequence face is item 167's,
       -- read at the ENTRY level rather than at a mapping's — a different
       -- shape, and the arm that spends it is the block landing's.
@@ -30579,7 +30704,7 @@ lemma accum_content_pending (sc : ScannerState)
     subst h_colon
     exact absurd h_adj
       (checkAdjacentValue_refutes_stale (h_stale h_res) h_flow_disp h_pay h_pay_sk)
-  | pendingDocStart _ =>
+  | pendingDocStart _ _ _ h_doc_route _ _ _ _ _ h_nic0S =>
     -- ═══ Item 43: `--- a` — `[208] l-explicit-document`'s one-line body.
     -- A mid-line park cannot close first, so the dispatch runs ROUTED: the
     -- node anchors at the park (just after the `---`), the crossed whites are
@@ -30589,7 +30714,6 @@ lemma accum_content_pending (sc : ScannerState)
     -- (`close_with_ssl` takes only the `GAlt.right` empty-node branch).
     -- The key context punts: `--- a: 1` is refused (`contentOnDocumentStartLine`),
     -- so no implicit key ever fires behind this park. ═══
-    rename_i h_doc_route
     -- ═══ Item 137: the LANDED arms take the marker's own content slot — the
     -- same route this branch has spent on the marker's own line since item 43,
     -- now stated over the landing's `[79] s-l-comments` so `---⏎hello` and
@@ -30600,8 +30724,9 @@ lemma accum_content_pending (sc : ScannerState)
       -- Item 139: a `---` park's tail is a `.documentStart` token — excluded
       -- like the `...`, and the marker arm above fires first anyway.
       (Or.inr trivial)
-      -- Item 154: a `---` park ends on the marker, inside its line.
-      (Or.inr trivial)
+      -- ~~Item 154: a `---` park ends on the marker, inside its line.~~
+      -- **Item 207: which is the payment.**  `[203]` is three columns too.
+      h_nic0S
       -- Item 168: this park stands inside no compact mapping of its own.
       (Or.inr trivial)
       (fun hcol sp_ws h_ws h_pk _ _ => ?_)
@@ -30647,7 +30772,7 @@ lemma accum_content_pending (sc : ScannerState)
       -- scalar.~~  **Item 206 pays it instead of punting it.**  That sentence
       -- was true and was the reason to punt; it is also the reason the
       -- measurement is FREE, and the field now carries it.
-      (Or.inl h_nic0F)
+      h_nic0F
       -- Item 168: this park stands inside no compact mapping of its own.
       (Or.inr trivial)
       (fun _ _ _ _ _ _ =>
@@ -31449,9 +31574,12 @@ lemma accum_content_pending (sc : ScannerState)
                           | Or.inr _ => Or.inr trivial)
                          (nodir_of_content_dispatch h_dispatch)
                          (completedTail_of_dispatch h_dispatch hamp hbang)
-                         -- Item 154: this scan cannot park at column 0 (item 77's note), so the
-                         -- premise the field states is one none of its parks reaches.
-                         (Or.inr trivial) (Or.inr trivial),
+                         -- **Item 207: and the park's own indent check.**  `content_park_nic_any` is
+                         -- `h_arm`'s own five arguments read for the FLAG instead of the save:
+                         -- the dispatch either arms the check or spends a column, and a park at a
+                         -- line start is the first case (item 206's `dispatchContent_nic_or_col_any`).
+                         (content_park_nic_any (preprocess_some_peek h_preprocess)
+                           h_flow_disp h_not_doc h_dispatch hcorr_result) (Or.inr trivial),
                        hcorr_result⟩
               | inr h_block_pair =>
                 obtain ⟨_, h_absorb95⟩ := h_block_pair
@@ -31521,9 +31649,12 @@ lemma accum_content_pending (sc : ScannerState)
                           | Or.inr _ => Or.inr trivial)
                          (nodir_of_content_dispatch h_dispatch)
                          (completedTail_of_dispatch h_dispatch hamp hbang)
-                         -- Item 154: this scan cannot park at column 0 (item 77's note), so the
-                         -- premise the field states is one none of its parks reaches.
-                         (Or.inr trivial) (Or.inr trivial),
+                         -- **Item 207: and the park's own indent check.**  `content_park_nic_any` is
+                         -- `h_arm`'s own five arguments read for the FLAG instead of the save:
+                         -- the dispatch either arms the check or spends a column, and a park at a
+                         -- line start is the first case (item 206's `dispatchContent_nic_or_col_any`).
+                         (content_park_nic_any (preprocess_some_peek h_preprocess)
+                           h_flow_disp h_not_doc h_dispatch hcorr_result) (Or.inr trivial),
                        hcorr_result⟩
             | k + 1, h_sep_run, h_run, h_route, h_sep2, h_kslot_p,
                 h_routeE_p, h_kslotE_p, h_closeFE_p, h_closeFS_p, h_closeFVS_p =>
@@ -31730,7 +31861,12 @@ lemma accum_content_pending (sc : ScannerState)
                             | Or.inl ⟨nv, ks, closeFEV⟩ => Or.inl ⟨nv, ks,
                                 fun sp_mid h_ssl sp_end h_tail =>
                                   closeFEV sp_mid (h_nodeAt sp_mid h_ssl) sp_end h_tail⟩
-                            | Or.inr _ => Or.inr trivial),
+                            | Or.inr _ => Or.inr trivial)
+                            -- **Item 207: and the park's own indent check.**  The entry-level park
+                            -- is the same content dispatch one slot in, so the same five arguments
+                            -- `h_arm` is paid with answer the flag too.
+                            (content_park_nic_any (preprocess_some_peek h_preprocess)
+                              h_flow_disp h_not_doc h_dispatch hcorr_result),
                          hcorr_result⟩
                 | inr _ =>
                   exact ⟨sp_block, sp_block, sp_block, sp_scan', h_stream_block,
@@ -31776,9 +31912,12 @@ lemma accum_content_pending (sc : ScannerState)
                           | Or.inr _ => Or.inr trivial)
                          (nodir_of_content_dispatch h_dispatch)
                          (completedTail_of_dispatch h_dispatch hamp hbang)
-                         -- Item 154: this scan cannot park at column 0 (item 77's note), so the
-                         -- premise the field states is one none of its parks reaches.
-                         (Or.inr trivial) (Or.inr trivial),
+                         -- **Item 207: and the park's own indent check.**  `content_park_nic_any` is
+                         -- `h_arm`'s own five arguments read for the FLAG instead of the save:
+                         -- the dispatch either arms the check or spends a column, and a park at a
+                         -- line start is the first case (item 206's `dispatchContent_nic_or_col_any`).
+                         (content_park_nic_any (preprocess_some_peek h_preprocess)
+                           h_flow_disp h_not_doc h_dispatch hcorr_result) (Or.inr trivial),
                        hcorr_result⟩
               · -- `  - &a |`: the held run's route closes at `k+1`, and `[198]`'s
                 -- props slot takes the block scalar there.  Item 114: the
@@ -31838,7 +31977,12 @@ lemma accum_content_pending (sc : ScannerState)
                             | Or.inl ⟨nv, ks, closeFEV⟩ => Or.inl ⟨nv, ks,
                                 fun sp_mid h_ssl sp_end h_tail =>
                                   closeFEV sp_mid (h_nodeAt sp_mid h_ssl) sp_end h_tail⟩
-                            | Or.inr _ => Or.inr trivial),
+                            | Or.inr _ => Or.inr trivial)
+                            -- **Item 207: and the park's own indent check.**  The entry-level park
+                            -- is the same content dispatch one slot in, so the same five arguments
+                            -- `h_arm` is paid with answer the flag too.
+                            (content_park_nic_any (preprocess_some_peek h_preprocess)
+                              h_flow_disp h_not_doc h_dispatch hcorr_result),
                          hcorr_result⟩
                 | inr _ =>
                   exact ⟨sp_block, sp_block, sp_block, sp_scan', h_stream_block,
@@ -31892,7 +32036,7 @@ lemma accum_content_pending (sc : ScannerState)
                          -- **Item 154: and the park's own indent check.**  `[170]`/`[174]`'s body
                          -- begins past a `b-break`, so a park this scan leaves at column 0 has the
                          -- check ARMED — which is the floor a landing off it needs.
-                         (Or.inl (content_park_nic hbs (preprocess_some_peek h_preprocess) h_dispatch hcorr_result)) (Or.inr trivial),
+                         (content_park_nic hbs (preprocess_some_peek h_preprocess) h_dispatch hcorr_result) (Or.inr trivial),
                        hcorr_result⟩
               · -- Item 55: the props-decorated MULTI-LINE value at `k+1` —
                 -- the first consumer's park with the fixed-index content.
@@ -31947,7 +32091,12 @@ lemma accum_content_pending (sc : ScannerState)
                             | Or.inl ⟨nv, ks, closeFEV⟩ => Or.inl ⟨nv, ks,
                                 fun sp_mid h_ssl sp_end h_tail =>
                                   closeFEV sp_mid (h_nodeAt sp_mid h_ssl) sp_end h_tail⟩
-                            | Or.inr _ => Or.inr trivial),
+                            | Or.inr _ => Or.inr trivial)
+                            -- **Item 207: and the park's own indent check.**  The entry-level park
+                            -- is the same content dispatch one slot in, so the same five arguments
+                            -- `h_arm` is paid with answer the flag too.
+                            (content_park_nic_any (preprocess_some_peek h_preprocess)
+                              h_flow_disp h_not_doc h_dispatch hcorr_result),
                          hcorr_result⟩
                 | inr _ =>
                   exact ⟨sp_block, sp_block, sp_block, sp_scan', h_stream_block,
@@ -31992,9 +32141,12 @@ lemma accum_content_pending (sc : ScannerState)
                           | Or.inr _ => Or.inr trivial)
                          (nodir_of_content_dispatch h_dispatch)
                          (completedTail_of_dispatch h_dispatch hamp hbang)
-                         -- Item 154: this scan cannot park at column 0 (item 77's note), so the
-                         -- premise the field states is one none of its parks reaches.
-                         (Or.inr trivial) (Or.inr trivial),
+                         -- **Item 207: and the park's own indent check.**  `content_park_nic_any` is
+                         -- `h_arm`'s own five arguments read for the FLAG instead of the save:
+                         -- the dispatch either arms the check or spends a column, and a park at a
+                         -- line start is the first case (item 206's `dispatchContent_nic_or_col_any`).
+                         (content_park_nic_any (preprocess_some_peek h_preprocess)
+                           h_flow_disp h_not_doc h_dispatch hcorr_result) (Or.inr trivial),
                        hcorr_result⟩
   | pendingBlock _ _ _ n_old h_close_old h_close_entry_old h_floor_old h_sk_old h_col_old
       h_kslot92 h_closeF99 _ h_seqF167 h_kslotUp190 h_closeFV198 =>
