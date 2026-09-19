@@ -3123,9 +3123,15 @@ already states `sp_scan.col = nv + 1`; `pendingMapValue` has **6** producers, of
 which only the payers of that field's LEFT disjunct owe anything.
 
 So `_stamp_compact` is not "the stamp, or a refutation" any more.  It is a
-REFUTATION, written above, waiting on one number at ≤ 13 producers — the same
-shape `_stamp_nopack`'s carrier had at item 186, which items 187 and 188 then
-priced and began paying.  What this item removes is the uncertainty, not the
+REFUTATION, written above, waiting on one number at ~~≤ 13 producers~~ — the
+same shape `_stamp_nopack`'s carrier had at item 186, which items 187 and 188
+then priced and began paying.
+
+**Corrected at item 205.**  The seven ARE the producers of the field, and all
+seven pay — item 205 paid them and the compiler accepted every one.  What the
+count does not include is the PREMISE five of them pay from, whose own
+producers are the next ring; the closure is **52 sites across 20 declarations**,
+and it does not terminate.  See §24.  What this item removes is the uncertainty, not the
 wrapper: the class's emptiness is re-derivable, its cause is one error, its
 refutation is machine-checked, and its remaining cost is counted rather than
 estimated.
@@ -3145,5 +3151,140 @@ the syntactic proxy counted it; the STATE does not reach the premise at any
 step, and the program is accepted. -/
 
 #guard pins "- ? b\n: a\n- : b\n" == ("scan-accepted", "+STR +DOC +SEQ +MAP =VAL :b =VAL : -MAP -SEQ -DOC +DOC =VAL : -DOC -STR")
+
+
+/-! ## §24  The error list is a census of ONE RING (item 205)
+
+Item 204 added the carrier to `PendingNode.pendingBlock`, rebuilt, and read the
+price off the error list: **7 producers**, plus `pendingMapValue.h_vslot`'s six
+— "≤ 13".  That number is correct about what it counts and wrong about what it
+was used for.  It counts the sites that must SUPPLY the field.  It does not
+count the sites that must supply what those sites supply it FROM.
+
+Paying the seven settles which is which, and all seven do pay:
+
+| producer | what pays the `-`'s floor | ring |
+|---|---|---|
+| `accum_block_on_pendingBlock`, landed ×2 | `landing_floor_of_arm` — the park is at `n + 1`, so the walk crossed a break and the unwind ran | **closed** |
+| `accum_block_on_pendingBlock`, inline | the park's own new field, one premise on the consumer | **closed** (self-fed) |
+| `accum_block_on_noPending` | a new `h_ntop` on `noPending`: 8 producers, 7 refuting `inFlow = false` as they already do for `h_col`/`h_arm`/`h_noek`, and the seed paying `mk'`'s empty stack | **closed** (8) |
+| `accum_block_on_closeThenBlock`, landed | `dash_landing_floor` — free off a park off a line start, and item 154's `h_nic0` at a park on one | **open** |
+| `accum_block_on_pendingBlockContent`, landed | the same | **open** |
+| `accum_block_on_closeThenBlock`, compact fill | `pendingMapValue.h_vslot`'s own conjunct (item 204's other six) | not measured here |
+
+So the first ring closes at 7 + 8 = 15, and two of the seven leave a premise
+owed.  That premise — `sp_scan.col = 0 → sc.needIndentCheck = true`, item 154's
+field read at the BLOCK landing — has **12** application sites, of which 5 pay
+by refuting the hypothesis from a column field the park already carries
+(`pendingProps.h_col0`, `pendingMapValue.h_col0`, `pendingBlock.h_col`).  The
+other 7 need the field on `pendingContent` (whose own is an OPTION, 17 producers
+to make unconditional), `pendingDocEnd` (1), `pendingDocStart` (4), `pendingFlow`
+(10) and `pendingBlockContent` (6).
+
+**And that ring does not close.**  One of `pendingFlow`'s producers is
+`block_dispatch_deferred` itself — the escape being retired parks `pendingFlow`,
+so a field there is a field the escape must pay, at all ELEVEN of its
+application sites, two of which are the `_stamp_compact` sites the carrier
+exists to refute.
+
+The blanket measurement agrees: the same carrier asked of every block-context
+park at once is **52 sites across 20 declarations**
+(`scripts/park_top_price.py all`), against **7 across 4** for the field alone
+(`scripts/park_top_price.py ring1`, which reproduces item 204's number). -/
+
+section Item205
+open L4YAML.Proofs L4YAML.Proofs.IndentStackCover
+
+/-! ### §24.1  The payment chain, end to end
+
+What all seven producers reduce to, once the landing's floor is in hand: the
+`-`'s top is `indicator_top_dash` and nothing else.  This is the whole content
+of the seven payments, stated once. -/
+
+example {sc s_prep s' : ScannerState} {sp_scan sp_land sp_prep : SurfPos} {k : Nat}
+    (h_noflow : s_prep.inFlow = false)
+    (h_larm : sp_scan.col ≠ 0 → s_prep.inFlow = false →
+      s_prep.simpleKey.possible = true ∧ s_prep.simpleKey.pos.col = s_prep.col ∧
+      s_prep.simpleKeyAllowed = true ∧
+      (s_prep.currentIndent ≤ (s_prep.col : Int) ∨ s_prep.indents.size ≤ 1))
+    (h_nic0 : sp_scan.col = 0 → sc.needIndentCheck = true)
+    (h_base : IndentStackBase.SentinelBase sc)
+    (h_preprocess : scanNextToken_preprocess sc = .ok (some (s_prep, '-')))
+    (hcol_land : sp_land.col = 0)
+    (h_ind : SIndent k sp_land sp_prep)
+    (hcorr_prep : ScannerSurfCorr s_prep sp_prep)
+    (h_dispatch : scanNextToken_dispatchBlockIndicators
+        (if s_prep.allowDirectives then
+          { s_prep with allowDirectives := false, documentEverStarted := true }
+        else s_prep) '-' = .ok (some s')) :
+    s'.currentIndent ≤ (k : Int) :=
+  indicator_top_dash hcol_land h_ind hcorr_prep
+    (dash_landing_floor h_noflow h_larm h_nic0 h_base h_preprocess) h_dispatch
+
+/-! …and the INLINE twin, where no break was crossed, preprocessing wrote no
+indents, and the stack the `-` pushes onto is the PARK's — which is the one arm
+the carrier feeds itself. -/
+
+example {sc s_prep s' : ScannerState} {sp_prep : SurfPos} {n m : Nat}
+    (h_base : IndentStackBase.SentinelBase sc)
+    (h_top : sc.currentIndent ≤ (n : Int))
+    (h_col : sp_prep.col = n + 1 + m)
+    (hcorr_prep : ScannerSurfCorr s_prep sp_prep)
+    (h_preprocess : scanNextToken_preprocess sc = .ok (some (s_prep, '-')))
+    (h_dispatch : scanNextToken_dispatchBlockIndicators
+        (if s_prep.allowDirectives then
+          { s_prep with allowDirectives := false, documentEverStarted := true }
+        else s_prep) '-' = .ok (some s')) :
+    s'.currentIndent ≤ ((n + 1 + m : Nat) : Int) :=
+  indicator_top_dash_at_col h_col hcorr_prep
+    (dash_dispatch_floor h_base
+      (by have hc := hcorr_prep.col_eq; rw [← hc, h_col]; omega) h_preprocess)
+    h_dispatch
+
+/-! ### §24.2  Why the second ring exists at all
+
+`landing_floor_of_arm` reads the floor off the walk that carried a park DOWN to
+a line start.  At a park already AT one the arm is INHABITED BY EVERY STATE —
+its own hypothesis is the column being non-zero — so it is not a weaker floor,
+it is no floor.  That is the whole reason item 154's flag has to be a field, and
+the whole reason the second ring is not empty. -/
+
+example {s_prep : ScannerState} {sp_scan : SurfPos} (hc0 : sp_scan.col = 0) :
+    sp_scan.col ≠ 0 → s_prep.inFlow = false →
+      s_prep.simpleKey.possible = true ∧ s_prep.simpleKey.pos.col = s_prep.col ∧
+      s_prep.simpleKeyAllowed = true ∧
+      (s_prep.currentIndent ≤ (s_prep.col : Int) ∨ s_prep.indents.size ≤ 1) :=
+  fun h => absurd hc0 h
+
+/-! ### §24.3  Why the third ring does not close
+
+The escape's own park is `pendingFlow`, built from exactly what
+`block_dispatch_deferred` holds — a stream, an arm and the directive face.  A
+field on that constructor is therefore a field the ESCAPE must pay, at every one
+of its eleven application sites; and two of those sites are
+`block_dispatch_deferred_stamp_compact`'s, the ones the carrier is being bought
+to delete.  The ring re-enters the thing being retired. -/
+
+example {sc : ScannerState} {sp_start sp_X sp_scan' : SurfPos}
+    (h_stream : SLYamlStream sp_start sp_X)
+    (h_arm : sc.simpleKeyAllowed = true ∨ 0 < sp_scan'.col)
+    (h_nodir : sc.allowDirectives = false) :
+    PendingNode sc false sp_start sp_X sp_scan' :=
+  PendingNode.pendingFlow sp_start sp_X sp_scan' h_stream h_arm h_nodir
+
+end Item205
+
+/-! ### §24.4  The runtime behind the three closed payments
+
+The shapes the paid ring-1 producers cover, pinned at the current runtime so a
+move shows up here and not only in a price: the seed's `-` (`noPending`), the
+landed sibling and the compact nested `-` (`pendingBlock`'s three), and the
+compact fill off an open `?` slot — the one producer this item did NOT pay. -/
+
+#guard pins "- a\n- b\n" == ("scan-accepted", "+STR +DOC +SEQ =VAL :a =VAL :b -SEQ -DOC -STR")
+#guard pins "- - a\n" == ("scan-accepted", "+STR +DOC +SEQ +SEQ =VAL :a -SEQ -SEQ -DOC -STR")
+#guard pins "  - a\n  - b\n" == ("scan-accepted", "+STR +DOC +SEQ =VAL :a =VAL :b -SEQ -DOC -STR")
+#guard pins "? - a\n: w\n" == ("scan-accepted", "+STR +DOC +MAP +SEQ =VAL :a -SEQ =VAL :w -MAP -DOC -STR")
+#guard pins "...\n- a\n" == ("scan-accepted", "+STR +DOC +SEQ =VAL :a -SEQ -DOC -STR")
 
 end L4YAML.Tests.Guards.BlockDeferralClasses

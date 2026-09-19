@@ -17224,6 +17224,138 @@ lemma indicator_floor_dash {sc s_prep s' : ScannerState} {sp_land sp_prep : Surf
     (by have := SIndent_col h_ind; rw [hcol_land] at this; omega)
     hcorr_prep h_preprocess h_dispatch
 
+/-! #### The dash's TOP, and the two places a landing's floor comes from
+     (item 205)
+
+    Item 204 proved the compact deferral false from ONE missing number, the
+    stack's top at an entry park (`sc.currentIndent ≤ n`), and priced the
+    carrier at the producers of the field that would hold it.  These four
+    lemmas are that carrier's payment chain, measured by paying it: every
+    `pendingBlock` producer in this file discharges the top from them and
+    nothing else.  What they do NOT supply is the chain's own premise — the
+    dispatch state's floor — and the price of THAT is item 205's subject. -/
+
+/-- **The dash's TOP** (item 205) — `indicator_floor_dash_at_col`'s twin on the
+    other side of the same number.
+
+    The floor says the entry's node reads at or right of `k + 1`; this says the
+    stack the entry pushed onto stops AT `k`.  `[183]`'s push is conditional
+    (`col > currentIndent`), so the push branch gives the bound outright and the
+    NO-push branch gives it only from a dispatch state already floored — which
+    is the premise, and the whole cost of this reading. -/
+lemma indicator_top_dash_at_col {s_prep s' : ScannerState} {sp_prep : SurfPos}
+    {k : Nat}
+    (hcol_prep : sp_prep.col = k)
+    (hcorr_prep : ScannerSurfCorr s_prep sp_prep)
+    (h_fl : s_prep.currentIndent ≤ (s_prep.col : Int))
+    (h_dispatch : scanNextToken_dispatchBlockIndicators
+        (if s_prep.allowDirectives then
+          { s_prep with allowDirectives := false, documentEverStarted := true }
+        else s_prep) '-' = .ok (some s')) :
+    s'.currentIndent ≤ (k : Int) := by
+  have h_upd_ind : (if s_prep.allowDirectives then
+      { s_prep with allowDirectives := false, documentEverStarted := true }
+    else s_prep).indents = s_prep.indents := by split <;> rfl
+  have h_upd_col : (if s_prep.allowDirectives then
+      { s_prep with allowDirectives := false, documentEverStarted := true }
+    else s_prep).col = s_prep.col := by split <;> rfl
+  have h_col : s_prep.col = k := by rw [← hcorr_prep.col_eq, hcol_prep]
+  obtain ⟨h_noflow, h_scan⟩ := dispatchBlockIndicators_dash_scan h_dispatch
+  have h_fl_disp : (if s_prep.allowDirectives then
+      { s_prep with allowDirectives := false, documentEverStarted := true }
+    else s_prep).currentIndent ≤ ((if s_prep.allowDirectives then
+      { s_prep with allowDirectives := false, documentEverStarted := true }
+    else s_prep).col : Int) := by
+    rw [currentIndent_of_indents_eq h_upd_ind, h_upd_col]; exact h_fl
+  have := IndentStackCover.scanBlockEntry_top_le h_noflow h_scan h_fl_disp
+  rw [h_upd_col, h_col] at this
+  exact this
+
+/-- **The landed dash's TOP**, `indicator_floor_dash`'s twin (item 205): a zero
+    landing plus `[63]`'s width IS the dispatch's column, here as there. -/
+lemma indicator_top_dash {s_prep s' : ScannerState} {sp_land sp_prep : SurfPos}
+    {k : Nat}
+    (hcol_land : sp_land.col = 0)
+    (h_ind : SIndent k sp_land sp_prep)
+    (hcorr_prep : ScannerSurfCorr s_prep sp_prep)
+    (h_fl : s_prep.currentIndent ≤ (s_prep.col : Int))
+    (h_dispatch : scanNextToken_dispatchBlockIndicators
+        (if s_prep.allowDirectives then
+          { s_prep with allowDirectives := false, documentEverStarted := true }
+        else s_prep) '-' = .ok (some s')) :
+    s'.currentIndent ≤ (k : Int) :=
+  indicator_top_dash_at_col
+    (by have := SIndent_col h_ind; rw [hcol_land] at this; omega)
+    hcorr_prep h_fl h_dispatch
+
+/-- **The dispatch's floor, from the LANDING or from the PARK** (item 205).
+
+    `IndentStackCover.preprocess_top_le_col`'s right disjunct is not "the unwind
+    popped nothing"; it is "the unwind never ran", and then the stack the
+    dispatch reads IS the park's.  So the two disjuncts split by who pays: the
+    landing pays where its walk crossed a break, and the park pays where it did
+    not — at a column preprocessing can only have moved RIGHT of without one. -/
+lemma dash_dispatch_floor {sc s_prep : ScannerState} {c : Char}
+    (h_base : IndentStackBase.SentinelBase sc)
+    (h_ptop : sc.currentIndent ≤ (s_prep.col : Int))
+    (h_preprocess : scanNextToken_preprocess sc = .ok (some (s_prep, c))) :
+    s_prep.currentIndent ≤ (s_prep.col : Int) := by
+  rcases IndentStackCover.preprocess_top_le_col h_preprocess h_base with h | h_ids
+  · exact h
+  · rw [currentIndent_of_indents_eq h_ids]; exact h_ptop
+
+/-- **The floor at a park already AT column 0** (item 205) — item 154's
+    reading, lifted out of the content landing so the BLOCK landings can spend
+    it too.
+
+    `landing_floor_of_arm` reads the floor off the walk that carried a park DOWN
+    to a line start, and a park already at one crosses no such walk.  The floor
+    is preprocessing's UNWIND, the unwind runs on `needIndentCheck`, and a park
+    that reached column 0 consumed the break that arms it — so the flag is the
+    park's to state and the unwind is the landing's to run.  The sentinel
+    disjunct is closed by the base, as everywhere else. -/
+lemma park_col0_floor {sc s_prep : ScannerState} {c : Char}
+    (h_scflow : sc.inFlow = false)
+    (h_armed : sc.needIndentCheck = true)
+    (h_base : IndentStackBase.SentinelBase sc)
+    (h_preprocess : scanNextToken_preprocess sc = .ok (some (s_prep, c))) :
+    s_prep.currentIndent ≤ (s_prep.col : Int) := by
+  obtain ⟨_, s_skip, hsk, _, _⟩ := preprocess_save_elim h_preprocess
+  rcases IndentStackCover.preprocess_top_le_col_of_armed hsk
+      (by unfold ScannerState.inFlow at h_scflow ⊢
+          rw [ScannerCorrectness.skipToContent_preserves_flowLevel sc s_skip hsk]
+          exact h_scflow)
+      (skipToContentLoop_needIndentCheck_mono sc s_skip _ hsk h_armed)
+      h_preprocess with h | h
+  · exact h
+  · rw [(IndentStackBase.preprocess_base h_preprocess h_base).currentIndent_of_size_le_one h]
+    omega
+
+/-- **The block landing's floor, from EITHER source** (item 205) — the walk's
+    unwind where the park stood off a line start, the park's own armed flag
+    where it stood on one.  The two arms are exhaustive by the park's column,
+    which is why the `-`'s top costs a landing consumer one reading rather than
+    a case split.
+
+    The SECOND premise is the one nothing supplies: `landing_floor_of_arm`'s
+    half is free at every block landing, and `h_nic0`'s half is a field only
+    `pendingContent` carries (item 154) — and carries as an OPTION. -/
+lemma dash_landing_floor {sc s_prep : ScannerState} {sp_scan : SurfPos} {c : Char}
+    (h_noflow : s_prep.inFlow = false)
+    (h_larm : sp_scan.col ≠ 0 → s_prep.inFlow = false →
+      s_prep.simpleKey.possible = true ∧ s_prep.simpleKey.pos.col = s_prep.col ∧
+      s_prep.simpleKeyAllowed = true ∧
+      (s_prep.currentIndent ≤ (s_prep.col : Int) ∨ s_prep.indents.size ≤ 1))
+    (h_nic0 : sp_scan.col = 0 → sc.needIndentCheck = true)
+    (h_base : IndentStackBase.SentinelBase sc)
+    (h_preprocess : scanNextToken_preprocess sc = .ok (some (s_prep, c))) :
+    s_prep.currentIndent ≤ (s_prep.col : Int) := by
+  by_cases hc0 : sp_scan.col = 0
+  · refine park_col0_floor ?_ (h_nic0 hc0) h_base h_preprocess
+    unfold ScannerState.inFlow at h_noflow ⊢
+    rw [← preprocess_preserves_flowLevel sc s_prep c h_preprocess]; exact h_noflow
+  · exact landing_floor_of_arm h_noflow h_larm hc0 h_base h_preprocess
+
 /-- **The `?`'s floor is a fact about the CONTEXT** (item 74).
 
     `[187]`'s `pushMappingIndent` goes to the `?`'s own column, which IS the

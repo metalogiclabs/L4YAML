@@ -23198,10 +23198,16 @@ bound variable.  Site 1's carrier rides `pendingMapValue.h_vslot` instead,
 whose tuple already states `sp_scan.col = nv + 1`; `pendingMapValue` has **6**
 producers and only the payers of that field's left disjunct owe anything.  So
 `_stamp_compact` is no longer "the stamp, or a refutation".  It is a
-REFUTATION, written down and machine-checked, waiting on one number at at most
-13 producers — the same shape `_stamp_nopack`'s carrier had at item 186, which
-items 187 and 188 then priced and began paying.  **The wrapper does not move
-this item; the uncertainty does.**
+REFUTATION, written down and machine-checked, waiting on one number at ~~at
+most 13 producers~~ — the same shape `_stamp_nopack`'s carrier had at item 186,
+which items 187 and 188 then priced and began paying.  **The wrapper does not
+move this item; the uncertainty does.**
+
+**Corrected at [item 205](#item-205-2026-09-18).**  The seven are right and all
+seven pay — item 205 paid every one and the compiler accepted them.  What the
+number leaves out is the PREMISE five of them pay from, whose own producers are
+the next ring: the closure is **52 sites across 20 declarations**, and it does
+not terminate, because one of its members is `block_dispatch_deferred` itself.
 
 **The controls, all four firing.**  The census re-pinned at
 `reachedAccepted = 1` throws.  Dropping `InlineResidue`'s conjunct alone takes
@@ -23236,9 +23242,11 @@ boundary rows and the census's two pins); test files
 `find Tests -name '*.lean'`: **623 → 624** (+1, the compact-route census).
 
 **What remains.**  **The CARRIER for `_stamp_compact`** — `currentIndent ≤ n` at
-the entry park — is now the whole of that class, at ≤ 13 producers with the
-payment chain already in the library; paying it deletes the wrapper, which is
-the first of the five deferral names to go since item 186 removed a site.  Then
+the entry park — is now the whole of that class, at ~~≤ 13 producers~~ **52
+sites across 20 declarations (item 205's measurement, and it does not close)**
+with the payment chain already in the library; paying it deletes the wrapper,
+which is the first of the five deferral names to go since item 186 removed a
+site.  Then
 **`KeyPackPunt`'s two reasons** (`dedent` 7/5 and `noKeyContext` 6/5, possibly a
 phantom), the `pendingFlow` constructor and its arm, and only then item 183's
 flip order.  And the parked Ix Step-1 composition, on the Ix track's own clock.
@@ -23256,6 +23264,149 @@ scanner can ever enter.  **The rule this item adds: a class measured by a proxy
 is measured at the proxy's fidelity, and the only way to know that fidelity is
 to build the sharper instrument and diff them.**  Here the diff was 28 accepted
 hits against zero, and the 28 were all the proxy's.
+
+
+### Item 205 (2026-09-18)
+
+**THE ERROR LIST IS A CENSUS OF ONE RING.**  Item 204's NEXT was "PAY THE
+CARRIER — `sc.currentIndent ≤ n` at ≤ 13 producers", and that number came from
+the best instrument this campaign has: the field was added to
+`PendingNode.pendingBlock`, the module was rebuilt, and the error list WAS the
+census.  The number is right about what it counts.  It counts the sites that
+must SUPPLY the field.  It does not count the sites that must supply what those
+sites supply it FROM — and §10's rule is *a missing carrier's price is the
+producers touched*, which is transitive.
+
+**The first ring closes, and every one of its seven producers pays.**  This was
+not reasoned about; each was written and accepted by the compiler:
+
+* `accum_block_on_pendingBlock`'s two LANDED `-` arms pay from
+  `landing_floor_of_arm` alone — the park sits at `n + 1`, never at column 0,
+  so the walk that carried it down to a line start crossed a break and
+  preprocessing's unwind RAN.  **Free.**
+* its INLINE arm pays from the park's own new field, relayed through one
+  premise on the consumer: no break was crossed, preprocessing wrote no
+  indents, and the stack the `-` pushes onto IS the park's.  **The carrier
+  feeds itself.**
+* `accum_block_on_noPending` pays from a new `h_ntop` on `noPending` —
+  `h_noek`'s stack-side twin, split across the same eight producers item 116
+  counted: seven flow-interior sites refuting `inFlow = false` with the
+  `inFlow_of_flowLevel_eq` they already hand `h_col`/`h_arm`/`h_noek`, and the
+  seed paying the real witness, `ScannerState.mk'` leaving `indents` empty
+  where `currentIndent` reads the stream level `-1`.  **That ring CLOSES, at
+  eight.**
+* `accum_block_on_closeThenBlock`'s and `accum_block_on_pendingBlockContent`'s
+  LANDED `-` arms pay from `dash_landing_floor` — free off a park off a line
+  start, and item 154's `h_nic0` flag at a park standing on one.  **That
+  premise is the second ring.**
+* `accum_block_on_closeThenBlock`'s COMPACT fill is item 204's other six, on
+  `pendingMapValue.h_vslot`, and is not measured here.
+
+**Why the second ring exists at all, machine-checked.**  `landing_floor_of_arm`
+reads its floor off the walk that carried a park DOWN to a line start.  At a
+park already AT one the landed arm is INHABITED BY EVERY STATE — its own
+hypothesis is the column being non-zero — so it is not a weaker floor, it is no
+floor (`BlockDeferralClasses` §24.2).  That is exactly why item 154 made the
+flag a field on `pendingContent`, and exactly why the block landings now need
+one too.  Read at the BLOCK landing, `sp_scan.col = 0 → sc.needIndentCheck =
+true` has **12** application sites, of which **5** pay by refuting the
+hypothesis from a column field the park already carries
+(`pendingProps.h_col0`, `pendingMapValue.h_col0`, `pendingBlock.h_col`).  The
+other seven need the field on `pendingContent` — whose own is an OPTION, **17**
+producers to make unconditional — and on `pendingDocEnd` (**1**),
+`pendingDocStart` (**4**), `pendingFlow` (**10**) and `pendingBlockContent`
+(**6**).
+
+**And that ring does not close: it re-enters the escape.**  One of
+`pendingFlow`'s producers is `block_dispatch_deferred` itself.  The escape
+being retired parks `pendingFlow`, built from exactly what the escape holds — a
+stream, an arm, and the directive face (`BlockDeferralClasses` §24.3) — so a
+field there is a field the ESCAPE must pay, at all **eleven** of its
+application sites, **two of which are the `_stamp_compact` sites the carrier is
+being bought to delete**.  §10 says an escape hatch's price is its domain; this
+is the same sentence one level up, where the price of emptying the hatch is
+paid partly BY the hatch.
+
+**The price, re-derivable, by declaration and not by line number.**
+`scripts/park_top_price.py` edits the constructor's signature in place, builds,
+groups the failures by the declaration that contains them, and restores the
+file.  `ring1` reproduces item 204's number exactly — **7 sites across 4
+declarations**.  `all`, the same carrier asked of every block-context park at
+once, is **52 sites across 20 declarations**, and `block_dispatch_deferred` is
+one of them.  Two independent instruments, one number: item 204's estimate was
+low by **5×**, and the shortfall is entirely in rings the first census could
+not see.
+
+**What LANDED, because it is complete.**  Five lemmas, the carrier's payment
+chain above item 204's:
+`indicator_top_dash_at_col` (`[183]`'s push is conditional, so the NO-push
+branch gives the top only from a dispatch already floored),
+`indicator_top_dash` (its landed form, `indicator_floor_dash`'s twin),
+`dash_dispatch_floor` (`preprocess_top_le_col`'s right disjunct is not "the
+unwind popped nothing" but "the unwind never ran", so the two disjuncts split
+by WHO pays — the landing, or the park),
+`park_col0_floor` (item 154's reading, lifted out of the content landing so a
+block landing can spend it), and
+`dash_landing_floor` (the two sources, exhaustive by the park's column).  Every
+one of the seven payments reduces to these; `BlockDeferralClasses` §24.1 states
+that reduction once, for the landed arm and the inline arm both.  **The field
+itself did NOT land**: three of its seven producers can only pay from a premise
+whose own ring is open, and a carrier paid at four of seven producers is
+item 204's own warning about half-paying.
+
+**The controls.**  `dash_dispatch_floor` with the park's top removed fails with
+`omega` naming the constraint — `a := sc.currentIndent`, `b := ↑s_prep.col` —
+and `indicator_top_dash_at_col` with the dispatch floor removed fails the same
+way one production down.  The compiler prints the carrier in both cases, as it
+did at item 204.  The instrument's own control is `ring1` reproducing 7 from a
+cold start, and a `git diff` after each run showing the file restored byte for
+byte.
+
+**Measured at the landed state.**  Full `lake build` **1165** jobs, ZERO
+warnings; `run-all-tests.sh` **4520/4520**; `eventscore` **347/358** (252
+event-pass, 95 error-ok, 0 error-miss, 0 event-reject); `suiterunner`
+**869 / 0 / 151**; `matrix_score.py` over the 402-leaf data form on BOTH
+pipelines, **402/402 event** (pass 308, err-ok 94) + **282/282 JSON** (pass
+279, err-ok 3, skip 120); the `[210]` flip at **FIVE** errors at **4444, 5724,
+5747, 5916, 7458 — all UNMOVED**, predicted before the run (the only
+`StreamAccum` insertion is at ~17230, below every flip site) and confirmed,
+applied and restored with a clean rebuild; `#print axioms` over the five new
+lemmas, no `sorryAx`; checkers **228/355**, **20/230/249/355**, **25**
+capstones, and the annotation verifier at 100 % (211/211) with its same **19**
+standing name mismatches.
+
+**Counts, at `8d9c4eb1` and here, each under the recipe that produced it** —
+declarations
+`grep -rhoE "^(private )?(lemma|theorem|def|abbrev|instance|structure|inductive|class) " L4YAML`:
+**8575 → 8580** (+5, the payment chain); `#guard` tokens
+`grep -rho "#guard" L4YAML Tests`: **8051 → 8056** (+5, §24.4's runtime rows);
+test files `find Tests -name '*.lean'`: **624 → 624** (the instrument is a
+script, not a guard module).
+
+**What remains.**  The carrier is still the whole of `_stamp_compact`'s class
+and it is still payable — what changed is that its price is now known and its
+ORDER is forced.  `pendingFlow`'s field cannot be paid before the escape's own
+sites are counted, so **`pendingFlow` moves ahead of the carrier**: its
+constructor and its arm were already a prerequisite of item 183's flip order,
+and they are now a prerequisite of this carrier too.  After it, the ring is
+`pendingContent` (17) → `pendingDocEnd`/`pendingDocStart`/`pendingBlockContent`
+(11) → the 12 landing sites → the 7 producers, and then the wrapper goes.
+Unchanged behind that: **`KeyPackPunt`'s two reasons** (`dedent` 7/5,
+`noKeyContext` 6/5, possibly a phantom), item 183's flip order, and the parked
+Ix Step-1 composition on the Ix track's own clock.  Still open from item 201: a
+census that follows a conjunct's VALUE through the relays that carry it, and
+the unattributed-site pins the 198/200/201 censuses still lack.
+
+**The instrument ledger, seven rows, and the seventh measures a CLOSURE rather
+than a set.**  Park constructors (198), application sites (200), lemma
+conclusions (201), the same with a key that works (202), indices (203), the
+runtime's own state (204) — and now the transitive ring of a carrier (205),
+which is the first instrument that answers "and then what does THAT cost".
+**The rule this item adds: an error list is a census of ONE RING.  A carrier's
+price is the transitive closure, and the way to measure it is to pay the first
+ring and re-run — the ring that will not close is the price.**  Here it will
+not close at all, and the reason is worth more than the number: the third ring's
+payer is the escape hatch being retired.
 
 
 ### REMAINING, in order
@@ -23327,7 +23478,11 @@ refutable arms, three missing routes, and `pendingFlow` — the park whose
 `CompletedTail` is FALSE by construction, so its arms cannot be paid by a field
 at any price.  **R3's `pendingFlow` deletion is therefore a prerequisite of the
 narrowing rather than a parallel row**, which fixes the order: `pendingFlow`,
-then the refutable halves, then the routes, then the flip.
+then the refutable halves, then the routes, then the flip.  **Item 205 adds a SECOND
+reason for the same order**: `_stamp_compact`'s carrier needs a field on
+`PendingNode.pendingFlow`, and that constructor's producer is
+`block_dispatch_deferred` itself — so the escape's own park has to go before
+the carrier that would empty the escape can be paid.
 
 **The structural fact the plan hangs on** (measured at item 35): `pendingFlow`
 has exactly one producer — `block_dispatch_deferred` itself — and carries only
