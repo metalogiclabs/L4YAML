@@ -1673,7 +1673,18 @@ inductive PendingNode (sc : ScannerState) : Bool → SurfPos → SurfPos → Sur
       -- exactly as a `[96]` run is (item 102's split).  §9.2's landing refusal
       -- therefore stands aside on every input this park lands, and its fallback
       -- arm is not refutable at the landing.
-      (h_nodir : sc.allowDirectives = false) :
+      (h_nodir : sc.allowDirectives = false)
+      -- **Item 206: the escape's park answers the landing's flag question**
+      -- (LAST, so the patterns naming the older fields still bind them).  This
+      -- is item 154's `pendingContent.h_nic0` at the park item 154 could not
+      -- reach — and REQUIRED rather than optional, because every one of the
+      -- producer's eleven entrances can take the measurement: ten are block
+      -- indicators, which spend a column and so never park at a line start
+      -- (`deferred_nic0_of_dispatch`), and the eleventh is the content
+      -- dispatch, whose only line-start scan is the block scalar and reaches
+      -- column 0 by consuming the break that ARMS the check
+      -- (`content_park_nic_any`).
+      (h_nic0 : sp_scan.col = 0 → sc.needIndentCheck = true) :
       PendingNode sc false sp_start sp_block sp_scan
   /-- Content token scanned INSIDE a block entry (e.g., `- "hello"`).
       Like `pendingContent`, but additionally carries entry-level evidence
@@ -9926,6 +9937,84 @@ lemma content_park_nic {s_prep s' : ScannerState} {sp' : SurfPos} {c : Char}
   rcases dispatchContent_blockScalar_nic hbs hpk h_dispatch with h | h
   · exact h
   · rw [hcorr'.col_eq] at hcol; omega
+
+/-- **The same reading with the block-scalar premise RETIRED** (item 206).
+
+    Item 154 could ask the flag only of `|`/`>` because that was the one arm
+    `dispatchContent_col_pos_or_armed` did not hand back a column for.  The arm
+    names itself now (`dispatchContent_nic_or_col_any`), so the question closes
+    for every content character and the premise `hbs` goes.
+
+    The lemma above is kept: its caller knows the head and spends one fewer
+    hypothesis for it.  Neither subsumes the other at the call sites — this one
+    needs `inFlow = false` and the document-boundary guard, which a caller that
+    already knows the character does not have to produce. -/
+lemma content_park_nic_any {s_prep s' : ScannerState} {sp' : SurfPos} {c : Char}
+    (hpeek : s_prep.peek? = some c)
+    (h_flow_disp : (if s_prep.allowDirectives then
+          { s_prep with allowDirectives := false, documentEverStarted := true }
+        else s_prep).inFlow = false)
+    (h_not_doc : (if s_prep.allowDirectives then
+          { s_prep with allowDirectives := false, documentEverStarted := true }
+        else s_prep).col = 0 →
+      atDocumentBoundary (if s_prep.allowDirectives then
+          { s_prep with allowDirectives := false, documentEverStarted := true }
+        else s_prep) = false)
+    (h_dispatch : scanNextToken_dispatchContent
+        (if s_prep.allowDirectives then
+          { s_prep with allowDirectives := false, documentEverStarted := true }
+        else s_prep) c = .ok s')
+    (hcorr' : ScannerSurfCorr s' sp') :
+    sp'.col = 0 → s'.needIndentCheck = true := by
+  intro hcol
+  have hpk : (if s_prep.allowDirectives then
+      { s_prep with allowDirectives := false, documentEverStarted := true }
+    else s_prep).peek? = some c := by
+    split
+    · show s_prep.peek? = some c; exact hpeek
+    · exact hpeek
+  rcases dispatchContent_nic_or_col_any h_flow_disp hpk h_not_doc h_dispatch with h | h
+  · exact h
+  · rw [hcorr'.col_eq] at hcol; omega
+
+/-- **The BLOCK dispatch's own answer to the same question** (item 206), and
+    the one the escape spends.  A `-`, `?` or `:` is one character and none of
+    them is a break, so the park the indicator opens stands one column right of
+    the indicator — never at a line start — and the flag the premise asks about
+    is asked for only there.
+
+    Ten of `block_dispatch_deferred`'s eleven application sites pay with this
+    term.  The eleventh is the CONTENT dispatch's, and pays with
+    `content_park_nic_any` above. -/
+lemma deferred_nic0_of_dispatch {s_dis s' : ScannerState} {sp_scan' : SurfPos}
+    {c : Char}
+    (hpk : s_dis.peek? = some c)
+    (h_dispatch : scanNextToken_dispatchBlockIndicators s_dis c = .ok (some s'))
+    (hcorr : ScannerSurfCorr s' sp_scan') :
+    sp_scan'.col = 0 → s'.needIndentCheck = true := by
+  intro hcol
+  have := dispatchBlockIndicators_col_pos hpk h_dispatch
+  rw [← hcorr.col_eq, hcol] at this
+  omega
+
+/-- The form the ten block sites apply, off the preprocessing equation each of
+    them already holds — `nodir_of_block_dispatch`'s twin for the flag §9.2
+    reads. -/
+lemma nic0_of_block_dispatch {sc s_prep s' : ScannerState} {sp_scan' : SurfPos}
+    {c : Char}
+    (h_preprocess : scanNextToken_preprocess sc = .ok (some (s_prep, c)))
+    (h_dispatch : scanNextToken_dispatchBlockIndicators
+        (if s_prep.allowDirectives then
+          { s_prep with allowDirectives := false, documentEverStarted := true }
+        else s_prep) c = .ok (some s'))
+    (hcorr : ScannerSurfCorr s' sp_scan') :
+    sp_scan'.col = 0 → s'.needIndentCheck = true :=
+  deferred_nic0_of_dispatch
+    (by have hpeek := preprocess_some_peek h_preprocess
+        split
+        · show s_prep.peek? = some c; exact hpeek
+        · exact hpeek)
+    h_dispatch hcorr
 
 /-- …and so is one literal. -/
 lemma glit_col {ch : Char} {sp sp' : SurfPos} (h : GLit ch sp sp') :
@@ -20275,7 +20364,13 @@ lemma block_dispatch_deferred
     -- Item 138: the escape's park carries the directive face too — the
     -- deferral is a block-indicator dispatch like any other, and its caller
     -- holds the dispatch equation this reads.
-    (h_nodir : s'.allowDirectives = false) :
+    (h_nodir : s'.allowDirectives = false)
+    -- **Item 206: the flag at the park this escape OPENS.**  Every caller can
+    -- take this measurement from the step it just dispatched, which is why the
+    -- park's field is required rather than optional (Reflection 653's test:
+    -- a fact about the scan just performed, not one some producers cannot
+    -- measure).
+    (h_nic0 : sp_scan'.col = 0 → s'.needIndentCheck = true) :
     ∃ sp_gram' sp_block' sp_flow' sp_scan',
       SLYamlStream sp_start sp_gram' ∧
       BlockStack sp_gram' sp_block' ∧
@@ -20284,7 +20379,7 @@ lemma block_dispatch_deferred
       ScannerSurfCorr s' sp_scan' :=
   ⟨sp_X, sp_X, sp_X, sp_scan', h_stream,
    BlockStack.nil sp_X, FlowStackB.nil sp_X .sep,
-   PendingNode.pendingFlow sp_start sp_X sp_scan' h_stream h_arm h_nodir,
+   PendingNode.pendingFlow sp_start sp_X sp_scan' h_stream h_arm h_nodir h_nic0,
    hcorr⟩
 
 /-! #### The escape's classes, named (items 184–187)
@@ -20439,14 +20534,15 @@ lemma block_dispatch_deferred_stamp_offcol
       (scanValueClearKey s_dis).simpleKey.possible = true ∨
       (s_dis.col : Int) ≠ s_dis.explicitKeyCol))
     (_h_indent : (s_dis.col : Int) = s_dis.currentIndent)
-    (_h_ne : k ∉ ns) :
+    (_h_ne : k ∉ ns)
+    (h_nic0 : sp_scan'.col = 0 → s'.needIndentCheck = true) :
     ∃ sp_gram' sp_block' sp_flow' sp_scan',
       SLYamlStream sp_start sp_gram' ∧
       BlockStack sp_gram' sp_block' ∧
       FlowStackB sp_start 0 0 none 0 #[] #[] .sep sp_block' sp_flow' ∧
       PendingNode s' false sp_start sp_flow' sp_scan' ∧
       ScannerSurfCorr s' sp_scan' :=
-  block_dispatch_deferred sp_start sp_X sp_scan' s' h_stream h_arm hcorr h_nodir
+  block_dispatch_deferred sp_start sp_X sp_scan' s' h_stream h_arm hcorr h_nodir h_nic0
 
 /-- **The escape's stamp source with NO pack at the park** (item 185): the
     class whose park carries no value pack.  What empties it is a CARRIER — a
@@ -20503,14 +20599,15 @@ lemma block_dispatch_deferred_stamp_nopack
     -- the park names, which is where a carrier would have to be paid.  It is
     -- what refutes the cheap carrier: `… ∨ sc.explicitKeyLine = none` is false
     -- at every site in this class, so the class's price is the PACK.
-    (_h_park : sc.explicitKeyLine ≠ none) :
+    (_h_park : sc.explicitKeyLine ≠ none)
+    (h_nic0 : sp_scan'.col = 0 → s'.needIndentCheck = true) :
     ∃ sp_gram' sp_block' sp_flow' sp_scan',
       SLYamlStream sp_start sp_gram' ∧
       BlockStack sp_gram' sp_block' ∧
       FlowStackB sp_start 0 0 none 0 #[] #[] .sep sp_block' sp_flow' ∧
       PendingNode s' false sp_start sp_flow' sp_scan' ∧
       ScannerSurfCorr s' sp_scan' :=
-  block_dispatch_deferred sp_start sp_X sp_scan' s' h_stream h_arm hcorr h_nodir
+  block_dispatch_deferred sp_start sp_X sp_scan' s' h_stream h_arm hcorr h_nodir h_nic0
 
 /-- **The escape's stamp source at a COMPACT fill** (item 185): the `:` on the
     park's own line, where `compact_open_map` is the route.  That route cannot
@@ -20532,14 +20629,15 @@ lemma block_dispatch_deferred_stamp_compact
       (scanValueClearKey s_dis).simpleKey.possible = true ∨
       (s_dis.col : Int) ≠ s_dis.explicitKeyCol))
     (_h_indent : (s_dis.col : Int) = s_dis.currentIndent)
-    (_h_res : InlineResidue sp_park c) :
+    (_h_res : InlineResidue sp_park c)
+    (h_nic0 : sp_scan'.col = 0 → s'.needIndentCheck = true) :
     ∃ sp_gram' sp_block' sp_flow' sp_scan',
       SLYamlStream sp_start sp_gram' ∧
       BlockStack sp_gram' sp_block' ∧
       FlowStackB sp_start 0 0 none 0 #[] #[] .sep sp_block' sp_flow' ∧
       PendingNode s' false sp_start sp_flow' sp_scan' ∧
       ScannerSurfCorr s' sp_scan' :=
-  block_dispatch_deferred sp_start sp_X sp_scan' s' h_stream h_arm hcorr h_nodir
+  block_dispatch_deferred sp_start sp_X sp_scan' s' h_stream h_arm hcorr h_nodir h_nic0
 
 /-- **The escape's inline-residue class** (item 184): the mid-line indicator,
     carrying `inline_residue_of_landing`'s own conclusion.  Item 102 measured
@@ -20552,14 +20650,15 @@ lemma block_dispatch_deferred_inline
     (h_arm : s'.simpleKeyAllowed = true ∨ 0 < sp_scan'.col)
     (hcorr : ScannerSurfCorr s' sp_scan')
     (h_nodir : s'.allowDirectives = false)
-    (_h_res : InlineResidue sp_park c) :
+    (_h_res : InlineResidue sp_park c)
+    (h_nic0 : sp_scan'.col = 0 → s'.needIndentCheck = true) :
     ∃ sp_gram' sp_block' sp_flow' sp_scan',
       SLYamlStream sp_start sp_gram' ∧
       BlockStack sp_gram' sp_block' ∧
       FlowStackB sp_start 0 0 none 0 #[] #[] .sep sp_block' sp_flow' ∧
       PendingNode s' false sp_start sp_flow' sp_scan' ∧
       ScannerSurfCorr s' sp_scan' :=
-  block_dispatch_deferred sp_start sp_X sp_scan' s' h_stream h_arm hcorr h_nodir
+  block_dispatch_deferred sp_start sp_X sp_scan' s' h_stream h_arm hcorr h_nodir h_nic0
 
 -- Block dispatch with noPending: fresh block entry.
 -- Handles '-' at the LANDING with full closures; the remaining branches
@@ -21156,6 +21255,7 @@ lemma accum_block_on_closeThenBlock
                   (noflow_disp_of_noflow h_noflow) h_src)
                 (inline_residue_of_landing ⟨rfl, h_col_ne⟩ hws h_pk hcorr_prep
                   (preprocess_some_peek h_preprocess))
+                (nic0_of_block_dispatch h_preprocess h_dispatch hcorr_result)
           · exact h_fill (fun h => absurd (hc_q.symm.trans h) (by decide))
         · exact (block_indicator_exhausted h_dispatch hc hcv).elim
     · have h_res := inline_residue_of_landing ⟨h_mid.1, h_mid.2.1⟩ hws h_pk hcorr_prep
@@ -21164,6 +21264,7 @@ lemma accum_block_on_closeThenBlock
         (h_stream_fallback h_res h_mid.2.2)
         (Or.inl (block_indicator_arm h_dispatch)) hcorr_result
         (nodir_of_block_dispatch h_dispatch) h_res
+        (nic0_of_block_dispatch h_preprocess h_dispatch hcorr_result)
   obtain ⟨h_ssl, hcol_mid, h_larm⟩ := h_landed
   -- Item 142: the flag §9.2 reads, from the park's own arm or from the break
   -- the landing crossed — `landing_or_park_save`'s twin, and the last of the
@@ -21601,6 +21702,7 @@ lemma accum_block_on_closeThenBlock
                 (nodir_of_block_dispatch h_dispatch) h_src
                 (explicit_at_indent_of_dispatch h_dispatch
                   (noflow_disp_of_noflow h_noflow) h_src) hknv
+                (nic0_of_block_dispatch h_preprocess h_dispatch hcorr_result)
           · -- Item 185: the park carries NO pack.
             exact block_dispatch_deferred_stamp_nopack sp_start sp_mid sp_scan' s'
               h_stream_new
@@ -21609,6 +21711,7 @@ lemma accum_block_on_closeThenBlock
               (explicit_at_indent_of_dispatch h_dispatch
                 (noflow_disp_of_noflow h_noflow) h_src)
               (fun h => h_src (Or.inl ((ekl_dis_eq_park h_preprocess).trans h)))
+              (nic0_of_block_dispatch h_preprocess h_dispatch hcorr_result)
       · exact h_generic (fun h => absurd h hc_colon)
     · exact (block_indicator_exhausted h_dispatch hc hcv).elim
 
@@ -22166,7 +22269,8 @@ lemma accum_block_on_pendingBlockContent
       block_dispatch_deferred_inline sp_start sp_block_ctx sp_scan' s'
         (h_stream_fallback h_res h_mid.2.2)
         (Or.inl (block_indicator_arm h_dispatch)) hcorr_result
-        (nodir_of_block_dispatch h_dispatch) h_res)
+        (nodir_of_block_dispatch h_dispatch) h_res
+        (nic0_of_block_dispatch h_preprocess h_dispatch hcorr_result))
     obtain ⟨h_ssl, hcol_mid, h_larm⟩ := h_landed
     -- Item 157: the park's face, paid off the same flag the landing's save
     -- and §9.2's route refusal both read.
@@ -22468,6 +22572,7 @@ lemma accum_block_on_pendingBlockContent
                       (noflow_disp_of_noflow h_noflow) h_src)
                     (ns := nv :: nsU)
                     (fun hm => (List.mem_cons.mp hm).elim (fun h => hknv h.symm) hU)
+                    (nic0_of_block_dispatch h_preprocess h_dispatch hcorr_result)
             · -- Item 185: the park carries NO pack.
               exact block_dispatch_deferred_stamp_nopack sp_start sp_mid sp_scan' s'
                 (h_close_pending h_nd_land _ h_ssl)
@@ -22476,6 +22581,7 @@ lemma accum_block_on_pendingBlockContent
                 (explicit_at_indent_of_dispatch h_dispatch
                   (noflow_disp_of_noflow h_noflow) h_src)
                 (fun h => h_src (Or.inl ((ekl_dis_eq_park h_preprocess).trans h)))
+                (nic0_of_block_dispatch h_preprocess h_dispatch hcorr_result)
         · exact h_gen (fun h => absurd h hc_colon)
       · exact (block_indicator_exhausted h_dispatch hc hcv).elim
   by_cases hc0 : c = ':'
@@ -22952,6 +23058,7 @@ lemma accum_block_on_pendingBlock
                     (noflow_disp_of_noflow h_noflow) h_src)
                   (ns := nv :: nsU)
                   (fun hm => (List.mem_cons.mp hm).elim (fun h => hknv h.symm) hU)
+                  (nic0_of_block_dispatch h_preprocess h_dispatch hcorr_result)
           · -- Item 185: the park carries NO pack.
             exact block_dispatch_deferred_stamp_nopack sp_start sp_mid sp_scan' s'
               (h_close_pending h_nd_land _ h_ssl)
@@ -22960,6 +23067,7 @@ lemma accum_block_on_pendingBlock
               (explicit_at_indent_of_dispatch h_dispatch
                 (noflow_disp_of_noflow h_noflow) h_src)
               (fun h => h_src (Or.inl ((ekl_dis_eq_park h_preprocess).trans h)))
+              (nic0_of_block_dispatch h_preprocess h_dispatch hcorr_result)
       · exact h_gen (fun h => absurd h hc_colon)
     · exact (block_indicator_exhausted h_dispatch hc hcv).elim
   -- ═══ THE INLINE RESIDUE: the COMPACT collection (item 33) ═══
@@ -23109,6 +23217,7 @@ lemma accum_block_on_pendingBlock
                 (noflow_disp_of_noflow h_noflow) h_src)
               (inline_residue_of_landing ⟨rfl, h_col_ne.1⟩ hws h_pk hcorr_prep
                 (preprocess_some_peek h_preprocess))
+              (nic0_of_block_dispatch h_preprocess h_dispatch hcorr_result)
         · exact h_fill (fun h => absurd (hc_q.symm.trans h) (by decide))
       · exact (block_indicator_exhausted h_dispatch hc hcv).elim
   · -- The TAB, one production down (items 33/34).  `[185]`'s `s-indent(m)` is
@@ -30521,24 +30630,33 @@ lemma accum_content_pending (sc : ScannerState)
       sc (Or.inr trivial)
       -- Item 174: no held run stands behind a `---` park.
       (Or.inr trivial)
-  | pendingFlow _ =>
-    -- `pendingFlow` carries no line fact to read — the escape is what
+  | pendingFlow _ _ _ _ _ _ h_nic0F =>
+    -- ~~`pendingFlow` carries no line fact to read — the escape is what
     -- produces it, and it narrows only by the constructor's own elimination
-    -- (item 35's structural note).
+    -- (item 35's structural note).~~  **Item 206: it carries ONE.**  Item 35's
+    -- note is about the GRAMMAR — the park holds a stream and nothing to
+    -- compose — and says nothing about the scanner facts its producer can
+    -- measure.  The producer is a dispatch like any other, and a dispatch
+    -- knows where it left the cursor.
     exact h_defer_split (Or.inr trivial) (Or.inr trivial) (Or.inr trivial) (Or.inr trivial)
       -- Item 139: `pendingFlow`'s producer is `block_dispatch_deferred`, the
       -- block INDICATOR dispatch's escape, so the token behind this park is a
       -- `-`/`?`/`:` and `CompletedTail` is FALSE here rather than merely unstated.
       (Or.inr trivial)
-      -- Item 154: `pendingFlow`'s park is a block INDICATOR, never a scalar.
-      (Or.inr trivial)
+      -- ~~Item 154: `pendingFlow`'s park is a block INDICATOR, never a
+      -- scalar.~~  **Item 206 pays it instead of punting it.**  That sentence
+      -- was true and was the reason to punt; it is also the reason the
+      -- measurement is FREE, and the field now carries it.
+      (Or.inl h_nic0F)
       -- Item 168: this park stands inside no compact mapping of its own.
       (Or.inr trivial)
       (fun _ _ _ _ _ _ =>
       block_dispatch_deferred sp_start sp_block sp_scan' s' h_stream_block
         ((content_park_arm (preprocess_some_peek h_preprocess) h_flow_disp h_not_doc h_dispatch
           hcorr_result).imp_left And.left) hcorr_result
-        (nodir_of_content_dispatch h_dispatch))
+        (nodir_of_content_dispatch h_dispatch)
+        (content_park_nic_any (preprocess_some_peek h_preprocess)
+          h_flow_disp h_not_doc h_dispatch hcorr_result))
   | pendingProps _ _ _ ha ht sp_node sp_p n h_sep_run h_run h_nic_p h_real_p h_anchor_p h_tag_p
       h_route h_key_p h_floor_p h_col0_p h_ncol_p h_ska_p h_kslot_p
       h_routeE_p h_kslotE_p h_closeFE_p h_closeFS_p h_closeFVS_p _h_nodir_p h_closeFEV_p =>

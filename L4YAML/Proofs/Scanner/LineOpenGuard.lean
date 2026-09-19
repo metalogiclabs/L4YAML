@@ -2279,7 +2279,8 @@ lemma dispatchContent_col_pos_or_armed {s s' : ScannerState} {c : Char}
     (hpk : s.peek? = some c)
     (hnotdoc : s.col = 0 → atDocumentBoundary s = false)
     (hok : scanNextToken_dispatchContent s c = .ok s') :
-    (s'.simpleKeyAllowed = true ∧ s'.simpleKey.possible = false) ∨ 0 < s'.col := by
+    ((c = '|' ∨ c = '>') ∧
+        s'.simpleKeyAllowed = true ∧ s'.simpleKey.possible = false) ∨ 0 < s'.col := by
   unfold scanNextToken_dispatchContent at hok
   simp only [bind, Except.bind, pure, Except.pure] at hok
   split at hok
@@ -2313,7 +2314,14 @@ lemma dispatchContent_col_pos_or_armed {s s' : ScannerState} {c : Char}
           -- the saved key CLEARED (§8.1), which is the second half item 80
           -- records: the one armed content park has nothing for a `:` to
           -- resolve.
-          exact Or.inl ⟨scanBlockScalar_simpleKeyAllowed (peel_blockScalarGuard hok),
+          -- **Item 206 pins the HEAD here too.**  The disjunction's left half
+          -- was item 77's answer to "where does a content park stand"; naming
+          -- the character that produces it turns the same term into the answer
+          -- to "which content scan can reach a line start", which is the
+          -- reading `dispatchContent_nic_or_col` spends below.
+          rename_i h_bs
+          exact Or.inl ⟨by simpa using h_bs,
+                        scanBlockScalar_simpleKeyAllowed (peel_blockScalarGuard hok),
                         scanBlockScalar_simpleKey_false (peel_blockScalarGuard hok)⟩
         · split at hok
           · -- '"': the closing quote, then the endLine touch-up (no column)
@@ -2558,8 +2566,8 @@ lemma dispatchContent_arm_or_col_any {s s' : ScannerState} {c : Char}
     (s'.simpleKeyAllowed = true ∧ s'.simpleKey.possible = false) ∨ 0 < s'.col := by
   by_cases hprops : c = '&' ∨ c = '!'
   · exact Or.inr (dispatchContent_props_col_pos hprops hpk hok)
-  · exact dispatchContent_col_pos_or_armed hflow (fun h => hprops (Or.inl h))
-      (fun h => hprops (Or.inr h)) hpk hnotdoc hok
+  · exact (dispatchContent_col_pos_or_armed hflow (fun h => hprops (Or.inl h))
+      (fun h => hprops (Or.inr h)) hpk hnotdoc hok).imp_left And.right
 
 /-- Item 77 at the accumulation site: the same disjunction, with the column
     read on the SURFACE side, where every park states it. -/
@@ -2572,6 +2580,173 @@ lemma dispatchContent_arm_or_col {s s' : ScannerState} {sp' : SurfPos} {c : Char
     (s'.simpleKeyAllowed = true ∧ s'.simpleKey.possible = false) ∨ 0 < sp'.col :=
   (dispatchContent_arm_or_col_any hflow hpk hnotdoc hok).imp id
     (fun h => by rw [hcorr'.col_eq]; exact h)
+
+/-- **Item 206: the same case analysis, read for the INDENT-CHECK flag.**
+
+    Item 154 asked what a content park at a line start left the check doing and
+    could answer only for `|`/`>`, because that was the one arm
+    `dispatchContent_col_pos_or_armed` did not deliver a column for.  The arm
+    now NAMES itself, so the question closes for every content character:
+    outside the block scalar no content scan reaches column 0 at all, and the
+    block scalar reaches it by consuming the break that arms the check.
+
+    This is the sentence item 154 wrote in a comment (`content_park_nic`,
+    "the only content scan that reaches column 0") turned into the thing that
+    states it.  §10: a quantity gets described in prose exactly when it is
+    doing work nothing states. -/
+lemma dispatchContent_nic_or_col_any {s s' : ScannerState} {c : Char}
+    (hflow : s.inFlow = false)
+    (hpk : s.peek? = some c)
+    (hnotdoc : s.col = 0 → atDocumentBoundary s = false)
+    (hok : scanNextToken_dispatchContent s c = .ok s') :
+    s'.needIndentCheck = true ∨ 0 < s'.col := by
+  by_cases hprops : c = '&' ∨ c = '!'
+  · exact Or.inr (dispatchContent_props_col_pos hprops hpk hok)
+  · rcases dispatchContent_col_pos_or_armed hflow (fun h => hprops (Or.inl h))
+      (fun h => hprops (Or.inr h)) hpk hnotdoc hok with ⟨hbs, _⟩ | h
+    · exact dispatchContent_blockScalar_nic hbs hpk hok
+    · exact Or.inr h
+
+/-! ## §12  The BLOCK indicator's own column (item 206)
+
+The content dispatch above needed a case analysis to say where its park
+stands, because its scans span lines.  The block indicator's does not: `-`,
+`?` and `:` are one character each, every one of the three scans ends with a
+single `advance` over that character, and none of them is a line break.  So
+the park a block indicator opens is at its own column plus one — never at a
+line start, whatever the indicator was parked on.
+
+That is the whole of `block_dispatch_deferred`'s new premise at ten of its
+eleven application sites: the flag the premise asks about is asked for only at
+column 0, and the dispatch has just proved it is not there. -/
+
+/-- The `-` scan: push, emit, advance. -/
+private lemma scanBlockEntry_col_succ {s s' : ScannerState} (hpk : s.peek? = some '-')
+    (hok : scanBlockEntry s = .ok s') : s'.col = s.col + 1 := by
+  have step : ∀ (t : ScannerState), t.col = s.col → t.peek? = s.peek? →
+      ((t.emit .blockEntry).advance).col = s.col + 1 := by
+    intro t hc hp
+    rw [advance_col_succ_of_peek (c := '-')
+      (show (t.emit YamlToken.blockEntry).peek? = some '-' by
+        rw [show (t.emit YamlToken.blockEntry).peek? = t.peek? from rfl, hp]; exact hpk)
+      (by decide)]
+    rw [show (t.emit YamlToken.blockEntry).col = t.col from rfl, hc]
+  have hpush : ∀ (col : Int), (pushSequenceIndent s col).col = s.col ∧
+      (pushSequenceIndent s col).peek? = s.peek? := by
+    intro col; unfold pushSequenceIndent; split <;> exact ⟨rfl, rfl⟩
+  unfold scanBlockEntry at hok
+  simp only [bind, Except.bind] at hok
+  repeat' split at hok
+  all_goals first
+    | (simp only [Except.ok.injEq] at hok
+       subst hok
+       show (ScannerState.advance (ScannerState.emit _ _)).col = _
+       first | exact step _ (hpush _).1 (hpush _).2 | exact step s rfl rfl)
+    | simp_all
+
+/-- The `?` scan: the same shape, one token over. -/
+private lemma scanKey_col_succ {s s' : ScannerState} (hpk : s.peek? = some '?')
+    (hok : scanKey s = .ok s') : s'.col = s.col + 1 := by
+  have step : ∀ (t : ScannerState), t.col = s.col → t.peek? = s.peek? →
+      ((t.emit .key).advance).col = s.col + 1 := by
+    intro t hc hp
+    rw [advance_col_succ_of_peek (c := '?')
+      (show (t.emit YamlToken.key).peek? = some '?' by
+        rw [show (t.emit YamlToken.key).peek? = t.peek? from rfl, hp]; exact hpk)
+      (by decide)]
+    rw [show (t.emit YamlToken.key).col = t.col from rfl, hc]
+  have hpush : ∀ (col : Int), (pushMappingIndent s col).col = s.col ∧
+      (pushMappingIndent s col).peek? = s.peek? := by
+    intro col; unfold pushMappingIndent; repeat (first | exact ⟨rfl, rfl⟩ | split)
+  unfold scanKey at hok
+  simp only [bind, Except.bind] at hok
+  repeat' split at hok
+  all_goals first
+    | (simp only [Except.ok.injEq] at hok
+       subst hok
+       show (ScannerState.advance (ScannerState.emit _ _)).col = _
+       first | exact step _ (hpush _).1 (hpush _).2 | exact step s rfl rfl)
+    | simp_all
+
+/-- The `:` scan: `scanValueClearKey` and `scanValuePrepare` write tokens,
+    indents and the pending key — never the cursor — so the advance is still
+    the only motion. -/
+private lemma scanValue_col_succ {s s' : ScannerState} (hpk : s.peek? = some ':')
+    (hok : scanValue s = .ok s') : s'.col = s.col + 1 := by
+  have step : ∀ (t : ScannerState), t.col = s.col → t.peek? = s.peek? →
+      ((t.emit .value).advance).col = s.col + 1 := by
+    intro t hc hp
+    rw [advance_col_succ_of_peek (c := ':')
+      (show (t.emit YamlToken.value).peek? = some ':' by
+        rw [show (t.emit YamlToken.value).peek? = t.peek? from rfl, hp]; exact hpk)
+      (by decide)]
+    rw [show (t.emit YamlToken.value).col = t.col from rfl, hc]
+  have hclear : ∀ (t : ScannerState), (scanValueClearKey t).col = t.col ∧
+      (scanValueClearKey t).peek? = t.peek? := by
+    intro t; unfold scanValueClearKey; repeat (first | exact ⟨rfl, rfl⟩ | split)
+  have hprep : ∀ (t : ScannerState), (scanValuePrepare t).col = t.col ∧
+      (scanValuePrepare t).peek? = t.peek? := by
+    intro t; unfold scanValuePrepare pushMappingIndent
+    repeat (first | exact ⟨rfl, rfl⟩ | split)
+  unfold scanValue at hok
+  simp only [bind, Except.bind] at hok
+  repeat' split at hok
+  all_goals first
+    | (simp only [Except.ok.injEq] at hok
+       subst hok
+       show (ScannerState.advance (ScannerState.emit _ _)).col = _
+       exact step _ (by rw [(hprep _).1, (hclear s).1]) (by rw [(hprep _).2, (hclear s).2]))
+    | simp_all
+
+/-- **The block indicator spends a column** (item 206), so the park it opens is
+    never at a line start.  `dispatchContent_nic_or_col_any`'s twin for the
+    OTHER dispatcher, and a strictly simpler statement: the content scans
+    needed a disjunction because one of them crosses breaks, and none of these
+    three does. -/
+lemma dispatchBlockIndicators_col_pos {s s' : ScannerState} {c : Char}
+    (hpk : s.peek? = some c)
+    (hok : scanNextToken_dispatchBlockIndicators s c = .ok (some s')) :
+    0 < s'.col := by
+  unfold scanNextToken_dispatchBlockIndicators at hok
+  simp only [bind, Except.bind, pure, Except.pure] at hok
+  split at hok
+  · rename_i hg
+    have hc : c = '-' := by
+      have := (Bool.and_eq_true_iff.mp (Bool.and_eq_true_iff.mp hg).1).1
+      simpa using this
+    subst hc
+    split at hok
+    · simp at hok
+    · rename_i se he
+      simp only [Except.ok.injEq, Option.some.injEq] at hok
+      subst hok
+      rw [scanBlockEntry_col_succ hpk he]; omega
+  · split at hok
+    · rename_i hg
+      have hc : c = '?' := by
+        have := (Bool.and_eq_true_iff.mp (Bool.and_eq_true_iff.mp
+          (Bool.and_eq_true_iff.mp hg).1).1).1
+        simpa using this
+      subst hc
+      split at hok
+      · simp at hok
+      · rename_i se he
+        simp only [Except.ok.injEq, Option.some.injEq] at hok
+        subst hok
+        rw [scanKey_col_succ hpk he]; omega
+    · split at hok
+      · rename_i hg
+        have hc : c = ':' := by
+          have := (Bool.and_eq_true_iff.mp hg).1
+          simpa using this
+        subst hc
+        split at hok
+        · simp at hok
+        · rename_i se he
+          simp only [Except.ok.injEq, Option.some.injEq] at hok
+          subst hok
+          rw [scanValue_col_succ hpk he]; omega
+      · simp at hok
 
 /-- The block-scalar arm's `OffLine` form (item 47): with `c` pinned at a
     block-scalar head, the dispatch is `scanBlockScalar` under the item-9c

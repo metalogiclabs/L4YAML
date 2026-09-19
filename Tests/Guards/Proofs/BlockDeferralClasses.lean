@@ -182,7 +182,8 @@ example (sp_start sp_X sp_scan' : SurfPos) (s' s_dis : ScannerState)
     (h_nodir : s'.allowDirectives = false)
     (h_src : StampBranch s_dis)
     (h_indent : (s_dis.col : Int) = s_dis.currentIndent)
-    (h_ne : k ∉ ns) :
+    (h_ne : k ∉ ns)
+    (h_nic0 : sp_scan'.col = 0 → s'.needIndentCheck = true) :
     ∃ sp_gram' sp_block' sp_flow' sp_scan'',
       SLYamlStream sp_start sp_gram' ∧
       BlockStack sp_gram' sp_block' ∧
@@ -190,7 +191,7 @@ example (sp_start sp_X sp_scan' : SurfPos) (s' s_dis : ScannerState)
       PendingNode s' false sp_start sp_flow' sp_scan'' ∧
       ScannerSurfCorr s' sp_scan'' :=
   block_dispatch_deferred_stamp_offcol sp_start sp_X sp_scan' s' h_stream h_arm
-    hcorr h_nodir h_src h_indent h_ne
+    hcorr h_nodir h_src h_indent h_ne h_nic0
 
 /-- `nopack`: nothing about the pack — and, since item 187, the PARK's own
     register, read LIVE.  That is the class's proposition: it is what says the
@@ -203,7 +204,8 @@ example (sp_start sp_X sp_scan' : SurfPos) (s' sc s_dis : ScannerState)
     (h_nodir : s'.allowDirectives = false)
     (h_src : StampBranch s_dis)
     (h_indent : (s_dis.col : Int) = s_dis.currentIndent)
-    (h_park : sc.explicitKeyLine ≠ none) :
+    (h_park : sc.explicitKeyLine ≠ none)
+    (h_nic0 : sp_scan'.col = 0 → s'.needIndentCheck = true) :
     ∃ sp_gram' sp_block' sp_flow' sp_scan'',
       SLYamlStream sp_start sp_gram' ∧
       BlockStack sp_gram' sp_block' ∧
@@ -211,7 +213,7 @@ example (sp_start sp_X sp_scan' : SurfPos) (s' sc s_dis : ScannerState)
       PendingNode s' false sp_start sp_flow' sp_scan'' ∧
       ScannerSurfCorr s' sp_scan'' :=
   block_dispatch_deferred_stamp_nopack sp_start sp_X sp_scan' s' h_stream h_arm
-    hcorr h_nodir h_src h_indent h_park
+    hcorr h_nodir h_src h_indent h_park h_nic0
 
 /-- …and the transport that produces it at each of the three sites: the branch
     reads the register on the DISPATCH state, and the park is where a carrier
@@ -233,7 +235,8 @@ example (sp_start sp_X sp_scan' sp_park : SurfPos) (s' s_dis : ScannerState)
     (h_nodir : s'.allowDirectives = false)
     (h_src : StampBranch s_dis)
     (h_indent : (s_dis.col : Int) = s_dis.currentIndent)
-    (h_res : InlineResidue sp_park c) :
+    (h_res : InlineResidue sp_park c)
+    (h_nic0 : sp_scan'.col = 0 → s'.needIndentCheck = true) :
     ∃ sp_gram' sp_block' sp_flow' sp_scan'',
       SLYamlStream sp_start sp_gram' ∧
       BlockStack sp_gram' sp_block' ∧
@@ -241,7 +244,7 @@ example (sp_start sp_X sp_scan' sp_park : SurfPos) (s' s_dis : ScannerState)
       PendingNode s' false sp_start sp_flow' sp_scan'' ∧
       ScannerSurfCorr s' sp_scan'' :=
   block_dispatch_deferred_stamp_compact sp_start sp_X sp_scan' s' h_stream h_arm
-    hcorr h_nodir h_src h_indent h_res
+    hcorr h_nodir h_src h_indent h_res h_nic0
 
 /-- The inline class's premise is `inline_residue_of_landing`'s conclusion: the
     park is off column 0 and only `s-white` stands between it and the
@@ -251,7 +254,8 @@ example (sp_start sp_X sp_scan' sp_park : SurfPos) (s' : ScannerState) (c : Char
     (h_arm : s'.simpleKeyAllowed = true ∨ 0 < sp_scan'.col)
     (hcorr : ScannerSurfCorr s' sp_scan')
     (h_nodir : s'.allowDirectives = false)
-    (h_res : InlineResidue sp_park c) :
+    (h_res : InlineResidue sp_park c)
+    (h_nic0 : sp_scan'.col = 0 → s'.needIndentCheck = true) :
     ∃ sp_gram' sp_block' sp_flow' sp_scan'',
       SLYamlStream sp_start sp_gram' ∧
       BlockStack sp_gram' sp_block' ∧
@@ -259,7 +263,7 @@ example (sp_start sp_X sp_scan' sp_park : SurfPos) (s' : ScannerState) (c : Char
       PendingNode s' false sp_start sp_flow' sp_scan'' ∧
       ScannerSurfCorr s' sp_scan'' :=
   block_dispatch_deferred_inline sp_start sp_X sp_scan' s' h_stream h_arm hcorr
-    h_nodir h_res
+    h_nodir h_res h_nic0
 
 /-- `InlineResidue`'s own shape, pinned: the class is about a park OFF a line
     start, which is what makes it the mid-line `:` rather than a landing. -/
@@ -3177,15 +3181,27 @@ owed.  That premise — `sp_scan.col = 0 → sc.needIndentCheck = true`, item 15
 field read at the BLOCK landing — has **12** application sites, of which 5 pay
 by refuting the hypothesis from a column field the park already carries
 (`pendingProps.h_col0`, `pendingMapValue.h_col0`, `pendingBlock.h_col`).  The
-other 7 need the field on `pendingContent` (whose own is an OPTION, 17 producers
-to make unconditional), `pendingDocEnd` (1), `pendingDocStart` (4), `pendingFlow`
-(10) and `pendingBlockContent` (6).
+other 7 need the field on `pendingContent` (whose own is an OPTION,
+~~17 producers to make unconditional~~), `pendingDocEnd` (1), `pendingDocStart`
+(~~4~~), `pendingFlow` (~~10~~) and `pendingBlockContent` (6).
 
-**And that ring does not close.**  One of `pendingFlow`'s producers is
+**~~And that ring does not close.~~**  One of `pendingFlow`'s producers is
 `block_dispatch_deferred` itself — the escape being retired parks `pendingFlow`,
 so a field there is a field the escape must pay, at all ELEVEN of its
 application sites, two of which are the `_stamp_compact` sites the carrier
 exists to refute.
+
+**Corrected at item 206 (§25), which re-derived every number in this paragraph
+with an instrument instead of a reading, and closed the ring.**  The five
+counts are `scripts/park_nic0_price.py <park>`: `pendingContent` **12** (not
+17), `pendingDocEnd` **1**, `pendingDocStart` **2** (not 4), `pendingFlow`
+**1** (not 10), `pendingBlockContent` **6**.  The one that carried the order
+was off by ten times, and it was off because it counted the escape's
+APPLICATION sites — which the field does reach, one ring further out — as the
+constructor's producers.  `pendingFlow` has exactly one producer, as item 35
+measured and this item re-measured: `block_dispatch_deferred` itself.  Its
+field is PAID (§25) and the remaining ring-2 surface is **21** producers, not
+38.
 
 The blanket measurement agrees: the same carrier asked of every block-context
 park at once is **52 sites across 20 declarations**
@@ -3256,21 +3272,33 @@ example {s_prep : ScannerState} {sp_scan : SurfPos} (hc0 : sp_scan.col = 0) :
       (s_prep.currentIndent ≤ (s_prep.col : Int) ∨ s_prep.indents.size ≤ 1) :=
   fun h => absurd hc0 h
 
-/-! ### §24.3  Why the third ring does not close
+/-! ### §24.3  ~~Why the third ring does not close~~ — **CORRECTED at item 206
+(§25), which closed it**
 
 The escape's own park is `pendingFlow`, built from exactly what
 `block_dispatch_deferred` holds — a stream, an arm and the directive face.  A
 field on that constructor is therefore a field the ESCAPE must pay, at every one
 of its eleven application sites; and two of those sites are
 `block_dispatch_deferred_stamp_compact`'s, the ones the carrier is being bought
-to delete.  The ring re-enters the thing being retired. -/
+to delete.  ~~The ring re-enters the thing being retired.~~
+
+Both sentences are TRUE and the conclusion drawn from them was not.  The ring
+does re-enter the escape, and the escape pays: ten of the eleven sites are
+block-indicator dispatches, which spend a column and so open a park that is
+never at a line start, and the eleventh is the content dispatch, whose one
+line-start scan reaches column 0 by consuming the break that arms the flag.  A
+site an escape re-enters is not the same thing as a site an escape cannot pay —
+the re-entry was read as the price and it was only the SHAPE of the price
+(item 206, §25). -/
 
 example {sc : ScannerState} {sp_start sp_X sp_scan' : SurfPos}
     (h_stream : SLYamlStream sp_start sp_X)
     (h_arm : sc.simpleKeyAllowed = true ∨ 0 < sp_scan'.col)
-    (h_nodir : sc.allowDirectives = false) :
+    (h_nodir : sc.allowDirectives = false)
+    -- Item 206: and this, which the section above said would be unpayable.
+    (h_nic0 : sp_scan'.col = 0 → sc.needIndentCheck = true) :
     PendingNode sc false sp_start sp_X sp_scan' :=
-  PendingNode.pendingFlow sp_start sp_X sp_scan' h_stream h_arm h_nodir
+  PendingNode.pendingFlow sp_start sp_X sp_scan' h_stream h_arm h_nodir h_nic0
 
 end Item205
 
@@ -3286,5 +3314,158 @@ compact fill off an open `?` slot — the one producer this item did NOT pay. -/
 #guard pins "  - a\n  - b\n" == ("scan-accepted", "+STR +DOC +SEQ =VAL :a =VAL :b -SEQ -DOC -STR")
 #guard pins "? - a\n: w\n" == ("scan-accepted", "+STR +DOC +MAP +SEQ =VAL :a -SEQ =VAL :w -MAP -DOC -STR")
 #guard pins "...\n- a\n" == ("scan-accepted", "+STR +DOC +SEQ =VAL :a -SEQ -DOC -STR")
+
+/-! ## §25  The third ring CLOSES (item 206)
+
+§24 measured the carrier's price as a transitive closure and stopped at the
+third ring, because that ring re-enters `block_dispatch_deferred` itself.  It
+recorded the re-entry as the price.  The re-entry is real; the price was not.
+
+`PendingNode.pendingFlow` now carries item 154's flag
+(`sp_scan.col = 0 → sc.needIndentCheck = true`), REQUIRED rather than optional,
+and all ELEVEN of the escape's application sites pay it:
+
+| entrance                                    | sites | pays with |
+|---------------------------------------------|-------|-----------|
+| `_stamp_offcol` / `_stamp_nopack`            | 3 + 3 | `nic0_of_block_dispatch` |
+| `_stamp_compact` / `_inline`                 | 2 + 2 | `nic0_of_block_dispatch` |
+| `block_dispatch_deferred` itself             | 1     | `content_park_nic_any` |
+
+Ten of the eleven are BLOCK-indicator dispatches, and a block indicator is one
+character that is not a break, so the park it opens stands one column right of
+the indicator — never at a line start, and the premise is vacuous there.  The
+eleventh is the CONTENT dispatch, where the question is real: its scans cross
+breaks.  It closes anyway, because the only content scan that reaches column 0
+is the block scalar and it reaches it by consuming the break that ARMS the
+check.
+
+**What item 205 got wrong is not a number but a reading.**  A ring that
+re-enters the escape is not the same thing as a ring the escape cannot pay.
+§24.3 is struck above.
+
+### §25.1  The two payments, at the exact hypotheses each site holds -/
+
+section Item206
+
+open L4YAML.Proofs L4YAML.Proofs.LineOpenGuard
+
+/-- The ten block-indicator entrances. -/
+example {sc s_prep s' : ScannerState} {sp_scan' : SurfPos} {c : Char}
+    (h_preprocess : scanNextToken_preprocess sc = .ok (some (s_prep, c)))
+    (h_dispatch : scanNextToken_dispatchBlockIndicators
+        (if s_prep.allowDirectives then
+          { s_prep with allowDirectives := false, documentEverStarted := true }
+        else s_prep) c = .ok (some s'))
+    (hcorr_result : ScannerSurfCorr s' sp_scan') :
+    sp_scan'.col = 0 → s'.needIndentCheck = true :=
+  nic0_of_block_dispatch h_preprocess h_dispatch hcorr_result
+
+/-- The eleventh, the content dispatch — item 154's lemma with its
+    block-scalar premise retired. -/
+example {s_prep s' : ScannerState} {sp_scan' : SurfPos} {c : Char}
+    (hpeek : s_prep.peek? = some c)
+    (h_flow_disp : (if s_prep.allowDirectives then
+          { s_prep with allowDirectives := false, documentEverStarted := true }
+        else s_prep).inFlow = false)
+    (h_not_doc : (if s_prep.allowDirectives then
+          { s_prep with allowDirectives := false, documentEverStarted := true }
+        else s_prep).col = 0 →
+      atDocumentBoundary (if s_prep.allowDirectives then
+          { s_prep with allowDirectives := false, documentEverStarted := true }
+        else s_prep) = false)
+    (h_dispatch : scanNextToken_dispatchContent
+        (if s_prep.allowDirectives then
+          { s_prep with allowDirectives := false, documentEverStarted := true }
+        else s_prep) c = .ok s')
+    (hcorr_result : ScannerSurfCorr s' sp_scan') :
+    sp_scan'.col = 0 → s'.needIndentCheck = true :=
+  content_park_nic_any hpeek h_flow_disp h_not_doc h_dispatch hcorr_result
+
+/-! ### §25.2  Why item 77's old conclusion could not be the source
+
+§24.2 showed the landed arm is INHABITED BY EVERY STATE at a column-0 park, so
+it is no floor.  The block-scalar arm's disjunct is the same shape one ring
+out: "the simple key is armed and none is saved" is satisfied at a line start
+with the indent check DOWN, so it says nothing about the flag whatever the
+character.  What closed the question was not a stronger arm but the arm NAMING
+ITS CHARACTER — `dispatchContent_col_pos_or_armed`'s left half now pins
+`c = '|' ∨ c = '>'`, and `dispatchContent_blockScalar_nic` was already waiting
+for exactly that. -/
+
+example : ∃ s : ScannerState,
+    (s.simpleKeyAllowed = true ∧ s.simpleKey.possible = false) ∧
+    s.col = 0 ∧ s.needIndentCheck = false :=
+  ⟨{ ScannerState.mk' "x" with needIndentCheck := false }, ⟨rfl, rfl⟩, rfl, rfl⟩
+
+/-- …and the pin that keeps the strengthening from drifting back out: the
+    character is part of the conclusion now. -/
+example {s s' : ScannerState} {c : Char}
+    (hflow : s.inFlow = false) (hna : c ≠ '&') (hnt : c ≠ '!')
+    (hpk : s.peek? = some c)
+    (hnotdoc : s.col = 0 → atDocumentBoundary s = false)
+    (hok : scanNextToken_dispatchContent s c = .ok s') :
+    ((c = '|' ∨ c = '>') ∧
+      s'.simpleKeyAllowed = true ∧ s'.simpleKey.possible = false) ∨ 0 < s'.col :=
+  dispatchContent_col_pos_or_armed hflow hna hnt hpk hnotdoc hok
+
+end Item206
+
+/-! ### §25.3  The same two claims at the RUNTIME, and the count that keeps
+the check honest
+
+`parkRow` reports, per input, `(parks, parks at column 0, the invariant)` —
+where the invariant is the pair of lemmas read as one sentence: **no park sits
+at a line start with the indent check down.**
+
+The middle number is what makes this a check rather than a tautology.  Twelve
+shapes below; the five with a column-0 park are all block scalars, and the
+seven without span block indicators, quoted and plain scalars, an explicit key,
+a flow key, a dedent, a blank line and a document marker.  If the middle
+column went to zero everywhere the invariant would pass vacuously, so it is
+asserted as a total. -/
+
+private def parkStates (input : String) : List (Nat × Bool) :=
+  let rec go (s : ScannerState) (fuel : Nat) (acc : List (Nat × Bool)) : List (Nat × Bool) :=
+    match fuel with
+    | 0 => acc.reverse
+    | fuel' + 1 =>
+      match scanNextToken s with
+      | .ok (some s') => go s' fuel' ((s'.col, s'.needIndentCheck) :: acc)
+      | _ => acc.reverse
+  go ((ScannerState.mk' input).emit .streamStart) 200 []
+
+private def parkRow (input : String) : Nat × Nat × Bool :=
+  let ps := parkStates input
+  (ps.length, (ps.filter (·.1 == 0)).length,
+   ps.all (fun p => p.1 != 0 || p.2))
+
+-- The block scalar: the ONE content scan that reaches a line start, and it
+-- arrives there armed.  Root, mapping value, folded, and inside an entry.
+#guard parkRow "a: |\n  x\nb: 2\n" == (6, 1, true)
+#guard parkRow "a: |\n  x\n  y\nb: 2\n" == (6, 1, true)
+#guard parkRow "a: >\n  x\nb: 2\n" == (6, 1, true)
+#guard parkRow "|\n x\n" == (1, 1, true)
+#guard parkRow "- |\n  x\n- b\n" == (4, 1, true)
+
+-- Everything else parks inside a line: the three block indicators, the quoted
+-- and plain scalars, the flow key, the dedent, a blank line, a marker.
+#guard parkRow "- a\n- b\n" == (4, 0, true)
+#guard parkRow "- - a\n" == (3, 0, true)
+#guard parkRow "? a\n: b\n" == (4, 0, true)
+#guard parkRow "k:\n  :\nb: 2\n" == (6, 0, true)
+#guard parkRow "a: \"x\"\nb: 1\n" == (6, 0, true)
+#guard parkRow "? [a]\n: b: c\n" == (8, 0, true)
+#guard parkRow "---\n- a\n" == (3, 0, true)
+
+private def corpus206 : List String :=
+  ["a: |\n  x\nb: 2\n", "a: |\n  x\n  y\nb: 2\n", "a: >\n  x\nb: 2\n",
+   "|\n x\n", "- |\n  x\n- b\n", "- a\n- b\n", "- - a\n", "? a\n: b\n",
+   "k:\n  :\nb: 2\n", "a: \"x\"\nb: 1\n", "? [a]\n: b: c\n", "---\n- a\n"]
+
+-- The invariant over the whole corpus…
+#guard corpus206.all (fun i => (parkRow i).2.2)
+-- …and the non-vacuity, as a number: twelve inputs, five column-0 parks.
+#guard corpus206.length == 12
+#guard (corpus206.map (fun i => (parkRow i).2.1)).sum == 5
 
 end L4YAML.Tests.Guards.BlockDeferralClasses
