@@ -6274,6 +6274,34 @@ lemma compactMapRoute {sp_start sp_entry sp_key : SurfPos} {n m : Nat}
         (SCompactMap.mk (n + 1 + m) sp_key sp_v sp_v h_entry
           (SCompactMapTail.nil (n + 1 + m) sp_v)))
 
+/-- **`compactMapRoute` at the ENTRIES level** (item 202) — the twin the other
+    five routes have carried since items 148/176, written here at last.
+
+    `compactMapRoute` above closes the `[195] ns-l-compact-mapping` it builds
+    with an EMPTY tail, and the emptiness is the only thing that made its
+    codomain the finished stream: `SCompactMap.mk` takes a tail, so a
+    continuation at the key's own width slots straight into the slot the nil
+    was filling.  What comes back is the same closure over one more entry, and
+    the frames below it are none — `ks = []`, the bottom is the stream — which
+    is what `- [1]: b⏎  c: 2` needs and what `rootMapRouteF` pays at the root.
+
+    The reason this twin was missing is recorded at `flowKeyRoute_of_open`,
+    whose resume conjuncts it pays: *both arms' routes end in the closed
+    stream*, true of the two routes as they stood and never re-read after the
+    entries level was built. -/
+lemma compactMapRouteF {sp_start sp_entry sp_key : SurfPos} {n m : Nat}
+    {cc : YamlContext}
+    (h_close : ∀ sp, SBlockIndented n cc sp_entry sp → SLYamlStream sp_start sp)
+    (h_ind : SIndent m sp_entry sp_key) :
+    ∀ sp_v, SBlockMapEntry (n + 1 + m) sp_key sp_v →
+    ∀ sp_e, SCompactMapTail (n + 1 + m) sp_v sp_e →
+    ResumeFrames (SLYamlStream sp_start) [] sp_e :=
+  fun sp_v h_entry sp_e h_tail =>
+    ResumeFrames.bottom sp_e
+      (h_close sp_e
+        (SBlockIndented.compactMap n cc m sp_entry sp_key sp_e h_ind
+          (SCompactMap.mk (n + 1 + m) sp_key sp_v sp_e h_entry h_tail)))
+
 /-- …and `valueMapRoute` is the third (item 39): the entry belongs to a mapping
     that is itself NESTED in the node an enclosing entry awaits — the VALUE of a
     `[189]` entry (`k:⏎  a: 1`) or, since item 40, the node of a `[184]` block
@@ -6303,6 +6331,32 @@ lemma valueMapRoute {sp_start sp_scan sp_land sp_key : SurfPos} {n k : Nat}
     h_close sp_v
       (nestedBlockMap hnk h_ssl
         (SBlockMapEntries.single k sp_land sp_key sp_v h_ind h_entry))
+
+/-- **`valueMapRoute` at the ENTRIES level** (item 202), and the same
+    correction one route over: the `single` above is `SBlockMapEntries`'
+    one-entry constructor, and `SBlockMapEntries_of_compactTail` — built for
+    `rootMapRouteF` and used by four more since — folds the entry and its tail
+    into the very same `[187] l+block-mapping` the nesting wants.  So the
+    landed flow key's mapping continues (`k:⏎  [1]: b⏎  c: 2` is ONE inner
+    mapping with two entries), and what stands below it is nothing: the node
+    the enclosing entry awaited is complete, so `ks = []` and the bottom is the
+    stream.
+
+    The side condition is `valueMapRoute`'s own `n ≤ k`, unchanged — the twin
+    adds entries to the collection, not a reading of the dedent. -/
+lemma valueMapRouteF {sp_start sp_scan sp_land sp_key : SurfPos} {n k : Nat}
+    (hnk : n ≤ k)
+    (h_close : ∀ sp, SBlockNode n .blockIn sp_scan sp → SLYamlStream sp_start sp)
+    (h_ssl : SSLComments sp_scan sp_land)
+    (h_ind : SIndent k sp_land sp_key) :
+    ∀ sp_v, SBlockMapEntry k sp_key sp_v →
+    ∀ sp_e, SCompactMapTail k sp_v sp_e →
+    ResumeFrames (SLYamlStream sp_start) [] sp_e :=
+  fun _sp_v h_entry sp_e h_tail =>
+    ResumeFrames.bottom sp_e
+      (h_close sp_e
+        (nestedBlockMap hnk h_ssl
+          (SBlockMapEntries_of_compactTail h_ind h_entry h_tail)))
 
 /-- **`h_close`'s value-line twin, from the frame the park already carries**
     (item 106).
@@ -9184,15 +9238,36 @@ lemma flowKeyRoute_of_open {n nc m : Nat} {cc : YamlContext}
         ∀ sp_i sp_c : SurfPos, SIndent nv sp_e sp_i → GLit ':' sp_i sp_c →
         ∀ sp_w : SurfPos, SBlockIndented nv .blockOut sp_c sp_w →
         SLYamlStream sp_start sp_w) ∨ True) ∧
-      -- Item 120: the resume twins (the frame's rider).  Both arms' routes
-      -- end in the closed stream (`valueMapRoute`/`compactMapRoute`), so the
-      -- entry-level resume faces stay punts here — the recorded residue,
-      -- gated on an accepted input (the parked-entry flow key at a resumed
-      -- landing rides the PROPS arm, which pays from its own pack).
+      -- Item 120: the resume twins (the frame's rider).
+      --
+      -- ~~Both arms' routes end in the closed stream
+      -- (`valueMapRoute`/`compactMapRoute`), so the entry-level resume faces
+      -- stay punts here.~~  **Item 202: they ended there because nobody had
+      -- written their entries-level twins.**  Five of the six routes in the
+      -- family have carried one since items 148/176 and these two never got
+      -- theirs — `compactMapRoute`'s tail slot was being filled with `nil` and
+      -- `valueMapRoute`'s collection with `SBlockMapEntries.single`, both of
+      -- which take a continuation as they stand (`SBlockMapEntries_of_compactTail`
+      -- is the fold, built for `rootMapRouteF`).  The STREAM face is paid on
+      -- both arms now, at `ks = []`: the node the enclosing entry awaited is
+      -- complete, so there is nothing below it, and what the payment buys is
+      -- the sibling after the flow key (`k:⏎  [1]: b⏎  c: 2`, `- [1]: b⏎  c: 2`
+      -- — ONE inner mapping with two entries).
       ((∃ ks : List Nat, (∀ k' ∈ ks, k' < k) ∧
         ∀ sp_v : SurfPos, SBlockMapEntry k sp_key sp_v →
         ∀ sp_e : SurfPos, SCompactMapTail k sp_v sp_e →
         ResumeFrames (SLYamlStream sp_start) ks sp_e) ∨ True) ∧
+      -- **And the VALUE-LINE face stays punted, for a reason that is the two
+      -- arms' and not the routes'** (item 202, measured rather than carried).
+      -- The landing arm's bottom is `h_node`, a `[199]` node slot at
+      -- `.blockIn`; an `ExplValueLine` bottom needs the `[186]` explicit KEY
+      -- slot, which is `.blockOut` and a different production, so that arm has
+      -- no value-line face to reach at any price.  The COMPACT arm does have
+      -- one — `h_compact_pair`, which pays the conjunct above it — but it is a
+      -- CHAIN (`∃ ns, ∀ nv ∈ ns`, item 196's widening) where this conjunct
+      -- still asks for a single `nv`, and a possibly-empty list names no
+      -- index.  **The shapes are one item 196 apart**: the pair was widened to
+      -- a chain and the resume twins were not.
       ((∃ (nv : Nat) (ks : List Nat), (∀ k' ∈ ks, k' < k) ∧
         ∀ sp_v : SurfPos, SBlockMapEntry k sp_key sp_v →
         ∀ sp_e : SurfPos, SCompactMapTail k sp_v sp_e →
@@ -9218,7 +9293,16 @@ lemma flowKeyRoute_of_open {n nc m : Nat} {cc : YamlContext}
         -- entry nests as `[199]`/`[187]` under the awaited node, which is the
         -- landed-nesting residue (item 93's boundary), not the compact kind's.
         refine Or.inl ⟨w, sp_prep, valueMapRoute hnw h_node h_land.1 h_ind', flowKeyHead, ?_,
-          Or.inr trivial, Or.inr trivial, Or.inr trivial⟩
+          Or.inr trivial,
+          -- **Item 202: the landing's entries-level twin.**  `valueMapRouteF`
+          -- is `valueMapRoute` with the collection folded over the tail
+          -- instead of closed at one entry, so the mapping this key opens
+          -- keeps taking siblings (`k:⏎  [1]: b⏎  c: 2`) and the enclosing
+          -- entry's node closes once, at the end.  Nothing stands below it —
+          -- the node was what the park awaited — so the stack is empty.
+          Or.inl ⟨[], fun _ h => absurd h (List.not_mem_nil),
+            valueMapRouteF hnw h_node h_land.1 h_ind'⟩,
+          Or.inr trivial⟩
         rw [landing_or_park_save h_noflow h_land.2.2 h_park h_preprocess,
           ← hcorr_prep.col_eq]
         have := SIndent_col' h_ind'
@@ -9244,7 +9328,13 @@ lemma flowKeyRoute_of_open {n nc m : Nat} {cc : YamlContext}
           -- `[195] ns-l-compact-mapping` (`compactMapRoute`'s own wrap, tail
           -- kept), and the slot's twin reads the value line off it.
           refine Or.inl ⟨nc + 1 + w, sp_prep, compactMapRoute h_cp.1 h_ind', flowKeyHead,
-            h_col_eq, ?_, Or.inr trivial, Or.inr trivial⟩
+            h_col_eq, ?_,
+            -- **Item 202: the compact arm's, the same twin one route over.**
+            -- `compactMapRoute` was filling `SCompactMap.mk`'s tail slot with
+            -- `nil`; the continuation goes in that slot (`- [1]: b⏎  c: 2`).
+            Or.inl ⟨[], fun _ h => absurd h (List.not_mem_nil),
+              compactMapRouteF h_cp.1 h_ind'⟩,
+            Or.inr trivial⟩
           cases h_compact_pair with
           | inr _ => exact Or.inr trivial
           | inl h_pr =>

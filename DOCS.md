@@ -22623,8 +22623,17 @@ an `Or.inr` of each.  Over `StreamAccum`:
 
 | | lemmas | conclusion conjuncts | with a paying arm | never paid |
 |---|---|---|---|---|
-| at `123e3313` | 16 | 24 | **13** | **11** |
-| here | 16 | 24 | **15** | **9** |
+| at `123e3313` | 16 | 24 | ~~**13**~~ **14** | ~~**11**~~ **10** |
+| here | 16 | 24 | ~~**15**~~ **16** | ~~**9**~~ **8** |
+
+**Corrected at [item 202](#item-202-2026-09-18).**  The struck numbers are the
+instrument's, and the instrument was wrong: its key was the type's
+head-constant skeleton, which its own docstring called
+instantiation-insensitive and is not — a conjunct paid at a COMPUTED index
+carries that index's constants into the skeleton and matches nothing.
+`flowKeyRoute_of_open` pays at `k = nc + 1 + w`, so four of its five fields
+read low.  The delta this item bought (**+2**) is unaffected; the module's
+standing was one better in both columns than the row above says.
 
 **And its first reading is a structural fact nobody had stated.**  Three
 constants carry more than one optional conjunct, and they are one lemma seen
@@ -22738,12 +22747,16 @@ ride.  Diffstat: 4 files changed + 1 added, 230 insertions / 13 deletions.
 
 **What remains.**  The lane is measured and its `vslot` punt is NOT a work item
 — it is refused at §9.2 for the parks that reach it, and stays punted until a
-park with an open node slot reaches that landing.  `flowKeyRoute_of_OPEN`'s four
+park with an open node slot reaches that landing.  ~~`flowKeyRoute_of_OPEN`'s four
 never-paid conjuncts ARE the next row, and the census now states them: its
 LANDING arm punts three (pair, stream resume, value-line resume) and its compact
-arm two, with the recorded reason *both arms' routes end in the closed stream*
-— a claim about the file, of exactly the kind items 197–201 have now found stale
-four times, and unmeasured.  Then **the REFUTATION** for `_stamp_compact` (2
+arm two~~ — **corrected at [item 202](#item-202-2026-09-18): the census could
+not state them.  Two of the four were paid before item 202 began (the HEAD, by
+the relay blind spot this item had itself written down, and the compact arm's
+value-line PAIR, by item 96), and the punt counts were halved by the same key
+error.  The genuine count was TWO** — with the recorded reason *both arms'
+routes end in the closed stream*, a claim about the file, of exactly the kind
+items 197–201 have now found stale four times, and unmeasured.  Then **the REFUTATION** for `_stamp_compact` (2
 sites, measured empty), **`KeyPackPunt`'s two reasons** (`dedent` 7/5 and
 `noKeyContext` 6/5, possibly a phantom), then the `pendingFlow` constructor and
 its arm.  Only then item 183's flip order.  And the parked Ix Step-1
@@ -22755,7 +22768,162 @@ CONSTRUCTORS (198), over their APPLICATION SITES (200), over lemma CONCLUSIONS
 here, and measured at item 199 in the flip.  **Four instruments, one blind spot,
 and it is the one that hides a producer.**  What would see through it is a
 census that follows a conjunct's VALUE through the relays that carry it, and
-nobody has built one.
+nobody has built one.  **Item 202 found a FIFTH thing none of them does: check
+its own key.**  Six of the module's seven remaining unpaid conjuncts are this
+blind spot, which is now a measured share rather than a listed exception.
+
+### Item 202 (2026-09-18)
+
+**THE INSTRUMENT'S OWN NUMBER WAS A GUESS, AND THE TWO ROUTES THAT HAD NO
+TWIN.**  Branch `fix-a-grammar-completeness`, on top of item 201's `af0585e4`.
+
+**Re-running the plan sentence — which was one item old and came from an
+instrument.**  Item 201 closed by handing item 202 a row: *`flowKeyRoute_of_OPEN`'s
+four never-paid conjuncts ARE the next row, and the census now states them*.
+The sentence's authority was the census built one item earlier, so the first
+thing measured was the census.  It was wrong:
+
+| the sentence | measured | verdict |
+|---|---|---|
+| `_of_open` has four never-paid conjuncts | it has **two** | wrong, and the instrument said so |
+| its LANDING arm punts three, its compact arm two | landing three, compact **two of three** — the compact arm PAYS the value-line pair (item 96) | wrong about one arm |
+| (unforecast) why | the census's key is the type's head-constant SKELETON, called *instantiation-insensitive* in its own docstring and not: a conjunct paid at a COMPUTED index carries `HAdd.hAdd`/`instHAdd`/`OfNat.ofNat` into the skeleton and matches nothing.  `_of_open` pays at `k = nc + 1 + w` | **the instrument, not the file** |
+
+Of `_of_open`'s five conjuncts the raw key attributed **2 of 5 `Or.inl` and 7
+of 12 `Or.inr`**; seven literal sites in one proof matched no conjunct at all.
+Item 201's published module totals (15 paying / 9 unpaid) were 16 / 8, and both
+of its own before/after rows move by one — the +2 delta it claimed is
+unaffected, which is why a green build never showed it.  **Corrected in the
+artifact that carries it**: item 201's table, its NEXT sentence and its closing
+instrument note are struck and annotated in place above.
+
+**THE CORRECTION, AND ITS OWN CONTROL.**  The key now keeps only constants
+under `L4YAML` — a `Nat` index cannot introduce one — and falls back to the
+full skeleton where that leaves nothing (`frameChainUnion`, whose conjunct has
+no grammar vocabulary).  Two failure modes the filter could have had are
+machine-checked rather than argued: a lemma whose conjuncts collide under the
+coarser key **throws**, and `ConclusionCensus.attribControl` runs BOTH keys and
+pins every lemma where their attribution differs.  That list is one line long —
+`flowKeyRoute_of_open raw=3+6 grm=5+8` — which says, from inside the module,
+that exactly one lemma computes its key and that the coarser key is strictly
+better there and nowhere else different.  **An instrument whose correction is
+pinned by a control cannot be silently un-corrected**, which is the thing item
+201's version lacked.
+
+**AND THE CORRECTED READING IS SHARPER THAN THE WRONG ONE.**  Six of the seven
+remaining unpaid conjuncts are the RELAY blind spot item 201 had already named
+— `flowKeyHead`, `back_col`, `close_col_of_base`, `scanValue_ok_park_facts`,
+and the two `head` conjuncts those feed, all of which DO pay.  **Exactly one
+conclusion conjunct in the module is unpaid and not a relay.**  Item 201's
+blind spot was a list of exceptions; it is now a measured share, and the
+residue is a single row.
+
+**THE TWO ROUTES THAT HAD NO ENTRIES-LEVEL TWIN.**  The stream resume's
+recorded reason reads *both arms' routes end in the closed stream
+(`valueMapRoute`/`compactMapRoute`)* — true of the two routes and never re-read
+after the entries level was built.  Five of the family's six routes have
+carried an `F` twin since items 148/176 (`rootMapRouteF`, `nodocMapRouteF`,
+`suffixMapRouteF`, `markerMapRouteF`, `propsMapRouteF`, and `resumeMapRouteF`
+bottom-parametric since 108); **these two never got theirs, and both were one
+constructor slot away.**  `compactMapRoute` was filling `SCompactMap.mk`'s tail
+slot with `nil` and a continuation goes in that slot; `valueMapRoute` was
+filling `[187] l+block-mapping` with `SBlockMapEntries.single`, where
+`SBlockMapEntries_of_compactTail` — the fold written for `rootMapRouteF` and
+used by four routes since — takes the entry and its tail together.  So the
+payment is **+2 lemmas, +0 premises, +0 constructor fields**: both arms of
+`flowKeyRoute_of_open` pay the stream resume at `ks = []`, and the conjunct
+goes `inl=0,inr=2 → inl=2,inr=0` — paid on every arm, **no punt site left**.
+What it buys is the sibling after a flow key: `k:⏎  [1]: b⏎  c: 2` and
+`- [1]: b⏎  c: 2` are ONE inner mapping with two entries, which a route that
+closes at one entry cannot say.
+
+**THE ONE CONJUNCT LEFT IS A SHAPE, NOT A ROUTE.**  `_of_open`'s value-line
+resume stays punted on both arms, for two different reasons and neither of them
+the recorded one.  The LANDING arm has no value-line face at any price: its
+bottom is `h_node`, a `[199]` node slot at `.blockIn`, and an `ExplValueLine`
+bottom is `[186]`'s explicit KEY slot at `.blockOut` — a different production,
+not a weaker reading of the same one.  The COMPACT arm HAS one,
+`h_compact_pair`, the very premise that pays the conjunct above it; what stops
+it is that **item 196 widened the pair to a CHAIN (`∃ ns, ∀ nv ∈ ns`) and left
+the resume twins naming a single `nv`**, so a possibly-empty list names no
+index.  §21.3 derives the payment from ONE index in three lines, which is what
+says the residue is item 196's widening and not a missing carrier.
+
+**Non-vacuity, machine-checked** (`BlockDeferralClasses` §21).  §21.1 derives
+both conjuncts from the two new twins; §21.2 is the refutation that says they
+are the payment — a closed route delivers the stream at the ENTRY's end and the
+conjunct asks for it past the TAIL, with no term from one to the other.  Run
+with the position swapped as a positive control it reported *the tactic
+provided to `fail_if_success` succeeded but was expected to fail*, so the
+refutation is about the tail and not about an unrelated elaboration failure
+(item 200's gotcha).  §21.3 is the compact arm's value-line derivation from a
+single index.  **And the gate's own two negative controls**: re-pinned at item
+201's published `_of_open` row it throws, and with the key reverted to item
+201's raw skeleton it throws — so neither the payment's absence nor the key's
+regression can pass.
+
+**The domain, measured at the runtime before the payment was priced.**  The
+sibling entry after a flow key, under a parked block entry (`k:⏎  [1]: b⏎  c: 2`)
+and on a sequence entry's own line (`- [1]: b⏎  c: 2`), and two flow keys in
+one mapping (`k:⏎  [1]: b⏎  [2]: d`) — all accepted; the same two shapes inside
+a still-open `?` frame (`?⏎  k:⏎    [1]: b⏎    c: 2⏎: w`, `?⏎  - [1]: b⏎    c: 2⏎: w`),
+accepted, which is the domain §21.3 leaves punted and the next item's inputs;
+and the controls — the same two shapes with NO sibling, which the closed routes
+already served, beside the BLOCK twin whose sibling never needed a flow route.
+**Zero runtime edits**; the matrix binaries were not rebuilt.
+
+**Gates.**  Full build **1163** jobs, ZERO warnings; `run-all-tests.sh`
+**4520/4520** (`adversarialinstantiation` **2441/2441**), Production Coverage
+**837/837**; `eventscore` **347/358** (252 event-pass, 11 event-diff, 0
+event-reject, 95 error-ok, 0 error-miss); `suiterunner` **869 / 0 / 151**;
+`matrix_score.py` over the 402-leaf data form on BOTH pipelines, **402/402
+event** (`pass` 308, `err-ok` 94) and **282/282 JSON** (`pass` 279, `err-ok` 3,
+`skip` 120), splits identical to 176–201, pre-flight error-marker count **95**;
+the `[210]` flip at **FIVE** errors, StreamAccum **4444**, **5724**, **5747**,
+**5916**, **7458** — the same five sites since item 194, the first four at line
+numbers UNMOVED and the fifth shifted by exactly the **54** lines the two new
+route lemmas add above it (predicted before the run and confirmed by it) —
+applied and restored, with `lake build` after the restore (item 200's olean
+gotcha); `#print axioms` over `valueMapRouteF`, `compactMapRouteF`,
+`flowKeyRoute_of_open`, `flowKeyRoute_of_root`, `accum_flow_open_depth0`,
+`accum_step_flow` and `flowKeyPack_of_close`, no `sorryAx` (the two new routes
+are `propext` alone); checkers 228/355, 20/230/249/355, 25 capstones,
+annotation verifier 100 % coverage (211/211 rules) with the same **19**
+pre-existing name mismatches.
+
+**Counts, at `af0585e4` and here, each under the recipe that produced it** —
+declarations `grep -rhoE "^(private )?(lemma|theorem|def|abbrev|instance|structure|inductive|class) " L4YAML`:
+**8570 → 8572** (+2, the two entries-level routes); `#guard` tokens
+`grep -rho "#guard" L4YAML Tests`: **8030 → 8038** (+8, §21's domain pins); test
+files `find Tests -name '*.lean'`: **622 → 622** (+0 — the census was landed as
+a gate at item 201 and is CORRECTED here, not added).
+
+**What remains.**  **The value-line resume is the one row the corrected census
+leaves**, and it is now priced rather than named: the compact arm's payment is
+derived in `BlockDeferralClasses` §21.3 from a single index, so the work is
+carrying item 196's chain into the resume twins — `flowKeyRoute_of_open`'s
+fifth conjunct, `flowKeyRoute_of_root`'s fifth, `flowKeyPack_of_close`'s relay
+and `ImplicitKeyPack`'s item-108 field all name one `nv` where the pair beside
+them names a list.  Measure whether the CONSUMERS can spend a list before
+widening the producers; that is the direction item 189–192 went and it cost
+four items.  Then **the REFUTATION** for `_stamp_compact` (2 sites, measured
+empty), **`KeyPackPunt`'s two reasons** (`dedent` 7/5 and `noKeyContext` 6/5,
+possibly a phantom), then the `pendingFlow` constructor and its arm.  Only then
+item 183's flip order.  And the parked Ix Step-1 composition, on the Ix track's
+own clock.
+
+**And the instrument's ledger, one row longer.**  Four censuses run now — park
+CONSTRUCTORS (198), their APPLICATION SITES (200), lemma CONCLUSIONS (201), and
+the same census with a key that works (202).  All of them count TERMS and all
+are blind to a relay, which is still the blind spot that hides a producer.
+**What this item adds is a different lesson: an instrument's reading is a
+measurement, and a measurement with no control is a guess** — §10's own rule,
+turned on the instruments §10 asked for.  Item 201's census had pinned rows and
+a negative control on the ROWS; it had none on the KEY, so a key that read four
+fields low passed every gate it had.  The rule that would have caught it is the
+one applied here: **pin what the instrument cannot attribute, and pin the
+difference between the instrument and a cruder version of itself.**  Every
+census in this campaign should carry both, and the three earlier ones do not.
 
 ### REMAINING, in order
 

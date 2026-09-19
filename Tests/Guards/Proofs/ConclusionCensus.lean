@@ -5,7 +5,7 @@ Copyright (c) 2026. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 -/
 
-/-! # The census over CONCLUSIONS (DOCS item 201)
+/-! # The census over CONCLUSIONS (DOCS items 201, 202)
 
 Item 198 ran a census over the pending park's CONSTRUCTORS, asking which of
 them carried both bottoms; item 200 ran one over their APPLICATION SITES,
@@ -26,29 +26,55 @@ ever pays — which is a different question from "is this field punted at some
 site", and is the one the park censuses cannot ask.
 
 **What it reads.**  16 lemmas state an optional conjunct in their conclusion,
-24 conjuncts between them — of which **15 have a paying arm and 9 have none**
-(13 and 11 at item 200's `123e3313`).  Three lemmas carry more than one, and they are the
-same lemma seen three ways: `flowKeyRoute_of_open` (5), `flowKeyRoute_of_root`
-(5) and the field that carries both (`FlowBaseRoutes.key`, 5, excluded below as
-a projection).  **Conclusion-level optionality in this module is the flow-key
-lane and nothing else.**
+24 conjuncts between them — of which **17 have a paying arm and 7 have none**.
+Three lemmas carry more than one, and they are the same lemma seen three ways:
+`flowKeyRoute_of_open` (5), `flowKeyRoute_of_root` (5) and the field that
+carries both (`FlowBaseRoutes.key`, 5, excluded below as a projection).
+**Conclusion-level optionality in this module is the flow-key lane and nothing
+else.**
 
-**Both blind spots, named.**  An instrument that counts syntax misses what
-syntax hides, and this one misses two things in opposite directions:
+**Six of the seven unpaid rows are the RELAY blind spot below, and exactly one
+is not**: `flowKeyRoute_of_open`'s value-line resume, the only conclusion
+conjunct in the module that no arm pays and no relay hides.
 
-* A conjunct **relayed** with `Or.imp` (`h.imp f id`) writes no literal
-  `Or.inl` or `Or.inr`, so it reads `inl=0 inr=0` — neither paid nor punted.
-  `flowKeyHead`, `back_col`, `close_col_of_base` and `scanValue_ok_park_facts`
-  are exactly that, and all four DO pay.  This is the same blind spot item 199
-  measured in the `[210]` flip, in a second instrument: **a relay is invisible
-  to anything that counts terms**, because it writes the answer down once and
-  the writing is not at either end.
+## The key, and why item 202 had to correct it
+
+Two conjuncts are "the same" here when their head-constant SKELETONS agree,
+and item 201 took the skeleton over ALL constants.  That key is
+instantiation-SENSITIVE, which the docstring it was written in denied: a
+conjunct paid at a COMPUTED index carries the index's own constants
+(`HAdd.hAdd`, `instHAdd`, `OfNat.ofNat`, …) into the skeleton and matches
+nothing.  `flowKeyRoute_of_open` pays at `k = nc + 1 + w`, so item 201 read
+four of its five fields wrong and reported the module as 15-paying/9-unpaid
+when it was 16/8 — and handed item 202 a plan sentence ("`_of_open`'s four
+never-paid conjuncts") of which two were paid all along.
+
+The key here keeps only constants under `L4YAML`, which an index cannot
+introduce, and falls back to the full skeleton where that leaves nothing.  The
+correction is not asserted: `attribControl` below reads BOTH keys and pins the
+lemmas where they disagree, so the module states for itself that exactly one
+lemma is instantiation-sensitive and that the grammar key attributes strictly
+more of its sites.
+
+## The two blind spots that remain, named
+
+* A conjunct **relayed** with `Or.imp` (`h.imp f id`), or discharged by passing
+  a lemma whose own conclusion is the `∨ True`, writes no literal `Or.inl` or
+  `Or.inr` and reads `inl=0 inr=0` — neither paid nor punted.  `flowKeyHead`,
+  `back_col`, `close_col_of_base` and `scanValue_ok_park_facts` are the first
+  kind and the two `head` conjuncts are the second, and all six DO pay.  This
+  is the same blind spot item 199 measured in the `[210]` flip, in a second
+  instrument: **a relay is invisible to anything that counts terms**, because
+  it writes the answer down once and the writing is not at either end.
 * `inr` counts punt SITES, not "always punted".  A payment that keeps a
   fallback arm — every payment made through a `match` on an optional premise —
   leaves the `inr` count exactly where it was.  Item 201's own payment moved
   `flowKeyRoute_of_root`'s two rows `inl=0 → inl=1` and `inr=2 → inr=2`.
 
-So the number to read is the FIRST column, and the gate below pins both. -/
+So the number to read is the FIRST column.  The `un=` column is the third
+thing a term census cannot attribute — an `Or.inl`/`Or.inr` written for an
+optional PREMISE rather than a conclusion conjunct — pinned rather than
+filtered, so a payment the key stops seeing has to move a number here. -/
 
 namespace L4YAML.Tests.Guards.ConclusionCensus
 
@@ -81,17 +107,26 @@ partial def sides (side : Name) : Expr → Array Expr → Array Expr
   | .proj _ _ e, acc => sides side e acc
   | _, acc => acc
 
-/-- Head constants in order — an instantiation-insensitive key, because the
-    type's telescope and the value's terms carry different bound variables. -/
-partial def skel : Expr → Array Name → Array Name
+/-- Head constants in order.  Bound variables drop out, so the telescope's own
+    names do not matter — but an INSTANTIATED index does not, which is what
+    `skel` below has to fix. -/
+partial def skelRaw : Expr → Array Name → Array Name
   | .const n _, acc => acc.push n
-  | .app f a, acc => skel a (skel f acc)
-  | .lam _ t b _, acc => skel b (skel t acc)
-  | .forallE _ t b _, acc => skel b (skel t acc)
-  | .letE _ t v b _, acc => skel b (skel v (skel t acc))
-  | .mdata _ e, acc => skel e acc
-  | .proj _ _ e, acc => skel e acc
+  | .app f a, acc => skelRaw a (skelRaw f acc)
+  | .lam _ t b _, acc => skelRaw b (skelRaw t acc)
+  | .forallE _ t b _, acc => skelRaw b (skelRaw t acc)
+  | .letE _ t v b _, acc => skelRaw b (skelRaw v (skelRaw t acc))
+  | .mdata _ e, acc => skelRaw e acc
+  | .proj _ _ e, acc => skelRaw e acc
   | _, acc => acc
+
+/-- The GRAMMAR vocabulary of an expression: its head constants under
+    `L4YAML`, which a `Nat` index cannot introduce, and the full skeleton where
+    that leaves nothing to compare. -/
+def skel (e : Expr) : Array Name :=
+  let raw := skelRaw e #[]
+  let g := raw.filter (`L4YAML).isPrefixOf
+  if g.isEmpty then raw else g
 
 partial def conclusion : Expr → Expr
   | .forallE _ _ b _ => conclusion b
@@ -99,50 +134,94 @@ partial def conclusion : Expr → Expr
 
 def ns : Name := `L4YAML.Proofs.StreamAccum
 
-/-- One row per lemma: `name inl=a,inr=b …`, one field per conclusion
-    conjunct, in the conclusion's own order.  Structure PROJECTIONS are
-    excluded — they carry no proof term, so every conjunct of a projection
-    would read as unpaid. -/
-def census : CommandElabM (Array String) := do
+/-- The constants this census reads: non-internal, in `StreamAccum`, with a
+    value, stating at least one optional conclusion conjunct.  Structure
+    PROJECTIONS are excluded — they carry no proof term, so every conjunct of a
+    projection would read as unpaid. -/
+def subjects : CommandElabM (Array (Name × Expr × Expr)) := do
   let env ← getEnv
   let modIdx := env.getModuleIdxFor? (ns ++ `flowKeyRoute_of_root)
-  let mut rows : Array String := #[]
+  let mut out := #[]
   for (nm, ci) in env.constants.toList do
     if nm.isInternal then continue
     if env.getModuleIdxFor? nm != modIdx then continue
     if (env.getProjectionFnInfo? nm).isSome then continue
-    let cs := lefts (conclusion ci.type) #[]
-    if cs.isEmpty then continue
+    if (lefts (conclusion ci.type) #[]).isEmpty then continue
     let some v := ci.value? (allowOpaque := true) | continue
-    let ps := (sides ``Or.inr v #[]).map (fun e => skel e #[])
-    let qs := (sides ``Or.inl v #[]).map (fun e => skel e #[])
+    out := out.push (nm, ci.type, v)
+  return out
+
+/-- One row per lemma: `name inl=a,inr=b … | un=x,y`, one field per conclusion
+    conjunct in the conclusion's own order, then the `Or.inl`/`Or.inr` sites the
+    key attributes to no conjunct. -/
+def census : CommandElabM (Array String) := do
+  let mut rows : Array String := #[]
+  for (nm, ty, v) in ← subjects do
+    let cs := lefts (conclusion ty) #[]
+    let ks := cs.map skel
+    if ks.size != (ks.foldl (fun (a : Array (Array Name)) k =>
+        if a.contains k then a else a.push k) #[]).size then
+      throwError "two conjuncts of {nm} share a census key — the key has stopped \
+        telling them apart, and the counts below would silently merge"
+    let ps := (sides ``Or.inr v #[]).map skel
+    let qs := (sides ``Or.inl v #[]).map skel
     let mut out := s!"{nm.getString!}"
-    for c in cs do
-      let k := skel c #[]
+    for k in ks do
       out := out ++ s!" inl={(qs.filter (· == k)).size},inr={(ps.filter (· == k)).size}"
-    rows := rows.push out
+    rows := rows.push (out ++ s!" | un={(qs.filter (!ks.contains ·)).size},{
+      (ps.filter (!ks.contains ·)).size}")
+  return rows.qsort
+
+/-- **The instrument's own control** (item 202).  The census under item 201's
+    RAW key beside the grammar key, reported as the number of `Or.inl`/`Or.inr`
+    sites each one ATTRIBUTES to a conclusion conjunct.  The two agree except
+    where a lemma pays at a computed index; the row below is the whole list of
+    lemmas where they differ, and it is what says the correction is still
+    doing something. -/
+def attribControl : CommandElabM (Array String) := do
+  let mut rows : Array String := #[]
+  for (nm, ty, v) in ← subjects do
+    let cs := lefts (conclusion ty) #[]
+    let read (key : Expr → Array Name) : Nat × Nat :=
+      let ks := cs.map key
+      ((((sides ``Or.inl v #[]).map key).filter (ks.contains ·)).size,
+       (((sides ``Or.inr v #[]).map key).filter (ks.contains ·)).size)
+    let (rl, rr) := read (skelRaw · #[])
+    let (gl, gr) := read skel
+    if (rl, rr) != (gl, gr) then
+      rows := rows.push s!"{nm.getString!} raw={rl}+{rr} grm={gl}+{gr}"
   return rows.qsort
 
 /-- The pinned census.  A conjunct that gains or loses a paying arm moves a
     row here; item 201 moved `flowKeyRoute_of_root`'s third and fifth from
-    `inl=0` to `inl=1`. -/
+    `inl=0` to `inl=1`, and item 202 moved `flowKeyRoute_of_open`'s fourth from
+    `inl=0,inr=2` to `inl=2,inr=0` — paid on BOTH arms, no punt site left. -/
 def expected : List String :=
-  ["back_col inl=0,inr=0",
-   "close_col_of_base inl=0,inr=0",
-   "dedent_cover_of_landing inl=1,inr=3",
-   "explFrameValueLine inl=1,inr=1",
-   "flowKeyHead inl=0,inr=0",
-   "flowKeyRoute_of_open inl=2,inr=4 inl=0,inr=0 inl=0,inr=1 inl=0,inr=1 inl=0,inr=1",
-   "flowKeyRoute_of_root inl=2,inr=2 inl=0,inr=0 inl=1,inr=2 inl=5,inr=0 inl=1,inr=2",
-   "flowOpen_floor_at_prep inl=1,inr=1",
-   "flowOpen_stamp inl=1,inr=2",
-   "flowVPack_of_close inl=1,inr=1",
-   "frameChainUnion inl=2,inr=0",
-   "keyctx_of_preprocess inl=2,inr=3",
-   "markerctx_of_landing inl=1,inr=3",
-   "nodocctx_of_preprocess inl=2,inr=3",
-   "scanValue_ok_park_facts inl=0,inr=0",
-   "suffixctx_of_landing inl=1,inr=3"]
+  ["back_col inl=0,inr=0 | un=0,0",
+   "close_col_of_base inl=0,inr=0 | un=0,0",
+   "dedent_cover_of_landing inl=1,inr=3 | un=0,0",
+   "explFrameValueLine inl=1,inr=1 | un=0,0",
+   "flowKeyHead inl=0,inr=0 | un=0,0",
+   "flowKeyRoute_of_open inl=2,inr=4 inl=0,inr=0 inl=1,inr=2 inl=2,inr=0 inl=0,inr=2 | un=2,2",
+   "flowKeyRoute_of_root inl=2,inr=2 inl=0,inr=0 inl=1,inr=2 inl=5,inr=0 inl=1,inr=2 | un=3,5",
+   "flowOpen_floor_at_prep inl=1,inr=1 | un=0,0",
+   "flowOpen_stamp inl=1,inr=2 | un=1,1",
+   "flowVPack_of_close inl=1,inr=1 | un=0,0",
+   "frameChainUnion inl=2,inr=0 | un=0,0",
+   "keyctx_of_preprocess inl=2,inr=3 | un=0,0",
+   "markerctx_of_landing inl=1,inr=3 | un=1,1",
+   "nodocctx_of_preprocess inl=2,inr=3 | un=0,0",
+   "scanValue_ok_park_facts inl=0,inr=0 | un=1,1",
+   "suffixctx_of_landing inl=1,inr=3 | un=1,1"]
+
+/-- The one lemma whose payments instantiate an index, and the sites item 201's
+    key could not attribute: 3 of this lemma's 7 `Or.inl` and 6 of its 10
+    `Or.inr`, against 5 and 8.  At item 201's own numbers the gap was 2+7
+    against 3+10, which is the reading that made its `_of_open` row wrong.  An
+    empty list here would mean the grammar key had stopped earning its keep; a
+    longer one, that a second lemma had started computing its key. -/
+def expectedControl : List String :=
+  ["flowKeyRoute_of_open raw=3+6 grm=5+8"]
 
 run_cmd do
   let got ← census
@@ -150,5 +229,10 @@ run_cmd do
     throwError "the conclusion census moved.\nexpected ({expected.length}):\n{
       String.intercalate "\n" expected}\ngot ({got.size}):\n{
       String.intercalate "\n" got.toList}"
+  let ctl ← attribControl
+  if ctl.toList != expectedControl then
+    throwError "the census's INSTANTIATION control moved.\nexpected ({
+      expectedControl.length}):\n{String.intercalate "\n" expectedControl}\ngot ({
+      ctl.size}):\n{String.intercalate "\n" ctl.toList}"
 
 end L4YAML.Tests.Guards.ConclusionCensus

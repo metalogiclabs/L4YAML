@@ -7,7 +7,7 @@ Copyright (c) 2026. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 -/
 
-/-! # The block-indicator escape, by CLASS and by ROUTE (DOCS items 184–201)
+/-! # The block-indicator escape, by CLASS and by ROUTE (DOCS items 184–202)
 
 `block_dispatch_deferred` is `PendingNode.pendingFlow`'s only producer, so
 R3 — row 12's β.5 deletion — is the emptying of this escape.  Its applications
@@ -2700,5 +2700,148 @@ shared landing, measured and left: -/
 #guard pins "\"x\"\n[1, 2]\n" == ("scan-refused L4YAML.ScanError.invalidBareDocument 1 0", "ERR L4YAML.ScanError.invalidBareDocument 1 0")
 #guard pins "? \"x\"\n  [1]\n: v\n" == ("scan-refused L4YAML.ScanError.invalidBareDocument 1 2", "ERR L4YAML.ScanError.invalidBareDocument 1 2")
 #guard pins "?\n  k:\n    - x\n  [1]\n: w\n" == ("scan-refused L4YAML.ScanError.invalidBareDocument 3 2", "ERR L4YAML.ScanError.invalidBareDocument 3 2")
+
+/-! ## §21  The instrument's own number, and the two routes that had no twin (item 202)
+
+Item 201 built the census over conclusions and read the module at **15
+conjuncts with a paying arm, 9 with none**.  **The 9 was wrong, and the
+instrument was what made it wrong.**  Its key was the type's head-constant
+SKELETON, described in its own docstring as instantiation-insensitive; it is
+insensitive to a bound variable's NAME and not to an instantiated INDEX.
+`flowKeyRoute_of_open` pays at `k = nc + 1 + w`, whose `HAdd.hAdd` /
+`OfNat.ofNat` / `instHAdd` ride into the skeleton and match nothing — so four
+of that lemma's five fields read low, and the sentence item 201 handed forward
+(*`flowKeyRoute_of_OPEN`'s four never-paid conjuncts ARE the next row*) named
+two conjuncts that were paid before item 202 started: the HEAD, by the relay
+blind spot item 201 had already written down, and the compact arm's value-line
+PAIR, by item 96.
+
+The correction is a key over the `L4YAML` vocabulary alone, which an index
+cannot enter, and it is not asserted: `ConclusionCensus.attribControl` reads
+BOTH keys and pins every lemma where they disagree, so the module states for
+itself that exactly one lemma computes its key and that the corrected key
+attributes strictly more of its sites.  Corrected, and then paid here:
+
+| | conjuncts with a paying arm | never paid |
+|---|---|---|
+| item 201, as published | 15 | 9 |
+| item 201, re-read | **16** | **8** |
+| here | **17** | **7** |
+
+**And what the corrected reading says is sharper than the wrong one was.**
+Six of the seven remaining are the relay blind spot — `flowKeyHead`,
+`back_col`, `close_col_of_base`, `scanValue_ok_park_facts` and the two `head`
+conjuncts those last two feed.  **Exactly one conclusion conjunct in the module
+is unpaid and not a relay**, and it is `flowKeyRoute_of_open`'s value-line
+resume.
+
+**§21.1 — the two routes that had no entries-level twin.**  The punt's recorded
+reason was *both arms' routes end in the closed stream
+(`valueMapRoute`/`compactMapRoute`)* — true of the two routes and never re-read
+after the entries level was built.  Five of the family's six routes have
+carried an `F` twin since items 148/176; these two never got theirs, and both
+were one constructor slot away.  `compactMapRoute` was filling
+`SCompactMap.mk`'s tail with `nil`: -/
+
+example {sp_start sp_entry sp_key : SurfPos} {nc w : Nat} {cc : YamlContext}
+    (h_close : ∀ sp, SBlockIndented nc cc sp_entry sp → SLYamlStream sp_start sp)
+    (h_ind : SIndent w sp_entry sp_key) :
+    ∃ ks : List Nat, (∀ k' ∈ ks, k' < nc + 1 + w) ∧
+      ∀ sp_v : SurfPos, SBlockMapEntry (nc + 1 + w) sp_key sp_v →
+      ∀ sp_e : SurfPos, SCompactMapTail (nc + 1 + w) sp_v sp_e →
+      ResumeFrames (SLYamlStream sp_start) ks sp_e :=
+  ⟨[], fun _ h => absurd h (List.not_mem_nil), compactMapRouteF h_close h_ind⟩
+
+/-! …and `valueMapRoute` was filling `[187] l+block-mapping` with
+`SBlockMapEntries.single`, where `SBlockMapEntries_of_compactTail` — the fold
+built for `rootMapRouteF` and used by four routes since — takes the entry and
+its tail together: -/
+
+example {sp_start sp_scan sp_land sp_key : SurfPos} {n w : Nat}
+    (hnw : n ≤ w)
+    (h_node : ∀ sp, SBlockNode n .blockIn sp_scan sp → SLYamlStream sp_start sp)
+    (h_ssl : SSLComments sp_scan sp_land)
+    (h_ind : SIndent w sp_land sp_key) :
+    ∃ ks : List Nat, (∀ k' ∈ ks, k' < w) ∧
+      ∀ sp_v : SurfPos, SBlockMapEntry w sp_key sp_v →
+      ∀ sp_e : SurfPos, SCompactMapTail w sp_v sp_e →
+      ResumeFrames (SLYamlStream sp_start) ks sp_e :=
+  ⟨[], fun _ h => absurd h (List.not_mem_nil), valueMapRouteF hnw h_node h_ssl h_ind⟩
+
+/-! **§21.2 — and the closed routes cannot stand in for them**, which is what
+says the two twins are the payment and not a re-reading.  A closed route
+delivers the stream at the ENTRY's end; the conjunct asks for it past the
+TAIL, and there is no term from the one to the other: -/
+
+example {sp_start sp_scan sp_land sp_key : SurfPos} {n w : Nat}
+    (_hnw : n ≤ w)
+    (_h_node : ∀ sp, SBlockNode n .blockIn sp_scan sp → SLYamlStream sp_start sp)
+    (_h_ssl : SSLComments sp_scan sp_land)
+    (_h_ind : SIndent w sp_land sp_key) : True := by
+  fail_if_success
+    have : ∀ sp_v : SurfPos, SBlockMapEntry w sp_key sp_v →
+        ∀ sp_e : SurfPos, SCompactMapTail w sp_v sp_e →
+        ResumeFrames (SLYamlStream sp_start) [] sp_e :=
+      fun sp_v h_entry sp_e _h_tail =>
+        ResumeFrames.bottom sp_e (valueMapRoute _hnw _h_node _h_ssl _h_ind sp_v h_entry)
+  trivial
+
+/-! **§21.3 — the one conjunct left, and it is a SHAPE and not a route.**  The
+value-line resume stays punted on both arms, for two different reasons, and
+neither is *the route ends in the closed stream*.
+
+The LANDING arm has no value-line face to reach at any price: its bottom is
+`h_node`, a `[199]` node slot at `.blockIn`, and an `ExplValueLine` bottom is
+the `[186]` explicit KEY slot, which is `.blockOut` — a different production,
+not a weaker reading of the same one (§20.1 is the same refusal one level up).
+
+The COMPACT arm DOES have one — `h_compact_pair`, which pays the conjunct
+above it.  What stops it is that item 196 widened the pair to a CHAIN and left
+the resume twins naming a single index, so a possibly-empty `ns` cannot name
+the `nv` the conjunct wants.  **Given one index rather than the chain, the
+derivation is three lines** — the pair payment's own term at `ks = []` — which
+is what says the remaining work is item 196's widening and not a missing
+carrier: -/
+
+example {sp_start sp_entry sp_key : SurfPos} {nc w nv : Nat} {cc : YamlContext}
+    (pair : ∀ sp, SBlockIndented nc cc sp_entry sp →
+      ∀ sp_i sp_c : SurfPos, SIndent nv sp sp_i → GLit ':' sp_i sp_c →
+      ∀ sp_v : SurfPos, SBlockIndented nv .blockOut sp_c sp_v →
+      SLYamlStream sp_start sp_v)
+    (h_ind : SIndent w sp_entry sp_key) :
+    ∃ (nv : Nat) (ks : List Nat), (∀ k' ∈ ks, k' < nc + 1 + w) ∧
+      ∀ sp_v : SurfPos, SBlockMapEntry (nc + 1 + w) sp_key sp_v →
+      ∀ sp_e : SurfPos, SCompactMapTail (nc + 1 + w) sp_v sp_e →
+      ResumeFrames (ExplValueLine sp_start nv) ks sp_e :=
+  ⟨nv, [], fun _ h => absurd h (List.not_mem_nil),
+    fun sp_v h_entry sp_e h_tail =>
+      ResumeFrames.bottom sp_e
+        (pair sp_e
+          (SBlockIndented.compactMap nc cc w sp_entry sp_key sp_e h_ind
+            (SCompactMap.mk (nc + 1 + w) sp_key sp_v sp_e h_entry h_tail)))⟩
+
+/-! **The domain**, measured at the runtime before the payment was priced: the
+sibling entry AFTER a flow key, under a parked block entry (the landing arm)
+and on a sequence entry's own line (the compact arm), each as ONE inner mapping
+with two entries — which is exactly what the closed routes could not say: -/
+
+#guard pins "k:\n  [1]: b\n  c: 2\n" == ("scan-accepted", "+STR +DOC +MAP =VAL :k +MAP +SEQ [] =VAL :1 -SEQ =VAL :b =VAL :c =VAL :2 -MAP -MAP -DOC -STR")
+#guard pins "- [1]: b\n  c: 2\n" == ("scan-accepted", "+STR +DOC +SEQ +MAP +SEQ [] =VAL :1 -SEQ =VAL :b =VAL :c =VAL :2 -MAP -SEQ -DOC -STR")
+#guard pins "k:\n  [1]: b\n  [2]: d\n" == ("scan-accepted", "+STR +DOC +MAP =VAL :k +MAP +SEQ [] =VAL :1 -SEQ =VAL :b +SEQ [] =VAL :2 -SEQ =VAL :d -MAP -MAP -DOC -STR")
+
+/-! …the same two shapes inside a still-open `?` frame, which is the domain of
+the conjunct §21.3 leaves punted — accepted, and measured so the next item has
+its inputs rather than a forecast: -/
+
+#guard pins "?\n  k:\n    [1]: b\n    c: 2\n: w\n" == ("scan-accepted", "+STR +DOC +MAP +MAP =VAL :k +MAP +SEQ [] =VAL :1 -SEQ =VAL :b =VAL :c =VAL :2 -MAP -MAP =VAL :w -MAP -DOC -STR")
+#guard pins "?\n  - [1]: b\n    c: 2\n: w\n" == ("scan-accepted", "+STR +DOC +MAP +SEQ +MAP +SEQ [] =VAL :1 -SEQ =VAL :b =VAL :c =VAL :2 -MAP -SEQ =VAL :w -MAP -DOC -STR")
+
+/-! …and the CONTROLS: the same two shapes with NO sibling, which the closed
+routes already served and which therefore move nothing here, beside the BLOCK
+twin of the first, whose sibling has never needed a flow route at all: -/
+
+#guard pins "k:\n  [1]: b\n" == ("scan-accepted", "+STR +DOC +MAP =VAL :k +MAP +SEQ [] =VAL :1 -SEQ =VAL :b -MAP -MAP -DOC -STR")
+#guard pins "- [1]: b\n" == ("scan-accepted", "+STR +DOC +SEQ +MAP +SEQ [] =VAL :1 -SEQ =VAL :b -MAP -SEQ -DOC -STR")
+#guard pins "k:\n  a: 1\n  c: 2\n" == ("scan-accepted", "+STR +DOC +MAP =VAL :k +MAP =VAL :a =VAL :1 =VAL :c =VAL :2 -MAP -MAP -DOC -STR")
 
 end L4YAML.Tests.Guards.BlockDeferralClasses
