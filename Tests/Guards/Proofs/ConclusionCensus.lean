@@ -26,16 +26,19 @@ ever pays — which is a different question from "is this field punted at some
 site", and is the one the park censuses cannot ask.
 
 **What it reads.**  16 lemmas state an optional conjunct in their conclusion,
-24 conjuncts between them — of which **17 have a paying arm and 7 have none**.
+24 conjuncts between them — of which **18 have a paying arm and 6 have none**.
 Three lemmas carry more than one, and they are the same lemma seen three ways:
 `flowKeyRoute_of_open` (5), `flowKeyRoute_of_root` (5) and the field that
 carries both (`FlowBaseRoutes.key`, 5, excluded below as a projection).
 **Conclusion-level optionality in this module is the flow-key lane and nothing
 else.**
 
-**Six of the seven unpaid rows are the RELAY blind spot below, and exactly one
-is not**: `flowKeyRoute_of_open`'s value-line resume, the only conclusion
-conjunct in the module that no arm pays and no relay hides.
+**All six unpaid rows are the RELAY blind spot below** (item 203).  Item 202
+read seven, of which exactly one was unpaid and not a relay —
+`flowKeyRoute_of_open`'s value-line resume — and item 203 paid it: no
+conclusion conjunct in this module is now both unpaid and unhidden by a relay,
+so the first column's remainder is entirely the instrument's own blind spot and
+not the file's.
 
 ## The key, and why item 202 had to correct it
 
@@ -194,15 +197,20 @@ def attribControl : CommandElabM (Array String) := do
 
 /-- The pinned census.  A conjunct that gains or loses a paying arm moves a
     row here; item 201 moved `flowKeyRoute_of_root`'s third and fifth from
-    `inl=0` to `inl=1`, and item 202 moved `flowKeyRoute_of_open`'s fourth from
-    `inl=0,inr=2` to `inl=2,inr=0` — paid on BOTH arms, no punt site left. -/
+    `inl=0` to `inl=1`, item 202 moved `flowKeyRoute_of_open`'s fourth from
+    `inl=0,inr=2` to `inl=2,inr=0` — paid on BOTH arms, no punt site left — and
+    item 203 moved its FIFTH from `inl=0,inr=2` to `inl=1,inr=2`, the compact
+    arm paying and the landing arm keeping the punt it has no face for.  The
+    `un` column moved with it: a second `cases` on an optional PREMISE is two
+    more sites the key is not meant to attribute, which is what that column is
+    for. -/
 def expected : List String :=
   ["back_col inl=0,inr=0 | un=0,0",
    "close_col_of_base inl=0,inr=0 | un=0,0",
    "dedent_cover_of_landing inl=1,inr=3 | un=0,0",
    "explFrameValueLine inl=1,inr=1 | un=0,0",
    "flowKeyHead inl=0,inr=0 | un=0,0",
-   "flowKeyRoute_of_open inl=2,inr=4 inl=0,inr=0 inl=1,inr=2 inl=2,inr=0 inl=0,inr=2 | un=2,2",
+   "flowKeyRoute_of_open inl=2,inr=4 inl=0,inr=0 inl=1,inr=2 inl=2,inr=0 inl=1,inr=2 | un=3,3",
    "flowKeyRoute_of_root inl=2,inr=2 inl=0,inr=0 inl=1,inr=2 inl=5,inr=0 inl=1,inr=2 | un=3,5",
    "flowOpen_floor_at_prep inl=1,inr=1 | un=0,0",
    "flowOpen_stamp inl=1,inr=2 | un=1,1",
@@ -215,13 +223,15 @@ def expected : List String :=
    "suffixctx_of_landing inl=1,inr=3 | un=1,1"]
 
 /-- The one lemma whose payments instantiate an index, and the sites item 201's
-    key could not attribute: 3 of this lemma's 7 `Or.inl` and 6 of its 10
-    `Or.inr`, against 5 and 8.  At item 201's own numbers the gap was 2+7
-    against 3+10, which is the reading that made its `_of_open` row wrong.  An
-    empty list here would mean the grammar key had stopped earning its keep; a
-    longer one, that a second lemma had started computing its key. -/
+    key could not attribute: 3 of this lemma's 8 `Or.inl` and 6 of its 10
+    `Or.inr`, against 6 and 8.  At item 201's own numbers the gap was 2+7
+    against 3+10, which is the reading that made its `_of_open` row wrong, and
+    item 203's payment widened it by one more `Or.inl` — a payment at
+    `k = nc + 1 + w` is exactly what the raw key cannot see.  An empty list
+    here would mean the grammar key had stopped earning its keep; a longer one,
+    that a second lemma had started computing its key. -/
 def expectedControl : List String :=
-  ["flowKeyRoute_of_open raw=3+6 grm=5+8"]
+  ["flowKeyRoute_of_open raw=3+6 grm=6+8"]
 
 run_cmd do
   let got ← census

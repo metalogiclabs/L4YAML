@@ -10,6 +10,7 @@ import Tests.Guards.Proofs.DumpRoundTrip
 import Tests.Guards.Proofs.EndToEndCorrectness
 import Tests.Guards.Proofs.EscapeResolution
 import Tests.Guards.Proofs.FoldNewlines
+import Tests.Guards.Proofs.IndexCensus
 import Tests.Guards.Proofs.ParserCorrectness
 import Tests.Guards.Proofs.RoundTrip
 import Tests.Guards.Proofs.RoundTripComposition

@@ -22900,13 +22900,22 @@ a gate at item 201 and is CORRECTED here, not added).
 
 **What remains.**  **The value-line resume is the one row the corrected census
 leaves**, and it is now priced rather than named: the compact arm's payment is
-derived in `BlockDeferralClasses` §21.3 from a single index, so the work is
+derived in `BlockDeferralClasses` §21.3 from a single index, so ~~the work is
 carrying item 196's chain into the resume twins — `flowKeyRoute_of_open`'s
 fifth conjunct, `flowKeyRoute_of_root`'s fifth, `flowKeyPack_of_close`'s relay
 and `ImplicitKeyPack`'s item-108 field all name one `nv` where the pair beside
-them names a list.  Measure whether the CONSUMERS can spend a list before
+them names a list.~~  Measure whether the CONSUMERS can spend a list before
 widening the producers; that is the direction item 189–192 went and it cost
-four items.  Then **the REFUTATION** for `_stamp_compact` (2 sites, measured
+four items.  **Measured at item 203, and the instruction is the only part of
+this sentence that survived it.**  The consumers cannot spend a list, and not
+because they refuse one: the 34 indices this lane names are read NOWHERE
+(`IndexCensus`, every one of them occurring exactly once in its own scope), so
+the widening would have produced a conjunct payable at `ns = []` — item 200's
+*payable is not informative*, reached from the producer's side.  The four
+named sites were also not the surface; it is 34 binders across 24 declarations
+plus three carriers that state the field in a `def` body.  The repair was one
+binder, on the premise rather than the conjunct: see
+[Item 203](#item-203-2026-09-18).  Then **the REFUTATION** for `_stamp_compact` (2 sites, measured
 empty), **`KeyPackPunt`'s two reasons** (`dedent` 7/5 and `noKeyContext` 6/5,
 possibly a phantom), then the `pendingFlow` constructor and its arm.  Only then
 item 183's flip order.  And the parked Ix Step-1 composition, on the Ix track's
@@ -22924,6 +22933,169 @@ fields low passed every gate it had.  The rule that would have caught it is the
 one applied here: **pin what the instrument cannot attribute, and pin the
 difference between the instrument and a cruder version of itself.**  Every
 census in this campaign should carry both, and the three earlier ones do not.
+
+### Item 203 (2026-09-18)
+
+**THE CONSUMERS COULD NOT SPEND A LIST BECAUSE NOTHING SPENDS THE INDEX — AND
+THE PAYMENT WAS A BINDER.**  Branch `fix-a-grammar-completeness`, on top of
+item 202's `592ed56d`.
+
+**The instruction, run before the work it was attached to.**  Item 202 priced
+the census's one remaining row as *carrying item 196's chain into the resume
+twins* and attached an instruction to the price: *measure whether the CONSUMERS
+can spend a list before widening the producers; that is the direction item
+189–192 went and it cost four items*.  The measurement came first, and it
+retired the price it was attached to:
+
+| the sentence | measured | verdict |
+|---|---|---|
+| four sites name one `nv` where the pair names a list | **34 binders across 27 declarations**, three of which state the field in a `def` BODY and in no binder of any type | the target list was an eighth of the surface |
+| carry the chain into the resume twins | a chain here is payable at `ns = []` — a closed term taking NO hypothesis proves the widened conjunct for every `k`, `sp_key`, `sp_start` | **the widening would have emptied the field** |
+| (unforecast) why | **the index is read NOWHERE.**  34 value-line bottom indices and 9 sequence-lane ones, every one occurring exactly ONCE in its own scope | a list buys exactly what something reads |
+
+**THE INDEX CENSUS** (`Tests/Guards/Proofs/IndexCensus.lean`, the fifth
+instrument in this campaign and the first that reads a field's CONTENT rather
+than its sites).  For every `∃ x : Nat` and `∃ x : List Nat` binder in the
+module's surface whose body states a `ResumeFrames`, it counts the binder's
+occurrences in its own body and classifies its ROLE from the term — `bottom` if
+the binder is the index the frames stand on, `frames` if it is the list of
+still-open levels.  **An index that occurs once is write-only**: nothing else
+in the field mentions it, so no consumer can be testing it.
+
+| lane | bottom's index | frames list |
+|---|---|---|
+| value line | **34 binders, occ=1 every one** | 35 binders, occ 1–4 |
+| sequence | **9 binders, occ=1 every one** | 9 binders, occ=2 |
+| stream | — (its bottom carries no index) | 29 binders, occ 1–4 |
+
+The frames rows are what make those numbers mean something.  The LISTS are
+read — `resumectx_of_landing` decides `w ∈ ks`, the covers and the `∀ k' ∈ ks,
+k' < k` guards quantify over the same list, and item 176's landing spends
+`resumeAt` on membership.  **The bottoms' indices are read by nothing at all,
+on either lane that has one.**
+
+**AND ITEM 196's CHAIN IS NOT THE SAME CASE, which is the whole lesson.**  Its
+list is read: `block_dispatch_deferred_stamp_offcol` takes `k ∉ ns`, so a
+member is what STOPS the escape, and `accum_content_pending`'s `h_upSpend`
+recovers the reading by testing membership at a column the consumer already
+holds.  The module's `∉` premises are that one and the two sites that build its
+witness — **the resume lane has none, and a chain whose list nothing tests is
+`Or.inr trivial` wearing an `Or.inl`.**  That is item 200's finding —
+*payable is not informative* — reached from the producer's side instead of the
+consumer's, and it is why this item did not spend four sessions re-indexing 34
+binders.
+
+**THE PAYMENT WAS ONE BINDER, ON THE PREMISE.**  Once the index is known not to
+be the obstacle, the obstacle is visible in the two callers that pay
+`flowKeyRoute_of_open`'s `h_compact_pair`: both build their chain with
+`frameChainOne`, so the list they hand over is the literal singleton `[nv]` and
+`[n_old]`.  **`∃ ns` is where the head was lost.**  Writing the premise's list
+as `nv0 :: ns` keeps every consumer of the chain — the conclusion's pair
+conjunct takes `nv0 :: ns` verbatim, so item 196's widening is untouched — and
+gives the compact arm ONE index to spend, which is what item 202's §21.3 had
+already shown was worth three lines.  **+0 definitions, +0 lemmas, +0 premises,
++0 constructor fields: one binder, and a comma at each of two call sites.**
+
+`flowKeyRoute_of_open`'s fifth conjunct goes `inl=0,inr=2 → inl=1,inr=2` — the
+compact arm paying and the landing arm keeping the punt it has no face for
+(item 202: its bottom is a `[199]` node slot at `.blockIn` where an
+`ExplValueLine` bottom is `[186]`'s key slot at `.blockOut`).  The module's
+conclusion census goes **17 paying / 7 unpaid → 18 / 6**, and **all six that
+remain are the RELAY blind spot**: after item 202 read *exactly one conclusion
+conjunct in this module is unpaid and not a relay*, there are now none.  What is
+left in that column is entirely the instrument's own blind spot and not the
+file's.  What the payment buys is the sibling after a flow key INSIDE a
+still-open `?` — `?⏎  - [1]: b⏎    c: 2⏎: w` and `?⏎  k:⏎    [1]: b⏎    c: 2⏎: w`,
+where item 202's stream twin closes the frame and so cannot leave the `: w`
+line owed.
+
+**Non-vacuity, machine-checked** (`BlockDeferralClasses` §22).  §22.1 is the
+closed term that proves the widened conjunct from nothing, beside the
+membership test that shows why item 196's identically-shaped field is not
+empty.  §22.2 refutes the chain-to-index step with a MODEL rather than a failed
+search — the chain holds at `ns = []` for every predicate, including one with
+nothing to hand over — and then derives the index in one line from the same
+chain written as a cons, which is the positive control for the refutation.
+§22.3 is the payment at the conjunct's own type, plus a `fail_if_success`
+showing that item 202's priced widening would NOT have reached it either: with
+a list in place of the index the compact arm's term stops typing, and the
+refusal names `nv0` against `nv` (recorded in the scratchpad, run once without
+the wrapper so the message is on the record — item 200's gotcha).  And the
+singleton at the call site is stated as its own two-line pair.
+
+**The instrument's own controls** (item 202's rule, applied to a new
+instrument).  The role key is read off the TERM, not off the binder's name, and
+`nameControl` runs both and pins every declaration where they disagree: the
+list is EMPTY, so in this module the convention `nv` is faithful — a
+measurement of agreement rather than an assumption, and it fires at 27
+declarations when the nominal key is deliberately broken.  `surfaceControl`
+pins the three carriers a TYPE-ONLY census cannot see (`ImplicitKeyPack`,
+`PropsKeyPack`, `ResumeKeyCtx`), which is item 196's recorded gotcha — *a local
+`have` can carry a copy of a widened type with no binder to grep for* — in its
+definitional form; reverting the surface to types alone reads **31** value-line
+bottom indices instead of 34 and 7 sequence ones instead of 9, and drops three
+rows entirely.  `UNCLASSIFIED` is the `un=` column: a `ResumeFrames` binder
+whose bottom is none of the three lanes, empty, so a fourth bottom has to
+announce itself.  All three controls were run and all three fire.
+
+**The domain, measured at the runtime before the payment was priced.**  The two
+`?`-framed shapes item 202 recorded as this item's inputs, both accepted and
+both reading the inner mapping as ONE mapping with TWO entries while the `?`'s
+value line is still owed; the same two with NO sibling, which the closed routes
+already served; the sibling one column left, refused as
+`trailingContent 3 3`; and the BLOCK twin, whose sibling never needed a flow
+route.  **Zero runtime edits**; the matrix binaries were not rebuilt.
+
+**Gates.**  Full build **1164** jobs (1163 + the new census module), ZERO
+warnings; `run-all-tests.sh` **4520/4520** (`adversarialinstantiation`
+**2441/2441**), Production Coverage **837/837**; `eventscore` **347/358** (95
+error-ok, 0 error-miss, 0 event-reject); `suiterunner` **869 / 0 / 151**;
+`matrix_score.py` over the 402-leaf data form on BOTH pipelines, **402/402
+event** (`pass` 308, `err-ok` 94) and **282/282 JSON** (`pass` 279, `err-ok` 3,
+`skip` 120), splits identical to 176–202; the `[210]` flip at **FIVE** errors,
+StreamAccum **4444**, **5724**, **5747**, **5916**, **7458** — all five
+UNMOVED, predicted before the run from the diff hunks (the first insertion
+begins at 9213, below every flip site) and confirmed by it — applied and
+restored, with `lake build` after the restore (item 200's olean gotcha);
+`#print axioms` over `flowKeyRoute_of_open`, `flowKeyRoute_of_root`,
+`flowKeyPack_of_close`, `accum_flow_open_depth0`, `accum_step_flow`,
+`frameChainOne`, `compactMapRouteF` and `valueMapRouteF`, no `sorryAx`;
+checkers 228/355, 20/230/249/355, 25 capstones, annotation verifier 100 %
+coverage (211/211 rules) with the same **19** pre-existing name mismatches.
+Negative controls: the index census re-pinned at `occ=2` throws, the surface
+reverted to types alone throws, the name control fires when its key is broken,
+and the conclusion census's own two (re-pin at item 202's `_of_open` row; key
+reverted to item 201's raw skeleton) both still throw.
+
+**Counts, at `592ed56d` and here, each under the recipe that produced it** —
+declarations `grep -rhoE "^(private )?(lemma|theorem|def|abbrev|instance|structure|inductive|class) " L4YAML`:
+**8572**, unchanged, since the payment added no definition; `#guard` tokens
+`grep -rho "#guard" L4YAML Tests`: **8038 → 8044** (+6, §22's domain pins);
+test files `find Tests -name '*.lean'`: **622 → 623** (+1, the index census).
+
+**What remains.**  The value-line lane can carry ONE width and no more, and
+that is now a measured fact rather than a shape nobody had looked at: if a
+future item needs it to carry several, **the READER has to be built first**,
+and its shape is on the record — `h_upSpend`'s, a membership test at the
+landing's own column, which is what items 190–192 built for the pair lane in
+the same order.  The sequence lane's 9 bottom indices are in the identical
+position and priced the same way.  Then, unchanged from item 202: **the
+REFUTATION** for `_stamp_compact` (2 sites, measured empty), **`KeyPackPunt`'s
+two reasons** (`dedent` 7/5 and `noKeyContext` 6/5, possibly a phantom), the
+`pendingFlow` constructor and its arm, and only then item 183's flip order.
+And the parked Ix Step-1 composition, on the Ix track's own clock.
+
+**And the instrument's ledger, one row longer and one KIND longer.**  Five
+censuses run now — park CONSTRUCTORS (198), their APPLICATION SITES (200),
+lemma CONCLUSIONS (201), the same with a key that works (202), and INDICES
+(203).  The first four all count SITES; this one counts what a site SAYS, and
+that is the difference that decided the item: four instruments could see that
+`flowKeyRoute_of_open`'s fifth conjunct was unpaid and none could see that the
+thing it names is never read.  **The rule is item 202's, one level down: an
+instrument that counts where a field appears cannot price a change to what the
+field MEANS.**  Before widening a carrier, count the occurrences of the binder
+being widened — one occurrence is a field with no reader, and a reader is what a
+widening is bought with.
 
 ### REMAINING, in order
 

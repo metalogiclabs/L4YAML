@@ -9210,7 +9210,19 @@ lemma flowKeyRoute_of_open {n nc m : Nat} {cc : YamlContext}
     -- domain (item 91's rule) — the enclosing `[188]` entry's own
     -- `s-indent(nv) ':' s-l+block-indented` line after the key this route
     -- completes.  Callers whose slot has no value line pass `Or.inr trivial`.
-    (h_compact_pair : (∃ ns : List Nat, ∀ nv ∈ ns, ∀ sp, SBlockIndented nc cc sp_scan sp →
+    --
+    -- **Item 203: a NONEMPTY chain, and nonempty by its shape.**  Item 196
+    -- widened this premise from one index to a list so the shadow's own two
+    -- funders could ride it, and wrote the list as `∃ ns`, which a caller can
+    -- satisfy with `[]` — payable and carrying nothing, which is item 200's
+    -- failure mode stated on a premise instead of a field.  Both callers that
+    -- pay it hand a `frameChainOne` singleton, so the head is there and only
+    -- the binder threw it away.  Writing the list as `nv0 :: ns` keeps every
+    -- consumer of the chain (the conclusion's pair conjunct takes `nv0 :: ns`
+    -- verbatim) and gives the arm ONE index to spend, which is what the
+    -- value-line resume below needed and had no way to ask for.
+    (h_compact_pair : (∃ (nv0 : Nat) (ns : List Nat), ∀ nv ∈ nv0 :: ns,
+      ∀ sp, SBlockIndented nc cc sp_scan sp →
       ∀ sp_i sp_c : SurfPos, SIndent nv sp sp_i → GLit ':' sp_i sp_c →
       ∀ sp_v : SurfPos, SBlockIndented nv .blockOut sp_c sp_v →
       SLYamlStream sp_start sp_v) ∨ True)
@@ -9257,17 +9269,27 @@ lemma flowKeyRoute_of_open {n nc m : Nat} {cc : YamlContext}
         ∀ sp_v : SurfPos, SBlockMapEntry k sp_key sp_v →
         ∀ sp_e : SurfPos, SCompactMapTail k sp_v sp_e →
         ResumeFrames (SLYamlStream sp_start) ks sp_e) ∨ True) ∧
-      -- **And the VALUE-LINE face stays punted, for a reason that is the two
-      -- arms' and not the routes'** (item 202, measured rather than carried).
-      -- The landing arm's bottom is `h_node`, a `[199]` node slot at
-      -- `.blockIn`; an `ExplValueLine` bottom needs the `[186]` explicit KEY
-      -- slot, which is `.blockOut` and a different production, so that arm has
-      -- no value-line face to reach at any price.  The COMPACT arm does have
-      -- one — `h_compact_pair`, which pays the conjunct above it — but it is a
-      -- CHAIN (`∃ ns, ∀ nv ∈ ns`, item 196's widening) where this conjunct
-      -- still asks for a single `nv`, and a possibly-empty list names no
-      -- index.  **The shapes are one item 196 apart**: the pair was widened to
-      -- a chain and the resume twins were not.
+      -- **And the VALUE-LINE face is the LANDING arm's punt alone**, for a
+      -- reason that is that arm's and not the routes' (item 202, measured
+      -- rather than carried).  The landing arm's bottom is `h_node`, a `[199]`
+      -- node slot at `.blockIn`; an `ExplValueLine` bottom needs the `[186]`
+      -- explicit KEY slot, which is `.blockOut` and a different production, so
+      -- that arm has no value-line face to reach at any price.
+      --
+      -- ~~The COMPACT arm does have one — `h_compact_pair`, which pays the
+      -- conjunct above it — but it is a CHAIN (`∃ ns, ∀ nv ∈ ns`, item 196's
+      -- widening) where this conjunct still asks for a single `nv`, and a
+      -- possibly-empty list names no index.  The shapes are one item 196
+      -- apart.~~  **Item 203: they were one BINDER apart.**  Item 202 priced
+      -- the repair as carrying item 196's chain into the resume twins and left
+      -- an instruction — *measure whether the consumers can spend a list
+      -- before widening the producers*.  Measured
+      -- (`Tests/Guards/Proofs/IndexCensus.lean`): the 34 indices this lane
+      -- names are read nowhere, so a list here would name members no consumer
+      -- could ask about.  What was missing was not width on the conjunct but
+      -- INHABITATION on the premise, and both callers that pay it hand a
+      -- one-element chain — so `h_compact_pair` says `nv0 :: ns` now and this
+      -- conjunct is paid on the compact arm.
       ((∃ (nv : Nat) (ks : List Nat), (∀ k' ∈ ks, k' < k) ∧
         ∀ sp_v : SurfPos, SBlockMapEntry k sp_key sp_v →
         ∀ sp_e : SurfPos, SCompactMapTail k sp_v sp_e →
@@ -9334,17 +9356,38 @@ lemma flowKeyRoute_of_open {n nc m : Nat} {cc : YamlContext}
             -- `nil`; the continuation goes in that slot (`- [1]: b⏎  c: 2`).
             Or.inl ⟨[], fun _ h => absurd h (List.not_mem_nil),
               compactMapRouteF h_cp.1 h_ind'⟩,
-            Or.inr trivial⟩
-          cases h_compact_pair with
-          | inr _ => exact Or.inr trivial
-          | inl h_pr =>
-            obtain ⟨ns, pair⟩ := h_pr
-            refine Or.inl ⟨ns, fun nv hmem =>
-              fun sp_v h_entry sp_e h_tail sp_i sp_c h_iv h_lit sp_w h_sbi =>
-              pair nv hmem sp_e
-                (SBlockIndented.compactMap nc cc w sp_scan sp_prep sp_e h_ind'
-                  (SCompactMap.mk (nc + 1 + w) sp_prep sp_v sp_e h_entry h_tail))
-                sp_i sp_c h_iv h_lit sp_w h_sbi⟩
+            ?_⟩
+          · cases h_compact_pair with
+            | inr _ => exact Or.inr trivial
+            | inl h_pr =>
+              obtain ⟨nv0, ns, pair⟩ := h_pr
+              refine Or.inl ⟨nv0 :: ns, fun nv hmem =>
+                fun sp_v h_entry sp_e h_tail sp_i sp_c h_iv h_lit sp_w h_sbi =>
+                pair nv hmem sp_e
+                  (SBlockIndented.compactMap nc cc w sp_scan sp_prep sp_e h_ind'
+                    (SCompactMap.mk (nc + 1 + w) sp_prep sp_v sp_e h_entry h_tail))
+                  sp_i sp_c h_iv h_lit sp_w h_sbi⟩
+          -- **Item 203: the value-line RESUME, paid on the compact arm.**  The
+          -- term is the pair payment above read at the chain's head and
+          -- stopped one production earlier: the entry and its tail complete
+          -- the slot as `[195] ns-l-compact-mapping`, and what the enclosing
+          -- `[188]` entry still owes from there is its own
+          -- `s-indent(nv0) ':' s-l+block-indented` line — `ExplValueLine`.
+          -- Nothing stands below it, so the frame stack is empty and the
+          -- bottom IS the face (`ResumeFrames.bottom`).  What it buys is the
+          -- sibling after a flow key INSIDE a still-open `?`
+          -- (`?⏎  - [1]: b⏎    c: 2⏎: w`), where item 202's stream twin closes
+          -- the frame and cannot leave the `: w` line owed.
+          · cases h_compact_pair with
+            | inr _ => exact Or.inr trivial
+            | inl h_pr =>
+              obtain ⟨nv0, ns, pair⟩ := h_pr
+              exact Or.inl ⟨nv0, [], fun _ h => absurd h (List.not_mem_nil),
+                fun sp_v h_entry sp_e h_tail =>
+                  ResumeFrames.bottom sp_e
+                    (pair nv0 (List.Mem.head ns) sp_e
+                      (SBlockIndented.compactMap nc cc w sp_scan sp_prep sp_e h_ind'
+                        (SCompactMap.mk (nc + 1 + w) sp_prep sp_v sp_e h_entry h_tail)))⟩
         · exact Or.inr trivial
 
 /-- **The ROOT's version** (item 56): the collection opens where a document's
@@ -10871,8 +10914,10 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
                  -- Item 196: the sequence-lane field is still one index and the
                  -- pair it funds is a chain, so it enters as the one-element
                  -- chain — this lane's ancestors ride `h_kslotUp` next door.
+                 -- Item 203: `[nv]` IS `nv :: []`, so the head the premise
+                 -- now names is the one this lane already had.
                  (match h_kslot_old with
-                  | Or.inl ⟨nv, kslot⟩ => Or.inl ⟨[nv], frameChainOne (a := nv)
+                  | Or.inl ⟨nv, kslot⟩ => Or.inl ⟨nv, [], frameChainOne (a := nv)
                       (fun sp h_bi sp_i sp_c h_iv h_lit sp_v h_sbi =>
                         kslot sp h_bi sp (SCompactSeqTail.nil n_old sp)
                           sp_i sp_c h_iv h_lit sp_v h_sbi)⟩
@@ -10962,7 +11007,7 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
                -- (`? [1]: b⏎: - w`).
                flowKeyRoute_of_open h_close (h_vslot.imp (fun h => ⟨h.2, h.1⟩) id)
                  (match h_expl with
-                  | Or.inl ⟨sp_q, h_qlit, route⟩ => Or.inl ⟨[n_old],
+                  | Or.inl ⟨sp_q, h_qlit, route⟩ => Or.inl ⟨n_old, [],
                       frameChainOne (a := n_old)
                         (fun sp h_bo sp_i sp_c h_iv h_lit sp_v h_sbi =>
                           route sp_v (SBlockMapEntry.explicit n_old sp_q sp_scan sp sp_i sp_c sp_v

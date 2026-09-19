@@ -7,7 +7,7 @@ Copyright (c) 2026. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 -/
 
-/-! # The block-indicator escape, by CLASS and by ROUTE (DOCS items 184–202)
+/-! # The block-indicator escape, by CLASS and by ROUTE (DOCS items 184–203)
 
 `block_dispatch_deferred` is `PendingNode.pendingFlow`'s only producer, so
 R3 — row 12's β.5 deletion — is the emptying of this escape.  Its applications
@@ -2843,5 +2843,155 @@ twin of the first, whose sibling has never needed a flow route at all: -/
 #guard pins "k:\n  [1]: b\n" == ("scan-accepted", "+STR +DOC +MAP =VAL :k +MAP +SEQ [] =VAL :1 -SEQ =VAL :b -MAP -MAP -DOC -STR")
 #guard pins "- [1]: b\n" == ("scan-accepted", "+STR +DOC +SEQ +MAP +SEQ [] =VAL :1 -SEQ =VAL :b -MAP -SEQ -DOC -STR")
 #guard pins "k:\n  a: 1\n  c: 2\n" == ("scan-accepted", "+STR +DOC +MAP =VAL :k +MAP =VAL :a =VAL :1 =VAL :c =VAL :2 -MAP -MAP -DOC -STR")
+
+/-! ## §22  The consumers cannot spend a list, and the payment was a BINDER (item 203)
+
+Item 202 closed with a priced row and an instruction attached to it:
+
+> the work is carrying item 196's chain into the resume twins …  **Measure
+> whether the CONSUMERS can spend a list before widening the producers**; that
+> is the direction item 189–192 went and it cost four items.
+
+**Measured, and the answer is no** — not because the consumers refuse a list
+but because they never touch the index at all.
+`Tests/Guards/Proofs/IndexCensus.lean` reads every `∃` binder in the module's
+surface that scopes a `ResumeFrames` and counts its occurrences in its own
+body:
+
+| | binders | occurrences each |
+|---|---|---|
+| value-line lane, the bottom's index | **34** | **1** |
+| sequence lane, the bottom's index | **9** | **1** |
+| stream lane, the bottom's index | — | the stream bottom carries none |
+| every lane, the FRAMES list | 43 | 1–4, and the 2-4 rows are read |
+
+An index that occurs once is written and never read: nothing else in the field
+mentions it, so no consumer can be testing it.  **43 bottom indices in
+`StreamAccum`, not one of them tested**, against frames lists that are tested
+at every landing (`resumectx_of_landing` decides `w ∈ ks`; the covers and the
+`∀ k' ∈ ks, k' < k` guards quantify over the same list).  A widening buys
+exactly what something reads, so widening these buys nothing.
+
+**§22.1 — and it would cost the field.**  A chain over a list nothing reads is
+payable from no premises at all, because the list may be empty: -/
+
+example {sp_start sp_key : SurfPos} {k : Nat} :
+    ∃ (nvs ks : List Nat), (∀ k' ∈ ks, k' < k) ∧
+      ∀ nv ∈ nvs, ∀ sp_v : SurfPos, SBlockMapEntry k sp_key sp_v →
+        ∀ sp_e : SurfPos, SCompactMapTail k sp_v sp_e →
+        ResumeFrames (ExplValueLine sp_start nv) ks sp_e :=
+  ⟨[], [], fun _ h => absurd h (List.not_mem_nil), fun _ h => absurd h (List.not_mem_nil)⟩
+
+/-! That term takes no hypothesis, names no route and holds for every `k`,
+`sp_key` and `sp_start` — so had item 202's priced widening been carried out,
+the conjunct it was meant to pay would have been dischargeable by a caller
+holding nothing, and the census's `inl` would have moved for a payment that
+said nothing.  That is item 200's finding — **payable is not informative** —
+reached from the producer's side instead of the consumer's.
+
+Item 196's PAIR field has the same shape and is NOT empty of content, and the
+difference is the whole lesson: something reads its list.
+`block_dispatch_deferred_stamp_offcol` takes `k ∉ ns`, so a member of the chain
+is what STOPS the escape, and the reading is recovered by a membership test at
+a column the consumer already knows: -/
+
+example {P : Nat → Prop} {k : Nat} {ns : List Nat} (up : ∀ nv ∈ ns, P nv) :
+    P k ∨ (∃ nsU : List Nat, k ∉ nsU) := by
+  by_cases hU : k ∈ ns
+  · exact Or.inl (up k hU)
+  · exact Or.inr ⟨ns, hU⟩
+
+/-! **§22.2 — what the narrow conjunct actually wanted.**  Not width: a single
+inhabitant.  No term takes a chain to an index, and the reason is a model
+rather than a failed search — the chain holds at `ns = []` for every predicate,
+including one with nothing to hand over: -/
+
+example : (∃ ns : List Nat, ∀ _nv ∈ ns, (False : Prop)) ∧ ¬ ∃ _nv : Nat, (False : Prop) :=
+  ⟨⟨[], fun _ h => absurd h (List.not_mem_nil)⟩, fun ⟨_, hf⟩ => hf⟩
+
+/-! With the list written as a CONS — the same chain with its inhabitation kept
+rather than a narrower field — the index comes back out in one line, and this
+is the positive control that says the refusal above is about the empty list and
+not about the shape: -/
+
+example {P : Nat → Prop} (h : ∃ (nv0 : Nat) (ns : List Nat), ∀ nv ∈ nv0 :: ns, P nv) :
+    ∃ nv, P nv :=
+  let ⟨nv0, ns, up⟩ := h; ⟨nv0, up nv0 (List.Mem.head ns)⟩
+
+/-! …and that is the payment `flowKeyRoute_of_open`'s compact arm now makes,
+written out at the conjunct's own type — §21.3's three lines, reached from the
+chain's head instead of from an index handed in: -/
+
+example {sp_start sp_scan sp_key : SurfPos} {nc w : Nat} {cc : YamlContext}
+    (h_ind : SIndent w sp_scan sp_key)
+    (chain : ∃ (nv0 : Nat) (ns : List Nat), ∀ nv ∈ nv0 :: ns,
+      ∀ sp, SBlockIndented nc cc sp_scan sp →
+      ∀ sp_i sp_c : SurfPos, SIndent nv sp sp_i → GLit ':' sp_i sp_c →
+      ∀ sp_v : SurfPos, SBlockIndented nv .blockOut sp_c sp_v →
+      SLYamlStream sp_start sp_v) :
+    ∃ (nv : Nat) (ks : List Nat), (∀ k' ∈ ks, k' < nc + 1 + w) ∧
+      ∀ sp_v : SurfPos, SBlockMapEntry (nc + 1 + w) sp_key sp_v →
+      ∀ sp_e : SurfPos, SCompactMapTail (nc + 1 + w) sp_v sp_e →
+      ResumeFrames (ExplValueLine sp_start nv) ks sp_e := by
+  obtain ⟨nv0, ns, pair⟩ := chain
+  exact ⟨nv0, [], fun _ h => absurd h (List.not_mem_nil),
+    fun sp_v h_entry sp_e h_tail =>
+      ResumeFrames.bottom sp_e
+        (pair nv0 (List.Mem.head ns) sp_e
+          (SBlockIndented.compactMap nc cc w sp_scan sp_key sp_e h_ind
+            (SCompactMap.mk (nc + 1 + w) sp_key sp_v sp_e h_entry h_tail)))⟩
+
+/-! **And the widening item 202 priced would not have reached it either**, which
+is the refutation that says the binder and not the width was the obstacle: give
+the conjunct a list in place of its index and the compact arm's term no longer
+types, because the conjunct then asks for the resume at every member of a list
+it does not itself choose: -/
+
+example {sp_start sp_scan sp_key : SurfPos} {nc w : Nat} {cc : YamlContext}
+    (_h_ind : SIndent w sp_scan sp_key)
+    (_chain : ∃ (nv0 : Nat) (ns : List Nat), ∀ nv ∈ nv0 :: ns,
+      ∀ sp, SBlockIndented nc cc sp_scan sp →
+      ∀ sp_i sp_c : SurfPos, SIndent nv sp sp_i → GLit ':' sp_i sp_c →
+      ∀ sp_v : SurfPos, SBlockIndented nv .blockOut sp_c sp_v →
+      SLYamlStream sp_start sp_v) : True := by
+  fail_if_success
+    have : ∃ (nvs ks : List Nat), (∀ k' ∈ ks, k' < nc + 1 + w) ∧
+        ∀ nv ∈ nvs, ∀ sp_v : SurfPos, SBlockMapEntry (nc + 1 + w) sp_key sp_v →
+        ∀ sp_e : SurfPos, SCompactMapTail (nc + 1 + w) sp_v sp_e →
+        ResumeFrames (ExplValueLine sp_start nv) ks sp_e := by
+      obtain ⟨nv0, ns, pair⟩ := _chain
+      exact ⟨nv0 :: ns, [], fun _ h => absurd h (List.not_mem_nil),
+        fun nv hmem sp_v h_entry sp_e h_tail =>
+          ResumeFrames.bottom sp_e
+            (pair nv0 (List.Mem.head ns) sp_e
+              (SBlockIndented.compactMap nc cc w sp_scan sp_key sp_e _h_ind
+                (SCompactMap.mk (nc + 1 + w) sp_key sp_v sp_e h_entry h_tail)))⟩
+  trivial
+
+/-! **§22.3 — and the inhabitant was at the call site all along.**  Both callers
+that pay `h_compact_pair` build their chain with `frameChainOne`, whose list is
+a literal singleton; `∃ ns` is where the head was lost.  `[a]` IS `a :: []`, so
+the premise's new shape costs those callers nothing but a comma: -/
+
+example {P : Nat → Prop} {a : Nat} (ha : P a) : ∃ (nv0 : Nat) (ns : List Nat), ∀ x ∈ nv0 :: ns, P x :=
+  ⟨a, [], frameChainOne (a := a) ha⟩
+
+example {P : Nat → Prop} {a : Nat} (h : ∀ x ∈ [a], P x) : P a := h a (List.Mem.head [])
+
+/-! **The domain**, measured at the runtime before the payment was priced — the
+inputs item 202 recorded as this item's, accepted, with the inner mapping
+reading TWO entries inside a still-open `?` whose value line is still owed: -/
+
+#guard pins "?\n  - [1]: b\n    c: 2\n: w\n" == ("scan-accepted", "+STR +DOC +MAP +SEQ +MAP +SEQ [] =VAL :1 -SEQ =VAL :b =VAL :c =VAL :2 -MAP -SEQ =VAL :w -MAP -DOC -STR")
+#guard pins "?\n  k:\n    [1]: b\n    c: 2\n: w\n" == ("scan-accepted", "+STR +DOC +MAP +MAP =VAL :k +MAP +SEQ [] =VAL :1 -SEQ =VAL :b =VAL :c =VAL :2 -MAP -MAP =VAL :w -MAP -DOC -STR")
+
+/-! …with the no-sibling shapes as the controls the closed routes already
+served, and the sibling one column off as the refusal that says the reading is
+the width's and not the shape's: -/
+
+#guard pins "?\n  - [1]: b\n: w\n" == ("scan-accepted", "+STR +DOC +MAP +SEQ +MAP +SEQ [] =VAL :1 -SEQ =VAL :b -MAP -SEQ =VAL :w -MAP -DOC -STR")
+#guard pins "?\n  k:\n    [1]: b\n: w\n" == ("scan-accepted", "+STR +DOC +MAP +MAP =VAL :k +MAP +SEQ [] =VAL :1 -SEQ =VAL :b -MAP -MAP =VAL :w -MAP -DOC -STR")
+#guard pins "?\n  k:\n    [1]: b\n   c: 2\n: w\n" == ("scan-refused L4YAML.ScanError.trailingContent 3 3", "ERR L4YAML.ScanError.trailingContent 3 3")
+#guard pins "?\n  k:\n    a: b\n    c: 2\n: w\n" == ("scan-accepted", "+STR +DOC +MAP +MAP =VAL :k +MAP =VAL :a =VAL :b =VAL :c =VAL :2 -MAP -MAP =VAL :w -MAP -DOC -STR")
 
 end L4YAML.Tests.Guards.BlockDeferralClasses
