@@ -1080,6 +1080,21 @@ lemma noek_of_flowLevel_succ {sc : ScannerState} {n : Nat}
     sc.inFlow = false → sc.explicitKeyLine = none :=
   fun hnf => (Bool.noConfusion (hnf ▸ inFlow_of_flowLevel_eq h) : sc.explicitKeyLine = none)
 
+/-- The flow producers' `h_ntop` (item 208), the third of the same shape: the
+    seven flow-interior sites refute `inFlow = false` with the depth they
+    already hand `h_col`, `h_arm`, `h_nodoc` and `h_noek`, so the STACK face
+    costs them what the other four do.
+
+    Item 205 named this lemma and the field it feeds; what it could not name
+    was the count, because `noPending`'s "eight producers" was a sentence
+    (item 116) that four items spent and no instrument had re-derived.
+    `scripts/park_top_price.py noPending` derives it: **8**, of which these
+    seven, and the raw error list reads ELEVEN. -/
+lemma ntop_of_flowLevel_succ {sc : ScannerState} {n : Nat}
+    (h : sc.flowLevel = n + 1) :
+    sc.inFlow = false → sc.currentIndent < 0 :=
+  fun hnf => (Bool.noConfusion (hnf ▸ inFlow_of_flowLevel_eq h) : sc.currentIndent < 0)
+
 -- ~~**The `[96]` tail window that CROSSED a break**~~ (`PropsWindowCross`,
 -- item 170) is DELETED at item 181.  It named the array whose last real token
 -- has a PROPERTY on a different line directly below it — the configuration
@@ -1178,7 +1193,28 @@ inductive PendingNode (sc : ScannerState) : Bool → SurfPos → SurfPos → Sur
       -- it instead, and item 186 measured the emptiness before paying for it
       -- (1 440 class-A `:` dispatches over the sweep corpus, ZERO of them
       -- behind a virgin park).
-      (h_noek : sc.inFlow = false → sc.explicitKeyLine = none) :
+      (h_noek : sc.inFlow = false → sc.explicitKeyLine = none)
+      -- **`h_ntop` — a virgin block-context park's indent stack is EMPTY**
+      -- (item 208, LAST so the patterns naming the older fields still bind
+      -- them).  `h_noek`'s stack-side twin, paid by the same split of the same
+      -- eight producers: the seven flow-interior sites refute `inFlow = false`
+      -- with the `inFlow_of_flowLevel_eq h_fl1` they already hand `h_col`,
+      -- `h_arm` and `h_noek` (`ntop_of_flowLevel_succ`), and the seed pays the
+      -- real witness — `ScannerState.mk'` leaves `indents` empty, where
+      -- `currentIndent` reads the stream level `-1`, and neither the
+      -- `streamStart` emission nor §5.2's BOM advance pushes anything.
+      --
+      -- What it buys is the `-`'s FLOOR at a landing this park cannot floor
+      -- any other way.  `landing_floor_of_arm` reads the floor off the walk
+      -- that carried a park DOWN to column 0; the seed is already there and
+      -- crosses no such walk, so the unwind may never run and the stack the
+      -- dispatch reads is this one — which is empty.  That is the one of ring
+      -- 1's seven producers whose payment is a FIELD rather than a reading.
+      --
+      -- Eight is the instrument's number (`scripts/park_top_price.py
+      -- noPending`), not item 116's sentence, which said the same thing and
+      -- was spent four times before anything re-derived it.
+      (h_ntop : sc.inFlow = false → sc.currentIndent < 0) :
       PendingNode sc false sp_start sp sp
   /-- Content token scanned (scalar, anchor, alias, tag).
       The gap sp_block → sp_scan contains SSeparate + content.
@@ -2046,7 +2082,34 @@ inductive PendingNode (sc : ScannerState) : Bool → SurfPos → SurfPos → Sur
       (h_closeFV : (∃ (nv : Nat) (ks : List Nat),
         ∀ sp_mid : SurfPos, SBlockIndented n .blockIn sp_scan sp_mid →
         ∀ sp_end : SurfPos, SCompactSeqTail n sp_mid sp_end →
-        ResumeFrames (ExplValueLine sp_start nv) ks sp_end) ∨ True) :
+        ResumeFrames (ExplValueLine sp_start nv) ks sp_end) ∨ True)
+      -- ═══ **Item 208 — the entry park's own STACK TOP** (LAST, so the
+      -- patterns naming the older fields still bind them).  `h_floor` says
+      -- where the awaited node may be READ; this says where the stack the
+      -- entry pushed onto STOPS, and item 204 proved
+      -- `block_dispatch_deferred_stamp_compact`'s class FALSE from exactly
+      -- this number being absent.
+      --
+      -- It is an OPTION for one producer's sake, and that producer is
+      -- measured, not guessed.  Six of the seven (`scripts/park_top_price.py
+      -- ring1`) pay `Or.inl`: the four LANDED ones read the floor off the
+      -- walk's unwind (`landing_floor_of_arm`, or `dash_landing_floor` where
+      -- the park stands AT a line start and item 207's flag runs the unwind
+      -- instead), the INLINE one reads it off this very field one park back,
+      -- and `accum_block_on_noPending`'s reads it off the seed's empty stack
+      -- (`noPending.h_ntop`, item 208's other field).  The seventh is
+      -- `accum_block_on_closeThenBlock`'s COMPACT FILL — a `-` scanned inline
+      -- off an already-open `[185]`/`[186]` slot (`? - a`) — where no break
+      -- was crossed, so no unwind ran, and the stack the `-` pushes onto is
+      -- the SLOT's.  Its price is measured and it is not this item's:
+      -- `scripts/vslot_top_price.py` says ONE payer (`accum_block_pending`'s
+      -- relay, whose raw error list reads five), that payer needs a top field
+      -- on `pendingMapValue` (**6** producers,
+      -- `scripts/park_top_price.py pendingMapValue`), and each of those six
+      -- `*_open_map` lemmas needs a dispatch floor none of them holds — a
+      -- further ring.  Three rings for one arm, which is why the field lands
+      -- as an option and the arm lands with item 209. ═══
+      (h_park_top : (sc.currentIndent ≤ (n : Int)) ∨ True) :
       PendingNode sc false sp_start sp_block sp_scan
   /-- A KEYLESS block-mapping entry opened at column 0, depth 0, one node
       awaited — the mapping twin of `pendingBlock` (item 13).  The whole entry
@@ -10770,7 +10833,8 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
                Or.inr trivial⟩),
              PendingNode.noPending sp_start sp_open (Or.inr (inFlow_of_flowLevel_eq h_fl1))
                (Or.inr (inFlow_of_flowLevel_eq h_fl1))
-               (nodoc_of_flowLevel_succ h_fl1) (noek_of_flowLevel_succ h_fl1), hcorr_open, fun _ => ⟨.white (GStar.nil _) h_sync h_colon h_opencol, h_real, h_ad⟩⟩
+               (nodoc_of_flowLevel_succ h_fl1) (noek_of_flowLevel_succ h_fl1)
+               (ntop_of_flowLevel_succ h_fl1), hcorr_open, fun _ => ⟨.white (GStar.nil _) h_sync h_colon h_opencol, h_real, h_ad⟩⟩
     · exact h_nobreak hcol hws
   -- The completed constructs cannot reach a same-line `[`/`{`: their producers'
   -- trailing validation left the rest of the line inert (`h_line`), and the
@@ -10808,7 +10872,8 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
        dropClose h_stream_block sp_ne sp_m h_ssl)),
      PendingNode.noPending sp_start sp_open (Or.inr (inFlow_of_flowLevel_eq h_fl1))
                (Or.inr (inFlow_of_flowLevel_eq h_fl1))
-               (nodoc_of_flowLevel_succ h_fl1) (noek_of_flowLevel_succ h_fl1), hcorr_open,
+               (nodoc_of_flowLevel_succ h_fl1) (noek_of_flowLevel_succ h_fl1)
+               (ntop_of_flowLevel_succ h_fl1), hcorr_open,
      fun _ => ⟨.white (GStar.nil _) h_sync h_colon h_opencol, h_real, h_ad⟩⟩
   have opaque_resume : sp_scan.col ≠ 0 → GStar SSWhite sp_scan sp_prep →
       ∃ sp_gram' sp_block' sp_flow' sp_scan',
@@ -10858,7 +10923,8 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
              Or.inr trivial⟩),
            PendingNode.noPending sp_start sp_open (Or.inr (inFlow_of_flowLevel_eq h_fl1))
                (Or.inr (inFlow_of_flowLevel_eq h_fl1))
-               (nodoc_of_flowLevel_succ h_fl1) (noek_of_flowLevel_succ h_fl1), hcorr_open, fun _ => ⟨.white (GStar.nil _) h_sync h_colon h_opencol, h_real, h_ad⟩⟩
+               (nodoc_of_flowLevel_succ h_fl1) (noek_of_flowLevel_succ h_fl1)
+               (ntop_of_flowLevel_succ h_fl1), hcorr_open, fun _ => ⟨.white (GStar.nil _) h_sync h_colon h_opencol, h_real, h_ad⟩⟩
   | pendingContent _ _ _ h_line _ _ _ _ _ h_frS176 h_frV201 _ h_tail143 =>
     -- Item 37: §7.5's set weakens to item 10's here, exactly as `[204]`'s does.
     -- Item 143: …and this park's producer finished a node, so it PAYS §9.2's
@@ -11026,7 +11092,8 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
                 | Or.inr _ => Or.inr trivial)⟩),
              PendingNode.noPending sp_start sp_open (Or.inr (inFlow_of_flowLevel_eq h_fl1))
                (Or.inr (inFlow_of_flowLevel_eq h_fl1))
-               (nodoc_of_flowLevel_succ h_fl1) (noek_of_flowLevel_succ h_fl1), hcorr_open,
+               (nodoc_of_flowLevel_succ h_fl1) (noek_of_flowLevel_succ h_fl1)
+               (ntop_of_flowLevel_succ h_fl1), hcorr_open,
              fun _ => ⟨.white (GStar.nil _) h_sync h_colon h_opencol, h_real, h_ad⟩⟩
     · -- Item 172: the run-end half of the under-run is no longer the scanner's
       -- refusal — §8.1's floor is read at the CLOSE now, so the open STEP
@@ -11065,7 +11132,8 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
              Or.inr trivial⟩),
            PendingNode.noPending sp_start sp_open (Or.inr (inFlow_of_flowLevel_eq h_fl1))
                (Or.inr (inFlow_of_flowLevel_eq h_fl1))
-               (nodoc_of_flowLevel_succ h_fl1) (noek_of_flowLevel_succ h_fl1), hcorr_open, fun _ => ⟨.white (GStar.nil _) h_sync h_colon h_opencol, h_real, h_ad⟩⟩
+               (nodoc_of_flowLevel_succ h_fl1) (noek_of_flowLevel_succ h_fl1)
+               (ntop_of_flowLevel_succ h_fl1), hcorr_open, fun _ => ⟨.white (GStar.nil _) h_sync h_colon h_opencol, h_real, h_ad⟩⟩
   | pendingBlock _ _ _ n_old h_close _ h_floor_old h_sk_old h_col59 h_kslot_old _ _ _
       h_kslotUp_old =>
     -- Item 46: the stack opens at the ENTRY's index, so the resume's node
@@ -11147,7 +11215,8 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
                   | Or.inr _ => Or.inr trivial))⟩),
              PendingNode.noPending sp_start sp_open (Or.inr (inFlow_of_flowLevel_eq h_fl1))
                (Or.inr (inFlow_of_flowLevel_eq h_fl1))
-               (nodoc_of_flowLevel_succ h_fl1) (noek_of_flowLevel_succ h_fl1), hcorr_open, fun _ => ⟨.white (GStar.nil _) h_sync h_colon h_opencol, h_real, h_ad⟩⟩
+               (nodoc_of_flowLevel_succ h_fl1) (noek_of_flowLevel_succ h_fl1)
+               (ntop_of_flowLevel_succ h_fl1), hcorr_open, fun _ => ⟨.white (GStar.nil _) h_sync h_colon h_opencol, h_real, h_ad⟩⟩
     · -- Item 73: `pendingBlock`'s floor is a measurement now, not an option, so
       -- BOTH halves of the open's under-run are refuted here and the arm no
       -- longer rides the drop.
@@ -11254,7 +11323,8 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
                   | Or.inr _ => Or.inr trivial))⟩),
              PendingNode.noPending sp_start sp_open (Or.inr (inFlow_of_flowLevel_eq h_fl1))
                (Or.inr (inFlow_of_flowLevel_eq h_fl1))
-               (nodoc_of_flowLevel_succ h_fl1) (noek_of_flowLevel_succ h_fl1), hcorr_open, fun _ => ⟨.white (GStar.nil _) h_sync h_colon h_opencol, h_real, h_ad⟩⟩
+               (nodoc_of_flowLevel_succ h_fl1) (noek_of_flowLevel_succ h_fl1)
+               (ntop_of_flowLevel_succ h_fl1), hcorr_open, fun _ => ⟨.white (GStar.nil _) h_sync h_colon h_opencol, h_real, h_ad⟩⟩
     · -- Item 66: the run-end half is §8.1's refusal (`k:⏎  a:⏎[1]`).  Item 68:
       -- and the TAB half is §6.1's, for `pendingProps`' reason.
       rcases h_ur with ⟨j, sx, hj, h_ind, _h_ws2, h_end | h_tab⟩
@@ -20794,7 +20864,14 @@ lemma accum_block_on_noPending
     (h_dispatch : scanNextToken_dispatchBlockIndicators
         (if s_prep.allowDirectives then
           { s_prep with allowDirectives := false, documentEverStarted := true }
-        else s_prep) c = .ok (some s')) :
+        else s_prep) c = .ok (some s'))
+    -- **Item 208: the park's own STACK** (`noPending.h_ntop`) and the base it
+    -- is read against.  This park is AT column 0, so the walk that lands the
+    -- dispatch crosses nothing and `landing_floor_of_arm`'s reading is not
+    -- there; the seed's stack is EMPTY, which is the `-`'s floor at every
+    -- landing column at once.
+    (h_ntop : sc.inFlow = false → sc.currentIndent < 0)
+    (h_base : IndentStackBase.SentinelBase sc) :
     ∃ sp_gram' sp_block' sp_flow' sp_scan',
       SLYamlStream sp_start sp_gram' ∧
       BlockStack sp_gram' sp_block' ∧
@@ -20891,7 +20968,15 @@ lemma accum_block_on_noPending
              (Or.inr trivial)
              -- Item 198: the root `-` stands under no frame, so there is no value
              -- line to bottom a stack on.
-             (Or.inr trivial),
+             (Or.inr trivial)
+             -- Item 208: the entry's TOP, from the seed's EMPTY stack — the one of
+             -- ring 1's seven producers whose floor is a FIELD rather than a reading,
+             -- because this park is AT column 0 and the walk that lands the dispatch
+             -- crosses nothing for `landing_floor_of_arm` to read.
+             (Or.inl (indicator_top_dash hcol_mid h_ind hcorr_prep
+               (dash_dispatch_floor h_base
+                 (by have := h_ntop h_scflow; omega) h_preprocess)
+               h_dispatch)),
            hcorr_result⟩
   · -- c ≠ '-' at the landing: a ':' opens `[189]`'s empty-key entry (item 13)
     -- and a '?' opens `[186]`'s explicit-key one (item 20) — ONE arm, because
@@ -21187,7 +21272,16 @@ lemma accum_block_on_closeThenBlock
     -- nothing is consed on the way across. ═══
     (h_valFV : (∃ (nn nv : Nat) (ks : List Nat),
       ∀ sp_mid : SurfPos, SBlockNode (nn + 1) .blockIn sp_scan sp_mid →
-      ResumeFrames (ExplValueLine sp_start nv) ks sp_mid) ∨ True) :
+      ResumeFrames (ExplValueLine sp_start nv) ks sp_mid) ∨ True)
+    -- **Item 208 (LAST): the park's own INDENT CHECK where it stands AT a line
+    -- start** — item 154's field, made unconditional at item 207 and read here
+    -- at the BLOCK landing.  `landing_floor_of_arm` reads the `-`'s floor off
+    -- the walk that carried a park DOWN to column 0; a park already there
+    -- crosses no such walk, and the flag it consumed the break to raise is
+    -- what runs the unwind instead.  Parks that can never stand at column 0
+    -- pay by refuting the hypothesis from a column they already carry, which
+    -- is what `PendingNode.nic0` does for eight of the nine at once.
+    (h_nic0 : sp_scan.col = 0 → sc.needIndentCheck = true) :
     ∃ sp_gram' sp_block' sp_flow' sp_scan',
       SLYamlStream sp_start sp_gram' ∧
       BlockStack sp_gram' sp_block' ∧
@@ -21308,6 +21402,23 @@ lemma accum_block_on_closeThenBlock
                  -- restatement hides the gap from the census that found it; what
                  -- would pay it for real is a stack-shaped source, and the mid-line
                  -- arm reaches none (`h_mapFV` is `SSLComments`-domained). ═══
+                 (Or.inr trivial)
+                 -- ═══ **Item 208: ring 1's SEVENTH producer, and the one this item does
+                 -- not pay.**  The compact fill of an open `[185]`/`[186]` slot (`? - a`)
+                 -- is scanned INLINE: no break was crossed, so preprocessing's unwind
+                 -- never ran, and the stack the `-` pushes onto is the SLOT's — which
+                 -- neither the landing nor this park states.  Every other arm of the
+                 -- seven reads its floor off the walk, off the seed, or off a park's own
+                 -- top one step back; this one has no reading at all, which is why
+                 -- `h_park_top` lands as an option.
+                 --
+                 -- Its price is MEASURED, not forecast: `scripts/vslot_top_price.py` says
+                 -- ONE payer (`accum_block_pending`'s relay — the raw error list reads
+                 -- five, and four of those are arms of the same tuple), that payer needs
+                 -- a top field on `pendingMapValue` (**6** producers, one in each
+                 -- `*_open_map` lemma, `scripts/park_top_price.py pendingMapValue`), and
+                 -- not one of those six holds the dispatch floor such a field would be
+                 -- built from.  Three rings behind one arm. ═══
                  (Or.inr trivial),
                hcorr_result⟩
       · by_cases hcv : c = ':' ∨ c = '?'
@@ -21653,7 +21764,13 @@ lemma accum_block_on_closeThenBlock
               | _ => Or.inr trivial)
              -- **Item 198: the value-line stack, across the same step.**  Built above
              -- from `h_valFV`, exactly as `h_closeF` is built from `h_valF`.
-             h_seqFramesV,
+             h_seqFramesV
+             -- Item 208: and the entry's TOP, off the landing's own floor — from the
+             -- walk's unwind where the park stood off a line start, from item 207's
+             -- flag where it stood on one.
+             (Or.inl (indicator_top_dash hcol_mid h_ind hcorr_prep
+               (dash_landing_floor h_noflow h_larm h_nic0 h_base h_preprocess)
+               h_dispatch)),
            hcorr_result⟩
   · -- c ≠ '-' at the landing: a ':' opens `[189]`'s empty-key entry there
     -- (item 13), a '?' opens `[186]`'s explicit-key one (item 20) — one arm.
@@ -22158,7 +22275,11 @@ lemma accum_block_on_pendingContent
     -- named as a BOTTOM.
     (h_mapFV108 : (∃ (nv : Nat) (ks : List Nat),
       ∀ sp_m : SurfPos, SSLComments sp_scan sp_m →
-      ResumeFrames (ExplValueLine sp_start nv) ks sp_m) ∨ True) :
+      ResumeFrames (ExplValueLine sp_start nv) ks sp_m) ∨ True)
+    -- **Item 208 (LAST): the park's own INDENT CHECK**, item 154's field made
+    -- unconditional at item 207, handed straight across to the closed-park
+    -- lemma this one delegates its landing to.
+    (h_nic0 : sp_scan.col = 0 → sc.needIndentCheck = true) :
     ∃ sp_gram' sp_block' sp_flow' sp_scan',
       SLYamlStream sp_start sp_gram' ∧
       BlockStack sp_gram' sp_block' ∧
@@ -22200,7 +22321,9 @@ lemma accum_block_on_pendingContent
         h_mapFV108
         -- Item 198: a content park awaits no node, so the relay this lemma's
         -- `-` arm spends off a CLOSED value park has no payer here.
-        (Or.inr trivial))
+        (Or.inr trivial)
+        -- Item 208: the park's own indent check, handed across.
+        h_nic0)
       hcorr_prep hcorr_result h_corr h_noflow h_preprocess h_dispatch
   · -- Item 37: `c ≠ ':'` at a park that follows a complete node — §7.5 left
     -- the rest of the line at `NodeStop`, and neither remaining indicator is
@@ -22226,6 +22349,8 @@ lemma accum_block_on_pendingContent
       -- Item 198: and no awaited node, as at the `:` half above.
       (Or.inr trivial)
 
+      -- Item 208: the park's own indent check, handed across.
+      h_nic0
 -- Block dispatch with pendingBlockContent: accumulate entries via h_entry_old.
 -- Item 22: the entry index `n` is the pending's own, not a hardcoded 0 — a
 -- sibling `-` snocs when the landing leaves the SAME indentation the
@@ -22336,7 +22461,16 @@ lemma accum_block_on_pendingBlockContent
     (h_closeFV_old : (∃ (nv : Nat) (ks : List Nat),
       ∀ sp_mid : SurfPos, SSLComments sp_scan sp_mid →
       ∀ sp_end : SurfPos, SCompactSeqTail n sp_mid sp_end →
-      ResumeFrames (ExplValueLine sp_start nv) ks sp_end) ∨ True) :
+      ResumeFrames (ExplValueLine sp_start nv) ks sp_end) ∨ True)
+    -- **Item 208 (LAST): the park's own INDENT CHECK where it stands AT a line
+    -- start** — item 154's field, made unconditional at item 207 and read here
+    -- at the BLOCK landing.  `landing_floor_of_arm` reads the `-`'s floor off
+    -- the walk that carried a park DOWN to column 0; a park already there
+    -- crosses no such walk, and the flag it consumed the break to raise is
+    -- what runs the unwind instead.  Parks that can never stand at column 0
+    -- pay by refuting the hypothesis from a column they already carry, which
+    -- is what `PendingNode.nic0` does for eight of the nine at once.
+    (h_nic0 : sp_scan.col = 0 → sc.needIndentCheck = true) :
     ∃ sp_gram' sp_block' sp_flow' sp_scan',
       SLYamlStream sp_start sp_gram' ∧
       BlockStack sp_gram' sp_block' ∧
@@ -22446,7 +22580,11 @@ lemma accum_block_on_pendingBlockContent
                         closeFV sp_mid h_ssl sp_e
                           (SCompactSeqTail.cons k sp_mid _ sp_scan' sp_m sp_e
                             h_ind h_dash2 h_gnot2 h_bi h_tail)⟩
-                  | Or.inr _ => Or.inr trivial),
+                  | Or.inr _ => Or.inr trivial)
+                  -- Item 208: the entry's TOP, off the landing's own floor.
+                  (Or.inl (indicator_top_dash hcol_mid h_ind hcorr_prep
+                    (dash_landing_floor h_noflow h_larm h_nic0 h_base h_preprocess)
+                    h_dispatch)),
                hcorr_result⟩
       · -- Item 30: here the widths disagreeing is ONE case, not two.  This
         -- pending's entry already HAS its node — that is what distinguishes
@@ -22479,6 +22617,8 @@ lemma accum_block_on_pendingBlockContent
           -- the `-` landing here conses onto the collection and spends it at
           -- the constructor instead.
           (Or.inr trivial)
+          -- Item 208: the park's own indent check, handed across.
+          h_nic0
     · -- c ≠ '-' at the landing: a ':' opens `[189]`'s empty-key entry there
       -- (item 13), a '?' opens `[186]`'s explicit-key one (item 20) — one arm.
       by_cases hcv : c = ':' ∨ c = '?'
@@ -22763,7 +22903,12 @@ lemma accum_block_on_pendingBlock
     (h_closeFV_old : (∃ (nv : Nat) (ks : List Nat),
       ∀ sp_mid : SurfPos, SBlockIndented n .blockIn sp_scan sp_mid →
       ∀ sp_end : SurfPos, SCompactSeqTail n sp_mid sp_end →
-      ResumeFrames (ExplValueLine sp_start nv) ks sp_end) ∨ True) :
+      ResumeFrames (ExplValueLine sp_start nv) ks sp_end) ∨ True)
+    -- **Item 208 (LAST): the park's own TOP** (`pendingBlock.h_park_top`).  The
+    -- landing arms below re-derive their own from the walk's unwind; this is
+    -- what the INLINE arm has instead, where no unwind ran and the stack the
+    -- dispatch reads IS this park's.
+    (h_top_old : (sc.currentIndent ≤ (n : Int)) ∨ True) :
     ∃ sp_gram' sp_block' sp_flow' sp_scan',
       SLYamlStream sp_start sp_gram' ∧
       BlockStack sp_gram' sp_block' ∧
@@ -22859,7 +23004,13 @@ lemma accum_block_on_pendingBlock
                       closeFV sp_mid h_node_old sp_e
                         (SCompactSeqTail.cons k sp_mid _ sp_scan' sp_m sp_e
                           h_ind h_dash2 h_gnot2 h_bi h_tail)⟩
-                | Or.inr _ => Or.inr trivial),
+                | Or.inr _ => Or.inr trivial)
+                -- Item 208: the entry's TOP.  This park sits at `n + 1`, never at column
+                -- 0, so the walk that brought it down crossed a break and the unwind RAN
+                -- — the one arm that pays without the park saying anything.
+                (Or.inl (indicator_top_dash hcol_mid h_ind hcorr_prep
+                  (landing_floor_of_arm h_noflow h_larm (by omega) h_base h_preprocess)
+                  h_dispatch)),
              hcorr_result⟩
     · -- Item 30: the widths disagree, and the two directions are DIFFERENT
       -- constructs — which is why one `k ≠ n` deferral was hiding both.
@@ -22962,7 +23113,11 @@ lemma accum_block_on_pendingBlock
                               (SBlockSeqEntries_of_compactTail h_ind h_dash2 h_gnot2
                                 h_bi h_tail)))
                           sp_e (SCompactSeqTail.nil n sp_e)⟩
-                  | Or.inr _ => Or.inr trivial),
+                  | Or.inr _ => Or.inr trivial)
+                  -- Item 208: the same, across the sibling's step.
+                  (Or.inl (indicator_top_dash hcol_mid h_ind hcorr_prep
+                    (landing_floor_of_arm h_noflow h_larm (by omega) h_base h_preprocess)
+                    h_dispatch)),
                hcorr_result⟩
       · -- ═══ DEDENT (`k < n`): the inner collection ENDS here ═══
         -- `-⏎  -⏎- b`.  `nestedBlockSeq`'s `m` would have to be negative, so
@@ -22993,6 +23148,8 @@ lemma accum_block_on_pendingBlock
           -- Item 198: as at `accum_block_on_pendingBlockContent` — a sequence
           -- park's value-line face is not the awaited-node face.
           (Or.inr trivial)
+          -- Item 208: this park sits at `n + 1`, so the premise is refuted.
+          (nic0_of_col_pos (by omega))
   · -- c ≠ '-' at the landing: a ':' opens `[189]`'s empty-key entry there
     -- (item 13), a '?' opens `[186]`'s explicit-key one (item 20) — one arm.
     by_cases hcv : c = ':' ∨ c = '?'
@@ -23269,7 +23426,23 @@ lemma accum_block_on_pendingBlock
                           (SCompactSeq.mk (n + 1 + m) sp_sc sp_scan' sp_m sp_e
                             h_dash2 h_gnot2 h_bi h_tail))
                         sp_e (SCompactSeqTail.nil n sp_e)⟩
-                | Or.inr _ => Or.inr trivial),
+                | Or.inr _ => Or.inr trivial)
+                -- **Item 208: the INLINE arm's top, from the park's OWN.**  No break was
+                -- crossed, so preprocessing wrote no indents and the stack the `-` pushes
+                -- onto is this park's; the whites in front of the indicator only move the
+                -- column RIGHT.  This is the arm that makes the field self-feeding, and
+                -- the reason the option propagates rather than being re-derived.
+                (match h_top_old with
+                 | Or.inl h_top => Or.inl (indicator_top_dash_at_col
+                     (by have := SIndent_col h_ind; omega) hcorr_prep
+                     (dash_dispatch_floor h_base
+                       (by
+                         have hc : s_prep.col = sp_sc.col := (hcorr_prep.col_eq).symm
+                         have := SIndent_col h_ind
+                         omega)
+                       h_preprocess)
+                     h_dispatch)
+                 | Or.inr _ => Or.inr trivial),
              hcorr_result⟩
     · by_cases hcv : c = ':' ∨ c = '?'
       · -- `- : a` and `- ? a`: `[195] ns-l-compact-mapping`, the same two
@@ -23378,11 +23551,13 @@ lemma accum_block_pending (sc : ScannerState)
       ∀ sp_mid, SSLComments sp_scan sp_mid → SLYamlStream sp_start sp_mid :=
     fun h_nd sp_mid h_ssl => h_pending.close_with_ssl h_stream_block h_nd h_ssl
   cases h_pending with
-  | noPending _ _ h_col h_arm h_nodoc h_noek =>
+  | noPending _ _ h_col h_arm h_nodoc h_noek h_ntop208 =>
     exact accum_block_on_noPending sc sp_start sp_block s_prep s' c sp_prep sp_scan'
       h_stream_block hcorr_prep hcorr_result h_corr h_col h_arm h_nodoc h_noek h_noflow
       h_preprocess h_dispatch
-  | pendingDocEnd _ _ _ h_line h_marker h_arm77 =>
+      -- Item 208: the seed's EMPTY stack, and the base it is read against.
+      h_ntop208 h_base
+  | pendingDocEnd _ _ _ h_line h_marker h_arm77 h_nic0E =>
     -- Item 36: `[204] l-document-suffix` ends the marker with `s-l-comments`,
     -- so a `-`/`?`/`:` on the marker's own line is a state the scanner refuses
     -- (`trailingContentAfterDocEnd`).  The escape is REFUSED here, not paid.
@@ -23411,7 +23586,9 @@ lemma accum_block_pending (sc : ScannerState)
       -- Item 198: and no awaited node behind a marker.
       h_bare h_dn h_base h_mono (Or.inr trivial) (Or.inr trivial) (Or.inr trivial)
       (Or.inr trivial) (Or.inr trivial) (Or.inr trivial) (Or.inr trivial)
-  | pendingDocStart _ _ _ h_doc_route h_nic48 h_real48 h_ds48 h_arm77 =>
+      -- Item 208: item 207's field.
+      h_nic0E
+  | pendingDocStart _ _ _ h_doc_route h_nic48 h_real48 h_ds48 h_arm77 _ h_nic0S =>
     -- ═══ Item 48: the marker still on the line refutes all three indicators
     -- — B1/B2's `docStartOnLine` for `-`/`?`, B4 for `:` — so the arm's
     -- inline residue is EMPTY and only the landed close remains. ═══
@@ -23439,8 +23616,10 @@ lemma accum_block_pending (sc : ScannerState)
       -- Item 198: and no awaited node behind a `...` marker either.
       h_bare h_dn h_base h_mono (Or.inr trivial) (Or.inr trivial) (Or.inr trivial)
       (Or.inr trivial) (Or.inr trivial) (Or.inr trivial) (Or.inr trivial)
+      -- Item 208: item 207's field.
+      h_nic0S
   | pendingContent _ _ _ h_line _ h_key h_stale47 h_vpack51 h_arm77 h_framesS109
-      h_framesV108 _ h_tail139 _ h_seqF168 =>
+      h_framesV108 _ h_tail139 h_nic0C h_seqF168 =>
     -- Item 15: the same-line `:` may fire the implicit-key coupling.
     -- Item 37: what the caller still owes is the `:` alone.
     -- Item 142: and this park is one of the two that PAY §9.2's refusal — its
@@ -23458,6 +23637,9 @@ lemma accum_block_pending (sc : ScannerState)
       -- this park since item 108 and read by nothing until now.  This is the
       -- payer the residue item 194 named was waiting on.
       (h_framesV108.imp (fun ⟨nv, ks, _, fV⟩ => ⟨nv, ks, fV⟩) id)
+      -- Item 208: the park's own indent check (item 154's field, item 207's
+      -- unconditional reading), for the closed-park landing below.
+      h_nic0C
   | pendingProps _ _ _ ha ht sp_node sp_p n_p h_sep_p h_run h_nic48 h_real48 h_anchor48 h_tag48
       h_route48 h_key48 _ h_col0_p _ h_ska79 h_kslot91 =>
     -- ═══ Item 48: a `-`/`?` behind a parked property run is refused by the
@@ -23510,7 +23692,9 @@ lemma accum_block_pending (sc : ScannerState)
           h_pr175
           -- Item 197: no value-line-bottomed one either, for item 173's reason.
           -- Item 198: and a `[96]` park awaits no node.
-          (Or.inr trivial) (Or.inr trivial))
+          (Or.inr trivial) (Or.inr trivial)
+          -- Item 208: refuted from the park's own column, as above.
+          (nic0_of_col_pos h_col0_p))
         hcorr_prep hcorr_result h_corr h_noflow h_preprocess h_dispatch
     · have h_prop : lastTokenIsNodePropertyOnLine sc.tokens sc.line = true := by
         rcases PropsRun.ha_or_ht h_run with hha | hht
@@ -23532,7 +23716,9 @@ lemma accum_block_pending (sc : ScannerState)
         -- Item 197: no value-line-bottomed frames at a `[96]` park either.
         -- Item 198: and no awaited node.
         (Or.inr trivial) (Or.inr trivial)
-  | pendingFlow _ _ _ _ h_arm77 =>
+        -- Item 208: a property run holds a column, so the premise is refuted.
+        (nic0_of_col_pos h_col0_p)
+  | pendingFlow _ _ _ _ h_arm77 _ h_nic0F =>
     exact accum_block_on_closeThenBlock sc sp_start sp_block sp_scan s_prep s' c sp_prep sp_scan'
       h_close_pending (fun _ _ => h_stream_block) (Or.inr trivial) (Or.inr trivial) hcorr_prep
       hcorr_result h_corr h_noflow h_arm77 h_preprocess h_dispatch (Or.inr trivial)
@@ -23546,7 +23732,9 @@ lemma accum_block_pending (sc : ScannerState)
       -- Item 198: and no awaited node.
       (Or.inr trivial) (Or.inr trivial) (Or.inr trivial) (Or.inr trivial)
       (Or.inr trivial) (Or.inr trivial) (Or.inr trivial)
-  | pendingMapValue _ _ _ nmv _ _ h_nic48 h_real48 h_ivl48 h_expl51 h_vslot51 h_sk58 _ _
+      -- Item 208: item 206's field.
+      h_nic0F
+  | pendingMapValue _ _ _ nmv _ _ h_nic48 h_real48 h_ivl48 h_expl51 h_vslot51 h_sk58 h_col0_mv _
       h_kslot93 h_closeF155 h_frames173 h_closeFV108 h_framesV108 _ _ h_explUp190 =>
     -- ═══ Item 48: an IMPLICIT `:` stamped its line, and B1/B2/B3 all read
     -- the stamp — the inline residue is EMPTY there.  Item 51: an OPEN
@@ -23605,6 +23793,8 @@ lemma accum_block_pending (sc : ScannerState)
         -- faces now cross together, and the `-` arm builds the new park's two
         -- stacks from one step. ═══
         (h_closeFV108.imp (fun ⟨nv, ks, _, _, fV⟩ => ⟨nmv, nv, ks, fV⟩) id)
+        -- Item 208: refuted from the park's own column, as above.
+        (nic0_of_col_pos h_col0_mv)
     · exact accum_block_on_closeThenBlock sc sp_start sp_block sp_scan s_prep s' c sp_prep sp_scan'
         h_close_pending (fun _ _ => h_stream_block)
         -- ═══ **Item 192: this park's OWN frame and the one above it, in ONE
@@ -23694,8 +23884,10 @@ lemma accum_block_pending (sc : ScannerState)
         (h_framesV108.imp (fun ⟨nv, ks, _, fV⟩ => ⟨nv, ks, fV⟩) id)
         -- Item 198: the explicit twin pays the close face too.
         (h_closeFV108.imp (fun ⟨nv, ks, _, _, fV⟩ => ⟨nmv, nv, ks, fV⟩) id)
+        -- Item 208: a value park is never at column 0, so the premise is refuted.
+        (nic0_of_col_pos h_col0_mv)
   | pendingBlockContent _ _ _ n_old h_line _h_closable h_entry_old h_key_old h_stale47 h_arm77
-      h_kslot92 h_closeF99 _ h_tail139 h_seqF167 h_kslotUp190 h_closeFV198 =>
+      h_kslot92 h_closeF99 _ h_tail139 h_seqF167 h_kslotUp190 h_closeFV198 h_nic0B =>
     -- Item 22: the pending's own entry index rides through; the `n ≠ 0`
     -- deferral this arm used to open is gone with it.
     -- Item 37: and what is left of the escape is `[154]`'s `:`.
@@ -23711,8 +23903,10 @@ lemma accum_block_pending (sc : ScannerState)
       -- Item 198: and the same stack at the VALUE-LINE bottom, which the
       -- opener's arm has been waiting for since item 197.
       h_closeFV198
+      -- Item 208: the park's own indent check, read at the block landing.
+      h_nic0B
   | pendingBlock _ _ _ n_old _h_close h_close_entry_old _h_floor h_sk_old h_col_old h_kslot92
-      _ _ h_seqF167 h_kslotUp190 h_closeFV198 =>
+      _ _ h_seqF167 h_kslotUp190 h_closeFV198 h_top208 =>
     exact accum_block_on_pendingBlock sc sp_start sp_block sp_block sp_scan s_prep s' c sp_prep
       sp_scan' n_old h_stream_block h_close_pending h_stream_block h_close_entry_old h_kslot92
       h_sk_old h_col_old hcorr_prep hcorr_result h_corr h_noflow h_preprocess h_dispatch h_bare
@@ -23722,6 +23916,8 @@ lemma accum_block_pending (sc : ScannerState)
       -- Item 198: and the park's value-line-bottomed stack.
       h_closeFV198
 
+      -- Item 208: and the park's own TOP, which the INLINE arm spends.
+      h_top208
 lemma accum_step_block (sc : ScannerState)
     (sp_start sp_gram sp_block sp_flow sp_scan : SurfPos)
     (s_prep s' : ScannerState) (c : Char)
@@ -33499,6 +33695,27 @@ lemma scan_content_gives_stream_v2
           show (((ScannerState.mk' input).emit YamlToken.streamStart)).advance.explicitKeyLine
             = none
           rw [ExplicitKeyCoupling.advance_preserves_explicitKeyLine]; exact h_emit
+        · exact h_emit)
+      -- Item 208: and the seed's `h_ntop`, paid the way `h_arm` and `h_noek`
+      -- are — `ScannerState.mk'` leaves the indent stack EMPTY, where
+      -- `currentIndent` reads the stream level `-1`, and neither the
+      -- `streamStart` emission nor §5.2's BOM advance pushes anything.  This
+      -- is the one producer of the eight that pays a witness rather than a
+      -- refutation, and the only one the instrument's raw error list splits:
+      -- its three arguments are `by` blocks, so a missing field breaks four
+      -- times and the naive census reads 11 for a constructor with 8.
+      (fun _ => by
+        have h_emit : ((ScannerState.mk' input).emit YamlToken.streamStart).currentIndent
+            < 0 := by
+          simp [ScannerState.currentIndent, ScannerState.emit, ScannerState.mk']
+        split
+        · show ({ (((ScannerState.mk' input).emit YamlToken.streamStart)).advance with
+              col := 0 } : ScannerState).currentIndent < 0
+          show (((ScannerState.mk' input).emit YamlToken.streamStart)).advance.currentIndent
+            < 0
+          rw [currentIndent_of_indents_eq
+            (ScannerLoopInvariant.advance_indents _)]
+          exact h_emit
         · exact h_emit))
     (fun hb => Bool.noConfusion hb) h_corr
     (fun hge => absurd hge (by

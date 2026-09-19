@@ -23206,7 +23206,9 @@ move this item; the uncertainty does.**
 **Corrected at [item 205](#item-205-2026-09-18).**  The seven are right and all
 seven pay — item 205 paid every one and the compiler accepted them.  What the
 number leaves out is the PREMISE five of them pay from, whose own producers are
-the next ring: the closure is **52 sites across 20 declarations**, and ~~it does
+the next ring: the closure is ~~**52 sites across 20 declarations**~~ **49 /
+20** ([item 208](#item-208-2026-09-19) — three of the 52 were one producer's
+cascade), and ~~it does
 not terminate, because one of its members is `block_dispatch_deferred`
 itself.~~  **It terminates at ring 2.**  `block_dispatch_deferred` being a
 member is a fact about where the price falls, not about whether it can be paid
@@ -23352,8 +23354,9 @@ is paid partly BY the hatch.~~
 groups the failures by the declaration that contains them, and restores the
 file.  `ring1` reproduces item 204's number exactly — **7 sites across 4
 declarations**.  `all`, the same carrier asked of every block-context park at
-once, is **52 sites across 20 declarations**, and `block_dispatch_deferred` is
-one of them.  Two independent instruments, one number: item 204's estimate was
+once, is ~~**52 sites across 20 declarations**~~ **49 across 20** (corrected at
+[item 208](#item-208-2026-09-19), which taught the script to tell a cascade
+from a producer), and `block_dispatch_deferred` is one of them.  Two independent instruments, one number: item 204's estimate was
 low by **5×**, and the shortfall is entirely in rings the first census could
 not see.
 
@@ -23732,8 +23735,10 @@ instrument over it — that number is a reading and the next item should
 re-derive it before spending on it, which is item 206's rule applied to item
 205's other forecast.  The seventh, the compact fill, item 205 recorded as
 "not measured here".  Landing ring 1 is the next item, and it is the one that
-deletes the two `_stamp_compact` sites.  After that: the wrapper's
-remaining classes, **`KeyPackPunt`'s two reasons** (`dedent` 7/5,
+deletes the two `_stamp_compact` sites.  **Measured at
+[item 208](#item-208-2026-09-19): the 7 reproduces, `noPending`'s 8 is right
+and was never an instrument's until now (the raw census reads 11), and six of
+the seven are PAID.**  After that: the wrapper's remaining classes, **`KeyPackPunt`'s two reasons** (`dedent` 7/5,
 `noKeyContext` 6/5, possibly a phantom), item 183's flip order, and the parked
 Ix Step-1 composition on the Ix track's own clock.  Still open from item 201: a
 census that follows a conjunct's VALUE through the relays that carry it, and
@@ -23752,6 +23757,138 @@ written as reasons to leave a slot empty, and each of them is a one-line term.
 Item 206 learned that a shape tells you where a price falls and never how much;
 this item is the same lesson read backwards — a reason recorded for a punt is a
 measurement nobody spent.
+
+
+### Item 208 (2026-09-19)
+
+**AN ERROR IS NOT A PRODUCER, AND THE INSTRUMENT THAT COUNTS ERRORS WAS
+COUNTING THE SHAPE OF A PAYMENT.**  Item 207's NEXT was ring 1 itself —
+`pendingBlock.h_park_top`, the number item 204 proved
+`block_dispatch_deferred_stamp_compact`'s class FALSE without — priced at
+**7** producers, with one explicit caution carried forward: item 205 read
+`noPending`'s producers at **8** without running an instrument over it, and
+that number had to be re-derived before anything was spent on it.  It was
+re-derived.  The answer is 8.  The instrument that was supposed to check it
+says **11**, and the three that are not producers are the item's finding.
+
+**One application, four errors.**  `noPending`'s eighth producer is the stream
+seed in `scan_content_gives_stream_v2`, and its arguments are `by` blocks —
+`h_arm`, `h_noek`, and now `h_ntop`.  Add a field to the constructor and Lean
+reports the arity failure once at the application and once inside each broken
+tactic block, so the raw error list counts **how a payment is written**, not
+how many sites make it.  `scripts/park_top_price.py` and
+`scripts/park_nic0_price.py` both collapse cascades now — each error anchors on
+the nearest preceding application of the probed constructor — and both print
+every group that collapsed, so the collapse is checkable rather than asserted.
+The same pass fixed a quieter defect in both: `apply_probe` returned a list
+whose patched element carried embedded newlines, so every line number past the
+probe was off by two and the declaration attribution was off with it.
+
+**The correction is worth three numbers, and the one that decided this item's
+scope is the largest.**
+
+| what | recorded | instrument | why it moved |
+|---|---|---|---|
+| ring 1's producers | 7 (item 204) | **7** | nothing — all seven are distinct applications |
+| `noPending`'s producers | 8 (item 116's *sentence*, spent again by 135, 186 and 205) | **8** | the number was right and had never been derived; the naive census reads 11 |
+| the blanket closure floor | 52 (item 205) | **49** | the same three cascade errors, counted as producers |
+| the compact fill's price | "`pendingMapValue.h_vslot`'s own conjunct (item 204's other six)" | **1** payer, then a **6**-producer field, then a ring under that | one sentence naming two different questions |
+
+**The proof that the collapse is the right one is in this item's own diff.**
+Paying `h_ntop` gave the seed a FOURTH `by` block.  Re-run on the paid tree,
+the raw error count goes 11 → 12 and the census holds at **8**.  A number that
+moves when the payment's shape changes was never counting producers.
+
+**Six of the seven pay; the seventh is priced rather than forecast.**
+
+| producer | what pays the `-`'s floor |
+|---|---|
+| `accum_block_on_pendingBlock`, landed ×2 | `landing_floor_of_arm` — the park is at `n + 1`, so the walk crossed a break and preprocessing's unwind ran |
+| `accum_block_on_closeThenBlock`, landed | `dash_landing_floor` — item 207's flag where the park stands ON a line start, the walk where it stands off one |
+| `accum_block_on_pendingBlockContent`, landed | the same |
+| `accum_block_on_noPending` | `noPending.h_ntop` — the seed's stack is EMPTY, which floors every landing column at once |
+| `accum_block_on_pendingBlock`, inline | this very field, one park back: the carrier feeds itself |
+| `accum_block_on_closeThenBlock`, compact fill | **nothing yet** — `Or.inr trivial` |
+
+Two of the six are the ones [item 207](#item-207-2026-09-19) unblocked: §24's
+table marked them **open** on `dash_landing_floor`, whose missing premise is
+the field item 207 made unconditional.  They cost a premise threaded through
+five consumer lemmas and fifteen call sites, and nothing else.
+
+**`noPending.h_ntop` lands REQUIRED, all eight producers paid, first try.**
+Seven refute `inFlow = false` with the `inFlow_of_flowLevel_eq h_fl1` they
+already hand `h_col`, `h_arm`, `h_nodoc` and `h_noek` — `ntop_of_flowLevel_succ`
+is the fifth lemma of that exact shape — and the seed pays the witness:
+`ScannerState.mk'` leaves the indent stack empty, where `currentIndent` reads
+the stream level `-1`, and neither the `streamStart` emission nor §5.2's BOM
+advance pushes anything.
+
+**`pendingBlock.h_park_top` lands as an OPTION, which is item 154's shape for
+item 154's reason.**  The seventh producer is a `-` scanned INLINE off an
+already-open `[185]`/`[186]` slot (`? - a`): no break was crossed, so no unwind
+ran, and the stack the `-` pushes onto is the SLOT's — a number neither the
+landing nor this park states.  Its price is three rings and all three are
+measured, which is the difference between this punt and the one item 205 left:
+`scripts/vslot_top_price.py` (new) says **1** payer, `accum_block_pending`'s
+relay, whose raw error list reads five and whose four extras are arms of one
+tuple; that payer needs a top field on `pendingMapValue`, **6** producers, one
+in each `*_open_map` lemma; and not one of those six holds the dispatch floor
+such a field would be built from.  Item 204's "other six" was
+`pendingMapValue`'s producer count all along — the right number for a question
+nobody had asked.
+
+**The punt is STARVED, not false, and §27.3 measures the difference.**  A new
+runtime census reads the pair the whole chain is about — the scanner's column
+and its indent-stack top — at every state a scan reaches, and asks the dispatch
+floor of each.  It holds on all nine shapes: the six paid arms, the three
+compact fills, and the two dedent shapes where the floor is least obvious.  So
+the arm that punts is not punting on a falsehood; it is punting on a number no
+field states, which is what makes item 209 a payment rather than a proof.  The
+seed's own `-1` is pinned beside it, because `noPending.h_ntop` is the one of
+the six payments that is a witness rather than a reading.
+
+**Gates.**  `lake build` **1165** jobs, zero warnings; `scripts/run-all-tests.sh`
+**4520/4520**; `lake exe eventscore` **347/358** (252 event-pass, 95 error-ok, 0
+error-miss, 0 event-reject); `lake exe suiterunner` **869/0/151**;
+`scripts/matrix_score.py` **402/402 event** (308 pass, 94 err-ok) and **282/282
+JSON** (279 pass, 3 err-ok, 120 skip) on BOTH pipelines; the `[210]` flip FIVE
+errors, PREDICTED TO THE LINE before the run — three hunks sit above all five
+sites and sum to +63, so 4541→**4604**, 5821→**5884**, 5844→**5907**,
+6013→**6076**, 7558→**7621** — restore rebuilt clean; `#print axioms` over the
+new declarations shows no `sorryAx`; import closure, reflection index, theorem
+keyword and `verify_yaml_spec_annotations.py` all at baseline.
+
+**Counts.**  Declarations `grep -rhoE "^(private )?(lemma|theorem|def|abbrev|instance|structure|inductive|class) " L4YAML`: **8592 → 8593**
+(+1, `ntop_of_flowLevel_succ`); `#guard` tokens
+`grep -rho "#guard" L4YAML Tests`: **8092 → 8109** (+17: §27.3's eleven rows,
+four aggregates and two seed pins); test files `find Tests -name '*.lean'`:
+**624 → 624**.  Zero runtime edits.
+
+**What remains.**  Ring 1's seventh arm, and it is the item that deletes the
+two `_stamp_compact` sites: the conjunct on `accum_block_pending`'s relay (1
+payer), `pendingMapValue`'s top field (6 producers), and a dispatch-floor
+premise on the six `*_open_map` lemmas whose own ring is NOT yet measured —
+that census is item 209's first act, not its assumption.  Making
+`h_park_top` required is what lets the compact refutation fire.  After that:
+the 12 landing sites and the wrapper goes; then **`KeyPackPunt`'s two reasons**
+(`dedent` 7/5, `noKeyContext` 6/5, possibly a phantom), item 183's flip order
+(`pendingFlow`'s constructor and arm first, for item 183's OWN reason), and the
+parked Ix Step-1 composition on the Ix track's own clock.  Still open from item
+201: a census that follows a conjunct's VALUE through the relays that carry it,
+and the unattributed-site pins the 198/200/201 censuses still lack.
+
+**The instrument ledger, ten rows, and the tenth is the first one that
+MEASURED THE INSTRUMENTS.**  Park constructors (198), application sites (200),
+lemma conclusions (201), the same with a key that works (202), indices (203),
+the runtime's own state (204), the transitive ring of a carrier (205), the same
+closure with its last ring paid (206), the ring's payers against a forecast
+(207) — and now the three scripts themselves, against a producer they could
+see and could not count.  **The rule this item adds: an instrument's UNIT is
+part of its claim, and an instrument that counts the compiler's complaints is
+counting a proof's prose.**  Item 207 learned that a reason recorded for a punt
+is a measurement nobody spent; this item is the matching hazard on the other
+side — a number an instrument DID produce is not thereby a measurement, and the
+only way to find out is to make it print what it counted.
 
 
 ### REMAINING, in order

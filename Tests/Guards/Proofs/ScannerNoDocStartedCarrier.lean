@@ -144,9 +144,11 @@ example {sc : ScannerState} {sp_start sp : SurfPos}
     (h_col : sp.col = 0 ∨ sc.inFlow = true)
     (h_arm : sc.simpleKeyAllowed = true ∨ sc.inFlow = true)
     (h_nodoc : sc.inFlow = false → GStar SLDocumentPrefix sp_start sp)
-    (h_noek : sc.inFlow = false → sc.explicitKeyLine = none) :
+    (h_noek : sc.inFlow = false → sc.explicitKeyLine = none)
+    -- Item 208: and the STACK face, the third of the same shape.
+    (h_ntop : sc.inFlow = false → sc.currentIndent < 0) :
     PendingNode sc false sp_start sp sp :=
-  PendingNode.noPending sp_start sp h_col h_arm h_nodoc h_noek
+  PendingNode.noPending sp_start sp h_col h_arm h_nodoc h_noek h_ntop
 
 -- The flow producers' payment is the refutation, from the one fact all
 -- seven sites hold: depth ≥ 1 makes the face's `inFlow = false` premise

@@ -3173,10 +3173,10 @@ Paying the seven settles which is which, and all seven do pay:
 |---|---|---|
 | `accum_block_on_pendingBlock`, landed ×2 | `landing_floor_of_arm` — the park is at `n + 1`, so the walk crossed a break and the unwind ran | **closed** |
 | `accum_block_on_pendingBlock`, inline | the park's own new field, one premise on the consumer | **closed** (self-fed) |
-| `accum_block_on_noPending` | a new `h_ntop` on `noPending`: 8 producers, 7 refuting `inFlow = false` as they already do for `h_col`/`h_arm`/`h_noek`, and the seed paying `mk'`'s empty stack | **closed** (8) |
-| `accum_block_on_closeThenBlock`, landed | `dash_landing_floor` — free off a park off a line start, and item 154's `h_nic0` at a park on one | **open** |
-| `accum_block_on_pendingBlockContent`, landed | the same | **open** |
-| `accum_block_on_closeThenBlock`, compact fill | `pendingMapValue.h_vslot`'s own conjunct (item 204's other six) | not measured here |
+| `accum_block_on_noPending` | a new `h_ntop` on `noPending`: 8 producers, 7 refuting `inFlow = false` as they already do for `h_col`/`h_arm`/`h_noek`, and the seed paying `mk'`'s empty stack | **LANDED at item 208** — and the 8 is an instrument's now (§27) |
+| `accum_block_on_closeThenBlock`, landed | `dash_landing_floor` — free off a park off a line start, and item 154's `h_nic0` at a park on one | **PAID at item 208**, off item 207's field |
+| `accum_block_on_pendingBlockContent`, landed | the same | **PAID at item 208** |
+| `accum_block_on_closeThenBlock`, compact fill | ~~`pendingMapValue.h_vslot`'s own conjunct (item 204's other six)~~ | ~~not measured here~~ — **MEASURED at item 208** and it is not one number but three: 1 payer, then a 6-producer field, then a ring under that (§27) |
 
 So the first ring closes at 7 + 8 = 15, and two of the seven leave a premise
 owed.  That premise — `sp_scan.col = 0 → sc.needIndentCheck = true`, item 154's
@@ -3210,9 +3210,11 @@ field is PAID (§25) and the remaining ring-2 surface is **21** producers, not
 38.
 
 The blanket measurement agrees: the same carrier asked of every block-context
-park at once is **52 sites across 20 declarations**
-(`scripts/park_top_price.py all`), against **7 across 4** for the field alone
-(`scripts/park_top_price.py ring1`, which reproduces item 204's number). -/
+park at once is ~~**52 sites across 20 declarations**~~ **49 across 20**
+(`scripts/park_top_price.py all`) — the 52 counted a cascade as three extra
+producers, and item 208's §27 says which three — against **7 across 4** for the
+field alone (`scripts/park_top_price.py ring1`, which reproduces item 204's
+number and needs no correction: all seven are distinct applications). -/
 
 section Item205
 open L4YAML.Proofs L4YAML.Proofs.IndentStackCover
@@ -3663,5 +3665,203 @@ private def vacuous207 : List String :=
 #guard vacuous207.length == 10
 #guard (asked207.map (fun i => (parkRow i).2.1)).sum == 6
 #guard (vacuous207.map (fun i => (parkRow i).2.1)).sum == 0
+
+/-! ## §27  The FIRST ring, six of seven — and an error is not a producer
+    (item 208)
+
+§26 closed the second ring, which unblocked two of the seven producers §24 had
+left open.  This item pays ring 1 itself: `pendingBlock.h_park_top`, the number
+item 204 proved `block_dispatch_deferred_stamp_compact`'s class FALSE without.
+
+**Every count in §24's table was a reading, and re-deriving them moved two.**
+
+| what | §24 recorded | instrument | why it moved |
+|---|---|---|---|
+| ring 1's producers | 7 | **7** | — (`scripts/park_top_price.py ring1`) |
+| `noPending`'s producers | 8 | **8** | right number, never re-derived; the naive census says **11** |
+| the blanket closure floor | 52 | **49** | the same three errors, counted as producers |
+| the compact fill's price | "item 204's other six" | **1** payer → a field with **6** producers | two different questions, one number |
+
+**An error is not a producer.**  A constructor application whose arguments are
+`by` blocks reports one failure per broken block, so the raw error list counts
+the SHAPE of a payment, not the sites that make it.  `noPending` has one such
+producer — the stream seed, whose `h_arm`, `h_noek` and now `h_ntop` are each a
+tactic block — and it alone turns a census of 8 into a list of 11.  All three
+instruments collapse cascades now and print what they collapsed, and the proof
+that the collapse is the right one is in this item's own diff: paying `h_ntop`
+gave the seed a FOURTH `by` block, the raw count went 11 → 12, and the census
+held at 8.
+
+**Six of the seven pay, and the seventh is priced rather than forecast.**
+
+| producer | what pays the `-`'s floor |
+|---|---|
+| `accum_block_on_pendingBlock`, landed ×2 | `landing_floor_of_arm` — the park is at `n + 1`, so the walk crossed a break and the unwind ran |
+| `accum_block_on_closeThenBlock`, landed | `dash_landing_floor` — item 207's flag where the park stands ON a line start, the walk where it stands off one |
+| `accum_block_on_pendingBlockContent`, landed | the same |
+| `accum_block_on_noPending` | `noPending.h_ntop` — the seed's stack is EMPTY, which floors every landing column at once |
+| `accum_block_on_pendingBlock`, inline | this very field, one park back: the carrier feeds itself |
+| `accum_block_on_closeThenBlock`, compact fill | **nothing yet** — `Or.inr trivial` |
+
+The seventh is a `-` scanned INLINE off an already-open `[185]`/`[186]` slot
+(`? - a`).  No break was crossed, so preprocessing's unwind never ran and the
+stack the `-` pushes onto is the SLOT's — a number neither the landing nor this
+park states.  Its price is three rings and all three are measured:
+`scripts/vslot_top_price.py` says **1** payer (`accum_block_pending`'s relay,
+whose raw error list reads five and whose four extras are arms of one tuple);
+that payer needs a top field on `pendingMapValue`, **6** producers, one in each
+`*_open_map` lemma (`scripts/park_top_price.py pendingMapValue`); and not one
+of those six holds the dispatch floor such a field would be built from.  So
+`h_park_top` lands as an OPTION — item 154's shape, for item 154's reason — and
+the arm lands with the ring below it. -/
+
+section Item208
+open L4YAML.Proofs L4YAML.Proofs.IndentStackCover
+
+/-! ### §27.1  The three payments that are new here
+
+The seed's, which is a FIELD because the park is already at the line start the
+other arms are carried down to; the flow producers' refutation, which is the
+same one they hand `h_col`, `h_arm`, `h_nodoc` and `h_noek`; and the inline
+arm's, where the carrier is its own payer. -/
+
+/-- The seed's stack is empty, and empty floors every column. -/
+example {sc s_prep : ScannerState} {c : Char}
+    (h_noflow : sc.inFlow = false)
+    (h_ntop : sc.inFlow = false → sc.currentIndent < 0)
+    (h_base : IndentStackBase.SentinelBase sc)
+    (h_preprocess : scanNextToken_preprocess sc = .ok (some (s_prep, c))) :
+    s_prep.currentIndent ≤ (s_prep.col : Int) :=
+  dash_dispatch_floor h_base (by have := h_ntop h_noflow; omega) h_preprocess
+
+/-- The seven flow-interior producers pay by refuting, from the one fact all
+    seven hold — and this is the fifth face on `noPending` they pay that way. -/
+example {sc : ScannerState} {n : Nat} (h_fl1 : sc.flowLevel = n + 1) :
+    sc.inFlow = false → sc.currentIndent < 0 :=
+  ntop_of_flowLevel_succ h_fl1
+
+/-- The INLINE arm, where the field is spent to pay itself one park on: no
+    break, so no unwind, so the stack the `-` pushes onto is the park's. -/
+example {sc s_prep s' : ScannerState} {sp_prep : SurfPos} {n m : Nat}
+    (h_top : sc.currentIndent ≤ (n : Int))
+    (h_base : IndentStackBase.SentinelBase sc)
+    (h_col : sp_prep.col = n + 1 + m)
+    (hcorr_prep : ScannerSurfCorr s_prep sp_prep)
+    (h_preprocess : scanNextToken_preprocess sc = .ok (some (s_prep, '-')))
+    (h_dispatch : scanNextToken_dispatchBlockIndicators
+        (if s_prep.allowDirectives then
+          { s_prep with allowDirectives := false, documentEverStarted := true }
+        else s_prep) '-' = .ok (some s')) :
+    s'.currentIndent ≤ ((n + 1 + m : Nat) : Int) :=
+  indicator_top_dash_at_col h_col hcorr_prep
+    (dash_dispatch_floor h_base
+      (by have hc := hcorr_prep.col_eq; rw [← hc, h_col]; omega) h_preprocess)
+    h_dispatch
+
+/-! ### §27.2  The punt is STARVED, not false
+
+The distinction §10 prices: a stuck goal is false, starved or hard, and they
+cost differently.  The compact fill's floor is TRUE at every state the scanner
+reaches — §27.3 measures it — and what is absent is a carrier.  Stated here as
+the exact term the arm would spend, with the one number it cannot get as a
+hypothesis, so the shape of item 209's payment is checked rather than
+described. -/
+
+example {sc s_prep s' : ScannerState} {sp_prep : SurfPos} {nv m : Nat}
+    -- the conjunct `scripts/vslot_top_price.py` prices at ONE payer
+    (h_slot_top : sc.currentIndent ≤ (nv : Int))
+    (h_base : IndentStackBase.SentinelBase sc)
+    (h_col : sp_prep.col = nv + 1 + m)
+    (hcorr_prep : ScannerSurfCorr s_prep sp_prep)
+    (h_preprocess : scanNextToken_preprocess sc = .ok (some (s_prep, '-')))
+    (h_dispatch : scanNextToken_dispatchBlockIndicators
+        (if s_prep.allowDirectives then
+          { s_prep with allowDirectives := false, documentEverStarted := true }
+        else s_prep) '-' = .ok (some s')) :
+    s'.currentIndent ≤ ((nv + 1 + m : Nat) : Int) :=
+  indicator_top_dash_at_col h_col hcorr_prep
+    (dash_dispatch_floor h_base
+      (by have hc := hcorr_prep.col_eq; rw [← hc, h_col]; omega) h_preprocess)
+    h_dispatch
+
+/-- …and the control that makes that a real gap rather than a missing `omega`:
+    a state whose stack top is strictly RIGHT of a column exists, so nothing
+    derives the slot's floor from the slot's index alone. -/
+example : ∃ s : ScannerState, ¬ (s.currentIndent ≤ (0 : Int)) :=
+  ⟨{ ScannerState.mk' "x" with
+       indents := #[{ column := 3, isSequence := false }] }, by decide⟩
+
+end Item208
+
+/-! ### §27.3  The same claim at the RUNTIME, and the punt measured beside it
+
+`topRow` reads the pair the whole chain is about — the scanner's column and its
+indent-stack top — at every state a scan reaches, and asks the dispatch floor
+of each: `currentIndent ≤ col`.
+
+The corpus splits the way the payment does.  `paid208` is the six arms that
+carry a term; `punted208` is the compact fill, the seventh.  The invariant is
+asserted on BOTH, which is the point: the arm that punts is not punting on a
+falsehood, it is punting on a number no field states.  The seed's own `-1` is
+pinned separately, because `noPending.h_ntop` is the one payment of the six
+that is a witness rather than a reading. -/
+
+private def topStates (input : String) : List (Nat × Int) :=
+  let rec go (s : ScannerState) (fuel : Nat) (acc : List (Nat × Int)) : List (Nat × Int) :=
+    match fuel with
+    | 0 => acc.reverse
+    | fuel' + 1 =>
+      match scanNextToken s with
+      | .ok (some s') => go s' fuel' ((s'.col, s'.currentIndent) :: acc)
+      | _ => acc.reverse
+  go ((ScannerState.mk' input).emit .streamStart) 200 []
+
+/-- `(states, states whose top floors their column, the invariant)`. -/
+private def topRow (input : String) : Nat × Nat × Bool :=
+  let ts := topStates input
+  (ts.length, (ts.filter (fun t => t.2 ≤ (t.1 : Int))).length,
+   ts.all (fun t => t.2 ≤ (t.1 : Int)))
+
+-- PAID: the six arms, one shape each — the seed's `-`, the nested and landed
+-- siblings, the closed-park landing, the entry-content landing, and a landed
+-- `-` behind a marker park.
+private def paid208 : List String :=
+  ["- a\n- b\n", "- - a\n", "  - a\n  - b\n", "a: \"x\"\n- b\n",
+   "- \"x\"\n- b\n", "---\n- a\n"]
+
+#guard topRow "- a\n- b\n" == (4, 4, true)
+#guard topRow "- - a\n" == (3, 3, true)
+#guard topRow "  - a\n  - b\n" == (4, 4, true)
+#guard topRow "a: \"x\"\n- b\n" == (3, 3, true)
+#guard topRow "- \"x\"\n- b\n" == (4, 4, true)
+#guard topRow "---\n- a\n" == (3, 3, true)
+
+-- PUNTED: the compact fill of an open `[185]`/`[186]` slot, in the three
+-- shapes the arm covers.  Same invariant, no carrier.
+private def punted208 : List String :=
+  ["? - a\n: w\n", "? ? b\n: w\n", "? - a\n: - w\n"]
+
+#guard topRow "? - a\n: w\n" == (5, 5, true)
+#guard topRow "? ? b\n: w\n" == (5, 5, true)
+#guard topRow "? - a\n: - w\n" == (6, 6, true)
+
+-- …and the two dedent shapes, where the floor is least obvious and where a
+-- regression in preprocessing's unwind would show up first.
+#guard topRow "k:\n  - a\n- b\n" == (4, 4, true)
+#guard topRow "-\n  -\n- b\n" == (4, 4, true)
+
+-- The invariant over both halves — the claim that makes the punt a MISSING
+-- CARRIER rather than a false branch.
+#guard (paid208 ++ punted208).all (fun i => (topRow i).2.2)
+-- …and the division, as two numbers that cannot both drift.
+#guard paid208.length == 6
+#guard punted208.length == 3
+-- Every state of every shape floors its column: the two totals agree exactly.
+#guard (paid208 ++ punted208).all (fun i => (topRow i).1 == (topRow i).2.1)
+
+-- The seed's own reading, which is what `noPending.h_ntop` states: before the
+-- first token is scanned the indent stack is EMPTY and `currentIndent` is -1.
+#guard ((ScannerState.mk' "k:\n  - a\n- b\n").emit .streamStart).currentIndent == -1
+#guard (topStates "k:\n  - a\n- b\n").head? == some (1, -1)
 
 end L4YAML.Tests.Guards.BlockDeferralClasses

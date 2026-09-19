@@ -112,7 +112,8 @@ def apply_probe(lines, which):
     for name in sorted(targets, key=lambda n: -spans[n]):
         sig = spans[name] - 1
         assert out[sig].rstrip().endswith(") :"), out[sig]
-        out[sig] = out[sig].rstrip()[:-2].rstrip() + "\n" + PROBE + FIELD
+        out[sig : sig + 1] = [out[sig].rstrip()[:-2].rstrip(),
+                              PROBE.rstrip("\n"), FIELD]
     if which == "escape":
         idx = [i for i, l in enumerate(out) if l == ESCAPE_ANCHOR]
         assert len(idx) == 1, idx
@@ -213,13 +214,41 @@ def main():
     for raw in census:
         census[raw] = enclosing_decl(patched, raw)
 
-    print(f"\nproducer sites: {len(census)}")
+    # Item 208: an error is not a producer.  A constructor application whose
+    # arguments are `by` blocks reports one failure per broken block, which is
+    # how `noPending` read 11 for a census of 8 (`park_top_price.py`).  Anchor
+    # each error on the nearest preceding APPLICATION and print what collapsed.
+    anchors = [(i + 1, n) for i, line in enumerate(patched) for n in names
+               if f"PendingNode.{n}" in line]
+    groups, unanchored = {}, []
+    for raw in sorted(census):
+        prior = [a for a in anchors if a[0] <= raw]
+        (unanchored.append(raw) if not prior
+         else groups.setdefault(prior[-1], []).append(raw))
+
+    print(f"\nraw error sites: {len(census)}")
+    print(f"applications:    {len(groups) + len(unanchored)}   <- the producer census")
     by_decl = {}
-    for raw, decl in census.items():
-        by_decl.setdefault(decl, []).append(raw)
-    print(f"declarations:   {len(by_decl)}\n")
+    for (aline, _n), hits in groups.items():
+        by_decl.setdefault(enclosing_decl(patched, aline), []).append(hits)
+    for raw in unanchored:
+        by_decl.setdefault(census[raw], []).append([raw])
+    print(f"declarations:    {len(by_decl)}\n")
     for decl, hits in sorted(by_decl.items(), key=lambda kv: (-len(kv[1]), kv[0])):
         print(f"  {len(hits):3d}  {decl}")
+    cascaded = {a: h for a, h in groups.items() if len(h) > 1}
+    if cascaded:
+        print(f"\ncollapsed cascades "
+              f"({sum(len(h) - 1 for h in cascaded.values())} errors were not "
+              f"producers):")
+        for (aline, n), hits in sorted(cascaded.items()):
+            print(f"  L{aline}  PendingNode.{n}  <- errors at "
+                  + ", ".join(map(str, hits)))
+    if unanchored:
+        print(f"\nUNANCHORED ({len(unanchored)}): no constructor literal precedes "
+              f"these, so they are counted one-for-one and the total is a CEILING:")
+        for raw in unanchored:
+            print(f"  L{raw}  in {census[raw]}")
     if not census:
         print("  (none -- the carrier is already discharged everywhere)")
 

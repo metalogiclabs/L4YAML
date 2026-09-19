@@ -203,9 +203,11 @@ example {sc : ScannerState} {sp_start sp : SurfPos}
     (h_arm : sc.simpleKeyAllowed = true ∨ sc.inFlow = true)
     (h_nodoc : sc.inFlow = false → GStar SLDocumentPrefix sp_start sp)
     -- Item 186: and the register face, the same premise on the scanner side.
-    (h_noek : sc.inFlow = false → sc.explicitKeyLine = none) :
+    (h_noek : sc.inFlow = false → sc.explicitKeyLine = none)
+    -- Item 208: and the stack face, paid by the same split of the same eight.
+    (h_ntop : sc.inFlow = false → sc.currentIndent < 0) :
     PendingNode sc false sp_start sp sp :=
-  PendingNode.noPending sp_start sp h_col h_arm h_nodoc h_noek
+  PendingNode.noPending sp_start sp h_col h_arm h_nodoc h_noek h_ntop
 
 -- The flow producers pay exactly as before, from the one fact all seven hold.
 example {sc : ScannerState} {n : Nat} {sp_start sp : SurfPos}
