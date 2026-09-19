@@ -17404,6 +17404,27 @@ lemma dispatchBlock_colon_scanValue {s s' : ScannerState}
       exact hv
   · cases h
 
+/-- **…and its `-` branch is `scanBlockEntry`** (item 204).  A `-` reaches no
+    other branch of the dispatcher, so `.ok (some _)` forces the first one. -/
+lemma dispatchBlock_dash_scanBlockEntry {s s' : ScannerState}
+    (h : scanNextToken_dispatchBlockIndicators s '-' = .ok (some s')) :
+    scanBlockEntry s = .ok s' := by
+  unfold scanNextToken_dispatchBlockIndicators at h
+  simp only [Bind.bind, Except.bind, Pure.pure, Except.pure,
+             show (('-' : Char) == '-') = true from by decide, Bool.true_and,
+             show (('-' : Char) == '?') = false from by decide, Bool.false_and,
+             show (('-' : Char) == ':') = false from by decide,
+             Bool.false_eq_true, ite_false] at h
+  split at h
+  · split at h
+    case h_1 => cases h
+    case h_2 s1 hv =>
+      have h2 := Except.ok.inj h
+      injection h2 with h2
+      subst h2
+      exact hv
+  · cases h
+
 /-- …and its `?` branch is `scanKey`. -/
 lemma dispatchBlock_question_scanKey {s s' : ScannerState}
     (h : scanNextToken_dispatchBlockIndicators s '?' = .ok (some s')) :

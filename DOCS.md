@@ -20469,6 +20469,18 @@ refusal belongs to the `:` and not to the column.  That is an emptiness
 MEASURED, not proved, so `_stamp_compact` is recorded as a refutation TARGET
 and the wrapper stays until a proof replaces the measurement.
 
+~~A sweep of **35 937** three-line programs … and **zero** carry a compact
+one.~~  **Corrected at item 204**: the emptiness is right, the instrument was
+not.  This sweep detected the class on the program TEXT, and text cannot see a
+register being SPENT — re-run as written it reports **28 accepted hits**, every
+one a false positive whose register an intervening column-0 `:` had already
+consumed.  Read off the SCANNER STATE instead, the same domain gives **244**
+programs reaching the premise, **zero** accepted, and all 244 refused by ONE
+error (`misindentedExplicitValue`, §8.2.2 `[197]`'s own indent test).  The
+measurement is re-derivable from item 204 onwards
+(`Tests/Guards/Proofs/CompactRouteCensus.lean`), and the refutation this
+paragraph names is proved there to a single missing premise.
+
 **And the whole class is invisible to the suite.**  Zero of the 351 sources
 reaches class A at all, landed or compact.  R3's remaining domain has no
 representative in the corpus that has driven 184 items of this row, which is
@@ -23085,6 +23097,15 @@ two reasons** (`dedent` 7/5 and `noKeyContext` 6/5, possibly a phantom), the
 `pendingFlow` constructor and its arm, and only then item 183's flip order.
 And the parked Ix Step-1 composition, on the Ix track's own clock.
 
+*(Item 204 re-measured "2 sites, measured empty" before spending on it, and
+this sentence is where that count had ridden to: nineteen items from the one
+measurement at item 185, with no surviving instrument.  The emptiness HOLDS —
+244 programs reach the premise, zero are accepted, and all 244 are refused by
+one error — and item 185's own proxy, re-run, reports 28 accepted hits that are
+all false positives.  The words above are left as written and this is the
+pointer, in the shape §9 asks for: a plan sentence is re-measured before it is
+spent.  See [Item 204](#item-204-2026-09-18).)*
+
 **And the instrument's ledger, one row longer and one KIND longer.**  Five
 censuses run now — park CONSTRUCTORS (198), their APPLICATION SITES (200),
 lemma CONCLUSIONS (201), the same with a key that works (202), and INDICES
@@ -23096,6 +23117,146 @@ instrument that counts where a field appears cannot price a change to what the
 field MEANS.**  Before widening a carrier, count the occurrences of the binder
 being widened — one occurrence is a field with no reader, and a reader is what a
 widening is bought with.
+
+### Item 204 (2026-09-18)
+
+**THE COMPACT ROUTE IS REFUTABLE, AND THE REFUTATION COSTS ONE NUMBER.**  Item
+203 handed this item "**the REFUTATION** for `_stamp_compact` (2 sites, measured
+empty)".  The parenthesis was the oldest unre-derived number in the row: it was
+measured once at item 185 and then **copied forward through nineteen
+consecutive items**, and the sweep that produced it no longer existed anywhere.
+That is §10's own failure mode — *a forecast copied forward is still one
+measurement*, and *a number no instrument can re-derive is a guess* — at nearly
+three times the length of the record case item 166 set at seven.  So the
+measurement was re-run before anything was spent on the work it was attached
+to.
+
+**The emptiness holds, and the instrument that says so is a different kind of
+instrument.**  Item 185 detected the class on the program TEXT ("carries a
+compact `:`").  `Tests/Guards/Proofs/CompactRouteCensus.lean` reads the
+wrapper's own premise off the SCANNER STATE at every `:` dispatch — the three
+tests of `_h_src` negated, beside `InlineResidue`'s two (the park off column 0,
+the step crossing no break).  Over the same domain shape, a 33-fragment line
+alphabet at three lines, **35 937 programs, 8 660 accepted, 244 reach the
+compact premise and ZERO of those are accepted**.
+
+**And the refusals are ONE cause.**  All 244 die on §8.2.2 `[197]`'s own
+`s-indent(n)` test (`misindentedExplicitValue`) and on nothing else.  That
+single-cause histogram is what turns a count into a refutation target, because
+`[197]`'s test is `col = currentIndent` on the accepted path — exactly the
+equation `explicit_at_indent_of_dispatch` already reads forwards out of the
+deferral's own branch.
+
+**The syntactic proxy is not merely cruder — run as written it is WRONG.**  The
+first version of this item's instrument tested the shape on the text (a
+mid-line `?` at column x, a mid-line `:` at column x on a later line) and
+reported **28 accepted hits**.  Every one is a false positive whose register an
+intervening column-0 `:` had already consumed.  The premise lives in the state;
+the text cannot see a register being spent.  One of the 28 is pinned at
+`BlockDeferralClasses` §23.4 as the boundary row it is.
+
+**The refutation is PROVED, to exactly one premise** (§23.1,
+`compact_deferral_refuted`).  Stated over what the two sites already produce —
+`inline_residue_of_landing`'s own four arguments, the park's column, the stack
+surviving the break-less step, and `[197]`'s equation at the dispatch state —
+the geometry closes it: the park sits at `n + 1`, the step crosses only
+`s-white`, so the `:` stands at `n + 1` or right of it, while `[197]` says it
+stands at `currentIndent`.  The one thing the sites do not hold is
+`sc.currentIndent ≤ (n : Int)` — **the stack's TOP at an entry park**.
+
+**Two premises that looked expensive turned out to be free, and both for the
+same reason: a datum proved upstream and DISCARDED by its own reader.**
+`preprocess_some_ssl_comments_anyCol` proves `sc.needIndentCheck = false →
+s_prep.indents = sc.indents` and `…_landing` drops it on the floor when it
+repackages (the ninth component, bound to `_`).  And
+`ExplicitKeyCoupling.scanValue_explicit_at_indent` proves
+`s.line ≠ ekLine ∧ (s.col : Int) = s.currentIndent`, of which
+`explicit_at_indent_of_dispatch` takes `.2` and throws `.1` away.  Neither is a
+gap in the library; both are gaps in what the consumers ASK for.
+
+**`pendingBlock.h_floor` is the other half of the same number, which is why it
+could not stand in.**  `IndentFloor sc (n + 1)` unfolds to
+`n + 1 ≤ minContentIndentOf sc`, i.e. `n ≤ currentIndent` — a floor bounds the
+top from BELOW, and the refutation needs it bounded from ABOVE.  Item 179 put
+the sharp measurement on the park; it is sharp in one direction only, and §23.2
+machine-checks both halves.
+
+**The carrier is PAYABLE, and the chain is now in the library** (§23.3).
+`[183]`'s `-` pushes at its own column, so an entry park's top IS the entry's
+index: `IndentStackCover.scanBlockEntry_top_le`, added here beside
+`scanKey_top_le`, which has said the same of `[187]`'s `?` since item 147 —
+with `pushSequenceIndent_top_le` under it (`pushMappingIndent_top_le`'s twin)
+and `dispatchBlock_dash_scanBlockEntry` in front of it
+(`dispatchBlock_colon_scanValue`'s).  What a producer must supply is the
+landing floor it already reasons with.
+
+**The price, derived by the COMPILER and not by a reading.**  The carrier was
+added to `PendingNode.pendingBlock` and the module rebuilt; the error list IS
+the producer census and it is **7** — the one direction §10 allows a literal
+census to be trusted in, a constructor application having no way to hide in a
+bound variable.  Site 1's carrier rides `pendingMapValue.h_vslot` instead,
+whose tuple already states `sp_scan.col = nv + 1`; `pendingMapValue` has **6**
+producers and only the payers of that field's left disjunct owe anything.  So
+`_stamp_compact` is no longer "the stamp, or a refutation".  It is a
+REFUTATION, written down and machine-checked, waiting on one number at at most
+13 producers — the same shape `_stamp_nopack`'s carrier had at item 186, which
+items 187 and 188 then priced and began paying.  **The wrapper does not move
+this item; the uncertainty does.**
+
+**The controls, all four firing.**  The census re-pinned at
+`reachedAccepted = 1` throws.  Dropping `InlineResidue`'s conjunct alone takes
+the reach from 244 to **1 601**, the accepted count from 0 to **916** and the
+refusal histogram from one cause to **seven** — so the zero is produced by the
+mid-line requirement and not by a discriminator that never fires, and that
+916 is pinned in the census itself as a standing control rather than left to a
+reader to re-derive.  And the refutation with `h_top` removed fails with
+`omega` naming the missing constraint itself — `a - b ≤ -1` where
+`b := sc.currentIndent`, which is the carrier, printed by the compiler.
+
+**Measured at the landed state.**  Full `lake build` **1164 → 1165** jobs (the
+census module), ZERO warnings; `run-all-tests.sh` **4520/4520**; `eventscore`
+**347/358** (95 error-ok, 0 error-miss, 0 event-reject); `suiterunner`
+**869 / 0 / 151**; `matrix_score.py` over the 402-leaf data form on BOTH
+pipelines, **402/402 event** (pass 308, err-ok 94) + **282/282 JSON** (pass
+279, err-ok 3, skip 120); the `[210]` flip at **FIVE** errors at **4444, 5724,
+5747, 5916, 7458 — all UNMOVED**, predicted before the run (the only
+`StreamAccum` insertion is at ~17411, below every flip site) and confirmed,
+applied and restored with a clean rebuild (item 200's olean gotcha);
+`#print axioms` over the refutation, the three new lemmas and the two wrappers,
+no `sorryAx` (`pushSequenceIndent_top_le` is `propext` alone); checkers
+**228/355**, **20/230/249/355**, **25** capstones, and the annotation verifier
+at 100 % (211/211) with its same **19** standing name mismatches.
+
+**Counts, at `f0329415` and here, each under the recipe that produced it** —
+declarations
+`grep -rhoE "^(private )?(lemma|theorem|def|abbrev|instance|structure|inductive|class) " L4YAML`:
+**8572 → 8575** (+3: the two `IndentStackCover` lemmas and the dash accessor);
+`#guard` tokens `grep -rho "#guard" L4YAML Tests`: **8044 → 8051** (+7, §23's
+boundary rows and the census's two pins); test files
+`find Tests -name '*.lean'`: **623 → 624** (+1, the compact-route census).
+
+**What remains.**  **The CARRIER for `_stamp_compact`** — `currentIndent ≤ n` at
+the entry park — is now the whole of that class, at ≤ 13 producers with the
+payment chain already in the library; paying it deletes the wrapper, which is
+the first of the five deferral names to go since item 186 removed a site.  Then
+**`KeyPackPunt`'s two reasons** (`dedent` 7/5 and `noKeyContext` 6/5, possibly a
+phantom), the `pendingFlow` constructor and its arm, and only then item 183's
+flip order.  And the parked Ix Step-1 composition, on the Ix track's own clock.
+Still open from item 201: a census that follows a conjunct's VALUE through the
+relays that carry it, and the unattributed-site pins the 198/200/201 censuses
+still lack.
+
+**The instrument ledger, six rows now, and the sixth is the first that is not a
+census of the FILE.**  Park constructors (198), application sites (200), lemma
+conclusions (201), the same with a key that works (202), indices (203) — and
+now the RUNTIME's own state (204).  The first five read the proof; this one
+reads the machine the proof is about, which is why it could settle a question
+none of them could: whether a branch the elaborator keeps alive is a branch the
+scanner can ever enter.  **The rule this item adds: a class measured by a proxy
+is measured at the proxy's fidelity, and the only way to know that fidelity is
+to build the sharper instrument and diff them.**  Here the diff was 28 accepted
+hits against zero, and the 28 were all the proxy's.
+
 
 ### REMAINING, in order
 

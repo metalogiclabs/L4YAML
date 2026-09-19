@@ -2994,4 +2994,156 @@ the width's and not the shape's: -/
 #guard pins "?\n  k:\n    [1]: b\n   c: 2\n: w\n" == ("scan-refused L4YAML.ScanError.trailingContent 3 3", "ERR L4YAML.ScanError.trailingContent 3 3")
 #guard pins "?\n  k:\n    a: b\n    c: 2\n: w\n" == ("scan-accepted", "+STR +DOC +MAP +MAP =VAL :k +MAP =VAL :a =VAL :b =VAL :c =VAL :2 -MAP -MAP =VAL :w -MAP -DOC -STR")
 
+/-! ## §23  The COMPACT route is REFUTABLE, and the refutation costs one number
+(item 204)
+
+Item 203 handed this item "the REFUTATION for `_stamp_compact` (2 sites,
+measured empty)".  The parenthesis had ridden NINETEEN consecutive items since
+item 185, and the sweep that produced it was a syntactic proxy that no longer
+existed — §10's own failure mode, at nearly three times the length of the
+record case item 166 set.  So the measurement was re-run first, by an
+instrument that reads the wrapper's premise off the SCANNER STATE rather than
+off the program text (`CompactRouteCensus`).
+
+| what | item 185 | item 204 |
+|---|---|---|
+| domain | 35 937 three-line programs | the same shape, re-derivable |
+| how the class is detected | the program TEXT carries a compact `:` | the DISPATCH STATE has the stamp source undecided and `InlineResidue`'s premise |
+| reach the class | "1 412 carry a landed class-A `:`" | **244** |
+| accepted | **0** | **0** |
+| why | "refused, by §8.2.2 `[197]`'s indent test" | **all 244, by that one error and no other** |
+
+The syntactic proxy is not merely cruder: run as written it reports 28 accepted
+hits, every one a false positive whose register an intervening column-0 `:` had
+already consumed.  The emptiness survives, and the reason it survives is now a
+single-cause histogram rather than a count.
+
+**And the refutation is the same fact.**  `[197]`'s test is `col = currentIndent`
+on the accepted path — exactly what `explicit_at_indent_of_dispatch` reads
+forwards out of the branch.  The COMPACT geometry contradicts it: the park sits
+at `n + 1` (`pendingBlock.h_col`, `pendingMapValue.h_vslot`'s own conjunct), the
+step crosses only `s-white`, so the `:` stands at `n + 1` or right of it — while
+the stack top at an entry park is the indicator's own column `n`.  One number is
+missing from that sentence, and §23.2 is what says it is the only one. -/
+
+section Item204
+open L4YAML.Proofs.PreprocessIndentStable L4YAML.Proofs.CouplingBridge
+open L4YAML.Proofs.TabIndentBridge L4YAML.Proofs.IndentStackCover
+
+/-! ### §23.1  The refutation, PROVED — to exactly one premise
+
+Stated over what the two sites already produce: `inline_residue_of_landing`'s
+own four arguments, the park's column, the stack surviving the break-less step,
+and `explicit_at_indent_of_dispatch`'s equation at the dispatch state.  The one
+premise the sites do NOT hold is `h_top`. -/
+
+lemma compact_deferral_refuted {sc s_prep : ScannerState}
+    {sp_scan sp_mid sp_ws sp_p : SurfPos} {n : Nat} {c : Char}
+    (h_mid : sp_mid = sp_scan ∧ sp_scan.col ≠ 0)
+    (hws : GStar SSWhite sp_mid sp_ws)
+    (h_pk : sp_p = sp_ws ∨ s_prep.peek? = none)
+    (hcorr : ScannerSurfCorr s_prep sp_p)
+    (hpeek : s_prep.peek? = some c)
+    -- the park's own column: the entry index plus the indicator
+    (h_col_old : sp_scan.col = n + 1)
+    -- the break-less step: `preprocess_some_ssl_comments_anyCol` PROVES this and
+    -- `…_landing` drops it on the floor when it repackages (item 204's second
+    -- finding — a datum proved upstream and discarded by its own reader, which
+    -- is what `explicit_at_indent_of_dispatch` does to `s.line ≠ ekLine`)
+    (h_stable : s_prep.indents = sc.indents)
+    -- **THE CARRIER, and the whole price of this class**
+    (h_top : sc.currentIndent ≤ (n : Int))
+    (h_indent : ((if s_prep.allowDirectives then
+        { s_prep with allowDirectives := false, documentEverStarted := true }
+      else s_prep).col : Int) = (if s_prep.allowDirectives then
+        { s_prep with allowDirectives := false, documentEverStarted := true }
+      else s_prep).currentIndent) : False := by
+  have h_eq : sp_p = sp_ws := h_pk.resolve_right (by simp [hpeek])
+  have h_upd_col : (if s_prep.allowDirectives then
+      { s_prep with allowDirectives := false, documentEverStarted := true }
+    else s_prep).col = s_prep.col := by split <;> rfl
+  have h_upd_ind : (if s_prep.allowDirectives then
+      { s_prep with allowDirectives := false, documentEverStarted := true }
+    else s_prep).indents = s_prep.indents := by split <;> rfl
+  rw [h_upd_col, currentIndent_of_indents_eq h_upd_ind] at h_indent
+  obtain ⟨ws, _, _, hcol⟩ := gstar_sswhite_run (h_mid.1 ▸ hws)
+  have h1 : sp_p.col = s_prep.col := hcorr.col_eq
+  have h2 : s_prep.currentIndent = sc.currentIndent :=
+    currentIndent_of_indents_eq h_stable
+  rw [h_eq] at h1
+  omega
+
+/-! ### §23.2  The carrier is LOAD-BEARING
+
+Without `h_top` the arithmetic is satisfiable, so the remaining premises do not
+refute anything: at `currentIndent = n + 1` the park's column, the white run and
+`[197]`'s equation all hold together.  This is the price stated as a model
+rather than as a failed search — a `fail_if_success` here would only report that
+one tactic did not find a proof. -/
+
+example : ¬ (∀ (ci : Int) (col n : Nat),
+    col = n + 1 → (col : Int) = ci → (n : Int) ≤ ci → False) := by
+  intro h; exact h 1 1 0 rfl rfl (by decide)
+
+/-- …and `pendingBlock.h_floor` is the OTHER half of the same number, which is
+    why it cannot stand in: a floor bounds the top from BELOW. -/
+example {sc : ScannerState} {n : Nat} (h : IndentFloor sc (n + 1))
+    (h_nonneg : (0 : Int) ≤ sc.currentIndent) : (n : Int) ≤ sc.currentIndent := by
+  obtain ⟨_, h2⟩ := h
+  unfold minContentIndentOf at h2
+  omega
+
+/-! ### §23.3  The carrier is PAYABLE, and this is the chain
+
+`[183]`'s `-` pushes at its own column, so an entry park's top IS the entry's
+index — `scanBlockEntry_top_le`, item 204's addition to `IndentStackCover`,
+beside `scanKey_top_le` which has said the same of `[187]`'s `?` since item 147.
+What a producer must supply is the landing floor it already reasons with. -/
+
+example {s_dis s' : ScannerState} {n : Nat}
+    (h_noflow : s_dis.inFlow = false)
+    (h_dispatch : scanNextToken_dispatchBlockIndicators s_dis '-' = .ok (some s'))
+    (h_col : s_dis.col = n)
+    (h_floor : s_dis.currentIndent ≤ (s_dis.col : Int)) :
+    s'.currentIndent ≤ (n : Int) := by
+  have := scanBlockEntry_top_le h_noflow
+    (dispatchBlock_dash_scanBlockEntry h_dispatch) h_floor
+  rw [h_col] at this; exact this
+
+end Item204
+
+/-! ### §23.4  The price, derived by the COMPILER
+
+The carrier was added to `PendingNode.pendingBlock` and the module rebuilt; the
+error list IS the producer census, and it is **7** — the same seven a grep for
+the constructor finds, which is the one direction §10 warns a literal census can
+still be trusted in (a constructor application cannot hide in a bound variable).
+Site 1's carrier rides `pendingMapValue.h_vslot` instead, whose own tuple
+already states `sp_scan.col = nv + 1`; `pendingMapValue` has **6** producers, of
+which only the payers of that field's LEFT disjunct owe anything.
+
+So `_stamp_compact` is not "the stamp, or a refutation" any more.  It is a
+REFUTATION, written above, waiting on one number at ≤ 13 producers — the same
+shape `_stamp_nopack`'s carrier had at item 186, which items 187 and 188 then
+priced and began paying.  What this item removes is the uncertainty, not the
+wrapper: the class's emptiness is re-derivable, its cause is one error, its
+refutation is machine-checked, and its remaining cost is counted rather than
+estimated.
+
+**The boundary**, re-pinned at the current runtime — the compact shape at three
+depths, refused by `[197]`'s test, and the `?`/`-` neighbours at the identical
+coordinate that are accepted (so the refusal belongs to the `:`): -/
+
+#guard pins "- ? a\n- : b\n" == ("scan-refused L4YAML.ScanError.misindentedExplicitValue 1 2 0", "ERR L4YAML.ScanError.misindentedExplicitValue 1 2 0")
+#guard pins "- - ? a\n- - : b\n" == ("scan-refused L4YAML.ScanError.misindentedExplicitValue 1 4 2", "ERR L4YAML.ScanError.misindentedExplicitValue 1 4 2")
+#guard pins "- ? a\n- ? b\n" == ("scan-accepted", "+STR +DOC +SEQ +MAP =VAL :a =VAL : -MAP +MAP =VAL :b =VAL : -MAP -SEQ -DOC -STR")
+#guard pins "- ? a\n- - b\n" == ("scan-accepted", "+STR +DOC +SEQ +MAP =VAL :a =VAL : -MAP +SEQ =VAL :b -SEQ -SEQ -DOC -STR")
+
+/-! …and one of the 28 the census's own first version mistook for the class.
+The text carries a mid-line `?` and a later mid-line `:` at the same column, so
+the syntactic proxy counted it; the STATE does not reach the premise at any
+step, and the program is accepted. -/
+
+#guard pins "- ? b\n: a\n- : b\n" == ("scan-accepted", "+STR +DOC +SEQ +MAP =VAL :b =VAL : -MAP -SEQ -DOC +DOC =VAL : -DOC -STR")
+
 end L4YAML.Tests.Guards.BlockDeferralClasses

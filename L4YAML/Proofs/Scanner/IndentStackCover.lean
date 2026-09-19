@@ -864,4 +864,30 @@ lemma covered_nil_of_top_le {s : ScannerState} {c : Nat}
   have hc : ((c : Int) + 1) ≤ e.column := by exact_mod_cast hlo
   omega
 
+/-- **A SEQUENCE push cannot leave the top right of the column it pushed at**
+    (item 204) — `pushMappingIndent_top_le`'s twin on the other opener.  Either
+    the push happened and the top IS that column, or it did not and the top is
+    the one the landing already floored. -/
+lemma pushSequenceIndent_top_le {s : ScannerState} {col : Int}
+    (h_floor : s.currentIndent ≤ col) :
+    (pushSequenceIndent s col).currentIndent ≤ col := by
+  unfold pushSequenceIndent
+  split
+  · show (({ (s.emit .blockSequenceStart) with
+      indents := (s.emit .blockSequenceStart).indents.push
+        { column := col, isSequence := true } } : ScannerState)).currentIndent ≤ col
+    simp [ScannerState.currentIndent]
+  · exact h_floor
+
+/-- **`[183]`'s `-` opens at its OWN column, so the landing's floor survives
+    it** (item 204) — `scanKey_top_le`'s twin.  This is the upper bound the
+    entry parks owed: `pendingBlock.h_floor` says the stack reaches DOWN to the
+    entry's index, and this says it reaches no FURTHER RIGHT, which together
+    pin the top at the indicator's column. -/
+lemma scanBlockEntry_top_le {s s' : ScannerState} (h_noflow : s.inFlow = false)
+    (hok : scanBlockEntry s = .ok s') (h_floor : s.currentIndent ≤ (s.col : Int)) :
+    s'.currentIndent ≤ (s.col : Int) := by
+  rw [currentIndent_of_indents_eq (scanBlockEntry_indents h_noflow hok)]
+  exact pushSequenceIndent_top_le h_floor
+
 end L4YAML.Proofs.IndentStackCover

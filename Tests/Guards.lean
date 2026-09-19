@@ -7,6 +7,7 @@ import Tests.Guards.Proofs.ConclusionCensus
 import Tests.Guards.Proofs.ContentParkColumn
 import Tests.Guards.Proofs.DescendIHProjectionProbe
 import Tests.Guards.Proofs.DumpRoundTrip
+import Tests.Guards.Proofs.CompactRouteCensus
 import Tests.Guards.Proofs.EndToEndCorrectness
 import Tests.Guards.Proofs.EscapeResolution
 import Tests.Guards.Proofs.FoldNewlines
