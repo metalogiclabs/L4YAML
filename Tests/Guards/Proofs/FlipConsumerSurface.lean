@@ -134,14 +134,27 @@ def deferral : List Name :=
    -- Both of its sites are now `compact_deferral_refuted … |>.elim`.
    `block_dispatch_deferred_inline]
 
-/-- What empties the inline-residue class: the implicit-key pack's two
-    surviving punt reasons (item 102 — the mid-line `:` composes whenever
-    `colon_fires_implicit_key` gets a pack, so the residue IS the punt).  The
-    other two reasons are refuted at their consumers and have no producer
-    left.  `keyPackPunt_transport` is skipped for the same reason the wrappers
-    are: it re-WRITES a reason it was handed rather than spending one. -/
+/-- What empties the inline-residue class: the implicit-key pack's punt
+    reasons (item 102 — the mid-line `:` composes whenever
+    `colon_fires_implicit_key` gets a pack, so the residue IS the punt).
+
+    ~~The other two reasons are refuted at their consumers and have no producer
+    left.~~  **Item 211: neither half holds, and this lane's own walk says so
+    the moment it is asked.**  `tab` is produced twice
+    (`entryKeyPack_of_dispatch`, `entryPropsKeyPack_of_dispatch`) and
+    `implicitValue` three times.  And they are refuted at ONE consumer rather
+    than at their consumers: at `colon_fires_props_key` the `tab` arm RIDES the
+    caller's deferral exactly as `dedent` and `noKeyContext` do — three
+    unconditionally, and `implicitValue` on its break branch besides — so the
+    inline class has at least THREE surviving reasons there and two at its
+    sibling.  The lane
+    counts all four now, which is what it would have had to do to see either.
+
+    `keyPackPunt_transport` is skipped for the same reason the wrappers are: it
+    re-WRITES a reason it was handed rather than spending one. -/
 def packPunt : List Name :=
-  [`KeyPackPunt.dedent, `KeyPackPunt.noKeyContext]
+  [`KeyPackPunt.tab, `KeyPackPunt.dedent,
+   `KeyPackPunt.implicitValue, `KeyPackPunt.noKeyContext]
 
 /-- One census: the targets counted, and the definitions where the term is
     WRITTEN rather than spent, excluded. -/
@@ -365,7 +378,35 @@ sits INSIDE `accum_block_pending`, which the field already reached on the slot
 lane twenty lines away.  A declaration census answers "which proofs read this
 field", not "which of their lanes do"; a lane that was never served is
 indistinguishable in it from one that was.  The payment's reach is §14's
-membership arithmetic, not this count. -/
+membership arithmetic, not this count.
+
+Item 211 asked this lane for the one number the campaign had been carrying by
+hand — `dedent` 7 sites in 5 declarations and `noKeyContext` 6 in 5, item 184's
+reading, copied verbatim through twenty-two NEXT lists — and BOTH reproduce,
+row for row, at every build since.  Three things around them do not.
+
+**The lane's own ground was wrong.**  It counted two of four reasons because the
+other two "have no producer left"; asked for all four, the same walk reads `tab`
+at 2 productions and `implicitValue` at 3.  A census restricted on a claim it is
+itself able to test is a census that cannot correct its author.
+
+**The two instruments agree on the two reasons that were measured and not on
+the third.**  `scripts/punt_reason_price.py` is item 184's other half as an
+artifact — delete a constructor, build, group by declaration.  It reads `dedent`
+7/5 and `noKeyContext` 6/5, agreeing; it reads `tab` at **7** where this lane
+reads **5**, because `tab` is written `refine Or.inr (KeyPackPunt.tab ?_ ...)`
+and the orphaned goal is a second error at each of its two productions.  Item
+189 wrote the reason down in passing — "a `match` costs more to break than an
+`Or.inr trivial`" — and never matched it to the agreement item 184 had recorded.
+
+**And the number's UNIT glues two kinds of site.**  `dedent`'s 7 is 4
+PRODUCTIONS and 3 CONSUMER ARMS; `noKeyContext`'s 6 is 3 and 3.  A production
+hands the reason over and is emptied by a proof about the input; a consumer arm
+is the `cases` label that spends it, and it goes when the last production does.
+What R3 has to pay is seven productions, not thirteen sites — and this lane
+cannot make that split, because an application is an application.
+`punt_reason_price.py split` does, from the source, against this lane's own
+site list. -/
 
 /-! ## The gate
 
@@ -393,12 +434,12 @@ All three lanes, in one walk of the module. -/
         -- the type's own generated eliminators, which mention every
         -- constructor by construction and spend none
         ns ++ `KeyPackPunt.casesOn, ns ++ `KeyPackPunt.recOn]⟩,
-      ["accum_flow_open_depth0: KeyPackPunt.dedent=1 KeyPackPunt.noKeyContext=1",
-       "colon_fires_implicit_key: KeyPackPunt.dedent=1 KeyPackPunt.noKeyContext=1",
-       "colon_fires_props_key: KeyPackPunt.dedent=1 KeyPackPunt.noKeyContext=1",
+      ["accum_flow_open_depth0: KeyPackPunt.tab=1 KeyPackPunt.dedent=1 KeyPackPunt.implicitValue=1 KeyPackPunt.noKeyContext=1",
+       "colon_fires_implicit_key: KeyPackPunt.tab=1 KeyPackPunt.dedent=1 KeyPackPunt.implicitValue=1 KeyPackPunt.noKeyContext=1",
+       "colon_fires_props_key: KeyPackPunt.tab=1 KeyPackPunt.dedent=1 KeyPackPunt.implicitValue=1 KeyPackPunt.noKeyContext=1",
        "content_dispatch_routed: KeyPackPunt.noKeyContext=2",
-       "entryKeyPack_of_dispatch: KeyPackPunt.dedent=2",
-       "entryPropsKeyPack_of_dispatch: KeyPackPunt.dedent=2",
-       "flowKeyPack_of_close: KeyPackPunt.noKeyContext=1"]⟩]
+       "entryKeyPack_of_dispatch: KeyPackPunt.tab=1 KeyPackPunt.dedent=2 KeyPackPunt.implicitValue=1",
+       "entryPropsKeyPack_of_dispatch: KeyPackPunt.tab=1 KeyPackPunt.dedent=2 KeyPackPunt.implicitValue=1",
+       "flowKeyPack_of_close: KeyPackPunt.implicitValue=1 KeyPackPunt.noKeyContext=1"]⟩]
 
 end L4YAML.Tests.Guards.FlipConsumerSurface

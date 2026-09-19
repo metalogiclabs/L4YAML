@@ -51,7 +51,21 @@ runtime observation can say that.
   the mask's base slot; see `ScannerFlowCloseSameLineKey`.  What keeps the name
   is a frame with no route at all, and its complement is what is pinnable: where
   item 56's frame does carry a route, the closed flow collection reads as
-  `[194]`'s JSON key. -/
+  `[194]`'s JSON key.
+* §5 **the phantom question, asked where the reason is BUILT** (item 211).
+  Item 184 recorded `noKeyContext` as having no named input, "which by R646 is
+  the signature of a branch that may be a phantom", and the note rode
+  twenty-two NEXT lists unexamined.  `scripts/punt_reason_price.py reaches`
+  asks it at the production instead:
+  `content_dispatch_routed` reaches the punt only when FIVE optional contexts
+  decline at once, and of its eight applications exactly ONE does — the `---`
+  park's mid-line dispatch — while SEVEN relay their own `h_keyctx` to their
+  callers.  The one that declines is the park whose implicit-key class the
+  scanner refuses outright, which is what the rows below pin.  At
+  `flowKeyPack_of_close` the question moves down a construct again: both
+  callers pay with `close_col_of_base` and `resume.key`, and each of those
+  carries the same `∨ True`.  So the doubt was right and its reason was not —
+  the branch is not missing an input, it is behind a RELAY. -/
 
 namespace L4YAML.Tests.Guards.ScannerKeyPackPunt
 
@@ -143,5 +157,28 @@ private def tabAt (input : String) : Option (Nat × Nat) :=
 #guard emits "{a: 1} : b\n"
   ["+STR", "+DOC", "+MAP", "+MAP {}", "=VAL :a", "=VAL :1", "-MAP", "=VAL :b",
    "-MAP", "-DOC", "-STR"]
+
+-- §5 The one application that declines every context is the `---` park's, and
+-- the class it would need is refused by the scanner: the marker's OWN line
+-- takes no implicit key (item 43), while the landed line after it does (item
+-- 137).  Both halves are pinned, because only the pair says the branch is
+-- narrow rather than empty.
+private def docStartRefusal (input : String) : Option (Nat × Nat) :=
+  match Events.streamToEvents input, Events.streamToEventsIx input with
+  | .error (.contentOnDocumentStartLine l c),
+    .error (.contentOnDocumentStartLine l' c') =>
+      if l == l' && c == c' then some (l, c) else none
+  | _, _ => none
+
+#guard emits "--- a\n" ["+STR", "+DOC ---", "=VAL :a", "-DOC", "-STR"]
+#guard docStartRefusal "--- a: 1\n" == some (0, 5)
+-- and the spaced form the deferral would have had to carry too (item 43)
+#guard docStartRefusal "--- a : b\n" == some (0, 6)
+-- the landed line, where the marker's mapping route IS paid
+#guard emits "---\na: 1\n"
+  ["+STR", "+DOC ---", "+MAP", "=VAL :a", "=VAL :1", "-MAP", "-DOC", "-STR"]
+-- The refusal is the document-start line's, not the key's: move the same key
+-- one document on and it reads.
+#guard docStartRefusal "a: 1\n" == none
 
 end L4YAML.Tests.Guards.ScannerKeyPackPunt

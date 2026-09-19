@@ -20314,6 +20314,25 @@ re-derivable at every future item rather than remembered from this one.
 than a construct"), which by R646 is the signature of a branch that may be a
 phantom; `dedent`'s is `k:⏎  :⏎b: 2`.
 
+> **Corrected at item 211, three ways, and the two numbers are not among them.**
+> Both reproduce — `dedent` 7/5 and `noKeyContext` 6/5, under the environment
+> census at every build and under the deletion patch, now
+> `scripts/punt_reason_price.py`.  (1) The two instruments agree on these two
+> reasons and not on a third: `tab` reads **5** applications and **7** errors,
+> because it is written `refine Or.inr (KeyPackPunt.tab ?_ …)` and the orphaned
+> goal is a second error at each production.  So "agreeing row for row" is a
+> fact about the two reasons measured, not about the method — item 189 wrote
+> the reason down in passing and never matched it to this sentence.  (2) The
+> UNIT glues two kinds of site: `dedent`'s 7 is 4 PRODUCTIONS and 3 CONSUMER
+> ARMS, `noKeyContext`'s 6 is 3 and 3, and what R3 has to pay is the seven
+> productions.  (3) The phantom reading is refuted at the production and
+> replaced by a sharper one: `content_dispatch_routed` reaches the punt only
+> when FIVE optional contexts decline at once, and of its eight applications
+> exactly ONE does — the `---` park, whose key class the scanner refuses
+> (`--- a: 1` = `contentOnDocumentStartLine`, item 43) — while SEVEN relay
+> their own `h_keyctx`.  The branch is not missing an input; it is behind a
+> RELAY, which is item 201's open census.
+
 **Class C — `pendingFlow`'s own arm, ONE** — the escape's self-perpetuation,
 which item 35's structural note already said goes with the constructor.
 
@@ -21033,7 +21052,7 @@ landing inside a key, and the content-lane routes item 189 measured nothing
 about and left punting at four sites (`accum_block_on_pendingContent`,
 `…_pendingBlockContent`, `…_pendingBlock` twice).  Then **the REFUTATION** for
 `_stamp_compact` (2 sites, measured empty), **`KeyPackPunt`'s two reasons**
-(`dedent` 7/5 and `noKeyContext` 6/5, possibly a phantom), then the
+(`dedent` 7/5 and `noKeyContext` 6/5, possibly a phantom — see item 211), then the
 `pendingFlow` constructor and its arm.  Only then item 183's flip order — the
 two REFUTABLE halves at the flow open, the three MISSING ROUTES, the flip.  And
 the parked Ix Step-1 composition, on the Ix track's own clock.
@@ -21151,8 +21170,7 @@ a landing two or more frames above the park — measured, accepted, and needing 
 LIST rather than a field (**paid at [item 191](#item-191-2026-09-17)**) — plus
 the flow-open relay the instrument named.  Then
 **the REFUTATION** for `_stamp_compact` (2 sites, measured empty),
-**`KeyPackPunt`'s two reasons** (`dedent` 7/5 and `noKeyContext` 6/5, possibly a
-phantom), then the `pendingFlow` constructor and its arm.  Only then item 183's
+**`KeyPackPunt`'s two reasons** (`dedent` 7/5 and `noKeyContext` 6/5, possibly a phantom — see item 211), then the `pendingFlow` constructor and its arm.  Only then item 183's
 flip order — the two REFUTABLE halves at the flow open, the three MISSING
 ROUTES, the flip.  And the parked Ix Step-1 composition, on the Ix track's own
 clock.
@@ -21278,7 +21296,7 @@ reach — then the **mapping lane's own chain** (`h_kslot` + `explFrameValueLine
 `h_vpackUp`, whose residue `?⏎  ?⏎    ?⏎: w` is measured and accepted), then the
 three PROPS-lane content producers.  Then **the REFUTATION** for
 `_stamp_compact` (2 sites, measured empty), **`KeyPackPunt`'s two reasons**
-(`dedent` 7/5 and `noKeyContext` 6/5, possibly a phantom), then the
+(`dedent` 7/5 and `noKeyContext` 6/5, possibly a phantom — see item 211), then the
 `pendingFlow` constructor and its arm.  Only then item 183's flip order — the
 two REFUTABLE halves at the flow open, the three MISSING ROUTES, the flip.  And
 the parked Ix Step-1 composition, on the Ix track's own clock.
@@ -21430,7 +21448,7 @@ parks (`pendingContent`, `pendingBlockContent`) take a shared skeleton with no
 landing nothing.  That is a lane rather than a field and should be measured
 before it is priced.  Then **the REFUTATION** for `_stamp_compact` (2 sites,
 measured empty), **`KeyPackPunt`'s two reasons** (`dedent` 7/5 and
-`noKeyContext` 6/5, possibly a phantom), then the `pendingFlow` constructor and
+`noKeyContext` 6/5, possibly a phantom — see item 211), then the `pendingFlow` constructor and
 its arm.  Only then item 183's flip order.  And the parked Ix Step-1
 composition, on the Ix track's own clock.
 
@@ -21580,7 +21598,7 @@ producers, and `main`'s flow-open lane, which carries no value route at all
 unmeasured).  Then the compact/INLINE arm of `accum_block_on_pendingBlock`,
 named by this item and not measured by it.  Then **the REFUTATION** for
 `_stamp_compact` (2 sites, measured empty), **`KeyPackPunt`'s two reasons**
-(`dedent` 7/5 and `noKeyContext` 6/5, possibly a phantom), then the `pendingFlow`
+(`dedent` 7/5 and `noKeyContext` 6/5, possibly a phantom — see item 211), then the `pendingFlow`
 constructor and its arm.  Only then item 183's flip order.  And the parked Ix
 Step-1 composition, on the Ix track's own clock.
 
@@ -21710,8 +21728,7 @@ value route at all (`pendingContent`, `pendingBlockContent` — a LANE, not a
 field, and still unmeasured).  Then the compact/INLINE arm of
 `accum_block_on_pendingBlock`, named by item 193 and measured by neither.  Then
 **the REFUTATION** for `_stamp_compact` (2 sites, measured empty),
-**`KeyPackPunt`'s two reasons** (`dedent` 7/5 and `noKeyContext` 6/5, possibly a
-phantom), then the `pendingFlow` constructor and its arm.  Only then item 183's
+**`KeyPackPunt`'s two reasons** (`dedent` 7/5 and `noKeyContext` 6/5, possibly a phantom — see item 211), then the `pendingFlow` constructor and its arm.  Only then item 183's
 flip order.  And the parked Ix Step-1 composition, on the Ix track's own clock.
 
 ### Item 195 (2026-09-18)
@@ -21857,8 +21874,7 @@ three PROPS-lane content producers, and `main`'s flow-open lane (`pendingContent
 `pendingBlockContent` — a LANE, not a field, still unmeasured).  Then the
 compact/INLINE arm of `accum_block_on_pendingBlock`, measured by none of 193–195.
 Then **the REFUTATION** for `_stamp_compact` (2 sites, measured empty),
-**`KeyPackPunt`'s two reasons** (`dedent` 7/5 and `noKeyContext` 6/5, possibly a
-phantom), then the `pendingFlow` constructor and its arm.  Only then item 183's
+**`KeyPackPunt`'s two reasons** (`dedent` 7/5 and `noKeyContext` 6/5, possibly a phantom — see item 211), then the `pendingFlow` constructor and its arm.  Only then item 183's
 flip order.  And the parked Ix Step-1 composition, on the Ix track's own clock.
 
 ### Item 196 (2026-09-18)
@@ -22021,8 +22037,7 @@ content producers, and `main`'s flow-open lane (`pendingContent`,
 `pendingBlockContent` — a LANE, not a field, still unmeasured).  Then the
 compact/INLINE arm of `accum_block_on_pendingBlock`, measured by none of 193–196.
 Then **the REFUTATION** for `_stamp_compact` (2 sites, measured empty),
-**`KeyPackPunt`'s two reasons** (`dedent` 7/5 and `noKeyContext` 6/5, possibly a
-phantom), then the `pendingFlow` constructor and its arm.  Only then item 183's
+**`KeyPackPunt`'s two reasons** (`dedent` 7/5 and `noKeyContext` 6/5, possibly a phantom — see item 211), then the `pendingFlow` constructor and its arm.  Only then item 183's
 flip order.  And the parked Ix Step-1 composition, on the Ix track's own clock.
 
 **And one thing this item did NOT do**, named so it is not rediscovered as a
@@ -22156,8 +22171,7 @@ three PROPS-lane content producers, and `main`'s flow-open lane (`pendingContent
 `pendingBlockContent` — a LANE, not a field, still unmeasured).  Then the
 compact/INLINE arm of `accum_block_on_pendingBlock`, measured by none of 193–197.
 Then **the REFUTATION** for `_stamp_compact` (2 sites, measured empty),
-**`KeyPackPunt`'s two reasons** (`dedent` 7/5 and `noKeyContext` 6/5, possibly a
-phantom), then the `pendingFlow` constructor and its arm.  Only then item 183's
+**`KeyPackPunt`'s two reasons** (`dedent` 7/5 and `noKeyContext` 6/5, possibly a phantom — see item 211), then the `pendingFlow` constructor and its arm.  Only then item 183's
 flip order.  And the parked Ix Step-1 composition, on the Ix track's own clock.
 
 **And a THIRD site of the same shape, named so it is not rediscovered.**
@@ -22323,7 +22337,7 @@ and the `? - a` inline fill, neither measured.  Then `main`'s flow-open lane
 (`pendingContent`, `pendingBlockContent` — a LANE, not a field, still
 unmeasured).  Then **the REFUTATION** for `_stamp_compact` (2 sites, measured
 empty), **`KeyPackPunt`'s two reasons** (`dedent` 7/5 and `noKeyContext` 6/5,
-possibly a phantom), then the `pendingFlow` constructor and its arm.  Only then
+possibly a phantom — see item 211), then the `pendingFlow` constructor and its arm.  Only then
 item 183's flip order.  And the parked Ix Step-1 composition, on the Ix track's
 own clock.
 
@@ -22440,7 +22454,7 @@ lemma holds which) and the `? - a` inline fill, neither measured.  Then
 `main`'s flow-open lane (`pendingContent`, `pendingBlockContent` — a LANE, not a
 field, still unmeasured).  Then **the REFUTATION** for `_stamp_compact` (2
 sites, measured empty), **`KeyPackPunt`'s two reasons** (`dedent` 7/5 and
-`noKeyContext` 6/5, possibly a phantom), then the `pendingFlow` constructor and
+`noKeyContext` 6/5, possibly a phantom — see item 211), then the `pendingFlow` constructor and
 its arm.  Only then item 183's flip order.  And the parked Ix Step-1
 composition, on the Ix track's own clock.
 
@@ -22586,8 +22600,7 @@ sites can and cannot pay, and says nothing about the rest of the lane.
 shared landing those two parks go through punts it, and for a reason that is the
 PARK's shape rather than a missing field.**  Then
 **the REFUTATION** for `_stamp_compact` (2 sites, measured empty),
-**`KeyPackPunt`'s two reasons** (`dedent` 7/5 and `noKeyContext` 6/5, possibly a
-phantom), then the `pendingFlow` constructor and its arm.  Only then item 183's
+**`KeyPackPunt`'s two reasons** (`dedent` 7/5 and `noKeyContext` 6/5, possibly a phantom — see item 211), then the `pendingFlow` constructor and its arm.  Only then item 183's
 flip order.  And the parked Ix Step-1 composition, on the Ix track's own clock.
 
 **The open instrument is unchanged, and now has a second name.**  Both censuses
@@ -22770,7 +22783,7 @@ error.  The genuine count was TWO** — with the recorded reason *both arms'
 routes end in the closed stream*, a claim about the file, of exactly the kind
 items 197–201 have now found stale four times, and unmeasured.  Then **the REFUTATION** for `_stamp_compact` (2
 sites, measured empty), **`KeyPackPunt`'s two reasons** (`dedent` 7/5 and
-`noKeyContext` 6/5, possibly a phantom), then the `pendingFlow` constructor and
+`noKeyContext` 6/5, possibly a phantom — see item 211), then the `pendingFlow` constructor and
 its arm.  Only then item 183's flip order.  And the parked Ix Step-1
 composition, on the Ix track's own clock.
 
@@ -22929,7 +22942,7 @@ plus three carriers that state the field in a `def` body.  The repair was one
 binder, on the premise rather than the conjunct: see
 [Item 203](#item-203-2026-09-18).  Then **the REFUTATION** for `_stamp_compact` (2 sites, measured
 empty), **`KeyPackPunt`'s two reasons** (`dedent` 7/5 and `noKeyContext` 6/5,
-possibly a phantom), then the `pendingFlow` constructor and its arm.  Only then
+possibly a phantom — see item 211), then the `pendingFlow` constructor and its arm.  Only then
 item 183's flip order.  And the parked Ix Step-1 composition, on the Ix track's
 own clock.
 
@@ -23093,7 +23106,7 @@ landing's own column, which is what items 190–192 built for the pair lane in
 the same order.  The sequence lane's 9 bottom indices are in the identical
 position and priced the same way.  Then, unchanged from item 202: **the
 REFUTATION** for `_stamp_compact` (2 sites, measured empty), **`KeyPackPunt`'s
-two reasons** (`dedent` 7/5 and `noKeyContext` 6/5, possibly a phantom), the
+two reasons** (`dedent` 7/5 and `noKeyContext` 6/5, possibly a phantom — see item 211), the
 `pendingFlow` constructor and its arm, and only then item 183's flip order.
 And the parked Ix Step-1 composition, on the Ix track's own clock.
 
@@ -23254,8 +23267,7 @@ sites across 20 declarations (item 205's measurement, and it does not close)**
 with the payment chain already in the library; paying it deletes the wrapper,
 which is the first of the five deferral names to go since item 186 removed a
 site.  Then
-**`KeyPackPunt`'s two reasons** (`dedent` 7/5 and `noKeyContext` 6/5, possibly a
-phantom), the `pendingFlow` constructor and its arm, and only then item 183's
+**`KeyPackPunt`'s two reasons** (`dedent` 7/5 and `noKeyContext` 6/5, possibly a phantom — see item 211), the `pendingFlow` constructor and its arm, and only then item 183's
 flip order.  And the parked Ix Step-1 composition, on the Ix track's own clock.
 Still open from item 201: a census that follows a conjunct's VALUE through the
 relays that carry it, and the unattributed-site pins the 198/200/201 censuses
@@ -23433,7 +23445,7 @@ paid there and is no longer ahead of anything; the remaining ring is
 arm remain a prerequisite of item 183's flip order, for item 183's OWN reason
 (`CompletedTail` is false at that park), which this item does not touch.
 Unchanged behind that: **`KeyPackPunt`'s two reasons** (`dedent` 7/5,
-`noKeyContext` 6/5, possibly a phantom), item 183's flip order, and the parked
+`noKeyContext` 6/5, possibly a phantom — see item 211), item 183's flip order, and the parked
 Ix Step-1 composition on the Ix track's own clock.  Still open from item 201: a
 census that follows a conjunct's VALUE through the relays that carry it, and
 the unattributed-site pins the 198/200/201 censuses still lack.
@@ -23590,7 +23602,7 @@ structural), and of those sixteen `content_park_nic_any` pays thirteen — the
 other three keep item 154's narrower term.  The forecast counted parks and read
 off a dispatcher; the split is 13 / 3 / 5.  After that ring: the ~~12~~ landing sites, the 7 producers of
 item 205, and the wrapper goes.  Unchanged behind it: **`KeyPackPunt`'s two
-reasons** (`dedent` 7/5, `noKeyContext` 6/5, possibly a phantom), item 183's
+reasons** (`dedent` 7/5, `noKeyContext` 6/5, possibly a phantom — see item 211), item 183's
 flip order, and the parked Ix Step-1 composition on the Ix track's own clock.
 Still open from item 201: a census that follows a conjunct's VALUE through the
 relays that carry it, and the unattributed-site pins the 198/200/201 censuses
@@ -23750,7 +23762,7 @@ deletes the two `_stamp_compact` sites.  **Measured at
 [item 208](#item-208-2026-09-19): the 7 reproduces, `noPending`'s 8 is right
 and was never an instrument's until now (the raw census reads 11), and six of
 the seven are PAID.**  After that: the wrapper's remaining classes, **`KeyPackPunt`'s two reasons** (`dedent` 7/5,
-`noKeyContext` 6/5, possibly a phantom), item 183's flip order, and the parked
+`noKeyContext` 6/5, possibly a phantom — see item 211), item 183's flip order, and the parked
 Ix Step-1 composition on the Ix track's own clock.  Still open from item 201: a
 census that follows a conjunct's VALUE through the relays that carry it, and
 the unattributed-site pins the 198/200/201 censuses still lack.
@@ -23882,7 +23894,7 @@ premise on the six `*_open_map` lemmas whose own ring is NOT yet measured —
 that census is item 209's first act, not its assumption.  Making
 `h_park_top` required is what lets the compact refutation fire.  After that:
 the ~~12~~ landing sites and the wrapper goes; then **`KeyPackPunt`'s two reasons**
-(`dedent` 7/5, `noKeyContext` 6/5, possibly a phantom), item 183's flip order
+(`dedent` 7/5, `noKeyContext` 6/5, possibly a phantom — see item 211), item 183's flip order
 (`pendingFlow`'s constructor and arm first, for item 183's OWN reason), and the
 parked Ix Step-1 composition on the Ix track's own clock.  Still open from item
 201: a census that follows a conjunct's VALUE through the relays that carry it,
@@ -24026,7 +24038,7 @@ the next item and its price is the one number this item did not re-derive.
 **Re-derived at [item 210](#item-210-2026-09-19): the number is 15, the ring was
 closed at item 208, and the wrapper went here without it.**
 After that: **`KeyPackPunt`'s two reasons** (`dedent` 7/5, `noKeyContext` 6/5,
-possibly a phantom), item 183's flip order (`pendingFlow`'s constructor and arm
+possibly a phantom — see item 211), item 183's flip order (`pendingFlow`'s constructor and arm
 first, for item 183's OWN reason: `CompletedTail` is FALSE at that park by
 construction), and the parked Ix Step-1 composition on the Ix track's own
 clock.  Still open from item 201: a census that follows a conjunct's VALUE
@@ -24175,7 +24187,9 @@ edits under `L4YAML/`.
 spent to its end.  Next is **`KeyPackPunt`'s two reasons** — `_inline`'s class,
 recorded at `dedent` 7/5 and `noKeyContext` 6/5 with the note "possibly a
 phantom", and both numbers are readings that this item's own lesson says to
-re-derive before spending on them.  Behind it: item 183's flip order
+re-derive before spending on them.  (Item 211 did: both numbers reproduce, and
+the note is neither confirmed nor refuted — one of the punt's sites is answered
+in the negative and six stand behind a RELAY.)  Behind it: item 183's flip order
 (`pendingFlow`'s constructor and arm first, for item 183's OWN reason —
 `CompletedTail` is FALSE at that park by construction), and the parked Ix Step-1
 composition on the Ix track's own clock.  Still open from item 201: a census
@@ -24198,6 +24212,157 @@ ring this item was scheduled to pay and printed the census while doing it, and
 the ledger went on listing it as open for two more items — because a NEXT list
 is copied forward by hand and a number is only discharged when someone matches
 it to the measurement that answered it.
+
+
+### Item 211 (2026-09-19)
+
+**BOTH NUMBERS REPRODUCE.  THE THREE THINGS AROUND THEM DO NOT.**
+Branch `fix-a-grammar-completeness`, on top of item 210's `084764ac`.
+
+**The mandate.**  Item 210's NEXT named `KeyPackPunt`'s two reasons —
+`_inline`'s class, recorded at `dedent` 7/5 and `noKeyContext` 6/5 with the note
+"possibly a phantom" — and said its own lesson applied: both are
+READINGS, re-derive before spending.  They were measured once, at item 184, and
+copied by hand through twenty-two NEXT lists since.
+
+**Both numbers reproduce, under both of item 184's instruments.**  The
+environment census (`FlipConsumerSurface`'s PACK PUNT lane) has re-derived them
+at every build since item 184: `dedent` 7 applications in 5 declarations,
+`noKeyContext` 6 in 5, row for row.  Item 184's OTHER instrument — delete a
+constructor, build, group the failures by declaration — had not been run since,
+and is now `scripts/punt_reason_price.py`.  It agrees: 7/5 and 6/5.
+
+**And the agreement it was said to have is a fact about those two reasons.**
+Asked of a third, the two instruments part: `tab` reads **5** applications on
+the census and **7** errors on the patch, because it is written `refine Or.inr
+(KeyPackPunt.tab ?_ …)` at both its productions and the orphaned goal is a
+second error each time.  Item 189 wrote the mechanism down in passing — "a
+`match` costs more to break than an `Or.inr trivial`" — and never matched it to
+the sentence it falsifies, one item over.  The full table, at this commit:
+
+| reason | deletion errors / decls | census applications | split: productions / consumer arms |
+|---|---|---|---|
+| `tab` | **7 / 5** | **5** | 2 / 3 |
+| `dedent` | **7 / 5** | **7** | 4 / 3 |
+| `implicitValue` | **6 / 6** | **6** | 3 / 3 |
+| `noKeyContext` | **6 / 5** | **6** | 3 / 3 |
+
+**The unit glues two kinds of site, and they price differently.**  `dedent`'s 7
+is 4 PRODUCTIONS (`entryKeyPack_of_dispatch` ×2, `entryPropsKeyPack_of_dispatch`
+×2) and 3 CONSUMER ARMS; `noKeyContext`'s 6 is 3 productions
+(`content_dispatch_routed` ×2, `flowKeyPack_of_close`) and the same 3 arms.  A
+production hands the reason over and is emptied by a proof about the input; a
+consumer arm is the `cases` label that spends it, and every arm goes when the
+last production does.  So what R3 owes here is **seven productions**, not
+thirteen sites — and neither instrument could say so, because to a census an
+application is an application and to the patch an error is an error.  The split
+is `punt_reason_price.py split`, read off the source against the compiler's own
+site list.
+
+**Two reasons the census had been told not to count.**  Its target list held
+`dedent` and `noKeyContext` because "the other two reasons are refuted at their
+consumers and have no producer left".  The same walk, asked for all four, reads
+`tab` at 2 productions and `implicitValue` at 3 — and the refutation is at ONE
+consumer, not at their consumers.  The three consumers do three different things
+with the same four reasons:
+
+| | `tab` | `dedent` | `implicitValue` | `noKeyContext` |
+|---|---|---|---|---|
+| `colon_fires_implicit_key` | SPENDS (item 65's backward scan) | RIDES | SPENDS (§8.2.2) | RIDES |
+| `colon_fires_props_key` | **RIDES** | RIDES | SPENDS on the mid-line branch | RIDES |
+| `accum_flow_open_depth0` | weakens | weakens | SPENDS it as a DATUM | weakens |
+
+So the inline class has at least THREE surviving reasons at the props consumer
+— three unconditionally, and `implicitValue` rides its break branch besides —
+against two at its sibling, and "`KeyPackPunt`'s two reasons" was a claim about
+one call site wearing the type's name.  **A census restricted on a claim it is itself able to
+test will never correct its author** — the lane counts all four now, and the two
+it was told to skip are the two it would have had to grow to see.
+
+**The phantom, decided where the reason is BUILT.**  `noKeyContext` sits in the
+`inr` branch of a caller-supplied `… ∨ True` at all three of its productions, so
+it is a property of the CALL SITE and not of the input — which is exactly why
+`dedent` has a named input (`k:⏎  :⏎b: 2`, a `by_cases` on whether the landing's
+column is one of the frames the park holds) and this one does not.  At
+`content_dispatch_routed` the punt needs FIVE optional contexts to decline at
+once, and `punt_reason_price.py reaches` falsifies them one at a time: of the
+lemma's **8** applications exactly **ONE** declines all five — the `---` park's,
+in `accum_content_pending` — and **SEVEN** relay their own `h_keyctx` to their
+callers.  The one that declines is the park whose implicit-key class the scanner
+refuses outright, `--- a: 1` → `contentOnDocumentStartLine 0 5`, which is item
+43's own record; the landed line after it, `---⏎a: 1`, reads, which is item
+137's.  At `flowKeyPack_of_close` the same question moves down a construct
+again: both callers pay the two switches with `close_col_of_base` and
+`resume.key`, and each of those carries the same `∨ True`.  **The doubt was
+right and its reason was not: the branch is not missing an input, it is behind a
+RELAY** — item 210's finding one construct over, and item 201's open census is
+what would close it.
+
+**Two controls that could not fail, and the second was mine.**  The first
+falsification deleted the `∨ True` outright, narrowing `P ∨ True` to `P` — which
+rejects `Or.inl h` exactly as it rejects `Or.inr trivial`, so it reported 8 of 8
+call sites declining every context, a table that cannot come out any other way.
+`P ∨ False` is the patch that discriminates.  The second: reading the error's
+LINE called a relayed `h_keyctx` a decline, because four of these call sites put
+several context arguments on one line and an `Or.inr trivial` for the NEXT
+context sat beside it — 3 of 8 instead of 1.  The COLUMN points at the sub-term
+that mismatched, the `trivial` inside `Or.inr trivial`, and separates relay from
+decline from payment.  Both readings were published to this file's draft and
+neither survived being asked which lines its number came from (§9).
+
+**What the item changed.**  `scripts/punt_reason_price.py` (new, four modes);
+`FlipConsumerSurface`'s PACK PUNT lane widened to all four reasons with its pin
+re-derived and its docstring's false ground struck; `ScannerKeyPackPunt` §5 with
+the marker family pinned both ways (+5 `#guard`s); item 184's measurement
+corrected in place, and the "~~possibly a phantom~~" note struck at all
+twenty-two places it was copied to.  **ZERO edits under `L4YAML/`** — a
+measurement item, in the sense items 36, 107, 119 and 171 set.
+
+**Gates, all at baseline.**  Full `lake build` **1165** jobs, ZERO warnings;
+`scripts/run-all-tests.sh` **4520/4520** with Production Coverage Analysis
+**837/837**; `eventscore` **347/358** (252 event-pass, 11 event-diff, 0
+event-reject, 95 error-ok, 0 error-miss); `suiterunner` **869 / 0 / 151**;
+`matrix_score.py` over the 402-leaf data form on BOTH pipelines, **402/402
+event** (`pass` 308, `err-ok` 94) and **282/282 JSON** (`pass` 279, `err-ok` 3,
+`skip` 120); the `[210]` flip at **FIVE** errors, `topLevelFlowResumeSep`
+L4621, `rootMapRoute` L5901, `rootMapRouteF` L5924, `bareNodeRoute` L6093 and
+`structural_dispatch_to_pending` L7645 — item 210's corrected line numbers,
+UNMOVED — applied and restored clean, and the instrument needs `lake build`
+rather than `lake env lean`, which reads the flipped module's stale olean and
+reports nothing at all.  `#print axioms` over the punt's seven declarations:
+`propext`, `Classical.choice`, `Quot.sound` plus the tree's standing
+`native_decide` axioms in the scalar and structure production cones, no
+`sorryAx`.  Import closure **228/355**, reflection index **20/230/249/355**,
+**25** whitelisted capstones, annotations 100 % (211/211) with the standing
+**19** name mismatches.
+
+**Counts.**  Declarations **8594 → 8594**; `#guard` tokens **8153 → 8158** (+5,
+§5's rows); test files **624 → 624**.
+
+**What remains.**  The inline class's price is now seven PRODUCTIONS, named:
+four `dedent` at the two entry-pack producers, two `noKeyContext` at
+`content_dispatch_routed` and one at `flowKeyPack_of_close` — plus, at the props
+consumer, `tab`'s two, which the old target list hid.  One of the seven is
+already answered in the negative (`content_dispatch_routed`'s `---` park is a
+class the scanner refuses), and the other six are behind relays, so the next
+item is item 201's census and not a payment: **follow a conjunct's VALUE through
+the relays that carry it.**  Two items in a row have now landed on it — item 210
+from the landing side, this one from the punt's.  Behind that: item 183's flip
+order (`pendingFlow`'s constructor and arm first — `CompletedTail` is FALSE at
+that park by construction) and the parked Ix Step-1 composition on the Ix
+track's own clock.
+
+**The instrument ledger, thirteen rows.**  Park constructors (198), application
+sites (200), lemma conclusions (201), the same with a key that works (202),
+indices (203), the runtime's own state (204), the transitive ring of a carrier
+(205), the same closure with its last ring paid (206), the ring's payers against
+a forecast (207), the instruments themselves (208), the object a carrier's
+consumer reads (209), the plan's own remaining list (210) — and now **the
+CONTROL**.  The rule this item adds: **a control that cannot fail is not a
+control, and the cheapest way to find one is to ask what a passing run would
+have had to look like.**  Its companion, from the lane: a census restricted on a
+claim it is itself able to test cannot correct its author, and will keep
+reporting the surface it was told the surface is.
 
 
 ### REMAINING, in order
