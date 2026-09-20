@@ -31,7 +31,11 @@ that position to what actually decides it.
 * `VIA g` — the argument is the result of calling `g`, so `g`'s own conclusion
   decides it.  This is the case items 199–211 called a relay and never counted;
   it is the largest resolvable share after the two above, and `Or.imp` — the
-  combinator item 201 named — is **39** of it.
+  combinator item 201 named — is **39** of it.  **Item 213: `Or.imp` and `dite`
+  are PIPES and decide nothing**, so 43 of these 79 stop one step short of an
+  answer and the resolved producer count is 36 — below `RELAY`'s 56.  What
+  `resolve` needs is the pipe list `ConclusionRouteCensus` carries; until it has
+  it, read this row as an upper bound.
 * `SPLIT g` — the argument is the result of a case split at the call site, so
   the site decides it on two branches rather than one.
 * `RELAY` — the argument is one of the enclosing constant's OWN binders, so the
@@ -336,12 +340,21 @@ def expectedSeed : List String :=
    "content_dispatch_after_close RELAY"]
 
 /-- Every lemma that DECIDES an optional premise for someone else, and how
-    often.  Thirteen constants carry the module's whole producer surface, and
-    `Or.imp` — the combinator item 201 named as the blind spot and nobody
+    often.  ~~Thirteen constants carry the module's whole producer surface~~,
+    and `Or.imp` — the combinator item 201 named as the blind spot and nobody
     counted — is 39 of the 79.  `keyctx_of_preprocess`'s **7** is the seed's
     six plus `content_dispatch_after_close`'s own premise, and the compiler
     agrees with both halves: narrowing its conclusion repairs exactly seven
-    sites (DOCS item 212). -/
+    sites (DOCS item 212).
+
+    **Item 213: two of the thirteen are not producers.**  `Or.imp` (39) and
+    `dite` (4) are PIPES — they carry a decision made elsewhere — so **43 of
+    these 79 edges name a combinator and not a decider**, and the surface is 36
+    edges over 11 constants.  `ConclusionRouteCensus` follows a pipe in the
+    downward direction (`flowKeyHead` read `VIA Or.imp` before the pipes were
+    named and reads `VIA flowNode_toBlockKey` after) and re-derives that split
+    from this list; following these 43 to their sources is this census's own
+    next item. -/
 def expectedProducers : List String :=
   ["2 VIA FlowBaseRoutes.key",
    "2 VIA FlowBaseRoutes.vslot",

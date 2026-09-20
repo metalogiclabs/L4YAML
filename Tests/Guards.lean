@@ -126,6 +126,7 @@ import Tests.Guards.Proofs.PackCoverChained
 import Tests.Guards.Proofs.DedentCoverSpent
 import Tests.Guards.Proofs.ValueLineCoverSpent
 import Tests.Guards.Proofs.RelaySupplyCensus
+import Tests.Guards.Proofs.ConclusionRouteCensus
 import Tests.Guards.Proofs.ResumeCtxCoverSpent
 import Tests.Guards.Proofs.ContentParkCoverSpent
 import Tests.Guards.Proofs.PropsParkCoverSpent

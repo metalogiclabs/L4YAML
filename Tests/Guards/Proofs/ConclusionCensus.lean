@@ -27,6 +27,11 @@ site", and is the one the park censuses cannot ask.
 
 **What it reads.**  16 lemmas state an optional conjunct in their conclusion,
 24 conjuncts between them — of which **18 have a paying arm and 6 have none**.
+**Item 213: that number is right under the route census too, and names a
+DIFFERENT 18.**  Two rows swap and the total does not move —
+`scanValue_ok_park_facts` is in this census's 6 and pays on one branch of a
+`split`, `explFrameValueLine` is in its 18 and decides nothing at all.  A count
+can be right for the wrong reason, and this one was, for twelve items.
 Three lemmas carry more than one, and they are the same lemma seen three ways:
 `flowKeyRoute_of_open` (5), `flowKeyRoute_of_root` (5) and the field that
 carries both (`FlowBaseRoutes.key`, 5, excluded below as a projection).
@@ -59,9 +64,13 @@ mechanisms, not one — and one of them is a decline:
 
 The supply direction now has its own instrument
 (`Tests/Guards/Proofs/RelaySupplyCensus.lean`, item 212), which follows a
-`have` through its beta-redex and a case split into its alternatives.  The
+`have` through its beta-redex and a case split into its alternatives.  ~~The
 CONCLUSION direction — these four — is still followed by hand, by narrowing
-and building.
+and building.~~  **Item 213 built it:**
+`Tests/Guards/Proofs/ConclusionRouteCensus.lean` walks a conclusion's own
+addresses — left and right of an `∧`, inside an `∃`, inside a paid payload —
+and re-derives all four rows above from the proof terms alone, along with the
+three decisions item 212 found inside `keyctx_of_preprocess` by building.
 
 ## The key, and why item 202 had to correct it
 
@@ -105,7 +114,19 @@ more of its sites.
 So the number to read is the FIRST column.  The `un=` column is the third
 thing a term census cannot attribute — an `Or.inl`/`Or.inr` written for an
 optional PREMISE rather than a conclusion conjunct — pinned rather than
-filtered, so a payment the key stops seeing has to move a number here. -/
+filtered, so a payment the key stops seeing has to move a number here.
+
+**Item 213: `un` catches such a payment only when the premise's SKELETON
+differs from every conclusion conjunct, and a relay's premise is the same
+proposition as its conclusion by construction.**  `explFrameValueLine` is
+`frameChainUnion (match h_expl with …) h_kslot`: its `Or.inl` and its
+`Or.inr trivial` are written for `frameChainUnion`'s optional premise, the key
+attributes both to the conclusion, and the row reads `inl=1,inr=1 | un=0,0` —
+character for character the row `flowVPack_of_close` reads, which decides its
+own conjunct on two arms.  Narrowing says so: `explFrameValueLine` breaks at
+its `frameChainUnion` call (StreamAccum `L6588`) and `flowVPack_of_close` at
+its own `Or.inr trivial` (`L962`).  The route census separates them; this one
+cannot, and the `un` column is not the place to look for it. -/
 
 namespace L4YAML.Tests.Guards.ConclusionCensus
 

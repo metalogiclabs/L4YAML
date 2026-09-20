@@ -22797,7 +22797,9 @@ census that follows a conjunct's VALUE through the relays that carry it, and
 [item 212](#item-212-2026-09-19)** — `Tests/Guards/Proofs/RelaySupplyCensus.lean`,
 which measures the blind spot at **345 of 659 supply edges** and finds that the
 share it hides is not the premise relay this sentence names but the PRODUCER
-call, at 79 edges against 56.  **Item 202 found a FIFTH thing none of them does: check
+call, at 79 edges against 56.  **Item 213: 43 of those 79 are PIPES** (`Or.imp`
+39, `dite` 4), so the resolved producer count is 36 against the relay's 56 and
+the ordering is undecided until the pipes are followed.  **Item 202 found a FIFTH thing none of them does: check
 its own key.**  Six of the module's seven remaining unpaid conjuncts are this
 blind spot, which is now a measured share rather than a listed exception.
 
@@ -24424,11 +24426,18 @@ decided somewhere other than the site that writes them.**
 | `PAY` | **43** | an `Or.inl` at the site |
 | `FIELD of …` | **5** | a constructor field of a split scrutinee |
 
-`PAY` and `DECLINE` are the only two a term census can see.  **And the share
+`PAY` and `DECLINE` are the only two a term census can see.  ~~**And the share
 the four earlier instruments hide is not the one item 201 named**: the premise
 relay it described is 56 edges, and the PRODUCER call — a conjunct discharged by
-calling a lemma — is 79, with `SPLIT` larger than both.  Thirteen constants
-carry the whole producer surface.  The census refuses to read 31 constants whose
+calling a lemma — is 79~~, with `SPLIT` larger than both.  ~~Thirteen constants
+carry the whole producer surface.~~  **Item 213: two of the thirteen are not
+producers, and the comparison above rests on them.**  `Or.imp` (39) and `dite`
+(4) are PIPES — they carry a decision made elsewhere — so **43 of these 79
+edges name a combinator and not a decider**, the resolved producer surface is
+36 edges over 11 constants, and 36 is BELOW the premise relay's 56.  Which of
+the two is the larger hidden share is UNDECIDED until the 43 are followed one
+step further; this row says only that the number that decided it was 79 and
+should not have been.  The census refuses to read 31 constants whose
 value has fewer leading lambdas than their type has binders, and says so with a
 number rather than silently.
 
@@ -24524,10 +24533,12 @@ annotations 100 % (211/211) with the standing **19** name mismatches.
 (+0); test files **624 → 625** (+1, the census).
 
 **What remains.**  The relay census answers the UPWARD direction — who supplies
-an optional premise — and it is now a gate.  The DOWNWARD direction, a
+an optional premise — and it is now a gate.  ~~The DOWNWARD direction, a
 conclusion conjunct traced into the lemmas that produce it, is still followed by
-hand, one narrowing and one build at a time; the four rows above are the
-evidence that it is worth having.  For R3 the price is unchanged in count and
+hand, one narrowing and one build at a time~~ — **BUILT at item 213**
+(`ConclusionRouteCensus`), which re-derives all four rows above and the three
+decisions inside `keyctx_of_preprocess` from the proof terms alone; the four
+rows were indeed the evidence that it was worth having.  For R3 the price is unchanged in count and
 changed in kind: seven productions, of which `content_dispatch_routed`'s two
 `noKeyContext` are now three named input classes and not an unexplained branch —
 an inherited key, a tab, a mid-line landing — so the next question is the same
@@ -24551,6 +24562,185 @@ from the conclusion census: **an instrument that records the evidence against
 its own docstring has not thereby corrected it** — `un=1,1` sat in the pin for
 nine items, in the column built to catch exactly that, and every reader took
 the prose instead.
+
+
+### Item 213 (2026-09-19)
+
+**THE ROUTE CENSUS — TWO ROWS THAT READ THE SAME AND MEAN THE OPPOSITE.**
+Branch `fix-a-grammar-completeness`, on top of item 212's `cf164d36`.
+
+**The mandate.**  Item 212's NEXT, entry 1, and the other half of the sentence
+items 198, 199, 201 and 211 each wrote:
+
+> The relay census answers the UPWARD direction — who supplies an optional
+> premise — and it is now a gate.  **The DOWNWARD direction, a conclusion
+> conjunct traced into the lemmas that produce it, is still followed by hand,
+> one narrowing and one build at a time.**
+
+Built here and landed as a gate:
+`Tests/Guards/Proofs/ConclusionRouteCensus.lean`.  A conclusion's optional
+conjuncts have ADDRESSES — left or right of an `∧`, inside an `∃`, inside the
+payload of another `_ ∨ True` — so the census collects the addresses from the
+TYPE and walks the PROOF to the same address, entering `And.intro`,
+`Exists.intro` and `Or.inl` on the way, and resolves what stands there.
+
+**Two things the downward direction needs that item 212's walk did not.**
+
+* `split` leaves a `<matcher>.splitter`, and the splitter is PRIVATE to the
+  module that ran it while its matcher is not — so the private prefix has to
+  come off before the matcher table will answer, and the alternatives' binder
+  counts must be read off the SPLITTER's own telescope, because `split` adds
+  the negative hypotheses the matcher has not got.
+* **PIPES.**  `Or.imp`, `Eq.mpr`, `Eq.ndrec`, `cast`, `id`, `dite` — what a
+  tactic leaves behind.  None of them decides an `∨`; each carries someone
+  else's.  Before they were named, `flowKeyHead` read `VIA Or.imp`; after, it
+  reads `VIA FlowKeyLift.flowNode_toBlockKey`, which is the answer.
+
+**The control that could fail, and did not.**  Item 212 measured four rows of
+`ConclusionCensus` by NARROWING AND BUILDING, with no term walk in it.  The
+route census re-derives all four from the proof terms alone:
+
+| lemma | item 212, by build | read here, from the term |
+|---|---|---|
+| `scanValue_ok_park_facts` | declines on one branch of a `split`, pays on the other | `DECLINE ∣ PAY ∣ VACUOUS ×3` |
+| `back_col` | relays a structure FIELD of `KmSound` | `FIELD of premise#3` — and premise 3 is the `KmSound` |
+| `close_col_of_base` | relays `back_col` | `FIELD of VIA KmSound.back_col` |
+| `flowKeyHead` | relays into `flowNode_toBlockKey`, another module | `VIA FlowKeyLift.flowNode_toBlockKey` |
+
+A fifth agreement nobody asked for: item 212's fixpoint found **three**
+decisions inside `keyctx_of_preprocess`, at `L26245`, `L26256`, `L26278`.  The
+census reads that conjunct as `DECLINE ∣ DECLINE ∣ DECLINE ∣ PAY ∣ PAY`.
+
+**The cross-instrument control, and what it found.**  Conjunct by conjunct
+against `ConclusionCensus` under that census's OWN grammar key — route
+PAY-arms against its `inl`, DECLINE-arms against its `inr` — **20 agree and 2
+disagree**, both predicted before the run:
+
+| conjunct | route | term | which is right |
+|---|---|---|---|
+| `scanValue_ok_park_facts#0` | `1+1` | `0+0` | the route — item 212's row, re-derived |
+| `explFrameValueLine#0` | `0+0` | `1+1` | the route — **new** |
+
+`explFrameValueLine`'s proof is `frameChainUnion (match h_expl with …) h_kslot`.
+The `Or.inl` and the `Or.inr trivial` the key counted are written for
+`frameChainUnion`'s optional PREMISE; the lemma decides its own conclusion
+nowhere.  **`flowVPack_of_close` reads `inl=1,inr=1 | un=0,0` and so does
+`explFrameValueLine` — the same row, character for character — and one of them
+decides its conjunct on two arms while the other decides nothing.**
+
+**Checked against the compiler, predictions written first.**
+
+| patch | errors | inside the lemma | call sites |
+|---|---|---|---|
+| P1 `explFrameValueLine`'s conclusion | **4** | **L6588**, the `frameChainUnion` application — NOT its `Or.inl` (L6591) or its `Or.inr trivial` (L6597) | L30101, L30241, L30406 |
+| P2 `flowVPack_of_close`'s conclusion | **3** | **L962**, its own `Or.inr trivial` — and not its `Or.inl` on L961 | L15937, L16135 |
+
+P2 is the control that could fail: a lemma that truly decides its own conjunct
+breaks where it decides it.  `Or.inl x` still elaborates at `A ∨ False`, which
+is why the punt site is the one that moves and why `∨ False` is the falsifier
+and `P` alone is a control that cannot fail (item 211).
+
+**And the same build says something about counting errors.**
+`explFrameValueLine` has **four** supply edges in item 212's census and P1
+refused **three** terms.  The fourth, `pendingProps#21` at L30289, shares one
+application with the refused `entryPropsKeyPack_of_dispatch#10` at L30241, and
+the smallest example that would be false if the reading were wrong says why:
+
+```lean
+def sink (_a : (0 = 0) ∨ True) (_b : (0 = 0) ∨ True) : Nat := 0
+def BAD : (0 = 0) ∨ False := Or.inl rfl
+example : Nat := sink BAD BAD      -- ONE error, not two
+```
+
+**A narrowing's error count is a LOWER bound on the number of supplies**: within
+one application the first refused argument masks its siblings.  At item 212 the
+two agreed exactly — eight errors against an eight-entry seed — so the gap is
+invisible until one application carries two of them.  The first version of this
+reading was that the anonymous constructor aborts; the four-line probe above
+refuted it and named the real rule.
+
+**The conclusion census, corrected in the artifact that carries it.**  Its
+"**18 have a paying arm and 6 have none**" is right under the route census too
+— and names a DIFFERENT 18.  The two swaps cancel: `scanValue_ok_park_facts` is
+in the term census's 6 and pays; `explFrameValueLine` is in its 18 and decides
+nothing.  **A count can be right for the wrong reason, and this one was, for
+twelve items.**  Its `un=` column is corrected with it: `un` catches a payment
+made for a PREMISE only when the premise's skeleton differs from every
+conclusion conjunct, and a relay's premise is the same proposition as its
+conclusion by construction, so `explFrameValueLine` reads `un=0,0` and always
+would have.
+
+**The hole this leaves in item 212's own producer surface.**  That census pins
+thirteen constants as the module's producer surface.  Under the pipe test,
+`Or.imp` (39 edges) and `dite` (4) decide nothing — **43 of the 79 `VIA` edges,
+more than half** — leaving 36 edges over 11 constants.  **That unmakes item
+212's own headline**: it read the producer call as the larger hidden share at
+79 against the premise relay's 56, and 36 is below 56.  The ordering is now
+UNDECIDED — a pipe's source may be a producer, a relay, or a payment — and
+deciding it is one parameter's worth of work in item 212's walk, not a new
+census.  The split is re-derived
+in the gate from item 212's own pinned list rather than asserted, so if that
+list moves its gate fails first.  Following those 43 to their sources is the
+supply census's next item, not this one's.
+
+**The blind spot, named rather than counted.**  Two of the 24 conjuncts have no
+route: `flowKeyRoute_of_open#1` and `flowKeyRoute_of_root#1` sit under a `→`
+inside a paid payload, so reaching them means entering a function the proof has
+not applied.  They are pinned BY NAME, not swept into a number.
+
+**What the item changed.**  `Tests/Guards/Proofs/ConclusionRouteCensus.lean`
+(new, gated on four pins — the 24 routes, the tally, the cross-instrument
+control, and the pipe split of item 212's producer list); `Tests/Guards.lean`
+(+1 import); `ConclusionCensus`'s docstring corrected in place at three places;
+`RelaySupplyCensus`'s producer docstring corrected in place.  **ZERO edits
+under `L4YAML/`** — a measurement item, the third in a row.
+
+**Gates, all at baseline.**  Full `lake build` **1167** jobs (1166 + the new
+census, which costs **1.9 s** — it walks 16 lemmas where item 212's walks the
+module), ZERO warnings; `scripts/run-all-tests.sh` **4520/4520** with Production
+Coverage Analysis **837/837**; `eventscore` **347/358** (252 event-pass, 11
+event-diff, 0 event-reject, 95 error-ok, 0 error-miss); `suiterunner`
+**869 / 0 / 151**; `matrix_score.py` over the 402-leaf data form on BOTH
+pipelines, **402/402 event** (`pass` 308, `err-ok` 94) and **282/282 JSON**
+(`pass` 279, `err-ok` 3, `skip` 120); the `[210]` flip at **FIVE** errors,
+StreamAccum **4621**, **5901**, **5924**, **6093**, **7645**, UNMOVED, applied
+with `lake build` and restored clean; `#print axioms` over the item's ten
+subjects — `propext`, `Classical.choice`, `Quot.sound`, no `sorryAx`
+(`frameChainUnion`, `flowVPack_of_close` and `flowKeyHead` carry `propext`
+alone).  Import closure **228/355**, reflection index **20/230/249/355**, **25**
+whitelisted capstones, annotations 100 % (211/211) with the standing **19** name
+mismatches.
+
+**Counts.**  Declarations **8594 → 8594** (+0); `#guard` tokens **8158 → 8158**
+(+0); test files **625 → 626** (+1, the census).
+
+**What remains.**  Both directions now have an instrument, and the next debt is
+the one this item created: **43 of the supply census's 79 `VIA` edges are
+pipes**, and following them to their sources means giving item 212's walk the
+pipe list this one has — one parameter, one re-pin, and the producer surface it
+reports becomes the real one.  For R3 the price is unchanged: seven productions,
+of which `content_dispatch_routed`'s two `noKeyContext` are item 212's three
+named input classes, and the next question there is item 65's, and a RUNTIME
+one.  Behind that: item 183's flip order (`pendingFlow`'s constructor and arm
+first) and the parked Ix Step-1 composition on the Ix track's own clock.
+Standing instrument debt, unchanged: the 198/200/201 censuses still lack a
+cruder-key control.
+
+**The instrument ledger, fifteen rows.**  Park constructors (198), application
+sites (200), lemma conclusions (201), the same with a key that works (202),
+indices (203), the runtime's own state (204), the transitive ring of a carrier
+(205), the same closure with its last ring paid (206), the ring's payers against
+a forecast (207), the instruments themselves (208), the object a carrier's
+consumer reads (209), the plan's own remaining list (210), the control (211),
+the provenance (212) — and now **the ROUTE**.  The rule this item adds: **a
+count can be right for the wrong reason.**  `18 have a paying arm and 6 have
+none` was true when it was written and is true now, and the 18 it named then is
+not the 18 it names now; two errors of opposite sign sat inside it for twelve
+items, and only a second instrument that resolves the same conjuncts a
+different way could see either.  Its companion, from the four-line probe:
+**a narrowing's error count is a LOWER bound**, because the first refused
+argument in an application masks its siblings — so an error count is evidence
+that a supply EXISTS and never evidence of how many do.
 
 
 ### REMAINING, in order
