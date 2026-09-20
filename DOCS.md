@@ -25571,10 +25571,16 @@ their baseline hashes after the two narrowings.
 
 **What remains.**  The runtime question is now scoped: **does any input reach a
 park construction site that declines one of these fields?**  The domain is
-`expectedDeclineWriters`' nineteen lemmas, not 99 splits, and the instrument it
-wants is the corpus census of item 65's shape — the candidate predicate
+`expectedDeclineWriters`' nineteen lemmas, not 99 splits, and ~~the instrument
+it wants is~~ the corpus census of item 65's shape — the candidate predicate
 evaluated at every state the scan visits over the 402 `in.yaml` leaves, as an
-over-approximation, run before the runtime is touched.  Behind it, unchanged:
+over-approximation, run before the runtime is touched — **is half the
+instrument, corrected at [item 219](#item-219-2026-09-20)**, which ran it: all
+nineteen are reached, each on at least two ACCEPTED leaves, and the one park
+class the corpus reads empty at a block dispatch reads **1 633** over an
+enumerated domain and is reached by a four-step accepted input.  **A corpus
+census can only ever say REACHED**; the instrument that can retire an arm is
+item 204's enumerated domain.  Behind it, unchanged:
 R3's seven productions, with `content_dispatch_routed`'s two `noKeyContext`
 that same question; item 183's flip order (`pendingFlow`'s constructor and arm
 first); the parked Ix Step-1 composition on the Ix track's own clock.
@@ -25596,6 +25602,170 @@ an instrument that prints the two the same way will be believed.  Its companion:
 **a `PAY` is an answer about the proof and a narrowing is a question about the
 type**, which is how a site the census correctly called paid became the one
 error the forecast did not have.
+
+### Item 219 (2026-09-20)
+
+**A CORPUS ZERO IS A COVERAGE REPORT.**  Item 218 cut the runtime question
+behind the `∨ True` idiom from 99 splits to **nineteen named lemmas** and
+recorded the instrument the remainder wants: *"the candidate predicate evaluated
+at every state the scan visits over the 402 `in.yaml` leaves, as an
+over-approximation, run before the runtime is touched."*  That census is built
+and run here, and its answer is **all nineteen are reached** — each of them on at
+least TWO leaves the scanner accepts.  The corpus retires nothing.  What this
+item adds, and what the mandate did not see, is that **it could not have**: the
+one park class the corpus reads as empty at a block dispatch reads **1 633** on
+an enumerated domain, and the falsifier is four scanner steps long.
+
+**The instrument.**  For each of the nineteen, the conjunction of its OWN
+hypotheses that are decidable at the scanner state — evaluated by CALLING the
+runtime expressions the hypothesis list already names
+(`scanNextToken_preprocess`, the four `scanNextToken_dispatch*`,
+`checkBareDocument`, `checkDanglingNode`, `sc.simpleKeyAllowed`,
+`sc.allowDirectives`, `sc.needIndentCheck`, `sc.explicitKeyLine`,
+`sc.currentIndent`, `sc.simpleKey.*`, `trailingPropertyRunOnLine`,
+`lastRealToken?`), never a paraphrase.  `ScannerSurfCorr.col_eq`
+(`sp.col = sc.col`) is what lets a `sp_scan.col` field be read at the runtime
+state, so `sp_scan.col = n + 1` fixes a park's index at `sc.col - 1`.  Each row
+is restricted further by the union of its CALLERS' park classes — and the call
+graph is read out of the ENVIRONMENT (`ConstantInfo.value?` with
+`allowOpaque := true` over the nineteen plus `indicator_open_map`), not out of a
+grep, which is how the census learned that `accum_block_on_closeThenBlock` is
+called from SIX places spanning most park classes and so genuinely has nearly
+the parent's domain.  `Tests/DeclineReachCensus.lean`, run by `lake exe
+declinereach`.
+
+**The corpus.**  402 leaves, **2 946** scanner steps, 7 252 tokens, **309**
+accepted.  Every one of the nineteen fires — 5 to 1 175 times, on 2 to 306
+leaves — and `minAcceptedLeaves = 2`, so not one of them is an error-only row.
+The narrowest is the props-key route: `colon_fires_props_key` and
+`colon_open_map_props` rest on exactly **FH7J** and **PW8X**, and an item that
+moves them has exactly those two witnesses.
+
+**Two controls, because a census that cannot be wrong is not a measurement.**
+Acceptance is read off `scan` itself — its own fuel and its own four
+end-of-stream checks — and compared with the walker's verdict: `DIVERGENT 0` on
+all 402.  The first version disagreed on **9**, because the walk returned `true`
+at `.ok none` without `scanLoop`'s `flowLevel`/`directivesPresent`/dangling/
+flow-value checks, and because it seeded without `scan`'s BOM hop.  And seven
+hand-built inputs, one per park class, pin that each class can fire at all.
+
+**The finding is in the second control.**  `pendingDocEnd` is visited **eleven**
+times over the corpus, on ten named leaves (5TYM, 6WLZ, 6ZKB, 7Z25, 9DXL, 9WXW,
+M7A3, U9NS, UT92, W4TN), and **not once is it handed a `-`/`?`/`:`** — zero of
+731 block dispatches, and still zero with both of the lemmas' checks dropped.
+Read as an answer, that retires
+`accum_block_on_closeThenBlock`'s `pendingDocEnd` arm.  It is not an answer.
+The same predicate over item 204's shape — a 37-fragment line alphabet at three
+lines, **50 653** programs, 216 114 steps, 14 084 accepted — reads **1 633**,
+and the control input `a⏎...⏎- b` reaches the class at a block dispatch in FOUR
+steps, is accepted by the scanner, and emits a well-formed two-document stream
+in both pipelines.  **402 files are a sample of the language; an arm they miss
+is not an arm nothing reaches.**  Over the enumerated domain all nineteen are
+reached too, and every one of them on ACCEPTED programs
+(`unreachedOnAccepted = 0`).
+
+**So the mandate named the wrong instrument, for the second item running.**
+Item 217 prescribed a corpus census "rather than another term census" and item
+218 showed the term JOIN had to run first; item 218 prescribed the corpus census
+again, and it is the ENUMERATED DOMAIN that can retire an arm.  The rule the
+pair states: **a corpus census can only ever say REACHED.  Only a domain a
+machine enumerates can produce a zero that means anything, and even then only
+over its own alphabet.**  Item 182's census was sound because it
+over-approximated a REFUSAL claim — an entry it does not name cannot change;
+this one over-approximates a REACHABILITY claim, and there the corpus
+under-approximates instead.  Same shape, opposite direction, and the direction
+is a property of the question, not of the corpus.
+
+**The escape has no state of its own.**  `pendingFlow`'s scanner footprint and
+`pendingContent`/`pendingBlockContent`'s are EXTENSIONALLY equal — measured, not
+inferred from equal counts: `flowPark ∧ ¬contentish` and `contentish ∧
+¬flowPark` are both **0** over every one of the 2 946 corpus states and every
+one of the 216 114 domain states, and `ONLYflowPark = 0` in both.  Item 77's
+comment already said the escape "carries no grammar, but it does carry the ONE
+scanner fact every park has"; this is that sentence with a number under it.  **No
+state-level census can ever isolate β.5's escape**, which is the measurement
+behind item 183's order: `pendingFlow` is deleted, not narrowed, because there
+is no state at which it alone stands.
+
+**Seven of nine park classes are PROVED, and the two that are not name an
+asymmetry.**  `Tests/Guards/Proofs/DeclineReachCorpus.lean` takes each
+constructor's `sc` fields and proves the census's `Bool` predicate true, so a
+state where the predicate is false cannot be carrying that park and a row
+reading zero is a statement about the park.  The two that do not bridge are
+`pDocEnd`'s marker conjunct and `pProps`'s run conjunct — and the first is the
+asymmetry: **`pendingDocStart` carries its token-level witness as a field**
+(`h_marker_tail : ∃ t, lastRealToken? sc.tokens = some t ∧ t.val = .documentStart
+∧ t.pos.line = sc.line`) **and `pendingDocEnd` carries only the surface-grammar
+one** (`h_marker : SCDocumentEnd sp_block sp_scan`), which nothing in the library
+takes to the token array.  A park that wants to be measured at the runtime needs
+a runtime field.  Neither gap touches the finding, because the finding is one
+predicate COMPARED across two domains and a comparison under a fixed predicate
+is insensitive to whether the predicate is necessary.
+
+**And two constructors share one footprint.**  `pendingContent` and
+`pendingBlockContent` carry the same `sc` fields, so their rows are equal by
+construction (662/662 on the corpus, 42 242/42 242 on the domain).  Recorded as
+a limit of the instrument, not as a result.
+
+**Predictions.**  REFUTED — **P-ZERO** (≥1 row empty; **0**, and the refutation
+clause was written in advance), **P-REACH** (16 of 19 forecast; **19**),
+**P-ERRONLY** (1–3 error-only rows; **0**), **P-STATES** (8 000–25 000 forecast;
+**2 946** — the corpus is a quarter the size I priced it at, which is one more
+reason not to read its zeros).  HELD — **P-ACCEPT** (309, in 250–330),
+**P-CONTROL** (every dispatch class ≥ 100: 214/370/832/1 461), **P-SPREAD**
+(235×, floor 50×), **P-DOMINANT**, **P-JOBS** (1167 → **1171**).
+**P-BRIDGE was reformulated**: it forecast proofs for 12 of the nineteen ROWS
+and the bridges were written at the PARK layer instead, where the census's
+soundness actually lives.
+
+**What changed.**  Two new files and one line of `lakefile.lean`:
+`Tests/DeclineReachCensus.lean` (the predicates, the walk, both censuses, the
+controls and six pins) and `Tests/Guards/Proofs/DeclineReachCorpus.lean` (the
+seven bridges and the two named gaps), plus `lean_exe declinereach` and the
+guard's line in `Tests/Guards.lean`.  The exe re-derives every pin in **0.75 s**
+compiled — the sweep runs at RUN time, not at elaboration time, which is why the
+domain could be 50 653 programs instead of item 204's 35 937.  **Zero edits
+under `L4YAML/`.**
+
+**Gates, all at baseline.**  `lake build` **1171** jobs (1167 + the exe's four),
+0 warnings; `run-all-tests.sh` **4520/4520** (Production Coverage **837/837**);
+`eventscore` **347/358** (0 error-miss); `suiterunner` **869/0/151**; matrix
+**402/402 event** + **282/282 JSON** on BOTH pipelines; the `[210]` flip FIVE at
+**4621/5901/5924/6093/7645**, UNMOVED; `#print axioms` over twenty-two subjects —
+no `sorryAx`, `frameChainUnion` and `flowVPack_of_close` on `propext` alone,
+both end-to-end capstones clean, the seven bridges on the classical trio at
+worst; checkers 228/355 (library module count UNMOVED — the two new files are a
+guard and a test exe), 20/230/249/355, 25 capstones, annotations 100 % (211/211)
+with the standing **19** name mismatches.  Counts: declarations **8594 → 8594**,
+`#guard` **8158 → 8158**, test files **626 → 628**.
+
+**What remains.**  The runtime question is answered in the only direction a
+corpus can answer it, and the nineteen stand.  What is now named and unbuilt is
+the instrument that could retire one: **a domain sweep whose alphabet is chosen
+per ROW rather than shared**, because this item's 37 fragments are item 204's
+alphabet plus four, and a row that reads zero over them says nothing about a row
+whose shape the alphabet cannot spell.  Behind it, unchanged: R3's seven
+productions, with `content_dispatch_routed`'s two `noKeyContext`; item 183's
+flip order (`pendingFlow`'s constructor and arm first — and this item measures
+WHY that order is forced); the parked Ix Step-1 composition on the Ix track's
+own clock.  Instrument debt, now four rows: the 198/200/201 censuses still lack a
+cruder-key control; what an `Or.inl`'s proof actually FORWARDS is measured and
+unresolved; the supply walk is scoped to one module; and **`pendingDocEnd` has no
+token-level field**, so the one park this census had to read through a grammar
+predicate is the one whose bridge it could not write.
+
+**The instrument ledger, twenty-one rows.**  Park constructors (198),
+application sites (200), lemma conclusions (201), the same with a key that works
+(202), indices (203), the runtime's own state (204), the transitive ring of a
+carrier (205), the same closure with its last ring paid (206), the ring's payers
+against a forecast (207), the instruments themselves (208), the object a
+carrier's consumer reads (209), the plan's own remaining list (210), the control
+(211), the provenance (212), the route (213), the pipe (214), the beta (215), the
+arms (216), the branch (217), the reach (218) — and now **the CORPUS**.  The
+rule this item adds: **a corpus zero is a coverage report, not a refutation**,
+and the way to tell the two apart is to run the same predicate over a domain a
+machine enumerates and see whether the zero survives.  Ours did not, in four
+steps.
 
 ### REMAINING, in order
 

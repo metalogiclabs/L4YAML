@@ -109,6 +109,12 @@ lean_exe eventscore where
 lean_exe tryscan where
   root := `Tests.TryScan
 
+-- Item 219: the DECLINE-REACH census (controls + enumerated domain always; the
+-- 402-leaf corpus half when the yaml-test-suite data directory is passed).
+@[default_target]
+lean_exe declinereach where
+  root := `Tests.DeclineReachCensus
+
 @[default_target]
 lean_exe tryroundtrip where
   root := `Tests.TryRoundTrip
