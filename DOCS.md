@@ -26541,6 +26541,183 @@ mandate's mechanism: **a hypothesis with an argument-free inhabitant is not a
 gate** — price a route by the hypotheses that have no free witness, not by the
 length of its parameter list.
 
+### Item 224 (2026-09-20)
+
+**THE SPEND CENSUS — A DEMAND ROW IS A DEBT ONLY IF THE CONSUMER CAN SPEND IT.**
+
+**The mandate** (item 223's recorded NEXT, entry 1): *"The supply is uniform and
+the demand is not: eight loose consumers, each one a place the new strength is
+discarded on entry, and the ledger now names them.  The cheapest next reading is
+`landing_or_park_ska` and `landing_or_park_save`, because
+`accum_block_on_closeThenBlock` now holds the tight arm and projects it away
+FOUR TIMES to reach them."*  The reading was taken and **the purchase was
+refused**: the two landings cannot read the conjunct, nothing behind them can,
+and their tight statements are one-line corollaries of the loose ones.  Three
+numbers in that sentence were also wrong, and this item's instrument is what
+says so.
+
+**The instrument this item adds: the SPEND CENSUS**, in two halves, both of
+which item 223 named as debt in its own closing paragraph — *"the demand ledger
+is a signature census, not a spend census."*  It lives in
+`Tests/Guards/Proofs/ArmSpendCensus.lean`.
+
+**Half one: the arm binder, read off the ELABORATED TYPE.**  Item 223's ledger
+was assembled by grepping the loose literal and listing the tight side by hand.
+Matching the arm's exact shape against every constant's type instead —
+`ska = true ∨ R` and `(ska = true ∧ poss = false) ∨ R`, the right disjunct
+deliberately free, because the family pays against a column at eight carriers
+and against `inFlow` at `noPending` — finds **22** binders.
+
+| | ledger (item 223) | elaborator (item 224) |
+|---|---|---|
+| loose | 8 | **8** — the same eight |
+| tight consumers | 4 | **8** |
+| tight constructors | (excluded) | 6 |
+
+The loose eight are item 223's eight exactly.  The tight side is not four but
+eight, and the four the ledger never listed are `block_dispatch_deferred` and
+its three stamp siblings.  **Price a census by signatures, not by grepping the
+literal** (R670) applied to our own ledger, one item after it was written.
+
+**Half two: the WEAKENING PROBE.**  A flip patch tightens a binder and counts
+what breaks; its dual LOOSENS one that is already tight and counts who screams.
+An error inside the weakened lemma's own proof is a READ; an error at a call
+site is PLUMBING.  Run one binder at a time — eight builds, so two weakened
+lemmas that feed each other cannot mask one another — it reads:
+
+| tight consumer | verdict |
+|---|---|
+| `block_dispatch_deferred` | CONDUIT → `PendingNode.pendingFlow`'s field |
+| `block_dispatch_deferred_stamp_offcol` | CONDUIT → `block_dispatch_deferred` |
+| `block_dispatch_deferred_stamp_nopack` | CONDUIT → `block_dispatch_deferred` |
+| `block_dispatch_deferred_inline` | CONDUIT → `block_dispatch_deferred` |
+| `accum_block_on_closeThenBlock` | PLUMBING — a stale `Or.imp_left` and its `refine` |
+| `colon_fires_implicit_key` | **READ**, twice |
+| `accum_block_on_pendingContent` | CONDUIT → the two above |
+| `accum_block_on_pendingBlockContent` | CONDUIT + one stale projection |
+
+**ONE READER.**  Of the eight tight consumers exactly one destructures the
+conjunct, and it takes `⟨_, h_poss_f⟩` — the conjunct, **discarding the flag** —
+to kill a branch outright at both sites.  The landings are its mirror image:
+they read the flag and never the conjunct.  **The arm is not one datum every
+consumer shares; it is a PAIR whose two halves have disjoint readers**, which is
+why a census of who ASKS for it could not have predicted who reads it.
+
+**The landings cannot read it, and that is a fact about the FUNCTION.**  Their
+left branch routes through `saveSimpleKey`, which outside a flow branches on
+`simpleKeyAllowed` alone and OVERWRITES the save without consulting the one it
+replaces.  `saveSimpleKey_armed_indep` proves it in three lines: two states
+differing only in `simpleKey` leave it agreeing.  So no conclusion downstream of
+an armed save can depend on the conjunct — not because no proof happens to use
+it, but because there is nothing there to use.  The companion
+`loose_arm_cannot_refute_save` builds the other side's witness: a state with the
+flag UP and a save PENDING at column 0, so the loose arm provably cannot do what
+`colon_fires_implicit_key` does with the tight one.  It depends on **no axioms
+at all**.
+
+**So the eight loose rows are corollaries, not debt.**  If a caller ever holds
+the tight arm and wants a landing, it does not need the landing tightened:
+`landing_or_park_save_tight` and `landing_or_park_ska_tight` are each one
+`imp_left` off the loose lemma, stated once in the guard module for every caller
+there will ever be, with **no library change and no cascade paid**.  The ledger
+counted corollaries as debt.
+
+**What the cascade would have cost, measured and not spent.**  The payment
+census resolves **85** arm edges inside `StreamAccum` — `PAY=8`, `DECLINE=16`,
+`RELAY=23`, `VIA=32`, `FIELD=6`.  A census of literal `Or.inl` sees eight of
+eighty-five.  Tightening the two landings would have forced
+`flowKeyRoute_of_open`, `flowKeyRoute_of_root` and `keyctx_of_preprocess` (four
+`RELAY` edges) plus two test pins, and asked three `PAY` sites in
+`accum_block_on_pendingBlock` for a conjunct they do not have — for a benefit
+the same census prices at zero.
+
+**"FOUR TIMES" is NINE.**  There are nine `Or.imp_left` relays into the two
+landings: four at `accum_block_on_closeThenBlock` and **five** at
+`accum_block_on_pendingBlockContent`.  Item 223's count was taken at one caller
+and carried as the total — §10's *a forecast copied forward is still one
+measurement*, at a distance of one item.  `expectedProjections` pins both
+callers so it cannot be taken at one caller again.
+
+**And the family reading has no library reader.**
+`PendingNode.arm_tight_or_col`, item 223's stage 1 and the payer of three new
+library rungs, has exactly one library call site — `StreamAccum.lean:2503`,
+where `arm_or_col` projects it straight back to loose.  Every other use is in a
+guard module.  The one reader of the conjunct does not go through it: the route
+is a park constructor's own field taken by `casesOn` inside `accum_block_pending`
+and relayed twice (§1's `FIELD=6`).  That is not an argument for deleting it —
+it is the measurement item 223's pricing could not make, because the ladder
+counts what a carrier CAN state and nothing counted whether anything downstream
+reads what it states.
+
+**Errors in this item's own instruments, found and volunteered.**  The text
+census was written first and was wrong twice.  Its chain walker followed an edge
+into a test file and then chased the bare name `verdict`, which dozens of guard
+modules reuse — 172 phantom rows; **a census keyed on a bare name is not keyed
+on a definition**, item 221's lesson committed against my own tooling.  And it
+classified a payment by the first `Or.inl` in a three-line window, which at
+`Tests/Guards/Proofs/FlowOpenParkArm.lean:134` is a different parameter
+entirely: **classifying by proximity is not classifying by position.**  Both are
+why §1 resolves arguments through the elaborator instead.  The matrix gate was
+also first run against binaries that do not exist and read 94/402 — an
+inconclusive result is not a negative one (§9); the names are
+`l4yaml-event`/`l4yaml-json`.
+
+**What changed.**  `Tests/Guards/Proofs/ArmSpendCensus.lean` (NEW): the spend
+census, its two pinned tallies, the projection pin, the one read and its
+refutation, the independence lemma, and the two free corollaries.
+`Tests/Guards.lean`: one import.  **No library file was changed**, and no census
+predicate was edited, so items 219, 220 and 221 keep all thirty of their pins.
+
+**Gates, all at baseline.**  `lake build` **1191** jobs (1190 + the new guard
+module), 0 warnings; `run-all-tests.sh` **Verified: 4520/4520**; `eventscore`
+**347/358** (0 error-miss, 0 event-reject); `suiterunner` **869/0/151**, run
+ALONE; matrix **402/402 event** + **282/282 JSON** on BOTH pipelines;
+`#print axioms` — no `sorryAx`, and `loose_arm_cannot_refute_save` depends on no
+axioms at all; `[210]` flip **FIVE** definitions, the recorded set, restored and
+md5-verified; checkers unmoved (228 library modules from 5 default targets, 355
+imports; 20/230/249/355; all 25 `theorem` sites whitelisted); annotations
+**211/211** with the standing **19** name mismatches, exit **1** as always;
+`declinereach`, `declinearm` and `declinecorner` re-derive all thirty pins.
+Counts: declarations **8604** unmoved, `#guard` **8173** unmoved, test files
+**637 -> 638**.
+
+**What remains.**  The arm is closed as a workstream unless a second reader
+appears: the supply is uniform, the one reader is fed, and the eight loose rows
+are corollaries the guard module now states.  What the spend census opens
+instead is the question it was built to ask, now askable of any premise: **which
+of β.5's remaining hypotheses have readers, and which are carried?**  The
+weakening probe is generic — it needs only a binder and a module — and R3's
+seven productions, `content_dispatch_routed`'s two `noKeyContext`, and item
+183's flip order are all priced today by what they would BREAK and by nothing
+that says what would READ them.  Unchanged: the parked Ix Step-1 composition on
+the Ix track's own clock.  Instrument debt, now **seven** rows, one retired and
+one added: the 198/200/201 censuses still lack a cruder-key control; what an
+`Or.inl`'s proof actually FORWARDS is measured and unresolved; the supply walk
+is scoped to one module; `pendingDocEnd` has no token-level field and no
+directive-flag field; `pendingBlock` carries no `h_real`; the strength ladder is
+a PROOF-LEVEL instrument only; ~~the demand ledger is a signature census~~ —
+**RETIRED, this item**; and new: **the weakening probe reads a lemma's CURRENT
+proof, not the space of proofs it admits** — a consumer that could spend the
+conjunct but does not is recorded here as a conduit, and nothing distinguishes
+"cannot read" from "does not read" except the independence lemma, which had to
+be written by hand for one function.
+
+**The instrument ledger, twenty-six rows.**  Park constructors (198),
+application sites (200), lemma conclusions (201), the same with a key that works
+(202), indices (203), the runtime's own state (204), the transitive ring of a
+carrier (205), the same closure with its last ring paid (206), the ring's payers
+against a forecast (207), the instruments themselves (208), the object a
+carrier's consumer reads (209), the plan's own remaining list (210), the control
+(211), the provenance (212), the route (213), the pipe (214), the beta (215),
+the arms (216), the branch (217), the reach (218), the corpus (219), the matrix
+(220), the minimal zero (221), the strength ladder (222), the demand ledger
+(223) — and now **the SPEND CENSUS**.  The rule this item adds: **a demand row
+is a debt only if the consumer can spend it; a census of who ASKS for strength
+is not a census of who READS it, and to price a tightening you loosen what is
+already tight and count who screams.**  Its corollary, which is what refused the
+mandate: **tightening a consumer that cannot read the conjunct buys only
+plumbing, and plumbing is one `imp_left` away in either direction.**
+
 ### REMAINING, in order
 
 The per-item history is the closure log above; this section lists only the
