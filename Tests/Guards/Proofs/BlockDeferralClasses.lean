@@ -178,7 +178,7 @@ example {s s' : ScannerState}
 example (sp_start sp_X sp_scan' : SurfPos) (s' s_dis : ScannerState)
     (ns : List Nat) (k : Nat)
     (h_stream : SLYamlStream sp_start sp_X)
-    (h_arm : s'.simpleKeyAllowed = true ∨ 0 < sp_scan'.col)
+    (h_arm : (s'.simpleKeyAllowed = true ∧ s'.simpleKey.possible = false) ∨ 0 < sp_scan'.col)
     (hcorr : ScannerSurfCorr s' sp_scan')
     (h_nodir : s'.allowDirectives = false)
     (h_src : StampBranch s_dis)
@@ -200,7 +200,7 @@ example (sp_start sp_X sp_scan' : SurfPos) (s' s_dis : ScannerState)
     carrier (`… ∨ explicitKeyLine = none` is false at every site here). -/
 example (sp_start sp_X sp_scan' : SurfPos) (s' sc s_dis : ScannerState)
     (h_stream : SLYamlStream sp_start sp_X)
-    (h_arm : s'.simpleKeyAllowed = true ∨ 0 < sp_scan'.col)
+    (h_arm : (s'.simpleKeyAllowed = true ∧ s'.simpleKey.possible = false) ∨ 0 < sp_scan'.col)
     (hcorr : ScannerSurfCorr s' sp_scan')
     (h_nodir : s'.allowDirectives = false)
     (h_src : StampBranch s_dis)
@@ -240,7 +240,7 @@ example {sc s_prep : ScannerState} {c : Char}
     indicator. -/
 example (sp_start sp_X sp_scan' sp_park : SurfPos) (s' : ScannerState) (c : Char)
     (h_stream : SLYamlStream sp_start sp_X)
-    (h_arm : s'.simpleKeyAllowed = true ∨ 0 < sp_scan'.col)
+    (h_arm : (s'.simpleKeyAllowed = true ∧ s'.simpleKey.possible = false) ∨ 0 < sp_scan'.col)
     (hcorr : ScannerSurfCorr s' sp_scan')
     (h_nodir : s'.allowDirectives = false)
     (h_res : InlineResidue sp_park c)
@@ -3291,7 +3291,7 @@ the re-entry was read as the price and it was only the SHAPE of the price
 
 example {sc : ScannerState} {sp_start sp_X sp_scan' : SurfPos}
     (h_stream : SLYamlStream sp_start sp_X)
-    (h_arm : sc.simpleKeyAllowed = true ∨ 0 < sp_scan'.col)
+    (h_arm : (sc.simpleKeyAllowed = true ∧ sc.simpleKey.possible = false) ∨ 0 < sp_scan'.col)
     (h_nodir : sc.allowDirectives = false)
     -- Item 206: and this, which the section above said would be unpayable.
     (h_nic0 : sp_scan'.col = 0 → sc.needIndentCheck = true) :

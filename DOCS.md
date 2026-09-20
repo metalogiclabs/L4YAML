@@ -26154,6 +26154,205 @@ the one the library had already proved.  Its corollary corrects item 220 in
 place: **widen the alphabet when you can NAME the production it cannot spell,
 and the state space when you cannot.**
 
+### Item 222 (2026-09-20)
+
+**THE STRENGTH LADDER — A FIELD'S PRICE IS ITS PAYERS, NOT ITS SITES.**
+
+**The mandate** (item 221's recorded NEXT, entry 1): *"what the escape's own
+footprint still owes is not a containment but a CONSUMER question: `h_arm`
+records half of what its producer proves, and nothing has measured what the
+other half would buy at the nine `pendingFlow` sites — giving the constructor
+the conjunct is an 8-site edit this item deliberately did not make."*
+
+**The instrument this item adds: the STRENGTH LADDER.**  For one fact carried by
+a FAMILY of carriers, the strongest form each carrier can state **from its own
+fields** — checked arm by arm by the elaborator, with the residue NAMED where it
+fails.  Items 198–221 counted park constructors, application sites, lemma
+conclusions, indices, runtime states, transitive rings, routes and zeros.  None
+of them measured a fact's STRENGTH across the carriers that hold it, and that is
+the measurement this item's mandate needed.  It lives in
+`Tests/Guards/Proofs/ArmStrengthLadder.lean`, where every row is a statement the
+build either accepts or does not.
+
+**The first reading: five of nine, and two of the five were free all along.**
+Item 77 gave all nine block-context parks the arm `ska = true ∨ 0 < col`; item
+80 gave the two CONTENT parks `(ska = true ∧ skp = false) ∨ 0 < col`.  The
+ladder asks which parks can state the STRONG form from their own field lists:
+
+| park | pays with | before | after |
+|---|---|---|---|
+| `pendingContent` | `h_arm` IS tight (item 80) | yes | yes |
+| `pendingBlockContent` | `h_arm` IS tight | yes | yes |
+| `pendingProps` | `h_col0 : 0 < sp_scan.col` | yes | yes |
+| `pendingBlock` | `h_col : sp_scan.col = n + 1` | yes | yes |
+| `pendingMapValue` | `h_col0` — [item 221](#item-221-2026-09-20)'s find | yes | yes |
+| **`pendingFlow`** | **`h_arm`, tightened at this item** | no | **yes** |
+| `noPending` | owes `simpleKey.possible = false` | no | no |
+| `pendingDocEnd` | owes the same | no | no |
+| `pendingDocStart` | owes the same | no | no |
+
+**Two rows of free strength had been sitting there unread.**  `pendingBlock` and
+`pendingMapValue` pay the tight arm from a COLUMN field, by `Or.inr`, at the
+cost of one `omega` — and `PendingNode.arm_or_col`, the family's one uniform
+reading, takes `Or.inl` off their `h_sk` instead.  Nobody had asked which
+disjunct was cheaper, so the family's reading was weak for want of a question,
+not for want of evidence.
+
+**The flip, staged, and the prediction it refuted.**  Tightening
+`pendingFlow.h_arm` and nothing else breaks **THREE** definitions —
+`PendingNode.arm_or_col`, `block_dispatch_deferred` (the park's ONE construction
+site), and `accum_block_pending`'s `pendingFlow` arm.  Not nine.  The prediction
+said 6–10 and named the producer's call graph; the call graph does not move,
+because the nine applications pay `block_dispatch_deferred`'s own PARAMETER and
+stage 1 leaves that loose.  **A constructor's blast radius is its producer's
+SIGNATURE, not its producer's call graph** — and that is why a field's cost
+cannot be read off a `grep` for its constructor.
+
+Tightening the producer and its three wrappers brings the nine in, for
+**ELEVEN** in `StreamAccum.lean` and four more restatements in
+`BlockDeferralClasses.lean`.  The nine split exactly as
+`pendingFlow.h_nic0`'s docstring has said since item 206: **eight** block-indicator
+entrances and **one** content entrance.  Item 221's "nine sites … an 8-site
+edit" is CONFIRMED and, for the first time, LOCATED.
+
+**How the eight pay — and the scanner fact that says why they cannot pay the
+obvious way.**  The eight all write the identical term `Or.inl
+(block_indicator_arm h_dispatch)`, so the obvious repair is a `_simpleKey_false`
+twin of `block_indicator_arm`.  **It does not exist, and the ladder is what
+found that out:** of the three indicator scans, only `scanKey` (`?`) clears the
+saved key.  `scanBlockEntry` (`-`) and `scanValue` (`:`) hand `simpleKey`
+through their record update untouched — `s'.simpleKey = s.simpleKey` — so no
+such twin can be stated for either, let alone proved.  The eight pay on the
+OTHER disjunct instead, with the column a block indicator spends
+(`dispatchBlockIndicators_col_pos` read at the surface through
+`ScannerSurfCorr.col_eq`).  One new library lemma,
+`arm_tight_of_block_dispatch`, given `nic0_of_block_dispatch`'s own argument
+shape so that all eight sites are one textual substitution and nothing else
+moves.
+
+**The ninth pays by DELETION.**  `content_park_arm` has proved the tight arm
+since item 77; the content entrance wrote `.imp_left And.left` to weaken it to
+what the escape's park asked for.  Removing the projection IS the payment.
+That is Reflection 662 (`ProjectAtTheConsumer`) caught in the act **at a FIELD
+rather than at a lemma**: a strong producer was already paying and a weak field
+threw the strength away at every site, invisibly, because the projected fact was
+still true and still used.
+
+**A field's price is its PAYERS, not its sites.**  `noPending` has EIGHT
+construction sites and would cost **one** edit: seven are flow-interior and pay
+`Or.inr (inFlow_of_flowLevel_eq …)`, which the tightening does not touch, and
+the eighth is the stream seed.  Reflection 645 said an escape's price is its
+domain and not its call-site count; this is the same rule one level down, for a
+CONSTRUCTOR FIELD, and it cuts in the expensive direction too — `pendingFlow`
+has one construction site and cost fifteen edits.
+
+**What the other half buys.**  Nothing at today's consumers, measured: `h_arm`
+leaves the escape's park by exactly two routes and neither reads the conjunct
+(`PendingNode.arm_or_col` projects it away; `accum_block_on_closeThenBlock.h_park`
+is declared weak, and its only two readers — `landing_or_park_save` and
+`landing_or_park_ska` — use the left disjunct as `simpleKeyAllowed = true`
+alone).  The one lemma in the development that READS the conjunct is
+`colon_fires_implicit_key`, where it refutes a live pack and forces the mid-line
+reading, and only the two content parks reach it.  So the purchase is a route
+that does not exist yet — and one thing that does:
+
+> **the escape's park stops having a state of its own by CONSTRUCTION.**
+> Item 219 read `pendingFlow`'s `sc` footprint as `pFlowPark` and MEASURED it
+> equal to `pContentish` on every sample.  With the tight field the two readings
+> are the same expression: `pFlowParkT_eq_pContentish` is `rfl`, and
+> `pFlowParkT sc && !pContentish sc = false` at every state.  Item 220's
+> `ONLYflowPark = 0` is no longer a measurement — which is the floor item 183's
+> delete-don't-narrow order was waiting on, and the second of item 220's five
+> residuals to move from MEASURED to DEFINITIONAL.
+
+**The remaining three rungs are priced, not forecast.**  Each of `noPending`,
+`pendingDocStart` and `pendingDocEnd` owes exactly one fact, and all three are
+PROVED in the ladder module so that a later item spends a known price:
+`(ScannerState.mk' input).simpleKey.possible = false` is `rfl`;
+`scanDocumentStart_simpleKey_false` is one `simp only` (not `rfl` —
+`unwindIndents`, `emit` and `advanceN` sit between the write and the read);
+`scanDocumentEnd_simpleKey_false` is item 221's `repeat' split` shape.  With any
+one of them in hand the family's uniform tight reading follows —
+`arm_tight_or_col` takes `simpleKey.possible = false` as its ONE premise and the
+other six arms never look at it.
+
+**Predictions.**  HELD — **P-LADDER** (5 of 9, and the exact membership of both
+sides), **P-FREECOL** (the two column-paid rows `arm_or_col` does not read),
+**P-DEMAND-ZERO** (no consumer reads the conjunct), **P-UNLOCK**
+(`colon_fires_implicit_key` is the one reader, reached only by the two content
+parks), **P-GATES**.  REFUTED — **P-FLIP** (predicted 6–10 breaks from the
+constructor alone; read **3**), **P-SITES** (half: the content entrance needed no
+new lemma, as predicted, but the eight did — the prediction assumed the conjunct
+was available at the indicator scans and **two of the three do not clear the
+key**), **P-FOUR** (predicted three `rfl`-shaped residues; only the seed is
+`rfl`).  **P-REACH was NOT TESTED** — see instrument debt.
+
+**What changed.**  `L4YAML/Proofs/Production/StreamAccum.lean`: the constructor
+field, `block_dispatch_deferred` and its three wrappers, one new lemma
+(`arm_tight_of_block_dispatch`), eight site substitutions, one projection
+deleted, two `imp_left` weakenings added at the readers that still want the loose
+form.  `Tests/Guards/Proofs/BlockDeferralClasses.lean`: four signature
+restatements, which are pins moving because the signature moved.
+`Tests/Guards/Proofs/ArmStrengthLadder.lean` (NEW): the ladder, the family
+lemma, the three rungs, the two projections, `pFlowParkT` and its `rfl`.
+`Tests/Guards.lean`: one import.  **No census predicate was edited**, so items
+219, 220 and 221 keep all thirty of their pins and they were re-derived.
+
+**Gates, all at baseline.**  `lake build` **1189** jobs (1188 + the new guard
+module), 0 warnings; `run-all-tests.sh` **4520/4520**; `eventscore` **347/358**
+(0 error-miss); `suiterunner` **869/0/151**; matrix **402/402 event** +
+**282/282 JSON** on BOTH pipelines; `#print axioms` — no `sorryAx`, and the two
+Bool-algebra declarations (`mk'_simpleKey_false`, `pFlowParkT_eq_pContentish`)
+depend on no axioms at all; checkers unmoved (228 library modules from 5 default
+targets, 355 imports; 20/230/249/355; all 25 `theorem` sites whitelisted);
+annotations 211/211 with the standing **19** name mismatches, exit **1** as
+always.  `declinereach`, `declinearm` and `declinecorner` re-derive all thirty
+pins.  Counts: declarations **8599 -> 8600** (ONE library addition), `#guard`
+**8172 -> 8173**, test files **635 -> 636**.
+
+**The `[210]` flip is FIVE and UNMOVED — and this item is why the ledger should
+stop recording it by line number.**  All five sites' line numbers moved by
+exactly **+13** (4621 -> 4634, 5901 -> 5914, 5924 -> 5937, 6093 -> 6106,
+7645 -> 7658) because this item inserted thirteen lines of comment and proof
+ABOVE all of them, and the flip itself did not move at all.  Recorded as
+definitions from here on: **`topLevelFlowResumeSep`, `rootMapRoute`,
+`rootMapRouteF`, `bareNodeRoute`, `structural_dispatch_to_pending`** — which is
+what §10's "record definitions, not line numbers" asks for, applied to the
+instrument that first taught it.
+
+**What remains.**  The ladder is **6 of 9**, and the three rows still owed are
+priced above and blocked by nothing — the next item can take the family's
+uniform tight reading for three constructor fields and one edit at `noPending`,
+and then `accum_block_on_closeThenBlock.h_park` can be tightened and
+`colon_fires_implicit_key` supplied from ANY park rather than from the two
+content ones.  That is the route this item measured and did not build.  Behind
+it, unchanged: R3's seven productions, with `content_dispatch_routed`'s two
+`noKeyContext`; item 183's flip order, whose first step — `pendingFlow`'s arm —
+is now taken; the parked Ix Step-1 composition on the Ix track's own clock.
+Instrument debt, now **six** rows, one added: the 198/200/201 censuses still lack
+a cruder-key control; what an `Or.inl`'s proof actually FORWARDS is measured and
+unresolved; the supply walk is scoped to one module; `pendingDocEnd` has no
+token-level field and no directive-flag field; `pendingBlock` carries no
+`h_real`; and **the strength ladder is a PROOF-LEVEL instrument only** — no
+census counts, per park class, the reachable states the tight arm excludes and
+the loose one admits, so a park that CANNOT hold the tight arm would be found by
+a failed proof rather than by a measurement that named it first.
+
+**The instrument ledger, twenty-four rows.**  Park constructors (198),
+application sites (200), lemma conclusions (201), the same with a key that works
+(202), indices (203), the runtime's own state (204), the transitive ring of a
+carrier (205), the same closure with its last ring paid (206), the ring's payers
+against a forecast (207), the instruments themselves (208), the object a
+carrier's consumer reads (209), the plan's own remaining list (210), the control
+(211), the provenance (212), the route (213), the pipe (214), the beta (215),
+the arms (216), the branch (217), the reach (218), the corpus (219), the matrix
+(220), the minimal zero (221) — and now **the STRENGTH LADDER**.  The rule this
+item adds: **a family's uniform reading is as strong as its weakest carrier, and
+which carrier is weakest is a measurement, not a design choice.**  Its corollary,
+which is what priced the mandate: **a field's price is its PAYERS, not its
+sites** — eight sites and one payer at `noPending`, one site and fifteen edits at
+`pendingFlow`.
+
 ### REMAINING, in order
 
 The per-item history is the closure log above; this section lists only the

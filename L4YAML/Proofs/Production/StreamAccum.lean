@@ -1725,7 +1725,17 @@ inductive PendingNode (sc : ScannerState) : Bool → SurfPos → SurfPos → Sur
       (h_stream : SLYamlStream sp_start sp_block)
       -- Item 77: the escape carries no grammar, but it does carry the ONE
       -- scanner fact every park has — see `pendingContent.h_arm`.
-      (h_arm : sc.simpleKeyAllowed = true ∨ 0 < sp_scan.col)
+      -- **Item 222: at that field's FULL strength.**  Item 77 wrote the flag
+      -- alone and item 80 gave the content parks the cleared key beside it; the
+      -- escape kept the weak half for fourteen items because nothing had asked
+      -- what the other half cost.  It costs one lemma
+      -- (`arm_tight_of_block_dispatch`) at eight of the producer's nine
+      -- entrances and a DELETED projection at the ninth, which had been
+      -- discarding `content_park_arm`'s conjunct since item 77.  What it buys
+      -- is that this park's `sc` footprint is now `pendingContent`'s, as an
+      -- expression rather than as a census reading — see
+      -- `Tests/Guards/Proofs/ArmStrengthLadder.lean` §5.
+      (h_arm : (sc.simpleKeyAllowed = true ∧ sc.simpleKey.possible = false) ∨ 0 < sp_scan.col)
       -- **Item 139 does NOT give this park a `CompletedTail`**, and the reason is
       -- the constructor's own producer: `block_dispatch_deferred` is the block
       -- INDICATOR dispatch's escape, so the last real token behind this park is
@@ -2470,6 +2480,9 @@ lemma PendingNode.arm_or_col {sc : ScannerState} {sp_start sp_block sp_scan : Su
   -- this reader wants only the flag.
   | pendingContent _ _ _ _ _ _ _ _ h_arm => exact h_arm.imp_left And.left
   | pendingBlockContent _ _ _ _ _ _ _ _ _ h_arm => exact h_arm.imp_left And.left
+  -- Item 222: and so does the ESCAPE's, which carried the flag alone until this
+  -- item gave it the cleared key its twin has held since item 80.
+  | pendingFlow _ _ _ _ h_arm _ _ => exact h_arm.imp_left And.left
   | _ => assumption
 
 /-- The propsEmpty close of a held run: `[161]`'s `( c-ns-properties e-scalar )`
@@ -10199,6 +10212,40 @@ lemma nic0_of_block_dispatch {sc s_prep s' : ScannerState} {sp_scan' : SurfPos}
         · show s_prep.peek? = some c; exact hpeek
         · exact hpeek)
     h_dispatch hcorr
+
+/-- **Item 222: the escape's arm at the strength its twin carries.**
+
+    `block_indicator_arm` gives the FLAG, and item 80's shape asks for the flag
+    AND the cleared key — so the eight block-indicator entrances that pay
+    `pendingFlow.h_arm` with `Or.inl` cannot simply add a conjunct: **two of
+    the three indicator scans do not clear the saved key at all.**  `scanKey`
+    does; `scanBlockEntry` and `scanValue` hand `simpleKey` through their record
+    update untouched, so `s'.simpleKey = s.simpleKey` and nothing about its
+    possibility is available (measured at item 222 — the two `_simpleKey_false`
+    twins of `scanKey_simpleKey_false` do not elaborate).
+
+    The strong arm is therefore paid on the OTHER disjunct, and it was always
+    the cheaper one: a block indicator SPENDS a column
+    (`dispatchBlockIndicators_col_pos`), which the correspondence reads at the
+    surface.  Same argument shape as `nic0_of_block_dispatch` above, so the
+    eight sites substitute one term for another and nothing else moves. -/
+lemma arm_tight_of_block_dispatch {sc s_prep s' : ScannerState} {sp_scan' : SurfPos}
+    {c : Char}
+    (h_preprocess : scanNextToken_preprocess sc = .ok (some (s_prep, c)))
+    (h_dispatch : scanNextToken_dispatchBlockIndicators
+        (if s_prep.allowDirectives then
+          { s_prep with allowDirectives := false, documentEverStarted := true }
+        else s_prep) c = .ok (some s'))
+    (hcorr : ScannerSurfCorr s' sp_scan') :
+    (s'.simpleKeyAllowed = true ∧ s'.simpleKey.possible = false) ∨ 0 < sp_scan'.col :=
+  Or.inr (by
+    rw [hcorr.col_eq]
+    exact dispatchBlockIndicators_col_pos
+      (by have hpeek := preprocess_some_peek h_preprocess
+          split
+          · show s_prep.peek? = some c; exact hpeek
+          · exact hpeek)
+      h_dispatch)
 
 /-- …and so is one literal. -/
 lemma glit_col {ch : Char} {sp sp' : SurfPos} (h : GLit ch sp sp') :
@@ -20644,7 +20691,7 @@ lemma block_dispatch_deferred
     (h_stream : SLYamlStream sp_start sp_X)
     -- Item 77: the escape's own park still answers the ONE scanner question a
     -- landed `:` asks of it — see `PendingNode.pendingContent.h_arm`.
-    (h_arm : s'.simpleKeyAllowed = true ∨ 0 < sp_scan'.col)
+    (h_arm : (s'.simpleKeyAllowed = true ∧ s'.simpleKey.possible = false) ∨ 0 < sp_scan'.col)
     (hcorr : ScannerSurfCorr s' sp_scan')
     -- Item 138: the escape's park carries the directive face too — the
     -- deferral is a block-indicator dispatch like any other, and its caller
@@ -20815,7 +20862,7 @@ lemma block_dispatch_deferred_stamp_offcol
     (sp_start sp_X sp_scan' : SurfPos) (s' : ScannerState) {s_dis : ScannerState}
     {ns : List Nat} {k : Nat}
     (h_stream : SLYamlStream sp_start sp_X)
-    (h_arm : s'.simpleKeyAllowed = true ∨ 0 < sp_scan'.col)
+    (h_arm : (s'.simpleKeyAllowed = true ∧ s'.simpleKey.possible = false) ∨ 0 < sp_scan'.col)
     (hcorr : ScannerSurfCorr s' sp_scan')
     (h_nodir : s'.allowDirectives = false)
     (_h_src : ¬(s_dis.explicitKeyLine = none ∨
@@ -20874,7 +20921,7 @@ lemma block_dispatch_deferred_stamp_nopack
     (sp_start sp_X sp_scan' : SurfPos) (s' : ScannerState)
     {sc s_dis : ScannerState}
     (h_stream : SLYamlStream sp_start sp_X)
-    (h_arm : s'.simpleKeyAllowed = true ∨ 0 < sp_scan'.col)
+    (h_arm : (s'.simpleKeyAllowed = true ∧ s'.simpleKey.possible = false) ∨ 0 < sp_scan'.col)
     (hcorr : ScannerSurfCorr s' sp_scan')
     (h_nodir : s'.allowDirectives = false)
     (_h_src : ¬(s_dis.explicitKeyLine = none ∨
@@ -20918,7 +20965,7 @@ lemma block_dispatch_deferred_inline
     (sp_start sp_X sp_scan' : SurfPos) (s' : ScannerState)
     {sp_park : SurfPos} {c : Char}
     (h_stream : SLYamlStream sp_start sp_X)
-    (h_arm : s'.simpleKeyAllowed = true ∨ 0 < sp_scan'.col)
+    (h_arm : (s'.simpleKeyAllowed = true ∧ s'.simpleKey.possible = false) ∨ 0 < sp_scan'.col)
     (hcorr : ScannerSurfCorr s' sp_scan')
     (h_nodir : s'.allowDirectives = false)
     (_h_res : InlineResidue sp_park c)
@@ -21669,7 +21716,7 @@ lemma accum_block_on_closeThenBlock
         (preprocess_some_peek h_preprocess)
       exact block_dispatch_deferred_inline sp_start sp_block_ctx sp_scan' s'
         (h_stream_fallback h_res h_mid.2.2.1)
-        (Or.inl (block_indicator_arm h_dispatch)) hcorr_result
+        (arm_tight_of_block_dispatch h_preprocess h_dispatch hcorr_result) hcorr_result
         (nodir_of_block_dispatch h_dispatch) h_res
         (nic0_of_block_dispatch h_preprocess h_dispatch hcorr_result)
   obtain ⟨h_ssl, hcol_mid, h_larm⟩ := h_landed
@@ -22123,7 +22170,7 @@ lemma accum_block_on_closeThenBlock
             · -- Item 185: no frame the park carries is at the landing's column.
               exact block_dispatch_deferred_stamp_offcol sp_start sp_mid sp_scan' s'
                 h_stream_new
-                (Or.inl (block_indicator_arm h_dispatch)) hcorr_result
+                (arm_tight_of_block_dispatch h_preprocess h_dispatch hcorr_result) hcorr_result
                 (nodir_of_block_dispatch h_dispatch) h_src
                 (explicit_at_indent_of_dispatch h_dispatch
                   (noflow_disp_of_noflow h_noflow) h_src) hknv
@@ -22131,7 +22178,7 @@ lemma accum_block_on_closeThenBlock
           · -- Item 185: the park carries NO pack.
             exact block_dispatch_deferred_stamp_nopack sp_start sp_mid sp_scan' s'
               h_stream_new
-              (Or.inl (block_indicator_arm h_dispatch)) hcorr_result
+              (arm_tight_of_block_dispatch h_preprocess h_dispatch hcorr_result) hcorr_result
               (nodir_of_block_dispatch h_dispatch) h_src
               (explicit_at_indent_of_dispatch h_dispatch
                 (noflow_disp_of_noflow h_noflow) h_src)
@@ -22710,7 +22757,7 @@ lemma accum_block_on_pendingBlockContent
           (preprocess_some_peek h_preprocess))
       block_dispatch_deferred_inline sp_start sp_block_ctx sp_scan' s'
         (h_stream_fallback h_res h_mid.2.2.1)
-        (Or.inl (block_indicator_arm h_dispatch)) hcorr_result
+        (arm_tight_of_block_dispatch h_preprocess h_dispatch hcorr_result) hcorr_result
         (nodir_of_block_dispatch h_dispatch) h_res
         (nic0_of_block_dispatch h_preprocess h_dispatch hcorr_result))
     obtain ⟨h_ssl, hcol_mid, h_larm⟩ := h_landed
@@ -23027,7 +23074,7 @@ lemma accum_block_on_pendingBlockContent
                   -- chain above it — every frame this park is standing inside.
                   exact block_dispatch_deferred_stamp_offcol sp_start sp_mid sp_scan' s'
                     (h_close_pending h_nd_land _ h_ssl)
-                    (Or.inl (block_indicator_arm h_dispatch)) hcorr_result
+                    (arm_tight_of_block_dispatch h_preprocess h_dispatch hcorr_result) hcorr_result
                     (nodir_of_block_dispatch h_dispatch) h_src
                     (explicit_at_indent_of_dispatch h_dispatch
                       (noflow_disp_of_noflow h_noflow) h_src)
@@ -23037,7 +23084,7 @@ lemma accum_block_on_pendingBlockContent
             · -- Item 185: the park carries NO pack.
               exact block_dispatch_deferred_stamp_nopack sp_start sp_mid sp_scan' s'
                 (h_close_pending h_nd_land _ h_ssl)
-                (Or.inl (block_indicator_arm h_dispatch)) hcorr_result
+                (arm_tight_of_block_dispatch h_preprocess h_dispatch hcorr_result) hcorr_result
                 (nodir_of_block_dispatch h_dispatch) h_src
                 (explicit_at_indent_of_dispatch h_dispatch
                   (noflow_disp_of_noflow h_noflow) h_src)
@@ -23548,7 +23595,7 @@ lemma accum_block_on_pendingBlock
                 -- content twin.
                 exact block_dispatch_deferred_stamp_offcol sp_start sp_mid sp_scan' s'
                   (h_close_pending h_nd_land _ h_ssl)
-                  (Or.inl (block_indicator_arm h_dispatch)) hcorr_result
+                  (arm_tight_of_block_dispatch h_preprocess h_dispatch hcorr_result) hcorr_result
                   (nodir_of_block_dispatch h_dispatch) h_src
                   (explicit_at_indent_of_dispatch h_dispatch
                     (noflow_disp_of_noflow h_noflow) h_src)
@@ -23558,7 +23605,7 @@ lemma accum_block_on_pendingBlock
           · -- Item 185: the park carries NO pack.
             exact block_dispatch_deferred_stamp_nopack sp_start sp_mid sp_scan' s'
               (h_close_pending h_nd_land _ h_ssl)
-              (Or.inl (block_indicator_arm h_dispatch)) hcorr_result
+              (arm_tight_of_block_dispatch h_preprocess h_dispatch hcorr_result) hcorr_result
               (nodir_of_block_dispatch h_dispatch) h_src
               (explicit_at_indent_of_dispatch h_dispatch
                 (noflow_disp_of_noflow h_noflow) h_src)
@@ -23972,7 +24019,8 @@ lemma accum_block_pending (sc : ScannerState)
   | pendingFlow _ _ _ _ h_arm77 _ h_nic0F =>
     exact accum_block_on_closeThenBlock sc sp_start sp_block sp_scan s_prep s' c sp_prep sp_scan'
       h_close_pending (fun _ _ => h_stream_block) (Or.inr trivial) (Or.inr trivial) hcorr_prep
-      hcorr_result h_corr h_noflow h_arm77 h_preprocess h_dispatch (Or.inr trivial)
+      hcorr_result h_corr h_noflow (h_arm77.imp_left And.left) h_preprocess h_dispatch
+      (Or.inr trivial)
       (Or.inr trivial) h_bare h_dn h_base h_mono
       -- Item 142: this park's producer is `block_dispatch_deferred`, so the
       -- token behind it is a `-`, `?` or `:` — the third place item 102's
@@ -31231,8 +31279,10 @@ lemma accum_content_pending (sc : ScannerState)
       (Or.inr trivial)
       (fun _ _ _ _ _ _ =>
       block_dispatch_deferred sp_start sp_block sp_scan' s' h_stream_block
-        ((content_park_arm (preprocess_some_peek h_preprocess) h_flow_disp h_not_doc h_dispatch
-          hcorr_result).imp_left And.left) hcorr_result
+        -- Item 222: the projection is GONE — `content_park_arm` proves the
+        -- tight arm and the escape's park now asks for it.
+        (content_park_arm (preprocess_some_peek h_preprocess) h_flow_disp h_not_doc h_dispatch
+          hcorr_result) hcorr_result
         (nodir_of_content_dispatch h_dispatch)
         (content_park_nic_any (preprocess_some_peek h_preprocess)
           h_flow_disp h_not_doc h_dispatch hcorr_result))

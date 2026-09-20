@@ -136,7 +136,14 @@ def pDocStart (sc : ScannerState) : Bool :=
 /-- `pendingFlow` — β.5's own escape park: `h_arm`, `h_nodir`, `h_nic0`, which
     item 77's comment already calls "the ONE scanner fact every park has".  It
     holds at exactly the states `pContentish` holds at, measured both ways
-    (`DIFF … = 0` in both censuses), so the escape has no state of its own. -/
+    (`DIFF … = 0` in both censuses), so the escape has no state of its own.
+
+    **Item 222 made that definitional.**  `h_arm` now carries item 80's cleared
+    key beside the flag, so the escape's footprint IS `pContentish`'s expression
+    — `Tests.Guards.ArmStrengthLadder.pFlowParkT_eq_pContentish` is `rfl`.  This
+    reading is left at item 219's strength so that items 219–221 keep meaning
+    what they meant; the tightened twin lives beside item 220's `pPropsT` and
+    item 221's `pMapValueT`. -/
 def pFlowPark (sc : ScannerState) : Bool :=
   (sc.simpleKeyAllowed || 0 < sc.col) && !sc.allowDirectives &&
   (sc.col != 0 || sc.needIndentCheck)
