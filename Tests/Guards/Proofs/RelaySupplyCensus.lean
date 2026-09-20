@@ -47,10 +47,18 @@ that position to what actually decides it.
   writing both answers, once per branch.  What the row hides is not a decider —
   it is the BRANCH, and `expectedSplitLanding` is where that is counted.  156
   splits, 66 distinct splitters, 151 of them two-armed and not one of them a
-  single-constructor destructuring.
+  single-constructor destructuring.  **Item 217 took the branch**: **145 of the
+  155 branch on a value the CALLER supplied**, and **99 of those on a premise
+  that is itself a `_ ∨ True`** — the site writes both answers because its own
+  caller may have declined.  Only TEN branch on a fact the site derives, and
+  `expectedSiteDecided` names every one of them.
 * `RELAY` — the argument is one of the enclosing constant's OWN binders, so the
   decision belongs to ITS callers.  This is the only shape item 211 looked for.
-  **68**, of which 12 arrived through a pipe.
+  **68**, of which 12 arrived through a pipe — **and this row is not what a
+  relay costs.**  Item 217 measured a further **99** edges that read `SPLIT`
+  and branch on one of these same optional binders: the site cases on whether
+  its caller declined and answers in kind, which is a relay with a case
+  analysis around it.  See `expectedSplitBranch`.
 * `FIELD of g#i on d` — the argument is field `i` of the constructor that split
   `d`, so items 198 and 200's census decides it and not this one.  **58**, and
   53 of them are a field of the pending park the caller was handed: the row
@@ -129,11 +137,16 @@ abbrev OptMap := Std.HashMap Name (Array (Nat × Name))
     beta-redex item 212 met was a one-binder `have`.  Item 215's `peelPipe`
     peels up to thirteen at a time — see `expectedTally`. -/
 structure Bnd where
-  name : Name
-  opt  : Bool
-  val  : Option Expr
-  src  : String := ""
-  dep  : Nat := 0
+  name   : Name
+  opt    : Bool
+  val    : Option Expr
+  src    : String := ""
+  dep    : Nat := 0
+  /-- When this binder is a constructor FIELD, the enclosing constant's binder
+      index the split's discriminant ROOTS at — so a field of a relayed datum
+      still names the premise it was carved out of.  Item 217: 46 of the 145
+      relay-rooted splits reach their premise only through this. -/
+  srcTgt : Option Nat := none
 deriving Inhabited
 
 /-- Which argument of a PIPE carries the decision.  Item 213 named these in the
@@ -175,6 +188,32 @@ def twoArmShape : Name → Option (Nat × Nat × Nat × Array Nat)
   | ``dite => some (1, 3, 2, #[1, 1])
   | _ => none
 
+/-- The loose de Bruijn indices of an expression, relative to where it sits.
+    Item 217 uses them for one question only: does an `Or.inl`/`Or.inr`'s
+    argument refer to ANYTHING in scope, or is it self-contained? -/
+partial def looseRefs : Expr → Nat → Array Nat → Array Nat
+  | .bvar k, off, acc => if k ≥ off then acc.push (k - off) else acc
+  | .app f a, off, acc => looseRefs a off (looseRefs f off acc)
+  | .lam _ t b _, off, acc => looseRefs b (off+1) (looseRefs t off acc)
+  | .forallE _ t b _, off, acc => looseRefs b (off+1) (looseRefs t off acc)
+  | .letE _ t v b _, off, acc =>
+      looseRefs b (off+1) (looseRefs v off (looseRefs t off acc))
+  | .mdata _ e, off, acc => looseRefs e off acc
+  | .proj _ _ e, off, acc => looseRefs e off acc
+  | _, _, acc => acc
+
+/-- `closed` when the `Or` constructor's argument mentions nothing in scope —
+    `Or.inr trivial` is the whole of it — and `free` when it hands back
+    something it was given.  **This is what makes a premise narrowing
+    predictable by line**: a `closed` DECLINE cannot break when the premise its
+    split branches on is narrowed, because it never touches it.  Item 217
+    measured 164 of the 168 `DECLINE` leaves `closed` and used the count to
+    forecast N-217's error set before the edit; see `expectedSplitBranch`. -/
+def orArgRefs (args : Array Expr) : String :=
+  if h : 2 < args.size then
+    (if (looseRefs args[2] 0 #[]).isEmpty then "closed" else "free")
+  else "?"
+
 /-- What `resolve` found: the answer, the enclosing constant's binder index when
     the answer is `RELAY`, the pipes crossed on the way, the SPLITS crossed, and
     the LEAVES of the decision tree when the answer is still a split.  `pipes`
@@ -182,11 +221,20 @@ def twoArmShape : Name → Option (Nat × Nat × Nat × Array Nat)
     asserted, and `leaves` is what makes `SPLIT` interrogable at all: before
     item 216 the row named the splitter and stopped. -/
 structure Res where
-  how    : String
-  tgt    : Option Nat := none
-  pipes  : List String := []
-  splits : List String := []
-  leaves : Array String := #[]
+  how     : String
+  tgt     : Option Nat := none
+  pipes   : List String := []
+  splits  : List String := []
+  leaves  : Array String := #[]
+  /-- The DISCRIMINANT chain of a surviving split, with relay indices: WHICH
+      BRANCH is taken is decided by this, and by nothing the site writes.
+      Item 217. -/
+  disc    : String := ""
+  /-- The enclosing constant's binder index the discriminant chain roots at,
+      when it roots at one at all — 145 of the 155 do. -/
+  rootTgt : Option Nat := none
+  /-- One entry per entry of `leaves`: `orArgRefs` at that leaf. -/
+  leafSrc : Array String := #[]
 deriving Inhabited
 
 /-- Where a split's alternatives sit in its argument list, and how many binders
@@ -235,12 +283,13 @@ def splitShape (env : Environment) (g : Name) : Option Shape :=
     answer — see `expectedSplitLanding`. -/
 partial def resolve (env : Environment) (isMech : Name → Bool) (st : Array Bnd)
     (n : Nat) : Nat → Expr → Nat → Res
-  | _, _, 0 => ⟨"DEEP", none, [], [], #[]⟩
+  | _, _, 0 => { how := "DEEP" }
   | d, e, fuel+1 =>
     let f := e.getAppFn
     let args := e.getAppArgs
-    if f.isConstOf ``Or.inl then ⟨"PAY", none, [], [], #[]⟩
-    else if f.isConstOf ``Or.inr then ⟨"DECLINE", none, [], [], #[]⟩
+    if f.isConstOf ``Or.inl then { how := "PAY", leafSrc := #[orArgRefs args] }
+    else if f.isConstOf ``Or.inr then
+      { how := "DECLINE", leafSrc := #[orArgRefs args] }
     else match f with
       | .const c _ =>
           match pipeArg c with
@@ -248,7 +297,7 @@ partial def resolve (env : Environment) (isMech : Name → Bool) (st : Array Bnd
               if h : i < args.size then
                 let r := resolve env isMech st n d args[i] fuel
                 { r with pipes := c.toString :: r.pipes }
-              else ⟨s!"PIPE-UNDERAPPLIED {c}", none, [c.toString], [], #[]⟩
+              else { how := s!"PIPE-UNDERAPPLIED {c}", pipes := [c.toString] }
           | none =>
             if isTwoArm c || isMech c then
               let pipes0 := if isTwoArm c then [c.toString] else []
@@ -258,17 +307,27 @@ partial def resolve (env : Environment) (isMech : Name → Bool) (st : Array Bnd
                                   i.numParams + 1 + i.numDiscrs, i.numAlts, i.altNumParams)
                 | none => none
               match shp with
-              | none => ⟨s!"SPLIT {c}", none, pipes0, [], #[]⟩
+              | none => { how := s!"SPLIT {c}", pipes := pipes0 }
               | some (major, firstAlt, numAlts, altNP) =>
-                if firstAlt + numAlts > args.size then ⟨s!"SPLIT {c}", none, pipes0, [], #[]⟩
+                if firstAlt + numAlts > args.size then { how := s!"SPLIT {c}", pipes := pipes0 }
                 else Id.run do
                   -- enter every arm: a split's answer is one answer PER BRANCH,
                   -- so the only thing that can be reported as ONE answer is a
                   -- split whose arms all agree — and exactly one of the 156
                   -- does.  The rest keep the `SPLIT` label and carry their
                   -- leaves, which is what `expectedSplitLanding` reads.
-                  let disc := if h : major < args.size then
-                      (resolve env isMech st n d args[major] fuel).how else "?"
+                  let dres := if h : major < args.size then
+                      resolve env isMech st n d args[major] fuel else { how := "?" }
+                  -- the arm LABEL stays `dres.how`, so every `src` string this
+                  -- census has ever printed is byte-identical; the INDEXED
+                  -- chain rides beside it in `disc`, and `rootTgt` is where it
+                  -- bottoms out.  Item 217.
+                  let disc := dres.how
+                  let dchain :=
+                    if dres.how == "RELAY" then s!"RELAY#{dres.tgt.getD 0}"
+                    else if dres.disc != "" then s!"{dres.how} on {dres.disc}"
+                    else dres.how
+                  let rootTgt := if dres.how == "RELAY" then dres.tgt else dres.rootTgt
                   let mut arms : Array Res := #[]
                   for idx in [firstAlt:firstAlt+numAlts] do
                     let need := altNP[idx - firstAlt]!
@@ -280,7 +339,9 @@ partial def resolve (env : Environment) (isMech : Name → Bool) (st : Array Bnd
                       | .lam bn t b _ =>
                           let lbl := if isTwoArm c then s!"GUARD of {c}#{j}"
                                      else s!"FIELD of {c}#{j} on {disc}"
-                          stA := stA.push ⟨bn, isOptTy t, none, lbl, 0⟩
+                          stA := stA.push
+                            { name := bn, opt := isOptTy t, val := none, src := lbl,
+                              srcTgt := rootTgt }
                           body := b; dA := dA + 1
                       | _ => pure ()
                     arms := arms.push (resolve env isMech stA n dA body fuel)
@@ -291,24 +352,28 @@ partial def resolve (env : Environment) (isMech : Name → Bool) (st : Array Bnd
                   else
                     let lv := arms.foldl
                       (fun a r => a ++ (if r.leaves.isEmpty then #[r.how] else r.leaves)) #[]
-                    return ⟨s!"SPLIT {c}", none, pipes0, [], lv⟩
-            else ⟨s!"VIA {c}", none, [], [], #[]⟩
+                    let ls := arms.foldl (fun a r => a ++
+                      (if r.leaves.isEmpty then
+                         (if r.leafSrc.isEmpty then #[""] else r.leafSrc)
+                       else r.leafSrc)) #[]
+                    return { how := s!"SPLIT {c}", pipes := pipes0, leaves := lv,
+                             disc := dchain, rootTgt := rootTgt, leafSrc := ls }
+            else { how := s!"VIA {c}" }
       | .bvar k =>
           if d - 1 - k < st.size ∧ k < d then
             let j := d - 1 - k
-            if j < n then ⟨"RELAY", some j, [], [], #[]⟩
+            if j < n then { how := "RELAY", tgt := some j, rootTgt := some j }
             else match st[j]!.val with
               | some v => resolve env isMech st n st[j]!.dep v fuel
               | none =>
-                  if st[j]!.src != "" then ⟨st[j]!.src, none, [], [], #[]⟩
-                  else ⟨s!"LOCAL {st[j]!.name}{if st[j]!.opt then ":opt" else ":?"}",
-                        none, [], [], #[]⟩
-          else ⟨"OOB", none, [], [], #[]⟩
+                  if st[j]!.src != "" then { how := st[j]!.src, rootTgt := st[j]!.srcTgt }
+                  else { how := s!"LOCAL {st[j]!.name}{if st[j]!.opt then ":opt" else ":?"}" }
+          else { how := "OOB" }
       | .letE bn t v b _ =>
           -- three arms of the 155 splits are a `let`, and item 212's `resolve`
           -- had no case for them: they read `OTHER`, which is the census
           -- declining to answer.  Bind and continue, exactly as `walk` does.
-          resolve env isMech ((st.extract 0 d).push ⟨bn, isOptTy t, some v, "", d⟩)
+          resolve env isMech ((st.extract 0 d).push { name := bn, opt := isOptTy t, val := some v, dep := d })
             n (d+1) b fuel
       | .lam .. =>
           -- a beta-redex, or a bare function reached through a pipe: bind what
@@ -323,10 +388,10 @@ partial def resolve (env : Environment) (isMech : Name → Bool) (st : Array Bnd
             match body with
             | .lam bn t b _ =>
                 let v := if h : i < args.size then some args[i] else none
-                peel (st.push ⟨bn, isOptTy t, v, "", d0⟩) b (i+1) (d+1)
+                peel (st.push { name := bn, opt := isOptTy t, val := v, dep := d0 }) b (i+1) (d+1)
             | body => resolve env isMech st n d body fuel
           peel (st.extract 0 d) f 0 d
-      | _ => ⟨"OTHER", none, [], [], #[]⟩
+      | _ => { how := "OTHER" }
 
 /-- Caller `C` supplies callee `g`'s optional premise `idx` with `how`. -/
 structure Edge where
@@ -338,6 +403,9 @@ structure Edge where
   pipes  : List String := []
   splits : List String := []
   leaves : Array String := #[]
+  disc    : String := ""
+  rootTgt : Option Nat := none
+  leafSrc : Array String := #[]
 deriving Inhabited
 
 def appEdges (env : Environment) (isMech : Name → Bool) (self : Name) (n : Nat)
@@ -348,8 +416,11 @@ def appEdges (env : Environment) (isMech : Name → Bool) (self : Name) (n : Nat
     for (i, _) in obs do
       if h : i < args.size then
         let r := resolve env isMech st n st.size args[i] 24
-        out := out.push ⟨self, g, i, r.how, r.tgt, r.pipes, r.splits, r.leaves⟩
-      else out := out.push ⟨self, g, i, "UNDERAPPLIED", none, [], [], #[]⟩
+        out := out.push { caller := self, callee := g, idx := i, how := r.how,
+                          tgt := r.tgt, pipes := r.pipes, splits := r.splits,
+                          leaves := r.leaves, disc := r.disc, rootTgt := r.rootTgt,
+                          leafSrc := r.leafSrc }
+      else out := out.push { caller := self, callee := g, idx := i, how := "UNDERAPPLIED" }
     return out
 
 /-- The case-split MECHANISM, as opposed to a supply site. -/
@@ -392,7 +463,7 @@ partial def peelPipe (env : Environment) (m : OptMap) (self : Name) (n : Nat)
     | .lam bn t b _ =>
         if h : j < trailing.size then
           peelPipe env m self n trailing d0
-            (st.push ⟨bn, isOptTy t, some trailing[j], "", d0⟩) b (j+1)
+            (st.push { name := bn, opt := isOptTy t, val := some trailing[j], dep := d0 }) b (j+1)
             (walk env m self n st trailing[j] acc)
         else walk env m self n st body acc
     | body =>
@@ -403,7 +474,7 @@ partial def peelPipe (env : Environment) (m : OptMap) (self : Name) (n : Nat)
 /-- One alternative of a case split: its first `k` binders are constructor
     FIELDS of `disc`; the rest take the split's trailing arguments. -/
 partial def walkAlt (env : Environment) (m : OptMap) (self : Name) (n : Nat)
-    (st : Array Bnd) (k : Nat) (disc : String) (splitter : Name)
+    (st : Array Bnd) (k : Nat) (disc : String) (dtgt : Option Nat) (splitter : Name)
     (trailing : Array Expr) : Expr → Array Edge → Array Edge
   | e, acc => Id.run do
     let d0 := st.size
@@ -414,22 +485,23 @@ partial def walkAlt (env : Environment) (m : OptMap) (self : Name) (n : Nat)
       match e with
       | .lam bn t b _ =>
           if i < k then
-            st := st.push ⟨bn, isOptTy t, none, s!"FIELD of {splitter}#{i} on {disc}", 0⟩
+            st := st.push { name := bn, opt := isOptTy t, val := none,
+                            src := s!"FIELD of {splitter}#{i} on {disc}", srcTgt := dtgt }
           else
             let v := if h : i - k < trailing.size then some trailing[i - k] else none
-            st := st.push ⟨bn, isOptTy t, v,
-              if v.isSome then "" else s!"GEN of {disc}", d0⟩
+            let gsrc : String := if v.isSome then "" else s!"GEN of {disc}"
+            st := st.push { name := bn, opt := isOptTy t, val := v, src := gsrc, dep := d0 }
           e := b; i := i + 1
       | _ => break
     return walk env m self n st e acc
 
 partial def walk (env : Environment) (m : OptMap) (self : Name) (n : Nat) :
     Array Bnd → Expr → Array Edge → Array Edge
-  | st, .lam bn t b _, acc => walk env m self n (st.push ⟨bn, isOptTy t, none, "", 0⟩) b acc
+  | st, .lam bn t b _, acc => walk env m self n (st.push { name := bn, opt := isOptTy t, val := none }) b acc
   | st, .forallE bn t b _, acc =>
-      walk env m self n (st.push ⟨bn, isOptTy t, none, "", 0⟩) b acc
+      walk env m self n (st.push { name := bn, opt := isOptTy t, val := none }) b acc
   | st, .letE bn t v b _, acc =>
-      walk env m self n (st.push ⟨bn, isOptTy t, some v, "", st.size⟩) b
+      walk env m self n (st.push { name := bn, opt := isOptTy t, val := some v, dep := st.size }) b
         (walk env m self n st v acc)
   | st, .mdata _ e, acc => walk env m self n st e acc
   | st, .proj _ _ e, acc => walk env m self n st e acc
@@ -446,7 +518,7 @@ partial def walk (env : Environment) (m : OptMap) (self : Name) (n : Nat) :
               Array Edge :=
             match body, (if i < args.size then some args[i]! else none) with
             | .lam bn t b _, some a =>
-                peel (st.push ⟨bn, isOptTy t, some a, "", d0⟩) b (i+1)
+                peel (st.push { name := bn, opt := isOptTy t, val := some a, dep := d0 }) b (i+1)
                   (walk env m self n st a acc)
             | body, _ =>
                 walk env m self n st body
@@ -476,9 +548,11 @@ partial def walk (env : Environment) (m : OptMap) (self : Name) (n : Nat) :
                 -- INDEX of an indexed inductive — `PendingNode` has four, so
                 -- every field of the park was labelled `of VIA Bool.false`.
                 let major := info.numParams + info.numDiscrs
-                let disc := if h : major < args.size then
-                    (resolve env (isMechanism env) st n st.size args[major] 24).how
-                  else "?"
+                let dres := if h : major < args.size then
+                    resolve env (isMechanism env) st n st.size args[major] 24
+                  else { how := "?" }
+                let disc := dres.how
+                let dtgt := if dres.how == "RELAY" then dres.tgt else dres.rootTgt
                 let trailing := if lastAlt < args.size then
                     args.extract lastAlt args.size else #[]
                 let mut acc := acc
@@ -486,7 +560,7 @@ partial def walk (env : Environment) (m : OptMap) (self : Name) (n : Nat) :
                   let a := args[idx]!
                   if firstAlt ≤ idx && idx < lastAlt then
                     acc := walkAlt env m self n st info.altNumParams[idx - firstAlt]!
-                      disc g trailing a acc
+                      disc dtgt g trailing a acc
                   else acc := walk env m self n st a acc
                 return acc
             | none => args.foldl (fun a x => walk env m self n st x a) acc
@@ -536,6 +610,53 @@ end L4YAML.Tests.Guards.RelaySupplyCensus
 namespace L4YAML.Tests.Guards.RelaySupplyCensus
 
 open Lean Elab Command
+
+/-- The head constant of binder `i` of `c`'s TYPE — read off the declaration
+    and never off a proof term.  This is the INDEPENDENT artifact the
+    discriminant column is checked against: `expectedSplitBranch`'s
+    `agree=99/99` compares the splitter's own declared major type with the type
+    of the premise the chain roots at, and the two censuses share no code path
+    to reach them. -/
+def binderHead (env : Environment) (c : Name) (i : Nat) : Name :=
+  match env.find? c with
+  | none => `NOCONST
+  | some ci => Id.run do
+      let mut t := ci.type
+      let mut k := 0
+      repeat
+        match t with
+        | .forallE _ ty b _ =>
+            if k == i then return (ty.getAppFn.constName?.getD `NOTCONST)
+            t := b; k := k + 1
+        | _ => break
+      return `SHORT
+
+/-- The NAME of binder `i` of `c`'s type, for naming a branch's host premise. -/
+def binderName (env : Environment) (c : Name) (i : Nat) : Name :=
+  match env.find? c with
+  | none => `NOCONST
+  | some ci => Id.run do
+      let mut t := ci.type
+      let mut k := 0
+      repeat
+        match t with
+        | .forallE nm _ b _ =>
+            if k == i then return nm
+            t := b; k := k + 1
+        | _ => break
+      return `SHORT
+
+/-- The splitter's own major-premise index, so its DECLARED discriminant type
+    can be read off its type rather than inferred from the application. -/
+def majorOf (env : Environment) (c : Name) : Option Nat :=
+  if isTwoArm c then (twoArmShape c).map (fun s => s.1)
+  else (splitShape env c).map (fun i => i.numParams + i.numDiscrs)
+
+/-- Whether binder `j` of `c` is itself one of the `_ ∨ True` premises. -/
+def isOptBinder (env : Environment) (c : Name) (j : Nat) : Bool :=
+  match env.find? c with
+  | some ci => (optBinders ci.type).1.any (fun q => q.1 == j)
+  | none => false
 
 /-- The supply census, pinned.  `DECLINE` and `PAY` are the two a term census
     can see; every other row is a supply it cannot.  ~~**345 of 659 edges — 52 %
@@ -645,6 +766,74 @@ def expectedSplitLanding : String :=
 DECLINE|DECLINE|PAY=8, DECLINE|DECLINE|PAY|PAY|PAY=1, DECLINE|PAY=143, \
 DECLINE|PAY|PAY=1]"
 
+/-- **Which BRANCH is taken (DOCS item 217).**  Item 216 resolved what a split
+    WRITES — both answers, one per arm.  What it could not say was which arm the
+    runtime takes, and the answer is that the site almost never chooses:
+    **145 of the 155 surviving splits branch on a value the CALLER supplied**,
+    99 of them directly on one of the caller's own binders and 46 through a
+    constructor field carved out of one.  Ten — and only ten — branch on a fact
+    the site derives for itself; they are listed in `expectedSiteDecided`.
+
+    ~~99 split on a `RELAY`~~ — that was item 216's own discriminant column read
+    only as far as its bare `RELAY` rows, and it skipped both the 46 chains that
+    reach a relay through a field and the 9 nested splits that reach one through
+    another split.  **The number is 145.**
+
+    Of the 145, **99 root at a premise that is itself a `_ ∨ True`** — the site
+    is casing on whether its OWN CALLER declined, and then declining in the arm
+    where the caller did.  Their host premises are `expectedBranchPremises`.
+
+    `agree=99/99` is the control, and it is a cross-check rather than a restated
+    count: for every split whose discriminant is a bare relay, the splitter's
+    DECLARED major-premise type — read off the splitter's own type by
+    `majorOf`/`binderHead` — is compared with the type of the premise the chain
+    roots at, read off the enclosing lemma's type.  Neither reading goes through
+    the proof term the census walks, so a wrong `major` index would show up here
+    as a disagreement rather than as a plausible column.
+
+    The leaf rows are `orArgRefs`: **164 of the 168 `DECLINE` leaves are
+    `closed`**, an `Or.inr trivial` that mentions nothing in scope, and all 160
+    `PAY` leaves are `free`.  That asymmetry is what made N-217 predictable by
+    line: a `closed` decline cannot break when the premise its split branches on
+    is narrowed. -/
+def expectedSplitBranch : String :=
+  "splits=155 leaves=328 relayRooted=145 siteDecided=10 optionalRoot=99 \
+plainRoot=46 agree=99/99 disagree=0 [DECLINE-closed=164, DECLINE-free=4, PAY-free=160]"
+
+/-- **The ten splits the site decides for itself**, which is the whole residue
+    of the branch question after `expectedSplitBranch`.  Four are a `dite` on a
+    condition the site tests (`VIA Eq`, `VIA LE.le`); five case an `Or`-valued
+    fact the site derives (`Nat.eq_zero_or_pos`, `frameChainUnion`); one reaches
+    its fact through a nested split (`preprocess_some_savedKey_shape`).
+
+    `dite`'s `major` is argument 1 — the PROPOSITION, not a proof of it — so
+    `VIA Eq` and `VIA LE.le` naming a type here is the instrument reading the
+    condition, not losing the discriminant. -/
+def expectedSiteDecided : List String :=
+  ["1 accum_block_on_closeThenBlock :: dite on VIA Eq ⇒ DECLINE|PAY",
+   "1 accum_block_on_pendingBlock :: dite on VIA Eq ⇒ DECLINE|PAY",
+   "1 accum_block_on_pendingBlock :: dite on VIA LE.le ⇒ DECLINE|DECLINE|PAY|PAY|PAY",
+   "1 accum_block_on_pendingBlockContent :: dite on VIA Eq ⇒ DECLINE|PAY",
+   "1 accum_content_pending :: Or.casesOn on VIA Nat.eq_zero_or_pos ⇒ \
+DECLINE|DECLINE|DECLINE|PAY",
+   "1 accum_flow_open_depth0 :: accum_flow_open_depth0.match_1_18 on SPLIT Or.casesOn \
+on VIA preprocess_some_savedKey_shape ⇒ DECLINE|PAY",
+   "2 accum_block_pending :: Or.casesOn on VIA Nat.eq_zero_or_pos ⇒ DECLINE|PAY",
+   "2 question_open_map :: question_open_map.match_1_7 on VIA frameChainUnion ⇒ \
+DECLINE|PAY"]
+
+/-- **The premises the branch is taken on**, by binder NAME, for the 99 splits
+    whose discriminant roots at an optional premise of the enclosing lemma.
+    These are the pending park's own optional contexts — the same names items
+    198/200 counted as park fields — which is why narrowing one of them is a
+    question about the park's callers and not about the lemma that splits on it. -/
+def expectedBranchPremises : List String :=
+  ["1 h_mapF", "1 h_mapFV", "1 h_mk", "1 h_pr", "1 h_routeS", "1 h_sfx", "1 h_valFV",
+   "10 h_closeFV_old", "12 h_closeF_old", "3 h_cov", "3 h_kslotUp_old", "3 h_seqF_old",
+   "4 h_closeFV108", "4 h_expl", "4 h_kslotUp", "4 h_resV_land", "4 h_routeF",
+   "4 h_routeFV", "5 h_seqF168", "7 h_closeF99", "8 h_kslot_old", "8 h_vslot",
+   "9 h_kslot"]
+
 /-- **Read off the TYPE, not off a list.**  Item 211's falsification script
     enumerated five optional contexts of `content_dispatch_routed` by hand;
     the lemma states SIX.  A hand-typed knob chooses its own answer, so the
@@ -711,7 +900,58 @@ elsewhere={(leaves.filter (fun a => a != "PAY" && a != "DECLINE")).size} {
     (sh.toList.map (fun (a,b) => s!"{a}={b}")).mergeSort (· ≤ ·)}"
   if gotSplit != expectedSplitLanding then
     throwError "the SPLIT landing moved.\nexpected: {expectedSplitLanding}\ngot:      {gotSplit}"
+  -- WHICH BRANCH (DOCS item 217): every surviving split's discriminant, chased
+  -- to its root, with the splitter's own declared major type as the control.
   let env ← getEnv
+  let pfx := "L4YAML.Proofs.StreamAccum."
+  let relayRooted := split.filter (fun e => e.rootTgt.isSome)
+  let optRooted := relayRooted.filter (fun e => isOptBinder env e.caller (e.rootTgt.getD 0))
+  let direct := split.filter (fun e => e.disc.startsWith "RELAY#")
+  let mut agree := 0
+  let mut disagree : Array String := #[]
+  for e in direct do
+    let splitter := (e.how.splitOn " ").getLast!.toName
+    match majorOf env splitter with
+    | none => disagree := disagree.push s!"NOSHAPE {splitter}"
+    | some m =>
+        if binderHead env splitter m == binderHead env e.caller (e.rootTgt.getD 0) then
+          agree := agree + 1
+        else
+          disagree := disagree.push s!"{e.caller.getString!}#{e.rootTgt.getD 0} {splitter}"
+  let mut lsT : Std.HashMap String Nat := {}
+  for e in split do
+    for i in [0:e.leaves.size] do
+      let k := s!"{e.leaves[i]!}-{if i < e.leafSrc.size then e.leafSrc[i]! else "?"}"
+      lsT := lsT.insert k ((lsT.getD k 0) + 1)
+  let gotBranch := s!"splits={split.size} leaves={
+    split.foldl (fun a e => a + e.leaves.size) 0} relayRooted={relayRooted.size} \
+siteDecided={split.size - relayRooted.size} optionalRoot={optRooted.size} \
+plainRoot={relayRooted.size - optRooted.size} agree={agree}/{direct.size} \
+disagree={disagree.size} {(lsT.toList.map (fun (a,b) => s!"{a}={b}")).mergeSort (· ≤ ·)}"
+  if gotBranch != expectedSplitBranch then
+    throwError "the SPLIT BRANCH census moved.\nexpected: {
+      expectedSplitBranch}\ngot:      {gotBranch}\ndisagreements: {disagree.toList}"
+  let mut sd : Std.HashMap String Nat := {}
+  for e in split.filter (fun e => e.rootTgt.isNone) do
+    let shp := String.intercalate "|" (e.leaves.map (fun a => (a.splitOn " ").head!)).qsort.toList
+    let k := s!"{e.caller.getString!} :: {
+      ((e.how.splitOn " ").getLast!).replace pfx ""} on {
+      e.disc.replace pfx ""} ⇒ {shp}"
+    sd := sd.insert k ((sd.getD k 0) + 1)
+  let gotSite := (sd.toList.map (fun (a,b) => s!"{b} {a}")).mergeSort (· ≤ ·)
+  if gotSite != expectedSiteDecided then
+    throwError "the SITE-DECIDED splits moved.\nexpected ({
+      expectedSiteDecided.length}):\n{String.intercalate "\n" expectedSiteDecided}\ngot ({
+      gotSite.length}):\n{String.intercalate "\n" gotSite}"
+  let mut hp : Std.HashMap String Nat := {}
+  for e in optRooted do
+    let k := (binderName env e.caller (e.rootTgt.getD 0)).toString
+    hp := hp.insert k ((hp.getD k 0) + 1)
+  let gotHosts := (hp.toList.map (fun (a,b) => s!"{b} {a}")).mergeSort (· ≤ ·)
+  if gotHosts != expectedBranchPremises then
+    throwError "the BRANCH PREMISES moved.\nexpected ({
+      expectedBranchPremises.length}):\n{String.intercalate "\n" expectedBranchPremises}\ngot ({
+      gotHosts.length}):\n{String.intercalate "\n" gotHosts}"
   let some ci := env.find? (ns ++ `content_dispatch_routed) | throwError "no seed lemma"
   let obs := ((optBinders ci.type).1.map (fun (i, n) => s!"{i} {n}")).toList
   if obs != expectedOptBinders then

@@ -25263,7 +25263,10 @@ the standing **19** name mismatches.  Counts: declarations **8594 → 8594**,
 the site, `SPLIT` is the site on branches, `FIELD` is items 198/200's census,
 `RELAY` is the caller, `VIA` is 11 named lemmas, and `LOCAL`'s 27 are honest.
 What the census cannot say is which BRANCH is taken — and it now names the
-discriminant for every one of the 155: **99 split on a `RELAY`**, the caller's
+discriminant for every one of the 155: ~~**99 split on a `RELAY`**~~ — **145
+do, struck at item 217**; this read the column's bare `RELAY` rows and skipped
+both the 46 that reach a relay through a constructor field and the 9 nested
+splits that reach one through another split — the caller's
 own binder, so the branch is the CALLER's to choose and the site only writes
 both answers for it.  That is the next instrument if anyone wants one, and it is
 a different question from supply.  Behind it, unchanged: R3's seven productions,
@@ -25285,6 +25288,161 @@ gets quoted and the bullet is what gets skipped.**  Its companion, from the
 price: **the last unresolved row can be unresolved because nobody read it, not
 because nobody could** — 156 edges, 328 leaves, every one of them a `PAY` or a
 `DECLINE`, and the instrument needed to say so was one `match` arm.
+
+### Item 217 (2026-09-19)
+
+**WHICH BRANCH — and the site is not the one choosing it.**  Item 216's NEXT
+entry 1 asked for the branch instrument: the census named the splitter and the
+leaves, but not which arm the runtime takes.  It now names the DISCRIMINANT of
+every one of the 155 surviving splits, chases it through constructor fields and
+nested splits to its root, and checks that root against the splitter's own
+declared type.  **145 of the 155 branch on a value the CALLER supplied.**  Ten
+— and only ten — branch on a fact the site derives for itself.
+
+**Item 216's own number was 99, and it was the same kind of under-count item 216
+had just corrected in item 215.**  Item 216 printed the discriminant column and
+read only its bare `RELAY` rows.  46 more reach a relay through a constructor
+field of a relayed datum (`FIELD of PendingNode.casesOn#9 on RELAY` is a field
+of the park the caller handed over), and 9 of the 10 nested `SPLIT Or.casesOn`
+rows reach one through another split.  **145.**  Struck in place at item 216's
+entry and in the census's own docstring.  My forecast before this build was
+**136**, so the error was mine twice over: I chased the field chains and still
+left the nested splits out.
+
+**The finding is what the 99 turn out to be.**  Of the 145, **99 root at a
+premise that is ITSELF a `_ ∨ True`** — the site is casing on whether its own
+caller declined, and declining in the arm where the caller did.  Their 36 host
+premises are the pending park's own optional contexts: `h_kslot`,
+`h_closeF_old`, `h_routeF`, `h_seqF168`, `h_expl`, `h_vslot`, `h_closeFV_old`,
+and the rest.  The remaining 46 root at a plain premise — a `PendingNode` the
+caller passed, cased on to find out which park arrived.  **A `SPLIT` on an
+optional premise is not a decision.  It is a relay with a case analysis around
+it**, which is why item 216 measured the leaf shape `DECLINE|PAY` on 143 of the
+155: one arm per answer the caller could have given.
+
+**I predicted fewer than ten of these and wrote down what it would mean if I
+were wrong.**  From `PREDICTION.md`, before the build: *"if a large share of
+splits branch on whether the caller declined, then the 168 `DECLINE` leaves and
+the 271 `DECLINE` edges are not independent punts but one punt propagated, which
+would be a much bigger finding than the one I expect."*  99 of 145.
+
+**The control, and it is a cross-check and not a restated count.**  For each of
+the 99 direct-relay splits, the splitter's DECLARED major-premise type — read
+off the splitter's own type by `majorOf`/`binderHead` — is compared with the
+type of the premise the chain roots at, read off the enclosing lemma's type.
+Neither reading passes through the proof term `resolve` walks.  **`agree=99/99`,
+disagree=0.**  The named risk was that `major = numParams + numDiscrs` was the
+wrong index for some splitter shape and the whole column an artifact; it is not.
+
+**The asymmetry that made the narrowing predictable by line.**  `orArgRefs` asks
+one question of each leaf: does the `Or` constructor's argument mention anything
+in scope?  **164 of the 168 `DECLINE` leaves are `closed`** — `Or.inr trivial`,
+which touches nothing — and **all 160 `PAY` leaves are `free`**.  A `closed`
+decline cannot break when the premise its split branches on is narrowed, because
+it never reads it.
+
+**N-217, committed by line and column before the edit.**  Target
+`accum_content_on_pendingBlock_indented` premise **#14 = `h_closeF_old`**, the
+largest host: **11** of the 99 splits branch on it, and the census names exactly
+ONE supply edge into it, a `FIELD` from `accum_content_pending`.  Narrowing its
+outer `∨ True` at `StreamAccum.lean:29159` gave **exactly one error in the whole
+build**, at **32615:6**:
+
+```
+error: L4YAML/Proofs/Production/StreamAccum.lean:32615:6: Application type mismatch: The argument
+  h_closeF99
+has type
+  (∃ ks, … ResumeFrames (SLYamlStream sp_start) ks sp_end) ∨
+    True
+but is expected to have type
+  (∃ ks, … ResumeFrames (SLYamlStream sp_start) ks sp_end) ∨
+    False
+in the application
+  accum_content_on_pendingBlock_indented sc sp_start sp_block sp_scan n_old s_prep s' c sp_prep sp_scan' h_stream_block
+    h_close_old h_close_entry_old h_kslot92 h_closeF99
+```
+
+**Zero errors inside the lemma**, although `h_closeF_old` is cased on eleven
+times in it.  That is the sentence this item exists to make checkable: **a split
+branches on a premise; it does not consume it.**  All three predictions held,
+including the column.
+
+**What changed.**  `Tests/Guards/Proofs/RelaySupplyCensus.lean`: `Res` carries
+`disc`, `rootTgt` and `leafSrc`; `Bnd` carries `srcTgt`, so a constructor field
+still names the premise it was carved out of; `walk`/`walkAlt` thread the root
+index onto field binders; `looseRefs`/`orArgRefs` answer the closed/free
+question; `binderHead`, `binderName`, `majorOf` and `isOptBinder` read the
+lemma's TYPE for the control.  **The arm LABELS are byte-identical** — the
+indexed chain rides beside them in `disc` rather than replacing them, which is
+why nothing in the FIELD rows moved.  New pins: `expectedSplitBranch`,
+`expectedSiteDecided`, `expectedBranchPremises`.  **Unmoved, and they are the
+controls: `expectedTally`, `expectedSeed`, `expectedProducers`,
+`expectedPipeLanding`, `expectedSplitLanding` and `expectedOptBinders` are
+byte-identical, and `ConclusionRouteCensus`'s four pins passed unchanged.**
+**Zero edits under `L4YAML/`.**
+
+**The failure class that cost three items a build each is retired — and it took
+one more failure to find out where it lived.**  Adding a field to `Res` broke 14
+anonymous-constructor sites in item 216, and the same class hit 214 and 215.  I
+converted every literal in the SUPPLY census and predicted zero arity errors;
+`ConclusionRouteCensus` has **five `Bnd` literals of its own** and all five
+failed with the same message.  **Retiring a failure class in the file you are
+looking at is not retiring it.**  Both files are structure-instance syntax now,
+where a defaulted field may be omitted, and the route census's two positional
+`Res` patterns match on FIELDS (`match r.how, r.tgt with`) rather than on
+position, which no future field can break.
+
+Two Lean facts the failures paid for, both worth keeping:
+
+* **Structure-instance fields are `sepByIndent`**: a continuation line must
+  start at the SAME COLUMN as the first field.  Misaligned, the error reads
+  `unexpected identifier; expected '}'` and is reported at the END of the
+  PREVIOUS line — nowhere near the mistake.
+* **`⟨a, b, ..⟩` is not accepted in a `match` pattern here** (`unexpected token
+  '..'; expected '⟩'`), so the ellipsis is not the way out of positional
+  fragility; matching on fields is.
+
+**Gates, all at baseline.**  `lake build` **1167** jobs, 0 warnings;
+`run-all-tests.sh` **4520/4520** (Production Coverage **837/837**); `eventscore`
+**347/358**; `suiterunner` **869/0/151**; matrix **402/402 event** + **282/282
+JSON** on BOTH pipelines; the `[210]` flip **FIVE** at
+**4621/5901/5924/6093/7645**, UNMOVED; `#print axioms` over eleven subjects —
+no `sorryAx`, `frameChainUnion` and `flowVPack_of_close` on
+`propext` alone; checkers 228/355, 20/230/249/355, 25 capstones, annotations
+100 % (211/211) with the standing **19** name mismatches.  Counts: declarations **8594 → 8594**, `#guard`
+**8158 → 8158**, test files **626 → 626**.  `StreamAccum.lean` and
+`Document.lean` restored to their baseline hashes after the two narrowings.
+
+**What remains.**  The branch question is answered for all 155: **145 the
+caller, 10 the site**, and the ten are named.  What is NOT answered — and is now
+stated precisely for the first time — is whether a DECLINE arm is ever
+REACHED.  The census can name, for each of the 99, the premise whose decline
+selects the punt; whether any input makes a caller decline it is a question
+about the runtime, of exactly item 65's shape, and would want a corpus census
+run before the runtime is touched rather than another term census.  Behind it,
+unchanged: R3's seven productions, with `content_dispatch_routed`'s two
+`noKeyContext` that same runtime question; item 183's flip order (`pendingFlow`'s
+constructor and arm first); the parked Ix Step-1 composition on the Ix track's
+own clock.  Instrument debt, now two rows: the 198/200/201 censuses still lack a
+cruder-key control, and **what an `Or.inl`'s proof actually FORWARDS is measured
+and unresolved** — `orArgRefs` separates closed from free and nothing separates
+the free ones, so the probe's attempt at it was left out of the census rather
+than pinned.
+
+**The instrument ledger, nineteen rows.**  Park constructors (198), application
+sites (200), lemma conclusions (201), the same with a key that works (202),
+indices (203), the runtime's own state (204), the transitive ring of a carrier
+(205), the same closure with its last ring paid (206), the ring's payers against
+a forecast (207), the instruments themselves (208), the object a carrier's
+consumer reads (209), the plan's own remaining list (210), the control (211),
+the provenance (212), the route (213), the pipe (214), the beta (215), the arms
+(216) — and now **the BRANCH**.  The rule this item adds: **a column you printed
+is not a column you read.**  Item 216 computed the discriminant of every one of
+the 155, printed all 49 distinct chains, and quoted a number that counted only
+the rows whose chain was one segment long.  Its companion, from the one
+prediction that failed here: **retiring a failure class in the file you are
+looking at is not retiring it** — five literals of the same shape sat in the
+census next door and broke the build exactly as their nine predecessors had.
 
 ### REMAINING, in order
 
