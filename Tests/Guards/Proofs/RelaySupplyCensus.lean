@@ -29,21 +29,32 @@ that position to what actually decides it.
 * `PAY` / `DECLINE` — an `Or.inl` / `Or.inr` written at the call site.  These
   are the only two a term census can see, and they are **314 of 659** edges.
 * `VIA g` — the argument is the result of calling `g`, so `g`'s own conclusion
-  decides it.  This is the case items 199–211 called a relay and never counted;
-  it is the largest resolvable share after the two above, and `Or.imp` — the
-  combinator item 201 named — is **39** of it.  **Item 213: `Or.imp` and `dite`
-  are PIPES and decide nothing**, so 43 of these 79 stop one step short of an
-  answer and the resolved producer count is 36 — below `RELAY`'s 56.  What
-  `resolve` needs is the pipe list `ConclusionRouteCensus` carries; until it has
-  it, read this row as an upper bound.
+  decides it.  This is the case items 199–211 called a relay and never counted.
+  ~~It is the largest resolvable share after the two above, and `Or.imp` — the
+  combinator item 201 named — is **39** of it.~~  **Item 213: `Or.imp` and
+  `dite` are PIPES and decide nothing**, and **item 214 followed all 43 of
+  them** — `resolve` now has the pipe list (`pipeArg`), so this row is **36**
+  edges over 11 constants and every one of them names a lemma.  It is the
+  SMALLEST of the four hidden shares, not the largest.
 * `SPLIT g` — the argument is the result of a case split at the call site, so
-  the site decides it on two branches rather than one.
+  the site decides it on two branches rather than one.  At **156** this is the
+  largest hidden share, and it was larger than `VIA` even at item 212's reading;
+  the sentence above had the ordering backwards from the moment it was written.
 * `RELAY` — the argument is one of the enclosing constant's OWN binders, so the
   decision belongs to ITS callers.  This is the only shape item 211 looked for.
+  **66**, of which 10 arrived through a pipe.
 * `FIELD of …` / `LOCAL …` — the argument was unpacked from a destructuring.
   `LOCAL` is this census's own blind spot, kept as a NUMBER rather than a
   sentence: every one of them is a park field or a bundle field, which is
-  items 198 and 200's census and not this one's.
+  items 198 and 200's census and not this one's.  **Item 214 checked that
+  sentence instead of repeating it**, and it holds: the 26 that arrive here
+  through a pipe are bound in a run whose binder NAMES, in order, are the park
+  constructor's own field telescope (`h_close h_ivl h_expl h_vslot h_kslot
+  h_closeF h_frames h_closeFV h_framesV h_seqF h_explUp` against
+  `pendingMapValue`'s 22 fields), or a bundle's.  The census cannot MARK them,
+  because the `cases` that binds them is transported through an `Eq.ndrec` and
+  so is never entered as an alternative — `LOCAL` is 82 for that reason and not
+  because the fields are unknowable.
 
 A `have`-bound hypothesis is followed through its beta-redex, and a case
 split's alternatives are entered with their constructor fields marked and
@@ -109,34 +120,89 @@ structure Bnd where
   src  : String := ""
 deriving Inhabited
 
+/-- Which argument of a PIPE carries the decision.  Item 213 named these in the
+    DOWNWARD direction and this census had no list: before item 214 a pipe was
+    reported as `VIA <the combinator>`, which names what carried the answer and
+    not what decided it.  `Or.imp` alone was **39 of the 79 `VIA` edges**.
+
+    `dite`/`ite` are deliberately NOT here.  Downward they are pipes, because a
+    route census collects EVERY route and takes both arms; upward this census
+    has to name ONE decider, and a two-armed decision written at the call site
+    is what it already calls `SPLIT` — see `isTwoArm`. -/
+def pipeArg : Name → Option Nat
+  | ``Or.imp => some 6
+  | ``Or.imp_left | ``Or.imp_right => some 4
+  | ``Eq.mpr | ``Eq.mp | ``cast => some 3
+  | ``Eq.ndrec | ``Eq.rec => some 3
+  | ``id => some 1
+  | _ => none
+
+/-- A pipe with two arms: the site decides, on two branches.  Both arms of all
+    four occurrences in `StreamAccum` disagree, so reporting the common answer
+    when the arms agree would be a knob with nothing behind it. -/
+def isTwoArm : Name → Bool
+  | ``dite | ``ite => true
+  | _ => false
+
+/-- What `resolve` found: the answer, the enclosing constant's binder index when
+    the answer is `RELAY`, and the pipes crossed on the way.  `pipes` is what
+    makes the pipe landing re-derivable instead of asserted. -/
+structure Res where
+  how   : String
+  tgt   : Option Nat := none
+  pipes : List String := []
+deriving Inhabited
+
 /-- What supplies an argument.  `d` is the number of binders in scope where the
     argument lives; `st` is the binder stack OUTERMOST first, so the enclosing
     constant's own `n` binders are `st[0] … st[n-1]` and `.bvar k` names
     `st[d-1-k]`.  A bound value is followed at the depth it was bound at, which
-    is what keeps the de Bruijn indices inside it meaningful. -/
+    is what keeps the de Bruijn indices inside it meaningful.  A PIPE is
+    followed into the argument that carries the decision, and a lambda is
+    entered rather than reported — three `Or.imp` edges and all eight `dite`
+    arms stop at a `BETA` otherwise. -/
 partial def resolve (isMech : Name → Bool) (st : Array Bnd) (n : Nat) :
-    Nat → Expr → Nat → String × Option Nat
-  | _, _, 0 => ("DEEP", none)
+    Nat → Expr → Nat → Res
+  | _, _, 0 => ⟨"DEEP", none, []⟩
   | d, e, fuel+1 =>
     let f := e.getAppFn
-    if f.isConstOf ``Or.inl then ("PAY", none)
-    else if f.isConstOf ``Or.inr then ("DECLINE", none)
+    let args := e.getAppArgs
+    if f.isConstOf ``Or.inl then ⟨"PAY", none, []⟩
+    else if f.isConstOf ``Or.inr then ⟨"DECLINE", none, []⟩
     else match f with
       | .const c _ =>
-          if isMech c then (s!"SPLIT {c}", none) else (s!"VIA {c}", none)
+          match pipeArg c with
+          | some i =>
+              if h : i < args.size then
+                let r := resolve isMech st n d args[i] fuel
+                ⟨r.how, r.tgt, c.toString :: r.pipes⟩
+              else ⟨s!"PIPE-UNDERAPPLIED {c}", none, [c.toString]⟩
+          | none =>
+            if isTwoArm c then ⟨s!"SPLIT {c}", none, [c.toString]⟩
+            else if isMech c then ⟨s!"SPLIT {c}", none, []⟩
+            else ⟨s!"VIA {c}", none, []⟩
       | .bvar k =>
           if d - 1 - k < st.size ∧ k < d then
             let j := d - 1 - k
-            if j < n then ("RELAY", some j)
+            if j < n then ⟨"RELAY", some j, []⟩
             else match st[j]!.val with
               | some v => resolve isMech st n j v fuel
               | none =>
-                  if st[j]!.src != "" then (st[j]!.src, none)
-                  else (s!"LOCAL {st[j]!.name}{if st[j]!.opt then ":opt" else ":?"}",
-                        none)
-          else ("OOB", none)
-      | .lam .. => ("BETA", none)
-      | _ => ("OTHER", none)
+                  if st[j]!.src != "" then ⟨st[j]!.src, none, []⟩
+                  else ⟨s!"LOCAL {st[j]!.name}{if st[j]!.opt then ":opt" else ":?"}",
+                        none, []⟩
+          else ⟨"OOB", none, []⟩
+      | .lam .. =>
+          -- a beta-redex, or a bare function reached through a pipe: bind what
+          -- arguments there are and resolve the body at the new depth.
+          let rec peel (st : Array Bnd) (body : Expr) (i : Nat) (d : Nat) : Res :=
+            match body with
+            | .lam bn t b _ =>
+                let v := if h : i < args.size then some args[i] else none
+                peel (st.push ⟨bn, isOptTy t, v, ""⟩) b (i+1) (d+1)
+            | body => resolve isMech st n d body fuel
+          peel st f 0 d
+      | _ => ⟨"OTHER", none, []⟩
 
 /-- Caller `C` supplies callee `g`'s optional premise `idx` with `how`. -/
 structure Edge where
@@ -145,6 +211,7 @@ structure Edge where
   idx    : Nat
   how    : String
   tgt    : Option Nat := none
+  pipes  : List String := []
 deriving Inhabited
 
 def appEdges (isMech : Name → Bool) (self : Name) (n : Nat) (st : Array Bnd)
@@ -153,9 +220,9 @@ def appEdges (isMech : Name → Bool) (self : Name) (n : Nat) (st : Array Bnd)
     let mut out : Array Edge := #[]
     for (i, _) in obs do
       if h : i < args.size then
-        let (how, tgt) := resolve isMech st n st.size args[i] 24
-        out := out.push ⟨self, g, i, how, tgt⟩
-      else out := out.push ⟨self, g, i, "UNDERAPPLIED", none⟩
+        let r := resolve isMech st n st.size args[i] 24
+        out := out.push ⟨self, g, i, r.how, r.tgt, r.pipes⟩
+      else out := out.push ⟨self, g, i, "UNDERAPPLIED", none, []⟩
     return out
 
 /-- The case-split MECHANISM, as opposed to a supply site. -/
@@ -251,7 +318,7 @@ partial def walk (env : Environment) (m : OptMap) (self : Name) (n : Nat) :
                 let firstAlt := info.numParams + 1 + info.numDiscrs
                 let lastAlt := firstAlt + info.numAlts
                 let disc := if h : info.numParams + 1 < args.size then
-                    (resolve (isMechanism env) st n st.size args[info.numParams + 1] 24).1
+                    (resolve (isMechanism env) st n st.size args[info.numParams + 1] 24).how
                   else "?"
                 let trailing := if lastAlt < args.size then
                     args.extract lastAlt args.size else #[]
@@ -315,14 +382,21 @@ open Lean Elab Command
     can see; every other row is a supply it cannot.  **345 of 659 edges — 52 %
     — are decided somewhere other than the site that writes them**, which is
     the share items 199, 201 and 211 each described in a sentence and none
-    could count.  `LOCAL` is this census's OWN blind spot, kept as a number:
-    each is a field unpacked from a park or a bundle, which is items 198 and
-    200's census.  `skipped` counts constants whose value has fewer leading
-    lambdas than their type has binders — the census will not read those, and
-    a rewrite that hides a proof from it has to move this number. -/
+    could count.  That 345 has not moved since item 212 and its COMPOSITION has:
+    following the pipes (item 214) took `VIA` 79 → 36 and put the difference
+    into `LOCAL` (+26), `RELAY` (+10) and `SPLIT` (+7).  A hidden share is a
+    partition, so an instrument that resolves one row more finely has to leave
+    the total alone; if 345 ever moves, the walk gained or lost an EDGE, which
+    is a different event and a worse one.  `LOCAL` is this census's OWN blind
+    spot, kept as a number: each is a field unpacked from a park or a bundle,
+    which is items 198 and 200's census — checked in item 214 against the park
+    constructors' own field telescopes rather than left as an assertion.
+    `skipped` counts constants whose value has fewer leading lambdas than their
+    type has binders — the census will not read those, and a rewrite that hides
+    a proof from it has to move this number. -/
 def expectedTally : String :=
-  "edges=659 skipped=31 [DECLINE=271, FIELD=5, LOCAL=56, PAY=43, RELAY=56, \
-SPLIT=149, VIA=79]"
+  "edges=659 skipped=31 [DECLINE=271, FIELD=5, LOCAL=82, PAY=43, RELAY=66, \
+SPLIT=156, VIA=36]"
 
 /-- **The row item 211 read off the compiler's error text and got wrong.**  All
     eight of these print `h_keyctx` when the premise is narrowed; six of them
@@ -348,13 +422,11 @@ def expectedSeed : List String :=
     sites (DOCS item 212).
 
     **Item 213: two of the thirteen are not producers.**  `Or.imp` (39) and
-    `dite` (4) are PIPES — they carry a decision made elsewhere — so **43 of
-    these 79 edges name a combinator and not a decider**, and the surface is 36
-    edges over 11 constants.  `ConclusionRouteCensus` follows a pipe in the
-    downward direction (`flowKeyHead` read `VIA Or.imp` before the pipes were
-    named and reads `VIA flowNode_toBlockKey` after) and re-derives that split
-    from this list; following these 43 to their sources is this census's own
-    next item. -/
+    `dite` (4) are PIPES — they carry a decision made elsewhere — so 43 of those
+    79 edges named a combinator and not a decider.  **Item 214 followed them and
+    they are gone from this list**: the surface is 36 edges over the 11 constants
+    below, and every row names a lemma.  Where the 43 went is
+    `expectedPipeLanding`, and the answer is that NONE of them is a producer. -/
 def expectedProducers : List String :=
   ["2 VIA FlowBaseRoutes.key",
    "2 VIA FlowBaseRoutes.vslot",
@@ -364,11 +436,25 @@ def expectedProducers : List String :=
    "2 VIA nodocctx_of_preprocess",
    "2 VIA suffixctx_of_landing",
    "3 VIA flowKeyRoute_of_open",
-   "39 VIA Or.imp",
-   "4 VIA dite",
    "4 VIA explFrameValueLine",
    "7 VIA keyctx_of_preprocess",
    "8 VIA frameChainUnion"]
+
+/-- **Where the 43 pipes land (DOCS item 214).**  Item 213 measured that 43 of
+    this census's 79 `VIA` edges named a combinator rather than a decider and
+    could say nothing about what stood behind them; `resolve` now follows them,
+    and this is the answer.  `producers=0` is the row that matters and it is
+    asserted as a COUNT, not by being absent from the list: **not one of the 43
+    reaches a producer.**  `piped=43` is the same total item 213 derived by
+    parsing the row above, now measured rather than parsed, so the two
+    instruments can still disagree.
+
+    The landing, read as provenance: 26 are a park or bundle FIELD, 10 are the
+    caller's own binder, 7 are a case split — 3 an `Or.casesOn` reached through
+    the pipe and 4 the `dite` arms themselves. -/
+def expectedPipeLanding : String :=
+  "piped=43 producers=0 [Or.imp⇒LOCAL=26, Or.imp⇒RELAY=10, Or.imp⇒SPLIT=3, \
+dite⇒SPLIT=4]"
 
 /-- **Read off the TYPE, not off a list.**  Item 211's falsification script
     enumerated five optional contexts of `content_dispatch_routed` by hand;
@@ -407,6 +493,17 @@ run_cmd do
     throwError "the PRODUCER surface moved.\nexpected ({expectedProducers.length}):\n{
       String.intercalate "\n" expectedProducers}\ngot ({prods.length}):\n{
       String.intercalate "\n" prods}"
+  -- where the pipes land, and that none of them lands on a producer
+  let piped := es.filter (fun e => !e.pipes.isEmpty)
+  let mut lt : Std.HashMap String Nat := {}
+  for e in piped do
+    lt := lt.insert s!"{String.intercalate "→" e.pipes}⇒{(e.how.splitOn " ").head!}"
+      ((lt.getD s!"{String.intercalate "→" e.pipes}⇒{(e.how.splitOn " ").head!}" 0) + 1)
+  let gotLanding := s!"piped={piped.size} producers={
+    (piped.filter (·.how.startsWith "VIA")).size} {
+    (lt.toList.map (fun (a,b) => s!"{a}={b}")).mergeSort (· ≤ ·)}"
+  if gotLanding != expectedPipeLanding then
+    throwError "the PIPE LANDING moved.\nexpected: {expectedPipeLanding}\ngot:      {gotLanding}"
   let env ← getEnv
   let some ci := env.find? (ns ++ `content_dispatch_routed) | throwError "no seed lemma"
   let obs := ((optBinders ci.type).1.map (fun (i, n) => s!"{i} {n}")).toList

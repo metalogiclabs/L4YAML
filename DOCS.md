@@ -24422,7 +24422,7 @@ decided somewhere other than the site that writes them.**
 | `SPLIT g` | **149** | a case split at the site, on two branches |
 | `VIA g` | **79** | `g`'s conclusion — `Or.imp` is **39** of them |
 | `RELAY` | **56** | one of the caller's OWN binders: its callers decide |
-| `LOCAL` | **56** | unpacked from a park or a bundle — items 198/200's census |
+| `LOCAL` | **56** (214: 82) | unpacked from a park or a bundle — items 198/200's census |
 | `PAY` | **43** | an `Or.inl` at the site |
 | `FIELD of …` | **5** | a constructor field of a split scrutinee |
 
@@ -24434,10 +24434,15 @@ carry the whole producer surface.~~  **Item 213: two of the thirteen are not
 producers, and the comparison above rests on them.**  `Or.imp` (39) and `dite`
 (4) are PIPES — they carry a decision made elsewhere — so **43 of these 79
 edges name a combinator and not a decider**, the resolved producer surface is
-36 edges over 11 constants, and 36 is BELOW the premise relay's 56.  Which of
+36 edges over 11 constants, and 36 is BELOW the premise relay's 56.  ~~Which of
 the two is the larger hidden share is UNDECIDED until the 43 are followed one
-step further; this row says only that the number that decided it was 79 and
-should not have been.  The census refuses to read 31 constants whose
+step further~~; this row says only that the number that decided it was 79 and
+should not have been.  **Item 214 followed them, and the ordering is INVERTED,
+not merely undecided**: the 43 land on a park or bundle FIELD (26), the caller's
+own binder (10) and a case split (7), and **not one of them reaches a
+producer**.  The final reading is `SPLIT` 156, `LOCAL` 82, `RELAY` 66, `VIA` 36
+— the producer call is the SMALLEST of the four hidden shares, and the row this
+table calls `LOCAL` is larger than either of the two the sentence compared.  The census refuses to read 31 constants whose
 value has fewer leading lambdas than their type has binders, and says so with a
 number rather than silently.
 
@@ -24715,10 +24720,11 @@ mismatches.
 (+0); test files **625 → 626** (+1, the census).
 
 **What remains.**  Both directions now have an instrument, and the next debt is
-the one this item created: **43 of the supply census's 79 `VIA` edges are
+the one this item created: ~~**43 of the supply census's 79 `VIA` edges are
 pipes**, and following them to their sources means giving item 212's walk the
 pipe list this one has — one parameter, one re-pin, and the producer surface it
-reports becomes the real one.  For R3 the price is unchanged: seven productions,
+reports becomes the real one.~~  **DONE, item 214** — and the re-pin inverted
+item 212's ordering rather than confirming it.  For R3 the price is unchanged: seven productions,
 of which `content_dispatch_routed`'s two `noKeyContext` are item 212's three
 named input classes, and the next question there is item 65's, and a RUNTIME
 one.  Behind that: item 183's flip order (`pendingFlow`'s constructor and arm
@@ -24741,6 +24747,184 @@ different way could see either.  Its companion, from the four-line probe:
 **a narrowing's error count is a LOWER bound**, because the first refused
 argument in an application masks its siblings — so an error count is evidence
 that a supply EXISTS and never evidence of how many do.
+
+
+### Item 214 (2026-09-19)
+
+**THE PIPES FOLLOWED — A HIDDEN SHARE IS A PARTITION, AND ITS ORDERING WAS
+BACKWARDS FROM THE START.**  Branch `fix-a-grammar-completeness`, on top of item
+213's `e760afa2`.
+
+**The mandate.**  Item 213's NEXT, entry 1, in its own words:
+
+> **43 of the supply census's 79 `VIA` edges are pipes**, and following them to
+> their sources means giving item 212's walk the pipe list this one has — one
+> parameter, one re-pin, and the producer surface it reports becomes the real
+> one.
+
+Done, and it cost exactly what that sentence priced — `pipeArg` and `isTwoArm`
+in `Tests/Guards/Proofs/RelaySupplyCensus.lean`, `resolve` returning a `Res`
+that carries the pipes it crossed, and the pins restated.  What it bought was
+not what the sentence expected.
+
+**Where the 43 land.**  Pinned as `expectedPipeLanding`, so the table is
+re-derived at every build rather than asserted here:
+
+| through | ⇒ | edges | what stands there |
+| --- | --- | --- | --- |
+| `Or.imp` | `LOCAL` | **26** | a park or bundle FIELD |
+| `Or.imp` | `RELAY` | **10** | the caller's own binder |
+| `Or.imp` | `SPLIT` | **3** | an `Or.casesOn` reached through the pipe |
+| `dite` | `SPLIT` | **4** | the two arms themselves |
+| | **producers** | **0** | — |
+
+**Not one of the 43 reaches a producer**, and `producers=0` is pinned as a
+COUNT, not left to be inferred from a missing row: an absence asserted by
+omission passes vacuously.  The resolved producer surface is therefore the same
+**36 edges over 11 constants** item 213 derived by parsing item 212's list — now
+measured, so the two instruments can still disagree.  `ConclusionRouteCensus`'s
+cross-pin was restated for the same reason: it used to split item 212's producer
+list by the pipe test, and after the re-pin there are no pipe rows left to
+split, so it would have passed on nothing.  It now reconciles the two censuses
+on item 212's published figure — surviving producers 36 plus everything the
+pipes landed on 43 is **79** — and sums the landing table's own parts against
+its own total.
+
+**The ordering was backwards from the moment it was written.**  Item 212's
+headline compared the premise relay against the producer call, 56 against 79.
+Item 213 struck it as UNDECIDED.  It is now decided, and INVERTED:
+
+| share | item 212 | item 214 |
+| --- | --- | --- |
+| `SPLIT` | 149 | **156** |
+| `LOCAL` | 56 | **82** |
+| `RELAY` | 56 | **66** |
+| `VIA` (producer call) | **79** | **36** |
+
+The producer call is the SMALLEST of the four hidden shares, not the largest —
+and `SPLIT` was already larger than `VIA` at item 212's own reading, so the
+comparison that sentence drew was between the third and fourth places.  **The
+345 did not move.**  A hidden share is a PARTITION: an instrument that resolves
+one row more finely has to leave the total alone, and the tally's docstring now
+says so, because if 345 ever moves the walk gained or lost an EDGE, which is a
+different event and a worse one.
+
+**The compiler, predictions first.**  A term walk is a hypothesis (§1).  Three
+narrowings of `StreamAccum.lean`, each restored byte-identically, each predicted
+by LINE and not by count — item 213's rule that an error count is only a lower
+bound still stands.
+
+| | narrowing | predicted | observed |
+| --- | --- | --- | --- |
+| **N1** | `rootMapRoute_or_refused`'s `h_ref` (L5951) → `∨ False` | L9753 the application, **not** L9716 | L9753 ✓, plus L18761/L19058/L28138 **and L28412** |
+| **N2** | `flowKeyRoute_of_root`'s `h_tail143` (L9643) → `∨ False` | **L9716, the `Or.imp` itself** | L9716:8 ✓, plus L10841 and L10948 |
+| **N3** | the park field `h_closeFE` of `pendingProps` (L1563) → `∨ False` | the `Or.imp` supply **untouched** | untouched ✓ — all four errors (L28178/L28215/L29539/L30292) are `Or.inr trivial` |
+
+N2 is the one that discriminates.  A pipe TRANSMITS: narrowing the far end of
+`h_tail143.imp (fun h_tl => ⟨…⟩) id` breaks the `have`'s `∨ True` annotation one
+line later, at the `Or.imp` itself.  A term that DECIDED its conjunct would
+absorb the narrowing instead of passing it on — which is exactly what N1 shows
+from the other side, where the annotation stops the narrowing one line SHORT of
+the pipe and the error lands on the application.  And `Or.inl h_tail143` at
+L10966/L10994 did not break under N2, as item 211's lesson requires.
+
+N3 is the test of the `LOCAL` reading and the one most likely to have come out
+wrong.  `accum_content_pending` takes `h_closeFE_p` out of an incoming park and
+puts it back into a `pendingProps` it constructs, through an `Or.imp`.  Narrow
+that field and BOTH ends move together, so the pipe carries `False → False` and
+never notices; the four sites that break are the four that write `Or.inr
+trivial` into it — the ones that decide.  **A pipe is invisible to a narrowing
+that moves both of its ends, and a decider is not.**
+
+**The number I predicted wrong.**  P-ORDER said the 43 would land on the
+caller's binders and `RELAY` would win.  `RELAY` did rise, by 10 — and 26 of the
+43 land on the CALLEE's park fields instead, which is a share I did not name.
+P-CHAIN is refuted outright: no chain is longer than one pipe, so nothing here
+needed the recursion.  What held: the edge total, the seed's eight rows, and
+that `dite` has two disagreeing arms.
+
+**`dite` is a pipe downward and a split upward.**  The route census takes both
+arms because it collects every route; this census must name ONE decider, and a
+two-armed decision written at the call site is what it already calls `SPLIT`.
+All four `dite` occurrences have arms that disagree (`DECLINE | PAY` ×3,
+`SPLIT … | DECLINE` ×1), so "report the common answer when the arms agree" and
+"report `SPLIT` always" are indistinguishable on this module; the simpler one is
+taken, and the other would be a hand-typed knob with nothing behind it.  The
+same asymmetry is why `pipeArg` and `isTwoArm` are two lists and not one.
+
+**`LOCAL` was right, and nothing had checked it.**  Item 212 kept `LOCAL` as a
+number with one sentence attached — "every one of them is a park field or a
+bundle field, which is items 198 and 200's census and not this one's."  Item 213
+made that sentence load-bearing without meaning to, because following the pipes
+was always going to move edges into it.  It holds, and the check is mechanical:
+the binders that `LOCAL` names sit in a run whose NAMES, in order, are the park
+constructor's own field telescope —
+
+> `h_close h_ivl h_expl h_vslot h_kslot h_closeF h_frames h_closeFV h_framesV
+> h_seqF h_explUp` against `pendingMapValue`'s 22 fields, and
+> `h_ncol_p`/`h_closeFE_p` at telescope indices 19 and 24 of `pendingProps`,
+> which are `h_ncol` and `h_closeFE`
+
+— and N3 confirms it from the compiler's side.  **Why the census cannot MARK
+them** is the interesting half: 21 of the 26 are bound inside an `Eq.ndrec` and
+one inside an `Eq.mpr`, because the `cases` that binds the fields is transported
+through the rewrite, and `walk` enters that transport without shaping it.
+`isMechanism` accepts 10 heads that `splitShape` cannot shape — `Eq.ndrec` 3041
+occurrences, `Eq.rec` 61, `Nat.rec` 75, `Nat.below` 52 and six more — and every
+binder under any of them reads `LOCAL`.  **This is item 213's `Eq.ndrec` bug in
+the other direction**: there it swallowed a route, here it mislabels a field.
+`LOCAL` is 82 for that reason and not because the fields are unknowable.
+
+**What changed.**  `Tests/Guards/Proofs/RelaySupplyCensus.lean`: `pipeArg`,
+`isTwoArm`, `Res`, a lambda-entering `resolve` (three `Or.imp` edges and all
+eight `dite` arms stop at a `BETA` otherwise), `Edge.pipes`, the
+`expectedPipeLanding` pin and its check, `expectedTally` and
+`expectedProducers` re-pinned, and four docstrings corrected in place.
+`Tests/Guards/Proofs/ConclusionRouteCensus.lean`: three `resolve` call sites
+moved to `Res`, and `expectedPipeSplit` restated so it cannot pass vacuously.
+**Zero edits under `L4YAML/`** — all three narrowings restored byte-identically
+(`md5 f117941372b95fc42abb1508e29f92b4` before and after).
+
+**Gates, all at baseline.**  Build **1167** jobs, 0 warnings — the supply census
+costs 45 s, unchanged, because following a pipe replaces a lookup rather than
+adding a traversal.  `run-all-tests.sh` **4520/4520** (Production Coverage
+**837/837**); `eventscore` **347/358** (252 event-pass, 11 event-diff, 0
+event-reject, 95 error-ok, 0 error-miss); `suiterunner` **869/0/151**; matrix
+**402/402 event** (308 pass, 94 err-ok) + **282/282 JSON** (279 pass, 3 err-ok,
+120 skip) on BOTH pipelines; the `[210]` flip **FIVE** at
+**4621/5901/5924/6093/7645**, UNMOVED; `#print axioms` over ten subjects — no
+`sorryAx`, `frameChainUnion` and `flowVPack_of_close` on `propext` alone;
+checkers 228/355, 20/230/249/355, 25 capstones, annotations 100 % (211/211) with
+the standing **19** name mismatches.  Counts: declarations **8594 → 8594**,
+`#guard` **8158 → 8158**, test files **626 → 626** — this item sharpened two
+instruments and added none.
+
+**What remains.**  The debt this item creates is the one it diagnosed: **the
+walk enters 10 unshapeable heads blind**, `Eq.ndrec` chief among them at 3041
+occurrences, and every binder beneath one reads `LOCAL`.  Giving `walk` the same
+pipe treatment `resolve` now has — descend a pipe to the split underneath, then
+shape it — would move some part of `LOCAL`'s 82 into `FIELD`, and it is the only
+row of the partition still standing on a name rather than a mechanism.  Price it
+first: `FIELD` is 5 today, so the answer is somewhere in `[5, 87]` and no
+sentence should guess where.  Behind that, unchanged: R3's seven productions,
+with `content_dispatch_routed`'s two `noKeyContext` a RUNTIME question of item
+65's shape; item 183's flip order (`pendingFlow`'s constructor and arm first);
+the parked Ix Step-1 composition on the Ix track's own clock; and the standing
+instrument debt, that the 198/200/201 censuses still lack a cruder-key control.
+
+**The instrument ledger, sixteen rows.**  Park constructors (198), application
+sites (200), lemma conclusions (201), the same with a key that works (202),
+indices (203), the runtime's own state (204), the transitive ring of a carrier
+(205), the same closure with its last ring paid (206), the ring's payers against
+a forecast (207), the instruments themselves (208), the object a carrier's
+consumer reads (209), the plan's own remaining list (210), the control (211),
+the provenance (212), the route (213) — and now **the PIPE**.  The rule this
+item adds: **a hidden share is a partition, so resolving one row more finely is
+a claim about the OTHERS.**  Item 212 published an ordering between two rows of
+a five-row partition while three of the rows were unresolved; the ordering
+survived two items and was backwards from the first.  Its companion, from N2 and
+N3 together: **a pipe transmits and a decider absorbs** — which is what makes a
+narrowing able to tell them apart, and what made the 43 answerable at all.
 
 
 ### REMAINING, in order

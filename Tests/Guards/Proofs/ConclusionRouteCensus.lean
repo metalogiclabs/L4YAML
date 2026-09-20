@@ -233,8 +233,8 @@ def resolveDown (env : Environment) (st : Array Bnd) (n d : Nat) (e : Expr) : St
     | .const c _ =>
         if isVacuous c then "VACUOUS"
         else if (env.getProjectionFnInfo? c).isSome then s!"FIELD {c}"
-        else (resolve (isMechD env) st n d e 24).1
-    | _ => (resolve (isMechD env) st n d e 24).1
+        else (resolve (isMechD env) st n d e 24).how
+    | _ => (resolve (isMechD env) st n d e 24).how
 
 /-- Follow `path` from a proof term to the conjunct it addresses, and resolve
     what decides it there — one answer per arm of every case split on the way. -/
@@ -302,8 +302,8 @@ partial def down (env : Environment) (self : Name) (n : Nat) :
                   let lastAlt := firstAlt + info.numAlts
                   let disc := if h : info.numParams + 1 < args.size then
                       (match resolve (isMechD env) st n st.size args[info.numParams + 1] 24 with
-                       | ("RELAY", some j) => s!"premise#{j}"
-                       | (d, _) =>
+                       | ⟨"RELAY", some j, _⟩ => s!"premise#{j}"
+                       | ⟨d, _, _⟩ =>
                            if d.startsWith "FIELD of " then (d.splitOn " of ").getLast! else d)
                     else "?"
                   let trailing := if lastAlt < args.size then
@@ -433,10 +433,20 @@ def expectedCross : List String :=
    "scanValue_ok_park_facts#0 route=1+1 term=0+0"]
 
 /-- **Item 212's producer surface, split by the pipe test**, re-derived from that
-    census's OWN pinned list rather than counted again here: of its 79 `VIA`
-    edges, 43 name a combinator that decides nothing.  If item 212's list moves,
-    its gate fails before this one does. -/
-def expectedPipeSplit : String := "pipes=43/2 producers=36/11"
+    census's OWN pinned lists rather than counted again here.  ~~Of its 79 `VIA`
+    edges, 43 name a combinator that decides nothing.~~  **Item 214 followed the
+    43**, so the supply census reports no pipe rows at all and this half of the
+    pin would now pass vacuously; it is restated against what replaced them.
+
+    The two censuses reconcile on item 212's published figure: the surviving
+    producer surface (`producers`) plus everything the pipes landed on
+    (`landed`) is `total=79`, which is the `VIA` count item 212 pinned before
+    either direction could follow a pipe.  `landed-producers=0` is the finding:
+    **not one of the 43 reaches a producer.**  The landing table's own parts are
+    summed here too, so a row added to it without its total moving fails.  If
+    item 212's lists move, its gate fails before this one does. -/
+def expectedPipeSplit : String :=
+  "pipes=0/0 producers=36/11 landed=43 landed-producers=0 total=79"
 
 end L4YAML.Tests.Guards.ConclusionRouteCensus
 
@@ -489,7 +499,19 @@ run_cmd do
         if isPipeName g then pipeE := pipeE + k; pipeC := pipeC + 1
         else prodE := prodE + k; prodC := prodC + 1
     | _ => throwError "item 212's producer row is not `<n> VIA <name>`: {row}"
-  let gotSplit := s!"pipes={pipeE}/{pipeC} producers={prodE}/{prodC}"
+  -- and what item 214's landing table says became of the pipes
+  let lnd := L4YAML.Tests.Guards.RelaySupplyCensus.expectedPipeLanding
+  let tok := lnd.splitOn " "
+  let num (s : String) : Nat := (((s.splitOn "=").getLast!).toNat?).getD 0
+  let landed := num (tok.headD "")
+  let landedProds := num (tok.getD 1 "")
+  let parts := (((lnd.splitOn "[").getLast!).replace "]" "").splitOn ", "
+  let partSum := parts.foldl (fun a x => a + num x) 0
+  if partSum != landed then
+    throwError "item 214's landing table does not sum to its own total: {
+      partSum} in {parts.length} rows against piped={landed}"
+  let gotSplit := s!"pipes={pipeE}/{pipeC} producers={prodE}/{prodC} landed={
+    landed} landed-producers={landedProds} total={prodE + landed}"
   if gotSplit != expectedPipeSplit then
     throwError "the PIPE split of item 212's producer surface moved.\nexpected: {
       expectedPipeSplit}\ngot:      {gotSplit}"
