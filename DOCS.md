@@ -25677,10 +25677,14 @@ under-approximates instead.  Same shape, opposite direction, and the direction
 is a property of the question, not of the corpus.
 
 **The escape has no state of its own.**  `pendingFlow`'s scanner footprint and
-`pendingContent`/`pendingBlockContent`'s are EXTENSIONALLY equal — measured, not
-inferred from equal counts: `flowPark ∧ ¬contentish` and `contentish ∧
-¬flowPark` are both **0** over every one of the 2 946 corpus states and every
-one of the 216 114 domain states, and `ONLYflowPark = 0` in both.  Item 77's
+`pendingContent`/`pendingBlockContent`'s are EXTENSIONALLY equal — ~~measured,
+not inferred from equal counts: `flowPark ∧ ¬contentish` and `contentish ∧
+¬flowPark` are both **0**~~ **one MEASUREMENT and one THEOREM, corrected at
+[item 220](#item-220-2026-09-20)**: `contentish → flowPark` is pure Bool
+algebra and needed no sweep at all, while `flowPark ∧ ¬contentish` is the
+measurement, and it is **0** over every one of the 2 946 corpus states and every
+one of the 216 114 domain states, and `ONLYflowPark = 0` in both — item 220
+names the one corner at which it could fail and reads that corner empty too.  Item 77's
 comment already said the escape "carries no grammar, but it does carry the ONE
 scanner fact every park has"; this is that sentence with a number under it.  **No
 state-level census can ever isolate β.5's escape**, which is the measurement
@@ -25692,7 +25696,10 @@ asymmetry.**  `Tests/Guards/Proofs/DeclineReachCorpus.lean` takes each
 constructor's `sc` fields and proves the census's `Bool` predicate true, so a
 state where the predicate is false cannot be carrying that park and a row
 reading zero is a statement about the park.  The two that do not bridge are
-`pDocEnd`'s marker conjunct and `pProps`'s run conjunct — and the first is the
+`pDocEnd`'s marker conjunct and `pProps`'s run conjunct (and `pProps` also
+**drops `h_col0 : 0 < sp_scan.col`**, a field the constructor carries —
+found and corrected at [item 220](#item-220-2026-09-20), where adding it moves
+no count and turns two measured containments into theorems) — and the first is the
 asymmetry: **`pendingDocStart` carries its token-level witness as a field**
 (`h_marker_tail : ∃ t, lastRealToken? sc.tokens = some t ∧ t.val = .documentStart
 ∧ t.pos.line = sc.line`) **and `pendingDocEnd` carries only the surface-grammar
@@ -25766,6 +25773,177 @@ rule this item adds: **a corpus zero is a coverage report, not a refutation**,
 and the way to tell the two apart is to run the same predicate over a domain a
 machine enumerates and see whether the zero survives.  Ours did not, in four
 steps.
+
+### Item 220 (2026-09-20)
+
+**A ZERO IS NOT A NUMBER, IT IS A VERDICT ABOUT A SPACE.**  Item 219 recorded
+the instrument its own remainder wants: *"a domain sweep whose alphabet is
+chosen per ROW rather than shared, because a row that reads zero over them says
+nothing about a row whose shape the alphabet cannot spell."*  That sweep is
+built and run here — five alphabets, one per surviving zero, **148 480**
+programs and **632 239** scanner steps beyond the shared domain, each with a
+park-coverage control so the zeros are READ zeros — and **not one of them
+moves**.  What moves them is a sweep of a different kind, and it costs 1.5
+seconds: over synthetic STATES instead of over inputs.
+
+**The cross item 219 never took.**  219 counted twenty row totals and nine park
+totals and found every row nonzero.  But a row is nonzero as soon as ONE of its
+arms is: `accum_block_on_closeThenBlock` is `blockD && (dEnd || dStart ||
+props || flowP || blk || cont)` — six arms under one row.  The zeros live in the
+cross, and `Tests/DeclineArmCensus.lean` prints it: 20 x 8 = **160 cells**,
+**47** empty over the 50 653-program domain and **52** over the 402 leaves, the
+five extra all in the `docEnd` column, which is item 219's finding at cell
+resolution.  Of the **thirty-eight** cells that are genuine ARMS — the six rows
+whose predicate disjoins over parks, `fire`'s own disjunctions — **4** are empty
+over the domain and **8** over the corpus, and the exe derives both rather than
+a reader counting them: the domain's four are `colon_open_map_explicit`'s
+`docEnd`, `docStart` and `props` arms plus `compact_open_map`'s `props`, and the
+corpus's four extra are every one of them a `/docEnd`.
+
+**And the cross has a second column: EXCLUSIVITY.**  Item 219 measured
+`ONLYflowPark = 0` and read it as a fact about the escape.  Generalized to the
+whole family, **143 of the 160 cells are never reached at a state where their
+park is the only one holding**, and the profile is stark: **only `noPending` and
+`docEnd` ever hold alone.**  The escape is not peculiar — *seven of eight parks
+have no state of their own.*
+
+**Twelve containments read empty, and a state sweep splits them 7/5.**  Over
+inputs a census can only say REACHED (219's rule).  So the same predicates are
+run over **10 240 synthetic states**, exhaustive over every field the nine park
+predicates read — five flags x four columns x four stack tops x two
+explicit-key settings x ten token shapes.  Over states a sweep can only say
+SATISFIABLE: the exact dual.  And its **UNSAT is a proof obligation**.  Seven
+containments hold at every synthetic state and all seven are discharged in
+`Tests/Guards/Proofs/DeclineArmLattice.lean` by one tactic — the five flags, the
+column and the stack top, then `simp_all`.  No scanner lemma appears in any of
+them: **the park family is a chain under containment, by Bool algebra.**  The
+sweep's abstraction (`col` in `0..3`, the stack top in `-1..2`) is stated in the
+module and is exactly why its empties are turned into lemmas instead of quoted
+as proofs.
+
+**Half of item 219's evidence that the escape has no state of its own was
+already a theorem.**  219 reported `flowPark and not contentish` and `contentish
+and not flowPark` as two measurements, both zero.  `pContentish -> pFlowPark` is
+pure Bool algebra — `(SKA && !SKP) -> SKA`, the other two conjuncts identical —
+so the second direction needed no corpus and no domain.  Struck in place in
+219's entry.  The first direction IS a measurement, and it now has an exact
+name: `flowPark_not_contentish_corner` proves that `pendingFlow`'s footprint
+exceeds the content parks' at **one corner and one corner only** — a possible
+simple key standing at column 0 with the indent check still owed.  That corner
+reads 0 over 216 114 enumerated states, over 2 946 corpus states, and over the
+297 472 states of an alphabet built to spell it.
+
+**A dropped field costs nothing in the counts and everything in the
+classification.**  Item 219's `pProps` omits `pendingProps.h_col0 :
+0 < sp_scan.col`, a field the constructor carries and `ScannerSurfCorr.col_eq`
+delivers.  Tightening the reading moves **no reachable count at all** — 4 550
+props states either way, none of them at column 0 — and moves **two**
+containments from MEASURED to PROVED.  The loose reading was counting the right
+states the whole time and could not say why.  That is the instrument rule this
+item adds, and it is item 219's own lesson with the sign flipped: 219 found a
+measurement that was a theorem; this finds a theorem that had been demoted to a
+measurement by an omission in the reading.
+
+**The five that remain are invariants nobody has stated.**  `docStart` in
+`mapValue`, `block` in `mapValue`, `mapValue` in `flowPark`, `mapValue` in
+`contentish`, and `flowPark` in `contentish`.  Each is separated by a synthetic
+state and by no input, so no proof of them exists; each is pinned as a `#guard`
+on the census's own predicates at the separating state the sweep printed, which
+makes *"this zero is not a theorem"* something the build checks.  **Four of the
+five touch `pendingMapValue`** — the park whose reading has no column — and the
+fifth is the escape's corner.  Item 219 named one park with a missing runtime
+field; this names the second, and the shape of the debt is the same.
+
+**The one park that does stand alone, and its single cause.**  `pendingDocEnd`
+is disjoint from all seven others over both samples, and the census says why in
+one field: `allowDirectives` is UP at **every one** of the 2 345 enumerated
+`docEnd` states and DOWN at **every one** of the 2 345 `docStart` states.  Six
+of the seven other park predicates require it down; the seventh (`noPending`)
+requires column 0, which no `docEnd` state has.  That is not an accident of the
+sample — **item 138's own docstring already argues it**: "only two constructors
+can have it, the stream's own seed (`noPending`) and a `...` (`pendingDocEnd`)".
+What the census adds is that the flag is up at every REACHABLE one, quantified,
+and that this is the field `pendingDocEnd` could carry and does not — not
+`h_nodir`'s twin but its opposite polarity, which is why no one wrote it.
+
+**Neither sample contains the other.**  The corpus reaches a park pair the
+enumerated domain never does: `props` and `noPending` hold together at **six**
+corpus states and at **none** of the 216 114 domain states.  402 files are a
+sample of the language and 50 653 programs are a sample of the language, and
+each misses something the other has.
+
+**Controls.**  This module re-authors item 219's stepping in order to collect
+the states, so the whole accumulator — steps, dispatch classes, all twenty rows,
+all nine park slots, both diffs, the acceptance verdict — is rebuilt from the
+visited states and compared against `walk` on every control and every one of the
+50 653 programs: `disagree=0`.  And each targeted alphabet reports how often it
+visited each park, so a zero over an alphabet that never reaches the park is
+visibly not an answer; the corner alphabet visits `flowPark` **221 592** times
+and reads its target 0.
+
+**Predictions.**  HELD — **P-ENTAIL** (the entailment; proved), **P-CORNER**
+(the corner exactly as named, 0 over every alphabet, and not proved as an
+invariant), **P-ARMCELLS** (2–8 empty arm cells; **4** — though the prediction named
+twenty-four arm cells off a hand reading of `fire` and there are **thirty-eight**
+under six rows, which is why the count is pinned in the exe and not in this
+entry), **P-CORPUSARM** (8–16; **8**), **P-RESIDUE** (5–20
+unexplained; **5**), **P-WIDTH** (50 000–400 000 targeted programs; **148 480**),
+**P-EDITS**, **P-SHARED** (216 114 steps reproduced exactly).  REFUTED —
+**P-ALPHABET** (1–6 cells flip; **0**, and the refutation clause was written in
+advance: the shared alphabet was already adequate for this predicate family, so
+the mandate's premise does not hold here), **P-CELLS** (90–130 of 180 empty;
+**47** of 160), **P-JOBS** (1175; **1181**, because making
+both censuses importable cost two libraries and two wrapper modules).
+
+**What changed.**  `Tests/DeclineArmCensus.lean` (the matrix, the arm table, the
+synthetic space, the lattice, the five alphabets, eighteen pins) and
+`Tests/Guards/Proofs/DeclineArmLattice.lean` (seven entailments, the corner
+iff, the flag lemma, six `#guard`s).  **Both censuses were made IMPORTABLE**:
+a module carrying a root-level `main` cannot be imported, so each one's entry
+point moved to a two-line `…Main.lean` and each module was given a `lean_lib` of
+its own — which is also what fixes the build-order race that let `Tests.Guards`
+be elaborated before the census it imports.  `lake exe declinearm` re-derives
+all eighteen pins in **5.2 s** compiled, and `declinereach`'s six still pass.
+**Zero edits under `L4YAML/`.**
+
+**Gates, all at baseline.**  `lake build` **1181** jobs, 0 warnings;
+`run-all-tests.sh` **4520/4520** (Production Coverage **837/837**); `eventscore`
+**347/358** (0 error-miss); `suiterunner` **869/0/151**; matrix **402/402 event**
++ **282/282 JSON** on BOTH pipelines; the `[210]` flip FIVE at
+**4621/5901/5924/6093/7645**, UNMOVED; `#print axioms` — no `sorryAx`, and the
+nine new lemmas rest on `propext`/`Quot.sound` alone, tighter than item 219's
+seven bridges; checkers unmoved (228 library modules from 5 hard-coded roots, 355 imports;
+20/230/249/355; all 25 `theorem` sites whitelisted); annotations 211/211 with
+the standing **19** name mismatches, on which the script exits **1** as it
+always has.  Counts: declarations **8594 -> 8594**, `#guard` **8158 -> 8165**
+(six new ones and one in prose), test files **628 -> 632**.
+
+**What remains.**  Five named invariants, each with its separating state and
+none with a proof: the four that touch `pendingMapValue` and the escape's own
+corner.  Proving the corner unreachable is what would let `ONLYflowPark = 0`
+stop being a measurement — and item 183's delete-don't-narrow order rests on it.
+Behind that, unchanged: R3's seven productions, with `content_dispatch_routed`'s
+two `noKeyContext`; item 183's flip order; the parked Ix Step-1 composition on
+the Ix track's own clock.  Instrument debt, now five rows: the 198/200/201
+censuses still lack a cruder-key control; what an `Or.inl`'s proof actually
+FORWARDS is measured and unresolved; the supply walk is scoped to one module;
+`pendingDocEnd` has no token-level field **and no directive-flag field**; and
+**`pendingMapValue`'s reading has no column**, which is why four of the five
+residual zeros touch it.
+
+**The instrument ledger, twenty-two rows.**  Park constructors (198),
+application sites (200), lemma conclusions (201), the same with a key that works
+(202), indices (203), the runtime's own state (204), the transitive ring of a
+carrier (205), the same closure with its last ring paid (206), the ring's payers
+against a forecast (207), the instruments themselves (208), the object a
+carrier's consumer reads (209), the plan's own remaining list (210), the control
+(211), the provenance (212), the route (213), the pipe (214), the beta (215),
+the arms (216), the branch (217), the reach (218), the corpus (219) — and now
+**the MATRIX**.  The rule this item adds: **widening the alphabet is the
+expensive way to read a zero and the wrong one; widening the STATE SPACE is
+cheap and decisive.**  An input sweep can only say REACHED, a state sweep can
+only say SATISFIABLE, and it is the state sweep's UNSAT — not any corpus and no
+alphabet — that hands you a lemma to prove.
 
 ### REMAINING, in order
 

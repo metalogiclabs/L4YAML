@@ -50,6 +50,20 @@ lean_lib L4YAML
 lean_lib «Tests.Guards» where
   roots := #[`Tests.Guards]
 
+-- Item 219's census module, made a library of its own at item 220 so that
+-- later censuses can IMPORT its predicates and its walk.  Its runnable entry
+-- point is `Tests.DeclineReachMain`; a module carrying a root-level `main`
+-- cannot be imported.
+@[default_target]
+lean_lib «Tests.DeclineReachCensus» where
+  roots := #[`Tests.DeclineReachCensus]
+
+-- Item 220's census, likewise a library: `Tests.Guards.Proofs.DeclineArmLattice`
+-- imports it, and its entry point is `Tests.DeclineArmMain`.
+@[default_target]
+lean_lib «Tests.DeclineArmCensus» where
+  roots := #[`Tests.DeclineArmCensus]
+
 -- Runnable proof-engineering demonstrations (one per Blueprint Reflection) — kept
 -- as a single library, separate from the behavioural L4YAML test suites. See
 -- Tests/Reflections.lean for the index.
@@ -113,7 +127,14 @@ lean_exe tryscan where
 -- 402-leaf corpus half when the yaml-test-suite data directory is passed).
 @[default_target]
 lean_exe declinereach where
-  root := `Tests.DeclineReachCensus
+  root := `Tests.DeclineReachMain
+
+-- Item 220: the ARM census (the row x park matrix, the synthetic-state
+-- lattice, and one alphabet per residual zero; the corpus when a data
+-- directory is passed).
+@[default_target]
+lean_exe declinearm where
+  root := `Tests.DeclineArmMain
 
 @[default_target]
 lean_exe tryroundtrip where

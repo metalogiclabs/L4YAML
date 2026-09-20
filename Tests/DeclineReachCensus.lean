@@ -95,7 +95,13 @@ def pContentish (sc : ScannerState) : Bool :=
   ((sc.simpleKeyAllowed && !sc.simpleKey.possible) || 0 < sc.col) &&
   !sc.allowDirectives && (sc.col != 0 || sc.needIndentCheck)
 
-/-- `pendingProps`: `h_nic`, `h_real`, `h_ska`, `h_nodir`, and the run —
+/-- `pendingProps`: `h_nic`, `h_real`, `h_ska`, `h_nodir`, and the run.
+    **Incomplete, found at item 220**: the constructor also carries
+    `h_col0 : 0 < sp_scan.col`, which `ScannerSurfCorr.col_eq` delivers at the
+    runtime state and this reading drops.  Adding it moves no count (4 550
+    either way, none at column 0) and turns two measured containments into
+    theorems — see `Tests.DeclineArmCensus.pPropsT`.  The reading is left as it
+    stands so item 219's pins keep meaning what they meant.  The run —
     `h_run : PropsRun n .flowOut ha ht sp_p sp_scan` carries at least one
     property, so `h_anchor`/`h_tag` make the trailing run on `sc.line` non-empty.
     **The run conjunct is a READING** (`PropsRun → ha = true ∨ ht = true` is not
@@ -617,5 +623,3 @@ tokens={tokens} divergent={divergent} unreached={u} minAcceptedLeaves={minAcc}"
     return 1
 
 end Tests.DeclineReachCensus
-
-def main (args : List String) : IO UInt32 := Tests.DeclineReachCensus.main args
