@@ -2748,6 +2748,81 @@ lemma dispatchBlockIndicators_col_pos {s s' : ScannerState} {c : Char}
           rw [scanValue_col_succ hpk he]; omega
       · simp at hok
 
+/-- **…and it re-establishes the real final slot** (item 221).
+
+    `FlowAdjacency.LastTokenReal`'s own docstring says "every emitting dispatch
+    re-establishes this; only `saveSimpleKey` can break it", and nothing stated
+    it.  The block indicator's three scans all end the same way — emit the
+    indicator token, then advance over its one character — so the slot the
+    dispatch leaves holds a `-`, `?` or `:` and never a reservation
+    placeholder.
+
+    `pendingBlock` is the one block-context park that carries no `h_real`
+    (`pendingDocStart`, `pendingMapValue` and `pendingProps` all do), which is
+    why item 220's census read `pendingBlock ⊆ pendingMapValue` as an invariant
+    with a separating state rather than an entailment.  This is the fact that
+    closes it, and the ONLY one of item 220's five residuals that needed a new
+    scanner lemma at all. -/
+private lemma emit_advance_lastTokenReal (t : ScannerState) (tok : YamlToken)
+    (h : tok ≠ .placeholder) :
+    FlowAdjacency.LastTokenReal ((t.emit tok).advance).tokens := by
+  rw [ScannerCorrectness.advance_preserves_tokens]
+  exact FlowAdjacency.lastTokenReal_push (p := { pos := t.currentPos, val := tok }) h
+
+/-- The `-` scan's final slot. -/
+private lemma scanBlockEntry_lastTokenReal {s s' : ScannerState}
+    (hok : scanBlockEntry s = .ok s') : FlowAdjacency.LastTokenReal s'.tokens := by
+  unfold scanBlockEntry at hok
+  simp only [bind, Except.bind] at hok
+  repeat' split at hok
+  all_goals first
+    | (simp only [Except.ok.injEq] at hok
+       subst hok
+       exact emit_advance_lastTokenReal _ _ (by decide))
+    | simp_all
+
+/-- The `?` scan's. -/
+private lemma scanKey_lastTokenReal {s s' : ScannerState}
+    (hok : scanKey s = .ok s') : FlowAdjacency.LastTokenReal s'.tokens := by
+  unfold scanKey at hok
+  simp only [bind, Except.bind] at hok
+  repeat' split at hok
+  all_goals first
+    | (simp only [Except.ok.injEq] at hok
+       subst hok
+       exact emit_advance_lastTokenReal _ _ (by decide))
+    | simp_all
+
+/-- The `:` scan's — `scanValueClearKey` and `scanValuePrepare` write the
+    pending key and the indents, and the emit is still the last write to the
+    array. -/
+private lemma scanValue_lastTokenReal {s s' : ScannerState}
+    (hok : scanValue s = .ok s') : FlowAdjacency.LastTokenReal s'.tokens := by
+  unfold scanValue at hok
+  simp only [bind, Except.bind] at hok
+  repeat' split at hok
+  all_goals first
+    | (simp only [Except.ok.injEq] at hok
+       subst hok
+       exact emit_advance_lastTokenReal _ _ (by decide))
+    | simp_all
+
+/-- `dispatchBlockIndicators_col_pos`'s twin for the token array. -/
+lemma dispatchBlockIndicators_lastTokenReal {s s' : ScannerState} {c : Char}
+    (hok : scanNextToken_dispatchBlockIndicators s c = .ok (some s')) :
+    FlowAdjacency.LastTokenReal s'.tokens := by
+  unfold scanNextToken_dispatchBlockIndicators at hok
+  simp only [bind, Except.bind, pure, Except.pure] at hok
+  repeat' split at hok
+  all_goals first
+    | (simp only [Except.ok.injEq, Option.some.injEq] at hok
+       subst hok
+       first
+         | exact scanBlockEntry_lastTokenReal ‹_›
+         | exact scanKey_lastTokenReal ‹_›
+         | exact scanValue_lastTokenReal ‹_›)
+    | simp_all
+
 /-- The block-scalar arm's `OffLine` form (item 47): with `c` pinned at a
     block-scalar head, the dispatch is `scanBlockScalar` under the item-9c
     guard, and the scan ends at a line start or an `OffLine` stop — which is

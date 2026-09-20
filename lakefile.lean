@@ -64,6 +64,12 @@ lean_lib «Tests.DeclineReachCensus» where
 lean_lib «Tests.DeclineArmCensus» where
   roots := #[`Tests.DeclineArmCensus]
 
+-- Item 221's census, likewise a library: `Tests.Guards.Proofs.DeclineArmInvariants`
+-- imports it, and its entry point is `Tests.DeclineCornerMain`.
+@[default_target]
+lean_lib «Tests.DeclineCornerCensus» where
+  roots := #[`Tests.DeclineCornerCensus]
+
 -- Runnable proof-engineering demonstrations (one per Blueprint Reflection) — kept
 -- as a single library, separate from the behavioural L4YAML test suites. See
 -- Tests/Reflections.lean for the index.
@@ -135,6 +141,13 @@ lean_exe declinereach where
 @[default_target]
 lean_exe declinearm where
   root := `Tests.DeclineArmMain
+
+-- Item 221: the MINIMAL-ZERO search — the six-atom histogram over the walk,
+-- and for each of item 220's five residual containments the smallest
+-- sub-conjunction of its separator profile that still reads zero.
+@[default_target]
+lean_exe declinecorner where
+  root := `Tests.DeclineCornerMain
 
 @[default_target]
 lean_exe tryroundtrip where

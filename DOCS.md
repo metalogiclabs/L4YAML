@@ -25847,12 +25847,19 @@ measurement by an omission in the reading.
 **The five that remain are invariants nobody has stated.**  `docStart` in
 `mapValue`, `block` in `mapValue`, `mapValue` in `flowPark`, `mapValue` in
 `contentish`, and `flowPark` in `contentish`.  Each is separated by a synthetic
-state and by no input, so no proof of them exists; each is pinned as a `#guard`
+state and by no input, ~~so no proof of them exists~~ — **all five are PROVED
+at [item 221](#item-221-2026-09-20), and two of them were never invariants**;
+each is pinned as a `#guard`
 on the census's own predicates at the separating state the sweep printed, which
 makes *"this zero is not a theorem"* something the build checks.  **Four of the
 five touch `pendingMapValue`** — the park whose reading has no column — and the
 fifth is the escape's corner.  Item 219 named one park with a missing runtime
-field; this names the second, and the shape of the debt is the same.
+field; this names the second, and ~~the shape of the debt is the same~~ **the
+shape of the debt is NOT the same**: `pendingProps`'s `h_col0` was a field the
+census dropped and so is `pendingMapValue`'s, so reading it closes
+`mapValue ⊆ flowPark` and `mapValue ⊆ contentish` outright.  The corner closes
+on a conjunct `dispatchContent_arm_or_col_any` has proved since item 77 and
+`pendingFlow.h_arm` drops; only `block ⊆ mapValue` needed a new scanner lemma.
 
 **The one park that does stand alone, and its single cause.**  `pendingDocEnd`
 is disjoint from all seven others over both samples, and the census says why in
@@ -25928,8 +25935,10 @@ the Ix track's own clock.  Instrument debt, now five rows: the 198/200/201
 censuses still lack a cruder-key control; what an `Or.inl`'s proof actually
 FORWARDS is measured and unresolved; the supply walk is scoped to one module;
 `pendingDocEnd` has no token-level field **and no directive-flag field**; and
-**`pendingMapValue`'s reading has no column**, which is why four of the five
-residual zeros touch it.
+~~**`pendingMapValue`'s reading has no column**, which is why four of the five
+residual zeros touch it.~~ **RETIRED at [item 221](#item-221-2026-09-20)** — the
+column is a field of the constructor (`h_col0`); it was the reading that dropped
+it, and tightening the reading moves no count and closes two of the five.
 
 **The instrument ledger, twenty-two rows.**  Park constructors (198),
 application sites (200), lemma conclusions (201), the same with a key that works
@@ -25943,7 +25952,207 @@ the arms (216), the branch (217), the reach (218), the corpus (219) — and now
 expensive way to read a zero and the wrong one; widening the STATE SPACE is
 cheap and decisive.**  An input sweep can only say REACHED, a state sweep can
 only say SATISFIABLE, and it is the state sweep's UNSAT — not any corpus and no
-alphabet — that hands you a lemma to prove.
+alphabet — that hands you a lemma to prove.  ~~Widening the alphabet is the
+expensive way to read a zero and the wrong one~~ — **too strong, corrected at
+[item 221](#item-221-2026-09-20)**: it is the wrong way when the missing shape
+cannot be NAMED.  These 37 fragments carry no `|` and no `>`, and that one gap
+makes two of item 221's minimal zeros read empty at k=1 when neither is a
+theorem; sixteen fragments chosen for it settle the question in a second.  Widen
+the alphabet when you can name the production it cannot spell, and the state
+space when you cannot.
+
+### Item 221 (2026-09-20)
+
+**A FIVE-LITERAL ZERO DOES NOT NAME ITS LEMMA.**  Item 220 left five
+containments "with a separating state and none with a proof" and called them
+scanner invariants nobody had stated, with the escape's own corner first:
+*"proving the corner unreachable is what would let `ONLYflowPark = 0` stop being
+a measurement — and item 183's delete-don't-narrow order rests on it."*  **All
+five are closed here, and exactly one of them needed a fact the library did not
+already have.**  Two were never invariants at all.
+
+**The instrument: the MINIMAL-ZERO search.**  Item 220 proved the corner's
+five-literal separator as an iff and stopped.  A five-literal conjunction that
+reads 0 does not say WHICH literal carries the zero, and the literal that
+carries it is the lemma to prove.  `Tests/DeclineCornerCensus.lean` projects
+every visited state onto **seven Boolean atoms** — the directive flag, the
+indent check, the two simple-key bits, "at column 0", "the last token is real",
+and "the last real token is a `---` on this line" — so one **128-bucket
+histogram** over the walk is the whole measurement.  Everything else is
+arithmetic on it: a containment's separator PROFILE (which atoms are pinned, and
+to what, at every synthetic state where it fails) is read off item 220's
+exhaustive state space and **each of the five is restated and proved** in
+`Tests/Guards/Proofs/DeclineArmInvariants.lean`; every sub-conjunction's count
+is 128 additions; and the count is monotone in the subset, so the **minimal
+zero** — a conjunction that reads 0 and none of whose one-atom weakenings does —
+is well defined.  **The minimal zero is the cheapest lemma candidate.**
+
+**Its first run named two atoms that are not theorems.**  Over item 204's 37
+fragments, `nic` and `col0` each read **0 at every one of 202 372 park states**,
+so the corner comes back with two minimal zeros at k=1 — `nic=1` and `col0=1` —
+and neither is a theorem.  The reason is nameable and is pinned: **not one of
+the 37 fragments carries a `|` or a `>`** (`domainBlockScalarFrags=0`), and the
+block scalar is the one content scan that parks at a line start — item 154's
+`content_park_nic` says so in a comment and item 206's
+`dispatchContent_nic_or_col_any` in a statement.  Sixteen fragments and 4 096
+programs move `nic` at a park state from **0 to 3 930** and both minimal zeros
+from k=1 to k=2.
+
+**This is the case item 220's rule does not cover, and the correction is the
+item's second finding.**  220 widened the alphabet five times on a hunch, moved
+nothing, and concluded that widening the alphabet is the expensive way to read a
+zero and the wrong one.  It is — *when the missing shape cannot be named.*  Here
+it can: the shape is `|`, the atom that reads it is `col0`, the gap is a
+fragment count the exe prints (**0 of 37** against **8 of 16**), and one second
+of a sixteen-fragment alphabet settles it.  **Widen the alphabet when you can
+name the production it cannot spell; widen the state space when you cannot.**
+
+**Three samples, three different minimal zeros, one survivor.**  The corner's
+search returns `nic=1` and `col0=1` (k=1) over the shared domain; `nic=1^skp=1`
+and `skp=1^col0=1` (k=2) once block scalars are in the alphabet; and
+`nic=1^ska=1^skp=1` (k=3) plus `skp=1^col0=1` over the 402-leaf corpus, because
+the corpus REACHES `nic=1^skp=1` at four states.  **One candidate survives all
+three** — `skp=1^col0=1`, a saved simple key standing at column 0 — and it is
+exactly what `dispatchContent_arm_or_col_any` has proved since item 77.  The
+same happens one row down: `block <= mapValue`'s k=1 `real=0` is a domain
+artifact too, because the corpus reaches `real=0` at four park states and the
+minimal zero there is `dir=0^real=0`.
+
+**TWO OF THE FIVE WERE NEVER INVARIANTS.**  `pendingMapValue` carries
+`h_col0 : 0 < sp_scan.col`, and item 219's `pMapValue` drops it — the **third
+time in three items** that a dropped field has misclassified a zero.  Item 220
+found `pendingProps.h_col0`; item 220's own instrument debt then named THIS park
+("`pendingMapValue`'s reading has no column, which is why four of the five
+residual zeros touch it") and did not look for the field, which was there all
+along.  Tightening moves **no reachable count at all** — 110 744 either way over
+all three samples — and turns `mapValue <= flowPark` and `mapValue <= contentish`
+into one-tactic theorems.
+
+**A THIRD WAS PAID FOR BY ITS PRODUCER AND THROWN AWAY AT THE CONSTRUCTOR.**
+`pendingFlow.h_arm` records `sc.simpleKeyAllowed = true ∨ 0 < sp_scan.col`.  The
+lemma that discharges it at the content dispatch — item 77's
+`dispatchContent_arm_or_col_any` — proves
+`(s'.simpleKeyAllowed = true ∧ s'.simpleKey.possible = false) ∨ 0 < s'.col`, and
+the second conjunct IS the corner's refutation: at column 0 the saved key is
+down, and `pContentish` differs from `pFlowPark` in nothing else.  The block
+half is cheaper still — `dispatchBlockIndicators_col_pos` spends a column.  **So
+the corner is closed by a conjunct that has been sitting in `LineOpenGuard.lean`
+since item 77**, `ONLYflowPark = 0` stops being a measurement, and item 183's
+delete-don't-narrow order has its floor.  Where item 220 found a CONSTRUCTOR
+carrying a field the CENSUS did not read, this is the mirror: a PRODUCER proving
+a conjunct the CONSTRUCTOR does not record.
+
+**ONE new lemma, and the prose that had been asking for it.**  `pendingBlock` is
+the one block-context park that carries no `h_real` — `pendingDocStart`,
+`pendingMapValue` and `pendingProps` all do — so `block <= mapValue` is the only
+one of the five that needed a scanner fact.
+`FlowAdjacency.LastTokenReal`'s own docstring says "every emitting dispatch
+re-establishes this; only `saveSimpleKey` can break it", and nothing stated it.
+`dispatchBlockIndicators_lastTokenReal` states it: the three block scans all end
+by emitting their indicator and advancing over its one character, so the slot
+holds a `-`, `?` or `:` and never a reservation placeholder.  §10 again — a
+quantity gets described in prose exactly when it is doing work nothing states,
+which is the second time in this one file (item 206 said it of
+`content_park_nic`'s comment).  **The fifth, `docStart <= mapValue`, closes by
+`rfl`**: `scanDocumentStart` sets `simpleKeyAllowed := true` in the state it
+returns.
+
+**The park a writer BRANCHES ON is not the park a producer CREATES.**  Items 219
+and 220 read the park predicates at each step's loop-entry state.  Every
+`h_nic0` term concludes about the post-dispatch state
+([StreamAccum.lean:1737](L4YAML/Proofs/Production/StreamAccum.lean)), so that is
+the park's own `sc`, and this census walks both.  The two populations differ by
+**55 139 seed states** — the stream's own `noPending`, one per program with any
+content, and `nicNonSeed=0` over the shared domain proves the entry reading's
+whole `nic` column is that seed and nothing else — and by **40 476 terminal
+parks**, the last step's state, which is never an entry.  `noPending` reads
+**82 571** at the entry and **32 270** at the park over the same 50 653
+programs.  Neither reading is wrong and neither entry needs striking: item 219's
+rows want the entry state (the incoming pending an arm branches on) and item
+220's containments want the park state.  **The corner reads 0 at both.**
+
+**The instrument declines rather than lying.**  Seven atoms do not carry
+`pBlock`'s indent floor or stack top, `pNoPending`'s flow level or explicit-key
+line, `pProps`'s trailing run, or `pDocEnd`'s marker.  A profile read through
+the projection is NECESSARY and may not be sufficient, so a sub-conjunction the
+search returns is always a genuine zero over the sample, and an EMPTY return
+means the projection cannot see the separator at all.  The six-atom version
+returned empty for `docStart <= mapValue` — the separator turns on a marker
+token no atom carried — and adding that one atom is what let it name
+`ska=0^dsTok=1`.  It never lies; it declines.
+
+**Predictions.**  HELD — **P-MINIMAL** (2 fields, `nic=1^skp=1`; exactly that over
+two of the three samples, and the qualification IS the finding),
+**P-ALREADY** (no new scanner lemma for the corner; both halves compiled first
+try), **P-EDITS** (one file under `L4YAML/`, no constructor touched),
+**P-GATES**.  REFUTED — **P-SPOST** (the park reading was predicted to move the
+totals by under 1 %; `noPending` moves 82 571 -> 32 270), **P-NICREACHED**
+(predicted 200–20 000 domain park states with the check armed; **0**, which is
+the alphabet gap), **P-FIVE** (predicted three of the other four would land and
+that `docStart <= mapValue` would not; **all four landed**, and the mechanism
+was wrong for two of them — the field was on the constructor, not in a producer
+lemma waiting to be exported), **P-JOBS** (1182–1184; **1188**), **P-AX** (the
+new lemmas were predicted to rest on `propext`/`Quot.sound` alone; the seven
+Bool-algebra ones do and the six that route through the scanner pull
+`Classical.choice`, **by the mechanism the prediction itself named** — and
+`scanDocumentStart_simpleKeyAllowed`, whose proof is `rfl`, pulls it because its
+STATEMENT mentions a well-founded definition).
+
+**What changed.**  `Tests/DeclineCornerCensus.lean` (the seven atoms, the
+128-bucket histogram, the separator profiles, the minimal-zero search, the
+block-scalar alphabet, six pins over three samples and their merges),
+`Tests/Guards/Proofs/DeclineArmInvariants.lean` (the five proved profiles, the
+two tightened entailments, the corner at both of its producers, the other two at
+theirs, seven `#guard`s), `Tests/DeclineCornerMain.lean`, and **one edit under
+`L4YAML/`**: five lemmas appended to `Proofs/Scanner/LineOpenGuard.lean` beside
+`dispatchBlockIndicators_col_pos`, whose twin the new one is.  No park
+constructor's field list was touched — the tightened readings live in the census
+beside item 220's `pPropsT`, so item 219's and item 220's pins keep meaning what
+they meant.  `lake exe declinecorner` re-derives every pin in **4.3 s**
+compiled, and `declinearm`'s eighteen and `declinereach`'s six still pass.
+
+**Gates, all at baseline.**  `lake build` **1188** jobs, 0 warnings;
+`run-all-tests.sh` **4520/4520**; `eventscore` **347/358** (0 error-miss);
+`suiterunner` **869/0/151**; matrix **402/402 event** + **282/282 JSON** on BOTH
+pipelines; the `[210]` flip FIVE at **4621/5901/5924/6093/7645**, UNMOVED;
+`#print axioms` — no `sorryAx`; checkers unmoved (228 library modules from 5
+default targets, 355 imports; 20/230/249/355; all 25 `theorem` sites
+whitelisted); annotations 211/211 with the standing **19** name mismatches, exit
+**1** as always.  Counts: declarations **8594 -> 8599**, `#guard`
+**8165 -> 8172**, test files **632 -> 635**.
+
+**What remains.**  Item 220's five residuals are closed, so what the escape's
+own footprint still owes is not a containment but a CONSUMER question: `h_arm`
+records half of what its producer proves, and nothing has measured what the
+other half would buy at the nine `pendingFlow` sites — giving the constructor
+the conjunct is an 8-site edit this item deliberately did not make.  Behind
+that, unchanged: R3's seven productions, with `content_dispatch_routed`'s two
+`noKeyContext`; item 183's flip order (`pendingFlow`'s constructor and arm
+first); the parked Ix Step-1 composition on the Ix track's own clock.
+Instrument debt, now **five** rows, one retired and one added: the 198/200/201
+censuses still lack a cruder-key control; what an `Or.inl`'s proof actually
+FORWARDS is measured and unresolved; the supply walk is scoped to one module;
+`pendingDocEnd` has no token-level field and no directive-flag field; and
+**`pendingBlock` carries no `h_real`**, which is the one field among the nine
+parks that a producer now proves and no constructor records.  (Retired:
+"`pendingMapValue`'s reading has no column" — the column was on the
+constructor.)
+
+**The instrument ledger, twenty-three rows.**  Park constructors (198),
+application sites (200), lemma conclusions (201), the same with a key that works
+(202), indices (203), the runtime's own state (204), the transitive ring of a
+carrier (205), the same closure with its last ring paid (206), the ring's payers
+against a forecast (207), the instruments themselves (208), the object a
+carrier's consumer reads (209), the plan's own remaining list (210), the control
+(211), the provenance (212), the route (213), the pipe (214), the beta (215),
+the arms (216), the branch (217), the reach (218), the corpus (219), the matrix
+(220) — and now **the MINIMAL ZERO**.  The rule this item adds: **a zero's
+minimal sub-conjunction is the cheapest lemma CANDIDATE, and the sample decides
+which candidates are lemmas.**  Three samples returned three different minimal
+zeros for the same containment and exactly one candidate survived all three —
+the one the library had already proved.  Its corollary corrects item 220 in
+place: **widen the alphabet when you can NAME the production it cannot spell,
+and the state space when you cannot.**
 
 ### REMAINING, in order
 
