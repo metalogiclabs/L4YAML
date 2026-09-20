@@ -25419,7 +25419,12 @@ stated precisely for the first time — is whether a DECLINE arm is ever
 REACHED.  The census can name, for each of the 99, the premise whose decline
 selects the punt; whether any input makes a caller decline it is a question
 about the runtime, of exactly item 65's shape, and would want a corpus census
-run before the runtime is touched rather than another term census.  Behind it,
+run before the runtime is touched ~~rather than another term census~~ —
+**struck at item 218**, which ran the term JOIN first and cut the corpus
+question's domain from 99 splits to nineteen named lemmas.  And "the census can
+name, for each of the 99, the premise whose decline selects the punt" is true
+without being what it sounds like: only **8 of the 36** write the decline where
+they branch on it.  Behind it,
 unchanged: R3's seven productions, with `content_dispatch_routed`'s two
 `noKeyContext` that same runtime question; item 183's flip order (`pendingFlow`'s
 constructor and arm first); the parked Ix Step-1 composition on the Ix track's
@@ -25443,6 +25448,154 @@ the rows whose chain was one segment long.  Its companion, from the one
 prediction that failed here: **retiring a failure class in the file you are
 looking at is not retiring it** — five literals of the same shape sat in the
 census next door and broke the build exactly as their nine predecessors had.
+
+### Item 218 (2026-09-20)
+
+**IS A DECLINE ARM EVER SELECTED — and a decline is almost never written where
+it is branched on.**  Item 217 named, for each of the 99 optional-rooted
+splits, the premise whose decline selects the punt, and said the next question
+was whether any input makes a caller decline it.  That question has a
+denominator nobody had measured: a branch premise every one of whose callers
+PAYS has a declining arm no input can select, and no corpus run is needed to
+say so.  This item runs that join.  **`dead=0`** — not one of the 36
+`(lemma, premise)` pairs behind the 99 has an unselectable arm — and
+**`direct=8`**: only eight of the 36 have a caller that writes `Or.inr trivial`
+where the branch is taken.  The other 28 read the decline from somewhere else,
+and **21 of them read it from a park's CONSTRUCTION sites**.
+
+**The join was available for six items and nothing had run it.**  Every split
+has carried `(caller, rootTgt)` since item 217 and every supply edge has
+carried `(callee, idx)` since item 212; both indices come from `optBinders`'
+single counter, so the two can simply be joined.  The control is that the join
+must PARTITION the census — **`accounted=659/659`, `nodes=161`** — because
+every edge is an edge into exactly one premise, and a join that loses one makes
+every number below it a guess.
+
+**The chase needed one thing the census did not have.**  Following supply
+upward through `RELAY` is item 217's `rootTgt`; following it through `FIELD` is
+not, because `rootTgt` for a park field names the `PendingNode` premise the
+park ARRIVED at, which is not a `_ ∨ True` and therefore not a node of the
+supply map.  The first run of this instrument reported **22 of 36 as `dead`**
+and every one of them was that dead end.  `Bnd.srcFld`/`Res.fldTgt`/
+`Edge.fldTgt` and `altCtorField` now name the CONSTRUCTOR field a `FIELD` was
+carved from, where the park's construction sites answer: **all 58 `FIELD` edges
+resolve**, and `expectedBranchSupply`'s `⇐` column reads
+`PendingNode.pendingBlock.h_closeF` — the same field, by the same name, that
+the lemma's own comment cites as "the park's resume frames
+(`pendingBlock.h_closeF`)", reached by a route this census does not take.
+
+**`dead=22` was the near-miss of this item and it is worth keeping.**  It is
+§1's rule at the level of an instrument rather than a grep: the chase had found
+nothing and the summary was printing that as an answer.  `ORPHAN` is now
+counted apart from `dead` and there are **3** of it — the two `colon_fires_*_key`
+lemmas' `h_key`, which nothing inside `StreamAccum` applies.  **The census's
+horizon is its own module**, and this is the first item at which that bit.
+
+**Where the declines are actually written: 19 lemmas.**  That is the item's
+product.  A corpus census of "is the punt ever reached" does not have to cover
+99 splits or 36 premises; it has to cover the construction sites of nineteen
+named lemmas, and `expectedDeclineWriters` names them.  The cycle guard earns
+its keep here too — **8 of the 161 nodes' chases reach a cycle**, the documented
+one being the value-line carrier that funds the pack that funds the park again
+([StreamAccum.lean:1503](L4YAML/Proofs/Production/StreamAccum.lean)).
+
+**N-218: the join predicted a SET, and the set was exactly right.**  Item 217's
+narrowing predicted one line and one column; this instrument predicts which
+lemmas break, so the test had to be a set.  Target
+`PendingNode.pendingBlock` binder 11 = `h_closeF` — the park field
+`accum_content_on_pendingBlock_indented`'s `h_closeF_old` reads from, host of
+11 of the 99 splits — narrowed at
+[StreamAccum.lean:2036](L4YAML/Proofs/Production/StreamAccum.lean).  Predicted
+before the edit: 7 errors in exactly five lemmas.  Measured: **8 errors in
+exactly those five lemmas**, none outside them and none of them silent.
+
+**The eighth is the finding.**  It is at
+[StreamAccum.lean:21943](L4YAML/Proofs/Production/StreamAccum.lean), in
+`accum_block_on_closeThenBlock`, at the site the census calls `PAY` — and the
+census is not wrong.  That site is the **ONE collapsed split in the module**,
+item 216's `collapsed=1`, a chain of six splitters
+(`Or.casesOn→Exists.casesOn→Exists.casesOn→And.casesOn→And.casesOn→dite`) every
+arm of which writes `Or.inl`.  Its `have` at line 21853 ASCRIBES the wide
+`_ ∨ True`.  So: **a `PAY` is an answer about the PROOF, and a narrowing is a
+question about the TYPE** — the proof pays on all six branches and the use site
+breaks anyway.  Item 216 pinned that edge's existence and item 218 pins its
+NAME (`expectedCollapsedEdge`), because a `collapsed=1` nobody can point at is
+not a thing a later item can be surprised by.
+
+The sharper half held: `accum_block_on_closeThenBlock`'s OTHER site into the
+same field is a plain `Or.inl` and did **not** break, and there were **zero**
+errors inside `accum_content_on_pendingBlock_indented`, whose eleven splits
+branch on this very datum.  Item 217's sentence — *a split branches on a
+premise; it does not consume it* — was measured at the lemma premise; it holds
+one level up at the park field too, so it is a property of the idiom.
+
+**Predictions.**  REFUTED — **P-DIRECT** (24 forecast, **8**), **P-DEAD** (3
+forecast, **0** — and the 3 I predicted did turn up, as `ORPHAN`, which is the
+reason the number is written down separately: I would have read `dead=3` as an
+answer).  HELD — **P-CLOSURE** (33/33), **P-CYCLE** (≥1; 8 of 161),
+**P-DEPTH** (2, at the floor of 2–8), **P-ORPHAN** (3, in range), **P-STRUCT**
+(**zero** arity errors from adding a field to `Bnd`, `Res` AND `Edge` — item
+217 converted both census files to structure-instance syntax and this is the
+measurement that the conversion was the fix).
+
+**Two numbers I typed by hand and the machine refused, in one item.**  Writing
+the docstrings I claimed "25 of the 36 reach their decline only through a
+park's construction sites" (36 − 8 − 3, which counts something else) and then,
+checking it, "18" by reading the rows.  The gate says **21**.  Both are now
+`expectedDeclineReach`'s `parkHop`, and the rule is the one §10 already
+states with a new example: **the arithmetic that looks like a measurement is
+the most dangerous kind of guess, because it is reproducible.**
+
+**What changed.**  `Tests/Guards/Proofs/RelaySupplyCensus.lean` only:
+`altCtorField`, `Bnd.srcFld`, `Res.fldTgt`, `Edge.fldTgt`, `walkAlt`'s alt
+index, and the join itself (`SupplyMap`, `supplyMap`, `terminals`, `hopName`).
+Four new pins: `expectedDeclineReach`, `expectedBranchSupply` (36 rows),
+`expectedDeclineWriters` (19 lemmas), `expectedCollapsedEdge`.  **Unmoved, and
+they are the controls: `expectedTally`, `expectedSeed`, `expectedProducers`,
+`expectedPipeLanding`, `expectedSplitLanding`, `expectedSplitBranch`,
+`expectedSiteDecided`, `expectedBranchPremises` and `expectedOptBinders` are
+byte-identical, and `ConclusionRouteCensus`'s four pins passed unchanged.**
+**Zero edits under `L4YAML/`.**
+
+**Gates, all at baseline.**  `lake build` **1167** jobs, 0 warnings;
+`run-all-tests.sh` **4520/4520** (Production Coverage **837/837**); `eventscore`
+**347/358** (0 error-miss); `suiterunner` **869/0/151**; matrix **402/402
+event** + **282/282 JSON** on BOTH pipelines; the `[210]` flip **FIVE** at
+**4621/5901/5924/6093/7645**, UNMOVED; `#print axioms` over thirteen subjects —
+no `sorryAx`, `frameChainUnion` and `flowVPack_of_close` on `propext` alone,
+both end-to-end capstones clean; checkers 228/355, 20/230/249/355, 25
+capstones, annotations 100 % (211/211) with the standing **19** name
+mismatches.  Counts: declarations **8594 → 8594**, `#guard` **8158 → 8158**,
+test files **626 → 626**.  `StreamAccum.lean` and `Document.lean` restored to
+their baseline hashes after the two narrowings.
+
+**What remains.**  The runtime question is now scoped: **does any input reach a
+park construction site that declines one of these fields?**  The domain is
+`expectedDeclineWriters`' nineteen lemmas, not 99 splits, and the instrument it
+wants is the corpus census of item 65's shape — the candidate predicate
+evaluated at every state the scan visits over the 402 `in.yaml` leaves, as an
+over-approximation, run before the runtime is touched.  Behind it, unchanged:
+R3's seven productions, with `content_dispatch_routed`'s two `noKeyContext`
+that same question; item 183's flip order (`pendingFlow`'s constructor and arm
+first); the parked Ix Step-1 composition on the Ix track's own clock.
+Instrument debt, now three rows: the 198/200/201 censuses still lack a cruder-key
+control; what an `Or.inl`'s proof actually FORWARDS is measured and unresolved;
+and **the supply walk is scoped to one module**, which `orphan=3` makes visible
+and nothing yet measures the size of.
+
+**The instrument ledger, twenty rows.**  Park constructors (198), application
+sites (200), lemma conclusions (201), the same with a key that works (202),
+indices (203), the runtime's own state (204), the transitive ring of a carrier
+(205), the same closure with its last ring paid (206), the ring's payers against
+a forecast (207), the instruments themselves (208), the object a carrier's
+consumer reads (209), the plan's own remaining list (210), the control (211),
+the provenance (212), the route (213), the pipe (214), the beta (215), the arms
+(216), the branch (217) — and now **the REACH**.  The rule this item adds:
+**a chase that finds nothing has not found nothing — it has not answered**, and
+an instrument that prints the two the same way will be believed.  Its companion:
+**a `PAY` is an answer about the proof and a narrowing is a question about the
+type**, which is how a site the census correctly called paid became the one
+error the forecast did not have.
 
 ### REMAINING, in order
 

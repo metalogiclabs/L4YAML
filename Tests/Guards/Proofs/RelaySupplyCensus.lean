@@ -29,7 +29,12 @@ that position to what actually decides it.
 * `PAY` / `DECLINE` — an `Or.inl` / `Or.inr` written at the call site, on every
   branch there is.  These are the only two a term census can see, and they are
   ~~**314 of 659**~~ **315 of 659** edges — item 216's descent found one more,
-  a chain of six splitters that agree.
+  a chain of six splitters that agree.  **Item 218: a `PAY` is an answer about
+  the PROOF, and it does not promise the site survives a narrowing.**  The one
+  chain of six is a `have` whose ascribed type is the wide `_ ∨ True` and whose
+  proof pays it on every branch; narrowing the field it fills breaks the USE
+  site while the census is right that nothing declines there.  It is named in
+  `expectedCollapsedEdge` because N-218 broke at exactly it.
 * `VIA g` — the argument is the result of calling `g`, so `g`'s own conclusion
   decides it.  This is the case items 199–211 called a relay and never counted.
   ~~It is the largest resolvable share after the two above, and `Or.imp` — the
@@ -51,7 +56,12 @@ that position to what actually decides it.
   155 branch on a value the CALLER supplied**, and **99 of those on a premise
   that is itself a `_ ∨ True`** — the site writes both answers because its own
   caller may have declined.  Only TEN branch on a fact the site derives, and
-  `expectedSiteDecided` names every one of them.
+  `expectedSiteDecided` names every one of them.  **Item 218 asked whether the
+  declining branch can be SELECTED** and joined this row against the supply
+  rows for the first time: of the 36 `(lemma, premise)` pairs behind the 99,
+  **not one has a DECLINE arm nothing can select** — `dead=0` — and only **8**
+  have a caller that declines them where they are branched on.  See
+  `expectedDeclineReach`.
 * `RELAY` — the argument is one of the enclosing constant's OWN binders, so the
   decision belongs to ITS callers.  This is the only shape item 211 looked for.
   **68**, of which 12 arrived through a pipe — **and this row is not what a
@@ -64,7 +74,12 @@ that position to what actually decides it.
   53 of them are a field of the pending park the caller was handed: the row
   reads `FIELD of PendingNode.casesOn#23 on RELAY` and `pendingProps`' own
   telescope names index 23 `h_closeFE`, which is the premise being supplied.
-  Field-to-same-field, on every one of the 53.
+  Field-to-same-field, on every one of the 53.  **Item 218 followed the field
+  to its CONSTRUCTOR** (`altCtorField`; all **58** resolve) and that is where
+  the answer turned out to live: `expectedDeclineReach`'s **`parkHop`** counts
+  the branch premises whose supply is a park field and nothing else, and it is
+  the majority of them — which is why `RELAY` and `FIELD` are followed and
+  everything else is a terminal.
 * `LOCAL …` — a binder this census will not name.  **27**, and unlike item 212's
   82 this is not a blind spot with a sentence attached: 20 are lambdas in one
   lemma's alternative bodies and 7 sit under a SATURATED pipe, which transports
@@ -147,6 +162,15 @@ structure Bnd where
       still names the premise it was carved out of.  Item 217: 46 of the 145
       relay-rooted splits reach their premise only through this. -/
   srcTgt : Option Nat := none
+  /-- When this binder is a constructor FIELD, the CONSTRUCTOR it is a field of
+      and the binder index of that field in the constructor's own type.
+      `srcTgt` names the premise the datum ARRIVED at, and for a park field
+      that premise is a `PendingNode` rather than a `_ ∨ True`, so the supply
+      chase dead-ends there; this names the field itself, where the park's
+      CONSTRUCTION sites can be asked what they put in it.  Item 218:
+      `expectedDeclineReach`'s `parkHop` counts the branch premises that reach
+      their decline only through this. -/
+  srcFld : Option (Name × Nat) := none
 deriving Inhabited
 
 /-- Which argument of a PIPE carries the decision.  Item 213 named these in the
@@ -235,6 +259,8 @@ structure Res where
   rootTgt : Option Nat := none
   /-- One entry per entry of `leaves`: `orArgRefs` at that leaf. -/
   leafSrc : Array String := #[]
+  /-- Item 218: the constructor field a `FIELD` answer was carved from. -/
+  fldTgt  : Option (Name × Nat) := none
 deriving Inhabited
 
 /-- Where a split's alternatives sit in its argument list, and how many binders
@@ -262,6 +288,26 @@ def splitShape (env : Environment) (g : Name) : Option Shape :=
           some ⟨iv.numParams, iv.numIndices + 1, iv.ctors.length, fields.toArray⟩
       | _ => none
     | _ => none
+
+/-- The CONSTRUCTOR an alternative of a `casesOn` belongs to, and the binder
+    index in that constructor's own type which alternative-binder `i` names.
+
+    A matcher returns `none` and says so: its alternatives are patterns, not
+    constructors, and inventing a constructor for one would be a knob.  Measured
+    (item 218): all **58** `FIELD` edges in this module resolve, so the census
+    does not currently need the matcher case — which is a fact about this
+    module and not a property of the instrument. -/
+def altCtorField (env : Environment) (g : Name) (alt : Nat) (i : Nat) :
+    Option (Name × Nat) :=
+  match g with
+  | .str t "casesOn" =>
+    match env.find? t with
+    | some (.inductInfo iv) =>
+        match iv.ctors[alt]? with
+        | some c => some (c, iv.numParams + i)
+        | none => none
+    | _ => none
+  | _ => none
 
 /-- What supplies an argument.  `d` is the number of binders in scope where the
     argument lives; `st` is the binder stack OUTERMOST first, so the enclosing
@@ -341,7 +387,8 @@ partial def resolve (env : Environment) (isMech : Name → Bool) (st : Array Bnd
                                      else s!"FIELD of {c}#{j} on {disc}"
                           stA := stA.push
                             { name := bn, opt := isOptTy t, val := none, src := lbl,
-                              srcTgt := rootTgt }
+                              srcTgt := rootTgt,
+                              srcFld := altCtorField env c (idx - firstAlt) j }
                           body := b; dA := dA + 1
                       | _ => pure ()
                     arms := arms.push (resolve env isMech stA n dA body fuel)
@@ -366,7 +413,8 @@ partial def resolve (env : Environment) (isMech : Name → Bool) (st : Array Bnd
             else match st[j]!.val with
               | some v => resolve env isMech st n st[j]!.dep v fuel
               | none =>
-                  if st[j]!.src != "" then { how := st[j]!.src, rootTgt := st[j]!.srcTgt }
+                  if st[j]!.src != "" then
+                    { how := st[j]!.src, rootTgt := st[j]!.srcTgt, fldTgt := st[j]!.srcFld }
                   else { how := s!"LOCAL {st[j]!.name}{if st[j]!.opt then ":opt" else ":?"}" }
           else { how := "OOB" }
       | .letE bn t v b _ =>
@@ -406,6 +454,8 @@ structure Edge where
   disc    : String := ""
   rootTgt : Option Nat := none
   leafSrc : Array String := #[]
+  /-- Item 218: the constructor field a `FIELD` supply was carved from. -/
+  fldTgt  : Option (Name × Nat) := none
 deriving Inhabited
 
 def appEdges (env : Environment) (isMech : Name → Bool) (self : Name) (n : Nat)
@@ -419,7 +469,7 @@ def appEdges (env : Environment) (isMech : Name → Bool) (self : Name) (n : Nat
         out := out.push { caller := self, callee := g, idx := i, how := r.how,
                           tgt := r.tgt, pipes := r.pipes, splits := r.splits,
                           leaves := r.leaves, disc := r.disc, rootTgt := r.rootTgt,
-                          leafSrc := r.leafSrc }
+                          leafSrc := r.leafSrc, fldTgt := r.fldTgt }
       else out := out.push { caller := self, callee := g, idx := i, how := "UNDERAPPLIED" }
     return out
 
@@ -475,7 +525,7 @@ partial def peelPipe (env : Environment) (m : OptMap) (self : Name) (n : Nat)
     FIELDS of `disc`; the rest take the split's trailing arguments. -/
 partial def walkAlt (env : Environment) (m : OptMap) (self : Name) (n : Nat)
     (st : Array Bnd) (k : Nat) (disc : String) (dtgt : Option Nat) (splitter : Name)
-    (trailing : Array Expr) : Expr → Array Edge → Array Edge
+    (alt : Nat) (trailing : Array Expr) : Expr → Array Edge → Array Edge
   | e, acc => Id.run do
     let d0 := st.size
     let mut st := st
@@ -486,7 +536,8 @@ partial def walkAlt (env : Environment) (m : OptMap) (self : Name) (n : Nat)
       | .lam bn t b _ =>
           if i < k then
             st := st.push { name := bn, opt := isOptTy t, val := none,
-                            src := s!"FIELD of {splitter}#{i} on {disc}", srcTgt := dtgt }
+                            src := s!"FIELD of {splitter}#{i} on {disc}", srcTgt := dtgt,
+                            srcFld := altCtorField env splitter alt i }
           else
             let v := if h : i - k < trailing.size then some trailing[i - k] else none
             let gsrc : String := if v.isSome then "" else s!"GEN of {disc}"
@@ -560,7 +611,7 @@ partial def walk (env : Environment) (m : OptMap) (self : Name) (n : Nat) :
                   let a := args[idx]!
                   if firstAlt ≤ idx && idx < lastAlt then
                     acc := walkAlt env m self n st info.altNumParams[idx - firstAlt]!
-                      disc dtgt g trailing a acc
+                      disc dtgt g (idx - firstAlt) trailing a acc
                   else acc := walk env m self n st a acc
                 return acc
             | none => args.foldl (fun a x => walk env m self n st x a) acc
@@ -657,6 +708,97 @@ def isOptBinder (env : Environment) (c : Name) (j : Nat) : Bool :=
   match env.find? c with
   | some ci => (optBinders ci.type).1.any (fun q => q.1 == j)
   | none => false
+
+/-- Every supply edge, keyed by the premise it fills.  The join item 217 could
+    not run: a split knows the premise `(caller, rootTgt)` its discriminant
+    roots at, and a supply edge knows the premise `(callee, idx)` it fills, and
+    both indices come from `optBinders`' single counter — so the two can be
+    joined, and the join PARTITIONS the census (`accounted` below must equal
+    `edges`, which is the control). -/
+abbrev SupplyMap := Std.HashMap String (Array Edge)
+
+def keyOf (c : Name) (i : Nat) : String := s!"{c}#{i}"
+
+def supplyMap (es : Array Edge) : SupplyMap := Id.run do
+  let mut m : SupplyMap := {}
+  for e in es do
+    let k := keyOf e.callee e.idx
+    m := m.insert k ((m.getD k #[]).push e)
+  return m
+
+/-- Chase supply UPWARD to the labels it terminates in.  `RELAY` and `FIELD`
+    decide nothing — the first hands the caller's own premise down, the second
+    hands a park's field down — so both are followed; every other label is a
+    terminal, and a `SPLIT`'s leaves come back tagged `br` so a decline written
+    on one branch stays distinguishable from a flat one.
+
+    **The `FIELD` hop is an OVER-APPROXIMATION and deliberately so.**  It
+    collects every construction site of that constructor in the module, not only
+    the ones that can reach this call site, so a `dead` verdict cannot be
+    manufactured by a path the chase failed to find.  Where the constructor
+    carries no optional field at all — `And.intro` and `Exists.intro` do not;
+    those data were destructured out of a nested payload rather than out of a
+    park — it falls back to `rootTgt`, the premise the whole nest arrived at.
+
+    `seen` is per PATH: **8 of the 161 nodes' chases reach a cycle**, the
+    documented one being the value-line carrier that funds the pack that funds
+    the park again.  Without the guard this does not terminate. -/
+partial def terminals (m : SupplyMap) (seen : Std.HashSet String) (k : String)
+    (depth : Nat) : Std.HashSet String × Nat × Array String :=
+  if seen.contains k then (({} : Std.HashSet String).insert "CYCLE", depth, #[])
+  else
+    let seen := seen.insert k
+    match m[k]? with
+    | none => (({} : Std.HashSet String).insert "ORPHAN", depth, #[])
+    | some arr => Id.run do
+        let mut out : Std.HashSet String := {}
+        let mut d := depth
+        let mut sites : Array String := #[]
+        for e in arr do
+          let hd := (e.how.splitOn " ").head!
+          let up : Option String :=
+            if hd == "RELAY" then e.tgt.map (keyOf e.caller)
+            else if hd == "FIELD" then
+              (match e.fldTgt.map (fun (c, i) => keyOf c i) with
+               | some nk => if m.contains nk then some nk else e.rootTgt.map (keyOf e.caller)
+               | none => e.rootTgt.map (keyOf e.caller))
+            else none
+          if hd == "RELAY" || hd == "FIELD" then
+            match up with
+            | some nk =>
+                let (t, d2, si) := terminals m seen nk (depth + 1)
+                for x in t.toList do out := out.insert x
+                sites := sites ++ si
+                d := max d d2
+            | none => out := out.insert s!"{hd}-unresolved"
+          else if hd == "SPLIT" then
+            for lf in e.leaves do out := out.insert s!"br{(lf.splitOn " ").head!}"
+            if e.leaves.any (fun lf => (lf.splitOn " ").head! == "DECLINE") then
+              sites := sites.push e.caller.toString
+          else
+            out := out.insert hd
+            if hd == "DECLINE" then sites := sites.push e.caller.toString
+        return (out, d, sites)
+
+def setStr (t : Std.HashSet String) : String :=
+  String.intercalate "+" (t.toList.mergeSort (· ≤ ·))
+
+/-- The first hop of a branch premise's supply chase, named.  A `FIELD` names
+    the park field it was carved from (`pendingBlock.h_closeF`), which is the
+    form the module's own comments use and therefore checkable against them by
+    a route this census does not take. -/
+def hopName (env : Environment) (e : Edge) : String :=
+  match e.fldTgt with
+  | some (c, i) =>
+      -- the last TWO components: `PendingNode.pendingBlock`, `And.intro`.  One
+      -- component alone renders `And.intro` as `intro`, which names nothing.
+      let base := match c with
+        | .str (.str _ a) b => s!"{a}.{b}"
+        | _ => c.toString
+      s!"{base}.{binderName env c i}"
+  | none => match e.tgt with
+            | some t => s!"{(binderName env e.caller t)}@{e.caller.getString!}"
+            | none => "-"
 
 /-- The supply census, pinned.  `DECLINE` and `PAY` are the two a term census
     can see; every other row is a supply it cannot.  ~~**345 of 659 edges — 52 %
@@ -759,7 +901,12 @@ Or.imp⇒SPLIT=3, dite⇒SPLIT=4]"
     and exactly ONE of the 156 does, a chain of six splitters
     (`Or.casesOn→Exists.casesOn→Exists.casesOn→And.casesOn→And.casesOn→dite`)
     that all land on `PAY`.  The other 155 keep the `SPLIT` label and carry
-    their leaves, which is what the shape list below counts. -/
+    their leaves, which is what the shape list below counts.
+
+    **That one is named in `expectedCollapsedEdge` as of item 218**, and naming
+    it was not bookkeeping: it is the site N-218 broke at where the join
+    predicted no break, because its `have` ascribes the wide `_ ∨ True` while
+    its proof pays on all six branches. -/
 def expectedSplitLanding : String :=
   "survived=155 collapsed=1 leaves=328 elsewhere=0 [DECLINE=168, PAY=160] \
 [DECLINE|DECLINE|DECLINE|PAY=1, DECLINE|DECLINE|DECLINE|PAY|PAY|PAY=1, \
@@ -826,13 +973,138 @@ DECLINE|PAY"]
     whose discriminant roots at an optional premise of the enclosing lemma.
     These are the pending park's own optional contexts — the same names items
     198/200 counted as park fields — which is why narrowing one of them is a
-    question about the park's callers and not about the lemma that splits on it. -/
+    question about the park's callers and not about the lemma that splits on it.
+
+    **Item 218 ran that question and the answer is in `expectedBranchSupply`**,
+    one row per `(lemma, premise)` pair naming the park field each reads from
+    and the labels its own supply terminates in. -/
 def expectedBranchPremises : List String :=
   ["1 h_mapF", "1 h_mapFV", "1 h_mk", "1 h_pr", "1 h_routeS", "1 h_sfx", "1 h_valFV",
    "10 h_closeFV_old", "12 h_closeF_old", "3 h_cov", "3 h_kslotUp_old", "3 h_seqF_old",
    "4 h_closeFV108", "4 h_expl", "4 h_kslotUp", "4 h_resV_land", "4 h_routeF",
    "4 h_routeFV", "5 h_seqF168", "7 h_closeF99", "8 h_kslot_old", "8 h_vslot",
    "9 h_kslot"]
+
+/-- **Is a DECLINE arm ever SELECTED (DOCS item 218).**  Item 217 named, for
+    each of the 99 optional-rooted splits, the premise its branch is taken on.
+    It could not say whether any caller ever takes the declining branch.  This
+    joins the two halves of the census that had never met — every split's
+    `(caller, rootTgt)` against every supply edge's `(callee, idx)` — and
+    chases the result upward to the labels it terminates in.
+
+    `dead=0` is the row that matters: **not one of the 36 branch premises has a
+    DECLINE arm that nothing can select.**  `direct=8` is the row that was a
+    surprise: only 8 of the 36 have a caller that writes `Or.inr trivial`
+    straight into them, so **a decline is almost never written where it is
+    branched on** — 25 of the remaining 28 reach it through a park's
+    construction sites, one hop up.
+
+    `orphan=3` is the census DECLINING to answer and is reported apart from
+    `dead` for that reason: those three leave the module at
+    `colon_fires_implicit_key`/`colon_fires_props_key`'s `h_key`, and a walk
+    that is scoped to one module cannot see who fills a premise from outside
+    it.  This is the first item at which that horizon bit.
+
+    `accounted` is the control: the join must PARTITION the census, so it has to
+    equal `edges`.  `resolved` is the second: every `FIELD` edge must name a
+    constructor field, or the `FIELD` hop is guessing. -/
+def expectedDeclineReach : String :=
+  "pairs=36 orphan=3 direct=8 closureDecline=33 dead=0 maxDepth=2 liveSplits=96 \
+deadSplits=0 accounted=659/659 nodes=161 fieldEdges=58 fieldResolved=58 withCycle=8 \
+declineWriters=19 parkHop=21"
+
+/-- **Every branch premise, with what its own callers supply and where that
+    bottoms out.**  `⇐` names the FIRST hop — for a park field, the field
+    itself (`pendingBlock.h_closeF`), which is the form the module's own
+    comments use, so the row is checkable against them by a route this census
+    does not take.  `⇒` is the terminal set, `br` marking a label reached on one
+    branch of a split rather than flatly. -/
+def expectedBranchSupply : List String :=
+  ["h_closeF99 :: accum_content_on_pendingMapValue_indented#18 :: splits=7 sup=1 [FIELD=1] ⇐ PendingNode.pendingMapValue.h_closeF ⇒ DECLINE+PAY+brDECLINE+brPAY",
+   "h_closeFV108 :: accum_content_on_pendingMapValue_indented#20 :: splits=4 sup=1 [FIELD=1] ⇐ PendingNode.pendingMapValue.h_closeFV ⇒ DECLINE+PAY+brDECLINE+brPAY",
+   "h_closeFV_old :: accum_block_on_pendingBlock#30 :: splits=4 sup=1 [FIELD=1] ⇐ PendingNode.pendingBlock.h_closeFV ⇒ DECLINE+brDECLINE+brPAY",
+   "h_closeFV_old :: accum_block_on_pendingBlockContent#36 :: splits=2 sup=1 [FIELD=1] ⇐ PendingNode.pendingBlockContent.h_closeFV ⇒ brDECLINE+brPAY",
+   "h_closeFV_old :: accum_content_on_pendingBlock_indented#29 :: splits=4 sup=1 [FIELD=1] ⇐ PendingNode.pendingBlock.h_closeFV ⇒ DECLINE+brDECLINE+brPAY",
+   "h_closeF_old :: accum_block_on_pendingBlockContent#35 :: splits=1 sup=1 [FIELD=1] ⇐ PendingNode.pendingBlockContent.h_closeF ⇒ brDECLINE+brPAY",
+   "h_closeF_old :: accum_content_on_pendingBlock_indented#14 :: splits=11 sup=1 [FIELD=1] ⇐ PendingNode.pendingBlock.h_closeF ⇒ DECLINE+PAY",
+   "h_cov :: indicator_open_map#27 :: splits=3 sup=4 [DECLINE=1,SPLIT=3] ⇐ - ⇒ DECLINE+brDECLINE+brPAY",
+   "h_expl :: accum_content_on_pendingMapValue_indented#15 :: splits=3 sup=1 [FIELD=1] ⇐ PendingNode.pendingMapValue.h_expl ⇒ DECLINE+PAY+brDECLINE+brPAY",
+   "h_expl :: explFrameValueLine#3 :: splits=1 sup=4 [RELAY=4] ⇐ h_expl@accum_content_on_pendingMapValue_indented ⇒ DECLINE+PAY+brDECLINE+brPAY",
+   "h_kslot :: accum_block_on_pendingBlock#15 :: splits=3 sup=1 [FIELD=1] ⇐ PendingNode.pendingBlock.h_kslot ⇒ DECLINE+brDECLINE+brPAY",
+   "h_kslot :: accum_block_on_pendingBlockContent#16 :: splits=1 sup=1 [FIELD=1] ⇐ PendingNode.pendingBlockContent.h_kslot ⇒ brDECLINE+brPAY",
+   "h_kslot :: accum_content_on_pendingMapValue_indented#17 :: splits=3 sup=1 [FIELD=1] ⇐ PendingNode.pendingMapValue.h_kslot ⇒ DECLINE+brDECLINE+brPAY",
+   "h_kslot :: colon_open_map_implicit#11 :: splits=1 sup=1 [FIELD=1] ⇐ And.intro.left ⇒ ORPHAN",
+   "h_kslot :: colon_open_map_props#11 :: splits=1 sup=1 [FIELD=1] ⇐ And.intro.left ⇒ ORPHAN",
+   "h_kslotUp :: accum_block_on_pendingBlock#29 :: splits=3 sup=1 [FIELD=1] ⇐ PendingNode.pendingBlock.h_kslotUp ⇒ DECLINE+brDECLINE+brPAY",
+   "h_kslotUp :: accum_block_on_pendingBlockContent#34 :: splits=1 sup=1 [FIELD=1] ⇐ PendingNode.pendingBlockContent.h_kslotUp ⇒ DECLINE+brDECLINE+brPAY",
+   "h_kslotUp_old :: accum_content_on_pendingBlock_indented#28 :: splits=3 sup=1 [FIELD=1] ⇐ PendingNode.pendingBlock.h_kslotUp ⇒ DECLINE+brDECLINE+brPAY",
+   "h_kslot_old :: accum_content_on_pendingBlock_indented#13 :: splits=8 sup=1 [FIELD=1] ⇐ PendingNode.pendingBlock.h_kslot ⇒ DECLINE+brDECLINE+brPAY",
+   "h_mapF :: accum_block_on_closeThenBlock#29 :: splits=1 sup=11 [DECLINE=7,FIELD=2,RELAY=2] ⇐ h_mapF109@accum_block_on_pendingContent,-,PendingNode.pendingMapValue.h_frames ⇒ DECLINE+PAY+brDECLINE+brPAY",
+   "h_mapFV :: accum_block_on_closeThenBlock#31 :: splits=1 sup=11 [DECLINE=7,FIELD=2,RELAY=2] ⇐ h_mapFV108@accum_block_on_pendingContent,-,PendingNode.pendingMapValue.h_framesV ⇒ DECLINE+PAY+brDECLINE+brPAY",
+   "h_mk :: accum_block_on_closeThenBlock#21 :: splits=1 sup=11 [DECLINE=10,PAY=1] ⇐ - ⇒ DECLINE+PAY",
+   "h_pr :: accum_block_on_closeThenBlock#30 :: splits=1 sup=11 [DECLINE=9,SPLIT=2] ⇐ - ⇒ DECLINE+brDECLINE+brPAY",
+   "h_resV_land :: colon_open_map#26 :: splits=3 sup=1 [RELAY=1] ⇐ h_resV_land@indicator_open_map ⇒ DECLINE+brDECLINE+brPAY",
+   "h_resV_land :: question_open_map#27 :: splits=1 sup=1 [RELAY=1] ⇐ h_resV_land@indicator_open_map ⇒ DECLINE+brDECLINE+brPAY",
+   "h_routeF :: colon_open_map_implicit#12 :: splits=2 sup=1 [SPLIT=1] ⇐ - ⇒ brDECLINE+brPAY",
+   "h_routeF :: colon_open_map_props#12 :: splits=2 sup=1 [SPLIT=1] ⇐ - ⇒ brDECLINE+brPAY",
+   "h_routeFV :: colon_open_map_implicit#13 :: splits=2 sup=1 [SPLIT=1] ⇐ - ⇒ brDECLINE+brPAY",
+   "h_routeFV :: colon_open_map_props#13 :: splits=2 sup=1 [SPLIT=1] ⇐ - ⇒ brDECLINE+brPAY",
+   "h_routeS :: colon_open_map_implicit#27 :: splits=1 sup=1 [FIELD=1] ⇐ And.intro.right ⇒ ORPHAN",
+   "h_seqF168 :: accum_content_on_pendingMapValue_indented#35 :: splits=5 sup=1 [FIELD=1] ⇐ PendingNode.pendingMapValue.h_seqF ⇒ DECLINE+brDECLINE+brPAY",
+   "h_seqF_old :: accum_content_on_pendingBlock_indented#15 :: splits=3 sup=1 [FIELD=1] ⇐ PendingNode.pendingBlock.h_seqF ⇒ DECLINE+PAY",
+   "h_sfx :: accum_block_on_closeThenBlock#20 :: splits=1 sup=11 [DECLINE=10,PAY=1] ⇐ - ⇒ DECLINE+PAY",
+   "h_valFV :: accum_block_on_closeThenBlock#32 :: splits=1 sup=11 [DECLINE=9,FIELD=2] ⇐ -,PendingNode.pendingMapValue.h_closeFV ⇒ DECLINE+PAY+brDECLINE+brPAY",
+   "h_vslot :: accum_block_on_closeThenBlock#12 :: splits=5 sup=11 [DECLINE=10,SPLIT=1] ⇐ - ⇒ DECLINE+brDECLINE+brPAY",
+   "h_vslot :: accum_content_on_pendingMapValue_indented#16 :: splits=3 sup=1 [FIELD=1] ⇐ PendingNode.pendingMapValue.h_vslot ⇒ DECLINE+PAY+brDECLINE+brPAY"]
+
+/-- **The lemmas that actually WRITE the declines** the 99 splits branch on,
+    and how often each is reached.  The COUNT is per chase and per edge — a
+    lemma that declines a field which several branch premises read is counted
+    once for each of them — so the **19 names** are the claim and the numbers
+    are how the machine re-derives them.
+
+    This is the domain a corpus census would have to cover, and it is the
+    number item 218 exists to produce: **the runtime question is not 99 splits
+    wide, it is these nineteen lemmas' construction sites wide.**  Most of them
+    write their declines while CONSTRUCTING a park rather than at the site that
+    branches — `expectedBranchSupply`'s `⇐` column names the park field for
+    every row that does, and `direct=8` is the same fact counted the other way
+    round. -/
+def expectedDeclineWriters : List String :=
+  ["10 accum_block_on_pendingContent",
+   "11 accum_block_on_noPending",
+   "12 accum_content_on_pendingBlock_indented",
+   "12 accum_content_on_pendingMapValue_indented",
+   "13 colon_open_map",
+   "15 colon_open_map_explicit",
+   "16 colon_open_map_implicit",
+   "16 colon_open_map_props",
+   "16 compact_open_map",
+   "18 accum_block_on_closeThenBlock",
+   "18 accum_block_on_pendingBlockContent",
+   "2 colon_fires_implicit_key",
+   "2 colon_fires_props_key",
+   "2 question_open_map",
+   "32 accum_content_pending",
+   "33 accum_block_on_pendingBlock",
+   "41 accum_block_pending",
+   "8 accum_step_flow",
+   "8 content_dispatch_routed"]
+
+/-- **The ONE collapsed split, named.**  Item 216 measured `collapsed=1` and
+    described its splitter chain; nothing named the edge.  It is named here
+    because N-218 broke at exactly it: narrowing `pendingBlock.h_closeF` gave
+    the five lemmas the join predicted, and this site — whose proof pays on
+    every one of its six branches — was the eighth error where seven were
+    forecast.  **A `PAY` is an answer about the PROOF and a narrowing is a
+    question about the TYPE**: the `have` at
+    [StreamAccum.lean:21853](../../../L4YAML/Proofs/Production/StreamAccum.lean)
+    ascribes the wide `_ ∨ True` and pays it on every branch, so the census is
+    right that nothing declines there and the narrowing breaks at the USE site
+    all the same. -/
+def expectedCollapsedEdge : String :=
+  "accum_block_on_closeThenBlock → PendingNode.pendingBlock#11 (h_closeF) = PAY via \
+Or.casesOn→Exists.casesOn→Exists.casesOn→And.casesOn→And.casesOn→dite"
 
 /-- **Read off the TYPE, not off a list.**  Item 211's falsification script
     enumerated five optional contexts of `content_dispatch_routed` by hand;
@@ -952,6 +1224,74 @@ disagree={disagree.size} {(lsT.toList.map (fun (a,b) => s!"{a}={b}")).mergeSort 
     throwError "the BRANCH PREMISES moved.\nexpected ({
       expectedBranchPremises.length}):\n{String.intercalate "\n" expectedBranchPremises}\ngot ({
       gotHosts.length}):\n{String.intercalate "\n" gotHosts}"
+  -- IS A DECLINE EVER SELECTED (DOCS item 218): the join of the two halves,
+  -- chased upward to where the decline is actually written.
+  let sm := supplyMap es
+  let accounted := sm.toList.foldl (fun a (_, v) => a + v.size) 0
+  let fld := es.filter (fun e => (e.how.splitOn " ").head! == "FIELD")
+  let mut pairs : Std.HashMap String Nat := {}
+  for e in optRooted do
+    let k := keyOf e.caller (e.rootTgt.getD 0)
+    pairs := pairs.insert k ((pairs.getD k 0) + 1)
+  let mut supRows : Array String := #[]
+  let mut nDirect := 0; let mut nDecl := 0; let mut nDead := 0; let mut nOrph := 0
+  let mut maxD := 0; let mut liveS := 0; let mut deadS := 0; let mut nPark := 0
+  let mut writers : Std.HashMap String Nat := {}
+  for (k, nsplits) in pairs.toList do
+    let parts := k.splitOn "#"
+    let lem := (String.intercalate "#" (parts.dropLast)).toName
+    let j := parts.getLast!.toNat!
+    let sup := sm.getD k #[]
+    let mut dt : Std.HashMap String Nat := {}
+    for e in sup do
+      let hd := (e.how.splitOn " ").head!
+      dt := dt.insert hd ((dt.getD hd 0) + 1)
+    let (ts, d, sites) := terminals sm {} k 0
+    for w in sites do writers := writers.insert w ((writers.getD w 0) + 1)
+    if dt.contains "DECLINE" then nDirect := nDirect + 1
+    if ts.contains "DECLINE" || ts.contains "brDECLINE" then
+      nDecl := nDecl + 1; liveS := liveS + nsplits
+    else if ts.contains "ORPHAN" then nOrph := nOrph + 1
+    else nDead := nDead + 1; deadS := deadS + nsplits
+    maxD := max maxD d
+    if sup.any (fun e => match e.fldTgt with
+         | some (c, _) => (c.toString.splitOn ".").any (· == "PendingNode")
+         | none => false) then nPark := nPark + 1
+    let hops := String.intercalate "," ((sup.toList.map (hopName env)).eraseDups)
+    supRows := supRows.push s!"{binderName env lem j} :: {
+      lem.toString.replace pfx ""}#{j} :: splits={nsplits} sup={sup.size} [{
+      String.intercalate "," ((dt.toList.map (fun (a,b) => s!"{a}={b}")).mergeSort (· ≤ ·))
+      }] ⇐ {hops} ⇒ {setStr ts}"
+  let mut cyc := 0
+  for (k, _) in sm.toList do
+    let (ts, _, _) := terminals sm {} k 0
+    if ts.contains "CYCLE" then cyc := cyc + 1
+  let gotReach := s!"pairs={pairs.size} orphan={nOrph} direct={nDirect} \
+closureDecline={nDecl} dead={nDead} maxDepth={maxD} liveSplits={liveS} \
+deadSplits={deadS} accounted={accounted}/{es.size} nodes={sm.size} \
+fieldEdges={fld.size} fieldResolved={(fld.filter (·.fldTgt.isSome)).size} \
+withCycle={cyc} declineWriters={writers.size} parkHop={nPark}"
+  if gotReach != expectedDeclineReach then
+    throwError "the DECLINE REACH census moved.\nexpected: {
+      expectedDeclineReach}\ngot:      {gotReach}"
+  let gotSupply := supRows.qsort.toList
+  if gotSupply != expectedBranchSupply then
+    throwError "the BRANCH SUPPLY moved.\nexpected ({expectedBranchSupply.length}):\n{
+      String.intercalate "\n" expectedBranchSupply}\ngot ({gotSupply.length}):\n{
+      String.intercalate "\n" gotSupply}"
+  let gotWriters := (writers.toList.map (fun (a,b) =>
+    s!"{b} {a.replace pfx ""}")).mergeSort (· ≤ ·)
+  if gotWriters != expectedDeclineWriters then
+    throwError "the DECLINE WRITERS moved.\nexpected ({
+      expectedDeclineWriters.length}):\n{String.intercalate "\n" expectedDeclineWriters}\ngot ({
+      gotWriters.length}):\n{String.intercalate "\n" gotWriters}"
+  let gotColl := String.intercalate "; " ((es.filter (fun e => !e.splits.isEmpty)).toList.map
+    (fun e => s!"{e.caller.toString.replace pfx ""} → {
+      e.callee.toString.replace pfx ""}#{e.idx} ({binderName env e.callee e.idx}) = {
+      e.how} via {String.intercalate "→" e.splits}"))
+  if gotColl != expectedCollapsedEdge then
+    throwError "the COLLAPSED edge moved.\nexpected: {
+      expectedCollapsedEdge}\ngot:      {gotColl}"
   let some ci := env.find? (ns ++ `content_dispatch_routed) | throwError "no seed lemma"
   let obs := ((optBinders ci.type).1.map (fun (i, n) => s!"{i} {n}")).toList
   if obs != expectedOptBinders then
