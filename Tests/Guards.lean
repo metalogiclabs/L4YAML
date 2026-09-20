@@ -12,6 +12,7 @@ import Tests.Guards.Proofs.DeclineReachCorpus
 import Tests.Guards.Proofs.DeclineArmLattice
 import Tests.Guards.Proofs.DeclineArmInvariants
 import Tests.Guards.Proofs.ArmStrengthLadder
+import Tests.Guards.Proofs.ArmDemandLedger
 import Tests.Guards.Proofs.EndToEndCorrectness
 import Tests.Guards.Proofs.EscapeResolution
 import Tests.Guards.Proofs.FoldNewlines

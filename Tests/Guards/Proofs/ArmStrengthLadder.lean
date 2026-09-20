@@ -20,17 +20,22 @@ NAMED where it fails.  Counting carriers (item 198), sites (200), conclusions
 
 ## The ladder, as the elaborator reads it
 
-| park | pays the tight arm with | before 222 | after |
-|---|---|---|---|
-| `pendingContent` | `h_arm` IS tight (item 80) | yes | yes |
-| `pendingBlockContent` | `h_arm` IS tight | yes | yes |
-| `pendingProps` | `h_col0 : 0 < sp_scan.col` | yes | yes |
-| `pendingBlock` | `h_col : sp_scan.col = n + 1` | yes | yes |
-| `pendingMapValue` | `h_col0` (item 221's find) | yes | yes |
-| **`pendingFlow`** | **`h_arm`, tightened here** | no | **yes** |
-| `noPending` | — owes `simpleKey.possible = false` | no | no |
-| `pendingDocEnd` | — owes the same | no | no |
-| `pendingDocStart` | — owes the same | no | no |
+| park | pays the tight arm with | before 222 | 222 | 223 |
+|---|---|---|---|---|
+| `pendingContent` | `h_arm` IS tight (item 80) | yes | yes | yes |
+| `pendingBlockContent` | `h_arm` IS tight | yes | yes | yes |
+| `pendingProps` | `h_col0 : 0 < sp_scan.col` | yes | yes | yes |
+| `pendingBlock` | `h_col : sp_scan.col = n + 1` | yes | yes | yes |
+| `pendingMapValue` | `h_col0` (item 221's find) | yes | yes | yes |
+| `pendingFlow` | `h_arm`, tightened at 222 | no | **yes** | yes |
+| `noPending` | `mk'_simpleKey_false` — ONE payer | no | no | **yes** |
+| `pendingDocEnd` | `scanDocumentEnd_simpleKey_false` | no | no | **yes** |
+| `pendingDocStart` | `scanDocumentStart_simpleKey_false` | no | no | **yes** |
+
+**Item 223 closed the last three rows and the family is uniform**, so the
+reading lives in the library as `PendingNode.arm_tight_or_col` with no
+hypothesis at all, and item 78's nine-arm `PendingNode.arm_or_col` is one
+`And.left` off it.
 
 **A family's uniform reading is as strong as its weakest carrier, and which
 carrier is weakest is a measurement, not a design choice.**  Two of the five
@@ -107,38 +112,50 @@ example (h_arm : (sc.simpleKeyAllowed = true ∧ sc.simpleKey.possible = false) 
     (sc.simpleKeyAllowed = true ∧ sc.simpleKey.possible = false) ∨ 0 < sp_scan.col :=
   h_arm
 
-/-- The three that do NOT pay: from the loose arm alone the tight one does not
-    follow, and this is the state that separates them — the save up, the key
-    live, the cursor at a line start.  It is item 220's `sepFlowParkContentish`,
-    which is not a coincidence: that state was the escape's corner. -/
+/-- **Why the last three rows could not be closed by rearrangement.**  From the
+    loose arm alone the tight one does not follow, and this is the state that
+    separates them — the save up, the key live, the cursor at a line start.  It
+    is item 220's `sepFlowParkContentish`, which is not a coincidence: that state
+    was the escape's corner.  So each of `noPending`, `pendingDocEnd` and
+    `pendingDocStart` had to be paid by its PRODUCER's own scan fact (§4), not by
+    an algebraic move at the constructor. -/
 example : ∃ (ska skp : Bool) (col : Nat),
     ((ska = true ∨ 0 < col) ∧ ¬((ska = true ∧ skp = false) ∨ 0 < col)) :=
   ⟨true, true, 0, by simp⟩
 
-/-! ## §2  The family, and the one fact the other three owe
+/-! ## §2  The family, uniform
 
-Six of the nine arms close outright.  The remaining three close from
-`simpleKey.possible = false` and nothing else — so the uniform tight reading
-costs exactly ONE fact, owed by exactly three carriers. -/
+Item 222 could state the family reading only with the missing fact handed in:
+`(h_skp : sc.simpleKey.possible = false)`, owed by three carriers and looked at
+by none of the other six.  Item 223 paid it at those three producers, so the
+hypothesis is gone and the reading is a LIBRARY lemma.  What stands here is the
+pin: if the hypothesis ever comes back, or the loose reader stops being a
+projection of the tight one, this module fails. -/
 
-lemma arm_tight_or_col (h_noflow : sc.inFlow = false)
-    -- The one fact `noPending`, `pendingDocEnd` and `pendingDocStart` owe.
-    -- The other six arms never look at it.
-    (h_skp : sc.simpleKey.possible = false)
+/-- The family's uniform tight reading, with no hypothesis but `inFlow = false`
+    — which `noPending` alone needs, because its right disjunct is `inFlow` and
+    not a column. -/
+example (h_noflow : sc.inFlow = false)
     (h : PendingNode sc false sp_start sp_block sp_scan) :
-    (sc.simpleKeyAllowed = true ∧ sc.simpleKey.possible = false) ∨ 0 < sp_scan.col := by
-  cases h with
-  | noPending _ _ _ h_arm =>
-    exact Or.inl ⟨h_arm.resolve_right (by rw [h_noflow]; simp), h_skp⟩
-  | pendingProps => exact Or.inr (by assumption)
-  | pendingBlock => exact Or.inr (by omega)
-  | pendingMapValue => exact Or.inr (by assumption)
-  | pendingContent _ _ _ _ _ _ _ _ h_arm => exact h_arm
-  | pendingBlockContent _ _ _ _ _ _ _ _ _ h_arm => exact h_arm
-  -- Item 222's edit: the escape now states what its producer proves.
-  | pendingFlow _ _ _ _ h_arm _ _ => exact h_arm
-  | pendingDocEnd _ _ _ _ _ h_arm _ => exact h_arm.imp_left (fun h => ⟨h, h_skp⟩)
-  | pendingDocStart _ _ _ _ _ _ _ h_arm _ _ => exact h_arm.imp_left (fun h => ⟨h, h_skp⟩)
+    (sc.simpleKeyAllowed = true ∧ sc.simpleKey.possible = false) ∨ 0 < sp_scan.col :=
+  PendingNode.arm_tight_or_col h_noflow h
+
+/-- …and item 78's reading is one `And.left` off it, at every one of the nine
+    arms rather than at the four that used to need a projection. -/
+example (h_noflow : sc.inFlow = false)
+    (h : PendingNode sc false sp_start sp_block sp_scan) :
+    sc.simpleKeyAllowed = true ∨ 0 < sp_scan.col :=
+  (PendingNode.arm_tight_or_col h_noflow h).imp_left And.left
+
+/-- The strengthening is not vacuous at the PARK level either: a park carrying
+    the loose arm admits a live saved key, and the tight one refuses it.  This is
+    §1's separating state restated where the family reading reads it. -/
+example (h : (sc.simpleKeyAllowed = true ∧ sc.simpleKey.possible = false) ∨
+      0 < sp_scan.col) (h_col : sp_scan.col = 0) :
+    sc.simpleKey.possible = false := by
+  rcases h with ⟨_, h2⟩ | h2
+  · exact h2
+  · omega
 
 /-! ## §3  Why the eight could not pay with the conjunct
 
@@ -175,34 +192,47 @@ example {s s' : ScannerState} {sp : SurfPos} {c : Char}
     (s'.simpleKeyAllowed = true ∧ s'.simpleKey.possible = false) ∨ 0 < sp.col :=
   Or.inr (by rw [hcorr.col_eq]; exact Proofs.LineOpenGuard.dispatchBlockIndicators_col_pos hpk hok)
 
-/-! ## §4  The three residues, each priced by its own funder
+/-! ## §4  The three rungs, spent
 
-Nothing consumes these yet — they are the ladder's remaining rungs, proved so
-that the price of the last three rows is measured rather than forecast.  Each
-row costs ONE lemma; `noPending` costs one lemma and **one payer**, because
-seven of its eight construction sites are flow-interior and pay `Or.inr`. -/
+Item 222 proved these three here, as prices rather than payments — nothing
+consumed them and they sat in a test module, which is exactly where a library
+constructor's payer CANNOT sit.  Item 223 restated all three in
+`L4YAML/Proofs/Scanner/LineOpenGuard.lean`, beside the `_simpleKeyAllowed`
+siblings item 77 put there, and spent them at the four payer sites.  The pins
+below are what is left here: the shapes, and the site arithmetic.
 
-/-- `noPending`'s rung: the stream seed has no saved key. -/
-lemma mk'_simpleKey_false (input : String) :
-    (ScannerState.mk' input).simpleKey.possible = false := rfl
+| rung | library lemma | producers | payers |
+|---|---|---|---|
+| `noPending` | `mk'_simpleKey_false` | 8 | **1** (the stream seed) |
+| `pendingDocEnd` | `scanDocumentEnd_simpleKey_false` | 1 | 1 |
+| `pendingDocStart` | `scanDocumentStart_simpleKey_false` | 2 | 2 |
 
-/-- `pendingDocStart`'s rung: `---` clears the key on its way past.  Not `rfl` —
-    `unwindIndents`, `emit` and `advanceN` sit between the write and the read. -/
-lemma scanDocumentStart_simpleKey_false (s : ScannerState) :
-    (scanDocumentStart s).simpleKey.possible = false := by
-  simp only [scanDocumentStart, advanceN_preserves_simpleKey, emit_preserves_simpleKey]
+**A field's price is its PAYERS, not its sites** (item 222's corollary), and
+`noPending` is the case that states it: eight producers, seven of which refute
+`inFlow = false` and never look at the arm at all. -/
 
-/-- `pendingDocEnd`'s rung: and so does `...`, on every arm that returns. -/
-lemma scanDocumentEnd_simpleKey_false {s s' : ScannerState}
-    (h : scanDocumentEnd s = .ok s') : s'.simpleKey.possible = false := by
-  unfold scanDocumentEnd at h
-  simp only [bind, Except.bind] at h
-  repeat' split at h
-  all_goals first
-    | (simp only [Except.ok.injEq] at h
-       subst h
-       simp only [advanceN_preserves_simpleKey, emit_preserves_simpleKey])
-    | simp_all
+/-- `noPending`'s rung, at the library. -/
+example (input : String) : (ScannerState.mk' input).simpleKey.possible = false :=
+  Proofs.LineOpenGuard.mk'_simpleKey_false input
+
+/-- `pendingDocStart`'s rung.  Not `rfl` — `unwindIndents`, `emit` and `advanceN`
+    sit between the write and the read, which is why it is a lemma and not a
+    projection. -/
+example (s : ScannerState) : (scanDocumentStart s).simpleKey.possible = false :=
+  Proofs.LineOpenGuard.scanDocumentStart_simpleKey_false s
+
+/-- `pendingDocEnd`'s rung, on every arm of the scan that returns. -/
+example {s s' : ScannerState} (h : scanDocumentEnd s = .ok s') :
+    s'.simpleKey.possible = false :=
+  Proofs.LineOpenGuard.scanDocumentEnd_simpleKey_false h
+
+/-- **And the seed's rung was already in hand, twice.**  `scan_content_gives_stream_v2`
+    proves this same fact for item 81's `KeysBehindCursor` and again for item
+    123's stale-cursor floor, in the SAME `refine` that then handed the park its
+    flag alone.  The shape below is what both of those `have`s state. -/
+example (input : String) :
+    ((ScannerState.mk' input).emit YamlToken.streamStart).simpleKey.possible = false := by
+  simp [ScannerState.emit, ScannerState.mk']
 
 /-! ## §5  What the tightening buys: the escape's reading IS the content reading
 

@@ -142,7 +142,7 @@ could not decide and now reads it off the park.  See `BlockDeferralClasses`
 
 example {sc : ScannerState} {sp_start sp : SurfPos}
     (h_col : sp.col = 0 ∨ sc.inFlow = true)
-    (h_arm : sc.simpleKeyAllowed = true ∨ sc.inFlow = true)
+    (h_arm : (sc.simpleKeyAllowed = true ∧ sc.simpleKey.possible = false) ∨ sc.inFlow = true)
     (h_nodoc : sc.inFlow = false → GStar SLDocumentPrefix sp_start sp)
     (h_noek : sc.inFlow = false → sc.explicitKeyLine = none)
     -- Item 208: and the STACK face, the third of the same shape.

@@ -26353,6 +26353,194 @@ which is what priced the mandate: **a field's price is its PAYERS, not its
 sites** — eight sites and one payer at `noPending`, one site and fifteen edits at
 `pendingFlow`.
 
+### Item 223 (2026-09-20)
+
+**THE DEMAND LEDGER — TIGHTENING THE SUPPLY CHANGES NOTHING UNTIL THE DEMAND IS
+RE-ASKED.**
+
+**The mandate** (item 222's recorded NEXT, entry 1): *"The ladder is 6 of 9, and
+the three rows still owed are priced above and blocked by nothing — the next
+item can take the family's uniform tight reading for three constructor fields
+and one edit at `noPending`, and then `accum_block_on_closeThenBlock.h_park` can
+be tightened and `colon_fires_implicit_key` supplied from ANY park rather than
+from the two content ones.  That is the route this item measured and did not
+build."*  Both halves were done, and the second half's MECHANISM was refuted.
+
+**The instrument this item adds: the DEMAND LEDGER.**  Item 222's ladder is a
+census of PRODUCERS — for one fact held by a family of carriers, the strongest
+form each carrier can state from its own fields.  A uniform supply changes
+nothing by itself, because every consumer that still asks for the weak form
+discards the new strength at the door.  So the other half of the instrument is a
+census of PARAMETERS: which consumers ask tight and which ask loose, taken by
+TYPE rather than by binder name — item 221's lesson, that a census scoped to a
+literal under-reports wherever the literal hides.  It lives in
+`Tests/Guards/Proofs/ArmDemandLedger.lean`.
+
+**The supply, completed.**  The three loose `h_arm` fields were exactly three,
+and the family is NOT uniform even in its loose form: `noPending` pays against
+`inFlow = true`, the other eight against a column.
+
+| park | producers | payers | paid with |
+|---|---|---|---|
+| `noPending` | **8** | **1** (the stream seed) | `mk'_simpleKey_false` |
+| `pendingDocEnd` | 1 | 1 | `scanDocumentEnd_simpleKey_false` |
+| `pendingDocStart` | 2 | 2 | `scanDocumentStart_simpleKey_false` |
+
+Item 222 forecast `noPending` at eight sites and ONE payer; re-measured, it is
+eight and one exactly.  `pendingDocEnd` was forecast at 2–4 sites and has **one**.
+The family reading is now `PendingNode.arm_tight_or_col` in the library, with no
+hypothesis but `inFlow = false`, and item 78's nine-arm `PendingNode.arm_or_col`
+is one `And.left` off it — the case split moved up and the reader shrank to a
+single line.
+
+**A library constructor's payer cannot live in a test module.**  All three rungs
+were PROVED at item 222 inside `Tests/Guards/Proofs/ArmStrengthLadder.lean`,
+which is exactly where a field's funder may not sit.  All three were restated in
+`L4YAML/Proofs/Scanner/LineOpenGuard.lean` beside the `_simpleKeyAllowed`
+siblings item 77 put there, and the ladder now PINS them instead of proving
+them.  That is three library declarations spent before a single site was touched
+— a cost item 222's pricing did not carry, because a price measured in a test
+module is measured in the wrong place.
+
+**The staged flip, by DEFINITION.**  Stage 1 — the three constructor fields
+alone — breaks **11** definitions: six in the library (`PendingNode.arm_or_col`,
+`structural_dispatch_to_pending`, `structural_dispatch_after_directives`,
+`accum_block_pending`, `accum_content_pending`, `scan_content_gives_stream_v2`)
+and five test pins across four modules.  Forecast 9–13; held.  Stage 2 —
+`accum_block_on_closeThenBlock.h_park` — breaks **5**, against a forecast of 1–3,
+and its repairs are the item's most informative measurement:
+
+* **four projections IN** — the lemma's own calls to `landing_or_park_ska` and
+  `landing_or_park_save`, which still ask loose;
+* **six projections OUT** — three inside `accum_block_on_pendingContent` and
+  `accum_block_on_pendingBlockContent`, which have held the tight arm since item
+  80 and wrote `.imp_left And.left` to hand it on WEAKENED; three more at
+  `accum_block_pending`'s marker and escape arms;
+* **three rows CASHED** — `Or.inl h_sk` and `Or.inl h_sk58` became `Or.inr` off
+  `pendingBlock.h_col_old` and `pendingMapValue.h_col0`.  Those are item 222's
+  "two rows of free strength, discarded for want of anyone asking which disjunct
+  was cheaper", spent for the first time.
+
+**The demand census: 9 loose / 3 tight, now 8 / 4.**  Scoped by type, the
+library has twelve consumers of this fact.  `preprocess_flow_thread`,
+`landing_or_park_save`, `landing_or_park_ska`, `flowKeyRoute_of_open`,
+`flowKeyRoute_of_root`, `keyctx_of_preprocess`, `accum_content_on_noPending` and
+`accum_block_on_noPending` still ask loose.  `accum_block_on_pendingContent`,
+`accum_block_on_pendingBlockContent` and `colon_fires_implicit_key` asked tight
+already; `accum_block_on_closeThenBlock` joins them here.  Eight loose demands
+remain, and each is a place where the now-uniform supply is thrown away on entry.
+
+**What the uniform arm actually unblocks — and what was never blocking.**  Three
+claims, each probed rather than reasoned:
+
+* **`h_key` was NEVER a blocker.**  The plausible story is that only a content
+  park has a key head to offer, so only a content park can discharge
+  `colon_fires_implicit_key`'s pack obligation.  It is false at the type level:
+  `KeyPackPunt` has two argument-free constructors, so `fun _ _ => Or.inr
+  .dedent` discharges it for anyone, with the price deferred to `h_punt` — a
+  parameter, and therefore visible.  **A hypothesis with an argument-free
+  inhabitant is not a gate.**
+* **The tight arm makes `h_stale` strictly HARDER.**  `StaleNodeTail` demands
+  `simpleKeyAllowed = false` and the arm's left disjunct says `true`; at a line
+  start the two are contradictory, so a left-paying park satisfies `h_stale`
+  only by refuting its `InlineResidue` premise.  A strengthening moved a
+  consumer the wrong way, which is not a direction one looks in.
+* **The route EXISTS, and its residual is FIVE.**
+  `Tests.Guards.ArmDemandLedger.colon_fires_from_any_park` applies
+  `colon_fires_implicit_key` with **no park class named** — the arm comes from
+  the family reading.  Everything else the lemma wants is a PARAMETER of that
+  lemma, so the residual is machine-checked rather than asserted: one grammar
+  stream (`h_stream_block`), three scanner invariants (`h_stale`, `h_kbc`,
+  `h_scf`), and `h_punt`.  Axiom profile identical to
+  `colon_fires_implicit_key`'s — no new axioms.
+
+**So the mandate's second clause is delivered and its mechanism is refuted.**
+Item 222 named `accum_block_on_closeThenBlock.h_park` as the route to supplying
+`colon_fires_implicit_key` from any park.  The measurement says the route is the
+FAMILY READING, and `h_park` is a separate purchase whose value is six deleted
+projections and three cashed rows.  The arm was one blocker of five.
+
+**Reflection 662 at the seed — the third site in three items.**
+`scan_content_gives_stream_v2` proves
+`((mk' input).emit .streamStart).simpleKey.possible = false` **twice** in the
+same `refine`, once for item 81's `KeysBehindCursor` and once for item 123's
+stale-cursor floor, and then hands `noPending` the flag alone.  The conjunct was
+in hand at the park both times.  Item 222 caught the same shape at the content
+entrance's `.imp_left And.left`; this one is not even a projection, just a fact
+proved beside a field that did not ask for it.
+
+**What changed.**  `L4YAML/Proofs/Scanner/LineOpenGuard.lean`: three rung lemmas
+(`scanDocumentStart_simpleKey_false`, `scanDocumentEnd_simpleKey_false`,
+`mk'_simpleKey_false`).  `L4YAML/Proofs/Production/StreamAccum.lean`: three
+constructor fields, `accum_block_on_closeThenBlock.h_park`, four payer sites,
+`PendingNode.arm_tight_or_col` (new) with `arm_or_col` reduced to its projection,
+six projections deleted, four added, three rows cashed.
+`Tests/Guards/Proofs/ArmDemandLedger.lean` (NEW): the demand ledger.
+`Tests/Guards/Proofs/ArmStrengthLadder.lean`: item 222's ladder run to 9 of 9,
+its local `arm_tight_or_col` and three rungs replaced by pins on the library.
+Three test modules: one signature pin each.  `Tests/Guards.lean`: one import.
+**No census predicate was edited**, so items 219, 220 and 221 keep all thirty of
+their pins and they were re-derived.
+
+**Gates, all at baseline.**  `lake build` **1190** jobs (1189 + the new guard
+module), 0 warnings; `run-all-tests.sh` **Verified: 4520/4520**; `eventscore`
+**347/358** (0 error-miss, 0 event-reject); `suiterunner` **869/0/151**, run
+ALONE; matrix **402/402 event** + **282/282 JSON** on BOTH pipelines;
+`#print axioms` — no `sorryAx`, and `mk'_simpleKey_false` and
+`pFlowParkT_eq_pContentish` depend on no axioms at all; checkers unmoved (228
+library modules from 5 default targets, 355 imports; 20/230/249/355; all 25
+`theorem` sites whitelisted); annotations **211/211** with the standing **19**
+name mismatches, exit **1** as always.  `declinereach`, `declinearm` and
+`declinecorner` re-derive all thirty pins.  Counts: declarations **8600 ->
+8604** (three rungs + the family reading), `#guard` **8173** unmoved, test files
+**636 -> 637**.
+
+**The `[210]` flip is FIVE, and it validates item 222's own correction one item
+later.**  The five DEFINITIONS are exactly the recorded set —
+`topLevelFlowResumeSep`, `rootMapRoute`, `rootMapRouteF`, `bareNodeRoute`,
+`structural_dispatch_to_pending` — and their line numbers moved by **+17, +17,
++17, +17, +20**, a drift that is not even uniform, while the flip did not move
+at all.  Recorded by line number this gate would have read as five drifted
+sites; recorded by definition it reads FIVE, unmoved, in one pass.
+
+**What remains.**  The supply is uniform and the demand is not: **eight loose
+consumers**, each one a place the new strength is discarded on entry, and the
+ledger now names them.  The cheapest next reading is `landing_or_park_ska` and
+`landing_or_park_save`, because `accum_block_on_closeThenBlock` now holds the
+tight arm and projects it away FOUR TIMES to reach them — the same shape item 222
+found at the content entrance, one layer down.  Behind that, the route this item
+built is blocked on four things that are not arm-shaped: `h_stream_block` at a
+landing that carries only conditional streams, and the three scanner invariants
+`h_stale`, `h_kbc`, `h_scf`.  Unchanged: R3's seven productions, with
+`content_dispatch_routed`'s two `noKeyContext`; item 183's flip order, whose
+first two steps are now taken; the parked Ix Step-1 composition on the Ix track's
+own clock.  Instrument debt, now **seven** rows, one added: the 198/200/201
+censuses still lack a cruder-key control; what an `Or.inl`'s proof actually
+FORWARDS is measured and unresolved; the supply walk is scoped to one module;
+`pendingDocEnd` has no token-level field and no directive-flag field;
+`pendingBlock` carries no `h_real`; the strength ladder is a PROOF-LEVEL
+instrument only, with no census of the reachable states the tight arm excludes;
+and **the demand ledger is a signature census, not a spend census** — it counts
+which consumers ASK for the weak form, and nothing counts how many of the eight
+would actually USE the conjunct if they had it, so a loose parameter that no
+proof would read is indistinguishable here from one that is throwing strength away.
+
+**The instrument ledger, twenty-five rows.**  Park constructors (198),
+application sites (200), lemma conclusions (201), the same with a key that works
+(202), indices (203), the runtime's own state (204), the transitive ring of a
+carrier (205), the same closure with its last ring paid (206), the ring's payers
+against a forecast (207), the instruments themselves (208), the object a
+carrier's consumer reads (209), the plan's own remaining list (210), the control
+(211), the provenance (212), the route (213), the pipe (214), the beta (215),
+the arms (216), the branch (217), the reach (218), the corpus (219), the matrix
+(220), the minimal zero (221), the strength ladder (222) — and now **the DEMAND
+LEDGER**.  The rule this item adds: **tightening the supply changes nothing
+until the demand is re-asked; a uniform producer met by a weak parameter is
+strength thrown away at the door.**  Its corollary, which is what refuted the
+mandate's mechanism: **a hypothesis with an argument-free inhabitant is not a
+gate** — price a route by the hypotheses that have no free witness, not by the
+length of its parameter list.
+
 ### REMAINING, in order
 
 The per-item history is the closure log above; this section lists only the

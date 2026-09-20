@@ -147,7 +147,7 @@ example {sc : ScannerState} {sp_start sp_block sp_scan : SurfPos}
     (h_real : LastTokenReal sc.tokens)
     (h_marker_tail : ∃ t, lastRealToken? sc.tokens = some t ∧
       t.val = .documentStart ∧ t.pos.line = sc.line)
-    (h_arm : sc.simpleKeyAllowed = true ∨ 0 < sp_scan.col)
+    (h_arm : (sc.simpleKeyAllowed = true ∧ sc.simpleKey.possible = false) ∨ 0 < sp_scan.col)
     -- Item 138: and the park's directive face — `scanDocumentStart` clears the
     -- flag, so a `---` park is not directive-eligible.
     (h_nodir : sc.allowDirectives = false)
@@ -200,7 +200,7 @@ comes, and the field becomes spendable. -/
 
 example {sc : ScannerState} {sp_start sp : SurfPos}
     (h_col : sp.col = 0 ∨ sc.inFlow = true)
-    (h_arm : sc.simpleKeyAllowed = true ∨ sc.inFlow = true)
+    (h_arm : (sc.simpleKeyAllowed = true ∧ sc.simpleKey.possible = false) ∨ sc.inFlow = true)
     (h_nodoc : sc.inFlow = false → GStar SLDocumentPrefix sp_start sp)
     -- Item 186: and the register face, the same premise on the scanner side.
     (h_noek : sc.inFlow = false → sc.explicitKeyLine = none)

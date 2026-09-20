@@ -2521,6 +2521,39 @@ lemma scanDocumentEnd_simpleKeyAllowed {s s' : ScannerState}
   all_goals (try contradiction)
   all_goals (simp only [Except.ok.injEq] at hok; subst hok; rfl)
 
+/-- **Item 223: and they CLEAR, which is the other half of the same fact.**
+    Item 77 asked the two markers only whether the save comes back up; item 80
+    gave the content parks a strictly stronger arm — the save up AND the saved
+    key down — and items 222/223 close the gap for the rest of the family.  The
+    `---` scan writes `simpleKey := {}` on its way past; `unwindIndents`, `emit`
+    and `advanceN` stand between the write and the read, so this is not `rfl`
+    the way its `_simpleKeyAllowed` sibling above is. -/
+lemma scanDocumentStart_simpleKey_false (s : ScannerState) :
+    (scanDocumentStart s).simpleKey.possible = false := by
+  simp only [scanDocumentStart, advanceN_preserves_simpleKey, emit_preserves_simpleKey]
+
+/-- …and the `...` scan clears on every arm that returns — the marker ends a
+    document, so nothing it left behind can still be a key head. -/
+lemma scanDocumentEnd_simpleKey_false {s s' : ScannerState}
+    (hok : scanDocumentEnd s = .ok s') : s'.simpleKey.possible = false := by
+  unfold scanDocumentEnd at hok
+  simp only [bind, Except.bind] at hok
+  repeat' split at hok
+  all_goals first
+    | (simp only [Except.ok.injEq] at hok
+       subst hok
+       simp only [advanceN_preserves_simpleKey, emit_preserves_simpleKey])
+    | simp_all
+
+/-- **The stream seed's rung** (item 223).  `ScannerState.mk'` writes the
+    register empty, and the block-context park's ONE non-flow producer stands
+    on the state the `streamStart` emission and §5.2's BOM advance leave — so
+    the seed pays `noPending.h_arm`'s tightened conjunct the same way it has
+    paid its flag since item 76.  `mk'`'s own half is `rfl`; the two carriers
+    in front of it are not. -/
+lemma mk'_simpleKey_false (input : String) :
+    (ScannerState.mk' input).simpleKey.possible = false := rfl
+
 /-- The two PROPERTY arms spend their `&`/`!` before the name, so they park
     inside a line too — which is what lets item 77's disjunction be stated for
     EVERY content character rather than for the node-producing ones alone. -/
