@@ -247,8 +247,9 @@ partial def down (env : Environment) (self : Name) (n : Nat) :
       #[if path.isEmpty || r == "VACUOUS" then r else "ALL " ++ r]
     match e with
     | .mdata _ e' => down env self n st path e' fuel
-    | .lam bn t b _ => down env self n (st.push ⟨bn, isOptTy t, none, ""⟩) path b fuel
-    | .letE bn t v b _ => down env self n (st.push ⟨bn, isOptTy t, some v, ""⟩) path b fuel
+    | .lam bn t b _ => down env self n (st.push ⟨bn, isOptTy t, none, "", 0⟩) path b fuel
+    | .letE bn t v b _ =>
+        down env self n (st.push ⟨bn, isOptTy t, some v, "", st.size⟩) path b fuel
     | e@(.app _ _) =>
         let f := e.getAppFn
         let args := e.getAppArgs
@@ -257,13 +258,14 @@ partial def down (env : Environment) (self : Name) (n : Nat) :
         match f with
         | .lam .. => Id.run do
             -- a beta-redex: `have x := v; body`
+            let d0 := st.size
             let mut st := st
             let mut body := f
             let mut i := 0
             repeat
               match body, (if h : i < args.size then some args[i] else none) with
               | .lam bn t b _, some a =>
-                  st := st.push ⟨bn, isOptTy t, some a, ""⟩; body := b; i := i + 1
+                  st := st.push ⟨bn, isOptTy t, some a, "", d0⟩; body := b; i := i + 1
               | _, _ => break
             return down env self n st path body fuel
         | .const g _ =>
@@ -300,8 +302,9 @@ partial def down (env : Environment) (self : Name) (n : Nat) :
               | some info => Id.run do
                   let firstAlt := info.numParams + 1 + info.numDiscrs
                   let lastAlt := firstAlt + info.numAlts
-                  let disc := if h : info.numParams + 1 < args.size then
-                      (match resolve (isMechD env) st n st.size args[info.numParams + 1] 24 with
+                  let major := info.numParams + info.numDiscrs
+                  let disc := if h : major < args.size then
+                      (match resolve (isMechD env) st n st.size args[major] 24 with
                        | ⟨"RELAY", some j, _⟩ => s!"premise#{j}"
                        | ⟨d, _, _⟩ =>
                            if d.startsWith "FIELD of " then (d.splitOn " of ").getLast! else d)
@@ -310,6 +313,7 @@ partial def down (env : Environment) (self : Name) (n : Nat) :
                       args.extract lastAlt args.size else #[]
                   let mut out : Array String := #[]
                   for idx in [firstAlt:min lastAlt args.size] do
+                    let d0 := st.size
                     let mut st := st
                     let mut body := args[idx]!
                     let mut i := 0
@@ -318,11 +322,11 @@ partial def down (env : Environment) (self : Name) (n : Nat) :
                       match body with
                       | .lam bn t b _ =>
                           if i < k then
-                            st := st.push ⟨bn, isOptTy t, none, s!"FIELD of {disc}"⟩
+                            st := st.push ⟨bn, isOptTy t, none, s!"FIELD of {disc}", 0⟩
                           else
                             let v := if h : i - k < trailing.size then some trailing[i - k] else none
                             st := st.push ⟨bn, isOptTy t, v,
-                              if v.isSome then "" else s!"GEN of {disc}"⟩
+                              if v.isSome then "" else s!"GEN of {disc}", d0⟩
                           body := b; i := i + 1
                       | _ => break
                     out := out ++ down env self n st path body fuel

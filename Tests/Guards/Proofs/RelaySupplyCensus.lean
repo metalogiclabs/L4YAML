@@ -42,19 +42,18 @@ that position to what actually decides it.
   the sentence above had the ordering backwards from the moment it was written.
 * `RELAY` — the argument is one of the enclosing constant's OWN binders, so the
   decision belongs to ITS callers.  This is the only shape item 211 looked for.
-  **66**, of which 10 arrived through a pipe.
-* `FIELD of …` / `LOCAL …` — the argument was unpacked from a destructuring.
-  `LOCAL` is this census's own blind spot, kept as a NUMBER rather than a
-  sentence: every one of them is a park field or a bundle field, which is
-  items 198 and 200's census and not this one's.  **Item 214 checked that
-  sentence instead of repeating it**, and it holds: the 26 that arrive here
-  through a pipe are bound in a run whose binder NAMES, in order, are the park
-  constructor's own field telescope (`h_close h_ivl h_expl h_vslot h_kslot
-  h_closeF h_frames h_closeFV h_framesV h_seqF h_explUp` against
-  `pendingMapValue`'s 22 fields), or a bundle's.  The census cannot MARK them,
-  because the `cases` that binds them is transported through an `Eq.ndrec` and
-  so is never entered as an alternative — `LOCAL` is 82 for that reason and not
-  because the fields are unknowable.
+  **68**, of which 12 arrived through a pipe.
+* `FIELD of g#i on d` — the argument is field `i` of the constructor that split
+  `d`, so items 198 and 200's census decides it and not this one.  **58**, and
+  53 of them are a field of the pending park the caller was handed: the row
+  reads `FIELD of PendingNode.casesOn#23 on RELAY` and `pendingProps`' own
+  telescope names index 23 `h_closeFE`, which is the premise being supplied.
+  Field-to-same-field, on every one of the 53.
+* `LOCAL …` — a binder this census will not name.  **27**, and unlike item 212's
+  82 this is not a blind spot with a sentence attached: 20 are lambdas in one
+  lemma's alternative bodies and 7 sit under a SATURATED pipe, which transports
+  a function nobody applies.  Both are honest locals.  The 55 that used to swell
+  this row were under an OVER-APPLIED pipe — see `peelPipe`.
 
 A `have`-bound hypothesis is followed through its beta-redex, and a case
 split's alternatives are entered with their constructor fields marked and
@@ -111,13 +110,22 @@ partial def lamDepth : Expr → Nat
 abbrev OptMap := Std.HashMap Name (Array (Nat × Name))
 
 /-- A binder in scope: its name, whether its type is `_ ∨ True`, the VALUE it
-    is bound to when it is a `have`/`let`/beta-redex binder, and where it came
-    from when it is a case split's own. -/
+    is bound to when it is a `have`/`let`/beta-redex binder, where it came from
+    when it is a case split's own, and `dep` — the DEPTH ITS VALUE LIVES AT.
+
+    `dep` is what makes a multi-binder beta-redex readable.  Every argument of
+    `(fun x y z => b) a₁ a₂ a₃` lives at the depth the redex was found at, but
+    the binders sit at that depth, +1 and +2, so following `a₂` at `y`'s stack
+    INDEX reads its de Bruijn variables one binder off.  The two agree for the
+    first binder and only for the first, which is why this went unseen: every
+    beta-redex item 212 met was a one-binder `have`.  Item 215's `peelPipe`
+    peels up to thirteen at a time — see `expectedTally`. -/
 structure Bnd where
   name : Name
   opt  : Bool
   val  : Option Expr
   src  : String := ""
+  dep  : Nat := 0
 deriving Inhabited
 
 /-- Which argument of a PIPE carries the decision.  Item 213 named these in the
@@ -186,7 +194,7 @@ partial def resolve (isMech : Name → Bool) (st : Array Bnd) (n : Nat) :
             let j := d - 1 - k
             if j < n then ⟨"RELAY", some j, []⟩
             else match st[j]!.val with
-              | some v => resolve isMech st n j v fuel
+              | some v => resolve isMech st n st[j]!.dep v fuel
               | none =>
                   if st[j]!.src != "" then ⟨st[j]!.src, none, []⟩
                   else ⟨s!"LOCAL {st[j]!.name}{if st[j]!.opt then ":opt" else ":?"}",
@@ -194,12 +202,14 @@ partial def resolve (isMech : Name → Bool) (st : Array Bnd) (n : Nat) :
           else ⟨"OOB", none, []⟩
       | .lam .. =>
           -- a beta-redex, or a bare function reached through a pipe: bind what
-          -- arguments there are and resolve the body at the new depth.
+          -- arguments there are and resolve the body at the new depth.  The
+          -- arguments all live at `d0`, not at the depth each binder sits at.
+          let d0 := d
           let rec peel (st : Array Bnd) (body : Expr) (i : Nat) (d : Nat) : Res :=
             match body with
             | .lam bn t b _ =>
                 let v := if h : i < args.size then some args[i] else none
-                peel (st.push ⟨bn, isOptTy t, v, ""⟩) b (i+1) (d+1)
+                peel (st.push ⟨bn, isOptTy t, v, "", d0⟩) b (i+1) (d+1)
             | body => resolve isMech st n d body fuel
           peel st f 0 d
       | _ => ⟨"OTHER", none, []⟩
@@ -260,14 +270,52 @@ def splitShape (env : Environment) (g : Name) : Option Shape :=
       | _ => none
     | _ => none
 
+/-- A constant's arity, counted off its TYPE's leading binders.  An application
+    carrying MORE arguments than this is OVER-APPLIED: what it returns is being
+    used as a function, and for a PIPE that means the pipe is transporting a
+    function to a beta-redex — see `peelPipe`. -/
+def arityOf (env : Environment) (g : Name) : Nat :=
+  match env.find? g with
+  | some ci => (optBinders ci.type).2
+  | none => 0
+
 mutual
+
+/-- An over-applied PIPE is a beta-redex with a pipe in the middle: the pipe
+    transports a FUNCTION and the trailing arguments are what it is applied to.
+    Peel the transported lambda against them, binding each binder to its value
+    exactly as the plain beta-redex case does, and recording the depth those
+    values live at.
+
+    This is the shape 55 of item 214's 82 `LOCAL` edges were in, and it is NOT
+    the shape item 214 forecast.  Item 214 predicted a pipe standing between a
+    split and its alternative, to be descended and then shaped; the census
+    reports ZERO such sites.  What is actually there is a `cases` whose whole
+    motive was transported: `Eq.ndrec` with arity 6 carrying 10 to 19
+    arguments, the extra ones being the park's own fields. -/
+partial def peelPipe (env : Environment) (m : OptMap) (self : Name) (n : Nat)
+    (trailing : Array Expr) (d0 : Nat) : Array Bnd → Expr → Nat →
+    Array Edge → Array Edge
+  | st, body, j, acc =>
+    match body with
+    | .lam bn t b _ =>
+        if h : j < trailing.size then
+          peelPipe env m self n trailing d0
+            (st.push ⟨bn, isOptTy t, some trailing[j], "", d0⟩) b (j+1)
+            (walk env m self n st trailing[j] acc)
+        else walk env m self n st body acc
+    | body =>
+        walk env m self n st body
+          ((trailing.extract j trailing.size).foldl
+            (fun a x => walk env m self n st x a) acc)
 
 /-- One alternative of a case split: its first `k` binders are constructor
     FIELDS of `disc`; the rest take the split's trailing arguments. -/
 partial def walkAlt (env : Environment) (m : OptMap) (self : Name) (n : Nat)
-    (st : Array Bnd) (k : Nat) (disc : String) (trailing : Array Expr) :
-    Expr → Array Edge → Array Edge
+    (st : Array Bnd) (k : Nat) (disc : String) (splitter : Name)
+    (trailing : Array Expr) : Expr → Array Edge → Array Edge
   | e, acc => Id.run do
+    let d0 := st.size
     let mut st := st
     let mut e := e
     let mut i := 0
@@ -275,21 +323,23 @@ partial def walkAlt (env : Environment) (m : OptMap) (self : Name) (n : Nat)
       match e with
       | .lam bn t b _ =>
           if i < k then
-            st := st.push ⟨bn, isOptTy t, none, s!"FIELD of {disc}"⟩
+            st := st.push ⟨bn, isOptTy t, none, s!"FIELD of {splitter}#{i} on {disc}", 0⟩
           else
             let v := if h : i - k < trailing.size then some trailing[i - k] else none
-            st := st.push ⟨bn, isOptTy t, v, if v.isSome then "" else s!"GEN of {disc}"⟩
+            st := st.push ⟨bn, isOptTy t, v,
+              if v.isSome then "" else s!"GEN of {disc}", d0⟩
           e := b; i := i + 1
       | _ => break
     return walk env m self n st e acc
 
 partial def walk (env : Environment) (m : OptMap) (self : Name) (n : Nat) :
     Array Bnd → Expr → Array Edge → Array Edge
-  | st, .lam bn t b _, acc => walk env m self n (st.push ⟨bn, isOptTy t, none, ""⟩) b acc
+  | st, .lam bn t b _, acc => walk env m self n (st.push ⟨bn, isOptTy t, none, "", 0⟩) b acc
   | st, .forallE bn t b _, acc =>
-      walk env m self n (st.push ⟨bn, isOptTy t, none, ""⟩) b acc
+      walk env m self n (st.push ⟨bn, isOptTy t, none, "", 0⟩) b acc
   | st, .letE bn t v b _, acc =>
-      walk env m self n (st.push ⟨bn, isOptTy t, some v, ""⟩) b (walk env m self n st v acc)
+      walk env m self n (st.push ⟨bn, isOptTy t, some v, "", st.size⟩) b
+        (walk env m self n st v acc)
   | st, .mdata _ e, acc => walk env m self n st e acc
   | st, .proj _ _ e, acc => walk env m self n st e acc
   | st, e@(.app _ _), acc =>
@@ -300,11 +350,12 @@ partial def walk (env : Environment) (m : OptMap) (self : Name) (n : Nat) :
           -- a beta-redex: `have x := v; body` and friends.  Binding the
           -- binders to their arguments is what makes a `have`-built hypothesis
           -- read as its producer instead of as a nameless local.
+          let d0 := st.size
           let rec peel (st : Array Bnd) (body : Expr) (i : Nat) (acc : Array Edge) :
               Array Edge :=
             match body, (if i < args.size then some args[i]! else none) with
             | .lam bn t b _, some a =>
-                peel (st.push ⟨bn, isOptTy t, some a, ""⟩) b (i+1)
+                peel (st.push ⟨bn, isOptTy t, some a, "", d0⟩) b (i+1)
                   (walk env m self n st a acc)
             | body, _ =>
                 walk env m self n st body
@@ -312,13 +363,30 @@ partial def walk (env : Environment) (m : OptMap) (self : Name) (n : Nat) :
                     (fun a x => walk env m self n st x a) acc)
           peel st f 0 acc
       | .const g _ =>
-          if isMechanism env g then
+          if h : (pipeArg g).isSome && arityOf env g < args.size
+                 && (pipeArg g).get! < args.size then Id.run do
+            -- the pipe treatment `resolve` has had since item 214, one level
+            -- up: an over-applied pipe is a beta-redex and its trailing
+            -- arguments are what the transported function receives.
+            let i := (pipeArg g).get!
+            let ar := arityOf env g
+            let mut acc := acc
+            for idx in [0:ar] do
+              if idx != i then acc := walk env m self n st args[idx]! acc
+            return peelPipe env m self n (args.extract ar args.size) st.size st
+              args[i]! 0 acc
+          else if isMechanism env g then
             match splitShape env g with
             | some info => Id.run do
                 let firstAlt := info.numParams + 1 + info.numDiscrs
                 let lastAlt := firstAlt + info.numAlts
-                let disc := if h : info.numParams + 1 < args.size then
-                    (resolve (isMechanism env) st n st.size args[info.numParams + 1] 24).how
+                -- the major premise sits AFTER the indices: `params, motive,
+                -- indices…, major`.  Reading `numParams + 1` reads the first
+                -- INDEX of an indexed inductive — `PendingNode` has four, so
+                -- every field of the park was labelled `of VIA Bool.false`.
+                let major := info.numParams + info.numDiscrs
+                let disc := if h : major < args.size then
+                    (resolve (isMechanism env) st n st.size args[major] 24).how
                   else "?"
                 let trailing := if lastAlt < args.size then
                     args.extract lastAlt args.size else #[]
@@ -327,7 +395,7 @@ partial def walk (env : Environment) (m : OptMap) (self : Name) (n : Nat) :
                   let a := args[idx]!
                   if firstAlt ≤ idx && idx < lastAlt then
                     acc := walkAlt env m self n st info.altNumParams[idx - firstAlt]!
-                      disc trailing a acc
+                      disc g trailing a acc
                   else acc := walk env m self n st a acc
                 return acc
             | none => args.foldl (fun a x => walk env m self n st x a) acc
@@ -382,20 +450,20 @@ open Lean Elab Command
     can see; every other row is a supply it cannot.  **345 of 659 edges — 52 %
     — are decided somewhere other than the site that writes them**, which is
     the share items 199, 201 and 211 each described in a sentence and none
-    could count.  That 345 has not moved since item 212 and its COMPOSITION has:
-    following the pipes (item 214) took `VIA` 79 → 36 and put the difference
-    into `LOCAL` (+26), `RELAY` (+10) and `SPLIT` (+7).  A hidden share is a
-    partition, so an instrument that resolves one row more finely has to leave
-    the total alone; if 345 ever moves, the walk gained or lost an EDGE, which
-    is a different event and a worse one.  `LOCAL` is this census's OWN blind
-    spot, kept as a number: each is a field unpacked from a park or a bundle,
-    which is items 198 and 200's census — checked in item 214 against the park
-    constructors' own field telescopes rather than left as an assertion.
+    could count.  That 345 has not moved since item 212 and its COMPOSITION has
+    twice: following the pipes (item 214) took `VIA` 79 → 36 and put the
+    difference into `LOCAL` (+26), `RELAY` (+10) and `SPLIT` (+7); following the
+    OVER-APPLIED ones (item 215) took `LOCAL` 82 → 27, 53 of them to `FIELD` and
+    2 to `RELAY`.  A hidden share is a partition, so an instrument that resolves
+    one row more finely has to leave the total alone; if 345 ever moves, the
+    walk gained or lost an EDGE, which is a different event and a worse one.
+    The open row is now `SPLIT` at 156: it names the splitter and stops, and no
+    instrument has resolved it.
     `skipped` counts constants whose value has fewer leading lambdas than their
     type has binders — the census will not read those, and a rewrite that hides
     a proof from it has to move this number. -/
 def expectedTally : String :=
-  "edges=659 skipped=31 [DECLINE=271, FIELD=5, LOCAL=82, PAY=43, RELAY=66, \
+  "edges=659 skipped=31 [DECLINE=271, FIELD=58, LOCAL=27, PAY=43, RELAY=68, \
 SPLIT=156, VIA=36]"
 
 /-- **The row item 211 read off the compiler's error text and got wrong.**  All
@@ -451,10 +519,17 @@ def expectedProducers : List String :=
 
     The landing, read as provenance: 26 are a park or bundle FIELD, 10 are the
     caller's own binder, 7 are a case split — 3 an `Or.casesOn` reached through
-    the pipe and 4 the `dite` arms themselves. -/
+    the pipe and 4 the `dite` arms themselves.
+
+    **Item 215 split the first row where item 214 could only assert it.**  Item
+    214 read the 26 off the probe by hand and reported 21 of them bound inside
+    an `Eq.ndrec`; `peelPipe` now resolves exactly those 21 to `FIELD`, and the
+    5 that stay `LOCAL` are the ones under a SATURATED pipe, which transports a
+    function nobody applies.  The hand count and the instrument agree, and the
+    total is still 43 with still no producer among them. -/
 def expectedPipeLanding : String :=
-  "piped=43 producers=0 [Or.imp⇒LOCAL=26, Or.imp⇒RELAY=10, Or.imp⇒SPLIT=3, \
-dite⇒SPLIT=4]"
+  "piped=43 producers=0 [Or.imp⇒FIELD=21, Or.imp⇒LOCAL=5, Or.imp⇒RELAY=10, \
+Or.imp⇒SPLIT=3, dite⇒SPLIT=4]"
 
 /-- **Read off the TYPE, not off a list.**  Item 211's falsification script
     enumerated five optional contexts of `content_dispatch_routed` by hand;

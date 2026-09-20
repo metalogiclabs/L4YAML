@@ -24901,12 +24901,16 @@ instruments and added none.
 
 **What remains.**  The debt this item creates is the one it diagnosed: **the
 walk enters 10 unshapeable heads blind**, `Eq.ndrec` chief among them at 3041
-occurrences, and every binder beneath one reads `LOCAL`.  Giving `walk` the same
+occurrences, and every binder beneath one reads `LOCAL`.  ~~Giving `walk` the same
 pipe treatment `resolve` now has — descend a pipe to the split underneath, then
-shape it — would move some part of `LOCAL`'s 82 into `FIELD`, and it is the only
-row of the partition still standing on a name rather than a mechanism.  Price it
-first: `FIELD` is 5 today, so the answer is somewhere in `[5, 87]` and no
-sentence should guess where.  Behind that, unchanged: R3's seven productions,
+shape it — would move some part of `LOCAL`'s 82 into `FIELD`~~, and it is the
+only row of the partition still standing on a name rather than a mechanism.
+Price it first: `FIELD` is 5 today, so the answer is somewhere in `[5, 87]` and
+no sentence should guess where.  **DONE, item 215 — and the struck clause names
+a shape that occurs ZERO times.**  There is no pipe standing between a split and
+its alternative anywhere in the module.  What is there is the reverse: an
+OVER-APPLIED pipe, transporting a function that the trailing arguments then
+apply.  `FIELD` landed at **58**, inside the bound this sentence gave.  Behind that, unchanged: R3's seven productions,
 with `content_dispatch_routed`'s two `noKeyContext` a RUNTIME question of item
 65's shape; item 183's flip order (`pendingFlow`'s constructor and arm first);
 the parked Ix Step-1 composition on the Ix track's own clock; and the standing
@@ -24925,6 +24929,176 @@ a five-row partition while three of the rows were unresolved; the ordering
 survived two items and was backwards from the first.  Its companion, from N2 and
 N3 together: **a pipe transmits and a decider absorbs** — which is what makes a
 narrowing able to tell them apart, and what made the 43 answerable at all.
+
+
+### Item 215 (2026-09-19)
+
+**The mandate** is item 214's NEXT entry 1, verbatim: *"Give `walk` the same
+pipe treatment `resolve` now has — descend a pipe to the split underneath, then
+shape it — which would move some part of `LOCAL`'s 82 into `FIELD`.  **Price it
+first**: `FIELD` is 5 today, so the answer is somewhere in `[5, 87]` and no
+sentence should guess where."*
+
+The bound was right — `FIELD` landed at **58**.  The mechanism was not: the
+shape that sentence describes occurs **zero** times.
+
+**What is actually there.**  The first thing the probe counted was the sites the
+mandate names — an alternative of a shaped split that is not a lambda, with a
+pipe to be descended and shaped underneath.  `NOTES (0 total, 0 distinct)`.  Not
+one.  `walk`'s unshaped-mechanism branch already folds into every argument, so
+the DESCENT was never what was missing.  What the 82 are in is the reverse
+nesting: an **over-applied pipe**.  `Eq.ndrec` has arity 6 and these
+applications carry **10 to 19** arguments — the pipe transports a FUNCTION and
+the trailing arguments are what it is applied to.  **An over-applied pipe is a
+beta-redex with a pipe in the middle**, and `peelPipe` peels it as one.
+
+| where the 82 sit | count | what it is |
+|---|---:|---|
+| `Eq.ndrec#3`, over-applied | 55 | the transported function's own binders |
+| `Eq.mpr#3`, saturated | 5 | a function nobody applies |
+| `dite#3`, saturated | 2 | the branch's own hypothesis |
+| an alternative BODY | 20 | genuine locals, all in one lemma's routes |
+
+**The price, and the two defects it exposed.**  The change is two edits, not
+one, and the second only matters because of the first.
+
+| pipe fix | depth fix | FIELD | LOCAL | RELAY | VIA |
+|---|---|---:|---:|---:|---:|
+| off | off | 5 | 82 | 66 | 36 |
+| off | **on** | 5 | 82 | 66 | 36 |
+| on | off | 45 | 35 | 68 | **41** |
+| on | **on** | **58** | **27** | 68 | 36 |
+
+The depth fix moves **zero** edges at baseline, which is why nobody had seen it:
+item 212's `resolve` follows a bound value at the binder's stack INDEX, while
+every argument of a beta-redex lives at the depth the redex was found at.  The
+two agree for the FIRST binder and only for the first, and every beta-redex
+item 212 met was a one-binder `have`.  `peelPipe` peels up to **thirteen** at a
+time, and the misalignment is then immediate and visible: `pendingProps`'
+premise 24 — an `Exists … ∨ True` — reported `VIA Eq.refl`, and `Eq`-typed
+binders reported as supplying `Exists` premises.  **An impossible reading is an
+oracle**: `Eq.refl : a = a` cannot inhabit `_ ∨ True`, so the intermediate
+instrument refuted itself with no compiler run at all.  Items 212, 213 and 214
+published their numbers over the defective `resolve` and **their numbers are
+unaffected** — the row above is the control that says so.
+
+**The third defect, which had been printing its own symptom.**  `walkAlt`
+labelled all 53 new rows `FIELD of VIA Bool.false`.  A `casesOn`'s arguments run
+`params, motive, indices…, major`; the census read `args[numParams + 1]`, the
+first INDEX.  `PendingNode` has **four** indices — the compiler says so — so the
+label named a `Bool` index of the park instead of the park.  `Or`, `And` and
+`Exists` have none, which is why every label that existed before was correct.
+The route census carries the same line and it is corrected there too (§5),
+where it moves nothing: its subject has no indices.
+
+**Where the 55 went, and the cross-check that makes it a fact.**  Over all 659
+edges: **53 `LOCAL`→`FIELD`, 2 `LOCAL`→`RELAY`, nothing else**, 604 unchanged.
+All 53 read `FIELD of PendingNode.casesOn#i on RELAY` — field *i* of the pending
+park this lemma received as a premise.  And the indices land on their own names:
+
+| callee premise | census says | park field |
+|---|---|---|
+| `pendingProps#19` | `casesOn#18` | `h_ncol` ← `h_ncol` |
+| `pendingProps#21` … `#26` | `casesOn#20` … `#25` | `h_kslot`, `h_routeE`, `h_kslotE`, `h_closeFE`, `h_closeF`, `h_closeFV`, each ← itself |
+| `pendingProps#28` | `casesOn#27` | `h_closeFEV` ← `h_closeFEV` |
+
+**Every one is field-to-same-field.**  An off-by-one in the peel would have
+shifted them uniformly and read `h_closeFE ← h_kslotE`.  And the second,
+independent agreement: item 214 read these binders' NAMES off the probe by hand
+and got `h_expl51`, `h_vslot51`, `h_ncol_old`, `h_kslot93`, `h_closeF99`,
+`h_frames99`, `h_closeFV108`, `h_framesV108`, `h_seqF168`; item 215 derives the
+field INDEX from the trailing-argument position and gets `pendingMapValue`'s
+9:`h_expl`, 10:`h_vslot`, 13:`h_ncol`, 14:`h_kslot`, 15:`h_closeF`,
+16:`h_frames`, 17:`h_closeFV`, 18:`h_framesV`, 20:`h_seqF` — stem for stem, in
+order.  Item 214 asserted the sentence; item 215 re-derives it from a different
+quantity.
+
+**The landing table splits where item 214 could only assert it.**  Item 214 read
+its 26 `Or.imp⇒LOCAL` by hand and reported 21 of them bound inside an
+`Eq.ndrec`.  `expectedPipeLanding` now reads `Or.imp⇒FIELD=21,
+Or.imp⇒LOCAL=5` — exactly those 21, mechanically, with the 5 survivors the ones
+under a SATURATED pipe.  Total still 43, producers still 0.
+
+**N-215, predicted by LINE before the build.**  Narrow `pendingMapValue`'s field
+`h_expl` (index 9, `StreamAccum.lean:2198`) to `∨ False`.  Six errors, and the
+census named all six in advance:
+
+| census | site | narrowing |
+|---|---|---|
+| `question_open_map :: PAY` | — | **no error** — `Or.inl` still elaborates at `∨ False` (item 211) |
+| `compact_open_map :: SPLIT …match_1_2` | 19594 | error |
+| `colon_open_map{,_explicit,_implicit,_props} :: DECLINE` | 18810, 19314, 19943, 20170 | errors |
+| `accum_content_pending :: FIELD of casesOn#9` | **32633** | error — *"the argument `h_expl51` has type … ∨ False"* |
+
+The consumer error is at the line the census named, the compiler's own text
+names the binder item 214 had read there, and **the one site the census called
+`PAY` is the one site that did not break**.  No error at the transporting
+`Eq.ndrec`: item 214's rule holds a level up — a pipe transmits, a decider
+absorbs.
+
+**My own error, recorded before anyone else found it.**  I first queried the
+census for `StreamAccum.pendingMapValue` and read "0 supply edges", then met
+five `Or.inr trivial` errors I had not predicted.  A constructor is named
+`PendingNode.pendingMapValue`.  The census had all six edges; my query never
+asked for them.  §1 again: a query that finds nothing proves nothing.
+
+**Predictions refuted.**  **P-PRICE** — I predicted `FIELD` in `[20, 50]` and it
+is **58**; I reasoned from the 26 item 214 had already named and guessed the
+other 56 were mostly not fields, when 53 of the 55 that moved are.
+**P-PARTITION** — the 345 hidden total did not move and no row outside the pair
+changed except `RELAY`, but I predicted `FIELD + LOCAL` conserved at 87 and it
+is 85: two edges resolve PAST the field to the enclosing constant's own binder
+(`indicator_open_map`'s two `h_ref_land`), and a trailing argument that is the
+caller's own premise is a relay, not a field.  Held: **P-DESIGN** (in a stronger
+form — zero sites, not merely no gain), **P-HEAD**, **P-CHAIN-LEN**, **P-TYPE**,
+**P-EDGES**, **P-SEED**.
+
+**What changed.**  `Tests/Guards/Proofs/RelaySupplyCensus.lean`: `arityOf`,
+`peelPipe`, the pipe check ahead of the mechanism check in `walk` (as `resolve`
+has had since item 214), `Bnd.dep` and its use in `resolve`, the discriminant
+index, and `walkAlt` naming its splitter so a `FIELD` row says which split and
+which field.  Re-pinned: `expectedTally` and `expectedPipeLanding`.  **Unmoved,
+and they are the controls: `expectedSeed`'s 8 rows, `expectedProducers`' 11
+constants and `expectedOptBinders`' 6 rows are byte-identical.**
+`Tests/Guards/Proofs/ConclusionRouteCensus.lean`: the five `Bnd` constructions,
+and the same discriminant index.  **Zero edits under `L4YAML/`.**
+
+**Gates, all at baseline.**  `lake build` **1167** jobs, 0 warnings;
+`run-all-tests.sh` **4520/4520** (Production Coverage **837/837**); `eventscore`
+**347/358**; `suiterunner` **869/0/151**; matrix **402/402 event** + **282/282
+JSON** on BOTH pipelines; the `[210]` flip **FIVE** at
+**4621/5901/5924/6093/7645**, UNMOVED; `#print axioms` over ten subjects — no
+`sorryAx`, `frameChainUnion` and `flowVPack_of_close` on `propext` alone;
+checkers 228/355, 20/230/249/355, 25 capstones, annotations 100 % (211/211) with
+the standing **19** name mismatches.  Counts: declarations **8594 → 8594**,
+`#guard` **8158 → 8158**, test files **626 → 626**.
+
+**What remains.**  `LOCAL` is **27** and no longer the partition's open question:
+20 of them are lambdas in one lemma's alternative bodies and 7 sit under a
+SATURATED pipe, which transports a function nobody applies — an honest local in
+both cases.  The open row is now `SPLIT` at **156**, the largest hidden share
+and the one no instrument has ever resolved: it names the splitter and stops.
+Before pricing it, note what this item cost: the last two shares were priced by
+a bound and both bounds held while both MECHANISMS were wrong.  Behind that,
+unchanged: R3's seven productions, with `content_dispatch_routed`'s two
+`noKeyContext` a RUNTIME question of item 65's shape; item 183's flip order
+(`pendingFlow`'s constructor and arm first); the parked Ix Step-1 composition on
+the Ix track's own clock; and the standing instrument debt, that the 198/200/201
+censuses still lack a cruder-key control.
+
+**The instrument ledger, seventeen rows.**  Park constructors (198), application
+sites (200), lemma conclusions (201), the same with a key that works (202),
+indices (203), the runtime's own state (204), the transitive ring of a carrier
+(205), the same closure with its last ring paid (206), the ring's payers against
+a forecast (207), the instruments themselves (208), the object a carrier's
+consumer reads (209), the plan's own remaining list (210), the control (211),
+the provenance (212), the route (213), the pipe (214) — and now **the BETA**.
+The rule this item adds: **a plan sentence names a MECHANISM as confidently as
+it names a price, and only the price was ever measured.**  Item 214 bounded this
+work at `[5, 87]` and was right; the shape it named in the same sentence has
+zero occurrences.  Its companion, from the 2×2 above: **a latent defect is
+priced by the item that EXERCISES it, not by the item that has it** — item 212's
+depth bug moved zero edges for three items and thirteen rows in this one.
 
 
 ### REMAINING, in order
