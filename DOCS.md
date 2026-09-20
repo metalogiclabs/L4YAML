@@ -25076,10 +25076,16 @@ the standing **19** name mismatches.  Counts: declarations **8594 → 8594**,
 **What remains.**  `LOCAL` is **27** and no longer the partition's open question:
 20 of them are lambdas in one lemma's alternative bodies and 7 sit under a
 SATURATED pipe, which transports a function nobody applies — an honest local in
-both cases.  The open row is now `SPLIT` at **156**, the largest hidden share
-and the one no instrument has ever resolved: it names the splitter and stops.
+both cases.  The open row is now `SPLIT` at **156**, ~~the largest hidden share
+and~~ the one no instrument has ever resolved: it names the splitter and stops.
 Before pricing it, note what this item cost: the last two shares were priced by
-a bound and both bounds held while both MECHANISMS were wrong.  Behind that,
+a bound and both bounds held while both MECHANISMS were wrong.
+**Struck at [item 216](#item-216-2026-09-19), which resolved it: `SPLIT` is not
+a hidden share and never was.**  All **328** leaves under the 155 that survive
+the descent are a `PAY` or a `DECLINE` written at the site — `elsewhere=0` — so
+the row is the site writing BOTH answers, once per branch.  The census's own
+`SPLIT` bullet said exactly that from the day item 212 wrote it; the headline
+forty lines above it said the opposite, and this sentence copied the headline.  Behind that,
 unchanged: R3's seven productions, with `content_dispatch_routed`'s two
 `noKeyContext` a RUNTIME question of item 65's shape; item 183's flip order
 (`pendingFlow`'s constructor and arm first); the parked Ix Step-1 composition on
@@ -25100,6 +25106,185 @@ zero occurrences.  Its companion, from the 2×2 above: **a latent defect is
 priced by the item that EXERCISES it, not by the item that has it** — item 212's
 depth bug moved zero edges for three items and thirteen rows in this one.
 
+
+### Item 216 (2026-09-19)
+
+**The mandate** is item 215's NEXT entry 1, verbatim: *"The open row is now
+`SPLIT` at **156**, the largest hidden share and the one no instrument has ever
+resolved: it names the splitter and stops.  Before pricing it, note what this
+item cost: the last two shares were priced by a bound and both bounds held while
+both MECHANISMS were wrong."*
+
+Priced first, as instructed.  **The bound held and the mechanism was wrong for
+the third item running — and this time so was the mandate's own premise.**
+`SPLIT` was never a hidden share.  The census's own `SPLIT` bullet has said so
+since item 212, forty lines above the headline that contradicted it.
+
+**The price.**  I predicted `SPLIT` would land in `[15, 55]` — at least 100 of
+the 156 collapsing to a single answer.  It is **155**.  **One** collapses.
+
+**What is actually there.**  `resolve` enters every arm now, and the answers are
+joined: arms that agree give one answer, arms that disagree keep the `SPLIT`
+label and hand up their LEAVES.  Of the 155 that survive there are **328**
+leaves, and this is all of them:
+
+| leaf | count |
+|---|---:|
+| `DECLINE` | 168 |
+| `PAY` | 160 |
+| anything else | **0** |
+
+**Not one leaf of any case split in this module is decided anywhere but at the
+site.**  A split is the site writing BOTH answers, once per branch — which is
+what `SPLIT` has always meant and what the row was never read as.  The shapes:
+
+| leaves | count |
+|---|---:|
+| `DECLINE\|PAY` | 143 |
+| `DECLINE\|DECLINE\|PAY` | 8 |
+| `DECLINE\|PAY\|PAY` | 1 |
+| `DECLINE\|DECLINE\|DECLINE\|PAY` | 1 |
+| `DECLINE\|DECLINE\|PAY\|PAY\|PAY` | 1 |
+| `DECLINE\|DECLINE\|DECLINE\|PAY\|PAY\|PAY` | 1 |
+
+**Every one of the 155 has a `DECLINE` leaf and 152 have a `PAY` leaf.**  Not
+one pays on every branch, and the one that does is the one that collapsed.
+
+**The correction this forces, in the artifact that carries it.**  `expectedTally`'s
+docstring has read *"**345 of 659 edges — 52 % — are decided somewhere other
+than the site that writes them**"* since item 212, and the `SPLIT` bullet in the
+same file has read *"the site decides it on two branches rather than one"* for
+just as long.  Both cannot be true, and the bullet is the one that is: `SPLIT`
+was 156 of the 345.  Corrected in place — **189 of 659 edges, 29 %, are decided
+somewhere other than the site**; 470 are decided at it, 315 unconditionally and
+155 per branch.  Nobody noticed for four items because the headline is the
+sentence that gets quoted and the bullet is the sentence that gets skipped.
+
+**The mechanism I named, and its zero.**  I predicted the bulk of the 156 were
+one-arm destructurings — `Exists.casesOn`, `And.casesOn`, single-constructor
+matchers — which decide nothing and collapse by construction.  There are
+**zero**.  151 are two-armed, 1 is three-armed, 4 are `dite`; 66 distinct
+splitters; every alternative already a lambda with its fields on it (305 of
+305); and **not one over- or under-applied** (152 exact), which was the way
+items 214 and 215 both failed.  A one-arm destructuring sits in the WALK
+direction — it wraps the rest of the proof — and never lands in argument
+position.  What lands in argument position is a decision.
+
+**The 2×2, which is also the control.**
+
+| arms entered | `st` truncated | `PAY` | `SPLIT` | skew sites |
+|---|---|---:|---:|---:|
+| off | off | 43 | 156 | 3 |
+| off | **on** | 43 | **156** | 3 |
+| on | off | 44 | 155 | 8 |
+| on | **on** | **44** | **155** | 3 |
+
+Row 1 reproduces the pinned census byte for byte.  **Row 2 is the control**: the
+truncation moves zero edges, so items 212–215's published numbers stand.  It is
+the THIRD latent defect in item 212's `resolve`, found the same way as the other
+two — `st[d-1-k]` only names the binder a `.bvar k` means while `st.size == d`,
+and following a value at its own `dep` leaves the stack longer than the depth.
+Rows 3→4 show what it does do: correcting it at the first peel stops the skew
+propagating, 8 sites back to 3.  **A latent defect is priced by the item that
+exercises it**, item 215's rule, applied again to item 212's instrument.
+
+**A fourth gap, and it was reading as a refusal.**  Three of the arms are a
+`let`, and `resolve` had no `.letE` case: they read `OTHER`, which is the census
+declining to answer, printed as though it were an answer.  Bound and followed
+now — two become a nested split and one a `PAY`, and `elsewhere` is 0 rather
+than 3.  The pin asserts that as a COUNT.
+
+**The one collapse**, and it is the shape I predicted would be everywhere:
+`accum_block_on_closeThenBlock → PendingNode.pendingBlock#11`, through
+`Or.casesOn→Exists.casesOn→Exists.casesOn→And.casesOn→And.casesOn→dite`, six
+splitters that all agree, landing on `PAY`.  Exactly one edge in the module is a
+destructuring chain rather than a decision.
+
+**Checked against the compiler, twice, predicted by LINE before the edit.**
+
+*N-216.*  Target chosen by the instrument: `colon_open_map_props#12`
+(`h_routeF`) is the only optional binder in the module whose single supply edge
+is a `SPLIT`, with `leaves=PAY|DECLINE`.  Narrowing it to `∨ False` was
+predicted to give **exactly one** error — not zero, not two — at the `Or.inr h`
+bullet and not at the application or the `Or.inl` bullet.  It gives exactly one,
+at **20359**: *"Application type mismatch: The argument `h` has type `True` but
+is expected to have type `False` in the application `Or.inr h`"*.  The `Or.inl`
+arm still elaborates at `A ∨ False`, so the PAY half is untouched — which is the
+whole content of "both answers, one per branch", now machine-checked.
+
+*N-216b, and it is the caveat.*  `content_dispatch_after_close#23`
+(`h_propsctx`) has three supply edges: two `DECLINE` and one `SPLIT Or.casesOn`
+with `leaves=PAY|DECLINE|DECLINE|DECLINE`.  Reading that third site's source
+afterwards: it is a `have h_ride` whose body is `Or.inr trivial` at 31350,
+`Or.inl` at 31353, `Or.inr trivial` at 31367 and at 31368 — **PAY, DECLINE,
+DECLINE, DECLINE, in that order**, which the census printed without anyone
+opening the file.  Predicted: **four** errors, at 28621 (the relay inside
+`content_dispatch_after_close` itself), 29890, 30591 and 31390 — and **none** at
+any of the four leaves.  Exactly four, exactly those lines.  The fourth reads
+*"the argument `h_ride` has type … ∨ `True` but is expected to have type … ∨
+`False`"*: the `have`'s type ascription is opaque to the compiler, so a
+four-leaf split contributes ONE diagnostic.  **`leaves` counts decisions; the
+diagnostic counts ascriptions**, and they are answers to different questions.
+It is item 211's error in the mirror — there the text said `h_keyctx` and the
+thing behind the name was a producer; here it says `h_ride` and the thing behind
+the name is a four-branch decision.
+
+**Predictions refuted.**  **P-BOUND** — `[15, 55]`, it is 155.  **P-DECLINE** —
+`DECLINE` gains ≥ 40, it gains 0.  **P-ONEARM** — ≥ 60 one-arm splitters, there
+are none.  Held: **P-DESIGN** (in the letter and useless in the spirit — the
+collapse rule is sound and fires once in 156; the value is naming the arms, not
+collapsing them), **P-DITE** (`dite⇒SPLIT=4` unmoved, so all four `dite` arms
+still disagree — the cross-check on `isTwoArm`'s docstring from item 213),
+**P-NEST**, **P-DEPTH3**, **P-CONTROL**, and the named risk did not occur.
+
+**What changed.**  `Tests/Guards/Proofs/RelaySupplyCensus.lean`: `resolve` takes
+the environment, enters a split's arms, binds a `let`, and truncates `st` to `d`
+wherever it pushes; `Res` and `Edge` carry `splits` and `leaves`; `twoArmShape`
+gives `dite` its layout and deliberately does NOT give `ite` one, because `ite`
+occurs zero times and a shape nothing instantiates is not evidence.  Re-pinned:
+`expectedTally`.  New: `expectedSplitLanding`, whose `elsewhere=0` is the row
+that matters.  **Unmoved, and they are the controls: `expectedSeed`'s 8 rows,
+`expectedProducers`' 11 constants and `expectedPipeLanding`'s five are
+byte-identical, and `ConclusionRouteCensus`'s four pins — which call this
+`resolve` — passed unchanged on the first build.**  **Zero edits under
+`L4YAML/`.**
+
+**Gates, all at baseline.**  `lake build` **1167** jobs, 0 warnings;
+`run-all-tests.sh` **4520/4520** (Production Coverage **837/837**); `eventscore`
+**347/358**; `suiterunner` **869/0/151**; matrix **402/402 event** + **282/282
+JSON** on BOTH pipelines; the `[210]` flip **FIVE** at
+**4621/5901/5924/6093/7645**, UNMOVED; `#print axioms` over ten subjects — no
+`sorryAx`, `frameChainUnion` and `flowVPack_of_close` on `propext` alone;
+checkers 228/355, 20/230/249/355, 25 capstones, annotations 100 % (211/211) with
+the standing **19** name mismatches.  Counts: declarations **8594 → 8594**,
+`#guard` **8158 → 8158**, test files **626 → 626**.
+
+**What remains.**  The partition has no open row left: `PAY` and `DECLINE` are
+the site, `SPLIT` is the site on branches, `FIELD` is items 198/200's census,
+`RELAY` is the caller, `VIA` is 11 named lemmas, and `LOCAL`'s 27 are honest.
+What the census cannot say is which BRANCH is taken — and it now names the
+discriminant for every one of the 155: **99 split on a `RELAY`**, the caller's
+own binder, so the branch is the CALLER's to choose and the site only writes
+both answers for it.  That is the next instrument if anyone wants one, and it is
+a different question from supply.  Behind it, unchanged: R3's seven productions,
+with `content_dispatch_routed`'s two `noKeyContext` a RUNTIME question of item
+65's shape; item 183's flip order (`pendingFlow`'s constructor and arm first);
+the parked Ix Step-1 composition on the Ix track's own clock; and the standing
+instrument debt, that the 198/200/201 censuses still lack a cruder-key control.
+
+**The instrument ledger, eighteen rows.**  Park constructors (198), application
+sites (200), lemma conclusions (201), the same with a key that works (202),
+indices (203), the runtime's own state (204), the transitive ring of a carrier
+(205), the same closure with its last ring paid (206), the ring's payers against
+a forecast (207), the instruments themselves (208), the object a carrier's
+consumer reads (209), the plan's own remaining list (210), the control (211),
+the provenance (212), the route (213), the pipe (214), the beta (215) — and now
+**the ARMS**.  The rule this item adds: **a headline number and a bullet in the
+same file can contradict each other for four items, because the headline is what
+gets quoted and the bullet is what gets skipped.**  Its companion, from the
+price: **the last unresolved row can be unresolved because nobody read it, not
+because nobody could** — 156 edges, 328 leaves, every one of them a `PAY` or a
+`DECLINE`, and the instrument needed to say so was one `match` arm.
 
 ### REMAINING, in order
 

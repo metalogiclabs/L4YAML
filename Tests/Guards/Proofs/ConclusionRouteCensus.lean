@@ -233,8 +233,8 @@ def resolveDown (env : Environment) (st : Array Bnd) (n d : Nat) (e : Expr) : St
     | .const c _ =>
         if isVacuous c then "VACUOUS"
         else if (env.getProjectionFnInfo? c).isSome then s!"FIELD {c}"
-        else (resolve (isMechD env) st n d e 24).how
-    | _ => (resolve (isMechD env) st n d e 24).how
+        else (resolve env (isMechD env) st n d e 24).how
+    | _ => (resolve env (isMechD env) st n d e 24).how
 
 /-- Follow `path` from a proof term to the conjunct it addresses, and resolve
     what decides it there — one answer per arm of every case split on the way. -/
@@ -304,9 +304,9 @@ partial def down (env : Environment) (self : Name) (n : Nat) :
                   let lastAlt := firstAlt + info.numAlts
                   let major := info.numParams + info.numDiscrs
                   let disc := if h : major < args.size then
-                      (match resolve (isMechD env) st n st.size args[major] 24 with
-                       | ⟨"RELAY", some j, _⟩ => s!"premise#{j}"
-                       | ⟨d, _, _⟩ =>
+                      (match resolve env (isMechD env) st n st.size args[major] 24 with
+                       | ⟨"RELAY", some j, _, _, _⟩ => s!"premise#{j}"
+                       | ⟨d, _, _, _, _⟩ =>
                            if d.startsWith "FIELD of " then (d.splitOn " of ").getLast! else d)
                     else "?"
                   let trailing := if lastAlt < args.size then
