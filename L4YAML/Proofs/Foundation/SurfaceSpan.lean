@@ -1,0 +1,822 @@
+/-
+Copyright (c) 2026. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+-/
+import L4YAML.Surface.Node
+
+/-!
+# Every surface production consumes a prefix (DOCS item 229)
+
+A production `P s s'` relates two `SurfPos`es, and nothing in the encoding
+says that `s'` is REACHED from `s`: `SurfPos` is a pair of a character list
+and a column, so "the same characters" and "the same place" are different
+statements.  What ties them is one sentence —
+
+> the characters `s'` still holds are a suffix of the characters `s` held,
+
+written `s'.chars <:+ s.chars` — and its consequence, which is the sentence
+item 228 could not say: there is a list `pre` with `s.chars = pre ++ s'.chars`,
+the characters LYING BETWEEN the two positions.  `Span` below names it.
+
+## Why the file is this size
+
+Item 228 priced this instrument by signatures, before a line of it existed,
+at "69 constructor arms" — the arms of the 18-type mutual block in
+`Surface/Node.lean`.  That is the price of §4 alone.  The arms cite leaf
+productions — `[69] s-separate(n,c)`, `[96] c-ns-properties(n,c)`,
+`[131] ns-plain(n,c)`, `[109] c-double-quoted(n,c)`, `[170] c-l+literal(n)` —
+whose own suffix lemmas did not exist either, and the transitive closure is
+**74 production types with 143 constructor arms**, of which the mutual block
+is 18 types and 69 arms.  §1–§3 are the other 56 types.
+
+## The recursion
+
+§4 is one `mutual` block of eighteen lemmas.  The `induction` tactic refuses a
+mutually inductive type outright, but the equation compiler does NOT: `lemma`
+inside a `mutual` block is a macro in this repo (`L4YAML/Init.lean`) exactly so
+that it reaches `elabMutual`, and structural recursion on a proof of a
+mutually inductive `Prop` is accepted.  The alternative is one application of
+the family's own recursor with eighteen motives, as
+`Proofs.FlowKeyLift.flowNode_toKey` is written — needs all 69 minor premises
+once per entry point, so it gives ONE of the eighteen lemmas for the price of
+all of them.
+
+-/
+
+set_option autoImplicit false
+
+namespace L4YAML.Proofs.SurfaceSpan
+
+open L4YAML (YamlContext)
+open L4YAML.Surface
+open L4YAML.CharPredicates (isLineBreakProp)
+
+/-! ## §0 The span
+
+`Span s s' pre` is the object the suffix statement buys: the characters
+between two positions, as a list.  Every lemma below is stated as `<:+`
+because that is what composes; `span_of_suffix` converts once, at the point
+of use. -/
+
+/-- The characters lying between two positions. -/
+def Span (s s' : SurfPos) (pre : List Char) : Prop := s.chars = pre ++ s'.chars
+
+/-- A suffix fact IS a span: this is the whole content of the instrument. -/
+lemma span_of_suffix {s s' : SurfPos} (h : s'.chars <:+ s.chars) :
+    ∃ pre, Span s s' pre := by
+  obtain ⟨pre, hpre⟩ := h
+  exact ⟨pre, hpre.symm⟩
+
+/-- …and the span's length is how far the production advanced. -/
+lemma span_length {s s' : SurfPos} {pre : List Char} (h : Span s s' pre) :
+    s.chars.length = pre.length + s'.chars.length := by
+  rw [h, List.length_append]
+
+/-! ## §1 Combinators
+
+Each generic combinator transports the suffix property of its parameter. -/
+
+lemma gchar_suffix {p : Char → Prop} {a b : SurfPos} (h : GChar p a b) :
+    b.chars <:+ a.chars := by
+  cases h with
+  | mk c rest col _ => exact List.suffix_cons c rest
+
+lemma glit_suffix {ch : Char} {a b : SurfPos} (h : GLit ch a b) :
+    b.chars <:+ a.chars := by
+  cases h with
+  | mk rest col => exact List.suffix_cons ch rest
+
+lemma gstar_suffix {P : SurfPos → SurfPos → Prop} {s s' : SurfPos}
+    (hP : ∀ a b, P a b → b.chars <:+ a.chars) (h : GStar P s s') :
+    s'.chars <:+ s.chars := by
+  induction h with
+  | nil s => exact List.suffix_refl _
+  | cons s₁ s₂ s₃ hp _ ih => exact ih.trans (hP _ _ hp)
+
+lemma gplus_suffix {P : SurfPos → SurfPos → Prop} {s s' : SurfPos}
+    (hP : ∀ a b, P a b → b.chars <:+ a.chars) (h : GPlus P s s') :
+    s'.chars <:+ s.chars := by
+  match h with
+  | .mk _ _ _ hp hs => exact (gstar_suffix hP hs).trans (hP _ _ hp)
+
+lemma gopt_suffix {P : SurfPos → SurfPos → Prop} {s s' : SurfPos}
+    (hP : ∀ a b, P a b → b.chars <:+ a.chars) (h : GOpt P s s') :
+    s'.chars <:+ s.chars := by
+  match h with
+  | .none _ => exact List.suffix_refl _
+  | .some _ _ hp => exact hP _ _ hp
+
+lemma gseq_suffix {P Q : SurfPos → SurfPos → Prop} {s s' : SurfPos}
+    (hP : ∀ a b, P a b → b.chars <:+ a.chars)
+    (hQ : ∀ a b, Q a b → b.chars <:+ a.chars) (h : GSeq P Q s s') :
+    s'.chars <:+ s.chars := by
+  match h with
+  | .mk _ _ _ hp hq => exact (hQ _ _ hq).trans (hP _ _ hp)
+
+/-! ## §2 Chapters 5–6: breaks, whites, indentation, comments, separation -/
+
+lemma sbBreak_suffix {a b : SurfPos} (h : SBBreak a b) : b.chars <:+ a.chars := by
+  match h with
+  | .crLf rest _ => exact (List.suffix_cons '\n' rest).trans (List.suffix_cons '\r' _)
+  | .cr rest _ => exact List.suffix_cons '\r' rest
+  | .lf rest _ => exact List.suffix_cons '\n' rest
+
+lemma sbComment_suffix {a b : SurfPos} (h : SBComment a b) : b.chars <:+ a.chars := by
+  match h with
+  | .break _ _ hb => exact sbBreak_suffix hb
+  | .eof _ => exact List.suffix_refl _
+
+lemma sswhite_suffix {a b : SurfPos} (h : SSWhite a b) : b.chars <:+ a.chars := by
+  match h with
+  | .space rest _ => exact List.suffix_cons ' ' rest
+  | .tab rest _ => exact List.suffix_cons '\t' rest
+
+lemma sIndent_suffix {n : Nat} {a b : SurfPos} (h : SIndent n a b) :
+    b.chars <:+ a.chars := by
+  induction h with
+  | zero s => exact List.suffix_refl _
+  | succ n rest col s' _ ih => exact ih.trans (List.suffix_cons ' ' rest)
+
+lemma sIndentLt_suffix {n : Nat} {a b : SurfPos} (h : SIndentLt n a b) :
+    b.chars <:+ a.chars := by
+  obtain ⟨_, _, hi⟩ := h; exact sIndent_suffix hi
+
+lemma sIndentLe_suffix {n : Nat} {a b : SurfPos} (h : SIndentLe n a b) :
+    b.chars <:+ a.chars := by
+  obtain ⟨_, _, hi⟩ := h; exact sIndent_suffix hi
+
+lemma sSeparateInLine_suffix {a b : SurfPos} (h : SSeparateInLine a b) :
+    b.chars <:+ a.chars := by
+  match h with
+  | .whites _ _ hp => exact gplus_suffix (fun _ _ => sswhite_suffix) hp
+  | .startOfLine _ => exact List.suffix_refl _
+
+lemma sFlowLinePrefix_suffix {n : Nat} {a b : SurfPos} (h : SFlowLinePrefix n a b) :
+    b.chars <:+ a.chars := by
+  match h with
+  | .mk _ _ _ _ hi ho =>
+    exact (gopt_suffix (fun _ _ => sSeparateInLine_suffix) ho).trans (sIndent_suffix hi)
+
+lemma sLEmpty_suffix {n : Nat} {c : YamlContext} {a b : SurfPos} (h : SLEmpty n c a b) :
+    b.chars <:+ a.chars := by
+  match h with
+  | .block _ _ _ _ _ _ ho hb =>
+    exact (sbBreak_suffix hb).trans (gopt_suffix (fun _ _ => sIndentLe_suffix) ho)
+  | .flow _ _ _ _ _ _ ho hb =>
+    exact (sbBreak_suffix hb).trans (gopt_suffix (fun _ _ => sFlowLinePrefix_suffix) ho)
+  | .flowLt _ _ _ _ _ _ hi hb =>
+    exact (sbBreak_suffix hb).trans (sIndentLt_suffix hi)
+
+lemma scNbCommentText_suffix {a b : SurfPos} (h : SCNbCommentText a b) :
+    b.chars <:+ a.chars := by
+  match h with
+  | .mk rest _ _ hg =>
+    exact (gstar_suffix (fun _ _ => gchar_suffix) hg).trans (List.suffix_cons '#' rest)
+
+/-- The `s-separate-in-line` + optional `c-nb-comment-text` + `b-comment`
+    shape both `[76] s-b-comment` and `[78] l-comment` are built from. -/
+private lemma comment_body_suffix {s s₁ s₂ s' : SurfPos}
+    (hsep : SSeparateInLine s s₁) (hopt : GOpt SCNbCommentText s₁ s₂)
+    (hbc : SBComment s₂ s') : s'.chars <:+ s.chars :=
+  ((sbComment_suffix hbc).trans
+    (gopt_suffix (fun _ _ => scNbCommentText_suffix) hopt)).trans
+      (sSeparateInLine_suffix hsep)
+
+lemma ssbComment_suffix {a b : SurfPos} (h : SSBComment a b) : b.chars <:+ a.chars := by
+  match h with
+  | .withSep _ _ _ _ hsep hopt hbc => exact comment_body_suffix hsep hopt hbc
+  | .noSep _ _ hbc => exact sbComment_suffix hbc
+
+lemma slComment_suffix {a b : SurfPos} (h : SLComment a b) : b.chars <:+ a.chars := by
+  match h with
+  | .mk _ _ _ _ hsep hopt hbc => exact comment_body_suffix hsep hopt hbc
+
+/-- **`[79] s-l-comments` consumes a prefix.**  The landing a step reaches is
+    a position INSIDE the input, not merely a position whose characters happen
+    to look like a tail of it. -/
+lemma sslComments_suffix {a b : SurfPos} (h : SSLComments a b) : b.chars <:+ a.chars := by
+  match h with
+  | .withComment _ _ _ hsb hg =>
+    exact (gstar_suffix (fun _ _ => slComment_suffix) hg).trans (ssbComment_suffix hsb)
+  | .startOfLine _ _ hg => exact gstar_suffix (fun _ _ => slComment_suffix) hg
+
+lemma sSeparateLines_suffix {n : Nat} {a b : SurfPos} (h : SSeparateLines n a b) :
+    b.chars <:+ a.chars := by
+  match h with
+  | .commented _ _ _ _ hc hp => exact (sFlowLinePrefix_suffix hp).trans (sslComments_suffix hc)
+  | .inline _ _ _ hs => exact sSeparateInLine_suffix hs
+
+/-- **`[69] s-separate(n,c)`**, all six contexts at once. -/
+lemma sSeparate_suffix {n : Nat} {c : YamlContext} {a b : SurfPos}
+    (h : SSeparate n c a b) : b.chars <:+ a.chars := by
+  unfold SSeparate at h
+  cases c
+  · exact sSeparateLines_suffix h    -- blockOut
+  · exact sSeparateLines_suffix h    -- blockIn
+  · exact sSeparateInLine_suffix h   -- blockKey
+  · exact sSeparateLines_suffix h    -- flowOut
+  · exact sSeparateLines_suffix h    -- flowIn
+  · exact sSeparateInLine_suffix h   -- flowKey
+
+lemma scNsTagProperty_suffix {a b : SurfPos} (h : SCNsTagProperty a b) :
+    b.chars <:+ a.chars := by
+  match h with
+  | .verbatim rest _ _ _ _ hlt hp hgt =>
+    exact (((glit_suffix hgt).trans (gplus_suffix (fun _ _ => gchar_suffix) hp)).trans
+      (glit_suffix hlt)).trans (List.suffix_cons '!' rest)
+  | .secondary srest _ _ hg =>
+    exact (gstar_suffix (fun _ _ => gchar_suffix) hg).trans
+      (List.suffix_append ['!', '!'] srest)
+  | .named rest _ _ _ _ hp hl hg =>
+    exact (((gstar_suffix (fun _ _ => gchar_suffix) hg).trans (glit_suffix hl)).trans
+      (gplus_suffix (fun _ _ => gchar_suffix) hp)).trans (List.suffix_cons '!' rest)
+  | .nonSpecific rest _ => exact List.suffix_cons '!' rest
+  | .primary rest _ _ hg =>
+    exact (gstar_suffix (fun _ _ => gchar_suffix) hg).trans (List.suffix_cons '!' rest)
+
+lemma scNsAnchorProperty_suffix {a b : SurfPos} (h : SCNsAnchorProperty a b) :
+    b.chars <:+ a.chars := by
+  match h with
+  | .mk rest _ _ hp =>
+    exact (gplus_suffix (fun _ _ => gchar_suffix) hp).trans (List.suffix_cons '&' rest)
+
+lemma scNsProperties_suffix {n : Nat} {c : YamlContext} {a b : SurfPos}
+    (h : SCNsProperties n c a b) : b.chars <:+ a.chars := by
+  match h with
+  | .tagFirst _ _ _ _ _ ht ho =>
+    exact (gopt_suffix (fun _ _ h => gseq_suffix (fun _ _ => sSeparate_suffix)
+      (fun _ _ => scNsAnchorProperty_suffix) h) ho).trans (scNsTagProperty_suffix ht)
+  | .anchorFirst _ _ _ _ _ ha ho =>
+    exact (gopt_suffix (fun _ _ h => gseq_suffix (fun _ _ => sSeparate_suffix)
+      (fun _ _ => scNsTagProperty_suffix) h) ho).trans (scNsAnchorProperty_suffix ha)
+
+/-! ## §3 Chapters 7.3 & 8.1: the scalar styles
+
+`[109] c-double-quoted`, `[120] c-single-quoted`, `[131] ns-plain`,
+`[170] c-l+literal` and `[174] c-l+folded` are the five leaves the mutual
+block reaches through `[158] ns-flow-content`, and each is the root of its
+own tree of productions. -/
+
+lemma snbDoubleChar_suffix {a b : SurfPos} (h : SNbDoubleChar a b) :
+    b.chars <:+ a.chars := by
+  match h with
+  | .plain c rest _ _ _ _ => exact List.suffix_cons c rest
+  | .escape ec rest _ _ => exact List.suffix_append ['\\', ec] rest
+  | .hexEscape2 rest _ h1 h2 _ _ => exact List.suffix_append ['\\', 'x', h1, h2] rest
+  | .hexEscape4 rest _ h1 h2 h3 h4 _ _ _ _ =>
+    exact List.suffix_append ['\\', 'u', h1, h2, h3, h4] rest
+  | .hexEscape8 rest _ h1 h2 h3 h4 h5 h6 h7 h8 _ _ _ _ _ _ _ _ =>
+    exact List.suffix_append ['\\', 'U', h1, h2, h3, h4, h5, h6, h7, h8] rest
+
+lemma ssDoubleEscaped_suffix {n : Nat} {a b : SurfPos} (h : SSDoubleEscaped n a b) :
+    b.chars <:+ a.chars := by
+  match h with
+  | .mk _ _ _ _ _ _ _ hw hl hb he hp =>
+    exact ((((sFlowLinePrefix_suffix hp).trans
+      (gstar_suffix (fun _ _ => sLEmpty_suffix) he)).trans (sbBreak_suffix hb)).trans
+        (glit_suffix hl)).trans (gstar_suffix (fun _ _ => sswhite_suffix) hw)
+
+lemma ssDoubleBreak_suffix {n : Nat} {a b : SurfPos} (h : SSDoubleBreak n a b) :
+    b.chars <:+ a.chars := by
+  match h with
+  | .escaped _ _ _ he => exact ssDoubleEscaped_suffix he
+  | .flowFold _ _ _ _ _ hb he hp =>
+    exact ((sFlowLinePrefix_suffix hp).trans
+      (gstar_suffix (fun _ _ => sLEmpty_suffix) he)).trans (sbBreak_suffix hb)
+
+lemma snbDoubleOneLine_suffix {a b : SurfPos} (h : SNbDoubleOneLine a b) :
+    b.chars <:+ a.chars :=
+  gstar_suffix (fun _ _ => snbDoubleChar_suffix) h
+
+lemma snbDoubleMultiLine_suffix {n : Nat} {a b : SurfPos} (h : SNbDoubleMultiLine n a b) :
+    b.chars <:+ a.chars := by
+  induction h with
+  | single _ _ ho => exact snbDoubleOneLine_suffix ho
+  | multi _ _ _ _ _ ho hb _ ih =>
+    exact ((ih.trans (ssDoubleBreak_suffix hb)).trans (snbDoubleOneLine_suffix ho))
+
+lemma snbDoubleText_suffix {n : Nat} {c : YamlContext} {a b : SurfPos}
+    (h : SNbDoubleText n c a b) : b.chars <:+ a.chars := by
+  unfold SNbDoubleText at h
+  cases c
+  · exact snbDoubleMultiLine_suffix h   -- blockOut
+  · exact snbDoubleMultiLine_suffix h   -- blockIn
+  · exact snbDoubleOneLine_suffix h     -- blockKey
+  · exact snbDoubleMultiLine_suffix h   -- flowOut
+  · exact snbDoubleMultiLine_suffix h   -- flowIn
+  · exact snbDoubleOneLine_suffix h     -- flowKey
+
+/-- **`[109] c-double-quoted(n,c)`**. -/
+lemma scDoubleQuoted_suffix {n : Nat} {c : YamlContext} {a b : SurfPos}
+    (h : SCDoubleQuoted n c a b) : b.chars <:+ a.chars := by
+  match h with
+  | .mk _ _ _ _ _ _ hq1 ht hq2 =>
+    exact ((glit_suffix hq2).trans (snbDoubleText_suffix ht)).trans (glit_suffix hq1)
+
+lemma snbSingleChar_suffix {a b : SurfPos} (h : SNbSingleChar a b) :
+    b.chars <:+ a.chars := by
+  match h with
+  | .plain c rest _ _ _ => exact List.suffix_cons c rest
+  | .escapedQuote rest _ => exact List.suffix_append ['\'', '\''] rest
+
+lemma snbSingleOneLine_suffix {a b : SurfPos} (h : SNbSingleOneLine a b) :
+    b.chars <:+ a.chars :=
+  gstar_suffix (fun _ _ => snbSingleChar_suffix) h
+
+lemma snbSingleMultiLine_suffix {n : Nat} {a b : SurfPos} (h : SNbSingleMultiLine n a b) :
+    b.chars <:+ a.chars := by
+  induction h with
+  | single _ _ ho => exact snbSingleOneLine_suffix ho
+  | multi _ _ _ _ _ _ ho hb he hp _ ih =>
+    exact ((((ih.trans (sFlowLinePrefix_suffix hp)).trans
+      (gstar_suffix (fun _ _ => sLEmpty_suffix) he)).trans (sbBreak_suffix hb)).trans
+        (snbSingleOneLine_suffix ho))
+
+lemma snbSingleText_suffix {n : Nat} {c : YamlContext} {a b : SurfPos}
+    (h : SNbSingleText n c a b) : b.chars <:+ a.chars := by
+  unfold SNbSingleText at h
+  cases c
+  · exact snbSingleMultiLine_suffix h   -- blockOut
+  · exact snbSingleMultiLine_suffix h   -- blockIn
+  · exact snbSingleOneLine_suffix h     -- blockKey
+  · exact snbSingleMultiLine_suffix h   -- flowOut
+  · exact snbSingleMultiLine_suffix h   -- flowIn
+  · exact snbSingleOneLine_suffix h     -- flowKey
+
+/-- **`[120] c-single-quoted(n,c)`**. -/
+lemma scSingleQuoted_suffix {n : Nat} {c : YamlContext} {a b : SurfPos}
+    (h : SCSingleQuoted n c a b) : b.chars <:+ a.chars := by
+  match h with
+  | .mk _ _ _ _ _ _ hq1 ht hq2 =>
+    exact ((glit_suffix hq2).trans (snbSingleText_suffix ht)).trans (glit_suffix hq1)
+
+lemma snsPlainFirst_suffix {c : YamlContext} {a b : SurfPos} (h : SNsPlainFirst c a b) :
+    b.chars <:+ a.chars := by
+  match h with
+  | .nonIndicator _ ch rest _ _ _ => exact List.suffix_cons ch rest
+  | .dashSafe _ next rest _ _ => exact List.suffix_cons '-' (next :: rest)
+  | .colonSafe _ next rest _ _ => exact List.suffix_cons ':' (next :: rest)
+  | .questionSafe _ next rest _ _ => exact List.suffix_cons '?' (next :: rest)
+
+lemma snsPlainChar_suffix {c : YamlContext} {a b : SurfPos} (h : SNsPlainChar c a b) :
+    b.chars <:+ a.chars := by
+  match h with
+  | .safe _ ch rest _ _ _ _ => exact List.suffix_cons ch rest
+  | .colonSafe _ _ next rest _ _ => exact List.suffix_cons ':' (next :: rest)
+  | .hashAfterNs _ rest _ _ => exact List.suffix_cons '#' rest
+
+lemma snbNsPlainInLineEntry_suffix {c : YamlContext} {a b : SurfPos}
+    (h : SNbNsPlainInLineEntry c a b) : b.chars <:+ a.chars := by
+  match h with
+  | .mk _ _ _ _ hw hc =>
+    exact (snsPlainChar_suffix hc).trans (gstar_suffix (fun _ _ => sswhite_suffix) hw)
+
+lemma snsPlainOneLine_suffix {c : YamlContext} {a b : SurfPos} (h : SNsPlainOneLine c a b) :
+    b.chars <:+ a.chars := by
+  match h with
+  | .mk _ _ _ _ hf hg =>
+    exact (gstar_suffix (fun _ _ => snbNsPlainInLineEntry_suffix) hg).trans
+      (snsPlainFirst_suffix hf)
+
+lemma ssNsPlainNextLine_suffix {n : Nat} {c : YamlContext} {a b : SurfPos}
+    (h : SSNsPlainNextLine n c a b) : b.chars <:+ a.chars := by
+  match h with
+  | .mk _ _ _ _ _ _ _ _ hw hb he hp hg =>
+    exact ((((gplus_suffix (fun _ _ => snbNsPlainInLineEntry_suffix) hg).trans
+      (sFlowLinePrefix_suffix hp)).trans
+        (gstar_suffix (fun _ _ => sLEmpty_suffix) he)).trans (sbBreak_suffix hb)).trans
+          (gstar_suffix (fun _ _ => sswhite_suffix) hw)
+
+lemma snsPlainMultiLine_suffix {n : Nat} {c : YamlContext} {a b : SurfPos}
+    (h : SNsPlainMultiLine n c a b) : b.chars <:+ a.chars := by
+  match h with
+  | .mk _ _ _ _ _ ho hg =>
+    exact (gstar_suffix (fun _ _ => ssNsPlainNextLine_suffix) hg).trans
+      (snsPlainOneLine_suffix ho)
+
+/-- **`[131] ns-plain(n,c)`**. -/
+lemma snsPlain_suffix {n : Nat} {c : YamlContext} {a b : SurfPos}
+    (h : SNsPlain n c a b) : b.chars <:+ a.chars := by
+  unfold SNsPlain at h
+  cases c
+  · exact snsPlainMultiLine_suffix h   -- blockOut
+  · exact snsPlainMultiLine_suffix h   -- blockIn
+  · exact snsPlainOneLine_suffix h     -- blockKey
+  · exact snsPlainMultiLine_suffix h   -- flowOut
+  · exact snsPlainMultiLine_suffix h   -- flowIn
+  · exact snsPlainOneLine_suffix h     -- flowKey
+
+/-- **`[104] c-ns-alias-node`**. -/
+lemma scNsAliasNode_suffix {a b : SurfPos} (h : SCNsAliasNode a b) :
+    b.chars <:+ a.chars := by
+  match h with
+  | .mk rest _ _ hp =>
+    exact (gplus_suffix (fun _ _ => gchar_suffix) hp).trans (List.suffix_cons '*' rest)
+
+lemma scbBlockHeader_suffix {a b : SurfPos} (h : SCBBlockHeader a b) :
+    b.chars <:+ a.chars := by
+  match h with
+  | .mk _ _ _ hg hc =>
+    exact (ssbComment_suffix hc).trans (gstar_suffix (fun _ _ => gchar_suffix) hg)
+
+lemma slNbLiteralText_suffix {n : Nat} {a b : SurfPos} (h : SLNbLiteralText n a b) :
+    b.chars <:+ a.chars := by
+  match h with
+  | .mk _ _ _ _ he hs =>
+    exact (gseq_suffix (fun _ _ => sIndent_suffix)
+      (fun _ _ h => gplus_suffix (fun _ _ => gchar_suffix) h) hs).trans
+        (gstar_suffix (fun _ _ => sLEmpty_suffix) he)
+
+lemma sbNbLiteralNext_suffix {n : Nat} {a b : SurfPos} (h : SBNbLiteralNext n a b) :
+    b.chars <:+ a.chars := by
+  match h with
+  | .mk _ _ _ _ hb ht => exact (slNbLiteralText_suffix ht).trans (sbBreak_suffix hb)
+
+lemma slTrailComments_suffix {n : Nat} {a b : SurfPos} (h : SLTrailComments n a b) :
+    b.chars <:+ a.chars := by
+  match h with
+  | .mk _ _ _ _ _ _ hi ht hb hg =>
+    exact (((gstar_suffix (fun _ _ => slComment_suffix) hg).trans (sbComment_suffix hb)).trans
+      (scNbCommentText_suffix ht)).trans (sIndentLt_suffix hi)
+
+lemma slLiteralContent_suffix {n : Nat} {a b : SurfPos} (h : SLLiteralContent n a b) :
+    b.chars <:+ a.chars := by
+  match h with
+  | .mk _ _ _ _ _ _ _ ho hbr he htc hie =>
+    exact ((((gopt_suffix (fun _ _ => sIndentLe_suffix) hie).trans
+      (gopt_suffix (fun _ _ => slTrailComments_suffix) htc)).trans
+        (gstar_suffix (fun _ _ => sLEmpty_suffix) he)).trans
+          (gopt_suffix (fun _ _ => sbBreak_suffix) hbr)).trans
+            (gopt_suffix (fun _ _ h => gseq_suffix (fun _ _ => slNbLiteralText_suffix)
+              (fun _ _ h => gstar_suffix (fun _ _ => sbNbLiteralNext_suffix) h) h) ho)
+
+/-- **`[170] c-l+literal(n)`**. -/
+lemma sclLiteral_suffix {n : Nat} {a b : SurfPos} (h : SCLLiteral n a b) :
+    b.chars <:+ a.chars := by
+  match h with
+  | .mk _ _ rest _ _ _ hh hc =>
+    exact ((slLiteralContent_suffix hc).trans (scbBlockHeader_suffix hh)).trans
+      (List.suffix_cons '|' rest)
+
+/-- **`[174] c-l+folded(n)`**. -/
+lemma sclFolded_suffix {n : Nat} {a b : SurfPos} (h : SCLFolded n a b) :
+    b.chars <:+ a.chars := by
+  match h with
+  | .mk _ _ rest _ _ _ hh hc =>
+    exact ((slLiteralContent_suffix hc).trans (scbBlockHeader_suffix hh)).trans
+      (List.suffix_cons '>' rest)
+
+/-! ### Four shapes the node grammar repeats
+
+Named once so §4's arms read as the productions they come from. -/
+
+private lemma optSep_suffix {n : Nat} {c : YamlContext} {a b : SurfPos}
+    (h : GOpt (SSeparate n c) a b) : b.chars <:+ a.chars :=
+  gopt_suffix (fun _ _ => sSeparate_suffix) h
+
+private lemma optSil_suffix {a b : SurfPos}
+    (h : GOpt SSeparateInLine a b) : b.chars <:+ a.chars :=
+  gopt_suffix (fun _ _ => sSeparateInLine_suffix) h
+
+private lemma optPropsSep_suffix {n : Nat} {c : YamlContext} {a b : SurfPos}
+    (h : GOpt (GSeq (SCNsProperties n c) (SSeparate n c)) a b) : b.chars <:+ a.chars :=
+  gopt_suffix (fun _ _ h => gseq_suffix (fun _ _ => scNsProperties_suffix)
+    (fun _ _ => sSeparate_suffix) h) h
+
+private lemma optSepProps_suffix {n : Nat} {c : YamlContext} {a b : SurfPos}
+    (h : GOpt (GSeq (SSeparate n c) (SCNsProperties n c)) a b) : b.chars <:+ a.chars :=
+  gopt_suffix (fun _ _ h => gseq_suffix (fun _ _ => sSeparate_suffix)
+    (fun _ _ => scNsProperties_suffix) h) h
+
+/-! ## §4 The node grammar: eighteen types, sixty-nine arms
+
+One `mutual` block, one lemma per type of the mutual inductive family in
+`Surface/Node.lean`, by structural recursion on the derivation.  `GNot`
+premises carry no arm: a negative lookahead constrains a single position and
+advances nothing.
+
+This is the price item 228 quoted, paid: 69 arms, and every one of them a
+`.trans` chain over premises §1–§3 had to supply first. -/
+
+mutual
+
+lemma sBlockNode_suffix {n : Nat} {c : YamlContext} {a b : SurfPos}
+    (h : SBlockNode n c a b) :
+    b.chars <:+ a.chars := by
+  match h with
+  | .blockLiteral _ _ _ _ _ _ hsep hopt hlit =>
+    exact (sclLiteral_suffix hlit).trans ((optPropsSep_suffix hopt).trans
+      (sSeparate_suffix hsep))
+  | .blockFolded _ _ _ _ _ _ hsep hopt hfold =>
+    exact (sclFolded_suffix hfold).trans ((optPropsSep_suffix hopt).trans
+      (sSeparate_suffix hsep))
+  | .blockSeq _ _ _ _ _ _ _ hopt hcm hent =>
+    exact (sBlockSeqEntries_suffix hent).trans ((sslComments_suffix hcm).trans
+      (optSepProps_suffix hopt))
+  | .blockMap _ _ _ _ _ _ _ hopt hcm hent =>
+    exact (sBlockMapEntries_suffix hent).trans ((sslComments_suffix hcm).trans
+      (optSepProps_suffix hopt))
+  | .flowInBlock _ _ _ _ _ _ hsep hn hcm =>
+    exact (sslComments_suffix hcm).trans ((sFlowNode_suffix hn).trans (sSeparate_suffix
+      hsep))
+  | .emptyNode _ _ _ _ hcm =>
+    exact (sslComments_suffix hcm)
+
+lemma sBlockIndented_suffix {n : Nat} {c : YamlContext} {a b : SurfPos}
+    (h : SBlockIndented n c a b) :
+    b.chars <:+ a.chars := by
+  match h with
+  | .compactSeq _ _ _ _ _ _ hi hs =>
+    exact (sCompactSeq_suffix hs).trans (sIndent_suffix hi)
+  | .compactMap _ _ _ _ _ _ hi hm =>
+    exact (sCompactMap_suffix hm).trans (sIndent_suffix hi)
+  | .node _ _ _ _ hn =>
+    exact (sBlockNode_suffix hn)
+  | .empty _ _ _ _ hcm =>
+    exact (sslComments_suffix hcm)
+
+lemma sBlockSeqEntries_suffix {n : Nat} {a b : SurfPos}
+    (h : SBlockSeqEntries n a b) :
+    b.chars <:+ a.chars := by
+  match h with
+  | .single _ _ _ _ _ _ hi hl _ hb =>
+    exact (sBlockIndented_suffix hb).trans ((glit_suffix hl).trans (sIndent_suffix hi))
+  | .cons _ _ _ _ _ _ hi hl _ hb hr =>
+    exact (sBlockSeqEntries_suffix hr).trans ((sBlockIndented_suffix hb).trans
+      ((glit_suffix hl).trans (sIndent_suffix hi)))
+
+lemma sBlockMapEntry_suffix {n : Nat} {a b : SurfPos}
+    (h : SBlockMapEntry n a b) :
+    b.chars <:+ a.chars := by
+  match h with
+  | .explicit _ _ _ _ _ _ _ hq hk hi hc hv =>
+    exact (sBlockIndented_suffix hv).trans ((glit_suffix hc).trans ((sIndent_suffix
+      hi).trans ((sBlockIndented_suffix hk).trans (glit_suffix hq))))
+  | .explicitEmpty _ _ _ _ hq hk =>
+    exact (sBlockIndented_suffix hk).trans (glit_suffix hq)
+  | .implicitKeyNode _ _ _ _ _ hk hc hv =>
+    exact (sBlockNode_suffix hv).trans ((glit_suffix hc).trans (sImplicitKey_suffix hk))
+  | .implicitKeyEmpty _ _ _ _ _ hk hc hcm =>
+    exact (sslComments_suffix hcm).trans ((glit_suffix hc).trans (sImplicitKey_suffix
+      hk))
+  | .emptyKeyNode _ _ _ _ hc hv =>
+    exact (sBlockNode_suffix hv).trans (glit_suffix hc)
+  | .emptyKeyEmpty _ _ _ _ hc hcm =>
+    exact (sslComments_suffix hcm).trans (glit_suffix hc)
+
+lemma sBlockMapEntries_suffix {n : Nat} {a b : SurfPos}
+    (h : SBlockMapEntries n a b) :
+    b.chars <:+ a.chars := by
+  match h with
+  | .single _ _ _ _ hi he =>
+    exact (sBlockMapEntry_suffix he).trans (sIndent_suffix hi)
+  | .cons _ _ _ _ _ hi he hr =>
+    exact (sBlockMapEntries_suffix hr).trans ((sBlockMapEntry_suffix he).trans
+      (sIndent_suffix hi))
+
+lemma sCompactSeq_suffix {n : Nat} {a b : SurfPos}
+    (h : SCompactSeq n a b) :
+    b.chars <:+ a.chars := by
+  match h with
+  | .mk _ _ _ _ _ hl _ hb ht =>
+    exact (sCompactSeqTail_suffix ht).trans ((sBlockIndented_suffix hb).trans
+      (glit_suffix hl))
+
+lemma sCompactSeqTail_suffix {n : Nat} {a b : SurfPos}
+    (h : SCompactSeqTail n a b) :
+    b.chars <:+ a.chars := by
+  match h with
+  | .nil _ _ =>
+    exact List.suffix_refl _
+  | .cons _ _ _ _ _ _ hi hl _ hb ht =>
+    exact (sCompactSeqTail_suffix ht).trans ((sBlockIndented_suffix hb).trans
+      ((glit_suffix hl).trans (sIndent_suffix hi)))
+
+lemma sCompactMap_suffix {n : Nat} {a b : SurfPos}
+    (h : SCompactMap n a b) :
+    b.chars <:+ a.chars := by
+  match h with
+  | .mk _ _ _ _ he ht =>
+    exact (sCompactMapTail_suffix ht).trans (sBlockMapEntry_suffix he)
+
+lemma sCompactMapTail_suffix {n : Nat} {a b : SurfPos}
+    (h : SCompactMapTail n a b) :
+    b.chars <:+ a.chars := by
+  match h with
+  | .nil _ _ =>
+    exact List.suffix_refl _
+  | .cons _ _ _ _ _ hi he ht =>
+    exact (sCompactMapTail_suffix ht).trans ((sBlockMapEntry_suffix he).trans
+      (sIndent_suffix hi))
+
+lemma sImplicitKey_suffix {a b : SurfPos}
+    (h : SImplicitKey a b) :
+    b.chars <:+ a.chars := by
+  match h with
+  | .jsonKey _ _ _ hn ho =>
+    exact (optSil_suffix ho).trans (sFlowNode_suffix hn)
+  | .yamlKey _ _ _ hp ho =>
+    exact (optSil_suffix ho).trans (snsPlain_suffix hp)
+
+lemma sFlowNode_suffix {n : Nat} {c : YamlContext} {a b : SurfPos}
+    (h : SFlowNode n c a b) :
+    b.chars <:+ a.chars := by
+  match h with
+  | .alias _ _ _ _ ha =>
+    exact (scNsAliasNode_suffix ha)
+  | .content _ _ _ _ hc =>
+    exact (sFlowContent_suffix hc)
+  | .propsContent _ _ _ _ _ _ hp hs hc =>
+    exact (sFlowContent_suffix hc).trans ((sSeparate_suffix hs).trans
+      (scNsProperties_suffix hp))
+  | .propsEmpty _ _ _ _ hp =>
+    exact (scNsProperties_suffix hp)
+
+lemma sFlowContent_suffix {n : Nat} {c : YamlContext} {a b : SurfPos}
+    (h : SFlowContent n c a b) :
+    b.chars <:+ a.chars := by
+  match h with
+  | .plain _ _ _ _ hp =>
+    exact (snsPlain_suffix hp)
+  | .flowSeq _ _ _ _ hx =>
+    exact (sFlowSequence_suffix hx)
+  | .flowMap _ _ _ _ hx =>
+    exact (sFlowMapping_suffix hx)
+  | .singleQ _ _ _ _ hx =>
+    exact (scSingleQuoted_suffix hx)
+  | .doubleQ _ _ _ _ hx =>
+    exact (scDoubleQuoted_suffix hx)
+
+lemma sFlowSequence_suffix {n : Nat} {c : YamlContext} {a b : SurfPos}
+    (h : SFlowSequence n c a b) :
+    b.chars <:+ a.chars := by
+  match h with
+  | .empty _ _ _ _ _ _ hl ho hr =>
+    exact (glit_suffix hr).trans ((optSep_suffix ho).trans (glit_suffix hl))
+  | .nonempty _ _ _ _ _ _ _ hl ho he hr =>
+    exact (glit_suffix hr).trans ((sFlowSeqEntries_suffix he).trans ((optSep_suffix
+      ho).trans (glit_suffix hl)))
+
+lemma sFlowSeqEntries_suffix {n : Nat} {c : YamlContext} {a b : SurfPos}
+    (h : SFlowSeqEntries n c a b) :
+    b.chars <:+ a.chars := by
+  match h with
+  | .single _ _ _ _ _ he ho =>
+    exact (optSep_suffix ho).trans (sFlowSeqEntry_suffix he)
+  | .consMore _ _ _ _ _ _ _ _ he ho hc ho2 hr =>
+    exact (sFlowSeqEntries_suffix hr).trans ((optSep_suffix ho2).trans ((glit_suffix
+      hc).trans ((optSep_suffix ho).trans (sFlowSeqEntry_suffix he))))
+  | .consEnd _ _ _ _ _ _ _ he ho hc ho2 =>
+    exact (optSep_suffix ho2).trans ((glit_suffix hc).trans ((optSep_suffix ho).trans
+      (sFlowSeqEntry_suffix he)))
+
+lemma sFlowSeqEntry_suffix {n : Nat} {c : YamlContext} {a b : SurfPos}
+    (h : SFlowSeqEntry n c a b) :
+    b.chars <:+ a.chars := by
+  match h with
+  | .node _ _ _ _ hn =>
+    exact (sFlowNode_suffix hn)
+  | .pairValue _ _ _ _ _ _ _ _ hk ho hc hs hv =>
+    exact (sFlowNode_suffix hv).trans ((sSeparate_suffix hs).trans ((glit_suffix
+      hc).trans ((optSep_suffix ho).trans (sFlowNode_suffix hk))))
+  | .pairEmpty _ _ _ _ _ _ hk ho hc =>
+    exact (glit_suffix hc).trans ((optSep_suffix ho).trans (sFlowNode_suffix hk))
+  | .explicitPairValue _ _ _ _ _ _ _ _ _ _ hq hs1 hk ho hc hs2 hv =>
+    exact (sFlowNode_suffix hv).trans ((sSeparate_suffix hs2).trans ((glit_suffix
+      hc).trans ((optSep_suffix ho).trans ((sFlowNode_suffix hk).trans
+      ((sSeparate_suffix hs1).trans (glit_suffix hq))))))
+  | .explicitPairEmpty _ _ _ _ _ _ _ _ hq hs1 hk ho hc =>
+    exact (glit_suffix hc).trans ((optSep_suffix ho).trans ((sFlowNode_suffix hk).trans
+      ((sSeparate_suffix hs1).trans (glit_suffix hq))))
+  | .explicitPairKeyOnly _ _ _ _ _ _ hq hs1 hk =>
+    exact (sFlowNode_suffix hk).trans ((sSeparate_suffix hs1).trans (glit_suffix hq))
+  | .explicitPairEmptyNodes _ _ _ _ _ hq hs1 =>
+    exact (sSeparate_suffix hs1).trans (glit_suffix hq)
+  | .emptyKeyValue _ _ _ _ _ _ hc hs hv =>
+    exact (sFlowNode_suffix hv).trans ((sSeparate_suffix hs).trans (glit_suffix hc))
+  | .emptyKeyEmpty _ _ _ _ hc =>
+    exact (glit_suffix hc)
+  | .explicitEmptyKeyValue _ _ _ _ _ _ _ _ hq hs1 hc hs2 hv =>
+    exact (sFlowNode_suffix hv).trans ((sSeparate_suffix hs2).trans ((glit_suffix
+      hc).trans ((sSeparate_suffix hs1).trans (glit_suffix hq))))
+  | .explicitEmptyKeyEmpty _ _ _ _ _ _ hq hs1 hc =>
+    exact (glit_suffix hc).trans ((sSeparate_suffix hs1).trans (glit_suffix hq))
+
+lemma sFlowMapping_suffix {n : Nat} {c : YamlContext} {a b : SurfPos}
+    (h : SFlowMapping n c a b) :
+    b.chars <:+ a.chars := by
+  match h with
+  | .empty _ _ _ _ _ _ hl ho hr =>
+    exact (glit_suffix hr).trans ((optSep_suffix ho).trans (glit_suffix hl))
+  | .nonempty _ _ _ _ _ _ _ hl ho he hr =>
+    exact (glit_suffix hr).trans ((sFlowMapEntries_suffix he).trans ((optSep_suffix
+      ho).trans (glit_suffix hl)))
+
+lemma sFlowMapEntries_suffix {n : Nat} {c : YamlContext} {a b : SurfPos}
+    (h : SFlowMapEntries n c a b) :
+    b.chars <:+ a.chars := by
+  match h with
+  | .single _ _ _ _ _ he ho =>
+    exact (optSep_suffix ho).trans (sFlowMapEntry_suffix he)
+  | .consMore _ _ _ _ _ _ _ _ he ho hc ho2 hr =>
+    exact (sFlowMapEntries_suffix hr).trans ((optSep_suffix ho2).trans ((glit_suffix
+      hc).trans ((optSep_suffix ho).trans (sFlowMapEntry_suffix he))))
+  | .consEnd _ _ _ _ _ _ _ he ho hc ho2 =>
+    exact (optSep_suffix ho2).trans ((glit_suffix hc).trans ((optSep_suffix ho).trans
+      (sFlowMapEntry_suffix he)))
+
+lemma sFlowMapEntry_suffix {n : Nat} {c : YamlContext} {a b : SurfPos}
+    (h : SFlowMapEntry n c a b) :
+    b.chars <:+ a.chars := by
+  match h with
+  | .explicitValue _ _ _ _ _ _ _ _ _ _ hq hs1 hk ho hc hs2 hv =>
+    exact (sFlowNode_suffix hv).trans ((sSeparate_suffix hs2).trans ((glit_suffix
+      hc).trans ((optSep_suffix ho).trans ((sFlowNode_suffix hk).trans
+      ((sSeparate_suffix hs1).trans (glit_suffix hq))))))
+  | .explicitEmpty _ _ _ _ _ _ _ _ hq hs1 hk ho hc =>
+    exact (glit_suffix hc).trans ((optSep_suffix ho).trans ((sFlowNode_suffix hk).trans
+      ((sSeparate_suffix hs1).trans (glit_suffix hq))))
+  | .explicitKeyOnly _ _ _ _ _ _ hq hs1 hk =>
+    exact (sFlowNode_suffix hk).trans ((sSeparate_suffix hs1).trans (glit_suffix hq))
+  | .implicitValue _ _ _ _ _ _ _ _ hk ho hc hs2 hv =>
+    exact (sFlowNode_suffix hv).trans ((sSeparate_suffix hs2).trans ((glit_suffix
+      hc).trans ((optSep_suffix ho).trans (sFlowNode_suffix hk))))
+  | .implicitEmpty _ _ _ _ _ _ hk ho hc =>
+    exact (glit_suffix hc).trans ((optSep_suffix ho).trans (sFlowNode_suffix hk))
+  | .bareKey _ _ _ _ hk =>
+    exact (sFlowNode_suffix hk)
+  | .emptyKeyValue _ _ _ _ _ _ hc hs hv =>
+    exact (sFlowNode_suffix hv).trans ((sSeparate_suffix hs).trans (glit_suffix hc))
+  | .emptyKeyEmpty _ _ _ _ hc =>
+    exact (glit_suffix hc)
+  | .explicitEmptyNodes _ _ _ _ _ hq hs1 =>
+    exact (sSeparate_suffix hs1).trans (glit_suffix hq)
+  | .explicitEmptyKeyValue _ _ _ _ _ _ _ _ hq hs1 hc hs2 hv =>
+    exact (sFlowNode_suffix hv).trans ((sSeparate_suffix hs2).trans ((glit_suffix
+      hc).trans ((sSeparate_suffix hs1).trans (glit_suffix hq))))
+  | .explicitEmptyKeyEmpty _ _ _ _ _ _ hq hs1 hc =>
+    exact (glit_suffix hc).trans ((sSeparate_suffix hs1).trans (glit_suffix hq))
+end
+
+/-! ## §5 A break inside a span
+
+The span is what makes "this derivation crossed a line" a statement about a
+position pair rather than about a derivation, and `BreakBetween` is that
+statement.  It is the half of item 228's UNSETTLED question that the suffix
+lemma unlocks: a residue that carries a `[28] b-break` in one of its own
+components carries a break in its whole span, because the span composes. -/
+
+/-- The characters between two positions include a line break. -/
+def BreakBetween (s s' : SurfPos) : Prop :=
+  ∃ pre, Span s s' pre ∧ ∃ ch ∈ pre, isLineBreakProp ch
+
+/-- `[28] b-break` puts one there. -/
+lemma breakBetween_of_break {a b : SurfPos} (h : SBBreak a b) : BreakBetween a b := by
+  match h with
+  | .crLf rest _ => exact ⟨['\r', '\n'], rfl, '\r', by simp, by decide⟩
+  | .cr rest _ => exact ⟨['\r'], rfl, '\r', by simp, by decide⟩
+  | .lf rest _ => exact ⟨['\n'], rfl, '\n', by simp, by decide⟩
+
+/-- Widening on the left keeps the break: the span only grows. -/
+lemma breakBetween_extend_left {a b c : SurfPos} (hab : b.chars <:+ a.chars)
+    (h : BreakBetween b c) : BreakBetween a c := by
+  obtain ⟨pre, hspan, ch, hmem, hbr⟩ := h
+  obtain ⟨q, hq⟩ := hab
+  refine ⟨q ++ pre, ?_, ch, by simp [hmem], hbr⟩
+  simp only [Span] at hspan ⊢
+  rw [← hq, hspan, List.append_assoc]
+
+/-- …and so does widening on the right. -/
+lemma breakBetween_extend_right {a b c : SurfPos} (hbc : c.chars <:+ b.chars)
+    (h : BreakBetween a b) : BreakBetween a c := by
+  obtain ⟨pre, hspan, ch, hmem, hbr⟩ := h
+  obtain ⟨q, hq⟩ := hbc
+  refine ⟨pre ++ q, ?_, ch, by simp [hmem], hbr⟩
+  simp only [Span] at hspan ⊢
+  rw [hspan, ← hq, List.append_assoc]
+
+/-- **`[113] s-double-break(n)`** crosses a line, on either alternative. -/
+lemma ssDoubleBreak_break {n : Nat} {a b : SurfPos} (h : SSDoubleBreak n a b) :
+    BreakBetween a b := by
+  match h with
+  | .escaped _ _ _ he =>
+    match he with
+    | .mk _ _ _ _ _ _ _ hw hl hb hem hp =>
+      refine breakBetween_extend_right ?_ (breakBetween_extend_left ?_ (breakBetween_of_break hb))
+      · exact (sFlowLinePrefix_suffix hp).trans (gstar_suffix (fun _ _ => sLEmpty_suffix) hem)
+      · exact (glit_suffix hl).trans (gstar_suffix (fun _ _ => sswhite_suffix) hw)
+  | .flowFold _ _ _ _ _ hb hem hp =>
+    refine breakBetween_extend_right ?_ (breakBetween_of_break hb)
+    exact (sFlowLinePrefix_suffix hp).trans (gstar_suffix (fun _ _ => sLEmpty_suffix) hem)
+
+/-- **`[134] s-ns-plain-next-line(n,c)`** crosses a line. -/
+lemma ssNsPlainNextLine_break {n : Nat} {c : YamlContext} {a b : SurfPos}
+    (h : SSNsPlainNextLine n c a b) : BreakBetween a b := by
+  match h with
+  | .mk _ _ _ _ _ _ _ _ hw hb hem hp hg =>
+    refine breakBetween_extend_right ?_ (breakBetween_extend_left ?_ (breakBetween_of_break hb))
+    · exact ((gplus_suffix (fun _ _ => snbNsPlainInLineEntry_suffix) hg).trans
+        (sFlowLinePrefix_suffix hp)).trans (gstar_suffix (fun _ _ => sLEmpty_suffix) hem)
+    · exact gstar_suffix (fun _ _ => sswhite_suffix) hw
+
+end L4YAML.Proofs.SurfaceSpan

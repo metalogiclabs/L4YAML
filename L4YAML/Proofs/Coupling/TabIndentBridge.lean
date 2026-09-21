@@ -3,6 +3,7 @@ Copyright (c) 2026. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 -/
 import L4YAML.Proofs.Coupling.CouplingBridge
+import L4YAML.Proofs.Foundation.SurfaceSpan
 import L4YAML.Proofs.Scanner.ScanStrictCoupling
 import L4YAML.Proofs.Scanner.ScannerWhitespace
 
@@ -48,82 +49,15 @@ open L4YAML.Scanner
 open L4YAML.Proofs.CouplingBridge
 open L4YAML.Proofs.ScanStrictCoupling
 open L4YAML.Proofs.ScannerWhitespace
+open L4YAML.Proofs.SurfaceSpan
 
 /-! ## §1 Surface productions consume a prefix
 
-Stated as `<:+` on the character lists, so the surface run can be identified
-with a segment of `input.toList` rather than compared to it. -/
-
-lemma gstar_suffix {P : SurfPos → SurfPos → Prop} {s s' : SurfPos}
-    (hP : ∀ a b, P a b → b.chars <:+ a.chars) (h : GStar P s s') :
-    s'.chars <:+ s.chars := by
-  induction h with
-  | nil s => exact List.suffix_refl _
-  | cons s₁ s₂ s₃ hp _ ih => exact ih.trans (hP _ _ hp)
-
-lemma gchar_suffix {p : Char → Prop} {a b : SurfPos} (h : GChar p a b) :
-    b.chars <:+ a.chars := by
-  cases h with
-  | mk c rest col _ => exact List.suffix_cons c rest
-
-lemma sswhite_suffix {a b : SurfPos} (h : SSWhite a b) : b.chars <:+ a.chars := by
-  cases h with
-  | space rest col => exact List.suffix_cons ' ' rest
-  | tab rest col => exact List.suffix_cons '\t' rest
-
-lemma sbBreak_suffix {a b : SurfPos} (h : SBBreak a b) : b.chars <:+ a.chars := by
-  cases h with
-  | crLf rest col => exact (List.suffix_cons '\n' rest).trans (List.suffix_cons '\r' _)
-  | cr rest col => exact List.suffix_cons '\r' rest
-  | lf rest col => exact List.suffix_cons '\n' rest
-
-lemma sbComment_suffix {a b : SurfPos} (h : SBComment a b) : b.chars <:+ a.chars := by
-  cases h with
-  | «break» s s' hb => exact sbBreak_suffix hb
-  | eof col => exact List.suffix_refl _
-
-lemma sSeparateInLine_suffix {a b : SurfPos} (h : SSeparateInLine a b) :
-    b.chars <:+ a.chars := by
-  match h with
-  | .whites _ _ hp =>
-    match hp with
-    | .mk _ _ _ hw hs =>
-      exact (gstar_suffix (fun _ _ => sswhite_suffix) hs).trans (sswhite_suffix hw)
-  | .startOfLine _ => exact List.suffix_refl _
-
-lemma scNbCommentText_suffix {a b : SurfPos} (h : SCNbCommentText a b) :
-    b.chars <:+ a.chars := by
-  cases h with
-  | mk rest col s' hg =>
-    exact (gstar_suffix (fun _ _ => gchar_suffix) hg).trans (List.suffix_cons '#' rest)
-
-/-- The `s-separate-in-line` + optional `c-nb-comment-text` + `b-comment`
-    shape both `[76] s-b-comment` and `[78] l-comment` are built from. -/
-private lemma comment_body_suffix {s s₁ s₂ s' : SurfPos}
-    (hsep : SSeparateInLine s s₁) (hopt : GOpt SCNbCommentText s₁ s₂)
-    (hbc : SBComment s₂ s') : s'.chars <:+ s.chars := by
-  refine ((sbComment_suffix hbc).trans ?_).trans (sSeparateInLine_suffix hsep)
-  match hopt with
-  | .none _ => exact List.suffix_refl _
-  | .some _ _ hc => exact scNbCommentText_suffix hc
-
-lemma ssbComment_suffix {a b : SurfPos} (h : SSBComment a b) : b.chars <:+ a.chars := by
-  match h with
-  | .withSep _ _ _ _ hsep hopt hbc => exact comment_body_suffix hsep hopt hbc
-  | .noSep _ _ hbc => exact sbComment_suffix hbc
-
-lemma slComment_suffix {a b : SurfPos} (h : SLComment a b) : b.chars <:+ a.chars := by
-  match h with
-  | .mk _ _ _ _ hsep hopt hbc => exact comment_body_suffix hsep hopt hbc
-
-/-- **`[79] s-l-comments` consumes a prefix.**  The landing a step reaches is
-    a position INSIDE the input, not merely a position whose characters happen
-    to look like a tail of it. -/
-lemma sslComments_suffix {a b : SurfPos} (h : SSLComments a b) : b.chars <:+ a.chars := by
-  cases h with
-  | withComment s s₁ s' hsb hg =>
-    exact (gstar_suffix (fun _ _ => slComment_suffix) hg).trans (ssbComment_suffix hsb)
-  | startOfLine chars s' hg => exact gstar_suffix (fun _ _ => slComment_suffix) hg
+The generic family — `[28] b-break` through `[79] s-l-comments` and the
+combinator transports they are built from — moved to
+`L4YAML/Proofs/Foundation/SurfaceSpan.lean` at item 229, where it sits beside
+the other 63 productions of the same closure and imports only the grammar.
+Only the scanner-side statement is local to this file. -/
 
 /-- The scanner's own surface position is a suffix of its input. -/
 lemma corr_chars_suffix {sc : ScannerState} {sp : SurfPos} (h : ScannerSurfCorr sc sp) :

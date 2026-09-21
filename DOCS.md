@@ -27521,6 +27521,214 @@ corollary: **an instrument that measures one declaration at a time cannot see
 a cost that lands on the declaration's consumers**, which is how a lemma with
 no `Or.inr trivial` anywhere in it turned out to cost eleven.
 
+### Item 229 (2026-09-20)
+
+**THE SPAN INSTRUMENT — a price taken by signatures priced the block, not the
+build, and the 83 dead sites collapse to ONE residue, not to the missing
+lemma.**  Item 228's recorded NEXT: *"the remaining four, and every row in
+`StreamAccum`, wait on the same sentence — these characters lie between these
+two positions — which the library cannot say about the flow grammar.  What
+that leaves is the suffix lemma for the 18-type mutual block, priced at 69
+constructor arms … the one thing that would turn 83 dead sites into 83 payable
+ones."*  The lemma is built.  The last clause is refuted by measurement.
+
+**The instrument.**  `L4YAML/Proofs/Foundation/SurfaceSpan.lean` (NEW, 822
+lines, 84 declarations) proves `s'.chars <:+ s.chars` for every production the
+node grammar reaches, and names what that buys: `Span s s' pre`
+(`s.chars = pre ++ s'.chars`), `span_of_suffix`, `span_length`.  §1 is the six
+combinator transports, §2 chapters 5–6 (breaks, whites, `[63] s-indent(n)`,
+`[79] s-l-comments`, `[69] s-separate(n,c)` at all six contexts,
+`[96] c-ns-properties`), §3 chapters 7.3 and 8.1 (`[109] c-double-quoted`,
+`[120] c-single-quoted`, `[131] ns-plain`, `[170] c-l+literal`,
+`[174] c-l+folded` and their trees), §4 the eighteen, §5 `BreakBetween`.
+
+**The price item 228 took by signatures was right about the block and 48% of
+the build.**  69 arms is the mutual block.  The block's constructors cite leaf
+productions whose own suffix lemmas did not exist either, and the transitive
+closure is **74 production types with 143 constructor arms** — 18/69 inside the
+block, 56/74 outside it.  Of the 74 the library covered **10** (the comment
+family in `Proofs/Coupling/TabIndentBridge.lean`, moved to the new module
+rather than duplicated) and now covers **69**; the five that never appear in a
+suffix lemma's type are `abbrev`s (`SBAsLineFeed`, `SBNonContent`, `SNbChar`,
+`SNsChar`, `SCommentChar`) that `sbBreak_suffix` and `gchar_suffix` cover
+definitionally.  **A price by signatures prices the thing it counted.**  Item
+228 counted the block because the block was what it could see; the arms
+OUTSIDE it are 74 more, and they had to be built first.
+
+**And the first walk of that closure read 48, not 74.**  It followed
+constructor types only.  `[69] s-separate(n,c)`, `[131] ns-plain(n,c)`,
+`[110] nb-double-text(n,c)` and ten others are `def`s that dispatch on the
+context, and a closure walk that stops at a definition under-reports the thing
+it is pricing — in the direction that hurts, exactly as R670 says of a literal
+census.
+
+**Two claims in `FlowKeyLift`'s own docstrings were false, and are struck.**
+§3 said "neither the equation compiler (structural recursion does not
+eliminate a proof of a mutual inductive `Prop`) nor the `induction` tactic
+applies".  The second half holds — `induction` refuses a mutually inductive
+type outright, with that message.  The first does not: `lemma` inside a
+`mutual` block is a MACRO in this repo, written that way (`L4YAML/Init.lean`'s
+own docstring says so) precisely so that it reaches core's `elabMutual`, and
+§4 of the new module is eighteen mutually structural lemmas over the same
+family.  The recursor is still right for `flowNode_toKey`, whose motives
+differ per type; it was never the only thing available.  The module docstring's
+"the library has none" is struck the same way.
+
+**What the instrument buys, measured.**  A narrowing is worth the consumer's
+ability to refute the residue (item 228's `conclusion_eliminable_iff`), and the
+span makes "this derivation crossed a line" a statement about a POSITION PAIR:
+`BreakBetween s s' := ∃ pre, Span s s' pre ∧ ∃ ch ∈ pre, isLineBreakProp ch`,
+with the two widening lemmas that let a break found at an interior span be
+reported at the outer one.  `FlowKeyLift` §4 then sorts item 228's four
+residues by the only question that matters, and **all four are settled**:
+
+* `PlainResidue`, `DoubleResidue`, `SingleResidue` each imply `BreakBetween`
+  (`plainResidue_break`, `doubleResidue_break`, `singleResidue_break`), so
+  `plain_toKey_of_noBreak`, `doubleQuoted_toKey_of_noBreak` and
+  `singleQuoted_toKey_of_noBreak` deliver the conversion outright to a consumer
+  that holds `¬ BreakBetween s s'` — which is what
+  `[193] c-s-implicit-json-key` requires of everything reaching a `:`.
+* `SepResidue` does NOT, and item 229 gives the REASON rather than item 228's
+  observation: its span can be EMPTY (`sepResidue_span_can_be_empty`), so no
+  predicate on the characters between the two positions separates it from a
+  separation that was never taken.
+
+**The 83 dead sites collapse to one residue, not to one missing lemma.**
+`flowNode_toKey`'s proof term holds **82** occurrences of `@Or.inr _ True _`,
+and counting the leaf applications in the same term splits them:
+**payable=3** (one `plain_toKey`, one `doubleQuoted_toKey`, one
+`singleQuoted_toKey`), **blocked=45** (21 `sep_toKey`, 22 `sepOpt_toKey`, 2
+`props_toKey`, which relays `sep_toKey`), **relay=34** (the recursive arms,
+which follow the worst leaf their sub-derivation reaches).  So the suffix
+lemma turns **3** of the sites payable and NAMES the obstruction for the other
+79 — one leaf out of four, the one whose residue is not a partition.  Item
+228's NEXT said the lemma was "the one thing"; the lemma was necessary and it
+was not sufficient, and no amount of it will be.  (82 against item 228's 83 is
+two instruments, not a correction: one counts occurrences in a term, the other
+counts compiler errors after a rewrite, and item 228's own instrument debt
+already records that the second is a property of how a proof is written.)
+
+**Why `sep_toKey` cannot be narrowed to a break.**  Two of `[79]
+s-l-comments`'s arms consume characters and cross no line — `[77] b-comment`'s
+`eof` alternative ends a comment at end of input, so `a: # c<EOF>` is a
+comment-delimited separation with no break in its span — and at the other
+extreme the arm is zero-width, where `[80] s-separate-in-line`'s own
+`startOfLine` holds too.  Both witnesses are in the library and proved, not
+observed: `sepResidue_at_eof_comment` derives ` #c<EOF>` and refutes
+`BreakBetween` on its three-character span, and
+`sepResidue_span_can_be_empty` is item 228's zero-width one read through the
+span.  The pair rules out "has a `#`" as well as "crossed a line", since the
+zero-width witness has neither.  The residue is therefore not "crossed a line" and not
+"has a `#`": it is "this separation is not inline", and making THAT a partition
+means re-proving `sep_toKey` so the zero-width case returns the LEFT disjunct.
+
+**What changed.**  `L4YAML/Proofs/Foundation/SurfaceSpan.lean` (NEW, 822).
+`Tests/Guards/Proofs/SurfaceSpanCensus.lean` (NEW, 274): a derivation of `[]`
+read as `[161] ns-flow-node` and the instrument applied to it (a suffix lemma
+over an uninhabited family is worth nothing), the closure pinned at
+74/143/18-69/56-74, the coverage at 69 of 74, the eighteen block lemmas by
+name, the four residues sorted, and the leaf split pinned.
+`L4YAML/Proofs/Production/FlowKeyLift.lean` (+137/−12): §4's eight lemmas,
+and three docstring corrections.  `L4YAML/Proofs/Coupling/TabIndentBridge.lean`
+(+7/−73): its §1 family moved out rather than duplicated; only the
+scanner-side `corr_chars_suffix` stays.
+`L4YAML/Proofs/Production/StreamAccum.lean` (+1): one `open`.
+`Tests/Guards/Proofs/NarrowingWorthCensus.lean` (+16/−1): the census
+POPULATION moves 5138 → **5214**, and the pin's docstring no longer claims the
+delta is the count of `lemma` lines in the diff — item 229 tried to reconcile
+the two and could not, because the census walks ENVIRONMENT CONSTANTS and Lean
+generates theorems no source line names (`SurfaceSpan.Span.eq_1`, the equation
+lemma of a `def`, is one).  What the pin carries is the other four numbers: the
+two selectors unmoved at 21, with no disagreement in either direction.  `Tests/Guards/Proofs/ConclusionObligationCensus.lean`
+(+11/−4): item 228's own §4 gate moves `suffixLemmas=0` → **18** with
+`types=18 ctors=69` unmoved, which is the whole item in one line.
+`Tests/Guards.lean` (+1).
+
+**A counting recipe that reads prose.**  The standing declaration census is
+`grep -rhoE "^(private )?(lemma|theorem|def|abbrev|instance|structure|inductive|class) "`,
+and three lines of the new module's docstring began with the word
+`inductive` — so the recipe counted 87 declarations where the file has 84.
+The prose is reflowed, not the recipe; but a census that reads comments is a
+census whose number is not a property of the library.
+
+**Predictions.**  HELD — the closure at 55–85 types (**74**); 8–12 already
+covered (**10**); the mutual block compiles by structural recursion with no
+`termination_by`; no production is a counterexample (**0** refutable arms);
+450–900 inserted lines (**822**); the span stated and used; `#guard` unmoved;
+test files 642 → 643.  REFUTED — 200–320 arms in the closure (**143**); the
+arms outside the block outnumbering 69 by 2× (**74**, a factor of 1.07); the
+suffix lemma alone settling none of the three UNSETTLED residues (it settles
+**all four**, three positively and one negatively, because the payment runs the
+other way — the residue IMPLIES a break and the consumer supplies its
+negation); 1195 → 1196 jobs (**1198**); one new library file and none edited
+(**two new, three edited**).  PARTLY — zero of the 83 paid (none narrowed
+further, but **3** are now payable and the other 79 have a named blocker).
+NOT FORECAST — the leaf split, the `lemma`-in-`mutual` macro and the two false
+docstrings it exposed, the `def`-blind first closure walk, and a counting
+recipe that reads docstrings.
+
+**Gates, all at baseline.**  `lake build` **1198** jobs, 0 warnings;
+`run-all-tests.sh` **Verified: 4520/4520** (Production Coverage **837/837**);
+`eventscore` **347/358** (0 error-miss, 0 event-reject); `suiterunner`
+**869/0/151**, run ALONE; matrix **402/402 event** + **282/282 JSON** on BOTH
+pipelines; `[210]` flip **FIVE** definitions — `topLevelFlowResumeSep`,
+`rootMapRoute`, `rootMapRouteF`, `bareNodeRoute`,
+`structural_dispatch_to_pending` — restored and md5-verified
+(`d955a797b9a9c895be3aabad138a297e`); `#print axioms` — **25** capstones, no
+`sorryAx`, and this item's new declarations depend on **`propext` alone**;
+checkers **229** library modules from 5 default targets / 355 imports,
+20/230/249/355, all 25 `theorem` sites whitelisted; annotations **211/211**
+with the standing **19** name mismatches, exit **1**; decline pins
+`grep -cE '^OK '` = **7 + 18 + 6 = 31**, "ALL PINS OK" three times.  Counts:
+declarations **8608 → 8689**, `#guard` **8173** unmoved, test files
+**642 → 643**, the loose demand census **8** unmoved.
+
+**What remains.**  The obstruction has a name and a price.  **`sep_toKey`'s
+residue is not a partition**, and 79 of `flowNode_toKey`'s 82 dead sites wait
+on that one fact; the operation is to re-prove it so the zero-width case
+returns the LEFT disjunct and the rest carries a residue a consumer can refute,
+priced by signatures at **12 constructor arms** — `[79] s-l-comments` 2,
+`[76] s-b-comment` 2, `[78] l-comment` 1, `[77] b-comment` 2,
+`[71] s-flow-line-prefix` 1, `[63] s-indent(n)` 2, `[66] s-separate-in-line` 2
+— plus a concatenation lemma for `[66]`, which the library does not have.
+After that, `flowNode_toKey`'s eighteen motives carry `BreakBetween` and the
+three payment lemmas of §4 have their first consumer.  Unchanged: R3's seven
+productions, whose price is the case split; item 183's flip order, whose two
+REFUTABLE halves are `h_ref`'s readers; the parked Ix Step-1 composition on the
+Ix track's own clock.  Instrument debt, now **ten** rows, one added and none
+paid: the 198/200/201 censuses still lack a cruder-key control; what an
+`Or.inl`'s proof actually FORWARDS is measured and unresolved; the supply walk
+is scoped to one module; `pendingDocEnd` has no token-level field and no
+directive-flag field; `pendingBlock` carries no `h_real`; the strength ladder
+is a PROOF-LEVEL instrument only; the weakening probe reads a lemma's CURRENT
+proof; the substitution probe needs a canonical inhabitant; 141 of the 163
+faces are UNSETTLED; `scripts/narrow_conclusion.py` prices by COMPILER ERRORS;
+and new: **the standing declaration census is a grep over line starts, so it
+counts prose, and it cannot be reconciled with the environment census either**
+— it read 87 for an 84-declaration file because three docstring lines began
+with the word `inductive`, and `NarrowingWorthCensus`'s population counts
+constants no source line names, so the two numbers measure different things
+and neither derives the other.
+
+**The instrument ledger, thirty-one rows.**  Park constructors (198),
+application sites (200), lemma conclusions (201), the same with a key that
+works (202), indices (203), the runtime's own state (204), the transitive ring
+of a carrier (205), the same closure with its last ring paid (206), the ring's
+payers against a forecast (207), the instruments themselves (208), the object a
+carrier's consumer reads (209), the plan's own remaining list (210), the
+control (211), the provenance (212), the route (213), the pipe (214), the beta
+(215), the arms (216), the branch (217), the reach (218), the corpus (219), the
+matrix (220), the minimal zero (221), the strength ladder (222), the demand
+ledger (223), the spend census (224), the reader census (225), the necessity
+census (226), the worth census (227), the obligation census (228) — and now
+**the SPAN**, the first instrument in this ledger whose price was taken by
+signatures BEFORE a line of it was written.  Its corollary: **a price by
+signatures prices the population it enumerated, and the population is chosen by
+the walk** — 69 arms was a true statement about the mutual block and 48% of the
+arms the instrument needed, because the walk that produced it stopped where the
+block stopped.
+
+
 ### REMAINING, in order
 
 The per-item history is the closure log above; this section lists only the

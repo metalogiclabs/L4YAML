@@ -617,7 +617,22 @@ Two instruments select the set — the elaborator, and `isOptTy` under `whnf` �
 and the gate is that they agree EXACTLY, in both directions.  They are
 independent: the first asks the compiler and the second asks the syntax after
 one unfolding, and §6 is the item where those two disagreed about binders. -/
-def expectedNoopTally : String := "theorems=5138 byElab=21 byWhnf=21 elabOnly=0 whnfOnly=0"
+/-- `theorems` is the census POPULATION, and it moves whenever the library
+    gains a theorem: 5138 at item 228, **5214** at item 229, which added
+    `L4YAML/Proofs/Foundation/SurfaceSpan.lean` and `FlowKeyLift` §4 and moved
+    eleven lemmas out of `Proofs/Coupling/TabIndentBridge.lean`.
+
+    The delta is NOT the count of `lemma` lines in the diff, and item 229 is
+    where that was measured rather than assumed: the census walks environment
+    constants, and Lean generates theorems no source line names — the equation
+    lemma `SurfaceSpan.Span.eq_1` for a `def` is one of them.  A population
+    that counts what the ENVIRONMENT holds cannot be reconciled against a grep
+    over line starts, and this docstring no longer claims it can.
+
+    What this pin carries is the other four numbers: the two selectors are
+    unmoved at **21** with no disagreement in either direction.  A suffix
+    lemma is not a no-op conclusion, and neither is a payment lemma. -/
+def expectedNoopTally : String := "theorems=5214 byElab=21 byWhnf=21 elabOnly=0 whnfOnly=0"
 
 /-- The 27 item 227 measured, now **21**.  Item 228 narrowed six of
     `FlowKeyLift`'s ten — `plain_toKey`, `doubleQuoted_toKey`,

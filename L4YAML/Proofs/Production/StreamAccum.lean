@@ -81,6 +81,7 @@ open L4YAML.Proofs.FlowKeyLift
 open L4YAML.Proofs.ScalarFoldAt
 open L4YAML.Proofs.LandingTab
 open L4YAML.Proofs.TabIndentBridge
+open L4YAML.Proofs.SurfaceSpan
 open L4YAML.Proofs.ScanStrictCoupling
 open L4YAML.Proofs.ScannerCoupling
 open L4YAML.Proofs.ScalarCoupling

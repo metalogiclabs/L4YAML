@@ -241,16 +241,23 @@ def expectedLedger : List String :=
    "res=0 imp=0 prem=0 proj=1 FlowBaseRoutes.key",
    "res=0 imp=0 prem=0 proj=1 FlowBaseRoutes.vslot"]
 
-/-! ## §4 What stops the other five
+/-! ## §4 What stopped the other five, and what it cost
 
 `flowNode_toKey`'s residue arises at an INTERIOR span and its conclusion is
 about the OUTER one, so the only proposition that could carry it out is one
 about the SPAN — "the characters between `s` and `s'` contain a break".  Saying
 that needs `s'.chars` to be a suffix of `s.chars` for every production in the
-flow grammar, and this counts what that would take: the mutual block's size,
-and how many such lemmas the library already has. -/
+flow grammar, and this counts what that takes: the mutual block's size, and how
+many such lemmas the library has.
 
-def expectedFamily : String := "types=18 ctors=69 suffixLemmas=0"
+At item 228 the third number was **0**, and it was the reason five rows of §3
+could not be paid.  Item 229 built the family —
+`L4YAML/Proofs/Foundation/SurfaceSpan.lean` — so it now reads **18**, one per
+type of the block.  The first two numbers are unmoved, which is the point of
+keeping this gate: the instrument was priced at 69 arms by signatures BEFORE it
+existed, and the block it walks is still exactly 69 arms. -/
+
+def expectedFamily : String := "types=18 ctors=69 suffixLemmas=18"
 
 open Meta in
 run_cmd do

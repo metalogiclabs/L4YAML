@@ -4,6 +4,7 @@ Released under Apache 2.0 license as described in the file LICENSE.
 -/
 import L4YAML.Surface.Node
 import L4YAML.Spec.CharPredicates
+import L4YAML.Proofs.Foundation.SurfaceSpan
 
 /-! # The closed flow node re-read as `[154]`'s key (DOCS item 56)
 
@@ -30,7 +31,10 @@ import L4YAML.Spec.CharPredicates
     `SepResidue` and `[80] s-separate-in-line` hold at the same zero-width
     span.  The remaining five keep `True` because their residue arises at an
     INTERIOR span and the conclusion is about the OUTER one; carrying it out
-    needs a suffix lemma over this mutual block, and the library has none.
+    needs a suffix lemma over this mutual block, which item 229 built
+    (`L4YAML/Proofs/Foundation/SurfaceSpan.lean`) and which §4 uses to settle
+    the four leaf residues — narrowing the five is the operation it does not
+    do, because each needs its own motive strengthened, not a new fact.
 
     The context pairing is tracked as `KeyPair c tc`: the top node converts
     `(flowOut → blockKey)`, interiors `(flowIn → flowKey)`, and `inFlowCtx`
@@ -42,6 +46,7 @@ set_option autoImplicit false
 namespace L4YAML.Proofs.FlowKeyLift
 
 open L4YAML.Surface
+open L4YAML.Proofs.SurfaceSpan
 
 /-- The two source→target context pairings the key re-reading makes. -/
 def KeyPair (c tc : L4YAML.YamlContext) : Prop :=
@@ -70,10 +75,12 @@ conversion at all.  These are the residues those `True`s stood for, read off
 the arm each proof actually takes.  They are `def`s so the residue carries its
 own docstring and so a census can select on it.
 
-They are NOT interchangeable, and that is the finding item 228 records: three
-of the four consume a line break by construction, so a consumer holding a
-single-line key can refute them — which is the entire worth of a narrowing.
-`SepResidue` cannot be refuted that way (`sepResidue_of_startOfLine`). -/
+They are NOT interchangeable, and that is the finding item 228 recorded and
+item 229 proved: three of the four consume a line break by construction, so a
+consumer holding a single-line key can refute them — which is the entire worth
+of a narrowing.  `SepResidue` cannot be refuted that way, and §4 gives the
+reason rather than the observation: its span can be EMPTY
+(`sepResidue_span_can_be_empty`). -/
 
 /-- **The residue a separation leaves**: `[70] s-separate-lines(n)`'s
     comment-delimited arm, for which `[69]`'s key contexts have no production. -/
@@ -242,11 +249,18 @@ lemma props_toKey {n : Nat} {c tc : L4YAML.YamlContext} (hp : KeyPair c tc)
 
 /-! ## §3 The collection family
 
-    The flow grammar is one arm of an 18-type mutual block, so neither the
-    equation compiler (structural recursion does not eliminate a proof of a
-    mutual inductive `Prop`) nor the `induction` tactic (which refuses a
-    mutually inductive type outright) applies: the conversion is written
-    against the family's own recursor.  The ten block-side motives are `True`
+    The flow grammar is one arm of an 18-type mutual block, so the `induction`
+    tactic does not apply — it refuses a mutually inductive type outright — and
+    the conversion is written against the family's own recursor.
+
+    **Corrected at item 229**: this paragraph also said the equation compiler
+    does not apply, "structural recursion does not eliminate a proof of a
+    mutual inductive `Prop`".  It does.  `lemma` inside `mutual` is a macro in
+    this repo precisely so that it reaches `elabMutual` (`L4YAML/Init.lean`),
+    and `L4YAML/Proofs/Foundation/SurfaceSpan.lean` §4 is eighteen mutually
+    structural lemmas over this same family.  The recursor is still the right
+    shape HERE, because the motives differ per type; it is not the only one
+    available.  The ten block-side motives are `True`
     — the recursion never leaves the flow grammar — and the eight flow motives
     carry the pairing UNIVERSALLY quantified, which is what lets a collection's
     entries convert at `inFlowCtx tc` while its brackets convert at `tc`.
@@ -255,8 +269,10 @@ lemma props_toKey {n : Nat} {c tc : L4YAML.YamlContext} (hp : KeyPair c tc)
     That `True` is the one item 228 could not replace: the residue belongs to
     an interior span and this conclusion is about the outer one, so the
     proposition that would carry it out is a statement about the CHARACTERS
-    between the two — and the 18 types below have 69 constructors and not one
-    lemma relating any of them to a suffix. -/
+    between the two.  The 18 types below have 69 constructors, and at item 228
+    not one lemma related any of them to a suffix; item 229 wrote all
+    eighteen, so the statement is now sayable — what it still needs is this
+    recursor application's motives rebuilt around it. -/
 
 /-- **The conversion**: a flow node re-reads at index 0 in the paired key
     context, unless some interior crossed a line. -/
@@ -658,5 +674,114 @@ lemma flowContent_toBlockKey {n : Nat} {s s' : SurfPos}
 lemma sep_toBlockKey {n : Nat} {s s' : SurfPos} (h : SSeparate n .flowOut s s') :
     SSeparate 0 .blockKey s s' ∨ SepResidue n s s' :=
   sep_toKey (Or.inl ⟨rfl, rfl⟩) h
+
+/-! ## §4 What the narrowing buys (DOCS item 229)
+
+Item 228 narrowed six conclusions and could not say whether the narrowing was
+worth anything: a residue is worth exactly what a consumer can refute
+(`Tests.Guards.ConclusionObligationCensus.conclusion_eliminable_iff`), and
+refuting "some interior crossed a line" needs the span — the characters
+between the conclusion's own two positions — which the library could not name.
+`L4YAML/Proofs/Foundation/SurfaceSpan.lean` names it, so the four residues can
+now be sorted by the only question that matters.
+
+Three carry a `[28] b-break` inside their span, so `¬ BreakBetween s s'`
+refutes them.  `SepResidue` does not, and `sepResidue_span_can_be_empty` is
+the proof, not the observation: item 228's zero-width witness has an EMPTY
+span, and no predicate on characters can distinguish it from a separation that
+was never taken. -/
+
+lemma plainResidue_break {n : Nat} {c : L4YAML.YamlContext} {s s' : SurfPos}
+    (h : PlainResidue n c s s') : BreakBetween s s' := by
+  obtain ⟨_, hone, hplus⟩ := h
+  match hplus with
+  | .mk _ _ _ hx hrest =>
+    refine breakBetween_extend_right ?_
+      (breakBetween_extend_left ?_ (ssNsPlainNextLine_break hx))
+    · exact gstar_suffix (fun _ _ => ssNsPlainNextLine_suffix) hrest
+    · exact snsPlainOneLine_suffix hone
+
+lemma doubleResidue_break {n : Nat} {s s' : SurfPos} (h : DoubleResidue n s s') :
+    BreakBetween s s' := by
+  obtain ⟨_, _, _, _, hq1, hone, hbrk, hrest, hq2⟩ := h
+  refine breakBetween_extend_right ?_ (breakBetween_extend_left ?_ (ssDoubleBreak_break hbrk))
+  · exact (glit_suffix hq2).trans (snbDoubleMultiLine_suffix hrest)
+  · exact (snbDoubleOneLine_suffix hone).trans (glit_suffix hq1)
+
+lemma singleResidue_break {n : Nat} {s s' : SurfPos} (h : SingleResidue n s s') :
+    BreakBetween s s' := by
+  obtain ⟨_, _, _, _, _, _, hq1, hone, hbrk, hempty, hpre, hrest, hq2⟩ := h
+  refine breakBetween_extend_right ?_ (breakBetween_extend_left ?_ (breakBetween_of_break hbrk))
+  · exact (glit_suffix hq2).trans ((snbSingleMultiLine_suffix hrest).trans
+      ((sFlowLinePrefix_suffix hpre).trans (gstar_suffix (fun _ _ => sLEmpty_suffix) hempty)))
+  · exact (snbSingleOneLine_suffix hone).trans (glit_suffix hq1)
+
+/-- **The fourth residue's span can be empty**, so no character predicate
+    refutes it.  This is `sepResidue_of_startOfLine` read through the span:
+    item 228 showed the residue and its own left disjunct hold together, and
+    the reason is that the derivation consumes nothing at all. -/
+lemma sepResidue_span_can_be_empty (chars : List Char) :
+    SepResidue 0 ⟨chars, 0⟩ ⟨chars, 0⟩ ∧ ¬ BreakBetween ⟨chars, 0⟩ ⟨chars, 0⟩ := by
+  refine ⟨⟨⟨chars, 0⟩, SSLComments.startOfLine chars _ (GStar.nil _),
+    SFlowLinePrefix.mk 0 _ _ _ (SIndent.zero _) (GOpt.none _)⟩, ?_⟩
+  rintro ⟨pre, hspan, ch, hmem, -⟩
+  have hpre : pre = [] := by
+    simp only [Span] at hspan
+    simpa using hspan.symm
+  exact absurd (hpre ▸ hmem) (by simp)
+
+/-- **…and it can be non-empty and still crossed no line.**  `[77] b-comment`
+    ends a comment at END OF INPUT as well as at a break, so ` #c<EOF>` is a
+    comment-delimited separation whose span is three characters, none of them a
+    break.  Together with `sepResidue_span_can_be_empty` this is why no
+    predicate on the span refutes `SepResidue` — not `BreakBetween`, and not
+    "the span contains a `#`" either, since the zero-width witness has neither.
+    The residue that WOULD be a partition is "this separation is not inline",
+    and `sep_toKey` has to be re-proved to produce it. -/
+lemma sepResidue_at_eof_comment :
+    SepResidue 0 ⟨[' ', '#', 'c'], 3⟩ ⟨[], 6⟩ ∧
+      ¬ BreakBetween ⟨[' ', '#', 'c'], 3⟩ ⟨[], 6⟩ := by
+  refine ⟨⟨⟨[], 6⟩,
+    SSLComments.withComment _ _ _
+      (SSBComment.withSep _ _ _ _
+        (SSeparateInLine.whites _ _
+          (GPlus.mk _ ⟨['#', 'c'], 4⟩ _ (SSWhite.space _ 3) (GStar.nil _)))
+        (GOpt.some ⟨['#', 'c'], 4⟩ ⟨[], 6⟩
+          (SCNbCommentText.mk ['c'] 4 ⟨[], 6⟩
+            (GStar.cons ⟨['c'], 5⟩ ⟨[], 6⟩ ⟨[], 6⟩
+              (GChar.mk (p := isCommentTextChar) 'c' [] 5
+                (by simp [isCommentTextChar, CharPredicates.isLineBreakProp,
+                  CharPredicates.isLineFeedProp, CharPredicates.isCarriageReturnProp]))
+              (GStar.nil _))))
+        (SBComment.eof 6))
+      (GStar.nil _),
+    SFlowLinePrefix.mk 0 _ _ _ (SIndent.zero _) (GOpt.none _)⟩, ?_⟩
+  rintro ⟨pre, hspan, ch, hmem, hbr⟩
+  simp only [Span, List.append_nil] at hspan
+  subst hspan
+  simp only [List.mem_cons, List.not_mem_nil, or_false] at hmem
+  rcases hmem with rfl | rfl | rfl <;> revert hbr <;> decide
+
+/-! ### The payment
+
+`narrowed_conclusion_pays` (item 228's §1) with the residue discharged: a
+consumer holding "this key's span crosses no line" — which is what
+`[193] c-s-implicit-json-key` requires of everything that reaches a `:` —
+gets the conversion outright, with no disjunction left to case on. -/
+
+lemma plain_toKey_of_noBreak {n : Nat} {c tc : L4YAML.YamlContext} (hp : KeyPair c tc)
+    {s s' : SurfPos} (h : SNsPlain n c s s') (hnb : ¬ BreakBetween s s') :
+    SNsPlain 0 tc s s' :=
+  (plain_toKey hp h).resolve_right (fun hr => hnb (plainResidue_break hr))
+
+lemma doubleQuoted_toKey_of_noBreak {n : Nat} {c tc : L4YAML.YamlContext} (hp : KeyPair c tc)
+    {s s' : SurfPos} (h : SCDoubleQuoted n c s s') (hnb : ¬ BreakBetween s s') :
+    SCDoubleQuoted 0 tc s s' :=
+  (doubleQuoted_toKey hp h).resolve_right (fun hr => hnb (doubleResidue_break hr))
+
+lemma singleQuoted_toKey_of_noBreak {n : Nat} {c tc : L4YAML.YamlContext} (hp : KeyPair c tc)
+    {s s' : SurfPos} (h : SCSingleQuoted n c s s') (hnb : ¬ BreakBetween s s') :
+    SCSingleQuoted 0 tc s s' :=
+  (singleQuoted_toKey hp h).resolve_right (fun hr => hnb (singleResidue_break hr))
 
 end L4YAML.Proofs.FlowKeyLift
