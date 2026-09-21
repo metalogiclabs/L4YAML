@@ -28111,6 +28111,198 @@ forecast: **the walk that stops is not always a walk you wrote.**  229's
 stopped at a `def`, 230's at a combinator, and 231's is the recursor's own
 conclusion.
 
+### Item 232 (2026-09-21)
+
+**THE REPLICATION — the seven unexported motives get names, and each name
+costs a full copy of the block; the cheap experiment the mandate named could
+not have answered the question it was named for.**
+Item 231's recorded NEXT: *"The seven motives the recursor does not export.  A
+`mutual` block of eight lemmas gives every one of them a name — the family
+admits structural recursion, and `L4YAML/Proofs/Foundation/SurfaceSpan.lean`
+§4 is eighteen such lemmas over this same eighteen-type block — and it is what
+`flowContent_toBlockKey` needs in order to stop inverting.  …the one number no
+instrument holds is whether Lean's structural-recursion checker accepts the
+eight together, and the cheap experiment is one `mutual` block over
+`SFlowNode`/`SFlowContent` alone before the other six are written."*  Done —
+and the experiment is the first thing this item corrects.
+
+**The cheap experiment settles nothing, and Lean says so in one line.**
+`SFlowNode`/`SFlowContent` alone, the other six stubbed by `sorry`,
+`termination_by structural h` on both:
+
+    warning: unused `termination_by`, function is not recursive   (×2)
+    Probe constants: [fcontent, fcontent.match_1, fnode, fnode.match_1]
+
+The flow grammar's only cycle through those two runs `SFlowNode →
+SFlowContent → SFlowSequence → SFlowSeqEntries → SFlowSeqEntry → SFlowNode`.
+Stubbing the other six cuts every cycle, so Lean compiled two ordinary
+definitions and the structural checker never ran.  **A truncated instance of a
+mutual problem is not a smaller instance, it is a different one** — the
+reduction that made the experiment cheap is the one that removed the property
+under test.  The experiment that does run it is one lemma over
+`SFlowSeqEntries` alone, self-recursive through `.consMore`, with
+`SFlowSeqEntry` stubbed:
+
+    entries: recursion markers = [SFlowSeqEntries.brecOn, SBlockNode.below,
+      SBlockIndented.below, … all eighteen `.below` …]
+
+**Structural recursion on a strict SUBFAMILY is accepted**, through the type's
+own `brecOn`, with the ten unused `below` motives supplied by the elaborator —
+which is exactly what item 231 did by hand with ten `True`s.
+
+**The operation.**  §3 of `FlowKeyLift` is a `mutual` block of eight lemmas,
+one per flow type, each `termination_by structural h` so the claim is checked
+and not assumed, and the ten block types are not mentioned at all.  The
+pairing rides as an explicit hypothesis `hp : KeyPair c tc` where it used to
+be a universally quantified motive; an interior premise reads its own lemma
+where it used to read an induction hypothesis, and the two bracket bodies pass
+`hp.inFlow`.  `flowContent_toBlockKey` is `flowContent_toKey h (Or.inl
+⟨rfl, rfl⟩)` — one line, no `cases`, no peel.  **No conclusion in the file
+ends in `True`.**
+
+**Nothing in the arms was rewritten.**  The generator reads item 231's 41-row
+arm table verbatim and derives the rest:
+
+    types=8 arms=41 declining_sites=82 haves=105
+    lines_before=482  lines_after=415       (−67, −14%)
+
+82 sites and 105 `have`s, both unmoved.  The first elaboration was clean.
+
+**The finding: eight exports are eight copies.**
+
+    flowNode_toKey:       noop=0 carried=82 payable=48 blocked=0 relay=34  size=55650
+    flowContent_toKey:    noop=0 carried=82 payable=48 blocked=0 relay=34  size=55650
+    flowSequence_toKey:   noop=0 carried=82 payable=48 blocked=0 relay=34  size=55650
+    flowSeqEntries_toKey: noop=0 carried=82 payable=48 blocked=0 relay=34  size=55650
+    flowSeqEntry_toKey:   noop=0 carried=82 payable=48 blocked=0 relay=34  size=55650
+    flowMapping_toKey:    noop=0 carried=82 payable=48 blocked=0 relay=34  size=55650
+    flowMapEntries_toKey: noop=0 carried=82 payable=48 blocked=0 relay=34  size=55650
+    flowMapEntry_toKey:   noop=0 carried=82 payable=48 blocked=0 relay=34  size=55650
+
+Mutual structural recursion does not share a fixpoint.  Each lemma is its own
+`T.brecOn` over the same 41 arms, so each carries all 82 declining sites, all
+73 `sepResidue_widen` applications, and an `Expr` tree of the same size to the
+node.  The paired A/B — one `git stash push` of the file, one
+`lake build L4YAML.Proofs.Production.FlowKeyLift`, one probe on each side, both
+sides re-derivable:
+
+    |                      | item 231 (one `rec`) | item 232 (eight `brecOn`) | ratio |
+    | exports              |                    1 |                         8 |  ×8   |
+    | total term size      |               25 777 |                   445 200 | ×17.3 |
+    | per-export term size |               25 777 |                    55 650 | ×2.16 |
+    | FlowKeyLift.olean    |              645 352 |                 2 059 224 | ×3.19 |
+    | module build, wall   |                1.4 s |                     2.5 s | ×1.8  |
+    | source lines, §3     |                  482 |                       415 | ×0.86 |
+
+**The source shrank 14 % and the proof term grew seventeen-fold.**  Two
+factors multiply: the block is made eight times, and each copy is 2.16× the
+hand-written recursor application, because `brecOn` carries `below` motives
+for all eighteen types where the `rec` application named ten of them `True`.
+Item 231's shape buys one conclusion for the price of all 69 minor premises;
+this one buys eight, as eight copies of a body 2.16 times as large.
+**Completeness of export is paid per export, not once.**
+
+**§5 re-aimed for the opposite reason to last time.**  Item 231 re-aimed it
+because re-pinning would have left it walking an empty population; item 232
+re-aims it because the population OCTUPLED and the sweep walked one eighth of
+it.  Reading `flowNode_toKey` alone would still have said `carried=82` and
+said nothing about the other seven.  It walks all eight now and ASSERTS their
+splits are equal, which is what makes the replication a gate rather than a
+remark:
+
+    item 231:  noop=0 carried=82 payable=48 blocked=0 relay=34
+    item 232:  exports=8 noop=0 carried=82 payable=48 blocked=0 relay=34
+
+The four numbers after `exports` are per export and unmoved since item 230.
+Fourth selector of the run re-aimed, and the fourth found the same way: by an
+edit that moved the thing it pointed at.
+
+**The pins.**  `SurfaceSpanCensus` §7 `motives=18 flow=8 residue=1 trueOnly=1
+none=6` → **`motives=18 flow=8 residue=8 trueOnly=0 none=0`**;
+`NarrowingWorthCensus` `theorems=5238 byElab=18` → **`theorems=5245
+byElab=17`**, the first of the four narrowings to move the population and it
+moves it by exactly the seven new lemmas — the sixteen `.match_*` auxiliaries
+the block also creates are not theorems; `ConclusionObligationCensus`
+`rows=18 res=58` → **`rows=17 res=54`**, and `FlowKeyLift` is no longer
+represented in that census at all.  Unmoved: `expectedFamily` (`types=18
+ctors=69 suffixLemmas=18`), `expectedResidueProbe`, `expectedCoverage`,
+`expectedArmPrice`, `item230Roster`.
+
+**Two stale paragraphs corrected where they live.**  `SurfaceSpan`'s header
+said the recursor is how `flowNode_toKey` is written, and priced it as "ONE of
+the eighteen lemmas for the price of all of them"; both halves are now stated
+against what the artifact does, with the subfamily fact and the per-export
+price beside them.  `FlowKeyLift` §3 said the conversion "is written against
+the family's own recursor".
+
+**Predictions, written before the first edit** (`PREDICTION.md`).  HELD — the
+checker accepts the subfamily (P0); `flowContent_toBlockKey` becomes a
+one-liner (P3); `rows=17 res=54` (P4.1); `theorems=5245` and `byElab` 17
+(P4.2, and the prediction flagged the theorem count as the one it was least
+sure of — it was exact); `expectedFamily` and the four other pins unmoved
+(P4.3, P4.4); declarations **8721**, +7 (P5); ZERO consumers outside the file
+break (P7); `FlowKeyLift.lean` net −46, inside the predicted −40…+40 (P8).
+REFUTED — P1, and in the direction the prediction could not see: it said §5
+would go BLIND, because mutual recursion packs a block into one internal
+constant and `flowNode_toKey`'s own term would carry nothing.  There is no
+packing.  The term did not vanish, it was copied eight times, and §5 had to be
+re-aimed to see MORE rather than to see anything.  MISSED — the price.  Not
+one line of the prediction is about the size of the proof term, and a 17-fold
+growth is the item's whole finding.
+
+**Gates, all at baseline.**  `lake build` **1198** jobs, 0 warnings;
+`run-all-tests.sh` **Verified: 4520/4520** (Production Coverage **837/837**);
+`eventscore` **347/358** (0 error-miss, 0 event-reject); `suiterunner`
+**869/0/151**, run ALONE; matrix **402/402 event** + **282/282 JSON** on BOTH
+pipelines; `[210]` flip **FIVE** definitions with `Document.lean` restored and
+md5-verified (`d955a797b9a9c895be3aabad138a297e`); `#print axioms` — **25**
+capstones, no `sorryAx`, this item's **10** declarations on **`propext`
+alone**; checkers **229** library modules / **355** imports, 20/230/249/355,
+all 25 `theorem` sites whitelisted; annotations **211/211** with the standing
+**19** name mismatches, exit **1**; decline pins **7 + 18 + 6 = 31**, "ALL PINS
+OK" three times.  Counts: declarations **8721** (+7), `#guard` **8173**, test
+files **643**, loose demand **8**.
+
+**What remains.**  The supply side, and it is now the whole of it.  Eight
+conclusions offer `SepResidue` and **nothing refutes one**: `flowKeyHead`
+discards it with `fun _ => trivial` and `accum_flow_open_depth0` discards it
+by pattern, which is why neither broke when the conclusions strengthened.
+`[193] c-s-implicit-json-key` supplies both facts that would refute it — the
+key crosses no line, and a `:` follows it — and those are exactly what
+`sep_toKey_of_noResidue`, `sepOpt_toKey_of_noResidue` and
+`props_toKey_of_noResidue` take.  **Priced from the artifact**:
+`SurfaceSpanCensus` §5 says the residue's carriers are `payable=48` leaf
+applications per export and `relay=34` recursion ones, and the payable lane is
+the one those three lemmas already discharge; the number no instrument holds
+is how many of the 48 a real key consumer can actually reach, and the cheap
+experiment is to give ONE consumer the two facts and see which of the eight
+exports it needs.  The failure mode to watch is this item's own: **the cheap
+version of an experiment can be the version that removes what is being
+tested** — here a two-type mutual block, there a consumer whose hypotheses are
+weakened until it stops needing the residue at all.
+
+Unchanged: R3's seven productions, whose price is the case split; item 183's
+flip order, whose two REFUTABLE halves are `h_ref`'s readers; the parked Ix
+Step-1 composition on the Ix track's own clock.  Instrument debt, still **ten**
+rows, none paid and none added.
+
+**The instrument ledger, thirty-four rows.**  Park constructors (198),
+application sites (200), lemma conclusions (201), the same with a key that
+works (202), indices (203), the runtime's own state (204), the transitive ring
+of a carrier (205), the same closure with its last ring paid (206), the ring's
+payers against a forecast (207), the instruments themselves (208), the object a
+carrier's consumer reads (209), the plan's own remaining list (210), the
+control (211), the provenance (212), the route (213), the pipe (214), the beta
+(215), the arms (216), the branch (217), the reach (218), the corpus (219), the
+matrix (220), the minimal zero (221), the strength ladder (222), the demand
+ledger (223), the spend census (224), the reader census (225), the necessity
+census (226), the worth census (227), the obligation census (228), the span
+(229), the arm price (230), the export (231) — and now **the REPLICATION**,
+which counts how many copies of one block a family of exports costs.  Its
+corollary answers 231's directly: 231 asked what a walk hands back, and the
+answer was one; 232 asked what it costs to hand back all of them, and the
+answer is **once per hand.**
+
 ### REMAINING, in order
 
 The per-item history is the closure log above; this section lists only the

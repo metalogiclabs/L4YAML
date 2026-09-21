@@ -631,10 +631,15 @@ one unfolding, and §6 is the item where those two disagreed about binders. -/
 
     What this pin carries is the other four numbers.  Item 230 moved one of
     them from 21 to 20, because `props_toKey` stopped concluding in `True`;
-    item 231 took two more and left the population itself unmoved at **5238**,
+    item 231 took two more and left the population itself unmoved at 5238,
     because rebuilding eighteen motives and relocating four lemmas within a
-    file adds no theorem to the environment. -/
-def expectedNoopTally : String := "theorems=5238 byElab=18 byWhnf=18 elabOnly=0 whnfOnly=0"
+    file adds no theorem to the environment.  **Item 232 takes the last
+    `FlowKeyLift` row and is the first of the four to move the population**:
+    the recursor application became a `mutual` block of eight lemmas, so the
+    environment gains exactly seven theorems and reads **5245**.  The sixteen
+    `.match_*` auxiliaries the block also creates are not theorems and are not
+    counted here. -/
+def expectedNoopTally : String := "theorems=5245 byElab=17 byWhnf=17 elabOnly=0 whnfOnly=0"
 
 /-- The 27 item 227 measured, now **18**.  Item 228 narrowed six of
     `FlowKeyLift`'s ten — `plain_toKey`, `doubleQuoted_toKey`,
@@ -646,18 +651,20 @@ def expectedNoopTally : String := "theorems=5238 byElab=18 byWhnf=18 elabOnly=0 
     about the outer one, and `breakOrEnd_extend_left`/`_right` carry it there.
     **Item 231 took the recursor application and its top wrapper**,
     `flowNode_toKey` and `flowNode_toBlockKey`, by rebuilding the eight flow
-    motives around `SepResidue`.
+    motives around `SepResidue`.  **Item 232 takes the tenth and last**,
+    `flowContent_toBlockKey`, and `FlowKeyLift` is no longer represented here
+    at all.
 
-    `flowContent_toBlockKey` stayed, and it is the only `FlowKeyLift`
-    declaration left here.  It is not a motive: it recovers the CONTENT
-    conversion by wrapping its input in `SFlowNode.content`, converting, and
-    peeling the node back — and the peel has four arms that the conversion
-    rules out none of, so its `Or.inr` has nothing to return.  A recursor
-    application exports one of its eighteen motives
+    That one was not a motive.  It recovered the CONTENT conversion by
+    wrapping its input in `SFlowNode.content`, converting, and peeling the
+    node back — and the peel has four arms that the conversion rules out none
+    of, so its `Or.inr` had nothing to return.  What removed it was not a
+    stronger proof of the same lemma but a stronger STATEMENT to read:
+    `flowContent_toKey` is a lemma in its own right now, one of eight the
+    `mutual` block exports
     (`Tests.Guards.SurfaceSpanCensus.expectedMotiveExport`). -/
 def expectedNoopConclusions : List String :=
   ["FlowBaseRoutes.key", "FlowBaseRoutes.vslot",
-   "FlowKeyLift.flowContent_toBlockKey",
    "PreprocessIndentStable.IndentFloor.transport",
    "dedent_cover_of_landing", "explFrameValueLine", "flowKeyHead",
    "flowKeyRoute_of_open", "flowKeyRoute_of_root", "flowOpen_floor_at_prep",

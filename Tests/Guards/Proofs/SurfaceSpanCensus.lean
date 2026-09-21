@@ -250,6 +250,17 @@ empty population.  It now selects on the right disjunct's type either way and
 reports both, so `noop=0` is an assertion and `carried` is the population the
 other three are taken over.
 
+**Re-aimed again at item 232, and for the opposite reason**: the population
+did not empty, it OCTUPLED.  The conversion is now a `mutual` block of eight
+structurally recursive lemmas rather than one recursor application, and
+mutual structural recursion does not share a fixpoint — each lemma is its own
+`T.brecOn` over the same 41 arms, so each of the eight carries all 82
+declining sites.  Reading `flowNode_toKey` alone would still have said
+`carried=82` and said nothing about the other seven.  The sweep walks all
+eight and ASSERTS their splits are equal; `exports` is what makes the
+replication visible, and the four numbers after it are per export, unmoved
+since item 230.
+
 **The classification is looked up in the environment, not written here.**  A
 leaf counts as payable exactly when the library carries a lemma that returns
 the conversion from a consumer's hypotheses.  Item 229's split named the
@@ -270,8 +281,16 @@ def leafPayments : List (String × String) :=
    ("sepOpt_toKey", "sepOpt_toKey_of_noResidue"),
    ("props_toKey", "props_toKey_of_noResidue")]
 
+/-- The eight conversions the `mutual` block exports, in the family's order.
+    Item 231 had one of these; the other seven were reachable only by
+    inverting it. -/
+def flowExports : List String :=
+  ["flowNode_toKey", "flowContent_toKey", "flowSequence_toKey",
+   "flowSeqEntries_toKey", "flowSeqEntry_toKey", "flowMapping_toKey",
+   "flowMapEntries_toKey", "flowMapEntry_toKey"]
+
 def expectedLeafSplit : String :=
-  "noop=0 carried=82 payable=48 blocked=0 relay=34"
+  "exports=8 noop=0 carried=82 payable=48 blocked=0 relay=34"
 
 /-- How many times a constant occurs in a term, WITHOUT deduplication: the
     compiler pays per occurrence, and item 228's DAG walk undercounted for
@@ -307,25 +326,33 @@ partial def countInr (isRight : Expr → Bool) (e : Expr) : Nat :=
 
 run_cmd liftTermElabM do
   let env ← getEnv
-  let some ci := env.find? ``L4YAML.Proofs.FlowKeyLift.flowNode_toKey
-    | throwError "flowNode_toKey is gone"
-  let some v := ci.value? (allowOpaque := true) | throwError "no proof term"
   let fkl := `L4YAML.Proofs.FlowKeyLift
-  let n (s : String) := countConst (fkl.str s) v
-  let noop := countInr (·.isConstOf ``True) v
-  let carried := countInr (·.isAppOf (fkl.str "SepResidue")) v
-  let mut payable := 0
-  let mut blocked := 0
-  for (leaf, payment) in leafPayments do
-    if (env.find? (fkl.str leaf)).isNone then
-      throwError "leaf {leaf} is gone from FlowKeyLift"
-    if (env.find? (fkl.str payment)).isSome then payable := payable + n leaf
-    else blocked := blocked + n leaf
-  -- what is left declines through the recursion itself, so it follows the
-  -- worst leaf its sub-derivation reaches.
-  let relay := (noop + carried) - payable - blocked
-  let got := s!"noop={noop} carried={carried} payable={payable} \
+  let mut splits : Array String := #[]
+  for export_ in flowExports do
+    let some ci := env.find? (fkl.str export_)
+      | throwError "{export_} is gone from FlowKeyLift"
+    let some v := ci.value? (allowOpaque := true) | throwError "no proof term for {export_}"
+    let n (s : String) := countConst (fkl.str s) v
+    let noop := countInr (·.isConstOf ``True) v
+    let carried := countInr (·.isAppOf (fkl.str "SepResidue")) v
+    let mut payable := 0
+    let mut blocked := 0
+    for (leaf, payment) in leafPayments do
+      if (env.find? (fkl.str leaf)).isNone then
+        throwError "leaf {leaf} is gone from FlowKeyLift"
+      if (env.find? (fkl.str payment)).isSome then payable := payable + n leaf
+      else blocked := blocked + n leaf
+    -- what is left declines through the recursion itself, so it follows the
+    -- worst leaf its sub-derivation reaches.
+    let relay := (noop + carried) - payable - blocked
+    splits := splits.push s!"noop={noop} carried={carried} payable={payable} \
 blocked={blocked} relay={relay}"
+  -- the replication IS the finding: eight fixpoints over one block of arms.
+  for (export_, split) in flowExports.zip splits.toList do
+    if split != splits[0]! then
+      throwError "the eight exports are no longer copies of one block.\n\
+        {flowExports[0]!}: {splits[0]!}\n  {export_}: {split}"
+  let got := s!"exports={splits.size} {splits[0]!}"
   if got != expectedLeafSplit then
     throwError "the leaf split moved.\nexpected: {expectedLeafSplit}\ngot:      {got}"
 
@@ -428,24 +455,29 @@ run_cmd liftTermElabM do
     throwError "the arm price moved.\nexpected: {expectedArmPrice}\ngot:      {got}\n\
       types: {(rows.qsort (fun a b => a.1 < b.1)).map (·.1)}"
 
-/-! ## §7 What a recursor application exports (DOCS item 231)
+/-! ## §7 What a recursor application exports (DOCS items 231, 232)
 
-`flowNode_toKey` is ONE application of `SFlowNode.rec`, and it carries
-eighteen motives.  Its conclusion is `motive_11` applied to the major premise,
-and that is all a recursor application hands back: the other seventeen are
-reachable only by building a major premise of the head type and INVERTING the
-result, which is what `flowContent_toBlockKey` does — it wraps an
-`SFlowContent` in `SFlowNode.content`, converts, and peels.  The peel has four
-arms and the conversion rules out none of them, so it cannot return the
-residue; it is the one conclusion in `FlowKeyLift` that still ends in `True`.
+A recursor application hands back ONE of its motives.  At item 231
+`flowNode_toKey` was one application of `SFlowNode.rec` carrying eighteen, and
+its conclusion was `motive_11` applied to the major premise; the other
+seventeen were reachable only by building a major premise of the head type and
+INVERTING the result, which is what `flowContent_toBlockKey` did — it wrapped
+an `SFlowContent` in `SFlowNode.content`, converted, and peeled.  The peel has
+four arms and the conversion rules out none of them, so it could not return
+the residue, and it was the one conclusion in `FlowKeyLift` ending in `True`.
 
-This is the same shape as items 229 and 230's corollary, one level up: **a
-population enumerated by a walk stops where the walk stops.**  There the walk
-was a signature list and a name list; here it is the recursor's own major
-premise.  The remedy is a `mutual` block of eight lemmas — the family admits
-structural recursion (`L4YAML/Proofs/Foundation/SurfaceSpan.lean` §4 is
-eighteen such lemmas over this same family), and it is the operation this
-census prices at seven more exports. -/
+That is items 229 and 230's corollary one level up: **a population enumerated
+by a walk stops where the walk stops.**  There the walk was a signature list
+and a name list; there it was the recursor's own major premise.
+
+**Item 232 pays it.**  The conversion is a `mutual` block of eight
+structurally recursive lemmas — accepted on a strict SUBFAMILY of the
+eighteen, through each type's own `brecOn` with the ten unused `below` motives
+filled by the elaborator, which is what item 231 did by hand with ten `True`s.
+All eight types are exported and `flowContent_toBlockKey` reads its own lemma
+instead of inverting, so `trueOnly` and `none` are both zero and this file has
+no conclusion left ending in `True`.  What it cost is §5's `exports=8`: eight
+fixpoints, not one shared one. -/
 
 def flowTypeNames : List Name :=
   (`L4YAML.Surface).str <$>
@@ -453,7 +485,7 @@ def flowTypeNames : List Name :=
      "SFlowSeqEntry", "SFlowMapping", "SFlowMapEntries", "SFlowMapEntry"]
 
 def expectedMotiveExport : String :=
-  "motives=18 flow=8 residue=1 trueOnly=1 none=6"
+  "motives=18 flow=8 residue=8 trueOnly=0 none=0"
 
 /-- The recursor's motive binders, read off its type. -/
 partial def motiveBinders : Expr → Nat

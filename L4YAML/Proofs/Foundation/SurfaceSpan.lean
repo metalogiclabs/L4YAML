@@ -35,11 +35,18 @@ is 18 types and 69 arms.  §1–§3 are the other 56 types.
 mutually inductive type outright, but the equation compiler does NOT: `lemma`
 inside a `mutual` block is a macro in this repo (`L4YAML/Init.lean`) exactly so
 that it reaches `elabMutual`, and structural recursion on a proof of a
-mutually inductive `Prop` is accepted.  The alternative is one application of
-the family's own recursor with eighteen motives, as
-`Proofs.FlowKeyLift.flowNode_toKey` is written — needs all 69 minor premises
-once per entry point, so it gives ONE of the eighteen lemmas for the price of
-all of them.
+mutually inductive `Prop` is accepted — on a STRICT SUBFAMILY too, through
+each type's own `brecOn`, with the unused `below` motives supplied by the
+elaborator (`Proofs.FlowKeyLift` covers the eight flow types and none of the
+ten block ones).
+
+The alternative is one application of the family's recursor with eighteen
+motives.  It needs all 69 minor premises and hands back exactly one of the
+eighteen conclusions, so the other seventeen are reachable only by inverting
+that one.  The `mutual` block does not share the 69 between its lemmas: each
+is its own fixpoint over the same arms, so it buys all eighteen conclusions at
+eighteen times the recursor's price, not at one.  Both facts are measured on
+this very family in `Tests/Guards/Proofs/SurfaceSpanCensus.lean` §§5 and 7.
 
 -/
 

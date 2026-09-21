@@ -56,12 +56,17 @@ at end of input, which is a span a key consumer is never at.
 into a measurement rather than a caution: the 83 sites the cheap probe hid
 behind the motives cost **82** widening terms to discharge, one per
 `Or.inr`, and this census's `res` fell from **123** to **58** with a single
-row leaving.  The reading holds in the other direction too.
-`flowContent_toBlockKey` is not a motive — it recovers the CONTENT conversion
-by inverting the NODE one — and its `res=4` did not move at all, while its
-`imp` fell by exactly the one `∨ True` the inverted result used to carry.
-**A residue reaches the conclusion it is proved about; it does not reach the
-conclusions derived from that one by inversion.**
+row leaving.  The reading held in the other direction too.
+`flowContent_toBlockKey` was not a motive — it recovered the CONTENT
+conversion by inverting the NODE one — and its `res=4` did not move at all,
+while its `imp` fell by exactly the one `∨ True` the inverted result used to
+carry.  **A residue reaches the conclusion it is proved about; it does not
+reach the conclusions derived from that one by inversion.**
+
+**Item 232 removes the inversion** rather than strengthening what it inverts.
+The conversion is a `mutual` block of eight structurally recursive lemmas, so
+the content conversion is read directly and this census falls to **54** with
+that row leaving too.  `FlowKeyLift` is no longer represented here at all.
 -/
 
 set_option autoImplicit false
@@ -277,7 +282,7 @@ partial def scanTerm (e : Expr) (seen : Std.HashSet Expr) (r i : Nat) :
   | .proj _ _ b => scanTerm b seen r i
   | _ => (seen, r, i)
 
-def expectedLedgerTally : String := "rows=18 res=58"
+def expectedLedgerTally : String := "rows=17 res=54"
 
 /-- The rows, machine-produced, sorted by `res` then `prem` descending.  Three
     rows are all-zero — the proof never reaches the right arm by any route —
@@ -285,25 +290,27 @@ def expectedLedgerTally : String := "rows=18 res=58"
     FIELD and narrowing it is the supply-side operation items 212-218 priced,
     not this one.
 
-    **Item 230 took one row off the list** (`FlowKeyLift.props_toKey`) and
+    **Item 230 took one row off the list** (`FlowKeyLift.props_toKey`),
     **item 231 took two more** — `flowNode_toKey`, which held 65 of the 123,
-    and `flowNode_toBlockKey`, which held none.  That is what a narrowing looks
-    like in this census: a row leaves, it does not shrink.
+    and `flowNode_toBlockKey`, which held none — and **item 232 takes the
+    last** `FlowKeyLift` row, `flowContent_toBlockKey` with its `res=4`.  That
+    is what a narrowing looks like in this census: a row leaves, it does not
+    shrink.
 
-    One surviving row DID shrink, and it is the item's finding:
-    `FlowKeyLift.flowContent_toBlockKey` reads `imp=11`, down from 12, because
-    the `flowNode_toBlockKey` result it inverts is no longer an `_ ∨ True`.  Its
-    own `res=4` did not move: the peel has four arms, the node conversion rules
-    out none of them, and so its `Or.inr` still has nothing but `trivial` to
-    return.  A residue that reaches a conclusion does not reach the conclusions
-    derived from it BY INVERSION. -/
+    At item 231 that row DID shrink, to `imp=11` from 12, while its own
+    `res=4` would not move at all: it recovered the CONTENT conversion by
+    inverting the NODE one, and the peel has four arms the node conversion
+    rules out none of.  **A residue that reaches a conclusion does not reach
+    the conclusions derived from it BY INVERSION** — so what removed the row
+    was not a stronger proof but a statement that does not invert.  The
+    conversion is a `mutual` block of eight lemmas now, and the content one is
+    read directly (`Tests.Guards.SurfaceSpanCensus.expectedMotiveExport`). -/
 def expectedLedger : List String :=
   ["res=11 imp=100 prem=6 proj=0 flowKeyRoute_of_root",
    "res=10 imp=85 prem=2 proj=0 flowKeyRoute_of_open",
    "res=9 imp=61 prem=3 proj=0 resumectx_of_landing",
    "res=4 imp=7 prem=1 proj=0 markerctx_of_landing",
    "res=4 imp=7 prem=1 proj=0 suffixctx_of_landing",
-   "res=4 imp=11 prem=0 proj=0 FlowKeyLift.flowContent_toBlockKey",
    "res=3 imp=10 prem=2 proj=0 dedent_cover_of_landing",
    "res=3 imp=5 prem=1 proj=0 flowOpen_stamp",
    "res=3 imp=12 prem=0 proj=0 keyctx_of_preprocess",

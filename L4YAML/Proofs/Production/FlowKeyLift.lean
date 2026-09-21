@@ -41,15 +41,25 @@ import L4YAML.Proofs.Foundation.SurfaceSpan
     **Item 231 rebuilds the eighteen motives.**  The eight flow motives carry
     `SepResidue`; the ten block ones stay `True`, because no flow constructor
     mentions a block type and no block motive is ever fed to a flow arm.  Each
-    of `flowNode_toKey`'s 82 declining sites is one `sepResidue_widen` over a
-    fold of the arm's OWN piece-suffix facts — §0's lemma, moved there from §4
-    because §3 became its heaviest reader.  **One conclusion still ends in
-    `True`**, and it is not a motive: `flowContent_toBlockKey` recovers a
-    CONTENT conversion by inverting a NODE one, and the inversion has three
-    arms (`alias`, `propsContent`, `propsEmpty`) that the node conversion does
-    not rule out.  A recursor application exports exactly ONE of its eighteen
-    motives; the other seventeen are reachable only through that inversion,
-    and the inversion is where the residue is lost.
+    of the 82 declining sites is one `sepResidue_widen` over a fold of the
+    arm's OWN piece-suffix facts — §0's lemma, moved there from §4 because §3
+    became its heaviest reader.
+
+    **Item 232 exports all eight.**  §3 is a `mutual` block of eight
+    structurally recursive lemmas rather than one recursor application, so
+    every type of the flow grammar has a conversion of its own and nothing
+    here is recovered by INVERTING another conclusion.  `SFlowContent` is the
+    one that needed it: `flowContent_toBlockKey` used to wrap its input in
+    `SFlowNode.content`, convert, and peel the node back, and the peel has
+    four arms the node conversion rules out none of, so its residue could only
+    be `True`.  No conclusion in this file ends in `True` now.
+
+    The price is measured, not estimated.  Mutual structural recursion does
+    not share a fixpoint: each of the eight is its own `brecOn` over the same
+    41 arms, so each carries all 82 declining sites and all 73 widenings, and
+    the eight proof terms are the same size to the node
+    (`Tests/Guards/Proofs/SurfaceSpanCensus.lean` §5, `exports=8`).  Seven
+    more conclusions cost seven more copies of the block.
 
     The context pairing is tracked as `KeyPair c tc`: the top node converts
     `(flowOut → blockKey)`, interiors `(flowIn → flowKey)`, and `inFlowCtx`
@@ -330,21 +340,26 @@ lemma props_toKey {n : Nat} {c tc : L4YAML.YamlContext} (hp : KeyPair c tc)
 
 /-! ## §3 The collection family
 
-    The flow grammar is one arm of an 18-type mutual block, so the `induction`
-    tactic does not apply — it refuses a mutually inductive type outright — and
-    the conversion is written against the family's own recursor.
+    The flow grammar is eight types of an 18-type mutual block, so the
+    `induction` tactic does not apply — it refuses a mutually inductive type
+    outright.  The equation compiler does: `lemma` inside `mutual` is a macro
+    in this repo precisely so that it reaches `elabMutual`
+    (`L4YAML/Init.lean`), and `L4YAML/Proofs/Foundation/SurfaceSpan.lean` §4
+    is eighteen mutually structural lemmas over this same family.
 
-    **Corrected at item 229**: this paragraph also said the equation compiler
-    does not apply, "structural recursion does not eliminate a proof of a
-    mutual inductive `Prop`".  It does.  `lemma` inside `mutual` is a macro in
-    this repo precisely so that it reaches `elabMutual` (`L4YAML/Init.lean`),
-    and `L4YAML/Proofs/Foundation/SurfaceSpan.lean` §4 is eighteen mutually
-    structural lemmas over this same family.  The recursor is still the right
-    shape HERE, because the motives differ per type; it is not the only one
-    available.  The ten block-side motives are `True`
-    — the recursion never leaves the flow grammar — and the eight flow motives
-    carry the pairing UNIVERSALLY quantified, which is what lets a collection's
-    entries convert at `inFlowCtx tc` while its brackets convert at `tc`.
+    **Item 232 writes the conversion that way.**  Eight lemmas, one per flow
+    type, each `termination_by structural h`, and the ten block types are not
+    mentioned at all — the recursion never leaves the flow grammar, so a
+    strict subfamily is what the checker is asked to accept, and it does.  The
+    pairing is an explicit hypothesis `hp : KeyPair c tc` rather than a
+    universally quantified motive, which is what lets a collection's entries
+    convert at `inFlowCtx tc` (`hp.inFlow`) while its brackets convert at
+    `tc`.
+
+    Item 231 wrote it as ONE application of the family's recursor with
+    eighteen motives.  That is the shape that hands back one conclusion for
+    the price of all 69 minor premises, and the seven it does not hand back
+    are what item 232 is for.
 
     Every interior piece converts or the whole conversion returns `True`.
     That `True` is the one item 228 could not replace: the residue belongs to
@@ -364,494 +379,430 @@ lemma props_toKey {n : Nat} {c tc : L4YAML.YamlContext} (hp : KeyPair c tc)
     arm is chosen: the `have`s below are exactly the pieces some chain reads,
     which is why the three arms that decline nowhere (`SFlowNode.alias`,
     `SFlowSeqEntry.emptyKeyEmpty`, `SFlowMapEntry.emptyKeyEmpty`) carry none.
+    Item 232 kept all of it — the same 41 arms, the same 82 sites, the same
+    105 `have`s — and changed only who calls whom: an interior premise reads
+    its OWN lemma where it used to read an induction hypothesis.
 
     The three `SFlowContent` scalar arms are the one place the residue is not
     already a `SepResidue`: `plain_toKey`, `singleQuoted_toKey` and
     `doubleQuoted_toKey` return their own, and each is bridged by its §0
     `*_break` lemma into the left disjunct. -/
 
-/-- **The conversion**: a flow node re-reads at index 0 in the paired key
-    context, unless some interior crossed a line. -/
+mutual
+
+/-- **The conversion**: a flow node re-reads at index 0 in the paired
+    key context, unless some interior crossed a line. -/
 lemma flowNode_toKey {n : Nat} {c tc : L4YAML.YamlContext} {s s' : SurfPos}
     (h : SFlowNode n c s s') (hp : KeyPair c tc) :
-    SFlowNode 0 tc s s' ∨ SepResidue s s' :=
-  SFlowNode.rec
-    (motive_1 := fun _ _ _ _ _ => True) (motive_2 := fun _ _ _ _ _ => True)
-    (motive_3 := fun _ _ _ _ => True) (motive_4 := fun _ _ _ _ => True)
-    (motive_5 := fun _ _ _ _ => True) (motive_6 := fun _ _ _ _ => True)
-    (motive_7 := fun _ _ _ _ => True) (motive_8 := fun _ _ _ _ => True)
-    (motive_9 := fun _ _ _ _ => True) (motive_10 := fun _ _ _ => True)
-    (motive_11 := fun _ c s s' _ => ∀ tc, KeyPair c tc → (SFlowNode 0 tc s s' ∨ SepResidue s s'))
-    (motive_12 := fun _ c s s' _ => ∀ tc, KeyPair c tc → (SFlowContent 0 tc s s' ∨ SepResidue s s'))
-    (motive_13 := fun _ c s s' _ => ∀ tc, KeyPair c tc → (SFlowSequence 0 tc s s' ∨ SepResidue s s'))
-    (motive_14 := fun _ c s s' _ => ∀ tc, KeyPair c tc → (SFlowSeqEntries 0 tc s s' ∨ SepResidue s s'))
-    (motive_15 := fun _ c s s' _ => ∀ tc, KeyPair c tc → (SFlowSeqEntry 0 tc s s' ∨ SepResidue s s'))
-    (motive_16 := fun _ c s s' _ => ∀ tc, KeyPair c tc → (SFlowMapping 0 tc s s' ∨ SepResidue s s'))
-    (motive_17 := fun _ c s s' _ => ∀ tc, KeyPair c tc → (SFlowMapEntries 0 tc s s' ∨ SepResidue s s'))
-    (motive_18 := fun _ c s s' _ => ∀ tc, KeyPair c tc → (SFlowMapEntry 0 tc s s' ∨ SepResidue s s'))
-    -- the ten block-side motives are `True`: the recursion stays in the flow grammar
-    (by intros; trivial)
-    (by intros; trivial)
-    (by intros; trivial)
-    (by intros; trivial)
-    (by intros; trivial)
-    (by intros; trivial)
-    (by intros; trivial)
-    (by intros; trivial)
-    (by intros; trivial)
-    (by intros; trivial)
-    (by intros; trivial)
-    (by intros; trivial)
-    (by intros; trivial)
-    (by intros; trivial)
-    (by intros; trivial)
-    (by intros; trivial)
-    (by intros; trivial)
-    (by intros; trivial)
-    (by intros; trivial)
-    (by intros; trivial)
-    (by intros; trivial)
-    (by intros; trivial)
-    (by intros; trivial)
-    (by intros; trivial)
-    (by intros; trivial)
-    (by intros; trivial)
-    (by intros; trivial)
-    (by intros; trivial)
-    -- SFlowNode.alias
-    (by
-      intro _ _ _ _ ha tc hp
-      exact Or.inl (SFlowNode.alias 0 tc _ _ ha))
-    -- SFlowNode.content
-    (by
-      intro _ _ _ _ hc ih tc hp
-      rcases ih tc hp with hc2 | hres
-      · exact Or.inl (SFlowNode.content 0 tc _ _ hc2)
-      · exact Or.inr hres)
-    -- SFlowNode.propsContent
-    (by
-      intro _ _ _ _ _ _ hprops hsep hc ih tc hp
-      have qprops := scNsProperties_suffix hprops
-      have qsep := sSeparate_suffix hsep
-      have qc := sFlowContent_suffix hc
-      rcases props_toKey hp hprops with hprops2 | hres
-      · rcases sep_toKey hp hsep with hsep2 | hres
-        · rcases ih tc hp with hc2 | hres
-          · exact Or.inl (SFlowNode.propsContent 0 tc _ _ _ _ hprops2 hsep2 hc2)
-          · exact Or.inr (sepResidue_widen (qsep.trans qprops) (List.suffix_refl _) hres)
-        · exact Or.inr (sepResidue_widen qprops qc hres)
-      · exact Or.inr (sepResidue_widen (List.suffix_refl _) (qc.trans qsep) hres))
-    -- SFlowNode.propsEmpty
-    (by
-      intro _ _ _ _ hprops tc hp
-      rcases props_toKey hp hprops with hprops2 | hres
-      · exact Or.inl (SFlowNode.propsEmpty 0 tc _ _ hprops2)
-      · exact Or.inr hres)
-    -- SFlowContent.plain
-    (by
-      intro _ _ _ _ hpl tc hp
-      rcases plain_toKey hp hpl with hpl2 | hres
-      · exact Or.inl (SFlowContent.plain 0 tc _ _ hpl2)
-      · exact Or.inr (Or.inl (plainResidue_break hres)))
-    -- SFlowContent.flowSeq
-    (by
-      intro _ _ _ _ hfs ih tc hp
-      rcases ih tc hp with hfs2 | hres
-      · exact Or.inl (SFlowContent.flowSeq 0 tc _ _ hfs2)
-      · exact Or.inr hres)
-    -- SFlowContent.flowMap
-    (by
-      intro _ _ _ _ hfm ih tc hp
-      rcases ih tc hp with hfm2 | hres
-      · exact Or.inl (SFlowContent.flowMap 0 tc _ _ hfm2)
-      · exact Or.inr hres)
-    -- SFlowContent.singleQ
-    (by
-      intro _ _ _ _ hsq tc hp
-      rcases singleQuoted_toKey hp hsq with hsq2 | hres
-      · exact Or.inl (SFlowContent.singleQ 0 tc _ _ hsq2)
-      · exact Or.inr (Or.inl (singleResidue_break hres)))
-    -- SFlowContent.doubleQ
-    (by
-      intro _ _ _ _ hdq tc hp
-      rcases doubleQuoted_toKey hp hdq with hdq2 | hres
-      · exact Or.inl (SFlowContent.doubleQ 0 tc _ _ hdq2)
-      · exact Or.inr (Or.inl (doubleResidue_break hres)))
-    -- SFlowSequence.empty
-    (by
-      intro _ _ _ _ _ _ hl1 hsep hl2 tc hp
-      have ql1 := glit_suffix hl1
-      have ql2 := glit_suffix hl2
-      rcases sepOpt_toKey hp hsep with hsep2 | hres
-      · exact Or.inl (SFlowSequence.empty 0 tc _ _ _ _ hl1 hsep2 hl2)
-      · exact Or.inr (sepResidue_widen ql1 ql2 hres))
-    -- SFlowSequence.nonempty
-    (by
-      intro _ _ _ _ _ _ _ hl1 hsep hent hl2 ih tc hp
-      have ql1 := glit_suffix hl1
-      have qsep := gopt_suffix (fun _ _ => sSeparate_suffix) hsep
-      have qent := sFlowSeqEntries_suffix hent
-      have ql2 := glit_suffix hl2
-      rcases sepOpt_toKey hp hsep with hsep2 | hres
-      · rcases ih (inFlowCtx tc) hp.inFlow with hent2 | hres
-        · exact Or.inl (SFlowSequence.nonempty 0 tc _ _ _ _ _ hl1 hsep2 hent2 hl2)
-        · exact Or.inr (sepResidue_widen (qsep.trans ql1) ql2 hres)
-      · exact Or.inr (sepResidue_widen ql1 (ql2.trans qent) hres))
-    -- SFlowSeqEntries.single
-    (by
-      intro _ _ _ _ _ hent hsep ih tc hp
-      have qent := sFlowSeqEntry_suffix hent
-      have qsep := gopt_suffix (fun _ _ => sSeparate_suffix) hsep
-      rcases ih tc hp with hent2 | hres
-      · rcases sepOpt_toKey hp hsep with hsep2 | hres
-        · exact Or.inl (SFlowSeqEntries.single 0 tc _ _ _ hent2 hsep2)
-        · exact Or.inr (sepResidue_widen qent (List.suffix_refl _) hres)
-      · exact Or.inr (sepResidue_widen (List.suffix_refl _) qsep hres))
-    -- SFlowSeqEntries.consMore
-    (by
-      intro _ _ _ _ _ _ _ _ hent hsep1 hcomma hsep2 hrest ih1 ih2 tc hp
-      have qent := sFlowSeqEntry_suffix hent
-      have qsep1 := gopt_suffix (fun _ _ => sSeparate_suffix) hsep1
-      have qcomma := glit_suffix hcomma
-      have qsep2 := gopt_suffix (fun _ _ => sSeparate_suffix) hsep2
-      have qrest := sFlowSeqEntries_suffix hrest
-      rcases ih1 tc hp with hent2 | hres
-      · rcases sepOpt_toKey hp hsep1 with hsep1b | hres
-        · rcases sepOpt_toKey hp hsep2 with hsep2b | hres
-          · rcases ih2 tc hp with hrest2 | hres
-            · exact Or.inl (SFlowSeqEntries.consMore 0 tc _ _ _ _ _ _ hent2 hsep1b hcomma hsep2b hrest2)
-            · exact Or.inr (sepResidue_widen (qsep2.trans (qcomma.trans (qsep1.trans qent))) (List.suffix_refl _) hres)
-          · exact Or.inr (sepResidue_widen (qcomma.trans (qsep1.trans qent)) qrest hres)
-        · exact Or.inr (sepResidue_widen qent (qrest.trans (qsep2.trans qcomma)) hres)
-      · exact Or.inr (sepResidue_widen (List.suffix_refl _) (qrest.trans (qsep2.trans (qcomma.trans qsep1))) hres))
-    -- SFlowSeqEntries.consEnd
-    (by
-      intro _ _ _ _ _ _ _ hent hsep1 hcomma hsep2 ih tc hp
-      have qent := sFlowSeqEntry_suffix hent
-      have qsep1 := gopt_suffix (fun _ _ => sSeparate_suffix) hsep1
-      have qcomma := glit_suffix hcomma
-      have qsep2 := gopt_suffix (fun _ _ => sSeparate_suffix) hsep2
-      rcases ih tc hp with hent2 | hres
-      · rcases sepOpt_toKey hp hsep1 with hsep1b | hres
-        · rcases sepOpt_toKey hp hsep2 with hsep2b | hres
-          · exact Or.inl (SFlowSeqEntries.consEnd 0 tc _ _ _ _ _ hent2 hsep1b hcomma hsep2b)
-          · exact Or.inr (sepResidue_widen (qcomma.trans (qsep1.trans qent)) (List.suffix_refl _) hres)
-        · exact Or.inr (sepResidue_widen qent (qsep2.trans qcomma) hres)
-      · exact Or.inr (sepResidue_widen (List.suffix_refl _) (qsep2.trans (qcomma.trans qsep1)) hres))
-    -- SFlowSeqEntry.node
-    (by
-      intro _ _ _ _ hn ih tc hp
-      rcases ih tc hp with hn2 | hres
-      · exact Or.inl (SFlowSeqEntry.node 0 tc _ _ hn2)
-      · exact Or.inr hres)
-    -- SFlowSeqEntry.pairValue
-    (by
-      intro _ _ _ _ _ _ _ _ hk hsep1 hcolon hsep2 hv ih1 ih2 tc hp
-      have qk := sFlowNode_suffix hk
-      have qsep1 := gopt_suffix (fun _ _ => sSeparate_suffix) hsep1
-      have qcolon := glit_suffix hcolon
-      have qsep2 := sSeparate_suffix hsep2
-      have qv := sFlowNode_suffix hv
-      rcases ih1 tc hp with hk2 | hres
-      · rcases sepOpt_toKey hp hsep1 with hsep1b | hres
-        · rcases sep_toKey hp hsep2 with hsep2b | hres
-          · rcases ih2 tc hp with hv2 | hres
-            · exact Or.inl (SFlowSeqEntry.pairValue 0 tc _ _ _ _ _ _ hk2 hsep1b hcolon hsep2b hv2)
-            · exact Or.inr (sepResidue_widen (qsep2.trans (qcolon.trans (qsep1.trans qk))) (List.suffix_refl _) hres)
-          · exact Or.inr (sepResidue_widen (qcolon.trans (qsep1.trans qk)) qv hres)
-        · exact Or.inr (sepResidue_widen qk (qv.trans (qsep2.trans qcolon)) hres)
-      · exact Or.inr (sepResidue_widen (List.suffix_refl _) (qv.trans (qsep2.trans (qcolon.trans qsep1))) hres))
-    -- SFlowSeqEntry.pairEmpty
-    (by
-      intro _ _ _ _ _ _ hk hsep hcolon ih tc hp
-      have qk := sFlowNode_suffix hk
-      have qsep := gopt_suffix (fun _ _ => sSeparate_suffix) hsep
-      have qcolon := glit_suffix hcolon
-      rcases ih tc hp with hk2 | hres
-      · rcases sepOpt_toKey hp hsep with hsep2 | hres
-        · exact Or.inl (SFlowSeqEntry.pairEmpty 0 tc _ _ _ _ hk2 hsep2 hcolon)
-        · exact Or.inr (sepResidue_widen qk qcolon hres)
-      · exact Or.inr (sepResidue_widen (List.suffix_refl _) (qcolon.trans qsep) hres))
-    -- SFlowSeqEntry.explicitPairValue
-    (by
-      intro _ _ _ _ _ _ _ _ _ _ hq hsep1 hk hsep2 hcolon hsep3 hv ih1 ih2 tc hp
-      have qq := glit_suffix hq
-      have qsep1 := sSeparate_suffix hsep1
-      have qk := sFlowNode_suffix hk
-      have qsep2 := gopt_suffix (fun _ _ => sSeparate_suffix) hsep2
-      have qcolon := glit_suffix hcolon
-      have qsep3 := sSeparate_suffix hsep3
-      have qv := sFlowNode_suffix hv
-      rcases sep_toKey hp hsep1 with hsep1b | hres
-      · rcases ih1 tc hp with hk2 | hres
-        · rcases sepOpt_toKey hp hsep2 with hsep2b | hres
-          · rcases sep_toKey hp hsep3 with hsep3b | hres
-            · rcases ih2 tc hp with hv2 | hres
-              · exact Or.inl (SFlowSeqEntry.explicitPairValue 0 tc _ _ _ _ _ _ _ _ hq hsep1b hk2 hsep2b hcolon hsep3b hv2)
-              · exact Or.inr (sepResidue_widen (qsep3.trans (qcolon.trans (qsep2.trans (qk.trans (qsep1.trans qq))))) (List.suffix_refl _) hres)
-            · exact Or.inr (sepResidue_widen (qcolon.trans (qsep2.trans (qk.trans (qsep1.trans qq)))) qv hres)
-          · exact Or.inr (sepResidue_widen (qk.trans (qsep1.trans qq)) (qv.trans (qsep3.trans qcolon)) hres)
-        · exact Or.inr (sepResidue_widen (qsep1.trans qq) (qv.trans (qsep3.trans (qcolon.trans qsep2))) hres)
-      · exact Or.inr (sepResidue_widen qq (qv.trans (qsep3.trans (qcolon.trans (qsep2.trans qk)))) hres))
-    -- SFlowSeqEntry.explicitPairEmpty
-    (by
-      intro _ _ _ _ _ _ _ _ hq hsep1 hk hsep2 hcolon ih tc hp
-      have qq := glit_suffix hq
-      have qsep1 := sSeparate_suffix hsep1
-      have qk := sFlowNode_suffix hk
-      have qsep2 := gopt_suffix (fun _ _ => sSeparate_suffix) hsep2
-      have qcolon := glit_suffix hcolon
-      rcases sep_toKey hp hsep1 with hsep1b | hres
-      · rcases ih tc hp with hk2 | hres
-        · rcases sepOpt_toKey hp hsep2 with hsep2b | hres
-          · exact Or.inl (SFlowSeqEntry.explicitPairEmpty 0 tc _ _ _ _ _ _ hq hsep1b hk2 hsep2b hcolon)
-          · exact Or.inr (sepResidue_widen (qk.trans (qsep1.trans qq)) qcolon hres)
-        · exact Or.inr (sepResidue_widen (qsep1.trans qq) (qcolon.trans qsep2) hres)
-      · exact Or.inr (sepResidue_widen qq (qcolon.trans (qsep2.trans qk)) hres))
-    -- SFlowSeqEntry.explicitPairKeyOnly
-    (by
-      intro _ _ _ _ _ _ hq hsep hk ih tc hp
-      have qq := glit_suffix hq
-      have qsep := sSeparate_suffix hsep
-      have qk := sFlowNode_suffix hk
-      rcases sep_toKey hp hsep with hsep2 | hres
-      · rcases ih tc hp with hk2 | hres
-        · exact Or.inl (SFlowSeqEntry.explicitPairKeyOnly 0 tc _ _ _ _ hq hsep2 hk2)
-        · exact Or.inr (sepResidue_widen (qsep.trans qq) (List.suffix_refl _) hres)
-      · exact Or.inr (sepResidue_widen qq qk hres))
-    -- SFlowSeqEntry.explicitPairEmptyNodes
-    (by
-      intro _ _ _ _ _ hq hsep tc hp
-      have qq := glit_suffix hq
-      rcases sep_toKey hp hsep with hsep2 | hres
-      · exact Or.inl (SFlowSeqEntry.explicitPairEmptyNodes 0 tc _ _ _ hq hsep2)
-      · exact Or.inr (sepResidue_widen qq (List.suffix_refl _) hres))
-    -- SFlowSeqEntry.emptyKeyValue
-    (by
-      intro _ _ _ _ _ _ hcolon hsep hv ih tc hp
-      have qcolon := glit_suffix hcolon
-      have qsep := sSeparate_suffix hsep
-      have qv := sFlowNode_suffix hv
-      rcases sep_toKey hp hsep with hsep2 | hres
-      · rcases ih tc hp with hv2 | hres
-        · exact Or.inl (SFlowSeqEntry.emptyKeyValue 0 tc _ _ _ _ hcolon hsep2 hv2)
-        · exact Or.inr (sepResidue_widen (qsep.trans qcolon) (List.suffix_refl _) hres)
-      · exact Or.inr (sepResidue_widen qcolon qv hres))
-    -- SFlowSeqEntry.emptyKeyEmpty
-    (by
-      intro _ _ _ _ hcolon tc hp
-      exact Or.inl (SFlowSeqEntry.emptyKeyEmpty 0 tc _ _ hcolon))
-    -- SFlowSeqEntry.explicitEmptyKeyValue
-    (by
-      intro _ _ _ _ _ _ _ _ hq hsep1 hcolon hsep2 hv ih tc hp
-      have qq := glit_suffix hq
-      have qsep1 := sSeparate_suffix hsep1
-      have qcolon := glit_suffix hcolon
-      have qsep2 := sSeparate_suffix hsep2
-      have qv := sFlowNode_suffix hv
-      rcases sep_toKey hp hsep1 with hsep1b | hres
+    SFlowNode 0 tc s s' ∨ SepResidue s s' := by
+  match h with
+  | .alias _ _ _ _ ha =>
+    exact Or.inl (SFlowNode.alias 0 tc _ _ ha)
+  | .content _ _ _ _ hc =>
+    rcases flowContent_toKey hc hp with hc2 | hres
+    · exact Or.inl (SFlowNode.content 0 tc _ _ hc2)
+    · exact Or.inr hres
+  | .propsContent _ _ _ _ _ _ hprops hsep hc =>
+    have qprops := scNsProperties_suffix hprops
+    have qsep := sSeparate_suffix hsep
+    have qc := sFlowContent_suffix hc
+    rcases props_toKey hp hprops with hprops2 | hres
+    · rcases sep_toKey hp hsep with hsep2 | hres
+      · rcases flowContent_toKey hc hp with hc2 | hres
+        · exact Or.inl (SFlowNode.propsContent 0 tc _ _ _ _ hprops2 hsep2 hc2)
+        · exact Or.inr (sepResidue_widen (qsep.trans qprops) (List.suffix_refl _) hres)
+      · exact Or.inr (sepResidue_widen qprops qc hres)
+    · exact Or.inr (sepResidue_widen (List.suffix_refl _) (qc.trans qsep) hres)
+  | .propsEmpty _ _ _ _ hprops =>
+    rcases props_toKey hp hprops with hprops2 | hres
+    · exact Or.inl (SFlowNode.propsEmpty 0 tc _ _ hprops2)
+    · exact Or.inr hres
+termination_by structural h
+
+/-- `[161] c-flow-json-content` re-reads: the four bracket forms and the
+    three scalar styles. -/
+lemma flowContent_toKey {n : Nat} {c tc : L4YAML.YamlContext} {s s' : SurfPos}
+    (h : SFlowContent n c s s') (hp : KeyPair c tc) :
+    SFlowContent 0 tc s s' ∨ SepResidue s s' := by
+  match h with
+  | .plain _ _ _ _ hpl =>
+    rcases plain_toKey hp hpl with hpl2 | hres
+    · exact Or.inl (SFlowContent.plain 0 tc _ _ hpl2)
+    · exact Or.inr (Or.inl (plainResidue_break hres))
+  | .flowSeq _ _ _ _ hfs =>
+    rcases flowSequence_toKey hfs hp with hfs2 | hres
+    · exact Or.inl (SFlowContent.flowSeq 0 tc _ _ hfs2)
+    · exact Or.inr hres
+  | .flowMap _ _ _ _ hfm =>
+    rcases flowMapping_toKey hfm hp with hfm2 | hres
+    · exact Or.inl (SFlowContent.flowMap 0 tc _ _ hfm2)
+    · exact Or.inr hres
+  | .singleQ _ _ _ _ hsq =>
+    rcases singleQuoted_toKey hp hsq with hsq2 | hres
+    · exact Or.inl (SFlowContent.singleQ 0 tc _ _ hsq2)
+    · exact Or.inr (Or.inl (singleResidue_break hres))
+  | .doubleQ _ _ _ _ hdq =>
+    rcases doubleQuoted_toKey hp hdq with hdq2 | hres
+    · exact Or.inl (SFlowContent.doubleQ 0 tc _ _ hdq2)
+    · exact Or.inr (Or.inl (doubleResidue_break hres))
+termination_by structural h
+
+/-- `[137] c-flow-sequence` re-reads; its entries convert at
+    `inFlowCtx tc`, its brackets at `tc`. -/
+lemma flowSequence_toKey {n : Nat} {c tc : L4YAML.YamlContext} {s s' : SurfPos}
+    (h : SFlowSequence n c s s') (hp : KeyPair c tc) :
+    SFlowSequence 0 tc s s' ∨ SepResidue s s' := by
+  match h with
+  | .empty _ _ _ _ _ _ hl1 hsep hl2 =>
+    have ql1 := glit_suffix hl1
+    have ql2 := glit_suffix hl2
+    rcases sepOpt_toKey hp hsep with hsep2 | hres
+    · exact Or.inl (SFlowSequence.empty 0 tc _ _ _ _ hl1 hsep2 hl2)
+    · exact Or.inr (sepResidue_widen ql1 ql2 hres)
+  | .nonempty _ _ _ _ _ _ _ hl1 hsep hent hl2 =>
+    have ql1 := glit_suffix hl1
+    have qsep := gopt_suffix (fun _ _ => sSeparate_suffix) hsep
+    have qent := sFlowSeqEntries_suffix hent
+    have ql2 := glit_suffix hl2
+    rcases sepOpt_toKey hp hsep with hsep2 | hres
+    · rcases flowSeqEntries_toKey hent hp.inFlow with hent2 | hres
+      · exact Or.inl (SFlowSequence.nonempty 0 tc _ _ _ _ _ hl1 hsep2 hent2 hl2)
+      · exact Or.inr (sepResidue_widen (qsep.trans ql1) ql2 hres)
+    · exact Or.inr (sepResidue_widen ql1 (ql2.trans qent) hres)
+termination_by structural h
+
+/-- `[138] ns-s-flow-seq-entries` re-reads — the comma-separated run. -/
+lemma flowSeqEntries_toKey {n : Nat} {c tc : L4YAML.YamlContext} {s s' : SurfPos}
+    (h : SFlowSeqEntries n c s s') (hp : KeyPair c tc) :
+    SFlowSeqEntries 0 tc s s' ∨ SepResidue s s' := by
+  match h with
+  | .single _ _ _ _ _ hent hsep =>
+    have qent := sFlowSeqEntry_suffix hent
+    have qsep := gopt_suffix (fun _ _ => sSeparate_suffix) hsep
+    rcases flowSeqEntry_toKey hent hp with hent2 | hres
+    · rcases sepOpt_toKey hp hsep with hsep2 | hres
+      · exact Or.inl (SFlowSeqEntries.single 0 tc _ _ _ hent2 hsep2)
+      · exact Or.inr (sepResidue_widen qent (List.suffix_refl _) hres)
+    · exact Or.inr (sepResidue_widen (List.suffix_refl _) qsep hres)
+  | .consMore _ _ _ _ _ _ _ _ hent hsep1 hcomma hsep2 hrest =>
+    have qent := sFlowSeqEntry_suffix hent
+    have qsep1 := gopt_suffix (fun _ _ => sSeparate_suffix) hsep1
+    have qcomma := glit_suffix hcomma
+    have qsep2 := gopt_suffix (fun _ _ => sSeparate_suffix) hsep2
+    have qrest := sFlowSeqEntries_suffix hrest
+    rcases flowSeqEntry_toKey hent hp with hent2 | hres
+    · rcases sepOpt_toKey hp hsep1 with hsep1b | hres
+      · rcases sepOpt_toKey hp hsep2 with hsep2b | hres
+        · rcases flowSeqEntries_toKey hrest hp with hrest2 | hres
+          · exact Or.inl (SFlowSeqEntries.consMore 0 tc _ _ _ _ _ _ hent2 hsep1b hcomma hsep2b hrest2)
+          · exact Or.inr (sepResidue_widen (qsep2.trans (qcomma.trans (qsep1.trans qent))) (List.suffix_refl _) hres)
+        · exact Or.inr (sepResidue_widen (qcomma.trans (qsep1.trans qent)) qrest hres)
+      · exact Or.inr (sepResidue_widen qent (qrest.trans (qsep2.trans qcomma)) hres)
+    · exact Or.inr (sepResidue_widen (List.suffix_refl _) (qrest.trans (qsep2.trans (qcomma.trans qsep1))) hres)
+  | .consEnd _ _ _ _ _ _ _ hent hsep1 hcomma hsep2 =>
+    have qent := sFlowSeqEntry_suffix hent
+    have qsep1 := gopt_suffix (fun _ _ => sSeparate_suffix) hsep1
+    have qcomma := glit_suffix hcomma
+    have qsep2 := gopt_suffix (fun _ _ => sSeparate_suffix) hsep2
+    rcases flowSeqEntry_toKey hent hp with hent2 | hres
+    · rcases sepOpt_toKey hp hsep1 with hsep1b | hres
+      · rcases sepOpt_toKey hp hsep2 with hsep2b | hres
+        · exact Or.inl (SFlowSeqEntries.consEnd 0 tc _ _ _ _ _ hent2 hsep1b hcomma hsep2b)
+        · exact Or.inr (sepResidue_widen (qcomma.trans (qsep1.trans qent)) (List.suffix_refl _) hres)
+      · exact Or.inr (sepResidue_widen qent (qsep2.trans qcomma) hres)
+    · exact Or.inr (sepResidue_widen (List.suffix_refl _) (qsep2.trans (qcomma.trans qsep1)) hres)
+termination_by structural h
+
+/-- `[139] ns-flow-seq-entry` re-reads: a node, or a single pair in
+    any of its ten written forms. -/
+lemma flowSeqEntry_toKey {n : Nat} {c tc : L4YAML.YamlContext} {s s' : SurfPos}
+    (h : SFlowSeqEntry n c s s') (hp : KeyPair c tc) :
+    SFlowSeqEntry 0 tc s s' ∨ SepResidue s s' := by
+  match h with
+  | .node _ _ _ _ hn =>
+    rcases flowNode_toKey hn hp with hn2 | hres
+    · exact Or.inl (SFlowSeqEntry.node 0 tc _ _ hn2)
+    · exact Or.inr hres
+  | .pairValue _ _ _ _ _ _ _ _ hk hsep1 hcolon hsep2 hv =>
+    have qk := sFlowNode_suffix hk
+    have qsep1 := gopt_suffix (fun _ _ => sSeparate_suffix) hsep1
+    have qcolon := glit_suffix hcolon
+    have qsep2 := sSeparate_suffix hsep2
+    have qv := sFlowNode_suffix hv
+    rcases flowNode_toKey hk hp with hk2 | hres
+    · rcases sepOpt_toKey hp hsep1 with hsep1b | hres
       · rcases sep_toKey hp hsep2 with hsep2b | hres
-        · rcases ih tc hp with hv2 | hres
-          · exact Or.inl (SFlowSeqEntry.explicitEmptyKeyValue 0 tc _ _ _ _ _ _ hq hsep1b hcolon hsep2b hv2)
-          · exact Or.inr (sepResidue_widen (qsep2.trans (qcolon.trans (qsep1.trans qq))) (List.suffix_refl _) hres)
-        · exact Or.inr (sepResidue_widen (qcolon.trans (qsep1.trans qq)) qv hres)
-      · exact Or.inr (sepResidue_widen qq (qv.trans (qsep2.trans qcolon)) hres))
-    -- SFlowSeqEntry.explicitEmptyKeyEmpty
-    (by
-      intro _ _ _ _ _ _ hq hsep hcolon tc hp
-      have qq := glit_suffix hq
-      have qcolon := glit_suffix hcolon
-      rcases sep_toKey hp hsep with hsep2 | hres
-      · exact Or.inl (SFlowSeqEntry.explicitEmptyKeyEmpty 0 tc _ _ _ _ hq hsep2 hcolon)
-      · exact Or.inr (sepResidue_widen qq qcolon hres))
-    -- SFlowMapping.empty
-    (by
-      intro _ _ _ _ _ _ hl1 hsep hl2 tc hp
-      have ql1 := glit_suffix hl1
-      have ql2 := glit_suffix hl2
-      rcases sepOpt_toKey hp hsep with hsep2 | hres
-      · exact Or.inl (SFlowMapping.empty 0 tc _ _ _ _ hl1 hsep2 hl2)
-      · exact Or.inr (sepResidue_widen ql1 ql2 hres))
-    -- SFlowMapping.nonempty
-    (by
-      intro _ _ _ _ _ _ _ hl1 hsep hent hl2 ih tc hp
-      have ql1 := glit_suffix hl1
-      have qsep := gopt_suffix (fun _ _ => sSeparate_suffix) hsep
-      have qent := sFlowMapEntries_suffix hent
-      have ql2 := glit_suffix hl2
-      rcases sepOpt_toKey hp hsep with hsep2 | hres
-      · rcases ih (inFlowCtx tc) hp.inFlow with hent2 | hres
-        · exact Or.inl (SFlowMapping.nonempty 0 tc _ _ _ _ _ hl1 hsep2 hent2 hl2)
-        · exact Or.inr (sepResidue_widen (qsep.trans ql1) ql2 hres)
-      · exact Or.inr (sepResidue_widen ql1 (ql2.trans qent) hres))
-    -- SFlowMapEntries.single
-    (by
-      intro _ _ _ _ _ hent hsep ih tc hp
-      have qent := sFlowMapEntry_suffix hent
-      have qsep := gopt_suffix (fun _ _ => sSeparate_suffix) hsep
-      rcases ih tc hp with hent2 | hres
-      · rcases sepOpt_toKey hp hsep with hsep2 | hres
-        · exact Or.inl (SFlowMapEntries.single 0 tc _ _ _ hent2 hsep2)
-        · exact Or.inr (sepResidue_widen qent (List.suffix_refl _) hres)
-      · exact Or.inr (sepResidue_widen (List.suffix_refl _) qsep hres))
-    -- SFlowMapEntries.consMore
-    (by
-      intro _ _ _ _ _ _ _ _ hent hsep1 hcomma hsep2 hrest ih1 ih2 tc hp
-      have qent := sFlowMapEntry_suffix hent
-      have qsep1 := gopt_suffix (fun _ _ => sSeparate_suffix) hsep1
-      have qcomma := glit_suffix hcomma
-      have qsep2 := gopt_suffix (fun _ _ => sSeparate_suffix) hsep2
-      have qrest := sFlowMapEntries_suffix hrest
-      rcases ih1 tc hp with hent2 | hres
-      · rcases sepOpt_toKey hp hsep1 with hsep1b | hres
-        · rcases sepOpt_toKey hp hsep2 with hsep2b | hres
-          · rcases ih2 tc hp with hrest2 | hres
-            · exact Or.inl (SFlowMapEntries.consMore 0 tc _ _ _ _ _ _ hent2 hsep1b hcomma hsep2b hrest2)
-            · exact Or.inr (sepResidue_widen (qsep2.trans (qcomma.trans (qsep1.trans qent))) (List.suffix_refl _) hres)
-          · exact Or.inr (sepResidue_widen (qcomma.trans (qsep1.trans qent)) qrest hres)
-        · exact Or.inr (sepResidue_widen qent (qrest.trans (qsep2.trans qcomma)) hres)
-      · exact Or.inr (sepResidue_widen (List.suffix_refl _) (qrest.trans (qsep2.trans (qcomma.trans qsep1))) hres))
-    -- SFlowMapEntries.consEnd
-    (by
-      intro _ _ _ _ _ _ _ hent hsep1 hcomma hsep2 ih tc hp
-      have qent := sFlowMapEntry_suffix hent
-      have qsep1 := gopt_suffix (fun _ _ => sSeparate_suffix) hsep1
-      have qcomma := glit_suffix hcomma
-      have qsep2 := gopt_suffix (fun _ _ => sSeparate_suffix) hsep2
-      rcases ih tc hp with hent2 | hres
-      · rcases sepOpt_toKey hp hsep1 with hsep1b | hres
-        · rcases sepOpt_toKey hp hsep2 with hsep2b | hres
-          · exact Or.inl (SFlowMapEntries.consEnd 0 tc _ _ _ _ _ hent2 hsep1b hcomma hsep2b)
-          · exact Or.inr (sepResidue_widen (qcomma.trans (qsep1.trans qent)) (List.suffix_refl _) hres)
-        · exact Or.inr (sepResidue_widen qent (qsep2.trans qcomma) hres)
-      · exact Or.inr (sepResidue_widen (List.suffix_refl _) (qsep2.trans (qcomma.trans qsep1)) hres))
-    -- SFlowMapEntry.explicitValue
-    (by
-      intro _ _ _ _ _ _ _ _ _ _ hq hsep1 hk hsep2 hcolon hsep3 hv ih1 ih2 tc hp
-      have qq := glit_suffix hq
-      have qsep1 := sSeparate_suffix hsep1
-      have qk := sFlowNode_suffix hk
-      have qsep2 := gopt_suffix (fun _ _ => sSeparate_suffix) hsep2
-      have qcolon := glit_suffix hcolon
-      have qsep3 := sSeparate_suffix hsep3
-      have qv := sFlowNode_suffix hv
-      rcases sep_toKey hp hsep1 with hsep1b | hres
-      · rcases ih1 tc hp with hk2 | hres
-        · rcases sepOpt_toKey hp hsep2 with hsep2b | hres
-          · rcases sep_toKey hp hsep3 with hsep3b | hres
-            · rcases ih2 tc hp with hv2 | hres
-              · exact Or.inl (SFlowMapEntry.explicitValue 0 tc _ _ _ _ _ _ _ _ hq hsep1b hk2 hsep2b hcolon hsep3b hv2)
-              · exact Or.inr (sepResidue_widen (qsep3.trans (qcolon.trans (qsep2.trans (qk.trans (qsep1.trans qq))))) (List.suffix_refl _) hres)
-            · exact Or.inr (sepResidue_widen (qcolon.trans (qsep2.trans (qk.trans (qsep1.trans qq)))) qv hres)
-          · exact Or.inr (sepResidue_widen (qk.trans (qsep1.trans qq)) (qv.trans (qsep3.trans qcolon)) hres)
-        · exact Or.inr (sepResidue_widen (qsep1.trans qq) (qv.trans (qsep3.trans (qcolon.trans qsep2))) hres)
-      · exact Or.inr (sepResidue_widen qq (qv.trans (qsep3.trans (qcolon.trans (qsep2.trans qk)))) hres))
-    -- SFlowMapEntry.explicitEmpty
-    (by
-      intro _ _ _ _ _ _ _ _ hq hsep1 hk hsep2 hcolon ih tc hp
-      have qq := glit_suffix hq
-      have qsep1 := sSeparate_suffix hsep1
-      have qk := sFlowNode_suffix hk
-      have qsep2 := gopt_suffix (fun _ _ => sSeparate_suffix) hsep2
-      have qcolon := glit_suffix hcolon
-      rcases sep_toKey hp hsep1 with hsep1b | hres
-      · rcases ih tc hp with hk2 | hres
-        · rcases sepOpt_toKey hp hsep2 with hsep2b | hres
-          · exact Or.inl (SFlowMapEntry.explicitEmpty 0 tc _ _ _ _ _ _ hq hsep1b hk2 hsep2b hcolon)
-          · exact Or.inr (sepResidue_widen (qk.trans (qsep1.trans qq)) qcolon hres)
-        · exact Or.inr (sepResidue_widen (qsep1.trans qq) (qcolon.trans qsep2) hres)
-      · exact Or.inr (sepResidue_widen qq (qcolon.trans (qsep2.trans qk)) hres))
-    -- SFlowMapEntry.explicitKeyOnly
-    (by
-      intro _ _ _ _ _ _ hq hsep hk ih tc hp
-      have qq := glit_suffix hq
-      have qsep := sSeparate_suffix hsep
-      have qk := sFlowNode_suffix hk
-      rcases sep_toKey hp hsep with hsep2 | hres
-      · rcases ih tc hp with hk2 | hres
-        · exact Or.inl (SFlowMapEntry.explicitKeyOnly 0 tc _ _ _ _ hq hsep2 hk2)
-        · exact Or.inr (sepResidue_widen (qsep.trans qq) (List.suffix_refl _) hres)
-      · exact Or.inr (sepResidue_widen qq qk hres))
-    -- SFlowMapEntry.implicitValue
-    (by
-      intro _ _ _ _ _ _ _ _ hk hsep1 hcolon hsep2 hv ih1 ih2 tc hp
-      have qk := sFlowNode_suffix hk
-      have qsep1 := gopt_suffix (fun _ _ => sSeparate_suffix) hsep1
-      have qcolon := glit_suffix hcolon
-      have qsep2 := sSeparate_suffix hsep2
-      have qv := sFlowNode_suffix hv
-      rcases ih1 tc hp with hk2 | hres
-      · rcases sepOpt_toKey hp hsep1 with hsep1b | hres
-        · rcases sep_toKey hp hsep2 with hsep2b | hres
-          · rcases ih2 tc hp with hv2 | hres
-            · exact Or.inl (SFlowMapEntry.implicitValue 0 tc _ _ _ _ _ _ hk2 hsep1b hcolon hsep2b hv2)
-            · exact Or.inr (sepResidue_widen (qsep2.trans (qcolon.trans (qsep1.trans qk))) (List.suffix_refl _) hres)
-          · exact Or.inr (sepResidue_widen (qcolon.trans (qsep1.trans qk)) qv hres)
-        · exact Or.inr (sepResidue_widen qk (qv.trans (qsep2.trans qcolon)) hres)
-      · exact Or.inr (sepResidue_widen (List.suffix_refl _) (qv.trans (qsep2.trans (qcolon.trans qsep1))) hres))
-    -- SFlowMapEntry.implicitEmpty
-    (by
-      intro _ _ _ _ _ _ hk hsep hcolon ih tc hp
-      have qk := sFlowNode_suffix hk
-      have qsep := gopt_suffix (fun _ _ => sSeparate_suffix) hsep
-      have qcolon := glit_suffix hcolon
-      rcases ih tc hp with hk2 | hres
-      · rcases sepOpt_toKey hp hsep with hsep2 | hres
-        · exact Or.inl (SFlowMapEntry.implicitEmpty 0 tc _ _ _ _ hk2 hsep2 hcolon)
-        · exact Or.inr (sepResidue_widen qk qcolon hres)
-      · exact Or.inr (sepResidue_widen (List.suffix_refl _) (qcolon.trans qsep) hres))
-    -- SFlowMapEntry.bareKey
-    (by
-      intro _ _ _ _ hk ih tc hp
-      rcases ih tc hp with hk2 | hres
-      · exact Or.inl (SFlowMapEntry.bareKey 0 tc _ _ hk2)
-      · exact Or.inr hres)
-    -- SFlowMapEntry.emptyKeyValue
-    (by
-      intro _ _ _ _ _ _ hcolon hsep hv ih tc hp
-      have qcolon := glit_suffix hcolon
-      have qsep := sSeparate_suffix hsep
-      have qv := sFlowNode_suffix hv
-      rcases sep_toKey hp hsep with hsep2 | hres
-      · rcases ih tc hp with hv2 | hres
-        · exact Or.inl (SFlowMapEntry.emptyKeyValue 0 tc _ _ _ _ hcolon hsep2 hv2)
-        · exact Or.inr (sepResidue_widen (qsep.trans qcolon) (List.suffix_refl _) hres)
-      · exact Or.inr (sepResidue_widen qcolon qv hres))
-    -- SFlowMapEntry.emptyKeyEmpty
-    (by
-      intro _ _ _ _ hcolon tc hp
-      exact Or.inl (SFlowMapEntry.emptyKeyEmpty 0 tc _ _ hcolon))
-    -- SFlowMapEntry.explicitEmptyNodes
-    (by
-      intro _ _ _ _ _ hq hsep tc hp
-      have qq := glit_suffix hq
-      rcases sep_toKey hp hsep with hsep2 | hres
-      · exact Or.inl (SFlowMapEntry.explicitEmptyNodes 0 tc _ _ _ hq hsep2)
-      · exact Or.inr (sepResidue_widen qq (List.suffix_refl _) hres))
-    -- SFlowMapEntry.explicitEmptyKeyValue
-    (by
-      intro _ _ _ _ _ _ _ _ hq hsep1 hcolon hsep2 hv ih tc hp
-      have qq := glit_suffix hq
-      have qsep1 := sSeparate_suffix hsep1
-      have qcolon := glit_suffix hcolon
-      have qsep2 := sSeparate_suffix hsep2
-      have qv := sFlowNode_suffix hv
-      rcases sep_toKey hp hsep1 with hsep1b | hres
+        · rcases flowNode_toKey hv hp with hv2 | hres
+          · exact Or.inl (SFlowSeqEntry.pairValue 0 tc _ _ _ _ _ _ hk2 hsep1b hcolon hsep2b hv2)
+          · exact Or.inr (sepResidue_widen (qsep2.trans (qcolon.trans (qsep1.trans qk))) (List.suffix_refl _) hres)
+        · exact Or.inr (sepResidue_widen (qcolon.trans (qsep1.trans qk)) qv hres)
+      · exact Or.inr (sepResidue_widen qk (qv.trans (qsep2.trans qcolon)) hres)
+    · exact Or.inr (sepResidue_widen (List.suffix_refl _) (qv.trans (qsep2.trans (qcolon.trans qsep1))) hres)
+  | .pairEmpty _ _ _ _ _ _ hk hsep hcolon =>
+    have qk := sFlowNode_suffix hk
+    have qsep := gopt_suffix (fun _ _ => sSeparate_suffix) hsep
+    have qcolon := glit_suffix hcolon
+    rcases flowNode_toKey hk hp with hk2 | hres
+    · rcases sepOpt_toKey hp hsep with hsep2 | hres
+      · exact Or.inl (SFlowSeqEntry.pairEmpty 0 tc _ _ _ _ hk2 hsep2 hcolon)
+      · exact Or.inr (sepResidue_widen qk qcolon hres)
+    · exact Or.inr (sepResidue_widen (List.suffix_refl _) (qcolon.trans qsep) hres)
+  | .explicitPairValue _ _ _ _ _ _ _ _ _ _ hq hsep1 hk hsep2 hcolon hsep3 hv =>
+    have qq := glit_suffix hq
+    have qsep1 := sSeparate_suffix hsep1
+    have qk := sFlowNode_suffix hk
+    have qsep2 := gopt_suffix (fun _ _ => sSeparate_suffix) hsep2
+    have qcolon := glit_suffix hcolon
+    have qsep3 := sSeparate_suffix hsep3
+    have qv := sFlowNode_suffix hv
+    rcases sep_toKey hp hsep1 with hsep1b | hres
+    · rcases flowNode_toKey hk hp with hk2 | hres
+      · rcases sepOpt_toKey hp hsep2 with hsep2b | hres
+        · rcases sep_toKey hp hsep3 with hsep3b | hres
+          · rcases flowNode_toKey hv hp with hv2 | hres
+            · exact Or.inl (SFlowSeqEntry.explicitPairValue 0 tc _ _ _ _ _ _ _ _ hq hsep1b hk2 hsep2b hcolon hsep3b hv2)
+            · exact Or.inr (sepResidue_widen (qsep3.trans (qcolon.trans (qsep2.trans (qk.trans (qsep1.trans qq))))) (List.suffix_refl _) hres)
+          · exact Or.inr (sepResidue_widen (qcolon.trans (qsep2.trans (qk.trans (qsep1.trans qq)))) qv hres)
+        · exact Or.inr (sepResidue_widen (qk.trans (qsep1.trans qq)) (qv.trans (qsep3.trans qcolon)) hres)
+      · exact Or.inr (sepResidue_widen (qsep1.trans qq) (qv.trans (qsep3.trans (qcolon.trans qsep2))) hres)
+    · exact Or.inr (sepResidue_widen qq (qv.trans (qsep3.trans (qcolon.trans (qsep2.trans qk)))) hres)
+  | .explicitPairEmpty _ _ _ _ _ _ _ _ hq hsep1 hk hsep2 hcolon =>
+    have qq := glit_suffix hq
+    have qsep1 := sSeparate_suffix hsep1
+    have qk := sFlowNode_suffix hk
+    have qsep2 := gopt_suffix (fun _ _ => sSeparate_suffix) hsep2
+    have qcolon := glit_suffix hcolon
+    rcases sep_toKey hp hsep1 with hsep1b | hres
+    · rcases flowNode_toKey hk hp with hk2 | hres
+      · rcases sepOpt_toKey hp hsep2 with hsep2b | hres
+        · exact Or.inl (SFlowSeqEntry.explicitPairEmpty 0 tc _ _ _ _ _ _ hq hsep1b hk2 hsep2b hcolon)
+        · exact Or.inr (sepResidue_widen (qk.trans (qsep1.trans qq)) qcolon hres)
+      · exact Or.inr (sepResidue_widen (qsep1.trans qq) (qcolon.trans qsep2) hres)
+    · exact Or.inr (sepResidue_widen qq (qcolon.trans (qsep2.trans qk)) hres)
+  | .explicitPairKeyOnly _ _ _ _ _ _ hq hsep hk =>
+    have qq := glit_suffix hq
+    have qsep := sSeparate_suffix hsep
+    have qk := sFlowNode_suffix hk
+    rcases sep_toKey hp hsep with hsep2 | hres
+    · rcases flowNode_toKey hk hp with hk2 | hres
+      · exact Or.inl (SFlowSeqEntry.explicitPairKeyOnly 0 tc _ _ _ _ hq hsep2 hk2)
+      · exact Or.inr (sepResidue_widen (qsep.trans qq) (List.suffix_refl _) hres)
+    · exact Or.inr (sepResidue_widen qq qk hres)
+  | .explicitPairEmptyNodes _ _ _ _ _ hq hsep =>
+    have qq := glit_suffix hq
+    rcases sep_toKey hp hsep with hsep2 | hres
+    · exact Or.inl (SFlowSeqEntry.explicitPairEmptyNodes 0 tc _ _ _ hq hsep2)
+    · exact Or.inr (sepResidue_widen qq (List.suffix_refl _) hres)
+  | .emptyKeyValue _ _ _ _ _ _ hcolon hsep hv =>
+    have qcolon := glit_suffix hcolon
+    have qsep := sSeparate_suffix hsep
+    have qv := sFlowNode_suffix hv
+    rcases sep_toKey hp hsep with hsep2 | hres
+    · rcases flowNode_toKey hv hp with hv2 | hres
+      · exact Or.inl (SFlowSeqEntry.emptyKeyValue 0 tc _ _ _ _ hcolon hsep2 hv2)
+      · exact Or.inr (sepResidue_widen (qsep.trans qcolon) (List.suffix_refl _) hres)
+    · exact Or.inr (sepResidue_widen qcolon qv hres)
+  | .emptyKeyEmpty _ _ _ _ hcolon =>
+    exact Or.inl (SFlowSeqEntry.emptyKeyEmpty 0 tc _ _ hcolon)
+  | .explicitEmptyKeyValue _ _ _ _ _ _ _ _ hq hsep1 hcolon hsep2 hv =>
+    have qq := glit_suffix hq
+    have qsep1 := sSeparate_suffix hsep1
+    have qcolon := glit_suffix hcolon
+    have qsep2 := sSeparate_suffix hsep2
+    have qv := sFlowNode_suffix hv
+    rcases sep_toKey hp hsep1 with hsep1b | hres
+    · rcases sep_toKey hp hsep2 with hsep2b | hres
+      · rcases flowNode_toKey hv hp with hv2 | hres
+        · exact Or.inl (SFlowSeqEntry.explicitEmptyKeyValue 0 tc _ _ _ _ _ _ hq hsep1b hcolon hsep2b hv2)
+        · exact Or.inr (sepResidue_widen (qsep2.trans (qcolon.trans (qsep1.trans qq))) (List.suffix_refl _) hres)
+      · exact Or.inr (sepResidue_widen (qcolon.trans (qsep1.trans qq)) qv hres)
+    · exact Or.inr (sepResidue_widen qq (qv.trans (qsep2.trans qcolon)) hres)
+  | .explicitEmptyKeyEmpty _ _ _ _ _ _ hq hsep hcolon =>
+    have qq := glit_suffix hq
+    have qcolon := glit_suffix hcolon
+    rcases sep_toKey hp hsep with hsep2 | hres
+    · exact Or.inl (SFlowSeqEntry.explicitEmptyKeyEmpty 0 tc _ _ _ _ hq hsep2 hcolon)
+    · exact Or.inr (sepResidue_widen qq qcolon hres)
+termination_by structural h
+
+/-- `[140] c-flow-mapping` re-reads; the same split as the sequence. -/
+lemma flowMapping_toKey {n : Nat} {c tc : L4YAML.YamlContext} {s s' : SurfPos}
+    (h : SFlowMapping n c s s') (hp : KeyPair c tc) :
+    SFlowMapping 0 tc s s' ∨ SepResidue s s' := by
+  match h with
+  | .empty _ _ _ _ _ _ hl1 hsep hl2 =>
+    have ql1 := glit_suffix hl1
+    have ql2 := glit_suffix hl2
+    rcases sepOpt_toKey hp hsep with hsep2 | hres
+    · exact Or.inl (SFlowMapping.empty 0 tc _ _ _ _ hl1 hsep2 hl2)
+    · exact Or.inr (sepResidue_widen ql1 ql2 hres)
+  | .nonempty _ _ _ _ _ _ _ hl1 hsep hent hl2 =>
+    have ql1 := glit_suffix hl1
+    have qsep := gopt_suffix (fun _ _ => sSeparate_suffix) hsep
+    have qent := sFlowMapEntries_suffix hent
+    have ql2 := glit_suffix hl2
+    rcases sepOpt_toKey hp hsep with hsep2 | hres
+    · rcases flowMapEntries_toKey hent hp.inFlow with hent2 | hres
+      · exact Or.inl (SFlowMapping.nonempty 0 tc _ _ _ _ _ hl1 hsep2 hent2 hl2)
+      · exact Or.inr (sepResidue_widen (qsep.trans ql1) ql2 hres)
+    · exact Or.inr (sepResidue_widen ql1 (ql2.trans qent) hres)
+termination_by structural h
+
+/-- `[141] ns-s-flow-map-entries` re-reads — the comma-separated run. -/
+lemma flowMapEntries_toKey {n : Nat} {c tc : L4YAML.YamlContext} {s s' : SurfPos}
+    (h : SFlowMapEntries n c s s') (hp : KeyPair c tc) :
+    SFlowMapEntries 0 tc s s' ∨ SepResidue s s' := by
+  match h with
+  | .single _ _ _ _ _ hent hsep =>
+    have qent := sFlowMapEntry_suffix hent
+    have qsep := gopt_suffix (fun _ _ => sSeparate_suffix) hsep
+    rcases flowMapEntry_toKey hent hp with hent2 | hres
+    · rcases sepOpt_toKey hp hsep with hsep2 | hres
+      · exact Or.inl (SFlowMapEntries.single 0 tc _ _ _ hent2 hsep2)
+      · exact Or.inr (sepResidue_widen qent (List.suffix_refl _) hres)
+    · exact Or.inr (sepResidue_widen (List.suffix_refl _) qsep hres)
+  | .consMore _ _ _ _ _ _ _ _ hent hsep1 hcomma hsep2 hrest =>
+    have qent := sFlowMapEntry_suffix hent
+    have qsep1 := gopt_suffix (fun _ _ => sSeparate_suffix) hsep1
+    have qcomma := glit_suffix hcomma
+    have qsep2 := gopt_suffix (fun _ _ => sSeparate_suffix) hsep2
+    have qrest := sFlowMapEntries_suffix hrest
+    rcases flowMapEntry_toKey hent hp with hent2 | hres
+    · rcases sepOpt_toKey hp hsep1 with hsep1b | hres
+      · rcases sepOpt_toKey hp hsep2 with hsep2b | hres
+        · rcases flowMapEntries_toKey hrest hp with hrest2 | hres
+          · exact Or.inl (SFlowMapEntries.consMore 0 tc _ _ _ _ _ _ hent2 hsep1b hcomma hsep2b hrest2)
+          · exact Or.inr (sepResidue_widen (qsep2.trans (qcomma.trans (qsep1.trans qent))) (List.suffix_refl _) hres)
+        · exact Or.inr (sepResidue_widen (qcomma.trans (qsep1.trans qent)) qrest hres)
+      · exact Or.inr (sepResidue_widen qent (qrest.trans (qsep2.trans qcomma)) hres)
+    · exact Or.inr (sepResidue_widen (List.suffix_refl _) (qrest.trans (qsep2.trans (qcomma.trans qsep1))) hres)
+  | .consEnd _ _ _ _ _ _ _ hent hsep1 hcomma hsep2 =>
+    have qent := sFlowMapEntry_suffix hent
+    have qsep1 := gopt_suffix (fun _ _ => sSeparate_suffix) hsep1
+    have qcomma := glit_suffix hcomma
+    have qsep2 := gopt_suffix (fun _ _ => sSeparate_suffix) hsep2
+    rcases flowMapEntry_toKey hent hp with hent2 | hres
+    · rcases sepOpt_toKey hp hsep1 with hsep1b | hres
+      · rcases sepOpt_toKey hp hsep2 with hsep2b | hres
+        · exact Or.inl (SFlowMapEntries.consEnd 0 tc _ _ _ _ _ hent2 hsep1b hcomma hsep2b)
+        · exact Or.inr (sepResidue_widen (qcomma.trans (qsep1.trans qent)) (List.suffix_refl _) hres)
+      · exact Or.inr (sepResidue_widen qent (qsep2.trans qcomma) hres)
+    · exact Or.inr (sepResidue_widen (List.suffix_refl _) (qsep2.trans (qcomma.trans qsep1)) hres)
+termination_by structural h
+
+/-- `[142] ns-flow-map-entry` re-reads: eleven written forms of one
+    key/value pair. -/
+lemma flowMapEntry_toKey {n : Nat} {c tc : L4YAML.YamlContext} {s s' : SurfPos}
+    (h : SFlowMapEntry n c s s') (hp : KeyPair c tc) :
+    SFlowMapEntry 0 tc s s' ∨ SepResidue s s' := by
+  match h with
+  | .explicitValue _ _ _ _ _ _ _ _ _ _ hq hsep1 hk hsep2 hcolon hsep3 hv =>
+    have qq := glit_suffix hq
+    have qsep1 := sSeparate_suffix hsep1
+    have qk := sFlowNode_suffix hk
+    have qsep2 := gopt_suffix (fun _ _ => sSeparate_suffix) hsep2
+    have qcolon := glit_suffix hcolon
+    have qsep3 := sSeparate_suffix hsep3
+    have qv := sFlowNode_suffix hv
+    rcases sep_toKey hp hsep1 with hsep1b | hres
+    · rcases flowNode_toKey hk hp with hk2 | hres
+      · rcases sepOpt_toKey hp hsep2 with hsep2b | hres
+        · rcases sep_toKey hp hsep3 with hsep3b | hres
+          · rcases flowNode_toKey hv hp with hv2 | hres
+            · exact Or.inl (SFlowMapEntry.explicitValue 0 tc _ _ _ _ _ _ _ _ hq hsep1b hk2 hsep2b hcolon hsep3b hv2)
+            · exact Or.inr (sepResidue_widen (qsep3.trans (qcolon.trans (qsep2.trans (qk.trans (qsep1.trans qq))))) (List.suffix_refl _) hres)
+          · exact Or.inr (sepResidue_widen (qcolon.trans (qsep2.trans (qk.trans (qsep1.trans qq)))) qv hres)
+        · exact Or.inr (sepResidue_widen (qk.trans (qsep1.trans qq)) (qv.trans (qsep3.trans qcolon)) hres)
+      · exact Or.inr (sepResidue_widen (qsep1.trans qq) (qv.trans (qsep3.trans (qcolon.trans qsep2))) hres)
+    · exact Or.inr (sepResidue_widen qq (qv.trans (qsep3.trans (qcolon.trans (qsep2.trans qk)))) hres)
+  | .explicitEmpty _ _ _ _ _ _ _ _ hq hsep1 hk hsep2 hcolon =>
+    have qq := glit_suffix hq
+    have qsep1 := sSeparate_suffix hsep1
+    have qk := sFlowNode_suffix hk
+    have qsep2 := gopt_suffix (fun _ _ => sSeparate_suffix) hsep2
+    have qcolon := glit_suffix hcolon
+    rcases sep_toKey hp hsep1 with hsep1b | hres
+    · rcases flowNode_toKey hk hp with hk2 | hres
+      · rcases sepOpt_toKey hp hsep2 with hsep2b | hres
+        · exact Or.inl (SFlowMapEntry.explicitEmpty 0 tc _ _ _ _ _ _ hq hsep1b hk2 hsep2b hcolon)
+        · exact Or.inr (sepResidue_widen (qk.trans (qsep1.trans qq)) qcolon hres)
+      · exact Or.inr (sepResidue_widen (qsep1.trans qq) (qcolon.trans qsep2) hres)
+    · exact Or.inr (sepResidue_widen qq (qcolon.trans (qsep2.trans qk)) hres)
+  | .explicitKeyOnly _ _ _ _ _ _ hq hsep hk =>
+    have qq := glit_suffix hq
+    have qsep := sSeparate_suffix hsep
+    have qk := sFlowNode_suffix hk
+    rcases sep_toKey hp hsep with hsep2 | hres
+    · rcases flowNode_toKey hk hp with hk2 | hres
+      · exact Or.inl (SFlowMapEntry.explicitKeyOnly 0 tc _ _ _ _ hq hsep2 hk2)
+      · exact Or.inr (sepResidue_widen (qsep.trans qq) (List.suffix_refl _) hres)
+    · exact Or.inr (sepResidue_widen qq qk hres)
+  | .implicitValue _ _ _ _ _ _ _ _ hk hsep1 hcolon hsep2 hv =>
+    have qk := sFlowNode_suffix hk
+    have qsep1 := gopt_suffix (fun _ _ => sSeparate_suffix) hsep1
+    have qcolon := glit_suffix hcolon
+    have qsep2 := sSeparate_suffix hsep2
+    have qv := sFlowNode_suffix hv
+    rcases flowNode_toKey hk hp with hk2 | hres
+    · rcases sepOpt_toKey hp hsep1 with hsep1b | hres
       · rcases sep_toKey hp hsep2 with hsep2b | hres
-        · rcases ih tc hp with hv2 | hres
-          · exact Or.inl (SFlowMapEntry.explicitEmptyKeyValue 0 tc _ _ _ _ _ _ hq hsep1b hcolon hsep2b hv2)
-          · exact Or.inr (sepResidue_widen (qsep2.trans (qcolon.trans (qsep1.trans qq))) (List.suffix_refl _) hres)
-        · exact Or.inr (sepResidue_widen (qcolon.trans (qsep1.trans qq)) qv hres)
-      · exact Or.inr (sepResidue_widen qq (qv.trans (qsep2.trans qcolon)) hres))
-    -- SFlowMapEntry.explicitEmptyKeyEmpty
-    (by
-      intro _ _ _ _ _ _ hq hsep hcolon tc hp
-      have qq := glit_suffix hq
-      have qcolon := glit_suffix hcolon
-      rcases sep_toKey hp hsep with hsep2 | hres
-      · exact Or.inl (SFlowMapEntry.explicitEmptyKeyEmpty 0 tc _ _ _ _ hq hsep2 hcolon)
-      · exact Or.inr (sepResidue_widen qq qcolon hres))
-    h tc hp
+        · rcases flowNode_toKey hv hp with hv2 | hres
+          · exact Or.inl (SFlowMapEntry.implicitValue 0 tc _ _ _ _ _ _ hk2 hsep1b hcolon hsep2b hv2)
+          · exact Or.inr (sepResidue_widen (qsep2.trans (qcolon.trans (qsep1.trans qk))) (List.suffix_refl _) hres)
+        · exact Or.inr (sepResidue_widen (qcolon.trans (qsep1.trans qk)) qv hres)
+      · exact Or.inr (sepResidue_widen qk (qv.trans (qsep2.trans qcolon)) hres)
+    · exact Or.inr (sepResidue_widen (List.suffix_refl _) (qv.trans (qsep2.trans (qcolon.trans qsep1))) hres)
+  | .implicitEmpty _ _ _ _ _ _ hk hsep hcolon =>
+    have qk := sFlowNode_suffix hk
+    have qsep := gopt_suffix (fun _ _ => sSeparate_suffix) hsep
+    have qcolon := glit_suffix hcolon
+    rcases flowNode_toKey hk hp with hk2 | hres
+    · rcases sepOpt_toKey hp hsep with hsep2 | hres
+      · exact Or.inl (SFlowMapEntry.implicitEmpty 0 tc _ _ _ _ hk2 hsep2 hcolon)
+      · exact Or.inr (sepResidue_widen qk qcolon hres)
+    · exact Or.inr (sepResidue_widen (List.suffix_refl _) (qcolon.trans qsep) hres)
+  | .bareKey _ _ _ _ hk =>
+    rcases flowNode_toKey hk hp with hk2 | hres
+    · exact Or.inl (SFlowMapEntry.bareKey 0 tc _ _ hk2)
+    · exact Or.inr hres
+  | .emptyKeyValue _ _ _ _ _ _ hcolon hsep hv =>
+    have qcolon := glit_suffix hcolon
+    have qsep := sSeparate_suffix hsep
+    have qv := sFlowNode_suffix hv
+    rcases sep_toKey hp hsep with hsep2 | hres
+    · rcases flowNode_toKey hv hp with hv2 | hres
+      · exact Or.inl (SFlowMapEntry.emptyKeyValue 0 tc _ _ _ _ hcolon hsep2 hv2)
+      · exact Or.inr (sepResidue_widen (qsep.trans qcolon) (List.suffix_refl _) hres)
+    · exact Or.inr (sepResidue_widen qcolon qv hres)
+  | .emptyKeyEmpty _ _ _ _ hcolon =>
+    exact Or.inl (SFlowMapEntry.emptyKeyEmpty 0 tc _ _ hcolon)
+  | .explicitEmptyNodes _ _ _ _ _ hq hsep =>
+    have qq := glit_suffix hq
+    rcases sep_toKey hp hsep with hsep2 | hres
+    · exact Or.inl (SFlowMapEntry.explicitEmptyNodes 0 tc _ _ _ hq hsep2)
+    · exact Or.inr (sepResidue_widen qq (List.suffix_refl _) hres)
+  | .explicitEmptyKeyValue _ _ _ _ _ _ _ _ hq hsep1 hcolon hsep2 hv =>
+    have qq := glit_suffix hq
+    have qsep1 := sSeparate_suffix hsep1
+    have qcolon := glit_suffix hcolon
+    have qsep2 := sSeparate_suffix hsep2
+    have qv := sFlowNode_suffix hv
+    rcases sep_toKey hp hsep1 with hsep1b | hres
+    · rcases sep_toKey hp hsep2 with hsep2b | hres
+      · rcases flowNode_toKey hv hp with hv2 | hres
+        · exact Or.inl (SFlowMapEntry.explicitEmptyKeyValue 0 tc _ _ _ _ _ _ hq hsep1b hcolon hsep2b hv2)
+        · exact Or.inr (sepResidue_widen (qsep2.trans (qcolon.trans (qsep1.trans qq))) (List.suffix_refl _) hres)
+      · exact Or.inr (sepResidue_widen (qcolon.trans (qsep1.trans qq)) qv hres)
+    · exact Or.inr (sepResidue_widen qq (qv.trans (qsep2.trans qcolon)) hres)
+  | .explicitEmptyKeyEmpty _ _ _ _ _ _ hq hsep hcolon =>
+    have qq := glit_suffix hq
+    have qcolon := glit_suffix hcolon
+    rcases sep_toKey hp hsep with hsep2 | hres
+    · exact Or.inl (SFlowMapEntry.explicitEmptyKeyEmpty 0 tc _ _ _ _ hq hsep2 hcolon)
+    · exact Or.inr (sepResidue_widen qq qcolon hres)
+termination_by structural h
+
+end
 
 /-- **The top wrapper**: a completed depth-0 flow node re-reads as `[154]`'s
     JSON key when it is single-line. -/
@@ -863,14 +814,17 @@ lemma flowNode_toBlockKey {n : Nat} {s s' : SurfPos}
 /-- The same conversion one level down, for a key that a held `[96]` run
     DECORATES (`&a [1]: b`): the properties are the head's, so what the
     collection owes is `[158]`'s content, and `[161]`'s `propsContent` arm is
-    assembled at the site that holds the run. -/
+    assembled at the site that holds the run.
+
+    It reads its own lemma.  Item 231 built it by wrapping the content in
+    `SFlowNode.content`, converting, and PEELING — and the peel has four arms
+    the node conversion rules out none of, so its residue could only be
+    `True`.  `flowContent_toKey` is now a lemma in its own right, so the
+    residue is the content's own. -/
 lemma flowContent_toBlockKey {n : Nat} {s s' : SurfPos}
-    (h : SFlowContent n .flowOut s s') : SFlowContent 0 .blockKey s s' ∨ True := by
-  rcases flowNode_toBlockKey (.content _ _ _ _ h) with h_node | _
-  · cases h_node with
-    | content _ _ _ _ hc => exact Or.inl hc
-    | _ => exact Or.inr trivial
-  · exact Or.inr trivial
+    (h : SFlowContent n .flowOut s s') :
+    SFlowContent 0 .blockKey s s' ∨ SepResidue s s' :=
+  flowContent_toKey h (Or.inl ⟨rfl, rfl⟩)
 
 /-- A separation re-reads at `block-key` when it is inline — the pairing
     spelled for the one the block side uses. -/
