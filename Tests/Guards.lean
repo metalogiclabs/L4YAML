@@ -14,6 +14,7 @@ import Tests.Guards.Proofs.DeclineArmInvariants
 import Tests.Guards.Proofs.ArmStrengthLadder
 import Tests.Guards.Proofs.ArmDemandLedger
 import Tests.Guards.Proofs.ArmSpendCensus
+import Tests.Guards.Proofs.HypothesisReaderCensus
 import Tests.Guards.Proofs.EndToEndCorrectness
 import Tests.Guards.Proofs.EscapeResolution
 import Tests.Guards.Proofs.FoldNewlines

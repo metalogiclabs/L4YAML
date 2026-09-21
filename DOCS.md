@@ -26718,6 +26718,209 @@ already tight and count who screams.**  Its corollary, which is what refused the
 mandate: **tightening a consumer that cannot read the conjunct buys only
 plumbing, and plumbing is one `imp_left` away in either direction.**
 
+### Item 225 (2026-09-20)
+
+**THE READER CENSUS — A PREMISE HAS NO READER FOR TWO DIFFERENT REASONS, AND
+ONLY ONE OF THEM IS ABOUT PROOFS.**
+
+**The mandate** (item 224's recorded NEXT, entry 1): *"What the spend census
+opens instead is the question it was built to ask, now askable of any premise:
+which of β.5's remaining hypotheses have readers, and which are carried?  The
+weakening probe is generic — it needs only a binder and a module — and R3's
+seven productions, `content_dispatch_routed`'s two `noKeyContext`, and item
+183's flip order are all priced today by what they would BREAK and by nothing
+that says what would READ them."*
+
+Item 224's probe could not be the instrument that answers it.  It loosens one
+binder, rebuilds, and reads the errors — **one build per binder**, which is why
+it was run on eight and not on a library.  This item moves it into the
+environment, and then the three named premises answer in three different ways,
+one of which the instrument cannot see at all.
+
+**The instrument: the READER CENSUS**, in
+[`Tests/Guards/Proofs/HypothesisReaderCensus.lean`](Tests/Guards/Proofs/HypothesisReaderCensus.lean).
+For every binder of every declaration it classifies the occurrences of that
+binder in the ELABORATED proof term: `READ` (eliminated HERE — scrutinee of a
+recursor, `casesOn` or matcher, argument of a projection, a `.proj`, or applied),
+`RELAY` (handed to another constant and nothing else), `FIELD` (stored in a
+constructor), `RETURN` (handed back bare), `UNUSED`, and `ETA`.  The
+discriminants are read off the environment — `majorOf` for eliminators,
+`getProjectionFnInfo?` for projections — so no list of combinator names decides
+anything.  One walk, twelve seconds, every binder.
+
+**The calibration is the reason to believe any of it.**  Item 224's eight
+rebuild verdicts are ground truth, and the census reproduces all eight:
+
+| binder | item 224, by rebuild | item 225, off the term |
+|---|---|---|
+| `block_dispatch_deferred#5` | CONDUIT → `pendingFlow`'s field | **FIELD** |
+| `..._stamp_offcol#8` / `..._stamp_nopack#7` / `..._inline#7` | CONDUIT | RELAY |
+| `accum_block_on_closeThenBlock#17` | PLUMBING | RELAY |
+| `colon_fires_implicit_key#11` | **READ** | **READ** |
+| `accum_block_on_pendingContent#23` | CONDUIT | RELAY |
+| `accum_block_on_pendingBlockContent#25` | CONDUIT | RELAY |
+
+One READ in each, seven not in each — and the census names
+`block_dispatch_deferred`'s mechanism itself, which item 224 had to read off the
+error text by hand.  **Eight builds became one.**  The eight LOOSE rows come
+free with it and confirm item 224's other half from the terms: four of them
+(`landing_or_park_save`, `landing_or_park_ska`, `preprocess_flow_thread`,
+`flowKeyRoute_of_open`) ARE reads — of the FLAG, the loose arm's whole left
+disjunct.  Disjoint readers, no longer a reading of a proof but a property of
+two terms.
+
+**`StreamAccum`'s own premises**: `constants=1124 decls=945 eta=364 FIELD=154
+READ=1016 RELAY=1997 RETURN=48 UNUSED=9`.  Two facts in that line.
+
+The first is that **`UNUSED` is nearly empty and the reason is not about this
+library**: Lean's own `unusedVariables` linter already gates the lane, and seven
+of the nine rows carry a leading underscore written to silence it.  **The cheap
+end of "carried" is enforced by the toolchain already; the expensive end —
+threaded through a proof and never eliminated — is not, and that is `RELAY`, at
+1997, twice the `READ` lane.**
+
+The second is that `eta=364` is not a failure lane.  A lemma's TYPE keeps
+producing `forall` binders past the end of its premise list whenever its
+conclusion is itself a function: `rootMapRoute_or_refused` has thirteen leading
+foralls and eleven lambdas, and the two extra are
+`∀ sp_v, SBlockMapEntry k sp_key sp_v →` — part of what it CONCLUDES.  So the
+telescope to peel is the shorter of the two and a binder the value never binds
+gets no verdict rather than a guessed one.  Item 224's `skipped=31` was the same
+boundary, guarded the other way.
+
+**The optional contexts, asked the dual question.**  Items 212–218 censused the
+`_ ∨ True` premises by SUPPLY — who pays, who declines, what relays — and
+nothing there asked who READS one when it is paid.  Over the same population:
+**`total=163 ETA=34 READ=85 RELAY=44`**.  At `content_dispatch_routed`, the six
+item 212 enumerated: `h_keyctx`, `h_suffixctx`, `h_nodocctx`, `h_markerctx` and
+`h_propsctx` are all READ in the lemma's own term, and **`h_ref` alone relays**.
+
+**`h_ref`'s chase lands in the library, twice** — at
+`rootMapRoute_or_refused#7` and `rootMapRouteF_or_refused#7`, which is where the
+source says what it buys:
+
+```lean
+match h_ref with
+| Or.inl h_facts => exact (h_facts.refutes h_op).elim
+| Or.inr _ => exact rootMapRoute hcol0 h_stream_land h_ind
+```
+
+A premise **read only in REFUTATION** — the same shape as the arm's one reader
+one workstream over, which took `⟨_, h_poss_f⟩` to kill a branch and used
+neither half for anything else.  And `rootMapRoute`/`rootMapRouteF` are two of
+item 183's FIVE flip definitions, so the mandate's third named premise is where
+the second one's reader lives.  Nine relayed optional premises reach no library
+elimination at all and are pinned as the shortlist a reader should look at
+first; `h_ref` is deliberately not one of them.
+
+**R3's seven productions cannot be priced by readership, and the reason is not
+that the instrument is short.**  `KeyPackPunt.dedent` and `.noKeyContext` are
+NULLARY (`tab=2 dedent=0 implicitValue=3 noKeyContext=0`, pinned off the
+environment), so `∀ sc, KeyPackPunt sc` is PROVABLE — `punt_is_unconditional`,
+one constructor — and therefore
+
+```lean
+lemma punt_premise_buys_nothing (k : KeyPackPunt sc → P) : P := k .dedent
+lemma punt_disjunct_buys_nothing (k : A ∨ KeyPackPunt sc → P) : P := k (Or.inr .dedent)
+```
+
+There is nothing to read.  A consumer that takes `A ∨ KeyPackPunt sc` proves its
+conclusion without it, and the library already witnesses that: item 223's
+`colon_fires_from_any_park` passes `fun _ _ => Or.inr .dedent` for the pack
+obligation and the lemma still concludes.  So the price of a punt is the CASE
+SPLIT it forces at the consumer, which is exactly what
+`scripts/punt_reason_price.py` measures — **the two instruments are asking the
+only question available, and the reader census's contribution is to say so and
+prove it.**
+
+**The rule this item adds: a premise has no reader for two different reasons,
+and only one of them is about proofs.**  It can be threaded and never
+eliminated — which a census of terms measures — or its TYPE can be
+unconditionally inhabited, which no census of terms can see and which one
+`example` settles.  R3's seven productions are the second kind, and every item
+that priced them by what they would BREAK was pricing the only thing there was.
+
+**The debt this instrument carries, exhibited rather than asserted.**  A relay's
+chase terminates INSIDE the callee, and there the census cannot tell a read from
+a re-statement: `Or.elim h f g` hands the decision back to the caller's own
+alternatives and `Or.imp_left f h` rebuilds a weaker disjunction and decides
+nothing, and both are an argument to a constant at the call site terminating at
+`Or.casesOn` one hop on.  §7 states the two as lemmas and pins that the census
+gives them the SAME verdict, so the limit is machine-checked.  That is why §5
+publishes terminals verbatim and refuses to collapse them into a verdict — a
+transitive resolver would have called the re-statement a read, and it did, in
+this item's own first probe.
+
+**Errors in this item's own instruments, found and volunteered.**  The first
+probe resolved relays transitively and reported `accum_block_on_closeThenBlock`
+as a READER of the tight arm — contradicting item 224's rebuild — because the
+chain reaches `Or.imp_left`, which eliminates its argument in order to weaken
+it.  The transitive verdict was deleted, not patched: §5 reports where a chain
+lands and stops.  The same probe's first telescope guard was item 224's
+(`lamDepth ≥ arity`), which silently skipped every lemma whose conclusion is a
+function — including both of `h_ref`'s readers, which it reported as
+unclassifiable until the guard was corrected to the shorter telescope.
+
+**What changed.**  `Tests/Guards/Proofs/HypothesisReaderCensus.lean` (NEW): the
+instrument, the calibration pin, the module tally, the optional-context tally,
+`content_dispatch_routed`'s six, the nine-row core-terminal shortlist,
+`h_ref`'s terminals, `KeyPackPunt`'s field counts, the three punt lemmas and
+§7's two exhibits.  `Tests/Guards.lean`: one import.  **No library file was
+changed**, and no census predicate was edited, so items 219–224 keep every pin.
+
+**Gates, all at baseline.**  `lake build` **1192** jobs (1191 + the new guard
+module), 0 warnings; `run-all-tests.sh` **Verified: 4520/4520**; `eventscore`
+**347/358** (0 error-miss, 0 event-reject); `suiterunner` **869/0/151**, run
+ALONE; matrix **402/402 event** + **282/282 JSON** on BOTH pipelines;
+`#print axioms` — no `sorryAx`, and §7's two exhibits depend on no axioms at
+all; `[210]` flip **FIVE** definitions, the recorded set, restored and
+md5-verified; checkers unmoved (228 library modules from 5 default targets, 355
+imports; 20/230/249/355; all 25 `theorem` sites whitelisted); annotations
+**211/211** with the standing **19** name mismatches, exit **1** as always.
+Counts: declarations **8604** unmoved, `#guard` **8173** unmoved, test files
+**638 -> 639**, the loose demand census **8** unmoved.
+
+**And a correction to the gate line itself.**  `declinereach`, `declinearm` and
+`declinecorner` re-derive **31** pins (7 + 18 + 6), not the "thirty" this
+section has said since item 222.  The three census sources have not been touched
+since that item, so the count was 31 when the word was written and items 223 and
+224 copied it — §10's *a forecast copied forward is still one measurement*,
+applied this time to a gate rather than to a plan.
+
+**What remains.**  The reader census is generic and cheap, so the question it
+was built for is now answerable of any premise in one build; what it opens is
+the lane it found and did not spend.  **`RELAY` is 1997 binders in `StreamAccum`
+alone and nothing gates it** — a premise threaded through a proof and never
+eliminated is invisible to the linter, to the supply census and to the flip
+patch, and the nine-row core-terminal shortlist in §5 is the first place one
+would look for a premise that could simply be dropped.  Dropping one is a
+library change and therefore a different item: a census and a spend in one item
+cannot be told apart afterwards.  Unchanged: R3's seven productions, whose price
+is now known to be the case split and nothing else; item 183's flip order, whose
+two REFUTABLE halves are `h_ref`'s readers; the parked Ix Step-1 composition on
+the Ix track's own clock.  Instrument debt, now **eight** rows, one added: the
+198/200/201 censuses still lack a cruder-key control; what an `Or.inl`'s proof
+actually FORWARDS is measured and unresolved; the supply walk is scoped to one
+module; `pendingDocEnd` has no token-level field and no directive-flag field;
+`pendingBlock` carries no `h_real`; the strength ladder is a PROOF-LEVEL
+instrument only; the weakening probe reads a lemma's CURRENT proof, not the
+space of proofs it admits; and new: **a relay's terminal cannot distinguish a
+read from a re-statement**, §7's `Or.elim`/`Or.imp_left` pair, which is why the
+`RELAY` lane's 1997 rows are a shortlist and not a verdict.
+
+**The instrument ledger, twenty-seven rows.**  Park constructors (198),
+application sites (200), lemma conclusions (201), the same with a key that works
+(202), indices (203), the runtime's own state (204), the transitive ring of a
+carrier (205), the same closure with its last ring paid (206), the ring's payers
+against a forecast (207), the instruments themselves (208), the object a
+carrier's consumer reads (209), the plan's own remaining list (210), the control
+(211), the provenance (212), the route (213), the pipe (214), the beta (215),
+the arms (216), the branch (217), the reach (218), the corpus (219), the matrix
+(220), the minimal zero (221), the strength ladder (222), the demand ledger
+(223), the spend census (224) — and now **the READER CENSUS**.  Its corollary,
+which is what settled R3: **a premise whose type is unconditionally inhabited
+has no reader at any price, and a census of terms will never find that out.**
+
 ### REMAINING, in order
 
 The per-item history is the closure log above; this section lists only the
