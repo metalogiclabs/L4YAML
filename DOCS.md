@@ -27117,6 +27117,213 @@ CENSUS**.  Its corollary, which is what settled the mandate: **a lane nothing
 gates is not thereby a lane with something in it, and the premises that cost
 nothing are the ones the plan is holding open on purpose.**
 
+### Item 227 (2026-09-20)
+
+**A PREMISE THAT IS NARROWED IS NOT THEREBY LOAD-BEARING.**  Item 226 closed
+the optional lane in both directions and named what was left: *"the census says
+who would have to pay; nothing yet says what the payment is worth"*.  The worth
+is measured here, and the first thing that had to be measured is a denominator
+nobody had.  **Every census of the optional population, items 212 through 226,
+read the `∨ True` WRAPPER and threw the left disjunct away.**  `isOptTy` asks
+whether the type is an `Or` whose second argument is `True`; its first argument
+was never taken.  So 163 rows had been counted fifteen times and never once
+asked what they are ABOUT.
+
+**What they are about: 62 distinct faces, 18 conclusion heads.**  Keyed by the
+quantifier spine down to the head — `SLYamlStream` 32, `lt` 23, `Eq` 17,
+`Floor` 15, `ResumeFrames` 12, `le` 11, `BareLandingFacts` 8, `SeqEntryTail` 7,
+`SuffixRun` 6, `MarkerNodeRoute` 5, then `CompletedTail`/`GLit`/`GStar`/`Mono`/
+`PropsNodeRoute` at 4, `Covered` 3, `IndentFloor` 2 and `FVAR` 2.  The
+population is neither 163 copies of one idiom nor 163 unrelated facts, and
+until this item nobody could have said which.
+
+**Twenty-two of the faces are unconditionally inhabited THEMSELVES.**  Their
+left disjunct is `∃ ns : List Nat, ∀ nv ∈ ns, P nv`, which the EMPTY LIST
+proves.  So at those sites `Or.inr trivial` and `Or.inl ⟨[], _⟩` are the same
+decline written two ways, and the narrowing the plan calls for moves the
+premise from one unconditional inhabitant to another.  `chain_is_unconditional`
+and `narrowing_buys_nothing` state that where it belongs — in the statement —
+and the second is the finding in one line: for a chain face the lemma that
+takes the optional premise and the lemma that takes the NARROWED one are the
+same lemma, each direction one application.
+
+**The compiler ran the other branch of item 226's experiment.**
+`scripts/pay_chain_optional.py` is item 226's substitution probe through a seam
+that is a no-op at item 226's own values — the witness and the roster filter,
+the same shape `Peel` gave `HypothesisReaderCensus`.  Of the module's 162
+optional binders, 22 have a vacuous face, six are constructor fields and two
+are term-mode proofs; **the remaining 14 were PAID at once with
+`Or.inl ⟨[], by simp⟩`, one build, zero errors**, after which Lean's linter
+calls 11 of the 14 unreferenced.  The paying branch is as free as the declining
+one.
+
+**The rule this item adds: a premise that is NARROWED is not thereby
+load-bearing.**  Narrowing is not one operation but a LADDER, and the plan's
+sentence names a rung rather than a destination — rung 0 is `A ∨ True` (item
+226: all of them vacuous), rung 1 is `A` (here: 22 still vacuous), and only a
+rung that reaches a face with no unconditional inhabitant buys anything.  Its
+companion, and the reason the count is worth having: **the sites where the
+narrowing is free are exactly the sites where it is worthless**, because free
+and worthless are one fact about the face read from the producer's end and from
+the consumer's.
+
+**The worth ledger, which existed in one file since item 218 and had never been
+printed.**  Item 217's `splits` is what a narrowing DELETES and item 218's
+`sup` is what it CHARGES; joined, `pairs=36 splits=99 sup=112 chainPairs=6
+chainSplits=12 innerPairs=9 innerSplits=36`.  The control is that the parse
+recovers item 217's own **99** exactly.  Two rows read off it that no earlier
+item could: **the six vacuous rows sit at splits 3, 3, 3, 1, 1, 1 — the
+narrowings that buy nothing are the CHEAP ones** — and **nine rows covering 36
+of the 99 splits carry a further `_ ∨ True` inside the face**, so for those one
+narrowing does not reach the bottom.  The highest-worth row,
+`h_closeF_old :: accum_content_on_pendingBlock_indented#14` at `splits=11`, is
+one of the nine.
+
+**And the instrument the mandate named can answer for one premise in
+thirty-six.**  The mandate prescribed the corpus censuses (items 204, 219).
+**138 of the 163 faces are grammar propositions over `SurfPos`**, which a
+scanner-state census cannot spell — its vocabulary is `ScannerState` fields and
+the runtime's own functions, and its one bridge to the surface is
+`ScannerSurfCorr.col_eq`, which carries a column.  Crossed against the 36
+branch premises a narrowing would target: **`stateReachable=1`**, covering
+**3** of the 99 splits.  That is the third consecutive mandate to name a corpus
+census and the third time the named instrument was not the one that answered
+(items 217→218, 218→219).  The rule the three state together: **a plan sentence
+that names an instrument is a hypothesis about the instrument, and it goes
+stale the same way a number does** — §10 already says a forecast copied forward
+is still one measurement, and an instrument copied forward is not even that.
+
+**A correction to the selector every census since item 212 has used,
+volunteered.**  `isOptTy` is syntactic, so a `∨ True` behind a definition is
+invisible to it, and there is one: `ResumeKeyCtx`.  Two binders carry it.
+**The optional population is 165, not 163.**  Nothing measured on the 163 is
+wrong — those items measured the 163, and this item re-derives every one of
+them unmoved — but the sentence beside the number was.  Item 226's
+`expectedOptPopulation` pins what `isOptTy` finds and still passes unedited;
+the prose beside it is struck and corrected in its own file.  **The instrument
+that found the blind spot is the one that asked the compiler instead of the
+syntax**: `resumectx_of_landing` turned up in the CONCLUSION census, proved by
+`Or.inr trivial` while not being syntactically `_ ∨ True`.
+
+**The worth, counted: 27 declarations prove nothing.**  `theorems=5138
+byElab=27 byWhnf=27 elabOnly=0 whnfOnly=0` — two independent instruments, the
+elaborator and `isOptTy` after one `whnf`, select the same 27 in both
+directions.  Those 27 are what a narrowing is worth as a population: today each
+is a theorem `Or.inr trivial` would prove, and narrowing its conclusion is what
+would make it an obligation.  **Ten of them are in `FlowKeyLift`**, outside the
+supply census's one-module horizon — item 218's instrument-debt row, with a
+number under it at last.  And all 27 have clean axiom profiles, two of them
+gated in DOCS at `propext` alone: CLAUDE.md §8 says to judge by the axiom
+profile rather than by the absence of `sorry`, and this is the next rung of
+that ladder — **a clean axiom profile does not say the STATEMENT is worth
+proving.**
+
+**A claim of this item's own that did not survive its own check.**  "No census
+has read the optional family's left disjunct" is false as stated for the ARM
+family: `ArmSpendCensus.armKind` selects `ska = true ∨ R` by its LEFT.  The two
+families are disjoint — no arm's right disjunct is `True`, over all eight sites
+— so the claim holds for the optional population and is written that way.  It
+was a grep that produced the wrong version and a read of the file that produced
+the right one.
+
+**And this item's own proxy was wrong first.**  The fidelity test's first
+version asked only whether a face names a constant under `L4YAML.Surface` and
+read **129**, which is wrong in the direction that flatters the instrument:
+`MarkerNodeRoute sp_start sp_land` names no `Surface` constant while being a
+grammar judgment over two `SurfPos`.  Three more tests — the named constants'
+own types, the binder domains inside, the free variables mentioned — read
+**138**.  Caught before anything was pinned, and both logs are kept.  Item
+204's rule turned on the item that quotes it.
+
+**Predictions.**  HELD — **P-CALIB** (the prover reaches none of
+`CompletedTail`, `IndentFloor`, `BareLandingFacts`, `Covered`, `n ≤ col`, the
+`implicitValueLine` equation), **P-DECIDABLE** (≤ 20 % forecast; **15.3 %**),
+**P-WORTH**'s partition (**99**) and its highest-worth row, **P-N227** (PAID ≈
+15 forecast; **14**, zero errors), **P-GATES** (1193 → **1194**), **P-SPEND**
+(no library file changed).  REFUTED — **P-FACES** (20–45 forecast; **62** — I
+priced the shape census off the heads and not the spines, and the spine is most
+of what a face is), **P-VACUOUS** (30–70 forecast; **22** — the forecast read
+40 textual `∃ ns : List Nat` as 40 binders, and most of those live in park
+FIELDS that several lemma binders quote; §10's *price by signatures, not by
+grepping the literal*, in the direction that hurts), **P-HEADS** (route faces
+"more than half"; **27 %**), **P-WORTH**'s second bullet (a vacuous row at
+`splits ≥ 7`; the six sit at 3, 3, 3, 1, 1, 1 — and the refutation IS the
+finding), **P-COUNTS**' `#guard` clause (forecast a rise; **8173 unmoved**,
+because this census gates with `run_cmd` and writes no `#guard`).  NOT
+FORECAST — the population correction, the 27, and the 37 nested faces; nothing
+in the prediction file doubted the selector.
+
+**What changed.**  `Tests/Guards/Proofs/NarrowingWorthCensus.lean` (NEW): the
+ladder's second rung as four lemmas, the face census, the rung-1 census with
+its calibration, the fidelity report, the worth ledger with its partition
+control, the population correction with both selectors run against each other,
+and the no-op-conclusion census with two instruments gated to agree.
+`scripts/pay_chain_optional.py` (NEW).  `scripts/decline_all_optional.py`:
+`shadow` gains `witness` and `keep`, no-ops at item 226's values, so item 226's
+number stays re-derivable from the same file.
+`Tests/Guards/Proofs/PremiseNecessityCensus.lean`: the population sentence
+struck and corrected; its pins unedited and passing.  `Tests/Guards.lean`: one
+import.  **No library file was changed.**
+
+**Gates, all at baseline.**  `lake build` **1194** jobs, 0 warnings;
+`run-all-tests.sh` **Verified: 4520/4520** (Production Coverage **837/837**);
+`eventscore` **347/358** (0 error-miss, 0 event-reject); `suiterunner`
+**869/0/151**, run ALONE; matrix **402/402 event** + **282/282 JSON** on BOTH
+pipelines; `[210]` flip **FIVE** definitions — `topLevelFlowResumeSep`,
+`rootMapRoute`, `rootMapRouteF`, `bareNodeRoute`,
+`structural_dispatch_to_pending` — restored and md5-verified
+(`d955a797b9a9c895be3aabad138a297e`); `#print axioms` — no `sorryAx`, and this
+item's four lemmas depend on **no axioms at all**; checkers 228 library modules
+from 5 default targets / 355 imports, 20/230/249/355, all 25 `theorem` sites
+whitelisted; annotations **211/211** with the standing **19** name mismatches,
+exit **1**; decline pins `grep -cE '^OK '` = **7 + 18 + 6 = 31**, "ALL PINS OK"
+three times.  Counts: declarations **8604** unmoved, `#guard` **8173** unmoved,
+test files **640 → 641**, the loose demand census **8** unmoved.
+
+**What remains.**  The narrowing is priced now, and the price is not one
+number: for 22 sites it is zero because the rung below is vacuous too, for nine
+premises covering 36 splits it is a LADDER rather than a step, and for the rest
+it is unmeasured because no prover here settled the face and no state census
+can evaluate it.  What that leaves, and what this item deliberately did not do,
+is **pick one of the 27 and narrow its CONCLUSION** — the operation that turns
+a theorem `Or.inr trivial` would prove into an obligation, which is the only
+way to find out what the obligation costs.  The 27 are the population, the
+ledger says which of them the splits hang off, and `FlowKeyLift`'s ten are the
+cheapest place to start because they are ten lemmas in one module and the
+supply census has never had to price them.  Unchanged: R3's seven productions,
+whose price is the case split; item 183's flip order, whose two REFUTABLE
+halves are `h_ref`'s readers; the parked Ix Step-1 composition on the Ix
+track's own clock.  Instrument debt, now **eight** rows, one paid and one
+added: the 198/200/201 censuses still lack a cruder-key control; what an
+`Or.inl`'s proof actually FORWARDS is measured and unresolved; ~~the supply
+walk is scoped to one module~~ **PARTLY PAID — the horizon now has a size,
+ten of the 27 no-op conclusions are outside it**; `pendingDocEnd` has no
+token-level field and no directive-flag field; `pendingBlock` carries no
+`h_real`; the strength ladder is a PROOF-LEVEL instrument only; the weakening
+probe reads a lemma's CURRENT proof, not the space of proofs it admits; the
+substitution probe needs a canonical inhabitant, so it is available for
+`_ ∨ True` and for `∃ ns : List Nat, ∀ nv ∈ ns, _` and for nothing else; and
+new: **141 of the 163 faces are UNSETTLED**, which is this item's prover
+declining to answer and not a negative — an instrument that could settle them
+would have to prove a face UNINHABITED, and nothing in the ledger does that.
+
+**The instrument ledger, twenty-nine rows.**  Park constructors (198),
+application sites (200), lemma conclusions (201), the same with a key that
+works (202), indices (203), the runtime's own state (204), the transitive ring
+of a carrier (205), the same closure with its last ring paid (206), the ring's
+payers against a forecast (207), the instruments themselves (208), the object a
+carrier's consumer reads (209), the plan's own remaining list (210), the
+control (211), the provenance (212), the route (213), the pipe (214), the beta
+(215), the arms (216), the branch (217), the reach (218), the corpus (219), the
+matrix (220), the minimal zero (221), the strength ladder (222), the demand
+ledger (223), the spend census (224), the reader census (225), the necessity
+census (226) — and now **the WORTH CENSUS**, the first that reads what is
+INSIDE the idiom every one of the last fifteen counted.  Its corollary: **an
+instrument that selects a population by its shape has never been asked whether
+the shape is the population**, which is how 163 stood for 165 through fifteen
+items and how the only face any of them could have evaluated turned out to be
+one of thirty-six.
+
 ### REMAINING, in order
 
 The per-item history is the closure log above; this section lists only the

@@ -114,8 +114,16 @@ def strip_comment(s: str) -> str:
     return s[:j] if j >= 0 else s
 
 
-def shadow(rows) -> tuple[int, dict[str, int]]:
-    """Insert one shadowing `have` per optional binder.  Returns (n, skipped)."""
+def shadow(rows, witness: str = "Or.inr trivial", keep=None) -> tuple[int, dict[str, int]]:
+    """Insert one shadowing `have` per optional binder.  Returns (n, skipped).
+
+    `witness` is the term each premise is replaced BY and `keep` selects which
+    roster rows are shadowed at all; at their defaults this is item 226's
+    measurement exactly, which is the seam item 227 narrows through
+    (`scripts/pay_chain_optional.py`).  The same shape item 226 gave
+    `HypothesisReaderCensus` with `Peel`: a parameter that is a no-op at the
+    value the earlier item measured with, so the earlier number stays
+    re-derivable from the same file."""
     lines = SRC.read_text().split("\n")
     lemma_at: dict[str, int] = {}
     for i, l in enumerate(lines):
@@ -154,7 +162,11 @@ def shadow(rows) -> tuple[int, dict[str, int]]:
         return None, None
 
     inserts, skipped = [], {}
-    for lem, bn, _idx, kind in rows:
+    for row in rows:
+        lem, bn, _idx, kind = row[0], row[1], row[2], row[3]
+        if keep is not None and not keep(row):
+            skipped["not selected"] = skipped.get("not selected", 0) + 1
+            continue
         if kind == "ctor":
             skipped["constructor field"] = skipped.get("constructor field", 0) + 1
             continue
@@ -182,7 +194,7 @@ def shadow(rows) -> tuple[int, dict[str, int]]:
         if not isby:
             skipped["term-mode proof"] = skipped.get("term-mode proof", 0) + 1
             continue
-        inserts.append((pi, f"  have {bn} : {ty} := Or.inr trivial"))
+        inserts.append((pi, f"  have {bn} : {ty} := {witness}"))
 
     for pi, txt in sorted(inserts, key=lambda t: -t[0]):
         lines.insert(pi + 1, txt)

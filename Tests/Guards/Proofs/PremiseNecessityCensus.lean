@@ -61,7 +61,9 @@ DOES with a binder; necessity is a question about the lemma's STATEMENT, and
 for `A ∨ True` the statement answers it alone: the type is unconditionally
 inhabited, so `opt_premise_buys_nothing` discharges it in one line and all 163
 optional contexts — **85 of them `READ`** — buy nothing today.  Item 225 proved
-exactly this for `KeyPackPunt` and stopped there.
+exactly this for `KeyPackPunt` and stopped there.  (**165**, corrected at item
+227: two more hide behind `ResumeKeyCtx`, and the lemma covers those too — see
+`Tests.Guards.NarrowingWorthCensus` §6.)
 
 ## And the ten dead ones are not droppable either
 
@@ -526,7 +528,9 @@ nothing and a consumer takes it for free.  This is item 225's §6 corollary —
 — applied to the population item 225 had just censused and did not apply it to.
 
 `isOptTy` is the selector items 212–225 have used throughout, so the 163 rows
-those censuses count are definitionally the rows these lemmas discharge. -/
+those censuses count are definitionally the rows these lemmas discharge — and
+item 227 measures what that selector MISSES, which is two rows and one
+definition. -/
 
 /-- The whole of the optional-context lane, as a proposition. -/
 lemma opt_is_unconditional (A : Prop) : A ∨ True := Or.inr trivial
@@ -542,7 +546,19 @@ lemma opt_premise_is_no_premise {A P : Prop} : (A ∨ True → P) ↔ P :=
   ⟨fun k => opt_premise_buys_nothing k, fun p _ => p⟩
 
 /-- The population the three lemmas above cover: every binder items 212–225
-    census is selected BY the shape they discharge, and there are 163 of them.
+    census is selected BY the shape they discharge, and there are ~~163 of
+    them~~ **163 that `isOptTy` can SEE**.
+
+    **Corrected at item 227.**  `isOptTy` is a test on the syntax, so a
+    `∨ True` behind a definition is invisible to it, and `ResumeKeyCtx` is one:
+    two further binders carry an optional context this selector does not
+    report, so **the optional population is 165**.  The pin below is right —
+    it pins what `isOptTy` finds, and it still passes unedited — and so is
+    every measurement items 212–226 took over the 163, because each of them
+    measured the 163.  What was wrong is this sentence, which called the 163
+    the population.  `Tests.Guards.NarrowingWorthCensus` §6 runs the two
+    selectors against each other and gates the difference.
+
     The pin is the count, because a selector that matched nothing would make
     the sentence above true and empty. -/
 def expectedOptPopulation : String := "total=163 optTy=163 ctorFields=34"
