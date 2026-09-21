@@ -188,14 +188,29 @@ def optDecls (env : Environment) : List (Name × ConstantInfo) :=
 /-- Does the named term prove the goal, with no metavariable and no `sorry`
     left?  The PROVER IS PART OF THE CLAIM: a `false` here says this term did
     not close this goal, and nothing more.  An inconclusive result is not a
-    negative one. -/
+    negative one.
+
+    **Corrected at item 228.**  This used `Term.elabTerm`, which does NOT
+    enforce the expected type — it returns whatever it elaborated and leaves
+    the mismatch to a later `ensureHasType` that never came, and `Meta.check`
+    only asks whether that term is well typed AT ALL.  So the function
+    answered `true` for any closed well-typed term, whatever the goal: at item
+    228 a bare `trivial` "proved" `SepResidue n s s'`.  Item 227's own numbers
+    were right anyway, and for a reason worth recording — `Or.inr trivial`
+    against a goal that is not an `Or` leaves `?a` unassigned, so the
+    metavariable test rejected it — which is to say the selection was made by
+    a side effect and not by the test the docstring claims.  Both halves are
+    now explicit: elaborate ENSURING the type, and then check the inferred
+    type against the goal. -/
 def provableBy (stx : Term) (goal : Expr) : TermElabM Bool :=
   withoutModifyingState do
     try
-      let e ← Term.withoutErrToSorry do Term.elabTerm stx (some goal)
+      let e ← Term.withoutErrToSorry do Term.elabTermEnsuringType stx (some goal)
       Term.synthesizeSyntheticMVarsNoPostponing
       let e ← instantiateMVars e
-      if e.hasExprMVar || e.hasSorry then pure false else do Meta.check e; pure true
+      if e.hasExprMVar || e.hasSorry then pure false else do
+        Meta.check e
+        Meta.isDefEq (← Meta.inferType e) goal
     catch _ => pure false
 
 partial def constsIn : Expr → Std.HashSet Name → Std.HashSet Name
@@ -602,17 +617,22 @@ Two instruments select the set — the elaborator, and `isOptTy` under `whnf` �
 and the gate is that they agree EXACTLY, in both directions.  They are
 independent: the first asks the compiler and the second asks the syntax after
 one unfolding, and §6 is the item where those two disagreed about binders. -/
-def expectedNoopTally : String := "theorems=5138 byElab=27 byWhnf=27 elabOnly=0 whnfOnly=0"
+def expectedNoopTally : String := "theorems=5138 byElab=21 byWhnf=21 elabOnly=0 whnfOnly=0"
 
-/-- The 27.  Ten are in `FlowKeyLift`, a module the supply census has never
-    seen — item 218's instrument-debt row, with a number under it at last. -/
+/-- The 27 item 227 measured, now **21**.  Item 228 narrowed six of
+    `FlowKeyLift`'s ten — `plain_toKey`, `doubleQuoted_toKey`,
+    `singleQuoted_toKey`, `sep_toKey`, `sepOpt_toKey` and the `sep_toBlockKey`
+    relay — from `… ∨ True` to `… ∨ <residue>`, so `Or.inr trivial` no longer
+    proves them and this instrument no longer selects them.  The six that left
+    are the record of the operation.  The four that stayed — `flowNode_toKey`,
+    `flowNode_toBlockKey`, `flowContent_toBlockKey`, `props_toKey` — are the
+    ones whose residue arises at an INTERIOR span, and no proposition
+    available here carries it out to the conclusion's span. -/
 def expectedNoopConclusions : List String :=
   ["FlowBaseRoutes.key", "FlowBaseRoutes.vslot",
-   "FlowKeyLift.doubleQuoted_toKey", "FlowKeyLift.flowContent_toBlockKey",
+   "FlowKeyLift.flowContent_toBlockKey",
    "FlowKeyLift.flowNode_toBlockKey", "FlowKeyLift.flowNode_toKey",
-   "FlowKeyLift.plain_toKey", "FlowKeyLift.props_toKey",
-   "FlowKeyLift.sepOpt_toKey", "FlowKeyLift.sep_toBlockKey",
-   "FlowKeyLift.sep_toKey", "FlowKeyLift.singleQuoted_toKey",
+   "FlowKeyLift.props_toKey",
    "PreprocessIndentStable.IndentFloor.transport",
    "dedent_cover_of_landing", "explFrameValueLine", "flowKeyHead",
    "flowKeyRoute_of_open", "flowKeyRoute_of_root", "flowOpen_floor_at_prep",

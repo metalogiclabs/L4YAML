@@ -16,9 +16,21 @@ import L4YAML.Spec.CharPredicates
     §7.4 implicit-key checks enforce on everything that reaches a `:`).
 
     This file is the conversion family: one lemma per type of the flow
-    grammar's mutual block, each `… → (converted) ∨ True`, the `True` side
-    taken exactly on a multi-line interior (a `.commented` separation or a
-    multi-line scalar body) — inputs the scanner refuses as keys anyway.
+    grammar's mutual block, each `… → (converted) ∨ <residue>`, the residue
+    taken on a multi-line interior (a `.commented` separation or a multi-line
+    scalar body) — inputs the scanner refuses as keys anyway.
+
+    **Corrected at item 228**, in two places.  The residue was written `True`
+    everywhere, which made every one of these lemmas a statement that
+    `Or.inr trivial` proves; §0 gives the four leaf residues their own names
+    and five of the ten now carry one.  And "taken exactly on a multi-line
+    interior" was imprecise for the separation: `[70]`'s comment-delimited arm
+    admits a derivation that crosses no line at all (`[79] s-l-comments` has a
+    comment-free arm at column 0 and `[63] s-indent(0)` consumes nothing), so
+    `SepResidue` and `[80] s-separate-in-line` hold at the same zero-width
+    span.  The remaining five keep `True` because their residue arises at an
+    INTERIOR span and the conclusion is about the OUTER one; carrying it out
+    needs a suffix lemma over this mutual block, and the library has none.
 
     The context pairing is tracked as `KeyPair c tc`: the top node converts
     `(flowOut → blockKey)`, interiors `(flowIn → flowKey)`, and `inFlowCtx`
@@ -49,6 +61,46 @@ lemma KeyPair.tc_key {c tc : L4YAML.YamlContext} (h : KeyPair c tc) :
 lemma KeyPair.safe {c tc : L4YAML.YamlContext} (h : KeyPair c tc) {ch : Char}
     (hs : isNsPlainSafe c ch) : isNsPlainSafe tc ch := by
   rcases h with ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ <;> exact hs
+
+/-! ## §0 What the conversion declines ON (DOCS item 228)
+
+Each conversion below used to end in `… ∨ True`, and `Or.inr trivial` proves
+that whatever is on the left: the statement was not a theorem about the
+conversion at all.  These are the residues those `True`s stood for, read off
+the arm each proof actually takes.  They are `def`s so the residue carries its
+own docstring and so a census can select on it.
+
+They are NOT interchangeable, and that is the finding item 228 records: three
+of the four consume a line break by construction, so a consumer holding a
+single-line key can refute them — which is the entire worth of a narrowing.
+`SepResidue` cannot be refuted that way (`sepResidue_of_startOfLine`). -/
+
+/-- **The residue a separation leaves**: `[70] s-separate-lines(n)`'s
+    comment-delimited arm, for which `[69]`'s key contexts have no production. -/
+def SepResidue (n : Nat) (s s' : SurfPos) : Prop :=
+  ∃ s₁, SSLComments s s₁ ∧ SFlowLinePrefix n s₁ s'
+
+/-- **The residue a plain scalar leaves**: at least one
+    `[134] s-ns-plain-next-line(n,c)` past `[133] ns-plain-one-line(c)`.  Every
+    one of them opens with `[28] b-break`. -/
+def PlainResidue (n : Nat) (c : L4YAML.YamlContext) (s s' : SurfPos) : Prop :=
+  ∃ s₁, SNsPlainOneLine c s s₁ ∧ GPlus (SSNsPlainNextLine n c) s₁ s'
+
+/-- **The residue a double-quoted scalar leaves**: `[116]
+    nb-double-multi-line(n)`'s `multi` arm, inside the quotes.  `[113]
+    s-double-break(n)` is an escaped break or a folded one; either consumes
+    one. -/
+def DoubleResidue (n : Nat) (s s' : SurfPos) : Prop :=
+  ∃ s₁ s₂ a b, GLit '"' s s₁ ∧ SNbDoubleOneLine s₁ a ∧ SSDoubleBreak n a b ∧
+    SNbDoubleMultiLine n b s₂ ∧ GLit '"' s₂ s'
+
+/-- **The residue a single-quoted scalar leaves**: `[125]
+    nb-single-multi-line(n)`'s `multi` arm, inside the quotes, whose second
+    component is `[28] b-break` itself. -/
+def SingleResidue (n : Nat) (s s' : SurfPos) : Prop :=
+  ∃ s₁ s₂ a b cc d, GLit '\'' s s₁ ∧ SNbSingleOneLine s₁ a ∧ SBBreak a b ∧
+    GStar (SLEmpty n .flowIn) b cc ∧ SFlowLinePrefix n cc d ∧
+    SNbSingleMultiLine n d s₂ ∧ GLit '\'' s₂ s'
 
 /-! ## §1 Scalar leaves -/
 
@@ -92,7 +144,8 @@ lemma plainOneLine_toKey {c tc : L4YAML.YamlContext} (hp : KeyPair c tc)
 
 /-- A plain scalar re-reads at the key context when it is single-line. -/
 lemma plain_toKey {n : Nat} {c tc : L4YAML.YamlContext} (hp : KeyPair c tc)
-    {s s' : SurfPos} (h : SNsPlain n c s s') : SNsPlain 0 tc s s' ∨ True := by
+    {s s' : SurfPos} (h : SNsPlain n c s s') :
+    SNsPlain 0 tc s s' ∨ PlainResidue n c s s' := by
   have h' : SNsPlainMultiLine n c s s' := by
     rcases hp with ⟨rfl, _⟩ | ⟨rfl, _⟩ <;> exact h
   cases h' with
@@ -101,13 +154,13 @@ lemma plain_toKey {n : Nat} {c tc : L4YAML.YamlContext} (hp : KeyPair c tc)
     | nil =>
       have hone' := plainOneLine_toKey hp hone
       rcases hp.tc_key with rfl | rfl <;> exact Or.inl hone'
-    | cons _ _ _ _ _ => exact Or.inr trivial
+    | cons _ _ _ hx hrest => exact Or.inr ⟨_, hone, GPlus.mk _ _ _ hx hrest⟩
 
 /-- A double-quoted scalar re-reads at the key context when its body is
     single-line (the one-line body is context- and index-free). -/
 lemma doubleQuoted_toKey {n : Nat} {c tc : L4YAML.YamlContext} (hp : KeyPair c tc)
     {s s' : SurfPos} (h : SCDoubleQuoted n c s s') :
-    SCDoubleQuoted 0 tc s s' ∨ True := by
+    SCDoubleQuoted 0 tc s s' ∨ DoubleResidue n s s' := by
   cases h with
   | mk s₁ s₂ _ hq1 hbody hq2 =>
     have hbody' : SNbDoubleMultiLine n s₁ s₂ := by
@@ -117,12 +170,13 @@ lemma doubleQuoted_toKey {n : Nat} {c tc : L4YAML.YamlContext} (hp : KeyPair c t
       have hkey : SNbDoubleText 0 tc s₁ s₂ := by
         rcases hp.tc_key with rfl | rfl <;> exact hl
       exact Or.inl (SCDoubleQuoted.mk 0 tc _ _ _ _ hq1 hkey hq2)
-    | multi _ _ _ _ _ _ _ => exact Or.inr trivial
+    | multi _ a b _ _ hone hbrk hrest =>
+      exact Or.inr ⟨_, _, a, b, hq1, hone, hbrk, hrest, hq2⟩
 
 /-- The single-quoted twin. -/
 lemma singleQuoted_toKey {n : Nat} {c tc : L4YAML.YamlContext} (hp : KeyPair c tc)
     {s s' : SurfPos} (h : SCSingleQuoted n c s s') :
-    SCSingleQuoted 0 tc s s' ∨ True := by
+    SCSingleQuoted 0 tc s s' ∨ SingleResidue n s s' := by
   cases h with
   | mk s₁ s₂ _ hq1 hbody hq2 =>
     have hbody' : SNbSingleMultiLine n s₁ s₂ := by
@@ -132,30 +186,32 @@ lemma singleQuoted_toKey {n : Nat} {c tc : L4YAML.YamlContext} (hp : KeyPair c t
       have hkey : SNbSingleText 0 tc s₁ s₂ := by
         rcases hp.tc_key with rfl | rfl <;> exact hl
       exact Or.inl (SCSingleQuoted.mk 0 tc _ _ _ _ hq1 hkey hq2)
-    | multi _ _ _ _ _ _ _ _ _ _ => exact Or.inr trivial
+    | multi _ a b cc d _ hone hbrk hempty hpre hrest =>
+      exact Or.inr ⟨_, _, a, b, cc, d, hq1, hone, hbrk, hempty, hpre, hrest, hq2⟩
 
 /-! ## §2 Separations and properties -/
 
 /-- A separation re-reads at the key context when it is inline. -/
 lemma sep_toKey {n : Nat} {c tc : L4YAML.YamlContext} (hp : KeyPair c tc)
-    {s s' : SurfPos} (h : SSeparate n c s s') : SSeparate 0 tc s s' ∨ True := by
+    {s s' : SurfPos} (h : SSeparate n c s s') :
+    SSeparate 0 tc s s' ∨ SepResidue n s s' := by
   have h' : SSeparateLines n s s' := by
     rcases hp with ⟨rfl, _⟩ | ⟨rfl, _⟩ <;> exact h
   cases h' with
   | inline _ sil =>
     refine Or.inl ?_
     rcases hp.tc_key with rfl | rfl <;> exact sil
-  | commented _ _ _ _ => exact Or.inr trivial
+  | commented _ _ _ _ => exact Or.inr ⟨_, ‹SSLComments _ _›, ‹SFlowLinePrefix _ _ _›⟩
 
 lemma sepOpt_toKey {n : Nat} {c tc : L4YAML.YamlContext} (hp : KeyPair c tc)
     {s s' : SurfPos} (h : GOpt (SSeparate n c) s s') :
-    GOpt (SSeparate 0 tc) s s' ∨ True := by
+    GOpt (SSeparate 0 tc) s s' ∨ SepResidue n s s' := by
   cases h with
   | none => exact Or.inl (GOpt.none _)
   | some _ hx =>
-    rcases sep_toKey hp hx with hx' | _
+    rcases sep_toKey hp hx with hx' | hr
     · exact Or.inl (GOpt.some _ _ hx')
-    · exact Or.inr trivial
+    · exact Or.inr hr
 
 /-- Properties re-read at the key context when their interior separation is
     inline (the tag/anchor tokens themselves are context-free). -/
@@ -195,10 +251,12 @@ lemma props_toKey {n : Nat} {c tc : L4YAML.YamlContext} (hp : KeyPair c tc)
     carry the pairing UNIVERSALLY quantified, which is what lets a collection's
     entries convert at `inFlowCtx tc` while its brackets convert at `tc`.
 
-    Every interior piece converts or the whole conversion returns `True`: the
-    residue is taken exactly on a multi-line interior (a `.commented`
-    separation or a multi-line scalar body), which the scanner refuses as a
-    key anyway. -/
+    Every interior piece converts or the whole conversion returns `True`.
+    That `True` is the one item 228 could not replace: the residue belongs to
+    an interior span and this conclusion is about the outer one, so the
+    proposition that would carry it out is a statement about the CHARACTERS
+    between the two — and the 18 types below have 69 constructors and not one
+    lemma relating any of them to a suffix. -/
 
 /-- **The conversion**: a flow node re-reads at index 0 in the paired key
     context, unless some interior crossed a line. -/
@@ -598,7 +656,7 @@ lemma flowContent_toBlockKey {n : Nat} {s s' : SurfPos}
 /-- A separation re-reads at `block-key` when it is inline — the pairing
     spelled for the one the block side uses. -/
 lemma sep_toBlockKey {n : Nat} {s s' : SurfPos} (h : SSeparate n .flowOut s s') :
-    SSeparate 0 .blockKey s s' ∨ True :=
+    SSeparate 0 .blockKey s s' ∨ SepResidue n s s' :=
   sep_toKey (Or.inl ⟨rfl, rfl⟩) h
 
 end L4YAML.Proofs.FlowKeyLift

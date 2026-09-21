@@ -38,7 +38,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from decline_all_optional import MODULE, ROOT, SCRATCH, SRC, run, shadow  # noqa: E402
+from decline_all_optional import ERROR_LINE, MODULE, ROOT, SCRATCH, SRC, run, shadow  # noqa: E402
 
 PROBE = SCRATCH / "ChainRoster.lean"
 
@@ -118,7 +118,7 @@ def main() -> int:
         print(f"  PAID {n}")
         out = run(["lake", "build", MODULE])
         log = out.stdout + out.stderr
-        errors = len(re.findall(r": error", log))
+        errors = len([l for l in log.splitlines() if ERROR_LINE.match(l)])
         unref = len(re.findall(r"is not explicitly referenced", log))
         ok = out.returncode == 0 and errors == 0
         print(f"build      {'OK' if ok else 'FAILED'}  errors={errors}")
@@ -126,7 +126,7 @@ def main() -> int:
         if not ok:
             print("--- errors ---")
             for line in log.splitlines():
-                if ": error" in line:
+                if ERROR_LINE.match(line):
                     print(line)
     finally:
         shutil.copy(backup, SRC)

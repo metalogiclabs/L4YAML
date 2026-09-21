@@ -27324,6 +27324,203 @@ the shape is the population**, which is how 163 stood for 165 through fifteen
 items and how the only face any of them could have evaluated turned out to be
 one of thirty-six.
 
+### Item 228 (2026-09-20)
+
+**THE OBLIGATION CENSUS — a conclusion's narrowing is paid by its CONSUMERS,
+and the 27 were not 27 lemmas.**  Item 227's recorded NEXT: *"pick one of the
+27 and narrow its CONCLUSION — the operation that turns a theorem
+`Or.inr trivial` would prove into an obligation, which is the only way to find
+out what the obligation costs.  …`FlowKeyLift`'s ten are the cheapest place to
+start."*  Six of the ten are narrowed, and the whole population is priced.
+
+**The operation, and its receipt.**  `FlowKeyLift.lean` gains a §0 naming four
+residues — `SepResidue` (`[70] s-separate-lines(n)`'s comment-delimited arm),
+`PlainResidue` (a `[134] s-ns-plain-next-line` past `[133]`),
+`DoubleResidue`/`SingleResidue` (`[116]`/`[125]`'s `multi` arm inside the
+quotes) — and six lemmas now conclude with one instead of with `True`:
+`plain_toKey`, `doubleQuoted_toKey`, `singleQuoted_toKey`, `sep_toKey`,
+`sepOpt_toKey`, and the `sep_toBlockKey` relay.  Every witness was already in
+hand in the arm the proof takes, so six sites cost six terms.  **Item 227's own
+instrument, re-run, reads `byElab=27 → 21` and `byWhnf=27 → 21` with
+`elabOnly=0 whnfOnly=0`** — two independent selectors, still agreeing exactly,
+both dropping the same six.  That is the machine's receipt that a narrowing
+happened, and it is item 227's gate firing on item 228's work.
+
+**The price, measured by the compiler.**  `scripts/narrow_conclusion.py`
+rewrites a conclusion's `∨ True` to `∨ False` — the TIGHTEST narrowing there
+is, so the error count bounds what any narrowing must pay — and lets
+`lake build` answer.  Over the 25 of the 27 that are lemmas at all the answer
+is **182 sites**: **97** in `FlowKeyLift`, **84** in `StreamAccum`, **1** in
+`PreprocessIndentStable`.  Three readings no earlier item could make.
+
+* **The price is mostly RELAY DAMAGE, and it is not in the file being
+  edited.**  `frameChainUnion` writes `Or.inr trivial` NOWHERE — the term
+  census reads `res=0` — and narrowing its conclusion costs **11**, of which
+  **10 are in other declarations**, at lines 6618, 11294, 11385, 11386, 19179,
+  24150, 24151, 30228, 30425 and 30527 of one module.  `flowKeyHead` is the
+  same shape: 1 own, 4 downstream.  Item 227 found that narrowing a PREMISE is
+  a LADDER; the conclusion side is worse, because its rungs are not in the
+  lemma's own file — which is why every census so far, all of which measured
+  one declaration at a time, had no way to see this.
+* **The obligation is concentrated**: 83 of `FlowKeyLift`'s 97 sit in ONE
+  lemma, `flowNode_toKey`.
+* **A cheap probe under-prices it forty-fold.**  Narrowing only
+  `flowNode_toKey`'s conclusion costs **2**, because its proof is a single
+  application of the flow grammar's 18-motive recursor and the elaborator
+  reports one mismatch for the whole term; the 83 appear only when the eight
+  `∨ True` MOTIVES narrow too.  **An error count is a fact about how a proof is
+  WRITTEN before it is a fact about the obligation.**  (Narrowing all ten at
+  once costs **93**, four fewer than the sum of the ten separately: relay
+  damage between two lemmas is paid once when both ends narrow together.)
+
+**The 27 were not 27 lemmas.**  `FlowBaseRoutes.key` and `FlowBaseRoutes.vslot`
+are PROJECTIONS of a park structure: their "conclusion" is a FIELD, so
+narrowing it is the supply-side operation items 212–218 priced and not this
+one.  They are also the only two rows whose proof reaches the right disjunct by
+no route at all.  Item 227 selected on `thmInfo` and never asked what kind of
+theorem a projection is.
+
+**What the narrowing buys, and one that bought nothing.**  A narrowing is worth
+exactly the consumer's ability to REFUTE the residue
+(`narrowed_conclusion_pays`), and `True` can never be refuted
+(`true_residue_is_irrefutable`): the operation's whole content is turning an
+unreachable arm into a reachable one.  `SepResidue` does not manage it.  At a
+zero-width span at column 0 the residue HOLDS — `[79] s-l-comments` has a
+comment-free arm there and `[63] s-indent(0)` consumes nothing — and so does
+`[80] s-separate-in-line`, by its own `startOfLine` arm.  **Both disjuncts, the
+same span, proved** (`sep_narrowing_does_not_partition`).  So: **a narrowed
+residue that overlaps its own left disjunct is not yet an obligation.**  The
+`FlowKeyLift` module docstring said the residue was "taken exactly on a
+multi-line interior"; that is imprecise for the separation, and it is struck
+and corrected there.  Item 227's two provers were tried on all four residues
+and settle none of them (`expectedResidueProbe`), which is a fact about those
+two provers and not a proof of anything.
+
+**What stops the other four.**  `flowNode_toKey`'s residue arises at an
+INTERIOR span and its conclusion is about the OUTER one, so the only
+proposition that could carry it out is one about the characters between them.
+Measured: the flow grammar is **18 types with 69 constructors**, and the
+library has **no** theorem relating any of them to `List.IsSuffix`.  All 83
+sites need the same missing sentence, so **83 sites collapse to ONE missing
+instrument, priced at 69 arms** — by signatures, before a line of it exists.
+That same sentence is what would settle whether the other three residues are
+tight, so those stay UNSETTLED, which is not a negative result.
+
+**Two errors in our own instruments, volunteered.**
+
+1. **`provableBy` never checked the term against the goal.**  Item 227's
+   selector elaborated with `Term.elabTerm`, which does NOT enforce the
+   expected type, and then called `Meta.check`, which only asks whether the
+   term is well typed AT ALL.  At item 228 a bare `trivial` "proved"
+   `SepResidue n s s'`.  **Item 227's numbers were right anyway, and for a
+   reason worth recording**: `Or.inr trivial` against a goal that is not an
+   `Or` leaves `?a` unassigned, so the metavariable test rejected it — the
+   selection was made by a side effect, not by the test the docstring claimed.
+   Now `Term.elabTermEnsuringType` plus an explicit `isDefEq` against the goal,
+   and **every one of item 227's pins passes unedited under the corrected
+   instrument** — the face census, the rung-1 census, the fidelity report, the
+   worth ledger, the population correction and the no-op census.
+2. **A dud error counter in two scripts.**  `scripts/decline_all_optional.py`
+   (item 226) and `scripts/pay_chain_optional.py` (item 227) counted errors
+   with `re.findall(r": error", log)`.  Lake renders a Lean diagnostic as
+   `error: <file>:<line>:<col>: <msg>`, which that pattern matches on **no
+   line**, so the `errors=` column both items printed was constant zero
+   whatever the build did.  Both verdicts rested on the RETURN CODE, which is
+   sound.  Fixed, with the note at the constant, and both re-run: item 226
+   reproduces `roster 162 / 34 ctor / 9 term-mode / SHADOWED 119 / errors=0 /
+   linter 95`, item 227 reproduces `roster 162, 22 with a vacuous LEFT
+   disjunct / PAID 14 / errors=0 / linter 11`.  A §9 failure of our own
+   making: nobody asked which lines the count came from, for two items.
+
+**Predictions** (`PREDICTION.md`, written before any instrument ran).  HELD —
+**P-LEDGER.1** (`flowNode_toKey` 60–80 forecast; **65**), **P-LEDGER.2** (the
+four leaves), **P-LEDGER.3** (12–18 rows with `below=0`; **17**),
+**P-NARROW.6** (zero edits outside `FlowKeyLift.lean`), **P-OVERLAP** (the
+break-free `commented` derivation, proved), **P-RESIDUE.9/10**,
+**P-FAMILY.11** (0 suffix lemmas, 18 types), **P-GATES.13** (1194 → **1195**),
+**P-SPEND** (one library file).  REFUTED — **P-LEDGER.4** ("no declaration has
+`res=0`"; **six** do, and two of the six are projections, which is the
+finding), **P-FAMILY.12** (missing lemma at 40–60 arms; **69**),
+**P-NARROW.7** (≤ 60 inserted lines in `FlowKeyLift.lean`; **77**, most of it
+the residues' docstrings).  PARTLY — **P-NARROW.5** (27 → 20 for seven
+narrowings; the arithmetic held at one per narrowing, but only **six** could be
+paid and the count reads **21**: `props_toKey` relays its residue from an
+INTERIOR separation, so `SepResidue` at the conclusion's own span is not what
+it has).  NOT FORECAST — the relay-damage split, the forty-fold under-pricing,
+and both instrument errors; nothing in the prediction file doubted
+`provableBy`.
+
+**What changed.**  `L4YAML/Proofs/Production/FlowKeyLift.lean` (+77/−19) — the
+ONE library file this item touches: a new §0 with four residue `def`s, six
+conclusions narrowed, six witnesses paid, two docstring claims struck and
+corrected.  `Tests/Guards/Proofs/ConclusionObligationCensus.lean` (NEW, 308
+lines): the ladder's third rung as five lemmas, the overlap exhibited and
+proved, the residue-vacuity probe, the obligation ledger with its 21 rows
+re-derived and pinned, and the flow family's size gated.
+`Tests/Guards/Proofs/NarrowingWorthCensus.lean`: `provableBy` corrected, and
+item 227's no-op pins moved 27 → 21 with the six-that-left and the
+four-that-stayed recorded beside them.  `scripts/narrow_conclusion.py` (NEW).
+`scripts/decline_all_optional.py`, `scripts/pay_chain_optional.py`: the error
+counter fixed.  `Tests/Guards.lean`: one import.
+
+**Gates, all at baseline.**  `lake build` **1195** jobs, 0 warnings;
+`run-all-tests.sh` **Verified: 4520/4520** (Production Coverage **837/837**);
+`eventscore` **347/358** (0 error-miss, 0 event-reject); `suiterunner`
+**869/0/151**, run ALONE; matrix **402/402 event** + **282/282 JSON** on BOTH
+pipelines; `[210]` flip **FIVE** definitions — `topLevelFlowResumeSep`,
+`rootMapRoute`, `rootMapRouteF`, `bareNodeRoute`,
+`structural_dispatch_to_pending` — restored and md5-verified
+(`d955a797b9a9c895be3aabad138a297e`); `#print axioms` — **25** capstones, no
+`sorryAx`, and this item's fourteen lemmas (the six narrowed included) depend
+on **no axioms at all**; checkers 228 library modules from 5 default targets /
+355 imports, 20/230/249/355, all 25 `theorem` sites whitelisted; annotations
+**211/211** with the standing **19** name mismatches, exit **1**; decline pins
+`grep -cE '^OK '` = **7 + 18 + 6 = 31**, "ALL PINS OK" three times.  Counts:
+declarations **8604 → 8608** (the four residues), `#guard` **8173** unmoved,
+test files **641 → 642**, the loose demand census **8** unmoved.
+
+**What remains.**  The obligation is priced and it is not one number either:
+**182** sites over the 25 declarations that are lemmas, of which **83 sit in
+one lemma** and, for a typical `StreamAccum` row, about ten in eleven of the
+price is damage at CONSUMERS rather than residue in the proof.  Six of
+`FlowKeyLift`'s ten are paid; the remaining four, and every row in
+`StreamAccum`, wait on the same sentence — *these characters lie between these
+two positions* — which the library cannot say about the flow grammar.  What
+that leaves is **the suffix lemma for the 18-type mutual block, priced at 69
+constructor arms**: the first instrument in this ledger whose price was taken
+by signatures before a line of it was written, and the one thing that would
+turn 83 dead sites into 83 payable ones.  Unchanged: R3's seven productions,
+whose price is the case split; item 183's flip order, whose two REFUTABLE
+halves are `h_ref`'s readers; the parked Ix Step-1 composition on the Ix
+track's own clock.  Instrument debt, now **nine** rows, one added and none
+paid: the 198/200/201 censuses still lack a cruder-key control; what an
+`Or.inl`'s proof actually FORWARDS is measured and unresolved; the supply walk
+is scoped to one module (sized at item 227); `pendingDocEnd` has no token-level
+field and no directive-flag field; `pendingBlock` carries no `h_real`; the
+strength ladder is a PROOF-LEVEL instrument only; the weakening probe reads a
+lemma's CURRENT proof, not the space of proofs it admits; the substitution
+probe needs a canonical inhabitant; **141 of the 163 faces are UNSETTLED**; and
+new: **`scripts/narrow_conclusion.py` prices by COMPILER ERRORS, and an error
+count is a property of how a proof is written** — it under-reported
+`flowNode_toKey` forty-fold until the motives were narrowed by hand, and
+nothing in the script finds a motive on its own.
+
+**The instrument ledger, thirty rows.**  Park constructors (198), application
+sites (200), lemma conclusions (201), the same with a key that works (202),
+indices (203), the runtime's own state (204), the transitive ring of a carrier
+(205), the same closure with its last ring paid (206), the ring's payers
+against a forecast (207), the instruments themselves (208), the object a
+carrier's consumer reads (209), the plan's own remaining list (210), the
+control (211), the provenance (212), the route (213), the pipe (214), the beta
+(215), the arms (216), the branch (217), the reach (218), the corpus (219), the
+matrix (220), the minimal zero (221), the strength ladder (222), the demand
+ledger (223), the spend census (224), the reader census (225), the necessity
+census (226), the worth census (227) — and now **the OBLIGATION CENSUS**, the
+first that PERFORMS the operation the previous twenty-nine only counted.  Its
+corollary: **an instrument that measures one declaration at a time cannot see
+a cost that lands on the declaration's consumers**, which is how a lemma with
+no `Or.inr trivial` anywhere in it turned out to cost eleven.
+
 ### REMAINING, in order
 
 The per-item history is the closure log above; this section lists only the

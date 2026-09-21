@@ -88,6 +88,13 @@ run_cmd do
 """
 
 
+#: Lake renders a Lean diagnostic as `error: <file>:<line>:<col>: <msg>`, so
+#: the pattern `": error"` used here through item 227 matched NO line of it and
+#: the `errors=` column was constant zero whatever the build did.  Both items'
+#: verdicts rested on the RETURN CODE, which is sound, so their findings stand;
+#: the number beside them was not measuring anything.  Corrected at item 228.
+ERROR_LINE = re.compile(r"^error: .*\.lean:\d+:\d+: ")
+
 def run(cmd: list[str], **kw) -> subprocess.CompletedProcess:
     return subprocess.run(cmd, cwd=ROOT, capture_output=True, text=True, **kw)
 
@@ -218,7 +225,7 @@ def main() -> int:
         print(f"  SHADOWED {n}")
         out = run(["lake", "build", MODULE])
         log = out.stdout + out.stderr
-        errors = len(re.findall(r": error", log))
+        errors = len([l for l in log.splitlines() if ERROR_LINE.match(l)])
         unref = len(re.findall(r"is not explicitly referenced", log))
         ok = out.returncode == 0 and errors == 0
         print(f"build      {'OK' if ok else 'FAILED'}  errors={errors}")
@@ -226,7 +233,7 @@ def main() -> int:
         if not ok:
             print("--- first errors ---")
             for line in log.splitlines():
-                if ": error" in line:
+                if ERROR_LINE.match(line):
                     print(line)
     finally:
         shutil.copy(backup, SRC)
