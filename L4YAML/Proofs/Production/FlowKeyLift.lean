@@ -23,18 +23,23 @@ import L4YAML.Proofs.Foundation.SurfaceSpan
 
     **Corrected at item 228**, in two places.  The residue was written `True`
     everywhere, which made every one of these lemmas a statement that
-    `Or.inr trivial` proves; §0 gives the four leaf residues their own names
-    and five of the ten now carry one.  And "taken exactly on a multi-line
-    interior" was imprecise for the separation: `[70]`'s comment-delimited arm
-    admits a derivation that crosses no line at all (`[79] s-l-comments` has a
-    comment-free arm at column 0 and `[63] s-indent(0)` consumes nothing), so
-    `SepResidue` and `[80] s-separate-in-line` hold at the same zero-width
-    span.  The remaining five keep `True` because their residue arises at an
-    INTERIOR span and the conclusion is about the OUTER one; carrying it out
-    needs a suffix lemma over this mutual block, which item 229 built
-    (`L4YAML/Proofs/Foundation/SurfaceSpan.lean`) and which §4 uses to settle
-    the four leaf residues — narrowing the five is the operation it does not
-    do, because each needs its own motive strengthened, not a new fact.
+    `Or.inr trivial` proves; §0 gives the leaf residues their own names.  And
+    "taken exactly on a multi-line interior" was imprecise for the separation:
+    `[70]`'s comment-delimited arm admits a derivation that crosses no line at
+    all (`[79] s-l-comments` has a comment-free arm at column 0 and
+    `[63] s-indent(0)` consumes nothing), so that arm and
+    `[80] s-separate-in-line` hold at the same zero-width span.
+
+    **Item 230 finishes the separation.**  The arm is not the residue; it is
+    an arm, and it keeps its own name (`SepCommentedArm`).  What the
+    conversion declines on is `SepResidue` — the span crossed a line, or the
+    input ran out — because `[77] b-comment` ends a comment in exactly those
+    two ways.  That residue is closed under widening, so it carries out of an
+    interior span to an outer one, which is what `True` was standing in for:
+    `props_toKey` now carries it.  The conversions that still end in `True`
+    are `flowNode_toKey` and its two wrappers, whose eighteen motives have to
+    be rebuilt around the residue — a separate operation, and the one the
+    remaining dead sites wait on.
 
     The context pairing is tracked as `KeyPair c tc`: the top node converts
     `(flowOut → blockKey)`, interiors `(flowIn → flowKey)`, and `inFlowCtx`
@@ -76,16 +81,32 @@ the arm each proof actually takes.  They are `def`s so the residue carries its
 own docstring and so a census can select on it.
 
 They are NOT interchangeable, and that is the finding item 228 recorded and
-item 229 proved: three of the four consume a line break by construction, so a
+item 229 proved: three of them consume a line break by construction, so a
 consumer holding a single-line key can refute them — which is the entire worth
-of a narrowing.  `SepResidue` cannot be refuted that way, and §4 gives the
-reason rather than the observation: its span can be EMPTY
-(`sepResidue_span_can_be_empty`). -/
+of a narrowing.  The separation's ARM cannot be refuted that way, and §4 gives
+the reason rather than the observation: its span can be EMPTY
+(`sepCommentedArm_span_can_be_empty`).  Item 230 replaced it with a residue
+that can, at the price of one more hypothesis from the consumer: a key is
+followed by a `:`, so the separation did not run the input out. -/
 
-/-- **The residue a separation leaves**: `[70] s-separate-lines(n)`'s
-    comment-delimited arm, for which `[69]`'s key contexts have no production. -/
-def SepResidue (n : Nat) (s s' : SurfPos) : Prop :=
+/-- **The arm a separation declines ON**: `[70] s-separate-lines(n)`'s
+    comment-delimited arm, for which `[69]`'s key contexts have no production.
+    Items 228 and 229 carried this as `sep_toKey`'s residue and item 229
+    proved it is not one — §4's two witnesses derive it at spans carrying no
+    break, one empty and one three characters long, so no consumer can refute
+    it.  It keeps a name because those witnesses are what fixes the shape of
+    the residue below. -/
+def SepCommentedArm (n : Nat) (s s' : SurfPos) : Prop :=
   ∃ s₁, SSLComments s s₁ ∧ SFlowLinePrefix n s₁ s'
+
+/-- **The residue a separation leaves** (item 230): the span crossed a line,
+    or the input ran out.  `[77] b-comment` ends a comment in exactly those
+    two ways, so a comment-delimited separation that is not itself inline hits
+    one of them — `separateLines_inline_or_breakOrEnd`.  A consumer refutes it
+    with the two facts `[193] c-s-implicit-json-key` supplies about everything
+    that reaches a `:`: the key crosses no line, and a `:` follows it, so the
+    input did not run out. -/
+def SepResidue (s s' : SurfPos) : Prop := BreakBetween s s' ∨ atEnd s'
 
 /-- **The residue a plain scalar leaves**: at least one
     `[134] s-ns-plain-next-line(n,c)` past `[133] ns-plain-one-line(c)`.  Every
@@ -198,21 +219,26 @@ lemma singleQuoted_toKey {n : Nat} {c tc : L4YAML.YamlContext} (hp : KeyPair c t
 
 /-! ## §2 Separations and properties -/
 
-/-- A separation re-reads at the key context when it is inline. -/
+/-- **A separation re-reads at the key context when it is inline**, and what
+    it leaves otherwise is a residue and no longer an arm (item 230).  The
+    zero-width derivation item 229 exhibited — `[79]`'s `startOfLine` arm with
+    no comments, then `[71]` at index 0 — now returns the LEFT disjunct,
+    because `[71] s-flow-line-prefix(n)` is itself an inline separation and
+    `[66]` concatenates (`sFlowLinePrefix_separateInLine`,
+    `separateInLine_trans`). -/
 lemma sep_toKey {n : Nat} {c tc : L4YAML.YamlContext} (hp : KeyPair c tc)
     {s s' : SurfPos} (h : SSeparate n c s s') :
-    SSeparate 0 tc s s' ∨ SepResidue n s s' := by
+    SSeparate 0 tc s s' ∨ SepResidue s s' := by
   have h' : SSeparateLines n s s' := by
     rcases hp with ⟨rfl, _⟩ | ⟨rfl, _⟩ <;> exact h
-  cases h' with
-  | inline _ sil =>
-    refine Or.inl ?_
-    rcases hp.tc_key with rfl | rfl <;> exact sil
-  | commented _ _ _ _ => exact Or.inr ⟨_, ‹SSLComments _ _›, ‹SFlowLinePrefix _ _ _›⟩
+  rcases separateLines_inline_or_breakOrEnd h' with hsil | hres
+  · refine Or.inl ?_
+    rcases hp.tc_key with rfl | rfl <;> exact hsil
+  · exact Or.inr hres
 
 lemma sepOpt_toKey {n : Nat} {c tc : L4YAML.YamlContext} (hp : KeyPair c tc)
     {s s' : SurfPos} (h : GOpt (SSeparate n c) s s') :
-    GOpt (SSeparate 0 tc) s s' ∨ SepResidue n s s' := by
+    GOpt (SSeparate 0 tc) s s' ∨ SepResidue s s' := by
   cases h with
   | none => exact Or.inl (GOpt.none _)
   | some _ hx =>
@@ -220,32 +246,36 @@ lemma sepOpt_toKey {n : Nat} {c tc : L4YAML.YamlContext} (hp : KeyPair c tc)
     · exact Or.inl (GOpt.some _ _ hx')
     · exact Or.inr hr
 
-/-- Properties re-read at the key context when their interior separation is
-    inline (the tag/anchor tokens themselves are context-free). -/
+/-- **Properties re-read at the key context when their interior separation is
+    inline** (the tag/anchor tokens themselves are context-free), and the
+    residue is now the interior separation's own, carried OUT to this
+    conclusion's span (item 230).  That carry is the thing item 228 could not
+    do and wrote `True` for: `SepResidue` is closed under widening in both
+    directions — `breakOrEnd_extend_left`, `breakOrEnd_extend_right` — because
+    a break in a sub-span is a break in the span, and an input that ran out
+    stays out. -/
 lemma props_toKey {n : Nat} {c tc : L4YAML.YamlContext} (hp : KeyPair c tc)
     {s s' : SurfPos} (h : SCNsProperties n c s s') :
-    SCNsProperties 0 tc s s' ∨ True := by
-  cases h with
-  | tagFirst _ _ htag hopt =>
-    cases hopt with
-    | none => exact Or.inl (SCNsProperties.tagFirst 0 tc _ _ _ htag (GOpt.none _))
-    | some _ hseq =>
-      cases hseq
-      rename_i hsep hanchor
-      rcases sep_toKey hp hsep with hsep' | _
+    SCNsProperties 0 tc s s' ∨ SepResidue s s' := by
+  match h with
+  | .tagFirst _ _ _ _ _ htag hopt =>
+    match hopt with
+    | .none _ => exact Or.inl (SCNsProperties.tagFirst 0 tc _ _ _ htag (GOpt.none _))
+    | .some _ _ (.mk _ _ _ hsep hanchor) =>
+      rcases sep_toKey hp hsep with hsep' | hres
       · exact Or.inl (SCNsProperties.tagFirst 0 tc _ _ _ htag
           (GOpt.some _ _ (GSeq.mk _ _ _ hsep' hanchor)))
-      · exact Or.inr trivial
-  | anchorFirst _ _ hanchor hopt =>
-    cases hopt with
-    | none => exact Or.inl (SCNsProperties.anchorFirst 0 tc _ _ _ hanchor (GOpt.none _))
-    | some _ hseq =>
-      cases hseq
-      rename_i hsep htag
-      rcases sep_toKey hp hsep with hsep' | _
+      · exact Or.inr (breakOrEnd_extend_right (scNsAnchorProperty_suffix hanchor)
+          (breakOrEnd_extend_left (scNsTagProperty_suffix htag) hres))
+  | .anchorFirst _ _ _ _ _ hanchor hopt =>
+    match hopt with
+    | .none _ => exact Or.inl (SCNsProperties.anchorFirst 0 tc _ _ _ hanchor (GOpt.none _))
+    | .some _ _ (.mk _ _ _ hsep htag) =>
+      rcases sep_toKey hp hsep with hsep' | hres
       · exact Or.inl (SCNsProperties.anchorFirst 0 tc _ _ _ hanchor
           (GOpt.some _ _ (GSeq.mk _ _ _ hsep' htag)))
-      · exact Or.inr trivial
+      · exact Or.inr (breakOrEnd_extend_right (scNsTagProperty_suffix htag)
+          (breakOrEnd_extend_left (scNsAnchorProperty_suffix hanchor) hres))
 
 /-! ## §3 The collection family
 
@@ -271,8 +301,12 @@ lemma props_toKey {n : Nat} {c tc : L4YAML.YamlContext} (hp : KeyPair c tc)
     proposition that would carry it out is a statement about the CHARACTERS
     between the two.  The 18 types below have 69 constructors, and at item 228
     not one lemma related any of them to a suffix; item 229 wrote all
-    eighteen, so the statement is now sayable — what it still needs is this
-    recursor application's motives rebuilt around it. -/
+    eighteen, and item 230 gave the separation a residue that widens along
+    them (`props_toKey` is the first conclusion to carry one out of an
+    interior span).  What is left is mechanical and large: these eighteen
+    motives carry `∨ True`, and every one of them has to carry the residue
+    instead before the 34 sites that decline through the recursion itself can
+    be paid. -/
 
 /-- **The conversion**: a flow node re-reads at index 0 in the paired key
     context, unless some interior crossed a line. -/
@@ -672,7 +706,7 @@ lemma flowContent_toBlockKey {n : Nat} {s s' : SurfPos}
 /-- A separation re-reads at `block-key` when it is inline — the pairing
     spelled for the one the block side uses. -/
 lemma sep_toBlockKey {n : Nat} {s s' : SurfPos} (h : SSeparate n .flowOut s s') :
-    SSeparate 0 .blockKey s s' ∨ SepResidue n s s' :=
+    SSeparate 0 .blockKey s s' ∨ SepResidue s s' :=
   sep_toKey (Or.inl ⟨rfl, rfl⟩) h
 
 /-! ## §4 What the narrowing buys (DOCS item 229)
@@ -686,10 +720,19 @@ between the conclusion's own two positions — which the library could not name.
 now be sorted by the only question that matters.
 
 Three carry a `[28] b-break` inside their span, so `¬ BreakBetween s s'`
-refutes them.  `SepResidue` does not, and `sepResidue_span_can_be_empty` is
-the proof, not the observation: item 228's zero-width witness has an EMPTY
-span, and no predicate on characters can distinguish it from a separation that
-was never taken. -/
+refutes them.  The separation's ARM does not, and the two witnesses below are
+the proof, not the observation: item 228's zero-width derivation has an EMPTY
+span, and the `[77] b-comment` `eof` derivation has a three-character span
+with no break in it, so no predicate on the span distinguishes the arm from a
+separation that was never taken.
+
+**Item 230 reads the same two witnesses forwards.**  `[77]` ends a comment
+with a break OR at the end of the input, and those are the only two ways; so
+the statement that IS a residue is `SepResidue` — `BreakBetween s s' ∨
+atEnd s'` — and `sep_toKey` now returns the LEFT disjunct on the zero-width
+derivation (`sep_toKey_left_at_zero_width`).  The second witness is the one
+that forces `atEnd` into the residue: it is a comment-delimited separation
+that crosses no line and is NOT inline. -/
 
 lemma plainResidue_break {n : Nat} {c : L4YAML.YamlContext} {s s' : SurfPos}
     (h : PlainResidue n c s s') : BreakBetween s s' := by
@@ -716,12 +759,12 @@ lemma singleResidue_break {n : Nat} {s s' : SurfPos} (h : SingleResidue n s s') 
       ((sFlowLinePrefix_suffix hpre).trans (gstar_suffix (fun _ _ => sLEmpty_suffix) hempty)))
   · exact (snbSingleOneLine_suffix hone).trans (glit_suffix hq1)
 
-/-- **The fourth residue's span can be empty**, so no character predicate
-    refutes it.  This is `sepResidue_of_startOfLine` read through the span:
-    item 228 showed the residue and its own left disjunct hold together, and
-    the reason is that the derivation consumes nothing at all. -/
-lemma sepResidue_span_can_be_empty (chars : List Char) :
-    SepResidue 0 ⟨chars, 0⟩ ⟨chars, 0⟩ ∧ ¬ BreakBetween ⟨chars, 0⟩ ⟨chars, 0⟩ := by
+/-- **The arm's span can be empty**, so no character predicate refutes it.
+    This is `sepCommentedArm_of_startOfLine` read through the span: item 228 showed
+    the arm and its own left disjunct hold together, and the reason is that
+    the derivation consumes nothing at all. -/
+lemma sepCommentedArm_span_can_be_empty (chars : List Char) :
+    SepCommentedArm 0 ⟨chars, 0⟩ ⟨chars, 0⟩ ∧ ¬ BreakBetween ⟨chars, 0⟩ ⟨chars, 0⟩ := by
   refine ⟨⟨⟨chars, 0⟩, SSLComments.startOfLine chars _ (GStar.nil _),
     SFlowLinePrefix.mk 0 _ _ _ (SIndent.zero _) (GOpt.none _)⟩, ?_⟩
   rintro ⟨pre, hspan, ch, hmem, -⟩
@@ -730,16 +773,18 @@ lemma sepResidue_span_can_be_empty (chars : List Char) :
     simpa using hspan.symm
   exact absurd (hpre ▸ hmem) (by simp)
 
-/-- **…and it can be non-empty and still crossed no line.**  `[77] b-comment`
+/-- **…and it can be non-empty and still cross no line.**  `[77] b-comment`
     ends a comment at END OF INPUT as well as at a break, so ` #c<EOF>` is a
     comment-delimited separation whose span is three characters, none of them a
-    break.  Together with `sepResidue_span_can_be_empty` this is why no
-    predicate on the span refutes `SepResidue` — not `BreakBetween`, and not
-    "the span contains a `#`" either, since the zero-width witness has neither.
-    The residue that WOULD be a partition is "this separation is not inline",
-    and `sep_toKey` has to be re-proved to produce it. -/
-lemma sepResidue_at_eof_comment :
-    SepResidue 0 ⟨[' ', '#', 'c'], 3⟩ ⟨[], 6⟩ ∧
+    break.  Together with `sepCommentedArm_span_can_be_empty` this is why no
+    predicate on the span refutes the ARM — not `BreakBetween`, and not "the
+    span contains a `#`" either, since the zero-width witness has neither.
+
+    It is also the derivation that keeps `atEnd` in `SepResidue`:
+    `sepCommentedArm_at_eof_comment_not_inline` shows this span is not an
+    inline separation, so the trichotomy's third disjunct is not slack. -/
+lemma sepCommentedArm_at_eof_comment :
+    SepCommentedArm 0 ⟨[' ', '#', 'c'], 3⟩ ⟨[], 6⟩ ∧
       ¬ BreakBetween ⟨[' ', '#', 'c'], 3⟩ ⟨[], 6⟩ := by
   refine ⟨⟨⟨[], 6⟩,
     SSLComments.withComment _ _ _
@@ -762,12 +807,32 @@ lemma sepResidue_at_eof_comment :
   simp only [List.mem_cons, List.not_mem_nil, or_false] at hmem
   rcases hmem with rfl | rfl | rfl <;> revert hbr <;> decide
 
+/-- **The `eof` derivation is not an inline separation.**  `[66]` is a run of
+    `[33] s-white`s and `'#'` is not one, so no derivation of
+    `SSeparateInLine` spans these three characters.  This is what makes
+    `atEnd` load-bearing in `SepResidue`: drop it and `sep_toKey` has no
+    disjunct left for this input. -/
+lemma sepCommentedArm_at_eof_comment_not_inline :
+    ¬ SSeparateInLine ⟨[' ', '#', 'c'], 3⟩ ⟨[], 6⟩ := by
+  intro h
+  match h with
+  | .whites _ _ hp =>
+    match hp with
+    | .mk _ _ _ hx hrest =>
+      match hx with
+      | .space _ _ =>
+        match hrest with
+        | .cons _ _ _ hy _ => cases hy
+
 /-! ### The payment
 
 `narrowed_conclusion_pays` (item 228's §1) with the residue discharged: a
 consumer holding "this key's span crosses no line" — which is what
 `[193] c-s-implicit-json-key` requires of everything that reaches a `:` —
-gets the conversion outright, with no disjunction left to case on. -/
+gets the conversion outright, with no disjunction left to case on.  The
+separation's payment needs one more fact from the same consumer, and it is
+one a key always has: the `:` that made it a key is still in the input, so
+the separation did not run the input out. -/
 
 lemma plain_toKey_of_noBreak {n : Nat} {c tc : L4YAML.YamlContext} (hp : KeyPair c tc)
     {s s' : SurfPos} (h : SNsPlain n c s s') (hnb : ¬ BreakBetween s s') :
@@ -783,5 +848,55 @@ lemma singleQuoted_toKey_of_noBreak {n : Nat} {c tc : L4YAML.YamlContext} (hp : 
     {s s' : SurfPos} (h : SCSingleQuoted n c s s') (hnb : ¬ BreakBetween s s') :
     SCSingleQuoted 0 tc s s' :=
   (singleQuoted_toKey hp h).resolve_right (fun hr => hnb (singleResidue_break hr))
+
+/-- **The separation's payment** (item 230): the fourth leaf, which item 229
+    left with a residue no consumer could refute. -/
+lemma sep_toKey_of_noResidue {n : Nat} {c tc : L4YAML.YamlContext} (hp : KeyPair c tc)
+    {s s' : SurfPos} (h : SSeparate n c s s') (hnb : ¬ BreakBetween s s')
+    (hne : ¬ atEnd s') : SSeparate 0 tc s s' :=
+  (sep_toKey hp h).resolve_right (fun hr => hr.elim hnb hne)
+
+lemma sepOpt_toKey_of_noResidue {n : Nat} {c tc : L4YAML.YamlContext} (hp : KeyPair c tc)
+    {s s' : SurfPos} (h : GOpt (SSeparate n c) s s') (hnb : ¬ BreakBetween s s')
+    (hne : ¬ atEnd s') : GOpt (SSeparate 0 tc) s s' :=
+  (sepOpt_toKey hp h).resolve_right (fun hr => hr.elim hnb hne)
+
+/-- …and the property run's, which item 229 counted among the 45 blocked
+    sites because its conclusion is about the OUTER span.  The residue widens,
+    so the conclusion can carry it. -/
+lemma props_toKey_of_noResidue {n : Nat} {c tc : L4YAML.YamlContext} (hp : KeyPair c tc)
+    {s s' : SurfPos} (h : SCNsProperties n c s s') (hnb : ¬ BreakBetween s s')
+    (hne : ¬ atEnd s') : SCNsProperties 0 tc s s' :=
+  (props_toKey hp h).resolve_right (fun hr => hr.elim hnb hne)
+
+/-- **The residue widens.**  An interior residue is a residue of any span
+    that brackets it — which is the property `True` was standing in for at the
+    five interior sites, and the one every arm of a rebuilt `flowNode_toKey`
+    will use: the outer derivation's constructor gives the two suffix facts,
+    and `L4YAML/Proofs/Foundation/SurfaceSpan.lean` gives them for all 74
+    production types. -/
+lemma sepResidue_widen {s a b s' : SurfPos} (hl : a.chars <:+ s.chars)
+    (hr : s'.chars <:+ b.chars) (h : SepResidue a b) : SepResidue s s' :=
+  breakOrEnd_extend_right hr (breakOrEnd_extend_left hl h)
+
+/-- **Item 229's zero-width witness, converted.**  The derivation that item
+    229 proved no consumer could refute — `[79]`'s `startOfLine` arm with no
+    comments, then `[71]` at index 0, consuming nothing — now returns
+    `sep_toKey`'s LEFT disjunct at any position that is not the end of the
+    input.  This is the machine-checked form of "the residue is a partition":
+    the witness is no longer a counterexample to it. -/
+lemma sep_toKey_left_at_zero_width (ch : Char) (rest : List Char) :
+    SSeparate 0 .blockKey ⟨ch :: rest, 0⟩ ⟨ch :: rest, 0⟩ :=
+  sep_toKey_of_noResidue (n := 0) (Or.inl ⟨rfl, rfl⟩)
+    (SSeparateLines.commented 0 ⟨ch :: rest, 0⟩ ⟨ch :: rest, 0⟩ ⟨ch :: rest, 0⟩
+      (SSLComments.startOfLine _ _ (GStar.nil _))
+      (SFlowLinePrefix.mk 0 _ _ _ (SIndent.zero _) (GOpt.none _)))
+    (by
+      rintro ⟨pre, hspan, c, hmem, -⟩
+      have hpre : pre = [] := by
+        simp only [Span] at hspan
+        simpa using hspan.symm
+      exact absurd (hpre ▸ hmem) (by simp))
+    (by simp [atEnd])
 
 end L4YAML.Proofs.FlowKeyLift

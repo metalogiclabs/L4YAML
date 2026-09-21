@@ -39,13 +39,18 @@ could make:
 **What it bought, and what it did not.**  §2.  The narrowing is worth exactly
 the consumer's ability to REFUTE the residue, and `True` can never be refuted
 (`true_residue_is_irrefutable`).  Three of the four new residues consume a line
-break by construction; `SepResidue` does not, and §2 exhibits a span that
-satisfies the residue AND the left disjunct at once.  **A narrowed residue that
-overlaps its own left disjunct is not yet an obligation.**  Whether the other
-three are tight is UNSETTLED here, for the same reason the family cannot be
-narrowed at all: saying "this derivation consumed a break INSIDE this span"
-needs a suffix lemma over the flow grammar, and §4 measures that the library
-has **none**.
+break by construction; the separation's arm does not, and §2 exhibits a span
+that satisfies the arm AND the left disjunct at once.  **A narrowed residue
+that overlaps its own left disjunct is not yet an obligation.**  Whether the
+other three are tight was UNSETTLED here: saying "this derivation consumed a
+break INSIDE this span" needs a suffix lemma over the flow grammar, and §4
+measured that the library had **none**.
+
+Item 229 wrote that lemma and item 230 re-proved `sep_toKey` around a residue
+that does not overlap — except at the end of the input, where every separation
+is inline and the input has run out at once.  §2 proves both halves: the
+overlap is gone at every span a key consumer can be at, and it is still there
+at end of input, which is a span a key consumer is never at.
 -/
 
 set_option autoImplicit false
@@ -96,13 +101,13 @@ lemma conclusion_eliminable_iff {A R : Prop} (hA : ¬ A) :
 
 /-! ## §2 The narrowing, performed — and one residue that is not an obligation
 
-`sep_toKey` declines on `[70] s-separate-lines(n)`'s comment-delimited arm, and
-`SepResidue` is that arm.  The arm is NOT "the separation crossed a line":
-`[79] s-l-comments` has a comment-free `startOfLine` arm and `[63] s-indent(0)`
-consumes nothing, so at a zero-width span at column 0 the residue holds — and
-so does `[80] s-separate-in-line`, by its own `startOfLine` arm.  **Both
-disjuncts are true at the same span**, which is exactly what a narrowing is
-supposed to stop being true.
+At item 228 `sep_toKey` declined on `[70] s-separate-lines(n)`'s
+comment-delimited arm, `SepCommentedArm`.  The arm is NOT "the separation
+crossed a line": `[79] s-l-comments` has a comment-free `startOfLine` arm and
+`[63] s-indent(0)` consumes nothing, so at a zero-width span at column 0 the
+arm holds — and so does `[80] s-separate-in-line`, by its own `startOfLine`
+arm.  **Both disjuncts are true at the same span**, which is exactly what a
+narrowing is supposed to stop being true.
 
 The module docstring of `FlowKeyLift` said the `True` side was "taken exactly
 on a multi-line interior"; for the separation that is imprecise, and it is
@@ -115,25 +120,46 @@ their left disjunct needs "this derivation consumed a break inside this span",
 and §4 measures that the instrument for that sentence does not exist.  They are
 UNSETTLED, which is not a negative result. -/
 
-/-- **The residue at a zero-width start-of-line span.** -/
-lemma sepResidue_of_startOfLine (chars : List Char) :
-    SepResidue 0 ⟨chars, 0⟩ ⟨chars, 0⟩ :=
+/-- **The arm at a zero-width start-of-line span.** -/
+lemma sepCommentedArm_of_startOfLine (chars : List Char) :
+    SepCommentedArm 0 ⟨chars, 0⟩ ⟨chars, 0⟩ :=
   ⟨⟨chars, 0⟩, SSLComments.startOfLine chars _ (GStar.nil _),
     SFlowLinePrefix.mk 0 _ _ _ (SIndent.zero _) (GOpt.none _)⟩
 
-/-- **…and the left disjunct at the same span**: `sep_toKey`'s narrowing does
-    not partition its own input. -/
-lemma sep_narrowing_does_not_partition (chars : List Char) :
+/-- **…and the left disjunct at the same span**: read as a residue, the arm
+    does not partition `sep_toKey`'s input. -/
+lemma sep_arm_does_not_partition (chars : List Char) :
     SSeparate 0 .blockKey ⟨chars, 0⟩ ⟨chars, 0⟩ ∧
-      SepResidue 0 ⟨chars, 0⟩ ⟨chars, 0⟩ :=
-  ⟨SSeparateInLine.startOfLine _, sepResidue_of_startOfLine chars⟩
+      SepCommentedArm 0 ⟨chars, 0⟩ ⟨chars, 0⟩ :=
+  ⟨SSeparateInLine.startOfLine _, sepCommentedArm_of_startOfLine chars⟩
 
 /-- The narrowed lemma still has its left disjunct available there, so the
-    overlap is not a gap in `sep_toKey` — it is a statement that the residue
-    is weaker than the name suggests. -/
+    overlap was never a gap in `sep_toKey` — it is a statement that the arm is
+    weaker than the name it carried. -/
 lemma sep_toKey_at_startOfLine (chars : List Char) :
     SSeparate 0 .blockKey ⟨chars, 0⟩ ⟨chars, 0⟩ :=
-  (sep_narrowing_does_not_partition chars).1
+  (sep_arm_does_not_partition chars).1
+
+/-- **Item 230's residue does not overlap at that span.**  `SepResidue` is
+    false at every zero-width span with input left, so `sep_toKey` returns the
+    conversion there and nothing else. -/
+lemma sepResidue_false_at_zero_width (ch : Char) (rest : List Char) :
+    ¬ SepResidue ⟨ch :: rest, 0⟩ ⟨ch :: rest, 0⟩ := by
+  rintro (⟨pre, hspan, c, hmem, -⟩ | he)
+  · have hpre : pre = [] := by
+      simp only [L4YAML.Proofs.SurfaceSpan.Span] at hspan
+      simpa using hspan.symm
+    exact absurd (hpre ▸ hmem) (by simp)
+  · exact absurd he (by simp [atEnd])
+
+/-- **…and where it still does, volunteered.**  At the end of the input every
+    separation is inline and `atEnd` holds, so the two disjuncts are both true
+    there.  That span is one a key consumer is never at — a key is followed by
+    a `:` — which is why the residue is refutable although it is not
+    disjoint. -/
+lemma sepResidue_overlaps_at_eof (col : Nat) :
+    SSeparate 0 .blockKey ⟨[], col⟩ ⟨[], col⟩ ∧ SepResidue ⟨[], col⟩ ⟨[], col⟩ :=
+  ⟨SSeparateInLine.startOfLine _, Or.inr rfl⟩
 
 /-! ## §2b Is the new residue itself vacuous?
 
@@ -145,8 +171,21 @@ here — `trivial`, and the empty-list prover
 neither settles any of the four, nor is any of them an `_ ∨ True` in disguise.
 
 This is a NEGATIVE result about two specific provers and not a proof that the
-residues are uninhabited; `sepResidue_of_startOfLine` shows one of them is
-inhabited at a whole family of spans. -/
+residues are uninhabited; `sepCommentedArm_of_startOfLine` shows the arm is
+inhabited at a whole family of spans, and `sepResidue_overlaps_at_eof` shows
+item 230's replacement is inhabited too.
+
+**The population is read off the CONCLUSIONS, corrected at item 230.**  This
+selected by name — any declaration in `FlowKeyLift` whose name ends in
+`Residue` — and that is not a property of a residue.  Item 230 added three
+payment lemmas called `sep_toKey_of_noResidue`, `sepOpt_toKey_of_noResidue`
+and `props_toKey_of_noResidue`, and the probe's population went from 4 to 7
+without a residue being added: a name test measures naming.  The four are now
+collected as the right disjuncts of the file's own `∨`-conclusions, named by
+this file — which is what a residue IS.  Their tallies were unaffected — the three intruders have a
+conclusion that is not a sort, so they scored zero on all three — and that is
+the shape of the failure to watch for: a bad population that the tallies hide.
+-/
 
 def expectedResidueProbe : String := "residues=4 byTrivial=0 byChain=0 optShaped=0"
 
@@ -155,14 +194,32 @@ run_cmd do
   let env ← getEnv
   let triv ← `(term| trivial)
   let chain ← `(term| ⟨[], fun _ h => absurd h List.not_mem_nil⟩)
+  -- the residues: the head of the right disjunct of every `A ∨ R` this file
+  -- concludes, with `True` excluded because it is the absence of a residue.
+  let mut residues : NameSet := {}
+  for (nm, ci) in env.constants.toList do
+    if nm.isInternal then continue
+    if !(`L4YAML.Proofs.FlowKeyLift).isPrefixOf nm then continue
+    match ci with | .thmInfo _ => pure () | _ => continue
+    let head? ← liftTermElabM do
+      forallTelescope ci.type fun _ cod => do
+        -- NOT under `whnf`: a residue is what the conclusion SAYS, and
+        -- unfolding it turns `KeyPair` and `SepResidue` into `Or`s of their
+        -- own and reports their components instead.
+        if !cod.isAppOfArity ``Or 2 then return none
+        let r := cod.getArg! 1
+        if r.isConstOf ``True then return none
+        return r.getAppFn.constName?
+    -- …and named by this file: `KeyPair.tc_key` concludes in a disjunction of
+    -- two equations, which is a case split and not a residue.
+    if let some h := head? then
+      if (`L4YAML.Proofs.FlowKeyLift).isPrefixOf h then residues := residues.insert h
   let mut n := 0
   let mut bt := 0
   let mut bc := 0
   let mut opt := 0
-  for (nm, ci) in env.constants.toList do
-    if nm.isInternal then continue
-    if !(`L4YAML.Proofs.FlowKeyLift).isPrefixOf nm then continue
-    if !(nm.getString!.endsWith "Residue") then continue
+  for nm in residues.toList do
+    let some ci := env.find? nm | throwError "residue {nm} vanished"
     n := n + 1
     let (t, c, o) ← liftTermElabM do
       forallTelescope ci.type fun xs cod => do
@@ -185,9 +242,9 @@ in a motive or an intermediate type; `prem` — `_ ∨ True` BINDERS in the type
 which is item 227's own population; `proj` — the declaration is a projection
 and not a lemma at all.
 
-`res` is a DAG count and undercounts by sharing: `props_toKey` writes
-`Or.inr trivial` in two branches over the same span, so the two terms are
-structurally identical and this walk sees one where the compiler sees two.
+`res` is a DAG count and undercounts by sharing: at item 228 `props_toKey`
+wrote `Or.inr trivial` in two branches over the same span, so the two terms
+were structurally identical and this walk saw one where the compiler saw two.
 That is why `scripts/narrow_conclusion.py` exists, and why its number is the
 one DOCS quotes. -/
 
@@ -209,17 +266,22 @@ partial def scanTerm (e : Expr) (seen : Std.HashSet Expr) (r i : Nat) :
   | .proj _ _ b => scanTerm b seen r i
   | _ => (seen, r, i)
 
-def expectedLedgerTally : String := "rows=21 res=124"
+def expectedLedgerTally : String := "rows=20 res=123"
 
 /-- The rows, machine-produced, sorted by `res` then `prem` descending.  One
     row carries the item's sharpest number: `flowNode_toKey` holds **65** of
-    the remaining **124** residue sites, and its own five callees hold five
+    the remaining **123** residue sites, and its own four callees hold four
     more.  Three rows are all-zero — the proof never reaches the right arm by
     any route — and two of those three are PROJECTIONS, so their "conclusion"
     is a park FIELD and narrowing it is the supply-side operation items
-    212-218 priced, not this one. -/
+    212-218 priced, not this one.
+
+    **Item 230 took one row off the list**, `FlowKeyLift.props_toKey`: it no
+    longer concludes in `True`, so `Or.inr trivial` no longer proves it and
+    the population no longer contains it.  That is what a narrowing looks like
+    in this census — a row leaves, it does not shrink. -/
 def expectedLedger : List String :=
-  ["res=65 imp=115 prem=0 proj=0 FlowKeyLift.flowNode_toKey",
+  ["res=65 imp=113 prem=0 proj=0 FlowKeyLift.flowNode_toKey",
    "res=11 imp=100 prem=6 proj=0 flowKeyRoute_of_root",
    "res=10 imp=85 prem=2 proj=0 flowKeyRoute_of_open",
    "res=9 imp=61 prem=3 proj=0 resumectx_of_landing",
@@ -234,7 +296,6 @@ def expectedLedger : List String :=
    "res=1 imp=3 prem=1 proj=0 flowVPack_of_close",
    "res=1 imp=4 prem=1 proj=0 PreprocessIndentStable.IndentFloor.transport",
    "res=1 imp=4 prem=1 proj=0 flowOpen_floor_at_prep",
-   "res=1 imp=7 prem=0 proj=0 FlowKeyLift.props_toKey",
    "res=0 imp=8 prem=2 proj=0 frameChainUnion",
    "res=0 imp=0 prem=0 proj=0 FlowKeyLift.flowNode_toBlockKey",
    "res=0 imp=0 prem=0 proj=0 flowKeyHead",

@@ -195,7 +195,8 @@ def optDecls (env : Environment) : List (Name × ConstantInfo) :=
     the mismatch to a later `ensureHasType` that never came, and `Meta.check`
     only asks whether that term is well typed AT ALL.  So the function
     answered `true` for any closed well-typed term, whatever the goal: at item
-    228 a bare `trivial` "proved" `SepResidue n s s'`.  Item 227's own numbers
+    228 a bare `trivial` "proved" the separation's arm, `SepCommentedArm
+    n s s'`.  Item 227's own numbers
     were right anyway, and for a reason worth recording — `Or.inr trivial`
     against a goal that is not an `Or` leaves `?a` unassigned, so the
     metavariable test rejected it — which is to say the selection was made by
@@ -618,9 +619,8 @@ and the gate is that they agree EXACTLY, in both directions.  They are
 independent: the first asks the compiler and the second asks the syntax after
 one unfolding, and §6 is the item where those two disagreed about binders. -/
 /-- `theorems` is the census POPULATION, and it moves whenever the library
-    gains a theorem: 5138 at item 228, **5214** at item 229, which added
-    `L4YAML/Proofs/Foundation/SurfaceSpan.lean` and `FlowKeyLift` §4 and moved
-    eleven lemmas out of `Proofs/Coupling/TabIndentBridge.lean`.
+    gains a theorem: 5138 at item 228, 5214 at item 229, **5238** at item 230,
+    which added `SurfaceSpan` §6 and five payment lemmas to `FlowKeyLift` §4.
 
     The delta is NOT the count of `lemma` lines in the diff, and item 229 is
     where that was measured rather than assumed: the census walks environment
@@ -629,25 +629,26 @@ one unfolding, and §6 is the item where those two disagreed about binders. -/
     that counts what the ENVIRONMENT holds cannot be reconciled against a grep
     over line starts, and this docstring no longer claims it can.
 
-    What this pin carries is the other four numbers: the two selectors are
-    unmoved at **21** with no disagreement in either direction.  A suffix
-    lemma is not a no-op conclusion, and neither is a payment lemma. -/
-def expectedNoopTally : String := "theorems=5214 byElab=21 byWhnf=21 elabOnly=0 whnfOnly=0"
+    What this pin carries is the other four numbers, and item 230 moved one of
+    them: the two selectors agree at **20**, down from 21, because
+    `props_toKey` stopped concluding in `True`. -/
+def expectedNoopTally : String := "theorems=5238 byElab=20 byWhnf=20 elabOnly=0 whnfOnly=0"
 
-/-- The 27 item 227 measured, now **21**.  Item 228 narrowed six of
+/-- The 27 item 227 measured, now **20**.  Item 228 narrowed six of
     `FlowKeyLift`'s ten — `plain_toKey`, `doubleQuoted_toKey`,
     `singleQuoted_toKey`, `sep_toKey`, `sepOpt_toKey` and the `sep_toBlockKey`
     relay — from `… ∨ True` to `… ∨ <residue>`, so `Or.inr trivial` no longer
-    proves them and this instrument no longer selects them.  The six that left
-    are the record of the operation.  The four that stayed — `flowNode_toKey`,
-    `flowNode_toBlockKey`, `flowContent_toBlockKey`, `props_toKey` — are the
-    ones whose residue arises at an INTERIOR span, and no proposition
-    available here carries it out to the conclusion's span. -/
+    proves them and this instrument no longer selects them.  Item 230 took the
+    seventh, `props_toKey`, by giving the separation a residue that WIDENS:
+    the residue arises at the interior separation's span and the conclusion is
+    about the outer one, and `breakOrEnd_extend_left`/`_right` carry it there.
+    The three that stayed — `flowNode_toKey`, `flowNode_toBlockKey`,
+    `flowContent_toBlockKey` — are the recursor application and its two
+    wrappers, whose eighteen motives still conclude in `True`. -/
 def expectedNoopConclusions : List String :=
   ["FlowBaseRoutes.key", "FlowBaseRoutes.vslot",
    "FlowKeyLift.flowContent_toBlockKey",
    "FlowKeyLift.flowNode_toBlockKey", "FlowKeyLift.flowNode_toKey",
-   "FlowKeyLift.props_toKey",
    "PreprocessIndentStable.IndentFloor.transport",
    "dedent_cover_of_landing", "explFrameValueLine", "flowKeyHead",
    "flowKeyRoute_of_open", "flowKeyRoute_of_root", "flowOpen_floor_at_prep",

@@ -819,4 +819,185 @@ lemma ssNsPlainNextLine_break {n : Nat} {c : YamlContext} {a b : SurfPos}
         (sFlowLinePrefix_suffix hp)).trans (gstar_suffix (fun _ _ => sLEmpty_suffix) hem)
     · exact gstar_suffix (fun _ _ => sswhite_suffix) hw
 
+/-! ## §6 The separation trichotomy (DOCS item 230)
+
+§5 gives a residue a consumer can refute WHEN the residue carries a break.
+`[69] s-separate(n,c)`'s does not: item 229 exhibited two derivations of
+`[70] s-separate-lines(n)`'s comment-delimited arm whose spans carry no break
+at all — one empty, one the three characters `' '`, `'#'`, `'c'` — so no
+predicate on the span separates that arm from a separation that is simply
+inline.  The arm is therefore not a residue; it is an arm.
+
+What IS a residue is read off `[77] b-comment`, which has exactly two ways to
+end a comment: a `[28] b-break`, or the end of the input.  Every
+comment-delimited separation passes through one of them, so every derivation
+of `[70]` either is an inline separation, or crossed a line, or ran the input
+out — and the third is refutable by the same consumer as the second, because
+a key is followed by a `:` and so does not end the input.
+
+The proof needs the separation grammar to be closed under concatenation,
+which `[66] s-separate-in-line` is and the library did not say: `[66]` is
+exactly `GStar SSWhite`, `[63] s-indent(n)` is `n` of them, and `[71]
+s-flow-line-prefix(n)` is `[63]` followed by an optional `[66]`.  So the whole
+second component of `[70]`'s comment-delimited arm is inline and contributes
+no residue; the residue comes from `[79] s-l-comments` alone. -/
+
+/-- `GStar` concatenates. -/
+lemma gstar_append {P : SurfPos → SurfPos → Prop} {a b c : SurfPos}
+    (h₁ : GStar P a b) : GStar P b c → GStar P a c := by
+  induction h₁ with
+  | nil _ => exact id
+  | cons s₁ s₂ _ hx _ ih => exact fun h => GStar.cons s₁ s₂ c hx (ih h)
+
+lemma gstar_of_gplus {P : SurfPos → SurfPos → Prop} {a b : SurfPos}
+    (h : GPlus P a b) : GStar P a b := by
+  match h with
+  | .mk _ _ _ hx hrest => exact GStar.cons _ _ _ hx hrest
+
+/-- **`[66] s-separate-in-line` IS `GStar SSWhite`**, one direction. -/
+lemma separateInLine_of_whites {a b : SurfPos} (h : GStar SSWhite a b) :
+    SSeparateInLine a b := by
+  match h with
+  | .nil _ => exact .startOfLine _
+  | .cons s₁ s₂ s₃ hx hrest => exact .whites s₁ s₃ (GPlus.mk s₁ s₂ s₃ hx hrest)
+
+/-- …and the other: the `startOfLine` arm is the empty run. -/
+lemma whites_of_separateInLine {a b : SurfPos} (h : SSeparateInLine a b) :
+    GStar SSWhite a b := by
+  match h with
+  | .whites _ _ hp => exact gstar_of_gplus hp
+  | .startOfLine _ => exact .nil _
+
+/-- **The concatenation lemma for `[66]`.**  Two inline separations end to end
+    are one, which is what lets `[71]`'s indent and its optional tail be read
+    as a single separation. -/
+lemma separateInLine_trans {a b c : SurfPos}
+    (h₁ : SSeparateInLine a b) (h₂ : SSeparateInLine b c) : SSeparateInLine a c :=
+  separateInLine_of_whites
+    (gstar_append (whites_of_separateInLine h₁) (whites_of_separateInLine h₂))
+
+/-- **`[63] s-indent(n)` is a run of whites** — the spaces it consumes are
+    `[33] s-white`s, at every `n`. -/
+lemma sIndent_whites {n : Nat} {a b : SurfPos} (h : SIndent n a b) :
+    GStar SSWhite a b := by
+  induction h with
+  | zero s => exact .nil s
+  | succ _ rest col _ _ ih =>
+    exact GStar.cons ⟨' ' :: rest, col⟩ ⟨rest, col + 1⟩ _ (SSWhite.space rest col) ih
+
+/-- **`[71] s-flow-line-prefix(n)` is an inline separation**, at every `n`.
+    This is why the residue below comes from `[79]` alone. -/
+lemma sFlowLinePrefix_separateInLine {n : Nat} {a b : SurfPos}
+    (h : SFlowLinePrefix n a b) : SSeparateInLine a b := by
+  match h with
+  | .mk _ _ _ _ hind hopt =>
+    match hopt with
+    | .none _ => exact separateInLine_of_whites (sIndent_whites hind)
+    | .some _ _ hsil =>
+      exact separateInLine_trans (separateInLine_of_whites (sIndent_whites hind)) hsil
+
+/-- **The end of the input is forward-closed.**  `atEnd` (`Surface.atEnd`, the
+    predicate `s.chars = []`) propagates along every production, because every
+    production consumes a prefix and a suffix of `[]` is `[]`. -/
+lemma atEnd_of_suffix {a b : SurfPos} (hsuf : b.chars <:+ a.chars) (h : atEnd a) :
+    atEnd b := by
+  obtain ⟨pre, hpre⟩ := hsuf
+  simp only [atEnd] at h ⊢
+  rw [h] at hpre
+  simpa using (List.append_eq_nil_iff.mp hpre).2
+
+/-- Widening the residue on the right: both disjuncts survive. -/
+lemma breakOrEnd_extend_right {a b c : SurfPos} (hbc : c.chars <:+ b.chars)
+    (h : BreakBetween a b ∨ atEnd b) : BreakBetween a c ∨ atEnd c :=
+  h.elim (fun hb => Or.inl (breakBetween_extend_right hbc hb))
+    (fun he => Or.inr (atEnd_of_suffix hbc he))
+
+/-- Widening it on the left: only the break half moves, `atEnd` is about the
+    right endpoint alone. -/
+lemma breakOrEnd_extend_left {a b c : SurfPos} (hab : b.chars <:+ a.chars)
+    (h : BreakBetween b c ∨ atEnd c) : BreakBetween a c ∨ atEnd c :=
+  h.elim (fun hb => Or.inl (breakBetween_extend_left hab hb)) Or.inr
+
+/-- **`[77] b-comment` ends a comment in exactly two ways**, and both are
+    residues: a break, or the end of the input. -/
+lemma sbComment_breakOrEnd {a b : SurfPos} (h : SBComment a b) :
+    BreakBetween a b ∨ atEnd b := by
+  match h with
+  | .break _ _ hb => exact Or.inl (breakBetween_of_break hb)
+  | .eof _ => exact Or.inr rfl
+
+/-- The shape `[76] s-b-comment` and `[78] l-comment` share, read for its
+    residue rather than for its suffix (`comment_body_suffix` is the other
+    reading of the same three components). -/
+private lemma commentBody_breakOrEnd {s s₁ s₂ s' : SurfPos}
+    (hsep : SSeparateInLine s s₁) (hopt : GOpt SCNbCommentText s₁ s₂)
+    (hbc : SBComment s₂ s') : BreakBetween s s' ∨ atEnd s' :=
+  breakOrEnd_extend_left
+    ((gopt_suffix (fun _ _ => scNbCommentText_suffix) hopt).trans
+      (sSeparateInLine_suffix hsep))
+    (sbComment_breakOrEnd hbc)
+
+/-- **`[76] s-b-comment` always leaves a residue** — it ends in `[77]` on both
+    arms. -/
+lemma ssbComment_breakOrEnd {a b : SurfPos} (h : SSBComment a b) :
+    BreakBetween a b ∨ atEnd b := by
+  match h with
+  | .withSep _ _ _ _ hsep hopt hbc => exact commentBody_breakOrEnd hsep hopt hbc
+  | .noSep _ _ hbc => exact sbComment_breakOrEnd hbc
+
+/-- **`[78] l-comment` likewise.** -/
+lemma slComment_breakOrEnd {a b : SurfPos} (h : SLComment a b) :
+    BreakBetween a b ∨ atEnd b := by
+  match h with
+  | .mk _ _ _ _ hsep hopt hbc => exact commentBody_breakOrEnd hsep hopt hbc
+
+/-- A run of `[78]`s is empty, or it leaves a residue.  The empty run is the
+    one that keeps `[79]`'s `startOfLine` arm inline. -/
+lemma gstarComment_breakOrEnd {a b : SurfPos} (h : GStar SLComment a b) :
+    b = a ∨ (BreakBetween a b ∨ atEnd b) := by
+  match h with
+  | .nil _ => exact Or.inl rfl
+  | .cons _ _ _ hx hrest =>
+    exact Or.inr (breakOrEnd_extend_right
+      (gstar_suffix (fun _ _ => slComment_suffix) hrest) (slComment_breakOrEnd hx))
+
+/-- **`[79] s-l-comments` is zero-width, or it leaves a residue.**  Zero-width
+    is `startOfLine` with no comments; every other derivation reaches a `[77]`.
+    -/
+lemma sslComments_inline_or_breakOrEnd {a b : SurfPos} (h : SSLComments a b) :
+    SSeparateInLine a b ∨ (BreakBetween a b ∨ atEnd b) := by
+  match h with
+  | .withComment _ _ _ hsb hstar =>
+    exact Or.inr (breakOrEnd_extend_right
+      (gstar_suffix (fun _ _ => slComment_suffix) hstar) (ssbComment_breakOrEnd hsb))
+  | .startOfLine _ _ hstar =>
+    rcases gstarComment_breakOrEnd hstar with rfl | hout
+    · exact Or.inl (SSeparateInLine.startOfLine _)
+    · exact Or.inr hout
+
+/-- **THE TRICHOTOMY.**  `[70] s-separate-lines(n)` is an inline separation,
+    or its span carries a `[28] b-break`, or it ran the input out.  The first
+    disjunct is what the key contexts have a production for; the other two are
+    refuted by a consumer holding "this key crosses no line" and "a `:`
+    follows", which is what `[193] c-s-implicit-json-key` supplies. -/
+lemma separateLines_inline_or_breakOrEnd {n : Nat} {a b : SurfPos}
+    (h : SSeparateLines n a b) :
+    SSeparateInLine a b ∨ (BreakBetween a b ∨ atEnd b) := by
+  match h with
+  | .inline _ _ _ hsil => exact Or.inl hsil
+  | .commented _ _ _ _ hcom hpre =>
+    rcases sslComments_inline_or_breakOrEnd hcom with hsil | hout
+    · exact Or.inl (separateInLine_trans hsil (sFlowLinePrefix_separateInLine hpre))
+    · exact Or.inr (breakOrEnd_extend_right (sFlowLinePrefix_suffix hpre) hout)
+
+/-- **`[69] s-separate(n,c)` at the four non-key contexts**, which is the form
+    the conversion consumes. -/
+lemma separate_inline_or_breakOrEnd {n : Nat} {c : YamlContext} {a b : SurfPos}
+    (hc : c = .blockOut ∨ c = .blockIn ∨ c = .flowOut ∨ c = .flowIn)
+    (h : SSeparate n c a b) :
+    SSeparateInLine a b ∨ (BreakBetween a b ∨ atEnd b) := by
+  have h' : SSeparateLines n a b := by
+    rcases hc with rfl | rfl | rfl | rfl <;> exact h
+  exact separateLines_inline_or_breakOrEnd h'
+
 end L4YAML.Proofs.SurfaceSpan

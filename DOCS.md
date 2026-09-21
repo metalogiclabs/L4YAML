@@ -27729,6 +27729,206 @@ arms the instrument needed, because the walk that produced it stopped where the
 block stopped.
 
 
+### Item 230 (2026-09-21)
+
+**THE PARTITION — the fourth residue gets a consumer, and one leaf's
+re-proof pays every one of the forty-five sites item 229 called blocked.**
+Item 229's recorded NEXT: *"`sep_toKey`'s residue is not a partition, and 79
+of `flowNode_toKey`'s 82 dead sites wait on that one fact; the operation is to
+re-prove it so the zero-width case returns the LEFT disjunct and the rest
+carries a residue a consumer can refute, priced by signatures at 12
+constructor arms … plus a concatenation lemma for `[66]`, which the library
+does not have."*  The re-proof is done.  The count in the sentence before it
+is wrong in the direction that helps.
+
+**The operation.**  `[77] b-comment` ends a comment in exactly two ways — a
+`[28] b-break`, or the end of the input — and there is no third arm.  So every
+derivation of `[70] s-separate-lines(n)` is an inline separation, or its span
+carries a break, or it ran the input out:
+`SurfaceSpan.separateLines_inline_or_breakOrEnd`.  `FlowKeyLift.SepResidue` is
+now those last two (`BreakBetween s s' ∨ atEnd s'`), and the arm item 228 and
+229 carried under that name keeps its own, `SepCommentedArm`, because §4's two
+witnesses about it are what fixes the shape of the replacement.
+
+Three supporting facts the library did not have.  `[66] s-separate-in-line`
+IS `GStar SSWhite` (`separateInLine_of_whites`, `whites_of_separateInLine`),
+so it **concatenates** — the lemma item 229's NEXT priced separately, and it
+needs `GStar` concatenation, which nothing in `L4YAML/` or `Tests/` had.
+`[63] s-indent(n)` is a run of `[33] s-white`s at every `n`, so
+`[71] s-flow-line-prefix(n)` is itself an inline separation
+(`sFlowLinePrefix_separateInLine`) and `[70]`'s second component contributes
+no residue at all: the whole residue comes from `[79] s-l-comments`.  And the
+end of the input is forward-closed (`atEnd_of_suffix`), which is what makes
+`eof` survive the rest of a derivation.
+
+**The price by signatures, a second time, in the same direction.**  Item
+229's 12 arms over seven productions were all needed and all twelve were cased
+on.  They were 46% of it.  Measured by walking the item's proof TERMS through
+their matcher auxiliaries — where a `match` puts its case analysis — and
+summing the constructor count of every inductive an eliminator is applied to
+(`Tests/Guards/Proofs/SurfaceSpanCensus.lean` §6, pinned):
+
+    types=16 ctors=26   prod=9/16   comb=4/6   forecast=7/12
+
+The two extra productions are `[70]` itself (the type being analysed) and
+`[96] c-ns-properties` (the payment below).  The four combinators — `GStar`,
+`GOpt`, `GPlus`, `GSeq` — live in the same namespace as the productions and
+are what the productions are BUILT from; the signature walk enumerated the
+YAML productions and stopped there.  Item 229's corollary reads the same way
+one item later: **a price by signatures prices the population its walk
+enumerated**, and both walks stopped at the same kind of boundary — item
+229's at a `def`, item 230's at a combinator.
+
+**What it pays.**  `flowNode_toKey`'s proof term still holds **82** `@Or.inr _
+True _`, and the leaf applications behind them are unmoved — `plain_toKey` 1,
+`doubleQuoted_toKey` 1, `singleQuoted_toKey` 1, `sep_toKey` 21,
+`sepOpt_toKey` 22, `props_toKey` 2.  What moved is which of them a consumer
+can discharge:
+
+    item 229:  noop=82 payable=3  blocked=45 relay=34
+    item 230:  noop=82 payable=48 blocked=0  relay=34
+
+`sep_toKey_of_noResidue`, `sepOpt_toKey_of_noResidue` and
+`props_toKey_of_noResidue` take the two facts `[193] c-s-implicit-json-key`
+supplies about anything that reaches a `:` — the key crosses no line, and a
+`:` follows it, so the input did not run out — and return the conversion with
+no disjunction left.  Item 229's NEXT said 79 sites waited on this one fact;
+45 of them did, and the other 34 do not decline through a leaf at all.
+
+`props_toKey` is the first conclusion in the file to carry a residue OUT of an
+interior span, which is the thing item 228 wrote `True` for: `SepResidue` is
+closed under widening in both directions (`sepResidue_widen`), because a break
+in a sub-span is a break in the span and an input that ran out stays out.
+
+**The census that would have gone stale.**  §5's split passed unchanged after
+the re-proof, with every number right and its own words wrong: item 229 wrote
+the lane names into `let` bindings, so `blocked` meant "the three `sep_*`
+leaves" and not "the leaves that cannot be discharged".  The instrument now
+looks each leaf's payment lemma up in the environment and a lane is payable
+only if a lemma resolves.  **A classification a census writes down is not a
+measurement; only one it looks up is.**
+
+**A second census read its own population by name.**  §2b of the same file
+asked whether each residue is vacuous, and selected the residues as "every
+declaration in `FlowKeyLift` whose name ends in `Residue`".  Item 230's three
+payment lemmas are called `sep_toKey_of_noResidue`, `sepOpt_toKey_of_noResidue`
+and `props_toKey_of_noResidue`, so the population went **4 → 7** with no
+residue added.  The three tallies were unmoved — the intruders' conclusions are
+not sorts, so they scored zero on all three — which is the failure shape to
+watch: **a wrong population that the tallies hide.**  The residues are now
+collected as the right disjuncts of the file's own `∨`-conclusions, named by
+the file, which is what a residue is.
+
+**The overlap, volunteered.**  `SepResidue` is refutable but it is NOT
+disjoint from its own left disjunct: at end of input every separation is
+inline and `atEnd` holds at once (`sepResidue_overlaps_at_eof`).  What changed
+is where the overlap lives.  The arm overlapped at EVERY zero-width span
+(`sep_arm_does_not_partition`); the residue is false at every zero-width span
+with input left (`sepResidue_false_at_zero_width`), so the only overlap is at
+a span a key consumer is never at.  `atEnd` is not slack either:
+`sepCommentedArm_at_eof_comment_not_inline` proves ` #c<EOF>` is a
+comment-delimited separation that crosses no line and is not inline, so
+dropping `atEnd` leaves `sep_toKey` with no disjunct for that input.
+
+**Predictions, written before the first edit** (`PREDICTION.md`).  HELD — the
+residue is `BreakBetween ∨ atEnd` and `[77]`'s two arms are the reason (P1);
+`[71]` is inline at every `n`, so the residue comes from `[79]` alone (P2);
+the 12 forecast arms are all needed and the true count is 1.6×–2.2× them,
+measured 1.83× (P3); no `GStar` concatenation existed and the lemma is an
+induction on the first argument (P4); `SurfaceSpan` grows 110–190 lines
+(**181**) and `FlowKeyLift` +50 to +110 net (**+105**); declarations
+8700–8715 (**8714**); this item's declarations on `propext` alone; item 229's
+witnesses survive under new names with `expectedFamily` unmoved.  MISSED — P7
+named three test files that would churn and a FOURTH pin moved: the residue
+probe's population, by name suffix, 4 → 7.  REFUTED — 8–14 new declarations in
+`SurfaceSpan` (**18**); and P5 twice over, in the direction that helps: the
+payment was predicted to move `props_toKey`'s 2 sites and to drop `noop` to
+80.  `noop` did not move at all, because it counts `flowNode_toKey`'s OWN
+term and that term is unchanged by a leaf's conclusion; and `sep_toKey` and
+`sepOpt_toKey` became payable too, because a payment needs the residue
+REFUTABLE and not absent.  Predicted `payable=3 blocked=43`; measured
+`payable=48 blocked=0`.
+
+**Gates, all at baseline.**  `lake build` **1198** jobs, 0 warnings;
+`run-all-tests.sh` **Verified: 4520/4520** (Production Coverage **837/837**);
+`eventscore` **347/358** (0 error-miss, 0 event-reject); `suiterunner`
+**869/0/151**, run ALONE; matrix **402/402 event** + **282/282 JSON** on BOTH
+pipelines; `[210]` flip **FIVE** definitions — `bareNodeRoute`,
+`rootMapRoute`, `rootMapRouteF`, `structural_dispatch_to_pending`,
+`topLevelFlowResumeSep` — now read off the log by `scripts/flip_210.py`, with
+`Document.lean` restored and md5-verified
+(`d955a797b9a9c895be3aabad138a297e`); `#print axioms` — **25** capstones, no
+`sorryAx`, and this item's **31** declarations depend on **`propext` alone;
+checkers **229** library modules from 5 default targets / 355 imports,
+20/230/249/355, all 25 `theorem` sites whitelisted; annotations **211/211**
+with the standing **19** name mismatches, exit **1**; decline pins
+`grep -cE '^OK '` = **7 + 18 + 6 = 31**, "ALL PINS OK" three times.  Counts:
+declarations **8689 → 8714**, `#guard` **8173** unmoved, test files **643**
+unmoved, the loose demand census **8** unmoved.
+
+**What remains.**  The obstruction is no longer a leaf.  `relay=34` is the
+whole remainder, and those sites decline through the recursion itself:
+`flowNode_toKey`'s eighteen motives conclude in `∨ True`, so an interior
+residue has nowhere to go.  The operation is to rebuild the eight FLOW motives
+around `SepResidue` — the ten block motives stay `True`, because the recursion
+never leaves the flow grammar — and to give each declining minor premise its
+widening term, `sepResidue_widen` with the two suffix facts the arm's own
+constructor supplies.
+
+**This price is taken from the artifact, not from signatures.**  Three numbers,
+each re-derived by a pin that already exists: **69** minor premises and **18**
+motives (`ConclusionObligationCensus` §4, `types=18 ctors=69`), and **82**
+declining sites in the proof term (`SurfaceSpanCensus` §5, `noop=82`).  Every
+suffix lemma the widening terms need exists — all 74 production types, item
+229 — so the failure mode to watch is not a missing fact but the one both
+signature walks hit: a population enumerated by a walk that stops somewhere.
+Here the walk is the proof term itself, which is why the count is 82 and not
+83.
+
+Unchanged: R3's seven productions, whose price is the case split; item 183's
+flip order, whose two REFUTABLE halves are `h_ref`'s readers; the parked Ix
+Step-1 composition on the Ix track's own clock.  Instrument debt, still **ten**
+rows, none paid and none added — and two selectors that were NOT on the list
+were found by this item's own edits and fixed in place.  The `[210]` flip's
+five definitions were read off the build log at every item that ran the gate
+(226-229 each carry a `flip.defs.txt` in their scratchpad and none carries a
+generator); `scripts/flip_210.py` now runs the gate end to end and maps error
+locations to the definitions that enclose them, reproducing item 229's five
+exactly from item 229's own log.  And §2b of
+`Tests/Guards/Proofs/ConclusionObligationCensus.lean` selected its residues by
+NAME SUFFIX, which this item's payment lemmas broke; it now reads them off the
+conclusions.  Both are the same lesson as the standing declaration-census row,
+one level in: **a selector that matches text measures the text.**  Still open:
+the 198/200/201 censuses lack a
+cruder-key control; what an `Or.inl`'s proof actually FORWARDS is measured and
+unresolved; the supply walk is scoped to one module; `pendingDocEnd` has no
+token-level field and no directive-flag field; `pendingBlock` carries no
+`h_real`; the strength ladder is a PROOF-LEVEL instrument only; the weakening
+probe reads a lemma's CURRENT proof; the substitution probe needs a canonical
+inhabitant; 141 of the 163 faces are UNSETTLED; `scripts/narrow_conclusion.py`
+prices by COMPILER ERRORS; and the standing declaration census is a grep over
+line starts that counts prose and cannot be reconciled with the environment
+census.
+
+**The instrument ledger, thirty-two rows.**  Park constructors (198),
+application sites (200), lemma conclusions (201), the same with a key that
+works (202), indices (203), the runtime's own state (204), the transitive ring
+of a carrier (205), the same closure with its last ring paid (206), the ring's
+payers against a forecast (207), the instruments themselves (208), the object a
+carrier's consumer reads (209), the plan's own remaining list (210), the
+control (211), the provenance (212), the route (213), the pipe (214), the beta
+(215), the arms (216), the branch (217), the reach (218), the corpus (219), the
+matrix (220), the minimal zero (221), the strength ladder (222), the demand
+ledger (223), the spend census (224), the reader census (225), the necessity
+census (226), the worth census (227), the obligation census (228), the span
+(229) — and now **the ARM PRICE**, which counts a proof's case analysis by
+walking its term through the matcher auxiliaries a `match` hides it in.  Its
+corollary is item 229's, one level down: **the second price by signatures
+stopped at the same kind of boundary as the first.**  229's walk stopped at a
+`def`; 230's stopped at a combinator.  Both are the point where a production is
+built out of something more general, and a walk that enumerates names does not
+cross it.
+
 ### REMAINING, in order
 
 The per-item history is the closure log above; this section lists only the
