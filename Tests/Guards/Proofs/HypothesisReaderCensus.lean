@@ -111,51 +111,78 @@ def projIdx (env : Environment) (g : Name) : Option Nat :=
 def isCtor (env : Environment) (g : Name) : Bool :=
   match env.find? g with | some (.ctorInfo _) => true | _ => false
 
+/-- What a term IS, for the purposes of the walk: the sub-term that carries it,
+    plus whatever the peel discarded, which is still walked so that no
+    occurrence can vanish.
+
+    **Item 226 added this seam and it is not decoration.**  This item's walk
+    peels NOTHING (`noPeel`), and that is why §5 below reports nine premises it
+    cannot land in the library: `Or.imp` and an over-applied `Eq.ndrec` are
+    PIPES — item 213 named them and item 215's `peelPipe` taught the SUPPLY
+    census to see through them — and a walk that stops at a pipe reports the
+    pipe.  `Tests.Guards.PremiseNecessityCensus` supplies the pipe peel and
+    lands all nine. -/
+abbrev Peel := Expr → Expr × Array Expr
+
+/-- Item 225's peel: a term is itself. -/
+def noPeel : Peel := fun e => (e, #[])
+
 /-- Every occurrence of the binder whose de Bruijn index is `tgt` at depth 0.
     `d` is the extra binder depth, so the variable is `tgt + d`; `hasLooseBVar`
     prunes every subterm that cannot contain it. -/
-partial def uses (env : Environment) (tgt : Nat) :
+partial def usesWith (peel : Peel) (env : Environment) (tgt : Nat) :
     Nat → Expr → Array Use → Array Use
   | d, e, acc =>
     if !e.hasLooseBVar (tgt + d) then acc else
     match e with
     | .bvar _ => acc.push .bare
-    | .mdata _ b => uses env tgt d b acc
+    | .mdata _ b => usesWith peel env tgt d b acc
     | .proj _ _ s => if s == .bvar (tgt + d) then acc.push .projd
-                     else uses env tgt d s acc
+                     else usesWith peel env tgt d s acc
     | .lam _ t b _ =>
         let acc := if t.hasLooseBVar (tgt + d) then acc.push .inTy else acc
-        uses env tgt (d + 1) b acc
+        usesWith peel env tgt (d + 1) b acc
     | .forallE _ t b _ =>
         let acc := if t.hasLooseBVar (tgt + d) then acc.push .inTy else acc
-        uses env tgt (d + 1) b acc
+        usesWith peel env tgt (d + 1) b acc
     | .letE _ t v b _ =>
         let acc := if t.hasLooseBVar (tgt + d) then acc.push .inTy else acc
-        let acc := uses env tgt d v acc
-        uses env tgt (d + 1) b acc
-    | .app .. => Id.run do
-        let f := e.getAppFn
-        let args := e.getAppArgs
-        let mut acc := acc
-        if f == .bvar (tgt + d) then acc := acc.push .applied
-        else acc := uses env tgt d f acc
-        for k in [0:args.size] do
-          let a := args[k]!
-          if a == .bvar (tgt + d) then
-            match f with
-            | .const g _ =>
-                if majorOf env g == some k then acc := acc.push (.elim g k)
-                else if projIdx env g == some k then acc := acc.push (.elim g k)
-                else if isCtor env g then acc := acc.push (.field g k)
-                else acc := acc.push (.relay g k)
-            | _ => acc := acc.push .bare
-          else acc := uses env tgt d a acc
-        return acc
+        let acc := usesWith peel env tgt d v acc
+        usesWith peel env tgt (d + 1) b acc
+    | .app .. =>
+        let (hd, hside) := peel e
+        if hd != e then
+          let acc := hside.foldl (fun a x => usesWith peel env tgt d x a) acc
+          usesWith peel env tgt d hd acc
+        else Id.run do
+          let f := e.getAppFn
+          let args := e.getAppArgs
+          let mut acc := acc
+          if f == .bvar (tgt + d) then acc := acc.push .applied
+          else acc := usesWith peel env tgt d f acc
+          for k in [0:args.size] do
+            let (a, side) := peel args[k]!
+            for x in side do acc := usesWith peel env tgt d x acc
+            if a == .bvar (tgt + d) then
+              match f with
+              | .const g _ =>
+                  if majorOf env g == some k then acc := acc.push (.elim g k)
+                  else if projIdx env g == some k then acc := acc.push (.elim g k)
+                  else if isCtor env g then acc := acc.push (.field g k)
+                  else acc := acc.push (.relay g k)
+              | _ => acc := acc.push .bare
+            else acc := usesWith peel env tgt d a acc
+          return acc
     | _ => acc
+
+/-- Item 225's walk: `usesWith` with nothing peeled. -/
+def uses (env : Environment) (tgt : Nat) :
+    Nat → Expr → Array Use → Array Use := usesWith noPeel env tgt
 
 /-- The uses of binder `i` of `c`, or `none` when the proof term does not bind
     it (the `ETA` lane). -/
-def binderUses (env : Environment) (c : Name) (i : Nat) : Option (Array Use) := do
+def binderUsesWith (peel : Peel) (env : Environment) (c : Name) (i : Nat) :
+    Option (Array Use) := do
   let ci ← env.find? c
   let v ← ci.value? (allowOpaque := true)
   let (_, n) := optBinders ci.type
@@ -165,7 +192,10 @@ def binderUses (env : Environment) (c : Name) (i : Nat) : Option (Array Use) := 
   let mut body := v
   for _ in [0:m] do
     body := match body with | .lam _ _ b _ => b | x => x
-  return uses env (m - 1 - i) 0 body #[]
+  return usesWith peel env (m - 1 - i) 0 body #[]
+
+def binderUses (env : Environment) (c : Name) (i : Nat) : Option (Array Use) :=
+  binderUsesWith noPeel env c i
 
 /-- The verdict: what the binder does inside THIS declaration's own term. -/
 def direct (us : Array Use) : String :=
@@ -181,8 +211,11 @@ def direct (us : Array Use) : String :=
     then "RETURN"
   else "TYPE"
 
+def verdictWith (peel : Peel) (env : Environment) (c : Name) (i : Nat) : String :=
+  match binderUsesWith peel env c i with | none => "ETA" | some us => direct us
+
 def verdict (env : Environment) (c : Name) (i : Nat) : String :=
-  match binderUses env c i with | none => "ETA" | some us => direct us
+  verdictWith noPeel env c i
 
 /-- A hygienic binder name is not a name; print one underscore for all of them
     so a pin does not move when the elaborator renumbers (item 221's lesson). -/
@@ -193,14 +226,14 @@ def shownName (n : Name) : String :=
 /-- Chase a RELAY chain to the sites it terminates at.  The terminal is printed
     verbatim — `KIND@const#idx` — and NOT collapsed into a verdict, because §7
     shows the collapse is not available. -/
-partial def chase (env : Environment) (fuel : Nat) (seen : Std.HashSet String)
-    (c : Name) (i : Nat) : Std.HashSet String :=
+partial def chaseWith (peel : Peel) (env : Environment) (fuel : Nat)
+    (seen : Std.HashSet String) (c : Name) (i : Nat) : Std.HashSet String :=
   let k := s!"{c}#{i}"
   if fuel == 0 then (({} : Std.HashSet String).insert "FUEL")
   else if seen.contains k then {}
   else
     let seen := seen.insert k
-    match binderUses env c i with
+    match binderUsesWith peel env c i with
     | none =>
         if isCtor env c then (({} : Std.HashSet String).insert s!"FIELD@{k}")
         else if isMechanism env c then (({} : Std.HashSet String).insert s!"SPLIT@{k}")
@@ -218,8 +251,12 @@ partial def chase (env : Environment) (fuel : Nat) (seen : Std.HashSet String)
             | .bare => out := out.insert s!"RETURN@{k}"
             | .inTy => out := out.insert s!"TYPE@{k}"
             | .relay g j =>
-                for t in chase env (fuel - 1) seen g j do out := out.insert t
+                for t in chaseWith peel env (fuel - 1) seen g j do out := out.insert t
           return out
+
+def chase (env : Environment) (fuel : Nat) (seen : Std.HashSet String)
+    (c : Name) (i : Nat) : Std.HashSet String :=
+  chaseWith noPeel env fuel seen c i
 
 /-- A terminal inside our own library, as opposed to one inside core. -/
 def isLibTerminal (t : String) : Bool :=
@@ -403,18 +440,31 @@ run_cmd do
       String.intercalate "\n" expectedContentDispatch}\ngot:\n{
       String.intercalate "\n" gotC}"
 
-/-! ## §5  The chase, and the nine premises it cannot land in the library
+/-! ## §5  The chase, and the nine premises ~~it cannot land in the library~~
+    **a PIPE-BLIND chase cannot land**
 
-Of the forty-four relayed optional premises, nine reach no elimination inside
+~~Of the forty-four relayed optional premises, nine reach no elimination inside
 `L4YAML` at all: every terminal of their chase is a core combinator.  That is
 NOT a verdict of "carried" — §7 is why — but it is the shortlist, and it is
-where a reader looking for a carried premise should look first.
+where a reader looking for a carried premise should look first.~~
+
+**Item 226: the shortlist is a measurement of THIS walk's blind spot, not of
+the library.**  `chase` here runs at `noPeel`, and five of the nine terminate
+at `Or.imp#6` or at an over-applied `Eq.ndrec` — both PIPES, both named by item
+213 and both seen through by the supply census since item 215.  With the same
+`pipeArg` list peeled, ALL NINE land, and two of them land on a LIBRARY
+elimination, which is exactly what the struck sentence denied.  The nine rows
+below are kept and still pinned, because a blind spot that is pinned at a
+number is one a later walk can be held against; `Tests.Guards.PremiseNecessityCensus`
+pins where each of them actually goes.
 
 `h_ref` is deliberately not on it.  Its chase lands twice in the library, at
 `rootMapRoute_or_refused` and `rootMapRouteF_or_refused` — two of item 183's
 five flip definitions — where the left disjunct is spent to refute the
 `h_op = false` branch outright.  A premise read only in refutation is exactly
-the shape item 224 found at the arm's one reader, one workstream over. -/
+the shape item 224 found at the arm's one reader, one workstream over.  (Its
+third terminal, `SPLIT@Eq.ndrec#9`, is the pipe: item 226 peels it and two
+remain.) -/
 
 def expectedCoreTerminal : List String :=
   [ "accum_block_on_pendingBlock#28 (h_seqF_old)",
@@ -499,7 +549,7 @@ lemma punt_premise_buys_nothing {sc : ScannerState} {P : Prop}
 lemma punt_disjunct_buys_nothing {sc : ScannerState} {A P : Prop}
     (k : A ∨ KeyPackPunt sc → P) : P := k (Or.inr (punt_is_unconditional sc))
 
-/-! ## §7  What the census cannot decide, exhibited
+/-! ## §7  What ~~the census~~ **a pipe-blind census** cannot decide, exhibited
 
 A `RELAY` chase terminates inside the callee.  Two relays with the same
 terminal can be opposite things: `Or.elim` hands the decision back to the
@@ -509,7 +559,15 @@ call site, and both are eliminated by `Or.casesOn` one hop on.
 
 The pin below states that the census gives them the same verdict.  That is the
 limit, machine-exhibited: a terminal-based reading of the chase would call the
-re-statement a read, which is why §5 publishes terminals and stops. -/
+re-statement a read, which is why §5 publishes terminals and stops.
+
+~~…which is why the `RELAY` lane's rows are a shortlist and not a verdict.~~
+**Item 226 decided it, and the answer was already in the repo.**  `Or.imp_left`
+is a PIPE; peel it and `restates_by_imp` reads `RETURN` — the premise IS the
+conclusion, weakened — while `reads_by_elim` still reads `RELAY` into a
+constant that eliminates.  The two exhibits below are kept and still pinned at
+the SAME verdict, because that pin is what says this walk is the blind one;
+`PremiseNecessityCensus` pins them apart. -/
 
 lemma reads_by_elim {a b c : Prop} (h : a ∨ b) (f : a → c) (g : b → c) : c :=
   h.elim f g

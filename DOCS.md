@@ -26921,6 +26921,202 @@ the arms (216), the branch (217), the reach (218), the corpus (219), the matrix
 which is what settled R3: **a premise whose type is unconditionally inhabited
 has no reader at any price, and a census of terms will never find that out.**
 
+### Item 226 (2026-09-20)
+
+**THE NECESSITY CENSUS — A PREMISE THAT IS READ IS NOT THEREBY NEEDED.**
+
+**The mandate** (item 225's recorded NEXT, entry 1): *"what it opens is the lane
+it found and did not spend.  **`RELAY` is 1997 binders in `StreamAccum` alone
+and nothing gates it** — a premise threaded through a proof and never eliminated
+is invisible to the linter, to the supply census and to the flip patch, and the
+nine-row core-terminal shortlist in §5 is the first place one would look for a
+premise that could simply be dropped.  Dropping one is a library change and
+therefore a different item."*
+
+The lane has nothing in it, the shortlist was an artifact of the walk that made
+it, and the premises that ARE free are free for a reason item 225 proved one
+section earlier and did not apply to the population it had just censused.
+**Nothing is dropped, and that is the answer.**
+
+**The walk was pipe-blind, and this is the first correction.**  Item 213 named
+`Or.imp` and `Eq.ndrec` PIPES — they carry a decision and make none — and item
+215's `peelPipe` taught the SUPPLY census to see through them.  The reader
+census never got that list, so `uses` stopped at `Or.imp#6` and at an
+over-applied `Eq.ndrec` and reported the pipe.  Item 225's `uses` now takes a
+`Peel` and runs at `noPeel`; `Tests/Guards/Proofs/PremiseNecessityCensus.lean`
+supplies the pipe peel, built from the same `pipeArg` and `arityOf`, with the
+pipe's other arguments kept on a side list so the peel can move a verdict and
+cannot invent an `UNUSED`.
+
+| pin | item 225 | peeled |
+|---|---|---|
+| module tally | `FIELD=154 READ=1016 RELAY=1997 RETURN=48` | `FIELD=172 READ=1052 RELAY=1864 RETURN=127` |
+| optional tally | `total=163 ETA=34 READ=85 RELAY=44` | `ETA=34 FIELD=4 READ=85 RELAY=38 RETURN=2` |
+| §5's shortlist | **9 rows** | **0** |
+| `h_ref`'s terminals | 3 | **2** — the third was the pipe |
+| §7's two exhibits | `RELAY` / `RELAY` | `RELAY` / **`RETURN`** |
+
+**§5's nine all land, and two of them land where §5 said they could not.**
+`accum_block_on_pendingBlock#28` and `accum_block_on_pendingBlockContent#33`
+reach `accum_block_on_closeThenBlock#28`'s `Or.casesOn` — a LIBRARY elimination,
+which is exactly what "no terminal inside `L4YAML`" denied — and
+`indicator_open_map#26`'s lands at `rootMapRoute_or_refused`, the same
+refutation site item 225 found for `content_dispatch_routed`'s `h_ref`.  The
+other six are a `RETURN` (twice), an `And.intro` field (three times) and a park
+field.  **A walk that stops at a pipe reports the pipe**, and the nine rows were
+a measurement of the instrument, not of the library.
+
+**§7's debt is retired rather than carried.**  Item 225 exhibited `Or.elim` (a
+read) and `Or.imp_left` (a re-statement) receiving the same verdict and recorded
+the indistinguishability as instrument debt.  Peel the pipe and they separate:
+the read RELAYS into a constant that eliminates, the re-statement RETURNS the
+premise weakened.  Both pins are kept — the blind one in item 225's file, the
+peeled one here — and a `run_cmd` refuses to let them be edited into agreement.
+
+**What the peel does NOT move** is what makes it a peel and not a rewrite: item
+224's sixteen calibration rows are unchanged, so the 8/8 against its REBUILDS
+still stands; `content_dispatch_routed`'s six are unchanged; and the nine-row
+`UNUSED` lane is unchanged.
+
+**The dead-parameter fixpoint** (§6 of the new module): the least fixpoint of
+ALIVE over the relay graph, with a binder ALIVE when it is eliminated, applied,
+projected, stored, returned, **or named in a LATER binder's TYPE** — that last
+clause is one a census does not need and a DROP does, because item 225's walk
+peels the telescope before it walks.  DEAD is therefore a sound
+under-approximation.  Over every `Prop` binder of `StreamAccum` and every
+`_ ∨ True` binder in `L4YAML` — 4266 nodes — **ten are dead and every one of
+them is `UNUSED`.  The `RELAY` lane has none.**
+
+**And the ten are not droppable either.**  Read in source they are three kinds:
+
+* **class markers, 7.**  `block_dispatch_deferred_{stamp_offcol,stamp_nopack,inline}`
+  have ONE call in the body, `block_dispatch_deferred …`, and the premise the
+  body does not read is the only thing that says which dispatch class the site
+  is in — item 187's own comment records `_h_park` as placed LAST "so the
+  existing applications' positional arguments still bind".  Dropping them would
+  delete the taxonomy and merge three lemmas back into one.
+* **family uniformity, 2.**  `h_noflow_disp` is a premise of six sibling openers
+  and five of them use it; `scanTagDirective_corr`'s `_hcorr` is the `*_corr`
+  family's shared leading triple.
+* **the conclusion's own binder, 1.**  `flowKeyPack_of_close`'s `intro _` takes
+  `sc.simpleKey.possible = true` out of the CONCLUSION, whose shape the
+  obligation fixes.
+
+**An underscore silences the linter; it does not justify the premise.**  Seven
+of the nine carry one and the justification is in none of them — it is in the
+body's shape, in a sibling's signature, and in the conclusion.
+
+**The compiler, and the sentence this item exists for.**  A fixpoint's ALIVE is
+conservative, so "nothing is dead" is the weak direction and cannot be the
+answer.  `scripts/decline_all_optional.py` is the SUBSTITUTION PROBE: replace a
+binder's uses with the canonical inhabitant of its type and rebuild.  For
+`A ∨ True` that inhabitant is `Or.inr trivial`, so the probe is available for
+the whole population — and **all 119 of `StreamAccum`'s optional premises that
+live in a tactic proof were declined at once, in ONE build, with zero errors**,
+after which Lean's own `unusedVariables` linter named **95** of them.  Roster:
+162 optional binders, 34 of them park CONSTRUCTOR fields (that is the `ETA=34`
+lane), 9 in term-mode proofs, 119 shadowed.
+
+The reason is one line, and item 225 already wrote its twin:
+
+```lean
+lemma opt_is_unconditional (A : Prop) : A ∨ True := Or.inr trivial
+lemma opt_premise_buys_nothing {A P : Prop} (k : A ∨ True → P) : P := k (opt_is_unconditional A)
+lemma opt_premise_is_no_premise {A P : Prop} : (A ∨ True → P) ↔ P
+```
+
+`A ∨ True` is unconditionally inhabited, so item 225's corollary — *a premise
+whose type is unconditionally inhabited has no reader at any price* — covers all
+**163**, including the **85** it calls `READ`.  It was proved there for
+`KeyPackPunt` and stopped there.
+
+**The rule this item adds: a premise that is READ is not thereby NEEDED.**
+`READ` is a fact about what a proof DOES with a binder; necessity is a fact
+about the lemma's STATEMENT, and no census of terms measures the second.  The
+two were run against each other here for the first time and disagree on 85 rows.
+
+**The spend, refused, with the reason.**  The 163 are the NARROWING SURFACE:
+items 212–218 built a supply census precisely to price replacing `∨ True` with
+the bare premise, and item 218 recorded that "a `PAY` is an answer about the
+PROOF, and it does not promise the site survives a narrowing."  Dropping a
+premise that is vacuous today deletes the slot the narrowing lands in tomorrow.
+**Droppable and wanted are different predicates, and the instrument measures the
+first.**
+
+**An error in this item's own process, volunteered.**  `lake env lean` does not
+rebuild: it reads whatever oleans are in `.lake/build`.  Run straight after the
+substitution experiment, the next probe read THAT olean — in which every
+optional premise really is unused — and reported `content_dispatch_routed`'s six
+as `UNUSED` and the shortlist as empty.  Both were artifacts of the experiment's
+own build, and the contradiction with item 225's still-passing gate is what
+caught it.  The fix is two builds, one before the roster is read and one after
+the source is restored, and it is baked into the script rather than remembered.
+`probe.recal.log` is kept in the scratchpad, contaminated, beside the re-run.
+
+**What changed.**  `Tests/Guards/Proofs/PremiseNecessityCensus.lean` (NEW): the
+pipe peel, the calibration that must not move, the two moved tallies, the nine
+resolved, `h_ref`'s two terminals, §7's exhibits pinned APART, the fixpoint with
+its ten dead rows and `RELAY=0`, and the three vacuity lemmas with the
+population count.  `Tests/Guards/Proofs/HypothesisReaderCensus.lean`: `uses`,
+`binderUses`, `verdict` and `chase` gain a `Peel` parameter, with item 225's
+behaviour preserved exactly at `noPeel` — every one of its pins still passes
+unedited — and §5 and §7's prose struck where they claim what a pipe-blind walk
+cannot.  `scripts/decline_all_optional.py` (NEW).  `Tests/Guards.lean`: one
+import.  **No library file was changed.**
+
+**Gates, all at baseline.**  `lake build` **1193** jobs, 0 warnings;
+`run-all-tests.sh` **Verified: 4520/4520**; `eventscore` **347/358** (0
+error-miss); `suiterunner` **869/0/151**, run ALONE; matrix **402/402 event** +
+**282/282 JSON** on BOTH pipelines; `#print axioms` — no `sorryAx`, and the three
+vacuity lemmas depend on no axioms at all; `[210]` flip **FIVE** definitions —
+`topLevelFlowResumeSep`, `rootMapRoute`, `rootMapRouteF`, `bareNodeRoute`,
+`structural_dispatch_to_pending` — restored and md5-verified
+(`d955a797b9a9c895be3aabad138a297e`); checkers 228 library modules from 5
+default targets / 355 imports, 20/230/249/355, all 25 `theorem` sites
+whitelisted; annotations **211/211** with the standing **19** name mismatches,
+exit **1**.  Counts: declarations **8604** unmoved, `#guard` **8173** unmoved,
+test files **639 → 640**, the loose demand census **8** unmoved.  The **31**
+decline pins now have a recipe rather than a memory: `grep -cE '^OK '` over each
+exe's output reads **7 + 18 + 6**.
+
+**What remains.**  The question item 225 opened is closed in both directions:
+nothing in the `RELAY` lane can be dropped, and everything in the optional lane
+can be and must not be.  What that leaves is the narrowing itself — the only
+operation that turns a vacuous premise into a load-bearing one, and the thing
+items 212–218's supply census was built to price.  **The census says who would
+have to pay; nothing yet says what the payment is worth**, because a narrowing
+that no input can distinguish buys nothing either, and the corpus censuses
+(items 204, 219) are the instrument that would say which `∨ True` has a witness
+behind it in the accepted language.  Unchanged: R3's seven productions, whose
+price is the case split; item 183's flip order, whose two REFUTABLE halves are
+`h_ref`'s readers; the parked Ix Step-1 composition on the Ix track's own clock.
+Instrument debt, now **eight** rows, one retired and one added: the 198/200/201
+censuses still lack a cruder-key control; what an `Or.inl`'s proof actually
+FORWARDS is measured and unresolved; the supply walk is scoped to one module;
+`pendingDocEnd` has no token-level field and no directive-flag field;
+`pendingBlock` carries no `h_real`; the strength ladder is a PROOF-LEVEL
+instrument only; the weakening probe reads a lemma's CURRENT proof, not the
+space of proofs it admits; ~~a relay's terminal cannot distinguish a read from a
+re-statement~~ **retired — the peel distinguishes them**; and new: **the
+substitution probe needs a canonical inhabitant, so it is available for
+`_ ∨ True` and for nothing else** — every other premise still costs one build
+per binder, which is why the necessity question is answered here for the 163
+`_ ∨ True` premises and for no premise that is not of that shape.
+
+**The instrument ledger, twenty-eight rows.**  Park constructors (198),
+application sites (200), lemma conclusions (201), the same with a key that works
+(202), indices (203), the runtime's own state (204), the transitive ring of a
+carrier (205), the same closure with its last ring paid (206), the ring's payers
+against a forecast (207), the instruments themselves (208), the object a
+carrier's consumer reads (209), the plan's own remaining list (210), the control
+(211), the provenance (212), the route (213), the pipe (214), the beta (215),
+the arms (216), the branch (217), the reach (218), the corpus (219), the matrix
+(220), the minimal zero (221), the strength ladder (222), the demand ledger
+(223), the spend census (224), the reader census (225) — and now **the NECESSITY
+CENSUS**.  Its corollary, which is what settled the mandate: **a lane nothing
+gates is not thereby a lane with something in it, and the premises that cost
+nothing are the ones the plan is holding open on purpose.**
+
 ### REMAINING, in order
 
 The per-item history is the closure log above; this section lists only the
