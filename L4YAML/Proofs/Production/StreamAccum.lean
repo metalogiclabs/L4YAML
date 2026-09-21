@@ -9315,7 +9315,7 @@ lemma FlowOpenStack.receivePropsNodeColon {g : Option ScannerState} {sp_start : 
     FALSE for that input, so the head is never asked). -/
 lemma flowKeyHead {m : Nat} {sp_br : SurfPos} :
     ∀ sp_end, SFlowContent m .flowOut sp_br sp_end → ImplicitKeyHead sp_br sp_end ∨ True :=
-  fun _ h => (flowNode_toBlockKey (.content _ _ _ _ h)).imp ImplicitKeyHead.json id
+  fun _ h => (flowNode_toBlockKey (.content _ _ _ _ h)).imp ImplicitKeyHead.json (fun _ => trivial)
 
 /-- **An armed save is a FRESH save** (item 74) — item 34's
     `preprocess_saved_key_at_cursor`, read at the coordinate the floor uses.

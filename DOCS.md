@@ -27929,6 +27929,188 @@ stopped at the same kind of boundary as the first.**  229's walk stopped at a
 built out of something more general, and a walk that enumerates names does not
 cross it.
 
+### Item 231 (2026-09-21)
+
+**THE EXPORT — the eighteen motives carry the residue, and the eighty-two
+dead sites are gone; one conclusion could not follow them out, and the reason
+is that a recursor application exports exactly one of its motives.**
+Item 230's recorded NEXT: *"The obstruction is no longer a leaf. `relay=34` is
+the whole remainder, and those sites decline through the recursion itself:
+`flowNode_toKey`'s eighteen motives conclude in `∨ True`, so an interior
+residue has nowhere to go.  The operation is to rebuild the eight FLOW motives
+around `SepResidue` — the ten block motives stay `True`, because the recursion
+never leaves the flow grammar — and to give each declining minor premise its
+widening term, `sepResidue_widen` with the two suffix facts the arm's own
+constructor supplies."*  Done, and the price was taken from the artifact and
+held.
+
+**The operation.**  The eight flow motives now read `∀ tc, KeyPair c tc →
+(T 0 tc s s' ∨ SepResidue s s')`; the ten block motives are still `True`,
+because no flow constructor mentions a block type and no block motive is ever
+fed to a flow arm.  `flowNode_toKey` and `flowNode_toBlockKey` conclude in the
+residue.  `#guard`-free, `sorry`-free, `propext` alone.
+
+**The shape is uniform, and nothing in it was chosen.**  Every flow
+constructor is a chain of pieces `s = p₀ → … → p_k = s'`.  A declining site
+sits at piece `i` holding `SepResidue pᵢ pᵢ₊₁`, and the two facts
+`sepResidue_widen` wants are folds of the arm's OTHER pieces' suffix lemmas —
+`chain(0…i-1)` on the left and `chain(i+1…k-1)` on the right, with the empty
+fold `List.suffix_refl _`.  The `have` bindings an arm carries are exactly the
+pieces some chain reads, which is why the three arms that decline nowhere
+(`SFlowNode.alias`, `SFlowSeqEntry.emptyKeyEmpty`,
+`SFlowMapEntry.emptyKeyEmpty`) carry none.  Counted in the rebuilt block:
+
+    41 arms   82 Or.inr   41 Or.inl   28 trivial   105 `have`   130 .trans
+      of the 82:  73 sepResidue_widen
+                   6 Or.inr hres          the piece IS the whole span
+                   3 bridged scalar       Or.inr (Or.inl (plainResidue_break hres))
+
+The recursor block grew by exactly **105** lines — the `have` count — because
+every other line was replaced one-for-one.
+
+**Three sites held a residue that was not one.**  `SFlowContent`'s scalar arms
+decline through `plain_toKey`, `singleQuoted_toKey` and
+`doubleQuoted_toKey`, which return `PlainResidue`, `SingleResidue` and
+`DoubleResidue` — not `SepResidue`.  Each IS a `SepResidue` through its left
+disjunct, by the `*_break` lemma item 229 wrote, so the three lemmas moved
+from §4 to §0 beside the definitions they are about, as `sepResidue_widen`
+did.  The first compile found all three and nothing else.
+
+**What it pays, and the gate that would have passed over nothing.**
+`SurfaceSpanCensus` §5 counted `@Or.inr _ True _` in `flowNode_toKey`'s proof
+term.  After the rebuild that count is **0**, and re-pinning it would have
+left a gate passing over an empty population:
+
+    item 230 (as written):  noop=82 payable=48 blocked=0 relay=34
+    item 231 (as written):  noop=0  payable=48 blocked=0 relay=0     ← vacuous
+    item 231 (re-aimed):    noop=0  carried=82 payable=48 blocked=0 relay=34
+
+The sweep now selects on the right disjunct's type either way and reports
+both, so `noop=0` is an ASSERTION and `carried` is the population the other
+three are taken over.  `payable` and `relay` did not move to the site: they
+count how often each leaf is invoked, and this edit invokes each exactly as
+often as before.  Same lesson as item 230's two text-matching selectors, one
+turn further on: **a pin that survives its own subject is worse than one that
+breaks.**
+
+**The finding: a recursor application exports ONE of its eighteen motives.**
+`flowContent_toBlockKey` is the one conclusion in `FlowKeyLift` that still
+ends in `True`, and it is not a motive.  It recovers the CONTENT conversion by
+wrapping its input in `SFlowNode.content`, applying the NODE conversion, and
+peeling the result — and the peel has four arms (`alias`, `content`,
+`propsContent`, `propsEmpty`) that the node conversion rules out none of, so
+its `Or.inr` has nothing but `trivial` to return.  Pinned as
+`SurfaceSpanCensus` §7:
+
+    motives=18  flow=8  residue=1  trueOnly=1  none=6
+
+Its `imp` fell **12 → 11** — the inverted result is no longer an `_ ∨ True` —
+and its `res=4` did not move at all.  **A residue reaches the conclusion it is
+proved about; it does not reach the conclusions derived from that one by
+inversion.**  This is items 229 and 230's corollary one level up: a population
+enumerated by a walk stops where the walk stops, and here the walk is the
+recursor's own major premise.
+
+**One consumer outside the file.**  `flowKeyHead`
+(`L4YAML/Proofs/Production/StreamAccum.lean`) mapped the disjunction with
+`Or.imp ImplicitKeyHead.json id`, and `id : True → True` stopped typechecking;
+it discards the residue explicitly now (`fun _ => trivial`).
+`accum_flow_open_depth0`'s site compiled untouched, because it discards by
+PATTERN and a pattern does not name the disjunct's type.  Nothing refutes the
+residue yet — the conversion now OFFERS one at the top of the flow grammar and
+that is the supply-side step, not this one.
+
+**The pins.**  `NarrowingWorthCensus` `byElab`/`byWhnf` **20 → 18** with
+`theorems=5238` unmoved (a rebuild and four relocations add no theorem to the
+environment); `ConclusionObligationCensus` `rows=20 res=123` → **`rows=18
+res=58`**, `flowNode_toKey` taking 65 of the 65 it held.  Unmoved:
+`expectedFamily` (`types=18 ctors=69 suffixLemmas=18`), `expectedCoverage`,
+`expectedArmPrice`, `expectedResidueProbe`.
+
+**Predictions, written before the first edit** (`PREDICTION.md`).  HELD — no
+new fact is needed and `SurfaceSpan` is untouched (P1); the ten block motives
+and their 28 minor premises are unchanged (P2); exactly ONE consumer outside
+the file breaks, and it is `flowKeyHead` (P3); the re-aimed §5 reads
+`carried=82` with `payable=48 relay=34` unmoved (P4.1), including the
+prediction that the gate would go vacuous if only re-pinned; `propext` alone
+(P6); `expectedFamily` unmoved (P7); every gate at baseline (P8).  REFUTED —
+three pins, all for the same reason and all in the direction the prediction
+could not see: `byElab` predicted 17, measured **18**; the ledger predicted
+`rows=17 res=54`, measured **`rows=18 res=58`**; and "no `imp` moves among the
+survivors" was wrong by exactly one row, `flowContent_toBlockKey` 12 → 11 —
+the row that moved is the row that stayed.  REFUTED (low) — `FlowKeyLift.lean`
+predicted +180 to +260 net, measured **+137** (+354/−217): the prediction
+priced the widening TERMS as new lines and they replace lines one-for-one.
+MISSED — the scalar bridge.  "The two suffix facts the arm's own constructor
+supplies" is three sites short of the truth, and the compiler found all three
+in one run.
+
+**Gates, all at baseline.**  `lake build` **1198** jobs, 0 warnings;
+`run-all-tests.sh` **Verified: 4520/4520** (Production Coverage **837/837**);
+`eventscore` **347/358** (0 error-miss, 0 event-reject); `suiterunner`
+**869/0/151**, run ALONE; matrix **402/402 event** + **282/282 JSON** on BOTH
+pipelines; `[210]` flip **FIVE** definitions — `bareNodeRoute`,
+`rootMapRoute`, `rootMapRouteF`, `structural_dispatch_to_pending`,
+`topLevelFlowResumeSep` — read off the log by `scripts/flip_210.py`, with
+`Document.lean` restored and md5-verified
+(`d955a797b9a9c895be3aabad138a297e`); `#print axioms` — **25** capstones, no
+`sorryAx`, and this item's **10** declarations depend on **`propext` alone**;
+checkers **229** library modules from 5 default targets / 355 imports,
+20/230/249/355, all 25 `theorem` sites whitelisted; annotations **211/211**
+with the standing **19** name mismatches, exit **1**; decline pins
+`grep -cE '^OK '` = **7 + 18 + 6 = 31**, "ALL PINS OK" three times.  Counts:
+declarations **8714 UNMOVED** — this item adds no declaration, it rebuilds one
+and moves four — `#guard` **8173**, test files **643**, loose demand **8**,
+all unmoved.
+
+**What remains.**  The seven motives the recursor does not export.  A `mutual`
+block of eight lemmas gives every one of them a name — the family admits
+structural recursion, and `L4YAML/Proofs/Foundation/SurfaceSpan.lean` §4 is
+eighteen such lemmas over this same eighteen-type block — and it is what
+`flowContent_toBlockKey` needs in order to stop inverting.  **Priced from the
+artifact, not from signatures**: the eight statements and their 41 arms are
+the block this item just wrote (`SurfaceSpanCensus` §5 `carried=82`,
+`ConclusionObligationCensus` §4 `types=18 ctors=69`), so the rewrite carries
+the same 82 widening terms and adds the eight recursive calls the recursor's
+IH arguments already supply; the one number no instrument holds is whether
+Lean's structural-recursion checker accepts the eight together, and the cheap
+experiment is one `mutual` block over `SFlowNode`/`SFlowContent` alone before
+the other six are written.  The failure mode to watch is the one both signature
+walks and this item's own walk hit: **a population enumerated by a walk stops
+where the walk stops** — here the walk is `SFlowNode.rec`'s major premise, and
+the exports it names are 1 of 8 (`SurfaceSpanCensus` §7).
+
+Then the supply side: nothing refutes `SepResidue` yet.  `flowKeyHead` and
+`accum_flow_open_depth0` both discard it, and `[193] c-s-implicit-json-key`
+supplies both facts that would refute it — the key crosses no line, and a `:`
+follows it — which is what `sep_toKey_of_noResidue` and its two siblings
+already take.
+
+Unchanged: R3's seven productions, whose price is the case split; item 183's
+flip order, whose two REFUTABLE halves are `h_ref`'s readers; the parked Ix
+Step-1 composition on the Ix track's own clock.  Instrument debt, still **ten**
+rows, none paid and none added; item 230's two text-matching selectors stayed
+fixed and this item's re-aim of §5 is the third of the same kind, found the
+same way — by an edit that moved the thing the selector was pointing at.
+
+**The instrument ledger, thirty-three rows.**  Park constructors (198),
+application sites (200), lemma conclusions (201), the same with a key that
+works (202), indices (203), the runtime's own state (204), the transitive ring
+of a carrier (205), the same closure with its last ring paid (206), the ring's
+payers against a forecast (207), the instruments themselves (208), the object a
+carrier's consumer reads (209), the plan's own remaining list (210), the
+control (211), the provenance (212), the route (213), the pipe (214), the beta
+(215), the arms (216), the branch (217), the reach (218), the corpus (219), the
+matrix (220), the minimal zero (221), the strength ladder (222), the demand
+ledger (223), the spend census (224), the reader census (225), the necessity
+census (226), the worth census (227), the obligation census (228), the span
+(229), the arm price (230) — and now **the EXPORT**, which counts how many of
+a recursor's motives its applications actually hand back.  Its corollary is
+the one items 229 and 230 already carry, read at the artifact rather than at a
+forecast: **the walk that stops is not always a walk you wrote.**  229's
+stopped at a `def`, 230's at a combinator, and 231's is the recursor's own
+conclusion.
+
 ### REMAINING, in order
 
 The per-item history is the closure log above; this section lists only the

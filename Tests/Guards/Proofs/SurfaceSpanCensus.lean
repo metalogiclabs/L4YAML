@@ -242,6 +242,14 @@ This counts the leaf applications in `flowNode_toKey`'s own proof TERM — not
 its source text, so the number survives a re-indent — and splits them by
 whether the leaf's residue can be discharged.
 
+**Re-aimed at item 231, because re-pinning it would have emptied it.**  The
+sweep selected `@Or.inr _ True _`, and item 231 rebuilt the eighteen motives
+so that `flowNode_toKey` carries none: the four numbers would have read
+`noop=0 payable=0 blocked=0 relay=0` and the gate would have passed over an
+empty population.  It now selects on the right disjunct's type either way and
+reports both, so `noop=0` is an assertion and `carried` is the population the
+other three are taken over.
+
 **The classification is looked up in the environment, not written here.**  A
 leaf counts as payable exactly when the library carries a lemma that returns
 the conversion from a consumer's hypotheses.  Item 229's split named the
@@ -263,7 +271,7 @@ def leafPayments : List (String × String) :=
    ("props_toKey", "props_toKey_of_noResidue")]
 
 def expectedLeafSplit : String :=
-  "noop=82 payable=48 blocked=0 relay=34"
+  "noop=0 carried=82 payable=48 blocked=0 relay=34"
 
 /-- How many times a constant occurs in a term, WITHOUT deduplication: the
     compiler pays per occurrence, and item 228's DAG walk undercounted for
@@ -281,18 +289,20 @@ where
     | .proj _ _ b => countConst target b
     | _ => 0
 
-/-- The dead sites themselves: `@Or.inr _ True _`, counted per occurrence.
-    Selecting on the right disjunct's TYPE and not on the witness matters —
-    only 28 of the 82 carry a syntactic `True.intro`. -/
-partial def countNoop (e : Expr) : Nat :=
-  (if e.isAppOfArity ``Or.inr 3 && (e.getArg! 1).isConstOf ``True then 1 else 0) +
+/-- The declining sites themselves, counted per occurrence and selected by the
+    right disjunct's TYPE — not by its witness, which at item 230 mattered
+    because only 28 of the 82 carried a syntactic `True.intro`, and at item 231
+    matters more: every one of the 82 now carries a `sepResidue_widen`
+    application or a bridged scalar break, and no two of them are alike. -/
+partial def countInr (isRight : Expr → Bool) (e : Expr) : Nat :=
+  (if e.isAppOfArity ``Or.inr 3 && isRight (e.getArg! 1) then 1 else 0) +
   match e with
-  | .app f a => countNoop f + countNoop a
-  | .lam _ d b _ => countNoop d + countNoop b
-  | .forallE _ d b _ => countNoop d + countNoop b
-  | .letE _ t v b _ => countNoop t + countNoop v + countNoop b
-  | .mdata _ b => countNoop b
-  | .proj _ _ b => countNoop b
+  | .app f a => countInr isRight f + countInr isRight a
+  | .lam _ d b _ => countInr isRight d + countInr isRight b
+  | .forallE _ d b _ => countInr isRight d + countInr isRight b
+  | .letE _ t v b _ => countInr isRight t + countInr isRight v + countInr isRight b
+  | .mdata _ b => countInr isRight b
+  | .proj _ _ b => countInr isRight b
   | _ => 0
 
 run_cmd liftTermElabM do
@@ -302,7 +312,8 @@ run_cmd liftTermElabM do
   let some v := ci.value? (allowOpaque := true) | throwError "no proof term"
   let fkl := `L4YAML.Proofs.FlowKeyLift
   let n (s : String) := countConst (fkl.str s) v
-  let noop := countNoop v
+  let noop := countInr (·.isConstOf ``True) v
+  let carried := countInr (·.isAppOf (fkl.str "SepResidue")) v
   let mut payable := 0
   let mut blocked := 0
   for (leaf, payment) in leafPayments do
@@ -312,8 +323,9 @@ run_cmd liftTermElabM do
     else blocked := blocked + n leaf
   -- what is left declines through the recursion itself, so it follows the
   -- worst leaf its sub-derivation reaches.
-  let relay := noop - payable - blocked
-  let got := s!"noop={noop} payable={payable} blocked={blocked} relay={relay}"
+  let relay := (noop + carried) - payable - blocked
+  let got := s!"noop={noop} carried={carried} payable={payable} \
+blocked={blocked} relay={relay}"
   if got != expectedLeafSplit then
     throwError "the leaf split moved.\nexpected: {expectedLeafSplit}\ngot:      {got}"
 
@@ -415,5 +427,67 @@ run_cmd liftTermElabM do
   if got != expectedArmPrice then
     throwError "the arm price moved.\nexpected: {expectedArmPrice}\ngot:      {got}\n\
       types: {(rows.qsort (fun a b => a.1 < b.1)).map (·.1)}"
+
+/-! ## §7 What a recursor application exports (DOCS item 231)
+
+`flowNode_toKey` is ONE application of `SFlowNode.rec`, and it carries
+eighteen motives.  Its conclusion is `motive_11` applied to the major premise,
+and that is all a recursor application hands back: the other seventeen are
+reachable only by building a major premise of the head type and INVERTING the
+result, which is what `flowContent_toBlockKey` does — it wraps an
+`SFlowContent` in `SFlowNode.content`, converts, and peels.  The peel has four
+arms and the conversion rules out none of them, so it cannot return the
+residue; it is the one conclusion in `FlowKeyLift` that still ends in `True`.
+
+This is the same shape as items 229 and 230's corollary, one level up: **a
+population enumerated by a walk stops where the walk stops.**  There the walk
+was a signature list and a name list; here it is the recursor's own major
+premise.  The remedy is a `mutual` block of eight lemmas — the family admits
+structural recursion (`L4YAML/Proofs/Foundation/SurfaceSpan.lean` §4 is
+eighteen such lemmas over this same family), and it is the operation this
+census prices at seven more exports. -/
+
+def flowTypeNames : List Name :=
+  (`L4YAML.Surface).str <$>
+    ["SFlowNode", "SFlowContent", "SFlowSequence", "SFlowSeqEntries",
+     "SFlowSeqEntry", "SFlowMapping", "SFlowMapEntries", "SFlowMapEntry"]
+
+def expectedMotiveExport : String :=
+  "motives=18 flow=8 residue=1 trueOnly=1 none=6"
+
+/-- The recursor's motive binders, read off its type. -/
+partial def motiveBinders : Expr → Nat
+  | .forallE n _ b _ => (if n.toString.startsWith "motive" then 1 else 0) + motiveBinders b
+  | _ => 0
+
+run_cmd liftTermElabM do
+  let env ← getEnv
+  let some ci := env.find? ``L4YAML.Surface.SFlowNode.rec
+    | throwError "the flow grammar's recursor is gone"
+  let motives := motiveBinders ci.type
+  let fkl := `L4YAML.Proofs.FlowKeyLift
+  -- for each flow type: does `FlowKeyLift` conclude a conversion for it, and
+  -- does that conclusion carry the residue or `True`?
+  let mut residue : NameSet := {}
+  let mut viaTrue : NameSet := {}
+  for (nm, c) in env.constants.toList do
+    if nm.isInternal then continue
+    if !fkl.isPrefixOf nm then continue
+    match c with | .thmInfo _ => pure () | _ => continue
+    let hit ← forallTelescope c.type fun _ cod => do
+      if !cod.isAppOfArity ``Or 2 then return none
+      let some t := (cod.getArg! 0).getAppFn.constName? | return none
+      if !(flowTypeNames.contains t) then return none
+      return some (t, cod.getArg! 1)
+    if let some (t, r) := hit then
+      if r.isAppOf (fkl.str "SepResidue") then residue := residue.insert t
+      else if r.isConstOf ``True then viaTrue := viaTrue.insert t
+  let viaTrueOnly := viaTrue.toList.filter (!residue.contains ·)
+  let covered := residue.size + viaTrueOnly.length
+  let got := s!"motives={motives} flow={flowTypeNames.length} residue={residue.size} \
+trueOnly={viaTrueOnly.length} none={flowTypeNames.length - covered}"
+  if got != expectedMotiveExport then
+    throwError "the motive export moved.\nexpected: {expectedMotiveExport}\ngot:      {got}\n\
+      residue: {residue.toList}\n  trueOnly: {viaTrueOnly}"
 
 end Tests.Guards.SurfaceSpanCensus

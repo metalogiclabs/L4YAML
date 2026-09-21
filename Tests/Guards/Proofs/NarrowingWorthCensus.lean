@@ -629,12 +629,14 @@ one unfolding, and §6 is the item where those two disagreed about binders. -/
     that counts what the ENVIRONMENT holds cannot be reconciled against a grep
     over line starts, and this docstring no longer claims it can.
 
-    What this pin carries is the other four numbers, and item 230 moved one of
-    them: the two selectors agree at **20**, down from 21, because
-    `props_toKey` stopped concluding in `True`. -/
-def expectedNoopTally : String := "theorems=5238 byElab=20 byWhnf=20 elabOnly=0 whnfOnly=0"
+    What this pin carries is the other four numbers.  Item 230 moved one of
+    them from 21 to 20, because `props_toKey` stopped concluding in `True`;
+    item 231 took two more and left the population itself unmoved at **5238**,
+    because rebuilding eighteen motives and relocating four lemmas within a
+    file adds no theorem to the environment. -/
+def expectedNoopTally : String := "theorems=5238 byElab=18 byWhnf=18 elabOnly=0 whnfOnly=0"
 
-/-- The 27 item 227 measured, now **20**.  Item 228 narrowed six of
+/-- The 27 item 227 measured, now **18**.  Item 228 narrowed six of
     `FlowKeyLift`'s ten — `plain_toKey`, `doubleQuoted_toKey`,
     `singleQuoted_toKey`, `sep_toKey`, `sepOpt_toKey` and the `sep_toBlockKey`
     relay — from `… ∨ True` to `… ∨ <residue>`, so `Or.inr trivial` no longer
@@ -642,13 +644,20 @@ def expectedNoopTally : String := "theorems=5238 byElab=20 byWhnf=20 elabOnly=0 
     seventh, `props_toKey`, by giving the separation a residue that WIDENS:
     the residue arises at the interior separation's span and the conclusion is
     about the outer one, and `breakOrEnd_extend_left`/`_right` carry it there.
-    The three that stayed — `flowNode_toKey`, `flowNode_toBlockKey`,
-    `flowContent_toBlockKey` — are the recursor application and its two
-    wrappers, whose eighteen motives still conclude in `True`. -/
+    **Item 231 took the recursor application and its top wrapper**,
+    `flowNode_toKey` and `flowNode_toBlockKey`, by rebuilding the eight flow
+    motives around `SepResidue`.
+
+    `flowContent_toBlockKey` stayed, and it is the only `FlowKeyLift`
+    declaration left here.  It is not a motive: it recovers the CONTENT
+    conversion by wrapping its input in `SFlowNode.content`, converting, and
+    peeling the node back — and the peel has four arms that the conversion
+    rules out none of, so its `Or.inr` has nothing to return.  A recursor
+    application exports one of its eighteen motives
+    (`Tests.Guards.SurfaceSpanCensus.expectedMotiveExport`). -/
 def expectedNoopConclusions : List String :=
   ["FlowBaseRoutes.key", "FlowBaseRoutes.vslot",
    "FlowKeyLift.flowContent_toBlockKey",
-   "FlowKeyLift.flowNode_toBlockKey", "FlowKeyLift.flowNode_toKey",
    "PreprocessIndentStable.IndentFloor.transport",
    "dedent_cover_of_landing", "explFrameValueLine", "flowKeyHead",
    "flowKeyRoute_of_open", "flowKeyRoute_of_root", "flowOpen_floor_at_prep",

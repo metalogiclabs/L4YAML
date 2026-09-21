@@ -51,6 +51,17 @@ that does not overlap — except at the end of the input, where every separation
 is inline and the input has run out at once.  §2 proves both halves: the
 overlap is gone at every span a key consumer can be at, and it is still there
 at end of input, which is a span a key consumer is never at.
+
+**Item 231 rebuilt the eighteen motives**, and it turns the third reading above
+into a measurement rather than a caution: the 83 sites the cheap probe hid
+behind the motives cost **82** widening terms to discharge, one per
+`Or.inr`, and this census's `res` fell from **123** to **58** with a single
+row leaving.  The reading holds in the other direction too.
+`flowContent_toBlockKey` is not a motive — it recovers the CONTENT conversion
+by inverting the NODE one — and its `res=4` did not move at all, while its
+`imp` fell by exactly the one `∨ True` the inverted result used to carry.
+**A residue reaches the conclusion it is proved about; it does not reach the
+conclusions derived from that one by inversion.**
 -/
 
 set_option autoImplicit false
@@ -266,28 +277,33 @@ partial def scanTerm (e : Expr) (seen : Std.HashSet Expr) (r i : Nat) :
   | .proj _ _ b => scanTerm b seen r i
   | _ => (seen, r, i)
 
-def expectedLedgerTally : String := "rows=20 res=123"
+def expectedLedgerTally : String := "rows=18 res=58"
 
-/-- The rows, machine-produced, sorted by `res` then `prem` descending.  One
-    row carries the item's sharpest number: `flowNode_toKey` holds **65** of
-    the remaining **123** residue sites, and its own four callees hold four
-    more.  Three rows are all-zero — the proof never reaches the right arm by
-    any route — and two of those three are PROJECTIONS, so their "conclusion"
-    is a park FIELD and narrowing it is the supply-side operation items
-    212-218 priced, not this one.
+/-- The rows, machine-produced, sorted by `res` then `prem` descending.  Three
+    rows are all-zero — the proof never reaches the right arm by any route —
+    and two of those three are PROJECTIONS, so their "conclusion" is a park
+    FIELD and narrowing it is the supply-side operation items 212-218 priced,
+    not this one.
 
-    **Item 230 took one row off the list**, `FlowKeyLift.props_toKey`: it no
-    longer concludes in `True`, so `Or.inr trivial` no longer proves it and
-    the population no longer contains it.  That is what a narrowing looks like
-    in this census — a row leaves, it does not shrink. -/
+    **Item 230 took one row off the list** (`FlowKeyLift.props_toKey`) and
+    **item 231 took two more** — `flowNode_toKey`, which held 65 of the 123,
+    and `flowNode_toBlockKey`, which held none.  That is what a narrowing looks
+    like in this census: a row leaves, it does not shrink.
+
+    One surviving row DID shrink, and it is the item's finding:
+    `FlowKeyLift.flowContent_toBlockKey` reads `imp=11`, down from 12, because
+    the `flowNode_toBlockKey` result it inverts is no longer an `_ ∨ True`.  Its
+    own `res=4` did not move: the peel has four arms, the node conversion rules
+    out none of them, and so its `Or.inr` still has nothing but `trivial` to
+    return.  A residue that reaches a conclusion does not reach the conclusions
+    derived from it BY INVERSION. -/
 def expectedLedger : List String :=
-  ["res=65 imp=113 prem=0 proj=0 FlowKeyLift.flowNode_toKey",
-   "res=11 imp=100 prem=6 proj=0 flowKeyRoute_of_root",
+  ["res=11 imp=100 prem=6 proj=0 flowKeyRoute_of_root",
    "res=10 imp=85 prem=2 proj=0 flowKeyRoute_of_open",
    "res=9 imp=61 prem=3 proj=0 resumectx_of_landing",
    "res=4 imp=7 prem=1 proj=0 markerctx_of_landing",
    "res=4 imp=7 prem=1 proj=0 suffixctx_of_landing",
-   "res=4 imp=12 prem=0 proj=0 FlowKeyLift.flowContent_toBlockKey",
+   "res=4 imp=11 prem=0 proj=0 FlowKeyLift.flowContent_toBlockKey",
    "res=3 imp=10 prem=2 proj=0 dedent_cover_of_landing",
    "res=3 imp=5 prem=1 proj=0 flowOpen_stamp",
    "res=3 imp=12 prem=0 proj=0 keyctx_of_preprocess",
@@ -297,7 +313,6 @@ def expectedLedger : List String :=
    "res=1 imp=4 prem=1 proj=0 PreprocessIndentStable.IndentFloor.transport",
    "res=1 imp=4 prem=1 proj=0 flowOpen_floor_at_prep",
    "res=0 imp=8 prem=2 proj=0 frameChainUnion",
-   "res=0 imp=0 prem=0 proj=0 FlowKeyLift.flowNode_toBlockKey",
    "res=0 imp=0 prem=0 proj=0 flowKeyHead",
    "res=0 imp=0 prem=0 proj=1 FlowBaseRoutes.key",
    "res=0 imp=0 prem=0 proj=1 FlowBaseRoutes.vslot"]
