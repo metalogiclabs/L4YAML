@@ -29437,6 +29437,206 @@ flip order, whose two REFUTABLE halves are `h_ref`'s readers; the parked Ix
 Step-1 composition on the Ix track's own clock.  Instrument debt, still **ten**
 rows, none paid and none added.
 
+### Item 239 (2026-09-22)
+
+**THE FALSE — six of the twenty-six statements riding the broken arm are FALSE
+once it is gone, and the law that refutes them cannot decide the other twenty,
+for one line's reason: `[] <:+ anything`.  β.5 restates TWO statements and reproves
+twenty-four, and NOTHING IN GROUP 7 CHANGES.  The law is proved OF A BUILT
+post-β.5 relation rather than assumed, because the law is currently false and
+`suffixLaw → anything` is derivable from it.  `close_with_ssl` is false only
+while the park survives, which is the measured reason row 12 names both halves
+of β.5.  BUILT — one instrument, and three corrections across the grammar's own
+docstring, item 238's instrument and the proof-status SSOT.**
+
+**The mandate.**  Item 238's recorded NEXT: *"The number no instrument holds is
+how many of the statements riding the arm are FALSE once it is gone, rather
+than merely unproved … The check has to be a WITNESS — premises built without
+the arm, conclusion instantiated, violation exhibited — not an implication."*
+
+**The vacuity trap, and the shape of the defusal.**  `SLYamlStream s s' →
+s'.chars <:+ s.chars` is FALSE in the ambient environment — that is item 236's
+refutation and it is what β.5 exists to repair.  So `suffixLaw → P` is
+derivable for every `P`, and an instrument that ASSUMES the law proves every
+statement false, reports a perfect score, and measures nothing.  The instrument
+therefore **builds the post-β.5 environment instead of assuming it**:
+`StreamND` carries `SLYamlStream`'s three surviving arms and omits the fourth,
+and the suffix law is proved OF THAT RELATION by induction with no hypothesis
+anywhere.  Three cases, each one `exact`, all of them from supply already in
+the library — **β.5 writes no new span lemma to get the law.**
+
+A model that drifts from what it models measures nothing either, so the three
+copied arm types are compared to the ambient constructors as `Expr`s after
+substituting the head constant, and the set difference is pinned at
+`[scannerDrop]`.  All three match.
+
+**The reading.**
+
+    free=4   negation=3   empty=10   bound=9      (26)
+    refuted=6   library=2   guardExhibit=4
+
+**What decides a verdict is the conclusion's BINDER, not the premises.**  The
+law constrains a derivation's TARGET, so it can contradict a statement only
+where the statement pins a target the law forbids.  `free` is a universally
+quantified target the premises never reach — one instance refutes it.  `bound`
+is an existentially quantified target, where the law is a constraint the
+witness must meet and meeting it is what a reproof does.  `empty` is a bound
+target pinned to `chars = []`.  `negation` is `¬ law`, false exactly when the
+model proves that law.
+
+Four candidates in `free`, four refutations, **no residue** — unlike item 236's
+filter, which reported eight broken arms of which seven were parameter-headed.
+
+**The class nobody had counted holds every Group 7 row the arm carries.**  Ten
+of the twenty-six conclude `∃ s', SLYamlStream a s' ∧ s'.chars = []`, and the
+law's verdict on such a target is `[] <:+ a.chars` — true of every input.  The
+ten are `parse_strict_proof` (7.1), `scan_content_gives_stream_v2` (7.2),
+`scanLoop_grammar_prod` (7.3), `scan_strict_proof` (7.6), `parse_strict`,
+`scan_strict`, `eof_pending`, `preprocessing_eof_extends_stream`,
+`scanNextToken_none_stream` and `inYamlLanguage_everything`.  **β.5 owes Group
+7 a reproof and not one changed character of any of its statements**, which is
+a stronger reading than item 238's `S=0`: `S=0` says no statement NAMES the
+arm, this says no statement CONTRADICTS the law that replaces it.
+
+**The statement a reader would call obviously false is the one the law cannot
+touch.**  `inYamlLanguage_everything` asserts `InYamlLanguage s` for every
+string, and `InYamlLanguage` unfolds to a derivation ending at `chars = []`.
+`[]` is a suffix of every input, so the law is silent.  Refuting it needs
+grammar inversion — a statement about what the surface grammar does NOT derive
+— and no instrument in this row has one.  The same shape spares
+`stream_colLaw_refuted`, the one negation that survives: `ColLaw` is
+`(∃ pre, Span s s' pre) ∧ ColMono ∧ ColBreak`, the model proves the first
+conjunct, and the other two are item 235's column walk at 319 citations over
+86 lemmas.
+
+**The two the repair reaches, and the coupling that decides one of them.**
+`dropClose` and `PendingNode.close_with_ssl` are the only library statements in
+the `free` class.  Item 238 left `close_with_ssl` open — restrictive in its
+`PendingNode` premise, so the question was whether that premise can be met at a
+target the law forbids.  It can, and the expensive experiment cost one
+declaration: `PendingNode.pendingFlow` constrains `sp_scan.col` against scanner
+booleans and nothing else, so a park at a `sp_scan` holding characters
+`sp_start` never had is one constructor application, built without the arm.
+
+But `pendingFlow` is the only one of the park's constructors whose premises
+leave `sp_block` unconnected to `sp_scan` — every other arm carries its own
+closing evidence.  So `dropClose` is false unconditionally, and
+**`close_with_ssl` is false in the environment that deletes the arm and keeps
+the park**.  Deleting the arm alone leaves a false lemma in the library.  Row
+12 names β.5 *"retire `pendingFlow`, delete `scannerDrop`"*, and this is the
+first measurement that says why the two halves are one item.
+
+**An empty check this instrument nearly shipped.**  Item 238's `census` filters
+by `inScope`, which reads a declaration's MODULE — and a declaration being
+elaborated has none.  **The census is blind to the module it runs in.**  The
+first version of the drop-free check asked whether item 238's transitive ring
+held this file's witnesses; the ring is empty of them by construction, so the
+check would have passed vacuously.  It was caught by writing the contrast
+first — `close_with_ssl_reaches`, a name that MUST reach the arm — and watching
+the check call it clean.  Fixed twice over: each witness's own full proof-term
+closure is walked (values only, so a case split on `SLYamlStream` is not read
+as a construction), and the blindness is now pinned at `own=0` instead of
+relied on.
+
+**Two readings of the same ring, and the sweep was printing one nothing held.**
+The whole-tree sweep reads `T=27` where item 238's own `run_cmd` reads `T=26`,
+and the difference is this item's exhibit.  It is the same blindness seen from
+the other side: a census cannot see its own module, and it cannot see a module
+that does not import it — `DropDependents.lean` does not import
+`DropFalsity.lean`, so its walk reads 26, while the tree composed in one
+environment reads 27.  Neither number was wrong and neither was checked:
+`scripts/drop_sweep.py` printed `D= S= R= T=` for one whole item with nothing
+comparing it.  It now compares them against `expectedWideCensus`, a pin beside
+`expectedWide`, so the tree's reading cannot move unnoticed.
+
+**Corrections, four artifacts.**  `L4YAML/Surface/Document.lean`'s `scannerDrop`
+docstring said the repair propagates to "exactly two candidates" without saying
+whether either is false; it now carries the split.  `DropDependents.lean` said
+`close_with_ssl` "may well survive with a different proof"; it cannot, and the
+file now says which instrument settles it.  `Blueprint/04-capstones.md`'s *What
+β.5 costs Group 7* ended on "which of the two bounds holds is β.5's to decide,
+not a census's"; both bounds are now decided, and the paragraph carries the
+Group 7 reading the item found.  `scripts/drop_sweep.py` compared its module
+line and not its counts.
+
+**Gates.**  `lake build` **1206** jobs, one more than item 238 for the one new
+Tests module; `Verified: 4520/4520` with `Production Coverage Analysis
+837/837`; `eventscore` 347/358 and **0 error-miss**; `suiterunner` 869 passed /
+0 failed / 151 skipped; the matrix 402/402 event and 282/282 json on BOTH the
+legacy and the `-ix` binaries; import closure **230** library modules from 5
+default targets and the Reflections index complete at 355 imports; all **25**
+`theorem` sites whitelisted capstones; `verify_yaml_spec_annotations.py` exits
+1 on the standing 19 name mismatches; decline pins 7 + 18 + 6 with ALL PINS OK
+on each; `capstones=25 withSorryAx=0`.  The new instrument by axiom profile:
+**11 theorems on `[Classical.choice, Quot.sound, propext]`**, of which ten are
+authored and the eleventh is `StreamND.brecOn`, generated for the model's
+inductive — every refutation is on `[propext]` alone, and the choice enters
+through the scanner machinery `flowPark`'s side conditions `decide` over.
+Counts **8736** declarations, **8173** guards, **649** test files, **8** loose
+disjuncts; `decls` does not move because the recipe reads `L4YAML/` and the
+instrument is a `Tests/` module.  The sweep agrees with its pin at
+`closure=846 imported=842` and `D=4 S=0 R=0 T=27`.  All three flips at
+baseline: `[210]` 5 definitions from 5 locations, supply 4 from 7, drop 2 from
+2, `md5` before == after on each, and `Surface/Document.lean` now hashes
+`38a5f051dc0f4edced20c60ad61c0a17`.
+
+**Predictions.**  HELD — P0 (six, the exact figure, in a 4–8 band), P1
+(`inYamlLanguage_everything` untouched), P2 (`colLaw` survives), P4 (no new
+supply lemma), P5 (one declaration), P6 (two library, four guard exhibits), P7
+(the faithfulness pin first try).  **REFUTED in its mechanism, held in its
+verdicts — P3**: the forecast was that item 236's edge rule, run over the
+statement, would report the runtime lemmas CONNECTED.  The rule that decides is
+not connectivity at all, and connectivity cannot be read off a statement
+anyway — a premise like `PendingNode sc false sp_start sp_block sp_scan` looks
+like it connects `sp_block` to `sp_scan` and does not.  The right answer for the
+wrong reason.  **MISSED** — the `empty` class, which is the item's headline: the
+prediction reaches the right verdict for those ten statements one at a time and
+never names the one line that covers all ten.  **MISSED** — that the census
+cannot see its own module.
+
+**The instrument ledger, forty-one rows.**  Park constructors (198),
+application sites (200), lemma conclusions (201), the same with a key that
+works (202), indices (203), the runtime's own state (204), the transitive ring
+of a carrier (205), the same closure with its last ring paid (206), the ring's
+payers against a forecast (207), the instruments themselves (208), the object a
+carrier's consumer reads (209), the plan's own remaining list (210), the
+control (211), the provenance (212), the route (213), the pipe (214), the beta
+(215), the arms (216), the branch (217), the reach (218), the corpus (219), the
+matrix (220), the minimal zero (221), the strength ladder (222), the demand
+ledger (223), the spend census (224), the reader census (225), the necessity
+census (226), the worth census (227), the obligation census (228), the span
+(229), the arm price (230), the export (231), the replication (232), the
+uptake (233), the exception (234), the share (235), the chain (236), the free
+(237), the bill (238) — and now **the FALSE**, the first instrument here that
+BUILDS the environment it measures instead of reading the one it runs in.  Its
+corollary is that a law's power to refute a statement is a property of that
+statement's CONCLUSION BINDER and not of the law.
+
+**What remains.**  β.5's bill is now two restatements and twenty-four reproofs,
+and the twenty-four are unpriced.  **The number no instrument holds is how many
+of the twenty-four must change their own STATEMENTS because `close_with_ssl`'s
+statement changes.**  Item 238's `S=0` measured the propagation of a deleted
+CONSTRUCTOR and found it zero; nothing has measured the propagation of a
+changed SUPPLIER, which is a different edge and the one this repair actually
+travels — `close_with_ssl`'s five consumers read its type, and their consumers
+read theirs.  The cheap experiment is a flip on a STATEMENT rather than on a
+constructor, which this row has never run: replace `close_with_ssl`'s type with
+the repaired one, leave its proof `sorry`, and count what stops typechecking —
+the count is then a propagation and not a proof debt.  The expensive one is
+writing the repair.  **The failure mode to watch is that a repaired statement
+is a CHOICE, and the weakest repair propagates furthest**: adding the missing
+connection as a premise pushes an obligation onto all five consumers, while
+retiring `pendingFlow` removes the case and may push nothing.  A flip that
+picks one repair measures that repair and not the obligation, so the instrument
+has to run both ends of the lattice and report the pair, the way item 183's
+flip order reports its two halves.
+
+Unchanged: R3's seven productions, whose price is the case split; item 183's
+flip order, whose two REFUTABLE halves are `h_ref`'s readers; the parked Ix
+Step-1 composition on the Ix track's own clock.  Instrument debt, still **ten**
+rows, none paid and none added.
+
+
 ### REMAINING, in order
 
 The per-item history is the closure log above; this section lists only the

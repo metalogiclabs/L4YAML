@@ -131,12 +131,22 @@ def main() -> int:
         if code != 0:
             print(out)
             sys.exit("the walk did not run clean")
+        census = ""
         for line in out.splitlines():
             if line.startswith("WIDE"):
                 print(line)
                 m2 = re.search(r"closure=(\d+)", line)
                 if m2:
                     closure = int(m2.group(1))
+                # The four counts the whole tree reads.  They are NOT the ones
+                # the instrument's own `run_cmd` reads: `census` filters by a
+                # declaration's module and a declaration being elaborated has
+                # none, so the instrument is blind to its own module and to any
+                # module that does not import it (DOCS item 239).  Both numbers
+                # are pinned, separately, so neither can move unnoticed.
+                m3 = re.search(r"(D=\d+ .*)$", line)
+                if m3:
+                    census = m3.group(1)
         print(f"WIDE imported={len(mods)} excluded={len(excluded)}")
         if "Tests.Guards.Proofs.DropDependents" not in mods:
             sys.exit("the walk's own module is not in the import list; "
@@ -194,6 +204,15 @@ def main() -> int:
         if pin != wide:
             sys.exit(f"the sweep and the instrument disagree:\n"
                      f"  swept  {wide}\n  pinned {pin}")
+        pinnedC = re.search(r'def expectedWideCensus : String :=\s*\n?\s*"([^"]*)"',
+                            INSTRUMENT.read_text())
+        if not pinnedC:
+            sys.exit("no `expectedWideCensus` pin in the instrument; the four "
+                     "counts the whole tree reads would go unchecked")
+        pinC = re.sub(r"\\\s*\n\s*", "", pinnedC.group(1))
+        if pinC != census:
+            sys.exit(f"the sweep and the instrument disagree on the counts:\n"
+                     f"  swept  {census}\n  pinned {pinC}")
         print("WIDE-PIN agrees with Tests/Guards/Proofs/DropDependents.lean")
 
         for mod in excluded:

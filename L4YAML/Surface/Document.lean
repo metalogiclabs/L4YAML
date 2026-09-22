@@ -195,7 +195,21 @@ inductive SLYamlStream : SurfPos → SurfPos → Prop where
       constructor usually costs the most.  No statement in the library names
       the constructor, so the repair propagates only where a statement must
       change, and exactly two are candidates:
-      `Tests/Guards/Proofs/DropDependents.lean` (DOCS item 238). -/
+      `Tests/Guards/Proofs/DropDependents.lean` (DOCS item 238).
+
+      **Both of those two are false without it, and nothing else is.**  Six of
+      the twenty-six are refutable once the suffix law holds — `dropClose`,
+      `PendingNode.close_with_ssl` and four guard exhibits written to witness
+      the defect.  The other twenty conclude at a target the law cannot
+      forbid: ten end at `chars = []`, where `[] <:+ anything`, and nine bind
+      the target existentially, where the law is a constraint on the witness
+      rather than a contradiction.  So β.5 restates two statements and reproves
+      twenty-four, and Group 7's own statements are all in the first of those
+      two classes and none of them changes.  `dropClose` is false
+      unconditionally; `close_with_ssl` is false in the environment that
+      deletes this arm and keeps `PendingNode.pendingFlow`, the only park arm
+      with the same gap — which is why row 12 names both halves of β.5 in one
+      item.  `Tests/Guards/Proofs/DropFalsity.lean` (DOCS item 239). -/
   | scannerDrop (s s₁ s₂ s' : SurfPos) :
       SLYamlStream s s₁ →
       SSLComments s₂ s' →

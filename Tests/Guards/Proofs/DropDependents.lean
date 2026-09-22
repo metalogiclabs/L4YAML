@@ -62,13 +62,17 @@ lands on is decided by two statements, not by the graph:
 - `dropClose` concludes `SLYamlStream sp_start sp_m` for a `sp_m` its premises
   never reach, so it is the arm restated and cannot survive the deletion.  Its
   one consumer is `accum_flow_open_depth0`.
-- `PendingNode.close_with_ssl` is restrictive in its `PendingNode` premise and
-  may well survive with a different proof.  Its five consumers are
-  `accum_block_pending`, `accum_content_pending`, `accum_flow_open_depth0`,
-  `accum_structural_pending` and `eof_pending`.
+- `PendingNode.close_with_ssl` is restrictive in its `PendingNode` premise.  Its
+  five consumers are `accum_block_pending`, `accum_content_pending`,
+  `accum_flow_open_depth0`, `accum_structural_pending` and `eof_pending`.
 
 Whether a statement is reprovable is not a graph property, and this file does
 not claim to decide it — the same boundary item 237 drew around its fifteen.
+`Tests/Guards/Proofs/DropFalsity.lean` (DOCS item 239) decides it for both of
+the two by building the post-β.5 relation and refuting them in it: the
+`PendingNode` premise is restrictive in the scanner state and in nothing that
+connects `sp_block` to `sp_scan`, so `close_with_ssl` cannot be reproved
+either.  **Both are restatements; the other twenty-four are reproofs.**
 
 ## What the cheap instrument buys over the expensive one
 
@@ -262,8 +266,19 @@ def expectedClosure : Nat := 233
     a hint and not a check — item 237's own finding is that a statement can
     assert `InYamlLanguage` without naming it. -/
 def expectedWide : String :=
-  "closure=845 imported=841 excluded=36 readable=36 unreadable=0 \
+  "closure=846 imported=842 excluded=36 readable=36 unreadable=0 \
 excludedDecls=602 excludedDropRefs=0"
+
+/-- **The four counts the WHOLE TREE reads, which are not the four this file's
+    own `run_cmd` reads.**  `census` filters by `inScope`, which reads a
+    declaration's MODULE — and a declaration being elaborated has none, so a
+    census is blind to its own module.  It is equally blind to any module that
+    does not import it.  `Tests/Guards/Proofs/DropFalsity.lean` (DOCS item 239)
+    holds one exhibit that rides the arm on purpose, so the tree composed in
+    one environment reads `T=27` where §2 reads `T=26`.  Both are pinned, and
+    the difference is the instrument counting itself. -/
+def expectedWideCensus : String :=
+  "D=4 S=0 R=0 T=27 capstonesInT=2 rawElim=11"
 
 /-! ## §2 The four counts -/
 

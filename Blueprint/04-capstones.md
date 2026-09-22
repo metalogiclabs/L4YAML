@@ -581,9 +581,23 @@ not free, and its derivation still rides the arm. Nothing in the library states
 the constructor, and a theorem's consumers depend on its statement rather than
 its proof, so the twenty-six do not all have to be rewritten — the repair
 propagates only where a statement must change, and exactly two are candidates.
-`dropClose` is the arm restated and goes with it; `PendingNode.close_with_ssl`
-is restrictive in its `PendingNode` premise and may survive with a new proof.
-Which of the two bounds holds is β.5's to decide, not a census's.
+Both of the two are candidates because both are FALSE once the arm goes, and
+they are the only library statements that are
+([`DropFalsity.lean`](../Tests/Guards/Proofs/DropFalsity.lean)). `dropClose` is
+the arm restated. `PendingNode.close_with_ssl` is restrictive in its
+`PendingNode` premise, but restrictive in the scanner state and in nothing that
+connects the park's two positions, so a park at a target the suffix law forbids
+is buildable without the arm and the statement cannot be reproved either.
+
+**Nothing in Group 7 changes, and this is the first measurement that says so.**
+All four of Group 7's rows that ride the arm conclude at end of input — 7.1 and
+7.6 assert `InYamlLanguage`, 7.2 and 7.3 spell out `∃ sp_final, SLYamlStream …
+∧ sp_final.chars = []` — and the law β.5 buys says of such a target only that
+`[]` is a suffix of the input, which is true of every string. **β.5 owes Group 7
+a reproof and not one changed character of any of its statements.** That is a
+stronger reading than "no statement names the constructor": these statements do
+not contradict the law that replaces it. It does not say the reproofs are easy
+— it says they are reproofs.
 
 **Significance & risk**
 
