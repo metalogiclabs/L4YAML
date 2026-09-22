@@ -185,7 +185,17 @@ inductive SLYamlStream : SurfPos → SurfPos → Prop where
       arm of the surface grammar's one hundred and sixty-seven whose premises
       leave the conclusion's target unconnected to its source, and every other
       production carries its suffix lemma — `SurfaceSpanSupply.lean` and
-      `Tests/Guards/Proofs/SuffixGapAudit.lean` (DOCS item 236). -/
+      `Tests/Guards/Proofs/SuffixGapAudit.lean` (DOCS item 236).
+
+      **What retiring it costs.**  Two proofs in the library build this arm —
+      `dropClose` and `PendingNode.close_with_ssl`, both in
+      `Proofs/Production/StreamAccum.lean` — and twenty-six run through it,
+      ending at the two Group 7 capstones.  Nothing anywhere case-splits on
+      `SLYamlStream`, so the deletion costs nothing on the side a removed
+      constructor usually costs the most.  No statement in the library names
+      the constructor, so the repair propagates only where a statement must
+      change, and exactly two are candidates:
+      `Tests/Guards/Proofs/DropDependents.lean` (DOCS item 238). -/
   | scannerDrop (s s₁ s₂ s' : SurfPos) :
       SLYamlStream s s₁ →
       SSLComments s₂ s' →

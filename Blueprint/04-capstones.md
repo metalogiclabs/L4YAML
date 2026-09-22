@@ -542,7 +542,7 @@ grammar derivation tree — the structural, strongest form of Group 2.2.
 | - | ------- | ------ | ------ |
 | 7.1 | `parse_strict_proof` (headline) — parser acceptance implies `InYamlLanguage input`; **vacuous while `scannerDrop` stands** | [`DocumentProduction`](../L4YAML/Proofs/Production/DocumentProduction.lean) | ✅ |
 | 7.2 | `scan_content_gives_stream_v2` (full SLYamlStream derivation) — its conclusion is `InYamlLanguage input` spelled out; **vacuous while `scannerDrop` stands** | [`StreamAccum`](../L4YAML/Proofs/Production/StreamAccum.lean) | ✅ |
-| 7.3 | `scanLoop_grammar_prod` | `StreamAccum` | ✅ |
+| 7.3 | `scanLoop_grammar_prod` — statement restrictive, but the derivation it builds **routes through `scannerDrop`** | `StreamAccum` | ✅ |
 | 7.4 | Per-function `*_prod` theorems (flow/block/document start/end, anchor/alias, tag, directive) | [`StructureProduction`](../L4YAML/Proofs/Production/StructureProduction.lean) / [`DocumentProduction`](../L4YAML/Proofs/Production/DocumentProduction.lean) / [`ScalarProduction`](../L4YAML/Proofs/Production/ScalarProduction.lean) / [`NodeProduction`](../L4YAML/Proofs/Production/NodeProduction.lean) | ✅ |
 | 7.5 | `parseYaml_implies_valid_token_stream` (bridge to Group 4) | `EndToEndCorrectness` | ✅ |
 | 7.6 | `scan_strict_proof` — scanner acceptance implies `InYamlLanguage input`; **vacuous while `scannerDrop` stands** | `DocumentProduction` | ✅ |
@@ -572,6 +572,19 @@ theorems about the top-level surface are free in this sense and fifteen of them
 through that one arm; the count is re-derived at every build by
 `FreeSurfaceCensus.lean`, and row 12's β.5 is what turns it into content.
 
+**What β.5 costs Group 7.** Two proofs in the whole library build the arm, and
+**twenty-six run through it** — four of Group 7's six ✅ rows among them: 7.2
+and 7.3 on the chain, 7.1 and 7.6 at its end
+([`DropDependents.lean`](../Tests/Guards/Proofs/DropDependents.lean)). That is a
+different reading from the paragraph above: 7.3's statement is restrictive and
+not free, and its derivation still rides the arm. Nothing in the library states
+the constructor, and a theorem's consumers depend on its statement rather than
+its proof, so the twenty-six do not all have to be rewritten — the repair
+propagates only where a statement must change, and exactly two are candidates.
+`dropClose` is the arm restated and goes with it; `PendingNode.close_with_ssl`
+is restrictive in its `PendingNode` premise and may survive with a new proof.
+Which of the two bounds holds is β.5's to decide, not a census's.
+
 **Significance & risk**
 
 - **7.1 `parse_strict_proof`** *(headline, ✅)* — *Significance:*
@@ -592,7 +605,10 @@ through that one arm; the count is re-derived at every build by
   *Risk if absent:* scanner acceptance with no grammatical
   justification.
 - **7.3 `scanLoop_grammar_prod`** *(✅)* — *Significance:* the scan
-  loop itself produces a grammar derivation at each step. *Risk if
+  loop itself produces a grammar derivation at each step. The statement
+  is restrictive — unlike 7.1, 7.2 and 7.6 it is not free — but the
+  derivation it builds passes through `scannerDrop`, so β.5 rebuilds it;
+  see *What β.5 costs Group 7* above. *Risk if
   absent:* a hole in the middle of the derivation chain.
 - **7.4 per-function `*_prod`** *(✅)* — *Significance:* each concrete
   construct (flow/block collections, document markers, anchors,
@@ -602,8 +618,11 @@ through that one arm; the count is re-derived at every build by
 - **7.5 `parseYaml_implies_valid_token_stream`** *(✅)* —
   *Significance:* carries strictness up to the top-level API. *Risk if
   absent:* the strictness result would not reach `parseYaml`.
-- **7.6 `scan_strict_proof`** *(✅)* — *Significance:* the same
-  strictness at the scanner level. *Risk if absent:* the scanner could
+- **7.6 `scan_strict_proof`** *(✅)* — *Significance:* the same shape
+  of strictness at the scanner level, and it carries strictness only
+  once `InYamlLanguage` excludes something — 7.1's caveat applies
+  unchanged, see *What Group 7 does not yet establish* above. *Risk if
+  absent:* the scanner could
   admit non-language strings that the parser then trusts.
 - **7.7 `parse_iff_grammar` converse** *(⏳ not started)* —
   *Significance:* the missing half of the biconditional — every string

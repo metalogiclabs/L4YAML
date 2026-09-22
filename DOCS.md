@@ -29223,6 +29223,220 @@ flip order, whose two REFUTABLE halves are `h_ref`'s readers; the parked Ix
 Step-1 composition on the Ix track's own clock.  Instrument debt, still **ten**
 rows, none paid and none added.
 
+### Item 238 (2026-09-22)
+
+**THE BILL — two proofs in the library build the broken arm and twenty-six run
+through it, and the repair propagates through exactly TWO statements rather
+than twenty-six.  Nothing in the whole tree case-splits on `SLYamlStream`.  The
+flip that deletes the arm reports two, because both construction sites are in
+one module and the build stops there: here the CHEAP instrument strictly
+dominates the expensive one, which inverts this row's ordering.  BUILT — one
+instrument, one sweep, one flip gate, and four corrections to the proof-status
+SSOT.**
+
+**The mandate.**  Item 237 left the number as "the transitive proof-term
+dependents of `scannerDrop`, bounded below by the two sites and above by
+nothing measured."  It is measured now, and the phrase names the wrong
+quantity: the transitive closure is a ceiling that a repair does not have to
+pay.
+
+**The four populations.**  One environment pass, `value?` taken with
+`allowOpaque := true` because the default hides every theorem's proof and a
+walk that takes it reads types only:
+
+    D=4   S=0   R=0   T=26   capstonesInT=2   rawElim=11
+
+`D` names the constructor in its PROOF TERM, `S` in its TYPE, `R` reaches an
+`SLYamlStream` eliminator — a case split, which breaks on an arity change
+without ever building the arm — and `T` is `D` closed upward.  Merging any two
+of them reports the wrong number: **`SLYamlStream.rec`'s own type names every
+constructor**, so a walk that expands into eliminators reads every case split
+as a construction.  The instrument pins that the recursor's type does carry
+`scannerDrop`, which is the one line that would silently turn an `R` into a
+`D`.
+
+**The first ring is four and the library's half is two.**  `dropClose` with one
+consumer and `PendingNode.close_with_ssl` with five, both in
+`StreamAccum.lean`; the other two are `stream_anything` in `SuffixGapAudit`
+and in `ColumnWalkPrice` — the instruments that exist to exhibit the defect, so
+β.5 deletes them rather than repairing them.  The twenty-six are those four,
+the five closers `close_with_ssl` feeds (`accum_block_pending`,
+`accum_content_pending`, `accum_flow_open_depth0`, `accum_structural_pending`,
+`eof_pending`), the four `accum_step_*`, the two `scanNextToken_*`,
+`preprocessing_eof_extends_stream`, `scanLoop_grammar_prod` (capstone 7.3),
+`scan_content_gives_stream_v2` (7.2), `Surface.scan_strict` and
+`Surface.parse_strict`, the two `@[capstone]` endpoints `scan_strict_proof`
+(7.6) and `parse_strict_proof` (7.1), and the four remaining `Tests`
+declarations that exhibit the defect.  **Four of Group 7's six ✅ rows are on
+the spine**, and the two at its end are the two `@[capstone]` marks it
+reaches.
+
+**T is not the bill, and `S=0` is why.**  A theorem's consumers depend on its
+TYPE, not on its proof — Lean's definitional proof irrelevance is exact about
+that, and the instrument compiles the one-line exhibit.  No statement in the
+library names the arm, so nothing in `T` breaks on the deletion alone.  The
+repair propagates only where a statement must CHANGE, and exactly two are
+candidates: `dropClose` concludes at a target its premises never reach, so it
+is the arm restated and goes with it; `PendingNode.close_with_ssl` is
+restrictive in its `PendingNode` premise and may survive with a new proof.
+**The bill is 4 at its floor and 26 at its ceiling, and which end it lands on
+is a question about two declarations rather than twenty-six.**  Whether the
+second is reprovable is not a graph property, and this item claims no more
+about it than item 237 claimed about its fifteen.
+
+**`R=0`, read twice.**  Nothing in the tree case-splits on an `SLYamlStream`.
+The second, independent read is `rawElim`: over EVERY constant in scope,
+generated ones included, the only things that reach an `SLYamlStream`
+eliminator are the eleven eliminators themselves.  **The grammar is consumed by
+construction, never by destruction**, so β.5 spends nothing on the case-split
+side — the side a deletion usually costs the most.
+
+**The cheap instrument dominates the expensive one.**  `scripts/flip_drop.py`
+deletes the arm and its docstring for real and reports `COUNT 2 definitions
+from 2 locations`, with `md5` before == after.  Both sites are in one module
+the library root imports, so `lake build` stops there and the flip cannot see
+the other two direct users, nor the twenty-four behind them.  Every earlier
+flip in this row was the ground truth that bounded a forecast; this one is
+bounded BY the walk.  It is kept because it is the only one of the two that
+checks the deletion elaborates.
+
+**The closure, read four ways, and the reading that was wrong.**  `D`, `S`, `R`
+and `T` are identical at every closure tried: the instrument's own 233 modules
+(the library complete at 231 plus the two `Tests.Guards` modules that hold the
+Tests-side ring), and the sweep's whole-tree reading.  The library root reaches
+only 222 of the library's 231 modules — `Capstones`, three serializers and five
+indexed-proof modules sit outside it — so the instrument imports all nine by
+name rather than trusting the root.  **`modulesSeen` and `closureModules` are different numbers**: the first
+counts modules that DECLARE something and the second the import closure, and
+they differ by pure aggregator modules such as `Tests.Guards` itself.  Item
+237's pin is the first kind, which was the right one for a theorem census; this
+item needs both and reports both.
+
+**Thirty-six modules cannot share an environment with the rest.**  Each is an
+executable entry point defining `main` at the root namespace, and two of them
+in one environment is an import error rather than a measurement.
+`scripts/drop_sweep.py` probes them one at a time against their own closures
+instead of dropping them silently — 602 declarations, zero references to the
+arm — and reports how many of the thirty-six it actually READ.  **That counter
+caught two holes in this item's own first reading**, and their causes have
+nothing in common: `Tests.QueryResults` does not reach `Lean.Elab.Command`
+transitively, so the probe's own `run_cmd` would not elaborate; and
+`Tests.LimitTests.Runner` is a `lean_exe` that is not a DEFAULT target, so
+`lake build` never refreshes it and its olean was still the one **Lean 4.32.0**
+wrote in August.  Both read as clean modules, because a probe that fails
+contributes zero and a zero is indistinguishable from a zero.  The sweep now
+imports the command elaborator and builds a target by name before giving up on
+one, and the corrected total is 602 rather than the 576 first recorded.  One
+module stays UNMEASURED and the sweep says so: `Tests.ContentEqRefl` belongs to
+no Lake target, so nothing can elaborate it.  The wide walk composes the other
+841 and reaches a closure of 845; the sweep compares its own line against the
+pin in the instrument, so neither can drift from the other in silence.
+
+**Fifteen orphan oleans from three retired toolchains** sit in the build tree —
+4.30.0, 4.31.0 and 4.32.0 artifacts for deleted probe modules (`AxCheckTmp`,
+`ProbeFSO`, `DispatcherScratch`, `AxCheckR492`/`493`/`494`) and for the two
+`Runner` targets `lake build` does not reach.  Nothing imports them, so no gate
+sees them; only the one whose source still exists could break a measurement,
+and it did.
+
+**The corrections.**  `Blueprint/04-capstones.md` is the proof-status SSOT and
+carried four claims this measurement changes.  Row 7.3 carried no caveat at all
+though the derivation it builds rides the arm — and 7.3 is NOT free, which is
+the distinction this item adds to item 237's: a restrictive statement whose
+PROOF goes through the defect.  7.6's *Significance* bullet still read "the
+same strictness at the scanner level" although item 237 had caveated 7.1's and
+7.2's and the 7.6 table row; that one is ours, found by re-reading our own
+previous item.  A new *What β.5 costs Group 7* paragraph carries the
+twenty-six, the four rows, and the two-statement bound.
+
+**Three empty checks in one item, and the counter that found the first.**  A
+probe that fails contributes zero, and a zero reads as a clean module.  It
+happened in the sweep (two entry points), in the diagnosis of the sweep (a
+byte-wise olean comparison that iterated an empty list, because the battery had
+overwritten the log it read), and in the gate battery itself — **step 10
+deletes `L4YAML/Scratch`, which is where step 9's axiom probe lives**, so a
+second run of the battery loses its axiom check and prints an error nobody
+reads as a missing gate.  The battery now writes the probe at step 9 instead of
+assuming it survived.  Each one was found by asking how many readings a number
+was taken over, which is §9's rule and not a new one.
+
+**Gates.**  `lake build` **1205** jobs; `Verified: 4520/4520` with `Production
+Coverage Analysis 837/837`; `eventscore` 347/358 and **0 error-miss**;
+`suiterunner` 869 passed / 0 failed / 151 skipped; the matrix 402/402 event and
+282/282 json on BOTH binaries; import closure **230** library modules from 5
+default targets and the Reflections index complete at 355 imports; all **25**
+`theorem` sites whitelisted capstones; `verify_yaml_spec_annotations.py` exits
+1 on the standing 19 name mismatches; decline pins 7 + 18 + 6 with ALL PINS OK
+on each; `capstones=25 withSorryAx=0`.  Counts **8736** declarations
+(unchanged — the instrument is in `Tests`), **8173** guards, **648** test
+files, **8** loose disjuncts.  All three flips at baseline with `md5` before ==
+after; `Surface/Document.lean`'s md5 moves to
+`ec44b3c66031bdf013267780f5ef0d74` because the arm's docstring now carries the
+bill.  By axiom profile the new instrument reads `theorems=3` on `[propext]`,
+and all three are `structure Census`'s generated `mk.injEq`, `mk.inj` and
+`mk.sizeOf_spec` — the file authors none, because its exhibits are `example`s.
+
+**Predictions.**  HELD — P0 (4, against a 2–8 band), P1 (`S=0`), P4 (two
+capstones), P5 (the method claim: `S=0` makes `T` a ceiling rather than a
+bill), P6 (the flip reports 2, strictly below `D`), P7 (a walk rooted at
+`L4YAML` alone misses the two `Tests` members of the first ring), P8
+(`dropClose` has one consumer, against a band of ≤20).  **REFUTED — P2**: the
+case-split class is not 5–40 but **zero**, and the band was the wrong shape,
+not just the wrong size — the reasoning that produced it ("the grammar is
+mostly built, not destructed") was right and the band hedged it anyway.
+**REFUTED — P3**: `T ≥ 200` was off by an order of magnitude in the direction
+that decides the item; the chain from `StreamAccum` to the capstones is narrow,
+and a forecast that reasoned from the library's SIZE rather than from the
+chain's SHAPE could not have seen that.  **MISSED** — that `import L4YAML`
+reaches only 222 of the library's 231 modules, and that 36 modules rather than
+a handful cannot share an environment.
+
+**The instrument ledger, forty rows.**  Park constructors (198), application
+sites (200), lemma conclusions (201), the same with a key that works (202),
+indices (203), the runtime's own state (204), the transitive ring of a carrier
+(205), the same closure with its last ring paid (206), the ring's payers
+against a forecast (207), the instruments themselves (208), the object a
+carrier's consumer reads (209), the plan's own remaining list (210), the
+control (211), the provenance (212), the route (213), the pipe (214), the beta
+(215), the arms (216), the branch (217), the reach (218), the corpus (219), the
+matrix (220), the minimal zero (221), the strength ladder (222), the demand
+ledger (223), the spend census (224), the reader census (225), the necessity
+census (226), the worth census (227), the obligation census (228), the span
+(229), the arm price (230), the export (231), the replication (232), the
+uptake (233), the exception (234), the share (235), the chain (236), the free
+(237) — and now **the BILL**, the first instrument here whose reading is a
+graph and whose ANSWER is not, because the edge that propagates a repair is a
+changed statement rather than a used constant.  Its corollary is that a
+dependency closure prices a rebuild and not a rewrite, and the two differ by
+proof irrelevance.
+
+**What remains.**  The arm's cost is now three measured numbers — two
+construction sites, four direct users, twenty-six transitive — and one
+unmeasured fact that decides between the last two.  **The number no instrument
+holds is how many of the statements riding the arm are FALSE once it is gone,
+rather than merely unproved.**  Item 236 proved the suffix law at every one of
+the other 166 productions, so `SLYamlStream s s' → s'.chars <:+ s.chars` becomes
+a theorem the moment the arm goes; a statement whose conclusion violates it is
+then false, and its consumers break for real.  `dropClose` is the obvious
+candidate and `PendingNode.close_with_ssl` is the one that decides the bill.
+The cheap experiment is per statement: build its premises WITHOUT the arm, read
+off the conclusion it then forces, and check that against the suffix law — the
+method item 236 already used to refute the law itself, run in the other
+direction.  The expensive one is inhabiting `PendingNode ... pendingFlow` at the
+position `close_with_ssl` reaches, which is what `block_dispatch_deferred`'s
+surviving block arms are, and §10's rule applies: a definition nothing has
+instantiated is not yet evidence.  **The failure mode to watch is a vacuity
+trap this item nearly walked into**: the suffix law is currently FALSE in the
+ambient environment, so `suffixLaw → anything` is derivable and any instrument
+that assumes the law proves every statement false, reporting a perfect score and
+measuring nothing.  The check has to be a WITNESS — premises built without the
+arm, conclusion instantiated, violation exhibited — not an implication.
+
+Unchanged: R3's seven productions, whose price is the case split; item 183's
+flip order, whose two REFUTABLE halves are `h_ref`'s readers; the parked Ix
+Step-1 composition on the Ix track's own clock.  Instrument debt, still **ten**
+rows, none paid and none added.
+
 ### REMAINING, in order
 
 The per-item history is the closure log above; this section lists only the
