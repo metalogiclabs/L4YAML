@@ -19,6 +19,7 @@ import Tests.Guards.Proofs.PremiseNecessityCensus
 import Tests.Guards.Proofs.NarrowingWorthCensus
 import Tests.Guards.Proofs.ConclusionObligationCensus
 import Tests.Guards.Proofs.SurfaceSpanCensus
+import Tests.Guards.Proofs.ColumnAdvanceCensus
 import Tests.Guards.Proofs.EndToEndCorrectness
 import Tests.Guards.Proofs.EscapeResolution
 import Tests.Guards.Proofs.FoldNewlines

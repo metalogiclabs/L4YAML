@@ -28501,6 +28501,180 @@ consumer exists.  Its corollary answers 232's directly: 232 asked what it costs
 to hand back all of them, and the answer was once per hand; 233 asked how many
 hands were reaching, and the answer is **none.**
 
+### Item 234 (2026-09-21)
+
+**THE COORDINATE — the column law is false, and one arm of 167 refutes it.
+The exception is a byte-order mark, it is deliberate, and the half a refuter
+actually needs survives it.  PRICED — one instrument, two corrections, and not
+one new declaration in the library.**  Item 233's recorded NEXT: *"the law a
+refuter needs is a column advances by the characters consumed except across a
+break — `s'.col = s.col + |span s s'|` or `BreakBetween s s'` … The number no
+instrument holds is whether the law is true at all: one arm that writes a
+column without consuming the matching characters refutes it … a cheap
+experiment drawn from the easy arms is the one that removes the arm that
+breaks it."*  The number is now held.  The law is false, the arm is found, and
+the failure mode the mandate named was walked into by this item's own
+instrument before it was walked out of.
+
+**The refutation, and it is against a derivation.**  A stream that is exactly
+one byte-order mark:
+
+    bom_derives    : SLDocumentPrefix ⟨['﻿'], 0⟩ ⟨[], 0⟩
+    bom_span       : Span ⟨['﻿'], 0⟩ ⟨[], 0⟩ ['﻿']
+    bom_not_break  : ¬ BreakBetween ⟨['﻿'], 0⟩ ⟨[], 0⟩
+    colLaw_refuted : ¬ ColLaw ⟨['﻿'], 0⟩ ⟨[], 0⟩
+
+One character consumed, column 0 → 0, and the character is not a line break,
+so neither disjunct is available.  This is `[202] l-document-prefix`, not a
+hand-built pair of positions.
+
+**The arm is not a bug, and the file already said so.**  `Surface/Document.lean`
+carries the reason in the docstring above the production: the BOM is *"not
+considered part of the content"*, so the character after it opens the line at
+the column the marker stood at.  Carrying `col + 1` made the first line one
+deeper than every other — `﻿a: 1⏎b: 2` dedents below its own
+`[187] l+block-mapping`, and `﻿---` sits off column 0 where
+`[203] c-directives-end` cannot be read at all.  **A byte-order mark occupies
+no column.**  So the law is not repairable by fixing the grammar; the law is
+what is wrong, and the corrected statement is
+
+    s'.col + (BOMs consumed) = s.col + |span s s'|   ∨   BreakBetween s s'
+
+— a column advances by the characters consumed **that are not byte-order
+marks**, except across a break.
+
+**The half a refuter needs is untouched.**  A consumer does not use the
+equality; it uses the contrapositive of the break arm —
+
+    BreakBetween s s' → s'.col < |span s s'|
+
+— because *a column at least as large as the span means no break* is exactly
+the fact `[193] c-s-implicit-json-key` supplies.  The BOM cannot weaken it: it
+eats a character without a break, which only makes the span longer.  What that
+induction needs at its leaves is what the census pins: **every arm that writes
+column 0 eats a literal line break**, and **no arm advances the column over a
+line break.**
+
+**The census, and what it can see.**  Every constructor arm of every
+`SurfPos`-relating inductive in `L4YAML.Surface`:
+
+    types=77 arms=167 advance=25 pred=11 reset=3 carried=127 violations=1
+    COVERAGE lits=80 pairs=40 blind=0 skippedTypes=1
+
+`advance=25` eat only literals, none a break, and add exactly what they ate;
+`reset=3` are `SBBreak`'s `cr`, `crLf` and `lf`, each eating a literal break;
+`carried=127` hold no literal position and transport their premises' law;
+`violations=1` is the BOM.  The one skipped type is `SCForbidden :
+SurfPos → Prop`, a one-position assertion with no target column to violate —
+which answers one of the mandate's own six suspects by saying it is not a
+relation at all.  **`blind=0` is the line that makes the rest readable**: a
+census that reports one violation has to say how many arms it held two
+positions for and could not relate, and this one holds none.  Both pins were
+perturbed and both threw.
+
+**The eleven arms that eat a variable character are settled by twenty facts.**
+`isNbChar`, `isNsChar`, `isNsAnchorChar`, `isCommentTextChar`,
+`isWordCharProp`, `isUriCharProp`, `isTagCharProp`, `isNsHexDigit`,
+`isNamedEscapeChar`, and `isNsPlainSafe` in every `YamlContext` — none admits
+`'\n'` or `'\r'`, each checked by the compiler rather than read off a name.
+`GLit` is instantiated at fourteen literal characters and none is a break.
+
+**The one arm that would refute the surviving half has no consumer.**
+`GConsumeAll.cons` advances the column over ANY character, a line break
+included.  Nothing applies it: the only constants naming `GConsumeAll` are its
+own recursor machinery.  §10's rule reads the same here as at item 33 — *a
+definition nothing has instantiated is not yet evidence* — except in the
+useful direction: it is not yet a counterexample either, and the census keeps
+it that way by failing the moment it acquires a consumer.
+
+**Three readings, each of which cost a run, and the third is the item's own
+failure mode.**  The pretty-printer renders `'\r'` as `'\x0d'`, so a census
+comparing rendered strings called `SBBreak.cr` a violation.  `Expr.nat?` does
+not read a raw natural literal — which is what a `Char` literal carries — so
+all three break arms then went missing at once.  And `forallTelescope` hands
+back the CONCLUSION: `SLDocumentPrefix.bom` relates its two positions in a
+PREMISE, so the first census reported **`violations=0`**, against a refutation
+that had already been proved twenty minutes earlier.  **The well-behaved arms
+are precisely the ones whose evidence sits in the conclusion**, so a
+conclusion-only walk is a cheap experiment drawn from the easy arms — the
+mandate's warning, arriving inside the instrument built to honor it.  It was
+caught only because the refutation existed first and the two disagreed.  **An
+instrument that cannot contradict something is not yet being checked.**
+
+**Predictions, written before the first edit** (`PREDICTION.md`).  HELD — P0,
+that the law is false and that the BOM is the arm, which was a reading of two
+adjacent grep lines and is now a theorem; P1, that the generic combinators
+transport the law and that `GConsumeAll` is the one to watch, and it is, and
+it is dead; P2, that the population exceeds the mandate's inherited 74 types /
+143 arms, measured at **77 / 167**; P3, that the six source-column sites are
+all safe and that the mandate's suspect list was the wrong one; P5, that this
+is a PRICED item.  NOT TESTED — P4, the exclusivity clause: this item measured
+the two leaf facts its induction needs and did not run the induction, which is
+the next item's work and is not evidence either way.
+
+**Gates, all at baseline except the two the new file moves.**  `lake build`
+**1199** jobs (was 1198), 0 warnings; `run-all-tests.sh` **Verified:
+4520/4520** (Production Coverage **837/837**); `eventscore` **347/358** (0
+error-miss); `suiterunner` **869/0/151**, run ALONE; matrix **402/402 event** +
+**282/282 JSON** on BOTH pipelines; checkers **229** library modules /
+**355** imports, unmoved because a guard is not a library module; decline
+pins **7 + 18 + 6 = 31**; `[210]` flip FIVE definitions; supply flip **4**
+definitions from **7** locations; `#print axioms` — 25 capstones, no
+`sorryAx`.  Counts: declarations **8721**, `#guard` **8173**, loose demand
+**8** — all unmoved, because **this item adds no declaration to
+`L4YAML/`** — and test files **643 → 644**, the new guard.
+
+**What remains.**  The walk, and it is now priced from an artifact rather than
+inherited.  The surviving half — `BreakBetween s s' → s'.col < |span s s'|` —
+is an induction over the same 77 types and 167 arms the census just counted,
+and the census also says what each arm costs: **127 arms transport** and are
+the cheap ones, **25 advance over literals** and need only the span's length,
+**11 advance under a predicate** and need one of §3's twenty facts each, **3
+reset** and are the base case, and **1 is the BOM**, which needs the span to
+grow while the column stands still.  **Priced from the artifact, and the price
+is NOT the span instrument's**: `SurfaceSpan.lean` mentions `SLDocumentPrefix`,
+`SLYamlStream` and `SCDirectivesEnd` **zero** times, and `Surface/Node.lean`
+imports `Surface/Scalars.lean`, not `Surface/Document.lean` — so the 74-type
+closure item 229 walked **does not contain the document layer at all**, and
+the document layer is exactly where the exception lives.  The column walk is
+strictly larger than the span walk, by the part that holds the only arm that
+breaks the law.  **The number no instrument holds is whether the two walks can
+be one induction**: SurfaceSpan carries 94 lemmas over its closure, and the
+column law needs the same shape with a different conclusion, so the question
+is whether a single pass can carry both conclusions or whether item 232's
+finding applies again — that a mutual block does not share a fixpoint, and
+each conclusion is paid for separately.  The cheap experiment is one type
+proved both ways in one `mutual` block against the same type proved twice, and
+the failure mode to watch is item 232's exactly: **a truncated instance of a
+mutual problem is a different problem**, so the experiment has to sit inside a
+cycle rather than beside one.
+
+Unchanged: R3's seven productions, whose price is the case split; item 183's
+flip order, whose two REFUTABLE halves are `h_ref`'s readers; the parked Ix
+Step-1 composition on the Ix track's own clock.  Instrument debt, still **ten**
+rows, none paid and none added.
+
+**The instrument ledger, thirty-six rows.**  Park constructors (198),
+application sites (200), lemma conclusions (201), the same with a key that
+works (202), indices (203), the runtime's own state (204), the transitive ring
+of a carrier (205), the same closure with its last ring paid (206), the ring's
+payers against a forecast (207), the instruments themselves (208), the object a
+carrier's consumer reads (209), the plan's own remaining list (210), the
+control (211), the provenance (212), the route (213), the pipe (214), the beta
+(215), the arms (216), the branch (217), the reach (218), the corpus (219), the
+matrix (220), the minimal zero (221), the strength ladder (222), the demand
+ledger (223), the spend census (224), the reader census (225), the necessity
+census (226), the worth census (227), the obligation census (228), the span
+(229), the arm price (230), the export (231), the replication (232), the
+uptake (233) — and now **the EXCEPTION**, which is the first instrument here
+whose finding is a single arm rather than a population.  Every census before
+it answered *how many*; this one answers *which one*, and its value is that
+the answer is one out of 167 and is deliberate.  Its corollary is the reason
+it had to be built at all: a law with one exception and a law with none are
+indistinguishable to every reading of the source, and differ completely for
+the proof that rests on them.
+
+
 ### REMAINING, in order
 
 The per-item history is the closure log above; this section lists only the
