@@ -250,7 +250,20 @@ inductive SLYamlStream : SurfPos → SurfPos → Prop where
       `SSeparateInLine.startOfLine`, which holds at every position in this
       library rather than only at column 0 (`L4YAML/Surface/Basic.lean`
       records that weakening of [66] and what it was taken to avoid):
-      `Tests/Guards/Proofs/DispatchPrice.lean` (DOCS item 242). -/
+      `Tests/Guards/Proofs/DispatchPrice.lean` (DOCS item 242).
+
+      **The connected form closes none of the sites that spend this arm.**
+      It is applied at eleven places in the tree, and at none of them are
+      `s₁` and `s₂` the same expression, reducibly defeq, equated by a
+      hypothesis in scope, or forced equal by a pair of correspondences.
+      Five of the eleven hold a `ScannerSurfCorr` at `s₂` — every one at the
+      state of the `PendingNode` being closed — and none holds one at `s₁`,
+      because a park holding both has `s₁ = s₂` and therefore absorbed no
+      characters.  So the gap admits exactly two closures, identifying the
+      endpoints or deriving a path across them, and identification is the
+      empty park.  The price is owed once per CALL, which is six, and not
+      once per dependent: `Tests/Guards/Proofs/ParkGapCensus.lean`
+      (DOCS item 243). -/
   | scannerDrop (s s₁ s₂ s' : SurfPos) :
       SLYamlStream s s₁ →
       SSLComments s₂ s' →

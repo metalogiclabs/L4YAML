@@ -27,6 +27,7 @@ import Tests.Guards.Proofs.DropFalsity
 import Tests.Guards.Proofs.RepairChoice
 import Tests.Guards.Proofs.ProducerDerivation
 import Tests.Guards.Proofs.DispatchPrice
+import Tests.Guards.Proofs.ParkGapCensus
 import Tests.Guards.Proofs.FreeSurfaceCensus
 import Tests.Guards.Proofs.EndToEndCorrectness
 import Tests.Guards.Proofs.EscapeResolution

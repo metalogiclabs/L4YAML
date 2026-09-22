@@ -639,6 +639,16 @@ two carry one at all — preprocessing 6 times of its 186 holders and content
 dispatch once of its 129 — and that one precedent is outside the twenty-six and
 off both repair threads.
 
+**And the connection is owed per call, not per row**
+([`ParkGapCensus.lean`](../Tests/Guards/Proofs/ParkGapCensus.lean)). The arm is
+applied at eleven sites, and at none of them are its two endpoints identified —
+not syntactically, not up to reduction, not by an equation in scope and not by a
+pair of correspondences. Five of the eleven hold a correspondence at the scan
+position, all five at the park's own scanner state, and none holds one at the
+block position: a park holding both would have absorbed no characters, so the
+half that is missing is missing by construction. Six calls owe a span; the
+twenty-four owe nothing until a supplier's statement changes.
+
 **Significance & risk**
 
 - **7.1 `parse_strict_proof`** *(headline, ✅)* — *Significance:*

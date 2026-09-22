@@ -30175,6 +30175,172 @@ flip order, whose two REFUTABLE halves are `h_ref`'s readers; the parked Ix
 Step-1 composition on the Ix track's own clock.  Instrument debt, still **ten**
 rows, none paid and none added.
 
+### Item 243 (2026-09-22)
+
+**THE GAP — `connected_drop` closes NOTHING, and the reason is that the
+correspondence pair which would close it is half-present at every call site with
+the SAME half missing.  Item 242's connected form is applied at eleven places in
+the tree; at none of them are the two endpoints the same expression, defeq,
+equated by a hypothesis, or forced equal by a correspondence.  Five of the
+eleven hold `ScannerSurfCorr` at the SCAN position, every one of them at the
+park's own scanner state, and ZERO hold one at the block position — because a
+park holding both has consumed nothing.  So the gap admits exactly two closures,
+identification and derivation, and identification is the empty park.  BUILT —
+one instrument reading proof terms under their binders, three closed lemmas, and
+a correction to the mandate this item was given and to one number item 242
+left stale.**
+
+**The mandate.**  Item 242's recorded NEXT: *"The number no instrument holds is
+how many of the twenty-four `connected_drop` actually closes … for each of the
+twenty-six, ask whether the `SSLComments` premise's left endpoint is the same
+expression as the stream premise's right endpoint … The failure mode to watch is
+that the two endpoints may be EQUAL without being syntactically equal … the
+instrument has to ask FIRST whether the two positions are already forced equal by
+a correspondence at a shared STATE."*
+
+**The twenty-four spend nothing, and item 238 already said so.**  `D=4`: two
+restatements in the library and two Tests-side exhibits written to witness the
+arm's falsity.  The other twenty-two of `T` reach the arm through a proof, not
+through a premise, and do not hold its endpoints at all.  The census is
+therefore taken over the **eleven application sites** the environment holds —
+the four that build the arm and the seven that call one of the two restatements
+— and it reads proof terms UNDER THEIR BINDERS, because the correspondences and
+the park live in the context an application stands in and not in the
+declaration's telescope.
+
+**The answer is zero, under four readings at once**
+(`Tests/Guards/Proofs/ParkGapCensus.lean` §2):
+
+| reading | what it asks | count |
+|---|---|---|
+| `syn` | the two endpoints are the same expression | **0** |
+| `deq` | …or reducibly defeq | **0** |
+| `eqHyp` | …or an equation between them is in scope | **0** |
+| `forced` | …or two correspondences at one state force them equal | **0** |
+
+    D=4 T=27 pop=10 sites=11
+    syn=0 deq=0 eqHyp=0 forced=0
+    corrBlock=0 corrScan=5 atPark=5 parkSpan=6 noSpan=5 otherSpan=0
+
+**β.5's bill does not shrink by one item.**
+
+**The warned-about mechanism is half-present, and the missing half is the
+finding.**  `forced=0` is not the absence of correspondences.  Five of the
+eleven — `accum_block_pending`, `accum_content_pending`,
+`accum_flow_open_depth0`, `accum_structural_pending`, `eof_pending` — hold a
+`ScannerSurfCorr` at the scan position, and **all five stand at the state of the
+`PendingNode` they are closing**.  Not one of the eleven holds a correspondence
+at the block position.  The pair is exactly half-present wherever the park is,
+and the absent half is the one whose presence would be fatal:
+
+    corr_pair_consumes_nothing :
+      ScannerSurfCorr sc sp_block → ScannerSurfCorr sc sp_scan →
+        sp_block.chars.length = sp_scan.chars.length
+
+**A park that held both would have absorbed no characters.**  So the mechanism
+runs the other way from the warning: a correspondence at a shared state does not
+silently identify endpoints a syntactic census misses — it identifies them and
+deletes the span the park exists to carry.  The five sites hold one and never
+two, and that is not an oversight.
+
+**What the sites do hold, and what it buys.**  `parkSpan=6 noSpan=5
+otherSpan=0`.  Every one of the five park calls has exactly one hypothesis
+mentioning both endpoints and it is the `PendingNode` itself — the premise item
+239 refuted.  The other five sites have nothing spanning the gap at all,
+including `accum_flow_open_depth0`'s `dropClose` call, whose second endpoint
+`sp_ne` is unrelated to everything in scope.
+
+**The five are the flip's five.**  `scripts/flip_supplier.py --end weak` gives
+`close_with_ssl` the connecting premise and breaks
+`accum_block_pending`, `accum_content_pending`, `accum_flow_open_depth0`,
+`accum_structural_pending` and `eof_pending` — the same five declarations the
+walk finds holding a correspondence at the park's state.  The flip reads what
+stops compiling and the walk reads what the proof terms hold, and they name one
+ring.
+
+§1 refutes the premise set the five actually carry:
+
+    one_corr_gives_no_stream :
+      ¬ (∀ sc sp_start sp_block sp_scan sp_mid,
+          StreamND sp_start sp_block → ScannerSurfCorr sc sp_scan →
+          SSLComments sp_scan sp_mid → StreamND sp_start sp_mid)
+
+The witness is the scanner at the seed of `"b"` while the stream reaches only
+the empty position.  **A correspondence at ONE of the two positions says nothing
+about the path between them** — item 241's refutation, taken on the consumer's
+side of the same edge.
+
+**The gap has exactly two closures.**  `corr_pair_closes` records the positive
+half: with both correspondences, `ScannerSurfCorr_unique` collapses the two
+positions and item 242's `connected_drop_nd` carries the stream across the
+comment run — in the post-β.5 model, with no escape and no new production.
+Identification empties the park; derivation is the path item 242 measured as
+carried once in the whole library.  There is no third route, and the census says
+no site is on either.
+
+**So the unit of β.5's connection price is the CALL.**  Six calls owe a span.
+The twenty-four owe nothing until their suppliers' statements change, which is
+what items 240 and 241 priced at nineteen and eighteen.
+
+**Predictions.**  HELD — P0 (`D=4`, two of them Tests exhibits), P1 (neither
+spend site connected or forced), P5 (the unit is the call), P6.  REFUTED — P2
+(`callConnected` predicted ≥1, read 0: every caller passes two distinct binders
+of its own), P3 (the four readings were predicted to disagree; they agree at
+zero, and §2 proves the mechanism they were supposed to disagree about cannot
+apply here).  MISSED — that the asymmetry would be the finding: the prediction
+treated `forced` as a reading that might find MORE than `syn`, and it found half
+a pair, with the other half missing by construction.
+
+**Two corrections.**  The mandate's premise, for the third consecutive item.
+And `Tests/Guards/Proofs/DropDependents.lean` carried the wide sweep's module
+count in two sentences and item 242 moved only one of them — 845 in §0 against
+844 in §1 for the same claim.  Both now read 846 beside `closure=850
+imported=846`.  The arm's own docstring and `Blueprint/04-capstones.md` both
+recorded item 242's derivation without recording that it closes no existing
+site; `L4YAML/Surface/Document.lean`'s md5 moves
+`b30223db29874be5d5f9eb696a4bc994` → `126923da275e4a19cb1ae0c1250543af`.
+
+**Gates.**  Build **1210** jobs.  `Verified: 4520/4520` (837/837); eventscore
+347/358 with 0 error-miss; suiterunner 869/0/151; matrix 402/402 + 282/282 on
+both pipelines; annotations exit 1 (19 standing mismatches); decline pins
+7 + 18 + 6 ALL PINS OK; `capstones=25 withSorryAx=0`; `ParkGapCensus theorems=6
+axioms=[Classical.choice, Quot.sound, propext]` — three authored and three
+generated by `structure Site`, the same shape item 238's `Census` reports; closure **230** library modules
+/ 355 reflection imports; 25 whitelisted `theorem` sites; counts **8736** /
+**8173** / **653** / **8**; sweep `closure=850 imported=846 T=27` — the new
+module joins the tree without moving `T`.  The three standing flips read 5 / 4 /
+2, the supplier lattice 5 / 1 / 7 and its producer wave 4, all with md5 before ==
+after and every end printing `REPAIRED errors=0`.  Four instrument pins, six
+perturbations, each throwing.
+
+**The instrument ledger**, forty-four rows: … the bill (238), the false (239),
+the choice (240), the seed (241), the connection (242) — and now **the GAP**,
+the first measurement here taken inside proof terms rather than over statements,
+and the first whose headline is an ASYMMETRY rather than a count.
+
+**What remains.**  β.5's bill is two restatements and twenty-four reproofs, and
+the twenty-four are still unpriced.  **The number no instrument holds is how many
+scanner STEPS the gap is wide.**  This item showed the six calls owe a span from
+`sp_block` to `sp_scan` and that no correspondence can supply it; item 242
+measured that the library relates a scanner STEP to a grammar production once in
+294 holders.  Those two numbers only meet if the gap is one step.  The cheap
+experiment is to join the two censuses: at each of the five park calls, ask
+whether a step equation in scope has the park's own state as its INPUT, and
+whether its output state is the one the scan correspondence stands at.  The
+expensive one is producing the span for one call.  **The failure mode to watch
+is that the park absorbs a RUN and not a step**: `pendingFlow` is handed a whole
+flow collection, so the connection may be a production over a loop whose length
+is not fixed, and a census counting step equations would price one step for an
+obligation that is an induction — the instrument has to ask FIRST how many
+scanner steps separate the park's state from the scan state, the way item 242
+asked what the grammar already derives before pricing what it does not and item
+243 asked what the sites already hold before pricing what they lack.
+
+Unchanged: R3's seven productions, whose price is the case split; item 183's
+flip order, whose two REFUTABLE halves are `h_ref`'s readers; the parked Ix
+Step-1 composition on the Ix track's own clock.  Instrument debt, still **ten**
+rows, none paid and none added.
+
 ### REMAINING, in order
 
 The per-item history is the closure log above; this section lists only the
