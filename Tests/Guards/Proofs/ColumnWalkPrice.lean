@@ -4,6 +4,7 @@ Released under Apache 2.0 license as described in the file LICENSE.
 -/
 import L4YAML.Surface.Surface
 import L4YAML.Proofs.Foundation.SurfaceSpan
+import L4YAML.Proofs.Foundation.SurfaceSpanSupply
 
 /-!
 # The column walk is one pass carrying three conclusions (DOCS item 235)
@@ -295,18 +296,22 @@ oneWalk=63 twoWalks=163"
 /-! ## §5 What the walk can already cite, and what it cannot
 
 Every link is a citation of the sub-production's own lemma, so the walk's
-input supply is the set of productions that HAVE one.  The span walk supplies
-69 of the 92 productions a link can point at.  The 23 it does not reach are
-not scattered: **all nine two-position productions of `Surface/Document.lean`
-are among them**, which is item 234's finding arrived at from the other side —
-`Surface/Node.lean` imports `Surface/Scalars.lean`, not `Surface/Document.lean`,
-so item 229's closure never contained the layer that holds the one arm
-breaking the equality.
+input supply is the set of productions that HAVE one.  `SurfaceSpan.lean` and
+`SurfaceSpanSupply.lean` together supply 84 of the 92 productions a link can
+point at.  The eight this census does not reach are seven `abbrev`s — item
+229's five, plus `SBlockLinePrefix` and `SENode` — where a walk cites the
+aliased production's lemma and needs no statement of its own, and
+`SLYamlStream`, which §6 reads and finds missing because it is FALSE.
 
-§6 reads one of the 23 and finds it missing for a different reason. -/
+The reading is over the census's own import closure, so it measures what a
+walk compiled HERE could cite; the same census run without
+`SurfaceSpanSupply.lean` in scope reports a supply that is short by the
+fifteen lemmas that module carries.  `Tests/Guards/Proofs/SuffixGapAudit.lean`
+(DOCS item 236) splits the eight and carries the arm-connectivity census that
+says which side a production falls on. -/
 
 def expectedSupply : String :=
-  "productions=92 withSuffixLemma=69 missing=23 documentLayerMissing=9"
+  "productions=92 withSuffixLemma=84 missing=8 documentLayerMissing=1"
 
 run_cmd Command.liftTermElabM do
   let env ← getEnv

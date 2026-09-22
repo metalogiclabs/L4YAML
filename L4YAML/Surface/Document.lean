@@ -181,7 +181,11 @@ inductive SLYamlStream : SurfPos → SurfPos → Prop where
       `Tests/Guards/Proofs/ColumnWalkPrice.lean` §6 (DOCS item 235) carries the
       derivation and the refutation. Retiring this constructor is what row 12's
       β.5 names, and it is also what a span or column proof of the stream
-      waits on. -/
+      waits on.  It is the only thing such a proof waits on: this is the one
+      arm of the surface grammar's one hundred and sixty-seven whose premises
+      leave the conclusion's target unconnected to its source, and every other
+      production carries its suffix lemma — `SurfaceSpanSupply.lean` and
+      `Tests/Guards/Proofs/SuffixGapAudit.lean` (DOCS item 236). -/
   | scannerDrop (s s₁ s₂ s' : SurfPos) :
       SLYamlStream s s₁ →
       SSLComments s₂ s' →
@@ -192,7 +196,16 @@ inductive SLYamlStream : SurfPos → SurfPos → Prop where
 /-- A string is a valid YAML stream according to the surface syntax grammar.
 
     This is the input-level specification: the string's characters conform
-    to the YAML 1.2.2 productions [1]–[211], consuming the entire input. -/
+    to the YAML 1.2.2 productions [1]–[211], consuming the entire input.
+
+    **`SLYamlStream.scannerDrop` makes this predicate hold of EVERY string.**
+    That arm relates `s` to `s'` from premises that never connect them, so
+    `SLYamlStream ⟨s.toList, 0⟩ ⟨[], 0⟩` is derivable for any `s` and the
+    second conjunct is `rfl` — `inYamlLanguage_everything` in
+    `Tests/Guards/Proofs/SuffixGapAudit.lean` §5 (DOCS item 236).  Every
+    theorem concluding `InYamlLanguage` is therefore true for a reason that
+    has nothing to do with its hypothesis, and stays that way until row 12's
+    β.5 retires the constructor. -/
 def InYamlLanguage (s : String) : Prop :=
   ∃ s' : SurfPos,
     SLYamlStream ⟨s.toList, 0⟩ s' ∧ s'.chars = []

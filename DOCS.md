@@ -181,7 +181,7 @@ lean4-yaml-verified is not a parser with a few spot-checks. It is a parser where
 | **Termination** | Every function in the verified core is a total `def` — Lean's kernel rejects non-terminating code | The verified parsing pipeline **cannot hang** on any input — a mathematical impossibility, not a test result. (8 `partial def`s exist outside the verified core — the post-parse limit validators in `Config/Limits.lean`, reachable from `parseYamlSafe`, and the event/JSON test-matrix emitters in `Output/` — their termination is not kernel-checked; see §4.) |
 | **Soundness** | `parseYaml s = .ok docs → ValidYaml s docs` | If the parser accepts input, the output is a **valid YAML 1.2.2 data structure**. No silent misinterpretation, no corrupted AST, no phantom keys or values. |
 | **Completeness** | `ValidYaml s docs → parseYaml s = .ok docs` (via `DecidableEq` + `native_decide`) | The parser **never rejects valid YAML**. If input conforms to the spec, it parses. No false negatives. |
-| **Acceptance strictness** | `parseYaml s = .ok docs → InYamlLanguage s` | If the parser accepts input, that input **belongs to the formal YAML 1.2.2 grammar** — all 205 productions. The parser doesn't silently accept malformed input. |
+| **Acceptance strictness** | `parseYaml s = .ok docs → InYamlLanguage s` | ~~If the parser accepts input, that input **belongs to the formal YAML 1.2.2 grammar** — all 205 productions. The parser doesn't silently accept malformed input.~~ **VACUOUS AS STATED — corrected 2026-09-21 by [item 236](#item-236-2026-09-21).** `SLYamlStream.scannerDrop` relates two positions from premises that never connect them, so `InYamlLanguage` holds of **every** string (`inYamlLanguage_everything`, `Tests/Guards/Proofs/SuffixGapAudit.lean` §5). The theorem is true for a reason that does not involve its hypothesis. It says what this row claims once row 12's β.5 retires that constructor. |
 | **Round-trip correctness** | `parse(emit(data)) = data` (58 theorems + 63 guards) | **No data corruption** through serialization cycles. What you write is what you read back. |
 | **Schema resolution** | 35 theorems proving `resolve` maps tags to canonical types per §10.3 | Tag resolution (e.g., `!!int`, `!!bool`, `!!null`) **matches the spec exactly** — no edge cases where `"true"` becomes a string or `"1.0"` becomes an integer. |
 | **Error discriminability** | `scan_error_ne_schema_error`, constructor injectivity | Error types are **provably distinct** — pattern matching on errors is exhaustive and correct. No conflated error categories. |
@@ -222,7 +222,7 @@ Small, well-written YAML parsers exist. [yaml-rust2](https://github.com/ethirari
 | **Termination** | Not proven — `loop`/`while` could hang on crafted input | Not proven — `while` loops, recursion | **Proven** — zero `partial def`, Lean kernel rejects non-terminating code |
 | **Soundness** | Tested on yaml-test-suite | Tested on yaml-test-suite | **Proven** — `parseYaml ok → ValidYaml` theorem |
 | **Completeness** | Unknown — may reject valid YAML | Unknown — may reject valid YAML | **Proven** — `ValidYaml → parseYaml ok` |
-| **Acceptance strictness** | Unknown — may accept invalid YAML | Unknown — may accept invalid YAML | **Proven** — `parseYaml ok → InYamlLanguage` |
+| **Acceptance strictness** | Unknown — may accept invalid YAML | Unknown — may accept invalid YAML | ~~**Proven** — `parseYaml ok → InYamlLanguage`~~ **Proven and VACUOUS** — `InYamlLanguage` holds of every string while `scannerDrop` stands ([item 236](#item-236-2026-09-21)) |
 | **Round-trip** | Tested on examples | Tested on examples | **Proven** — `parse(emit(data)) = data` (58 theorems) |
 | **DoS protection** | Partial (some limits) | Partial (some limits) | **Proven** — configurable `ParserLimits` with enforcement proofs |
 | **Spec conformance** | yaml-test-suite (empirical) | yaml-test-suite (empirical) | yaml-test-suite (empirical) **+ 6,678 machine-checked theorems** |
@@ -28869,6 +28869,206 @@ cost.  Its corollary is why the answer had to be measured: two conclusions that
 compose in one direction look independent from the source, and differ by a
 factor of 8/3 in the artifact.
 
+### Item 236 (2026-09-21)
+
+**THE CHAIN — all twenty-two were gaps, and the one refutation is worth more
+than the twenty-two together.  An arm refutes the suffix law when its premises
+connect nothing to nothing; exactly ONE of 167 does, and the same arm makes
+`InYamlLanguage` TRUE OF EVERY STRING.  BUILT — fifteen lemmas in the library,
+one instrument, and three corrections to claims this repository makes about
+itself.**  Item 235's
+recorded NEXT: *"The number no instrument holds is how many of the remaining
+22 are refutations rather than gaps … the cheap experiment is the one that
+just worked — open the arm, not the name … a census of what is missing prices
+it as debt until an arm is opened."*  The answer is **none of them**.  Every
+one of the twenty-two carries `b.chars <:+ a.chars`, and every one is
+inhabited, so none of the lemmas is a vacuous truth about an empty relation.
+
+**The reading that replaces twenty-two experiments with one.**  `scannerDrop`
+is not a hard goal, it is an arm whose PREMISES DO NOT CONNECT the
+conclusion's source to its target: `SLYamlStream s s₁` and `SSLComments s₂ s'`
+leave `s₁` and `s₂` unrelated, so no chain of consumed characters reaches `s'`
+from `s`, and a target nothing connects to the source may hold characters the
+source never had.  That is decidable from a constructor's type.  Reading every
+arm of the surface grammar for it:
+
+    types=77  arms=167  connected=166  broken=1  paramOnly=7
+    broken:   L4YAML.Surface.SLYamlStream.scannerDrop
+
+The census is a filter, not a verdict — a broken chain is a CANDIDATE
+refutation, because premises can force a connection the graph cannot see, and
+a connected chain is not every link in it carrying the law.  Both directions
+were then settled by compiling rather than by the census.
+
+**The reading error was in the edge rule, and it cost seven phantom
+refutations.**  A first pass took an edge only where the premise's head is a
+NAMED production and reported `brokenArms=8`: `scannerDrop` and the seven arms
+of `GAlt`, `GOpt`, `GPlus`, `GSeq`, `GSeq3` and `GStar`.  Those seven are
+headed by a bound relation VARIABLE, not a constant.  They are not broken —
+they are conditional, exactly as `gstar_suffix` and `gseq_suffix` already are,
+one hypothesis per parameter.  `paramOnly` counts them so the distinction is
+in the pin rather than in a comment.
+
+**Fifteen lemmas, and seven that cost nothing.**
+`L4YAML/Proofs/Foundation/SurfaceSpanSupply.lean` carries the four remaining
+combinators (`geps_suffix`, `gconsumeAll_suffix`, `galt_suffix`,
+`gseq3_suffix`), `[82] l-directive`, the two folded-scalar productions, and
+the eight two-position productions of the document layer.  The other seven are
+`abbrev`s — `SBAsLineFeed` and `SBNonContent` are `[27] b-break`,
+`SBlockLinePrefix` is `[63] s-indent`, `SCommentChar`/`SNsChar`/`SNbChar` are
+`GChar` at three predicates, `SENode` is `GEps` — and a walk cites the aliased
+production's own lemma at each, unchanged.
+
+**Two instruments over the same grammar disagreed by exactly those seven, and
+item 229 was right.**  `SurfaceSpanCensus.lean` §2 reports `closure=74
+covered=69 uncovered=5` and its docstring names the five as aliases that
+`sbBreak_suffix` and `gchar_suffix` cover definitionally — *"a second statement
+would be a second name for the same fact."*  `ColumnWalkPrice.lean` §5 counted
+the same aliases among 23 missing, which prices at one lemma each what costs
+nothing.  Stating the seven would have closed both censuses at 74/74 and 91/92
+and added seven declarations no proof needs; the audit reports the split
+instead, and item 229's pin does not move.  **A coverage census that tests a
+lemma's TYPE cannot see through an alias, and the number it reports is debt
+that does not exist.**
+
+**The supply, after.**
+
+    productions=92  withSuffixLemma=84  missing=8  documentLayerMissing=1
+    missing=8  aliases=7  refuted=1
+
+and the audit checks that nothing is left over: every name still reported is
+either an `abbrev` whose value is headed by another production, or
+`SLYamlStream`.
+
+**A coverage census reports its own import closure, not the library.**
+`ColumnWalkPrice.lean` imports `Surface.Surface` and `SurfaceSpan`, not the
+library root.  Its §5 read `withSuffixLemma=69 missing=23` while
+`SurfaceSpanSupply.lean` was already in the library and already building — a
+number about a subset, presented as a number about the library.  Corrected by
+importing the module into the instrument, so the pin moves when the supply
+moves.
+
+**Inhabitation, because a suffix lemma over an empty relation is a vacuous
+truth and no census can tell the two apart.**  All twenty-two productions
+carry a compiled derivation.  Two helpers do the work at the document layer:
+`comments_refl`, the zero-width comment run at the start of a line, and
+`comments_eof`, the same at end of input at ANY column, through
+`SBComment.eof`.  The longest witness is
+`SLDirectiveDocument ⟨"%⏎---", 0⟩ ⟨[], 3⟩`.
+
+**The seven restatements this item wrote and deleted.**  The first pass proved
+all twenty-two in the library, aliases included, and `SurfaceSpanCensus.lean`'s
+own pin threw — `covered=69` had become `covered=74`.  The docstring beside
+that pin already said why those five need no statement.  Item 229 had read
+this and recorded it; the seven lemmas were written before that docstring was
+read.  §3's *read what is already said*, caught by an instrument rather than
+by a reader.
+
+**What the one broken arm costs at the top, which is more than a lemma.**
+`InYamlLanguage s` is `∃ s', SLYamlStream ⟨s.toList, 0⟩ s' ∧ s'.chars = []`.
+Item 235's `stream_anything` produces `SLYamlStream s ⟨chars, 0⟩` for any `s`
+and any `chars`; take `chars = []` and the second conjunct is `rfl`.  So
+
+    inYamlLanguage_everything (s : String) : InYamlLanguage s
+
+compiles, and `InYamlLanguage "\x00\x00 [ } : *** ---"` with it.  **The
+top-level surface predicate is not weaker than "parseable YAML" — it is true
+of everything.**  Every theorem whose CONCLUSION is `InYamlLanguage x` is
+discharged by `inYamlLanguage_everything x` whatever its hypothesis;
+`parse_strict`'s and `scan_strict`'s statements are re-proved that way in the
+audit file, with the hypothesis bound and unused.  (`empty_InYamlLanguage` is
+the exception that is not one: its proof uses `SLYamlStream.single` and
+survives the retirement, but its conclusion is free all the same.)  Three
+places in this file said otherwise and are corrected: the
+property table's *acceptance strictness* row, the comparison table's
+*acceptance strictness* row, and §"The over-approximation problem", which had
+`parseable ⊂ InYamlLanguage` and a specific witness where the truth is the
+whole universe.  `Surface/Document.lean`'s own `InYamlLanguage` docstring
+carries it at the definition.  This is not a new defect — `scannerDrop` has
+been row 12's business since the row was written — it is the first measurement
+of how much the defect takes with it, and it is the strongest available
+argument for β.5's priority: **row 12 does not tighten the acceptance
+theorems, it gives them content.**
+
+**Predictions.**  HELD — P2 (every disconnected arm is one of the 23; the one
+that is, is `SLYamlStream`), P3 (≤ 5 of 167; it is 1), P4 (the combinators are
+conditional, `GEps` and `GConsumeAll` outright), P5 (the eight non-stream
+document productions are gaps and the layering is the reason), P6
+(`[203]`/`[204]` are one line each).  **REFUTED — P0**, which predicted one to
+three refutations among the 22: there are none.  **REFUTED — P1**, which
+predicted the census would flag more than one arm on the grounds that an
+over-approximation the scanner needed once would appear at the other escape
+too: `implicitContinue` is an over-approximation of `[211]` and its chain is
+CONNECTED, so it weakens the language without breaking the suffix law, and the
+two defects are independent.  NOT TESTED — P7: nothing in the population cites
+`SLYamlStream`, so the prediction had no instance.  **MISSED** — that seven of
+the twenty-two were never gaps.
+
+**What remains.**  The span supply is complete except for seven aliases that
+need nothing and one production whose law is false.  The walk itself is still
+unwritten, priced by item 235 at 319 citations over 86 lemmas in 62 blocks of
+which 8 recurse, and it can now be written for every production except
+`[211]`.  **The number no instrument holds is how much of the verified surface
+is currently true for free.**  `inYamlLanguage_everything` closes any goal
+whose conclusion is `InYamlLanguage`, so for each such declaration the
+question is decidable by one `exact` — and the answer prices what β.5 BUYS,
+where every measurement in this row so far has priced what it COSTS.  The
+cheap experiment is to enumerate the theorems whose CONCLUSION unfolds to
+`InYamlLanguage` and try `inYamlLanguage_everything` at each; the ones it does
+not close are the ones carrying something else in the same conclusion, and
+they are the part of the surface that is already worth its statement.  The
+failure mode to watch is position: `InYamlLanguage` in a HYPOTHESIS is not
+vacuous but restrictive, and it is the direction that makes a theorem stronger
+rather than weaker — a grep over the type cannot tell the two apart, and item
+236's own census is the model for telling them apart from the elaborated
+environment.
+
+Unchanged: R3's seven productions, whose price is the case split; item 183's
+flip order, whose two REFUTABLE halves are `h_ref`'s readers; the parked Ix
+Step-1 composition on the Ix track's own clock.  Instrument debt, still **ten**
+rows, none paid and none added.
+
+**Gates.**  `lake build` **1203** jobs; `Verified: 4520/4520` with
+`Production Coverage Analysis 837/837`; `eventscore` 347/358 and **0
+error-miss**; `suiterunner` 869 passed / 0 failed / 151 skipped; the matrix
+402/402 event and 282/282 json on BOTH the legacy and the `-ix` binaries;
+import closure **230** library modules from 5 default targets and the
+Reflections index complete at 355 imports; all **25** `theorem` sites
+whitelisted capstones; `verify_yaml_spec_annotations.py` exits 1 on the
+standing 19 name mismatches; decline pins 7 + 18 + 6 with ALL PINS OK on each;
+`capstones=25 withSorryAx=0`.  New instruments by axiom profile:
+`SurfaceSpanSupply` **15 theorems on `[propext]` alone**, `SuffixGapAudit` 8
+theorems and `ColumnWalkPrice` 24 on `[Quot.sound, Classical.choice,
+propext]`.  Counts **8736** declarations (8721 + the supply module's fifteen),
+**8173** guards, **646** test files, **8** loose disjuncts.  Both flips at
+baseline: `[210]` 5 definitions from 5 locations, `md5` now
+`c5438ceb13ec4892368c903c19ef8bd2` because `Surface/Document.lean` carries two
+new docstring paragraphs, before == after; supply flip 4 definitions from 7
+locations.  Three pins in the new instrument, all perturbed and all throwing.
+
+One count was a measurement of this item's own prose rather than of the
+library: the recipe reads a line beginning `lemma ` as a declaration, and a
+docstring that wrapped onto one read 8737.  Rewrapped, and it reads 8736.
+
+**The instrument ledger, thirty-eight rows.**  Park constructors (198),
+application sites (200), lemma conclusions (201), the same with a key that
+works (202), indices (203), the runtime's own state (204), the transitive ring
+of a carrier (205), the same closure with its last ring paid (206), the ring's
+payers against a forecast (207), the instruments themselves (208), the object a
+carrier's consumer reads (209), the plan's own remaining list (210), the
+control (211), the provenance (212), the route (213), the pipe (214), the beta
+(215), the arms (216), the branch (217), the reach (218), the corpus (219), the
+matrix (220), the minimal zero (221), the strength ladder (222), the demand
+ledger (223), the spend census (224), the reader census (225), the necessity
+census (226), the worth census (227), the obligation census (228), the span
+(229), the arm price (230), the export (231), the replication (232), the
+uptake (233), the exception (234), the share (235) — and now **the CHAIN**,
+which is the first instrument here that reads a constructor's premises as a
+GRAPH rather than as a population.  Its corollary is that a census of what is
+missing and a census of what is broken are different readings of the same
+artifact, and only the second one names an obligation.
+
+
 ### REMAINING, in order
 
 The per-item history is the closure log above; this section lists only the
@@ -29685,7 +29885,14 @@ item 64 builds the sibling composition that reads it.
 They make `InYamlLanguage` strictly **weaker** than "parseable YAML"
 (`parseable ⊂ InYamlLanguage`): an unclosed `[1, 2` can satisfy
 `InYamlLanguage` through `scannerDrop` while `parseYaml` rejects it, and
-`- "a"⏎  - b` does the same through `implicitContinue`. **The converse theorem
+`- "a"⏎  - b` does the same through `implicitContinue`.  **`scannerDrop`'s
+half of that is not an inclusion but the whole universe, measured 2026-09-21
+by [item 236](#item-236-2026-09-21)**: the arm's premises never connect its two
+positions, so `SLYamlStream ⟨s.toList, 0⟩ ⟨[], 0⟩` is derivable for any `s` and
+`inYamlLanguage_everything : ∀ s, InYamlLanguage s` compiles
+(`Tests/Guards/Proofs/SuffixGapAudit.lean` §5).  Every theorem concluding
+`InYamlLanguage` — `parse_strict`, `scan_strict`, `empty_InYamlLanguage` — is
+therefore true independently of its hypothesis until the constructor goes. **The converse theorem
 is therefore false as long as either survives** — which is why Fix A comes
 before Step 5. Only `scannerDrop` is row 12's business — nothing DEFERS to
 `implicitContinue`, so it is not an escape site and closing it is not what row

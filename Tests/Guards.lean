@@ -21,6 +21,7 @@ import Tests.Guards.Proofs.ConclusionObligationCensus
 import Tests.Guards.Proofs.SurfaceSpanCensus
 import Tests.Guards.Proofs.ColumnAdvanceCensus
 import Tests.Guards.Proofs.ColumnWalkPrice
+import Tests.Guards.Proofs.SuffixGapAudit
 import Tests.Guards.Proofs.EndToEndCorrectness
 import Tests.Guards.Proofs.EscapeResolution
 import Tests.Guards.Proofs.FoldNewlines

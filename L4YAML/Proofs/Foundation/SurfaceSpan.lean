@@ -58,6 +58,17 @@ is one citation per link for a pass carrying both and `2 * links +
 (links - arms)` for two passes — is machine-checked in
 `Tests/Guards/Proofs/ColumnWalkPrice.lean` §§3–4 (DOCS item 235).
 
+This module's closure stops one layer below `Surface/Document.lean`, because
+`Surface/Node.lean` imports `Surface/Scalars.lean` and not the document layer.
+`L4YAML/Proofs/Foundation/SurfaceSpanSupply.lean` carries the fifteen lemmas
+that finish the supply: the four remaining combinators, `[82] l-directive`,
+two folded-scalar productions, and the eight two-position productions of the
+document layer.  With those, every production of the surface grammar relates
+its target to its source as a suffix except `[211] l-yaml-stream`, whose
+`scannerDrop` arm makes the statement false —
+`Tests/Guards/Proofs/SuffixGapAudit.lean` (DOCS item 236) reads the whole
+grammar for arms that connect nothing to nothing and finds that one.
+
 -/
 
 set_option autoImplicit false
