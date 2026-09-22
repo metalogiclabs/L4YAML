@@ -28,7 +28,7 @@ the conclusion's target unconnected (item 236), and the sole support of
 **fifteen** statements that are true without their hypotheses (item 237).
 
 This file reads the bill off the elaborated environment.  Over the whole tree —
-844 modules composed in one environment and the 36 executable entry points
+845 modules composed in one environment and the 36 executable entry points
 probed one at a time, `scripts/drop_sweep.py` — the arm has
 
     D=4 direct  S=0 in a statement  R=0 case splits  T=26 transitive
@@ -290,7 +290,7 @@ def expectedClosure : Nat := 233
     a hint and not a check — item 237's own finding is that a statement can
     assert `InYamlLanguage` without naming it. -/
 def expectedWide : String :=
-  "closure=848 imported=844 excluded=36 readable=36 unreadable=0 \
+  "closure=849 imported=845 excluded=36 readable=36 unreadable=0 \
 excludedDecls=602 excludedDropRefs=0"
 
 /-- **The four counts the WHOLE TREE reads, which are not the four this file's
@@ -301,10 +301,13 @@ excludedDecls=602 excludedDropRefs=0"
     holds one exhibit that rides the arm on purpose, so the tree composed in
     one environment reads `T=27` where §2 reads `T=26`.  Both are pinned, and
     the difference is the instrument counting itself.
-    `Tests/Guards/Proofs/RepairChoice.lean` (DOCS item 240) and
-    `Tests/Guards/Proofs/ProducerDerivation.lean` (DOCS item 241) both join the
-    tree without moving `T`: they reverse these edges, census the statements
-    and refute a premise, and none of that builds the arm. -/
+    `Tests/Guards/Proofs/RepairChoice.lean` (DOCS item 240),
+    `Tests/Guards/Proofs/ProducerDerivation.lean` (DOCS item 241) and
+    `Tests/Guards/Proofs/DispatchPrice.lean` (DOCS item 242) all join the tree
+    without moving `T`: they reverse these edges, census the statements, refute
+    a premise and derive the escape's CONNECTED form, and none of that builds
+    the arm — item 242's derivation pins `drop=false` for exactly that
+    reason. -/
 def expectedWideCensus : String :=
   "D=4 S=0 R=0 T=27 capstonesInT=2 rawElim=11"
 

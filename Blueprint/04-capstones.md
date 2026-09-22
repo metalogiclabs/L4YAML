@@ -620,6 +620,25 @@ reaches all four Group 7 rows as well
 repair β.5 picks, and not of Group 7 — and of the two repairs measured
 statement by statement, both reach Group 7.**
 
+**And none of that price is the reproofs'**
+([`DispatchPrice.lean`](../Tests/Guards/Proofs/DispatchPrice.lean)). The arm
+relates a stream ending at one position to an `s-l-comments` starting at an
+unrelated one, and identifying the two makes it redundant: `SLYamlStream a b`
+and `SSLComments b c` give `SLYamlStream a c` through `implicitContinue` and
+`SLDocumentPrefix.comments`, in three lines, and the same three hold in the
+relation with the arm deleted. So the four Group 7 rows do not owe a new
+grammar lemma — they owe the connection, which is what the nineteen and the
+eighteen above are counting. The derivation spends `SSeparateInLine.startOfLine`,
+which this library lets hold at every position rather than only at column 0, so
+under the spec's own [66] it covers comment runs beginning at a line start.
+
+The same instrument prices what a scanner step buys on its own: 294 statements
+hold a dispatch equation, 28 hold one beside two correspondences, and **one**
+carries a grammar path across the step. Of 72 distinct scanner step functions,
+two carry one at all — preprocessing 6 times of its 186 holders and content
+dispatch once of its 129 — and that one precedent is outside the twenty-six and
+off both repair threads.
+
 **Significance & risk**
 
 - **7.1 `parse_strict_proof`** *(headline, ✅)* — *Significance:*

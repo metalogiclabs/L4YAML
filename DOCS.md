@@ -30003,6 +30003,178 @@ flip order, whose two REFUTABLE halves are `h_ref`'s readers; the parked Ix
 Step-1 composition on the Ix track's own clock.  Instrument debt, still **ten**
 rows, none paid and none added.
 
+### Item 242 (2026-09-22)
+
+**THE CONNECTION — a dispatch equation buys nothing by itself (294 statements
+hold one, ONE derives a grammar path across the step), and the escape it
+guards does not need to be proved past at all: `scannerDrop`'s CONNECTED form
+is a THEOREM, three lines, in the grammar AND in item 239's post-β.5 model.
+The arm takes a stream to `s₁` and an `SSLComments` from an unrelated `s₂`;
+identify the two and `implicitContinue` derives it.  So items 238–241 have
+been pricing the CONNECTION and never the proof: nineteen statements through
+`close_with_ssl`, eighteen through the producer, and zero new grammar lemmas.
+Of 72 distinct scanner step functions, TWO carry a Surface path across them —
+preprocessing 6 times of 186, content dispatch ONCE of 129 — and the one
+precedent is in neither item 238's transitive set nor either repair thread.
+BUILT — one instrument, one derivation, corrections in three files and one to
+the mandate this item was given.**
+
+**The mandate.**  Item 241's recorded NEXT: *"The number no instrument holds is
+what a DISPATCH EQUATION buys … its four consumers hold something the producer
+does not — `scanNextToken_dispatchContent … = .ok s'` and a second
+correspondence at the position BEFORE the step … The failure mode to watch is
+that a dispatch equation names a FUNCTION and not a derivation … the instrument
+has to ask FIRST which scanner steps the library already relates to a
+production."*
+
+**Three of the four consumers hold no dispatch equation** —
+`block_dispatch_deferred_inline`, `…_stamp_nopack` and `…_stamp_offcol` carry
+branch evidence (`_h_src`, `_h_indent`, `_h_ne`, `_h_park`, `_h_res`) and pass
+the producer's five arguments through unchanged.  `accum_content_pending` is
+the one that holds the equation, and its second correspondence is its
+CONCLUSION, not a hypothesis.  Second consecutive mandate whose premise set the
+source refutes; the census is therefore taken over the whole authored
+population rather than over that ring.
+
+**The free question, asked first.**  A production is a constant whose type
+telescopes to the sort `Prop` with its last two arguments `SurfPos` — which
+separates a PATH from a POINT with no name list, since
+`ScannerSurfCorr : ScannerState → SurfPos → Prop` fails the test.  Three nested
+populations, because one alone would decide the answer by its own boundary:
+
+    prodTyped=129   every such relation, proof-layer composites included
+    prodSurf=92     the L4YAML/Surface modules — the spec transcription
+    prodSpec=54     carrying a NUMBERED @[yaml_spec] rule
+
+`prodSpec` alone is too narrow to read findings over: `GStar SSWhite a b` is
+headed by `GStar`, which carries no rule number, so every starred production
+falls out.  `prodSurf` carries the findings and the other two bracket it.
+
+**The ladder** (`Tests/Guards/Proofs/DispatchPrice.lean` §2), over 1646
+statements holding a scanner step equation and 72 distinct step functions:
+
+| rung | what it asks | count |
+|---|---|---|
+| `dispHolders` | a `scanNextToken_dispatch*` equation is held | **294** |
+| `dispTwoCorr` | …with two correspondences beside it | **28** |
+| `edge` | a production LANDS on the step's output position | **18** |
+| `chain` | a production path RUNS to it from a known point | **6** |
+| (numbered productions only) | | **4** and **1** |
+
+**Availability is 294 and derivation is 1.**  Per FUNCTION the reading is
+sharper: `scanNextToken_preprocess` carries a Surface path 6 times of its 186
+holders, `scanNextToken_dispatchContent` ONCE of its 129, and the other
+**seventy** step functions never.  The step that consumes SEPARATION is
+grammar-visible and routine; the step that consumes CONTENT is grammar-visible
+once, in `indentedValue_reads_at_any_indent`, whose conclusion pairs
+`SSeparateLines n sp_scan sp_prep` with a node reading from `sp_prep` to the
+dispatch's own output.  It is in neither item 238's transitive set nor either
+repair thread (`inT=false onThread=false onProdThread=false`), so the one worked
+precedent stands outside the work β.5 has to do.
+
+**`edge` alone under-reports and that is why the reading is a reachability.**
+`implicitKeyHead_of_dispatch` concludes
+`∃ sp_gram, ImplicitKeyHead sp_prep sp_gram ∧ GStar SSWhite sp_gram sp_scan'` —
+a path through an existential midpoint, which a single-edge test misses and a
+walk over the production graph catches.
+
+**And then the escape turned out not to need proving past.**
+
+    | scannerDrop (s s₁ s₂ s' : SurfPos) :
+        SLYamlStream s s₁ → SSLComments s₂ s' → SLYamlStream s s'
+
+`s₁` and `s₂` are unrelated, which is exactly what makes the arm hold of every
+string.  **Identify them and the arm is redundant** (§1):
+
+    ssb_to_slcomment      SSBComment a b → SLComment a b
+    sslcomments_to_prefix SSLComments a b → SLDocumentPrefix a b
+    connected_drop        SLYamlStream a b → SSLComments b c → SLYamlStream a c
+    connected_drop_nd     the same in item 239's post-β.5 model
+
+The route is `implicitContinue` with `GOpt.none` and `GStar.nil`, over
+`SLDocumentPrefix.comments`.  Both read `[propext]`.  `connected_drop_nd` is
+the check that matters: it holds in `StreamND`, the relation with this arm
+DELETED, and the instrument pins `drop=false` — a proof that the escape is
+redundant may not route through the escape.
+
+**So the grammar side of β.5 is three lines, and every number items 238–241
+produced prices the CONNECTION.**  Nineteen statements threading a premise
+through `close_with_ssl`, eighteen through the producer, `free=0` at the
+correspondence: none of those is the cost of proving a step.  All of them are
+the cost of establishing that the production starts where the stream ends.
+
+**The deviation the derivation rides on.**  [66] `s-separate-in-line` is
+`s-white+ | <start-of-line>`, and in this library
+`SSeparateInLine.startOfLine (s : SurfPos) : SSeparateInLine s s` holds at EVERY
+position — `L4YAML/Surface/Basic.lean` records the weakening and the ~20 proof
+sites it was taken to avoid.  `ssb_to_slcomment`'s `noSep` branch spends exactly
+that, and the instrument pins `startOfLine=true` so the dependency is machine
+read rather than left to a reader.  Under the spec's own column restriction the
+branch would need the comment run to begin at column 0, and the connected arm
+would hold for that shape rather than unconditionally.
+
+**Predictions.**  HELD — P3 (2 of 72 over the Surface grammar, 1 of 72 over the
+numbered productions, against a predicted ≤3 of ≥20), P4 (129/92/54 in an
+80–200 band), P5 (the productions are in the conclusions and the steps in the
+premises), P6 (build 1208 → 1209, testfiles 651 → 652, sweep 848/844 →
+849/845).  REFUTED — P0 (`spanned = 0`: six carry a Surface path and one carries
+a numbered production across a content dispatch — the outcome the prediction
+named as worth hoping for, and asking the free question first is what found
+it), P1 (`dispTwoCorr` predicted 0–4, read 28), P2 (`dispHolders` and
+`stepHolders` predicted 40–200 and 200–900, read 294 and 1646).  **MISSED
+entirely** — that the arm being deleted is redundant once connected.  The
+prediction treated "prove the step" as the expensive half and never asked
+whether the escape needs an arm at all.
+
+**Gates.**  Build **1209** jobs.  `Verified: 4520/4520` (837/837);
+eventscore 347/358 with 0 error-miss; suiterunner 869/0/151; matrix 402/402 +
+282/282 on both pipelines; annotations exit 1 (19 standing mismatches); decline
+pins 7 + 18 + 6 ALL PINS OK; `capstones=25 withSorryAx=0`;
+`DispatchPrice theorems=7 axioms=[propext]` — the only guard instrument here
+with that profile, because §1 is a construction and §2 a census and neither
+reaches for choice; closure **230** library modules / 355 reflection imports;
+25 whitelisted `theorem` sites; counts **8736** / **8173** / **652** / **8**;
+sweep `closure=849 imported=845 T=27` — the new module joins the tree without
+moving `T`, so `DropDependents.expectedWide` moves by the one module and
+`expectedWideCensus` does not.  The three standing flips read 5 / 4 / 2, the
+supplier lattice 5 / 1 / 7 and its second wave 4, all with md5 before == after
+and every end printing `REPAIRED errors=0`.  `L4YAML/Surface/Document.lean`'s
+md5 moves `ea5e1603ffdd0cd4f5c7a0d5333141b9` →
+`b30223db29874be5d5f9eb696a4bc994`.  Eight instrument pins, ten perturbations,
+each throwing.
+
+**The instrument ledger**, forty-four rows: … the free (237), the bill (238),
+the false (239), the choice (240), the seed (241) — and now **the CONNECTION**,
+the first row here whose finding is a three-line proof rather than a count, and
+the first that prices the previous four by saying what they were measuring.
+
+**What remains.**  β.5's bill is two restatements and twenty-four reproofs, and
+the twenty-four are still unpriced.  **The number no instrument holds is how
+many of the twenty-four `connected_drop` actually closes.**  This item proved
+the connected arm admissible; it did NOT check that each of the twenty-four
+spends the arm in the connected shape — item 239 measured that ten end at
+`chars = []` and nine bind the target existentially, and a site whose
+`SSLComments` starts where its stream ends can be reproved by a rewrite while a
+site that needs the two positions IDENTIFIED still owes the threading items 240
+and 241 priced.  The cheap experiment is a census this item's `readDecl` almost
+runs: for each of the twenty-six, ask whether the `SSLComments` premise's left
+endpoint is the same expression as the stream premise's right endpoint, and
+partition them into the ones `connected_drop` closes outright and the ones that
+owe a connection.  The expensive one is rewriting the first class and measuring
+what is left.  **The failure mode to watch is that the two endpoints may be
+EQUAL without being syntactically equal**: items 240 and 241 both found that
+positions are pinned by `ScannerSurfCorr_unique` rather than by sharing a
+variable, so a census comparing expressions will under-count the closable
+class — and the instrument has to ask FIRST whether the two positions are
+already forced equal by a correspondence at a shared STATE, the way item 241
+asked what was derivable before measuring what propagates and item 242 asked
+what the grammar already derives before pricing what it does not.
+
+Unchanged: R3's seven productions, whose price is the case split; item 183's
+flip order, whose two REFUTABLE halves are `h_ref`'s readers; the parked Ix
+Step-1 composition on the Ix track's own clock.  Instrument debt, still **ten**
+rows, none paid and none added.
+
 ### REMAINING, in order
 
 The per-item history is the closure log above; this section lists only the

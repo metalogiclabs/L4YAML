@@ -236,7 +236,21 @@ inductive SLYamlStream : SurfPos → SurfPos → Prop where
       ending at the same `parse_strict`, with SEVEN of them outside the
       twenty-six entirely.  The two closures share eleven and cover
       twenty-six between them:
-      `Tests/Guards/Proofs/ProducerDerivation.lean` (DOCS item 241). -/
+      `Tests/Guards/Proofs/ProducerDerivation.lean` (DOCS item 241).
+
+      **And the CONNECTED form of this arm is a THEOREM, so none of that
+      price is the step's.**  `s₁` and `s₂` below are unrelated, which is
+      what makes the arm hold of every string; identify them and
+      `implicitContinue` derives it, through `SLDocumentPrefix.comments` and
+      the fact that an `s-b-comment` is an `l-comment`.  Three lines, and the
+      same three hold in the relation with this arm DELETED, which is the
+      check that the derivation is not circular.  So the reproofs β.5 owes
+      need no new grammar lemma: what the repairs above price is the
+      CONNECTION, not the proof.  The derivation spends
+      `SSeparateInLine.startOfLine`, which holds at every position in this
+      library rather than only at column 0 (`L4YAML/Surface/Basic.lean`
+      records that weakening of [66] and what it was taken to avoid):
+      `Tests/Guards/Proofs/DispatchPrice.lean` (DOCS item 242). -/
   | scannerDrop (s s₁ s₂ s' : SurfPos) :
       SLYamlStream s s₁ →
       SSLComments s₂ s' →
