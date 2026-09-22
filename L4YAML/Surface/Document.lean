@@ -172,7 +172,16 @@ inductive SLYamlStream : SurfPos → SurfPos → Prop where
       (`[`, `{`, `]`, `}`, `,`) or block indicators (`-`, `?`, `:`) that
       don't correspond to a complete grammar production at closing time, the
       stream absorbs the gap. The SSLComments evidence anchors the endpoint.
-      Grammar over-approximation — the gap s₁→s₂ is opaque. -/
+      Grammar over-approximation — the gap s₁→s₂ is opaque.
+
+      **The opacity costs the suffix law.** `s₁` and `s₂` are unrelated, so
+      this arm concludes `SLYamlStream s s'` from evidence that never connects
+      `s` to `s'`: `[211]` derives pairs whose target holds characters the
+      source never had, and `s'.chars <:+ s.chars` is false at this production.
+      `Tests/Guards/Proofs/ColumnWalkPrice.lean` §6 (DOCS item 235) carries the
+      derivation and the refutation. Retiring this constructor is what row 12's
+      β.5 names, and it is also what a span or column proof of the stream
+      waits on. -/
   | scannerDrop (s s₁ s₂ s' : SurfPos) :
       SLYamlStream s s₁ →
       SSLComments s₂ s' →

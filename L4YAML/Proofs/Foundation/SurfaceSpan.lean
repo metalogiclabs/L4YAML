@@ -48,6 +48,16 @@ is its own fixpoint over the same arms, so it buys all eighteen conclusions at
 eighteen times the recursor's price, not at one.  Both facts are measured on
 this very family in `Tests/Guards/Proofs/SurfaceSpanCensus.lean` §§5 and 7.
 
+The eighteen are three components rather than one cycle: a nine-type cycle
+(`SBlockNode` and the block collections), an eight-type cycle (`SFlowNode` and
+the flow collections), and `SImplicitKey`, which recurses into neither.  The
+block cycle cites the flow cycle, so the flow cycle is the bottom, and a proof
+over the family can be three blocks in that order rather than one of eighteen.
+The decomposition — and what a SECOND conclusion over the same arms costs, which
+is one citation per link for a pass carrying both and `2 * links +
+(links - arms)` for two passes — is machine-checked in
+`Tests/Guards/Proofs/ColumnWalkPrice.lean` §§3–4 (DOCS item 235).
+
 -/
 
 set_option autoImplicit false

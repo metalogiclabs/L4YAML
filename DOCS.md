@@ -28675,6 +28675,200 @@ indistinguishable to every reading of the source, and differ completely for
 the proof that rests on them.
 
 
+### Item 235 (2026-09-21)
+
+**THE SHARE — the two walks are one pass, and the pair the mandate named was
+the wrong pair.  The column law is TWO conclusions, the strict one cannot
+travel alone, and carrying them together costs 319 citations against 790.
+PRICED — one instrument, one docstring paragraph, and not one new declaration
+in the library.**  Item 234's recorded NEXT: *"The number no instrument holds
+is whether the two walks can be ONE induction … The cheap experiment is one
+type proved both ways in one `mutual` block against the same type proved
+twice … the experiment has to sit inside a cycle rather than beside one."*
+The experiment was run, inside a cycle, three times.  The answer is yes — and
+the question contained a wrong assumption that the experiment removed.
+
+**The pair that matters is inside the column law, not beside it.**  Item 234's
+surviving half —
+
+    BreakBetween s s' → s'.col < |span s s'|                        (STRICT)
+
+— does not compose with itself.  Put the break in the FIRST half of a
+two-premise arm and the strict bound on that half has to be carried across the
+second, which needs
+
+    s'.col ≤ s.col + |span s s'|                                  (MONOTONE)
+
+— a second statement over the same 167 arms.  This is not a stuck goal.
+`strict_alone_refuted` REFUTES the composition of STRICT alone, against
+`⟨"⏎a", 0⟩ → ⟨"a", 0⟩ → ⟨[], 5⟩`: the first half has a break and `0 < 1`, the
+second has none and is vacuous, the whole has a break and `5 < 2` is false.
+`counterexample_violates_mono` shows MONOTONE is exactly what excludes it.
+**MONOTONE never asks for STRICT**, so the dependency is a one-way chain and
+not a cycle — which is why both arrangements typecheck and the question is a
+price rather than a possibility.
+
+**The experiment, inside the bottom cycle of the mutual family.**  The flow
+cycle — `SFlowNode` and the seven collection types that reach it, 8 types, 41
+arms — transcribed from `SurfaceSpan.lean` §4's own flow lemmas.  **The arm
+text is unchanged**: same chains, same order, same hypothesis names; only the
+conclusion and the composition lemma differ.
+
+    span walk (the artifact, for scale)     8 lemmas  41 arms  123 citations
+    ONE walk: span + MONOTONE + STRICT      8 lemmas  41 arms  123 citations
+    TWO walks: MONOTONE, then STRICT       16 lemmas  82 arms  328 citations
+
+    328 / 123 = 2.667
+
+Both compile, both on `[propext, Quot.sound]`.  The extra is exact: the second
+walk cites the first once per composition node, and a composition node is a
+link that is not the first of its arm — `123 − 41 = 82`, and
+`123 + (123 + 82) = 328`.  **A second CONCLUSION is not a second fixpoint the
+way a second TYPE is**, so item 232's finding does not reach here.
+
+**The span is carried, not consumed, and that makes it a projection.**
+`colLaw_to_suffix` maps the bundle onto `SurfaceSpan`'s conclusion, and
+`sFlowNode_law` composed with it IS `sFlowNode_suffix` — a compiled `example`,
+not a reading.  Fetching each span from a `*_suffix` lemma instead costs a
+citation per link plus an accumulation per composition node: on the longest arm
+in the cycle, `[150] ns-flow-pair`'s explicit value form with seven links, **13
+citations become 52**.  Per arm of `k` links, `2k − 1` carried against `8k − 4`
+consumed.  **So the span walk is not the other walk — it is the first component
+of this one.**
+
+**The recursion's real shape, and it is not one induction at all.**  The
+closure is **62 strongly connected components, of which 8 recurse**: 23 types
+and 81 arms are inside a cycle, and 54 types with 86 arms are straight-line and
+need no fixpoint.  The eighteen-type mutual block of `Surface/Node.lean` is
+**three** components — a 9-type cycle (26 arms), an 8-type cycle (41 arms), and
+`SImplicitKey`, which recurses into neither — with the block cycle citing the
+flow cycle, so flow is the bottom.  A first reading of the same graph reported
+`cyclic=62 acyclic=0`, because a constructor's CONCLUSION names its own type;
+the edges are the PREMISES.
+
+**The price of the whole walk, re-derived from the environment.**  A LINK is a
+constructor premise that is itself a production between two positions — the one
+place a walk cites a sub-derivation's lemma.
+
+    arms=167 links=319 oneWalk=319 twoWalks=790 defProds=9 defCitations=39
+    flow arms=41 links=123 oneWalk=123 twoWalks=328
+      | block arms=26 links=63 oneWalk=63 twoWalks=163
+
+The census's `flow` row reproduces the compiled experiment's 123 and 328 from
+the environment alone: `oneWalk = links`, `twoWalks = 3·links − arms`.  A first
+reading counted only INDUCTIVE premises and got `flow links=101` against the
+artifact's 123 — **nine of the productions a walk cites are `def`s**, `SSeparate`
+twenty-four times alone, so a census of inductives under-prices the walk by a
+fifth.
+
+**What the walk can cite, and what it cannot.**  92 productions a link can
+point at; **69 have a span lemma and 23 do not**, and the 23 are not scattered:
+`Surface/Document.lean` declares exactly **9** two-position productions and
+**all 9 are missing**.  That is item 234's finding reached from the other side
+— `Surface/Node.lean` imports `Surface/Scalars.lean`, not `Surface/Document.lean`,
+so item 229's closure never contained the layer holding the arm that breaks the
+equality.  The other fourteen: eight in `Surface/Basic.lean`, four combinators
+(`GSeq3`, `GAlt`, `GEps`, `GConsumeAll`), two in `Surface/Scalars.lean`.
+
+**Two arms are discharged, and they are the two that matter.**
+`sbBreak_law` proves the bundle for all three `[28] b-break` arms
+unconditionally — the base case, and the only place in the grammar where the
+strict bound is not vacuous.  `bom_step` proves it for
+`[202] l-document-prefix`'s byte-order mark, the arm that refuted item 233's
+equality: it satisfies MONOTONE (`0 ≤ 0 + 1`) and the strict bound (eating a
+character without a break only lengthens the span).  **The exception item 234
+found is an exception to the law nobody needed.**
+
+**Predictions, written before the first probe** (`PREDICTION.md`).  HELD — P1,
+that the real pair is MONOTONE and STRICT and that STRICT alone fails, which
+came back stronger as a refutation rather than a stuck goal; P3, that the
+dependency is a chain and both arrangements compile; P4, that conjoining saves
+scaffolding and not goals, now quantified at 8/3; P5, that the span supply does
+not reach the column closure, at 23 missing with the document layer entire; P6,
+PRICED.  PARTIAL — P2, that MONOTONE is refutation-free at all 167 arms: it is
+proved at the three resets, at the BOM, and across the flow cycle's 41 arms,
+and was not run over all 167.  **REFUTED — P0**, that the span is consumed
+rather than carried: it is consumable, and four times dearer, and carrying it
+is what turns the span walk into a projection.  **MISSED** — that the mandate's
+own pair was the wrong pair, and that the pair that matters is inside the
+column law.
+
+**Gates, all at baseline except the two the new file moves.**  `lake build`
+**1200** jobs (was 1199), 0 warnings; `run-all-tests.sh` **Verified:
+4520/4520** (Production Coverage **837/837**); `eventscore` **347/358** (0
+error-miss); `suiterunner` **869/0/151**, run ALONE; matrix **402/402 event** +
+**282/282 JSON** on BOTH pipelines; checkers **229** library modules /
+**355** imports; decline pins **7 + 18 + 6 = 31**; `[210]` flip FIVE
+definitions, its md5 now `09f47c904ffcb5404e7ae33fc4b25e5e` because the
+`scannerDrop` docstring below it changed; supply flip **4** definitions from
+**7** locations, md5 unmoved; `#print axioms` — 25 capstones, no `sorryAx`, and
+the new instrument's **35** declarations on
+`[Classical.choice, Quot.sound, propext]`.  Counts: declarations **8721**,
+`#guard` **8173**, loose demand **8** — all unmoved, because **this item adds
+no declaration to `L4YAML/`** — and test files **644 → 645**.  All four pins in
+the new instrument were perturbed and all four threw.
+
+**One of the twenty-three is missing because it is FALSE, and the item found
+it while writing its own NEXT.**  `[211] l-yaml-stream`'s `scannerDrop` arm
+takes `SLYamlStream s s₁` and `SSLComments s₂ s'` with `s₁` and `s₂`
+**unrelated** — the module docstring calls the gap opaque — so the conclusion
+rests on evidence that never connects `s` to `s'`.  `SSLComments.startOfLine`
+admits a zero-width derivation at column 0 and `SLYamlStream.single` derives
+`SLYamlStream s s` from three nils, so
+
+    stream_anything : ∀ s chars, SLYamlStream s ⟨chars, 0⟩
+
+and the witness `SLYamlStream ⟨"a", 0⟩ ⟨"bbb", 0⟩` holds three characters its
+source never had.  `stream_suffix_refuted`, `stream_span_refuted` and
+`stream_colLaw_refuted` are theorems.  **So "23 productions without a span
+lemma" is not 23 unpaid obligations** — at least one is a refutation, and its
+cause is the escape hatch row 12's β.5 exists to delete.  Recorded in
+`Surface/Document.lean`'s own `scannerDrop` docstring, which carried the
+opacity without its consequence.
+
+**What remains.**  The walk, priced at **319** citations over 86 lemmas in 62
+blocks of which 8 recurse, and a supply that is 69 of 92.  **The number no
+instrument holds is how many of the remaining 22 are refutations rather than
+gaps.**  One is settled; the other 22 are unread, and the two directions cost
+differently: a gap is one lemma at the per-arm price this item measured, and a
+refutation is a runtime or grammar obligation on β.5's own critical path.  The
+cheap experiment is the one that just worked — open the arm, not the name:
+build the derivation each production's loosest constructor admits and check
+whether the target's characters are still a suffix.  Four of the 22 are the
+combinators `GSeq3`, `GAlt`, `GEps` and `GConsumeAll`, whose transport is
+parameterized and which this item did not open.  Nine are the document layer,
+and they sit UNDER `SLYamlStream` rather than above it — the census puts
+`SLYamlStream` in a cycle of its own, so nothing else is in a cycle with it and
+being below a false production does not make them false.  Each has to be
+opened on its own.  The
+failure mode to watch is this item's own and item 234's: **a census of what is
+missing prices it as debt until an arm is opened**, and the arm that refutes is
+never the one that looks easiest to read.
+
+Unchanged: R3's seven productions, whose price is the case split; item 183's
+flip order, whose two REFUTABLE halves are `h_ref`'s readers; the parked Ix
+Step-1 composition on the Ix track's own clock.  Instrument debt, still **ten**
+rows, none paid and none added.
+
+**The instrument ledger, thirty-seven rows.**  Park constructors (198),
+application sites (200), lemma conclusions (201), the same with a key that
+works (202), indices (203), the runtime's own state (204), the transitive ring
+of a carrier (205), the same closure with its last ring paid (206), the ring's
+payers against a forecast (207), the instruments themselves (208), the object a
+carrier's consumer reads (209), the plan's own remaining list (210), the
+control (211), the provenance (212), the route (213), the pipe (214), the beta
+(215), the arms (216), the branch (217), the reach (218), the corpus (219), the
+matrix (220), the minimal zero (221), the strength ladder (222), the demand
+ledger (223), the spend census (224), the reader census (225), the necessity
+census (226), the worth census (227), the obligation census (228), the span
+(229), the arm price (230), the export (231), the replication (232), the
+uptake (233), the exception (234) — and now **the SHARE**, which is the first
+instrument here that prices an alternative rather than a population: it reads
+the same 167 arms item 234 read and answers what a SECOND pass over them would
+cost.  Its corollary is why the answer had to be measured: two conclusions that
+compose in one direction look independent from the source, and differ by a
+factor of 8/3 in the artifact.
+
 ### REMAINING, in order
 
 The per-item history is the closure log above; this section lists only the
