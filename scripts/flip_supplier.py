@@ -24,7 +24,26 @@ reports the triple:
             `close_with_ssl`'s type is unchanged again; what breaks is
             everything that case-splits on the park or builds it.
 
-None of the three deletes `scannerDrop`: that flip already exists and costs a
+A fourth end is not a fourth point of the lattice:
+
+    producer
+            the `field` repair THREADED ONE LEVEL.  The park keeps its new
+            field, `close_with_ssl` still reads it, and
+            `block_dispatch_deferred` — the one definition the `field` end
+            breaks — gains `(h_scan : SLYamlStream sp_start sp_scan')` and
+            spends it on the park it builds.  What breaks is that producer's
+            own consumers, so this is the SECOND WAVE of the `field` end and
+            its count belongs beside `field=1` rather than inside the lattice.
+
+**A flip on the producer measures a propagation a DERIVATION would make zero**,
+and this gate cannot tell those apart: if `block_dispatch_deferred` could
+derive the datum from what it already holds, the premise would never be added
+and the wave would not exist.  That question is asked first and separately, in
+`Tests/Guards/Proofs/ProducerDerivation.lean` (DOCS item 241) — a census of
+what the library derives from a `ScannerSurfCorr`, and a refutation in the
+post-β.5 model.  Read the wave only after that answer.
+
+None of the four deletes `scannerDrop`: that flip already exists and costs a
 known 2 (`dropClose`, `close_with_ssl`), and mixing it in would charge this
 gate for a deletion it is not measuring.
 
@@ -33,7 +52,9 @@ behind, so every error it reports is a TYPE error at a consumer — a
 PROPAGATION.  It is not a proof bill: a definition that breaks here may need
 one extra argument or a new premise of its own, and only the second kind
 changes a STATEMENT.  The gate cannot tell those apart and does not claim to;
-`Tests/Guards/Proofs/SupplierThread.lean` is what decides that question.
+`Tests/Guards/Proofs/RepairChoice.lean` is what decides that question,
+and `Tests/Guards/Proofs/ProducerDerivation.lean` decides it for the fourth
+end below.
 
     scripts/flip_supplier.py                 # all three ends
     scripts/flip_supplier.py --end weak      # one end
@@ -87,6 +108,15 @@ FIELD = ("      (h_nic0 : sp_scan.col = 0 → sc.needIndentCheck = true) :\n"
          "      PendingNode sc false sp_start sp_block sp_scan\n"
          "  /-- Content token scanned INSIDE a block entry")
 
+#: `block_dispatch_deferred`'s head — the producer the `field` end breaks.
+PROD_HEAD = ("lemma block_dispatch_deferred\n"
+             "    (sp_start sp_X sp_scan' : SurfPos) (s' : ScannerState)\n"
+             "    (h_stream : SLYamlStream sp_start sp_X)\n")
+
+#: the one place the producer builds the park.
+PROD_BODY = ("   PendingNode.pendingFlow sp_start sp_X sp_scan' h_stream h_arm"
+             " h_nodir h_nic0,\n")
+
 #: The park itself, docstring and constructor together.
 CTOR_HEAD = "  /-- Flow indicator scanned (`]`, `}`, `,`), or deferred block dispatch."
 CTOR_TAIL = ("      (h_nic0 : sp_scan.col = 0 → sc.needIndentCheck = true) :\n"
@@ -133,6 +163,19 @@ def _edit_retire(src: str) -> str:
     return _sub1(src[:head] + src[tail:], ARM, "")
 
 
+def _edit_producer(src: str) -> str:
+    """The `field` end, with the producer paying instead of breaking."""
+    src = _edit_field(src)
+    src = _sub1(src, PROD_HEAD,
+                "lemma block_dispatch_deferred\n"
+                "    (sp_start sp_X sp_scan' : SurfPos) (s' : ScannerState)\n"
+                "    (h_stream : SLYamlStream sp_start sp_X)\n"
+                "    (h_scan : SLYamlStream sp_start sp_scan')\n")
+    return _sub1(src, PROD_BODY,
+                 "   PendingNode.pendingFlow sp_start sp_X sp_scan' h_stream h_arm"
+                 " h_nodir h_nic0 h_scan,\n")
+
+
 def _sub1(src: str, old: str, new: str) -> str:
     n = src.count(old)
     if n != 1:
@@ -142,34 +185,46 @@ def _sub1(src: str, old: str, new: str) -> str:
     return src.replace(old, new)
 
 
+#: The head LINE of each declaration a flip leaves with a proof to elaborate.
+#: `run_end` reads the build's error locations against these spans, so that
+#: "the repair elaborates" is a reading rather than an absence.
+SUPPLIER_HEAD = "lemma PendingNode.close_with_ssl {sc : ScannerState}"
+PRODUCER_HEAD = "lemma block_dispatch_deferred"
+
+#: Three points of the repair lattice, and one SECOND WAVE.  `LATTICE_ENDS`
+#: is what the summary line compares; `producer` is reported beside it
+#: because it travels the `field` end's own edge one level further and
+#: putting it inside the lattice would read as a fourth repair.
 ENDS = {
-    "weak": (_edit_weak,
+    "weak": (_edit_weak, [SUPPLIER_HEAD],
              "close_with_ssl gains a premise — the edge is its CONSUMERS"),
-    "field": (_edit_field,
+    "field": (_edit_field, [SUPPLIER_HEAD],
               "pendingFlow gains a field — the edge is the park's PRODUCER"),
-    "retire": (_edit_retire,
+    "retire": (_edit_retire, [SUPPLIER_HEAD],
                "pendingFlow is deleted — the edge is every reader of the park"),
+    "producer": (_edit_producer, [SUPPLIER_HEAD, PRODUCER_HEAD],
+                 "the field repair THREADED — block_dispatch_deferred pays "
+                 "instead of breaking, and the edge is ITS consumers"),
 }
+
+LATTICE_ENDS = ("weak", "field", "retire")
 
 
 def md5(path: Path) -> str:
     return hashlib.md5(path.read_bytes()).hexdigest()
 
 
-SUPPLIER_HEAD = "lemma PendingNode.close_with_ssl {sc : ScannerState}"
+def repaired_errors(flipped: str, log: str, head: str) -> int:
+    """How many of the build's errors are inside the repaired declaration.
 
-
-def supplier_errors(flipped: str, log: str) -> int:
-    """How many of the build's errors are inside the repaired supplier itself.
-
-    Every end of the lattice leaves `close_with_ssl` with a proof that must
-    still elaborate, and a count taken from the absence of its name in the
-    broken list would be reading a silence.  This reads the LOCATIONS: an
-    error inside the supplier's own span means the repair does not elaborate
-    and the end's count measures nothing.
+    Every end leaves the declarations it edits with a proof that must still
+    elaborate, and a count taken from the absence of their names in the broken
+    list would be reading a silence.  This reads the LOCATIONS: an error
+    inside a repaired declaration's own span means the repair does not
+    elaborate and the end's count measures nothing.
     """
     lines = flipped.split("\n")
-    start = next(i for i, l in enumerate(lines) if l.startswith(SUPPLIER_HEAD))
+    start = next(i for i, l in enumerate(lines) if l.startswith(head))
     end = next(i for i in range(start + 1, len(lines))
                if lines[i].startswith("/-!") or lines[i].startswith("/--"))
     rel = str(SRC.relative_to(ROOT))
@@ -178,7 +233,7 @@ def supplier_errors(flipped: str, log: str) -> int:
 
 
 def run_end(name: str, log_dir: Path | None) -> int | None:
-    edit, blurb = ENDS[name]
+    edit, heads, blurb = ENDS[name]
     print(f"=== END {name}: {blurb} ===")
     before = md5(SRC)
     print(f"md5 before  {before}")
@@ -194,10 +249,10 @@ def run_end(name: str, log_dir: Path | None) -> int | None:
         log = out.stdout + out.stderr
         if log_dir:
             (log_dir / f"flip.supplier.{name}.log").write_text(log)
-        n_sup = supplier_errors(flipped, log)
-        print(f"SUPPLIER errors={n_sup}"
-              + ("  — the repaired supplier ELABORATES, so every error below "
-                 "is a consumer's" if n_sup == 0 else
+        n_rep = sum(repaired_errors(flipped, log, h) for h in heads)
+        print(f"REPAIRED errors={n_rep} over {len(heads)} declaration(s)"
+              + ("  — every edited declaration ELABORATES, so every error "
+                 "below is a consumer's" if n_rep == 0 else
                  "  — THE REPAIR ITSELF DOES NOT ELABORATE; the count below "
                  "measures nothing"))
         if out.returncode == 0:
@@ -241,12 +296,20 @@ def main() -> int:
     log_dir = Path(args.log_dir) if args.log_dir else None
     names = list(ENDS) if args.end == "all" else [args.end]
     counts = {n: run_end(n, log_dir) for n in names}
-    if len(counts) > 1:
-        print("LATTICE " + "  ".join(f"{n}={c}" for n, c in counts.items()))
+    lat = {n: c for n, c in counts.items() if n in LATTICE_ENDS}
+    if len(lat) > 1:
+        print("LATTICE " + "  ".join(f"{n}={c}" for n, c in lat.items()))
         print("The three counts travel THREE DIFFERENT EDGES and are not a "
               "ratio: `weak` is the only end that changes the supplier's own "
               "type, and it is the only one whose breakage can force a "
               "consumer's STATEMENT to change.")
+    if "producer" in counts:
+        print(f"WAVE2 producer={counts['producer']}")
+        print("Not a fourth point of the lattice: this is `field` once its "
+              "one broken definition pays rather than absorbs.  It is a "
+              "PROPAGATION only because the producer cannot derive the datum "
+              "— Tests/Guards/Proofs/ProducerDerivation.lean is what "
+              "establishes that, and without it this number measures nothing.")
     return 0
 
 

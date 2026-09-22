@@ -211,20 +211,32 @@ inductive SLYamlStream : SurfPos → SurfPos → Prop where
       with the same gap — which is why row 12 names both halves of β.5 in one
       item.  `Tests/Guards/Proofs/DropFalsity.lean` (DOCS item 239).
 
-      **How many statements change is a CHOICE, and two of the three repairs
-      make it zero.**  `close_with_ssl` can be repaired by a premise
-      connecting the park's two positions, by that same connection as a FIELD
-      on `PendingNode.pendingFlow`, or by retiring the park; the three flips
+      **How many statements change is a CHOICE, and the choice is between two
+      threads.**  `close_with_ssl` can be repaired by a premise connecting the
+      park's two positions, by that same connection as a FIELD on
+      `PendingNode.pendingFlow`, or by retiring the park; the three flips
       break 5, 1 and 7 definitions and travel three different edges, so the
       counts are not a ratio.  Only the premise changes `close_with_ssl`'s own
       TYPE, and it changes nineteen statements above it — the whole reverse
       closure, out to both capstones and to `parse_strict`/`scan_strict` —
       because no statement on that closure holds a stream to the park's scan
-      position and the park cannot supply one.  The other two repairs leave
-      every one of the twenty-four untouched, Group 7's four among them.  All
-      nineteen are already inside the twenty-six, so the choice moves items
-      between restated and reproved without moving the total:
-      `Tests/Guards/Proofs/RepairChoice.lean` (DOCS item 240). -/
+      position and the park cannot supply one.  All nineteen are inside the
+      twenty-six, so that repair moves items between restated and reproved
+      without moving the total: `Tests/Guards/Proofs/RepairChoice.lean`
+      (DOCS item 240).
+
+      The FIELD repair changes no consumer of `close_with_ssl`, and that is
+      the whole of what it saves.  It relocates the connection onto the park's
+      PRODUCER, `block_dispatch_deferred`, which holds a `ScannerSurfCorr` at
+      the scan position and cannot derive the connection from it — a
+      correspondence is a statement about a POINT and the connection is a
+      statement about a PATH, and the library derives one from the other at
+      the stream's seed and nowhere else.  So the premise is threaded there
+      too, and the producer's own reverse closure is eighteen declarations,
+      ending at the same `parse_strict`, with SEVEN of them outside the
+      twenty-six entirely.  The two closures share eleven and cover
+      twenty-six between them:
+      `Tests/Guards/Proofs/ProducerDerivation.lean` (DOCS item 241). -/
   | scannerDrop (s s₁ s₂ s' : SurfPos) :
       SLYamlStream s s₁ →
       SSLComments s₂ s' →

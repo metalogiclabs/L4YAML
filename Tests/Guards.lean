@@ -25,6 +25,7 @@ import Tests.Guards.Proofs.SuffixGapAudit
 import Tests.Guards.Proofs.DropDependents
 import Tests.Guards.Proofs.DropFalsity
 import Tests.Guards.Proofs.RepairChoice
+import Tests.Guards.Proofs.ProducerDerivation
 import Tests.Guards.Proofs.FreeSurfaceCensus
 import Tests.Guards.Proofs.EndToEndCorrectness
 import Tests.Guards.Proofs.EscapeResolution

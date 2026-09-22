@@ -607,9 +607,18 @@ connecting the park's two positions, that same connection as a field on
 Only the premise changes `close_with_ssl`'s own type, and it then changes
 nineteen statements above it — all four Group 7 rows among them — because no
 statement on that closure holds a stream to the park's scan position and the
-park provably cannot supply one. The other two repairs change none. **So "not
-one changed character of a Group 7 statement" is a property of the repair β.5
-picks, and not of Group 7.**
+park provably cannot supply one. The other two change no consumer of
+`close_with_ssl`, which is the question asked and not a claim that they are
+free: the field repair relocates the connection onto the park's producer,
+`block_dispatch_deferred`, which holds a correspondence at the scan position
+and cannot derive a path from a point — the library derives a stream from a
+`ScannerSurfCorr` at the stream's seed and nowhere else. That producer's own
+closure is eighteen declarations, seven of them outside the twenty-six, and it
+reaches all four Group 7 rows as well
+([`ProducerDerivation.lean`](../Tests/Guards/Proofs/ProducerDerivation.lean)).
+**So "not one changed character of a Group 7 statement" is a property of the
+repair β.5 picks, and not of Group 7 — and of the two repairs measured
+statement by statement, both reach Group 7.**
 
 **Significance & risk**
 

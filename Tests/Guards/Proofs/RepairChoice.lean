@@ -26,10 +26,12 @@ There are three repairs, and they are not variants of one edit:
 | **field** | `pendingFlow` gains the same connection as its LAST field | unchanged | **1** |
 | **retire** | `pendingFlow` deleted, docstring and arm together | unchanged | **7** |
 
-`scripts/flip_supplier.py` runs all three for real; each leaves a well-typed,
-DROP-FREE supplier behind, and each prints `SUPPLIER errors=0` so that "the
-repair elaborates" is a reading and not a silence.  **The three counts travel
-three different edges and are not a ratio.**
+`scripts/flip_supplier.py` runs all three for real, and a fourth end threads
+the `field` repair one level to measure its second wave (DOCS item 241).
+Each end leaves a well-typed, DROP-FREE supplier behind, and each prints
+`REPAIRED errors=0` so that "the repair elaborates" is a reading and not a
+silence.  **The three counts travel three different edges and are not a
+ratio.**
 
 **Only the weak repair changes a consumer's TYPE, and it changes nineteen of
 them.**  §2 walks `close_with_ssl`'s reverse closure: 19 declarations in eight
@@ -39,6 +41,14 @@ item 238's transitive set — `thread \ T` is EMPTY — so the thread does not a
 a reproof to β.5's bill; it decides how many of the bill's items are
 restatements rather than reproofs.  The answer to item 239's question is
 therefore **19 under the weak repair and 0 under the other two**.
+
+That question is about `close_with_ssl`'s consumers, so the zero is exact and
+narrow.  **It is not a claim that the other two repairs change no statements.**
+The `field` end moves the connection to the park's PRODUCER, which cannot
+derive it from the correspondence it holds, so a premise is threaded there
+instead and the producer's own closure is eighteen declarations — seven of
+them outside item 238's set, which the weak repair never leaves:
+`Tests/Guards/Proofs/ProducerDerivation.lean` (DOCS item 241).
 
 ## Why the thread does not stop before the top
 

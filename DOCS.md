@@ -29817,6 +29817,192 @@ Step-1 composition on the Ix track's own clock.  Instrument debt, still **ten**
 rows, none paid and none added.
 
 
+### Item 241 (2026-09-22)
+
+**THE SEED — the thread does NOT stop on the producer's side, because the datum
+the repair threads is a SEED fact and the park is where the seed has been spent.
+Nothing in the library derives a stream from a `ScannerSurfCorr`: 433 statements
+hold one, 89 conclude a stream, 39 do both, and ZERO conclude a stream ending
+where their own correspondence stands.  The one statement that pairs them in its
+conclusion is `initial_stream_and_prefix` — the stream's origin — and the three
+that hold the pair as premises are seed arms too.  So `field=1` is not a cheap
+repair but a SHORT FIRST WAVE: threaded one level it breaks 4, and its thread is
+EIGHTEEN, ending at `parse_strict` like the supplier's, with SEVEN of them
+OUTSIDE item 238's transitive set — which the supplier's thread never leaves.
+BUILT — one instrument, a fourth gate end, corrections in four files (item
+240's over-reach in three of them, and a pointer to a file that has never
+existed), and one to the mandate this item was given.**
+
+**The mandate.**  Item 240's recorded NEXT: *"The number no instrument holds is
+where the thread STOPS on the producer's side … that producer holds
+`ScannerSurfCorr s' sp_scan'` and a dispatch equation, which none of its
+consumers holds, so it is the first place in the chain where the datum might be
+DERIVABLE rather than threaded … The failure mode to watch is that a flip on the
+producer measures a propagation a derivation would make zero … the instrument
+has to ask FIRST whether anything in the library already derives a stream from a
+`ScannerSurfCorr`, the way item 237 asked what was true for free."*
+
+**The mandate's own premise is wrong, and the source says so.**
+`block_dispatch_deferred` holds five hypotheses — `h_stream` to `sp_X`, the arm
+disjunction, `hcorr` at `sp_scan'`, `h_nodir`, `h_nic0` — and **none of them is
+a dispatch equation.**  The dispatch equations live one ring UP, in the four
+consumers this item measures.  The refutation below is therefore taken over the
+premise set the producer actually has, and the dispatch equation's own question
+is what item 242 is for.
+
+**The order: the derivation first, the flip second.**  Four readings over the
+whole authored population (`Tests/Guards/Proofs/ProducerDerivation.lean` §2):
+
+| reading | what it asks | count |
+|---|---|---|
+| `free` | a corr HYPOTHESIS, and the CONCLUSION a stream ending there | **0** |
+| `pairConcl` | the CONCLUSION puts both at one position | **1** |
+| `held` | two HYPOTHESES, a stream ending where a corr stands | **3** |
+| `pairAny` | the two meet anywhere in the statement | **8** |
+
+    corrHyp=433  streamConcl=89  both=39
+    free=0  pairConcl=1  held=3  pairAny=8
+
+**An empty reading is a silence unless something brackets it**, so the zero is
+reported beside three readings that are not zero.  The ONE conclusion is
+`initial_stream_and_prefix`: input at offset 0, the stream a `single` over
+`[202]`'s byte order mark.  The THREE premise-holders are
+`accum_block_on_noPending`, `accum_content_on_noPending` and
+`structural_dispatch_to_pending` — seed arms, whose own comments call a
+block-context `noPending` "the stream's seed" (items 116, 135, 136).  **Nothing
+carries a stream to a scanner position except where nothing has been scanned
+yet.**  The base case of the induction β.5 needs is the only case the library
+has, and `pendingFlow` is where that case has been left behind.
+
+**The producer cannot derive it either — proved, not inferred.**
+`producer_premises_give_no_stream` lists every premise the producer holds and
+refutes the implication to `SLYamlStream sp_start sp_scan'` in item 239's
+post-β.5 model.  The witness is the scanner at the seed of the input `"b"`
+while the stream reaches only the empty position: every premise permits it
+because **nothing in the list relates `sp_X` to `sp_scan'`**.  A
+`ScannerSurfCorr` is a statement about a POINT — remaining characters, column,
+input end, a prefix witness, indent signs — and the datum is a statement about
+a PATH.  `seed_gives_the_datum` exhibits the one case where the two coincide
+and the derivation is `nd_refl`.
+
+**Only then, the flip.**  `scripts/flip_supplier.py` gains a fourth end, which
+is not a fourth point of the lattice: `producer` threads the `field` repair one
+level, so the park keeps its new field, `close_with_ssl` still reads it, and
+`block_dispatch_deferred` gains the premise and spends it on the park it
+builds.
+
+    REPAIRED errors=0 over 2 declaration(s)
+    BROKEN accum_content_pending, block_dispatch_deferred_inline,
+           block_dispatch_deferred_stamp_nopack,
+           block_dispatch_deferred_stamp_offcol
+    COUNT 4 definitions from 4 locations
+    WAVE2 producer=4
+
+Both edited declarations elaborate, so every error is a consumer's.  **The
+four locations are exact, and the escape's ELEVEN sites are one ring further
+out**: that eleven counts the applications reached THROUGH the three wrappers
+items 184–185 interposed to partition them.  `block_dispatch_deferred` itself is
+applied four times — the three wrappers and `accum_content_pending` — and the
+wrappers are applied eight times between them.  A partition built to name the
+escape's classes is also what makes its first wave narrow.
+
+**The thread: eighteen, and not one of them holds the datum.**
+
+    prodThread=18  rings=8  withCorr=13  covered=0
+    onProdThread=0  onThread=0
+
+Ring 1 is exactly the four the flip breaks — walk and flip agree on the first
+wave.  Thirteen of the eighteen carry a correspondence and none carries a
+stream to the position it names, so the premise has nowhere to land short of
+`L4YAML.Surface.parse_strict`, where the supplier's thread ends too.  The three
+declarations that DO hold the datum are on neither thread: **the places that
+hold it and the places that need it are disjoint.**
+
+**So `field=1` is a short first wave, not a cheap repair.**
+
+**The asymmetry the two threads do not share.**
+
+    prodInT=11  prodOutsideT=7  union=26  unionOutsideT=7
+
+Item 240 measured `thread \ T = []`: the weak repair redistributes β.5's bill
+without extending it.  The producer's thread extends it.  The seven outside
+item 238's transitive set are the three wrappers that partition the escape's own
+applications and the four `accum_block_on_*` arms —
+`block_dispatch_deferred_inline`, `…_stamp_nopack`, `…_stamp_offcol`,
+`accum_block_on_closeThenBlock`, `…_pendingBlock`, `…_pendingBlockContent`,
+`…_pendingContent`.  None of them depends, however far down, on a declaration
+that spends `SLYamlStream.scannerDrop`; they build the park or stand above
+something that does, and the arm is not in their proofs, which is why item 238's
+walk never counted them.  **A repair that threads through the producer reaches
+declarations β.5's bill never named.**  The two closures cover twenty-six
+declarations between them and share eleven.
+
+**Three corrections, all to our own text.**  `L4YAML/Surface/Document.lean` and
+`Blueprint/04-capstones.md` carried item 240's *"two of the three repairs make
+it zero"* and *"the other two repairs change none"*.  Those are exact for the
+question item 239 asked — how many change *because `close_with_ssl`'s statement
+changes* — and an over-reach as written, since the `field` repair relocates the
+obligation and changes eighteen statements on a different thread.  Both now
+state the narrowness of the zero and name the thread that follows;
+`Tests/Guards/Proofs/RepairChoice.lean` does the same for its own summary.
+`Surface/Document.lean`'s md5 moves `8673639044c332c5b2ec7d106b9640d0` →
+`ea5e1603ffdd0cd4f5c7a0d5333141b9`.  Third: `scripts/flip_supplier.py` pointed
+readers at
+`Tests/Guards/Proofs/SupplierThread.lean`, which has never existed — a pointer
+to a file that is not there costs a reader exactly the time it was written to
+save.
+
+**Predictions.**  HELD — P0 (`free=0`), P1 (`both`=39 in a 3–40 band), P2 (the
+refutation, first try), P4 (`covered=0`), P5 (`prodOutsideT=7`, count AND
+identity).  SPLIT — P3: four definitions HELD, eleven locations REFUTED at four, and the
+reason is that the prediction read a docstring rather than the source — the
+eleven are the escape's sites through its wrappers.
+MISSED — that an empty reading needs brackets to mean anything, so `pairConcl=1`
+and not `free=0` is the finding; and that the one hit and the three holders are
+the SAME fact, the seed.
+
+**Gates.**  Build **1208** jobs.  `Verified: 4520/4520` (837/837); eventscore
+347/358 with 0 error-miss; suiterunner 869/0/151; matrix 402/402 + 282/282 on
+both pipelines; annotations exit 1 (19 standing mismatches); decline pins
+7 + 18 + 6 ALL PINS OK; `capstones=25 withSorryAx=0`;
+`ProducerDerivation theorems=6 axioms=[Classical.choice, Quot.sound, propext]`;
+closure **230** library modules / 355 reflection imports; 25 whitelisted
+`theorem` sites; counts **8736** / **8173** / **651** / **8**; sweep
+`closure=848 imported=844 T=27` — the new module joins the tree without moving
+`T`, so `DropDependents.expectedWide` moves by the one module and
+`expectedWideCensus` does not.  The three standing flips read 5 / 4 / 2, the
+supplier lattice 5 / 1 / 7 and its second wave 4, all with md5 before == after
+and every end printing `REPAIRED errors=0`.  Eight instrument pins, nine
+perturbations, each throwing.
+
+**The instrument ledger**, forty-three rows: … the free (237), the bill (238),
+the false (239), the choice (240) — and now **the SEED**, the first measurement
+here that asks what is DERIVABLE before measuring what propagates, and the first
+whose headline number is a set of seven declarations β.5's bill does not contain.
+
+**What remains.**  β.5's bill is two restatements and twenty-four reproofs, and
+the twenty-four are still unpriced.  **The number no instrument holds is what a
+DISPATCH EQUATION buys.**  This item refuted derivability at the producer over
+the premises the producer actually holds; its four consumers hold something the
+producer does not — `scanNextToken_dispatchContent … = .ok s'` and a second
+correspondence at the position BEFORE the step — and that pair is the first
+thing in the chain that could turn a point into a path.  The cheap experiment is
+the census this item's `readDecl` almost runs already: count the declarations
+holding a dispatch equation together with two correspondences, and ask which of
+those steps have a grammar production attached at all.  The expensive one is
+proving the step, which is β.5's obligation in its smallest form.  **The failure
+mode to watch is that a dispatch equation names a FUNCTION and not a
+derivation**: an opaque step buys nothing — `scannerDrop` exists precisely
+because some steps are not grammar-visible — so a census that counts equations
+measures availability and not derivability, and the instrument has to ask FIRST
+which scanner steps the library already relates to a production, the way item
+237 asked what was true for free and item 241 asked it of correspondences.
+
+Unchanged: R3's seven productions, whose price is the case split; item 183's
+flip order, whose two REFUTABLE halves are `h_ref`'s readers; the parked Ix
+Step-1 composition on the Ix track's own clock.  Instrument debt, still **ten**
+rows, none paid and none added.
+
 ### REMAINING, in order
 
 The per-item history is the closure log above; this section lists only the
