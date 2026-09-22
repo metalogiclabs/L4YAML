@@ -522,4 +522,218 @@ trueOnly={viaTrueOnly.length} none={flowTypeNames.length - covered}"
     throwError "the motive export moved.\nexpected: {expectedMotiveExport}\ngot:      {got}\n\
       residue: {residue.toList}\n  trueOnly: {viaTrueOnly}"
 
+
+/-! ## §8 Who takes it (DOCS item 233)
+
+Items 228–232 built the supply.  Four residues were named, eight conversions
+were exported, six leaf payments were written.  This section asks the one
+question none of those items asked of its own output — **who takes it** — and
+answers it in the environment rather than by grep, because a consumer that
+reaches a lemma through a bound variable or an abbreviation is invisible to a
+textual search and a name that only appears in a docstring is visible to one.
+
+**The eight exports have no user.**  The demand surface is the three
+`*_toBlockKey` wrappers and the two declarations that apply them, both in
+`StreamAccum`: `flowKeyHead` reads `flowNode_toBlockKey`, and
+`accum_flow_open_depth0` reads `flowContent_toBlockKey` and `sep_toBlockKey`.
+Both discard the residue — one with `fun _ => trivial`, one with a wildcard
+pattern — and neither holds a fact that would refute it, which is what
+`elsewhere=0` below says once it is read as a statement about the whole
+library rather than about those two.
+
+**The six leaf payments have no user either.**  Items 229 and 230 built
+`plain_toKey_of_noBreak`, `doubleQuoted_toKey_of_noBreak`,
+`singleQuoted_toKey_of_noBreak`, `sep_toKey_of_noResidue`,
+`sepOpt_toKey_of_noResidue` and `props_toKey_of_noResidue`, and nothing has
+instantiated one.  That is this repository's own rule — *a definition nothing
+has instantiated is not yet evidence* — read against our own work, and the
+census is here so the next item reads it as a number instead of finding it
+again.
+
+**Item 223 is the precedent and its title is the lesson**: *tightening the
+supply changes nothing until the demand is re-asked.*  It built the ledger for
+the pending-park family (`Tests/Guards/Proofs/ArmDemandLedger.lean`) and asks
+of a PARAMETER whether its consumers request the strong form.  This asks the
+same question of a CONCLUSION, where the weaker answer is available: whether a
+consumer exists at all.
+
+**The payment is one `resolve_right`, not forty-eight.**  §5 reports
+`payable=48` leaf applications per export, and 48 is a count of PRODUCERS: the
+residue widens (`sepResidue_widen`), so every interior one is a residue of the
+whole span and a consumer holding the two facts discharges all of them at
+once.  The three payments measure it: each contains exactly one
+`Or.resolve_right`, and their proof terms are two orders of magnitude smaller
+than the export they pay for.
+
+**And the reason there is no consumer is a missing coordinate, not a careless
+one.**  `BreakBetween` does not occur in the type of a single declaration
+outside the two modules that define the residue vocabulary, so there is
+nothing for a consumer to hold: six declarations ASK for `¬ BreakBetween`,
+two PROVE one, and both of those two prove it of a literal character list.
+**Nothing in the library refutes a break over a derivation**, which is
+`overDerivation=0` below and is the supply side in one number.  What `[193] c-s-implicit-json-key` supplies
+is a fact about the SCANNER's line counter; `ScannerSurfCorr` — the
+correspondence between a scanner state and a surface position — has five
+fields and none of them is the line, and `SurfPos` has two, `chars` and `col`.
+The price of the supply side is that coordinate.  `scripts/flip_supply.py`
+prices the other half: tightening the head promise to take the two facts
+breaks four definitions from seven locations, and that is a lower bound
+because the build stops at the module all four live in. -/
+
+/-- The three `.flowOut → .blockKey` wrappers: the whole of what anything
+    outside this file actually applies. -/
+def residueWrappers : List String :=
+  ["flowNode_toBlockKey", "flowContent_toBlockKey", "sep_toBlockKey"]
+
+/-- Each group as `names/distinct users`.  Users are counted OUTSIDE
+    `FlowKeyLift` and inside `L4YAML`, which is the only thing that imports
+    it. -/
+def expectedDemand : String :=
+  "exports=8/0 wrappers=3/2 payments=6/0 leaves=6/0"
+
+run_cmd liftTermElabM do
+  let env ← getEnv
+  let fkl := `L4YAML.Proofs.FlowKeyLift
+  let payments := leafPayments.map (·.2)
+  let leaves := leafPayments.map (·.1)
+  for nm in flowExports ++ residueWrappers ++ payments ++ leaves do
+    if (env.find? (fkl.str nm)).isNone then
+      throwError "{nm} is gone from FlowKeyLift; this census is walking a name that moved"
+  let mut uE : NameSet := {}
+  let mut uW : NameSet := {}
+  let mut uP : NameSet := {}
+  let mut uL : NameSet := {}
+  for (n, ci) in env.constants.toList do
+    if n.isInternal then continue
+    if !(`L4YAML).isPrefixOf n then continue
+    if fkl.isPrefixOf n then continue
+    let some v := ci.value? (allowOpaque := true) | continue
+    let used := v.getUsedConstants
+    let hits (names : List String) : Bool := names.any (fun nm => used.contains (fkl.str nm))
+    if hits flowExports then uE := uE.insert n
+    if hits residueWrappers then uW := uW.insert n
+    if hits payments then uP := uP.insert n
+    if hits leaves then uL := uL.insert n
+  let got := s!"exports={flowExports.length}/{uE.size} \
+wrappers={residueWrappers.length}/{uW.size} payments={payments.length}/{uP.size} \
+leaves={leaves.length}/{uL.size}"
+  if got != expectedDemand then
+    throwError "the demand moved.\nexpected: {expectedDemand}\ngot:      {got}\n\
+      exports:  {uE.toList}\n  wrappers: {uW.toList}\n\
+      payments: {uP.toList}\n  leaves:   {uL.toList}"
+
+/-- The size of a proof term, counted per node.  `Expr` is a DAG and this walk
+    does not deduplicate, for §5's reason: the compiler pays per occurrence. -/
+partial def termSize : Expr → Nat
+  | .app f a => 1 + termSize f + termSize a
+  | .lam _ d b _ => 1 + termSize d + termSize b
+  | .forallE _ d b _ => 1 + termSize d + termSize b
+  | .letE _ t v b _ => 1 + termSize t + termSize v + termSize b
+  | .mdata _ b => 1 + termSize b
+  | .proj _ _ b => 1 + termSize b
+  | _ => 1
+
+/-- What a payment costs against what it pays for.  `resolveRight` is the
+    assertion: six payments, six `Or.resolve_right` applications, one each. -/
+def expectedPaymentShape : String :=
+  "payments=6 resolveRight=6 maxPayment=111 export=55650"
+
+run_cmd liftTermElabM do
+  let env ← getEnv
+  let fkl := `L4YAML.Proofs.FlowKeyLift
+  let payments := leafPayments.map (·.2)
+  let term (nm : String) : MetaM Expr := do
+    let some ci := env.find? (fkl.str nm) | throwError "{nm} is gone from FlowKeyLift"
+    let some v := ci.value? (allowOpaque := true) | throwError "no proof term for {nm}"
+    return v
+  let mut resolves := 0
+  let mut maxPayment := 0
+  for nm in payments do
+    let v ← term nm
+    resolves := resolves + countConst ``Or.resolve_right v
+    maxPayment := max maxPayment (termSize v)
+  let mut export_ := 0
+  for nm in flowExports do
+    export_ := max export_ (termSize (← term nm))
+  let got := s!"payments={payments.length} resolveRight={resolves} \
+maxPayment={maxPayment} export={export_}"
+  if got != expectedPaymentShape then
+    throwError "the payment shape moved.\nexpected: {expectedPaymentShape}\ngot:      {got}"
+
+/-- Where the refutation would have to come from.  `mentions` is every
+    declaration in `L4YAML` whose TYPE mentions `BreakBetween`; `elsewhere` is
+    how many of them live outside the two modules that define the residue
+    vocabulary, and it is the number this section exists to keep at zero-or-
+    known.  `corrFields`/`posFields` name the coordinate that is missing. -/
+def expectedRefuters : String :=
+  "mentions=25 lift=11 span=14 elsewhere=0 corrFields=5 posFields=2"
+
+/-- The same population split by POLARITY, which is the sharper reading:
+    `produces` concludes a `¬ BreakBetween`, `assumes` takes one as a
+    hypothesis, and `overDerivation` is how many of the producers state it
+    about positions a binder introduced rather than about a literal character
+    list.  The last is the number a refuter needs and it is zero: every
+    payment in §4 of `FlowKeyLift` asks for a fact the library never proves of
+    a derivation. -/
+def expectedRefutationSupply : String :=
+  "produces=2 assumes=6 overDerivation=0"
+
+/-- Every `¬ BreakBetween a b` inside a type, with its two positions.  Written
+    as a walk rather than a pattern match on the conclusion because a payment
+    states it in a binder and a witness states it inside a conjunction. -/
+partial def negatedBreaks (bb : Name) (e : Expr) : Array (Expr × Expr) :=
+  (if e.isAppOfArity ``Not 1 && (e.getArg! 0).isAppOfArity bb 2 then
+      #[((e.getArg! 0).getArg! 0, (e.getArg! 0).getArg! 1)] else #[]) ++
+  match e with
+  | .app f a => negatedBreaks bb f ++ negatedBreaks bb a
+  | .lam _ d b _ => negatedBreaks bb d ++ negatedBreaks bb b
+  | .forallE _ d b _ => negatedBreaks bb d ++ negatedBreaks bb b
+  | .letE _ t v b _ => negatedBreaks bb t ++ negatedBreaks bb v ++ negatedBreaks bb b
+  | .mdata _ b => negatedBreaks bb b
+  | .proj _ _ b => negatedBreaks bb b
+  | _ => #[]
+
+run_cmd liftTermElabM do
+  let env ← getEnv
+  let bb := ``L4YAML.Proofs.SurfaceSpan.BreakBetween
+  let fkl := `L4YAML.Proofs.FlowKeyLift
+  let sspan := `L4YAML.Proofs.SurfaceSpan
+  let mut lift := 0
+  let mut span := 0
+  let mut other : NameSet := {}
+  let mut produces : NameSet := {}
+  let mut assumes : NameSet := {}
+  let mut overDeriv : NameSet := {}
+  for (n, ci) in env.constants.toList do
+    if n.isInternal then continue
+    if !(`L4YAML).isPrefixOf n then continue
+    if !(ci.type.getUsedConstants.contains bb) then continue
+    if fkl.isPrefixOf n then lift := lift + 1
+    else if sspan.isPrefixOf n then span := span + 1
+    else other := other.insert n
+    let (p, a, d) ← forallTelescope ci.type fun xs cod => do
+      let inCod := negatedBreaks bb cod
+      let mut inBinder := false
+      for x in xs do
+        if !(negatedBreaks bb (← inferType x)).isEmpty then inBinder := true
+      return (!inCod.isEmpty, inBinder, inCod.any (fun (u, v) => u.isFVar && v.isFVar))
+    if p then produces := produces.insert n
+    if a then assumes := assumes.insert n
+    if d then overDeriv := overDeriv.insert n
+  let some corr := getStructureInfo? env ``L4YAML.Proofs.CouplingBridge.ScannerSurfCorr
+    | throwError "the scanner/surface correspondence is gone"
+  let some pos := getStructureInfo? env ``L4YAML.Surface.SurfPos
+    | throwError "SurfPos is gone"
+  let got := s!"mentions={lift + span + other.size} lift={lift} span={span} \
+elsewhere={other.size} corrFields={corr.fieldNames.size} posFields={pos.fieldNames.size}"
+  if got != expectedRefuters then
+    throwError "the refuter census moved.\nexpected: {expectedRefuters}\ngot:      {got}\n\
+      elsewhere: {other.toList}"
+  let got2 := s!"produces={produces.size} assumes={assumes.size} \
+overDerivation={overDeriv.size}"
+  if got2 != expectedRefutationSupply then
+    throwError "the refutation supply moved.\nexpected: {expectedRefutationSupply}\n\
+      got:      {got2}\n  produces: {produces.toList}\n  assumes: {assumes.toList}\n\
+      overDerivation: {overDeriv.toList}"
+
 end Tests.Guards.SurfaceSpanCensus

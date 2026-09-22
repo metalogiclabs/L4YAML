@@ -61,6 +61,13 @@ import L4YAML.Proofs.Foundation.SurfaceSpan
     (`Tests/Guards/Proofs/SurfaceSpanCensus.lean` §5, `exports=8`).  Seven
     more conclusions cost seven more copies of the block.
 
+    **Item 233 measures the demand, and it is zero.**  None of the eight
+    exports is applied anywhere outside this file: what the library reads is
+    the three `*_toBlockKey` wrappers, from two declarations in `StreamAccum`,
+    and both discard the residue.  So do all six of §4's payments, which
+    nothing has instantiated.  §8 of the census carries the counts and the
+    reason.
+
     The context pairing is tracked as `KeyPair c tc`: the top node converts
     `(flowOut → blockKey)`, interiors `(flowIn → flowKey)`, and `inFlowCtx`
     maps the first onto the second — `isNsPlainSafe` is EQUAL on each pair,
@@ -122,10 +129,17 @@ def SepCommentedArm (n : Nat) (s s' : SurfPos) : Prop :=
 /-- **The residue a separation leaves** (item 230): the span crossed a line,
     or the input ran out.  `[77] b-comment` ends a comment in exactly those
     two ways, so a comment-delimited separation that is not itself inline hits
-    one of them — `separateLines_inline_or_breakOrEnd`.  A consumer refutes it
-    with the two facts `[193] c-s-implicit-json-key` supplies about everything
+    one of them — `separateLines_inline_or_breakOrEnd`.  Two facts refute it,
+    and they are the two `[193] c-s-implicit-json-key` states about everything
     that reaches a `:`: the key crosses no line, and a `:` follows it, so the
-    input did not run out. -/
+    input did not run out.
+
+    **Nothing in the library holds either fact** (item 233).  `BreakBetween`
+    occurs in the type of twenty-five declarations, eleven here and fourteen
+    in `SurfaceSpan`, and in none anywhere else; what `[193]` states is a fact
+    about the scanner's line counter, and the scanner/surface correspondence
+    carries characters, a column, an offset and an indent bound, but not the
+    line.  `Tests/Guards/Proofs/SurfaceSpanCensus.lean` §8 keeps the count. -/
 def SepResidue (s s' : SurfPos) : Prop := BreakBetween s s' ∨ atEnd s'
 
 /-- **The residue widens.**  An interior residue is a residue of any span that
@@ -933,7 +947,17 @@ consumer holding "this key's span crosses no line" — which is what
 gets the conversion outright, with no disjunction left to case on.  The
 separation's payment needs one more fact from the same consumer, and it is
 one a key always has: the `:` that made it a key is still in the input, so
-the separation did not run the input out. -/
+the separation did not run the input out.
+
+**All six are uninstantiated** (item 233), and the conditional above is why:
+neither of the two declarations that read this file holds either fact, which
+is what `elsewhere=0` says once it is taken over the whole library.  What a
+payment costs is settled — each is a single `Or.resolve_right`, two orders of
+magnitude smaller than the conversion it discharges, and one of them pays for
+all 48 of that conversion's payable sites at once because the residue widens.
+What is missing is the coordinate that would state the hypothesis, not a
+cheaper proof; `Tests/Guards/Proofs/SurfaceSpanCensus.lean` §8 measures both
+halves and `scripts/flip_supply.py` prices the consumer side. -/
 
 lemma plain_toKey_of_noBreak {n : Nat} {c tc : L4YAML.YamlContext} (hp : KeyPair c tc)
     {s s' : SurfPos} (h : SNsPlain n c s s') (hnb : ¬ BreakBetween s s') :

@@ -28303,6 +28303,204 @@ corollary answers 231's directly: 231 asked what a walk hands back, and the
 answer was one; 232 asked what it costs to hand back all of them, and the
 answer is **once per hand.**
 
+### Item 233 (2026-09-21)
+
+**THE SUPPLY — nothing takes what the last five items built.  The eight
+exports have no consumer, the six payments have no consumer, and the fact that
+would refute a residue is not stated anywhere in the library.  PRICED — two
+instruments and two corrections, and not one new declaration in the library.**
+Item 232's recorded NEXT: *"The supply side, and it is now the whole of it.
+Eight conclusions offer `SepResidue` and nothing refutes one … the number no
+instrument holds is how many of the 48 a real key consumer can actually reach,
+and the cheap experiment is to give ONE consumer the two facts and see which of
+the eight exports it needs.  The failure mode to watch is this item's own: the
+cheap version of an experiment can be the version that removes what is being
+tested."*  The experiment ran, unweakened, and its answer is smaller than the
+question assumed.
+
+**The cheap experiment, first, and it is cheap.**  `flowKeyHead` given the two
+facts, written both ways round — convert the content then wrap it, or wrap it
+then convert the node — compiles clean at the first attempt:
+
+    flowKeyHead_contentFirst : ∀ sp_end, SFlowContent m .flowOut sp_br sp_end →
+      ¬ BreakBetween sp_br sp_end → ¬ atEnd sp_end → ImplicitKeyHead sp_br sp_end
+      := fun _ h hnb hne => ImplicitKeyHead.json (SFlowNode.content 0 .blockKey _ _
+           ((flowContent_toBlockKey h).resolve_right (fun hr => hr.elim hnb hne)))
+
+**ONE export, and the payment is one `resolve_right`.**  §5 of the census
+reports `payable=48` leaf applications per export; 48 is a count of PRODUCERS.
+The residue widens, so every interior one is already a residue of the whole
+span, and a consumer holding the two facts discharges all forty-eight at once:
+
+    export  (each of the eight)      55650 Expr nodes
+    payment (each of the six leaves)   97-111,  Or.resolve_right ×1
+
+**The finding, and it is not about the 48.**  The demand was never measured,
+so this item measured it — in the environment, because a consumer that reaches
+a lemma through a bound variable is invisible to grep:
+
+    exports=8/0   wrappers=3/2   payments=6/0   leaves=6/0
+
+**None of the eight exports is applied anywhere outside `FlowKeyLift`.**  What
+the library reads is the three `*_toBlockKey` wrappers, from two declarations,
+both in `StreamAccum`:
+
+    flowNode_toBlockKey    ← flowKeyHead                (discards: fun _ => trivial)
+    flowContent_toBlockKey ← accum_flow_open_depth0     (discards: | _, _ => Or.inr trivial)
+    sep_toBlockKey         ← accum_flow_open_depth0
+
+**And the six leaf payments have no consumer either.**  Items 229 and 230
+built `plain_toKey_of_noBreak`, `doubleQuoted_toKey_of_noBreak`,
+`singleQuoted_toKey_of_noBreak`, `sep_toKey_of_noResidue`,
+`sepOpt_toKey_of_noResidue` and `props_toKey_of_noResidue`, and nothing has
+instantiated one.  That is this file's own §10 — *a definition nothing has
+instantiated is not yet evidence* — read against our own work.  Four items
+strengthened the supply and the demand has not moved since item 228.
+
+**And item 223 said so, in its own title, thirteen items ago**: *"THE DEMAND
+LEDGER — TIGHTENING THE SUPPLY CHANGES NOTHING UNTIL THE DEMAND IS RE-ASKED."*
+It built the ledger for the pending-park family
+(`Tests/Guards/Proofs/ArmDemandLedger.lean`) and its lesson was recorded, and
+items 229–232 strengthened a different lane for four consecutive items without
+asking it.  A lesson recorded in one population is not a lesson applied to
+another; what carries it across is an instrument, which is why §8 of the census
+is this item's output rather than this paragraph.
+
+**Why there is no consumer: a missing coordinate, not a careless consumer.**
+
+    BreakBetween in the TYPE of 25 declarations:  FlowKeyLift 11,
+                                                  SurfaceSpan 14,
+                                                  anywhere else 0
+    ScannerSurfCorr fields = [chars_from, col_eq, end_eq, input_prefix,
+                              indent_cols_nonneg]
+    SurfPos         fields = [chars, col]
+
+What `[193] c-s-implicit-json-key` supplies is a fact about the SCANNER's line
+counter.  Neither the scanner/surface correspondence nor a surface position
+carries a line, so there is nothing for a consumer to hold.  Split by polarity
+the population says it exactly:
+
+    produces=2   assumes=6   overDerivation=0
+
+Six declarations ask for `¬ BreakBetween` — §4's six payments — two prove one,
+and both of those two are §4's own witnesses over literal character lists.
+**Nothing in the library refutes a break over a derivation.**
+
+**What the tightening costs, measured** (`scripts/flip_supply.py`, the second
+standing flip gate beside item 210's).  It rewrites the head promise at its
+four sites from `… → ImplicitKeyHead sp_key sp_end ∨ True` to `… → ¬
+BreakBetween sp_br sp_end → ¬ atEnd sp_end → ImplicitKeyHead sp_key sp_end`,
+builds, and maps the errors to definitions with item 210's own mapper:
+
+    SITES 4
+    BROKEN accum_flow_open_depth0 / flowKeyPack_of_close /
+           flowKeyRoute_of_open / flowKeyRoute_of_root
+    COUNT 4 definitions from 7 locations
+    LOWER BOUND — the build stopped at the first failing module
+
+The bound is stated by the gate, not inferred afterwards: all four sites are in
+one module, `lake build` stops there, and 140 jobs are never attempted.  The
+first error names the obligation exactly —
+
+    Tactic `rcases` failed: `x✝ : ¬BreakBetween sp_br sp_tok → ¬atEnd sp_tok →
+    ImplicitKeyHead sp_key sp_tok` is not an inductive datatype
+
+— at `flowKeyPack_of_close`, which is where the promise is spent and which
+holds `sc.simpleKey.pos.line = sc.line`: the scanner's statement of the same
+fact, in coordinates the surface layer has no word for.
+
+**The instrument.**  `Tests/Guards/Proofs/SurfaceSpanCensus.lean` §8, three
+pins, all environment-resolved and re-derived at every build:
+
+    expectedDemand       = "exports=8/0 wrappers=3/2 payments=6/0 leaves=6/0"
+    expectedPaymentShape = "payments=6 resolveRight=6 maxPayment=111 export=55650"
+    expectedRefuters     = "mentions=25 lift=11 span=14 elsewhere=0 corrFields=5 posFields=2"
+    expectedRefutationSupply = "produces=2 assumes=6 overDerivation=0"
+
+`overDerivation=0` is the whole supply side as one number, and it is the one a
+later item will move.
+
+**Two docstrings corrected where they live** (§5's rule).  `SepResidue`'s said
+"a consumer refutes it with the two facts"; §4's payment header read as though
+such a consumer exists.  Both now state the two facts as facts and say that
+nothing in the library holds either, with the census named.
+
+**Predictions, written before the first edit** (`PREDICTION.md`).  HELD — the
+payment is O(1) over the export and one `resolve_right` (P1); neither consumer
+can supply the facts where it stands, and the flip says what that costs (P2);
+`BreakBetween` is stated nowhere outside the two residue modules, and neither
+`ScannerSurfCorr` nor `SurfPos` carries a line (P3); the strengthened
+`flowKeyHead` is a clean one-liner (P4).  REFUTED — P0, in the sharper
+direction: it predicted the demand reaches two export names and that the true
+demand is one, and the demand reaches **none**; both consumers apply a wrapper.
+MISSED — that items 229 and 230's own payments were never instantiated.  The
+prediction asked who consumes the eight exports and never asked who consumes
+the six payments, which is the same question one item earlier.
+
+**Gates, all at baseline.**  `lake build` **1198** jobs, 0 warnings;
+`run-all-tests.sh` **Verified: 4520/4520** (Production Coverage **837/837**);
+`eventscore` **347/358** (0 error-miss); `suiterunner` **869/0/151**, run
+ALONE; matrix **402/402 event** + **282/282 JSON** on BOTH pipelines; checkers
+**229** library modules / **355** imports, 20/230/249/355, all 25 `theorem`
+sites whitelisted; annotations **211/211** with the standing **19** name
+mismatches, exit **1**; decline pins **7 + 18 + 6 = 31**; `[210]` flip **FIVE**
+definitions, md5 `d955a797b9a9c895be3aabad138a297e`; `#print axioms` — **25**
+capstones, no `sorryAx`.  Counts unmoved: declarations **8721**, `#guard`
+**8173**, test files **643**, loose demand **8** — **this item adds no
+declaration to the library**, which is what "PRICED" means in the title.
+
+**What remains.**  The coordinate, and it is the whole of it.  A surface
+position has one field besides the characters and it is the one a break writes:
+across all of `L4YAML/Surface/` a column is a literal `0` at nine sites, and
+exactly three are a TARGET column — `SBBreak`'s `crLf`, `cr`, `lf`.  The other
+six require column 0 of a SOURCE (`SSLComments.startOfLine`, `SCForbidden` ×2,
+the stream's own start) or advance it by what they consume (`SCDirectivesEnd`,
+`SCDocumentEnd`, `0 → 3` over three characters).  So the law a refuter needs is
+**a column advances by the characters consumed except across a break** —
+`s'.col = s.col + |span s s'|` or `BreakBetween s s'`, with `s'.col < |span|`
+in the second case so the two are exclusive — and then a consumer holding
+column arithmetic refutes the residue, which is arithmetic the scanner side
+already carries (`ScannerSurfCorr.col_eq`, `close_col_of_base`,
+`FlowBaseRoutes.key`'s own `kc`).  **Priced from the artifact**: it is the same
+walk as `SurfaceSpan` §§1–4 with a different conclusion — 74 production types,
+of which §4's block is 18 types and 69 arms — so price it at that family's own
+size and expect item 228's miss, where 69 by signatures was 48% of the arms the
+instrument needed.  **The number no instrument holds is whether the law is true
+at all**: one arm that writes a column without consuming the matching
+characters refutes it, and the cheap experiment is the four generic
+combinators every production is built from — `GChar` and `GLit`, which
+increment, `GSeq` and `GStar`, which compose — together with `SBBreak`, which
+is the only thing in the grammar that writes a column instead of advancing it.
+The failure mode to watch is this item's and item 232's: **a cheap experiment
+drawn from the easy arms is the one that removes the arm that breaks it**, so
+the probe must also carry the six sites that constrain a SOURCE column
+(`SSLComments.startOfLine`, `SCForbidden` ×2, `SCDirectivesEnd`,
+`SCDocumentEnd`, the stream's start), which are where an arm can relate two
+positions without the arithmetic following the characters.
+
+Unchanged: R3's seven productions, whose price is the case split; item 183's
+flip order, whose two REFUTABLE halves are `h_ref`'s readers; the parked Ix
+Step-1 composition on the Ix track's own clock.  Instrument debt, still **ten**
+rows, none paid and none added.
+
+**The instrument ledger, thirty-five rows.**  Park constructors (198),
+application sites (200), lemma conclusions (201), the same with a key that
+works (202), indices (203), the runtime's own state (204), the transitive ring
+of a carrier (205), the same closure with its last ring paid (206), the ring's
+payers against a forecast (207), the instruments themselves (208), the object a
+carrier's consumer reads (209), the plan's own remaining list (210), the
+control (211), the provenance (212), the route (213), the pipe (214), the beta
+(215), the arms (216), the branch (217), the reach (218), the corpus (219), the
+matrix (220), the minimal zero (221), the strength ladder (222), the demand
+ledger (223), the spend census (224), the reader census (225), the necessity
+census (226), the worth census (227), the obligation census (228), the span
+(229), the arm price (230), the export (231), the replication (232) — and now
+**the UPTAKE**, which is 223's question asked of a conclusion instead of a
+parameter: not whether a consumer asks for the strong form, but whether a
+consumer exists.  Its corollary answers 232's directly: 232 asked what it costs
+to hand back all of them, and the answer was once per hand; 233 asked how many
+hands were reaching, and the answer is **none.**
+
 ### REMAINING, in order
 
 The per-item history is the closure log above; this section lists only the
