@@ -205,11 +205,26 @@ inductive SLYamlStream : SurfPos → SurfPos → Prop where
       the target existentially, where the law is a constraint on the witness
       rather than a contradiction.  So β.5 restates two statements and reproves
       twenty-four, and Group 7's own statements are all in the first of those
-      two classes and none of them changes.  `dropClose` is false
+      two classes and none of them is FALSE.  `dropClose` is false
       unconditionally; `close_with_ssl` is false in the environment that
       deletes this arm and keeps `PendingNode.pendingFlow`, the only park arm
       with the same gap — which is why row 12 names both halves of β.5 in one
-      item.  `Tests/Guards/Proofs/DropFalsity.lean` (DOCS item 239). -/
+      item.  `Tests/Guards/Proofs/DropFalsity.lean` (DOCS item 239).
+
+      **How many statements change is a CHOICE, and two of the three repairs
+      make it zero.**  `close_with_ssl` can be repaired by a premise
+      connecting the park's two positions, by that same connection as a FIELD
+      on `PendingNode.pendingFlow`, or by retiring the park; the three flips
+      break 5, 1 and 7 definitions and travel three different edges, so the
+      counts are not a ratio.  Only the premise changes `close_with_ssl`'s own
+      TYPE, and it changes nineteen statements above it — the whole reverse
+      closure, out to both capstones and to `parse_strict`/`scan_strict` —
+      because no statement on that closure holds a stream to the park's scan
+      position and the park cannot supply one.  The other two repairs leave
+      every one of the twenty-four untouched, Group 7's four among them.  All
+      nineteen are already inside the twenty-six, so the choice moves items
+      between restated and reproved without moving the total:
+      `Tests/Guards/Proofs/RepairChoice.lean` (DOCS item 240). -/
   | scannerDrop (s s₁ s₂ s' : SurfPos) :
       SLYamlStream s s₁ →
       SSLComments s₂ s' →

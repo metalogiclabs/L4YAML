@@ -103,6 +103,13 @@ evidence.  So the two verdicts are not the same kind of verdict:
 Deleting the arm alone therefore leaves a false lemma in the library.  Row 12
 names β.5 *"retire `pendingFlow`, delete `scannerDrop`"*, and this is the
 measured reason the two halves are one item rather than two.
+
+**What a restatement then costs is a separate measurement and a separate
+choice.**  `Tests/Guards/Proofs/RepairChoice.lean` (DOCS item 240) prices the
+three repairs of `close_with_ssl` — a premise on the lemma, the same
+connection as a field on the park, or retiring the park — and only the first
+changes the lemma's own type.  It reuses §4's witness: `flowPark` refutes the
+premise's other source, so the premise has to be threaded from above.
 -/
 
 set_option autoImplicit false

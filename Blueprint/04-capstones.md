@@ -589,15 +589,27 @@ the arm restated. `PendingNode.close_with_ssl` is restrictive in its
 connects the park's two positions, so a park at a target the suffix law forbids
 is buildable without the arm and the statement cannot be reproved either.
 
-**Nothing in Group 7 changes, and this is the first measurement that says so.**
+**Nothing in Group 7 is FALSE, and this is the first measurement that says so.**
 All four of Group 7's rows that ride the arm conclude at end of input — 7.1 and
 7.6 assert `InYamlLanguage`, 7.2 and 7.3 spell out `∃ sp_final, SLYamlStream …
 ∧ sp_final.chars = []` — and the law β.5 buys says of such a target only that
 `[]` is a suffix of the input, which is true of every string. **β.5 owes Group 7
-a reproof and not one changed character of any of its statements.** That is a
-stronger reading than "no statement names the constructor": these statements do
-not contradict the law that replaces it. It does not say the reproofs are easy
-— it says they are reproofs.
+a reproof and not a restatement.** That is a stronger reading than "no statement
+names the constructor": these statements do not contradict the law that replaces
+it. It does not say the reproofs are easy — it says they are reproofs.
+
+**Whether they are only reproofs is a CHOICE, and this is its price**
+([`RepairChoice.lean`](../Tests/Guards/Proofs/RepairChoice.lean)). β.5 has to
+repair `PendingNode.close_with_ssl`, and there are three repairs: a premise
+connecting the park's two positions, that same connection as a field on
+`PendingNode.pendingFlow`, or retiring that park. The three flips break 5, 1 and
+7 definitions and travel three different edges, so the counts are not a ratio.
+Only the premise changes `close_with_ssl`'s own type, and it then changes
+nineteen statements above it — all four Group 7 rows among them — because no
+statement on that closure holds a stream to the park's scan position and the
+park provably cannot supply one. The other two repairs change none. **So "not
+one changed character of a Group 7 statement" is a property of the repair β.5
+picks, and not of Group 7.**
 
 **Significance & risk**
 

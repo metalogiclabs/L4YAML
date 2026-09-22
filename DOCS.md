@@ -29636,6 +29636,186 @@ flip order, whose two REFUTABLE halves are `h_ref`'s readers; the parked Ix
 Step-1 composition on the Ix track's own clock.  Instrument debt, still **ten**
 rows, none paid and none added.
 
+### Item 240 (2026-09-22)
+
+**THE CHOICE — how many of the twenty-four change their own STATEMENTS is not a
+property of the graph but of the repair, and it is 19 or 0.  THREE repairs of
+`close_with_ssl` exist; only ONE changes its type, and that one changes
+nineteen statements above it — the whole reverse closure, out to both capstones
+and both entry points — because no statement on it holds a stream to the park's
+scan position and the park provably cannot supply one.  All nineteen are
+already inside item 238's twenty-six, so the choice moves items between
+RESTATED and REPROVED without moving the total.  NINE of the ten statements
+item 239's law could not touch are on that thread: what falsity cannot force, a
+repair can.  BUILT — one instrument, one new gate with three ends, and four
+corrections, one of them to item 239's own over-reach.**
+
+**The mandate.**  Item 239's recorded NEXT: *"The number no instrument holds is
+how many of the twenty-four must change their own STATEMENTS because
+`close_with_ssl`'s statement changes … The failure mode to watch is that a
+repaired statement is a CHOICE, and the weakest repair propagates furthest …
+the instrument has to run both ends of the lattice and report the pair."*
+
+**The lattice has three points, not two, and the middle one is the cheap one.**
+`scripts/flip_supplier.py` runs all three for real.  None deletes
+`scannerDrop`: that flip exists and costs a known 2, and mixing it in would
+charge this gate for a deletion it is not measuring.
+
+| end | the edit | `close_with_ssl`'s TYPE | broken |
+|---|---|---|---|
+| **weak** | the lemma gains `(h_scan : SLYamlStream sp_start sp_scan)` and its flow arm closes with it | **CHANGES** | **5** |
+| **field** | `pendingFlow` gains the same connection as its LAST field | unchanged | **1** |
+| **retire** | `pendingFlow` deleted, docstring and arm together | unchanged | **7** |
+
+    weak    accum_block_pending, accum_content_pending, accum_flow_open_depth0,
+            accum_structural_pending, eof_pending
+    field   block_dispatch_deferred
+    retire  PendingNode.arm_tight_or_col, PendingNode.dirRoute,
+            PendingNode.nic0, accum_block_pending, accum_content_pending,
+            accum_flow_open_depth0, block_dispatch_deferred
+
+**The three counts travel three different edges and are not a ratio**, so the
+mandate's *weakest repair propagates furthest* is REFUTED as a claim about
+definitions — `retire` breaks 7 where `weak` breaks 5 — and UPHELD as a claim
+about statements, which is what it was about.  Each end leaves a well-typed,
+DROP-FREE supplier behind and each prints `SUPPLIER errors=0`, so "the repair
+elaborates" is a reading and not an inference from the supplier's absence in
+the broken list.
+
+**The thread: nineteen, and every one of them already counted.**
+`Tests/Guards/Proofs/RepairChoice.lean` reverses item 238's edges from
+`close_with_ssl`:
+
+    thread=19  prodThread=18  shared=11  capstones=2  rings=8
+    threadInT=19  outsideT=0
+
+Ring 1 is the five library consumers plus item 239's own exhibit; ring 2 is
+`accum_step_block/content/flow/structural` and
+`preprocessing_eof_extends_stream`; the last ring is
+`L4YAML.Surface.parse_strict`.  **`thread \ T` is EMPTY** — the repair choice
+does not add a reproof to β.5's bill, it decides how many of the bill's items
+are restatements.
+
+**Why the thread does not stop short of the top.**  Two proofs in the post-β.5
+model make the weak repair a RELOCATION rather than a discharge.  `nd_ssl_extend`
+closes the flow arm from a stream that reaches `sp_scan`, through
+`[202] l-document-prefix`'s comment alternative and with no escape — so the
+repair is a repair.  `park_gives_no_scan` refutes the premise's other source:
+item 239's `flowPark` parks at `⟨['a'], 0⟩` with the scanner at
+`⟨['b','b','b'], 0⟩`, and the model's suffix law forbids the conclusion.  The
+census then asks each of the nineteen whether it already holds one:
+
+    withPark=7  covered=0  total=19
+
+Seven carry a `PendingNode` hypothesis at all and **none of the seven carries a
+stream to that park's scan position**; the other twelve do not mention a park.
+This is a census of what the statements HOLD.  Whether one could DERIVE the
+datum from its other premises is not decided here, and the refutation decides
+it only for the park.
+
+**Where this meets item 239, and it is not a coincidence.**  Ten of the
+twenty-six conclude at `chars = []`, which is why the suffix law could refute
+six and not decide the other twenty.  **Nine of those ten are on this thread**
+(`empty=10 onThread=9`); the tenth is `inYamlLanguage_everything`, which no
+proof in the library derives through the park.  What falsity cannot force a
+statement to change, a repair choice can.
+
+**Which instrument dominates depends on the edge.**  Item 238 found the
+environment walk strictly dominating the flip, and for a constructor's
+DELETION that still holds.  For its ARMS the two only bracket:
+
+    walk 10   ⊇   truth   ⊇   flip 7
+
+`close_with_ssl` case-splits on the park and the `retire` repair deletes its arm
+with the constructor, so it does not break; `accum_structural_pending`
+case-splits on the `true`-indexed park where `pendingFlow` cannot occur, and
+the flip shows it SURVIVES; `DropFalsity.flowPark` builds the park for real and
+the flip never reaches it.  **Two refinements of the walk were tried and both
+read 10** — one-step raw references, and the park's largest application arity,
+which is a FULL application (8) for all ten.  A `cases` on an indexed family
+builds its own constructor terms, for the arms the index rules out as much as
+for the reachable ones, so no syntactic reading of a proof term separates a
+builder from a case-splitter.  That is item 238's `SLYamlStream.rec` lesson one
+level down, and it is why the flip is not optional here.  All three readings
+are pinned at 10 so that a refinement which DOES separate them disagrees
+loudly.
+
+**Two craft facts, both measured while building the gate.**  A field added LAST
+to a constructor costs its PRODUCERS and nothing else: `cases` alternatives
+tolerate a short binder list, so the `field` end broke one definition where a
+field added first would have broken every named split.  The repo's convention —
+*"LAST, so the patterns naming the older fields still bind them"* — is now a
+reading rather than an assertion.  And an `Expr` walk that forgets is
+exponential on an accumulation proof term: the unmemoized arity walk did not
+finish in ten minutes over ten declarations, and the memoized one takes
+seconds.
+
+**Corrections.**  (i) `Blueprint/04-capstones.md` said **"β.5 owes Group 7 a
+reproof and not one changed character of any of its statements."**  That is
+true of the LAW and not of every repair: all four Group 7 rows are on the
+thread, so the weak repair changes all four.  The claim is now stated as what
+it measures — none of them is FALSE — and the conditionality is named beside
+it.  (ii) `L4YAML/Surface/Document.lean`'s `scannerDrop` docstring carried the
+same over-reach and gains the three repairs' prices; md5
+`38a5f051dc0f4edced20c60ad61c0a17` → `8673639044c332c5b2ec7d106b9640d0`.
+(iii) `Tests/Guards/Proofs/DropDependents.lean` gains the pointer and the
+bracket, and `census` now takes the value walk as an argument — computing it
+twice in one environment costs minutes, and the new instrument needs the same
+map for its reverse edges.  (iv) `Tests/Guards/Proofs/DropFalsity.lean` gains
+the pointer to the repair's price.
+
+**Predictions.**  HELD — P0 (end `weak` = 5, in a 5–8 band), P2 (the pair is
+not a ratio), P3 (the premise is not dischargeable at the park, and provably
+so), P7 (the flip's own failure modes).  REFUTED — P1 (end `retire` = 7,
+forecast 9–20) and P5 (end `field` = 1, forecast 2–12), both LOW and each for
+its own reason.  The library holds exactly seven `| pendingFlow` arms —
+`PendingNode.nic0`, `PendingNode.arm_tight_or_col`, `PendingNode.dirRoute`,
+`accum_flow_open_depth0`, `accum_block_pending`, `accum_content_pending`, and
+`close_with_ssl`, whose arm the repair deletes with the constructor — so six
+broken splits plus the producer is seven, not the dozen a site count suggested.
+And a field added LAST breaks no split at all, which is why `field` is one.  MISSED — that the lattice has a
+THIRD point, and that the middle point is the cheap one; the `empty`-class
+meeting; and that no syntactic reading separates a builder from a case-splitter,
+which cost two refinements to find out.
+
+**Gates.**  Build **1207** jobs.  `Verified: 4520/4520`; eventscore 347/358 with
+0 error-miss; suiterunner 869/0/151; matrix 402/402 + 282/282 on both
+pipelines; annotations exit 1 (19 standing mismatches); decline pins 7 + 18 + 6
+ALL PINS OK; `capstones=25 withSorryAx=0`; `RepairChoice theorems=2 axioms=[Classical.choice,
+Quot.sound, propext]` — `nd_ssl_extend` and `park_gives_no_scan`; closure **230** library modules / 355 reflection
+imports; 25 whitelisted `theorem` sites; counts **8736** / **8173** / **650** /
+**8**; sweep `WIDE-PIN agrees`; the three standing flips 5 / 4 / 2 and the new
+one 5 / 1 / 7, all with md5 before == after.  Seven instrument pins, each
+perturbed and each throwing.
+
+**The instrument ledger**, forty-two rows: … the chain (236), the free (237),
+the bill (238), the false (239) — and now **the CHOICE**, the first gate here
+that flips a STATEMENT rather than a production, and the first measurement in
+this row whose answer is a pair of numbers the repair chooses between.
+
+**What remains.**  β.5's bill is two restatements and twenty-four reproofs, and
+the twenty-four are still unpriced.  **The number no instrument holds is where
+the thread STOPS on the producer's side.**  The `field` repair moves the whole
+obligation to `block_dispatch_deferred`, and nothing has measured whether it
+stops there: that producer holds `ScannerSurfCorr s' sp_scan'` and a dispatch
+equation, which none of its consumers holds, so it is the first place in the
+chain where the datum might be DERIVABLE rather than threaded.  The cheap
+experiment is the statement flip run one level up — `flip_supplier.py` already
+takes an `--end`, so a fourth end that changes the producer's TYPE and counts
+its consumers costs one build.  The expensive one is deriving
+`SLYamlStream sp_start sp_scan'` from the scanner walk, which is β.5's actual
+proof obligation.  **The failure mode to watch is that a flip on the producer
+measures a propagation a derivation would make zero**: if the datum is
+derivable there, the right number is the derivation's price and not the
+consumer count, and a flip cannot tell those apart — so the instrument has to
+ask FIRST whether anything in the library already derives a stream from a
+`ScannerSurfCorr`, the way item 237 asked what was true for free.
+
+Unchanged: R3's seven productions, whose price is the case split; item 183's
+flip order, whose two REFUTABLE halves are `h_ref`'s readers; the parked Ix
+Step-1 composition on the Ix track's own clock.  Instrument debt, still **ten**
+rows, none paid and none added.
+
 
 ### REMAINING, in order
 

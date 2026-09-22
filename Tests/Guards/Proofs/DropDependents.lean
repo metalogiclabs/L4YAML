@@ -28,7 +28,7 @@ the conclusion's target unconnected (item 236), and the sole support of
 **fifteen** statements that are true without their hypotheses (item 237).
 
 This file reads the bill off the elaborated environment.  Over the whole tree —
-841 modules composed in one environment and the 36 executable entry points
+843 modules composed in one environment and the 36 executable entry points
 probed one at a time, `scripts/drop_sweep.py` — the arm has
 
     D=4 direct  S=0 in a statement  R=0 case splits  T=26 transitive
@@ -73,6 +73,17 @@ the two by building the post-β.5 relation and refuting them in it: the
 `PendingNode` premise is restrictive in the scanner state and in nothing that
 connects `sp_block` to `sp_scan`, so `close_with_ssl` cannot be reproved
 either.  **Both are restatements; the other twenty-four are reproofs.**
+
+**How many of the twenty-four are ONLY reproofs is decided by the repair, and
+not by this graph either.**  `Tests/Guards/Proofs/RepairChoice.lean` (DOCS item
+240) reverses these same edges from `close_with_ssl`: repairing it with a
+premise that connects the park's two positions changes NINETEEN statements —
+its whole reverse closure, every one of them already inside `T` — while the two
+repairs that leave its type alone change none.  That walk also brackets this
+one rather than extending it.  For the park's own deletion the environment
+reads ten users where the flip breaks seven, and neither one-step references
+nor application arity separates a constructor's builders from the case splits
+that eliminate it, so there the flip is not optional.
 
 ## What the cheap instrument buys over the expensive one
 
@@ -178,22 +189,35 @@ deriving Inhabited
 
 def sorted (a : Array Name) : Array Name := a.qsort (·.toString < ·.toString)
 
-/-- One environment pass.  `scripts/drop_sweep.py` calls this from an
-    environment holding the whole tree; §2 calls it from this file's own,
-    narrower closure, and the two agree. -/
-def census : CoreM Census := do
-  let env ← getEnv
+/-- The value walk over the whole population, taken once.  It is the expensive
+    half of the census — `uses` inlines generated auxiliaries and the
+    accumulation's proof terms are large — so a second instrument in the same
+    environment takes this map rather than rebuilding it;
+    `Tests/Guards/Proofs/RepairChoice.lean` (DOCS item 240) reverses the same
+    edges and computing them twice costs minutes rather than seconds. -/
+def usesAll (env : Environment) :
+    Array Name × Std.HashMap Name (Std.HashSet Name) := Id.run do
   let mut authored : Array Name := #[]
   for (n, _) in env.constants.toList do
     if inScope env n && isAuthored env n then authored := authored.push n
-  let mut usesVal : Std.HashMap Name (Std.HashSet Name) := {}
+  let mut m : Std.HashMap Name (Std.HashSet Name) := {}
+  for n in authored do
+    m := m.insert n (uses env n true)
+  return (authored, m)
+
+/-- One environment pass.  `scripts/drop_sweep.py` calls this from an
+    environment holding the whole tree; §2 calls it from this file's own,
+    narrower closure, and the two agree. -/
+def census (pre : Option (Array Name × Std.HashMap Name (Std.HashSet Name)) := none) :
+    CoreM Census := do
+  let env ← getEnv
+  let (authored, usesVal) := pre.getD (usesAll env)
   let mut direct : Array Name := #[]
   let mut stmt : Array Name := #[]
   let mut elimUsers : Array Name := #[]
   for n in authored do
-    let uv := uses env n true
+    let uv := usesVal.getD n {}
     let ut := uses env n false
-    usesVal := usesVal.insert n uv
     if uv.contains drop then direct := direct.push n
     if ut.contains drop then stmt := stmt.push n
     if uv.toList.any isStreamElim || ut.toList.any isStreamElim then
@@ -201,7 +225,7 @@ def census : CoreM Census := do
   let authoredSet : Std.HashSet Name := Std.HashSet.ofList authored.toList
   let mut rev : Std.HashMap Name (Array Name) := {}
   for n in authored do
-    for m in (usesVal.get! n).toList do
+    for m in (usesVal.getD n {}).toList do
       if authoredSet.contains m then rev := rev.insert m ((rev.getD m #[]).push n)
   let mut trans : Std.HashSet Name := {}
   let mut todo : List Name := direct.toList
@@ -234,7 +258,7 @@ capstonesInT={c.capstonesInT.size} rawElim={c.rawElim.size}"
 Item 237's census read 109 of 230 modules before it imported the library root,
 and reported a library.  This one pins its own closure first, and
 `scripts/drop_sweep.py` re-runs the same `census` over every module in the tree
-that has an olean — 841 composed in one environment, plus the 36 executable
+that has an olean — 843 composed in one environment, plus the 36 executable
 entry points probed alone, because two root-namespace `main`s cannot share an
 environment.  **The four counts are identical at every closure tried**; the
 pins below are what makes that checkable rather than asserted. -/
@@ -266,7 +290,7 @@ def expectedClosure : Nat := 233
     a hint and not a check — item 237's own finding is that a statement can
     assert `InYamlLanguage` without naming it. -/
 def expectedWide : String :=
-  "closure=846 imported=842 excluded=36 readable=36 unreadable=0 \
+  "closure=847 imported=843 excluded=36 readable=36 unreadable=0 \
 excludedDecls=602 excludedDropRefs=0"
 
 /-- **The four counts the WHOLE TREE reads, which are not the four this file's
@@ -276,7 +300,10 @@ excludedDecls=602 excludedDropRefs=0"
     does not import it.  `Tests/Guards/Proofs/DropFalsity.lean` (DOCS item 239)
     holds one exhibit that rides the arm on purpose, so the tree composed in
     one environment reads `T=27` where §2 reads `T=26`.  Both are pinned, and
-    the difference is the instrument counting itself. -/
+    the difference is the instrument counting itself.
+    `Tests/Guards/Proofs/RepairChoice.lean` (DOCS item 240) joins the tree
+    without moving `T`: it reverses these edges and refutes a premise, and
+    neither of those builds the arm. -/
 def expectedWideCensus : String :=
   "D=4 S=0 R=0 T=27 capstonesInT=2 rawElim=11"
 
