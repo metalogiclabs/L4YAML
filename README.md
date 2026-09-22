@@ -58,8 +58,12 @@ Every function in the core library is a total `def` — **no `partial def`, no
   previously defined anchor ([Proofs/Parser/ParserAnchorProofs.lean](L4YAML/Proofs/Parser/ParserAnchorProofs.lean),
   [Proofs/Parser/ParserNodeProofs.lean](L4YAML/Proofs/Parser/ParserNodeProofs.lean)).
 - **Acceptance strictness** — accepted inputs lie in the formalized YAML
-  surface language `InYamlLanguage`
+  surface language `InYamlLanguage`. **`InYamlLanguage` holds of every
+  string**, so this property is proved and not yet restrictive: the
+  `SLYamlStream.scannerDrop` over-approximation of `[211] l-yaml-stream` is
+  what it waits on
   ([Proofs/Scanner/ScannerCorrectness.lean](L4YAML/Proofs/Scanner/ScannerCorrectness.lean);
+  census in [Tests/Guards/Proofs/FreeSurfaceCensus.lean](Tests/Guards/Proofs/FreeSurfaceCensus.lean);
   design note in [DOCS.md § Surface syntax formalization](DOCS.md#surface-syntax-formalization)).
 - **Schema resolution** — the Core Schema resolver respects the §10.3
   precedence (null → bool → int → float → str)
@@ -109,10 +113,15 @@ theorem parse_iff_grammar (input : String) :
     (∃ docs, parseYaml input = .ok docs) ↔ InYamlLanguage input
 ```
 
-The forward direction (every accepted input lies in `InYamlLanguage`) is already
-proven; the converse is future work, tracked in
-[DOCS.md § Grammar completeness plan](DOCS.md#grammar-completeness-plan). It carries no placeholder `sorry` in the
-source — it is simply not yet attempted.
+The forward direction (every accepted input lies in `InYamlLanguage`) is proven
+and is not yet restrictive: `SLYamlStream.scannerDrop` over-approximates
+`[211] l-yaml-stream` far enough that `InYamlLanguage` holds of every string, so
+the forward theorem is true independently of its hypothesis. Retiring that
+constructor is what gives it content, and it is a prerequisite for the converse.
+Both are tracked in
+[DOCS.md § Grammar completeness plan](DOCS.md#grammar-completeness-plan); the
+converse carries no placeholder `sorry` in the source — it is simply not yet
+attempted.
 
 Compile-time `#guard` tests in [Tests/](Tests/) — including auto-generated
 guards from the yaml-test-suite — back every proof with a kernel-evaluable

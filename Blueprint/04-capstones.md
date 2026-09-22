@@ -540,12 +540,12 @@ grammar derivation tree — the structural, strongest form of Group 2.2.
 
 | # | Theorem | Module | Status |
 | - | ------- | ------ | ------ |
-| 7.1 | `parse_strict_proof` (headline) — parser acceptance implies `InYamlLanguage input` | [`DocumentProduction`](../L4YAML/Proofs/Production/DocumentProduction.lean) | ✅ |
-| 7.2 | `scan_content_gives_stream_v2` (full SLYamlStream derivation) | [`StreamAccum`](../L4YAML/Proofs/Production/StreamAccum.lean) | ✅ |
+| 7.1 | `parse_strict_proof` (headline) — parser acceptance implies `InYamlLanguage input`; **vacuous while `scannerDrop` stands** | [`DocumentProduction`](../L4YAML/Proofs/Production/DocumentProduction.lean) | ✅ |
+| 7.2 | `scan_content_gives_stream_v2` (full SLYamlStream derivation) — its conclusion is `InYamlLanguage input` spelled out; **vacuous while `scannerDrop` stands** | [`StreamAccum`](../L4YAML/Proofs/Production/StreamAccum.lean) | ✅ |
 | 7.3 | `scanLoop_grammar_prod` | `StreamAccum` | ✅ |
 | 7.4 | Per-function `*_prod` theorems (flow/block/document start/end, anchor/alias, tag, directive) | [`StructureProduction`](../L4YAML/Proofs/Production/StructureProduction.lean) / [`DocumentProduction`](../L4YAML/Proofs/Production/DocumentProduction.lean) / [`ScalarProduction`](../L4YAML/Proofs/Production/ScalarProduction.lean) / [`NodeProduction`](../L4YAML/Proofs/Production/NodeProduction.lean) | ✅ |
 | 7.5 | `parseYaml_implies_valid_token_stream` (bridge to Group 4) | `EndToEndCorrectness` | ✅ |
-| 7.6 | `scan_strict_proof` — scanner acceptance implies `InYamlLanguage input` | `DocumentProduction` | ✅ |
+| 7.6 | `scan_strict_proof` — scanner acceptance implies `InYamlLanguage input`; **vacuous while `scannerDrop` stands** | `DocumentProduction` | ✅ |
 | 7.7 | `parse_iff_grammar` **converse** — grammar completeness: `InYamlLanguage input → ∃ docs, parseYaml input = .ok docs` (closes the biconditional) | (target: `Production` / `Completeness`) | ⏳ not started |
 
 **Change since April**: the whole forward direction (7.1–7.6) is now
@@ -559,19 +559,38 @@ specific derivation tree in the YAML 1.2.2 grammar."
 
 **Depends on**: Group 2 (scanner), Group 8 (coupling).
 
+**What Group 7 does not yet establish.** `SLYamlStream.scannerDrop` relates a
+source position to a target its premises never connect it to, which makes
+`InYamlLanguage` hold of **every** string. 7.1, 7.2 and 7.6 are therefore true
+independently of their hypotheses — `inYamlLanguage_everything` discharges all
+three statements with the acceptance premise bound and unused
+([`SuffixGapAudit.lean`](../Tests/Guards/Proofs/SuffixGapAudit.lean) §5,
+[`FreeSurfaceCensus.lean`](../Tests/Guards/Proofs/FreeSurfaceCensus.lean) §2).
+The ✅ is accurate: the proofs are real and carry no `sorry`. What they do not
+yet carry is a restriction on the input. Seventeen of the library's 103
+theorems about the top-level surface are free in this sense and fifteen of them
+through that one arm; the count is re-derived at every build by
+`FreeSurfaceCensus.lean`, and row 12's β.5 is what turns it into content.
+
 **Significance & risk**
 
 - **7.1 `parse_strict_proof`** *(headline, ✅)* — *Significance:*
   parser acceptance implies the input is in the formalized YAML
-  language `InYamlLanguage` — we never accept a string outside the
-  spec's surface language. *Risk if absent:* over-acceptance —
+  language `InYamlLanguage`. This is the right shape for "we never
+  accept a string outside the spec's surface language", and it says
+  that only once `InYamlLanguage` excludes something — see *What
+  Group 7 does not yet establish* above. *Risk if absent:*
+  over-acceptance —
   accepting inputs that other conformant parsers reject, an interop
   and security divergence (the input means one thing to us, another to
   the next tool in the chain).
 - **7.2 `scan_content_gives_stream_v2`** *(✅)* — *Significance:*
   scanned content is backed by a full `SLYamlStream` derivation, not
-  just a well-formedness flag. *Risk if absent:* scanner acceptance
-  with no grammatical justification.
+  just a well-formedness flag. Its conclusion is `InYamlLanguage
+  input` written out instead of named, so a search for the predicate
+  does not reach it and it is free in exactly the same way 7.1 is.
+  *Risk if absent:* scanner acceptance with no grammatical
+  justification.
 - **7.3 `scanLoop_grammar_prod`** *(✅)* — *Significance:* the scan
   loop itself produces a grammar derivation at each step. *Risk if
   absent:* a hole in the middle of the derivation chain.
@@ -592,12 +611,13 @@ specific derivation tree in the YAML 1.2.2 grammar."
   the parser accepts **exactly** the language, no more and no less —
   the gold-standard parser-correctness statement. Requires first
   removing the over-approximation constructors that make
-  `InYamlLanguage` strictly weaker than "parseable" (`directiveDrop`
+  `InYamlLanguage` true of every string (`directiveDrop`
   removed 2026-08-02; `scannerDrop` remains, blocked on flow-collection
   accumulation)
   ([`DOCS.md` § Grammar completeness plan](../DOCS.md#grammar-completeness-plan)). *Risk
-  if absent:* we have proved we do not *over*-accept (7.1) but not that
-  we accept the *whole* language — a future scanner/parser refactor
+  if absent:* 7.1 has the shape of a non-over-acceptance proof and does
+  not yet carry it, and we have not proved that we accept the *whole*
+  language either — a future scanner/parser refactor
   could silently narrow the set of accepted YAML and no proof would
   catch the regression.
 

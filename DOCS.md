@@ -29069,6 +29069,160 @@ missing and a census of what is broken are different readings of the same
 artifact, and only the second one names an obligation.
 
 
+### Item 237 (2026-09-22)
+
+**THE FREE — seventeen of one hundred and three theorems about the top-level
+surface are true without their hypotheses, and fifteen of them stop being true
+that way when β.5 lands.  That is the first measurement in this row of what
+β.5 BUYS rather than what it costs.  Six theorems assert `InYamlLanguage` and
+a grep finds five, because the sixth SPELLS THE DEFINITION OUT.  BUILT — one
+instrument, and nine corrections across the README and the proof-status
+SSOT.**  Item 236's recorded NEXT: *"The number no instrument holds is how
+much of the verified surface is currently true for free … the answer prices
+what β.5 BUYS, where every measurement in this row so far has priced what it
+COSTS … the failure mode to watch is position."*
+
+**The reading.**  A theorem is FREE when its conclusion is provable without
+its hypotheses — every premise it names is dead weight while `scannerDrop`
+stands.  The question is decidable per theorem: build a candidate proof from
+item 236's lemmas and typecheck it against the declaration's own conclusion.
+Over every authored theorem in the library whose type mentions the top-level
+surface:
+
+    theorems=103  headYaml=5  headStream=36  nestedConcl=54  hypOnly=8
+    free=17  survivesBeta5=2  yamlInHypothesis=0
+
+Fifteen of the seventeen are free only through the broken arm.  The other two
+— `empty_to_stream` and `empty_yaml_stream` — close by `SLYamlStream.single`,
+which relates a position to itself and is untouched by β.5; they were never
+debt.  The remaining **86 are already worth their statement**, which is the
+half of this number that had never been counted either.
+
+**The sixth assertion has no name to find.**  `scan_content_gives_stream_v2`
+concludes `∃ sp_final, SLYamlStream ⟨input.toList, 0⟩ sp_final ∧
+sp_final.chars = []`.  That IS `InYamlLanguage input` — the equation is `rfl`,
+and the instrument compiles it.  It is capstone 7.2 and the lemma the whole
+`DocumentProduction` chain rests on, and no search for the predicate reaches
+it.  Item 236 paid twice for an `abbrev` being invisible to a type census;
+this is the opposite blindness and no alias census would have caught it,
+because there is no alias.  The census found ZERO.
+
+**Two thirds of the free set is at a production whose name is not the
+predicate's.**  Eleven of the seventeen conclude `SLYamlStream`, where
+`InYamlLanguage` never appears.  Nine of those eleven are closed by ONE
+application of `scannerDrop` over `stream_refl` from a single
+`SSLComments _ target` hypothesis, with every other hypothesis — including
+their own `SLYamlStream` premise — discarded: `topLevelFlowResumeSep` and its
+`_or_refused` twin, `nodocFlowResumeSep`, `suffixFlowResumeSep`, `dropClose`,
+`PendingNode.close_with_ssl`, `PendingNode.propsClose`, `FlowBaseRoutes.value`
+and `ssl_comments_extend_stream`.  PROVABLE that way is not PROVED that way —
+`ssl_comments_extend_stream` ships a proof through `implicitContinue` and
+spends both hypotheses — and the instrument claims only what it checks, which
+is what the STATEMENTS carry.
+
+**The direction item 236 warned about has no instance.**  Its NEXT said to
+watch for `InYamlLanguage` in a HYPOTHESIS, which restricts rather than
+trivializes and is the direction in which β.5 weakens a theorem instead of
+strengthening it.  `yamlInHypothesis=0`: no library theorem takes it as a
+hypothesis at all.  The eight that take `SLYamlStream` as one are none of them
+free.  So β.5 spends nothing in that direction here, and the warning is
+recorded as having been checked rather than as having been needed.
+
+**Nine corrections, in the two artifacts a reader reaches first.**  Item 236
+corrected `DOCS.md`; the same claims live in the README and in
+`Blueprint/04-capstones.md`, which the README names as the proof-status SSOT.
+The SSOT said of capstone 7.1 that parser acceptance means *"we never accept a
+string outside the spec's surface language"* and of 7.7 that *"we have proved
+we do not over-accept (7.1)"*.  Neither holds: 7.1, 7.2 and 7.6 are true
+independently of their hypotheses.  The ✅ beside them is accurate — the proofs
+are real and carry no `sorry` — and what they do not yet carry is a
+restriction on the input.  The table rows now say so, a new paragraph *What
+Group 7 does not yet establish* carries the census, "strictly weaker than
+parseable" is replaced by "true of every string", and the README's acceptance
+bullet and its work-in-progress paragraph are corrected the same way.
+
+**The instrument** is `Tests/Guards/Proofs/FreeSurfaceCensus.lean`, four pins,
+all four perturbed and all four throwing.  It pins the census, the free set's
+MEMBERSHIP as well as its size (a count alone would not notice one leaving as
+another arrives), the two vacuous capstones, and — before any of them — its
+own import closure at `modulesSeen=227`, naming the four modules outside it.
+That pin earned itself: the census read 109 modules until the file imported
+the library root, and item 236's `missing=23` came from exactly that.  The
+four unread are the serializers, which hold no theorems, and the instrument
+checks that they stay outside rather than assuming it.
+
+`addDecl` cannot answer this question.  It reports kernel failures through the
+message log rather than by throwing, so a `catch` around it reads every
+candidate as accepted — the first pass did, for both `thmDecl` and `defnDecl`.
+The candidates are typechecked against the conclusion instead, and §2's
+exhibits are `example`s, which the build checks and an environment census
+cannot see.  The file therefore declares zero theorems on purpose: a
+restatement would move the number that makes the claim, which is item 229's
+rule applied to this item's own instrument.
+
+**Gates.**  `lake build` **1204** jobs; `Verified: 4520/4520` with
+`Production Coverage Analysis 837/837`; `eventscore` 347/358 and **0
+error-miss**; `suiterunner` 869 passed / 0 failed / 151 skipped; the matrix
+402/402 event and 282/282 json on BOTH binaries; import closure **230**
+library modules — unchanged, the instrument is in `Tests` — and the
+Reflections index complete at 355 imports; all **25** `theorem` sites
+whitelisted capstones; `verify_yaml_spec_annotations.py` exits 1 on the
+standing 19 name mismatches; decline pins 7 + 18 + 6 with ALL PINS OK on each;
+`capstones=25 withSorryAx=0`.  Counts **8736** declarations (unchanged — the
+instrument is in `Tests`, which the recipe does not read), **8173** guards,
+**647** test files, **8** loose disjuncts.  Both flips at baseline with `md5`
+before == after.
+
+**Predictions.**  HELD — P0 (5, against a 5–15 band), P1 (every head-position
+theorem closed, no exceptions), P2, P3 (two capstones, and a third by §3), P4,
+P5 (no negated conclusion, which would have been false).  **REFUTED — P6**:
+zero aliases, so the blindness this item found is not an `abbrev` but an
+INLINED definition, which no alias census catches.  **REFUTED — P7**: the grep
+and the census agree at five named declarations; what the grep misses is the
+one that cannot be named.  **MISSED** — that the population is 103 rather than
+5, and that two thirds of the free set sits at `SLYamlStream`, where the
+predicate's name never occurs.
+
+**The instrument ledger, thirty-nine rows.**  Park constructors (198),
+application sites (200), lemma conclusions (201), the same with a key that
+works (202), indices (203), the runtime's own state (204), the transitive ring
+of a carrier (205), the same closure with its last ring paid (206), the ring's
+payers against a forecast (207), the instruments themselves (208), the object a
+carrier's consumer reads (209), the plan's own remaining list (210), the
+control (211), the provenance (212), the route (213), the pipe (214), the beta
+(215), the arms (216), the branch (217), the reach (218), the corpus (219), the
+matrix (220), the minimal zero (221), the strength ladder (222), the demand
+ledger (223), the spend census (224), the reader census (225), the necessity
+census (226), the worth census (227), the obligation census (228), the span
+(229), the arm price (230), the export (231), the replication (232), the
+uptake (233), the exception (234), the share (235), the chain (236) — and now
+**the FREE**, the first instrument here that reads a theorem's STATEMENT
+against a proof it never had, rather than reading what the proof does.  Its
+corollary is that a defect's cost and a defect's yield are different censuses
+over the same artifact, and thirty-eight rows measured only the first.
+
+**What remains.**  `scannerDrop` is one arm of 167 (item 236), two textual
+construction sites (row 12), and now fifteen statements it is the sole support
+of.  **The number no instrument holds is how many proofs β.5 must redo**, which
+is not any of those three: it is the transitive proof-term dependents of
+`scannerDrop`, and it is bounded below by the two sites and above by nothing
+measured.  The cheap experiment is a walk over `getUsedConstants` of every
+proof value in the library, transitively closed, which costs one environment
+pass and no build; the expensive one is a flip patch that deletes the
+constructor and counts what stops compiling, the form this row already uses
+twice (`flip_210.py`, `flip_supply.py`) and the only form that reports a LOWER
+BOUND honestly, because the build stops at the first failing module.  Run the
+cheap one first and let it bound the flip.  The failure mode to watch is the
+one this item found in its own first pass and item 236 found before it: **the
+census reports its import closure, and a proof-term walk that starts from the
+wrong root under-reports silently** — every dependent it misses is a proof
+someone will discover at β.5 instead of now.
+
+Unchanged: R3's seven productions, whose price is the case split; item 183's
+flip order, whose two REFUTABLE halves are `h_ref`'s readers; the parked Ix
+Step-1 composition on the Ix track's own clock.  Instrument debt, still **ten**
+rows, none paid and none added.
+
 ### REMAINING, in order
 
 The per-item history is the closure log above; this section lists only the
