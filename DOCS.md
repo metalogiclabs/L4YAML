@@ -30679,6 +30679,186 @@ flip order, whose two REFUTABLE halves are `h_ref`'s readers; the parked Ix
 Step-1 composition on the Ix track's own clock.  Instrument debt, still **ten**
 rows, none paid and none added.
 
+### Item 246 (2026-09-23)
+
+**The mandate.**  Item 245's recorded NEXT: *"The number no instrument holds is
+what `BlockStack`'s missing constructor would close … The cheap experiment is a
+FLIP: give `BlockStack` a second arm that opens an entry at a position, rebuild,
+and count the definitions it breaks the way `flip_supplier.py` counts its four
+ends — a carrier's price is the definitions it touches, not the goals it
+closes … The failure mode to watch is that the new arm is a second escape: an
+arm relating two positions the entry's own premises do not connect is
+`scannerDrop` again under another name … so the instrument has to ask FIRST
+whether the arm's two positions are forced by its premises."*
+
+**Its premise held**, with one qualification the mandate itself supplied.  A
+flip does count what the arm breaks — but only inside `StreamAccum`, because
+the build stops at the first failing module, so the count is the flips'
+standing LOWER BOUND and the complete first wave has to come from the
+environment.  Both are here, and they agree.
+
+**§0 — the arm, and the question asked first**
+(`Tests/Guards/Proofs/CarrierArmPrice.lean`).  The arm is
+`SBlockSeqEntries.single`'s first two premises held the way
+`SeqFrame.midQuestion` holds its `?` — at the frame's end, the mandatory
+separator belonging to the next step:
+
+    | seqEntryOpen (n : Nat) (sp sp_i sp' : SurfPos)
+        (hind : SIndent n sp sp_i) (hdash : GLit '-' sp_i sp') : BlockStack sp sp'
+
+`n` is bound by the arm and not by the index, so no statement naming
+`BlockStack sp sp'` would change.  It is defined in the guard as
+`BlockStackOpen` so the library is untouched, and it is graded by the same code
+that grades the library's two hundred and thirty-five: **`candidate=direct`** —
+its target is reached from its source by a directed chain of its own two
+premises, the class `SeqFrame.midQuestion` is in.  The mandate's failure mode
+does not fire.
+
+**§1 — the connectivity census, extended to the proof layer.**  Item 236 read
+the surface grammar's 167 arms for a directed chain of production edges from
+the conclusion's source to its target and found `scannerDrop` alone broken.
+The proof layer's parks and stacks were outside that census and carry CLOSURES
+— a content park says "if comments run from `sp_scan` to `sp_mid` then the
+stream reaches `sp_mid`" and names its block position nowhere else — so a
+two-way reading would misgrade them.  Three grades, each strictly weaker:
+`direct` (item 236's reading, a closure's own hypotheses and body read under
+its telescope), `anchored` (undirected, every premise linking every position it
+mentions, the target linked to SOME position the conclusion names), `broken`.
+
+    prods=129 ctors=235 same=19 direct=221 anchoredOnly=12 broken=2
+    surfArms=167 surfDirect=166
+
+The 167 read exactly as item 236 pinned them.  **`broken=2`, and the two are
+R3's two deletions**: `SLYamlStream.scannerDrop` and
+`PendingNode.pendingFlow`.  Item 244 read the park's gap by hand — "no field
+of it names both `sp_block` and `sp_scan`" — and this is the same fact found by
+a census that did not know where to look.  Nothing else in the library holds
+its target by nothing.
+
+The twelve `anchored`-only arms are the grade's content, not noise: the seven
+content parks (`pendingContent`, `pendingProps`, `pendingDocStart`,
+`pendingDirective`, `pendingBlockContent`, `pendingBlock`, `pendingMapValue`)
+leave their block position floating and connect the scan position to the
+STREAM's start through a closure; `FlowOpenStack`'s four base and nest arms
+leave the outer boundary free — their own docstring says "any gap
+`sp_before → sp_br` lives inside `resume`"; and `InteriorGap.props` connects its
+two positions by two disjunctions whose other side is a bound on the scanner's
+indent floor, and a disjunction forces neither side.
+
+**§2 — the carrier's readers, complete.**
+
+    readers=3 libReaders=2 guardReaders=1 mentions=40 producers=21
+
+Forty declarations mention `BlockStack` (the invariant's conjunct), twenty-one
+build its `nil`, and **two read it**: `absorb_stacks` and `absorb_stacksB`, the
+same two item 127 found by deleting the old arms.  The third reader is item
+245's own `blockStack_refl`.  An added arm touches none of the forty and none
+of the twenty-one; the carrier is carried everywhere and read in two places.
+
+**§3 — the second wave, and where it already sits.**
+
+    absorbReaders=5 absorbPlainReaders=0
+
+With the arm, both absorptions are FALSE as stated — a stream cannot absorb an
+open entry — so their repair is a restatement, and a restatement's price is its
+readers: `preprocessing_eof_extends_stream`, `accum_step_structural`,
+`accum_flow_open_depth0`, `accum_step_block`, `accum_step_content`.  Every one
+of the five spends `absorb_stacksB`; **`absorb_stacks` has no reader in the
+library** — its only citation is `UnwindLandsAtLevel.lean`'s example.  And
+**all five are among `DropDependents`' twenty-seven transitive dependents of
+`scannerDrop`** (`expectedTrans`, item 238): the second wave is inside β.5's
+bill already.  The arm relocates work the twenty-four reproofs owe; it adds
+none.  `accum_flow_open_depth0` holds two of item 243's eleven spend sites.
+
+**§4 — what the arm closes.**  `entry_open_of_park_span` spends the six sites'
+own `SIndent` path and item 244's `dispatchBI_span_glit` into the candidate arm
+and owes nothing beyond the cursor: `drop=false glit=true arm=true`.  Item
+245's `seq_entry_of_park_span` spent the same two facts into `[183]`'s
+constructor and owed `GNot SNsChar` and a whole `SBlockIndented` — a
+production holds an entry closed, a carrier holds it open.
+
+**§5 — the flip, run** (`scripts/flip_carrier.py`, two ends, each restored
+with md5 before == after and `CARRIER errors=0`).  **`arm=2`**:
+`absorb_stacks`, `absorb_stacksB`.  **`retire=5`** (the arm added and both
+absorptions deleted): the five of §3.  Both ends print `CARRIER-PIN agrees`
+against the guard's lists, so the flip's lower bound and the census's complete
+set are one reading.  What the flip cannot reach: the guard's reader, which
+the environment counts, and `UnwindLandsAtLevel.lean` §1's two `example`s,
+which no environment can count — an `example` is not a constant — and which
+exist precisely to pin the single constructor.  Landing the arm would move
+those two and two pinned fields of `ParkGapProduction` (`ctors=235
+blockArms=1`): four instrument readings beside the seven proofs.
+
+**Additions, not corrections.**  `BlockStack`'s §0b docstring now carries the
+price and the honesty reading beside item 127's deletion measurement, and
+`Blueprint/04-capstones.md` carries the same paragraph after item 245's.  The
+`scannerDrop` docstring's "the one arm of the surface grammar's one hundred and
+sixty-seven" stands as written: the proof layer's second escape is the park,
+and it was named there at item 244.
+
+**Predictions, scored.**  HELD — P0 (`direct`), P1 (`broken=2`, both named in
+advance), P3 (the 167 unmoved), P4 (`readers=3`, all three named), P5 (`arm=2`),
+P6 (`retire=5`, the five named, and `absorb_stacks` reader-less), P7 (the
+closing lemma), P8 (`mentions=40` at the band's edge, `producers=21`),
+P9 (gates).  PARTIAL — P2: twelve in the 8–20 band, the seven parks and the
+four flow-open arms as predicted, but `InteriorGap.props` unforeseen.
+MISSED — that the second wave is already inside T, which no prediction reached
+for and which is the item's cheapest finding: read off a pin that has stood
+since item 238.
+
+**Gates.**  Build **1213** jobs.  `Verified: 4520/4520` (837/837); eventscore
+347/358 with 0 error-miss; suiterunner 869/0/151; matrix 402/402 + 282/282 on
+both pipelines; annotations exit 1 (19 standing mismatches); decline pins
+7 + 18 + 6 ALL PINS OK; `capstones=25 withSorryAx=0`; `CarrierArmPrice
+theorems=1 axioms=[Classical.choice, Quot.sound, propext]` — the one authored
+lemma, this module's inductive generating no theorem; closure **230** library
+modules / 355 reflection imports; 25 whitelisted `theorem` sites; counts
+**8736** / **8173** / **656** / **8**; sweep `closure=853 imported=849
+T=27` with `WIDE-PIN agrees` (`DropDependents.lean`'s pin and its two prose
+readings 852/848 → 853/849).  The three standing flips read 5 / 4 / 2, the
+supplier lattice 5 / 1 / 7 and its producer wave 4, and the new carrier flip
+2 / 5 with `CARRIER-PIN agrees` at both ends, all with md5 before == after and
+every end printing `REPAIRED errors=0` or `CARRIER errors=0`.
+`L4YAML/Proofs/Production/StreamAccum.lean`'s md5 moves
+`8e8d067dcaf0b8de2255d827b7306387` → `8d25b6565ea5bc2e2a69c1f8161c8ea1` (the
+§0b docstring); `Blueprint/04-capstones.md`'s `8ef79c8b13af2e681e3cf980ef19f87e` →
+`0dadc68a23b59b88e97c3179fb05b92a`; `L4YAML/Surface/Document.lean` unmoved.
+Six instrument pins over twenty-two perturbations, each throwing.
+
+**The instrument ledger**, forty-seven rows: … the gap (243), the width (244),
+the carrier (245) — and now **the ARM**, the first measurement that grades the
+proof layer's own constructors by the honesty test item 236 applied to the
+surface grammar, and the first flip that ADDS rather than tightens or deletes.
+
+**What remains.**  β.5's bill is two restatements and twenty-four reproofs, and
+the twenty-four are still unpriced.  This item showed the carrier's arm is
+honest, that it is read in two places, and that its second wave is five proofs
+already inside T.  **The number no instrument holds is how many of the second
+wave's exits can carry an open entry THROUGH.**  The five absorb the input
+carrier to feed their parks and re-emit `BlockStack.nil` at every exit
+(twenty-one producers in the library; the five's share is the reading); with
+the arm, an exit whose step did not close the entry must re-emit the INPUT
+carrier, and an exit whose step did must land the content in it — and only the
+second kind is an obligation.  The cheap experiment is a census over the five:
+the exits that re-emit `nil` at the input's own position (a pass-through, a
+rename) against those that re-emit at a NEW position (the entry closed or
+moved, an obligation), each exit named with the position it re-emits at.  The
+expensive one is threading the pass-throughs.  **The failure mode to watch is
+that a pass-through by position is not a pass-through by content**: content
+scanned INSIDE an open entry moves the entry's content boundary without moving
+the carrier's position, so an exit that re-emits at the input position because
+the step did nothing at the block level is free only if the step also did
+nothing inside the entry — and a census by position alone would price it as
+free.  The instrument has to ask FIRST which park each exit hands the content
+to, the way item 244 asked how wide the gap is before pricing what crosses it,
+item 245 asked what the crossing lands in, and this item asked whether the arm
+is honest before pricing what it breaks.
+
+Unchanged: R3's seven productions, whose price is the case split; item 183's
+flip order, whose two REFUTABLE halves are `h_ref`'s readers; the parked Ix
+Step-1 composition on the Ix track's own clock.  Instrument debt, still **ten**
+rows, none paid and none added.
+
 ### REMAINING, in order
 
 The per-item history is the closure log above; this section lists only the
@@ -30696,16 +30876,16 @@ and Step 5 (the converse) is R3's deletion and then R4's narrowing, in that
 order:
 
 ```
-R1 ✓ (44–46) ──→ R2 ✓ (47–51) ──→ R3 (52–245; the deletion OPEN) ──→ R4 ([210]'s narrowing; 1d ✓ 179) ──→ Step 5 ──→ Step 6
+R1 ✓ (44–46) ──→ R2 ✓ (47–51) ──→ R3 (52–246; the deletion OPEN) ──→ R4 ([210]'s narrowing; 1d ✓ 179) ──→ Step 5 ──→ Step 6
 ```
 
-**Where it stands after item 245 (2026-09-22).**  Every number in this table
+**Where it stands after item 246 (2026-09-23).**  Every number in this table
 is a gate's or a pin's, and the instrument that re-derives it is named beside
 it; the prose history is in the R3/R4 sections below and in the closure log.
 
 | row | state | the numbers, and where they come from |
 |---|---|---|
-| **R3** — delete `pendingFlow` and `scannerDrop` | OPEN | `scannerDrop` is applied ONCE (`PendingNode.close_with_ssl`'s `pendingFlow` arm); its flip breaks **2** definitions (`scripts/flip_drop.py`).  `block_dispatch_deferred`, `pendingFlow`'s only producer, is applied **9** times in **4** holders — `_stamp_offcol` 3, `_stamp_nopack` 3, `_inline` 2, the bare escape 1 (`Tests/Guards/Proofs/FlipConsumerSurface.lean`, DEFERRAL lane).  `KeyPackPunt`'s four reasons are produced at **12** sites — `tab` 2, `dedent` 4, `implicitValue` 3, `noKeyContext` 3 — and spent by the same three consumer arms (PACK PUNT lane); item 212's **seven productions** are `dedent`'s four and `noKeyContext`'s three, and their price is the case split.  The deletion's bill is **two restatements and twenty-four reproofs** (items 238–240; `scripts/flip_supplier.py`'s four ends read weak 5 / field 1 / retire 7 / producer 4), the twenty-four unpriced.  Items 241–245 located what the escape's sites owe: the park's gap to the dispatch is ONE scanner step (243), the step is ONE character and the production it owes a `GLit` (244), and the grammar path there ends in whitespace with no carrier for the literal — `BlockStack` has one reflexive constructor against `SeqFrame`/`MapFrame`'s ten, so the six one-step sites owe a **block node**, not a character (245; `Tests/Guards/Proofs/ParkGapProduction.lean`).  NEXT is item 246, the `BlockStack` flip. |
+| **R3** — delete `pendingFlow` and `scannerDrop` | OPEN | `scannerDrop` is applied ONCE (`PendingNode.close_with_ssl`'s `pendingFlow` arm); its flip breaks **2** definitions (`scripts/flip_drop.py`).  `block_dispatch_deferred`, `pendingFlow`'s only producer, is applied **9** times in **4** holders — `_stamp_offcol` 3, `_stamp_nopack` 3, `_inline` 2, the bare escape 1 (`Tests/Guards/Proofs/FlipConsumerSurface.lean`, DEFERRAL lane).  `KeyPackPunt`'s four reasons are produced at **12** sites — `tab` 2, `dedent` 4, `implicitValue` 3, `noKeyContext` 3 — and spent by the same three consumer arms (PACK PUNT lane); item 212's **seven productions** are `dedent`'s four and `noKeyContext`'s three, and their price is the case split.  The deletion's bill is **two restatements and twenty-four reproofs** (items 238–240; `scripts/flip_supplier.py`'s four ends read weak 5 / field 1 / retire 7 / producer 4), the twenty-four unpriced.  Items 241–245 located what the escape's sites owe: the park's gap to the dispatch is ONE scanner step (243), the step is ONE character and the production it owes a `GLit` (244), and the grammar path there ends in whitespace with no carrier for the literal — `BlockStack` has one reflexive constructor against `SeqFrame`/`MapFrame`'s ten, so the six one-step sites owe a **block node**, not a character (245; `Tests/Guards/Proofs/ParkGapProduction.lean`).  The arm that would hold it is HONEST — `direct` under item 236's connectivity reading, which over the proof layer's 235 arms names exactly R3's two deletions as the library's only escapes — and it is read in **2** places and carried in 40; its second wave is **5** proofs, all inside T's twenty-seven (246; `scripts/flip_carrier.py` arm=2 retire=5, `Tests/Guards/Proofs/CarrierArmPrice.lean`).  NEXT is item 247, the pass-through census over the five's exits. |
 | **R4** — narrow `[210]` (`implicitContinue`'s slot, `GOpt SLAnyDocument` → `GOpt SLExplicitDocument`) | OPEN, **behind R3** | The flip breaks **5** definitions (`scripts/flip_210.py`) — the flip's own WORK, constant since item 166.  What a payment moves is the consumer surface: **1** raw holder / 1 application and **7** guard holders / 14 applications (`FlipConsumerSurface`, RAW ROUTES + GUARDS lanes), in three classes — refutable arms, three missing routes, and `pendingFlow`, which no field can pay (item 183).  The third class is why R4 lands after R3's deletion; the refutable arms and the three routes are ORDERED after it by item 183, not blocked by it.  1d (`0 < m`) is CLOSED (item 179). |
 | **Step 5** — the converse `grammar_completeness` | **NOT STARTED** | No declaration of that name exists under `L4YAML/` or `Tests/`, and no item of the closure log is Step 5's.  It is unprovable, not merely unproved, while either over-approximation stands: `inYamlLanguage_everything : ∀ s, InYamlLanguage s` compiles today (`Tests/Guards/Proofs/SuffixGapAudit.lean` §5, item 236), and `implicitContinue` admits `- "a"⏎  - b` (item 30). |
 | **Step 6** — `parse_iff_grammar` | NOT STARTED | After Step 5. |

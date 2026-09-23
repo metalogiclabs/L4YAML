@@ -672,6 +672,19 @@ force their two positions equal. Composed into the grammar's own entry
 constructor the literal is premise two of `[183]`'s, whose conclusion ends where
 the entry's content ends — so what the six owe is a block node, not a character.
 
+**And the missing arm is honest, and cheap where it is read**
+([`CarrierArmPrice.lean`](../Tests/Guards/Proofs/CarrierArmPrice.lean),
+[`flip_carrier.py`](../scripts/flip_carrier.py)). The arm that would hold the
+park's `-` — `s-indent(n)` then the indicator, `[183]`'s entry with its content
+still owed — reaches its target from its source through its own two premises,
+the reading under which `scannerDrop` is broken; the same reading over the
+proof layer's arms names exactly two escapes, `scannerDrop` and the park
+`pendingFlow`, which are the two deletions R3 names. Forty declarations mention
+`BlockStack` and twenty-one build its `nil`; the arm touches none of them. It
+touches the two absorptions whose match is total on `nil`, and — both being
+false once an entry can be open — their five readers. Two, then five: the
+carrier's price is where it is read, not where it is carried.
+
 **Significance & risk**
 
 - **7.1 `parse_strict_proof`** *(headline, ✅)* — *Significance:*

@@ -2554,7 +2554,23 @@ lemma props_couplings_of_push {s_ad s' : ScannerState} {tok : YamlToken}
     **Where the flow nesting is.**  Also not here: `FlowStackB` carries the open
     flow collections (`FlowOpenStack` at positive depth), and the flow
     indicators themselves ride `PendingNode.pendingFlow`, composed at
-    consumption time by `close_with_ssl`. -/
+    consumption time by `close_with_ssl`.
+
+    **What a second arm costs** (`scripts/flip_carrier.py`, DOCS item 246).
+    Forty declarations mention `BlockStack` and twenty-one build its `nil`;
+    an added arm touches none of them.  It touches the two absorptions
+    below, whose matches are total on `nil`, and — because a stream cannot
+    absorb an OPEN entry, so both are then false as stated — their five
+    readers: `preprocessing_eof_extends_stream`, `accum_step_structural`,
+    `accum_flow_open_depth0`, `accum_step_block`, `accum_step_content`.
+    `absorb_stacks` itself has no reader in the library; every one of the
+    five spends `absorb_stacksB`.  The arm that would hold the park's `-` —
+    `s-indent(n)` then the indicator, `[183]`'s entry with its content still
+    owed — is honest by the connectivity reading item 236 applied to the
+    surface grammar: its target is reached from its source by its own two
+    premises (`Tests/Guards/Proofs/CarrierArmPrice.lean`).  The same reading
+    over this file's arms names exactly two escapes, `scannerDrop` and
+    `PendingNode.pendingFlow`, which are R3's two deletions. -/
 
 inductive BlockStack : SurfPos → SurfPos → Prop where
   /-- No active block collections. At document level or stream start. -/

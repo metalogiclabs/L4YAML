@@ -28,7 +28,7 @@ the conclusion's target unconnected (item 236), and the sole support of
 **fifteen** statements that are true without their hypotheses (item 237).
 
 This file reads the bill off the elaborated environment.  Over the whole tree —
-848 modules composed in one environment and the 36 executable entry points
+849 modules composed in one environment and the 36 executable entry points
 probed one at a time, `scripts/drop_sweep.py` — the arm has
 
     D=4 direct  S=0 in a statement  R=0 case splits  T=26 transitive
@@ -258,7 +258,7 @@ capstonesInT={c.capstonesInT.size} rawElim={c.rawElim.size}"
 Item 237's census read 109 of 230 modules before it imported the library root,
 and reported a library.  This one pins its own closure first, and
 `scripts/drop_sweep.py` re-runs the same `census` over every module in the tree
-that has an olean — 848 composed in one environment, plus the 36 executable
+that has an olean — 849 composed in one environment, plus the 36 executable
 entry points probed alone, because two root-namespace `main`s cannot share an
 environment.  **The four counts are identical at every closure tried**; the
 pins below are what makes that checkable rather than asserted. -/
@@ -295,7 +295,7 @@ def expectedClosure : Nat := 233
     a hint and not a check — item 237's own finding is that a statement can
     assert `InYamlLanguage` without naming it. -/
 def expectedWide : String :=
-  "closure=852 imported=848 excluded=36 readable=36 unreadable=0 \
+  "closure=853 imported=849 excluded=36 readable=36 unreadable=0 \
 excludedDecls=600 excludedDropRefs=0"
 
 /-- **The four counts the WHOLE TREE reads, which are not the four this file's
