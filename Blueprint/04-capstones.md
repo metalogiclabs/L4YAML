@@ -699,6 +699,20 @@ promises or demands the stream past it, which an open entry does not supply.
 Twenty-six of them sit in fourteen lemmas outside the twenty-seven β.5 owes:
 the arm's second wave is inside the bill, its third is not.
 
+**And the promises those exits hand on are carried, not built**
+([`RouteShapes.lean`](../Tests/Guards/Proofs/RouteShapes.lean)). The ten parks
+carry fifty-four closures promising the stream from `sp_start`, thirty-nine
+shapes when each is read as the spine of productions it consumes — the
+premise's head with its context and indent shape, and the conclusion's kind —
+against six when read by head alone. At the forty-three exits, the parks' two
+hundred fifty-five closure slots carry the input park's own promise at one
+hundred fifty-four, forward it at eight, punt at eighty-five, and build it from
+the absorbed stream at eight, all in the two map openers. Over everything the
+five reach, a promise is first built from the absorbed stream in eight lemmas,
+at nine constructor slots and eight route hypotheses, and the shapes so built
+are ten: threading the arm is ten re-routing lemmas spent where a promise is
+first built, and the forty-three exits inherit the result.
+
 **Significance & risk**
 
 - **7.1 `parse_strict_proof`** *(headline, ✅)* — *Significance:*

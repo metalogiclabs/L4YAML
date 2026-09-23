@@ -32,6 +32,7 @@ import Tests.Guards.Proofs.ParkGapWidth
 import Tests.Guards.Proofs.ParkGapProduction
 import Tests.Guards.Proofs.CarrierArmPrice
 import Tests.Guards.Proofs.ExitHandoff
+import Tests.Guards.Proofs.RouteShapes
 import Tests.Guards.Proofs.FreeSurfaceCensus
 import Tests.Guards.Proofs.EndToEndCorrectness
 import Tests.Guards.Proofs.EscapeResolution

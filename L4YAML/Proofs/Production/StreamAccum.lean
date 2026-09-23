@@ -2587,7 +2587,23 @@ lemma props_couplings_of_push {s_ad s' : ScannerState} {tok : YamlToken}
     or demands the stream past it — thirty-five to a content park, one to
     `pendingFlow`, three to a park a callee built, four to a flow base opened
     at the exit — which an open entry does not supply.  Twenty-six of the
-    forty-three sit in fourteen lemmas outside the twenty-seven β.5 owes. -/
+    forty-three sit in fourteen lemmas outside the twenty-seven β.5 owes.
+
+    **What the hand-offs are built from** (`Tests/Guards/Proofs/RouteShapes.lean`,
+    DOCS item 248).  The ten parks carry fifty-four closures that promise the
+    stream from `sp_start` — forty stated on their fields and fourteen packed
+    inside the three `h_key`s — and read as production SPINES (each premise
+    with its context and indent shape, the conclusion's kind) they are
+    thirty-nine shapes over six heads.  At the forty-three exits the parks'
+    two hundred fifty-five closure slots are filled by CARRYING the input
+    park's own promise at one hundred fifty-four, forwarding it at eight,
+    punting at eighty-five, and building it from the absorbed stream at
+    eight — in the two map openers that land a `:` or a `?`.  Over the five,
+    the builders they reach and the thirteen park builders those call, a
+    promise is first built from the absorbed stream at nine constructor slots
+    and eight route hypotheses, in eight lemmas, and the shapes so built are
+    **ten**: the k re-routing lemmas threading the arm costs, spent where the
+    promise is first built and not at the forty-three exits that carry it. -/
 
 inductive BlockStack : SurfPos → SurfPos → Prop where
   /-- No active block collections. At document level or stream start. -/
