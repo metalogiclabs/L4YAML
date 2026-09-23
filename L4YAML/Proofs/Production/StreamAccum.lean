@@ -2557,8 +2557,10 @@ lemma props_couplings_of_push {s_ad s' : ScannerState} {tok : YamlToken}
     consumption time by `close_with_ssl`.
 
     **What a second arm costs** (`scripts/flip_carrier.py`, DOCS item 246).
-    Forty declarations mention `BlockStack` and twenty-one build its `nil`;
-    an added arm touches none of them.  It touches the two absorptions
+    Forty declarations mention `BlockStack` and twenty-one name its `nil` —
+    eighteen build it, and three read the carrier and only leave the
+    constructor in a binder their `cases` writes (DOCS item 247); an added
+    arm touches none of them.  It touches the two absorptions
     below, whose matches are total on `nil`, and — because a stream cannot
     absorb an OPEN entry, so both are then false as stated — their five
     readers: `preprocessing_eof_extends_stream`, `accum_step_structural`,
@@ -2570,7 +2572,22 @@ lemma props_couplings_of_push {s_ad s' : ScannerState} {tok : YamlToken}
     surface grammar: its target is reached from its source by its own two
     premises (`Tests/Guards/Proofs/CarrierArmPrice.lean`).  The same reading
     over this file's arms names exactly two escapes, `scannerDrop` and
-    `PendingNode.pendingFlow`, which are R3's two deletions. -/
+    `PendingNode.pendingFlow`, which are R3's two deletions.
+
+    **What the five's exits hand on** (`Tests/Guards/Proofs/ExitHandoff.lean`,
+    DOCS item 247).  The five and the seventeen builders they reach have
+    sixty-one exits.  Fifteen re-emit the input carrier beside the input
+    stream — the flow-interior branches of `accum_step_block` and
+    `accum_step_content`, and three of `accum_flow_open_depth0`'s opens, where
+    the carrier is never absorbed — and those carry an open entry through
+    unchanged.  Forty-three build `nil`, thirty-seven of them at the input
+    position; a `nil` at the input position is the absorption's residue, not
+    a pass-through: its package re-emits the absorbed stream beside it, and
+    every one of the forty-three hands the content to a route that promises
+    or demands the stream past it — thirty-five to a content park, one to
+    `pendingFlow`, three to a park a callee built, four to a flow base opened
+    at the exit — which an open entry does not supply.  Twenty-six of the
+    forty-three sit in fourteen lemmas outside the twenty-seven β.5 owes. -/
 
 inductive BlockStack : SurfPos → SurfPos → Prop where
   /-- No active block collections. At document level or stream start. -/

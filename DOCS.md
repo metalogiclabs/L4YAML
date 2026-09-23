@@ -30750,7 +30750,7 @@ indent floor, and a disjunction forces neither side.
     readers=3 libReaders=2 guardReaders=1 mentions=40 producers=21
 
 Forty declarations mention `BlockStack` (the invariant's conjunct), twenty-one
-build its `nil`, and **two read it**: `absorb_stacks` and `absorb_stacksB`, the
+~~build~~ name its `nil` (eighteen build it; the three readers leave it in the `HEq` binder their `cases` writes — corrected at item 247), and **two read it**: `absorb_stacks` and `absorb_stacksB`, the
 same two item 127 found by deleting the old arms.  The third reader is item
 245's own `blockStack_refl`.  An added arm touches none of the forty and none
 of the twenty-one; the carrier is carried everywhere and read in two places.
@@ -30859,6 +30859,213 @@ flip order, whose two REFUTABLE halves are `h_ref`'s readers; the parked Ix
 Step-1 composition on the Ix track's own clock.  Instrument debt, still **ten**
 rows, none paid and none added.
 
+### Item 247 (2026-09-23)
+
+**The mandate.**  Item 246's recorded NEXT: *"The number no instrument holds is
+how many of the second wave's exits can carry an open entry THROUGH … The five
+absorb the input carrier to feed their parks and re-emit `BlockStack.nil` at
+every exit (twenty-one producers in the library; the five's share is the
+reading) … The cheap experiment is a census over the five: the exits that
+re-emit `nil` at the input's own position (a pass-through, a rename) against
+those that re-emit at a NEW position (the entry closed or moved, an
+obligation), each exit named with the position it re-emits at … The failure
+mode to watch is that a pass-through by position is not a pass-through by
+content … The instrument has to ask FIRST which park each exit hands the
+content to."*
+
+**Its premise held in the delegates and not in the five.**  The five do
+absorb the carrier and hand the absorbed stream to their delegates, and every
+`nil` is built there; but the five's own packages re-emit the INPUT carrier
+beside the input stream at fifteen exits — the flow-interior branches, where
+the carrier is never absorbed — and those fifteen, not any `nil`, are what
+carries an open entry through.  The mandate's "re-emit `nil` at every exit"
+was true of the delegates only.
+
+**§0 — the instrument** (`Tests/Guards/Proofs/ExitHandoff.lean`, 473 lines,
+one environment pass of nineteen seconds).  An exit is the carrier slot of an
+accumulation package: an `And.intro` whose left conjunct has type
+`BlockStack _ _`, with the stream conjunct outside it and the flow and park
+conjuncts inside.  `Meta.forEachExpr'` walks each proof term with binders
+instantiated as fresh free variables — so two exits in parallel branches are
+two, and a `have`-bound stream carries the head of what it was bound to.  The
+slot is classified against the producer's own telescope: `nil` at its INPUT
+position (the target of its `BlockStack` hypothesis, else of its first direct
+`SLYamlStream sp_start _` hypothesis), at another parameter, at a variable
+bound inside the proof, or a compound; `carrier` when the input hypothesis
+itself is re-emitted; `forward` when a callee's carrier is re-packaged.  The
+park's head and the flow conjunct's head are read from the same package —
+asked first, as the mandate said.
+
+    producers=21 readers=3 builders=18 share=18 outsideShare=3 shareInT=3
+    shareOutsideT=15 buildersOutsideT=14 nilOutsideT=26 walked=25
+    slots=61 nil=43 carrier=15 forward=3 other=0 loose=4
+    atInput=37 atParam=1 atBound=5 atExpr=0 nilStreamParam=33 nilStreamBound=10
+    handedNone=0 flowOpen=4 handedPromise=35 handedDemand=1 handedBound=3
+    posFree=52 through=15
+
+**§1 — the five's share, and what item 246's twenty-one are.**  The five reach
+eighteen of the twenty-one constants whose proof names `BlockStack.nil`, and
+the three they do not reach are `absorb_stacks`, `scan_content_gives_stream_v2`
+and `blockStack_refl`.  Read beside item 246's `readers=3`, the twenty-one
+resolve: **eighteen build `nil` and three READ the carrier** — `absorb_stacks`,
+`absorb_stacksB`, `blockStack_refl`, item 246's readers exactly, whose `cases`
+leaves `BlockStack.nil` in the `HEq` binder the index unification writes (each
+walks with `slots=0 loose=1`).  A reference, not a construction.  The builders
+are the seventeen in the share and `scan_content_gives_stream_v2`, which builds
+the initial state's `nil` once and hands it to the loop.
+
+**§2 — every exit, by position.**  Sixty-one slots over twenty-five proofs: the
+twenty-one and the four of the five that are not themselves builders.
+Forty-three build `nil`; fifteen re-emit the input carrier; three forward a
+callee's.  Of the forty-three, **thirty-seven re-emit at the input position
+and six at a new one**, and the six are named: `accum_structural_pending`
+twice at `sp_mid` (the comment gap the structural token closes),
+`accum_flow_open_depth0` once at `sp_mid` (the park closed before the
+bracket), `accum_block_on_closeThenBlock` at `sp_a` and `sp_mid` (the previous
+park closed; the lemma has no direct stream hypothesis, so it has no input
+position and both its exits are new), `accum_content_on_pendingMapValue_indented`
+once at `sp_scan'` (the stream extended to the cursor).  By position alone the
+census reads **fifty-two free**: thirty-seven plus fifteen.
+
+**§3 — what each exit hands the content to, asked first.**  The ten parks read
+statically: `pendingFlow` and `pendingDirective` DEMAND the stream at their
+block position (`h_stream : SLYamlStream sp_start sp_block`); `pendingContent`,
+`pendingProps`, `pendingDocStart`, `pendingBlockContent`, `pendingBlock`,
+`pendingMapValue` PROMISE it past their content (closures ending in
+`SLYamlStream sp_start _`); `noPending` and `pendingDocEnd` say nothing of it.
+The forty-three `nil` exits hand to: thirty-five promising parks
+(`pendingContent` 10, `pendingBlock` 7, `pendingProps` 6, `pendingBlockContent`
+6, `pendingMapValue` 6), one demanding park (`block_dispatch_deferred`'s
+`pendingFlow` — R3's deletion), three parks a callee built
+(`accum_structural_pending`'s, from the structural dispatch), and four flow
+bases OPENED at the exit (`accum_flow_open_depth0`'s `noPending` branches,
+three of them beside a stream bound to `absorb_stacksB`).  **`handedNone=0`:
+no `nil` exit hands nothing.**  And the stream beside the `nil` says why: at
+thirty-three of the forty-three it is the producer's own stream hypothesis —
+in the delegates, the absorbed stream they were handed — and at the other ten
+a stream built inside the proof (four in `accum_flow_open_depth0`, one of them
+`h_stream_block := absorb_stacksB …` three times over; three in
+`accum_structural_pending`; two in `accum_block_on_closeThenBlock`; one in
+`accum_content_on_pendingMapValue_indented`).
+
+**§4 — the two readings side by side.**  A `nil` at the input position is not
+a pass-through; it is the absorption's residue.  Its package re-emits the
+absorbed stream at the very position the `nil` names — `⟨sp_block, sp_block,
+sp_block, sp_scan', h_stream_block, BlockStack.nil sp_block, …⟩` — and hands
+the content to a route built from that stream, which an open entry does not
+supply: with the arm the stream reaches `sp_gram`, and `sp_block` is the far
+side of the entry.  The mandate's failure mode fires on all thirty-seven.
+What carries an entry through is the fifteen `carrier` exits, every one of
+them re-emitting the producer's own stream hypothesis beside the carrier:
+`through=15` — six in `accum_step_block` and six in `accum_step_content`,
+where the flow stack is already open and the pending conjunct is vacuous, and
+three in `accum_flow_open_depth0`, where the stack opened at the exit rides
+the consumed park's own route (`h_route`, `h_close`) and absorbs nothing.
+**Fifteen of sixty-one, and none of them builds `nil`.**  By position
+fifty-two; by content fifteen.
+
+**§5 — the third wave, outside T.**  Item 246 found the second wave — the
+five — inside `DropDependents`' twenty-seven.  The exits the arm must thread
+are not: fourteen of the eighteen builders sit outside T (the six map openers,
+`block_dispatch_deferred`, the four `accum_block_on_*`,
+`content_dispatch_routed`, the two `accum_content_on_*_indented`) and they
+hold **twenty-six** of the forty-three `nil` exits; the seventeen inside T are
+`accum_structural_pending`'s three, `accum_flow_open_depth0`'s four and
+`accum_content_pending`'s ten.  They are outside T because they never touch
+`scannerDrop`: they are reached from the five, not from the arm being deleted,
+and T is the arm's closure.  The arm's second wave is inside β.5's bill; its
+third is fourteen lemmas the bill never counted.
+
+**Corrections.**  Item 246's "twenty-one build its `nil`" — in its §2, in
+`BlockStack`'s §0b docstring and in `Blueprint/04-capstones.md` — counted the
+three readers among the builders; the docstring and the blueprint now say
+"twenty-one name its `nil` — eighteen build it, three read it", and item
+246's entry is struck in place.  The count that mattered there — an added
+arm touches none of them — stands: a reader's `cases` is a total match on
+`nil`, and that is exactly what the arm breaks, so the three were already in
+`readers=3`.  Additions: the docstring and the blueprint carry the exit
+reading after the arm's price; `DropDependents.lean`'s wide-sweep readings
+move 853/849 → 854/850 for the new module.
+
+**Predictions, scored.**  HELD — P3 (37 / 6, all six named with their
+positions), P4 (the parks at the thirty-seven and at the forty-three, every
+count), P5 (the parks' stream reading, and the absorbed stream beside the
+flow opens), P9 (nineteen seconds).  PARTIAL — P0 (`share=18`, but the list
+named seventeen builders and miscounted them as eighteen; the eighteenth is
+`absorb_stacksB`, a reader, and two of the three outside were wrong — the
+initial-state builders do not build `nil`, `scan_content_gives_stream_v2`
+does); P1 (15 outside T, but one of the fifteen is the reader; the builders
+outside T are fourteen); P2 (`nil=43` with every per-producer count exact,
+but `carrier=15` not 12 — three unforeseen in `accum_flow_open_depth0` — and
+three `forward` slots the mandate's "re-emit `nil` at every exit" had no
+class for); P6 (fifteen of sixty-one through, not twelve of fifty-five; the
+substance — none builds `nil`, every `nil` exit hands to a route — held);
+P7 (forty-three owed, thirty-seven re-routed and six closed; in seventeen
+builders, fourteen outside T, not eighteen and fifteen); P8 (gates: build 1214,
+testfiles 657, sweep 854/850 with T=27 unmoved, every other gate at baseline)).  MISSED — that item 246's twenty-one are eighteen builders
+and its three readers, and that the five forward their delegates' exits: two
+facts the walk found in its first run.
+
+**Gates.**  Build **1214** jobs.  `Verified: 4520/4520` (837/837); eventscore
+347/358 with 0 error-miss; suiterunner 869/0/151; matrix 402/402 + 282/282 on
+both pipelines; annotations exit 1 (19 standing mismatches, the output
+identical to item 246's); decline pins 7 + 18 + 6 ALL PINS OK; `capstones=25
+withSorryAx=0`; `ExitHandoff theorems=3 axioms=[propext]` — the three are
+`structure Exit`'s generated `mk.injEq`, `mk.inj` and `mk.sizeOf_spec`, this
+module authoring no lemma (item 229's rule); closure **230** library modules /
+355 reflection imports; 25 whitelisted `theorem` sites; counts **8736** /
+**8173** / **657** / **8**; sweep `closure=854 imported=850
+T=27` with `WIDE-PIN agrees` (`DropDependents.lean`'s pin and its two prose
+readings 853/849 → 854/850).  The three standing
+flips read 5 / 4 / 2, the supplier lattice 5 / 1 / 7 and its producer wave
+4, and the carrier flip 2 / 5 with `CARRIER-PIN agrees` at both ends, all
+with md5 before == after and every end printing `REPAIRED errors=0` or
+`CARRIER errors=0`.
+`L4YAML/Proofs/Production/StreamAccum.lean`'s md5 moves
+`8d25b6565ea5bc2e2a69c1f8161c8ea1` → `b06a0e7d98e11fa91345adaa77d21c5a` (the
+§0b docstring: the corrected count and the exit reading);
+`Blueprint/04-capstones.md`'s `0dadc68a23b59b88e97c3179fb05b92a` →
+`d05cc8b10d3d36cb9306eff4566f8643`; `L4YAML/Surface/Document.lean` unmoved.
+Six instrument pins and one cross-instrument check over **thirty-six**
+perturbations, each throwing — four of them only on a second run, after the
+first reported them NOT CHECKED because their anchors straddled a line
+continuation and nothing had been perturbed; the script now refuses to run an
+unperturbed file.
+
+**The instrument ledger**, forty-eight rows: … the carrier (245), the arm
+(246) — and now **the HAND-OFF**, the first census that reads the packages
+proofs BUILD rather than the statements they prove: every carrier slot of
+the accumulation, with the stream beside it and the park it feeds.
+
+**What remains.**  β.5's bill is two restatements and twenty-four reproofs,
+and the twenty-four are still unpriced.  This item showed that fifteen of the
+second wave's sixty-one exits carry an open entry through, that the
+forty-three `nil` exits are absorptions' residue every one of which hands the
+content to a route that promises or demands the stream past it, and that
+twenty-six of those sit in fourteen lemmas outside T.  **The number no
+instrument holds is how many route SHAPES the forty-three hand-offs have.**
+Threading the arm means re-deriving each hand-off's promise under an open
+entry — the park's closure must reach the stream through `[185]`'s
+`s-l+block-indented` instead of from the absorbed stream at its block
+position — and if the promises consume k distinct productions the price is k
+re-routing lemmas spent at forty-three sites, not forty-three repairs.  The
+cheap experiment is a census over the ten parks' closure fields: each field
+ending in `SLYamlStream sp_start _`, the production spine it consumes (its
+head, its context, its indent argument), grouped across the parks, and beside
+it the six new-position exits' streams (what closed the park there).  The
+expensive one is writing the k lemmas.  **The failure mode to watch is
+grouping by head**: two promises that consume `SBlockIndented` under
+`.blockIn` and `.blockOut`, or at `n` and `n + 1`, are two routes and not
+one, and a census that reads the production's name and not its arguments
+would price the threading at fewer lemmas than it costs — so the instrument
+has to read the whole spine, the way this item read the stream beside the
+`nil` and not the `nil` alone.
+
+Unchanged: R3's seven productions, whose price is the case split; item 183's
+flip order, whose two REFUTABLE halves are `h_ref`'s readers; the parked Ix
+Step-1 composition on the Ix track's own clock.  Instrument debt, still **ten**
+rows, none paid and none added.
+
 ### REMAINING, in order
 
 The per-item history is the closure log above; this section lists only the
@@ -30876,16 +31083,16 @@ and Step 5 (the converse) is R3's deletion and then R4's narrowing, in that
 order:
 
 ```
-R1 ✓ (44–46) ──→ R2 ✓ (47–51) ──→ R3 (52–246; the deletion OPEN) ──→ R4 ([210]'s narrowing; 1d ✓ 179) ──→ Step 5 ──→ Step 6
+R1 ✓ (44–46) ──→ R2 ✓ (47–51) ──→ R3 (52–247; the deletion OPEN) ──→ R4 ([210]'s narrowing; 1d ✓ 179) ──→ Step 5 ──→ Step 6
 ```
 
-**Where it stands after item 246 (2026-09-23).**  Every number in this table
+**Where it stands after item 247 (2026-09-23).**  Every number in this table
 is a gate's or a pin's, and the instrument that re-derives it is named beside
 it; the prose history is in the R3/R4 sections below and in the closure log.
 
 | row | state | the numbers, and where they come from |
 |---|---|---|
-| **R3** — delete `pendingFlow` and `scannerDrop` | OPEN | `scannerDrop` is applied ONCE (`PendingNode.close_with_ssl`'s `pendingFlow` arm); its flip breaks **2** definitions (`scripts/flip_drop.py`).  `block_dispatch_deferred`, `pendingFlow`'s only producer, is applied **9** times in **4** holders — `_stamp_offcol` 3, `_stamp_nopack` 3, `_inline` 2, the bare escape 1 (`Tests/Guards/Proofs/FlipConsumerSurface.lean`, DEFERRAL lane).  `KeyPackPunt`'s four reasons are produced at **12** sites — `tab` 2, `dedent` 4, `implicitValue` 3, `noKeyContext` 3 — and spent by the same three consumer arms (PACK PUNT lane); item 212's **seven productions** are `dedent`'s four and `noKeyContext`'s three, and their price is the case split.  The deletion's bill is **two restatements and twenty-four reproofs** (items 238–240; `scripts/flip_supplier.py`'s four ends read weak 5 / field 1 / retire 7 / producer 4), the twenty-four unpriced.  Items 241–245 located what the escape's sites owe: the park's gap to the dispatch is ONE scanner step (243), the step is ONE character and the production it owes a `GLit` (244), and the grammar path there ends in whitespace with no carrier for the literal — `BlockStack` has one reflexive constructor against `SeqFrame`/`MapFrame`'s ten, so the six one-step sites owe a **block node**, not a character (245; `Tests/Guards/Proofs/ParkGapProduction.lean`).  The arm that would hold it is HONEST — `direct` under item 236's connectivity reading, which over the proof layer's 235 arms names exactly R3's two deletions as the library's only escapes — and it is read in **2** places and carried in 40; its second wave is **5** proofs, all inside T's twenty-seven (246; `scripts/flip_carrier.py` arm=2 retire=5, `Tests/Guards/Proofs/CarrierArmPrice.lean`).  NEXT is item 247, the pass-through census over the five's exits. |
+| **R3** — delete `pendingFlow` and `scannerDrop` | OPEN | `scannerDrop` is applied ONCE (`PendingNode.close_with_ssl`'s `pendingFlow` arm); its flip breaks **2** definitions (`scripts/flip_drop.py`).  `block_dispatch_deferred`, `pendingFlow`'s only producer, is applied **9** times in **4** holders — `_stamp_offcol` 3, `_stamp_nopack` 3, `_inline` 2, the bare escape 1 (`Tests/Guards/Proofs/FlipConsumerSurface.lean`, DEFERRAL lane).  `KeyPackPunt`'s four reasons are produced at **12** sites — `tab` 2, `dedent` 4, `implicitValue` 3, `noKeyContext` 3 — and spent by the same three consumer arms (PACK PUNT lane); item 212's **seven productions** are `dedent`'s four and `noKeyContext`'s three, and their price is the case split.  The deletion's bill is **two restatements and twenty-four reproofs** (items 238–240; `scripts/flip_supplier.py`'s four ends read weak 5 / field 1 / retire 7 / producer 4), the twenty-four unpriced.  Items 241–245 located what the escape's sites owe: the park's gap to the dispatch is ONE scanner step (243), the step is ONE character and the production it owes a `GLit` (244), and the grammar path there ends in whitespace with no carrier for the literal — `BlockStack` has one reflexive constructor against `SeqFrame`/`MapFrame`'s ten, so the six one-step sites owe a **block node**, not a character (245; `Tests/Guards/Proofs/ParkGapProduction.lean`).  The arm that would hold it is HONEST — `direct` under item 236's connectivity reading, which over the proof layer's 235 arms names exactly R3's two deletions as the library's only escapes — and it is read in **2** places and carried in 40; its second wave is **5** proofs, all inside T's twenty-seven (246; `scripts/flip_carrier.py` arm=2 retire=5, `Tests/Guards/Proofs/CarrierArmPrice.lean`).  Of the five's **61** exits, **15** carry an open entry through — the flow-interior branches, where the carrier is never absorbed — and **43** build `nil` and hand the content to a route that promises the stream past the position they re-emit at; **26** of those sit in **14** lemmas outside T (247; `Tests/Guards/Proofs/ExitHandoff.lean`).  NEXT is item 248, the route-shape census over the hand-offs. |
 | **R4** — narrow `[210]` (`implicitContinue`'s slot, `GOpt SLAnyDocument` → `GOpt SLExplicitDocument`) | OPEN, **behind R3** | The flip breaks **5** definitions (`scripts/flip_210.py`) — the flip's own WORK, constant since item 166.  What a payment moves is the consumer surface: **1** raw holder / 1 application and **7** guard holders / 14 applications (`FlipConsumerSurface`, RAW ROUTES + GUARDS lanes), in three classes — refutable arms, three missing routes, and `pendingFlow`, which no field can pay (item 183).  The third class is why R4 lands after R3's deletion; the refutable arms and the three routes are ORDERED after it by item 183, not blocked by it.  1d (`0 < m`) is CLOSED (item 179). |
 | **Step 5** — the converse `grammar_completeness` | **NOT STARTED** | No declaration of that name exists under `L4YAML/` or `Tests/`, and no item of the closure log is Step 5's.  It is unprovable, not merely unproved, while either over-approximation stands: `inYamlLanguage_everything : ∀ s, InYamlLanguage s` compiles today (`Tests/Guards/Proofs/SuffixGapAudit.lean` §5, item 236), and `implicitContinue` admits `- "a"⏎  - b` (item 30). |
 | **Step 6** — `parse_iff_grammar` | NOT STARTED | After Step 5. |

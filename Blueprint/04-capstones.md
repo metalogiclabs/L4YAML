@@ -680,10 +680,24 @@ still owed — reaches its target from its source through its own two premises,
 the reading under which `scannerDrop` is broken; the same reading over the
 proof layer's arms names exactly two escapes, `scannerDrop` and the park
 `pendingFlow`, which are the two deletions R3 names. Forty declarations mention
-`BlockStack` and twenty-one build its `nil`; the arm touches none of them. It
-touches the two absorptions whose match is total on `nil`, and — both being
-false once an entry can be open — their five readers. Two, then five: the
-carrier's price is where it is read, not where it is carried.
+`BlockStack` and twenty-one name its `nil` — eighteen build it, three only read
+it; the arm touches none of them. It touches the two absorptions whose match is
+total on `nil`, and — both being false once an entry can be open — their five
+readers. Two, then five: the carrier's price is where it is read, not where it
+is carried.
+
+**And the exits that carry the entry through are the ones that never absorbed it**
+([`ExitHandoff.lean`](../Tests/Guards/Proofs/ExitHandoff.lean)). The five
+readers and the seventeen builders they reach have sixty-one exits. Fifteen
+re-emit the input carrier beside the input stream and carry an open entry
+through unchanged — the flow-interior branches, where the carrier is never
+absorbed. Forty-three build `nil`, thirty-seven at the input position, and by
+position alone fifty-two would read as free; but a `nil` at the input position
+is the absorption's residue — its package re-emits the absorbed stream beside
+it — and every one of the forty-three hands the content to a route that
+promises or demands the stream past it, which an open entry does not supply.
+Twenty-six of them sit in fourteen lemmas outside the twenty-seven β.5 owes:
+the arm's second wave is inside the bill, its third is not.
 
 **Significance & risk**
 
