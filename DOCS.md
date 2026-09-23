@@ -30175,6 +30175,162 @@ flip order, whose two REFUTABLE halves are `h_ref`'s readers; the parked Ix
 Step-1 composition on the Ix track's own clock.  Instrument debt, still **ten**
 rows, none paid and none added.
 
+### Item 244 (2026-09-22)
+
+**THE WIDTH — the gap is ONE scanner step, the step is ONE character, and the
+production it owes is a `GLit`.  Item 243 measured the gap at the park's
+CONSUMERS and found nothing spanning it; the gap is fixed at the park's
+PRODUCER, and read there it factors.  Of `block_dispatch_deferred`'s twelve
+application sites, SIX hold a grammar path from the stream's endpoint up to a
+block-indicator dispatch's input and owe only that dispatch, ONE owes a
+preprocessing step beside it, and five reach nothing.  The dispatch is proved to
+be exactly one `ScannerState.advance`, so what the six owe is `[184]`, `[190]`
+or `[6]`'s own literal — a constructor, not an induction.  What keeps it unpaid
+is the other census: that function has NINETY-SEVEN holders and zero crossings,
+where the content dispatch has one and preprocessing six.  BUILT — one
+instrument, sixteen closed lemmas, and a correction to the mandate this item was
+given, the fourth consecutive one.**
+
+**The mandate.**  Item 243's recorded NEXT: *"The number no instrument holds is
+how many scanner STEPS the gap is wide … at each of the five park calls, ask
+whether a step equation in scope has the park's own state as its INPUT, and
+whether its output state is the one the scan correspondence stands at … The
+failure mode to watch is that the park absorbs a RUN and not a step."*
+
+**The question had to move one level down, and item 243's own reading says so.**
+`atPark=5` records that the scan correspondence stands AT the park's state, so
+the mandate asks for a step from `s'` to `s'`; over the eleven consumer sites it
+reads **0**.  The reason is structural.  `PendingNode.close_with_ssl` spends the
+escape in one branch, `pendingFlow`, whose fields are `h_stream`, `h_arm`,
+`h_nodir` and `h_nic0` — **no field of it names both `sp_block` and `sp_scan`** —
+and its consumers hold no scanner state of their own.  The gap is fixed where
+the park is BUILT.  `block_dispatch_deferred` binds `sp_X` free under
+`SLYamlStream sp_start sp_X`, pins `sp_scan'` with `ScannerSurfCorr s' sp_scan'`,
+and relates the two nowhere; its three class wrappers pass `sp_X` straight
+through.  The census is therefore taken over the producer's own application
+sites: **seven declarations, twelve sites**.
+
+**The answer** (`Tests/Guards/Proofs/ParkGapWidth.lean` §2):
+
+    pop=7 sites=12
+    w0=0  w1=6  w2=1  unreached=5
+    corrBlock=0  corrScan=12
+
+| class | sites | width | the step |
+|---|---|---|---|
+| `_stamp_offcol` / `_stamp_nopack` | 6 | **1** | `scanNextToken_dispatchBlockIndicators` |
+| `block_dispatch_deferred` in `accum_content_pending` | 1 | **2** | `…_preprocess`, `…_dispatchContent` |
+| `_inline` | 2 | unreached | — |
+| the three wrapper bodies | 3 | unreached | nothing in scope |
+
+`corrBlock=0` at all twelve is item 243's reading taken one level down: the
+gap's left endpoint carries no scanner state anywhere in the library.  What the
+six DO hold is a grammar path from `sp_X` to the dispatch's input position, so
+**the gap factors and only the last step is unpaid**.  That is the thing the
+whole 240–244 chain had not found: every previous item read a disconnect, and
+this one reads a factorization with one factor missing.
+
+**The instrument corrected itself, and that is the check.**  Reading production
+edges from anywhere in a hypothesis's type puts `accum_content_pending` at
+width **1**.  Restricting to strictly positive occurrences — `posEdges` descends
+into a `∀`/`→`'s conclusion and never into its premises — moves it to **2**.
+The difference is a site crossing its own gap with an edge that lives inside an
+implication it would have to discharge.  The six stamp sites read 1 under both.
+
+**The two censuses meet at one step, and the meeting point is empty.**  §3
+re-derives item 242's ladder for the three functions these sites cross:
+
+    scanNextToken_dispatchBlockIndicators holders=97  edge=0  chain=0
+    scanNextToken_dispatchContent        holders=129 edge=2  chain=1
+    scanNextToken_preprocess             holders=186 edge=17 chain=6
+
+The last two agree with item 242's `expectedPerFn` exactly.  **The six sites
+whose gap is one step cross the one function with no precedent at all** — not a
+single production lands on its output, let alone a path to it.  The function
+that carries a crossing is at the site whose gap is two.
+
+**The one step is one character, proved rather than counted**
+(`ParkGapWidth.lean` §1).  Every arm of `scanNextToken_dispatchBlockIndicators`
+— `scanBlockEntry`, `scanKey`, `scanValue` — ends in exactly one
+`ScannerState.advance`, and the emits, indent pushes and key clearing in front
+of it leave `input`, `inputEnd`, `offset` and `col` alone:
+
+    cursor_dispatchBI      : … = .ok (some s') → Cursor s' s.advance
+    dispatchBI_consumes_one: sp_in.chars = ch :: rest → sp_out.chars = rest
+    dispatchBI_span_glit   : … → GLit ch sp_in sp_out
+
+So the production owed across the gap's one step is a single `GLit` for `-`, `?`
+or `:` — `[184] c-l-block-seq-entry`, `[190] c-l-block-map-explicit-key` or
+`[6] c-mapping-value`, the three rules the scanner function already carries as
+`@[yaml_spec]` annotations.  **The mandate's RUN warning does not fire**: the
+obligation at the six is a literal, not an induction over a flow collection.
+
+**A holder count moves with what is imported and a crossing does not.**  In
+`Tests.Guards`'s full closure the three functions read 100 / 130 / 189; in
+`ParkGapWidth`'s own closure, 97 / 129 / 186.  The instrument pins the second
+set and says which closure it is, because the first would have looked like a
+disagreement with item 242.
+
+**The census's population is the producer flip's ring.**
+`scripts/flip_supplier.py --end producer` threads the field repair through
+`block_dispatch_deferred` and breaks `accum_content_pending` and the three
+wrappers — four of the census's seven declarations, and the four that apply a
+head directly in a scanner context.  The other three (`accum_block_on_*`) sit
+one ring further out and the flip's build stops before reaching them, which is
+what its own LOWER BOUND line says.  The walk reads what the proof terms hold;
+the flip reads what stops compiling.
+
+**Corrections.**  The mandate's premise, for the fourth consecutive item — 242
+had the producer's four consumers holding a dispatch equation, 243 had the
+census running over the twenty-six, and 244 had it running over the five park
+calls.  `L4YAML/Surface/Document.lean` and `Blueprint/04-capstones.md` both
+recorded the price as "six calls owe a span" without recording what a span is.
+
+**Gates.**  Build **1211** jobs.  `Verified: 4520/4520` (837/837); eventscore
+347/358 with 0 error-miss; suiterunner 869/0/151; matrix 402/402 + 282/282 on
+both pipelines; annotations exit 1 (19 standing mismatches); decline pins
+7 + 18 + 6 ALL PINS OK; `capstones=25 withSorryAx=0`; `ParkGapWidth theorems=23
+axioms=[Classical.choice, Quot.sound, propext]` — sixteen authored, four
+generated by `structure Cursor`'s Prop projections and three by `structure
+Site`, the same shape items 238 and 243 report; closure **230** library modules
+/ 355 reflection imports; 25 whitelisted `theorem` sites; counts **8736** /
+**8173** / **654** / **8**; sweep `closure=851 imported=847 T=27` with `WIDE-PIN
+agrees` — the new module joins the tree without moving `T`, and
+`DropDependents.lean`'s pin and its two prose readings move 850/846 → 851/847
+with it.  The three standing flips read 5 / 4 / 2, the supplier lattice 5 / 1 /
+7 and its producer wave 4, all with md5 before == after and every end printing
+`REPAIRED errors=0`.  `L4YAML/Surface/Document.lean`'s md5 moves
+`126923da275e4a19cb1ae0c1250543af` → `b508aab2c9c35d7cdc65a8981e1d758c`.  Four
+instrument pins over eight perturbations, each throwing.
+
+**The instrument ledger**, forty-five rows: … the false (239), the choice (240),
+the seed (241), the connection (242), the gap (243) — and now **the WIDTH**, the
+first measurement here whose headline is a FACTORIZATION rather than an absence,
+and the first to answer a census question with a proof about the scanner.
+
+**What remains.**  β.5's bill is two restatements and twenty-four reproofs, and
+the twenty-four are still unpriced.  **The number no instrument holds is what a
+`GLit` costs where the six stand.**  This item showed the span owed is one
+literal and that no holder of its step function has ever carried one; item 242
+measured that the library's one worked crossing is `scanNextToken_dispatchContent`'s
+and that it is outside β.5's bill.  The cheap experiment is to spend the literal
+at ONE of the six — take `accum_block_on_pendingBlock`'s `_stamp_offcol` call,
+whose grammar path to the dispatch's input the census already reads, and try to
+close it with `dispatchBI_span_glit` plus the path.  The expensive one is the
+other five.  **The failure mode to watch is that the literal lands in the wrong
+production**: `GLit '-'` is `[184]`'s indicator only when the entry it opens is
+the one the stream is accumulating, and `block_dispatch_deferred`'s park sits at
+`FlowStackB … .sep` with `BlockStack.nil` beside it — so a span that typechecks
+may attach the character to a collection the stream never opened, and the
+instrument has to ask FIRST which production the six sites' grammar path ENDS
+in, the way item 243 asked what the sites already hold before pricing what they
+lack and item 244 asked how wide the gap is before pricing what crosses it.
+
+Unchanged: R3's seven productions, whose price is the case split; item 183's
+flip order, whose two REFUTABLE halves are `h_ref`'s readers; the parked Ix
+Step-1 composition on the Ix track's own clock.  Instrument debt, still **ten**
+rows, none paid and none added.
+
 ### Item 243 (2026-09-22)
 
 **THE GAP — `connected_drop` closes NOTHING, and the reason is that the

@@ -649,6 +649,17 @@ block position: a park holding both would have absorbed no characters, so the
 half that is missing is missing by construction. Six calls owe a span; the
 twenty-four owe nothing until a supplier's statement changes.
 
+**And each span is one character**
+([`ParkGapWidth.lean`](../Tests/Guards/Proofs/ParkGapWidth.lean)). The gap is
+fixed at the park's producer, whose twelve application sites read six at one
+scanner step, one at two, and five with no scanner chain reaching the scan
+position at all. The one step is a block-indicator dispatch, proved to be
+exactly one `ScannerState.advance`, so the production owed is a single `GLit` —
+`[184]`, `[190]` or `[6]`. The obligation is a literal, not an induction over a
+flow collection. What keeps it unpaid is that the crossed function has
+ninety-seven holders and no worked precedent: the one function in the library
+that carries a production across a scanner step is at the site whose gap is two.
+
 **Significance & risk**
 
 - **7.1 `parse_strict_proof`** *(headline, ✅)* — *Significance:*

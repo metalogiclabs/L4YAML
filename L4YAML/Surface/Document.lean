@@ -263,7 +263,25 @@ inductive SLYamlStream : SurfPos → SurfPos → Prop where
       endpoints or deriving a path across them, and identification is the
       empty park.  The price is owed once per CALL, which is six, and not
       once per dependent: `Tests/Guards/Proofs/ParkGapCensus.lean`
-      (DOCS item 243). -/
+      (DOCS item 243).
+
+      **Each of those six calls is ONE scanner step wide, and the step is one
+      character.**  The gap is fixed where the park is built, not where it is
+      spent: `block_dispatch_deferred` binds `s₁` free under a stream and pins
+      `s₂` with a correspondence.  Read at the producer's twelve application
+      sites, six hold a grammar path from `s₁` up to a block-indicator
+      dispatch's input and owe only that dispatch; one owes a preprocessing
+      step beside it; the other five reach nothing.  The dispatch is exactly
+      one `ScannerState.advance` — all three of `scanBlockEntry`, `scanKey` and
+      `scanValue` emit, push at most one indent and advance once — so the
+      production owed across it is a single `GLit` for `-`, `?` or `:`:
+      `[184] c-l-block-seq-entry`, `[190] c-l-block-map-explicit-key` or
+      `[6] c-mapping-value`.  **What the six owe is a literal, not an
+      induction.**  What makes it unpaid is the other census:
+      `scanNextToken_dispatchBlockIndicators` has ninety-seven holders and not
+      one of them carries a production across it, where the content dispatch
+      carries one and preprocessing six:
+      `Tests/Guards/Proofs/ParkGapWidth.lean` (DOCS item 244). -/
   | scannerDrop (s s₁ s₂ s' : SurfPos) :
       SLYamlStream s s₁ →
       SSLComments s₂ s' →

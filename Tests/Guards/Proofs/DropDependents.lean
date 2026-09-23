@@ -28,7 +28,7 @@ the conclusion's target unconnected (item 236), and the sole support of
 **fifteen** statements that are true without their hypotheses (item 237).
 
 This file reads the bill off the elaborated environment.  Over the whole tree —
-846 modules composed in one environment and the 36 executable entry points
+847 modules composed in one environment and the 36 executable entry points
 probed one at a time, `scripts/drop_sweep.py` — the arm has
 
     D=4 direct  S=0 in a statement  R=0 case splits  T=26 transitive
@@ -258,7 +258,7 @@ capstonesInT={c.capstonesInT.size} rawElim={c.rawElim.size}"
 Item 237's census read 109 of 230 modules before it imported the library root,
 and reported a library.  This one pins its own closure first, and
 `scripts/drop_sweep.py` re-runs the same `census` over every module in the tree
-that has an olean — 846 composed in one environment, plus the 36 executable
+that has an olean — 847 composed in one environment, plus the 36 executable
 entry points probed alone, because two root-namespace `main`s cannot share an
 environment.  **The four counts are identical at every closure tried**; the
 pins below are what makes that checkable rather than asserted. -/
@@ -290,7 +290,7 @@ def expectedClosure : Nat := 233
     a hint and not a check — item 237's own finding is that a statement can
     assert `InYamlLanguage` without naming it. -/
 def expectedWide : String :=
-  "closure=850 imported=846 excluded=36 readable=36 unreadable=0 \
+  "closure=851 imported=847 excluded=36 readable=36 unreadable=0 \
 excludedDecls=602 excludedDropRefs=0"
 
 /-- **The four counts the WHOLE TREE reads, which are not the four this file's
@@ -304,13 +304,16 @@ excludedDecls=602 excludedDropRefs=0"
     `Tests/Guards/Proofs/RepairChoice.lean` (DOCS item 240),
     `Tests/Guards/Proofs/ProducerDerivation.lean` (DOCS item 241) and
     `Tests/Guards/Proofs/DispatchPrice.lean` (DOCS item 242) and
-    `Tests/Guards/Proofs/ParkGapCensus.lean` (DOCS item 243) all join the tree
+    `Tests/Guards/Proofs/ParkGapCensus.lean` (DOCS item 243) and
+    `Tests/Guards/Proofs/ParkGapWidth.lean` (DOCS item 244) all join the tree
     without moving `T`: they reverse these edges, census the statements, refute
-    a premise, derive the escape's CONNECTED form and read every site that
-    spends it, and none of that builds the arm — items 242 and 243 both pin
-    `drop=false` for exactly that reason.  Item 243 reads `D`'s four proof
-    terms under their binders rather than their statements, which is what makes
-    `expectedDirect` below the population of a census rather than a list. -/
+    a premise, derive the escape's CONNECTED form, read every site that
+    spends it and measure how wide the gap at those sites is, and none of that
+    builds the arm — items 242, 243 and 244 all pin `drop=false` for exactly
+    that reason.  Item 243 reads `D`'s four proof terms under their binders
+    rather than their statements, which is what makes `expectedDirect` below
+    the population of a census rather than a list; item 244 reads the PARK's
+    producer the same way, one ring outside `D`. -/
 def expectedWideCensus : String :=
   "D=4 S=0 R=0 T=27 capstonesInT=2 rawElim=11"
 
