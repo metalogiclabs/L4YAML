@@ -30497,6 +30497,188 @@ flip order, whose two REFUTABLE halves are `h_ref`'s readers; the parked Ix
 Step-1 composition on the Ix track's own clock.  Instrument debt, still **ten**
 rows, none paid and none added.
 
+### Item 245 (2026-09-22)
+
+**THE CARRIER — the literal IS spendable, and there is nothing at the park to
+spend it on.  Item 244 proved the six sites owe one character; this item asks
+what the character can be appended to and finds an asymmetry the chain had not
+reached.  The six sites' grammar path is ONE edge and it is whitespace
+(`GStar SSWhite` or `SIndent`), so the indicator opens a construct rather than
+closing one.  Thirty of the library's two hundred and thirty-five production
+constructors end at a literal; TWENTY-THREE of the thirty end at one of the
+three block indicators; and every one of the twenty-three is a FLOW form.  `-`
+ends no production anywhere.  The forms that exist need a frame, and
+`block_dispatch_deferred` parks with `BlockStack.nil` beside a depth-zero
+`FlowStackB` — both relations force their two positions equal, so neither
+carrier can hold a character.  Spent into the grammar's own entry constructor
+the literal is premise TWO of `SBlockSeqEntries.single`, whose conclusion ends
+where the entry's CONTENT ends: **what the six owe is a block node, not a
+character.**  BUILT — one instrument, three closed lemmas, and the first mandate
+in five items whose premise held.**
+
+**The mandate.**  Item 244's recorded NEXT: *"The number no instrument holds is
+what a `GLit` costs where the six stand … The cheap experiment is to spend the
+literal at ONE of the six — take `accum_block_on_pendingBlock`'s `_stamp_offcol`
+call, whose grammar path to the dispatch's input the census already reads, and
+try to close it with `dispatchBI_span_glit` plus the path … The failure mode to
+watch is that the literal lands in the wrong production … the instrument has to
+ask FIRST which production the six sites' grammar path ENDS in."*
+
+**Its premise held**, which items 241 through 244 could not say of theirs.  The
+census does read that site at one edge, and the path it reads is the one the
+cheap experiment needs.
+
+**§1 — what the path ends in** (`Tests/Guards/Proofs/ParkGapProduction.lean`):
+
+    pop=7 sites=12 spend=6 nospend=6 len1=6 ends=GStar(SSWhite)+SIndent
+
+One production edge, at all six, from the park's own position to the position
+the dispatch's input correspondence stands at.  Two productions land there and
+both are whitespace — `GStar SSWhite` is `[33] s-white` repeated.  Nothing on
+the path opens a collection and nothing on it is a literal.
+
+The label is not taken bare.  `GStar` alone says "a repetition of something";
+`edgeLabel` renders the inner relation's head beside the combinator, so the
+pinned row names WHICH production is repeated.  Read bare it would have said
+`ends=GStar+SIndent` and hidden the entire content of the reading.
+
+`spend=6 nospend=6` — the six are `_stamp_offcol` and `_stamp_nopack` at each of
+the three `accum_block_on_*` lemmas.  This instrument prices ONE step, so
+`accum_content_pending`, whose width item 244 read as two, is NOSPEND here and
+outside this item's frame.
+
+**§2 — what can move a stream's right endpoint.**  `SLYamlStream`'s three honest
+constructors each reach their endpoint through `GStar SLDocumentSuffix`, so the
+alphabet is three productions wide, and only one of the three can contain a
+`GLit` at all:
+
+    SLAnyDocument    -> GLit depth=4
+        chain = SLAnyDocument > SLBareDocument > SBlockNode > SBlockSeqEntries > GLit
+    SLDocumentPrefix -> GLit UNREACHABLE
+    SLDocumentSuffix -> GLit UNREACHABLE
+
+The two `UNREACHABLE` readings are about the COMBINATOR and not about
+characters: `SCDocumentEnd.mk` matches `'.' :: '.' :: '.' :: rest` in its own
+constructor pattern rather than composing three `GLit`s.  Stated about `GLit`
+the reading is exact; stated as "the suffix has no literals" it would be false,
+and the pin's docstring says which one it is.
+
+**§3 — the asymmetry, which is the finding.**  Over `prods=129` productions and
+`ctors=235` constructors, **thirty constructors end at a literal**:
+
+| character | constructors | where |
+|---|---|---|
+| `:` | **21** | `SFlowMapEntry`, `SFlowSeqEntry`, `MapFrame`, `SeqFrame`, `PendingFlowMapEntry`, `PendingFlowSeqEntry` |
+| `?` | **2** | `MapFrame.midQuestion`, `SeqFrame.midQuestion` |
+| `}` `]` | 4 | `SFlowMapping`, `SFlowSequence` |
+| `"` `'` `>` | 3 | `SCDoubleQuoted`, `SCSingleQuoted`, `SCNsTagProperty` |
+| **`-`** | **0** | — |
+
+Twenty-three end at one of the three block indicators the park's dispatch
+scans, and **every one of the twenty-three is a flow form**.  `chainEnds=0`:
+none of `SBlockSeqEntries`, `SBlockMapEntry` or `SBlockIndented` — the three
+productions on the six sites' own chain — is among the thirty.  The shape block
+needs exists twenty-three times over, on the other side of the flow/block
+split.
+
+**§4 — why the twenty-three cannot be borrowed, proved.**  They ride the flow
+stack, and `block_dispatch_deferred` hands its park `BlockStack.nil sp_X`
+beside `FlowStackB sp_start 0 0 none 0 #[] #[] .sep sp_X sp_X`.  `blockArms=1`:
+`BlockStack` has ONE constructor and it concludes `BlockStack sp sp`, so the
+library cannot STATE an open block collection — it is a placeholder for one.  A
+depth-zero `FlowStackB` is `nil` by the library's own `pos_eq_of_depth_zero`.
+`park_carriers_absorb_nothing` puts the two together: `sp_gram = sp_flow`.
+**Neither carrier the park hands its consumer can hold a character.**
+
+The ratio names the missing piece: `blockArms=1 seqArms=10 mapArms=10`.
+`SeqFrame` and `MapFrame` — the flow stack's open-collection carriers, the
+things the twenty-three ride — carry TEN constructors each.  `BlockStack`
+carries ONE, and it is the same arm `SeqFrame.betweenEmpty` is: the only one of
+the ten that is reflexive by construction.  The block side has the empty frame
+and none of the nine that follow it.
+
+**§5 — the cheap experiment, spent.**  `seq_entry_of_park_span` composes the
+path's `SIndent` with item 244's `dispatchBI_span_glit` and lands them in
+`SBlockSeqEntries.single` — premises one and two of `[183]`'s entry
+constructor, exactly.  **It typechecks.**  What it buys is
+`SBlockSeqEntries n sp_mid sp_end`, and `sp_end` is where the entry's CONTENT
+ends, not where the character does.  The two unpaid premises are in the lemma's
+own binders: `GNot SNsChar sp_scan'` and `SBlockIndented n .blockIn sp_scan'
+sp_end`.  The lemma's statement is the bill.
+
+**The denominator, checked rather than asserted.**  `prods=129` is every
+authored constant in the instrument's import closure whose type ends in `Prop`
+with two trailing `SurfPos` arguments, and `ctors=235` is their constructors.
+The first draft inserted `GStar`, `GOpt`, `GPlus`, `GLit`, `GChar` and `SIndent`
+explicitly, in case `isProd` did not reach the combinators.  Deleting that
+insert moves `prods` by zero, so the six were already in by the definition and
+the belt-and-braces was hiding what the denominator is.  The insert is gone and
+the check is in the pin's docstring.  This is item 245's analogue of item 244's
+strictly-positive correction: caught by asking what a number counts, not by a
+gate.
+
+**Predictions, scored.**  HELD — P0 (population unmoved), P1 (every path
+non-empty, as `corrBlock=0` forced), P4 (the terminal production is not a block
+collection), P5 (the failure mode fires, and harder: `blockArms=1` means none
+can be expressed), P7 (gates).  PARTIAL — P3: the six paths are one edge long
+and identical at all six, but the terminal is a SET of two productions and I
+predicted one.  REFUTED — P2 (predicted `withPath=7`; a one-step instrument
+reads the width-2 site as NOSPEND, and the prediction conflated "has a path"
+with "spends one step") and P6 (predicted the experiment would not close; it
+closes, and the conclusion's endpoint rather than the typecheck is what is
+wrong, which is the stronger result).  MISSED — the thirty/twenty-three/zero
+asymmetry, which no prediction reached for.
+
+**Corrections volunteered.**  `L4YAML/Surface/Document.lean`'s `scannerDrop`
+docstring and `Blueprint/04-capstones.md` both priced the span at one character
+and stopped there; neither said what the character can be appended to, which is
+the thing that makes it unpaid.  Both now carry §3 and §4.
+
+**Gates.**  Build **1212** jobs.  `Verified: 4520/4520` (837/837); eventscore
+347/358 with 0 error-miss; suiterunner 869/0/151; matrix 402/402 + 282/282 on
+both pipelines; annotations exit 1 (19 standing mismatches); decline pins
+7 + 18 + 6 ALL PINS OK; `capstones=25 withSorryAx=0`; `ParkGapProduction
+theorems=3 axioms=[Classical.choice, Quot.sound, propext]` — three authored and
+none generated, this module declaring no structure, the first guard instrument
+since item 238 whose reported count is entirely authored; closure **230** library
+modules / 355 reflection imports; 25 whitelisted `theorem` sites; counts
+**8736** / **8173** / **655** / **8**; sweep `closure=852 imported=848
+T=27` with `WIDE-PIN agrees`.  The three standing flips read 5 / 4 / 2, the
+supplier lattice 5 / 1 / 7 and its producer wave 4, all with md5 before == after
+and every end printing `REPAIRED errors=0`.
+`L4YAML/Surface/Document.lean`'s md5 moves `b508aab2c9c35d7cdc65a8981e1d758c` →
+`4e5ba610e2af20b1c41917f69c455c51`; `Blueprint/04-capstones.md`'s `d12bc7260b229a03b4adb8a36b5ab12c` →
+`8ef79c8b13af2e681e3cf980ef19f87e`.  Five instrument pins over seventeen perturbations, each throwing.
+
+**The instrument ledger**, forty-six rows: … the choice (240), the seed (241),
+the connection (242), the gap (243), the width (244) — and now **the CARRIER**,
+the first measurement here taken over the grammar's own constructors rather than
+over proof terms, and the first whose headline is an ASYMMETRY between the two
+halves of the same escape.
+
+**What remains.**  β.5's bill is two restatements and twenty-four reproofs, and
+the twenty-four are still unpriced.  **The number no instrument holds is what
+`BlockStack`'s missing constructor would close.**  This item showed the
+twenty-three ready-made literal-ending forms are all flow and that the park's
+block carrier has one reflexive constructor; item 243 measured that the escape
+is spent at eleven sites and item 185 that its producer has nine entrances.  The
+cheap experiment is a FLIP: give `BlockStack` a second arm that opens an entry
+at a position, rebuild, and count the definitions it breaks the way
+`flip_supplier.py` counts its four ends — a carrier's price is the definitions
+it touches, not the goals it closes.  The expensive one is threading it.  **The
+failure mode to watch is that the new arm is a second escape**: an arm relating
+two positions the entry's own premises do not connect is `scannerDrop` again
+under another name, and a flip that counts breakage would price a repair for a
+carrier that re-opens the hole β.5 exists to close — so the instrument has to
+ask FIRST whether the arm's two positions are forced by its premises, the way
+item 244 asked how wide the gap is before pricing what crosses it and item 245
+asked what the crossing lands in before pricing what carries it.
+
+Unchanged: R3's seven productions, whose price is the case split; item 183's
+flip order, whose two REFUTABLE halves are `h_ref`'s readers; the parked Ix
+Step-1 composition on the Ix track's own clock.  Instrument debt, still **ten**
+rows, none paid and none added.
+
 ### REMAINING, in order
 
 The per-item history is the closure log above; this section lists only the

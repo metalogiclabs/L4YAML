@@ -660,6 +660,18 @@ flow collection. What keeps it unpaid is that the crossed function has
 ninety-seven holders and no worked precedent: the one function in the library
 that carries a production across a scanner step is at the site whose gap is two.
 
+**And the character has no carrier**
+([`ParkGapProduction.lean`](../Tests/Guards/Proofs/ParkGapProduction.lean)). The
+six sites' grammar path is one edge of whitespace, so the indicator the dispatch
+scans opens a construct rather than closing one. Thirty of the library's two
+hundred and thirty-five production constructors end at a literal, twenty-three
+of them at one of the three block indicators, and every one of the twenty-three
+is a flow form; `-` ends no production at all. Those forms need a frame, and the
+park is handed `BlockStack.nil` beside a depth-zero `FlowStackB`, both of which
+force their two positions equal. Composed into the grammar's own entry
+constructor the literal is premise two of `[183]`'s, whose conclusion ends where
+the entry's content ends — so what the six owe is a block node, not a character.
+
 **Significance & risk**
 
 - **7.1 `parse_strict_proof`** *(headline, ✅)* — *Significance:*

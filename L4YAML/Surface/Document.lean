@@ -281,7 +281,24 @@ inductive SLYamlStream : SurfPos → SurfPos → Prop where
       `scanNextToken_dispatchBlockIndicators` has ninety-seven holders and not
       one of them carries a production across it, where the content dispatch
       carries one and preprocessing six:
-      `Tests/Guards/Proofs/ParkGapWidth.lean` (DOCS item 244). -/
+      `Tests/Guards/Proofs/ParkGapWidth.lean` (DOCS item 244).
+
+      **And the literal has nowhere to land.**  The path from `s₁` up to the
+      dispatch's input is ONE edge and it is whitespace — `GStar SSWhite` or
+      `SIndent` — so the indicator the dispatch scans opens a construct rather
+      than closing one.  Thirty of the library's two hundred and thirty-five
+      production constructors end at a literal; twenty-three of the thirty end
+      at one of the three block indicators; and every one of the twenty-three
+      is a FLOW form — `MapFrame`, `SeqFrame`, `PendingFlowMapEntry`,
+      `PendingFlowSeqEntry`, `SFlowMapEntry`, `SFlowSeqEntry`.  `-` ends no
+      production anywhere.  The twenty-three that exist need a frame, and
+      `block_dispatch_deferred` parks with `BlockStack.nil` beside a
+      depth-zero `FlowStackB`, both of which force their two positions equal,
+      so neither carrier it hands its consumer can hold a character.  Composed
+      into the grammar's own entry constructor the literal is premise two of
+      `SBlockSeqEntries.single`, whose conclusion ends where the ENTRY'S
+      CONTENT ends: **what the six owe is a block node, not a character** —
+      `Tests/Guards/Proofs/ParkGapProduction.lean` (DOCS item 245). -/
   | scannerDrop (s s₁ s₂ s' : SurfPos) :
       SLYamlStream s s₁ →
       SSLComments s₂ s' →
