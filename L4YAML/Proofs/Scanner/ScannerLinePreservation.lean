@@ -49,11 +49,11 @@ lemma advance_preserves_line_of_ne_break (s : ScannerState) (c : Char)
     · assumption
     · exact absurd hp (by simp)
   have hc : String.Pos.Raw.get s.input ⟨s.offset⟩ = c := by
-    unfold ScannerState.peek? at hp; rw [if_pos hlt] at hp; injection hp
+    unfold ScannerState.peek? at hp; rw [ite_eq_left hlt] at hp; injection hp
   unfold ScannerState.advance
-  rw [if_pos hlt]
+  rw [ite_eq_left hlt]
   dsimp only []
-  rw [hc, if_neg (by simpa using hn), if_neg (by simpa using hr)]
+  rw [hc, ite_eq_right (by simpa using hn), ite_eq_right (by simpa using hr)]
 
 lemma skipSpacesLoop_preserves_line (s : ScannerState) (fuel : Nat) :
     (skipSpacesLoop s fuel).line = s.line := by

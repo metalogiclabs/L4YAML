@@ -241,7 +241,7 @@ example (s : ScannerState)
     (h : (s.indents.any fun e => e.column == (s.col : Int)) = true) :
     scanNextToken_checkBareDocument s = .ok () := by
   unfold scanNextToken_checkBareDocument
-  rw [if_neg (by simp [h])]
+  rw [ite_eq_right (by simp [h])]
 
 /-! ## §4  The reading `preprocess_flow_thread` was dropping
 

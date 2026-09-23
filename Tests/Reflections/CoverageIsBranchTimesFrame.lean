@@ -188,7 +188,7 @@ def nests (n w : Nat) : Prop := n ≤ w
 theorem the_side_condition_is_vacuous_where_it_can_fire :
     ∀ s : Site, s.sees .acrossBreak = true → ∀ w, nests (index s) w := by
   intro s h w
-  simp only [index, h, if_pos]
+  simp only [index, h, ite_eq_left]
   exact Nat.zero_le w
 
 /-! ## §5  What item 41 shipped -/

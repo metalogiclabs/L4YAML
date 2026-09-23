@@ -1458,7 +1458,7 @@ lemma handleBlockLineBreak_indents' {s s' : ScannerState} {content content' : St
 lemma currentIndent_lt_blockContentIndent {s : ScannerState} (h : s.inFlow = false) :
     (s.currentIndent : Int) <
       ((if s.inFlow then s.col else (max 0 (s.currentIndent + 1)).toNat : Nat) : Int) := by
-  rw [if_neg (by simp [h])]
+  rw [ite_eq_right (by simp [h])]
   omega
 
 /-- **Past the handler's under-indent test the gate did not fire.**  A run the
@@ -1556,11 +1556,11 @@ lemma advance_line_succ_of_break (s : ScannerState) (c : Char)
     s.advance.line = s.line + 1 := by
   have hlt : s.offset < s.inputEnd := peek_some_has_more hp
   have hc : String.Pos.Raw.get s.input ⟨s.offset⟩ = c := by
-    unfold ScannerState.peek? at hp; rw [if_pos hlt] at hp; injection hp
+    unfold ScannerState.peek? at hp; rw [ite_eq_left hlt] at hp; injection hp
   simp only [isLineBreakBool, isLineFeedBool, isCarriageReturnBool,
              Bool.or_eq_true, beq_iff_eq] at hlb
   unfold ScannerState.advance
-  rw [if_pos hlt]
+  rw [ite_eq_left hlt]
   dsimp only []
   rw [hc]
   rcases hlb with rfl | rfl <;> simp

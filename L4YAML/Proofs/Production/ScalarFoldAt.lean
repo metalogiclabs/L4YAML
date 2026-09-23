@@ -104,7 +104,7 @@ private lemma skipWhitespace_id_of_not_white (s : ScannerState)
     have hge : ¬ (s.offset < s.inputEnd) := by
       intro hlt
       unfold ScannerState.peek? at hpk
-      rw [if_pos hlt] at hpk
+      rw [ite_eq_left hlt] at hpk
       exact absurd hpk (by simp)
     unfold skipWhitespace
     rw [show s.inputEnd - s.offset = 0 from by omega]

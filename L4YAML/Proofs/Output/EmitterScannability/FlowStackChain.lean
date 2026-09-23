@@ -258,7 +258,7 @@ lemma FlowMonoChain.flowStack_invariant {fl₀ : Nat} {t s' : ScannerState} {n :
     · -- pop: the chain floor keeps the pop inside `extra`
       have h_extra : 0 < extra.size := by omega
       refine ih base extra.pop ?_ ?_ (by omega)
-      · rw [h2, h_eq, Array.pop_append, if_neg]
+      · rw [h2, h_eq, Array.pop_append, ite_eq_right]
         simp only [Array.isEmpty_iff]
         intro hh; subst hh; simp at h_extra
       · rw [Array.size_pop]; omega
@@ -442,7 +442,7 @@ lemma FlowMonoChain.ekStack_invariant {fl₀ : Nat} {t s' : ScannerState} {n : N
       · rw [Array.size_push]; omega
     · have h_extra : 0 < extra.size := by omega
       refine ih base extra.pop ?_ ?_ (by omega)
-      · rw [h2, h_eq, Array.pop_append, if_neg]
+      · rw [h2, h_eq, Array.pop_append, ite_eq_right]
         simp only [Array.isEmpty_iff]
         intro hh; subst hh; simp at h_extra
       · rw [Array.size_pop]; omega

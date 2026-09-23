@@ -564,7 +564,7 @@ lemma scanBlockEntry_indents {s s' : ScannerState}
     (h_noflow : s.inFlow = false) (hok : scanBlockEntry s = .ok s') :
     s'.indents = (pushSequenceIndent s (s.col : Int)).indents := by
   unfold scanBlockEntry at hok
-  simp only [bind, Except.bind, h_noflow, Bool.not_false, if_true] at hok
+  simp only [bind, Except.bind, h_noflow, Bool.not_false, ite_true] at hok
   split at hok
   · simp at hok
   · split at hok
@@ -590,7 +590,7 @@ lemma scanBlockEntry_needIndentCheck {s s' : ScannerState}
     (h_noflow : s.inFlow = false) (hok : scanBlockEntry s = .ok s') :
     s'.needIndentCheck = s.needIndentCheck := by
   unfold scanBlockEntry at hok
-  simp only [bind, Except.bind, h_noflow, Bool.not_false, if_true] at hok
+  simp only [bind, Except.bind, h_noflow, Bool.not_false, ite_true] at hok
   split at hok
   · simp at hok
   · split at hok
@@ -608,7 +608,7 @@ lemma scanKey_indents {s s' : ScannerState}
     (h_noflow : s.inFlow = false) (hok : scanKey s = .ok s') :
     s'.indents = (pushMappingIndent s (s.col : Int)).indents := by
   unfold scanKey at hok
-  simp only [bind, Except.bind, h_noflow, Bool.not_false, if_true] at hok
+  simp only [bind, Except.bind, h_noflow, Bool.not_false, ite_true] at hok
   repeat' split at hok
   all_goals first
     | (simp only [Except.ok.injEq] at hok
@@ -630,7 +630,7 @@ lemma scanKey_needIndentCheck {s s' : ScannerState}
     (h_noflow : s.inFlow = false) (hok : scanKey s = .ok s') :
     s'.needIndentCheck = s.needIndentCheck := by
   unfold scanKey at hok
-  simp only [bind, Except.bind, h_noflow, Bool.not_false, if_true] at hok
+  simp only [bind, Except.bind, h_noflow, Bool.not_false, ite_true] at hok
   repeat' split at hok
   all_goals first
     | (simp only [Except.ok.injEq] at hok
@@ -818,7 +818,7 @@ lemma scanValueValidate_explicit_col {s : ScannerState}
   obtain ⟨ekLine, hek⟩ := Option.isSome_iff_exists.mp h_ek
   unfold scanValueValidate at h_valid
   simp only [bind, Except.bind, pure, Except.pure, h_poss, Bool.false_and,
-    if_neg Bool.false_ne_true, hek] at h_valid
+    ite_eq_right Bool.false_ne_true, hek] at h_valid
   repeat' split at h_valid
   all_goals simp_all
 
@@ -835,7 +835,7 @@ lemma scanValuePrepare_col_le {s : ScannerState}
   unfold scanValuePrepare
   split
   · rename_i h_poss
-    rw [if_pos (by simpa using h_noflow : (!s.inFlow) = true)]
+    rw [ite_eq_left (by simpa using h_noflow : (!s.inFlow) = true)]
     split
     · rename_i h_gt
       show (s.col : Int) ≤ ScannerState.currentIndent _
@@ -857,7 +857,7 @@ lemma scanValuePrepare_col_le {s : ScannerState}
       show (s.col : Int) ≤ s.currentIndent
       exact Int.le_of_eq
         (scanValueValidate_explicit_col (by simpa using h_poss) h_noflow h_ek h_valid)
-    · rw [if_pos (by simpa using h_noflow : (!s.inFlow) = true)]
+    · rw [ite_eq_left (by simpa using h_noflow : (!s.inFlow) = true)]
       exact pushMappingIndent_le s _
 
 /-- **The `:` producer's floor**, when the saved key is the fresh one at the
@@ -962,7 +962,7 @@ lemma scanValuePrepare_key_col_le {s : ScannerState} {k : Nat}
     (k : Int) ≤ (scanValuePrepare s).currentIndent := by
   unfold scanValuePrepare
   split
-  · rw [if_pos (by simpa using h_noflow : (!s.inFlow) = true)]
+  · rw [ite_eq_left (by simpa using h_noflow : (!s.inFlow) = true)]
     split
     · show (k : Int) ≤ ScannerState.currentIndent _
       unfold ScannerState.currentIndent
@@ -1072,7 +1072,7 @@ lemma dispatchBlockIndicators_dash_scan {s s' : ScannerState}
   · exfalso
     have h2 : (('-' : Char) == '?' : Bool) = false := by decide
     have h3 : (('-' : Char) == ':' : Bool) = false := by decide
-    simp only [h2, h3, Bool.false_and, if_neg Bool.false_ne_true] at hok
+    simp only [h2, h3, Bool.false_and, ite_eq_right Bool.false_ne_true] at hok
     simp at hok
 
 /-- The `?` arm names its own scan — but NOT `!inFlow`. -/
@@ -1083,7 +1083,7 @@ lemma dispatchBlockIndicators_key_scan {s s' : ScannerState}
   have hdash : (('?' : Char) == '-' : Bool) = false := by decide
   have hcolon : (('?' : Char) == ':' : Bool) = false := by decide
   simp only [bind, Except.bind, pure, Except.pure, hdash, hcolon, Bool.false_and,
-    if_neg Bool.false_ne_true] at hok
+    ite_eq_right Bool.false_ne_true] at hok
   split at hok
   · split at hok
     · simp at hok
@@ -1120,7 +1120,7 @@ lemma dispatchBlockIndicators_value_scan {s s' : ScannerState}
   have hdash : ((':' : Char) == '-' : Bool) = false := by decide
   have hkey : ((':' : Char) == '?' : Bool) = false := by decide
   simp only [bind, Except.bind, pure, Except.pure, hdash, hkey, Bool.false_and,
-    if_neg Bool.false_ne_true] at hok
+    ite_eq_right Bool.false_ne_true] at hok
   split at hok
   · split at hok
     · simp at hok
@@ -1175,7 +1175,7 @@ lemma dispatchContent_props_indents {s s' : ScannerState} {c : Char}
   cases hc with
   | inl h =>
     subst h
-    simp only [beq_self_eq_true, if_true] at hok
+    simp only [beq_self_eq_true, ite_true] at hok
     split at hok
     · simp at hok
     · split at hok
@@ -1189,7 +1189,7 @@ lemma dispatchContent_props_indents {s s' : ScannerState} {c : Char}
     subst h
     have h1 : (('!' : Char) == '&' : Bool) = false := by decide
     have h2 : (('!' : Char) == '*' : Bool) = false := by decide
-    simp only [h1, h2, if_neg Bool.false_ne_true, beq_self_eq_true, if_true] at hok
+    simp only [h1, h2, ite_eq_right Bool.false_ne_true, beq_self_eq_true, ite_true] at hok
     split at hok
     · simp at hok
     · exact scanTag_preserves_indents hok
@@ -1211,7 +1211,7 @@ lemma scanBlockEntry_tab_ne {s s' : ScannerState}
     scanBlockEntry s ≠ .ok s' := by
   intro hok
   unfold scanBlockEntry at hok
-  simp only [bind, Except.bind, h_noflow, Bool.not_false, if_true, htab] at hok
+  simp only [bind, Except.bind, h_noflow, Bool.not_false, ite_true, htab] at hok
   simp at hok
 
 lemma scanKey_tab_ne {s s' : ScannerState}
@@ -1219,7 +1219,7 @@ lemma scanKey_tab_ne {s s' : ScannerState}
     scanKey s ≠ .ok s' := by
   intro hok
   unfold scanKey scanKeyValidate at hok
-  simp only [bind, Except.bind, h_noflow, Bool.not_false, if_true, htab] at hok
+  simp only [bind, Except.bind, h_noflow, Bool.not_false, ite_true, htab] at hok
   simp at hok
 
 /-- `scanValueClearKey` writes `simpleKey` and nothing else, so the two scans
@@ -1235,7 +1235,7 @@ lemma scanValueIndentTabCheck_tab {s : ScannerState}
     (h_noflow : s.inFlow = false) (htab : s.tabInLineIndent = true) :
     scanValueIndentTabCheck s = .error (.tabInIndentation s.line s.col) := by
   unfold scanValueIndentTabCheck
-  simp only [h_noflow, htab, Bool.false_eq_true, if_false, if_true]
+  simp only [h_noflow, htab, Bool.false_eq_true, ite_false, ite_true]
   rfl
 
 lemma scanValue_tab_ne {s s' : ScannerState}
@@ -1369,12 +1369,12 @@ lemma scanValueIndentTabCheck_run {s : ScannerState}
         rw [h_key h_poss]; exact h_run
       refine ⟨.tabInIndentation s.simpleKey.pos.line s.simpleKey.pos.col, ?_⟩
       unfold scanValueIndentTabCheck
-      simp only [h_noflow, h_til', h_poss, hh, Bool.false_eq_true, if_false, if_true]
+      simp only [h_noflow, h_til', h_poss, hh, Bool.false_eq_true, ite_false, ite_true]
       rfl
     · have h_poss' : s.simpleKey.possible = false := by simpa using h_poss
       refine ⟨.tabInIndentation s.line s.col, ?_⟩
       unfold scanValueIndentTabCheck
-      simp only [h_noflow, h_til', h_poss', h_run, Bool.false_eq_true, if_false, if_true]
+      simp only [h_noflow, h_til', h_poss', h_run, Bool.false_eq_true, ite_false, ite_true]
       rfl
 
 /-- The `:` scan over a tabbed run, in the shape the dispatch hands it. -/

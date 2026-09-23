@@ -821,9 +821,14 @@ def hopName (env : Environment) (e : Edge) : String :=
     A row moving from hidden to visible, as one did here, is not that.
     `skipped` counts constants whose value has fewer leading lambdas than their
     type has binders — the census will not read those, and a rewrite that hides
-    a proof from it has to move this number. -/
+    a proof from it has to move this number.  It moved once for a reason that is
+    not a rewrite: v4.33.0 generated `FrameTail.toCtorIdx` beside `ctorIdx` for
+    the derived enum — a lambda-less alias, which is why this census refused it
+    — and v4.34.0 generates no such constant, so it left the module (31 → 30)
+    and `edges=659` and every category held.  Isolating test:
+    `scratchpad/l4yaml-434-migration/EnumAux.lean` under both toolchains. -/
 def expectedTally : String :=
-  "edges=659 skipped=31 [DECLINE=271, FIELD=58, LOCAL=27, PAY=44, RELAY=68, \
+  "edges=659 skipped=30 [DECLINE=271, FIELD=58, LOCAL=27, PAY=44, RELAY=68, \
 SPLIT=155, VIA=36]"
 
 /-- **The row item 211 read off the compiler's error text and got wrong.**  All

@@ -121,7 +121,7 @@ lemma danglingNode_refutes_landing {s_run s_land : ScannerState}
     (h_ska : s_land.simpleKeyAllowed = true)
     {p : YamlPos} (h_some : danglingNodePos? s_run = some p) : False := by
   unfold scanNextToken_checkDanglingNode at h_dn
-  rw [if_pos h_ska, h_some] at h_dn
+  rw [ite_eq_left h_ska, h_some] at h_dn
   cases h_dn
 
 /-- The same contradiction at end of input, and it needs NO flag: `scanLoop`
@@ -139,7 +139,7 @@ lemma danglingNode_refutes_eof {s : ScannerState}
 example (s_run s_land : ScannerState) (h : s_land.simpleKeyAllowed = false) :
     scanNextToken_checkDanglingNode s_run s_land = .ok () := by
   unfold scanNextToken_checkDanglingNode
-  rw [if_neg (by simp [h])]
+  rw [ite_eq_right (by simp [h])]
 
 /-! ## §3  Revocability — the measurement that decides the shape
 

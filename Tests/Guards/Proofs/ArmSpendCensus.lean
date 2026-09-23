@@ -204,9 +204,12 @@ def expectedBinders : List String :=
     tightening two landings drags three more consumers with them.  **VIA=32**
     names a lemma (`content_park_arm`, `arm_tight_of_block_dispatch`) and
     **FIELD=6** is a park constructor's own field read through `casesOn`, which
-    is the supply route to the one reader. -/
+    is the supply route to the one reader.  `skipped` is `RelaySupplyCensus`'s
+    counter over the same module, and it moved 31 → 30 for that file's reason:
+    v4.34.0 no longer generates the derived enum's `FrameTail.toCtorIdx`, the
+    one refused constant that left the module. -/
 def expectedTally : String :=
-  "edges=85 skipped=31 DECLINE=16 FIELD=6 PAY=8 RELAY=23 VIA=32"
+  "edges=85 skipped=30 DECLINE=16 FIELD=6 PAY=8 RELAY=23 VIA=32"
 
 run_cmd do
   let env ← getEnv

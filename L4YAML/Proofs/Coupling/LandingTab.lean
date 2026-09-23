@@ -193,8 +193,8 @@ lemma skipToContentWs_tab_under_indent {s s' : ScannerState}
     s'.peek? = none ∨
       ∃ ch, s'.peek? = some ch ∧ (ch = '#' ∨ isLineBreakBool ch = true) := by
   unfold skipToContentWs at hok
-  rw [if_pos hnic] at hok
-  rw [if_pos (by rw [skipSpaces_currentIndent]; simp [hle]), htab] at hok
+  rw [ite_eq_left hnic] at hok
+  rw [ite_eq_left (by rw [skipSpaces_currentIndent]; simp [hle]), htab] at hok
   split at hok
   · -- the tab branch: what follows the whites decides
     simp only [] at hok

@@ -350,7 +350,7 @@ lemma skipToContentErrIx_none_of_ws1 {input : String} (c : IxCursor input)
     cases hn : input.utf8ByteSize with
     | zero => rw [hn] at h_lt; exact absurd h_lt (by omega)
     | succ n =>
-      simp only [h_pic, if_true]
+      simp only [h_pic, ite_true]
       cases n with
       | zero => rfl
       | succ m => simp [skipSpacesLoop, h_pic_adv]
@@ -359,7 +359,7 @@ lemma skipToContentErrIx_none_of_ws1 {input : String} (c : IxCursor input)
     cases hn : input.utf8ByteSize with
     | zero => rw [hn] at h_lt; exact absurd h_lt (by omega)
     | succ n =>
-      simp only [h_pwc, if_true]
+      simp only [h_pwc, ite_true]
       cases n with
       | zero => rfl
       | succ m => simp [skipWhitespaceLoop, h_pw_adv]

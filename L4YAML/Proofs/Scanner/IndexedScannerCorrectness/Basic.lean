@@ -486,11 +486,11 @@ lemma scanLoopIx_success_emits_streamEnd {input : String} :
       cases scRes with
       | none =>
         by_cases hFL : s.flowLevel > 0
-        · rw [if_pos hFL] at h; cases h
-        · rw [if_neg hFL] at h
+        · rw [ite_eq_left hFL] at h; cases h
+        · rw [ite_eq_right hFL] at h
           by_cases hDS : s.directivesPresent = true
-          · rw [if_pos hDS] at h; cases h
-          · rw [if_neg hDS] at h
+          · rw [ite_eq_left hDS] at h; cases h
+          · rw [ite_eq_right hDS] at h
             -- §9.2 dangling-node check (item 133): peel its `.ok` arm.
             have hDN : ∃ u, scanLoopIx_checkDanglingNode s = .ok u := by
               cases hx : scanLoopIx_checkDanglingNode s with
@@ -534,11 +534,11 @@ lemma scanLoopIx_increases_tokens {input : String}
       cases scRes with
       | none =>
         by_cases hFL : s.flowLevel > 0
-        · rw [if_pos hFL] at h; cases h
-        · rw [if_neg hFL] at h
+        · rw [ite_eq_left hFL] at h; cases h
+        · rw [ite_eq_right hFL] at h
           by_cases hDS : s.directivesPresent = true
-          · rw [if_pos hDS] at h; cases h
-          · rw [if_neg hDS] at h
+          · rw [ite_eq_left hDS] at h; cases h
+          · rw [ite_eq_right hDS] at h
             -- §9.2 dangling-node check (item 133): peel its `.ok` arm.
             have hDN : ∃ u, scanLoopIx_checkDanglingNode s = .ok u := by
               cases hx : scanLoopIx_checkDanglingNode s with

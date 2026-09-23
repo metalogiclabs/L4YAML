@@ -650,7 +650,7 @@ lemma dangling_none_of_check {s_run s_land : ScannerState}
     (h_ska : s_land.simpleKeyAllowed = true) :
     danglingNodePos? s_run = none := by
   unfold scanNextToken_checkDanglingNode at h_dn
-  rw [if_pos h_ska] at h_dn
+  rw [ite_eq_left h_ska] at h_dn
   cases h : danglingNodePos? s_run with
   | none => rfl
   | some p => rw [h] at h_dn; cases h_dn
@@ -3621,13 +3621,13 @@ lemma KmSound.push {sc s' : ScannerState} {km : Array Bool} {b : Bool}
   obtain ⟨off, h_al, h_bits, h_floor, h_base⟩ := h
   have h_get_top : (sc.simpleKeyStack.push k)[sc.simpleKeyStack.size]! = k := by
     rw [Array.getElem!_eq_getD, Array.getD_eq_getD_getElem?, Array.getElem?_push,
-        if_pos rfl]
+        ite_eq_left rfl]
     rfl
   have h_get_lt : ∀ j, j < sc.simpleKeyStack.size →
       (sc.simpleKeyStack.push k)[j]! = sc.simpleKeyStack[j]! := by
     intro j hj
     rw [Array.getElem!_eq_getD, Array.getElem!_eq_getD, Array.getD_eq_getD_getElem?,
-        Array.getD_eq_getD_getElem?, Array.getElem?_push, if_neg (by omega)]
+        Array.getD_eq_getD_getElem?, Array.getElem?_push, ite_eq_right (by omega)]
   -- Item 75: a NESTED open pushes above the base slot, so the column rides.
   -- Item 79: and a push onto an EMPTY mask is a base open, whose own key IS
   -- the slot — `h_base_new`, refuted wherever the mask came from a frame.
@@ -3637,13 +3637,13 @@ lemma KmSound.push {sc s' : ScannerState} {km : Array Bool} {b : Bool}
     intro _
     by_cases h0 : km.size = 0
     · refine ⟨k, ?_, h_base_new h0, h_stamp_new h0⟩
-      rw [h_sks, Array.getElem?_push, if_pos (by omega)]
+      rw [h_sks, Array.getElem?_push, ite_eq_left (by omega)]
     · obtain ⟨key, h_get, h_col, h_st⟩ := h_base (by omega)
       have hlt : off < sc.simpleKeyStack.size := by
         rcases Nat.lt_or_ge off sc.simpleKeyStack.size with hh | hh
         · exact hh
         · rw [Array.getElem?_eq_none hh] at h_get; exact absurd h_get (by simp)
-      exact ⟨key, by rw [h_sks, Array.getElem?_push, if_neg (by omega)]; exact h_get, h_col,
+      exact ⟨key, by rw [h_sks, Array.getElem?_push, ite_eq_right (by omega)]; exact h_get, h_col,
         h_st.imp (fun h => by rw [h_ivl]; exact h) id⟩
   refine ⟨off, by rw [h_sks]; simp [Array.size_push]; omega,
     fun i hi hb => ?_, fun i hi hb => ?_, h_base'⟩
@@ -3652,12 +3652,12 @@ lemma KmSound.push {sc s' : ScannerState} {km : Array Bool} {b : Bool}
     · subst h_top
       rw [Array.getElem_push_eq] at hb
       refine ⟨k, ?_, h_new hb⟩
-      rw [h_sks, Array.getElem?_push, if_pos (by omega)]
+      rw [h_sks, Array.getElem?_push, ite_eq_left (by omega)]
     · have hi' : i < km.size := by omega
       rw [Array.getElem_push_lt hi'] at hb
       obtain ⟨k', h_get, hRL⟩ := h_bits i hi' hb
       refine ⟨k', ?_, hRL.transport h_pref h_off h_size⟩
-      rw [h_sks, Array.getElem?_push, if_neg (by omega)]
+      rw [h_sks, Array.getElem?_push, ite_eq_right (by omega)]
       exact h_get
   · rw [Array.size_push] at hi
     by_cases h_top : i = km.size
@@ -3710,7 +3710,7 @@ lemma KmSound.pop {sc s' : ScannerState} {km : Array Bool} {b : Bool} {kc : Nat}
       sc.simpleKeyStack.pop[j]! = sc.simpleKeyStack[j]! := by
     intro j hj
     rw [Array.getElem!_eq_getD, Array.getElem!_eq_getD, Array.getD_eq_getD_getElem?,
-        Array.getD_eq_getD_getElem?, Array.getElem?_pop, if_pos (by omega)]
+        Array.getD_eq_getD_getElem?, Array.getElem?_pop, ite_eq_left (by omega)]
   -- Item 75: the base slot sits strictly below the popped top, so the close
   -- of a NESTED level leaves the outermost stacked key where it was.  Item 79:
   -- a pop that EMPTIES the mask owes nothing, and says so by its own premise.
@@ -3719,7 +3719,7 @@ lemma KmSound.pop {sc s' : ScannerState} {km : Array Bool} {b : Bool} {kc : Nat}
         (s'.implicitValueLine = some key.pos.line ∨ True) := by
     intro hpos
     obtain ⟨key, h_get, h_col, h_st⟩ := h_base (by rw [Array.size_push]; omega)
-    exact ⟨key, by rw [h_sks, Array.getElem?_pop, if_pos (by omega)]; exact h_get, h_col,
+    exact ⟨key, by rw [h_sks, Array.getElem?_pop, ite_eq_left (by omega)]; exact h_get, h_col,
       h_st.imp (fun h => by rw [h_ivl]; exact h) id⟩
   refine ⟨off, by rw [h_sks, Array.size_pop]; omega,
     fun i hi hb => ?_, fun i hi hb => ?_, h_base'⟩
@@ -4107,7 +4107,7 @@ lemma flowOpenIdxStack_grow {a b : Array (Positioned YamlToken)}
         exact flowOpenIdxStack_congr_below (m := a.size) hpre (m + 1) (by omega)
       · rw [flowOpenIdxStack_succ]
         obtain ⟨hop, hcl⟩ := hinert m hm (by omega)
-        rw [if_neg (by simp [hcl]), if_neg (by simp [hop])]
+        rw [ite_eq_right (by simp [hcl]), ite_eq_right (by simp [hop])]
         exact ih hm (by omega)
   exact key b.size hsz (Nat.le_refl _)
 
@@ -4273,12 +4273,12 @@ lemma skPop_getElem! {xs : Array SimpleKeyState} {i : Nat} (h : i < xs.size - 1)
 lemma skPush_getElem!_lt {xs : Array SimpleKeyState} {k : SimpleKeyState} {i : Nat}
     (h : i < xs.size) : (xs.push k)[i]! = xs[i]! := by
   rw [Array.getElem!_eq_getD, Array.getElem!_eq_getD, Array.getD_eq_getD_getElem?,
-      Array.getD_eq_getD_getElem?, Array.getElem?_push, if_neg (by omega)]
+      Array.getD_eq_getD_getElem?, Array.getElem?_push, ite_eq_right (by omega)]
 
 /-- The key an open stacks, read back at the top. -/
 lemma skPush_getElem!_at {xs : Array SimpleKeyState} {k : SimpleKeyState} :
     (xs.push k)[xs.size]! = k := by
-  rw [Array.getElem!_eq_getD, Array.getD_eq_getD_getElem?, Array.getElem?_push, if_pos rfl]
+  rw [Array.getElem!_eq_getD, Array.getD_eq_getD_getElem?, Array.getElem?_push, ite_eq_left rfl]
   rfl
 
 /-- **The reservation floor of a parked flow tower** (item 164): the pending
@@ -5147,7 +5147,7 @@ lemma saveSimpleKey_stale {st : ScannerState} (h : st.simpleKeyAllowed = false) 
   unfold saveSimpleKey
   split
   · exact ⟨rfl, rfl, rfl⟩
-  · rw [if_neg (by simp [h])]
+  · rw [ite_eq_right (by simp [h])]
     exact ⟨rfl, rfl, rfl⟩
 
 -- Helper (B.4β): `scanNextToken_preprocess` preserves `flowLevel`. Replicated
@@ -5213,7 +5213,7 @@ lemma preprocess_saved_key_col_of_walk {sc s_prep s_walk : ScannerState} {c : Ch
   have h_shape : (saveSimpleKey s_u).simpleKey.possible = true ∧
       (saveSimpleKey s_u).simpleKey.pos.col = s_u.col := by
     unfold saveSimpleKey
-    rw [if_neg (by simp [h_fl]), if_pos h_al]
+    rw [ite_eq_right (by simp [h_fl]), ite_eq_left h_al]
     exact ⟨rfl, rfl⟩
   refine ⟨by rw [h_save]; exact h_shape.1, ?_⟩
   rw [h_save, saveSimpleKey_col]
@@ -5270,7 +5270,7 @@ lemma unwindIndents_of_size_le_one {s : ScannerState} {col : Int}
     subst hn
     unfold unwindIndentsLoop
     simp only []
-    rw [if_neg (by simp [hs])]
+    rw [ite_eq_right (by simp [hs])]
 
 /-- **The unwind either does nothing or SHRINKS the stack** (item 145).  One
     iteration emits a `blockEnd` and pops, and the guard needs `1 < size`, so a
@@ -5598,7 +5598,7 @@ lemma bareDocument_refutes_landing {sc s_prep : ScannerState} {c : Char}
   have h_lrt := preprocess_lastRealTokenVal_of_indents_eq
     (preprocess_indents_eq_of_no_open_level h_pre h_base h_open) h_real h_pre
   unfold scanNextToken_checkBareDocument at h_bare
-  rw [if_pos (by
+  rw [ite_eq_left (by
     have h_lr : lastRealTokenVal? s_prep.tokens = some t := h_lrt.trans h_t
     unfold ScannerState.inFlow at h_noflow
     simp [ScannerState.inFlow, h_noflow, h_ska, h_open, h_lr, h_comp])] at h_bare
@@ -7610,16 +7610,16 @@ lemma structural_dispatch_to_pending
             exact doc_start_tac h_cond.2 (beq_iff_eq.mp h_cond.1) h.symm
           · -- atDocumentEnd (not inFlow): use by_cases to preserve condition
             by_cases h_docEnd : (s_prep.col == 0 && atDocumentEnd s_prep) = true
-            · rw [if_pos h_docEnd] at h_dispatch
+            · rw [ite_eq_left h_docEnd] at h_dispatch
               rw [Bool.and_eq_true] at h_docEnd
               split at h_dispatch
               · simp at h_dispatch
               · rename_i s_de hde
                 have h := Except.ok.inj h_dispatch; injection h with h
                 exact doc_end_tac h_docEnd.2 s_de hde h.symm
-            · rw [if_neg h_docEnd] at h_dispatch
+            · rw [ite_eq_right h_docEnd] at h_dispatch
               by_cases h_dir : (c == '%' && s_prep.col == 0) = true
-              · rw [if_pos h_dir] at h_dispatch
+              · rw [ite_eq_left h_dir] at h_dispatch
                 rw [Bool.and_eq_true] at h_dir
                 split at h_dispatch
                 · simp at h_dispatch
@@ -7642,7 +7642,7 @@ lemma structural_dispatch_to_pending
                   subst hchars
                   exact GPlus.mk _ sp_mid sp_mid
                     (SLDirective.mk rest sp_col sp_dir sp_mid hgstar hssl) (GStar.nil _)
-              · rw [if_neg h_dir] at h_dispatch
+              · rw [ite_eq_right h_dir] at h_dispatch
                 simp at h_dispatch
     -- Proof of doc_end_tac
     intro hat s_de hde h_eq; subst h_eq
@@ -7713,10 +7713,10 @@ lemma dispatchStructural_col0
         rw [Bool.and_eq_true] at h_cond; exact beq_iff_eq.mp h_cond.1
       · by_cases hde : (s.col == 0 && atDocumentEnd s) = true
         · rw [Bool.and_eq_true] at hde; exact beq_iff_eq.mp hde.1
-        · rw [if_neg hde] at h
+        · rw [ite_eq_right hde] at h
           by_cases hdi : (c == '%' && s.col == 0) = true
           · rw [Bool.and_eq_true] at hdi; exact beq_iff_eq.mp hdi.2
-          · rw [if_neg hdi] at h; simp at h
+          · rw [ite_eq_right hdi] at h; simp at h
 
 -- Helper (Fix B): the SSLComments midpoint coincides with the corr position
 -- when structural dispatch succeeded (it requires col = 0; whitespace or a
@@ -7797,15 +7797,15 @@ lemma structural_dispatch_after_directives
               have h := Except.ok.inj h_dispatch; injection h with h
               exact doc_start_tac h_cond.2 (beq_iff_eq.mp h_cond.1) h.symm
             · by_cases h_docEnd : (s_prep.col == 0 && atDocumentEnd s_prep) = true
-              · rw [if_pos h_docEnd] at h_dispatch
+              · rw [ite_eq_left h_docEnd] at h_dispatch
                 split at h_dispatch
                 · simp at h_dispatch
                 · rename_i s_de hde
                   have h := Except.ok.inj h_dispatch; injection h with h
                   exact doc_end_tac s_de hde h.symm
-              · rw [if_neg h_docEnd] at h_dispatch
+              · rw [ite_eq_right h_docEnd] at h_dispatch
                 by_cases h_dir : (c == '%' && s_prep.col == 0) = true
-                · rw [if_pos h_dir] at h_dispatch
+                · rw [ite_eq_left h_dir] at h_dispatch
                   rw [Bool.and_eq_true] at h_dir
                   split at h_dispatch
                   · simp at h_dispatch
@@ -7813,7 +7813,7 @@ lemma structural_dispatch_after_directives
                     have h := Except.ok.inj h_dispatch; injection h with h
                     exact dir_tac s_dir h_dir_ok h.symm
                       (by rw [show c = '%' from beq_iff_eq.mp h_dir.1] at hpeek; exact hpeek)
-                · rw [if_neg h_dir] at h_dispatch
+                · rw [ite_eq_right h_dir] at h_dispatch
                   simp at h_dispatch
       -- dir_tac: extend the directive run
       intro s_dir h_dir_ok h_eq hpeek_pct; subst h_eq
@@ -9967,7 +9967,7 @@ lemma content_ne_comment {s s' : ScannerState} {c : Char}
   simp only [bind, Except.bind, pure, Except.pure] at h
   rw [show CharPredicates.canStartPlainScalarBool '#' (s.peekAt? 1) s.inFlow = false from by
     unfold CharPredicates.canStartPlainScalarBool
-    rw [if_neg (by decide)]
+    rw [ite_eq_right (by decide)]
     decide] at h
   simp at h
 
@@ -12668,7 +12668,7 @@ lemma propsBlockScanLoop_skip_gap {ts : Array (Positioned YamlToken)} {k : Nat} 
     by_cases hq : q = k
     · subst hq; rfl
     · have hkq' : k < q := by omega
-      rw [propsBlockScanLoop_succ, if_pos (hph q hkq' (Nat.lt_succ_self q))]
+      rw [propsBlockScanLoop_succ, ite_eq_left (hph q hkq' (Nat.lt_succ_self q))]
       exact ih hkq' (fun m hm hmq => hph m hm (by omega))
 
 /-- The excess the scan reports sits strictly below the scan's start. -/
@@ -12694,16 +12694,16 @@ lemma propsBlockScanLoop_excess_lt {ts : Array (Positioned YamlToken)} :
           rw [hk] at h
           by_cases hA : (ts[m]!.val.isAnchorProperty && (propsBlockScanLoop ts m).1)
               = true
-          · rw [if_pos hA] at h
+          · rw [ite_eq_left hA] at h
             have := Option.some.inj h
             omega
-          · rw [if_neg hA] at h
+          · rw [ite_eq_right hA] at h
             by_cases hB : (ts[m]!.val.isTagProperty && (propsBlockScanLoop ts m).2.1)
                 = true
-            · rw [if_pos hB] at h
+            · rw [ite_eq_left hB] at h
               have := Option.some.inj h
               omega
-            · rw [if_neg hB] at h
+            · rw [ite_eq_right hB] at h
               cases h
       · cases h
 
@@ -13002,8 +13002,8 @@ lemma crossedPropsExcessPos?_push_prop_mono {ts : Array (Positioned YamlToken)}
   unfold crossedPropsExcessIdx? at h
   rw [hlast] at h
   simp only [hget, hp, ↓reduceIte] at h
-  rw [propsBlockScanLoop_succ, if_neg (by rw [hget, hph]; simp),
-      if_pos (by rw [hget]; exact hp)] at h
+  rw [propsBlockScanLoop_succ, ite_eq_right (by rw [hget, hph]; simp),
+      ite_eq_left (by rw [hget]; exact hp)] at h
   dsimp only [] at h
   cases hE : (propsBlockScanLoop (ts.push p) ts.size).2.2 with
   | some x => rw [hE] at h; simp at h
@@ -13045,13 +13045,13 @@ lemma propsBlockScanLoop_two_props {ts : Array (Positioned YamlToken)} {k j : Na
   have hbelow : propsBlockScanLoop ts k = propsBlockScanLoop ts (j + 1) :=
     propsBlockScanLoop_skip_gap k hjk (fun m hm hmk => prevRealIdx?_gap hj m hm hmk)
   have hj_flag : (propsBlockScanLoop ts k).1 = true ∨ (propsBlockScanLoop ts k).2.1 = true := by
-    rw [hbelow, propsBlockScanLoop_succ, if_neg (by simp [not_placeholder_of_isNodeProperty hjp]),
-      if_pos hjp]
+    rw [hbelow, propsBlockScanLoop_succ, ite_eq_right (by simp [not_placeholder_of_isNodeProperty hjp]),
+      ite_eq_left hjp]
     rcases isAnchor_or_isTag_of_isNodeProperty hjp with h | h
     · exact Or.inl (by simp [h])
     · exact Or.inr (by simp [h])
-  rw [propsBlockScanLoop_succ, if_neg (by simp [not_placeholder_of_isNodeProperty hkp]),
-    if_pos hkp]
+  rw [propsBlockScanLoop_succ, ite_eq_right (by simp [not_placeholder_of_isNodeProperty hkp]),
+    ite_eq_left hkp]
   dsimp only []
   cases hE : (propsBlockScanLoop ts k).2.2 with
   | some x => exact Or.inl (by simp)
@@ -13083,8 +13083,8 @@ lemma propsBlockScanLoop_excess_of_saturated {ts : Array (Positioned YamlToken)}
     (h : (propsBlockScanLoop ts m).2.2 ≠ none ∨
       ((propsBlockScanLoop ts m).1 = true ∧ (propsBlockScanLoop ts m).2.1 = true)) :
     (propsBlockScanLoop ts (m + 1)).2.2 ≠ none := by
-  rw [propsBlockScanLoop_succ, if_neg (by simp [not_placeholder_of_isNodeProperty hmp]),
-    if_pos hmp]
+  rw [propsBlockScanLoop_succ, ite_eq_right (by simp [not_placeholder_of_isNodeProperty hmp]),
+    ite_eq_left hmp]
   dsimp only []
   rcases h with hE | ⟨hA, hT⟩
   · cases hE' : (propsBlockScanLoop ts m).2.2 with
@@ -13201,7 +13201,7 @@ lemma propsBlockLineCrossLoop_skip_gap {ts : Array (Positioned YamlToken)} {k : 
     by_cases hq : q = k
     · subst hq; rfl
     · have hkq' : k < q := by omega
-      rw [propsBlockLineCrossLoop_succ, if_pos (hph q hkq' (Nat.lt_succ_self q))]
+      rw [propsBlockLineCrossLoop_succ, ite_eq_left (hph q hkq' (Nat.lt_succ_self q))]
       exact ih hkq' (fun m hm hmq => hph m hm (by omega))
 
 /-- **The body push can only ADD a crossing** (item 182).  The block below the
@@ -13301,8 +13301,8 @@ lemma runLineCrossPos?_push_prop_onProp {ts : Array (Positioned YamlToken)}
     unfold runLineCrossPos?
     rw [hlast]
     simp only [hget, hp, ↓reduceIte]
-    rw [propsBlockLineCrossLoop_succ, if_neg (by rw [hget, hph]; simp),
-      if_pos (by rw [hget]; exact hp)]
+    rw [propsBlockLineCrossLoop_succ, ite_eq_right (by rw [hget, hph]; simp),
+      ite_eq_left (by rw [hget]; exact hp)]
     simp only [hloop, hq]
 
 /-- …and a flow close read back to its park — item 182's twin of
@@ -13392,7 +13392,7 @@ lemma danglingNodePos?_none_mono {s t : ScannerState}
         split at h
         · exact absurd h (by simp)
         · rename_i hc2
-          rw [if_neg hc2]
+          rw [ite_eq_right hc2]
           cases hcx : crossedPropsExcessPos? s.tokens with
           | some q => simp only [hcx] at h; exact absurd h (by simp)
           | none =>
@@ -13404,13 +13404,13 @@ lemma danglingNodePos?_none_mono {s t : ScannerState}
         simp only [hj_eq j rfl] at h
         split at h
         · rename_i hc1
-          rw [if_pos hc1]
+          rw [ite_eq_left hc1]
         · rename_i hc1
-          rw [if_neg hc1]
+          rw [ite_eq_right hc1]
           split at h
           · exact absurd h (by simp)
           · rename_i hc2
-            rw [if_neg hc2]
+            rw [ite_eq_right hc2]
             cases hcx : crossedPropsExcessPos? s.tokens with
             | some q => simp only [hcx] at h; exact absurd h (by simp)
             | none =>
@@ -13435,7 +13435,7 @@ lemma danglingNodePos?_ne_none_of_crossed {s : ScannerState} {st : Nat}
   unfold danglingNodePos?
   rw [hflow]
   simp only [Bool.false_eq_true, ↓reduceIte, hrun]
-  rw [if_neg (by simp [hstp])]
+  rw [ite_eq_right (by simp [hstp])]
   split
   · simp
   · cases hcx : crossedPropsExcessPos? s.tokens with
@@ -13857,7 +13857,7 @@ lemma danglingPark_refutes_landing {s s' s_land : ScannerState} {c : Char}
   have h := danglingPark_of_dispatch hok h_noflow
     (CompletedTail.danglingPred h_tail) h_op
   unfold scanNextToken_checkDanglingNode at h_dn
-  rw [if_pos h_ska, h] at h_dn
+  rw [ite_eq_left h_ska, h] at h_dn
   cases h_dn
 
 /-- …and at END OF INPUT, where the check is gated on nothing (`a: 1⏎b`). -/
@@ -13902,7 +13902,7 @@ lemma danglingPred_push_real {ts : Array (Positioned YamlToken)}
   refine ⟨ts.size, ?_, ?_, ?_⟩
   · rw [Array.size_push]
     unfold prevRealIdx?
-    rw [if_neg (by
+    rw [ite_eq_right (by
       rw [getElem!_pos _ ts.size (by simp [Array.size_push])]
       simp [Array.getElem_push, h_ph])]
   · rw [getElem!_pos _ ts.size (by simp [Array.size_push])]
@@ -13920,7 +13920,7 @@ lemma danglingPred_push_placeholder {ts : Array (Positioned YamlToken)}
   refine ⟨i, ?_, ?_, ?_⟩
   · rw [Array.size_push]
     unfold prevRealIdx?
-    rw [if_pos (by
+    rw [ite_eq_left (by
       rw [getElem!_pos _ ts.size (by simp [Array.size_push])]
       simp [Array.getElem_push, h_ph])]
     rw [prevRealIdx?_push ts.size (Nat.le_refl _)]
@@ -14067,13 +14067,13 @@ lemma scanBlockEntry_error_of_bad {s : ScannerState}
     (h_seq : sameIndentSequenceOpen s.tokens (s.col : Int) = false) :
     ∃ e, scanBlockEntry s = .error e := by
   unfold scanBlockEntry
-  simp only [bind, Except.bind, h_noflow, Bool.not_false, if_true]
+  simp only [bind, Except.bind, h_noflow, Bool.not_false, ite_true]
   split
   · exact ⟨_, rfl⟩
   · split
     · exact ⟨_, rfl⟩
     · unfold scanBlockEntryValidate
-      rw [if_pos (by simp [h_map, h_slot, h_seq])]
+      rw [ite_eq_left (by simp [h_map, h_slot, h_seq])]
       exact ⟨_, rfl⟩
 
 /-- …and the same refusal read off the DISPATCH, which is what the accumulation
@@ -14497,7 +14497,7 @@ lemma preprocess_tokens_of_inFlow {sc s_prep : ScannerState} {c : Char}
       exact h_flow
     have hcond : (!s_skip.inFlow && s_skip.needIndentCheck) = false := by
       simp [h_flow_skip]
-    simp only [hcond, if_neg Bool.false_ne_true] at h
+    simp only [hcond, ite_eq_right Bool.false_ne_true] at h
     split at h
     · exact absurd h (by simp)
     · split at h
@@ -14566,13 +14566,13 @@ lemma ParkAnchor.pushInert {sc0 s s' : ScannerState} {d : Nat} {p : Positioned Y
 lemma setIfInBounds_getElem!_ne {ts : Array (Positioned YamlToken)} {i j : Nat}
     {v : Positioned YamlToken} (h : i ≠ j) : (ts.setIfInBounds i v)[j]! = ts[j]! := by
   rw [Array.getElem!_eq_getD, Array.getElem!_eq_getD, Array.getD_eq_getD_getElem?,
-      Array.getD_eq_getD_getElem?, Array.getElem?_setIfInBounds, if_neg h]
+      Array.getD_eq_getD_getElem?, Array.getElem?_setIfInBounds, ite_eq_right h]
 
 /-- …and AT `i`, in bounds, it reads back the written token. -/
 lemma setIfInBounds_getElem!_self {ts : Array (Positioned YamlToken)} {i : Nat}
     {v : Positioned YamlToken} (h : i < ts.size) : (ts.setIfInBounds i v)[i]! = v := by
   rw [Array.getElem!_eq_getD, Array.getD_eq_getD_getElem?, Array.getElem?_setIfInBounds,
-      if_pos rfl, if_pos h]
+      ite_eq_left rfl, ite_eq_left h]
   rfl
 
 /-- **The rewrite keeps every slot bracket-free that already was** — including
@@ -15244,7 +15244,7 @@ lemma km_push_at_open {sc s_prep s_ad s' : ScannerState} {c : Char}
         rw [show s_prep.tokens = s_ad.tokens from h_ad_tk.symm,
             Array.getElem?_eq_none (by omega), Array.getElem?_eq_getElem hi] at h1
         exact absurd h1.symm (by simp)
-    rw [hp, Array.getElem?_push, if_neg (by omega), h_ad_tk]
+    rw [hp, Array.getElem?_push, ite_eq_right (by omega), h_ad_tk]
     exact h1
   have h_size : sc.tokens.size ≤ s'.tokens.size := by
     have h_mono : sc.tokens.size ≤ s_ad.tokens.size := by
@@ -15276,7 +15276,7 @@ lemma km_push_at_open {sc s_prep s_ad s' : ScannerState} {c : Char}
         have := of_decide_eq_false hgt
         rw [Array.getElem?_eq_none (by omega)] at h3
         exact absurd h3 (by simp)
-    rw [hp, Array.getElem?_push, if_neg (by omega)]
+    rw [hp, Array.getElem?_push, ite_eq_right (by omega)]
     exact h3
 
 /-- Shared close-arm transports (item 10): slots below the incoming array and
@@ -15306,7 +15306,7 @@ lemma close_transports {sc s_prep s_ad s' : ScannerState} {c : Char}
       rw [show s_prep.tokens = s_ad.tokens from h_ad_tk.symm,
           Array.getElem?_eq_none (by omega), Array.getElem?_eq_getElem hi] at h1
       exact absurd h1.symm (by simp)
-  rw [hp, Array.getElem?_push, if_neg (by omega), h_ad_tk]
+  rw [hp, Array.getElem?_push, ite_eq_right (by omega), h_ad_tk]
   exact h1
 
 /-- An armed top bit read at a flow close (item 10): the restored key carries
@@ -15609,7 +15609,7 @@ lemma accum_step_flow (sc : ScannerState)
               omega)
           -- Item 75: the `[` stacks the key preprocessing left on the state.
           (by rw [ScannerCorrectness.scanFlowSequenceStart_stack_pushed, Array.size_push,
-                  Nat.add_sub_cancel, Array.getElem?_push, if_pos rfl,
+                  Nat.add_sub_cancel, Array.getElem?_push, ite_eq_left rfl,
                   allowDirectives_update_simpleKey])
           (Or.inl rfl) (by have := glit_col h_open; omega) h0
           (by rw [L4YAML.Proofs.EmitterScannability.scanFlowSequenceStart_preserves_indents,
@@ -15665,7 +15665,7 @@ lemma accum_step_flow (sc : ScannerState)
                   omega)
               -- Item 75: the `{` stacks the key preprocessing left on the state.
               (by rw [ScannerCorrectness.scanFlowMappingStart_stack_pushed, Array.size_push,
-                      Nat.add_sub_cancel, Array.getElem?_push, if_pos rfl,
+                      Nat.add_sub_cancel, Array.getElem?_push, ite_eq_left rfl,
                       allowDirectives_update_simpleKey])
               (Or.inr rfl) (by have := glit_col h_open; omega) h0
               (by rw [L4YAML.Proofs.EmitterScannability.scanFlowMappingStart_preserves_indents,
@@ -16390,11 +16390,11 @@ lemma scanValuePrepare_fields {s : ScannerState} (h_flow : s.inFlow = true) :
   unfold scanValuePrepare
   rw [show (!s.inFlow) = false from by rw [h_flow]; rfl]
   split
-  · rw [if_neg (by simp)]
+  · rw [ite_eq_right (by simp)]
     exact ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩
   · split
     · exact ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩
-    · rw [if_neg (by simp)]
+    · rw [ite_eq_right (by simp)]
       rename_i h_np _
       exact ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, by
         simp only [Bool.not_eq_true] at h_np
@@ -16569,7 +16569,7 @@ lemma scanValue_prefix_off_targets {s s' : ScannerState} (h_flow : s.inFlow = tr
     · rename_i h_poss
       -- the clear-key either kept the pending key (targets excluded by h_ne)
       -- or this branch is unreachable
-      rw [if_neg (by simp)]
+      rw [ite_eq_right (by simp)]
       have h_keep : (scanValueClearKey s).simpleKey.possible = true → 
           (scanValueClearKey s).simpleKey = s.simpleKey := by
         unfold scanValueClearKey
@@ -16588,9 +16588,9 @@ lemma scanValue_prefix_off_targets {s s' : ScannerState} (h_flow : s.inFlow = tr
         omega
     · split
       · rw [h_ck.2.2.2.2.2.2.2.1]
-      · rw [if_neg (by simp)]
+      · rw [ite_eq_right (by simp)]
         rw [h_ck.2.2.2.2.2.2.2.1]
-  rw [Array.getElem?_push, if_neg (by
+  rw [Array.getElem?_push, ite_eq_right (by
     have h_mono : s.tokens.size ≤ (scanValuePrepare (scanValueClearKey s)).tokens.size := by
       have h1 := ScannerCorrectness.scanValuePrepare_tokens_monotonic (scanValueClearKey s)
       rw [h_ck.2.2.2.2.2.2.2.1] at h1
@@ -16612,13 +16612,13 @@ lemma scanValuePrepare_inFlow_tokens {s : ScannerState} (h_flow : s.inFlow = tru
   split
   · rename_i hp
     refine Or.inr ⟨hp, ?_⟩
-    rw [if_neg (by simp [h_flow])]
+    rw [ite_eq_right (by simp [h_flow])]
   · rename_i hp
     simp only [Bool.not_eq_true] at hp
     refine Or.inl ⟨hp, ?_⟩
     split
     · rfl
-    · rw [if_neg (by simp [h_flow])]
+    · rw [ite_eq_right (by simp [h_flow])]
 
 /-- The clear-key either kills the pending key outright or leaves it exactly
     as it was — it never moves a reservation. -/
@@ -16868,7 +16868,7 @@ lemma dispatchBlockEntry_full_prod (sc : ScannerState) (sp : SurfPos)
   · -- First branch failed: '-' ≠ '?' and '-' ≠ ':' means remaining dispatch returns none
     have hq : ('-' == '?' : Bool) = false := by native_decide
     have hc : ('-' == ':' : Bool) = false := by native_decide
-    simp only [hq, hc, Bool.false_and, if_neg Bool.false_ne_true] at hok
+    simp only [hq, hc, Bool.false_and, ite_eq_right Bool.false_ne_true] at hok
     simp at hok
 
 -- The `:` step's production in BLOCK context (item 13): one literal colon.
@@ -16934,7 +16934,7 @@ lemma dispatchBlockValue_full_prod (sc : ScannerState) (sp : SurfPos)
   simp only [bind, Except.bind, pure, Except.pure] at hok
   have hdash : ((':' : Char) == '-' : Bool) = false := by native_decide
   have hq : ((':' : Char) == '?' : Bool) = false := by native_decide
-  simp only [hdash, hq, Bool.false_and, if_neg Bool.false_ne_true] at hok
+  simp only [hdash, hq, Bool.false_and, ite_eq_right Bool.false_ne_true] at hok
   split at hok
   · split at hok
     · simp at hok
@@ -16957,7 +16957,7 @@ lemma dispatchBlockKey_full_prod (sc : ScannerState) (sp : SurfPos)
   simp only [bind, Except.bind, pure, Except.pure] at hok
   have hdash : (('?' : Char) == '-' : Bool) = false := by native_decide
   have hcolon : (('?' : Char) == ':' : Bool) = false := by native_decide
-  simp only [hdash, hcolon, Bool.false_and, if_neg Bool.false_ne_true] at hok
+  simp only [hdash, hcolon, Bool.false_and, ite_eq_right Bool.false_ne_true] at hok
   split at hok
   · split at hok
     · simp at hok
@@ -16988,7 +16988,7 @@ lemma dispatchBlockIndicators_indicator_of_some {s s' : ScannerState} {c : Char}
         have h3 : (c == ':') = false := by simp [hv]
         unfold scanNextToken_dispatchBlockIndicators at h
         simp only [bind, Except.bind, pure, Except.pure, h1, h2, h3,
-          Bool.false_and, if_neg Bool.false_ne_true] at h
+          Bool.false_and, ite_eq_right Bool.false_ne_true] at h
         injection h with h
         exact absurd h (by simp)
 
@@ -17218,7 +17218,7 @@ lemma scanValueIndentTabCheck_keyrun {s : ScannerState}
   · have h_til' : s.tabInLineIndent = false := by simpa using h_til
     refine ⟨.tabInIndentation s.simpleKey.pos.line s.simpleKey.pos.col, ?_⟩
     unfold scanValueIndentTabCheck
-    simp only [h_noflow, h_til', h_poss, h_run, Bool.false_eq_true, if_false, if_true]
+    simp only [h_noflow, h_til', h_poss, h_run, Bool.false_eq_true, ite_false, ite_true]
     rfl
 
 /-- **The `:` scan over a tab in front of its KEY.**  The two branches
@@ -18142,7 +18142,7 @@ lemma scanBlockEntry_ok_sameLine_false {s s' : ScannerState}
       || docStartOnLine s.tokens s.line) = false := by
   unfold scanBlockEntry at h
   simp only [bind, Except.bind] at h
-  rw [if_pos (show (!s.inFlow) = true by rw [h_noflow]; rfl)] at h
+  rw [ite_eq_left (show (!s.inFlow) = true by rw [h_noflow]; rfl)] at h
   split at h
   · simp at h
   · split at h
@@ -18157,7 +18157,7 @@ lemma scanKey_ok_sameLine_false {s s' : ScannerState}
       || docStartOnLine s.tokens s.line) = false := by
   unfold scanKey scanKeyValidate at h
   simp only [bind, Except.bind] at h
-  rw [if_pos (show (!s.inFlow) = true by rw [h_noflow]; rfl)] at h
+  rw [ite_eq_left (show (!s.inFlow) = true by rw [h_noflow]; rfl)] at h
   split at h
   · simp at h
   · -- The `.ok` arm's own equation: `scanKeyValidate` returned `()`, so none of
@@ -18341,7 +18341,7 @@ lemma scanValueValidate_ok_keyLine {s : ScannerState}
   · exfalso
     have hcond : (s.simpleKey.possible && !s.inFlow && s.simpleKey.pos.line != s.line) = true := by
       simp [h_poss, h_noflow, hne]
-    rw [if_pos hcond] at h
+    rw [ite_eq_left hcond] at h
     exact absurd h (by simp)
 
 /-- §8.2.2 `[197]`'s own check, read the same way: with the key already down
@@ -18361,8 +18361,8 @@ lemma scanValueValidate_ok_explicit_col {s : ScannerState} {ek : Nat}
   by_cases hcol : (s.col : Int) = s.currentIndent
   · exact hcol
   · exfalso
-    simp only [h_ne, if_false, beq_iff_eq, bne_iff_ne, ne_eq, hcol, not_false_eq_true,
-      if_true] at h
+    simp only [h_ne, ite_false, beq_iff_eq, bne_iff_ne, ne_eq, hcol, not_false_eq_true,
+      ite_true] at h
     exact absurd h (by simp)
 
 /-- **The lift through `scanValueClearKey`** — the two checks joined at the one
@@ -20616,7 +20616,7 @@ lemma checkAdjacentValue_refutes_stale {sc s_prep : ScannerState}
     split <;> exact h_al'
   intro h_adj
   unfold scanNextToken_checkAdjacentValue at h_adj
-  rw [if_pos ?hcond] at h_adj
+  rw [ite_eq_left ?hcond] at h_adj
   case hcond =>
     rw [h_noflow, h_tk, h_ska]
     simp [h_cmp]
@@ -24668,7 +24668,7 @@ lemma accum_step_block (sc : ScannerState)
                 (fun _ => ⟨h_facts.2.1, h_facts.2.2.1,
                   ⟨_, by
                     rw [h_facts.1, Array.size_push, Nat.add_sub_cancel,
-                        Array.getElem?_push, if_pos rfl], rfl⟩⟩) (by have := glit_col h_colon_lit; omega),
+                        Array.getElem?_push, ite_eq_left rfl], rfl⟩⟩) (by have := glit_col h_colon_lit; omega),
                 h_tails.2.1, h_facts.2.2.2.2.2.2.2.trans h_ad_false⟩
             rw [h_fl_v, h_tails.1] at h_bundle
             rw [h_fl_v, h_ks_v, h_tails.1]
@@ -26231,7 +26231,7 @@ lemma props_open_layout {sc s_prep s_ad s' : ScannerState} {c : Char}
            hsave, hf_sz, h_tk_skip]
        omega⟩
   rw [h_sk', h_ad_sk, hsave, hf_ti, h_tk_skip, hp, h_ad_tk, hsave]
-  rw [Array.getElem?_push, if_neg (by rw [hf_sz, h_tk_skip]; omega),
+  rw [Array.getElem?_push, ite_eq_right (by rw [hf_sz, h_tk_skip]; omega),
       hf_pref (sc.tokens.size - 1) (by rw [h_tk_skip]; omega), h_tk_skip]
   exact h_back
 
@@ -26283,7 +26283,7 @@ lemma props_extend_layout {sc s_prep s_ad s' : ScannerState} {c : Char}
            hsave, h_id, h_tk_skip]
        omega⟩
   rw [h_sk', h_ad_sk, hsave, h_id, h_sk_skip, hp, h_ad_tk, hsave, h_id, h_tk_skip]
-  rw [Array.getElem?_push, if_neg (by omega)]
+  rw [Array.getElem?_push, ite_eq_right (by omega)]
   exact h_slot
 
 /-! #### Extracted content-dispatch per-constructor theorems

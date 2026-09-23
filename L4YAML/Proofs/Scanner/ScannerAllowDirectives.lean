@@ -265,7 +265,7 @@ lemma dispatchStructural_inFlow_no_success (s s' : ScannerState) (c : Char)
         · split at hok
           · -- `%` at col 0 → `scanDirective`, which needs `allowDirectives`.
             unfold scanDirective at hok
-            rw [if_pos (by simp [h_ad])] at hok
+            rw [ite_eq_left (by simp [h_ad])] at hok
             simp [Except.map] at hok
           · simp at hok
   split at h
@@ -477,7 +477,7 @@ lemma scanDirective_allowDirectives {s s' : ScannerState}
   | false =>
     exfalso
     unfold scanDirective at h
-    rw [if_pos (by simp [had])] at h
+    rw [ite_eq_left (by simp [had])] at h
     simp at h
 
 end L4YAML.Proofs.ScannerAllowDirectives

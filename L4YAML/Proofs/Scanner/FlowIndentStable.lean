@@ -91,7 +91,7 @@ lemma preprocess_indents_of_inFlow {sc s_prep : ScannerState} {c : Char}
       exact h_flow
     have hcond : (!s_skip.inFlow && s_skip.needIndentCheck) = false := by
       simp [h_flow_skip]
-    simp only [hcond, if_neg Bool.false_ne_true] at h
+    simp only [hcond, ite_eq_right Bool.false_ne_true] at h
     split at h
     · exact absurd h (by simp)
     · split at h
@@ -267,10 +267,10 @@ lemma scanValuePrepare_indents_of_inFlow {s : ScannerState} (h_flow : s.inFlow =
     (scanValuePrepare s).indents = s.indents := by
   unfold scanValuePrepare
   split
-  · rw [if_neg (by simp [h_flow])]
+  · rw [ite_eq_right (by simp [h_flow])]
   · split
     · rfl
-    · rw [if_neg (by simp [h_flow])]
+    · rw [ite_eq_right (by simp [h_flow])]
 
 /-- …so the `:` scan writes no indent inside a flow. -/
 lemma scanValue_indents_of_inFlow {s s' : ScannerState}
@@ -294,7 +294,7 @@ lemma scanKey_indents_of_inFlow {s s' : ScannerState}
     (h_flow : s.inFlow = true) (hok : scanKey s = .ok s') :
     s'.indents = s.indents := by
   unfold scanKey at hok
-  simp only [bind, Except.bind, h_flow, Bool.not_true, if_neg Bool.false_ne_true] at hok
+  simp only [bind, Except.bind, h_flow, Bool.not_true, ite_eq_right Bool.false_ne_true] at hok
   repeat (any_goals (split at hok))
   all_goals (try contradiction)
   all_goals (simp only [Except.ok.injEq] at hok; subst hok)
@@ -317,10 +317,10 @@ lemma dispatchContent_preserves_indents {s s' : ScannerState} {c : Char}
     · exact dispatchContent_props_indents (Or.inr hc_bang) h
     · unfold scanNextToken_dispatchContent at h
       simp only [bind, Except.bind, pure, Except.pure] at h
-      rw [if_neg (by simpa using hc_amp)] at h
+      rw [ite_eq_right (by simpa using hc_amp)] at h
       by_cases hc_star : c = '*'
       · subst hc_star
-        rw [if_pos (by simp)] at h
+        rw [ite_eq_left (by simp)] at h
         split at h
         · exact absurd h (by simp)
         · split at h
@@ -334,11 +334,11 @@ lemma dispatchContent_preserves_indents {s s' : ScannerState} {c : Char}
             simp only [Except.ok.injEq] at h; subst h
             exact scanAnchorOrAlias_preserves_indents h_fn
 
-      · rw [if_neg (by simpa using hc_star), if_neg (by simpa using hc_bang),
-            if_neg (by simp [hnotPipe, hnotGt])] at h
+      · rw [ite_eq_right (by simpa using hc_star), ite_eq_right (by simpa using hc_bang),
+            ite_eq_right (by simp [hnotPipe, hnotGt])] at h
         by_cases hc_dq : c = '"'
         · subst hc_dq
-          rw [if_pos (by simp)] at h
+          rw [ite_eq_left (by simp)] at h
           generalize h_fn : scanDoubleQuoted s = res at h
           cases res with
           | error e => simp at h
@@ -348,10 +348,10 @@ lemma dispatchContent_preserves_indents {s s' : ScannerState} {c : Char}
             dsimp only [] at h
             split at h <;>
               · simp only [Except.ok.injEq] at h; subst h; simpa using hq
-        · rw [if_neg (by simpa using hc_dq)] at h
+        · rw [ite_eq_right (by simpa using hc_dq)] at h
           by_cases hc_sq : c = '\''
           · subst hc_sq
-            rw [if_pos (by simp)] at h
+            rw [ite_eq_left (by simp)] at h
             generalize h_fn : scanSingleQuoted s = res at h
             cases res with
             | error e => simp at h
@@ -360,7 +360,7 @@ lemma dispatchContent_preserves_indents {s s' : ScannerState} {c : Char}
               dsimp only [] at h
               split at h <;>
                 · simp only [Except.ok.injEq] at h; subst h; simpa using hq
-          · rw [if_neg (by simpa using hc_sq)] at h
+          · rw [ite_eq_right (by simpa using hc_sq)] at h
             split at h
             · generalize h_fn : scanPlainScalar s = res at h
               cases res with

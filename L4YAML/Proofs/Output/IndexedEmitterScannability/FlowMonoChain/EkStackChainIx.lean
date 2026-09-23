@@ -358,7 +358,7 @@ lemma scanNextTokenIx_dispatchContent_preserves_explicitKeyStack
   unfold scanNextTokenIx_dispatchContent at h
   by_cases hg1 : (c == '&') = true
   · -- '&' anchor
-    rw [if_pos hg1] at h
+    rw [ite_eq_left hg1] at h
     try simp only [Bind.bind, Except.bind] at h
     split at h   -- item 9e: the property-run guard
     · cases h
@@ -368,11 +368,11 @@ lemma scanNextTokenIx_dispatchContent_preserves_explicitKeyStack
       rw [hA] at h
       simp only [Except.ok.injEq] at h; subst h
       exact scanAnchorOrAliasIx_preserves_explicitKeyStack s true v hA
-  · rw [if_neg hg1] at h
+  · rw [ite_eq_right hg1] at h
     simp only [Bind.bind, Except.bind, Pure.pure, Except.pure] at h
     by_cases hg2 : (c == '*') = true
     · -- '*' alias
-      rw [if_pos hg2] at h
+      rw [ite_eq_left hg2] at h
       split at h   -- item 9e: the property-run guard
       · cases h
       cases hA : scanAnchorOrAliasIx s false with
@@ -385,10 +385,10 @@ lemma scanNextTokenIx_dispatchContent_preserves_explicitKeyStack
         · cases h
         simp only [Except.ok.injEq] at h; subst h
         exact scanAnchorOrAliasIx_preserves_explicitKeyStack s false v hA
-    · rw [if_neg hg2] at h
+    · rw [ite_eq_right hg2] at h
       by_cases hg3 : (c == '!') = true
       · -- '!' tag
-        rw [if_pos hg3] at h
+        rw [ite_eq_left hg3] at h
         split at h   -- item 9e: the property-run guard
         · cases h
         cases hT : scanTagIx s with
@@ -397,10 +397,10 @@ lemma scanNextTokenIx_dispatchContent_preserves_explicitKeyStack
           rw [hT] at h
           simp only [Except.ok.injEq] at h; subst h
           exact scanTagIx_preserves_explicitKeyStack s v hT
-      · rw [if_neg hg3] at h
+      · rw [ite_eq_right hg3] at h
         by_cases hg4 : (c == '|' || c == '>') = true
         · -- block scalar
-          rw [if_pos hg4] at h
+          rw [ite_eq_left hg4] at h
           -- Peel the §6.7 header-newline guard: its throw arm cannot be `.ok`.
           split at h
           · cases h
@@ -413,27 +413,27 @@ lemma scanNextTokenIx_dispatchContent_preserves_explicitKeyStack
           split at h
           · simp only [Except.ok.injEq] at h; subst h; rfl
           · cases h
-        · rw [if_neg hg4] at h
+        · rw [ite_eq_right hg4] at h
           by_cases hg5 : (c == '"') = true
           · -- double-quoted
-            rw [if_pos hg5] at h
+            rw [ite_eq_left hg5] at h
             -- Peel the quoted-scalar strictness guard (item 7).
             split at h
             · cases h
             split at h
             · simp only [Except.ok.injEq] at h; subst h; rfl
             · cases h
-          · rw [if_neg hg5] at h
+          · rw [ite_eq_right hg5] at h
             by_cases hg6 : (c == '\'') = true
             · -- single-quoted
-              rw [if_pos hg6] at h
+              rw [ite_eq_left hg6] at h
               -- Peel the quoted-scalar strictness guard (item 7).
               split at h
               · cases h
               split at h
               · simp only [Except.ok.injEq] at h; subst h; rfl
               · cases h
-            · rw [if_neg hg6] at h
+            · rw [ite_eq_right hg6] at h
               -- plain scalar (success) vs error: one small inner `if`
               split at h
               · -- item 50: the plain strictness walker's throw contradicts `.ok`
@@ -462,24 +462,24 @@ lemma scanNextTokenIx_dispatchFlowIndicators_ekStack_step
   unfold scanNextTokenIx_dispatchFlowIndicators at h
   replace h := peel_flowAdjIx h
   by_cases hg1 : (c == '[') = true
-  · rw [if_pos hg1] at h
+  · rw [ite_eq_left hg1] at h
     have hs : s' = scanFlowSequenceStartIx s := by
       have hi := (Except.ok.injEq _ _).mp h
       exact ((Option.some.injEq _ _).mp hi).symm
     subst hs
     exact Or.inr (Or.inl ⟨scanFlowSequenceStartIx_flowLevel_eq s,
       scanFlowSequenceStartIx_explicitKeyStack s⟩)
-  · rw [if_neg hg1] at h
+  · rw [ite_eq_right hg1] at h
     by_cases hg2 : (c == ']') = true
-    · rw [if_pos hg2] at h
+    · rw [ite_eq_left hg2] at h
       by_cases hg2' : (s.flowLevel == 0) = true
-      · rw [if_pos hg2'] at h
+      · rw [ite_eq_left hg2'] at h
         simp [Bind.bind, Except.bind, Pure.pure, Except.pure] at h
-      · rw [if_neg hg2'] at h
+      · rw [ite_eq_right hg2'] at h
         by_cases hg2'' : (s.flowStack.back? != some true) = true
-        · rw [if_pos hg2''] at h
+        · rw [ite_eq_left hg2''] at h
           simp [Bind.bind, Except.bind, Pure.pure, Except.pure] at h
-        · rw [if_neg hg2''] at h
+        · rw [ite_eq_right hg2''] at h
           have hs : s' = scanFlowSequenceEndIx s := by
             have hi := (Except.ok.injEq _ _).mp h
             exact ((Option.some.injEq _ _).mp hi).symm
@@ -489,26 +489,26 @@ lemma scanNextTokenIx_dispatchFlowIndicators_ekStack_step
           refine Or.inr (Or.inr (Or.inr
             ⟨h_pos, ?_, scanFlowSequenceEndIx_explicitKeyStack s⟩))
           rw [scanFlowSequenceEndIx_flowLevel_eq s]; omega
-    · rw [if_neg hg2] at h
+    · rw [ite_eq_right hg2] at h
       by_cases hg3 : (c == '{') = true
-      · rw [if_pos hg3] at h
+      · rw [ite_eq_left hg3] at h
         have hs : s' = scanFlowMappingStartIx s := by
           have hi := (Except.ok.injEq _ _).mp h
           exact ((Option.some.injEq _ _).mp hi).symm
         subst hs
         exact Or.inr (Or.inr (Or.inl ⟨scanFlowMappingStartIx_flowLevel_eq s,
           scanFlowMappingStartIx_explicitKeyStack s⟩))
-      · rw [if_neg hg3] at h
+      · rw [ite_eq_right hg3] at h
         by_cases hg4 : (c == '}') = true
-        · rw [if_pos hg4] at h
+        · rw [ite_eq_left hg4] at h
           by_cases hg4' : (s.flowLevel == 0) = true
-          · rw [if_pos hg4'] at h
+          · rw [ite_eq_left hg4'] at h
             simp [Bind.bind, Except.bind, Pure.pure, Except.pure] at h
-          · rw [if_neg hg4'] at h
+          · rw [ite_eq_right hg4'] at h
             by_cases hg4'' : (s.flowStack.back? != some false) = true
-            · rw [if_pos hg4''] at h
+            · rw [ite_eq_left hg4''] at h
               simp [Bind.bind, Except.bind, Pure.pure, Except.pure] at h
-            · rw [if_neg hg4''] at h
+            · rw [ite_eq_right hg4''] at h
               have hs : s' = scanFlowMappingEndIx s := by
                 have hi := (Except.ok.injEq _ _).mp h
                 exact ((Option.some.injEq _ _).mp hi).symm
@@ -518,13 +518,13 @@ lemma scanNextTokenIx_dispatchFlowIndicators_ekStack_step
               refine Or.inr (Or.inr (Or.inr
                 ⟨h_pos, ?_, scanFlowMappingEndIx_explicitKeyStack s⟩))
               rw [scanFlowMappingEndIx_flowLevel_eq s]; omega
-        · rw [if_neg hg4] at h
+        · rw [ite_eq_right hg4] at h
           by_cases hg5 : (c == ',') = true
-          · rw [if_pos hg5] at h
+          · rw [ite_eq_left hg5] at h
             by_cases hg5' : (s.flowLevel == 0) = true
-            · rw [if_pos hg5'] at h
+            · rw [ite_eq_left hg5'] at h
               simp [Bind.bind, Except.bind, Pure.pure, Except.pure] at h
-            · rw [if_neg hg5'] at h
+            · rw [ite_eq_right hg5'] at h
               cases hSFE : scanFlowEntryIx s with
               | error e =>
                 rw [hSFE] at h
@@ -536,7 +536,7 @@ lemma scanNextTokenIx_dispatchFlowIndicators_ekStack_step
                 subst h
                 exact Or.inl ⟨scanFlowEntryIx_preserves_flowLevel s _ hSFE,
                   scanFlowEntryIx_preserves_explicitKeyStack s _ hSFE⟩
-          · rw [if_neg hg5] at h
+          · rw [ite_eq_right hg5] at h
             simp [Pure.pure, Except.pure] at h
 
 /-! ## §4  Per-step trichotomy -/
@@ -701,7 +701,7 @@ lemma FlowMonoChainIx.ekStack_invariant {fl₀ : Nat}
     · -- pop: the chain floor keeps the pop inside `extra`
       have h_extra : 0 < extra.size := by omega
       refine ih base extra.pop ?_ ?_ (by omega)
-      · rw [h2, h_eq, Array.pop_append, if_neg]
+      · rw [h2, h_eq, Array.pop_append, ite_eq_right]
         simp only [Array.isEmpty_iff]
         intro hh; subst hh; simp at h_extra
       · rw [Array.size_pop]; omega

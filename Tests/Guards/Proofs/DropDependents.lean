@@ -270,8 +270,13 @@ def expectedClosure : Nat := 233
 
 /-- `scripts/drop_sweep.py`'s reading, re-derivable in one command and pinned
     here so that a walk which starts from the wrong root disagrees with it
-    loudly.  The 36 entry points hold 602 declarations between them and
-    reference the arm zero times.
+    loudly.  The 36 entry points hold 600 declarations between them and
+    reference the arm zero times.  (602 on Lean v4.33.0: the count is every
+    constant the module declares, generated and internal ones included, and
+    v4.34.0 generates no `toCtorIdx` for an enum inductive — the two rows a
+    per-module listing under both toolchains differs in are
+    `Tests.DeclineReachCensus.Disp.toCtorIdx` and `Tests.SuiteRunner.Main`'s
+    `Backend.toCtorIdx`, the two enums among the 36.)
 
     `readable` is the count that keeps the other numbers honest.  **A probe
     that fails contributes zero, and a zero is indistinguishable from a clean
@@ -291,7 +296,7 @@ def expectedClosure : Nat := 233
     assert `InYamlLanguage` without naming it. -/
 def expectedWide : String :=
   "closure=852 imported=848 excluded=36 readable=36 unreadable=0 \
-excludedDecls=602 excludedDropRefs=0"
+excludedDecls=600 excludedDropRefs=0"
 
 /-- **The four counts the WHOLE TREE reads, which are not the four this file's
     own `run_cmd` reads.**  `census` filters by `inScope`, which reads a

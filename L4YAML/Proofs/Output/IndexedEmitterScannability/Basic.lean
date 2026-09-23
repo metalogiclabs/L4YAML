@@ -463,7 +463,7 @@ lemma peek_corrIx {input : String} (c : IxCursor input) (sp : SurfPos)
     refine ⟨ch, rest, rfl, ?_⟩
     show c.peek? = some ch
     unfold IxCursor.peek?
-    rw [if_pos hmore, hch]
+    rw [ite_eq_left hmore, hch]
 
 /-- At end of input, the surface position has no remaining characters.
     Twin of legacy `eof_corr`. -/
@@ -495,7 +495,7 @@ lemma advance_line_non_newline_ix {input : String} (c : IxCursor input)
     (hcr : ¬ (String.Pos.Raw.get input ⟨c.pos.offset⟩ == '\r') = true) :
     c.advance.pos.line = c.pos.line := by
   unfold IxCursor.advance
-  simp [dif_pos h, hnl, hcr]
+  simp [dite_eq_left h, hnl, hcr]
 
 /-- `IxCursor.advance` past a non-newline, non-CR character bumps `col`
     by 1. -/
@@ -505,7 +505,7 @@ lemma advance_col_non_newline_ix {input : String} (c : IxCursor input)
     (hcr : ¬ (String.Pos.Raw.get input ⟨c.pos.offset⟩ == '\r') = true) :
     c.advance.pos.col = c.pos.col + 1 := by
   unfold IxCursor.advance
-  simp [dif_pos h, hnl, hcr]
+  simp [dite_eq_left h, hnl, hcr]
 
 /-- Advance past a non-newline, non-CR character preserves cursor
     surface correspondence (column bumped by 1). Twin of legacy
@@ -643,7 +643,7 @@ lemma advance_line_of_peekIx {input : String} (c : IxCursor input) (ch : Char)
     c.advance.pos.line = c.pos.line := by
   have hc : String.Pos.Raw.get input ⟨c.pos.offset⟩ = ch := by
     unfold IxCursor.peek? at h_peek
-    rw [if_pos h_lt] at h_peek
+    rw [ite_eq_left h_lt] at h_peek
     exact Option.some.inj h_peek
   exact advance_line_non_newline_ix c h_lt (by rw [hc]; simp [hnl])
     (by rw [hc]; simp [hcr])
@@ -692,10 +692,10 @@ lemma processEscapeIx_hex_ok {input : String} (c : IxCursor input)
       (("".push h1).push h2, c.advance.advance.advance) := by
     unfold collectHexDigitsLoopIx; dsimp only []
     rw [h_peek_h1]; dsimp only []
-    simp only [h_h1_hexIx, if_true]
+    simp only [h_h1_hexIx, ite_true]
     unfold collectHexDigitsLoopIx; dsimp only []
     rw [h_peek_h2]; dsimp only []
-    simp only [h_h2_hexIx, if_true]
+    simp only [h_h2_hexIx, ite_true]
     unfold collectHexDigitsLoopIx; dsimp only []
   -- Step 5: value bound for the 2-digit foldl.
   have h_val_lt := hex_two_foldl_boundIx ⟨h1.toNat, h_h1_lt128⟩ ⟨h2.toNat, h_h2_lt128⟩
@@ -709,7 +709,7 @@ lemma processEscapeIx_hex_ok {input : String} (c : IxCursor input)
   have h_simple_x : simpleEscapeChar 'x' = none := by decide
   have h_8bit_x : isNsEsc8BitBool 'x' = true := by decide
   rw [h_simple_x]
-  simp only [h_8bit_x, if_true]
+  simp only [h_8bit_x, ite_true]
   unfold parseHexEscapeIx
   rw [h_collect]; dsimp only []
   have h_len : (("".push h1).push h2).length = 2 := by
@@ -781,7 +781,7 @@ lemma collectDoubleQuotedLoopIx_escapeString_succeeds {input : String}
       unfold collectDoubleQuotedLoopIx
       rw [h_peek]
       have h_dq : isDoubleQuoteBool '"' = true := by decide
-      simp only [h_dq, if_true]
+      simp only [h_dq, ite_true]
       rw [show acc ++ String.ofList [] = acc from append_ofList_nil acc]
       refine ⟨c.advance, rfl, ?_, ?_, ?_⟩
       · have hcorr_adv := advance_non_newline_corrIx c '"' rest hcorr h_lt
@@ -809,7 +809,7 @@ lemma collectDoubleQuotedLoopIx_escapeString_succeeds {input : String}
           rw [h_peek_bs]
           have h_dq : isDoubleQuoteBool '\\' = false := by decide
           have h_es : isEscapeBool '\\' = true := by decide
-          simp only [h_dq, h_es, Bool.false_eq_true, if_false, if_true]
+          simp only [h_dq, h_es, Bool.false_eq_true, ite_false, ite_true]
           -- After backslash: peek tag.
           have hcorr_bs := advance_non_newline_corrIx c '\\' _ hcorr h_lt_bs
             (by decide) (by decide)
@@ -817,7 +817,7 @@ lemma collectDoubleQuotedLoopIx_escapeString_succeeds {input : String}
           rw [h_peek_tag]
           -- Confirm tag is not a linebreak (so we fall through to processEscapeIx).
           have h_tag_nlb := escapeTag_not_linebreak ch tag h_tag
-          simp only [h_tag_nlb, Bool.false_eq_true, if_false]
+          simp only [h_tag_nlb, Bool.false_eq_true, ite_false]
           -- processEscapeIx succeeds with origChar = ch.
           have h_proc := processEscapeIx_named_content c.advance ch tag h_tag h_peek_tag
           rw [h_proc]
@@ -874,13 +874,13 @@ lemma collectDoubleQuotedLoopIx_escapeString_succeeds {input : String}
           rw [h_peek_bs]
           have h_dq : isDoubleQuoteBool '\\' = false := by decide
           have h_es : isEscapeBool '\\' = true := by decide
-          simp only [h_dq, h_es, Bool.false_eq_true, if_false, if_true]
+          simp only [h_dq, h_es, Bool.false_eq_true, ite_false, ite_true]
           have hcorr_bs := advance_non_newline_corrIx c '\\' _ hcorr h_lt_bs
             (by decide) (by decide)
           have ⟨h_peek_x, h_lt_x_in⟩ := peek_of_chars_consIx c.advance 'x' _ _ hcorr_bs
           rw [h_peek_x]
           have h_x_nlb : isLineBreakBool 'x' = false := by decide
-          simp only [h_x_nlb, Bool.false_eq_true, if_false]
+          simp only [h_x_nlb, Bool.false_eq_true, ite_false]
           have h_col_bs : (c.pos.col + 1 : Nat) = c.advance.pos.col := hcorr_bs.col_eq
           rw [h_col_bs] at hcorr_bs
           obtain ⟨decoded, c_after, h_proc, hcorr_after, h_line_proc⟩ :=
@@ -928,16 +928,16 @@ lemma collectDoubleQuotedLoopIx_escapeString_succeeds {input : String}
             have h_simple_x : simpleEscapeChar 'x' = none := by decide
             have h_8bit_x : isNsEsc8BitBool 'x' = true := by decide
             rw [h_simple_x] at h_proc
-            simp only [h_8bit_x, if_true] at h_proc
+            simp only [h_8bit_x, ite_true] at h_proc
             unfold parseHexEscapeIx at h_proc
             have h_coll : collectHexDigitsLoopIx c.advance.advance "" 2 =
                 (("".push d1).push d2, c.advance.advance.advance.advance) := by
               unfold collectHexDigitsLoopIx; dsimp only []
               rw [h_peek_d1']; dsimp only []
-              simp only [h_d1_hexIx, if_true]
+              simp only [h_d1_hexIx, ite_true]
               unfold collectHexDigitsLoopIx; dsimp only []
               rw [h_peek_d2']; dsimp only []
-              simp only [h_d2_hexIx, if_true]
+              simp only [h_d2_hexIx, ite_true]
               unfold collectHexDigitsLoopIx; dsimp only []
             simp only [h_coll] at h_proc
             have h_len : (("".push d1).push d2).length = 2 := by
@@ -993,7 +993,7 @@ lemma collectDoubleQuotedLoopIx_escapeString_succeeds {input : String}
           show (ch == '\n' || ch == '\r') = false
           rw [Bool.or_eq_false_iff]
           exact ⟨beq_eq_false_iff_ne.mpr h_ne_nl, beq_eq_false_iff_ne.mpr h_ne_cr⟩
-        simp only [h_dq, h_es, h_nlb, Bool.false_eq_true, if_false]
+        simp only [h_dq, h_es, h_nlb, Bool.false_eq_true, ite_false]
         -- Advance and recurse.
         have hcorr_c := advance_non_newline_corrIx c ch _ hcorr h_lt_c h_ne_nl h_ne_cr
         have h_col_c : (c.pos.col + 1 : Nat) = c.advance.pos.col := hcorr_c.col_eq
@@ -1063,13 +1063,13 @@ lemma quotedScalarErrLoopIx_escapeString_none {input : String}
           simp only [show isDoubleQuoteBool '\\' = false from by decide,
             show isEscapeBool '\\' = true from by decide,
             Bool.true_and, Bool.not_true, Bool.false_and,
-            Bool.false_eq_true, if_false, if_true]
+            Bool.false_eq_true, ite_false, ite_true]
           have hcorr_bs := advance_non_newline_corrIx c '\\' _ hcorr h_lt_bs
             (by decide) (by decide)
           have ⟨h_peek_tag, h_lt_tag⟩ := peek_of_chars_consIx c.advance tag _ _ hcorr_bs
           rw [h_peek_tag]
           have h_tag_nlb := escapeTag_not_linebreak ch tag h_tag
-          simp only [h_tag_nlb, Bool.false_eq_true, if_false]
+          simp only [h_tag_nlb, Bool.false_eq_true, ite_false]
           have h_col_bs : (c.pos.col + 1 : Nat) = c.advance.pos.col := hcorr_bs.col_eq
           rw [h_col_bs] at hcorr_bs
           have hcorr_tag := advance_non_newline_corrIx c.advance tag _ hcorr_bs h_lt_tag
@@ -1143,13 +1143,13 @@ lemma quotedScalarErrLoopIx_escapeString_none {input : String}
           simp only [show isDoubleQuoteBool '\\' = false from by decide,
             show isEscapeBool '\\' = true from by decide,
             Bool.true_and, Bool.not_true, Bool.false_and,
-            Bool.false_eq_true, if_false, if_true]
+            Bool.false_eq_true, ite_false, ite_true]
           have hcorr_bs := advance_non_newline_corrIx c '\\' _ hcorr h_lt_bs
             (by decide) (by decide)
           have ⟨h_peek_x, h_lt_x⟩ := peek_of_chars_consIx c.advance 'x' _ _ hcorr_bs
           rw [h_peek_x]
           simp only [show isLineBreakBool 'x' = false from by decide,
-            Bool.false_eq_true, if_false]
+            Bool.false_eq_true, ite_false]
           have h_col_bs : (c.pos.col + 1 : Nat) = c.advance.pos.col := hcorr_bs.col_eq
           rw [h_col_bs] at hcorr_bs
           have hcorr_x_raw := advance_non_newline_corrIx c.advance 'x' _ hcorr_bs h_lt_x
@@ -1166,7 +1166,7 @@ lemma quotedScalarErrLoopIx_escapeString_none {input : String}
             rw [h_peek_d1]
             simp only [h_d1_ndq, h_d1_nes, h_d1_nlb,
               Bool.not_true, Bool.false_and,
-              Bool.and_false, Bool.false_eq_true, if_false]
+              Bool.and_false, Bool.false_eq_true, ite_false]
             have hcorr_d1_raw := advance_non_newline_corrIx c.advance.advance d1 _
               hcorr_x h_lt_d1 h_d1_nn h_d1_cr
             have hcorr_d1 : CursorSurfCorrIx c.advance.advance.advance
@@ -1182,7 +1182,7 @@ lemma quotedScalarErrLoopIx_escapeString_none {input : String}
               rw [h_peek_d2]
               simp only [h_d2_ndq, h_d2_nes, h_d2_nlb,
                 Bool.not_true, Bool.false_and,
-                Bool.and_false, Bool.false_eq_true, if_false]
+                Bool.and_false, Bool.false_eq_true, ite_false]
               have hcorr_d2_raw := advance_non_newline_corrIx c.advance.advance.advance
                 d2 _ hcorr_d1 h_lt_d2 h_d2_nn h_d2_cr
               have hcorr_d2 : CursorSurfCorrIx c.advance.advance.advance.advance
@@ -1217,7 +1217,7 @@ lemma quotedScalarErrLoopIx_escapeString_none {input : String}
           exact ⟨beq_eq_false_iff_ne.mpr h_ne_nl, beq_eq_false_iff_ne.mpr h_ne_cr⟩
         simp only [h_dq, h_es, h_nlb,
           Bool.not_true, Bool.false_and,
-          Bool.and_false, Bool.false_eq_true, if_false]
+          Bool.and_false, Bool.false_eq_true, ite_false]
         have hcorr_c := advance_non_newline_corrIx c ch _ hcorr h_lt_c h_ne_nl h_ne_cr
         have h_col_c : (c.pos.col + 1 : Nat) = c.advance.pos.col := hcorr_c.col_eq
         rw [h_col_c] at hcorr_c

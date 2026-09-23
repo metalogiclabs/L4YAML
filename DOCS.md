@@ -30719,29 +30719,61 @@ theorem that is false as stated.
 the numbers are recorded so the decision can be taken against them rather
 than against a forecast.
 
-* **Lean v4.34.0.**  This branch is on v4.33.0; PKC, SMM, SMW and physlib are
-  on v4.34.0, and `soil-moisture-workflows/tools/algctl` (v4.34.0) pins this
-  repository's `v4.33.0` branch — the release-line convention that branch set
-  — whose runtime closure elaborates under 4.34 with deprecation warnings only
-  (its lakefile says so; its 46 L4YAML oleans carry the 4.34.0 header).  A
-  detached worktree of this branch's HEAD (`71b606e2`) at
-  `leanprover/lean4:v4.34.0`, with `importGraph` and `DocGen4` at their
-  `v4.34.0` tags, reaches **1210 of 1212** jobs with ONE failing file:
-  `Tests/Guards/Proofs/RelaySupplyCensus.lean`'s pin reads `skipped=30`
-  against 31, `edges=659` and all seven category counts unchanged — the one
-  constant the census refuses under 4.33 and reads under 4.34 is
-  `FrameTail.toCtorIdx`, the auxiliary `deriving DecidableEq` generates, whose
-  value has no leading lambda against one binder on 4.33 (`skipped-433.log` /
-  `skipped-434.log` in the probe folder): generated code, not a proof, and it
-  contributes no edge — and **880** deprecation warnings in **77** files, all one class: `if_pos` /
-  `if_neg` / `if_true` / `if_false` / `dif_pos` / `dif_neg` → `ite_eq_left` /
-  `ite_eq_right` / `ite_true` / `ite_false` / `dite_eq_left` / `dite_eq_right`
-  (366 / 406 / 42 / 27 / 25 / 14 sites, the replacement names quoted from the
-  compiler and to be checked by the build, not by `sed`).  No proof broke.
-  Log and worktree: `scratchpad/l4yaml-434-probe/`.  The bump's price is
-  therefore the six renames (the zero-warning gate requires them), the census
-  delta re-pinned with its constant named, the two dependency re-pins, and a
-  `v4.34.0` branch for the consumers.
+* **Lean v4.34.0 — LANDED 2026-09-22.**  This branch and its doc workspace
+  are on `leanprover/lean4:v4.34.0`; the release-line branch `v4.34.0`
+  (= `v4.33.0` + `fdef03ca`) exists for consumers that pin by release
+  (`soil-moisture-workflows/tools/algctl`, itself on 4.34.0, requires the
+  `v4.33.0` branch and moves when this one is pushed).  What the bump cost,
+  measured first in a detached worktree and then paid in place:
+  * **The renames.**  `if_pos`/`if_neg`/`if_true`/`if_false`/`dif_pos`/
+    `dif_neg` → `ite_eq_left`/`ite_eq_right`/`ite_true`/`ite_false`/
+    `dite_eq_left`/`dite_eq_right` — the same statement and binders in core,
+    checked in `Init/Core.lean` before a site was touched.  **880** sites in
+    **77** files here (366 / 406 / 42 / 27 / 25 / 14), applied at exactly the
+    positions the compiler reported (`scratchpad/l4yaml-434-migration/rename.py`
+    reads the build log and refuses a site whose text is not the bare name;
+    0 refused), and **606** in **51** on the `v4.33.0` line.  No proof changed
+    otherwise; the residual mentions of the old names are prose.
+  * **Four census pins moved, for one constant.**  `RelaySupplyCensus` and
+    `ArmSpendCensus` read `skipped=30` against 31; `HypothesisReaderCensus`
+    and `PremiseNecessityCensus` read `constants=1123` against 1124; every
+    edge and category count held.  The first reading — that the census now
+    READS a constant it used to refuse — was wrong: an isolating test
+    (`EnumAux.lean` in the migration folder, run under both toolchains' bare
+    `lean` binaries) shows v4.33.0 generating `toCtorIdx` BESIDE `ctorIdx` for a
+    derived enum and v4.34.0 generating no `toCtorIdx` at all, so
+    `FrameTail.toCtorIdx` — lambda-less, hence refused — LEFT the module.  The
+    four pins name it.  They surfaced one build at a time because each sits
+    below the previous one in the import chain (`RelaySupplyCensus` →
+    `ArmSpendCensus` → `HypothesisReaderCensus` → `PremiseNecessityCensus`),
+    and a failed pin's dependents never build: **when a pin fails, read its
+    importers' pins before rebuilding.**
+  * **Pins.**  `LeanCopilot`, `importGraph`, `DocGen4` at their `v4.34.0`
+    tags; the doc workspace at verso's `v4.34.0` tag (`cad4b633`, with
+    subverso in lockstep at verso's own pin `9b90b7f9`), which carries PR #977,
+    so `Doc/Main.lean`'s margin-note counter backport is deleted as its
+    docstring instructed; the site renders (620 jobs, 52 pages).
+  * **A fifth pin, the sweep's.**  `scripts/drop_sweep.py` read
+    `excludedDecls=600` against `DropDependents.lean`'s 602: that count is
+    every constant of the 36 excluded modules, internal ones included, and a
+    per-module listing under both toolchains (a 4.33 worktree of `7e3aedf2`,
+    `scratchpad/l4yaml-433-baseline/`) differs in exactly two rows —
+    `Tests.DeclineReachCensus.Disp.toCtorIdx` and `Backend.toCtorIdx` in
+    `Tests.SuiteRunner.Main`, the two enum inductives among the 36.  Five pins,
+    one constant per enum.
+  * **Gates, all at baseline** (`scratchpad/l4yaml-434-migration/gate.final.log`):
+    build **1212** jobs, 0 warnings; `Verified: 4520/4520` (837/837);
+    eventscore 347/358 with 0 error-miss; suiterunner 869/0/151; matrix
+    402/402 + 282/282 on both pipelines; annotations exit 1 (the 19 standing
+    mismatches); decline pins 7+18+6 ALL PINS OK; `capstones=25 withSorryAx=0`
+    and every probed guard module at `[Classical.choice, Quot.sound, propext]`
+    or less; closure 230 / 355; 25 whitelisted `theorem` sites; counts
+    **8736 / 8173 / 655 / 8**; sweep `closure=852 imported=848 D=4 S=0 R=0
+    T=27 capstonesInT=2 rawElim=11`; flips `[210]` 5, SUPPLY 4, SUPPLIER weak
+    5 / field 1 / retire 7 / producer 4 (every repaired declaration
+    elaborating), DROP 2 — md5 before == after at every flip.  The
+    `ParkGapProduction` line is byte-identical to item 245's.  The release
+    branch: 868 jobs, 0 warnings, `Verified: 4407/4407` (its own suite).
 * **The module system.**  Not adopted here.  PKC's migration
   (`TODO/pkc-module-system.md`) took 423 of 427 files with zero theorem
   rewrites under the blanket recipe and 26.6 % of the core's definitions

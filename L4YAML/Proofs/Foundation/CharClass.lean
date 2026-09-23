@@ -213,7 +213,7 @@ the decoded character's code point *is* `n` — no substitution.
 -/
 lemma toNat_ofNat_of_isValidChar {n : Nat} (h : n.isValidChar) :
     (Char.ofNat n).toNat = n := by
-  simp only [Char.ofNat, dif_pos h, Char.toNat, Char.ofNatAux,
+  simp only [Char.ofNat, dite_eq_left h, Char.toNat, Char.ofNatAux,
              UInt32.toNat, BitVec.toNat_ofNatLT]
 
 /--

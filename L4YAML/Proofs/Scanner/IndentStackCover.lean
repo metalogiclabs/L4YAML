@@ -177,7 +177,7 @@ lemma pushMappingIndent_back (s : ScannerState) (c : Nat)
     (pushMappingIndent s (c : Int)).indents.back?
       = some { column := (c : Int), isSequence := false } := by
   unfold pushMappingIndent
-  rw [if_pos hgt]
+  rw [ite_eq_left hgt]
   show ((s.emit .blockMappingStart).indents.push _).back? = _
   simp
 
@@ -240,7 +240,7 @@ lemma scanKey_cover {lo : Nat} {ks : List Nat} {s s' : ScannerState}
   · exact Or.inr ⟨s.col, by rw [heq]; exact pushMappingIndent_back s s.col hgt,
       (pushMappingIndent_cover s.col h).of_indents_eq heq⟩
   · refine Or.inl (h.of_indents_eq ?_)
-    rw [heq]; unfold pushMappingIndent; rw [if_neg hgt]
+    rw [heq]; unfold pushMappingIndent; rw [ite_eq_right hgt]
 
 /-- The `:`'s two pushes: the implicit key's column (`[193]`), and the keyless
     entry's own (`[195]`'s empty key). -/
@@ -266,7 +266,7 @@ lemma scanValuePrepare_cover {lo : Nat} {ks : List Nat} {s : ScannerState}
         · exact Or.inr ⟨s.col, pushMappingIndent_back s s.col hgt,
             pushMappingIndent_cover s.col h⟩
         · refine Or.inl (h.of_indents_eq ?_)
-          unfold pushMappingIndent; rw [if_neg hgt]
+          unfold pushMappingIndent; rw [ite_eq_right hgt]
       · exact Or.inl h
 
 lemma scanValue_cover {lo : Nat} {ks : List Nat} {s s' : ScannerState}
@@ -662,8 +662,8 @@ lemma scanValuePrepare_top_le_keyless {s : ScannerState}
     (h_noflow : s.inFlow = false) (h_floor : s.currentIndent ≤ (s.col : Int)) :
     (scanValuePrepare s).currentIndent ≤ (s.col : Int) := by
   unfold scanValuePrepare
-  rw [if_neg (by simp [h_nokey]), if_neg (by simp [h_noexpl])]
-  rw [if_pos (by simp [h_noflow])]
+  rw [ite_eq_right (by simp [h_nokey]), ite_eq_right (by simp [h_noexpl])]
+  rw [ite_eq_left (by simp [h_noflow])]
   exact pushMappingIndent_top_le h_floor
 
 /-- `scanValueClearKey` either leaves the state alone or clears the saved key;

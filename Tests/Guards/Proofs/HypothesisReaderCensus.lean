@@ -343,10 +343,13 @@ Lean's own `unusedVariables` linter already gates it, and seven of the nine
 rows are spelled with a leading underscore precisely to silence it.  **The
 cheap end of "carried" is already enforced by the toolchain; the expensive end
 — threaded and never eliminated — is not, and that is the lane this census
-adds.** -/
+adds.**   `constants` counts the module's non-internal constants, generated ones
+    included; it read 1124 on Lean v4.33.0 and 1123 on v4.34.0, which no longer
+    generates the derived enum's `FrameTail.toCtorIdx` (see
+    `RelaySupplyCensus.expectedTally`). -/
 
 def expectedModuleTally : String :=
-  "constants=1124 decls=945 eta=364 FIELD=154 READ=1016 RELAY=1997 RETURN=48 UNUSED=9"
+  "constants=1123 decls=945 eta=364 FIELD=154 READ=1016 RELAY=1997 RETURN=48 UNUSED=9"
 
 def expectedUnused : List String :=
   [ "block_dispatch_deferred_inline#10 (_h_res)",

@@ -1952,7 +1952,7 @@ lemma scanValue_ok_of_ekl_none {s s' : ScannerState}
         constructor
         · show (if s.inFlow || _ then _ else some s.line) = _
           rw [h_noflow, h_ek_kc]
-          simp only [Option.isSome_none, Bool.false_and, Bool.false_or, if_neg
+          simp only [Option.isSome_none, Bool.false_and, Bool.false_or, ite_eq_right
             (by simp : ¬((false : Bool) = true))]
           rw [scanValue_epilogue_line h_peek]
         · show (if _ then none else if _ then (scanValueClearKey s).explicitKeyLine
@@ -1983,7 +1983,7 @@ lemma scanValue_stamp_of_col_ne {s s' : ScannerState}
         show (if s.inFlow || _ then _ else some s.line) = _
         rw [h_noflow, h_kc]
         simp only [Bool.false_or, beq_eq_false_iff_ne.mpr h_ne, Bool.and_false,
-          if_neg (by simp : ¬((false : Bool) = true))]
+          ite_eq_right (by simp : ¬((false : Bool) = true))]
         rw [scanValue_epilogue_line h_peek]
 
 /-- **A live key resolves: the `:` STAMPS.**  The second conjunct of
@@ -2010,7 +2010,7 @@ lemma scanValue_stamp_of_key {s s' : ScannerState}
         show (if s.inFlow || _ then _ else some s.line) = _
         rw [h_noflow, h_keep, h_poss]
         simp only [Bool.not_true, Bool.false_and, Bool.and_false, Bool.false_or,
-          if_neg (by simp : ¬((false : Bool) = true))]
+          ite_eq_right (by simp : ¬((false : Bool) = true))]
         rw [scanValue_epilogue_line h_peek]
 
 /-- **A key that SURVIVES the clear: the `:` STAMPS** (item 185).
@@ -2040,7 +2040,7 @@ lemma scanValue_stamp_of_cleared_key {s s' : ScannerState}
         show (if s.inFlow || _ then _ else some s.line) = _
         rw [h_noflow, h_poss]
         simp only [Bool.not_true, Bool.false_and, Bool.and_false, Bool.false_or,
-          if_neg (by simp : ¬((false : Bool) = true))]
+          ite_eq_right (by simp : ¬((false : Bool) = true))]
         rw [scanValue_epilogue_line h_peek]
 
 /-- **§8.2.2 [197] read BACKWARDS** (item 185): a block `:` that the validate
@@ -2061,17 +2061,17 @@ lemma scanValueValidate_explicit_at_indent {s : ScannerState} {ekLine : Nat}
   unfold scanValueValidate at h
   simp only [bind, Except.bind, h_ek, h_poss, h_noflow, Bool.false_and,
     Bool.not_false, Bool.and_true, Bool.and_self,
-    if_neg (by simp : ¬((false : Bool) = true))] at h
-  rw [if_pos trivial] at h
+    ite_eq_right (by simp : ¬((false : Bool) = true))] at h
+  rw [ite_eq_left trivial] at h
   have hline : s.line ≠ ekLine := by
     intro hl
-    rw [if_pos (by simp [hl])] at h
+    rw [ite_eq_left (by simp [hl])] at h
     simp at h
-  rw [if_neg (by simp [hline])] at h
+  rw [ite_eq_right (by simp [hline])] at h
   refine ⟨hline, ?_⟩
   by_cases hne : (s.col : Int) = s.currentIndent
   · exact hne
-  · rw [if_pos (by simp [hne])] at h
+  · rw [ite_eq_left (by simp [hne])] at h
     simp at h
 
 /-- The same, read off a `:` dispatch that SUCCEEDED (item 185). -/
@@ -2122,7 +2122,7 @@ lemma scanValue_ekl_none_of_col_le {s s' : ScannerState}
           else none) = none
         split
         · rfl
-        · rw [if_neg]
+        · rw [ite_eq_right]
           intro hgt
           simp only [Bool.and_eq_true, decide_eq_true_eq] at hgt
           rw [h_kc] at hgt

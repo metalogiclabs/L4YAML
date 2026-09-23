@@ -320,7 +320,7 @@ private lemma unwindIndentsLoop_noop_of_le (s : ScannerState) (col : Int)
   | zero => unfold unwindIndentsLoop; rfl
   | succ fuel' =>
     unfold unwindIndentsLoop
-    rw [if_neg (by
+    rw [ite_eq_right (by
       simp only [Bool.and_eq_true, decide_eq_true_eq, not_and]
       intro hc
       exact absurd hc h)]
@@ -348,7 +348,7 @@ private lemma saveSimpleKey_fresh_of_allowed {st : ScannerState}
     (saveSimpleKey st).simpleKey.possible = true ∧
     (saveSimpleKey st).simpleKey.pos.line = st.line := by
   unfold saveSimpleKey
-  rw [if_neg (by simp [h_nf]), if_pos h_al]
+  rw [ite_eq_right (by simp [h_nf]), ite_eq_left h_al]
   exact ⟨rfl, rfl⟩
 
 set_option maxHeartbeats 400000 in
@@ -1041,7 +1041,7 @@ private lemma scanBlockEntry_line_col {s s' : ScannerState}
     (hok : scanBlockEntry s = .ok s') :
     s'.line = s.line ∧ s'.col = s.col + 1 := by
   unfold scanBlockEntry at hok
-  simp only [bind, Except.bind, h_noflow, Bool.not_false, if_true] at hok
+  simp only [bind, Except.bind, h_noflow, Bool.not_false, ite_true] at hok
   obtain ⟨h_pl, h_pc, h_pp⟩ := pushSequenceIndent_cursor s ↑s.col
   have h_epk : ((pushSequenceIndent s ↑s.col).emit
       L4YAML.YamlToken.blockEntry).peek? = s.peek? := by

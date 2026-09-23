@@ -409,13 +409,13 @@ lemma saveSimpleKey_fresh_facts {s : ScannerState}
     (saveSimpleKey s).simpleKey.pos.offset = s.offset ∧
     (saveSimpleKey s).tokens.size = s.tokens.size + 2 := by
   unfold saveSimpleKey
-  rw [h_ek, if_neg (by simp), if_pos h_a]
+  rw [h_ek, ite_eq_right (by simp), ite_eq_left h_a]
   refine ⟨rfl, rfl, ?_, rfl, rfl, rfl, rfl, rfl, by simp⟩
   intro i hi
   simp only []
   rw [Array.getElem?_push, Array.getElem?_push]
   simp only [Array.size_push]
-  rw [if_neg (by omega), if_neg (by omega)]
+  rw [ite_eq_right (by omega), ite_eq_right (by omega)]
 
 /-! ## `scanValueClearKey` cannot clear a completed entry's key -/
 
@@ -435,7 +435,7 @@ lemma scanValueClearKey_id_of_inFlow_offset_ne {s : ScannerState}
   | none => rfl
   | some ekLine =>
     dsimp only []
-    rw [if_neg (by simp [h_ne]), if_neg (by simp [h_flow])]
+    rw [ite_eq_right (by simp [h_ne]), ite_eq_right (by simp [h_flow])]
 
 /-! ## The T833 guard fires -/
 
@@ -514,8 +514,8 @@ lemma preprocess_inFlow_elim {sc s_prep : ScannerState} {c : Char}
       rfl
     split at h
     · exact absurd h (by simp)
-    · simp only [h_gate, Bool.false_eq_true, if_false] at h
-      rw [if_neg (by simp)] at h
+    · simp only [h_gate, Bool.false_eq_true, ite_false] at h
+      rw [ite_eq_right (by simp)] at h
       split at h
       · exact absurd h (by simp)
       · simp only [Except.ok.injEq, Option.some.injEq, Prod.mk.injEq] at h
@@ -742,7 +742,7 @@ lemma saveSimpleKey_fresh_block {s : ScannerState}
     (saveSimpleKey s).simpleKey.pos.offset = s.offset ∧
     (saveSimpleKey s).offset = s.offset := by
   unfold saveSimpleKey
-  rw [if_neg (by simp [h_flow]), if_pos h_a]
+  rw [ite_eq_right (by simp [h_flow]), ite_eq_left h_a]
   exact ⟨rfl, rfl, rfl⟩
 
 /-- Preprocessing, in the shape the block context reads it: the walk, then the
@@ -819,7 +819,7 @@ lemma preprocess_saved_key_fresh {sc s_prep : ScannerState} {c : Char}
     rw [← saveSimpleKey_inFlow s_u, ← h_save]; exact h_noflow
   rw [h_save]
   unfold saveSimpleKey
-  rw [if_neg (by simp [h_fl]), if_pos h_al]
+  rw [ite_eq_right (by simp [h_fl]), ite_eq_left h_al]
   exact ⟨rfl, rfl⟩
 
 end L4YAML.Proofs.EntryBoundaryLayout

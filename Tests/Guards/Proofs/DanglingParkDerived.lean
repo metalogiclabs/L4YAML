@@ -250,6 +250,6 @@ hand.  It scans clean and it parses. -/
 example (s_run s_land : ScannerState) (h : s_land.simpleKeyAllowed = false) :
     scanNextToken_checkDanglingNode s_run s_land = .ok () := by
   unfold scanNextToken_checkDanglingNode
-  rw [if_neg (by simp [h])]
+  rw [ite_eq_right (by simp [h])]
 
 end L4YAML.Tests.Guards.DanglingParkDerived

@@ -175,7 +175,7 @@ lemma hasTabLoop_of_run (input : String) :
     rw [ScannerState.hasTabInPrecedingWhitespaceLoop, hbs]
     have hpos : ¬ (listByteSize (pre ++ ws') + c.utf8Size = 0) := by
       have := Char.utf8Size_pos c; omega
-    simp only [beq_iff_eq, if_neg hpos, hprev, hget]
+    simp only [beq_iff_eq, ite_eq_right hpos, hprev, hget]
     rcases hcw with rfl | rfl
     · -- a space: keep walking, and the tab is still in what is left
       have htab' : '\t' ∈ ws' := by
@@ -220,7 +220,7 @@ lemma tabInLineIndentLoop_of_run (input : String) :
     rw [ScannerState.tabInLineIndentLoop, hbs]
     have hpos : ¬ (listByteSize (pre ++ ws') + c.utf8Size = 0) := by
       have := Char.utf8Size_pos c; omega
-    simp only [beq_iff_eq, if_neg hpos, hprev, hget]
+    simp only [beq_iff_eq, ite_eq_right hpos, hprev, hget]
     have hwh' : ∀ x ∈ ws', x = ' ' ∨ x = '\t' :=
       fun x hx => hwh x (List.mem_append_left _ hx)
     rcases hcw with rfl | rfl

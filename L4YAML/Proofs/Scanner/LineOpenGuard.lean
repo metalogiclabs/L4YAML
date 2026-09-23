@@ -319,7 +319,7 @@ lemma restStop_of_peek_stop {P : Char → Prop} {s : ScannerState}
   | cons p hlt c rest hc hrest =>
     have hpk : s.peek? = some c := by
       unfold ScannerState.peek?
-      rw [if_pos (by omega : s.offset < s.inputEnd)]
+      rw [ite_eq_left (by omega : s.offset < s.inputEnd)]
       exact congrArg some hc
     obtain ⟨h1, h2⟩ := h c hpk
     exact .stop _ h1 h2
@@ -350,10 +350,10 @@ lemma head_of_peek {s : ScannerState} {sp : SurfPos} {c : Char}
     unfold ScannerState.peek? at hpk
     by_cases h : s.offset < s.inputEnd
     · exact h
-    · rw [if_neg h] at hpk; cases hpk
+    · rw [ite_eq_right h] at hpk; cases hpk
   have hget : String.Pos.Raw.get s.input ⟨s.offset⟩ = c := by
     unfold ScannerState.peek? at hpk
-    rw [if_pos hlt] at hpk
+    rw [ite_eq_left hlt] at hpk
     exact Option.some.inj hpk
   have hcf := hcorr.chars_from
   have hend := hcorr.end_eq
@@ -376,9 +376,9 @@ private lemma peek_some_head {s : ScannerState} {c : Char}
     s.offset < s.inputEnd ∧ String.Pos.Raw.get s.input ⟨s.offset⟩ = c := by
   unfold ScannerState.peek? at hpk
   by_cases hlt : s.offset < s.inputEnd
-  · rw [if_pos hlt] at hpk
+  · rw [ite_eq_left hlt] at hpk
     exact ⟨hlt, Option.some.inj hpk⟩
-  · rw [if_neg hlt] at hpk
+  · rw [ite_eq_right hlt] at hpk
     cases hpk
 
 private lemma skipTrailingSpaces_step_white {s : ScannerState} {c : Char} {fuel' : Nat}
@@ -389,7 +389,7 @@ private lemma skipTrailingSpaces_step_white {s : ScannerState} {c : Char} {fuel'
         | some c => if c == ' ' || c == '\t' then skipTrailingSpaces s.advance fuel' else s
         | none => s) := rfl
   rw [hstep, hpk]
-  exact if_pos hw
+  exact ite_eq_left hw
 
 private lemma skipTrailingSpaces_step_stop {s : ScannerState} {c : Char} {fuel' : Nat}
     (hpk : s.peek? = some c) (hw : ¬(c == ' ' || c == '\t') = true) :
@@ -399,7 +399,7 @@ private lemma skipTrailingSpaces_step_stop {s : ScannerState} {c : Char} {fuel' 
         | some c => if c == ' ' || c == '\t' then skipTrailingSpaces s.advance fuel' else s
         | none => s) := rfl
   rw [hstep, hpk]
-  exact if_neg hw
+  exact ite_eq_right hw
 
 private lemma skipDocEndWhitespace_step_white {s : ScannerState} {c : Char} {fuel' : Nat}
     (hpk : s.peek? = some c) (hw : (c == ' ' || c == '\t') = true) :
@@ -409,7 +409,7 @@ private lemma skipDocEndWhitespace_step_white {s : ScannerState} {c : Char} {fue
         | some c => if c == ' ' || c == '\t' then skipDocEndWhitespace s.advance fuel' else s
         | none => s) := rfl
   rw [hstep, hpk]
-  exact if_pos hw
+  exact ite_eq_left hw
 
 private lemma skipDocEndWhitespace_step_stop {s : ScannerState} {c : Char} {fuel' : Nat}
     (hpk : s.peek? = some c) (hw : ¬(c == ' ' || c == '\t') = true) :
@@ -419,7 +419,7 @@ private lemma skipDocEndWhitespace_step_stop {s : ScannerState} {c : Char} {fuel
         | some c => if c == ' ' || c == '\t' then skipDocEndWhitespace s.advance fuel' else s
         | none => s) := rfl
   rw [hstep, hpk]
-  exact if_neg hw
+  exact ite_eq_right hw
 
 lemma restStop_of_skipTrailingSpaces {P : Char → Prop} (fuel : Nat) :
     ∀ (s : ScannerState),
@@ -554,7 +554,7 @@ lemma restNodeTail_of_validateFlowClose {s : ScannerState}
     (hok : validateFlowClose s = .ok ()) :
     RestNodeTail s := by
   unfold validateFlowClose at hok
-  rw [if_pos (by simp [hfl])] at hok
+  rw [ite_eq_left (by simp [hfl])] at hok
   simp only [pure, Except.pure] at hok
   refine restStop_of_skipTrailingSpaces (s.inputEnd - s.offset + 1) s hend
     (fun c hc => ?_)
@@ -578,7 +578,7 @@ lemma restNodeTail_of_validateAliasClose {s : ScannerState}
     (hok : validateAliasClose s = .ok ()) :
     RestNodeTail s := by
   unfold validateAliasClose at hok
-  rw [if_neg (by simp [hflow])] at hok
+  rw [ite_eq_right (by simp [hflow])] at hok
   exact restNodeTail_of_validateTrailingContent hend hok
 
 /-! Item 10's conclusions, each one `mono` off the rung above.  Every consumer
@@ -769,12 +769,12 @@ private lemma peek_some_lt {s : ScannerState} {c : Char}
   unfold ScannerState.peek? at hpk
   by_cases h : s.offset < s.inputEnd
   · exact h
-  · rw [if_neg h] at hpk; cases hpk
+  · rw [ite_eq_right h] at hpk; cases hpk
 
 private lemma peek_some_get {s : ScannerState} {c : Char}
     (hpk : s.peek? = some c) : String.Pos.Raw.get s.input ⟨s.offset⟩ = c := by
   unfold ScannerState.peek? at hpk
-  rw [if_pos (peek_some_lt hpk)] at hpk
+  rw [ite_eq_left (peek_some_lt hpk)] at hpk
   exact Option.some.inj hpk
 
 private lemma consumeNewline_offset_gt {s : ScannerState} {c : Char}
@@ -965,7 +965,7 @@ private lemma collectPlainScalarLoop_terminated (fuel : Nat) :
         unfold ScannerState.peek? at hpk
         by_cases h : s.offset < s.inputEnd
         · exact h
-        · rw [if_neg h] at hpk; cases hpk
+        · rw [ite_eq_right h] at hpk; cases hpk
       split at hok
       · rename_i hterm
         injection hok with h_eq; subst h_eq
@@ -1239,7 +1239,7 @@ private lemma colon_follower_not_terminating {s : ScannerState}
     ∃ n, s.peekAt? 1 = some n ∧ isBlankBool n = false ∧
       isPrintableBool n = true ∧ (n == '﻿') = false := by
   unfold canStartPlainScalarBool at hstart
-  rw [if_pos (Or.inr (Or.inr rfl))] at hstart
+  rw [ite_eq_left (Or.inr (Or.inr rfl))] at hstart
   revert hstart
   cases hnext : s.peekAt? 1 with
   | none => intro h; simp at h
@@ -1296,7 +1296,7 @@ lemma scanPlainScalar_col_pos {s s' : ScannerState} {c : Char}
     unfold ScannerState.peek? at hpk
     by_cases h : s.offset < s.inputEnd
     · exact h
-    · rw [if_neg h] at hpk; cases hpk
+    · rw [ite_eq_right h] at hpk; cases hpk
   have hps : isPlainSafeBool c false = true := plainSafe_of_canStart hstart
   have hnb : isLineBreakBool c = false := by
     revert hps
@@ -1435,7 +1435,7 @@ private lemma collectLineContentLoop_stop (fuel : Nat) : ∀ (s : ScannerState) 
           unfold ScannerState.peek? at hpk
           by_cases h : s.offset < s.inputEnd
           · exact h
-          · rw [if_neg h] at hpk; cases hpk
+          · rw [ite_eq_right h] at hpk; cases hpk
         have hadv := advance_offset_lt s hlt
         have hend2 := advance_inputEnd s
         exact ih s.advance (content.push _) (by omega) c hc
@@ -1678,7 +1678,7 @@ private lemma scanBlockScalar_restOffLine_aux {s s' : ScannerState}
             subst h
             refine Or.inr ?_
             unfold ScannerState.peek?
-            rw [if_neg]
+            rw [ite_eq_right]
             simp only [Bool.not_eq_true', ScannerState.hasMore,
               decide_eq_false_iff_not] at hnomore
             exact hnomore
@@ -1994,7 +1994,7 @@ lemma scanBlockScalar_nic_or_col_pos {s s' : ScannerState} {c : Char}
           have hs_eq := Except.ok.inj hnl
           have hpkn : s_nl.peek? = none := by
             rw [← hs_eq]
-            unfold ScannerState.peek?; rw [if_neg]
+            unfold ScannerState.peek?; rw [ite_eq_right]
             simp only [Bool.not_eq_true', ScannerState.hasMore,
               decide_eq_false_iff_not] at hnomore
             exact hnomore

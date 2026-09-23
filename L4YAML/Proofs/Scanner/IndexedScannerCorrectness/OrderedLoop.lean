@@ -93,7 +93,7 @@ lemma scanNextTokenIx_preserves_ScanInvIx
           simp only [] at h_ok
           by_cases hAD : sp.allowDirectives = true
           · -- allowDirectives = true: sadj has the field updates
-            rw [if_pos hAD] at h_ok
+            rw [ite_eq_left hAD] at h_ok
             let sadj : ScannerStateIx input :=
               { sp with allowDirectives := false, documentEverStarted := true }
             have h_sadj : ScanInvIx sadj :=
@@ -133,7 +133,7 @@ lemma scanNextTokenIx_preserves_ScanInvIx
                       cases h_ok
                       exact scanNextTokenIx_dispatchContent_preserves_ScanInvIx h_sadj hCon
           · -- allowDirectives = false: sadj = sp
-            rw [if_neg hAD] at h_ok
+            rw [ite_eq_right hAD] at h_ok
             cases hFlow : scanNextTokenIx_dispatchFlowIndicators sp c with
             | error e => rw [hFlow] at h_ok; cases h_ok
             | ok flowRes =>
@@ -221,7 +221,7 @@ lemma scanNextTokenIx_preserves_AllKeysValidIx
           rw [h_bd] at h_ok
           simp only [] at h_ok
           by_cases hAD : sp.allowDirectives = true
-          · rw [if_pos hAD] at h_ok
+          · rw [ite_eq_left hAD] at h_ok
             let sadj : ScannerStateIx input :=
               { sp with allowDirectives := false, documentEverStarted := true }
             have h_sadj_akv : AllKeysValidIx sadj := by
@@ -258,7 +258,7 @@ lemma scanNextTokenIx_preserves_AllKeysValidIx
                       rw [hCon] at h_ok
                       cases h_ok
                       exact scanNextTokenIx_dispatchContent_preserves_AllKeysValidIx h_sadj_akv hCon
-          · rw [if_neg hAD] at h_ok
+          · rw [ite_eq_right hAD] at h_ok
             cases hFlow : scanNextTokenIx_dispatchFlowIndicators sp c with
             | error e => rw [hFlow] at h_ok; cases h_ok
             | ok flowRes =>
@@ -320,11 +320,11 @@ lemma scanLoopIx_ordered {s : ScannerStateIx input} {fuel : Nat}
       cases scRes with
       | none =>
         by_cases hFL : s.flowLevel > 0
-        · rw [if_pos hFL] at h_ok; cases h_ok
-        · rw [if_neg hFL] at h_ok
+        · rw [ite_eq_left hFL] at h_ok; cases h_ok
+        · rw [ite_eq_right hFL] at h_ok
           by_cases hDS : s.directivesPresent = true
-          · rw [if_pos hDS] at h_ok; cases h_ok
-          · rw [if_neg hDS] at h_ok
+          · rw [ite_eq_left hDS] at h_ok; cases h_ok
+          · rw [ite_eq_right hDS] at h_ok
             -- §9.2 dangling-node check (item 133): peel its `.ok` arm.
             have hDN : ∃ u, scanLoopIx_checkDanglingNode s = .ok u := by
               cases hx : scanLoopIx_checkDanglingNode s with

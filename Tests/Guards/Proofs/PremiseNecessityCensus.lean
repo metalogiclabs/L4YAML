@@ -204,10 +204,14 @@ run_cmd do
     throwError "the PEEL moved item 224's calibration.\nblind:  {
       String.intercalate " " blind}\npeeled: {String.intercalate " " peeled}"
 
-/-! ## §3  The tallies the peel does move -/
+/-! ## §3  The tallies the peel does move
+
+`constants` is the module's non-internal constant count, generated ones
+included: 1124 on Lean v4.33.0, 1123 on v4.34.0, which no longer generates the
+derived enum's `FrameTail.toCtorIdx` (see `RelaySupplyCensus.expectedTally`). -/
 
 def expectedModuleTallyP : String :=
-  "constants=1124 decls=945 eta=364 FIELD=172 READ=1052 RELAY=1864 RETURN=127 UNUSED=9"
+  "constants=1123 decls=945 eta=364 FIELD=172 READ=1052 RELAY=1864 RETURN=127 UNUSED=9"
 
 def expectedOptTallyP : String :=
   "total=163 ETA=34 FIELD=4 READ=85 RELAY=38 RETURN=2"

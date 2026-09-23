@@ -217,10 +217,10 @@ lemma scanLoopIx_two_iter {s₀ s₁ : ScannerStateIx input} {fuel : Nat}
     unfold scanLoopIx
     rw [h_snt1]
     have h_flow_not : ¬ s₁.flowLevel > 0 := by omega
-    rw [if_neg h_flow_not]
+    rw [ite_eq_right h_flow_not]
     have h_dp_check : ¬ s₁.directivesPresent = true := by
       simp [h_dp]
-    rw [if_neg h_dp_check]
+    rw [ite_eq_right h_dp_check]
     rw [h_dn, h_fv]
     exact ⟨_, rfl⟩
   rw [h1]; exact h2
@@ -243,10 +243,10 @@ lemma scanLoopIx_two_iter_eq {s₀ s₁ : ScannerStateIx input} {fuel : Nat}
   unfold scanLoopIx
   rw [h_snt1]
   have h_flow_not : ¬ s₁.flowLevel > 0 := by omega
-  rw [if_neg h_flow_not]
+  rw [ite_eq_right h_flow_not]
   have h_dp_check : ¬ s₁.directivesPresent = true := by
     simp [h_dp]
-  rw [if_neg h_dp_check]
+  rw [ite_eq_right h_dp_check]
   rw [h_dn, h_fv]
 
 /-- **Terminal step (existential)**: at EOF (and with the no-error
@@ -262,10 +262,10 @@ lemma scanLoopIx_eof {s : ScannerStateIx input}
   unfold scanLoopIx
   rw [h_snt]
   have h_flow_not : ¬ s.flowLevel > 0 := by omega
-  rw [if_neg h_flow_not]
+  rw [ite_eq_right h_flow_not]
   have h_dp_check : ¬ s.directivesPresent = true := by
     simp [h_dp]
-  rw [if_neg h_dp_check]
+  rw [ite_eq_right h_dp_check]
   rw [h_dn, h_fv]
   exact ⟨_, rfl⟩
 
@@ -283,10 +283,10 @@ lemma scanLoopIx_eof_eq {s : ScannerStateIx input} {fuel : Nat}
   unfold scanLoopIx
   rw [h_snt]
   have h_flow_not : ¬ s.flowLevel > 0 := by omega
-  rw [if_neg h_flow_not]
+  rw [ite_eq_right h_flow_not]
   have h_dp_check : ¬ s.directivesPresent = true := by
     simp [h_dp]
-  rw [if_neg h_dp_check]
+  rw [ite_eq_right h_dp_check]
   rw [h_dn, h_fv]
 
 /-! ## §1.3  Surface correspondence (`ScannerSurfCorrIx`)

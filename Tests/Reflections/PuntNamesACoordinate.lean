@@ -114,7 +114,7 @@ theorem floor_at_indicator {n : Nat} {v : Save} {s : St}
     hypothesis: it asks only that a key exist for the push to resolve. -/
 theorem floor_at_key {n : Nat} {v : Save} {s : St}
     (h_coord : hasKey v = true) (h : n ≤ s.keyCol) : n ≤ pushedAt v s := by
-  unfold pushedAt; simp only [h_coord, if_true]; exact h
+  unfold pushedAt; simp only [h_coord, ite_true]; exact h
 
 /-- The case item 27 punted is reachable — by the SAME push, once the lemma
     names the coordinate the push uses. -/
@@ -191,7 +191,7 @@ theorem both_sides_already_had_it (keyCol : Nat) :
 theorem equation_closes_the_bound {n : Nat} {s : St}
     (h_eq : scannerKeyCol s = n) : n ≤ pushedAt .inherited s := by
   unfold pushedAt scannerKeyCol at *
-  simp only [hasKey, if_true]
+  simp only [hasKey, ite_true]
   exact Nat.le_of_eq h_eq.symm
 
 /-- And it is carried OPTIONALLY for the same reason the floor is: a producer

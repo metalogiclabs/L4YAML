@@ -346,7 +346,7 @@ lemma scanNextTokenIx_dispatchContent_maintains_SimpleKeyAboveIx {input : String
   unfold scanNextTokenIx_dispatchContent at h_ok
   by_cases hg1 : (c == '&') = true
   · -- c == '&': anchor
-    rw [if_pos hg1] at h_ok
+    rw [ite_eq_left hg1] at h_ok
     -- 4.32.0 already reduces the anchor bind; the `cases`/`rw` below is robust either way
     try simp only [Bind.bind, Except.bind] at h_ok
     split at h_ok   -- item 9e: the property-run guard
@@ -360,11 +360,11 @@ lemma scanNextTokenIx_dispatchContent_maintains_SimpleKeyAboveIx {input : String
       exact SimpleKeyAboveIx_mono s v n h_inv
         (scanAnchorOrAliasIx_preserves_simpleKey s true v hA)
         (scanAnchorOrAliasIx_preserves_simpleKeyStack s true v hA)
-  · rw [if_neg hg1] at h_ok
+  · rw [ite_eq_right hg1] at h_ok
     simp only [Bind.bind, Except.bind, Pure.pure, Except.pure] at h_ok
     by_cases hg2 : (c == '*') = true
     · -- c == '*': alias
-      rw [if_pos hg2] at h_ok
+      rw [ite_eq_left hg2] at h_ok
       split at h_ok   -- item 9e: the property-run guard
       · cases h_ok
       cases hA : scanAnchorOrAliasIx s false with
@@ -380,10 +380,10 @@ lemma scanNextTokenIx_dispatchContent_maintains_SimpleKeyAboveIx {input : String
         exact SimpleKeyAboveIx_mono s v n h_inv
           (scanAnchorOrAliasIx_preserves_simpleKey s false v hA)
           (scanAnchorOrAliasIx_preserves_simpleKeyStack s false v hA)
-    · rw [if_neg hg2] at h_ok
+    · rw [ite_eq_right hg2] at h_ok
       by_cases hg3 : (c == '!') = true
       · -- c == '!': tag
-        rw [if_pos hg3] at h_ok
+        rw [ite_eq_left hg3] at h_ok
         split at h_ok   -- item 9e: the property-run guard
         · cases h_ok
         cases hT : scanTagIx s with
@@ -395,12 +395,12 @@ lemma scanNextTokenIx_dispatchContent_maintains_SimpleKeyAboveIx {input : String
           exact SimpleKeyAboveIx_mono s v n h_inv
             (scanTagIx_preserves_simpleKey s v hT)
             (scanTagIx_preserves_simpleKeyStack s v hT)
-      · rw [if_neg hg3] at h_ok
+      · rw [ite_eq_right hg3] at h_ok
         by_cases hg4 : (c == '|' || c == '>') = true
         · -- c == '|' || c == '>': block scalar (inline). The post-state clears
           -- the pending simple key (a block scalar ends at a line start), so
           -- this is the `_of_cleared_mono` transition, not `_mono`.
-          rw [if_pos hg4] at h_ok
+          rw [ite_eq_left hg4] at h_ok
           -- Peel the §6.7 header-newline guard: its throw arm cannot be `.ok`.
           split at h_ok
           · cases h_ok
@@ -415,10 +415,10 @@ lemma scanNextTokenIx_dispatchContent_maintains_SimpleKeyAboveIx {input : String
             subst h_ok
             exact SimpleKeyAboveIx_of_cleared_mono s _ n h_inv rfl (by simp)
           · cases h_ok
-        · rw [if_neg hg4] at h_ok
+        · rw [ite_eq_right hg4] at h_ok
           by_cases hg5 : (c == '"') = true
           · -- c == '"': double quoted
-            rw [if_pos hg5] at h_ok
+            rw [ite_eq_left hg5] at h_ok
             -- Peel the quoted-scalar strictness guard (item 7).
             split at h_ok
             · cases h_ok
@@ -427,10 +427,10 @@ lemma scanNextTokenIx_dispatchContent_maintains_SimpleKeyAboveIx {input : String
               subst h_ok
               exact SimpleKeyAboveIx_mono s _ n h_inv (by simp) (by simp)
             · cases h_ok
-          · rw [if_neg hg5] at h_ok
+          · rw [ite_eq_right hg5] at h_ok
             by_cases hg6 : (c == '\'') = true
             · -- c == '\'': single quoted
-              rw [if_pos hg6] at h_ok
+              rw [ite_eq_left hg6] at h_ok
               -- Peel the quoted-scalar strictness guard (item 7).
               split at h_ok
               · cases h_ok
@@ -439,7 +439,7 @@ lemma scanNextTokenIx_dispatchContent_maintains_SimpleKeyAboveIx {input : String
                 subst h_ok
                 exact SimpleKeyAboveIx_mono s _ n h_inv (by simp) (by simp)
               · cases h_ok
-            · rw [if_neg hg6] at h_ok
+            · rw [ite_eq_right hg6] at h_ok
               -- plain scalar (success) vs error: one small inner `if`, so `split` is cheap here
               split at h_ok
               · -- item 50: the plain strictness walker's throw contradicts `.ok`
@@ -613,7 +613,7 @@ lemma scanNextTokenIx_dispatchContent_preserves_prefix {input : String}
   unfold scanNextTokenIx_dispatchContent at h_ok
   by_cases hg1 : (c == '&') = true
   · -- c == '&'
-    rw [if_pos hg1] at h_ok
+    rw [ite_eq_left hg1] at h_ok
     -- 4.32.0 already reduces the anchor bind; the `cases`/`rw` below is robust either way
     try simp only [Bind.bind, Except.bind] at h_ok
     split at h_ok   -- item 9e: the property-run guard
@@ -625,11 +625,11 @@ lemma scanNextTokenIx_dispatchContent_preserves_prefix {input : String}
       simp only [Except.ok.injEq] at h_ok
       subst h_ok
       exact scanAnchorOrAliasIx_preserves_prefix s true v hA i h_bound
-  · rw [if_neg hg1] at h_ok
+  · rw [ite_eq_right hg1] at h_ok
     simp only [Bind.bind, Except.bind, Pure.pure, Except.pure] at h_ok
     by_cases hg2 : (c == '*') = true
     · -- c == '*'
-      rw [if_pos hg2] at h_ok
+      rw [ite_eq_left hg2] at h_ok
       split at h_ok   -- item 9e: the property-run guard
       · cases h_ok
       cases hA : scanAnchorOrAliasIx s false with
@@ -643,10 +643,10 @@ lemma scanNextTokenIx_dispatchContent_preserves_prefix {input : String}
         simp only [Except.ok.injEq] at h_ok
         subst h_ok
         exact scanAnchorOrAliasIx_preserves_prefix s false v hA i h_bound
-    · rw [if_neg hg2] at h_ok
+    · rw [ite_eq_right hg2] at h_ok
       by_cases hg3 : (c == '!') = true
       · -- c == '!'
-        rw [if_pos hg3] at h_ok
+        rw [ite_eq_left hg3] at h_ok
         split at h_ok   -- item 9e: the property-run guard
         · cases h_ok
         cases hT : scanTagIx s with
@@ -656,10 +656,10 @@ lemma scanNextTokenIx_dispatchContent_preserves_prefix {input : String}
           simp only [Except.ok.injEq] at h_ok
           subst h_ok
           exact scanTagIx_preserves_prefix s v hT i h_bound
-      · rw [if_neg hg3] at h_ok
+      · rw [ite_eq_right hg3] at h_ok
         by_cases hg4 : (c == '|' || c == '>') = true
         · -- block scalar
-          rw [if_pos hg4] at h_ok
+          rw [ite_eq_left hg4] at h_ok
           -- Peel the §6.7 header-newline guard: its throw arm cannot be `.ok`.
           split at h_ok
           · cases h_ok
@@ -674,10 +674,10 @@ lemma scanNextTokenIx_dispatchContent_preserves_prefix {input : String}
             subst h_ok
             exact _inline_scalar_preserves_prefix s _ _ _ _ i h_bound
           · cases h_ok
-        · rw [if_neg hg4] at h_ok
+        · rw [ite_eq_right hg4] at h_ok
           by_cases hg5 : (c == '"') = true
           · -- double quoted
-            rw [if_pos hg5] at h_ok
+            rw [ite_eq_left hg5] at h_ok
             -- Peel the quoted-scalar strictness guard (item 7).
             split at h_ok
             · cases h_ok
@@ -686,10 +686,10 @@ lemma scanNextTokenIx_dispatchContent_preserves_prefix {input : String}
               subst h_ok
               exact _inline_scalar_preserves_prefix s _ _ _ _ i h_bound
             · cases h_ok
-          · rw [if_neg hg5] at h_ok
+          · rw [ite_eq_right hg5] at h_ok
             by_cases hg6 : (c == '\'') = true
             · -- single quoted
-              rw [if_pos hg6] at h_ok
+              rw [ite_eq_left hg6] at h_ok
               -- Peel the quoted-scalar strictness guard (item 7).
               split at h_ok
               · cases h_ok
@@ -698,7 +698,7 @@ lemma scanNextTokenIx_dispatchContent_preserves_prefix {input : String}
                 subst h_ok
                 exact _inline_scalar_preserves_prefix s _ _ _ _ i h_bound
               · cases h_ok
-            · rw [if_neg hg6] at h_ok
+            · rw [ite_eq_right hg6] at h_ok
               -- plain scalar (success) vs error: one small inner `if`, so `split` is cheap here
               split at h_ok
               · -- item 50: the plain strictness walker's throw contradicts `.ok`
@@ -1016,11 +1016,11 @@ lemma scanLoopIx_preserves_tokens {input : String}
       cases scRes with
       | none =>
         by_cases hFL : s.flowLevel > 0
-        · rw [if_pos hFL] at h; cases h
-        · rw [if_neg hFL] at h
+        · rw [ite_eq_left hFL] at h; cases h
+        · rw [ite_eq_right hFL] at h
           by_cases hDS : s.directivesPresent = true
-          · rw [if_pos hDS] at h; cases h
-          · rw [if_neg hDS] at h
+          · rw [ite_eq_left hDS] at h; cases h
+          · rw [ite_eq_right hDS] at h
             -- §9.2 dangling-node check (item 133): peel its `.ok` arm.
             have hDN : ∃ u, scanLoopIx_checkDanglingNode s = .ok u := by
               cases hx : scanLoopIx_checkDanglingNode s with

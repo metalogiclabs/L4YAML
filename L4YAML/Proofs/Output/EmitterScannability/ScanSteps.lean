@@ -159,8 +159,8 @@ lemma scanLoop_checks_of_scanFiltered_ok (input : String)
   unfold scanLoop at h_final_loop
   rw [h_eof] at h_final_loop
   dsimp only [] at h_final_loop
-  rw [if_neg (show ¬(s_final.flowLevel > 0) from by omega)] at h_final_loop
-  rw [if_neg (by rw [h_dp]; exact Bool.false_ne_true)] at h_final_loop
+  rw [ite_eq_right (show ¬(s_final.flowLevel > 0) from by omega)] at h_final_loop
+  rw [ite_eq_right (by rw [h_dp]; exact Bool.false_ne_true)] at h_final_loop
   cases h_dn : scanLoop_checkDanglingNode s_final with
   | error e => rw [h_dn] at h_final_loop; cases h_final_loop
   | ok u =>
@@ -4056,7 +4056,7 @@ lemma scanNextToken_flow_close_seq_nested (s : ScannerState)
     obtain ⟨tok, h_end_tok⟩ : ∃ tok, (scanFlowSequenceEnd s_ad).tokens = s_ad.tokens.push tok :=
       ⟨_, by unfold scanFlowSequenceEnd ScannerState.emit; rw [ScannerCorrectness.advance_preserves_tokens]⟩
     rw [h_end_tok, h_ad_tok, Array.getElem?_push,
-        if_neg (by have := ScannerCorrectness.saveSimpleKey_tokens_monotonic s; omega : i ≠ (saveSimpleKey s).tokens.size),
+        ite_eq_right (by have := ScannerCorrectness.saveSimpleKey_tokens_monotonic s; omega : i ≠ (saveSimpleKey s).tokens.size),
         Array.getElem?_eq_getElem (by have := ScannerCorrectness.saveSimpleKey_tokens_monotonic s; omega),
         Array.getElem?_eq_getElem hi, ScannerCorrectness.saveSimpleKey_preserves_prefix s i hi]
 
@@ -4467,7 +4467,7 @@ lemma scanNextToken_flow_close_mapping_nested (s : ScannerState)
     obtain ⟨tok, h_end_tok⟩ : ∃ tok, (scanFlowMappingEnd s_ad).tokens = s_ad.tokens.push tok :=
       ⟨_, by unfold scanFlowMappingEnd ScannerState.emit; rw [ScannerCorrectness.advance_preserves_tokens]⟩
     rw [h_end_tok, h_ad_tok, Array.getElem?_push,
-        if_neg (by have := ScannerCorrectness.saveSimpleKey_tokens_monotonic s; omega : i ≠ (saveSimpleKey s).tokens.size),
+        ite_eq_right (by have := ScannerCorrectness.saveSimpleKey_tokens_monotonic s; omega : i ≠ (saveSimpleKey s).tokens.size),
         Array.getElem?_eq_getElem (by have := ScannerCorrectness.saveSimpleKey_tokens_monotonic s; omega),
         Array.getElem?_eq_getElem hi, ScannerCorrectness.saveSimpleKey_preserves_prefix s i hi]
 

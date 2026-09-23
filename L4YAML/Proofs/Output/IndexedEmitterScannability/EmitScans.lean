@@ -722,7 +722,7 @@ lemma scanNextToken_flow_valueIx (s : ScannerStateIx input)
   -- Item 31's `scanValueIndentTabCheckIx` is the identity in flow context —
   -- §6.1 constrains `[63] s-indent`, and a flow collection has none.
   have h_indentTab : scanValueIndentTabCheckIx s_ad = .ok () := by
-    unfold scanValueIndentTabCheckIx; rw [if_pos h_ad_flow]
+    unfold scanValueIndentTabCheckIx; rw [ite_eq_left h_ad_flow]
   have h_scanValue_ok : scanValueIx s_ad =
       .ok { (((scanValuePrepareIx s_ad).emit YamlToken.value).advance) with
             simpleKeyAllowed := true, explicitKeyLine := none, explicitKeyCol := -1 } := by
@@ -1974,7 +1974,7 @@ lemma scanNextTokenIx_emitScalar_init (content : String) :
                       (YamlToken.scalar content ScalarStyle.doubleQuoted)
                       cAfter.pos h_bound cAfter.posBound).token !=
                     YamlToken.placeholder) = true := rfl
-    rw [if_pos h_keep, h_ad_tokens_arr, h_pp_tokens_eq]
+    rw [ite_eq_left h_keep, h_ad_tokens_arr, h_pp_tokens_eq]
 
 /-! ### §3.3  `scan_accepts_emitScalarIx` (SS2 wrapper)
 

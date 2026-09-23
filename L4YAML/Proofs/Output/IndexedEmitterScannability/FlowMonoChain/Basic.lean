@@ -281,17 +281,17 @@ lemma SimpleKeyAboveFloorIx_of_flow_open
   · simp only [h_stack, Array.size_push] at hj
     by_cases hlt : j < s_in.simpleKeyStack.size
     · have hp' : s_in.simpleKeyStack[j].possible = true := by
-        simp only [h_stack, Array.getElem_push, dif_pos hlt] at hp; exact hp
+        simp only [h_stack, Array.getElem_push, dite_eq_left hlt] at hp; exact hp
       have h_ge := h_inv.2.1 j hfl hlt hp'
       show s_out.simpleKeyStack[j].tokenIndex ≥ n
-      simp only [h_stack, Array.getElem_push, dif_pos hlt]; exact h_ge
+      simp only [h_stack, Array.getElem_push, dite_eq_left hlt]; exact h_ge
     · have hj_eq : j = s_in.simpleKeyStack.size := by omega
       subst hj_eq
       have hp' : s_in.simpleKey.possible = true := by
-        simp only [h_stack, Array.getElem_push, dif_neg hlt] at hp; exact hp
+        simp only [h_stack, Array.getElem_push, dite_eq_right hlt] at hp; exact hp
       have h_ge := h_inv.1 hp'
       show s_out.simpleKeyStack[s_in.simpleKeyStack.size].tokenIndex ≥ n
-      simp only [h_stack, Array.getElem_push, dif_neg hlt]; exact h_ge
+      simp only [h_stack, Array.getElem_push, dite_eq_right hlt]; exact h_ge
   · simp only [h_stack, Array.size_push]; have := h_inv.2.2; omega
 
 /-- Flow-close transport: `s_out`'s `simpleKey` is restored from
@@ -710,7 +710,7 @@ lemma scanNextTokenIx_dispatchContent_maintains_SKAFIx {input : String}
   unfold scanNextTokenIx_dispatchContent at h
   by_cases hg1 : (c == '&') = true
   · -- '&' anchor
-    rw [if_pos hg1] at h
+    rw [ite_eq_left hg1] at h
     -- 4.32.0 already reduces the anchor bind; the `cases`/`rw` below is robust either way
     try simp only [Bind.bind, Except.bind] at h
     split at h   -- item 9e: the property-run guard
@@ -723,11 +723,11 @@ lemma scanNextTokenIx_dispatchContent_maintains_SKAFIx {input : String}
       exact SimpleKeyAboveFloorIx_of_preserved _ s n₀ fl₀
         (scanAnchorOrAliasIx_preserves_simpleKey s true v hA)
         (scanAnchorOrAliasIx_preserves_simpleKeyStack s true v hA) h_inv
-  · rw [if_neg hg1] at h
+  · rw [ite_eq_right hg1] at h
     simp only [Bind.bind, Except.bind, Pure.pure, Except.pure] at h
     by_cases hg2 : (c == '*') = true
     · -- '*' alias
-      rw [if_pos hg2] at h
+      rw [ite_eq_left hg2] at h
       split at h   -- item 9e: the property-run guard
       · cases h
       cases hA : scanAnchorOrAliasIx s false with
@@ -742,10 +742,10 @@ lemma scanNextTokenIx_dispatchContent_maintains_SKAFIx {input : String}
         exact SimpleKeyAboveFloorIx_of_preserved _ s n₀ fl₀
           (scanAnchorOrAliasIx_preserves_simpleKey s false v hA)
           (scanAnchorOrAliasIx_preserves_simpleKeyStack s false v hA) h_inv
-    · rw [if_neg hg2] at h
+    · rw [ite_eq_right hg2] at h
       by_cases hg3 : (c == '!') = true
       · -- '!' tag
-        rw [if_pos hg3] at h
+        rw [ite_eq_left hg3] at h
         split at h   -- item 9e: the property-run guard
         · cases h
         cases hT : scanTagIx s with
@@ -756,11 +756,11 @@ lemma scanNextTokenIx_dispatchContent_maintains_SKAFIx {input : String}
           exact SimpleKeyAboveFloorIx_of_preserved _ s n₀ fl₀
             (scanTagIx_preserves_simpleKey s v hT)
             (scanTagIx_preserves_simpleKeyStack s v hT) h_inv
-      · rw [if_neg hg3] at h
+      · rw [ite_eq_right hg3] at h
         by_cases hg4 : (c == '|' || c == '>') = true
         · -- block scalar: clears the pending simple key (it ends at a line
           -- start), so this is the `_of_cleared_preserved` transport.
-          rw [if_pos hg4] at h
+          rw [ite_eq_left hg4] at h
           -- Peel the §6.7 header-newline guard: its throw arm cannot be `.ok`.
           split at h
           · cases h
@@ -774,10 +774,10 @@ lemma scanNextTokenIx_dispatchContent_maintains_SKAFIx {input : String}
           · simp only [Except.ok.injEq] at h; subst h
             exact SimpleKeyAboveFloorIx_of_cleared_preserved _ s n₀ fl₀ rfl rfl h_inv
           · cases h
-        · rw [if_neg hg4] at h
+        · rw [ite_eq_right hg4] at h
           by_cases hg5 : (c == '"') = true
           · -- double-quoted
-            rw [if_pos hg5] at h
+            rw [ite_eq_left hg5] at h
             -- Peel the quoted-scalar strictness guard (item 7).
             split at h
             · cases h
@@ -785,10 +785,10 @@ lemma scanNextTokenIx_dispatchContent_maintains_SKAFIx {input : String}
             · simp only [Except.ok.injEq] at h; subst h
               exact SimpleKeyAboveFloorIx_of_preserved _ s n₀ fl₀ rfl rfl h_inv
             · cases h
-          · rw [if_neg hg5] at h
+          · rw [ite_eq_right hg5] at h
             by_cases hg6 : (c == '\'') = true
             · -- single-quoted
-              rw [if_pos hg6] at h
+              rw [ite_eq_left hg6] at h
               -- Peel the quoted-scalar strictness guard (item 7).
               split at h
               · cases h
@@ -796,7 +796,7 @@ lemma scanNextTokenIx_dispatchContent_maintains_SKAFIx {input : String}
               · simp only [Except.ok.injEq] at h; subst h
                 exact SimpleKeyAboveFloorIx_of_preserved _ s n₀ fl₀ rfl rfl h_inv
               · cases h
-            · rw [if_neg hg6] at h
+            · rw [ite_eq_right hg6] at h
               -- plain scalar (success) vs error: one small inner `if`
               split at h
               · -- item 50: the plain strictness walker's throw contradicts `.ok`
@@ -968,7 +968,7 @@ lemma scanNextTokenIx_checkDanglingNode_ok_of_inFlow {input : String}
     (s_run s_land : ScannerStateIx input) (h : s_run.inFlow = true) :
     scanNextTokenIx_checkDanglingNode s_run s_land = .ok () := by
   unfold scanNextTokenIx_checkDanglingNode danglingNodePosIx?
-  rw [if_pos h]
+  rw [ite_eq_left h]
   split <;> rfl
 
 /-! Item 180's crossed-block clause fires at ANY column — the indexed twins

@@ -122,7 +122,7 @@ theorem verdicts_agree_on_indentation (l : Line) (k : KeyMark)
     | nil => intro _; rfl
     | cons c cs ih =>
       intro hm
-      rw [List.takeWhile_cons, if_pos (hm c (by simp)),
+      rw [List.takeWhile_cons, ite_eq_left (hm c (by simp)),
           ih (fun x hx => hm x (by simp [hx]))]
   simp only [guardByKey, guardByLine, hall, Bool.true_and]
   rw [hkeep l.reverse (by

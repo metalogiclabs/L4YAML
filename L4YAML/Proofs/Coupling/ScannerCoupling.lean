@@ -573,7 +573,7 @@ lemma skipWhitespaceLoop_fuel_irrel (t : ScannerState) (f g : Nat)
       | some c =>
         simp only []
         by_cases hws : isWhiteSpaceBool c = true
-        · simp only [hws, if_true]
+        · simp only [hws, ite_true]
           have hmore := peek_some_hasMore t c hpeek
           have hgt : t.advance.offset > t.offset := by
             rw [advance_offset_eq t hmore]; exact raw_next_gt _ _
@@ -598,14 +598,14 @@ lemma skipWhitespaceLoop_peek_not_ws (t : ScannerState) (f : Nat)
     | some c =>
       simp only []
       by_cases hws : isWhiteSpaceBool c = true
-      · simp only [hws, if_true]
+      · simp only [hws, ite_true]
         have hmore := peek_some_hasMore t c hpeek
         have hgt : t.advance.offset > t.offset := by
           rw [advance_offset_eq t hmore]; exact raw_next_gt _ _
         have hend := advance_inputEnd t
         exact ih t.advance (by omega)
       · simp only [Bool.not_eq_true] at hws
-        simp only [hws, Bool.false_eq_true, if_false]
+        simp only [hws, Bool.false_eq_true, ite_false]
         intro ch h; rw [hpeek] at h; injection h with h; subst h; exact hws
 
 /-- `skipWhitespace` lands on a non-`s-white` character, or at end of input. -/
@@ -633,7 +633,7 @@ lemma skipWhitespace_advance_of_ws (t : ScannerState) (c : Char)
       = skipWhitespaceLoop t.advance (t.inputEnd - t.offset - 1) := by
     rw [show t.inputEnd - t.offset = (t.inputEnd - t.offset - 1) + 1 by omega]
     rw [skipWhitespaceLoop]
-    simp only [hpeek, hws, if_true, Nat.add_sub_cancel]
+    simp only [hpeek, hws, ite_true, Nat.add_sub_cancel]
   unfold skipWhitespace
   rw [h1]
   exact skipWhitespaceLoop_fuel_irrel t.advance (t.inputEnd - t.offset - 1)
