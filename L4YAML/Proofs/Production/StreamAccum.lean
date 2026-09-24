@@ -2649,7 +2649,36 @@ lemma props_couplings_of_push {s_ad s' : ScannerState} {tok : YamlToken}
     the twin is a new landing arm threaded through `indicator_open_map`, whose
     four callers already pay the value-line chain at two — `slotChainMap` under
     a `?`'s key slot, `entryChainMap` under an awaited `-` — and the twin,
-    stated over either context, serves both. -/
+    stated over either context, serves both.
+
+    **How many of the comment closes stand at a landing whose width is in hand**
+    (`Tests/Guards/Proofs/CloseLandingWidth.lean`, DOCS item 251).  Of the
+    eleven pairs the twins leave, six are closes on comments — the comments
+    closure under comments alone, a suffix, and their absorbed twins, and the
+    value slot handed as a fact — at eight build points, six of them through
+    `close_with_ssl`, whose open-park arms close the entry EMPTY on the
+    comments at whatever width follows; the close is honest exactly when what
+    follows stands at the entry's width or left of it.  Followed from each
+    build point's callee parameter to where the closure is spent, the closures
+    are spent thirteen times on the comments, handed on seven times, and never
+    on an empty node of their own.  At twelve of the thirteen the landing's
+    width is in hand as an `s-indent(k)` off the landing, at the thirteenth
+    only as the raw whites beside a column fact; the park's index is nameable
+    at eight — the two landings of a `-` entry's park, the entry open and the
+    entry's content complete — and a comparison of the two stands beside
+    none: the eight closes that hold both numbers close the entry at every
+    width, and the comparison exists only where the closure is handed on — the
+    dedent hand-off under `k < n`, and the pack chain under `n + 1 ≤ k`.  By
+    build point that is three of the eight with both numbers in hand at every
+    own close and hand-off, four with the width alone (the two key-context
+    landings and the flow opener's, which never take the park, and the
+    close-then-block landing, whose index sits packed in the value slot it has
+    not opened), and one with neither, the content park's, which hands the
+    closure on before any landing is read.  Of the eighteen empty-node
+    constructors in the reach, two are `close_with_ssl`'s own with no width
+    beside them, and a comparison stands beside four: the two dedent landings
+    of the indented content readers (`j < n + 1`) and two `:` lines read at
+    the entry's own width. -/
 
 inductive BlockStack : SurfPos → SurfPos → Prop where
   /-- No active block collections. At document level or stream start. -/

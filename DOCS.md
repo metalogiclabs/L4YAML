@@ -31733,15 +31733,15 @@ rows, unchanged.**
 and the twenty-four are still unpriced.  Of the arm's threading, seven of the
 eighteen pairs are now covered by two stated and proved lemmas whose price at
 the producers is a landing arm through one funnel; eleven are not: the eight
-that never compose A, the node route, and the two stacked.  Eight of the
+that never compose A, the node route, and the two stacked.  ~~Eight~~ Six (struck by item 251: the count took the two D pairs with it) of the
 eleven are closes on comments (`SSLComments ⇒ Stream` under C, E and their
 absorbed twins; the two facts) — and under an open entry a close on comments
 IS the failure mode's first half, the entry closed EMPTY, which is the honest
 reading exactly when what follows the comments dedents to the entry's width
 or below and a re-derivation otherwise.  **The number no instrument holds is
-how many of those eight closes stand at a landing whose width is in hand.**
-The cheap experiment is a census at the seven `close_with_ssl` sites and the
-two fact sites: beside the `SSLComments` the close spends, whether the
+how many of those ~~eight~~ six closes stand at a landing whose width is in hand.**
+The cheap experiment is a census at the ~~seven~~ six `close_with_ssl` sites, the seventh comments site and the
+fact site (struck by item 251; the fact's two pairs share one site): beside the `SSLComments` the close spends, whether the
 producer holds the landing's indent (an `SIndent k` off the same `sp_mid`, or
 a column fact) and the park's own index — the two numbers the side condition
 `k ≤ n` of an honest empty close is made of.  The expensive one is the arm at
@@ -31751,6 +31751,242 @@ constructor, so it passes the reading that caught `slotMapRoute_closedFirst`;
 what makes it honest is the width comparison the detector cannot see, and a
 census that counts `SBlockIndented.empty` closes as covered because they
 typecheck will count the failure mode as coverage.
+
+Unchanged: R3's seven productions, whose price is the case split; item 183's
+flip order, whose two REFUTABLE halves are `h_ref`'s readers; the parked Ix
+Step-1 composition on the Ix track's own clock.
+
+### Item 251 (2026-09-24)
+
+**The mandate.**  Item 250's recorded NEXT: *"Eight of the eleven are closes
+on comments (`SSLComments ⇒ Stream` under C, E and their absorbed twins; the
+two facts) — and under an open entry a close on comments IS the failure
+mode's first half, the entry closed EMPTY, which is the honest reading exactly
+when what follows the comments dedents to the entry's width or below and a
+re-derivation otherwise.  The number no instrument holds is how many of those
+eight closes stand at a landing whose width is in hand.  The cheap experiment
+is a census at the seven `close_with_ssl` sites and the two fact sites:
+beside the `SSLComments` the close spends, whether the producer holds the
+landing's indent (an `SIndent k` off the same `sp_mid`, or a column fact) and
+the park's own index — the two numbers the side condition `k ≤ n` of an
+honest empty close is made of.  The expensive one is the arm at each.  The
+failure mode to watch is this item's detector read as a license: an empty
+close hands the closure `SBlockIndented.empty` and enters no stream
+constructor, so it passes the reading that caught `slotMapRoute_closedFirst`;
+what makes it honest is the width comparison the detector cannot see, and a
+census that counts `SBlockIndented.empty` closes as covered because they
+typecheck will count the failure mode as coverage."*
+
+**Both numbers are in hand at eight of the thirteen closes, and compared at
+none of them.**  The comment closes are six (shape, composition) pairs, not
+eight — the eight took the two D pairs with it — at eight build points, six
+of them through `close_with_ssl`, whose two open-park arms close the entry
+EMPTY on the comments at whatever width follows.  Followed from each build
+point's callee parameter to where the closure is spent, the closures are
+spent thirteen times on the comments, handed on seven times, and never on an
+empty node of their own.  The landing's width is in hand at every one of the
+thirteen — twelve times as an `s-indent(k)` off the landing, once as the raw
+whites beside a column fact — and the park's index is nameable at eight, the
+two landings of a `-` entry's park; but a comparison of the two stands beside
+none of the thirteen.  The eight closes that hold both numbers close the
+entry at every width, and the comparison exists only where the closure is
+handed ON rather than spent: the awaited entry's dedent hand-off under
+`k < n`, and the value slot's chain under `n + 1 ≤ k` — item 250's side
+condition, already in place for the pack.  By build point that is **three**
+of the eight with both numbers at every own close and hand-off, **four** with
+the width alone, and **one** with neither.  Of the eighteen empty-node
+constructors in the reach, `close_with_ssl`'s two have no width beside them
+at all, and a comparison stands beside four.
+
+**§0 — the instrument** (`Tests/Guards/Proofs/CloseLandingWidth.lean`, nine
+seconds, importing `OpenEntryRoute` so item 249's trace is re-run in the same
+pass).  §1 derives the closes from that trace rather than typing them: every
+genuine segment whose spine is `SSLComments ⇒ Stream`, or the value-slot fact
+`[col(_)=_+1] SBlockIndented(_,blockOut) ⇒ Stream ⟶ (fact)`, with its
+compositions, and whether the closure the producer hands goes through
+`close_with_ssl` (a hop on the segment).  §2 follows each site's callee
+parameter through the callee's proof term: every binder is entered with a
+real local declaration, so at each point where the parameter is APPLIED
+through its `SSLComments`/`SBlockIndented` argument (a spend) the context is
+the elaborator's own; a parameter that is a package (`h_vslot`'s `∃ … ∨ True`)
+is tracked through its destructuring, and a closure passed to a library lemma
+short of its close argument — under lambdas, casts, matches and logic
+plumbing, but not inside another lemma's or a constructor's application — is
+a hand-off, followed into that lemma's parameter.  At each spend and hand-off
+three readings: WIDTH (`ind`: an `SIndent k landing _`, the landing matched
+directly or through one equation; `ws`: only `GStar SSWhite landing _`; else
+`none`), INDEX (`direct`: a `Nat` variable tied to the park by `start.col =
+n + 1`, `currentIndent ≤ n`, `IndentFloor _ (n+1)`, a slot closure over the
+park's own start, or a compact tail at a lemma variable; `packed`: such a tie
+only under an undestructured ∃/∨/∧; else `none`), and CMP (a hypothesis
+relating that `k` to that `n`, or the two being one variable after a
+`subst`).  The spend's argument is rendered at the node level (item 250's
+renderer) and classed: the comments premise, an empty node, or a node; the
+width question is asked of the first two, since a node close carries its own
+indentation inside the node.  §3 censuses every `SBlockIndented.empty` and
+`SBlockNode.emptyNode` application in `close_with_ssl` and the thirty-eight,
+with the same three readings beside each.  The pass throws if item 249's
+frame (23 / 21 / 21 / 18) or item 250's (8 A pairs, 8 non-A) is not
+re-derived.
+
+    closeSites=8 closePairs=6 closePairsD=8 viaClose=6 params=7
+    spends=21 spendsC=13 spendsE=0 spendsN=8 handoffs=7 carries=0 untyped=0 edges=4 paramsWalked=8
+    widthInd=12 widthWs=1 widthNone=0 idxDirect=8 idxPacked=1 idxNone=4
+    cmp=0 cmpSame=0 both=8 bothCmp=0 handInd=5 handDirect=5 handCmp=5
+    sitesBoth=3 sitesWidth=4 sitesNeither=1 sitesBothAll=1
+    empties=18 emptyLemmas=6 emptyInd=10 emptyCmp=4 emptySame=2 emptyClose=2
+    sites=23 pairs=21 pairs21=21 pairs18=18 nonANoDrop=8 reach=38
+
+**§1 — the closes.**  Six pairs without D — `SSLComments ⇒ Stream` under
+C, E, absorb▹C, absorb▹E, and the two value-slot facts — eight with it; at
+eight build points and seven callee parameters:
+
+| build point (item 249's site) | pairs | through `close_with_ssl` | followed from |
+|---|---|---|---|
+| `accum_content_pending→keyctx_of_preprocess.h_close` | C, D, E | yes | `keyctx_of_preprocess.h_close` |
+| `accum_content_on_noPending→keyctx_of_preprocess.h_close` | C | **no** — `ssl_comments_extend_stream`, no park | the same parameter |
+| `accum_flow_open_depth0→flowKeyRoute_of_root.h_close` | absorb▹C, ▹D, ▹E | yes | `flowKeyRoute_of_root.h_close` |
+| `accum_block_pending→accum_block_on_pendingContent.h_close_pending` | C, D, E | yes | `…pendingContent.h_close_pending` |
+| `accum_block_pending→accum_block_on_closeThenBlock.h_close_pending` | C, D, E | yes | `…closeThenBlock.h_close_pending` |
+| `accum_block_pending→accum_block_on_pendingBlockContent.h_close_pending` | C, D, E | yes | `…pendingBlockContent.h_close_pending` |
+| `accum_block_pending→accum_block_on_pendingBlock.h_close_pending` | C, D, E | yes | `…pendingBlock.h_close_pending` |
+| `accum_block_pending→accum_block_on_closeThenBlock.h_vslot` | the two facts | no — the park's own field | `…closeThenBlock.h_vslot` (a package) |
+
+Item 250's "seven `close_with_ssl` sites and two fact sites" were six, one
+comments site that never sees a park, and one fact site carrying two pairs.
+(Struck in place in item 250's entry.)
+
+**§2 — the spends.**  Twenty-one spends, seven hand-offs, no carry: the
+closures reach thirteen comments spends, eight node spends (the value slot
+filled by `closeThenBlock` seven times and by `slotChainMap` once, with item
+250's `blockMap` node), and no empty-node spend of their own — the empty node
+is built inside `close_with_ssl`, one hop below every comments spend.
+
+| callee parameter | comments spends | width | index | comparison | hand-offs |
+|---|---|---|---|---|---|
+| `keyctx_of_preprocess.h_close` | 2 | `ind` at both (the second through `sp_mid = sp`) | none — the lemma never takes the park | none | — |
+| `flowKeyRoute_of_root.h_close` | 2 | `ind` | none | none | — |
+| `accum_block_on_closeThenBlock.h_close_pending` | 1 (`h_stream_new`) | `ws` + `sp_mid.col = 0` — its `h_ind` lives in the other goal | **packed** in `h_vslot`, `h_valF`, `h_valFV` | none | — |
+| `accum_block_on_pendingBlock.h_close_pending` | 4 | `ind` | **direct**: `n` by `sp_scan.col = n + 1`, `currentIndent ≤ n`, the block-in slot, the compact tail | **none** | 1 → `closeThenBlock`, under `¬k = n`, `n ≥ k` |
+| `accum_block_on_pendingBlockContent.h_close_pending` | 4 | `ind` | **direct**: `n` by the compact tail alone | **none** | 1 → `closeThenBlock`, under `¬k = n` |
+| `accum_block_on_pendingContent.h_close_pending` | 0 | — | — | — | 2 → `closeThenBlock`, blind: no landing read |
+| `accum_block_on_closeThenBlock.h_vslot` | 0 (7 node spends) | — | — | — | 3 → `slotChainMap.up`, under `nv + 1 ≤ k`, width and index in hand |
+
+The four spends of `pendingBlock` and the four of `pendingBlockContent` are
+the eight that hold both numbers, and all eight sit in the `:`/`?` arm, which
+closes the awaited entry empty and hands the closed stream to
+`indicator_open_map` at EVERY width — `-⏎  : a` is derived as an empty entry
+followed by a new root document, which is item 250's seventh-arm site read
+from the other side.  The comparison the honest close needs exists in the
+same lemmas, one arm over: the `-` arm splits on `k = n` (the sibling), `n <
+k` (the nested collection) and the dedent, and only the dedent hands the
+closure on.  `closeThenBlock`'s one spend is the fall-back every other block
+landing hands its closure to, and there the park's index is packed in a
+value slot the goal has not opened.  The two key-context landings and the
+flow opener hold the width and nothing of the park; the content park hands
+its closure on before the landing is read.
+
+**§3 — by build point.**  BOTH numbers at every own close and hand-off:
+`pendingBlock`, `pendingBlockContent`, and the value slot (its own closes are
+nodes; its three chain hand-offs hold both under item 250's side condition).
+WIDTH alone: `keyctx_of_preprocess` twice, `flowKeyRoute_of_root`,
+`closeThenBlock`.  NEITHER: `pendingContent`.  Over the hand-off closure only
+the value slot keeps both (its chain lands in `slotChainMap`, which hands the
+slot a node); the two `-` parks lose them at `closeThenBlock`'s spend.
+
+**§4 — the empty closes.**  Eighteen constructor applications in six lemmas:
+
+| lemma | applications | width beside | comparison beside |
+|---|---|---|---|
+| `close_with_ssl` | 2 (the `pendingBlock` and `pendingMapValue` arms) | none — the lemma has no `k` | none |
+| `accum_block_on_pendingBlock` | 4 | `ind` at 3 | none read: `h_node_old` is built before the sibling split (`k = n`) that spends it, and item 198's dedent reading compares by membership, `k ∈ ks` |
+| `accum_block_pending` | 4 (the `?` opener's key closed empty at `nmv`) | `ind` at 4 | `≡nmv` at 1: the `:` read at the entry's own width |
+| `accum_content_on_pendingBlock_indented` | 5 | `ind` at 1 | `j < n + 1` at 1 — the dedent landing |
+| `accum_content_on_pendingMapValue_indented` | 1 | `ind` | `j < n + 1` — the dedent landing |
+| `question_open_map` | 2 | `ind` at 1 | `≡k` at 1 |
+
+The census reads what stands beside the constructor where it is APPLIED, and
+two of `pendingBlock`'s four are a `have` spent one split later — so the four
+with a comparison are a floor.  The two honest dedent closes are the indented
+content readers' (item 198's family), where `j < n + 1` is a conjunct of the
+landing they obtain; the two `≡` closes are a `:` line measured at the
+entry's own index.  No close anywhere is counted for typechecking: an empty
+close that typechecks is the failure mode's first half, and every row above
+says only what is beside it.
+
+**Predictions, scored.**  HELD — P0 (six pairs, eight with D, eight sites,
+six through `close_with_ssl`, seven parameters), P2 (`ind` at twelve, `ws` at
+`closeThenBlock`'s one, none at zero; the hand-offs as predicted), P3
+(`direct` at the two `-` parks' eight — `pendingBlockContent`'s by the tail
+alone — `packed` at `closeThenBlock`, none at the key-context and flow
+landings), P5 (three / four / one, the sites as named), P6 (`close_with_ssl`
+two with no `k`; sixteen more in five lemmas, `ind` beside the majority, a
+comparison beside four), P8 (nine seconds).  PARTIAL — P1 (the comments
+spends thirteen, and per lemma exactly as predicted; but the value slot is
+never closed on comments or empty by its consumer — seven node spends and
+three hand-offs — and the hand-offs are seven applications on four edges, the
+fourth into `slotChainMap`, not three into `closeThenBlock`), P4 (none of
+`pendingBlock`'s four and `¬k = n ∧ n ≥ k` at its dedent hand-off as
+predicted, but not "0 elsewhere": `pendingBlockContent`'s hand-off carries
+`¬k = n` and the three chain hand-offs carry `nv + 1 ≤ k`), P7 (build 1218 as predicted, testfiles 661 as predicted; sweep 858/854 with T=27 as predicted; closure 230 / 355 as predicted; `CloseLandingWidth theorems=12 axioms=[Classical.choice, Quot.sound, propext]` — not `theorems=0`: the four `structure`s generate `mk.injEq`, `mk.inj` and `mk.sizeOf_spec` each, the very note item 250's axiom probe carries about `DropDependents`, and no theorem is authored (`probe.axioms.bytheorem.log`); every other gate at item 250's baseline).  Unforeseen: the value slot's
+chain already sits under item 250's side condition; the empty-node census
+reads build points, and one build point is a `have` spent under the sibling
+split; item 198's dedent compares by membership in the frames.
+
+**Gates.**  Build **1218** jobs.  `Verified: 4520/4520` (837/837); eventscore
+347/358 with 0 error-miss; suiterunner 869/0/151; matrix 402/402 + 282/282 on
+both pipelines; annotations exit 1 (the output identical to item 250's); decline pins 7 + 18 + 6 ALL PINS OK; `capstones=25
+withSorryAx=0`; `CloseLandingWidth theorems=12 axioms=[Classical.choice, Quot.sound, propext]` — every one of the twelve a `mk.injEq`, `mk.inj` or `mk.sizeOf_spec` generated by the module's four `structure`s (`Site`, `Row`, `WState`, `Empty`; `probe.axioms.bytheorem.log`), none authored: a census with no exhibit, so nothing that could pass by typechecking; `OpenEntryRoute theorems=5 axioms=[Quot.sound, propext]`, `StreamCompositions theorems=45` and `RouteShapes theorems=18` unmoved; closure **230** library modules /
+355 reflection imports; 25 whitelisted `theorem` sites; counts **8736** /
+**8173** / **661** / **8**; sweep `closure=858 imported=854
+T=27` with `WIDE-PIN agrees` (`DropDependents.lean`'s pin and its two prose
+readings 857/853 → 858/854).  The three standing
+flips read 5 / 4 / 2, the supplier lattice 5 / 1 / 7 and its producer wave
+4, and the carrier flip 2 / 5 with `CARRIER-PIN agrees` at both ends, all
+with md5 before == after and every end printing `REPAIRED errors=0` or
+`CARRIER errors=0`.
+`L4YAML/Proofs/Production/StreamAccum.lean`'s md5 moves
+`d6cc05d17542334429b213b6adf89a11` → `73063db1ab0d1b5ae67a72acc134398b` (the
+§0b docstring: how many of the comment closes stand at a landing whose width is in hand);
+`Blueprint/04-capstones.md`'s `8ad29551069b205d94fc520eea9f6d96` →
+`35eb9c5b14ef6a763497b1e0f40fe13e`; `L4YAML/Surface/Document.lean` unmoved.
+Five pinned lists, one pinned line and the cross-instrument checks against
+items 249's and 250's frames over **48** perturbations, each throwing — every numeric field of the line and
+one row of each list, the anchors generated from the pinned line itself so
+none can straddle a continuation.
+
+**The instrument ledger**, fifty-two rows: … the open-entry route (250) —
+and now **the CLOSE LANDING WIDTH**, the first instrument to read a proof's
+LOCAL CONTEXT at a point the census names: the callee parameter followed to
+its spends with every binder entered as a real declaration, so that "in
+hand" is answered by the elaborator's own context and not by the lemma's
+signature.  **Instrument debt, eleven rows, unchanged.**
+
+**What remains.**  β.5's bill is two restatements and twenty-four reproofs,
+and the twenty-four are still unpriced.  Of the arm's threading, seven of the
+eighteen pairs are covered by item 250's twins and eleven are not; six of the
+eleven are closes on comments, and this item read where they are spent.
+Eight of the thirteen spends hold both numbers of the honest close's side
+condition and compare them nowhere: the `:`/`?` arm of the two `-` parks
+closes the entry empty at every width, honest at `k ≤ n` and a
+re-derivation at `n < k`, where the honest reading is item 250's twin — the
+`[187]` entry inside the entry's node — and the funnel that arm feeds takes
+the closed stream, not the entry closure.  **The number no instrument holds
+is how many of those eight closes can split on the two numbers exhaustively
+from what they hold**: under `n < k` the entry filled through the twin (the
+funnel's `h_stream_land` replaced by the entry closure, the seventh arm); at
+`k = n` the sibling, which the `-` arm already derives; under `k < n` a frame
+the park carries at `k` — `h_closeF`'s `ks`, every member below `n`, with
+`IndentStackCover.Covered` tying `ks` to the scanner's stack — and how many
+widths fall between, `k < n` with `k ∉ ks`, which is the case the root
+reading absorbs today.  The cheap experiment is a census at the eight: the
+frames hypotheses in hand, whether `Covered`/`Floor` is among them (the stack
+covers every dedent target the scanner can land on), and whether the `-`
+arm's own split can be lifted as it stands.  The expensive one is the split
+at each.  **The failure mode to watch is a split made exhaustive by the root
+reading**: `k ∉ ks` sent through `indicator_open_map`'s closed stream is this
+item's unconditional close with a case label on it, and a census that
+credits a split for having three arms will credit it.
 
 Unchanged: R3's seven productions, whose price is the case split; item 183's
 flip order, whose two REFUTABLE halves are `h_ref`'s readers; the parked Ix
@@ -31773,16 +32009,16 @@ and Step 5 (the converse) is R3's deletion and then R4's narrowing, in that
 order:
 
 ```
-R1 ✓ (44–46) ──→ R2 ✓ (47–51) ──→ R3 (52–250; the deletion OPEN) ──→ R4 ([210]'s narrowing; 1d ✓ 179) ──→ Step 5 ──→ Step 6
+R1 ✓ (44–46) ──→ R2 ✓ (47–51) ──→ R3 (52–251; the deletion OPEN) ──→ R4 ([210]'s narrowing; 1d ✓ 179) ──→ Step 5 ──→ Step 6
 ```
 
-**Where it stands after item 250 (2026-09-24).**  Every number in this table
+**Where it stands after item 251 (2026-09-24).**  Every number in this table
 is a gate's or a pin's, and the instrument that re-derives it is named beside
 it; the prose history is in the R3/R4 sections below and in the closure log.
 
 | row | state | the numbers, and where they come from |
 |---|---|---|
-| **R3** — delete `pendingFlow` and `scannerDrop` | OPEN | `scannerDrop` is applied ONCE (`PendingNode.close_with_ssl`'s `pendingFlow` arm); its flip breaks **2** definitions (`scripts/flip_drop.py`).  `block_dispatch_deferred`, `pendingFlow`'s only producer, is applied **9** times in **4** holders — `_stamp_offcol` 3, `_stamp_nopack` 3, `_inline` 2, the bare escape 1 (`Tests/Guards/Proofs/FlipConsumerSurface.lean`, DEFERRAL lane).  `KeyPackPunt`'s four reasons are produced at **12** sites — `tab` 2, `dedent` 4, `implicitValue` 3, `noKeyContext` 3 — and spent by the same three consumer arms (PACK PUNT lane); item 212's **seven productions** are `dedent`'s four and `noKeyContext`'s three, and their price is the case split.  The deletion's bill is **two restatements and twenty-four reproofs** (items 238–240; `scripts/flip_supplier.py`'s four ends read weak 5 / field 1 / retire 7 / producer 4), the twenty-four unpriced.  Items 241–245 located what the escape's sites owe: the park's gap to the dispatch is ONE scanner step (243), the step is ONE character and the production it owes a `GLit` (244), and the grammar path there ends in whitespace with no carrier for the literal — `BlockStack` has one reflexive constructor against `SeqFrame`/`MapFrame`'s ten, so the six one-step sites owe a **block node**, not a character (245; `Tests/Guards/Proofs/ParkGapProduction.lean`).  The arm that would hold it is HONEST — `direct` under item 236's connectivity reading, which over the proof layer's 235 arms names exactly R3's two deletions as the library's only escapes — and it is read in **2** places and carried in 40; its second wave is **5** proofs, all inside T's twenty-seven (246; `scripts/flip_carrier.py` arm=2 retire=5, `Tests/Guards/Proofs/CarrierArmPrice.lean`).  Of the five's **61** exits, **15** carry an open entry through — the flow-interior branches, where the carrier is never absorbed — and **43** build `nil` and hand the content to a route that promises the stream past the position they re-emit at; **26** of those sit in **14** lemmas outside T (247; `Tests/Guards/Proofs/ExitHandoff.lean`).  The parks' **54** closures are **39** spines over 6 heads; at the forty-three exits the parks' 255 closure slots CARRY the input park's promise at 154 and build it from the absorbed stream at 8; over everything the five reach a promise is first built from the stream at 17 places in **8** lemmas, and the shapes so built are **k = 10** (248; `Tests/Guards/Proofs/RouteShapes.lean`).  Traced from each producer's root the build points are **21** in 9 lemmas and the shapes **12** (two resume-stack promises and one flow route the leaf reading of 248 missed, one it called built struck); the stream enters the promises under **15** compositions — a bare document, comments alone, a suffix, a suffix and a directive, an explicit document, or the deleted arm's absorption, each also after `absorb_stacksB`, three stacked — **21** (shape, composition) pairs, **18** without the arm's own (249; `Tests/Guards/Proofs/StreamCompositions.lean`).  Of the eighteen, **8** compose the bare document appended at the landing (249 said nine; struck); `rootMapRoute`'s twin over an open entry — one application of item 189's `slotLandedMap`, four constructors and no stream constructor, the side condition `n + 1 ≤ k` and the slot's comments in place of the column and the stream — substitutes at **5** of them, its entries-level twin at **2** more, and the eighth is a node route no mapping twin reaches; the closed-first proof reads as the bare document appended under the same trace, so the failure mode is detected; at the producers the twin is a seventh landing arm through `indicator_open_map`, whose four callers already pay the value-line chain at two (250; `Tests/Guards/Proofs/OpenEntryRoute.lean`).  NEXT is item 251, how many of the eight comment closes stand at a landing whose width is in hand. |
+| **R3** — delete `pendingFlow` and `scannerDrop` | OPEN | `scannerDrop` is applied ONCE (`PendingNode.close_with_ssl`'s `pendingFlow` arm); its flip breaks **2** definitions (`scripts/flip_drop.py`).  `block_dispatch_deferred`, `pendingFlow`'s only producer, is applied **9** times in **4** holders — `_stamp_offcol` 3, `_stamp_nopack` 3, `_inline` 2, the bare escape 1 (`Tests/Guards/Proofs/FlipConsumerSurface.lean`, DEFERRAL lane).  `KeyPackPunt`'s four reasons are produced at **12** sites — `tab` 2, `dedent` 4, `implicitValue` 3, `noKeyContext` 3 — and spent by the same three consumer arms (PACK PUNT lane); item 212's **seven productions** are `dedent`'s four and `noKeyContext`'s three, and their price is the case split.  The deletion's bill is **two restatements and twenty-four reproofs** (items 238–240; `scripts/flip_supplier.py`'s four ends read weak 5 / field 1 / retire 7 / producer 4), the twenty-four unpriced.  Items 241–245 located what the escape's sites owe: the park's gap to the dispatch is ONE scanner step (243), the step is ONE character and the production it owes a `GLit` (244), and the grammar path there ends in whitespace with no carrier for the literal — `BlockStack` has one reflexive constructor against `SeqFrame`/`MapFrame`'s ten, so the six one-step sites owe a **block node**, not a character (245; `Tests/Guards/Proofs/ParkGapProduction.lean`).  The arm that would hold it is HONEST — `direct` under item 236's connectivity reading, which over the proof layer's 235 arms names exactly R3's two deletions as the library's only escapes — and it is read in **2** places and carried in 40; its second wave is **5** proofs, all inside T's twenty-seven (246; `scripts/flip_carrier.py` arm=2 retire=5, `Tests/Guards/Proofs/CarrierArmPrice.lean`).  Of the five's **61** exits, **15** carry an open entry through — the flow-interior branches, where the carrier is never absorbed — and **43** build `nil` and hand the content to a route that promises the stream past the position they re-emit at; **26** of those sit in **14** lemmas outside T (247; `Tests/Guards/Proofs/ExitHandoff.lean`).  The parks' **54** closures are **39** spines over 6 heads; at the forty-three exits the parks' 255 closure slots CARRY the input park's promise at 154 and build it from the absorbed stream at 8; over everything the five reach a promise is first built from the stream at 17 places in **8** lemmas, and the shapes so built are **k = 10** (248; `Tests/Guards/Proofs/RouteShapes.lean`).  Traced from each producer's root the build points are **21** in 9 lemmas and the shapes **12** (two resume-stack promises and one flow route the leaf reading of 248 missed, one it called built struck); the stream enters the promises under **15** compositions — a bare document, comments alone, a suffix, a suffix and a directive, an explicit document, or the deleted arm's absorption, each also after `absorb_stacksB`, three stacked — **21** (shape, composition) pairs, **18** without the arm's own (249; `Tests/Guards/Proofs/StreamCompositions.lean`).  Of the eighteen, **8** compose the bare document appended at the landing (249 said nine; struck); `rootMapRoute`'s twin over an open entry — one application of item 189's `slotLandedMap`, four constructors and no stream constructor, the side condition `n + 1 ≤ k` and the slot's comments in place of the column and the stream — substitutes at **5** of them, its entries-level twin at **2** more, and the eighth is a node route no mapping twin reaches; the closed-first proof reads as the bare document appended under the same trace, so the failure mode is detected; at the producers the twin is a seventh landing arm through `indicator_open_map`, whose four callers already pay the value-line chain at two (250; `Tests/Guards/Proofs/OpenEntryRoute.lean`).  Of the eleven the twins leave, **6** are closes on comments (250 said eight; struck) at **8** build points, six through `close_with_ssl`, whose open-park arms close the entry EMPTY at whatever width follows; followed to where they are spent, the closures are spent **13** times on the comments and handed on 7, never on an empty node of their own; the landing's width is in hand at every spend (12 as `s-indent(k)`, 1 as the raw whites), the park's index is nameable at **8** — the two `-` parks' landings — and a comparison of the two stands beside **none** of the spends, only beside hand-offs (the dedent under `k < n`, the pack chain under `n + 1 ≤ k`); by build point **3** hold both numbers at every own close and hand-off, **4** the width alone, **1** neither; of the 18 empty-node constructors in the reach, `close_with_ssl`'s two have no width beside them and a comparison stands beside 4 (251; `Tests/Guards/Proofs/CloseLandingWidth.lean`).  NEXT is item 252, how many of the eight closes that hold both numbers can split on them exhaustively from what they hold. |
 | **R4** — narrow `[210]` (`implicitContinue`'s slot, `GOpt SLAnyDocument` → `GOpt SLExplicitDocument`) | OPEN, **behind R3** | The flip breaks **5** definitions (`scripts/flip_210.py`) — the flip's own WORK, constant since item 166.  What a payment moves is the consumer surface: **1** raw holder / 1 application and **7** guard holders / 14 applications (`FlipConsumerSurface`, RAW ROUTES + GUARDS lanes), in three classes — refutable arms, three missing routes, and `pendingFlow`, which no field can pay (item 183).  The third class is why R4 lands after R3's deletion; the refutable arms and the three routes are ORDERED after it by item 183, not blocked by it.  1d (`0 < m`) is CLOSED (item 179). |
 | **Step 5** — the converse `grammar_completeness` | **NOT STARTED** | No declaration of that name exists under `L4YAML/` or `Tests/`, and no item of the closure log is Step 5's.  It is unprovable, not merely unproved, while either over-approximation stands: `inYamlLanguage_everything : ∀ s, InYamlLanguage s` compiles today (`Tests/Guards/Proofs/SuffixGapAudit.lean` §5, item 236), and `implicitContinue` admits `- "a"⏎  - b` (item 30). |
 | **Step 6** — `parse_iff_grammar` | NOT STARTED | After Step 5. |

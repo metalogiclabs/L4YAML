@@ -744,6 +744,21 @@ twin reaches; at the producers it is a new landing arm, since neither opener
 holds an open slot closure, threaded through the one funnel both openers
 share.
 
+**And the comment closes hold both numbers at eight of thirteen, compared at none**
+([`CloseLandingWidth.lean`](../Tests/Guards/Proofs/CloseLandingWidth.lean)).
+Six of the eleven pairs the twins leave are closes on comments at eight build
+points, six of them through the park's close, whose open-entry arms close the
+entry empty at whatever width follows, honest exactly when what follows stands
+at the entry's width or left of it. Followed to where they are spent, the
+closures are spent thirteen times on the comments and handed on seven times.
+The landing's width is in hand at every spend, the park's index is nameable at
+eight, and a comparison of the two stands beside none of the spends, only
+beside hand-offs: the dedent, and the pack chain under its side condition.
+Three build points hold both numbers at every own close and hand-off, four the
+width alone, one neither. Of the eighteen empty-node constructors in the
+reach, two are the park's own with no width beside them, and a comparison
+stands beside four.
+
 **Significance & risk**
 
 - **7.1 `parse_strict_proof`** *(headline, ✅)* — *Significance:*
