@@ -2678,7 +2678,42 @@ lemma props_couplings_of_push {s_ad s' : ScannerState} {tok : YamlToken}
     constructors in the reach, two are `close_with_ssl`'s own with no width
     beside them, and a comparison stands beside four: the two dedent landings
     of the indented content readers (`j < n + 1`) and two `:` lines read at
-    the entry's own width. -/
+    the entry's own width.
+
+    **How many of the eight closes that hold both numbers can split on them
+    from what they hold** (`Tests/Guards/Proofs/CloseSplitFrames.lean`, DOCS
+    item 252).  The eight feed four lemmas, each twice: the landing funnel's
+    stream, the explicit `:` opener's, and the two deferred-stamp escapes'.
+    What stands beside each is read off the elaborator's own context.  The
+    decision the honest close is made of — the landing's width against the
+    park's index — is made beside ONE of the eight, the entry park's funnel
+    spend, where `n + 1 ≤ k` decides the value-line chain (paid through
+    `entryChainMap` where the park carries a slot, punted otherwise) while
+    the stream slot takes the closed stream on both sides; a membership of
+    the width in a resume stack is decided beside the two funnel spends, and
+    every one of those decisions punts on the miss.  Above the eight no
+    decision touches the width but the deferred escapes' `nv = k`.  The
+    frames in hand differ by park: the content park's lemma holds the resume
+    stack with its cover and floor two options deep and the width bound
+    `k' < n` beside them; the entry park's lemma holds no resume stack,
+    because `accum_block_pending` binds `pendingBlock.h_closeF` — the frames
+    with the cover, item 155's — and never hands it across, along with
+    `h_close` and `h_nodir`; the content park's door drops `h_closable` and
+    `h_nodir`.  The `-` arm's own split — `k = n` at both parks, `n < k ∨
+    n ≥ k` at the entry park — stands disjoint from all eight: the sibling
+    closes the entry empty and relays the frames on that close, the nested
+    arm fills it with the inner sequence, the dedent hands the comments
+    closure on.  So the `n < k` arm's material — the entry-level closure,
+    the landing's indent and the comments, which `entryChainMap` already
+    composes for the value-line bottom — is in hand at the entry park's four
+    and void at the content park's four, whose honest arm is the refusal its
+    `h_ref_land` pays; the `k < n` arm's frame is in hand at the content
+    park's four and dropped at the door at the entry park's four.  At the
+    runtime a `:` or `?` at a sequence level's column is refused (`-⏎: b`,
+    `- a⏎: b`, `- - a⏎: b`), `- a⏎  ? b` folds into the plain scalar, and
+    `-⏎  : a` and `-⏎  ? a` are accepted with the mapping as the entry's
+    node — the twin's domain, derived here as an empty entry and a second
+    document. -/
 
 inductive BlockStack : SurfPos → SurfPos → Prop where
   /-- No active block collections. At document level or stream start. -/

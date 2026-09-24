@@ -759,6 +759,22 @@ width alone, one neither. Of the eighteen empty-node constructors in the
 reach, two are the park's own with no width beside them, and a comparison
 stands beside four.
 
+**And the eight that hold both numbers split on them beside one, punt on every miss, and the entry park's frames are dropped at the door**
+([`CloseSplitFrames.lean`](../Tests/Guards/Proofs/CloseSplitFrames.lean)).
+The eight closes feed four lemmas twice each: the landing funnel, the explicit
+`:` opener and the two deferred-stamp escapes. The width-against-index decision
+the honest close is made of stands beside one of them, the entry park's funnel
+spend, where it decides the value-line chain and not the stream; a membership
+of the width in a resume stack stands beside the two funnel spends, and each of
+those decisions punts on the miss. The content park's lemma holds its resume
+stack with the cover two options deep; the entry park's lemma holds none,
+because the one producer binds the park's frames field and never hands it
+across. The `-` arm's split is disjoint from all eight. The nested arm's
+material is in hand at the entry park's four and void at the content park's
+four, where the honest arm is the refusal it already pays; the dedent arm's
+frame is in hand at the content park's four and dropped at the door at the
+entry park's four.
+
 **Significance & risk**
 
 - **7.1 `parse_strict_proof`** *(headline, ✅)* — *Significance:*
