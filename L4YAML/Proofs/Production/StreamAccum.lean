@@ -2624,7 +2624,32 @@ lemma props_couplings_of_push {s_ad s' : ScannerState} {tok : YamlToken}
     re-extends the closed stream by the bare document; one build point hands the
     stream itself as a fact.  Per shape that is twenty-one (shape, composition)
     pairs, eighteen without the compositions the deleted arm takes with it: the
-    threading's price, where a shape's build points do not compose alike. -/
+    threading's price, where a shape's build points do not compose alike.
+
+    **What one re-routing lemma covers**
+    (`Tests/Guards/Proofs/OpenEntryRoute.lean`, DOCS item 250).  Eight of the
+    eighteen pairs compose the stream by a bare document appended at the
+    landing, and under an open entry that stream does not exist.
+    `rootMapRoute`'s twin over the entry's closure lands the `[187]` entry
+    INSIDE the entry's node — `slotLandedMap` under `SBlockMapEntries.single`,
+    four constructors and no stream constructor — and hands the node to the
+    closure; it needs two hypotheses `rootMapRoute` lacks, the side condition
+    `n + 1 ≤ k` and the slot's comments to the landing, and neither the column
+    nor the stream.  Read with the closure as the target the twin enters no
+    stream constructor, and the closed-first proof — the entry closed empty on
+    the comments, the stream re-derived at the landing, `rootMapRoute` applied
+    to it — enters `implicitContinue` under the bare document, so the failure
+    mode is detected by the same reading.  The twin substitutes at five of the
+    eight pairs (both openers' route fallback, seven sites), its entries-level
+    twin at two more (the openers' `h_closeF` and `h_frames`), and the eighth —
+    a completed root node under an open entry, `bareNodeRoute`'s — is a node
+    route no mapping twin reaches.  The substitution is not free at the
+    producer: neither opener holds an open slot closure (the `?` opener's
+    ancestor chain is a slot that opens after this entry's own `:` line), so
+    the twin is a new landing arm threaded through `indicator_open_map`, whose
+    four callers already pay the value-line chain at two — `slotChainMap` under
+    a `?`'s key slot, `entryChainMap` under an awaited `-` — and the twin,
+    stated over either context, serves both. -/
 
 inductive BlockStack : SurfPos → SurfPos → Prop where
   /-- No active block collections. At document level or stream start. -/

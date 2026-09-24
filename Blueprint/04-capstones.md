@@ -728,6 +728,22 @@ reading above at five build points: an `obtain`ed closure, a `cases`-reverted
 `have`, and a hypothesis a `subst` carries into a motive whose payload discards
 it are what a reading through leaves cannot see.
 
+**And one re-routing lemma covers seven of the eighteen**
+([`OpenEntryRoute.lean`](../Tests/Guards/Proofs/OpenEntryRoute.lean)). Eight
+of the eighteen pairs compose the stream by a bare document appended at the
+landing, and under an open entry that stream does not exist. The twin of the
+root route over the entry's closure lands the entry inside the entry's own
+node, four constructors and no stream constructor, and needs the side
+condition `n + 1 ≤ k` and the slot's comments to the landing in place of the
+column and the stream. Read with the closure as the target it enters no
+stream constructor, while the closed-first proof, the entry closed empty and
+the stream re-derived, reads as the bare document appended, so the failure
+mode is detected by the same reading. The twin substitutes at five pairs,
+its entries-level twin at two more, and the eighth is a node route no mapping
+twin reaches; at the producers it is a new landing arm, since neither opener
+holds an open slot closure, threaded through the one funnel both openers
+share.
+
 **Significance & risk**
 
 - **7.1 `parse_strict_proof`** *(headline, ✅)* — *Significance:*
