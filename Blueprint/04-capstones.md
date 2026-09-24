@@ -793,6 +793,24 @@ is in hand, the top only as an upper bound at the entry park's four, and the
 floor at none. At the runtime a landing between the open levels is refused as
 trailing content.
 
+**And five of the eleven producers that punt a park's stack hold a cover's inputs in full, while the floor any of them can name from its own stack is its own index, except at the root**
+([`PuntCoverInputs.lean`](../Tests/Guards/Proofs/PuntCoverInputs.lean)).
+The eleven are re-found off the previous walk, which hands every constructor
+row its binder stack, and at each the stack is read against the payment's
+signature by shape. Five hold monotonicity, the base, the preprocess, the
+dispatch and a bound on the top: the compact fill, the content park's sibling
+re-park and the entry park's sibling, nested and compact re-parks. The root
+`-` lacks monotonicity and holds the seed's empty stack instead; the two
+mapping value openers hold the top and lack monotonicity and the base; the
+props park's three hold no bound on the top, two of them at index 0 where the
+entry face has no witness. Eight can name their own index as a floor, the
+root alone can name zero, and three hold a relay's floor beside their own. The
+field shapes decide the own-index case: the entry park's frames are all below
+its index, so an own-index payment needs no mapping level at the index, which
+the top bound and monotonicity do not give, and the runtime accepts a sequence
+at its key's own column. A cover floored at the park's own index is spendable
+at no dedent width.
+
 **Significance & risk**
 
 - **7.1 `parse_strict_proof`** *(headline, ✅)* — *Significance:*

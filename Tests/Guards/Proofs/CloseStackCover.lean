@@ -403,6 +403,10 @@ structure Row where
   target : String
   occ : Nat
   cls : Cls
+  -- item 254: at a constructor row, the binder stack the payment stands under
+  -- and the constructor's arguments, for a reader of what is in hand there
+  st : Stack := #[]
+  args : Array Expr := #[]
   deriving Inhabited
 
 structure EightRow where
@@ -635,7 +639,7 @@ partial def walk (st : IO.Ref S) (cd : Cand) (cx : Cx) (e : Expr) : MetaM Unit :
           for (idx, field, path) in fields do
             if idx < args.size then
               let cls ← classify cd.coverTypes cx.st args[idx]! path
-              st.modify fun s => { s with rows := s.rows.push { lem := cx.lem, kind := "ctor", target := posLabel "ctor" n field, occ, cls } }
+              st.modify fun s => { s with rows := s.rows.push { lem := cx.lem, kind := "ctor", target := posLabel "ctor" n field, occ, cls, st := cx.st, args := args } }
         else
           st.modify fun s => { s with mentions := s.mentions + 1 }
       -- a lemma with cover-carrying parameters

@@ -2758,7 +2758,48 @@ lemma props_couplings_of_push {s_ad s' : ScannerState} {tok : YamlToken}
     all eleven.  At the runtime a landing between the open levels
     (`k:⏎  - a⏎ b: 2`, `k:⏎  -⏎ b: 2`, `- k:⏎    - a⏎ b: 2`) is refused as
     trailing content, a landing on the sequence level's own column
-    (`k:⏎  - a⏎  b: 2`) likewise, and landings on a frame resume it. -/
+    (`k:⏎  - a⏎  b: 2`) likewise, and landings on a frame resume it.
+
+    **How many of the eleven producers that punt a park's resume stack hold a
+    cover's inputs, and at what floor** (`Tests/Guards/Proofs/PuntCoverInputs.lean`,
+    DOCS item 254).  The eleven are re-found off item 253's walk, which hands
+    every constructor row its binder stack, and at each the stack is read
+    against the payment's signature by shape: a hypothesis counts where its
+    conclusion is the shape, and one that mentions the shape inside an option
+    counts for nothing.  Five hold the inputs in full — the compact fill, the
+    content park's sibling re-park and the entry park's sibling, nested and
+    compact re-parks, each with `Mono`, `SentinelBase`, the preprocess, the
+    `-` dispatch and a bound on the top (the slot's, the park's own
+    `h_top_old`, or the landed arm; the content park's sibling holds the
+    landed arm and, under a column-zero park, the armed flag
+    `park_col0_floor` spends).  The root `-` lacks `Mono` and holds the seed's
+    empty stack instead (`h_ntop`, the top negative).  The explicit `:`
+    opener holds the top on its result and nothing about the stack before
+    the dispatch; the compact opener the top and the preprocess, neither
+    `Mono` nor the base.  The props park's three hold no bound on the top,
+    and two of them park at index 0, where the entry face's `n = ne + 1` has
+    no witness.  The floor each could name from what it holds is its own
+    index at eight — the dispatch column, off the top bound or the landed arm
+    — and zero at the root alone; three hold a relay's floor beside it: the
+    compact fill's `h_valF` (`Floor lo nv (nv :: ks)`), the content park's
+    sibling's `h_closeF_old` at the index it re-parks at, and the mapping
+    value content's four faces, one of which (`h_frames99`, `Floor lo n ks`)
+    has the entry face's own shape — a relay's floor being its source's,
+    paid or not (item 253).  The field shapes decide the own-index case.
+    The entry park's and the content park's frames are all below `n` and the
+    `Floor` stands at `n`, so an own-index payment there is
+    `Floor n n [] ∧ Covered n [] s'`; a top bound with `Mono` gives
+    `Covered n [n] s'` (`covered_singleton_of_top_le`) and
+    `Covered (n + 1) [] s'` (`covered_nil_of_top_le`) and neither of those,
+    because the level at `n` may be a mapping the `-` shares — the runtime
+    accepts `k:⏎- a` and `- k:⏎  - a`, the sequence at its key's own column.
+    The mapping value park's list is `n :: ks`, so `Covered n (n :: ks) s'`
+    does follow from the top and `Mono`, and `Floor n n (n :: ks)` needs
+    `ks = []` — the root openers' literal, not the explicit or compact
+    openers' nested frames.  So a floor below the park's index is in hand at
+    the root from its own stack, at three sites as a relay, and at no other;
+    and the five that hold the payment's inputs in full can pay with them a
+    cover spendable at no dedent width. -/
 
 inductive BlockStack : SurfPos → SurfPos → Prop where
   /-- No active block collections. At document level or stream start. -/
