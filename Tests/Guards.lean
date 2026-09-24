@@ -37,6 +37,7 @@ import Tests.Guards.Proofs.StreamCompositions
 import Tests.Guards.Proofs.OpenEntryRoute
 import Tests.Guards.Proofs.CloseLandingWidth
 import Tests.Guards.Proofs.CloseSplitFrames
+import Tests.Guards.Proofs.CloseStackCover
 import Tests.Guards.Proofs.FreeSurfaceCensus
 import Tests.Guards.Proofs.EndToEndCorrectness
 import Tests.Guards.Proofs.EscapeResolution

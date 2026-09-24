@@ -2713,7 +2713,52 @@ lemma props_couplings_of_push {s_ad s' : ScannerState} {tok : YamlToken}
     `- a⏎: b`, `- - a⏎: b`), `- a⏎  ? b` folds into the plain scalar, and
     `-⏎  : a` and `-⏎  ? a` are accepted with the mapping as the entry's
     node — the twin's domain, derived here as an empty entry and a second
-    document. -/
+    document.
+
+    **How many of the resume stacks the eight receive carry the cover paid**
+    (`Tests/Guards/Proofs/CloseStackCover.lean`, DOCS item 253).  Every
+    position a cover can be paid at is read off the environment — eleven
+    park fields and thirty-five parameters of twenty-two lemmas — and at
+    every application of a park constructor or of such a lemma the payment
+    is classified by following the position's type to its cover option
+    through the term: a punt, a literal payment naming its floor and the
+    proof of its cover, or a relay of a parameter, of a park field bound at a
+    door, of a local or of a destructured value, with the cover kept, stepped
+    or dropped.  None of the eight receives a stack whose cover is paid where
+    the stack is built.  The content park's four receive one relay: all six
+    producers of `pendingBlockContent.h_closeF` forward a cover they were
+    handed — three the entry park's field, through the content door, and
+    three the props park's entry face, which is the same field relayed or the
+    props park's own — and the tree behind it holds exactly one literal
+    payment, `indicator_cover_at_col` inside `indicator_open_map`'s
+    `h_cov_in`, paid when the funnel's `h_cov` is (the parks pay it when the
+    park stands off column 0) and reached only through the mapping value
+    park: `colon_open_map` and `question_open_map` relay it, the two
+    `pendingMapValue` arms of the block door hand it to
+    `accum_block_on_closeThenBlock.h_valF`, and that lemma's landed-`-`
+    re-park relays it under `nv < k` into `pendingBlock.h_closeF`, which the
+    content door hands to `accum_content_on_pendingBlock_indented`.  The
+    entry park's four receive none (the block door drops the field, item
+    252), and the field they would receive is punted at six of its seven
+    producers — the root `-`, the compact fill, the content park's sibling
+    re-park and the entry park's sibling, nested and compact re-parks — and
+    relayed at the seventh alone; `h_valF` itself is punted at nine of its
+    eleven callers.  The two remaining origins are open here: the implicit
+    key packs (`colon_fires_implicit_key.h_key`, `colon_fires_props_key.h_key`)
+    feeding the implicit and props openers' `h_routeF`.  At the eight no
+    fact about the scanner's stack is in hand, the top is in hand as an
+    upper bound at the entry park's four and not at the content park's, and
+    the floor at none — the entry park's `IndentFloor` arrives at the door as
+    its `needIndentCheck` flag alone.  At the block door `pendingBlock.h_closeF`
+    and the props park's three cover faces are dropped, the content park's
+    and the mapping value park's `h_closeF` kept, and the mapping value
+    park's three other faces and the content park's two forgotten — handed
+    to positions that carry no cover; the content door keeps all eight, the
+    flow-open door forgets three and drops eight, the structural door drops
+    all eleven.  At the runtime a landing between the open levels
+    (`k:⏎  - a⏎ b: 2`, `k:⏎  -⏎ b: 2`, `- k:⏎    - a⏎ b: 2`) is refused as
+    trailing content, a landing on the sequence level's own column
+    (`k:⏎  - a⏎  b: 2`) likewise, and landings on a frame resume it. -/
 
 inductive BlockStack : SurfPos → SurfPos → Prop where
   /-- No active block collections. At document level or stream start. -/

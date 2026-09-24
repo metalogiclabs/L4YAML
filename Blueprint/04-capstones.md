@@ -775,6 +775,24 @@ four, where the honest arm is the refusal it already pays; the dedent arm's
 frame is in hand at the content park's four and dropped at the door at the
 entry park's four.
 
+**And the stack the content park's four receive carries a cover that is relayed, never paid, and paid at its one origin only when the funnel's floor is**
+([`CloseStackCover.lean`](../Tests/Guards/Proofs/CloseStackCover.lean)).
+Every position a cover can be paid at is read off the environment, and every
+payment at every application is classified by following the position's type
+to its cover option through the term. None of the eight receives a stack whose
+cover is paid where the stack is built. All six producers of the content
+park's stack forward a cover they were handed, three the entry park's field
+and three the props park's entry face, and the tree behind them holds one
+literal payment, made inside the landing funnel from the floor the parks pay
+when they stand off column 0, and reached only through the mapping value
+park, the close-then-block lemma's landed-`-` re-park and the content door.
+The entry park's field is punted at six of its seven producers and relayed at
+the seventh; the block door drops it and forgets five other cover faces; the
+content door keeps all eight. At the eight no fact about the scanner's stack
+is in hand, the top only as an upper bound at the entry park's four, and the
+floor at none. At the runtime a landing between the open levels is refused as
+trailing content.
+
 **Significance & risk**
 
 - **7.1 `parse_strict_proof`** *(headline, ✅)* — *Significance:*
