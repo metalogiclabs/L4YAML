@@ -2603,7 +2603,28 @@ lemma props_couplings_of_push {s_ad s' : ScannerState} {tok : YamlToken}
     promise is first built from the absorbed stream at nine constructor slots
     and eight route hypotheses, in eight lemmas, and the shapes so built are
     **ten**: the k re-routing lemmas threading the arm costs, spent where the
-    promise is first built and not at the forty-three exits that carry it. -/
+    promise is first built and not at the forty-three exits that carry it.
+
+    **How those promises compose the stream**
+    (`Tests/Guards/Proofs/StreamCompositions.lean`, DOCS item 249).  Traced from
+    each producer's body root rather than read off a promise's leaves, the
+    absorbed stream reaches a promise at twenty-three build points — twenty-one
+    by callee parameter — in nine lemmas, and the shapes so built are twelve,
+    not ten: two resume-stack promises of the map openers are built through an
+    `obtain`ed closure the leaf reading called carried, a route of the flow
+    opener is built through a `cases`-reverted `have` whose value that reading
+    could not see, and one promise it called built is the landing's resume fact
+    carried under a `subst`.  The stream enters the conclusion under fifteen
+    compositions: extended by a bare document (`implicitContinue` under
+    `GOpt.some`, the commonest), by comments alone (`implicitContinue` under
+    `GOpt.none`), by a document suffix (`suffixContinue` under `GOpt.none`), by
+    a suffix and a directive document, by an explicit document, or absorbed
+    (`scannerDrop`) — each also after `absorb_stacksB` at the flow opener, and
+    three of them stacked where the content dispatcher closes the park and
+    re-extends the closed stream by the bare document; one build point hands the
+    stream itself as a fact.  Per shape that is twenty-one (shape, composition)
+    pairs, eighteen without the compositions the deleted arm takes with it: the
+    threading's price, where a shape's build points do not compose alike. -/
 
 inductive BlockStack : SurfPos → SurfPos → Prop where
   /-- No active block collections. At document level or stream start. -/

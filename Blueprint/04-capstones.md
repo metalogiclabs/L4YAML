@@ -713,6 +713,21 @@ at nine constructor slots and eight route hypotheses, and the shapes so built
 are ten: threading the arm is ten re-routing lemmas spent where a promise is
 first built, and the forty-three exits inherit the result.
 
+**And each promise composes the stream one of fifteen ways**
+([`StreamCompositions.lean`](../Tests/Guards/Proofs/StreamCompositions.lean)).
+Traced from each producer's body root, the absorbed stream reaches a promise at
+twenty-one build points in nine lemmas, the shapes so built are twelve, and the
+stream enters the promise's conclusion under fifteen compositions: extended by
+a bare document, by comments alone, by a document suffix, by a suffix and a
+directive document, by an explicit document, or absorbed by the arm β.5
+deletes, each also after an absorption of the block stack, and three of them
+stacked where the content dispatcher closes a park and re-extends the closed
+stream. Per shape that is twenty-one (shape, composition) pairs, eighteen once
+the deleted arm's compositions go with it. The trace also corrects the leaf
+reading above at five build points: an `obtain`ed closure, a `cases`-reverted
+`have`, and a hypothesis a `subst` carries into a motive whose payload discards
+it are what a reading through leaves cannot see.
+
 **Significance & risk**
 
 - **7.1 `parse_strict_proof`** *(headline, ✅)* — *Significance:*

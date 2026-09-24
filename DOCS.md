@@ -31203,7 +31203,7 @@ stream-built, into eight (callee, hypothesis) pairs.  Together:
 | `SBlockNode(_+1,blockIn) ⇒ Stream` | `question_open_map`, `colon_open_map` | `pendingMapValue.h_close` |
 | `[col(_)=_+1] SBlockIndented(_,blockOut) ⇒ Stream` | `question_open_map`; `accum_block_pending → closeThenBlock.h_vslot` | `pendingMapValue.h_ivl`/`h_vslot` |
 | `SBlockMapEntry(_) ⇒ Stream` | `question_open_map` | `pendingMapValue.h_expl` |
-| `SBlockNode(_+1,blockIn) ⇒ Resume(_)▹ExplValueLine(_)` | both openers | `pendingMapValue.h_closeFV` |
+| `SBlockNode(_+1,blockIn) ⇒ Resume(_)▹ExplValueLine(_)` | `question_open_map` (~~both openers~~ — struck by item 249: the colon opener's `h_closeFV` is the landing's resume fact, and the stream this reading saw sits in an `Eq.ndrec` motive a `subst` built, whose payload discards it) | `pendingMapValue.h_closeFV` |
 | `SSLComments ⇒ Resume(_)▹ExplValueLine(_)` | `question_open_map` | `pendingContent.h_framesV`, `pendingMapValue.h_framesV` |
 | `GAlt(SLBareDocument, GSeq(SENode, SSLComments)) ⇒ Stream` | `structural_dispatch_to_pending` | `pendingDocStart.h_doc_route` |
 | `SBlockNode(0,blockIn) ⇒ Stream` | `accum_content_pending`, `content_dispatch_after_close` → `content_dispatch_routed.h_route` | none |
@@ -31298,6 +31298,223 @@ flip order, whose two REFUTABLE halves are `h_ref`'s readers; the parked Ix
 Step-1 composition on the Ix track's own clock.  Instrument debt, still **ten**
 rows, none paid and none added.
 
+### Item 249 (2026-09-23)
+
+**The mandate.**  Item 248's recorded NEXT: *"The number no instrument holds is
+how many distinct STREAM COMPOSITIONS the seventeen build points use to turn
+the absorbed stream into the promise: at each, the stream hypothesis enters
+the closure's conclusion under some constructor — `SLYamlStream.single` with a
+bare document appended, an existing document's block node extended,
+`dropClose`, a directive document — and with the arm the entry's closure
+replaces the absorbed stream in exactly that composition.  Ten lemmas is the
+price only if every build point of a shape composes the stream the same way;
+if the compositions differ, the price is per (shape, composition).  The cheap
+experiment is a census at the seventeen: the path from the stream leaf to the
+conclusion, read as the constructors applied along it … The failure mode to
+watch is reading the composition's head alone: `SLYamlStream.single` under
+`GOpt.some` … and under `GOpt.none` … are two compositions."*
+
+**Its frame was wrong before its question was.**  A census "at the seventeen"
+has first to find them, and an instrument that follows the stream from a
+producer's body root finds twenty-one, not seventeen: item 248 read what a
+promise is derived from by the LEAVES its term reaches through `have` values,
+and a leaf reading cannot see through an `obtain`ed closure, loses a `have`
+that `cases` reverted, and counts a hypothesis a `subst` carried into a motive
+whose payload discards it.  Redone in the same pass, item 248's reading
+reproduces its pinned provenance exactly; the trace adds five build points and
+strikes one, and the shapes first built from the stream are twelve.  The
+question then answers: the stream enters the promises under fifteen
+compositions, three of them stacked, and the threading's price is twenty-one
+(shape, composition) pairs — eighteen once the deleted arm takes its own away.
+
+**§0 — the instrument** (`Tests/Guards/Proofs/StreamCompositions.lean`, one
+environment pass of six seconds).  For each of item 248's thirty-eight
+producers and builders the body is walked top-down from its root with the
+producer's own `SLYamlStream sp_start _` hypotheses as targets: through
+binders; `have` values (a `have`-bound variable whose value reaches a target
+becomes one, its paths memoized); casts (`Eq.mpr`, `Eq.rec`, `Eq.ndrec`, `cast`,
+`id`, their payload applied to the extra arguments and reduced, so a
+hypothesis a `subst` reverted lands back where it is used); matchers, unfolded
+at the call; `casesOn`, whose extra arguments — the hypotheses `cases`
+reverted because they depend on an index, as `close_with_ssl`'s `h_stream`
+does on `sp_block` — are substituted into every minor premise, and whose
+matched value, when it reaches a target, is read for its constructor arms so
+that an `obtain`ed field inherits exactly its own component's paths (nested
+packages, `And.left`/`right` and projections included; an arm that is not a
+constructor application makes the destructure approximate, and none survived);
+and LEMMA HOPS — a call whose argument reaches a target, whose conclusion is a
+stream, a resume frame, a value line or a sequence tail, and which takes no
+route parameter of its own, is unfolded at the call so the leaf is followed
+into the lemma's constructors (`close_with_ssl`, `dirRoute`, `rootMapRoute`,
+`bareNodeRoute`, …).  A BUILD POINT is a mark the walk pushes when it descends
+into a park constructor's closure field or a lemma's route parameter; a path
+is kept when it crosses one, and its SEGMENT from the leaf to the first mark
+is the composition at that point: the stream-family constructors on it
+(`SLYamlStream.*`, `ResumeFrames.*`, and an `absorb_stacks*` application),
+each rendered with its sibling arguments' shape to the document level —
+`GStar.nil`, `GStar.cons(SLDocumentPrefix.comments)`,
+`GPlus.mk(SLDocumentSuffix.mk)`, `GOpt.none`,
+`GOpt.some(SLAnyDocument.bare|explicit|directive)`.  A segment through two
+stream constructors is one stacked composition; a segment with none is the
+stream handed as a FACT.  Item 248's reading is redone on the same sites in
+the same pass (`prevStyle`), and its pinned provenance parsed from
+`RouteShapes.expectedK`, so that every site the two disagree on is named.
+
+    sites=23 genuine=23 pairs=21 viaSites=0 segments=51 genuineSegs=51 facts=1
+    stacked=6 comps=15 byCtor=12 byFull=51 shapes=12 shapeComps=21 shapeCompsNoDrop=18
+    obtainedSites=4 approxSites=0 prev=19 new=5 missing=1
+    prevStyle=19 prevStyleOff=0 newVsStyle=5 styleOnly=1 segHops=9 segAbsorb=3
+    single=0 dropClose=0 directive=1 hops=11 hopMax=3 approx=37 dead=6 opaque=0
+    unmarked=218 reach=38
+
+**§1 — the build points, re-found.**  Twenty-three sites, twenty-one by
+callee parameter, in nine lemmas: twelve constructor slots — the question
+opener's `h_close`, `h_ivl`, `h_expl`, `h_vslot`, `h_closeFV`, `h_framesV` and
+**`h_closeF`, `h_frames`**; the colon opener's `h_close` and **`h_closeF`,
+`h_frames`**; `structural_dispatch_to_pending`'s `h_doc_route` — and eleven
+route arguments to nine parameters: `content_dispatch_routed.h_route` (from
+`content_dispatch_after_close` and, at both landings, `accum_content_pending`),
+`keyctx_of_preprocess.h_close` (from `accum_content_pending` and
+`accum_content_on_noPending`), **`flowKeyRoute_of_root.h_close`** (from
+`accum_flow_open_depth0`), the four `accum_block_on_*.h_close_pending` and
+`accum_block_on_closeThenBlock.h_vslot` (from `accum_block_pending`),
+`dispatch_new_pending.h_dir_route` (from `accum_structural_pending`).  The five
+in bold are item 248's blind spots: at both openers `h_closeF` and `h_frames`
+are built from `h_routeF`, the fourth component of a package `obtain`ed from a
+term-mode match whose fallback arm takes `h_stream_land` — an obtained
+variable, hence `carry` to a leaf reading — and at the flow opener
+`h_close_pending` reaches the route through a `have` that a `cases` reverted
+and re-introduced valueless, hence `fwd`.  One of item 248's seventeen is
+struck: the colon opener's `h_closeFV` builds its promise from the landing's
+resume fact (`contV`, `resumeMapRouteF`), and the stream a leaf reading finds
+in it sits in the motive of an `Eq.ndrec` that `rcases … rfl` built inside a
+`k' ≤ k` side proof — every hypothesis depending on `k` reverted, the
+stream-consuming route among them, the payload `Nat.le_refl`.  With it the
+shapes first built from the stream are **twelve**: item 248's ten and
+`SBlockNode(_+1,blockIn) ⇒ Resume(_::_)▹Stream`, `SSLComments ⇒
+Resume(_)▹Stream`.
+
+**§2 — the compositions.**  Fifteen, read from the leaf up:
+
+| composition | where |
+|---|---|
+| **A** `implicitContinue[S, GStar.nil, GOpt.some(bare), GStar.nil]` — the stream extended by a bare document | question `h_close` `h_ivl` `h_expl` `h_vslot`, colon `h_close` (through `rootMapRoute`), `content_dispatch_after_close→h_route` (through `bareNodeRoute`) |
+| A ▹ `ResumeFrames.bottom` | question `h_closeFV`, `h_framesV` |
+| A ▹ `bottom` ▹ `ResumeFrames.level` | both openers' `h_closeF`, `h_frames` (through `rootMapRouteF`, the obtained `h_routeF`) |
+| **G** `implicitContinue[S, nil, GOpt.some(explicit(withContent)), nil]` | `structural_dispatch_to_pending` `h_doc_route`, the constructor spent in place |
+| **C** `implicitContinue[S, GStar.cons(SLDocumentPrefix.comments), GOpt.none, nil]` — extended by comments alone | `close_with_ssl`'s `noPending` arm (`ssl_comments_extend_stream`) at its seven sites; `accum_content_on_noPending→keyctx.h_close` alone |
+| **E** `suffixContinue[S, GPlus.mk(SLDocumentSuffix.mk), nil, GOpt.none, nil]` | `close_with_ssl`'s `pendingDocEnd` arm |
+| **D** `scannerDrop[S, SSLComments]` | `close_with_ssl`'s `pendingFlow` arm — the arm β.5 deletes |
+| C▹A, E▹A, D▹A — the park closed by `close_with_ssl`, the closed stream re-extended by the bare document | `accum_content_pending→content_dispatch_routed.h_route`, both landings (`h_stream_mid`, then `bareNodeRoute_or_refused_content`) |
+| absorb▹C, absorb▹E, absorb▹D — `absorb_stacksB` first, then `close_with_ssl` | `accum_flow_open_depth0→flowKeyRoute_of_root.h_close` |
+| **F** `suffixContinue[S, GPlus.mk(suffix), nil, GOpt.some(directive), nil]` | `accum_structural_pending→dispatch_new_pending.h_dir_route` (`dirRoute`'s `pendingDocEnd` arm) |
+| (fact) — the stream itself, a component of the package | `accum_block_pending→closeThenBlock.h_vslot`: the nested value slot carries `SLYamlStream sp_start sp_a` as a datum beside its closures |
+
+By constructor name alone they are twelve: the failure mode folds A, C and G
+into `implicitContinue` and E and F into `suffixContinue`.  `close_with_ssl`
+consumes the stream in three of its ten minor premises and `dirRoute` in one
+(its `noPending` arm builds `single` from `h_nodoc`); `SLYamlStream.single` is
+on no stream path, `dropClose` on none, and no composition extends an existing
+document's block node — every document is APPENDED.
+
+**§3 — per shape, the price.**  Twenty-one (shape, composition) pairs;
+eighteen without D, D▹A and absorb▹D, which go with the arm:
+
+| shape | compositions |
+|---|---|
+| `SSLComments ⇒ Stream` | 6: C, D, E, and each after `absorb_stacksB` |
+| `SBlockNode(0,blockIn) ⇒ Stream` | 4: A, C▹A, D▹A, E▹A |
+| `[col] SBlockIndented(_,blockOut) ⇒ Stream` | 2: A, the fact |
+| the other nine | 1 each: A (`SBlockNode(_+1,blockIn)`, `SBlockMapEntry`), A▹bottom (the two `ExplValueLine` shapes), A▹bottom▹level (the two new resume-stack shapes), G, F, the fact (the nested value slot) |
+
+Nine of the eighteen compose A under at most a resume wrapper, and reach it
+through three lemmas — `rootMapRoute`, `rootMapRouteF`, `bareNodeRoute` — that
+take the stream at the landing and a `[187]` entry.
+
+**§4 — what the mandate named.**  `SLYamlStream.single` with a bare document
+appended: never from the stream (`single` needs no previous stream; its two
+appearances take `h_nodoc`).  A block node extended: never; the openers'
+promises append a NEW document whose root mapping holds the entry.
+`dropClose`: on no build-point path (it is hopped once, at the end-of-input
+producer, where no promise is built).  A directive document: once (F).  The
+mandate's failure mode fires: `implicitContinue` under `GOpt.some` and under
+`GOpt.none` are A and C, four sites against eight.
+
+**Predictions, scored.**  HELD — P4 (`single` never, `dropClose` never, the
+directive once, nothing extended), P7 (six seconds).  PARTIAL — P0 (the leaf
+reading's seventeen reproduced exactly, but the census re-found the points:
+twenty-one pairs in nine lemmas), P1 (the nine named compositions all occur;
+the two resume wrappers, the three after the absorption and the fact were
+unforeseen — fifteen; `byCtor` twelve not six, the fold three-and-two), P2
+(the arms exactly; `SSLComments ⇒ Stream` six not three), P3 (twenty-one not
+about fifteen, eighteen not about thirteen; the multiplication where
+predicted and at the flow opener), P5 (reverted hypotheses substituted, no
+approximate destructure, nine hops as predicted; the obtained closure feeds
+`h_closeF`/`h_frames`, not `h_closeFV`), P6 (build 1216 and testfiles 659 as predicted; sweep 856/852 with T=27 as predicted; closure 230 / 355 as predicted; `StreamCompositions theorems=45` not 3 × 3 — the prediction forgot that an `inductive` with fields gets the same three generated theorems per constructor, and six of them (the two structures holding an `IO.Ref` and hash maps) carry `Classical.choice`/`Quot.sound` through their fields' `SizeOf` instances, so the axiom set is not `propext` alone; every other gate at item 248's baseline).  MISSED — the
+frame: the prediction took "the seventeen" as given.
+
+**Gates.**  Build **1216** jobs.  `Verified: 4520/4520` (837/837); eventscore
+347/358 with 0 error-miss; suiterunner 869/0/151; matrix 402/402 + 282/282 on
+both pipelines; annotations exit 1 (the output identical to item 248's); decline pins 7 + 18 + 6 ALL PINS OK; `capstones=25
+withSorryAx=0`; `StreamCompositions theorems=45 axioms=[Classical.choice, Quot.sound, propext]` — the 45 are the
+`injEq`, `inj` and `sizeOf_spec` Lean generates for the module's two
+`inductive`s and three `structure`s, this module authoring no lemma (item 229's rule): twenty-eight need no axiom, eleven `propext`, and the six of `TCtx.mk` and `TState.mk` — the structures holding an `IO.Ref` and hash maps — reach `Classical.choice` and `Quot.sound` through their fields' `SizeOf` instances (`probe.axioms.bytheorem.log`); `RouteShapes theorems=18 axioms=[propext]` unmoved; closure **230** library modules /
+355 reflection imports; 25 whitelisted `theorem` sites; counts **8736** /
+**8173** / **659** / **8**; sweep `closure=856 imported=852
+T=27` with `WIDE-PIN agrees` (`DropDependents.lean`'s pin and its two prose
+readings 855/851 → 856/852).  The three standing
+flips read 5 / 4 / 2, the supplier lattice 5 / 1 / 7 and its producer wave
+4, and the carrier flip 2 / 5 with `CARRIER-PIN agrees` at both ends, all
+with md5 before == after and every end printing `REPAIRED errors=0` or
+`CARRIER errors=0`.
+`L4YAML/Proofs/Production/StreamAccum.lean`'s md5 moves
+`1d18f233505cea58176c0b4bcf8fef1c` → `c76fc4bbac1c3b86096e814e92b841ab` (the
+§0b docstring: the composition reading);
+`Blueprint/04-capstones.md`'s `7cf93e9698a3736b911cdd349277fcbc` →
+`464b8bf683c227b1aaf51e85baf17146`; `L4YAML/Surface/Document.lean` unmoved.
+Four pinned lists, one pinned line and one cross-instrument check over
+**39** perturbations, each throwing — every numeric field of the line and
+one row of each list, the anchors generated from the pinned line itself so
+none can straddle a continuation.
+
+**The instrument ledger**, fifty rows: … the route shapes (248) — and now
+**the STREAM COMPOSITIONS**, the first instrument that traces a hypothesis
+through a proof TERM from its root — `have` values, casts, matchers, `casesOn`
+with its reverted hypotheses substituted back, `obtain`ed fields bound to
+their own components, lemma hops unfolded at the call — instead of reading a
+term's leaves, and that reproduced the leaf reading in the same pass to name
+where it lies.  **Instrument debt, eleven rows, one added:** `RouteShapes`'
+derivation classes (`stream`/`carry`/`fwd`) are a leaf reading and are wrong at
+six of the sites this item traced; its pins record that reading and stand,
+the trace supersedes it, and the row is to retire the classes or re-read them
+by trace.
+
+**What remains.**  β.5's bill is two restatements and twenty-four reproofs,
+and the twenty-four are still unpriced.  This item priced the arm's threading
+at eighteen (shape, composition) pairs at twenty-one build points in nine
+lemmas, and found that nine of the eighteen compose the stream one way (A,
+the bare document appended at the landing) through three lemmas.  **The
+number no instrument holds is how many of the eighteen one re-routing lemma
+covers.**  Under an open entry the stream at the landing does not exist; what
+exists is the entry's own closure — `[185]`'s `s-l+block-indented` open at
+the entry's start, promising the stream at the entry's END — and A appends a
+document that BEGINS at the landing.  The cheap experiment is to state
+`rootMapRoute`'s twin over an open entry: the same conclusion, the hypothesis
+`h_stream_land` replaced by an entry closure `∀ sp_e, SBlockIndented n blockOut
+sp_x sp_e → SLYamlStream sp_start sp_e`, and to count what its proof needs —
+whether the `[187]` entry at `sp_key` can be shown a continuation of the open
+entry's node (a nested or compact mapping inside `s-l+block-indented`) rather
+than a new document — and then how many of the nine follow by substitution.
+The expensive one is proving it.  **The failure mode to watch is closing the
+entry first**: `SBlockIndented.empty` then the appended document proves the
+twin in three lines and re-derives the absorbed stream at the landing, which
+is the composition the arm's deletion forbids; the twin has to reach the
+entry's end through the entry's own production.
+
+Unchanged: R3's seven productions, whose price is the case split; item 183's
+flip order, whose two REFUTABLE halves are `h_ref`'s readers; the parked Ix
+Step-1 composition on the Ix track's own clock.
+
 ### REMAINING, in order
 
 The per-item history is the closure log above; this section lists only the
@@ -31315,16 +31532,16 @@ and Step 5 (the converse) is R3's deletion and then R4's narrowing, in that
 order:
 
 ```
-R1 ✓ (44–46) ──→ R2 ✓ (47–51) ──→ R3 (52–248; the deletion OPEN) ──→ R4 ([210]'s narrowing; 1d ✓ 179) ──→ Step 5 ──→ Step 6
+R1 ✓ (44–46) ──→ R2 ✓ (47–51) ──→ R3 (52–249; the deletion OPEN) ──→ R4 ([210]'s narrowing; 1d ✓ 179) ──→ Step 5 ──→ Step 6
 ```
 
-**Where it stands after item 248 (2026-09-23).**  Every number in this table
+**Where it stands after item 249 (2026-09-23).**  Every number in this table
 is a gate's or a pin's, and the instrument that re-derives it is named beside
 it; the prose history is in the R3/R4 sections below and in the closure log.
 
 | row | state | the numbers, and where they come from |
 |---|---|---|
-| **R3** — delete `pendingFlow` and `scannerDrop` | OPEN | `scannerDrop` is applied ONCE (`PendingNode.close_with_ssl`'s `pendingFlow` arm); its flip breaks **2** definitions (`scripts/flip_drop.py`).  `block_dispatch_deferred`, `pendingFlow`'s only producer, is applied **9** times in **4** holders — `_stamp_offcol` 3, `_stamp_nopack` 3, `_inline` 2, the bare escape 1 (`Tests/Guards/Proofs/FlipConsumerSurface.lean`, DEFERRAL lane).  `KeyPackPunt`'s four reasons are produced at **12** sites — `tab` 2, `dedent` 4, `implicitValue` 3, `noKeyContext` 3 — and spent by the same three consumer arms (PACK PUNT lane); item 212's **seven productions** are `dedent`'s four and `noKeyContext`'s three, and their price is the case split.  The deletion's bill is **two restatements and twenty-four reproofs** (items 238–240; `scripts/flip_supplier.py`'s four ends read weak 5 / field 1 / retire 7 / producer 4), the twenty-four unpriced.  Items 241–245 located what the escape's sites owe: the park's gap to the dispatch is ONE scanner step (243), the step is ONE character and the production it owes a `GLit` (244), and the grammar path there ends in whitespace with no carrier for the literal — `BlockStack` has one reflexive constructor against `SeqFrame`/`MapFrame`'s ten, so the six one-step sites owe a **block node**, not a character (245; `Tests/Guards/Proofs/ParkGapProduction.lean`).  The arm that would hold it is HONEST — `direct` under item 236's connectivity reading, which over the proof layer's 235 arms names exactly R3's two deletions as the library's only escapes — and it is read in **2** places and carried in 40; its second wave is **5** proofs, all inside T's twenty-seven (246; `scripts/flip_carrier.py` arm=2 retire=5, `Tests/Guards/Proofs/CarrierArmPrice.lean`).  Of the five's **61** exits, **15** carry an open entry through — the flow-interior branches, where the carrier is never absorbed — and **43** build `nil` and hand the content to a route that promises the stream past the position they re-emit at; **26** of those sit in **14** lemmas outside T (247; `Tests/Guards/Proofs/ExitHandoff.lean`).  The parks' **54** closures are **39** spines over 6 heads; at the forty-three exits the parks' 255 closure slots CARRY the input park's promise at 154 and build it from the absorbed stream at 8; over everything the five reach a promise is first built from the stream at 17 places in **8** lemmas, and the shapes so built are **k = 10** (248; `Tests/Guards/Proofs/RouteShapes.lean`).  NEXT is item 249, the stream-composition census at the seventeen build points. |
+| **R3** — delete `pendingFlow` and `scannerDrop` | OPEN | `scannerDrop` is applied ONCE (`PendingNode.close_with_ssl`'s `pendingFlow` arm); its flip breaks **2** definitions (`scripts/flip_drop.py`).  `block_dispatch_deferred`, `pendingFlow`'s only producer, is applied **9** times in **4** holders — `_stamp_offcol` 3, `_stamp_nopack` 3, `_inline` 2, the bare escape 1 (`Tests/Guards/Proofs/FlipConsumerSurface.lean`, DEFERRAL lane).  `KeyPackPunt`'s four reasons are produced at **12** sites — `tab` 2, `dedent` 4, `implicitValue` 3, `noKeyContext` 3 — and spent by the same three consumer arms (PACK PUNT lane); item 212's **seven productions** are `dedent`'s four and `noKeyContext`'s three, and their price is the case split.  The deletion's bill is **two restatements and twenty-four reproofs** (items 238–240; `scripts/flip_supplier.py`'s four ends read weak 5 / field 1 / retire 7 / producer 4), the twenty-four unpriced.  Items 241–245 located what the escape's sites owe: the park's gap to the dispatch is ONE scanner step (243), the step is ONE character and the production it owes a `GLit` (244), and the grammar path there ends in whitespace with no carrier for the literal — `BlockStack` has one reflexive constructor against `SeqFrame`/`MapFrame`'s ten, so the six one-step sites owe a **block node**, not a character (245; `Tests/Guards/Proofs/ParkGapProduction.lean`).  The arm that would hold it is HONEST — `direct` under item 236's connectivity reading, which over the proof layer's 235 arms names exactly R3's two deletions as the library's only escapes — and it is read in **2** places and carried in 40; its second wave is **5** proofs, all inside T's twenty-seven (246; `scripts/flip_carrier.py` arm=2 retire=5, `Tests/Guards/Proofs/CarrierArmPrice.lean`).  Of the five's **61** exits, **15** carry an open entry through — the flow-interior branches, where the carrier is never absorbed — and **43** build `nil` and hand the content to a route that promises the stream past the position they re-emit at; **26** of those sit in **14** lemmas outside T (247; `Tests/Guards/Proofs/ExitHandoff.lean`).  The parks' **54** closures are **39** spines over 6 heads; at the forty-three exits the parks' 255 closure slots CARRY the input park's promise at 154 and build it from the absorbed stream at 8; over everything the five reach a promise is first built from the stream at 17 places in **8** lemmas, and the shapes so built are **k = 10** (248; `Tests/Guards/Proofs/RouteShapes.lean`).  Traced from each producer's root the build points are **21** in 9 lemmas and the shapes **12** (two resume-stack promises and one flow route the leaf reading of 248 missed, one it called built struck); the stream enters the promises under **15** compositions — a bare document, comments alone, a suffix, a suffix and a directive, an explicit document, or the deleted arm's absorption, each also after `absorb_stacksB`, three stacked — **21** (shape, composition) pairs, **18** without the arm's own (249; `Tests/Guards/Proofs/StreamCompositions.lean`).  NEXT is item 250, which of the eighteen an open entry can supply at all. |
 | **R4** — narrow `[210]` (`implicitContinue`'s slot, `GOpt SLAnyDocument` → `GOpt SLExplicitDocument`) | OPEN, **behind R3** | The flip breaks **5** definitions (`scripts/flip_210.py`) — the flip's own WORK, constant since item 166.  What a payment moves is the consumer surface: **1** raw holder / 1 application and **7** guard holders / 14 applications (`FlipConsumerSurface`, RAW ROUTES + GUARDS lanes), in three classes — refutable arms, three missing routes, and `pendingFlow`, which no field can pay (item 183).  The third class is why R4 lands after R3's deletion; the refutable arms and the three routes are ORDERED after it by item 183, not blocked by it.  1d (`0 < m`) is CLOSED (item 179). |
 | **Step 5** — the converse `grammar_completeness` | **NOT STARTED** | No declaration of that name exists under `L4YAML/` or `Tests/`, and no item of the closure log is Step 5's.  It is unprovable, not merely unproved, while either over-approximation stands: `inYamlLanguage_everything : ∀ s, InYamlLanguage s` compiles today (`Tests/Guards/Proofs/SuffixGapAudit.lean` §5, item 236), and `implicitContinue` admits `- "a"⏎  - b` (item 30). |
 | **Step 6** — `parse_iff_grammar` | NOT STARTED | After Step 5. |
