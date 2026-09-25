@@ -32799,6 +32799,232 @@ Unchanged: R3's seven productions, whose price is the case split; item 183's
 flip order, whose two REFUTABLE halves are `h_ref`'s readers; the parked Ix
 Step-1 composition on the Ix track's own clock.
 
+### Item 255 (2026-09-24)
+
+**The mandate.**  Item 254's recorded NEXT: *"The number no instrument holds
+is how many leaves of item 253's two trees turn paid when the four payments
+in hand are made: the root's floor-zero cover from the seed's emptiness
+(`h_ntop` and `SentinelBase` to `Covered 0 [] s'`, a lemma no producer has),
+the compact fill's relay of `h_valF` (the landed `-` arm's `h_seqFrames`,
+copied), the content park's sibling's relay of `h_closeF_old` at the
+unchanged index, and the mapping value content's relay of `h_frames99` into
+the props park's entry face, the one face whose shape it matches, if its
+floor reaches below `ne`.  The cheap experiment is item 253's trees
+re-resolved with the four rows rewritten by hand — a relay's leaf is its
+source's, the root's is paid — the paid and punt census per tree, before
+any edit.  The expensive one is the four edits and item 253's instrument
+re-pinned.  The failure mode to watch is a relay counted as a payment:
+three of the four are relays and move a punt to its source's status, which
+item 253 read as one literal origin at the mapping value park — so the
+census must re-derive the leaves and not count relays — and a cover relayed
+into the props park's entry face at a floor at that park's index `ne` is
+item 148's vacuity again unless the source's `lo` is below it."*
+
+**One leaf turns paid, the root's; the three relays turn none, and one of
+them forwards a cover floored at the face's own index.**  Item 253's walk
+runs unchanged, checked against its pinned rows and its pinned tree lines,
+and the four rows are rewritten in the row array — the root `-` as a
+literal `Floor 0 k [] ∧ Covered 0 [] s'`, the compact fill with the landed
+`-` arm's class over `h_valF`, the content park's sibling forwarding
+`h_closeF_old`, the mapping value content forwarding `h_frames99` into the
+props park's entry face — and the content and entry trees are re-resolved
+by item 253's own resolver under seven scenarios.  With all four made the
+content tree reads 18 positions, paid 2, punt 19, cover-punt 4, open 2,
+against 16 / 1 / 21 / 2 / 2; the entry tree reads the same five numbers
+over the same positions, because the sibling's relay closes a cycle — entry
+field, content door, content field, sibling re-park, entry field — and the
+two trees become one component read from two roots.  The root's literal is
+the one leaf that turns paid and the one new paid origin (1 → 2).  The
+three relays turn none: the compact fill's source, `h_valF`, is already
+resolved in both trees, so the relay adds only its own two `cover-punt`
+alternatives; the sibling's source is the content tree's own root; the
+mapping value content's source resolves to `pendingMapValue.h_frames`, a
+face of the same six producers as `h_closeF` with the same one paid origin
+and the same two open packs, and two more punts at the explicit and compact
+openers.  So the four retire four punts and add two, the paid origins go
+from one to two, and the punt count moves 21 → 19 on the content tree and
+18 → 19 on the entry tree, which absorbs the content tree's props face.  The
+floors decide which of the three relays is worth making.  Of the eighty
+`Floor` witnesses in the library's theorem terms, twelve are the index
+itself — the two root openers' `⟨k, ⟨Nat.le_refl k, by simp⟩, h⟩` and the
+`?` opener's value-line faces at `k + 1` — none is another closed term, and
+sixty-eight are variables carried from a source; the index is raised only
+by `Floor.mono_index`, nine applications in five lemmas, and
+`Covered.raise_floor` is applied nowhere.  The compact fill's relay rides
+the landed arm's `mono_index` under `nv < k`, so the floor it forwards is
+the mapping park's index under a strictly higher park index — spendable;
+the sibling's keeps the index and forwards a floor that descends from that
+same shape through the content door — spendable where its source's is; the
+mapping value content's keeps the index (`ne = n`, the props park's index
+being `n + 1`) and its source's only paid origins are the own-index
+literals, so the cover it forwards into the entry face stands at `ne` —
+item 148's vacuity, a payment of the face's left disjunct that no dedent
+can spend.  The root's price is one parameter: `accum_block_pending` binds
+`h_mono` and `accum_block_on_noPending` does not, and `Covered 0 [] s`
+follows from `Mono s` and `s.currentIndent < 0` in four lines, the base
+unneeded.
+
+**§0 — the instrument** (`Tests/Guards/Proofs/PaidLeafDelta.lean`, twenty
+seconds, importing `PuntCoverInputs`).  Item 253's candidates rebuilt, its
+walk run unchanged, the 169 rows checked against its pinned list and the
+four trees against its pinned lines; then the four rows rewritten in the
+row array — the module throws unless each is found once and is a bare punt
+— and the content and entry trees re-resolved by item 253's `resolve`
+under seven scenarios (none, each alone, the three relays with the root,
+all four), with the leaf census per tree (`positions`, `paid`, `punt`,
+`cover-punt`, `open`, and `origins` = rows reached whose class pays from
+nothing) and whether the two trees' visited sets coincide.  The payments
+are printed with the relay's source shape read off the row's own binder
+stack by item 254's reader, the target's index argument and the target
+field's shape from item 254's pinned list.  The floors: every
+`Exists.intro` in an L4YAML theorem outside the cover module whose motive
+is `Floor lo n ks ∧ Covered …`, the witness classed `own` where it is the
+index, `lit` where it is another closed term, `var` where it is a bound
+variable, aggregated per (lemma, witness, index, list, class); and the
+applications of the eight floor transports per lemma, counted along the
+paths that reach them (a memoized `hasFloor` prunes the rest).  The root's
+price: the binder names of `accum_block_pending` and
+`accum_block_on_noPending` against `h_mono`.
+
+**§1 — the scenarios.**
+
+| scenario | content (positions / paid / punt / cover-punt / open) | entry | merged |
+|---|---|---|---|
+| none | 16 / 1 / 21 / 2 / 2, origins 1 | 11 / 1 / 18 / 2 / 2, origins 1 | no |
+| R1 root literal | 16 / 2 / 20 / 2 / 2, origins 2 | 11 / 2 / 17 / 2 / 2, origins 2 | no |
+| R2 compact fill ← `h_valF` | 16 / 1 / 20 / 4 / 2 | 11 / 1 / 17 / 4 / 2 | no |
+| R3 content sibling ← `h_closeF_old` | 16 / 1 / 20 / 2 / 2 | 16 / 1 / 20 / 2 / 2 | yes |
+| R4 mapping value content ← `h_frames99` | 18 / 1 / 22 / 2 / 2 | 11 / 1 / 18 / 2 / 2 | no |
+| R1+R2+R3 | 16 / 2 / 18 / 4 / 2, origins 2 | 16 / 2 / 18 / 4 / 2, origins 2 | yes |
+| all four | 18 / 2 / 19 / 4 / 2, origins 2 | 18 / 2 / 19 / 4 / 2, origins 2 | yes |
+
+R3 alone merges the trees (the entry tree gains the content tree's five
+other positions and their three punts, 18 − 1 + 3); R4 alone leaves the
+entry tree untouched (the props face is not in it) and adds two positions
+and one net punt to the content tree (21 − 1 + 2).  The nineteen punts that
+remain with all four made: `h_valF`'s nine punting callers, the explicit and
+compact openers' `h_closeF` and `h_frames` (four), the funnel's own punt
+alternative, the entry park's three re-parks, the two props routes.
+
+**§2 — the payments** (`payments:`).  R1 literal at index `k`, target
+`bound(ks<n) Floor(n,ks)`; R2 relay at `nv + 1 + m` from
+`h_valF@2:Floor(nv,nv :: ks)`; R3 relay at `k` from
+`h_closeF_old@2:Floor(n,ks)` (with `k = n` in hand, item 254); R4 relay at
+`n + 1` from `h_frames99@2:Floor(n,ks)` into `bound(ks<ne) Floor(ne,ks)
+eq(n=ne + 1)`.
+
+**§3 — the floors** (`floorlits:`, `transports:`).  80 witnesses in 32
+theorems: own 12 (`colon_open_map` ×5 at `k`, `question_open_map` ×5 at `k`
+and ×2 at `k + 1` over `[]`), lit 0, var 68.  `Floor.mono_index` 9 in 5
+(`accum_block_on_closeThenBlock` 1, `colon_open_map_implicit` 2,
+`colon_open_map_props` 2, `entryKeyPack_of_dispatch` 2,
+`entryPropsKeyPack_of_dispatch` 2 — at the two openers on the value-line
+faces, `idx=k + 1`, not on `h_frames`); `Floor.cons` 4 and `Covered.cons` 4
+in the two pack lemmas; `Floor.pop_to` 1 and `Covered.pop_to` 1 in
+`dedent_cover_of_floor`; `Covered.dedup_head` 2 at the implicit and props
+openers; `Floor.le_of_mem` and `Covered.raise_floor` 0.
+
+**§4 — the root's price.**  `rootMonoCaller=1 rootMonoSite=0 rootNtop=1`.
+The Scratch probe (`probe.rootlemma.log`, deleted after the run):
+`Covered 0 [] s` from `Mono s` and `s.currentIndent < 0` — `intro`,
+`exfalso`, `Mono.le_currentIndent`, `omega` — axioms `[propext,
+Quot.sound]`; `Floor 0 k []` by the anonymous constructor.
+
+**Predictions** (`PREDICTION.md`, written before any reading; no instrument
+reading was taken before it and no tree was re-resolved by machine — the
+hand computation in it is what the instrument re-derived).  P0 HELD (169
+rows, the four tree lines, the four rows bare punts).  P1 HELD (all four:
+18 / 2 / 19 / 4 / 2 on both trees, merged).  P2 HELD (every scenario's ten
+numbers as predicted).  P3 HELD (one leaf per tree turns paid, the relays
+turn none, origins 1 → 2, punts −4 + 2, cover-punts +2).  P4 PARTIAL
+(own-index witnesses 12, not 10 — the `?` opener's two value-line faces;
+closed terms below the index 0 and `mono_index` 9 in the five predicted
+lemmas as predicted; `Floor.cons` 4 not 2 and `Covered.cons` 4 not 0 — the
+source grep counted lines and the applications sit across lines and under
+dot notation; `dedup_head` 2 in 2 but at the implicit and props openers,
+not the root ones).  P5 HELD (R4 keeps the index and its source's paid
+origins are the own-index literals; R2 rides `mono_index`).  P6 PARTIAL
+(the caller binds `h_mono` and the site does not, as predicted; the lemma
+is four lines through `Mono.le_currentIndent`, and `SentinelBase` is not an
+input).  P7: build 1222 as predicted, testfiles 665 as predicted; sweep 862/858 with T=27 as predicted; closure 230 / 355 as predicted; `PaidLeafDelta theorems=12 axioms=[Classical.choice, Quot.sound, propext]` — three per `structure`, all generated, none authored (`probe.axioms.bytheorem.log`), but for FOUR `structure`s where the prediction, written before the module, counted one; `PuntCoverInputs theorems=3` and `CloseStackCover theorems=59` unmoved as predicted; every other gate at item 254's baseline.
+P8 HELD (20.5 s).
+
+**Gates.**  Build **1222** jobs.  `Verified: 4520/4520` (837/837); eventscore
+347/358 with 0 error-miss; suiterunner 869/0/151; matrix 402/402 + 282/282 on
+both pipelines; annotations exit 1 (the output identical to item 254's); decline pins 7 + 18 + 6 ALL PINS OK; `capstones=25
+withSorryAx=0`; `PaidLeafDelta theorems=12 axioms=[Classical.choice, Quot.sound, propext]` — every one of the 12 an `injEq`, `inj` or `sizeOf_spec` generated by the module's four `structure`s (`Payment`, `Leaves`, `FloorLit`, `FS`; `probe.axioms.bytheorem.log`), none authored: a census with no exhibit; `PuntCoverInputs theorems=3` and `CloseStackCover theorems=59` unmoved; `CloseSplitFrames theorems=15`, `CloseLandingWidth theorems=12`, `OpenEntryRoute theorems=5 axioms=[Quot.sound, propext]`, `StreamCompositions theorems=45` and `RouteShapes theorems=18` unmoved; closure **230** library modules /
+355 reflection imports; 25 whitelisted `theorem` sites; counts **8736** /
+**8173** / **665** / **8**; sweep `closure=862 imported=858
+T=27` with `WIDE-PIN agrees` (`DropDependents.lean`'s pin and its two prose
+readings 861/857 → 862/858).  The three standing
+flips read 5 / 4 / 2, the supplier lattice 5 / 1 / 7 and its producer wave
+4, and the carrier flip 2 / 5 with `CARRIER-PIN agrees` at both ends, all
+with md5 before == after and every end printing `REPAIRED errors=0` or
+`CARRIER errors=0`.
+`L4YAML/Proofs/Production/StreamAccum.lean`'s md5 moves
+`1d5df0e57a1d8184306d0999719c87f5` → `0f673117632d0152771499f03c5a5203` (the
+§0b docstring: how many leaves of item 253's two trees turn paid when the four payments in hand are made);
+`Blueprint/04-capstones.md`'s `d92d9b627f82aa5a47a882b9528e0609` →
+`3d2c48c77f18b6b68de096f4662e2276`; `L4YAML/Surface/Document.lean` unmoved.
+Four pinned lists, one pinned line and the cross-instrument checks against
+item 253's 169 rows and four tree lines over **51** perturbations, each throwing — every numeric field of the line, its two booleans and
+one or two rows of each list, the anchors generated from the pinned line itself so
+none can straddle a continuation.
+
+**Perturbations.**  Four pinned lists (`expectedTrees255` 21, `expectedPayments` 4, `expectedFloorLits` 24, `expectedTransports` 8), the pinned line and the
+cross-checks against item 253's 169 pinned rows and four pinned tree lines (the same walk, the same resolver), over **51** perturbations
+(`perturb.sh`, generated by `fill_pins.py` from the pinned line itself: every
+numeric field, the two booleans, plus one or two rows of each list): every one throws (`perturb.log`),
+none NOT CHECKED, none ANCHOR MISSING.
+
+**The instrument ledger**, fifty-six rows: … the close stack cover (253),
+the punt cover inputs (254) — and now **the PAID LEAF DELTA**, the first
+instrument to price a payment BEFORE it is made, by rewriting a walk's rows
+in the row array and re-resolving its trees with the same resolver, so a
+relay is credited with exactly its source's leaves and a payment into a
+position the tree already holds is seen to add nothing; and the first to
+read the library's floor witnesses by kind, so a cover forwarded at its
+face's own index is named before anyone spends it.  **Instrument debt,
+eleven rows, unchanged.**
+
+**What remains.**  β.5's bill is two restatements and twenty-four reproofs,
+and the twenty-four are still unpriced.  Of the arm's threading, seven of
+the eighteen pairs are covered by item 250's twins and eleven are not; six
+of the eleven are closes on comments at eight build points with both
+numbers of the honest close in hand; none splits, the membership decisions
+beside the two funnel spends punt on the miss, and the cover a refutation
+of the miss would spend reaches the content park's four along one producer
+path and the entry park's four along none (253); eleven producers punt the
+stacks that path runs through, five with the payment's inputs in full and
+the floor each can name from its own stack its own index (254).  This item
+priced the four payments those five and the root hold: one leaf turns paid,
+the root's; the compact fill's and the sibling's relays forward a spendable
+floor and turn no leaf paid, because their sources are already in the
+trees; the mapping value content's relay forwards a floor at the props
+park's entry index and must not be made.  **The number no instrument holds
+is what the trees read once the three spendable payments are made**: the
+root's literal (`h_mono` threaded from `accum_block_pending` to
+`accum_block_on_noPending` — one parameter, one call site — the four-line
+lemma, and the landed arm's transport through the dispatch), the compact
+fill's copy of `h_seqFrames` with its own `h_cov_step` (the landed arm's is
+out of the compact fill's scope, item 254), and the content sibling's relay
+of `h_closeF_old` at the unchanged index; not the mapping value content's.
+The expected reading is this item's R1+R2+R3 line — both trees 16 / 2 / 18
+/ 4 / 2, origins 2 — with item 253's rows changed at three (and the compact
+fill's new local), item 254's punt sites 11 → 8, and this item's payments
+reduced to the one refused.  The cheap experiment is the root alone, the
+smallest of the three and the only literal.  **The failure mode to watch is
+a reading other than 16 / 2 / 18 / 4 / 2 after the edits** — a payment that
+paid something other than what was priced, or a copied class whose proof
+does not copy: the compact fill's stream closure has no landing comments
+(the nested sequence starts on the slot's own line, `? - a`), so the landed
+arm's `nestedBlockSeq` composition is not its; the class copies, the proof
+is re-derived.
+
+Unchanged: R3's seven productions, whose price is the case split; item 183's
+flip order, whose two REFUTABLE halves are `h_ref`'s readers; the parked Ix
+Step-1 composition on the Ix track's own clock.
+
 ### REMAINING, in order
 
 The per-item history is the closure log above; this section lists only the
@@ -32816,16 +33042,16 @@ and Step 5 (the converse) is R3's deletion and then R4's narrowing, in that
 order:
 
 ```
-R1 ✓ (44–46) ──→ R2 ✓ (47–51) ──→ R3 (52–254; the deletion OPEN) ──→ R4 ([210]'s narrowing; 1d ✓ 179) ──→ Step 5 ──→ Step 6
+R1 ✓ (44–46) ──→ R2 ✓ (47–51) ──→ R3 (52–255; the deletion OPEN) ──→ R4 ([210]'s narrowing; 1d ✓ 179) ──→ Step 5 ──→ Step 6
 ```
 
-**Where it stands after item 254 (2026-09-24).**  Every number in this table
+**Where it stands after item 255 (2026-09-24).**  Every number in this table
 is a gate's or a pin's, and the instrument that re-derives it is named beside
 it; the prose history is in the R3/R4 sections below and in the closure log.
 
 | row | state | the numbers, and where they come from |
 |---|---|---|
-| **R3** — delete `pendingFlow` and `scannerDrop` | OPEN | `scannerDrop` is applied ONCE (`PendingNode.close_with_ssl`'s `pendingFlow` arm); its flip breaks **2** definitions (`scripts/flip_drop.py`).  `block_dispatch_deferred`, `pendingFlow`'s only producer, is applied **9** times in **4** holders — `_stamp_offcol` 3, `_stamp_nopack` 3, `_inline` 2, the bare escape 1 (`Tests/Guards/Proofs/FlipConsumerSurface.lean`, DEFERRAL lane).  `KeyPackPunt`'s four reasons are produced at **12** sites — `tab` 2, `dedent` 4, `implicitValue` 3, `noKeyContext` 3 — and spent by the same three consumer arms (PACK PUNT lane); item 212's **seven productions** are `dedent`'s four and `noKeyContext`'s three, and their price is the case split.  The deletion's bill is **two restatements and twenty-four reproofs** (items 238–240; `scripts/flip_supplier.py`'s four ends read weak 5 / field 1 / retire 7 / producer 4), the twenty-four unpriced.  Items 241–245 located what the escape's sites owe: the park's gap to the dispatch is ONE scanner step (243), the step is ONE character and the production it owes a `GLit` (244), and the grammar path there ends in whitespace with no carrier for the literal — `BlockStack` has one reflexive constructor against `SeqFrame`/`MapFrame`'s ten, so the six one-step sites owe a **block node**, not a character (245; `Tests/Guards/Proofs/ParkGapProduction.lean`).  The arm that would hold it is HONEST — `direct` under item 236's connectivity reading, which over the proof layer's 235 arms names exactly R3's two deletions as the library's only escapes — and it is read in **2** places and carried in 40; its second wave is **5** proofs, all inside T's twenty-seven (246; `scripts/flip_carrier.py` arm=2 retire=5, `Tests/Guards/Proofs/CarrierArmPrice.lean`).  Of the five's **61** exits, **15** carry an open entry through — the flow-interior branches, where the carrier is never absorbed — and **43** build `nil` and hand the content to a route that promises the stream past the position they re-emit at; **26** of those sit in **14** lemmas outside T (247; `Tests/Guards/Proofs/ExitHandoff.lean`).  The parks' **54** closures are **39** spines over 6 heads; at the forty-three exits the parks' 255 closure slots CARRY the input park's promise at 154 and build it from the absorbed stream at 8; over everything the five reach a promise is first built from the stream at 17 places in **8** lemmas, and the shapes so built are **k = 10** (248; `Tests/Guards/Proofs/RouteShapes.lean`).  Traced from each producer's root the build points are **21** in 9 lemmas and the shapes **12** (two resume-stack promises and one flow route the leaf reading of 248 missed, one it called built struck); the stream enters the promises under **15** compositions — a bare document, comments alone, a suffix, a suffix and a directive, an explicit document, or the deleted arm's absorption, each also after `absorb_stacksB`, three stacked — **21** (shape, composition) pairs, **18** without the arm's own (249; `Tests/Guards/Proofs/StreamCompositions.lean`).  Of the eighteen, **8** compose the bare document appended at the landing (249 said nine; struck); `rootMapRoute`'s twin over an open entry — one application of item 189's `slotLandedMap`, four constructors and no stream constructor, the side condition `n + 1 ≤ k` and the slot's comments in place of the column and the stream — substitutes at **5** of them, its entries-level twin at **2** more, and the eighth is a node route no mapping twin reaches; the closed-first proof reads as the bare document appended under the same trace, so the failure mode is detected; at the producers the twin is a seventh landing arm through `indicator_open_map`, whose four callers already pay the value-line chain at two (250; `Tests/Guards/Proofs/OpenEntryRoute.lean`).  Of the eleven the twins leave, **6** are closes on comments (250 said eight; struck) at **8** build points, six through `close_with_ssl`, whose open-park arms close the entry EMPTY at whatever width follows; followed to where they are spent, the closures are spent **13** times on the comments and handed on 7, never on an empty node of their own; the landing's width is in hand at every spend (12 as `s-indent(k)`, 1 as the raw whites), the park's index is nameable at **8** — the two `-` parks' landings — and a comparison of the two stands beside **none** of the spends, only beside hand-offs (the dedent under `k < n`, the pack chain under `n + 1 ≤ k`); by build point **3** hold both numbers at every own close and hand-off, **4** the width alone, **1** neither; of the 18 empty-node constructors in the reach, `close_with_ssl`'s two have no width beside them and a comparison stands beside 4 (251; `Tests/Guards/Proofs/CloseLandingWidth.lean`).  Of the eight closes that hold both numbers, **none** splits on them: the width-against-index decision stands beside **1** (the entry park's funnel spend, where `n + 1 ≤ k` decides the value-line chain and not the stream) and above none; the membership decisions beside the two funnel spends (3) punt on every miss; the content park's lemma holds its resume stack with the cover two options deep, the entry park's holds none — `accum_block_pending` binds `pendingBlock.h_closeF` and never hands it across (**3** faces dropped at that door, **2** at the content park's); the `-` arm's split is disjoint from all eight; the `n < k` arm's material is in hand at the entry park's four and void at the content park's four (whose honest arm is the refusal it pays), the `k < n` arm's frame in hand at the content park's four and dropped at the door at the entry park's four; the scanner refuses a `:`/`?` at a sequence level's column and accepts `-⏎  : a` with the mapping as the entry's node (252; `Tests/Guards/Proofs/CloseSplitFrames.lean`).  Of the resume stacks the eight receive, **none** carries a cover paid where the stack is built: the content park's four receive one relay — all **6** producers of `pendingBlockContent.h_closeF` forward a cover they were handed, three the entry park's field through the content door, three the props park's entry face — and the tree behind them holds exactly **one** literal payment, `indicator_cover_at_col` inside the landing funnel, paid when the funnel's floor is (the parks pay it off column 0) and reached only through the mapping value park, the two `pendingMapValue` arms of the block door, `accum_block_on_closeThenBlock`'s landed-`-` re-park under `nv < k` and the content door; the entry park's four receive none, and the field they would receive is punted at **6** of its 7 producers and relayed at the seventh, `h_valF` punted at 9 of 11 callers; two origins stay open, the implicit key packs feeding the implicit and props openers; at the eight no fact about the scanner's stack is in hand, the top only as an upper bound at the entry park's four, the floor at none; the block door drops **4** cover faces and forgets **5**, the content door keeps all **8**; a landing between the open levels is refused as trailing content (253; `Tests/Guards/Proofs/CloseStackCover.lean`).  Of the eleven producers that punt a park's stack, **5** hold the payment's inputs in full (`Mono`, `SentinelBase`, the preprocess, the `-` dispatch and a bound on the top — the compact fill, the content park's sibling re-park and the entry park's sibling, nested and compact re-parks); the root `-` lacks `Mono` and holds the seed's empty stack; the two mapping value openers hold the top and lack `Mono` and the base; the props park's three hold no bound on the top, **2** of them at index 0 where the entry face has no witness.  The floor each could name from its own stack is its own index at **8** and zero at the root alone; **3** hold a relay's floor beside it (`h_valF`, `h_closeF_old`, the mapping value content's faces).  The field shapes make an own-index payment at the entry park `Floor n n [] ∧ Covered n [] s'`, which the top bound and `Mono` do not give — they give `Covered n [n]` and `Covered (n + 1) []`, and the runtime accepts a sequence at its key's own column (`k:⏎- a`) — and a cover floored at the park's own index is spendable at no dedent width (254; `Tests/Guards/Proofs/PuntCoverInputs.lean`).  NEXT is item 255, how many leaves of item 253's two trees turn paid when the four payments in hand are made. |
+| **R3** — delete `pendingFlow` and `scannerDrop` | OPEN | `scannerDrop` is applied ONCE (`PendingNode.close_with_ssl`'s `pendingFlow` arm); its flip breaks **2** definitions (`scripts/flip_drop.py`).  `block_dispatch_deferred`, `pendingFlow`'s only producer, is applied **9** times in **4** holders — `_stamp_offcol` 3, `_stamp_nopack` 3, `_inline` 2, the bare escape 1 (`Tests/Guards/Proofs/FlipConsumerSurface.lean`, DEFERRAL lane).  `KeyPackPunt`'s four reasons are produced at **12** sites — `tab` 2, `dedent` 4, `implicitValue` 3, `noKeyContext` 3 — and spent by the same three consumer arms (PACK PUNT lane); item 212's **seven productions** are `dedent`'s four and `noKeyContext`'s three, and their price is the case split.  The deletion's bill is **two restatements and twenty-four reproofs** (items 238–240; `scripts/flip_supplier.py`'s four ends read weak 5 / field 1 / retire 7 / producer 4), the twenty-four unpriced.  Items 241–245 located what the escape's sites owe: the park's gap to the dispatch is ONE scanner step (243), the step is ONE character and the production it owes a `GLit` (244), and the grammar path there ends in whitespace with no carrier for the literal — `BlockStack` has one reflexive constructor against `SeqFrame`/`MapFrame`'s ten, so the six one-step sites owe a **block node**, not a character (245; `Tests/Guards/Proofs/ParkGapProduction.lean`).  The arm that would hold it is HONEST — `direct` under item 236's connectivity reading, which over the proof layer's 235 arms names exactly R3's two deletions as the library's only escapes — and it is read in **2** places and carried in 40; its second wave is **5** proofs, all inside T's twenty-seven (246; `scripts/flip_carrier.py` arm=2 retire=5, `Tests/Guards/Proofs/CarrierArmPrice.lean`).  Of the five's **61** exits, **15** carry an open entry through — the flow-interior branches, where the carrier is never absorbed — and **43** build `nil` and hand the content to a route that promises the stream past the position they re-emit at; **26** of those sit in **14** lemmas outside T (247; `Tests/Guards/Proofs/ExitHandoff.lean`).  The parks' **54** closures are **39** spines over 6 heads; at the forty-three exits the parks' 255 closure slots CARRY the input park's promise at 154 and build it from the absorbed stream at 8; over everything the five reach a promise is first built from the stream at 17 places in **8** lemmas, and the shapes so built are **k = 10** (248; `Tests/Guards/Proofs/RouteShapes.lean`).  Traced from each producer's root the build points are **21** in 9 lemmas and the shapes **12** (two resume-stack promises and one flow route the leaf reading of 248 missed, one it called built struck); the stream enters the promises under **15** compositions — a bare document, comments alone, a suffix, a suffix and a directive, an explicit document, or the deleted arm's absorption, each also after `absorb_stacksB`, three stacked — **21** (shape, composition) pairs, **18** without the arm's own (249; `Tests/Guards/Proofs/StreamCompositions.lean`).  Of the eighteen, **8** compose the bare document appended at the landing (249 said nine; struck); `rootMapRoute`'s twin over an open entry — one application of item 189's `slotLandedMap`, four constructors and no stream constructor, the side condition `n + 1 ≤ k` and the slot's comments in place of the column and the stream — substitutes at **5** of them, its entries-level twin at **2** more, and the eighth is a node route no mapping twin reaches; the closed-first proof reads as the bare document appended under the same trace, so the failure mode is detected; at the producers the twin is a seventh landing arm through `indicator_open_map`, whose four callers already pay the value-line chain at two (250; `Tests/Guards/Proofs/OpenEntryRoute.lean`).  Of the eleven the twins leave, **6** are closes on comments (250 said eight; struck) at **8** build points, six through `close_with_ssl`, whose open-park arms close the entry EMPTY at whatever width follows; followed to where they are spent, the closures are spent **13** times on the comments and handed on 7, never on an empty node of their own; the landing's width is in hand at every spend (12 as `s-indent(k)`, 1 as the raw whites), the park's index is nameable at **8** — the two `-` parks' landings — and a comparison of the two stands beside **none** of the spends, only beside hand-offs (the dedent under `k < n`, the pack chain under `n + 1 ≤ k`); by build point **3** hold both numbers at every own close and hand-off, **4** the width alone, **1** neither; of the 18 empty-node constructors in the reach, `close_with_ssl`'s two have no width beside them and a comparison stands beside 4 (251; `Tests/Guards/Proofs/CloseLandingWidth.lean`).  Of the eight closes that hold both numbers, **none** splits on them: the width-against-index decision stands beside **1** (the entry park's funnel spend, where `n + 1 ≤ k` decides the value-line chain and not the stream) and above none; the membership decisions beside the two funnel spends (3) punt on every miss; the content park's lemma holds its resume stack with the cover two options deep, the entry park's holds none — `accum_block_pending` binds `pendingBlock.h_closeF` and never hands it across (**3** faces dropped at that door, **2** at the content park's); the `-` arm's split is disjoint from all eight; the `n < k` arm's material is in hand at the entry park's four and void at the content park's four (whose honest arm is the refusal it pays), the `k < n` arm's frame in hand at the content park's four and dropped at the door at the entry park's four; the scanner refuses a `:`/`?` at a sequence level's column and accepts `-⏎  : a` with the mapping as the entry's node (252; `Tests/Guards/Proofs/CloseSplitFrames.lean`).  Of the resume stacks the eight receive, **none** carries a cover paid where the stack is built: the content park's four receive one relay — all **6** producers of `pendingBlockContent.h_closeF` forward a cover they were handed, three the entry park's field through the content door, three the props park's entry face — and the tree behind them holds exactly **one** literal payment, `indicator_cover_at_col` inside the landing funnel, paid when the funnel's floor is (the parks pay it off column 0) and reached only through the mapping value park, the two `pendingMapValue` arms of the block door, `accum_block_on_closeThenBlock`'s landed-`-` re-park under `nv < k` and the content door; the entry park's four receive none, and the field they would receive is punted at **6** of its 7 producers and relayed at the seventh, `h_valF` punted at 9 of 11 callers; two origins stay open, the implicit key packs feeding the implicit and props openers; at the eight no fact about the scanner's stack is in hand, the top only as an upper bound at the entry park's four, the floor at none; the block door drops **4** cover faces and forgets **5**, the content door keeps all **8**; a landing between the open levels is refused as trailing content (253; `Tests/Guards/Proofs/CloseStackCover.lean`).  Of the eleven producers that punt a park's stack, **5** hold the payment's inputs in full (`Mono`, `SentinelBase`, the preprocess, the `-` dispatch and a bound on the top — the compact fill, the content park's sibling re-park and the entry park's sibling, nested and compact re-parks); the root `-` lacks `Mono` and holds the seed's empty stack; the two mapping value openers hold the top and lack `Mono` and the base; the props park's three hold no bound on the top, **2** of them at index 0 where the entry face has no witness.  The floor each could name from its own stack is its own index at **8** and zero at the root alone; **3** hold a relay's floor beside it (`h_valF`, `h_closeF_old`, the mapping value content's faces).  The field shapes make an own-index payment at the entry park `Floor n n [] ∧ Covered n [] s'`, which the top bound and `Mono` do not give — they give `Covered n [n]` and `Covered (n + 1) []`, and the runtime accepts a sequence at its key's own column (`k:⏎- a`) — and a cover floored at the park's own index is spendable at no dedent width (254; `Tests/Guards/Proofs/PuntCoverInputs.lean`).  Of item 253's two trees, **1** leaf turns paid when the four payments in hand are made — the root's literal, the one new paid origin (1 → 2); the three relays turn none, each forwarding a source the trees already hold, and the mapping value content's forwards a cover floored AT the props park's entry index — the source field's paid origins are the own-index literals, **12** of the library's **80** floor witnesses, none below its index, and the index is raised only by `Floor.mono_index`'s **9** applications, none on that path — item 148's vacuity, so that relay must not be made.  With all four made both trees read 18 positions / paid 2 / punt 19 / cover-punt 4 / open 2 (against 16/1/21/2/2 and 11/1/18/2/2) and merge into one component through the sibling's relay; with the three spendable ones 16 / 2 / 18 / 4 / 2.  The root's price is one parameter, `h_mono`, bound by `accum_block_pending` and not by `accum_block_on_noPending`, and its lemma is four lines from monotonicity and a negative top (255; `Tests/Guards/Proofs/PaidLeafDelta.lean`).  NEXT is item 256, what the trees read once the three spendable payments are made. |
 | **R4** — narrow `[210]` (`implicitContinue`'s slot, `GOpt SLAnyDocument` → `GOpt SLExplicitDocument`) | OPEN, **behind R3** | The flip breaks **5** definitions (`scripts/flip_210.py`) — the flip's own WORK, constant since item 166.  What a payment moves is the consumer surface: **1** raw holder / 1 application and **7** guard holders / 14 applications (`FlipConsumerSurface`, RAW ROUTES + GUARDS lanes), in three classes — refutable arms, three missing routes, and `pendingFlow`, which no field can pay (item 183).  The third class is why R4 lands after R3's deletion; the refutable arms and the three routes are ORDERED after it by item 183, not blocked by it.  1d (`0 < m`) is CLOSED (item 179). |
 | **Step 5** — the converse `grammar_completeness` | **NOT STARTED** | No declaration of that name exists under `L4YAML/` or `Tests/`, and no item of the closure log is Step 5's.  It is unprovable, not merely unproved, while either over-approximation stands: `inYamlLanguage_everything : ∀ s, InYamlLanguage s` compiles today (`Tests/Guards/Proofs/SuffixGapAudit.lean` §5, item 236), and `implicitContinue` admits `- "a"⏎  - b` (item 30). |
 | **Step 6** — `parse_iff_grammar` | NOT STARTED | After Step 5. |

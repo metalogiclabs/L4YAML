@@ -2799,7 +2799,52 @@ lemma props_couplings_of_push {s_ad s' : ScannerState} {tok : YamlToken}
     openers' nested frames.  So a floor below the park's index is in hand at
     the root from its own stack, at three sites as a relay, and at no other;
     and the five that hold the payment's inputs in full can pay with them a
-    cover spendable at no dedent width. -/
+    cover spendable at no dedent width.
+
+    **How many leaves of item 253's two trees turn paid when the four
+    payments in hand are made** (`Tests/Guards/Proofs/PaidLeafDelta.lean`,
+    DOCS item 255).  One.  Item 253's walk runs unchanged, checked against
+    its pinned rows and tree lines; the four rows are rewritten in the row
+    array — the root `-` as a literal `Floor 0 k [] ∧ Covered 0 [] s'`, the
+    compact fill with the landed `-` arm's class over `h_valF`, the content
+    park's sibling forwarding `h_closeF_old`, the mapping value content
+    forwarding `h_frames99` into the props park's entry face — and the
+    content and entry trees are re-resolved under seven scenarios.  With all
+    four made the content tree reads 18 positions, paid 2, punt 19,
+    cover-punt 4, open 2, against 16 / 1 / 21 / 2 / 2; the entry tree reads
+    the same five numbers and the same positions, because the sibling's
+    relay closes a cycle (entry field, content door, content field, sibling
+    re-park, entry field) and the two trees become one component read from
+    two roots.  The root's literal is the one leaf that turns paid and the
+    one new paid origin; the three relays turn none — the compact fill's
+    source is already resolved in both trees and adds its two `cover-punt`
+    alternatives, the sibling's source is the content tree's own root, and
+    the mapping value content's source is `pendingMapValue.h_frames`, a face
+    of the same six producers as `h_closeF` with the same one paid origin,
+    the same two open packs and two more punts at the explicit and compact
+    openers.  So the four retire four punts and add two, and the paid
+    origins go from one to two.  The floors: of the 80 `Floor` witnesses in
+    the library's theorem terms, 12 are the index itself — the two root
+    openers' `⟨k, ⟨Nat.le_refl k, by simp⟩, h⟩` at `k`, and the `?` opener's
+    value-line faces at `k + 1` — none is another closed term, and 68 are
+    variables carried from a source; the index is raised only by
+    `Floor.mono_index`, 9 applications in 5 lemmas (the landed `-` arm under
+    `nv < k`, the implicit and props openers' value-line faces, the two pack
+    lemmas), and no application of `Covered.raise_floor` exists.  Read
+    against the relays: the compact fill's rides the landed arm's
+    `mono_index`, so the floor it forwards is the mapping park's index under
+    a strictly higher park index — spendable; the sibling's keeps the index
+    it received and its source descends from that same shape — spendable
+    where the source's is; the mapping value content's keeps the index
+    (`ne = n`, the props park's index being `n + 1`) and its source's only
+    paid origins are the own-index literals, so the cover it forwards into
+    the entry face stands at `ne` — item 148's vacuity, a payment of the
+    face's left disjunct that no dedent can spend.  The root's price is one
+    parameter: `accum_block_pending` binds `h_mono` and
+    `accum_block_on_noPending` does not, and `Covered 0 [] s` follows from
+    `Mono s` and `s.currentIndent < 0` in four lines (every entry is at or
+    below the top, the top is negative, a covered level is not), the base
+    unneeded. -/
 
 inductive BlockStack : SurfPos → SurfPos → Prop where
   /-- No active block collections. At document level or stream start. -/

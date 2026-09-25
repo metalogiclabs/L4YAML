@@ -811,6 +811,29 @@ the top bound and monotonicity do not give, and the runtime accepts a sequence
 at its key's own column. A cover floored at the park's own index is spendable
 at no dedent width.
 
+**And of the leaves of the two close-stack trees, one turns paid when the four payments in hand are made, and the payment that turns it is the root's**
+([`PaidLeafDelta.lean`](../Tests/Guards/Proofs/PaidLeafDelta.lean)).
+The previous walk runs unchanged and its four rows are rewritten in place —
+the root's as a literal cover at floor zero, the three others as the relays
+they would be — and the content and entry trees are re-resolved by the same
+resolver under seven scenarios. With all four made, each tree reads two paid
+leaves against one, nineteen punts against twenty-one and eighteen, and the
+two trees become one component: the sibling re-park's relay forwards the
+content park's stack into the entry park's field and closes a cycle. The
+root's literal is the one leaf that turns paid and the one new origin; the
+three relays turn none, because each forwards a source the trees already
+hold — the compact fill's the mapping value park's one literal origin, the
+sibling's the content tree's own root, the mapping value content's another
+face of the same six producers, which adds two punts of its own. Of the
+library's eighty floor witnesses, twelve are the index itself and none is a
+closed term below it; the index is raised only by the nine applications of
+`mono_index`, one of them on the compact fill's path and none on the mapping
+value content's, so the cover that relay forwards into the props park's
+entry face stands at that face's own index and is spendable at no dedent
+width. The root's price is one parameter, monotonicity, which its caller
+binds and it does not; the cover it pays follows from monotonicity and a
+negative top in four lines.
+
 **Significance & risk**
 
 - **7.1 `parse_strict_proof`** *(headline, ✅)* — *Significance:*
