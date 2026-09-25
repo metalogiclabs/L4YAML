@@ -295,7 +295,7 @@ def expectedClosure : Nat := 233
     a hint and not a check — item 237's own finding is that a statement can
     assert `InYamlLanguage` without naming it. -/
 def expectedWide : String :=
-  "closure=862 imported=858 excluded=36 readable=36 unreadable=0 \
+  "closure=863 imported=859 excluded=36 readable=36 unreadable=0 \
 excludedDecls=600 excludedDropRefs=0"
 
 /-- **The four counts the WHOLE TREE reads, which are not the four this file's

@@ -2931,7 +2931,14 @@ lemma props_couplings_of_push {s_ad s' : ScannerState} {tok : YamlToken}
     own-floor cover is fundable; what it lacks is the resume's bottom, a
     relay of the pack's resume that the paid `:` openers take as a binder
     (`Tests/Guards/Proofs/PuntCoverInputs.lean` §6); the refused relay would
-    take both trees to 18 / 6 / 16 / 2 / 2. -/
+    take both trees to 18 / 6 / 16 / 2 / 2.  The packs a value-line-then-tail
+    carrier would twin — the value-line closures the `?` faces carry — are
+    eleven constructor fields and twenty-nine lemma parameters, each ending
+    at the stream with no tail after the value; of their 151 writer
+    positions 42 punt, and of the 69 that build, re-wrap or transport a pack
+    11 hold a tail or a frames face at a level they write, 37 write a relayed
+    list no reading can enter, and 21 hold none
+    (`Tests/Guards/Proofs/ValueLinePacks.lean`). -/
 
 inductive BlockStack : SurfPos → SurfPos → Prop where
   /-- No active block collections. At document level or stream start. -/

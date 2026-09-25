@@ -867,7 +867,13 @@ its own-floor cover is fundable; what it lacks is the resume's bottom, which
 the paid `:` openers take as a relay of the pack's resume and it does not
 ([`PuntCoverInputs.lean`](../Tests/Guards/Proofs/PuntCoverInputs.lean)). The
 refused relay would add two positions and one punt to each tree and no paid
-leaf.
+leaf. The carrier that would fund the bottom without that relay is a
+value-line-then-tail twin of the `?` faces' packs: eleven constructor fields
+and twenty-nine lemma parameters, every one a closure that ends at the stream
+with no tail after the value, written at 151 positions of which 42 punt; of
+the 69 that build, re-wrap or transport a pack, 11 hold a tail or a frames
+face at a level they write
+([`ValueLinePacks.lean`](../Tests/Guards/Proofs/ValueLinePacks.lean)).
 
 **Significance & risk**
 
