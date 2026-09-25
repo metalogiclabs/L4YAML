@@ -354,9 +354,14 @@ adds.**   `constants` counts the module's non-internal constants, generated ones
     on `h_closeF_old` with the pattern lambda inside it are two new `match_*`
     constants of the module, whose discriminant and alternative binders are
     all Props and all `READ` (three and two): `constants` 1123 → 1125,
-    `decls` 945 → 947, `READ` 1016 → 1021, `RELAY` 1997 → 1998. -/
+    `decls` 945 → 947, `READ` 1016 → 1021, `RELAY` 1997 → 1998.  Item 257
+    moves one binder from `FIELD` to `RELAY`: `h_mono` at
+    `accum_block_on_closeThenBlock`, whose one use was inside an `Or.inl ⟨h_mono,
+    h_base, …⟩` at the landed arm's floor face, is handed by the compact fill's
+    literal to `IndentStackCover.covered_nil_of_top_le`, and a relay outranks a
+    field in `direct`; no matcher, so no new constant. -/
 def expectedModuleTally : String :=
-  "constants=1125 decls=947 eta=364 FIELD=154 READ=1021 RELAY=1998 RETURN=48 UNUSED=9"
+  "constants=1125 decls=947 eta=364 FIELD=153 READ=1021 RELAY=1999 RETURN=48 UNUSED=9"
 
 def expectedUnused : List String :=
   [ "block_dispatch_deferred_inline#10 (_h_res)",

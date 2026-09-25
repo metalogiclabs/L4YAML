@@ -832,9 +832,13 @@ def hopName (env : Environment) (e : Edge) : String :=
     `pendingBlock.h_closeF` is a `PAY` (the seed's cover at floor 0,
     `DECLINE` 271 → 269 and `PAY` 44 → 45 with it) and the content sibling's
     is a `SPLIT` on `h_closeF_old` whose arms are a `PAY` and a `DECLINE`
-    (`SPLIT` 155 → 156).  `edges=659` held, as it must. -/
+    (`SPLIT` 155 → 156).  `edges=659` held, as it must.  **Item 257 moves one
+    more DECLINE to a PAY**: the compact fill's `pendingBlock.h_closeF` (the
+    literal from the slot's own top bound) — one edge, the fill's own
+    application, `DECLINE` 269 → 268 and `PAY` 45 → 46; no split is added, so
+    the split landing, the split branch and the collapsed edge stand. -/
 def expectedTally : String :=
-  "edges=659 skipped=30 [DECLINE=269, FIELD=58, LOCAL=27, PAY=45, RELAY=68, \
+  "edges=659 skipped=30 [DECLINE=268, FIELD=58, LOCAL=27, PAY=46, RELAY=68, \
 SPLIT=156, VIA=36]"
 
 /-- **The row item 211 read off the compiler's error text and got wrong.**  All
@@ -1091,7 +1095,7 @@ def expectedDeclineWriters : List String :=
    "16 colon_open_map_implicit",
    "16 colon_open_map_props",
    "16 compact_open_map",
-   "18 accum_block_on_closeThenBlock",
+   "17 accum_block_on_closeThenBlock",
    "18 accum_block_on_pendingBlockContent",
    "2 colon_fires_implicit_key",
    "2 colon_fires_props_key",

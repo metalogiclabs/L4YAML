@@ -2863,13 +2863,27 @@ lemma props_couplings_of_push {s_ad s' : ScannerState} {tok : YamlToken}
     pay is a literal from the slot's own top bound,
     `covered_nil_of_top_le h_mono h_top_slot : Covered (nv + 1) [] sc` under
     `Floor (nv + 1) (nv + 1 + m) []` — a floor below the fill's index by `m`,
-    where item 254 read the index itself — priced at one line for the cover
-    and left for the next item.  The trees read 16 positions, paid 2, punt
-    19, cover-punt 2, open 2 from both roots, one component: item 255's
-    algebra for the root and the sibling exactly, and the mandate's
-    16 / 2 / 18 / 4 / 2 short by the compact fill's relay.  Item 253's rows
-    keep their number and two change class; nine producers still punt; the
-    refused relay would take both trees to 18 / 2 / 20 / 2 / 2. -/
+    where item 254 read the index itself.  With the root's and the sibling's
+    payments the trees read 16 positions, paid 2, punt 19, cover-punt 2,
+    open 2 from both roots, one component: item 255's algebra for the root
+    and the sibling exactly, and the mandate's 16 / 2 / 18 / 4 / 2 short by
+    the compact fill's relay.
+
+    **The compact fill's literal** (item 257).  The fill pays
+    `pendingBlock.h_closeF` with the cover above: no break was crossed, so
+    the stack the `-` pushes onto is the slot's and `h_top_slot` bounds its
+    top by the slot's index `nv`; on a monotone stack no mapping level then
+    stands at or right of column `nv + 1` (`covered_nil_of_top_le`), the
+    dispatch keeps that cover on the landed arm's three lemmas, the frames
+    below the slot's own collection are none, and the bottom is the closure
+    the fill writes for `h_close_entry`.  The floor `nv + 1` stands below the
+    fill's index `nv + 1 + m` by the `s-indent(m)` in front of the `-` — of
+    the nine punts item 254 read as own-index, the one whose top bound is
+    the SLOT's and not the park's.  The trees read 16 positions, paid 3,
+    punt 18, cover-punt 2, open 2 from both roots, one component, three
+    paid origins; item 253's rows keep their number and three carry a paid
+    class; eight producers still punt; the refused relay would take both
+    trees to 18 / 3 / 19 / 2 / 2. -/
 
 inductive BlockStack : SurfPos → SurfPos → Prop where
   /-- No active block collections. At document level or stream start. -/
@@ -21945,7 +21959,36 @@ lemma accum_block_on_closeThenBlock
                               h_dash2 h_gnot2 h_bi h_tail))
                           sp_i sp_c h_iv h_lit sp_v h_sbi⟩
                   | Or.inr _ => Or.inr trivial)
-             (Or.inr trivial)
+                 -- ═══ **Item 257: the compact fill's resume frames, PAID, from
+                 -- the SLOT's own top.**  No break was crossed, so the stack this
+                 -- `-` pushes onto is the slot's, and `h_top_slot` bounds its top
+                 -- by the slot's index `nv`.  On a monotone stack no mapping
+                 -- level then stands at or right of column `nv + 1`
+                 -- (`IndentStackCover.covered_nil_of_top_le`); the dispatch keeps
+                 -- that cover on the landed `-`'s three lemmas (preprocessing
+                 -- only pops, the `-` pushes a sequence level the cover exempts);
+                 -- the frames below the slot's own collection are none, and the
+                 -- bottom is the closure written for `h_close_entry` above.  The
+                 -- floor `nv + 1` stands BELOW the fill's index `nv + 1 + m` by
+                 -- the `s-indent(m)` in front of the `-` — the top bound this
+                 -- site holds is the slot's, not the park's (items 254, 256).
+                 -- The transport is written inline: a `have`-bound step reads to
+                 -- the cover census as a relay to a position with no rows. ═══
+                 (Or.inl ⟨[], fun _ h => absurd h List.not_mem_nil,
+                   Or.inl ⟨nv + 1,
+                     ⟨Nat.le_add_right (nv + 1) m, fun _ h => absurd h List.not_mem_nil⟩,
+                     IndentStackCover.scanBlockEntry_cover
+                       (dispatchBlockIndicators_dash_scan h_dispatch).1
+                       (dispatchBlockIndicators_dash_scan h_dispatch).2
+                       ((IndentStackCover.preprocess_cover h_preprocess
+                           (IndentStackCover.covered_nil_of_top_le h_mono h_top_slot)).of_indents_eq
+                         (by split <;> rfl))⟩,
+                   fun sp_m h_bi sp_e h_tail =>
+                     ResumeFrames.bottom sp_e
+                       (hvs sp_e
+                         (SBlockIndented.compactSeq nv .blockOut m sp_mid _ sp_e h_ind
+                           (SCompactSeq.mk (nv + 1 + m) _ sp_scan' sp_m sp_e
+                             h_dash2 h_gnot2 h_bi h_tail)))⟩)
                  (nodir_of_block_dispatch h_dispatch) (Or.inr trivial)
                  -- ═══ **Item 190: the OUTER frame's line rides the same fill.**
                  -- The compact sequence completes the slot exactly as above;

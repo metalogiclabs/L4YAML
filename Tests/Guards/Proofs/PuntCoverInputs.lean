@@ -36,8 +36,12 @@ seed's empty stack at floor 0 (`IndentStackCover.covered_nil_of_ntop`), and
 the content park's sibling by relaying `h_closeF_old` at the unchanged index.
 The compact fill's relay of `h_valF` is refuted there — that closure awaits
 a block node read at the park's position, and the compact fill's node is a
-compact sequence on the slot's own line — so nine punts remain, and the
-reading below is theirs.
+compact sequence on the slot's own line — and **item 257 pays the compact
+fill a third way**: a literal from the slot's own top bound
+(`IndentStackCover.covered_nil_of_top_le`), floored at `nv + 1` below the
+fill's index `nv + 1 + m`, because the top bound that site holds is the
+SLOT's and not the park's — the reading item 254's own-index verdict did not
+take.  Eight punts remain, and the reading below is theirs.
 -/
 
 open Lean Lean.Meta Lean.Elab
@@ -306,8 +310,7 @@ def verdict (r : Inputs) (idx : String) : String := Id.run do
 /-! ## §2 The pins -/
 
 def expectedSites : List String :=
-  ["accum_block_on_closeThenBlock #2 ctor:pendingBlock.h_closeF idx=nv + 1 + m mono=1(h_mono:sc) monoOpt=0 base=1(h_base:sc) baseOpt=0 prep=1(h_preprocess:sc→s_prep,c) dispB=1(h_dispatch:c) dispC=0 hc=0 chr=1(hc:c='-') corr=5(hcorr_prep:s_prep,hcorr_result:s',h_corr:sc,hcorr_sc:s_prep,hcorr_dash2:s') noflow=1(h_noflow) save=0 fl=0 top=1(h_top_slot:sc≤nv) larm=0 floor=0 nic=1(h_nic_slot:sc) armed=1(→h_nic0:sc) col0=2(h_mid.2.1:sp_scan.col≠0,h_col_ne:sp_scan.col≠0) ids=2(→h_mid.2.2.2,→h_ids) cover=1(h_valF@2:Floor(nv,nv :: ks)) coverFn=0 ⊢ inputs=full lo=[own=nv + 1 + m;relay=h_valF:Floor(nv,nv :: ks)]",
-   "accum_block_on_pendingBlock #1 ctor:pendingBlock.h_closeF idx=k mono=1(h_mono:sc) monoOpt=0 base=1(h_base:sc) baseOpt=0 prep=1(h_preprocess:sc→s_prep,c) dispB=1(h_dispatch:c) dispC=0 hc=0 chr=1(hc:c='-') corr=5(hcorr_prep:s_prep,hcorr_result:s',h_corr:sc,hcorr_sc:s_prep,hcorr_dash2:s') noflow=1(h_noflow) save=0 fl=0 top=1(h_top_old:sc≤n) larm=1(h_larm) floor=0 nic=1(h_nic_old:sc) armed=0 col0=2(h_landed.2.1:sp_mid.col=0,hcol_mid:sp_mid.col=0) ids=0 cover=0 coverFn=0 ⊢ inputs=full lo=[own=k]",
+  ["accum_block_on_pendingBlock #1 ctor:pendingBlock.h_closeF idx=k mono=1(h_mono:sc) monoOpt=0 base=1(h_base:sc) baseOpt=0 prep=1(h_preprocess:sc→s_prep,c) dispB=1(h_dispatch:c) dispC=0 hc=0 chr=1(hc:c='-') corr=5(hcorr_prep:s_prep,hcorr_result:s',h_corr:sc,hcorr_sc:s_prep,hcorr_dash2:s') noflow=1(h_noflow) save=0 fl=0 top=1(h_top_old:sc≤n) larm=1(h_larm) floor=0 nic=1(h_nic_old:sc) armed=0 col0=2(h_landed.2.1:sp_mid.col=0,hcol_mid:sp_mid.col=0) ids=0 cover=0 coverFn=0 ⊢ inputs=full lo=[own=k]",
    "accum_block_on_pendingBlock #2 ctor:pendingBlock.h_closeF idx=k mono=1(h_mono:sc) monoOpt=0 base=1(h_base:sc) baseOpt=0 prep=1(h_preprocess:sc→s_prep,c) dispB=1(h_dispatch:c) dispC=0 hc=0 chr=1(hc:c='-') corr=5(hcorr_prep:s_prep,hcorr_result:s',h_corr:sc,hcorr_sc:s_prep,hcorr_dash2:s') noflow=1(h_noflow) save=0 fl=0 top=1(h_top_old:sc≤n) larm=1(h_larm) floor=0 nic=1(h_nic_old:sc) armed=0 col0=2(h_landed.2.1:sp_mid.col=0,hcol_mid:sp_mid.col=0) ids=0 cover=0 coverFn=0 ⊢ inputs=full lo=[own=k]",
    "accum_block_on_pendingBlock #3 ctor:pendingBlock.h_closeF idx=n + 1 + m mono=1(h_mono:sc) monoOpt=0 base=1(h_base:sc) baseOpt=0 prep=1(h_preprocess:sc→s_prep,c) dispB=1(h_dispatch:c) dispC=0 hc=0 chr=1(hc:c='-') corr=5(hcorr_prep:s_prep,hcorr_result:s',h_corr:sc,hcorr_sc:s_prep,hcorr_dash2:s') noflow=1(h_noflow) save=0 fl=0 top=1(h_top_old:sc≤n) larm=0 floor=0 nic=1(h_nic_old:sc) armed=0 col0=2(h_inline.2.1:sp_scan.col≠0,h_col_ne.1:sp_scan.col≠0) ids=2(→h_inline.2.2.2,→h_col_ne.2.2) cover=0 coverFn=0 ⊢ inputs=full lo=[own=n + 1 + m]",
    "accum_content_on_pendingMapValue_indented #1 ctor:pendingProps.h_closeFE idx=n + 1 mono=1(h_mono:sc) monoOpt=0 base=1(h_base:sc) baseOpt=0 prep=1(h_preprocess:sc→s_prep,c) dispB=0 dispC=1(h_dispatch:c) hc=0 chr=0 corr=3(hcorr_prep:s_prep,hcorr_result:s',h_corr:sc) noflow=1(h_flow_disp) save=1(h_sk_s) fl=0 top=0 larm=0 floor=1(h_floor_old:sc@n + 1) nic=2(h_nic_mv:sc,h_nic_s:s') armed=0 col0=1(h_col0_old:0<sp_scan.col) ids=0 cover=4(h_closeF99@2:Floor(n,n :: ks),h_frames99@2:Floor(n,ks),h_closeFV108@2:Floor(n + 1,ks),h_framesV108@2:Floor(n + 1,ks)) coverFn=1(h_cov_step) ⊢ inputs=missing(floorSrc) lo=[relay=h_closeF99:Floor(n,n :: ks);relay=h_frames99:Floor(n,ks);relay=h_closeFV108:Floor(n + 1,ks);relay=h_framesV108:Floor(n + 1,ks)]",
@@ -321,7 +324,7 @@ def expectedShapes : List String :=
    "pendingMapValue.h_closeF bound(ks<n) Floor(n,n :: ks) eq(—)",
    "pendingProps.h_closeFE bound(ks<ne) Floor(ne,ks) eq(n=ne + 1)"]
 def expectedLine : String :=
-  "sites=9 pb=4 pmv=2 props=3 idx0=2 mono=5 monoOpt=0 base=5 baseOpt=0 prep=6 dispB=6 dispC=3 hc=3 chr=6 dash=4 corr=9 noflow=9 save=1 fl=0 top=6 larm=2 floor=3 nic=9 armed=1 col0=6 ids=2 coverSites=2 coverBinders=5 coverFnSites=3 full=4 fullB=4 missMono=4 missBase=4 missPrep=3 missFloorSrc=3 own=6 empty=0 relay=2 relayEntries=5 rows=169 nodes=95157"
+  "sites=8 pb=3 pmv=2 props=3 idx0=2 mono=4 monoOpt=0 base=4 baseOpt=0 prep=5 dispB=5 dispC=3 hc=3 chr=5 dash=3 corr=8 noflow=8 save=1 fl=0 top=5 larm=2 floor=3 nic=8 armed=0 col0=5 ids=1 coverSites=1 coverBinders=4 coverFnSites=3 full=3 fullB=3 missMono=4 missBase=4 missPrep=3 missFloorSrc=3 own=5 empty=0 relay=1 relayEntries=4 rows=169 nodes=95157"
 
 /-! ## §3 The reading -/
 
@@ -459,7 +462,7 @@ own={cnt "own="} empty={cnt "empty=0"} relay={cnt "relay="} relayEntries={vs.fol
   logInfo s!"PuntCoverInputs {got}"
   logInfo s!"sites:\n{String.intercalate "\n" siteLines.toList}"
   logInfo s!"shapes:\n{String.intercalate "\n" shapeLines.toList}"
-  unless sites.size == 9 do throwError "the nine punts moved under this pass: sites={sites.size}"
+  unless sites.size == 8 do throwError "the eight punts moved under this pass: sites={sites.size}"
   check "expectedSites" siteLines expectedSites
   check "expectedShapes" shapeLines expectedShapes
   unless got == expectedLine do

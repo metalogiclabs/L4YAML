@@ -487,7 +487,7 @@ def expectedCloses : List String :=
    "accum_flow_open_depth0→flowKeyRoute_of_root.h_close [SSLComments ⇒ Stream] comps=absorb:absorb_stacksB ▹ SLYamlStream.implicitContinue[S,GStar.cons(SLDocumentPrefix.comments,GStar.nil),GOpt.none,GStar.nil],absorb:absorb_stacksB ▹ SLYamlStream.suffixContinue[S,GPlus.mk(SLDocumentSuffix.mk,GStar.nil),GStar.nil,GOpt.none,GStar.nil],absorb:absorb_stacksB ▹ SLYamlStream.scannerDrop[S,prem:SSLComments] viaClose=true param=flowKeyRoute_of_root.h_close"]
 def expectedSites : List String :=
   ["accum_block_pending→accum_block_on_closeThenBlock.h_close_pending → accum_block_on_closeThenBlock.h_close_pending: spends=1 (node 0) handoffs=0 carries=0 WIDTH reach=1 reachJudged=1 reachBoth=false",
-   "accum_block_pending→accum_block_on_closeThenBlock.h_vslot → accum_block_on_closeThenBlock.h_vslot: spends=7 (node 7) handoffs=3 carries=0 BOTH reach=2 reachJudged=3 reachBoth=true",
+   "accum_block_pending→accum_block_on_closeThenBlock.h_vslot → accum_block_on_closeThenBlock.h_vslot: spends=8 (node 8) handoffs=3 carries=0 BOTH reach=2 reachJudged=3 reachBoth=true",
    "accum_block_pending→accum_block_on_pendingBlock.h_close_pending → accum_block_on_pendingBlock.h_close_pending: spends=4 (node 0) handoffs=1 carries=0 BOTH reach=2 reachJudged=6 reachBoth=false",
    "accum_block_pending→accum_block_on_pendingBlockContent.h_close_pending → accum_block_on_pendingBlockContent.h_close_pending: spends=4 (node 0) handoffs=1 carries=0 BOTH reach=2 reachJudged=6 reachBoth=false",
    "accum_block_pending→accum_block_on_pendingContent.h_close_pending → accum_block_on_pendingContent.h_close_pending: spends=0 (node 0) handoffs=2 carries=0 NEITHER reach=2 reachJudged=3 reachBoth=false",
@@ -504,6 +504,7 @@ def expectedSpends : List String :=
    "accum_block_on_closeThenBlock spend:node @sp_final arg=SBlockIndented.compactSeq(prem:SIndent,SCompactSeq.mk(prem:GLit,prem:GNot,prem:SBlockIndented,SCompactSeqTail.nil)) width=none index=direct[cur:nv,col:nv,slot:nv] cmp=no",
    "accum_block_on_closeThenBlock spend:node @sp_end arg=SBlockIndented.compactSeq(prem:SIndent,SCompactSeq.mk(prem:GLit,prem:GNot,prem:SBlockIndented,prem:SCompactSeqTail)) width=none index=direct[cur:nv,col:nv,slot:nv] cmp=no",
    "accum_block_on_closeThenBlock spend:node @sp_e arg=SBlockIndented.compactSeq(prem:SIndent,SCompactSeq.mk(prem:GLit,prem:GNot,prem:SBlockIndented,prem:SCompactSeqTail)) width=ind[ind:h_iv] index=direct[cur:nv] cmp=yes[≡nv]",
+   "accum_block_on_closeThenBlock spend:node @sp_e arg=SBlockIndented.compactSeq(prem:SIndent,SCompactSeq.mk(prem:GLit,prem:GNot,prem:SBlockIndented,prem:SCompactSeqTail)) width=none index=direct[cur:nv,col:nv,slot:nv] cmp=no",
    "accum_block_on_closeThenBlock spend:node @sp_e arg=SBlockIndented.compactSeq(prem:SIndent,SCompactSeq.mk(prem:GLit,prem:GNot,prem:SBlockIndented,prem:SCompactSeqTail)) width=ind[ind:h_iv] index=direct[cur:nv] cmp=no",
    "accum_block_on_closeThenBlock spend:node @sp arg=prem:SBlockIndented width=none index=direct[cur:nv,col:nv,slot:nv] cmp=no",
    "accum_block_on_pendingBlock handoff→accum_block_on_closeThenBlock.h_close_pending @sp_mid arg=— width=ind[ws:hws,col:hcol_mid,ind:h_ind] index=direct[slot:n,tail:n,col:n,cur:n] cmp=yes[hkn:¬k = n,_hge:n ≥ k]",
@@ -547,8 +548,14 @@ def expectedEmpties : List String :=
    "accum_content_on_pendingMapValue_indented SBlockNode.emptyNode n=n + 1 @sp_mid width=ind[col:h_col0m,ind:h_ind] cmp=yes[_hj:j < n + 1]",
    "question_open_map SBlockIndented.empty n=k @sp_m width=none cmp=no",
    "question_open_map SBlockIndented.empty n=k @sp_m width=ind[ind:h_iv] cmp=yes[≡k]"]
+/-- Item 257 spends the compact fill's slot closure once more: the fill's
+    `pendingBlock.h_closeF` is paid with a literal cover whose bottom is
+    `hvs` applied to the compact sequence — a NODE spend of
+    `accum_block_on_closeThenBlock.h_vslot`, so that site reads `spends=8
+    (node 8)` and the line `spends=22 spendsN=9`; the spends on comments,
+    the hand-offs and every width and index column stand. -/
 def expectedLine : String :=
-  "closeSites=8 closePairs=6 closePairsD=8 viaClose=6 params=7 spends=21 spendsC=13 spendsE=0 spendsN=8 handoffs=7 carries=0 untyped=0 edges=4 paramsWalked=8 widthInd=12 widthWs=1 widthNone=0 idxDirect=8 idxPacked=1 idxNone=4 cmp=0 cmpSame=0 both=8 bothCmp=0 handInd=5 handDirect=5 handCmp=5 sitesBoth=3 sitesWidth=4 sitesNeither=1 sitesBothAll=1 empties=18 emptyLemmas=6 emptyInd=10 emptyCmp=4 emptySame=2 emptyClose=2 sites=23 pairs=21 pairs21=21 pairs18=18 nonANoDrop=8 reach=38"
+  "closeSites=8 closePairs=6 closePairsD=8 viaClose=6 params=7 spends=22 spendsC=13 spendsE=0 spendsN=9 handoffs=7 carries=0 untyped=0 edges=4 paramsWalked=8 widthInd=12 widthWs=1 widthNone=0 idxDirect=8 idxPacked=1 idxNone=4 cmp=0 cmpSame=0 both=8 bothCmp=0 handInd=5 handDirect=5 handCmp=5 sitesBoth=3 sitesWidth=4 sitesNeither=1 sitesBothAll=1 empties=18 emptyLemmas=6 emptyInd=10 emptyCmp=4 emptySame=2 emptyClose=2 sites=23 pairs=21 pairs21=21 pairs18=18 nonANoDrop=8 reach=38"
 
 /-! ## §5 The reading -/
 

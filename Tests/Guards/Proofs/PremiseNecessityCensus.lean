@@ -208,10 +208,13 @@ run_cmd do
 
 `constants` is the module's non-internal constant count, generated ones
 included: 1124 on Lean v4.33.0, 1123 on v4.34.0, which no longer generates the
-derived enum's `FrameTail.toCtorIdx` (see `RelaySupplyCensus.expectedTally`). -/
+derived enum's `FrameTail.toCtorIdx` (see `RelaySupplyCensus.expectedTally`).
+Item 257 moves one binder from `FIELD` to `RELAY` under the peel as in the
+reader census: `h_mono` at `accum_block_on_closeThenBlock`, handed by the
+compact fill's literal to `IndentStackCover.covered_nil_of_top_le`. -/
 
 def expectedModuleTallyP : String :=
-  "constants=1125 decls=947 eta=364 FIELD=172 READ=1057 RELAY=1865 RETURN=127 UNUSED=9"
+  "constants=1125 decls=947 eta=364 FIELD=171 READ=1057 RELAY=1866 RETURN=127 UNUSED=9"
 
 def expectedOptTallyP : String :=
   "total=163 ETA=34 FIELD=4 READ=85 RELAY=38 RETURN=2"
