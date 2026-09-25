@@ -441,14 +441,21 @@ def chainKeySet : Std.HashSet String :=
     ninety-nine arms a narrowing would collapse sit on a premise whose narrowed
     form is STILL unconditionally inhabited, so collapsing them buys nothing.
     **`innerSplits=36`** is the other half: thirty-six more sit on a face that
-    contains another `_ ∨ True`, so one narrowing does not reach the bottom. -/
+    contains another `_ ∨ True`, so one narrowing does not reach the bottom.
+    Item 256 adds one split on an `inner` face — the content sibling's second
+    split on `h_closeF_old` — so `splits` 99 → 100 and `innerSplits` 36 → 37;
+    the pairs and the supply do not move. -/
 def expectedWorthTally : String :=
-  "pairs=36 splits=99 sup=112 chainPairs=6 chainSplits=12 innerPairs=9 innerSplits=36"
+  "pairs=36 splits=100 sup=112 chainPairs=6 chainSplits=12 innerPairs=9 innerSplits=37"
 
 /-- The ledger, worth-first.  `chain` is §3's verdict — a narrowing here lands
     on another unconditional inhabitant; `inner` means the face carries a
     further `_ ∨ True`; `-` is neither, and those are the rows where a
-    narrowing could be worth something. -/
+    narrowing could be worth something.
+
+    Item 256 moves one row: the content sibling's `h_closeF_old` is split
+    twice (the `-` arm's relay of the park's frames is the second), so
+    `splits=1` reads `splits=2` and the row sorts one place up. -/
 def expectedWorthLedger : List String :=
   ["splits=11 sup=1 inner h_closeF_old :: accum_content_on_pendingBlock_indented#14",
    "splits=8 sup=1 - h_kslot_old :: accum_content_on_pendingBlock_indented#13",
@@ -468,6 +475,7 @@ def expectedWorthLedger : List String :=
    "splits=3 sup=1 chain h_kslotUp :: accum_block_on_pendingBlock#29",
    "splits=3 sup=1 chain h_kslotUp_old :: accum_content_on_pendingBlock_indented#28",
    "splits=2 sup=1 - h_closeFV_old :: accum_block_on_pendingBlockContent#36",
+   "splits=2 sup=1 inner h_closeF_old :: accum_block_on_pendingBlockContent#35",
    "splits=2 sup=1 inner h_routeF :: colon_open_map_implicit#12",
    "splits=2 sup=1 inner h_routeF :: colon_open_map_props#12",
    "splits=2 sup=1 inner h_routeFV :: colon_open_map_implicit#13",
@@ -484,13 +492,14 @@ def expectedWorthLedger : List String :=
    "splits=1 sup=1 - h_routeS :: colon_open_map_implicit#27",
    "splits=1 sup=1 chain h_kslot :: colon_open_map_implicit#11",
    "splits=1 sup=1 chain h_kslot :: colon_open_map_props#11",
-   "splits=1 sup=1 chain h_kslotUp :: accum_block_on_pendingBlockContent#34",
-   "splits=1 sup=1 inner h_closeF_old :: accum_block_on_pendingBlockContent#35"]
+   "splits=1 sup=1 chain h_kslotUp :: accum_block_on_pendingBlockContent#34"]
 
 /-- **What the mandate's instrument could have answered.**  Of the 36 pairs a
     narrowing would target, this many have a face a scanner-state census can
-    evaluate, and this many of the 99 splits they cover. -/
-def expectedBranchReach : String := "branchPairs=36 stateReachable=1 splits=99 stateSplits=3"
+    evaluate, and this many of the 99 splits they cover.  Item 256: `splits`
+    99 → 100, the content sibling's second split on `h_closeF_old`; the pairs,
+    the state-reachable count and the state splits do not move. -/
+def expectedBranchReach : String := "branchPairs=36 stateReachable=1 splits=100 stateSplits=3"
 
 open Meta in
 run_cmd do
@@ -639,7 +648,7 @@ one unfolding, and §6 is the item where those two disagreed about binders. -/
     environment gains exactly seven theorems and reads **5245**.  The sixteen
     `.match_*` auxiliaries the block also creates are not theorems and are not
     counted here. -/
-def expectedNoopTally : String := "theorems=5245 byElab=17 byWhnf=17 elabOnly=0 whnfOnly=0"
+def expectedNoopTally : String := "theorems=5246 byElab=17 byWhnf=17 elabOnly=0 whnfOnly=0"
 
 /-- The 27 item 227 measured, now **18**.  Item 228 narrowed six of
     `FlowKeyLift`'s ten — `plain_toKey`, `doubleQuoted_toKey`,

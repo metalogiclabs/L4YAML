@@ -864,6 +864,20 @@ lemma covered_nil_of_top_le {s : ScannerState} {c : Nat}
   have hc : ((c : Int) + 1) ≤ e.column := by exact_mod_cast hlo
   omega
 
+/-- **The seed's cover** (item 256).  A stack whose top is NEGATIVE holds the
+    sentinel alone, so no mapping level stands at or right of column 0 and the
+    empty frame list covers it at floor 0 — the one floor every dedent width is
+    at or right of.  This is what the stream's root `-` pays: the park it is
+    dispatched from crossed no walk, its stack is the seed's, and `h_ntop` says
+    exactly that the top is below zero.  The base is not needed: monotonicity
+    puts every entry at or left of the top, and the top is below the floor. -/
+lemma covered_nil_of_ntop {s : ScannerState}
+    (h_mono : Mono s) (h_ntop : s.currentIndent < 0) : Covered 0 [] s := by
+  intro e he _ hlo
+  exfalso
+  have := h_mono.le_currentIndent e he
+  omega
+
 /-- **A SEQUENCE push cannot leave the top right of the column it pushed at**
     (item 204) — `pushMappingIndent_top_le`'s twin on the other opener.  Either
     the push happened and the top IS that column, or it did not and the top is

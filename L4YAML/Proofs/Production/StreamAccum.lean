@@ -2844,7 +2844,32 @@ lemma props_couplings_of_push {s_ad s' : ScannerState} {tok : YamlToken}
     `accum_block_on_noPending` does not, and `Covered 0 [] s` follows from
     `Mono s` and `s.currentIndent < 0` in four lines (every entry is at or
     below the top, the top is negative, a covered level is not), the base
-    unneeded. -/
+    unneeded.
+
+    **What the trees read once the spendable payments are made** (item 256).
+    Two of the three are made.  The root `-` pays `pendingBlock.h_closeF`
+    with a literal cover at floor 0 — `IndentStackCover.covered_nil_of_ntop`
+    from the seed's negative top and the stack's monotonicity, which
+    `accum_block_on_noPending` binds as its last parameter and
+    `accum_block_pending` hands it — transported through the dispatch by the
+    landed arm's three lemmas; the content park's sibling relays
+    `h_closeF_old` into the new park's field at the unchanged index, consing
+    its entry onto the collection's tail as `h_kslot`'s relay beside it does.
+    The compact fill's relay of `h_valF` cannot be made: that closure awaits
+    `SBlockNode (nv + 1) .blockIn` read at the park's position, every
+    constructor of that type opens with a separator or `s-l-comments`, and
+    the compact fill's node is `SBlockIndented.compactSeq` on the slot's own
+    line — the class item 255 copied has no proof there.  What the fill can
+    pay is a literal from the slot's own top bound,
+    `covered_nil_of_top_le h_mono h_top_slot : Covered (nv + 1) [] sc` under
+    `Floor (nv + 1) (nv + 1 + m) []` — a floor below the fill's index by `m`,
+    where item 254 read the index itself — priced at one line for the cover
+    and left for the next item.  The trees read 16 positions, paid 2, punt
+    19, cover-punt 2, open 2 from both roots, one component: item 255's
+    algebra for the root and the sibling exactly, and the mandate's
+    16 / 2 / 18 / 4 / 2 short by the compact fill's relay.  Item 253's rows
+    keep their number and two change class; nine producers still punt; the
+    refused relay would take both trees to 18 / 2 / 20 / 2 / 2. -/
 
 inductive BlockStack : SurfPos → SurfPos → Prop where
   /-- No active block collections. At document level or stream start. -/
@@ -21385,7 +21410,15 @@ lemma accum_block_on_noPending
     -- there; the seed's stack is EMPTY, which is the `-`'s floor at every
     -- landing column at once.
     (h_ntop : sc.inFlow = false → sc.currentIndent < 0)
-    (h_base : IndentStackBase.SentinelBase sc) :
+    (h_base : IndentStackBase.SentinelBase sc)
+    -- **Item 256: the stack's SHAPE** (LAST, so the binder indices the censuses
+    -- pin stand).  With `h_ntop` it is the whole price of the `-` arm's resume
+    -- frames: on a monotone stack whose top is below zero no mapping level
+    -- stands at or right of column 0 (`IndentStackCover.covered_nil_of_ntop`),
+    -- so the root's frames are covered at floor 0 — the one floor every dedent
+    -- width is at or right of, and the one no other producer can name (item
+    -- 254).  The caller has carried it since item 147.
+    (h_mono : IndentStackMono.Mono sc) :
     ∃ sp_gram' sp_block' sp_flow' sp_scan',
       SLYamlStream sp_start sp_gram' ∧
       BlockStack sp_gram' sp_block' ∧
@@ -21445,6 +21478,20 @@ lemma accum_block_on_noPending
         (corr_of_allowDirectives_update hcorr_prep) hpeek_disp h_dispatch
     have hsp_dash_eq := ScannerSurfCorr_unique hcorr_dash hcorr_result
     rw [hsp_dash_eq] at h_dash h_gnot
+    -- Item 256: the entry tail's closure, named once — it is the constructor's
+    -- `h_close_entry` and the bottom of the resume frames paid below.
+    have h_rootTail : ∀ sp_final, SBlockIndented k .blockIn sp_scan' sp_final →
+        ∀ sp_end, SCompactSeqTail k sp_final sp_end → SLYamlStream sp_start sp_end :=
+      fun sp_final h_indented sp_end h_tail =>
+        have h_entries :=
+          SBlockSeqEntries_of_compactTail h_ind h_dash h_gnot h_indented h_tail
+        have h_block := rootBlockSeq k h_ssl_pre h_entries
+        have h_bare := SLBareDocument.mk sp_block sp_end h_block
+        SLYamlStream.single sp_start sp_block sp_end sp_end
+          (h_nodoc h_scflow)
+          (GOpt.some sp_block sp_end
+            (SLAnyDocument.bare sp_block sp_end h_bare))
+          (GStar.nil _)
     exact ⟨sp_block, sp_block, sp_block, sp_scan', h_stream_block,
            BlockStack.nil sp_block, FlowStackB.nil sp_block .sep,
            PendingNode.pendingBlock sp_start sp_block sp_scan' k
@@ -21459,24 +21506,31 @@ lemma accum_block_on_noPending
                  (GOpt.some sp_block sp_final
                    (SLAnyDocument.bare sp_block sp_final h_bare))
                  (GStar.nil _))
-             (fun sp_final (h_indented : SBlockIndented k .blockIn sp_scan' sp_final) =>
-               fun sp_end h_tail =>
-                 have h_entries :=
-                   SBlockSeqEntries_of_compactTail h_ind h_dash h_gnot h_indented h_tail
-                 have h_block := rootBlockSeq k h_ssl_pre h_entries
-                 have h_bare := SLBareDocument.mk sp_block sp_end h_block
-                 SLYamlStream.single sp_start sp_block sp_end sp_end
-                   (h_nodoc h_scflow)
-                   (GOpt.some sp_block sp_end
-                     (SLAnyDocument.bare sp_block sp_end h_bare))
-                   (GStar.nil _))
+             h_rootTail
              (indicator_floor_dash hcol_mid h_ind hcorr_prep h_preprocess h_dispatch)
              (dispatchBlockEntry_simpleKeyAllowed h_dispatch)
              (park_col_of_indicator hcol_mid h_ind h_dash)
              -- Item 92: a landed `-` with nothing pending opens `[183]` under
              -- no `[187]` frame — there is no value line to pack.
              (Or.inr trivial)
-             (Or.inr trivial)
+             -- **Item 256: the root's resume frames, PAID, at floor 0.**  The
+             -- seed's stack is EMPTY (`h_ntop`), so on a monotone stack no mapping
+             -- level stands at or right of column 0 (`covered_nil_of_ntop`); the
+             -- dispatch keeps that cover — preprocessing only pops, the `-`
+             -- pushes a sequence level the cover exempts — and the frames below
+             -- a root `[183]` are none, the bottom being the entry tail's own
+             -- stream.  Item 255 priced this as the one literal among the four
+             -- payments in hand; floor 0 is spendable at every dedent width.
+             (Or.inl ⟨[], fun _ h => absurd h List.not_mem_nil,
+               Or.inl ⟨0, ⟨Nat.zero_le k, fun _ h => absurd h List.not_mem_nil⟩,
+                 IndentStackCover.scanBlockEntry_cover
+                   (dispatchBlockIndicators_dash_scan h_dispatch).1
+                   (dispatchBlockIndicators_dash_scan h_dispatch).2
+                   ((IndentStackCover.preprocess_cover h_preprocess
+                       (IndentStackCover.covered_nil_of_ntop h_mono (h_ntop h_scflow))).of_indents_eq
+                     (by split <;> rfl))⟩,
+               fun sp_m h_indented sp_e h_tail =>
+                 ResumeFrames.bottom sp_e (h_rootTail sp_m h_indented sp_e h_tail)⟩)
              (nodir_of_block_dispatch h_dispatch) (Or.inr trivial)
              -- Item 190: nor a second one above it.
              (Or.inr trivial)
@@ -23132,7 +23186,28 @@ lemma accum_block_on_pendingBlockContent
                             h_ind h_dash2 h_gnot2 h_bi h_tail)
                           sp_i sp_c h_iv h_lit sp_v h_sbi⟩
                   | Or.inr _ => Or.inr trivial)
-             (Or.inr trivial)
+                 -- **Item 256: the resume frames, RELAYED from this park's own
+                 -- field** at the unchanged index — the sibling conses its entry
+                 -- onto the collection's tail exactly as `h_kslot`'s relay above
+                 -- does, the frames below the collection are the ones the park
+                 -- already held, and the cover rides the dispatch on the same
+                 -- three lemmas as the landed `-` at `accum_block_on_closeThenBlock`
+                 -- (preprocessing only pops; the `-` pushes a sequence level).
+                 -- Items 253–255: the one relay of the content park's stack into
+                 -- the entry park's field, which joins the two trees.
+                 (match h_closeF_old with
+                  | Or.inl ⟨ks, h_lt, h_cov, closeF⟩ => Or.inl ⟨ks, h_lt,
+                      h_cov.imp (fun ⟨lo, h_floor, hc⟩ => ⟨lo, h_floor,
+                        IndentStackCover.scanBlockEntry_cover
+                          (dispatchBlockIndicators_dash_scan h_dispatch).1
+                          (dispatchBlockIndicators_dash_scan h_dispatch).2
+                          ((IndentStackCover.preprocess_cover h_preprocess hc).of_indents_eq
+                            (by split <;> rfl))⟩) id,
+                      fun sp_m h_bi sp_e h_tail =>
+                        closeF sp_mid h_ssl sp_e
+                          (SCompactSeqTail.cons k sp_mid _ sp_scan' sp_m sp_e
+                            h_ind h_dash2 h_gnot2 h_bi h_tail)⟩
+                  | Or.inr _ => Or.inr trivial)
                  (nodir_of_block_dispatch h_dispatch) (Or.inr trivial)
                  -- Item 190: the second frame rides the sibling too — the cons
                  -- is the same, only the line owed after it differs.
@@ -24175,6 +24250,9 @@ lemma accum_block_pending (sc : ScannerState)
       h_preprocess h_dispatch
       -- Item 208: the seed's EMPTY stack, and the base it is read against.
       h_ntop208 h_base
+      -- Item 256: and its shape, which with the empty stack pays the root's
+      -- resume frames at floor 0.
+      h_mono
   | pendingDocEnd _ _ _ h_line h_marker h_arm77 h_nic0E =>
     -- Item 36: `[204] l-document-suffix` ends the marker with `s-l-comments`,
     -- so a `-`/`?`/`:` on the marker's own line is a state the scanner refuses

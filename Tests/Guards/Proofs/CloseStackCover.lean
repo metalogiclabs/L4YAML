@@ -786,19 +786,25 @@ def census (xs : Array String) : String :=
   let ds := distinctS xs
   String.intercalate " " ((ds.qsort (· < ·)).toList.map fun d => s!"{d}={(xs.filter (· == d)).size}")
 
-/-! ## §5 The pins -/
+/-! ## §5 The pins
+
+Item 256 pays two of the entry park's seven producers — the root `-` with a
+literal at floor 0 and the content sibling by relaying `h_closeF_old` — so the
+rows below carry those two classes, the content and entry trees are one
+component of sixteen positions with two paid leaves and nineteen punts each,
+and the value-slot and mapping value trees stand as item 253 read them. -/
 
 def expectedRows : List String :=
   ["accum_block_on_closeThenBlock #1 fn:accum_block_on_closeThenBlock.h_cov_step := via:IndentStackCover.scanBlockEntry_cover(via:Covered.of_indents_eq(via:IndentStackCover.preprocess_cover(relay(fnp:accum_block_on_closeThenBlock.h_cov_step.hc))))",
    "accum_block_on_closeThenBlock #1 local:accum_block_on_closeThenBlock.h_seqFrames := cases[ite[paid{cover=step(relay(param:accum_block_on_closeThenBlock.h_valF))}|paid{cover=punt}]|paid{cover=punt}]",
    "accum_block_on_closeThenBlock #1 ctor:pendingBlock.h_closeF := relay(local:accum_block_on_closeThenBlock.h_seqFrames)",
    "accum_block_on_closeThenBlock #2 ctor:pendingBlock.h_closeF := punt",
-   "accum_block_on_noPending #1 ctor:pendingBlock.h_closeF := punt",
+   "accum_block_on_noPending #1 ctor:pendingBlock.h_closeF := paid{cover=lit(lo=0,idx=k,ks=[],by=via:IndentStackCover.scanBlockEntry_cover(via:Covered.of_indents_eq(via:IndentStackCover.preprocess_cover(lemma(IndentStackCover.covered_nil_of_ntop)))))}",
    "accum_block_on_pendingBlock #1 ctor:pendingBlock.h_closeF := punt",
    "accum_block_on_pendingBlock #2 ctor:pendingBlock.h_closeF := punt",
    "accum_block_on_pendingBlock #1 param:accum_block_on_closeThenBlock.h_valF := punt",
    "accum_block_on_pendingBlock #3 ctor:pendingBlock.h_closeF := punt",
-   "accum_block_on_pendingBlockContent #1 ctor:pendingBlock.h_closeF := punt",
+   "accum_block_on_pendingBlockContent #1 ctor:pendingBlock.h_closeF := match[paid{cover=step(relay(param:accum_block_on_pendingBlockContent.h_closeF_old))}|punt]",
    "accum_block_on_pendingBlockContent #1 param:accum_block_on_closeThenBlock.h_valF := punt",
    "accum_block_on_pendingContent #1 param:accum_block_on_closeThenBlock.h_valF := punt",
    "accum_block_on_pendingContent #2 param:accum_block_on_closeThenBlock.h_valF := punt",
@@ -959,8 +965,8 @@ def expectedRows : List String :=
    "question_open_map #1 ctor:pendingMapValue.h_closeFV := paid{cover=step(relay(param:question_open_map.h_cov_nil))}",
    "question_open_map #1 ctor:pendingMapValue.h_framesV := paid{cover=step(relay(param:question_open_map.h_cov_nil))}"]
 def expectedTrees : List String :=
-  ["content: positions=16 rows=47 leaves[cover-punt=2 open:fnparam:colon_fires_implicit_key.h_key=1 open:fnparam:colon_fires_props_key.h_key=1 paid=1 punt=21] open=2",
-   "entry: positions=11 rows=32 leaves[cover-punt=2 open:fnparam:colon_fires_implicit_key.h_key=1 open:fnparam:colon_fires_props_key.h_key=1 paid=1 punt=18] open=2",
+  ["content: positions=16 rows=47 leaves[cover-punt=2 open:fnparam:colon_fires_implicit_key.h_key=1 open:fnparam:colon_fires_props_key.h_key=1 paid=2 punt=19] open=2",
+   "entry: positions=16 rows=47 leaves[cover-punt=2 open:fnparam:colon_fires_implicit_key.h_key=1 open:fnparam:colon_fires_props_key.h_key=1 paid=2 punt=19] open=2",
    "valF: positions=9 rows=24 leaves[open:fnparam:colon_fires_implicit_key.h_key=1 open:fnparam:colon_fires_props_key.h_key=1 paid=1 punt=12] open=2",
    "mapValue: positions=8 rows=13 leaves[open:fnparam:colon_fires_implicit_key.h_key=1 open:fnparam:colon_fires_props_key.h_key=1 paid=1 punt=3] open=2"]
 def expectedEight : List String :=
@@ -1015,7 +1021,7 @@ def expectedDoor : List String :=
    "accum_structural_pending: door:pendingProps.h_closeFE dropped",
    "accum_structural_pending: door:pendingProps.h_closeFV dropped"]
 def expectedLine : String :=
-  "positions=27 ctorFields=11 lemParams=35 lemmas=22 walked=24 doors=8 rows=169 ctorRows=79 lemRows=55 localRows=4 fnRows=19 fnpRows=10 valRows=2 coverTypes=4 mentions=0 pbc=6 pbcRelay=6 pbcPaid=0 pbcPunt=0 pbcCoverPunt=0 pb=7 pbRelay=1 pbPaid=0 pbPunt=6 pbCoverPunt=0 pmv=6 pmvRelay=4 pmvPaid=0 pmvPunt=2 pmvCoverPunt=0 valF=11 valFRelay=2 valFPaid=0 valFPunt=9 contentPaid=1 contentPunt=21 contentCoverPunt=2 contentLemma=0 contentOpen=2 contentPos=16 entryPaid=1 entryPunt=18 entryCoverPunt=2 entryLemma=0 entryOpen=2 entryPos=11 eight=8 eightPB=4 eightPBC=4 eightIndents=0 eightTop=4 eightFloor=0 eightMinCI=0 eightNic=8 eightPrep=8 eightCover=4 doorUses=41 doorKept=10 doorForgotten=8 doorDropped=23 doorsOther=4 nodes=95153"
+  "positions=27 ctorFields=11 lemParams=35 lemmas=22 walked=24 doors=8 rows=169 ctorRows=79 lemRows=55 localRows=4 fnRows=19 fnpRows=10 valRows=2 coverTypes=4 mentions=0 pbc=6 pbcRelay=6 pbcPaid=0 pbcPunt=0 pbcCoverPunt=0 pb=7 pbRelay=2 pbPaid=1 pbPunt=4 pbCoverPunt=0 pmv=6 pmvRelay=4 pmvPaid=0 pmvPunt=2 pmvCoverPunt=0 valF=11 valFRelay=2 valFPaid=0 valFPunt=9 contentPaid=2 contentPunt=19 contentCoverPunt=2 contentLemma=0 contentOpen=2 contentPos=16 entryPaid=2 entryPunt=19 entryCoverPunt=2 entryLemma=0 entryOpen=2 entryPos=16 eight=8 eightPB=4 eightPBC=4 eightIndents=0 eightTop=4 eightFloor=0 eightMinCI=0 eightNic=8 eightPrep=8 eightCover=4 doorUses=41 doorKept=10 doorForgotten=8 doorDropped=23 doorsOther=4 nodes=95157"
 
 /-! ## §6 The reading -/
 

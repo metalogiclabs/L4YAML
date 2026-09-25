@@ -348,8 +348,15 @@ adds.**   `constants` counts the module's non-internal constants, generated ones
     generates the derived enum's `FrameTail.toCtorIdx` (see
     `RelaySupplyCensus.expectedTally`). -/
 
+/-- Item 256 moves this line by one binder and two matchers: `h_mono` at
+    `accum_block_on_noPending` is a `RELAY` (handed to
+    `IndentStackCover.covered_nil_of_ntop`), and the content sibling's `match`
+    on `h_closeF_old` with the pattern lambda inside it are two new `match_*`
+    constants of the module, whose discriminant and alternative binders are
+    all Props and all `READ` (three and two): `constants` 1123 → 1125,
+    `decls` 945 → 947, `READ` 1016 → 1021, `RELAY` 1997 → 1998. -/
 def expectedModuleTally : String :=
-  "constants=1123 decls=945 eta=364 FIELD=154 READ=1016 RELAY=1997 RETURN=48 UNUSED=9"
+  "constants=1125 decls=947 eta=364 FIELD=154 READ=1021 RELAY=1998 RETURN=48 UNUSED=9"
 
 def expectedUnused : List String :=
   [ "block_dispatch_deferred_inline#10 (_h_res)",

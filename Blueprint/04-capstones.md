@@ -834,6 +834,20 @@ width. The root's price is one parameter, monotonicity, which its caller
 binds and it does not; the cover it pays follows from monotonicity and a
 negative top in four lines.
 
+**And with the two payments that can be made made, the two close-stack trees
+read two paid leaves, nineteen punts and two cover-punts each, as one
+component** ([`CloseStackCover.lean`](../Tests/Guards/Proofs/CloseStackCover.lean),
+[`PaidLeafDelta.lean`](../Tests/Guards/Proofs/PaidLeafDelta.lean)). The root
+`-` pays its resume frames with a literal cover at floor zero, from the seed's
+negative top and the stack's monotonicity, and the content park's sibling
+relays the park's own frames into the entry park's field at the unchanged
+index. The compact fill's relay cannot be made: the mapping value park's
+closure awaits a block node read at the park's position, and the compact
+fill's node is a compact sequence on the slot's own line; what that site can
+pay is a literal from the slot's own top bound, floored one column above the
+slot and below the fill's index. The refused relay would add two positions and
+one punt to each tree and no paid leaf.
+
 **Significance & risk**
 
 - **7.1 `parse_strict_proof`** *(headline, ✅)* — *Significance:*

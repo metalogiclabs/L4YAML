@@ -650,10 +650,10 @@ def expectedDecisions : List String :=
    "accum_block_on_closeThenBlock dite kn [nv + 1 ≤ k] → E:pass×4|punt pos=—",
    "accum_block_on_closeThenBlock dite kmem [k ∈ ns] → E:pass|— pos=—",
    "accum_block_on_closeThenBlock dite kmem [k ∈ ns] → E:pass|— pos=—",
-   "accum_block_on_pendingBlockContent Or.elim other [h_land:SSLComments sp_scan sp_mid ∧ sp_mid.col = 0 ∧ (sp_scan.col ≠ 0 → s_prep.…] → E:comments×7,P:hand,P:spend×4,E:carry,E:pass|— pos=above#6,above#7,above#8,above#9",
-   "accum_block_on_pendingBlockContent Or.elim other [(∃ k, SIndent k sp_mid sp_sc) ∨ ∃ sa sb, GStar SSWhite sp_mid sa ∧ SSWhi…] → E:comments×7,P:hand,P:spend×4,E:carry,E:pass|— pos=above#6,above#7,above#8,above#9",
-   "accum_block_on_pendingBlockContent dite char [c = '-'] → E:comments×5,P:hand|P:spend×4,E:comments×2,E:carry,E:pass pos=above#6,above#7,above#8,above#9",
-   "accum_block_on_pendingBlockContent dite kn [k = n] → E:comments×4|P:hand,E:comments pos=—",
+   "accum_block_on_pendingBlockContent Or.elim other [h_land:SSLComments sp_scan sp_mid ∧ sp_mid.col = 0 ∧ (sp_scan.col ≠ 0 → s_prep.…] → E:comments×8,P:hand,P:spend×4,E:carry,E:pass|— pos=above#6,above#7,above#8,above#9",
+   "accum_block_on_pendingBlockContent Or.elim other [(∃ k, SIndent k sp_mid sp_sc) ∨ ∃ sa sb, GStar SSWhite sp_mid sa ∧ SSWhi…] → E:comments×8,P:hand,P:spend×4,E:carry,E:pass|— pos=above#6,above#7,above#8,above#9",
+   "accum_block_on_pendingBlockContent dite char [c = '-'] → E:comments×6,P:hand|P:spend×4,E:comments×2,E:carry,E:pass pos=above#6,above#7,above#8,above#9",
+   "accum_block_on_pendingBlockContent dite kn [k = n] → E:comments×5|P:hand,E:comments pos=—",
    "accum_block_on_pendingBlockContent dite char [c = ':' ∨ c = '?'] → P:spend×4,E:comments×2,E:carry,E:pass|— pos=above#6,above#7,above#8,above#9",
    "accum_block_on_pendingBlockContent Or.casesOn opt [h_closeF_old:(∃ ks, (∀ (k' : Nat), k' ∈ ks → k' < n) ∧ ((∃ lo, Proofs.IndentStackCove…] → E:comments|punt pos=beside#6",
    "accum_block_on_pendingBlockContent dite kmem [k ∈ ks] → E:comments|punt pos=beside#6",
@@ -699,8 +699,11 @@ def expectedArgs : List String :=
 def expectedDoor : List String :=
   ["PendingNode.pendingBlock: fields=16 data=4 faces=12 equations=5 used=9 dropped=3 h_close(_h_close),h_closeF(h_closeF✝),h_nodir(h_nodir✝)",
    "PendingNode.pendingBlockContent: fields=18 data=4 faces=14 equations=5 used=12 dropped=2 h_closable(_h_closable),h_nodir(h_nodir✝)"]
+/-- Item 256 adds one decision to the content sibling's arm — the `match` on
+    `h_closeF_old` that relays the park's frames — and one spend of the
+    landing's comments on each of that arm's four decision rows. -/
 def expectedLine : String :=
-  "asked=13 both=8 lemmas=2 walked=6 feedFunnel=2 feedExplicit=2 feedDeferred=4 feedTuple=0 entry=8 entrySBI=4 kslot=8 kslotUp=8 closeF=4 closeFV=8 seqF=8 top=4 floor=0 cover=4 cover2=4 floorB=4 aboveKN=0 aboveKMem=0 aboveKNv=2 aboveKEx=2 hands=4 besideKN=1 besideKMem=2 besideKNv=0 puntKN=1 puntKMem=2 besideNone=2 decisions=125 decOnK=23 decKN=9 decKMem=9 decKNv=5 apps=39 funnelArgs=2 doorDropped=3/2 closeSites=8 params=7"
+  "asked=13 both=8 lemmas=2 walked=6 feedFunnel=2 feedExplicit=2 feedDeferred=4 feedTuple=0 entry=8 entrySBI=4 kslot=8 kslotUp=8 closeF=4 closeFV=8 seqF=8 top=4 floor=0 cover=4 cover2=4 floorB=4 aboveKN=0 aboveKMem=0 aboveKNv=2 aboveKEx=2 hands=4 besideKN=1 besideKMem=2 besideKNv=0 puntKN=1 puntKMem=2 besideNone=2 decisions=126 decOnK=23 decKN=9 decKMem=9 decKNv=5 apps=39 funnelArgs=2 doorDropped=3/2 closeSites=8 params=7"
 
 /-! ## §5 The reading -/
 

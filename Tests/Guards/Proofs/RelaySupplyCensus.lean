@@ -826,10 +826,16 @@ def hopName (env : Environment) (e : Edge) : String :=
     the derived enum — a lambda-less alias, which is why this census refused it
     — and v4.34.0 generates no such constant, so it left the module (31 → 30)
     and `edges=659` and every category held.  Isolating test:
-    `scratchpad/l4yaml-434-migration/EnumAux.lean` under both toolchains. -/
+    `scratchpad/l4yaml-434-migration/EnumAux.lean` under both toolchains.
+
+    **Item 256 moved two DECLINEs and no edge**: the root `-`'s
+    `pendingBlock.h_closeF` is a `PAY` (the seed's cover at floor 0,
+    `DECLINE` 271 → 269 and `PAY` 44 → 45 with it) and the content sibling's
+    is a `SPLIT` on `h_closeF_old` whose arms are a `PAY` and a `DECLINE`
+    (`SPLIT` 155 → 156).  `edges=659` held, as it must. -/
 def expectedTally : String :=
-  "edges=659 skipped=30 [DECLINE=271, FIELD=58, LOCAL=27, PAY=44, RELAY=68, \
-SPLIT=155, VIA=36]"
+  "edges=659 skipped=30 [DECLINE=269, FIELD=58, LOCAL=27, PAY=45, RELAY=68, \
+SPLIT=156, VIA=36]"
 
 /-- **The row item 211 read off the compiler's error text and got wrong.**  All
     eight of these print `h_keyctx` when the premise is narrowed; six of them
@@ -913,9 +919,9 @@ Or.imp⇒SPLIT=3, dite⇒SPLIT=4]"
     predicted no break, because its `have` ascribes the wide `_ ∨ True` while
     its proof pays on all six branches. -/
 def expectedSplitLanding : String :=
-  "survived=155 collapsed=1 leaves=328 elsewhere=0 [DECLINE=168, PAY=160] \
+  "survived=156 collapsed=1 leaves=330 elsewhere=0 [DECLINE=169, PAY=161] \
 [DECLINE|DECLINE|DECLINE|PAY=1, DECLINE|DECLINE|DECLINE|PAY|PAY|PAY=1, \
-DECLINE|DECLINE|PAY=8, DECLINE|DECLINE|PAY|PAY|PAY=1, DECLINE|PAY=143, \
+DECLINE|DECLINE|PAY=8, DECLINE|DECLINE|PAY|PAY|PAY=1, DECLINE|PAY=144, \
 DECLINE|PAY|PAY=1]"
 
 /-- **Which BRANCH is taken (DOCS item 217).**  Item 216 resolved what a split
@@ -949,8 +955,8 @@ DECLINE|PAY|PAY=1]"
     line: a `closed` decline cannot break when the premise its split branches on
     is narrowed. -/
 def expectedSplitBranch : String :=
-  "splits=155 leaves=328 relayRooted=145 siteDecided=10 optionalRoot=99 \
-plainRoot=46 agree=99/99 disagree=0 [DECLINE-closed=164, DECLINE-free=4, PAY-free=160]"
+  "splits=156 leaves=330 relayRooted=146 siteDecided=10 optionalRoot=100 \
+plainRoot=46 agree=100/100 disagree=0 [DECLINE-closed=165, DECLINE-free=4, PAY-free=161]"
 
 /-- **The ten splits the site decides for itself**, which is the whole residue
     of the branch question after `expectedSplitBranch`.  Four are a `dite` on a
@@ -985,7 +991,7 @@ DECLINE|PAY"]
     and the labels its own supply terminates in. -/
 def expectedBranchPremises : List String :=
   ["1 h_mapF", "1 h_mapFV", "1 h_mk", "1 h_pr", "1 h_routeS", "1 h_sfx", "1 h_valFV",
-   "10 h_closeFV_old", "12 h_closeF_old", "3 h_cov", "3 h_kslotUp_old", "3 h_seqF_old",
+   "10 h_closeFV_old", "13 h_closeF_old", "3 h_cov", "3 h_kslotUp_old", "3 h_seqF_old",
    "4 h_closeFV108", "4 h_expl", "4 h_kslotUp", "4 h_resV_land", "4 h_routeF",
    "4 h_routeFV", "5 h_seqF168", "7 h_closeF99", "8 h_kslot_old", "8 h_vslot",
    "9 h_kslot"]
@@ -1014,7 +1020,7 @@ def expectedBranchPremises : List String :=
     equal `edges`.  `resolved` is the second: every `FIELD` edge must name a
     constructor field, or the `FIELD` hop is guessing. -/
 def expectedDeclineReach : String :=
-  "pairs=36 orphan=3 direct=8 closureDecline=33 dead=0 maxDepth=2 liveSplits=96 \
+  "pairs=36 orphan=3 direct=8 closureDecline=33 dead=0 maxDepth=2 liveSplits=97 \
 deadSplits=0 accounted=659/659 nodes=161 fieldEdges=58 fieldResolved=58 withCycle=8 \
 declineWriters=19 parkHop=21"
 
@@ -1030,8 +1036,8 @@ def expectedBranchSupply : List String :=
    "h_closeFV_old :: accum_block_on_pendingBlock#30 :: splits=4 sup=1 [FIELD=1] ⇐ PendingNode.pendingBlock.h_closeFV ⇒ DECLINE+brDECLINE+brPAY",
    "h_closeFV_old :: accum_block_on_pendingBlockContent#36 :: splits=2 sup=1 [FIELD=1] ⇐ PendingNode.pendingBlockContent.h_closeFV ⇒ brDECLINE+brPAY",
    "h_closeFV_old :: accum_content_on_pendingBlock_indented#29 :: splits=4 sup=1 [FIELD=1] ⇐ PendingNode.pendingBlock.h_closeFV ⇒ DECLINE+brDECLINE+brPAY",
-   "h_closeF_old :: accum_block_on_pendingBlockContent#35 :: splits=1 sup=1 [FIELD=1] ⇐ PendingNode.pendingBlockContent.h_closeF ⇒ brDECLINE+brPAY",
-   "h_closeF_old :: accum_content_on_pendingBlock_indented#14 :: splits=11 sup=1 [FIELD=1] ⇐ PendingNode.pendingBlock.h_closeF ⇒ DECLINE+PAY",
+   "h_closeF_old :: accum_block_on_pendingBlockContent#35 :: splits=2 sup=1 [FIELD=1] ⇐ PendingNode.pendingBlockContent.h_closeF ⇒ brDECLINE+brPAY",
+   "h_closeF_old :: accum_content_on_pendingBlock_indented#14 :: splits=11 sup=1 [FIELD=1] ⇐ PendingNode.pendingBlock.h_closeF ⇒ DECLINE+PAY+brDECLINE+brPAY",
    "h_cov :: indicator_open_map#27 :: splits=3 sup=4 [DECLINE=1,SPLIT=3] ⇐ - ⇒ DECLINE+brDECLINE+brPAY",
    "h_expl :: accum_content_on_pendingMapValue_indented#15 :: splits=3 sup=1 [FIELD=1] ⇐ PendingNode.pendingMapValue.h_expl ⇒ DECLINE+PAY+brDECLINE+brPAY",
    "h_expl :: explFrameValueLine#3 :: splits=1 sup=4 [RELAY=4] ⇐ h_expl@accum_content_on_pendingMapValue_indented ⇒ DECLINE+PAY+brDECLINE+brPAY",
@@ -1076,8 +1082,8 @@ def expectedBranchSupply : List String :=
     every row that does, and `direct=8` is the same fact counted the other way
     round. -/
 def expectedDeclineWriters : List String :=
-  ["10 accum_block_on_pendingContent",
-   "11 accum_block_on_noPending",
+  ["10 accum_block_on_noPending",
+   "10 accum_block_on_pendingContent",
    "12 accum_content_on_pendingBlock_indented",
    "12 accum_content_on_pendingMapValue_indented",
    "13 colon_open_map",
