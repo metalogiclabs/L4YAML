@@ -5,7 +5,7 @@ Released under Apache 2.0 license as described in the file LICENSE.
 import Tests.Guards.Proofs.PuntCoverInputs
 
 /-!
-# What the one refused relay would add to the trees, once the root's literal, the content sibling's relay and the compact fill's literal are made (DOCS items 255–257)
+# What the one refused relay would add to the trees, once the root's literal, the content sibling's relay, the compact fill's literal and the entry park's two re-park literals are made (DOCS items 255–258)
 
 Item 255 priced the four payments item 254 found in hand — the root `-`'s
 floor-zero cover and three relays — by rewriting item 253's rows in the row
@@ -17,13 +17,15 @@ of `h_valF` cannot be made — that closure awaits a block node read at the
 park's position, and the compact fill's node is a compact sequence on the
 slot's own line — and item 257 pays that site with a literal instead, from
 the slot's own top bound (`IndentStackCover.covered_nil_of_top_le`), floored
-below the fill's index.  The mapping value content's relay of `h_frames99`
+below the fill's index; item 258 pays the entry park's two re-parks — the
+inline compact and the nested landing — with the same literal from the park's
+own top bound, floored below each index.  The mapping value content's relay of `h_frames99`
 forwards a cover floored at the props park's entry index, item 148's
 vacuity, and is refused.  This module keeps the refused relay as the one
 payment in hand and reads what it would add.
 
 **§1** runs item 253's walk unchanged, checked against its pinned rows and
-its pinned tree lines — the trees as they stand with the three payments made.
+its pinned tree lines — the trees as they stand with the five payments made.
 **§2** rewrites the refused relay's row in the row array — the module throws
 unless the row is found once and is a bare punt — and re-resolves the
 content and entry trees under two scenarios, without it and with it.  **§3**
@@ -208,11 +210,11 @@ partial def scanFloors (st : IO.Ref FS) (lem : Name) (stk : Stack) (e : Expr) : 
 /-! ## §3 The pins -/
 
 def expectedTrees255 : List String :=
-  ["none content: positions=16 rows=47 paid=3 punt=18 cover-punt=2 open=2 origins=3 Δ(paid=+0 punt=+0 cover-punt=+0 open=+0 positions=+0)",
-   "none entry: positions=16 rows=47 paid=3 punt=18 cover-punt=2 open=2 origins=3 Δ(paid=+0 punt=+0 cover-punt=+0 open=+0 positions=+0)",
+  ["none content: positions=16 rows=47 paid=5 punt=16 cover-punt=2 open=2 origins=5 Δ(paid=+0 punt=+0 cover-punt=+0 open=+0 positions=+0)",
+   "none entry: positions=16 rows=47 paid=5 punt=16 cover-punt=2 open=2 origins=5 Δ(paid=+0 punt=+0 cover-punt=+0 open=+0 positions=+0)",
    "none merged=true",
-   "R4 content: positions=18 rows=54 paid=3 punt=19 cover-punt=2 open=2 origins=3 Δ(paid=+0 punt=+1 cover-punt=+0 open=+0 positions=+2)",
-   "R4 entry: positions=18 rows=54 paid=3 punt=19 cover-punt=2 open=2 origins=3 Δ(paid=+0 punt=+1 cover-punt=+0 open=+0 positions=+2)",
+   "R4 content: positions=18 rows=54 paid=5 punt=17 cover-punt=2 open=2 origins=5 Δ(paid=+0 punt=+1 cover-punt=+0 open=+0 positions=+2)",
+   "R4 entry: positions=18 rows=54 paid=5 punt=17 cover-punt=2 open=2 origins=5 Δ(paid=+0 punt=+1 cover-punt=+0 open=+0 positions=+2)",
    "R4 merged=true"]
 def expectedPayments : List String :=
   ["R4 relay accum_content_on_pendingMapValue_indented #1 ctor:pendingProps.h_closeFE idx=n + 1 src=h_frames99@2:Floor(n,ks) tgt=bound(ks<ne) Floor(ne,ks) eq(n=ne + 1) := match[paid{cover=step(relay(param:accum_content_on_pendingMapValue_indented.h_frames99))}|punt]"]
@@ -220,6 +222,8 @@ def expectedFloorLits : List String :=
   ["accum_block_on_closeThenBlock lo=lo idx=k ks=nv :: ksv var ×1",
    "accum_block_on_closeThenBlock lo=nv + 1 idx=nv + 1 + m ks=[] lit ×1",
    "accum_block_on_noPending lo=0 idx=k ks=[] lit ×1",
+   "accum_block_on_pendingBlock lo=n + 1 idx=k ks=[] lit ×1",
+   "accum_block_on_pendingBlock lo=n + 1 idx=n + 1 + m ks=[] lit ×1",
    "accum_block_on_pendingBlockContent lo=lo idx=k ks=ks var ×1",
    "accum_content_on_pendingBlock_indented lo=lo idx=n ks=ks var ×5",
    "accum_content_on_pendingMapValue_indented lo=lo idx=n + 1 ks=ks var ×5",
@@ -254,7 +258,7 @@ def expectedTransports : List String :=
    "Covered.dedup_head: 2 in 2 [colon_open_map_implicit=1, colon_open_map_props=1]",
    "Covered.cons: 4 in 2 [entryKeyPack_of_dispatch=2, entryPropsKeyPack_of_dispatch=2]"]
 def expectedLine : String :=
-  "rows=169 payments=1 literal=0 relay=1 scenarios=2 baseContent=16/3/18/2/2 allContent=18/3/19/2/2 baseEntry=16/3/18/2/2 allEntry=18/3/19/2/2 turnedPaidContent=0 turnedPaidEntry=0 originsBaseContent=3 originsAllContent=3 originsBaseEntry=3 originsAllEntry=3 puntContent=+1 puntEntry=+1 coverPuntContent=+0 coverPuntEntry=+0 mergedBase=true mergedAll=true floorLits=83 own=12 lit=2 var=69 ownLemmas=2 scanned=32 monoIndex=9 monoIndexLemmas=5 floorCons=4 floorConsLemmas=2 floorPopTo=1 floorPopToLemmas=1 leOfMem=0 coveredPopTo=1 coveredPopToLemmas=1 raiseFloor=0 dedupHead=2 dedupHeadLemmas=2 coveredCons=4 rootMonoCaller=1 rootMonoSite=1 rootNtop=1 nodes=95157 floorNodes=24354"
+  "rows=169 payments=1 literal=0 relay=1 scenarios=2 baseContent=16/5/16/2/2 allContent=18/5/17/2/2 baseEntry=16/5/16/2/2 allEntry=18/5/17/2/2 turnedPaidContent=0 turnedPaidEntry=0 originsBaseContent=5 originsAllContent=5 originsBaseEntry=5 originsAllEntry=5 puntContent=+1 puntEntry=+1 coverPuntContent=+0 coverPuntEntry=+0 mergedBase=true mergedAll=true floorLits=85 own=12 lit=4 var=69 ownLemmas=2 scanned=32 monoIndex=9 monoIndexLemmas=5 floorCons=4 floorConsLemmas=2 floorPopTo=1 floorPopToLemmas=1 leOfMem=0 coveredPopTo=1 coveredPopToLemmas=1 raiseFloor=0 dedupHead=2 dedupHeadLemmas=2 coveredCons=4 rootMonoCaller=1 rootMonoSite=1 rootNtop=1 nodes=95157 floorNodes=24432"
 
 /-! ## §4 The reading -/
 

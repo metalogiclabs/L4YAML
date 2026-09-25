@@ -836,9 +836,12 @@ def hopName (env : Environment) (e : Edge) : String :=
     more DECLINE to a PAY**: the compact fill's `pendingBlock.h_closeF` (the
     literal from the slot's own top bound) — one edge, the fill's own
     application, `DECLINE` 269 → 268 and `PAY` 45 → 46; no split is added, so
-    the split landing, the split branch and the collapsed edge stand. -/
+    the split landing, the split branch and the collapsed edge stand.  **Item
+    258 moves two more**: the entry park's compact and nested re-parks'
+    `pendingBlock.h_closeF` (the same literal from the park's own top bound),
+    one edge each, `DECLINE` 268 → 266 and `PAY` 46 → 48; no split is added. -/
 def expectedTally : String :=
-  "edges=659 skipped=30 [DECLINE=268, FIELD=58, LOCAL=27, PAY=46, RELAY=68, \
+  "edges=659 skipped=30 [DECLINE=266, FIELD=58, LOCAL=27, PAY=48, RELAY=68, \
 SPLIT=156, VIA=36]"
 
 /-- **The row item 211 read off the compiler's error text and got wrong.**  All
@@ -1100,8 +1103,8 @@ def expectedDeclineWriters : List String :=
    "2 colon_fires_implicit_key",
    "2 colon_fires_props_key",
    "2 question_open_map",
+   "31 accum_block_on_pendingBlock",
    "32 accum_content_pending",
-   "33 accum_block_on_pendingBlock",
    "41 accum_block_pending",
    "8 accum_step_flow",
    "8 content_dispatch_routed"]

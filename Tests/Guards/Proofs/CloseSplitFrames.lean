@@ -671,7 +671,7 @@ def expectedDecisions : List String :=
    "accum_block_on_pendingBlockContent Or.casesOn k∃ [h_upSpend:(∀ (sp_m : SurfPos), SSLComments sp_scan sp_m → ∀ (sp_e : SurfPos), SCom…] → —|P:spend pos=above#8",
    "accum_block_on_pendingBlockContent dite other [s_prep.allowDirectives = true] → —|— pos=beside#8",
    "accum_block_on_pendingBlockContent dite other [s_prep.allowDirectives = true] → —|— pos=beside#9",
-   "accum_block_on_pendingBlock Or.elim other [h_land:SSLComments sp_scan sp_mid ∧ sp_mid.col = 0 ∧ (sp_scan.col ≠ 0 → s_prep.…] → E:empty×6,E:node×5,P:hand,P:spend×4,E:pass×5,E:carry|E:prem,E:node×5,E:pass pos=above#10,above#11,above#12,above#13",
+   "accum_block_on_pendingBlock Or.elim other [h_land:SSLComments sp_scan sp_mid ∧ sp_mid.col = 0 ∧ (sp_scan.col ≠ 0 → s_prep.…] → E:empty×6,E:node×5,P:hand,P:spend×4,E:pass×5,E:carry|E:prem,E:node×6,E:pass pos=above#10,above#11,above#12,above#13",
    "accum_block_on_pendingBlock Or.elim other [(∃ k, SIndent k sp_mid sp_sc) ∨ ∃ sa sb, GStar SSWhite sp_mid sa ∧ SSWhi…] → E:empty×6,E:node×5,P:hand,P:spend×4,E:pass×5,E:carry|— pos=above#10,above#11,above#12,above#13",
    "accum_block_on_pendingBlock dite char [c = '-'] → E:empty×5,E:node×5,P:hand|P:spend×4,E:pass×5,E:empty,E:carry pos=above#10,above#11,above#12,above#13",
    "accum_block_on_pendingBlock dite kn [k = n] → E:empty×4|E:node×5,P:hand,E:empty pos=—",
@@ -701,7 +701,13 @@ def expectedDoor : List String :=
    "PendingNode.pendingBlockContent: fields=18 data=4 faces=14 equations=5 used=12 dropped=2 h_closable(_h_closable),h_nodir(h_nodir✝)"]
 /-- Item 256 adds one decision to the content sibling's arm — the `match` on
     `h_closeF_old` that relays the park's frames — and one spend of the
-    landing's comments on each of that arm's four decision rows. -/
+    landing's comments on each of that arm's four decision rows.  Item 258 adds no decision and one effect: the compact re-park's resume
+    frames bottom out on `h_close_old`, the entry closure over
+    `h_close_entry_old`, applied to the compact sequence — an `E:node` in the
+    inline branch of `accum_block_on_pendingBlock`'s landing decision
+    (`E:node×5` → `×6`); the nested landing's bottom applies `h_close_inner`,
+    whose domain is the inner collection's entries, which this census does
+    not read as an entry-closure spend. -/
 def expectedLine : String :=
   "asked=13 both=8 lemmas=2 walked=6 feedFunnel=2 feedExplicit=2 feedDeferred=4 feedTuple=0 entry=8 entrySBI=4 kslot=8 kslotUp=8 closeF=4 closeFV=8 seqF=8 top=4 floor=0 cover=4 cover2=4 floorB=4 aboveKN=0 aboveKMem=0 aboveKNv=2 aboveKEx=2 hands=4 besideKN=1 besideKMem=2 besideKNv=0 puntKN=1 puntKMem=2 besideNone=2 decisions=126 decOnK=23 decKN=9 decKMem=9 decKNv=5 apps=39 funnelArgs=2 doorDropped=3/2 closeSites=8 params=7"
 

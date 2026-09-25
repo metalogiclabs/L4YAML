@@ -29,7 +29,13 @@ bound is negative, a relay's floor where a cover-carrying hypothesis stands,
 with that cover's `Floor` index and list printed so a floor at the park's own
 index is never read as a floor below it.  **§4** reads the four field types
 themselves: the frames bound, the cover's list and the `Floor`'s index — the
-shape that decides whether an own-index payment is statable at all.
+shape that decides whether an own-index payment is statable at all.  **§5**
+(item 258) reads each site's top bound against its index: the floor
+`covered_nil_of_top_le` gives from it, whether the bound stands strictly
+below the index — syntactically, or by a binder in scope — and beside it the
+state the bound is about, whether `Mono` in hand is about that state, and
+whether the site is landed or inline, since a bound on an earlier state
+crosses preprocessing's unwind at a landed site.
 
 **Item 256 pays two of the eleven**: the root `-` its own field, from the
 seed's empty stack at floor 0 (`IndentStackCover.covered_nil_of_ntop`), and
@@ -41,7 +47,14 @@ fill a third way**: a literal from the slot's own top bound
 (`IndentStackCover.covered_nil_of_top_le`), floored at `nv + 1` below the
 fill's index `nv + 1 + m`, because the top bound that site holds is the
 SLOT's and not the park's — the reading item 254's own-index verdict did not
-take.  Eight punts remain, and the reading below is theirs.
+take.  **Item 258 pays two more the same way**, from the entry park's own top
+bound `h_top_old`: its inline compact re-park (`- - a`, floor `n + 1` below
+the index `n + 1 + m`) and its nested landing (`-⏎  - a`, floor `n + 1` below
+the index `k` by the arm's `n < k`) — the landed site's bound is the OLD
+park's, and it transports because preprocessing's unwind only pops.  Six
+punts remain, and the reading below is theirs: three hold no top bound and
+three hold one at their own index, so none holds the shape these payments
+spend.
 -/
 
 open Lean Lean.Meta Lean.Elab
@@ -190,6 +203,11 @@ structure Inputs where
   ids : Array String := #[]
   cover : Array String := #[]
   coverFn : Array String := #[]
+  -- item 258: the top bounds as (name, state, relation, bound), and every
+  -- relation in hand as (name, relation, left, right), for the reading of a
+  -- bound against the site's index
+  tops : Array (String × String × String × String) := #[]
+  rels : Array (String × String × String × String) := #[]
   deriving Inhabited
 
 def monoN : Name := ``L4YAML.Proofs.IndentStackMono.Mono
@@ -246,6 +264,9 @@ def inputsAt (stAll : Stack) : Inputs := Id.run do
       if c.isAppOf baseN then r := { r with base := r.base.push s!"{nm}:{ppc st (c.getArg! 0)}" }; continue
       if c.isAppOf ifloorN then r := { r with floor := r.floor.push s!"{nm}:{ppc st (c.getArg! 0)}@{ppc st (c.getArg! 1)}" }; continue
       if c.isAppOf ``L4YAML.Proofs.CouplingBridge.ScannerSurfCorr then r := { r with corr := r.corr.push s!"{nm}:{ppc st (c.getArg! 0)}" }; continue
+      -- item 258: a relation in hand directly (not under a premise), as printed
+      if let some (sym, l, rr) := rel c then
+        if !pt.isForall then r := { r with rels := r.rels.push (nm, sym, ppc st l, ppc st rr) }
       match rel c with
       | some ("=", l, rhs) =>
         if c.isAppOfArity ``Eq 3 && (c.getArg! 0).consumeMData.isConstOf ``Char then
@@ -273,7 +294,8 @@ def inputsAt (stAll : Stack) : Inputs := Id.run do
       | some (sym, l, rhs) =>
         if let some s := projOf l ``ScannerState.currentIndent then
           if hasHead rhs ``ScannerState.col then r := { r with fl := r.fl.push s!"{nm}:{ppc st s}{sym}col" }
-          else r := { r with top := r.top.push s!"{nm}:{ppc st s}{sym}{ppc st rhs}" }
+          else r := { r with top := r.top.push s!"{nm}:{ppc st s}{sym}{ppc st rhs}",
+                               tops := r.tops.push (nm, ppc st s, sym, ppc st rhs) }
         else if isZeroE l && (projOf rhs ``SurfPos.col).isSome then
           r := { r with col0 := r.col0.push s!"{nm}:0{sym}{ppc st rhs}" }
       | none => pure ()
@@ -307,12 +329,91 @@ def verdict (r : Inputs) (idx : String) : String := Id.run do
     if let some i := (cv.splitOn ":Floor(")[1]? then lo := lo.push s!"relay={(cv.splitOn "@")[0]!}:Floor({i}"
   return s!"inputs={inputs} lo=[{String.intercalate ";" lo.toList}]{if idx == "0" then " idx0" else ""}"
 
+/-! ## §5 The bound against the index (item 258) -/
+
+/-- The summands of a left-nested `+`, printed: `n + 1 + m` reads `[n, 1, m]`. -/
+partial def summands (st : Stack) (e : Expr) : List String :=
+  let e := e.consumeMData
+  if e.isAppOfArity ``HAdd.hAdd 6 then summands st (e.getArg! 4) ++ [ppc st (e.getArg! 5)]
+  else [ppc st e]
+
+def isPosLit (s : String) : Bool := match s.toNat? with | some v => decide (v > 0) | none => false
+
+/-- One top bound `state sym rhs` against the index: the floor
+    `IndentStackCover.covered_nil_of_top_le` gives from it (`rhs + 1` under a
+    weak bound, `rhs` under a strict one), and where the bound stands —
+    `below` the index when the index is the bound plus a positive literal or
+    a binder in scope says `rhs < idx`, `at` it when the two print the same
+    or a binder equates them, `above` when a binder puts the index at or
+    under the bound, `undecided` otherwise.  A strict bound is one below a
+    weak one, so it is below the index already where the two print the same. -/
+def boundVs (idx : String) (idxSum : List String) (rels : Array (String × String × String × String))
+    (sym rhs : String) : String × String × String := Id.run do
+  let floor := if sym == "≤" then s!"{rhs} + 1" else rhs
+  if idx == rhs then return (floor, if sym == "<" then "below" else "at", "syn")
+  if idxSum.head? == some rhs && (idxSum.drop 1).any isPosLit then return (floor, "below", "syn")
+  if let some (h, s, l, r) := rels.find? (fun (_, s, l, r) => (s == "<" || (sym == "<" && s == "≤")) && l == rhs && r == idx) then
+    return (floor, "below", s!"by {h}:{l}{s}{r}")
+  if let some (h, _, l, r) := rels.find? (fun (_, s, l, r) => s == "=" && ((l == rhs && r == idx) || (l == idx && r == rhs))) then
+    return (floor, "at", s!"by {h}:{l}={r}")
+  if let some (h, s, l, r) := rels.find? (fun (_, s, l, r) => (s == "<" || s == "≤") && l == idx && r == rhs) then
+    return (floor, "above", s!"by {h}:{l}{s}{r}")
+  return (floor, "undecided", "—")
+
+/-- Where the site stands on its line: `landed` when the landed arm's
+    hypothesis or a `.col = 0` fact stands, `inline` when a `.col ≠ 0` or
+    `0 < .col` fact does — the datum a bound on an EARLIER state is read
+    beside, because at a landed site preprocessing's unwind ran between that
+    state and the constructor's. -/
+def whereOf (r : Inputs) : String :=
+  let landed := !r.larm.isEmpty || r.col0.any fun s => (s.splitOn "=0").length > 1 && (s.splitOn "≠0").length == 1
+  let inline := r.col0.any fun s => (s.splitOn "≠0").length > 1 || (s.splitOn ":0<").length > 1
+  if landed && inline then "both" else if landed then "landed" else if inline then "inline" else "—"
+
+structure BoundRead where
+  line : String
+  cls : Array String
+  hows : Array String
+  own : Array Bool
+  payable : Bool
+  site : String
+  deriving Inhabited
+
+/-- The site's bounds read against its index, and the verdict: `payable`
+    when a bound is below the index, `Mono` in hand is about the bound's
+    state, and that state is the constructor's or the preprocess and the
+    dispatch transport it — item 257's payment term verbatim. -/
+def readBounds (r : Inputs) (idx : String) (idxSum : List String) (ctorState : String) : BoundRead := Id.run do
+  let monoStates := r.mono.map fun s => ((s.splitOn ":").getLast?).getD ""
+  let transport := !r.prep.isEmpty && (!r.dispB.isEmpty || !r.dispC.isEmpty)
+  let mut parts : Array String := #[]
+  let mut cls : Array String := #[]
+  let mut hows : Array String := #[]
+  let mut owns : Array Bool := #[]
+  let mut payable := false
+  for (nm, state, sym, rhs) in r.tops do
+    let (floor, c, how) := boundVs idx idxSum r.rels sym rhs
+    let own := state == ctorState
+    let monoOk := monoStates.contains state
+    if c == "below" && monoOk && (own || transport) then payable := true
+    let monoS := if monoOk then "yes" else if r.mono.isEmpty then "—" else "no"
+    parts := parts.push s!"{nm}:{state}{sym}{rhs} floor={floor} {c}({how}) {if own then "own" else "old"} mono={monoS}"
+    cls := cls.push c; hows := hows.push how; owns := owns.push own
+  let w := whereOf r
+  let verdict :=
+    if r.tops.isEmpty then "no-bound"
+    else if payable then "payable"
+    else if cls.contains "below" then "below-unpayable"
+    else if cls.contains "at" then "at-index"
+    else if cls.contains "above" then "above-index"
+    else "undecided"
+  return { line := s!"idx={idx} ctor={ctorState} where={w} bounds=[{String.intercalate "; " parts.toList}] ⊢ {verdict}",
+           cls, hows, own := owns, payable, site := w }
+
 /-! ## §2 The pins -/
 
 def expectedSites : List String :=
   ["accum_block_on_pendingBlock #1 ctor:pendingBlock.h_closeF idx=k mono=1(h_mono:sc) monoOpt=0 base=1(h_base:sc) baseOpt=0 prep=1(h_preprocess:sc→s_prep,c) dispB=1(h_dispatch:c) dispC=0 hc=0 chr=1(hc:c='-') corr=5(hcorr_prep:s_prep,hcorr_result:s',h_corr:sc,hcorr_sc:s_prep,hcorr_dash2:s') noflow=1(h_noflow) save=0 fl=0 top=1(h_top_old:sc≤n) larm=1(h_larm) floor=0 nic=1(h_nic_old:sc) armed=0 col0=2(h_landed.2.1:sp_mid.col=0,hcol_mid:sp_mid.col=0) ids=0 cover=0 coverFn=0 ⊢ inputs=full lo=[own=k]",
-   "accum_block_on_pendingBlock #2 ctor:pendingBlock.h_closeF idx=k mono=1(h_mono:sc) monoOpt=0 base=1(h_base:sc) baseOpt=0 prep=1(h_preprocess:sc→s_prep,c) dispB=1(h_dispatch:c) dispC=0 hc=0 chr=1(hc:c='-') corr=5(hcorr_prep:s_prep,hcorr_result:s',h_corr:sc,hcorr_sc:s_prep,hcorr_dash2:s') noflow=1(h_noflow) save=0 fl=0 top=1(h_top_old:sc≤n) larm=1(h_larm) floor=0 nic=1(h_nic_old:sc) armed=0 col0=2(h_landed.2.1:sp_mid.col=0,hcol_mid:sp_mid.col=0) ids=0 cover=0 coverFn=0 ⊢ inputs=full lo=[own=k]",
-   "accum_block_on_pendingBlock #3 ctor:pendingBlock.h_closeF idx=n + 1 + m mono=1(h_mono:sc) monoOpt=0 base=1(h_base:sc) baseOpt=0 prep=1(h_preprocess:sc→s_prep,c) dispB=1(h_dispatch:c) dispC=0 hc=0 chr=1(hc:c='-') corr=5(hcorr_prep:s_prep,hcorr_result:s',h_corr:sc,hcorr_sc:s_prep,hcorr_dash2:s') noflow=1(h_noflow) save=0 fl=0 top=1(h_top_old:sc≤n) larm=0 floor=0 nic=1(h_nic_old:sc) armed=0 col0=2(h_inline.2.1:sp_scan.col≠0,h_col_ne.1:sp_scan.col≠0) ids=2(→h_inline.2.2.2,→h_col_ne.2.2) cover=0 coverFn=0 ⊢ inputs=full lo=[own=n + 1 + m]",
    "accum_content_on_pendingMapValue_indented #1 ctor:pendingProps.h_closeFE idx=n + 1 mono=1(h_mono:sc) monoOpt=0 base=1(h_base:sc) baseOpt=0 prep=1(h_preprocess:sc→s_prep,c) dispB=0 dispC=1(h_dispatch:c) hc=0 chr=0 corr=3(hcorr_prep:s_prep,hcorr_result:s',h_corr:sc) noflow=1(h_flow_disp) save=1(h_sk_s) fl=0 top=0 larm=0 floor=1(h_floor_old:sc@n + 1) nic=2(h_nic_mv:sc,h_nic_s:s') armed=0 col0=1(h_col0_old:0<sp_scan.col) ids=0 cover=4(h_closeF99@2:Floor(n,n :: ks),h_frames99@2:Floor(n,ks),h_closeFV108@2:Floor(n + 1,ks),h_framesV108@2:Floor(n + 1,ks)) coverFn=1(h_cov_step) ⊢ inputs=missing(floorSrc) lo=[relay=h_closeF99:Floor(n,n :: ks);relay=h_frames99:Floor(n,ks);relay=h_closeFV108:Floor(n + 1,ks);relay=h_framesV108:Floor(n + 1,ks)]",
    "colon_open_map_explicit #1 ctor:pendingMapValue.h_closeF idx=nv mono=0 monoOpt=0 base=0 baseOpt=0 prep=0 dispB=1(h_dispatch:':') dispC=0 hc=0 chr=0 corr=3(hcorr_prep:s_prep,hcorr_result:s',hcorr_colon:s') noflow=1(h_noflow_disp) save=0 fl=0 top=1(h_top_in:s'≤nv) larm=0 floor=1(h_floor_in:s'@nv + 1) nic=2(h_nic_disp:s_prep*,hpf.1:s') armed=0 col0=1(hcol_mid:sp_mid.col=0) ids=0 cover=0 coverFn=0 ⊢ inputs=missing(mono,base,prep) lo=[own=nv]",
    "compact_open_map #1 ctor:pendingMapValue.h_closeF idx=n + 1 + m mono=0 monoOpt=0 base=0 baseOpt=0 prep=1(h_preprocess:sc→s_prep,c) dispB=1(h_dispatch:c) dispC=0 hc=1(hc:':'|'?') chr=0 corr=2(hcorr_prep:s_prep,hcorr_result:s') noflow=1(h_noflow_disp) save=0 fl=0 top=1(h_top_in:s'≤n + 1 + m) larm=0 floor=1(h_floor:s'@n + 1 + m + 1) nic=2(h_nic_disp:s_prep*,hpk.1:s') armed=0 col0=0 ids=0 cover=0 coverFn=0 ⊢ inputs=missing(mono,base) lo=[own=n + 1 + m]",
@@ -323,8 +424,15 @@ def expectedShapes : List String :=
    "pendingBlockContent.h_closeF bound(ks<n) Floor(n,ks) eq(—)",
    "pendingMapValue.h_closeF bound(ks<n) Floor(n,n :: ks) eq(—)",
    "pendingProps.h_closeFE bound(ks<ne) Floor(ne,ks) eq(n=ne + 1)"]
+def expectedBounds : List String :=
+  ["accum_block_on_pendingBlock #1 idx=k ctor=s' where=landed bounds=[h_top_old:sc≤n floor=n + 1 at(by hkn:k=n) old mono=yes] ⊢ at-index",
+   "accum_content_on_pendingMapValue_indented #1 idx=n + 1 ctor=s' where=inline bounds=[] ⊢ no-bound",
+   "colon_open_map_explicit #1 idx=nv ctor=s' where=landed bounds=[h_top_in:s'≤nv floor=nv + 1 at(syn) own mono=—] ⊢ at-index",
+   "compact_open_map #1 idx=n + 1 + m ctor=s' where=— bounds=[h_top_in:s'≤n + 1 + m floor=n + 1 + m + 1 at(syn) own mono=—] ⊢ at-index",
+   "content_dispatch_routed #1 idx=0 ctor=s' where=— bounds=[] ⊢ no-bound",
+   "content_dispatch_routed #2 idx=0 ctor=s' where=— bounds=[] ⊢ no-bound"]
 def expectedLine : String :=
-  "sites=8 pb=3 pmv=2 props=3 idx0=2 mono=4 monoOpt=0 base=4 baseOpt=0 prep=5 dispB=5 dispC=3 hc=3 chr=5 dash=3 corr=8 noflow=8 save=1 fl=0 top=5 larm=2 floor=3 nic=8 armed=0 col0=5 ids=1 coverSites=1 coverBinders=4 coverFnSites=3 full=3 fullB=3 missMono=4 missBase=4 missPrep=3 missFloorSrc=3 own=5 empty=0 relay=1 relayEntries=4 rows=169 nodes=95157"
+  "sites=6 pb=1 pmv=2 props=3 idx0=2 mono=2 monoOpt=0 base=2 baseOpt=0 prep=3 dispB=3 dispC=3 hc=3 chr=3 dash=1 corr=6 noflow=6 save=1 fl=0 top=3 larm=1 floor=3 nic=6 armed=0 col0=3 ids=0 coverSites=1 coverBinders=4 coverFnSites=3 full=1 fullB=1 missMono=4 missBase=4 missPrep=3 missFloorSrc=3 own=3 empty=0 relay=1 relayEntries=4 bounds=3 below=0 belowSyn=0 belowArm=0 at=3 atSyn=2 atArm=1 undecided=0 bOwn=2 bOld=1 landedBelow=0 inlineBelow=0 payable=0 rows=169 nodes=95157"
 
 /-! ## §3 The reading -/
 
@@ -408,7 +516,7 @@ run_cmd Lean.Elab.Command.liftTermElabM do
   check "item 253's rows (CloseStackCover.expectedRows)" rowLines Tests.Guards.CloseStackCover.expectedRows
   -- §1 the eleven
   let punts := w.rows.filter fun r => r.kind == "ctor" && targets.contains r.target && r.cls.isPunt
-  let idxOf (r : CloseStackCover.Row) : MetaM String := do
+  let idxOf (r : CloseStackCover.Row) : MetaM (String × List String) := do
     let ctorShort := ((r.target.drop 5).toString.splitOn ".")[0]!
     let some c := cd.ctorNames.find? (fun c => short c == ctorShort) | throwError "{r.target}: no constructor"
     let some (.ctorInfo cv) := env.find? c | throwError "{c}: not a constructor"
@@ -423,14 +531,21 @@ run_cmd Lean.Elab.Command.liftTermElabM do
       | _ => break
     let some j := idx | throwError "{c}: no Nat field"
     unless j < r.args.size do throwError "{c}: {r.args.size} args"
-    return ppc r.st r.args[j]!
+    return (ppc r.st r.args[j]!, summands r.st r.args[j]!)
   let mut siteLines : Array String := #[]
   let mut sites : Array (CloseStackCover.Row × String × Inputs) := #[]
+  -- §5: the bound against the index, read beside each site
+  let mut boundLines : Array String := #[]
+  let mut reads : Array BoundRead := #[]
   for r in punts do
-    let idx ← idxOf r
+    let (idx, idxSum) ← idxOf r
     let ins := inputsAt r.st
+    unless r.args.size > 0 do throwError "{r.target}: no constructor arguments"
+    let br := readBounds ins idx idxSum (ppc r.st r.args[0]!)
     sites := sites.push (r, idx, ins)
+    reads := reads.push br
     siteLines := siteLines.push s!"  {short r.lem} #{r.occ} {r.target} idx={idx} {ins.render} ⊢ {verdict ins idx}"
+    boundLines := boundLines.push s!"  {short r.lem} #{r.occ} {br.line}"
   -- §4 the shapes
   let mut shapeLines : Array String := #[]
   for (c, f) in shapeTargets do
@@ -453,18 +568,28 @@ run_cmd Lean.Elab.Command.liftTermElabM do
   let vs := sites.map fun (_, idx, i) => verdict i idx
   let cnt (s : String) := (vs.filter fun v => (v.splitOn s).length > 1).size
   let byT (t : String) := (sites.filter fun (r, _, _) => r.target == t).size
+  -- §5's counts: sites, each counted once
+  let nb (p : BoundRead → Bool) := (reads.filter p).size
+  let has (c : String) (b : BoundRead) := b.cls.contains c
+  let hasHow (c : String) (syn : Bool) (b : BoundRead) := (b.cls.zip b.hows).any fun (x, h) => x == c && (h == "syn") == syn
+  let boundCounts := s!"bounds={nb (!·.cls.isEmpty)} below={nb (has "below")} belowSyn={nb (hasHow "below" true)} belowArm={nb (hasHow "below" false)} \
+at={nb (has "at")} atSyn={nb (hasHow "at" true)} atArm={nb (hasHow "at" false)} undecided={nb fun b => !b.cls.isEmpty && !has "below" b && !has "at" b && !has "above" b} \
+bOwn={nb (·.own.contains true)} bOld={nb (·.own.contains false)} landedBelow={nb fun b => has "below" b && b.site == "landed"} inlineBelow={nb fun b => has "below" b && b.site == "inline"} payable={nb (·.payable)}"
   let got := s!"sites={sites.size} pb={byT "ctor:pendingBlock.h_closeF"} pmv={byT "ctor:pendingMapValue.h_closeF"} props={byT "ctor:pendingProps.h_closeFE"} \
 idx0={cnt " idx0"} mono={n (·.mono)} monoOpt={n (·.monoOpt)} base={n (·.base)} baseOpt={n (·.baseOpt)} prep={n (·.prep)} dispB={n (·.dispB)} dispC={n (·.dispC)} \
 hc={n (·.hc)} chr={n (·.chr)} dash={(sites.filter fun (_, _, i) => i.chr.any fun x => (x.splitOn "='-'").length > 1).size} corr={n (·.corr)} noflow={n (·.noflow)} save={n (·.save)} fl={n (·.fl)} top={n (·.top)} larm={n (·.larm)} floor={n (·.floor)} nic={n (·.nic)} armed={n (·.armed)} \
 col0={n (·.col0)} ids={n (·.ids)} coverSites={n (·.cover)} coverBinders={sites.foldl (fun a (_, _, i) => a + i.cover.size) 0} coverFnSites={n (·.coverFn)} \
 full={cnt "inputs=full"} fullB={cnt "inputs=full "} missMono={cnt "missing(mono"} missBase={(vs.filter fun v => (v.splitOn "base").length > 1).size} missPrep={(vs.filter fun v => (v.splitOn "prep").length > 1).size} missFloorSrc={cnt "floorSrc"} \
-own={cnt "own="} empty={cnt "empty=0"} relay={cnt "relay="} relayEntries={vs.foldl (fun a v => a + ((v.splitOn "relay=").length - 1)) 0} rows={w.rows.size} nodes={w.nodes}"
+own={cnt "own="} empty={cnt "empty=0"} relay={cnt "relay="} relayEntries={vs.foldl (fun a v => a + ((v.splitOn "relay=").length - 1)) 0} \
+{boundCounts} rows={w.rows.size} nodes={w.nodes}"
   logInfo s!"PuntCoverInputs {got}"
   logInfo s!"sites:\n{String.intercalate "\n" siteLines.toList}"
   logInfo s!"shapes:\n{String.intercalate "\n" shapeLines.toList}"
-  unless sites.size == 8 do throwError "the eight punts moved under this pass: sites={sites.size}"
+  logInfo s!"bounds:\n{String.intercalate "\n" boundLines.toList}"
+  unless sites.size == 6 do throwError "the six punts moved under this pass: sites={sites.size}"
   check "expectedSites" siteLines expectedSites
   check "expectedShapes" shapeLines expectedShapes
+  check "expectedBounds" boundLines expectedBounds
   unless got == expectedLine do
     throwError "PuntCoverInputs moved:\n  got      {got}\n  expected {expectedLine}"
 

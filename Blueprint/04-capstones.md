@@ -834,20 +834,28 @@ width. The root's price is one parameter, monotonicity, which its caller
 binds and it does not; the cover it pays follows from monotonicity and a
 negative top in four lines.
 
-**And with the three payments that can be made made, the two close-stack
-trees read three paid leaves, eighteen punts and two cover-punts each, as one
+**And with the five payments that can be made made, the two close-stack
+trees read five paid leaves, sixteen punts and two cover-punts each, as one
 component** ([`CloseStackCover.lean`](../Tests/Guards/Proofs/CloseStackCover.lean),
 [`PaidLeafDelta.lean`](../Tests/Guards/Proofs/PaidLeafDelta.lean)). The root
 `-` pays its resume frames with a literal cover at floor zero, from the seed's
 negative top and the stack's monotonicity; the content park's sibling relays
-the park's own frames into the entry park's field at the unchanged index; and
-the compact fill pays its frames with a literal from the slot's own top bound,
+the park's own frames into the entry park's field at the unchanged index; the
+compact fill pays its frames with a literal from the slot's own top bound,
 floored one column above the slot and below the fill's index, because the
-stack it pushes onto is the slot's and no break was crossed. The relay that
-site cannot make is the mapping value park's: that closure awaits a block node
-read at the park's position, and the compact fill's node is a compact sequence
-on the slot's own line. The refused relay would add two positions and one punt
-to each tree and no paid leaf.
+stack it pushes onto is the slot's and no break was crossed; and the entry
+park's two re-parks, the inline compact `- - a` and the nested landing
+`-⏎  - a`, pay theirs with the same literal from the park's own top bound,
+floored one column above the park and below each re-park's index — the
+nested landing's bound is the old park's, and it survives the break because
+preprocessing's unwind only pops. The relay the compact fill cannot make is
+the mapping value park's: that closure awaits a block node read at the park's
+position, and the compact fill's node is a compact sequence on the slot's own
+line. Of the six producers that still punt, three hold no top bound and three
+hold one at their own index
+([`PuntCoverInputs.lean`](../Tests/Guards/Proofs/PuntCoverInputs.lean)). The
+refused relay would add two positions and one punt to each tree and no paid
+leaf.
 
 **Significance & risk**
 

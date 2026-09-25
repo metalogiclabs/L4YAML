@@ -2879,11 +2879,28 @@ lemma props_couplings_of_push {s_ad s' : ScannerState} {tok : YamlToken}
     the fill writes for `h_close_entry`.  The floor `nv + 1` stands below the
     fill's index `nv + 1 + m` by the `s-indent(m)` in front of the `-` — of
     the nine punts item 254 read as own-index, the one whose top bound is
-    the SLOT's and not the park's.  The trees read 16 positions, paid 3,
-    punt 18, cover-punt 2, open 2 from both roots, one component, three
-    paid origins; item 253's rows keep their number and three carry a paid
-    class; eight producers still punt; the refused relay would take both
-    trees to 18 / 3 / 19 / 2 / 2. -/
+    the SLOT's and not the park's.  With the root's, the sibling's and the
+    fill's payments the trees read 16 positions, paid 3, punt 18,
+    cover-punt 2, open 2 from both roots, one component.
+
+    **The entry park's two re-parks** (item 258).  The entry park's own top
+    bound, `h_top_old : sc.currentIndent ≤ n`, pays `pendingBlock.h_closeF`
+    at two more producers with the same literal: the inline compact re-park
+    (`- - a`), where no break was crossed and the floor `n + 1` stands below
+    the index `n + 1 + m` by the run in front of the `-`; and the nested
+    landing (`-⏎  - a`), where a break WAS crossed and the bound is the OLD
+    park's — it transports because preprocessing's unwind only pops and
+    `Covered` survives a pop (`preprocess_cover` is stated for any
+    preprocess step), and the floor `n + 1` stands below the index `k` by
+    the arm's own `n < k`, where the landing's own floor (top ≤ k) would
+    give a cover floored at `k + 1`, above the index.  Of the eight punts
+    item 257 left, these two are the ones whose top bound is strictly below
+    their index; three hold none and three hold one at their own index
+    (`Tests/Guards/Proofs/PuntCoverInputs.lean` §5).  The trees read 16
+    positions, paid 5, punt 16, cover-punt 2, open 2 from both roots, one
+    component, five paid origins; item 253's rows keep their number and
+    five carry a paid class; six producers still punt; the refused relay
+    would take both trees to 18 / 5 / 17 / 2 / 2. -/
 
 inductive BlockStack : SurfPos → SurfPos → Prop where
   /-- No active block collections. At document level or stream start. -/
@@ -23783,7 +23800,33 @@ lemma accum_block_on_pendingBlock
                           sp_e (SCompactSeqTail.nil n sp_e)
                           sp_i sp_c h_iv h_lit sp_v h_sbi⟩
                   | Or.inr _ => Or.inr trivial)
-             (Or.inr trivial)
+                 -- ═══ **Item 258: the nested landing's resume frames, PAID, from
+                 -- the OLD park's top.**  A break was crossed here, but the bound
+                 -- survives it: `h_top_old` puts the old park's top at or left of
+                 -- `n`, so on a monotone stack no mapping level stands at or right
+                 -- of column `n + 1` (`IndentStackCover.covered_nil_of_top_le`),
+                 -- and preprocessing's unwind only POPS, which `Covered` survives
+                 -- (`preprocess_cover` is stated for any preprocess step); the `-`
+                 -- then pushes a sequence level the cover exempts.  The floor
+                 -- `n + 1` stands BELOW this park's index `k` by the arm's own
+                 -- `n < k`.  The landing's own floor (top ≤ k) would give a cover
+                 -- floored at `k + 1`, above the index and spendable at no width:
+                 -- at a nested landing the old park's bound is the useful one.
+                 -- The bottom is the closure written for `h_close_entry` above;
+                 -- the transport is written inline (item 257). ═══
+                 (Or.inl ⟨[], fun _ h => absurd h List.not_mem_nil,
+                   Or.inl ⟨n + 1,
+                     ⟨Nat.succ_le_of_lt hlt, fun _ h => absurd h List.not_mem_nil⟩,
+                     IndentStackCover.scanBlockEntry_cover
+                       (dispatchBlockIndicators_dash_scan h_dispatch).1
+                       (dispatchBlockIndicators_dash_scan h_dispatch).2
+                       ((IndentStackCover.preprocess_cover h_preprocess
+                           (IndentStackCover.covered_nil_of_top_le h_mono h_top_old)).of_indents_eq
+                         (by split <;> rfl))⟩,
+                   fun sp_m h_bi sp_e h_tail =>
+                     ResumeFrames.bottom sp_e
+                       (h_close_inner sp_e
+                         (SBlockSeqEntries_of_compactTail h_ind h_dash2 h_gnot2 h_bi h_tail))⟩)
                  (nodir_of_block_dispatch h_dispatch)
                  -- **Item 167: the enclosing collection, handed down.**  The
                  -- inner sequence this `-` opens IS the outer entry's node, so
@@ -24113,7 +24156,34 @@ lemma accum_block_on_pendingBlock
                         sp_e (SCompactSeqTail.nil n sp_e)
                         sp_i sp_c h_iv h_lit sp_v h_sbi⟩
                 | Or.inr _ => Or.inr trivial)
-             (Or.inr trivial)
+               -- ═══ **Item 258: the compact nested `-`'s resume frames, PAID,
+               -- from the park's OWN top.**  No break was crossed, so the stack
+               -- this `-` pushes onto is the park's, and `h_top_old` bounds its
+               -- top by the park's index `n`.  On a monotone stack no mapping
+               -- level then stands at or right of column `n + 1`
+               -- (`IndentStackCover.covered_nil_of_top_le`); the dispatch keeps
+               -- that cover on the landed arm's three lemmas; the frames below
+               -- the inner collection are none, and the bottom is the closure
+               -- written for `h_close_entry` above.  The floor `n + 1` stands
+               -- BELOW this park's index `n + 1 + m` by the `s-indent(m)` in
+               -- front of the `-` — item 257's payment at the compact fill, one
+               -- park over, with the entry park's bound where that one has the
+               -- slot's.  The transport is written inline (item 257). ═══
+               (Or.inl ⟨[], fun _ h => absurd h List.not_mem_nil,
+                 Or.inl ⟨n + 1,
+                   ⟨Nat.le_add_right (n + 1) m, fun _ h => absurd h List.not_mem_nil⟩,
+                   IndentStackCover.scanBlockEntry_cover
+                     (dispatchBlockIndicators_dash_scan h_dispatch).1
+                     (dispatchBlockIndicators_dash_scan h_dispatch).2
+                     ((IndentStackCover.preprocess_cover h_preprocess
+                         (IndentStackCover.covered_nil_of_top_le h_mono h_top_old)).of_indents_eq
+                       (by split <;> rfl))⟩,
+                 fun sp_m h_bi sp_e h_tail =>
+                   ResumeFrames.bottom sp_e
+                     (h_close_old sp_e
+                       (SBlockIndented.compactSeq n .blockIn m sp_mid sp_sc sp_e h_ind
+                         (SCompactSeq.mk (n + 1 + m) sp_sc sp_scan' sp_m sp_e
+                           h_dash2 h_gnot2 h_bi h_tail)))⟩)
                (nodir_of_block_dispatch h_dispatch) (Or.inr trivial)
                -- Item 190: the second frame rides the inner compact too.
                (match h_kslotUp with
