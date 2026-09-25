@@ -2938,7 +2938,18 @@ lemma props_couplings_of_push {s_ad s' : ScannerState} {tok : YamlToken}
     positions 42 punt, and of the 69 that build, re-wrap or transport a pack
     11 hold a tail or a frames face at a level they write, 37 write a relayed
     list no reading can enter, and 21 hold none
-    (`Tests/Guards/Proofs/ValueLinePacks.lean`). -/
+    (`Tests/Guards/Proofs/ValueLinePacks.lean`).  Every writer's chain
+    resolved to where its pack is born
+    (`Tests/Guards/Proofs/ValueLineOrigins.lean`): with the two packaged key
+    packs (`ImplicitKeyPack`, `PropsKeyPack`) read through, the packs are 47
+    positions whose 180 writer positions resolve to 70 origin hypotheses at
+    38 rows — 40 hold the tail, all of them routes and frames faces at the
+    mapping value park's content arm, the `?` opener and the flow open; the
+    compact, implicit and props openers', the entry parks', the dispatcher's
+    and the flow step's do not — and the eighteen positions of the `?` family
+    (the entry parks' key slots, the `?` chains and their relays) are born at
+    ONE origin, the `?` opener's dedent reading off the landing's value-line
+    resume, which holds no tail at the frame it pops to. -/
 
 inductive BlockStack : SurfPos → SurfPos → Prop where
   /-- No active block collections. At document level or stream start. -/

@@ -46,7 +46,11 @@ otherwise.  A pack body that spends a tail-premised hypothesis would be a
 carrier already; the line counts those (`spendTail`).
 
 The pins hold the eleven packs, the seven frames faces, the pack parameters,
-every writer row, the per-position summary and the line.
+every writer row, the per-position summary and the line.  Beside the rows
+the walk records every `let`/`have` (label, type, stack, value), every
+application whose head is a local binder, and every match's discriminants:
+the side records `Tests/Guards/Proofs/ValueLineOrigins.lean` follows a
+row's chain through; they change nothing printed here.
 -/
 
 open Lean Lean.Meta Lean.Elab
@@ -235,12 +239,45 @@ structure WRow where
   args : Array Expr
   deriving Inhabited
 
+/-- A `let`/`have` met on the walk: its label, type, the stack it stands in
+    and its value — what a chain that bottoms in it is followed into. -/
+structure LetRec where
+  lem : Name
+  label : String
+  name : Name
+  ty : Expr
+  st : Stack
+  val : Expr
+  deriving Inhabited
+
+/-- An application whose head is a local binder (a local function or a
+    hypothesis applied): the head, its depth, the stack and the arguments. -/
+structure LApp where
+  lem : Name
+  head : Bind
+  depth : Nat
+  st : Stack
+  args : Array Expr
+  deriving Inhabited
+
+/-- A match met on the walk: the stack and the discriminants its alternative
+    binders were labeled from. -/
+structure AltRec where
+  lem : Name
+  st : Stack
+  discrs : Array Expr
+  deriving Inhabited
+
 structure W where
   rows : Array WRow := #[]
   occ : Std.HashMap String Nat := {}
   memo : Std.HashMap Expr Bool := {}
   nodes : Nat := 0
   apps : Nat := 0
+  lets : Array LetRec := #[]
+  lapps : Array LApp := #[]
+  alts : Array AltRec := #[]
+  liteNodes : Nat := 0
 
 partial def containsP (st : IO.Ref W) (cs : Std.HashSet Name) (e : Expr) : MetaM Bool := do
   match (← st.get).memo[e]? with
@@ -280,6 +317,9 @@ structure PCx where
   door : Option (Name × Array Name × Nat) := none
   inherit : Option (Nat → Name → Option String) := none
   inheritPos : Nat := 0
+  /-- Below a subterm with no pack constant: no row can stand here, so the
+      walk only labels binders and records the side records. -/
+  lite : Bool := false
 
 /-- A binder whose type is data, not a hypothesis. -/
 def isDataTy (ty : Expr) : Bool :=
@@ -307,7 +347,8 @@ def letLabel (st : Stack) (n : Name) (v : Expr) : MetaM String := do
   return s!"let:{bname n}{tail}"
 
 partial def walkP (w : IO.Ref W) (cd : PCand) (cx : PCx) (e : Expr) : MetaM Unit := do
-  w.modify fun s => { s with nodes := s.nodes + 1 }
+  if cx.lite then w.modify fun s => { s with liteNodes := s.liteNodes + 1 }
+  else w.modify fun s => { s with nodes := s.nodes + 1 }
   match e with
   | .mdata _ b => walkP w cd cx b
   | .lam n t b _ =>
@@ -330,11 +371,18 @@ partial def walkP (w : IO.Ref W) (cd : PCand) (cx : PCx) (e : Expr) : MetaM Unit
     walkP w cd { cx with st := cx.st.push { name := n, ty := t, prov := none }, paramsLeft := 0, door := none, inherit := none } b
   | .letE n t v b _ =>
     let cx0 := { cx with paramsLeft := 0, door := none, inherit := none }
+    let lab ← letLabel cx.st n v
+    w.modify fun s => { s with lets := s.lets.push { lem := cx.lem, label := lab, name := n, ty := t, st := cx.st, val := v } }
     walkP w cd cx0 v
-    walkP w cd { cx0 with st := cx.st.push { name := n, ty := t, prov := some (← letLabel cx.st n v) } } b
+    walkP w cd { cx0 with st := cx.st.push { name := n, ty := t, prov := some lab } } b
   | .proj _ _ b => walkP w cd { cx with paramsLeft := 0, door := none, inherit := none } b
   | .app .. =>
-    unless ← containsP w cd.consts e do return
+    if let .bvar i := e.getAppFn then
+      if i < cx.st.size then
+        w.modify fun s => { s with lapps := s.lapps.push { lem := cx.lem, head := cx.st[cx.st.size - 1 - i]!, depth := cx.st.size - 1 - i, st := cx.st, args := e.getAppArgs } }
+    let mut cx := cx
+    unless cx.lite do
+      unless ← containsP w cd.consts e do cx := { cx with lite := true }
     let f := e.getAppFn
     let args := e.getAppArgs
     let cx0 := { cx with paramsLeft := 0, door := none, inherit := none }
@@ -346,8 +394,10 @@ partial def walkP (w : IO.Ref W) (cd : PCand) (cx : PCx) (e : Expr) : MetaM Unit
       if n == ``letFun && args.size ≥ 4 then
         match args[3]! with
         | .lam bn bt bb _ =>
+          let lab ← letLabel cx.st bn args[2]!
+          w.modify fun s => { s with lets := s.lets.push { lem := cx.lem, label := lab, name := bn, ty := args[0]!, st := cx.st, val := args[2]! } }
           walkP w cd cx0 args[2]!
-          walkP w cd { cx0 with st := cx.st.push { name := bn, ty := bt, prov := some (← letLabel cx.st bn args[2]!) } } bb
+          walkP w cd { cx0 with st := cx.st.push { name := bn, ty := bt, prov := some lab } } bb
         | g =>
           walkP w cd cx0 args[2]!
           walkP w cd cx0 g
@@ -364,6 +414,7 @@ partial def walkP (w : IO.Ref W) (cd : PCand) (cx : PCx) (e : Expr) : MetaM Unit
           else walkP w cd cx0 args[i]!
         return
       if let some (_, discrs, brs) ← branchesOf n args then
+        w.modify fun s => { s with alts := s.alts.push { lem := cx.lem, st := cx.st, discrs } }
         let f ← altLabeler cx.st discrs
         for i in [0:args.size] do
           if brs.contains i then walkP w cd { cx0 with inherit := some f, inheritPos := 0 } args[i]!

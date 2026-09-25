@@ -873,7 +873,7 @@ and twenty-nine lemma parameters, every one a closure that ends at the stream
 with no tail after the value, written at 151 positions of which 42 punt; of
 the 69 that build, re-wrap or transport a pack, 11 hold a tail or a frames
 face at a level they write
-([`ValueLinePacks.lean`](../Tests/Guards/Proofs/ValueLinePacks.lean)).
+([`ValueLinePacks.lean`](../Tests/Guards/Proofs/ValueLinePacks.lean)).  Resolved to where each pack is born ([`ValueLineOrigins.lean`](../Tests/Guards/Proofs/ValueLineOrigins.lean)), the writers' chains reach 70 origin hypotheses at 38 rows, 40 of which hold the tail, and the eighteen positions of the `?` family reach exactly one, the `?` opener's dedent reading off the landing's value-line resume, which does not.
 
 **Significance & risk**
 
