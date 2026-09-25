@@ -755,7 +755,7 @@ def expectedSpines : List String :=
    "  stream=2 carry=4 fwd=0 punt=6 closed=0 [col(_)=_+1] SBlockIndented(_,blockOut) ⇒ Stream  ← pendingMapValue.h_ivl, pendingMapValue.h_vslot",
    "  stream=1 carry=1 fwd=0 punt=4 closed=0 SBlockMapEntry(_) ⇒ Stream  ← pendingMapValue.h_expl",
    "  stream=0 carry=4 fwd=0 punt=2 closed=0 SBlockNode(_+1,blockIn) > SIndent(_) > GLit(':') > SBlockIndented(_,blockOut) ⇒ Stream  ← pendingMapValue.h_kslot",
-   "  stream=0 carry=4 fwd=0 punt=2 closed=0 SBlockNode(_+1,blockIn) ⇒ Resume(_::_)▹Stream  ← pendingMapValue.h_closeF",
+   "  stream=0 carry=5 fwd=0 punt=1 closed=0 SBlockNode(_+1,blockIn) ⇒ Resume(_::_)▹Stream  ← pendingMapValue.h_closeF",
    "  stream=2 carry=2 fwd=0 punt=2 closed=0 SBlockNode(_+1,blockIn) ⇒ Resume(_)▹ExplValueLine(_)  ← pendingMapValue.h_closeFV",
    "  stream=0 carry=1 fwd=0 punt=5 closed=0 SBlockNode(_+1,blockIn) > SCompactMapTail(_) ⇒ Resume(_)▹SeqEntryTail(_)  ← pendingMapValue.h_seqF",
    "  stream=0 carry=1 fwd=0 punt=5 closed=0 SBlockMapEntry(_) > SIndent(_) > GLit(':') > SBlockIndented(_,blockOut) ⇒ Stream  ← pendingMapValue.h_explUp"]
@@ -763,7 +763,7 @@ def expectedSites : List String :=
   ["  accum_block_on_closeThenBlock: nil park=pendingBlock stream=bound:h_stream_new:=param:h_close_pending closedBy=[SSLComments ⇒ Stream] h_close=carry,h_close_entry=carry,h_kslot=carry,h_closeF=carry,h_seqF=punt,h_kslotUp=carry,h_closeFV=carry",
    "  accum_block_on_closeThenBlock: nil park=pendingBlock stream=bound:h_stream_a closedBy=[obtained] h_close=carry,h_close_entry=carry,h_kslot=carry,h_closeF=carry,h_seqF=punt,h_kslotUp=carry,h_closeFV=punt",
    "  block_dispatch_deferred: nil park=pendingFlow stream=param:h_stream closedBy=[] ",
-   "  compact_open_map: nil park=pendingMapValue stream=param:h_stream_block closedBy=[] h_close=carry,h_ivl=carry,h_expl=carry,h_vslot=carry,h_kslot=punt,h_closeF=punt,h_frames=punt,h_closeFV=punt,h_framesV=punt,h_seqF=punt,h_explUp=punt",
+   "  compact_open_map: nil park=pendingMapValue stream=param:h_stream_block closedBy=[] h_close=carry,h_ivl=carry,h_expl=carry,h_vslot=carry,h_kslot=punt,h_closeF=carry,h_frames=punt,h_closeFV=punt,h_framesV=punt,h_seqF=punt,h_explUp=punt",
    "  colon_open_map_explicit: nil park=pendingMapValue stream=param:h_stream_mid closedBy=[] h_close=carry,h_ivl=carry,h_expl=punt,h_vslot=carry,h_kslot=punt,h_closeF=punt,h_frames=punt,h_closeFV=punt,h_framesV=punt,h_seqF=punt,h_explUp=punt",
    "  question_open_map: nil park=pendingMapValue stream=param:h_stream_land closedBy=[] h_close=stream,h_ivl=stream,h_expl=stream,h_vslot=stream,h_kslot=carry,h_closeF=carry,h_frames=carry,h_closeFV=stream,h_framesV=stream,h_seqF=punt,h_explUp=carry",
    "  colon_open_map: nil park=pendingMapValue stream=param:h_stream_land closedBy=[] h_close=stream,h_ivl=punt,h_expl=punt,h_vslot=punt,h_kslot=carry,h_closeF=carry,h_frames=carry,h_closeFV=stream,h_framesV=carry,h_seqF=punt,h_explUp=punt",
@@ -824,9 +824,12 @@ def expectedK : List String :=
     literal from the slot's own top bound), so the spine reads `carry=4
     punt=3`; item 258 two more, the entry park's compact and nested re-parks'
     `pendingBlock.h_closeF` (the same literal from the park's own top bound),
-    so it reads `carry=6 punt=1`. -/
+    so it reads `carry=6 punt=1`; item 259 one more, the compact opener's
+    `pendingMapValue.h_closeF` (a literal from the caller's park bound,
+    carried across the indicator's step), so that spine reads `carry=5
+    punt=1` and the line `carry=160 punt=79`. -/
 def expectedLine : String :=
-  "closures=54 packed=14 optional=41 guarded=13 facts=3 others=1 byHead=6 byFirst=8 bySpine=39 flowRoutes=6 flowSpinesNew=6 slots=61 nil=43 parkedCtor=35 closureSlots=255 stream=8 carry=159 fwd=8 punt=80 closed=0 mandatory[stream=3 carry=48 fwd=0 punt=3 closed=0] optional[stream=5 carry=111 fwd=8 punt=77 closed=0] packSlots=104 pack[stream=0 carry=84 fwd=0 punt=0 closed=20] spinesFromStream=5 spinesCarried=32 spinesTouched=37 firstsFromStream=4 headsFromStream=4 streamSites=2 closings=10 closedDistinct=2 closedIn=2 absorbed=3 obtained=2 flowSites=6 flowSlots=36 flow[stream=0 carry=33 fwd=0 punt=3 closed=0] routeArgs=150 routeStream=18 routeCarry=42 routeFwd=50 routeClosed=40 routeToWalked=97 routeStreamToWalked=13 viaObtained=0 viaSites=0 builders=13 builds=169 buildSlots=1095 build[stream=9 carry=278 fwd=705 punt=83 closed=20] buildStreamSlots=9 buildSpines=6 routePairs=8 routeSpines=5 k=10 kHeads=6 streamBuilders=8"
+  "closures=54 packed=14 optional=41 guarded=13 facts=3 others=1 byHead=6 byFirst=8 bySpine=39 flowRoutes=6 flowSpinesNew=6 slots=61 nil=43 parkedCtor=35 closureSlots=255 stream=8 carry=160 fwd=8 punt=79 closed=0 mandatory[stream=3 carry=48 fwd=0 punt=3 closed=0] optional[stream=5 carry=112 fwd=8 punt=76 closed=0] packSlots=104 pack[stream=0 carry=84 fwd=0 punt=0 closed=20] spinesFromStream=5 spinesCarried=32 spinesTouched=37 firstsFromStream=4 headsFromStream=4 streamSites=2 closings=10 closedDistinct=2 closedIn=2 absorbed=3 obtained=2 flowSites=6 flowSlots=36 flow[stream=0 carry=33 fwd=0 punt=3 closed=0] routeArgs=150 routeStream=18 routeCarry=42 routeFwd=50 routeClosed=40 routeToWalked=97 routeStreamToWalked=13 viaObtained=0 viaSites=0 builders=13 builds=169 buildSlots=1095 build[stream=9 carry=279 fwd=705 punt=82 closed=20] buildStreamSlots=9 buildSpines=6 routePairs=8 routeSpines=5 k=10 kHeads=6 streamBuilders=8"
 
 set_option maxHeartbeats 4000000 in
 run_cmd Lean.Elab.Command.liftTermElabM do

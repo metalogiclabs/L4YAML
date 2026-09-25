@@ -825,6 +825,24 @@ lemma covered_singleton_of_top_le {s : ScannerState} {c : Nat}
   rw [hc, Int.toNat_natCast]
   exact List.mem_cons_self
 
+/-- **A step whose top is pinned names the level it opened** (item 259).
+    `CoverStep` reports an opened level with an existential, which is all a
+    step-generic lemma can say; a producer that holds the top from both sides
+    — the floor its park measured and the bound the step's own push obeys —
+    knows the top IS its index, and the frames it hands on are `k :: ks` for
+    that index rather than `c :: ks` for an unknown `c`.  The left arm costs
+    the frames nothing (`Covered.cons`); in the right arm the opened level is
+    the top, and the top is `k`. -/
+lemma CoverStep.cons_of_top_eq {lo k : Nat} {ks : List Nat} {s : ScannerState}
+    (h : CoverStep lo ks s) (h_top : s.currentIndent = (k : Int)) :
+    Covered lo (k :: ks) s := by
+  rcases h with h | ⟨c, hb, hc⟩
+  · exact h.cons k
+  · have hck : c = k := by
+      have : s.currentIndent = (c : Int) := by simp [ScannerState.currentIndent, hb]
+      omega
+    subst hck; exact hc
+
 /-- **The dedent's hop on the stack** (item 149) — `covered_singleton_of_top_le`
     for a cover that is already carried rather than freshly measured.  The same
     two readings do the work: the landing's own floor puts the top at or left of

@@ -359,9 +359,14 @@ adds.**   `constants` counts the module's non-internal constants, generated ones
     `accum_block_on_closeThenBlock`, whose one use was inside an `Or.inl ⟨h_mono,
     h_base, …⟩` at the landed arm's floor face, is handed by the compact fill's
     literal to `IndentStackCover.covered_nil_of_top_le`, and a relay outranks a
-    field in `direct`; no matcher, so no new constant. -/
+    field in `direct`; no matcher, so no new constant.  Item 259 moves three:
+    `compact_open_map`'s two new binders `h_mono` and `h_top` are each handed
+    to `covered_nil_of_top_le` (`RELAY` +2), and its `h_top_in`, whose one use
+    was inside the slot's `Or.inl ⟨h_top_in, …⟩`, is now also consumed by the
+    `omega` that pins the top (`FIELD` → `RELAY`): `FIELD` 153 → 152, `RELAY`
+    1999 → 2002.  The prediction counted the two binders and not the third. -/
 def expectedModuleTally : String :=
-  "constants=1125 decls=947 eta=364 FIELD=153 READ=1021 RELAY=1999 RETURN=48 UNUSED=9"
+  "constants=1125 decls=947 eta=364 FIELD=152 READ=1021 RELAY=2002 RETURN=48 UNUSED=9"
 
 def expectedUnused : List String :=
   [ "block_dispatch_deferred_inline#10 (_h_res)",

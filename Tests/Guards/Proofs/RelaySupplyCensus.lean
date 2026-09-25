@@ -841,7 +841,7 @@ def hopName (env : Environment) (e : Edge) : String :=
     `pendingBlock.h_closeF` (the same literal from the park's own top bound),
     one edge each, `DECLINE` 268 → 266 and `PAY` 46 → 48; no split is added. -/
 def expectedTally : String :=
-  "edges=659 skipped=30 [DECLINE=266, FIELD=58, LOCAL=27, PAY=48, RELAY=68, \
+  "edges=659 skipped=30 [DECLINE=265, FIELD=58, LOCAL=27, PAY=49, RELAY=68, \
 SPLIT=156, VIA=36]"
 
 /-- **The row item 211 read off the compiler's error text and got wrong.**  All
@@ -1087,7 +1087,16 @@ def expectedBranchSupply : List String :=
     write their declines while CONSTRUCTING a park rather than at the site that
     branches — `expectedBranchSupply`'s `⇐` column names the park field for
     every row that does, and `direct=8` is the same fact counted the other way
-    round. -/
+    round.
+
+    **Item 259 moves one down.**  A lemma's number is the number of chases
+    that END at a decline it writes (`terminals` pushes the caller of a
+    `DECLINE` terminal, or of a `SPLIT` with a `DECLINE` leaf); a payment turns
+    that terminal into a `PAY`, which is no site, and the compact opener's
+    payment of `pendingMapValue.h_closeF` takes it from 16 to 15 — where
+    items 257 and 258's payments moved their lemmas' numbers UP, because the
+    count follows the chase and not the direction of the payment.  Predict it
+    from the chase, or read it from the run. -/
 def expectedDeclineWriters : List String :=
   ["10 accum_block_on_noPending",
    "10 accum_block_on_pendingContent",
@@ -1095,9 +1104,9 @@ def expectedDeclineWriters : List String :=
    "12 accum_content_on_pendingMapValue_indented",
    "13 colon_open_map",
    "15 colon_open_map_explicit",
+   "15 compact_open_map",
    "16 colon_open_map_implicit",
    "16 colon_open_map_props",
-   "16 compact_open_map",
    "17 accum_block_on_closeThenBlock",
    "18 accum_block_on_pendingBlockContent",
    "2 colon_fires_implicit_key",

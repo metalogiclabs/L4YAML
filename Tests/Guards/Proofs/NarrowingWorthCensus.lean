@@ -647,8 +647,9 @@ one unfolding, and §6 is the item where those two disagreed about binders. -/
     the recursor application became a `mutual` block of eight lemmas, so the
     environment gains exactly seven theorems and reads **5245**.  The sixteen
     `.match_*` auxiliaries the block also creates are not theorems and are not
-    counted here. -/
-def expectedNoopTally : String := "theorems=5246 byElab=17 byWhnf=17 elabOnly=0 whnfOnly=0"
+    counted here.  Item 259 adds one, `IndentStackCover.CoverStep.cons_of_top_eq`
+    (a pinned top names the level a cover step opened): **5247**. -/
+def expectedNoopTally : String := "theorems=5247 byElab=17 byWhnf=17 elabOnly=0 whnfOnly=0"
 
 /-- The 27 item 227 measured, now **18**.  Item 228 narrowed six of
     `FlowKeyLift`'s ten — `plain_toKey`, `doubleQuoted_toKey`,

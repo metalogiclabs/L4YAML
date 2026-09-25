@@ -36,6 +36,13 @@ below the index — syntactically, or by a binder in scope — and beside it the
 state the bound is about, whether `Mono` in hand is about that state, and
 whether the site is landed or inline, since a bound on an earlier state
 crosses preprocessing's unwind at a landed site.
+**§6** (item 259) reads, at each site that lacks `Mono`, what its CALLERS
+hold about the state they pass it — every application of the enclosing lemma
+in the environment, with `Mono`, the base and each top bound on the
+pre-dispatch argument against the site's index instantiated by the caller —
+and beside it the cover step the library holds for the site's dispatch, the
+shape of its conclusion, the named-level lemmas, and whether the site pins
+its top from both sides.
 
 **Item 256 pays two of the eleven**: the root `-` its own field, from the
 seed's empty stack at floor 0 (`IndentStackCover.covered_nil_of_ntop`), and
@@ -54,7 +61,16 @@ the index `k` by the arm's `n < k`) — the landed site's bound is the OLD
 park's, and it transports because preprocessing's unwind only pops.  Six
 punts remain, and the reading below is theirs: three hold no top bound and
 three hold one at their own index, so none holds the shape these payments
-spend.
+spend.  **Item 259 pays the compact opener through its callers**: its slot's
+own bound is at the index, but §6 reads both callers holding `Mono` and a
+bound below the slot's index on the state before the dispatch, the library's
+step across the indicator (`dispatchBlockIndicators_cover`, a `CoverStep`
+whose opened level is existential), and the site pinning its top from both
+sides — so the opener takes the two as binders and pays the mapping value
+park's field with that cover, the level named by the pinned top
+(`IndentStackCover.CoverStep.cons_of_top_eq`).  Five punts remain: three
+hold no top bound, two hold one at their own index, and the three that lack
+`Mono` are called with a state no caller bounds below the index.
 -/
 
 open Lean Lean.Meta Lean.Elab
@@ -410,13 +426,117 @@ def readBounds (r : Inputs) (idx : String) (idxSum : List String) (ctorState : S
   return { line := s!"idx={idx} ctor={ctorState} where={w} bounds=[{String.intercalate "; " parts.toList}] ⊢ {verdict}",
            cls, hows, own := owns, payable, site := w }
 
+
+/-! ## §6 The callers' inputs, and the step (item 259)
+
+    A site that lacks `Mono`, or a bound on the state its transport starts
+    from, cannot pay alone; its price is what its CALLERS hold about the
+    state they pass it.  For each such site this section finds every
+    application of the enclosing lemma in the environment and reads, in the
+    caller's context at the application, the argument passed as the site's
+    PRE-DISPATCH state — the state the site's preprocess equation starts from,
+    else the one its dispatch is applied to with the directive update
+    stripped — whether `Mono` and the base in hand are about it, and every
+    top bound on it against the site's index instantiated with the caller's
+    arguments.  Beside the site: the cover-library theorem that carries a
+    cover across the dispatch the site holds, the shape of its conclusion
+    (the opened level marked `existential` where `∃` binds it), the library's
+    lemmas whose conclusion names the consed level, and whether the site pins
+    its top from both sides — a bound AT the index and `IndentFloor` one
+    above it — which is what turns the existential level into the index. -/
+
+/-- The last two components of a name. -/
+def last2 (n : Name) : String :=
+  match n.components.reverse with
+  | a :: b :: _ => s!"{b}.{a}"
+  | _ => short n
+
+/-- Every application of `target` in `e`, with the binder stack at it. -/
+partial def appsOf (target : Name) (st : Stack) (e : Expr) (acc : Array (Stack × Array Expr)) :
+    Array (Stack × Array Expr) :=
+  let e := e.consumeMData
+  -- an APPLICATION of the target: the bare constant reached by descending an
+  -- application's head is not one
+  let acc := if e.isApp && e.isAppOf target then acc.push (st, e.getAppArgs) else acc
+  match e with
+  | .app .. => e.getAppArgs.foldl (fun a x => appsOf target st x a) (appsOf target st e.getAppFn acc)
+  | .lam n ty b _ => appsOf target (st.push { name := n, ty := ty, prov := none }) b (appsOf target st ty acc)
+  | .forallE n ty b _ => appsOf target (st.push { name := n, ty := ty, prov := none }) b (appsOf target st ty acc)
+  | .letE n ty v b _ =>
+    appsOf target (st.push { name := n, ty := ty, prov := none }) b (appsOf target st v (appsOf target st ty acc))
+  | .proj _ _ b => appsOf target st b acc
+  | _ => acc
+
+/-- The parameter a lemma's transport starts from: the state its preprocess
+    equation names, else the state its dispatch is applied to (the directive
+    update stripped), as (position, how). -/
+def preStateParam (ty : Expr) : Option (Nat × String) := Id.run do
+  let mut t := ty
+  let mut j := 0
+  let mut prep : Option Nat := none
+  let mut disp : Option Nat := none
+  while true do
+    match t with
+    | .forallE _ bt b _ =>
+      match rel (piConcl bt) with
+      | some ("=", l, _) =>
+        let l := l.consumeMData
+        if l.isAppOf ``scanNextToken_preprocess && l.getAppNumArgs ≥ 1 then
+          if let .bvar i := (l.getArg! 0).consumeMData then
+            if prep.isNone then prep := some (j - 1 - i)
+        else if (l.isAppOf ``scanNextToken_dispatchBlockIndicators || l.isAppOf ``scanNextToken_dispatchContent) && l.getAppNumArgs ≥ 2 then
+          let y := (l.getArg! 0).consumeMData
+          let y := if y.isAppOfArity ``ite 5 then (y.getArg! 4).consumeMData else y
+          if let .bvar i := y then
+            if disp.isNone then disp := some (j - 1 - i)
+      | _ => pure ()
+      t := b; j := j + 1
+    | _ => break
+  match prep, disp with
+  | some p, _ => some (p, "prep")
+  | none, some d => some (d, "disp")
+  | none, none => none
+
+/-- A proposition's shape, for a cover step's conclusion: disjunction,
+    existential, conjunction, the back query, the cover. -/
+partial def shapeOf (st : Stack) (e : Expr) (fuel : Nat := 12) : String :=
+  let e := e.consumeMData
+  if fuel == 0 then "…" else
+  if e.isAppOfArity ``Or 2 then s!"{shapeOf st (e.getArg! 0) (fuel - 1)} ∨ {shapeOf st (e.getArg! 1) (fuel - 1)}"
+  else if e.isAppOfArity ``And 2 then s!"{shapeOf st (e.getArg! 0) (fuel - 1)} ∧ {shapeOf st (e.getArg! 1) (fuel - 1)}"
+  else if e.isAppOfArity ``Exists 2 then
+    match (e.getArg! 1).consumeMData with
+    | .lam n ty b _ => s!"∃{bname n}.{shapeOf (st.push { name := n, ty := ty, prov := none }) b (fuel - 1)}"
+    | _ => "∃?"
+  else if e.isAppOfArity coveredN 3 then s!"Covered({ppc st (e.getArg! 0)},{ppc st (e.getArg! 1)},{ppc st (e.getArg! 2)})"
+  else match rel e with
+    | some (sym, l, r) =>
+      let l := l.consumeMData
+      let lS := if l.isAppOf ``Array.back? && l.getAppNumArgs ≥ 1 then
+          let a := (l.getAppArgs.back?.getD l).consumeMData
+          if a.isAppOf ``ScannerState.indents then s!"{ppc st (a.getAppArgs.back?.getD a)}.indents.back?" else s!"{ppc st a}.back?"
+        else ppc st l
+      let r := r.consumeMData
+      let rS := if r.isAppOf ``Option.some && r.getAppNumArgs ≥ 1 then
+          let v := (r.getAppArgs.back?.getD r).consumeMData
+          if v.isAppOf ``IndentEntry.mk && v.getAppNumArgs == 2 then s!"some({ppc st (v.getArg! 0)},{ppc st (v.getArg! 1)})"
+          else s!"some({ppc st v})"
+        else ppc st r
+      s!"{lS}{sym}{rS}"
+    | none => ppc st e
+
+/-- The binder types of a Pi type, each under its own prefix. -/
+partial def binderTypes (t : Expr) (acc : Array Expr := #[]) : Array Expr :=
+  match t.consumeMData with
+  | .forallE _ ty b _ => binderTypes b (acc.push ty)
+  | _ => acc
+
 /-! ## §2 The pins -/
 
 def expectedSites : List String :=
   ["accum_block_on_pendingBlock #1 ctor:pendingBlock.h_closeF idx=k mono=1(h_mono:sc) monoOpt=0 base=1(h_base:sc) baseOpt=0 prep=1(h_preprocess:sc→s_prep,c) dispB=1(h_dispatch:c) dispC=0 hc=0 chr=1(hc:c='-') corr=5(hcorr_prep:s_prep,hcorr_result:s',h_corr:sc,hcorr_sc:s_prep,hcorr_dash2:s') noflow=1(h_noflow) save=0 fl=0 top=1(h_top_old:sc≤n) larm=1(h_larm) floor=0 nic=1(h_nic_old:sc) armed=0 col0=2(h_landed.2.1:sp_mid.col=0,hcol_mid:sp_mid.col=0) ids=0 cover=0 coverFn=0 ⊢ inputs=full lo=[own=k]",
    "accum_content_on_pendingMapValue_indented #1 ctor:pendingProps.h_closeFE idx=n + 1 mono=1(h_mono:sc) monoOpt=0 base=1(h_base:sc) baseOpt=0 prep=1(h_preprocess:sc→s_prep,c) dispB=0 dispC=1(h_dispatch:c) hc=0 chr=0 corr=3(hcorr_prep:s_prep,hcorr_result:s',h_corr:sc) noflow=1(h_flow_disp) save=1(h_sk_s) fl=0 top=0 larm=0 floor=1(h_floor_old:sc@n + 1) nic=2(h_nic_mv:sc,h_nic_s:s') armed=0 col0=1(h_col0_old:0<sp_scan.col) ids=0 cover=4(h_closeF99@2:Floor(n,n :: ks),h_frames99@2:Floor(n,ks),h_closeFV108@2:Floor(n + 1,ks),h_framesV108@2:Floor(n + 1,ks)) coverFn=1(h_cov_step) ⊢ inputs=missing(floorSrc) lo=[relay=h_closeF99:Floor(n,n :: ks);relay=h_frames99:Floor(n,ks);relay=h_closeFV108:Floor(n + 1,ks);relay=h_framesV108:Floor(n + 1,ks)]",
    "colon_open_map_explicit #1 ctor:pendingMapValue.h_closeF idx=nv mono=0 monoOpt=0 base=0 baseOpt=0 prep=0 dispB=1(h_dispatch:':') dispC=0 hc=0 chr=0 corr=3(hcorr_prep:s_prep,hcorr_result:s',hcorr_colon:s') noflow=1(h_noflow_disp) save=0 fl=0 top=1(h_top_in:s'≤nv) larm=0 floor=1(h_floor_in:s'@nv + 1) nic=2(h_nic_disp:s_prep*,hpf.1:s') armed=0 col0=1(hcol_mid:sp_mid.col=0) ids=0 cover=0 coverFn=0 ⊢ inputs=missing(mono,base,prep) lo=[own=nv]",
-   "compact_open_map #1 ctor:pendingMapValue.h_closeF idx=n + 1 + m mono=0 monoOpt=0 base=0 baseOpt=0 prep=1(h_preprocess:sc→s_prep,c) dispB=1(h_dispatch:c) dispC=0 hc=1(hc:':'|'?') chr=0 corr=2(hcorr_prep:s_prep,hcorr_result:s') noflow=1(h_noflow_disp) save=0 fl=0 top=1(h_top_in:s'≤n + 1 + m) larm=0 floor=1(h_floor:s'@n + 1 + m + 1) nic=2(h_nic_disp:s_prep*,hpk.1:s') armed=0 col0=0 ids=0 cover=0 coverFn=0 ⊢ inputs=missing(mono,base) lo=[own=n + 1 + m]",
    "content_dispatch_routed #1 ctor:pendingProps.h_closeFE idx=0 mono=0 monoOpt=0 base=0 baseOpt=0 prep=0 dispB=0 dispC=1(h_dispatch:c) hc=1(hprops:'&'|'!') chr=1(h:c='&') corr=3(hcorr_prep:s_prep,hcorr_result:s',hc:s') noflow=1(h_flow_disp) save=0 fl=0 top=0 larm=0 floor=0 nic=3(h_nic_prep:s_prep,h_nic_ad:s_prep*,h_nic_s:s') armed=0 col0=0 ids=0 cover=0 coverFn=1(h_cov_lift) ⊢ inputs=missing(mono,base,prep,floorSrc) lo=[] idx0",
    "content_dispatch_routed #2 ctor:pendingProps.h_closeFE idx=0 mono=0 monoOpt=0 base=0 baseOpt=0 prep=0 dispB=0 dispC=1(h_dispatch:c) hc=1(hprops:'&'|'!') chr=1(h:c='!') corr=3(hcorr_prep:s_prep,hcorr_result:s',hc:s') noflow=1(h_flow_disp) save=0 fl=0 top=0 larm=0 floor=0 nic=3(h_nic_prep:s_prep,h_nic_ad:s_prep*,h_nic_s:s') armed=0 col0=0 ids=0 cover=0 coverFn=1(h_cov_lift) ⊢ inputs=missing(mono,base,prep,floorSrc) lo=[] idx0"]
 def expectedShapes : List String :=
@@ -428,11 +548,36 @@ def expectedBounds : List String :=
   ["accum_block_on_pendingBlock #1 idx=k ctor=s' where=landed bounds=[h_top_old:sc≤n floor=n + 1 at(by hkn:k=n) old mono=yes] ⊢ at-index",
    "accum_content_on_pendingMapValue_indented #1 idx=n + 1 ctor=s' where=inline bounds=[] ⊢ no-bound",
    "colon_open_map_explicit #1 idx=nv ctor=s' where=landed bounds=[h_top_in:s'≤nv floor=nv + 1 at(syn) own mono=—] ⊢ at-index",
-   "compact_open_map #1 idx=n + 1 + m ctor=s' where=— bounds=[h_top_in:s'≤n + 1 + m floor=n + 1 + m + 1 at(syn) own mono=—] ⊢ at-index",
    "content_dispatch_routed #1 idx=0 ctor=s' where=— bounds=[] ⊢ no-bound",
    "content_dispatch_routed #2 idx=0 ctor=s' where=— bounds=[] ⊢ no-bound"]
+def expectedCallers : List String :=
+  ["colon_open_map_explicit #1 ← accum_block_on_closeThenBlock #1 state=s_prep mono=no base=no bounds=[] idx=k ⊢ no-mono,no-bound",
+   "colon_open_map_explicit #1 ← accum_block_on_pendingBlock #1 state=s_prep mono=no base=no bounds=[] idx=k ⊢ no-mono,no-bound",
+   "colon_open_map_explicit #1 ← accum_block_on_pendingBlockContent #1 state=s_prep mono=no base=no bounds=[] idx=k ⊢ no-mono,no-bound",
+   "content_dispatch_routed #1 ← accum_content_on_noPending #1 state=s_prep mono=no base=no bounds=[] idx=0 ⊢ no-mono,no-bound",
+   "content_dispatch_routed #1 ← accum_content_on_noPending #2 state=s_prep mono=no base=no bounds=[] idx=0 ⊢ no-mono,no-bound",
+   "content_dispatch_routed #1 ← accum_content_pending #1 state=s_prep mono=no base=no bounds=[] idx=0 ⊢ no-mono,no-bound",
+   "content_dispatch_routed #1 ← accum_content_pending #2 state=s_prep mono=no base=no bounds=[] idx=0 ⊢ no-mono,no-bound",
+   "content_dispatch_routed #1 ← accum_content_pending #3 state=s_prep mono=no base=no bounds=[] idx=0 ⊢ no-mono,no-bound",
+   "content_dispatch_routed #1 ← accum_content_pending #4 state=s_prep mono=no base=no bounds=[] idx=0 ⊢ no-mono,no-bound",
+   "content_dispatch_routed #1 ← accum_content_pending #5 state=s_prep mono=no base=no bounds=[] idx=0 ⊢ no-mono,no-bound",
+   "content_dispatch_routed #1 ← content_dispatch_after_close #1 state=s_prep mono=no base=no bounds=[] idx=0 ⊢ no-mono,no-bound",
+   "content_dispatch_routed #2 ← accum_content_on_noPending #1 state=s_prep mono=no base=no bounds=[] idx=0 ⊢ no-mono,no-bound",
+   "content_dispatch_routed #2 ← accum_content_on_noPending #2 state=s_prep mono=no base=no bounds=[] idx=0 ⊢ no-mono,no-bound",
+   "content_dispatch_routed #2 ← accum_content_pending #1 state=s_prep mono=no base=no bounds=[] idx=0 ⊢ no-mono,no-bound",
+   "content_dispatch_routed #2 ← accum_content_pending #2 state=s_prep mono=no base=no bounds=[] idx=0 ⊢ no-mono,no-bound",
+   "content_dispatch_routed #2 ← accum_content_pending #3 state=s_prep mono=no base=no bounds=[] idx=0 ⊢ no-mono,no-bound",
+   "content_dispatch_routed #2 ← accum_content_pending #4 state=s_prep mono=no base=no bounds=[] idx=0 ⊢ no-mono,no-bound",
+   "content_dispatch_routed #2 ← accum_content_pending #5 state=s_prep mono=no base=no bounds=[] idx=0 ⊢ no-mono,no-bound",
+   "content_dispatch_routed #2 ← content_dispatch_after_close #1 state=s_prep mono=no base=no bounds=[] idx=0 ⊢ no-mono,no-bound"]
+def expectedLack : List String :=
+  ["colon_open_map_explicit #1 ctor:pendingMapValue.h_closeF lacks=[mono,base,prep] idx=nv pre=s_prep(disp) callers=3 supplied=0 step=[IndentStackCover.dispatchBlockIndicators_cover→CoverStep] shape=Covered(lo,ks,s) ∨ ∃c.s.indents.back?=some(c,false) ∧ Covered(lo,c :: ks,s) consed=existential pin=top∧floor(h_top_in,h_floor_in) ⊢ callers-short",
+   "content_dispatch_routed #1 ctor:pendingProps.h_closeFE lacks=[mono,base,prep,floorSrc] idx=0 pre=s_prep(disp) callers=8 supplied=0 step=[IndentStackCover.dispatchContent_cover→Covered] shape=Covered consed=none pin=— ⊢ callers-short,no-pin",
+   "content_dispatch_routed #2 ctor:pendingProps.h_closeFE lacks=[mono,base,prep,floorSrc] idx=0 pre=s_prep(disp) callers=8 supplied=0 step=[IndentStackCover.dispatchContent_cover→Covered] shape=Covered consed=none pin=— ⊢ callers-short,no-pin"]
+def expectedNamed : String :=
+  "named=[CoverStep.cons_of_top_eq,Covered.cons,Covered.dedup_head,Covered.pop_to,IndentStackCover.covered_singleton_of_top_le,IndentStackCover.pushMappingIndent_cover,IndentStackCover.scanValuePrepare_cover_key,IndentStackCover.scanValue_cover_key]"
 def expectedLine : String :=
-  "sites=6 pb=1 pmv=2 props=3 idx0=2 mono=2 monoOpt=0 base=2 baseOpt=0 prep=3 dispB=3 dispC=3 hc=3 chr=3 dash=1 corr=6 noflow=6 save=1 fl=0 top=3 larm=1 floor=3 nic=6 armed=0 col0=3 ids=0 coverSites=1 coverBinders=4 coverFnSites=3 full=1 fullB=1 missMono=4 missBase=4 missPrep=3 missFloorSrc=3 own=3 empty=0 relay=1 relayEntries=4 bounds=3 below=0 belowSyn=0 belowArm=0 at=3 atSyn=2 atArm=1 undecided=0 bOwn=2 bOld=1 landedBelow=0 inlineBelow=0 payable=0 rows=169 nodes=95157"
+  "sites=5 pb=1 pmv=1 props=3 idx0=2 mono=2 monoOpt=0 base=2 baseOpt=0 prep=2 dispB=2 dispC=3 hc=2 chr=3 dash=1 corr=5 noflow=5 save=1 fl=0 top=2 larm=1 floor=2 nic=5 armed=0 col0=3 ids=0 coverSites=1 coverBinders=4 coverFnSites=3 full=1 fullB=1 missMono=3 missBase=3 missPrep=3 missFloorSrc=3 own=2 empty=0 relay=1 relayEntries=4 bounds=2 below=0 belowSyn=0 belowArm=0 at=2 atSyn=1 atArm=1 undecided=0 bOwn=1 bOld=1 landedBelow=0 inlineBelow=0 payable=0 lack=3 lackCallers=19 lackSupplied=0 lackPayable=0 named=8 rows=169 nodes=95163"
 
 /-! ## §3 The reading -/
 
@@ -490,7 +635,9 @@ run_cmd Lean.Elab.Command.liftTermElabM do
         | _ => break
       cd := { cd with paramNames := cd.paramNames.insert n names }
       let inCoverMod := (env.getModuleIdxFor? n).map (env.header.moduleNames[·.toNat]!) == some coverMod
-      let transport := (piConcl ci.type).isAppOf coveredN || (inCoverMod && hasCov (piConcl ci.type))
+      -- item 259: a cover TYPE (`CoverStep`) concluded in the cover module is a
+      -- transport too — the step across a `?`/`:` dispatch concludes it
+      let transport := (piConcl ci.type).isAppOf coveredN || (inCoverMod && hasCovT cd.coverTypes (piConcl ci.type))
       if !ps.isEmpty && !transport then
         cd := { cd with lemParams := cd.lemParams.insert n ps, consts := cd.consts.insert n }
     | _ => pure ()
@@ -563,6 +710,105 @@ run_cmd Lean.Elab.Command.liftTermElabM do
       | _ => break
     let some l := found | throwError "{c}.{f}: no such field"
     shapeLines := shapeLines.push l
+  -- §6 the callers of each site lacking `Mono`, and the step
+  let coverThms : Array (Name × ConstantInfo) := (env.constants.toList.filter fun (n, ci) =>
+    ci matches .thmInfo _ && (env.getModuleIdxFor? n).map (env.header.moduleNames[·.toNat]!) == some coverMod).toArray
+  let namedLemmas := (coverThms.filter fun (_, ci) =>
+      let c := piConcl ci.type
+      c.isAppOfArity coveredN 3 && (c.getArg! 1).consumeMData.isAppOf ``List.cons).map (fun (n, _) => last2 n) |>.qsort (· < ·)
+  let namedS := s!"named=[{String.intercalate "," namedLemmas.toList}]"
+  let fmtNs (xs : Array String) : String :=
+    if xs.isEmpty then "no" else "yes(" ++ String.intercalate "," (xs.map fun s => (s.splitOn ":")[0]!).toList ++ ")"
+  let mut callerLines : Array String := #[]
+  let mut lackLines : Array String := #[]
+  let mut lackN := 0
+  let mut lackCallers := 0
+  let mut lackSupplied := 0
+  let mut lackPayable := 0
+  for (r, idx, ins) in sites do
+    let v := verdict ins idx
+    unless (v.splitOn "missing(mono").length > 1 do continue
+    lackN := lackN + 1
+    let some ci := env.find? r.lem | throwError "{r.lem}: missing"
+    let some (pos, how) := preStateParam ci.type | throwError "{short r.lem}: no pre-dispatch state parameter"
+    let names := ci.type.getForallBinderNames.toArray.map bname
+    let (_, idxSum) ← idxOf r
+    let ctorState := ppc r.st r.args[0]!
+    let missingS := ((v.splitOn "missing(")[1]!.splitOn ")")[0]!
+    -- the callers
+    let mut k := 0
+    let mut sup := 0
+    for n in sorted thms do
+      if n == r.lem then continue
+      let some (.thmInfo ti) := env.find? n | continue
+      unless ti.value.foldConsts false (fun c a => a || c == r.lem) do continue
+      let mut occ := 0
+      for (st, args) in appsOf r.lem #[] ti.value #[] do
+        occ := occ + 1
+        k := k + 1
+        let argS := if pos < args.size then ppc st args[pos]! else "?"
+        let cins := inputsAt st
+        let about (s : String) : Bool := ((s.splitOn ":").getLast?).getD "" == argS
+        let monoNs := cins.mono.filter about
+        let baseNs := cins.base.filter about
+        let instSum := idxSum.map fun x => match names.findIdx? (· == x) with
+          | some p => if p < args.size then ppc st args[p]! else x
+          | none => x
+        let instIdx := String.intercalate " + " instSum
+        let mut bparts : Array String := #[]
+        let mut below := false
+        for (nm, state, sym, rhs) in cins.tops do
+          if state != argS then continue
+          let (floor, c, bhow) := boundVs instIdx instSum cins.rels sym rhs
+          if c == "below" then below := true
+          bparts := bparts.push s!"{nm}:{state}{sym}{rhs} floor={floor} {c}({bhow})"
+        let ok := !monoNs.isEmpty && below
+        if ok then sup := sup + 1
+        let vc := if ok then "supplied" else String.intercalate "," (
+          (if monoNs.isEmpty then ["no-mono"] else []) ++
+          (if bparts.isEmpty then ["no-bound"] else if !below then ["no-below"] else []))
+        callerLines := callerLines.push s!"  {short r.lem} #{r.occ} ← {short n} #{occ} state={argS} mono={fmtNs monoNs} base={fmtNs baseNs} bounds=[{String.intercalate "; " bparts.toList}] idx={instIdx} ⊢ {vc}"
+    lackCallers := lackCallers + k
+    lackSupplied := lackSupplied + sup
+    -- the step the library holds for the site's dispatch
+    let fnN := if !ins.dispB.isEmpty then ``scanNextToken_dispatchBlockIndicators else ``scanNextToken_dispatchContent
+    let steps := (coverThms.filter fun (_, ci) =>
+      let bs := binderTypes ci.type
+      (bs.any fun t => match rel (piConcl t) with | some ("=", l, _) => l.consumeMData.isAppOf fnN | _ => false) &&
+        bs.any hasCov).map (fun (n, ci) => (n, piConcl ci.type)) |>.qsort (fun a b => a.1.toString < b.1.toString)
+    let stepS := String.intercalate "," (steps.map fun (n, c) => s!"{last2 n}→{match c.getAppFn with | .const h _ => short h | _ => "?"}").toList
+    let shapeS := match steps[0]? with
+      | some (_, c) =>
+        match c.getAppFn with
+        | .const h _ =>
+          if h == coveredN then "Covered" else
+          match env.find? h with
+          | some (.defnInfo dv) =>
+            -- the definition's body under its own binders
+            let rec peel (st : Stack) (e : Expr) : Stack × Expr := match e.consumeMData with
+              | .lam n ty b _ => peel (st.push { name := n, ty := ty, prov := none }) b
+              | e => (st, e)
+            let (st, body) := peel #[] dv.value
+            shapeOf st body
+          | _ => short h
+        | _ => "?"
+      | none => "—"
+    let consed := if (shapeS.splitOn "∃").length > 1 then "existential" else if (shapeS.splitOn "::").length > 1 then "named" else "none"
+    -- the pin: the top from both sides, on the constructor's own state
+    let topAt := ins.tops.filter fun (_, state, sym, rhs) => state == ctorState && sym == "≤" && rhs == idx
+    let floorAbove := ins.floor.filter fun f => ((f.splitOn ":")[1]?).getD "" == s!"{ctorState}@{idx} + 1"
+    let nm (xs : Array String) := String.intercalate "," (xs.map fun s => (s.splitOn ":")[0]!).toList
+    let pinS := if !topAt.isEmpty && !floorAbove.isEmpty then s!"top∧floor({nm (topAt.map (·.1))},{nm floorAbove})"
+      else if !topAt.isEmpty then s!"top({nm (topAt.map (·.1))})"
+      else if !floorAbove.isEmpty then s!"floor({nm floorAbove})" else "—"
+    let pinned := !topAt.isEmpty && !floorAbove.isEmpty
+    let payable := k > 0 && sup == k && !steps.isEmpty && pinned
+    if payable then lackPayable := lackPayable + 1
+    let vs := if payable then "payable-through-callers" else String.intercalate "," (
+      (if k == 0 then ["no-caller"] else if sup < k then ["callers-short"] else []) ++
+      (if steps.isEmpty then ["no-step"] else []) ++ (if !pinned then ["no-pin"] else []))
+    lackLines := lackLines.push s!"  {short r.lem} #{r.occ} {r.target} lacks=[{missingS}] idx={idx} pre={names[pos]?.getD "?"}({how}) callers={k} supplied={sup} step=[{stepS}] shape={shapeS} consed={consed} pin={pinS} ⊢ {vs}"
+  let lackCounts := s!"lack={lackN} lackCallers={lackCallers} lackSupplied={lackSupplied} lackPayable={lackPayable} named={namedLemmas.size}"
   -- the counts
   let n (p : Inputs → Array String) := (sites.filter fun (_, _, i) => !(p i).isEmpty).size
   let vs := sites.map fun (_, idx, i) => verdict i idx
@@ -581,15 +827,21 @@ hc={n (·.hc)} chr={n (·.chr)} dash={(sites.filter fun (_, _, i) => i.chr.any f
 col0={n (·.col0)} ids={n (·.ids)} coverSites={n (·.cover)} coverBinders={sites.foldl (fun a (_, _, i) => a + i.cover.size) 0} coverFnSites={n (·.coverFn)} \
 full={cnt "inputs=full"} fullB={cnt "inputs=full "} missMono={cnt "missing(mono"} missBase={(vs.filter fun v => (v.splitOn "base").length > 1).size} missPrep={(vs.filter fun v => (v.splitOn "prep").length > 1).size} missFloorSrc={cnt "floorSrc"} \
 own={cnt "own="} empty={cnt "empty=0"} relay={cnt "relay="} relayEntries={vs.foldl (fun a v => a + ((v.splitOn "relay=").length - 1)) 0} \
-{boundCounts} rows={w.rows.size} nodes={w.nodes}"
+{boundCounts} {lackCounts} rows={w.rows.size} nodes={w.nodes}"
   logInfo s!"PuntCoverInputs {got}"
   logInfo s!"sites:\n{String.intercalate "\n" siteLines.toList}"
   logInfo s!"shapes:\n{String.intercalate "\n" shapeLines.toList}"
   logInfo s!"bounds:\n{String.intercalate "\n" boundLines.toList}"
-  unless sites.size == 6 do throwError "the six punts moved under this pass: sites={sites.size}"
+  logInfo s!"callers:\n{String.intercalate "\n" callerLines.toList}"
+  logInfo s!"lack:\n{String.intercalate "\n" lackLines.toList}"
+  logInfo namedS
+  unless sites.size == 5 do throwError "the five punts moved under this pass: sites={sites.size}"
   check "expectedSites" siteLines expectedSites
   check "expectedShapes" shapeLines expectedShapes
   check "expectedBounds" boundLines expectedBounds
+  check "expectedCallers" callerLines expectedCallers
+  check "expectedLack" lackLines expectedLack
+  unless namedS == expectedNamed do throwError "named-level lemmas moved:\n  got      {namedS}\n  expected {expectedNamed}"
   unless got == expectedLine do
     throwError "PuntCoverInputs moved:\n  got      {got}\n  expected {expectedLine}"
 

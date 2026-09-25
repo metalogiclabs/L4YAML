@@ -834,8 +834,8 @@ width. The root's price is one parameter, monotonicity, which its caller
 binds and it does not; the cover it pays follows from monotonicity and a
 negative top in four lines.
 
-**And with the five payments that can be made made, the two close-stack
-trees read five paid leaves, sixteen punts and two cover-punts each, as one
+**And with the six payments that can be made made, the two close-stack
+trees read six paid leaves, fifteen punts and two cover-punts each, as one
 component** ([`CloseStackCover.lean`](../Tests/Guards/Proofs/CloseStackCover.lean),
 [`PaidLeafDelta.lean`](../Tests/Guards/Proofs/PaidLeafDelta.lean)). The root
 `-` pays its resume frames with a literal cover at floor zero, from the seed's
@@ -848,11 +848,19 @@ park's two re-parks, the inline compact `- - a` and the nested landing
 `-⏎  - a`, pay theirs with the same literal from the park's own top bound,
 floored one column above the park and below each re-park's index — the
 nested landing's bound is the old park's, and it survives the break because
-preprocessing's unwind only pops. The relay the compact fill cannot make is
-the mapping value park's: that closure awaits a block node read at the park's
-position, and the compact fill's node is a compact sequence on the slot's own
-line. Of the six producers that still punt, three hold no top bound and three
-hold one at their own index
+preprocessing's unwind only pops; and the compact opener `- : v` / `- ? k`,
+whose slot's own bound is at its index, pays the mapping value park's frames
+from what its two callers hold — the stack's monotonicity and a bound below
+the slot's index on the state before the dispatch — carried across the
+indicator's step, whose opened level the top pinned from both sides names as
+the slot's index
+([`IndentStackCover.lean`](../L4YAML/Proofs/Scanner/IndentStackCover.lean)).
+The relay the compact fill cannot make is the mapping value park's: that
+closure awaits a block node read at the park's position, and the compact
+fill's node is a compact sequence on the slot's own line. Of the five
+producers that still punt, three hold no top bound and two hold one at their
+own index, and the three that lack the stack's monotonicity are called with a
+state no caller bounds below the index
 ([`PuntCoverInputs.lean`](../Tests/Guards/Proofs/PuntCoverInputs.lean)). The
 refused relay would add two positions and one punt to each tree and no paid
 leaf.

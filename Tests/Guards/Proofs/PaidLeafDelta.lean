@@ -5,7 +5,7 @@ Released under Apache 2.0 license as described in the file LICENSE.
 import Tests.Guards.Proofs.PuntCoverInputs
 
 /-!
-# What the one refused relay would add to the trees, once the root's literal, the content sibling's relay, the compact fill's literal and the entry park's two re-park literals are made (DOCS items 255–258)
+# What the one refused relay would add to the trees, once the root's literal, the content sibling's relay, the compact fill's literal and the entry park's two re-park literals are made (DOCS items 255–259)
 
 Item 255 priced the four payments item 254 found in hand — the root `-`'s
 floor-zero cover and three relays — by rewriting item 253's rows in the row
@@ -19,7 +19,11 @@ slot's own line — and item 257 pays that site with a literal instead, from
 the slot's own top bound (`IndentStackCover.covered_nil_of_top_le`), floored
 below the fill's index; item 258 pays the entry park's two re-parks — the
 inline compact and the nested landing — with the same literal from the park's
-own top bound, floored below each index.  The mapping value content's relay of `h_frames99`
+own top bound, floored below each index; item 259 pays the compact opener's
+`pendingMapValue.h_closeF` with a literal from the CALLER's park bound, carried
+across the indicator's own step and named by the pinned top
+(`IndentStackCover.CoverStep.cons_of_top_eq`), floored below the slot's index
+— a leaf of all four trees.  The mapping value content's relay of `h_frames99`
 forwards a cover floored at the props park's entry index, item 148's
 vacuity, and is refused.  This module keeps the refused relay as the one
 payment in hand and reads what it would add.
@@ -210,11 +214,11 @@ partial def scanFloors (st : IO.Ref FS) (lem : Name) (stk : Stack) (e : Expr) : 
 /-! ## §3 The pins -/
 
 def expectedTrees255 : List String :=
-  ["none content: positions=16 rows=47 paid=5 punt=16 cover-punt=2 open=2 origins=5 Δ(paid=+0 punt=+0 cover-punt=+0 open=+0 positions=+0)",
-   "none entry: positions=16 rows=47 paid=5 punt=16 cover-punt=2 open=2 origins=5 Δ(paid=+0 punt=+0 cover-punt=+0 open=+0 positions=+0)",
+  ["none content: positions=16 rows=47 paid=6 punt=15 cover-punt=2 open=2 origins=6 Δ(paid=+0 punt=+0 cover-punt=+0 open=+0 positions=+0)",
+   "none entry: positions=16 rows=47 paid=6 punt=15 cover-punt=2 open=2 origins=6 Δ(paid=+0 punt=+0 cover-punt=+0 open=+0 positions=+0)",
    "none merged=true",
-   "R4 content: positions=18 rows=54 paid=5 punt=17 cover-punt=2 open=2 origins=5 Δ(paid=+0 punt=+1 cover-punt=+0 open=+0 positions=+2)",
-   "R4 entry: positions=18 rows=54 paid=5 punt=17 cover-punt=2 open=2 origins=5 Δ(paid=+0 punt=+1 cover-punt=+0 open=+0 positions=+2)",
+   "R4 content: positions=18 rows=54 paid=6 punt=16 cover-punt=2 open=2 origins=6 Δ(paid=+0 punt=+1 cover-punt=+0 open=+0 positions=+2)",
+   "R4 entry: positions=18 rows=54 paid=6 punt=16 cover-punt=2 open=2 origins=6 Δ(paid=+0 punt=+1 cover-punt=+0 open=+0 positions=+2)",
    "R4 merged=true"]
 def expectedPayments : List String :=
   ["R4 relay accum_content_on_pendingMapValue_indented #1 ctor:pendingProps.h_closeFE idx=n + 1 src=h_frames99@2:Floor(n,ks) tgt=bound(ks<ne) Floor(ne,ks) eq(n=ne + 1) := match[paid{cover=step(relay(param:accum_content_on_pendingMapValue_indented.h_frames99))}|punt]"]
@@ -241,6 +245,7 @@ def expectedFloorLits : List String :=
    "colon_open_map_implicit lo=lo idx=k ks=k :: ks var ×2",
    "colon_open_map_props lo=lo idx=k + 1 ks=k :: ks var ×2",
    "colon_open_map_props lo=lo idx=k ks=k :: ks var ×2",
+   "compact_open_map lo=n + 1 idx=n + 1 + m ks=n + 1 + m :: [] lit ×1",
    "content_dispatch_routed lo=lo idx=k ks=k :: ks var ×2",
    "content_dispatch_routed lo=lo idx=k ks=k :: ksv var ×2",
    "dedent_cover_of_floor lo=lo idx=w ks=w :: ks' var ×1",
@@ -258,7 +263,7 @@ def expectedTransports : List String :=
    "Covered.dedup_head: 2 in 2 [colon_open_map_implicit=1, colon_open_map_props=1]",
    "Covered.cons: 4 in 2 [entryKeyPack_of_dispatch=2, entryPropsKeyPack_of_dispatch=2]"]
 def expectedLine : String :=
-  "rows=169 payments=1 literal=0 relay=1 scenarios=2 baseContent=16/5/16/2/2 allContent=18/5/17/2/2 baseEntry=16/5/16/2/2 allEntry=18/5/17/2/2 turnedPaidContent=0 turnedPaidEntry=0 originsBaseContent=5 originsAllContent=5 originsBaseEntry=5 originsAllEntry=5 puntContent=+1 puntEntry=+1 coverPuntContent=+0 coverPuntEntry=+0 mergedBase=true mergedAll=true floorLits=85 own=12 lit=4 var=69 ownLemmas=2 scanned=32 monoIndex=9 monoIndexLemmas=5 floorCons=4 floorConsLemmas=2 floorPopTo=1 floorPopToLemmas=1 leOfMem=0 coveredPopTo=1 coveredPopToLemmas=1 raiseFloor=0 dedupHead=2 dedupHeadLemmas=2 coveredCons=4 rootMonoCaller=1 rootMonoSite=1 rootNtop=1 nodes=95157 floorNodes=24432"
+  "rows=169 payments=1 literal=0 relay=1 scenarios=2 baseContent=16/6/15/2/2 allContent=18/6/16/2/2 baseEntry=16/6/15/2/2 allEntry=18/6/16/2/2 turnedPaidContent=0 turnedPaidEntry=0 originsBaseContent=6 originsAllContent=6 originsBaseEntry=6 originsAllEntry=6 puntContent=+1 puntEntry=+1 coverPuntContent=+0 coverPuntEntry=+0 mergedBase=true mergedAll=true floorLits=86 own=12 lit=5 var=69 ownLemmas=2 scanned=32 monoIndex=9 monoIndexLemmas=5 floorCons=4 floorConsLemmas=2 floorPopTo=1 floorPopToLemmas=1 leOfMem=0 coveredPopTo=1 coveredPopToLemmas=1 raiseFloor=0 dedupHead=2 dedupHeadLemmas=2 coveredCons=4 rootMonoCaller=1 rootMonoSite=1 rootNtop=1 nodes=95163 floorNodes=24474"
 
 /-! ## §4 The reading -/
 
@@ -316,7 +321,9 @@ run_cmd Lean.Elab.Command.liftTermElabM do
         | _ => break
       cd := { cd with paramNames := cd.paramNames.insert n names }
       let inCoverMod := (env.getModuleIdxFor? n).map (env.header.moduleNames[·.toNat]!) == some coverMod
-      let transport := (piConcl ci.type).isAppOf coveredN || (inCoverMod && hasCov (piConcl ci.type))
+      -- item 259: a cover TYPE (`CoverStep`) concluded in the cover module is a
+      -- transport too — the step across a `?`/`:` dispatch concludes it
+      let transport := (piConcl ci.type).isAppOf coveredN || (inCoverMod && hasCovT cd.coverTypes (piConcl ci.type))
       if !ps.isEmpty && !transport then
         cd := { cd with lemParams := cd.lemParams.insert n ps, consts := cd.consts.insert n }
     | _ => pure ()

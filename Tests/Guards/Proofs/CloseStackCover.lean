@@ -268,8 +268,9 @@ partial def classify (ct : Std.HashSet Name) (st : Stack) (e : Expr) (path : Lis
   let env ← getEnv
   let isThm (n : Name) : Bool := match env.find? n with | some (.thmInfo _) => true | _ => false
   -- a theorem whose conclusion mentions the cover: a step or a payment
+  -- item 259: a conclusion in a cover TYPE (`CoverStep`) is a cover too
   let coverThm (n : Name) : Bool := match env.find? n with
-    | some (.thmInfo ti) => n.getRoot == `L4YAML && hasCov (piConcl ti.type)
+    | some (.thmInfo ti) => n.getRoot == `L4YAML && hasCovT ct (piConcl ti.type)
     | _ => false
   let viaArgs (name : String) (args : Array Expr) : MetaM Cls := do
     for a in args do
@@ -793,10 +794,18 @@ literal at floor 0 and the content sibling by relaying `h_closeF_old` — and
 item 257 a third, the compact fill with a literal from the slot's own top
 bound, floored below the fill's index, and item 258 two more, the entry park's
 compact and nested re-parks with the same literal from the park's own top
-bound — so the rows below carry those five classes, the content and entry
-trees are one component of sixteen positions with five paid leaves and
-sixteen punts each, and the value-slot and mapping value trees stand as item
-253 read them. -/
+bound, and item 259 a sixth, the compact opener's `pendingMapValue.h_closeF`
+with a literal from the CALLER's park bound carried across the indicator's
+own step (`CoverStep.cons_of_top_eq`, the level named by the pinned top) —
+so the rows below carry those six classes, the content and entry trees are
+one component of sixteen positions with six paid leaves and fifteen punts
+each, and the value-slot and mapping value trees each read one more paid
+leaf than item 253 did, the mapping value field being a position of all
+four.  Item 259 also widens the transport rule to cover TYPES (§2's
+`coverThm`, the `transport` test below): the six `CoverStep`-concluding
+lemmas leave the lemma-parameter table (`lemParams` 35 → 29, `lemmas` 22 →
+16, `positions` 27 → 21) and no row moves; the payment adds six walked
+nodes (`nodes` 95157 → 95163). -/
 
 def expectedRows : List String :=
   ["accum_block_on_closeThenBlock #1 fn:accum_block_on_closeThenBlock.h_cov_step := via:IndentStackCover.scanBlockEntry_cover(via:Covered.of_indents_eq(via:IndentStackCover.preprocess_cover(relay(fnp:accum_block_on_closeThenBlock.h_cov_step.hc))))",
@@ -937,7 +946,7 @@ def expectedRows : List String :=
    "colon_open_map_props #1 ctor:pendingMapValue.h_frames := match[paid{cover=step(relay(param:colon_open_map_props.h_routeF))}|punt]",
    "colon_open_map_props #1 ctor:pendingMapValue.h_closeFV := match[paid{cover=step(relay(param:colon_open_map_props.h_routeFV))}|punt]",
    "colon_open_map_props #1 ctor:pendingMapValue.h_framesV := match[paid{cover=step(relay(param:colon_open_map_props.h_routeFV))}|punt]",
-   "compact_open_map #1 ctor:pendingMapValue.h_closeF := punt",
+   "compact_open_map #1 ctor:pendingMapValue.h_closeF := paid{cover=lit(lo=n + 1,idx=n + 1 + m,ks=n + 1 + m :: [],by=via:CoverStep.cons_of_top_eq(via:IndentStackCover.dispatchBlockIndicators_cover(via:Covered.of_indents_eq(via:IndentStackCover.preprocess_cover(lemma(IndentStackCover.covered_nil_of_top_le))))))}",
    "compact_open_map #1 ctor:pendingMapValue.h_frames := punt",
    "compact_open_map #1 ctor:pendingMapValue.h_closeFV := punt",
    "compact_open_map #1 ctor:pendingMapValue.h_framesV := punt",
@@ -968,11 +977,16 @@ def expectedRows : List String :=
    "question_open_map #1 ctor:pendingMapValue.h_frames := paid{cover=relay(val:question_open_map.h✝)}",
    "question_open_map #1 ctor:pendingMapValue.h_closeFV := paid{cover=step(relay(param:question_open_map.h_cov_nil))}",
    "question_open_map #1 ctor:pendingMapValue.h_framesV := paid{cover=step(relay(param:question_open_map.h_cov_nil))}"]
+-- Item 259: the compact opener's payment of `pendingMapValue.h_closeF` is a
+-- leaf of ALL FOUR trees — the mapping value field is a position of the
+-- content and entry trees through `accum_block_pending`'s door and of the
+-- value-frames tree through the same relay — so each reads one more paid
+-- leaf and one punt fewer (`valF` was not predicted; the other three were).
 def expectedTrees : List String :=
-  ["content: positions=16 rows=47 leaves[cover-punt=2 open:fnparam:colon_fires_implicit_key.h_key=1 open:fnparam:colon_fires_props_key.h_key=1 paid=5 punt=16] open=2",
-   "entry: positions=16 rows=47 leaves[cover-punt=2 open:fnparam:colon_fires_implicit_key.h_key=1 open:fnparam:colon_fires_props_key.h_key=1 paid=5 punt=16] open=2",
-   "valF: positions=9 rows=24 leaves[open:fnparam:colon_fires_implicit_key.h_key=1 open:fnparam:colon_fires_props_key.h_key=1 paid=1 punt=12] open=2",
-   "mapValue: positions=8 rows=13 leaves[open:fnparam:colon_fires_implicit_key.h_key=1 open:fnparam:colon_fires_props_key.h_key=1 paid=1 punt=3] open=2"]
+  ["content: positions=16 rows=47 leaves[cover-punt=2 open:fnparam:colon_fires_implicit_key.h_key=1 open:fnparam:colon_fires_props_key.h_key=1 paid=6 punt=15] open=2",
+   "entry: positions=16 rows=47 leaves[cover-punt=2 open:fnparam:colon_fires_implicit_key.h_key=1 open:fnparam:colon_fires_props_key.h_key=1 paid=6 punt=15] open=2",
+   "valF: positions=9 rows=24 leaves[open:fnparam:colon_fires_implicit_key.h_key=1 open:fnparam:colon_fires_props_key.h_key=1 paid=2 punt=11] open=2",
+   "mapValue: positions=8 rows=13 leaves[open:fnparam:colon_fires_implicit_key.h_key=1 open:fnparam:colon_fires_props_key.h_key=1 paid=2 punt=2] open=2"]
 def expectedEight : List String :=
   ["accum_block_on_pendingBlock indicator_open_map.h_stream_land indents=0 top=1(h_top_old) floor=0 minCI=0 nic=1(h_nic_old) prep=1(h_preprocess) base=1(h_base) mono=1(h_mono) cover=0",
    "accum_block_on_pendingBlock colon_open_map_explicit.h_stream_mid indents=0 top=1(h_top_old) floor=0 minCI=0 nic=1(h_nic_old) prep=1(h_preprocess) base=1(h_base) mono=1(h_mono) cover=0",
@@ -1025,7 +1039,7 @@ def expectedDoor : List String :=
    "accum_structural_pending: door:pendingProps.h_closeFE dropped",
    "accum_structural_pending: door:pendingProps.h_closeFV dropped"]
 def expectedLine : String :=
-  "positions=27 ctorFields=11 lemParams=35 lemmas=22 walked=24 doors=8 rows=169 ctorRows=79 lemRows=55 localRows=4 fnRows=19 fnpRows=10 valRows=2 coverTypes=4 mentions=0 pbc=6 pbcRelay=6 pbcPaid=0 pbcPunt=0 pbcCoverPunt=0 pb=7 pbRelay=2 pbPaid=4 pbPunt=1 pbCoverPunt=0 pmv=6 pmvRelay=4 pmvPaid=0 pmvPunt=2 pmvCoverPunt=0 valF=11 valFRelay=2 valFPaid=0 valFPunt=9 contentPaid=5 contentPunt=16 contentCoverPunt=2 contentLemma=0 contentOpen=2 contentPos=16 entryPaid=5 entryPunt=16 entryCoverPunt=2 entryLemma=0 entryOpen=2 entryPos=16 eight=8 eightPB=4 eightPBC=4 eightIndents=0 eightTop=4 eightFloor=0 eightMinCI=0 eightNic=8 eightPrep=8 eightCover=4 doorUses=41 doorKept=10 doorForgotten=8 doorDropped=23 doorsOther=4 nodes=95157"
+  "positions=21 ctorFields=11 lemParams=29 lemmas=16 walked=24 doors=8 rows=169 ctorRows=79 lemRows=55 localRows=4 fnRows=19 fnpRows=10 valRows=2 coverTypes=4 mentions=0 pbc=6 pbcRelay=6 pbcPaid=0 pbcPunt=0 pbcCoverPunt=0 pb=7 pbRelay=2 pbPaid=4 pbPunt=1 pbCoverPunt=0 pmv=6 pmvRelay=4 pmvPaid=1 pmvPunt=1 pmvCoverPunt=0 valF=11 valFRelay=2 valFPaid=0 valFPunt=9 contentPaid=6 contentPunt=15 contentCoverPunt=2 contentLemma=0 contentOpen=2 contentPos=16 entryPaid=6 entryPunt=15 entryCoverPunt=2 entryLemma=0 entryOpen=2 entryPos=16 eight=8 eightPB=4 eightPBC=4 eightIndents=0 eightTop=4 eightFloor=0 eightMinCI=0 eightNic=8 eightPrep=8 eightCover=4 doorUses=41 doorKept=10 doorForgotten=8 doorDropped=23 doorsOther=4 nodes=95163"
 
 /-! ## §6 The reading -/
 
@@ -1093,7 +1107,9 @@ run_cmd Lean.Elab.Command.liftTermElabM do
       -- carries the cover they take — is a step a payment passes through, not
       -- a position it is paid at
       let inCoverMod := (env.getModuleIdxFor? n).map (env.header.moduleNames[·.toNat]!) == some coverMod
-      let transport := (piConcl ci.type).isAppOf coveredN || (inCoverMod && hasCov (piConcl ci.type))
+      -- item 259: a cover TYPE (`CoverStep`) concluded in the cover module is a
+      -- transport too — the step across a `?`/`:` dispatch concludes it
+      let transport := (piConcl ci.type).isAppOf coveredN || (inCoverMod && hasCovT cd.coverTypes (piConcl ci.type))
       if !ps.isEmpty && !transport then
         cd := { cd with lemParams := cd.lemParams.insert n ps, consts := cd.consts.insert n }
         posLines := posLines.push s!"  {short n}: {String.intercalate "," (ps.map fun (_, pn, p) => s!"{pn}[{renderPath p}]").toList}"

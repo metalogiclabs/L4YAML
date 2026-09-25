@@ -2900,7 +2900,31 @@ lemma props_couplings_of_push {s_ad s' : ScannerState} {tok : YamlToken}
     positions, paid 5, punt 16, cover-punt 2, open 2 from both roots, one
     component, five paid origins; item 253's rows keep their number and
     five carry a paid class; six producers still punt; the refused relay
-    would take both trees to 18 / 5 / 17 / 2 / 2. -/
+    would take both trees to 18 / 5 / 17 / 2 / 2.
+
+    **The compact opener's slot** (item 259).  `compact_open_map` parks the
+    `?` or `:` that a `-` (or `?`, or `:`) reaches on its own line, and the
+    slot's own bound (`h_top_in : s' ≤ n + 1 + m`) is at the index and pays
+    nothing; what pays `pendingMapValue.h_closeF` there is the state BEFORE
+    the dispatch, which both callers bound below the slot's index by
+    construction — the compact fill under the slot's `h_top_slot : sc ≤ nv`,
+    the entry park's inline arm under its own `h_top_old : sc ≤ n` — with
+    `Mono` beside it.  The opener takes both as binders,
+    `covered_nil_of_top_le` gives `Covered (n + 1) [] sc`, `preprocess_cover`
+    carries it to the dispatch, `dispatchBlockIndicators_cover` carries it
+    across the indicator as a `CoverStep` — the cover, or the cover with the
+    opened level consed — and `CoverStep.cons_of_top_eq` names that level
+    the slot's index from the top pinned on both sides, `h_top_in` above and
+    the park's own `h_floor` below.  The field's list is `[n + 1 + m]` under
+    `Floor (n + 1) (n + 1 + m) [n + 1 + m]`, the one level the mapping value
+    park's `n :: ks` shape names for an empty `ks`, and the closure is
+    `[195]`'s compact mapping with its tail.  Of the six punts item 258
+    left, this is the one whose callers hold what its slot lacks; the other
+    three that lack `Mono` are called with a state no caller bounds below
+    the index (`Tests/Guards/Proofs/PuntCoverInputs.lean` §6).  The trees
+    read 16 positions, paid 6, punt 15, cover-punt 2, open 2 from both
+    roots, one component, six paid origins; five producers still punt; the
+    refused relay would take both trees to 18 / 6 / 16 / 2 / 2. -/
 
 inductive BlockStack : SurfPos → SurfPos → Prop where
   /-- No active block collections. At document level or stream start. -/
@@ -19864,7 +19888,21 @@ lemma compact_open_map (sp_start sp_entry sp_ind : SurfPos) (n m : Nat)
     -- an INLINE compact fill reaches, so the slot it opens carries the top
     -- the next fill will measure its own push against — the field feeding
     -- itself one park on, as `pendingBlock.h_park_top` does.
-    (h_top_in : s'.currentIndent ≤ ((n + 1 + m : Nat) : Int)) :
+    (h_top_in : s'.currentIndent ≤ ((n + 1 + m : Nat) : Int))
+    -- ═══ **Item 259: the park's own STACK — its shape and its top.**  The
+    -- slot this opener parks awaits a resume stack, and the cover that stack
+    -- owes (`pendingMapValue.h_closeF`) is paid from the state BEFORE the
+    -- dispatch: on a monotone stack whose top is at or left of the park's
+    -- index `n`, no mapping level stands at or right of column `n + 1`
+    -- (`covered_nil_of_top_le`); preprocessing carries that across, and the
+    -- indicator's own step opens at most one level, which the top pinned
+    -- from both sides (`h_top_in` above, `h_floor` below) names as the
+    -- slot's index.  Both callers hold both: the compact fill under the
+    -- SLOT's bound `h_top_slot : sc ≤ nv`, the inline arm under the PARK's
+    -- `h_top_old : sc ≤ n`, each beside its `h_mono`
+    -- (`Tests/Guards/Proofs/PuntCoverInputs.lean` §6). ═══
+    (h_mono : IndentStackMono.Mono sc)
+    (h_top : sc.currentIndent ≤ (n : Int)) :
     ∃ sp_gram' sp_block' sp_flow' sp_scan',
       SLYamlStream sp_start sp_gram' ∧
       BlockStack sp_gram' sp_block' ∧
@@ -19972,6 +20010,13 @@ lemma compact_open_map (sp_start sp_entry sp_ind : SurfPos) (n m : Nat)
       subst h
       exact indicator_floor_colon_at_col hcol_ind hcorr_prep h_noflow_disp h_sk
         h_preprocess h_dispatch
+  -- Item 259: the top pinned from both sides — the floor the park measured
+  -- (`h_floor`, at the shifted index) and the bound the step's own push obeys
+  -- (`h_top_in`) — so the level the indicator opened IS the slot's index.
+  have h_top_eq : s'.currentIndent = ((n + 1 + m : Nat) : Int) := by
+    have h_lo := h_floor.2
+    unfold minContentIndentOf at h_lo
+    omega
   -- ═══ Item 105: the compact `?` is a `[186]` explicit key like any other, so
   -- it hands the two fields the column-0 opener has handed since item 51 — the
   -- `[188]` entry route (`h_expl`) and the `[186]` KEY slot (`h_vslot`).  What
@@ -20019,7 +20064,36 @@ lemma compact_open_map (sp_start sp_entry sp_ind : SurfPos) (n m : Nat)
            (Or.inl (by have h1 := SIndent_col h_ind; rw [hcol_entry] at h1; omega))
            -- Item 93: the keyless compact entry's value is `s-l+block-node`.
            (Or.inr trivial)
-             (Or.inr trivial)
+             -- ═══ **Item 259: the slot's RESUME STACK, covered from the caller's
+             -- park.**  The frames below the slot's own collection are none;
+             -- the cover is the caller's `Covered (n + 1) [] sc`
+             -- (`covered_nil_of_top_le h_mono h_top`) carried across
+             -- preprocessing and across the indicator's own step, whose
+             -- opened level the pinned top names as the slot's index
+             -- (`CoverStep.cons_of_top_eq h_top_eq`); the floor `n + 1` stands
+             -- below the index `n + 1 + m` by the `s-indent(m)` in front of the
+             -- indicator; and the level resumes on `[195]`'s compact mapping
+             -- with its TAIL, the same frame `h_close` writes with a `nil` one.
+             -- The list is `[n + 1 + m]`, the one level the mapping value
+             -- park's `n :: ks` shape names for an empty `ks`. ═══
+             (Or.inl ⟨[], fun _ h => absurd h List.not_mem_nil,
+               Or.inl ⟨n + 1,
+                 ⟨Nat.le_add_right (n + 1) m, fun k' hk => by
+                   rw [List.mem_singleton] at hk; omega⟩,
+                 IndentStackCover.CoverStep.cons_of_top_eq
+                   (IndentStackCover.dispatchBlockIndicators_cover h_dispatch
+                     ((IndentStackCover.preprocess_cover h_preprocess
+                         (IndentStackCover.covered_nil_of_top_le h_mono h_top)).of_indents_eq
+                       (by split <;> rfl)))
+                   h_top_eq⟩,
+               fun sp_mid h_node =>
+                 ResumeFrames.level (n + 1 + m) [] sp_mid
+                   (fun _ h => absurd h List.not_mem_nil)
+                   (fun sp_end h_tail => ResumeFrames.bottom sp_end
+                     (h_close_old sp_end
+                       (SBlockIndented.compactMap n ctx m sp_entry sp_ind sp_end h_ind
+                         (SCompactMap.mk (n + 1 + m) sp_ind sp_mid sp_end
+                           (h_entry_of sp_mid h_node) h_tail))))⟩)
              (Or.inr trivial)
              -- Item 108: the compact `?`'s own frame (`h_expl105`) could bottom
              -- a stack here the way `question_open_map` does; no landing inside
@@ -22112,6 +22186,9 @@ lemma accum_block_on_closeThenBlock
                     omega)
                   h_preprocess)
                 h_dispatch)
+              -- Item 259: the stack's shape and the SLOT's own bound, for the
+              -- resume stack the opener's park covers from them.
+              h_mono h_top_slot
           -- Item 125: the compact `:` decides its own stamp source; the one
           -- undecided shape (a live register at the `:`'s own column) stays
           -- the deferral it already was, and the `?` never reads it.
@@ -24268,6 +24345,9 @@ lemma accum_block_on_pendingBlock
                   omega)
                 h_preprocess)
               h_dispatch)
+            -- Item 259: the stack's shape and the PARK's own bound, for the
+            -- resume stack the opener's park covers from them.
+            h_mono h_top_old
         -- Item 125: the compact `:`'s own stamp source, decided here; the
         -- undecided shape stays the deferral, and the `?` never reads it.
         refine hcv.elim (fun hc_colon => ?_) (fun hc_q => ?_)
