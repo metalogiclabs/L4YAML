@@ -42,7 +42,12 @@ in the environment, with `Mono`, the base and each top bound on the
 pre-dispatch argument against the site's index instantiated by the caller —
 and beside it the cover step the library holds for the site's dispatch, the
 shape of its conclusion, the named-level lemmas, and whether the site pins
-its top from both sides.
+its top from both sides.  **§6 one hop back** (item 260) reads the same callers
+through their own preprocess equation — `Mono`, the base and each top bound
+on the state the argument was preprocessed FROM — and beside each site the
+closure it holds toward the stream with the level it closes read against
+the site's index (the resume's BOTTOM), and the field's index witness where
+its statement binds the index by an equation.
 
 **Item 256 pays two of the eleven**: the root `-` its own field, from the
 seed's empty stack at floor 0 (`IndentStackCover.covered_nil_of_ntop`), and
@@ -70,7 +75,27 @@ sides — so the opener takes the two as binders and pays the mapping value
 park's field with that cover, the level named by the pinned top
 (`IndentStackCover.CoverStep.cons_of_top_eq`).  Five punts remain: three
 hold no top bound, two hold one at their own index, and the three that lack
-`Mono` are called with a state no caller bounds below the index.
+`Mono` are called with a state no caller bounds below the index.  **Item 260
+reads those three one hop back.**  The explicit `:`'s three callers each
+hold `Mono`, the base and their preprocess equation on the state they
+preprocessed from, so `Mono` at the opener's own state is one transport
+away and the opener's own top bound pays the head of its list at its own
+floor (`covered_singleton_of_top_le`); no caller holds a bound below the
+landing width, so no lower floor.  What the site lacks is the field's
+BOTTOM: its list is headed, so the resume needs the level's tail closed,
+and the closures it holds (`hvp`, `h_slot`) close the value at the level
+itself.  The paid producers of the same field hold that bottom one of two
+ways — the level inside a closed node one below (`compact_open_map`), or a
+relay of the pack's resume (`h_routeF`, `h✝`: a tail at the level behind a
+map entry or the landing) — and this site holds neither; its callers hold
+the relay's raw material (`h_res_land`, a tail from the landing, and the
+`frames(ks)` faces `resumeAt` reads), and spending it here means reading
+the value line as `[192]`'s empty-key entry from the landing — a derivation
+of the same string, not the entry the scanner parsed.  The props router
+builds both parks at index 0,
+where the entry-level field's equation `n = ne + 1` has no witness: those
+two positions are the field's own vacuity at the root, not punts a caller
+could fund.
 -/
 
 open Lean Lean.Meta Lean.Elab
@@ -531,6 +556,127 @@ partial def binderTypes (t : Expr) (acc : Array Expr := #[]) : Array Expr :=
   | .forallE _ ty b _ => binderTypes b (acc.push ty)
   | _ => acc
 
+/-! ## §6b One hop back, the bottom, and the witness (item 260) -/
+
+/-- The preprocess equation in hand whose target is `arg`: the state it was
+    preprocessed FROM, and the hypothesis's name. -/
+def backOf (r : Inputs) (arg : String) : Option (String × String) :=
+  r.prep.findSome? fun p =>
+    match p.splitOn ":" with
+    | nm :: rest =>
+      match (String.intercalate ":" rest).splitOn "→" with
+      | [src, tgt] => if ((tgt.splitOn ",")[0]?).getD "" == arg then some (src, nm) else none
+      | _ => none
+    | _ => none
+
+def streamN : Name := ``L4YAML.Surface.SLYamlStream
+
+/-- Whether a constant's type opens with a `Nat` binder — a surface production
+    that names its level first. -/
+def levelFirst (env : Environment) (n : Name) : Bool :=
+  match env.find? n with
+  | some ci =>
+    match ci.type.consumeMData with
+    | .forallE _ t _ _ => t.consumeMData.isConstOf ``Nat
+    | _ => false
+  | none => false
+
+/-- The closures a site holds toward the stream: every hypothesis concluding
+    `SLYamlStream`, with the LAST premise that is a surface production naming
+    a level — the node the closure closes — as (name, production, level);
+    a premise that is no surface production marks the closure guarded (`→`).
+    A hypothesis with no such premise closes no node and is not one. -/
+def bottomsOf (env : Environment) (stAll : Stack) : Array (String × String × String) := Id.run do
+  let mut out : Array (String × String × String) := #[]
+  for i in [0:stAll.size] do
+    let b := stAll[i]!
+    let st0 := stAll.extract 0 i
+    let (_, c) := piConclSt st0 b.ty
+    unless c.isAppOf streamN && b.ty.consumeMData.isForall do continue
+    let mut st := st0
+    let mut t := b.ty.consumeMData
+    let mut last : Option (String × String) := none
+    let mut guarded := false
+    let mut fuel := 64
+    while fuel > 0 do
+      fuel := fuel - 1
+      match t with
+      | .forallE n ty body _ =>
+        let ty' := ty.consumeMData
+        match ty'.getAppFn with
+        | .const h _ =>
+          if (`L4YAML.Surface).isPrefixOf h then
+            if ty'.getAppNumArgs ≥ 1 && levelFirst env h then last := some (short h, ppc st (ty'.getArg! 0))
+          else if ty'.isApp then guarded := true
+        | _ => pure ()
+        st := st.push { name := n, ty := ty, prov := none }
+        t := body.consumeMData
+      | _ => break
+    if let some (prod, lvl) := last then
+      out := out.push (s!"{if guarded then "→" else ""}{bname b.name}", prod, lvl)
+  return out
+
+/-- The field's index witness where its statement binds the index by an
+    equation (`eq(n=ne + 1)`): `ne` at the instantiated index, `none` where
+    the equation has no solution there, `?` where it is undecided. -/
+def witnessOf (eq : String) (idx : String) : String :=
+  if eq.isEmpty then "—" else
+  let body := ((eq.drop 3).toString.dropEnd 1).toString
+  match body.splitOn "=" with
+  | [_, r] =>
+    if r.endsWith " + 1" then
+      match idx.toNat? with
+      | some 0 => s!"none({idx}={r})"
+      | some v => s!"{v - 1}"
+      | none => if idx.endsWith " + 1" then (idx.dropEnd 4).toString else s!"?({idx}={r})"
+    else s!"?({idx}={r})"
+  | _ => s!"?({body})"
+
+def resumeN : Name := ``L4YAML.Proofs.StreamAccum.ResumeFrames
+def tailN : Name := ``L4YAML.Surface.SCompactMapTail
+
+/-- Inside a hypothesis mentioning `ResumeFrames`: the level of the first
+    `SCompactMapTail` premise the resume follows, and what stands before that
+    premise — the last surface production naming a level, or `landing` when
+    the tail starts at a position already fixed; `frames(ks)` when the
+    hypothesis concludes `ResumeFrames` with no tail premise (a frames face,
+    resumable at any width in its list). -/
+partial def resumeShape (env : Environment) (st : Stack) (t : Expr) (prev : Option String) : Option String :=
+  let t := t.consumeMData
+  match t with
+  | .forallE n ty b _ =>
+    let ty' := ty.consumeMData
+    if ty'.isAppOfArity tailN 3 then some s!"tail({ppc st (ty'.getArg! 0)})←{prev.getD "landing"}"
+    else
+      let prev' := match ty'.getAppFn with
+        | .const h _ => if (`L4YAML.Surface).isPrefixOf h && ty'.getAppNumArgs ≥ 1 && levelFirst env h then some s!"{short h}({ppc st (ty'.getArg! 0)})" else prev
+        | _ => prev
+      (resumeShape env st ty prev).orElse fun _ => resumeShape env (st.push { name := n, ty := ty, prov := none }) b prev'
+  | .lam n ty b _ => resumeShape env (st.push { name := n, ty := ty, prov := none }) b prev
+  | .app .. =>
+    if t.isAppOfArity resumeN 3 then some s!"frames({ppc st (t.getArg! 1)})"
+    else t.getAppArgs.findSome? fun a => resumeShape env st a prev
+  | _ => none
+
+/-- The relays a stack holds: every binder whose type mentions `ResumeFrames`,
+    with its resume shape. -/
+def relaysOf (env : Environment) (stAll : Stack) : Array String := Id.run do
+  let mut out : Array String := #[]
+  for i in [0:stAll.size] do
+    let b := stAll[i]!
+    unless hasHead b.ty resumeN do continue
+    let st0 := stAll.extract 0 i
+    out := out.push s!"{bname b.name}:{(resumeShape env st0 b.ty none).getD "?"}"
+  return out
+
+/-- The relay sources a payment class names. -/
+partial def relaySrcs : Cls → Array String
+  | .relay src => #[src]
+  | .paid i | .step i | .via _ i | .imp _ i => relaySrcs i
+  | .lit _ _ _ i => relaySrcs i
+  | .alt _ alts => alts.foldl (fun a x => a ++ relaySrcs x) #[]
+  | _ => #[]
+
 /-! ## §2 The pins -/
 
 def expectedSites : List String :=
@@ -551,33 +697,54 @@ def expectedBounds : List String :=
    "content_dispatch_routed #1 idx=0 ctor=s' where=— bounds=[] ⊢ no-bound",
    "content_dispatch_routed #2 idx=0 ctor=s' where=— bounds=[] ⊢ no-bound"]
 def expectedCallers : List String :=
-  ["colon_open_map_explicit #1 ← accum_block_on_closeThenBlock #1 state=s_prep mono=no base=no bounds=[] idx=k ⊢ no-mono,no-bound",
-   "colon_open_map_explicit #1 ← accum_block_on_pendingBlock #1 state=s_prep mono=no base=no bounds=[] idx=k ⊢ no-mono,no-bound",
-   "colon_open_map_explicit #1 ← accum_block_on_pendingBlockContent #1 state=s_prep mono=no base=no bounds=[] idx=k ⊢ no-mono,no-bound",
-   "content_dispatch_routed #1 ← accum_content_on_noPending #1 state=s_prep mono=no base=no bounds=[] idx=0 ⊢ no-mono,no-bound",
-   "content_dispatch_routed #1 ← accum_content_on_noPending #2 state=s_prep mono=no base=no bounds=[] idx=0 ⊢ no-mono,no-bound",
-   "content_dispatch_routed #1 ← accum_content_pending #1 state=s_prep mono=no base=no bounds=[] idx=0 ⊢ no-mono,no-bound",
-   "content_dispatch_routed #1 ← accum_content_pending #2 state=s_prep mono=no base=no bounds=[] idx=0 ⊢ no-mono,no-bound",
-   "content_dispatch_routed #1 ← accum_content_pending #3 state=s_prep mono=no base=no bounds=[] idx=0 ⊢ no-mono,no-bound",
-   "content_dispatch_routed #1 ← accum_content_pending #4 state=s_prep mono=no base=no bounds=[] idx=0 ⊢ no-mono,no-bound",
-   "content_dispatch_routed #1 ← accum_content_pending #5 state=s_prep mono=no base=no bounds=[] idx=0 ⊢ no-mono,no-bound",
-   "content_dispatch_routed #1 ← content_dispatch_after_close #1 state=s_prep mono=no base=no bounds=[] idx=0 ⊢ no-mono,no-bound",
-   "content_dispatch_routed #2 ← accum_content_on_noPending #1 state=s_prep mono=no base=no bounds=[] idx=0 ⊢ no-mono,no-bound",
-   "content_dispatch_routed #2 ← accum_content_on_noPending #2 state=s_prep mono=no base=no bounds=[] idx=0 ⊢ no-mono,no-bound",
-   "content_dispatch_routed #2 ← accum_content_pending #1 state=s_prep mono=no base=no bounds=[] idx=0 ⊢ no-mono,no-bound",
-   "content_dispatch_routed #2 ← accum_content_pending #2 state=s_prep mono=no base=no bounds=[] idx=0 ⊢ no-mono,no-bound",
-   "content_dispatch_routed #2 ← accum_content_pending #3 state=s_prep mono=no base=no bounds=[] idx=0 ⊢ no-mono,no-bound",
-   "content_dispatch_routed #2 ← accum_content_pending #4 state=s_prep mono=no base=no bounds=[] idx=0 ⊢ no-mono,no-bound",
-   "content_dispatch_routed #2 ← accum_content_pending #5 state=s_prep mono=no base=no bounds=[] idx=0 ⊢ no-mono,no-bound",
-   "content_dispatch_routed #2 ← content_dispatch_after_close #1 state=s_prep mono=no base=no bounds=[] idx=0 ⊢ no-mono,no-bound"]
+  ["colon_open_map_explicit #1 ← accum_block_on_closeThenBlock #1 state=s_prep mono=no base=no bounds=[] idx=k ⊢ no-mono,no-bound | back=sc(h_preprocess) monoB=yes(h_mono) baseB=yes(h_base) boundsB=[] resumeB=[h_valF:frames(nv :: ks); h_mapF:frames(ks); h_mapFV:frames(ks); h_valFV:frames(ks); h_res_land:tail(k)←landing; h_resV_land:tail(k)←landing] ⊢ own",
+   "colon_open_map_explicit #1 ← accum_block_on_pendingBlock #1 state=s_prep mono=no base=no bounds=[] idx=k ⊢ no-mono,no-bound | back=sc(h_preprocess) monoB=yes(h_mono) baseB=yes(h_base) boundsB=[h_top_old:sc≤n floor=n + 1 undecided(—)] resumeB=[h_closeFV_old:frames(ks)] ⊢ own",
+   "colon_open_map_explicit #1 ← accum_block_on_pendingBlockContent #1 state=s_prep mono=no base=no bounds=[] idx=k ⊢ no-mono,no-bound | back=sc(h_preprocess) monoB=yes(h_mono) baseB=yes(h_base) boundsB=[] resumeB=[h_closeF_old:frames(ks); h_closeFV_old:frames(ks)] ⊢ own",
+   "content_dispatch_routed #1 ← accum_content_on_noPending #1 state=s_prep mono=no base=no bounds=[] idx=0 ⊢ no-mono,no-bound | back=sc(h_preprocess) monoB=no baseB=no boundsB=[] resumeB=[] ⊢ no-mono-back,no-bound-back",
+   "content_dispatch_routed #1 ← accum_content_on_noPending #2 state=s_prep mono=no base=no bounds=[] idx=0 ⊢ no-mono,no-bound | back=sc(h_preprocess) monoB=no baseB=no boundsB=[] resumeB=[] ⊢ no-mono-back,no-bound-back",
+   "content_dispatch_routed #1 ← accum_content_pending #1 state=s_prep mono=no base=no bounds=[] idx=0 ⊢ no-mono,no-bound | back=sc(h_preprocess) monoB=yes(h_mono) baseB=yes(h_base) boundsB=[] resumeB=[h_fS:frames(ks); h_fV:frames(ks); h_fQ:tail(kk)←landing] ⊢ no-bound-back",
+   "content_dispatch_routed #1 ← accum_content_pending #2 state=s_prep mono=no base=no bounds=[] idx=0 ⊢ no-mono,no-bound | back=sc(h_preprocess) monoB=yes(h_mono) baseB=yes(h_base) boundsB=[] resumeB=[h_fS:frames(ks); h_fV:frames(ks); h_fQ:tail(kk)←landing] ⊢ no-bound-back",
+   "content_dispatch_routed #1 ← accum_content_pending #3 state=s_prep mono=no base=no bounds=[] idx=0 ⊢ no-mono,no-bound | back=sc(h_preprocess) monoB=yes(h_mono) baseB=yes(h_base) boundsB=[] resumeB=[h_fS:frames(ks); h_fV:frames(ks); h_fQ:tail(kk)←landing] ⊢ no-bound-back",
+   "content_dispatch_routed #1 ← accum_content_pending #4 state=s_prep mono=no base=no bounds=[] idx=0 ⊢ no-mono,no-bound | back=sc(h_preprocess) monoB=yes(h_mono) baseB=yes(h_base) boundsB=[] resumeB=[h_fS:frames(ks); h_fV:frames(ks); h_fQ:tail(kk)←landing] ⊢ no-bound-back",
+   "content_dispatch_routed #1 ← accum_content_pending #5 state=s_prep mono=no base=no bounds=[] idx=0 ⊢ no-mono,no-bound | back=sc(h_preprocess) monoB=yes(h_mono) baseB=yes(h_base) boundsB=[] resumeB=[h_defer_split:frames(ks)] ⊢ no-bound-back",
+   "content_dispatch_routed #1 ← content_dispatch_after_close #1 state=s_prep mono=no base=no bounds=[] idx=0 ⊢ no-mono,no-bound | back=— monoB=no baseB=no boundsB=[] resumeB=[] ⊢ no-prep-back",
+   "content_dispatch_routed #2 ← accum_content_on_noPending #1 state=s_prep mono=no base=no bounds=[] idx=0 ⊢ no-mono,no-bound | back=sc(h_preprocess) monoB=no baseB=no boundsB=[] resumeB=[] ⊢ no-mono-back,no-bound-back",
+   "content_dispatch_routed #2 ← accum_content_on_noPending #2 state=s_prep mono=no base=no bounds=[] idx=0 ⊢ no-mono,no-bound | back=sc(h_preprocess) monoB=no baseB=no boundsB=[] resumeB=[] ⊢ no-mono-back,no-bound-back",
+   "content_dispatch_routed #2 ← accum_content_pending #1 state=s_prep mono=no base=no bounds=[] idx=0 ⊢ no-mono,no-bound | back=sc(h_preprocess) monoB=yes(h_mono) baseB=yes(h_base) boundsB=[] resumeB=[h_fS:frames(ks); h_fV:frames(ks); h_fQ:tail(kk)←landing] ⊢ no-bound-back",
+   "content_dispatch_routed #2 ← accum_content_pending #2 state=s_prep mono=no base=no bounds=[] idx=0 ⊢ no-mono,no-bound | back=sc(h_preprocess) monoB=yes(h_mono) baseB=yes(h_base) boundsB=[] resumeB=[h_fS:frames(ks); h_fV:frames(ks); h_fQ:tail(kk)←landing] ⊢ no-bound-back",
+   "content_dispatch_routed #2 ← accum_content_pending #3 state=s_prep mono=no base=no bounds=[] idx=0 ⊢ no-mono,no-bound | back=sc(h_preprocess) monoB=yes(h_mono) baseB=yes(h_base) boundsB=[] resumeB=[h_fS:frames(ks); h_fV:frames(ks); h_fQ:tail(kk)←landing] ⊢ no-bound-back",
+   "content_dispatch_routed #2 ← accum_content_pending #4 state=s_prep mono=no base=no bounds=[] idx=0 ⊢ no-mono,no-bound | back=sc(h_preprocess) monoB=yes(h_mono) baseB=yes(h_base) boundsB=[] resumeB=[h_fS:frames(ks); h_fV:frames(ks); h_fQ:tail(kk)←landing] ⊢ no-bound-back",
+   "content_dispatch_routed #2 ← accum_content_pending #5 state=s_prep mono=no base=no bounds=[] idx=0 ⊢ no-mono,no-bound | back=sc(h_preprocess) monoB=yes(h_mono) baseB=yes(h_base) boundsB=[] resumeB=[h_defer_split:frames(ks)] ⊢ no-bound-back",
+   "content_dispatch_routed #2 ← content_dispatch_after_close #1 state=s_prep mono=no base=no bounds=[] idx=0 ⊢ no-mono,no-bound | back=— monoB=no baseB=no boundsB=[] resumeB=[] ⊢ no-prep-back"]
 def expectedLack : List String :=
-  ["colon_open_map_explicit #1 ctor:pendingMapValue.h_closeF lacks=[mono,base,prep] idx=nv pre=s_prep(disp) callers=3 supplied=0 step=[IndentStackCover.dispatchBlockIndicators_cover→CoverStep] shape=Covered(lo,ks,s) ∨ ∃c.s.indents.back?=some(c,false) ∧ Covered(lo,c :: ks,s) consed=existential pin=top∧floor(h_top_in,h_floor_in) ⊢ callers-short",
-   "content_dispatch_routed #1 ctor:pendingProps.h_closeFE lacks=[mono,base,prep,floorSrc] idx=0 pre=s_prep(disp) callers=8 supplied=0 step=[IndentStackCover.dispatchContent_cover→Covered] shape=Covered consed=none pin=— ⊢ callers-short,no-pin",
-   "content_dispatch_routed #2 ctor:pendingProps.h_closeFE lacks=[mono,base,prep,floorSrc] idx=0 pre=s_prep(disp) callers=8 supplied=0 step=[IndentStackCover.dispatchContent_cover→Covered] shape=Covered consed=none pin=— ⊢ callers-short,no-pin"]
+  ["colon_open_map_explicit #1 ctor:pendingMapValue.h_closeF lacks=[mono,base,prep] idx=nv pre=s_prep(disp) callers=3 supplied=0 suppliedB=3 step=[IndentStackCover.dispatchBlockIndicators_cover→CoverStep] shape=Covered(lo,ks,s) ∨ ∃c.s.indents.back?=some(c,false) ∧ Covered(lo,c :: ks,s) consed=existential pin=top∧floor(h_top_in,h_floor_in) bottom=at[hvp,h_slot:SBlockIndented(nv) at(syn)] resume=[] ne=— ⊢ bottom-at,no-relay",
+   "content_dispatch_routed #1 ctor:pendingProps.h_closeFE lacks=[mono,base,prep,floorSrc] idx=0 pre=s_prep(disp) callers=8 supplied=0 suppliedB=0 step=[IndentStackCover.dispatchContent_cover→Covered] shape=Covered consed=none pin=— bottom=at[→h_route:SBlockNode(0) at(syn)] resume=[] ne=none(0=ne + 1) ⊢ vacuous(0=ne + 1)",
+   "content_dispatch_routed #2 ctor:pendingProps.h_closeFE lacks=[mono,base,prep,floorSrc] idx=0 pre=s_prep(disp) callers=8 supplied=0 suppliedB=0 step=[IndentStackCover.dispatchContent_cover→Covered] shape=Covered consed=none pin=— bottom=at[→h_route:SBlockNode(0) at(syn)] resume=[] ne=none(0=ne + 1) ⊢ vacuous(0=ne + 1)"]
+def expectedBottoms : List String :=
+  ["accum_block_on_pendingBlock #1 ctor:pendingBlock.h_closeF idx=k bottom=at[h_close_entry_old:SCompactSeqTail(n) at(by hkn:k=n); h_cont:SCompactSeqTail(k) at(syn)] resume=[h_closeFV_old:frames(ks)]",
+   "accum_content_on_pendingMapValue_indented #1 ctor:pendingProps.h_closeFE idx=n + 1 bottom=at[h_close_old:SBlockNode(n + 1) at(syn)] resume=[h_closeF99:frames(n :: ks); h_frames99:frames(ks); h_closeFV108:frames(ks); h_framesV108:frames(ks); h_seqF168:tail(n)←SBlockNode(n + 1)]",
+   "colon_open_map_explicit #1 ctor:pendingMapValue.h_closeF idx=nv bottom=at[hvp,h_slot:SBlockIndented(nv) at(syn)] resume=[]",
+   "content_dispatch_routed #1 ctor:pendingProps.h_closeFE idx=0 bottom=at[→h_route:SBlockNode(0) at(syn)] resume=[]",
+   "content_dispatch_routed #2 ctor:pendingProps.h_closeFE idx=0 bottom=at[→h_route:SBlockNode(0) at(syn)] resume=[]"]
+def expectedBottomsPaid : List String :=
+  ["accum_block_on_closeThenBlock #1 ctor:pendingBlock.h_closeF idx=k bottom=at[h_docRoute:SBlockNode(0) undecided(—); h_seqRoute:SBlockSeqEntries(k) at(syn); h_entryTail:SCompactSeqTail(k) at(syn)] resume=[h_valF:frames(nv :: ks); h_mapF:frames(ks); h_mapFV:frames(ks); h_valFV:frames(ks); h_res_land:tail(k)←landing; h_resV_land:tail(k)←landing; h_seqBottom:frames([]); h_seqFrames:frames(ks); h_seqFramesV:frames(ks)] relaySrc=[local:accum_block_on_closeThenBlock.h_seqFrames]",
+   "accum_block_on_closeThenBlock #2 ctor:pendingBlock.h_closeF idx=nv + 1 + m bottom=below[hvs:SBlockIndented(nv) below(syn)] resume=[h_valF:frames(nv :: ks); h_mapF:frames(ks); h_mapFV:frames(ks); h_valFV:frames(ks)] relaySrc=[]",
+   "accum_block_on_noPending #1 ctor:pendingBlock.h_closeF idx=k bottom=at[h_rootTail:SCompactSeqTail(k) at(syn)] resume=[] relaySrc=[]",
+   "accum_block_on_pendingBlock #2 ctor:pendingBlock.h_closeF idx=k bottom=below[h_close_entry_old:SCompactSeqTail(n) below(by hlt:n<k); h_close_inner:SBlockSeqEntries(k) at(syn)] resume=[h_closeFV_old:frames(ks)] relaySrc=[]",
+   "accum_block_on_pendingBlock #3 ctor:pendingBlock.h_closeF idx=n + 1 + m bottom=below[h_close_entry_old:SCompactSeqTail(n) below(syn); h_close_old:SBlockIndented(n) below(syn)] resume=[h_closeFV_old:frames(ks)] relaySrc=[]",
+   "accum_block_on_pendingBlockContent #1 ctor:pendingBlock.h_closeF idx=k bottom=at[h_entry_old:SCompactSeqTail(n) at(by hkn:k=n); h_cont:SCompactSeqTail(k) at(syn)] resume=[h_closeF_old:frames(ks); h_closeFV_old:frames(ks)] relaySrc=[param:accum_block_on_pendingBlockContent.h_closeF_old]",
+   "accum_content_on_pendingBlock_indented #1 ctor:pendingProps.h_closeFE idx=n + 1 bottom=below[h_close_old:SBlockIndented(n) below(syn); h_close_entry_old:SCompactSeqTail(n) below(syn)] resume=[h_closeF_old:frames(ks); h_closeFV_old:frames(ks)] relaySrc=[param:accum_content_on_pendingBlock_indented.h_closeF_old]",
+   "accum_content_pending #1 ctor:pendingProps.h_closeFE idx=n bottom=at[→h_route,→h_route_new:SBlockNode(n) at(syn)] resume=[h_defer_split:frames(ks); h_closeFE_p:frames(ks); h_closeFS_p:frames(ks); h_closeFVS_p:frames(ks); h_closeFEV_p:frames(ks)] relaySrc=[door:pendingProps.h_closeFE]",
+   "accum_content_pending #2 ctor:pendingProps.h_closeFE idx=n bottom=at[→h_route,→h_route_new:SBlockNode(n) at(syn)] resume=[h_defer_split:frames(ks); h_closeFE_p:frames(ks); h_closeFS_p:frames(ks); h_closeFVS_p:frames(ks); h_closeFEV_p:frames(ks)] relaySrc=[door:pendingProps.h_closeFE]",
+   "colon_open_map #1 ctor:pendingMapValue.h_closeF idx=k bottom=at[h_routeE:SBlockMapEntry(k) at(syn)] resume=[h_res_land:tail(k)←landing; h_resV_land:tail(k)←landing; h✝:tail(k)←SBlockMapEntry(k); right✝:tail(k)←SBlockMapEntry(k); h_routeF:tail(k)←SBlockMapEntry(k)] relaySrc=[val:colon_open_map.h✝]",
+   "colon_open_map_implicit #1 ctor:pendingMapValue.h_closeF idx=k bottom=at[h_route:SBlockMapEntry(k) at(syn)] resume=[h_routeF:tail(k)←SBlockMapEntry(k); h_routeFV:tail(k)←SBlockMapEntry(k); h_routeS:tail(k)←SBlockMapEntry(k)] relaySrc=[param:colon_open_map_implicit.h_routeF]",
+   "colon_open_map_props #1 ctor:pendingMapValue.h_closeF idx=k bottom=at[h_route:SBlockMapEntry(k) at(syn)] resume=[h_routeF:tail(k)←SBlockMapEntry(k); h_routeFV:tail(k)←SBlockMapEntry(k)] relaySrc=[param:colon_open_map_props.h_routeF]",
+   "compact_open_map #1 ctor:pendingMapValue.h_closeF idx=n + 1 + m bottom=below[h_close_old:SBlockIndented(n) below(syn)] resume=[] relaySrc=[]",
+   "question_open_map #1 ctor:pendingMapValue.h_closeF idx=k bottom=at[h_route51:SBlockMapEntry(k) at(syn)] resume=[h_res_land:tail(k)←landing; h_resV_land:tail(k)←landing; h✝:tail(k)←SBlockMapEntry(k); right✝:tail(k)←SBlockMapEntry(k); h_routeF:tail(k)←SBlockMapEntry(k)] relaySrc=[val:question_open_map.h✝]"]
 def expectedNamed : String :=
   "named=[CoverStep.cons_of_top_eq,Covered.cons,Covered.dedup_head,Covered.pop_to,IndentStackCover.covered_singleton_of_top_le,IndentStackCover.pushMappingIndent_cover,IndentStackCover.scanValuePrepare_cover_key,IndentStackCover.scanValue_cover_key]"
 def expectedLine : String :=
-  "sites=5 pb=1 pmv=1 props=3 idx0=2 mono=2 monoOpt=0 base=2 baseOpt=0 prep=2 dispB=2 dispC=3 hc=2 chr=3 dash=1 corr=5 noflow=5 save=1 fl=0 top=2 larm=1 floor=2 nic=5 armed=0 col0=3 ids=0 coverSites=1 coverBinders=4 coverFnSites=3 full=1 fullB=1 missMono=3 missBase=3 missPrep=3 missFloorSrc=3 own=2 empty=0 relay=1 relayEntries=4 bounds=2 below=0 belowSyn=0 belowArm=0 at=2 atSyn=1 atArm=1 undecided=0 bOwn=1 bOld=1 landedBelow=0 inlineBelow=0 payable=0 lack=3 lackCallers=19 lackSupplied=0 lackPayable=0 named=8 rows=169 nodes=95163"
+  "sites=5 pb=1 pmv=1 props=3 idx0=2 mono=2 monoOpt=0 base=2 baseOpt=0 prep=2 dispB=2 dispC=3 hc=2 chr=3 dash=1 corr=5 noflow=5 save=1 fl=0 top=2 larm=1 floor=2 nic=5 armed=0 col0=3 ids=0 coverSites=1 coverBinders=4 coverFnSites=3 full=1 fullB=1 missMono=3 missBase=3 missPrep=3 missFloorSrc=3 own=2 empty=0 relay=1 relayEntries=4 bounds=2 below=0 belowSyn=0 belowArm=0 at=2 atSyn=1 atArm=1 undecided=0 bOwn=1 bOld=1 landedBelow=0 inlineBelow=0 payable=0 lack=3 lackCallers=19 lackSupplied=0 lackSuppliedB=3 lackLow=0 lackPayable=0 vacuous=2 bottomBelow=0 paidRows=14 bottomPaidBelow=5 bottomPaidRelay=8 named=8 rows=169 nodes=95163"
 
 /-! ## §3 The reading -/
 
@@ -695,6 +862,8 @@ run_cmd Lean.Elab.Command.liftTermElabM do
     boundLines := boundLines.push s!"  {short r.lem} #{r.occ} {br.line}"
   -- §4 the shapes
   let mut shapeLines : Array String := #[]
+  -- item 260: the floor and equation shapes per target, for the head and the witness
+  let mut shapeMap : Array (String × String × String) := #[]
   for (c, f) in shapeTargets do
     let some (.ctorInfo cv) := env.find? c | throwError "{c}: not a constructor"
     let mut ty := cv.type
@@ -705,12 +874,14 @@ run_cmd Lean.Elab.Command.liftTermElabM do
       | .forallE n t b _ =>
         if n == f then
           found := some s!"  {short c}.{f} {(boundShape stk t).getD "bound(—)"} {(floorShape stk t).getD "Floor(—)"} {(eqShape stk t).getD "eq(—)"}"
+          shapeMap := shapeMap.push (s!"ctor:{short c}.{f}", (floorShape stk t).getD "", (eqShape stk t).getD "")
         stk := stk.push { name := n, ty := t, prov := none }
         ty := b
       | _ => break
     let some l := found | throwError "{c}.{f}: no such field"
     shapeLines := shapeLines.push l
-  -- §6 the callers of each site lacking `Mono`, and the step
+  -- §6 the callers of each site lacking `Mono`, and the step; §6b (item 260)
+  -- the same callers one hop back, the bottom and the witness
   let coverThms : Array (Name × ConstantInfo) := (env.constants.toList.filter fun (n, ci) =>
     ci matches .thmInfo _ && (env.getModuleIdxFor? n).map (env.header.moduleNames[·.toNat]!) == some coverMod).toArray
   let namedLemmas := (coverThms.filter fun (_, ci) =>
@@ -725,6 +896,23 @@ run_cmd Lean.Elab.Command.liftTermElabM do
   let mut lackCallers := 0
   let mut lackSupplied := 0
   let mut lackPayable := 0
+  -- item 260: the callers supplying one hop back, the lower floors among them,
+  -- the vacuous fields, and the bottom read at every site
+  let mut lackSuppliedB := 0
+  let mut lackLow := 0
+  let mut vacN := 0
+  let bottomRead (st : Stack) (idx : String) (idxSum : List String) (rels : Array (String × String × String × String)) : String × String := Id.run do
+    let mut parts : Array (Array String × String × String) := #[]
+    for (nm, prod, x) in bottomsOf env st do
+      let (_, c, how) := boundVs idx idxSum rels "≤" x
+      let key := s!"{prod}({x}) {c}({how})"
+      match parts.findIdx? (fun (_, k, _) => k == key) with
+      | some i => parts := parts.modify i fun (nms, k, c) => (nms.push nm, k, c)
+      | none => parts := parts.push (#[nm], key, c)
+    let best := if parts.any (·.2.2 == "below") then "below" else if parts.any (·.2.2 == "at") then "at"
+      else if parts.isEmpty then "none" else "undecided"
+    let txt := String.intercalate "; " (parts.map fun (nms, k, _) => s!"{String.intercalate "," nms.toList}:{k}").toList
+    return (s!"{best}[{txt}]", best)
   for (r, idx, ins) in sites do
     let v := verdict ins idx
     unless (v.splitOn "missing(mono").length > 1 do continue
@@ -735,6 +923,14 @@ run_cmd Lean.Elab.Command.liftTermElabM do
     let (_, idxSum) ← idxOf r
     let ctorState := ppc r.st r.args[0]!
     let missingS := ((v.splitOn "missing(")[1]!.splitOn ")")[0]!
+    -- item 260: the field's shape (a HEADED list `n :: ks` takes an own-floor
+    -- payment; a headless one needs a floor below) and whether the site holds
+    -- its own top AT the index on the constructor's state
+    let (fShape, eqS) := ((shapeMap.find? (·.1 == r.target)).map fun (_, f, e) => (f, e)).getD ("", "")
+    let headed := (fShape.splitOn "::").length > 1
+    let pinnedTop := ins.tops.any fun (_, state, sym, rhs) => state == ctorState && sym == "≤" && rhs == idx
+    let mut supB := 0
+    let mut lowN := 0
     -- the callers
     let mut k := 0
     let mut sup := 0
@@ -767,9 +963,46 @@ run_cmd Lean.Elab.Command.liftTermElabM do
         let vc := if ok then "supplied" else String.intercalate "," (
           (if monoNs.isEmpty then ["no-mono"] else []) ++
           (if bparts.isEmpty then ["no-bound"] else if !below then ["no-below"] else []))
-        callerLines := callerLines.push s!"  {short r.lem} #{r.occ} ← {short n} #{occ} state={argS} mono={fmtNs monoNs} base={fmtNs baseNs} bounds=[{String.intercalate "; " bparts.toList}] idx={instIdx} ⊢ {vc}"
+        -- item 260: the same reading ONE HOP BACK, through the caller's own
+        -- preprocess equation whose target is the argument: `own` when `Mono`
+        -- (and, under a block-indicator dispatch, the base) is about the source
+        -- state, the field's list is headed and the site holds its own top at
+        -- the index — the own-floor payment through `Mono` at the constructor
+        -- state; `low=` beside it when a bound below the index is in hand
+        let mut backS := "—"
+        let mut haveBack := false
+        let mut monoB : Array String := #[]
+        let mut baseB : Array String := #[]
+        let mut bpartsB : Array String := #[]
+        let mut lowB : Option String := none
+        if let some (src, hn) := backOf cins argS then
+          haveBack := true
+          backS := s!"{src}({hn})"
+          let aboutB (s : String) : Bool := ((s.splitOn ":").getLast?).getD "" == src
+          monoB := cins.mono.filter aboutB
+          baseB := cins.base.filter aboutB
+          for (nm, state, sym, rhs) in cins.tops do
+            if state != src then continue
+            let (floor, c, bhow) := boundVs instIdx instSum cins.rels sym rhs
+            if c == "below" && lowB.isNone then lowB := some floor
+            bpartsB := bpartsB.push s!"{nm}:{state}{sym}{rhs} floor={floor} {c}({bhow})"
+        let ownOk := haveBack && !monoB.isEmpty && (ins.dispB.isEmpty || !baseB.isEmpty) && headed && pinnedTop
+        let lowOk := haveBack && !monoB.isEmpty && lowB.isSome
+        if ownOk || lowOk then supB := supB + 1
+        if lowOk then lowN := lowN + 1
+        let vb := if ownOk || lowOk then
+            String.intercalate "," ((if ownOk then ["own"] else []) ++ (match lowB with | some f => [s!"low={f}"] | none => []))
+          else String.intercalate "," (
+            (if !haveBack then ["no-prep-back"] else []) ++
+            (if haveBack && monoB.isEmpty then ["no-mono-back"] else []) ++
+            (if haveBack && !ins.dispB.isEmpty && baseB.isEmpty then ["no-base-back"] else []) ++
+            (if haveBack && bpartsB.isEmpty then ["no-bound-back"] else if haveBack && lowB.isNone then ["no-below-back"] else []))
+        let relaysB := relaysOf env st
+        callerLines := callerLines.push s!"  {short r.lem} #{r.occ} ← {short n} #{occ} state={argS} mono={fmtNs monoNs} base={fmtNs baseNs} bounds=[{String.intercalate "; " bparts.toList}] idx={instIdx} ⊢ {vc} | back={backS} monoB={fmtNs monoB} baseB={fmtNs baseB} boundsB=[{String.intercalate "; " bpartsB.toList}] resumeB=[{String.intercalate "; " relaysB.toList}] ⊢ {vb}"
     lackCallers := lackCallers + k
     lackSupplied := lackSupplied + sup
+    lackSuppliedB := lackSuppliedB + supB
+    lackLow := lackLow + lowN
     -- the step the library holds for the site's dispatch
     let fnN := if !ins.dispB.isEmpty then ``scanNextToken_dispatchBlockIndicators else ``scanNextToken_dispatchContent
     let steps := (coverThms.filter fun (_, ci) =>
@@ -802,13 +1035,47 @@ run_cmd Lean.Elab.Command.liftTermElabM do
       else if !topAt.isEmpty then s!"top({nm (topAt.map (·.1))})"
       else if !floorAbove.isEmpty then s!"floor({nm floorAbove})" else "—"
     let pinned := !topAt.isEmpty && !floorAbove.isEmpty
-    let payable := k > 0 && sup == k && !steps.isEmpty && pinned
+    -- item 260: the bottom the field's resume needs — a closure over a node
+    -- BELOW the opened level, so the level's tail sits inside it — and the
+    -- field's index witness; a field with no witness at the site is vacuous
+    -- there, and no caller can fund it
+    let (bottomS, bottomC) := bottomRead r.st idx idxSum ins.rels
+    let neS := witnessOf eqS idx
+    let vac := neS.startsWith "none"
+    if vac then vacN := vacN + 1
+    let relays := relaysOf env r.st
+    let bottomOk := bottomC == "below" || !relays.isEmpty
+    let payable := !vac && k > 0 && (sup == k || supB == k) && !steps.isEmpty && pinned && bottomOk
     if payable then lackPayable := lackPayable + 1
-    let vs := if payable then "payable-through-callers" else String.intercalate "," (
-      (if k == 0 then ["no-caller"] else if sup < k then ["callers-short"] else []) ++
-      (if steps.isEmpty then ["no-step"] else []) ++ (if !pinned then ["no-pin"] else []))
-    lackLines := lackLines.push s!"  {short r.lem} #{r.occ} {r.target} lacks=[{missingS}] idx={idx} pre={names[pos]?.getD "?"}({how}) callers={k} supplied={sup} step=[{stepS}] shape={shapeS} consed={consed} pin={pinS} ⊢ {vs}"
-  let lackCounts := s!"lack={lackN} lackCallers={lackCallers} lackSupplied={lackSupplied} lackPayable={lackPayable} named={namedLemmas.size}"
+    let vs := if vac then s!"vacuous({((neS.drop 5).toString.dropEnd 1).toString})" else if payable then "payable-through-callers" else String.intercalate "," (
+      (if k == 0 then ["no-caller"] else if sup < k && supB < k then ["callers-short"] else []) ++
+      (if steps.isEmpty then ["no-step"] else []) ++ (if !pinned then ["no-pin"] else []) ++
+      (if bottomOk then [] else [s!"bottom-{bottomC},no-relay"]))
+    lackLines := lackLines.push s!"  {short r.lem} #{r.occ} {r.target} lacks=[{missingS}] idx={idx} pre={names[pos]?.getD "?"}({how}) callers={k} supplied={sup} suppliedB={supB} step=[{stepS}] shape={shapeS} consed={consed} pin={pinS} bottom={bottomS} resume=[{String.intercalate "; " relays.toList}] ne={neS} ⊢ {vs}"
+  -- item 260: the closure toward the stream at every site, the two paid-input
+  -- sites as the reading's controls
+  let mut bottomLines : Array String := #[]
+  let mut bottomBelowN := 0
+  for (r, idx, ins) in sites do
+    let (_, idxSum) ← idxOf r
+    let (bottomS, bottomC) := bottomRead r.st idx idxSum ins.rels
+    if bottomC == "below" then bottomBelowN := bottomBelowN + 1
+    bottomLines := bottomLines.push s!"  {short r.lem} #{r.occ} {r.target} idx={idx} bottom={bottomS} resume=[{String.intercalate "; " (relaysOf env r.st).toList}]"
+  -- item 260: the same reading at the PAID positions of the three fields — the
+  -- control: what a producer that pays holds toward the stream
+  let paidRows := w.rows.filter fun r => r.kind == "ctor" && targets.contains r.target && !r.cls.isPunt
+  let mut bottomPaidLines : Array String := #[]
+  let mut bottomPaidBelowN := 0
+  let mut bottomPaidRelayN := 0
+  for r in paidRows do
+    let (idx, idxSum) ← idxOf r
+    let ins := inputsAt r.st
+    let (bottomS, bottomC) := bottomRead r.st idx idxSum ins.rels
+    if bottomC == "below" then bottomPaidBelowN := bottomPaidBelowN + 1
+    let srcs := relaySrcs r.cls
+    if bottomC != "below" && !srcs.isEmpty then bottomPaidRelayN := bottomPaidRelayN + 1
+    bottomPaidLines := bottomPaidLines.push s!"  {short r.lem} #{r.occ} {r.target} idx={idx} bottom={bottomS} resume=[{String.intercalate "; " (relaysOf env r.st).toList}] relaySrc=[{String.intercalate "," srcs.toList}]"
+  let lackCounts := s!"lack={lackN} lackCallers={lackCallers} lackSupplied={lackSupplied} lackSuppliedB={lackSuppliedB} lackLow={lackLow} lackPayable={lackPayable} vacuous={vacN} bottomBelow={bottomBelowN} paidRows={paidRows.size} bottomPaidBelow={bottomPaidBelowN} bottomPaidRelay={bottomPaidRelayN} named={namedLemmas.size}"
   -- the counts
   let n (p : Inputs → Array String) := (sites.filter fun (_, _, i) => !(p i).isEmpty).size
   let vs := sites.map fun (_, idx, i) => verdict i idx
@@ -834,6 +1101,8 @@ own={cnt "own="} empty={cnt "empty=0"} relay={cnt "relay="} relayEntries={vs.fol
   logInfo s!"bounds:\n{String.intercalate "\n" boundLines.toList}"
   logInfo s!"callers:\n{String.intercalate "\n" callerLines.toList}"
   logInfo s!"lack:\n{String.intercalate "\n" lackLines.toList}"
+  logInfo s!"bottoms:\n{String.intercalate "\n" bottomLines.toList}"
+  logInfo s!"bottomsPaid:\n{String.intercalate "\n" bottomPaidLines.toList}"
   logInfo namedS
   unless sites.size == 5 do throwError "the five punts moved under this pass: sites={sites.size}"
   check "expectedSites" siteLines expectedSites
@@ -841,6 +1110,8 @@ own={cnt "own="} empty={cnt "empty=0"} relay={cnt "relay="} relayEntries={vs.fol
   check "expectedBounds" boundLines expectedBounds
   check "expectedCallers" callerLines expectedCallers
   check "expectedLack" lackLines expectedLack
+  check "expectedBottoms" bottomLines expectedBottoms
+  check "expectedBottomsPaid" bottomPaidLines expectedBottomsPaid
   unless namedS == expectedNamed do throwError "named-level lemmas moved:\n  got      {namedS}\n  expected {expectedNamed}"
   unless got == expectedLine do
     throwError "PuntCoverInputs moved:\n  got      {got}\n  expected {expectedLine}"

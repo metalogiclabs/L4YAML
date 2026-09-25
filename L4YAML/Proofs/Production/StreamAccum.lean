@@ -2923,8 +2923,15 @@ lemma props_couplings_of_push {s_ad s' : ScannerState} {tok : YamlToken}
     three that lack `Mono` are called with a state no caller bounds below
     the index (`Tests/Guards/Proofs/PuntCoverInputs.lean` §6).  The trees
     read 16 positions, paid 6, punt 15, cover-punt 2, open 2 from both
-    roots, one component, six paid origins; five producers still punt; the
-    refused relay would take both trees to 18 / 6 / 16 / 2 / 2. -/
+    roots, one component, six paid origins; five positions still hold
+    `Or.inr trivial`, two of them the props router's entry-level field at
+    index 0, where its equation `n = ne + 1` has no witness and the field is
+    vacuous, and three punts.  The explicit `:`'s callers hold the stack's
+    monotonicity, the base and the preprocess equation one hop back, so its
+    own-floor cover is fundable; what it lacks is the resume's bottom, a
+    relay of the pack's resume that the paid `:` openers take as a binder
+    (`Tests/Guards/Proofs/PuntCoverInputs.lean` §6); the refused relay would
+    take both trees to 18 / 6 / 16 / 2 / 2. -/
 
 inductive BlockStack : SurfPos → SurfPos → Prop where
   /-- No active block collections. At document level or stream start. -/

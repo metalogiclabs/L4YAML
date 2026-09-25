@@ -858,9 +858,13 @@ the slot's index
 The relay the compact fill cannot make is the mapping value park's: that
 closure awaits a block node read at the park's position, and the compact
 fill's node is a compact sequence on the slot's own line. Of the five
-producers that still punt, three hold no top bound and two hold one at their
-own index, and the three that lack the stack's monotonicity are called with a
-state no caller bounds below the index
+positions that still hold the punt, two are the props router's entry-level
+field at index 0, where the field's own equation `n = ne + 1` has no witness
+and the field is vacuous; of the three punts, one holds no top bound and two
+hold one at their own index. The explicit `:` opener's three callers hold the
+stack's monotonicity, the base and the preprocess equation one hop back, so
+its own-floor cover is fundable; what it lacks is the resume's bottom, which
+the paid `:` openers take as a relay of the pack's resume and it does not
 ([`PuntCoverInputs.lean`](../Tests/Guards/Proofs/PuntCoverInputs.lean)). The
 refused relay would add two positions and one punt to each tree and no paid
 leaf.
