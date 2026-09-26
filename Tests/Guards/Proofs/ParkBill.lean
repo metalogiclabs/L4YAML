@@ -215,6 +215,28 @@ contains the fixpoint's seven, and the two it adds are named above.
 def expectedFixpoint : String :=
   "rounds=23 clean=1 sorried=13 restated=0 deleted=3 refused=0 pins=37 waves=[7,3,2,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0] gone=1 carried=21 free=4"
 
+/-- **The same edit with the DEAD BRANCHES deleted rather than sorried**
+    (item 264).  The fixpoint above keeps every broken statement and loses only
+    its proof, so it can say a proof breaks and never say what repairing it
+    costs.  `scripts/beta5_arms.py` makes β.5's deletions and then deletes the
+    five dead `| pendingFlow` arms for real, and reads the residue:
+
+    * `control` re-derives the seven in the same run, so `dead` is a delta of
+      this run rather than of item 263's;
+    * `dead=5` — five of the seven were a case arm and nothing else, and one of
+      the five (`accum_content_pending`'s) carried an application of the escape
+      with it, so a class of `block_dispatch_deferred`'s domain empties with the
+      constructor;
+    * what is LEFT is two errors of one line each.  `accum_flow_open_depth0`
+      keeps `have drop_ride`, where `dropClose` is spent and which three LIVE
+      arms take (`ScannerFlowOpenUnderRun` §4 prices it), and
+      `block_dispatch_deferred` is the escape, whose body IS the constructor.
+
+    Checked from the other side, like `expectedFixpoint`: the script reads this
+    literal and prints `ARM-PIN agrees`. -/
+def expectedArms : String :=
+  "control=7 arms=2 dead=5 left=[accum_flow_open_depth0,block_dispatch_deferred]"
+
 /-! ## §3 Every pin above, checked against one environment pass. -/
 
 run_cmd Lean.Elab.Command.liftCoreM do

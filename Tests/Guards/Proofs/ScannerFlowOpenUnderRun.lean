@@ -106,4 +106,125 @@ private def trailingAt (input : String) : Option (Nat × Nat) :=
 #guard refuses "k:\n  a:\n\t[1]\n"
 #guard refuses "a:\n  b:\n    -\n  \t[1]\n"
 
+
+/-! ## §4 The same family SWEPT, and the branch it prices (DOCS item 264)
+
+The columns above are hand-typed, and a hand-typed knob chooses the answer (§9).
+This section walks the landing column instead and lets the machine name the
+**turnover** — the least column the scanner accepts — at every combination of
+three enclosing contexts, four park kinds, both flow-open characters and four
+park indents.
+
+**Why it is worth sweeping a family already pinned.**  `accum_flow_open_depth0`
+spends β.5's `dropClose` at exactly one place, `have drop_ride`, and three LIVE
+arms take it — `pendingProps`, `pendingBlock` and `pendingMapValue`, one each,
+all on the run-end half of this under-run:
+
+    rcases h_ur with ⟨j, sx, hj, h_ind, _h_ws2, h_end | h_tab⟩
+    · exact drop_ride                              -- §4's subject
+    · exact (flowOpen_underRunTab_refuted …).elim  -- §3's half, already REFUTED
+
+So this family is not an audit of the scanner — it is the price of the one
+library proof β.5 breaks that is neither a dead branch nor the escape.  The
+source says of those three rides that "no accepted scan ever consults" them; §4
+is that sentence measured instead of asserted, and what it measures is that the
+run-end half is refutable exactly where the tab half already is.
+
+**The props park is why a sweep was needed and not another column.**  Its
+turnover does not track its own column: an anchor at column 3 takes a flow open
+at column 1.  `pendingProps.h_floor : IndentFloor sc n` carries the floor of the
+context the run stands IN, not the anchor's, so the boundary sits at 1 from
+indent 1 rightwards — and a grid varying only the park's own column would have
+read that as an under-run being accepted. -/
+
+private def accepts (input : String) : Bool :=
+  match Events.streamToEvents input, Events.streamToEventsIx input with
+  | .ok a, .ok b => a == b
+  | _, _ => false
+
+private def spaces (n : Nat) : String := String.ofList (List.replicate n ' ')
+
+/-- A park of the given kind at indent `p`, a break, then `q` spaces and a
+    depth-0 flow open.  `outer` supplies the indent when `p` is nonzero, and it
+    is varied because a boundary that moved with the enclosing construct would
+    be a fact about that construct rather than about the floor. -/
+private def mk (outer kind : String) (p q : Nat) (op : String) : String :=
+  let pre := match outer, p with
+    | _, 0 => ""
+    | "map", _ => "w:\n"
+    | "seq", _ => "-\n"
+    | _, _ => "? w\n: v\nz:\n"
+  let body := match kind with
+    | "mapValue" => spaces p ++ "k:"
+    | "block" => spaces p ++ "-"
+    | "qmark" => spaces p ++ "?"
+    | _ => spaces p ++ "&a"
+  pre ++ body ++ "\n" ++ spaces q ++ op ++ "\n"
+
+private def outers : List String := ["map", "seq", "doc"]
+private def kinds : List String := ["mapValue", "block", "qmark", "props"]
+private def opens : List String := ["[1]", "{a: b}"]
+private def indents : List Nat := [0, 1, 2, 3]
+private def columns : List Nat := [0, 1, 2, 3, 4, 5]
+
+/-- **The park's floor, as a model of this grid.**  Three of the four kinds ARE
+    the level they stand at, so their floor is one past their own column.  The
+    props run is not: it carries the floor of the context it stands in, which
+    this grid nests at 1.  Pinning the turnover against a MODEL rather than
+    against a list of numbers is what makes the reading a law — and a wrong
+    model fails the census rather than sliding it. -/
+private def floorOf (kind : String) (p : Nat) : Nat :=
+  if kind == "props" then min p 1 else p + 1
+
+/-- One walk of the grid: `(cells, rows with a single boundary, turnover = the
+    floor, accepted BELOW the floor, accepted AT the floor)`.
+
+    The third and fourth are the same reading taken two ways, so neither can
+    pass vacuously: the fourth counts accepted cells left of the floor directly
+    and must be **zero**, and the fifth counts the floor cells themselves and
+    must be all of them — a zero over a grid that never reached the boundary
+    would be a coverage report (§9). -/
+private def sweep : Nat × Nat × Nat × Nat × Nat := Id.run do
+  let mut cells := 0
+  let mut clean := 0
+  let mut atFloorTurn := 0
+  let mut belowOk := 0
+  let mut atFloorOk := 0
+  for outer in outers do
+    for kind in kinds do
+      for op in opens do
+        for p in indents do
+          cells := cells + 1
+          let n := floorOf kind p
+          let row := columns.map (fun q => accepts (mk outer kind p q op))
+          -- monotone in `q` with ONE boundary: a row that accepts, refuses and
+          -- accepts again has no turnover to speak of.
+          if !((row.dropWhile (· == false)).any (· == false)) then
+            clean := clean + 1
+          if (columns.zip row |>.filter (·.2) |>.map (·.1)).head? == some n then
+            atFloorTurn := atFloorTurn + 1
+          for (q, ok) in columns.zip row do
+            if ok && q < n then belowOk := belowOk + 1
+            if ok && q == n then atFloorOk := atFloorOk + 1
+  return (cells, clean, atFloorTurn, belowOk, atFloorOk)
+
+/- **Ninety-six cells, every one with a single boundary, and the boundary is
+    the floor.**  No accepted scan in the grid lands a depth-0 flow open
+    strictly left of the park's floor — which is the branch `drop_ride` is
+    spent on — and all ninety-six floor cells are accepted, so the grid
+    straddles the boundary rather than sitting to one side of it. -/
+#guard sweep == (96, 96, 96, 0, 96)
+
+/- The props cell the hand-typed columns above do not reach: the anchor stands
+    at column 3 and the open it takes is at column 1, two columns to its LEFT
+    and accepted, because the floor the park carries is the enclosing
+    mapping's. -/
+#guard emits (mk "map" "props" 3 1 "[1]")
+  ["+STR", "+DOC", "+MAP", "=VAL :w", "+SEQ [] &a", "=VAL :1", "-SEQ", "-MAP",
+   "-DOC", "-STR"]
+
+/- …and one column further left is the under-run, refused at the EOF gate —
+    the "deferred floor" reading, §1's. -/
+#guard errAt (mk "map" "props" 3 0 "[1]") == some (2, 0)
+
 end L4YAML.Tests.Guards.ScannerFlowOpenUnderRun
