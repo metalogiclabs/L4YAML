@@ -4506,53 +4506,88 @@ lemma flowOpenIdxStack_grow {a b : Array (Positioned YamlToken)}
         exact ih hm (by omega)
   exact key b.size hsz (Nat.le_refl _)
 
-/-- **The park a depth-0 flow frame was opened over, still anchored** (item 162). -/
-structure ParkAnchor (sc0 s : ScannerState) (d : Nat) : Prop where
+/-- **The TRANSPORT CORE of a parked depth-0 flow frame** (item 267): the four
+    readings every step between the open and its close has to re-establish.
+
+    The core carries no payload.  What a frame is anchored FOR differs by the
+    verdict its close pays — `ParkAnchor` adds the `[96]` property §9.2's
+    reading is taken against, `ParkSlot` adds the column §8.1's floor reads —
+    and both ride these same four. -/
+structure ParkCore (sc0 s : ScannerState) (d : Nat) : Prop where
   below : ∀ j, j < sc0.tokens.size → s.tokens[j]! = sc0.tokens[j]!
   held : ∃ S, FlowOpenHeld s.tokens d sc0.tokens.size S
   ind : s.indents = sc0.indents
   parkFlow : sc0.inFlow = false
+
+/-- **The park a depth-0 flow frame was opened over, still anchored**
+    (item 162): the transport core, carrying the property the park's own §9.2
+    verdict is read against. -/
+structure ParkAnchor (sc0 s : ScannerState) (d : Nat) : Prop extends ParkCore sc0 s d where
   parkProp : ∃ k, prevRealIdx? sc0.tokens sc0.tokens.size = some k ∧
     sc0.tokens[k]!.val.isNodeProperty = true
 
 /-- The park's array is a prefix of every state that still holds its open. -/
-lemma ParkAnchor.size_le {sc0 s : ScannerState} {d : Nat} (h : ParkAnchor sc0 s d) :
+lemma ParkCore.size_le {sc0 s : ScannerState} {d : Nat} (h : ParkCore sc0 s d) :
     sc0.tokens.size ≤ s.tokens.size := by
   obtain ⟨S, hheld⟩ := h.held
   exact Nat.le_of_lt hheld.lt
 
-/-- Any step whose new tokens open and close nothing carries the anchor. -/
+lemma ParkAnchor.size_le {sc0 s : ScannerState} {d : Nat} (h : ParkAnchor sc0 s d) :
+    sc0.tokens.size ≤ s.tokens.size := h.toParkCore.size_le
+
+/-- Any step whose new tokens open and close nothing carries the core. -/
+lemma ParkCore.grow {sc0 s s' : ScannerState} {d : Nat} (h : ParkCore sc0 s d)
+    (hpre : ∀ j, j < s.tokens.size → s'.tokens[j]! = s.tokens[j]!)
+    (hsz : s.tokens.size ≤ s'.tokens.size)
+    (hinert : ∀ j, s.tokens.size ≤ j → j < s'.tokens.size →
+      s'.tokens[j]!.val.isFlowOpen = false ∧ s'.tokens[j]!.val.isFlowClose = false)
+    (hind : s'.indents = s.indents) : ParkCore sc0 s' d := by
+  obtain ⟨S, hheld⟩ := h.held
+  refine ⟨fun j hj => ?_, ⟨S, ?_⟩, hind.trans h.ind, h.parkFlow⟩
+  · exact (hpre j (by have := h.size_le; omega)).trans (h.below j hj)
+  · unfold FlowOpenHeld at hheld ⊢
+    rw [flowOpenIdxStack_grow hpre hsz hinert]; exact hheld
+
+/-- …and so it carries the anchor, whose payload is the park's own. -/
 lemma ParkAnchor.grow {sc0 s s' : ScannerState} {d : Nat} (h : ParkAnchor sc0 s d)
     (hpre : ∀ j, j < s.tokens.size → s'.tokens[j]! = s.tokens[j]!)
     (hsz : s.tokens.size ≤ s'.tokens.size)
     (hinert : ∀ j, s.tokens.size ≤ j → j < s'.tokens.size →
       s'.tokens[j]!.val.isFlowOpen = false ∧ s'.tokens[j]!.val.isFlowClose = false)
-    (hind : s'.indents = s.indents) : ParkAnchor sc0 s' d := by
-  obtain ⟨S, hheld⟩ := h.held
-  refine ⟨fun j hj => ?_, ⟨S, ?_⟩, hind.trans h.ind, h.parkFlow, h.parkProp⟩
-  · exact (hpre j (by have := h.size_le; omega)).trans (h.below j hj)
-  · unfold FlowOpenHeld at hheld ⊢
-    rw [flowOpenIdxStack_grow hpre hsz hinert]; exact hheld
+    (hind : s'.indents = s.indents) : ParkAnchor sc0 s' d :=
+  ⟨h.toParkCore.grow hpre hsz hinert hind, h.parkProp⟩
 
-/-- A flow OPEN pushes the anchor one nest deeper. -/
-lemma ParkAnchor.pushOpen {sc0 s s' : ScannerState} {d : Nat} {p : Positioned YamlToken}
-    (h : ParkAnchor sc0 s d) (htok : s'.tokens = s.tokens.push p)
+/-- A flow OPEN pushes the core one nest deeper. -/
+lemma ParkCore.pushOpen {sc0 s s' : ScannerState} {d : Nat} {p : Positioned YamlToken}
+    (h : ParkCore sc0 s d) (htok : s'.tokens = s.tokens.push p)
     (hop : p.val.isFlowOpen = true) (hind : s'.indents = s.indents) :
-    ParkAnchor sc0 s' (d + 1) := by
+    ParkCore sc0 s' (d + 1) := by
   obtain ⟨S, hheld⟩ := h.held
-  refine ⟨fun j hj => ?_, ⟨S, ?_⟩, hind.trans h.ind, h.parkFlow, h.parkProp⟩
+  refine ⟨fun j hj => ?_, ⟨S, ?_⟩, hind.trans h.ind, h.parkFlow⟩
   · rw [htok, push_getElem!_below j (by have := h.size_le; omega)]; exact h.below j hj
   · rw [htok]; exact hheld.push_open hop
 
+lemma ParkAnchor.pushOpen {sc0 s s' : ScannerState} {d : Nat} {p : Positioned YamlToken}
+    (h : ParkAnchor sc0 s d) (htok : s'.tokens = s.tokens.push p)
+    (hop : p.val.isFlowOpen = true) (hind : s'.indents = s.indents) :
+    ParkAnchor sc0 s' (d + 1) :=
+  ⟨h.toParkCore.pushOpen htok hop hind, h.parkProp⟩
+
 /-- A flow CLOSE pops one nest off it. -/
+lemma ParkCore.pushClose {sc0 s s' : ScannerState} {d : Nat} {p : Positioned YamlToken}
+    (h : ParkCore sc0 s (d + 1)) (htok : s'.tokens = s.tokens.push p)
+    (hcl : p.val.isFlowClose = true) (hind : s'.indents = s.indents) :
+    ParkCore sc0 s' d := by
+  obtain ⟨S, hheld⟩ := h.held
+  refine ⟨fun j hj => ?_, ⟨S, ?_⟩, hind.trans h.ind, h.parkFlow⟩
+  · rw [htok, push_getElem!_below j (by have := h.size_le; omega)]; exact h.below j hj
+  · rw [htok]; exact hheld.push_close hcl
+
 lemma ParkAnchor.pushClose {sc0 s s' : ScannerState} {d : Nat} {p : Positioned YamlToken}
     (h : ParkAnchor sc0 s (d + 1)) (htok : s'.tokens = s.tokens.push p)
     (hcl : p.val.isFlowClose = true) (hind : s'.indents = s.indents) :
-    ParkAnchor sc0 s' d := by
-  obtain ⟨S, hheld⟩ := h.held
-  refine ⟨fun j hj => ?_, ⟨S, ?_⟩, hind.trans h.ind, h.parkFlow, h.parkProp⟩
-  · rw [htok, push_getElem!_below j (by have := h.size_le; omega)]; exact h.below j hj
-  · rw [htok]; exact hheld.push_close hcl
+    ParkAnchor sc0 s' d :=
+  ⟨h.toParkCore.pushClose htok hcl hind, h.parkProp⟩
 
 /-- **The anchor's GENESIS** (item 163) — the base open is where it is made.
 
@@ -4563,6 +4598,17 @@ lemma ParkAnchor.pushClose {sc0 s s' : ScannerState} {d : Nat} {p : Positioned Y
     open's own facts — it writes no indent, the park is out of flow, and the
     park's last real token is the `[96]` property this whole carrier exists to
     protect.  Every later step transports; only this one creates. -/
+lemma ParkCore.ofOpen {sc0 s' : ScannerState} {p : Positioned YamlToken}
+    (htok : s'.tokens = sc0.tokens.push p)
+    (hop : p.val.isFlowOpen = true)
+    (hind : s'.indents = sc0.indents)
+    (hflow : sc0.inFlow = false) :
+    ParkCore sc0 s' 0 := by
+  refine ⟨fun j hj => ?_, ⟨flowOpenIdxStack sc0.tokens sc0.tokens.size, [], rfl, ?_⟩,
+    hind, hflow⟩
+  · rw [htok, push_getElem!_below j hj]
+  · rw [htok, flowOpenIdxStack_push_open hop]; rfl
+
 lemma ParkAnchor.ofOpen {sc0 s' : ScannerState} {p : Positioned YamlToken}
     (htok : s'.tokens = sc0.tokens.push p)
     (hop : p.val.isFlowOpen = true)
@@ -4570,20 +4616,85 @@ lemma ParkAnchor.ofOpen {sc0 s' : ScannerState} {p : Positioned YamlToken}
     (hflow : sc0.inFlow = false)
     (hprop : ∃ k, prevRealIdx? sc0.tokens sc0.tokens.size = some k ∧
       sc0.tokens[k]!.val.isNodeProperty = true) :
-    ParkAnchor sc0 s' 0 := by
-  refine ⟨fun j hj => ?_, ⟨flowOpenIdxStack sc0.tokens sc0.tokens.size, [], rfl, ?_⟩,
-    hind, hflow, hprop⟩
-  · rw [htok, push_getElem!_below j hj]
-  · rw [htok, flowOpenIdxStack_push_open hop]; rfl
+    ParkAnchor sc0 s' 0 :=
+  ⟨ParkCore.ofOpen htok hop hind hflow, hprop⟩
 
 /-- …and it is a PROPER prefix.  A held open is an index INTO the later array,
     so every reservation a save makes after it lands strictly above the park —
     which is half of what item 164's floor needs, and the half no step has to
     maintain. -/
-lemma ParkAnchor.size_lt {sc0 s : ScannerState} {d : Nat} (h : ParkAnchor sc0 s d) :
+lemma ParkCore.size_lt {sc0 s : ScannerState} {d : Nat} (h : ParkCore sc0 s d) :
     sc0.tokens.size < s.tokens.size := by
   obtain ⟨S, hheld⟩ := h.held
   exact hheld.lt
+
+lemma ParkAnchor.size_lt {sc0 s : ScannerState} {d : Nat} (h : ParkAnchor sc0 s d) :
+    sc0.tokens.size < s.tokens.size := h.toParkCore.size_lt
+
+/-! ### The CARRIER (item 267)
+
+Item 265 named one fact the run-end refutation needs — *the flow collection
+closes with the open's column still on the indent stack* — and item 266 measured
+that `ParkCore` already runs a fact from a depth-0 open to its close.  This is
+that fact, riding the same transport with its own payload.
+
+**The column is read off the ARRAY, not off the park's cursor.**  Both gates a
+depth-0 close can die at read the OPEN TOKEN's own position — §8.1's floor reads
+`s.tokens[o]!.pos`, and §9.2's run starts AT the open on every landing of the
+family (`ScannerFlowOpenUnderRun` §7) — so the carrier has to name the token,
+which `ParkCore.below` does not reach: the park's prefix stops one index short
+of the bracket.  At the park the same membership is a fact about the cursor
+alone, and that is what the GENESIS spends; between the genesis and the close it
+travels over the array.
+
+**It is a payload and not a core field.**  On the accepted cells of the same
+family the open's column stands on NEITHER candidate park's stack (§7's
+`acceptedParks`), so a `ParkCore` that demanded it could not be built where the
+`[96]` park builds one today. -/
+
+/-- **The carrier** (item 267): the column the depth-0 open landed at, still
+    standing on the park's indent stack, in the form both gates read it. -/
+structure ParkSlot (sc0 s : ScannerState) (d : Nat) : Prop extends ParkCore sc0 s d where
+  openCol : sc0.indents.any
+    (fun e => e.column == (s.tokens[sc0.tokens.size]!.pos.col : Int)) = true
+
+/-- **The carrier's GENESIS**, at the base open: the bracket the push writes is
+    the token the payload names, so what the arm supplies is the membership at
+    the park's own cursor. -/
+lemma ParkSlot.ofOpen {sc0 s' : ScannerState} {p : Positioned YamlToken}
+    (htok : s'.tokens = sc0.tokens.push p)
+    (hop : p.val.isFlowOpen = true)
+    (hind : s'.indents = sc0.indents)
+    (hflow : sc0.inFlow = false)
+    (hcol : sc0.indents.any (fun e => e.column == (p.pos.col : Int)) = true) :
+    ParkSlot sc0 s' 0 :=
+  ⟨ParkCore.ofOpen htok hop hind hflow, by rw [htok, push_getElem!_top]; exact hcol⟩
+
+/-- Any step whose new tokens open and close nothing carries the carrier. -/
+lemma ParkSlot.grow {sc0 s s' : ScannerState} {d : Nat} (h : ParkSlot sc0 s d)
+    (hpre : ∀ j, j < s.tokens.size → s'.tokens[j]! = s.tokens[j]!)
+    (hsz : s.tokens.size ≤ s'.tokens.size)
+    (hinert : ∀ j, s.tokens.size ≤ j → j < s'.tokens.size →
+      s'.tokens[j]!.val.isFlowOpen = false ∧ s'.tokens[j]!.val.isFlowClose = false)
+    (hind : s'.indents = s.indents) : ParkSlot sc0 s' d :=
+  ⟨h.toParkCore.grow hpre hsz hinert hind, by
+    rw [hpre sc0.tokens.size h.toParkCore.size_lt]; exact h.openCol⟩
+
+/-- A flow OPEN pushes it one nest deeper. -/
+lemma ParkSlot.pushOpen {sc0 s s' : ScannerState} {d : Nat} {p : Positioned YamlToken}
+    (h : ParkSlot sc0 s d) (htok : s'.tokens = s.tokens.push p)
+    (hop : p.val.isFlowOpen = true) (hind : s'.indents = s.indents) :
+    ParkSlot sc0 s' (d + 1) :=
+  ⟨h.toParkCore.pushOpen htok hop hind, by
+    rw [htok, push_getElem!_below _ h.toParkCore.size_lt]; exact h.openCol⟩
+
+/-- A flow CLOSE pops one nest off it. -/
+lemma ParkSlot.pushClose {sc0 s s' : ScannerState} {d : Nat} {p : Positioned YamlToken}
+    (h : ParkSlot sc0 s (d + 1)) (htok : s'.tokens = s.tokens.push p)
+    (hcl : p.val.isFlowClose = true) (hind : s'.indents = s.indents) :
+    ParkSlot sc0 s' d :=
+  ⟨h.toParkCore.pushClose htok hcl hind, by
+    rw [htok, push_getElem!_below _ h.toParkCore.size_lt]; exact h.openCol⟩
 
 /-! ### The RESERVATION FLOOR (item 164)
 
@@ -5959,6 +6070,90 @@ lemma preprocess_indents_eq_of_no_open_level {sc s_prep : ScannerState} {c : Cha
       exact ⟨i, hi, by rw [hget, h_col]; simp⟩
     rw [h_open] at h_any
     exact Bool.noConfusion h_any
+
+/-! ### The carrier's SOURCE, item 127's law read from below (item 267)
+
+Item 146 above is the membership the carrier needs, stated contrapositively: a
+landing at no open level did not dedent.  What a flow open's arm holds is not
+"the stack moved" but "the landing is below the floor the step began with", and
+turning the second into the first is the one fact this section adds.  The unwind's
+guard is exactly that inequality, so an armed landing below the floor pops
+(`unwindIndents_pops`); the sentinel is what rules out a one-entry stack, where
+the guard stops with nothing popped.
+
+Neither lemma re-proves item 127's: the level a popping landing rests on, and
+that it is the landing's own column, is stated once, at
+`preprocess_landing_at_level`. -/
+
+/-- **An armed landing below the incoming floor DEDENTS** (item 267). -/
+lemma preprocess_pops_of_below {sc s_prep : ScannerState} {c : Char}
+    (hok : scanNextToken_preprocess sc = .ok (some (s_prep, c)))
+    (h_base : IndentStackBase.SentinelBase sc)
+    (h_flow : sc.inFlow = false)
+    (h_nic : sc.needIndentCheck = true)
+    (h_below : (s_prep.col : Int) < sc.currentIndent) :
+    s_prep.indents ≠ sc.indents := by
+  unfold scanNextToken_preprocess at hok
+  simp only [bind, Except.bind, pure, Except.pure] at hok
+  split at hok
+  · exact absurd hok (by simp)
+  · rename_i s_skip h_skip
+    have h_ind_skip : s_skip.indents = sc.indents :=
+      skipToContent_preserves_indents sc s_skip h_skip
+    have h_flow_skip : s_skip.inFlow = false := by
+      unfold ScannerState.inFlow at h_flow ⊢
+      rw [ScannerCorrectness.skipToContent_preserves_flowLevel sc s_skip h_skip]
+      exact h_flow
+    have h_nic_skip : s_skip.needIndentCheck = true :=
+      skipToContent_needIndentCheck_mono h_skip h_nic
+    have hcond : (!s_skip.inFlow && s_skip.needIndentCheck) = true := by
+      simp [h_flow_skip, h_nic_skip]
+    simp only [hcond, ite_true] at hok
+    split at hok
+    · exact absurd hok (by simp)
+    · split at hok
+      · exact absurd hok (by simp)
+      · split at hok
+        · exact absurd hok (by simp)
+        · simp only [Except.ok.injEq, Option.some.injEq, Prod.mk.injEq] at hok
+          obtain ⟨rfl, -⟩ := hok
+          have h_col : (saveSimpleKey
+              { unwindIndents s_skip (s_skip.col : Int) with needIndentCheck := false }).col
+              = s_skip.col := by
+            rw [saveSimpleKey_col]
+            exact unwindIndents_col s_skip _
+          rw [h_col] at h_below
+          have h_ci : s_skip.currentIndent = sc.currentIndent :=
+            currentIndent_of_indents_eq h_ind_skip
+          have h_base_skip : IndentStackBase.SentinelBase s_skip :=
+            IndentStackBase.SentinelBase.of_indents_eq h_base h_ind_skip
+          have h_two : 1 < s_skip.indents.size := by
+            rcases Nat.lt_or_ge 1 s_skip.indents.size with h2 | h2
+            · exact h2
+            · have := h_base_skip.currentIndent_of_size_le_one h2
+              omega
+          have h_lt : (s_skip.col : Int) < s_skip.currentIndent := by
+            rw [h_ci]; exact h_below
+          have h_pop := unwindIndents_pops (s := s_skip) h_lt h_two
+          rw [saveSimpleKey_preserves_indents, ← h_ind_skip]
+          intro heq
+          rw [heq] at h_pop
+          omega
+
+/-- **The carrier's source** (item 267): an armed landing below the incoming
+    floor stands on a level of the stack it lands with — item 146's law, read
+    through the dedent the floor supplies, in the form both gates take. -/
+lemma preprocess_landing_on_stack {sc s_prep : ScannerState} {c : Char}
+    (hok : scanNextToken_preprocess sc = .ok (some (s_prep, c)))
+    (h_base : IndentStackBase.SentinelBase sc)
+    (h_flow : sc.inFlow = false)
+    (h_nic : sc.needIndentCheck = true)
+    (h_below : (s_prep.col : Int) < sc.currentIndent) :
+    (s_prep.indents.any fun e => e.column == (s_prep.col : Int)) = true := by
+  rcases hany : (s_prep.indents.any fun e => e.column == (s_prep.col : Int)) with _ | _
+  · exact absurd (preprocess_indents_eq_of_no_open_level hok h_base hany)
+      (preprocess_pops_of_below hok h_base h_flow h_nic h_below)
+  · rfl
 
 /-- **§9.2's landing refusal, spent at the accumulation** (item 139) — the
     contradiction items 132–134 were built to be read at, with all four of
@@ -14017,6 +14212,80 @@ lemma ParkAnchor.dangling_eq {sc0 s_bc s_cl : ScannerState}
     (fun j hj => (hpre j (by have := h.size_le; omega)).trans (h.below j hj))
     hpre hheld hk hkp hlast hclose rfl
 
+/-! ### The carrier's two SPENDS, at the frame's own close (item 267)
+
+A depth-0 close that lands with the carrier still on it dies at one of the two
+gates that guard a landing, and which one is decided by the slot the park's run
+stands in — `offersNodeSlot` alone, with no overlap and no remainder
+(`ScannerFlowOpenUnderRun` §6's `slotSplit`).  Both gates read the OPEN TOKEN's
+own position, so both spend the same payload:
+
+* where the slot OFFERS, §8.1's floor reads the collection as the awaited node
+  and refuses it at the open's column;
+* where it does not, §9.2 reads the same run as a dangling node and refuses it
+  at the same position — the run STARTS at the open on every landing of the
+  family, which is why one carrier serves both.
+
+Each spend takes the close's own four readings, exactly as `ParkAnchor.gate`
+does, and returns the gate's verdict rather than an equation between two
+verdicts: the run-end refutation needs the gate to FIRE, not to agree. -/
+
+/-- **§8.1's floor, fired at the close** — the collection stands in the awaited
+    slot at a column the stack still holds. -/
+lemma ParkSlot.underIndented_eq {sc0 s_bc s_cl : ScannerState}
+    (h : ParkSlot sc0 s_bc 0)
+    (hpre : ∀ j, j < s_bc.tokens.size → s_cl.tokens[j]! = s_bc.tokens[j]!)
+    (hind : s_cl.indents = s_bc.indents)
+    (hflow : s_cl.inFlow = false)
+    (hlast : prevRealIdx? s_cl.tokens s_cl.tokens.size = some s_bc.tokens.size)
+    (hclose : s_cl.tokens[s_bc.tokens.size]!.val.isFlowClose = true)
+    (hoffer : ∃ j, prevRealIdx? s_cl.tokens
+        (propsRunStart s_cl.tokens sc0.tokens.size) = some j ∧
+      s_cl.tokens[j]!.val.offersNodeSlot = true) :
+    underIndentedFlowValuePos? s_cl = some s_cl.tokens[sc0.tokens.size]!.pos := by
+  obtain ⟨S, hheld⟩ := h.held
+  obtain ⟨j, hj, hjo⟩ := hoffer
+  have hopen : flowOpenIdx? s_cl.tokens s_bc.tokens.size = some sc0.tokens.size :=
+    hheld.flowOpenIdx? hpre
+  have hcol : s_cl.indents.any
+      (fun e => e.column == (s_cl.tokens[sc0.tokens.size]!.pos.col : Int)) = true := by
+    rw [hind, h.ind, hpre sc0.tokens.size h.toParkCore.size_lt]
+    exact h.openCol
+  unfold underIndentedFlowValuePos?
+  simp only [hflow, Bool.false_eq_true, ↓reduceIte, hlast, hclose, Bool.not_true,
+    hopen, hj, hjo, hcol, Bool.and_self]
+
+/-- **§9.2's dangling run, fired at the close** — the same collection read as a
+    node that belongs to nothing, at the same position. -/
+lemma ParkSlot.dangling_fires {sc0 s_bc s_cl : ScannerState}
+    (h : ParkSlot sc0 s_bc 0)
+    (hpre : ∀ j, j < s_bc.tokens.size → s_cl.tokens[j]! = s_bc.tokens[j]!)
+    (hind : s_cl.indents = s_bc.indents)
+    (hflow : s_cl.inFlow = false)
+    (hlast : prevRealIdx? s_cl.tokens s_cl.tokens.size = some s_bc.tokens.size)
+    (hclose : s_cl.tokens[s_bc.tokens.size]!.val.isFlowClose = true)
+    (hst : propsRunStart s_cl.tokens sc0.tokens.size = sc0.tokens.size)
+    (hoffer : ∀ j, prevRealIdx? s_cl.tokens sc0.tokens.size = some j →
+      s_cl.tokens[j]!.val.offersNodeSlot = false) :
+    danglingNodePos? s_cl = some s_cl.tokens[sc0.tokens.size]!.pos := by
+  obtain ⟨S, hheld⟩ := h.held
+  have hopen : flowOpenIdx? s_cl.tokens s_bc.tokens.size = some sc0.tokens.size :=
+    hheld.flowOpenIdx? hpre
+  have hcol : s_cl.indents.any
+      (fun e => e.column == (s_cl.tokens[sc0.tokens.size]!.pos.col : Int)) = true := by
+    rw [hind, h.ind, hpre sc0.tokens.size h.toParkCore.size_lt]
+    exact h.openCol
+  have hrun : trailingNodeRun? s_cl.tokens
+      = some (sc0.tokens.size, prevRealIdx? s_cl.tokens sc0.tokens.size) := by
+    unfold trailingNodeRun?
+    simp only [hlast, isFlowClose_not_isNodeProperty hclose,
+      isFlowClose_not_isNodeBody hclose, Bool.false_eq_true, ↓reduceIte, hclose, hopen, hst]
+  unfold danglingNodePos?
+  simp only [hflow, Bool.false_eq_true, ↓reduceIte, hrun]
+  rcases hp : prevRealIdx? s_cl.tokens sc0.tokens.size with _ | j
+  · simp [hcol]
+  · simp [hoffer j hp, hcol]
+
 
 /-! ### The `[96]` park's reading, relayed to its own RIDES (item 165)
 
@@ -14963,12 +15232,17 @@ lemma prevRealIdx?_push_top {ts : Array (Positioned YamlToken)}
 -- `danglingNodePos?`'s fourth clause, which refuses them by their KINDS.
 
 /-- A step that writes no token at all carries the anchor. -/
-lemma ParkAnchor.congr {sc0 s s' : ScannerState} {d : Nat} (h : ParkAnchor sc0 s d)
+lemma ParkCore.congr {sc0 s s' : ScannerState} {d : Nat} (h : ParkCore sc0 s d)
     (htok : s'.tokens = s.tokens) (hind : s'.indents = s.indents) :
-    ParkAnchor sc0 s' d := by
+    ParkCore sc0 s' d := by
   obtain ⟨S, hheld⟩ := h.held
   exact ⟨fun j hj => by rw [htok]; exact h.below j hj, ⟨S, by rw [htok]; exact hheld⟩,
-    hind.trans h.ind, h.parkFlow, h.parkProp⟩
+    hind.trans h.ind, h.parkFlow⟩
+
+lemma ParkAnchor.congr {sc0 s s' : ScannerState} {d : Nat} (h : ParkAnchor sc0 s d)
+    (htok : s'.tokens = s.tokens) (hind : s'.indents = s.indents) :
+    ParkAnchor sc0 s' d :=
+  ⟨h.toParkCore.congr htok hind, h.parkProp⟩
 
 /-- **A step that REWRITES rather than pushes carries it too** — which is what
     a simple key's resolution does, turning the two reserved placeholders into
@@ -14976,29 +15250,44 @@ lemma ParkAnchor.congr {sc0 s s' : ScannerState} {d : Nat} (h : ParkAnchor sc0 s
     bracket predicates, so agreement on THOSE is all the rewrite owes; the
     park's own prefix is untouched because the slots a save reserves sit above
     the open. -/
+lemma ParkCore.congrKind {sc0 s s' : ScannerState} {d : Nat} (h : ParkCore sc0 s d)
+    (hsz : s'.tokens.size = s.tokens.size)
+    (hbelow : ∀ j, j < sc0.tokens.size → s'.tokens[j]! = s.tokens[j]!)
+    (hkind : ∀ j, j < s.tokens.size →
+      s'.tokens[j]!.val.isFlowOpen = s.tokens[j]!.val.isFlowOpen ∧
+      s'.tokens[j]!.val.isFlowClose = s.tokens[j]!.val.isFlowClose)
+    (hind : s'.indents = s.indents) : ParkCore sc0 s' d := by
+  obtain ⟨S, hheld⟩ := h.held
+  refine ⟨fun j hj => (hbelow j hj).trans (h.below j hj), ⟨S, ?_⟩, hind.trans h.ind,
+    h.parkFlow⟩
+  unfold FlowOpenHeld at hheld ⊢
+  rw [hsz, flowOpenIdxStack_congr_kind (m := s.tokens.size) hkind s.tokens.size (Nat.le_refl _)]
+  exact hheld
+
 lemma ParkAnchor.congrKind {sc0 s s' : ScannerState} {d : Nat} (h : ParkAnchor sc0 s d)
     (hsz : s'.tokens.size = s.tokens.size)
     (hbelow : ∀ j, j < sc0.tokens.size → s'.tokens[j]! = s.tokens[j]!)
     (hkind : ∀ j, j < s.tokens.size →
       s'.tokens[j]!.val.isFlowOpen = s.tokens[j]!.val.isFlowOpen ∧
       s'.tokens[j]!.val.isFlowClose = s.tokens[j]!.val.isFlowClose)
-    (hind : s'.indents = s.indents) : ParkAnchor sc0 s' d := by
-  obtain ⟨S, hheld⟩ := h.held
-  refine ⟨fun j hj => (hbelow j hj).trans (h.below j hj), ⟨S, ?_⟩, hind.trans h.ind,
-    h.parkFlow, h.parkProp⟩
-  unfold FlowOpenHeld at hheld ⊢
-  rw [hsz, flowOpenIdxStack_congr_kind (m := s.tokens.size) hkind s.tokens.size (Nat.le_refl _)]
-  exact hheld
+    (hind : s'.indents = s.indents) : ParkAnchor sc0 s' d :=
+  ⟨h.toParkCore.congrKind hsz hbelow hkind hind, h.parkProp⟩
 
 /-- A step that writes ONE token that is neither bracket carries it. -/
+lemma ParkCore.pushInert {sc0 s s' : ScannerState} {d : Nat} {p : Positioned YamlToken}
+    (h : ParkCore sc0 s d) (htok : s'.tokens = s.tokens.push p)
+    (ho : p.val.isFlowOpen = false) (hc : p.val.isFlowClose = false)
+    (hind : s'.indents = s.indents) : ParkCore sc0 s' d := by
+  obtain ⟨S, hheld⟩ := h.held
+  refine ⟨fun j hj => ?_, ⟨S, ?_⟩, hind.trans h.ind, h.parkFlow⟩
+  · rw [htok, push_getElem!_below j (by have := h.size_le; omega)]; exact h.below j hj
+  · rw [htok]; exact hheld.push_other ho hc
+
 lemma ParkAnchor.pushInert {sc0 s s' : ScannerState} {d : Nat} {p : Positioned YamlToken}
     (h : ParkAnchor sc0 s d) (htok : s'.tokens = s.tokens.push p)
     (ho : p.val.isFlowOpen = false) (hc : p.val.isFlowClose = false)
-    (hind : s'.indents = s.indents) : ParkAnchor sc0 s' d := by
-  obtain ⟨S, hheld⟩ := h.held
-  refine ⟨fun j hj => ?_, ⟨S, ?_⟩, hind.trans h.ind, h.parkFlow, h.parkProp⟩
-  · rw [htok, push_getElem!_below j (by have := h.size_le; omega)]; exact h.below j hj
-  · rw [htok]; exact hheld.push_other ho hc
+    (hind : s'.indents = s.indents) : ParkAnchor sc0 s' d :=
+  ⟨h.toParkCore.pushInert htok ho hc hind, h.parkProp⟩
 
 /-- A rewrite away from `i` reads back as it did. -/
 lemma setIfInBounds_getElem!_ne {ts : Array (Positioned YamlToken)} {i j : Nat}
@@ -15058,15 +15347,15 @@ lemma ParkFloor.rewriteKey {sc0 s s' : ScannerState} {d : Nat}
     above the base open and holds no bracket, which is exactly what the park's
     prefix and the forward stack each need: the write lands away from the
     prefix, and it is kind-for-kind invisible to the balance. -/
-lemma ParkAnchor.rewriteKey {sc0 s s' : ScannerState} {d : Nat} {v q : Positioned YamlToken}
-    (h : ParkAnchor sc0 s d) (hfl : KeyFloor s.tokens sc0.tokens.size s.simpleKey)
+lemma ParkCore.rewriteKey {sc0 s s' : ScannerState} {d : Nat} {v q : Positioned YamlToken}
+    (h : ParkCore sc0 s d) (hfl : KeyFloor s.tokens sc0.tokens.size s.simpleKey)
     (hposs : s.simpleKey.possible = true)
     (htok : s'.tokens = (s.tokens.setIfInBounds (s.simpleKey.tokenIndex + 1) v).push q)
     (hv : v.val.isFlowOpen = false) (hv' : v.val.isFlowClose = false)
     (hq : q.val.isFlowOpen = false) (hq' : q.val.isFlowClose = false)
-    (hind : s'.indents = s.indents) : ParkAnchor sc0 s' d := by
+    (hind : s'.indents = s.indents) : ParkCore sc0 s' d := by
   obtain ⟨hlt, hb, hno, hnc⟩ := hfl hposs
-  have hmid : ParkAnchor sc0
+  have hmid : ParkCore sc0
       { s with tokens := s.tokens.setIfInBounds (s.simpleKey.tokenIndex + 1) v } d := by
     refine h.congrKind (by simp) (fun j hj => ?_) (fun j hj => ?_) rfl
     · exact setIfInBounds_getElem!_ne (by omega)
@@ -15077,6 +15366,53 @@ lemma ParkAnchor.rewriteKey {sc0 s s' : ScannerState} {d : Nat} {v q : Positione
       · rw [setIfInBounds_getElem!_ne hjt]
         exact ⟨rfl, rfl⟩
   exact hmid.pushInert htok hq hq' hind
+
+lemma ParkAnchor.rewriteKey {sc0 s s' : ScannerState} {d : Nat} {v q : Positioned YamlToken}
+    (h : ParkAnchor sc0 s d) (hfl : KeyFloor s.tokens sc0.tokens.size s.simpleKey)
+    (hposs : s.simpleKey.possible = true)
+    (htok : s'.tokens = (s.tokens.setIfInBounds (s.simpleKey.tokenIndex + 1) v).push q)
+    (hv : v.val.isFlowOpen = false) (hv' : v.val.isFlowClose = false)
+    (hq : q.val.isFlowOpen = false) (hq' : q.val.isFlowClose = false)
+    (hind : s'.indents = s.indents) : ParkAnchor sc0 s' d :=
+  ⟨h.toParkCore.rewriteKey hfl hposs htok hv hv' hq hq' hind, h.parkProp⟩
+
+/-! ### The carrier's remaining rides (item 267)
+
+`congrKind` has no `ParkSlot` twin: a kind congruence pins the two bracket
+predicates and nothing else, so it says nothing about the open token's POSITION.
+The one step that rewrites a slot in place is the `:`'s resolution, and there
+the reservation floor keeps the write strictly above the base open
+(`KeyFloor`'s first conjunct), which is what `ParkSlot.rewriteKey` spends. -/
+
+/-- A step that writes no token at all carries the carrier. -/
+lemma ParkSlot.congr {sc0 s s' : ScannerState} {d : Nat} (h : ParkSlot sc0 s d)
+    (htok : s'.tokens = s.tokens) (hind : s'.indents = s.indents) :
+    ParkSlot sc0 s' d :=
+  ⟨h.toParkCore.congr htok hind, by rw [htok]; exact h.openCol⟩
+
+/-- A step that writes ONE token that is neither bracket carries it. -/
+lemma ParkSlot.pushInert {sc0 s s' : ScannerState} {d : Nat} {p : Positioned YamlToken}
+    (h : ParkSlot sc0 s d) (htok : s'.tokens = s.tokens.push p)
+    (ho : p.val.isFlowOpen = false) (hc : p.val.isFlowClose = false)
+    (hind : s'.indents = s.indents) : ParkSlot sc0 s' d :=
+  ⟨h.toParkCore.pushInert htok ho hc hind, by
+    rw [htok, push_getElem!_below _ h.toParkCore.size_lt]; exact h.openCol⟩
+
+/-- **The REWRITE, for the carrier**: the resolved slot sits strictly above the
+    base open, so the bracket the payload names reads back unchanged. -/
+lemma ParkSlot.rewriteKey {sc0 s s' : ScannerState} {d : Nat} {v q : Positioned YamlToken}
+    (h : ParkSlot sc0 s d) (hfl : KeyFloor s.tokens sc0.tokens.size s.simpleKey)
+    (hposs : s.simpleKey.possible = true)
+    (htok : s'.tokens = (s.tokens.setIfInBounds (s.simpleKey.tokenIndex + 1) v).push q)
+    (hv : v.val.isFlowOpen = false) (hv' : v.val.isFlowClose = false)
+    (hq : q.val.isFlowOpen = false) (hq' : q.val.isFlowClose = false)
+    (hind : s'.indents = s.indents) : ParkSlot sc0 s' d :=
+  ⟨h.toParkCore.rewriteKey hfl hposs htok hv hv' hq hq' hind, by
+    obtain ⟨hlt, -, -, -⟩ := hfl hposs
+    have hsz := h.toParkCore.size_lt
+    rw [htok, push_getElem!_below _ (by simpa using hsz),
+        setIfInBounds_getElem!_ne (by omega)]
+    exact h.openCol⟩
 
 /-- **What preprocessing does to the reservation, in flow** (item 164): it
     leaves both the array and the pending key alone, or it SAVES — two

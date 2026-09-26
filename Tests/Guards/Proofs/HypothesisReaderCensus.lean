@@ -364,9 +364,22 @@ adds.**   `constants` counts the module's non-internal constants, generated ones
     to `covered_nil_of_top_le` (`RELAY` +2), and its `h_top_in`, whose one use
     was inside the slot's `Or.inl ⟨h_top_in, …⟩`, is now also consumed by the
     `omega` that pins the top (`FIELD` → `RELAY`): `FIELD` 153 → 152, `RELAY`
-    1999 → 2002.  The prediction counted the two binders and not the third. -/
+    1999 → 2002.  The prediction counted the two binders and not the third.
+
+    Item 267 moves the line by thirty-four constants and nothing else.  The
+    module's park anchor is split — `ParkCore` carries the four transport
+    readings, `ParkAnchor` extends it with the `[96]` property alone, and
+    `ParkSlot` extends it with the carrier — so four inherited projections are
+    replaced by one parent projection, nineteen constants arrive with the core
+    and sixteen with the carrier, and two more are the carrier's source
+    (`preprocess_pops_of_below` and `preprocess_landing_on_stack`):
+    `constants` 1125 → 1159, of which thirty-two hold a `Prop` binder
+    (`decls` 947 → 979).  Every moved lane is the new declarations' own
+    (`READ` 1021 → 1047, `RELAY` 2002 → 2084, `eta` 364 → 369); `FIELD`,
+    `RETURN` and `UNUSED` do not move, and the `UNUSED` roster below is
+    unchanged, which is what says no existing binder changed lane. -/
 def expectedModuleTally : String :=
-  "constants=1125 decls=947 eta=364 FIELD=152 READ=1021 RELAY=2002 RETURN=48 UNUSED=9"
+  "constants=1159 decls=979 eta=369 FIELD=152 READ=1047 RELAY=2084 RETURN=48 UNUSED=9"
 
 def expectedUnused : List String :=
   [ "block_dispatch_deferred_inline#10 (_h_res)",

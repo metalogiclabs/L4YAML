@@ -215,10 +215,15 @@ compact fill's literal to `IndentStackCover.covered_nil_of_top_le`.  Item 259
 moves three, as in the reader census: `compact_open_map`'s two new binders
 relayed to the same lemma, and its `h_top_in` from `FIELD` to `RELAY` (the
 `omega` pinning the slot's top now consumes it): `FIELD` 171 → 170, `RELAY`
-1866 → 1869. -/
+1866 → 1869.  Item 267 splits the park anchor into a transport core and two
+payloads and adds the carrier's source, which is thirty-four new constants and
+thirty-two new binder holders; the peel scores their binders `FIELD` 170 → 171,
+`READ` 1057 → 1083, `RELAY` 1869 → 1949 and `RETURN` 127 → 128.  The `UNUSED`
+roster is unchanged, which is what says the lanes moved by the new
+declarations' own binders and not by a rescoring of an existing one. -/
 
 def expectedModuleTallyP : String :=
-  "constants=1125 decls=947 eta=364 FIELD=170 READ=1057 RELAY=1869 RETURN=127 UNUSED=9"
+  "constants=1159 decls=979 eta=369 FIELD=171 READ=1083 RELAY=1949 RETURN=128 UNUSED=9"
 
 def expectedOptTallyP : String :=
   "total=163 ETA=34 FIELD=4 READ=85 RELAY=38 RETURN=2"

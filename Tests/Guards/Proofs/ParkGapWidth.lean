@@ -483,11 +483,13 @@ corrBlock=0 corrScan=1 via="]
     THIS module's import closure so the numbers are the ones the census above
     is read against.  Item 242 pinned the last two at 129 and 186 holders in
     its own closure; a holder count moves with what is imported, and the
-    crossings do not. -/
+    crossings do not.  Item 267's carrier source and the dedent it reads through
+    are two more holders of preprocessing's equation and cross nothing, so the
+    ladder's last row reads 188 with its two crossings unmoved. -/
 def expectedLadder : List String :=
   ["scanNextToken_dispatchBlockIndicators holders=97 edge=0 chain=0",
    "scanNextToken_dispatchContent holders=129 edge=2 chain=1",
-   "scanNextToken_preprocess holders=186 edge=17 chain=6"]
+   "scanNextToken_preprocess holders=188 edge=17 chain=6"]
 
 /-- **What §1's proofs spend.**  `drop=false` is the non-circularity check
     items 242 and 243 also carry: a measurement of what the escape costs may

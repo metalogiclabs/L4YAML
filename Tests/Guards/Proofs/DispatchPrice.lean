@@ -224,13 +224,19 @@ def readDecl (prods : Std.HashSet Name) (n : Name) : MetaM R := do
     population the findings are read over. -/
 def expectedAlphabet : String := "prodTyped=129 prodSurf=92 prodSpec=54"
 
-/-- The step population, which no choice of grammar moves: 1646 statements hold
+/-- The step population, which no choice of grammar moves: 1649 statements hold
     a scanner step equation, 294 of them a dispatch equation, and 28 of those
     hold it with two correspondences — the pair item 241's NEXT called the first
     thing that could turn a point into a path.  Of the 72 step functions, 26 are
-    the indexed twin's. -/
+    the indexed twin's.
+
+    Item 267 adds the three that hold one: the carrier's source
+    (`preprocess_landing_on_stack`), the dedent it reads it through
+    (`preprocess_pops_of_below`) and the `skipToContent` wrapper their proof
+    spends.  None is a dispatch and both functions were already among the 72, so
+    only the first count moves. -/
 def expectedSteps : String :=
-  "stepHolders=1646 dispHolders=294 dispTwoCorr=28 fns=72 fnsIx=26"
+  "stepHolders=1649 dispHolders=294 dispTwoCorr=28 fns=72 fnsIx=26"
 
 /-- **The ladder, at each population.**  `edge` is a production whose right
     endpoint is the step's output; `chain` requires a path to it from another
@@ -260,10 +266,13 @@ def expectedChainSurf : List Name :=
 def expectedChainSpec : List Name :=
   [`L4YAML.Proofs.StreamAccum.indentedValue_reads_at_any_indent]
 
-/-- The two functions, with how many of their holders carry the path. -/
+/-- The two functions, with how many of their holders carry the path.  Item 267
+    adds two holders of preprocessing's equation — the carrier's source and the
+    dedent it reads it through — and neither carries a path, so only the first
+    number moves. -/
 def expectedPerFn : List String :=
   ["scanNextToken_dispatchContent decls=129 chain=1",
-   "scanNextToken_preprocess decls=186 chain=6"]
+   "scanNextToken_preprocess decls=188 chain=6"]
 
 /-- **The one worked precedent is outside the work.**  It is not in item 238's
     transitive set and not on either repair thread, so β.5 neither pays for it

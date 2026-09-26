@@ -296,6 +296,13 @@ where
     · simp only []; split <;> rfl
     · rw [skipToContentComment_preserves_needIndentCheck]; exact ht
 
+/-- …and so does the walk the scanner actually calls. -/
+lemma skipToContent_needIndentCheck_mono {s s' : ScannerState}
+    (h : skipToContent s = .ok s') (hs : s.needIndentCheck = true) :
+    s'.needIndentCheck = true := by
+  unfold skipToContent at h
+  exact skipToContentLoop_needIndentCheck_mono s s' _ h hs
+
 /-- **The transport (item 9k).**  A run of `skipToContentLoop` that leaves
     `needIndentCheck` clear consumed no `b-break`, and so left the line alone.
 

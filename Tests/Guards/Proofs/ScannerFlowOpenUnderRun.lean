@@ -734,14 +734,157 @@ private def preLaw : Nat × Nat × Nat × Nat × Nat := Id.run do
 /-- What `scripts/carrier_price.py` reads by editing `StreamAccum.lean` and
     counting the declarations each edit breaks.
 
-    Five probes, five rings.  `passenger` and `heavy` add the carrier to
-    `ParkAnchor` as a field — the first stated over the park alone, the second
-    over the array — and they read the SAME census, which is the reading worth
-    keeping: an arity flip counts SITES, not work, so it cannot tell a passenger
-    from a premise and the runtime pins above are what do.  `prop` deletes
-    `parkProp` and adds one declaration to the seven: the spend.  `consumer` and
-    `gate` are the two rings below, and each is a single declaration. -/
+    Five probes, five rings, aimed at the BUILT carrier (item 267).  `core` and
+    `slot` add a required field to the transport core and to the carrier's own
+    payload; each is seven declarations, and the two sevens are not the same
+    seven — `rewriteKey` builds its core out of `congrKind` and `pushInert` and
+    so survives a field on `ParkCore`, while it builds its `ParkSlot` directly
+    and does not.  `prop` RENAMES `parkProp` out from under its readers, which
+    is the edit that prices a payload the split left in place; its eight are the
+    seven wrappers and the spend, and `ofOpen` is not among them because it
+    takes the property as a parameter rather than reading the field.
+    `consumer` and `gate` are the two rings below, and each is a single
+    declaration. -/
 def expectedCarrierPrice : String :=
-  "passenger=7 heavy=7 prop=8 consumer=1 gate=1"
+  "core=7 slot=7 prop=8 consumer=1 gate=1"
+
+
+
+/-! ## §7 What the built carrier reads, at both ends (DOCS item 267)
+
+§6 priced the carrier and named its source.  This section is the three readings
+the BUILD rests on — one per design decision that could have gone the other way.
+
+* **One carrier, two gates.**  `runStart` reads where §9.2's run begins on the
+  cells that fire it.  It begins AT the open, at all 54, and no cell of the
+  family puts a property in front of it — so the position §9.2 reports and the
+  position §8.1 reports are the same token's, and one payload serves both
+  spends.  A props-headed run would have needed a second reading.
+* **What is a park fact and what is not.**  `parkFacts` reads
+  `offersNodeSlot` at the death state and again at the park's own array, and
+  they agree cell for cell: which gate owns a landing is fixed before the open
+  is written, so the spends can take the slot as a hypothesis about the park
+  rather than as a transported field.  Its last count is the genesis's own
+  premise — the open token's column IS the park's cursor column.
+* **Why the carrier is a payload and not a core field.**  `acceptedParks`
+  walks the cells the scanner ACCEPTS.  The open's column stands on neither
+  candidate park's indent stack at any of them, so a `ParkCore` that demanded
+  the carrier could not be built where the `[96]` park builds one today.  The
+  same walk is the membership law's control: its conclusion holds at none of
+  the 378 and its hypothesis at none of them either, which is what says
+  `preprocess_landing_on_stack`'s `h_below` decides the law rather than
+  decorating it. -/
+
+/-- `(rows, §9.2 fires, its run starts AT the open, the run start's column is
+    the open's, that column stands on the stack, the run is props-headed)`.
+
+    The last is the discrimination and it must be **zero**: a run headed by a
+    property starts left of the bracket, and its refusal would be reported at a
+    column the carrier does not name. -/
+private def runStart : Nat × Nat × Nat × Nat × Nat × Nat := Id.run do
+  let mut rows := 0
+  let mut dang := 0
+  let mut atOpen := 0
+  let mut colEqOpen := 0
+  let mut onStack := 0
+  let mut propsHead := 0
+  for outer in outers do
+    for kind in kinds do
+      for op in opens do
+        for p in indents do
+          for q in List.range (floorOf kind p) do
+            let inp := mk outer kind p q op
+            match openTriple inp, deathState inp with
+            | some (_, sp, _), some s =>
+              rows := rows + 1
+              if (Scanner.danglingNodePos? s).isSome then
+                dang := dang + 1
+                match Scanner.trailingNodeRun? s.tokens with
+                | none => pure ()
+                | some (st, _) =>
+                  if st == sp.tokens.size then atOpen := atOpen + 1
+                  if s.tokens[st]!.pos.col == s.tokens[sp.tokens.size]!.pos.col then
+                    colEqOpen := colEqOpen + 1
+                  if hasCol s s.tokens[st]!.pos.col then onStack := onStack + 1
+                  if st < sp.tokens.size then propsHead := propsHead + 1
+            | _, _ => pure ()
+  return (rows, dang, atOpen, colEqOpen, onStack, propsHead)
+
+#guard runStart == (144, 54, 54, 54, 54, 0)
+
+/-- The same slot reading `offersAtDeath` takes, read on the PARK's own array —
+    the walk-back starts at the array's end, which is where the bracket lands. -/
+private def offersAtPark (sp : Scanner.ScannerState) : Bool :=
+  match Scanner.prevRealIdx? sp.tokens (Scanner.propsRunStart sp.tokens sp.tokens.size) with
+  | some j => sp.tokens[j]!.val.offersNodeSlot
+  | none => false
+
+/-- `(rows, the slot offers at the death state, it offers at the PARK, the two
+    agree, the open token's column is the park's cursor column)`. -/
+private def parkFacts : Nat × Nat × Nat × Nat × Nat := Id.run do
+  let mut rows := 0
+  let mut offD := 0
+  let mut offP := 0
+  let mut agree := 0
+  let mut colEq := 0
+  for outer in outers do
+    for kind in kinds do
+      for op in opens do
+        for p in indents do
+          for q in List.range (floorOf kind p) do
+            let inp := mk outer kind p q op
+            match openTriple inp, deathState inp with
+            | some (_, sp, s'), some s =>
+              rows := rows + 1
+              let a := offersAtDeath s
+              let b := offersAtPark sp
+              if a then offD := offD + 1
+              if b then offP := offP + 1
+              if a == b then agree := agree + 1
+              match Scanner.prevRealIdx? s'.tokens s'.tokens.size with
+              | some i => if s'.tokens[i]!.pos.col == sp.col then colEq := colEq + 1
+              | none => pure ()
+            | _, _ => pure ()
+  return (rows, offD, offP, agree, colEq)
+
+#guard parkFacts == (144, 90, 90, 144, 144)
+
+/-- The cells the scanner ACCEPTS, read at the same open: `(rows, the open's
+    column stands on the STEP state's stack, on PREPROCESSING's stack, the
+    landing's own column stands on preprocessing's stack, the landing is
+    strictly DEEPER than the step state's floor)`.
+
+    The first three must be zero and the fourth all of them.  Three zeros beside
+    each other would be a coverage report; the fourth is what says the walk
+    reached a landing at every cell and found the law's hypothesis false there,
+    which is the same boundary §4's turnover names from the other side. -/
+private def acceptedParks : Nat × Nat × Nat × Nat × Nat := Id.run do
+  let mut rows := 0
+  let mut scMem := 0
+  let mut spMem := 0
+  let mut landMem := 0
+  let mut deeper := 0
+  for outer in outers do
+    for kind in kinds do
+      for op in opens do
+        for p in indents do
+          for q in columns do
+            if q < floorOf kind p then continue
+            let inp := mk outer kind p q op
+            if !accepts inp then continue
+            match openTriple inp with
+            | none => pure ()
+            | some (sc, sp, s') =>
+              match Scanner.prevRealIdx? s'.tokens s'.tokens.size with
+              | none => pure ()
+              | some i =>
+                rows := rows + 1
+                if hasCol sc s'.tokens[i]!.pos.col then scMem := scMem + 1
+                if hasCol sp s'.tokens[i]!.pos.col then spMem := spMem + 1
+                if hasCol sp sp.col then landMem := landMem + 1
+                if (sp.col : Int) > sc.currentIndent then deeper := deeper + 1
+  return (rows, scMem, spMem, landMem, deeper)
+
+#guard acceptedParks == (378, 0, 0, 0, 378)
 
 end L4YAML.Tests.Guards.ScannerFlowOpenUnderRun

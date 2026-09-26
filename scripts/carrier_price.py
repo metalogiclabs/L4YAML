@@ -1,39 +1,34 @@
 #!/usr/bin/env python3
-"""Price item 265's carrier by producers (DOCS item 266).
+"""Price the BUILT carrier by producers (DOCS items 266, 267).
 
-Item 265 named ONE fact the run-end refutation needs -- *the flow collection
-closes with the open's column still on the indent stack* -- and showed that no
-hypothesis of `accum_flow_open_depth0` can deliver it, because the gates that
-kill the input run three to five steps later.  §10 prices a missing carrier by
-the PRODUCERS it touches, not by the goal it would close, and this script is
-that census.
+Item 266 priced the carrier before it existed, by adding it to `ParkAnchor` as
+a field and counting the declarations the arity flip broke.  Item 267 built it,
+and the shape it took is not the shape that was priced: the transport core is
+its own structure (`ParkCore`), the `[96]` property rides it as one payload
+(`ParkAnchor`) and the carrier as another (`ParkSlot`).  So the same instrument
+is aimed at the built object.
 
-The transport the carrier needs already exists: `ParkAnchor sc0 s d` runs a fact
-from a depth-0 flow OPEN to its CLOSE and is spent there by
-`ParkAnchor.dangling_eq`, whose premises are item 265's `deathShape` component
-for component.  What blocks it is one field -- `parkProp`, "the park's last real
-token is a node property" -- which holds at 18 of the 144 landings and is a pure
-PASSENGER in every transport lemma.
+Five probes, five rings, each a different question:
 
-Four probes, four rings, each a different question:
-
-    passenger the carrier as a field on `ParkAnchor`  -> who BUILDS the anchor
-    heavy     the same fact read off the array        -> the same, not a passenger
-    prop      `parkProp` deleted from `ParkAnchor`    -> who TOUCHES it at all
+    core      one required field on `ParkCore`   -> who BUILDS the transport
+    slot      one required field on `ParkSlot`   -> who builds the CARRIER
+    prop      `parkProp` renamed out from under  -> who READS the `[96]` payload
     consumer  one new hypothesis on `accum_flow_open_depth0`
-                                                      -> who must SUPPLY it
+                                                  -> who must SUPPLY it
     gate      one new hypothesis on `propsPark_open_gate`
-                                                      -> who chooses the anchor
+                                                  -> who chooses the anchor
 
-A new required field makes every application site fail on arity whether or not
+A new required field makes every construction site fail on arity whether or not
 the field is provable there, so the error list is the producer census exactly
-(the reading item 208 established for `scripts/park_top_price.py`).
+(the reading item 208 established for `scripts/park_top_price.py`).  A RENAME is
+what prices a payload the split left in place: deleting the only own-field of a
+structure that `extends` another is a different edit, not a smaller one.
 
 Errors are grouped by the DECLARATION that contains them -- never by line
 number, which moves.  The script edits a COPY in place and always restores.
 
 Usage:
-    python3 scripts/carrier_price.py passenger
+    python3 scripts/carrier_price.py core
     python3 scripts/carrier_price.py all        # every probe, one line each
 """
 import re
@@ -45,27 +40,21 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 TARGET = ROOT / "L4YAML/Proofs/Production/StreamAccum.lean"
 
-STRUCT = "structure ParkAnchor (sc0 s : ScannerState) (d : Nat) : Prop where"
+CORE_STRUCT = "structure ParkCore (sc0 s : ScannerState) (d : Nat) : Prop where"
+SLOT_STRUCT = ("structure ParkSlot (sc0 s : ScannerState) (d : Nat) : Prop "
+               "extends ParkCore sc0 s d where")
+#: A required field that is TRUE of every state: the census is of the sites that
+#: must now write something there, not of the sites where the fact is hard.
+FIELD = "  probe267 : sc0.indents.size = sc0.indents.size"
+
 PROP_FIELD = "  parkProp : ∃ k, prevRealIdx? sc0.tokens sc0.tokens.size = some k ∧"
-PROP_CONT = "    sc0.tokens[k]!.val.isNodeProperty = true"
-# The carrier itself, as a field.  Measured (`scripts/` has no probe for this;
-# `Tests/Guards/Proofs/ScannerFlowOpenUnderRun.lean` §6 pins it): the open's
-# column IS the park's own cursor column, at all 144 landings, so the carrier is
-# a fact about `sc0` ALONE -- a passenger every transport lemma carries for free.
-PASSENGER = ("  parkOpenCol : sc0.indents.any "
-             "(fun e => e.column == (sc0.col : Int)) = true")
-# The same fact read off the ARRAY instead of the cursor.  It mentions `s`, so it
-# is not a passenger: every transport lemma would have to re-prove it above the
-# park's prefix, which `below` does not reach.  Kept as the second reading, so
-# the passenger claim is a COMPARISON and not an assertion.
-HEAVY = ("  parkOpenCol : sc0.indents.any "
-         "(fun e => e.column == (s.tokens[sc0.tokens.size]!.pos.col : Int)) = true")
+PROP_RENAMED = "  parkProp267 : ∃ k, prevRealIdx? sc0.tokens sc0.tokens.size = some k ∧"
 
 CONSUMER = "lemma accum_flow_open_depth0 (sc : ScannerState)"
 GATE = "lemma propsPark_open_gate {sc s_prep s' : ScannerState} {sp_scan : SurfPos} {c : Char}"
 HYP = "    (h_carrier_266 : True → sc.indents = sc.indents ∧ 0 = 0)"
 
-PROBES = ("passenger", "heavy", "prop", "consumer", "gate")
+PROBES = ("core", "slot", "prop", "consumer", "gate")
 
 
 def _index(lines, needle):
@@ -76,13 +65,12 @@ def _index(lines, needle):
 
 def apply_probe(lines, which):
     out = list(lines)
-    if which in ("passenger", "heavy"):
-        i = _index(out, STRUCT)
-        out.insert(i + 1, PASSENGER if which == "passenger" else HEAVY)
+    if which in ("core", "slot"):
+        i = _index(out, CORE_STRUCT if which == "core" else SLOT_STRUCT)
+        out.insert(i + 1, FIELD)
     elif which == "prop":
         i = _index(out, PROP_FIELD)
-        assert out[i + 1].rstrip() == PROP_CONT, out[i + 1]
-        del out[i : i + 2]
+        out[i] = PROP_RENAMED
     elif which in ("consumer", "gate"):
         # A new binder goes in FIRST position, right after the head line: the
         # variable it mentions is bound there, and no binder list has to be
@@ -107,7 +95,7 @@ def enclosing_decl(lines, lineno):
 
 def run(which, verbose=True):
     original = TARGET.read_text()
-    backup = TARGET.with_suffix(".lean.carrier266-bak")
+    backup = TARGET.with_suffix(".lean.carrier-price-bak")
     shutil.copyfile(TARGET, backup)
     try:
         patched = apply_probe(original.split("\n"), which)
@@ -151,7 +139,7 @@ def expected():
 
 
 def main():
-    which = sys.argv[1] if len(sys.argv) > 1 else "passenger"
+    which = sys.argv[1] if len(sys.argv) > 1 else "core"
     if which == "all":
         rows = []
         for p in PROBES:
