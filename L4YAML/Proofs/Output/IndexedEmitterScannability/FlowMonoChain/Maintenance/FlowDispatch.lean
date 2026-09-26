@@ -22,7 +22,7 @@ analogs, each requiring an `unfold; simp only [advance_*, emit_*,
 ScannerState.emit]` step — and (b) **pipeline dispatch composition**
 — the `scanNextToken_via_{content,block}_dispatch` family that
 threads `scanNextToken_preprocess` → `dispatchStructural` →
-`allowDirectives` → `checkBlockFlowIndent` → `dispatchFlowIndicators`
+`allowDirectives` → `dispatchFlowIndicators`
 → `dispatchBlockIndicators` → `dispatchContent` for specific
 scenarios. We split these into two files so each stays tight:
 
@@ -81,7 +81,7 @@ variants ship here; End variants already live in
 ## Deferred to `.maintenance.pipeline`
 
 The dispatch return-value lemmas (`dispatchStructural_none_*`,
-`checkBlockFlowIndent_ok_*`, `dispatchFlowIndicators_*`,
+`dispatchFlowIndicators_*`,
 `dispatchBlockIndicators_none_*`) and pipeline composition
 (`scanNextTokenIx_via_{content,block}_dispatch[_error]`) ship in the
 sibling `Pipeline.lean` file.

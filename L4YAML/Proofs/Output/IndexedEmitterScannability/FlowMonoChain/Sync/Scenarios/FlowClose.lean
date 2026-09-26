@@ -17,7 +17,7 @@ established by `_flow_comma` in `.preflow`:
 
   * **§1 `scanNextTokenIx_flow_close_seq_nested`** — `]` at
     flowLevel ≥ 2. Threads preprocess → `dispatchStructural` (none)
-    → allowDirectives update → `checkBlockFlowIndent_ok_close_bracket`
+    → allowDirectives update
     → `dispatchFlowIndicators_close_bracket` → `scanFlowSequenceEndIx`.
     Yields `flowLevel - 1`, `simpleKeyStack.pop`,
     `lastRealTokenValIx? = .flowSequenceEnd` (a non-`.flow*` token so
@@ -29,7 +29,7 @@ established by `_flow_comma` in `.preflow`:
 
   * **§3 `scanNextTokenIx_flow_open_mapping_nested`** — `{` inside an
     existing flow context. Threads preprocess → `dispatchStructural`
-    (none) → allowDirectives update → `checkBlockFlowIndent_ok_flow`
+    (none) → allowDirectives update
     → `dispatchFlowIndicators_brace` → `scanFlowMappingStartIx`.
     Yields `flowLevel + 1`, `simpleKeyStack.pop = s.simpleKeyStack`
     (push undone by `.pop`), `StackEndLineOnLineIx s' s'.line` (the
@@ -137,7 +137,6 @@ lemma scanNextTokenIx_flow_close_seq_nested (s : ScannerStateIx input)
       s_ad = if (saveSimpleKeyIx s).allowDirectives then
         { saveSimpleKeyIx s with allowDirectives := false, documentEverStarted := true }
       else saveSimpleKeyIx s := ⟨_, rfl⟩
-  -- Step 4: checkBlockFlowIndent for ']'
   -- Step 5: derive field equalities for s_ad
   have h_ad_fl : s_ad.flowLevel = s.flowLevel := by
     rw [h_s_ad_def]; split <;> exact saveSimpleKeyIx_flowLevel s

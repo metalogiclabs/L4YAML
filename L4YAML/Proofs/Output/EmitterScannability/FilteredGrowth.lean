@@ -1638,9 +1638,9 @@ lemma scanNextToken_via_content_dispatch_filtered_grows
   omega
 
 -- In flow context, every successful `scanNextToken` step strictly grows the
--- filtered token count.  This is the in-flow analogue of the loose
--- `scanNextToken_filtered_grows` (which carries a sorry on the
--- structural-directive branch).  With `s.inFlow = true ∧ s.currentIndent < 0
+-- filtered token count.  The in-flow guard is what makes it unconditional:
+-- the structural-directive branch, where the general claim fails, is out of
+-- reach inside a flow collection.  With `s.inFlow = true ∧ s.currentIndent < 0
 -- ∧ s.col > 0` and the next character being non-whitespace,
 -- `dispatchStructural_none_flow` rules out the directive branch entirely, so
 -- the conclusion goes through unconditionally for emitter outputs.
@@ -1672,7 +1672,7 @@ lemma scanNextToken_filtered_grows_in_flow
   have h_struct : scanNextToken_dispatchStructural (saveSimpleKey s) c = .ok none :=
     dispatchStructural_none_flow _ _ (h_sk_flow ▸ h_flow) (h_sk_indent ▸ h_indent)
       (h_sk_col ▸ h_col_pos)
-  -- Step 3: post-allowDir state s_ad and its inFlow witness for checkBlockFlowIndent.
+  -- Step 3: post-allowDir state s_ad and its inFlow witness.
   let s_ad : ScannerState := if (saveSimpleKey s).allowDirectives then
     { saveSimpleKey s with allowDirectives := false, documentEverStarted := true }
   else saveSimpleKey s

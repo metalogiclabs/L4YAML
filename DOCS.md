@@ -35146,13 +35146,195 @@ the other side: the script reads the literal and prints `ARM-PIN agrees`.
 already owned the family.  No new module: the fact has one home and item 264
 strengthened it rather than restating it beside it.
 
-**Where it stands after item 264 (2026-09-25).**  Every number in this table
+### Item 265 (2026-09-25)
+
+Item 264 left `accum_flow_open_depth0` diagnosed FALSE with one sentence
+unbanked: its §4 sweep read the SCANNER — 96 cells, turnover at the park's
+floor, zero accepted below it — and a proof obligation is not a scanner.  This
+item reads one step further in, and the step is the whole finding.
+
+## §1 The question a sweep of acceptance cannot answer
+
+β.5's second deletion is `SLYamlStream.scannerDrop`, and the arm that rides it
+is the RUN-END half of the flow open's under-run:
+
+    rcases h_ur with ⟨j, sx, hj, h_ind, _h_ws2, h_end | h_tab⟩
+    · exact drop_ride                              -- the subject
+    · exact (flowOpen_underRunTab_refuted …).elim  -- already refuted
+
+"No accepted scan lands the open below the floor" says the input dies.  What
+the arm needs is narrower: does it die *at the step this lemma is proving*?  So
+§5 of `Tests/Guards/Proofs/ScannerFlowOpenUnderRun.lean` drives `scanNextToken`
+itself over the same grid and, for every landing column strictly below a park's
+floor, records whether the flow OPEN is ever dispatched and — when it is — how
+many steps later the scan dies and at which gate.
+
+    dispatchSweep == (198, 54, 54, 144, 90, 54)
+    distances     == [3, 5]
+
+**198 columns, and they split two ways.**
+
+* **54 never reach the lemma.**  `scanNextToken_preprocess` refuses them while
+  unwinding, so `h_preprocess : … = .ok (some (s_prep, c))` is already a
+  contradiction and no arm is entered.  The second and third counts are that
+  reading taken twice: every non-dispatching column is refused by the one gate
+  that runs before the dispatch, and a column refused anywhere else would be
+  one the hypothesis does not cover.
+* **144 dispatch the open** and die three or five steps later — 90 at §8.1's
+  floor, 54 at §9.2's dangling run.  Neither distance is zero, which is the
+  finding: **there is no column at which the open's own step refuses.**
+
+And the two gates that do refuse are the two the open's own step also runs.
+`accum_flow_open_depth0` already takes both readings — `h_dn :
+scanNextToken_checkDanglingNode sc s_prep = .ok ()` and `h_bare :
+scanNextToken_checkBareDocument s_prep = .ok ()` — and neither helps, because
+they are the right checks at the wrong state: `underIndentedFlowValuePos?`
+returns `none` unless the last real token is a flow CLOSE, and at the open the
+collection has not opened its first entry.  Carrying more of the open's own
+checks cannot reach this branch at any price.
+
+**So the three diagnoses need a fourth reading, not a fourth name.**  §10 prices
+FALSE at one experiment — build the input the branch describes and run it — and
+that is right about the runtime and silent about the proof.  A FALSE branch
+whose refutation is non-local prices like a STARVED one: the experiment is
+cheap and settles nothing, and the cost is the CARRIER that walks the refusal
+back to the step.  Item 264's diagnosis was correct and its price was the
+part that had not been measured.
+
+## §2 What the carrier has to deliver, read off the state that refuses
+
+    deathShape == (144, 144, 144, 144, 144)
+
+At the state where the gate fires, over all 144: the collection has **closed**,
+the last real token is its **flow close**, the open's column is **still on the
+indent stack**, and **exactly one** of the two readings fires — no overlap, no
+remainder.  That last count is `underIndentedFlowValuePos?`'s own docstring
+claim ("`danglingNodePos?`'s complement on the SLOT") measured rather than
+asserted, and it is what says the split is a partition and not a cover.
+
+So the price is **one carried fact, not two**: *the flow collection closes with
+the open's column still on the indent stack.*  Whichever reading then owns the
+landing, the scan dies.  The producers that fact must cross are the flow
+interior's, and one half of it is already proved — `FlowIndentStable`'s
+`preprocess_indents_of_inFlow` is exactly "inside a flow, the indents do not
+move".
+
+## §3 The grid ends at the open, and that is a knob
+
+    tailSweep == (198, 0, 54, 144, 144)
+
+The same columns with a sibling line after the open's: nothing accepted that
+was not accepted before, the same 54/144 split, and all 144 deaths now at the
+MID-STREAM gates rather than the end-of-input ones.  The end of input was not
+choosing the answer.
+
+The fifth count exists because the perturbation battery caught the pin without
+it: `(198, 0, 54, 144)` is *identical* to the end-of-input reading, so the pin
+held whether or not a tail was ever appended — a §9 vacuity in a pin written to
+check for §9 vacuity.  Counting the mid-stream deaths is what makes it a second
+reading.
+
+## §4 β.5's drop, closed out
+
+`SLYamlStream.scannerDrop` has exactly **two** applications in the library —
+`DropDependents.expectedDirect` pins `D=4` and two of those are the guards' own
+exhibits:
+
+| site | fate |
+| --- | --- |
+| `dropClose` (`StreamAccum.lean`) | one consumer, `have drop_ride`, taken by the three live arms — **§1's obligation** |
+| `PendingNode.close_with_ssl`'s `\| pendingFlow` arm | goes with the constructor |
+
+The `\| pendingFlow` arm census reads **seven**; item 264's flip breaks **six**.
+The seventh is `close_with_ssl`'s, and the flip cannot see it because the arm
+binds nothing and so still elaborates when the constructor's fields go.  A
+flip measures the arms that READ the constructor, which is not the same
+population as the arms that MATCH it.
+
+So β.5's second deletion reduces to exactly the obligation §1 prices, and to
+nothing else.
+
+## §5 Three comments said the arm was refuted, and the gate they named does not exist
+
+All three live arms carried a sentence asserting this branch is refuted, two
+lines above the `exact drop_ride` that rides the escape — item 66's at
+`pendingBlock`, item 73's at the same arm's case split, item 82's at
+`pendingMapValue`.  Item 172 measured the truth at `pendingProps` and the other
+two kept their sentences.
+
+The gate all of them named — `scanNextToken_checkBlockFlowIndent` — resolves to
+**no constant in the library**.  It appears thirty-two times across fourteen
+files, describing a dispatcher layer `scanNextToken` does not have.  Nothing in
+the build checks a backticked identifier in prose against the environment: Lean
+does not read its own comments, and an environment census cannot see them.
+
+`scripts/gate_vocab.py` is that check for the dispatcher's own vocabulary
+(`scanNextToken_…`, `scanLoop_…`, `scanLoopIx_…`, and the short `check…` form),
+pinned from the other side at `GateVocabulary.expectedGateVocab`:
+
+    GATEVOCAB names=100 mentions=418 families=13 wrapped=3 self=2 unresolved=0
+
+`families`, `wrapped` and `self` stand beside the verdict because each is a way
+the check could pass while reading less than it appears to.  Clearing it to
+zero also removed seven mentions of `scanNextToken_filtered_grows`, a lemma
+deleted for being false, all of them past-version narration, and three more in
+`IndexedDispatch`.
+
+## §6 Predictions scored
+
+| # | claim | verdict |
+| --- | --- | --- |
+| P0 | the open step scans; item 66's comment is stale | **HELD** — 144 of 198 dispatch the open, and the other 54 die at preprocessing, before any arm; no column dies at the open's dispatch |
+| P1 | the route census closes at three constructors | **HELD** (point estimate 3) |
+| P2 | the deferred floor owns exactly one column per cell, at `floor − 1` | **HELD** — 90 of 96 cells hold exactly one, offset −1 in all 90; the other 6 are the props park at indent 0, whose floor is 0 and which therefore has no under-floor column at all |
+| P3a | `trailingContent` is refuted at the arm by `h_preprocess` | **HELD** — 54/54, and they are exactly the non-dispatching class |
+| P3b | `invalidBareDocument` is refuted at the arm by `h_bare`/`h_dn` | **REFUTED** — it is the *loop's* dangling gate three to five steps later; the arm's reading is the same check on a state where the collection is not yet closed |
+| P4 | `scannerDrop`'s applications: point 3, band 1–8 | band **HELD**, point **REFUTED** — 2 in the library, and the count was already pinned in `DropDependents` (§3 of CLAUDE.md: read what is already said) |
+| P5 | the spike does not land; the item delivers the price | **HELD** — and the reason is sharper than predicted: not a missing fact about `sc.indents` but a refusal that is three to five steps away |
+
+**Missed entirely.**  That two of the three arms' comments contradict the line
+below them, and that the gate they name was deleted.  Both were in the file the
+whole time; what found them was reading the arm in order to price it.
+
+## §7 Instruments
+
+* `Tests/Guards/Proofs/ScannerFlowOpenUnderRun.lean` §5 — `dispatchSweep`,
+  `distances`, `deathShape`, `tailSweep`.  Four `#guard`s, 24 perturbations,
+  all caught.
+* `scripts/gate_vocab.py` + `Tests/Guards/Proofs/GateVocabulary.lean` — prose
+  identifiers against the environment.  14 in-process perturbations, all
+  caught.
+
+**Gates.**  Build **1226** jobs, twice (one new guard module).  `Verified:
+4520/4520`; eventscore 347/358 with 0 error-miss; suiterunner 869/0/151; matrix
+402/402 + 282/282 on both pipelines; annotations exit 1 (the standing 19);
+decline pins 7 + 18 + 6 ALL PINS OK; `capstones=25 withSorryAx=0`; closure 230
+library modules / 355 reflection imports; 25 whitelisted `theorem` sites; counts
+**8739** / **8180** / **669** / **8** — one library declaration
+(`expectedGateVocab`), four `#guard`s and one test file.  The wide sweep reads
+`closure=866 imported=862 T=27`, one more module than item 264's 865 / 861 and
+`T` unmoved, and `WIDE-PIN agrees` **after `DropDependents.expectedWide` was
+moved to match**: the new guard broke that pin, which is the pin working.  The
+standing flips read 5 / 4 / 2, the supplier lattice 5 / 1 / 7 with its producer
+wave 4, the carrier flip 2 / 5, and the fixpoint flip is unmoved at
+`rounds=23 clean=1 sorried=13 restated=0 deleted=3 refused=0 pins=37 gone=1
+carried=21 free=4` with `FIX-PIN agrees`, `ARMLINE control=7 arms=2 dead=5` with
+`ARM-PIN agrees`, and `GATE-PIN agrees`.  Every flip restores its tree: 36
+files hashed before and after the fixpoint, **0 mismatches**.
+
+**One ordering bug of this item's own, found by the battery.**  The gate-vocab
+step resolves names against the oleans, and it was placed before the flips —
+which leave the tree built-broken, so it read "the environment dump did not
+run" and scored nothing.  It runs after the final rebuild now.  A gate that
+cannot fail where it stands is not a gate.
+
+**Where it stands after item 265 (2026-09-25).**  Every number in this table
 is a gate's or a pin's, and the instrument that re-derives it is named beside
 it; the prose history is in the R3/R4 sections below and in the closure log.
 
 | row | state | the numbers, and where they come from |
 |---|---|---|
-| **R3** — delete `pendingFlow` and `scannerDrop` | OPEN | **The flip.**  `scannerDrop` is applied ONCE (`PendingNode.close_with_ssl`'s `pendingFlow` arm); its flip breaks **2** definitions (`scripts/flip_drop.py`).  `block_dispatch_deferred`, `pendingFlow`'s only producer, is applied **9** times in **4** holders — `_stamp_offcol` 3, `_stamp_nopack` 3, `_inline` 2, the bare escape 1 (`Tests/Guards/Proofs/FlipConsumerSurface.lean`, DEFERRAL lane).  `KeyPackPunt`'s four reasons are produced at **12** sites — `tab` 2, `dedent` 4, `implicitValue` 3, `noKeyContext` 3 — and spent by the same three consumer arms (PACK PUNT lane); item 212's **seven productions** are `dedent`'s four and `noKeyContext`'s three, and their price is the case split.  **The bill, ELABORATED** (item 263).  β.5's edit applied for real and driven to a fixpoint (`scripts/flip_beta5.py`, 23 rounds, clean) reads `sorried=13 restated=0 deleted=3 pins=37`: **thirteen proofs** — seven in the library, all in `StreamAccum.lean`, of which **five lose only a dead `\| pendingFlow` arm** and **two are real repairs** (`accum_flow_open_depth0`'s `dropClose` application, `block_dispatch_deferred`'s park), plus six Tests-side exhibits — **one statement**, `dropClose`, and no other statement anywhere.  **The repairs, DIAGNOSED** (item 264).  The five dead arms deleted FOR REAL leave `control=7 arms=2 dead=5` (`scripts/beta5_arms.py`, pinned at `ParkBill.expectedArms`): two errors of one line each.  `accum_flow_open_depth0` keeps `dropClose` because THREE LIVE arms take `drop_ride` and not the dead one, and its diagnosis is **FALSE** — the run-end half of an under-run whose TAB twin is already refuted three lines below it, with a **96**-cell sweep reading the scanner's turnover AT the park's floor in every cell and **0** accepted scans left of it (`ScannerFlowOpenUnderRun.lean` §4).  `block_dispatch_deferred` is an escape, so its price is its DOMAIN: three wrapper classes, all **STARVED** with their carriers named, a fourth (`_stamp_compact`) already proved false and deleted at item 209, and the self-arm class emptied by item 264's own deletion — **0 FALSE, 0 HARD** among the three.  `PendingNode.close_with_ssl` survives statement AND proof intact, so the bill is ONE restatement and not two.  Of item 238's twenty-four: **3 FREE, 21 CARRIED** on `sorryAx`, none owing work of its own.  The closure over BOTH deletions is **38**, not 26 (`Tests/Guards/Proofs/ParkBill.lean`: `Dp=9 Sp=0 Tp=31 T=26 extra=12`), and **37 of this row's own pinned censuses re-read** — the largest population of the four.  The four supplier ends still read weak 5 / field 1 / retire 7 / producer 4.  **The descent** (items 241–263, row by row in the table below).  The cover a refutation of the miss would spend is CLOSED down to **3** real punts: the close-stack trees read 16 positions / paid **6** / punt 15 / cover-punt 2 / open 2 from both roots, one component (253–259), and what those three lack is not the cover but the field's BOTTOM (260).  The carrier that would fund that bottom is OPEN: **47** positions writing **180** rows which resolve to **70** origin hypotheses at 38 rows, **40** of them holding the tail, and the whole `?` family — 18 positions, 55 rows — born at ONE origin that does not (261, 262).  **NEXT: the run-end refutation** — prove the run-end half of the flow open's under-run refuted at the three arms that ride it (`pendingProps`, `pendingBlock`, `pendingMapValue`), which is the twin of `flowOpen_underRunTab_refuted` already sitting beside each of them and what item 264's sweep prices.  It retires `dropClose`'s last live spend and leaves the escape alone as β.5's library residue.  Behind it: the three class carriers item 264 named, and item 262's recorded mandate (the seven value-line resume faces by producers touched). |
+| **R3** — delete `pendingFlow` and `scannerDrop` | OPEN | **The flip.**  `scannerDrop` is applied **twice** in the library — `dropClose` and `PendingNode.close_with_ssl`'s `pendingFlow` arm (`DropDependents.expectedDirect`, `D=4` with two guard exhibits) — and its flip breaks **2** definitions (`scripts/flip_drop.py`).  `block_dispatch_deferred`, `pendingFlow`'s only producer, is applied **9** times in **4** holders — `_stamp_offcol` 3, `_stamp_nopack` 3, `_inline` 2, the bare escape 1 (`Tests/Guards/Proofs/FlipConsumerSurface.lean`, DEFERRAL lane).  `KeyPackPunt`'s four reasons are produced at **12** sites — `tab` 2, `dedent` 4, `implicitValue` 3, `noKeyContext` 3 — and spent by the same three consumer arms (PACK PUNT lane); item 212's **seven productions** are `dedent`'s four and `noKeyContext`'s three, and their price is the case split.  **The bill, ELABORATED** (item 263).  β.5's edit applied for real and driven to a fixpoint (`scripts/flip_beta5.py`, 23 rounds, clean) reads `sorried=13 restated=0 deleted=3 pins=37`: **thirteen proofs** — seven in the library, all in `StreamAccum.lean`, of which **five lose only a dead `\| pendingFlow` arm** and **two are real repairs** (`accum_flow_open_depth0`'s `dropClose` application, `block_dispatch_deferred`'s park), plus six Tests-side exhibits — **one statement**, `dropClose`, and no other statement anywhere.  **The repairs, DIAGNOSED** (item 264).  The five dead arms deleted FOR REAL leave `control=7 arms=2 dead=5` (`scripts/beta5_arms.py`, pinned at `ParkBill.expectedArms`): two errors of one line each.  `accum_flow_open_depth0` keeps `dropClose` because THREE LIVE arms take `drop_ride` and not the dead one, and its diagnosis is **FALSE** — the run-end half of an under-run whose TAB twin is already refuted three lines below it, with a **96**-cell sweep reading the scanner's turnover AT the park's floor in every cell and **0** accepted scans left of it (`ScannerFlowOpenUnderRun.lean` §4).  `block_dispatch_deferred` is an escape, so its price is its DOMAIN: three wrapper classes, all **STARVED** with their carriers named, a fourth (`_stamp_compact`) already proved false and deleted at item 209, and the self-arm class emptied by item 264's own deletion — **0 FALSE, 0 HARD** among the three.  `PendingNode.close_with_ssl` survives statement AND proof intact, so the bill is ONE restatement and not two.  Of item 238's twenty-four: **3 FREE, 21 CARRIED** on `sorryAx`, none owing work of its own.  The closure over BOTH deletions is **38**, not 26 (`Tests/Guards/Proofs/ParkBill.lean`: `Dp=9 Sp=0 Tp=31 T=26 extra=12`), and **37 of this row's own pinned censuses re-read** — the largest population of the four.  The four supplier ends still read weak 5 / field 1 / retire 7 / producer 4.  **The descent** (items 241–263, row by row in the table below).  The cover a refutation of the miss would spend is CLOSED down to **3** real punts: the close-stack trees read 16 positions / paid **6** / punt 15 / cover-punt 2 / open 2 from both roots, one component (253–259), and what those three lack is not the cover but the field's BOTTOM (260).  The carrier that would fund that bottom is OPEN: **47** positions writing **180** rows which resolve to **70** origin hypotheses at 38 rows, **40** of them holding the tail, and the whole `?` family — 18 positions, 55 rows — born at ONE origin that does not (261, 262).  **The refusal, LOCATED** (item 265).  The run-end half is FALSE and **not LOCALLY false**, which is a price §10's three diagnoses do not carry: driving `scanNextToken` over the same grid reads `dispatchSweep == (198, 54, 54, 144, 90, 54)` with `distances == [3, 5]` (`ScannerFlowOpenUnderRun.lean` §5).  Of the **198** landing columns below a park's floor, **54** never reach the lemma at all — preprocessing refuses them, so `h_preprocess` already contradicts — and the other **144** dispatch the open and die **three to five steps later**, 90 at §8.1's floor and 54 at §9.2's dangling run.  Both of those gates also run at the OPEN's own step and the lemma already takes both readings (`h_dn`, `h_bare`): they are the right checks at the wrong state, because `underIndentedFlowValuePos?` needs a flow CLOSE on the token array.  So no hypothesis of this lemma can refute the branch at any price, and what it costs is a CARRIER.  `deathShape == (144, 144, 144, 144, 144)` prices that carrier at **one** carried fact: at every one of the 144 the collection has closed, its last real token is the flow close, and the open's column is still on the indent stack — and the two readings partition the 144 by `offersNodeSlot` with no overlap and no remainder.  Half of it is already proved (`FlowIndentStable.preprocess_indents_of_inFlow`).  The `\| pendingFlow` arm census reads **7** where item 264's flip breaks **6**: `close_with_ssl`'s arm binds nothing, so a flip cannot see it — and with it, β.5's whole remaining obligation on the drop is the one obligation above.  Three of the three live arms carried a comment asserting this branch REFUTED two lines above the `exact drop_ride` (items 66, 73, 82), and the gate all three named resolves to no constant: `scanNextToken_checkBlockFlowIndent` appeared **32** times in **14** files.  `scripts/gate_vocab.py` is the check that was missing — `names=100 mentions=418 families=13 wrapped=3 self=2 unresolved=0`, pinned at `GateVocabulary.expectedGateVocab`.  **NEXT: the carrier, priced by producers.**  Item 265 named ONE fact the run-end refutation needs — *the flow collection closes with the open's column still on the indent stack* — and showed that whichever of §8.1's or §9.2's readings then owns the landing, the scan dies.  Price that carry the way §10 prices a starved goal: which step lemmas between the open and the gate have to transport it, how much of the indents half `FlowIndentStable` already supplies, and what the close's token shape costs.  That is what retires `dropClose`'s last live spend and leaves the escape alone as β.5's library residue.  Behind it: the three class carriers item 264 named, and item 262's recorded mandate (the seven value-line resume faces by producers touched). |
 | **R4** — narrow `[210]` (`implicitContinue`'s slot, `GOpt SLAnyDocument` → `GOpt SLExplicitDocument`) | OPEN, **behind R3** | The flip breaks **5** definitions (`scripts/flip_210.py`) — the flip's own WORK, constant since item 166.  What a payment moves is the consumer surface: **1** raw holder / 1 application and **7** guard holders / 14 applications (`FlipConsumerSurface`, RAW ROUTES + GUARDS lanes), in three classes — refutable arms, three missing routes, and `pendingFlow`, which no field can pay (item 183).  The third class is why R4 lands after R3's deletion; the refutable arms and the three routes are ORDERED after it by item 183, not blocked by it.  1d (`0 < m`) is CLOSED (item 179). |
 | **Step 5** — the converse `grammar_completeness` | **NOT STARTED** | No declaration of that name exists under `L4YAML/` or `Tests/`, and no item of the closure log is Step 5's.  It is unprovable, not merely unproved, while either over-approximation stands: `inYamlLanguage_everything : ∀ s, InYamlLanguage s` compiles today (`Tests/Guards/Proofs/SuffixGapAudit.lean` §5, item 236), and `implicitContinue` admits `- "a"⏎  - b` (item 30). |
 | **Step 6** — `parse_iff_grammar` | NOT STARTED | After Step 5. |
@@ -35162,16 +35344,16 @@ Step 5 → Step 6**.  Starting R4's flip before R3 re-runs item 183's
 measurement and stops at `pendingFlow`; starting Step 5 before R4 states a
 theorem that is false as stated.
 
-#### The descent behind R3, item by item (241–264)
+#### The descent behind R3, item by item (241–265)
 
 Each row is one item: the question it was given, what its instrument read, and
 whether the library's proofs moved.  The full prose for every row is the
 closure log's own `### Item <n>` entry above; this table exists so the
-trajectory is readable without it.  **Four of the twenty-four moved a proof** —
-items 256–259, the six cover payments; the other twenty are measurements, and
-carrying them is what the log is for — items 263 and 264 are why: the first turned
-nineteen of them into a number and the second turned that number into two
-diagnoses.
+trajectory is readable without it.  **Four of the twenty-five moved a proof** —
+items 256–259, the six cover payments; the other twenty-one are measurements,
+and carrying them is what the log is for — items 263 to 265 are why: the first
+turned nineteen of them into a number, the second turned that number into two
+diagnoses, and the third located the one refusal those diagnoses rest on.
 
 | item | what it asked | what it read | proof moved | instrument / what was spent |
 |---|---|---|---|---|
@@ -35199,6 +35381,7 @@ diagnoses.
 | 262 | where is each pack born? | **47** positions, **180** rows → **70** origins at 38 rows, **40** holding the tail; the `?` family's 55 rows have ONE birthplace, and it does not | — | `ValueLineOrigins.lean` |
 | 263 | what do the twenty-four reproofs actually cost? | **13** proofs and **1** statement, not 24 reproofs — 5 of the library's 7 lose only a dead `\| pendingFlow` arm; `close_with_ssl` survives; 21 of the 24 are CARRIED; **37** pinned censuses re-read | — | `flip_beta5.py` (the fixpoint) + `ParkBill.lean` |
 | 264 | which of §10's three diagnoses do the two real repairs take? | two DIFFERENT ones — `control=7 arms=2 dead=5`; `accum_flow_open_depth0` is **FALSE** (96-cell sweep, turnover = the floor in every cell, **0** accepted below it), the escape is three **STARVED** classes with carriers named; **0** hard | — | `beta5_arms.py` + `ScannerFlowOpenUnderRun.lean` §4 |
+| 265 | is the run-end half refutable AT the arm? | no — `198` columns split `54` refused by preprocessing and `144` that dispatch the open and die **3–5 steps later**; the price is ONE carried fact (`deathShape == (144, 144, 144, 144, 144)`).  The gate three arms' comments named does not exist | — | `ScannerFlowOpenUnderRun.lean` §5 + `scripts/gate_vocab.py` |
 
 **Two housekeeping questions, measured 2026-09-22.**  Neither is a plan row;
 the numbers are recorded so the decision can be taken against them rather

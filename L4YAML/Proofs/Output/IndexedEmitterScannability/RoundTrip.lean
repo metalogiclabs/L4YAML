@@ -326,7 +326,7 @@ state with `flowLevel = 1`, `peek? = ']'` / `'}'` (and nothing after),
 one `scanNextTokenIx` step produces a result state whose filtered
 token array is the input filtered array with `.flowSequenceEnd` /
 `.flowMappingEnd` appended. These compose the §1 (`preprocess_flow` →
-`saveSimpleKeyIx`), §2 (`checkBlockFlowIndent_ok_close_*`), §3
+`saveSimpleKeyIx`), §3
 (`dispatchFlowIndicators_close_*`), and §7
 (`scanNextTokenIx_via_flow_dispatch`) pipeline lemmas from
 `FlowMonoChain.Maintenance.Pipeline` / `.Sync.{Scenarios.Preflow,
@@ -600,9 +600,9 @@ This section ships:
   - **§5.4.G.5.4** (legacy 9267–9365): scanner boundary tokens,
     `scanFilteredIx_boundary_tokens`.
 
-**Skipped**: `ScanChain_filtered_grows` (legacy 9016–9024). Its proof
-depends on the loose `scanNextToken_filtered_grows` which carries a
-`sorry` on the directive case (line 9013); downstream sub-sessions
+**Skipped**: a `ScanChain`-level filtered-growth corollary. An
+unconditional per-step growth claim is unsound on the directive case,
+so there is nothing sound to lift; downstream sub-sessions
 should consume `ScanChainGrewIx_filtered_grows` (already landed at
 `EmitScans.lean:173`) by building strict-variant `ScanChainGrewIx`
 chains — sidesteps the directive sorry entirely.

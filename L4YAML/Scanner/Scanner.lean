@@ -890,7 +890,7 @@ def scanLoop_checkFlowValueIndent (s : ScannerState) : Except ScanError Unit :=
     If directives are pending (`directivesPresent`) and ordinary content
     arrives instead of `---`/`...`/another directive, the directives are
     orphaned — a scan error.  Factored out (like
-    `scanNextToken_checkBlockFlowIndent`) so `unfold scanNextToken` exposes
+    `scanNextToken_checkFlowValueIndent`) so `unfold scanNextToken` exposes
     a single extra bind-split to the proof engine. -/
 @[yaml_spec "9.1.5" 209 "l-directive-document"]
 def scanNextToken_checkNoPendingDirectives (s : ScannerState) :

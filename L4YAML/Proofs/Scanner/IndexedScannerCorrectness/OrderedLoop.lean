@@ -30,10 +30,9 @@ variable {input : String}
 preservation.
 
 Composes preprocess + dispatchStructural OR
-(allowDirectives field update + checkBlockFlowIndent + dispatchFlowIndicators
-OR dispatchBlockIndicators OR dispatchContent). The field updates and
-`checkBlockFlowIndent` (which returns Unit) preserve both invariants
-trivially. -/
+(allowDirectives field update + dispatchFlowIndicators
+OR dispatchBlockIndicators OR dispatchContent). The field updates preserve
+both invariants trivially. -/
 
 lemma scanNextTokenIx_preserves_ScanInvIx
     {s s' : ScannerStateIx input} (h : ScanInvIx s) (h_akv : AllKeysValidIx s)

@@ -677,15 +677,14 @@ per-iteration lemmas state cursor monotonicity on the `.ok (some s')`
 branch (preprocess additionally carries the lookahead character); the
 proofs chain the 5b.1b.ii / 5b.1b.iii per-helper lemmas.
 
-`scanLoopIx_offset_monotonic` is the only non-chain. Since `scanLoopIx`
+`scanLoopIx_tokens_size_le` is the only non-chain. Since `scanLoopIx`
 returns a `TokenStream` rather than state, the claim is stated as
 `s.tokens.size ≤ ts.tokens.size` and proven by induction on fuel,
 chaining `scanNextTokenIx_tokens_size_le` (an auxiliary derived from
 the per-helper structure: every emit grows tokens by 1, every
 `overwriteAtCursor` preserves size). The full *"every newly-emitted
-token has `start.offset ≥` initial cursor's offset"* claim — the
-indexed-scanner analogue of the legacy `scanLoop_emits_in_order`
-invariant — is deferred to Step 5b.2: it requires that each of the
+token has `start.offset ≥` initial cursor's offset"* claim — emission
+order, one strengthening past size — is deferred to Step 5b.2: it requires that each of the
 5b.1b.ii / 5b.1b.iii leaf lemmas additionally claim a `start.offset`
 bound for tokens emitted by the helper, which is a strict
 strengthening of their current cursor-only statement (R50). -/
@@ -1106,7 +1105,7 @@ guard-by-guard with `by_cases hg + rw [if_pos/if_neg] at h`, then
 `simp only [Bind.bind, Except.bind, pure_bind]` reduces the surviving
 `(throw _) >>= _` / `pure _ >>= _` shape.
 
-`scanLoopIx_offset_monotonic` is stated as `s.tokens.size ≤ ts.tokens.size`
+`scanLoopIx_tokens_size_le` is stated as `s.tokens.size ≤ ts.tokens.size`
 (not a cursor-comparison, since `scanLoopIx` returns a `TokenStream` and
 not a state). It is proven by induction on fuel, chaining
 `scanNextTokenIx_tokens_size_le` on each step. The stronger

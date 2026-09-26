@@ -227,4 +227,204 @@ private def sweep : Nat × Nat × Nat × Nat × Nat := Id.run do
     the "deferred floor" reading, §1's. -/
 #guard errAt (mk "map" "props" 3 0 "[1]") == some (2, 0)
 
+
+
+/-! ## §5 Where each refusal actually happens, and what that costs (DOCS item 265)
+
+§4 measured that no accepted scan lands the open below the park's floor.  That
+is a statement about the SCANNER; the proof obligation it was measured for is
+`accum_flow_open_depth0`'s, and there the question is sharper: *is the refusal
+available at the step the arm is proving?*  A branch the runtime refuses five
+steps downstream is still a branch the step lemma has to build.
+
+So this section walks the same grid one reading further in.  For every landing
+column strictly below the park's floor it drives `scanNextToken` itself and
+records two things: whether the flow OPEN is ever dispatched, and — when it is
+— how far past that dispatch the scan dies and at which gate.
+
+What it reads splits the family in two, and only one part is the arm's to
+refute:
+
+* **54 columns never reach the lemma.**  `scanNextToken_preprocess` refuses
+  them while unwinding, so `h_preprocess : … = .ok (some (s_prep, c))` is
+  already a contradiction and no arm is entered.
+* **144 columns dispatch the open** and die three or five steps later, at one
+  of the two gates that guard a landing: §8.1's floor read on a closed
+  collection (90) and §9.2's dangling run (54).  Both gates also run at the
+  open's own step — on a state where the collection is not yet closed, so both
+  say `.ok` there.  `h_dn` and `h_bare` are those readings AT THE OPEN, which
+  is why carrying them buys nothing here: they are the right checks at the
+  wrong state.
+
+`deathShape` then reads what the gate is looking at when it fires, because that
+is the fact a carrier would have to deliver from the open: at every one of the
+144 the collection has closed, the last real token is its flow close, and the
+open's column is still on the indent stack.  One carried fact, not two — the
+two gates partition the 144 by `offersNodeSlot` alone, with no overlap and no
+remainder. -/
+
+private def start (input : String) : Scanner.ScannerState :=
+  let s := Scanner.ScannerState.mk' input
+  let s := s.emit .streamStart
+  match s.peek? with
+  | some '﻿' => s.consumeBOM
+  | _ => s
+
+/-- `(open dispatched?, steps from the open to the death, the gate that fired)`
+    for one input, driving `scanNextToken` directly. -/
+private def walk (input : String) : Bool × Nat × String := Id.run do
+  let mut s := start input
+  let mut i : Nat := 0
+  let mut openStep : Option Nat := none
+  let mut fuel := input.utf8ByteSize * 4 + 8
+  while fuel > 0 do
+    fuel := fuel - 1
+    let d := i - openStep.getD i
+    match Scanner.scanNextToken s with
+    | .error _ =>
+      -- inside the step: preprocessing is the only gate that can refuse
+      -- before the open is dispatched
+      match Scanner.scanNextToken_preprocess s with
+      | .error _ => return (openStep.isSome, d, "step:preprocess")
+      | _ => return (openStep.isSome, d, "step:later")
+    | .ok none =>
+      if s.flowLevel > 0 then return (openStep.isSome, d, "eof:unterminated")
+      match Scanner.scanLoop_checkDanglingNode s with
+      | .error _ => return (openStep.isSome, d, "eof:dangling")
+      | .ok _ =>
+        match Scanner.scanLoop_checkFlowValueIndent s with
+        | .error _ => return (openStep.isSome, d, "eof:floor")
+        | .ok _ => return (openStep.isSome, d, "ACCEPT")
+    | .ok (some s') =>
+      if s.flowLevel == 0 && s'.flowLevel == 1 && openStep.isNone then
+        openStep := some i
+      s := s'
+      i := i + 1
+  return (openStep.isSome, 0, "FUEL")
+
+/-- `(columns below a floor, never dispatched, of those refused by
+    PREPROCESSING, dispatched, dispatched dying at §8.1's floor, dispatched
+    dying at §9.2's dangling run)`.
+
+    The second and third are the same count taken two ways: a column that
+    never dispatches the open must be refused by the one gate that runs before
+    the dispatch, and if it were refused anywhere else the arm's
+    `h_preprocess` would not reach it. -/
+private def dispatchSweep : Nat × Nat × Nat × Nat × Nat × Nat := Id.run do
+  let mut cols := 0
+  let mut nd := 0
+  let mut ndPre := 0
+  let mut disp := 0
+  let mut floorDeaths := 0
+  let mut danglingDeaths := 0
+  for outer in outers do
+    for kind in kinds do
+      for op in opens do
+        for p in indents do
+          for q in List.range (floorOf kind p) do
+            cols := cols + 1
+            let (d, _, w) := walk (mk outer kind p q op)
+            if d then
+              disp := disp + 1
+              if w == "eof:floor" then floorDeaths := floorDeaths + 1
+              if w == "eof:dangling" then danglingDeaths := danglingDeaths + 1
+            else
+              nd := nd + 1
+              if w == "step:preprocess" then ndPre := ndPre + 1
+  return (cols, nd, ndPre, disp, floorDeaths, danglingDeaths)
+
+#guard dispatchSweep == (198, 54, 54, 144, 90, 54)
+
+/-- The distinct distances, in scanner steps, from the open's dispatch to the
+    death.  Neither is zero, which is the whole finding: there is no column at
+    which the open's OWN step refuses. -/
+private def distances : List Nat := Id.run do
+  let mut ds : List Nat := []
+  for outer in outers do
+    for kind in kinds do
+      for op in opens do
+        for p in indents do
+          for q in List.range (floorOf kind p) do
+            let (d, n, _) := walk (mk outer kind p q op)
+            if d && !ds.contains n then ds := ds ++ [n]
+  return ds.mergeSort (· ≤ ·)
+
+#guard distances == [3, 5]
+
+/-- The state the gate is reading when it fires, over the 144 that dispatch:
+    `(rows, collection closed, last real token is its flow close, the open's
+    column still on the indent stack, exactly one of the two readings fires)`.
+    All five must agree, and the fifth is what says the two gates partition
+    the family rather than merely covering it. -/
+private def deathState (input : String) : Option Scanner.ScannerState := Id.run do
+  let mut s := start input
+  let mut fuel := input.utf8ByteSize * 4 + 8
+  while fuel > 0 do
+    fuel := fuel - 1
+    match Scanner.scanNextToken s with
+    | .error _ => return some s
+    | .ok none => return some s
+    | .ok (some s') => s := s'
+  return none
+
+private def deathShape : Nat × Nat × Nat × Nat × Nat := Id.run do
+  let mut rows := 0
+  let mut closed := 0
+  let mut lastClose := 0
+  let mut colIn := 0
+  let mut oneReading := 0
+  for outer in outers do
+    for kind in kinds do
+      for op in opens do
+        for p in indents do
+          for q in List.range (floorOf kind p) do
+            let inp := mk outer kind p q op
+            let (d, _, _) := walk inp
+            if !d then continue
+            match deathState inp with
+            | none => pure ()
+            | some s =>
+              rows := rows + 1
+              if s.flowLevel == 0 then closed := closed + 1
+              match Scanner.prevRealIdx? s.tokens s.tokens.size with
+              | some i => if s.tokens[i]!.val.isFlowClose then lastClose := lastClose + 1
+              | none => pure ()
+              if s.indents.any (fun e => e.column == (q : Int)) then colIn := colIn + 1
+              let uf := (Scanner.underIndentedFlowValuePos? s).isSome
+              let dn := (Scanner.danglingNodePos? s).isSome
+              if (uf && !dn) || (!uf && dn) then oneReading := oneReading + 1
+  return (rows, closed, lastClose, colIn, oneReading)
+
+#guard deathShape == (144, 144, 144, 144, 144)
+
+/-- **The grid ends at the open, and that is itself a knob** (§9).  With a
+    sibling line after the open's, the same columns refuse in the same two
+    classes and nothing is accepted that was not accepted before.
+    `(columns, accepted, never dispatched, dispatched, deaths at a MID-STREAM
+    gate)`.
+
+    The fifth count is what makes this a second reading rather than a copy of
+    `dispatchSweep`: without the sibling line every death is at an end-of-input
+    gate and it reads zero, so a pin that omitted it would hold whether or not
+    a tail was ever appended. -/
+private def tailSweep : Nat × Nat × Nat × Nat × Nat := Id.run do
+  let mut cols := 0
+  let mut acc := 0
+  let mut nd := 0
+  let mut disp := 0
+  let mut mid := 0
+  for outer in outers do
+    for kind in kinds do
+      for op in opens do
+        for p in indents do
+          for q in List.range (floorOf kind p) do
+            cols := cols + 1
+            let (d, _, w) := walk (mk outer kind p q op ++ "zz: 9\n")
+            if w == "ACCEPT" then acc := acc + 1
+            if w == "step:later" then mid := mid + 1
+            if d then disp := disp + 1 else nd := nd + 1
+  return (cols, acc, nd, disp, mid)
+
+#guard tailSweep == (198, 0, 54, 144, 144)
+
 end L4YAML.Tests.Guards.ScannerFlowOpenUnderRun

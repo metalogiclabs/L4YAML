@@ -286,8 +286,8 @@ lemma emitPairList_body_filtered_characterization
         ((s'.tokens.filter p)[k + 1]'h').val = .key))
     -- (4) The body adds at least 3 filtered tokens (one pair scans to ≥ 3 steps,
     --     each strictly growing the filtered count: `.key`, value indicator, value).
-    --     Carried directly from the strict-growth chain — no dependency on the
-    --     loose `scanNextToken_filtered_grows`.
+    --     Carried directly from the strict-growth chain, which is per-step and
+    --     witnessed rather than unconditional.
     ∧ old_sz + 3 ≤ (s'.tokens.filter p).size
     -- (5) [NEW] The body block is well-bracketed — outer balance is 0.  Threaded from the
     --     `WellBracketed block` the map SafeBody producer now supplies (formerly discarded);
@@ -12187,9 +12187,9 @@ lemma scanFiltered_emitMap_nonempty_structure
   -- n₂ ≥ 1 (from n₂ ≥ 3)
   have h_n₂_pos : n₂ ≥ 1 := by omega
   -- Body adds ≥ 3 filtered tokens (Part 4 of the characterization, read off the
-  -- strict-growth chain) ⟹ filtered size ≥ 5, with `(s₁.filter).size = 2`.  This
-  -- replaces the former `ScanChain_filtered_grows` route, which depended on the
-  -- (RESERVED-directive-unsound) `scanNextToken_filtered_grows`.
+  -- strict-growth chain) ⟹ filtered size ≥ 5, with `(s₁.filter).size = 2`.  The
+  -- route is the witnessed one: an unconditional per-step growth claim is
+  -- unsound on the RESERVED-directive branch.
   have h_body_ge5 : (s₂.tokens.filter p).size ≥ 5 := by
     have hg : (s₁.tokens.filter p).size + 3 ≤ (s₂.tokens.filter p).size := h_body_grow
     rw [h_filt₁_sz] at hg; omega

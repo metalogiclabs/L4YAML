@@ -4193,12 +4193,12 @@ lemma scanNextTokenIx_dispatchContent_preserves_FlowNestingInvIx
 
 Top-level composition over preprocess + dispatchStructural +
 dispatchFlowIndicators + dispatchBlockIndicators + dispatchContent
-+ `allowDirectives`/`checkBlockFlowIndent` record updates.
++ `allowDirectives` record updates.
 
 **Discharge strategy** (Step 6d.1e.9, Reflection 77): chain
 `generalize h_layer : f_layer s = res at h_ok` + `cases res with
 | error => simp at h_ok | ok inner => cases inner with ...` per
-dispatcher layer (preprocess → dispatchStructural → checkBlockFlowIndent →
+dispatcher layer (preprocess → dispatchStructural →
 dispatchFlowIndicators → dispatchBlockIndicators → dispatchContent).
 `cases pair with | mk s_pp c` cleanly extracts pair components without
 hitting Reflection 73's `ScannerStateIx` over-destructure. The

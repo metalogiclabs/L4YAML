@@ -44,8 +44,7 @@ Four scenarios closing out `.flowmono`:
   * **§5 `scanNextTokenIx_flow_open_mapping_init`** — `{` at the
     initial scanner state (no flow context, sentinel indents) for a
     top-level mapping. Composes §2 with `dispatchStructural_none_brace_
-    init` + `checkBlockFlowIndent_brace_init` + `dispatchFlowIndicators_
-    brace` + `scanFlowMappingStartIx_detail`. Consumed by
+    init` + `dispatchFlowIndicators_brace` + `scanFlowMappingStartIx_detail`. Consumed by
     `.emitscans.toplevel` for `emit_produces_valid_yamlIx` (top-level
     mapping body).
 
@@ -53,8 +52,7 @@ Four scenarios closing out `.flowmono`:
     scanner state for a top-level sequence. Direct sequence analog of §5
     (`'{' ↦ '['`, `scanFlowMappingStartIx ↦ scanFlowSequenceStartIx`,
     `dispatchStructural_none_brace_init ↦ dispatchStructural_none_
-    bracket_init`, `checkBlockFlowIndent_brace_init ↦ checkBlockFlow
-    Indent_bracket_init`, `dispatchFlowIndicators_brace ↦ dispatch
+    bracket_init`, `dispatchFlowIndicators_brace ↦ dispatch
     FlowIndicators_bracket`). Landed as part of `.emitscans.toplevel`
     SS1; the original `.flowmono` sub-session 3 did not need it (the
     chain lemmas of that family only consumed the `{` twin), so it
@@ -347,7 +345,6 @@ lemma scanNextTokenIx_flow_close_seq_outermost (s : ScannerStateIx input)
       s_ad = if (saveSimpleKeyIx s).allowDirectives then
         { saveSimpleKeyIx s with allowDirectives := false, documentEverStarted := true }
       else saveSimpleKeyIx s := ⟨_, rfl⟩
-  -- Step 4: checkBlockFlowIndent for ']'
   -- Step 5: derive field equalities for s_ad
   have h_ad_fl : s_ad.flowLevel = s.flowLevel := by
     rw [h_s_ad_def]; split <;> exact saveSimpleKeyIx_flowLevel s
@@ -510,8 +507,7 @@ lemma scanNextTokenIx_flow_close_mapping_outermost (s : ScannerStateIx input)
 
 `{` at the initial scanner state for a top-level mapping. Threads
 the init-state preprocessing (§2) through the dispatcher chain
-(`dispatchStructural_none_brace_init` + `checkBlockFlowIndent_brace_
-init` + `dispatchFlowIndicators_brace`) and extracts the result via
+(`dispatchStructural_none_brace_init` + `dispatchFlowIndicators_brace`) and extracts the result via
 `scanFlowMappingStartIx_detail`. -/
 
 /-- `scanNextTokenIx` on the initial scanner state at `{` dispatches
@@ -755,8 +751,7 @@ lemma scanNextTokenIx_flow_open_mapping_init (input : String) (rest : List Char)
 sequence analog of §5 (`scanNextTokenIx_flow_open_mapping_init`);
 substitutions: `'{' ↦ '['`, `scanFlowMappingStartIx ↦
 scanFlowSequenceStartIx`, `dispatchStructural_none_brace_init ↦
-dispatchStructural_none_bracket_init`, `checkBlockFlowIndent_brace_
-init ↦ checkBlockFlowIndent_bracket_init`, `dispatchFlowIndicators_
+dispatchStructural_none_bracket_init`, `dispatchFlowIndicators_
 brace ↦ dispatchFlowIndicators_bracket`, `YamlToken.flowMappingStart ↦
 YamlToken.flowSequenceStart`. -/
 

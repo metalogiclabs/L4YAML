@@ -8,8 +8,8 @@ Released under Apache 2.0 license as described in the file LICENSE.
 
 /-! # §8.1's OTHER half — the floor inside an open flow collection (DOCS item 69)
 
-The flow OPEN spends `scanNextToken_checkBlockFlowIndent`, which is guarded on
-`!inFlow` and so says nothing once a collection is open (item 66).  The half
+§8.1's floor for a flow OPEN is `scanNextToken_checkFlowValueIndent`, guarded
+on `!inFlow`, so it says nothing once a collection is open (items 66, 172).  The half
 that runs INSIDE one is `scanNextToken_dispatchStructural`'s, and it is both
 wider and narrower: it refuses EVERY character at or left of `currentIndent`,
 not just `[` and `{`.  That is what refutes the run-END half of a flow-interior

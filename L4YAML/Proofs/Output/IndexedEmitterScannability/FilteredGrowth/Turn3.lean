@@ -40,7 +40,7 @@ definitionally), and the matching `dispatch*_filtered_growsIx` (≥ +1).
 
 `scanNextTokenIx_filtered_grows_in_flow` reuses the FlowMonoChain
 pipeline lemmas (`scanNextTokenIx_preprocess_flow`,
-`dispatchStructural_none_flow`, `checkBlockFlowIndent_ok_flow`) and the
+`dispatchStructural_none_flow`) and the
 `saveSimpleKeyIx` preservation simp set. The `scanNextTokenIx` body is
 structurally identical to legacy `scanNextToken`, so the `unfold` +
 `simp only [bind, …, ← hs_ad, …]` reduction and the nested
@@ -156,7 +156,7 @@ lemma scanNextTokenIx_filtered_grows_in_flow
   have h_struct : scanNextTokenIx_dispatchStructural (saveSimpleKeyIx s) c = .ok none :=
     dispatchStructural_none_flow _ _ (h_sk_flow ▸ h_flow) (h_sk_indent ▸ h_indent)
       (h_sk_col ▸ h_col_pos)
-  -- Step 3: post-allowDir state s_ad and its inFlow witness for checkBlockFlowIndent.
+  -- Step 3: post-allowDir state s_ad and its inFlow witness.
   let s_ad : ScannerStateIx input := if (saveSimpleKeyIx s).allowDirectives then
     { saveSimpleKeyIx s with allowDirectives := false, documentEverStarted := true }
   else saveSimpleKeyIx s

@@ -120,8 +120,8 @@ lemma ScanChain_preserves_raw_prefix {s s' : ScannerState} {k : Nat}
 
 /-! #### Filtered growth through a scan chain — see the strict-variant track
 
-The unconditional per-step lemma `scanNextToken_filtered_grows` (and its `ScanChain`
-corollary `ScanChain_filtered_grows`) were **removed**: they are *false as stated*.  A
+There is no unconditional per-step filtered-growth lemma, and there is no `ScanChain`
+corollary of one, because the claim is **false as stated**.  A
 YAML 1.2.2 §6.8.3 reserved directive (`%FOO …`, not `%YAML`/`%TAG`) is scanned by
 `scanDirective` into `skipToEndOfLine` and emits **no** token, so that `scanNextToken`
 step returns `some s'` while adding zero filtered tokens — the `≥ +1` bound cannot hold

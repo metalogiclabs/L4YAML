@@ -10292,8 +10292,8 @@ lemma flowOpen_underRunTab_refuted {sc s_prep : ScannerState} {c : Char} {n j : 
     `flowOpen_underRunEnd_refuted`, one production in.
 
     §8.1's floor has two halves and the OPEN spends only one of them:
-    `checkBlockFlowIndent` is guarded on `!inFlow`, so it says nothing once a
-    collection is open.  The half that runs INSIDE one is
+    `scanNextToken_checkFlowValueIndent` is guarded on `!inFlow`, so it says
+    nothing once a collection is open.  The half that runs INSIDE one is
     `dispatchStructural`'s, and it is both wider and narrower — it refuses
     EVERY character at or left of `currentIndent`, not just `[` and `{`, which
     is why this refutation needs no fact about `c` at all.
@@ -11350,8 +11350,23 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
   -- The OPAQUE resume (item 46: `pendingFlow`'s alone).  The deferred state
   -- has nothing to spend, so the flow node opened over it re-enters through
   -- `dropClose` — the collection rides the drop until `pendingFlow` goes (R3).
-  -- Every other pending now opens the stack at its OWN index below; what used
-  -- to share this arm (`  - [1]`, `  - &a [b]`) composes through the resume.
+  -- Every other pending opens the stack at its OWN index below; what would
+  -- share this arm (`  - [1]`, `  - &a [b]`) composes through the resume.
+  --
+  -- **Item 265: what else rides it, and what that ride costs.**  The three
+  -- live arms below take `drop_ride` on the RUN-END half of the open's
+  -- under-run, and `dropClose` is one of the library's two
+  -- `SLYamlStream.scannerDrop` applications (the other is
+  -- `PendingNode.close_with_ssl`'s `pendingFlow` arm, which goes with the
+  -- constructor).  So this ride is §β.5's whole remaining obligation on the
+  -- drop.  Swept at `Tests/Guards/Proofs/ScannerFlowOpenUnderRun.lean` §5:
+  -- of the 198 landing columns below a park's floor, 54 never reach this
+  -- lemma at all (`scanNextToken_preprocess` refuses them, so `h_preprocess`
+  -- contradicts), and the remaining 144 dispatch the open and die three to
+  -- five steps later — 90 at §8.1's floor, 54 at §9.2's dangling run.  At
+  -- every one of those 144 the collection has CLOSED, its last real token is
+  -- the flow close, and the open's column is still on the indent stack: one
+  -- carried fact, not two, is what would retire the ride.
   have drop_ride :
       ∃ sp_gram' sp_block' sp_flow' sp_scan',
         SLYamlStream sp_start sp_gram' ∧
@@ -11632,12 +11647,14 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
   | pendingBlock _ _ _ n_old h_close _ h_floor_old h_sk_old h_col59 h_kslot_old _ _ _
       h_kslotUp_old =>
     -- Item 46: the stack opens at the ENTRY's index, so the resume's node
-    -- fits `flowInBlock n_old` and `  - [1]` composes.  Item 66: the landing
-    -- that under-runs `s-indent(n_old)` on the OPEN itself is not a deferral
-    -- at all — §8.1's `checkBlockFlowIndent` refuses it when the run ends
-    -- there (`k:⏎  -⏎[1]`, `a:⏎  b:⏎    -⏎  [1]`) and §6.1's own gate when
-    -- the run carries a tab (`k:⏎  -⏎ →[1]`), so the arm is REFUTED wherever
-    -- the pending carries its floor.
+    -- fits `flowInBlock n_old` and `  - [1]` composes.  The landing that
+    -- under-runs `s-indent(n_old)` on the OPEN itself splits by its own
+    -- column, and only the TAB half is refused at THIS step (§6.1's gate,
+    -- `k:⏎  -⏎ →[1]`).  The run-end half is refused three to five steps
+    -- downstream — by §8.1's floor read at the close (`k:⏎  -⏎  [1]`) or by
+    -- §9.2's dangling run (`k:⏎  -⏎[1]`, `a:⏎  b:⏎    -⏎  [1]`) — so no
+    -- hypothesis this lemma carries refutes it (item 265, swept at
+    -- `Tests/Guards/Proofs/ScannerFlowOpenUnderRun.lean` §5).
     obtain ⟨sp_gap, hcorr_gap, h_sep_or⟩ :=
       preprocess_some_separate_at_floor (n_old + 1) sc sp_scan s_prep c h_floor_old
         h_corr h_preprocess
@@ -11712,11 +11729,11 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
                (Or.inr (inFlow_of_flowLevel_eq h_fl1))
                (nodoc_of_flowLevel_succ h_fl1) (noek_of_flowLevel_succ h_fl1)
                (ntop_of_flowLevel_succ h_fl1), hcorr_open, fun _ => ⟨.white (GStar.nil _) h_sync h_colon h_opencol, h_real, h_ad⟩⟩
-    · -- Item 73: `pendingBlock`'s floor is a measurement now, not an option, so
-      -- BOTH halves of the open's under-run are refuted here and the arm no
-      -- longer rides the drop.
+    · -- Item 73: `pendingBlock`'s floor is a measurement, not an option, which
+      -- is what LOCATES the under-run; item 265 measures which half the
+      -- location refutes.
       rcases h_ur with ⟨j, sx, hj, h_ind, _h_ws2, h_end | h_tab⟩
-      · -- Item 172: deferred floor — the open step scans; nothing to spend.
+      · -- Item 172: the deferred floor — the open step scans; nothing to spend.
         exact drop_ride
       · exact (flowOpen_underRunTab_refuted h_floor_old h_ltsl2
           (fun h => by rw [h, h_col59] at h_col02; omega) h_col02 hj h_ind h_tab
@@ -11820,12 +11837,12 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
                (Or.inr (inFlow_of_flowLevel_eq h_fl1))
                (nodoc_of_flowLevel_succ h_fl1) (noek_of_flowLevel_succ h_fl1)
                (ntop_of_flowLevel_succ h_fl1), hcorr_open, fun _ => ⟨.white (GStar.nil _) h_sync h_colon h_opencol, h_real, h_ad⟩⟩
-    · -- Item 66: the run-end half is §8.1's refusal (`k:⏎  a:⏎[1]`).  Item 68:
-      -- and the TAB half is §6.1's, for `pendingProps`' reason.
+    · -- Item 68: the TAB half is §6.1's refusal, for `pendingProps`' reason.
+      -- Item 82: the park's floor is REAL, which is what locates the run-end
+      -- half; item 265 measures that the location it names is downstream
+      -- (`k:⏎  a:⏎[1]` is §9.2's dangling reading, three steps on).
       rcases h_ur with ⟨j, sx, hj, h_ind, _h_ws2, h_end | h_tab⟩
-      -- Item 82: the park's floor is REAL now, so both halves of the under-run
-      -- refute outright — the two drop rides this arm carried are DELETED.
-      · -- Item 172: deferred floor — the open step scans; nothing to spend.
+      · -- Item 172: the deferred floor — the open step scans; nothing to spend.
         exact drop_ride
       · exact (flowOpen_underRunTab_refuted h_floor_mv h_ltsl2
           (fun h => by rw [h] at h_col02; omega) h_col02 hj h_ind h_tab

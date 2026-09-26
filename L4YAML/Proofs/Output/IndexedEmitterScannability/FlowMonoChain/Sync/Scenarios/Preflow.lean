@@ -28,8 +28,7 @@ Two deliverables:
     using `_preprocess_flow`. Threads a `','`-character through
     preprocess → `dispatchStructural` (returns `none` in flow context
     with `currentIndent < 0` and `col > 0`) → allowDirectives update
-    → `checkBlockFlowIndent` (vacuous for `','`) → `dispatchFlow
-    Indicators_comma` → `scanFlowEntryIx_ok` (precondition: no
+    → `dispatchFlowIndicators_comma` → `scanFlowEntryIx_ok` (precondition: no
     trailing flow delimiter). All conclusions about
     `ScannerSurfCorrIx`, `AllTokensOnLineIx`, `EndLineOnLineIx`, and
     simple-key-stack preservation match the legacy. Indexed twin of
@@ -54,7 +53,7 @@ Per the in-session retroactive modularisation pattern (Reflection
 
 Each sub-session matches one auxiliary precondition pattern:
 mid-chain (this file + `.flowclose`) share the same `saveSimpleKeyIx
-+ s_ad + checkBlockFlowIndent_ok_*` skeleton; the EOF cases need
++ s_ad` skeleton; the EOF cases need
 `peek_none_of_empty_surfIx`; the init-state cases need
 `initial_corrIx`-style infrastructure not yet ported.
 -/
@@ -338,7 +337,6 @@ lemma scanNextTokenIx_flow_comma (s : ScannerStateIx input)
       s_ad = if (saveSimpleKeyIx s).allowDirectives then
         { saveSimpleKeyIx s with allowDirectives := false, documentEverStarted := true }
       else saveSimpleKeyIx s := ⟨_, rfl⟩
-  -- Step 4: checkBlockFlowIndent for ','
   -- Step 5: derive field equalities for s_ad (via case split on h_s_ad_def)
   have h_ad_fl : s_ad.flowLevel = s.flowLevel := by
     rw [h_s_ad_def]; split <;> exact saveSimpleKeyIx_flowLevel s

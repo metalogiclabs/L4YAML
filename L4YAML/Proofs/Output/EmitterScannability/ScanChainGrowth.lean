@@ -36,9 +36,8 @@ open L4YAML.Proofs.FlowAdjacency
 
 `ScanChainGrew p` is `ScanChain` augmented with a per-step witness that
 the filtered count under predicate `p` strictly increases at each step.
-Built constructively at the call site, it is the honest replacement for
-the former loose per-step lemma `scanNextToken_filtered_grows`: that lemma
-claimed a `≥ +1` filtered-growth bound for *every* successful step, which is
+Built constructively at the call site, it is what an unconditional per-step
+lemma cannot be: a `≥ +1` filtered-growth bound for *every* successful step is
 false on the YAML 1.2.2 §6.8.3 RESERVED-directive branch (`%FOO …` scans to
 `skipToEndOfLine`, emitting no token), and so carried a `sorry`.  It and its
 `ScanChain` corollary `ScanChain_filtered_grows` have been **removed** (see
@@ -91,10 +90,9 @@ lemma ScanChainGrew.trans {p : Positioned YamlToken → Bool}
     exact .step h_snt h_grew h_ih
 
 /-- Strict-chain growth: through a `ScanChainGrew p` of `n` steps, the
-    filtered token array grows by at least `n`.  Same conclusion as
-    `ScanChain_filtered_grows`, but proven directly from the per-step
-    witness — does not depend on `scanNextToken_filtered_grows` (and so
-    does not depend on the line-8379 sorry). -/
+    filtered token array grows by at least `n`, proven directly from the
+    per-step witness rather than from an unconditional per-step growth
+    claim, which is unsound on the RESERVED-directive branch. -/
 lemma ScanChainGrew_filtered_grows {p : Positioned YamlToken → Bool}
     {s s' : ScannerState} {n : Nat}
     (h_chain : ScanChainGrew p s n s') :
@@ -464,7 +462,6 @@ lemma scanNextToken_flow_value (s : ScannerState)
   let s_ad := if (saveSimpleKey s).allowDirectives then
     { saveSimpleKey s with allowDirectives := false, documentEverStarted := true }
   else saveSimpleKey s
-  -- Step 4: checkBlockFlowIndent passes in flow
   have h_ad_flow : s_ad.inFlow = s.inFlow := by
     simp only [s_ad]; split <;> exact h_sk_flow
   have h_fv : scanNextToken_checkFlowValueIndent s (saveSimpleKey s) = .ok () :=

@@ -502,7 +502,7 @@ lemma isValueCandidate_of_peekAt_blankIx (s : ScannerStateIx input)
 
 The remaining heavy body of the `EmitScansInFlow` family (legacy
 7256–7621). It threads preprocessing → structural dispatch (none) →
-`checkBlockFlowIndent` (ok in flow) → flow dispatch (none) → block
+flow dispatch (none) → block
 dispatch (`:` → `scanValueIx`). The supporting twins below all exploit
 the indexed substrate's `@[simp]` cursor/field lemmas: `scanValuePrepareIx`
 preserves the cursor outright, and `overwriteAtCursor`/`emit`/`advance`
@@ -671,7 +671,7 @@ lemma scanNextToken_flow_valueIx (s : ScannerStateIx input)
     unfold ScannerStateIx.inFlow; rw [h_ad_fl]; exact h_flow
   have h_ad_ek_none : s_ad.explicitKeyLine = none := by rw [h_ad_ek]; exact h_ek
   have h_ad_line : s_ad.cursor.pos.line = s.cursor.pos.line := by rw [h_ad_cursor]
-  -- Step 4: checkBlockFlowIndent (vacuous in flow) + flow dispatch → none.
+  -- Step 4: flow dispatch → none.
   -- Step 5 (hoisted above the dispatch by item 9d — the adjacency check exempts
   -- `:` only while it is a value indicator): `isValueCandidateIx s_ad = true` via
   -- the `peekAt? 1 = ' '` fallback.

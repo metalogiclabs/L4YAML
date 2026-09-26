@@ -24,8 +24,7 @@ Every step is identical with `'{' ↦ '['`,
 `YamlToken.flowMappingStart ↦ YamlToken.flowSequenceStart`.
 
 Threads preprocess → `dispatchStructural` (none) → allowDirectives
-update → `checkBlockFlowIndent_ok_flow` →
-`dispatchFlowIndicators_bracket` → `scanFlowSequenceStartIx`. Yields
+update → `dispatchFlowIndicators_bracket` → `scanFlowSequenceStartIx`. Yields
 `flowLevel + 1`, `simpleKeyStack.pop = s.simpleKeyStack` (push undone
 by `.pop`), `StackEndLineOnLineIx s' s'.line` (the pushed key
 inherits `EndLineOnLineIx` from the prior state).

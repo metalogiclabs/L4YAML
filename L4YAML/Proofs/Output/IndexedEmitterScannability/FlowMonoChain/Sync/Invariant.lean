@@ -638,12 +638,12 @@ lemma FlowMonoChainIx_of_scanNextTokenIx_eq {fl₀ : Nat}
 /-! ## §7  Pipeline factoring
 
 `scanNextTokenIx` decomposes into preprocess → dispatchStructural →
-allowDirectives update → checkBlockFlowIndent → flow / block / content.
+allowDirectives update → flow / block / content.
 A factoring lemma lets us compose individual stage results into a
 single `scanNextTokenIx = .ok (some s_result)` conclusion. -/
 
-/-- When preprocessing succeeds, structural dispatch returns `none`,
-    `checkBlockFlowIndent` succeeds, and the flow indicator dispatch
+/-- When preprocessing succeeds, structural dispatch returns `none`
+    and the flow indicator dispatch
     produces a result, then `scanNextTokenIx` returns that result.
     Indexed twin of legacy `scanNextToken_via_flow_dispatch` (line 2147). -/
 lemma scanNextTokenIx_via_flow_dispatch

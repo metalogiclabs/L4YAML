@@ -121,6 +121,7 @@ import Tests.Guards.Proofs.ScannerStaleKeyColon
 import Tests.Guards.Proofs.ScannerCompactExplicitKey
 import Tests.Guards.Proofs.ScannerLandedNestingValueLine
 import Tests.Guards.Proofs.ScannerFlowOpenUnderRun
+import Tests.Guards.Proofs.GateVocabulary
 import Tests.Guards.Proofs.FlowInteriorScalarAtIndex
 import Tests.Guards.Proofs.ScannerFlowParkColumn
 import Tests.Guards.Proofs.ScannerFlowInteriorUnderRun
