@@ -35814,13 +35814,254 @@ says this grid dies at the END-OF-INPUT gates, and `tailSweep` says the same 144
 die at a MID-STREAM gate as soon as a sibling line follows.  So the spend has
 two consumers to reach, and neither of them is `GateOf`.
 
+### Item 268 (2026-09-26)
+
+**PRICED — no build.**  Item 267's recorded NEXT was to WIRE the carrier:
+`accum_flow_open_depth0` still spends `dropClose` at `drop_ride` because nothing
+hands a `ParkSlot` to the frame the open pushes, and its P5 left the open
+question in one sentence — *which lemma takes that contradiction is item 268's
+measurement*.  This item measured it.  The answer costs four readings, and three
+of them refute the sentence that asked for them.
+
+**The line that makes the escape necessary.**  `drop_ride` applies `h_kpkg` at
+`g = none`, and `FlowBaseAnchor none _ _` is `True` by definition, so the frame
+the under-run's open pushes is UNGATED.  An ungated frame's node route is
+`GateOf none → …`, which is unconditional, and an unconditional route over a
+landing the scanner refuses has nothing honest to supply — which is the escape.
+Everything below prices making that frame gated instead.
+
+**§1 There are FOUR checks, not two.**  §5's `dispatchSweep` read the deaths
+with no tail and found them at the END-OF-INPUT gates; its `tailSweep` read the
+same 144 dying at a MID-STREAM gate as soon as a sibling line follows.  Both gates exist at
+both depths, so the family dies over four named checks and not two, and
+`killSite == (144, 90, 54, 90, 54)` reads the same `offersNodeSlot` partition —
+**90 at §8.1's floor and 54 at §9.2's dangling run** — at each of them
+(`ScannerFlowOpenUnderRun` §8).  The two pairs sum to the same 144 and split it
+the same way, so what the tail moves is the DEPTH of the refusal and nothing
+else.  One carrier serves all four; *two consumers* does not describe the
+surface.
+
+**§2 The two halves are not the same bill, and one of them has no bill at all.**
+Resolved in the environment rather than grepped — a grep sees the name and
+cannot tell a binder of the statement from a step of the proof — the
+accumulation's holders read
+
+    dn/mid=21  dn/eof=5  fv/mid=0  fv/eof=0
+
+(`Tests/Guards/Proofs/ParkBill.lean` §5).  §9.2's mid-stream check is a
+hypothesis of **twenty-one** declarations and its end-of-input twin of **five**;
+**§8.1's checks are held by NONE, at either depth**.  §8.1's success is derived
+exactly once, inside `scanNextToken_accum_step`, and discarded on the next line
+while its twin `h_dn` is threaded into twenty-one signatures — `h_fv` occurs
+three times in the accumulation's own module and all three are that one site
+(the name is common in the emitter chain, which is a different variable in a
+different theorem).
+
+So the fifty-four cells that die at §9.2 have a rail that already reaches the
+arm the carrier is born at, and the **ninety** that die at §8.1 — the majority —
+have no holder to reach.  **And the zero is a zero in this theorem, not a zero
+everywhere**: the same four names are held in the emitter-scannability chain
+too, §8.1's two checks **eleven** and **fifteen** times there.  A census that
+reported only the first four numbers could not tell a check nothing holds from a
+check nothing mentions, so the pin carries both halves (§9: an empty check is
+not a check).
+
+**§3 What gating the frame costs** (`scripts/wire_price.py`, pinned at
+`ScannerFlowOpenUnderRun.expectedWirePrice`):
+
+    WIRE-PRICE gate=49 anchor=2 route=3 eof=1
+
+Four probes, four rings.  `gate` widens `GateOf`'s arity — who READS the frame's
+gate; `anchor` adds the carrier as a third conjunct of `FlowBaseAnchor` — who
+BUILDS a gated frame; `route` adds a hypothesis to `FlowBaseRoutes.value` — who
+supplies and who applies the node reading; `eof` adds one to
+`scanNextToken_none_stream` — who drives the end-of-input consumer.
+
+**The asymmetry is the reading.**  Putting the carrier on the anchor costs
+**two** declarations — `FlowBaseAnchor.transport`, the single funnel every
+transport step goes through, and `propsPark_open_gate`, the single producer of a
+gated frame — while widening the gate that reads it costs **forty-nine**.  Item
+267's P5 asked whether §8.1's arm needs a new gate flavor and item 268 answers
+where it goes: **a carrier-aware verdict belongs on the ROUTE (3), never on
+`GateOf` (49)**.  The route ring's ten error sites fall **seven** in
+`accum_flow_open_depth0`, two in `accum_step_flow` and one in
+`FlowBaseRoutes.ofValue`, so the arm that would be refuted is also where most
+of the premise has to be discharged.
+
+**§4 And the carrier's source cannot be applied at its consumer.**  This is the
+finding the item did not go looking for.  `preprocess_landing_on_stack` is item
+267's three-line corollary, the carrier's source, and it takes
+`sc.needIndentCheck = true`.  Read at the state the open's own step begins with,
+over the 144:
+
+    sourceFacts == (144, 0, 144, 144, 54, 144, 90, 54)
+
+`(rows, the flag on the incoming state, the flag one function later, out of
+flow, the landing below the incoming floor, the membership the carrier names,
+the indent stack unmoved, the stack popped)`.
+
+**The flag is false at every one of the 144 and true at every one after
+`skipToContent`.**  This family crosses its break INSIDE the open's own step, so
+a premise stated on the incoming state names a flag the consumer never has —
+and the props park's own `PendingNode.pendingProps` field says the same thing
+from the other side, carrying `sc.needIndentCheck = false` at the very arm the
+carrier would be born at.  The source's other premise, the landing below the
+incoming floor, holds at **54** of the 144 — exactly the dedenting half, which
+is exactly §9.2's — so even restated on the state the unwind consults it reaches
+at most the 54 and never the 90.  The fifth and the eighth are the same dedent
+counted two ways, the premise `preprocess_pops_of_below` takes and the
+conclusion it draws, so neither passes vacuously.
+
+**And the conclusion holds at all 144.**  The fact the carrier names is true
+everywhere in the family; it is the LAW's hypotheses that are unavailable, not
+the fact.  The law is true and unusable rather than wrong.
+
+**§5 The rule this item adds.**  **A law's truth and a law's applicability are
+different measurements, and pinning a grid measures only the first.**  Item 267
+pinned `preLaw == (198, 54, 54, 144, 144)` over the same family and scored its
+P4 *confirmed, and for a stronger reason than the prediction gave* — correctly,
+about the law's truth.  Nothing in that measurement looked at whether the
+consumer can supply the law's premises, and here it cannot supply either of
+them.  §10 already says a definition nothing has instantiated is not yet
+evidence; this is its other half — **a lemma no consumer can feed is not yet a
+carrier**, and the check costs one reading of its hypotheses at the state the
+consumer actually holds.
+
+**§6 What did NOT move.**  No scanner file changed and no pipeline output
+moved: this item is four readings, one new instrument (`scripts/wire_price.py`)
+and four new pins across two guard files — `killSite`, `sourceFacts` and
+`expectedWirePrice` in `ScannerFlowOpenUnderRun` §8, `expectedGateHolders` in
+`ParkBill` §5.  `dropClose` is still applied twice, and `drop_ride` still rides
+it.
+
+**§7 Gates and perturbations.**  Build **1226**; `Verified: 4520/4520`
+(837/837); eventscore 347/358 with **0** error-miss; suiterunner 869/0/151;
+matrix 402/402 + 282/282 on both pipelines; annotations exit 1 (the standing
+19); decline pins 7 + 18 + 6; axioms `[propext, Classical.choice, Quot.sound]`
+with `capstones=25 withSorryAx=0`; closure 230/355; 25 whitelisted `theorem`
+sites; counts **8764 / 8190 / 669 / 8** — `guards` is the item's own two.
+
+Every flip re-derived on this tree and every source-editing stage restored its
+files byte for byte, cross-checked against a manifest generated independently
+of the battery: `[210]` 5 definitions from 5 locations; SUPPLY 4 from 7; the
+supplier lattice weak 5 / field 1 / retire 7 with the producer wave 4; DROP 2
+from 2 — **`dropClose` and `close_with_ssl`, both still applied**; CARRIER arm 2
+/ retire 5.  The β.5 fixpoint drives 23 rounds clean at `sorried=13 restated=0
+deleted=3 refused=0 pins=37 waves=[7,3,2,1,…]` with `gone=1 carried=21 free=4`,
+unmoved.  ARMLINE `control=7 arms=2 dead=5`.  `WIDE-PIN`, `FIX-PIN`, `ARM-PIN`,
+`CARRIER-PIN` (both waves and `expectedCarrierPrice`) and the new `WIRE-PIN` all
+agree.
+
+**One standing pin moved, and it moved for this item's own prose.**
+`GATEVOCAB` read `mentions=437` against a pin of 433.  The four are this item's
+sections citing two dispatcher names — three of the lemma where §8.1's check is
+derived and discarded, one of the end-of-input driver the wiring probe prices —
+and all four RESOLVE, with `names=107 families=13 refuted=7 wrapped=3 self=2
+unresolved=0` unchanged.  That is the instrument doing its job rather than a
+regression: `unresolved` is the check and `mentions` is the population it was
+taken over, so the pin was moved to 437 with the reason recorded beside it.
+The first rewrite of that note spelled the two names out and pushed `self` from
+2 to 4 — this file is the one the scan skips — so the note names the count and
+not the names.
+
+**Perturbations.**  **33** on the Lean side — every component of `killSite`,
+`sourceFacts` and the holder census, then eleven models: which state pair the
+mid-stream gates are read on, whether a tail is appended at all, which
+transition names the open, which of the two states the flag is read at, whether
+the census walks the TYPE or the value, whether it is the accumulation's, and
+whether a renamed gate throws instead of reading zero.  **32 throw, one is
+vacuous by design**, and **22** in-process checks of `wire_price.py` all hold;
+every md5 is identical at both ends.
+
+Three rows had to be repaired rather than counted, and each repair is a reading:
+
+* one anchor matched TWICE — item 267's `openTriple` carries the same two lines
+  as this item's `openPair`, so the perturbation was silently ambiguous rather
+  than wrong, and the anchor is three lines now;
+* `model:the_membership_is_read_on_the_park` came back NOT CAUGHT, and the
+  reason is a fact about the runtime: `unwindIndents` only POPS, so
+  preprocessing's stack is a suffix of the incoming one and a column standing on
+  the popped stack stands on the incoming one too.  Reading the membership on
+  the wrong state cannot move a count that is already 144.  Split, as item 267
+  split its own, into a PREDICATE perturbation that moves 144 to 0 and a
+  declared vacuity carrying that reason;
+* and one row was named for a test it does not perform.  Relabelling one branch
+  of the gate match MERGES the two mid-stream counts rather than reordering
+  them, so it moves — it measures that the two gates are counted separately,
+  which is what it is now called.  A perturbation whose name misdescribes its
+  edit passes for the wrong reason, which is the same defect as a vacuous one.
+
+## §8 Predictions, scored
+
+Written before any measurement (`scratchpad/l4yaml-beta5-item268/PREDICTION.md`).
+
+* **P1 — the two consumers are two DIFFERENT declarations, and neither is a
+  flow lemma** (60 %): **half right, and the framing it inherited is refuted**.
+  Neither holder family is a flow lemma, which is the half that holds.  But
+  there are FOUR checks and the split is not by declaration at all: §9.2 has
+  twenty-six holders and §8.1 has none, so one half has a rail already at the
+  arm and the other has nothing to reach.
+* **P2 — the carrier cannot reach either consumer on the rails that exist**
+  (65 %): **confirmed**.  `FlowStackK` states its anchor conjunct under
+  `0 < fl` and the close pops it, and no other component of the step invariant
+  names a state from an earlier step.  Read off the signature rather than
+  measured, and `WIRE-PRICE anchor=2` is what prices the slot that would have
+  to exist.
+* **P3 — paying the route is not the mechanism; a gate the close CANNOT pay
+  is** (55 %): **confirmed in its second disjunct, and priced**.  The verdict
+  goes on the route (3) and not on `GateOf` (49), and the flip is what decides
+  between them rather than taste.
+* **P4 — the genesis is cheap at the open** (75 %): **refuted, and the risk it
+  flagged was the wrong risk**.  The prediction named the props park as the
+  likely blocker and predicted itself lost for that reason.  The actual blocker
+  is a FLAG: `needIndentCheck` is false at all 144 on the state the arm holds.
+  Naming the right outcome from the wrong cause is not a hit.
+* **P5 — `dropClose` is NOT retired in this item** (55 %): **confirmed**.
+* **P6 — no runtime repair** (85 %): **confirmed**.  No scanner file changed.
+* **P7 — at least one name in the recorded scope is a phantom or is stale**
+  (50 %): **confirmed, twice**.  *Two consumers* is four checks, and the
+  carrier's source is stated over a state its consumer never holds.
+* **P8 — the β.5 fixpoint does not move** (80 %): **confirmed** — `sorried=13
+  restated=0 deleted=3 refused=0 pins=37 gone=1 carried=21 free=4`, unmoved.
+* **every standing pin unmoved** (70 %): **refuted, by this item's own prose**.
+  `GATEVOCAB` moved `mentions` 433 to 437 because §1-§4 cite two dispatcher
+  names.  All four resolve and `unresolved` is unchanged, so the instrument read
+  what it is for; the prediction was simply wrong about which pins a
+  measurement-only item can disturb.
+
+And the numbers: the consumer census was predicted at **2–6** and reads
+twenty-six on one side and zero on the other, which is a miss in both
+directions at once; the four checks were predicted to reach **the same two
+functions from two distinct call sites**, which holds — `underIndentedFlowValuePos?`
+and `danglingNodePos?`, each read by a mid-stream and an end-of-input check.
+New Lean was predicted at 0–120 lines and is about 230, all of it instrument.
+
+## §9 What is left
+
+`accum_flow_open_depth0` still spends `dropClose`, and the wiring behind it now
+has a measured shape rather than a sentence:
+
+* **the carrier goes on `FlowBaseAnchor` (2 declarations), the verdict on the
+  route (3), and `GateOf` is not touched (49)**;
+* **§8.1's rail has to be built before the ninety can be reached at all** — its
+  check is held nowhere in the accumulation, and the first step is to stop
+  discarding `h_fv` at `scanNextToken_accum_step` and thread it the way `h_dn`
+  is already threaded, a rail three declarations long of which two already
+  carry the twin;
+* **and the carrier's source has to be restated on the state the unwind
+  consults**, which reaches the 54 that dedent; the 90 that do not pop hold the
+  same membership for a different reason and owe a second source.
+
+Behind it, unchanged: item 264's three class carriers and item 262's recorded
+mandate, the seven value-line resume faces by producers touched.
+
 **Where it stands after item 267 (2026-09-26).**  Every number in this table
 is a gate's or a pin's, and the instrument that re-derives it is named beside
 it; the prose history is in the R3/R4 sections below and in the closure log.
 
 | row | state | the numbers, and where they come from |
 |---|---|---|
-| **R3** — delete `pendingFlow` and `scannerDrop` | OPEN | **The flip.**  `scannerDrop` is applied **twice** in the library — `dropClose` and `PendingNode.close_with_ssl`'s `pendingFlow` arm (`DropDependents.expectedDirect`, `D=4` with two guard exhibits) — and its flip breaks **2** definitions (`scripts/flip_drop.py`).  `block_dispatch_deferred`, `pendingFlow`'s only producer, is applied **9** times in **4** holders — `_stamp_offcol` 3, `_stamp_nopack` 3, `_inline` 2, the bare escape 1 (`Tests/Guards/Proofs/FlipConsumerSurface.lean`, DEFERRAL lane).  `KeyPackPunt`'s four reasons are produced at **12** sites — `tab` 2, `dedent` 4, `implicitValue` 3, `noKeyContext` 3 — and spent by the same three consumer arms (PACK PUNT lane); item 212's **seven productions** are `dedent`'s four and `noKeyContext`'s three, and their price is the case split.  **The bill, ELABORATED** (item 263).  β.5's edit applied for real and driven to a fixpoint (`scripts/flip_beta5.py`, 23 rounds, clean) reads `sorried=13 restated=0 deleted=3 pins=37`: **thirteen proofs** — seven in the library, all in `StreamAccum.lean`, of which **five lose only a dead `\| pendingFlow` arm** and **two are real repairs** (`accum_flow_open_depth0`'s `dropClose` application, `block_dispatch_deferred`'s park), plus six Tests-side exhibits — **one statement**, `dropClose`, and no other statement anywhere.  **The repairs, DIAGNOSED** (item 264).  The five dead arms deleted FOR REAL leave `control=7 arms=2 dead=5` (`scripts/beta5_arms.py`, pinned at `ParkBill.expectedArms`): two errors of one line each.  `accum_flow_open_depth0` keeps `dropClose` because THREE LIVE arms take `drop_ride` and not the dead one, and its diagnosis is **FALSE** — the run-end half of an under-run whose TAB twin is already refuted three lines below it, with a **96**-cell sweep reading the scanner's turnover AT the park's floor in every cell and **0** accepted scans left of it (`ScannerFlowOpenUnderRun.lean` §4).  `block_dispatch_deferred` is an escape, so its price is its DOMAIN: three wrapper classes, all **STARVED** with their carriers named, a fourth (`_stamp_compact`) already proved false and deleted at item 209, and the self-arm class emptied by item 264's own deletion — **0 FALSE, 0 HARD** among the three.  `PendingNode.close_with_ssl` survives statement AND proof intact, so the bill is ONE restatement and not two.  Of item 238's twenty-four: **3 FREE, 21 CARRIED** on `sorryAx`, none owing work of its own.  The closure over BOTH deletions is **38**, not 26 (`Tests/Guards/Proofs/ParkBill.lean`: `Dp=9 Sp=0 Tp=31 T=26 extra=12`), and **37 of this row's own pinned censuses re-read** — the largest population of the four.  The four supplier ends still read weak 5 / field 1 / retire 7 / producer 4.  **The descent** (items 241–263, row by row in the table below).  The cover a refutation of the miss would spend is CLOSED down to **3** real punts: the close-stack trees read 16 positions / paid **6** / punt 15 / cover-punt 2 / open 2 from both roots, one component (253–259), and what those three lack is not the cover but the field's BOTTOM (260).  The carrier that would fund that bottom is OPEN: **47** positions writing **180** rows which resolve to **70** origin hypotheses at 38 rows, **40** of them holding the tail, and the whole `?` family — 18 positions, 55 rows — born at ONE origin that does not (261, 262).  **The refusal, LOCATED** (item 265).  The run-end half is FALSE and **not LOCALLY false**, which is a price §10's three diagnoses do not carry: driving `scanNextToken` over the same grid reads `dispatchSweep == (198, 54, 54, 144, 90, 54)` with `distances == [3, 5]` (`ScannerFlowOpenUnderRun.lean` §5).  Of the **198** landing columns below a park's floor, **54** never reach the lemma at all — preprocessing refuses them, so `h_preprocess` already contradicts — and the other **144** dispatch the open and die **three to five steps later**, 90 at §8.1's floor and 54 at §9.2's dangling run.  Both of those gates also run at the OPEN's own step and the lemma already takes both readings (`h_dn`, `h_bare`): they are the right checks at the wrong state, because `underIndentedFlowValuePos?` needs a flow CLOSE on the token array.  So no hypothesis of this lemma can refute the branch at any price, and what it costs is a CARRIER.  `deathShape == (144, 144, 144, 144, 144)` prices that carrier at **one** carried fact: at every one of the 144 the collection has closed, its last real token is the flow close, and the open's column is still on the indent stack — and the two readings partition the 144 by `offersNodeSlot` with no overlap and no remainder.  Half of it is already proved (`FlowIndentStable.preprocess_indents_of_inFlow`).  The `\| pendingFlow` arm census reads **7** where item 264's flip breaks **6**: `close_with_ssl`'s arm binds nothing, so a flip cannot see it — and with it, β.5's whole remaining obligation on the drop is the one obligation above.  Three of the three live arms carried a comment asserting this branch REFUTED two lines above the `exact drop_ride` (items 66, 73, 82), and the gate all three named resolves to no constant: `scanNextToken_checkBlockFlowIndent` appeared **32** times in **14** files.  `scripts/gate_vocab.py` is the check that was missing, pinned at `GateVocabulary.expectedGateVocab`.  **The carrier, PRICED** (item 266).  The transport is already built: `ParkAnchor` runs a fact from a depth-0 open to its close and `ParkAnchor.dangling_eq` spends it there on premises that are item 265's `deathShape` component for component.  Three readings say what it refuses to carry (`ScannerFlowOpenUnderRun.lean` §6).  The park is **FORCED** — `carrierCore == (144, 144, 144, 144, 144, 18, 0, 90)`: against preprocessing's state the anchor's four transport fields hold at all 144, against the state the step began from the hold resolves at **none** of them, because preprocessing's own pushes sit between the two arrays.  At that park the carrier is a **PASSENGER** — `carrierPark == (144, 0, 144, 144, 144)`: preprocessing's cursor column IS the open's, so "the open's column stands on the indent stack" is a fact about the park alone, with no reference to the state it is carried to.  And what blocks the existing anchor is ONE field — `anchorProp == (144, 18, 0, 90)`: `parkProp` holds at 18 of the 144 and is read only by the genesis and the spend.  The datum's source is preprocessing's own law, `preLaw == (198, 54, 54, 144, 144)` — out of flow it accepts a landing exactly at a column that stands on the stack, both directions — which makes the carrier one scanner lemma and not a field threaded through the pending-state invariant.  `slotSplit == (144, 90, 0, 90, 54, 144)` reads item 265's 90/54 off the token array instead of off the gate and the two agree cell for cell, with **0** cells where both gates fire.  **The bill is NINE declarations in three rings** (`scripts/carrier_price.py`, pinned at `ScannerFlowOpenUnderRun.expectedCarrierPrice`): `passenger=7 heavy=7 prop=8 consumer=1 gate=1` — seven for the anchor (six transports and `ofOpen`), eight when `parkProp` comes off instead (the spend joins them), one for the gate ring (`propsPark_open_gate`, two sites) and one for the consumer ring (`accum_step_flow`, 17 sites); no ring below the third, because the core's four fields are all derivable at the open from hypotheses `accum_flow_open_depth0` already carries.  **And the flip has a limit**: `passenger` and `heavy` state the same fact two ways and read the IDENTICAL census, so an arity flip counts sites and not work — only the runtime pin separates a passenger from a premise.  A **second phantom** turned up one production over from the lemma being priced: `flowOpen_underRunEnd_refuted`, the name the run-end refutation would take, cited in a docstring as an existing twin and resolving to no constant.  `gate_vocab.py` reads that vocabulary beside the gates' — `names=107 mentions=433 families=13 refuted=7 wrapped=3 self=2 unresolved=0`.  **The carrier, BUILT** (item 267).  `ParkAnchor`'s four transport fields are now `ParkCore`; `ParkAnchor` extends it with `parkProp` alone and `ParkSlot` with the carrier, so one transport runs two payloads.  The field is the HEAVY form and not the passenger one — both gates read the OPEN TOKEN's position and `below` stops one index short of the bracket, while the park's own cursor column is what the GENESIS spends (`runStart == (144, 54, 54, 54, 54, 0)` and `parkFacts == (144, 90, 90, 144, 144)`, `ScannerFlowOpenUnderRun.lean` §7).  It is a payload and not a core field because `acceptedParks == (378, 0, 0, 0, 378)`: on the cells the scanner ACCEPTS the open's column stands on neither candidate park's stack, so a core that demanded it could not be built where the `[96]` park builds one today.  **The membership law was already proved, twice** — item 127's `preprocess_landing_at_level` and item 146's `preprocess_indents_eq_of_no_open_level`, the second already in the `any` form both gates read — so item 266's "one genuinely new scanner lemma" was a forecast that named the wrong production.  What was missing is the HYPOTHESIS CONVERSION: `unwindIndents_pops` and `preprocess_pops_of_below` turn *the landing is below the floor the step began with* into item 127's `h_pop`, and the carrier's source is a three-line corollary with `acceptedParks` as its control in both directions.  This item built the law from scratch first and caught the duplicate only on reading `IndentStackBase`'s own module docstring.  The two spends (`ParkSlot.underIndented_eq`, `ParkSlot.dangling_fires`) return the gate's VERDICT rather than an equation between verdicts, and the transport is COMPILED end to end beside a control that shows the payload uninhabited at an empty stack.  **A split is not a flip.**  It cost TEN declarations, not the seven the arity flip named — `size_le`, `size_lt` and `rewriteKey` construct nothing and so cannot break — while `dangling_eq`, the eighth the `prop` probe named, needed no repair at all.  `carrier_price.py`, retargeted at the built object, reads `core=7 slot=7 prop=8 consumer=1 gate=1`.  **NEXT: wire it.**  `accum_flow_open_depth0` still spends `dropClose` at `drop_ride` because nothing yet hands a `ParkSlot` to the frame the open pushes, and the spends' consumer is not the close's step lemma: §5's `dispatchSweep` says this grid dies at the END-OF-INPUT gates and `tailSweep` says the same 144 die at a MID-STREAM gate as soon as a sibling line follows, so there are two consumers to reach and neither is `GateOf`.  Behind it: the three class carriers item 264 named, and item 262's recorded mandate (the seven value-line resume faces by producers touched). |
+| **R3** — delete `pendingFlow` and `scannerDrop` | OPEN | **The flip.**  `scannerDrop` is applied **twice** in the library — `dropClose` and `PendingNode.close_with_ssl`'s `pendingFlow` arm (`DropDependents.expectedDirect`, `D=4` with two guard exhibits) — and its flip breaks **2** definitions (`scripts/flip_drop.py`).  `block_dispatch_deferred`, `pendingFlow`'s only producer, is applied **9** times in **4** holders — `_stamp_offcol` 3, `_stamp_nopack` 3, `_inline` 2, the bare escape 1 (`Tests/Guards/Proofs/FlipConsumerSurface.lean`, DEFERRAL lane).  `KeyPackPunt`'s four reasons are produced at **12** sites — `tab` 2, `dedent` 4, `implicitValue` 3, `noKeyContext` 3 — and spent by the same three consumer arms (PACK PUNT lane); item 212's **seven productions** are `dedent`'s four and `noKeyContext`'s three, and their price is the case split.  **The bill, ELABORATED** (item 263).  β.5's edit applied for real and driven to a fixpoint (`scripts/flip_beta5.py`, 23 rounds, clean) reads `sorried=13 restated=0 deleted=3 pins=37`: **thirteen proofs** — seven in the library, all in `StreamAccum.lean`, of which **five lose only a dead `\| pendingFlow` arm** and **two are real repairs** (`accum_flow_open_depth0`'s `dropClose` application, `block_dispatch_deferred`'s park), plus six Tests-side exhibits — **one statement**, `dropClose`, and no other statement anywhere.  **The repairs, DIAGNOSED** (item 264).  The five dead arms deleted FOR REAL leave `control=7 arms=2 dead=5` (`scripts/beta5_arms.py`, pinned at `ParkBill.expectedArms`): two errors of one line each.  `accum_flow_open_depth0` keeps `dropClose` because THREE LIVE arms take `drop_ride` and not the dead one, and its diagnosis is **FALSE** — the run-end half of an under-run whose TAB twin is already refuted three lines below it, with a **96**-cell sweep reading the scanner's turnover AT the park's floor in every cell and **0** accepted scans left of it (`ScannerFlowOpenUnderRun.lean` §4).  `block_dispatch_deferred` is an escape, so its price is its DOMAIN: three wrapper classes, all **STARVED** with their carriers named, a fourth (`_stamp_compact`) already proved false and deleted at item 209, and the self-arm class emptied by item 264's own deletion — **0 FALSE, 0 HARD** among the three.  `PendingNode.close_with_ssl` survives statement AND proof intact, so the bill is ONE restatement and not two.  Of item 238's twenty-four: **3 FREE, 21 CARRIED** on `sorryAx`, none owing work of its own.  The closure over BOTH deletions is **38**, not 26 (`Tests/Guards/Proofs/ParkBill.lean`: `Dp=9 Sp=0 Tp=31 T=26 extra=12`), and **37 of this row's own pinned censuses re-read** — the largest population of the four.  The four supplier ends still read weak 5 / field 1 / retire 7 / producer 4.  **The descent** (items 241–263, row by row in the table below).  The cover a refutation of the miss would spend is CLOSED down to **3** real punts: the close-stack trees read 16 positions / paid **6** / punt 15 / cover-punt 2 / open 2 from both roots, one component (253–259), and what those three lack is not the cover but the field's BOTTOM (260).  The carrier that would fund that bottom is OPEN: **47** positions writing **180** rows which resolve to **70** origin hypotheses at 38 rows, **40** of them holding the tail, and the whole `?` family — 18 positions, 55 rows — born at ONE origin that does not (261, 262).  **The refusal, LOCATED** (item 265).  The run-end half is FALSE and **not LOCALLY false**, which is a price §10's three diagnoses do not carry: driving `scanNextToken` over the same grid reads `dispatchSweep == (198, 54, 54, 144, 90, 54)` with `distances == [3, 5]` (`ScannerFlowOpenUnderRun.lean` §5).  Of the **198** landing columns below a park's floor, **54** never reach the lemma at all — preprocessing refuses them, so `h_preprocess` already contradicts — and the other **144** dispatch the open and die **three to five steps later**, 90 at §8.1's floor and 54 at §9.2's dangling run.  Both of those gates also run at the OPEN's own step and the lemma already takes both readings (`h_dn`, `h_bare`): they are the right checks at the wrong state, because `underIndentedFlowValuePos?` needs a flow CLOSE on the token array.  So no hypothesis of this lemma can refute the branch at any price, and what it costs is a CARRIER.  `deathShape == (144, 144, 144, 144, 144)` prices that carrier at **one** carried fact: at every one of the 144 the collection has closed, its last real token is the flow close, and the open's column is still on the indent stack — and the two readings partition the 144 by `offersNodeSlot` with no overlap and no remainder.  Half of it is already proved (`FlowIndentStable.preprocess_indents_of_inFlow`).  The `\| pendingFlow` arm census reads **7** where item 264's flip breaks **6**: `close_with_ssl`'s arm binds nothing, so a flip cannot see it — and with it, β.5's whole remaining obligation on the drop is the one obligation above.  Three of the three live arms carried a comment asserting this branch REFUTED two lines above the `exact drop_ride` (items 66, 73, 82), and the gate all three named resolves to no constant: `scanNextToken_checkBlockFlowIndent` appeared **32** times in **14** files.  `scripts/gate_vocab.py` is the check that was missing, pinned at `GateVocabulary.expectedGateVocab`.  **The carrier, PRICED** (item 266).  The transport is already built: `ParkAnchor` runs a fact from a depth-0 open to its close and `ParkAnchor.dangling_eq` spends it there on premises that are item 265's `deathShape` component for component.  Three readings say what it refuses to carry (`ScannerFlowOpenUnderRun.lean` §6).  The park is **FORCED** — `carrierCore == (144, 144, 144, 144, 144, 18, 0, 90)`: against preprocessing's state the anchor's four transport fields hold at all 144, against the state the step began from the hold resolves at **none** of them, because preprocessing's own pushes sit between the two arrays.  At that park the carrier is a **PASSENGER** — `carrierPark == (144, 0, 144, 144, 144)`: preprocessing's cursor column IS the open's, so "the open's column stands on the indent stack" is a fact about the park alone, with no reference to the state it is carried to.  And what blocks the existing anchor is ONE field — `anchorProp == (144, 18, 0, 90)`: `parkProp` holds at 18 of the 144 and is read only by the genesis and the spend.  The datum's source is preprocessing's own law, `preLaw == (198, 54, 54, 144, 144)` — out of flow it accepts a landing exactly at a column that stands on the stack, both directions — which makes the carrier one scanner lemma and not a field threaded through the pending-state invariant.  `slotSplit == (144, 90, 0, 90, 54, 144)` reads item 265's 90/54 off the token array instead of off the gate and the two agree cell for cell, with **0** cells where both gates fire.  **The bill is NINE declarations in three rings** (`scripts/carrier_price.py`, pinned at `ScannerFlowOpenUnderRun.expectedCarrierPrice`): `passenger=7 heavy=7 prop=8 consumer=1 gate=1` — seven for the anchor (six transports and `ofOpen`), eight when `parkProp` comes off instead (the spend joins them), one for the gate ring (`propsPark_open_gate`, two sites) and one for the consumer ring (`accum_step_flow`, 17 sites); no ring below the third, because the core's four fields are all derivable at the open from hypotheses `accum_flow_open_depth0` already carries.  **And the flip has a limit**: `passenger` and `heavy` state the same fact two ways and read the IDENTICAL census, so an arity flip counts sites and not work — only the runtime pin separates a passenger from a premise.  A **second phantom** turned up one production over from the lemma being priced: `flowOpen_underRunEnd_refuted`, the name the run-end refutation would take, cited in a docstring as an existing twin and resolving to no constant.  `gate_vocab.py` reads that vocabulary beside the gates' — `names=107 mentions=433 families=13 refuted=7 wrapped=3 self=2 unresolved=0`.  **The carrier, BUILT** (item 267).  `ParkAnchor`'s four transport fields are now `ParkCore`; `ParkAnchor` extends it with `parkProp` alone and `ParkSlot` with the carrier, so one transport runs two payloads.  The field is the HEAVY form and not the passenger one — both gates read the OPEN TOKEN's position and `below` stops one index short of the bracket, while the park's own cursor column is what the GENESIS spends (`runStart == (144, 54, 54, 54, 54, 0)` and `parkFacts == (144, 90, 90, 144, 144)`, `ScannerFlowOpenUnderRun.lean` §7).  It is a payload and not a core field because `acceptedParks == (378, 0, 0, 0, 378)`: on the cells the scanner ACCEPTS the open's column stands on neither candidate park's stack, so a core that demanded it could not be built where the `[96]` park builds one today.  **The membership law was already proved, twice** — item 127's `preprocess_landing_at_level` and item 146's `preprocess_indents_eq_of_no_open_level`, the second already in the `any` form both gates read — so item 266's "one genuinely new scanner lemma" was a forecast that named the wrong production.  What was missing is the HYPOTHESIS CONVERSION: `unwindIndents_pops` and `preprocess_pops_of_below` turn *the landing is below the floor the step began with* into item 127's `h_pop`, and the carrier's source is a three-line corollary with `acceptedParks` as its control in both directions.  This item built the law from scratch first and caught the duplicate only on reading `IndentStackBase`'s own module docstring.  The two spends (`ParkSlot.underIndented_eq`, `ParkSlot.dangling_fires`) return the gate's VERDICT rather than an equation between verdicts, and the transport is COMPILED end to end beside a control that shows the payload uninhabited at an empty stack.  **A split is not a flip.**  It cost TEN declarations, not the seven the arity flip named — `size_le`, `size_lt` and `rewriteKey` construct nothing and so cannot break — while `dangling_eq`, the eighth the `prop` probe named, needed no repair at all.  `carrier_price.py`, retargeted at the built object, reads `core=7 slot=7 prop=8 consumer=1 gate=1`.  **The wiring, PRICED** (item 268).  The escape is there because `drop_ride` applies `h_kpkg` at `g = none` and `FlowBaseAnchor none _ _` is `True` by definition: the frame the under-run's open pushes is UNGATED, so its node route is unconditional and nothing honest can supply one.  Four readings price gating it instead.  **There are FOUR checks, not two** — §8.1's floor and §9.2's dangling run each have a mid-stream and an end-of-input twin, and `killSite == (144, 90, 54, 90, 54)` reads the same `offersNodeSlot` partition at every one of them (`ScannerFlowOpenUnderRun` §8), so a tail moves the DEPTH of the refusal and nothing else.  **One half has no bill at all**: resolved in the environment rather than grepped, the accumulation reads `dn/mid=21 dn/eof=5 fv/mid=0 fv/eof=0` (`ParkBill.lean` §5) — §8.1's success is derived exactly once, inside `scanNextToken_accum_step`, and discarded on the next line while `h_dn` is threaded into twenty-one signatures, so the **90** that die at §8.1 have no holder to reach while the 54 that die at §9.2 have a rail already at the arm.  The pin carries the outside count beside it (26 in the emitter chain) because a census reporting only the zeros could not tell a check nothing holds from a check nothing mentions.  **The price is asymmetric**: `WIRE-PRICE gate=49 anchor=2 route=3 eof=1` (`scripts/wire_price.py`, pinned at `ScannerFlowOpenUnderRun.expectedWirePrice`) — putting the carrier on `FlowBaseAnchor` costs TWO declarations, one transport funnel and one producer, and widening `GateOf` to read it costs FORTY-NINE, so item 266's gate-flavor question resolves to WHERE the verdict goes: on the route, never on `GateOf`.  **And the carrier's source cannot be applied at its consumer**: `sourceFacts == (144, 0, 144, 144, 54, 144, 90, 54)` reads `preprocess_landing_on_stack`'s hypotheses at the state the open's step begins with, and `sc.needIndentCheck` is FALSE at all 144 and true at all 144 one function later — this family crosses its break inside the open's own step — while the other premise holds at 54, the dedenting half.  The conclusion holds at all 144, so the law is true and unusable rather than wrong.  **A law's truth and a law's applicability are different measurements, and pinning a grid measures only the first.**  **NEXT: build §8.1's rail.**  Stop discarding `h_fv` at `scanNextToken_accum_step` and thread it the way `h_dn` is threaded — a rail three declarations long of which two already carry the twin — and restate the carrier's source on the state the unwind consults, which reaches the 54 that dedent; the 90 that do not pop hold the same membership for a different reason and owe a second source.  Behind it: the three class carriers item 264 named, and item 262's recorded mandate (the seven value-line resume faces by producers touched). |
 | **R4** — narrow `[210]` (`implicitContinue`'s slot, `GOpt SLAnyDocument` → `GOpt SLExplicitDocument`) | OPEN, **behind R3** | The flip breaks **5** definitions (`scripts/flip_210.py`) — the flip's own WORK, constant since item 166.  What a payment moves is the consumer surface: **1** raw holder / 1 application and **7** guard holders / 14 applications (`FlipConsumerSurface`, RAW ROUTES + GUARDS lanes), in three classes — refutable arms, three missing routes, and `pendingFlow`, which no field can pay (item 183).  The third class is why R4 lands after R3's deletion; the refutable arms and the three routes are ORDERED after it by item 183, not blocked by it.  1d (`0 < m`) is CLOSED (item 179). |
 | **Step 5** — the converse `grammar_completeness` | **NOT STARTED** | No declaration of that name exists under `L4YAML/` or `Tests/`, and no item of the closure log is Step 5's.  It is unprovable, not merely unproved, while either over-approximation stands: `inYamlLanguage_everything : ∀ s, InYamlLanguage s` compiles today (`Tests/Guards/Proofs/SuffixGapAudit.lean` §5, item 236), and `implicitContinue` admits `- "a"⏎  - b` (item 30). |
 | **Step 6** — `parse_iff_grammar` | NOT STARTED | After Step 5. |
@@ -35830,19 +36071,20 @@ Step 5 → Step 6**.  Starting R4's flip before R3 re-runs item 183's
 measurement and stops at `pendingFlow`; starting Step 5 before R4 states a
 theorem that is false as stated.
 
-#### The descent behind R3, item by item (241–267)
+#### The descent behind R3, item by item (241–268)
 
 Each row is one item: the question it was given, what its instrument read, and
 whether the library's proofs moved.  The full prose for every row is the
 closure log's own `### Item <n>` entry above; this table exists so the
-trajectory is readable without it.  **Five of the twenty-seven moved a proof** —
+trajectory is readable without it.  **Five of the twenty-eight moved a proof** —
 items 256–259, the six cover payments, and item 267, which built the carrier;
-the other twenty-two are measurements, and carrying them is what the log is
-for — items 263 to 267 are why: the first turned nineteen of them into a
+the other twenty-three are measurements, and carrying them is what the log
+is for — items 263 to 268 are why: the first turned nineteen of them into a
 number, the second turned that number into two diagnoses, the third located
 the one refusal those diagnoses rest on, the fourth priced it at nine
-declarations in three rings, and the fifth built it and found the price had
-named the wrong seven.
+declarations in three rings, the fifth built it and found the price had named
+the wrong seven, and the sixth priced the wiring and found the built carrier's
+source stated over a state its consumer never holds.
 
 | item | what it asked | what it read | proof moved | instrument / what was spent |
 |---|---|---|---|---|
@@ -35873,6 +36115,7 @@ named the wrong seven.
 | 265 | is the run-end half refutable AT the arm? | no — `198` columns split `54` refused by preprocessing and `144` that dispatch the open and die **3–5 steps later**; the price is ONE carried fact (`deathShape == (144, 144, 144, 144, 144)`).  The gate three arms' comments named does not exist | — | `ScannerFlowOpenUnderRun.lean` §5 + `scripts/gate_vocab.py` |
 | 266 | what does that carrier cost, by producers? | **9** declarations in three rings — `passenger=7 heavy=7 prop=8 consumer=1 gate=1`.  The transport is `ParkAnchor`, already built and already spent; the park is FORCED to preprocessing's state and the carrier is a PASSENGER there; the datum is preprocessing's own law (`198 = 54 + 144`, both directions).  An arity flip counts sites, not work.  A second phantom: `flowOpen_underRunEnd_refuted` | — | `scripts/carrier_price.py` + `ScannerFlowOpenUnderRun.lean` §6 |
 | 267 | build it | **10** declarations restated on a new `ParkCore`, one payload field, two step facts and a corollary for the carrier's source — the law itself was already proved twice (items 127, 146) — and two spends.  Both gates read the OPEN token's position, so the field is the HEAVY form and the passenger reading is the genesis's premise; `acceptedParks == (378, 0, 0, 0, 378)` says the carrier cannot join the core.  A split is not a flip: it costs a different set in both directions | **yes** | `ScannerFlowOpenUnderRun.lean` §7 + `IndentStackBase.lean` §7 + `scripts/carrier_price.py` |
+| 268 | wire it — which lemma takes the contradiction? | **PRICED**.  FOUR checks, not two: `killSite == (144, 90, 54, 90, 54)` reads the same 90/54 partition at both depths.  The accumulation holds §9.2's check **21 + 5** times and §8.1's **0 + 0** — its success is derived once at `scanNextToken_accum_step` and discarded, so the 90 have no consumer to reach.  `WIRE-PRICE gate=49 anchor=2 route=3 eof=1`: the carrier goes on the anchor for 2, the verdict on the route for 3, and `GateOf` is not touched.  And `sourceFacts == (144, 0, 144, 144, 54, 144, 90, 54)` — item 267's carrier source takes a flag that is false at all 144 and true one function later | — | `scripts/wire_price.py` + `ScannerFlowOpenUnderRun.lean` §8 + `ParkBill.lean` §5 |
 
 **Two housekeeping questions, measured 2026-09-22.**  Neither is a plan row;
 the numbers are recorded so the decision can be taken against them rather

@@ -887,4 +887,186 @@ private def acceptedParks : Nat × Nat × Nat × Nat × Nat := Id.run do
 
 #guard acceptedParks == (378, 0, 0, 0, 378)
 
+
+/-! ## §8 Which check kills, and whether the carrier's source can reach it
+       (DOCS item 268)
+
+§7 built the carrier and left it unconsumed: `accum_flow_open_depth0` hands
+`h_kpkg none`, so the frame the under-run's open pushes is UNGATED, its node
+reading is unconditional, and only `dropClose` can supply one.  What it costs to
+gate that frame is the question here, and it has three parts — which check the
+144 actually die at, whether anything on the proof side HOLDS that check, and
+whether the carrier's source can be applied where the arm stands.
+
+**There are four checks, not two.**  §5 read the deaths with no tail and found
+them at the END-OF-INPUT gates; `tailSweep` read the same 144 dying at a
+MID-STREAM gate with a sibling line after the open.  Both gates exist at both
+depths, so the population splits over four checks — and §1 below reads the same
+`offersNodeSlot` partition, 90 and 54, at each of them.  One carrier serves all
+four; two consumers does not describe the surface.
+
+**The two halves are not the same bill.**  Resolved in the environment rather
+than grepped, §9.2's mid-stream check is held as a hypothesis by twenty-one
+declarations of the accumulation and its end-of-input twin by five; §8.1's
+checks are held by NONE, at either depth.  §8.1's success is derived once, at
+`scanNextToken_accum_step`, and discarded on the next line while its twin
+`h_dn` is threaded into twenty-one signatures.  So the 54 that die at §9.2 have
+a rail that already reaches the arm, and the 90 that die at §8.1 — the majority
+— have no holder to reach at all.  The census is
+`Tests/Guards/Proofs/ParkBill.lean` §5.
+
+**And the carrier's source cannot be applied at the arm.**  §2 reads the
+hypotheses of `preprocess_landing_on_stack` at the state the open's step begins
+with.  `needIndentCheck` is false at every one of the 144 and true at every one
+after `skipToContent`: the break this family crosses is crossed INSIDE the open's
+own step, so a premise stated on the incoming state names a flag the consumer
+never has.  The conclusion holds at all 144 regardless, which is what says the
+lemma is true and unusable rather than wrong. -/
+
+/-- Drive `scanNextToken`, and when a step refuses, re-run that step's own two
+    mid-stream gates against the state the step began with — the two states
+    `scanNextToken` reads them on, the RUN before preprocessing's unwind and the
+    LAND after it.  That names WHICH of the four checks the refusal is. -/
+private def walkGate (input : String) : Bool × String := Id.run do
+  let mut s := start input
+  let mut opened := false
+  let mut fuel := input.utf8ByteSize * 4 + 8
+  while fuel > 0 do
+    fuel := fuel - 1
+    match Scanner.scanNextToken s with
+    | .error _ =>
+      match Scanner.scanNextToken_preprocess s with
+      | .error _ => return (opened, "step:preprocess")
+      | .ok none => return (opened, "step:pre-none")
+      | .ok (some (s_prep, _)) =>
+        match Scanner.scanNextToken_checkDanglingNode s s_prep with
+        | .error _ => return (opened, "mid:dangling")
+        | .ok _ =>
+          match Scanner.scanNextToken_checkFlowValueIndent s s_prep with
+          | .error _ => return (opened, "mid:floor")
+          | .ok _ => return (opened, "mid:other")
+    | .ok none =>
+      if s.flowLevel > 0 then return (opened, "eof:unterminated")
+      match Scanner.scanLoop_checkDanglingNode s with
+      | .error _ => return (opened, "eof:dangling")
+      | .ok _ =>
+        match Scanner.scanLoop_checkFlowValueIndent s with
+        | .error _ => return (opened, "eof:floor")
+        | .ok _ => return (opened, "ACCEPT")
+    | .ok (some s') =>
+      if s.flowLevel == 0 && s'.flowLevel == 1 then opened := true
+      s := s'
+  return (opened, "FUEL")
+
+/-- **§1 The four checks, over the same 144.**  `(dispatched, dying at §8.1's
+    END-OF-INPUT floor, at §9.2's end-of-input run, at §8.1's MID-STREAM floor,
+    at §9.2's mid-stream run)` — the last two with a sibling line appended.
+
+    The four are read by name rather than by error constructor, so a reading
+    cannot drift onto the twin at the other depth; and the two pairs must sum to
+    the same 144 and split it the same way, which is what says the tail moves
+    the DEPTH of the refusal and nothing else. -/
+private def killSite : Nat × Nat × Nat × Nat × Nat := Id.run do
+  let mut disp := 0
+  let mut eofFloor := 0
+  let mut eofDang := 0
+  let mut midFloor := 0
+  let mut midDang := 0
+  for outer in outers do
+    for kind in kinds do
+      for op in opens do
+        for p in indents do
+          for q in List.range (floorOf kind p) do
+            let inp := mk outer kind p q op
+            let (d, w) := walkGate inp
+            if !d then continue
+            disp := disp + 1
+            if w == "eof:floor" then eofFloor := eofFloor + 1
+            if w == "eof:dangling" then eofDang := eofDang + 1
+            let (_, w2) := walkGate (inp ++ "zz: 9\n")
+            if w2 == "mid:floor" then midFloor := midFloor + 1
+            if w2 == "mid:dangling" then midDang := midDang + 1
+  return (disp, eofFloor, eofDang, midFloor, midDang)
+
+#guard killSite == (144, 90, 54, 90, 54)
+
+/-- The state the OPEN's own step begins with and the state preprocessing hands
+    that step, for one input of the family. -/
+private def openPair (input : String) :
+    Option (Scanner.ScannerState × Scanner.ScannerState) := Id.run do
+  let mut s := start input
+  let mut fuel := input.utf8ByteSize * 4 + 8
+  while fuel > 0 do
+    fuel := fuel - 1
+    match Scanner.scanNextToken s with
+    | .error _ => return none
+    | .ok none => return none
+    | .ok (some s') =>
+      if s.flowLevel == 0 && s'.flowLevel == 1 then
+        match Scanner.scanNextToken_preprocess s with
+        | .ok (some (sp, _)) => return some (s, sp)
+        | _ => return none
+      s := s'
+  return none
+
+/-- **§2 The carrier's source, read at its consumer.**  `(rows, the flag on the
+    incoming state, the flag one function later, out of flow, the landing below
+    the incoming floor, the membership the carrier names, the indent stack
+    unmoved, the stack popped)`.
+
+    `preprocess_landing_on_stack` takes four hypotheses and this reads three of
+    them plus its conclusion.  The second and third are the same flag at the two
+    states preprocessing reads it on, which is the whole finding: this family
+    crosses its break INSIDE the open's own step, so the flag is false on the
+    state the arm holds and true on the state the unwind consults.  The fifth
+    and the eighth are the same dedent counted two ways — the premise
+    `preprocess_pops_of_below` takes and the conclusion it draws — so neither
+    can pass vacuously, and the seventh is their complement. -/
+private def sourceFacts : Nat × Nat × Nat × Nat × Nat × Nat × Nat × Nat := Id.run do
+  let mut rows := 0
+  let mut nic := 0
+  let mut nicSkip := 0
+  let mut noflow := 0
+  let mut below := 0
+  let mut mem := 0
+  let mut same := 0
+  let mut popped := 0
+  for outer in outers do
+    for kind in kinds do
+      for op in opens do
+        for p in indents do
+          for q in List.range (floorOf kind p) do
+            match openPair (mk outer kind p q op) with
+            | none => pure ()
+            | some (sc, sp) =>
+              rows := rows + 1
+              if sc.needIndentCheck then nic := nic + 1
+              match Scanner.skipToContent sc with
+              | .ok sk => if sk.needIndentCheck then nicSkip := nicSkip + 1
+              | _ => pure ()
+              if !sc.inFlow then noflow := noflow + 1
+              if (sp.col : Int) < sc.currentIndent then below := below + 1
+              if sp.indents.any (fun e => e.column == (sp.col : Int)) then
+                mem := mem + 1
+              if sp.indents == sc.indents then same := same + 1
+              if sp.indents != sc.indents then popped := popped + 1
+  return (rows, nic, nicSkip, noflow, below, mem, same, popped)
+
+#guard sourceFacts == (144, 0, 144, 144, 54, 144, 90, 54)
+
+/-- **§3 What the wiring costs, by producers** (`scripts/wire_price.py`).
+
+    Four probes, four rings.  `gate` widens `GateOf`'s arity — who READS the
+    frame's gate; `anchor` adds the carrier as a third conjunct of
+    `FlowBaseAnchor` — who BUILDS a gated frame; `route` adds a hypothesis to
+    `FlowBaseRoutes.value` — who supplies and who applies the node reading;
+    `eof` adds one to `scanNextToken_none_stream` — who drives the end-of-input
+    consumer.
+
+    The asymmetry is the reading: putting the carrier on the anchor costs TWO
+    declarations, a single transport funnel and a single producer, while
+    widening the gate that reads it costs FORTY-NINE.  A carrier-aware verdict
+    therefore belongs on the route, not on `GateOf`. -/
+def expectedWirePrice : String := "gate=49 anchor=2 route=3 eof=1"
+
 end L4YAML.Tests.Guards.ScannerFlowOpenUnderRun

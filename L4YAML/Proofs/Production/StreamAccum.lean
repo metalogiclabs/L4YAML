@@ -11588,6 +11588,36 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
   -- column that stands on the stack (198 = 54 + 144, both directions).  The
   -- bill is `scripts/carrier_price.py`: seven declarations for the anchor
   -- ring, one for the gate below it, one for the consumer below that.
+  --
+  -- **Item 267: the carrier, BUILT.**  `ParkCore` carries the four transport
+  -- fields, `ParkAnchor` extends it with the `[96]` property and `ParkSlot`
+  -- with the column the open landed at, and two spends (`ParkSlot`'s
+  -- `underIndented_eq` and `dangling_fires`) fire the two gates at the close.
+  --
+  -- **Item 268: what gating this frame costs, and what blocks it.**  The line
+  -- below hands `h_kpkg none`, so this frame is UNGATED and its node reading is
+  -- unconditional -- which is why only an escape can supply one.  Three
+  -- measurements price the change (`ScannerFlowOpenUnderRun` §8,
+  -- `Tests/Guards/Proofs/ParkBill.lean` §5, `scripts/wire_price.py`):
+  --
+  -- * the family dies at FOUR checks, not two -- §8.1's floor and §9.2's
+  --   dangling run, each at a mid-stream and an end-of-input depth, and the
+  --   same 90/54 partition at every one (`killSite`);
+  -- * §9.2's check is held as a hypothesis by 21 declarations of the
+  --   accumulation and 5 at the end of input; §8.1's by NONE at either depth.
+  --   Its success is derived at `scanNextToken_accum_step` and discarded on the
+  --   next line, so the 90 that die at §8.1 have no consumer to reach;
+  -- * `WIRE-PRICE gate=49 anchor=2 route=3 eof=1`: the carrier joins
+  --   `FlowBaseAnchor` for TWO declarations -- one transport funnel and one
+  --   producer -- while widening `GateOf` to read it costs forty-nine.  A
+  --   carrier-aware verdict belongs on the route.
+  --
+  -- And the carrier's source does not reach this arm: `preprocess_landing_on_stack`
+  -- takes `sc.needIndentCheck = true`, which is FALSE at all 144 and true at all
+  -- 144 one function later (`sourceFacts`) -- this family crosses its break
+  -- inside the open's own step -- while its other premise, the landing below the
+  -- incoming floor, holds at 54 of them.  The conclusion holds at all 144, so
+  -- the law is true and its premises are unavailable here.
   have drop_ride :
       ∃ sp_gram' sp_block' sp_flow' sp_scan',
         SLYamlStream sp_start sp_gram' ∧

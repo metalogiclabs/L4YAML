@@ -270,4 +270,76 @@ proof was replaced by `sorry` may be FALSE in the post-β.5 model, which item 23
 proved for `PendingNode.close_with_ssl` after item 238's graph had called it
 reprovable.  Both instruments price the BUILD. -/
 
+
+/-! ## §5 Who HOLDS the gates the under-run dies at (DOCS item 268)
+
+§2's fixpoint prices the rebuild; this prices a REACH.  Item 267 built the
+carrier that fires the two gates a depth-0 flow open's under-run dies at, and
+the question its wiring turns on is which declaration holds the hypothesis the
+firing contradicts.
+
+There are four checks — §8.1's floor and §9.2's dangling run, each with a
+mid-stream and an end-of-input twin — and `ScannerFlowOpenUnderRun` §8 reads the
+same ninety/fifty-four partition of the 144 at every one of them.  This is the
+proof-side half: for each check, the constants of the ACCUMULATION whose TYPE
+mentions it, which is what it means to hold the check's success as a premise.
+
+The count is taken in the environment and not over the text.  A grep sees the
+name; it does not see whether the mention is a binder of the statement or a step
+of the proof, and those are the two halves this census has to separate — §8.1's
+success is DERIVED inside `scanNextToken_accum_step` and discarded on the next
+line, which a grep of that file reports as a mention exactly like a binder.
+
+**The reading.**  §9.2 is held twenty-one times mid-stream and five at the end
+of input; §8.1 is held NOWHERE, at either depth.  So the fifty-four cells that
+die at §9.2 have a rail that already reaches the arm the carrier is born at, and
+the ninety that die at §8.1 — the majority — have no holder to reach.
+
+**And the zero is a zero in this theorem, not a zero everywhere**: the same four
+names are held in the emitter-scannability chain too, §8.1's two checks eleven
+and fifteen times there.  A census that reported only the first four numbers
+could not tell a check nothing holds from a check nothing mentions, and §9 is
+that an empty check is not a check. -/
+
+def gateChecks : List (String × Name) :=
+  [("dn/mid", `L4YAML.Scanner.scanNextToken_checkDanglingNode),
+   ("dn/eof", `L4YAML.Scanner.scanLoop_checkDanglingNode),
+   ("fv/mid", `L4YAML.Scanner.scanNextToken_checkFlowValueIndent),
+   ("fv/eof", `L4YAML.Scanner.scanLoop_checkFlowValueIndent)]
+
+/-- The accumulation's own namespace: the chain `grammar_completeness` drives. -/
+def accumNs : Name := `L4YAML.Proofs.StreamAccum
+
+def expectedGateHolders : String :=
+  "dn/mid=21 dn/eof=5 fv/mid=0 fv/eof=0 | \
+elsewhere dn/mid=9 dn/eof=14 fv/mid=11 fv/eof=15"
+
+set_option maxHeartbeats 4000000 in
+run_cmd Lean.Elab.Command.liftCoreM do
+  let env ← Lean.getEnv
+  let mut here : List String := []
+  let mut away : List String := []
+  for (tag, g) in gateChecks do
+    -- A renamed or deleted check would zero every count below it silently,
+    -- which is the phantom item 265 found in the prose and item 266 found one
+    -- production over.  So the name is resolved before it is counted.
+    if (env.find? g).isNone then
+      throwError "the gate {g} resolves to no constant; the census below would \
+read zero for a reason that is not a reading"
+    let mut h := 0
+    let mut a := 0
+    for (n, _) in env.constants.toList do
+      if n == g then continue
+      unless Tests.Guards.DropDependents.isAuthored env n do continue
+      unless (uses env n false).contains g do continue
+      if accumNs.isPrefixOf n then h := h + 1 else a := a + 1
+    here := here ++ [s!"{tag}={h}"]
+    away := away ++ [s!"{tag}={a}"]
+  let got := String.intercalate " " here ++ " | elsewhere "
+    ++ String.intercalate " " away
+  unless got == expectedGateHolders do
+    throwError "gate holders moved:\n  got      {got}\n  expected \
+{expectedGateHolders}"
+  Lean.logInfo got
+
 end Tests.Guards.ParkBill

@@ -57,8 +57,16 @@ pass while reading less than it appears to (§9):
 
 namespace L4YAML.Tests.Guards.GateVocabulary
 
-/-- What `scripts/gate_vocab.py` reads over `L4YAML/` and `Tests/`. -/
+/-- What `scripts/gate_vocab.py` reads over `L4YAML/` and `Tests/`.
+
+    **`mentions` moves whenever prose cites a gate, and that is the point.**
+    Item 268's own sections added four, across two dispatcher names it had to
+    cite by name, and all four resolve.  `unresolved` is what the check is for;
+    `mentions` is the population it was taken over, and a `mentions` that never
+    moved would mean the scan had stopped seeing new prose.  (The names are not
+    spelled here: this file is the one the scan skips, so a name written in this
+    docstring would move `self` instead, for no reading.) -/
 def expectedGateVocab : String :=
-  "names=107 mentions=433 families=13 refuted=7 wrapped=3 self=2 unresolved=0"
+  "names=107 mentions=437 families=13 refuted=7 wrapped=3 self=2 unresolved=0"
 
 end L4YAML.Tests.Guards.GateVocabulary
