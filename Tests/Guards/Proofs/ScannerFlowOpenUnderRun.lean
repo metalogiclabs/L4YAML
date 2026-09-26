@@ -427,4 +427,321 @@ private def tailSweep : Nat × Nat × Nat × Nat × Nat := Id.run do
 
 #guard tailSweep == (198, 0, 54, 144, 144)
 
+
+/-! ## §6 What the carrier costs, and who pays it (DOCS item 266)
+
+§5 showed the run-end half is FALSE and not LOCALLY false: the gates that kill
+the input run three to five steps past the open, so no hypothesis of
+`accum_flow_open_depth0` can refute the branch and what it costs is a CARRIER.
+§10 prices a missing carrier by the PRODUCERS it touches, and this section is
+the half of that price the runtime decides.  The other half —
+`passenger=7 heavy=7 prop=8 consumer=1 gate=1`, pinned below — is
+`scripts/carrier_price.py`.
+
+**The transport already exists.**  `ParkAnchor sc0 s d` runs a fact from a
+depth-0 flow OPEN to its CLOSE and is spent there by `ParkAnchor.dangling_eq`,
+whose premises are §5's `deathShape` component for component: prefix agreement,
+`s_cl.indents = s_bc.indents`, `s_cl.inFlow = false`, the last real token at the
+base open's index, and that token a flow close.  So the question is not what to
+build but what the existing transport refuses to carry.
+
+Three readings answer it.
+
+* **The park is forced.**  `carrierCore` evaluates the anchor's four transport
+  fields at the death state against each candidate park.  Against
+  preprocessing's state all four hold at all 144; against the state the step
+  began from the hold NEVER resolves, because preprocessing's own pushes sit
+  between the two arrays.  There is one park, and it is not the one the
+  existing anchor uses.
+* **At that park the carrier is a PASSENGER.**  `carrierPark`: preprocessing's
+  cursor column IS the open's column, at all 144 — so "the open's column stands
+  on the indent stack" is a fact about the park ALONE, with no reference to the
+  state it is transported to, and every transport lemma carries it for free.
+  At the other park the same membership holds but the column is not the park's,
+  which is the difference between a passenger and a premise.
+* **What blocks the existing anchor is one field.**  `anchorProp`: `parkProp`
+  ("the park's last real token is a node property") holds at 18 of the 144, and
+  it is a pure passenger in every transport lemma — read by the genesis and by
+  the spend, by nothing in between.
+
+And `preLaw` names the carrier's source.  Over all 198 columns, preprocessing
+accepts a landing out of flow exactly when its column stands on the indent
+stack: the 54 it refuses are the 54 whose column stands nowhere, and the 144 it
+accepts all have it.  The datum is preprocessing's own law, one production over
+from `FlowIndentStable.preprocess_indents_of_inFlow` — not a field threaded
+through the pending-state invariant. -/
+
+private def openTriple (input : String) :
+    Option (Scanner.ScannerState × Scanner.ScannerState × Scanner.ScannerState) := Id.run do
+  let mut s := start input
+  let mut fuel := input.utf8ByteSize * 4 + 8
+  while fuel > 0 do
+    fuel := fuel - 1
+    match Scanner.scanNextToken s with
+    | .error _ => return none
+    | .ok none => return none
+    | .ok (some s') =>
+      if s.flowLevel == 0 && s'.flowLevel == 1 then
+        match Scanner.scanNextToken_preprocess s with
+        | .ok (some (sp, _)) => return some (s, sp, s')
+        | _ => return none
+      s := s'
+  return none
+
+/-- The column of the bracket the open pushed, read back off the array. -/
+private def openColOf (s' : Scanner.ScannerState) : Option Nat :=
+  match Scanner.prevRealIdx? s'.tokens s'.tokens.size with
+  | some i => if s'.tokens[i]!.val.isFlowOpen then some s'.tokens[i]!.pos.col else none
+  | none => none
+
+private def hasCol (s : Scanner.ScannerState) (c : Nat) : Bool :=
+  s.indents.any (fun e => e.column == (c : Int))
+
+/-- `(rows, the open's column is the STEP state's cursor column, it stands on
+    that state's indent stack, it is PREPROCESSING's cursor column, it stands on
+    preprocessing's stack)`.
+
+    The second must be zero and the fourth all of them: that is what says the
+    carrier is a passenger at one park and not at the other, rather than a
+    membership fact that happens to hold at both. -/
+private def carrierPark : Nat × Nat × Nat × Nat × Nat := Id.run do
+  let mut rows := 0
+  let mut scCol := 0
+  let mut scMem := 0
+  let mut spCol := 0
+  let mut spMem := 0
+  for outer in outers do
+    for kind in kinds do
+      for op in opens do
+        for p in indents do
+          for q in List.range (floorOf kind p) do
+            match openTriple (mk outer kind p q op) with
+            | none => pure ()
+            | some (sc, sp, s') =>
+              match openColOf s' with
+              | none => pure ()
+              | some c =>
+                rows := rows + 1
+                if sc.col == c then scCol := scCol + 1
+                if hasCol sc c then scMem := scMem + 1
+                if sp.col == c then spCol := spCol + 1
+                if hasCol sp c then spMem := spMem + 1
+  return (rows, scCol, scMem, spCol, spMem)
+
+#guard carrierPark == (144, 0, 144, 144, 144)
+
+/-- `ParkAnchor`'s four transport fields at the death state, against BOTH
+    candidate parks: `(rows, below, held, ind, parkFlow — all at preprocessing's
+    state; the rows where `parkProp` holds THERE too; then held and ind at the
+    step's state)`.
+
+    The last two are the discrimination: an anchor parked where the existing one
+    parks never holds its open, so the park is forced by the runtime and not
+    chosen.  A sixth count for "all four at once" would read 144 whatever the
+    scanner did, since each of the four already does — so the sixth is the
+    overlap with the EXISTING anchor instead, which is the only reading of this
+    family that is not implied by the five beside it. -/
+private def carrierCore : Nat × Nat × Nat × Nat × Nat × Nat × Nat × Nat := Id.run do
+  let mut rows := 0
+  let mut below := 0
+  let mut held := 0
+  let mut ind := 0
+  let mut pflow := 0
+  let mut alsoProp := 0
+  let mut heldSc := 0
+  let mut indSc := 0
+  for outer in outers do
+    for kind in kinds do
+      for op in opens do
+        for p in indents do
+          for q in List.range (floorOf kind p) do
+            let inp := mk outer kind p q op
+            match openTriple inp, deathState inp with
+            | some (sc, sp, _), some s =>
+              rows := rows + 1
+              let lastOpen : Nat → Bool := fun n =>
+                match Scanner.prevRealIdx? s.tokens s.tokens.size with
+                | some i => Scanner.flowOpenIdx? s.tokens i == some n
+                | none => false
+              let b := (List.range sp.tokens.size).all (fun j => s.tokens[j]! == sp.tokens[j]!)
+              let h := lastOpen sp.tokens.size
+              let i2 := s.indents == sp.indents
+              let prop := match Scanner.prevRealIdx? sp.tokens sp.tokens.size with
+                | some k => sp.tokens[k]!.val.isNodeProperty
+                | none => false
+              if b then below := below + 1
+              if h then held := held + 1
+              if i2 then ind := ind + 1
+              if sp.inFlow == false then pflow := pflow + 1
+              if b && h && i2 && sp.inFlow == false && prop then alsoProp := alsoProp + 1
+              if lastOpen sc.tokens.size then heldSc := heldSc + 1
+              if s.indents == sc.indents then indSc := indSc + 1
+            | _, _ => pure ()
+  return (rows, below, held, ind, pflow, alsoProp, heldSc, indSc)
+
+#guard carrierCore == (144, 144, 144, 144, 144, 18, 0, 90)
+
+/-- `(rows, the park's last real token is a node PROPERTY, the step's array is
+    preprocessing's, the step's indent stack is preprocessing's)`.
+
+    The second is what `ParkAnchor.parkProp` asks and it is 18 of 144 — the
+    props cells alone.  The third is zero at every landing: preprocessing always
+    writes, which is the same fact `carrierCore`'s hold reads from the other
+    side.  The fourth is the unwind, and it is exactly the 90 that §8.1 kills. -/
+private def anchorProp : Nat × Nat × Nat × Nat := Id.run do
+  let mut rows := 0
+  let mut prop := 0
+  let mut tokEq := 0
+  let mut indEq := 0
+  for outer in outers do
+    for kind in kinds do
+      for op in opens do
+        for p in indents do
+          for q in List.range (floorOf kind p) do
+            match openTriple (mk outer kind p q op) with
+            | none => pure ()
+            | some (sc, sp, _) =>
+              rows := rows + 1
+              match Scanner.prevRealIdx? sp.tokens sp.tokens.size with
+              | some k => if sp.tokens[k]!.val.isNodeProperty then prop := prop + 1
+              | none => pure ()
+              if sc.tokens.size == sp.tokens.size then tokEq := tokEq + 1
+              if sc.indents == sp.indents then indEq := indEq + 1
+  return (rows, prop, tokEq, indEq)
+
+#guard anchorProp == (144, 18, 0, 90)
+
+/-- `offersNodeSlot` read exactly as `underIndentedFlowValuePos?` reads it, at
+    the death state.
+
+    The close test cannot refuse a cell of this grid — §5's `deathShape` pins
+    the last real token as the flow close at all 144 — so it is here because the
+    definition MIRRORS the gate, not because it discriminates.  Deleting it
+    moves no count, which the perturbation harness asserts rather than
+    discovers. -/
+private def offersAtDeath (s : Scanner.ScannerState) : Bool :=
+  match Scanner.prevRealIdx? s.tokens s.tokens.size with
+  | none => false
+  | some i =>
+    if !(s.tokens[i]!.val.isFlowClose) then false
+    else
+      match Scanner.flowOpenIdx? s.tokens i with
+      | none => false
+      | some o =>
+        match Scanner.prevRealIdx? s.tokens (Scanner.propsRunStart s.tokens o) with
+        | some j => s.tokens[j]!.val.offersNodeSlot
+        | none => false
+
+/-- `(rows, the slot OFFERS, BOTH gates fire, offers ∧ §8.1 fires, ¬offers ∧
+    §9.2 fires, the hold resolves to preprocessing's array end)`.
+
+    §5 read the 90/54 split off the gate that fired; this reads it off the token
+    array instead, and the two agree cell for cell — which is what says
+    `offersNodeSlot` IS the partition and not a correlate of it.  The third
+    count is the half §5 could not state: its `oneReading` counts an exclusive
+    or, which a cell firing NEITHER gate would also fail, so the overlap is
+    counted here directly and must be zero. -/
+private def slotSplit : Nat × Nat × Nat × Nat × Nat × Nat := Id.run do
+  let mut rows := 0
+  let mut off := 0
+  let mut both := 0
+  let mut offFloor := 0
+  let mut noffDang := 0
+  let mut openIdx := 0
+  for outer in outers do
+    for kind in kinds do
+      for op in opens do
+        for p in indents do
+          for q in List.range (floorOf kind p) do
+            let inp := mk outer kind p q op
+            match openTriple inp, deathState inp with
+            | some (_, sp, _), some s =>
+              rows := rows + 1
+              let o := offersAtDeath s
+              if o then off := off + 1
+              if (Scanner.underIndentedFlowValuePos? s).isSome
+                  && (Scanner.danglingNodePos? s).isSome then both := both + 1
+              if o && (Scanner.underIndentedFlowValuePos? s).isSome then
+                offFloor := offFloor + 1
+              if !o && (Scanner.danglingNodePos? s).isSome then
+                noffDang := noffDang + 1
+              match Scanner.prevRealIdx? s.tokens s.tokens.size with
+              | some i =>
+                if Scanner.flowOpenIdx? s.tokens i == some sp.tokens.size then
+                  openIdx := openIdx + 1
+              | none => pure ()
+            | _, _ => pure ()
+  return (rows, off, both, offFloor, noffDang, openIdx)
+
+#guard slotSplit == (144, 90, 0, 90, 54, 144)
+
+/-- The state the landing step begins from, and whether preprocessing accepts
+    it — the one reading that has to be taken on the columns the scan REFUSES,
+    where no later state exists. -/
+private def landingStep (input : String) : Option (Scanner.ScannerState × Bool) := Id.run do
+  let mut s := start input
+  let mut fuel := input.utf8ByteSize * 4 + 8
+  while fuel > 0 do
+    fuel := fuel - 1
+    match Scanner.scanNextToken s with
+    | .error _ =>
+      match Scanner.scanNextToken_preprocess s with
+      | .error _ => return some (s, false)
+      | _ => return some (s, true)
+    | .ok none => return none
+    | .ok (some s') =>
+      if s.flowLevel == 0 && s'.flowLevel == 1 then return some (s, true)
+      s := s'
+  return none
+
+/-- **The carrier's SOURCE, over all 198 columns**: `(columns, preprocess
+    refuses, of those the landing's column stands on NO level, preprocess
+    accepts, of those it stands on one)`.
+
+    Both directions, because one of them alone is a coverage report: the refused
+    columns are refused BECAUSE the column matches no level, and every accepted
+    one matches.
+
+    `columns = refuses + accepts` is a READING here, not an identity: a cell
+    whose scan runs to the end of the stream without reaching the landing at all
+    is counted in the first and in neither of the other two.  What `198 = 54 +
+    144` says is that no cell of this grid does that. -/
+private def preLaw : Nat × Nat × Nat × Nat × Nat := Id.run do
+  let mut cols := 0
+  let mut bad := 0
+  let mut badOut := 0
+  let mut good := 0
+  let mut goodIn := 0
+  for outer in outers do
+    for kind in kinds do
+      for op in opens do
+        for p in indents do
+          for q in List.range (floorOf kind p) do
+            cols := cols + 1
+            match landingStep (mk outer kind p q op) with
+            | none => pure ()
+            | some (s, ok) =>
+              if ok then
+                good := good + 1
+                if hasCol s q then goodIn := goodIn + 1
+              else
+                bad := bad + 1
+                if !hasCol s q then badOut := badOut + 1
+  return (cols, bad, badOut, good, goodIn)
+
+#guard preLaw == (198, 54, 54, 144, 144)
+
+/-- What `scripts/carrier_price.py` reads by editing `StreamAccum.lean` and
+    counting the declarations each edit breaks.
+
+    Five probes, five rings.  `passenger` and `heavy` add the carrier to
+    `ParkAnchor` as a field — the first stated over the park alone, the second
+    over the array — and they read the SAME census, which is the reading worth
+    keeping: an arity flip counts SITES, not work, so it cannot tell a passenger
+    from a premise and the runtime pins above are what do.  `prop` deletes
+    `parkProp` and adds one declaration to the seven: the spend.  `consumer` and
+    `gate` are the two rings below, and each is a single declaration. -/
+def expectedCarrierPrice : String :=
+  "passenger=7 heavy=7 prop=8 consumer=1 gate=1"
+
 end L4YAML.Tests.Guards.ScannerFlowOpenUnderRun

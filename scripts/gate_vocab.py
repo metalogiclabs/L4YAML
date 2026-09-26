@@ -11,10 +11,17 @@ the line that rides the escape.  Nothing checks a backticked identifier in a
 docstring against the environment, so a deleted gate can keep describing the
 dispatcher indefinitely, and a reader pricing that arm reads the comment first.
 
-This is that check, for the gate vocabulary only:
+This is that check, over two vocabularies a comment uses to make a claim:
 
-  * `scanNextToken_…`, `scanLoop_…`, `scanLoopIx_…` written out in full, and
-  * `check<Upper>…` written short, which is how the prose usually names them.
+  * the GATES — `scanNextToken_…`, `scanLoop_…`, `scanLoopIx_…` written out in
+    full, and `check<Upper>…` written short, which is how the prose usually
+    names them; and
+  * the REFUTATIONS — `…_refuted`, the suffix this tree gives a lemma that
+    closes a branch as false.  Item 266 added them after finding a second
+    phantom of exactly item 265's kind: `flowOpen_underRunEnd_refuted`, the name
+    the run-end refutation WOULD take, cited in a docstring as the twin an
+    existing lemma is one production in from — and resolving to no constant,
+    because items 264-266 measured that it cannot be stated at that step at all.
 
 A name resolves if it is the final component of a constant in the wide
 environment, bare or under any of the three prefixes.  Family references
@@ -60,8 +67,17 @@ QUAL = re.compile(r"`((?:scanNextToken_|scanLoop_|scanLoopIx_)[A-Za-z0-9_']+)`")
 #: the dispatcher has at least two (`checkBareDocument`, `checkFlowValueIndent`),
 #: and requiring them keeps one-letter macros such as `checkM` out.
 SHORT = re.compile(r"`(check(?:[A-Z][a-z0-9']+){2,}[A-Za-z0-9_']*)`")
+#: A backticked refutation name.  The suffix is the whole discrimination, so a
+#: name a line break splits cannot be recognized from its opening half at all —
+#: `WRAPPED_TAIL` finds those from the CONTINUATION line instead, and they are
+#: counted with the gates' wraps rather than scored.
+REFUTED = re.compile(r"`([a-zA-Z][A-Za-z0-9_']*_refuted)`")
 #: An opening backtick on a gate name with no closing backtick on the line.
 WRAP = re.compile(r"`(?:scanNextToken_|scanLoop_|scanLoopIx_|check[A-Z])[A-Za-z0-9_']*$")
+#: …and the tail of a split refutation name, seen on the line that carries it.
+#: The underscore is NOT required: a line break falls where it falls, and
+#: `flowOpen_underRunTab_` / `refuted\`` leaves the tail without one.
+WRAPPED_TAIL = re.compile(r"^\s*(?:--|/-|\*)?\s*[A-Za-z0-9_']*refuted`")
 
 DUMP = """{imports}
 
@@ -96,16 +112,16 @@ def scan() -> tuple[dict[str, list[tuple[str, int]]], int, int, int]:
         rel = str(p.relative_to(ROOT))
         if p == PIN:
             mine += sum(len(pat.findall(line)) for line in p.read_text().splitlines()
-                        for pat in (QUAL, SHORT))
+                        for pat in (QUAL, SHORT, REFUTED))
             continue
         for i, line in enumerate(p.read_text().splitlines(), 1):
-            for pat in (QUAL, SHORT):
+            for pat in (QUAL, SHORT, REFUTED):
                 for m in pat.finditer(line):
                     hits[m.group(1)].append((rel, i))
             families += len(re.findall(
                 r"`(?:scanNextToken_|scanLoop_|scanLoopIx_|check[A-Z])"
                 r"[A-Za-z0-9_']*\*`", line))
-            if WRAP.search(line):
+            if WRAP.search(line) or WRAPPED_TAIL.match(line):
                 wrapped += 1
     return hits, families, wrapped, mine
 
@@ -147,8 +163,9 @@ def main() -> int:
 
     hits, families, wrapped, mine = scan()
     if not hits:
-        print("gate_vocab: no gate name found in any comment — the scan is "
-              "reading nothing, which is not the same as a clean tree")
+        print("gate_vocab: no gate or refutation name found in any comment — "
+              "the scan is reading nothing, which is not the same as a "
+              "clean tree")
         return 1
     names = constants(quiet=False)
 
@@ -157,8 +174,10 @@ def main() -> int:
 
     unresolved = sorted(n for n in hits if not ok(n))
     mentions = sum(len(v) for v in hits.values())
+    refuted = sum(1 for n in hits if n.endswith("_refuted"))
     got = (f"names={len(hits)} mentions={mentions} families={families} "
-           f"wrapped={wrapped} self={mine} unresolved={len(unresolved)}")
+           f"refuted={refuted} wrapped={wrapped} self={mine} "
+           f"unresolved={len(unresolved)}")
     print("GATEVOCAB " + got)
 
     if args.list:

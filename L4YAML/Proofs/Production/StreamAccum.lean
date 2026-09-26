@@ -10288,8 +10288,17 @@ lemma flowOpen_underRunTab_refuted {sc s_prep : ScannerState} {c : Char} {n j : 
     injection h with h
     rcases h_c with rfl | rfl <;> cases h
 
-/-- **The flow INTERIOR's own under-run** (item 69) — the twin of
-    `flowOpen_underRunEnd_refuted`, one production in.
+/-- **The flow INTERIOR's own under-run** (item 69) — one production in from
+    the open's, and the only one of the two that a step lemma can state.
+
+    The OPEN's run-end half has no refutation, and item 266 priced why: §8.1's
+    floor and §9.2's dangling run both kill the landing three to five steps
+    PAST the open, on a state where the collection has closed, so the fact that
+    would close the branch is a carrier and not a hypothesis
+    (`Tests/Guards/Proofs/ScannerFlowOpenUnderRun.lean` §5, §6).  Inside a
+    collection the check that refuses is `dispatchStructural`'s, which runs at
+    the step itself — which is what makes this half statable where the other is
+    not.
 
     §8.1's floor has two halves and the OPEN spends only one of them:
     `scanNextToken_checkFlowValueIndent` is guarded on `!inFlow`, so it says
@@ -11367,6 +11376,23 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
   -- every one of those 144 the collection has CLOSED, its last real token is
   -- the flow close, and the open's column is still on the indent stack: one
   -- carried fact, not two, is what would retire the ride.
+  --
+  -- **Item 266: what that carrier costs, by producers.**  The transport is
+  -- already here.  `ParkAnchor` runs a fact from a depth-0 open to its close
+  -- and `ParkAnchor.dangling_eq` spends it there on premises that are §5's
+  -- `deathShape` component for component.  Three measurements say what it
+  -- refuses to carry (§6 of the same file).  The park is FORCED — against
+  -- preprocessing's state the anchor's four transport fields hold at all 144,
+  -- against the state the step began from the hold resolves at none of them,
+  -- because preprocessing's own pushes sit between the two arrays.  At that
+  -- park the carrier is a PASSENGER: preprocessing's cursor column IS the
+  -- open's, so the datum is a fact about the park alone.  And what blocks the
+  -- existing anchor is one field, `parkProp`, which holds at 18 of the 144 and
+  -- is read only by the genesis and the spend.  The datum's source is
+  -- preprocessing's own law — it accepts a landing out of flow exactly at a
+  -- column that stands on the stack (198 = 54 + 144, both directions).  The
+  -- bill is `scripts/carrier_price.py`: seven declarations for the anchor
+  -- ring, one for the gate below it, one for the consumer below that.
   have drop_ride :
       ∃ sp_gram' sp_block' sp_flow' sp_scan',
         SLYamlStream sp_start sp_gram' ∧
