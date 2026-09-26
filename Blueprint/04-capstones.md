@@ -581,13 +581,34 @@ not free, and its derivation still rides the arm. Nothing in the library states
 the constructor, and a theorem's consumers depend on its statement rather than
 its proof, so the twenty-six do not all have to be rewritten — the repair
 propagates only where a statement must change, and exactly two are candidates.
-Both of the two are candidates because both are FALSE once the arm goes, and
-they are the only library statements that are
+Both of the two are candidates because both are FALSE **in the environment that
+deletes the arm and keeps `PendingNode.pendingFlow`**, and they are the only
+library statements that are
 ([`DropFalsity.lean`](../Tests/Guards/Proofs/DropFalsity.lean)). `dropClose` is
 the arm restated. `PendingNode.close_with_ssl` is restrictive in its
 `PendingNode` premise, but restrictive in the scanner state and in nothing that
 connects the park's two positions, so a park at a target the suffix law forbids
-is buildable without the arm and the statement cannot be reproved either.
+is buildable — from that park.
+
+**Under β.5's own edit only ONE of the two is a restatement, and that is
+measured rather than argued**
+([`flip_beta5.py`](../scripts/flip_beta5.py), DOCS item 263). Row 12 retires
+`pendingFlow` and deletes `scannerDrop` together, so the park the refutation
+builds its witness from is gone with the arm. A flip that applies both
+deletions for real and drives the build to a fixpoint leaves
+`PendingNode.close_with_ssl` elaborating with its statement AND its proof
+unchanged, on its standing axiom profile and no `sorry`. `dropClose` is the one
+statement β.5 removes. **Thirteen proofs stop elaborating and not one other
+statement in the tree changes** — seven in the library, all in
+`Proofs/Production/StreamAccum.lean`, and six in the guard tree.
+
+**What Group 7 actually owes, elaborated rather than forecast.** All four rows
+that ride the arm still elaborate against the post-β.5 tree, and all four do so
+on `sorryAx`: they are CARRIED by the thirteen proofs above, not free of them
+and not restated. Three of the twenty-six come out free outright —
+`eof_pending`, `preprocessing_eof_extends_stream` and
+`scanNextToken_none_stream` — and the remaining twenty-one, Group 7's four
+among them, land exactly when the thirteen land (DOCS item 263).
 
 **Nothing in Group 7 is FALSE, and this is the first measurement that says so.**
 All four of Group 7's rows that ride the arm conclude at end of input — 7.1 and

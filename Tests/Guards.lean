@@ -42,6 +42,7 @@ import Tests.Guards.Proofs.PuntCoverInputs
 import Tests.Guards.Proofs.PaidLeafDelta
 import Tests.Guards.Proofs.ValueLinePacks
 import Tests.Guards.Proofs.ValueLineOrigins
+import Tests.Guards.Proofs.ParkBill
 import Tests.Guards.Proofs.FreeSurfaceCensus
 import Tests.Guards.Proofs.EndToEndCorrectness
 import Tests.Guards.Proofs.EscapeResolution

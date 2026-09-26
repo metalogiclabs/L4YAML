@@ -295,7 +295,7 @@ def expectedClosure : Nat := 233
     a hint and not a check — item 237's own finding is that a statement can
     assert `InYamlLanguage` without naming it. -/
 def expectedWide : String :=
-  "closure=864 imported=860 excluded=36 readable=36 unreadable=0 \
+  "closure=865 imported=861 excluded=36 readable=36 unreadable=0 \
 excludedDecls=600 excludedDropRefs=0"
 
 /-- **The four counts the WHOLE TREE reads, which are not the four this file's
@@ -321,7 +321,10 @@ excludedDecls=600 excludedDropRefs=0"
     makes `expectedDirect` below the population of a census rather than a list;
     item 244 reads the PARK's producer the same way, one ring outside `D`; and
     item 245 leaves proof terms altogether and censuses the grammar's own
-    constructors. -/
+    constructors.  `Tests/Guards/Proofs/ParkBill.lean` (DOCS item 263) joins on
+    the same terms: it walks β.5's OTHER deletion, `PendingNode.pendingFlow`,
+    and reads `Dp=9 Sp=0 Tp=31` beside this file's `T=26` — twelve declarations
+    outside it, and the same `S=0` answer for the park as for the arm. -/
 def expectedWideCensus : String :=
   "D=4 S=0 R=0 T=27 capstonesInT=2 rawElim=11"
 

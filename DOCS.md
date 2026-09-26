@@ -34674,13 +34674,288 @@ order:
 R1 ✓ (44–46) ──→ R2 ✓ (47–51) ──→ R3 (52–262; the deletion OPEN) ──→ R4 ([210]'s narrowing; 1d ✓ 179) ──→ Step 5 ──→ Step 6
 ```
 
-**Where it stands after item 262 (2026-09-25).**  Every number in this table
+### Item 263 (2026-09-25)
+
+**THE REACH — the twenty-four are priced and the answer is thirteen proofs and
+one statement.  Every flip in this row printed `LOWER BOUND — the build stopped
+at the first failing module`, and β.5's two deletions both live in modules the
+library root imports, so NOT ONE of the twenty-four had ever been elaborated
+against a post-β.5 tree.  A flip that does not stop — both deletions applied for
+real and the build driven to a FIXPOINT by sorrying each broken proof — reaches
+the whole tree in twenty-three rounds and reads `sorried=13 restated=0
+deleted=3 pins=37`, with the twenty-four splitting three FREE and twenty-one
+CARRIED.  `PendingNode.close_with_ssl` survives statement and proof intact, so
+β.5's bill is ONE restatement and not two.  And the largest population is
+neither: thirty-seven of this row's own pinned censuses re-read.  BUILT — one new
+gate with a fixpoint loop, one new environment census, and three corrections.**
+
+**The mandate.**  The R3 status cell's recorded NEXT, set by the user after item
+262's ledger restructure: *"price the twenty-four reproofs — the one number no
+instrument holds, and the only one that measures what is left of R3."*
+
+**Why they were unpriced, which is a mechanism and not an omission.**  Every
+flip in this row ends with the same sentence:
+
+    LOWER BOUND — the build stopped at the first failing module, so no
+    definition behind it was attempted
+
+`dropClose`, `PendingNode.close_with_ssl` and `PendingNode.pendingFlow` are all
+in `L4YAML/Proofs/Production/StreamAccum.lean`, and `scannerDrop` is in
+`L4YAML/Surface/Document.lean`; the library root imports both.  `lake build`
+dies there.  Item 238 read the graph instead and found `T=26`, and **a
+dependency closure prices a rebuild rather than a rewrite** — its own words.
+So the twenty-four were never measured; they were bounded from above by a
+number that cannot be the bill and from below by a flip that stops.
+
+**The instrument: a flip that does not stop** (`scripts/flip_beta5.py`).  It
+applies β.5's edit for real — the `retire` end's own park deletion, the drop
+flip's own arm regex, and `dropClose`, which item 238 measured as the arm
+restated and which is deleted rather than sorried because sorrying it would
+carry its one consumer on a lemma item 239 refuted.  Then it LOOPS: build, read
+the broken declarations, replace each broken proof with `sorry` leaving its
+statement byte-identical, neutralize each top-level census whose pins the
+deletion re-reads, rebuild.  Four verdicts, and they are four different bills:
+
+| verdict | what it means | count |
+|---|---|---|
+| SORRIED | its own proof stops elaborating | **13** |
+| RESTATED | the error is in its STATEMENT; no proof repairs it | **0** |
+| DELETED | a data definition whose VALUE names a deleted constant | **3** |
+| PINS | a top-level census the deletion re-reads | **37** |
+
+`sorry` keeps a type and loses a proof, so the fixpoint separates the two edges
+item 238 could only separate on paper.  **And a tree that builds with thirteen
+sorries in it is not a tree that is proved**, so the gate ends with an axiom
+census over the twenty-four rather than reading its own green build as an
+answer — §8's rule applied to the instrument that exists to enforce it.
+
+**The reading, at the fixpoint** (`rc=0`, twenty-three rounds):
+
+    rounds=23 clean=1 sorried=13 restated=0 deleted=3 refused=0 pins=37
+    gone=1 carried=21 free=4
+
+**The thirteen, by wave.**  Seven in the library and all seven in
+`StreamAccum.lean` — `PendingNode.nic0`, `.arm_tight_or_col`, `.dirRoute`,
+`accum_block_pending`, `accum_content_pending`, `accum_flow_open_depth0`,
+`block_dispatch_deferred`, which is the `retire` flip's own seven and nothing
+more; the deletion of `dropClose` breaks only `accum_flow_open_depth0`, which
+is already among them.  Six behind it, every one in the guard tree: the two
+`stream_anything` exhibits, three `example`s, and `DropFalsity.flowPark`.
+**Wave 1 is what every previous flip could see.  Waves 2 through 4 are what
+none of them could.**
+
+**And the thirteen are not thirteen proofs.**  The error each one stops at says
+which, and the log already carried it: of round 1's eight locations, **six read
+`Invalid alternative name \`pendingFlow\``** — a `cases` arm for a constructor
+that no longer exists, which is a branch to delete and not a goal to prove —
+and two read `Unknown constant`/`Unknown identifier`, which is a term that must
+be REPLACED.
+
+| declaration | what it lost | class |
+|---|---|---|
+| `PendingNode.nic0` | a dead `\| pendingFlow` arm | branch |
+| `PendingNode.arm_tight_or_col` | a dead `\| pendingFlow` arm | branch |
+| `PendingNode.dirRoute` | a dead `\| pendingFlow` arm | branch |
+| `accum_block_pending` | a dead `\| pendingFlow` arm | branch |
+| `accum_content_pending` | a dead `\| pendingFlow` arm | branch |
+| `accum_flow_open_depth0` | a dead arm **and** `dropClose`'s application | **term** |
+| `block_dispatch_deferred` | the constructor it BUILDS | **term** |
+
+**So the library's seven are five dead branches and two real repairs**, and the
+two are the ones this row has been circling since item 240: the flow open that
+spends the escape, and the producer item 241 showed cannot derive the datum it
+would need.  That is a reading of the error kind, not a reproof — the five are
+cheap BECAUSE a deleted constructor leaves no goal behind, and the next item is
+what turns that from a classification into a build.
+
+**One restatement, not two.**  `PendingNode.close_with_ssl` comes out of the
+fixpoint FREE, on `[Classical.choice, Quot.sound, propext]` and no `sorry`:
+statement unchanged, proof unchanged.  Item 239 refuted it *in the environment
+that deletes the arm and keeps the park* — and β.5 retires the park, so the
+witness that refutation builds does not exist in the tree β.5 leaves.  The
+`retire` end deletes `close_with_ssl`'s flow arm with the constructor and the
+rest of its proof stands.  **`dropClose` is the only statement β.5 removes, and
+`restated=0` says no statement anywhere else changes at all.**
+
+**The twenty-four: three free, twenty-one carried, none owing work of its own.**
+FREE — `eof_pending`, `preprocessing_eof_extends_stream`,
+`scanNextToken_none_stream`.  CARRIED, on `sorryAx` — the other twenty-one,
+including all four Group 7 rows and both `@[capstone]` endpoints.  **CARRIED is
+not FREE and the distinction is the point**: they elaborate only because the
+thirteen are assumed, so they cost nothing of their own and they land exactly
+when the thirteen land.  `REACHED reached=24 onSorry=21`.
+
+**β.5's other half, walked for the first time**
+(`Tests/Guards/Proofs/ParkBill.lean`).  Row 12 names TWO deletions and every
+instrument in this row measured one of them.  The park's own populations, from
+the same environment pass as item 238's:
+
+    Dp=9 Sp=0 Tp=31 T=26 shared=19 extra=12 capstonesInTp=2
+
+**`Sp=0`** — no statement in the closure names the park, the exact twin of item
+238's `S=0` for the arm, and the fixpoint reads the same zero over the whole
+tree.  Two instruments, one answer, and it is the answer that makes
+`restated=0` a reading rather than a coincidence.  `extra=12`: twelve
+declarations β.5 reaches that the arm's closure never counted —
+`PendingNode.arm_or_col` and the three park lemmas, the four
+`accum_block_on_*`, the four `block_dispatch_deferred*`.  **The bill stated as a
+closure is thirty-eight, not twenty-six**, and it was never twenty-six because
+it was only ever half of β.5.
+
+**The bracket is two declarations, and they are named.**  `walk 9 ⊇ truth 7`:
+the walk's two extras are `close_with_ssl`, whose arm the retirement deletes
+with the constructor, and `accum_structural_pending`, which splits on the
+`true`-indexed park where `pendingFlow` cannot occur — both of them the
+declarations item 240 named when it read ten against a flip that broke seven.
+So the gap between the walk and the truth is not a margin; it is a list.
+
+**The largest population is this row's own instruments, and nothing predicted
+that.**  Thirty-seven top-level censuses stop agreeing with their pins — one of
+them this item's own, which is the instrument counting itself and is recorded
+rather than excluded.  **The
+gate cannot tell which of them β.5 moved from which its own sorries moved**, and
+says so: a census that reads the GRAMMAR is a genuine post-β.5 reading, one that
+reads PROOF TERMS is moved by thirteen sorried proofs as much as by two
+deletions.  The grammar-reading ones are worth quoting, because one of them is
+the point of the whole row:
+
+| census | before | after |
+|---|---|---|
+| `SuffixGapAudit` arm connectivity | `arms=167 connected=166 broken=1` | `arms=166 connected=166 **broken=0**` |
+| `ColumnAdvanceCensus` column split | `arms=167 carried=127 violations=1` | `arms=166 carried=126 violations=1` |
+| `ColumnWalkPrice` recursion shape | `cyclicArms=81` | `cyclicArms=80` |
+| `SurfaceSpanCensus` demand | `wrappers=3/2` | `wrappers=3/1` |
+
+**β.5 leaves the surface grammar with no disconnected arm at all.**  Item 236
+proved the suffix law at every one of the other 166 productions and recorded the
+one exception; this is the exception going, elaborated rather than forecast.
+And the column violation is NOT the drop arm — `violations=1` does not move.
+
+**Why twenty-three rounds and not five.**  The guard modules import one another,
+so a module that fails blocks the next: after wave 4 every round neutralizes one
+census and reveals the one behind it.  Sixteen of the twenty-three rounds are
+that chain unwinding, which is a property of the guard tree's shape and not of
+β.5.
+
+**Three data definitions go rather than being sorried.**
+`FreeSurfaceCensus.viaDrop`, `ParkGapCensus.heads` and `ParkGapCensus.arm` are
+helpers whose VALUE names a deleted constant.  `sorry` is refused there on
+purpose: it keeps a Prop's type and loses only its proof, but it changes a data
+definition's value, and every `rfl`, `decide` and `native_decide` above it would
+then break for a reason that is the instrument's and not β.5's.  The gate
+refuses a LIBRARY data definition outright and stops, because that would be a
+finding; it deletes a Tests-side one, which is the verdict β.5 gives the
+exhibits anyway.
+
+**What the gate cannot see, stated before it is quoted.**  It prices the BUILD.
+A declaration whose proof it replaced may be FALSE — item 239 proved exactly
+that for `close_with_ssl` after item 238's graph had called it reprovable, and
+the only reason that verdict flips here is that β.5's edit removes the witness,
+not that the fixpoint can see truth.  Whether each of the thirteen is reprovable
+with its statement intact is a proof question, and it is the whole of what is
+left.
+
+**Four bugs in this gate's own reading, each found by running it.**  (i)
+`flip_210.DECL_HEAD` has no `example`, and item 229's rule puts this row's
+exhibits in `example`s — three of the thirteen are `example`s and the first run
+reported them as holes.  That regex is NOT widened: four standing gates quote
+counts taken with it, so this gate carries its own.  (ii) A bracket counter that
+does not strip character literals reads `(h_c : c = '[' ∨ c = '{')` as three
+open brackets, and `accum_flow_open_depth0`'s statement-body split was lost
+entirely.  (iii) An error inside a `run_cmd` body is reported where it FAILED,
+so a span anchored at the failing line left the command's own opening behind and
+turned one broken module into a seven-round cascade.  (iv) A declaration
+neutralized without its docstring leaves the docstring attached to a comment,
+which is a parse error one line further down — the same cascade by another
+route.  All four are now perturbed.
+
+**Corrections.**  (i) `Blueprint/04-capstones.md`, the proof-status SSOT, said
+`close_with_ssl`'s *"statement cannot be reproved either"*.  That is true of the
+environment item 239 built and not of β.5's, and the row names both deletions in
+one item; the claim is now stated with its environment and the measured
+alternative beside it.  (ii) The same file's Group 7 paragraph forecast a
+reproof; it now records what the four rows actually are — CARRIED, on `sorryAx`,
+by the thirteen.  (iii) `Tests/Guards/Proofs/DropDependents.lean`'s wide pin
+bumps to `closure=865 imported=861` for the new guard, and its list of the
+instruments that join the tree without moving `T` gains this item's.
+
+**Predictions.**  **P0 HELD at the top of its band** — five of the twenty-four break, against a
+band of 2–5, and the three library ones are the three the prediction named
+(`accum_block_pending`, `accum_content_pending`, `accum_flow_open_depth0`).
+**P0's second half REFUTED**: the six Tests exhibits were predicted to go as a
+block and only two of them break; the other four are CARRIED by those two.
+**P1 HELD exactly** — wave 1 is seven and every one is in `StreamAccum.lean`,
+which is the `retire` flip's own seven, and deleting `dropClose` adds nobody.
+**P2 HELD on shape** — wave 2 is not empty and the library's share of it is
+zero; the band was placed on a quantity (the whole of wave 2) that turned out to
+be mostly pins.  **P4 HELD exactly at fifteen** — fifteen library declarations
+come out CARRIED rather than FREE, which is the prediction that decides the
+item: "twenty-four unpriced reproofs" is retired and replaced by thirteen proofs
+that must land and twenty-one declarations that cost nothing once they do.
+
+**P3 REFUTED, and the reasoning that produced it was the error.**  `Sp=0` and
+`restated=0`: not one statement in the tree names the park.  The band (3–12 in
+`Tests/Guards`) came from grepping `pendingFlow` across twenty guard files and
+reading a MENTION as a statement — which is exactly the `S` versus `D`
+distinction item 238 exists to draw, read in the same session and still applied
+wrongly.  **P5 REFUTED** — twenty-three rounds against a band of 2–6.
+
+**MISSED, and it is the finding.**  The prediction had two populations, proof
+debt and statement debt.  The largest is neither: thirty-seven pinned censuses,
+this row's own instruments, re-reading a grammar that changed under them.
+Nothing in the prediction anticipated that β.5's biggest visible cost would be
+the measurement apparatus this row built to price it — nor that the guard
+modules' import chain would turn that into sixteen of the twenty-three rounds.
+Also missed: that `close_with_ssl` survives, which follows from item 239's own
+statement of its refutation's environment and was there to be read.
+
+**Gates.**  Build **1225** jobs (one new guard module).  `Verified: 4520/4520` (837/837); eventscore 347/358 with 0 error-miss; suiterunner 869/0/151; matrix 402/402 + 282/282 on both pipelines; annotations exit 1 (the standing 19); decline pins 7 + 18 + 6 ALL PINS OK; `capstones=25 withSorryAx=0`; `ParkBill theorems=3 axioms=[propext]` — all three `structure Bill`'s generated `mk.injEq`, `mk.inj` and `mk.sizeOf_spec`, none authored, because this file's claim is carried by its pins (item 229's rule); `ValueLineOrigins theorems=40`, `ValueLinePacks theorems=24`, `PaidLeafDelta theorems=12`, `PuntCoverInputs theorems=6`, `CloseStackCover theorems=59`, `CloseSplitFrames theorems=15`, `CloseLandingWidth theorems=12`, `OpenEntryRoute theorems=5`, `StreamCompositions theorems=45`, `RouteShapes theorems=18`, `ExitHandoff theorems=3` and `CarrierArmPrice theorems=1` all unmoved, and no pin of theirs moves; closure **230** library modules / 355 reflection imports; 25 whitelisted `theorem` sites; counts **8738** / **8173** / **668** / **8** (one new test file, no library declaration); sweep `closure=865 imported=861 T=27` — each one more than item 262's 864 / 860 for the new guard, `T` unmoved because the park is not the arm, and `WIDE-PIN agrees`.  The three standing flips read 5 / 4 / 2, the supplier lattice 5 / 1 / 7 with its producer wave 4, and the carrier flip 2 / 5, all with md5 before == after.  **The new fixpoint flip reads `rounds=23 clean=1 sorried=13 restated=0 deleted=3 refused=0 pins=37 waves=[7,3,2,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0] gone=1 carried=21 free=4`** and `FIX-PIN agrees` with `ParkBill.expectedFixpoint`; it touches 36 files and every one of them has md5 before == after.  `Blueprint/04-capstones.md` moves `618206fa35249e2cd409cfb3e8932900` → `c0223e61b452e6e2cbabfe4cf37332d7`; `Tests/Guards.lean` `516b12099383f1214c9ecca09f6836d3` → `3165b5acff3bccbcfa55bcd1e8ff79eb` (one import); `Tests/Guards/Proofs/DropDependents.lean` `33fea7b6286dc1627ef9baead8a75997` → `a362544139e38836a9f972fa29d36eab` (the wide pin and the pointer); the new guard at `b0d4e7a56c2e4b02f2fc1e334ed71486` and the new gate at `3b7eb024c35aa21fe14544b0b86a441e`.  `L4YAML/` itself is UNCHANGED by this item: no library source moves, which is what makes every reading above a measurement of the tree item 262 left.
+
+**Perturbations.**  **30**, in two batteries, because this item has two instruments and they fail in different ways.  `perturb_lean.py` moves each of `ParkBill.lean`'s pins by one and elaborates: the closure, all seven fields of the bill line, one name dropped from `Dp` and one added, a name added to `Sp` — **an empty pin is perturbed in the only direction it can move, because an empty check is not a check (§9)** — and the arm renamed, which is the guard that both halves of β.5 come out of one pass.  12 run, every one throws, none NOT CHECKED, md5 before == after.  `perturb_script.py` perturbs the GATE's own reasoning in-process: each of the three edit anchors broken (each must re-aim loudly), the literal stripper removed (the `:=` split is then lost — the bug that hid it), an error placed at a statement line, in a proof, in a data `def` and in an `example`, `flip_210.DECL_HEAD` substituted for this gate's `HEAD` (the exhibit becomes a hole again), an error deep inside a `run_cmd` body, the `MODIFIER` rule removed (the `open … in` is orphaned), a declaration neutralized with and without its docstring, and `neutralize` asked to comment out a declaration without permission.  18 checks, all caught.  **And the harness asserts the working tree is at its pristine md5 before it reads anything**: its first run reported its first three checks PASSED while the flip had the sources flipped, which is a pass for the wrong reason and §9's empty check wearing the instrument's own clothes.
+
+**Instrument debt, eighteen rows** — item 262's sixteen and this item's two:
+the fixpoint cannot separate a pin that β.5 moved from one its own thirteen
+sorries moved, so `pins=37` is an upper bound on β.5's instrument debt and only
+the censuses that read the GRAMMAR are named as readings; and
+`Tests/Guards/Proofs/ParkBill.lean` walks 234 modules, so its `Dp` and `Sp` are
+the library plus the arm's two Tests modules, with no `drop_sweep` twin for the
+park — the whole-tree reading for β.5's other half is the fixpoint's
+`restated=0` and nothing else.
+
+**What remains.**  β.5's bill is **one restatement and thirteen
+proofs**, and the thirteen are now the whole of R3.  The status cell's "two
+restatements and twenty-four reproofs" is retired: twenty-one of the twenty-four
+are CARRIED and owe nothing of their own, three are FREE, and eight declarations
+that were never in the twenty-six break anyway.
+
+**The number no instrument holds is which of §10's three diagnoses each of the
+two REAL repairs takes** — false, starved, or hard.  Five of the library's seven
+lose a dead `cases` arm and a deleted constructor leaves no goal behind them;
+`accum_flow_open_depth0` must replace `dropClose`'s application, and
+`block_dispatch_deferred` must stop building a park that does not exist.  The
+cheap experiment is the five: delete the arms for real and see the module
+elaborate, which converts this item's classification-by-error-kind into a build
+and costs nothing if it is right.  The expensive one is the two, and item 241
+already priced one of them from the other side — the producer holds a
+`ScannerSurfCorr` at the scan position and the library derives a stream from a
+correspondence at the stream's SEED and nowhere else.  **The failure mode to
+watch is that `block_dispatch_deferred` may not need to build a park at all**:
+its consumers were measured by item 242's four ends, and a producer whose park
+is retired either hands its callers a different constructor or hands them
+nothing, and which one it is decides whether the last two are a repair or a
+re-statement of the dispatcher.
+
+Item 262's recorded mandate — the seven value-line resume faces by producers
+touched — stands behind that, deferred and not cancelled; its own recorded
+failure mode is that the two carriers are one cycle.
+
+**Where it stands after item 263 (2026-09-25).**  Every number in this table
 is a gate's or a pin's, and the instrument that re-derives it is named beside
 it; the prose history is in the R3/R4 sections below and in the closure log.
 
 | row | state | the numbers, and where they come from |
 |---|---|---|
-| **R3** — delete `pendingFlow` and `scannerDrop` | OPEN | **The flip.**  `scannerDrop` is applied ONCE (`PendingNode.close_with_ssl`'s `pendingFlow` arm); its flip breaks **2** definitions (`scripts/flip_drop.py`).  `block_dispatch_deferred`, `pendingFlow`'s only producer, is applied **9** times in **4** holders — `_stamp_offcol` 3, `_stamp_nopack` 3, `_inline` 2, the bare escape 1 (`Tests/Guards/Proofs/FlipConsumerSurface.lean`, DEFERRAL lane).  `KeyPackPunt`'s four reasons are produced at **12** sites — `tab` 2, `dedent` 4, `implicitValue` 3, `noKeyContext` 3 — and spent by the same three consumer arms (PACK PUNT lane); item 212's **seven productions** are `dedent`'s four and `noKeyContext`'s three, and their price is the case split.  **The bill.**  Two restatements and **twenty-four reproofs** (items 238–240; `scripts/flip_supplier.py`'s four ends read weak 5 / field 1 / retire 7 / producer 4) — **and the twenty-four have been unpriced since item 240.**  **The descent** (items 241–262, row by row in the table below).  The cover a refutation of the miss would spend is CLOSED down to **3** real punts: the close-stack trees read 16 positions / paid **6** / punt 15 / cover-punt 2 / open 2 from both roots, one component (253–259), and what those three lack is not the cover but the field's BOTTOM (260).  The carrier that would fund that bottom is OPEN: **47** positions writing **180** rows which resolve to **70** origin hypotheses at 38 rows, **40** of them holding the tail, and the whole `?` family — 18 positions, 55 rows — born at ONE origin that does not (261, 262).  **NEXT: price the twenty-four reproofs** — the one number no instrument holds, and the only one that measures what is left of R3.  Item 262's recorded mandate (the seven value-line resume faces by producers touched) stands behind it. |
+| **R3** — delete `pendingFlow` and `scannerDrop` | OPEN | **The flip.**  `scannerDrop` is applied ONCE (`PendingNode.close_with_ssl`'s `pendingFlow` arm); its flip breaks **2** definitions (`scripts/flip_drop.py`).  `block_dispatch_deferred`, `pendingFlow`'s only producer, is applied **9** times in **4** holders — `_stamp_offcol` 3, `_stamp_nopack` 3, `_inline` 2, the bare escape 1 (`Tests/Guards/Proofs/FlipConsumerSurface.lean`, DEFERRAL lane).  `KeyPackPunt`'s four reasons are produced at **12** sites — `tab` 2, `dedent` 4, `implicitValue` 3, `noKeyContext` 3 — and spent by the same three consumer arms (PACK PUNT lane); item 212's **seven productions** are `dedent`'s four and `noKeyContext`'s three, and their price is the case split.  **The bill, ELABORATED** (item 263).  β.5's edit applied for real and driven to a fixpoint (`scripts/flip_beta5.py`, 23 rounds, clean) reads `sorried=13 restated=0 deleted=3 pins=37`: **thirteen proofs** — seven in the library, all in `StreamAccum.lean`, of which **five lose only a dead `\| pendingFlow` arm** and **two are real repairs** (`accum_flow_open_depth0`'s `dropClose` application, `block_dispatch_deferred`'s park), plus six Tests-side exhibits — **one statement**, `dropClose`, and no other statement anywhere.  `PendingNode.close_with_ssl` survives statement AND proof intact, so the bill is ONE restatement and not two.  Of item 238's twenty-four: **3 FREE, 21 CARRIED** on `sorryAx`, none owing work of its own.  The closure over BOTH deletions is **38**, not 26 (`Tests/Guards/Proofs/ParkBill.lean`: `Dp=9 Sp=0 Tp=31 T=26 extra=12`), and **37 of this row's own pinned censuses re-read** — the largest population of the four.  The four supplier ends still read weak 5 / field 1 / retire 7 / producer 4.  **The descent** (items 241–263, row by row in the table below).  The cover a refutation of the miss would spend is CLOSED down to **3** real punts: the close-stack trees read 16 positions / paid **6** / punt 15 / cover-punt 2 / open 2 from both roots, one component (253–259), and what those three lack is not the cover but the field's BOTTOM (260).  The carrier that would fund that bottom is OPEN: **47** positions writing **180** rows which resolve to **70** origin hypotheses at 38 rows, **40** of them holding the tail, and the whole `?` family — 18 positions, 55 rows — born at ONE origin that does not (261, 262).  **NEXT: the two real repairs** — which of §10's three diagnoses `accum_flow_open_depth0` and `block_dispatch_deferred` take, after the five dead `\| pendingFlow` arms are deleted for real.  Item 262's recorded mandate (the seven value-line resume faces by producers touched) stands behind it. |
 | **R4** — narrow `[210]` (`implicitContinue`'s slot, `GOpt SLAnyDocument` → `GOpt SLExplicitDocument`) | OPEN, **behind R3** | The flip breaks **5** definitions (`scripts/flip_210.py`) — the flip's own WORK, constant since item 166.  What a payment moves is the consumer surface: **1** raw holder / 1 application and **7** guard holders / 14 applications (`FlipConsumerSurface`, RAW ROUTES + GUARDS lanes), in three classes — refutable arms, three missing routes, and `pendingFlow`, which no field can pay (item 183).  The third class is why R4 lands after R3's deletion; the refutable arms and the three routes are ORDERED after it by item 183, not blocked by it.  1d (`0 < m`) is CLOSED (item 179). |
 | **Step 5** — the converse `grammar_completeness` | **NOT STARTED** | No declaration of that name exists under `L4YAML/` or `Tests/`, and no item of the closure log is Step 5's.  It is unprovable, not merely unproved, while either over-approximation stands: `inYamlLanguage_everything : ∀ s, InYamlLanguage s` compiles today (`Tests/Guards/Proofs/SuffixGapAudit.lean` §5, item 236), and `implicitContinue` admits `- "a"⏎  - b` (item 30). |
 | **Step 6** — `parse_iff_grammar` | NOT STARTED | After Step 5. |
@@ -34690,14 +34965,15 @@ Step 5 → Step 6**.  Starting R4's flip before R3 re-runs item 183's
 measurement and stops at `pendingFlow`; starting Step 5 before R4 states a
 theorem that is false as stated.
 
-#### The descent behind R3, item by item (241–262)
+#### The descent behind R3, item by item (241–263)
 
 Each row is one item: the question it was given, what its instrument read, and
 whether the library's proofs moved.  The full prose for every row is the
 closure log's own `### Item <n>` entry above; this table exists so the
-trajectory is readable without it.  **Four of the twenty-two moved a proof** —
-items 256–259, the six cover payments; the other eighteen are measurements, and
-carrying them is what the log is for.
+trajectory is readable without it.  **Four of the twenty-three moved a proof** —
+items 256–259, the six cover payments; the other nineteen are measurements, and
+carrying them is what the log is for — item 263 is why: it turned nineteen of them
+into a number.
 
 | item | what it asked | what it read | proof moved | instrument / what was spent |
 |---|---|---|---|---|
@@ -34723,6 +34999,7 @@ carrying them is what the log is for.
 | 260 | what do the last punts lack? | not the cover — the field's BOTTOM; 2 of the 5 are vacuous at index 0, **3** are punts | — | `PuntCoverInputs.lean` §6b |
 | 261 | price that carrier by shape | **40** positions (11 park fields + 29 lemma parameters), **151** writer rows, the tail in hand at **11** of the 69 that build | — | `ValueLinePacks.lean` |
 | 262 | where is each pack born? | **47** positions, **180** rows → **70** origins at 38 rows, **40** holding the tail; the `?` family's 55 rows have ONE birthplace, and it does not | — | `ValueLineOrigins.lean` |
+| 263 | what do the twenty-four reproofs actually cost? | **13** proofs and **1** statement, not 24 reproofs — 5 of the library's 7 lose only a dead `\| pendingFlow` arm; `close_with_ssl` survives; 21 of the 24 are CARRIED; **37** pinned censuses re-read | — | `flip_beta5.py` (the fixpoint) + `ParkBill.lean` |
 
 **Two housekeeping questions, measured 2026-09-22.**  Neither is a plan row;
 the numbers are recorded so the decision can be taken against them rather
