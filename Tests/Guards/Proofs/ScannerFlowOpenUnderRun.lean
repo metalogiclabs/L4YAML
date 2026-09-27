@@ -1653,4 +1653,149 @@ elaboration at the three arms that spend `drop_ride`:
 def expectedTransportPrice : String :=
   "source=BBB hcol=OOO genesis=BBB optok=3 pay=BBB frames=7 ride=0/3"
 
+/-! ## §13 What the ride can carry, and what the frame will receive
+    (DOCS item 273)
+
+§12 measured the ring an applied source needs and recorded an order for this
+section: build the ride per arm, then pay `optok`.  That order was written from
+what each ring BUYS.  This section reads what RECEIVES the carrier.
+
+A ride that takes a `ParkSlot` has exactly one place to put it — the frame's
+own `FlowBaseAnchor g s' 0` argument, which is what `FlowStackK` carries from
+the open to the close (`FlowBaseAnchor.gate`).  That definition's `some` arm
+names `ParkAnchor`: the same `ParkCore`, one field apart.  `ParkAnchor` asks
+that the park's last real token be a node property; `ParkSlot` asks that the
+open's column stand on the park's indent stack.
+
+The two are not two ways of naming one fact, and the difference is not a
+nameability gap of the kind §10 measured.  One of them is FALSE at most of this
+family. -/
+
+/-- `(rows, `ParkAnchor`'s own field at the landing's park, `ParkSlot`'s own
+    field at the same park, cells where the slot holds and the anchor does not,
+    cells where the anchor holds and the slot does not, `ParkFloor`'s own
+    field)`.
+
+    The second is what `FlowBaseAnchor`'s `some` arm asks of this family; the
+    third is what the family can supply.  §6's `anchorProp` read the second
+    already and this tuple takes it again beside the other four rather than
+    citing it, for §12's reason: a comparison between two censuses is not a
+    comparison.
+
+    The fourth and fifth are the two directions of that comparison and neither
+    can pass vacuously — the fifth must be ZERO, or replacing the anchor with
+    the slot would lose a cell the anchor holds, and a tuple that reported a
+    strictly weaker ask without checking the other direction would be reporting
+    an assumption.  The sixth is the frame's other half, which costs nothing at
+    depth 0: the open clears the pending key and the stacked range is empty. -/
+private def carrierChoice : Nat × Nat × Nat × Nat × Nat × Nat := Id.run do
+  let mut rows := 0
+  let mut anch := 0
+  let mut slot := 0
+  let mut slotOnly := 0
+  let mut anchOnly := 0
+  let mut floorF := 0
+  for outer in outers do
+    for kind in kinds do
+      for op in opens do
+        for p in indents do
+          for q in List.range (floorOf kind p) do
+            match openTriple (mk outer kind p q op) with
+            | none => pure ()
+            | some (_, sp, s') =>
+              match openColOf s' with
+              | none => pure ()
+              | some c =>
+                rows := rows + 1
+                let a := match Scanner.prevRealIdx? sp.tokens sp.tokens.size with
+                  | some k => sp.tokens[k]!.val.isNodeProperty
+                  | none => false
+                let sl := hasCol sp c
+                if a then anch := anch + 1
+                if sl then slot := slot + 1
+                if sl && !a then slotOnly := slotOnly + 1
+                if a && !sl then anchOnly := anchOnly + 1
+                if s'.simpleKey.possible == false then floorF := floorF + 1
+  return (rows, anch, slot, slotOnly, anchOnly, floorF)
+
+#guard carrierChoice == (144, 18, 144, 126, 0, 144)
+
+/-- The same six at the park's floor — §4's turnover, which this branch never
+    reaches, and where the two fields' relationship INVERTS.
+
+    On the family the slot holds at every cell and the anchor at eighteen, and
+    no cell holds the anchor without the slot.  Here the slot holds at NONE
+    (§7's `acceptedParks` read the open's column standing on neither candidate
+    park's stack at all 378 accepted cells) and the anchor at twenty-four, so
+    every cell that holds one holds only the anchor.  The comparison the family
+    reports is therefore about this branch and not about the two definitions:
+    a control that merely zeroed would have left that open. -/
+private def carrierChoiceControl : Nat × Nat × Nat × Nat × Nat × Nat := Id.run do
+  let mut rows := 0
+  let mut anch := 0
+  let mut slot := 0
+  let mut slotOnly := 0
+  let mut anchOnly := 0
+  let mut floorF := 0
+  for outer in outers do
+    for kind in kinds do
+      for op in opens do
+        for p in indents do
+          let q := floorOf kind p
+          match openTriple (mk outer kind p q op) with
+          | none => pure ()
+          | some (_, sp, s') =>
+            match openColOf s' with
+            | none => pure ()
+            | some c =>
+              rows := rows + 1
+              let a := match Scanner.prevRealIdx? sp.tokens sp.tokens.size with
+                | some k => sp.tokens[k]!.val.isNodeProperty
+                | none => false
+              let sl := hasCol sp c
+              if a then anch := anch + 1
+              if sl then slot := slot + 1
+              if sl && !a then slotOnly := slotOnly + 1
+              if a && !sl then anchOnly := anchOnly + 1
+              if s'.simpleKey.possible == false then floorF := floorF + 1
+  return (rows, anch, slot, slotOnly, anchOnly, floorF)
+
+#guard carrierChoiceControl == (96, 24, 0, 0, 24, 96)
+
+/-! ### §13a What the ride can carry, priced
+
+`scripts/ride_price.py`, battery stage 22d.  Five rows read by elaboration at
+the three arms that spend `drop_ride`, on a module with item 272's ring PAID —
+the payment is applied and the probes carry no hypothesis and no hole — and
+four censuses taken by arity flip:
+
+* `slot` / `floor` — `ParkSlot s_prep s' 0` and `ParkFloor s_prep s' 0`, the
+  two halves a carrier-holding frame would need.  Both are `B` at all three:
+  with the ring paid the genesis is available outright, and the floor costs
+  nothing at depth 0.
+* `prop_sc` / `prop` — `ParkAnchor`'s own remaining field, at the state the
+  step began with and at the landing's park.  `BOO` against `OOO`: the props
+  arm can name the property, and only at `sc`, which is the park this family
+  cannot open over — preprocessing's pushes sit between the two arrays, so
+  `ParkCore.ofOpen`'s push equation holds at `s_prep` and fails at `sc`.
+* `gated` — `FlowBaseAnchor (some s_prep) s' 0`, the frame argument itself.
+  `OOO` follows from `prop`.
+* `ride` — the arity flip on `have drop_ride`: FOUR terms spend the ride, all
+  inside one declaration.  Three are the live arms' run-end halves and the
+  fourth is `opaque_resume`, which `pendingFlow` takes and which has no
+  under-run to read a membership from.
+* `add` / `swap` / `choice` — three reshapes of `FlowBaseAnchor`'s `some` arm.
+  `add` is item 268's `anchor=2` ring re-derived (the slot BESIDE the anchor);
+  `swap` and `choice` put it in the anchor's place and beside it as an
+  alternative, and each costs the same three declarations —
+  `FlowBaseAnchor.gate`, `FlowBaseAnchor.transport`, `propsPark_open_gate`.
+* `transport` — the arity flip on `FlowBaseAnchor.transport`, the funnel every
+  other carrier lemma is routed through.  Nine sites in seven declarations:
+  that is the second wave any of the three reshapes pays, and it is the number
+  the `anchor=2` of item 268 was taken without. -/
+
+def expectedRidePrice : String :=
+  "slot=BBB floor=BBB prop_sc=BOO prop=OOO gated=OOO ride=4/1 add=2/2 \
+   swap=3/3 choice=3/3 transport=9/7"
+
 end L4YAML.Tests.Guards.ScannerFlowOpenUnderRun
