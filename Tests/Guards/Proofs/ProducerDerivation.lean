@@ -204,11 +204,17 @@ def readDecl (n : Name) : MetaM Readings := do
 
 /-! ## §3 The pins -/
 
-/-- **Nothing derives a stream from a correspondence.**  433 statements hold a
+/-- **Nothing derives a stream from a correspondence.**  434 statements hold a
     correspondence and 89 conclude a stream; 39 do both, and none of the 39
-    concludes a stream ending where its own correspondence stands. -/
+    concludes a stream ending where its own correspondence stands.
+
+    The first count moved by one at item 271:
+    `underRunEnd_col_le_currentIndent` takes the landing's
+    `ScannerSurfCorr s_prep sp_prep` to carry the surface column onto the
+    scanner state, and concludes an inequality rather than a stream — so it
+    joins the 434 and none of the other six readings moves. -/
 def expectedCensus : String :=
-  "corrHyp=433 streamConcl=89 both=39 free=0 pairConcl=1 held=3 pairAny=8"
+  "corrHyp=434 streamConcl=89 both=39 free=0 pairConcl=1 held=3 pairAny=8"
 
 /-- The one conclusion that pairs them, and it is the stream's origin. -/
 def expectedSeedConcl : List Name :=

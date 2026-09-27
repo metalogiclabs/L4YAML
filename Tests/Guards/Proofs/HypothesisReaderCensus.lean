@@ -396,7 +396,7 @@ adds.**   `constants` counts the module's non-internal constants, generated ones
     classifier, not compared across two builds
     (`scratchpad/l4yaml-beta5-item269/verdict.out`). -/
 def expectedModuleTally : String :=
-  "constants=1161 decls=981 eta=369 FIELD=152 READ=1048 RELAY=2086 RETURN=48 UNUSED=9"
+  "constants=1162 decls=982 eta=369 FIELD=152 READ=1050 RELAY=2090 RETURN=48 UNUSED=9"
 
 def expectedUnused : List String :=
   [ "block_dispatch_deferred_inline#10 (_h_res)",

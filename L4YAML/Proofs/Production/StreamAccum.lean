@@ -6091,6 +6091,15 @@ consequence of the unwind's guard.  The upper premise is
 is a bound on the landing's own column; whether a given arm can supply the
 second is a measurement of that arm, not of this lemma.
 
+Item 271 takes that measurement at the three arms the flow open's ride runs
+through, and the answer is that the bound is a BRIDGE.  The under-run they
+split on is LOCATED rather than merely asserted — `j < n` spaces off a column-0
+line start — so on the run-end half the landing's column IS `j`, and each arm
+already carries an `IndentFloor` that bounds `n` by the floor the step began
+with.  `underRunEnd_col_le_currentIndent` is that derivation; it transports
+nothing, and the same three arms hold the park-column guard one `omega` from a
+field their own constructor declares.
+
 Neither lemma re-proves item 127's: the level a popping landing rests on, and
 that it is the landing's own column, is stated once, at
 `preprocess_landing_at_level`. -/
@@ -6169,6 +6178,33 @@ lemma preprocess_pops_of_below {sc s_prep : ScannerState} {c : Char}
   have h_eq := preprocess_floor_eq hok h_base (Int.le_of_lt h_below) h_floor
   intro h_same
   rw [currentIndent_of_indents_eq h_same] at h_eq
+  omega
+
+/-- **The landing's own column, read off the under-run** (item 271).  A flow
+    open whose landing fails to supply `[63] s-indent(n)` holds the failure
+    LOCATED: `j < n` spaces off a column-0 line start, and on the RUN-END half
+    those spaces ARE the landing.  So the landing's column is `j`, the index it
+    under-ran bounds it, and the arm's own `IndentFloor` bounds that index by
+    the floor the step began with — which is `preprocess_floor_eq`'s lower
+    premise, derived rather than carried.
+
+    The sentinel costs nothing here either: a stack at its base floors the
+    index at zero, and `j < 0` is the under-run's own refutation, so the
+    conclusion is vacuous exactly where it would be false. -/
+lemma underRunEnd_col_le_currentIndent {sc s_prep : ScannerState}
+    {sp_mid sp_prep sx : SurfPos} {n j : Nat}
+    (h_floor : IndentFloor sc n)
+    (h_mid0 : sp_mid.col = 0)
+    (hj : j < n)
+    (h_ind : SIndent j sp_mid sx)
+    (h_end : sx = sp_prep)
+    (hcorr : ScannerSurfCorr s_prep sp_prep) :
+    (s_prep.col : Int) ≤ sc.currentIndent := by
+  have h_col : sp_prep.col = j := by
+    rw [← h_end, SIndent_col' h_ind, h_mid0]; omega
+  have h_corr_col : sp_prep.col = s_prep.col := hcorr.col_eq
+  have h_bound := h_floor.2
+  unfold minContentIndentOf at h_bound
   omega
 
 /-- **§9.2's landing refusal, spent at the accumulation** (item 139) — the

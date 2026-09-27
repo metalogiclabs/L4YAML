@@ -23,8 +23,13 @@ PIN = ROOT / "Tests/Guards/Proofs/ScannerFlowOpenUnderRun.lean"
 BACKSLASH = chr(92)
 SPEND = "exact drop_ride"
 
-#: The three arms, in source order, named for the park each one is.
-ARMS = ["props", "pendingBlock", "pendingContent"]
+#: The three arms, in source order, named for the park each one is.  Item 271
+#: fixed the third: the sites sit in `pendingProps`, `pendingBlock` and
+#: `pendingMapValue`, and `pendingContent` is a different arm of the same
+#: `cases` that spends no ride.  The names are checked by elaboration in
+#: `scripts/coordinate_price.py`'s `ident` probe -- each arm's own constructor
+#: declares a binder the other two do not, and the 3x3 matrix is diagonal.
+ARMS = ["pendingProps", "pendingBlock", "pendingMapValue"]
 
 #: `preprocess_floor_eq`'s four premises, then the two guards item 147's floor
 #: sits behind in `preprocess_some_ssl_comments_anyCol`'s landed disjunct.

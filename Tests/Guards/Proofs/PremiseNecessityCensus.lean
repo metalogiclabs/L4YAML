@@ -231,7 +231,7 @@ declarations' own binders and not by a rescoring of an existing one.
     binder is used FOR, and here there is nothing for them to differ about. -/
 
 def expectedModuleTallyP : String :=
-  "constants=1161 decls=981 eta=369 FIELD=171 READ=1084 RELAY=1951 RETURN=128 UNUSED=9"
+  "constants=1162 decls=982 eta=369 FIELD=171 READ=1086 RELAY=1955 RETURN=128 UNUSED=9"
 
 def expectedOptTallyP : String :=
   "total=163 ETA=34 FIELD=4 READ=85 RELAY=38 RETURN=2"

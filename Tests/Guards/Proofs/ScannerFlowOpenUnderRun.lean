@@ -1099,6 +1099,43 @@ def expectedArmTable : String :=
   "cells=24 paid=10 owed=14 hok=PPP base=PPP le=OOO floor=OOO \
 noflow_prep=PPP park_col_ne0=OOO gate_gp=POO sibling_floor_prep=OOO"
 
+/-- **§11 What the coordinate costs** (`scripts/coordinate_price.py`).
+
+    Five probes, all by elaboration at the three sites that spend the ride.
+
+    `ident` is the 3x3 matrix that fixes the arm NAMES: each of the three
+    constructors declares a binder the other two do not, so a probe that merely
+    REFERS to one elaborates at its own site and nowhere else.  The matrix is
+    diagonal, which is how item 270's third label — `pendingContent`, an arm of
+    the same `cases` that spends no ride — was caught.
+
+    `le`, `park_col_ne0` and `floor` each ask twice: once with `assumption`,
+    which is item 270's question, and once with a NAMED derivation.  `P` is what
+    the arm holds, `B` what it can derive from what it holds, `O` neither.
+    Reading `BBB BBB OOO`: both premises item 270 recorded as owed are
+    derivations the arm can write today, and the two of them do not become
+    cheaper or dearer with a carrier because neither is transported.
+
+    `lib` is the arity flip on `preprocess_some_separate_at_floor`, whose
+    under-run disjunct gains a component that is true everywhere and is
+    supplied in the splitter's own proof — so the census counts sites that must
+    now WRITE something, not sites where the fact is hard.  Compare item 268's
+    `gate=49`: the same question asked of the third premise costs ONE library
+    declaration, because all three arms live inside it.
+
+    `reach` is the real widening: the disjunct carries item 147's guarded floor,
+    which `preprocess_some_ssl_comments_anyCol` already proves and the splitter
+    already discards one line above the arm.  Every arm then spends it in one
+    application, using the park-column bridge for the first guard and item 270's
+    `noflow_prep` for the second.
+
+    The tree census is held out of this pin and out of the battery: it rebuilds
+    every module that imports the patched one.  `coordinate_price.py wide`
+    re-derives it. -/
+def expectedCoordPrice : String :=
+  "arms=pendingProps,pendingBlock,pendingMapValue ident=diagonal le=BBB \
+park_col_ne0=BBB floor=OOO lib=1 reach=BBB"
+
 /-! ## §9 The rail that is not worth building, and the source that is
     (DOCS item 269)
 
@@ -1349,8 +1386,8 @@ private def lineSource : Nat × Nat × Nat × Nat × Nat × Nat × Nat := Id.run
     row, and `floorFacts`'s own last three say the remaining premise does too —
     54 below the incoming floor, 90 at it, 0 above.  So every premise
     `preprocess_floor_eq` asks for is TRUE at every input this branch admits,
-    and `arm_probe.py` reads none of them as nameable inside the arm: what the
-    ride owes is a COORDINATE, not a fact. -/
+    and `scripts/arm_price.py` reads none of them as nameable inside the arm:
+    what the ride owes is a COORDINATE, not a fact. -/
 private def genesisFacts : Nat × Nat × Nat × Nat × Nat × Nat × Nat := Id.run do
   let mut rows := 0
   let mut nic0 := 0
@@ -1377,5 +1414,106 @@ private def genesisFacts : Nat × Nat × Nat × Nat × Nat × Nat × Nat := Id.r
   return (rows, nic0, moved, noflow, colNe0, same, floor)
 
 #guard genesisFacts == (144, 144, 144, 144, 144, 90, 144)
+
+/-! ## §11 What the coordinate costs (DOCS item 271)
+
+§10 read every premise `preprocess_floor_eq` asks for as TRUE at every one of
+the 144 and none of them as nameable inside the arm, and called what the ride
+owes a coordinate.  A coordinate has a price.  Item 268 measured one — `anchor=2`
+against `gate=49` — but over a different datum, so the number does not transfer
+without being re-read.
+
+Re-read, two of the three premises cost **nothing**, because neither is a
+carriage.  The under-run the three arms split on is LOCATED:
+`WhiteRunUnderRun n sp_mid sp_prep` is `j < n` spaces off a column-0 line start,
+and on the RUN-END half those spaces ARE the landing.  So the landing's column
+is `j`, the index it under-ran bounds it, and each arm's own `IndentFloor`
+bounds that index by the floor the step began with
+(`underRunEnd_col_le_currentIndent`).  The park-column guard is one step from a
+field each of the three constructors declares — `h_col0 : 0 < sp_scan.col` at
+`pendingProps` and `pendingMapValue`, `h_col : sp_scan.col = n + 1` at
+`pendingBlock`.
+
+This section reads that derivation's premises and its conclusion at the runtime,
+on the family and on a control the family's own boundary supplies. -/
+
+/-- `(rows, preprocessing lands at the built column, the park's index is at most
+    the incoming floor plus one, the landing is at or left of the incoming
+    floor, the incoming floor is not the sentinel)`.
+
+    The second and third are `underRunEnd_col_le_currentIndent`'s two premises
+    read where the proof cannot see them — `sp_prep.col = j` after the
+    column-0 line start, and `n ≤ minContentIndentOf sc` off the arm's own
+    `IndentFloor` — and the fourth is its conclusion.  The fifth says the
+    conclusion is not carried by the vacuous branch: a stack at its base floors
+    the index at zero, where `j < n` is the under-run's own refutation, so a
+    family that sat there would prove the lemma without exercising it. -/
+private def bridgeFacts : Nat × Nat × Nat × Nat × Nat := Id.run do
+  let mut rows := 0
+  let mut landed := 0
+  let mut idxFloored := 0
+  let mut concl := 0
+  let mut nonneg := 0
+  for outer in outers do
+    for kind in kinds do
+      for op in opens do
+        for p in indents do
+          for q in List.range (floorOf kind p) do
+            match openTriple (mk outer kind p q op) with
+            | none => pure ()
+            | some (sc, sp, _) =>
+              rows := rows + 1
+              if sp.col == q then landed := landed + 1
+              if ((floorOf kind p : Nat) : Int) ≤ sc.currentIndent + 1 then
+                idxFloored := idxFloored + 1
+              if (sp.col : Int) ≤ sc.currentIndent then concl := concl + 1
+              if sc.currentIndent ≥ 0 then nonneg := nonneg + 1
+  return (rows, landed, idxFloored, concl, nonneg)
+
+#guard bridgeFacts == (144, 144, 144, 144, 144)
+
+/-- The same five readings one column to the RIGHT — at the park's floor rather
+    than below it, which is §4's accepted boundary and not this branch.
+
+    This is the control that says the conclusion is not an arithmetic
+    consequence of how the family is built.  Both premises still read all
+    ninety-six: preprocessing still lands at the built column and the park's
+    index is still floored by the incoming state, because neither is a fact
+    about the landing being UNDER-run.  The conclusion reads zero.  What
+    separates the two families is the one premise the runtime cannot show
+    directly — `j < n` — and the control is how that is established without
+    asking the count to be its own evidence.
+
+    The fifth reading is **90**, and the six cells it misses are the props park
+    at indent 0 across both opens and all three outers, which build the same
+    input.  Those are the grid's only sentinel floors, and they are exactly the
+    cells the family above cannot reach: `floorOf "props" 0` is 0, so the
+    under-run row is empty there.  The lemma's vacuous branch and the family's
+    empty rows are the same six cells, which is why `bridgeFacts` reads 144 on
+    a component the control cannot. -/
+private def bridgeControl : Nat × Nat × Nat × Nat × Nat := Id.run do
+  let mut rows := 0
+  let mut landed := 0
+  let mut idxFloored := 0
+  let mut concl := 0
+  let mut nonneg := 0
+  for outer in outers do
+    for kind in kinds do
+      for op in opens do
+        for p in indents do
+          let q := floorOf kind p
+          match openTriple (mk outer kind p q op) with
+          | none => pure ()
+          | some (sc, sp, _) =>
+            rows := rows + 1
+            if sp.col == q then landed := landed + 1
+            if ((floorOf kind p : Nat) : Int) ≤ sc.currentIndent + 1 then
+              idxFloored := idxFloored + 1
+            if (sp.col : Int) ≤ sc.currentIndent then concl := concl + 1
+            if sc.currentIndent ≥ 0 then nonneg := nonneg + 1
+  return (rows, landed, idxFloored, concl, nonneg)
+
+#guard bridgeControl == (96, 96, 96, 0, 90)
+
 
 end L4YAML.Tests.Guards.ScannerFlowOpenUnderRun

@@ -659,7 +659,7 @@ one unfolding, and §6 is the item where those two disagreed about binders. -/
     `L4YAML` namespace outside `Tests`, so it sees both sides of that and reads
     **5274**.  None of the four has an `_ ∨ True` conclusion, which is why the
     roster below does not move. -/
-def expectedNoopTally : String := "theorems=5274 byElab=17 byWhnf=17 elabOnly=0 whnfOnly=0"
+def expectedNoopTally : String := "theorems=5275 byElab=17 byWhnf=17 elabOnly=0 whnfOnly=0"
 
 /-- The 27 item 227 measured, now **18**.  Item 228 narrowed six of
     `FlowKeyLift`'s ten — `plain_toKey`, `doubleQuoted_toKey`,

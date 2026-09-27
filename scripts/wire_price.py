@@ -121,13 +121,22 @@ def run(which, verbose=True, wide=False):
         shutil.copyfile(backup, TARGET)
         backup.unlink()
 
-    here = re.compile(r"^L4YAML/Proofs/Production/StreamAccum\.lean:(\d+):\d+: error")
-    other = re.compile(r"^(?!L4YAML/Proofs/Production/StreamAccum\.lean)"
-                       r"([A-Za-z0-9_./-]+\.lean):(\d+):\d+: error")
-    raw = sorted({int(m.group(1)) for m in
-                  (here.match(l) for l in body.split("\n")) if m})
-    away = sorted({m.group(1) for m in
-                   (other.match(l) for l in body.split("\n")) if m})
+    # The two drivers spell a location differently and a pattern written for
+    # one reads NOTHING under the other (item 271, measured):
+    #     lake env lean   L4YAML/.../X.lean:11897:69: error: ...
+    #     lake build      error: Tests/.../X.lean:121:22: ...
+    # `--wide` uses the second, so it needs both spellings.
+    lake_loc = re.compile(r"^error: ([A-Za-z0-9_./-]+\.lean):(\d+):(\d+): ")
+    lean_loc = re.compile(r"^([A-Za-z0-9_./-]+\.lean):(\d+):(\d+): error")
+    SELF = "Proofs/Production/StreamAccum.lean"
+    raw, away = set(), set()
+    for l in body.split("\n"):
+        m = lake_loc.match(l) or lean_loc.match(l)
+        if not m:
+            continue
+        (raw.add(int(m.group(2))) if m.group(1).endswith(SELF)
+         else away.add(m.group(1)))
+    raw, away = sorted(raw), sorted(away)
     # A probe that breaks NOTHING has not been applied -- an empty census over
     # an unedited file is the vacuous reading §9 warns about.
     if not raw and not away:
