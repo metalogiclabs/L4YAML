@@ -1072,6 +1072,33 @@ private def sourceFacts : Nat × Nat × Nat × Nat × Nat × Nat × Nat × Nat :
     therefore belongs on the route, not on `GateOf`. -/
 def expectedWirePrice : String := "gate=49 anchor=2 route=3 eof=1"
 
+/-- **§10a What each `drop_ride` arm HOLDS** (`scripts/arm_price.py`).
+
+    Twenty-four cells: eight readings against the three arms that spend the
+    ride, each taken by ELABORATION at the spend site — `assumption` for the
+    six that ask whether a type is inhabited in the local context, and a
+    reference for the two that ask whether a NAME is bound there.  A cell is
+    `P` when the arm already holds the reading and `O` when it does not; a
+    derivation is a different bill from a binder, and this table is about
+    binders.
+
+    **The three arms read identically on every row but one.**  They hold
+    preprocessing's equation, the sentinel base and the landing's out-of-flow
+    fact, and they hold none of `preprocess_floor_eq`'s two floor premises nor
+    the guard item 147's floor sits behind.  §10 reads all four of those as TRUE
+    at every one of the 144 the branch admits, so the ride owes a coordinate and
+    not a fact.
+
+    The one row that discriminates is `gate_gp`, and it is the reason this table
+    is taken at the arm rather than at the declaration: `propsPark_open_gate` is
+    called once in the module, on the path into the FIRST arm, which obtains its
+    `gp` and then discards it by handing `h_kpkg none`.  The other two never see
+    it.  An environment census of that gate's callers resolves to one
+    declaration and cannot say this, because all three arms live inside it. -/
+def expectedArmTable : String :=
+  "cells=24 paid=10 owed=14 hok=PPP base=PPP le=OOO floor=OOO \
+noflow_prep=PPP park_col_ne0=OOO gate_gp=POO sibling_floor_prep=OOO"
+
 /-! ## §9 The rail that is not worth building, and the source that is
     (DOCS item 269)
 
@@ -1294,5 +1321,61 @@ private def lineSource : Nat × Nat × Nat × Nat × Nat × Nat × Nat := Id.run
   return (rows, moved, flag, spDown, crows, cmoved, cflag)
 
 #guard lineSource == (144, 144, 144, 144, 96, 0, 0)
+
+/-- **§10 The genesis disjunct, refuted rather than read.**  `(rows, the flag is
+    DOWN on the state the step begins with, the line MOVES from that state to
+    the landing, the landing is out of flow, the park's own cursor column is
+    nonzero, the indent stack is unmoved, the landing rests at or right of its
+    own floor)`.
+
+    `preprocess_some_ssl_comments_anyCol` asserts BOTH of its arms exist, so no
+    single predicate says which one a landing takes.  The stale arm carries its
+    own refutation instead: under `sc.needIndentCheck = false` it concludes
+    `s_prep.line = sc.line` and `s_prep.indents = sc.indents`.  The second
+    component reads that guard SATISFIED and the third reads the line MOVED, so
+    at every row where both hold the stale arm's conclusion is false and the
+    landed arm is the one in hand — measured at the arm's own statement rather
+    than inferred from the shape of the proof that reaches it.
+
+    Both refutations fire, with different reach: the line conclusion is false at
+    all 144 and the indent conclusion at the 54 that pop, which is why the sixth
+    component is read beside the third rather than in place of it — a single
+    refuting reading would not say whether the arm fails everywhere or only
+    where the stack moves.
+
+    The fourth and fifth are the two guards item 147's floor sits behind in that
+    landed arm, `s_prep.inFlow = false` and `sp.col ≠ 0`, the second read at the
+    park's own cursor; the seventh is the floor itself.  All three hold at every
+    row, and `floorFacts`'s own last three say the remaining premise does too —
+    54 below the incoming floor, 90 at it, 0 above.  So every premise
+    `preprocess_floor_eq` asks for is TRUE at every input this branch admits,
+    and `arm_probe.py` reads none of them as nameable inside the arm: what the
+    ride owes is a COORDINATE, not a fact. -/
+private def genesisFacts : Nat × Nat × Nat × Nat × Nat × Nat × Nat := Id.run do
+  let mut rows := 0
+  let mut nic0 := 0
+  let mut moved := 0
+  let mut noflow := 0
+  let mut colNe0 := 0
+  let mut same := 0
+  let mut floor := 0
+  for outer in outers do
+    for kind in kinds do
+      for op in opens do
+        for p in indents do
+          for q in List.range (floorOf kind p) do
+            match openTriple (mk outer kind p q op) with
+            | none => pure ()
+            | some (sc, sp, _) =>
+              rows := rows + 1
+              if sc.needIndentCheck == false then nic0 := nic0 + 1
+              if sc.line != sp.line then moved := moved + 1
+              if sp.inFlow == false then noflow := noflow + 1
+              if sc.col != 0 then colNe0 := colNe0 + 1
+              if sp.indents == sc.indents then same := same + 1
+              if sp.currentIndent <= (sp.col : Int) then floor := floor + 1
+  return (rows, nic0, moved, noflow, colNe0, same, floor)
+
+#guard genesisFacts == (144, 144, 144, 144, 144, 90, 144)
 
 end L4YAML.Tests.Guards.ScannerFlowOpenUnderRun
