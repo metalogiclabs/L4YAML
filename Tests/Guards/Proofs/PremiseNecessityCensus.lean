@@ -228,10 +228,17 @@ declarations' own binders and not by a rescoring of an existing one.
     1083 → 1084 and `RELAY` 1949 → 1951, the one `READ` being
     `preprocess_floor_eq`'s `h_floor`.  That the two classifiers agree on the
     same thirteen is the reading: the peel and the reader differ on what a
-    binder is used FOR, and here there is nothing for them to differ about. -/
+    binder is used FOR, and here there is nothing for them to differ about.
+
+    Item 271 adds the under-run's column reading and item 272 the composition
+    that spends it, one constant and one holder each: `constants` 1161 → 1163,
+    `decls` 981 → 983.  The peel scores their fifteen `Prop` binders the way
+    the reader does — `READ` 1084 → 1086, `RELAY` 1951 → 1964 — and the two
+    `READ`s are both item 271's, `h_floor` and `hcorr`, each projected.  Item
+    272's nine all relay, which is what a composition is. -/
 
 def expectedModuleTallyP : String :=
-  "constants=1162 decls=982 eta=369 FIELD=171 READ=1086 RELAY=1955 RETURN=128 UNUSED=9"
+  "constants=1163 decls=983 eta=369 FIELD=171 READ=1086 RELAY=1964 RETURN=128 UNUSED=9"
 
 def expectedOptTallyP : String :=
   "total=163 ETA=34 FIELD=4 READ=85 RELAY=38 RETURN=2"

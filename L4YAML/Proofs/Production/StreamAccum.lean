@@ -6207,6 +6207,34 @@ lemma underRunEnd_col_le_currentIndent {sc s_prep : ScannerState}
   unfold minContentIndentOf at h_bound
   omega
 
+/-- **The carrier's datum, at the OPEN's own step** (item 272): the source
+    applied where the arm stands.  All three of
+    `preprocess_landing_on_stack`'s premises are readable by an arm that holds
+    the `[63]` failure LOCATED — the landing's column off the under-run's
+    run-end half, item 147's floor off the under-run disjunct the splitter
+    hands it, and the sentinel off the step's own base — so the membership is
+    a projection of the arm's data and not a transported fact.
+
+    It is stated on the LANDING: `s_prep.indents` is the stack preprocessing
+    comes to rest on, and a park that reaches the open's push is that same
+    state, because preprocessing's own pushes sit between it and the state the
+    step began with. -/
+lemma underRunEnd_landing_on_stack {sc s_prep : ScannerState}
+    {sp_mid sp_prep sx : SurfPos} {n j : Nat} {c : Char}
+    (hok : scanNextToken_preprocess sc = .ok (some (s_prep, c)))
+    (h_base : IndentStackBase.SentinelBase sc)
+    (h_floor : IndentFloor sc n)
+    (h_mid0 : sp_mid.col = 0)
+    (hj : j < n)
+    (h_ind : SIndent j sp_mid sx)
+    (h_end : sx = sp_prep)
+    (hcorr : ScannerSurfCorr s_prep sp_prep)
+    (h_landed : s_prep.currentIndent ≤ (s_prep.col : Int) ∨
+      s_prep.indents.size ≤ 1) :
+    (s_prep.indents.any fun e => e.column == (s_prep.col : Int)) = true :=
+  preprocess_landing_on_stack hok h_base
+    (underRunEnd_col_le_currentIndent h_floor h_mid0 hj h_ind h_end hcorr) h_landed
+
 /-- **§9.2's landing refusal, spent at the accumulation** (item 139) — the
     contradiction items 132–134 were built to be read at, with all four of
     `scanNextToken_checkBareDocument`'s conjuncts named where the landing holds
@@ -7553,7 +7581,14 @@ lemma preprocess_some_separate_at_anyCol (n : Nat) (sc : ScannerState) (sp : Sur
     `needIndentCheck = false` buys, landed off the landing's `s-indent(n)`
     (`preprocess_some_floor_at_landing`).  This is what retires the open's
     `h_ncol` reads: the park column bound the OLD floor route demanded is
-    derived from the walk instead of asked of the pack. -/
+    derived from the walk instead of asked of the pack.
+
+    **The UNDER-RUN disjunct carries item 147's landed floor beside the tab
+    facts** (item 272).  It is a component of the landed disjunct this lemma
+    destructures anyway, under the two guards item 76's save already rides, so
+    it is a return value rather than a proof obligation — and it is the third
+    premise `preprocess_landing_on_stack` asks of a consumer that holds the
+    `[63]` failure LOCATED. -/
 lemma preprocess_some_separate_at_floor (n : Nat) (sc : ScannerState) (sp : SurfPos)
     (s_prep : ScannerState) (c : Char)
     (h_floor : IndentFloor sc n)
@@ -7563,7 +7598,10 @@ lemma preprocess_some_separate_at_floor (n : Nat) (sc : ScannerState) (sp : Surf
       ((SSeparateLines n sp sp_prep ∧ n ≤ minContentIndentOf s_prep) ∨
         ∃ sp_mid, SSLComments sp sp_mid ∧ sp_mid.col = 0 ∧
           WhiteRunUnderRun n sp_mid sp_prep ∧
-          LandingTabFacts sc.currentIndent sc.needIndentCheck s_prep.peek? sp sp_mid) := by
+          LandingTabFacts sc.currentIndent sc.needIndentCheck s_prep.peek? sp sp_mid ∧
+          (sp.col ≠ 0 → s_prep.inFlow = false →
+            (s_prep.currentIndent ≤ (s_prep.col : Int) ∨
+              s_prep.indents.size ≤ 1))) := by
   obtain ⟨sp_mid, sp_ws, sp_prep, h_disj, h_ws, h_cmt, hcorr_out, h_pk, h_ltsl⟩ :=
     preprocess_some_ssl_comments_anyCol sc sp s_prep c hcorr hok
   have h_eq : sp_prep = sp_ws := by
@@ -7588,7 +7626,8 @@ lemma preprocess_some_separate_at_floor (n : Nat) (sc : ScannerState) (sp : Surf
         have h_col_eq : sp_prep.col = s_prep.col := hcorr_out.col_eq
         omega
       · exact ⟨sp_prep, hcorr_out,
-          Or.inr ⟨sp_mid, h_ssl_col.1, h_ssl_col.2.1, h_ur, h_ltsl⟩⟩
+          Or.inr ⟨sp_mid, h_ssl_col.1, h_ssl_col.2.1, h_ur, h_ltsl,
+            fun hc hf => (h_ssl_col.2.2 hc hf).2.2.2⟩⟩
     | inr h_mid_eq =>
       rw [h_mid_eq.1] at h_ws
       refine ⟨sp_prep, hcorr_out, Or.inl ⟨SSeparateLines.inline n sp sp_prep
@@ -11849,7 +11888,8 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
         ((propsPark_prevReal_prop h_real_p h_run h_anchor_p h_tag_p).imp
           (fun _ h => ⟨h.1, h.2.1⟩))
         h_br_open h_br_tok h_ind' h_opsk
-    rcases h_sep_or with ⟨h_sep, h_floor_prep⟩ | ⟨sp_mid2, _h_ssl2, h_col02, h_ur, h_ltsl2⟩
+    rcases h_sep_or with ⟨h_sep, h_floor_prep⟩ |
+      ⟨sp_mid2, _h_ssl2, h_col02, h_ur, h_ltsl2, _h_landed⟩
     · exact ⟨sp_gram, sp_block, sp_open, sp_open, h_stream, h_stack,
              -- Item 68: the run's park is at or past its route index, so the
              -- collection this open pushes reads its interior AT that index.
@@ -11976,7 +12016,8 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
         h_corr h_preprocess
     have h_pe : sp_gap = sp_prep := ScannerSurfCorr_unique hcorr_gap hcorr_prep
     rw [h_pe] at h_sep_or
-    rcases h_sep_or with ⟨h_sep, h_floor_prep⟩ | ⟨sp_mid2, _h_ssl2, h_col02, h_ur, h_ltsl2⟩
+    rcases h_sep_or with ⟨h_sep, h_floor_prep⟩ |
+      ⟨sp_mid2, _h_ssl2, h_col02, h_ur, h_ltsl2, _h_landed⟩
     · exact ⟨sp_gram, sp_block, sp_open, sp_open, h_stream, h_stack,
              h_kpkg none _ _ _ (Or.inr trivial) (openFloorT h_floor_prep) trivial (mk none (n_old + 1) sp_block ⟨(fun _ sp_ne sp_m h_content h_ssl =>
                h_close sp_m (SBlockIndented.node n_old .blockIn sp_scan sp_m
@@ -12064,7 +12105,8 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
         h_corr h_preprocess
     have h_pe : sp_gap = sp_prep := ScannerSurfCorr_unique hcorr_gap hcorr_prep
     rw [h_pe] at h_sep_or
-    rcases h_sep_or with ⟨h_sep, h_floor_prep⟩ | ⟨sp_mid2, _h_ssl2, h_col02, h_ur, h_ltsl2⟩
+    rcases h_sep_or with ⟨h_sep, h_floor_prep⟩ |
+      ⟨sp_mid2, _h_ssl2, h_col02, h_ur, h_ltsl2, _h_landed⟩
     · exact ⟨sp_gram, sp_block, sp_open, sp_open, h_stream, h_stack,
              -- Item 68: `pendingBlock`'s floor ride, on the mapping's value —
              -- `k:⏎  a: ["p⏎     q"]` reads its interior at the entry's index.

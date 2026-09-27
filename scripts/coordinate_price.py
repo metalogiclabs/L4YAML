@@ -9,7 +9,10 @@ script asks the second question, and it asks it by elaboration too:
 
     bridge   null (`assumption`) against a NAMED derivation, per arm.  A row is
              PAID when the null succeeds, BRIDGE when only the named one does,
-             and OWED when neither does.
+             and OWED when neither does.  The floor row's derivation is the
+             conjunct `preprocess_some_separate_at_floor` carries (item 272),
+             spent against the two guards it is stated behind; what it takes to
+             spend the carried conjunct is what the row reads.
     ident    the 3x3 arm-identity matrix -- one binder that exists in each arm
              probed at all three sites.  The diagonal must elaborate and the
              off-diagonal must not, which is what fixes the arm NAMES.
@@ -25,15 +28,12 @@ script asks the second question, and it asks it by elaboration too:
              dependents (item 269's fixpoint reading).  Held OUT of `all`, and
              out of the battery, because it rebuilds 135 modules; its number is
              quoted in DOCS rather than pinned, as `wire_price.py --wide` is.
-    reach    the REAL widening: the under-run disjunct carries item 147's
-             guarded floor, which the splitter already proves and throws away.
-             The arms then bind it, and the row reads what it takes to spend.
 
 Every probe restores the file it edited and prints the md5 either side.
 
 Usage:
     python3 scripts/coordinate_price.py bridge
-    python3 scripts/coordinate_price.py all     # bridge, ident, split, reach
+    python3 scripts/coordinate_price.py all     # bridge, ident, split
     python3 scripts/coordinate_price.py wide    # the tree census, minutes
 """
 import hashlib
@@ -84,9 +84,11 @@ def bridge_rows(arm):
          f"exact underRunEnd_col_le_currentIndent {FLOOR_H[arm]} h_col02 hj "
          "h_ind h_end hcorr_prep"),
         ("park_col_ne0", COL_TY, f"exact {COL_TERM[arm]}"),
-        # No named derivation: the datum is not in scope under any spelling --
-        # the splitter proves it and drops it.  `split`/`reach` price that.
-        ("floor", FLOOR_TY, None),
+        # The carried conjunct (item 272), spent against the two guards the
+        # splitter states it behind: the park column is the row above, and
+        # `h_noflow_prep` is item 270's PAID row.
+        ("floor", FLOOR_TY,
+         f"exact _h_landed ({COL_TERM[arm]}) h_noflow_prep"),
     ]
 
 
@@ -104,10 +106,14 @@ def spend_lines(text):
     return out
 
 
-def with_probe(line, ty, tac):
-    """The probe, inserted so it shares the tactic block with the spend."""
+def with_probe(line, ty, tac, name="_probe271"):
+    """The probe, inserted so it shares the tactic block with the spend.
+
+    `name` is the probe's own binder; `scripts/transport_price.py` passes its
+    own so a reader of a failing probe can tell which instrument wrote it.
+    """
     indent = line[:len(line) - len(line.lstrip())]
-    have = f"have _probe271 : {ty} := by {tac}"
+    have = f"have {name} : {ty} := by {tac}"
     if line.strip().startswith("· "):
         return [f"{indent}· {have}", f"{indent}  {SPEND}"]
     return [f"{indent}{have}", line]
@@ -119,9 +125,9 @@ def elaborate():
     return r.returncode == 0, r.stdout + r.stderr
 
 
-def probe_at(base, li, ty, tac):
+def probe_at(base, li, ty, tac, name="_probe271"):
     lines = base.split("\n")
-    lines[li:li + 1] = with_probe(lines[li], ty, tac)
+    lines[li:li + 1] = with_probe(lines[li], ty, tac, name)
     ACC.write_text("\n".join(lines))
     return elaborate()
 
@@ -160,33 +166,31 @@ def run_ident(base, idxs, verbose=True):
 
 # ------------------------------------------------------------------ flip census
 
-CONCL = ("          LandingTabFacts sc.currentIndent sc.needIndentCheck "
-         "s_prep.peek? sp sp_mid) := by")
-RETURN = "          Or.inr ⟨sp_mid, h_ssl_col.1, h_ssl_col.2.1, h_ur, h_ltsl⟩⟩"
-ARM_PAT = ("    rcases h_sep_or with ⟨h_sep, h_floor_prep⟩ | "
-           "⟨sp_mid2, _h_ssl2, h_col02, h_ur, h_ltsl2⟩")
+#: **Where the dummy goes decides what the census can read.**  Appended AFTER
+#: the carried floor it breaks nothing and the probe refuses -- the arms bind
+#: that conjunct and no proof of this module reads it yet, so a pattern one
+#: element short still elaborates.  Put SECOND, it displaces `h_col02`, which
+#: every arm spends, and the census is again of the sites that must write
+#: something when this disjunct changes shape.
+CONCL = "        ∃ sp_mid, SSLComments sp sp_mid ∧ sp_mid.col = 0 ∧"
+RETURN = "          Or.inr ⟨sp_mid, h_ssl_col.1, h_ssl_col.2.1, h_ur, h_ltsl,"
+ARM_PAT = "      ⟨sp_mid2, _h_ssl2, h_col02, h_ur, h_ltsl2, _h_landed⟩"
 FLOOR_HEAD = "lemma preprocess_some_separate_at_floor (n : Nat) (sc : ScannerState)"
 
-DUMMY_CONCL = CONCL.replace(") := by", " ∧ 0 = 0) := by")
-DUMMY_RETURN = RETURN.replace("h_ltsl⟩⟩", "h_ltsl, rfl⟩⟩")
-REAL_CONCL = CONCL.replace(
-    ") := by",
-    " ∧\n          (sp.col ≠ 0 → s_prep.inFlow = false →\n"
-    "            (s_prep.currentIndent ≤ (s_prep.col : Int) ∨\n"
-    "              s_prep.indents.size ≤ 1))) := by")
-REAL_RETURN = RETURN.replace(
-    "h_ltsl⟩⟩", "h_ltsl, fun hc hf => (h_ssl_col.2.2 hc hf).2.2.2⟩⟩")
+DUMMY_CONCL = CONCL.replace("sp sp_mid ∧", "sp sp_mid ∧ 0 = 0 ∧")
+DUMMY_RETURN = RETURN.replace("h_ssl_col.1,", "h_ssl_col.1, rfl,")
 
 
 def _all(lines, needle):
     return [i for i, l in enumerate(lines) if l == needle]
 
 
-def _floor_half(lines, needle, expect=2):
+def _floor_half(lines, needle, expect=1):
     """The occurrence that belongs to `preprocess_some_separate_at_floor`.
 
-    Both splitters carry the line verbatim, so position alone would be faith.
-    The index is checked against the lemma's own head line instead.
+    The anchor is checked for uniqueness AND for sitting after the lemma's own
+    head line: a line this splitter shares with its twin would match twice, and
+    position alone would be faith.
     """
     hits = _all(lines, needle)
     assert len(hits) == expect, f"expected {expect} of {needle!r}, got {len(hits)}"
@@ -197,16 +201,15 @@ def _floor_half(lines, needle, expect=2):
     return after[0]
 
 
-def patch_split(base, real=False, repair=False):
+def patch_split(base, repair=False):
     lines = base.split("\n")
-    lines[_floor_half(lines, CONCL)] = REAL_CONCL if real else DUMMY_CONCL
-    lines[_floor_half(lines, RETURN)] = REAL_RETURN if real else DUMMY_RETURN
+    lines[_floor_half(lines, CONCL, expect=2)] = DUMMY_CONCL
+    lines[_floor_half(lines, RETURN)] = DUMMY_RETURN
     if repair:
         pats = _all(lines, ARM_PAT)
         assert len(pats) == 3, f"expected 3 arm patterns, got {len(pats)}"
-        extra = "h_floor147" if real else "_"
         for i in pats:
-            lines[i] = ARM_PAT.replace("h_ltsl2⟩", f"h_ltsl2, {extra}⟩")
+            lines[i] = ARM_PAT.replace("_h_ssl2,", "_h_ssl2, _,")
     return "\n".join(lines)
 
 
@@ -304,26 +307,6 @@ def run_wide(base, verbose=True):
     return len(hits), sorted(hits)
 
 
-def run_reach(base, idxs, verbose=True):
-    """What the arms can spend once the splitter carries item 147's floor."""
-    widened = patch_split(base, real=True, repair=True)
-    ACC.write_text(widened)
-    ok, body = elaborate()
-    if not ok:
-        raise SystemExit("reach: the widened splitter does not elaborate:\n"
-                         + "\n".join(l for l in body.split("\n")
-                                     if ": error" in l)[:2000])
-    out = {}
-    for arm, li in zip(ARMS, idxs):
-        tac = f"exact h_floor147 ({COL_TERM[arm]}) h_noflow_prep"
-        ok_n, _ = probe_at(widened, li, FLOOR_TY, tac)
-        ok_a, _ = probe_at(widened, li, FLOOR_TY, "assumption")
-        out[arm] = "P" if ok_a else ("B" if ok_n else "O")
-        if verbose:
-            print(f"  {out[arm]}  {arm:16s} floor (widened splitter)", flush=True)
-    return out
-
-
 # ------------------------------------------------------------------------- pin
 
 BACKSLASH = chr(92)
@@ -373,7 +356,7 @@ def main():
     if len(idxs) != len(ARMS):
         sys.exit(f"expected {len(ARMS)} spends of `{SPEND}`, found {len(idxs)} "
                  "-- the arm population moved and this table is not about it")
-    cells = grid = reach = None
+    cells = grid = None
     lib = tree = None
     try:
         if which in ("bridge", "all"):
@@ -392,9 +375,6 @@ def main():
             # it reports is quoted rather than pinned.
             print("-- wide: the same flip over the tree, module repaired")
             tree, treenames = run_wide(base)
-        if which in ("reach", "all"):
-            print("-- reach: the floor once the splitter carries it")
-            reach = run_reach(base, idxs)
     finally:
         ACC.write_text(base)
     after = hashlib.md5(ACC.read_bytes()).hexdigest()
@@ -411,8 +391,7 @@ def main():
     got = (f"arms={','.join(ARMS)} ident={ident} "
            + " ".join(f"{n}=" + "".join(cells[(a, n)] for a in ARMS)
                       for n, _, _ in bridge_rows(ARMS[0]))
-           + f" lib={lib} "
-           + "reach=" + "".join(reach[a] for a in ARMS))
+           + f" lib={lib}")
     print("COORD-PRICE " + got)
     print(f"  library declarations broken: {', '.join(libnames)}")
 

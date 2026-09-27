@@ -240,9 +240,17 @@ def expectedAlphabet : String := "prodTyped=129 prodSurf=92 prodSpec=54"
     equation is spent for all three.  The fourth declaration of that source,
     `landing_on_stack_of_floor_eq`, holds NONE: it reads one state's own stack
     against one state's own column and names no scanner step, which is what
-    makes it the cheap end of the chain. -/
+    makes it the cheap end of the chain.
+
+    Item 272 adds one, `underRunEnd_landing_on_stack`, the composition that
+    applies that source at an arm holding the `[63]` failure located: it hands
+    the step equation on to `preprocess_landing_on_stack`, so it holds one.
+    Item 271's `underRunEnd_col_le_currentIndent` holds none and moves nothing
+    here — it reads the landing's column off the under-run and names no step,
+    which is the same reason `landing_on_stack_of_floor_eq` sits outside the
+    population. -/
 def expectedSteps : String :=
-  "stepHolders=1650 dispHolders=294 dispTwoCorr=28 fns=72 fnsIx=26"
+  "stepHolders=1651 dispHolders=294 dispTwoCorr=28 fns=72 fnsIx=26"
 
 /-- **The ladder, at each population.**  `edge` is a production whose right
     endpoint is the step's output; `chain` requires a path to it from another
@@ -276,10 +284,13 @@ def expectedChainSpec : List Name :=
     adds two holders of preprocessing's equation — the carrier's source and the
     dedent it reads it through — and neither carries a path, so only the first
     number moves.  Item 269 adds the third, `preprocess_floor_eq`, which is
-    where both of those now spend the equation; it carries no path either. -/
+    where both of those now spend the equation; it carries no path either.
+    Item 272 adds the fourth, `underRunEnd_landing_on_stack`, which hands the
+    equation to the source rather than reading a position off it — so it is a
+    holder and not a path, and the second number stays at six. -/
 def expectedPerFn : List String :=
   ["scanNextToken_dispatchContent decls=129 chain=1",
-   "scanNextToken_preprocess decls=189 chain=6"]
+   "scanNextToken_preprocess decls=190 chain=6"]
 
 /-- **The one worked precedent is outside the work.**  It is not in item 238's
     transitive set and not on either repair thread, so β.5 neither pays for it

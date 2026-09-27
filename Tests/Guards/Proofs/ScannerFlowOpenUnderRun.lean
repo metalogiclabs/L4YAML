@@ -1101,7 +1101,7 @@ noflow_prep=PPP park_col_ne0=OOO gate_gp=POO sibling_floor_prep=OOO"
 
 /-- **§11 What the coordinate costs** (`scripts/coordinate_price.py`).
 
-    Five probes, all by elaboration at the three sites that spend the ride.
+    Four probes, all by elaboration at the three sites that spend the ride.
 
     `ident` is the 3x3 matrix that fixes the arm NAMES: each of the three
     constructors declares a binder the other two do not, so a probe that merely
@@ -1112,29 +1112,26 @@ noflow_prep=PPP park_col_ne0=OOO gate_gp=POO sibling_floor_prep=OOO"
     `le`, `park_col_ne0` and `floor` each ask twice: once with `assumption`,
     which is item 270's question, and once with a NAMED derivation.  `P` is what
     the arm holds, `B` what it can derive from what it holds, `O` neither.
-    Reading `BBB BBB OOO`: both premises item 270 recorded as owed are
-    derivations the arm can write today, and the two of them do not become
-    cheaper or dearer with a carrier because neither is transported.
+    Reading `BBB BBB BBB`: none of the three is a fact the arm is handed and
+    all three are derivations it can write.  The first two are bridges off the
+    under-run's own location and off a constructor field; the third is the
+    conjunct `preprocess_some_separate_at_floor` carries (item 272), spent
+    against the park-column bridge above it and item 270's `noflow_prep`.
 
-    `lib` is the arity flip on `preprocess_some_separate_at_floor`, whose
-    under-run disjunct gains a component that is true everywhere and is
-    supplied in the splitter's own proof — so the census counts sites that must
-    now WRITE something, not sites where the fact is hard.  Compare item 268's
-    `gate=49`: the same question asked of the third premise costs ONE library
-    declaration, because all three arms live inside it.
-
-    `reach` is the real widening: the disjunct carries item 147's guarded floor,
-    which `preprocess_some_ssl_comments_anyCol` already proves and the splitter
-    already discards one line above the arm.  Every arm then spends it in one
-    application, using the park-column bridge for the first guard and item 270's
-    `noflow_prep` for the second.
+    `lib` is the arity flip on that splitter: its under-run disjunct gains a
+    component that is true everywhere and is supplied in the splitter's own
+    proof, so the census counts sites that must now WRITE something, not sites
+    where the fact is hard.  ONE library declaration, three sites, all inside
+    `accum_flow_open_depth0` — which is why item 270's table had to be taken at
+    the ARM and why this census cannot read three declarations.  Compare item
+    268's `gate=49`.
 
     The tree census is held out of this pin and out of the battery: it rebuilds
     every module that imports the patched one.  `coordinate_price.py wide`
     re-derives it. -/
 def expectedCoordPrice : String :=
   "arms=pendingProps,pendingBlock,pendingMapValue ident=diagonal le=BBB \
-park_col_ne0=BBB floor=OOO lib=1 reach=BBB"
+park_col_ne0=BBB floor=BBB lib=1"
 
 /-! ## §9 The rail that is not worth building, and the source that is
     (DOCS item 269)
@@ -1515,5 +1512,145 @@ private def bridgeControl : Nat × Nat × Nat × Nat × Nat := Id.run do
 
 #guard bridgeControl == (96, 96, 96, 0, 90)
 
+
+/-! ## §12 What the APPLIED source still owes (DOCS item 272)
+
+§11 priced the coordinate and item 272 landed it:
+`preprocess_some_separate_at_floor`'s under-run disjunct carries item 147's
+floor, so all three premises of `preprocess_landing_on_stack` are readable at
+the arm and `underRunEnd_landing_on_stack` returns its conclusion there.
+
+What that conclusion is, exactly, is a membership on the LANDING — the column
+preprocessing came to rest at, standing on the stack it came to rest with.
+What `ParkSlot.ofOpen` asks for is the same membership over the OPEN TOKEN's
+column, because both gates read the token's own position and not the park's
+cursor (§7).  The two are the same number at every cell of this family and the
+equation between them is carried by nothing: item 165's `h_optok` names the
+push and the token's kind and says nothing about its position.
+
+This section reads the two shapes, the equation between them and the gate a
+frame parked at the landing would carry, at the runtime, on the family and on
+the accepted boundary the family's own §4 supplies. -/
+
+/-- `(rows, the applied source's conclusion, the genesis's premise, the two are
+    the same column, §9.2's verdict at the LANDING's park, §9.2's verdict at
+    the state the step began with)`.
+
+    The second is what `underRunEnd_landing_on_stack` returns; the third is
+    what `ParkSlot.ofOpen` takes; the fourth is the equation between them, and
+    it is the one datum the arm cannot name.  The last two are read at the
+    OPEN's own step, three to five steps before the refusal (§5's
+    `distances`): a frame parked at the landing carries `GateOf (some s_prep)`
+    and its producer owes the verdict at `sc`.
+
+    The third and fourth are `carrierPark`'s own readings (§6), taken again
+    here rather than cited: the point of this tuple is that the two the arm can
+    derive and the one it cannot are read on ONE grid, against ONE control, so
+    which of them splits is a comparison and not a cross-reference. -/
+private def transportFacts : Nat × Nat × Nat × Nat × Nat × Nat := Id.run do
+  let mut rows := 0
+  let mut srcConcl := 0
+  let mut genesis := 0
+  let mut posEq := 0
+  let mut gateLanding := 0
+  let mut gateStep := 0
+  for outer in outers do
+    for kind in kinds do
+      for op in opens do
+        for p in indents do
+          for q in List.range (floorOf kind p) do
+            match openTriple (mk outer kind p q op) with
+            | none => pure ()
+            | some (sc, sp, s') =>
+              match openColOf s' with
+              | none => pure ()
+              | some c =>
+                rows := rows + 1
+                if hasCol sp sp.col then srcConcl := srcConcl + 1
+                if hasCol sp c then genesis := genesis + 1
+                if sp.col == c then posEq := posEq + 1
+                if (Scanner.danglingNodePos? sp).isNone then
+                  gateLanding := gateLanding + 1
+                if (Scanner.danglingNodePos? sc).isNone then
+                  gateStep := gateStep + 1
+  return (rows, srcConcl, genesis, posEq, gateLanding, gateStep)
+
+#guard transportFacts == (144, 144, 144, 144, 144, 144)
+
+/-- The same six one column to the RIGHT — at the park's floor, which §4
+    measures as the scanner's turnover and this branch never reaches.
+
+    **The two readings the arm can derive are the two that split, and the one
+    it cannot name is the one that does not.**  The membership reads 144 on the
+    family and ZERO here, in both shapes: §7's `acceptedParks` reads the open's
+    column standing on neither candidate park's stack at all 378 accepted
+    cells, and this is that reading at the boundary.  The position equation
+    reads all ninety-six — the bracket is written at preprocessing's cursor
+    whatever the landing did — so it is a fact about the dispatch and not about
+    this branch, which is exactly why no hypothesis of the branch carries it.
+
+    And the gate reads all ninety-six on both states in both families, which
+    says what gating the frame at the landing buys at THIS step: nothing.  The
+    verdict the close spends has to come from the slot. -/
+private def transportControl : Nat × Nat × Nat × Nat × Nat × Nat := Id.run do
+  let mut rows := 0
+  let mut srcConcl := 0
+  let mut genesis := 0
+  let mut posEq := 0
+  let mut gateLanding := 0
+  let mut gateStep := 0
+  for outer in outers do
+    for kind in kinds do
+      for op in opens do
+        for p in indents do
+          let q := floorOf kind p
+          match openTriple (mk outer kind p q op) with
+          | none => pure ()
+          | some (sc, sp, s') =>
+            match openColOf s' with
+            | none => pure ()
+            | some c =>
+              rows := rows + 1
+              if hasCol sp sp.col then srcConcl := srcConcl + 1
+              if hasCol sp c then genesis := genesis + 1
+              if sp.col == c then posEq := posEq + 1
+              if (Scanner.danglingNodePos? sp).isNone then
+                gateLanding := gateLanding + 1
+              if (Scanner.danglingNodePos? sc).isNone then
+                gateStep := gateStep + 1
+  return (rows, srcConcl, genesis, posEq, gateLanding, gateStep)
+
+#guard transportControl == (96, 0, 0, 96, 96, 96)
+
+/-! ### §12a What the applied source still owes, priced
+
+`scripts/transport_price.py`, battery stage 22c.  Six probes, read by
+elaboration at the three arms that spend `drop_ride`:
+
+* `source` — the membership `underRunEnd_landing_on_stack` returns, at the arm.
+* `hcol` — the same membership in the shape `ParkSlot.ofOpen` names it, over
+  the OPEN TOKEN's column, with the source offered as the derivation.  It is
+  refused at all three, and the elaborator's message is a type mismatch on the
+  column and nothing else.
+* `genesis` — `ParkSlot s_prep s' 0` at the arm GIVEN the position equation.
+  `B` says that equation is the only premise missing: the push, the token's
+  kind, the indent equality and the park's flow are all bound already.
+* `optok` — the ring.  Adding a conjunct to item 165's `h_optok` breaks THREE
+  sites in two declarations: the two call sites in `accum_step_flow` and the
+  props arm's own destructuring.  Against item 268's four rings — `gate=49
+  anchor=2 route=3 eof=1` — the ring an APPLIED source needs is none of them.
+* `pay` — the same ring PAID, with the two call sites supplying the column from
+  the lemma they already rewrite with (`scanFlow…Start_tokens` writes the token
+  at `currentPos`; the `allowDirectives` update preserves it).  `B` at all
+  three says the carrier's genesis is then available with no hypothesis and no
+  hole.
+* `frames` / `ride` — the second ring.  The declaration builds SEVEN frames,
+  and the one the under-run's open pushes is built by `drop_ride`, a single
+  `have` that precedes `cases h_pending`: none of the three arms' own binders
+  is in scope there, while a hypothesis of the declaration is.  A `have` has no
+  arity, so no flip in this repo can see that ring. -/
+
+def expectedTransportPrice : String :=
+  "source=BBB hcol=OOO genesis=BBB optok=3 pay=BBB frames=7 ride=0/3"
 
 end L4YAML.Tests.Guards.ScannerFlowOpenUnderRun

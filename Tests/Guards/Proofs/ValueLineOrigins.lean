@@ -906,8 +906,14 @@ def expectedPerPos : List String := [
   "param:question_open_map.h_explUp_chain writers=1 punt=0 stamp=0 built=1 unborn=0 dead=0 allHeld=0 someHeld=0 noneHeld=1 origins=[O69] ⊢ 0/1 held",
   "param:slotChainMap.up writers=3 punt=0 stamp=0 built=3 unborn=0 dead=0 allHeld=0 someHeld=0 noneHeld=3 origins=[O69] ⊢ 0/1 held"]
 def expectedUnborn : List String := []
+
+/-- **The origins' own line.**  `alts` counts the match alternatives the walk
+    crosses and `liteNodes` the term size it walks; item 272 moves both and
+    nothing else, because the under-run disjunct the three flow-open arms
+    destructure gains a sixth component — one alternative per arm, and the
+    terms that carry it. -/
 def expectedLine : String :=
-  "positions=47 packaged=7 packConsts=[ImplicitKeyPack,PropsKeyPack] rows=180 ctorRows=98 paramRows=82 packagedRows=29 punt=42 stamp=3 built=135 origins=70 originRows=38 route=23 frames=24 tail=0 other=7 concl=8 invariant=8 heldOrigins=40 allHeld=9 someHeld=39 noneHeld=73 unbornRows=0 relayedPunt=0 relayedStamp=10 relayedAbsurd=4 relayedFact=0 deadRows=0 unbornPos=0 rounds=4 follows=309 lets=549 lapps=645 alts=4309 nodes=12292 liteNodes=490876"
+  "positions=47 packaged=7 packConsts=[ImplicitKeyPack,PropsKeyPack] rows=180 ctorRows=98 paramRows=82 packagedRows=29 punt=42 stamp=3 built=135 origins=70 originRows=38 route=23 frames=24 tail=0 other=7 concl=8 invariant=8 heldOrigins=40 allHeld=9 someHeld=39 noneHeld=73 unbornRows=0 relayedPunt=0 relayedStamp=10 relayedAbsurd=4 relayedFact=0 deadRows=0 unbornPos=0 rounds=4 follows=309 lets=549 lapps=645 alts=4312 nodes=12292 liteNodes=491737"
 
 /-! ## §4 The reading -/
 

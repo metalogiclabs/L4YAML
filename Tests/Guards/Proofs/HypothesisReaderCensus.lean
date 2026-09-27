@@ -394,9 +394,19 @@ adds.**   `constants` counts the module's non-internal constants, generated ones
     premise of the chain that is taken apart rather than handed on.  The
     verdicts are read over both forms in one environment by this module's own
     classifier, not compared across two builds
-    (`scratchpad/l4yaml-beta5-item269/verdict.out`). -/
+    (`scratchpad/l4yaml-beta5-item269/verdict.out`).
+
+    Item 271 adds `underRunEnd_col_le_currentIndent` and item 272
+    `underRunEnd_landing_on_stack`, one declaration each: `constants` 1161 →
+    1163, `decls` 981 → 983.  The first holds six `Prop` binders, two of them
+    `READ` — `h_floor` and `hcorr`, each projected (`.2`, `.col_eq`) — and four
+    `RELAY`.  The second holds nine and every one relays, because the
+    declaration IS the composition: three go to
+    `preprocess_landing_on_stack` and six to the first.  So `READ` 1048 → 1050
+    and `RELAY` 2086 → 2099, with no other lane moving and the `UNUSED` roster
+    unchanged (`scratchpad/l4yaml-beta5-item272/verdict.out`). -/
 def expectedModuleTally : String :=
-  "constants=1162 decls=982 eta=369 FIELD=152 READ=1050 RELAY=2090 RETURN=48 UNUSED=9"
+  "constants=1163 decls=983 eta=369 FIELD=152 READ=1050 RELAY=2099 RETURN=48 UNUSED=9"
 
 def expectedUnused : List String :=
   [ "block_dispatch_deferred_inline#10 (_h_res)",

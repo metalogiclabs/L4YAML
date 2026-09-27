@@ -487,11 +487,15 @@ corrBlock=0 corrScan=1 via="]
     are two more holders of preprocessing's equation and cross nothing.  Item
     269 restates that source and the equation is spent once, at
     `preprocess_floor_eq`, which is a third holder that crosses nothing either,
-    so the ladder's last row reads 189 with its two crossings unmoved. -/
+    so the ladder's last row reads 189 with its two crossings unmoved.  Item
+    272 adds a fourth holder, the composition that applies the source at an arm
+    holding the `[63]` failure located; it hands the equation on rather than
+    reading a position off it, so the row reads 190 and both crossings are
+    still where item 242 left them. -/
 def expectedLadder : List String :=
   ["scanNextToken_dispatchBlockIndicators holders=97 edge=0 chain=0",
    "scanNextToken_dispatchContent holders=129 edge=2 chain=1",
-   "scanNextToken_preprocess holders=189 edge=17 chain=6"]
+   "scanNextToken_preprocess holders=190 edge=17 chain=6"]
 
 /-- **What §1's proofs spend.**  `drop=false` is the non-circularity check
     items 242 and 243 also carry: a measurement of what the escape costs may
