@@ -653,8 +653,13 @@ one unfolding, and §6 is the item where those two disagreed about binders. -/
     `ParkCore`, the carrier's own rides and two spends, the carrier's source and
     the two step facts it reads through — and the three projections the anchor's
     split nets, four inherited ones giving way to a parent projection and the
-    two payloads' own: **5273**. -/
-def expectedNoopTally : String := "theorems=5273 byElab=17 byWhnf=17 elabOnly=0 whnfOnly=0"
+    two payloads' own: **5273**.  Item 269 restates that source as four
+    declarations where item 267's form is two and retires `unwindIndents_pops`
+    from `Proofs.Scanner.PreprocessIndentStable`; this denominator is the whole
+    `L4YAML` namespace outside `Tests`, so it sees both sides of that and reads
+    **5274**.  None of the four has an `_ ∨ True` conclusion, which is why the
+    roster below does not move. -/
+def expectedNoopTally : String := "theorems=5274 byElab=17 byWhnf=17 elabOnly=0 whnfOnly=0"
 
 /-- The 27 item 227 measured, now **18**.  Item 228 narrowed six of
     `FlowKeyLift`'s ten — `plain_toKey`, `doubleQuoted_toKey`,

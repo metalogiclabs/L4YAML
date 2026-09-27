@@ -234,9 +234,15 @@ def expectedAlphabet : String := "prodTyped=129 prodSurf=92 prodSpec=54"
     (`preprocess_landing_on_stack`), the dedent it reads it through
     (`preprocess_pops_of_below`) and the `skipToContent` wrapper their proof
     spends.  None is a dispatch and both functions were already among the 72, so
-    only the first count moves. -/
+    only the first count moves.
+
+    Item 269 adds one more, `preprocess_floor_eq`, which is where the step
+    equation is spent for all three.  The fourth declaration of that source,
+    `landing_on_stack_of_floor_eq`, holds NONE: it reads one state's own stack
+    against one state's own column and names no scanner step, which is what
+    makes it the cheap end of the chain. -/
 def expectedSteps : String :=
-  "stepHolders=1649 dispHolders=294 dispTwoCorr=28 fns=72 fnsIx=26"
+  "stepHolders=1650 dispHolders=294 dispTwoCorr=28 fns=72 fnsIx=26"
 
 /-- **The ladder, at each population.**  `edge` is a production whose right
     endpoint is the step's output; `chain` requires a path to it from another
@@ -269,10 +275,11 @@ def expectedChainSpec : List Name :=
 /-- The two functions, with how many of their holders carry the path.  Item 267
     adds two holders of preprocessing's equation — the carrier's source and the
     dedent it reads it through — and neither carries a path, so only the first
-    number moves. -/
+    number moves.  Item 269 adds the third, `preprocess_floor_eq`, which is
+    where both of those now spend the equation; it carries no path either. -/
 def expectedPerFn : List String :=
   ["scanNextToken_dispatchContent decls=129 chain=1",
-   "scanNextToken_preprocess decls=188 chain=6"]
+   "scanNextToken_preprocess decls=189 chain=6"]
 
 /-- **The one worked precedent is outside the work.**  It is not in item 238's
     transitive set and not on either repair thread, so β.5 neither pays for it

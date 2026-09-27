@@ -245,27 +245,6 @@ lemma unwindIndents_shrink_or_eq (s : ScannerState) (col : Int) :
       (unwindIndents s col).indents = s.indents :=
   unwindIndentsLoop_shrink_or_eq s col s.indents.size
 
-/-- …and it POPS whenever its guard holds at entry (item 267).  §1b says which
-    of the two cases a caller is in only once the trailing-content check has
-    spoken; this says it from the other side, off the incoming stack alone,
-    which is what a landing known to be below the floor supplies. -/
-lemma unwindIndents_pops {s : ScannerState} {col : Int}
-    (hgt : col < s.currentIndent) (hsz : 1 < s.indents.size) :
-    (unwindIndents s col).indents.size < s.indents.size := by
-  unfold unwindIndents
-  obtain ⟨m, hm⟩ : ∃ m, s.indents.size = m + 1 := ⟨s.indents.size - 1, by omega⟩
-  rw [hm]
-  unfold unwindIndentsLoop
-  split
-  · refine Nat.lt_of_le_of_lt (unwindIndentsLoop_size_le _ _ _) ?_
-    have he : (s.emit .blockEnd).indents = s.indents := by simp [ScannerState.emit]
-    show ((s.emit .blockEnd).indents.pop).size < m + 1
-    rw [he, Array.size_pop]
-    omega
-  · rename_i hno
-    simp only [Bool.and_eq_true, decide_eq_true_eq, not_and] at hno
-    exact absurd (hno hgt (by omega)) (by omega)
-
 /-! ## §1c  Where the unwind STOPS (item 127)
 
 §1b says whether the loop popped.  This says where it came to rest, which is the

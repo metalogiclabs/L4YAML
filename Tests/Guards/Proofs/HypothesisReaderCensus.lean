@@ -377,9 +377,26 @@ adds.**   `constants` counts the module's non-internal constants, generated ones
     (`decls` 947 → 979).  Every moved lane is the new declarations' own
     (`READ` 1021 → 1047, `RELAY` 2002 → 2084, `eta` 364 → 369); `FIELD`,
     `RETURN` and `UNUSED` do not move, and the `UNUSED` roster below is
-    unchanged, which is what says no existing binder changed lane. -/
+    unchanged, which is what says no existing binder changed lane.
+
+    Item 269 restates that source at the landing's own resting floor, as a
+    chain of four declarations where item 267's form is two: `constants` 1159
+    → 1161 and `decls` 979 → 981 are the two arrivals, both holding a `Prop`
+    binder.  The walk is this module's alone — it is taken over the module
+    `colon_fires_implicit_key` belongs to — so the one retirement the item
+    makes, `unwindIndents_pops` in `Proofs.Scanner.PreprocessIndentStable`, is
+    outside it and moves nothing here.  `READ` 1047 → 1048 and `RELAY` 2084 →
+    2086 are the same thirteen binders, named: item 267's two declarations
+    carry ten `Prop` binders and every one relays; the four carry thirteen —
+    one at `landing_on_stack_of_floor_eq`, four at `preprocess_floor_eq`, four
+    at each of the two it feeds.  Exactly one is a `READ`,
+    `preprocess_floor_eq`'s `h_floor`, because item 147's disjunct is the only
+    premise of the chain that is taken apart rather than handed on.  The
+    verdicts are read over both forms in one environment by this module's own
+    classifier, not compared across two builds
+    (`scratchpad/l4yaml-beta5-item269/verdict.out`). -/
 def expectedModuleTally : String :=
-  "constants=1159 decls=979 eta=369 FIELD=152 READ=1047 RELAY=2084 RETURN=48 UNUSED=9"
+  "constants=1161 decls=981 eta=369 FIELD=152 READ=1048 RELAY=2086 RETURN=48 UNUSED=9"
 
 def expectedUnused : List String :=
   [ "block_dispatch_deferred_inline#10 (_h_res)",

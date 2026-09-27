@@ -1014,14 +1014,17 @@ private def openPair (input : String) :
     the incoming floor, the membership the carrier names, the indent stack
     unmoved, the stack popped)`.
 
-    `preprocess_landing_on_stack` takes four hypotheses and this reads three of
-    them plus its conclusion.  The second and third are the same flag at the two
-    states preprocessing reads it on, which is the whole finding: this family
-    crosses its break INSIDE the open's own step, so the flag is false on the
-    state the arm holds and true on the state the unwind consults.  The fifth
-    and the eighth are the same dedent counted two ways — the premise
-    `preprocess_pops_of_below` takes and the conclusion it draws — so neither
-    can pass vacuously, and the seventh is their complement. -/
+    Of `preprocess_landing_on_stack`'s premises this reads one — the landing
+    at or left of the floor the step began with — together with its
+    conclusion; the flag and the flow are what `scanNextToken_preprocess`
+    consults on the way, not what the lemma asks for.  The second and third
+    are the same flag at the two states preprocessing reads it on, which is
+    the whole finding: this family crosses its break INSIDE the open's own
+    step, so the flag is false on the state the arm holds and true on the
+    state the unwind consults.  The fifth and the eighth are the same dedent
+    counted two ways — the premise `preprocess_pops_of_below` takes and the
+    conclusion it draws — so neither can pass vacuously, and the seventh is
+    their complement. -/
 private def sourceFacts : Nat × Nat × Nat × Nat × Nat × Nat × Nat × Nat := Id.run do
   let mut rows := 0
   let mut nic := 0
@@ -1068,5 +1071,228 @@ private def sourceFacts : Nat × Nat × Nat × Nat × Nat × Nat × Nat × Nat :
     widening the gate that reads it costs FORTY-NINE.  A carrier-aware verdict
     therefore belongs on the route, not on `GateOf`. -/
 def expectedWirePrice : String := "gate=49 anchor=2 route=3 eof=1"
+
+/-! ## §9 The rail that is not worth building, and the source that is
+    (DOCS item 269)
+
+Item 268 measured that §8.1's check is held as a hypothesis by no declaration of
+the accumulation and left one instruction: thread it from
+`scanNextToken_accum_step` the way §9.2's is threaded.  §5 above already
+answered that, in prose, three items earlier — *both gates also run at the
+open's own step, on a state where the collection is not yet closed, so both say
+`.ok` there* — and §9.1 makes the answer a number.  The rail would deliver a
+reading that is true at every landing in the family for a reason that has
+nothing to do with the family, so it is not built.
+
+What IS built is the carrier's source, restated.  §9.2 reads the landing's own
+floor and finds it AT the landing's column at every one of the 144, which turns
+the membership into a projection of the state the arm is handed, against the
+control §9.2a supplies; §9.3 reads the indent-check flag on the two states
+preprocessing consults, beside a same-line control that holds the other
+answer. -/
+
+private def lastRealIsFlowClose (s : Scanner.ScannerState) : Bool :=
+  match Scanner.prevRealIdx? s.tokens s.tokens.size with
+  | none => false
+  | some i => s.tokens[i]!.val.isFlowClose
+
+/-- **§9.1 What a rail from the open would carry.**  `(rows, §8.1's check
+    succeeds at the OPEN, its position reading is `none` there, the landing is
+    ARMED there, the run's last real token is a flow close there, the position
+    reading is `some` at the state the scan died at, the last real token is a
+    flow close there, §9.2's position reading is `some` there)`.
+
+    The fourth component is what stops the third from passing vacuously:
+    `scanNextToken_checkFlowValueIndent` answers `.ok` outright when the landing
+    is not armed, and the landing is armed at every one of the 144 — so the
+    check LOOKS, and finds nothing.  The fifth says why it finds nothing, and it
+    is the whole reading: `underIndentedFlowValuePos?` reports only on a run
+    whose last real token is a flow CLOSE, and at the open the collection has
+    not been opened.  Three to five steps later the same function answers `some`
+    at exactly the ninety.
+
+    So a rail from `scanNextToken_accum_step` to the open's arm would carry a
+    true statement that discriminates nothing, and the datum the ninety die on
+    is not yet a fact when the rail's head runs.  A carrier is the only
+    transport that crosses those steps. -/
+private def railPayload : Nat × Nat × Nat × Nat × Nat × Nat × Nat × Nat := Id.run do
+  let mut rows := 0
+  let mut fvOk := 0
+  let mut posNone := 0
+  let mut armed := 0
+  let mut fcOpen := 0
+  let mut posSomeD := 0
+  let mut fcD := 0
+  let mut dnSomeD := 0
+  for outer in outers do
+    for kind in kinds do
+      for op in opens do
+        for p in indents do
+          for q in List.range (floorOf kind p) do
+            let inp := mk outer kind p q op
+            match openTriple inp, deathState inp with
+            | some (sc, sp, _), some sD =>
+              rows := rows + 1
+              match Scanner.scanNextToken_checkFlowValueIndent sc sp with
+              | .ok _ => fvOk := fvOk + 1
+              | _ => pure ()
+              if (Scanner.underIndentedFlowValuePos? sc).isNone then
+                posNone := posNone + 1
+              if sp.simpleKeyAllowed then armed := armed + 1
+              if lastRealIsFlowClose sc then fcOpen := fcOpen + 1
+              if (Scanner.underIndentedFlowValuePos? sD).isSome then
+                posSomeD := posSomeD + 1
+              if lastRealIsFlowClose sD then fcD := fcD + 1
+              if (Scanner.danglingNodePos? sD).isSome then dnSomeD := dnSomeD + 1
+            | _, _ => pure ()
+  return (rows, fvOk, posNone, armed, fcOpen, posSomeD, fcD, dnSomeD)
+
+#guard railPayload == (144, 144, 144, 144, 0, 90, 144, 54)
+
+/-- **§9.2 The landing's own floor.**  `(rows, the floor preprocessing leaves
+    EQUALS the landing's column, it is left of the column, it is right of the
+    column, the resulting stack has at most one entry, the landing is below the
+    floor the step BEGAN with, it is at that floor, it is above it)`.
+
+    The second is what `preprocess_floor_eq` concludes.  The third and fourth
+    complete the trichotomy and are therefore arithmetic and not evidence: with
+    the second at every row they cannot read anything else, and a grid that
+    never produces the other answer reports its own coverage.  `floorControl` is
+    the reading that carries the evidence.  The fifth refutes the sentinel
+    escape — `preprocess_landing_at_level`'s disjunct — at every row, so the
+    equality is read off a stack with a real top, and it is not forced by the
+    second.
+
+    The last three partition the same 144 by the floor the step BEGAN with: 54
+    land below it and 90 land exactly at it.  One premise spans both, because it
+    reads the floor the landing RESTS at rather than the floor it started from,
+    and `landing_on_stack_of_floor_eq` needs no scanner run to spend it. -/
+private def floorFacts : Nat × Nat × Nat × Nat × Nat × Nat × Nat × Nat := Id.run do
+  let mut rows := 0
+  let mut eq := 0
+  let mut lt := 0
+  let mut gt := 0
+  let mut small := 0
+  let mut below := 0
+  let mut atFloor := 0
+  let mut above := 0
+  for outer in outers do
+    for kind in kinds do
+      for op in opens do
+        for p in indents do
+          for q in List.range (floorOf kind p) do
+            match openTriple (mk outer kind p q op) with
+            | none => pure ()
+            | some (sc, sp, _) =>
+              rows := rows + 1
+              let c : Int := (sp.col : Int)
+              if sp.currentIndent == c then eq := eq + 1
+              if sp.currentIndent < c then lt := lt + 1
+              if sp.currentIndent > c then gt := gt + 1
+              if sp.indents.size <= 1 then small := small + 1
+              if c < sc.currentIndent then below := below + 1
+              if c == sc.currentIndent then atFloor := atFloor + 1
+              if c > sc.currentIndent then above := above + 1
+  return (rows, eq, lt, gt, small, below, atFloor, above)
+
+#guard floorFacts == (144, 144, 0, 0, 0, 54, 90, 0)
+
+/-- The same grid with the open on the park's OWN line, which is the control
+    §9.3 reads its flag against. -/
+private def mkSame (outer kind : String) (p : Nat) (op : String) : String :=
+  let pre := match outer, p with
+    | _, 0 => ""
+    | "map", _ => "w:\n"
+    | "seq", _ => "-\n"
+    | _, _ => "? w\n: v\nz:\n"
+  let body := match kind with
+    | "mapValue" => spaces p ++ "k:"
+    | "block" => spaces p ++ "-"
+    | "qmark" => spaces p ++ "?"
+    | _ => spaces p ++ "&a"
+  pre ++ body ++ " " ++ op ++ "\n"
+
+/-- **§9.2a The control for §9.2.**  The same grid with the open on the park's
+    own line — a family that reaches the same dispatch with no break to cross,
+    so the unwind does not run.  `(rows, the resting floor equals the landing's
+    column, it is left of the column, it is right of the column, the landing is
+    at or left of the floor the step began with)`.
+
+    The second is the answer §9.2 reads at all 144, and the control reads it at
+    NONE of its 96; the third is its opposite at every one.  So §9.2's equality
+    discriminates between two families rather than reporting a constant.  The
+    fifth is `preprocess_floor_eq`'s own premise `h_le`, and no control row
+    satisfies it: the line that separates the two answers is exactly the line
+    the premise draws, which is what makes it load-bearing and not
+    decoration. -/
+private def floorControl : Nat × Nat × Nat × Nat × Nat := Id.run do
+  let mut rows := 0
+  let mut eq := 0
+  let mut lt := 0
+  let mut gt := 0
+  let mut inDom := 0
+  for outer in outers do
+    for kind in kinds do
+      for op in opens do
+        for p in indents do
+          match openTriple (mkSame outer kind p op) with
+          | none => pure ()
+          | some (sc, sp, _) =>
+            rows := rows + 1
+            let c : Int := (sp.col : Int)
+            if sp.currentIndent == c then eq := eq + 1
+            if sp.currentIndent < c then lt := lt + 1
+            if sp.currentIndent > c then gt := gt + 1
+            if c <= sc.currentIndent then inDom := inDom + 1
+  return (rows, eq, lt, gt, inDom)
+
+#guard floorControl == (96, 0, 96, 0, 0)
+
+/-- **§9.3 The flag, on the state the unwind consults, against a control.**
+    `(rows, the line moves from the incoming state to the landing, the flag is
+    UP on the state `skipToContent` hands preprocessing, the flag is DOWN on the
+    landing, CONTROL rows, the control's line moves, the control's flag is up)`.
+
+    Read on the INCOMING state the flag stands at zero of the 144, which is
+    item 268's count.  These three say where it is instead: this
+    family crosses its break inside the open's own step, so the flag is raised
+    by the skip and cleared again by the unwind, and neither state the arm holds
+    shows it.  The control is the same grid with the open on the park's own
+    line — a family that reaches the same dispatch with no break to cross — and
+    it holds the opposite answer at every row, so the reading is a
+    discrimination and not a constant. -/
+private def lineSource : Nat × Nat × Nat × Nat × Nat × Nat × Nat := Id.run do
+  let mut rows := 0
+  let mut moved := 0
+  let mut flag := 0
+  let mut spDown := 0
+  let mut crows := 0
+  let mut cmoved := 0
+  let mut cflag := 0
+  for outer in outers do
+    for kind in kinds do
+      for op in opens do
+        for p in indents do
+          for q in List.range (floorOf kind p) do
+            match openTriple (mk outer kind p q op) with
+            | none => pure ()
+            | some (sc, sp, _) =>
+              rows := rows + 1
+              if sc.line != sp.line then moved := moved + 1
+              match Scanner.skipToContent sc with
+              | .ok sk => if sk.needIndentCheck then flag := flag + 1
+              | _ => pure ()
+              if sp.needIndentCheck == false then spDown := spDown + 1
+          match openTriple (mkSame outer kind p op) with
+          | none => pure ()
+          | some (sc, sp, _) =>
+            crows := crows + 1
+            if sc.line != sp.line then cmoved := cmoved + 1
+            match Scanner.skipToContent sc with
+            | .ok sk => if sk.needIndentCheck then cflag := cflag + 1
+            | _ => pure ()
+  return (rows, moved, flag, spDown, crows, cmoved, cflag)
+
+#guard lineSource == (144, 144, 144, 144, 96, 0, 0)
 
 end L4YAML.Tests.Guards.ScannerFlowOpenUnderRun

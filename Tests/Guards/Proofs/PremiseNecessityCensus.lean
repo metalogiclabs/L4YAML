@@ -220,10 +220,18 @@ payloads and adds the carrier's source, which is thirty-four new constants and
 thirty-two new binder holders; the peel scores their binders `FIELD` 170 → 171,
 `READ` 1057 → 1083, `RELAY` 1869 → 1949 and `RETURN` 127 → 128.  The `UNUSED`
 roster is unchanged, which is what says the lanes moved by the new
-declarations' own binders and not by a rescoring of an existing one. -/
+declarations' own binders and not by a rescoring of an existing one.
+
+    Item 269 restates that source as four declarations where item 267's form is
+    two, which is two more constants and two more holders, and the peel scores
+    their thirteen `Prop` binders exactly as the reader census does — `READ`
+    1083 → 1084 and `RELAY` 1949 → 1951, the one `READ` being
+    `preprocess_floor_eq`'s `h_floor`.  That the two classifiers agree on the
+    same thirteen is the reading: the peel and the reader differ on what a
+    binder is used FOR, and here there is nothing for them to differ about. -/
 
 def expectedModuleTallyP : String :=
-  "constants=1159 decls=979 eta=369 FIELD=171 READ=1083 RELAY=1949 RETURN=128 UNUSED=9"
+  "constants=1161 decls=981 eta=369 FIELD=171 READ=1084 RELAY=1951 RETURN=128 UNUSED=9"
 
 def expectedOptTallyP : String :=
   "total=163 ETA=34 FIELD=4 READ=85 RELAY=38 RETURN=2"

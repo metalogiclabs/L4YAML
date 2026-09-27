@@ -6071,89 +6071,105 @@ lemma preprocess_indents_eq_of_no_open_level {sc s_prep : ScannerState} {c : Cha
     rw [h_open] at h_any
     exact Bool.noConfusion h_any
 
-/-! ### The carrier's SOURCE, item 127's law read from below (item 267)
+/-! ### The carrier's SOURCE, read at the landing's own floor (items 267, 269)
 
 Item 146 above is the membership the carrier needs, stated contrapositively: a
-landing at no open level did not dedent.  What a flow open's arm holds is not
-"the stack moved" but "the landing is below the floor the step began with", and
-turning the second into the first is the one fact this section adds.  The unwind's
-guard is exactly that inequality, so an armed landing below the floor pops
-(`unwindIndents_pops`); the sentinel is what rules out a one-entry stack, where
-the guard stops with nothing popped.
+landing at no open level did not dedent.  Turning that into a source by routing
+it through the unwind — an armed landing below the floor the step began with
+must have popped — takes the indent-check flag as a premise, and preprocessing
+reads that flag on the state `skipToContent` hands it, not on the state the arm
+holds.  A flow open under-running its park crosses its break inside its own
+step, so the flag is down at every one of those landings and up at every one a
+function later: stated that way the law is true and cannot be applied.
+
+What the landing holds instead is its own floor.  Preprocessing leaves the top
+of the stack AT the landing's column — the unwind stops there, and the
+trailing-content check refuses a landing that popped and came to rest left of it
+— so the membership is a PROJECTION of the state the arm is handed rather than a
+consequence of the unwind's guard.  The upper premise is
+`preprocess_some_ssl_comments_anyCol`'s landed disjunct verbatim and the lower
+is a bound on the landing's own column; whether a given arm can supply the
+second is a measurement of that arm, not of this lemma.
 
 Neither lemma re-proves item 127's: the level a popping landing rests on, and
 that it is the landing's own column, is stated once, at
 `preprocess_landing_at_level`. -/
 
-/-- **An armed landing below the incoming floor DEDENTS** (item 267). -/
-lemma preprocess_pops_of_below {sc s_prep : ScannerState} {c : Char}
+/-- **A landing standing at its own floor stands ON the stack.**  `currentIndent`
+    IS the top entry's column, so the membership both gates read is that entry,
+    named — no scanner run, no preprocessing, no sentinel.  An empty stack
+    answers `-1`, which no column matches, so the hypothesis carries its own
+    non-emptiness. -/
+lemma landing_on_stack_of_floor_eq {s : ScannerState}
+    (h : s.currentIndent = (s.col : Int)) :
+    (s.indents.any fun e => e.column == (s.col : Int)) = true := by
+  cases hb : s.indents.back? with
+  | none =>
+    exfalso
+    simp only [ScannerState.currentIndent, hb] at h
+    omega
+  | some e =>
+    rw [Array.any_eq_true]
+    rw [Array.back?_eq_getElem?, Array.getElem?_eq_some_iff] at hb
+    obtain ⟨hlt, he⟩ := hb
+    refine ⟨s.indents.size - 1, hlt, ?_⟩
+    have hc : e.column = (s.col : Int) := by
+      rw [← h, ScannerState.currentIndent, Array.back?_eq_getElem?,
+        Array.getElem?_eq_some_iff.mpr ⟨hlt, he⟩]
+    rw [he, hc]; simp
+
+/-- **Preprocessing comes to rest AT the landing's own column.**  The upper
+    bound is `preprocess_some_ssl_comments_anyCol`'s landed disjunct, taken
+    verbatim so the premise is another lemma's conclusion rather than a claim
+    about what a consumer holds; its sentinel half costs nothing, because a
+    stack popped to its base sits at `-1` and no column reaches that.  The lower
+    bound is preprocessing's own: a landing that popped pays it to the
+    trailing-content check (`preprocess_indents_or_underIndent`), and one that
+    did not carries the incoming floor unchanged, where the caller's bound is
+    the whole reading. -/
+lemma preprocess_floor_eq {sc s_prep : ScannerState} {c : Char}
     (hok : scanNextToken_preprocess sc = .ok (some (s_prep, c)))
     (h_base : IndentStackBase.SentinelBase sc)
-    (h_flow : sc.inFlow = false)
-    (h_nic : sc.needIndentCheck = true)
-    (h_below : (s_prep.col : Int) < sc.currentIndent) :
-    s_prep.indents ≠ sc.indents := by
-  unfold scanNextToken_preprocess at hok
-  simp only [bind, Except.bind, pure, Except.pure] at hok
-  split at hok
-  · exact absurd hok (by simp)
-  · rename_i s_skip h_skip
-    have h_ind_skip : s_skip.indents = sc.indents :=
-      skipToContent_preserves_indents sc s_skip h_skip
-    have h_flow_skip : s_skip.inFlow = false := by
-      unfold ScannerState.inFlow at h_flow ⊢
-      rw [ScannerCorrectness.skipToContent_preserves_flowLevel sc s_skip h_skip]
-      exact h_flow
-    have h_nic_skip : s_skip.needIndentCheck = true :=
-      skipToContent_needIndentCheck_mono h_skip h_nic
-    have hcond : (!s_skip.inFlow && s_skip.needIndentCheck) = true := by
-      simp [h_flow_skip, h_nic_skip]
-    simp only [hcond, ite_true] at hok
-    split at hok
-    · exact absurd hok (by simp)
-    · split at hok
-      · exact absurd hok (by simp)
-      · split at hok
-        · exact absurd hok (by simp)
-        · simp only [Except.ok.injEq, Option.some.injEq, Prod.mk.injEq] at hok
-          obtain ⟨rfl, -⟩ := hok
-          have h_col : (saveSimpleKey
-              { unwindIndents s_skip (s_skip.col : Int) with needIndentCheck := false }).col
-              = s_skip.col := by
-            rw [saveSimpleKey_col]
-            exact unwindIndents_col s_skip _
-          rw [h_col] at h_below
-          have h_ci : s_skip.currentIndent = sc.currentIndent :=
-            currentIndent_of_indents_eq h_ind_skip
-          have h_base_skip : IndentStackBase.SentinelBase s_skip :=
-            IndentStackBase.SentinelBase.of_indents_eq h_base h_ind_skip
-          have h_two : 1 < s_skip.indents.size := by
-            rcases Nat.lt_or_ge 1 s_skip.indents.size with h2 | h2
-            · exact h2
-            · have := h_base_skip.currentIndent_of_size_le_one h2
-              omega
-          have h_lt : (s_skip.col : Int) < s_skip.currentIndent := by
-            rw [h_ci]; exact h_below
-          have h_pop := unwindIndents_pops (s := s_skip) h_lt h_two
-          rw [saveSimpleKey_preserves_indents, ← h_ind_skip]
-          intro heq
-          rw [heq] at h_pop
-          omega
+    (h_le : (s_prep.col : Int) ≤ sc.currentIndent)
+    (h_floor : s_prep.currentIndent ≤ (s_prep.col : Int) ∨
+      s_prep.indents.size ≤ 1) :
+    s_prep.currentIndent = (s_prep.col : Int) := by
+  have h_ge : (s_prep.col : Int) ≤ s_prep.currentIndent := by
+    rcases preprocess_indents_or_underIndent hok with h_eq | h
+    · rw [currentIndent_of_indents_eq h_eq]; exact h_le
+    · exact h
+  rcases h_floor with h | h_sz
+  · exact Int.le_antisymm h h_ge
+  · have h_sentinel := IndentStackBase.preprocess_base hok h_base
+    exact absurd (h_sentinel.currentIndent_of_size_le_one h_sz) (by omega)
 
-/-- **The carrier's source** (item 267): an armed landing below the incoming
-    floor stands on a level of the stack it lands with — item 146's law, read
-    through the dedent the floor supplies, in the form both gates take. -/
+/-- **The carrier's source** (items 267, 269): a landing at or left of the floor
+    the step began with, resting where item 147 says the unwind leaves it,
+    stands on a level of the stack it lands with — item 146's law read at the
+    landing's resting place, in the form both gates take. -/
 lemma preprocess_landing_on_stack {sc s_prep : ScannerState} {c : Char}
     (hok : scanNextToken_preprocess sc = .ok (some (s_prep, c)))
     (h_base : IndentStackBase.SentinelBase sc)
-    (h_flow : sc.inFlow = false)
-    (h_nic : sc.needIndentCheck = true)
+    (h_le : (s_prep.col : Int) ≤ sc.currentIndent)
+    (h_floor : s_prep.currentIndent ≤ (s_prep.col : Int) ∨
+      s_prep.indents.size ≤ 1) :
+    (s_prep.indents.any fun e => e.column == (s_prep.col : Int)) = true :=
+  landing_on_stack_of_floor_eq (preprocess_floor_eq hok h_base h_le h_floor)
+
+/-- **A landing strictly below the incoming floor DEDENTS**, read at the same
+    resting place: its floor is its own column, and a stack that had not moved
+    would still carry a floor the landing is below. -/
+lemma preprocess_pops_of_below {sc s_prep : ScannerState} {c : Char}
+    (hok : scanNextToken_preprocess sc = .ok (some (s_prep, c)))
+    (h_base : IndentStackBase.SentinelBase sc)
+    (h_floor : s_prep.currentIndent ≤ (s_prep.col : Int) ∨
+      s_prep.indents.size ≤ 1)
     (h_below : (s_prep.col : Int) < sc.currentIndent) :
-    (s_prep.indents.any fun e => e.column == (s_prep.col : Int)) = true := by
-  rcases hany : (s_prep.indents.any fun e => e.column == (s_prep.col : Int)) with _ | _
-  · exact absurd (preprocess_indents_eq_of_no_open_level hok h_base hany)
-      (preprocess_pops_of_below hok h_base h_flow h_nic h_below)
-  · rfl
+    s_prep.indents ≠ sc.indents := by
+  have h_eq := preprocess_floor_eq hok h_base (Int.le_of_lt h_below) h_floor
+  intro h_same
+  rw [currentIndent_of_indents_eq h_same] at h_eq
+  omega
 
 /-- **§9.2's landing refusal, spent at the accumulation** (item 139) — the
     contradiction items 132–134 were built to be read at, with all four of
@@ -11612,12 +11628,25 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
   --   producer -- while widening `GateOf` to read it costs forty-nine.  A
   --   carrier-aware verdict belongs on the route.
   --
-  -- And the carrier's source does not reach this arm: `preprocess_landing_on_stack`
-  -- takes `sc.needIndentCheck = true`, which is FALSE at all 144 and true at all
-  -- 144 one function later (`sourceFacts`) -- this family crosses its break
-  -- inside the open's own step -- while its other premise, the landing below the
-  -- incoming floor, holds at 54 of them.  The conclusion holds at all 144, so
-  -- the law is true and its premises are unavailable here.
+  --
+  -- **Item 269: the rail is a tautology, and the source is a projection.**
+  -- §8.1's check runs at THIS step too, and at every one of the 144 it looks --
+  -- the landing is armed -- and answers `.ok`, because
+  -- `underIndentedFlowValuePos?` reports only on a run whose last real token is
+  -- a flow CLOSE and the collection is not yet open.  Its position reading
+  -- turns `some` at exactly the ninety three to five steps later
+  -- (`ScannerFlowOpenUnderRun` §9.1), so the datum is not yet a fact when this
+  -- step runs: a rail carrying the check down from `scanNextToken_accum_step`
+  -- would deliver a true statement that discriminates nothing, and a carrier is
+  -- the only transport that crosses those steps.
+  --
+  -- The source `preprocess_landing_on_stack` reads the floor the landing RESTS
+  -- at rather than the one the step began with.  Preprocessing leaves the top of
+  -- the stack at the landing's own column at all 144 and at no other column
+  -- (§9.2), so the membership is a projection of the state this arm is handed.
+  -- It takes item 147's landed disjunct verbatim and a bound on the landing's
+  -- own column; the same membership read through the dedent reaches only the
+  -- 54 that pop.
   have drop_ride :
       ∃ sp_gram' sp_block' sp_flow' sp_scan',
         SLYamlStream sp_start sp_gram' ∧

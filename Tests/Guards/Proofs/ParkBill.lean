@@ -295,6 +295,13 @@ of input; §8.1 is held NOWHERE, at either depth.  So the fifty-four cells that
 die at §9.2 have a rail that already reaches the arm the carrier is born at, and
 the ninety that die at §8.1 — the majority — have no holder to reach.
 
+A zero here prices a rail; it does not order one.  What §8.1's check says at the
+arm the carrier is born at is measured separately (`ScannerFlowOpenUnderRun`
+§9.1) and it is a tautology there: the reading the ninety die on is not yet a
+fact when that step runs, so threading the check down to the arm would add two
+binders carrying nothing.  A hypothesis nothing holds and a hypothesis nothing
+could use are different findings, and only the second decides whether to build.
+
 **And the zero is a zero in this theorem, not a zero everywhere**: the same four
 names are held in the emitter-scannability chain too, §8.1's two checks eleven
 and fifteen times there.  A census that reported only the first four numbers
