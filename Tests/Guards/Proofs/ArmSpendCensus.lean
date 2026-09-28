@@ -175,10 +175,10 @@ def armEdges (anchor : Name) : CommandElabM (Array Edge × Nat) := do
     eight are consumers, and item 223's ledger named four of them. -/
 def expectedBinders : List String :=
   [ "loose accum_block_on_noPending#13 (h_arm)",
-    "loose accum_content_on_noPending#14 (h_park)",
+    "loose accum_content_on_noPending#15 (h_park)",
     "loose flowKeyRoute_of_open#14 (h_park)",
     "loose flowKeyRoute_of_root#9 (h_park)",
-    "loose keyctx_of_preprocess#11 (h_park)",
+    "loose keyctx_of_preprocess#12 (h_park)",
     "loose landing_or_park_save#6 (h_park)",
     "loose landing_or_park_ska#6 (h_park)",
     "loose preprocess_flow_thread#9 (h_park)",
@@ -209,7 +209,7 @@ def expectedBinders : List String :=
     v4.34.0 no longer generates the derived enum's `FrameTail.toCtorIdx`, the
     one refused constant that left the module. -/
 def expectedTally : String :=
-  "edges=85 skipped=30 DECLINE=16 FIELD=6 PAY=8 RELAY=23 VIA=32"
+  "edges=89 skipped=30 DECLINE=17 FIELD=6 PAY=9 RELAY=25 VIA=32"
 
 run_cmd do
   let env ← getEnv
@@ -240,7 +240,7 @@ run_cmd do
     door.  A projection is invisible to a census of `Or.inl`, which is why this
     row needs the resolver and not a grep. -/
 def expectedProjections : List String :=
-  [ "4 accum_block_on_closeThenBlock", "5 accum_block_on_pendingBlockContent" ]
+  [ "4 accum_block_on_closeThenBlock", "6 accum_block_on_pendingBlockContent" ]
 
 run_cmd do
   let (es, _) ← armEdges ``L4YAML.Proofs.StreamAccum.landing_or_park_ska

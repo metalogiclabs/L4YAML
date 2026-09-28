@@ -60,8 +60,11 @@ example {sc s_prep : ScannerState} {c : Char} {sp_start sp_scan sp_prep : SurfPo
     -- Item 157: the close carries the park's own face, and both arms of this
     -- route pay it from the very flag this pin is about.
     (h_close : danglingNodePos? sc = none →
+      underIndentedFlowValuePos? sc = none →
       ∀ sp_mid, SSLComments sp_scan sp_mid → SLYamlStream sp_start sp_mid)
     (h_dn : scanNextToken_checkDanglingNode sc s_prep = .ok ())
+    -- Item 275: §8.1's check rides beside §9.2's the whole way down.
+    (h_fv : scanNextToken_checkFlowValueIndent sc s_prep = .ok ())
     (h_corr : ScannerSurfCorr sc sp_scan)
     (hcorr_prep : ScannerSurfCorr s_prep sp_prep)
     (h_preprocess : scanNextToken_preprocess sc = .ok (some (s_prep, c)))
@@ -94,7 +97,7 @@ example {sc s_prep : ScannerState} {c : Char} {sp_start sp_scan sp_prep : SurfPo
   -- Item 136: the head face rides beside the suffix one; this pin is about the
   -- park's flag, so both punt here — and so do item 176's resume face and item
   -- 201's value-line twin beside it.
-  flowKeyRoute_of_root (m := 0) (Or.inr trivial) h_noflow h_park h_close h_dn h_corr
+  flowKeyRoute_of_root (m := 0) (Or.inr trivial) h_noflow h_park h_close h_dn h_fv h_corr
     hcorr_prep h_preprocess (Or.inr trivial) (Or.inr trivial) h_bare h_base
     (Or.inr trivial) (Or.inr trivial) (Or.inr trivial)
 

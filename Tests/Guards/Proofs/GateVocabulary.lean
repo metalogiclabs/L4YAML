@@ -65,12 +65,15 @@ namespace L4YAML.Tests.Guards.GateVocabulary
     three names: the step function whose check its rail measurement prices, the
     check itself, and the step function whose equation its restated source
     spends — six because the scan reads comments and the three new signatures
-    that name the last of those are code.  `unresolved` is what the check is for;
+    that name the last of those are code.  Item 275's add two, over the two
+    checks whose success it carries beside §9.2's; both resolve, and `names`
+    does not move because neither check is a new name to the prose.
+    `unresolved` is what the check is for;
     `mentions` is the population it was taken over, and a `mentions` that never
     moved would mean the scan had stopped seeing new prose.  (The names are not
     spelled here: this file is the one the scan skips, so a name written in this
     docstring would move `self` instead, for no reading.) -/
 def expectedGateVocab : String :=
-  "names=107 mentions=442 families=13 refuted=7 wrapped=3 self=2 unresolved=0"
+  "names=107 mentions=444 families=13 refuted=7 wrapped=3 self=2 unresolved=0"
 
 end L4YAML.Tests.Guards.GateVocabulary

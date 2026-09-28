@@ -250,7 +250,7 @@ def expectedAlphabet : String := "prodTyped=129 prodSurf=92 prodSpec=54"
     which is the same reason `landing_on_stack_of_floor_eq` sits outside the
     population. -/
 def expectedSteps : String :=
-  "stepHolders=1651 dispHolders=294 dispTwoCorr=28 fns=72 fnsIx=26"
+  "stepHolders=1653 dispHolders=294 dispTwoCorr=28 fns=72 fnsIx=26"
 
 /-- **The ladder, at each population.**  `edge` is a production whose right
     endpoint is the step's output; `chain` requires a path to it from another

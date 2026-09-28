@@ -238,7 +238,7 @@ declarations' own binders and not by a rescoring of an existing one.
     272's nine all relay, which is what a composition is. -/
 
 def expectedModuleTallyP : String :=
-  "constants=1163 decls=983 eta=369 FIELD=171 READ=1086 RELAY=1964 RETURN=128 UNUSED=9"
+  "constants=1165 decls=985 eta=369 FIELD=171 READ=1088 RELAY=1983 RETURN=129 UNUSED=9"
 
 def expectedOptTallyP : String :=
   "total=163 ETA=34 FIELD=4 READ=85 RELAY=38 RETURN=2"
@@ -320,12 +320,12 @@ The count is asserted beside the rows, because an empty shortlist that is not
 also counted passes vacuously. -/
 
 def expectedNineResolved : List String :=
-  [ "accum_block_on_pendingBlock#28 (h_seqF_old) => ELIM@L4YAML.Proofs.StreamAccum.accum_block_on_closeThenBlock#28>Or.casesOn#3",
-    "accum_block_on_pendingBlockContent#33 (h_seqF_old) => ELIM@L4YAML.Proofs.StreamAccum.accum_block_on_closeThenBlock#28>Or.casesOn#3",
-    "accum_block_on_pendingContent#31 (h_seqF168) => RETURN@L4YAML.Proofs.StreamAccum.accum_block_on_pendingContent#31",
+  [ "accum_block_on_pendingBlock#29 (h_seqF_old) => ELIM@L4YAML.Proofs.StreamAccum.accum_block_on_closeThenBlock#29>Or.casesOn#3",
+    "accum_block_on_pendingBlockContent#34 (h_seqF_old) => ELIM@L4YAML.Proofs.StreamAccum.accum_block_on_closeThenBlock#29>Or.casesOn#3",
+    "accum_block_on_pendingContent#32 (h_seqF168) => RETURN@L4YAML.Proofs.StreamAccum.accum_block_on_pendingContent#32",
     "accum_content_on_pendingMapValue_indented#14 (h_ncol_old) => FIELD@L4YAML.Proofs.StreamAccum.PendingNode.pendingProps#19",
     "colon_open_map#24 (h_cov_in) => FIELD@And.intro#2",
-    "flowKeyRoute_of_root#19 (h_tail143) => RETURN@L4YAML.Proofs.StreamAccum.flowKeyRoute_of_root#19",
+    "flowKeyRoute_of_root#20 (h_tail143) => RETURN@L4YAML.Proofs.StreamAccum.flowKeyRoute_of_root#20",
     "indicator_open_map#26 (h_ref_land) => ELIM@L4YAML.Proofs.StreamAccum.rootMapRouteF_or_refused#7>L4YAML.Proofs.StreamAccum.rootMapRouteF_or_refused.match_1_1#4, ELIM@L4YAML.Proofs.StreamAccum.rootMapRoute_or_refused#7>L4YAML.Proofs.StreamAccum.rootMapRoute_or_refused.match_1_1#4",
     "question_open_map#23 (h_cov_in) => FIELD@And.intro#2",
     "question_open_map#24 (h_cov_nil) => FIELD@And.intro#2" ]
@@ -339,9 +339,9 @@ def expectedRefTerminalsP : List String :=
 run_cmd do
   let env ← getEnv
   let nine : List (Name × Nat) :=
-    [ (``accum_block_on_pendingBlock, 28), (``accum_block_on_pendingBlockContent, 33),
-      (``accum_block_on_pendingContent, 31), (``accum_content_on_pendingMapValue_indented, 14),
-      (``colon_open_map, 24), (``flowKeyRoute_of_root, 19), (``indicator_open_map, 26),
+    [ (``accum_block_on_pendingBlock, 29), (``accum_block_on_pendingBlockContent, 34),
+      (``accum_block_on_pendingContent, 32), (``accum_content_on_pendingMapValue_indented, 14),
+      (``colon_open_map, 24), (``flowKeyRoute_of_root, 20), (``indicator_open_map, 26),
       (``question_open_map, 23), (``question_open_map, 24) ]
   if nine.length != expectedCoreTerminal.length then
     throwError "item 225's shortlist is no longer nine rows"

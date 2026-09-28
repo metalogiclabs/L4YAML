@@ -308,8 +308,8 @@ def expectedChainFaces : List String :=
    "PendingNode.pendingMapValue#15 (h_kslot)",
    "PendingNode.pendingProps#21 (h_kslot)",
    "accum_block_on_closeThenBlock#11 (h_vpack)",
-   "accum_block_on_pendingBlock#29 (h_kslotUp)",
-   "accum_block_on_pendingBlockContent#34 (h_kslotUp)",
+   "accum_block_on_pendingBlock#30 (h_kslotUp)",
+   "accum_block_on_pendingBlockContent#35 (h_kslotUp)",
    "accum_block_on_pendingContent#15 (h_vpack)",
    "accum_content_on_pendingBlock_indented#28 (h_kslotUp_old)",
    "accum_content_on_pendingMapValue_indented#17 (h_kslot)",
@@ -339,12 +339,12 @@ def expectedFidelity : String := "binders=163 surf=138 state=25"
     number and never larger. -/
 def expectedStateFaces : List String :=
   ["PreprocessIndentStable.IndentFloor.transport#3",
-   "accum_block_on_closeThenBlock#26", "bareNodeRoute_or_refused#11",
+   "accum_block_on_closeThenBlock#27", "bareNodeRoute_or_refused#11",
    "bareNodeRoute_or_refused_content#12", "colon_open_map#23", "colon_open_map#24",
    "content_dispatch_after_close#22", "content_dispatch_routed#24",
    "dedent_cover_of_landing#8", "dedent_cover_of_landing#9",
    "entryKeyPack_of_dispatch#17", "entryPropsKeyPack_of_dispatch#16",
-   "flowKeyRoute_of_root#19", "flowOpen_floor_at_prep#10", "flowOpen_stamp#4",
+   "flowKeyRoute_of_root#20", "flowOpen_floor_at_prep#10", "flowOpen_stamp#4",
    "frameChainUnion#1", "frameChainUnion#2", "indicator_open_map#26",
    "indicator_open_map#27", "question_open_map#22", "question_open_map#23",
    "question_open_map#24", "rootMapRouteF_or_refused#7",
@@ -462,7 +462,7 @@ def expectedWorthLedger : List String :=
    "splits=7 sup=1 inner h_closeF99 :: accum_content_on_pendingMapValue_indented#18",
    "splits=5 sup=11 inner h_vslot :: accum_block_on_closeThenBlock#12",
    "splits=5 sup=1 - h_seqF168 :: accum_content_on_pendingMapValue_indented#35",
-   "splits=4 sup=1 - h_closeFV_old :: accum_block_on_pendingBlock#30",
+   "splits=4 sup=1 - h_closeFV_old :: accum_block_on_pendingBlock#31",
    "splits=4 sup=1 - h_closeFV_old :: accum_content_on_pendingBlock_indented#29",
    "splits=4 sup=1 inner h_closeFV108 :: accum_content_on_pendingMapValue_indented#20",
    "splits=3 sup=4 - h_cov :: indicator_open_map#27",
@@ -472,27 +472,27 @@ def expectedWorthLedger : List String :=
    "splits=3 sup=1 - h_seqF_old :: accum_content_on_pendingBlock_indented#15",
    "splits=3 sup=1 - h_vslot :: accum_content_on_pendingMapValue_indented#16",
    "splits=3 sup=1 chain h_kslot :: accum_content_on_pendingMapValue_indented#17",
-   "splits=3 sup=1 chain h_kslotUp :: accum_block_on_pendingBlock#29",
+   "splits=3 sup=1 chain h_kslotUp :: accum_block_on_pendingBlock#30",
    "splits=3 sup=1 chain h_kslotUp_old :: accum_content_on_pendingBlock_indented#28",
-   "splits=2 sup=1 - h_closeFV_old :: accum_block_on_pendingBlockContent#36",
-   "splits=2 sup=1 inner h_closeF_old :: accum_block_on_pendingBlockContent#35",
+   "splits=2 sup=1 - h_closeFV_old :: accum_block_on_pendingBlockContent#37",
+   "splits=2 sup=1 inner h_closeF_old :: accum_block_on_pendingBlockContent#36",
    "splits=2 sup=1 inner h_routeF :: colon_open_map_implicit#12",
    "splits=2 sup=1 inner h_routeF :: colon_open_map_props#12",
    "splits=2 sup=1 inner h_routeFV :: colon_open_map_implicit#13",
    "splits=2 sup=1 inner h_routeFV :: colon_open_map_props#13",
-   "splits=1 sup=11 - h_mapF :: accum_block_on_closeThenBlock#29",
-   "splits=1 sup=11 - h_mapFV :: accum_block_on_closeThenBlock#31",
+   "splits=1 sup=11 - h_mapF :: accum_block_on_closeThenBlock#30",
+   "splits=1 sup=11 - h_mapFV :: accum_block_on_closeThenBlock#32",
    "splits=1 sup=11 - h_mk :: accum_block_on_closeThenBlock#21",
-   "splits=1 sup=11 - h_pr :: accum_block_on_closeThenBlock#30",
+   "splits=1 sup=11 - h_pr :: accum_block_on_closeThenBlock#31",
    "splits=1 sup=11 - h_sfx :: accum_block_on_closeThenBlock#20",
-   "splits=1 sup=11 - h_valFV :: accum_block_on_closeThenBlock#32",
+   "splits=1 sup=11 - h_valFV :: accum_block_on_closeThenBlock#33",
    "splits=1 sup=4 - h_expl :: explFrameValueLine#3",
    "splits=1 sup=1 - h_kslot :: accum_block_on_pendingBlockContent#16",
    "splits=1 sup=1 - h_resV_land :: question_open_map#27",
    "splits=1 sup=1 - h_routeS :: colon_open_map_implicit#27",
    "splits=1 sup=1 chain h_kslot :: colon_open_map_implicit#11",
    "splits=1 sup=1 chain h_kslot :: colon_open_map_props#11",
-   "splits=1 sup=1 chain h_kslotUp :: accum_block_on_pendingBlockContent#34"]
+   "splits=1 sup=1 chain h_kslotUp :: accum_block_on_pendingBlockContent#35"]
 
 /-- **What the mandate's instrument could have answered.**  Of the 36 pairs a
     narrowing would target, this many have a face a scanner-state census can
@@ -661,7 +661,7 @@ one unfolding, and §6 is the item where those two disagreed about binders. -/
     roster below does not move.  Item 271 adds the under-run's own column
     reading and item 272 the composition that spends it, one authored lemma
     each and neither with that conclusion: **5276**. -/
-def expectedNoopTally : String := "theorems=5276 byElab=17 byWhnf=17 elabOnly=0 whnfOnly=0"
+def expectedNoopTally : String := "theorems=5278 byElab=17 byWhnf=17 elabOnly=0 whnfOnly=0"
 
 /-- The 27 item 227 measured, now **18**.  Item 228 narrowed six of
     `FlowKeyLift`'s ten — `plain_toKey`, `doubleQuoted_toKey`,

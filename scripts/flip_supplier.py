@@ -90,9 +90,16 @@ _spec.loader.exec_module(flip210)
 # or a docstring rewrite re-aims the gate loudly instead of matching silently.
 # ---------------------------------------------------------------------------
 
-#: `close_with_ssl`'s stream premise, the line the new one goes beside.
+#: `close_with_ssl`'s stream premise, the line the new one goes beside.  The
+#: close carries BOTH silences since item 275, so the anchor spans the pair and
+#: a further one re-aims this gate rather than matching a prefix of it.
 SIG = ("    (h_stream : SLYamlStream sp_start sp_block)\n"
        "    (h_nd : danglingNodePos? sc = none)\n"
+       "    -- Item 275: §8.1's silence, relayed to `pendingContent`'s face."
+       "  Only that\n"
+       "    -- arm reads it; `pendingBlockContent`'s own `h_closable` is"
+       " unchanged.\n"
+       "    (h_ui : underIndentedFlowValuePos? sc = none)\n"
        "    (h_ssl : SSLComments sp_scan sp_mid) :\n"
        "    SLYamlStream sp_start sp_mid := by\n")
 
@@ -128,6 +135,7 @@ def _edit_weak(src: str) -> str:
                 "    (h_stream : SLYamlStream sp_start sp_block)\n"
                 "    (h_scan : SLYamlStream sp_start sp_scan)\n"
                 "    (h_nd : danglingNodePos? sc = none)\n"
+                "    (h_ui : underIndentedFlowValuePos? sc = none)\n"
                 "    (h_ssl : SSLComments sp_scan sp_mid) :\n"
                 "    SLYamlStream sp_start sp_mid := by\n")
     return _sub1(src, ARM,
@@ -295,7 +303,18 @@ def main() -> int:
 
     log_dir = Path(args.log_dir) if args.log_dir else None
     names = list(ENDS) if args.end == "all" else [args.end]
-    counts = {n: run_end(n, log_dir) for n in names}
+    # An anchor that no longer matches must cost ONE end, not the rest of the
+    # run: item 275 moved `close_with_ssl`'s signature and `weak` refused, which
+    # is the anchors-by-content rule working — but a bare comprehension took
+    # `field`, `retire` and `producer` down with it and the battery logged a
+    # single refusal where four measurements were owed.
+    counts, refused = {}, []
+    for n in names:
+        try:
+            counts[n] = run_end(n, log_dir)
+        except SystemExit as e:
+            refused.append(n)
+            print(f"END {n} REFUSED — re-aim this end; the others still ran\n{e}")
     lat = {n: c for n, c in counts.items() if n in LATTICE_ENDS}
     if len(lat) > 1:
         print("LATTICE " + "  ".join(f"{n}={c}" for n, c in lat.items()))
@@ -310,6 +329,9 @@ def main() -> int:
               "PROPAGATION only because the producer cannot derive the datum "
               "— Tests/Guards/Proofs/ProducerDerivation.lean is what "
               "establishes that, and without it this number measures nothing.")
+    if refused:
+        print(f"SUPPLIER-REFUSED {len(refused)}: {', '.join(refused)}")
+        return 1
     return 0
 
 

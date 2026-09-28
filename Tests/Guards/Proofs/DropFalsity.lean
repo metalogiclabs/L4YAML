@@ -346,7 +346,8 @@ lemma flowPark : PendingNode sc0 false ⟨['a'], 0⟩ ⟨['a'], 0⟩ ⟨['b','b'
     use the arm — it is the contrast §7 pins, and it is why the park above had
     to be checked. -/
 lemma close_with_ssl_reaches : SLYamlStream ⟨['a'], 0⟩ ⟨['b','b','b'], 0⟩ :=
-  PendingNode.close_with_ssl flowPark (stream_refl _) (by decide) (sslComments_refl _)
+  PendingNode.close_with_ssl flowPark (stream_refl _) (by decide) (by decide)
+    (sslComments_refl _)
 
 /-- …and the target is not a suffix of the source, by computation. -/
 example : ¬ ((['b','b','b'] : List Char) <:+ ['a']) := by decide

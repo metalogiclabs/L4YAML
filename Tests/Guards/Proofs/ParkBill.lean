@@ -286,23 +286,31 @@ mentions it, which is what it means to hold the check's success as a premise.
 
 The count is taken in the environment and not over the text.  A grep sees the
 name; it does not see whether the mention is a binder of the statement or a step
-of the proof, and those are the two halves this census has to separate — §8.1's
-success is DERIVED inside `scanNextToken_accum_step` and discarded on the next
-line, which a grep of that file reports as a mention exactly like a binder.
+of the proof, and those are the two halves this census has to separate: a check
+whose success is derived inside a proof and spent on the next line reads, to a
+grep of that file, exactly like a binder of the statement.
 
 **The reading.**  §9.2 is held twenty-one times mid-stream and five at the end
-of input; §8.1 is held NOWHERE, at either depth.  So the fifty-four cells that
-die at §9.2 have a rail that already reaches the arm the carrier is born at, and
-the ninety that die at §8.1 — the majority — have no holder to reach.
+of input; §8.1 sixteen and four.  The two run together: every accumulation
+declaration that holds §9.2's success in order to read a park's FACE holds
+§8.1's beside it, and both faces reach the close as premises of
+`pendingContent`'s `h_closable` (item 275).
 
-A zero here prices a rail; it does not order one.  What §8.1's check says at the
-arm the carrier is born at is measured separately (`ScannerFlowOpenUnderRun`
-§9.1) and it is a tautology there: the reading the ninety die on is not yet a
-fact when that step runs, so threading the check down to the arm would add two
-binders carrying nothing.  A hypothesis nothing holds and a hypothesis nothing
-could use are different findings, and only the second decides whether to build.
+**What the gap is.**  Six declarations hold §9.2's mid-stream check and not
+§8.1's, and two hold §9.2's end-of-input check and not §8.1's; one holds each
+of §8.1's and neither of §9.2's, which is what makes the columns 21/16 and 5/4
+rather than 21/15 and 5/3.  Those last two are the bridges that read a silence
+off a success — `underIndented_none_of_check` and `underIndented_none_of_eof`,
+whose §9.2 twins `dangling_none_of_check` and `dangling_none_of_eof` account
+for one of the six and one of the two.  The rest is the REFUTATION family:
+`propsPark_open_gate`, `propsPark_stale_dangling`, `propsPark_dangling_of_body`
+and `propsPark_dangling_of_prop` mid-stream with `danglingPark_refutes_landing`
+beside them, and `danglingPark_refutes_eof` at the end of input.  Each reads the
+dangling run in order to REFUTE a landing, and §8.1's floor has no twin for
+that use, so the gap is a difference in what the two verdicts are FOR rather
+than a rail left unbuilt.
 
-**And the zero is a zero in this theorem, not a zero everywhere**: the same four
+**And these counts are this theorem's, not the environment's**: the same four
 names are held in the emitter-scannability chain too, §8.1's two checks eleven
 and fifteen times there.  A census that reported only the first four numbers
 could not tell a check nothing holds from a check nothing mentions, and §9 is
@@ -318,7 +326,7 @@ def gateChecks : List (String × Name) :=
 def accumNs : Name := `L4YAML.Proofs.StreamAccum
 
 def expectedGateHolders : String :=
-  "dn/mid=21 dn/eof=5 fv/mid=0 fv/eof=0 | \
+  "dn/mid=21 dn/eof=5 fv/mid=16 fv/eof=4 | \
 elsewhere dn/mid=9 dn/eof=14 fv/mid=11 fv/eof=15"
 
 set_option maxHeartbeats 4000000 in

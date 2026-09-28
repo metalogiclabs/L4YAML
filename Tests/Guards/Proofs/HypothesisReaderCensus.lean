@@ -406,7 +406,7 @@ adds.**   `constants` counts the module's non-internal constants, generated ones
     and `RELAY` 2086 → 2099, with no other lane moving and the `UNUSED` roster
     unchanged (`scratchpad/l4yaml-beta5-item272/verdict.out`). -/
 def expectedModuleTally : String :=
-  "constants=1163 decls=983 eta=369 FIELD=152 READ=1050 RELAY=2099 RETURN=48 UNUSED=9"
+  "constants=1165 decls=985 eta=369 FIELD=152 READ=1050 RELAY=2120 RETURN=49 UNUSED=9"
 
 def expectedUnused : List String :=
   [ "block_dispatch_deferred_inline#10 (_h_res)",
@@ -527,12 +527,12 @@ third terminal, `SPLIT@Eq.ndrec#9`, is the pipe: item 226 peels it and two
 remain.) -/
 
 def expectedCoreTerminal : List String :=
-  [ "accum_block_on_pendingBlock#28 (h_seqF_old)",
-    "accum_block_on_pendingBlockContent#33 (h_seqF_old)",
-    "accum_block_on_pendingContent#31 (h_seqF168)",
+  [ "accum_block_on_pendingBlock#29 (h_seqF_old)",
+    "accum_block_on_pendingBlockContent#34 (h_seqF_old)",
+    "accum_block_on_pendingContent#32 (h_seqF168)",
     "accum_content_on_pendingMapValue_indented#14 (h_ncol_old)",
     "colon_open_map#24 (h_cov_in)",
-    "flowKeyRoute_of_root#19 (h_tail143)",
+    "flowKeyRoute_of_root#20 (h_tail143)",
     "indicator_open_map#26 (h_ref_land)",
     "question_open_map#23 (h_cov_in)",
     "question_open_map#24 (h_cov_nil)" ]

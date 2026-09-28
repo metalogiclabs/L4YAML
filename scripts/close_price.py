@@ -25,7 +25,9 @@ spend is applied.
     gate      the arity census of the wrapped premise on `gate`;
     close     the same on `gate_of_close` -- who must WRITE one;
     closable  the same on `PendingNode.pendingContent`'s `h_closable`, which
-              is where a second verdict on the close's own state would land.
+              is where a verdict on the close's own state lands -- the count of
+              sites a FURTHER one would cost, re-derived where item 275 paid
+              the second.
 
 The five probes are ONE insertion and ONE elaboration: they are separate
 declarations, so a refusal is reported against the probe that wrote it and the
@@ -179,17 +181,18 @@ GATE_HEAD = ("lemma FlowBaseAnchor.gate {g : Option ScannerState} "
 CLOSE_HEAD = ("lemma FlowBaseAnchor.gate_of_close {g : Option ScannerState} "
               "{s_bc s_cl : ScannerState}")
 #: `pendingBlockContent` carries a premise spelled the same way (item 159), so
-#: the anchor is the CONSTRUCTOR and the premise is found under it.
+#: the anchor is the CONSTRUCTOR and the premise is found under it.  The close
+#: carries BOTH verdicts since item 275, so the dummy lands after the second.
 PENDING_HEAD = "  | pendingContent (sp_start sp_block sp_scan : SurfPos)"
-CLOSABLE = "      (h_closable : danglingNodePos? sc = none → ∀ sp_mid,"
-CLOSABLE2 = "      (h_closable : danglingNodePos? sc = none → 0 = 0 → ∀ sp_mid,"
+CLOSABLE = "        underIndentedFlowValuePos? sc = none → ∀ sp_mid,"
+CLOSABLE2 = "        underIndentedFlowValuePos? sc = none → 0 = 0 → ∀ sp_mid,"
 
 
 def patch_closable(base):
     """A second verdict on the close's own state, where the first one lands."""
     lines = base.split("\n")
     i = _one(lines, PENDING_HEAD)
-    hits = [j for j in range(i, i + 12) if lines[j] == CLOSABLE]
+    hits = [j for j in range(i, i + 24) if lines[j] == CLOSABLE]
     assert len(hits) == 1, (
         f"expected one {CLOSABLE!r} under `pendingContent`, found {len(hits)}")
     lines[hits[0]] = CLOSABLE2

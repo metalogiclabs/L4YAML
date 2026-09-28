@@ -952,7 +952,7 @@ def expectedPerPos : List String := [
   "param:question_open_map.h_explUp_chain writers=1 punt=0 stamp=0 empty=0 relay=1 step=0 via=0 chain=0 route=0 frames=0 tail=0 other=0 alt=0 held=0 levelVar=0 none=0 touched=1",
   "param:slotChainMap.up writers=3 punt=0 stamp=0 empty=0 relay=1 step=0 via=0 chain=2 route=0 frames=0 tail=0 other=0 alt=0 held=0 levelVar=2 none=0 touched=3"]
 def expectedLine : String :=
-  "packs=11 framesOn=7 params=29 paramLemmas=19 apps=50 rows=151 ctorRows=74 paramRows=77 punt=42 stamp=3 empty=0 relay=36 step=1 via=12 chain=51 route=3 frames=1 tail=0 other=0 alt=2 held=11 levelVar=37 none=21 spendTail=3 lemmas=21 helpers=[explFrameValueLine,flowVPack_of_close,frameChainCons,frameChainOne,frameChainUnion] touched=109 nodes=12262"
+  "packs=11 framesOn=7 params=29 paramLemmas=19 apps=50 rows=151 ctorRows=74 paramRows=77 punt=42 stamp=3 empty=0 relay=36 step=1 via=12 chain=51 route=3 frames=1 tail=0 other=0 alt=2 held=11 levelVar=37 none=21 spendTail=3 lemmas=21 helpers=[explFrameValueLine,flowVPack_of_close,frameChainCons,frameChainOne,frameChainUnion] touched=109 nodes=12307"
 
 /-! ## §4 The reading -/
 
