@@ -1798,4 +1798,210 @@ def expectedRidePrice : String :=
   "slot=BBB floor=BBB prop_sc=BOO prop=OOO gated=OOO ride=4/1 add=2/2 \
    swap=3/3 choice=3/3 transport=9/7"
 
+/-! ## §14 What the CLOSE can pay for a reshaped carrier (DOCS item 274)
+
+§13 read what receives the carrier and recorded the next step: reshape
+`FlowBaseAnchor`'s `some` arm, because the close is where the shape is decided.
+The reshape's price is a count of declarations and §13 took it.  What it did
+not take is the question this section is: **what the slot branch of
+`FlowBaseAnchor.gate` can be closed with.**
+
+`GateOf (some sc0)` is `danglingNodePos? sc0 = none` — a reading on the PARK's
+state, which an anchor-carried frame relays from the close by an EQUATION
+(`ParkAnchor.dangling_eq`).  A slot-carried frame has no equation to relay: its
+two spends make a verdict FIRE, and which one fires is the `offersNodeSlot`
+partition §6 measured.  Where §9.2 fires, the verdict the slot returns is the
+one `GateOf` reads and it CONTRADICTS the close's own `h_closable`, so the gate
+is discharged by ex falso.  Where §8.1 fires, the verdict the slot returns is
+the other one, and nothing connects it to the goal.
+
+So the reshape's real price is arithmetical, and these are the two numbers it
+turns on. -/
+
+/-- The two states of the depth-0 CLOSE — the step that takes the flow level
+    from one back to zero — which are `FlowBaseAnchor.gate`'s own `s_bc` and
+    `s_cl`.  Every cell of the family reaches one (§5's `deathShape`: the
+    collection has closed at all 144 and dies three to five steps later). -/
+private def closePair (input : String) :
+    Option (Scanner.ScannerState × Scanner.ScannerState) := Id.run do
+  let mut s := start input
+  let mut fuel := input.utf8ByteSize * 4 + 8
+  while fuel > 0 do
+    fuel := fuel - 1
+    match Scanner.scanNextToken s with
+    | .error _ => return none
+    | .ok none => return none
+    | .ok (some s') =>
+      if s.flowLevel == 1 && s'.flowLevel == 0 then return some (s, s')
+      s := s'
+  return none
+
+/-- `(rows, §9.2 SILENT at the close, §9.2 FIRES there, §8.1 fires there, the
+    gate's own verdict at the park, the slot spend's run-start premise, the
+    anchor's field at the same park, the anchor's field where §8.1 fires)`.
+
+    The second and third are the halves of the reshape.  On the third the slot
+    branch closes by ex falso — `ParkSlot.dangling_fires` returns
+    `danglingNodePos? s_cl = some …` against the close's `h_closable`, which
+    says `none` — and on the second it does not, because the verdict that fires
+    there is the fourth column's and `GateOf` does not read it.  The second and
+    the fourth are the same cells counted two ways, which is what says the
+    split is the `offersNodeSlot` one and not an artifact of where the walk
+    stopped.
+
+    The fifth is `GateOf (some s_prep)` itself, read at the park a gated ride
+    would open over.  It is the column that decides whether gating the ride
+    RETIRES the drop or merely moves it: a premise that holds at every cell of
+    the family is satisfied rather than vacuous, and a route stated against it
+    still has to produce the stream.
+
+    The last two are the slot spend's own missing premise and the anchor's
+    field, and they must sum to the rows: `propsRunStart` walks back exactly
+    when the token in front of the open is a node property, so
+    `hst : propsRunStart s_cl.tokens sc0.tokens.size = sc0.tokens.size` is the
+    NEGATION of `ParkAnchor.parkProp`.  The two carriers of a `choice`
+    disjunction are therefore complementary on the very premise the slot's
+    spend needs.
+
+    The eighth is the containment those two leave open: the cells the slot's
+    §9.2 spend cannot reach for want of the run-start premise are exactly cells
+    its §8.1 spend does reach, so ONE carrier still covers the family — but
+    `propsRunStart` walks back at most two, so "props-headed implies offering"
+    is a fact about this family and not a law, and the coverage is measured
+    here rather than proved. -/
+private def closeGate : Nat × Nat × Nat × Nat × Nat × Nat × Nat × Nat := Id.run do
+  let mut rows := 0
+  let mut silent := 0
+  let mut dang := 0
+  let mut floorFires := 0
+  let mut gatePark := 0
+  let mut runAt := 0
+  let mut propAt := 0
+  let mut propOffer := 0
+  for outer in outers do
+    for kind in kinds do
+      for op in opens do
+        for p in indents do
+          for q in List.range (floorOf kind p) do
+            let inp := mk outer kind p q op
+            match openTriple inp, closePair inp with
+            | some (_, sp, _), some (_, scl) =>
+              rows := rows + 1
+              if (Scanner.danglingNodePos? scl).isNone then silent := silent + 1
+              if (Scanner.danglingNodePos? scl).isSome then dang := dang + 1
+              if (Scanner.underIndentedFlowValuePos? scl).isSome then
+                floorFires := floorFires + 1
+              if (Scanner.danglingNodePos? sp).isNone then
+                gatePark := gatePark + 1
+              if Scanner.propsRunStart scl.tokens sp.tokens.size
+                  == sp.tokens.size then
+                runAt := runAt + 1
+              match Scanner.prevRealIdx? sp.tokens sp.tokens.size with
+              | some k =>
+                if sp.tokens[k]!.val.isNodeProperty then
+                  propAt := propAt + 1
+                  if (Scanner.underIndentedFlowValuePos? scl).isSome then
+                    propOffer := propOffer + 1
+              | none => pure ()
+            | _, _ => pure ()
+  return (rows, silent, dang, floorFires, gatePark, runAt, propAt,
+    propOffer)
+
+#guard closeGate == (144, 90, 54, 90, 144, 126, 18, 18)
+
+/-- The same seven at the park's floor — §4's turnover, one column right, where
+    the scanner ACCEPTS.
+
+    Both verdicts are silent at every cell, which is what an accepted close
+    looks like and what says columns two through four above report this
+    family's deaths rather than the readings' defaults.  The last two split the
+    other way from the family's: the anchor's field holds at twenty-four here
+    and at eighteen there, and the slot spend's premise is its complement at
+    both. -/
+private def closeGateControl : Nat × Nat × Nat × Nat × Nat × Nat × Nat × Nat :=
+    Id.run do
+  let mut rows := 0
+  let mut silent := 0
+  let mut dang := 0
+  let mut floorFires := 0
+  let mut gatePark := 0
+  let mut runAt := 0
+  let mut propAt := 0
+  let mut propOffer := 0
+  for outer in outers do
+    for kind in kinds do
+      for op in opens do
+        for p in indents do
+          let q := floorOf kind p
+          let inp := mk outer kind p q op
+          match openTriple inp, closePair inp with
+          | some (_, sp, _), some (_, scl) =>
+            rows := rows + 1
+            if (Scanner.danglingNodePos? scl).isNone then silent := silent + 1
+            if (Scanner.danglingNodePos? scl).isSome then dang := dang + 1
+            if (Scanner.underIndentedFlowValuePos? scl).isSome then
+              floorFires := floorFires + 1
+            if (Scanner.danglingNodePos? sp).isNone then
+              gatePark := gatePark + 1
+            if Scanner.propsRunStart scl.tokens sp.tokens.size
+                == sp.tokens.size then
+              runAt := runAt + 1
+            match Scanner.prevRealIdx? sp.tokens sp.tokens.size with
+            | some k =>
+              if sp.tokens[k]!.val.isNodeProperty then
+                propAt := propAt + 1
+                if (Scanner.underIndentedFlowValuePos? scl).isSome then
+                  propOffer := propOffer + 1
+            | none => pure ()
+          | _, _ => pure ()
+  return (rows, silent, dang, floorFires, gatePark, runAt, propAt,
+    propOffer)
+
+#guard closeGateControl == (96, 96, 0, 0, 96, 72, 24, 0)
+
+/-! ### §14a What the close can pay, priced
+
+`scripts/close_price.py`, battery stage 22e.  Five rows read by elaboration —
+each a standalone probe of what `FlowBaseAnchor.gate`'s slot branch could be
+closed with, all five in ONE insertion and one elaboration, each carrying a
+null twin that must FAIL — and five censuses taken by flip:
+
+* `anchor` — the control: `gate`'s existing proof restated over `ParkAnchor`.
+  It must read `B`, or the four rows below are measuring the scaffolding.
+* `bare` — the slot branch from the premises `gate` has today: `O`.  Neither
+  slot spend applies without its offer premise and neither returns an equation,
+  so there is nothing to relay the close's verdict to the park's.
+* `nonoffer` — with §9.2's own two premises supplied: `B`, by ex falso.
+  `ParkSlot.dangling_fires` returns `danglingNodePos? s_cl = some …` and the
+  close's `h_closable` says `none`.
+* `offer` — with §8.1's premise instead: `O`.  The verdict that fires there is
+  the one `GateOf` does not read.
+* `floor` — `offer` plus the close's own §8.1 reading: `B`, again by ex falso.
+  So the missing datum is ONE reading on the close's own state, and item 268
+  found no declaration holding it at either depth.
+
+* `name` — the premise the slot branch needs, written over `sc0`, on `gate`
+  and on `gate_of_close`: `OO`.  Neither declaration binds the park — both
+  quantify `g : Option ScannerState` — so the premise cannot be STATED where
+  the spend is written, let alone where it is applied.
+* `wrap` — the same premise written over `g` (`∀ sc0, g = some sc0 → …`):
+  `BB`, which is the payable phrasing.
+* `gate` / `close` — who must WRITE one: `1/1` and `4/1`.  The premise on
+  `gate` reaches `gate_of_close` alone; on `gate_of_close` it reaches
+  `accum_step_flow` at four locations.
+* `apps` — the same declaration renamed rather than re-arited, which breaks
+  each application exactly once: `2`.  An arity census counts error LOCATIONS,
+  so the four above are the TWO base closes reported twice each — the flow
+  sequence end and the flow mapping end.
+* `closable` — a second verdict added where the first one lands,
+  `PendingNode.pendingContent`'s `h_closable`: **20 sites in 5 declarations**
+  (`content_dispatch_routed`, `accum_content_on_pendingMapValue_indented`,
+  `accum_content_pending`, `accum_step_flow`, `PendingNode.close_with_ssl`).
+  That is the route's bill arriving from the consumer's side, and it is item
+  268's `route=3` the way `3 + 7` was item 268's `anchor=2`. -/
+
+def expectedClosePrice : String :=
+  "anchor=B bare=O nonoffer=B offer=O floor=B name=OO wrap=BB gate=1/1 \
+   close=4/1 closable=20/5 apps=2"
+
 end L4YAML.Tests.Guards.ScannerFlowOpenUnderRun

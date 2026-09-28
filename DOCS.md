@@ -37197,8 +37197,9 @@ gate=49 anchor=2 route=3 eof=1`; `ARMTABLE cells=24 paid=10 owed=14`;
 `COORD-PRICE … le=BBB park_col_ne0=BBB floor=BBB lib=1`; `TRANSPORT-PRICE
 source=BBB hcol=OOO genesis=BBB optok=3 pay=BBB frames=7 ride=0/3`; and
 `GATEVOCAB names=107 mentions=442 families=13 refuted=7 wrapped=3 self=2
-unresolved=0`, re-run AFTER this entry landed and unmoved.  Zero stages `DID NOT
-REACH`, zero md5 `DIFFERS`.
+unresolved=0`, re-run after §13 landed and unmoved — that script reads the
+`.lean` sources rather than this file.  Zero stages `DID NOT REACH`, zero md5
+`DIFFERS`.
 
 **Twenty-three perturbations, every one caught, none declared vacuous.**
 Twelve move a component of one of the two sweeps by one.  Eight move the model
@@ -37278,13 +37279,242 @@ seven value-line resume faces by producers touched; and splitting stage 7's
 exit code, which reports a decorated rule name and a mis-numbered one under one
 failure (**11** and **8** of 19, at 100 % coverage).
 
-**Where it stands after item 273 (2026-09-27).**  Every number in this table
+### Item 274 (2026-09-27)
+
+**Reshape the frame's carrier, then the ride and `optok` together — measured,
+and the reshape is not the next ring either.**  `PRICED — no proof moved.`
+
+**§1 What the reshape has to buy, and where.**  Item 273 read what receives the
+carrier and chose the shape by counting producers: `choice` over `swap`,
+because `propsPark_open_gate` is the one producer of a gated frame on this
+branch and builds an anchor.  What that choice was made before is what the
+CONSUMER does with a disjunction.  `FlowBaseAnchor.gate` is the consumer:
+`GateOf (some sc0)` is `danglingNodePos? sc0 = none` — a verdict on the PARK's
+state — and an anchor-carried frame discharges it by relaying an EQUATION,
+`ParkAnchor.dangling_eq`.  A slot-carried frame has no equation; its two spends
+make a verdict FIRE.  Five probes, one insertion and one elaboration, each with
+a null twin that must fail (`scripts/close_price.py`, battery stage 22e):
+`anchor=B bare=O nonoffer=B offer=O floor=B`.
+
+**§2 The slot branch splits, and the split is the family's own.**  `bare=O`:
+the spend whose conclusion the goal names is `ParkSlot.dangling_fires`, and
+offered with `by assumption` standing where its own two premises would go it is
+refused at the first of them — the run-start equation — so the refusal names
+the missing datum rather than reporting a tactic nobody wrote.  Those two
+premises are one half of §6's `offersNodeSlot` partition.  Supply §9.2's half
+and the branch closes **by ex falso** (`nonoffer=B`) — `ParkSlot.dangling_fires`
+returns `danglingNodePos? s_cl = some …` and the close's own `h_closable` says
+`none`, so the gate is discharged from a contradiction rather than refuted.
+Supply §8.1's half instead and it does not (`offer=O`): the verdict that fires
+there is `underIndentedFlowValuePos?`, and `GateOf` does not read it.  Add the
+close's own §8.1 reading and the second half closes the same way (`floor=B`).
+
+The two rows that read `B` close by ex falso, so their premise sets are
+contradictory on purpose and asking whether they are vacuous is asking the
+wrong question — the contradiction is the reading.  What is worth asking is
+whether each half is realized, and the sweep answers it: the slot-side premises
+hold at 54 cells and at 90, and the close-side reading each contradicts is
+false at exactly those same cells.
+
+So the missing datum is exactly ONE reading, on the close's own state, and
+`closeGate == (144, 90, 54, 90, 144, 126, 18, 18)` says how the family divides
+over it: §9.2 is silent at **90** and fires at **54**, and §8.1 fires at
+exactly the 90 where §9.2 is silent.  The two together are silent at NO cell of
+the 144.
+
+**§3 The premise cannot be stated where the spend is written.**  `name=OO`.
+Neither `FlowBaseAnchor.gate` nor `FlowBaseAnchor.gate_of_close` binds the
+park: both quantify `g : Option ScannerState`, and `sc0` exists only inside the
+`cases g` in the proof.  Written over `sc0` the premise is refused with
+`lean.unknownIdentifier` at the signature itself; written over `g` as
+`∀ sc0, g = some sc0 → …` it is accepted (`wrap=BB`).  That is the payable
+phrasing and it costs `gate=1/1` and `close=4/1` — the premise on `gate`
+reaches `gate_of_close` alone, and on `gate_of_close` it reaches
+`accum_step_flow` at four locations.
+
+`apps=2` says what those four are.  An arity census counts error LOCATIONS, so
+a shifted argument list reports one application twice; renaming the declaration
+instead breaks each application exactly once, and the answer is **two** — the
+flow sequence end and the flow mapping end, item 268's two base closes.  The
+same distinction applies to any `N/D` in this log taken by arity.
+
+**§4 And the disjunction hands the slot branch nothing.**  `propsRunStart`
+walks back exactly when the token in front of the open is a node property, so
+the premise §9.2's spend needs —
+`hst : propsRunStart s_cl.tokens sc0.tokens.size = sc0.tokens.size` — is the
+**negation of `ParkAnchor.parkProp`**.  The sixth and seventh columns read
+**126** and **18**, complementary and summing to the 144: the two carriers a
+`choice` disjunction offers are opposed on the very premise the slot's spend
+needs, so a branch-blind case split gets a datum from neither side.
+
+What saves the coverage is the eighth column, and it is measured rather than
+proved: every one of the eighteen props cells is a cell where §8.1 fires
+(**18**), so `ParkSlot` ALONE refutes a doubly-silent close at all 144 — 90
+through §8.1 and 54 through §9.2.  `propsRunStart` walks back at most two, so
+"props-headed implies offering" is a fact about this family and not a law, and
+the derivation that would replace the measurement is not written here.
+
+**§5 The gate the ride would be given is true at every cell it admits.**
+`gatePark = 144`.  `GateOf (some s_prep)` — the premise a route stated against
+a parked ride would receive — holds at every cell of the family.  So gating the
+ride does not make its route vacuous: the route still has to produce the
+stream, and `dropClose` would move rather than retire.  The premise that IS
+false at every cell is the conjunction of the close's two silences, and it is a
+statement about the close's state, which no park-phrased gate can carry: §9.2's
+verdict relays by an equation and §8.1's does not.  Item 269's `railPayload`
+read §8.1's position as `none` at all 144 at the OPEN and `some` at the ninety
+at the state the scan DIED at, three to five steps later; the fourth column
+here reads it `some` at the same ninety already at the CLOSE, which is the
+earlier of those two states and the one the frame's spend stands on.
+
+**§6 The control, one column right.**  `closeGateControl ==
+(96, 96, 0, 0, 96, 72, 24, 0)`.  At the park's floor the close is reached at
+all 96 and BOTH verdicts are silent at every one — which is what an accepted
+close looks like, and what says columns two through four above report this
+family's deaths and not the readings' defaults.  The last two split 72/24, the
+same complementarity the other way up.
+
+**§7 So the recorded order is wrong at its first step, again, and the ring
+before it is now named.**  The reshape cannot be paid at the close until the
+close holds a second verdict, and that verdict lands where the first one does:
+`PendingNode.pendingContent`'s `h_closable`.  Its census is `closable=20/5` —
+**twenty sites in five declarations**: `content_dispatch_routed` (7),
+`accum_content_on_pendingMapValue_indented` (5), `accum_content_pending` (5),
+`accum_step_flow` (2) and `PendingNode.close_with_ssl` (1).  That is item 268's
+`route=3` arriving from the consumer's side, and it stands to it as item 273's
+`3 + 7` stands to item 268's `anchor=2`: the first number was taken against the
+definition, this one against the proofs that spend it.
+
+**§8 The rule.**  **A disjunction chosen to keep both producers is a producer's
+argument wearing a consumer's clothes.**  Its consumer receives a case SPLIT,
+not a datum, and a split pays only if every branch can spend; here the two
+branches are complementary on the one premise the spend needs (126 against 18),
+so neither branch hands it over.  Item 273's own §7 recorded that an order
+argued from what a ring BUYS is a guess until the consumer is priced — and
+chose the shape of the reshape one sentence later by counting producers.  The
+rule has to be applied to the shape of a definition as well as to the order of
+two rings.
+
+**§9 What did not move.**  No library file was touched;
+`accum_flow_open_depth0` still spends `dropClose` at all three live arms, DROP
+reads `SITES 2`, the β.5 fixpoint is unmoved, no runtime file changed and no
+pipeline output moved.  No census pin moved, for the same reason as item 273:
+a pricing item pays none of the wave that a widened statement costs.
+
+**§10 Gates and perturbations.**  The battery is **29** stages now: item 274
+adds **22e CLOSE PRICE**, which edits the source, restores it byte-identical
+and compares its table against the Lean pin the way 22a–22d do.  Build
+**1226**; `Verified: 4520/4520` (837/837); eventscore 347/358 with **0**
+error-miss; suiterunner 869/0/151; matrix 402/402 + 282/282 on both pipelines;
+annotations exit 1 (the standing 19); decline pins 7 + 18 + 6; axioms
+`[propext, Classical.choice, Quot.sound]` with `capstones=25 withSorryAx=0`;
+closure 230/355; 25 whitelisted `theorem` sites; counts **8767 / 8203 / 669 /
+8** — the two guards §14's own and every other count unmoved, which is what a
+pricing item looks like from the battery's side.  Every flip re-derived on this
+tree: `[210]` 5, SUPPLY 4, the supplier lattice weak 5 / field 1 / retire 7
+with the producer wave 4, DROP 2, CARRIER arm 2 / retire 5, and `ARMLINE
+control=7 arms=2 dead=5`.  The β.5 fixpoint reads `ROUNDS 23 SORRIED 13 DELETED
+3 PINSMOVED 37` with `FIX-PIN agrees`.  Every earlier price re-derived where it
+stood: `CARRIER-PRICE core=7 slot=7 prop=8 consumer=1 gate=1`; `WIRE-PRICE
+gate=49 anchor=2 route=3 eof=1`; `ARMTABLE cells=24 paid=10 owed=14`;
+`COORD-PRICE … le=BBB park_col_ne0=BBB floor=BBB lib=1`; `TRANSPORT-PRICE
+source=BBB hcol=OOO genesis=BBB optok=3 pay=BBB frames=7 ride=0/3`;
+`RIDE-PRICE slot=BBB floor=BBB prop_sc=BOO prop=OOO gated=OOO ride=4/1 add=2/2
+swap=3/3 choice=3/3 transport=9/7`; and `GATEVOCAB names=107 mentions=442
+families=13 refuted=7 wrapped=3 self=2 unresolved=0`, re-run after §14 landed
+and unmoved — that script reads the `.lean` sources rather than this file, so
+what it certifies is the guard section's own prose and not the entry's.  Zero
+stages `DID NOT REACH`, zero md5 `DIFFERS`.
+
+**Thirty-one perturbations.**  Sixteen move a component of one of the two
+sweeps by one.  Ten move the model behind them: which step the close is, which
+verdict each column reads, which state it is read on, which index the slot
+spend's premise is taken at, which reading the containment is taken against,
+and where the two populations stand.  Five move the instrument, and two of
+those encode mistakes this item actually made — a naming row that matched
+Lean's PROSE rather than its error class and read a refusal as an acceptance,
+and an application count taken by arity that read two spends as four.  The
+library is not perturbed, because item 274 changes none of it.
+
+**Thirty of the thirty-one are caught, and the thirty-first is declared
+vacuous with its reason.**  Reading the run-start column on the PARK's array
+rather than the close's leaves it at 126, because `propsRunStart` inspects only
+tokens BELOW the index it is given and the two arrays agree there — the close
+appends.  So the choice of array cannot move that column, and what pins it is
+the INDEX row beside it, which is caught.  The row was not predicted vacuous;
+it came back `NOT CAUGHT` on the first pass and was diagnosed, declared and
+re-run.  It is kept rather than deleted, because a reader who wonders whether
+column six depends on which array it is read on should find the answer
+recorded rather than absent.
+
+**§11 Predictions, scored.**  Sixteen
+(`scratchpad/l4yaml-beta5-item274/PREDICTION.md`): twelve before any instrument
+ran, and four added as the item went — each before the reading it names, and
+each saying so.  P13 was written after reading `propsRunStart`'s definition and
+before any sweep; P16 after the `close` census read four and before the rename
+that says what those four are.  The hit rate is the highest of the descent: **P1, P2, P3, P4, P6, P7, P8, P9, P10, P11, P13, P14,
+P15 and P16 confirmed**, several to the cell.  P6 named 90/54/90 and P13 named
+126 before either sweep existed; P16 was written after the `close` census read
+four and predicted the rename would read two.
+
+That is not a sign the item was easy.  It is what framing at the CONSUMER buys:
+item 273's rule was applied to the predictions themselves, and the readings
+that used to be guesses — which arm can build what, which premise is nameable
+where — became derivable from two facts already in the file.
+
+**P5 confirmed on what it measured and untested on the rest.**  It predicted
+`name=OO` and `wrap=BB` and both hold.  Its third clause — that the two call
+sites cannot DISCHARGE the wrapped premise — was not probed: the honest
+candidate at those sites is the frame's own anchor field, which proves the
+premise's negation rather than the premise, and §4's complementarity answers
+the question the probe would have asked.  A probe that offers a derivation its
+author expects to fail measures the author.
+
+**P12 half.**  Its rule — a premise must be nameable where the spend is
+applied — is true and is `name=OO`, but it is not the binding constraint: the
+binding constraint is arithmetical, and §8's rule is about the shape of the
+disjunction rather than about naming.
+
+**§12 What is left.**  **NEXT: carry §8.1's silence beside §9.2's at the
+close, and only then reshape the carrier.**  The order is forced by what is
+false: `GateOf`'s own verdict is TRUE at all 144 (`gatePark = 144`), so no
+park-phrased gate makes the ride's route vacuous, and the only premise false at
+every cell of the family is the pair of silences on the close's own state.  Its
+bill is `closable=20/5`, and what supplies it already exists: item 268 found
+§8.1's success derived once, at `scanNextToken_accum_step`, and discarded on
+the next line, while §9.2's twin is threaded into twenty-one signatures.  Item
+269 refused a rail carrying that check to the OPEN because it is a tautology
+there — `.ok` at all 144, the position reading `none` at all 144 — and the
+refusal does not transfer: the same reading is `some` at 90 of the 144 already
+at the CLOSE, earlier than the death state `railPayload` measured, so a rail
+whose head is the close's own step carries a datum that discriminates.
+
+Then the carrier, and the shape question is answered differently than item 273
+answered it: the refutation needs `ParkSlot` at all 144 (§4's containment) and
+`ParkAnchor` is what discharges the gate at every LEGITIMATE close, so the two
+are not alternatives for one consumer but carriers for two.  `choice` is still
+the definition's shape; what changes is that its slot branch is payable only
+after the close holds both verdicts, and `gate` grows no premise at all — the
+branch closes by ex falso off the second silence.  Then the ride parks at
+`some s_prep`, takes the slot the three arms can already build (`slot=BBB`),
+and its route is entered under a contradiction.
+
+Not priced here and still open: `preprocess_some_separate_at_anyCol`, the
+splitter's twin, drops the same conjunct at its own consumer; whether
+"props-headed implies offering" is a law or a fact about this family, which §4
+measures at 18 of 18 and does not prove; which disjunct `propsPark_open_gate`'s
+two arms open the frame at; item 264's three class carriers; item 262's
+recorded mandate; and splitting stage 7's exit code, which reports a decorated
+rule name and a mis-numbered one under one failure (**11** and **8** of 19, at
+100 % coverage).
+
+**Where it stands after item 274 (2026-09-27).**  Every number in this table
 is a gate's or a pin's, and the instrument that re-derives it is named beside
 it; the prose history is in the R3/R4 sections below and in the closure log.
 
 | row | state | the numbers, and where they come from |
 |---|---|---|
-| **R3** — delete `pendingFlow` and `scannerDrop` | OPEN | **The flip.**  `scannerDrop` is applied **twice** in the library — `dropClose` and `PendingNode.close_with_ssl`'s `pendingFlow` arm (`DropDependents.expectedDirect`, `D=4` with two guard exhibits) — and its flip breaks **2** definitions (`scripts/flip_drop.py`).  `block_dispatch_deferred`, `pendingFlow`'s only producer, is applied **9** times in **4** holders, and `KeyPackPunt`'s four reasons at **12** sites (`FlipConsumerSurface.lean`, DEFERRAL and PACK PUNT lanes).  **The bill, elaborated to a fixpoint** (`scripts/flip_beta5.py`, 23 rounds, clean): `sorried=13 restated=0 deleted=3 pins=37` — thirteen proofs, ONE statement (`dropClose`), and no other statement anywhere.  The five dead `\| pendingFlow` arms deleted for real leave `control=7 arms=2 dead=5` (`scripts/beta5_arms.py`, `ParkBill.expectedArms`); the closure over both deletions is **38** (`ParkBill.lean`: `Dp=9 Sp=0 Tp=31 T=26 extra=12`); the four supplier ends read weak **5** / field **1** / retire **7** / producer **4**.  **What is left is ONE obligation**: `accum_flow_open_depth0`'s `drop_ride`, taken by three live arms — `pendingProps`, `pendingBlock`, `pendingMapValue`.  Its branch is FALSE and not LOCALLY false: `sweep == (96, 96, 96, 0, 96)` puts the scanner's turnover at the park's floor in every cell, and `dispatchSweep == (198, 54, 54, 144, 90, 54)` with `distances == [3, 5]` splits the 198 landing columns below that floor into **54** preprocessing already refuses and **144** that dispatch the open and die three to five steps later — 90 at §8.1's floor, 54 at §9.2's dangling run, the same partition at both depths (`killSite == (144, 90, 54, 90, 54)`).  So no hypothesis of the lemma refutes it and the price is a CARRIER.  **The carrier is built** — `ParkCore` / `ParkAnchor` / `ParkSlot` with two spends, `carrier_price.py` reading `core=7 slot=7 prop=8 consumer=1 gate=1`.  **The wiring is priced**: `WIRE-PRICE gate=49 anchor=2 route=3 eof=1`, so a carrier-aware verdict belongs on the route and never on `GateOf`; §8.1's success is held by no declaration at either depth against §9.2's 21 and 5 (`ParkBill.lean` §5), which prices a rail and does not order one — and `railPayload == (144, 144, 144, 144, 0, 90, 144, 54)` refuses it, because the check already runs at the open's own step and answers `.ok` at all 144.  **The source is `preprocess_landing_on_stack`**, a projection of the state the arm is handed: `floorFacts == (144, 144, 0, 0, 0, 54, 90, 0)` against the control `floorControl == (96, 0, 96, 0, 0)`.  **What its three consumers hold**: `ARMTABLE cells=24 paid=10 owed=14` (`scripts/arm_price.py`, `expectedArmTable`), with `genesisFacts == (144, 144, 144, 144, 144, 90, 144)` reading every premise it asks for TRUE at every admitted input — so the debt is a coordinate, not a fact.  **The coordinate is CARRIED** (`scripts/coordinate_price.py`, `expectedCoordPrice`, battery stage 22b): `COORD-PRICE ident=diagonal le=BBB park_col_ne0=BBB floor=BBB lib=1`.  `preprocess_some_separate_at_floor`'s under-run disjunct returns item 147's landed floor, so all three premises are derivations the arm can write — two bridges and the carried conjunct — and `underRunEnd_landing_on_stack` returns `preprocess_landing_on_stack`'s conclusion at every arm.  The flip still breaks **one** library declaration (three sites, all inside `accum_flow_open_depth0`) against item 268's 49; `bridgeFacts == (144, 144, 144, 144, 144)` with `bridgeControl == (96, 96, 96, 0, 90)`.  **What the APPLIED source still owes** (`scripts/transport_price.py`, `expectedTransportPrice`, battery stage 22c): `TRANSPORT-PRICE source=BBB hcol=OOO genesis=BBB optok=3 pay=BBB frames=7 ride=0/3`.  One equation stands between the membership and `ParkSlot.ofOpen` — the OPEN TOKEN's column — and no hypothesis records it: the ring is a conjunct on item 165's `h_optok`, **3** sites in 2 declarations, none of item 268's four, and the two call sites already hold the datum (`pay=BBB`).  Behind it a second ring no arity flip reaches: `drop_ride` is one `have` built before `cases h_pending`, so none of the three arms' binders is in scope where the frame is made (`frames=7 ride=0/3`).  `transportFacts == (144, 144, 144, 144, 144, 144)` with `transportControl == (96, 0, 0, 96, 96, 96)`.  **Behind it**, the cover a refutation of the miss would spend is CLOSED down to **3** real punts (close-stack trees 16 / 6 / 15 / 2 / 2); what those lack is the field's BOTTOM, whose carrier is OPEN at **47** positions writing **180** rows that resolve to **70** origins at 38 rows, **40** holding the tail, with the whole `?` family — 18 positions, 55 rows — born at ONE origin that does not.  `gate_vocab.py` reads the prose against the environment at `names=107 mentions=442 families=13 refuted=7 wrapped=3 self=2 unresolved=0`.  **What RECEIVES the carrier** (`scripts/ride_price.py`, `expectedRidePrice`, battery stage 22d): `RIDE-PRICE slot=BBB floor=BBB prop_sc=BOO prop=OOO gated=OOO ride=4/1 add=2/2 swap=3/3 choice=3/3 transport=9/7`.  FOUR terms spend `drop_ride` and the frame they build has ONE carrier field, `FlowBaseAnchor g s' 0`, whose `some` arm names `ParkAnchor`.  With item 272's ring PAID both halves this family can build are free (`slot=BBB floor=BBB`) and the anchor's remaining field is derivable at NO arm — nameable only at the park `ParkCore.ofOpen` rejects (`prop_sc=BOO`) — and `carrierChoice == (144, 18, 144, 126, 0, 144)` reads it FALSE at **126** of the 144 against the slot's 144, with `carrierChoiceControl == (96, 24, 0, 0, 24, 96)` inverting at the boundary.  Reshaping the `some` arm costs **3 + 7** declarations, not item 268's 2: `swap` and `choice` each break `FlowBaseAnchor.gate`, `FlowBaseAnchor.transport` and `propsPark_open_gate`, and the funnel those sit on is spent by six more carrier lemmas (`transport=9/7`).  **NEXT:** reshape the frame's carrier, then the ride and `optok` together — `choice` is the shape that keeps both producers, `FlowBaseAnchor.gate` is where it is decided (its proof spends `ParkAnchor.dangling_eq`, an equation between two verdicts, where the slot's two spends make the verdict FIRE), and the close's two `gate_of_close` sites are where it is paid — item 268's `route=3` arriving from the consumer's side.  `preprocess_some_separate_at_anyCol` drops the same conjunct at its own consumer and is a separate bill. |
+| **R3** — delete `pendingFlow` and `scannerDrop` | OPEN | **The flip.**  `scannerDrop` is applied **twice** in the library — `dropClose` and `PendingNode.close_with_ssl`'s `pendingFlow` arm (`DropDependents.expectedDirect`, `D=4` with two guard exhibits) — and its flip breaks **2** definitions (`scripts/flip_drop.py`).  `block_dispatch_deferred`, `pendingFlow`'s only producer, is applied **9** times in **4** holders, and `KeyPackPunt`'s four reasons at **12** sites (`FlipConsumerSurface.lean`, DEFERRAL and PACK PUNT lanes).  **The bill, elaborated to a fixpoint** (`scripts/flip_beta5.py`, 23 rounds, clean): `sorried=13 restated=0 deleted=3 pins=37` — thirteen proofs, ONE statement (`dropClose`), and no other statement anywhere.  The five dead `\| pendingFlow` arms deleted for real leave `control=7 arms=2 dead=5` (`scripts/beta5_arms.py`, `ParkBill.expectedArms`); the closure over both deletions is **38** (`ParkBill.lean`: `Dp=9 Sp=0 Tp=31 T=26 extra=12`); the four supplier ends read weak **5** / field **1** / retire **7** / producer **4**.  **What is left is ONE obligation**: `accum_flow_open_depth0`'s `drop_ride`, taken by three live arms — `pendingProps`, `pendingBlock`, `pendingMapValue`.  Its branch is FALSE and not LOCALLY false: `sweep == (96, 96, 96, 0, 96)` puts the scanner's turnover at the park's floor in every cell, and `dispatchSweep == (198, 54, 54, 144, 90, 54)` with `distances == [3, 5]` splits the 198 landing columns below that floor into **54** preprocessing already refuses and **144** that dispatch the open and die three to five steps later — 90 at §8.1's floor, 54 at §9.2's dangling run, the same partition at both depths (`killSite == (144, 90, 54, 90, 54)`).  So no hypothesis of the lemma refutes it and the price is a CARRIER.  **The carrier is built** — `ParkCore` / `ParkAnchor` / `ParkSlot` with two spends, `carrier_price.py` reading `core=7 slot=7 prop=8 consumer=1 gate=1`.  **The wiring is priced**: `WIRE-PRICE gate=49 anchor=2 route=3 eof=1`, so a carrier-aware verdict belongs on the route and never on `GateOf`; §8.1's success is held by no declaration at either depth against §9.2's 21 and 5 (`ParkBill.lean` §5), which prices a rail and does not order one — and `railPayload == (144, 144, 144, 144, 0, 90, 144, 54)` refuses it, because the check already runs at the open's own step and answers `.ok` at all 144.  **The source is `preprocess_landing_on_stack`**, a projection of the state the arm is handed: `floorFacts == (144, 144, 0, 0, 0, 54, 90, 0)` against the control `floorControl == (96, 0, 96, 0, 0)`.  **What its three consumers hold**: `ARMTABLE cells=24 paid=10 owed=14` (`scripts/arm_price.py`, `expectedArmTable`), with `genesisFacts == (144, 144, 144, 144, 144, 90, 144)` reading every premise it asks for TRUE at every admitted input — so the debt is a coordinate, not a fact.  **The coordinate is CARRIED** (`scripts/coordinate_price.py`, `expectedCoordPrice`, battery stage 22b): `COORD-PRICE ident=diagonal le=BBB park_col_ne0=BBB floor=BBB lib=1`.  `preprocess_some_separate_at_floor`'s under-run disjunct returns item 147's landed floor, so all three premises are derivations the arm can write — two bridges and the carried conjunct — and `underRunEnd_landing_on_stack` returns `preprocess_landing_on_stack`'s conclusion at every arm.  The flip still breaks **one** library declaration (three sites, all inside `accum_flow_open_depth0`) against item 268's 49; `bridgeFacts == (144, 144, 144, 144, 144)` with `bridgeControl == (96, 96, 96, 0, 90)`.  **What the APPLIED source still owes** (`scripts/transport_price.py`, `expectedTransportPrice`, battery stage 22c): `TRANSPORT-PRICE source=BBB hcol=OOO genesis=BBB optok=3 pay=BBB frames=7 ride=0/3`.  One equation stands between the membership and `ParkSlot.ofOpen` — the OPEN TOKEN's column — and no hypothesis records it: the ring is a conjunct on item 165's `h_optok`, **3** sites in 2 declarations, none of item 268's four, and the two call sites already hold the datum (`pay=BBB`).  Behind it a second ring no arity flip reaches: `drop_ride` is one `have` built before `cases h_pending`, so none of the three arms' binders is in scope where the frame is made (`frames=7 ride=0/3`).  `transportFacts == (144, 144, 144, 144, 144, 144)` with `transportControl == (96, 0, 0, 96, 96, 96)`.  **Behind it**, the cover a refutation of the miss would spend is CLOSED down to **3** real punts (close-stack trees 16 / 6 / 15 / 2 / 2); what those lack is the field's BOTTOM, whose carrier is OPEN at **47** positions writing **180** rows that resolve to **70** origins at 38 rows, **40** holding the tail, with the whole `?` family — 18 positions, 55 rows — born at ONE origin that does not.  `gate_vocab.py` reads the prose against the environment at `names=107 mentions=442 families=13 refuted=7 wrapped=3 self=2 unresolved=0`.  **What RECEIVES the carrier** (`scripts/ride_price.py`, `expectedRidePrice`, battery stage 22d): `RIDE-PRICE slot=BBB floor=BBB prop_sc=BOO prop=OOO gated=OOO ride=4/1 add=2/2 swap=3/3 choice=3/3 transport=9/7`.  FOUR terms spend `drop_ride` and the frame they build has ONE carrier field, `FlowBaseAnchor g s' 0`, whose `some` arm names `ParkAnchor`.  With item 272's ring PAID both halves this family can build are free (`slot=BBB floor=BBB`) and the anchor's remaining field is derivable at NO arm — nameable only at the park `ParkCore.ofOpen` rejects (`prop_sc=BOO`) — and `carrierChoice == (144, 18, 144, 126, 0, 144)` reads it FALSE at **126** of the 144 against the slot's 144, with `carrierChoiceControl == (96, 24, 0, 0, 24, 96)` inverting at the boundary.  Reshaping the `some` arm costs **3 + 7** declarations, not item 268's 2: `swap` and `choice` each break `FlowBaseAnchor.gate`, `FlowBaseAnchor.transport` and `propsPark_open_gate`, and the funnel those sit on is spent by six more carrier lemmas (`transport=9/7`).  **What the CLOSE can pay for it** (`scripts/close_price.py`, `expectedClosePrice`, battery stage 22e): `CLOSE-PRICE anchor=B bare=O nonoffer=B offer=O floor=B name=OO wrap=BB gate=1/1 close=4/1 closable=20/5 apps=2`.  The slot branch of `FlowBaseAnchor.gate` closes by EX FALSO where §9.2 fires and not at all where §8.1 does, and one reading on the close's own state closes the other half (`floor=B`).  `closeGate == (144, 90, 54, 90, 144, 126, 18, 18)`: §9.2 is silent at 90 and fires at 54, §8.1 fires at exactly the 90, the two are silent together at NO cell, and `GateOf`'s own verdict at the park is TRUE at all **144** — so no park-phrased gate makes a parked ride's route vacuous.  The premise §9.2's spend needs is the NEGATION of `ParkAnchor.parkProp` (126 against 18, summing to the 144), so a `choice` disjunction hands its consumer a case split whose two branches are opposed on it; the eighteen are covered by §8.1 instead (the eighth column, 18 of 18, measured and not proved).  Neither `gate` nor `gate_of_close` can STATE a premise about the park (`name=OO`, both quantify `g`), the payable phrasing is over `g` (`wrap=BB`), and `apps=2` says the arity census's four locations are TWO applications — item 268's two base closes.  The second verdict's own bill, taken where the first one lands (`PendingNode.pendingContent`'s `h_closable`), is `closable=20/5`: twenty sites in five declarations.  `closeGateControl == (96, 96, 0, 0, 96, 72, 24, 0)` has both verdicts silent at all 96.  **NEXT:** carry §8.1's silence beside §9.2's at the close (`closable=20/5`), and only then reshape the carrier.  The order is forced by what is FALSE: the pair of silences is the only premise false at every cell of the family, and item 269's refusal of a rail does not transfer — the reading it called a tautology at the open (`.ok` at all 144) is `some` at 90 at the close.  Then `choice`, whose slot branch needs no premise once the close holds both verdicts, and then the ride parks at `some s_prep` and takes the slot the three arms already build (`slot=BBB`).  `preprocess_some_separate_at_anyCol` drops the same conjunct at its own consumer and is a separate bill. |
 | **R4** — narrow `[210]` (`implicitContinue`'s slot, `GOpt SLAnyDocument` → `GOpt SLExplicitDocument`) | OPEN, **behind R3** | The flip breaks **5** definitions (`scripts/flip_210.py`) — the flip's own WORK, constant since item 166.  What a payment moves is the consumer surface: **1** raw holder / 1 application and **7** guard holders / 14 applications (`FlipConsumerSurface`, RAW ROUTES + GUARDS lanes), in three classes — refutable arms, three missing routes, and `pendingFlow`, which no field can pay (item 183).  The third class is why R4 lands after R3's deletion; the refutable arms and the three routes are ORDERED after it by item 183, not blocked by it.  1d (`0 < m`) is CLOSED (item 179). |
 | **Step 5** — the converse `grammar_completeness` | **NOT STARTED** | No declaration of that name exists under `L4YAML/` or `Tests/`, and no item of the closure log is Step 5's.  It is unprovable, not merely unproved, while either over-approximation stands: `inYamlLanguage_everything : ∀ s, InYamlLanguage s` compiles today (`Tests/Guards/Proofs/SuffixGapAudit.lean` §5, item 236), and `implicitContinue` admits `- "a"⏎  - b` (item 30). |
 | **Step 6** — `parse_iff_grammar` | NOT STARTED | After Step 5. |
@@ -37294,12 +37524,12 @@ Step 5 → Step 6**.  Starting R4's flip before R3 re-runs item 183's
 measurement and stops at `pendingFlow`; starting Step 5 before R4 states a
 theorem that is false as stated.
 
-#### The descent behind R3, item by item (241–273)
+#### The descent behind R3, item by item (241–274)
 
 Each row is one item: the question it was given, what its instrument read, and
 whether the library's proofs moved.  The full prose for every row is the
 closure log's own `### Item <n>` entry above; this table exists so the
-trajectory is readable without it.  **Eight of the thirty-three moved a proof** —
+trajectory is readable without it.  **Eight of the thirty-four moved a proof** —
 items 256–259, the six cover payments, item 267, which built the carrier, item
 269, which restated it, item 271, which bridged its lower premise, and item
 272, which carried its third; the other twenty-four are measurements, and carrying them is what the log is for —
@@ -37352,6 +37582,7 @@ records.
 | 271 | what does that coordinate cost? | **two of the three premises cost NOTHING** — `COORD-PRICE ident=diagonal le=BBB park_col_ne0=BBB floor=OOO lib=1 reach=BBB`.  `h_le` is derived at the arm from its own LOCATED under-run (`j < n` spaces off a column-0 line start) and its own `IndentFloor`; the park column is one step from a field each of the three constructors declares, so item 270's OWED there was a reading of `assumption` and not of the arm.  Item 147's floor is the only real debt, and it is a component `preprocess_some_separate_at_floor` PROVES and discards: the arity flip breaks **5** sites in **1** library declaration against item 268's 49, and carried, every arm spends it in one application.  `bridgeFacts == (144, 144, 144, 144, 144)` with `bridgeControl == (96, 96, 96, 0, 90)`; the third arm's name was wrong in a shipped instrument (`pendingMapValue`, not `pendingContent`). | yes — one lemma in | `scripts/coordinate_price.py` + `ScannerFlowOpenUnderRun.lean` §11; 19 perturbations |
 | 272 | which ring does an APPLIED source need? | **none of item 268's four — a conjunct on item 165's own hypothesis.**  The splitter carries item 147's floor now, so `COORD-PRICE … le=BBB park_col_ne0=BBB floor=BBB lib=1` and `underRunEnd_landing_on_stack` returns the membership at all three arms (`source=BBB`).  What `ParkSlot.ofOpen` asks for is that membership over the OPEN TOKEN's column, and `h_optok` names the push and the KIND and not the position: `hcol=OOO` — the right derivation refused with a type mismatch on the column at all three — with `genesis=BBB` says the equation is the ONLY premise missing.  The ring is **3** sites in 2 declarations and the two call sites already hold the datum (`pay=BBB`), against `gate=49 anchor=2 route=3 eof=1`.  A second ring no arity flip reaches sits behind it: `frames=7 ride=0/3`, because `drop_ride` is one `have` built before `cases h_pending`.  `transportFacts == (144, 144, 144, 144, 144, 144)` with `transportControl == (96, 0, 0, 96, 96, 96)`: **the two readings the arm can derive are the two that SPLIT, and the one it cannot name is the one that does not.** | yes — one widening and one lemma in | `scripts/transport_price.py` + `ScannerFlowOpenUnderRun.lean` §12; 26 perturbations; **10** census files repinned |
 | 273 | build the ride per arm, then pay `optok` | **PRICED — the order is wrong at its first step.**  The ride is four terms in one declaration (`ride=4/1`) and the frame they build has ONE carrier field; its `some` arm names `ParkAnchor`, and with item 272's ring PAID the two halves this family CAN build are free (`slot=BBB floor=BBB`) while the anchor's remaining field is derivable at no arm (`prop=OOO gated=OOO`) and nameable only at the park `ParkCore.ofOpen` rejects (`prop_sc=BOO`).  `carrierChoice == (144, 18, 144, 126, 0, 144)` makes it a TRUTH gap and not §10's nameability gap — FALSE at 126 of the 144, true at exactly the eighteen props cells — with `carrierChoiceControl == (96, 24, 0, 0, 24, 96)` inverting the two fields' relationship one column right.  Reshaping costs **3 + 7** and not item 268's 2 (`add=2/2 swap=3/3 choice=3/3 transport=9/7`).  **An order between two rings, argued from what each one buys, is still a guess until the thing that RECEIVES them has been priced** — and `anchorProp`'s eighteen had been pinned in the same guard file since item 266. | no | `scripts/ride_price.py` + `ScannerFlowOpenUnderRun.lean` §13; 23 perturbations |
+| 274 | reshape the frame's carrier, then the ride and `optok` | **PRICED — the reshape is not the next ring either.**  Five probes on `FlowBaseAnchor.gate`'s slot branch read `anchor=B bare=O nonoffer=B offer=O floor=B`: it closes by EX FALSO where §9.2 fires and not at all where §8.1 does, and ONE reading on the close's own state closes the other half.  `closeGate == (144, 90, 54, 90, 144, 126, 18, 18)` — the two verdicts are silent together at no cell, `GateOf`'s own is TRUE at all 144 (so gating the ride MOVES the drop rather than retiring it), and the premise the slot's spend needs is the negation of `ParkAnchor.parkProp`, 126 against 18: a `choice` disjunction's two branches are opposed on it.  The premise cannot be STATED on either spend (`name=OO`; both quantify `g`), the payable phrasing is `wrap=BB`, and `apps=2` says an arity census's four locations are two applications.  The second verdict's bill at `h_closable` is `closable=20/5`.  **A disjunction chosen to keep both producers is a producer's argument wearing a consumer's clothes** — its consumer gets a case split, and a split pays only if every branch can spend. | no | `scripts/close_price.py` + `ScannerFlowOpenUnderRun.lean` §14; 31 perturbations |
 
 **Two housekeeping questions, measured 2026-09-22.**  Neither is a plan row;
 the numbers are recorded so the decision can be taken against them rather
