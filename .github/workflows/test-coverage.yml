@@ -290,6 +290,12 @@ jobs:
         #     2026-08-11 after Reflections 630-641 drifted into a sub-theme
         #     that never listed them and R613's bullet stranded between two
         #     headings.
+        #   * closure-log order — DOCS.md's β.5 closure log must ascend by
+        #     (item number, letter), must not regress in date, and must
+        #     declare every gap with the anchor documenting it elsewhere.
+        #     Added 2026-09-27 after three commits that did nothing but move
+        #     entries back into sequence (items 139/140, 159/160/161,
+        #     243/244).
         #   * sorry/axiom freedom — kernel-accurate (Lean.collectAxioms
         #     via collect-stats): zero theorems with (transitive) sorry,
         #     zero custom axioms in the compiled environment.
@@ -297,6 +303,7 @@ jobs:
           bash scripts/check-theorem-keyword.sh
           bash scripts/check-import-closure.sh
           bash scripts/check-reflection-index.sh
+          bash scripts/check-closure-log.sh
           python3 - <<'EOF'
           import json, sys
           env = json.load(open('docs/reports/stats.json'))['env']
