@@ -713,6 +713,18 @@ port must also re-prove the corresponding `Indexed*` lemmas:
 Issues and pull requests are welcome. Please open an issue before starting
 substantial work so we can discuss scope and proof strategy.
 
+## Acknowledgments
+
+**Heath Sanchez**, [Metalogic Labs](https://metalogiclabs.xyz/) — two
+independent Lean audits of the parser/grammar boundary. The first, against
+`main` at `16562a7`, refuted the advertised `parse_iff_grammar` biconditional
+with four machine-checked counterexamples and identified the missing layer the
+corrected statement needs. The second supplies a candidate
+`SerializationWellFormed` — an event/state semantics with an executable checker,
+a correctness proof relating the two, and transcriptions of both runtime guards.
+Both are recorded under
+[DOCS.md § Grammar completeness plan](DOCS.md#grammar-completeness-plan).
+
 ## License
 
 Apache-2.0. See [LICENSE](LICENSE).
