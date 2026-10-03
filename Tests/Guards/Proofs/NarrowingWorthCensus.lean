@@ -661,7 +661,12 @@ one unfolding, and §6 is the item where those two disagreed about binders. -/
     roster below does not move.  Item 271 adds the under-run's own column
     reading and item 272 the composition that spends it, one authored lemma
     each and neither with that conclusion: **5276**. -/
-def expectedNoopTally : String := "theorems=5278 byElab=17 byWhnf=17 elabOnly=0 whnfOnly=0"
+def expectedNoopTally : String := "theorems=5282 byElab=17 byWhnf=17 elabOnly=0 whnfOnly=0"
+-- 5278 → 5282 on 2026-10-02: `[104] c-ns-alias-node` joined `ValidNode` and
+-- `NodeToValue` (plan row 5a(vii)α), and each constructor carries two
+-- auto-generated theorems.  The census itself is unmoved — `byElab` and
+-- `byWhnf` hold at 17 and both residual lists are empty — so only the
+-- denominator changed.
 
 /-- The 27 item 227 measured, now **18**.  Item 228 narrowed six of
     `FlowKeyLift`'s ten — `plain_toKey`, `doubleQuoted_toKey`,

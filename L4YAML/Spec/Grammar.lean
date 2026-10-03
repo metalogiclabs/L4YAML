@@ -311,7 +311,16 @@ inductive ValidNode where
       YAML 1.2.2: `e-node ::= e-scalar`, `e-scalar ::= /* empty */`.
       The parser produces this for absent values (e.g., empty block entries). -/
   | emptyNode
+  /-- [104] c-ns-alias-node (§7.1; https://yaml.org/spec/1.2.2/#71-alias-nodes) — Alias node.
+      YAML 1.2.2: `c-ns-alias-node ::= "*" ns-anchor-name`.  An alias is one of
+      the spec's node forms, so a grammar derivation must be able to name it.
+      It survives composition only where no finite substitution exists for it —
+      §3.2.1.3's node that "has itself as a descendant (via an alias)", which
+      `YamlValue` cannot express by sharing — and it is what the emitter already
+      writes out (`Output/Emitter.lean`: `emitScalar ("*" ++ name)`). -/
+  | aliasNode (name : String)
 
+attribute [yaml_spec "7.1" 104 "c-ns-alias-node"] ValidNode.aliasNode
 attribute [yaml_spec "7.3.3" 131 "ns-plain(n,FLOW-OUT/BLOCK-KEY (also BLOCK-OUT, BLOCK-IN indirectly))"] ValidNode.plainScalarBlock
 attribute [yaml_spec "7.3.3" 131 "ns-plain(n,FLOW-IN/FLOW-KEY)"] ValidNode.plainScalarFlow
 attribute [yaml_spec "7.3.2" 120 "c-single-quoted(n,c)"] ValidNode.singleQuoted
@@ -511,6 +520,9 @@ inductive NodeToValue : ValidNode → YamlValue → Prop where
   /-- [72] e-node — empty node maps to the null plain scalar. -/
   | emptyNode :
       NodeToValue .emptyNode (.scalar ⟨"", .plain, none, none, none⟩)
+  /-- [104] c-ns-alias-node — an alias node maps to the alias value. -/
+  | aliasNode (name : String) :
+      NodeToValue (.aliasNode name) (.alias name)
 
 /--
 **The specification**: a string `s` is valid YAML producing value `v`.
@@ -565,6 +577,7 @@ def toYamlValue : ValidNode → YamlValue
   | .flowMap entries =>
       .mapping .flow (toYamlValuePairs entries).toArray none
   | .emptyNode => .scalar ⟨"", .plain, none, none, none⟩
+  | .aliasNode name => .alias name
 where
   /-- Map a list of nodes to a list of values. -/
   toYamlValueList : List ValidNode → List YamlValue
