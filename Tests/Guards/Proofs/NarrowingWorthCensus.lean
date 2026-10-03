@@ -661,7 +661,29 @@ one unfolding, and §6 is the item where those two disagreed about binders. -/
     roster below does not move.  Item 271 adds the under-run's own column
     reading and item 272 the composition that spends it, one authored lemma
     each and neither with that conclusion: **5276**. -/
-def expectedNoopTally : String := "theorems=5282 byElab=17 byWhnf=17 elabOnly=0 whnfOnly=0"
+def expectedNoopTally : String := "theorems=5294 byElab=17 byWhnf=17 elabOnly=0 whnfOnly=0"
+-- 5282 → 5292 on 2026-10-02, and the move is +11 − 1 rather than +10 of one
+-- kind.  The `+11` is authored: `ParserScannableBase.lean` carries the
+-- `Scannable`-valued compose chain (`stripAnchors_preserves_Scannable`,
+-- `adaptForFlowContext_scannable_forall`, `wellFormedEnvS_nil`,
+-- `WellFormedEnvS.cons`, the two fold helpers,
+-- `compose_value_scannable_ordered`, `compose_scannable`), plus
+-- `scannableValue_has_witness` and the two `*_output_scannable_composed`
+-- twins.  The `−1` is auto-generated: deleting `resolveAliasesOrdered`'s
+-- parse-time fallback left its alias branch with one match arm instead of two,
+-- so its `eq_*` family lost a member.  Both halves were read off the
+-- environment, not inferred from the diff.  The census itself is unmoved —
+-- `byElab` and `byWhnf` hold at 17 and both residual lists are empty — so only
+-- the denominator changed.
+--
+-- 5292 → 5294 the same day, and net +2 of a +3/−1: retiring
+-- `compose_value_grammable_ordered` and deriving `compose_grammable` from the
+-- alias-free identity instead adds `goList_fst_of_aliasFree`,
+-- `goPairs_fst_of_aliasFree` and `resolveAliasesOrdered_fst_of_aliasFree`, and
+-- removes the 179-line induction they replace.  §3.2.2.2 substitutes only at an
+-- alias node, so on an alias-free tree the ordered walk is the identity on
+-- values and no induction over the resolver is needed — the `maxHeartbeats
+-- 4000000` goes with it.
 -- 5278 → 5282 on 2026-10-02: `[104] c-ns-alias-node` joined `ValidNode` and
 -- `NodeToValue` (plan row 5a(vii)α), and each constructor carries two
 -- auto-generated theorems.  The census itself is unmoved — `byElab` and

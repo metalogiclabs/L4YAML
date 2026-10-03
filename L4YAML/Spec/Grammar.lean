@@ -316,8 +316,12 @@ inductive ValidNode where
       the spec's node forms, so a grammar derivation must be able to name it.
       It survives composition only where no finite substitution exists for it —
       §3.2.1.3's node that "has itself as a descendant (via an alias)", which
-      `YamlValue` cannot express by sharing — and it is what the emitter already
-      writes out (`Output/Emitter.lean`: `emitScalar ("*" ++ name)`). -/
+      `YamlValue` cannot express by sharing — and the style-aware writer puts it
+      back on the wire as alias syntax (`Output/Dump.lean`: `"*" ++ name`).  The
+      canonical emitter is a different matter: `Output/Emitter.lean` routes it
+      through `emitScalar`, which double-quotes unconditionally, so `emit` writes
+      the *string* `"*x"` and no round-trip through `emit` recovers this
+      constructor. -/
   | aliasNode (name : String)
 
 attribute [yaml_spec "7.1" 104 "c-ns-alias-node"] ValidNode.aliasNode
@@ -721,9 +725,14 @@ allows `.alias` nodes — because alias resolution happens during
 composition, and the raw parser output (serialization tree) may contain
 unresolved aliases.
 
-The bridging theorem `compose_scannable_to_grammable` (Phase C1) will
-prove that alias resolution + anchor stripping transforms a `Scannable`
-tree into a `Grammable` tree.
+Alias resolution plus anchor stripping carries a `Scannable` tree to a
+`Grammable` one exactly when no alias survives: `compose_grammable`
+(`Proofs/Parser/ParserGrammableBase.lean`) takes `AliasFree` on the input and
+routes through `Scannable_aliasFree_to_Grammable`.  Where an alias does survive
+— a node that has itself as a descendant via the alias, §3.2.1.3 — the chain
+ends in `Scannable` instead (`compose_scannable`, `ParserScannableBase.lean`),
+and `ParserSoundness.scannableValue_has_witness` carries it to a `ValidNode`
+witness.
 
 **YAML 1.2.2**: §3.2.2 — the serialization tree may contain alias nodes;
 the representation graph (post-compose) does not.

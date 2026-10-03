@@ -264,9 +264,14 @@ environment.  **The four counts are identical at every closure tried**; the
 pins below are what makes that checkable rather than asserted. -/
 
 /-- The modules of this library and its tests that this file's own imports
-    reach: the library complete at 231, plus the two `Tests.Guards` modules that
-    hold the Tests-side half of the first ring. -/
-def expectedClosure : Nat := 233
+    reach: the library complete at 232, plus the two `Tests.Guards` modules that
+    hold the Tests-side half of the first ring.
+
+    232 on 2026-10-02, when `Proofs.Parser.ParserScannableBase` joined the
+    library — the `Scannable`-valued compose chain, kept in its own module
+    because two `maxHeartbeats 4000000` `YamlValue` inductions do not elaborate
+    in one. -/
+def expectedClosure : Nat := 234
 
 /-- `scripts/drop_sweep.py`'s reading, re-derivable in one command and pinned
     here so that a walk which starts from the wrong root disagrees with it

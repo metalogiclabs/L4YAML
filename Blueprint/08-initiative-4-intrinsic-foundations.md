@@ -1911,7 +1911,7 @@ layer (base imports the last; no circular edges):
 Behaviour-preserving: full build green (**503 jobs**, was 495: +4 modules ×2 artifacts);
 the four modules carry **0 sorries**, all **7 legacy sorries remain in the base** (now at
 lines 568/1791/1963/2026/2245/2974/3013); capstone axiom profile unchanged on
-`emit_produces_valid_yaml` / `emit_scans_in_flow` / `emit_parsed_grammable` (pure triple
+`emit_produces_valid_yaml` / `emit_scans_in_flow` / `emit_parsed_scannable` (pure triple
 `[propext, Classical.choice, Quot.sound]` + pre-existing upstream `native_decide` axioms;
 **no `sorryAx`, no new axioms**).  The base is now exactly the *remaining proof work*: §5
 Content Fidelity + §G.balance well-bracketed-body algebra (where the 7 sorries live).
@@ -3791,7 +3791,7 @@ Reflection 148.
 
 **`.parsestream` LANDED 2026-05-28** — file-level step now closed.
 Ships §4 Full Pipeline (`parseStreamLoop_single_docIx`,
-`emit_parsed_grammableIx`) and §5.2 Scanner content preservation
+`emit_parsed_scannableIx`) and §5.2 Scanner content preservation
 (`scanFilteredIx_emitScalar_eq` bundling the three IxToken witnesses;
 `scanFilteredIx_emitScalar_content` and `_vals` projecting from the
 bundle; `parseDirectives_skipIx`, `parseNodeProperties_skipIx`,
@@ -5802,7 +5802,7 @@ file-level step's axiom ledger):
   - `parseStreamLoop_single_docIx`: **pure triple** (no inherited
     native_decide; the entire proof is `parseStream`-shape-driven
     case-split + composition).
-  - `emit_parsed_grammableIx`: pure triple + **16 inherited
+  - `emit_parsed_scannableIx`: pure triple + **16 inherited
     `native_decide` axioms** from `ScannerPlainContent` /
     `ScannerPlainScalar` / `ScannerProofs` clusters (via
     `parseStreamIx_output_grammable` → `parseStream_output_scannable_ix`
@@ -14691,7 +14691,7 @@ its round-trip guards (`Tests.Guards.Schema.Dump`,
           • **§4 Full Pipeline: Emit → Scan → Parse** (~70 LOC; legacy
             lines 8400–8489): `parseStreamLoop_single_docIx` (verbatim
             from legacy, with `ParseStateIx`-shaped post-document state
-            literal) and `emit_parsed_grammableIx` (decomposes
+            literal) and `emit_parsed_scannableIx` (decomposes
             `parseYamlIx` → `parseYamlRawIx_ok_decompose` →
             `parseStreamIx_output_grammable` discharged via
             `scanFilteredIx_{FlowAwarePSVIx,FlowBracketsMatchedIx}`).
@@ -14723,7 +14723,7 @@ its round-trip guards (`Tests.Guards.Schema.Dump`,
         budget (~46 axioms — same as `.toplevel` SS2/SS3 per
         Reflection 142/146) on the scanFiltered-emitScalar family +
         16 inherited Scanner* `native_decide` axioms on
-        `emit_parsed_grammableIx` (from
+        `emit_parsed_scannableIx` (from
         `parseStreamIx_output_grammable`'s downstream Scanner correctness
         chain). **Zero new user-defined or `native_decide` axioms**
         introduced this session. **`§4` clean theorems** (`parseStreamLoop_
@@ -24262,7 +24262,7 @@ module/line if a `mutual` block or `set_option … in` straddles a cut (none did
 trick from R181/R182 keeps every fully-qualified name identical, so the four-layer chain is invisible to the
 ~30 downstream files and to the base's own §5/WB; (3) cutting at `/-!`-header boundaries guarantees each slice
 starts and ends between declarations. The axiom check on the three capstones (`emit_produces_valid_yaml`,
-`emit_scans_in_flow`, `emit_parsed_grammable`) came back identical (pure triple + pre-existing upstream
+`emit_scans_in_flow`, `emit_parsed_scannable`) came back identical (pure triple + pre-existing upstream
 `native_decide`, no `sorryAx`) — as it must, since a move reproduces proof terms byte-for-byte.
 
 **Meta-lesson:** when shrinking a monolith with a known "must-stay" set (here: the sorries = the live proof

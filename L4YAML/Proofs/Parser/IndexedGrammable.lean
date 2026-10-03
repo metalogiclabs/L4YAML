@@ -8,6 +8,7 @@ import L4YAML.Parser.TokenParserIx
 import L4YAML.Proofs.Composition
 import L4YAML.Proofs.Parser.ParserSoundness
 import L4YAML.Proofs.Parser.ParserGrammableBase
+import L4YAML.Proofs.Parser.ParserScannableBase
 import L4YAML.Proofs.Parser.IndexedNodeProofs
 import L4YAML.Proofs.Parser.IndexedWellBehaved
 import L4YAML.Proofs.Parser.IndexedWfa
@@ -52,7 +53,7 @@ This file combines the component proofs to produce the final
 
 ## §6  Final Theorem (C3)
 
-Combines C1 (compose_scannable_to_grammable from base) and the indexed
+Combines C1 (compose_grammable / compose_scannable from base) and the indexed
 C2 substrate to discharge `h_grammable` on the indexed `parseStreamIx`
 pipeline.
 -/
@@ -188,32 +189,44 @@ lemma parseStreamIx_output_aliases_resolve
     This theorem eliminates the `h_grammable` hypothesis from
     `parseStreamIx_respects_grammar` in `IndexedCorrectness.lean`.
 
-    **Architecture**: Chains the C2 substrate:
-      - `parseStream_output_scannable_ix` (IndexedWellBehaved)
-      - `parseStreamIx_output_aliases_resolve` (this file)
-      - `parseStreamIx_output_anchors_wellformed` (IndexedWfa)
-    into `compose_grammable` (ParserGrammableBase).
+    **Architecture**: Chains `parseStream_output_scannable_ix`
+    (IndexedWellBehaved) into `compose_grammable` (ParserGrammableBase).
 
-    **Precondition on anchors**: `WellFormedAnchors` requires that anchor
-    values are `Grammable` at every flow context. This excludes the
-    pathological case where block-context plain scalars with flow
-    indicators are aliased into flow context. See ParserGrammableBase §4
-    for details. -/
+    **Precondition on the input**: `AliasFree`.  An alias with no preceding
+    definition survives composition — §3.2.2.2 resolves against the most
+    recent preceding event and a collection's anchor binds only after its
+    items, so a node that has itself as a descendant via an alias (§3.2.1.3)
+    keeps its `.alias`, which `Grammable` has no constructor for.  The
+    hypothesis-free form is `parseStreamIx_output_scannable_composed`. -/
 lemma parseStreamIx_output_grammable
     (tokens : Indexed.TokenStream input)
     (raw_docs : Array YamlDocument)
     (h_fpsv : FlowAwarePSVIx tokens)
     (h_matched : FlowBracketsMatchedIx tokens)
-    (h_parse : parseStreamIx tokens = .ok raw_docs) :
+    (h_parse : parseStreamIx tokens = .ok raw_docs)
+    (h_af : ∀ doc ∈ raw_docs.toList, AliasFree doc.value) :
     ∀ doc ∈ raw_docs.toList, Grammable doc.compose.value false := by
   intro doc hdoc
   have h_scannable :=
     parseStream_output_scannable_ix tokens raw_docs h_fpsv h_matched h_parse doc hdoc
-  have h_resolve :=
-    parseStreamIx_output_aliases_resolve tokens raw_docs h_parse doc hdoc
-  have h_anchors :=
-    parseStreamIx_output_anchors_wellformed tokens raw_docs h_fpsv h_matched h_parse doc hdoc
-  exact compose_grammable doc h_scannable h_resolve h_anchors
+  exact compose_grammable doc h_scannable (h_af doc hdoc)
+
+/-- **Unconditional scannability of the composed value (indexed).**
+
+    The `Scannable` twin of `parseStreamIx_output_grammable`, carrying no
+    hypothesis on the input: `Scannable` admits the alias node that survives
+    composition, so this is the form the unconditional capstone needs. -/
+lemma parseStreamIx_output_scannable_composed
+    (tokens : Indexed.TokenStream input)
+    (raw_docs : Array YamlDocument)
+    (h_fpsv : FlowAwarePSVIx tokens)
+    (h_matched : FlowBracketsMatchedIx tokens)
+    (h_parse : parseStreamIx tokens = .ok raw_docs) :
+    ∀ doc ∈ raw_docs.toList, Scannable doc.compose.value false := by
+  intro doc hdoc
+  have h_scannable :=
+    parseStream_output_scannable_ix tokens raw_docs h_fpsv h_matched h_parse doc hdoc
+  exact compose_scannable doc h_scannable
 
 /-- **Unconditional correctness (indexed, parseStreamIx-level)**: every
     document produced by `parseStreamIx` from scanner-quality tokens has
@@ -234,8 +247,8 @@ lemma parseStreamIx_produces_valid_nodes
       stripAnnotations (toYamlValue node) = stripAnnotations doc.compose.value := by
   intro doc hdoc
   have h_g :=
-    parseStreamIx_output_grammable tokens docs h_fpsv h_matched h_parse doc hdoc
-  exact ParserSoundness.yamlValue_has_witness doc.compose.value false h_g
+    parseStreamIx_output_scannable_composed tokens docs h_fpsv h_matched h_parse doc hdoc
+  exact ParserSoundness.scannableValue_has_witness doc.compose.value false h_g
 
 /-- **Unconditional correctness (indexed, parseStreamIx-level, no
     hypotheses)**: given that `tokens` came from `scanFilteredIx`,

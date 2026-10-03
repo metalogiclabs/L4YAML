@@ -1,5 +1,6 @@
 import Tests.Guards.Dump
 import Tests.Guards.Parity.IndexedScanAndParse
+import Tests.Guards.Proofs.AliasNodeRoute
 import Tests.Guards.Proofs.BlockCollectionWidthFloor
 import Tests.Guards.Proofs.BodySuccSeqDiscriminator
 import Tests.Guards.Proofs.CommentRoundTrip

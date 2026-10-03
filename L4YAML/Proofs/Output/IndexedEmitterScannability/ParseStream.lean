@@ -16,7 +16,7 @@ preservation. Indexed twins of legacy `EmitterScannability.lean` lines
 ## Scope (mapping to legacy `EmitterScannability.lean`)
 
   - **§4 Full Pipeline: Emit → Scan → Parse** (legacy lines 8400–8489):
-    `parseStreamLoop_single_docIx`, `emit_parsed_grammableIx`.
+    `parseStreamLoop_single_docIx`, `emit_parsed_scannableIx`.
 
   - **§5.2 Scanner content preservation** (legacy lines 8531–8874):
     `scanFilteredIx_emitScalar_content`, `scanFilteredIx_emitScalar_vals`,
@@ -123,13 +123,13 @@ lemma parseStreamLoop_single_docIx {input : String}
         split <;> rfl)
 
 /-- **Grammability preservation**: the parsed output of emitter output is
-    grammable. Follows from `parseStreamIx_output_grammable` applied to
-    the scan+parse decomposition. Indexed twin of legacy
-    `emit_parsed_grammable` (line 8472). -/
-lemma emit_parsed_grammableIx (v : YamlValue)
+    scannable. Follows from `parseStreamIx_output_scannable_composed` applied
+    to the scan+parse decomposition. Indexed twin of
+    `emit_parsed_scannable`. -/
+lemma emit_parsed_scannableIx (v : YamlValue)
     (docs : Array YamlDocument)
     (h : parseYamlIx (emit v) = .ok docs) :
-    ∀ doc ∈ docs.toList, Grammable doc.value false := by
+    ∀ doc ∈ docs.toList, Scannable doc.value false := by
   simp only [parseYamlIx] at h
   split at h
   · rename_i raw_docs h_raw
@@ -137,7 +137,7 @@ lemma emit_parsed_grammableIx (v : YamlValue)
     have ⟨tokens, h_scan, h_parse⟩ := parseYamlRawIx_ok_decompose (emit v) raw_docs h_raw
     have h_fpsv := scanFilteredIx_FlowAwarePSVIx (emit v) tokens h_scan
     have h_matched := scanFilteredIx_FlowBracketsMatchedIx (emit v) tokens h_scan
-    have h_gram := parseStreamIx_output_grammable tokens raw_docs h_fpsv h_matched h_parse
+    have h_gram := parseStreamIx_output_scannable_composed tokens raw_docs h_fpsv h_matched h_parse
     intro doc hdoc
     rw [← h_eq] at hdoc
     simp only [Array.toList_map] at hdoc

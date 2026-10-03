@@ -935,7 +935,7 @@ lemma stdElt_of_grammable (v : YamlValue) (hg : Grammable v false) : StdElt v :=
   have h_0' : 0 < (rd.map YamlDocument.compose).size := by rw [Array.size_map]; omega
   have h_ix : (rd.map YamlDocument.compose)[0]!.value = (rd[0]!.compose).value := by
     rw [getElem!_pos _ 0 h_0', getElem!_pos rd 0 h_ne, Array.getElem_map]
-  rw [h_ix, compose_value_of_anchorFree _ (by rw [h_docval]; exact h_pure.2.2), h_docval,
+  rw [h_ix, compose_value_of_anchorAliasFree _ (by rw [h_docval]; exact h_pure.2.2), h_docval,
     h_pure.1, h_pure.2.1]
 
 /-- **Full pipeline (with compose)**: Emitter output parses successfully
@@ -1138,7 +1138,7 @@ lemma emit_roundtrip_sequence_content_eq {inFlow : Bool} (style : CollectionStyl
         have h_items'_size : items'.size = items.size := by
           rw [h_items'_sz, Array.length_toList]
         -- R601's per-index pins are anchorless scalars, so items' is anchor-free (J2 guard)
-        have h_af : ∀ v ∈ items'.toList, v.anchorFree = true := by
+        have h_af : ∀ v ∈ items'.toList, v.anchorAliasFree = true := by
           intro v hv
           obtain ⟨i, hi, h_eq⟩ := List.getElem_of_mem hv
           have hi'' : i < items'.size := by rwa [Array.length_toList] at hi
@@ -1147,7 +1147,7 @@ lemma emit_roundtrip_sequence_content_eq {inFlow : Bool} (style : CollectionStyl
           have h_v : v = items'[i]! := by
             rw [← h_eq, Array.getElem_toList, getElem!_pos items' i hi'']
           rw [h_v, h_pin]
-          simp [YamlValue.anchorFree]
+          simp [YamlValue.anchorAliasFree]
         have h_items''_size : items''.size = items'.size := by
           rw [compose_seq_items_pointwise (raw_docs[0]!) items' items'' h_af h_raw_val h_comp_val,
             Array.size_map]
@@ -1199,7 +1199,7 @@ lemma emit_roundtrip_sequence_content_eq {inFlow : Bool} (style : CollectionStyl
           rw [← h_eq]; exact h_shape
         have h_items'_size : items'.size = items.size := by
           rw [h_sz', Array.length_toList]
-        have h_af : ∀ w ∈ items'.toList, w.anchorFree = true := by
+        have h_af : ∀ w ∈ items'.toList, w.anchorAliasFree = true := by
           intro w hw
           obtain ⟨i, hi, h_eq⟩ := List.getElem_of_mem hw
           have hi'' : i < items'.size := by rwa [Array.length_toList] at hi
@@ -1334,7 +1334,7 @@ lemma emit_roundtrip_mapping_content_eq {inFlow : Bool} (style : CollectionStyle
           rw [← h_eq]; exact h_shape
         have h_pairs'_size : pairs'.size = pairs.size := by rw [h_pairs'_sz, Array.length_toList]
         -- R608's per-index pins are anchorless scalar pairs, so pairs' is anchor-free (J2 guard)
-        have h_af : ∀ p ∈ pairs'.toList, p.1.anchorFree = true ∧ p.2.anchorFree = true := by
+        have h_af : ∀ p ∈ pairs'.toList, p.1.anchorAliasFree = true ∧ p.2.anchorAliasFree = true := by
           intro q hq
           obtain ⟨i, hi, h_eq⟩ := List.getElem_of_mem hq
           have hi'' : i < pairs'.size := by rwa [Array.length_toList] at hi
@@ -1343,7 +1343,7 @@ lemma emit_roundtrip_mapping_content_eq {inFlow : Bool} (style : CollectionStyle
           have h_q : q = pairs'[i]! := by
             rw [← h_eq, Array.getElem_toList, getElem!_pos pairs' i hi'']
           rw [h_q, h_pin]
-          exact ⟨by simp [YamlValue.anchorFree], by simp [YamlValue.anchorFree]⟩
+          exact ⟨by simp [YamlValue.anchorAliasFree], by simp [YamlValue.anchorAliasFree]⟩
         have h_pairs''_size : pairs''.size = pairs'.size := by
           rw [compose_map_pairs_pointwise (raw_docs[0]!) pairs' pairs''
             h_af h_raw_val h_comp_val, Array.size_map]
@@ -1428,7 +1428,7 @@ lemma emit_roundtrip_mapping_content_eq {inFlow : Bool} (style : CollectionStyle
           rw [← h_eq]; exact h_shape
         have h_pairs'_size : pairs'.size = pairs.size := by
           rw [h_sz', Array.length_toList]
-        have h_af : ∀ p ∈ pairs'.toList, p.1.anchorFree = true ∧ p.2.anchorFree = true := by
+        have h_af : ∀ p ∈ pairs'.toList, p.1.anchorAliasFree = true ∧ p.2.anchorAliasFree = true := by
           intro q hq
           obtain ⟨i, hi, h_eq⟩ := List.getElem_of_mem hq
           have hi'' : i < pairs'.size := by rwa [Array.length_toList] at hi

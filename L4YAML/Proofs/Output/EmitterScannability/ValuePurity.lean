@@ -11,7 +11,7 @@ import L4YAML.Proofs.Output.EmitterScannability.ValueLocality
 On a CLEAN token array (flow-clean tokens plus the stream framing — exactly what
 `scanFiltered (emit v)` produces), the parser can never register an anchor, resolve an alias,
 or attach a tag, so every parsed value is *pure*: `resolveAliases`-invariant under ANY anchor
-map, `stripAnchors`-invariant, and `anchorFree`.  This is what lets `compose` collapse to the
+map, `stripAnchors`-invariant, and `anchorAliasFree`.  This is what lets `compose` collapse to the
 identity on both the standalone and the whole-stream sides of the locality equation — with NO
 hypotheses about the documents' anchor maps.
 
@@ -36,7 +36,7 @@ def CleanTokens (tokens : Array (Positioned YamlToken)) : Prop :=
 
 /-- Pure value: alias-resolution-invariant (under ANY map), strip-invariant, anchor-free. -/
 def PureVal (v : YamlValue) : Prop :=
-  (∀ A, v.resolveAliases A = v) ∧ v.stripAnchors = v ∧ v.anchorFree = true
+  (∀ A, v.resolveAliases A = v) ∧ v.stripAnchors = v ∧ v.anchorAliasFree = true
 
 lemma CleanTokens.head {ps : ParseState} (h : CleanTokens ps.tokens)
     {t : YamlToken} (h_pk : ps.peek? = some t) : CleanTok t = true := by
@@ -63,7 +63,7 @@ lemma pureVal_scalar (s : Scalar) (h : s.anchor = none) : PureVal (.scalar s) :=
   · rw [stripAnchors_scalar]
     cases s
     simp_all
-  · simp [YamlValue.anchorFree, h]
+  · simp [YamlValue.anchorAliasFree, h]
 
 lemma pureVal_emptyNode : PureVal emptyNode :=
   pureVal_scalar _ rfl
@@ -89,9 +89,9 @@ lemma pureVal_sequence (st : CollectionStyle) (items : Array YamlValue)
         none none = _
     rw [stripList_eq_map, list_map_self _ _ (fun x hx => (h x hx).2.1),
       Array.toArray_toList]
-  · show (Option.isNone (none : Option String) && YamlValue.anchorFree.goList items.toList)
+  · show (Option.isNone (none : Option String) && YamlValue.anchorAliasFree.goList items.toList)
         = true
-    rw [anchorFree_goList_of_forall items.toList (fun x hx => (h x hx).2.2)]
+    rw [anchorAliasFree_goList_of_forall items.toList (fun x hx => (h x hx).2.2)]
     rfl
 
 lemma pureVal_mapping (st : CollectionStyle) (pairs : Array (YamlValue × YamlValue))
@@ -115,9 +115,9 @@ lemma pureVal_mapping (st : CollectionStyle) (pairs : Array (YamlValue × YamlVa
         show ((x.1.stripAnchors, x.2.stripAnchors) : YamlValue × YamlValue) = x
         rw [this.1.2.1, this.2.2.1]),
       Array.toArray_toList]
-  · show (Option.isNone (none : Option String) && YamlValue.anchorFree.goPairs pairs.toList)
+  · show (Option.isNone (none : Option String) && YamlValue.anchorAliasFree.goPairs pairs.toList)
         = true
-    rw [anchorFree_goPairs_of_forall pairs.toList
+    rw [anchorAliasFree_goPairs_of_forall pairs.toList
       (fun x hx => ⟨(h x hx).1.2.2, (h x hx).2.2.2⟩)]
     rfl
 

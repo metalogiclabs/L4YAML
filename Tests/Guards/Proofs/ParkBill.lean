@@ -134,8 +134,13 @@ capstonesInTp={b.capstonesInTrans.size}"
 /-! ## §1 The park's bill -/
 
 /-- The closure this file reads.  Pinned first, as item 237's lesson requires:
-    a census that reports a library it did not import reports a library. -/
-def expectedClosure : Nat := 234
+    a census that reports a library it did not import reports a library.
+
+    235 on 2026-10-02, when `Proofs.Parser.ParserScannableBase` joined the
+    library — the `Scannable`-valued compose chain, in its own module because
+    two `maxHeartbeats 4000000` `YamlValue` inductions do not elaborate in
+    one. -/
+def expectedClosure : Nat := 235
 
 /-- The park's populations beside the arm's, from one pass. -/
 def expectedBill : String :=

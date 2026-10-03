@@ -829,8 +829,8 @@ theorem parse_sound_deep (input : String) (docs : Array YamlDocument)
  * _Proof_ cites `parseYamlRaw_ok_decompose` (about `parseYamlRaw`,
    `scanFiltered`, `parseStream`) and `parseYaml_produces_valid_nodes`
    (about `parseYaml`, `toYamlValue`), the second of which
-   transitively drags in `parseStream_output_grammable` (about
-   `parseStream`).
+   transitively drags in `parseStream_output_scannable_composed`
+   (about `parseStream`).
  * _Consequence_: conditions 1, 2, and 3 of the alignment rule
    close simultaneously at multiple root functions.  The
    `ChainDepth` classifier tags this theorem `deep`.

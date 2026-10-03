@@ -248,9 +248,18 @@ def expectedAlphabet : String := "prodTyped=129 prodSurf=92 prodSpec=54"
     Item 271's `underRunEnd_col_le_currentIndent` holds none and moves nothing
     here — it reads the landing's column off the under-run and names no step,
     which is the same reason `landing_on_stack_of_floor_eq` sits outside the
-    population. -/
+    population.
+
+    Moved to 1654 on 2026-10-02 by ONE holder and no new step:
+    `parseStream_output_scannable_composed`, the hypothesis-free `Scannable`
+    twin of `parseStream_output_grammable`, carries the same
+    `Scanner.scanFiltered input = .ok tokens` premise and so names the same
+    step its sibling does.  Its indexed twin takes `FlowAwarePSVIx` rather than
+    `scanFilteredIx` and names none, which is why this is +1 and not +2 —
+    `fns` holds at 72 and `fnsIx` at 26, so the step population itself is
+    unmoved and only the holder count changed. -/
 def expectedSteps : String :=
-  "stepHolders=1653 dispHolders=294 dispTwoCorr=28 fns=72 fnsIx=26"
+  "stepHolders=1654 dispHolders=294 dispTwoCorr=28 fns=72 fnsIx=26"
 
 /-- **The ladder, at each population.**  `edge` is a production whose right
     endpoint is the step's output; `chain` requires a path to it from another

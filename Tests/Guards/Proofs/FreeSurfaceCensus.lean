@@ -85,7 +85,12 @@ def expectedUnread : List Name :=
   [`L4YAML.Output.Events, `L4YAML.Output.EventsIx,
    `L4YAML.Output.Json, `L4YAML.Output.JsonIx]
 
-def expectedClosure : String := "modulesSeen=227"
+def expectedClosure : String := "modulesSeen=228"
+-- 227 → 228 on 2026-10-02: `L4YAML/Proofs/Parser/ParserScannableBase.lean`,
+-- the `Scannable`-valued compose chain, is a new module in this closure.  It
+-- is a separate module and not a section of `ParserGrammableBase` because the
+-- two `maxHeartbeats 4000000` inductions over `YamlValue` do not elaborate
+-- together.
 
 def expectedCensus : String :=
   "theorems=103 headYaml=5 headStream=36 nestedConcl=54 hypOnly=8 \

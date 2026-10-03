@@ -656,193 +656,93 @@ lemma goPairs_grammable_ordered
     · exact h_eq ▸ ⟨hk.1, hv.1⟩
     · exact hrest.1 q h_mem
 
-set_option maxHeartbeats 4000000 in
-/-- C1 for the order-aware resolver: composing a `Scannable` value with
-    `resolveAliasesOrdered` produces a `Grammable` value, provided all aliases
-    resolve in the fallback table, the table is well-formed, and the threaded
-    environment is well-formed.
+/-! ### Order-aware compose grammability, via the alias-free identity
 
-    The conclusion is a JOINT (grammable ∧ well-formed-env), generalized over
-    the environment: the walk binds each anchored node *after* its content
-    (cleaned `stripAnchors ∘ adaptForFlowContext`, exactly like
-    `ParseState.addAnchor`), and the binding edge is discharged by the case's
-    own grammability conjunct lifted by `adaptForFlowContext_grammable_forall`. -/
-lemma compose_value_grammable_ordered
-    (v : YamlValue) (anchors : Array (String × YamlValue)) (inFlow : Bool)
-    (h_scan : Scannable v inFlow)
-    (h_resolve : AllAliasesResolve v anchors)
-    (h_anchors : WellFormedAnchors anchors) :
-    ∀ env, WellFormedEnv env →
-      Grammable ((v.resolveAliasesOrdered anchors env).fst).stripAnchors inFlow ∧
-      WellFormedEnv (v.resolveAliasesOrdered anchors env).snd := by
-  induction h_scan with
-  | scalar s inFlow h_ss =>
-    intro env h_env
-    constructor
-    · -- fst = .scalar s regardless of the binding made
-      exact Grammable.scalar { s with anchor := none } inFlow
-        ((ScalarScannable_strip_anchor s inFlow).mp h_ss)
-    · cases h_anchor : s.anchor with
-      | none =>
-        have h2 : ((YamlValue.scalar s).resolveAliasesOrdered anchors env).snd = env := by
-          simp only [YamlValue.resolveAliasesOrdered, h_anchor]
-        rw [h2]; exact h_env
-      | some a =>
-        have h2 : ((YamlValue.scalar s).resolveAliasesOrdered anchors env).snd =
-            (a, (YamlValue.scalar { s with anchor := none }).adaptForFlowContext) :: env := by
-          simp only [YamlValue.resolveAliasesOrdered, h_anchor]
-        rw [h2]
-        refine WellFormedEnv.cons h_env a _ (fun ctx => ?_)
-        rw [show (YamlValue.scalar { s with anchor := none })
-              = (YamlValue.scalar s).stripAnchors from rfl,
-            adaptForFlowContext_stripAnchors, stripAnchors_stripAnchors]
-        exact adaptForFlowContext_grammable_forall _ inFlow
-          (Grammable.scalar { s with anchor := none } inFlow
-            ((ScalarScannable_strip_anchor s inFlow).mp h_ss)) ctx
-  | alias name inFlow =>
-    cases h_resolve with
-    | alias _ _ h_res =>
-      intro env h_env
-      cases h_lookup : env.findSome? (fun (n, val) => if n == name then some val else none) with
-      | some val =>
-        have h1 : (YamlValue.alias name).resolveAliasesOrdered anchors env = (val, env) := by
-          simp only [YamlValue.resolveAliasesOrdered, h_lookup]
-        rw [h1]
-        exact ⟨h_env name val h_lookup inFlow, h_env⟩
-      | none =>
-        obtain ⟨resolved, h_val⟩ := findSome_unit_to_val anchors name h_res
-        have h1 : (YamlValue.alias name).resolveAliasesOrdered anchors env = (resolved, env) := by
-          simp only [YamlValue.resolveAliasesOrdered, h_lookup, h_val]
-        rw [h1]
-        exact ⟨h_anchors name resolved h_val inFlow, h_env⟩
-  | sequence style items tag anchor inFlow h_items ih_items =>
-    cases h_resolve with
-    | sequence _ _ _ _ _ h_resolve_items =>
-      intro env h_env
-      have H : ∀ w ∈ items.toList, ∀ env', WellFormedEnv env' →
-          Grammable ((w.resolveAliasesOrdered anchors env').fst).stripAnchors
-            (inFlow || style == .flow) ∧
-          WellFormedEnv (w.resolveAliasesOrdered anchors env').snd := by
-        intro w hw
-        obtain ⟨i, hi, h_eq⟩ := List.getElem_of_mem hw
-        have hi' : i < items.size := by rwa [Array.length_toList] at hi
-        have h_w : w = items[i] := by rw [← h_eq, Array.getElem_toList]
-        subst h_w
-        exact ih_items ⟨i, hi'⟩ (h_resolve_items ⟨i, hi'⟩)
-      have h_fold := goList_grammable_ordered anchors (inFlow || style == .flow)
-        items.toList H env h_env
-      have h1 : ((YamlValue.sequence style items tag anchor).resolveAliasesOrdered anchors env).fst
-          = .sequence style
-              (YamlValue.resolveAliasesOrdered.goList anchors items.toList env).fst.toArray
-              tag anchor := by
-        simp only [YamlValue.resolveAliasesOrdered]
-      have h_gram_v' : Grammable (YamlValue.sequence style
-          (YamlValue.resolveAliasesOrdered.goList anchors items.toList env).fst.toArray
-          tag anchor).stripAnchors inFlow := by
-        show Grammable (.sequence style
-          (YamlValue.stripAnchors.stripList
-            ((YamlValue.resolveAliasesOrdered.goList anchors items.toList env).fst.toArray).toList).toArray
-          tag none) inFlow
-        rw [List.toList_toArray, stripList_eq_map]
-        apply Grammable.sequence
-        intro ⟨i, hi⟩
-        simp at hi ⊢
-        exact h_fold.1 _ (List.getElem_mem _)
-      constructor
-      · rw [h1]; exact h_gram_v'
-      · cases h_anchor : anchor with
-        | none =>
-          have h2 : ((YamlValue.sequence style items tag none).resolveAliasesOrdered anchors env).snd
-              = (YamlValue.resolveAliasesOrdered.goList anchors items.toList env).snd := by
-            simp only [YamlValue.resolveAliasesOrdered]
-          rw [h2]; exact h_fold.2
-        | some a =>
-          have h2 : ((YamlValue.sequence style items tag (some a)).resolveAliasesOrdered anchors env).snd
-              = (a, (YamlValue.sequence style
-                  (YamlValue.resolveAliasesOrdered.goList anchors items.toList env).fst.toArray
-                  tag (some a)).stripAnchors.adaptForFlowContext)
-                :: (YamlValue.resolveAliasesOrdered.goList anchors items.toList env).snd := by
-            simp only [YamlValue.resolveAliasesOrdered]
-          rw [h2]
-          refine WellFormedEnv.cons h_fold.2 a _ (fun ctx => ?_)
-          rw [adaptForFlowContext_stripAnchors, stripAnchors_stripAnchors]
-          exact adaptForFlowContext_grammable_forall _ inFlow h_gram_v' ctx
-  | mapping style pairs tag anchor inFlow hk hv ih_k ih_v =>
-    cases h_resolve with
-    | mapping _ _ _ _ _ hk_resolve hv_resolve =>
-      intro env h_env
-      have Hk : ∀ p ∈ pairs.toList, ∀ env', WellFormedEnv env' →
-          Grammable ((p.1.resolveAliasesOrdered anchors env').fst).stripAnchors
-            (inFlow || style == .flow) ∧
-          WellFormedEnv (p.1.resolveAliasesOrdered anchors env').snd := by
-        intro p hp
-        obtain ⟨i, hi, h_eq⟩ := List.getElem_of_mem hp
-        have hi' : i < pairs.size := by rwa [Array.length_toList] at hi
-        have h_p : p = pairs[i] := by rw [← h_eq, Array.getElem_toList]
-        subst h_p
-        exact ih_k ⟨i, hi'⟩ (hk_resolve ⟨i, hi'⟩)
-      have Hv : ∀ p ∈ pairs.toList, ∀ env', WellFormedEnv env' →
-          Grammable ((p.2.resolveAliasesOrdered anchors env').fst).stripAnchors
-            (inFlow || style == .flow) ∧
-          WellFormedEnv (p.2.resolveAliasesOrdered anchors env').snd := by
-        intro p hp
-        obtain ⟨i, hi, h_eq⟩ := List.getElem_of_mem hp
-        have hi' : i < pairs.size := by rwa [Array.length_toList] at hi
-        have h_p : p = pairs[i] := by rw [← h_eq, Array.getElem_toList]
-        subst h_p
-        exact ih_v ⟨i, hi'⟩ (hv_resolve ⟨i, hi'⟩)
-      have h_fold := goPairs_grammable_ordered anchors (inFlow || style == .flow)
-        pairs.toList Hk Hv env h_env
-      have h1 : ((YamlValue.mapping style pairs tag anchor).resolveAliasesOrdered anchors env).fst
-          = .mapping style
-              (YamlValue.resolveAliasesOrdered.goPairs anchors pairs.toList env).fst.toArray
-              tag anchor := by
-        simp only [YamlValue.resolveAliasesOrdered]
-      have h_gram_v' : Grammable (YamlValue.mapping style
-          (YamlValue.resolveAliasesOrdered.goPairs anchors pairs.toList env).fst.toArray
-          tag anchor).stripAnchors inFlow := by
-        show Grammable (.mapping style
-          (YamlValue.stripAnchors.stripPairs
-            ((YamlValue.resolveAliasesOrdered.goPairs anchors pairs.toList env).fst.toArray).toList).toArray
-          tag none) inFlow
-        rw [List.toList_toArray, stripPairs_eq_map]
-        apply Grammable.mapping
-        · intro ⟨i, hi⟩
-          simp at hi ⊢
-          exact (h_fold.1 _ (List.getElem_mem _)).1
-        · intro ⟨i, hi⟩
-          simp at hi ⊢
-          exact (h_fold.1 _ (List.getElem_mem _)).2
-      constructor
-      · rw [h1]; exact h_gram_v'
-      · cases h_anchor : anchor with
-        | none =>
-          have h2 : ((YamlValue.mapping style pairs tag none).resolveAliasesOrdered anchors env).snd
-              = (YamlValue.resolveAliasesOrdered.goPairs anchors pairs.toList env).snd := by
-            simp only [YamlValue.resolveAliasesOrdered]
-          rw [h2]; exact h_fold.2
-        | some a =>
-          have h2 : ((YamlValue.mapping style pairs tag (some a)).resolveAliasesOrdered anchors env).snd
-              = (a, (YamlValue.mapping style
-                  (YamlValue.resolveAliasesOrdered.goPairs anchors pairs.toList env).fst.toArray
-                  tag (some a)).stripAnchors.adaptForFlowContext)
-                :: (YamlValue.resolveAliasesOrdered.goPairs anchors pairs.toList env).snd := by
-            simp only [YamlValue.resolveAliasesOrdered]
-          rw [h2]
-          refine WellFormedEnv.cons h_fold.2 a _ (fun ctx => ?_)
-          rw [adaptForFlowContext_stripAnchors, stripAnchors_stripAnchors]
-          exact adaptForFlowContext_grammable_forall _ inFlow h_gram_v' ctx
+`YamlDocument.compose` resolves with `resolveAliasesOrdered`, which substitutes
+only at an alias node (§3.2.2.2 resolves against the ordered environment and
+nothing else).  On a tree with no alias node there is therefore nothing to
+substitute, and the walk rebuilds each node from its own resolved children —
+so it is the identity on values.  That turns compose-grammability into
+`Scannable_aliasFree_to_Grammable` composed with `stripAnchors_preserves_Grammable`,
+and no induction over the resolver is needed.
+-/
 
-/-- C1 applied to `YamlDocument.compose` (order-aware resolution): the walk
-    starts from the empty (trivially well-formed) environment. -/
+/-- The list-level half of the identity below. -/
+lemma goList_fst_of_aliasFree (anchors : Array (String × YamlValue))
+    (l : List YamlValue)
+    (H : ∀ w ∈ l, ∀ env, (w.resolveAliasesOrdered anchors env).fst = w) :
+    ∀ env, (YamlValue.resolveAliasesOrdered.goList anchors l env).fst = l := by
+  induction l with
+  | nil => intro env; rfl
+  | cons w ws ih =>
+    intro env
+    have hw := H w (List.mem_cons_self ..)
+    have hws := ih (fun x hx => H x (List.mem_cons_of_mem _ hx))
+    simp only [YamlValue.resolveAliasesOrdered.goList, hw env,
+      hws (w.resolveAliasesOrdered anchors env).snd]
+
+/-- The pair-level half. -/
+lemma goPairs_fst_of_aliasFree (anchors : Array (String × YamlValue))
+    (l : List (YamlValue × YamlValue))
+    (Hk : ∀ p ∈ l, ∀ env, (p.1.resolveAliasesOrdered anchors env).fst = p.1)
+    (Hv : ∀ p ∈ l, ∀ env, (p.2.resolveAliasesOrdered anchors env).fst = p.2) :
+    ∀ env, (YamlValue.resolveAliasesOrdered.goPairs anchors l env).fst = l := by
+  induction l with
+  | nil => intro env; rfl
+  | cons p ps ih =>
+    intro env
+    have hk := Hk p (List.mem_cons_self ..)
+    have hv := Hv p (List.mem_cons_self ..)
+    have hrest := ih (fun x hx => Hk x (List.mem_cons_of_mem _ hx))
+                     (fun x hx => Hv x (List.mem_cons_of_mem _ hx))
+    simp only [YamlValue.resolveAliasesOrdered.goPairs, hk env,
+      hv (p.1.resolveAliasesOrdered anchors env).snd,
+      hrest (p.2.resolveAliasesOrdered anchors
+        (p.1.resolveAliasesOrdered anchors env).snd).snd]
+
+/-- **On an alias-free tree the order-aware walk is the identity on values.**
+    §3.2.2.2 substitutes only at an alias node, and there is none. -/
+lemma resolveAliasesOrdered_fst_of_aliasFree (v : YamlValue) (h_af : AliasFree v)
+    (anchors : Array (String × YamlValue)) :
+    ∀ env, (v.resolveAliasesOrdered anchors env).fst = v := by
+  induction h_af with
+  | scalar s => intro env; rfl
+  | sequence style items tag anchor h ih =>
+    intro env
+    have H : ∀ w ∈ items.toList, ∀ env', (w.resolveAliasesOrdered anchors env').fst = w := by
+      intro w hw
+      obtain ⟨i, hi, h_eq⟩ := List.getElem_of_mem hw
+      have hi' : i < items.size := by rwa [Array.length_toList] at hi
+      have h_w : w = items[i] := by rw [← h_eq, Array.getElem_toList]
+      subst h_w; exact ih ⟨i, hi'⟩
+    simp only [YamlValue.resolveAliasesOrdered,
+      goList_fst_of_aliasFree anchors items.toList H env, Array.toArray_toList]
+  | mapping style pairs tag anchor hk hv ihk ihv =>
+    intro env
+    have mem : ∀ p ∈ pairs.toList, ∃ i : Fin pairs.size, p = pairs[i.val] := by
+      intro p hp
+      obtain ⟨i, hi, h_eq⟩ := List.getElem_of_mem hp
+      have hi' : i < pairs.size := by rwa [Array.length_toList] at hi
+      exact ⟨⟨i, hi'⟩, by rw [← h_eq, Array.getElem_toList]⟩
+    have Hk : ∀ p ∈ pairs.toList, ∀ env', (p.1.resolveAliasesOrdered anchors env').fst = p.1 := by
+      intro p hp; obtain ⟨i, rfl⟩ := mem p hp; exact ihk i
+    have Hv : ∀ p ∈ pairs.toList, ∀ env', (p.2.resolveAliasesOrdered anchors env').fst = p.2 := by
+      intro p hp; obtain ⟨i, rfl⟩ := mem p hp; exact ihv i
+    simp only [YamlValue.resolveAliasesOrdered,
+      goPairs_fst_of_aliasFree anchors pairs.toList Hk Hv env, Array.toArray_toList]
+
+/-- C1 applied to `YamlDocument.compose`: an alias-free `Scannable` document
+    value composes to a `Grammable` one.  `compose` is
+    `(resolveAliasesOrdered …).fst.stripAnchors`, the walk is the identity here,
+    and the two bridges close the rest. -/
 lemma compose_grammable (doc : YamlDocument)
     (h_scan : Scannable doc.value false)
-    (h_resolve : AllAliasesResolve doc.value doc.anchors)
-    (h_anchors : WellFormedAnchors doc.anchors) :
+    (h_af : AliasFree doc.value) :
     Grammable doc.compose.value false := by
-  simp only [YamlDocument.compose]
-  exact (compose_value_grammable_ordered doc.value doc.anchors false h_scan h_resolve h_anchors
-    [] wellFormedEnv_nil).1
+  show Grammable ((doc.value.resolveAliasesOrdered doc.anchors []).fst).stripAnchors false
+  rw [resolveAliasesOrdered_fst_of_aliasFree doc.value h_af doc.anchors []]
+  exact stripAnchors_preserves_Grammable _ false
+    (Scannable_aliasFree_to_Grammable doc.value false h_scan h_af)
 
 /-! ## Flow bracket nesting utilities
 

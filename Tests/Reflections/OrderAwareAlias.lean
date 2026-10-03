@@ -61,7 +61,7 @@ def outRebindSeq : String := "[1,1,2,2]"
 theorem rebind_seq_items_thread_env : runJson inRebindSeq = outRebindSeq := by native_decide
 
 /-- Bindings made INSIDE an earlier sibling escape to later siblings (the joint
-    grammable ∧ well-formed-env conclusion of `compose_value_grammable_ordered` exists
+    scannable ∧ well-formed-env conclusion of `compose_value_scannable_ordered` exists
     because of exactly this): `l` consumes the `&x` bound inside `k`'s value, and `m`
     consumes `k`'s own completed node. -/
 def inNestedEscape : String := "k: &o {a: &x 1, b: *x}\nl: *x\nm: *o\n"

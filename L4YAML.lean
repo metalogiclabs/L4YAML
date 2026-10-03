@@ -59,6 +59,7 @@ import L4YAML.Proofs.Parser.ParserCompleteness
 import L4YAML.Proofs.Parser.ParserCorrectness
 import L4YAML.Proofs.Parser.ParserGrammable
 import L4YAML.Proofs.Parser.ParserGrammableBase
+import L4YAML.Proofs.Parser.ParserScannableBase
 import L4YAML.Proofs.Parser.ParserNodeProofs
 import L4YAML.Proofs.Parser.ParserSoundness
 import L4YAML.Proofs.Parser.ParserWellBehaved

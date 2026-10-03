@@ -3716,19 +3716,26 @@ lemma parseStreamLoop_single_doc
         -- Both if-branches are identical (stuck or not, result is same)
         split <;> rfl)
 
-/-- **Grammability preservation**: The parsed output of emitter output
-    is grammable. Follows from `parseStream_output_grammable` applied
-    to the scan+parse decomposition. -/
-lemma emit_parsed_grammable (v : YamlValue)
+/-- **Scannability preservation**: the parsed output of emitter output is
+    scannable.  Follows from `parseStream_output_scannable_composed` applied to
+    the scan+parse decomposition.
+
+    The `Grammable` form holds too, since `emit` routes `.alias` through
+    `emitScalar` — which double-quotes unconditionally, so emitter output
+    contains no alias syntax and the parsed tree is `AliasFree`.  Stating it
+    that way needs an alias-freeness lemma about emitter output that nothing
+    currently requires, so the conclusion stays at `Scannable`, which
+    `compose_scannable` gives with no hypothesis on the input. -/
+lemma emit_parsed_scannable (v : YamlValue)
     (docs : Array YamlDocument)
     (h : parseYaml (emit v) = .ok docs) :
-    ∀ doc ∈ docs.toList, Grammable doc.value false := by
+    ∀ doc ∈ docs.toList, Scannable doc.value false := by
   simp only [parseYaml] at h
   split at h
   · rename_i raw_docs h_raw
     injection h with h_eq
     have ⟨tokens, h_scan, h_parse⟩ := Composition.parseYamlRaw_ok_decompose (emit v) raw_docs h_raw
-    have h_gram := ParserGrammable.parseStream_output_grammable (emit v) tokens raw_docs h_scan h_parse
+    have h_gram := ParserGrammable.parseStream_output_scannable_composed (emit v) tokens raw_docs h_scan h_parse
     intro doc hdoc
     rw [← h_eq] at hdoc
     simp only [Array.toList_map] at hdoc
