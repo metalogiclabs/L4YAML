@@ -12,8 +12,13 @@ theorem serializationSorryProbe : True := by
 LEAN
 lake env lean "$work/SerializationSorryProbe.lean" 2>&1 | tee "$work/sorry.log"
 printf 'import L4YAML.Proofs.Serialization\n' > "$work/SerializationAxiomProbe.lean"
-rg --no-filename '^#print axioms ' L4YAML/Proofs/Serialization/*.lean >> "$work/SerializationAxiomProbe.lean"
+rg --no-filename --no-ignore -g '*.lean' '^#print axioms ' \
+  L4YAML/Proofs/Serialization.lean L4YAML/Proofs/Serialization/ \
+  >> "$work/SerializationAxiomProbe.lean"
 sed -n 's/^#print axioms //p' "$work/SerializationAxiomProbe.lean" > "$work/sites.txt"
+site_count=$(wc -l < "$work/sites.txt")
+test "$site_count" -ge 45 \
+  || { echo "axiom-site sweep found $site_count sites, expected >= 45"; exit 1; }
 lake env lean "$work/SerializationAxiomProbe.lean" 2>&1 | tee "$work/axioms.log"
 cat "$work/build.log" "$work/axioms.log" > "$work/qualification.log"
 python3 scripts/check-serialization-axioms.py "$work/qualification.log" "$work/sorry.log" "$work/sites.txt"
