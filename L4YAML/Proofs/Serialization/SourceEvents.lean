@@ -1,3 +1,7 @@
+/-
+Copyright (c) 2026. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+-/
 import L4YAML.Surface.Node
 import L4YAML.Proofs.Serialization.SerializationWellFormed
 
@@ -25,12 +29,12 @@ problem.
 All generalized lemmas below are ordinary kernel proofs; no `native_decide`.
 -/
 
-namespace L4YAMLSerializationSourceEvents
+namespace L4YAML.Proofs.Serialization.SourceEvents
 
 open L4YAML
 open L4YAML.CharPredicates
 open L4YAML.Surface
-open L4YAMLSerializationWellFormed
+open L4YAML.Proofs.Serialization.SerializationWellFormed
 
 /-- Boolean spelling of the surface grammar's anchor-name character class,
 defined independently from the surface Prop so source recognition is
@@ -350,26 +354,30 @@ lemma source_alias_allowed_iff_scanner_guard
     (s : L4YAML.Scanner.ScannerState)
     (chars rest : List Char) (name : String)
     (hsrc : anchorEventAt chars = some (.useAlias name, rest)) :
-    s.definedAnchors.any (fun x => x == name) = true ↔
-      AliasAllowed (ofScannerAliases s) name := by
-  exact scanner_alias_guard_exact s name
+    (∃ remainder, anchorEventAt chars = some (.useAlias name, remainder) ∧
+      AliasAllowed (ofScannerAliases s) name) ↔
+      s.definedAnchors.any (fun x => x == name) = true := by
+  simp only [hsrc, Option.some.injEq, Prod.mk.injEq, true_and]
+  simpa using (scanner_alias_guard_exact s name).symm
 
 lemma source_named_tag_allowed_iff_parser_guard
     (ps : L4YAML.TokenParser.ParseState)
     (chars rest : List Char) (handle : String)
     (hsrc : namedTagUseAt chars = some (.useTag handle, rest)) :
-    parserTagGuard ps handle = true ↔
-      TagHandleAllowed (ofParserTags ps) handle := by
-  exact parser_tag_guard_exact ps handle
+    (∃ remainder, namedTagUseAt chars = some (.useTag handle, remainder) ∧
+      TagHandleAllowed (ofParserTags ps) handle) ↔
+      parserTagGuard ps handle = true := by
+  simp only [hsrc, Option.some.injEq, Prod.mk.injEq, true_and]
+  simpa using (parser_tag_guard_exact ps handle).symm
 
-end L4YAMLSerializationSourceEvents
+end L4YAML.Proofs.Serialization.SourceEvents
 
-#print axioms L4YAMLSerializationSourceEvents.spanWhile_all
-#print axioms L4YAMLSerializationSourceEvents.alias_use_source_exact
-#print axioms L4YAMLSerializationSourceEvents.named_tag_use_source_exact
-#print axioms L4YAMLSerializationSourceEvents.source_alias_allowed_iff_scanner_guard
-#print axioms L4YAMLSerializationSourceEvents.source_named_tag_allowed_iff_parser_guard
+#print axioms L4YAML.Proofs.Serialization.SourceEvents.spanWhile_all
+#print axioms L4YAML.Proofs.Serialization.SourceEvents.alias_use_source_exact
+#print axioms L4YAML.Proofs.Serialization.SourceEvents.named_tag_use_source_exact
+#print axioms L4YAML.Proofs.Serialization.SourceEvents.source_alias_allowed_iff_scanner_guard
+#print axioms L4YAML.Proofs.Serialization.SourceEvents.source_named_tag_allowed_iff_parser_guard
 
-#print axioms L4YAMLSerializationSourceEvents.anchor_definition_surface
-#print axioms L4YAMLSerializationSourceEvents.alias_use_surface
-#print axioms L4YAMLSerializationSourceEvents.named_tag_use_surface
+#print axioms L4YAML.Proofs.Serialization.SourceEvents.anchor_definition_surface
+#print axioms L4YAML.Proofs.Serialization.SourceEvents.alias_use_surface
+#print axioms L4YAML.Proofs.Serialization.SourceEvents.named_tag_use_surface

@@ -1,10 +1,15 @@
+/-
+Copyright (c) 2026. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+-/
 import L4YAML.Parser.State
 import L4YAML.Proofs.Serialization.SerializationWellFormed
 
 /-!
 # Executable anchor-commitment bridge
 
-The independent semantics places anchor commitment at node completion.
+The current-L4YAML trace places anchor commitment at node completion.
+The YAML 1.2.2 trace commits earlier; see CommitTrace and the open runtime repair.
 L4YAML's `applyNodeFinalization` calls `addAnchor` in its node-finalization
 tail. This file proves the name-set effect of that operation directly.
 
@@ -13,11 +18,11 @@ every earlier parser state lacks the pending name. That correspondence remains
 open alongside the input-to-event extraction theorem.
 -/
 
-namespace L4YAMLSerializationAnchorRuntime
+namespace L4YAML.Proofs.Serialization.AnchorRuntime
 
 open L4YAML
 open L4YAML.TokenParser
-open L4YAMLSerializationWellFormed
+open L4YAML.Proofs.Serialization.SerializationWellFormed
 
 lemma addAnchor_name_projection
     (ps : ParseState) (name : String) (val : YamlValue) :
@@ -39,7 +44,7 @@ lemma addAnchor_preserves_old_names
   exact List.mem_append_left _ h
 
 /-- If finalization has an anchor property, the output parser state contains
-that anchor name.  This pins the independent defineAnchor event to the actual
+that anchor name.  This pins the current-L4YAML defineAnchor event to the actual
 executable node-completion operation. -/
 lemma applyNodeFinalization_commits_anchor
     (val : YamlValue) (ps : ParseState) (name : String)
@@ -69,8 +74,8 @@ lemma applyNodeFinalization_no_anchor_projection
   all_goals
     split <;> rfl
 
-end L4YAMLSerializationAnchorRuntime
+end L4YAML.Proofs.Serialization.AnchorRuntime
 
-#print axioms L4YAMLSerializationAnchorRuntime.addAnchor_name_projection
-#print axioms L4YAMLSerializationAnchorRuntime.applyNodeFinalization_commits_anchor
-#print axioms L4YAMLSerializationAnchorRuntime.applyNodeFinalization_no_anchor_projection
+#print axioms L4YAML.Proofs.Serialization.AnchorRuntime.addAnchor_name_projection
+#print axioms L4YAML.Proofs.Serialization.AnchorRuntime.applyNodeFinalization_commits_anchor
+#print axioms L4YAML.Proofs.Serialization.AnchorRuntime.applyNodeFinalization_no_anchor_projection

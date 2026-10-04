@@ -1,3 +1,7 @@
+/-
+Copyright (c) 2026. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+-/
 import L4YAML.Parser.Composition
 import L4YAML.Scanner.Scanner
 
@@ -10,7 +14,7 @@ fail the build if the selected runtime behavior changes. No generalized
 theorem depends on these measurements.
 -/
 
-namespace L4YAMLSerializationCensus
+namespace L4YAML.Proofs.Serialization.Census
 
 open L4YAML
 
@@ -62,13 +66,13 @@ def tagCases : List (String × String) := [
   ("verbatim", "!<tag:example.com,2026:x> value\n")
 ]
 
-#eval aliasCases.map fun (name, input) => (name, classifyScan input, classifyLoad input)
-#eval tagCases.map fun (name, input) => (name, classifyScan input, classifyLoad input)
 
 #guard rejectsUndefinedAlias "&x [*x]\n"
+#guard rejectsUndefinedAlias "&x {a: *x}\n"
+#guard rejectsUndefinedAlias "&x\n- *x\n"
 #guard (TokenParser.parseYaml "[&x 1, *x]\n").isOk
 #guard rejectsUndefinedAlias "*x"
 #guard rejectsUndeclaredTagHandle "!h!x value\n"
 #guard (TokenParser.parseYaml "%TAG !h! tag:example.com,2026:\n---\n!h!x value\n").isOk
 
-end L4YAMLSerializationCensus
+end L4YAML.Proofs.Serialization.Census

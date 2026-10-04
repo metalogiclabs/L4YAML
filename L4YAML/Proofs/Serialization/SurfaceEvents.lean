@@ -1,3 +1,7 @@
+/-
+Copyright (c) 2026. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+-/
 import L4YAML.Surface.Node
 import L4YAML.Proofs.Serialization.SerializationWellFormed
 import L4YAML.Proofs.Serialization.CommitTrace
@@ -15,16 +19,16 @@ and block scalar contents therefore cannot become semantic events merely by
 containing '*', '&', or '!'.
 
 Anchor commitment is represented separately from lexical property discovery:
-an anchor property yields a pending anchor name; a containing node may commit
-that name only at the node-completion boundary described by CommitTrace.
+an anchor property yields a pending anchor name; current L4YAML commits it at node completion, while YAML 1.2.2
+commits it before content. Both policies are explicit in CommitTrace.
 -/
 
-namespace L4YAMLSerializationSurfaceEvents
+namespace L4YAML.Proofs.Serialization.SurfaceEvents
 
 open L4YAML
 open L4YAML.Surface
-open L4YAMLSerializationWellFormed
-open L4YAMLSerializationCommitTrace
+open L4YAML.Proofs.Serialization.SerializationWellFormed
+open L4YAML.Proofs.Serialization.CommitTrace
 
 /-- A surface alias derivation carries a semantic alias-use event. -/
 def AliasEventWitness (s s' : SurfPos) (name : String) : Prop :=
@@ -33,8 +37,7 @@ def AliasEventWitness (s s' : SurfPos) (name : String) : Prop :=
     s.chars = '*' :: (name.toList ++ tail) ∧
     s'.chars = tail
 
-/-- A surface anchor property carries a *pending* anchor name.  It is not yet
-a defineAnchor event: commitment belongs to the enclosing node completion. -/
+/-- A surface anchor property carries a *pending* anchor name.  Its conversion to a defineAnchor event depends on the selected trace policy. -/
 def PendingAnchorWitness (s s' : SurfPos) (name : String) : Prop :=
   SCNsAnchorProperty s s' ∧
   ∃ tail : List Char,
@@ -52,65 +55,76 @@ def NamedTagEventWitness (s s' : SurfPos) (handle : String) : Prop :=
 
 lemma alias_surface_has_event
     (c : Char) (cs tail : List Char) (col : Nat)
-    (hc : L4YAMLSerializationSourceEvents.isAnchorCharBool c = true)
+    (hc : L4YAML.Proofs.Serialization.SourceEvents.isAnchorCharBool c = true)
     (hcs : ∀ d ∈ cs,
-      L4YAMLSerializationSourceEvents.isAnchorCharBool d = true) :
+      L4YAML.Proofs.Serialization.SourceEvents.isAnchorCharBool d = true) :
     AliasEventWitness
       ⟨'*' :: ((c :: cs) ++ tail), col⟩
       ⟨tail, col + 1 + (c :: cs).length⟩
       (String.ofList (c :: cs)) := by
   constructor
-  · exact L4YAMLSerializationSourceEvents.alias_use_surface c cs tail col hc hcs
+  · exact L4YAML.Proofs.Serialization.SourceEvents.alias_use_surface c cs tail col hc hcs
   · refine ⟨tail, ?_, rfl⟩
     simp
 
 lemma anchor_surface_has_pending
     (c : Char) (cs tail : List Char) (col : Nat)
-    (hc : L4YAMLSerializationSourceEvents.isAnchorCharBool c = true)
+    (hc : L4YAML.Proofs.Serialization.SourceEvents.isAnchorCharBool c = true)
     (hcs : ∀ d ∈ cs,
-      L4YAMLSerializationSourceEvents.isAnchorCharBool d = true) :
+      L4YAML.Proofs.Serialization.SourceEvents.isAnchorCharBool d = true) :
     PendingAnchorWitness
       ⟨'&' :: ((c :: cs) ++ tail), col⟩
       ⟨tail, col + 1 + (c :: cs).length⟩
       (String.ofList (c :: cs)) := by
   constructor
-  · exact L4YAMLSerializationSourceEvents.anchor_definition_surface c cs tail col hc hcs
+  · exact L4YAML.Proofs.Serialization.SourceEvents.anchor_definition_surface c cs tail col hc hcs
   · refine ⟨tail, ?_, rfl⟩
     simp
 
-/-- Committing a pending anchor after a content trace appends the definition,
-never prepends it. -/
-def commitPendingAnchor (pending : Option String) (contentEvents : List Event) :
+/-- Current L4YAML policy, awaiting the open recursive-alias repair. -/
+def l4yamlCommitPendingAnchor (pending : Option String) (contentEvents : List Event) :
     List Event :=
   match pending with
   | none => contentEvents
   | some name => contentEvents ++ [.defineAnchor name]
 
+/-- YAML 1.2.2 policy: commit the anchor before node content. -/
+def yamlCommitAnchor (anchor : Option String) (contentEvents : List Event) : List Event :=
+  match anchor with
+  | none => contentEvents
+  | some name => .defineAnchor name :: contentEvents
+
+lemma yaml_anchor_authorizes_inner_alias (name : String) :
+    SerializationWellFormed (yamlCommitAnchor (some name) [.useAlias name]) := by
+  simp [yamlCommitAnchor, SerializationWellFormed, WellFormedFrom, AliasAllowed]
+
 lemma commit_pending_anchor_some (name : String) (events : List Event) :
-    commitPendingAnchor (some name) events =
+    l4yamlCommitPendingAnchor (some name) events =
       events ++ [.defineAnchor name] := rfl
 
 lemma commit_pending_anchor_none (events : List Event) :
-    commitPendingAnchor none events = events := rfl
+    l4yamlCommitPendingAnchor none events = events := rfl
 
 /-- The structured commitment operation reproduces the semantic skeleton's
 anchored-node order exactly. -/
 lemma commit_pending_matches_commitNode
     (name : String) (content : CommitNode) :
-    commitPendingAnchor (some name) (nodeEvents content) =
-      nodeEvents (.anchored name content) := by
+    l4yamlCommitPendingAnchor (some name) (l4yamlNodeEvents content) =
+      l4yamlNodeEvents (.anchored name content) := by
   rfl
 
 /-- Consequently an alias in the content cannot see the enclosing pending
 anchor. -/
-lemma pending_anchor_does_not_authorize_inner_alias (name : String) :
+lemma current_l4yaml_pending_anchor_does_not_authorize_inner_alias (name : String) :
     ¬ SerializationWellFormed
-      (commitPendingAnchor (some name) [.useAlias name]) := by
-  simp [commitPendingAnchor, SerializationWellFormed, WellFormedFrom, AliasAllowed]
+      (l4yamlCommitPendingAnchor (some name) [.useAlias name]) := by
+  simp [l4yamlCommitPendingAnchor, SerializationWellFormed, WellFormedFrom, AliasAllowed]
 
-end L4YAMLSerializationSurfaceEvents
+end L4YAML.Proofs.Serialization.SurfaceEvents
 
-#print axioms L4YAMLSerializationSurfaceEvents.alias_surface_has_event
-#print axioms L4YAMLSerializationSurfaceEvents.anchor_surface_has_pending
-#print axioms L4YAMLSerializationSurfaceEvents.commit_pending_matches_commitNode
-#print axioms L4YAMLSerializationSurfaceEvents.pending_anchor_does_not_authorize_inner_alias
+#print axioms L4YAML.Proofs.Serialization.SurfaceEvents.alias_surface_has_event
+#print axioms L4YAML.Proofs.Serialization.SurfaceEvents.anchor_surface_has_pending
+#print axioms L4YAML.Proofs.Serialization.SurfaceEvents.commit_pending_matches_commitNode
+#print axioms L4YAML.Proofs.Serialization.SurfaceEvents.current_l4yaml_pending_anchor_does_not_authorize_inner_alias
+
+#print axioms L4YAML.Proofs.Serialization.SurfaceEvents.yaml_anchor_authorizes_inner_alias

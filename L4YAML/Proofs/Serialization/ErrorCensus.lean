@@ -1,3 +1,7 @@
+/-
+Copyright (c) 2026. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+-/
 import L4YAML.Token.Token
 
 /-!
@@ -16,7 +20,7 @@ guards are separated from language rejection rather than smuggled into either
 surface syntax or SerializationWellFormed.
 -/
 
-namespace L4YAMLSerializationErrorCensus
+namespace L4YAML.Proofs.Serialization.ErrorCensus
 
 open L4YAML
 
@@ -75,27 +79,30 @@ def rejectionLayer : ScanError → RejectionLayer
 def isSerializationError (e : ScanError) : Prop :=
   rejectionLayer e = .serialization
 
-theorem serialization_error_iff (e : ScanError) :
+lemma serialization_error_iff (e : ScanError) :
     isSerializationError e ↔
       (∃ name line col, e = .undefinedAlias name line col) ∨
       (∃ handle line col, e = .undeclaredTagHandle handle line col) := by
   cases e <;> simp [isSerializationError, rejectionLayer]
 
-theorem undefinedAlias_is_serialization (name : String) (line col : Nat) :
+lemma undefinedAlias_is_serialization (name : String) (line col : Nat) :
     isSerializationError (.undefinedAlias name line col) := by
   simp [isSerializationError, rejectionLayer]
 
-theorem undeclaredTagHandle_is_serialization (handle : String) (line col : Nat) :
+lemma undeclaredTagHandle_is_serialization (handle : String) (line col : Nat) :
     isSerializationError (.undeclaredTagHandle handle line col) := by
   simp [isSerializationError, rejectionLayer]
 
-theorem resource_guards_not_serialization :
+/-- Error classification only, not a reachability claim for parseYaml.
+`multipleDocuments` belongs to the single-document API. A future capstone
+about parseYamlSingle must also account for that API constraint. -/
+lemma resource_guards_not_serialization :
     (∀ line col, ¬ isSerializationError (.fuelExhausted line col)) ∧
     (∀ line, ¬ isSerializationError (.nestingDepthExceeded line)) ∧
     (∀ count, ¬ isSerializationError (.multipleDocuments count)) := by
   simp [isSerializationError, rejectionLayer]
 
-end L4YAMLSerializationErrorCensus
+end L4YAML.Proofs.Serialization.ErrorCensus
 
-#print axioms L4YAMLSerializationErrorCensus.serialization_error_iff
-#print axioms L4YAMLSerializationErrorCensus.resource_guards_not_serialization
+#print axioms L4YAML.Proofs.Serialization.ErrorCensus.serialization_error_iff
+#print axioms L4YAML.Proofs.Serialization.ErrorCensus.resource_guards_not_serialization

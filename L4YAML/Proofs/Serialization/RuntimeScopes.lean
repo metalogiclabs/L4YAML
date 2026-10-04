@@ -1,3 +1,7 @@
+/-
+Copyright (c) 2026. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+-/
 import L4YAML.Parser.TokenParser
 import L4YAML.Scanner.Scanner
 import L4YAML.Proofs.Serialization.SerializationWellFormed
@@ -15,10 +19,10 @@ boundaries.  This file pins the corresponding executable scope facts:
 These are family-level facts; no fixed-input evaluation is used.
 -/
 
-namespace L4YAMLSerializationRuntimeScopes
+namespace L4YAML.Proofs.Serialization.RuntimeScopes
 
 open L4YAML
-open L4YAMLSerializationWellFormed
+open L4YAML.Proofs.Serialization.SerializationWellFormed
 
 lemma scanner_document_start_resets_aliases
     (s : L4YAML.Scanner.ScannerState) :
@@ -78,7 +82,28 @@ lemma prepareDocumentState_tag_projection_exact
       (tagTableOfDirectives dirs).toList.map Prod.fst := by
   rw [ofParserTags, prepareDocumentState_tagHandles_exact ps dirs ps' h_ok]
 
-end L4YAMLSerializationRuntimeScopes
+/-! ## Directive order and document reset
 
-#print axioms L4YAMLSerializationRuntimeScopes.scanner_document_start_resets_aliases
-#print axioms L4YAMLSerializationRuntimeScopes.prepareDocumentState_tagHandles_exact
+`beginDocument` is a semantic scope-start, not the lexical `---` position.
+An eventual whole-input extraction must place it before that document's
+preceding %TAG directives. This definition pins the order, not the extraction.
+-/
+def documentEvents (directives content : List Event) : List Event :=
+  .beginDocument :: (directives ++ content)
+
+lemma documentEvents_reset_before_directives (env : Env) (directives content : List Event) :
+    checkFrom env (documentEvents directives content) =
+      checkFrom {} (directives ++ content) := rfl
+
+lemma tag_directive_reset_order_separator :
+    checkFrom {} [.declareTag "!h!", .beginDocument, .useTag "!h!"] = false ∧
+    checkFrom {} (documentEvents [.declareTag "!h!"] [.useTag "!h!"]) = true := by
+  decide
+
+end L4YAML.Proofs.Serialization.RuntimeScopes
+
+#print axioms L4YAML.Proofs.Serialization.RuntimeScopes.scanner_document_start_resets_aliases
+#print axioms L4YAML.Proofs.Serialization.RuntimeScopes.prepareDocumentState_tagHandles_exact
+
+#print axioms L4YAML.Proofs.Serialization.RuntimeScopes.documentEvents_reset_before_directives
+#print axioms L4YAML.Proofs.Serialization.RuntimeScopes.tag_directive_reset_order_separator

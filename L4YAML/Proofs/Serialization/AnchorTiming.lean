@@ -1,31 +1,32 @@
+/-
+Copyright (c) 2026. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+-/
 import L4YAML.Proofs.Serialization.SerializationWellFormed
 
 /-!
 # Anchor commitment timing
 
-The runtime census exposed a distinction that a raw source-order event stream
-would miss:
+YAML 1.2.2 §§3.2.1.3, 3.2.2.2, and 7.1 admit self-descendant nodes:
+`&x [*x]` has an anchor-bearing sequence-start event before its alias.
+YAML anchor commitment therefore precedes the node's content.
 
-  &x [*x]
+Current L4YAML differs: its scanner registers `&x` immediately, but its token
+parser registers a collection anchor only after the content has completed.
+The current load pipeline consequently rejects the self-reference.
 
-The scanner accepts it because `definedAnchors` is extended as soon as the
-`&x` property is scanned.  The load pipeline rejects it because the token
-parser does not add `x` to its anchor environment until the anchored node has
-finished parsing.
+Both event orderings below are independent algebraic traces. The separator
+names the observable mismatch that the open runtime repair must remove; it
+is not a claim that YAML requires rejection. See the maintainer's repair note:
+https://github.com/nasa-jpl/L4YAML/pull/1#issuecomment-5984913868
 
-Therefore the independent serialization semantics must interpret
-`Event.defineAnchor` as **anchor commitment at node completion**, not as the
-lexical appearance of `&name`.
-
-This file pins that distinction algebraically, without executing L4YAML.
 -/
+namespace L4YAML.Proofs.Serialization.AnchorTiming
 
-namespace L4YAMLSerializationAnchorTiming
-
-open L4YAMLSerializationWellFormed
+open L4YAML.Proofs.Serialization.SerializationWellFormed
 
 /-- A self-reference encountered before its enclosing anchor is committed is
-not serialization-well-formed. -/
+not well formed under the current L4YAML completion-order trace. -/
 lemma self_reference_before_commit_rejected
     (name : String) :
     ¬ SerializationWellFormed [.useAlias name, .defineAnchor name] := by
@@ -38,16 +39,14 @@ lemma later_alias_after_commit_allowed
     SerializationWellFormed [.defineAnchor name, .useAlias name] := by
   simp [SerializationWellFormed, WellFormedFrom, AliasAllowed]
 
-/-- The two orderings are observably different.  Hence source position of the
-`&name` marker is insufficient state for the load-level contract; node
-completion is a necessary distinction. -/
+/-- The two orderings are observably different.  This is the current runtime/spec mismatch, not a normative YAML restriction. -/
 lemma anchor_commit_order_separator
     (name : String) :
     checkFrom {} [.defineAnchor name, .useAlias name] ≠
       checkFrom {} [.useAlias name, .defineAnchor name] := by
   simp [checkFrom, AliasAllowed]
 
-end L4YAMLSerializationAnchorTiming
+end L4YAML.Proofs.Serialization.AnchorTiming
 
-#print axioms L4YAMLSerializationAnchorTiming.self_reference_before_commit_rejected
-#print axioms L4YAMLSerializationAnchorTiming.anchor_commit_order_separator
+#print axioms L4YAML.Proofs.Serialization.AnchorTiming.self_reference_before_commit_rejected
+#print axioms L4YAML.Proofs.Serialization.AnchorTiming.anchor_commit_order_separator

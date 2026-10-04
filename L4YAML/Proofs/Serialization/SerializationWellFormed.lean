@@ -1,3 +1,7 @@
+/-
+Copyright (c) 2026. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+-/
 import L4YAML.Scanner.Scanner
 import L4YAML.Parser.TokenParser
 
@@ -24,7 +28,7 @@ This is the first brick toward:
 No `native_decide` is used in the generalized claims in this file.
 -/
 
-namespace L4YAMLSerializationWellFormed
+namespace L4YAML.Proofs.Serialization.SerializationWellFormed
 
 open L4YAML
 
@@ -448,22 +452,58 @@ lemma tag_membership_separator
     simp [TagHandleAllowed, h_builtin, h₂]
   simp [checkFrom, ha₁, ha₂]
 
-end L4YAMLSerializationWellFormed
+/-! ## Bridges to the executable parser definitions -/
 
-#print axioms L4YAMLSerializationWellFormed.checkFrom_correct
-#print axioms L4YAMLSerializationWellFormed.scanner_alias_guard_exact
-#print axioms L4YAMLSerializationWellFormed.parser_tag_guard_exact
+open L4YAML.TokenParser
 
-#print axioms L4YAMLSerializationWellFormed.scanner_alias_guard_ext
-#print axioms L4YAMLSerializationWellFormed.parser_tag_guard_ext
+set_option maxHeartbeats 800000 in
+/-- Actual node-property parser admission for every handle and environment,
+on a single tag token. This reduces the runtime definition itself, so changing
+its guard breaks the bridge; tag prefixes and token positions are arbitrary. -/
+lemma parser_tag_guard_runtime (ps : ParseState) (handle suffix : String) (pos : YamlPos) :
+    (parseNodeProperties { ps with tokens := #[{ val := .tag handle suffix, pos := pos }], pos := 0 }).isOk =
+      parserTagGuard ps handle := by
+  unfold parseNodeProperties
+  dsimp only []
+  simp only [Std.Legacy.Range.forIn_eq_forIn_range',
+    Std.Legacy.Range.size, Nat.sub_zero, Nat.add_sub_cancel, Nat.div_one,
+    show List.range' 0 2 1 = [0, 1] from by decide,
+    List.forIn_cons, List.forIn_nil, bind, Except.bind, pure, Except.pure,
+    ParseState.peek?, ParseState.advance]
+  by_cases h0 : handle = "" <;> by_cases h1 : handle = "!" <;>
+    by_cases h2 : handle = "!!" <;> cases hd : ps.tagHandles.any (fun p => p.1 == handle) <;>
+    simp [parserTagGuard, h0, h1, h2, hd, Except.isOk, Except.toBool, throw, throwThe, MonadExceptOf.throw]
 
-#print axioms L4YAMLSerializationWellFormed.alias_membership_separator
-#print axioms L4YAMLSerializationWellFormed.tag_membership_separator
+/-- Actual alias parser admission for every name and environment. The one-token
+state isolates the alias decision from unrelated content and fuel failures. -/
+lemma parser_alias_guard_runtime (ps : ParseState) (name : String) (pos : YamlPos) :
+    (parseNode { ps with tokens := #[{ val := .alias name, pos := pos }], pos := 0 } 1).isOk =
+      parserAliasGuard ps name := by
+  unfold parseNode
+  cases hd : ps.anchors.any (fun p => p.1 == name) <;>
+    simp [ParseState.peek?, ParseState.peekPos?, ParseState.advance,
+      parserAliasGuard, hd, Except.isOk, Except.toBool,
+      bind, Except.bind, pure, Except.pure, throw, throwThe, MonadExceptOf.throw]
 
-#print axioms L4YAMLSerializationWellFormed.scanner_alias_guard_set_ext
-#print axioms L4YAMLSerializationWellFormed.parser_tag_guard_set_ext
+end L4YAML.Proofs.Serialization.SerializationWellFormed
 
-#print axioms L4YAMLSerializationWellFormed.checkFrom_envEquivalent
-#print axioms L4YAMLSerializationWellFormed.wellFormedFrom_envEquivalent
+#print axioms L4YAML.Proofs.Serialization.SerializationWellFormed.checkFrom_correct
+#print axioms L4YAML.Proofs.Serialization.SerializationWellFormed.scanner_alias_guard_exact
+#print axioms L4YAML.Proofs.Serialization.SerializationWellFormed.parser_tag_guard_exact
 
-#print axioms L4YAMLSerializationWellFormed.parser_alias_guard_exact
+#print axioms L4YAML.Proofs.Serialization.SerializationWellFormed.scanner_alias_guard_ext
+#print axioms L4YAML.Proofs.Serialization.SerializationWellFormed.parser_tag_guard_ext
+
+#print axioms L4YAML.Proofs.Serialization.SerializationWellFormed.alias_membership_separator
+#print axioms L4YAML.Proofs.Serialization.SerializationWellFormed.tag_membership_separator
+
+#print axioms L4YAML.Proofs.Serialization.SerializationWellFormed.scanner_alias_guard_set_ext
+#print axioms L4YAML.Proofs.Serialization.SerializationWellFormed.parser_tag_guard_set_ext
+
+#print axioms L4YAML.Proofs.Serialization.SerializationWellFormed.checkFrom_envEquivalent
+#print axioms L4YAML.Proofs.Serialization.SerializationWellFormed.wellFormedFrom_envEquivalent
+
+#print axioms L4YAML.Proofs.Serialization.SerializationWellFormed.parser_alias_guard_exact
+
+#print axioms L4YAML.Proofs.Serialization.SerializationWellFormed.parser_tag_guard_runtime
+#print axioms L4YAML.Proofs.Serialization.SerializationWellFormed.parser_alias_guard_runtime
