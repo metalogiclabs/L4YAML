@@ -7,8 +7,8 @@ import L4YAML.Proofs.Composition
 /-!
 # Exact executable acceptance boundary
 
-This module records the factorization Nicolas Rouquette selected for the
-load-capstone work. `InExecutableLanguage` is the scanner-plus-token-parser
+This module records the selected factorization for the load-capstone work.
+`InExecutableLanguage` is the scanner-plus-token-parser
 acceptance language. Since composition is total, it accepts exactly the same
 inputs as `parseYaml`.
 

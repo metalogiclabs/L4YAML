@@ -33,6 +33,22 @@ grammar-completeness work.
 Original handoff: [MathGraph source and evidence map](https://github.com/metalogiclabs/mathgraph/blob/72f3de86517f9516e92ce0432b380f54bb8a2021/experiments/l4yaml-serialization/HANDOFF.md).
 Original verification: [MathGraph Actions run 36471883837](https://github.com/metalogiclabs/mathgraph/actions/runs/36471883837).
 
+## Reading order
+
+1. `SerializationWellFormed.lean` defines the event environment, declarative
+   relation, executable checker, and minimum-sufficient-state results.
+2. `CommitTrace.lean` and `AnchorTiming.lean` isolate the normative-YAML versus
+   current-L4YAML anchor-order separator. `CommitNode` is intentionally only a
+   minimal witness language for this ordering question, not a YAML AST.
+3. `SourceEvents.lean` and `SurfaceEvents.lean` connect source and surface
+   witnesses to the event semantics.
+4. `AnchorRuntime.lean` and `RuntimeScopes.lean` attach the model to actual
+   parser/scanner state transitions and document scope.
+5. `ErrorCensus.lean` and `Census.lean` provide the exhaustive error-layer
+   classification and fixed executable controls.
+6. `ExecutableBoundary.lean` states the currently proved whole-input
+   factorization and its exact residual.
+
 ## Anchor policies and the open runtime repair
 
 `CommitTrace.yamlNodeEvents` and `SurfaceEvents.yamlCommitAnchor` model YAML

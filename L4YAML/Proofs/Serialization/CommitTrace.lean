@@ -11,6 +11,11 @@ The event-state checker is shared by two explicitly named trace policies:
 `yamlNodeEvents` commits an anchor before its content (YAML 1.2.2), while
 `l4yamlNodeEvents` commits it after content (current L4YAML runtime).
 
+`CommitNode` is deliberately only the smallest witness language needed to
+separate those two anchor-order policies. It is not a complete YAML syntax or
+event model: mappings, tags, directives, and document scope are represented in
+the adjacent source, surface, and runtime-scope modules.
+
 Only the latter describes current parser finalization. A future runtime repair
 must update the runtime bridges and guards, not silently relabel that trace.
 Open repair: https://github.com/nasa-jpl/L4YAML/pull/1#issuecomment-5984913868
