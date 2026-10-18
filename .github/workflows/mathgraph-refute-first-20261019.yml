@@ -13,27 +13,26 @@ jobs:
   refute-first:
     runs-on: ubuntu-latest
     timeout-minutes: 55
-    env:
-      L4YAML_LEANCOPILOT: ''
     steps:
       - name: Checkout exact fork snapshot
         uses: actions/checkout@v4
         with:
-          fetch-depth: 2
+          fetch-depth: 0
           submodules: false
 
       - name: Prove this audit changes no upstream source
         run: |
           set -euo pipefail
           PIN=bca37392fdcb80481342a186a37ab37a5ede6e46
-          test "$(git rev-parse HEAD^)" = "$PIN"
-          git diff --name-only HEAD^ HEAD | tee research/mathgraph-refute-first-20261019/changed-files.txt
-          if git diff --name-only HEAD^ HEAD | grep -Ev '^research/mathgraph-refute-first-20261019/|^\.github/workflows/mathgraph-refute-first-20261019\.yml$'; then
+          git cat-file -e "$PIN^{commit}"
+          git merge-base --is-ancestor "$PIN" HEAD
+          git diff --name-only "$PIN" HEAD | tee research/mathgraph-refute-first-20261019/changed-files.txt
+          if git diff --name-only "$PIN" HEAD | grep -Ev '^research/mathgraph-refute-first-20261019/|^\.github/workflows/mathgraph-refute-first-20261019\.yml$'; then
             echo "::error::Audit commit unexpectedly modified JPL source"
             exit 1
           fi
           git rev-parse HEAD
-          git rev-parse HEAD^
+          git rev-parse "$PIN"
 
       - name: Set up Python and independent YAML parsers
         uses: actions/setup-python@v5

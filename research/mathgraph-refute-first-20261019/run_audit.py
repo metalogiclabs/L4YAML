@@ -138,7 +138,7 @@ def compare():
     label = "COUNTEREXAMPLES_TO_UNQUALIFIED_ACCEPTANCE" if mismatch else "NO_DISAGREEMENT_IN_FINITE_SET"
     summary = {
         "upstream_pin": PIN,
-        "branch_parent_pin_verified_by_workflow": True,
+        "upstream_code_unchanged_verified_by_workflow": True,
         "case_sha256": reference["case_sha256"],
         "scope": "Finite two-reference differential at native L4YAML acceptance boundary",
         "verdict": label,
