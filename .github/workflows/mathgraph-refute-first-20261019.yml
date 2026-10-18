@@ -1,0 +1,81 @@
+name: MathGraph refute-first source-pinned YAML claim audit
+
+on:
+  push:
+    branches:
+      - research/refute-first-live-l4yaml-20261019
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  refute-first:
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    env:
+      L4YAML_LEANCOPILOT: ''
+    steps:
+      - name: Checkout exact fork snapshot
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+          submodules: false
+
+      - name: Prove this audit changes no upstream source
+        run: |
+          set -euo pipefail
+          PIN=bca37392fdcb80481342a186a37ab37a5ede6e46
+          test "$(git rev-parse HEAD^)" = "$PIN"
+          git diff --name-only HEAD^ HEAD | tee research/mathgraph-refute-first-20261019/changed-files.txt
+          if git diff --name-only HEAD^ HEAD | grep -Ev '^research/mathgraph-refute-first-20261019/|^\.github/workflows/mathgraph-refute-first-20261019\.yml$'; then
+            echo "::error::Audit commit unexpectedly modified JPL source"
+            exit 1
+          fi
+          git rev-parse HEAD
+          git rev-parse HEAD^
+
+      - name: Set up Python and independent YAML parsers
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install exact reference parser versions
+        run: |
+          python -m pip install --disable-pip-version-check --quiet 'PyYAML==6.0.3' 'ruamel.yaml==0.18.17'
+          python research/mathgraph-refute-first-20261019/run_audit.py prepare
+
+      - name: Install pinned Lean 4.35.0
+        run: |
+          set -euo pipefail
+          curl -sSfL https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh -s -- -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+
+      - name: Build minimal native runtime, not complete documentation
+        run: |
+          set -euo pipefail
+          lake --version
+          lake build L4YAML.Parser.Composition
+
+      - name: Execute Lean native loader against frozen cases
+        run: |
+          set -euo pipefail
+          lake env lean research/mathgraph-refute-first-20261019/Probe.lean 2>&1 | tee research/mathgraph-refute-first-20261019/native.out
+
+      - name: Independent reference/native comparison and claim-scope check
+        run: |
+          python research/mathgraph-refute-first-20261019/run_audit.py compare
+
+      - name: Preserve full witness and audit receipts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mathgraph-refute-first-l4yaml-20261019
+          path: |
+            research/mathgraph-refute-first-20261019/cases.json
+            research/mathgraph-refute-first-20261019/changed-files.txt
+            research/mathgraph-refute-first-20261019/reference.json
+            research/mathgraph-refute-first-20261019/Probe.lean
+            research/mathgraph-refute-first-20261019/native.out
+            research/mathgraph-refute-first-20261019/summary.json
+          if-no-files-found: warn

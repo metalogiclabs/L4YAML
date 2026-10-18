@@ -1,0 +1,78 @@
+[
+  {
+    "id": "self_seq_root",
+    "source": "&root [*root]\n"
+  },
+  {
+    "id": "self_map_root",
+    "source": "&root {next: *root}\n"
+  },
+  {
+    "id": "self_block_root",
+    "source": "&root\n- *root\n"
+  },
+  {
+    "id": "self_nested_flow",
+    "source": "outer: &root [1, [*root]]\n"
+  },
+  {
+    "id": "self_nested_map",
+    "source": "outer: &root\n  child: {value: *root}\n"
+  },
+  {
+    "id": "self_pair_seq",
+    "source": "first: &x [*x]\nsecond: *x\n"
+  },
+  {
+    "id": "non_self_forward_flow",
+    "source": "both: [&x 1, *x]\n"
+  },
+  {
+    "id": "non_self_sibling",
+    "source": "origin: &x {a: 1}\nref: *x\n"
+  },
+  {
+    "id": "unbound_alias",
+    "source": "origin: *x\n"
+  },
+  {
+    "id": "cross_doc_unbound",
+    "source": "---\norigin: &x 1\n...\n---\nref: *x\n"
+  },
+  {
+    "id": "two_docs_valid",
+    "source": "---\norigin: &x 1\n...\n---\norigin: &x 2\nref: *x\n"
+  },
+  {
+    "id": "tag_declared",
+    "source": "%TAG !h! tag:example.com,2026:\n---\n!h!x value\n"
+  },
+  {
+    "id": "tag_unbound",
+    "source": "---\n!h!x value\n"
+  },
+  {
+    "id": "bad_directive",
+    "source": "%YAML .2\n---\n"
+  },
+  {
+    "id": "bad_flow",
+    "source": "list: [a, b\n"
+  },
+  {
+    "id": "bad_block_header",
+    "source": "|+++\n"
+  },
+  {
+    "id": "alias_under_tag",
+    "source": "outer: &a !!map {self: *a}\n"
+  },
+  {
+    "id": "root_alias_tag",
+    "source": "!<tag:example.com,2026:t> &a [*a]\n"
+  },
+  {
+    "id": "nested_anchor_subdocument",
+    "source": "---\nsection: &a [*a]\n...\n---\nsection: &b {self: *b}\n"
+  }
+]
