@@ -109,7 +109,7 @@ def compare():
     raw = NATIVE_OUT.read_text(encoding="utf-8")
     native = {}
     for line in raw.splitlines():
-        match = re.fullmatch(r"\s*MG_AUDIT\|([a-z0-9_]+)\|(ACCEPT|REJECT)\s*", line)
+        match = re.fullmatch(r'\s*"?MG_AUDIT\|([a-z0-9_]+)\|(ACCEPT|REJECT)"?\s*', line)
         if match:
             key, outcome = match.groups()
             if key in native:
