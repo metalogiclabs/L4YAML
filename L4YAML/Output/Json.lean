@@ -52,7 +52,11 @@ def floatToJson : FloatValue → String
   | .inf false => "-Infinity"
   | .nan => "NaN"
 
--- Use Schema.scalarType for the same style-aware semantics as typed FromYaml.
+/-- Compatibility re-export: the shared schema now owns tag normalization. -/
+abbrev normalizeTag (t : String) : String := Schema.normalizeTag t
+
+/-- Compatibility re-export: JSON and typed FromYaml share scalar meaning. -/
+abbrev scalarType (s : Scalar) : YamlType := Schema.scalarType s
 
 mutual
 /-- Serialize a `YamlValue` to a JSON document string. -/
