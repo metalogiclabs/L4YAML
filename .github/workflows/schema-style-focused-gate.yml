@@ -1,0 +1,23 @@
+name: Focused schema-style native gate
+on:
+  push:
+    branches:
+      - research/schema-style-focused-gate-20261019
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Install pinned Lean
+        run: |
+          curl --fail --silent --show-error --location https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh -s -- -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+      - name: Build focused production modules
+        run: |
+          lake build L4YAML.Schema.Api L4YAML.Schema.Deriving L4YAML.Schema.Struct L4YAML.Output.Dump
+      - name: Execute source-native regression
+        run: |
+          lake env lean Tests/SchemaStyleSmoke.lean
