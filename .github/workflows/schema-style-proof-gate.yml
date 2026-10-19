@@ -1,0 +1,20 @@
+name: Focused Schema Proof Compatibility
+on:
+  push:
+    branches:
+      - research/schema-style-proof-gate-20261019
+jobs:
+  proofs:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Install pinned Lean
+        run: |
+          curl --fail --silent --show-error --location https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh -s -- -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+      - name: Check directly affected proof modules
+        run: |
+          lake build L4YAML.Proofs.Schema.SchemaResolution L4YAML.Proofs.Schema.SchemaComposition L4YAML.Proofs.Schema.SchemaDump L4YAML.Proofs.Output.DumpRoundTrip
