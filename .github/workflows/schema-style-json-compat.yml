@@ -1,0 +1,26 @@
+name: JSON Schema Public API Compatibility
+on:
+  push:
+    branches:
+      - research/schema-style-api-compat-20261019
+jobs:
+  json-compat:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Install pinned Lean
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error --location https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh -s -- -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+      - name: Compile shared Core Schema and JSON adapter
+        run: |
+          set -euo pipefail
+          lake build L4YAML.Output.Json
+      - name: Run exact public API regression
+        run: |
+          set -euo pipefail
+          lake env lean Tests/SchemaJsonCompatibilityProbe.lean
