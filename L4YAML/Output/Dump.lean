@@ -1,6 +1,7 @@
 import Lean.Data.Json
 import L4YAML.Spec.Types
 import L4YAML.Spec.CharPredicates
+import L4YAML.Schema.Schema
 
 /-
 Copyright (c) 2026. All rights reserved.
@@ -310,6 +311,25 @@ def isFlowUnsafe (s : String) : Bool :=
    | some c => c == '-' || c == ' '
    | none => false)
 
+/-- A Core tag is redundant only when the emitted scalar style implies
+    precisely the same typed value. -/
+def redundantCoreTag (s : Scalar) (style : ScalarStyle) : Bool :=
+  match s.tag with
+  | none => false
+  | some raw =>
+    let t := Schema.normalizeTag raw
+    let value := Schema.resolveScalar s.content (some t)
+    if t == "tag:yaml.org,2002:str" then
+      match style with
+      | .plain => value == Schema.resolveImplicit s.content
+      | _ => true
+    else
+      (t == "tag:yaml.org,2002:null" ||
+       t == "tag:yaml.org,2002:bool" ||
+       t == "tag:yaml.org,2002:int" ||
+       t == "tag:yaml.org,2002:float") &&
+      style == .plain && value == Schema.resolveImplicit s.content
+
 /-- Choose effective scalar style based on content, config, and dump context.
     In flow context, additional characters require quoting (see `isFlowUnsafe`). -/
 def chooseScalarStyle (s : Scalar) (cfg : DumpConfig)
@@ -318,6 +338,15 @@ def chooseScalarStyle (s : Scalar) (cfg : DumpConfig)
   if (s.style == .literal || s.style == .folded) && hasNewlines s.content
       && ctx == .block && blockScalarRepresentable s.content then
     s.style
+  else if cfg.scalarStyle == .auto &&
+          s.tag.map Schema.normalizeTag == some "tag:yaml.org,2002:str" &&
+          Schema.resolveImplicit s.content != .str s.content then
+    .doubleQuoted
+  else if (cfg.scalarStyle == .auto || cfg.scalarStyle == .plain) &&
+          redundantCoreTag s .plain &&
+          isPlainSafePreserve s.content true &&
+          (ctx == .block || !isFlowUnsafe s.content) then
+    .plain
   else match cfg.scalarStyle with
     | .doubleQuoted => .doubleQuoted
     | .singleQuoted =>
@@ -456,9 +485,14 @@ where
   dumpValue : YamlValue → DumpConfig → Nat → DumpContext → String
     | .scalar s, cfg, depth, ctx =>
       let anchorStr := match s.anchor with | some n => "&" ++ n ++ " " | none => ""
-      let tagStr := match s.tag with | some t => t ++ " " | none => ""
-      let pfx := tagStr ++ anchorStr
       let effectiveStyle := chooseScalarStyle s cfg ctx
+      let tagStr := match s.tag with
+        | none => ""
+        | some t =>
+          if redundantCoreTag s effectiveStyle then ""
+          else if t.startsWith "tag:" then "!<" ++ t ++ "> "
+          else t ++ " "
+      let pfx := tagStr ++ anchorStr
       let body := match effectiveStyle with
         | .plain => s.content
         | .doubleQuoted => dumpDoubleQuoted s.content
