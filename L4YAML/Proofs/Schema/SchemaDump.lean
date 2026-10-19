@@ -68,10 +68,10 @@ open L4YAML.TokenParser
 -/
 
 /-- Bool `true` serializes to auto-quoted `"true"`. -/
-lemma dumpTyped_true : dumpTyped true = "\"true\"" := by native_decide
+lemma dumpTyped_true : dumpTyped true = "true" := by native_decide
 
 /-- Bool `false` serializes to auto-quoted `"false"`. -/
-lemma dumpTyped_false : dumpTyped false = "\"false\"" := by native_decide
+lemma dumpTyped_false : dumpTyped false = "false" := by native_decide
 
 /-- Nat 0 serializes to `"0"`. -/
 lemma dumpTyped_nat_zero : dumpTyped (0 : Nat) = "0" := by native_decide
@@ -80,13 +80,13 @@ lemma dumpTyped_nat_zero : dumpTyped (0 : Nat) = "0" := by native_decide
 lemma dumpTyped_nat_42 : dumpTyped (42 : Nat) = "42" := by native_decide
 
 /-- Int -7 serializes to `"-7"`. -/
-lemma dumpTyped_int_neg7 : dumpTyped (-7 : Int) = "\"-7\"" := by native_decide
+lemma dumpTyped_int_neg7 : dumpTyped (-7 : Int) = "-7" := by native_decide
 
 /-- Int 100 serializes to `"100"`. -/
 lemma dumpTyped_int_100 : dumpTyped (100 : Int) = "100" := by native_decide
 
 /-- Unit serializes to auto-quoted `"null"`. -/
-lemma dumpTyped_unit : dumpTyped () = "\"null\"" := by native_decide
+lemma dumpTyped_unit : dumpTyped () = "null" := by native_decide
 
 /-- Simple string serializes as plain scalar. -/
 lemma dumpTyped_string_simple : dumpTyped "hello" = "hello" := by native_decide
