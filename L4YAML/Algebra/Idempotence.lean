@@ -259,18 +259,33 @@ lemma resolve_stripAnchors (v : YamlValue) :
 termination_by sizeOf v
 decreasing_by yaml_decreasing
 
-/-- `resolve` is invariant under `adaptForFlowContext`: style is
-    metadata that resolution never reads (resolution depends on
-    `content` and `tag` only). -/
-lemma resolve_adaptForFlowContext (v : YamlValue) :
+/-- Quoting a plain untagged scalar is schema-preserving only when its
+    content was already a Core Schema string. Unlike the old style-blind
+    resolver, style-aware resolution requires this explicit hypothesis.
+    Establishing it for all flow-indicator-bearing strings is a separate
+    lexical theorem obligation; no unconditional guarantee is claimed. -/
+lemma resolve_adaptForFlowContext (v : YamlValue)
+    (hflow : ∀ text : String,
+      hasFlowIndicator text.toList = true →
+      resolveImplicit text = .str text) :
     resolve v.adaptForFlowContext = resolve v := by
   match v with
   | .scalar s =>
-    -- adaptForFlowContext either returns `.scalar { s with style := .doubleQuoted }`
-    -- or `.scalar s` (an `if`-split). Both branches preserve `content` and
-    -- `tag`, so `resolveScalar content tag` is unchanged.
     simp only [adaptForFlowContext_scalar']
-    split <;> rfl
+    split
+    · rename_i h
+      have hp : (s.style == .plain) = true ∧
+          hasFlowIndicator s.content.toList = true := by
+        simpa only [Bool.and_eq_true] using h
+      have hs : s.style = .plain := by
+        cases hst : s.style <;> simp_all
+      cases ht : s.tag with
+      | some t =>
+        simp [resolve, scalarType, ht]
+      | none =>
+        have hstr := hflow s.content hp.2
+        simp [resolve, scalarType, ht, hs, hstr]
+    · rfl
   | .alias _ => rfl
   | .sequence style items tag anchor =>
     show
@@ -284,7 +299,7 @@ lemma resolve_adaptForFlowContext (v : YamlValue) :
         resolveList_eq_map, List.map_map]
     exact List.map_congr_left fun x hx =>
       have := sizeOf_lt_of_mem_toList hx
-      resolve_adaptForFlowContext x
+      resolve_adaptForFlowContext x hflow
   | .mapping style pairs tag anchor =>
     show
       YamlType.map
@@ -299,7 +314,7 @@ lemma resolve_adaptForFlowContext (v : YamlValue) :
     intro ⟨k, w⟩ hkw
     have ⟨hk, hw⟩ := sizeOf_pair_lt_of_mem_toList hkw
     simp only [Function.comp]
-    exact Prod.ext (resolve_adaptForFlowContext k) (resolve_adaptForFlowContext w)
+    exact Prod.ext (resolve_adaptForFlowContext k hflow) (resolve_adaptForFlowContext w hflow)
 termination_by sizeOf v
 decreasing_by yaml_decreasing
 
