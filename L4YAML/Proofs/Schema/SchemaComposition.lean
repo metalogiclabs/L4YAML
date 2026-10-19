@@ -172,7 +172,8 @@ lemma resolve_toYaml_int (n : Int)
     (h3 : isInt (toString n) = some n) :
     resolve (toYaml n) = .int n := by
   change resolveScalar (toString n) (some "tag:yaml.org,2002:int") = .int n
-  simp [resolveScalar, h3]
+  simp only [resolveScalar]
+  rw [show n.repr = toString n from rfl, h3]
 
 /-- Generic Int `fromYaml? ∘ toYaml` round-trip. -/
 lemma fromYaml_toYaml_int (n : Int)
@@ -191,7 +192,8 @@ lemma resolve_toYaml_nat (n : Nat)
     (h3 : isInt (toString n) = some (Int.ofNat n)) :
     resolve (toYaml n) = .int (Int.ofNat n) := by
   change resolveScalar (toString n) (some "tag:yaml.org,2002:int") = .int (Int.ofNat n)
-  simp [resolveScalar, h3]
+  simp only [resolveScalar]
+  rw [show n.repr = toString n from rfl, h3]
 
 /-- Concrete: `resolve (toYaml 42) = .int 42`. -/
 lemma resolve_toYaml_nat_42 : resolve (toYaml (42 : Nat)) = .int 42 :=
