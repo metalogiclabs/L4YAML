@@ -1,0 +1,37 @@
+name: Metalogic schema-style native qualification
+on:
+  push:
+    branches:
+      - fix/schema-style-and-typed-scalars-20261019
+  workflow_dispatch:
+jobs:
+  native-lean:
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Install pinned Lean via elan
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error --location https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh -s -- -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+      - name: Verify pinned compiler and dependency graph
+        run: |
+          set -euo pipefail
+          lean --version
+          lake --version
+      - name: Build full Lean library and native schema-dump tests
+        run: |
+          set -euo pipefail
+          lake build L4YAML schemadump
+      - name: Execute source-native style and interoperability probes
+        run: |
+          set -euo pipefail
+          lake env lean Tests/SchemaStyleRegression.lean
+      - name: Full default proof/library ratchet
+        run: |
+          set -euo pipefail
+          lake build
