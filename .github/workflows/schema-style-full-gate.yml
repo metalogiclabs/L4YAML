@@ -1,0 +1,35 @@
+name: Complete L4YAML Schema-Style Qualification
+on:
+  push:
+    branches:
+      - research/schema-style-law-gate-20261019
+jobs:
+  native-full:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Install pinned Lean
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error --location https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh -s -- -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+      - name: Build full source and proof libraries
+        run: |
+          set -euo pipefail
+          lake build
+      - name: Execute native schema-dump suite
+        run: |
+          set -euo pipefail
+          lake build schemadump
+          .lake/build/bin/schemadump
+      - name: Verify raw source-native regression
+        run: |
+          set -euo pipefail
+          lake env lean Tests/SchemaStyleRegression.lean
+      - name: Verify style separator and protected round-trip
+        run: |
+          set -euo pipefail
+          lake env lean Tests/SchemaStyleLawRegression.lean
