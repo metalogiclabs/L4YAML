@@ -319,7 +319,10 @@ def redundantCoreTag (s : Scalar) (style : ScalarStyle) : Bool :=
   | some raw =>
     let t := Schema.normalizeTag raw
     let value := Schema.resolveScalar s.content (some t)
-    if t == "tag:yaml.org,2002:str" then
+    -- Preserve user-authored shorthand tags; elide only typed-constructor
+    -- canonical tags whose meaning is redundant in the emitted style.
+    if !raw.startsWith "tag:yaml.org,2002:" then false
+    else if t == "tag:yaml.org,2002:str" then
       match style with
       | .plain => value == Schema.resolveImplicit s.content
       | _ => true
