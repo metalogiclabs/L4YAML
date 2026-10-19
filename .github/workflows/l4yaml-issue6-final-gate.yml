@@ -1,0 +1,45 @@
+name: L4YAML Issue 6 Final Exact-Source Qualification
+on:
+  push:
+    branches:
+      - research/schema-style-clean-head-ci-20261019
+jobs:
+  source-native:
+    runs-on: ubuntu-latest
+    timeout-minutes: 65
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Install source-locked Lean
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error --location https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh -s -- -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+      - name: Verify original source ancestry
+        run: |
+          set -euo pipefail
+          git merge-base --is-ancestor b95599fb8f8cff6490da6f201a208989d44f7733 HEAD
+          cat lean-toolchain
+      - name: Build complete Lean default target graph
+        run: |
+          set -euo pipefail
+          lake build
+      - name: Re-execute native SchemaDump executable
+        run: |
+          set -euo pipefail
+          lake build schemadump
+          .lake/build/bin/schemadump
+      - name: Replay user-reported source-native probes
+        run: |
+          set -euo pipefail
+          lake env lean Tests/SchemaStyleRegression.lean
+      - name: Recheck corrected theorem separator
+        run: |
+          set -euo pipefail
+          lake env lean Tests/SchemaStyleLawRegression.lean
+      - name: Compile JSON adapter and recheck original public API
+        run: |
+          set -euo pipefail
+          lake build L4YAML.Output.Json
+          lake env lean Tests/SchemaJsonCompatibilityProbe.lean
