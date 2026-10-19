@@ -29,7 +29,7 @@ parseYamlSingle (dump v cfg) = .ok v' → resolve v' = resolve v
 
 ## Key Results
 
-### §1: resolveEq` — Resolution-Relevant Equivalence
+### §1: `resolveEq` — Resolution-Relevant Equivalence
 Captures the fields used by `resolve`, including scalar style. Two
 values are resolution-equivalent when their scalar content, tag, style,
 and recursive structures agree.
@@ -38,8 +38,9 @@ and recursive structures agree.
 `resolveEq v v' = true → resolve v = resolve v'`
 Proved by structural induction with list/pair-list helpers.
 
-### §3: `contentEq` + no-tags → `resolve` equality
-For tag-free values (the common case), `contentEq` alone suffices.
+### §3: `contentEq` + plain/no-tags → `resolve` equality
+Tag absence alone is insufficient: the scalar presentation style must also
+be plain throughout the compared structures.
 
 ### §4: End-to-end round-trip checker
 `resolveRoundTrips v cfg` checks `dump v cfg → parseYamlSingle → resolve ==`.
