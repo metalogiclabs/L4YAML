@@ -2,6 +2,7 @@ import L4YAML.Proofs.RoundTrip.RoundTripComposition
 
 open L4YAML
 open L4YAML.Schema
+open L4YAML.Emit
 open L4YAML.Proofs.RoundTripComposition
 
 /-- Two presentations with identical scalar content and tags but different
