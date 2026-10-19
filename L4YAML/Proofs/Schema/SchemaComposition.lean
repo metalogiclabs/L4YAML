@@ -148,9 +148,7 @@ lemma resolve_toYaml_str_safe (s : String)
     (h1 : isNull s = false) (h2 : isBool s = none)
     (h3 : isInt s = none) (h4 : isFloat s = none) :
     resolve (toYaml s) = .str s := by
-  show resolveImplicit s = .str s
-  unfold resolveImplicit
-  simp [h1, h2, h3, h4]
+  rfl
 
 /-- String round-trip with schema-safe precondition. -/
 lemma fromYaml_toYaml_str_safe (s : String)
@@ -173,11 +171,9 @@ lemma resolve_toYaml_int (n : Int)
     (h2 : isBool (toString n) = none)
     (h3 : isInt (toString n) = some n) :
     resolve (toYaml n) = .int n := by
-  show resolveImplicit (toString n) = .int n
-  have : toString n = n.repr := rfl
-  rw [this] at h1 h2 h3 ⊢
-  unfold resolveImplicit
-  simp [h1, h2, h3]
+  change resolveScalar (toString n) (some "tag:yaml.org,2002:int") = .int n
+  simp only [resolveScalar]
+  rw [h3]
 
 /-- Generic Int `fromYaml? ∘ toYaml` round-trip. -/
 lemma fromYaml_toYaml_int (n : Int)
@@ -195,9 +191,9 @@ lemma resolve_toYaml_nat (n : Nat)
     (h2 : isBool (toString n) = none)
     (h3 : isInt (toString n) = some (Int.ofNat n)) :
     resolve (toYaml n) = .int (Int.ofNat n) := by
-  show resolveImplicit (toString n) = .int (Int.ofNat n)
-  unfold resolveImplicit
-  grind
+  change resolveScalar (toString n) (some "tag:yaml.org,2002:int") = .int (Int.ofNat n)
+  simp only [resolveScalar]
+  rw [h3]
 
 /-- Concrete: `resolve (toYaml 42) = .int 42`. -/
 lemma resolve_toYaml_nat_42 : resolve (toYaml (42 : Nat)) = .int 42 :=

@@ -195,7 +195,34 @@ lemma resolveScalar_not_map (content : String) (tag? : Option String) :
 /-- Resolving a scalar produces a leaf type (corollary of the above). -/
 lemma resolve_scalar_is_leaf (s : Scalar) :
     (resolve (.scalar s)).isSeq = false ∧ (resolve (.scalar s)).isMap = false :=
-  ⟨resolveScalar_not_seq s.content s.tag, resolveScalar_not_map s.content s.tag⟩
+  by
+    constructor
+    · cases htag : s.tag with
+      | some t =>
+        simpa [resolve, scalarType, htag] using
+          resolveScalar_not_seq s.content (some (normalizeTag t))
+      | none =>
+        cases hstyle : s.style with
+        | plain =>
+          simpa [resolve, scalarType, htag, hstyle, resolveScalar] using
+            (resolveScalar_not_seq s.content none)
+        | singleQuoted => simp [resolve, scalarType, htag, hstyle, YamlType.isSeq]
+        | doubleQuoted => simp [resolve, scalarType, htag, hstyle, YamlType.isSeq]
+        | literal => simp [resolve, scalarType, htag, hstyle, YamlType.isSeq]
+        | folded => simp [resolve, scalarType, htag, hstyle, YamlType.isSeq]
+    · cases htag : s.tag with
+      | some t =>
+        simpa [resolve, scalarType, htag] using
+          resolveScalar_not_map s.content (some (normalizeTag t))
+      | none =>
+        cases hstyle : s.style with
+        | plain =>
+          simpa [resolve, scalarType, htag, hstyle, resolveScalar] using
+            (resolveScalar_not_map s.content none)
+        | singleQuoted => simp [resolve, scalarType, htag, hstyle, YamlType.isMap]
+        | doubleQuoted => simp [resolve, scalarType, htag, hstyle, YamlType.isMap]
+        | literal => simp [resolve, scalarType, htag, hstyle, YamlType.isMap]
+        | folded => simp [resolve, scalarType, htag, hstyle, YamlType.isMap]
 
 /-! ## §4 — `resolveScalar` Explicit Tag Dispatch -/
 

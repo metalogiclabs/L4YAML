@@ -456,7 +456,7 @@ values.
 | 6.5 | `emit_content_invariant` | [`ScannerEmitBridge`](../L4YAML/Proofs/Output/ScannerEmitBridge.lean) | ✅ |
 | 6.6 | `escapeTag_roundtrip` | `RoundTrip` | ✅ |
 | 6.7 | `resolve_eq_of_resolveEq` (mutual) | [`RoundTripComposition`](../L4YAML/Proofs/RoundTrip/RoundTripComposition.lean) | ✅ |
-| 6.8 | `resolve_eq_of_contentEq_noTags` | `RoundTripComposition` | ✅ |
+| 6.8 | `resolve_eq_of_contentEq_plainNoTags` | `RoundTripComposition` | ✅ under plain-and-untagged scalar condition; no-tags alone is insufficient |
 | 6.9 | `emit_roundtrip_content_eq` (canonical-emitter closure) | `EmitterScannability` | ✅ |
 | 6.10 | `universal_roundtrip` — `∀ v, Grammable v false → ∃ docs, parseYaml (emit v) = .ok docs ∧ docs.size = 1 ∧ contentEq v docs[0]!.value = true` | `EmitterScannability` | ✅ (= 6.1, full statement) |
 | 6.11 | `dumpTyped_*`, `contentRoundTrips_*` | [`SchemaDump`](../L4YAML/Proofs/Schema/SchemaDump.lean), [`DumpRoundTrip`](../L4YAML/Proofs/Output/DumpRoundTrip.lean) | ✅ for concrete instances |

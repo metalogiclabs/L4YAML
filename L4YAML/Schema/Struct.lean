@@ -90,14 +90,8 @@ def getFieldOpt {α : Type} [FromYaml α] (pairs : Array (YamlValue × YamlValue
     Except SchemaError (Option α) := do
   match findField pairs fieldName with
   | some v =>
-      match v with
-      | .scalar s =>
-          if (s.content.isEmpty || s.content == "null" || s.content == "~") && s.tag.isNone then
-            .ok none
-          else
-            match fromYaml? v with
-            | .ok val => .ok (some val)
-            | .error e => .error (.fieldConversionError fieldName e)
+      match resolve v with
+      | .null => .ok none
       | _ =>
           match fromYaml? v with
           | .ok val => .ok (some val)

@@ -200,7 +200,7 @@ standard `nil` / `cons` unfoldings shown below.
 -/
 
 @[simp] lemma resolve_scalar (s : Scalar) :
-    resolve (.scalar s) = resolveScalar s.content s.tag := rfl
+    resolve (.scalar s) = scalarType s := rfl
 
 @[simp] lemma resolve_alias (name : String) :
     resolve (.alias name) = .null := rfl

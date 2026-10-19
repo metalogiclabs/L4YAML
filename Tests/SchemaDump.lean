@@ -47,9 +47,9 @@ def testPrimitives (state : IO.Ref TestCollector) : IO Unit := do
   setCategory state "Primitive serialization"
 
   check state "Bool true → \"true\" (auto-quoted)"
-    (dumpTyped true == "\"true\"")
+    (dumpTyped true == "true")
   check state "Bool false → \"false\" (auto-quoted)"
-    (dumpTyped false == "\"false\"")
+    (dumpTyped false == "false")
   check state "Nat 0 → 0"
     (dumpTyped (0 : Nat) == "0")
   check state "Nat 42 → 42"
@@ -57,7 +57,7 @@ def testPrimitives (state : IO.Ref TestCollector) : IO Unit := do
   check state "Nat 999 → 999"
     (dumpTyped (999 : Nat) == "999")
   check state "Int -7 → \"-7\" (auto-quoted)"
-    (dumpTyped (-7 : Int) == "\"-7\"")
+    (dumpTyped (-7 : Int) == "-7")
   check state "Int 100 → 100"
     (dumpTyped (100 : Int) == "100")
   check state "Int 0 → 0"
@@ -68,10 +68,16 @@ def testPrimitives (state : IO.Ref TestCollector) : IO Unit := do
     (dumpTyped "two words" == "two words")
   check state "String empty → \"\""
     (dumpTyped "" == "\"\"")
+  check state "String numeric spelling stays quoted"
+    (dumpTyped ("42" : String) == "\"42\"")
+  check state "String boolean spelling stays quoted"
+    (dumpTyped ("true" : String) == "\"true\"")
+  check state "String null spelling stays quoted"
+    (dumpTyped ("null" : String) == "\"null\"")
   check state "String colon-space → quoted"
     (dumpTyped "key: value" == "\"key: value\"")
   check state "Unit → \"null\" (auto-quoted)"
-    (dumpTyped () == "\"null\"")
+    (dumpTyped () == "null")
 
 /-! ## §2: Collection Serialization -/
 
@@ -92,7 +98,7 @@ def testCollections (state : IO.Ref TestCollector) : IO Unit := do
   check state "Array Nat [1,2,3] → block sequence"
     (dumpTyped (#[(1 : Nat), 2, 3] : Array Nat) == "- 1\n- 2\n- 3")
   check state "Array Bool → block with auto-quoting"
-    (dumpTyped (#[true, false] : Array Bool) == "- \"true\"\n- \"false\"")
+    (dumpTyped (#[true, false] : Array Bool) == "- true\n- false")
 
 /-! ## §3: Option Serialization -/
 
@@ -102,13 +108,13 @@ def testOptions (state : IO.Ref TestCollector) : IO Unit := do
   check state "some String → plain scalar"
     (dumpTyped (some "hello" : Option String) == "hello")
   check state "none String → \"null\" (auto-quoted)"
-    (dumpTyped (none : Option String) == "\"null\"")
+    (dumpTyped (none : Option String) == "null")
   check state "some Nat → plain scalar"
     (dumpTyped (some (42 : Nat) : Option Nat) == "42")
   check state "none Nat → \"null\" (auto-quoted)"
-    (dumpTyped (none : Option Nat) == "\"null\"")
+    (dumpTyped (none : Option Nat) == "null")
   check state "some Bool → auto-quoted"
-    (dumpTyped (some true : Option Bool) == "\"true\"")
+    (dumpTyped (some true : Option Bool) == "true")
 
 /-! ## §4: Content Round-Trip -/
 
@@ -197,6 +203,12 @@ def testTypedRoundTrip (state : IO.Ref TestCollector) : IO Unit := do
     (roundTripsTo "key: value")
   check state "Unit → String → Unit"
     (roundTripsTo ())
+  check state "String numeric spelling → String"
+    (roundTripsTo ("42" : String))
+  check state "String null spelling → String"
+    (roundTripsTo ("null" : String))
+  check state "String boolean spelling → String"
+    (roundTripsTo ("true" : String))
 
 /-! ## §6: Document Serialization -/
 
