@@ -1,0 +1,29 @@
+name: L4YAML Issue 6 Transitive Contract Gate
+on:
+  push:
+    branches:
+      - research/schema-style-full-repair-20261019
+jobs:
+  contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Install pinned Lean
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error --location https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh -s -- -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+      - name: Check proof and guard dependency frontier
+        run: |
+          set -euo pipefail
+          lake build L4YAML.Algebra.Idempotence Tests.Guards.Proofs.SchemaComposition Tests.Guards.Proofs.RoundTripComposition Tests.Guards.Schema.Dump Tests.Guards.Proofs.SchemaDump
+      - name: Re-run standalone source-native witness
+        run: |
+          set -euo pipefail
+          lake build L4YAML.Output.Json
+          lake env lean Tests/SchemaStyleRegression.lean
+          lake env lean Tests/SchemaStyleLawRegression.lean
+          lake env lean Tests/SchemaJsonCompatibilityProbe.lean
