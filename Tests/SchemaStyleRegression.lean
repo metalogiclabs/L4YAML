@@ -1,6 +1,5 @@
 import L4YAML
 open L4YAML
-open L4YAML.Schema
 
 /-!
 Regression probes for nasa-jpl/L4YAML#6. No mock parsers.
