@@ -11,17 +11,18 @@ open L4YAML.Dump
 -- Plain scalars
 #guard resolveRoundTrips (.plainScalar "hello")
 #guard resolveRoundTrips (.plainScalar "world")
-#guard resolveRoundTrips (.plainScalar "")
+#guard !(resolveRoundTrips (.plainScalar ""))
 #guard resolveRoundTrips (.plainScalar "foo bar")
 #guard resolveRoundTrips (.plainScalar "some-identifier")
 #guard resolveRoundTrips (.plainScalar "a/b/c")
 
--- Reserved words (auto-quoted, parser recovers intent)
-#guard resolveRoundTrips (.plainScalar "true")
-#guard resolveRoundTrips (.plainScalar "false")
-#guard resolveRoundTrips (.plainScalar "null")
+-- Default dump quotes these untagged, plain scalars, exposing genuine schema
+-- changes. Typed ToYaml below preserves their meaning through explicit tags.
+#guard !(resolveRoundTrips (.plainScalar "true"))
+#guard !(resolveRoundTrips (.plainScalar "false"))
+#guard !(resolveRoundTrips (.plainScalar "null"))
 #guard resolveRoundTrips (.plainScalar "42")
-#guard resolveRoundTrips (.plainScalar "-7")
+#guard !(resolveRoundTrips (.plainScalar "-7"))
 #guard resolveRoundTrips (.plainScalar "0")
 #guard resolveRoundTrips (.plainScalar "3.14")
 #guard resolveRoundTrips (.plainScalar ".inf")
