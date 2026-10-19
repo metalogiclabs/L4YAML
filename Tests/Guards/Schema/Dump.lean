@@ -9,21 +9,21 @@ open L4YAML.TokenParser
 open L4YAML.Schema
 open L4YAML.Schema.Dump
 
-#guard dumpTyped true == "\"true\""
-#guard dumpTyped false == "\"false\""
+#guard dumpTyped true == "true"
+#guard dumpTyped false == "false"
 #guard dumpTyped (42 : Nat) == "42"
 #guard dumpTyped (0 : Nat) == "0"
-#guard dumpTyped (-7 : Int) == "\"-7\""
+#guard dumpTyped (-7 : Int) == "-7"
 #guard dumpTyped (100 : Int) == "100"
 #guard dumpTyped "hello" == "hello"
 #guard dumpTyped "world" == "world"
-#guard dumpTyped () == "\"null\""
--- Bool → "true"/"false" → dump auto-quotes reserved words
-#guard dumpAs true == "\"true\""
-#guard dumpAs false == "\"false\""
+#guard dumpTyped () == "null"
+-- Typed Bool carries the Core Schema type; no quotation is required.
+#guard dumpAs true == "true"
+#guard dumpAs false == "false"
 
--- Unit → "null" → dump auto-quotes
-#guard dumpAs () == "\"null\""
+-- Typed Unit emits YAML null, not a string.
+#guard dumpAs () == "null"
 #guard dumpTyped "key: value" == "\"key: value\""
 #guard dumpTyped "" == "\"\""
 #guard dumpTyped "simple" == "simple"
@@ -34,7 +34,7 @@ open L4YAML.Schema.Dump
 #guard dumpTyped (#[#["a", "b"], #["c"]] : Array (Array String)) ==
   "-\n  - a\n  - b\n-\n  - c"
 #guard dumpTyped (some "hello" : Option String) == "hello"
-#guard dumpTyped (none : Option String) == "\"null\""
+#guard dumpTyped (none : Option String) == "null"
 #guard dumpTyped (some (42 : Nat) : Option Nat) == "42"
 #guard dumpTyped "hello" flowConfig == "[hello]" ∨
       dumpTyped "hello" flowConfig == "hello"
