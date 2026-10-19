@@ -3,7 +3,6 @@ import L4YAML.Schema.Deriving
 import L4YAML.Schema.Struct
 import L4YAML.Output.Dump
 open L4YAML
-open L4YAML.Schema
 
 /-!
 Regression probes for nasa-jpl/L4YAML#6. No mock parsers.
