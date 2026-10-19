@@ -172,8 +172,7 @@ instance {α : Type u} [FromYamlType α] : FromYamlType (Option α) where
                 | v => some <$> fromYamlType? v
 
 instance {α : Type u} [ToYaml α] : ToYaml (Option α) where
-  toYaml | none => YamlValue.scalar { content := "null", style := .plain,
-    tag := some "tag:yaml.org,2002:null" }
+  toYaml | none => YamlValue.scalar { content := "null", style := .plain, tag := some "tag:yaml.org,2002:null" }
          | some a => toYaml a
 
 /-! ## Tuple (Pair) Instances -/
