@@ -79,7 +79,7 @@ Structure mirrors `contentEq` to ensure equational theorem generation. -/
     This is a sufficient condition for `resolve v = resolve v'`. -/
 def resolveEq : YamlValue → YamlValue → Bool
   | .scalar s₁, .scalar s₂ =>
-    s₁.content == s₂.content && s₁.tag == s₂.tag && s₁.style == s₂.style
+    s₁.content == s₂.content && s₁.tag == s₂.tag && decide (s₁.style = s₂.style)
   | .sequence _ items₁ .., .sequence _ items₂ .. =>
     items₁.size == items₂.size &&
     resolveEqList items₁.toList items₂.toList
@@ -149,10 +149,11 @@ lemma resolve_eq_of_resolveEq (v v' : YamlValue) (h : resolveEq v v' = true) :
   match v, v' with
   | .scalar s₁, .scalar s₂ =>
     have hh : (s₁.content == s₂.content && s₁.tag == s₂.tag &&
-               s₁.style == s₂.style) = true := h
+               decide (s₁.style = s₂.style)) = true := h
     simp only [Bool.and_eq_true, beq_iff_eq] at hh
+    have hs : s₁.style = s₂.style := of_decide_eq_true hh.2
     change scalarType s₁ = scalarType s₂
-    simp [scalarType, hh.1.1, hh.1.2, hh.2]
+    simp [scalarType, hh.1.1, hh.1.2, hs]
   | .sequence _ items₁ .., .sequence _ items₂ .. =>
     have hh : (items₁.size == items₂.size &&
                resolveEq.resolveEqList items₁.toList items₂.toList) = true := h
@@ -217,7 +218,7 @@ where
     stronger premise than `noTags` and is necessary for style-sensitive
     meaning preservation under `contentEq`. -/
 def plainNoTags : YamlValue → Bool
-  | .scalar s => s.tag.isNone && (s.style == .plain)
+  | .scalar s => s.tag.isNone && decide (s.style = .plain)
   | .sequence _ items .. => plainNoTagsList items.toList
   | .mapping _ pairs .. => plainNoTagsPairList pairs.toList
   | .alias _ => true
@@ -240,20 +241,19 @@ lemma resolve_eq_of_contentEq_plainNoTags (v v' : YamlValue)
     have hc : s₁.content = s₂.content := by
       have : (s₁.content == s₂.content) = true := h_ceq
       exact eq_of_beq this
+    simp only [plainNoTags, Bool.and_eq_true] at h_nt h_nt'
     have ht1 : s₁.tag = none := by
-      have hni : s₁.tag.isNone = true := (Bool.and_eq_true.mp h_nt).1
+      have hni : s₁.tag.isNone = true := h_nt.1
       match h : s₁.tag with
       | none => rfl
       | some _ => rw [h] at hni; exact Bool.noConfusion hni
     have ht2 : s₂.tag = none := by
-      have hni : s₂.tag.isNone = true := (Bool.and_eq_true.mp h_nt').1
+      have hni : s₂.tag.isNone = true := h_nt'.1
       match h : s₂.tag with
       | none => rfl
       | some _ => rw [h] at hni; exact Bool.noConfusion hni
-    have hs1 : s₁.style = .plain :=
-      eq_of_beq (Bool.and_eq_true.mp h_nt).2
-    have hs2 : s₂.style = .plain :=
-      eq_of_beq (Bool.and_eq_true.mp h_nt').2
+    have hs1 : s₁.style = .plain := of_decide_eq_true h_nt.2
+    have hs2 : s₂.style = .plain := of_decide_eq_true h_nt'.2
     change scalarType s₁ = scalarType s₂
     simp [scalarType, hc, ht1, ht2, hs1, hs2]
   | .sequence _ items₁ .., .sequence _ items₂ .. =>
