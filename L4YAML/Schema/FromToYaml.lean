@@ -70,7 +70,10 @@ instance : FromYamlType Unit where
                 | v => .error (.expectedNull v)
 
 instance : ToYaml Unit where
-  toYaml _ := YamlValue.scalar { content := "null", style := .plain }
+  toYaml _ := YamlValue.scalar {
+    content := "null", style := .plain,
+    tag := some "tag:yaml.org,2002:null"
+  }
 
 instance : FromYamlType Bool where
   fromYamlType? | .bool b => .ok b
@@ -79,7 +82,8 @@ instance : FromYamlType Bool where
 instance : ToYaml Bool where
   toYaml b := YamlValue.scalar {
     content := if b then "true" else "false",
-    style := .plain
+    style := .plain,
+    tag := some "tag:yaml.org,2002:bool"
   }
 
 instance : FromYamlType Int where
@@ -89,7 +93,8 @@ instance : FromYamlType Int where
 instance : ToYaml Int where
   toYaml n := YamlValue.scalar {
     content := toString n,
-    style := .plain
+    style := .plain,
+    tag := some "tag:yaml.org,2002:int"
   }
 
 instance : FromYamlType Nat where
@@ -101,7 +106,8 @@ instance : FromYamlType Nat where
 instance : ToYaml Nat where
   toYaml n := YamlValue.scalar {
     content := toString n,
-    style := .plain
+    style := .plain,
+    tag := some "tag:yaml.org,2002:int"
   }
 
 instance : FromYamlType String where
@@ -111,7 +117,8 @@ instance : FromYamlType String where
 instance : ToYaml String where
   toYaml s := YamlValue.scalar {
     content := s,
-    style := .plain
+    style := .plain,
+    tag := some "tag:yaml.org,2002:str"
   }
 
 instance : FromYamlType Float where
@@ -122,7 +129,8 @@ instance : FromYamlType Float where
 instance : ToYaml Float where
   toYaml f := YamlValue.scalar {
     content := toString f,
-    style := .plain
+    style := .plain,
+    tag := some "tag:yaml.org,2002:float"
   }
 
 /-! ## Collection Instances -/
@@ -164,7 +172,8 @@ instance {α : Type u} [FromYamlType α] : FromYamlType (Option α) where
                 | v => some <$> fromYamlType? v
 
 instance {α : Type u} [ToYaml α] : ToYaml (Option α) where
-  toYaml | none => YamlValue.scalar { content := "null", style := .plain }
+  toYaml | none => YamlValue.scalar { content := "null", style := .plain,
+    tag := some "tag:yaml.org,2002:null" }
          | some a => toYaml a
 
 /-! ## Tuple (Pair) Instances -/
