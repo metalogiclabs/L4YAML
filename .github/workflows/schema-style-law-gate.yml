@@ -1,0 +1,26 @@
+name: Full Semantic Contract Proof Qualification
+on:
+  push:
+    branches:
+      - research/schema-style-law-gate-20261019
+jobs:
+  semantics:
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Install pinned Lean
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error --location https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh -s -- -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+      - name: Compile native meaning-preservation theorems
+        run: |
+          set -euo pipefail
+          lake build L4YAML.Algebra.Schema L4YAML.Proofs.Schema.SchemaResolution L4YAML.Proofs.Schema.SchemaComposition L4YAML.Proofs.Schema.SchemaDump L4YAML.Proofs.Output.DumpRoundTrip L4YAML.Proofs.RoundTrip.RoundTripComposition
+      - name: Execute independent style separator and typed cases
+        run: |
+          set -euo pipefail
+          lake env lean Tests/SchemaStyleLawRegression.lean
