@@ -195,7 +195,22 @@ lemma resolveScalar_not_map (content : String) (tag? : Option String) :
 /-- Resolving a scalar produces a leaf type (corollary of the above). -/
 lemma resolve_scalar_is_leaf (s : Scalar) :
     (resolve (.scalar s)).isSeq = false ∧ (resolve (.scalar s)).isMap = false :=
-  ⟨resolveScalar_not_seq s.content s.tag, resolveScalar_not_map s.content s.tag⟩
+  by
+    constructor
+    · cases htag : s.tag with
+      | some t =>
+        simpa [resolve, scalarType, htag] using
+          resolveScalar_not_seq s.content (some (normalizeTag t))
+      | none =>
+        cases hstyle : s.style <;>
+          simp [resolve, scalarType, htag, hstyle, resolveScalar_not_seq]
+    · cases htag : s.tag with
+      | some t =>
+        simpa [resolve, scalarType, htag] using
+          resolveScalar_not_map s.content (some (normalizeTag t))
+      | none =>
+        cases hstyle : s.style <;>
+          simp [resolve, scalarType, htag, hstyle, resolveScalar_not_map]
 
 /-! ## §4 — `resolveScalar` Explicit Tag Dispatch -/
 
