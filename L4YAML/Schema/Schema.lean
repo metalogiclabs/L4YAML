@@ -273,6 +273,25 @@ def resolveScalar (content : String) (tag? : Option String) : YamlType :=
   | some _ => .str content  -- unknown tag → string
   | none => resolveImplicit content
 
+/-- Normalize shorthand and verbatim YAML tags to Core Schema URIs. -/
+def normalizeTag (t : String) : String :=
+  if t.startsWith "tag:" then t
+  else if t.startsWith "!<" && t.endsWith ">" then
+    String.ofList (t.toList.drop 2 |>.dropLast)
+  else if t.startsWith "!!" then
+    "tag:yaml.org,2002:" ++ String.ofList (t.toList.drop 2)
+  else t
+
+/-- Implicit resolution applies only to untagged plain scalars.
+    Explicit tags take precedence independently of scalar style. -/
+def scalarType (s : Scalar) : YamlType :=
+  match s.tag with
+  | some t => resolveScalar s.content (some (normalizeTag t))
+  | none =>
+    match s.style with
+    | .plain => resolveImplicit s.content
+    | _ => .str s.content
+
 /-! ## Recursive Resolution
 
 `resolve` walks the `YamlValue` tree, applying schema resolution at each node.
@@ -289,7 +308,7 @@ for `YamlValue`'s `Array`-based children).
     - Aliases: resolved as null (aliases should be expanded before schema resolution) -/
 def resolve (v : YamlValue) : YamlType :=
   match v with
-  | .scalar s => resolveScalar s.content s.tag
+  | .scalar s => scalarType s
   | .sequence _ items _ _ => .seq (resolveList items.toList).toArray
   | .mapping _ pairs _ _ => .map (resolvePairs pairs.toList).toArray
   | .alias _ => .null  -- aliases should be resolved via compose before schema resolution
