@@ -275,12 +275,19 @@ def resolveScalar (content : String) (tag? : Option String) : YamlType :=
 
 /-- Normalize shorthand and verbatim YAML tags to Core Schema URIs. -/
 def normalizeTag (t : String) : String :=
-  if t.startsWith "tag:" then t
-  else if t.startsWith "!<" && t.endsWith ">" then
-    String.ofList (t.toList.drop 2 |>.dropLast)
-  else if t.startsWith "!!" then
-    "tag:yaml.org,2002:" ++ String.ofList (t.toList.drop 2)
-  else t
+  match t with
+  | "tag:yaml.org,2002:null" => "tag:yaml.org,2002:null"
+  | "tag:yaml.org,2002:bool" => "tag:yaml.org,2002:bool"
+  | "tag:yaml.org,2002:int" => "tag:yaml.org,2002:int"
+  | "tag:yaml.org,2002:float" => "tag:yaml.org,2002:float"
+  | "tag:yaml.org,2002:str" => "tag:yaml.org,2002:str"
+  | _ =>
+    if t.startsWith "tag:" then t
+    else if t.startsWith "!<" && t.endsWith ">" then
+      String.ofList (t.toList.drop 2 |>.dropLast)
+    else if t.startsWith "!!" then
+      "tag:yaml.org,2002:" ++ String.ofList (t.toList.drop 2)
+    else t
 
 /-- Implicit resolution applies only to untagged plain scalars.
     Explicit tags take precedence independently of scalar style. -/
