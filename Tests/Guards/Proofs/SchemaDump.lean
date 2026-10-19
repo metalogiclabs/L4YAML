@@ -9,13 +9,13 @@ open L4YAML.Dump
 open L4YAML.Emit
 open L4YAML.TokenParser
 
-#guard toYaml true == YamlValue.scalar { content := "true", style := .plain }
-#guard toYaml false == YamlValue.scalar { content := "false", style := .plain }
-#guard toYaml (42 : Nat) == YamlValue.scalar { content := "42", style := .plain }
-#guard toYaml () == YamlValue.scalar { content := "null", style := .plain }
-#guard toYaml "hello" == YamlValue.scalar { content := "hello", style := .plain }
--- Empty string: content round-trips but typed round-trip fails because
--- schema resolution maps "" → null (YAML semantics). Expected behavior.
+#guard toYaml true == YamlValue.scalar { content := "true", style := .plain, tag := some "tag:yaml.org,2002:bool" }
+#guard toYaml false == YamlValue.scalar { content := "false", style := .plain, tag := some "tag:yaml.org,2002:bool" }
+#guard toYaml (42 : Nat) == YamlValue.scalar { content := "42", style := .plain, tag := some "tag:yaml.org,2002:int" }
+#guard toYaml () == YamlValue.scalar { content := "null", style := .plain, tag := some "tag:yaml.org,2002:null" }
+#guard toYaml "hello" == YamlValue.scalar { content := "hello", style := .plain, tag := some "tag:yaml.org,2002:str" }
+-- Even the empty typed String has an explicit string tag; its meaning
+-- is distinct from YAML null.
 #guard contentRoundTrips (α := String) ""
 section SchemaDumpExtendedGuards
 
