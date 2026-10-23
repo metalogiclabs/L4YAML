@@ -46,23 +46,23 @@ abbrev s2 : SurfPos := ⟨[']'], 4⟩
 /-- `&xa` as one property, anchor `xa`. -/
 lemma readAnchorXA : TFlowNode 0 .flowIn s0 s2 [Event.defineAnchor "xa"] :=
   .propsEmpty 0 .flowIn s0 s2 _
-    (And.intro
-      (SCNsProperties.anchorFirst 0 .flowIn s0 s2 s2
+    (TCNsProperties.anchorFirst s0 s2 s2 [Event.defineAnchor "xa"] []
+      (And.intro
         (SCNsAnchorProperty.mk _ 1 s2
           (GPlus.mk _ _ _ (GChar.mk 'x' _ 2 ns_x)
             (GStar.cons _ _ _ (GChar.mk 'a' _ 3 ns_a) (GStar.nil _))))
-        (GOpt.none _))
-      (by decide))
+        (by decide))
+      (TOpt.none _))
 
 /-- `&x` anchor, empty separation, plain `a`. -/
 lemma readAnchorX_plainA : TFlowNode 0 .flowIn s0 s2 [Event.defineAnchor "x"] :=
   .propsContent 0 .flowIn s0 s1 s1 s2 [Event.defineAnchor "x"] []
-    (And.intro
-      (SCNsProperties.anchorFirst 0 .flowIn s0 s1 s1
+    (TCNsProperties.anchorFirst s0 s1 s1 [Event.defineAnchor "x"] []
+      (And.intro
         (SCNsAnchorProperty.mk _ 1 s1
           (GPlus.mk _ _ _ (GChar.mk 'x' _ 2 ns_x) (GStar.nil _)))
-        (GOpt.none _))
-      (by decide))
+        (by decide))
+      (TOpt.none _))
     (SSeparateLines.inline 0 s1 s1 (.startOfLine s1))
     (.plain 0 .flowIn s1 s2
       (SNsPlainMultiLine.mk 0 .flowIn s1 s2 s2
@@ -151,12 +151,12 @@ lemma readTwoEntries : TFlowSequence 0 .flowOut t0 t12 [Event.defineAnchor "x"] 
         (SSeparateInLine.whites t7 t8 (GPlus.mk _ _ _ (SSWhite.space _ 7) (GStar.nil _)))))
       (.single 0 .flowIn t8 t10 t11 [Event.defineAnchor "x"]
         (.node 0 .flowIn t8 t10 _ (.propsEmpty 0 .flowIn t8 t10 _
-          (And.intro
-            (SCNsProperties.anchorFirst 0 .flowIn t8 t10 t10
+          (TCNsProperties.anchorFirst t8 t10 t10 [Event.defineAnchor "x"] []
+            (And.intro
               (SCNsAnchorProperty.mk _ 8 t10
                 (GPlus.mk _ _ _ (GChar.mk 'x' _ 9 ns_x) (GStar.nil _)))
-              (GOpt.none _))
-            (by decide))))
+              (by decide))
+            (TOpt.none _))))
         (GOpt.some _ _ (SSeparateLines.commented 0 t10 t11 t11
           (SSLComments.withComment t10 t11 t11
             (SSBComment.noSep t10 t11 (SBComment.break t10 t11 (SBBreak.lf _ 10)))
@@ -192,16 +192,20 @@ private lemma safe_x : isNsPlainSafe .flowIn 'x' := by unfold isNsPlainSafe isNs
 /-- Tag `!t`, anchor `&x`, plain `a`. -/
 lemma readTagAnchor : TFlowNode 0 .flowIn u0 u7 [Event.useTag "!", Event.defineAnchor "x"] :=
   .propsContent 0 .flowIn u0 u5 u6 u7 [Event.useTag "!", Event.defineAnchor "x"] []
-    (And.intro
-      (SCNsProperties.tagFirst 0 .flowIn u0 u2 u5
+    (TCNsProperties.tagFirst u0 u2 u5 [Event.useTag "!"] [Event.defineAnchor "x"]
+      (And.intro
         (SCNsTagProperty.primary _ 1 u2
           (GStar.cons _ _ _ (GChar.mk 't' _ 2 (by decide)) (GStar.nil _)))
-        (GOpt.some _ _ (GSeq.mk u2 u3 u5
+        (by decide))
+      (TOpt.some _ _ _ (TSeq.mk u2 u3 u5 [] [Event.defineAnchor "x"]
+        (And.intro
           (SSeparateLines.inline 0 u2 u3
             (SSeparateInLine.whites u2 u3 (GPlus.mk _ _ _ (SSWhite.space _ 3) (GStar.nil _))))
+          rfl)
+        (And.intro
           (SCNsAnchorProperty.mk _ 4 u5
-            (GPlus.mk _ _ _ (GChar.mk 'x' _ 5 ns_x) (GStar.nil _))))))
-      (by decide))
+            (GPlus.mk _ _ _ (GChar.mk 'x' _ 5 ns_x) (GStar.nil _)))
+          (by decide)))))
     (SSeparateLines.inline 0 u5 u6
       (SSeparateInLine.whites u5 u6 (GPlus.mk _ _ _ (SSWhite.space _ 6) (GStar.nil _))))
     (.plain 0 .flowIn u6 u7
@@ -214,9 +218,9 @@ lemma readTagAnchor : TFlowNode 0 .flowIn u0 u7 [Event.useTag "!", Event.defineA
 after the first character). -/
 lemma readTagPlain : TFlowNode 0 .flowIn u0 u7 [Event.useTag "!"] :=
   .propsContent 0 .flowIn u0 u1 u1 u7 [Event.useTag "!"] []
-    (And.intro
-      (SCNsProperties.tagFirst 0 .flowIn u0 u1 u1 (SCNsTagProperty.nonSpecific _ 1) (GOpt.none _))
-      (by decide))
+    (TCNsProperties.tagFirst u0 u1 u1 [Event.useTag "!"] []
+      (And.intro (SCNsTagProperty.nonSpecific _ 1) (by decide))
+      (TOpt.none _))
     (SSeparateLines.inline 0 u1 u1 (.startOfLine u1))
     (.plain 0 .flowIn u1 u7
       (SNsPlainMultiLine.mk 0 .flowIn u1 u7 u7
