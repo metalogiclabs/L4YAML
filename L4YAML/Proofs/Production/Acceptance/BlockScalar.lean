@@ -270,4 +270,79 @@ lemma collectBlockScalarLoop_stops (sc : ScannerState) {n : Nat} {sp sp' : SurfP
             simp [collectBlockScalarLoop, hdb, heq, hpk, he.1, heq₂, hpk₂, hnb]
           rw [hres]; exact ⟨hc₂, hk₁.trans hk₂⟩
 
+lemma BlockLineOk.length_lt {n : Nat} {s s' : SurfPos} (h : BlockLineOk n s s') :
+    s'.chars.length < s.chars.length := by
+  cases h with
+  | blank k _ s₁ _ _ _ hind hb => have := SIndent.length_le hind; have := hb.length_lt; omega
+  | content _ s₁ s₂ _ _ hind hrun hb =>
+    have := SIndent.length_le hind; have := GPlus_lineChar_length_lt hrun; have := hb.length_lt; omega
+
+/-- One `BlockLineOk` line is folded and the loop continues on the rest. -/
+lemma collectBlockScalarLoop_line_step (sc : ScannerState) {n : Nat} {sp sp' : SurfPos}
+    (hline : BlockLineOk n sp sp') (hcorr : ScannerSurfCorr sc sp) (raw : String)
+    (fuel ie : Nat) (hie : sc.inputEnd = ie) :
+    ∃ sc' raw', ScannerSurfCorr sc' sp' ∧ Keeps sc sc' ∧
+      collectBlockScalarLoop sc raw (fuel + 1) n ie = collectBlockScalarLoop sc' raw' fuel n ie := by
+  have hdb := atDocBoundary_false_of_corr hcorr (by cases hline <;> assumption)
+  cases hline with
+  | blank k s s₁ s' hnd hk hind hb =>
+    obtain ⟨c, rest, hs₁, hlb⟩ := hb.head
+    have hns : s₁.chars.head? ≠ some ' ' := by
+      rw [hs₁]; intro e; simp at e; subst e; exact absurd hlb (by decide)
+    obtain ⟨sc₁, heq, hc₁, hk₁⟩ : ∃ sc₁, consumeExactSpaces sc n = (k, sc₁) ∧
+        ScannerSurfCorr sc₁ s₁ ∧ Keeps sc sc₁ := by
+      rcases Nat.lt_or_eq_of_le hk with hlt | heq
+      · exact consumeExactSpaces_short hind n sc hlt hcorr hns
+      · subst heq; exact consumeExactSpaces_accepts hind sc hcorr
+    obtain ⟨chars, col⟩ := s₁
+    simp only at hs₁; subst hs₁
+    have hpk := (peek_of_corr hc₁).1
+    obtain ⟨hc₂, hk₂⟩ := consumeNewline_accepts sc₁ hb hc₁
+    refine ⟨consumeNewline sc₁, raw.push '\n', hc₂, hk₁.trans hk₂, ?_⟩
+    simp [collectBlockScalarLoop, hdb, heq, hpk, hlb]
+  | content s s₁ s₂ s' hnd hind hrun hb =>
+    obtain ⟨sc₁, heq, hc₁, hk₁⟩ := consumeExactSpaces_accepts hind sc hcorr
+    obtain ⟨c, rest, hs₂, hlb⟩ := hb.head
+    have hmax : ∀ d, s₂.chars.head? = some d → ¬ LineCharOk d := by
+      intro d hd; rw [hs₂] at hd; cases hd; intro h; rw [h.1] at hlb; cases hlb
+    obtain ⟨sc₂, content, heq₂, hc₂, hk₂⟩ :=
+      collectLineContentLoop_accepts (GPlus.toGStar hrun) hmax sc₁ "" (ie - sc₁.offset + 1) hc₁
+        (by have := fuel_of_corr hc₁; rw [hk₁.2.1, hie] at this; omega)
+    cases hrun with
+    | mk _ _ hstep hrest =>
+      cases hstep with
+      | mk e rest₁ col₁ he =>
+        have hpk := (peek_of_corr hc₁).1
+        obtain ⟨chars, col⟩ := s₂
+        simp only at hs₂; subst hs₂
+        have hpk₂ := (peek_of_corr hc₂).1
+        obtain ⟨hc₃, hk₃⟩ := consumeNewline_accepts sc₂ hb hc₂
+        refine ⟨consumeNewline sc₂, (raw ++ content).push '\n', hc₃, (hk₁.trans hk₂).trans hk₃, ?_⟩
+        simp [collectBlockScalarLoop, hdb, heq, hpk, he.1, heq₂, hpk₂, hlb]
+
+/-- Converse of `collectBlockScalarLoop_literal_prod`: `BlockLineOk n` lines then a
+    `BlockStopOk n` stop are read, landing at the stop's position. -/
+lemma collectBlockScalarLoop_accepts {n : Nat} {sp sp' : SurfPos}
+    (hlines : GStar (BlockLineOk n) sp sp') :
+    ∀ (sc : ScannerState) (raw : String) (fuel ie : Nat) (sp'' : SurfPos),
+      ScannerSurfCorr sc sp → sc.inputEnd = ie → BlockStopOk n sp' sp'' →
+      sp.chars.length < fuel →
+      ScannerSurfCorr (collectBlockScalarLoop sc raw fuel n ie).2 sp'' ∧
+        Keeps sc (collectBlockScalarLoop sc raw fuel n ie).2 := by
+  induction hlines with
+  | nil s =>
+    intro sc raw fuel ie sp'' hcorr hie hstop hfuel
+    cases fuel with
+    | zero => omega
+    | succ f => exact collectBlockScalarLoop_stops sc hstop hcorr raw f ie hie
+  | cons s₁ s₂ s₃ hstep _ ih =>
+    intro sc raw fuel ie sp'' hcorr hie hstop hfuel
+    cases fuel with
+    | zero => omega
+    | succ f =>
+      obtain ⟨sc', raw', hc', hk', heq⟩ := collectBlockScalarLoop_line_step sc hstep hcorr raw f ie hie
+      have hlt := hstep.length_lt
+      obtain ⟨h1, h2⟩ := ih sc' raw' f ie sp'' hc' (by rw [hk'.2.1, hie]) hstop (by omega)
+      rw [heq]; exact ⟨h1, hk'.trans h2⟩
+
 end L4YAML.Proofs.Acceptance
