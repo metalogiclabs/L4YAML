@@ -256,7 +256,7 @@ def expectedAbsorbReaders : List String :=
    "L4YAML.Proofs.StreamAccum.preprocessing_eof_extends_stream"]
 
 def expectedLine : String :=
-  "prods=130 ctors=235 same=19 direct=221 anchoredOnly=12 broken=2 surfArms=167 \
+  "prods=131 ctors=235 same=19 direct=221 anchoredOnly=12 broken=2 surfArms=167 \
 surfDirect=166 candidate=direct candidateNil=direct readers=3 libReaders=2 \
 guardReaders=1 mentions=40 producers=21 absorbReaders=5 absorbPlainReaders=0"
 

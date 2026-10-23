@@ -85,7 +85,7 @@ def expectedUnread : List Name :=
   [`L4YAML.Output.Events, `L4YAML.Output.EventsIx,
    `L4YAML.Output.Json, `L4YAML.Output.JsonIx]
 
-def expectedClosure : String := "modulesSeen=250"
+def expectedClosure : String := "modulesSeen=251"
 -- 228 → 239 on 2026-10-05: the eleven modules of `L4YAML.Proofs.Serialization`
 -- (PR #1), which `L4YAML.lean` imports so the kernel-accurate hygiene gate can
 -- see them.  Only the closure moved: `expectedCensus` and `expectedFree` are
