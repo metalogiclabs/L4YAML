@@ -650,6 +650,8 @@ def expectedSpends : List String :=
 -- 2026-10-21 (item 319): four rows re-read for the paid block-lane arms — the `rcases … | h_alt` and `| Or.inr h_alt`
 -- vectors (`h_resSeqV`, `h_closeFV_old` ×2, `h_kslot`/`h_kslotUp`) read `—` where they read `punt`: the arm hands the park's
 -- alternative on at the park's own state instead of closing with `trivial`.
+-- 2026-10-23 (item 344): five `accum_block_on_pendingBlock` decisions write `E:node×6` (was ×5) — the caller's
+-- `h_valFV` now relays `h_closeFV_old`'s node-domained closure.
 def expectedDecisions : List String :=
   -- Item 305: `closeThenBlock`'s landed-`-` arm decides the first entry's stack on the `?` slot (`h_slotV`, a third `dite kn [nv ≤ k]`), the bound-carrying `h_closeFV_old` prints its new first conjunct, and the nested arms' pushes read as carries.
   -- Item 307: the two block routes' dedent arms build `h_vpack` and `h_mapFV` from `h_closeFV_old`
@@ -691,11 +693,11 @@ def expectedDecisions : List String :=
    "accum_block_on_pendingBlockContent Or.casesOn k∃ [h_upSpend:(∀ (sp_m : SurfPos), SSLComments sp_scan sp_m → ∀ (sp_e : SurfPos), SCom…] → —|P:spend pos=above#8",
    "accum_block_on_pendingBlockContent dite other [s_prep.allowDirectives = true] → —|— pos=beside#8",
    "accum_block_on_pendingBlockContent dite other [s_prep.allowDirectives = true] → —|— pos=beside#9",
-   "accum_block_on_pendingBlock Or.elim other [h_land:SSLComments sp_scan sp_mid ∧ sp_mid.col = 0 ∧ (sp_scan.col ≠ 0 → s_prep.…] → E:empty×8,E:node×5,P:hand,E:carry×2,P:spend×4,E:pass×5|E:prem,E:node×6,E:pass pos=above#10,above#11,above#12,above#13",
-   "accum_block_on_pendingBlock Or.elim other [(∃ k, SIndent k sp_mid sp_sc) ∨ ∃ sa sb, GStar SSWhite sp_mid sa ∧ SSWhi…] → E:empty×8,E:node×5,P:hand,E:carry×2,P:spend×4,E:pass×5|— pos=above#10,above#11,above#12,above#13",
-   "accum_block_on_pendingBlock dite char [c = '-'] → E:empty×7,E:node×5,P:hand,E:carry|P:spend×4,E:pass×5,E:empty,E:carry pos=above#10,above#11,above#12,above#13",
-   "accum_block_on_pendingBlock dite kn [k = n] → E:empty×4|E:node×5,P:hand,E:carry,E:empty×3 pos=—",
-   "accum_block_on_pendingBlock Or.casesOn kn [n < k ∨ n ≥ k] → E:node×5|P:hand,E:carry,E:empty×3 pos=—",
+   "accum_block_on_pendingBlock Or.elim other [h_land:SSLComments sp_scan sp_mid ∧ sp_mid.col = 0 ∧ (sp_scan.col ≠ 0 → s_prep.…] → E:empty×8,E:node×6,P:hand,E:carry×2,P:spend×4,E:pass×5|E:prem,E:node×6,E:pass pos=above#10,above#11,above#12,above#13",
+   "accum_block_on_pendingBlock Or.elim other [(∃ k, SIndent k sp_mid sp_sc) ∨ ∃ sa sb, GStar SSWhite sp_mid sa ∧ SSWhi…] → E:empty×8,E:node×6,P:hand,E:carry×2,P:spend×4,E:pass×5|— pos=above#10,above#11,above#12,above#13",
+   "accum_block_on_pendingBlock dite char [c = '-'] → E:empty×7,E:node×6,P:hand,E:carry|P:spend×4,E:pass×5,E:empty,E:carry pos=above#10,above#11,above#12,above#13",
+   "accum_block_on_pendingBlock dite kn [k = n] → E:empty×4|E:node×6,P:hand,E:carry,E:empty×3 pos=—",
+   "accum_block_on_pendingBlock Or.casesOn kn [n < k ∨ n ≥ k] → E:node×5|P:hand,E:carry,E:empty×3,E:node pos=—",
    "accum_block_on_pendingBlock dite char [c = ':' ∨ c = '?'] → P:spend×4,E:pass×5,E:empty,E:carry|— pos=above#10,above#11,above#12,above#13",
    "accum_block_on_pendingBlock dite col0 [sp_scan.col = 0] → punt|paid pos=beside#10",
    "accum_block_on_pendingBlock dite kn [n + 1 ≤ k] → E:pass×4|punt pos=beside#10",
@@ -752,11 +754,12 @@ def expectedDoor : List String :=
 -- (`h_resKslot.imp id (PackAlt.step_blockEntry h_preprocess h_dispatch)`, the block lane's transport); every other count stands.
 -- 2026-10-21 (item 320): `apps` 47 → 48 — `accum_block_on_closeThenBlock`'s `h_seqFramesV` relay is an application now
 -- (`.imp id (PackAlt.step_blockEntry h_preprocess h_dispatch)`); every other count stands.
+-- 2026-10-23 (item 344): decisions 138 → 139 — the relayed `h_valFV` adds a `match` on `h_closeFV_old`.
 def expectedLine : String :=
   "asked=13 both=8 lemmas=2 walked=6 feedFunnel=2 feedExplicit=2 feedDeferred=4 feedTuple=0 \
 entry=8 entrySBI=4 kslot=8 kslotUp=8 closeF=4 closeFV=8 seqF=8 top=4 floor=0 cover=4 \
 cover2=4 floorB=4 aboveKN=0 aboveKMem=0 aboveKNv=2 aboveKEx=2 hands=4 besideKN=1 \
-besideKMem=2 besideKNv=0 puntKN=1 puntKMem=2 besideNone=2 decisions=138 decOnK=25 \
+besideKMem=2 besideKNv=0 puntKN=1 puntKMem=2 besideNone=2 decisions=139 decOnK=25 \
 decKN=10 decKMem=10 decKNv=5 apps=50 funnelArgs=2 doorDropped=4/2 closeSites=8 params=7"
 
 /-! ## §5 The reading -/

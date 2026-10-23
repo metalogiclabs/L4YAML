@@ -908,9 +908,10 @@ def hopName (env : Environment) (e : Edge) : String :=
 -- 2026-10-20 (item 307): `DECLINE` 273 → 268, `SPLIT` 161 → 166 — the three γ roots' `h_vpack`
 -- and the two block routes' `h_mapFV` are paid from the closed park's stack (a
 -- `match` on `h_closeFV_old` or on `h_mapFV108`) where item 301 read bare declines.
+-- 2026-10-23 (item 344): DECLINE 268 → 264, SPLIT 166 → 170 — four block-park `PackAlt` sites relay the park's face.
 def expectedTally : String :=
-  "edges=674 skipped=31 [DECLINE=268, FIELD=58, LOCAL=27, PAY=50, RELAY=68, \
-SPLIT=166, VIA=37]"
+  "edges=674 skipped=31 [DECLINE=264, FIELD=58, LOCAL=27, PAY=50, RELAY=68, \
+SPLIT=170, VIA=37]"
 
 /-- **The row item 211 read off the compiler's error text and got wrong.**  All
     eight of these print `h_keyctx` when the premise is narrowed; six of them
@@ -1052,11 +1053,13 @@ Or.imp⇒SPLIT=4, Or.imp⇒VIA=3, dite⇒SPLIT=4]"
 -- 2026-10-21 (item 332): `leaves` 364 → 359, `DECLINE` 186 → 181 — the key-stack resume no longer returns
 -- "a mapping tail OR a sequence tail" (`KeyFrames.resumeAtMap`/`resumeAtSeq` by the level's own kind), so the five
 -- `Or.inr trivial` arms that refuted the kind it could not take are gone with the `∨`.
+-- 2026-10-23 (item 344): survived 166 → 170, leaves 359 → 367, DECLINE|PAY 153 → 157 — the four relayed
+-- block-park sites split on the park's `∨ PackAlt` field.
 def expectedSplitLanding : String :=
-  "survived=166 collapsed=1 leaves=359 elsewhere=1 [DECLINE=181, PAY=177, VIA=1] \
+  "survived=170 collapsed=1 leaves=367 elsewhere=1 [DECLINE=185, PAY=181, VIA=1] \
 [DECLINE|DECLINE|DECLINE|DECLINE|PAY|PAY|PAY|PAY|PAY=1, \
 DECLINE|DECLINE|DECLINE|PAY=2, DECLINE|DECLINE|DECLINE|PAY|PAY|PAY=1, \
-DECLINE|DECLINE|PAY=5, DECLINE|DECLINE|PAY|PAY|PAY=2, DECLINE|PAY=153, \
+DECLINE|DECLINE|PAY=5, DECLINE|DECLINE|PAY|PAY|PAY=2, DECLINE|PAY=157, \
 DECLINE|PAY|PAY=1, PAY|VIA=1]"
 
 /-- **Which BRANCH is taken (DOCS item 217).**  Item 216 resolved what a split
@@ -1140,9 +1143,11 @@ DECLINE|PAY|PAY=1, PAY|VIA=1]"
 -- 2026-10-21 (item 324): `DECLINE-closed` 88 → 86, `DECLINE-free` 98 → 100 — the flow opener's `pendingBlock` and
 -- `pendingMapValue` catch arms hand their hypothesis back (`Or.inr h_alt`) where they closed with `trivial`; leaves, roots and the
 -- agreement stand.
+-- 2026-10-23 (item 344): splits 166 → 170, leaves 359 → 367, relayRooted 156 → 160, DECLINE-free 100 → 104,
+-- PAY-free 177 → 181 — the four block-park relays.
 def expectedSplitBranch : String :=
-  "splits=166 leaves=359 relayRooted=156 siteDecided=10 optionalRoot=106 plainRoot=50 \
-agree=110/110 disagree=0 [DECLINE-closed=81, DECLINE-free=100, PAY-free=177, VIA \
+  "splits=170 leaves=367 relayRooted=160 siteDecided=10 optionalRoot=107 plainRoot=53 \
+agree=111/111 disagree=0 [DECLINE-closed=81, DECLINE-free=104, PAY-free=181, VIA \
 L4YAML.Proofs.StreamAccum.flowKeyRoute_of_root-=1]"
 
 /-- **The ten splits the site decides for itself**, which is the whole residue
@@ -1188,7 +1193,9 @@ def expectedBranchPremises : List String :=
   ["1 h_mapF", "1 h_mapFV", "1 h_mapFV108", "1 h_mk", "1 h_pr", "1 h_routeS", "1 h_sfx", "1 h_valFV",
    -- 2026-10-20 (item 307): `h_closeFV_old` 16 → 20 (the four above); `1 h_mapFV108` — the content route's
 -- `h_vpack` splits the relayed stack (a `match`, the family's form).
-   "13 h_closeF_old", "20 h_closeFV_old", "3 h_cov", "3 h_kslotUp_old", "3 h_seqF_old",
+   "13 h_closeF_old",
+   -- 2026-10-23 (item 344): `h_closeFV_old` 20 → 21 — the `on_pendingBlock` caller's `h_valFV` relays it.
+   "21 h_closeFV_old", "3 h_cov", "3 h_kslotUp_old", "3 h_seqF_old",
    -- Item 287: `h_vslot` 8 → 3, the five splits `expectedSplitBranch` names.
    "3 h_vslot",
    "4 h_closeFV108", "4 h_expl", "4 h_kslotUp", "4 h_resV_land", "4 h_routeF",
@@ -1241,8 +1248,9 @@ def expectedBranchPremises : List String :=
 -- pair, orphan, edge or node.
 -- 2026-10-20 (item 307): `liveSplits` 95 → 100 — the four above and the content route's split on `h_mapFV108`,
 -- which is a new pair (`pairs` 35 → 36, `closureDecline` 31 → 32) reached one park hop up (`parkHop` 21 → 22).
+-- 2026-10-23 (item 344): `liveSplits` 100 → 101 — the `on_pendingBlock` caller's `h_valFV` split on `h_closeFV_old`.
 def expectedDeclineReach : String :=
-  "pairs=36 orphan=4 direct=7 closureDecline=32 dead=0 maxDepth=2 liveSplits=100 \
+  "pairs=36 orphan=4 direct=7 closureDecline=32 dead=0 maxDepth=2 liveSplits=101 \
 deadSplits=0 accounted=674/674 nodes=161 fieldEdges=58 fieldResolved=58 withCycle=8 \
 declineWriters=19 parkHop=22"
 
@@ -1259,6 +1267,8 @@ declineWriters=19 parkHop=22"
 -- 2026-10-21 (item 311): `colon_open_map_implicit`'s binders shift by one (`{alt : Prop}` is its first binder:
 -- the lemma states the family's alternative generically, as the three helpers of item 309 do) — #11/#12/#13/#27
 -- → #12/#13/#14/#28, the rows otherwise verbatim.
+-- 2026-10-23 (item 344): `on_pendingBlock#29` splits 6 → 7; `closeThenBlock#30` DECLINE 5 → 3, SPLIT 2 → 4;
+-- `closeThenBlock#31` DECLINE 9 → 8, SPLIT 0 → 1 — the four block-park relays.
 def expectedBranchSupply : List String :=
    -- 2026-10-20 (item 307): one pair more — the content route's `h_vpack` splits `h_mapFV108` (a `match`).
    -- 2026-10-20 (item 309): `explFrameValueLine`'s `h_expl` is binder #4 — `{alt : Prop}` precedes it now.
@@ -1267,7 +1277,7 @@ def expectedBranchSupply : List String :=
    -- 2026-10-20 (item 307): the two block routes split `h_closeFV_old` twice more each (`h_vpack`, `h_mapFV`): 4 → 6, 2 → 4,
    -- and `closeThenBlock`'s `h_mapFV` reads the two routes' matches as `SPLIT=2` (`DECLINE` 7 → 5).  (For one chain the
    -- rows fed by `pendingBlock.h_closeFV` carried a `brVIA`, the landed arm's `.imp`; the `match` form reads through.)
-   "h_closeFV_old :: accum_block_on_pendingBlock#29 :: splits=6 sup=1 [FIELD=1] ⇐ PendingNode.pendingBlock.h_closeFV ⇒ DECLINE+brDECLINE+brPAY",
+   "h_closeFV_old :: accum_block_on_pendingBlock#29 :: splits=7 sup=1 [FIELD=1] ⇐ PendingNode.pendingBlock.h_closeFV ⇒ DECLINE+brDECLINE+brPAY",
    "h_closeFV_old :: accum_block_on_pendingBlockContent#35 :: splits=4 sup=1 [FIELD=1] ⇐ PendingNode.pendingBlockContent.h_closeFV ⇒ brDECLINE+brPAY",
    -- 2026-10-20 (item 306): `splits` 4 → 10 — the six key-pack stack splits; the same field supplies it.
    "h_closeFV_old :: accum_content_on_pendingBlock_indented#29 :: splits=10 sup=1 [FIELD=1] ⇐ PendingNode.pendingBlock.h_closeFV ⇒ DECLINE+brDECLINE+brPAY",
@@ -1286,7 +1296,7 @@ def expectedBranchSupply : List String :=
    "h_kslotUp_old :: accum_content_on_pendingBlock_indented#28 :: splits=3 sup=1 [FIELD=1] ⇐ PendingNode.pendingBlock.h_kslotUp ⇒ DECLINE+brDECLINE+brPAY",
    "h_kslot_old :: accum_content_on_pendingBlock_indented#13 :: splits=8 sup=1 [FIELD=1] ⇐ PendingNode.pendingBlock.h_kslot ⇒ DECLINE+brDECLINE+brPAY",
    "h_mapF :: accum_block_on_closeThenBlock#28 :: splits=1 sup=11 [DECLINE=7,FIELD=2,RELAY=2] ⇐ h_mapF109@accum_block_on_pendingContent,-,PendingNode.pendingMapValue.h_frames ⇒ DECLINE+PAY+brDECLINE+brPAY",
-   "h_mapFV :: accum_block_on_closeThenBlock#30 :: splits=1 sup=11 [DECLINE=5,FIELD=2,RELAY=2,SPLIT=2] ⇐ h_mapFV108@accum_block_on_pendingContent,-,PendingNode.pendingMapValue.h_framesV ⇒ DECLINE+PAY+brDECLINE+brPAY",
+   "h_mapFV :: accum_block_on_closeThenBlock#30 :: splits=1 sup=11 [DECLINE=3,FIELD=2,RELAY=2,SPLIT=4] ⇐ h_mapFV108@accum_block_on_pendingContent,-,PendingNode.pendingMapValue.h_framesV ⇒ DECLINE+PAY+brDECLINE+brPAY",
    "h_mapFV108 :: accum_block_on_pendingContent#32 :: splits=1 sup=1 [FIELD=1] ⇐ PendingNode.pendingContent.h_framesV ⇒ DECLINE+brDECLINE+brPAY",
    "h_mk :: accum_block_on_closeThenBlock#19 :: splits=1 sup=11 [DECLINE=10,PAY=1] ⇐ - ⇒ DECLINE+PAY",
    "h_pr :: accum_block_on_closeThenBlock#29 :: splits=1 sup=11 [DECLINE=9,SPLIT=2] ⇐ - ⇒ DECLINE+brDECLINE+brPAY",
@@ -1300,7 +1310,7 @@ def expectedBranchSupply : List String :=
    "h_seqF168 :: accum_content_on_pendingMapValue_indented#35 :: splits=5 sup=1 [FIELD=1] ⇐ PendingNode.pendingMapValue.h_seqF ⇒ DECLINE+brDECLINE+brPAY",
    "h_seqF_old :: accum_content_on_pendingBlock_indented#15 :: splits=3 sup=1 [FIELD=1] ⇐ PendingNode.pendingBlock.h_seqF ⇒ DECLINE+PAY",
    "h_sfx :: accum_block_on_closeThenBlock#18 :: splits=1 sup=11 [DECLINE=10,PAY=1] ⇐ - ⇒ DECLINE+PAY",
-   "h_valFV :: accum_block_on_closeThenBlock#31 :: splits=1 sup=11 [DECLINE=9,FIELD=2] ⇐ -,PendingNode.pendingMapValue.h_closeFV ⇒ DECLINE+PAY+brDECLINE+brPAY",
+   "h_valFV :: accum_block_on_closeThenBlock#31 :: splits=1 sup=11 [DECLINE=8,FIELD=2,SPLIT=1] ⇐ -,PendingNode.pendingMapValue.h_closeFV ⇒ DECLINE+PAY+brDECLINE+brPAY",
    -- Item 288: the field it is fed by is not optional now (`expectedDeclineReach`).
    "h_vslot :: accum_content_on_pendingMapValue_indented#16 :: splits=3 sup=1 [FIELD=1] ⇐ PendingNode.pendingMapValue.h_vslot ⇒ ORPHAN"]
 

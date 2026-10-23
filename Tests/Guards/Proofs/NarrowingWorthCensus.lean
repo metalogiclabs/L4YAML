@@ -489,8 +489,9 @@ def chainKeySet : Std.HashSet String :=
 -- 2026-10-20 (item 306): `splits` 95 → 101, the six on `h_closeFV_old` (a `-` row: neither chain nor inner).
 -- 2026-10-20 (item 307): `pairs` 35 → 36, `splits` 101 → 106, `sup` 101 → 102 — the four on `h_closeFV_old` at the
 -- two block routes and the content route's one on `h_mapFV108` (its `h_vpack`, a `match`).
+-- 2026-10-23 (item 344): splits 106 → 107 — `on_pendingBlock#29`'s seventh split (the relayed `h_valFV`).
 def expectedWorthTally : String :=
-  "pairs=36 splits=106 sup=102 chainPairs=6 chainSplits=12 innerPairs=8 innerSplits=32"
+  "pairs=36 splits=107 sup=102 chainPairs=6 chainSplits=12 innerPairs=8 innerSplits=32"
 
 /-- The ledger, worth-first.  `chain` is §3's verdict — a narrowing here lands
     on another unconditional inhabitant; `inner` means the face carries a
@@ -518,8 +519,9 @@ def expectedWorthLedger : List String :=
   ["splits=11 sup=1 inner h_closeF_old :: accum_content_on_pendingBlock_indented#14",
    "splits=10 sup=1 - h_closeFV_old :: accum_content_on_pendingBlock_indented#29",
    "splits=8 sup=1 - h_kslot_old :: accum_content_on_pendingBlock_indented#13",
+   -- 2026-10-23 (item 344): `on_pendingBlock#29` splits 6 → 7 (the relayed `h_valFV`), sorted above `h_closeF99`.
+   "splits=7 sup=1 - h_closeFV_old :: accum_block_on_pendingBlock#29",
    "splits=7 sup=1 inner h_closeF99 :: accum_content_on_pendingMapValue_indented#18",
-   "splits=6 sup=1 - h_closeFV_old :: accum_block_on_pendingBlock#29",
    "splits=5 sup=1 - h_seqF168 :: accum_content_on_pendingMapValue_indented#35",
    "splits=4 sup=1 - h_closeFV_old :: accum_block_on_pendingBlockContent#35",
    "splits=4 sup=1 inner h_closeFV108 :: accum_content_on_pendingMapValue_indented#20",
@@ -560,7 +562,8 @@ def expectedWorthLedger : List String :=
 -- Item 287: the `h_vslot` row, again.
 -- 2026-10-20 (item 306): `splits` 95 → 101 (the same six); no pair, state face or state split moves.
 -- 2026-10-20 (item 307): `branchPairs` 35 → 36, `splits` 101 → 106 (the same five).
-def expectedBranchReach : String := "branchPairs=36 stateReachable=1 splits=106 stateSplits=3"
+-- 2026-10-23 (item 344): splits 106 → 107 — the relayed `h_valFV`'s split on `h_closeFV_old`.
+def expectedBranchReach : String := "branchPairs=36 stateReachable=1 splits=107 stateSplits=3"
 
 open Meta in
 run_cmd do

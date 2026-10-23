@@ -1023,7 +1023,8 @@ def expectedDoor : List String :=
    "accum_block_pending: door:pendingMapValue.h_framesV → accum_block_on_closeThenBlock.h_mapFV forgotten",
    "accum_block_pending: door:pendingProps.h_closeF dropped",
    "accum_block_pending: door:pendingProps.h_closeFE dropped",
-   "accum_block_pending: door:pendingProps.h_closeFV dropped",
+   -- 2026-10-23 (item 344): the props park's `h_closeFV` now feeds the relayed `h_mapFV` (was dropped).
+   "accum_block_pending: door:pendingProps.h_closeFV → accum_block_on_closeThenBlock.h_mapFV forgotten",
    "accum_content_pending: door:pendingBlock.h_closeF → accum_content_on_pendingBlock_indented.h_closeF_old kept",
    "accum_content_pending: door:pendingBlockContent.h_closeF → local:h_defer_split.h_fS kept",
    "accum_content_pending: door:pendingContent.h_framesS → local:h_defer_split.h_fS kept",
@@ -1134,6 +1135,7 @@ def expectedDoor : List String :=
 -- (`h_alt_step`) and the six leaves and two callers that spend it; rows stand.
 -- 2026-10-21 (item 324): `nodes` 103328 → 103335 — this item's payments in the flow opener and the resume context
 -- (applications where `trivial` stood) grow the walked terms; `walked` and every row stand.
+-- 2026-10-23 (item 344): `doorForgotten` 8 → 9, `doorDropped` 23 → 22, `nodes` 104597 → 104913 — the block-park relays read the props park's `h_closeFV`.
 def expectedLine : String :=
   "positions=21 ctorFields=11 lemParams=29 lemmas=16 walked=24 doors=8 rows=167 ctorRows=79 \
 lemRows=55 localRows=4 fnRows=19 fnpRows=8 valRows=2 coverTypes=4 mentions=0 pbc=6 \
@@ -1143,7 +1145,7 @@ valFPaid=0 valFPunt=9 contentPaid=6 contentPunt=15 contentCoverPunt=2 contentLem
 contentOpen=2 contentPos=16 entryPaid=6 entryPunt=15 entryCoverPunt=2 entryLemma=0 \
 entryOpen=2 entryPos=16 eight=8 eightPB=4 eightPBC=4 eightIndents=0 eightTop=4 \
 eightFloor=0 eightMinCI=0 eightNic=8 eightPrep=8 eightCover=4 doorUses=41 doorKept=10 \
-doorForgotten=8 doorDropped=23 doorsOther=4 nodes=104597"
+doorForgotten=9 doorDropped=22 doorsOther=4 nodes=104913"
 
 /-! ## §6 The reading -/
 

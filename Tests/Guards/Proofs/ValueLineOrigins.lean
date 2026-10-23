@@ -770,7 +770,8 @@ def expectedRows : List String := [
   "accum_block_pending #1 param:colon_fires_props_key.h_key := relay/built pos=[ctor:pendingProps.h_key] origins=[O4,O5,O6,O7,O8,O9,O10,O11,O12,O13,O14,O15,O16,O17,O18,O19,O20,O21,O26,O27,O28,O29,O30,O31,O37,O38,O39,O40,O41,O42,O43,O49,O53,O57,O60,O61,O74,O75] ⊢ none-held 0/38",
   "accum_block_pending #1 param:accum_block_on_closeThenBlock.h_vpack := paid:chain/built pos=[ctor:pendingProps.h_kslot] origins=[O4,O5,O6,O7,O8,O9,O10,O11,O12,O13,O14,O15,O16,O17,O18,O19,O20,O21,O26,O27,O28,O29,O30,O31,O32,O37,O38,O39,O40,O41,O42,O43,O49,O53,O57,O60,O61,O74,O75] none=[stamp] ⊢ none-held 0/39",
   "accum_block_pending #1 param:accum_block_on_closeThenBlock.h_vslot := stamp/stamp pos=[] origins=[] none=[stamp] ⊢ —",
-  "accum_block_pending #2 param:accum_block_on_closeThenBlock.h_vpack := punt/punt pos=[] origins=[] none=[punt] ⊢ —",
+   -- 2026-10-23 (item 344): `accum_block_pending` #2 pays `h_vpack` from `h_kslot` (was punt).
+  "accum_block_pending #2 param:accum_block_on_closeThenBlock.h_vpack := paid:chain/built pos=[ctor:pendingProps.h_kslot] origins=[O4,O5,O6,O7,O8,O9,O10,O11,O12,O13,O14,O15,O16,O17,O18,O19,O20,O21,O26,O27,O28,O29,O30,O31,O32,O37,O38,O39,O40,O41,O42,O43,O49,O53,O57,O60,O61,O74,O75] none=[stamp] ⊢ none-held 0/39",
   "accum_block_pending #2 param:accum_block_on_closeThenBlock.h_vslot := stamp/stamp pos=[] origins=[] none=[stamp] ⊢ —",
   "accum_block_pending #3 param:accum_block_on_closeThenBlock.h_vpack := punt/stamp pos=[] origins=[] none=[stamp] ⊢ —",
   "accum_block_pending #3 param:accum_block_on_closeThenBlock.h_vslot := stamp/stamp pos=[] origins=[] none=[stamp] ⊢ —",
@@ -937,7 +938,8 @@ def expectedPerPos : List String := [
   "ctor:pendingMapValue.h_vslot writers=6 punt=0 stamp=3 built=3 unborn=0 dead=0 allHeld=1 someHeld=1 noneHeld=1 origins=[O0,O1,O2,O3,O4,O5,O6,O7,O8,O9,O10,O11,O12,O13,O14,O15,O16,O17,O18,O19,O20,O21,O22,O26,O27,O28,O29,O30,O31,O32,O36,O37,O38,O39,O40,O41,O42,O43,O44,O49,O50,O53,O54,O57,O59,O60,O61,O68,O69,O70,O71,O72,O73,O74,O75] ⊢ 10/55 held",
   "ctor:pendingMapValue.h_kslot writers=6 punt=2 stamp=0 built=4 unborn=0 dead=0 allHeld=0 someHeld=0 noneHeld=4 origins=[O4,O5,O6,O7,O8,O9,O10,O11,O12,O13,O14,O15,O16,O17,O18,O19,O20,O21,O26,O27,O28,O29,O30,O31,O37,O38,O39,O40,O41,O42,O43,O49,O53,O57,O60,O61,O74,O75] ⊢ 0/38 held",
   "ctor:pendingMapValue.h_explUp writers=6 punt=5 stamp=0 built=1 unborn=0 dead=0 allHeld=0 someHeld=0 noneHeld=1 origins=[O75] ⊢ 0/1 held",
-  "param:accum_block_on_closeThenBlock.h_vpack writers=11 punt=2 stamp=2 built=7 unborn=0 dead=0 allHeld=0 someHeld=2 noneHeld=5 origins=[O0,O1,O2,O3,O4,O5,O6,O7,O8,O9,O10,O11,O12,O13,O14,O15,O16,O17,O18,O19,O20,O21,O22,O26,O27,O28,O29,O30,O31,O32,O36,O37,O38,O39,O40,O41,O42,O43,O44,O49,O50,O53,O54,O57,O60,O61,O74,O75] ⊢ 4/48 held",
+   -- 2026-10-23 (item 344): `h_vpack` punt 2 → 1, built 7 → 8 — `accum_block_pending` #2 relays it.
+  "param:accum_block_on_closeThenBlock.h_vpack writers=11 punt=1 stamp=2 built=8 unborn=0 dead=0 allHeld=0 someHeld=2 noneHeld=6 origins=[O0,O1,O2,O3,O4,O5,O6,O7,O8,O9,O10,O11,O12,O13,O14,O15,O16,O17,O18,O19,O20,O21,O22,O26,O27,O28,O29,O30,O31,O32,O36,O37,O38,O39,O40,O41,O42,O43,O44,O49,O50,O53,O54,O57,O60,O61,O74,O75] ⊢ 4/48 held",
   -- Item 287: the eleven writers, per position.
   "param:accum_block_on_closeThenBlock.h_vslot writers=11 punt=0 stamp=10 built=1 unborn=0 dead=0 allHeld=0 someHeld=0 noneHeld=1 origins=[O75] ⊢ 0/1 held",
   "param:accum_block_on_pendingBlock.h_kslot writers=1 punt=0 stamp=0 built=1 unborn=0 dead=0 allHeld=0 someHeld=0 noneHeld=1 origins=[O75] ⊢ 0/1 held",
@@ -1092,13 +1094,15 @@ def expectedUnborn : List String := []
 -- 2026-10-21 (item 324): `punt` 21 → 20, `stamp` 21 → 22, `lapps` 707 → 708, `liteNodes` 529833 → 529841 — the `---` arm's
 -- `h_compact_pair` is stamped from the park's `h_noek` through `PackAlt.ofRefused` where it punted, and the payments grow the
 -- terms; rows as re-pinned above, positions unchanged.
+-- 2026-10-23 (item 344): `punt` 14 → 13, `built` 138 → 139, `noneHeld` 104 → 105, `follows` 343 → 344, `lapps` 709 → 714, `alts` 4490 → 4494, `liteNodes` 543421 → 543929
+-- — `accum_block_pending` #2 pays `h_vpack` (one more built row, its term's size).
 def expectedLine : String :=
   "positions=47 packaged=7 packConsts=[ImplicitKeyPack,PropsKeyPack] rows=180 ctorRows=98 \
-paramRows=82 packagedRows=29 punt=14 stamp=28 built=138 origins=76 originRows=41 \
+paramRows=82 packagedRows=29 punt=13 stamp=28 built=139 origins=76 originRows=41 \
 route=23 frames=30 tail=0 other=7 concl=8 invariant=8 heldOrigins=23 allHeld=9 \
-someHeld=11 noneHeld=104 unbornRows=0 relayedPunt=0 relayedStamp=10 relayedAbsurd=4 \
-relayedFact=0 deadRows=0 unbornPos=0 rounds=4 follows=343 lets=570 lapps=709 alts=4490 \
-nodes=12587 liteNodes=543421"
+someHeld=11 noneHeld=105 unbornRows=0 relayedPunt=0 relayedStamp=10 relayedAbsurd=4 \
+relayedFact=0 deadRows=0 unbornPos=0 rounds=4 follows=344 lets=570 lapps=714 alts=4494 \
+nodes=12587 liteNodes=543929"
 
 /-! ## §4 The reading -/
 

@@ -839,10 +839,11 @@ def expectedWriters : List String := [
   "accum_block_on_pendingContent #2 param:accum_block_on_closeThenBlock.h_vpack idx=— := paid:frames ns=nv :: [] spend=close(fV←param:accum_block_on_pendingContent.h_mapFV108) holds=[h_seqF168:tail(kk)←landing; h_mapF109:frames(ks)←landing; h_mapFV108:frames(ks)@ExplValueLine(nv)←landing] ⊢ none",
   "accum_block_on_pendingContent #2 param:accum_block_on_closeThenBlock.h_vslot idx=— := stamp ns=— spend=— holds=[h_seqF168:tail(kk)←landing; h_mapF109:frames(ks)←landing; h_mapFV108:frames(ks)@ExplValueLine(nv)←landing] ⊢ —",
   "accum_block_pending #1 param:accum_block_on_pendingContent.h_vpack idx=— := relay:chain(door:pendingContent.h_vpack) ns=— spend=— holds=[h_framesS109:frames(ks)←landing; h_framesV108:frames(ks)@ExplValueLine(nv)←landing; h_seqF168:tail(kk)←landing] ⊢ —",
-  "accum_block_pending #1 param:accum_block_on_closeThenBlock.h_vpack idx=— := paid:chain ns=ns spend=kslot←door:pendingProps.h_kslot holds=[h_closeFE✝:frames(ks)←SCompactSeqTail(ne); h_closeF✝:frames(ks)←SBlockNode(n_p); h_closeFV✝:frames(ks)@ExplValueLine(nv)←SBlockNode(n_p); h_closeFEV✝:frames(ks)@ExplValueLine(nv)←SCompactSeqTail(ne)] ⊢ level-var",
-  "accum_block_pending #1 param:accum_block_on_closeThenBlock.h_vslot idx=— := stamp ns=— spend=— holds=[h_closeFE✝:frames(ks)←SCompactSeqTail(ne); h_closeF✝:frames(ks)←SBlockNode(n_p); h_closeFV✝:frames(ks)@ExplValueLine(nv)←SBlockNode(n_p); h_closeFEV✝:frames(ks)@ExplValueLine(nv)←SCompactSeqTail(ne)] ⊢ —",
-  "accum_block_pending #2 param:accum_block_on_closeThenBlock.h_vpack idx=— := punt ns=— spend=— holds=[h_closeFE✝:frames(ks)←SCompactSeqTail(ne); h_closeF✝:frames(ks)←SBlockNode(n_p); h_closeFV✝:frames(ks)@ExplValueLine(nv)←SBlockNode(n_p); h_closeFEV✝:frames(ks)@ExplValueLine(nv)←SCompactSeqTail(ne)] ⊢ —",
-  "accum_block_pending #2 param:accum_block_on_closeThenBlock.h_vslot idx=— := stamp ns=— spend=— holds=[h_closeFE✝:frames(ks)←SCompactSeqTail(ne); h_closeF✝:frames(ks)←SBlockNode(n_p); h_closeFV✝:frames(ks)@ExplValueLine(nv)←SBlockNode(n_p); h_closeFEV✝:frames(ks)@ExplValueLine(nv)←SCompactSeqTail(ne)] ⊢ —",
+   -- 2026-10-23 (item 344): the props park's `h_closeFV` is named (`h_closeFV_p`) and #2's `h_vpack` is paid (relayed from `h_kslot`).
+  "accum_block_pending #1 param:accum_block_on_closeThenBlock.h_vpack idx=— := paid:chain ns=ns spend=kslot←door:pendingProps.h_kslot holds=[h_closeFE✝:frames(ks)←SCompactSeqTail(ne); h_closeF✝:frames(ks)←SBlockNode(n_p); h_closeFV_p:frames(ks)@ExplValueLine(nv)←SBlockNode(n_p); h_closeFEV✝:frames(ks)@ExplValueLine(nv)←SCompactSeqTail(ne)] ⊢ level-var",
+  "accum_block_pending #1 param:accum_block_on_closeThenBlock.h_vslot idx=— := stamp ns=— spend=— holds=[h_closeFE✝:frames(ks)←SCompactSeqTail(ne); h_closeF✝:frames(ks)←SBlockNode(n_p); h_closeFV_p:frames(ks)@ExplValueLine(nv)←SBlockNode(n_p); h_closeFEV✝:frames(ks)@ExplValueLine(nv)←SCompactSeqTail(ne)] ⊢ —",
+  "accum_block_pending #2 param:accum_block_on_closeThenBlock.h_vpack idx=— := paid:chain ns=ns spend=kslot←door:pendingProps.h_kslot holds=[h_closeFE✝:frames(ks)←SCompactSeqTail(ne); h_closeF✝:frames(ks)←SBlockNode(n_p); h_closeFV_p:frames(ks)@ExplValueLine(nv)←SBlockNode(n_p); h_closeFEV✝:frames(ks)@ExplValueLine(nv)←SCompactSeqTail(ne)] ⊢ level-var",
+  "accum_block_pending #2 param:accum_block_on_closeThenBlock.h_vslot idx=— := stamp ns=— spend=— holds=[h_closeFE✝:frames(ks)←SCompactSeqTail(ne); h_closeF✝:frames(ks)←SBlockNode(n_p); h_closeFV_p:frames(ks)@ExplValueLine(nv)←SBlockNode(n_p); h_closeFEV✝:frames(ks)@ExplValueLine(nv)←SCompactSeqTail(ne)] ⊢ —",
   "accum_block_pending #3 param:accum_block_on_closeThenBlock.h_vpack idx=— := punt ns=— spend=— holds=[] ⊢ —",
   "accum_block_pending #3 param:accum_block_on_closeThenBlock.h_vslot idx=— := stamp ns=— spend=— holds=[] ⊢ —",
   "accum_block_pending #4 param:accum_block_on_closeThenBlock.h_vpack idx=— := punt ns=— spend=— holds=[] ⊢ —",
@@ -976,7 +977,8 @@ def expectedPerPos : List String := [
   "ctor:pendingMapValue.h_vslot writers=6 punt=0 stamp=3 empty=0 relay=1 step=0 via=0 chain=1 route=1 frames=0 tail=0 other=0 alt=0 held=1 levelVar=0 none=1 touched=6",
   "ctor:pendingMapValue.h_kslot writers=6 punt=2 stamp=0 empty=0 relay=0 step=0 via=0 chain=3 route=0 frames=1 tail=0 other=0 alt=0 held=0 levelVar=3 none=1 touched=4",
   "ctor:pendingMapValue.h_explUp writers=6 punt=5 stamp=0 empty=0 relay=0 step=0 via=0 chain=1 route=0 frames=0 tail=0 other=0 alt=0 held=0 levelVar=1 none=0 touched=1",
-  "param:accum_block_on_closeThenBlock.h_vpack writers=11 punt=4 stamp=0 empty=0 relay=1 step=0 via=1 chain=2 route=0 frames=3 tail=0 other=0 alt=0 held=1 levelVar=2 none=3 touched=7",
+   -- 2026-10-23 (item 344): `h_vpack` punt 4 → 3, chain 2 → 3 — `accum_block_pending` #2 relays it from `h_kslot`.
+  "param:accum_block_on_closeThenBlock.h_vpack writers=11 punt=3 stamp=0 empty=0 relay=1 step=0 via=1 chain=3 route=0 frames=3 tail=0 other=0 alt=0 held=1 levelVar=3 none=3 touched=8",
   -- Item 287: the eleven writers, read per position (`expectedWriters`).
   "param:accum_block_on_closeThenBlock.h_vslot writers=11 punt=0 stamp=10 empty=0 relay=0 step=0 via=0 chain=0 route=0 frames=0 tail=0 other=0 alt=1 held=1 levelVar=0 none=0 touched=11",
   "param:accum_block_on_pendingBlock.h_kslot writers=1 punt=0 stamp=0 empty=0 relay=1 step=0 via=0 chain=0 route=0 frames=0 tail=0 other=0 alt=0 held=0 levelVar=0 none=0 touched=1",
@@ -1049,12 +1051,13 @@ def expectedPerPos : List String := [
 -- 2026-10-21 (item 320): `nodes` 12525 → 12544 — the marker parks' field, the eight payments, the relay and the
 -- two split arms grow the terms; rows and positions stand.
 -- 2026-10-21 (item 322): `nodes` 12544 → 12547 — the colon openers' step premise and its six spends grow the terms; rows stand.
+-- 2026-10-23 (item 344): `punt` 26 → 25, `chain` 49 → 50, `levelVar` 35 → 36, `touched` 125 → 126 — `accum_block_pending` #2 relays `h_vpack`.
 def expectedLine : String :=
   "packs=11 framesOn=7 params=29 paramLemmas=19 apps=51 rows=151 ctorRows=74 \
-paramRows=77 punt=26 stamp=16 empty=0 relay=32 step=8 via=9 chain=49 route=3 \
-frames=4 tail=0 other=0 alt=4 held=8 levelVar=35 none=26 spendTail=3 lemmas=21 \
+paramRows=77 punt=25 stamp=16 empty=0 relay=32 step=8 via=9 chain=50 route=3 \
+frames=4 tail=0 other=0 alt=4 held=8 levelVar=36 none=26 spendTail=3 lemmas=21 \
 helpers=[explFrameValueLine,frameChainCons,frameChainOne,frameChainUnion] \
-touched=125 nodes=12556"
+touched=126 nodes=12556"
 
 /-! ## §4 The reading -/
 
