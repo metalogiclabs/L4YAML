@@ -147,7 +147,7 @@ capstonesInTp={b.capstonesInTrans.size}"
     one.
     260 on 2026-10-23 (after `Serialization.EventsOf` and `RefLex`), when `Proofs.Production.Acceptance.Quoted` joined the
     library — the one-line quoted-scalar scanner converses. -/
-def expectedClosure : Nat := 260
+def expectedClosure : Nat := 262  -- +2: `Proofs.Parser.TokenGrammar`, `StreamCompleteness` (Stream D)
 
 /-- The park's populations beside the arm's, from one pass. -/
 def expectedBill : String :=
