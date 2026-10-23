@@ -6,6 +6,12 @@ public meta import L4YAML.Parser.Composition
 public import L4YAML.Parser.IndexedComposition
 
 public meta import L4YAML.Parser.IndexedComposition
+public import L4YAML.Scanner.Scalar
+
+public meta import L4YAML.Scanner.Scalar
+public import L4YAML.Scanner.IndexedScanner
+
+public meta import L4YAML.Scanner.IndexedScanner
 @[expose] public section Blanket
 
 /-
@@ -76,6 +82,40 @@ def refuses (hdr : String) : Bool :=
 #guard refuses "|+#c"
 #guard refuses "|a"
 #guard refuses "|+a"
+
+/-- `parseBlockHeaderLoop` from `.clip`/`none` on `hdr` with `fuel`, both pipelines, as
+    `(chomp, offset, column)`; `none` when the two pipelines disagree. -/
+def loop? (hdr : String) (fuel : Nat) : Option (ChompStyle × Option Nat × Nat) :=
+  let (ch, off, sc) := Scanner.parseBlockHeaderLoop (Scanner.ScannerState.mk' hdr) .clip none fuel
+  let (chx, offx, cx) :=
+    Scanner.Indexed.parseBlockHeaderLoopIx (Indexed.IxCursor.start hdr) .clip none fuel
+  if ch == chx && off == offx && sc.col == cx.pos.col then some (ch, off, sc.col) else none
+
+-- Fuel 0 consumes nothing (the `_prod*` base cases).
+#guard loop? "2-" 0 == some (ChompStyle.clip, none, 0)
+#guard loop? "++" 0 == some (ChompStyle.clip, none, 0)
+-- Fuel 1 takes exactly one indicator, of either kind.
+#guard loop? "2-" 1 == some (ChompStyle.clip, some 2, 1)
+#guard loop? "-2" 1 == some (ChompStyle.strip, none, 1)
+#guard loop? "+" 1 == some (ChompStyle.keep, none, 1)
+-- Fuel 2 (the scanner's budget) takes one of each, in either order.
+#guard loop? "2-" 2 == some (ChompStyle.strip, some 2, 2)
+#guard loop? "-2" 2 == some (ChompStyle.strip, some 2, 2)
+#guard loop? "+9" 2 == some (ChompStyle.keep, some 9, 2)
+-- A repeated kind is hidden at any fuel: the second indicator stays at the cursor.
+#guard loop? "++" 2 == some (ChompStyle.keep, none, 1)
+#guard loop? "--" 3 == some (ChompStyle.strip, none, 1)
+#guard loop? "-+" 2 == some (ChompStyle.strip, none, 1)
+#guard loop? "11" 2 == some (ChompStyle.clip, some 1, 1)
+#guard loop? "2-2" 3 == some (ChompStyle.strip, some 2, 2)
+-- `0` is not `[163]`; a non-indicator stops the loop.
+#guard loop? "0" 2 == some (ChompStyle.clip, none, 0)
+#guard loop? "" 2 == some (ChompStyle.clip, none, 0)
+#guard loop? " #" 2 == some (ChompStyle.clip, none, 0)
+-- `parseBlockHeaderLoop_saturated`: both kinds already read, nothing is consumed at any fuel.
+#guard (Scanner.parseBlockHeaderLoop (Scanner.ScannerState.mk' "+3") .strip (some 1) 5).2.2.col == 0
+#guard (Scanner.Indexed.parseBlockHeaderLoopIx (Indexed.IxCursor.start "+3") .keep (some 1) 5).2.2.pos.col
+  == 0
 
 end L4YAML.Tests.Guards.BlockHeaderExactness
 
