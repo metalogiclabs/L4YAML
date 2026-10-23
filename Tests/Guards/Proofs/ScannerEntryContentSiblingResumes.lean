@@ -164,7 +164,8 @@ example {sc s_prep : ScannerState} {c : Char}
     (hcorr_prep : ScannerSurfCorr s_prep sp_prep)
     (closeF : ∀ sp_m, SSLComments sp_park sp_m →
       ∀ sp_end, SCompactSeqTail n sp_m sp_end →
-      ResumeFrames (SLYamlStream sp_start) ks sp_end) :
+      ResumeFrames (SLYamlStream sp_start) ks sp_end) 
+    (h_alt : PackAlt sc) :
     ResumeKeyCtx s_prep sp_start sp_prep :=
   -- Item 151: the entry-parked face carries no cover (`pendingBlock.h_closeF`
   -- is the widths alone), so the slot and the payer both take the punt — which
@@ -172,7 +173,7 @@ example {sc s_prep : ScannerState} {c : Char}
   resumectx_of_landing hcol_mid h_ws h_ssl h_preprocess hcorr_prep
     (Or.inl ⟨ks, Or.inr trivial,
       fun sp_m h => closeF sp_m h sp_m (SCompactSeqTail.nil n sp_m)⟩)
-    (Or.inr trivial)
+    (Or.inr h_alt)
     (fun _ _ _ _ _ _ _ => Or.inr trivial)
     -- Item 168: the sequence face punts here — this park's own collection is
     -- item 167's entry-level field, not a mapping level's.

@@ -1054,7 +1054,7 @@ def expectedLine : String :=
 paramRows=77 punt=26 stamp=16 empty=0 relay=32 step=8 via=9 chain=49 route=3 \
 frames=4 tail=0 other=0 alt=4 held=8 levelVar=35 none=26 spendTail=3 lemmas=21 \
 helpers=[explFrameValueLine,frameChainCons,frameChainOne,frameChainUnion] \
-touched=125 nodes=12549"
+touched=125 nodes=12556"
 
 /-! ## §4 The reading -/
 

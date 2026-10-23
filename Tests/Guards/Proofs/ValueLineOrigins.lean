@@ -896,17 +896,17 @@ def expectedRows : List String := [
   "compact_open_map #1 ctor:pendingMapValue.h_kslot := punt/punt pos=[] origins=[] none=[punt] ⊢ —",
   "compact_open_map #1 ctor:pendingMapValue.h_explUp := punt/punt pos=[] origins=[] none=[punt] ⊢ —",
   "content_dispatch_routed #1 ctor:pendingProps.h_key := relay/built pos=[] origins=[] none=[fact,stamp] ⊢ stamp*",
-  "content_dispatch_routed #1 ctor:pendingProps.h_kslot := punt/punt pos=[] origins=[] none=[punt] ⊢ —",
-  "content_dispatch_routed #1 ctor:pendingProps.h_kslotE := punt/punt pos=[] origins=[] none=[punt] ⊢ —",
+  "content_dispatch_routed #1 ctor:pendingProps.h_kslot := punt/stamp pos=[] origins=[] none=[stamp] ⊢ —",
+  "content_dispatch_routed #1 ctor:pendingProps.h_kslotE := punt/stamp pos=[] origins=[] none=[stamp] ⊢ —",
   "content_dispatch_routed #2 ctor:pendingProps.h_key := relay/built pos=[] origins=[] none=[fact,stamp] ⊢ stamp*",
-  "content_dispatch_routed #2 ctor:pendingProps.h_kslot := punt/punt pos=[] origins=[] none=[punt] ⊢ —",
-  "content_dispatch_routed #2 ctor:pendingProps.h_kslotE := punt/punt pos=[] origins=[] none=[punt] ⊢ —",
+  "content_dispatch_routed #2 ctor:pendingProps.h_kslot := punt/stamp pos=[] origins=[] none=[stamp] ⊢ —",
+  "content_dispatch_routed #2 ctor:pendingProps.h_kslotE := punt/stamp pos=[] origins=[] none=[stamp] ⊢ —",
   -- Item 300: the content cascade's marker arm refutes a block-scalar head by
   -- `absurd` (the guard's `h_poss` against the head's cleared key), a third leaf.
   "content_dispatch_routed #1 ctor:pendingContent.h_key := relay/built pos=[] origins=[O60] none=[punt,absurd,stamp] ⊢ none-held 0/1",
-  "content_dispatch_routed #1 ctor:pendingContent.h_vpack := punt/punt pos=[] origins=[] none=[punt] ⊢ —",
+  "content_dispatch_routed #1 ctor:pendingContent.h_vpack := punt/stamp pos=[] origins=[] none=[stamp] ⊢ —",
   "content_dispatch_routed #2 ctor:pendingContent.h_key := relay/built pos=[] origins=[O61] none=[punt,absurd,stamp] ⊢ none-held 0/1",
-  "content_dispatch_routed #2 ctor:pendingContent.h_vpack := punt/punt pos=[] origins=[] none=[punt] ⊢ —",
+  "content_dispatch_routed #2 ctor:pendingContent.h_vpack := punt/stamp pos=[] origins=[] none=[stamp] ⊢ —",
   "indicator_open_map #1 param:question_open_map.h_explUp_chain := relay/built pos=[param:indicator_open_map.h_explUp_chain] origins=[O75] ⊢ none-held 0/1",
   "question_open_map #1 ctor:pendingMapValue.h_ivl := paid:route/built pos=[] origins=[O62,O63,O64,O65,O66,O67] ⊢ all-held 6/6",
   "question_open_map #1 ctor:pendingMapValue.h_vslot := paid:route/built pos=[] origins=[O68,O69,O70,O71,O72,O73] ⊢ all-held 6/6",
@@ -923,10 +923,10 @@ def expectedRows : List String := [
 -- `---` arm, pays through `PackAlt.ofRefused h_noekS`; the two built writers and the holdings stand.
 def expectedPerPos : List String := [
   "ctor:pendingContent.h_key packaged writers=12 punt=0 stamp=0 built=12 unborn=0 dead=0 allHeld=0 someHeld=0 noneHeld=6 origins=[O4,O5,O6,O7,O8,O9,O10,O11,O12,O13,O14,O15,O16,O17,O18,O19,O20,O21,O26,O27,O28,O29,O30,O31,O37,O38,O39,O40,O41,O42,O43,O49,O53,O57,O60,O61,O74,O75] ⊢ 0/38 held",
-  "ctor:pendingContent.h_vpack writers=12 punt=2 stamp=0 built=10 unborn=0 dead=0 allHeld=0 someHeld=3 noneHeld=7 origins=[O4,O5,O6,O7,O8,O9,O10,O11,O12,O13,O14,O15,O16,O17,O18,O19,O20,O21,O22,O26,O27,O28,O29,O30,O31,O32,O36,O37,O38,O39,O40,O41,O42,O43,O44,O49,O50,O53,O54,O57,O60,O61,O74,O75] ⊢ 3/44 held",
+  "ctor:pendingContent.h_vpack writers=12 punt=0 stamp=2 built=10 unborn=0 dead=0 allHeld=0 someHeld=3 noneHeld=7 origins=[O4,O5,O6,O7,O8,O9,O10,O11,O12,O13,O14,O15,O16,O17,O18,O19,O20,O21,O22,O26,O27,O28,O29,O30,O31,O32,O36,O37,O38,O39,O40,O41,O42,O43,O44,O49,O50,O53,O54,O57,O60,O61,O74,O75] ⊢ 3/44 held",
   "ctor:pendingProps.h_key packaged writers=6 punt=0 stamp=0 built=6 unborn=0 dead=0 allHeld=0 someHeld=0 noneHeld=2 origins=[O4,O5,O6,O7,O8,O9,O10,O11,O12,O13,O14,O15,O16,O17,O18,O19,O20,O21,O26,O27,O28,O29,O30,O31,O37,O38,O39,O40,O41,O42,O43,O49,O53,O57,O60,O61,O74,O75] ⊢ 0/38 held",
-  "ctor:pendingProps.h_kslot writers=6 punt=2 stamp=0 built=4 unborn=0 dead=0 allHeld=0 someHeld=0 noneHeld=4 origins=[O4,O5,O6,O7,O8,O9,O10,O11,O12,O13,O14,O15,O16,O17,O18,O19,O20,O21,O26,O27,O28,O29,O30,O31,O32,O37,O38,O39,O40,O41,O42,O43,O49,O53,O57,O60,O61,O74,O75] ⊢ 0/39 held",
-  "ctor:pendingProps.h_kslotE writers=6 punt=3 stamp=0 built=3 unborn=0 dead=0 allHeld=0 someHeld=0 noneHeld=3 origins=[O75] ⊢ 0/1 held",
+  "ctor:pendingProps.h_kslot writers=6 punt=0 stamp=2 built=4 unborn=0 dead=0 allHeld=0 someHeld=0 noneHeld=4 origins=[O4,O5,O6,O7,O8,O9,O10,O11,O12,O13,O14,O15,O16,O17,O18,O19,O20,O21,O26,O27,O28,O29,O30,O31,O32,O37,O38,O39,O40,O41,O42,O43,O49,O53,O57,O60,O61,O74,O75] ⊢ 0/39 held",
+  "ctor:pendingProps.h_kslotE writers=6 punt=1 stamp=2 built=3 unborn=0 dead=0 allHeld=0 someHeld=0 noneHeld=3 origins=[O75] ⊢ 0/1 held",
   "ctor:pendingBlockContent.h_key packaged writers=6 punt=0 stamp=0 built=6 unborn=0 dead=0 allHeld=0 someHeld=0 noneHeld=2 origins=[O4,O5,O6,O7,O11,O12,O13,O14,O75] ⊢ 0/9 held",
   "ctor:pendingBlockContent.h_kslot writers=6 punt=0 stamp=0 built=6 unborn=0 dead=0 allHeld=0 someHeld=0 noneHeld=6 origins=[O75] ⊢ 0/1 held",
   "ctor:pendingBlockContent.h_kslotUp writers=6 punt=3 stamp=0 built=3 unborn=0 dead=0 allHeld=0 someHeld=0 noneHeld=3 origins=[O75] ⊢ 0/1 held",
@@ -1094,11 +1094,11 @@ def expectedUnborn : List String := []
 -- terms; rows as re-pinned above, positions unchanged.
 def expectedLine : String :=
   "positions=47 packaged=7 packConsts=[ImplicitKeyPack,PropsKeyPack] rows=180 ctorRows=98 \
-paramRows=82 packagedRows=29 punt=20 stamp=22 built=138 origins=76 originRows=41 \
+paramRows=82 packagedRows=29 punt=14 stamp=28 built=138 origins=76 originRows=41 \
 route=23 frames=30 tail=0 other=7 concl=8 invariant=8 heldOrigins=23 allHeld=9 \
 someHeld=11 noneHeld=104 unbornRows=0 relayedPunt=0 relayedStamp=10 relayedAbsurd=4 \
-relayedFact=0 deadRows=0 unbornPos=0 rounds=4 follows=343 lets=570 lapps=708 alts=4490 \
-nodes=12580 liteNodes=543269"
+relayedFact=0 deadRows=0 unbornPos=0 rounds=4 follows=343 lets=570 lapps=709 alts=4490 \
+nodes=12587 liteNodes=543421"
 
 /-! ## §4 The reading -/
 

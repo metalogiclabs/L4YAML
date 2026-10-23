@@ -205,7 +205,7 @@ example {sc s_prep : ScannerState} {c : Char}
         ((∃ lo n : Nat, Floor lo n ks ∧
           Covered lo ks sc) ∨ True) ∧
         ∀ sp_m : SurfPos, SSLComments sp_scan sp_m →
-        KeyFrames (ExplValueLine sp_start nv) ks sp_m) ∨ True)
+        KeyFrames (ExplValueLine sp_start nv) ks sp_m) ∨ PackAlt sc)
     (h_pay : ∀ (w : Nat) (ks ks' : List FrameLevel),
         ((∃ lo n : Nat, Floor lo n ks ∧
           Covered lo ks sc) ∨ True) →
@@ -228,12 +228,13 @@ example {sp_start sp_land sp_prep : SurfPos} {k : Nat} {ks : List FrameLevel}
     (hcol0 : sp_land.col = 0) (h_ind : SIndent k sp_land sp_prep)
     (h_fr : ResumeFrames (SLYamlStream sp_start) ks sp_land) (hmem : FrameLevel.map k ∈ ks)
     (h_poss : s_prep.simpleKey.possible = true)
-    (h_pos : s_prep.simpleKey.pos = s_prep.currentPos) :
+    (h_pos : s_prep.simpleKey.pos = s_prep.currentPos) 
+    (h_alt : PackAlt s_prep) :
     ResumeKeyCtx s_prep sp_start sp_prep :=
   match h_fr.resumeAt hmem with
   | ⟨ks', h_w, cont⟩ =>
       Or.inl ⟨⟨k, ks', sp_land, hcol0, h_ind, h_w.lt, Or.inr trivial, cont,
-        Or.inr trivial,
+        Or.inr h_alt,
         -- Item 168: the sequence face is the third lane and punts here.
         Or.inr trivial⟩, h_poss, h_pos⟩
 

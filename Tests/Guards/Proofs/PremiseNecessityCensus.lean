@@ -348,7 +348,7 @@ declarations' own binders and not by a rescoring of an existing one.
 -- relays its two hypotheses and its wrapper `PackAlt.step_preprocess` holds the same two unused; as `HypothesisReaderCensus`.
 -- (The item 320 and 322 notes above are corrected: their scripts garbled the field names.)
 def expectedModuleTallyP : String :=
-  "constants=1417 decls=1127 eta=408 FIELD=189 READ=1200 RELAY=2202 RETURN=139 UNUSED=26"
+  "constants=1417 decls=1127 eta=408 FIELD=189 READ=1200 RELAY=2206 RETURN=139 UNUSED=26"
 
 -- Item 287: `accum_block_on_closeThenBlock`'s `h_vslot`, a READ one, left the
 -- `_ ∨ True` population — its sibling's move, under this peel.  Item 288: and
@@ -638,6 +638,7 @@ def expectedDead : List String :=
     "L4YAML.Proofs.StreamAccum.PackAlt.step_value#5 (_h_noflow) [lane stub]",
     "L4YAML.Proofs.StreamAccum.PackAlt.step_value#6 (_h) [lane stub]",
     "L4YAML.Proofs.StreamAccum.PackAltG.ofPark#2 (_h) [lane stub]",
+    "L4YAML.Proofs.StreamAccum.accum_content_on_noPending#16 (h_alt) [promised step]",
     "L4YAML.Proofs.StreamAccum.block_dispatch_deferred_inline#12 (_h_res) [class marker]",
     "L4YAML.Proofs.StreamAccum.block_dispatch_deferred_stamp_nopack#10 (_h_src) [class marker]",
     "L4YAML.Proofs.StreamAccum.block_dispatch_deferred_stamp_nopack#11 (_h_indent) [class marker]",
@@ -645,7 +646,10 @@ def expectedDead : List String :=
     "L4YAML.Proofs.StreamAccum.block_dispatch_deferred_stamp_offcol#11 (_h_src) [class marker]",
     "L4YAML.Proofs.StreamAccum.block_dispatch_deferred_stamp_offcol#12 (_h_indent) [class marker]",
     "L4YAML.Proofs.StreamAccum.block_dispatch_deferred_stamp_offcol#13 (_h_ne) [class marker]",
-    "L4YAML.Proofs.StreamAccum.entryPropsKeyPack_of_dispatch#30 (h_dispatch) [promised step]",
+    "L4YAML.Proofs.StreamAccum.content_dispatch_routed#29 (h_alt) [promised step]",
+    "L4YAML.Proofs.StreamAccum.entryKeyPack_of_dispatch#27 (h_alt) [promised step]",
+    "L4YAML.Proofs.StreamAccum.entryPropsKeyPack_of_dispatch#30 (h_alt) [promised step]",
+    "L4YAML.Proofs.StreamAccum.entryPropsKeyPack_of_dispatch#31 (h_dispatch) [promised step]",
     "L4YAML.Proofs.StreamAccum.flowKeyPack_of_close#11 (_) [conclusion binder]",
     "L4YAML.Proofs.StreamAccum.question_open_map#15 (_h_noflow_disp) [family uniformity]",
     "L4YAML.Proofs.StructureCoupling.scanTagDirective_corr#2 (_hcorr) [family uniformity]" ]
@@ -664,7 +668,13 @@ def deadReason : String → String
   | "L4YAML.Proofs.StreamAccum.flowKeyPack_of_close#11" => "conclusion binder"
   -- Item 315: relayed to `PackAlt.step_content`, whose own step binder is unused while its promise is not yet
   -- its body — so the chase ends at a dead binder; alive the moment `PackAlt` is the predicate.
-  | "L4YAML.Proofs.StreamAccum.entryPropsKeyPack_of_dispatch#30" => "promised step"
+  | "L4YAML.Proofs.StreamAccum.entryPropsKeyPack_of_dispatch#31"
+  -- Item 340: the flip's premise `h_alt : PackAlt _` on the four lemmas that relay it into their packs through
+  -- `PackAlt.step_dispatch`/`step_content`/`step_preprocess` — the same chase, ending at the same unused step binder.
+  | "L4YAML.Proofs.StreamAccum.content_dispatch_routed#29"
+  | "L4YAML.Proofs.StreamAccum.entryKeyPack_of_dispatch#27"
+  | "L4YAML.Proofs.StreamAccum.entryPropsKeyPack_of_dispatch#30"
+  | "L4YAML.Proofs.StreamAccum.accum_content_on_noPending#16" => "promised step"
   | "L4YAML.Proofs.StreamAccum.PackAlt.ofRefused#1"
   | "L4YAML.Proofs.StreamAccum.PackAltG.ofPark#2"
   | "L4YAML.Proofs.StreamAccum.PackAlt.ofGateClose#2"
@@ -690,7 +700,9 @@ def deadReason : String → String
 -- the promised wrapper and chased to its unused step binder.
 -- 2026-10-21 (item 318): `dead` 19 → 26, `UNUSED` 18 → 25 — the seven lane-stub binders above.
 -- 2026-10-21 (item 324): `dead` 26 → 28, `UNUSED` 25 → 27 — `PackAlt.step_preprocess`'s two lane-stub binders above.
-def expectedDeadTally : String := "dead=28 RELAY=1 UNUSED=27 RELAY=1"
+-- 2026-10-22 (item 340): `dead` 28 → 32, `RELAY` 1 → 5 — the four `h_alt` premises above, relayed to the promised
+-- wrappers; `entryPropsKeyPack_of_dispatch`'s `h_dispatch` moved from #30 to #31 behind the new binder.
+def expectedDeadTally : String := "dead=32 RELAY=5 UNUSED=27 RELAY=5"
 
 run_cmd do
   let env ← getEnv

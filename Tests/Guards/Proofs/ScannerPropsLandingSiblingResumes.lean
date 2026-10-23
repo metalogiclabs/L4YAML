@@ -107,13 +107,13 @@ example {sc : ScannerState} {sp_start sp_p sp_scan : SurfPos}
       ((∃ (nv : Nat) (ks : List FrameLevel), (∀ fr ∈ ks, fr.width < k) ∧
         ∀ sp_v : SurfPos, SBlockMapEntry k sp_p sp_v →
         ∀ sp_e : SurfPos, SCompactMapTail k sp_v sp_e →
-        KeyFrames (ExplValueLine sp_start nv) ks sp_e) ∨ True) := by
+        KeyFrames (ExplValueLine sp_start nv) ks sp_e) ∨ PackAlt sc) := by
   obtain ⟨⟨k, _, _, _, h_resF, h_resFV⟩, _⟩ := h
   -- Item 148: the twin carries the scanner's own stack beside the widths;
   -- a reader that wants only the widths projects past it.
   exact ⟨k, h_resF.imp (fun ⟨ks, h_lt, _, r⟩ => ⟨ks, h_lt, r⟩) id,
     -- Item 150: the value-line twin carries one too, and projects the same way.
-    h_resFV.imp (fun ⟨nv, ks, h_lt, _, r⟩ => ⟨nv, ks, h_lt, r⟩) id⟩
+    h_resFV.elim (fun ⟨nv, ks, h_lt, _, r⟩ => Or.inl ⟨nv, ks, h_lt, r⟩) Or.inr⟩
 
 /-! ## §3 The landing's payment: the resumed context funds route and twin at once
 

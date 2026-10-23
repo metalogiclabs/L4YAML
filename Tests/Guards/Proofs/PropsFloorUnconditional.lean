@@ -58,19 +58,20 @@ example {sc : ScannerState} {sp_start sp_block sp_scan sp_node sp_p : SurfPos}
     -- Item 284: and the run's slot face, gated as `h_route` is.
     (h_slot : danglingNodePos? sc = none → sc.indents.size ≤ 1 ∨ SlotFace sc.tokens)
     -- Item 293: and the run's saved key, live.
-    (h_poss : sc.simpleKey.possible = true) :
+    (h_poss : sc.simpleKey.possible = true) 
+    (h_alt : PackAlt sc) :
     PendingNode sc false sp_start sp_block sp_scan :=
   PendingNode.pendingProps (h_poss := h_poss) (h_slot := h_slot) sp_start sp_block sp_scan true false sp_node sp_p n
     h_sep h_run h_nic h_real (fun _ => h_anchor) (fun h => nomatch h) h_route
     -- Item 102: the key field's `True` became `KeyPackPunt`, so a pin that
     -- offers no pack has to NAME why — here, a caller with no key context.
     (Or.inr KeyPackPunt.noKeyContext) h_floor h_col0 (Or.inr trivial) h_ska
-    (Or.inr trivial)
+    (Or.inr h_alt)
     -- Item 114: the five resume faces are optional too — a pin with no
     -- enclosing holdings punts them all.  Item 199: SIX, since the entry face
     -- got its value-line twin and the census closed.
-    (Or.inr trivial) (Or.inr trivial) (Or.inr trivial) (Or.inr trivial)
-    (Or.inr trivial) h_nodir (Or.inr trivial)
+    (Or.inr h_alt) (Or.inr h_alt) (Or.inr trivial) (Or.inr trivial)
+    (Or.inr h_alt) h_nodir (Or.inr h_alt)
 
 /-! ## §2  The measurement: the floor's transport premises
 

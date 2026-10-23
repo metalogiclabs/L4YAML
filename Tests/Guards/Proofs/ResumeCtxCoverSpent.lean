@@ -206,13 +206,14 @@ example {sp_start sp_land sp_prep : SurfPos} {k lo : Nat} {ks : List FrameLevel}
     (h_mono : Mono s_prep) (h_top : s_prep.currentIndent ≤ (k : Int))
     (h_fl : Floor lo k ks) (h_cv : Covered lo ks s_prep)
     (h_poss : s_prep.simpleKey.possible = true)
-    (h_pos : s_prep.simpleKey.pos = s_prep.currentPos) :
+    (h_pos : s_prep.simpleKey.pos = s_prep.currentPos) 
+    (h_alt : PackAlt s_prep) :
     ResumeKeyCtx s_prep sp_start sp_prep :=
   match h_fr.resumeAt hmem with
   | ⟨ks', h_w, cont⟩ =>
       Or.inl ⟨⟨k, ks', sp_land, hcol0, h_ind, h_w.lt,
         Or.inl (dedent_cover_of_floor h_mono h_top h_fl h_cv hmem h_w),
-        cont, Or.inr trivial,
+        cont, Or.inr h_alt,
         -- Item 168: the sequence face is the third lane and punts here.
         Or.inr trivial⟩, h_poss, h_pos⟩
 
@@ -302,10 +303,11 @@ example {sc s_prep : ScannerState} {c : Char}
     (h_preprocess : scanNextToken_preprocess sc = .ok (some (s_prep, c)))
     (hcorr_prep : ScannerSurfCorr s_prep sp_prep)
     (fS : ∀ sp_m : SurfPos, SSLComments sp_scan sp_m →
-      ResumeFrames (SLYamlStream sp_start) ks sp_m) :
+      ResumeFrames (SLYamlStream sp_start) ks sp_m) 
+    (h_alt : PackAlt sc) :
     ResumeKeyCtx s_prep sp_start sp_prep :=
   resumectx_of_landing hcol_mid h_ws h_ssl h_preprocess hcorr_prep
-    (Or.inl ⟨ks, Or.inr trivial, fS⟩) (Or.inr trivial)
+    (Or.inl ⟨ks, Or.inr trivial, fS⟩) (Or.inr h_alt)
     (fun _ _ _ _ _ _ _ => Or.inr trivial)
     -- Item 168: the sequence face punts; this guard is about the COVER.
     (Or.inr trivial)

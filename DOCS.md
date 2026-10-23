@@ -48667,3 +48667,63 @@ context):
   configuration validators; Phase 3 (Future) verified state machines /
   control logic; Phase 4 (Vision) verified supply chain. Program-level
   direction, not repo tasks.
+
+### Item 340 (2026-10-22)
+
+**The flip BUILT to a fixpoint on the carried tree and PRICED by the build, not the instrument — `PackAlt sc := ExplicitValueRefused sc` descended through `StreamAccum` and every guard until nothing new broke, each red site classified by what pays it; the plumbing that payment needs is landed (`content_dispatch_routed`, `entryKeyPack_of_dispatch`, `entryPropsKeyPack_of_dispatch` and `accum_content_on_noPending` take the park's alternative as a premise `h_alt : PackAlt _` and relay it through the `PackAlt.step_*` transports; ten guard examples take it too; four guard twins read the value-line pack's refused side as `PackAlt sc`); 5 call sites PAY the premise from a park's own dead register; 72 sites are STARVED on the value-line RELAY, not on a scanner fact; `PackAlt` is `True` again in this tree so the closed path stays `sorryAx`-free.  No scanner code changed.**
+
+**The mandate.**  Item 339: "**NEXT — item 340, the flip step (i) on the carried pair: `PackAlt sc := ExplicitValueRefused sc`, with `Sound`/`ColFloor` passed from `scanNextToken_accum_step` into `accum_step_block`/`accum_step_content` … so the 23 `content_dispatch_routed` roots are paid by `RegOk` + `PendingKeys.innermost_closeAt_of_marked_at` instead of `Or.inr trivial`; lane (d) is `BaseOk`, so `PackAltG`/`g` go in the same build (snapshot 9 → 8).  Price it first with the flip script on THIS tree …, then steps (iii)/(iv) …**"  Departure, forced by the build: the 23 roots are not paid by `RegOk` — they are paid by a PREMISE the roots relay, and the premise is payable only where a park already knows its register is dead.  Where the park's pack is informative (a `?` frame is KNOWN and the register is LIVE) the landed key's pack needs that frame relayed into the root's own shape, which is the `resumectx` value-face lane, not a scanner fact.  So `Sound`/`ColFloor` are NOT consumed here (nothing below `scanNextToken_accum_step` needs them until the relay exists), `PackAltG`/`g` stay (lane (d)'s seven sites are in the same STARVED class), and steps (iii)/(iv) are untouched.
+
+**Predictions first** (written before the instruments and the flip build ran; verbatim from the working file).
+
+| | prediction |
+|---|---|
+| P1 | `PACK-FLIP` pin (`--alt false`) agrees verbatim with item 336: `sites=119 decline=119 leaf=32 …` — items 337–339 touched no `PackAlt` site |
+| P2 | `PACK-RESIDUE` pin (`--alt refused`) agrees verbatim: `sites=101 decline=100 leaf=22 stubs=1 promised=6` |
+| P3 | the flip build breaks 102 sites / ~23 declarations before any payment (item 337's count) |
+| P4 | the 23 `content_dispatch_routed` roots are payable from `RegOk` + `PendingKeys.innermost_closeAt_of_marked_at` with `Sound`/`ColFloor` passed into `accum_step_block`/`accum_step_content`; no new scanner invariant needed |
+| P5 | lane (d): `FlowStackK`'s `EkBase` conjunct is `BaseOk`; `PackAltG`/`g` deleted; snapshot 9 → 8 |
+| P6 | no scanner code changes; conformance pins (`CompactRouteCensus`, suiterunner, eventscore) unmoved |
+
+**The reading — the instruments** (`scripts/pack_flip_census.py`, clean tree, restored and checksummed): `PACK-FLIP sites=119 decls=23 rounds=2 decline=119 relay=0 leaf=32 uncond=87 stubs=8`, `PACK-RESIDUE sites=101 decls=21 rounds=2 decline=100 relayTrue=0 relayState=1 leaf=22 uncond=78 stubs=1 promised=6`; both pins agree (P1, P2 HELD).
+
+**The reading — the flip build**, descended by hand one obligation class at a time, `scripts/flip_census.py` reading each log (round = one `lake build L4YAML.Proofs.Production.StreamAccum`):
+
+| round | change | red sites / declarations |
+|---|---|---|
+| 1 | `PackAlt sc := ExplicitValueRefused sc`; `PackAlt.ofRefused` is `id`; the six promised `PackAlt.step_*` bodies call `ExplicitValueRefused.step_*` (all six build) | 101 / 22 at the 100-error cap — a FLOOR |
+| 2 | `content_dispatch_routed` takes `(h_alt : PackAlt s_prep)`; its 23 `Or.inr trivial` packs become `Or.inr (PackAlt.step_dispatch h_dispatch h_alt)` (the other 8 `Or.inr trivial` on the same lines are other families' `∨ True` and stay) | 83 / 22 (below the cap: the first complete reading) |
+| 3 | round 2 with the 6 over-replacements reverted | 77 / 21 — `content_dispatch_routed` GREEN |
+| 4 | `entryKeyPack_of_dispatch` and `entryPropsKeyPack_of_dispatch` take `(h_alt : PackAlt sc)`; their 16 packs relay via `PackAlt.step_content h_preprocess h_dispatch h_alt` | 61 / 19 — both producers GREEN |
+| 5 | the 61 remaining sites sorried (`340-UNPAID`) to descend past `StreamAccum`; full build | 20 guard sites in 11 `Tests/Guards/Proofs` files + the capstone's `sorryAx` + `RelaySupplyCensus` (`+1 VIA sorryAx`, an artifact) |
+| 6 | guards: 10 examples take `(h_alt : PackAlt sc∣s_prep)`; 4 twins (`ScannerLandedSiblingResumes` `h_fV`, `ValueLineCoverSpent` ×2, `ScannerPropsLandingSiblingResumes`) read `∨ PackAlt sc`; `.imp … id` → `.elim … Or.inr` where the expected type stopped elaborating | guards GREEN |
+| 7 | 13 "payable by an in-scope `h_alt`" guesses | all 13 `Unknown identifier h_alt` — the `rcases … ∣ h_alt` branches are elsewhere; blind payment stops |
+| 8 | the three parks that KNOW their register is dead pay the premise: `accum_content_pending`'s `noPending` arm binds `h_noek76` and pays `accum_content_on_noPending`'s new `h_alt` (→ its two `content_dispatch_routed` calls), its `pendingDocStart` arm pays `PackAlt.step_preprocess h_preprocess (PackAlt.ofRefused h_noekS)` | FIXPOINT: 72 sorried sites (61 packs on 55 lines + 11 caller alternatives) |
+
+P3 scored by round 1: 101 at the cap, so the floor the instrument read (102) is consistent and neither number is a reading of the whole (round 2 is: 83 after the first payment, so the untouched flip is 83 + 23 = 106 sites — four more than item 337 quoted, the over-replaced `∨ True` twins beside PackAlt packs on shared lines).
+
+**The ledger** (the fixpoint's 72 sites by lemma and by what would pay them; `ledger.tsv` is the per-line form and is NOT committed — the lines move with every edit, the lemma names do not):
+
+| class | sites | lemmas |
+|---|---|---|
+| STARVED-relay, content/block parks — the incoming pack is `value-line twin ∨ PackAlt sc`; its `inl` case (a `?` frame known, register live) must be relayed into the new park's pack | 48 | `accum_block_on_closeThenBlock` 8, `accum_block_pending` 8, `accum_content_pending` 9, `accum_content_on_pendingMapValue_indented` 6, `accum_content_on_pendingBlock_indented` 5, `accum_block_on_pendingBlock` 3, `accum_block_on_pendingBlockContent` 3, `accum_block_on_pendingContent` 2, `content_dispatch_after_close` 1, `resumectx_of_landing` 1 (the width that misses the `?` stack), … |
+| STARVED-relay, the `:` / compact producers — the pack of the park a `:` OPENS asserts the pre-state's refused side | 17 | `compact_open_map` 6, `colon_open_map_explicit` 5, `colon_open_map` 2, `colon_open_map_implicit` 2, `colon_open_map_props` 2 |
+| STARVED-relay, flow lane (d) — the `PackAltG`/`g` carrier | 7 | `accum_flow_open_depth0` 3, `accum_step_flow` 2, `flowKeyRoute_of_root` 1, `PackAlt.ofGateClose` 1 |
+| STARVED-promised — the `?` just scanned: the register is live BY CONSTRUCTION, so the pack can only be informative, and `h_upAll`'s `inr` arm holds no up-chain | 2 | `question_open_map` |
+
+What IS paid on the flip tree: the 23 roots and the 16 producer packs (relay), the 5 park-paid alternatives (`noPending` ×2 through `accum_content_on_noPending`, `pendingDocStart` ×1, and the two the `h_noek` lanes already paid before this item), the six promised transports.  What the hook pays and this item did not need: at a col-0 landing every marked slot has column `0` (`SlotsOk` ≥ 0, `Mono` ≤ `currentIndent`, `ColFloor` ≤ `col = 0`), so `PendingKeys.closeAt … 0` clears them all and `RegOk` reads the register dead — P4's mechanism is right for `k = 0` landings and silent for `k > 0`, where the register is legitimately live and the only honest pack is the informative one.
+
+**Predictions, scored.**
+
+| | | |
+|---|---|---|
+| P1 | HELD | pin agrees verbatim |
+| P2 | HELD | pin agrees verbatim |
+| P3 | HELD in kind, not in number | 101 at the cap (round 1); 106 by subtraction (round 2) — the instrument's 102 was a floor |
+| P4 | REFUTED | the roots relay a PREMISE; `RegOk` pays it only at `k = 0`; at `k > 0` the pack must be informative and that is the value-line relay |
+| P5 | REFUTED | lane (d)'s seven sites are the same STARVED class; `PackAltG`/`g` stay until the relay |
+| P6 | HELD | no scanner code; suiterunner / eventscore / `CompactRouteCensus` unmoved (see Gates) |
+
+**Gates.**  Full `lake build` 1279 jobs, exit 0 (captured directly), 58 warning lines, none in a touched file (all pre-existing `simp`/unused-variable notes in `Serialization`, `ScannerCorrectness`, `CloseLandingWidth`); `check-theorem-keyword` 25/25, `check-import-closure` 252 modules reachable, `check-reflection-index` 249 reflections / 355 demos, `check-closure-log` items 11..340 ascending with the one declared gap, `check-serialization-proofs` 46 profiles; `gate_vocab.py` Lean 448 / script 464 — the pre-existing disagreement, unchanged in kind (P6 of item 339); `run-all-tests.sh` 0 failures, `adversarialinstantiation` 3424/3424 (no new lemma in this item — the premises are instantiated by the ten guard examples that now take them); suiterunner 869/0/151; eventscore 347/358.  Pins moved, all instrument debt with the one cause (39 packs relay a premise instead of declining; four binders more; five park payments): `BlockDeferralClasses` `expectedPackFlip` 119 → 89 and `expectedPackResidue` 101 → 71 (re-run on the committed tree, files restored); `HypothesisReaderCensus` RELAY 2352 → 2356; `PremiseNecessityCensus` RELAY 2202 → 2206, DEAD 28 → 32 (the four `h_alt`, reason "promised step": relayed to the promised wrappers whose step binder is unused while `PackAlt` is `True`; `entryPropsKeyPack_of_dispatch`'s `h_dispatch` moved #30 → #31 behind the new binder), tally `dead=32 RELAY=5 UNUSED=27`; `ValueLineOrigins` six rows `punt/punt` → `punt/stamp` (`content_dispatch_routed` #1/#2 into `pendingProps.h_kslot`/`h_kslotE` and `pendingContent.h_vpack`), three per-position rows, summary `punt 20 → 14 stamp 22 → 28 lapps 708 → 709 nodes 12580 → 12587 liteNodes 543269 → 543421`; `CloseStackCover`/`PuntCoverInputs`/`PaidLeafDelta` `nodes 104572 → 104597` (`PaidLeafDelta` `floorNodes 26085 → 26089`); `ValueLinePacks` `nodes 12549 → 12556`.  `RelaySupplyCensus` did NOT move once the sorries were gone (its `+1 VIA sorryAx` during the descent was the pricing artifact it looks like).  Axiom census (`#print axioms`): `content_dispatch_routed`, `entryKeyPack_of_dispatch`, `accum_content_on_noPending`, `accum_content_pending`, `accum_step_content`, `scanLoop_grammar_prod` and the capstone `parse_strict_proof` — `propext`, `Classical.choice`, `Quot.sound` plus the per-call-site `native_decide` axioms of the scalar/structure production lemmas they already depended on; `entryPropsKeyPack_of_dispatch` — the standard three alone; no `sorryAx` anywhere (the `Capstones` guard is green again).
+
+**NEXT — item 341, the relay as a scanner-state fact, which is steps (iii)/(iv) read from the other end: the informative side of every pack (`∃ sp_q, GLit '?' sp_q … ∧ ∀ sp_v, SBlockMapEntry … → …` / the value-line twin `KeyFrames (ExplValueLine sp_start nv) ks …`) is what the scanner's register ALREADY names — `(explicitKeyLine, explicitKeyCol)` is the `?`'s position, `pendingKeys` marks its level, `RegOk` ties the two.  Carry "register = some (l, c) → the surface position at (l, c) is a `?` whose entry closes the stream" beside `ScannerSurfCorr` in the scanLoop quad (one preservation lemma per register writer, the item-338 roster), and the 72 STARVED sites read the pack off the state: `inl` from the carrier when the register is live, `inr` (= `ExplicitValueRefused`) when it is dead — no relay, no `ns`/`ks` frame list for the `?`.  Then the flip is one definition change and the `PackAltG`/`g` deletion falls out with lane (d).  Price it first: count the register writers the carrier must cross (item 338's roster) and the pack shapes the 72 sites build (this item's ledger, by lemma).**
