@@ -255,9 +255,11 @@ def expectedAbsorbReaders : List String :=
    "L4YAML.Proofs.StreamAccum.accum_step_structural",
    "L4YAML.Proofs.StreamAccum.preprocessing_eof_extends_stream"]
 
+-- 2026-10-23 ([162]): `prods` +2, `ctors`/`surfArms`/`surfDirect` +5, `same` +2 (the two `.empty` arms),
+-- `direct` +5 — `SCIndentationIndicator` and `SCChompingIndicator`; the carrier reading is unchanged.
 def expectedLine : String :=
-  "prods=130 ctors=235 same=19 direct=221 anchoredOnly=12 broken=2 surfArms=167 \
-surfDirect=166 candidate=direct candidateNil=direct readers=3 libReaders=2 \
+  "prods=132 ctors=240 same=21 direct=226 anchoredOnly=12 broken=2 surfArms=172 \
+surfDirect=171 candidate=direct candidateNil=direct readers=3 libReaders=2 \
 guardReaders=1 mentions=40 producers=21 absorbReaders=5 absorbPlainReaders=0"
 
 /-- Non-circularity, items 242–245's check: the closing lemma spends item 244's

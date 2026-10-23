@@ -784,7 +784,9 @@ one unfolding, and §6 is the item where those two disagreed about binders. -/
 -- neither conclusion is a no-op, and both readings stand.
 -- 2026-10-21 (perf): `theorems` +1 after the base merged `scanBlockScalarIx_eq_impl`, the `@[csimp]` equation for the
 -- once-bound block-scalar twin; a plain `rfl` equality, not a no-op conclusion.
-def expectedNoopTally : String := "theorems=5999 byElab=15 byWhnf=15 elabOnly=0 whnfOnly=0"
+-- 2026-10-23 ([162]): `theorems` 5999 → 6006 — five `parseBlockHeaderLoop_*` production lemmas and the two
+-- `[163]`/`[164]` suffix lemmas; none is a no-op conclusion.
+def expectedNoopTally : String := "theorems=6006 byElab=15 byWhnf=15 elabOnly=0 whnfOnly=0"
 -- 5302 → 5344 on 2026-10-18 (plan row 20's close, closure-log item 280): the
 -- parse-side alias obligation moved to §7.1's DECLARATION set, so the carrier
 -- grew and the predicate gained its tools.  What is new in kind: `AG` carries

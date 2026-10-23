@@ -222,7 +222,8 @@ def readDecl (prods : Std.HashSet Name) (n : Name) : MetaM R := do
     application like `GStar SSWhite` is headed by `GStar`, which carries no rule
     number of its own, which is why `prodSurf` and not `prodSpec` is the
     population the findings are read over. -/
-def expectedAlphabet : String := "prodTyped=130 prodSurf=92 prodSpec=54"
+-- 2026-10-23 ([162]): +2 on all three — `SCIndentationIndicator` and `SCChompingIndicator`, both `@[yaml_spec]`-cited.
+def expectedAlphabet : String := "prodTyped=132 prodSurf=94 prodSpec=56"
 
 /-- The step population, which no choice of grammar moves: 1649 statements hold
     a scanner step equation, 299 of them a dispatch equation, and 28 of those

@@ -110,8 +110,8 @@ partial def peelsTo (a b : Expr) : Nat → Bool
     else if a.isAppOfArity ``List.cons 3 then peelsTo a.appArg! b fuel
     else false
 
-def expectedChain : String :=
-  "types=77 arms=167 connected=166 broken=1 paramOnly=7"
+-- 2026-10-23 ([162]): +2 types / +5 connected arms — `SCIndentationIndicator` and `SCChompingIndicator`.
+def expectedChain : String := "types=79 arms=172 connected=171 broken=1 paramOnly=7"
 
 /-- The one arm of the surface grammar that connects nothing to nothing. -/
 def expectedBroken : List String := ["L4YAML.Surface.SLYamlStream.scannerDrop"]
