@@ -447,6 +447,118 @@ lemma dispatchContent_witness {input : String} {s s' : ScannerState} {c : Char} 
   h.transport (dispatchContent_pendingKeys hok)
     (L4YAML.Proofs.IndentStackBase.dispatchContent_preserves_indents hok)
 
+
+/-! ### Batch 3: the preprocess, the dispatchers, the step -/
+
+lemma SlotsOk.of_eq' {s s' : ScannerState} (hs : SlotsOk s)
+    (hpk : s'.pendingKeys = s.pendingKeys) (hind : s'.indents = s.indents) : SlotsOk s' := by
+  refine ⟨by rw [hpk, hind]; exact hs.1, ?_⟩
+  intro i l hi
+  rw [hpk] at hi
+  rw [ScannerState.indentColumns, hind]; exact hs.2 i l hi
+
+/-- The preprocess: skip to content, then (an unwind, the hook and) the simple-key save —
+    none of which re-marks a slot. -/
+lemma preprocess_witness {input : String} {s s' : ScannerState} {c : Char} {sp_start : SurfPos}
+    (hok : scanNextToken_preprocess s = .ok (some (s', c))) (h : SlotsWitness input s sp_start)
+    (hs : SlotsOk s) : SlotsWitness input s' sp_start := by
+  unfold scanNextToken_preprocess at hok
+  simp only [bind, pure, Pure.pure, Except.pure, Except.bind] at hok
+  split at hok
+  · contradiction
+  · rename_i s_skip h_skip
+    have hind_skip := L4YAML.Proofs.PreprocessIndentStable.skipToContent_preserves_indents s s_skip h_skip
+    have hpk_skip := skipToContent_preserves_pendingKeys s s_skip h_skip
+    have hW : SlotsWitness input s_skip sp_start := h.transport hpk_skip hind_skip
+    have hS : SlotsOk s_skip := SlotsOk.of_eq' hs hpk_skip hind_skip
+    have hsave : ∀ t : ScannerState, SlotsWitness input t sp_start →
+        SlotsWitness input (saveSimpleKey t) sp_start := fun t ht =>
+      ht.transport (saveSimpleKey_preserves_pendingKeys t)
+        (L4YAML.Proofs.PreprocessIndentStable.saveSimpleKey_preserves_indents t)
+    split at hok
+    · simp at hok
+    · split at hok
+      · split at hok
+        · contradiction
+        · split at hok
+          · simp at hok
+          · simp only [Except.ok.injEq, Option.some.injEq, Prod.mk.injEq] at hok
+            obtain ⟨rfl, rfl⟩ := hok
+            exact closeStaleExplicitKey_witness (hsave _ (unwindIndents_witness _ _ hW hS))
+      · split at hok
+        · contradiction
+        · split at hok
+          · simp at hok
+          · simp only [Except.ok.injEq, Option.some.injEq, Prod.mk.injEq] at hok
+            obtain ⟨rfl, rfl⟩ := hok
+            exact closeStaleExplicitKey_witness (hsave _ hW)
+
+set_option maxHeartbeats 2000000 in
+lemma dispatchStructural_witness {input : String} {s s' : ScannerState} {c : Char} {sp_start : SurfPos}
+    (hok : scanNextToken_dispatchStructural s c = .ok (some s')) (h : SlotsWitness input s sp_start)
+    (hs : SlotsOk s) : SlotsWitness input s' sp_start := by
+  unfold scanNextToken_dispatchStructural at hok
+  simp only [bind, pure, Pure.pure, Except.pure, Except.bind] at hok
+  repeat (any_goals (split at hok))
+  any_goals contradiction
+  all_goals (try simp only [Except.ok.injEq, Option.some.injEq] at *)
+  any_goals contradiction
+  all_goals (try subst_vars)
+  all_goals first
+    | with_reducible exact scanDocumentStart_witness h hs
+    | with_reducible exact scanDocumentEnd_witness (by assumption) h hs
+    | with_reducible exact h.transport (scanDirective_preserves_pendingKeys ‹_›) (L4YAML.Proofs.IndentStackBase.scanDirective_preserves_indents ‹_›)
+
+set_option maxHeartbeats 2000000 in
+lemma dispatchFlowIndicators_witness {input : String} {s s' : ScannerState} {c : Char}
+    {sp_start : SurfPos} (hok : scanNextToken_dispatchFlowIndicators s c = .ok (some s'))
+    (h : SlotsWitness input s sp_start) : SlotsWitness input s' sp_start := by
+  unfold scanNextToken_dispatchFlowIndicators at hok
+  simp only [bind, Except.bind, pure, Except.pure] at hok
+  repeat (any_goals (split at hok))
+  all_goals (try contradiction)
+  all_goals (try (simp only [Except.ok.injEq, Option.some.injEq] at hok; subst hok))
+  all_goals first
+    | with_reducible exact scanFlowSequenceStart_witness h
+    | with_reducible exact scanFlowMappingStart_witness h
+    | with_reducible exact scanFlowSequenceEnd_witness h
+    | with_reducible exact scanFlowMappingEnd_witness h
+    | with_reducible exact scanFlowEntry_witness (by assumption) h
+    | simp_all
+
+/-- The block indicators: the `?` arm is the seed and takes the route; the `-` and `:` arms
+    are the batch-2 writers. -/
+lemma dispatchBlockIndicators_witness {s s' : ScannerState} {c : Char} {sp sp_start : SurfPos}
+    (hok : scanNextToken_dispatchBlockIndicators s c = .ok (some s'))
+    (hcorr : ScannerSurfCorr s sp) (h : SlotsWitness s.input s sp_start) (hs : SlotsOk s)
+    (hbase : SentinelBase s) (hcol : s.inFlow = false → s.currentIndent ≤ (s.col : Int))
+    (hpeek : s.peek? = some c)
+    (h_route : c = '?' → s.inFlow = false →
+      ∀ sp_v : SurfPos, SBlockMapEntry s.col sp sp_v → SLYamlStream sp_start sp_v) :
+    SlotsWitness s.input s' sp_start := by
+  by_cases hf : s.inFlow = true
+  · exact h.transport (dispatchBlockIndicators_preserves_pendingKeys hf hok)
+      (L4YAML.Proofs.FlowIndentStable.dispatchBlockIndicators_preserves_indents hf hok)
+  · have hnf : s.inFlow = false := by simpa using hf
+    unfold scanNextToken_dispatchBlockIndicators at hok
+    simp only [bind, pure, Pure.pure, Except.pure, Except.bind] at hok
+    repeat (any_goals (split at hok))
+    any_goals contradiction
+    all_goals (try simp only [Except.ok.injEq, Option.some.injEq] at *)
+    any_goals contradiction
+    all_goals (try subst_vars)
+    all_goals first
+      | exact scanBlockEntry_witness hnf (by assumption) h hs
+      | (have hc : c = '?' := by
+           have hq := ‹(c == '?' && isKeyCandidate s && flowKeyPredecessorOk s
+             && flowKeyFollowerOk s) = true›
+           simp only [Bool.and_eq_true, beq_iff_eq] at hq
+           exact hq.1.1.1
+         subst hc
+         exact scanKey_witness hcorr hnf (by assumption) hs hbase (hcol hnf) hpeek
+           (h_route rfl hnf) h)
+      | exact scanValue_witness (by assumption) h hs
+
 end L4YAML.Proofs.RegisterWitness
 
 end Blanket
