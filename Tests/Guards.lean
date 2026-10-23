@@ -3,6 +3,7 @@ import Tests.Guards.Parity.IndexedScanAndParse
 import Tests.Guards.Parity.ScalarTrimImpl
 import Tests.Guards.Proofs.AliasNodeRoute
 import Tests.Guards.Proofs.BlockCollectionWidthFloor
+import Tests.Guards.Proofs.BlockHeaderExactness
 import Tests.Guards.Proofs.BodySuccSeqDiscriminator
 import Tests.Guards.Proofs.CommentRoundTrip
 import Tests.Guards.Proofs.ConclusionCensus

@@ -952,10 +952,24 @@ def collectBlockScalarLoop (s : ScannerState) (rawContent : String) (fuel : Nat)
 def blockScalarTabStop (s : ScannerState) : Bool :=
   (skipSpaces s).peek? == some '\t'
 
+/-- The next header character, or `none` once its indicator kind has already been read:
+    `-`/`+` is hidden when `chomp ≠ .clip`, a digit when `explicitOffset` is set. -/
+@[yaml_spec "8.1.1" 163 "c-indentation-indicator",
+  yaml_spec "8.1.1" 164 "c-chomping-indicator"]
+def peekBlockHeaderIndicator? (s : ScannerState) (chomp : ChompStyle)
+    (explicitOffset : Option Nat) : Option Char :=
+  match s.peek? with
+  | some c =>
+    if (c = '-' ∨ c = '+') ∧ chomp ≠ .clip then none
+    else if c.isDigit ∧ explicitOffset ≠ none then none
+    else some c
+  | none => none
+
 /-- Helper for scanBlockScalar header parsing using structural recursion.
 
-    Parses up to `fuel` header characters: chomp indicator (`-`/`+`) and
-    indentation indicator (digit 1-9) in either order per YAML §8.1 [162].
+    Parses up to `fuel` header characters: at most one chomp indicator (`-`/`+`) and
+    at most one indentation indicator (digit 1-9), in either order, per YAML §8.1 [162].
+    A repeated indicator kind is left unconsumed for `scanBlockScalarConsumeNewline` to refuse.
 
     **Termination**: Structurally recursive on `fuel`. -/
 @[yaml_spec "8.1" 162 "c-b-block-header"]
@@ -964,7 +978,7 @@ def parseBlockHeaderLoop (s : ScannerState) (chomp : ChompStyle) (explicitOffset
   match fuel with
   | 0 => (chomp, explicitOffset, s)
   | fuel' + 1 =>
-    match s.peek? with
+    match peekBlockHeaderIndicator? s chomp explicitOffset with
     | some '-' => parseBlockHeaderLoop s.advance .strip explicitOffset fuel'
     | some '+' => parseBlockHeaderLoop s.advance .keep explicitOffset fuel'
     | some c =>

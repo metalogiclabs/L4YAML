@@ -1149,15 +1149,18 @@ lemma parseBlockHeaderLoop_line (fuel : Nat) :
   | succ n ih =>
     intro s ch m
     unfold parseBlockHeaderLoop
+    have hpeek : ∀ c, peekBlockHeaderIndicator? s ch m = some c → s.peek? = some c := by
+      intro c h; unfold peekBlockHeaderIndicator? at h
+      split at h <;> (try split at h) <;> simp_all
     split
     · rename_i hpk
-      rw [ih, advance_preserves_line_of_ne_break s '-' hpk (by decide) (by decide)]
+      rw [ih, advance_preserves_line_of_ne_break s '-' (hpeek _ hpk) (by decide) (by decide)]
     · rename_i hpk
-      rw [ih, advance_preserves_line_of_ne_break s '+' hpk (by decide) (by decide)]
+      rw [ih, advance_preserves_line_of_ne_break s '+' (hpeek _ hpk) (by decide) (by decide)]
     · rename_i c _ _ hpk
       split
       · rename_i hd
-        rw [ih, advance_preserves_line_of_ne_break s c hpk]
+        rw [ih, advance_preserves_line_of_ne_break s c (hpeek _ hpk)]
         · intro hc; subst hc; simp at hd
         · intro hc; subst hc; simp at hd
       · rfl

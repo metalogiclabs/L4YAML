@@ -168,7 +168,7 @@ lemma scanBlockScalar_prod_at (sc : ScannerState) (sp : SurfPos)
     parseBlockHeaderLoop_offset_preserves sc.advance .clip none 2 (fun _ h => nomatch h)
   obtain ⟨sp_adv_gen, hcorr_adv⟩ := advance_corr sc sp hcorr
   obtain ⟨sp_hdr, h_hdr_chars, hcorr_hdr⟩ :=
-    parseBlockHeaderLoop_prod sc.advance sp_adv_gen hcorr_adv .clip none 2
+    parseBlockHeaderLoop_prod sc.advance sp_adv_gen hcorr_adv 2
   obtain ⟨sp_ws, h_ws, hcorr_ws⟩ :=
     skipWhitespace_corr (parseBlockHeaderLoop sc.advance .clip none 2).2.2 sp_hdr hcorr_hdr
   obtain ⟨sp_cmt, h_cmt, hcorr_cmt⟩ :=
