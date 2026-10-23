@@ -26564,9 +26564,14 @@ lemma accum_block_on_pendingBlock
                closeFV sp_m (SBlockIndented.empty n .blockIn sp_scan sp_m h_ssl_m)
                  sp_m (SCompactSeqTail.nil n sp_m)⟩
            | Or.inr h_alt => Or.inr h_alt)
-          -- Item 198: as at `accum_block_on_pendingBlockContent` — a sequence
-          -- park's value-line face is not the awaited-node face.
-          (Or.inr trivial)
+          -- Item 344: the awaited-node face relays `h_closeFV_old` (node-domained here), `nn = n`.
+          (match h_closeFV_old with
+           | Or.inl ⟨nv, ks, h_lt, closeFV⟩ => Or.inl ⟨n, nv, ks,
+               fun fr hfr => Nat.le_of_lt (h_lt fr hfr),
+               fun sp_mid h_node => closeFV sp_mid
+                 (SBlockIndented.node n .blockIn sp_scan sp_mid h_node)
+                 sp_mid (SCompactSeqTail.nil n sp_mid)⟩
+           | Or.inr h_alt => Or.inr h_alt)
           -- Item 208: this park sits at `n + 1`, so the premise is refuted.
           (nic0_of_col_pos (by omega))
   · -- c ≠ '-' at the landing: a ':' opens `[189]`'s empty-key entry there
@@ -27130,7 +27135,7 @@ lemma accum_block_pending (sc : ScannerState)
       -- unconditional reading), for the closed-park landing below.
       h_nic0C h_live290
   | pendingProps _ _ _ ha ht sp_node sp_p n_p h_sep_p h_run h_nic48 h_real48 h_anchor48 h_tag48
-      h_route48 h_key48 _ h_col0_p _ h_ska79 h_kslot91 =>
+      h_route48 h_key48 _ h_col0_p _ h_ska79 h_kslot91 _ _ _ _ h_closeFV_p =>
     -- ═══ Item 48: a `-`/`?` behind a parked property run is refused by the
     -- scanner (`[200]` separates a node's properties from its collection),
     -- and the run's own trailing-token fact is the check's read.  Item 49:
@@ -27181,7 +27186,12 @@ lemma accum_block_pending (sc : ScannerState)
           h_pr175
           -- Item 197: no value-line-bottomed one either, for item 173's reason.
           -- Item 198: and a `[96]` park awaits no node.
-          (Or.inr trivial) (Or.inr trivial)
+          (match h_closeFV_p with
+           | Or.inl ⟨nv, ks, _, closeFV⟩ => Or.inl ⟨nv, ks, fun sp_m h_ssl =>
+               closeFV sp_m (flowInBlock_blockNode h_sep_p
+                 (SFlowNode.propsEmpty _ .flowOut sp_p sp_scan h_run.toProperties) h_ssl)⟩
+           | Or.inr h_alt => Or.inr h_alt)
+          (Or.inr trivial)
           -- Item 208: refuted from the park's own column, as above.
           (nic0_of_col_pos h_col0_p))
         hcorr_prep hcorr_result h_corr h_noflow h_preprocess h_dispatch
@@ -27191,7 +27201,14 @@ lemma accum_block_pending (sc : ScannerState)
         · exact lastTokenIsNodePropertyOnLine_of_run_any (h_tag48 hht)
       exact accum_block_on_closeThenBlock sc sp_start sp_scan s_prep s' c sp_prep sp_scan'
         h_close_pending
-        (Or.inr trivial) (Or.inr (fun _ h_pay =>
+        (match h_kslot91 with
+         | Or.inl ⟨ns, kslot⟩ => Or.inl ⟨ns, fun nv hmem =>
+             (fun sp_m sp_i sp_c h_ssl h_ind h_lit sp_v h_sbi =>
+               kslot nv hmem sp_m (flowInBlock_blockNode h_sep_p
+                 (SFlowNode.propsEmpty _ .flowOut sp_p sp_scan h_run.toProperties)
+                 h_ssl) sp_i sp_c h_ind h_lit sp_v h_sbi)⟩
+         | Or.inr h_alt => Or.inr h_alt)
+        (Or.inr (fun _ h_pay =>
           (dispatch_refutes_sameLine h_nic48 h_real48 (Or.inr (Or.inr ⟨h_prop, hc48⟩))
             (preprocess_preserves_implicitValueLine sc s_prep c h_preprocess)
             (preprocess_preserves_docStartLine sc s_prep c h_preprocess)
@@ -27204,7 +27221,12 @@ lemma accum_block_pending (sc : ScannerState)
         h_pr175
         -- Item 197: no value-line-bottomed frames at a `[96]` park either.
         -- Item 198: and no awaited node.
-        (Or.inr trivial) (Or.inr trivial)
+        (match h_closeFV_p with
+         | Or.inl ⟨nv, ks, _, closeFV⟩ => Or.inl ⟨nv, ks, fun sp_m h_ssl =>
+             closeFV sp_m (flowInBlock_blockNode h_sep_p
+               (SFlowNode.propsEmpty _ .flowOut sp_p sp_scan h_run.toProperties) h_ssl)⟩
+         | Or.inr h_alt => Or.inr h_alt)
+        (Or.inr trivial)
         -- Item 208: a property run holds a column, so the premise is refuted.
         (nic0_of_col_pos h_col0_p)
   | pendingFlow _ _ _ _ h_arm77 _ h_nic0F =>

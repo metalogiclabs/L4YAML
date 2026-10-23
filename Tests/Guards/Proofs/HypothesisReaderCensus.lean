@@ -591,8 +591,10 @@ adds.**   `constants` counts the module's non-internal constants, generated ones
 -- 2026-10-21 (item 324): `constants`/`decls` +2, `RELAY` 2343 → 2345, `UNUSED` 24 → 26 — `ExplicitValueRefused.step_preprocess`
 -- relays its two hypotheses into the preprocess register lemma; its wrapper `PackAlt.step_preprocess` holds the same two unused
 -- (`trivial` while `PackAlt` is `True`, the promise after `-- refused:`), like the family's four other wrappers.
+-- 2026-10-23 (item 344): constants/decls +1 (the `match` on `h_closeFV_old` behind the relayed `h_valFV`), READ 1162 → 1165
+-- (the relays read `h_closeFV_old`, `h_sep_p`, `h_run`).
 def expectedModuleTally : String :=
-  "constants=1418 decls=1128 eta=408 FIELD=168 READ=1162 RELAY=2372 RETURN=48 UNUSED=26"
+  "constants=1419 decls=1129 eta=408 FIELD=168 READ=1165 RELAY=2372 RETURN=48 UNUSED=26"
 
 -- 2026-10-21 (item 311): `flowKeyPack_of_close`'s unused `_` is binder #11 (`{g}` precedes it); the three conversion stubs
 -- (`PackAlt.ofRefused`, `PackAltG.ofPark`, `PackAlt.ofGateClose`) leave their `_h` unused until their lanes prove them.
