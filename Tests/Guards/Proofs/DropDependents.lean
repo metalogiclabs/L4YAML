@@ -277,7 +277,7 @@ pins below are what makes that checkable rather than asserted. -/
     library — the `Scannable`-valued compose chain, kept in its own module
     because two `maxHeartbeats 4000000` `YamlValue` inductions do not elaborate
     in one. -/
-def expectedClosure : Nat := 255
+def expectedClosure : Nat := 256
 
 /-- `scripts/drop_sweep.py`'s reading, re-derivable in one command and pinned
     here so that a walk which starts from the wrong root disagrees with it

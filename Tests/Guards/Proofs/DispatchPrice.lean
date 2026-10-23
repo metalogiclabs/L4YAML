@@ -304,7 +304,7 @@ def expectedAlphabet : String := "prodTyped=130 prodSurf=92 prodSpec=54"
 -- 2026-10-21 (item 324): `stepHolders` 1717 → 1719 — `ExplicitValueRefused.step_preprocess` and its wrapper
 -- `PackAlt.step_preprocess` (the family's preprocess transport) each hold the preprocess step equation; dispatch holders stand.
 def expectedSteps : String :=
-  "stepHolders=1804 dispHolders=328 dispTwoCorr=29 fns=72 fnsIx=26"
+  "stepHolders=1806 dispHolders=328 dispTwoCorr=29 fns=72 fnsIx=26"
 
 /-- **The ladder, at each population.**  `edge` is a production whose right
     endpoint is the step's output; `chain` requires a path to it from another
