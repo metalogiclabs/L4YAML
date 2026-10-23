@@ -2,11 +2,13 @@ module
 
 public import L4YAML.Proofs.Production.Acceptance.Quoted
 public import L4YAML.Proofs.Production.Acceptance.FlowIndicators
+public import L4YAML.Proofs.Production.Acceptance.BlockIndicators
 
 public meta import L4YAML.Scanner.Scanner
 public meta import L4YAML.Proofs.Production.Acceptance.Quoted
 public meta import L4YAML.Proofs.Production.Acceptance.Properties
 public meta import L4YAML.Proofs.Production.Acceptance.FlowIndicators
+public meta import L4YAML.Proofs.Production.Acceptance.BlockIndicators
 @[expose] public section Blanket
 
 /-! Rule-2 instantiations of the quoted-scalar acceptance lemmas: the scanner's landing
@@ -402,5 +404,67 @@ def fen (s : String) (prev : Array YamlToken := #[.scalar "a" .plain]) := indAt 
 #guard fen "," #[.scalar "a" .plain, .flowEntry] == none  -- `[a,,`
 #guard fen "," #[.flowSequenceStart, .placeholder] == none  -- placeholders are skipped
 #guard fen "," #[.flowEntry, .placeholder, .placeholder] == none
+
+/-! Block indicators `-` / `?` / `:`: the landing (offset, column), the tokens pushed (as
+    names) — `scanBlockEntry`/`scanKey` may first push a virtual collection start — on a
+    state at byte `off` of `s` with the given indent stack, tokens and simple-key register. -/
+
+def blkName : YamlToken → String
+  | .blockEntry => "-" | .key => "?" | .value => ":"
+  | .blockSequenceStart => "[seq" | .blockMappingStart => "[map" | _ => "?"
+
+def blkAt (scan : ScannerState → Except ScanError ScannerState) (s : String)
+    (off : Nat := 0) (flow : Bool := false) (indents : Array IndentEntry := #[])
+    (prev : Array YamlToken := #[]) (key : SimpleKeyState := {}) :
+    Option (List String × Nat × Nat) :=
+  let toks : Array (Positioned YamlToken) := prev.map (fun t => { pos := default, val := t })
+  let fl : Nat := if flow then 1 else 0
+  let sc : ScannerState := { ScannerState.mk' s with
+    offset := off, col := off, flowLevel := fl, indents := indents, tokens := toks, simpleKey := key }
+  match scan sc with
+  | .ok s' => some ((s'.tokens.extract prev.size s'.tokens.size).toList.map (blkName ·.val),
+      s'.offset, s'.col)
+  | .error _ => none
+
+def seqAt (c : Int) : IndentEntry := { column := c, isSequence := true }
+def mapAt (c : Int) : IndentEntry := { column := c, isSequence := false }
+
+-- `-`: block context pushes the sequence level first; flow context is bare
+#guard blkAt scanBlockEntry "- a" == some (["[seq", "-"], 1, 1)
+#guard blkAt scanBlockEntry "-" == some (["[seq", "-"], 1, 1)
+#guard blkAt scanBlockEntry "  - a" 2 (indents := #[mapAt 0]) == some (["[seq", "-"], 3, 3)
+#guard blkAt scanBlockEntry "- a" 0 (indents := #[seqAt 0]) == some (["-"], 1, 1)
+#guard blkAt scanBlockEntry "- a" (flow := true) == some (["-"], 1, 1)
+#guard blkAt scanBlockEntry "-\n" == some (["[seq", "-"], 1, 1)
+-- REFUTERS of the bare `GLit '-'` converse (state-side hypotheses of `scanBlockEntry_accepts`)
+#guard blkAt scanBlockEntry "\t- a" 1 == none                        -- §6.1 tab before `-`
+#guard blkAt scanBlockEntry "\t- a" 1 (flow := true) == some (["-"], 2, 2)
+#guard blkAt scanBlockEntry "- a" 0 (indents := #[mapAt 0])
+    (prev := #[.blockMappingStart, .key, .scalar "k" .plain, .value, .scalar "v" .plain]) == none
+                                                                    -- `invalidBareDocument`
+-- `?`
+#guard blkAt scanKey "? a" == some (["[map", "?"], 1, 1)
+#guard blkAt scanKey "?" == some (["[map", "?"], 1, 1)
+#guard blkAt scanKey "? a" 0 (indents := #[mapAt 0]) == some (["?"], 1, 1)
+#guard blkAt scanKey "? a" (flow := true) == some (["?"], 1, 1)
+#guard blkAt scanKey "?\tb" (flow := true) == some (["?"], 1, 1)
+-- REFUTERS (`scanKeyValidate`, post-`?` tab)
+#guard blkAt scanKey "\t? a" 1 == none                               -- §6.1 tab before `?`
+#guard blkAt scanKey "?\tb" == none                                  -- §6.1 tab after `?`
+#guard blkAt scanKey "? a" 0 (indents := #[seqAt 0]) == none         -- `trailingContent`
+-- `:`
+#guard blkAt scanValue ": a" == some (["[map", ":"], 1, 1)
+#guard blkAt scanValue ":" (indents := #[mapAt 0]) == some ([":"], 1, 1)
+#guard blkAt scanValue ": a" (flow := true) == some ([":"], 1, 1)
+#guard blkAt scanValue "a: b" 1 (prev := #[.placeholder, .placeholder, .scalar "a" .plain])
+    (key := { possible := true, tokenIndex := 0, pos := { line := 0, col := 0, offset := 0 } })
+    == some ([":"], 2, 2)                                           -- implicit key: placeholders rewritten
+#guard blkAt scanValue ":\tb" == some (["[map", ":"], 1, 1)        -- `:` above the indent: tab is `[66]`
+-- REFUTERS (`scanValueValidate`, `scanValueIndentTabCheck`, `scanValueTabCheck`)
+#guard blkAt scanValue ":\tb" (indents := #[mapAt 0]) == none        -- §6.1 tab after `:` at indent
+#guard blkAt scanValue "\t: b" 1 == none                             -- tab in the entry's indent
+#guard blkAt scanValue ": b" 0 (prev := #[.scalar "a" .plain])
+    (key := { possible := true, tokenIndex := 0, pos := { line := 5, col := 0, offset := 0 } })
+    == none                                                         -- key on an earlier line
 
 end L4YAML.Proofs.Acceptance.Probes
