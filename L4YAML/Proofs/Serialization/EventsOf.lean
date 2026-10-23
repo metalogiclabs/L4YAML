@@ -30,12 +30,14 @@ namespace L4YAML.Proofs.Serialization.EventsOf
 
 open L4YAML
 open L4YAML.Surface
+open L4YAML.CharPredicates
 open L4YAML.Proofs.Serialization.SerializationWellFormed
 open L4YAML.Proofs.Serialization.SourceEvents
 open L4YAML.Proofs.Serialization.SurfaceEvents
 
 /-- A segment of the source.  `docStart dirs` carries the directive lines
-(without their breaks) that precede its `---`; `[]` for a bare marker. -/
+(each with its own break, LF / CRLF / CR) that precede its `---`; `[]` for a
+bare marker. -/
 inductive Seg where
   | anchor (name : String)
   | alias (name : String)
@@ -57,7 +59,7 @@ def Seg.text : Seg → List Char
   | .anchor name => '&' :: name.toList
   | .alias name => '*' :: name.toList
   | .tagUse _ chars => chars
-  | .docStart dirs => dirs.flatMap (· ++ ['\n']) ++ ['-', '-', '-']
+  | .docStart dirs => dirs.flatMap id ++ ['-', '-', '-']
   | .docEnd => ['.', '.', '.']
   | .opaque chars => chars
   | .other chars => chars
@@ -82,10 +84,11 @@ lemma eventsOfSegs_append (a b : List Seg) :
     eventsOfSegs (a ++ b) = eventsOfSegs a ++ eventsOfSegs b := by
   simp [eventsOfSegs, List.flatMap_append]
 
-/-- Column after consuming `chars` from column `col`; a break resets to 0. -/
+/-- Column after consuming `chars` from column `col`; a break (LF, CR, and so
+CRLF) resets to 0, as `SBBreak` does. -/
 def colAfter (col : Nat) : List Char → Nat
   | [] => col
-  | c :: cs => colAfter (if c = '\n' then 0 else col + 1) cs
+  | c :: cs => colAfter (if c = '\n' ∨ c = '\r' then 0 else col + 1) cs
 
 /-- The handle a tag lexeme uses: a custom `!h!`, else `!!`, else `!`. -/
 def handleOf (chars : List Char) : String :=
@@ -102,7 +105,7 @@ def noEventLexeme : Nat → List Char → Bool
   | col, c :: cs =>
     if c = '&' ∨ c = '*' ∨ c = '!' ∨ c = '%' then false
     else if col = 0 ∧ ((c = '-' ∧ cs.take 2 = ['-', '-']) ∨ (c = '.' ∧ cs.take 2 = ['.', '.'])) then false
-    else noEventLexeme (if c = '\n' then 0 else col + 1) cs
+    else noEventLexeme (if c = '\n' ∨ c = '\r' then 0 else col + 1) cs
 
 /-- An opaque region: one quoted scalar, comment, block-scalar body or plain
 scalar derivable from `sp` to `sp'`. -/
@@ -111,17 +114,31 @@ def OpaqueAt (sp sp' : SurfPos) : Prop :=
   SLComment sp sp' ∨ (∃ n, SCLLiteral n sp sp') ∨ (∃ n, SCLFolded n sp sp') ∨
   (∃ c, SNsPlainOneLine c sp sp') ∨ (∃ n c, SNsPlainMultiLine n c sp sp')
 
+/-- A name/tag lexeme is maximal: the next character cannot extend it.  Without
+this `&ab` could be read as `&a` before a plain `b`, and `!h!item` as the two
+builtin uses `!h` `!item`. -/
+def Maximal (p : Char → Bool) (rest : List Char) : Prop :=
+  ∀ c ∈ rest.head?, p c = false
+
+def isTagCharBool (c : Char) : Bool :=
+  !(isWhiteSpaceBool c || isLineBreakBool c || isFlowIndicatorBool c)
+
+def isBreak (c : Char) : Bool := c = '\n' || c = '\r'
+
 /-- Side condition of one segment placed at column `col` before `rest`. -/
 def SegAt (col : Nat) (seg : Seg) (rest : List Char) : Prop :=
   let sp : SurfPos := ⟨seg.text ++ rest, col⟩
   let sp' : SurfPos := ⟨rest, colAfter col seg.text⟩
   match seg with
-  | .anchor name => PendingAnchorWitness sp sp' name
-  | .alias name => AliasEventWitness sp sp' name
-  | .tagUse handle chars => SCNsTagProperty sp sp' ∧ handleOf chars = handle
+  | .anchor name => PendingAnchorWitness sp sp' name ∧ Maximal isAnchorCharBool rest
+  | .alias name => AliasEventWitness sp sp' name ∧ Maximal isAnchorCharBool rest
+  | .tagUse handle chars =>
+      SCNsTagProperty sp sp' ∧ handleOf chars = handle ∧
+      (∀ c ∈ chars, isTagCharBool c = true) ∧ Maximal isTagCharBool rest
   | .docStart dirs =>
       col = 0 ∧ SCDirectivesEnd ⟨'-' :: '-' :: '-' :: rest, 0⟩ ⟨rest, 3⟩ ∧
-      ∀ d ∈ dirs, ∃ tail, SLDirective ⟨d ++ '\n' :: tail, 0⟩ ⟨tail, 0⟩
+      ∀ d ∈ dirs, (∃ c ∈ d.getLast?, isBreak c = true) ∧
+        ∃ tail, SLDirective ⟨d ++ tail, 0⟩ ⟨tail, 0⟩
   | .docEnd => col = 0 ∧ SCDocumentEnd sp sp'
   | .opaque _ => OpaqueAt sp sp'
   | .other chars => chars ≠ [] ∧ noEventLexeme col chars = true
@@ -157,10 +174,10 @@ def wf (segs : List Seg) : Bool := checkFrom {} (eventsOfSegs segs)
 #guard wf [.alias "x"] = false
 #guard wf [.opaque "\"&x\"".toList, .other " ".toList, .alias "x"] = false
 #guard wf [.anchor "x", .other " ".toList, .opaque "# *x".toList] = true
-#guard eventsOfSegs [.docStart ["%TAG !h! tag:e,2026:".toList], .other " ".toList,
+#guard eventsOfSegs [.docStart ["%TAG !h! tag:e,2026:\n".toList], .other " ".toList,
     .tagUse "!h!" "!h!item".toList]
   = [.beginDocument, .declareTag "!h!", .useTag "!h!"]
-#guard wf [.docStart ["%TAG !h! tag:e,2026:".toList], .other " ".toList,
+#guard wf [.docStart ["%TAG !h! tag:e,2026:\n".toList], .other " ".toList,
     .tagUse "!h!" "!h!item".toList] = true
 #guard wf [.tagUse "!h!" "!h!item".toList] = false
 #guard wf [.tagUse "!!" "!!str".toList, .tagUse "!" "!foo".toList] = true
@@ -173,6 +190,11 @@ def wf (segs : List Seg) : Bool := checkFrom {} (eventsOfSegs segs)
 #guard handleOf "!foo".toList = "!"
 #guard handleOf "!<tag:x>".toList = "!"
 #guard colAfter 3 "ab\ncd".toList = 2
+#guard colAfter 3 "ab\rcd".toList = 2
+#guard colAfter 3 "ab\r\ncd".toList = 2
+#guard noEventLexeme 0 "a\r---".toList = false
+#guard (Seg.docStart ["%TAG !h! t:\r\n".toList]).text = "%TAG !h! t:\r\n---".toList
+#guard eventsOfSegs [.docStart ["%TAG !h! t:\r\n".toList]] = [.beginDocument, .declareTag "!h!"]
 #guard noEventLexeme 0 "- a: [b, c]".toList = true
 #guard noEventLexeme 0 "---".toList = false
 #guard noEventLexeme 1 "---".toList = true
