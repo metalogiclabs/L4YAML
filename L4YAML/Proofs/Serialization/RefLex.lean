@@ -124,6 +124,34 @@ def anchorName (cs : List Char) : List Char × List Char := spanWhile isAnchorCh
 def tagChars (flow : Nat) (cs : List Char) : List Char × List Char :=
   spanWhile (fun c => !(c = ' ' || c = '\t' || c = '\n' || c = '\r' || (flow > 0 && isFlowIndicatorBool c))) cs
 
+/-- The line `cs` starts with is blank or a comment: `[79] s-l-comments` lets a
+directive absorb it, so these lines ride the directive text up to `---`. -/
+def isCommentLine (cs : List Char) : Bool :=
+  match (cs.dropWhile fun c => c = ' ' || c = '\t') with
+  | [] => false
+  | c :: _ => c = '#' || c = '\n' || c = '\r'
+
+/-- Split off one line together with its break (`\r\n` counted as one);
+`none` when the line is not terminated. -/
+def lineWithBreak (cs : List Char) : Option (List Char × List Char) :=
+  let (line, after) := toEol cs
+  match after with
+  | '\r' :: '\n' :: rest => some (line ++ ['\r', '\n'], rest)
+  | b :: rest => some (line ++ [b], rest)
+  | [] => none
+
+/-- Absorb the blank and comment lines following a directive line. -/
+def commentLines (cs : List Char) : Nat → List Char × List Char
+  | 0 => ([], cs)
+  | fuel + 1 =>
+    if isCommentLine cs then
+      match lineWithBreak cs with
+      | some (line, rest) =>
+          let (more, rest') := commentLines rest fuel
+          (line ++ more, rest')
+      | none => ([], cs)
+    else ([], cs)
+
 /-- One step; `none` on an input the skeleton cannot describe. -/
 def step (s : Lx) : List Char → Option (Lx × List Char)
   | [] => some (s, [])
@@ -135,11 +163,11 @@ def step (s : Lx) : List Char → Option (Lx × List Char)
     else if s.col = 0 ∧ c = '.' ∧ cs.take 2 = ['.', '.'] ∧ isSpaceBreakOrEnd (cs.drop 2) then
       some ({ (s.flush).emit .docEnd with nodeStart := true }, cs.drop 2)
     else if s.col = 0 ∧ c = '%' then
-      let (line, after) := toEol (c :: cs)
-      match after with
-      | '\r' :: '\n' :: rest => some ({ s.flush with dirs := (line ++ ['\r', '\n']) :: s.dirs, col := 0 }, rest)
-      | b :: rest => some ({ s.flush with dirs := (line ++ [b]) :: s.dirs, col := 0 }, rest)
-      | [] => none
+      match lineWithBreak (c :: cs) with
+      | some (line, rest) =>
+          let (more, rest') := commentLines rest rest.length
+          some ({ s.flush with dirs := (line ++ more) :: s.dirs, col := 0 }, rest')
+      | none => none
     -- comments
     else if c = '#' ∧ (s.nodeStart ∨ s.other.head?.any (fun d => d = ' ' || d = '\t' || d = '\n')) then
       let (line, after) := toEol (c :: cs)
