@@ -107,12 +107,19 @@ def noEventLexeme : Nat → List Char → Bool
     else if col = 0 ∧ ((c = '-' ∧ cs.take 2 = ['-', '-']) ∨ (c = '.' ∧ cs.take 2 = ['.', '.'])) then false
     else noEventLexeme (if c = '\n' ∨ c = '\r' then 0 else col + 1) cs
 
-/-- An opaque region: one quoted scalar, comment, block-scalar body or plain
-scalar derivable from `sp` to `sp'`. -/
-def OpaqueAt (sp sp' : SurfPos) : Prop :=
+/-- One quoted scalar, comment, block scalar or plain scalar derivable from
+`sp` to `sp'`. -/
+def OpaqueSpan (sp sp' : SurfPos) : Prop :=
   (∃ n c, SCDoubleQuoted n c sp sp') ∨ (∃ n c, SCSingleQuoted n c sp sp') ∨
   SLComment sp sp' ∨ (∃ n, SCLLiteral n sp sp') ∨ (∃ n, SCLFolded n sp sp') ∨
   (∃ c, SNsPlainOneLine c sp sp') ∨ (∃ n c, SNsPlainMultiLine n c sp sp')
+
+/-- An opaque region: an `OpaqueSpan` followed by trailing white.  The scanner's
+leaf lemmas (`scanPlainScalar_prod`: `SNsPlain … sp sp_gram ∧ GStar SSWhite
+sp_gram sp'`) end past the grammar span, and white carries no event lexeme, so
+the segment may absorb it (EVENTSOF-CONCEPT §9, S1). -/
+def OpaqueAt (sp sp' : SurfPos) : Prop :=
+  ∃ sp_mid, OpaqueSpan sp sp_mid ∧ GStar SSWhite sp_mid sp'
 
 /-- A name/tag lexeme is maximal: the next character cannot extend it.  Without
 this `&ab` could be read as `&a` before a plain `b`, and `!h!item` as the two
