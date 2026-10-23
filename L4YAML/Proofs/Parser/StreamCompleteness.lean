@@ -96,8 +96,10 @@ lemma alias_ok {ts : Toks} (h : TokenStateOk ts) {p : Nat} {n : String}
 
 lemma tag_ok {ts : Toks} (h : TokenStateOk ts) {p : Nat} {hd s : String}
     (ht : tok ts p = some (.tag hd s)) : TagHandleAllowed (envAt ts p) hd := by
+  by_cases h0 : hd = ""
+  · exact Or.inl (Or.inl h0)
   obtain ⟨rest, hw⟩ := stateOk_at h (tok_some_lt ht)
-  have he : tokEvents ts p = [.useTag hd] := by simp [tokEvents, ht]
+  have he : tokEvents ts p = [.useTag hd] := by simp [tokEvents, ht, h0]
   rw [he] at hw
   exact hw.1
 
@@ -109,7 +111,8 @@ lemma envAt_succ_content {ts : Toks} {p : Nat} (h : isDirective (tok ts p) = fal
   unfold tokEvents
   cases ho : tok ts p with
   | none => rfl
-  | some t => cases t <;> simp_all [isDirective, isAnchor, envAfter, stepEnv]
+  | some t =>
+    cases t <;> simp_all [isDirective, isAnchor, envAfter, stepEnv] <;> split <;> simp [stepEnv]
 
 /-! ## The parser-state invariant -/
 
@@ -540,7 +543,7 @@ lemma envAt_succ_content' {ts : Toks} {p : Nat} {t : YamlToken} (h : tok ts p = 
   rw [envAt_succ]
   unfold tokEvents
   rw [h]
-  cases t <;> simp_all [contentTok, envAfter, stepEnv]
+  cases t <;> simp_all [contentTok, envAfter, stepEnv] <;> split <;> simp [stepEnv]
 
 lemma Inv.step {ts ps i} (h : Inv ts ps i) {t : YamlToken} (ht : tok ts i = some t)
     (hc : contentTok t = true) : Inv ts ps.advance (i + 1) :=
@@ -1486,7 +1489,7 @@ def DirEnvOk (ts : Toks) (lo i : Nat) : Prop :=
 
 /-- The `declareTag` event of a directive-like token. -/
 def decl : YamlToken → List Event
-  | .tagDirective h _ => [.declareTag h]
+  | .tagDirective h _ => if BuiltinTagHandle h then [] else [.declareTag h]
   | _ => []
 
 lemma envAt_succ_begin_reset {ts : Toks} {i : Nat} {t : YamlToken} (hi : 0 < i)
@@ -1501,7 +1504,10 @@ lemma envAt_succ_begin_reset {ts : Toks} {i : Nat} {t : YamlToken} (hi : 0 < i)
   simp only [Nat.add_sub_cancel] at hnd
   rcases hb with rfl | hd
   · simp [hnd, envAfter, stepEnv, decl]
-  · cases t <;> simp [isDirective] at hd <;> simp [hnd, envAfter, stepEnv, decl]
+  · cases t with
+    | tagDirective h _ =>
+      by_cases hb : BuiltinTagHandle h <;> simp [hnd, hb, envAfter, stepEnv, decl]
+    | _ => simp [isDirective] at hd <;> simp [hnd, envAfter, stepEnv, decl]
 
 lemma envAt_succ_begin_keep {ts : Toks} {i : Nat} {t : YamlToken} (hi : 0 < i)
     (hpd : isDirective (tok ts (i - 1)) = true) (ho : tok ts i = some t)
@@ -1514,7 +1520,10 @@ lemma envAt_succ_begin_keep {ts : Toks} {i : Nat} {t : YamlToken} (hi : 0 < i)
   simp only [Nat.add_sub_cancel] at hpd
   rcases hb with rfl | hd
   · simp [hpd, envAfter, stepEnv, decl]
-  · cases t <;> simp [isDirective] at hd <;> simp [hpd, envAfter, stepEnv, decl]
+  · cases t with
+    | tagDirective h _ =>
+      by_cases hb : BuiltinTagHandle h <;> simp [hpd, hb, envAfter, stepEnv, decl]
+    | _ => simp [isDirective] at hd <;> simp [hpd, envAfter, stepEnv, decl]
 
 lemma dirEnvOk_of_decl {ts : Toks} {lo i : Nat} {t : YamlToken} {env : Env}
     (hlo : lo ≤ i) (ho : tok ts i = some t) (henv : envAt ts (i + 1) = envAfter env (decl t))
@@ -1526,9 +1535,11 @@ lemma dirEnvOk_of_decl {ts : Toks} {lo i : Nat} {t : YamlToken} {env : Env}
     rintro h ⟨p, pre, h1, h2, h3⟩; exact ⟨p, pre, h1, by omega, h3⟩
   cases t with
   | tagDirective h pre =>
-    refine ⟨by simp [envAfter, stepEnv, decl, ha], ?_⟩
+    by_cases hb : BuiltinTagHandle h
+    · exact ⟨by simp [envAfter, decl, hb, ha], fun h' hm => mono _ (hg _ (by simpa [envAfter, decl, hb] using hm))⟩
+    refine ⟨by simp [envAfter, stepEnv, decl, hb, ha], ?_⟩
     intro h' hm
-    simp only [envAfter, decl, List.foldl, stepEnv, List.mem_cons] at hm
+    simp only [envAfter, decl, hb, ↓reduceIte, List.foldl, stepEnv, List.mem_cons] at hm
     rcases hm with rfl | hm
     · exact ⟨i, pre, hlo, by omega, ho⟩
     · exact mono _ (hg _ hm)

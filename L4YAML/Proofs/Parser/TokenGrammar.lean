@@ -266,21 +266,23 @@ def TokenGrammar (ts : Toks) : Prop :=
 /-! ## State: the token array as an event trace -/
 
 /-- Events denoted by token `p`.  A document begins at its first directive or
-    at a `---` not preceded by directives; it ends at `...`. -/
+    at a `---` not preceded by directives; it ends at `...`.  A verbatim tag
+    (`!<…>`, empty handle) and a `%TAG` for a builtin handle denote no event. -/
 def tokEvents (ts : Toks) (p : Nat) : List Event :=
   let prevDir : Bool := match p with | 0 => false | k + 1 => isDirective (tok ts k)
   let begin : List Event := if prevDir then [] else [.beginDocument]
   match tok ts p with
   | some (.versionDirective ..) => begin
-  | some (.tagDirective h _) => begin ++ [.declareTag h]
+  | some (.tagDirective h _) => if BuiltinTagHandle h then begin else begin ++ [.declareTag h]
   | some .documentStart => begin
   | some .documentEnd => [.endDocument]
   | some (.anchor n) => [.defineAnchor n]
   | some (.alias n) => [.useAlias n]
-  | some (.tag h _) => [.useTag h]
+  | some (.tag h _) => if h = "" then [] else [.useTag h]
   | _ => []
 
-/-- The whole trace, token by token. -/
+/-- The whole trace, token by token.  To be replaced by `TokenEvents.tokenEvents`
+    (the serialization layer's token trace) once that module lands. -/
 def tokenEventsOf (ts : Toks) : List Event :=
   (List.range ts.size).flatMap (tokEvents ts)
 

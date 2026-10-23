@@ -106,6 +106,14 @@ def mk (l : List YamlToken) : Toks :=
   .streamEnd]) = (true, true, true)
 #guard verdict (mk [.streamStart, .versionDirective 1 2, .scalar "a" .plain, .streamEnd])
   = (true, true, true)
+-- Verbatim tags (empty handle) and `%TAG` on a builtin handle denote no event.
+#guard scanned "!<tag:x> a" = some (true, true, true)
+#guard verdict (mk [.streamStart, .tag "" "tag:x", .scalar "a" .plain, .streamEnd])
+  = (true, true, true)
+#guard verdict (mk [.streamStart, .tagDirective "!" "!x", .documentStart, .tag "!" "a",
+  .scalar "v" .plain, .streamEnd]) = (true, true, true)
+#guard verdict (mk [.streamStart, .tagDirective "!!" "tag:y,2002:", .documentStart,
+  .tag "!!" "str", .scalar "v" .plain, .streamEnd]) = (true, true, true)
 -- Parser over-acceptances (outside the grammar, accepted by `parseStream`).
 #guard verdict (mk [.streamStart, .scalar "a" .plain]) = (true, false, true)
 #guard verdict (mk [.streamStart, .blockEnd]) = (true, false, true)
