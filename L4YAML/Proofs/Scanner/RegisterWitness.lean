@@ -49,6 +49,7 @@ open L4YAML.Surface
 open L4YAML.Proofs.CouplingBridge
 open L4YAML.Proofs.PendingKeySound
 open L4YAML.Proofs.IndentStackBase (SentinelBase)
+open L4YAML.Proofs.CloseStaleExplicitKey
 
 /-! ## §1  The relations -/
 
@@ -203,6 +204,100 @@ lemma scanKey_witness {s s' : ScannerState} {sp sp_start : SurfPos}
           omega
       · obtain ⟨hlt', _⟩ := Array.getElem?_eq_some_iff.1 hi
         omega
+
+
+/-! ## §3  The writers (DOCS item 343)
+
+`SlotsWitness` reads `pendingKeys`, `indents` and `input` only, so a writer is one of
+three shapes: a PUSH (one empty slot on top, the slots below untouched), a POP (the
+top slot goes, the slots below untouched), or a CLOSE (`PendingKeys.closeAt`: a slot
+is kept or emptied, never re-marked).  Everything else is `SlotsWitness.transport`. -/
+
+/-- A pushed level's own slot is `none`; the slots below are the pre-state's. -/
+lemma SlotsWitness.push {s s' : ScannerState} {sp_start : SurfPos} (h : SlotsWitness s sp_start)
+    (e : IndentEntry) (hind : s'.indents = s.indents.push e)
+    (hpk : s'.pendingKeys = s.pendingKeys.push none) (hin : s'.input = s.input)
+    (hsz : s.pendingKeys.size = s.indents.size) : SlotsWitness s' sp_start := by
+  intro i l hi
+  rw [hpk, Array.getElem?_push] at hi
+  split at hi
+  · simp at hi
+  · obtain ⟨c, sp_q, hc, hq⟩ := h i l hi
+    refine ⟨c, sp_q, ?_, by rw [hin]; exact hq⟩
+    rw [indentColumns_getElem?] at hc
+    have hlt : i < s.indents.size := by
+      rcases hx : s.indents[i]? with _ | e
+      · simp [hx] at hc
+      · exact (Array.getElem?_eq_some_iff.1 hx).1
+    rw [indentColumns_getElem?, hind, Array.getElem?_push, if_neg (by omega)]
+    exact hc
+
+/-- Popping the top level keeps every remaining slot's witness. -/
+lemma SlotsWitness.pop {s s' : ScannerState} {sp_start : SurfPos} (h : SlotsWitness s sp_start)
+    (hind : s'.indents = s.indents.pop) (hpk : s'.pendingKeys = s.pendingKeys.pop)
+    (hin : s'.input = s.input) (hsz : s.pendingKeys.size = s.indents.size) :
+    SlotsWitness s' sp_start := by
+  intro i l hi
+  rw [hpk, Array.getElem?_pop] at hi
+  split at hi
+  · obtain ⟨c, sp_q, hc, hq⟩ := h i l hi
+    refine ⟨c, sp_q, ?_, by rw [hin]; exact hq⟩
+    rw [indentColumns_getElem?, hind, Array.getElem?_pop, if_pos (by omega)]
+    rw [indentColumns_getElem?] at hc; exact hc
+  · cases hi
+
+/-- `closeAt` empties slots and re-marks none, so every slot still marked keeps its witness. -/
+lemma SlotsWitness.close {s : ScannerState} {sp_start : SurfPos} (h : SlotsWitness s sp_start)
+    (col : Int) : SlotsWitness (s.clearPendingKeyAt col) sp_start := by
+  intro i l hi
+  simp only [ScannerState.clearPendingKeyAt] at hi
+  exact h i l (closeAt_marked _ _ _ _ _ hi).1
+
+lemma pushMappingIndent_witness {s : ScannerState} {sp_start : SurfPos} (col : Int)
+    (h : SlotsWitness s sp_start) (hsz : s.pendingKeys.size = s.indents.size) :
+    SlotsWitness (pushMappingIndent s col) sp_start := by
+  unfold pushMappingIndent
+  split
+  · exact h.push { column := col, isSequence := false } (by simp [ScannerState.emit])
+      (by simp [ScannerState.emit]) (by simp [ScannerState.emit]) hsz
+  · exact h
+
+lemma pushSequenceIndent_witness {s : ScannerState} {sp_start : SurfPos} (col : Int)
+    (h : SlotsWitness s sp_start) (hsz : s.pendingKeys.size = s.indents.size) :
+    SlotsWitness (pushSequenceIndent s col) sp_start := by
+  unfold pushSequenceIndent
+  split
+  · exact h.push { column := col, isSequence := true } (by simp [ScannerState.emit])
+      (by simp [ScannerState.emit]) (by simp [ScannerState.emit]) hsz
+  · exact h
+
+/-- The re-read writes the register only. -/
+lemma readPendingKey_witness {s : ScannerState} {sp_start : SurfPos} (h : SlotsWitness s sp_start) :
+    SlotsWitness s.readPendingKey sp_start := h
+
+/-- The stale-key hook: the identity, or a close followed by the re-read. -/
+lemma closeStaleExplicitKey_witness {s : ScannerState} {sp_start : SurfPos}
+    (h : SlotsWitness s sp_start) : SlotsWitness (closeStaleExplicitKey s) sp_start := by
+  rcases closeStaleExplicitKey_cases s with heq | heq <;> rw [heq]
+  · exact h
+  · exact readPendingKey_witness (h.close _)
+
+lemma unwindIndentsLoop_witness (s : ScannerState) (col : Int) (fuel : Nat) {sp_start : SurfPos}
+    (h : SlotsWitness s sp_start) (hs : SlotsOk s) :
+    SlotsWitness (unwindIndentsLoop s col fuel) sp_start := by
+  induction fuel generalizing s with
+  | zero => simpa [unwindIndentsLoop] using h
+  | succ fuel ih =>
+    unfold unwindIndentsLoop
+    split
+    · obtain ⟨h1, h2, -⟩ := unwindPop_fields s
+      exact ih _ (h.pop h1 h2 (by simp [ScannerState.emit]) hs.1) (hs.pop h1 h2)
+    · exact h
+
+lemma unwindIndents_witness (s : ScannerState) (col : Int) {sp_start : SurfPos}
+    (h : SlotsWitness s sp_start) (hs : SlotsOk s) :
+    SlotsWitness (unwindIndents s col) sp_start :=
+  unwindIndentsLoop_witness s col _ h hs
 
 end L4YAML.Proofs.RegisterWitness
 
