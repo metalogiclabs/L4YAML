@@ -355,7 +355,7 @@ def expectedEndsLit : List String :=
 -- indicator that no park reads, not a sequence entry.
 def expectedLine : String :=
   "pop=10 sites=13 spend=6 nospend=7 len1=6 ends=GStar(SSWhite)+SIndent \
-depth=4 prods=132 ctors=240 \
+depth=4 prods=133 ctors=240 \
 endsLit=33 minus=1 question=2 colon=21 chainEnds=0 blockArms=1 seqArms=10 \
 mapArms=10 streamArms=4 streamHonest=3"
 
