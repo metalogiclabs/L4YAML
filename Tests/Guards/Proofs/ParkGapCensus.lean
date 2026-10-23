@@ -259,7 +259,7 @@ spans={String.intercalate "," (s.spans.map (·.getString!)).toList}"
 /-- **The population, re-derived rather than typed.**  Item 238's `D` is four;
     the walk runs over every authored declaration whose proof term references
     the arm or one of the two restatements, which is ten. -/
-def expectedPop : String := "D=4 T=27 pop=10 sites=11"
+def expectedPop : String := "D=4 T=28 pop=10 sites=11"
 
 /-- **The answer, in one line.**  Four independent readings of "connected", all
     zero, beside the correspondence census that explains why the fourth is. -/

@@ -3055,12 +3055,39 @@ example : ¬ AtCol (String.ofList ['?', ' ', 'a']) 0 ⟨['x'], 0⟩ :=
 example (sp_start : SurfPos) : ¬ QuestionEntry (String.ofList ['a']) sp_start 0 ⟨['a'], 0⟩ :=
   fun ⟨_, ⟨_, hg⟩, _⟩ => nomatch hg
 
-/-- `QuestionEntry` holds at a `?` with its route — the SHAPE of the witness; the route is
-    instantiated on real derivations below (`entryQ`, `entryQC`, `streamQ`, `streamQC`). -/
+/-- `QuestionEntry` holds at a `?` with its landing — the SHAPE of the witness; the landing
+    is instantiated on real derivations below (`landingQ`, `landingQ1`). -/
 example (rest : List Char) (sp_start : SurfPos)
-    (h_route : ∀ sp_v, SBlockMapEntry 0 ⟨'?' :: rest, 0⟩ sp_v → SLYamlStream sp_start sp_v) :
+    (h_land : QuestionLanding sp_start 0 ⟨'?' :: rest, 0⟩) :
     QuestionEntry (String.ofList ('?' :: rest)) sp_start 0 ⟨'?' :: rest, 0⟩ :=
-  ⟨⟨rfl, [], by simp⟩, ⟨_, GLit.mk rest 0⟩, h_route⟩
+  ⟨⟨rfl, [], by simp⟩, ⟨_, GLit.mk rest 0⟩, h_land⟩
+
+/-- The empty stream: `[211]` with no prefix, no document, no suffix — the landing at the
+    first line of the input. -/
+lemma streamNil (sp : SurfPos) : SLYamlStream sp sp :=
+  SLYamlStream.single sp sp sp sp (GStar.nil _) (GOpt.none _) (GStar.nil _)
+
+/-- `QuestionLanding` HELD at the first `?` of `?⏎` (column 0, the empty stream before it). -/
+lemma landingQ : QuestionLanding ⟨['?', '\n'], 0⟩ 0 ⟨['?', '\n'], 0⟩ :=
+  ⟨_, streamNil _, rfl, SIndent.zero _⟩
+
+/-- …and one space in, ` ?⏎` (column 1 — the nested shape `question_open_map` lands with
+    `k = 1`). -/
+lemma landingQ1 : QuestionLanding ⟨[' ', '?', '\n'], 0⟩ 1 ⟨['?', '\n'], 1⟩ :=
+  ⟨_, streamNil _, rfl, SIndent.succ 0 _ 0 _ (SIndent.zero _)⟩
+
+/-- `QuestionLanding` REFUTED: no line position is one space before column 0. -/
+example (sp_start : SurfPos) : ¬ QuestionLanding sp_start 1 ⟨['?'], 0⟩ :=
+  fun ⟨_, _, _, h⟩ => nomatch h
+
+/-- The landing is CONSUMED: a `QuestionEntry` at column 0 puts the stream at the `?` itself
+    (`SIndent 0` is the identity), with nothing about the entry assumed. -/
+example (sp_start : SurfPos)
+    (hq : QuestionEntry (String.ofList ['?', '\n']) sp_start 0 ⟨['?', '\n'], 0⟩) :
+    SLYamlStream sp_start ⟨['?', '\n'], 0⟩ :=
+  let ⟨_, hs, _, hi⟩ := hq.2.2
+  match hi with
+  | SIndent.zero _ => hs
 
 /-- `s-l-comments` across the break of a line ending at column 1: no comment, the line
     feed, no further comment lines. -/
@@ -3102,23 +3129,10 @@ lemma streamQC : SLYamlStream ⟨['?', '\n', ':', '\n'], 0⟩ ⟨[], 0⟩ :=
         (SBlockMapEntries.single 0 _ _ _ (SIndent.zero _) entryQC)))))
     (GStar.nil _)
 
-/-- The route is CONSUMED on a REAL derivation: a `QuestionEntry` at the `?` of `?⏎` yields
-    the stream for `entryQ` — nothing about the entry is assumed, so a witness whose route
-    were false at this endpoint is refuted by `entryQ` itself. -/
-example (sp_start : SurfPos)
-    (hq : QuestionEntry (String.ofList ['?', '\n']) sp_start 0 ⟨['?', '\n'], 0⟩) :
-    SLYamlStream sp_start ⟨[], 0⟩ :=
-  hq.2.2 _ entryQ
-
-/-- …and on the `explicit` entry of `?⏎:⏎`. -/
-example (sp_start : SurfPos)
-    (hq : QuestionEntry (String.ofList ['?', '\n', ':', '\n']) sp_start 0 ⟨['?', '\n', ':', '\n'], 0⟩) :
-    SLYamlStream sp_start ⟨[], 0⟩ :=
-  hq.2.2 _ entryQC
-
-/-- The route hypothesis is SATISFIABLE where the two examples above read it: at the start
-    of each input the stream the route must deliver at the entry's endpoint exists
-    (`streamQ`, `streamQC`), so the consumption is not vacuous. -/
+/-- The stream-closing half item 342 had put in the witness is the CONSUMER's: from the
+    landing (`landingQ`) and the entry (`entryQ`/`entryQC`) the whole stream exists
+    (`streamQ`, `streamQC`) — item 343 moved it out of `QuestionEntry` because the `?`
+    landing holds `landingQ`'s facts and not these. -/
 example : SLYamlStream ⟨['?', '\n'], 0⟩ ⟨[], 0⟩ ∧ SLYamlStream ⟨['?', '\n', ':', '\n'], 0⟩ ⟨[], 0⟩ :=
   ⟨streamQ, streamQC⟩
 
@@ -3132,7 +3146,7 @@ def twoLevelMarked : ScannerState :=
     witness at index 1 (`RegOk` decided on the concrete arrays). -/
 example (sp_start : SurfPos) (sp_q : SurfPos)
     (hq : QuestionEntry (String.ofList ['?', ' ', 'a']) sp_start 0 sp_q) :
-    RegWitness twoLevelMarked sp_start := by
+    RegWitness (String.ofList ['?', ' ', 'a']) twoLevelMarked sp_start := by
   refine regWitness_of_slots (fun _ => ?_) ?_
   · show ((some 0 : Option Nat), (0 : Int)) =
       PendingKeys.innermost twoLevelMarked.indentColumns twoLevelMarked.pendingKeys
@@ -3148,25 +3162,44 @@ example (sp_start : SurfPos) (sp_q : SurfPos)
 
 /-- `scanKey_witness` on the seed state of `? a⏎`: every premise discharged on the
     concrete state (`initial_corr` for the correspondence, `mk'_sound` for the slots,
-    `mk'_base` for the sentinel, `decide` for the floor and the peeked `?`), the route as
-    the one hypothesis the `?` producer holds; the conclusion read at the marked slot gives
-    a `QuestionEntry` whose route is that premise. -/
+    `mk'_base` for the sentinel, `decide` for the floor and the peeked `?`), the landing
+    the `?` producer holds; the conclusion read at the marked slot gives a `QuestionEntry`
+    whose landing is that premise. -/
 example (sp_start : SurfPos) (s' : ScannerState)
     (hok : scanKey (ScannerState.mk' (String.ofList ['?', ' ', 'a', '\n'])) = .ok s')
-    (h_route : ∀ sp_v, SBlockMapEntry 0 ⟨['?', ' ', 'a', '\n'], 0⟩ sp_v → SLYamlStream sp_start sp_v) :
-    SlotsWitness s' sp_start ∧
+    (h_land : QuestionLanding sp_start 0 ⟨['?', ' ', 'a', '\n'], 0⟩) :
+    SlotsWitness (String.ofList ['?', ' ', 'a', '\n']) s' sp_start ∧
     (∀ l, s'.pendingKeys[1]? = some (some l) →
-      ∃ (c : Nat) (sp_q : SurfPos), s'.indentColumns[1]? = some (c : Int) ∧ QuestionEntry s'.input sp_start c sp_q) := by
+      ∃ (c : Nat) (sp_q : SurfPos), s'.indentColumns[1]? = some (c : Int) ∧
+        QuestionEntry (String.ofList ['?', ' ', 'a', '\n']) sp_start c sp_q) := by
   have hcorr : ScannerSurfCorr (ScannerState.mk' (String.ofList ['?', ' ', 'a', '\n']))
       ⟨['?', ' ', 'a', '\n'], 0⟩ :=
     initial_corr _ _ (chars_from_zero_toList _)
-  have hw : SlotsWitness s' sp_start :=
+  have hw : SlotsWitness (String.ofList ['?', ' ', 'a', '\n']) s' sp_start :=
     scanKey_witness hcorr rfl hok (mk'_sound _).slots (mk'_base _) (by decide) (by decide)
-      h_route (fun i l hi => by
+      h_land (fun i l hi => by
         rcases i with _ | i
         · simp [ScannerState.mk'] at hi
         · simp [ScannerState.mk'] at hi)
   exact ⟨hw, fun l hi => hw 1 l hi⟩
+
+/-- `scanNextToken_witness` on the seed of `? a⏎` (item 343): every premise discharged on
+    the concrete state (`initial_corr`, `mk'_sound`, `mk'_mono`, `mk'_base`, the floor from
+    `mk'_colfloor`), the landing the `?` step owes taken as `h_land` — the SHAPE of the step;
+    `StepLanding` itself is paid where the loop threads it (item 344), the two halves it is
+    built from (`landingQ`, `streamNil`) are instantiated above. -/
+example (sp_start : SurfPos) (s' : ScannerState)
+    (hok : scanNextToken (ScannerState.mk' (String.ofList ['?', ' ', 'a', '\n'])) = .ok (some s'))
+    (h_land : StepLanding (ScannerState.mk' (String.ofList ['?', ' ', 'a', '\n'])) sp_start) :
+    SlotsWitness (String.ofList ['?', ' ', 'a', '\n']) s' sp_start :=
+  scanNextToken_witness hok (initial_corr _ _ (chars_from_zero_toList _)) (mk'_sound _)
+    (L4YAML.Proofs.IndentStackMono.mk'_mono _) (mk'_base _)
+    (L4YAML.Proofs.ColFloor.preprocessFloor (L4YAML.Proofs.ColFloor.mk'_colfloor _) (mk'_base _))
+    (fun i l hi => by
+      rcases i with _ | i
+      · simp [ScannerState.mk'] at hi
+      · simp [ScannerState.mk'] at hi)
+    h_land
 
 end WitnessInstantiations
 

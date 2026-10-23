@@ -348,7 +348,7 @@ declarations' own binders and not by a rescoring of an existing one.
 -- relays its two hypotheses and its wrapper `PackAlt.step_preprocess` holds the same two unused; as `HypothesisReaderCensus`.
 -- (The item 320 and 322 notes above are corrected: their scripts garbled the field names.)
 def expectedModuleTallyP : String :=
-  "constants=1417 decls=1127 eta=408 FIELD=189 READ=1200 RELAY=2206 RETURN=139 UNUSED=26"
+  "constants=1418 decls=1128 eta=408 FIELD=189 READ=1200 RELAY=2222 RETURN=139 UNUSED=26"
 
 -- Item 287: `accum_block_on_closeThenBlock`'s `h_vslot`, a READ one, left the
 -- `_ ∨ True` population — its sibling's move, under this peel.  Item 288: and
