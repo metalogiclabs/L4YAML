@@ -107,12 +107,15 @@ def noEventLexeme : Nat → List Char → Bool
     else if col = 0 ∧ ((c = '-' ∧ cs.take 2 = ['-', '-']) ∨ (c = '.' ∧ cs.take 2 = ['.', '.'])) then false
     else noEventLexeme (if c = '\n' ∨ c = '\r' then 0 else col + 1) cs
 
-/-- One quoted scalar, comment, block scalar or plain scalar derivable from
-`sp` to `sp'`. -/
+/-- One quoted scalar, comment, block scalar, plain scalar or verbatim tag
+derivable from `sp` to `sp'`. -/
 def OpaqueSpan (sp sp' : SurfPos) : Prop :=
   (∃ n c, SCDoubleQuoted n c sp sp') ∨ (∃ n c, SCSingleQuoted n c sp sp') ∨
   SLComment sp sp' ∨ (∃ n, SCLLiteral n sp sp') ∨ (∃ n, SCLFolded n sp sp') ∨
-  (∃ c, SNsPlainOneLine c sp sp') ∨ (∃ n c, SNsPlainMultiLine n c sp sp')
+  (∃ c, SNsPlainOneLine c sp sp') ∨ (∃ n c, SNsPlainMultiLine n c sp sp') ∨
+  -- `[89] c-verbatim-tag`: names no handle, so no event (concept §6 Q4); only
+  -- `SCNsTagProperty.verbatim` can start with `!<`.
+  (sp.chars.take 2 = ['!', '<'] ∧ SCNsTagProperty sp sp')
 
 /-- An opaque region: an `OpaqueSpan` followed by trailing white.  The scanner's
 leaf lemmas (`scanPlainScalar_prod`: `SNsPlain … sp sp_gram ∧ GStar SSWhite
