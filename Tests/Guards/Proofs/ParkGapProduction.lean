@@ -349,7 +349,7 @@ def expectedEndsLit : List String :=
     sites that spend a step are untouched. -/
 def expectedLine : String :=
   "pop=10 sites=13 spend=6 nospend=7 len1=6 ends=GStar(SSWhite)+SIndent \
-depth=4 prods=130 ctors=235 \
+depth=4 prods=131 ctors=235 \
 endsLit=30 minus=0 question=2 colon=21 chainEnds=0 blockArms=1 seqArms=10 \
 mapArms=10 streamArms=4 streamHonest=3"
 

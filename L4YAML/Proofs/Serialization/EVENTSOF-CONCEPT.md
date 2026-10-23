@@ -1,7 +1,7 @@
 # `eventsOf` — concept note for Step 5a(iii)
 
-Status: proposal, 2026-10-23.  Nothing here is implemented; §6 lists the
-decisions it asks for.  Defaults are stated so that work can start if no
+Status: proposal, 2026-10-23; §7 item 1 landed the same day as `EventsOf.lean`
+(defaults of §6 taken).  §6 lists the decisions it asks for.  Defaults are stated so that work can start if no
 objection is raised.
 
 ## 1. The obligation
