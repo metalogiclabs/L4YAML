@@ -7,7 +7,7 @@ description: First ten minutes on Open-MBEE/L4YAML — where the sources of trut
 
 1. Read `AGENTS.md` (one screen of rules, build, gates, vocabulary).
 2. Confirm the branch: `git status -sb` — work happens on
-   `fix-a-grammar-completeness` (fork `Open-MBEE/L4YAML`), not `main`.
+   `fix-a-grammar-completeness` on `nasa-jpl/L4YAML` (the fork `Open-MBEE/L4YAML` is retired for new work), not `main`.
 3. Find the mandate, never by paging DOCS.md:
    ```bash
    python3 scripts/docs_nav.py next            # latest item's **NEXT —** paragraph

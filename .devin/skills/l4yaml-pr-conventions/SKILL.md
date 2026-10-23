@@ -8,8 +8,9 @@ description: Branch, commit and PR conventions specific to Open-MBEE/L4YAML — 
 This repo overrides the generic Open-MBEE git-flow note: there is no
 `develop` here.
 
-- **Remote:** `Open-MBEE/L4YAML` (fork) is writable; `nasa-jpl/L4YAML` is
-  upstream and read-only — never push, comment or open issues there.
+- **Remote:** work goes directly to `nasa-jpl/L4YAML` (since 2026-10-21):
+  push branches there and open PRs there.  `Open-MBEE/L4YAML` is the old
+  fork; do not open new PRs on it.
 - **Base branch:** `fix-a-grammar-completeness`.  `main` is release-only.
   ```bash
   git fetch origin && git checkout -B <type>/<slug> origin/fix-a-grammar-completeness
