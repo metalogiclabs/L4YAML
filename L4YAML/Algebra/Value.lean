@@ -356,7 +356,13 @@ decreasing_by yaml_decreasing
     cleaning the raw value and resolving afterwards.  The right-hand side is
     what `addAnchor` stores: it walks only the anchor's own syntax and shares
     every substituted subtree, where the left-hand side rebuilds the whole
-    expansion. -/
+    expansion.
+
+    Chain (Rule 1): the specification of `addAnchor`'s order in both parser
+    states; the capstones that read the anchor table (`parse_sound_*`,
+    `parse_complete`, `universal_roundtrip`'s alias path) hold for the
+    linear-cost order by this equation — see `Blueprint/04-capstones.md`,
+    "Significance & risk". -/
 lemma cleaned_resolveAliases_comm (v : YamlValue) (A : Array (String × YamlValue))
     (hA : ∀ p ∈ A, Cleaned p.2) :
     (v.resolveAliases A).stripAnchors.adaptForFlowContext =

@@ -494,6 +494,7 @@ The former residual split into two independent tracks, both closed:
   equal the one read in. **This was the single most consequential
   open guarantee** until its 2026-07-04 closure; round-trip safety now
   covers nested flow collections, not just scalar/all-scalar shapes.
+- **`Algebra/Value.lean` §7, `cleaned_resolveAliases_comm` and its helpers** (`Cleaned`, `cleaned_of_pipeline`, `cleaned_table_push`, `stripAnchors_resolveAliases`, `adaptForFlowContext_resolveAliases`) — *Chain (Rule 1, decided 2026-10-22: KEEP):* the specification of `addAnchor`'s clean-then-resolve order (`Parser/State.lean`, `Parser/ParseStateIx.lean`, both docstrings cite it): the stored value equals the one the resolve-then-clean order stored before, so every capstone that reads the anchor table — Group 3/4's `parse_sound_*`/`parse_complete` through `addAnchor_wfaS` and `cleaned_scannable_forall` (restated on the cleaned shape), and 6.1's alias path — holds for the linear-cost order by this lemma rather than by re-proving the table shape. It is a spec lemma, not a dependency of the proof terms: `#print axioms` of the capstones does not list it, and that is the point — the reorder changed the program, not the theorems. *Risk if absent:* the reorder would be a measured speed-up with no statement that the table is the same table.
 - **6.2–6.4 `contentEq` refl / symm / trans** — *Significance:*
   content-equivalence is a genuine equivalence relation, which is what
   gives "same content" a sound meaning. *Risk if absent:* every
