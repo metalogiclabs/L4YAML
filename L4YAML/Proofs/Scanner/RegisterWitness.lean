@@ -5,6 +5,7 @@ Released under Apache 2.0 license as described in the file LICENSE.
 module
 
 public import L4YAML.Proofs.Scanner.PendingKeySound
+public import L4YAML.Proofs.Coupling.TabIndentBridge
 
 @[expose] public section Blanket
 
@@ -564,6 +565,136 @@ lemma dispatchBlockIndicators_witness {s s' : ScannerState} {c : Char} {sp sp_st
          exact scanKey_witness hcorr hnf (by assumption) hs hbase (hcol hnf) hpeek
            (h_land rfl hnf) h)
       | exact scanValue_witness (by assumption) h hs
+
+/-! ## §4  The step -/
+
+/-- The landing a `?` step owes: for the preprocessed state the `?` is read on (its
+    correspondence `sp_pos`), where the stream reached the column-0 line it is indented
+    from.  `question_open_map` holds it as `h_stream_land`/`hcol_land`/`h_ind`. -/
+def StepLanding (s : ScannerState) (sp_start : SurfPos) : Prop :=
+  ∀ (s_prep : ScannerState) (c : Char) (sp_pos : SurfPos),
+    scanNextToken_preprocess s = .ok (some (s_prep, c)) → c = '?' → s_prep.inFlow = false →
+    ScannerSurfCorr s_prep sp_pos → QuestionLanding sp_start s_prep.col sp_pos
+
+set_option maxHeartbeats 1000000 in
+/-- **The step keeps every marked slot's `?` named** — `scanNextToken_sound`'s twin for the
+    witness: the `?` arm takes the landing, every other arm is a writer lemma of §3. -/
+lemma scanNextToken_witness {s s' : ScannerState} {sp sp_start : SurfPos}
+    (hok : scanNextToken s = .ok (some s')) (hcorr : ScannerSurfCorr s sp)
+    (h : Sound s) (hm : L4YAML.Proofs.IndentStackMono.Mono s) (hbase : SentinelBase s)
+    (hfloor : PreprocessFloor s) (hw : SlotsWitness s.input s sp_start)
+    (h_land : StepLanding s sp_start) : SlotsWitness s.input s' sp_start := by
+  unfold scanNextToken at hok
+  simp only [bind, Except.bind, pure, Except.pure, Bind.bind, Pure.pure] at hok
+  split at hok
+  · cases hok
+  · split at hok
+    · simp at hok
+    · rename_i sp_s c h_pre
+      have h_in : sp_s.input = s.input := L4YAML.Proofs.TabIndentBridge.preprocess_input h_pre
+      have h_ps : Sound sp_s := preprocess_sound h_pre h hm
+      have h_pb : SentinelBase sp_s := L4YAML.Proofs.IndentStackBase.preprocess_base h_pre hbase
+      have h_pc : sp_s.inFlow = false → sp_s.currentIndent ≤ (sp_s.col : Int) := hfloor sp_s c h_pre
+      have h_pw : SlotsWitness s.input sp_s sp_start := preprocess_witness h_pre hw h.slots
+      obtain ⟨sp_pos, h_pcorr⟩ :=
+        L4YAML.Proofs.ScanStrictCoupling.scanNextToken_preprocess_corr s sp hcorr sp_s c h_pre
+      have h_pk : sp_s.peek? = some c :=
+        L4YAML.Proofs.ScannerCorrectness.preprocess_peek_eq s sp_s c h_pre
+      have h_pl : c = '?' → sp_s.inFlow = false → QuestionLanding sp_start sp_s.col sp_pos :=
+        fun hc hnf => h_land sp_s c sp_pos h_pre hc hnf h_pcorr
+      rw [← h_in] at h_pw ⊢
+      split at hok
+      · cases hok
+      split at hok
+      · cases hok
+      split at hok
+      · cases hok
+      · split at hok
+        · simp only [Except.ok.injEq, Option.some.injEq] at hok; subst hok
+          exact dispatchStructural_witness ‹_› h_pw h_ps.slots
+        · split at hok
+          · cases hok
+          split at hok
+          · cases hok
+          · rcases h_ad : sp_s.allowDirectives with _ | _
+            <;> simp only [h_ad, Bool.false_eq_true, ↓reduceIte] at hok
+            · generalize h_fi : scanNextToken_dispatchFlowIndicators sp_s c = fi at hok
+              cases fi with
+              | error => cases hok
+              | ok fi_opt =>
+                cases fi_opt with
+                | some s_fi =>
+                  simp only [Except.ok.injEq, Option.some.injEq] at hok; subst hok
+                  exact dispatchFlowIndicators_witness h_fi h_pw
+                | none =>
+                  generalize h_bi : scanNextToken_dispatchBlockIndicators sp_s c = bi at hok
+                  cases bi with
+                  | error => cases hok
+                  | ok bi_opt =>
+                    cases bi_opt with
+                    | some s_bi =>
+                      simp only [Except.ok.injEq, Option.some.injEq] at hok; subst hok
+                      exact dispatchBlockIndicators_witness h_bi h_pcorr h_pw h_ps.slots h_pb h_pc
+                        h_pk h_pl
+                    | none =>
+                      generalize h_av : scanNextToken_checkAdjacentValue sp_s c = av at hok
+                      cases av with
+                      | error => cases hok
+                      | ok _ =>
+                      generalize h_dc : scanNextToken_dispatchContent sp_s c = dc at hok
+                      cases dc with
+                      | error => cases hok
+                      | ok s_dc =>
+                        simp only [Except.ok.injEq, Option.some.injEq] at hok; subst hok
+                        exact dispatchContent_witness h_dc h_pw
+            · generalize h_sp2 :
+                (({ sp_s with allowDirectives := false, documentEverStarted := true }
+                  : ScannerState)) = sp2 at hok
+              have h_ps2 : Sound sp2 := by
+                rw [← h_sp2]; exact Sound.of_eq h_ps rfl rfl rfl rfl rfl rfl
+              have h_pb2 : SentinelBase sp2 := by rw [← h_sp2]; exact h_pb
+              have h_pc2 : sp2.inFlow = false → sp2.currentIndent ≤ (sp2.col : Int) := by
+                rw [← h_sp2]; exact h_pc
+              have h_pw2 : SlotsWitness sp_s.input sp2 sp_start := by
+                rw [← h_sp2]; exact h_pw.transport rfl rfl
+              have h_in2 : sp2.input = sp_s.input := by rw [← h_sp2]
+              have h_pcorr2 : ScannerSurfCorr sp2 sp_pos := by
+                rw [← h_sp2]
+                exact ⟨h_pcorr.chars_from, h_pcorr.col_eq, h_pcorr.end_eq, h_pcorr.input_prefix,
+                  h_pcorr.indent_cols_nonneg⟩
+              have h_pk2 : sp2.peek? = some c := by rw [← h_sp2]; exact h_pk
+              have h_pl2 : c = '?' → sp2.inFlow = false → QuestionLanding sp_start sp2.col sp_pos := by
+                rw [← h_sp2]; exact h_pl
+              rw [← h_in2] at h_pw2 ⊢
+              generalize h_fi : scanNextToken_dispatchFlowIndicators sp2 c = fi at hok
+              cases fi with
+              | error => cases hok
+              | ok fi_opt =>
+                cases fi_opt with
+                | some s_fi =>
+                  simp only [Except.ok.injEq, Option.some.injEq] at hok; subst hok
+                  exact dispatchFlowIndicators_witness h_fi h_pw2
+                | none =>
+                  generalize h_bi : scanNextToken_dispatchBlockIndicators sp2 c = bi at hok
+                  cases bi with
+                  | error => cases hok
+                  | ok bi_opt =>
+                    cases bi_opt with
+                    | some s_bi =>
+                      simp only [Except.ok.injEq, Option.some.injEq] at hok; subst hok
+                      exact dispatchBlockIndicators_witness h_bi h_pcorr2 h_pw2 h_ps2.slots h_pb2
+                        h_pc2 h_pk2 h_pl2
+                    | none =>
+                      generalize h_av : scanNextToken_checkAdjacentValue sp2 c = av at hok
+                      cases av with
+                      | error => cases hok
+                      | ok _ =>
+                      generalize h_dc : scanNextToken_dispatchContent sp2 c = dc at hok
+                      cases dc with
+                      | error => cases hok
+                      | ok s_dc =>
+                        simp only [Except.ok.injEq, Option.some.injEq] at hok; subst hok
+                        exact dispatchContent_witness h_dc h_pw2
 
 end L4YAML.Proofs.RegisterWitness
 
