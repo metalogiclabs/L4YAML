@@ -32,6 +32,10 @@ def both (input : String) : Bool × Bool := (wellFormedB input, loads input)
 
 -- agree: well-formed and loaded
 #guard both "a: &x 1\nb: *x" = (true, true)
+#guard both "!<tag:x> a" = (true, true)
+#guard both "!<tag:x>" = (true, true)
+#guard both "&a !<tag:x> b" = (true, true)
+#guard both "!<tag x> a" = (false, false)
 #guard both "- &a x\n- *a" = (true, true)
 #guard both "{&a x: *a, b: \"*a\"}" = (true, true)
 #guard both "!!str a" = (true, true)
@@ -70,5 +74,9 @@ def both (input : String) : Bool × Bool := (wellFormedB input, loads input)
 -- functions, and these rows must then flip to agreement.
 #guard both "a: |2\n   *x\n  *y\n" = (false, true)
 #guard both "a: foo\n  &x\nb: *x" = (true, false)
+
+-- A verbatim tag is opaque: no `useTag` event, unlike the shorthand `!a`.
+#guard eventsOf "!<tag:x> a" = []
+#guard eventsOf "!a" = [.useTag "!"]
 
 end L4YAML.Proofs.Serialization.RefLexCensus
