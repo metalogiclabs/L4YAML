@@ -210,4 +210,56 @@ def plnI (s : String) (indent : Int) (flow : Bool := false) :=
 #guard pln "a\n  " == some ("a", 1, 1)
 #guard pln "a\n b\n " == some ("a b", 4, 2)
 
+/-! ## Plain scalars, break-terminated (`PlainBreakStopOk`)
+
+The scanner tries the fold at every break and rolls back to the break when the next line is
+under-indented, a document marker, or adds no content (EOF, `#`, `: `, an unsafe character). -/
+
+#guard pln "a \n" == some ("a", 2, 2)
+#guard pln "a\n: b" == some ("a", 1, 1)
+#guard pln "a\n:" == some ("a", 1, 1)
+#guard pln "a\n\x01" == some ("a", 1, 1)
+#guard pln "a\n #c" == some ("a", 1, 1)
+#guard pln "a\n\n#c" == some ("a", 1, 1)
+#guard pln "a\n\n" == some ("a", 1, 1)
+#guard pln "a\n \n" == some ("a", 1, 1)
+#guard pln "a\n---" == some ("a", 1, 1)
+#guard pln "a\n..." == some ("a", 1, 1)
+#guard pln "a b\n#c" == some ("a b", 3, 3)
+#guard plnI "a\nb" 0 == some ("a", 1, 1)
+#guard plnI "a\n \tb" 1 == some ("a", 1, 1)
+#guard plnI "a\n  b\n c" 1 == some ("a b", 5, 3)
+
+/-! ## Plain scalars, multi-line in flow context (`PlainNextLineOk true`, `PlainFlowBreakStopOk`)
+
+Same folds as block context, but under-indentation is a hard `underIndentedScalar` error (and a
+tab in the indentation `tabInIndentation`), so those inputs scan to `none`; `#`, a flow
+indicator, `: `, EOF or a document marker after the fold roll back to the break. -/
+
+#guard pln "a\n b" true == some ("a b", 4, 2)
+#guard pln "a\nb" true == some ("a b", 3, 1)
+#guard plnI "a\n b" 0 true == some ("a b", 4, 2)
+#guard plnI "a\n  b" 1 true == some ("a b", 5, 3)
+#guard pln "a\n\n b" true == some ("a\nb", 5, 2)
+#guard pln "a \n b" true == some ("a b", 5, 2)
+#guard pln "a\n \n b" true == some ("a\nb", 6, 2)
+#guard pln "a\r\n b" true == some ("a b", 5, 2)
+#guard pln "a\n b," true == some ("a b", 4, 2)
+#guard pln "a\n b]" true == some ("a b", 4, 2)
+#guard pln "a\n b: c" true == some ("a b", 4, 2)
+#guard pln "a\n\tb" true == some ("a b", 4, 2)
+-- Rollbacks to the break.
+#guard pln "a\n #c" true == some ("a", 1, 1)
+#guard pln "a\n" true == some ("a", 1, 1)
+#guard pln "a\n  " true == some ("a", 1, 1)
+#guard pln "a\n," true == some ("a", 1, 1)
+#guard pln "a\n]" true == some ("a", 1, 1)
+#guard pln "a\n: b" true == some ("a", 1, 1)
+#guard pln "a\n---\nb" true == some ("a", 1, 1)
+#guard pln "a\n--- b" true == some ("a", 1, 1)
+-- Hard errors (no refusal arm): the converse needs the floor hypothesis.
+#guard plnI "a\nb" 0 true == none
+#guard plnI "a\n b" 1 true == none
+#guard plnI "a\n\tb" 0 true == none
+
 end L4YAML.Proofs.Acceptance.Probes

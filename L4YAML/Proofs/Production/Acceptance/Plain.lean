@@ -467,7 +467,7 @@ lemma skipBlankLinesLoop_accepts {n : Nat} {sp sp₂ : SurfPos}
     (hblank : GStar (SLEmptyOk n) sp sp₂) :
     ∀ (sc : ScannerState) (cnt fuel inputEnd : Nat) (sp' : SurfPos),
       ScannerSurfCorr sc sp → (n : Int) > sc.currentIndent →
-      SFlowLinePrefix n sp₂ sp' → sp'.chars.head? ≠ some ' ' → sp'.chars.head? ≠ some '\t' →
+      GStar SSWhite sp₂ sp' → sp'.chars.head? ≠ some ' ' → sp'.chars.head? ≠ some '\t' →
       (∀ c, sp'.chars.head? = some c → isLineBreakBool c = false) →
       sp.chars.length < fuel →
       ∃ sc₂ k, skipBlankLinesLoop sc cnt fuel inputEnd = (cnt + k, sc₂) ∧
@@ -478,7 +478,7 @@ lemma skipBlankLinesLoop_accepts {n : Nat} {sp sp₂ : SurfPos}
     cases fuel with
     | zero => simp at hfuel
     | succ f =>
-      obtain ⟨h1, _⟩ := skipWhitespace_accepts sc (flowLinePrefix_toGStar hpre) hcorr hsp htab
+      obtain ⟨h1, _⟩ := skipWhitespace_accepts sc hpre hcorr hsp htab
       refine ⟨sc, 0, ?_, hcorr, Keeps.refl sc⟩
       obtain ⟨chars, col⟩ := sp'
       cases chars with
@@ -527,7 +527,7 @@ lemma handleBlockLineBreak_accepts (sc : ScannerState) {n : Nat} {sp sp₁ sp₂
   have hfuel := fuel_of_corr h1
   obtain ⟨sc₂, k, hloop, h2, k2⟩ := skipBlankLinesLoop_accepts hblank (consumeNewline sc) 0
     (sc.inputEnd - (consumeNewline sc).offset + 1) sc.inputEnd sp' h1
-    (by rw [k1.currentIndent]; exact hfloor) hpre hsp htab hnb (by rw [← k1.2.1]; exact hfuel)
+    (by rw [k1.currentIndent]; exact hfloor) (flowLinePrefix_toGStar hpre) hsp htab hnb (by rw [← k1.2.1]; exact hfuel)
   obtain ⟨h3, _, k3⟩ := flowLinePrefix_accepts sc₂ hpre h2 hsp htab
     (by rw [(k1.trans k2).currentIndent]; exact hfloor)
   rcases hpre with ⟨_, _, hind, hopt⟩
@@ -580,7 +580,7 @@ lemma collectPlainScalarLoop_blockFold_step (sc : ScannerState) {n : Nat}
     have hdb : atDocumentBoundary sc = false := by
       simp [atDocumentBoundary, atDocumentStart_false_of_corr hcorr hnd,
         atDocumentEnd_false_of_corr hcorr hnd]
-    cases hb <;> simp [collectPlainScalar_terminates?, hdb]
+    cases hb <;> simp [collectPlainScalar_terminates?, hdb] <;> (intro _; decide)
   have hnotLe : ¬ (result.content.length ≤
       (content ++ (if k > 0 then String.ofList (List.replicate k '\n') else " ")).length) := by
     omega
@@ -613,10 +613,10 @@ lemma PlainCharOk.landing_ok {inFlow aw : Bool} {s s' : SurfPos} (h : PlainCharO
     exact ⟨by simp, by simp, fun c hc => by simp at hc; subst hc; rfl⟩
   | hash rest col _ => exact absurd rfl hhash
 
-/-- Block-context `[134] s-ns-plain-next-line` narrowed to the scanner: trailing whites, a
+/-- `[134] s-ns-plain-next-line` narrowed to the scanner (both contexts): trailing whites, a
     `SBBreakOk` break, `SLEmptyOk n` blank lines, a maximal `[69]` landing that is neither `#`
     nor a document marker, then a `PlainCharOk` and in-line entries. -/
-inductive PlainNextLineOk (n : Nat) : SurfPos → SurfPos → Prop where
+inductive PlainNextLineOk (inFlow : Bool) (n : Nat) : SurfPos → SurfPos → Prop where
   | mk (s s_ws s₁ s₂ s₃ s₄ s' : SurfPos) :
       GStar SSWhite s s_ws →
       SBBreakOk s_ws s₁ →
@@ -624,56 +624,394 @@ inductive PlainNextLineOk (n : Nat) : SurfPos → SurfPos → Prop where
       SFlowLinePrefix n s₂ s₃ →
       s₃.chars.head? ≠ some '#' →
       NotDocMarker s₃ →
-      PlainCharOk false false s₃ s₄ →
-      GStar (PlainEntryOk false) s₄ s' →
-      PlainNextLineOk n s s'
+      PlainCharOk inFlow false s₃ s₄ →
+      GStar (PlainEntryOk inFlow) s₄ s' →
+      PlainNextLineOk inFlow n s s'
 
 lemma atDocumentBoundary_false_of_corr {sc : ScannerState} {sp : SurfPos}
     (hcorr : ScannerSurfCorr sc sp) (hnd : NotDocMarker sp) : atDocumentBoundary sc = false := by
   simp [atDocumentBoundary, atDocumentStart_false_of_corr hcorr hnd,
     atDocumentEnd_false_of_corr hcorr hnd]
 
-/-- Block-context continuation lines: fold each `PlainNextLineOk n` line, then the trailing
-    white run and the `PlainStopOk` stop.  The content only grows, so no fold rolls back. -/
-lemma collectPlainScalarLoop_nextLines {n : Nat} {sp sp' : SurfPos}
-    (hnext : GStar (PlainNextLineOk n) sp sp') :
+lemma SBBreakOk.col_zero {s s' : SurfPos} (h : SBBreakOk s s') : s'.col = 0 := by
+  cases h <;> rfl
+
+lemma GStar_SLEmptyOk_col {n : Nat} {s s' : SurfPos} (h : GStar (SLEmptyOk n) s s') :
+    s.col = 0 → s'.col = 0 := by
+  induction h with
+  | nil => exact id
+  | cons _ _ _ hs _ ih =>
+    intro _; apply ih
+    rcases hs with ⟨_, _, _, hb⟩ | ⟨_, _, _, hb⟩ <;> exact hb.col_zero
+
+lemma SIndent_col_eq {m : Nat} {s s' : SurfPos} (h : SIndent m s s') : s'.col = s.col + m := by
+  induction h with
+  | zero => rfl
+  | succ n rest col s' _ ih => simp only at ih ⊢; omega
+
+/-- At a `SBBreakOk` break the block loop takes its line-break arm. -/
+lemma break_peek_term {sc : ScannerState} {sp sp₁ : SurfPos} (hb : SBBreakOk sp sp₁)
+    (hcorr : ScannerSurfCorr sc sp) (inFlow : Bool) :
+    ∃ c, sc.peek? = some c ∧ isLineBreakBool c = true ∧
+      ∀ content spaces, collectPlainScalar_terminates? c sc content spaces inFlow = none := by
+  obtain ⟨c, rest, hs, hlb⟩ := hb.head
+  obtain ⟨cs, col⟩ := sp
+  simp only at hs; subst hs
+  refine ⟨c, (peek_of_corr hcorr).1, hlb, fun content spaces => ?_⟩
+  have hnd : NotDocMarker ⟨c :: rest, col⟩ := by
+    cases hb <;> intro _ <;> exact ⟨fun r h => by simp at h, fun r h => by simp at h⟩
+  have hdb := atDocumentBoundary_false_of_corr hcorr hnd
+  cases hb <;> simp [collectPlainScalar_terminates?, hdb]
+  all_goals (intro _; decide)
+
+/-- Under-indented continuation: the leading spaces after the blank lines stop short of the
+    content indent, so the block fold refuses. -/
+lemma handleBlockLineBreak_refuses (sc : ScannerState) {n m : Nat}
+    {sp sp₁ sp₂ sp₃ sp₄ : SurfPos} (content : String) (contentIndent : Nat)
+    (hb : SBBreakOk sp sp₁) (hblank : GStar (SLEmptyOk n) sp₁ sp₂) (hind : SIndent m sp₂ sp₃)
+    (hmax : sp₃.chars.head? ≠ some ' ') (hw : GStar SSWhite sp₃ sp₄)
+    (hsp : sp₄.chars.head? ≠ some ' ') (htab : sp₄.chars.head? ≠ some '\t')
+    (hnb : ∀ c, sp₄.chars.head? = some c → isLineBreakBool c = false)
+    (hcorr : ScannerSurfCorr sc sp) (hfloor : (n : Int) > sc.currentIndent)
+    (hm : m < contentIndent) :
+    collectPlainScalar_handleBlockLineBreak sc content contentIndent sc.inputEnd = none := by
+  obtain ⟨h1, k1⟩ := consumeNewline_accepts sc hb hcorr
+  have hfuel := fuel_of_corr h1
+  obtain ⟨sc₂, k, hloop, h2, _⟩ := skipBlankLinesLoop_accepts hblank (consumeNewline sc) 0
+    (sc.inputEnd - (consumeNewline sc).offset + 1) sc.inputEnd sp₄ h1
+    (by rw [k1.currentIndent]; exact hfloor)
+    (gstar_sswhite_append (sindent_to_gstar_sswhite hind) hw) hsp htab hnb
+    (by rw [← k1.2.1]; exact hfuel)
+  have h3 := (skipSpaces_accepts sc₂ hind h2 hmax).1
+  have hc₂ : sp₂.col = 0 := GStar_SLEmptyOk_col hblank hb.col_zero
+  have hlt : (skipSpaces sc₂).col < contentIndent := by
+    have := h3.col_eq; have := SIndent_col_eq hind; omega
+  unfold collectPlainScalar_handleBlockLineBreak
+  simp only [hloop, Nat.zero_add, hlt, ite_true]
+
+lemma peekAtLoop_chars {input : String} {inputEnd : Nat} (hend : inputEnd = input.utf8ByteSize) :
+    ∀ (n p : Nat) (cs : List Char), CharsFromOffset input p cs →
+      ScannerState.peekAt?Loop input inputEnd ⟨p⟩ n = cs[n]? := by
+  intro n
+  induction n with
+  | zero =>
+    intro p cs hcf
+    unfold ScannerState.peekAt?Loop
+    cases hcf with
+    | at_end _ hp => simp [show ¬ p < inputEnd by omega]
+    | cons _ hp c rest hc _ => simp [show p < inputEnd by omega, hc]
+  | succ n ih =>
+    intro p cs hcf
+    unfold ScannerState.peekAt?Loop
+    cases hcf with
+    | at_end _ hp => simp [show ¬ p < inputEnd by omega]
+    | cons _ hp c rest _ hrest => simp [show p < inputEnd by omega, ih _ rest hrest]
+
+/-- `peekAt? n` reads the `n`-th surface character. -/
+lemma peekAt_of_corr {sc : ScannerState} {sp : SurfPos} (hcorr : ScannerSurfCorr sc sp) (n : Nat) :
+    sc.peekAt? n = sp.chars[n]? := by
+  unfold ScannerState.peekAt?
+  exact peekAtLoop_chars hcorr.end_eq n sc.offset sp.chars hcorr.chars_from
+
+/-- A document marker as the scanner reads it: `---`/`...` then EOF or a blank. -/
+def DocMarkerAt (sp : SurfPos) : Prop :=
+  ∃ m r, (m = '-' ∨ m = '.') ∧ sp.chars = m :: m :: m :: r ∧
+    (∀ c, r.head? = some c → isBlankBool c = true)
+
+lemma atDocumentBoundary_true_of_marker {sc : ScannerState} {sp : SurfPos}
+    (hcorr : ScannerSurfCorr sc sp) (hm : DocMarkerAt sp) (h0 : sp.col = 0) :
+    atDocumentBoundary sc = true := by
+  obtain ⟨m, r, hm, hchars, hr⟩ := hm
+  have hcol : (sc.col == 0) = true := by
+    have := hcorr.col_eq; simp; omega
+  have hp := fun n => peekAt_of_corr hcorr n
+  simp only [hchars] at hp
+  have h3 : (match sc.peekAt? 3 with | none => true | some c => isBlankBool c) = true := by
+    rw [hp 3]
+    cases r with
+    | nil => rfl
+    | cons c t => exact hr c rfl
+  rcases hm with rfl | rfl
+  · simp [atDocumentBoundary, atDocumentStart, hcol, hp 0, hp 1, hp 2]; exact Or.inl h3
+  · simp [atDocumentBoundary, atDocumentEnd, hcol, hp 0, hp 1, hp 2]; exact Or.inr h3
+
+/-- A document marker on the continuation line: the block fold refuses. -/
+lemma handleBlockLineBreak_refuses_marker (sc : ScannerState) {n : Nat}
+    {sp sp₁ sp₂ : SurfPos} (content : String) (contentIndent : Nat)
+    (hb : SBBreakOk sp sp₁) (hblank : GStar (SLEmptyOk n) sp₁ sp₂) (hm : DocMarkerAt sp₂)
+    (hcorr : ScannerSurfCorr sc sp) (hfloor : (n : Int) > sc.currentIndent) :
+    collectPlainScalar_handleBlockLineBreak sc content contentIndent sc.inputEnd = none := by
+  obtain ⟨h1, k1⟩ := consumeNewline_accepts sc hb hcorr
+  have hfuel := fuel_of_corr h1
+  have hhead : ∀ c, sp₂.chars.head? = some c → c = '-' ∨ c = '.' := by
+    obtain ⟨m, r, hm, hchars, _⟩ := hm
+    intro c hc; rw [hchars] at hc; simp at hc; subst hc; exact hm
+  have hsp : sp₂.chars.head? ≠ some ' ' := fun h => by
+    rcases hhead _ h with h | h <;> simp at h
+  have htab : sp₂.chars.head? ≠ some '\t' := fun h => by
+    rcases hhead _ h with h | h <;> simp at h
+  have hnb : ∀ c, sp₂.chars.head? = some c → isLineBreakBool c = false := fun c h => by
+    rcases hhead c h with rfl | rfl <;> rfl
+  obtain ⟨sc₂, k, hloop, h2, _⟩ := skipBlankLinesLoop_accepts hblank (consumeNewline sc) 0
+    (sc.inputEnd - (consumeNewline sc).offset + 1) sc.inputEnd sp₂ h1
+    (by rw [k1.currentIndent]; exact hfloor) (GStar.nil _) hsp htab hnb
+    (by rw [← k1.2.1]; exact hfuel)
+  have h3 := (skipSpaces_accepts sc₂ (SIndent.zero sp₂) h2 hsp).1
+  have hc₂ : sp₂.col = 0 := GStar_SLEmptyOk_col hblank hb.col_zero
+  have hdb := atDocumentBoundary_true_of_marker h3 hm hc₂
+  unfold collectPlainScalar_handleBlockLineBreak
+  by_cases hlt : (skipSpaces sc₂).col < contentIndent
+  · simp only [hloop, Nat.zero_add, hlt, ite_true]
+  · simp only [hloop, Nat.zero_add, hlt, ite_false, hdb, ite_true]
+
+/-- Block-context stop at a break: the scanner tries the fold and rolls back to the break,
+    either refusing an under-indented continuation or folding into a line that adds no
+    content (`#`, EOF, `: `, an unsafe character), or refusing a document marker. -/
+inductive PlainBreakStopOk (n contentIndent : Nat) : SurfPos → Prop where
+  | underIndent (s s₁ s₂ s₃ s₄ : SurfPos) (m : Nat) :
+      SBBreakOk s s₁ → GStar (SLEmptyOk n) s₁ s₂ → SIndent m s₂ s₃ →
+      s₃.chars.head? ≠ some ' ' → GStar SSWhite s₃ s₄ →
+      s₄.chars.head? ≠ some ' ' → s₄.chars.head? ≠ some '\t' →
+      (∀ c, s₄.chars.head? = some c → isLineBreakBool c = false) →
+      m < contentIndent → PlainBreakStopOk n contentIndent s
+  | noContent (s s₁ s₂ s₃ : SurfPos) :
+      SBBreakOk s s₁ → GStar (SLEmptyOk n) s₁ s₂ → SFlowLinePrefix n s₂ s₃ →
+      s₃.chars.head? ≠ some ' ' → s₃.chars.head? ≠ some '\t' →
+      (∀ c, s₃.chars.head? = some c → isLineBreakBool c = false) →
+      NotDocMarker s₃ →
+      (s₃.chars.head? = some '#' ∨ PlainStopOk false false s₃.chars) →
+      PlainBreakStopOk n contentIndent s
+  | docMarker (s s₁ s₂ : SurfPos) :
+      SBBreakOk s s₁ → GStar (SLEmptyOk n) s₁ s₂ → DocMarkerAt s₂ →
+      PlainBreakStopOk n contentIndent s
+
+lemma collectPlainScalarLoop_breakStop (sc : ScannerState) {n contentIndent : Nat} {sp : SurfPos}
+    (hcorr : ScannerSurfCorr sc sp) (h : PlainBreakStopOk n contentIndent sp)
+    (hfloor : (n : Int) > sc.currentIndent) (hci : contentIndent ≤ n) :
+    ∀ fuel content spaces,
+      collectPlainScalarLoop sc content spaces (fuel + 1) false contentIndent sc.inputEnd =
+        .ok { content, spaces, state := sc, terminated := true } := by
+  intro fuel content spaces
+  cases h with
+  | underIndent s₁ s₂ s₃ s₄ m hb hblank hind hmax hw hsp htab hnb hm =>
+    obtain ⟨c, hpeek, hlb, hterm⟩ := break_peek_term hb hcorr false
+    have hr := handleBlockLineBreak_refuses sc content contentIndent hb hblank hind hmax hw
+      hsp htab hnb hcorr hfloor hm
+    simp only [collectPlainScalarLoop, hpeek, hterm, hlb, ite_true, Bool.false_eq_true,
+      ite_false, hr]
+  | docMarker s₁ s₂ hb hblank hm =>
+    obtain ⟨c, hpeek, hlb, hterm⟩ := break_peek_term hb hcorr false
+    have hr := handleBlockLineBreak_refuses_marker sc content contentIndent hb hblank hm hcorr hfloor
+    simp only [collectPlainScalarLoop, hpeek, hterm, hlb, ite_true, Bool.false_eq_true,
+      ite_false, hr]
+  | noContent s₁ s₂ s₃ hb hblank hpre hsp htab hnb hdoc hcase =>
+    obtain ⟨c, hpeek, hlb, hterm⟩ := break_peek_term hb hcorr false
+    obtain ⟨k, s', hblk, hcorr', _⟩ :=
+      handleBlockLineBreak_accepts sc content contentIndent hb hblank hpre hcorr hfloor hsp htab
+        hnb hci hdoc
+    simp only [collectPlainScalarLoop, hpeek, hterm, hlb, ite_true, Bool.false_eq_true,
+      ite_false, hblk]
+    rcases hcase with hh | hst
+    · have hpk : s'.peek? = some '#' := by
+        obtain ⟨cs, col⟩ := s₃
+        cases cs with
+        | nil => simp at hh
+        | cons d tl => simp at hh; subst hh; exact (peek_of_corr hcorr').1
+      simp [hpk]
+    · split
+      · rfl
+      · cases fuel with
+        | zero => simp [collectPlainScalarLoop]
+        | succ f =>
+          rw [collectPlainScalarLoop_stops s' _ "" f false _ _ hcorr' hst
+            (fun h => Bool.noConfusion h)]
+          simp
+
+/-- Flow-context fold step at a break: `foldQuotedNewlines` lands at the `[134]` continuation
+    (clearing the floor, so no `underIndentedScalar`), which must not start with `#` and whose
+    loop result must add content, else the scanner rolls back to the break. -/
+lemma collectPlainScalarLoop_flowFold_step (sc : ScannerState) {n : Nat}
+    {sp sp₁ sp₂ sp' : SurfPos} (content spaces : String) (contentIndent fuel ie : Nat)
+    (hb : SBBreakOk sp sp₁) (hblank : GStar (SLEmptyOk n) sp₁ sp₂)
+    (hpre : SFlowLinePrefix n sp₂ sp')
+    (hcorr : ScannerSurfCorr sc sp) (hfloor : (n : Int) > sc.currentIndent)
+    (hsp : sp'.chars.head? ≠ some ' ') (htab : sp'.chars.head? ≠ some '\t')
+    (hnb : ∀ c, sp'.chars.head? = some c → isLineBreakBool c = false)
+    (hhash : sp'.chars.head? ≠ some '#') :
+    ∃ folded s', ScannerSurfCorr s' sp' ∧ Keeps sc s' ∧
+      ∀ result,
+        collectPlainScalarLoop s' (content ++ folded) "" fuel true contentIndent ie =
+          .ok result →
+        result.content.length > (content ++ folded).length →
+        collectPlainScalarLoop sc content spaces (fuel + 1) true contentIndent ie =
+          .ok result := by
+  obtain ⟨folded, s', hfold, hcorr', hk⟩ :=
+    foldQuotedNewlines_accepts sc hb hblank hpre hcorr hfloor hsp htab hnb
+  refine ⟨folded, s', hcorr', hk, fun result hloop hlen => ?_⟩
+  obtain ⟨c, hpeek, hlb, hterm⟩ := break_peek_term hb hcorr true
+  have hgate : (decide (s'.currentIndent ≥ 0) && decide ((s'.col : Int) ≤ s'.currentIndent))
+      = false := by
+    have h1 := hcorr'.col_eq
+    have h2 := flowLinePrefix_col hpre
+    have h4 := hk.currentIndent
+    refine Bool.and_eq_false_iff.mpr (Or.inr ?_)
+    rw [decide_eq_false_iff_not]; omega
+  have hnotLe : ¬ (result.content.length ≤ (content ++ folded).length) := by omega
+  simp only [collectPlainScalarLoop, hpeek, hterm, hlb, ite_true, hfold, bind, Except.bind]
+  obtain ⟨chars, col⟩ := sp'
+  cases chars with
+  | nil =>
+    simp only [peek_none_of_corr hcorr', hgate, Bool.false_eq_true, ite_false, hloop, hnotLe]
+  | cons d tl =>
+    have hpk := (peek_of_corr hcorr').1
+    have hd : d ≠ '#' := by intro h; subst h; exact hhash rfl
+    simp only [hpk]
+    split
+    · rename_i heq; exact absurd (Option.some.inj heq) hd
+    · simp only [hgate, Bool.false_eq_true, ite_false, hloop, hnotLe]
+
+/-- Flow-context stop at a break: the fold lands on a line that adds no content (`#`, a flow
+    indicator, EOF, `: `, an unsafe character, or a document marker at column 0), so the scanner
+    rolls back to the break.  Under-indentation is a hard `underIndentedScalar` error in flow
+    context (`"a\nb"` under indent 0), hence no refusal arm. -/
+inductive PlainFlowBreakStopOk (n : Nat) : SurfPos → Prop where
+  | noContent (s s₁ s₂ s₃ : SurfPos) :
+      SBBreakOk s s₁ → GStar (SLEmptyOk n) s₁ s₂ → SFlowLinePrefix n s₂ s₃ →
+      s₃.chars.head? ≠ some ' ' → s₃.chars.head? ≠ some '\t' →
+      (∀ c, s₃.chars.head? = some c → isLineBreakBool c = false) →
+      (s₃.chars.head? = some '#' ∨ PlainStopOk true false s₃.chars ∨
+        (s₃.col = 0 ∧ DocMarkerAt s₃)) →
+      PlainFlowBreakStopOk n s
+
+/-- At a column-0 document marker the plain loop stops where it stands. -/
+lemma terminates_at_marker {sc : ScannerState} {sp : SurfPos} (hcorr : ScannerSurfCorr sc sp)
+    (hm : DocMarkerAt sp) (h0 : sp.col = 0) (content spaces : String) (inFlow : Bool) :
+    ∃ m, sc.peek? = some m ∧ collectPlainScalar_terminates? m sc content spaces inFlow =
+      some { content, spaces, state := sc, terminated := true } := by
+  have hdb := atDocumentBoundary_true_of_marker hcorr hm h0
+  have hc0 : sc.col = 0 := by have := hcorr.col_eq; omega
+  obtain ⟨m, r, hm, hchars, _⟩ := hm
+  obtain ⟨cs, col⟩ := sp
+  simp only at hchars; subst hchars
+  refine ⟨m, (peek_of_corr hcorr).1, ?_⟩
+  rcases hm with rfl | rfl <;> simp [collectPlainScalar_terminates?, hdb, hc0]
+
+lemma collectPlainScalarLoop_flowBreakStop (sc : ScannerState) {n contentIndent : Nat}
+    {sp : SurfPos} (ie : Nat)
+    (hcorr : ScannerSurfCorr sc sp) (h : PlainFlowBreakStopOk n sp)
+    (hfloor : (n : Int) > sc.currentIndent) :
+    ∀ fuel content spaces,
+      collectPlainScalarLoop sc content spaces (fuel + 1) true contentIndent ie =
+        .ok { content, spaces, state := sc, terminated := true } := by
+  intro fuel content spaces
+  cases h with
+  | noContent s₁ s₂ s₃ hb hblank hpre hsp htab hnb hcase =>
+    obtain ⟨c, hpeek, hlb, hterm⟩ := break_peek_term hb hcorr true
+    obtain ⟨folded, s', hfold, hcorr', hk⟩ :=
+      foldQuotedNewlines_accepts sc hb hblank hpre hcorr hfloor hsp htab hnb
+    have hgate : (decide (s'.currentIndent ≥ 0) && decide ((s'.col : Int) ≤ s'.currentIndent))
+        = false := by
+      have h1 := hcorr'.col_eq
+      have h2 := flowLinePrefix_col hpre
+      have h4 := hk.currentIndent
+      refine Bool.and_eq_false_iff.mpr (Or.inr ?_)
+      rw [decide_eq_false_iff_not]; omega
+    simp only [collectPlainScalarLoop, hpeek, hterm, hlb, ite_true, hfold, bind, Except.bind]
+    rcases hcase with hh | hst | hm
+    · have hpk : s'.peek? = some '#' := by
+        obtain ⟨cs, col⟩ := s₃
+        cases cs with
+        | nil => simp at hh
+        | cons d tl => simp at hh; subst hh; exact (peek_of_corr hcorr').1
+      simp [hpk]
+    · split
+      · rfl
+      · simp only [hgate, Bool.false_eq_true, ite_false]
+        cases fuel with
+        | zero => simp [collectPlainScalarLoop]
+        | succ f =>
+          rw [collectPlainScalarLoop_stops s' _ "" f true _ _ hcorr' hst
+            (fun h => Bool.noConfusion h)]
+          simp
+    · obtain ⟨h0, hm⟩ := hm
+      obtain ⟨m, hpk, hstop⟩ := terminates_at_marker hcorr' hm h0 (content ++ folded) "" true
+      split
+      · rfl
+      · simp only [hgate, Bool.false_eq_true, ite_false]
+        cases fuel with
+        | zero => simp [collectPlainScalarLoop]
+        | succ f =>
+          simp [collectPlainScalarLoop, hpk, hstop]
+
+/-- Continuation lines in either context: fold each `PlainNextLineOk inFlow n` line, then the
+    trailing white run and the stop (in-line, or a break the scanner rolls back to).  The
+    content only grows, so no fold rolls back. -/
+lemma collectPlainScalarLoop_nextLines {inFlow : Bool} {n : Nat} {sp sp' : SurfPos}
+    (hnext : GStar (PlainNextLineOk inFlow n) sp sp') :
     ∀ (sc : ScannerState) (content : String) (contentIndent fuel ie : Nat) (sp'' : SurfPos)
       (hadWhite : Bool),
       ScannerSurfCorr sc sp → sc.inputEnd = ie → (n : Int) > sc.currentIndent →
-      contentIndent ≤ n → sp.col > 0 →
-      GStar SSWhite sp' sp'' → PlainStopOk false hadWhite sp''.chars →
+      (inFlow = false → contentIndent ≤ n) → sp.col > 0 →
+      GStar SSWhite sp' sp'' →
+      (PlainStopOk inFlow hadWhite sp''.chars ∨
+        (inFlow = false ∧ PlainBreakStopOk n contentIndent sp'') ∨
+        (inFlow = true ∧ PlainFlowBreakStopOk n sp'')) →
       (hadWhite = true → sp''.chars.length < sp'.chars.length) →
       sp.chars.length < fuel →
       ∃ result,
-        collectPlainScalarLoop sc content "" fuel false contentIndent ie = .ok result ∧
+        collectPlainScalarLoop sc content "" fuel inFlow contentIndent ie = .ok result ∧
         ScannerSurfCorr result.state sp'' ∧ Keeps sc result.state ∧
         content.length ≤ result.content.length := by
   induction hnext with
   | nil s =>
-    intro sc content ci fuel ie sp'' hw hcorr _ _ _ hcol hwhite hstop hhw hfuel
+    intro sc content ci fuel ie sp'' hw hcorr hie hfloor hci hcol hwhite hstop hhw hfuel
     obtain ⟨sc₃, spaces₃, k₃, heq₃, hc₃, hk₃, hl₃, hs₃⟩ :=
-      collectPlainScalarLoop_whites hwhite sc content "" false ci ie hcorr hcol
-    have hsp : hw = true → spaces₃.length > 0 := fun h => by
-      have := hhw h; simp at hs₃; omega
+      collectPlainScalarLoop_whites hwhite sc content "" inFlow ci ie hcorr hcol
     obtain ⟨f, hF⟩ : ∃ f, fuel = (f + 1) + k₃ := ⟨fuel - k₃ - 1, by omega⟩
     refine ⟨{ content, spaces := spaces₃, state := sc₃, terminated := true }, ?_, hc₃, hk₃,
       Nat.le_refl _⟩
     rw [hF, heq₃]
-    exact collectPlainScalarLoop_stops sc₃ content spaces₃ f false ci ie hc₃ hstop hsp
+    have hfloor₃ : (n : Int) > sc₃.currentIndent := by rw [hk₃.currentIndent]; exact hfloor
+    rcases hstop with hstop | ⟨hf, hbrk⟩ | ⟨hf, hbrk⟩
+    · have hsp : hw = true → spaces₃.length > 0 := fun h => by
+        have := hhw h; simp at hs₃; omega
+      exact collectPlainScalarLoop_stops sc₃ content spaces₃ f inFlow ci ie hc₃ hstop hsp
+    · subst hf
+      have hie' : ie = sc₃.inputEnd := by rw [← hie, hk₃.2.1]
+      subst hie'
+      exact collectPlainScalarLoop_breakStop sc₃ hc₃ hbrk hfloor₃ (hci rfl) f content spaces₃
+    · subst hf
+      exact collectPlainScalarLoop_flowBreakStop sc₃ ie hc₃ hbrk hfloor₃ f content spaces₃
   | cons s₁ s₂ s₃ hstep _ ih =>
     intro sc content ci fuel ie sp'' hw hcorr hie hfloor hci hcol hwhite hstop hhw hfuel
     obtain ⟨_, s_ws, t₁, t₂, t₃, t₄, hws, hb, hblank, hpre, hhash, hdoc, hch, hent⟩ := hstep
     obtain ⟨scw, spaces', kw, heqw, hcw, hkw, hlw, _⟩ :=
-      collectPlainScalarLoop_whites hws sc content "" false ci ie hcorr hcol
+      collectPlainScalarLoop_whites hws sc content "" inFlow ci ie hcorr hcol
     obtain ⟨hsp, htab, hnb⟩ := hch.landing_ok hhash
     have hl₁ := hb.length_lt
     have hl₂ := GStar_SLEmptyOk_length hblank
     have hl₃ := flowLinePrefix_length hpre
     obtain ⟨hl₄, hcol₄⟩ := hch.len_col
-    obtain ⟨k, s', hc', hk', hstepF⟩ :=
-      collectPlainScalarLoop_blockFold_step scw content spaces' ci (fuel - kw - 1) hb hblank hpre
-        hcw (by rw [hkw.currentIndent]; exact hfloor) hsp htab hnb hhash hci hdoc
-    rw [hkw.2.1, hie] at hstepF
+    have hfold : ∃ folded s', ScannerSurfCorr s' t₂ ∧ Keeps scw s' ∧
+        ∀ result,
+          collectPlainScalarLoop s' (content ++ folded) "" (fuel - kw - 1) inFlow ci ie =
+            .ok result →
+          result.content.length > (content ++ folded).length →
+          collectPlainScalarLoop scw content spaces' (fuel - kw - 1 + 1) inFlow ci ie =
+            .ok result := by
+      cases inFlow with
+      | false =>
+        obtain ⟨k, s', hc', hk', hstepF⟩ :=
+          collectPlainScalarLoop_blockFold_step scw content spaces' ci (fuel - kw - 1) hb hblank
+            hpre hcw (by rw [hkw.currentIndent]; exact hfloor) hsp htab hnb hhash (hci rfl) hdoc
+        rw [hkw.2.1, hie] at hstepF
+        exact ⟨_, s', hc', hk', hstepF⟩
+      | true =>
+        obtain ⟨folded, s', hc', hk', hstepF⟩ :=
+          collectPlainScalarLoop_flowFold_step scw content spaces' ci (fuel - kw - 1) ie hb hblank
+            hpre hcw (by rw [hkw.currentIndent]; exact hfloor) hsp htab hnb hhash
+        exact ⟨folded, s', hc', hk', hstepF⟩
+    obtain ⟨folded, s', hc', hk', hstepF⟩ := hfold
     obtain ⟨c, heqc, hcc, hkc⟩ :=
       collectPlainScalarLoop_char_step s' _ "" ci ie hch hc'
         (fun _ => atDocumentBoundary_false_of_corr hc' hdoc) (fun _ => rfl)
@@ -684,13 +1022,10 @@ lemma collectPlainScalarLoop_nextLines {n : Nat} {sp sp' : SurfPos}
         (by rw [hk₂.2.1, hkc.2.1, hk'.2.1, hkw.2.1, hie])
         (by rw [((hkw.trans hk').trans (hkc.trans hk₂)).currentIndent]; exact hfloor)
         hci (by omega) hwhite hstop hhw (by omega)
-    have hX : (content ++ (if k > 0 then String.ofList (List.replicate k '\n') else " ") ++ ""
-        ++ String.singleton c).length =
-        (content ++ (if k > 0 then String.ofList (List.replicate k '\n') else " ")).length + 1 := by
+    have hX : (content ++ folded ++ "" ++ String.singleton c).length =
+        (content ++ folded).length + 1 := by
       simp [String.length_append]
-    have hcf : content.length ≤
-        (content ++ (if k > 0 then String.ofList (List.replicate k '\n') else " ")).length := by
-      simp [String.length_append]
+    have hcf : content.length ≤ (content ++ folded).length := by simp [String.length_append]
     rw [hX] at hlen₂
     refine ⟨result, ?_, hcr, (((hkw.trans hk').trans hkc).trans hk₂).trans hkr, by omega⟩
     rw [show fuel = (fuel - kw - 1 + 1) + kw by omega, heqw]
@@ -698,44 +1033,59 @@ lemma collectPlainScalarLoop_nextLines {n : Nat} {sp sp' : SurfPos}
     · rw [show fuel - kw - 1 = (fuel - kw - 2 - k₂ + k₂) + 1 by omega, heqc, heq₂]; exact hloop
     · omega
 
-/-- Multi-line (block context) plain-scalar converse, `[135]` narrowed: a `PlainOneLineOk`
-    first line, `PlainNextLineOk n` continuation lines, the trailing white run and a
-    `PlainStopOk` stop.  `hfloor`/`hci`: the continuation floor `n` clears the current indent
-    and the scanner's content indent (`"a\n b"` under indent 1 refutes the converse). -/
+/-- Multi-line plain-scalar converse, `[135]` narrowed, both contexts: a `PlainOneLineOk` first
+    line, `PlainNextLineOk` continuation lines, the trailing white run, then an in-line
+    `PlainStopOk` stop or a break the scanner rolls back to (`PlainBreakStopOk` in block context,
+    `PlainFlowBreakStopOk` in flow context).  `hfloor`/`hci`: the continuation floor `n` clears
+    the current indent and, in block context, the scanner's content indent (`"a\n b"` under
+    indent 1 refutes the converse; in flow context it is a hard `underIndentedScalar`). -/
 lemma scanPlainScalar_accepts_multi (sc : ScannerState) {n : Nat} {sp sp₁ sp' sp'' : SurfPos}
     {hadWhite : Bool}
-    (hcorr : ScannerSurfCorr sc sp) (hflow : sc.inFlow = false)
-    (hder : PlainOneLineOk false sp sp₁)
-    (hnext : GStar (PlainNextLineOk n) sp₁ sp')
+    (hcorr : ScannerSurfCorr sc sp)
+    (hder : PlainOneLineOk sc.inFlow sp sp₁)
+    (hnext : GStar (PlainNextLineOk sc.inFlow n) sp₁ sp')
     (hwhite : GStar SSWhite sp' sp'')
-    (hstop : PlainStopOk false hadWhite sp''.chars)
+    (hstop : PlainStopOk sc.inFlow hadWhite sp''.chars ∨
+      (sc.inFlow = false ∧ PlainBreakStopOk n (max 0 (sc.currentIndent + 1)).toNat sp'') ∨
+      (sc.inFlow = true ∧ PlainFlowBreakStopOk n sp''))
     (hhw : hadWhite = true → sp''.chars.length < sp'.chars.length)
     (hdoc : sc.col = 0 → atDocumentBoundary sc = false)
-    (hfloor : (n : Int) > sc.currentIndent) (hci : (max 0 (sc.currentIndent + 1)).toNat ≤ n) :
+    (hfloor : (n : Int) > sc.currentIndent)
+    (hci : sc.inFlow = false → (max 0 (sc.currentIndent + 1)).toNat ≤ n) :
     ∃ s' content, scanPlainScalar sc = .ok s' ∧ ScannerSurfCorr s' sp'' ∧
       s'.tokens = sc.tokens.push { pos := sc.currentPos, val := .scalar content .plain } := by
-  have ⟨s₁, hf, hstar⟩ : ∃ s₁, PlainFirstOk false sp s₁ ∧ GStar (PlainEntryOk false) s₁ sp₁ :=
+  have ⟨s₁, hf, hstar⟩ : ∃ s₁, PlainFirstOk sc.inFlow sp s₁ ∧
+      GStar (PlainEntryOk sc.inFlow) s₁ sp₁ :=
     match sp, sp₁, hder with
     | _, _, .mk _ s₁ _ hf hstar => ⟨s₁, hf, hstar⟩
   have hfuel := fuel_of_corr hcorr
   obtain ⟨hl₁, hcol₁⟩ := hf.len_col
   obtain ⟨c, heq₁, hc₁, hk₁⟩ :=
-    collectPlainScalarLoop_first_step sc (inFlow := false) (sp := sp) (sp' := s₁)
-      (max 0 (sc.currentIndent + 1)).toNat sc.inputEnd hf hcorr hdoc
+    collectPlainScalarLoop_first_step sc (inFlow := sc.inFlow) (sp := sp) (sp' := s₁)
+      (if sc.inFlow then sc.col else (max 0 (sc.currentIndent + 1)).toNat) sc.inputEnd hf hcorr hdoc
   obtain ⟨sc₂, content₂, k₂, heq₂, hc₂, hk₂, hl₂, hcl₂, _⟩ :=
     collectPlainScalarLoop_entries hstar sc.advance (String.singleton c)
-      (max 0 (sc.currentIndent + 1)).toNat sc.inputEnd hc₁ (by omega)
+      (if sc.inFlow then sc.col else (max 0 (sc.currentIndent + 1)).toNat) sc.inputEnd hc₁
+      (by omega)
+  have hstop' : PlainStopOk sc.inFlow hadWhite sp''.chars ∨
+      (sc.inFlow = false ∧ PlainBreakStopOk n
+        (if sc.inFlow then sc.col else (max 0 (sc.currentIndent + 1)).toNat) sp'') ∨
+      (sc.inFlow = true ∧ PlainFlowBreakStopOk n sp'') := by
+    rcases hstop with h | ⟨hf, h⟩ | h
+    · exact Or.inl h
+    · exact Or.inr (Or.inl ⟨hf, by rw [hf]; simpa using h⟩)
+    · exact Or.inr (Or.inr h)
   obtain ⟨⟨rc, rs, rst, rt⟩, hloop₃, hcr, hkr, _⟩ :=
-    collectPlainScalarLoop_nextLines hnext sc₂ content₂ (max 0 (sc.currentIndent + 1)).toNat
+    collectPlainScalarLoop_nextLines hnext sc₂ content₂
+      (if sc.inFlow then sc.col else (max 0 (sc.currentIndent + 1)).toNat)
       ((sc.inputEnd - sc.offset + 1) * 2 - (k₂ + 1)) sc.inputEnd sp'' hadWhite hc₂
-      (hk₁.trans hk₂).2.1 (by rw [(hk₁.trans hk₂).currentIndent]; exact hfloor) hci (by omega)
-      hwhite hstop hhw (by omega)
+      (hk₁.trans hk₂).2.1 (by rw [(hk₁.trans hk₂).currentIndent]; exact hfloor)
+      (fun hf => by rw [hf]; simpa using hci hf) (by omega) hwhite hstop' hhw (by omega)
   simp only at hcr hkr
   have hk := hk₁.trans (hk₂.trans hkr)
   have hloop : collectPlainScalarLoop sc "" "" ((sc.inputEnd - sc.offset + 1) * 2)
       sc.inFlow (if sc.inFlow then sc.col else (max 0 (sc.currentIndent + 1)).toNat) sc.inputEnd =
       .ok { content := rc, spaces := rs, state := rst, terminated := rt } := by
-    simp only [hflow, Bool.false_eq_true, ite_false]
     rw [show (sc.inputEnd - sc.offset + 1) * 2 =
       (((sc.inputEnd - sc.offset + 1) * 2 - (k₂ + 1)) + k₂) + 1 by omega, heq₁, heq₂]
     exact hloop₃
@@ -747,8 +1097,8 @@ lemma scanPlainScalar_accepts_multi (sc : ScannerState) {n : Nat} {sp sp₁ sp' 
   · simp [ScannerState.emitAt, hk.1]
 
 /-- `PlainNextLineOk n` is a sub-relation of `[134] s-ns-plain-next-line(n,BLOCK)`. -/
-lemma PlainNextLineOk.toSSNsPlainNextLine {n : Nat} {s s' : SurfPos}
-    (h : PlainNextLineOk n s s') : SSNsPlainNextLine n (ctxOfInFlow false) s s' :=
+lemma PlainNextLineOk.toSSNsPlainNextLine {inFlow : Bool} {n : Nat} {s s' : SurfPos}
+    (h : PlainNextLineOk inFlow n s s') : SSNsPlainNextLine n (ctxOfInFlow inFlow) s s' :=
   match s, s', h with
   | _, _, .mk s s_ws s₁ s₂ s₃ s₄ s' hws hb hblank hpre _ _ hch hent =>
     SSNsPlainNextLine.mk n _ s s_ws s₁ s₂ s₃ s' hws hb.toSBBreak
@@ -757,9 +1107,9 @@ lemma PlainNextLineOk.toSSNsPlainNextLine {n : Nat} {s s' : SurfPos}
         (GStar.imp' (fun _ _ he => he.toEntry) hent))
 
 /-- The hypotheses of `scanPlainScalar_accepts_multi` derive `[135] ns-plain-multi-line`. -/
-lemma toSNsPlainMultiLine {n : Nat} {s s₁ s' : SurfPos}
-    (h₁ : PlainOneLineOk false s s₁) (h₂ : GStar (PlainNextLineOk n) s₁ s') :
-    SNsPlainMultiLine n (ctxOfInFlow false) s s' :=
+lemma toSNsPlainMultiLine {inFlow : Bool} {n : Nat} {s s₁ s' : SurfPos}
+    (h₁ : PlainOneLineOk inFlow s s₁) (h₂ : GStar (PlainNextLineOk inFlow n) s₁ s') :
+    SNsPlainMultiLine n (ctxOfInFlow inFlow) s s' :=
   SNsPlainMultiLine.mk n _ s s₁ s' h₁.toSNsPlainOneLine
     (GStar.imp' (fun _ _ he => he.toSSNsPlainNextLine) h₂)
 

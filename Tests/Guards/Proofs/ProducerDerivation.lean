@@ -235,9 +235,13 @@ def readDecl (n : Name) : MetaM Readings := do
 
     489 → 496 on 2026-10-23: `Acceptance/Plain.lean` multi-line layer — blank-line loop,
     block fold, fold step, continuation loop, `scanPlainScalar_accepts_multi` and two
-    document-marker bridges, each taking a correspondence (Stream E). -/
+    document-marker bridges, each taking a correspondence (Stream E).
+
+    496 → 505 on 2026-10-23: `Acceptance/Plain.lean` break-terminated stop and flow fold —
+    `peekAt_of_corr`, the two fold refusals, the marker bridge, `break_peek_term`, the block and
+    flow break stops, `collectPlainScalarLoop_flowFold_step`, `terminates_at_marker` (Stream E). -/
 def expectedCensus : String :=
-  "corrHyp=496 streamConcl=90 both=40 free=0 pairConcl=1 held=3 pairAny=8"
+  "corrHyp=505 streamConcl=90 both=40 free=0 pairConcl=1 held=3 pairAny=8"
 
 /-- The one conclusion that pairs them, and it is the stream's origin. -/
 def expectedSeedConcl : List Name :=
