@@ -28,8 +28,10 @@ Item 338's `Sound` ties the register to the innermost marked slot of
 * `QuestionEntry input sp_start c sp_q` — the informative side of the
   `?`-entry pack, keyed by the `?`'s column: `sp_q` stands at `c`, reads `?`,
   and every `[186]` entry it opens closes the stream.
-* `SlotWitness sc sp_start i` — a marked slot `pendingKeys[i] = some l` at
-  column `indentColumns[i] = c` has a `QuestionEntry` at `c`.
+* `SlotWitness input sc sp_start i` — a marked slot `pendingKeys[i] = some l` at
+  column `indentColumns[i] = c` has a `QuestionEntry` at `c` in `input` — the
+  stream's constant, taken as a parameter rather than read off `sc.input` so no
+  writer owes an input-preservation lemma (item 343).
 * `RegWitness sc sp_start` — outside flow, a live register `(some l, c)` has a
   `QuestionEntry` at `c`; `regWitness_of_slots` derives it from `RegOk` and
   the slot witnesses (`innermost_some_mem`), so the writers carry the slots.
@@ -68,24 +70,24 @@ def QuestionEntry (input : String) (sp_start : SurfPos) (c : Nat) (sp_q : SurfPo
   ∀ sp_v : SurfPos, SBlockMapEntry c sp_q sp_v → SLYamlStream sp_start sp_v
 
 /-- A marked slot names a `?` at its level's column. -/
-def SlotWitness (sc : ScannerState) (sp_start : SurfPos) (i : Nat) : Prop :=
+def SlotWitness (input : String) (sc : ScannerState) (sp_start : SurfPos) (i : Nat) : Prop :=
   ∀ l : Nat, sc.pendingKeys[i]? = some (some l) →
     ∃ (c : Nat) (sp_q : SurfPos), sc.indentColumns[i]? = some (c : Int) ∧
-      QuestionEntry sc.input sp_start c sp_q
+      QuestionEntry input sp_start c sp_q
 
 /-- Every marked slot names a `?`. -/
-def SlotsWitness (sc : ScannerState) (sp_start : SurfPos) : Prop :=
-  ∀ i : Nat, SlotWitness sc sp_start i
+def SlotsWitness (input : String) (sc : ScannerState) (sp_start : SurfPos) : Prop :=
+  ∀ i : Nat, SlotWitness input sc sp_start i
 
 /-- Outside flow, a live register names a `?` at its column. -/
-def RegWitness (sc : ScannerState) (sp_start : SurfPos) : Prop :=
+def RegWitness (input : String) (sc : ScannerState) (sp_start : SurfPos) : Prop :=
   sc.flowLevel = 0 → ∀ (l : Nat) (c : Int),
     sc.explicitKeyLine = some l → sc.explicitKeyCol = c →
-    ∃ (cn : Nat) (sp_q : SurfPos), c = (cn : Int) ∧ QuestionEntry sc.input sp_start cn sp_q
+    ∃ (cn : Nat) (sp_q : SurfPos), c = (cn : Int) ∧ QuestionEntry input sp_start cn sp_q
 
 /-- The register's witness is the innermost marked slot's (`RegOk`). -/
-lemma regWitness_of_slots {sc : ScannerState} {sp_start : SurfPos}
-    (hreg : RegOk sc) (hw : SlotsWitness sc sp_start) : RegWitness sc sp_start := by
+lemma regWitness_of_slots {input : String} {sc : ScannerState} {sp_start : SurfPos}
+    (hreg : RegOk sc) (hw : SlotsWitness input sc sp_start) : RegWitness input sc sp_start := by
   intro h0 l c hl hc
   have hinn : PendingKeys.innermost sc.indentColumns sc.pendingKeys = (some l, c) := by
     rw [← innermostPendingKey_eq, ← hreg h0, hl, hc]
@@ -95,15 +97,16 @@ lemma regWitness_of_slots {sc : ScannerState} {sp_start : SurfPos}
   rw [hcol] at hci
   simpa using hci.symm
 
-/-- Transport along a step that moves none of the three fields the witness reads. -/
-lemma SlotsWitness.transport {s s' : ScannerState} {sp_start : SurfPos}
-    (h : SlotsWitness s sp_start)
-    (hpk : s'.pendingKeys = s.pendingKeys) (hind : s'.indents = s.indents)
-    (hin : s'.input = s.input) : SlotsWitness s' sp_start := by
+/-- Transport along a step that moves neither field the witness reads.  (The input is the
+    stream's constant — a parameter, not a field — so no step has to preserve it.) -/
+lemma SlotsWitness.transport {input : String} {s s' : ScannerState} {sp_start : SurfPos}
+    (h : SlotsWitness input s sp_start)
+    (hpk : s'.pendingKeys = s.pendingKeys) (hind : s'.indents = s.indents) :
+    SlotsWitness input s' sp_start := by
   intro i l hi
   rw [hpk] at hi
   obtain ⟨c, sp_q, hc, hq⟩ := h i l hi
-  exact ⟨c, sp_q, by rw [ScannerState.indentColumns, hind]; exact hc, by rw [hin]; exact hq⟩
+  exact ⟨c, sp_q, by rw [ScannerState.indentColumns, hind]; exact hc, hq⟩
 
 /-! ## §2  The seed -/
 
@@ -141,8 +144,7 @@ lemma scanKey_witness {s s' : ScannerState} {sp sp_start : SurfPos}
     (hok : scanKey s = .ok s') (hs : SlotsOk s) (hbase : SentinelBase s)
     (hcol : s.currentIndent ≤ (s.col : Int)) (hpeek : s.peek? = some '?')
     (h_route : ∀ sp_v : SurfPos, SBlockMapEntry s.col sp sp_v → SLYamlStream sp_start sp_v)
-    (hw : SlotsWitness s sp_start) : SlotsWitness s' sp_start := by
-  have hin := scanKey_input hok
+    (hw : SlotsWitness s.input s sp_start) : SlotsWitness s.input s' sp_start := by
   have hind := L4YAML.Proofs.PreprocessIndentStable.scanKey_indents h_noflow hok
   have hpk := scanKey_pendingKeys h_noflow hok
   obtain ⟨pm, hpm⟩ : ∃ pm, pm = pushMappingIndent s (s.col : Int) := ⟨_, rfl⟩
@@ -175,7 +177,7 @@ lemma scanKey_witness {s s' : ScannerState} {sp sp_start : SurfPos}
     have : sp = ⟨'?' :: rest, sp.col⟩ := by cases sp; simp_all
     rw [this]; exact GLit.mk rest sp.col
   intro i l hi
-  rw [hin, hcols']
+  rw [hcols']
   rw [hpk, Array.set!_eq_setIfInBounds, Array.getElem?_setIfInBounds] at hi
   split at hi
   · rename_i heq
@@ -214,16 +216,17 @@ top slot goes, the slots below untouched), or a CLOSE (`PendingKeys.closeAt`: a 
 is kept or emptied, never re-marked).  Everything else is `SlotsWitness.transport`. -/
 
 /-- A pushed level's own slot is `none`; the slots below are the pre-state's. -/
-lemma SlotsWitness.push {s s' : ScannerState} {sp_start : SurfPos} (h : SlotsWitness s sp_start)
+lemma SlotsWitness.push {input : String} {s s' : ScannerState} {sp_start : SurfPos}
+    (h : SlotsWitness input s sp_start)
     (e : IndentEntry) (hind : s'.indents = s.indents.push e)
-    (hpk : s'.pendingKeys = s.pendingKeys.push none) (hin : s'.input = s.input)
-    (hsz : s.pendingKeys.size = s.indents.size) : SlotsWitness s' sp_start := by
+    (hpk : s'.pendingKeys = s.pendingKeys.push none)
+    (hsz : s.pendingKeys.size = s.indents.size) : SlotsWitness input s' sp_start := by
   intro i l hi
   rw [hpk, Array.getElem?_push] at hi
   split at hi
   · simp at hi
   · obtain ⟨c, sp_q, hc, hq⟩ := h i l hi
-    refine ⟨c, sp_q, ?_, by rw [hin]; exact hq⟩
+    refine ⟨c, sp_q, ?_, hq⟩
     rw [indentColumns_getElem?] at hc
     have hlt : i < s.indents.size := by
       rcases hx : s.indents[i]? with _ | e
@@ -233,70 +236,72 @@ lemma SlotsWitness.push {s s' : ScannerState} {sp_start : SurfPos} (h : SlotsWit
     exact hc
 
 /-- Popping the top level keeps every remaining slot's witness. -/
-lemma SlotsWitness.pop {s s' : ScannerState} {sp_start : SurfPos} (h : SlotsWitness s sp_start)
+lemma SlotsWitness.pop {input : String} {s s' : ScannerState} {sp_start : SurfPos}
+    (h : SlotsWitness input s sp_start)
     (hind : s'.indents = s.indents.pop) (hpk : s'.pendingKeys = s.pendingKeys.pop)
-    (hin : s'.input = s.input) (hsz : s.pendingKeys.size = s.indents.size) :
-    SlotsWitness s' sp_start := by
+    (hsz : s.pendingKeys.size = s.indents.size) :
+    SlotsWitness input s' sp_start := by
   intro i l hi
   rw [hpk, Array.getElem?_pop] at hi
   split at hi
   · obtain ⟨c, sp_q, hc, hq⟩ := h i l hi
-    refine ⟨c, sp_q, ?_, by rw [hin]; exact hq⟩
+    refine ⟨c, sp_q, ?_, hq⟩
     rw [indentColumns_getElem?, hind, Array.getElem?_pop, if_pos (by omega)]
     rw [indentColumns_getElem?] at hc; exact hc
   · cases hi
 
 /-- `closeAt` empties slots and re-marks none, so every slot still marked keeps its witness. -/
-lemma SlotsWitness.close {s : ScannerState} {sp_start : SurfPos} (h : SlotsWitness s sp_start)
-    (col : Int) : SlotsWitness (s.clearPendingKeyAt col) sp_start := by
+lemma SlotsWitness.close {input : String} {s : ScannerState} {sp_start : SurfPos}
+    (h : SlotsWitness input s sp_start) (col : Int) :
+    SlotsWitness input (s.clearPendingKeyAt col) sp_start := by
   intro i l hi
   simp only [ScannerState.clearPendingKeyAt] at hi
   exact h i l (closeAt_marked _ _ _ _ _ hi).1
 
-lemma pushMappingIndent_witness {s : ScannerState} {sp_start : SurfPos} (col : Int)
-    (h : SlotsWitness s sp_start) (hsz : s.pendingKeys.size = s.indents.size) :
-    SlotsWitness (pushMappingIndent s col) sp_start := by
+lemma pushMappingIndent_witness {input : String} {s : ScannerState} {sp_start : SurfPos} (col : Int)
+    (h : SlotsWitness input s sp_start) (hsz : s.pendingKeys.size = s.indents.size) :
+    SlotsWitness input (pushMappingIndent s col) sp_start := by
   unfold pushMappingIndent
   split
   · exact h.push { column := col, isSequence := false } (by simp [ScannerState.emit])
-      (by simp [ScannerState.emit]) (by simp [ScannerState.emit]) hsz
+      (by simp [ScannerState.emit]) hsz
   · exact h
 
-lemma pushSequenceIndent_witness {s : ScannerState} {sp_start : SurfPos} (col : Int)
-    (h : SlotsWitness s sp_start) (hsz : s.pendingKeys.size = s.indents.size) :
-    SlotsWitness (pushSequenceIndent s col) sp_start := by
+lemma pushSequenceIndent_witness {input : String} {s : ScannerState} {sp_start : SurfPos} (col : Int)
+    (h : SlotsWitness input s sp_start) (hsz : s.pendingKeys.size = s.indents.size) :
+    SlotsWitness input (pushSequenceIndent s col) sp_start := by
   unfold pushSequenceIndent
   split
   · exact h.push { column := col, isSequence := true } (by simp [ScannerState.emit])
-      (by simp [ScannerState.emit]) (by simp [ScannerState.emit]) hsz
+      (by simp [ScannerState.emit]) hsz
   · exact h
 
 /-- The re-read writes the register only. -/
-lemma readPendingKey_witness {s : ScannerState} {sp_start : SurfPos} (h : SlotsWitness s sp_start) :
-    SlotsWitness s.readPendingKey sp_start := h
+lemma readPendingKey_witness {input : String} {s : ScannerState} {sp_start : SurfPos}
+    (h : SlotsWitness input s sp_start) : SlotsWitness input s.readPendingKey sp_start := h
 
 /-- The stale-key hook: the identity, or a close followed by the re-read. -/
-lemma closeStaleExplicitKey_witness {s : ScannerState} {sp_start : SurfPos}
-    (h : SlotsWitness s sp_start) : SlotsWitness (closeStaleExplicitKey s) sp_start := by
+lemma closeStaleExplicitKey_witness {input : String} {s : ScannerState} {sp_start : SurfPos}
+    (h : SlotsWitness input s sp_start) : SlotsWitness input (closeStaleExplicitKey s) sp_start := by
   rcases closeStaleExplicitKey_cases s with heq | heq <;> rw [heq]
   · exact h
   · exact readPendingKey_witness (h.close _)
 
-lemma unwindIndentsLoop_witness (s : ScannerState) (col : Int) (fuel : Nat) {sp_start : SurfPos}
-    (h : SlotsWitness s sp_start) (hs : SlotsOk s) :
-    SlotsWitness (unwindIndentsLoop s col fuel) sp_start := by
+lemma unwindIndentsLoop_witness {input : String} (s : ScannerState) (col : Int) (fuel : Nat)
+    {sp_start : SurfPos} (h : SlotsWitness input s sp_start) (hs : SlotsOk s) :
+    SlotsWitness input (unwindIndentsLoop s col fuel) sp_start := by
   induction fuel generalizing s with
   | zero => simpa [unwindIndentsLoop] using h
   | succ fuel ih =>
     unfold unwindIndentsLoop
     split
     · obtain ⟨h1, h2, -⟩ := unwindPop_fields s
-      exact ih _ (h.pop h1 h2 (by simp [ScannerState.emit]) hs.1) (hs.pop h1 h2)
+      exact ih _ (h.pop h1 h2 hs.1) (hs.pop h1 h2)
     · exact h
 
-lemma unwindIndents_witness (s : ScannerState) (col : Int) {sp_start : SurfPos}
-    (h : SlotsWitness s sp_start) (hs : SlotsOk s) :
-    SlotsWitness (unwindIndents s col) sp_start :=
+lemma unwindIndents_witness {input : String} (s : ScannerState) (col : Int) {sp_start : SurfPos}
+    (h : SlotsWitness input s sp_start) (hs : SlotsOk s) :
+    SlotsWitness input (unwindIndents s col) sp_start :=
   unwindIndentsLoop_witness s col _ h hs
 
 end L4YAML.Proofs.RegisterWitness

@@ -3132,7 +3132,7 @@ def twoLevelMarked : ScannerState :=
     witness at index 1 (`RegOk` decided on the concrete arrays). -/
 example (sp_start : SurfPos) (sp_q : SurfPos)
     (hq : QuestionEntry (String.ofList ['?', ' ', 'a']) sp_start 0 sp_q) :
-    RegWitness twoLevelMarked sp_start := by
+    RegWitness (String.ofList ['?', ' ', 'a']) twoLevelMarked sp_start := by
   refine regWitness_of_slots (fun _ => ?_) ?_
   · show ((some 0 : Option Nat), (0 : Int)) =
       PendingKeys.innermost twoLevelMarked.indentColumns twoLevelMarked.pendingKeys
@@ -3154,13 +3154,14 @@ example (sp_start : SurfPos) (sp_q : SurfPos)
 example (sp_start : SurfPos) (s' : ScannerState)
     (hok : scanKey (ScannerState.mk' (String.ofList ['?', ' ', 'a', '\n'])) = .ok s')
     (h_route : ∀ sp_v, SBlockMapEntry 0 ⟨['?', ' ', 'a', '\n'], 0⟩ sp_v → SLYamlStream sp_start sp_v) :
-    SlotsWitness s' sp_start ∧
+    SlotsWitness (String.ofList ['?', ' ', 'a', '\n']) s' sp_start ∧
     (∀ l, s'.pendingKeys[1]? = some (some l) →
-      ∃ (c : Nat) (sp_q : SurfPos), s'.indentColumns[1]? = some (c : Int) ∧ QuestionEntry s'.input sp_start c sp_q) := by
+      ∃ (c : Nat) (sp_q : SurfPos), s'.indentColumns[1]? = some (c : Int) ∧
+        QuestionEntry (String.ofList ['?', ' ', 'a', '\n']) sp_start c sp_q) := by
   have hcorr : ScannerSurfCorr (ScannerState.mk' (String.ofList ['?', ' ', 'a', '\n']))
       ⟨['?', ' ', 'a', '\n'], 0⟩ :=
     initial_corr _ _ (chars_from_zero_toList _)
-  have hw : SlotsWitness s' sp_start :=
+  have hw : SlotsWitness (String.ofList ['?', ' ', 'a', '\n']) s' sp_start :=
     scanKey_witness hcorr rfl hok (mk'_sound _).slots (mk'_base _) (by decide) (by decide)
       h_route (fun i l hi => by
         rcases i with _ | i
