@@ -792,7 +792,9 @@ one unfolding, and §6 is the item where those two disagreed about binders. -/
 -- once-bound block-scalar twin; a plain `rfl` equality, not a no-op conclusion.
 -- 2026-10-23 ([162]): `theorems` 6035 → 6042 — five `parseBlockHeaderLoop_*` production lemmas and the two
 -- `[163]`/`[164]` suffix lemmas; none is a no-op conclusion.
-def expectedNoopTally : String := "theorems=6042 byElab=15 byWhnf=15 elabOnly=0 whnfOnly=0"
+def expectedNoopTally : String := "theorems=6043 byElab=15 byWhnf=15 elabOnly=0 whnfOnly=0"
+-- 6042 → 6043 on 2026-10-23 (item 347): `closeStaleExplicitKey_col0_dead` added in
+-- `PendingKeySound.lean`; not a no-op conclusion.
 -- 5302 → 5344 on 2026-10-18 (plan row 20's close, closure-log item 280): the
 -- parse-side alias obligation moved to §7.1's DECLARATION set, so the carrier
 -- grew and the predicate gained its tools.  What is new in kind: `AG` carries
