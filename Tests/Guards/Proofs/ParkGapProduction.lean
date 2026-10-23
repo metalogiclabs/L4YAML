@@ -309,6 +309,7 @@ def expectedEndsLit : List String :=
    "L4YAML.Proofs.Acceptance.SCDoubleQuotedOk.mk '\\\"'",
    "L4YAML.Proofs.Acceptance.SCSingleQuotedMultiOk.mk '\\''",
    "L4YAML.Proofs.Acceptance.SCSingleQuotedOk.mk '\\''",
+   "L4YAML.Proofs.Acceptance.TagOk.verbatim '>'",
    "L4YAML.Proofs.NodeProduction.PendingFlowMapEntry.colonPending ':'",
    "L4YAML.Proofs.NodeProduction.PendingFlowMapEntry.emptyColonPending ':'",
    "L4YAML.Proofs.NodeProduction.PendingFlowMapEntry.explicitColonPending ':'",
@@ -367,10 +368,12 @@ def expectedEndsLit : List String :=
 -- `Acceptance/Plain.lean` (`PlainCharOk`, `PlainEntryOk`, `PlainFirstOk`, `PlainOneLineOk`; Stream E).
 -- `prods` 150 → 151, `ctors` 271 → 272 on 2026-10-23: `PlainNextLineOk`, the multi-line plain
 -- relation of `Acceptance/Plain.lean` (Stream E).
+-- `prods` 151 → 152, `ctors` 272 → 276, `endsLit` 37 → 38 on 2026-10-23: `TagOk` of
+-- `Acceptance/Properties.lean` (Stream E); `TagOk.verbatim` ends in `>` like `[97]`'s verbatim arm.
 def expectedLine : String :=
   "pop=10 sites=13 spend=6 nospend=7 len1=6 ends=GStar(SSWhite)+SIndent \
-depth=4 prods=151 ctors=272 \
-endsLit=37 minus=1 question=2 colon=21 chainEnds=0 blockArms=1 seqArms=10 \
+depth=4 prods=152 ctors=276 \
+endsLit=38 minus=1 question=2 colon=21 chainEnds=0 blockArms=1 seqArms=10 \
 mapArms=10 streamArms=4 streamHonest=3"
 
 /-- The non-circularity check items 242, 243 and 244 also carry: a measurement

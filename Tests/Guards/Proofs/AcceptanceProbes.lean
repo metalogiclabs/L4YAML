@@ -4,6 +4,7 @@ public import L4YAML.Proofs.Production.Acceptance.Quoted
 
 public meta import L4YAML.Scanner.Scanner
 public meta import L4YAML.Proofs.Production.Acceptance.Quoted
+public meta import L4YAML.Proofs.Production.Acceptance.Properties
 @[expose] public section Blanket
 
 /-! Rule-2 instantiations of the quoted-scalar acceptance lemmas: the scanner's landing
@@ -261,5 +262,89 @@ indicator, `: `, EOF or a document marker after the fold roll back to the break.
 #guard plnI "a\nb" 0 true == none
 #guard plnI "a\n b" 1 true == none
 #guard plnI "a\n\tb" 0 true == none
+
+/-! ### Node properties (`scanAnchorOrAlias_accepts`, `scanTag_accepts`) -/
+
+def propAt (scan : ScannerState → Except ScanError ScannerState) (s : String) :
+    Option (String × String × Nat × Nat) :=
+  match scan (ScannerState.mk' s) with
+  | .ok s' =>
+    match s'.tokens.back? with
+    | some t =>
+      match t.val with
+      | .anchor n => some ("&", n, s'.offset, s'.col)
+      | .alias n => some ("*", n, s'.offset, s'.col)
+      | .tag h suf => some (h, suf, s'.offset, s'.col)
+      | _ => none
+    | none => none
+  | .error _ => none
+
+def anc (s : String) := propAt (scanAnchorOrAlias · true) s
+def ali (s : String) := propAt (scanAnchorOrAlias · false) s
+def tg (s : String) := propAt scanTag s
+
+-- Anchors: a maximal `[102] ns-anchor-char` run; `[23]` flow indicators stop it in any context.
+#guard anc "&a b" == some ("&", "a", 2, 2)
+#guard anc "&abc" == some ("&", "abc", 4, 4)
+#guard anc "&a-b_c.d" == some ("&", "a-b_c.d", 8, 8)
+#guard anc "&a,b" == some ("&", "a", 2, 2)
+#guard anc "&a]b" == some ("&", "a", 2, 2)
+#guard anc "&a{b" == some ("&", "a", 2, 2)
+#guard anc "&a\tb" == some ("&", "a", 2, 2)
+#guard anc "&a\nb" == some ("&", "a", 2, 2)
+#guard anc "&a\rb" == some ("&", "a", 2, 2)
+#guard anc "&é b" == some ("&", "é", 3, 2)
+#guard anc "&a:b" == some ("&", "a:b", 4, 4)
+#guard anc "&a#b" == some ("&", "a#b", 4, 4)
+-- Non-printable and BOM stop the run (`isPrintableBool`, `c != '\uFEFF'`).
+#guard anc "&a\x01b" == some ("&", "a", 2, 2)
+#guard anc "&a\uFEFFb" == some ("&", "a", 2, 2)
+-- Refuter of the unnarrowed `GStar`: an empty name is `emptyAnchorName`.
+#guard anc "& b" == none
+#guard anc "&" == none
+#guard anc "&,x" == none
+-- Aliases share the collector.
+#guard ali "*a b" == some ("*", "a", 2, 2)
+#guard ali "*abc" == some ("*", "abc", 4, 4)
+#guard ali "*a,b" == some ("*", "a", 2, 2)
+#guard ali "*a}b" == some ("*", "a", 2, 2)
+#guard ali "*a b" == some ("*", "a", 2, 2)
+#guard ali "*é" == some ("*", "é", 3, 2)
+#guard ali "*a\nb" == some ("*", "a", 2, 2)
+#guard ali "* b" == none
+#guard ali "*" == none
+#guard ali "*[a" == none
+
+-- Tags, verbatim `[98]`: `!<` uri+ `>`; `>` is consumed.
+#guard tg "!<tag:x> b" == some ("", "tag:x", 8, 8)
+#guard tg "!<tag:x>b" == some ("", "tag:x", 8, 8)
+#guard tg "!<a,b>" == some ("", "a,b", 6, 6)
+#guard tg "!<%21>" == some ("", "%21", 6, 6)
+#guard tg "!<> b" == none
+#guard tg "!<tag:x" == none
+#guard tg "!<tag x>" == none
+-- Secondary `[91]`: `!!` then a maximal `[40] ns-tag-char` run (`,`/`[`/`]`/`{`/`}` excluded).
+#guard tg "!!str b" == some ("!!", "str", 5, 5)
+#guard tg "!!" == some ("!!", "", 2, 2)
+#guard tg "!!a:b" == some ("!!", "a:b", 5, 5)
+#guard tg "!!a,b" == some ("!!", "a", 3, 3)
+#guard tg "!!%21" == some ("!!", "%21", 5, 5)
+-- Named `[92]`: `!` word+ `!` then a tag-char run.
+#guard tg "!e!x b" == some ("!e!", "x", 4, 4)
+#guard tg "!e! b" == some ("!e!", "", 3, 3)
+#guard tg "!e!a:b" == some ("!e!", "a:b", 6, 6)
+#guard tg "!e!a,b" == some ("!e!", "a", 4, 4)
+#guard tg "!a-b!x" == some ("!a-b!", "x", 6, 6)
+-- Primary `[90]` / non-specific `[100]`: the scanner reads only `[38] ns-word-char`s here.
+#guard tg "!a b" == some ("!", "a", 2, 2)
+#guard tg "! b" == some ("!", "", 1, 1)
+#guard tg "!" == some ("!", "", 1, 1)
+#guard tg "!a,b" == some ("!", "a", 2, 2)
+#guard tg "!a-b" == some ("!", "a-b", 4, 4)
+-- Refuters: `SCNsTagProperty.primary` admits any `[40]` suffix (`%21`, `a:b`); the scanner
+-- stops at `%` and `:` — hence `TagOk.primary` uses `isWordCharProp`.
+#guard tg "!%21 b" == some ("!", "", 1, 1)
+#guard tg "!a:b" == some ("!", "a", 2, 2)
+#guard tg "!a%21" == some ("!", "a", 2, 2)
 
 end L4YAML.Proofs.Acceptance.Probes
