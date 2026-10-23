@@ -5,7 +5,7 @@ Released under Apache 2.0 license as described in the file LICENSE.
 module
 
 public import L4YAML.Proofs.Production.ScalarProduction
-public import L4YAML.Proofs.Production.Acceptance.Quoted
+public import L4YAML.Proofs.Production.Acceptance.Plain
 
 @[expose] public section Blanket
 
@@ -107,5 +107,167 @@ lemma collectLineContentLoop_accepts {sp sp' : SurfPos} (h : GStar (GChar LineCh
             (by dsimp only at hfuel ⊢; simp only [List.length_cons] at hfuel; omega)
         refine ⟨sc', content', ?_, hc', (keeps_advance sc).trans hk⟩
         simp [collectLineContentLoop, hpk, lineCharOk_cond hc, heq]
+
+/-- `consumeExactSpaces` asked for `n` but finding only `k < n` spaces reads exactly them. -/
+lemma consumeExactSpaces_short {k : Nat} {sp sp' : SurfPos} (h : SIndent k sp sp') :
+    ∀ (n : Nat) (sc : ScannerState), k < n → ScannerSurfCorr sc sp → sp'.chars.head? ≠ some ' ' →
+      ∃ sc', consumeExactSpaces sc n = (k, sc') ∧ ScannerSurfCorr sc' sp' ∧ Keeps sc sc' := by
+  induction h with
+  | zero s =>
+    intro n sc hk hcorr hsp
+    refine ⟨sc, ?_, hcorr, Keeps.refl sc⟩
+    cases n with
+    | zero => omega
+    | succ m =>
+      obtain ⟨chars, col⟩ := s
+      cases chars with
+      | nil => simp [consumeExactSpaces, peek_none_of_corr hcorr]
+      | cons c tl =>
+        have hpk := (peek_of_corr hcorr).1
+        have hc : c ≠ ' ' := fun e => hsp (by simp [e])
+        simp only [consumeExactSpaces, hpk]
+        split
+        · rename_i e; exact absurd (Option.some.inj e) hc
+        · rfl
+  | succ k rest col s' _ ih =>
+    intro n sc hk hcorr hsp
+    cases n with
+    | zero => omega
+    | succ m =>
+      have hpk := (peek_of_corr hcorr).1
+      obtain ⟨sc', heq, hc', hk'⟩ :=
+        ih m sc.advance (by omega) (advance_corr hcorr (by decide) (by decide)) hsp
+      refine ⟨sc', ?_, hc', (keeps_advance sc).trans hk'⟩
+      simp [consumeExactSpaces, hpk, heq]
+
+lemma atDocBoundary_false_of_corr {sc : ScannerState} {sp : SurfPos}
+    (hcorr : ScannerSurfCorr sc sp) (hnd : NotDocMarker sp) : atDocumentBoundary sc = false := by
+  simp [atDocumentBoundary, atDocumentStart_false_of_corr hcorr hnd,
+    atDocumentEnd_false_of_corr hcorr hnd]
+
+/-! ## §2 Content lines and the loop's stops -/
+
+/-- One line `collectBlockScalarLoop` folds at indent `n` and continues past: a blank line
+    (at most `n` spaces, then a break) or `s-indent(n)` + a maximal non-empty `LineCharOk`
+    run + a break; never a document marker at column 0. -/
+inductive BlockLineOk (n : Nat) : SurfPos → SurfPos → Prop where
+  | blank (k : Nat) (s s₁ s' : SurfPos) :
+      NotDocMarker s → k ≤ n → SIndent k s s₁ → SBBreakOk s₁ s' → BlockLineOk n s s'
+  | content (s s₁ s₂ s' : SurfPos) :
+      NotDocMarker s → SIndent n s s₁ → GPlus (GChar LineCharOk) s₁ s₂ →
+      SBBreakOk s₂ s' → BlockLineOk n s s'
+
+/-- Where `collectBlockScalarLoop` stops at indent `n`, and where it lands: end of input
+    after a partial indent or a last line; a less-indented line (landing at its start — a
+    tab there is the scanner's `tabInIndentation`); a non-`LineCharOk`, non-break
+    character after a line. -/
+inductive BlockStopOk (n : Nat) : SurfPos → SurfPos → Prop where
+  | eofShort (k : Nat) (s s' : SurfPos) :
+      NotDocMarker s → k < n → SIndent k s s' → s'.chars = [] → BlockStopOk n s s'
+  | eofLine (s s₁ s' : SurfPos) :
+      NotDocMarker s → SIndent n s s₁ → GStar (GChar LineCharOk) s₁ s' → s'.chars = [] →
+      BlockStopOk n s s'
+  | outdent (k : Nat) (s s₁ : SurfPos) (c : Char) :
+      NotDocMarker s → k < n → SIndent k s s₁ → s₁.chars.head? = some c →
+      isLineBreakBool c = false → c ≠ ' ' → c ≠ '\t' → BlockStopOk n s s
+  | badChar (s s₁ s' : SurfPos) (c : Char) :
+      NotDocMarker s → SIndent n s s₁ → GStar (GChar LineCharOk) s₁ s' →
+      s'.chars.head? = some c → isLineBreakBool c = false → ¬ LineCharOk c →
+      BlockStopOk n s s'
+
+lemma SIndent.length_le {k : Nat} {s s' : SurfPos} (h : SIndent k s s') :
+    s'.chars.length + k = s.chars.length := by
+  induction h with
+  | zero s => rfl
+  | succ k rest col s' _ ih => dsimp only at ih ⊢; simp only [List.length_cons]; omega
+
+lemma GStar_lineChar_length {s s' : SurfPos} (h : GStar (GChar LineCharOk) s s') :
+    s'.chars.length ≤ s.chars.length := by
+  induction h with
+  | nil s => exact Nat.le_refl _
+  | cons s₁ s₂ s₃ hstep _ ih => cases hstep; simp only [List.length_cons] at ih ⊢; omega
+
+lemma GPlus_lineChar_length_lt {s s' : SurfPos} (h : GPlus (GChar LineCharOk) s s') :
+    s'.chars.length < s.chars.length := by
+  cases h with
+  | mk _ _ hstep hrest => cases hstep; have := GStar_lineChar_length hrest; simp only [List.length_cons] at this ⊢; omega
+
+/-- The stop of `collectBlockScalarLoop` on a `BlockStopOk` landing (one iteration). -/
+lemma collectBlockScalarLoop_stops (sc : ScannerState) {n : Nat} {sp sp' : SurfPos}
+    (hstop : BlockStopOk n sp sp') (hcorr : ScannerSurfCorr sc sp) (raw : String)
+    (fuel ie : Nat) (hie : sc.inputEnd = ie) :
+    ScannerSurfCorr (collectBlockScalarLoop sc raw (fuel + 1) n ie).2 sp' ∧
+      Keeps sc (collectBlockScalarLoop sc raw (fuel + 1) n ie).2 := by
+  cases hstop with
+  | eofShort k s s' hnd hk hind heof =>
+    obtain ⟨sc₁, heq, hc₁, hk₁⟩ := consumeExactSpaces_short hind n sc hk hcorr (by simp [heof])
+    have hdb := atDocBoundary_false_of_corr hcorr hnd
+    obtain ⟨chars, col⟩ := sp'
+    simp only at heof; subst heof
+    have hres : (collectBlockScalarLoop sc raw (fuel + 1) n ie).2 = sc₁ := by
+      simp [collectBlockScalarLoop, hdb, heq, peek_none_of_corr hc₁]
+    rw [hres]; exact ⟨hc₁, hk₁⟩
+  | eofLine s s₁ s' hnd hind hrun heof =>
+    obtain ⟨sc₁, heq, hc₁, hk₁⟩ := consumeExactSpaces_accepts hind sc hcorr
+    have hdb := atDocBoundary_false_of_corr hcorr hnd
+    obtain ⟨chars, col⟩ := sp'
+    simp only at heof; subst heof
+    cases hrun with
+    | nil _ =>
+      have hres : (collectBlockScalarLoop sc raw (fuel + 1) n ie).2 = sc₁ := by
+        simp [collectBlockScalarLoop, hdb, heq, peek_none_of_corr hc₁]
+      rw [hres]; exact ⟨hc₁, hk₁⟩
+    | cons _ s₂ _ hstep hrest =>
+      cases hstep with
+      | mk c rest col₁ hc =>
+        have hmax : ∀ c, (⟨[], col⟩ : SurfPos).chars.head? = some c → ¬ LineCharOk c := by
+          intro c hc; simp at hc
+        obtain ⟨sc₂, content, heq₂, hc₂, hk₂⟩ :=
+          collectLineContentLoop_accepts (GStar.cons _ _ _ (GChar.mk c rest col₁ hc) hrest) hmax
+            sc₁ "" (ie - sc₁.offset + 1) hc₁
+            (by have := fuel_of_corr hc₁; rw [hk₁.2.1, hie] at this; omega)
+        have hpk := (peek_of_corr hc₁).1
+        have hres : (collectBlockScalarLoop sc raw (fuel + 1) n ie).2 = sc₂ := by
+          simp [collectBlockScalarLoop, hdb, heq, hpk, hc.1, heq₂, peek_none_of_corr hc₂]
+        rw [hres]; exact ⟨hc₂, hk₁.trans hk₂⟩
+  | outdent k s s₁ c hnd hk hind hhead hnb hsp htab =>
+    obtain ⟨sc₁, heq, hc₁, hk₁⟩ := consumeExactSpaces_short hind n sc hk hcorr (by simp [hhead, hsp])
+    have hdb := atDocBoundary_false_of_corr hcorr hnd
+    obtain ⟨chars, col⟩ := s₁
+    cases chars with
+    | nil => simp at hhead
+    | cons d tl =>
+      simp only [List.head?_cons, Option.some.injEq] at hhead; subst hhead
+      have hpk := (peek_of_corr hc₁).1
+      have hres : (collectBlockScalarLoop sc raw (fuel + 1) n ie).2 = sc := by
+        simp [collectBlockScalarLoop, hdb, heq, hpk, hnb, hk]
+      rw [hres]; exact ⟨hcorr, Keeps.refl sc⟩
+  | badChar s s₁ s' c hnd hind hrun hhead hnb hbad =>
+    obtain ⟨sc₁, heq, hc₁, hk₁⟩ := consumeExactSpaces_accepts hind sc hcorr
+    have hdb := atDocBoundary_false_of_corr hcorr hnd
+    have hmax : ∀ d, sp'.chars.head? = some d → ¬ LineCharOk d := by
+      intro d hd; rw [hhead] at hd; cases hd; exact hbad
+    obtain ⟨sc₂, content, heq₂, hc₂, hk₂⟩ :=
+      collectLineContentLoop_accepts hrun hmax sc₁ "" (ie - sc₁.offset + 1) hc₁
+        (by have := fuel_of_corr hc₁; rw [hk₁.2.1, hie] at this; omega)
+    obtain ⟨chars, col⟩ := sp'
+    cases chars with
+    | nil => simp at hhead
+    | cons d tl =>
+      simp only [List.head?_cons, Option.some.injEq] at hhead; subst hhead
+      have hpk₂ := (peek_of_corr hc₂).1
+      cases hrun with
+      | nil _ =>
+        have hpk := (peek_of_corr hc₁).1
+        have hres : (collectBlockScalarLoop sc raw (fuel + 1) n ie).2 = sc₂ := by
+          simp [collectBlockScalarLoop, hdb, heq, hpk, hnb, heq₂, hpk₂]
+        rw [hres]; exact ⟨hc₂, hk₁.trans hk₂⟩
+      | cons _ s₂ _ hstep hrest =>
+        cases hstep with
+        | mk e rest col₁ he =>
+          have hpk := (peek_of_corr hc₁).1
+          have hres : (collectBlockScalarLoop sc raw (fuel + 1) n ie).2 = sc₂ := by
+            simp [collectBlockScalarLoop, hdb, heq, hpk, he.1, heq₂, hpk₂, hnb]
+          rw [hres]; exact ⟨hc₂, hk₁.trans hk₂⟩
 
 end L4YAML.Proofs.Acceptance
