@@ -199,3 +199,61 @@ induction over two derivations.
 3. `skeleton_of_scan` (forward half of N3), then `refLex_complete` — stated as
    `Skeleton input segs → ∃ segs', refLex input = some segs' ∧ eventsOfSegs segs' = eventsOfSegs segs`,
    which is `skeleton_unique` in executable clothing — after Row 12 / row 19.
+
+## 8. `refLex_sound` — proof plan (slice 3)
+
+Target: `refLex input = some segs → Skeleton 0 input.toList segs`.  The
+decidable side conditions of `SegAt`/`Skeleton` are pinned on a 58-input grid
+in `Tests/Guards/Proofs/RefLexShape.lean` (its first run refuted the directive
+arm; see that file's header).  What remains is the `Prop` half, arm by arm:
+
+| `Seg` arm | `SegAt` obligation | discharged by |
+|---|---|---|
+| `anchor`/`alias` | `PendingAnchorWitness`/`AliasEventWitness` + `Maximal` | `SourceEvents` bridge `isAnchorCharBool c = true ↔ isNsAnchorChar c` (`SourceEvents.lean:247`) lifted over `spanWhile`; `Maximal` is the span's stop condition |
+| `tagUse` | `SCNsTagProperty` + `handleOf` + `Maximal` | the three `SCNsTagProperty` constructors (verbatim / shorthand / non-specific) over the maximal `isTagCharBool` run |
+| `docStart`/`docEnd` | `SCDirectivesEnd`/`SCDocumentEnd` at col 0, `SLDirective` per directive line | constructors are literal; `SLDirective` needs `[79] s-l-comments` for the absorbed blank/comment lines, which `commentLines` consumes exactly |
+| `other` | `chars ≠ [] ∧ noEventLexeme` | the arm's own guard; the `flush` discipline gives non-adjacency |
+| `opaque` | `OpaqueAt` = full `SCDoubleQuoted`/`SCSingleQuoted`/`SLComment`/`SCLLiteral`/`SCLFolded`/`SNsPlain*` | **open — see below** |
+
+### The `opaque` arm decides the shape of slice 3
+
+`OpaqueAt` demands the real surface scalar relations, not a lexical
+approximation.  Proving them for `RefLex`'s private `quoted`/`blockBody`/`plain`
+would re-derive the leaf production lemmas that already exist for the scanner's
+own functions: `scanDoubleQuoted_prod`, `scanSingleQuoted_prod`,
+`scanBlockScalar_prod` (`ScalarProduction.lean`) each conclude
+`∃ sp', ⟨relation⟩ sp sp' ∧ ScannerSurfCorr s' sp'` from `ScannerSurfCorr sc sp`
+and `scanX sc = .ok s'`.
+
+Decision (default, per §6's rule): **re-base `refLex` on byte offsets over the
+original `String` and let the `opaque` arms call the scanner leaf functions on a
+positioned `ScannerState`** (`{ ScannerState.mk' input with offset, col }`;
+`ScannerSurfCorr` holds by `initial_corr`'s argument shifted to the suffix).
+Then `OpaqueAt` is the `*_prod` conclusion and `refLex_sound` reduces to a loop
+invariant `ScannerSurfCorr sc ⟨rest, col⟩ → Skeleton col rest (loop …)`.
+
+This does not make the capstone circular: `Skeleton`, `eventsOfSegs` and
+`SerializationWellFormedInput` stay independent of `Scanner`; only the executable
+witness-finder reuses scanner code, and its soundness is to the independent
+relation.  Cost: the `RefLex.lean` rewrite (after #57 lands, not on it) and a
+re-run of the two censuses, which must not move.
+
+Rejected: (a) widen `OpaqueAt` to a lexical span — would make
+`SerializationWellFormedInput` true on inputs with no surface derivation (the
+false-theorem direction); (b) prove `OpaqueAt` for the private lexers — the
+double-quoted body alone (`[106]`–`[110]`, escapes, folding) is the largest
+single proof in `ScalarProduction.lean`.
+
+Open: the leaf functions read `sc.indents` (block-scalar floor) and `inFlow`;
+the positioned state carries the sentinel stack, so `scanBlockScalar` runs at
+floor −1.  The census must show this agrees with `parseYaml` on `- |⏎x` and
+`a: |⏎  x⏎b: y` before the plan is executed.
+
+Measured (scratch, positioned `ScannerState` with the sentinel stack only):
+`scanBlockScalar` on `a: |⏎  x⏎b: y` stops at offset 9 (before `b`) and on
+`- |⏎  x⏎- y` at 8 — both as the real scanner does — but on `- |⏎x⏎` it
+consumes the whole input (offset 6) while `parseYaml` refuses it: at floor −1
+a column-0 line is body, at the real floor 0 it is not.  So slice 3 must give
+the positioned state the enclosing block indent (the `-`/`:` column `refLex`
+already walks past), not the bare sentinel; `- |⏎x` and `- |⏎*x` go into the
+census either way.
