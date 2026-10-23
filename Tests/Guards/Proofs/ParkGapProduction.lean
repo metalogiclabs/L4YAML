@@ -305,7 +305,9 @@ chain=SLAnyDocument > SLBareDocument > SBlockNode > SBlockSeqEntries > GLit",
 -- 2026-10-23: `Proofs.Production.Acceptance.Quoted` adds the two quote-delimited
 -- `SC*QuotedOk.mk` relations (narrowed `[109]`/`[120]`).
 def expectedEndsLit : List String :=
-  ["L4YAML.Proofs.Acceptance.SCDoubleQuotedOk.mk '\\\"'",
+  ["L4YAML.Proofs.Acceptance.SCDoubleQuotedMultiOk.mk '\\\"'",
+   "L4YAML.Proofs.Acceptance.SCDoubleQuotedOk.mk '\\\"'",
+   "L4YAML.Proofs.Acceptance.SCSingleQuotedMultiOk.mk '\\''",
    "L4YAML.Proofs.Acceptance.SCSingleQuotedOk.mk '\\''",
    "L4YAML.Proofs.NodeProduction.PendingFlowMapEntry.colonPending ':'",
    "L4YAML.Proofs.NodeProduction.PendingFlowMapEntry.emptyColonPending ':'",
@@ -359,10 +361,12 @@ def expectedEndsLit : List String :=
 -- indicator that no park reads, not a sequence entry.
 -- `prods` 133 → 137, `ctors` 240 → 249, `endsLit` 33 → 35 on 2026-10-23:
 -- `Proofs.Production.Acceptance.Quoted`'s four narrowed quoted-scalar relations.
+-- `prods` 137 → 145, `ctors` 249 → 263, `endsLit` 35 → 37 on 2026-10-23: the same module's eight
+-- multi-line relations; `SC*QuotedMultiOk.mk` end in their closing quote like the one-line forms.
 def expectedLine : String :=
   "pop=10 sites=13 spend=6 nospend=7 len1=6 ends=GStar(SSWhite)+SIndent \
-depth=4 prods=137 ctors=249 \
-endsLit=35 minus=1 question=2 colon=21 chainEnds=0 blockArms=1 seqArms=10 \
+depth=4 prods=145 ctors=263 \
+endsLit=37 minus=1 question=2 colon=21 chainEnds=0 blockArms=1 seqArms=10 \
 mapArms=10 streamArms=4 streamHonest=3"
 
 /-- The non-circularity check items 242, 243 and 244 also carry: a measurement
