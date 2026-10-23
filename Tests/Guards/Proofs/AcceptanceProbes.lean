@@ -263,8 +263,6 @@ indicator, `: `, EOF or a document marker after the fold roll back to the break.
 #guard plnI "a\n b" 1 true == none
 #guard plnI "a\n\tb" 0 true == none
 
-||||||| parent of d7d4c298 (proof(acceptance): anchor/alias/tag scanner converses (Stream E))
-||||||| parent of 2aacaaa7 (proof(acceptance): anchor/alias/tag scanner converses (Stream E))
 /-! ### Node properties (`scanAnchorOrAlias_accepts`, `scanTag_accepts`) -/
 
 def propAt (scan : ScannerState → Except ScanError ScannerState) (s : String) :
