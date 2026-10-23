@@ -85,7 +85,7 @@ def expectedUnread : List Name :=
   [`L4YAML.Output.Events, `L4YAML.Output.EventsIx,
    `L4YAML.Output.Json, `L4YAML.Output.JsonIx]
 
-def expectedClosure : String := "modulesSeen=249"
+def expectedClosure : String := "modulesSeen=250"
 -- 228 → 239 on 2026-10-05: the eleven modules of `L4YAML.Proofs.Serialization`
 -- (PR #1), which `L4YAML.lean` imports so the kernel-accurate hygiene gate can
 -- see them.  Only the closure moved: `expectedCensus` and `expectedFree` are
@@ -97,7 +97,7 @@ def expectedClosure : String := "modulesSeen=249"
 -- together.
 
 def expectedCensus : String :=
-  "theorems=103 headYaml=5 headStream=36 nestedConcl=54 hypOnly=8 \
+  "theorems=104 headYaml=5 headStream=36 nestedConcl=54 hypOnly=9 \
 free=17 survivesBeta5=2 yamlInHypothesis=0"
 
 /-- Every free theorem, with the route that closes it.  A count alone would not

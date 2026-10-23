@@ -222,7 +222,7 @@ def readDecl (n : Name) : MetaM Readings := do
     scalar's line stop, and concludes a possibility — the one new declaration
     holding a correspondence. -/
 def expectedCensus : String :=
-  "corrHyp=437 streamConcl=89 both=39 free=0 pairConcl=1 held=3 pairAny=8"
+  "corrHyp=439 streamConcl=89 both=39 free=0 pairConcl=1 held=3 pairAny=8"
 
 /-- The one conclusion that pairs them, and it is the stream's origin. -/
 def expectedSeedConcl : List Name :=

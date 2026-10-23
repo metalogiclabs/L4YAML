@@ -145,7 +145,7 @@ capstonesInTp={b.capstonesInTrans.size}"
     library — the `Scannable`-valued compose chain, in its own module because
     two `maxHeartbeats 4000000` `YamlValue` inductions do not elaborate in
     one. -/
-def expectedClosure : Nat := 256
+def expectedClosure : Nat := 257
 
 /-- The park's populations beside the arm's, from one pass. -/
 def expectedBill : String :=

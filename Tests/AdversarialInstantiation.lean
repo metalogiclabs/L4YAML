@@ -2880,6 +2880,202 @@ def testColFloorHelpers (state : IO.Ref TestCollector) : IO Unit := do
   checkM state "forward/refutes: cursor moved left on its line"
     (forwardB { ScannerState.mk' "x" with col := 3 } { ScannerState.mk' "x" with col := 2 } == false) ""
 
+/-! ## Priority 17 — the register witness, stated and seeded (item 342, row 12)
+
+Item 342 states `RegisterWitness.AtCol`, `QuestionEntry`, `SlotWitness`,
+`SlotsWitness` and `RegWitness` (`L4YAML/Proofs/Scanner/RegisterWitness.lean`):
+every marked slot of `pendingKeys` — and, through `RegOk`, the live register
+outside flow — names a `?` standing at the level's column in the input, with
+that `?`'s `[186]` route to the stream.  `scanKey_witness` seeds it: the `?`
+just scanned is the witness.  Item 341 predicted the one place the invariant
+could fail is a level popped and re-marked at the same column (`- ? a⏎- ? b`).
+
+**Risk:** the witness is stated on the column and the input suffix only (the
+register's LINE has no cursor bridge, see the module docstring), so a `?` at the
+right column on the WRONG line would satisfy it — the Boolean below checks the
+line too, which is stricter than the statement, so a pass here is a pass there.
+The seed must hold with and without a push (`pushMappingIndent` pushes only when
+the `?` is right of the current indent), and `pushMappingIndent_getElem?_of_lt`
+must be the identity below the top in both arms.
+
+**Audit approach:** the witness as a Boolean (register, every marked slot, and
+every flow-saved pair name a `?` at (line, col) of the input), checked after
+every `scanNextToken` step on item 338/339's probes plus item 341's suspects; a
+hand-built state that REFUTES it; the helper lemmas instantiated at the runtime
+on a stack with and without a push, at the bottom slot and at the top.
+-/
+
+/-- The character at (0-based) line `l`, column `c` of `input`, lines split on `\n`. -/
+def charAtLineCol (input : String) (l c : Nat) : Option Char :=
+  match (input.splitOn "\n")[l]? with
+  | some line => line.toList[c]?
+  | none => none
+
+/-- A register-shaped pair names a `?` in the input (`none` names nothing). -/
+def pairNamesQuestion (input : String) (p : Option Nat × Int) : Bool :=
+  match p with
+  | (some l, c) => c ≥ 0 && charAtLineCol input l c.toNat == some '?'
+  | (none, _) => true
+
+/-- `SlotsWitness ∧ RegWitness` (and lane (d)'s saved pairs) at the runtime, with the LINE
+    checked as well — stricter than the statement. -/
+def witnessB (s : ScannerState) : Bool :=
+  (s.flowLevel != 0 || pairNamesQuestion s.input (s.explicitKeyLine, s.explicitKeyCol))
+  && (List.range s.pendingKeys.size).all (fun i =>
+        match s.pendingKeys[i]? with
+        | some (some l) => pairNamesQuestion s.input (some l, s.indentColumns[i]?.getD (-1))
+        | _ => true)
+  && s.explicitKeyStack.all (pairNamesQuestion s.input)
+
+/-- Even inside flow the register itself names a `?`. -/
+def witnessStrictB (s : ScannerState) : Bool :=
+  witnessB s && pairNamesQuestion s.input (s.explicitKeyLine, s.explicitKeyCol)
+
+/-- Walk `scanNextToken` from `mk'`; count the post-states that refute the witness and the
+    ones that refute only its strict form.  Returns `(steps, failures, strict-only failures)`. -/
+def walkWitness (input : String) : Nat × Nat × Nat := Id.run do
+  let mut s := ScannerState.mk' input
+  let mut steps := 0
+  let mut fails := 0
+  let mut strictFails := 0
+  let mut fuel := input.length + 8
+  while fuel > 0 do
+    fuel := fuel - 1
+    match scanNextToken s with
+    | .ok (some s') =>
+      steps := steps + 1
+      if !witnessB s' then fails := fails + 1
+      else if !witnessStrictB s' then strictFails := strictFails + 1
+      s := s'
+    | _ => fuel := 0
+  return (steps, fails, strictFails)
+
+def testRegisterWitnessWalk (state : IO.Ref TestCollector) : IO Unit := do
+  -- The seed: no slot is marked, the register is dead.
+  checkM state "witness/seed: mk' holds the witness" (witnessStrictB (ScannerState.mk' "? a\n")) ""
+  checkM state "witness/seed with BOM" (witnessStrictB (scanSeed "\uFEFF? a\n")) ""
+  -- A state that REFUTES the witness: a live register whose column holds `a`, not `?`.
+  checkM state "witness/refuted by a register naming a non-`?`"
+    (!witnessB (staleStateAt "a: b\n" 0 0 0 (some 0) 0 0)) ""
+  -- …and one whose register names a `?` on the WRONG line.
+  checkM state "witness/refuted by a register on the wrong line"
+    (!witnessB (staleStateAt "a\n? b\n" 0 0 0 (some 0) 0 0)) ""
+  -- A marked slot at a column that holds no `?` refutes the slot half.
+  let s0 := ScannerState.mk' "- a\n"
+  let marked := { s0 with indents := s0.indents.push { column := 0, isSequence := true },
+                          pendingKeys := s0.pendingKeys.push (some 0) }
+  checkM state "witness/refuted by a marked slot naming `-`" (!witnessB marked) ""
+  for (label, input) in [
+      ("empty", ""), ("scalar", "a\n"),
+      ("sibling explicit keys", "? a\n? b\n: c\n"),
+      ("explicit key, dedent to `-`", "- ? a\n- b\n"),
+      ("explicit key, non-key `?`", "- ? a\n?x\n"),
+      ("nested ? family (item 335)", "?\n  ? y\n  : z\n: w: x\n"),
+      ("? content at its own column", "?\n- a\n- b\n: v\n"),
+      ("flow inside ?", "?\n  ? {a: b}\n  : z\n: w: x\n"),
+      ("flow key with saved pair", "? [x]\n: b\n"),
+      ("nested flow", "[? a, {b: [1, {c: d}]}, ? e]\n"),
+      ("document markers", "? a\n---\nb\n...\n? c\n"),
+      ("directive", "%YAML 1.2\n---\n? a\n: b\n"),
+      ("compact in sequence", "- ? a\n  : b\n- c\n"),
+      ("misindented value (refused)", "- a\n- ? a\n: a\n"),
+      ("implicit then explicit", "a: 1\n? b\n: 2\n"),
+      ("block scalar under ?", "? |\n  x\n: y\n"),
+      ("quoted keys", "? \"q\"\n: 'v'\n"),
+      ("anchors and tags", "? &k !!str a\n: *k\n"),
+      ("comments", "? a # c\n# d\n: b\n"),
+      ("deep nesting", "- - - ? a\n      : b\n"),
+      ("plain block scalar", "a: b\nc: d\n"),
+      ("plain multi-line", "a: b\n  c\n  d\ne: f\n"),
+      ("plain in flow, folded", "k: [a\n  b, c]\n"),
+      ("flow mapping nested", "k: {a: [b, {c: d}],\n    e: f}\n"),
+      ("double quoted folded", "a: \"x\n  y\"\nb: c\n"),
+      ("single quoted folded", "a: 'x\n  y'\nb: c\n"),
+      ("block scalar, newline after", "a: |\n  x\n  y\nb: c\n"),
+      ("block scalar at EOF, no newline", "a: |\n  x"),
+      ("block scalar header at EOF", "a: |"),
+      ("folded block scalar, keep", "a: >+\n  x\n\n"),
+      ("sequence of explicit keys", "- ? a\n  : b\n- ? c\n"),
+      ("documents", "%YAML 1.2\n---\na: 1\n...\n---\nb: 2\n"),
+      ("BOM then mapping", "\uFEFFa: b\n"),
+      ("flow sequence of implicit keys", "[a: b, c: d]\n"),
+      ("key ? after a dedent", "- ? a\n? b\n"),
+      -- item 341's suspect and the boundary cases around it
+      ("pop and re-mark at the same column", "- ? a\n- ? b\n"),
+      ("flow key, compact value", "? [a]: b\n"),
+      ("? then `---`", "? a\n---\nb\n"), ("? then `...`", "? a\n...\n"),
+      ("? at col 2, dedent key at EOF", "- ? a\n? b"),
+      ("`?` keys inside the flow key", "? [? a, ? b]\n: c\n"),
+      ("nested flow saved pairs", "? {? a: b, ? c: [? d]}\n: e\n"),
+      ("tab after ?", "?\ta\n"), ("? at EOF", "?"), ("? newline only", "?\n"),
+      ("siblings with values", "? a\n: b\n? c\n: d\n"),
+      ("CRLF", "? a\r\n: b\r\n"),
+      ("multibyte before the ?", "é: 1\n? ü\n: v\n"),
+      ("non-key ?x at col 0 after a key", "? a\n?x\n")] do
+    let (steps, fails, strict) := walkWitness input
+    checkM state s!"witness/{label}: holds after every step" (fails == 0)
+      s!"{fails} of {steps} steps"
+    checkM state s!"witness/{label}: register names a `?` even in flow" (strict == 0)
+      s!"{strict} of {steps} steps"
+
+/-- Direct instantiations of the helper lemmas of `RegisterWitness.lean` at the runtime. -/
+def testRegisterWitnessHelpers (state : IO.Ref TestCollector) : IO Unit := do
+  -- `pushMappingIndent_getElem?_of_lt`, both arms: a push (col right of the indent) and
+  -- no push (col at the indent), read at the bottom slot and at the old top.
+  let base := ScannerState.mk' "x"
+  let two := { base with indents := base.indents.push { column := 0, isSequence := false },
+                         pendingKeys := base.pendingKeys.push (some 0) }
+  for (label, col) in [("push", (2 : Int)), ("no push", 0)] do
+    let pm := pushMappingIndent two col
+    for i in [0, 1] do
+      checkM state s!"witness/pushMappingIndent {label}: slot {i} unchanged"
+        (pm.pendingKeys[i]? == two.pendingKeys[i]?) ""
+      checkM state s!"witness/pushMappingIndent {label}: column {i} unchanged"
+        (pm.indentColumns[i]? == two.indentColumns[i]?) ""
+    checkM state s!"witness/pushMappingIndent {label}: sizes in lockstep"
+      (pm.pendingKeys.size == pm.indents.size) ""
+  -- `regWitness_of_slots`'s core (`innermost_some_mem`): when the register is live outside
+  -- flow it is one of the marked slots' pairs — on every post-state of the walk.
+  let mut checked := 0
+  for input in ["? a\n? b\n: c\n", "- ? a\n- ? b\n", "?\n  ? y\n  : z\n: w: x\n", "- ? a\n? b\n"] do
+    let mut s := ScannerState.mk' input
+    let mut fuel := input.length + 8
+    while fuel > 0 do
+      fuel := fuel - 1
+      match scanNextToken s with
+      | .ok (some s') =>
+        if s'.flowLevel == 0 then
+          match s'.explicitKeyLine with
+          | some l =>
+            checked := checked + 1
+            let slots := (List.range s'.pendingKeys.size).filter fun i =>
+              s'.pendingKeys[i]? == some (some l)
+                && (s'.indentColumns[i]?.getD (-1)) == s'.explicitKeyCol
+            checkM state s!"witness/register is a marked slot's pair ({input.quote}, line {l})"
+              (!slots.isEmpty) ""
+          | none => pure ()
+        s := s'
+      | _ => fuel := 0
+  checkM state "witness/register-slot check fired" (checked > 0) s!"{checked}"
+  -- `scanKey_witness` at the runtime: scanning a `?` outside flow marks the top slot at the
+  -- `?`'s column and the register names it — with a push (`? a`) and without (the second `?`
+  -- of `? a⏎? b`, which re-marks the level the hook just cleared).
+  for (label, input, offset, line, col) in [("push", "? a\n", 0, 0, 0), ("sibling", "? a\n? b\n", 4, 1, 0)] do
+    let s := { ScannerState.mk' input with offset := offset, line := line, col := col,
+                                           indents := if offset == 0 then (ScannerState.mk' input).indents
+                                             else (ScannerState.mk' input).indents.push { column := 0, isSequence := false },
+                                           pendingKeys := if offset == 0 then (ScannerState.mk' input).pendingKeys
+                                             else (ScannerState.mk' input).pendingKeys.push none }
+    match scanKey s with
+    | .ok s' =>
+      checkM state s!"witness/scanKey {label}: register names the `?`"
+        ((s'.explicitKeyLine, s'.explicitKeyCol) == (some line, (col : Int))
+          && witnessStrictB s') ""
+      checkM state s!"witness/scanKey {label}: top slot marked at the `?`'s column"
+        (s'.pendingKeys[s'.pendingKeys.size - 1]? == some (some line)
+          && s'.indentColumns[s'.indents.size - 1]? == some (col : Int)) ""
+    | .error _ => checkM state s!"witness/scanKey {label}: scans" false ""
+
 def collectTests : IO VerifiedSuiteResult := do
   let state ← IO.mkRef ({} : TestCollector)
   test9g state
@@ -2902,6 +3098,8 @@ def collectTests : IO VerifiedSuiteResult := do
   testTokenCarrierWalk state
   testColFloorWalk state
   testColFloorHelpers state
+  testRegisterWitnessWalk state
+  testRegisterWitnessHelpers state
   let results ← finish state
   return { name := "adversarialinstantiation",
            label := "Adversarial Instantiation Tests (sorry audit)",

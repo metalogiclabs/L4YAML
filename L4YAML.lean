@@ -95,6 +95,7 @@ public import L4YAML.Proofs.Scanner.ScannerProgress
 public import L4YAML.Proofs.Scanner.ScannerProofs
 public import L4YAML.Proofs.Scanner.ScannerScalar
 public import L4YAML.Proofs.Scanner.ScalarWalkColFloor
+public import L4YAML.Proofs.Scanner.RegisterWitness
 public import L4YAML.Proofs.Scanner.StaleCursorFloor
 public import L4YAML.Proofs.Scanner.ExplicitKeyCoupling
 public import L4YAML.Proofs.Scanner.ScannerSimpleKey
