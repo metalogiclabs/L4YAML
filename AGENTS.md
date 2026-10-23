@@ -141,8 +141,8 @@ Commit subjects follow the log: `feat(row 12): step 12.3.3 — …`,
 
 ## 5. Git
 
-- Writable remote is the **Open-MBEE fork**; `nasa-jpl/L4YAML` is upstream
-  and read-only from here.
+- Branches and PRs go to **`nasa-jpl/L4YAML`** directly (since 2026-10-21);
+  the `Open-MBEE/L4YAML` fork is retired for new work.
 - The active integration branch is **`fix-a-grammar-completeness`**: branch
   from it, open PRs against it.  `main` is release-only.
 - One item or one fix per PR, not stacked.  Review findings become follow-up
