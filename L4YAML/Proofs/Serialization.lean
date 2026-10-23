@@ -16,6 +16,7 @@ public import L4YAML.Proofs.Serialization.ErrorCensus
 public import L4YAML.Proofs.Serialization.Census
 public import L4YAML.Proofs.Serialization.ExecutableBoundary
 public import L4YAML.Proofs.Serialization.EventsOf
+public import L4YAML.Proofs.Serialization.RefLex
 
 @[expose] public section Blanket
 
