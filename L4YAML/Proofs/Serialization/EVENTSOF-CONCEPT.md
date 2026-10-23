@@ -323,3 +323,70 @@ Backward = S4 + S5(←) + the surface direction.
 S1 (small), S2 (small, with a census column `tokenEvents tokens =? eventsOf input`
 on the agreeing rows), S4 (the hard pure lemma, independent of everything
 else), then S3 and S5 once question 1 is settled.
+
+## 10. S4 is false on the lexical skeleton — measured, and what it means
+
+Rule 2 before stating `skeleton_trace_unique`.  Input `[a &x, *x]`:
+
+| skeleton | trace | `checkFrom {}` |
+|---|---|---|
+| `other "["`, `opaque "a &x"`, `other ", "`, `alias x`, `other "]"` | `[useAlias x]` | false |
+| `other "[a "`, `anchor x`, `other ", "`, `alias x`, `other "]"` | `[defineAnchor x, useAlias x]` | **true** |
+
+Both satisfy every decidable side condition of `SegAt`/`Skeleton` (checked with
+`RefLexShape.shape`); the `Prop` half of the first is `SNsPlainOneLine .flowIn`
+on `a &x`, which the parser confirms (`parseYaml "[a &x]"` succeeds — `&` is an
+`ns-plain-char`); the second needs only `SCNsAnchorProperty`, which is lexical.
+`scan "[a &x, *x]"` refuses (alias before its anchor), the input is in the
+surface language, and the second skeleton makes `SerializationWellFormedInput`
+true.  So with the `∃` quantifier the capstone's `←` direction is false on this
+input, and with `∀` its `→` direction is false on `&x [a &y, *y]`-style inputs
+where only a spurious reading is ill-formed.  Uniqueness (§4) was indeed the
+load-bearing lemma, and it does not hold.
+
+### Why it cannot be repaired lexically
+
+Whether `&x` is a property or plain content is decided by *node-start*: after
+`[`, `,`, `- `, `: `, `? `, a property, or at line start — but at line start
+only when the line is **not** a continuation of a plain scalar, which depends on
+its indentation against the enclosing block indent `n`.  `n` is a parameter of
+the surface grammar, not of the text.  A relation that tracks it is a relational
+copy of the scanner's indent stack: the thing §1 ruled out as circular.
+
+### Options
+
+1. **Event-annotated grammar** (recommended).  A second inductive family
+   `TraceOf : SurfPos → SurfPos → List Event → Prop` for the event-bearing
+   productions only (`c-ns-properties`, `c-ns-alias-node`, `l-directive-document`,
+   `l-document-suffix`, and the node/stream productions that contain them), with
+   each other production reused by reference.  `eventsOf` becomes
+   `∃ ev, TraceOf ⟨input.toList, 0⟩ ⟨[], _⟩ ev`; uniqueness is
+   `TraceOf sp sp' ev₁ → TraceOf sp sp' ev₂ → ev₁ = ev₂`, proven by structural
+   induction *if* the annotated productions are deterministic at every choice
+   point that affects events — the only such points are property-vs-plain and
+   alias-vs-plain, both fixed by `ns-plain-first` excluding `&`, `*`, `!`.
+   S3 becomes: `scan input = .ok tokens → TraceOf … (tokenEvents tokens)`,
+   threaded through the same `*_prod` lemmas that build the surface derivation
+   (Row 12's loop invariant gains one conjunct, or a sibling module re-walks it).
+   `Skeleton`/`refLex`/`RefLexCensus` remain as the executable census; they lose
+   their proof role.
+2. Skeleton with node-start and an indent stack: the relational scanner.  Not
+   circular by the letter (no `Scanner` import) but by construction; rejected.
+3. RHS over the scanner's own trace (`SerializationWellFormed (tokenEvents tokens)`
+   for `scan input = .ok tokens`): circular by the letter; rejected.
+
+### What stays
+
+S1 (`OpaqueAt` trailing white) and S2 (`tokenEvents`) are unaffected — S2 is the
+trace every option compares against.  S4 as stated in §9 is withdrawn; its
+replacement is `traceOf_unique` under option 1.  The census rows in
+`TokenEventsCensus` already pin that `scan` refuses the three inputs whose
+lexical skeleton admits a spurious well-formed reading.
+
+### Questions
+
+1. Option 1 — proceed?  (Default **yes**; the first slice is the `TraceOf`
+   family for `c-ns-properties`/`c-ns-alias-node` and the flow-node productions,
+   with `traceOf_unique` on that fragment and a census against `tokenEvents`.)
+2. Where does S3's extra conjunct live — Row 12's invariant or a sibling
+   module?  Same question as §9 Q1; unchanged default (sibling module).
