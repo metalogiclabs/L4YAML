@@ -7,6 +7,7 @@ public import L4YAML.Parser.Composition
 public import L4YAML.Parser.IndexedComposition
 public import L4YAML.Proofs.Parser.ParserGrammableBase
 public import L4YAML.Proofs.Production.StreamAccum
+public import L4YAML.Proofs.Scanner.RegisterWitness
 public import Tests.VerifiedResult
 
 @[expose] public section Blanket
@@ -3018,6 +3019,114 @@ def testRegisterWitnessWalk (state : IO.Ref TestCollector) : IO Unit := do
     checkM state s!"witness/{label}: register names a `?` even in flow" (strict == 0)
       s!"{strict} of {steps} steps"
 
+/-! ### The statements themselves, instantiated (follow-up to the walk)
+
+The walk above is a Boolean over scanner FIELDS: it can refute "the register
+names a `?`", not the two halves of `QuestionEntry` that are propositions over
+derivations — `AtCol`'s suffix and the `[186]` route to the stream.  Those are
+instantiated here on the statements as written: each relation shown to hold on a
+concrete position and to be REFUTED on a wrong one, the route shown to be
+CONSUMED (a `QuestionEntry` whose route is false cannot produce the stream a
+concrete `explicitEmpty` entry demands), and `scanKey_witness` applied to the
+seed state with every premise discharged and its conclusion read at the marked
+slot. -/
+
+section WitnessInstantiations
+open L4YAML.Proofs.RegisterWitness L4YAML.Surface L4YAML.Proofs.CouplingBridge
+open L4YAML.Proofs.PendingKeySound L4YAML.Proofs.IndentStackBase
+
+/-- `AtCol` holds at the input's own start. -/
+example : AtCol (String.ofList ['?', ' ', 'a']) 0 ⟨['?', ' ', 'a'], 0⟩ := ⟨rfl, [], by simp⟩
+
+/-- …and one character in, at column 1. -/
+example : AtCol (String.ofList ['?', ' ', 'a']) 1 ⟨[' ', 'a'], 1⟩ := ⟨rfl, ['?'], by simp⟩
+
+/-- REFUTED on the wrong column. -/
+example : ¬ AtCol (String.ofList ['?', ' ', 'a']) 1 ⟨['?', ' ', 'a'], 0⟩ :=
+  fun h => absurd h.1 (by decide)
+
+/-- REFUTED when `sp` is not a suffix of the input (`['x']` ends in `x`, the input in `a`). -/
+example : ¬ AtCol (String.ofList ['?', ' ', 'a']) 0 ⟨['x'], 0⟩ :=
+  fun ⟨_, _pre, h⟩ => by
+    have := congrArg List.getLast? h
+    simp at this
+
+/-- `QuestionEntry` is REFUTED when the position reads anything but `?`. -/
+example (sp_start : SurfPos) : ¬ QuestionEntry (String.ofList ['a']) sp_start 0 ⟨['a'], 0⟩ :=
+  fun ⟨_, ⟨_, hg⟩, _⟩ => nomatch hg
+
+/-- `QuestionEntry` holds at a `?` with its route — and the route is the premise, not a
+    vacuity: the entry is built with `explicitEmpty` below. -/
+example (rest : List Char) (sp_start : SurfPos)
+    (h_route : ∀ sp_v, SBlockMapEntry 0 ⟨'?' :: rest, 0⟩ sp_v → SLYamlStream sp_start sp_v) :
+    QuestionEntry (String.ofList ('?' :: rest)) sp_start 0 ⟨'?' :: rest, 0⟩ :=
+  ⟨⟨rfl, [], by simp⟩, ⟨_, GLit.mk rest 0⟩, h_route⟩
+
+/-- The route is CONSUMED: a `QuestionEntry` at the `?` yields the stream for the
+    `[186]` `explicitEmpty` entry the `?` opens — so a witness whose route were false
+    would be refuted by this very derivation. -/
+example (rest : List Char) (sp_start sp_v : SurfPos)
+    (hq : QuestionEntry (String.ofList ('?' :: rest)) sp_start 0 ⟨'?' :: rest, 0⟩)
+    (h_key : SBlockIndented 0 .blockOut ⟨rest, 1⟩ sp_v) : SLYamlStream sp_start sp_v :=
+  hq.2.2 sp_v (SBlockMapEntry.explicitEmpty 0 ⟨'?' :: rest, 0⟩ ⟨rest, 1⟩ sp_v (GLit.mk rest 0) h_key)
+
+/-- …and for the `explicit` entry with a `:` value, through the same route. -/
+example (rest : List Char) (sp_start sp_v sp_i sp_c sp_w : SurfPos)
+    (hq : QuestionEntry (String.ofList ('?' :: rest)) sp_start 0 ⟨'?' :: rest, 0⟩)
+    (h_key : SBlockIndented 0 .blockOut ⟨rest, 1⟩ sp_v)
+    (h_ind : SIndent 0 sp_v sp_i) (h_colon : GLit ':' sp_i sp_c)
+    (h_val : SBlockIndented 0 .blockOut sp_c sp_w) : SLYamlStream sp_start sp_w :=
+  hq.2.2 sp_w (SBlockMapEntry.explicit 0 ⟨'?' :: rest, 0⟩ ⟨rest, 1⟩ sp_v sp_i sp_c sp_w
+    (GLit.mk rest 0) h_key h_ind h_colon h_val)
+
+/-- A two-level stack whose top slot is marked and whose register reads it. -/
+def twoLevelMarked : ScannerState :=
+  { ScannerState.mk' (String.ofList ['?', ' ', 'a']) with
+    indents := #[{ column := -1, isSequence := false }, { column := 0, isSequence := false }],
+    pendingKeys := #[none, some 0], explicitKeyLine := some 0, explicitKeyCol := 0 }
+
+/-- `regWitness_of_slots` on that stack: the register `(some 0, 0)` is paid by the slot
+    witness at index 1 (`RegOk` decided on the concrete arrays). -/
+example (sp_start : SurfPos) (sp_q : SurfPos)
+    (hq : QuestionEntry (String.ofList ['?', ' ', 'a']) sp_start 0 sp_q) :
+    RegWitness twoLevelMarked sp_start := by
+  refine regWitness_of_slots (fun _ => ?_) ?_
+  · show ((some 0 : Option Nat), (0 : Int)) =
+      PendingKeys.innermost twoLevelMarked.indentColumns twoLevelMarked.pendingKeys
+    rw [innermost_eq_go]; simp [go, twoLevelMarked, ScannerState.indentColumns]
+  · intro i l hi
+    match i, hi with
+    | 1, hi =>
+      have hl : l = 0 := by simp [twoLevelMarked] at hi; omega
+      subst hl
+      exact ⟨0, sp_q, by simp [twoLevelMarked, ScannerState.indentColumns], hq⟩
+    | 0, hi => simp [twoLevelMarked] at hi
+    | _ + 2, hi => simp [twoLevelMarked] at hi
+
+/-- `scanKey_witness` on the seed state of `? a⏎`: every premise discharged on the
+    concrete state (`initial_corr` for the correspondence, `mk'_sound` for the slots,
+    `mk'_base` for the sentinel, `decide` for the floor and the peeked `?`), the route as
+    the one hypothesis the `?` producer holds; the conclusion read at the marked slot gives
+    a `QuestionEntry` whose route is that premise. -/
+example (sp_start : SurfPos) (s' : ScannerState)
+    (hok : scanKey (ScannerState.mk' (String.ofList ['?', ' ', 'a', '\n'])) = .ok s')
+    (h_route : ∀ sp_v, SBlockMapEntry 0 ⟨['?', ' ', 'a', '\n'], 0⟩ sp_v → SLYamlStream sp_start sp_v) :
+    SlotsWitness s' sp_start ∧
+    (∀ l, s'.pendingKeys[1]? = some (some l) →
+      ∃ (c : Nat) (sp_q : SurfPos), s'.indentColumns[1]? = some (c : Int) ∧ QuestionEntry s'.input sp_start c sp_q) := by
+  have hcorr : ScannerSurfCorr (ScannerState.mk' (String.ofList ['?', ' ', 'a', '\n']))
+      ⟨['?', ' ', 'a', '\n'], 0⟩ :=
+    initial_corr _ _ (chars_from_zero_toList _)
+  have hw : SlotsWitness s' sp_start :=
+    scanKey_witness hcorr rfl hok (mk'_sound _).slots (mk'_base _) (by decide) (by decide)
+      h_route (fun i l hi => by
+        rcases i with _ | i
+        · simp [ScannerState.mk'] at hi
+        · simp [ScannerState.mk'] at hi)
+  exact ⟨hw, fun l hi => hw 1 l hi⟩
+
+end WitnessInstantiations
+
 /-- Direct instantiations of the helper lemmas of `RegisterWitness.lean` at the runtime. -/
 def testRegisterWitnessHelpers (state : IO.Ref TestCollector) : IO Unit := do
   -- `pushMappingIndent_getElem?_of_lt`, both arms: a push (col right of the indent) and
@@ -3066,6 +3175,10 @@ def testRegisterWitnessHelpers (state : IO.Ref TestCollector) : IO Unit := do
                                              else (ScannerState.mk' input).indents.push { column := 0, isSequence := false },
                                            pendingKeys := if offset == 0 then (ScannerState.mk' input).pendingKeys
                                              else (ScannerState.mk' input).pendingKeys.push none }
+    -- the lemma's premises on the pre-state, counted apart from its conclusion
+    let premises := !s.inFlow && s.peek? == some '?' && s.currentIndent ≤ (s.col : Int)
+      && s.pendingKeys.size == s.indents.size
+    checkM state s!"witness/scanKey {label}: premises hold (not vacuous)" premises ""
     match scanKey s with
     | .ok s' =>
       checkM state s!"witness/scanKey {label}: register names the `?`"
