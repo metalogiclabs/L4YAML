@@ -385,7 +385,7 @@ example (s : String) : ([] : List Char) <:+ s.toList := List.nil_suffix
 /-! ## §7 The pins -/
 
 /-- The census line, pinned. -/
-def expectedTally : String := "bound=9 empty=10 free=4 negation=3 total=26"
+def expectedTally : String := "bound=9 empty=10 free=4 negation=3 other=1 total=27"
 
 /-- The arm the model omits. -/
 def drop : Name := `L4YAML.Surface.SLYamlStream.scannerDrop

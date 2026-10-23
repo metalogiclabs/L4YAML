@@ -97,7 +97,7 @@ def expectedClosure : String := "modulesSeen=250"
 -- together.
 
 def expectedCensus : String :=
-  "theorems=104 headYaml=5 headStream=36 nestedConcl=54 hypOnly=9 \
+  "theorems=104 headYaml=5 headStream=36 nestedConcl=55 hypOnly=8 \
 free=17 survivesBeta5=2 yamlInHypothesis=0"
 
 /-- Every free theorem, with the route that closes it.  A count alone would not

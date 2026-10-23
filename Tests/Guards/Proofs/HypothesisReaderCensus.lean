@@ -592,7 +592,7 @@ adds.**   `constants` counts the module's non-internal constants, generated ones
 -- relays its two hypotheses into the preprocess register lemma; its wrapper `PackAlt.step_preprocess` holds the same two unused
 -- (`trivial` while `PackAlt` is `True`, the promise after `-- refused:`), like the family's four other wrappers.
 def expectedModuleTally : String :=
-  "constants=1417 decls=1127 eta=408 FIELD=168 READ=1162 RELAY=2356 RETURN=48 UNUSED=26"
+  "constants=1418 decls=1128 eta=408 FIELD=168 READ=1162 RELAY=2372 RETURN=48 UNUSED=26"
 
 -- 2026-10-21 (item 311): `flowKeyPack_of_close`'s unused `_` is binder #11 (`{g}` precedes it); the three conversion stubs
 -- (`PackAlt.ofRefused`, `PackAltG.ofPark`, `PackAlt.ofGateClose`) leave their `_h` unused until their lanes prove them.
