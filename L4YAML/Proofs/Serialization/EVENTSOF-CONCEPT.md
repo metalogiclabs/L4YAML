@@ -257,3 +257,69 @@ a column-0 line is body, at the real floor 0 it is not.  So slice 3 must give
 the positioned state the enclosing block indent (the `-`/`:` column `refLex`
 already walks past), not the bare sentinel; `- |⏎x` and `- |⏎*x` go into the
 census either way.
+
+## 9. Correction to §8: `refLex` is not on the capstone's path
+
+Writing the §8 rewrite exposed two facts that change the plan.
+
+1. `scanPlainScalar_prod` (and its flow twin `scanPlainScalar_to_flowNode_flowIn`)
+   conclude `SNsPlain … sp sp_gram ∧ GStar SSWhite sp_gram sp' ∧ ScannerSurfCorr s' sp'`:
+   the scanner consumes trailing white that the grammar span excludes, and
+   `sp_gram` is not an executable output.  No executable lexer, private or
+   scanner-backed, can emit an `opaque` segment whose text is exactly the
+   plain scalar's grammar span.
+2. The forward surface capstone already exists: `parse_strict_proof`
+   (`DocumentProduction.lean`) gets `InYamlLanguage input` from
+   `scanLoop_grammar_prod`, i.e. every successful scan already carries a
+   surface derivation per token (`*_prod` lemma per token kind).
+
+Consequence: `SerializationWellFormedInput` is an `∃ segs`, so the capstone's
+**forward** serialization conjunct needs a *witness*, not a *decision
+procedure* — and the witness can be built in the proof from the `*_prod`
+conclusions (using `sp_gram`, which the proof has even though no program does).
+The **backward** direction needs trace uniqueness (§4) plus "the parser's
+alias/tag checks compute `checkFrom` over the same trace", neither of which
+mentions `refLex`.  `refLex` therefore stays what slice 2 made it: the census
+instrument that keeps `SerializationWellFormedInput` honest against
+`parseYaml`.  The §8 rewrite is dropped; the two divergence rows pinned in
+`RefLexCensus.lean` are census debt, not proof debt.
+
+### The path, restated
+
+| # | lemma | file | depends on |
+|---|---|---|---|
+| S1 | `OpaqueAt` admits trailing white: `R sp sp_mid ∧ GStar SSWhite sp_mid sp'` (trailing white carries no event lexeme) | `EventsOf.lean` | — |
+| S2 | `tokenEvents : Array (Positioned YamlToken) → List Event` — `.anchor`/`.alias`/`.tag`/`.documentStart`(+directives)/`.documentEnd` in stream order; executable, no `Prop` | new `TokenEvents.lean` | — |
+| S3 | `scan_skeleton : scan input = .ok tokens → ∃ segs, Skeleton 0 input.toList segs ∧ eventsOfSegs segs = tokenEvents tokens` | new module | per-token `*_prod` lemmas; a loop invariant over `scanLoop` |
+| S4 | `skeleton_trace_unique : Skeleton 0 cs segs₁ → Skeleton 0 cs segs₂ → eventsOfSegs segs₁ = eventsOfSegs segs₂` | `EventsOf.lean` | `Maximal`, canonical `other` runs, `OpaqueAt` spans determined by their first char |
+| S5 | `parse_ok_checkFrom : parseYaml input = .ok docs → checkFrom {} (tokenEvents tokens) = true` and its converse under `InYamlLanguage` | parser proofs | `ParseState.declareAnchor`/`declaredIndex`, `RuntimeScopes.documentEvents` |
+
+Forward conjunct = S3 + S5(→) + `checkFrom` ↔ `WellFormedFrom`.
+Backward = S4 + S5(←) + the surface direction.
+
+### Open questions (defaults in bold)
+
+1. S3's loop invariant rides `scanLoop`, whose grammar invariant lives in
+   `StreamAccum.lean` (Row 12's file).  **Default: a separate module with its
+   own induction over `scanLoop`, importing StreamAccum's per-step `*_prod`
+   lemmas and not editing it**; if the per-step lemmas do not expose the token
+   just pushed, the alternative is one extra conjunct in Row 12's invariant,
+   negotiated with that stream after item 344.
+2. Trailing white (S1): relax `OpaqueAt`, **or** let the skeleton emit the
+   white as an `other` run.  **Default: relax `OpaqueAt`** — one `GStar SSWhite`
+   conjunct, no change to `Skeleton`, no change to the census (white has no
+   event lexeme either way).
+3. S4 needs `opaque` spans to be determined by their opening character and
+   position (a `"` opens exactly one double-quoted span, a `#` one comment,
+   …).  Plain scalars break this unless their span is pinned: **default: S4 is
+   stated on traces, and the plain disjunct contributes no events whatever its
+   span**, so the proof only needs "no event lexeme starts inside any admissible
+   plain span", which `noEventLexeme`'s node-start discipline gives.
+4. Does `refLex` keep a role?  **Default: census only** (slice 2 as merged plus
+   the pinned divergence rows); no `refLex_sound`.
+
+### Order
+
+S1 (small), S2 (small, with a census column `tokenEvents tokens =? eventsOf input`
+on the agreeing rows), S4 (the hard pure lemma, independent of everything
+else), then S3 and S5 once question 1 is settled.
