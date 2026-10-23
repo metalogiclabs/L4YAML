@@ -81,6 +81,10 @@ Facts that cost people time:
   `Tests/Guards/Proofs/FreeSurfaceCensus.lean` (`modulesSeen`),
   `DropDependents.lean`, `ParkBill.lean` (`expectedClosure`).  Only a full
   `lake build` runs them.
+- `python3 scripts/repin.py /tmp/build.log` rewrites every `def expected… :=`
+  pin the log reports as moved (`expected:`/`got:` pairs) to the value the
+  build counted; `--check` only reports.  One run is a floor — rebuild and
+  re-run until nothing moves — and read each change: a pin is a decision.
 - `lakefile.lean` sets `requiresModuleSystem := true` for `L4YAML`: every
   library file starts with `module`; test libraries that still hold legacy
   files opt out with `allowNonModules`.
