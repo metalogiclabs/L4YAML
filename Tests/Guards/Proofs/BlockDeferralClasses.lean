@@ -4562,8 +4562,10 @@ def expectedPackFlip : String :=
 -- RELAY-STATE as an identity and is a transport now); `promised` 5 → 6 for `PackAlt.step_preprocess`.
 -- 2026-10-23 (item 344): `decline` 70 → 66 — four block-park relays paid from the park's faces (`h_valFV` at the
 -- `on_pendingBlock` caller, `h_mapFV` ×2 and `h_vpack` behind a props park); `relayState` stands at 1.
+-- 2026-10-23 (item 345): `decline` 66 → 61 — five content-park relays (two twins off `h_closeFV_old`/`h_closeFV`,
+-- three `h_kslotUp` packs off the decorated dispatch's single slot); `relayState` stands at 1.
 def expectedPackResidue : String :=
-  "sites=67 decls=19 rounds=2 decline=66 relayTrue=0 relayState=1 leaf=16 uncond=50 stubs=1 promised=6"
+  "sites=62 decls=19 rounds=2 decline=61 relayTrue=0 relayState=1 leaf=16 uncond=45 stubs=1 promised=6"
 
 /-! **The 32 roots (29 since item 307), by what the register does there** — a READING of each site
 (the compiler prices it when the construction is attempted, §1):

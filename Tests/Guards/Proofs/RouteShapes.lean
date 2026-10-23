@@ -728,6 +728,8 @@ def expectedClosures : List String :=
 -- 2026-10-21 (item 313): the props park's four spines (`h_kslot`, `h_routeE`, `h_kslotE`, `h_closeFEV`) read `carry` where
 -- they read `fwd` at the two content-step sites — the field is handed on through `.imp id (PackAlt.step_content …)` now,
 -- a carried step rather than a verbatim forward; `fwd` 2 → 0, `carry` +2 on each.
+-- 2026-10-23 (item 345): the twin spine `SSLComments ⇒ Key(_)▹ExplValueLine(_)` — two content-park sites relay
+-- `h_closeFV_old`/`h_closeFV` where they closed with `trivial` (`punt` → `carry`/`stream`).
 def expectedSpines : List String :=
   -- Item 305: `pendingBlock.h_closeFV`'s spine — the compact arm pays it (one site fewer punts, one more carried).
   ["  stream=0 carry=16 fwd=0 punt=0 closed=0 SSLComments ⇒ Stream  ← pendingContent.h_closable, pendingBlockContent.h_closable",
@@ -751,7 +753,7 @@ def expectedSpines : List String :=
    "  stream=0 carry=0 fwd=0 punt=0 closed=0 GAlt(SLBareDocument,GSeq(SENode,SSLComments)) ⇒ Stream  ← pendingDocStart.h_doc_route",
    "  stream=0 carry=0 fwd=0 punt=0 closed=0 SLDirectiveDocument ⇒ Stream  ← pendingDirective.h_dir_route",
    "  stream=0 carry=6 fwd=0 punt=0 closed=0 SSLComments > SCompactSeqTail(_) ⇒ Stream  ← pendingBlockContent.h_closable_entry",
-   "  stream=0 carry=9 fwd=0 punt=3 closed=0 SSLComments > SCompactSeqTail(_) > SIndent(_) > GLit(':') > SBlockIndented(_,blockOut) ⇒ Stream  ← pendingBlockContent.h_kslot, pendingBlockContent.h_kslotUp",
+   "  stream=0 carry=12 fwd=0 punt=0 closed=0 SSLComments > SCompactSeqTail(_) > SIndent(_) > GLit(':') > SBlockIndented(_,blockOut) ⇒ Stream  ← pendingBlockContent.h_kslot, pendingBlockContent.h_kslotUp",
    "  stream=0 carry=6 fwd=0 punt=0 closed=0 SSLComments > SCompactSeqTail(_) ⇒ Resume(_)▹Stream  ← pendingBlockContent.h_closeF",
    "  stream=0 carry=3 fwd=0 punt=3 closed=0 SSLComments > SCompactSeqTail(_) ⇒ SeqEntryTail(_)  ← pendingBlockContent.h_seqF",
    "  stream=0 carry=6 fwd=0 punt=0 closed=0 SSLComments > SCompactSeqTail(_) ⇒ Key(_)▹ExplValueLine(_)  ← pendingBlockContent.h_closeFV",
@@ -774,6 +776,8 @@ def expectedSpines : List String :=
 -- reaches the escape through the stamp wrappers, so those two rows trade places.
 -- 2026-10-21 (item 313): the two props-park sites of `accum_content_pending` carry their four alternative-bearing fields
 -- through `.imp id (PackAlt.step_content …)` (`fwd` → `carry` on `h_kslot`, `h_routeE`, `h_kslotE`, `h_closeFEV`).
+-- 2026-10-23 (item 345): the three `accum_content_pending` decorated-dispatch exits carry `h_kslotUp` where they punted
+-- (paid off the park's single slot).
 def expectedSites : List String :=
   -- Item 305: the compact arm's `h_closeFV` hand-off is a carry (the `?` slot's bottom), not a punt.
   ["  accum_block_on_closeThenBlock: nil park=pendingBlock stream=bound:h_stream_new:=param:h_close_pending closedBy=[SSLComments ⇒ Stream] h_close=carry,h_close_entry=carry,h_kslot=carry,h_closeF=carry,h_seqF=punt,h_kslotUp=carry,h_closeFV=carry",
@@ -805,11 +809,11 @@ def expectedSites : List String :=
    "  accum_content_pending: nil park=pendingProps stream=param:h_stream_block closedBy=[] h_route=carry,h_key=carry,h_key=carry,h_key=carry,h_key=carry,h_kslot=carry,h_routeE=carry,h_kslotE=carry,h_closeFE=carry,h_closeF=carry,h_closeFV=carry,h_closeFEV=carry",
    "  accum_content_pending: nil park=pendingContent stream=param:h_stream_block closedBy=[] h_closable=carry,h_key=carry,h_key=carry,h_key=carry,h_key=carry,h_key=carry,h_vpack=carry,h_framesS=carry,h_framesV=carry,h_seqF=punt",
    "  accum_content_pending: nil park=pendingContent stream=param:h_stream_block closedBy=[] h_closable=carry,h_key=carry,h_key=carry,h_key=carry,h_key=carry,h_key=carry,h_vpack=carry,h_framesS=carry,h_framesV=carry,h_seqF=punt",
-   "  accum_content_pending: nil park=pendingBlockContent stream=param:h_stream_block closedBy=[] h_closable=carry,h_closable_entry=carry,h_key=carry,h_key=carry,h_key=carry,h_key=carry,h_key=carry,h_kslot=carry,h_closeF=carry,h_seqF=punt,h_kslotUp=punt,h_closeFV=carry",
+   "  accum_content_pending: nil park=pendingBlockContent stream=param:h_stream_block closedBy=[] h_closable=carry,h_closable_entry=carry,h_key=carry,h_key=carry,h_key=carry,h_key=carry,h_key=carry,h_kslot=carry,h_closeF=carry,h_seqF=punt,h_kslotUp=carry,h_closeFV=carry",
    "  accum_content_pending: nil park=pendingContent stream=param:h_stream_block closedBy=[] h_closable=carry,h_key=carry,h_key=carry,h_key=carry,h_key=carry,h_key=carry,h_vpack=carry,h_framesS=carry,h_framesV=carry,h_seqF=punt",
-   "  accum_content_pending: nil park=pendingBlockContent stream=param:h_stream_block closedBy=[] h_closable=carry,h_closable_entry=carry,h_key=closed,h_key=closed,h_key=closed,h_key=closed,h_key=closed,h_kslot=carry,h_closeF=carry,h_seqF=punt,h_kslotUp=punt,h_closeFV=carry",
+   "  accum_content_pending: nil park=pendingBlockContent stream=param:h_stream_block closedBy=[] h_closable=carry,h_closable_entry=carry,h_key=closed,h_key=closed,h_key=closed,h_key=closed,h_key=closed,h_kslot=carry,h_closeF=carry,h_seqF=punt,h_kslotUp=carry,h_closeFV=carry",
    "  accum_content_pending: nil park=pendingContent stream=param:h_stream_block closedBy=[] h_closable=carry,h_key=closed,h_key=closed,h_key=closed,h_key=closed,h_key=closed,h_vpack=carry,h_framesS=carry,h_framesV=carry,h_seqF=punt",
-   "  accum_content_pending: nil park=pendingBlockContent stream=param:h_stream_block closedBy=[] h_closable=carry,h_closable_entry=carry,h_key=carry,h_key=carry,h_key=carry,h_key=carry,h_key=carry,h_kslot=carry,h_closeF=carry,h_seqF=punt,h_kslotUp=punt,h_closeFV=carry",
+   "  accum_content_pending: nil park=pendingBlockContent stream=param:h_stream_block closedBy=[] h_closable=carry,h_closable_entry=carry,h_key=carry,h_key=carry,h_key=carry,h_key=carry,h_key=carry,h_kslot=carry,h_closeF=carry,h_seqF=punt,h_kslotUp=carry,h_closeFV=carry",
    "  accum_content_pending: nil park=pendingContent stream=param:h_stream_block closedBy=[] h_closable=carry,h_key=carry,h_key=carry,h_key=carry,h_key=carry,h_key=carry,h_vpack=carry,h_framesS=carry,h_framesV=carry,h_seqF=punt",
    "  accum_flow_open_depth0: nil park=noPending stream=bound:h_stream_mid:=bound:h_close closedBy=[SSLComments ⇒ Stream]  flow[value=carry,key=carry,key=carry,key=carry,key=carry,vslot=punt]",
    "  accum_flow_open_depth0: nil park=noPending stream=bound:h_stream_block:=L4YAML.Proofs.StreamAccum.absorb_stacksB closedBy=[lemma:absorb_stacksB]  flow=bound:h_kpkg:=Exists.intro",
@@ -892,19 +896,9 @@ def expectedK : List String :=
 -- `.imp id (PackAlt.step_content …)` now, and two route arguments that were forwarded are carried.
 -- 2026-10-23 (item 344): routeCarry 47 → 48, routeClosed 36 → 35 — the `on_pendingBlock` caller's `h_valFV`
 -- now relays `h_closeFV_old` instead of closing with `trivial`.
+-- 2026-10-23 (item 345): carry 170 → 173, punt 78 → 75, carry 120 → 123, punt 72 → 69, carry 285 → 288, punt 82 → 79 — the five content-park relays.
 def expectedLine : String :=
-  "closures=54 packed=14 optional=40 guarded=13 facts=3 others=1 byHead=6 byFirst=8 \
-bySpine=39 flowRoutes=6 flowSpinesNew=6 slots=62 nil=44 parkedCtor=35 closureSlots=255 \
-stream=7 carry=170 fwd=0 punt=78 closed=0 mandatory[stream=4 carry=50 fwd=0 punt=6 \
-closed=0] optional[stream=3 carry=120 fwd=0 punt=72 closed=0] packSlots=104 \
-pack[stream=0 carry=84 fwd=0 punt=0 closed=20] spinesFromStream=5 spinesCarried=32 \
-spinesTouched=37 firstsFromStream=4 headsFromStream=4 streamSites=2 closings=11 \
-closedDistinct=2 closedIn=2 absorbed=4 obtained=2 flowSites=7 flowSlots=42 flow[stream=8 \
-carry=29 fwd=0 punt=4 closed=1] routeArgs=154 routeStream=21 routeCarry=48 routeFwd=50 \
-routeClosed=35 routeToWalked=97 routeStreamToWalked=14 viaObtained=0 viaSites=0 \
-builders=13 builds=170 buildSlots=1101 build[stream=16 carry=285 fwd=697 punt=82 \
-closed=21] buildStreamSlots=16 buildSpines=10 routePairs=9 routeSpines=5 k=14 kHeads=6 \
-streamBuilders=9"
+  "closures=54 packed=14 optional=40 guarded=13 facts=3 others=1 byHead=6 byFirst=8 bySpine=39 flowRoutes=6 flowSpinesNew=6 slots=62 nil=44 parkedCtor=35 closureSlots=255 stream=7 carry=173 fwd=0 punt=75 closed=0 mandatory[stream=4 carry=50 fwd=0 punt=6 closed=0] optional[stream=3 carry=123 fwd=0 punt=69 closed=0] packSlots=104 pack[stream=0 carry=84 fwd=0 punt=0 closed=20] spinesFromStream=5 spinesCarried=32 spinesTouched=37 firstsFromStream=4 headsFromStream=4 streamSites=2 closings=11 closedDistinct=2 closedIn=2 absorbed=4 obtained=2 flowSites=7 flowSlots=42 flow[stream=8 carry=29 fwd=0 punt=4 closed=1] routeArgs=154 routeStream=21 routeCarry=48 routeFwd=50 routeClosed=35 routeToWalked=97 routeStreamToWalked=14 viaObtained=0 viaSites=0 builders=13 builds=170 buildSlots=1101 build[stream=16 carry=288 fwd=697 punt=79 closed=21] buildStreamSlots=16 buildSpines=10 routePairs=9 routeSpines=5 k=14 kHeads=6 streamBuilders=9"
 
 set_option maxHeartbeats 4000000 in
 run_cmd Lean.Elab.Command.liftTermElabM do

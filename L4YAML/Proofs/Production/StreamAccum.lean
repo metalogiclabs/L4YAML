@@ -33468,7 +33468,12 @@ lemma accum_content_on_pendingBlock_indented
              closeF sp_m (SBlockIndented.empty n .blockIn sp_scan sp_m h_ssl) sp_m
                (SCompactSeqTail.nil n sp_m)⟩
          | Or.inr _ => Or.inr trivial)
-        (Or.inr trivial)
+        (match h_closeFV_old with
+         | Or.inl ⟨nv, ks, _, closeFV⟩ =>
+             Or.inl ⟨nv, ks, Or.inr trivial, fun sp_m h_ssl =>
+             closeFV sp_m (SBlockIndented.empty n .blockIn sp_scan sp_m h_ssl) sp_m
+               (SCompactSeqTail.nil n sp_m)⟩
+         | Or.inr h_alt => Or.inr h_alt)
         h_pay_seq (Or.inr trivial))
       (Or.inr trivial)
       (Or.inr trivial) (Or.inr trivial)
@@ -34721,7 +34726,7 @@ lemma accum_content_pending (sc : ScannerState)
     exact absurd h_adj
       (checkAdjacentValue_refutes_stale (h_stale h_res) h_flow_disp h_pay h_pay_sk)
   | pendingBlockContent _ _ _ n h_line _h_closable _h_closable_entry _h_key h_stale _
-      _h_kslot h_closeF110 _ h_tail139b _ _ _ h_nic0B =>
+      _h_kslot h_closeF110 _ h_tail139b _ _ h_closeFV110 h_nic0B =>
     -- ═══ Item 47: same rung, entry-parked (`- "a" :b`) — same refutation. ═══
     --
     -- ═══ Item 110: and the landing arms get this park's frames, from the
@@ -34745,7 +34750,12 @@ lemma accum_content_pending (sc : ScannerState)
       -- The sequence entry stands under no explicit-key frame that is a STACK
       -- (item 108's note at the producers): `h_kslot` is a single value line,
       -- not a `ResumeFrames`, so the value face has nothing to carry.
-      (Or.inr trivial) (Or.inr trivial) (Or.inr trivial)
+      (match h_closeFV110 with
+       | Or.inl ⟨nv, ks, _, closeFV⟩ =>
+           Or.inl ⟨nv, ks, Or.inr trivial,
+             fun sp_m h_ssl => closeFV sp_m h_ssl sp_m (SCompactSeqTail.nil n sp_m)⟩
+       | Or.inr h_alt => Or.inr h_alt)
+      (Or.inr trivial) (Or.inr trivial)
       -- Item 139: the entry-level content park pays the same face, for the
       -- same reason and off the same producers.
       (Or.inl h_tail139b)
@@ -35926,7 +35936,13 @@ lemma accum_content_pending (sc : ScannerState)
                            (completedTail_of_dispatch h_dispatch hamp hbang) (Or.inr trivial)
                            -- Item 190: UNMEASURED at the decorated content
                            -- dispatch, as at the two plain ones above.
-                           (Or.inr trivial)
+                           (match h_kslotE_k with
+                            | Or.inl ⟨nv, kslotE⟩ => Or.inl ⟨[nv],
+                                fun nv' hmem sp_m h_ssl sp_e h_tail sp_i sp_c h_iv h_lit sp_v h_sbi => by
+                                  obtain rfl := List.mem_singleton.mp hmem
+                                  exact kslotE sp_m (h_nodeAt sp_m h_ssl)
+                                    sp_e h_tail sp_i sp_c h_iv h_lit sp_v h_sbi⟩
+                            | Or.inr h => Or.inr (PackAlt.step_content h_preprocess h_dispatch h))
                            -- ═══ ~~**Item 198: the PROPS lane's entry face has no
                            -- value-line twin.**~~  **Item 199 gave it one.**  The
                            -- field is `pendingProps.h_closeFEV`, paid at the one
@@ -36048,7 +36064,13 @@ lemma accum_content_pending (sc : ScannerState)
                            (completedTail_of_dispatch h_dispatch hamp hbang) (Or.inr trivial)
                            -- Item 190: UNMEASURED at the decorated content
                            -- dispatch, as at the two plain ones above.
-                           (Or.inr trivial)
+                           (match h_kslotE_k with
+                            | Or.inl ⟨nv, kslotE⟩ => Or.inl ⟨[nv],
+                                fun nv' hmem sp_m h_ssl sp_e h_tail sp_i sp_c h_iv h_lit sp_v h_sbi => by
+                                  obtain rfl := List.mem_singleton.mp hmem
+                                  exact kslotE sp_m (h_nodeAt sp_m h_ssl)
+                                    sp_e h_tail sp_i sp_c h_iv h_lit sp_v h_sbi⟩
+                            | Or.inr h => Or.inr (PackAlt.step_content h_preprocess h_dispatch h))
                            -- Item 199: as above — the same fold, the same field.
                            (match h_closeFEV_k with
                             | Or.inl ⟨nv, ks, h_ltk, closeFEV⟩ => Or.inl ⟨nv, ks, h_ltk,
@@ -36162,7 +36184,13 @@ lemma accum_content_pending (sc : ScannerState)
                            (completedTail_of_dispatch h_dispatch hamp hbang) (Or.inr trivial)
                            -- Item 190: UNMEASURED at the decorated content
                            -- dispatch, as at the two plain ones above.
-                           (Or.inr trivial)
+                           (match h_kslotE_k with
+                            | Or.inl ⟨nv, kslotE⟩ => Or.inl ⟨[nv],
+                                fun nv' hmem sp_m h_ssl sp_e h_tail sp_i sp_c h_iv h_lit sp_v h_sbi => by
+                                  obtain rfl := List.mem_singleton.mp hmem
+                                  exact kslotE sp_m (h_nodeAt sp_m h_ssl)
+                                    sp_e h_tail sp_i sp_c h_iv h_lit sp_v h_sbi⟩
+                            | Or.inr h => Or.inr (PackAlt.step_content h_preprocess h_dispatch h))
                            -- Item 199: as above — the same fold, the same field.
                            (match h_closeFEV_k with
                             | Or.inl ⟨nv, ks, h_ltk, closeFEV⟩ => Or.inl ⟨nv, ks, h_ltk,

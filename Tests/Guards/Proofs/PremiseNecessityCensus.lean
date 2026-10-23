@@ -348,8 +348,9 @@ declarations' own binders and not by a rescoring of an existing one.
 -- relays its two hypotheses and its wrapper `PackAlt.step_preprocess` holds the same two unused; as `HypothesisReaderCensus`.
 -- (The item 320 and 322 notes above are corrected: their scripts garbled the field names.)
 -- 2026-10-23 (item 344): constants/decls +1, READ 1200 → 1203 — the relayed `h_valFV`'s `match` and the relays' reads.
+-- 2026-10-23 (item 345): constants 1419 → 1420, decls 1129 → 1130, READ 1203 → 1206 — the `h_kslotUp` singleton relays' tactic block: one auxiliary declaration, three more reads (same as HypothesisReaderCensus).
 def expectedModuleTallyP : String :=
-  "constants=1419 decls=1129 eta=408 FIELD=189 READ=1203 RELAY=2222 RETURN=139 UNUSED=26"
+  "constants=1420 decls=1130 eta=408 FIELD=189 READ=1206 RELAY=2222 RETURN=139 UNUSED=26"
 
 -- Item 287: `accum_block_on_closeThenBlock`'s `h_vslot`, a READ one, left the
 -- `_ ∨ True` population — its sibling's move, under this peel.  Item 288: and
