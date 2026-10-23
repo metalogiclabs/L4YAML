@@ -86,8 +86,10 @@ namespace L4YAML.Tests.Guards.GateVocabulary
 -- 2026-10-22: re-pinned from `scripts/gate_vocab.py` on the fix-a branch — the literal had been 448 since item 265's
 -- successors added gate names to Lean docstrings (items 332–340 each reported the drift as pre-existing); the
 -- script is the reading, this literal is the pin, and a disagreement is an item's to repin, not to record.
+-- 2026-10-23: 111/466 → 113/468 — the Step 5 status row names two new gates (`parseStream_accepts`,
+-- `TokenGrammar`'s module) from Stream D.
 def expectedGateVocab : String :=
-  "names=111 mentions=466 families=14 refuted=7 wrapped=4 self=2 unresolved=0"
+  "names=113 mentions=468 families=14 refuted=7 wrapped=4 self=2 unresolved=0"
 
 end L4YAML.Tests.Guards.GateVocabulary
 
