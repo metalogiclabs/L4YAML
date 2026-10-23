@@ -1,5 +1,14 @@
-import L4YAML.Token.Token
-import L4YAML.Proofs.Serialization.SerializationWellFormed
+/-
+Copyright (c) 2026. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+-/
+module
+
+public import L4YAML.Token.Token
+public import L4YAML.Proofs.Serialization.SerializationWellFormed
+
+public meta import L4YAML.Token.Token
+public meta import L4YAML.Proofs.Serialization.SerializationWellFormed
 
 /-!
 # Serialization events of a token stream (EVENTSOF-CONCEPT §9, S2)
@@ -15,6 +24,8 @@ has exactly this trace, S5 relates it to the parser's own anchor/tag checks.
 -/
 
 namespace L4YAML.Proofs.Serialization.TokenEvents
+
+public section
 
 open L4YAML.Proofs.Serialization.SerializationWellFormed
 
@@ -57,5 +68,7 @@ def tok (v : YamlToken) : Positioned YamlToken := ⟨default, v, default⟩
 #guard tokenEvents #[tok (.documentEnd), tok (.documentStart)] = [.endDocument, .beginDocument]
 #guard tokenEvents #[tok (.tagDirective "!h!" "p")] = [.declareTag "!h!"]
 #guard tokenEvents #[tok (.tagDirective "!" "p"), tok (.tagDirective "!!" "q"), tok .documentStart] = [.beginDocument]
+
+end
 
 end L4YAML.Proofs.Serialization.TokenEvents
