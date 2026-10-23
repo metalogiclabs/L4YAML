@@ -18,6 +18,7 @@ public import L4YAML.Proofs.Serialization.ExecutableBoundary
 public import L4YAML.Proofs.Serialization.EventsOf
 public import L4YAML.Proofs.Serialization.RefLex
 import L4YAML.Proofs.Serialization.TokenEvents
+import L4YAML.Proofs.Serialization.TraceOf.Document
 
 @[expose] public section Blanket
 
