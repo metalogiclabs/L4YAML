@@ -52,6 +52,7 @@ open L4YAML.Proofs.CouplingBridge
 open L4YAML.Proofs.PendingKeySound
 open L4YAML.Proofs.IndentStackBase (SentinelBase)
 open L4YAML.Proofs.CloseStaleExplicitKey
+open L4YAML.Proofs.PendingKeysStable
 
 /-! ## §1  The relations -/
 
@@ -303,6 +304,148 @@ lemma unwindIndents_witness {input : String} (s : ScannerState) (col : Int) {sp_
     (h : SlotsWitness input s sp_start) (hs : SlotsOk s) :
     SlotsWitness input (unwindIndents s col) sp_start :=
   unwindIndentsLoop_witness s col _ h hs
+
+
+/-! ### Batch 2: the `:`, the `-`, the document markers, the flow arms, the content arm -/
+
+/-- A `closeAt` written as array equalities (the `:` arm's `settle`). -/
+lemma SlotsWitness.closeAt_eq {input : String} {s s' : ScannerState} {sp_start : SurfPos}
+    (h : SlotsWitness input s sp_start) (col : Int)
+    (hpk : s'.pendingKeys = PendingKeys.closeAt s.indentColumns s.pendingKeys col)
+    (hind : s'.indents = s.indents) : SlotsWitness input s' sp_start := by
+  intro i l hi
+  rw [hpk] at hi
+  obtain ⟨c, sp_q, hc, hq⟩ := h i l (closeAt_marked _ _ _ _ _ hi).1
+  exact ⟨c, sp_q, by rw [ScannerState.indentColumns, hind]; exact hc, hq⟩
+
+lemma scanValueClearKey_witness {input : String} {s : ScannerState} {sp_start : SurfPos}
+    (h : SlotsWitness input s sp_start) : SlotsWitness input (scanValueClearKey s) sp_start :=
+  h.transport (scanValueClearKey_core s).2.1 (scanValueClearKey_core s).1
+
+lemma scanValuePrepare_witness {input : String} {s : ScannerState} {sp_start : SurfPos}
+    (h : SlotsWitness input s sp_start) (hsz : s.pendingKeys.size = s.indents.size) :
+    SlotsWitness input (scanValuePrepare s) sp_start := by
+  unfold scanValuePrepare
+  split
+  · split
+    · split
+      · exact h.push _ rfl rfl hsz
+      · exact h
+    · exact h
+  · split
+    · exact h
+    · split
+      · exact pushMappingIndent_witness _ h hsz
+      · exact h
+
+/-- The `:` arm: clear-key and prepare (a push at most), emit, advance, then `settle` keeps the
+    slots or closes the explicit key's level. -/
+lemma scanValue_witness {input : String} {s s' : ScannerState} {sp_start : SurfPos}
+    (hok : scanValue s = .ok s') (h : SlotsWitness input s sp_start) (hs : SlotsOk s) :
+    SlotsWitness input s' sp_start := by
+  unfold scanValue at hok
+  simp only [bind, Except.bind] at hok
+  split at hok <;> try contradiction
+  split at hok <;> try contradiction
+  split at hok <;> try contradiction
+  simp only [Except.ok.injEq] at hok
+  subst hok
+  have hs_kc : SlotsOk (scanValueClearKey s) := by
+    refine ⟨by rw [(scanValueClearKey_core s).2.1, (scanValueClearKey_core s).1]; exact hs.1, ?_⟩
+    intro i l hi
+    have hcols : (scanValueClearKey s).indentColumns = s.indentColumns := by
+      simp [ScannerState.indentColumns, (scanValueClearKey_core s).1]
+    rw [hcols]; exact hs.2 i l ((scanValueClearKey_core s).2.1 ▸ hi)
+  have hw_p : SlotsWitness input (scanValuePrepare (scanValueClearKey s)) sp_start :=
+    scanValuePrepare_witness (scanValueClearKey_witness h) hs_kc.1
+  have hadv_pk : (((scanValuePrepare (scanValueClearKey s)).emit .value).advance).pendingKeys
+      = (scanValuePrepare (scanValueClearKey s)).pendingKeys := by
+    rw [advance_preserves_pendingKeys, emit_pendingKeys]
+  have hadv_ind : (((scanValuePrepare (scanValueClearKey s)).emit .value).advance).indents
+      = (scanValuePrepare (scanValueClearKey s)).indents := by
+    rw [L4YAML.Proofs.EmitterScannability.advance_preserves_indents]; rfl
+  have hw_adv : SlotsWitness input (((scanValuePrepare (scanValueClearKey s)).emit .value).advance)
+      sp_start := hw_p.transport hadv_pk hadv_ind
+  split
+  · exact hw_adv.transport rfl rfl
+  · split
+    · exact hw_adv.transport rfl rfl
+    · exact hw_adv.closeAt_eq _ rfl rfl
+
+lemma scanBlockEntry_witness {input : String} {s s' : ScannerState} {sp_start : SurfPos}
+    (hnf : s.inFlow = false) (hok : scanBlockEntry s = .ok s')
+    (h : SlotsWitness input s sp_start) (hs : SlotsOk s) : SlotsWitness input s' sp_start :=
+  (pushSequenceIndent_witness (s.col : Int) h hs.1).transport
+    (scanBlockEntry_pendingKeys hnf hok)
+    (L4YAML.Proofs.PreprocessIndentStable.scanBlockEntry_indents hnf hok)
+
+/-- A document marker unwinds to the sentinel; the witness follows the unwind and nothing after
+    it touches a slot. -/
+lemma SlotsWitness.of_doc_reset {input : String} {s s' : ScannerState} {sp_start : SurfPos}
+    (h : SlotsWitness input s sp_start) (hs : SlotsOk s)
+    (hpk : s'.pendingKeys = (unwindIndents s (-1)).pendingKeys)
+    (hind : s'.indents = (unwindIndents s (-1)).indents) : SlotsWitness input s' sp_start :=
+  (unwindIndents_witness s (-1) h hs).transport hpk hind
+
+lemma scanDocumentStart_witness {input : String} {s : ScannerState} {sp_start : SurfPos}
+    (h : SlotsWitness input s sp_start) (hs : SlotsOk s) :
+    SlotsWitness input (scanDocumentStart s) sp_start := by
+  refine h.of_doc_reset hs ?_ ?_
+  · unfold scanDocumentStart; simp [advanceN_preserves_pendingKeys, emit_pendingKeys]
+  · unfold scanDocumentStart
+    simp [L4YAML.Proofs.IndentStackBase.advanceN_preserves_indents,
+      L4YAML.Proofs.ScannerContracts.emit_indents]
+
+lemma scanDocumentEnd_witness {input : String} {s s' : ScannerState} {sp_start : SurfPos}
+    (hok : scanDocumentEnd s = .ok s') (h : SlotsWitness input s sp_start) (hs : SlotsOk s) :
+    SlotsWitness input s' sp_start := by
+  unfold scanDocumentEnd at hok
+  simp only [bind, Except.bind] at hok
+  repeat (any_goals (split at hok))
+  all_goals (try contradiction)
+  all_goals (simp only [Except.ok.injEq] at hok; subst hok)
+  all_goals refine h.of_doc_reset hs ?_ ?_
+  all_goals (try simp [advanceN_preserves_pendingKeys, emit_pendingKeys])
+  all_goals (try simp [L4YAML.Proofs.IndentStackBase.advanceN_preserves_indents,
+      L4YAML.Proofs.ScannerContracts.emit_indents])
+
+/-- The four flow brackets and the flow entry never touch a slot. -/
+lemma scanFlowSequenceStart_witness {input : String} {s : ScannerState} {sp_start : SurfPos}
+    (h : SlotsWitness input s sp_start) : SlotsWitness input (scanFlowSequenceStart s) sp_start :=
+  h.transport (scanFlowSequenceStart_preserves_pendingKeys s) (by
+    unfold scanFlowSequenceStart; dsimp only []
+    simp only [L4YAML.Proofs.EmitterScannability.advance_preserves_indents, ScannerState.emit])
+
+lemma scanFlowMappingStart_witness {input : String} {s : ScannerState} {sp_start : SurfPos}
+    (h : SlotsWitness input s sp_start) : SlotsWitness input (scanFlowMappingStart s) sp_start :=
+  h.transport (scanFlowMappingStart_preserves_pendingKeys s) (by
+    unfold scanFlowMappingStart; dsimp only []
+    simp only [L4YAML.Proofs.EmitterScannability.advance_preserves_indents, ScannerState.emit])
+
+lemma scanFlowSequenceEnd_witness {input : String} {s : ScannerState} {sp_start : SurfPos}
+    (h : SlotsWitness input s sp_start) : SlotsWitness input (scanFlowSequenceEnd s) sp_start :=
+  h.transport (scanFlowSequenceEnd_preserves_pendingKeys s) (by
+    unfold scanFlowSequenceEnd; dsimp only []
+    simp only [L4YAML.Proofs.EmitterScannability.advance_preserves_indents, ScannerState.emit])
+
+lemma scanFlowMappingEnd_witness {input : String} {s : ScannerState} {sp_start : SurfPos}
+    (h : SlotsWitness input s sp_start) : SlotsWitness input (scanFlowMappingEnd s) sp_start :=
+  h.transport (scanFlowMappingEnd_preserves_pendingKeys s) (by
+    unfold scanFlowMappingEnd; dsimp only []
+    simp only [L4YAML.Proofs.EmitterScannability.advance_preserves_indents, ScannerState.emit])
+
+lemma scanFlowEntry_witness {input : String} {s s' : ScannerState} {sp_start : SurfPos}
+    (hok : scanFlowEntry s = .ok s') (h : SlotsWitness input s sp_start) :
+    SlotsWitness input s' sp_start :=
+  h.transport (scanFlowEntry_preserves_pendingKeys hok)
+    (L4YAML.Proofs.FlowIndentStable.scanFlowEntry_preserves_indents hok)
+
+/-- The content arm (scalars, props, aliases) never touches a slot. -/
+lemma dispatchContent_witness {input : String} {s s' : ScannerState} {c : Char} {sp_start : SurfPos}
+    (hok : scanNextToken_dispatchContent s c = .ok s') (h : SlotsWitness input s sp_start) :
+    SlotsWitness input s' sp_start :=
+  h.transport (dispatchContent_pendingKeys hok)
+    (L4YAML.Proofs.IndentStackBase.dispatchContent_preserves_indents hok)
 
 end L4YAML.Proofs.RegisterWitness
 
