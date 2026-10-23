@@ -390,3 +390,32 @@ lexical skeleton admits a spurious well-formed reading.
    with `traceOf_unique` on that fragment and a census against `tokenEvents`.)
 2. Where does S3's extra conjunct live — Row 12's invariant or a sibling
    module?  Same question as §9 Q1; unchanged default (sibling module).
+
+### Sizing option 1 (measured on the tree)
+
+The node grammar is one `mutual` block of 18 inductives (`Surface/Node.lean`,
+560 lines); documents and streams are 10 more (`Surface/Document.lean`, 356
+lines); `SCNsProperties`/`SCNsAliasNode` occur in 9 constructors of the block.
+Events can occur inside every container, so the annotated family is a copy of
+both files with a `List Event` index and `++` at every sequencing point
+(~900 lines, mechanical; the scalar productions are reused by reference).
+
+`traceOf_unique` is then a statement about the *grammar*, not the text: at
+every split that can move an event lexeme between "property/alias" and "plain
+content" the grammar must have exactly one choice.  In `[a &x, *x]` it does —
+a second flow entry needs a `,` before it, so `&x` cannot start a node — and
+that is the whole reason the lexical skeleton fails where the grammar does not.
+The proof is a mutual induction with an inversion per production; its cost is
+dominated by the plain-scalar boundary lemmas (`SNsPlainMultiLine` vs a
+following property at line start, `s-separate` vs plain white).  Estimate:
+the copy and its census in one slice; uniqueness over the flow fragment in a
+second; the block fragment (multi-line plain continuation) is the long pole.
+
+The alternative is to weaken the capstone to the forward direction plus a
+backward direction conditioned on trace uniqueness as a hypothesis — honest,
+cheaper, and it names the remaining obligation precisely.  That is a choice
+for the owner (question 3).
+
+3. Weaken 7.7's `←` to carry `traceOf_unique` as a hypothesis until the block
+   fragment is proven?  (Default **no** — state it unconditionally and let the
+   closure log carry the block-fragment item.)
