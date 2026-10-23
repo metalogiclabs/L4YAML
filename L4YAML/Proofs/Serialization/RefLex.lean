@@ -86,24 +86,31 @@ def indentOf : List Char → Nat
   | ' ' :: cs => indentOf cs + 1
   | _ => 0
 
+/-- Split off one line break: `\r\n`, `\r` or `\n`. -/
+def splitBreak : List Char → Option (List Char × List Char)
+  | '\r' :: '\n' :: rest => some (['\r', '\n'], rest)
+  | '\n' :: rest => some (['\n'], rest)
+  | '\r' :: rest => some (['\r'], rest)
+  | _ => none
+
 /-- Block-scalar body: following lines that are blank or indented at least
 `n` (the first non-blank line fixes `n` when it is not given). -/
 def blockBody (n? : Option Nat) (cs : List Char) : Nat → List Char × List Char
   | 0 => ([], cs)
   | fuel + 1 =>
-    match cs with
-    | '\n' :: rest =>
+    match splitBreak cs with
+    | some (brk, rest) =>
       let (line, after) := toEol rest
       let blank := line.all (fun c => c = ' ' || c = '\t')
       let ind := indentOf line
       let go (n' : Option Nat) :=
         let (a, b) := blockBody n' after fuel
-        ('\n' :: line ++ a, b)
+        (brk ++ line ++ a, b)
       if blank then go n?
       else match n? with
         | none => if ind = 0 then ([], cs) else go (some ind)
         | some n => if ind < n then ([], cs) else go (some n)
-    | _ => ([], cs)
+    | none => ([], cs)
 
 /-- A plain scalar from a non-indicator first character: to the end of the
 line, a `: `/`:⏎`, a ` #`, or (in flow) a flow indicator or `:` before one. -/

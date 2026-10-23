@@ -61,5 +61,14 @@ def both (input : String) : Bool × Bool := (wellFormedB input, loads input)
 #guard both "%YAML 1.2\n# c\n---" = (true, true)
 #guard both "%YAML 1.2\n  # c\n\n---\n" = (true, true)
 #guard both "%X\n#c" = (false, false)
+#guard both "a: |\r\n  *x\r\n" = (true, true)
+#guard both "a: |\r  *x\r" = (true, true)
+#guard both "a: >\r\n  x\r\n\r\n  *y\r\nb: 1" = (true, true)
+
+-- Known divergences of the private lexers, pinned as measured; §8 of
+-- EVENTSOF-CONCEPT.md replaces `blockBody`/`plain` by the scanner's leaf
+-- functions, and these rows must then flip to agreement.
+#guard both "a: |2\n   *x\n  *y\n" = (false, true)
+#guard both "a: foo\n  &x\nb: *x" = (true, false)
 
 end L4YAML.Proofs.Serialization.RefLexCensus
