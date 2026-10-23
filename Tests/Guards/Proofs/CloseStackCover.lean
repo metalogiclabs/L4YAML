@@ -823,6 +823,8 @@ sixth component (`nodes` 95163 → 96024). -/
 -- 2026-10-20 (item 306): six rows re-read — the two key-pack builders' value-line
 -- stacks at the three entry-park calls are `match`es on `h_closeFV_old` (paid with the
 -- cover punted | punt) where item 108 left bare punts.
+-- 2026-10-23 (item 345): two `h_fV` rows punt → match[paid|punt] — the twin relays at `on_pendingBlock_indented` and
+-- `accum_content_pending`'s `h_defer_split` now case on the park's `h_closeFV`.
 def expectedRows : List String :=
   ["accum_block_on_closeThenBlock #1 fn:accum_block_on_closeThenBlock.h_cov_step := via:IndentStackCover.scanBlockEntry_cover(via:Covered.of_indents_eq(via:IndentStackCover.preprocess_cover(relay(fnp:accum_block_on_closeThenBlock.h_cov_step.hc))))",
    "accum_block_on_closeThenBlock #1 local:accum_block_on_closeThenBlock.h_seqFrames := cases[ite[paid{cover=step(relay(param:accum_block_on_closeThenBlock.h_valF))}|paid{cover=punt}]|paid{cover=punt}]",
@@ -866,7 +868,7 @@ def expectedRows : List String :=
    "accum_content_on_pendingBlock_indented #2 param:entryKeyPack_of_dispatch.h_dframesV := match[paid{cover=punt}|punt]",
    "accum_content_on_pendingBlock_indented #1 fn:accum_content_on_pendingBlock_indented.h_pay_seq := cases[cases[lit(lo=—,idx=w,ks=map(…) :: ksw',by=via:StreamAccum.dedent_cover_of_floor(via:IndentStackCover.preprocess_cover(relay(fnp:accum_content_on_pendingBlock_indented.h_pay_seq.h_cv))))|punt]|punt]",
    "accum_content_on_pendingBlock_indented #1 param:resumectx_of_landing.h_fS := match[paid{cover=step(relay(param:accum_content_on_pendingBlock_indented.h_closeF_old))}|punt]",
-   "accum_content_on_pendingBlock_indented #1 param:resumectx_of_landing.h_fV := punt",
+   "accum_content_on_pendingBlock_indented #1 param:resumectx_of_landing.h_fV := match[paid{cover=punt}|punt]",
    "accum_content_on_pendingMapValue_indented #1 fn:accum_content_on_pendingMapValue_indented.h_cov_step := via:IndentStackCover.dispatchContent_cover(via:Covered.of_indents_eq(via:IndentStackCover.preprocess_cover(relay(fnp:accum_content_on_pendingMapValue_indented.h_cov_step.hc))))",
    "accum_content_on_pendingMapValue_indented #1 ctor:pendingContent.h_framesS := match[paid{cover=step(relay(param:accum_content_on_pendingMapValue_indented.h_closeF99))}|punt]",
    "accum_content_on_pendingMapValue_indented #1 ctor:pendingContent.h_framesV := match[paid{cover=step(relay(param:accum_content_on_pendingMapValue_indented.h_closeFV108))}|punt]",
@@ -929,7 +931,7 @@ def expectedRows : List String :=
    -- Item 284: `pendingFlow`'s call (#4, punt/punt) is gone — that arm defers at
    -- every landing now — so `pendingBlockContent`'s call, #5, is #4.
    "accum_content_pending #4 fnp:accum_content_pending.h_defer_split.h_fS := match[paid{cover=step(relay(door:pendingBlockContent.h_closeF))}|punt]",
-   "accum_content_pending #4 fnp:accum_content_pending.h_defer_split.h_fV := punt",
+   "accum_content_pending #4 fnp:accum_content_pending.h_defer_split.h_fV := match[paid{cover=punt}|punt]",
    "accum_content_pending #1 param:accum_content_on_pendingBlock_indented.h_closeF_old := relay(door:pendingBlock.h_closeF)",
    "accum_content_pending #1 param:accum_content_on_pendingMapValue_indented.h_closeF99 := relay(door:pendingMapValue.h_closeF)",
    "accum_content_pending #1 param:accum_content_on_pendingMapValue_indented.h_frames99 := relay(door:pendingMapValue.h_frames)",
@@ -1136,6 +1138,7 @@ def expectedDoor : List String :=
 -- 2026-10-21 (item 324): `nodes` 103328 → 103335 — this item's payments in the flow opener and the resume context
 -- (applications where `trivial` stood) grow the walked terms; `walked` and every row stand.
 -- 2026-10-23 (item 344): `doorForgotten` 8 → 9, `doorDropped` 23 → 22, `nodes` 104597 → 104913 — the block-park relays read the props park's `h_closeFV`.
+-- 2026-10-23 (item 345): nodes 104913 → 105448 — the two `h_fV` rows above now case on the park's `h_closeFV`.
 def expectedLine : String :=
   "positions=21 ctorFields=11 lemParams=29 lemmas=16 walked=24 doors=8 rows=167 ctorRows=79 \
 lemRows=55 localRows=4 fnRows=19 fnpRows=8 valRows=2 coverTypes=4 mentions=0 pbc=6 \
@@ -1145,7 +1148,7 @@ valFPaid=0 valFPunt=9 contentPaid=6 contentPunt=15 contentCoverPunt=2 contentLem
 contentOpen=2 contentPos=16 entryPaid=6 entryPunt=15 entryCoverPunt=2 entryLemma=0 \
 entryOpen=2 entryPos=16 eight=8 eightPB=4 eightPBC=4 eightIndents=0 eightTop=4 \
 eightFloor=0 eightMinCI=0 eightNic=8 eightPrep=8 eightCover=4 doorUses=41 doorKept=10 \
-doorForgotten=9 doorDropped=22 doorsOther=4 nodes=104913"
+doorForgotten=9 doorDropped=22 doorsOther=4 nodes=105448"
 
 /-! ## §6 The reading -/
 

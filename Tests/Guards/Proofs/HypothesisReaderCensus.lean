@@ -593,8 +593,11 @@ adds.**   `constants` counts the module's non-internal constants, generated ones
 -- (`trivial` while `PackAlt` is `True`, the promise after `-- refused:`), like the family's four other wrappers.
 -- 2026-10-23 (item 344): constants/decls +1 (the `match` on `h_closeFV_old` behind the relayed `h_valFV`), READ 1162 → 1165
 -- (the relays read `h_closeFV_old`, `h_sep_p`, `h_run`).
+-- 2026-10-23 (item 345): constants/decls +1, READ +3 — the `h_kslotUp` singleton relays' tactic block compiles to one
+-- auxiliary declaration and reads three more hypotheses.
 def expectedModuleTally : String :=
-  "constants=1419 decls=1129 eta=408 FIELD=168 READ=1165 RELAY=2372 RETURN=48 UNUSED=26"
+  "constants=1420 decls=1130 eta=408 FIELD=168 READ=1168 RELAY=2372 RETURN=48 \
+UNUSED=26"
 
 -- 2026-10-21 (item 311): `flowKeyPack_of_close`'s unused `_` is binder #11 (`{g}` precedes it); the three conversion stubs
 -- (`PackAlt.ofRefused`, `PackAltG.ofPark`, `PackAlt.ofGateClose`) leave their `_h` unused until their lanes prove them.

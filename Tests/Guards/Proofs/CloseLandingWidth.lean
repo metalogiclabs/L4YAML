@@ -544,6 +544,8 @@ def expectedEdges : List String :=
 -- 2026-10-20 (item 307): 21 → 23 — `accum_block_on_pendingBlock`'s dedent `-` builds `h_vpack`
 -- and `h_mapFV` over the EMPTY awaited entry (`SBlockIndented.empty n … sp_m`), the twins of
 -- item 167's `h_seqF_old` relay between them.
+-- 2026-10-23 (item 345): 23 → 24 — `accum_content_on_pendingBlock_indented` relays `h_closeFV_old` onto the twin
+-- over the EMPTY entry (`SBlockIndented.empty n … sp_m`), beside its `h_closeF_old` relay.
 def expectedEmpties : List String :=
   ["close_with_ssl SBlockIndented.empty n=n @sp_mid width=none cmp=no",
    "close_with_ssl SBlockNode.emptyNode n=n + 1 @sp_mid width=none cmp=no",
@@ -557,6 +559,7 @@ def expectedEmpties : List String :=
    "accum_block_pending SBlockIndented.empty n=nmv @sp_m width=ind[ind:h_ind] cmp=yes[≡nmv]",
    "accum_block_pending SBlockNode.emptyNode n=nmv + 1 @sp_m width=ind[ind:h_ind] cmp=no",
    "accum_block_pending SBlockIndented.empty n=nmv @sp_m width=ind[ind:h_ind] cmp=no",
+   "accum_content_on_pendingBlock_indented SBlockIndented.empty n=n @sp_m width=none cmp=no",
    "accum_content_on_pendingBlock_indented SBlockIndented.empty n=n @sp_m width=none cmp=no",
    "accum_content_on_pendingBlock_indented SBlockIndented.empty n=n @sp_m width=none cmp=no",
    "accum_content_on_pendingBlock_indented SBlockIndented.empty n=n @sp_m width=none cmp=no",
@@ -581,12 +584,13 @@ def expectedEmpties : List String :=
 -- stream-lane `h_dframes` relay beside each.
 -- 2026-10-20 (item 307): `empties` 21 → 23 (the two above).
 -- 2026-10-20 (item 307): corrected from the census — the dedent route's two new empties: `emptyInd` 10 → 11.
+-- 2026-10-23 (item 345): empties 23 → 24 — the EMPTY-entry twin relay in `accum_content_on_pendingBlock_indented`.
 def expectedLine : String :=
   "closeSites=8 closePairs=6 closePairsD=8 viaClose=6 params=7 spends=24 spendsC=13 \
 spendsE=0 spendsN=11 handoffs=7 carries=0 untyped=0 edges=4 paramsWalked=8 widthInd=12 \
 widthWs=1 widthNone=0 idxDirect=8 idxPacked=1 idxNone=4 cmp=0 cmpSame=0 both=8 bothCmp=0 \
 handInd=5 handDirect=5 handCmp=5 sitesBoth=3 sitesWidth=4 sitesNeither=1 sitesBothAll=1 \
-empties=23 emptyLemmas=6 emptyInd=11 emptyCmp=4 emptySame=2 emptyClose=2 sites=23 \
+empties=24 emptyLemmas=6 emptyInd=11 emptyCmp=4 emptySame=2 emptyClose=2 sites=23 \
 pairs=21 pairs21=21 pairs18=18 nonANoDrop=8 reach=38"
 
 /-! ## §5 The reading -/
