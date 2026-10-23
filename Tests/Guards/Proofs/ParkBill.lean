@@ -144,18 +144,10 @@ capstonesInTp={b.capstonesInTrans.size}"
     235 on 2026-10-02, when `Proofs.Parser.ParserScannableBase` joined the
     library — the `Scannable`-valued compose chain, in its own module because
     two `maxHeartbeats 4000000` `YamlValue` inductions do not elaborate in
-<<<<<<< HEAD
     one.
     260 on 2026-10-23 (after `Serialization.EventsOf` and `RefLex`), when `Proofs.Production.Acceptance.Quoted` joined the
     library — the one-line quoted-scalar scanner converses. -/
-def expectedClosure : Nat := 260
-||||||| parent of 4b93f53e (test(guards): re-pin closure censuses and gate vocabulary after Stream D modules; DOCS Step 5 note)
-    one. -/
-def expectedClosure : Nat := 259
-=======
-    one. -/
-def expectedClosure : Nat := 261  -- +2: `Proofs.Parser.TokenGrammar`, `StreamCompleteness` (Stream D)
->>>>>>> 4b93f53e (test(guards): re-pin closure censuses and gate vocabulary after Stream D modules; DOCS Step 5 note)
+def expectedClosure : Nat := 262  -- +2: `Proofs.Parser.TokenGrammar`, `StreamCompleteness` (Stream D)
 
 /-- The park's populations beside the arm's, from one pass. -/
 def expectedBill : String :=
