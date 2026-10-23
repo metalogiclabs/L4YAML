@@ -78,4 +78,61 @@ def sq (s : String) (flow : Bool := false) := quotedAt scanSingleQuoted .singleQ
 #guard !TrailingOk "b".toList
 #guard !TrailingOk " x".toList
 
+-- Multi-line: `quotedAtInd` sets the block indentation floor the scanner folds against.
+def quotedAtInd (scan : ScannerState → Except ScanError ScannerState) (style : ScalarStyle)
+    (s : String) (flow : Bool) (indent : Int) : Option (String × Nat × Nat) :=
+  let base := ScannerState.mk' s
+  let entry : IndentEntry := { column := indent, isSequence := false }
+  match scan { base with flowLevel := if flow then 1 else 0, indents := base.indents.push entry } with
+  | .ok s' =>
+    match s'.tokens.back? with
+    | some t =>
+      match t.val with
+      | .scalar c st => if st == style then some (c, s'.offset, s'.col) else none
+      | _ => none
+    | none => none
+  | .error _ => none
+
+def dqi (s : String) (indent : Int) (flow : Bool := false) :=
+  quotedAtInd scanDoubleQuoted .doubleQuoted s flow indent
+def sqi (s : String) (indent : Int) (flow : Bool := false) :=
+  quotedAtInd scanSingleQuoted .singleQuoted s flow indent
+
+-- Double-quoted multi-line, accepted (`SCDoubleQuotedMultiOk n`, `n` above the floor)
+#guard dq "\"a\nb\"" == some ("a b", 5, 2)
+#guard dq "\"a\n\nb\"" == some ("a\nb", 6, 2)
+#guard dq "\"a\n  \n\t\n b\"" == some ("a\n\nb", 11, 3)
+#guard dq "\"a \n  b\"" == some ("a b", 8, 4)
+#guard dq "\"a\\\n  b\"" == some ("ab", 8, 4)
+#guard dq "\"a\\\n\n  b\"" == some ("a\nb", 9, 4)
+#guard dq "\"a\n...\"" == some ("a ...", 7, 4)
+#guard dq "\"a\r\nb\"" == some ("a b", 6, 2)
+#guard dq "\"a\rb\"" == some ("a b", 5, 2)
+#guard dqi "\"a\n  b\"" 1 == some ("a b", 7, 4)
+#guard dqi "\"a\n \tb\"" 0 == some ("a b", 7, 4)
+#guard dqi "\"a\n\n  b\"" 0 true == some ("a\nb", 8, 4)
+-- Double-quoted multi-line, refuted without the narrowing
+#guard dq "\"a\n---\nb\"" == none        -- document marker at the landing
+#guard dqi "\"a\nb\"" 0 == none            -- continuation does not clear the floor
+#guard dqi "\"a\n\tb\"" 1 == none          -- tab in indentation under the floor
+#guard dqi "\"a\n\nb\"" 0 true == none      -- same floor in flow context
+
+-- Single-quoted multi-line, accepted (`SCSingleQuotedMultiOk n`)
+#guard sq "'a\nb'" == some ("a b", 5, 2)
+#guard sq "'a\n\nb'" == some ("a\nb", 6, 2)
+#guard sq "'a\n  \n\t\n b'" == some ("a\n\nb", 11, 3)
+#guard sq "'a \n  b'" == some ("a b", 8, 4)
+#guard sq "'a\n...'" == some ("a ...", 7, 4)
+#guard sq "'a\r\nb'" == some ("a b", 6, 2)
+#guard sq "'a\rb'" == some ("a b", 5, 2)
+#guard sq "'a\n b''c'" == some ("a b'c", 9, 6)
+#guard sqi "'a\n  b'" 1 == some ("a b", 7, 4)
+#guard sqi "'a\n \tb'" 0 == some ("a b", 7, 4)
+#guard sqi "'a\n\n  b'" 0 true == some ("a\nb", 8, 4)
+-- Single-quoted multi-line, refuted without the narrowing
+#guard sq "'a\n---\nb'" == none
+#guard sqi "'a\nb'" 0 == none
+#guard sqi "'a\n\tb'" 1 == none
+#guard sqi "'a\n\nb'" 0 true == none
+
 end L4YAML.Proofs.Acceptance.Probes
