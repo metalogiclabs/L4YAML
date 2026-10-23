@@ -3,18 +3,18 @@ module
 public import L4YAML.Proofs.Serialization.TraceOf.Node
 public meta import L4YAML.Proofs.Serialization.TraceOf.Node
 
-/-! # `tFlowNode_unique` is FALSE on the event-annotated flow grammar (Rule 2)
+/-! # `tFlowNode_unique` on the event-annotated flow grammar (Rule 2)
 
-Refutations of
+Refutations (two closed, one open) of
 
     TFlowNode n c s s' ev₁ → TFlowNode n c s s' ev₂ → ev₁ = ev₂
 
 each a pair of hand-built derivations of the same span with different traces.
 
-1. `&xa` — anchor name non-maximal: `propsEmpty` reads the whole span as the
-   anchor `xa`; `propsContent` reads the anchor `x`, an EMPTY `s-separate`
-   (`SSeparateInLine.startOfLine` applies at any position), then the plain
-   scalar `a`.  Traces `[defineAnchor "xa"]` vs `[defineAnchor "x"]`.
+1. `&xa` — CLOSED: `[101]`/`[104]` now demand the maximal anchor name
+   (`GNot (GChar isNsAnchorChar)` after the run), so the reading "anchor `x`,
+   empty `s-separate`, plain `a`" is no longer a derivation
+   (`anchorX_not_property`); only `[defineAnchor "xa"]` remains.
 2. `[a # b, &x⏎]` — plain-vs-comment, CLOSED: `#` after a space is a comment
    under `s-separate`.  `SNsPlainChar.hashAfterNs` (guard `col > 0`, not
    "preceded by ns-char") used to admit it inside the plain scalar too; now
@@ -37,47 +37,34 @@ private lemma ns_a : isNsAnchorChar 'a' := by unfold isNsAnchorChar isNsChar; de
 private lemma safe_a : isNsPlainSafe .flowIn 'a' := by unfold isNsPlainSafe isNsChar; decide
 private lemma safe_b : isNsPlainSafe .flowIn 'b' := by unfold isNsPlainSafe isNsChar; decide
 
-/-! ## Refutation 1: `[&xa]` -/
+/-! ## Refutation 1 (CLOSED by maximal anchor names): `[&xa]` -/
 section AnchorSplit
 
 abbrev s0 : SurfPos := ⟨['&', 'x', 'a', ']'], 1⟩
 abbrev s1 : SurfPos := ⟨['a', ']'], 3⟩
 abbrev s2 : SurfPos := ⟨[']'], 4⟩
 
-/-- `&xa` as one property, anchor `xa`. -/
+/-- The `[101]`/`[104]` lookahead at a position whose head char is not an anchor char. -/
+private lemma gnot_anchor_of_head {c : Char} {rest : List Char} {col : Nat}
+    (h : ¬ isNsAnchorChar c) : GNot (GChar isNsAnchorChar) ⟨c :: rest, col⟩ :=
+  fun _ hg => by cases hg with | mk _ _ _ hp => exact h hp
+
+/-- `&xa` as one property, anchor `xa`; `]` is not an anchor char. -/
 lemma readAnchorXA : TFlowNode 0 .flowIn s0 s2 [Event.defineAnchor "xa"] :=
   .propsEmpty 0 .flowIn s0 s2 _
     (TCNsProperties.anchorFirst s0 s2 s2 [Event.defineAnchor "xa"] []
       (And.intro
         (SCNsAnchorProperty.mk _ 1 s2
           (GPlus.mk _ _ _ (GChar.mk 'x' _ 2 ns_x)
-            (GStar.cons _ _ _ (GChar.mk 'a' _ 3 ns_a) (GStar.nil _))))
+            (GStar.cons _ _ _ (GChar.mk 'a' _ 3 ns_a) (GStar.nil _)))
+          (gnot_anchor_of_head (by unfold isNsAnchorChar isNsChar; decide)))
         (by decide))
       (TOpt.none _))
 
-/-- `&x` anchor, empty separation, plain `a`. -/
-lemma readAnchorX_plainA : TFlowNode 0 .flowIn s0 s2 [Event.defineAnchor "x"] :=
-  .propsContent 0 .flowIn s0 s1 s1 s2 [Event.defineAnchor "x"] []
-    (TCNsProperties.anchorFirst s0 s1 s1 [Event.defineAnchor "x"] []
-      (And.intro
-        (SCNsAnchorProperty.mk _ 1 s1
-          (GPlus.mk _ _ _ (GChar.mk 'x' _ 2 ns_x) (GStar.nil _)))
-        (by decide))
-      (TOpt.none _))
-    (SSeparateLines.inline 0 s1 s1 (.startOfLine s1))
-    (.plain 0 .flowIn s1 s2
-      (SNsPlainMultiLine.mk 0 .flowIn s1 s2 s2
-        (SNsPlainOneLine.mk .flowIn s1 s2 s2
-          (SNsPlainFirst.nonIndicator .flowIn 'a' _ 3 safe_a (by decide))
-          (GStar.nil _))
-        (GStar.nil _)))
-
-#guard ([Event.defineAnchor "xa"] == [Event.defineAnchor "x"]) = false
-
-/-- The statement of `tFlowNode_unique`, instantiated, is false. -/
-lemma tFlowNode_unique_false :
-    ¬ ∀ ev₁ ev₂, TFlowNode 0 .flowIn s0 s2 ev₁ → TFlowNode 0 .flowIn s0 s2 ev₂ → ev₁ = ev₂ :=
-  fun h => absurd (h _ _ readAnchorXA readAnchorX_plainA) (by decide)
+/-- The former second reading — anchor `x` stopping in front of `a` — is no
+longer a `[101]` derivation: the name must be maximal. -/
+lemma anchorX_not_property : ¬ SCNsAnchorProperty s0 s1 :=
+  fun h => by cases h with | mk _ _ _ _ hnot => exact hnot _ (GChar.mk 'a' _ 3 ns_a)
 
 end AnchorSplit
 
@@ -171,7 +158,7 @@ lemma readTagAnchor : TFlowNode 0 .flowIn u0 u7 [Event.useTag "!", Event.defineA
     (TCNsProperties.tagFirst u0 u2 u5 [Event.useTag "!"] [Event.defineAnchor "x"]
       (And.intro
         (SCNsTagProperty.primary _ 1 u2
-          (GStar.cons _ _ _ (GChar.mk 't' _ 2 (by decide)) (GStar.nil _)))
+          (GPlus.mk _ _ _ (GChar.mk 't' _ 2 (by decide)) (GStar.nil _)))
         (by decide))
       (TOpt.some _ _ _ (TSeq.mk u2 u3 u5 [] [Event.defineAnchor "x"]
         (And.intro
@@ -180,7 +167,8 @@ lemma readTagAnchor : TFlowNode 0 .flowIn u0 u7 [Event.useTag "!", Event.defineA
           rfl)
         (And.intro
           (SCNsAnchorProperty.mk _ 4 u5
-            (GPlus.mk _ _ _ (GChar.mk 'x' _ 5 ns_x) (GStar.nil _)))
+            (GPlus.mk _ _ _ (GChar.mk 'x' _ 5 ns_x) (GStar.nil _))
+            (gnot_anchor_of_head (by unfold isNsAnchorChar isNsChar; decide)))
           (by decide)))))
     (SSeparateLines.inline 0 u5 u6
       (SSeparateInLine.whites u5 u6 (GPlus.mk _ _ _ (SSWhite.space _ 6) (GStar.nil _))))

@@ -395,15 +395,50 @@ lemma isNsAnchorChar_of_scanner_cond {c : Char}
           (isPrintable_iff c).mp hpr, hbom⟩,
          not_of_bool_false (isFlowIndicator_correspondence c) hfi⟩
 
--- `collectAnchorNameLoop` produces `GStar (GChar isNsAnchorChar)`.
+lemma scanner_cond_of_isNsAnchorChar {c : Char} (h : isNsAnchorChar c) :
+    (!isFlowIndicatorBool c && !isWhiteSpaceBool c &&
+      !isLineBreakBool c && isPrintableBool c && (c != '\ufeff')) = true := by
+  obtain ⟨⟨hnlb, hnws, hpr, hbom⟩, hnfi⟩ := h
+  simp only [Bool.and_eq_true, bne_iff_ne, Bool.not_eq_true']
+  refine ⟨⟨⟨⟨?_, ?_⟩, ?_⟩, (isPrintable_iff c).mpr hpr⟩, hbom⟩
+  · exact Bool.eq_false_iff.mpr (fun ht => hnfi ((isFlowIndicator_correspondence c).mpr ht))
+  · exact Bool.eq_false_iff.mpr (fun ht => hnws ((isWhiteSpace_correspondence c).mpr ht))
+  · exact Bool.eq_false_iff.mpr (fun ht => hnlb ((isLineBreak_correspondence c).mpr ht))
+
+lemma gnot_gchar_nil {P : Char → Prop} (col : Nat) : GNot (GChar P) ⟨[], col⟩ := by
+  intro s' h; cases h
+
+lemma gnot_gchar_head {P : Char → Prop} {c : Char} {rest : List Char} {col : Nat}
+    (h : ¬ P c) : GNot (GChar P) ⟨c :: rest, col⟩ := by
+  intro s' hg; cases hg with | mk _ _ _ hp => exact h hp
+
+-- `GNot (GChar P)` at a position whose scanner twin has `peek? = none`.
+lemma gnot_gchar_of_peek_none {P : Char → Prop} {sc : ScannerState} {sp : SurfPos}
+    (hcorr : ScannerSurfCorr sc sp) (hpeek : sc.peek? = none) : GNot (GChar P) sp := by
+  have hnil := peek_none_chars_nil hcorr hpeek
+  obtain ⟨chars, col⟩ := sp
+  simp only at hnil; subst hnil; exact gnot_gchar_nil col
+
+lemma peek_none_of_fuel_zero {sc : ScannerState} (h : sc.inputEnd - sc.offset ≤ 0) :
+    sc.peek? = none := by
+  unfold ScannerState.peek?
+  simp only [show ¬ sc.offset < sc.inputEnd by omega, ↓reduceIte]
+
+-- `collectAnchorNameLoop` produces the MAXIMAL `GStar (GChar isNsAnchorChar)`:
+-- with fuel covering the remaining input, the loop stops only at end of input or
+-- at a non-anchor char, which is the `GNot` lookahead [101]/[104] demand.
 -- When starting from empty name and the result name grew, positions differ (sp ≠ sp').
 lemma collectAnchorNameLoop_prod (sc : ScannerState) (sp : SurfPos)
-    (hcorr : ScannerSurfCorr sc sp) (name : String) (fuel : Nat) :
+    (hcorr : ScannerSurfCorr sc sp) (name : String) (fuel : Nat)
+    (hfuel : sc.inputEnd - sc.offset ≤ fuel) :
     ∃ sp', GStar (GChar isNsAnchorChar) sp sp' ∧
            ScannerSurfCorr (collectAnchorNameLoop sc name fuel).snd sp' ∧
-           (sp = sp' → (collectAnchorNameLoop sc name fuel).fst = name) := by
+           (sp = sp' → (collectAnchorNameLoop sc name fuel).fst = name) ∧
+           GNot (GChar isNsAnchorChar) sp' := by
   induction fuel generalizing sc sp name with
-  | zero => exact ⟨sp, GStar.nil sp, hcorr, fun _ => rfl⟩
+  | zero =>
+    exact ⟨sp, GStar.nil sp, hcorr, fun _ => rfl,
+           gnot_gchar_of_peek_none hcorr (peek_none_of_fuel_zero hfuel)⟩
   | succ fuel' ih =>
     unfold collectAnchorNameLoop; split
     · rename_i c hpeek; split
@@ -425,21 +460,30 @@ lemma collectAnchorNameLoop_prod (sc : ScannerState) (sp : SurfPos)
           intro heq; rw [heq] at hlb; exact absurd hlb (by native_decide)
         have hcorr_adv := advance_non_newline_corr sc c rest hcorr
           hmore hne_nl hne_cr
-        obtain ⟨sp', h_tail, hcorr', _⟩ := ih sc.advance ⟨rest, sc.col + 1⟩
-          hcorr_adv (name.push c)
+        have hfuel' : sc.advance.inputEnd - sc.advance.offset ≤ fuel' := by
+          have h1 := ScannerProgress.advance_offset_lt sc hmore
+          have h2 : sc.advance.inputEnd = sc.inputEnd := advance_inputEnd sc
+          omega
+        obtain ⟨sp', h_tail, hcorr', _, hnot⟩ := ih sc.advance ⟨rest, sc.col + 1⟩
+          hcorr_adv (name.push c) hfuel'
         refine ⟨sp',
                GStar.cons _ _ _
                  (GChar.mk c rest sc.col (isNsAnchorChar_of_scanner_cond hcond))
                  h_tail,
-               hcorr', ?_⟩
+               hcorr', ?_, hnot⟩
         intro h_eq; exfalso
         have h_col_ge : sp'.col ≥ sc.col + 1 := gstar_gchar_col_le h_tail
         have : sp'.col = sc.col := by rw [← h_eq]
         omega
-      · -- not anchor char: stop
-        exact ⟨sp, GStar.nil sp, hcorr, fun _ => rfl⟩
+      · -- not anchor char: stop; the lookahead is exactly the failed condition
+        rename_i hcond
+        obtain ⟨rest, hsp_eq⟩ := peek_some_sp hcorr hpeek
+        subst hsp_eq
+        refine ⟨_, GStar.nil _, hcorr, fun _ => rfl, gnot_gchar_head ?_⟩
+        intro h; exact hcond (scanner_cond_of_isNsAnchorChar h)
     · -- none: stop
-      exact ⟨sp, GStar.nil sp, hcorr, fun _ => rfl⟩
+      rename_i hpeek
+      exact ⟨sp, GStar.nil sp, hcorr, fun _ => rfl, gnot_gchar_of_peek_none hcorr hpeek⟩
 
 -- `scanAnchorOrAlias` produces `GLit marker ∧ GStar (GChar isNsAnchorChar)` with `sp_mid ≠ sp'`.
 -- The marker character is `&` for anchors and `*` for aliases.
@@ -452,15 +496,17 @@ lemma scanAnchorOrAlias_prod (sc : ScannerState) (sp : SurfPos)
     ∃ sp_mid sp', GLit marker sp sp_mid ∧
                   GStar (GChar isNsAnchorChar) sp_mid sp' ∧
                   sp_mid ≠ sp' ∧
+                  GNot (GChar isNsAnchorChar) sp' ∧
                   ScannerSurfCorr s' sp' := by
   obtain ⟨rest, hsp_eq⟩ := peek_some_sp hcorr hpeek
   subst hsp_eq
   have hmore := peek_some_has_more hpeek
   have hcorr_adv := advance_non_newline_corr sc marker rest hcorr
     hmore hne_nl hne_cr
-  obtain ⟨sp', h_gstar, hcorr', h_sp_name⟩ :=
-    collectAnchorNameLoop_prod sc.advance ⟨rest, sc.col + 1⟩ hcorr_adv "" _
-  refine ⟨⟨rest, sc.col + 1⟩, sp', GLit.mk rest sc.col, h_gstar, ?_, ?_⟩
+  obtain ⟨sp', h_gstar, hcorr', h_sp_name, h_not⟩ :=
+    collectAnchorNameLoop_prod sc.advance ⟨rest, sc.col + 1⟩ hcorr_adv ""
+      (sc.inputEnd - sc.advance.offset) (by simp [advance_inputEnd sc])
+  refine ⟨⟨rest, sc.col + 1⟩, sp', GLit.mk rest sc.col, h_gstar, ?_, h_not, ?_⟩
   · -- sp_mid ≠ sp': .ok requires non-empty name, which requires sp advance
     intro h_eq
     have h_name_empty := h_sp_name h_eq
@@ -745,8 +791,12 @@ lemma scanNamedTag_prod (sc : ScannerState) (rest : List Char) (col : Nat)
     subst h_eq
     -- Lift GStar wordChar → GStar tagChar
     have h_gstar_tag := GStar_gchar_lift (fun c => isWordCharProp_to_isTagCharProp) h_gstar_word
-    exact ⟨sp_mid, SCNsTagProperty.primary rest col sp_mid h_gstar_tag,
-           corr_of_emitAt _ _ hcorr_hdl⟩
+    by_cases h_ne : (⟨rest, col + 1⟩ : SurfPos) = sp_mid
+    · -- empty suffix: the bare `!` is the non-specific tag [100]
+      subst h_ne
+      exact ⟨_, SCNsTagProperty.nonSpecific rest col, corr_of_emitAt _ _ hcorr_hdl⟩
+    · exact ⟨sp_mid, SCNsTagProperty.primary rest col sp_mid (GStar_to_GPlus h_gstar_tag h_ne),
+             corr_of_emitAt _ _ hcorr_hdl⟩
 
 -- `scanTag` on non-secondary branches produces `SCNsTagProperty`.
 -- Handles verbatim `!<uri>`, named `!handle!suffix`, and non-specific `!`.

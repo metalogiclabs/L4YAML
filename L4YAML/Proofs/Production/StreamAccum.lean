@@ -11916,7 +11916,7 @@ lemma gplus_gchar_col_lt {p : Char → Prop} {sp sp' : SurfPos}
 lemma anchorProperty_col_lt {sp sp' : SurfPos} (h : SCNsAnchorProperty sp sp') :
     sp.col < sp'.col := by
   cases h
-  rename_i h_plus
+  rename_i h_plus _
   have := gplus_gchar_col_lt h_plus
   simp at this ⊢
   omega
@@ -11948,8 +11948,8 @@ lemma tagProperty_col_lt {sp sp' : SurfPos} (h : SCNsTagProperty sp sp') :
     omega
   | nonSpecific => simp
   | primary =>
-    rename_i h_star
-    have := gstar_gchar_col_le h_star
+    rename_i h_plus
+    have := gplus_gchar_col_lt h_plus
     simp at this ⊢
     omega
 
@@ -12067,7 +12067,7 @@ lemma plain_col_pos {n : Nat} {cc : YamlContext} {sp sp' : SurfPos}
 /-- `[104] c-ns-alias-node` — the `*` alone puts the endpoint past column 0. -/
 lemma aliasNode_col_pos {sp sp' : SurfPos} (h : SCNsAliasNode sp sp') : 0 < sp'.col := by
   cases h
-  rename_i h_plus
+  rename_i h_plus _
   have := gplus_gchar_col_lt h_plus
   simp at this
   omega

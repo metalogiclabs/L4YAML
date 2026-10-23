@@ -265,12 +265,12 @@ lemma scNsTagProperty_suffix {a b : SurfPos} (h : SCNsTagProperty a b) :
       (gplus_suffix (fun _ _ => gchar_suffix) hp)).trans (List.suffix_cons '!' rest)
   | .nonSpecific rest _ => exact List.suffix_cons '!' rest
   | .primary rest _ _ hg =>
-    exact (gstar_suffix (fun _ _ => gchar_suffix) hg).trans (List.suffix_cons '!' rest)
+    exact (gplus_suffix (fun _ _ => gchar_suffix) hg).trans (List.suffix_cons '!' rest)
 
 lemma scNsAnchorProperty_suffix {a b : SurfPos} (h : SCNsAnchorProperty a b) :
     b.chars <:+ a.chars := by
   match h with
-  | .mk rest _ _ hp =>
+  | .mk rest _ _ hp _ =>
     exact (gplus_suffix (fun _ _ => gchar_suffix) hp).trans (List.suffix_cons '&' rest)
 
 lemma scNsProperties_suffix {n : Nat} {c : YamlContext} {a b : SurfPos}
@@ -444,7 +444,7 @@ lemma snsPlain_suffix {n : Nat} {c : YamlContext} {a b : SurfPos}
 lemma scNsAliasNode_suffix {a b : SurfPos} (h : SCNsAliasNode a b) :
     b.chars <:+ a.chars := by
   match h with
-  | .mk rest _ _ hp =>
+  | .mk rest _ _ hp _ =>
     exact (gplus_suffix (fun _ _ => gchar_suffix) hp).trans (List.suffix_cons '*' rest)
 
 lemma scIndentationIndicator_suffix {a b : SurfPos} (h : SCIndentationIndicator a b) :

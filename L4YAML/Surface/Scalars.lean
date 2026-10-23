@@ -333,11 +333,13 @@ def SNsPlain (n : Nat) (c : L4YAML.YamlContext) : SurfPos → SurfPos → Prop :
 
 /-! ## §4 Alias Node -/
 
-/-- [104] c-ns-alias-node: '*' followed by anchor name. -/
+/-- [104] c-ns-alias-node: '*' followed by the MAXIMAL anchor name
+    ([102] `ns-anchor-char+`, not followed by another anchor char). -/
 @[yaml_spec "7.1" 104 "c-ns-alias-node"]
 inductive SCNsAliasNode : SurfPos → SurfPos → Prop where
   | mk (rest : List Char) (col : Nat) (s' : SurfPos) :
       GPlus (GChar isNsAnchorChar) ⟨rest, col + 1⟩ s' →
+      GNot (GChar isNsAnchorChar) s' →
       SCNsAliasNode ⟨'*' :: rest, col⟩ s'
 
 /-! ## §5 Block Scalars

@@ -281,10 +281,21 @@ lemma anchor_char_bool_true_iff (c : Char) :
       · exact False.elim (hflow ((isFlowIndicator_iff c).1 hfc))
     simp [isAnchorCharBool, hb, hw, hp, hbom, hf]
 
+lemma tail_gnot_anchor (tail : List Char) (col : Nat)
+    (htail : ∀ d ∈ tail.head?, isAnchorCharBool d = false) :
+    GNot (GChar isNsAnchorChar) ⟨tail, col⟩ := by
+  intro s' h
+  cases h with
+  | mk d rest _ hd =>
+    have hf := htail d (by simp)
+    have ht := (anchor_char_bool_true_iff d).mpr hd
+    rw [hf] at ht; exact Bool.false_ne_true ht
+
 lemma anchor_definition_surface
     (c : Char) (cs tail : List Char) (col : Nat)
     (hc : isAnchorCharBool c = true)
-    (hcs : ∀ d ∈ cs, isAnchorCharBool d = true) :
+    (hcs : ∀ d ∈ cs, isAnchorCharBool d = true)
+    (htail : ∀ d ∈ tail.head?, isAnchorCharBool d = false) :
     SCNsAnchorProperty
       ⟨'&' :: ((c :: cs) ++ tail), col⟩
       ⟨tail, col + 1 + (c :: cs).length⟩ := by
@@ -297,11 +308,13 @@ lemma anchor_definition_surface
     ((c :: cs) ++ tail) col
     ⟨tail, col + 1 + (c :: cs).length⟩
     (by simpa [Nat.add_assoc] using hname)
+    (tail_gnot_anchor tail _ htail)
 
 lemma alias_use_surface
     (c : Char) (cs tail : List Char) (col : Nat)
     (hc : isAnchorCharBool c = true)
-    (hcs : ∀ d ∈ cs, isAnchorCharBool d = true) :
+    (hcs : ∀ d ∈ cs, isAnchorCharBool d = true)
+    (htail : ∀ d ∈ tail.head?, isAnchorCharBool d = false) :
     SCNsAliasNode
       ⟨'*' :: ((c :: cs) ++ tail), col⟩
       ⟨tail, col + 1 + (c :: cs).length⟩ := by
@@ -314,6 +327,7 @@ lemma alias_use_surface
     ((c :: cs) ++ tail) col
     ⟨tail, col + 1 + (c :: cs).length⟩
     (by simpa [Nat.add_assoc] using hname)
+    (tail_gnot_anchor tail _ htail)
 
 lemma named_tag_use_surface
     (c : Char) (handleRest suffix tail : List Char) (col : Nat)
