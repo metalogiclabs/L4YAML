@@ -302,8 +302,12 @@ chain=SLAnyDocument > SLBareDocument > SBlockNode > SBlockSeqEntries > GLit",
     block indicators the park's dispatch scans, and all twenty-three are flow
     forms.  `'-'` — the block sequence's own indicator, and the one the cheap
     experiment spends — ends nothing. -/
+-- 2026-10-23: `Proofs.Production.Acceptance.Quoted` adds the two quote-delimited
+-- `SC*QuotedOk.mk` relations (narrowed `[109]`/`[120]`).
 def expectedEndsLit : List String :=
-  ["L4YAML.Proofs.NodeProduction.PendingFlowMapEntry.colonPending ':'",
+  ["L4YAML.Proofs.Acceptance.SCDoubleQuotedOk.mk '\\\"'",
+   "L4YAML.Proofs.Acceptance.SCSingleQuotedOk.mk '\\''",
+   "L4YAML.Proofs.NodeProduction.PendingFlowMapEntry.colonPending ':'",
    "L4YAML.Proofs.NodeProduction.PendingFlowMapEntry.emptyColonPending ':'",
    "L4YAML.Proofs.NodeProduction.PendingFlowMapEntry.explicitColonPending ':'",
    "L4YAML.Proofs.NodeProduction.PendingFlowSeqEntry.colonPending ':'",
@@ -353,10 +357,12 @@ def expectedEndsLit : List String :=
 -- 2026-10-23 ([162]): `prods` +2, `ctors` +5, `endsLit` +3 — `SCChompingIndicator.strip`/`.keep` and
 -- `SCIndentationIndicator.digit` end in their one literal; `minus` 0 → 1 is the chomping `-`, a header
 -- indicator that no park reads, not a sequence entry.
+-- `prods` 133 → 137, `ctors` 240 → 249, `endsLit` 33 → 35 on 2026-10-23:
+-- `Proofs.Production.Acceptance.Quoted`'s four narrowed quoted-scalar relations.
 def expectedLine : String :=
   "pop=10 sites=13 spend=6 nospend=7 len1=6 ends=GStar(SSWhite)+SIndent \
-depth=4 prods=133 ctors=240 \
-endsLit=33 minus=1 question=2 colon=21 chainEnds=0 blockArms=1 seqArms=10 \
+depth=4 prods=137 ctors=249 \
+endsLit=35 minus=1 question=2 colon=21 chainEnds=0 blockArms=1 seqArms=10 \
 mapArms=10 streamArms=4 streamHonest=3"
 
 /-- The non-circularity check items 242, 243 and 244 also carry: a measurement

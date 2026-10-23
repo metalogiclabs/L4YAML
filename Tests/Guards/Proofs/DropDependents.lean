@@ -276,8 +276,10 @@ pins below are what makes that checkable rather than asserted. -/
     232 on 2026-10-02, when `Proofs.Parser.ParserScannableBase` joined the
     library — the `Scannable`-valued compose chain, kept in its own module
     because two `maxHeartbeats 4000000` `YamlValue` inductions do not elaborate
-    in one. -/
-def expectedClosure : Nat := 258
+    in one.
+    259 on 2026-10-23 (after `Serialization.EventsOf` and `RefLex`), when `Proofs.Production.Acceptance.Quoted` joined the
+    library — the one-line quoted-scalar scanner converses. -/
+def expectedClosure : Nat := 259
 
 /-- `scripts/drop_sweep.py`'s reading, re-derivable in one command and pinned
     here so that a walk which starts from the wrong root disagrees with it

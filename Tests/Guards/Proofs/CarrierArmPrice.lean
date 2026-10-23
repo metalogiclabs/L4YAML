@@ -257,8 +257,10 @@ def expectedAbsorbReaders : List String :=
 
 -- 2026-10-23 ([162]): `prods` +2, `ctors`/`surfArms`/`surfDirect` +5, `same` +2 (the two `.empty` arms),
 -- `direct` +5 — `SCIndentationIndicator` and `SCChompingIndicator`; the carrier reading is unchanged.
+-- `prods` 133 → 137, `ctors` 240 → 249, `direct` 226 → 235 on 2026-10-23:
+-- `Proofs.Production.Acceptance.Quoted`'s four narrowed quoted-scalar relations.
 def expectedLine : String :=
-  "prods=133 ctors=240 same=21 direct=226 anchoredOnly=12 broken=2 surfArms=172 \
+  "prods=137 ctors=249 same=21 direct=235 anchoredOnly=12 broken=2 surfArms=172 \
 surfDirect=171 candidate=direct candidateNil=direct readers=3 libReaders=2 \
 guardReaders=1 mentions=41 producers=21 absorbReaders=5 absorbPlainReaders=0"
 

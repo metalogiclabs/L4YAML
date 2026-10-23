@@ -223,7 +223,9 @@ def readDecl (prods : Std.HashSet Name) (n : Name) : MetaM R := do
     number of its own, which is why `prodSurf` and not `prodSpec` is the
     population the findings are read over. -/
 -- 2026-10-23 ([162]): +2 on all three — `SCIndentationIndicator` and `SCChompingIndicator`, both `@[yaml_spec]`-cited.
-def expectedAlphabet : String := "prodTyped=133 prodSurf=94 prodSpec=56"
+def expectedAlphabet : String := "prodTyped=137 prodSurf=94 prodSpec=56"
+-- 133 → 137 on 2026-10-23: the four narrowed relations of `Proofs.Production.Acceptance.Quoted`
+-- (`DQCharOk`, `SQCharOk`, `SCDoubleQuotedOk`, `SCSingleQuotedOk`); not under `Surface`, no rule tag.
 
 /-- The step population, which no choice of grammar moves: 1649 statements hold
     a scanner step equation, 299 of them a dispatch equation, and 28 of those
