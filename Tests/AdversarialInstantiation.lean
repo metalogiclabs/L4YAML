@@ -3183,6 +3183,24 @@ example (sp_start : SurfPos) (s' : ScannerState)
         · simp [ScannerState.mk'] at hi)
   exact ⟨hw, fun l hi => hw 1 l hi⟩
 
+/-- `scanNextToken_witness` on the seed of `? a⏎` (item 343): every premise discharged on
+    the concrete state (`initial_corr`, `mk'_sound`, `mk'_mono`, `mk'_base`, the floor from
+    `mk'_colfloor`), the landing the `?` step owes taken as `h_land` — the SHAPE of the step;
+    `StepLanding` itself is paid where the loop threads it (item 344), the two halves it is
+    built from (`landingQ`, `streamNil`) are instantiated above. -/
+example (sp_start : SurfPos) (s' : ScannerState)
+    (hok : scanNextToken (ScannerState.mk' (String.ofList ['?', ' ', 'a', '\n'])) = .ok (some s'))
+    (h_land : StepLanding (ScannerState.mk' (String.ofList ['?', ' ', 'a', '\n'])) sp_start) :
+    SlotsWitness (String.ofList ['?', ' ', 'a', '\n']) s' sp_start :=
+  scanNextToken_witness hok (initial_corr _ _ (chars_from_zero_toList _)) (mk'_sound _)
+    (L4YAML.Proofs.IndentStackMono.mk'_mono _) (mk'_base _)
+    (L4YAML.Proofs.ColFloor.preprocessFloor (L4YAML.Proofs.ColFloor.mk'_colfloor _) (mk'_base _))
+    (fun i l hi => by
+      rcases i with _ | i
+      · simp [ScannerState.mk'] at hi
+      · simp [ScannerState.mk'] at hi)
+    h_land
+
 end WitnessInstantiations
 
 /-- Direct instantiations of the helper lemmas of `RegisterWitness.lean` at the runtime. -/
