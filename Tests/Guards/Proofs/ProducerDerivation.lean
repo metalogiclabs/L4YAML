@@ -223,9 +223,12 @@ def readDecl (n : Name) : MetaM Readings := do
     holding a correspondence.
 
     The `[162]` header split (2026-10-23) moves it by two: `parseBlockHeaderLoop_prod_indent`
-    and `_prod_chomp` each take a correspondence and conclude one, like `_prod` already did. -/
+    and `_prod_chomp` each take a correspondence and conclude one, like `_prod` already did.
+
+    444 → 460 on 2026-10-23: `Proofs.Production.Acceptance.Quoted`, whose sixteen
+    acceptance lemmas take a correspondence and conclude a scanner landing. -/
 def expectedCensus : String :=
-  "corrHyp=444 streamConcl=90 both=40 free=0 pairConcl=1 held=3 pairAny=8"
+  "corrHyp=460 streamConcl=90 both=40 free=0 pairConcl=1 held=3 pairAny=8"
 
 /-- The one conclusion that pairs them, and it is the stream's origin. -/
 def expectedSeedConcl : List Name :=

@@ -18,6 +18,7 @@ public import L4YAML.Proofs.Composition
 public import L4YAML.Proofs.Serialization
 public import L4YAML.Proofs.Coupling.CouplingBridge
 public import L4YAML.Proofs.Contracts.DocumentContracts
+public import L4YAML.Proofs.Production.Acceptance.Quoted
 public import L4YAML.Proofs.Production.DocumentProduction
 public import L4YAML.Proofs.Output.DumpRoundTrip
 public import L4YAML.Proofs.Output.EmitterScannability.EscapeProperties

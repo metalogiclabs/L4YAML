@@ -144,8 +144,10 @@ capstonesInTp={b.capstonesInTrans.size}"
     235 on 2026-10-02, when `Proofs.Parser.ParserScannableBase` joined the
     library — the `Scannable`-valued compose chain, in its own module because
     two `maxHeartbeats 4000000` `YamlValue` inductions do not elaborate in
-    one. -/
-def expectedClosure : Nat := 259
+    one.
+    260 on 2026-10-23 (after `Serialization.EventsOf` and `RefLex`), when `Proofs.Production.Acceptance.Quoted` joined the
+    library — the one-line quoted-scalar scanner converses. -/
+def expectedClosure : Nat := 260
 
 /-- The park's populations beside the arm's, from one pass. -/
 def expectedBill : String :=
