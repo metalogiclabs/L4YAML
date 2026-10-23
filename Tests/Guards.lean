@@ -259,3 +259,4 @@ import Tests.Guards.Proofs.TestSuite
 import Tests.Guards.Schema.Dump
 import Tests.Guards.Proofs.GhostIndexCensus
 import Tests.Guards.Proofs.RefLexCensus
+import Tests.Guards.Proofs.RefLexShape

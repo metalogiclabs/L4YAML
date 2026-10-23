@@ -57,5 +57,9 @@ def both (input : String) : Bool × Bool := (wellFormedB input, loads input)
 -- shape, not state: the trace is silent and the parser refuses on syntax
 #guard both "\"abc" = (false, false)
 #guard both "%TAG !h! x" = (false, false)
+#guard both "%TAG ! !x\n\n--- a" = (true, true)
+#guard both "%YAML 1.2\n# c\n---" = (true, true)
+#guard both "%YAML 1.2\n  # c\n\n---\n" = (true, true)
+#guard both "%X\n#c" = (false, false)
 
 end L4YAML.Proofs.Serialization.RefLexCensus
