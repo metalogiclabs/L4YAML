@@ -467,4 +467,45 @@ def mapAt (c : Int) : IndentEntry := { column := c, isSequence := false }
     (key := { possible := true, tokenIndex := 0, pos := { line := 5, col := 0, offset := 0 } })
     == none                                                         -- key on an earlier line
 
+/-! Block scalars: content, landing (offset, column) of `scanBlockScalar` at `indent`. -/
+
+def blkScalar (s : String) (indent : Int := -1) : Option (String × Nat × Nat) :=
+  match scanBlockScalar { ScannerState.mk' s with indents := if indent < 0 then #[] else #[{ column := indent, isSequence := false }] } with
+  | .ok s' =>
+    match s'.tokens.back? with
+    | some t =>
+      match t.val with
+      | .scalar c _ => some (c, s'.offset, s'.col)
+      | _ => none
+    | none => none
+  | .error _ => none
+
+#guard blkScalar "|\n a\n b\n" == some ("a\nb\n", 8, 0)
+#guard blkScalar "|\n a\n b" == some ("a\nb", 7, 2)  -- EOF after content
+#guard blkScalar "|\n  a\n b\n" == some ("a\n", 6, 0)  -- REFUTER: [171] at n=1 derives both lines; detected indent 2 stops at ` b`
+#guard blkScalar "|2\n  a\n" == some (" a\n", 7, 0)  -- explicit `2` is relative: n = max 0 (-1 + 2)
+#guard blkScalar "|-\n a\n\n" == some ("a", 7, 0)  -- strip
+#guard blkScalar "|+\n a\n\n" == some ("a\n\n", 7, 0)  -- keep
+#guard blkScalar "|\n\n a\n" == some ("\na\n", 6, 0)  -- leading empty line
+#guard blkScalar "| # c\n a\n" == some ("a\n", 9, 0)  -- comment after white
+#guard blkScalar "|#c\n a\n" == none  -- REFUTER: `#` without preceding white (`expectedNewline`)
+#guard blkScalar "|x\n a\n" == none  -- REFUTER: header junk (`expectedNewline`)
+#guard blkScalar "|\n\ta\n" == some ("\ta\n", 5, 0)  -- tab is content at n = 0
+#guard blkScalar "|\na\n---\nb" == some ("a\n", 4, 0)  -- REFUTER: [171] at n=0 derives `---`; scanner stops at the document marker
+#guard blkScalar "|\n a\n# c\n" == some ("a\n", 5, 0)  -- trail comment at < n: scanner stops BEFORE it
+#guard blkScalar "|\n a\n  # c\n" == some ("a\n # c\n", 11, 0)  -- comment at ≥ n is content
+#guard blkScalar "|\n a\n   b\n" == some ("a\n  b\n", 10, 0)  -- more-indented line kept verbatim
+#guard blkScalar "|\n a\n " == some ("a\n", 6, 1)  -- partial indent at EOF
+#guard blkScalar "|\n a\n\n\n" == some ("a\n", 7, 0)  -- clip
+#guard blkScalar ">\n a\n b\n" == some ("a b\n", 8, 0)  -- folded
+#guard blkScalar "|\n a\n" 0 == some ("a\n", 5, 0)
+#guard blkScalar "|\n  a\n b\n" 0 == some ("a\n", 6, 0)
+#guard blkScalar "|\n a\n  b\n\tc\n" == none  -- REFUTER: tab where `s-indent(n)` is required (`tabInIndentation`)
+#guard blkScalar "|\n  a\n\n b\n" == some ("a\n", 7, 0)  -- stop after an empty line
+#guard blkScalar "|1-\n a\n" == some (" a", 7, 0)  -- explicit `1` → n = 0, strip
+#guard blkScalar "|-1\n a\n" == some (" a", 7, 0)  -- indicators in either order
+#guard blkScalar "|--\n a\n" == none  -- REFUTER: repeated chomping indicator
+#guard blkScalar "|" == some ("", 1, 1)
+#guard blkScalar "|\n" == some ("", 2, 0)
+
 end L4YAML.Proofs.Acceptance.Probes
