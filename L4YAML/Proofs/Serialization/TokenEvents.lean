@@ -38,16 +38,33 @@ def tokenEvent : YamlToken → Option Event
   | .documentEnd => some .endDocument
   | _ => none
 
+/-- `[89] c-named-tag-handle`: `!` word-chars `!`.  The scanner copies a `%TAG`
+handle without checking its closing `!`, so `%TAG !h …` scans; a handle of that
+shape can never be used (every shorthand use is `!`, `!!` or `!…!`), and the
+skeleton's `declaredHandle` declares nothing for it — nor does this. -/
+def isNamedHandle (h : String) : Bool :=
+  match h.toList with
+  | '!' :: rest => rest.length ≥ 2 && rest.getLast? == some '!' &&
+      rest.dropLast.all (fun c => c.isAlphanum || c = '-')
+  | _ => false
+
+#guard isNamedHandle "!e!" = true
+#guard isNamedHandle "!my-tag!" = true
+#guard isNamedHandle "!" = false
+#guard isNamedHandle "!!" = false
+#guard isNamedHandle "!h" = false
+#guard isNamedHandle "!a b!" = false
+
 /-- Fold over the stream with the named `%TAG` handles pending until the next
 `documentStart`; handles still pending at the end are emitted there.  `!` and
-`!!` are builtin (`TagHandleAllowed`), so redeclaring them is no event — the
-same reading as the skeleton's `declaredHandle`. -/
+`!!` are builtin (`TagHandleAllowed`) and malformed handles are unusable, so
+neither is an event — the same reading as the skeleton's `declaredHandle`. -/
 def go : List (Positioned YamlToken) → List String → List Event
   | [], pending => pending.reverse.map .declareTag
   | t :: ts, pending =>
     match t.val with
     | .tagDirective handle _ =>
-      if BuiltinTagHandle handle then go ts pending else go ts (handle :: pending)
+      if isNamedHandle handle then go ts (handle :: pending) else go ts pending
     | .documentStart => .beginDocument :: (pending.reverse.map .declareTag ++ go ts [])
     | v => match tokenEvent v with
       | some e => e :: go ts pending
@@ -68,6 +85,7 @@ def tok (v : YamlToken) : Positioned YamlToken := ⟨default, v, default⟩
 #guard tokenEvents #[tok (.documentEnd), tok (.documentStart)] = [.endDocument, .beginDocument]
 #guard tokenEvents #[tok (.tagDirective "!h!" "p")] = [.declareTag "!h!"]
 #guard tokenEvents #[tok (.tagDirective "!" "p"), tok (.tagDirective "!!" "q"), tok .documentStart] = [.beginDocument]
+#guard tokenEvents #[tok (.tagDirective "!h" "p"), tok .documentStart] = [.beginDocument]
 
 end
 

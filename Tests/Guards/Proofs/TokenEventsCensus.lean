@@ -29,7 +29,7 @@ def agree (s : String) : Bool :=
 
 def agreeing : List String := [
   "", "a", "&x [*x]", "&x {a: *x}", "&x\n- *x", "\"&x\"", "# *x", "a # *x",
-  "%TAG ! !x\n--- !a", "%TAG ! !x\n\n--- a", "%TAG !e! tag:x,2000:\n--- !e!a", "%TAG !! tag:y\n--- !!str a", "%YAML 1.2\n# c\n---", "%YAML 1.2\r\n---",
+  "%TAG ! !x\n--- !a", "%TAG ! !x\n\n--- a", "%TAG !e! tag:x,2000:\n--- !e!a", "%TAG !! tag:y\n--- !!str a", "%TAG !h tag:x\n---", "!<tag:x> a", "!<tag:x>", "&a !<tag:x> b", "%YAML 1.2\n# c\n---", "%YAML 1.2\r\n---",
   "---\n---", "--- a\n...\n--- b", "...", "a\n...", "!!str a", "!h!item",   "- &a x\n- *a", "? a\n: b", "a: >-\n  x\n", "'a''b'",
   "\"a\\\"b\"", "a:\n  - b\n  -\n    c", "{a: [b, {c: d}]}", "[a,\n b]", "a\r\nb",
   "a\rb\r...", "- - - a", "...\n--- a", "&a !t x"
@@ -43,9 +43,5 @@ def agreeing : List String := [
 #guard both "[&a *a]" = (none, some [.defineAnchor "a", .useAlias "a"])
 #guard both "a: |\n  x\n  &y\nb: *y" = (none, some [.useAlias "y"])
 #guard both "a: foo\n  &x\nb: *x" = (none, some [.defineAnchor "x", .useAlias "x"])
-
--- Measured disagreement: `refLex` reads a verbatim `!<…>` tag as a `!` use;
--- the concept (§6 Q4) and the scanner (`tag "" uri`) say it is no event.
-#guard both "!<tag:x> a" = (some [], some [.useTag "!"])
 
 end Tests.Guards.TokenEventsCensus
