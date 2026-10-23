@@ -65,10 +65,17 @@ lemma AtCol.of_corr {sc : ScannerState} {sp : SurfPos} (h : ScannerSurfCorr sc s
     AtCol sc.input sc.col sp :=
   ⟨h.col_eq, let ⟨pre, hpre, _⟩ := h.input_prefix; ⟨pre, hpre⟩⟩
 
+/-- Where the `?` landed (item 343): a stream reaches the column-0 line position `sp_land`,
+    and `sp_q` stands `c` spaces into it — exactly what the `?` opener holds
+    (`question_open_map`'s `h_stream_land`/`hcol_land`/`h_ind`).  Item 342 stated the
+    stream-closing route (`SBlockMapEntry c sp_q sp_v → SLYamlStream sp_start sp_v`) here;
+    that needs the resume ladder the landing does not have, so it stays the consumer's. -/
+def QuestionLanding (sp_start : SurfPos) (c : Nat) (sp_q : SurfPos) : Prop :=
+  ∃ sp_land : SurfPos, SLYamlStream sp_start sp_land ∧ sp_land.col = 0 ∧ SIndent c sp_land sp_q
+
 /-- The informative side of the `?`-entry pack, keyed by the `?`'s column `c`. -/
 def QuestionEntry (input : String) (sp_start : SurfPos) (c : Nat) (sp_q : SurfPos) : Prop :=
-  AtCol input c sp_q ∧ (∃ sp_q' : SurfPos, GLit '?' sp_q sp_q') ∧
-  ∀ sp_v : SurfPos, SBlockMapEntry c sp_q sp_v → SLYamlStream sp_start sp_v
+  AtCol input c sp_q ∧ (∃ sp_q' : SurfPos, GLit '?' sp_q sp_q') ∧ QuestionLanding sp_start c sp_q
 
 /-- A marked slot names a `?` at its level's column. -/
 def SlotWitness (input : String) (sc : ScannerState) (sp_start : SurfPos) (i : Nat) : Prop :=
@@ -144,7 +151,7 @@ lemma scanKey_witness {s s' : ScannerState} {sp sp_start : SurfPos}
     (hcorr : ScannerSurfCorr s sp) (h_noflow : s.inFlow = false)
     (hok : scanKey s = .ok s') (hs : SlotsOk s) (hbase : SentinelBase s)
     (hcol : s.currentIndent ≤ (s.col : Int)) (hpeek : s.peek? = some '?')
-    (h_route : ∀ sp_v : SurfPos, SBlockMapEntry s.col sp sp_v → SLYamlStream sp_start sp_v)
+    (h_land : QuestionLanding sp_start s.col sp)
     (hw : SlotsWitness s.input s sp_start) : SlotsWitness s.input s' sp_start := by
   have hind := L4YAML.Proofs.PreprocessIndentStable.scanKey_indents h_noflow hok
   have hpk := scanKey_pendingKeys h_noflow hok
@@ -174,7 +181,7 @@ lemma scanKey_witness {s s' : ScannerState} {sp sp_start : SurfPos}
   have hc : c = '?' := (Option.some.inj hpc).symm
   subst hc
   have hq : QuestionEntry s.input sp_start s.col sp := by
-    refine ⟨AtCol.of_corr hcorr, ⟨⟨rest, sp.col + 1⟩, ?_⟩, h_route⟩
+    refine ⟨AtCol.of_corr hcorr, ⟨⟨rest, sp.col + 1⟩, ?_⟩, h_land⟩
     have : sp = ⟨'?' :: rest, sp.col⟩ := by cases sp; simp_all
     rw [this]; exact GLit.mk rest sp.col
   intro i l hi
@@ -533,8 +540,7 @@ lemma dispatchBlockIndicators_witness {s s' : ScannerState} {c : Char} {sp sp_st
     (hcorr : ScannerSurfCorr s sp) (h : SlotsWitness s.input s sp_start) (hs : SlotsOk s)
     (hbase : SentinelBase s) (hcol : s.inFlow = false → s.currentIndent ≤ (s.col : Int))
     (hpeek : s.peek? = some c)
-    (h_route : c = '?' → s.inFlow = false →
-      ∀ sp_v : SurfPos, SBlockMapEntry s.col sp sp_v → SLYamlStream sp_start sp_v) :
+    (h_land : c = '?' → s.inFlow = false → QuestionLanding sp_start s.col sp) :
     SlotsWitness s.input s' sp_start := by
   by_cases hf : s.inFlow = true
   · exact h.transport (dispatchBlockIndicators_preserves_pendingKeys hf hok)
@@ -556,7 +562,7 @@ lemma dispatchBlockIndicators_witness {s s' : ScannerState} {c : Char} {sp sp_st
            exact hq.1.1.1
          subst hc
          exact scanKey_witness hcorr hnf (by assumption) hs hbase (hcol hnf) hpeek
-           (h_route rfl hnf) h)
+           (h_land rfl hnf) h)
       | exact scanValue_witness (by assumption) h hs
 
 end L4YAML.Proofs.RegisterWitness
