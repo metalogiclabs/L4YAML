@@ -3055,29 +3055,72 @@ example : ¬ AtCol (String.ofList ['?', ' ', 'a']) 0 ⟨['x'], 0⟩ :=
 example (sp_start : SurfPos) : ¬ QuestionEntry (String.ofList ['a']) sp_start 0 ⟨['a'], 0⟩ :=
   fun ⟨_, ⟨_, hg⟩, _⟩ => nomatch hg
 
-/-- `QuestionEntry` holds at a `?` with its route — and the route is the premise, not a
-    vacuity: the entry is built with `explicitEmpty` below. -/
+/-- `QuestionEntry` holds at a `?` with its route — the SHAPE of the witness; the route is
+    instantiated on real derivations below (`entryQ`, `entryQC`, `streamQ`, `streamQC`). -/
 example (rest : List Char) (sp_start : SurfPos)
     (h_route : ∀ sp_v, SBlockMapEntry 0 ⟨'?' :: rest, 0⟩ sp_v → SLYamlStream sp_start sp_v) :
     QuestionEntry (String.ofList ('?' :: rest)) sp_start 0 ⟨'?' :: rest, 0⟩ :=
   ⟨⟨rfl, [], by simp⟩, ⟨_, GLit.mk rest 0⟩, h_route⟩
 
-/-- The route is CONSUMED: a `QuestionEntry` at the `?` yields the stream for the
-    `[186]` `explicitEmpty` entry the `?` opens — so a witness whose route were false
-    would be refuted by this very derivation. -/
-example (rest : List Char) (sp_start sp_v : SurfPos)
-    (hq : QuestionEntry (String.ofList ('?' :: rest)) sp_start 0 ⟨'?' :: rest, 0⟩)
-    (h_key : SBlockIndented 0 .blockOut ⟨rest, 1⟩ sp_v) : SLYamlStream sp_start sp_v :=
-  hq.2.2 sp_v (SBlockMapEntry.explicitEmpty 0 ⟨'?' :: rest, 0⟩ ⟨rest, 1⟩ sp_v (GLit.mk rest 0) h_key)
+/-- `s-l-comments` across the break of a line ending at column 1: no comment, the line
+    feed, no further comment lines. -/
+lemma sslBreak1 (rest : List Char) : SSLComments ⟨'\n' :: rest, 1⟩ ⟨rest, 0⟩ :=
+  SSLComments.withComment _ _ _ (SSBComment.noSep _ _ (SBComment.break _ _ (SBBreak.lf rest 1)))
+    (GStar.nil _)
 
-/-- …and for the `explicit` entry with a `:` value, through the same route. -/
-example (rest : List Char) (sp_start sp_v sp_i sp_c sp_w : SurfPos)
-    (hq : QuestionEntry (String.ofList ('?' :: rest)) sp_start 0 ⟨'?' :: rest, 0⟩)
-    (h_key : SBlockIndented 0 .blockOut ⟨rest, 1⟩ sp_v)
-    (h_ind : SIndent 0 sp_v sp_i) (h_colon : GLit ':' sp_i sp_c)
-    (h_val : SBlockIndented 0 .blockOut sp_c sp_w) : SLYamlStream sp_start sp_w :=
-  hq.2.2 sp_w (SBlockMapEntry.explicit 0 ⟨'?' :: rest, 0⟩ ⟨rest, 1⟩ sp_v sp_i sp_c sp_w
-    (GLit.mk rest 0) h_key h_ind h_colon h_val)
+/-- The `[186]` entry `?⏎` opens, built from its characters: `?`, then an EMPTY key
+    (`e-node` + `s-l-comments`), ending at the end of input. -/
+lemma entryQ : SBlockMapEntry 0 ⟨['?', '\n'], 0⟩ ⟨[], 0⟩ :=
+  SBlockMapEntry.explicitEmpty 0 _ ⟨['\n'], 1⟩ _ (GLit.mk ['\n'] 0)
+    (SBlockIndented.empty 0 .blockOut _ _ (sslBreak1 []))
+
+/-- The `[186]` entry `?⏎:⏎` opens, built from its characters: `?`, empty key, `:`,
+    empty value (`explicit`, both nodes `e-node`). -/
+lemma entryQC : SBlockMapEntry 0 ⟨['?', '\n', ':', '\n'], 0⟩ ⟨[], 0⟩ :=
+  SBlockMapEntry.explicit 0 _ ⟨['\n', ':', '\n'], 1⟩ ⟨[':', '\n'], 0⟩ ⟨[':', '\n'], 0⟩ ⟨['\n'], 1⟩ _
+    (GLit.mk _ 0)
+    (SBlockIndented.empty 0 .blockOut _ _ (sslBreak1 [':', '\n']))
+    (SIndent.zero _) (GLit.mk ['\n'] 0)
+    (SBlockIndented.empty 0 .blockOut _ _ (sslBreak1 []))
+
+/-- The whole stream `?⏎`: one bare document, a block mapping at indent 0 with `entryQ` —
+    the route's conclusion at `entryQ`'s endpoint, established from the characters. -/
+lemma streamQ : SLYamlStream ⟨['?', '\n'], 0⟩ ⟨[], 0⟩ :=
+  SLYamlStream.single _ _ _ _ (GStar.nil _)
+    (GOpt.some _ _ (SLAnyDocument.bare _ _ (SLBareDocument.mk _ _
+      (SBlockNode.blockMap 0 .blockIn 0 _ _ _ _ (GOpt.none _)
+        (SSLComments.startOfLine _ _ (GStar.nil _))
+        (SBlockMapEntries.single 0 _ _ _ (SIndent.zero _) entryQ)))))
+    (GStar.nil _)
+
+/-- …and the whole stream `?⏎:⏎`, the same way over `entryQC`. -/
+lemma streamQC : SLYamlStream ⟨['?', '\n', ':', '\n'], 0⟩ ⟨[], 0⟩ :=
+  SLYamlStream.single _ _ _ _ (GStar.nil _)
+    (GOpt.some _ _ (SLAnyDocument.bare _ _ (SLBareDocument.mk _ _
+      (SBlockNode.blockMap 0 .blockIn 0 _ _ _ _ (GOpt.none _)
+        (SSLComments.startOfLine _ _ (GStar.nil _))
+        (SBlockMapEntries.single 0 _ _ _ (SIndent.zero _) entryQC)))))
+    (GStar.nil _)
+
+/-- The route is CONSUMED on a REAL derivation: a `QuestionEntry` at the `?` of `?⏎` yields
+    the stream for `entryQ` — nothing about the entry is assumed, so a witness whose route
+    were false at this endpoint is refuted by `entryQ` itself. -/
+example (sp_start : SurfPos)
+    (hq : QuestionEntry (String.ofList ['?', '\n']) sp_start 0 ⟨['?', '\n'], 0⟩) :
+    SLYamlStream sp_start ⟨[], 0⟩ :=
+  hq.2.2 _ entryQ
+
+/-- …and on the `explicit` entry of `?⏎:⏎`. -/
+example (sp_start : SurfPos)
+    (hq : QuestionEntry (String.ofList ['?', '\n', ':', '\n']) sp_start 0 ⟨['?', '\n', ':', '\n'], 0⟩) :
+    SLYamlStream sp_start ⟨[], 0⟩ :=
+  hq.2.2 _ entryQC
+
+/-- The route hypothesis is SATISFIABLE where the two examples above read it: at the start
+    of each input the stream the route must deliver at the entry's endpoint exists
+    (`streamQ`, `streamQC`), so the consumption is not vacuous. -/
+example : SLYamlStream ⟨['?', '\n'], 0⟩ ⟨[], 0⟩ ∧ SLYamlStream ⟨['?', '\n', ':', '\n'], 0⟩ ⟨[], 0⟩ :=
+  ⟨streamQ, streamQC⟩
 
 /-- A two-level stack whose top slot is marked and whose register reads it. -/
 def twoLevelMarked : ScannerState :=
