@@ -229,9 +229,11 @@ def readDecl (n : Name) : MetaM Readings := do
     acceptance lemmas take a correspondence and conclude a scanner landing.
 
     460 → 481 on 2026-10-23: the same module's multi-line layer — fold, blank-line,
-    landing and break-step lemmas, each taking a correspondence. -/
+    landing and break-step lemmas, each taking a correspondence. 
+    481 → 489 on 2026-10-23: `Acceptance/Plain.lean`, the one-line plain-scalar converse
+    (eight `ScannerSurfCorr`-hypothesis lemmas, Stream E). -/
 def expectedCensus : String :=
-  "corrHyp=481 streamConcl=90 both=40 free=0 pairConcl=1 held=3 pairAny=8"
+  "corrHyp=489 streamConcl=90 both=40 free=0 pairConcl=1 held=3 pairAny=8"
 
 /-- The one conclusion that pairs them, and it is the stream's origin. -/
 def expectedSeedConcl : List Name :=

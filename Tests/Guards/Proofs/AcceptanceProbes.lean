@@ -135,4 +135,39 @@ def sqi (s : String) (indent : Int) (flow : Bool := false) :=
 #guard sqi "'a\n\tb'" 1 == none
 #guard sqi "'a\n\nb'" 0 true == none
 
+/-! ## Plain scalars, one line (`Acceptance/Plain.lean`)
+
+`pln s` is the scanner's landing `(content, offset, col)`; `scanPlainScalar` never fails in
+block context, it stops. Accepted inputs land at the end of the derivation's trailing white
+run with the trimmed content; the refuters show where `[133]` derives further. -/
+def pln (s : String) (flow : Bool := false) := quotedAt scanPlainScalar .plain s flow
+
+#guard pln "a b" == some ("a b", 3, 3)
+#guard pln "a#c" == some ("a#c", 3, 3)
+#guard pln "a:b" == some ("a:b", 3, 3)
+#guard pln "a,b" == some ("a,b", 3, 3)
+#guard pln "a\t b" == some ("a\t b", 4, 4)
+#guard pln "-a" == some ("-a", 2, 2)
+#guard pln "- a" == some ("- a", 3, 3)
+#guard pln ":a" == some (":a", 2, 2)
+#guard pln "? a" == some ("? a", 3, 3)
+#guard pln "a :b" == some ("a :b", 4, 4)
+#guard pln "a: b" == some ("a", 1, 1)
+#guard pln "a,b" true == some ("a", 1, 1)
+#guard pln "a]b" true == some ("a", 1, 1)
+-- Trailing whites are consumed and trimmed: the landing is after the white run.
+#guard pln "a  " == some ("a", 3, 3)
+#guard pln "a \t" == some ("a", 3, 3)
+-- Refuter: `[130] hashAfterNs` derives `#` after a space (`col > 0`); the scanner reads a comment.
+#guard pln "a #b" == some ("a", 2, 2)
+#guard pln "a #c" == some ("a", 2, 2)
+-- `[130]` via `isNsChar` and the scanner agree on C0: both stop before `\x01`.
+#guard pln "a\x01b" == some ("a", 1, 1)
+-- Refuter: `[126] dashSafe` derives `---`; at col 0 the scanner sees a document marker
+-- (`atDocumentBoundary`) and emits an empty plain scalar without moving.
+#guard pln "---" == some ("", 0, 0)
+#guard pln "--- x" == some ("", 0, 0)
+#guard pln "... x" == some ("", 0, 0)
+#guard pln "---x" == some ("---x", 4, 4)
+
 end L4YAML.Proofs.Acceptance.Probes
