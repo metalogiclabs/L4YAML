@@ -1663,58 +1663,6 @@ lemma mk'_sound (input : String) : Sound (ScannerState.mk' input) := by
     rw [innermost_eq_go]; rfl
   · intro h; simp [ScannerState.mk'] at h
 
-/-- **A column-0 content landing kills the register** (item 347).  Outside flow, with a
-    content character under the cursor (not `-`, not `:`) at column 0 and the stack already
-    unwound to column ≤ 0, every marked slot sits at column 0 (`SlotsOk` bounds it below,
-    `Mono` above), so the hook's close erases them all and re-reads `none`. -/
-lemma closeStaleExplicitKey_col0_dead {s : ScannerState} (h : Sound s) (hm : Mono s)
-    (hnf : s.inFlow = false) {c : Char} (hpeek : s.peek? = some c)
-    (hcol : s.col = 0) (hdash : c ≠ '-') (hcolon : c ≠ ':')
-    (htop : s.currentIndent ≤ 0) :
-    (closeStaleExplicitKey s).explicitKeyLine = none := by
-  have hfl : s.flowLevel = 0 := by
-    simp [ScannerState.inFlow] at hnf; omega
-  -- every marked slot sits at column 0
-  have hslot0 : ∀ (i l : Nat), s.pendingKeys[i]? = some (some l) → s.indentColumns[i]? = some 0 := by
-    intro i l hi
-    obtain ⟨ci, hci, hci0⟩ := h.slots.2 i l hi
-    have hmem : ci ∈ s.indentColumns := by
-      rw [Array.mem_iff_getElem?]; exact ⟨i, hci⟩
-    have hle : ci ≤ s.currentIndent := by
-      simp only [ScannerState.indentColumns, Array.mem_map] at hmem
-      obtain ⟨e, he, rfl⟩ := hmem
-      exact hm.le_currentIndent e he
-    rw [hci]; congr 1; omega
-  unfold closeStaleExplicitKey
-  rw [hnf, hpeek]
-  rcases hekl : s.explicitKeyLine with _ | l
-  · simpa using hekl
-  · simp only [Bool.false_eq_true, ↓reduceIte]
-    have hreg := h.reg hfl
-    rw [hekl] at hreg
-    have hekc0 : s.explicitKeyCol = 0 := by
-      obtain ⟨i, _, hi, hc⟩ := innermost_some_mem _ _ l s.explicitKeyCol
-        (by rw [← innermostPendingKey_eq]; exact hreg.symm)
-      have := hslot0 i l hi
-      rw [this] at hc; simpa using hc.symm
-    have hcond : ((s.col : Int) ≤ s.explicitKeyCol
-        && (c != '-' || (s.col : Int) < s.explicitKeyCol)
-        && !(c == ':' && (s.col : Int) == s.explicitKeyCol)) = true := by
-      rw [hekc0, hcol]
-      simp [hdash, hcolon]
-    rw [hcond]
-    simp only [↓reduceIte]
-    show ((s.clearPendingKeyAt s.explicitKeyCol).innermostPendingKey).1 = none
-    rw [innermostPendingKey_eq]
-    rcases hin : PendingKeys.innermost (s.clearPendingKeyAt s.explicitKeyCol).indentColumns
-        (s.clearPendingKeyAt s.explicitKeyCol).pendingKeys with ⟨_ | l', c'⟩
-    · rfl
-    · exfalso
-      obtain ⟨j, _, hj, _⟩ := innermost_some_mem _ _ l' c' hin
-      have hj' : (PendingKeys.closeAt s.indentColumns s.pendingKeys s.explicitKeyCol)[j]? = some (some l') := hj
-      obtain ⟨hjm, hjne⟩ := closeAt_marked _ _ _ j l' hj'
-      exact hjne (by rw [hslot0 j l' hjm, hekc0])
-
 end L4YAML.Proofs.PendingKeySound
 
 end Blanket
