@@ -16,10 +16,13 @@ public meta import L4YAML.Proofs.Serialization.SerializationWellFormed
 `TraceOf/Node.lean` (generated) is the copy of `Surface/Node.lean`'s mutual
 block with one more index, the trace.  This file supplies what the copy refers
 to: the annotated combinators (`TSeq`, `TOpt`, …, mirroring `GSeq`, `GOpt`, …),
-`Lift` for the productions that carry no event, and the two leaves where
-events arise — node properties and aliases.  A leaf's events are a *function
-of the span it consumed* (`propEvents`, `aliasEvents`), so leaf traces are
-unique by construction; uniqueness of the whole is the grammar's business.
+`Lift` for the productions that carry no event, and the leaves where events
+arise — tag and anchor properties, and aliases.  A leaf's events are a
+*function of the span of that one lexeme* (`tagEvents`, `anchorEvents`,
+`aliasEvents`), never of a wider text: the `s-separate` between two properties
+may hold a comment, and a verbatim URI may hold anything, so the whole
+`c-ns-properties` span is not scanned (review of the first cut).  Leaf traces
+are unique by construction; uniqueness of the whole is the grammar's business.
 -/
 
 namespace L4YAML.Proofs.Serialization.TraceOf
@@ -64,37 +67,50 @@ inductive TOpt (P : TRel) : TRel where
 /-- The characters a derivation from `s` to `s'` consumed. -/
 def span (s s' : SurfPos) : List Char := s.chars.take (s.chars.length - s'.chars.length)
 
-/-- Events of a tag lexeme: a verbatim `!<…>` names no handle (§6 Q4). -/
+/-- Events of a tag lexeme: a verbatim `!<…>` names no handle (§6 Q4); a
+shorthand or non-specific tag uses its handle. Applied to the exact span of one
+`SCNsTagProperty`, never to a wider text. -/
 def tagEvents (chars : List Char) : List Event :=
   if chars.take 2 = ['!', '<'] then [] else [.useTag (handleOf chars)]
 
-/-- Events of a `c-ns-properties` span, in text order: `&name` and `!…`
-lexemes separated by white (`s-separate`, which may span lines and comments). -/
-def propEvents : List Char → Nat → List Event
-  | _, 0 => []
-  | [], _ => []
-  | '&' :: cs, fuel + 1 =>
-      let (name, rest) := cs.span isAnchorCharBool
-      .defineAnchor (String.ofList name) :: propEvents rest fuel
-  | '!' :: cs, fuel + 1 =>
-      let (body, rest) := cs.span isTagCharBool
-      tagEvents ('!' :: body) ++ propEvents rest fuel
-  | _ :: cs, fuel + 1 => propEvents cs fuel
+/-- Events of an anchor lexeme `&name`. -/
+def anchorEvents : List Char → List Event
+  | '&' :: cs => [.defineAnchor (String.ofList (cs.takeWhile isAnchorCharBool))]
+  | _ => []
 
 /-- Events of a `c-ns-alias-node` span. -/
 def aliasEvents : List Char → List Event
   | '*' :: cs => [.useAlias (String.ofList (cs.takeWhile isAnchorCharBool))]
   | _ => []
 
-#guard propEvents "&a !t".toList 5 = [.defineAnchor "a", .useTag "!"]
-#guard propEvents "!!str &a".toList 8 = [.useTag "!!", .defineAnchor "a"]
-#guard propEvents "!<tag:x> &a".toList 11 = [.defineAnchor "a"]
-#guard propEvents "!e!x".toList 4 = [.useTag "!e!"]
+#guard tagEvents "!t".toList = [.useTag "!"]
+#guard tagEvents "!!str".toList = [.useTag "!!"]
+#guard tagEvents "!e!x".toList = [.useTag "!e!"]
+#guard tagEvents "!<tag:a,b!h!>".toList = []
+#guard anchorEvents "&a".toList = [.defineAnchor "a"]
 #guard aliasEvents "*a".toList = [.useAlias "a"]
 
-/-- Annotated `[96] c-ns-properties`: the surface relation, trace read off the span. -/
-def TCNsProperties (n : Nat) (c : YamlContext) : TRel :=
-  fun s s' ev => SCNsProperties n c s s' ∧ ev = propEvents (span s s') (span s s').length
+/-- Annotated `[97] c-ns-tag-property`: the surface relation, trace read off
+its own span. -/
+def TCNsTagProperty : TRel :=
+  fun s s' ev => SCNsTagProperty s s' ∧ ev = tagEvents (span s s')
+
+/-- Annotated `[101] c-ns-anchor-property`. -/
+def TCNsAnchorProperty : TRel :=
+  fun s s' ev => SCNsAnchorProperty s s' ∧ ev = anchorEvents (span s s')
+
+/-- Annotated `[96] c-ns-properties`, constructor for constructor: each event
+comes from the span of its own property premise, so the `s-separate` between
+them (which may hold a comment) contributes nothing. -/
+inductive TCNsProperties (n : Nat) (c : YamlContext) : TRel where
+  | tagFirst (s s₁ s' : SurfPos) (e₁ e₂ : List Event) :
+      TCNsTagProperty s s₁ e₁ →
+      TOpt (TSeq (Lift (SSeparate n c)) TCNsAnchorProperty) s₁ s' e₂ →
+      TCNsProperties n c s s' (e₁ ++ e₂)
+  | anchorFirst (s s₁ s' : SurfPos) (e₁ e₂ : List Event) :
+      TCNsAnchorProperty s s₁ e₁ →
+      TOpt (TSeq (Lift (SSeparate n c)) TCNsTagProperty) s₁ s' e₂ →
+      TCNsProperties n c s s' (e₁ ++ e₂)
 
 /-- Annotated `[104] c-ns-alias-node`. -/
 def TCNsAliasNode : TRel :=
