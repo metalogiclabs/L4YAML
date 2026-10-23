@@ -193,6 +193,14 @@ def step (s : Lx) : List Char → Option (Lx × List Char)
       let (name, after) := anchorName cs
       if name.isEmpty then none
       else some ({ s.emit (.alias (String.ofList name)) with nodeStart := false }, after)
+    -- a verbatim tag `!<…>` names no handle: opaque, no event (concept §6 Q4)
+    else if s.nodeStart ∧ c = '!' ∧ cs.head? = some '<' then
+      match cs.findIdx? (· = '>') with
+      | some i =>
+          let uri := cs.take (i + 1)
+          if uri.any (fun d => d = ' ' ∨ d = '\t' ∨ isBreak d) then none
+          else some ({ s.emit (.opaque (c :: uri)) with nodeStart := true }, cs.drop (i + 1))
+      | none => none
     else if s.nodeStart ∧ c = '!' then
       let (body, after) := tagChars s.flow cs
       let chars := c :: body
