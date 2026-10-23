@@ -222,7 +222,7 @@ def readDecl (n : Name) : MetaM Readings := do
     scalar's line stop, and concludes a possibility — the one new declaration
     holding a correspondence. -/
 def expectedCensus : String :=
-  "corrHyp=439 streamConcl=89 both=39 free=0 pairConcl=1 held=3 pairAny=8"
+  "corrHyp=442 streamConcl=90 both=40 free=0 pairConcl=1 held=3 pairAny=8"
 
 /-- The one conclusion that pairs them, and it is the stream's origin. -/
 def expectedSeedConcl : List Name :=
@@ -245,7 +245,7 @@ def expectedHeldOnThreads : String := "onProdThread=0 onThread=0"
     two `:` consumers, which apply the inline wrapper and carry three
     correspondences each.) -/
 def expectedProdThread : String :=
-  "prodThread=20 rings=8 withCorr=15 covered=0"
+  "prodThread=21 rings=8 withCorr=16 covered=0"
 
 /-- The first ring — the four definitions `--end producer` breaks, which is
     the same four this walk reads.
@@ -263,7 +263,7 @@ def expectedProdRing1 : List Name :=
 
 /-- **The producer's thread leaves β.5's bill and the supplier's does not.**
     Item 240 measured `thread \ T = []`; this is the other side. -/
-def expectedProdInT : String := "prodInT=11 prodOutsideT=9 union=28 unionOutsideT=9"
+def expectedProdInT : String := "prodInT=12 prodOutsideT=9 union=29 unionOutsideT=9"
 
 /-- **The ~~seven~~ nine, named.**  Three wrappers that partition the escape's
     own applications, four `accum_block_on_*` arms, and (DOCS item 287) the two

@@ -87,7 +87,7 @@ namespace L4YAML.Tests.Guards.GateVocabulary
 -- successors added gate names to Lean docstrings (items 332–340 each reported the drift as pre-existing); the
 -- script is the reading, this literal is the pin, and a disagreement is an item's to repin, not to record.
 def expectedGateVocab : String :=
-  "names=110 mentions=464 families=14 refuted=7 wrapped=4 self=2 unresolved=0"
+  "names=111 mentions=466 families=14 refuted=7 wrapped=4 self=2 unresolved=0"
 
 end L4YAML.Tests.Guards.GateVocabulary
 

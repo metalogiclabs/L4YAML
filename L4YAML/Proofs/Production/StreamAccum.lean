@@ -25,6 +25,7 @@ public import L4YAML.Proofs.Scanner.IndentStackBase
 public import L4YAML.Proofs.Scanner.IndentStackCover
 public import L4YAML.Proofs.Scanner.PendingKeySound
 public import L4YAML.Proofs.Scanner.ColFloor
+public import L4YAML.Proofs.Scanner.RegisterWitness
 public import L4YAML.Proofs.Scanner.StaleCursorFloor
 public import L4YAML.Proofs.Scanner.ExplicitKeyCoupling
 public import L4YAML.Proofs.Coupling.TabIndentBridge
@@ -37343,6 +37344,49 @@ lemma scanNextToken_none_stream (sc : ScannerState)
 
     Fuel induction threading the lagging quad:
     `SLYamlStream`, `BlockStack`, `PendingNode`, and `ScannerSurfCorr`. -/
+
+/-- **The step with the register witness beside the quad** (item 343): the §1f step and
+    `RegisterWitness.scanNextToken_witness` together, the `?` arm's landing taken as
+    `h_land`.  The loop does not thread it yet — `StepLanding` is paid where the park
+    exposes `h_stream_land`/`hcol_land`/`h_ind` (`question_open_map`), which is item 344's
+    threading; here the step is stated so the writers have their consumer. -/
+lemma scanNextToken_accum_step_witness (sc : ScannerState)
+    (sp_start sp_gram sp_block sp_flow sp_scan : SurfPos) (s' : ScannerState) {b : Bool}
+    (h_stream : SLYamlStream sp_start sp_gram)
+    (h_kbc : ScannerCorrectness.KeysBehindCursor sc)
+    (h_scf : StaleCursorFloor.StaleKeyCursorFloor sc)
+    (h_stack : BlockStack sp_gram sp_block)
+    (h_flow : FlowStackK sp_start sc sc.flowLevel sc.flowStack (tailOf sc.tokens) sp_block sp_flow)
+    (h_pending : sc.flowLevel = 0 → PendingNode sc b sp_start sp_flow sp_scan)
+    (h_dir_flag : b = true → sc.directivesPresent = true)
+    (h_corr : ScannerSurfCorr sc sp_scan)
+    (h_interior : sc.flowLevel ≥ 1 →
+      InteriorGap sc (tailOf sc.tokens) sp_flow sp_scan ∧
+        LastTokenReal sc.tokens ∧ sc.allowDirectives = false)
+    (h_base : IndentStackBase.SentinelBase sc)
+    (h_mono : IndentStackMono.Mono sc)
+    (h_sound : PendingKeySound.Sound sc)
+    (h_cf : ColFloor.ColFloor sc)
+    (h_w : RegisterWitness.SlotsWitness sc.input sc sp_start)
+    (h_land : RegisterWitness.StepLanding sc sp_start)
+    (h_ok : scanNextToken sc = .ok (some s')) :
+    (∃ sp_gram' sp_block' sp_flow' sp_scan' b',
+      SLYamlStream sp_start sp_gram' ∧
+      BlockStack sp_gram' sp_block' ∧
+      FlowStackK sp_start s' s'.flowLevel s'.flowStack (tailOf s'.tokens) sp_block' sp_flow' ∧
+      (s'.flowLevel = 0 → PendingNode s' b' sp_start sp_flow' sp_scan') ∧
+      (b' = true → s'.directivesPresent = true) ∧
+      ScannerSurfCorr s' sp_scan' ∧
+      (s'.flowLevel ≥ 1 →
+        InteriorGap s' (tailOf s'.tokens) sp_flow' sp_scan' ∧
+          LastTokenReal s'.tokens ∧ s'.allowDirectives = false) ∧
+      PendingKeySound.Sound s' ∧ ColFloor.ColFloor s') ∧
+    RegisterWitness.SlotsWitness sc.input s' sp_start :=
+  ⟨scanNextToken_accum_step sc sp_start sp_gram sp_block sp_flow sp_scan s'
+      h_stream h_kbc h_scf h_stack h_flow h_pending h_dir_flag h_corr h_interior h_base
+      h_mono h_sound h_cf h_ok,
+   RegisterWitness.scanNextToken_witness h_ok h_corr h_sound h_mono h_base
+      (ColFloor.preprocessFloor h_cf h_base) h_w h_land⟩
 
 lemma scanLoop_grammar_prod (sc : ScannerState)
     (sp_start sp_gram sp_block sp_flow sp_scan : SurfPos)

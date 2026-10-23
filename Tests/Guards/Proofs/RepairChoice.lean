@@ -227,7 +227,7 @@ def holdsScanStream (n : Name) : MetaM (Nat × Nat × Bool) := do
 /-- The thread, and the producer's own.  `shared` is the eleven declarations
     both repairs reach however the repair is spelled. -/
 def expectedThread : String :=
-  "thread=19 prodThread=20 shared=11 capstones=2 rings=8"
+  "thread=20 prodThread=21 shared=12 capstones=2 rings=8"
 
 /-- The first ring: the five library consumers item 238 named, and item 239's
     own exhibit, which rides the arm on purpose and goes with it. -/
@@ -241,13 +241,13 @@ def expectedRing1 : List Name :=
 
 /-- **Nowhere for the premise to land.**  Seven of the nineteen carry a park at
     all, and none of the seven carries a stream to its scan position. -/
-def expectedDiscriminator : String := "withPark=7 covered=0 total=19"
+def expectedDiscriminator : String := "withPark=7 covered=0 total=20"
 
 /-- **The thread adds nothing to β.5's bill.**  Every declaration the weak
     repair's statement change travels through is already one of the
     twenty-six item 238 counted, so the choice of repair moves items between
     *restated* and *reproved* without moving the total. -/
-def expectedInT : String := "threadInT=19 outsideT=0"
+def expectedInT : String := "threadInT=20 outsideT=0"
 
 /-- The walk's reading of the park's users — the upper bracket on what the
     `retire` repair breaks. -/
