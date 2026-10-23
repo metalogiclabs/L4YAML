@@ -20,6 +20,9 @@ ones, and a failing module blocks its dependents.  Rebuild and re-run until the 
 reports no moved pin.  Then read every change — a pin is a decision, and the script
 only does the typing.
 
+A pin whose literal carries comments between or after its entries is reported as
+`skipped` and left for a hand edit — the notes beside the rows are readings, not noise.
+
 The `got:` line is Lean's `toString`, so a `List String` prints as `[a, b]` without
 quotes.  Elements are split on `, `; an element that itself contains `, ` is re-glued
 only when the OLD list had an element with the same prefix, and the result is flagged
@@ -95,12 +98,17 @@ def old_list_items(body):
     return re.findall(r"`([\w.«»']+)", body)
 
 
+def lean_str(x):
+    """Encode `x` as the body of a Lean string literal (backslash and quote escaped)."""
+    return x.replace("\\", "\\\\").replace('"', '\\"')
+
+
 def render(ty, value, old_body):
     """Return (new_text_after_:=, flagged)."""
     if ty == "Nat":
         return " " + value.strip(), False
     if ty == "String":
-        v = value.rstrip()
+        v = lean_str(value.rstrip())
         if len(v) <= 60:
             return f' "{v}"', False
         words, lines, cur = v.split(" "), [], ""
@@ -117,7 +125,7 @@ def render(ty, value, old_body):
         raise ValueError(f"not a list literal: {v!r}")
     items, flagged = split_list(v[1:-1], old_list_items(old_body))
     if ty == "List String":
-        items = [f'"{x}"' for x in items]
+        items = [f'"{lean_str(x)}"' for x in items]
     else:
         items = [f"`{x}" for x in items]
     if not items:
@@ -146,7 +154,8 @@ def def_span(lines, name):
                 comments.append(lines[k])
             else:
                 break
-        return i, j, m, comments
+        annotated = any("--" in ln for ln in lines[i + 1 + len(comments):j])
+        return i, j, m, comments, annotated
     return None
 
 
@@ -182,7 +191,10 @@ def main(argv):
             if span is None:
                 skipped.append(f"{where}: no `def {name} : … :=` found")
                 continue
-            i, j, m, comments = span
+            i, j, m, comments, annotated = span
+            if annotated:
+                skipped.append(f"{where}: `{name}` carries comments inside its literal; re-pin it by hand")
+                continue
             old_body = (m.group("same") + "\n" + "\n".join(lines[i + 1 + len(comments):j])).strip()
             try:
                 new_text, flagged = render(m.group("ty"), gotv, old_body)
