@@ -49,6 +49,8 @@ Original verification: [MathGraph Actions run 36471883837](https://github.com/me
 6. `ExecutableBoundary.lean` states the currently proved whole-input
    factorization and its exact residual.
 
+- [`EVENTSOF-CONCEPT.md`](EVENTSOF-CONCEPT.md) — proposal for Step 5a(iii): the lexical-skeleton relation and reference lexer that connect an input to its event trace, with the open decisions numbered.
+
 ## Anchor policies and the open runtime repair
 
 `CommitTrace.yamlNodeEvents` and `SurfaceEvents.yamlCommitAnchor` model YAML
