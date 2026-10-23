@@ -248,3 +248,12 @@ Open: the leaf functions read `sc.indents` (block-scalar floor) and `inFlow`;
 the positioned state carries the sentinel stack, so `scanBlockScalar` runs at
 floor −1.  The census must show this agrees with `parseYaml` on `- |⏎x` and
 `a: |⏎  x⏎b: y` before the plan is executed.
+
+Measured (scratch, positioned `ScannerState` with the sentinel stack only):
+`scanBlockScalar` on `a: |⏎  x⏎b: y` stops at offset 9 (before `b`) and on
+`- |⏎  x⏎- y` at 8 — both as the real scanner does — but on `- |⏎x⏎` it
+consumes the whole input (offset 6) while `parseYaml` refuses it: at floor −1
+a column-0 line is body, at the real floor 0 it is not.  So slice 3 must give
+the positioned state the enclosing block indent (the `-`/`:` column `refLex`
+already walks past), not the bare sentinel; `- |⏎x` and `- |⏎*x` go into the
+census either way.
