@@ -1,10 +1,12 @@
 module
 
 public import L4YAML.Proofs.Production.Acceptance.Quoted
+public import L4YAML.Proofs.Production.Acceptance.FlowIndicators
 
 public meta import L4YAML.Scanner.Scanner
 public meta import L4YAML.Proofs.Production.Acceptance.Quoted
 public meta import L4YAML.Proofs.Production.Acceptance.Properties
+public meta import L4YAML.Proofs.Production.Acceptance.FlowIndicators
 @[expose] public section Blanket
 
 /-! Rule-2 instantiations of the quoted-scalar acceptance lemmas: the scanner's landing
@@ -346,5 +348,59 @@ def tg (s : String) := propAt scanTag s
 #guard tg "!%21 b" == some ("!", "", 1, 1)
 #guard tg "!a:b" == some ("!", "a", 2, 2)
 #guard tg "!a%21" == some ("!", "a", 2, 2)
+
+/-! Flow indicators: the landing (offset, column) and the emitted token's name, with the
+    token array `prev` already scanned (the `,` guard reads `lastRealTokenVal?`). -/
+
+def tokName : YamlToken → String
+  | .flowSequenceStart => "[" | .flowSequenceEnd => "]"
+  | .flowMappingStart => "{" | .flowMappingEnd => "}"
+  | .flowEntry => "," | _ => "?"
+
+def indAt (scan : ScannerState → Except ScanError ScannerState) (s : String)
+    (prev : Array YamlToken := #[]) : Option (String × Nat × Nat) :=
+  let toks : Array (Positioned YamlToken) := prev.map (fun t => { pos := default, val := t })
+  let sc : ScannerState := { ScannerState.mk' s with flowLevel := 1, tokens := toks }
+  match scan sc with
+  | .ok s' =>
+    match s'.tokens.back? with
+    | some t => if s'.tokens.size == prev.size + 1 then some (tokName t.val, s'.offset, s'.col) else none
+    | none => none
+  | .error _ => none
+
+def fsq (s : String) := indAt (fun sc => .ok (scanFlowSequenceStart sc)) s
+def fsqE (s : String) := indAt (fun sc => .ok (scanFlowSequenceEnd sc)) s
+def fmp (s : String) := indAt (fun sc => .ok (scanFlowMappingStart sc)) s
+def fmpE (s : String) := indAt (fun sc => .ok (scanFlowMappingEnd sc)) s
+def fen (s : String) (prev : Array YamlToken := #[.scalar "a" .plain]) := indAt scanFlowEntry s prev
+
+-- Brackets: total, one char, column +1
+#guard fsq "[" == some ("[", 1, 1)
+#guard fsq "[a, b]" == some ("[", 1, 1)
+#guard fsq "[[" == some ("[", 1, 1)
+#guard fsqE "]" == some ("]", 1, 1)
+#guard fsqE "]]" == some ("]", 1, 1)
+#guard fsqE "] # c" == some ("]", 1, 1)
+#guard fmp "{" == some ("{", 1, 1)
+#guard fmp "{a: b}" == some ("{", 1, 1)
+#guard fmpE "}" == some ("}", 1, 1)
+#guard fmpE "}\n" == some ("}", 1, 1)
+-- Flow entry after a node: accepted
+#guard fen "," == some (",", 1, 1)
+#guard fen ", b" == some (",", 1, 1)
+#guard fen ",]" == some (",", 1, 1)
+#guard fen "," #[.flowSequenceEnd] == some (",", 1, 1)
+#guard fen "," #[.flowMappingEnd] == some (",", 1, 1)
+#guard fen "," #[.scalar "a" .doubleQuoted] == some (",", 1, 1)
+#guard fen "," #[.alias "x"] == some (",", 1, 1)
+#guard fen "," #[.value] == some (",", 1, 1)
+#guard fen "," #[.anchor "x"] == some (",", 1, 1)
+#guard fen "," #[] == some (",", 1, 1)
+-- REFUTERS of the unnarrowed converse (`GLit ','` derives them; `invalidFlowEntry`)
+#guard fen "," #[.flowSequenceStart] == none          -- `[,`
+#guard fen "," #[.flowMappingStart] == none           -- `{,`
+#guard fen "," #[.scalar "a" .plain, .flowEntry] == none  -- `[a,,`
+#guard fen "," #[.flowSequenceStart, .placeholder] == none  -- placeholders are skipped
+#guard fen "," #[.flowEntry, .placeholder, .placeholder] == none
 
 end L4YAML.Proofs.Acceptance.Probes
