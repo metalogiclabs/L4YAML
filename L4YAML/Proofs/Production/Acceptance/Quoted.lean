@@ -1226,10 +1226,10 @@ lemma DQBreakOk.length_lt {n : Nat} {s s' : SurfPos} (h : DQBreakOk n s s') :
     have h1 := hb.length_lt; have := GStar_SLEmptyOk_length hbl; have := flowLinePrefix_length hpre
     simp at h1 ⊢; omega
 
-/-- The fold arm of `collectDoubleQuotedLoop` (plain or escaped break): one fuel unit, lands
-    at `sp'` with the document-marker and indentation checks passed. -/
 -- `hlb`/`ite_true` are needed in one of the two `rcases` branches only.
 set_option linter.unusedSimpArgs false in
+/-- The fold arm of `collectDoubleQuotedLoop` (plain or escaped break): one fuel unit, lands
+    at `sp'` with the document-marker and indentation checks passed. -/
 lemma collectDoubleQuotedLoop_break_step (sc : ScannerState) {n : Nat} {sp sp' : SurfPos} {ind : Int}
     (hbr : DQBreakOk n sp sp') (hcorr : ScannerSurfCorr sc sp)
     (hfloor : (n : Int) > ind) (hind : sc.currentIndent = ind)
