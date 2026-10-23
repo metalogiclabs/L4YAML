@@ -875,9 +875,10 @@ lemma isPlainSafe_not_newline {c : Char} {inFlow : Bool}
 
 /-! ## §6 Block header loop production (Layer 4a)
 
-  `parseBlockHeaderLoop` reads 0–2 header indicator characters (`-`/`+`/digit),
-  each of which satisfies `isBlockScalarHeaderChar`. This produces
-  `GStar (GChar (fun c => isBlockScalarHeaderChar c = true))`. -/
+  `parseBlockHeaderLoop` reads at most one chomping indicator and at most one
+  indentation indicator, in either order ([162]). Started from `.clip`/`none` it
+  produces `GAlt (GSeq [163] [164]) (GSeq [164] [163])`; `peekBlockHeaderIndicator?`
+  hides a repeated kind, so the saturated loop consumes nothing. -/
 
 -- Header chars are not newlines: used for advance_non_newline_corr.
 lemma blockHeaderChar_not_newline {c : Char}
@@ -944,68 +945,175 @@ lemma parseBlockHeaderLoop_offset_preserves (sc : ScannerState) (chomp : ChompSt
       · exact hoff  -- non-header: returns unchanged offset
     · exact hoff    -- none: returns unchanged offset
 
--- `parseBlockHeaderLoop` produces `GStar (GChar isBlockScalarHeaderChar)`.
-lemma parseBlockHeaderLoop_prod (sc : ScannerState) (sp : SurfPos)
-    (hcorr : ScannerSurfCorr sc sp) (chomp : ChompStyle)
-    (explicitOffset : Option Nat) (fuel : Nat) :
-    let (_, _, sc') := parseBlockHeaderLoop sc chomp explicitOffset fuel
-    ∃ sp', GStar (GChar (fun c => Grammar.isBlockScalarHeaderChar c = true)) sp sp' ∧
-           ScannerSurfCorr sc' sp' := by
-  induction fuel generalizing sc sp chomp explicitOffset with
-  | zero =>
-    simp only [parseBlockHeaderLoop]
-    exact ⟨sp, GStar.nil sp, hcorr⟩
-  | succ fuel' ih =>
+-- Digit 1–9 as the `[163]` character class.
+lemma isDigitNotZero_indentDigit {c : Char}
+    (h : (c.isDigit && (c != '0')) = true) : '1' ≤ c ∧ c ≤ '9' := by
+  have ⟨hdig, hne⟩ := Bool.and_eq_true_iff.mp h
+  have hne' : c ≠ '0' := by intro heq; subst heq; simp at hne
+  simp only [Char.isDigit, Bool.and_eq_true, decide_eq_true_eq] at hdig
+  simp only [Char.le_def, UInt32.le_iff_toNat_le] at hdig ⊢
+  have h0_val : ('0' : Char).val.toNat = 48 := by native_decide
+  have h1_val : ('1' : Char).val.toNat = 49 := by native_decide
+  have h9_val : ('9' : Char).val.toNat = 57 := by native_decide
+  have h2' : c.val.toNat ≠ 48 := by
+    intro heq; apply hne'
+    exact Char.ext (UInt32.toNat_inj.mp (by omega))
+  omega
+
+-- `peekBlockHeaderIndicator?` reveals the real next char, and only while its kind is free.
+lemma peekBlockHeaderIndicator?_some {sc : ScannerState} {chomp : ChompStyle}
+    {off : Option Nat} {c : Char}
+    (h : peekBlockHeaderIndicator? sc chomp off = some c) :
+    sc.peek? = some c ∧ ((c = '-' ∨ c = '+') → chomp = .clip) ∧
+      (c.isDigit = true → off = none) := by
+  unfold peekBlockHeaderIndicator? at h
+  split at h
+  · rename_i c' hpeek
+    split at h
+    · exact absurd h (by simp)
+    · split at h
+      · exact absurd h (by simp)
+      · rename_i hnc hnd
+        cases h
+        refine ⟨hpeek, fun hc => ?_, fun hd => ?_⟩
+        · by_cases hne : chomp = .clip
+          · exact hne
+          · exact absurd ⟨hc, hne⟩ hnc
+        · by_cases hne : off = none
+          · exact hne
+          · exact absurd ⟨hd, hne⟩ hnd
+  · exact absurd h (by simp)
+
+-- Both indicator kinds already read: the loop consumes nothing.
+lemma parseBlockHeaderLoop_saturated (sc : ScannerState) (chomp : ChompStyle)
+    (off : Option Nat) (fuel : Nat) (hc : chomp ≠ .clip) (ho : off ≠ none) :
+    parseBlockHeaderLoop sc chomp off fuel = (chomp, off, sc) := by
+  cases fuel with
+  | zero => simp only [parseBlockHeaderLoop]
+  | succ fuel' =>
     simp only [parseBlockHeaderLoop]
     split
-    · -- peek? = some '-'
-      rename_i hpeek
-      obtain ⟨rest, hsp_eq⟩ := peek_some_sp hcorr hpeek
-      subst hsp_eq
-      have hmore := peek_some_has_more hpeek
-      have hcorr_adv := advance_non_newline_corr sc '-' rest hcorr
-        hmore (by decide) (by decide)
-      obtain ⟨sp', h_tail, hcorr'⟩ :=
-        ih sc.advance ⟨rest, sc.col + 1⟩ hcorr_adv .strip explicitOffset
-      exact ⟨sp',
-             GStar.cons _ ⟨rest, sc.col + 1⟩ _
-               (GChar.mk '-' rest sc.col (by native_decide)) h_tail,
-             hcorr'⟩
-    · -- peek? = some '+'
-      rename_i hpeek
-      obtain ⟨rest, hsp_eq⟩ := peek_some_sp hcorr hpeek
-      subst hsp_eq
-      have hmore := peek_some_has_more hpeek
-      have hcorr_adv := advance_non_newline_corr sc '+' rest hcorr
-        hmore (by decide) (by decide)
-      obtain ⟨sp', h_tail, hcorr'⟩ :=
-        ih sc.advance ⟨rest, sc.col + 1⟩ hcorr_adv .keep explicitOffset
-      exact ⟨sp',
-             GStar.cons _ ⟨rest, sc.col + 1⟩ _
-               (GChar.mk '+' rest sc.col (by native_decide)) h_tail,
-             hcorr'⟩
-    · -- peek? = some c (potentially digit)
-      rename_i c hpeek_ne_minus hpeek_ne_plus hpeek
+    · rename_i hpk; exact absurd ((peekBlockHeaderIndicator?_some hpk).2.1 (Or.inl rfl)) hc
+    · rename_i hpk; exact absurd ((peekBlockHeaderIndicator?_some hpk).2.1 (Or.inr rfl)) hc
+    · rename_i c _ _ hpk
       split
-      · -- isDigit c ∧ c ≠ '0': header char
-        rename_i hdigit
+      · rename_i hd
+        exact absurd ((peekBlockHeaderIndicator?_some hpk).2.2
+          (Bool.and_eq_true_iff.mp hd).1) ho
+      · rfl
+    · rfl
+
+-- Chomping indicator already read: the rest of the header is `[163]`.
+lemma parseBlockHeaderLoop_prod_indent (sc : ScannerState) (sp : SurfPos)
+    (hcorr : ScannerSurfCorr sc sp) (chomp : ChompStyle) (fuel : Nat)
+    (hc : chomp ≠ .clip) :
+    ∃ sp', SCIndentationIndicator sp sp' ∧
+      ScannerSurfCorr (parseBlockHeaderLoop sc chomp none fuel).2.2 sp' := by
+  cases fuel with
+  | zero => exact ⟨sp, .empty sp, by simp only [parseBlockHeaderLoop]; exact hcorr⟩
+  | succ fuel' =>
+    simp only [parseBlockHeaderLoop]
+    split
+    · rename_i hpk; exact absurd ((peekBlockHeaderIndicator?_some hpk).2.1 (Or.inl rfl)) hc
+    · rename_i hpk; exact absurd ((peekBlockHeaderIndicator?_some hpk).2.1 (Or.inr rfl)) hc
+    · rename_i c _ _ hpk
+      have hpeek := (peekBlockHeaderIndicator?_some hpk).1
+      split
+      · rename_i hdigit
         obtain ⟨rest, hsp_eq⟩ := peek_some_sp hcorr hpeek
         subst hsp_eq
-        have hmore := peek_some_has_more hpeek
-        have hHdr := isDigitNotZero_isBlockHeaderChar hdigit
-        have ⟨hne_nl, hne_cr⟩ := blockHeaderChar_not_newline hHdr
+        have ⟨hne_nl, hne_cr⟩ :=
+          blockHeaderChar_not_newline (isDigitNotZero_isBlockHeaderChar hdigit)
         have hcorr_adv := advance_non_newline_corr sc c rest hcorr
-          hmore hne_nl hne_cr
-        obtain ⟨sp', h_tail, hcorr'⟩ :=
-          ih sc.advance ⟨rest, sc.col + 1⟩ hcorr_adv chomp (some (c.toNat - '0'.toNat))
-        exact ⟨sp',
-               GStar.cons _ ⟨rest, sc.col + 1⟩ _
-                 (GChar.mk c rest sc.col hHdr) h_tail,
-               hcorr'⟩
-      · -- not a header char: stop
-        exact ⟨sp, GStar.nil sp, hcorr⟩
-    · -- peek? = none: stop
-      exact ⟨sp, GStar.nil sp, hcorr⟩
+          (peek_some_has_more hpeek) hne_nl hne_cr
+        rw [parseBlockHeaderLoop_saturated sc.advance chomp (some (c.toNat - '0'.toNat))
+          fuel' hc (by simp)]
+        exact ⟨⟨rest, sc.col + 1⟩,
+          .digit _ _ (GChar.mk c rest sc.col (isDigitNotZero_indentDigit hdigit)), hcorr_adv⟩
+      · exact ⟨sp, .empty sp, hcorr⟩
+    · exact ⟨sp, .empty sp, hcorr⟩
+
+-- Indentation indicator already read: the rest of the header is `[164]`.
+lemma parseBlockHeaderLoop_prod_chomp (sc : ScannerState) (sp : SurfPos)
+    (hcorr : ScannerSurfCorr sc sp) (off : Option Nat) (fuel : Nat) (ho : off ≠ none) :
+    ∃ sp', SCChompingIndicator sp sp' ∧
+      ScannerSurfCorr (parseBlockHeaderLoop sc .clip off fuel).2.2 sp' := by
+  cases fuel with
+  | zero => exact ⟨sp, .empty sp, by simp only [parseBlockHeaderLoop]; exact hcorr⟩
+  | succ fuel' =>
+    simp only [parseBlockHeaderLoop]
+    split
+    · rename_i hpk
+      have hpeek := (peekBlockHeaderIndicator?_some hpk).1
+      obtain ⟨rest, hsp_eq⟩ := peek_some_sp hcorr hpeek
+      subst hsp_eq
+      have hcorr_adv := advance_non_newline_corr sc '-' rest hcorr
+        (peek_some_has_more hpeek) (by decide) (by decide)
+      rw [parseBlockHeaderLoop_saturated sc.advance .strip off fuel' (by decide) ho]
+      exact ⟨⟨rest, sc.col + 1⟩, .strip _ _ (GLit.mk rest sc.col), hcorr_adv⟩
+    · rename_i hpk
+      have hpeek := (peekBlockHeaderIndicator?_some hpk).1
+      obtain ⟨rest, hsp_eq⟩ := peek_some_sp hcorr hpeek
+      subst hsp_eq
+      have hcorr_adv := advance_non_newline_corr sc '+' rest hcorr
+        (peek_some_has_more hpeek) (by decide) (by decide)
+      rw [parseBlockHeaderLoop_saturated sc.advance .keep off fuel' (by decide) ho]
+      exact ⟨⟨rest, sc.col + 1⟩, .keep _ _ (GLit.mk rest sc.col), hcorr_adv⟩
+    · rename_i c _ _ hpk
+      split
+      · rename_i hd
+        exact absurd ((peekBlockHeaderIndicator?_some hpk).2.2
+          (Bool.and_eq_true_iff.mp hd).1) ho
+      · exact ⟨sp, .empty sp, hcorr⟩
+    · exact ⟨sp, .empty sp, hcorr⟩
+
+-- `parseBlockHeaderLoop` from `.clip`/`none` produces the `[162]` indicator part.
+lemma parseBlockHeaderLoop_prod (sc : ScannerState) (sp : SurfPos)
+    (hcorr : ScannerSurfCorr sc sp) (fuel : Nat) :
+    ∃ sp', GAlt (GSeq SCIndentationIndicator SCChompingIndicator)
+                (GSeq SCChompingIndicator SCIndentationIndicator) sp sp' ∧
+           ScannerSurfCorr (parseBlockHeaderLoop sc .clip none fuel).2.2 sp' := by
+  cases fuel with
+  | zero =>
+    exact ⟨sp, .left _ _ (.mk _ _ _ (.empty sp) (.empty sp)),
+      by simp only [parseBlockHeaderLoop]; exact hcorr⟩
+  | succ fuel' =>
+    simp only [parseBlockHeaderLoop]
+    split
+    · rename_i hpk
+      have hpeek := (peekBlockHeaderIndicator?_some hpk).1
+      obtain ⟨rest, hsp_eq⟩ := peek_some_sp hcorr hpeek
+      subst hsp_eq
+      have hcorr_adv := advance_non_newline_corr sc '-' rest hcorr
+        (peek_some_has_more hpeek) (by decide) (by decide)
+      obtain ⟨sp', h_ind, hcorr'⟩ :=
+        parseBlockHeaderLoop_prod_indent sc.advance _ hcorr_adv .strip fuel' (by decide)
+      exact ⟨sp', .right _ _ (.mk _ _ _ (.strip _ _ (GLit.mk rest sc.col)) h_ind), hcorr'⟩
+    · rename_i hpk
+      have hpeek := (peekBlockHeaderIndicator?_some hpk).1
+      obtain ⟨rest, hsp_eq⟩ := peek_some_sp hcorr hpeek
+      subst hsp_eq
+      have hcorr_adv := advance_non_newline_corr sc '+' rest hcorr
+        (peek_some_has_more hpeek) (by decide) (by decide)
+      obtain ⟨sp', h_ind, hcorr'⟩ :=
+        parseBlockHeaderLoop_prod_indent sc.advance _ hcorr_adv .keep fuel' (by decide)
+      exact ⟨sp', .right _ _ (.mk _ _ _ (.keep _ _ (GLit.mk rest sc.col)) h_ind), hcorr'⟩
+    · rename_i c _ _ hpk
+      have hpeek := (peekBlockHeaderIndicator?_some hpk).1
+      split
+      · rename_i hdigit
+        obtain ⟨rest, hsp_eq⟩ := peek_some_sp hcorr hpeek
+        subst hsp_eq
+        have ⟨hne_nl, hne_cr⟩ :=
+          blockHeaderChar_not_newline (isDigitNotZero_isBlockHeaderChar hdigit)
+        have hcorr_adv := advance_non_newline_corr sc c rest hcorr
+          (peek_some_has_more hpeek) hne_nl hne_cr
+        obtain ⟨sp', h_ch, hcorr'⟩ := parseBlockHeaderLoop_prod_chomp sc.advance _ hcorr_adv
+          (some (c.toNat - '0'.toNat)) fuel' (by simp)
+        exact ⟨sp', .left _ _ (.mk _ _ _
+          (.digit _ _ (GChar.mk c rest sc.col (isDigitNotZero_indentDigit hdigit))) h_ch), hcorr'⟩
+      · exact ⟨sp, .left _ _ (.mk _ _ _ (.empty sp) (.empty sp)), hcorr⟩
+    · exact ⟨sp, .left _ _ (.mk _ _ _ (.empty sp) (.empty sp)), hcorr⟩
 
 /-! ## §6b Sub-function Grammar Productions
 
@@ -3253,7 +3361,7 @@ lemma scanPlainScalar_prod (sc : ScannerState) (sp : SurfPos)
 
   Pipeline structure (each step has proven `_corr` and most have `_prod`):
   1. Advance past `|`/`>` → `GLit` delimiter
-  2. `parseBlockHeaderLoop` → `GStar (GChar isBlockScalarHeaderChar)` (proven §6)
+  2. `parseBlockHeaderLoop` → `[163]`/`[164]` indicators in either order (proven §6)
   3. `skipWhitespace` + `scanBlockScalarSkipComment` → whitespace + optional comment text
   4. `scanBlockScalarConsumeNewline` → line break
   5. Steps 2–4 combined → `SCBBlockHeader`
@@ -4426,7 +4534,8 @@ lemma parseBlockHeaderLoop_preserves_peekBack_not_ws
   | succ fuel' ih =>
     simp only [parseBlockHeaderLoop]
     split
-    · rename_i hpeek
+    · rename_i hpk
+      have hpeek := (peekBlockHeaderIndicator?_some hpk).1
       obtain ⟨rest, hsp_eq⟩ := peek_some_sp hcorr hpeek; subst hsp_eq
       have hmore := peek_some_has_more hpeek
       exact ih sc.advance ⟨rest, sc.col + 1⟩
@@ -4434,7 +4543,8 @@ lemma parseBlockHeaderLoop_preserves_peekBack_not_ws
         .strip off (fun c hc => by
           rw [advance_peekBack_eq_peek hcorr hmore (by decide) (by decide)] at hc
           cases hc; exact ⟨by decide, by decide, by decide⟩)
-    · rename_i hpeek
+    · rename_i hpk
+      have hpeek := (peekBlockHeaderIndicator?_some hpk).1
       obtain ⟨rest, hsp_eq⟩ := peek_some_sp hcorr hpeek; subst hsp_eq
       have hmore := peek_some_has_more hpeek
       exact ih sc.advance ⟨rest, sc.col + 1⟩
@@ -4442,7 +4552,8 @@ lemma parseBlockHeaderLoop_preserves_peekBack_not_ws
         .keep off (fun c hc => by
           rw [advance_peekBack_eq_peek hcorr hmore (by decide) (by decide)] at hc
           cases hc; exact ⟨by decide, by decide, by decide⟩)
-    · rename_i c_peek _ _ hpeek
+    · rename_i c_peek _ _ hpk
+      have hpeek := (peekBlockHeaderIndicator?_some hpk).1
       split
       · rename_i hdigit
         obtain ⟨rest, hsp_eq⟩ := peek_some_sp hcorr hpeek; subst hsp_eq
@@ -4758,10 +4869,10 @@ lemma scanBlockScalar_prod (sc : ScannerState) (sp : SurfPos)
   unfold scanBlockScalar at hok
   dsimp only [] at hok
   -- Step 1: advance past '|' or '>'
-  -- Step 2: parseBlockHeaderLoop → GStar (GChar isBlockScalarHeaderChar)
+  -- Step 2: parseBlockHeaderLoop → [163]/[164] indicators in either order
   obtain ⟨sp_adv_gen, hcorr_adv⟩ := advance_corr sc sp hcorr
   obtain ⟨sp_hdr, h_hdr_chars, hcorr_hdr⟩ :=
-    parseBlockHeaderLoop_prod sc.advance sp_adv_gen hcorr_adv .clip none 2
+    parseBlockHeaderLoop_prod sc.advance sp_adv_gen hcorr_adv 2
   -- Step 3: skipWhitespace → GStar SSWhite
   obtain ⟨sp_ws, h_ws, hcorr_ws⟩ :=
     skipWhitespace_corr (parseBlockHeaderLoop sc.advance .clip none 2).2.2 sp_hdr hcorr_hdr

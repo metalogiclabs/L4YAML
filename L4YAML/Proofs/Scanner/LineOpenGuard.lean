@@ -1922,18 +1922,21 @@ private lemma parseBlockHeaderLoop_col_ge (fuel : Nat) :
   | succ _ ih =>
     intro s ch m
     unfold parseBlockHeaderLoop
+    have hpeek : ∀ c, peekBlockHeaderIndicator? s ch m = some c → s.peek? = some c := by
+      intro c h; unfold peekBlockHeaderIndicator? at h
+      split at h <;> (try split at h) <;> simp_all
     split
     · rename_i hpk
       have := ih s.advance .strip m
-      rw [advance_col_succ_of_peek hpk (by decide)] at this; omega
+      rw [advance_col_succ_of_peek (hpeek _ hpk) (by decide)] at this; omega
     · rename_i hpk
       have := ih s.advance .keep m
-      rw [advance_col_succ_of_peek hpk (by decide)] at this; omega
+      rw [advance_col_succ_of_peek (hpeek _ hpk) (by decide)] at this; omega
     · rename_i c _ _ hpk
       split
       · rename_i hd
         have := ih s.advance ch (some (c.toNat - '0'.toNat))
-        rw [advance_col_succ_of_peek hpk ?_] at this
+        rw [advance_col_succ_of_peek (hpeek _ hpk) ?_] at this
         · omega
         · simp only [Bool.and_eq_true, bne_iff_ne] at hd
           have hdig : c.isDigit = true := hd.1

@@ -63,8 +63,9 @@ bodies — the first version of this census followed only inductives and read
 others are `def`s that dispatch on the context.  A closure walk that stops at
 a definition under-reports the thing it is pricing. -/
 
-def expectedClosure : String :=
-  "types=74 ind=61 def=13 ctors=143 block=18/69 leaf=56/74"
+-- 2026-10-23 ([162]): +3 ind / +7 ctors — `SCIndentationIndicator` (2), `SCChompingIndicator` (3) and `GAlt` (2),
+-- which `SCBBlockHeader` now brings into the block's closure; all three are leaves.
+def expectedClosure : String := "types=77 ind=64 def=13 ctors=150 block=18/69 leaf=59/81"
 
 /-- Every production type reachable from `SFlowNode`'s mutual block, with its
     constructor count (0 for a `def`) and whether it is in the block. -/
@@ -119,7 +120,9 @@ comment family in `Proofs/Coupling/TabIndentBridge.lean`. -/
     `SNbChar`, `SNsChar`, `SCommentChar` are `GChar` at three predicates — so
     `sbBreak_suffix` and `gchar_suffix` cover them definitionally and a second
     statement would be a second name for the same fact. -/
-def expectedCoverage : String := "closure=74 covered=69 uncovered=5"
+-- 2026-10-23 ([162]): closure 74 → 77, all three newcomers covered (`scIndentationIndicator_suffix`,
+-- `scChompingIndicator_suffix`, `galt_suffix`); the five uncovered are unchanged.
+def expectedCoverage : String := "closure=77 covered=72 uncovered=5"
 
 /-! ## §3 The mutual block's eighteen -/
 

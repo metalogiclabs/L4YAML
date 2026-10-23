@@ -341,12 +341,27 @@ indent indicators) followed by content lines at a detected indentation level.
 The indentation auto-detection makes the grammar context-dependent in a way
 that's naturally expressed as existential quantification over the indent value. -/
 
-/-- [162] c-b-block-header: block scalar header (chomp + indent indicators).
-    Matches a subset of `[-+0-9]` characters. -/
+/-- [163] c-indentation-indicator: an optional single digit `1`–`9`. -/
+@[yaml_spec "8.1.1" 163 "c-indentation-indicator"]
+inductive SCIndentationIndicator : SurfPos → SurfPos → Prop where
+  | empty (s : SurfPos) : SCIndentationIndicator s s
+  | digit (s s' : SurfPos) :
+      GChar (fun c => '1' ≤ c ∧ c ≤ '9') s s' → SCIndentationIndicator s s'
+
+/-- [164] c-chomping-indicator: an optional `-` (strip) or `+` (keep). -/
+@[yaml_spec "8.1.1" 164 "c-chomping-indicator"]
+inductive SCChompingIndicator : SurfPos → SurfPos → Prop where
+  | empty (s : SurfPos) : SCChompingIndicator s s
+  | strip (s s' : SurfPos) : GLit '-' s s' → SCChompingIndicator s s'
+  | keep (s s' : SurfPos) : GLit '+' s s' → SCChompingIndicator s s'
+
+/-- [162] c-b-block-header: `[163] [164]` or `[164] [163]` (each optional), then `s-b-comment`.
+    So at most one indicator of each kind, in either order. -/
 @[yaml_spec "8.1.1" 162 "c-b-block-header"]
 inductive SCBBlockHeader : SurfPos → SurfPos → Prop where
   | mk (s s₁ s' : SurfPos) :
-      GStar (GChar (fun c => L4YAML.Grammar.isBlockScalarHeaderChar c = true)) s s₁ →
+      GAlt (GSeq SCIndentationIndicator SCChompingIndicator)
+           (GSeq SCChompingIndicator SCIndentationIndicator) s s₁ →
       SSBComment s₁ s' →
       SCBBlockHeader s s'
 

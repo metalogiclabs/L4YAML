@@ -220,9 +220,12 @@ def readDecl (n : Name) : MetaM Readings := do
     Item 293 moves it by one more, for the same kind of reason:
     `live_of_dispatch` takes the content park's correspondence to read a block
     scalar's line stop, and concludes a possibility — the one new declaration
-    holding a correspondence. -/
+    holding a correspondence.
+
+    The `[162]` header split (2026-10-23) moves it by two: `parseBlockHeaderLoop_prod_indent`
+    and `_prod_chomp` each take a correspondence and conclude one, like `_prod` already did. -/
 def expectedCensus : String :=
-  "corrHyp=442 streamConcl=90 both=40 free=0 pairConcl=1 held=3 pairAny=8"
+  "corrHyp=444 streamConcl=90 both=40 free=0 pairConcl=1 held=3 pairAny=8"
 
 /-- The one conclusion that pairs them, and it is the stream's origin. -/
 def expectedSeedConcl : List Name :=

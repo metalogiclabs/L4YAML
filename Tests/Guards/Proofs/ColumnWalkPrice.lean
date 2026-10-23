@@ -272,8 +272,9 @@ def isSurfRel (t : Expr) : MetaM Bool :=
     let b ← inferType xs[xs.size - 1]!
     return a.isConstOf ``SurfPos && b.isConstOf ``SurfPos
 
+-- 2026-10-23 ([162]): +2 acyclic sccs — `SCIndentationIndicator` and `SCChompingIndicator`, both leaves.
 def expectedCycles : String :=
-  "types=77 sccs=62 cyclic=8 acyclic=54 cyclicTypes=23 cyclicArms=81 largest=9"
+  "types=79 sccs=64 cyclic=8 acyclic=56 cyclicTypes=23 cyclicArms=81 largest=9"
 
 /-! ## §4 What a walk costs
 
@@ -283,8 +284,9 @@ carrying every conclusion costs one citation per link.  Two passes cost twice
 that, plus one re-citation of the first pass at every composition node, and a
 composition node is a link that is not the first of its arm. -/
 
+-- 2026-10-23 ([162]): +5 arms / +3 links — the `[163]`/`[164]` indicator leaves under `SCBBlockHeader`.
 def expectedPrice : String :=
-  "arms=167 links=319 oneWalk=319 twoWalks=790 defProds=9 defCitations=39"
+  "arms=172 links=322 oneWalk=322 twoWalks=794 defProds=9 defCitations=39"
 
 /-- The two cycles, priced the same way.  `flow` is the one the compiled
     experiment walked three times. -/
@@ -310,8 +312,9 @@ fifteen lemmas that module carries.  `Tests/Guards/Proofs/SuffixGapAudit.lean`
 (DOCS item 236) splits the eight and carries the arm-connectivity census that
 says which side a production falls on. -/
 
+-- 2026-10-23 ([162]): +2 productions, both with suffix lemmas — `SCIndentationIndicator`, `SCChompingIndicator`.
 def expectedSupply : String :=
-  "productions=92 withSuffixLemma=84 missing=8 documentLayerMissing=1"
+  "productions=94 withSuffixLemma=86 missing=8 documentLayerMissing=1"
 
 run_cmd Command.liftTermElabM do
   let env ← getEnv

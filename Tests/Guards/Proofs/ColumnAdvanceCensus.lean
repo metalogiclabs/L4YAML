@@ -191,8 +191,9 @@ def isSurfRel (t : Expr) : MetaM Bool :=
     adds exactly what it ate; `pred` eats a variable character (§3); `reset`
     writes column 0 and eats a literal break; `carried` holds no literal
     position at all and transports its premises' law. -/
+-- 2026-10-23 ([162]): +2 types / +5 carried arms — `SCIndentationIndicator` (2) and `SCChompingIndicator` (3).
 def expectedSplit : String :=
-  "types=77 arms=167 advance=25 pred=11 reset=3 carried=127 violations=1"
+  "types=79 arms=172 advance=25 pred=11 reset=3 carried=132 violations=1"
 
 /-- What the census actually compared.  A census that reports no violations
     must say how much of the population it could see: `blind` counts arms

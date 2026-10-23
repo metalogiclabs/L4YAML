@@ -318,7 +318,10 @@ def expectedEndsLit : List String :=
    "L4YAML.Proofs.StreamAccum.SeqFrame.midExplicitColon ':'",
    "L4YAML.Proofs.StreamAccum.SeqFrame.midQuestion '?'",
    "L4YAML.Proofs.StreamAccum.SeqFrame.midQuestionEmptyColon ':'",
+   "L4YAML.Surface.SCChompingIndicator.keep '+'",
+   "L4YAML.Surface.SCChompingIndicator.strip '-'",
    "L4YAML.Surface.SCDoubleQuoted.mk '\\\"'",
+   "L4YAML.Surface.SCIndentationIndicator.digit fun c => '1' ≤ c ∧ c ≤ '9'",
    "L4YAML.Surface.SCNsTagProperty.verbatim '>'",
    "L4YAML.Surface.SCSingleQuoted.mk '\\''",
    "L4YAML.Surface.SFlowMapEntry.emptyKeyEmpty ':'",
@@ -335,7 +338,7 @@ def expectedEndsLit : List String :=
    "L4YAML.Surface.SFlowSequence.nonempty ']'"]
 
 /-- **The answer, in one line.**  `spend=6 len1=6` is §1; `depth=4` is §2;
-    `endsLit=30 minus=0 question=2 colon=21 chainEnds=0` is §3; and
+    `endsLit=33 minus=1 question=2 colon=21 chainEnds=0` is §3; and
     `blockArms=1` against `seqArms=10` is §4's asymmetry as a ratio —
     `BlockStack` is `SeqFrame` with only its `betweenEmpty` arm.  The denominator
     for `endsLit` is `ctors`, and the denominator for `ctors` is `prods` — a
@@ -347,10 +350,13 @@ def expectedEndsLit : List String :=
     watching `prods=129` not move.  DOCS item 287: `pop` 7 → 10, `sites`
     12 → 13 and `nospend` 6 → 7, `ParkGapWidth`'s trade read here — the six
     sites that spend a step are untouched. -/
+-- 2026-10-23 ([162]): `prods` +2, `ctors` +5, `endsLit` +3 — `SCChompingIndicator.strip`/`.keep` and
+-- `SCIndentationIndicator.digit` end in their one literal; `minus` 0 → 1 is the chomping `-`, a header
+-- indicator that no park reads, not a sequence entry.
 def expectedLine : String :=
   "pop=10 sites=13 spend=6 nospend=7 len1=6 ends=GStar(SSWhite)+SIndent \
-depth=4 prods=131 ctors=235 \
-endsLit=30 minus=0 question=2 colon=21 chainEnds=0 blockArms=1 seqArms=10 \
+depth=4 prods=133 ctors=240 \
+endsLit=33 minus=1 question=2 colon=21 chainEnds=0 blockArms=1 seqArms=10 \
 mapArms=10 streamArms=4 streamHonest=3"
 
 /-- The non-circularity check items 242, 243 and 244 also carry: a measurement

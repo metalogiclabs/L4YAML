@@ -1576,9 +1576,21 @@ def collectBlockScalarLoopIx {input : String} (c : IxCursor input)
              (collectLineContentLoopIx (consumeExactSpacesIx c contentIndent).2 ""
                 input.utf8ByteSize).2)
 
+/-- The next header character, or `none` once its indicator kind has already been
+    read: `-`/`+` is hidden when `chomp ≠ .clip`, a digit when `explicitOffset` is set. -/
+def peekBlockHeaderIndicatorIx? {input : String} (c : IxCursor input)
+    (chomp : ChompStyle) (explicitOffset : Option Nat) : Option Char :=
+  match c.peek? with
+  | some ch =>
+    if (isSequenceEntryBool ch || isChompKeepBool ch) ∧ chomp ≠ .clip then none
+    else if ch.isDigit ∧ explicitOffset ≠ none then none
+    else some ch
+  | none => none
+
 /-- Parse the header characters that may follow `|` or `>`:
-    chomping indicator (`-` strip / `+` keep) and an explicit
-    indentation indicator (digit `1..9`). Either order is permitted.
+    at most one chomping indicator (`-` strip / `+` keep) and at most one
+    indentation indicator (digit `1..9`), in either order. A repeated
+    indicator kind is left unconsumed, so the header-end check refuses it.
     The fuel is the maximum number of header characters (2 is the
     spec maximum: one chomp + one indent). -/
 def parseBlockHeaderLoopIx {input : String} (c : IxCursor input)
@@ -1586,7 +1598,7 @@ def parseBlockHeaderLoopIx {input : String} (c : IxCursor input)
     Nat → ChompStyle × Option Nat × IxCursor input
   | 0          => (chomp, explicitOffset, c)
   | fuel + 1 =>
-    match c.peek? with
+    match peekBlockHeaderIndicatorIx? c chomp explicitOffset with
     | some ch =>
       if isSequenceEntryBool ch then
         parseBlockHeaderLoopIx c.advance .strip explicitOffset fuel

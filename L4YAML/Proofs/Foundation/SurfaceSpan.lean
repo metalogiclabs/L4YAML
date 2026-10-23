@@ -446,11 +446,28 @@ lemma scNsAliasNode_suffix {a b : SurfPos} (h : SCNsAliasNode a b) :
   | .mk rest _ _ hp =>
     exact (gplus_suffix (fun _ _ => gchar_suffix) hp).trans (List.suffix_cons '*' rest)
 
+lemma scIndentationIndicator_suffix {a b : SurfPos} (h : SCIndentationIndicator a b) :
+    b.chars <:+ a.chars := by
+  match h with
+  | .empty _ => exact List.suffix_refl _
+  | .digit _ _ hg => exact gchar_suffix hg
+
+lemma scChompingIndicator_suffix {a b : SurfPos} (h : SCChompingIndicator a b) :
+    b.chars <:+ a.chars := by
+  match h with
+  | .empty _ => exact List.suffix_refl _
+  | .strip _ _ hg => exact glit_suffix hg
+  | .keep _ _ hg => exact glit_suffix hg
+
 lemma scbBlockHeader_suffix {a b : SurfPos} (h : SCBBlockHeader a b) :
     b.chars <:+ a.chars := by
   match h with
-  | .mk _ _ _ hg hc =>
-    exact (ssbComment_suffix hc).trans (gstar_suffix (fun _ _ => gchar_suffix) hg)
+  | .mk _ _ _ (.left _ _ hg) hc =>
+    exact (ssbComment_suffix hc).trans (gseq_suffix
+      (fun _ _ => scIndentationIndicator_suffix) (fun _ _ => scChompingIndicator_suffix) hg)
+  | .mk _ _ _ (.right _ _ hg) hc =>
+    exact (ssbComment_suffix hc).trans (gseq_suffix
+      (fun _ _ => scChompingIndicator_suffix) (fun _ _ => scIndentationIndicator_suffix) hg)
 
 lemma slNbLiteralText_suffix {n : Nat} {a b : SurfPos} (h : SLNbLiteralText n a b) :
     b.chars <:+ a.chars := by
