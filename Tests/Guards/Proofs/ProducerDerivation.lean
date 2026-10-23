@@ -231,9 +231,13 @@ def readDecl (n : Name) : MetaM Readings := do
     460 → 481 on 2026-10-23: the same module's multi-line layer — fold, blank-line,
     landing and break-step lemmas, each taking a correspondence. 
     481 → 489 on 2026-10-23: `Acceptance/Plain.lean`, the one-line plain-scalar converse
-    (eight `ScannerSurfCorr`-hypothesis lemmas, Stream E). -/
+    (eight `ScannerSurfCorr`-hypothesis lemmas, Stream E).
+
+    489 → 496 on 2026-10-23: `Acceptance/Plain.lean` multi-line layer — blank-line loop,
+    block fold, fold step, continuation loop, `scanPlainScalar_accepts_multi` and two
+    document-marker bridges, each taking a correspondence (Stream E). -/
 def expectedCensus : String :=
-  "corrHyp=489 streamConcl=90 both=40 free=0 pairConcl=1 held=3 pairAny=8"
+  "corrHyp=496 streamConcl=90 both=40 free=0 pairConcl=1 held=3 pairAny=8"
 
 /-- The one conclusion that pairs them, and it is the stream's origin. -/
 def expectedSeedConcl : List Name :=

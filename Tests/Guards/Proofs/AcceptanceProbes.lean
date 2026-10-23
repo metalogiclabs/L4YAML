@@ -170,4 +170,44 @@ def pln (s : String) (flow : Bool := false) := quotedAt scanPlainScalar .plain s
 #guard pln "... x" == some ("", 0, 0)
 #guard pln "---x" == some ("---x", 4, 4)
 
+/-! ## Plain scalars, multi-line (`scanPlainScalar_accepts_multi`)
+
+Block-context `[134]`/`[135]` folds: a single break folds to a space, `k` blank lines to `k`
+line feeds; trailing whites before the break are dropped; the landing after the break is a
+maximal white run and may use tabs.  Refuters: `#` on the continuation line (`[130]` admits it
+after the `[69]` prefix; the scanner rolls back to the break), a document marker, a landing
+below the content indent, and a break with nothing after it (the scanner rolls back). -/
+
+def plnI (s : String) (indent : Int) (flow : Bool := false) :=
+  quotedAtInd scanPlainScalar .plain s flow indent
+
+#guard pln "a\n b" == some ("a b", 4, 2)
+#guard pln "a\nb" == some ("a b", 3, 1)
+#guard pln "a\n\n b" == some ("a\nb", 5, 2)
+#guard pln "a\n b\n c" == some ("a b c", 7, 2)
+#guard pln "a\n  b\n c" == some ("a b c", 8, 2)
+#guard pln "a \n b" == some ("a b", 5, 2)
+#guard pln "a\t\n b" == some ("a b", 5, 2)
+#guard pln "a\r\n b" == some ("a b", 5, 2)
+#guard pln "a\n \n b" == some ("a\nb", 6, 2)
+#guard pln "a\n b\n\n\n c" == some ("a b\n\nc", 9, 2)
+#guard pln "a\n\tb" == some ("a b", 4, 2)
+#guard pln "a\n \tb" == some ("a b", 5, 3)
+#guard pln "a\n b: c" == some ("a b", 4, 2)
+#guard pln "a\n b #c" == some ("a b", 5, 3)
+#guard pln "a\n- b" == some ("a - b", 5, 3)
+#guard pln "a\n -b" == some ("a -b", 5, 3)
+#guard pln "a\n---x" == some ("a ---x", 6, 4)
+#guard plnI "a\n  b" 1 == some ("a b", 5, 3)
+#guard plnI "a\n b" 0 == some ("a b", 4, 2)
+-- Refuters: `#` after the fold, document markers, under-indentation, nothing after the break.
+#guard pln "a\n #c\n b" == some ("a", 1, 1)
+#guard pln "a\n---\nb" == some ("a", 1, 1)
+#guard pln "a\n--- \nb" == some ("a", 1, 1)
+#guard pln "a\n...\nb" == some ("a", 1, 1)
+#guard plnI "a\n b" 1 == some ("a", 1, 1)
+#guard pln "a\n" == some ("a", 1, 1)
+#guard pln "a\n  " == some ("a", 1, 1)
+#guard pln "a\n b\n " == some ("a b", 4, 2)
+
 end L4YAML.Proofs.Acceptance.Probes

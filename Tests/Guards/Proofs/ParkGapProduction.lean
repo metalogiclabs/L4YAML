@@ -365,9 +365,11 @@ def expectedEndsLit : List String :=
 -- multi-line relations; `SC*QuotedMultiOk.mk` end in their closing quote like the one-line forms.
 -- `prods` 145 → 149, `ctors` 263 → 271 on 2026-10-23: the four one-line plain relations of
 -- `Acceptance/Plain.lean` (`PlainCharOk`, `PlainEntryOk`, `PlainFirstOk`, `PlainOneLineOk`; Stream E).
+-- `prods` 150 → 151, `ctors` 271 → 272 on 2026-10-23: `PlainNextLineOk`, the multi-line plain
+-- relation of `Acceptance/Plain.lean` (Stream E).
 def expectedLine : String :=
   "pop=10 sites=13 spend=6 nospend=7 len1=6 ends=GStar(SSWhite)+SIndent \
-depth=4 prods=150 ctors=271 \
+depth=4 prods=151 ctors=272 \
 endsLit=37 minus=1 question=2 colon=21 chainEnds=0 blockArms=1 seqArms=10 \
 mapArms=10 streamArms=4 streamHonest=3"
 
