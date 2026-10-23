@@ -223,7 +223,9 @@ def readDecl (prods : Std.HashSet Name) (n : Name) : MetaM R := do
     number of its own, which is why `prodSurf` and not `prodSpec` is the
     population the findings are read over. -/
 -- 2026-10-23 ([162]): +2 on all three — `SCIndentationIndicator` and `SCChompingIndicator`, both `@[yaml_spec]`-cited.
-def expectedAlphabet : String := "prodTyped=137 prodSurf=94 prodSpec=56"
+-- 137 → 145 on 2026-10-23: the eight multi-line relations of the same module (`SBBreakOk`,
+-- `SLEmptyOk`, `DQBreakOk`, `DQTextOk`, `SCDoubleQuotedMultiOk` and the single-quoted twins).
+def expectedAlphabet : String := "prodTyped=145 prodSurf=94 prodSpec=56"
 -- 133 → 137 on 2026-10-23: the four narrowed relations of `Proofs.Production.Acceptance.Quoted`
 -- (`DQCharOk`, `SQCharOk`, `SCDoubleQuotedOk`, `SCSingleQuotedOk`); not under `Surface`, no rule tag.
 

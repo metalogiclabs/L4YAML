@@ -259,8 +259,10 @@ def expectedAbsorbReaders : List String :=
 -- `direct` +5 — `SCIndentationIndicator` and `SCChompingIndicator`; the carrier reading is unchanged.
 -- `prods` 133 → 137, `ctors` 240 → 249, `direct` 226 → 235 on 2026-10-23:
 -- `Proofs.Production.Acceptance.Quoted`'s four narrowed quoted-scalar relations.
+-- `prods` 137 → 145, `ctors` 249 → 263, `direct` 235 → 249 on 2026-10-23: the same module's
+-- eight multi-line relations (fourteen constructors, all direct).
 def expectedLine : String :=
-  "prods=137 ctors=249 same=21 direct=235 anchoredOnly=12 broken=2 surfArms=172 \
+  "prods=145 ctors=263 same=21 direct=249 anchoredOnly=12 broken=2 surfArms=172 \
 surfDirect=171 candidate=direct candidateNil=direct readers=3 libReaders=2 \
 guardReaders=1 mentions=41 producers=21 absorbReaders=5 absorbPlainReaders=0"
 
