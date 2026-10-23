@@ -57,15 +57,30 @@ inductive Seg where
   | alias    (name : String)      -- `*name`, SCNsAliasNode
   | tagUse   (handle : String)    -- `!h!suffix`, SCNsTagProperty.named; `!suffix` and `!!suffix` carry the builtin handles
   | tagDecl  (handle : String)    -- `%TAG !h! prefix`, the narrowed SLDirective of 5a(ii)
-  | docStart                      -- `---`, SCDirectivesEnd
+  | docStart (directives : List Seg.Directive)   -- the directive group and its `---` (SLDirectiveDocument); `[]` for a bare `---`
   | docEnd                        -- `...`, SCDocumentEnd
   | opaque   (chars : List Char)  -- a quoted scalar, a comment, a block-scalar body, a plain-scalar interior
   | other    (chars : List Char)  -- indicators, whitespace, breaks, indentation, everything else
 
-def eventsOfSegs : List Seg → List Event   -- anchor ↦ defineAnchor, alias ↦ useAlias, tagUse ↦ useTag, tagDecl ↦ declareTag, docStart ↦ beginDocument, docEnd ↦ endDocument; opaque/other ↦ nothing
+def eventsOfSegs : List Seg → List Event   -- anchor ↦ defineAnchor, alias ↦ useAlias, tagUse ↦ useTag, docEnd ↦ endDocument; opaque/other ↦ nothing
+                                           -- docStart ds ↦ beginDocument :: (ds.filterMap tagDecl).map declareTag
 ```
 
-`Skeleton input segs` says: the segments concatenate to `input.toList`, each
+A `%TAG` directive precedes its document's `---` lexically but belongs to that
+document semantically: `WellFormedFrom` resets `Env.tagHandles` on
+`beginDocument`, so emitting `declareTag` at the directive's own position would
+be wiped before the first `useTag` (`%TAG !h! tag:example.com,2026:⏎--- !h!item
+value` must be well-formed).  The directive group is therefore part of the
+`docStart` segment and its declarations are emitted **after** `beginDocument`,
+matching the order `RuntimeScopes.documentEvents` already fixes and proves
+necessary.  `tagDecl` is consequently not a top-level `Seg` constructor.  Probe
+set for this corner: two successive directive documents, a bare document after
+`...`, a `%TAG` with no `---` (refused by `ExactSurfaceLanguage`, not by the
+trace).
+
+`Skeleton input segs` says: the segments concatenate to `input.toList`, no two
+`other` segments are adjacent and no `other` segment is empty (so the
+partition of non-event text is canonical: maximal runs), each
 event segment is derivable by its surface relation **at the column the
 concatenation puts it at**, each `opaque` segment is derivable by one of
 `SCDoubleQuoted`, `SCSingleQuoted`, `SLComment`/`SCNbCommentText`,
@@ -103,10 +118,18 @@ proof rebuilds the scanner run from the exact derivation, whose skeleton is
 needs
 
 ```lean
-lemma skeleton_unique : Skeleton input segs → Skeleton input segs' → segs = segs'
+lemma skeleton_unique :
+    Skeleton input segs → Skeleton input segs' → eventsOfSegs segs = eventsOfSegs segs'
 ```
 
-— *the exact surface grammar is lexically unambiguous* — and it is needed
+— stated on the **trace**, which is what the converse consumes, not on the
+segment lists: even with canonical `other` runs, two skeletons may still differ
+in how they split an `opaque` region (a quoted scalar is one segment, a comment
+another, but the grammar does not fix the boundary between a plain scalar's
+interior and the whitespace after it), and list equality would then be false
+for a reason the trace does not care about.  The content of the lemma is
+*the exact surface grammar is lexically unambiguous about where its event
+lexemes are* — and it is needed
 under `∀` too (then the forward direction needs it instead).  This is a real
 theorem about YAML 1.2.2 as narrowed by 5a(ii); it is **false** today for
 `InYamlLanguage` (`scannerDrop` derives everything) and becomes provable only
@@ -169,8 +192,10 @@ induction over two derivations.
    conditions discharged by `SourceEvents.lean`'s exactness lemmas, and ≥ 30
    Rule-2 instantiations (`&x [*x]`, `"&x"`, `# *x`, `a*b`, `&a*b`, `|⏎ *x`,
    `--- &x 1⏎--- *x`, `a: &x 1⏎...⏎b: *x`, `!h!x` with and without `%TAG`).
-2. `RefLex.lean`: the lexer, `refLex_sound`, the `#guard` census of
+2. `RefLex.lean`: the lexer, `refLex_sound`, `refLex_canonical` (its output
+   satisfies the maximal-run condition), the `#guard` census of
    `(refLex input).map eventsOfSegs` against `parseYaml`'s verdict on the two
    corpora (every disagreement recorded, none papered over).
-3. `skeleton_of_scan` (forward half of N3), then `refLex_complete` after Row
-   12 / row 19.
+3. `skeleton_of_scan` (forward half of N3), then `refLex_complete` — stated as
+   `Skeleton input segs → ∃ segs', refLex input = some segs' ∧ eventsOfSegs segs' = eventsOfSegs segs`,
+   which is `skeleton_unique` in executable clothing — after Row 12 / row 19.
