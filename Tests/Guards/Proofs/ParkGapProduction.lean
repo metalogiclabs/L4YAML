@@ -353,7 +353,7 @@ def expectedEndsLit : List String :=
     whose type ends in `Prop` with two trailing `SurfPos` arguments; the
     combinators are IN it by that definition, checked by deleting an explicit
     insert of `GStar`, `GOpt`, `GPlus`, `GLit`, `GChar` and `SIndent` and
-    watching `prods=129` not move.  DOCS item 287: `pop` 7 → 10, `sites`
+    watching `prods=130` not move.  DOCS item 287: `pop` 7 → 10, `sites`
     12 → 13 and `nospend` 6 → 7, `ParkGapWidth`'s trade read here — the six
     sites that spend a step are untouched. -/
 -- 2026-10-23 ([162]): `prods` +2, `ctors` +5, `endsLit` +3 — `SCChompingIndicator.strip`/`.keep` and
@@ -367,7 +367,7 @@ def expectedEndsLit : List String :=
 -- `Acceptance/Plain.lean` (`PlainCharOk`, `PlainEntryOk`, `PlainFirstOk`, `PlainOneLineOk`; Stream E).
 def expectedLine : String :=
   "pop=10 sites=13 spend=6 nospend=7 len1=6 ends=GStar(SSWhite)+SIndent \
-depth=4 prods=149 ctors=271 \
+depth=4 prods=150 ctors=271 \
 endsLit=37 minus=1 question=2 colon=21 chainEnds=0 blockArms=1 seqArms=10 \
 mapArms=10 streamArms=4 streamHonest=3"
 

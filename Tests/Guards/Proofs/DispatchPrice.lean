@@ -227,7 +227,7 @@ def readDecl (prods : Std.HashSet Name) (n : Name) : MetaM R := do
 -- `SLEmptyOk`, `DQBreakOk`, `DQTextOk`, `SCDoubleQuotedMultiOk` and the single-quoted twins).
 -- 145 → 149 on 2026-10-23: the four one-line plain relations of `Acceptance/Plain.lean`
 -- (`PlainCharOk`, `PlainEntryOk`, `PlainFirstOk`, `PlainOneLineOk`; Stream E).
-def expectedAlphabet : String := "prodTyped=149 prodSurf=94 prodSpec=56"
+def expectedAlphabet : String := "prodTyped=150 prodSurf=94 prodSpec=56"
 -- 133 → 137 on 2026-10-23: the four narrowed relations of `Proofs.Production.Acceptance.Quoted`
 -- (`DQCharOk`, `SQCharOk`, `SCDoubleQuotedOk`, `SCSingleQuotedOk`); not under `Surface`, no rule tag.
 
