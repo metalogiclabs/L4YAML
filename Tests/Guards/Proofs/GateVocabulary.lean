@@ -83,8 +83,11 @@ namespace L4YAML.Tests.Guards.GateVocabulary
     moved would mean the scan had stopped seeing new prose.  (The names are not
     spelled here: this file is the one the scan skips, so a name written in this
     docstring would move `self` instead, for no reading.) -/
+-- 2026-10-22: re-pinned from `scripts/gate_vocab.py` on the fix-a branch — the literal had been 448 since item 265's
+-- successors added gate names to Lean docstrings (items 332–340 each reported the drift as pre-existing); the
+-- script is the reading, this literal is the pin, and a disagreement is an item's to repin, not to record.
 def expectedGateVocab : String :=
-  "names=107 mentions=448 families=14 refuted=7 wrapped=4 self=2 unresolved=0"
+  "names=110 mentions=464 families=14 refuted=7 wrapped=4 self=2 unresolved=0"
 
 end L4YAML.Tests.Guards.GateVocabulary
 
