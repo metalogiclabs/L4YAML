@@ -698,6 +698,29 @@ lemma sFlowContent_suffix {n : Nat} {c : YamlContext} {a b : SurfPos}
   | .doubleQ _ _ _ _ hx =>
     exact (scDoubleQuoted_suffix hx)
 
+lemma scFlowJsonContent_suffix {n : Nat} {c : YamlContext} {a b : SurfPos}
+    (h : SCFlowJsonContent n c a b) :
+    b.chars <:+ a.chars := by
+  match h with
+  | .flowSeq _ _ _ _ hx =>
+    exact (sFlowSequence_suffix hx)
+  | .flowMap _ _ _ _ hx =>
+    exact (sFlowMapping_suffix hx)
+  | .singleQ _ _ _ _ hx =>
+    exact (scSingleQuoted_suffix hx)
+  | .doubleQ _ _ _ _ hx =>
+    exact (scDoubleQuoted_suffix hx)
+
+lemma scFlowJsonNode_suffix {n : Nat} {c : YamlContext} {a b : SurfPos}
+    (h : SCFlowJsonNode n c a b) :
+    b.chars <:+ a.chars := by
+  match h with
+  | .content _ _ _ _ hc =>
+    exact (scFlowJsonContent_suffix hc)
+  | .propsContent _ _ _ _ _ _ hp hs hc =>
+    exact (scFlowJsonContent_suffix hc).trans ((sSeparate_suffix hs).trans
+      (scNsProperties_suffix hp))
+
 lemma sFlowSequence_suffix {n : Nat} {c : YamlContext} {a b : SurfPos}
     (h : SFlowSequence n c a b) :
     b.chars <:+ a.chars := by
@@ -732,6 +755,9 @@ lemma sFlowSeqEntry_suffix {n : Nat} {c : YamlContext} {a b : SurfPos}
       hc).trans ((optSep_suffix ho).trans (sFlowNode_suffix hk))))
   | .pairEmpty _ _ _ _ _ _ hk ho hc =>
     exact (glit_suffix hc).trans ((optSep_suffix ho).trans (sFlowNode_suffix hk))
+  | .pairJsonAdjacentValue _ _ _ _ _ _ _ _ hk ho hc ho2 hv =>
+    exact (sFlowNode_suffix hv).trans ((optSep_suffix ho2).trans ((glit_suffix
+      hc).trans ((optSil_suffix ho).trans (scFlowJsonNode_suffix hk))))
   | .explicitPairValue _ _ _ _ _ _ _ _ _ _ hq hs1 hk ho hc hs2 hv =>
     exact (sFlowNode_suffix hv).trans ((sSeparate_suffix hs2).trans ((glit_suffix
       hc).trans ((optSep_suffix ho).trans ((sFlowNode_suffix hk).trans
@@ -794,6 +820,9 @@ lemma sFlowMapEntry_suffix {n : Nat} {c : YamlContext} {a b : SurfPos}
       hc).trans ((optSep_suffix ho).trans (sFlowNode_suffix hk))))
   | .implicitEmpty _ _ _ _ _ _ hk ho hc =>
     exact (glit_suffix hc).trans ((optSep_suffix ho).trans (sFlowNode_suffix hk))
+  | .jsonKeyAdjacentValue _ _ _ _ _ _ _ _ hk ho hc ho2 hv =>
+    exact (sFlowNode_suffix hv).trans ((optSep_suffix ho2).trans ((glit_suffix
+      hc).trans ((optSep_suffix ho).trans (scFlowJsonNode_suffix hk))))
   | .bareKey _ _ _ _ hk =>
     exact (sFlowNode_suffix hk)
   | .emptyKeyValue _ _ _ _ _ _ hc hs hv =>

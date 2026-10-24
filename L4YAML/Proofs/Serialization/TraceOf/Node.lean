@@ -204,6 +204,32 @@ mutual
         SCDoubleQuoted n c s s' →
         TFlowContent n c s s' ([])
 
+  /-- Event-annotated `SCFlowJsonContent`. -/
+  inductive TCFlowJsonContent : Nat → YamlContext → SurfPos → SurfPos → List Event → Prop where
+    | flowSeq (n : Nat) (c : YamlContext) (s s' : SurfPos) (ev1 : List Event) :
+        TFlowSequence n c s s' ev1 →
+        TCFlowJsonContent n c s s' (ev1)
+    | flowMap (n : Nat) (c : YamlContext) (s s' : SurfPos) (ev1 : List Event) :
+        TFlowMapping n c s s' ev1 →
+        TCFlowJsonContent n c s s' (ev1)
+    | singleQ (n : Nat) (c : YamlContext) (s s' : SurfPos) :
+        SCSingleQuoted n c s s' →
+        TCFlowJsonContent n c s s' ([])
+    | doubleQ (n : Nat) (c : YamlContext) (s s' : SurfPos) :
+        SCDoubleQuoted n c s s' →
+        TCFlowJsonContent n c s s' ([])
+
+  /-- Event-annotated `SCFlowJsonNode`. -/
+  inductive TCFlowJsonNode : Nat → YamlContext → SurfPos → SurfPos → List Event → Prop where
+    | content (n : Nat) (c : YamlContext) (s s' : SurfPos) (ev1 : List Event) :
+        TCFlowJsonContent n c s s' ev1 →
+        TCFlowJsonNode n c s s' (ev1)
+    | propsContent (n : Nat) (c : YamlContext) (s s₁ s₂ s' : SurfPos) (ev1 ev2 : List Event) :
+        TCNsProperties n c s s₁ ev1 →
+        SSeparate n c s₁ s₂ →
+        TCFlowJsonContent n c s₂ s' ev2 →
+        TCFlowJsonNode n c s s' (ev1 ++ ev2)
+
   /-- Event-annotated `SFlowSequence`. -/
   inductive TFlowSequence : Nat → YamlContext → SurfPos → SurfPos → List Event → Prop where
     | empty (n : Nat) (c : YamlContext) (s s₁ s₂ s' : SurfPos) :
@@ -255,6 +281,13 @@ mutual
         GOpt (SSeparate n c) s₁ s₂ →
         GLit ':' s₂ s' →
         TFlowSeqEntry n c s s' (ev1)
+    | pairJsonAdjacentValue (n : Nat) (c : YamlContext) (s s₁ s₂ s₃ s₄ s' : SurfPos) (ev1 ev2 : List Event) :
+        TCFlowJsonNode 0 .flowKey s s₁ ev1 →
+        GOpt SSeparateInLine s₁ s₂ →
+        GLit ':' s₂ s₃ →
+        GOpt (SSeparate n c) s₃ s₄ →
+        TFlowNode n c s₄ s' ev2 →
+        TFlowSeqEntry n c s s' (ev1 ++ ev2)
     | explicitPairValue (n : Nat) (c : YamlContext) (s s₁ s₂ s₃ s₄ s₅ s₆ s' : SurfPos) (ev1 ev2 : List Event) :
         GLit '?' s s₁ →
         SSeparate n c s₁ s₂ →
@@ -370,6 +403,13 @@ mutual
         GOpt (SSeparate n c) s₁ s₂ →
         GLit ':' s₂ s' →
         TFlowMapEntry n c s s' (ev1)
+    | jsonKeyAdjacentValue (n : Nat) (c : YamlContext) (s s₁ s₂ s₃ s₄ s' : SurfPos) (ev1 ev2 : List Event) :
+        TCFlowJsonNode n c s s₁ ev1 →
+        GOpt (SSeparate n c) s₁ s₂ →
+        GLit ':' s₂ s₃ →
+        GOpt (SSeparate n c) s₃ s₄ →
+        TFlowNode n c s₄ s' ev2 →
+        TFlowMapEntry n c s s' (ev1 ++ ev2)
     | bareKey (n : Nat) (c : YamlContext) (s s' : SurfPos) (ev1 : List Event) :
         TFlowNode n c s s' ev1 →
         TFlowMapEntry n c s s' (ev1)

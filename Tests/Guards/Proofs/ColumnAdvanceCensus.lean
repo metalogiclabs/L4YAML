@@ -193,7 +193,9 @@ def isSurfRel (t : Expr) : MetaM Bool :=
     position at all and transports its premises' law. -/
 -- 2026-10-23 ([162]): +2 types / +5 carried arms — `SCIndentationIndicator` (2) and `SCChompingIndicator` (3).
 def expectedSplit : String :=
-  "types=79 arms=172 advance=24 pred=11 reset=3 carried=133 violations=1"
+-- 2026-10-24 ([148]/[149] JSON-key adjacent value): `types` 79 → 81, `arms` 172 → 180, `carried` 133 → 141 —
+-- `SCFlowJsonContent` (4 arms) + `SCFlowJsonNode` (2) + `jsonKeyAdjacentValue` + `pairJsonAdjacentValue`; all carry the column.
+  "types=81 arms=180 advance=24 pred=11 reset=3 carried=141 violations=1"
 
 /-- What the census actually compared.  A census that reports no violations
     must say how much of the population it could see: `blind` counts arms

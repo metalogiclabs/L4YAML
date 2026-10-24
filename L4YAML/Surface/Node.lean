@@ -354,6 +354,34 @@ mutual
         SCDoubleQuoted n c s s' →
         SFlowContent n c s s'
 
+  /-- [157] c-flow-json-content(n,c): the JSON-like arms of `SFlowContent` (no plain scalar). -/
+  @[yaml_spec "7.5" 157 "c-flow-json-content(n,c)"]
+  inductive SCFlowJsonContent : Nat → YamlContext → SurfPos → SurfPos → Prop where
+    | flowSeq (n : Nat) (c : YamlContext) (s s' : SurfPos) :
+        SFlowSequence n c s s' →
+        SCFlowJsonContent n c s s'
+    | flowMap (n : Nat) (c : YamlContext) (s s' : SurfPos) :
+        SFlowMapping n c s s' →
+        SCFlowJsonContent n c s s'
+    | singleQ (n : Nat) (c : YamlContext) (s s' : SurfPos) :
+        SCSingleQuoted n c s s' →
+        SCFlowJsonContent n c s s'
+    | doubleQ (n : Nat) (c : YamlContext) (s s' : SurfPos) :
+        SCDoubleQuoted n c s s' →
+        SCFlowJsonContent n c s s'
+
+  /-- [160] c-flow-json-node(n,c): `(c-ns-properties s-separate)? c-flow-json-content`. -/
+  @[yaml_spec "7.5" 160 "c-flow-json-node(n,c)"]
+  inductive SCFlowJsonNode : Nat → YamlContext → SurfPos → SurfPos → Prop where
+    | content (n : Nat) (c : YamlContext) (s s' : SurfPos) :
+        SCFlowJsonContent n c s s' →
+        SCFlowJsonNode n c s s'
+    | propsContent (n : Nat) (c : YamlContext) (s s₁ s₂ s' : SurfPos) :
+        SCNsProperties n c s s₁ →
+        SSeparate n c s₁ s₂ →
+        SCFlowJsonContent n c s₂ s' →
+        SCFlowJsonNode n c s s'
+
   /-- [137] c-flow-sequence(n,c): '[' + entries + ']'. -/
   @[yaml_spec "7.4.1" 137 "c-flow-sequence(n,c)"]
   inductive SFlowSequence : Nat → YamlContext → SurfPos → SurfPos → Prop where
@@ -416,6 +444,15 @@ mutual
         SFlowNode n c s s₁ →
         GOpt (SSeparate n c) s₁ s₂ →
         GLit ':' s₂ s' →
+        SFlowSeqEntry n c s s'
+    /-- [153] c-ns-flow-pair-json-key-entry: `c-s-implicit-json-key(flow-key)` ([155]: JSON node
+        at n = 0 in FLOW-KEY context + `s-separate-in-line?`) then `[149]` (`["a":[1]]`). -/
+    | pairJsonAdjacentValue (n : Nat) (c : YamlContext) (s s₁ s₂ s₃ s₄ s' : SurfPos) :
+        SCFlowJsonNode 0 .flowKey s s₁ →
+        GOpt SSeparateInLine s₁ s₂ →
+        GLit ':' s₂ s₃ →
+        GOpt (SSeparate n c) s₃ s₄ →
+        SFlowNode n c s₄ s' →
         SFlowSeqEntry n c s s'
     /-- Explicit '?' flow pair with value: `? key : value`. Covers `[? a : b]`
         (ns-flow-pair explicit case [149], reusing `'?' s-separate` + key/value). -/
@@ -577,6 +614,16 @@ mutual
         SFlowNode n c s s₁ →
         GOpt (SSeparate n c) s₁ s₂ →
         GLit ':' s₂ s' →
+        SFlowMapEntry n c s s'
+    /-- [148] c-ns-flow-map-json-key-entry + [149] c-ns-flow-map-adjacent-value: a JSON-like
+        key may be followed by `':'` and the value with NO separation (`{"a":b}`, `{"a":[1]}`).
+        The `e-node` value is `implicitEmpty`; the plain-key shape `{a:[1]}` has no arm. -/
+    | jsonKeyAdjacentValue (n : Nat) (c : YamlContext) (s s₁ s₂ s₃ s₄ s' : SurfPos) :
+        SCFlowJsonNode n c s s₁ →
+        GOpt (SSeparate n c) s₁ s₂ →
+        GLit ':' s₂ s₃ →
+        GOpt (SSeparate n c) s₃ s₄ →
+        SFlowNode n c s₄ s' →
         SFlowMapEntry n c s s'
     /-- Bare YAML key with no value indicator: `{a}` — the `e-node` (empty value,
         no `':'`) branch of `ns-flow-map-yaml-key-entry(n,c)` [145]. Trailing
