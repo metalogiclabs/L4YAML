@@ -746,6 +746,7 @@ def expectedBottomsPaid : List String :=
    "colon_open_map_props #1 ctor:pendingMapValue.h_closeF idx=k bottom=at[h_route:SBlockMapEntry(k) at(syn)] resume=[h_routeF:tail(k)←SBlockMapEntry(k); h_routeFV:tail(k)←SBlockMapEntry(k)] relaySrc=[param:colon_open_map_props.h_routeF]",
    "compact_open_map #1 ctor:pendingMapValue.h_closeF idx=n + 1 + m bottom=below[h_close_old:SBlockIndented(n) below(syn)] resume=[] relaySrc=[]",
    "question_open_map #1 ctor:pendingMapValue.h_closeF idx=k bottom=at[h_route51:SBlockMapEntry(k) at(syn)] resume=[h_res_land:tail(k)←landing; h_resV_land:tail(k)←landing; h✝:tail(k)←SBlockMapEntry(k); right✝:tail(k)←SBlockMapEntry(k); h_routeF:tail(k)←SBlockMapEntry(k)] relaySrc=[val:question_open_map.h✝]"]
+-- 2026-10-23 (item 349): `nodes` 105448 → 105463 — `h_dead` threaded through the content step.
 def expectedNamed : String :=
   "named=[CoverStep.cons_of_top_eq,Covered.cons,Covered.dedup_head,Covered.pop_to,IndentStackCover.covered_singleton_of_top_le,IndentStackCover.pushMappingIndent_cover,IndentStackCover.scanValuePrepare_cover_key,IndentStackCover.scanValue_cover_key]"
 /-- **The cover's own line.**  `nodes` is the proof-term size of the walked
@@ -800,7 +801,7 @@ missMono=3 missBase=3 missPrep=3 missFloorSrc=3 own=2 empty=0 relay=1 relayEntri
 bounds=2 below=0 belowSyn=0 belowArm=0 at=2 atSyn=1 atArm=1 undecided=0 bOwn=1 \
 bOld=1 landedBelow=0 inlineBelow=0 payable=0 lack=3 lackCallers=19 lackSupplied=0 \
 lackSuppliedB=3 lackLow=0 lackPayable=0 vacuous=2 bottomBelow=0 paidRows=14 \
-bottomPaidBelow=5 bottomPaidRelay=8 named=8 rows=167 nodes=105448"
+bottomPaidBelow=5 bottomPaidRelay=8 named=8 rows=167 nodes=105463"
 
 /-! ## §3 The reading -/
 

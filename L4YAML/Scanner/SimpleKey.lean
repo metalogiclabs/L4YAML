@@ -536,8 +536,7 @@ def closeStaleExplicitKey (s : ScannerState) : ScannerState :=
   if s.inFlow then s
   else match s.explicitKeyLine, s.peek? with
     | some _, some c =>
-      if (s.col : Int) ≤ s.explicitKeyCol
-          && (c != '-' || (s.col : Int) < s.explicitKeyCol) && !(c == ':' && (s.col : Int) == s.explicitKeyCol) then
+      if PendingKeys.staleGate (s.col : Int) s.explicitKeyCol c (s.peekAt? 1) then
         (s.closeStaleAt c).readPendingKey
       else s
     | _, _ => s

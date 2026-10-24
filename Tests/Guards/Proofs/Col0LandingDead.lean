@@ -1,12 +1,13 @@
 import L4YAML.Scanner.Scanner
 
-/-! # The explicit-key register at column-0 content landings (items 347–348, Rule 2)
+/-! # The explicit-key register at column-0 content landings (items 347–349, Rule 2)
 
 The register (`explicitKeyLine`) read after the token scanned at each landing.  A column-0
-content landing (not `-`, not `:`) leaves `none` — also after an inner `?` that never met its
-`:` (item 347's refutation of the one-level hook): since item 348 the hook closes every marked
-level at or right of the cursor, not just the register's own.  A column-0 `-` and an indented
-landing keep the register. -/
+content landing leaves `none` — also after an inner `?` that never met its `:` (item 348: the
+hook closes every marked level at or right of the cursor), and also when the content starts
+with a `-` or `:` that is NOT an indicator, i.e. not followed by a blank (item 349: `-x`, the
+gate reads the dispatcher's lookahead).  A column-0 `-` indicator and an indented landing keep
+the register. -/
 
 open L4YAML L4YAML.Scanner
 
@@ -35,7 +36,10 @@ where
 #guard eklAfter "?\n  ? a\nc: 1\n" 3 = some none
 #guard eklAfter "?\n  ? a\n  ? b\nc: 1\n" 5 = some none
 #guard eklAfter "? ? a\nc: 1\n" 4 = some none
--- the two excluded shapes: a column-0 `-` keeps the register, an indented landing keeps it
+-- item 349: a `-` that is content (not followed by a blank) closes; the `-` indicator keeps
+#guard eklAfter "?\n-x: 1\n" 1 = some none
+#guard eklAfter "?\n  ? a\n-x: 1\n" 3 = some none
+-- the two excluded shapes: a column-0 `-` indicator keeps the register, an indented landing keeps it
 #guard eklAfter "?\n- a\n" 1 = some (some 0)
 #guard eklAfter "?\n  a: 1\n  b: 2\n: v\n" 4 = some (some 0)
 

@@ -1055,12 +1055,13 @@ def expectedPerPos : List String := [
 -- 2026-10-21 (item 322): `nodes` 12544 → 12547 — the colon openers' step premise and its six spends grow the terms; rows stand.
 -- 2026-10-23 (item 344): `punt` 26 → 25, `chain` 49 → 50, `levelVar` 35 → 36, `touched` 125 → 126 — `accum_block_pending` #2 relays `h_vpack`.
 -- 2026-10-23 (item 345): punt 25 → 22, chain 50 → 53, none 26 → 29, touched 126 → 129 — the three `h_kslotUp` singleton relays.
+-- 2026-10-23 (item 349): `nodes` 12556 → 12562 — `h_dead` threaded through the content step.
 def expectedLine : String :=
   "packs=11 framesOn=7 params=29 paramLemmas=19 apps=51 rows=151 ctorRows=74 \
 paramRows=77 punt=22 stamp=16 empty=0 relay=32 step=8 via=9 chain=53 route=3 \
 frames=4 tail=0 other=0 alt=4 held=8 levelVar=36 none=29 spendTail=3 lemmas=21 \
 helpers=[explFrameValueLine,frameChainCons,frameChainOne,frameChainUnion] \
-touched=129 nodes=12556"
+touched=129 nodes=12562"
 
 /-! ## §4 The reading -/
 

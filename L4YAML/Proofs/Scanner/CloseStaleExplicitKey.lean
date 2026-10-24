@@ -180,6 +180,11 @@ lemma closeStaleExplicitKey_explicitKeyLine (s : ScannerState) :
   unfold closeStaleExplicitKey ScannerState.readPendingKey ScannerState.closeStaleAt
   split <;> (try split) <;> (try split) <;> rfl
 
+@[simp] lemma closeStaleExplicitKey_peekAt? (s : ScannerState) (n : Nat) :
+    (closeStaleExplicitKey s).peekAt? n = s.peekAt? n := by
+  unfold closeStaleExplicitKey ScannerState.readPendingKey ScannerState.closeStaleAt
+  split <;> (try split) <;> (try split) <;> rfl
+
 @[simp] lemma closeStaleExplicitKey_inFlow (s : ScannerState) :
     (closeStaleExplicitKey s).inFlow = s.inFlow := by
   unfold closeStaleExplicitKey ScannerState.readPendingKey ScannerState.closeStaleAt

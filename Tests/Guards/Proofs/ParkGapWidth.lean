@@ -529,8 +529,10 @@ corrBlock=0 corrScan=1 via="]
 -- 2026-10-21 (item 324): `preprocess holders` 216 → 218 — `ExplicitValueRefused.step_preprocess` and its `PackAlt` wrapper
 -- hold the preprocess as a hypothesis; no edge or chain moves.
 -- 2026-10-23 (item 348): `scanNextToken_preprocess holders` 223 → 224 — `preprocess_col0_dead` reads the preprocess equation; edge/chain stand.
+-- 2026-10-23 (item 349): `scanNextToken_dispatchBlockIndicators` holders=110 edge=0 chain=0 → holders=112 edge=0 chain=0 —
+-- `not_blockEntryCandidate_of_dispatch_none` / `indicatorAt_false_of_dispatch_none` hold the dispatch equation.
 def expectedLadder : List String :=
-  ["scanNextToken_dispatchBlockIndicators holders=110 edge=0 chain=0",
+  ["scanNextToken_dispatchBlockIndicators holders=112 edge=0 chain=0",
    "scanNextToken_dispatchContent holders=146 edge=2 chain=1",
    "scanNextToken_preprocess holders=224 edge=17 chain=6"]
 

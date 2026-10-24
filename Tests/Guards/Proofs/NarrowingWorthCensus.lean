@@ -317,6 +317,8 @@ in DOCS' REMAINING section as FALSE by construction at `pendingFlow`),
 UNSETTLED — the two pins below say so together, `expectedHeadCensus` counting
 those heads and `expectedChainFaces` not naming a single one of them. -/
 -- 2026-10-20 (item 309): the generic helpers' binders (`∨ alt`) leave the `∨ True` rung.
+-- 2026-10-23 (item 349): three hypothesis indices +1 — `h_dead` (the column-0 landing fact) threaded into
+-- `accum_content_on_pendingBlock_indented` / `accum_content_on_pendingMapValue_indented`.
 def expectedChainFaces : List String :=
   ["FlowBaseRoutes.mk#7 (vslot)",
    "PendingNode.pendingBlock#14 (h_kslotUp)",
@@ -330,7 +332,7 @@ def expectedChainFaces : List String :=
    "accum_block_on_pendingBlock#28 (h_kslotUp)",
    "accum_block_on_pendingBlockContent#33 (h_kslotUp)",
    "accum_block_on_pendingContent#13 (h_vpack)",
-   "accum_content_on_pendingBlock_indented#28 (h_kslotUp_old)",
+   "accum_content_on_pendingBlock_indented#29 (h_kslotUp_old)",
    "accum_content_on_pendingMapValue_indented#17 (h_kslot)",
    "colon_open_map_implicit#12 (h_kslot)",  -- item 311: `{alt : Prop}` precedes it
    "colon_open_map_props#11 (h_kslot)",
@@ -516,15 +518,17 @@ def expectedWorthTally : String :=
 -- 2026-10-20 (item 309): `h_expl :: explFrameValueLine#4` reads `chain` and its binder index moved (`{alt}` precedes it).
 -- 2026-10-21 (item 311): `colon_open_map_implicit`'s four rows re-indexed by one (`{alt : Prop}` is its first binder); the
 -- faces and splits stand, and the list is re-laid in the census's own order.
+-- 2026-10-23 (item 349): three hypothesis indices +1 — `h_dead` (the column-0 landing fact) threaded into
+-- `accum_content_on_pendingBlock_indented` / `accum_content_on_pendingMapValue_indented`.
 def expectedWorthLedger : List String :=
   [-- 2026-10-23 (item 345): `on_pendingBlock_indented#29` splits 10 → 11 (the twin relay), sorted above `#14`.
-   "splits=11 sup=1 - h_closeFV_old :: accum_content_on_pendingBlock_indented#29",
+   "splits=11 sup=1 - h_closeFV_old :: accum_content_on_pendingBlock_indented#30",
    "splits=11 sup=1 inner h_closeF_old :: accum_content_on_pendingBlock_indented#14",
    "splits=8 sup=1 - h_kslot_old :: accum_content_on_pendingBlock_indented#13",
    -- 2026-10-23 (item 344): `on_pendingBlock#29` splits 6 → 7 (the relayed `h_valFV`), sorted above `h_closeF99`.
    "splits=7 sup=1 - h_closeFV_old :: accum_block_on_pendingBlock#29",
    "splits=7 sup=1 inner h_closeF99 :: accum_content_on_pendingMapValue_indented#18",
-   "splits=5 sup=1 - h_seqF168 :: accum_content_on_pendingMapValue_indented#35",
+   "splits=5 sup=1 - h_seqF168 :: accum_content_on_pendingMapValue_indented#36",
    "splits=4 sup=1 - h_closeFV_old :: accum_block_on_pendingBlockContent#35",
    "splits=4 sup=1 inner h_closeFV108 :: accum_content_on_pendingMapValue_indented#20",
    "splits=3 sup=4 - h_cov :: indicator_open_map#27",
@@ -535,7 +539,7 @@ def expectedWorthLedger : List String :=
    "splits=3 sup=1 - h_vslot :: accum_content_on_pendingMapValue_indented#16",
    "splits=3 sup=1 chain h_kslot :: accum_content_on_pendingMapValue_indented#17",
    "splits=3 sup=1 chain h_kslotUp :: accum_block_on_pendingBlock#28",
-   "splits=3 sup=1 chain h_kslotUp_old :: accum_content_on_pendingBlock_indented#28",
+   "splits=3 sup=1 chain h_kslotUp_old :: accum_content_on_pendingBlock_indented#29",
    "splits=2 sup=1 inner h_closeF_old :: accum_block_on_pendingBlockContent#34",
    "splits=2 sup=1 inner h_routeF :: colon_open_map_implicit#13",
    "splits=2 sup=1 inner h_routeF :: colon_open_map_props#12",
@@ -800,7 +804,14 @@ one unfolding, and §6 is the item where those two disagreed about binders. -/
 -- (`*_false_of_peekAt_blank`, its Ix twin, `*_false_of_corr_colon_blank`); none is a no-op conclusion.
 -- 2026-10-24 ([148]/[149] JSON-key adjacent value, merged from the base): +5 — 2 suffix lemmas, 2 `*_toKey` lifts,
 -- 2 scanner JSON-key lemmas (`isValueCandidate_glued_jsonKey` + Ix twin) less the one guard theorem counted elsewhere.
-def expectedNoopTally : String := "theorems=6067 byElab=15 byWhnf=15 elabOnly=0 whnfOnly=0"
+-- 2026-10-24 ([148]/[149] JSON-key adjacent value): `theorems` 6060 → 6065 — 2 suffix lemmas, 2 `*_toKey` lifts, 2 scanner JSON-key
+-- lemmas (`isValueCandidate_glued_jsonKey` + Ix twin) less the one guard theorem counted elsewhere; none is a no-op conclusion.
+-- 2026-10-24 (item 349): `theorems` 6060 → 6064 — the indicator-aware gate's lemmas (`staleGate_true_of_noInd`,
+-- `staleGate_false_le`, `closeStaleExplicitKey_peekAt?`, the restated `closeStale_getElem?`); none is a no-op conclusion.
+-- 2026-10-23 (item 349): `theorems` 6064 → 6066 — `not_blockEntryCandidate_of_dispatch_none`, `indicatorAt_false_of_dispatch_none`.
+-- 2026-10-23 (item 349): `theorems` 6067 → 6073 — `staleGate_true_of_noInd`, `staleGate_false_le`, `closeStaleExplicitKey_peekAt?`,
+-- the restated `closeStale_getElem?`, `not_blockEntryCandidate_of_dispatch_none`, `indicatorAt_false_of_dispatch_none`; none is a no-op conclusion.
+def expectedNoopTally : String := "theorems=6073 byElab=15 byWhnf=15 elabOnly=0 whnfOnly=0"
 -- 5302 → 5344 on 2026-10-18 (plan row 20's close, closure-log item 280): the
 -- parse-side alias obligation moved to §7.1's DECLARATION set, so the carrier
 -- grew and the predicate gained its tools.  What is new in kind: `AG` carries

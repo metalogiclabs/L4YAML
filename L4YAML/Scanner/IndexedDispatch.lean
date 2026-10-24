@@ -425,8 +425,7 @@ def closeStaleExplicitKeyIx {input : String} (s : ScannerStateIx input) :
   if s.inFlow then s
   else match s.explicitKeyLine, s.peek? with
     | some _, some c =>
-      if (s.cursor.pos.col : Int) ≤ s.explicitKeyCol
-          && (c != '-' || (s.cursor.pos.col : Int) < s.explicitKeyCol) && !(c == ':' && (s.cursor.pos.col : Int) == s.explicitKeyCol) then
+      if PendingKeys.staleGate (s.cursor.pos.col : Int) s.explicitKeyCol c (s.peekAt? 1) then
         (s.closeStaleAt c).readPendingKey
       else s
     | _, _ => s

@@ -595,8 +595,10 @@ adds.**   `constants` counts the module's non-internal constants, generated ones
 -- (the relays read `h_closeFV_old`, `h_sep_p`, `h_run`).
 -- 2026-10-23 (item 345): constants/decls +1, READ +3 — the `h_kslotUp` singleton relays' tactic block compiles to one
 -- auxiliary declaration and reads three more hypotheses.
+-- 2026-10-23 (item 349): constants 1420 → 1424, decls 1130 → 1132, READ 1168 → 1169, RELAY 2372 → 2383 —
+-- the two dispatch bridges and `h_sound`/`h_dead` relayed through the seven content-step lemmas.
 def expectedModuleTally : String :=
-  "constants=1420 decls=1130 eta=408 FIELD=168 READ=1168 RELAY=2372 RETURN=48 \
+  "constants=1424 decls=1132 eta=408 FIELD=168 READ=1169 RELAY=2383 RETURN=48 \
 UNUSED=26"
 
 -- 2026-10-21 (item 311): `flowKeyPack_of_close`'s unused `_` is binder #11 (`{g}` precedes it); the three conversion stubs
