@@ -193,14 +193,13 @@ def isSurfRel (t : Expr) : MetaM Bool :=
     position at all and transports its premises' law. -/
 -- 2026-10-23 ([162]): +2 types / +5 carried arms — `SCIndentationIndicator` (2) and `SCChompingIndicator` (3).
 def expectedSplit : String :=
-  "types=79 arms=172 advance=25 pred=11 reset=3 carried=132 violations=1"
+  "types=79 arms=172 advance=24 pred=11 reset=3 carried=133 violations=1"
 
 /-- What the census actually compared.  A census that reports no violations
     must say how much of the population it could see: `blind` counts arms
     holding two positions it could not relate, `skippedTypes` the productions
     that are not two-position relations. -/
-def expectedCoverage : String :=
-  "lits=80 pairs=40 blind=0 skippedTypes=1"
+def expectedCoverage : String := "lits=78 pairs=39 blind=0 skippedTypes=1"
 
 /-- The arm, and it is the one §1 refutes the law with. -/
 def expectedViolation : String :=

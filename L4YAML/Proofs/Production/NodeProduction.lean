@@ -368,8 +368,6 @@ lemma SNsPlainChar_blockKey_to_flowOut {s s' : SurfPos}
     exact SNsPlainChar.safe .flowOut ch rest col hSafe hNotColon hNotHash
   | colonSafe prev next rest col hSafe =>
     exact SNsPlainChar.colonSafe .flowOut prev next rest col hSafe
-  | hashAfterNs rest col hColGt =>
-    exact SNsPlainChar.hashAfterNs .flowOut rest col hColGt
 
 -- [132] nb-ns-plain-in-line(c), one repetition unit.
 lemma SNbNsPlainInLineEntry_blockKey_to_flowOut {s s' : SurfPos}
@@ -378,6 +376,7 @@ lemma SNbNsPlainInLineEntry_blockKey_to_flowOut {s s' : SurfPos}
   match h with
   | .mk _ _ s₁ _ h_ws h_ch =>
     .mk .flowOut s s₁ s' h_ws (SNsPlainChar_blockKey_to_flowOut h_ch)
+  | .hash _ _ _ h_lit => .hash .flowOut s s' h_lit
 
 -- The intra-line repetition itself: the only induction the plain lift needs,
 -- and it is over the star, not over the grammar.

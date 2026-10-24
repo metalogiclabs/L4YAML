@@ -163,7 +163,7 @@ def pln (s : String) (flow : Bool := false) := quotedAt scanPlainScalar .plain s
 -- Trailing whites are consumed and trimmed: the landing is after the white run.
 #guard pln "a  " == some ("a", 3, 3)
 #guard pln "a \t" == some ("a", 3, 3)
--- Refuter: `[130] hashAfterNs` derives `#` after a space (`col > 0`); the scanner reads a comment.
+-- `[132]`'s `hash` entry needs an empty `s-white*`: ` #` is a comment for grammar and scanner alike.
 #guard pln "a #b" == some ("a", 2, 2)
 #guard pln "a #c" == some ("a", 2, 2)
 -- `[130]` via `isNsChar` and the scanner agree on C0: both stop before `\x01`.

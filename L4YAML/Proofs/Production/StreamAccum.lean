@@ -12002,10 +12002,13 @@ lemma plainFirst_col {cc : YamlContext} {sp sp' : SurfPos} (h : SNsPlainFirst cc
 lemma plainInLineEntry_col_lt {cc : YamlContext} {sp sp' : SurfPos}
     (h : SNbNsPlainInLineEntry cc sp sp') : sp.col < sp'.col := by
   cases h
-  rename_i h_ws h_ch
-  have := gstar_white_col_le h_ws
-  have := plainChar_col h_ch
-  omega
+  · rename_i h_ws h_ch
+    have := gstar_white_col_le h_ws
+    have := plainChar_col h_ch
+    omega
+  · rename_i h_lit
+    cases h_lit
+    simp
 
 lemma gstar_plainEntry_col_le {cc : YamlContext} {sp sp' : SurfPos}
     (h : GStar (SNbNsPlainInLineEntry cc) sp sp') : sp.col ≤ sp'.col := by
@@ -12036,8 +12039,9 @@ lemma plainOneLine_col_pos {cc : YamlContext} {sp sp' : SurfPos}
 lemma plainNextLine_col_pos {n : Nat} {cc : YamlContext} {sp sp' : SurfPos}
     (h : SSNsPlainNextLine n cc sp sp') : 0 < sp'.col := by
   cases h
-  rename_i h_plus
-  have := gplus_plainEntry_col_lt h_plus
+  rename_i h_ch h_rest
+  have := plainChar_col h_ch
+  have := gstar_plainEntry_col_le h_rest
   omega
 
 /-- `[135] ns-plain-multi-line(n,c)` — the head line if there are no

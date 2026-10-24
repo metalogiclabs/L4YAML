@@ -231,14 +231,13 @@ lemma plainChar_toKey {c tc : L4YAML.YamlContext} (hp : KeyPair c tc)
     exact SNsPlainChar.safe tc ch rest col (hp.safe hSafe) hNC hNH
   | colonSafe prev next rest col hSafe =>
     exact SNsPlainChar.colonSafe tc prev next rest col (hp.safe hSafe)
-  | hashAfterNs rest col hC => exact SNsPlainChar.hashAfterNs tc rest col hC
 
 lemma plainEntry_toKey {c tc : L4YAML.YamlContext} (hp : KeyPair c tc)
     {s s' : SurfPos} (h : SNbNsPlainInLineEntry c s s') :
-    SNbNsPlainInLineEntry tc s s' := by
-  cases h with
-  | mk s₁ _ hws hch =>
-    exact SNbNsPlainInLineEntry.mk tc _ s₁ _ hws (plainChar_toKey hp hch)
+    SNbNsPlainInLineEntry tc s s' :=
+  match h with
+  | .mk _ _ s₁ _ hws hch => SNbNsPlainInLineEntry.mk tc _ s₁ _ hws (plainChar_toKey hp hch)
+  | .hash _ _ _ hlit => SNbNsPlainInLineEntry.hash tc _ _ hlit
 
 lemma plainOneLine_toKey {c tc : L4YAML.YamlContext} (hp : KeyPair c tc)
     {s s' : SurfPos} (h : SNsPlainOneLine c s s') : SNsPlainOneLine tc s s' := by

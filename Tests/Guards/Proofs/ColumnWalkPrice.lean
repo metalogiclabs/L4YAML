@@ -286,7 +286,7 @@ composition node is a link that is not the first of its arm. -/
 
 -- 2026-10-23 ([162]): +5 arms / +3 links — the `[163]`/`[164]` indicator leaves under `SCBBlockHeader`.
 def expectedPrice : String :=
-  "arms=172 links=322 oneWalk=322 twoWalks=794 defProds=9 defCitations=39"
+  "arms=172 links=324 oneWalk=324 twoWalks=800 defProds=9 defCitations=39"
 
 /-- The two cycles, priced the same way.  `flow` is the one the compiled
     experiment walked three times. -/
