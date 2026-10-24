@@ -16196,6 +16196,39 @@ lemma not_valueCandidate_of_dispatch_none {s : ScannerState} {c : Char}
     iterate 8 (all_goals (try split at h))
     all_goals simp_all
 
+/-- Item 349: a `-` the block dispatcher declined is not a block entry (`isBlockEntryCandidate`). -/
+lemma not_blockEntryCandidate_of_dispatch_none {s : ScannerState} {c : Char}
+    (hnf : s.inFlow = false)
+    (h : scanNextToken_dispatchBlockIndicators s c = .ok none) :
+    c = '-' → isBlockEntryCandidate s = false := by
+  rintro rfl
+  cases hbc : isBlockEntryCandidate s with
+  | false => rfl
+  | true =>
+    exfalso
+    unfold scanNextToken_dispatchBlockIndicators at h
+    simp only [bind, Except.bind, pure, Except.pure, hbc, hnf] at h
+    iterate 8 (all_goals (try split at h))
+    all_goals simp_all
+
+/-- Item 349: the block dispatcher declined `c`, so no `-`/`:` indicator sits under the cursor
+    (`PendingKeys.indicatorAt`) — the premise of the column-0 landing fact `preprocess_col0_dead`. -/
+lemma indicatorAt_false_of_dispatch_none {s : ScannerState} {c : Char} (hnf : s.inFlow = false)
+    (h : scanNextToken_dispatchBlockIndicators s c = .ok none) :
+    PendingKeys.indicatorAt c (s.peekAt? 1) = false := by
+  unfold PendingKeys.indicatorAt
+  by_cases hd : c = '-'
+  · have hbc := not_blockEntryCandidate_of_dispatch_none hnf h hd
+    subst hd
+    unfold isBlockEntryCandidate at hbc
+    cases hp : s.peekAt? 1 <;> simp_all
+  · by_cases hc : c = ':'
+    · have hvc := not_valueCandidate_of_dispatch_none h hc
+      subst hc
+      unfold isValueCandidate at hvc
+      cases hp : s.peekAt? 1 <;> simp_all
+    · simp [hd, hc]
+
 /-! ### §1c''c `allowDirectives` survives the flow dispatch (β.3)
 
     None of the five indicators touches the flag, so `allowDirectives = false` —
