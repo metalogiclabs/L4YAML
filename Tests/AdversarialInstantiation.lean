@@ -3653,6 +3653,202 @@ def testGluedScannerLemmas (state : IO.Ref TestCollector) : IO Unit := do
     let v := ((colonStates input).getLast?).map flowGluedCollectionValue
     checkM state s!"p21/{input.quote}: glued predicate silent after a JSON key" (v == some false) s!"v={v}"
 
+/-! ## Priority 19 — the widened stale hook and the column-0 landing fact (items 348–349, row 12)
+
+Item 348 made `closeStaleExplicitKey` close EVERY marked `pendingKeys` level the
+cursor lands at or left of (`PendingKeys.closeStale`), and item 349 narrowed its
+`-`/`:` exemption to the characters the dispatcher treats as indicators
+(`PendingKeys.indicatorAt c next`: `-`/`:` followed by a blank or EOF).  The
+landing fact `preprocess_col0_dead` is what `content_dispatch_routed` spends at
+its `k = 0` value-line fields, so its hypotheses are instantiated here on real
+scanner walks, and each helper lemma on a grid of synthetic stacks.
+
+**Risk:** the slot formula (`closeStale_getElem?`), size preservation and the
+marked-before property; `innermost_closeStale_col0` needs `0 ≤ m` on every marked
+slot (a `-1` slot refutes the unguarded statement); the gate must keep `-`/`:`
+only as indicators (`?⏎-x: 1` refuted the raw-character exemption); and the
+landing fact is FALSE when the landing character is an indicator (`?⏎- a`).
+-/
+
+/-- Decidable `SlotsOk`-shaped check: `pendingKeys` matches `indents` in size and every
+    marked slot sits on a column `≥ 0`. -/
+def slotsOkB (s : ScannerState) : Bool :=
+  s.pendingKeys.size == s.indents.size &&
+    (List.range s.pendingKeys.size).all fun i =>
+      match s.pendingKeys[i]? with
+      | some (some _) => (s.indents[i]?.map (·.column)).any (fun m => 0 ≤ m)
+      | _ => true
+
+/-- Walk `scanNextToken` from `mk'`; at each step where the pre-state is `Sound`, outside flow,
+    the preprocessed cursor sits at column 0 and the landing character is not an indicator,
+    require the register dead.  Returns `(steps, landings checked, refutations)`. -/
+def walkCol0Dead (input : String) : Nat × Nat × Nat := Id.run do
+  let mut s := ScannerState.mk' input
+  let mut steps := 0
+  let mut landings := 0
+  let mut refuted := 0
+  let mut fuel := input.length + 8
+  while fuel > 0 do
+    fuel := fuel - 1
+    match scanNextToken_preprocess s with
+    | .ok (some (sp, c)) =>
+      if soundB s && !s.inFlow && sp.col == 0
+          && !(PendingKeys.indicatorAt c (sp.peekAt? 1)) then
+        landings := landings + 1
+        if sp.explicitKeyLine != none then refuted := refuted + 1
+    | _ => pure ()
+    match scanNextToken s with
+    | .ok (some s') => steps := steps + 1; s := s'
+    | _ => fuel := 0
+  return (steps, landings, refuted)
+
+def testColZeroLanding (state : IO.Ref TestCollector) : IO Unit := do
+  setCategory state "Priority 19: widened stale hook and the column-0 landing fact (items 348–349)"
+  -- `indicatorAt`: `-`/`:` are indicators only before a blank or at EOF.
+  let indRows : List (Char × Option Char × Bool) :=
+    [('-', some ' ', true), ('-', none, true), ('-', some 'x', false), ('-', some '\n', true),
+     (':', some ' ', true), (':', none, true), (':', some 'x', false),
+     ('a', some ' ', false), ('a', none, false), ('?', some ' ', false)]
+  for (c, next, expected) in indRows do
+    checkM state s!"indicatorAt/{repr c} before {repr next}"
+      (PendingKeys.indicatorAt c next == expected) ""
+  -- `staleGate`: content at or left of the level closes; `-` closes only strictly left; `:`
+  -- never at its own column; a non-indicator `-`/`:` closes like content; right of the level
+  -- nothing closes (`staleGate_false_le`: gate false ⇒ m ≤ col).
+  let gateRows : List (Int × Int × Char × Option Char × Bool) :=
+    [(0, 0, 'a', some ' ', true), (0, 2, 'a', some ' ', true), (2, 0, 'a', some ' ', false),
+     (2, 2, '-', some ' ', false), (0, 2, '-', some ' ', true), (2, 2, '-', some 'x', true),
+     (2, 2, ':', some ' ', false), (0, 2, ':', some ' ', true), (2, 2, ':', some 'x', true),
+     (0, 0, '-', none, false), (0, 0, ':', none, false), (3, 2, '-', some ' ', false)]
+  for (col, m, c, next, expected) in gateRows do
+    checkM state s!"staleGate/col {col} level {m} {repr c} before {repr next}"
+      (PendingKeys.staleGate col m c next == expected) ""
+    if !(PendingKeys.staleGate col m c next) then
+      checkM state s!"staleGate_false_le/col {col} level {m} {repr c}" (m ≤ col) ""
+  -- `closeStale` grid: empty, singleton, two and three levels; cursor at 0 and 2; every
+  -- character class and lookahead.  Size is preserved; every slot still marked was marked
+  -- before; at column 0 with a non-indicator the innermost marked slot is gone whenever every
+  -- marked level is `≥ 0` (`innermost_closeStale_col0`), and a `-1` level refutes it.
+  let stacks : List (Array Int × Array (Option Nat)) :=
+    [(#[], #[]), (#[-1], #[none]), (#[0], #[some 0]), (#[-1, 0], #[none, some 0]),
+     (#[-1, 0, 2], #[none, some 0, some 1]), (#[-1, 0, 2], #[none, none, some 1]),
+     (#[-1, 0, 2], #[some 7, none, none]), (#[-1, 2, 4], #[none, some 0, some 1])]
+  let chars : List (Char × Option Char) :=
+    [('a', some ' '), ('-', some ' '), ('-', some 'x'), ('-', none), (':', some ' '), (':', some 'x')]
+  for (cols, pks) in stacks do
+    for col in [(0 : Int), 2] do
+      for (c, next) in chars do
+        let out := PendingKeys.closeStale cols pks col c next
+        let tag := s!"closeStale/{repr cols} {repr pks} col {col} {repr c} {repr next}"
+        checkM state s!"{tag}: size" (out.size == pks.size) ""
+        checkM state s!"{tag}: marked-before"
+          ((List.range out.size).all fun i =>
+            match out[i]? with
+            | some (some l) => pks[i]? == some (some l)
+            | _ => true) ""
+        checkM state s!"{tag}: formula"
+          ((List.range out.size).all fun i =>
+            out[i]? == some (match cols[i]? with
+              | some m => if PendingKeys.staleGate col m c next then none else pks[i]?.getD none
+              | none => pks[i]?.getD none)) ""
+        let allNonneg := (List.range pks.size).all fun i =>
+          match pks[i]? with
+          | some (some _) => (cols[i]?.map (fun m => decide (0 ≤ m))).getD false
+          | _ => true
+        if col == 0 && !(PendingKeys.indicatorAt c next) then
+          if allNonneg then
+            checkM state s!"{tag}: innermost dead (innermost_closeStale_col0)"
+              ((PendingKeys.innermost cols out).1 == none) ""
+          else
+            checkM state s!"{tag}: `-1` level survives (premise failure, refutes the unguarded form)"
+              ((PendingKeys.innermost cols out).1 != none) ""
+  -- `closeStaleAt_slots` / `SlotsWitness.closeStale`: the state-level hook keeps `SlotsOk`
+  -- and only ever un-marks (the witness is per marked slot, so un-marking cannot break it).
+  for input in ["?\n  ? a\nc", "? ? a\n  : b\nc", "?\n-x"] do
+    let s := { staleStateAt input (input.length - 1) 2 0 (some 0) 2 0 with
+      indents := #[{ column := -1, isSequence := false }, { column := 0, isSequence := false },
+                   { column := 2, isSequence := false }],
+      pendingKeys := #[none, some 0, some 1] }
+    for c in ['a', '-', ':'] do
+      let s' := s.closeStaleAt c
+      checkM state s!"closeStaleAt/{repr input} {repr c}: SlotsOk kept" (slotsOkB s') ""
+      checkM state s!"closeStaleAt/{repr input} {repr c}: marked-before"
+        ((List.range s'.pendingKeys.size).all fun i =>
+          match s'.pendingKeys[i]? with
+          | some (some l) => s.pendingKeys[i]? == some (some l)
+          | _ => true) ""
+  -- `reg_col_nonneg`: on every walked state outside flow with a live register the column is
+  -- `≥ 0` (the seed `mk'` has `explicitKeyCol = -1` but no register).
+  for input in ["? a\n: b", "?\n  ? a\nc: 1", "- ? a\n  : b", "? ? a\n  : b\nc: 1"] do
+    let mut s := ScannerState.mk' input
+    let mut ok := true
+    let mut fuel := input.length + 8
+    while fuel > 0 do
+      fuel := fuel - 1
+      if s.flowLevel == 0 && s.explicitKeyLine != none && soundB s && s.explicitKeyCol < 0 then
+        ok := false
+      match scanNextToken s with
+      | .ok (some s') => s := s'
+      | _ => fuel := 0
+    checkM state s!"reg_col_nonneg/{repr input}" ok ""
+  -- `hook_col0_dead` (synthetic): a column-0 cursor under a non-indicator kills the register
+  -- whatever the marked levels; the indicator rows keep it (hypothesis failure, not a bug).
+  for (c, dead) in [('c', true), ('-', false), (':', false)] do
+    let input := s!"?\n  ? a\n{c} x"
+    let s := { staleStateAt input 8 2 0 (some 1) 2 0 with
+      indents := #[{ column := -1, isSequence := false }, { column := 0, isSequence := false },
+                   { column := 2, isSequence := false }],
+      pendingKeys := #[none, some 0, some 1] }
+    checkM state s!"hook_col0_dead/{repr c} at column 0: register {if dead then "dead" else "live"}"
+      (((closeStaleExplicitKey s).explicitKeyLine == none) == dead) ""
+  -- `preprocess_col0_dead` on real walks: every column-0 non-indicator landing finds the register
+  -- dead (theorem-holds), and the probe set includes landings the statement must NOT claim.
+  for (input, minLandings) in
+      [("?\n  ? a\nc: 1", 1), ("?\n  ? a\n  ? b\nc: 1", 1), ("? ? a\n  : b\nc: 1", 1),
+       ("?\n-x: 1", 1), ("?\n  ? a\n-x: 1", 1), ("?\n:x", 1), ("?\n  a: 1\nb: 2", 1),
+       ("? a\n---", 1), ("?\n- a", 0), ("?\n  ? a\n: v", 0), ("?\n  b: c\n  d: e\n: v", 0)] do
+    let (steps, landings, refuted) := walkCol0Dead input
+    checkM state s!"preprocess_col0_dead/{repr input}: walked" (steps > 0) s!"{steps} steps"
+    checkM state s!"preprocess_col0_dead/{repr input}: {landings} column-0 landing(s) checked"
+      (landings ≥ minLandings) s!"got {landings}"
+    checkM state s!"preprocess_col0_dead/{repr input}: no refutation" (refuted == 0)
+      s!"{refuted} live register(s) at a column-0 content landing"
+  -- The indicator landings are the rows the statement excludes: the first column-0 landing
+  -- of `?⏎- a` and `?⏎  ? a⏎: v` is an indicator and the register is still live there.
+  for input in ["?\n- a", "?\n  ? a\n: v"] do
+    let mut s := ScannerState.mk' input
+    let mut found : Option (ScannerState × Char) := none
+    let mut fuel := input.length + 8
+    while fuel > 0 do
+      fuel := fuel - 1
+      match scanNextToken_preprocess s with
+      | .ok (some (sp, c)) =>
+        if sp.col == 0 && sp.offset > 0 && found.isNone then found := some (sp, c)
+      | _ => pure ()
+      match scanNextToken s with
+      | .ok (some s') => s := s'
+      | _ => fuel := 0
+    match found with
+    | some (sp, c) =>
+      checkM state s!"preprocess_col0_dead/{repr input}: indicator landing (hypothesis fails)"
+        (PendingKeys.indicatorAt c (sp.peekAt? 1) && sp.explicitKeyLine == some 0)
+        s!"c = {repr c}, register {repr sp.explicitKeyLine}"
+    | none => checkM state s!"preprocess_col0_dead/{repr input}: column-0 landing found" false ""
+  -- `indicatorAt_false_of_dispatch_none`: a declined block dispatch means no indicator, and
+  -- the indicator rows are exactly the ones the dispatcher takes.
+  for (input, declined) in [("-x", true), (":x", true), ("a", true), ("- a", false),
+                            (": a", false), ("-", false), (":", false)] do
+    let s := ScannerState.mk' input
+    match s.peek? with
+    | some c =>
+      let none? := match scanNextToken_dispatchBlockIndicators s c with
+        | .ok none => true | _ => false
+      checkM state s!"dispatch_none/{repr input}: declined" (none? == declined) ""
+      if none? then
+        checkM state s!"dispatch_none/{repr input}: no indicator"
+          (PendingKeys.indicatorAt c (s.peekAt? 1) == false) ""
+    | none => checkM state s!"dispatch_none/{repr input}: peek" false ""
+
 def collectTests : IO VerifiedSuiteResult := do
   let state ← IO.mkRef ({} : TestCollector)
   test9g state
@@ -3681,6 +3877,7 @@ def collectTests : IO VerifiedSuiteResult := do
   testMaximalTagLeaves state
   testGluedFlowValue state
   testGluedScannerLemmas state
+  testColZeroLanding state
   let results ← finish state
   return { name := "adversarialinstantiation",
            label := "Adversarial Instantiation Tests (sorry audit)",
