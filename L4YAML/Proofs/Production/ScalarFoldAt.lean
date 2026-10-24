@@ -901,7 +901,7 @@ lemma collectPlainScalarLoop_prod_at (n : Nat) (sc : ScannerState) (sp : SurfPos
     (sp_ent : SurfPos) (inFlow : Bool) (ci : Int)
     (hcorr : ScannerSurfCorr sc sp)
     (h_ws : GStar SSWhite sp_ent sp)
-    (h_hash_col : sc.peek? = some '#' → spaces.length = 0 → sc.col > 0)
+    (h_sp : spaces.length = 0 → sp_ent = sp)
     (hci : sc.currentIndent = ci)
     (h_ie : sc.inputEnd ≤ inputEnd)
     {result : PlainScalarResult}
@@ -992,7 +992,7 @@ lemma collectPlainScalarLoop_prod_at (n : Nat) (sc : ScannerState) (sp : SurfPos
                         | h_under
                       · rcases ih fold_result.2 sp_fold (content ++ fold_result.1) ""
                             sp_fold hcorr_fold (GStar.nil _)
-                            (fun hpk _ => absurd hpk hnothash) hci_fold
+                            (fun _ => rfl) hci_fold
                             (by rw [foldQuotedNewlines_inputEnd hfold]; exact h_ie)
                             h_loop with
                           ⟨sp_entries_ih, sp_next_ih, sp_trail_ih,
@@ -1000,11 +1000,12 @@ lemma collectPlainScalarLoop_prod_at (n : Nat) (sc : ScannerState) (sp : SurfPos
                         · exact ⟨sp_ent, sp_next_ih, sp_trail_ih,
                             GStar.nil _,
                             GStar.cons sp_ent sp_entries_ih sp_next_ih
-                              (SSNsPlainNextLine.mk n (ctxOfInFlow inFlow)
+                              (ssNsPlainNextLine_of_gplus n (ctxOfInFlow inFlow)
                                 sp_ent ⟨c :: rest, sc.col⟩ sp₁ sp₂ sp_fold sp_entries_ih
-                                h_ws h_sbreak h_gstar_empty h_flp
+                                h_ws h_sbreak h_gstar_empty h_flp hcorr_fold
                                 (h_plus_ih (foldQuotedNewlines_landing hfold)
-                                  (Nat.lt_of_not_le h_grew)))
+                                  (Nat.lt_of_not_le h_grew))
+                                (foldQuotedNewlines_landing hfold) hnothash)
                               h_next_ih,
                             h_ws_ih, hcorr_ih,
                             fun hpre _ => by simp [(hpre c hpeek).2] at hlb⟩
@@ -1053,7 +1054,7 @@ lemma collectPlainScalarLoop_prod_at (n : Nat) (sc : ScannerState) (sp : SurfPos
                         contentIndent inputEnd hcorr hpeek hlb hblk hn
                         (by rw [hci]; exact hnci)
                     · rcases ih s' sp_fold content' "" sp_fold hcorr_fold (GStar.nil _)
-                          (fun hpk _ => absurd hpk hblkpeek)
+                          (fun _ => rfl)
                           (by rw [← hci]
                               exact currentIndent_of_indents_eq
                                 (handleBlockLineBreak_indents hblk))
@@ -1064,14 +1065,18 @@ lemma collectPlainScalarLoop_prod_at (n : Nat) (sc : ScannerState) (sp : SurfPos
                       · exact ⟨sp_ent, sp_next_ih, sp_trail_ih,
                           GStar.nil _,
                           GStar.cons sp_ent sp_entries_ih sp_next_ih
-                            (SSNsPlainNextLine.mk n (ctxOfInFlow inFlow)
+                            (ssNsPlainNextLine_of_gplus n (ctxOfInFlow inFlow)
                               sp_ent ⟨c :: rest, sc.col⟩ sp₁ sp₂ sp_fold sp_entries_ih
-                              h_ws h_sbreak h_gstar_empty h_flp
+                              h_ws h_sbreak h_gstar_empty h_flp hcorr_fold
                               (h_plus_ih
                                 (handleBlockLineBreak_landing (by omega)
                                   (handleBlockLineBreak_gate_false
                                     (by rw [hci]; exact hcin h_nf) hblk) hblk)
-                                (Nat.lt_of_not_le h_grew)))
+                                (Nat.lt_of_not_le h_grew))
+                              (handleBlockLineBreak_landing (by omega)
+                                (handleBlockLineBreak_gate_false
+                                  (by rw [hci]; exact hcin h_nf) hblk) hblk)
+                              hblkpeek)
                             h_next_ih,
                           h_ws_ih, hcorr_ih,
                           fun hpre _ => by simp [(hpre c hpeek).2] at hlb⟩
@@ -1090,7 +1095,7 @@ lemma collectPlainScalarLoop_prod_at (n : Nat) (sc : ScannerState) (sp : SurfPos
               · exact SSWhite.tab rest sc.col
             rcases ih sc.advance ⟨rest, sc.col + 1⟩ content (spaces.push c) sp_ent
                 hcorr_adv (gstar_sswhite_append h_ws (GStar.cons _ _ _ hw (GStar.nil _)))
-                (fun _ hlen => by simp [String.length_push] at hlen)
+                (fun hlen => by simp [String.length_push] at hlen)
                 (by rw [← hci]; exact currentIndent_of_indents_eq (advance_indents sc))
                 (by rw [advance_inputEnd]; exact h_ie)
                 hok with
@@ -1110,7 +1115,7 @@ lemma collectPlainScalarLoop_prod_at (n : Nat) (sc : ScannerState) (sp : SurfPos
               have hnl := (isPlainSafe_not_newline h_safe).1
               have hcr := (isPlainSafe_not_newline h_safe).2
               have hcorr_adv := advance_non_newline_corr sc c rest hcorr hmore hnl hcr
-              have hchar : SNsPlainChar (ctxOfInFlow inFlow) ⟨c :: rest, sc.col⟩
+              have h_entry : SNbNsPlainInLineEntry (ctxOfInFlow inFlow) sp_ent
                   ⟨rest, sc.col + 1⟩ := by
                 by_cases hcolon : c = ':'
                 · subst hcolon
@@ -1135,8 +1140,8 @@ lemma collectPlainScalarLoop_prod_at (n : Nat) (sc : ScannerState) (sp : SurfPos
                         have h1 := hfi rfl
                         have h2 := (isFlowIndicator_iff m).mpr hfp
                         simp [h1] at h2⟩
-                  exact SNsPlainChar.colonSafe (ctxOfInFlow inFlow) '_' m rest' sc.col
-                    h_ns_safe
+                  exact SNbNsPlainInLineEntry.mk _ sp_ent _ _ h_ws
+                    (SNsPlainChar.colonSafe (ctxOfInFlow inFlow) '_' m rest' sc.col h_ns_safe)
                 · by_cases hhash : c = '#'
                   · subst hhash
                     have h_sp_zero : spaces.length = 0 := by
@@ -1146,25 +1151,21 @@ lemma collectPlainScalarLoop_prod_at (n : Nat) (sc : ScannerState) (sp : SurfPos
                         decide_eq_true_eq.mpr h_pos
                       unfold collectPlainScalar_terminates? at h_term_none
                       simp [h_dec] at h_term_none
-                    have h_col_pos : sc.col > 0 := h_hash_col hpeek h_sp_zero
-                    exact SNsPlainChar.hashAfterNs (ctxOfInFlow inFlow) rest sc.col h_col_pos
-                  · exact SNsPlainChar.safe (ctxOfInFlow inFlow) c rest sc.col
-                      (isPlainSafe_to_nsPlainSafe h_safe) hcolon hhash
+                    have h_ent := h_sp h_sp_zero
+                    subst h_ent
+                    exact SNbNsPlainInLineEntry.hash _ _ _ (GLit.mk rest sc.col)
+                  · exact SNbNsPlainInLineEntry.mk _ sp_ent _ _ h_ws
+                      (SNsPlainChar.safe (ctxOfInFlow inFlow) c rest sc.col
+                        (isPlainSafe_to_nsPlainSafe h_safe) hcolon hhash)
               rcases ih sc.advance ⟨rest, sc.col + 1⟩ _ "" ⟨rest, sc.col + 1⟩
                   hcorr_adv (GStar.nil _)
-                  (fun _ _ => by
-                    have h : sc.col + 1 = sc.advance.col := hcorr_adv.col_eq
-                    omega)
+                  (fun _ => rfl)
                   (by rw [← hci]; exact currentIndent_of_indents_eq (advance_indents sc))
                   (by rw [advance_inputEnd]; exact h_ie)
                   hok with
                 ⟨sp_entries, sp_next, sp_trail, h_ent_rest, h_next_rest,
                  h_ws_rest, hcorr_rest, -⟩
-              · have h_entry : SNbNsPlainInLineEntry (ctxOfInFlow inFlow) sp_ent
-                    ⟨rest, sc.col + 1⟩ :=
-                  SNbNsPlainInLineEntry.mk (ctxOfInFlow inFlow) sp_ent ⟨c :: rest, sc.col⟩
-                    ⟨rest, sc.col + 1⟩ h_ws hchar
-                exact ⟨sp_entries, sp_next, sp_trail,
+              · exact ⟨sp_entries, sp_next, sp_trail,
                   GStar.cons sp_ent ⟨rest, sc.col + 1⟩ sp_entries h_entry h_ent_rest,
                   h_next_rest, h_ws_rest, hcorr_rest,
                   fun _ _ =>
@@ -1231,9 +1232,7 @@ lemma scanPlainScalar_to_flowContent_at (n : Nat) (sc : ScannerState) (sp : Surf
     rw [hci_eq] at hloop'
     rcases collectPlainScalarLoop_prod_at n sc.advance ⟨rest, sc.col + 1⟩ _ "" _ _ _
         ⟨rest, sc.col + 1⟩ sc.inFlow sc.currentIndent hcorr_adv (GStar.nil _)
-        (fun _ _ => by
-          have h : sc.col + 1 = sc.advance.col := hcorr_adv.col_eq
-          omega)
+        (fun _ => rfl)
         (currentIndent_of_indents_eq (advance_indents sc))
         (by rw [advance_inputEnd]; exact Nat.le_refl _)
         hloop' hn
@@ -1336,9 +1335,7 @@ lemma scanPlainScalar_to_flowContent_flowIn_at (n : Nat) (sc : ScannerState) (sp
     rw [hci_eq] at hloop'
     rcases collectPlainScalarLoop_prod_at n sc.advance ⟨rest, sc.col + 1⟩ _ "" _ _ _
         ⟨rest, sc.col + 1⟩ sc.inFlow sc.currentIndent hcorr_adv (GStar.nil _)
-        (fun _ _ => by
-          have h : sc.col + 1 = sc.advance.col := hcorr_adv.col_eq
-          omega)
+        (fun _ => rfl)
         (currentIndent_of_indents_eq (advance_indents sc))
         (by rw [advance_inputEnd]; exact Nat.le_refl _)
         hloop' (by omega) hn

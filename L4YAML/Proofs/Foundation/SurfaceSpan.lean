@@ -396,13 +396,13 @@ lemma snsPlainChar_suffix {c : YamlContext} {a b : SurfPos} (h : SNsPlainChar c 
   match h with
   | .safe _ ch rest _ _ _ _ => exact List.suffix_cons ch rest
   | .colonSafe _ _ next rest _ _ => exact List.suffix_cons ':' (next :: rest)
-  | .hashAfterNs _ rest _ _ => exact List.suffix_cons '#' rest
 
 lemma snbNsPlainInLineEntry_suffix {c : YamlContext} {a b : SurfPos}
     (h : SNbNsPlainInLineEntry c a b) : b.chars <:+ a.chars := by
   match h with
   | .mk _ _ _ _ hw hc =>
     exact (snsPlainChar_suffix hc).trans (gstar_suffix (fun _ _ => sswhite_suffix) hw)
+  | .hash _ _ _ hl => cases hl; exact List.suffix_cons '#' _
 
 lemma snsPlainOneLine_suffix {c : YamlContext} {a b : SurfPos} (h : SNsPlainOneLine c a b) :
     b.chars <:+ a.chars := by
@@ -414,8 +414,9 @@ lemma snsPlainOneLine_suffix {c : YamlContext} {a b : SurfPos} (h : SNsPlainOneL
 lemma ssNsPlainNextLine_suffix {n : Nat} {c : YamlContext} {a b : SurfPos}
     (h : SSNsPlainNextLine n c a b) : b.chars <:+ a.chars := by
   match h with
-  | .mk _ _ _ _ _ _ _ _ hw hb he hp hg =>
-    exact ((((gplus_suffix (fun _ _ => snbNsPlainInLineEntry_suffix) hg).trans
+  | .mk _ _ _ _ _ _ _ _ _ hw hb he hp hc hg =>
+    exact (((((gstar_suffix (fun _ _ => snbNsPlainInLineEntry_suffix) hg).trans
+      (snsPlainChar_suffix hc)).trans
       (sFlowLinePrefix_suffix hp)).trans
         (gstar_suffix (fun _ _ => sLEmpty_suffix) he)).trans (sbBreak_suffix hb)).trans
           (gstar_suffix (fun _ _ => sswhite_suffix) hw)
@@ -863,9 +864,10 @@ lemma ssDoubleBreak_break {n : Nat} {a b : SurfPos} (h : SSDoubleBreak n a b) :
 lemma ssNsPlainNextLine_break {n : Nat} {c : YamlContext} {a b : SurfPos}
     (h : SSNsPlainNextLine n c a b) : BreakBetween a b := by
   match h with
-  | .mk _ _ _ _ _ _ _ _ hw hb hem hp hg =>
+  | .mk _ _ _ _ _ _ _ _ _ hw hb hem hp hc hg =>
     refine breakBetween_extend_right ?_ (breakBetween_extend_left ?_ (breakBetween_of_break hb))
-    · exact ((gplus_suffix (fun _ _ => snbNsPlainInLineEntry_suffix) hg).trans
+    · exact (((gstar_suffix (fun _ _ => snbNsPlainInLineEntry_suffix) hg).trans
+      (snsPlainChar_suffix hc)).trans
         (sFlowLinePrefix_suffix hp)).trans (gstar_suffix (fun _ _ => sLEmpty_suffix) hem)
     · exact gstar_suffix (fun _ _ => sswhite_suffix) hw
 

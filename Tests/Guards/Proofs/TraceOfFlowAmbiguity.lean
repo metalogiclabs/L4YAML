@@ -5,7 +5,7 @@ public meta import L4YAML.Proofs.Serialization.TraceOf.Node
 
 /-! # `tFlowNode_unique` is FALSE on the event-annotated flow grammar (Rule 2)
 
-Two refutations of
+Refutations of
 
     TFlowNode n c s s' ev₁ → TFlowNode n c s s' ev₂ → ev₁ = ev₂
 
@@ -15,11 +15,12 @@ each a pair of hand-built derivations of the same span with different traces.
    anchor `xa`; `propsContent` reads the anchor `x`, an EMPTY `s-separate`
    (`SSeparateInLine.startOfLine` applies at any position), then the plain
    scalar `a`.  Traces `[defineAnchor "xa"]` vs `[defineAnchor "x"]`.
-2. `[a # b, &x⏎]` — plain-vs-comment: `#` after a space is a comment under
-   `s-separate`, but `SNsPlainChar.hashAfterNs` (guard `col > 0`, not
-   "preceded by ns-char") also admits it inside the plain scalar, so the
-   same text is one entry `a` + comment, or two entries `a # b` and `&x`.
-   Traces `[]` vs `[defineAnchor "x"]`.
+2. `[a # b, &x⏎]` — plain-vs-comment, CLOSED: `#` after a space is a comment
+   under `s-separate`.  `SNsPlainChar.hashAfterNs` (guard `col > 0`, not
+   "preceded by ns-char") used to admit it inside the plain scalar too; now
+   `[130]` has no `#` and `[132]`'s `hash` entry needs an empty `s-white*`,
+   so ` #` is no entry (`hash_after_white_not_entry`) and only the comment
+   reading `readComment` (trace `[]`) remains.
 3. `[!t &x a]` — tag non-maximal: `!t` is a primary tag, or the non-specific
    tag `!` followed by an EMPTY `s-separate` and the plain scalar `t &x a`
    (`&` is plain-safe after the first character).  Traces
@@ -126,50 +127,25 @@ lemma readComment : TFlowSequence 0 .flowOut t0 t12 [] :=
         (SFlowLinePrefix.mk 0 t11 t11 t11 (SIndent.zero _) (GOpt.none _)))))
     (GLit.mk _ 0)
 
-/-- Plain `a # b` (via `hashAfterNs`), `,`, space, anchor `&x`, break, `]`. -/
-lemma readTwoEntries : TFlowSequence 0 .flowOut t0 t12 [Event.defineAnchor "x"] :=
-  .nonempty 0 .flowOut t0 t1 t1 t11 t12 ([] ++ [Event.defineAnchor "x"])
-    (GLit.mk _ 0) (GOpt.none _)
-    (.consMore 0 .flowIn t1 t6 t6 t7 t8 t11 [] [Event.defineAnchor "x"]
-      (.node 0 .flowIn t1 t6 [] (.content 0 .flowIn t1 t6 [] (.plain 0 .flowIn t1 t6
-        (SNsPlainMultiLine.mk 0 .flowIn t1 t6 t6
-          (SNsPlainOneLine.mk .flowIn t1 t2 t6
-            (SNsPlainFirst.nonIndicator .flowIn 'a' _ 1 safe_a (by decide))
-            (GStar.cons t2 t4 t6
-              (SNbNsPlainInLineEntry.mk .flowIn t2 t3 t4
-                (GStar.cons _ _ _ (SSWhite.space _ 2) (GStar.nil _))
-                (SNsPlainChar.hashAfterNs .flowIn _ 3 (by decide)))
-              (GStar.cons t4 t6 t6
-                (SNbNsPlainInLineEntry.mk .flowIn t4 t5 t6
-                  (GStar.cons _ _ _ (SSWhite.space _ 4) (GStar.nil _))
-                  (SNsPlainChar.safe .flowIn 'b' _ 5 safe_b (by decide) (by decide)))
-                (GStar.nil _))))
-          (GStar.nil _)))))
-      (GOpt.none _)
-      (GLit.mk _ 6)
-      (GOpt.some _ _ (SSeparateLines.inline 0 t7 t8
-        (SSeparateInLine.whites t7 t8 (GPlus.mk _ _ _ (SSWhite.space _ 7) (GStar.nil _)))))
-      (.single 0 .flowIn t8 t10 t11 [Event.defineAnchor "x"]
-        (.node 0 .flowIn t8 t10 _ (.propsEmpty 0 .flowIn t8 t10 _
-          (TCNsProperties.anchorFirst t8 t10 t10 [Event.defineAnchor "x"] []
-            (And.intro
-              (SCNsAnchorProperty.mk _ 8 t10
-                (GPlus.mk _ _ _ (GChar.mk 'x' _ 9 ns_x) (GStar.nil _)))
-              (by decide))
-            (TOpt.none _))))
-        (GOpt.some _ _ (SSeparateLines.commented 0 t10 t11 t11
-          (SSLComments.withComment t10 t11 t11
-            (SSBComment.noSep t10 t11 (SBComment.break t10 t11 (SBBreak.lf _ 10)))
-            (GStar.nil _))
-          (SFlowLinePrefix.mk 0 t11 t11 t11 (SIndent.zero _) (GOpt.none _))))))
-    (GLit.mk _ 0)
-
-#guard (([] : List Event) == [Event.defineAnchor "x"]) = false
-
-lemma tFlowSequence_unique_false :
-    ¬ ∀ ev₁ ev₂, TFlowSequence 0 .flowOut t0 t12 ev₁ → TFlowSequence 0 .flowOut t0 t12 ev₂ →
-      ev₁ = ev₂ :=
-  fun h => absurd (h _ _ readComment readTwoEntries) (by decide)
+/-- The second derivation is gone: ` #` (white, then `#`) is NOT a `[132]` entry.  `mk`'s
+    `ns-plain-char` has no `#`, and `hash` wants the `#` at the entry's own start — here
+    the entry starts with a space.  `[a # b, &x⏎]` keeps only `readComment`. -/
+lemma hash_after_white_not_entry : ¬ SNbNsPlainInLineEntry .flowIn t2 t4 := by
+  intro h
+  cases h
+  · rename_i hws hch
+    cases hws
+    · cases hch
+    · rename_i hw hws'
+      cases hw
+      cases hws'
+      · cases hch
+        rename_i hNotHash
+        exact hNotHash rfl
+      · rename_i hw' _
+        cases hw'
+  · rename_i hl
+    cases hl
 
 end PlainComment
 

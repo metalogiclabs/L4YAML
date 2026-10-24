@@ -17,9 +17,9 @@ derivation at the scanner's position makes `scanPlainScalar` succeed and land at
 end of the derivation's trailing white run, emitting the trimmed `.plain` token.
 
 The unnarrowed converse is false (probes in `Tests/Guards/Proofs/AcceptanceProbes.lean`):
-* `a #b` — `[130]`'s `hashAfterNs` only asks `col > 0`, so `#` after a space is a
-  plain char; the scanner reads ` #` as a comment and stops at `a` (→ `PlainCharOk.hash`
-  only with no pending white).
+* `a #b` — the scanner reads ` #` as a comment and stops at `a`; `[132]`'s `hash`
+  entry agrees (`#` is content only with an EMPTY `s-white*`), and `PlainCharOk.hash`
+  is likewise admitted only with no pending white.
 * `--- x` / `---` — `[126]`'s `dashSafe` derives `---` at column 0; the scanner sees a
   document marker and emits an empty scalar without moving (→ `hdoc`).
 * `a  ` — `[133]` ends at `a`; the scanner buffers the trailing whites and lands after
@@ -38,7 +38,7 @@ open L4YAML.Grammar
 
 /-- One plain content char the scanner keeps: `isPlainSafeBool` (printable, no BOM, in
     flow no indicator); `:` only before another safe char; `#` only with no white before
-    it (`[130]` lets `#` follow a space, which the scanner reads as a comment). -/
+    it (`[132]`'s `hash` entry; ` #` is a comment for both). -/
 inductive PlainCharOk (inFlow : Bool) : (afterWhite : Bool) → SurfPos → SurfPos → Prop where
   | safe (aw : Bool) (ch : Char) (rest : List Char) (col : Nat)
       (hSafe : isPlainSafeBool ch inFlow = true) (hNotColon : ch ≠ ':') (hNotHash : ch ≠ '#') :
@@ -96,13 +96,38 @@ def PlainStopOk (inFlow : Bool) (hadWhite : Bool) (chars : List Char) : Prop :=
       (inFlow = true ∧ isFlowIndicatorBool c = true) ∨
       (isPlainSafeBool c inFlow = false ∧ isWhiteSpaceBool c = false ∧ isLineBreakBool c = false)
 
+/-- A `PlainCharOk` that is not `#` is a `[130]` char (`#` is `[132]`'s `hash` entry). -/
 lemma PlainCharOk.toSNsPlainChar {inFlow aw : Bool} {s s' : SurfPos}
-    (h : PlainCharOk inFlow aw s s') : SNsPlainChar (ctxOfInFlow inFlow) s s' := by
+    (h : PlainCharOk inFlow aw s s') (hhash : s.chars.head? ≠ some '#') :
+    SNsPlainChar (ctxOfInFlow inFlow) s s' := by
   cases h with
   | safe aw ch rest col hSafe hc hh => exact isPlainSafe_to_plainChar_basic ch rest col inFlow hSafe hc hh
   | colonSafe aw next rest col hSafe =>
     exact SNsPlainChar.colonSafe _ ':' next rest col (isPlainSafe_to_nsPlainSafe hSafe)
-  | hash rest col hcol => exact SNsPlainChar.hashAfterNs _ rest col hcol
+  | hash rest col hcol => exact absurd rfl hhash
+
+/-- After pending whites `PlainCharOk` never admits `#`, so it is a `[130]` char. -/
+lemma PlainCharOk.toSNsPlainChar_afterWhite {inFlow aw : Bool} {s s' : SurfPos}
+    (h : PlainCharOk inFlow aw s s') (haw : aw = true) :
+    SNsPlainChar (ctxOfInFlow inFlow) s s' := by
+  cases h with
+  | safe aw ch rest col hSafe hc hh => exact isPlainSafe_to_plainChar_basic ch rest col inFlow hSafe hc hh
+  | colonSafe aw next rest col hSafe =>
+    exact SNsPlainChar.colonSafe _ ':' next rest col (isPlainSafe_to_nsPlainSafe hSafe)
+  | hash rest col _ => exact Bool.noConfusion haw
+
+/-- A `PlainCharOk` with no pending white is a `[132]` entry with an empty `s-white*`:
+    a `[130]` char, or the `hash` entry. -/
+lemma PlainCharOk.toEntry_noWhite {inFlow aw : Bool} {s s' : SurfPos}
+    (h : PlainCharOk inFlow aw s s') : SNbNsPlainInLineEntry (ctxOfInFlow inFlow) s s' := by
+  cases h with
+  | safe aw ch rest col hSafe hc hh =>
+    exact SNbNsPlainInLineEntry.mk _ _ _ _ (GStar.nil _)
+      (isPlainSafe_to_plainChar_basic ch rest col inFlow hSafe hc hh)
+  | colonSafe aw next rest col hSafe =>
+    exact SNbNsPlainInLineEntry.mk _ _ _ _ (GStar.nil _)
+      (SNsPlainChar.colonSafe _ ':' next rest col (isPlainSafe_to_nsPlainSafe hSafe))
+  | hash rest col _ => exact SNbNsPlainInLineEntry.hash _ _ _ (GLit.mk rest col)
 
 lemma GPlus.toGStar {P : SurfPos → SurfPos → Prop} {s s' : SurfPos}
     (h : GPlus P s s') : GStar P s s' :=
@@ -117,8 +142,9 @@ lemma GStar.imp' {P Q : SurfPos → SurfPos → Prop} (f : ∀ a b, P a b → Q 
 lemma PlainEntryOk.toEntry {inFlow : Bool} {s s' : SurfPos}
     (h : PlainEntryOk inFlow s s') : SNbNsPlainInLineEntry (ctxOfInFlow inFlow) s s' :=
   match s, s', h with
-  | _, _, .noWhite s s' hc => SNbNsPlainInLineEntry.mk _ s s s' (GStar.nil s) hc.toSNsPlainChar
-  | _, _, .white s s₁ s' hw hc => SNbNsPlainInLineEntry.mk _ s s₁ s' (GPlus.toGStar hw) hc.toSNsPlainChar
+  | _, _, .noWhite _ _ hc => hc.toEntry_noWhite
+  | _, _, .white s s₁ s' hw hc =>
+    SNbNsPlainInLineEntry.mk _ s s₁ s' (GPlus.toGStar hw) (hc.toSNsPlainChar_afterWhite rfl)
 
 lemma PlainOneLineOk.toSNsPlainOneLine {inFlow : Bool} {s s' : SurfPos}
     (h : PlainOneLineOk inFlow s s') : SNsPlainOneLine (ctxOfInFlow inFlow) s s' :=
@@ -1100,11 +1126,10 @@ lemma scanPlainScalar_accepts_multi (sc : ScannerState) {n : Nat} {sp sp₁ sp' 
 lemma PlainNextLineOk.toSSNsPlainNextLine {inFlow : Bool} {n : Nat} {s s' : SurfPos}
     (h : PlainNextLineOk inFlow n s s') : SSNsPlainNextLine n (ctxOfInFlow inFlow) s s' :=
   match s, s', h with
-  | _, _, .mk s s_ws s₁ s₂ s₃ s₄ s' hws hb hblank hpre _ _ hch hent =>
-    SSNsPlainNextLine.mk n _ s s_ws s₁ s₂ s₃ s' hws hb.toSBBreak
-      (GStar.imp' (fun _ _ he => he.toSLEmpty) hblank) hpre
-      (GPlus.mk s₃ s₄ s' (PlainEntryOk.toEntry (.noWhite s₃ s₄ hch))
-        (GStar.imp' (fun _ _ he => he.toEntry) hent))
+  | _, _, .mk s s_ws s₁ s₂ s₃ s₄ s' hws hb hblank hpre hhash _ hch hent =>
+    SSNsPlainNextLine.mk n _ s s_ws s₁ s₂ s₃ s₄ s' hws hb.toSBBreak
+      (GStar.imp' (fun _ _ he => he.toSLEmpty) hblank) hpre (hch.toSNsPlainChar hhash)
+      (GStar.imp' (fun _ _ he => he.toEntry) hent)
 
 /-- The hypotheses of `scanPlainScalar_accepts_multi` derive `[135] ns-plain-multi-line`. -/
 lemma toSNsPlainMultiLine {inFlow : Bool} {n : Nat} {s s₁ s' : SurfPos}

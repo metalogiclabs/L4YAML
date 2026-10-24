@@ -342,7 +342,8 @@ def expectedEndsLit : List String :=
    "L4YAML.Surface.SFlowSeqEntry.explicitPairEmpty ':'",
    "L4YAML.Surface.SFlowSeqEntry.pairEmpty ':'",
    "L4YAML.Surface.SFlowSequence.empty ']'",
-   "L4YAML.Surface.SFlowSequence.nonempty ']'"]
+   "L4YAML.Surface.SFlowSequence.nonempty ']'",
+   "L4YAML.Surface.SNbNsPlainInLineEntry.hash '#'"]
 
 /-- **The answer, in one line.**  `spend=6 len1=6` is §1; `depth=4` is §2;
     `endsLit=33 minus=1 question=2 colon=21 chainEnds=0` is §3; and
@@ -370,10 +371,12 @@ def expectedEndsLit : List String :=
 -- relation of `Acceptance/Plain.lean` (Stream E).
 -- `prods` 151 → 152, `ctors` 272 → 276, `endsLit` 37 → 38 on 2026-10-23: `TagOk` of
 -- `Acceptance/Properties.lean` (Stream E); `TagOk.verbatim` ends in `>` like `[97]`'s verbatim arm.
+-- `endsLit` 38 → 39 on 2026-10-23: `[132]`'s `SNbNsPlainInLineEntry.hash` ends in its `#` — the
+-- one legal `#` position in a plain scalar, replacing `[130]`'s `hashAfterNs` (`ctors` unchanged).
 def expectedLine : String :=
   "pop=10 sites=13 spend=6 nospend=7 len1=6 ends=GStar(SSWhite)+SIndent \
 depth=4 prods=152 ctors=276 \
-endsLit=38 minus=1 question=2 colon=21 chainEnds=0 blockArms=1 seqArms=10 \
+endsLit=39 minus=1 question=2 colon=21 chainEnds=0 blockArms=1 seqArms=10 \
 mapArms=10 streamArms=4 streamHonest=3"
 
 /-- The non-circularity check items 242, 243 and 244 also carry: a measurement

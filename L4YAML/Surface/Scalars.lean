@@ -245,7 +245,9 @@ inductive SNsPlainFirst : L4YAML.YamlContext → SurfPos → SurfPos → Prop wh
       SNsPlainFirst c ⟨'?' :: next :: rest, col⟩ ⟨next :: rest, col + 1⟩
 
 /-- [130] ns-plain-char(c): subsequent characters in a plain scalar.
-    Safe chars except ':' and '#' have adjacency constraints. -/
+    `:` needs a following ns-plain-safe(c).  `#` is NOT a char here: the spec
+    admits it only directly after an ns-char, and this relation does not know
+    its predecessor — `[132]`'s `hash` entry (empty `s-white*`) is that clause. -/
 @[yaml_spec "7.3.3" 130 "ns-plain-char(c)"]
 inductive SNsPlainChar : L4YAML.YamlContext → SurfPos → SurfPos → Prop where
   | safe (c : L4YAML.YamlContext) (ch : Char) (rest : List Char) (col : Nat)
@@ -257,19 +259,21 @@ inductive SNsPlainChar : L4YAML.YamlContext → SurfPos → SurfPos → Prop whe
       (hSafe : isNsPlainSafe c next) :
       -- ':' followed by ns-plain-safe (not standalone)
       SNsPlainChar c ⟨':' :: next :: rest, col⟩ ⟨next :: rest, col + 1⟩
-  | hashAfterNs (c : L4YAML.YamlContext) (rest : List Char) (col : Nat)
-      (hColGt : col > 0) :
-      -- '#' preceded by non-space (approximated by col > 0)
-      SNsPlainChar c ⟨'#' :: rest, col⟩ ⟨rest, col + 1⟩
 
 /-- [132] nb-ns-plain-in-line(c) entry: `s-white* ns-plain-char(c)`.
     One unit of the intra-line repetition: optional whitespace followed by a
-    plain content character. -/
+    plain content character.  `hash` is `[130]`'s `( ns-char "#" )` clause:
+    an entry whose `s-white*` is EMPTY starts right after the previous plain
+    char (an ns-char), so `#` is content there — and only there (` #` is a
+    comment). -/
 @[yaml_spec "7.3.3" 132 "nb-ns-plain-in-line(c)"]
 inductive SNbNsPlainInLineEntry : L4YAML.YamlContext → SurfPos → SurfPos → Prop where
   | mk (c : L4YAML.YamlContext) (s s₁ s' : SurfPos) :
       GStar SSWhite s s₁ →
       SNsPlainChar c s₁ s' →
+      SNbNsPlainInLineEntry c s s'
+  | hash (c : L4YAML.YamlContext) (s s' : SurfPos) :
+      GLit '#' s s' →
       SNbNsPlainInLineEntry c s s'
 
 /-- [133] ns-plain-one-line(c): plain scalar content on a single line.
@@ -290,19 +294,21 @@ inductive SNsPlainOneLine : L4YAML.YamlContext → SurfPos → SurfPos → Prop 
     in `GStar (SSNsPlainNextLine n c)`.
     NOTE: `SLEmpty` uses `.flowIn` context per YAML spec §6.8 (`s-flow-folded`
     always uses `b-l-trimmed(n, flow-in)` regardless of outer context `c`).
-    The entry repetition is `GPlus`: the spec's `ns-plain-char(c)` before
-    `nb-ns-plain-in-line(c)` demands at least one, and the scanner's
-    content-length check supplies it (`collectPlainScalarLoop_prod`).  A
-    continuation line that consumes nothing past `[69] s-flow-line-prefix(n)`
-    is an `l-empty` line, folded away by `s-flow-folded(n)` above. -/
+    The char after `[69] s-flow-line-prefix(n)` is `ns-plain-char(c)` itself,
+    as in the spec: never white (the prefix took it) and never `#` (`[130]`
+    has no `#`; a `#` there opens a comment).  The scanner's content-length
+    check supplies that char (`collectPlainScalarLoop_prod`).  A continuation
+    line that consumes nothing past the prefix is an `l-empty` line, folded
+    away by `s-flow-folded(n)` above. -/
 @[yaml_spec "7.3.3" 134 "s-ns-plain-next-line(n,c)"]
 inductive SSNsPlainNextLine : Nat → L4YAML.YamlContext → SurfPos → SurfPos → Prop where
-  | mk (n : Nat) (c : L4YAML.YamlContext) (s s_ws s₁ s₂ s₃ s' : SurfPos) :
+  | mk (n : Nat) (c : L4YAML.YamlContext) (s s_ws s₁ s₂ s₃ s₄ s' : SurfPos) :
       GStar SSWhite s s_ws →
       SBBreak s_ws s₁ →
       GStar (SLEmpty n .flowIn) s₁ s₂ →
       SFlowLinePrefix n s₂ s₃ →
-      GPlus (SNbNsPlainInLineEntry c) s₃ s' →
+      SNsPlainChar c s₃ s₄ →
+      GStar (SNbNsPlainInLineEntry c) s₄ s' →
       SSNsPlainNextLine n c s s'
 
 /-- [135] ns-plain-multi-line(n,c): multi-line plain scalar. -/
