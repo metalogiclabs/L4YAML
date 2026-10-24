@@ -346,7 +346,7 @@ coverPuntEntry=+0 mergedBase=true mergedAll=true floorLits=86 own=12 lit=5 var=6
 ownLemmas=2 scanned=32 monoIndex=9 monoIndexLemmas=5 floorCons=4 floorConsLemmas=2 \
 floorPopTo=1 floorPopToLemmas=1 leOfMem=0 coveredPopTo=1 coveredPopToLemmas=1 \
 raiseFloor=0 dedupHead=2 dedupHeadLemmas=2 coveredCons=4 rootMonoCaller=1 \
-rootMonoSite=1 rootNtop=1 nodes=105560 floorNodes=26256"
+rootMonoSite=1 rootNtop=1 nodes=106109 floorNodes=26256"
 
 /-! ## §4 The reading -/
 
