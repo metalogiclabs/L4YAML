@@ -507,5 +507,18 @@ def blkScalar (s : String) (indent : Int := -1) : Option (String × Nat × Nat) 
 #guard blkScalar "|--\n a\n" == none  -- REFUTER: repeated chomping indicator
 #guard blkScalar "|" == some ("", 1, 1)
 #guard blkScalar "|\n" == some ("", 2, 0)
+-- Header (`HeaderIndicatorsOk`/`HeaderTailOk`) and auto-detect (`AutoIndentOk`) probes.
+#guard blkScalar "|\n   \n a\n" == none  -- REFUTER: blank wider than the content indent (`blockScalarIndentMismatch`)
+#guard blkScalar "|\n \n  a\n" == some ("\na\n", 8, 0)  -- narrower blank is fine
+#guard blkScalar "|\n\ta\n" 0 == none  -- REFUTER: tab below the minimum content indent
+#guard blkScalar "|\n\n\n" == some ("\n", 4, 0)  -- all blank: clip keeps one break
+#guard blkScalar "|\n  \n" == some ("\n", 5, 0)  -- all blank: indent is the widest blank
+#guard blkScalar "|+\n  \n" == some ("\n", 6, 0)
+#guard blkScalar "| #c\n a\n" == some ("a\n", 8, 0)  -- comment text need not be separated from `#`
+#guard blkScalar "|\t\n a\n" == some ("a\n", 6, 0)  -- tab is header white
+#guard blkScalar "|9\n a\n" == some ("", 3, 0)  -- explicit indent above the content: stops at once
+#guard blkScalar "|0\n a\n" == none  -- REFUTER: `0` is not an indentation indicator
+#guard blkScalar "|1+\n a\n" == some (" a\n", 7, 0)
+#guard blkScalar ">-\n a\n b\n\n c\n" == some ("a b\nc", 13, 0)
 
 end L4YAML.Proofs.Acceptance.Probes
