@@ -199,7 +199,7 @@ def expectedSplit : String :=
     must say how much of the population it could see: `blind` counts arms
     holding two positions it could not relate, `skippedTypes` the productions
     that are not two-position relations. -/
-def expectedCoverage : String := "lits=78 pairs=39 blind=0 skippedTypes=1"
+def expectedCoverage : String := "lits=79 pairs=41 blind=0 skippedTypes=1"
 
 /-- The arm, and it is the one §1 refutes the law with. -/
 def expectedViolation : String :=

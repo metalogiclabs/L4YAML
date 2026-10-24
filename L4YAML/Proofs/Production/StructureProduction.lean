@@ -550,11 +550,14 @@ private lemma gstar_append_local {P : SurfPos → SurfPos → Prop} {a b c : Sur
   | cons s₁ s₂ _ hx _ ih => exact fun h => GStar.cons s₁ s₂ c hx (ih h)
 
 lemma collectTagSuffixLoop_prod (sc : ScannerState) (sp : SurfPos)
-    (hcorr : ScannerSurfCorr sc sp) (suffix : String) (fuel : Nat) :
+    (hcorr : ScannerSurfCorr sc sp) (suffix : String) (fuel : Nat)
+    (hfuel : sc.inputEnd - sc.offset ≤ fuel) :
     ∃ sp', GStar (GChar isTagCharProp) sp sp' ∧
-           ScannerSurfCorr (collectTagSuffixLoop sc suffix fuel).snd sp' := by
+           ScannerSurfCorr (collectTagSuffixLoop sc suffix fuel).snd sp' ∧
+           GNot (GChar isTagCharProp) sp' := by
   induction fuel generalizing sc sp suffix with
-  | zero => exact ⟨sp, GStar.nil sp, hcorr⟩
+  | zero =>
+    exact ⟨sp, GStar.nil sp, hcorr, gnot_gchar_of_peek_none hcorr (peek_none_of_fuel_zero hfuel)⟩
   | succ fuel' ih =>
     unfold collectTagSuffixLoop; split
     · rename_i c hpeek; split
@@ -570,17 +573,26 @@ lemma collectTagSuffixLoop_prod (sc : ScannerState) (sp : SurfPos)
           intro heq; rw [heq] at hcond; exact absurd hcond (by native_decide)
         have hcorr_adv := advance_non_newline_corr sc c rest hcorr
           hmore hne_nl hne_cr
-        obtain ⟨sp', h_tail, hcorr'⟩ := ih sc.advance ⟨rest, sc.col + 1⟩
-          hcorr_adv (suffix.push c)
+        have hfuel' : sc.advance.inputEnd - sc.advance.offset ≤ fuel' := by
+          have h1 := ScannerProgress.advance_offset_lt sc hmore
+          have h2 : sc.advance.inputEnd = sc.inputEnd := advance_inputEnd sc
+          omega
+        obtain ⟨sp', h_tail, hcorr', hnot⟩ := ih sc.advance ⟨rest, sc.col + 1⟩
+          hcorr_adv (suffix.push c) hfuel'
         exact ⟨sp',
                GStar.cons _ _ _
                  (GChar.mk c rest sc.col htag)
                  h_tail,
-               hcorr'⟩
-      · -- not tag char: stop
-        exact ⟨sp, GStar.nil sp, hcorr⟩
-    · -- none: stop
-      exact ⟨sp, GStar.nil sp, hcorr⟩
+               hcorr', hnot⟩
+      · -- not tag char: stop — the lookahead
+        rename_i hcond
+        obtain ⟨rest, hsp_eq⟩ := peek_some_sp hcorr hpeek
+        subst hsp_eq
+        exact ⟨_, GStar.nil _, hcorr,
+               gnot_gchar_head (fun h => hcond ((isTagChar_iff c).mpr h))⟩
+    · -- none: stop — end of input
+      rename_i hpeek
+      exact ⟨sp, GStar.nil sp, hcorr, gnot_gchar_of_peek_none hcorr hpeek⟩
 
 /-! ### Verbatim tag URI loop production -/
 
@@ -730,15 +742,16 @@ lemma scanTag_secondary_prod (sc : ScannerState) (sp : SurfPos)
   · -- some '!': secondary tag
     have h_inj := Except.ok.inj hok; subst h_inj
     unfold scanSecondaryTag; dsimp only []
-    obtain ⟨sp', h_gstar, hcorr_sfx⟩ :=
+    obtain ⟨sp', h_gstar, hcorr_sfx, h_gnot⟩ :=
       collectTagSuffixLoop_prod sc.advance.advance ⟨srest, sc.advance.advance.col⟩
-        hcorr_bang2' "" _
+        hcorr_bang2' "" (sc.currentPos.offset + sc.advance.inputEnd - sc.advance.advance.offset)
+        (by simp only [advance_inputEnd]; omega)
     -- Bridge col: sc.advance.advance.col = sc.col + 2
     have hcol_bridge : sc.advance.advance.col = sc.col + 2 := by
       have := hcorr_bang.col_eq; have := hcorr_bang2.col_eq
       dsimp only [] at *; omega
     rw [hcol_bridge] at h_gstar
-    refine ⟨sp', SCNsTagProperty.secondary srest sc.col sp' h_gstar, ?_⟩
+    refine ⟨sp', SCNsTagProperty.secondary srest sc.col sp' h_gstar h_gnot, ?_⟩
     exact ⟨hcorr_sfx.chars_from, hcorr_sfx.col_eq, hcorr_sfx.end_eq, hcorr_sfx.input_prefix, hcorr_sfx.indent_cols_nonneg⟩
   · -- fallthrough: contradicts hpeek2
     rename_i _ h_not_bang
@@ -746,10 +759,25 @@ lemma scanTag_secondary_prod (sc : ScannerState) (sp : SurfPos)
 
 -- Named/non-specific tag grammar + correspondence.
 -- Pre: scanner after first `!`, at ⟨rest, col+1⟩, peek ≠ `!`.
+private lemma collectTagHandleLoop_inputEnd (s : ScannerState) (chars : String) (fuel : Nat) :
+    (collectTagHandleLoop s chars fuel).snd.snd.inputEnd = s.inputEnd := by
+  induction fuel generalizing s chars with
+  | zero => unfold collectTagHandleLoop; rfl
+  | succ fuel' ih =>
+    unfold collectTagHandleLoop
+    split
+    · simp only []; exact advance_inputEnd s
+    · split
+      · rw [ih]; exact advance_inputEnd s
+      · simp only []
+    · simp only []
+
+-- `hend`: the suffix loop's fuel `inputEnd - offset` must cover the remaining input for the
+-- `[97]` lookahead (`scanTag` passes `sc.inputEnd`).
 lemma scanNamedTag_prod (sc : ScannerState) (rest : List Char) (col : Nat)
     (hcorr : ScannerSurfCorr sc ⟨rest, col + 1⟩)
     (hpeek_not_bang : ¬(sc.peek? = some '!'))
-    (startPos : YamlPos) (inputEnd : Nat) :
+    (startPos : YamlPos) (inputEnd : Nat) (hend : sc.inputEnd ≤ inputEnd) :
     ∃ sp', SCNsTagProperty ⟨'!' :: rest, col⟩ sp' ∧
            ScannerSurfCorr (scanNamedTag sc startPos inputEnd) sp' := by
   unfold scanNamedTag; dsimp only []
@@ -783,9 +811,9 @@ lemma scanNamedTag_prod (sc : ScannerState) (rest : List Char) (col : Nat)
         exact hpeek_not_bang h_peek
       have h_gplus := GStar_to_GPlus h_gstar_word h_ne
       -- Suffix production
-      obtain ⟨sp', h_gstar_tag, hcorr_sfx⟩ :=
-        collectTagSuffixLoop_prod _ sp_hdl hcorr_hdl "" _
-      exact ⟨sp', SCNsTagProperty.named rest col sp_mid sp_hdl sp' h_gplus h_glit h_gstar_tag,
+      obtain ⟨sp', h_gstar_tag, hcorr_sfx, h_gnot⟩ :=
+        collectTagSuffixLoop_prod _ sp_hdl hcorr_hdl "" (inputEnd - (collectTagHandleLoop sc "" (inputEnd - sc.offset)).snd.snd.offset) (by rw [collectTagHandleLoop_inputEnd]; omega)
+      exact ⟨sp', SCNsTagProperty.named rest col sp_mid sp_hdl sp' h_gplus h_glit h_gstar_tag h_gnot,
              corr_of_emitAt _ _ hcorr_sfx⟩
   · -- foundBang = false → primary/non-specific tag
     rename_i h_fb_false
@@ -798,15 +826,16 @@ lemma scanNamedTag_prod (sc : ScannerState) (rest : List Char) (col : Nat)
     -- Lift GStar wordChar → GStar tagChar, then the suffix loop extends it to
     -- the full `ns-tag-char*` run (N1b: `!t.x` is one primary tag)
     have h_gstar_tag := GStar_gchar_lift (fun c => isWordCharProp_to_isTagCharProp) h_gstar_word
-    obtain ⟨sp', h_sfx, hcorr_sfx⟩ :=
+    obtain ⟨sp', h_sfx, hcorr_sfx, h_gnot⟩ :=
       collectTagSuffixLoop_prod _ sp_mid hcorr_hdl
-        ("!", (collectTagHandleLoop sc "" (inputEnd - sc.offset)).fst).snd _
+        ("!", (collectTagHandleLoop sc "" (inputEnd - sc.offset)).fst).snd
+        (inputEnd - (collectTagHandleLoop sc "" (inputEnd - sc.offset)).snd.snd.offset) (by rw [collectTagHandleLoop_inputEnd]; omega)
     have h_full := gstar_append_local h_gstar_tag h_sfx
     by_cases h_ne : (⟨rest, col + 1⟩ : SurfPos) = sp'
     · -- empty suffix: the bare `!` is the non-specific tag [100]
       subst h_ne
-      exact ⟨_, SCNsTagProperty.nonSpecific rest col, corr_of_emitAt _ _ hcorr_sfx⟩
-    · exact ⟨sp', SCNsTagProperty.primary rest col sp' (GStar_to_GPlus h_full h_ne),
+      exact ⟨_, SCNsTagProperty.nonSpecific rest col h_gnot, corr_of_emitAt _ _ hcorr_sfx⟩
+    · exact ⟨sp', SCNsTagProperty.primary rest col sp' (GStar_to_GPlus h_full h_ne) h_gnot,
              corr_of_emitAt _ _ hcorr_sfx⟩
 
 -- `scanTag` on non-secondary branches produces `SCNsTagProperty`.
@@ -889,7 +918,7 @@ lemma scanTag_nonSecondary_prod (sc : ScannerState) (sp : SurfPos)
       ⟨hcorr_bang.chars_from, hcorr_bang.col_eq,
        hcorr_bang.end_eq, hcorr_bang.input_prefix, hcorr_bang.indent_cols_nonneg⟩
     obtain ⟨sp', h_tag, hcorr'⟩ := scanNamedTag_prod sc.advance rest sc.col
-      hcorr_adv hpeek2 sc.currentPos sc.inputEnd
+      hcorr_adv hpeek2 sc.currentPos sc.inputEnd (Nat.le_of_eq (advance_inputEnd sc))
     exact ⟨sp', h_tag, corr_of_simpleKeyAllowed_update false hcorr'⟩
 
 -- `scanTag` preserves correspondence on all branches.

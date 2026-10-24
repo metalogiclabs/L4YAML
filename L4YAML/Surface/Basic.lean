@@ -241,7 +241,9 @@ Anchors have `&name` syntax. We encode the common patterns. -/
 
 /-- [97] c-ns-tag-property: tag starting with '!'.
     [99] c-ns-shorthand-tag is `c-tag-handle ns-tag-char+`, so the `primary`
-    suffix is non-empty and the bare `!` is only `nonSpecific` ([100]). -/
+    suffix is non-empty and the bare `!` is only `nonSpecific` ([100]).
+    Every arm ends with the MAXIMAL `[40] ns-tag-char` run (`GNot` lookahead):
+    `!t` is the primary tag `!t`, never `!` followed by `t`. -/
 inductive SCNsTagProperty : SurfPos → SurfPos → Prop where
   | verbatim (rest : List Char) (col : Nat) (s₁ s₂ s' : SurfPos) :
       GLit '<' ⟨rest, col + 1⟩ s₁ →
@@ -250,16 +252,20 @@ inductive SCNsTagProperty : SurfPos → SurfPos → Prop where
       SCNsTagProperty ⟨'!' :: rest, col⟩ s'
   | secondary (srest : List Char) (col : Nat) (s' : SurfPos) :
       GStar (GChar isTagCharProp) ⟨srest, col + 2⟩ s' →
+      GNot (GChar isTagCharProp) s' →
       SCNsTagProperty ⟨'!' :: '!' :: srest, col⟩ s'
   | named (rest : List Char) (col : Nat) (s₁ s₂ s' : SurfPos) :
       GPlus (GChar isWordCharProp) ⟨rest, col + 1⟩ s₁ →
       GLit '!' s₁ s₂ →
       GStar (GChar isTagCharProp) s₂ s' →
+      GNot (GChar isTagCharProp) s' →
       SCNsTagProperty ⟨'!' :: rest, col⟩ s'
   | nonSpecific (rest : List Char) (col : Nat) :
+      GNot (GChar isTagCharProp) ⟨rest, col + 1⟩ →
       SCNsTagProperty ⟨'!' :: rest, col⟩ ⟨rest, col + 1⟩
   | primary (rest : List Char) (col : Nat) (s' : SurfPos) :
       GPlus (GChar isTagCharProp) ⟨rest, col + 1⟩ s' →
+      GNot (GChar isTagCharProp) s' →
       SCNsTagProperty ⟨'!' :: rest, col⟩ s'
 
 /-- [101] c-ns-anchor-property: '&' followed by the MAXIMAL run of
