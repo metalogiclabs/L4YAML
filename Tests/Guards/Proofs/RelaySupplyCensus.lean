@@ -1151,7 +1151,7 @@ DECLINE|PAY|PAY=1, PAY|VIA=1]"
 -- 2026-10-23 (item 345): splits 170 → 174, leaves 367 → 375, relayRooted 160 → 164, optionalRoot 107 → 108, plainRoot 53 → 56, agree 111/111 → 112/112, DECLINE-free 104 → 108, PAY-free 181 → 185 — the same four splits.
 def expectedSplitBranch : String :=
   "splits=166 leaves=359 relayRooted=157 siteDecided=9 optionalRoot=104 plainRoot=53 \
-agree=107/107 disagree=0 [DECLINE-closed=80, DECLINE-free=101, PAY-free=177, VIA \
+agree=107/107 disagree=0 [DECLINE-closed=81, DECLINE-free=100, PAY-free=177, VIA \
 L4YAML.Proofs.StreamAccum.flowKeyRoute_of_root-=1]"
 
 /-- **The ten splits the site decides for itself**, which is the whole residue
