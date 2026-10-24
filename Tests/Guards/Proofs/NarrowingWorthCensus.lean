@@ -809,6 +809,8 @@ one unfolding, and §6 is the item where those two disagreed about binders. -/
 -- 2026-10-24 (item 349): `theorems` 6060 → 6064 — the indicator-aware gate's lemmas (`staleGate_true_of_noInd`,
 -- `staleGate_false_le`, `closeStaleExplicitKey_peekAt?`, the restated `closeStale_getElem?`); none is a no-op conclusion.
 -- 2026-10-23 (item 349): `theorems` 6064 → 6066 — `not_blockEntryCandidate_of_dispatch_none`, `indicatorAt_false_of_dispatch_none`.
+-- 2026-10-23 (item 349): `theorems` 6065 → 6071 — `staleGate_true_of_noInd`, `staleGate_false_le`, `closeStaleExplicitKey_peekAt?`,
+-- the restated `closeStale_getElem?`, `not_blockEntryCandidate_of_dispatch_none`, `indicatorAt_false_of_dispatch_none`; none is a no-op conclusion.
 def expectedNoopTally : String := "theorems=6067 byElab=15 byWhnf=15 elabOnly=0 whnfOnly=0"
 -- 5302 → 5344 on 2026-10-18 (plan row 20's close, closure-log item 280): the
 -- parse-side alias obligation moved to §7.1's DECLARATION set, so the carrier

@@ -3849,6 +3849,22 @@ def testColZeroLanding (state : IO.Ref TestCollector) : IO Unit := do
         checkM state s!"dispatch_none/{repr input}: no indicator"
           (PendingKeys.indicatorAt c (s.peekAt? 1) == false) ""
     | none => checkM state s!"dispatch_none/{repr input}: peek" false ""
+  -- `closeStaleExplicitKey_peekAt?` (review of #87): neither hook branch moves the lookahead —
+  -- the resetting branch (live `?` at column 0 over `-x`/`a`/`:x`) and the identity branch
+  -- (`- `, `: `, a bare `-` are indicators), at offsets 0, 1, 2 and past the end, both pipelines.
+  for (input, resets) in [("-x: 1", true), ("a", true), (":x", true), ("- a", false),
+                          (": a", false), ("-", false)] do
+    let s := staleStateAt input 0 0 0 (some 0) 0 0
+    let s' := closeStaleExplicitKey s
+    checkM state s!"peekAt/{repr input}: branch" ((s'.explicitKeyLine == none) == resets)
+      s!"register {repr s'.explicitKeyLine}"
+    let t := staleStateIxAt input 0 (some 0) 0 0
+    let t' := t.closeStaleExplicitKeyIx
+    for n in [0, 1, 2, 100] do
+      checkM state s!"peekAt/{repr input}/{n}: legacy lookahead preserved"
+        (s'.peekAt? n == s.peekAt? n) s!"{repr (s'.peekAt? n)} vs {repr (s.peekAt? n)}"
+      checkM state s!"peekAt/{repr input}/{n}: indexed lookahead preserved"
+        (t'.peekAt? n == t.peekAt? n) s!"{repr (t'.peekAt? n)} vs {repr (t.peekAt? n)}"
 
 def collectTests : IO VerifiedSuiteResult := do
   let state ← IO.mkRef ({} : TestCollector)
