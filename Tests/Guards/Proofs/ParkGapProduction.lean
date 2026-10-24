@@ -377,7 +377,7 @@ def expectedEndsLit : List String :=
 -- `Acceptance/BlockScalar.lean` (Stream E); none ends at a literal the park reads.
 def expectedLine : String :=
   "pop=10 sites=13 spend=6 nospend=7 len1=6 ends=GStar(SSWhite)+SIndent \
-depth=4 prods=159 ctors=293 \
+depth=4 prods=160 ctors=296 \
 endsLit=39 minus=1 question=2 colon=21 chainEnds=0 blockArms=1 seqArms=10 \
 mapArms=10 streamArms=4 streamHonest=3"
 
